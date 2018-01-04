@@ -11,12 +11,17 @@ map:
   foo: 1
   bar: 2
   baz: 3
-crl: cona
+  submap:
+    subfoo: 11
+    subbar: 12
+    subbaz: 13
+    subbat: 14
+fdx: crl
 )";
 
 int main()
 {
-    auto s = yml::Tree(16);
+    auto s = yml::Tree(2);
     auto p = yml::Parser();
     p.parse(&s, ex);
     return 0;

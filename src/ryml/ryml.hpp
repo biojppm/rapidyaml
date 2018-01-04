@@ -204,12 +204,22 @@ public:
     size_t m_head;
     size_t m_tail;
 
-    size_t m_free;
+    size_t m_free_head;
+    size_t m_free_tail;
 
 public:
 
-    Tree() : m_buf(nullptr), m_num(0), m_head(NONE), m_tail(NONE), m_free(NONE) {}
-    Tree(size_t sz) : m_buf(nullptr), m_num(0), m_head(NONE), m_tail(NONE), m_free(NONE)
+    Tree()
+        :
+        m_buf(nullptr),
+        m_num(0),
+        m_head(NONE),
+        m_tail(NONE),
+        m_free_head(NONE),
+        m_free_tail(NONE)
+    {
+    }
+    Tree(size_t sz) : Tree()
     {
         reserve(sz);
     }
@@ -230,13 +240,21 @@ public:
             memcpy(buf, m_buf, m_num * sizeof(Node));
             RymlCallbacks::free(m_buf, m_num * sizeof(Node));
         }
-        if(m_free == NONE)
+        if(m_free_head == NONE)
         {
-            m_free = m_num;
+            C4_ASSERT(m_free_tail == m_free_head);
+            m_free_head = m_num;
+            m_free_tail = sz;
         }
+        else
+        {
+            C4_ASSERT(m_free_tail != NONE);
+            m_buf[m_free_tail].m_next = m_num;
+        }
+        size_t first = m_num, del = sz - m_num;
         m_num = sz;
         m_buf = buf;
-        clear_range(m_num, sz - m_num);
+        clear_range(first, del);
     }
 
     void clear()
@@ -244,7 +262,8 @@ public:
         clear_range(0, m_num);
         m_head = NONE;
         m_tail = NONE;
-        m_free = 0;
+        m_free_head = 0;
+        m_free_tail = m_num;
     }
     void clear_range(size_t first, size_t num)
     {
@@ -270,25 +289,33 @@ public:
     {
         C4_ASSERT(prev == NONE || prev >= 0 && prev < m_num);
         C4_ASSERT(next == NONE || next >= 0 && next < m_num);
-        if(m_free == NONE)
+        if(m_free_head == NONE)
         {
             reserve(2 * m_num);
         }
-        size_t f = m_free;
+        size_t f = m_free_head;
         Node *n = m_buf + f;
-        m_free = n->m_next;
+        m_free_head = n->m_next;
+        if(m_free_head == NONE)
+        {
+            m_free_tail = NONE;
+        }
         n->m_s = this;
         n->m_prev = prev;
         n->m_next = next;
         if(prev == NONE) m_head = f;
         else
         {
-            n->m_parent = (m_buf + prev)->m_parent;
+            Node *p = m_buf + prev;
+            p->m_next = f;
+            n->m_parent = p->m_parent;
         }
         if(next == NONE) m_tail = f;
         else
         {
-            n->m_parent = (m_buf + next)->m_parent;
+            Node *v = m_buf + next;
+            v->m_prev = f;
+            n->m_parent = v->m_parent;
         }
         if(prev != NONE && next != NONE) C4_ASSERT((m_buf + prev)->m_parent == (m_buf + next)->m_parent);
         return n;
@@ -296,9 +323,14 @@ public:
     void free(size_t i)
     {
         C4_ASSERT(i >= 0 && i < m_num);
-        m_buf[m_free].m_prev = i;
-        m_buf[i].m_next = m_free;
-        m_free = i;
+        m_buf[i].m_next = m_free_head;
+        m_buf[i].m_prev = NONE;
+        m_buf[m_free_head].m_prev = i;
+        m_free_head = i;
+        if(m_free_tail == NONE)
+        {
+            m_free_tail = m_free_head;
+        }
     }
 
     Node *get(size_t i)
