@@ -3,6 +3,8 @@
 
 #include <yaml.h>
 
+#define RYML_INLINE inline
+
 //#define RYML_NO_DEFAULT_CALLBACKS
 #ifndef RYML_NO_DEFAULT_CALLBACKS
 #   include <stdlib.h>
@@ -161,31 +163,9 @@ public:
     Node * first_child() const;
     Node * last_child() const;
     Node * find_child(cspan const& name) const;
+
     Node * prev_child(Node *child) const { if(!child) return nullptr; return child->prev_sibling(); }
     Node * next_child(Node *child) const { if(!child) return nullptr; return child->next_sibling(); }
-
-    Node * first_sibling() const;
-    Node * last_sibling() const;
-    Node * find_sibling(cspan const& name) const;
-
-    Node * prev_sibling() const
-    {
-        Node *n = prev_node();
-        if( ! n) return nullptr;
-        if(n->m_parent == m_parent) return n;
-        return nullptr;
-    }
-
-    Node * next_sibling() const
-    {
-        Node *n = next_node();
-        if( ! n) return nullptr;
-        if(n->m_parent == m_parent) return n;
-        return nullptr;
-    }
-
-    Node * prev_node() const;
-    Node * next_node() const;
 
     Node * operator[] (cspan const& name) const
     {
@@ -196,8 +176,18 @@ public:
         }
         return c;
     }
-};
 
+    Node * first_sibling() const;
+    Node * last_sibling() const;
+    Node * find_sibling(cspan const& name) const;
+
+    Node * prev_sibling() const;
+    Node * next_sibling() const;
+
+    Node * prev_node() const;
+    Node * next_node() const;
+
+};
 
 
 //-----------------------------------------------------------------------------
@@ -219,129 +209,19 @@ public:
 
 public:
 
-    Tree()
-        :
-        m_buf(nullptr),
-        m_num(0),
-        m_head(NONE),
-        m_tail(NONE),
-        m_free_head(NONE),
-        m_free_tail(NONE)
-    {
-    }
-    Tree(size_t sz) : Tree()
-    {
-        reserve(sz);
-    }
-    ~Tree()
-    {
-        if(m_buf)
-        {
-            RymlCallbacks::free(m_buf, m_num * sizeof(Node));
-        }
-    }
+    Tree();
+    Tree(size_t sz);
+    ~Tree();
 
-    void reserve(size_t sz)
-    {
-        if(sz <= m_num) return;
-        Node *buf = (Node*)RymlCallbacks::allocate(sz * sizeof(Node), nullptr);
-        if(m_buf)
-        {
-            memcpy(buf, m_buf, m_num * sizeof(Node));
-            RymlCallbacks::free(m_buf, m_num * sizeof(Node));
-        }
-        if(m_free_head == NONE)
-        {
-            C4_ASSERT(m_free_tail == m_free_head);
-            m_free_head = m_num;
-            m_free_tail = sz;
-        }
-        else
-        {
-            C4_ASSERT(m_free_tail != NONE);
-            m_buf[m_free_tail].m_next = m_num;
-        }
-        size_t first = m_num, del = sz - m_num;
-        m_num = sz;
-        m_buf = buf;
-        clear_range(first, del);
-    }
+    void reserve(size_t sz);
 
-    void clear()
-    {
-        clear_range(0, m_num);
-        m_head = NONE;
-        m_tail = NONE;
-        m_free_head = 0;
-        m_free_tail = m_num;
-    }
-    void clear_range(size_t first, size_t num)
-    {
-        if(num == 0) return; // prevent overflow when subtracting
-        C4_ASSERT(first >= 0 && first + num <= m_num);
-        memset(m_buf + first, 0, num * sizeof(Node));
-        for(size_t i = first, e = first + num; i < e; ++i)
-        {
-            m_buf[i].m_prev = i - 1;
-            m_buf[i].m_next = i + 1;
-        }
-        m_buf[first + num - 1].m_next = NONE;
-    }
+    void clear();
+    void clear_range(size_t first, size_t num);
 
-    Node *claim(Node *after)
-    {
-        C4_ASSERT(after == nullptr || (m_buf <= after && (after <= m_buf + m_num)));
-        size_t last = after ? after - m_buf : m_tail;
-        Node *n = claim(last, NONE);
-        return n;
-    }
-    Node *claim(size_t prev, size_t next)
-    {
-        C4_ASSERT(prev == NONE || prev >= 0 && prev < m_num);
-        C4_ASSERT(next == NONE || next >= 0 && next < m_num);
-        if(m_free_head == NONE)
-        {
-            reserve(2 * m_num);
-        }
-        size_t f = m_free_head;
-        Node *n = m_buf + f;
-        m_free_head = n->m_next;
-        if(m_free_head == NONE)
-        {
-            m_free_tail = NONE;
-        }
-        n->m_s = this;
-        n->m_prev = prev;
-        n->m_next = next;
-        if(prev == NONE) m_head = f;
-        else
-        {
-            Node *p = m_buf + prev;
-            p->m_next = f;
-            n->m_parent = p->m_parent;
-        }
-        if(next == NONE) m_tail = f;
-        else
-        {
-            Node *v = m_buf + next;
-            v->m_prev = f;
-            n->m_parent = v->m_parent;
-        }
-        if(prev != NONE && next != NONE) C4_ASSERT((m_buf + prev)->m_parent == (m_buf + next)->m_parent);
-        return n;
-    }
-    void free(size_t i)
-    {
-        C4_ASSERT(i >= 0 && i < m_num);
-        m_buf[i].m_next = m_free_head;
-        m_buf[i].m_prev = NONE;
-        m_buf[m_free_head].m_prev = i;
-        m_free_head = i;
-        if(m_free_tail == NONE)
-        {
-            m_free_tail = m_free_head;
-        }
-    }
+    Node *claim(Node *after);
+    Node *claim(size_t prev, size_t next);
+
+    void free(size_t i);
 
     Node *get(size_t i)
     {
@@ -362,6 +242,8 @@ public:
     Node       *tail()       { return m_buf + m_tail; }
     Node const *tail() const { return m_buf + m_tail; }
 
+    void set_parent(Node *child, Node *parent);
+
     Node *begin_doc(Node *after = nullptr)
     {
         C4_ASSERT(after == nullptr || after->m_parent == NONE);
@@ -372,6 +254,11 @@ public:
     Node *end_doc()
     {
         return nullptr;
+    }
+
+    void mark_child(Node *parent, Node *child)
+    {
+
     }
 
     Node *add_val(cspan const& name, cspan const& val, Node *after = nullptr)
@@ -408,52 +295,6 @@ public:
     }
 
 };
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-Node * Node::prev_node() const
-{
-    return m_s->get(m_prev);
-}
-
-Node * Node::next_node() const
-{
-    return m_s->get(m_next);
-}
-
-Node * Node::parent() const
-{
-    return m_s->get(m_parent);
-}
-
-Node * Node::find_child(cspan const& name) const
-{
-    if(m_first_child == NONE)
-    {
-        C4_ASSERT(m_last_child == NONE);
-        return nullptr;
-    }
-    else
-    {
-        C4_ASSERT(m_last_child != NONE);
-    }
-    for(Node *n = m_s->get(m_first_child), *e = m_s->get(m_last_child);
-        n != e;
-        n = n->next_sibling())
-    {
-        if(n->m_name == name)
-        {
-            return n;
-        }
-    }
-    return nullptr;
-}
-
-Node * Node::find_sibling(cspan const& name) const
-{
-    return m_s->get(m_parent)->find_child(name);
-}
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -610,7 +451,7 @@ case _ev:                   \
             _c4_handle_case(YAML_ALIAS_EVENT)
                 C4_ASSERT(false && "YAML_ALIAS_EVENT not implemented");
                 break;
-
+#undef _c4_handle_case
             default:
                 break;
             };
@@ -684,5 +525,7 @@ case _ev:                   \
 
 } // namespace yml
 } // namespace c4
+
+#include <ryml/ryml.def.hpp>
 
 #endif // _C4_RYML_HPP_
