@@ -1,5 +1,6 @@
 #include <ryml/ryml.hpp>
 
+namespace yml = c4::yml;
 
 const char ex[] = R"(# this is a comment
 foo: fsdfkjhsdfkh
@@ -13,7 +14,6 @@ map:
 crl: cona
 )";
 
-namespace yml = c4::yml;
 int main()
 {
     auto s = yml::Tree(16);

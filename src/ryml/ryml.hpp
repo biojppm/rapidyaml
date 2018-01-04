@@ -5,24 +5,24 @@
 
 //#define RYML_NO_DEFAULT_CALLBACKS
 #ifndef RYML_NO_DEFAULT_CALLBACKS
-#include <stdlib.h>
-#include <stdio.h>
+#   include <stdlib.h>
+#   include <stdio.h>
 #endif // RYML_NO_DEFAULT_CALLBACKS
 
 #ifndef C4_ASSERT
-#ifdef NDEBUG
-#define C4_ASSERT(expr) (void)(0)
-#else
-#include <assert.h>
-#define C4_QUOTE(x) #x
-#define C4_ASSERT(expr) _C4_ASSERT(expr, __FILE__, __LINE__)
-#define _C4_ASSERT(expr, file, line)                \
-    if(!(expr))                                     \
-    {                                               \
-        RymlCallbacks::error(file ":" C4_QUOTE(line) ": Assert failed: " #expr "\n");     \
-        abort();                                                        \
-    }
-#endif
+#   ifdef NDEBUG
+#       define C4_ASSERT(expr) (void)(0)
+#   else
+#       include <assert.h>
+#       define C4_QUOTE(x) #x
+#       define C4_ASSERT(expr) _C4_ASSERT(expr, __FILE__, __LINE__)
+#       define _C4_ASSERT(expr, file, line)                             \
+        if(!(expr))                                                     \
+        {                                                               \
+            RymlCallbacks::error(file ":" C4_QUOTE(line) ": Assert failed: " #expr "\n"); \
+            abort();                                                    \
+        }
+#   endif
 #endif
 
 namespace c4 {
@@ -161,6 +161,8 @@ public:
     Node * first_child() const;
     Node * last_child() const;
     Node * find_child(cspan const& name) const;
+    Node * prev_child(Node *child) const { if(!child) return nullptr; return child->prev_sibling(); }
+    Node * next_child(Node *child) const { if(!child) return nullptr; return child->next_sibling(); }
 
     Node * first_sibling() const;
     Node * last_sibling() const;
@@ -207,13 +209,14 @@ public:
 public:
 
     Tree() : m_buf(nullptr), m_num(0), m_head(NONE), m_tail(NONE), m_free(NONE) {}
-    Tree(size_t sz) : m_buf(0), m_num(0), m_head(NONE), m_tail(NONE), m_free(NONE)
+    Tree(size_t sz) : m_buf(nullptr), m_num(0), m_head(NONE), m_tail(NONE), m_free(NONE)
     {
         reserve(sz);
     }
     ~Tree()
     {
-        if(m_buf) {
+        if(m_buf)
+        {
             RymlCallbacks::free(m_buf, m_num * sizeof(Node));
         }
     }
@@ -222,7 +225,8 @@ public:
     {
         if(sz <= m_num) return;
         Node *buf = (Node*)RymlCallbacks::allocate(sz * sizeof(Node), nullptr);
-        if(m_buf) {
+        if(m_buf)
+        {
             memcpy(buf, m_buf, m_num * sizeof(Node));
             RymlCallbacks::free(m_buf, m_num * sizeof(Node));
         }
@@ -246,6 +250,7 @@ public:
     {
         if(num == 0) return; // prevent overflow when subtracting
         C4_ASSERT(first >= 0 && first + num <= m_num);
+        memset(m_buf + first, 0, num * sizeof(Node));
         for(size_t i = first, e = first + num; i < e; ++i)
         {
             m_buf[i].m_prev = i - 1;
@@ -290,6 +295,7 @@ public:
     }
     void free(size_t i)
     {
+        C4_ASSERT(i >= 0 && i < m_num);
         m_buf[m_free].m_prev = i;
         m_buf[i].m_next = m_free;
         m_free = i;
@@ -379,24 +385,6 @@ Node * Node::parent() const
     return m_s->get(m_parent);
 }
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-class Event
-{
-public:
-    yaml_event_t m_event;
-public:
-    Event()
-        {
-        }
-    ~Event()
-        {
-            yaml_event_delete(&m_event);
-        }
-};
-
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -405,7 +393,36 @@ public:
 class Parser
 {
 public:
+
     yaml_parser_t m_parser;
+
+    const char *  m_input;
+    size_t        m_length;
+
+    class Event
+    {
+    public:
+        yaml_event_t m_event;
+    public:
+        Event() {}
+        ~Event()
+        {
+            yaml_event_delete(&m_event);
+        }
+    };
+
+    cspan get_scalar_val(Event const &ev) const
+    {
+        // the memory in data.scalar is allocated anew, so don't do this
+        //auto const& scalar = e.m_event.data.scalar;
+        //cspan val((const char*)scalar.value, scalar.length);
+        //return val;
+        // ... but the event tells us where in the string the value is
+        auto const& e = ev.m_event;
+        size_t len = e.end_mark.index - e.start_mark.index;
+        cspan val(m_input + e.start_mark.index, len);
+        return val;
+    }
 
 public:
 
@@ -427,6 +444,8 @@ public:
     }
     void parse(Tree *s, const char* input, size_t length)
     {
+        m_input = input;
+        m_length = length;
         yaml_parser_set_input_string(&m_parser, (const unsigned char*)input, length);
         _do_parse(s);
     }
@@ -437,26 +456,24 @@ public:
         cspan prev_scalar;
         Node *doc = nullptr;
         Node *seq = nullptr;
-        Event ev;
         while( ! done)
         {
 
+            Event ev;
             if( ! yaml_parser_parse(&m_parser, &ev.m_event))
             {
                 _handle_error();
                 break;
             }
 
-            auto const& e = ev.m_event;
-            cspan val((const char*)e.data.scalar.value, e.data.scalar.length);
-
-            switch(e.type)
+            cspan val = get_scalar_val(ev);
+            switch(ev.m_event.type)
             {
 #define _c4_handle_case(_ev) \
 case _ev:                   \
-    /*printf(#_ev " prev=%.*s val=%.*s\n",    \
+    printf(#_ev " prev=%.*s val=%.*s\n",    \
            (int)prev_scalar.len, prev_scalar.str,   \
-           (int)val.len, val.str);*/
+           (int)val.len, val.str);
 
             _c4_handle_case(YAML_MAPPING_START_EVENT)
                 if(s->tail()->m_type != TYPE_DOC)
