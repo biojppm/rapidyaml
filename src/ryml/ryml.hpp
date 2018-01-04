@@ -186,6 +186,16 @@ public:
 
     Node * prev_node() const;
     Node * next_node() const;
+
+    Node * operator[] (cspan const& name) const
+    {
+        Node *c = find_child(name);
+        if( ! c)
+        {
+            RymlCallbacks::error("could not find node");
+        }
+        return c;
+    }
 };
 
 
@@ -417,6 +427,33 @@ Node * Node::parent() const
     return m_s->get(m_parent);
 }
 
+Node * Node::find_child(cspan const& name) const
+{
+    if(m_first_child == NONE)
+    {
+        C4_ASSERT(m_last_child == NONE);
+        return nullptr;
+    }
+    else
+    {
+        C4_ASSERT(m_last_child != NONE);
+    }
+    for(Node *n = m_s->get(m_first_child), *e = m_s->get(m_last_child);
+        n != e;
+        n = n->next_sibling())
+    {
+        if(n->m_name == name)
+        {
+            return n;
+        }
+    }
+    return nullptr;
+}
+
+Node * Node::find_sibling(cspan const& name) const
+{
+    return m_s->get(m_parent)->find_child(name);
+}
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
