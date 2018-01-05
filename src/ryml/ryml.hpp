@@ -17,13 +17,15 @@
 #   else
 #       include <assert.h>
 #       define C4_QUOTE(x) #x
-#       define C4_ASSERT(expr) _C4_ASSERT(expr, __FILE__, __LINE__)
+#       define C4_ASSERT(expr) _C4_ASSERT((expr), __FILE__, __LINE__)
 #       define _C4_ASSERT(expr, file, line)                             \
-        if(!(expr))                                                     \
+    {                                                                   \
+        if( ! (expr))                                                   \
         {                                                               \
-            RymlCallbacks::error(file ":" C4_QUOTE(line) ": Assert failed: " #expr "\n"); \
+            c4::yml::RymlCallbacks::error(file ":" C4_QUOTE(line) ": Assert failed: " #expr "\n"); \
             abort();                                                    \
-        }
+        }                                                               \
+    }
 #   endif
 #endif
 
@@ -37,11 +39,14 @@ template< class C >
 class basic_span
 {
 public:
+
     C *str;
     size_t len;
 
 public:
+
     basic_span() : str(nullptr), len(0) {}
+    basic_span(C *s_) : str(s_), len(strlen(s_)) {}
     basic_span(C *s_, size_t len_) : str(s_), len(len_) {}
     template< size_t N > basic_span(C *s_[N]) : str(s_), len(N-1) {}
 
@@ -54,11 +59,18 @@ public:
         if(len != that.len) return false;
         return (str == that.str || strncmp(str, that.str, len));
     }
+
 };
 
 using span = basic_span< char >;
 using cspan = basic_span< const char >;
 
+template< class OStream, class C >
+OStream& operator<< (OStream& s, basic_span< C > const& sp)
+{
+    s.write(sp.str, sp.len);
+    return s;
+}
 
 
 //-----------------------------------------------------------------------------
@@ -118,6 +130,7 @@ struct RymlCallbacks
 //-----------------------------------------------------------------------------
 typedef enum {
     TYPE_NONE,
+    TYPE_ROOT,
     TYPE_DOC,
     TYPE_VAL,
     TYPE_SEQ,
@@ -143,23 +156,26 @@ public:
     size_t     m_prev;
     size_t     m_next;
     size_t     m_parent;
+    struct children
+    {
+        size_t first;
+        size_t last;
+    };
     union {
         cspan      m_val;
-        struct
-        {
-            size_t m_first_child;
-            size_t m_last_child;
-        };
+        children   m_children;
     };
 
 public:
 
+    NodeType_e type() const { return m_type; }
     cspan const& name() const { return m_name; }
-
     cspan const& val() const { C4_ASSERT(m_type == TYPE_VAL); return m_name; }
 
     Node * parent() const;
 
+    size_t num_children() const;
+    Node * child(size_t i) const;
     Node * first_child() const;
     Node * last_child() const;
     Node * find_child(cspan const& name) const;
@@ -167,16 +183,28 @@ public:
     Node * prev_child(Node *child) const { if(!child) return nullptr; return child->prev_sibling(); }
     Node * next_child(Node *child) const { if(!child) return nullptr; return child->next_sibling(); }
 
-    Node * operator[] (cspan const& name) const
+    Node & operator[] (size_t i) const
+    {
+        Node *c = child(i);
+        if( ! c)
+        {
+            RymlCallbacks::error("could not find node");
+        }
+        return *c;
+    }
+
+    Node & operator[] (cspan const& name) const
     {
         Node *c = find_child(name);
         if( ! c)
         {
             RymlCallbacks::error("could not find node");
         }
-        return c;
+        return *c;
     }
 
+    size_t num_siblings() const;
+    Node * sibling(size_t i) const;
     Node * first_sibling() const;
     Node * last_sibling() const;
     Node * find_sibling(cspan const& name) const;
@@ -249,13 +277,24 @@ public:
         return m_buf + i;
     }
 
-    Node       *head()       { return m_buf + m_head; }
-    Node const *head() const { return m_buf + m_head; }
+    Node      * head()       { return m_buf + m_head; }
+    Node const* head() const { return m_buf + m_head; }
 
-    Node       *tail()       { return m_buf + m_tail; }
-    Node const *tail() const { return m_buf + m_tail; }
+    Node      * tail()       { return m_buf + m_tail; }
+    Node const* tail() const { return m_buf + m_tail; }
 
     void set_parent(Node *child, Node *parent);
+
+    Node *begin_stream()
+    {
+        Node *n = claim(nullptr);
+        n->m_type = TYPE_ROOT;
+        return n;
+    }
+    Node *end_stream()
+    {
+        return nullptr;
+    }
 
     Node *begin_doc(Node *after = nullptr)
     {
@@ -267,11 +306,6 @@ public:
     Node *end_doc()
     {
         return nullptr;
-    }
-
-    void mark_child(Node *parent, Node *child)
-    {
-
     }
 
     Node *add_val(cspan const& name, cspan const& val, Node *after = nullptr)
@@ -307,6 +341,13 @@ public:
         return nullptr;
     }
 
+    Node      * root()       { C4_ASSERT(m_num > 0); Node *n = m_buf; C4_ASSERT(n->m_type == TYPE_ROOT); return n; }
+    Node const* root() const { C4_ASSERT(m_num > 0); Node *n = m_buf; C4_ASSERT(n->m_type == TYPE_ROOT); return n; }
+
+    Node      * first_doc()         { Node *n = root()->child(0); C4_ASSERT(n && n->type() == TYPE_DOC); return n; }
+    Node const* first_doc() const   { Node *n = root()->child(0); C4_ASSERT(n && n->type() == TYPE_DOC); return n; }
+    Node      * doc(size_t i)       { Node *n = root()->child(i); C4_ASSERT(n && n->type() == TYPE_DOC); return n; }
+    Node const* doc(size_t i) const { Node *n = root()->child(i); C4_ASSERT(n && n->type() == TYPE_DOC); return n; }
 };
 
 
@@ -471,14 +512,6 @@ public:
         _do_parse(s);
     }
 
-    Node * _stack_top_is_type(Tree *s, NodeType_e type) const
-    {
-        C4_ASSERT( ! m_stack.empty());
-        size_t id = m_stack.peek();
-        Node *n = s->get(id);
-        return n->m_type == type ? n : nullptr;
-    }
-
     void _do_parse(Tree *s)
     {
         bool done = false;
@@ -506,8 +539,9 @@ case _ev:                   \
             _c4_handle_case(YAML_MAPPING_START_EVENT)
                 if( ! _stack_top_is_type(s, TYPE_DOC) || doc_had_scalars)
                 {
-                    C4_ASSERT(prev_scalar);
+                    C4_ASSERT(prev_scalar == true);
                     Node *n = s->begin_map(prev_scalar);
+                    s->set_parent(n, _stack_top(s));
                     prev_scalar.clear();
                     m_stack.push(s->id(n));
                 }
@@ -522,8 +556,9 @@ case _ev:                   \
 
             _c4_handle_case(YAML_SEQUENCE_START_EVENT)
                 {
-                    C4_ASSERT(prev_scalar);
+                    C4_ASSERT(prev_scalar == true);
                     Node *n = s->begin_seq(prev_scalar);
+                    s->set_parent(n, _stack_top(s));
                     m_stack.push(s->id(n));
                 }
                 break;
@@ -535,14 +570,16 @@ case _ev:                   \
             _c4_handle_case(YAML_SCALAR_EVENT)
                 if(_stack_top_is_type(s, TYPE_SEQ))
                 {
-                    s->add_val({}, val);
+                    Node *n = s->add_val({}, val);
+                    s->set_parent(n, _stack_top(s));
                     prev_scalar.clear();
                 }
                 else
                 {
                     if(prev_scalar)
                     {
-                        s->add_val(prev_scalar, val);
+                        Node *n = s->add_val(prev_scalar, val);
+                        s->set_parent(n, _stack_top(s));
                         prev_scalar.clear();
                     }
                     else
@@ -553,16 +590,10 @@ case _ev:                   \
                 doc_had_scalars = true;
                 break;
 
-            _c4_handle_case(YAML_STREAM_START_EVENT)
-                s->clear();
-                break;
-            _c4_handle_case(YAML_STREAM_END_EVENT)
-                done = true;
-                break;
-
             _c4_handle_case(YAML_DOCUMENT_START_EVENT)
                 {
                     Node *n = s->begin_doc();
+                    s->set_parent(n, _stack_top(s));
                     m_stack.push(s->id(n));
                     doc_had_scalars = false;
                 }
@@ -570,6 +601,19 @@ case _ev:                   \
             _c4_handle_case(YAML_DOCUMENT_END_EVENT)
                 s->end_doc();
                 m_stack.pop();
+                break;
+
+            _c4_handle_case(YAML_STREAM_START_EVENT)
+                {
+                    s->clear();
+                    Node *n = s->begin_stream();
+                    m_stack.push(s->id(n));
+                }
+                break;
+            _c4_handle_case(YAML_STREAM_END_EVENT)
+                s->end_stream();
+                m_stack.pop();
+                done = true;
                 break;
 
             _c4_handle_case(YAML_ALIAS_EVENT)
@@ -580,6 +624,22 @@ case _ev:                   \
                 break;
             };
         }
+    }
+
+    Node * _stack_top(Tree *s) const
+    {
+        C4_ASSERT( ! m_stack.empty());
+        size_t id = m_stack.peek();
+        Node *n = s->get(id);
+        return n;
+    }
+
+    Node * _stack_top_is_type(Tree *s, NodeType_e type) const
+    {
+        C4_ASSERT( ! m_stack.empty());
+        size_t id = m_stack.peek();
+        Node *n = s->get(id);
+        return n->m_type == type ? n : nullptr;
     }
 
     void _handle_error()

@@ -25,27 +25,50 @@ Node * Node::parent() const
     return m_s->get(m_parent);
 }
 
+size_t Node::num_children() const
+{
+    size_t count = 0;
+    for(Node *n = m_s->get(m_children.first), *e = m_s->get(m_children.last);
+        n != e;
+        n = n->next_sibling())
+    {
+        ++count;
+    }
+    return count;
+}
+
+Node * Node::child(size_t i) const
+{
+    size_t count = 0;
+    for(Node *n = m_s->get(m_children.first), *e = m_s->get(m_children.last);
+        n != e;
+        n = n->next_sibling(), ++count)
+    {
+        if(count == i) return n;
+    }
+    return nullptr;
+}
 Node * Node::first_child() const
 {
-    return m_s->get(m_first_child);
+    return m_s->get(m_children.first);
 }
 Node * Node::last_child() const
 {
-    return m_s->get(m_last_child);
+    return m_s->get(m_children.last);
 }
 
 Node * Node::find_child(cspan const& name) const
 {
-    if(m_first_child == NONE)
+    if(m_children.first == NONE)
     {
-        C4_ASSERT(m_last_child == NONE);
+        C4_ASSERT(m_children.last == NONE);
         return nullptr;
     }
     else
     {
-        C4_ASSERT(m_last_child != NONE);
+        C4_ASSERT(m_children.last != NONE);
     }
-    for(Node *n = m_s->get(m_first_child), *e = m_s->get(m_last_child);
+    for(Node *n = m_s->get(m_children.first), *e = m_s->get(m_children.last);
         n != e;
         n = n->next_sibling())
     {
@@ -55,6 +78,11 @@ Node * Node::find_child(cspan const& name) const
         }
     }
     return nullptr;
+}
+
+size_t Node::num_siblings() const
+{
+    return (m_parent != NONE) ? m_s->get(m_parent)->num_children() : 1;
 }
 
 Node * Node::first_sibling() const
@@ -166,8 +194,8 @@ void Tree::clear_range(size_t first, size_t num)
         n->m_prev = i - 1;
         n->m_next = i + 1;
         n->m_parent = NONE;
-        n->m_first_child = NONE;
-        n->m_last_child = NONE;
+        n->m_children.first = NONE;
+        n->m_children.last = NONE;
     }
     m_buf[first + num - 1].m_next = NONE;
 }
@@ -200,8 +228,8 @@ Node *Tree::claim(size_t prev, size_t next)
     n->m_s = this;
     n->m_prev = prev;
     n->m_next = next;
-    n->m_first_child = NONE;
-    n->m_last_child = NONE;
+    n->m_children.first = NONE;
+    n->m_children.last = NONE;
     if(prev == NONE) m_head = f;
     else
     {
@@ -230,22 +258,22 @@ void Tree::set_parent(Node *child, Node *parent)
     C4_ASSERT(parent == nullptr || parent >= m_buf && parent < m_buf + m_num);
     child->m_parent = parent ? parent - m_buf : NONE;
     size_t ichild = child - m_buf;
-    if( ! child->m_parent) return;
-    if(parent->m_first_child == NONE)
+    if( ! parent) return;
+    if(parent->m_children.first == NONE)
     {
-        C4_ASSERT(parent->m_first_child == parent->m_last_child);
-        parent->m_first_child = ichild;
-        parent->m_last_child = ichild;
+        C4_ASSERT(parent->m_children.first == parent->m_children.last);
+        parent->m_children.first = ichild;
+        parent->m_children.last = ichild;
     }
     else
     {
-        if(child->m_next == parent->m_first_child)
+        if(child->m_next == parent->m_children.first)
         {
-            parent->m_first_child = ichild;
+            parent->m_children.first = ichild;
         }
-        if(child->m_prev == parent->m_last_child)
+        if(child->m_prev == parent->m_children.last)
         {
-            parent->m_last_child = ichild;
+            parent->m_children.last = ichild;
         }
     }
 }
