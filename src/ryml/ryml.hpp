@@ -223,6 +223,19 @@ public:
 
     void free(size_t i);
 
+    size_t id(Node* n)
+    {
+        if(!n) return NONE;
+        C4_ASSERT(n >= m_buf && n < m_buf + m_num);
+        return n - m_buf;
+    }
+    size_t id(Node* n) const
+    {
+        if(!n) return NONE;
+        C4_ASSERT(n >= m_buf && n < m_buf + m_num);
+        return n - m_buf;
+    }
+
     Node *get(size_t i)
     {
         if(i == NONE) return nullptr;
@@ -296,6 +309,93 @@ public:
 
 };
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+namespace detail {
+template< class T > class stack;
+} // namespace detail
+
+/** A lightweight stack. This avoids a dependency on std. */
+template< class T >
+class detail::stack
+{
+private:
+
+    T *    m_stack;
+    size_t m_pos;
+    size_t m_size;
+
+public:
+
+    stack() : m_stack(nullptr), m_pos(0), m_size(0)
+    {
+    }
+    ~stack()
+    {
+        if(m_stack)
+        {
+            RymlCallbacks::free(m_stack, m_size * sizeof(T));
+        }
+    }
+
+    stack(stack const& ) = delete;
+    stack& operator= (stack const& ) = delete;
+
+    stack(stack &&that)
+    {
+        memcpy(this, &that, sizeof(*this));
+        that.m_stack = nullptr;
+    }
+    stack& operator= (stack &&that)
+    {
+        memcpy(this, &that, sizeof(*this));
+        that.m_stack = nullptr;
+        return *this;
+    }
+
+    size_t size() const { return m_pos; }
+    size_t empty() const { return m_pos == 0; }
+
+    void push(T n)
+    {
+        if(m_pos >= m_size)
+        {
+            size_t sz = 2 * m_size;
+            if(sz == 0) sz = 8;
+            C4_ASSERT(m_pos < sz);
+            T *buf = (T*) RymlCallbacks::allocate(sz * sizeof(T), m_stack);
+            memcpy(buf, m_stack, m_pos * sizeof(T));
+            RymlCallbacks::free(m_stack, m_size * sizeof(T));
+            m_stack = buf;
+            m_size = sz;
+        }
+        m_stack[m_pos] = n;
+        m_pos++;
+        //printf("stack_push: %zd %zd\n", m_pos, n);
+    }
+
+    T pop()
+    {
+        //printf("stack_pop: %zd %zd\n", m_pos, m_stack[m_pos - 1]);
+        C4_ASSERT(m_pos > 0);
+        m_pos--;
+        T n = m_stack[m_pos];
+        return n;
+    }
+
+    T peek() const
+    {
+        C4_ASSERT(m_pos > 0);
+        T n = m_stack[m_pos - 1];
+        return n;
+    }
+
+};
+
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -308,6 +408,10 @@ public:
 
     const char *  m_input;
     size_t        m_length;
+
+    detail::stack< size_t > m_stack;
+
+private:
 
     class Event
     {
@@ -336,16 +440,23 @@ public:
 
 public:
 
-    Parser() : m_parser()
+    Parser()
     {
-        memset(&m_parser, 0, sizeof(decltype(m_parser)));
+        memset(this, 0, sizeof(*this));
         yaml_parser_initialize(&m_parser);
     }
+
     ~Parser()
     {
         yaml_parser_delete(&m_parser);
         memset(&m_parser, 0, sizeof(decltype(m_parser)));
     }
+
+    Parser(Parser const&) = delete;
+    Parser& operator= (Parser const&) = delete;
+
+    Parser(Parser &&that) = default;
+    Parser& operator= (Parser &&that) = default;
 
     template< size_t N >
     void parse(Tree *s, const char (&input)[N])
@@ -360,12 +471,19 @@ public:
         _do_parse(s);
     }
 
+    Node * _stack_top_is_type(Tree *s, NodeType_e type) const
+    {
+        C4_ASSERT( ! m_stack.empty());
+        size_t id = m_stack.peek();
+        Node *n = s->get(id);
+        return n->m_type == type ? n : nullptr;
+    }
+
     void _do_parse(Tree *s)
     {
         bool done = false;
+        bool doc_had_scalars = false;
         cspan prev_scalar;
-        Node *doc = nullptr;
-        Node *seq = nullptr;
         while( ! done)
         {
 
@@ -386,36 +504,41 @@ case _ev:                   \
            (int)val.len, val.str);
 
             _c4_handle_case(YAML_MAPPING_START_EVENT)
-                if(s->tail()->m_type != TYPE_DOC)
+                if( ! _stack_top_is_type(s, TYPE_DOC) || doc_had_scalars)
                 {
                     C4_ASSERT(prev_scalar);
-                    s->begin_map(prev_scalar);
+                    Node *n = s->begin_map(prev_scalar);
                     prev_scalar.clear();
-                    doc = nullptr;
-                }
-                else
-                {
-                    doc = s->tail();
+                    m_stack.push(s->id(n));
                 }
                 break;
             _c4_handle_case(YAML_MAPPING_END_EVENT)
-                if( ! doc)
+                if( ! _stack_top_is_type(s, TYPE_DOC))
                 {
                     s->end_map();
+                    m_stack.pop();
                 }
                 break;
 
             _c4_handle_case(YAML_SEQUENCE_START_EVENT)
-                C4_ASSERT(prev_scalar);
-                seq = s->begin_seq(prev_scalar);
+                {
+                    C4_ASSERT(prev_scalar);
+                    Node *n = s->begin_seq(prev_scalar);
+                    m_stack.push(s->id(n));
+                }
                 break;
             _c4_handle_case(YAML_SEQUENCE_END_EVENT)
                 s->end_seq();
-                seq = nullptr;
+                m_stack.pop();
                 break;
 
             _c4_handle_case(YAML_SCALAR_EVENT)
-                if( ! seq)
+                if(_stack_top_is_type(s, TYPE_SEQ))
+                {
+                    s->add_val({}, val);
+                    prev_scalar.clear();
+                }
+                else
                 {
                     if(prev_scalar)
                     {
@@ -427,11 +550,7 @@ case _ev:                   \
                         prev_scalar = val;
                     }
                 }
-                else
-                {
-                    s->add_val({}, val);
-                    prev_scalar.clear();
-                }
+                doc_had_scalars = true;
                 break;
 
             _c4_handle_case(YAML_STREAM_START_EVENT)
@@ -442,10 +561,15 @@ case _ev:                   \
                 break;
 
             _c4_handle_case(YAML_DOCUMENT_START_EVENT)
-                s->begin_doc();
+                {
+                    Node *n = s->begin_doc();
+                    m_stack.push(s->id(n));
+                    doc_had_scalars = false;
+                }
                 break;
             _c4_handle_case(YAML_DOCUMENT_END_EVENT)
                 s->end_doc();
+                m_stack.pop();
                 break;
 
             _c4_handle_case(YAML_ALIAS_EVENT)
