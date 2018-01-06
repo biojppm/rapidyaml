@@ -28,9 +28,7 @@ Node * Node::parent() const
 size_t Node::num_children() const
 {
     size_t count = 0;
-    for(Node *n = m_s->get(m_children.first), *e = m_s->get(m_children.last);
-        n != e;
-        n = n->next_sibling())
+    for(Node *n = m_s->get(m_children.first); n; n = n->next_sibling())
     {
         ++count;
     }
@@ -40,9 +38,7 @@ size_t Node::num_children() const
 Node * Node::child(size_t i) const
 {
     size_t count = 0;
-    for(Node *n = m_s->get(m_children.first), *e = m_s->get(m_children.last);
-        n != e;
-        n = n->next_sibling(), ++count)
+    for(Node *n = m_s->get(m_children.first); n; n = n->next_sibling(), ++count)
     {
         if(count == i) return n;
     }
@@ -68,9 +64,7 @@ Node * Node::find_child(cspan const& name) const
     {
         C4_ASSERT(m_children.last != NONE);
     }
-    for(Node *n = m_s->get(m_children.first), *e = m_s->get(m_children.last);
-        n != e;
-        n = n->next_sibling())
+    for(Node *n = m_s->get(m_children.first); n; n = n->next_sibling())
     {
         if(n->m_name == name)
         {
