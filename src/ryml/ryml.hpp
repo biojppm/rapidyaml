@@ -57,7 +57,7 @@ public:
     bool operator== (basic_span const& that) const
     {
         if(len != that.len) return false;
-        return (str == that.str || strncmp(str, that.str, len));
+        return (str == that.str || (strncmp(str, that.str, len) == 0));
     }
 
 };
