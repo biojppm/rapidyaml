@@ -170,7 +170,7 @@ public:
 
     NodeType_e type() const { return m_type; }
     cspan const& name() const { return m_name; }
-    cspan const& val() const { C4_ASSERT(m_type == TYPE_VAL); return m_name; }
+    cspan const& val() const { C4_ASSERT(m_type == TYPE_VAL); return m_val; }
 
     Node * parent() const;
 
