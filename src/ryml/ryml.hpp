@@ -144,6 +144,91 @@ struct RymlCallbacks
 
 
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+namespace detail {
+template< class T > class stack;
+} // namespace detail
+
+/** A lightweight stack. This avoids a dependency on std. */
+template< class T >
+class detail::stack
+{
+private:
+
+    T *    m_stack;
+    size_t m_pos;
+    size_t m_size;
+
+public:
+
+    stack() : m_stack(nullptr), m_pos(0), m_size(0)
+    {
+    }
+    ~stack()
+    {
+        if(m_stack)
+        {
+            RymlCallbacks::free(m_stack, m_size * sizeof(T));
+        }
+    }
+
+    stack(stack const& ) = delete;
+    stack& operator= (stack const& ) = delete;
+
+    stack(stack &&that)
+    {
+        memcpy(this, &that, sizeof(*this));
+        that.m_stack = nullptr;
+    }
+    stack& operator= (stack &&that)
+    {
+        memcpy(this, &that, sizeof(*this));
+        that.m_stack = nullptr;
+        return *this;
+    }
+
+    size_t size() const { return m_pos; }
+    size_t empty() const { return m_pos == 0; }
+
+    void push(T n)
+    {
+        if(m_pos >= m_size)
+        {
+            size_t sz = 2 * m_size;
+            if(sz == 0) sz = 8;
+            C4_ASSERT(m_pos < sz);
+            T *buf = (T*) RymlCallbacks::allocate(sz * sizeof(T), m_stack);
+            memcpy(buf, m_stack, m_pos * sizeof(T));
+            RymlCallbacks::free(m_stack, m_size * sizeof(T));
+            m_stack = buf;
+            m_size = sz;
+        }
+        m_stack[m_pos] = n;
+        m_pos++;
+        //printf("stack_push: %zd %zd\n", m_pos, n);
+    }
+
+    T pop()
+    {
+        //printf("stack_pop: %zd %zd\n", m_pos, m_stack[m_pos - 1]);
+        C4_ASSERT(m_pos > 0);
+        m_pos--;
+        T n = m_stack[m_pos];
+        return n;
+    }
+
+    T peek() const
+    {
+        C4_ASSERT(m_pos > 0);
+        T n = m_stack[m_pos - 1];
+        return n;
+    }
+
+};
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -371,92 +456,6 @@ public:
     Node const* first_doc() const   { Node *n = root()->child(0); C4_ASSERT(n && n->type() == TYPE_DOC); return n; }
     Node      * doc(size_t i)       { Node *n = root()->child(i); C4_ASSERT(n && n->type() == TYPE_DOC); return n; }
     Node const* doc(size_t i) const { Node *n = root()->child(i); C4_ASSERT(n && n->type() == TYPE_DOC); return n; }
-};
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-namespace detail {
-template< class T > class stack;
-} // namespace detail
-
-/** A lightweight stack. This avoids a dependency on std. */
-template< class T >
-class detail::stack
-{
-private:
-
-    T *    m_stack;
-    size_t m_pos;
-    size_t m_size;
-
-public:
-
-    stack() : m_stack(nullptr), m_pos(0), m_size(0)
-    {
-    }
-    ~stack()
-    {
-        if(m_stack)
-        {
-            RymlCallbacks::free(m_stack, m_size * sizeof(T));
-        }
-    }
-
-    stack(stack const& ) = delete;
-    stack& operator= (stack const& ) = delete;
-
-    stack(stack &&that)
-    {
-        memcpy(this, &that, sizeof(*this));
-        that.m_stack = nullptr;
-    }
-    stack& operator= (stack &&that)
-    {
-        memcpy(this, &that, sizeof(*this));
-        that.m_stack = nullptr;
-        return *this;
-    }
-
-    size_t size() const { return m_pos; }
-    size_t empty() const { return m_pos == 0; }
-
-    void push(T n)
-    {
-        if(m_pos >= m_size)
-        {
-            size_t sz = 2 * m_size;
-            if(sz == 0) sz = 8;
-            C4_ASSERT(m_pos < sz);
-            T *buf = (T*) RymlCallbacks::allocate(sz * sizeof(T), m_stack);
-            memcpy(buf, m_stack, m_pos * sizeof(T));
-            RymlCallbacks::free(m_stack, m_size * sizeof(T));
-            m_stack = buf;
-            m_size = sz;
-        }
-        m_stack[m_pos] = n;
-        m_pos++;
-        //printf("stack_push: %zd %zd\n", m_pos, n);
-    }
-
-    T pop()
-    {
-        //printf("stack_pop: %zd %zd\n", m_pos, m_stack[m_pos - 1]);
-        C4_ASSERT(m_pos > 0);
-        m_pos--;
-        T n = m_stack[m_pos];
-        return n;
-    }
-
-    T peek() const
-    {
-        C4_ASSERT(m_pos > 0);
-        T n = m_stack[m_pos - 1];
-        return n;
-    }
-
 };
 
 
