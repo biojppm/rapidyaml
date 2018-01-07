@@ -76,17 +76,28 @@ OStream& operator<< (OStream& s, basic_span< C > const& sp)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-/*
-class Location
+
+struct LineCol
+{
+    size_t offset, line, col;
+};
+
+struct Location : public LineCol
 {
     const char *name;
-    size_t line;
-    size_t column;
-    operator bool () const { return name != nullptr && line != 0; }
+    operator bool () const { return name != nullptr || line != 0 || offset != 0; }
 
-    Location(const char *n, size_t l, size_t c) : name(n), line(l), column(c) {}
+    Location() { memset(this, 0, sizeof(*this)); }
+    Location(const char *n, size_t b, size_t l, size_t c) : LineCol{b, l, c}, name(n) {}
+    Location(const char *n, yaml_mark_t m) : LineCol{m.index, m.line+1, m.column+1}, name(n) {}
 };
-*/
+
+struct Region
+{
+   const char *name;
+   LineCol begin;
+   LineCol end;
+};
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -110,14 +121,23 @@ struct RymlCallbacks
         ::free(mem);
     }
 
-    static void error(const char* msg, size_t length)
+    static void error(const char* msg, size_t length, Location *loc1 = nullptr, Location *loc2 = nullptr)
     {
-        fprintf(stderr, "%.*s", (int)length, msg);
+        fprintf(stderr, "%.*s\n", (int)length, msg);
+        if(loc1 && *loc1)
+        {
+            fprintf(stderr, "    : %s at %zd:%zd (offset %zd)\n", loc1->name, loc1->line, loc1->col, loc1->offset);
+        }
+        if(loc2 && *loc2)
+        {
+            fprintf(stderr, "    : %s at %zd:%zd (offset %zd)\n", loc2->name, loc1->line, loc2->col, loc2->offset);
+        }
+        abort();
     }
     template< size_t N >
-    static void error(char const (&msg)[N])
+    static void error(char const (&msg)[N], Location *loc1 = nullptr, Location *loc2 = nullptr)
     {
-        error(&msg[0], N-1);
+        error(&msg[0], N-1, loc1, loc2);
     }
 };
 #endif // RYML_NO_DEFAULT_CALLBACKS
@@ -150,23 +170,35 @@ enum : size_t { NONE = size_t(-1) };
 class Node
 {
 public:
-    mutable Tree* m_s;
-    NodeType_e m_type;
-    cspan      m_name;
-    size_t     m_prev;
-    size_t     m_next;
-    size_t     m_parent;
+
+    struct listseq
+    {
+        size_t prev;
+        size_t next;
+    };
     struct children
     {
         size_t first;
         size_t last;
     };
+
+public:
+
+    mutable Tree* m_s;
+    NodeType_e m_type;
+    cspan      m_name;
+    size_t     m_parent;
+    listseq    m_siblings;
     union {
         cspan      m_val;
         children   m_children;
     };
 
+    listseq    m_list;
+
 public:
+
+    size_t id() const;
 
     NodeType_e type() const { return m_type; }
     cspan const& name() const { return m_name; }
@@ -180,26 +212,17 @@ public:
     Node * last_child() const;
     Node * find_child(cspan const& name) const;
 
-    Node * prev_child(Node *child) const { if(!child) return nullptr; return child->prev_sibling(); }
-    Node * next_child(Node *child) const { if(!child) return nullptr; return child->next_sibling(); }
-
     Node & operator[] (size_t i) const
     {
         Node *c = child(i);
-        if( ! c)
-        {
-            RymlCallbacks::error("could not find node");
-        }
+        if( ! c) { RymlCallbacks::error("could not find node");}
         return *c;
     }
 
     Node & operator[] (cspan const& name) const
     {
         Node *c = find_child(name);
-        if( ! c)
-        {
-            RymlCallbacks::error("could not find node");
-        }
+        if( ! c) { RymlCallbacks::error("could not find node");}
         return *c;
     }
 
@@ -251,13 +274,13 @@ public:
 
     void free(size_t i);
 
-    size_t id(Node* n)
+    size_t id(Node const* n)
     {
         if(!n) return NONE;
         C4_ASSERT(n >= m_buf && n < m_buf + m_num);
         return n - m_buf;
     }
-    size_t id(Node* n) const
+    size_t id(Node const* n) const
     {
         if(!n) return NONE;
         C4_ASSERT(n >= m_buf && n < m_buf + m_num);
@@ -283,7 +306,7 @@ public:
     Node      * tail()       { return m_buf + m_tail; }
     Node const* tail() const { return m_buf + m_tail; }
 
-    void set_parent(Node *child, Node *parent);
+    void set_parent(Node *parent, Node *child, Node *prev_sibling, Node *next_sibling);
 
     Node *begin_stream()
     {
@@ -341,8 +364,8 @@ public:
         return nullptr;
     }
 
-    Node      * root()       { C4_ASSERT(m_num > 0); Node *n = m_buf; C4_ASSERT(n->m_type == TYPE_ROOT); return n; }
-    Node const* root() const { C4_ASSERT(m_num > 0); Node *n = m_buf; C4_ASSERT(n->m_type == TYPE_ROOT); return n; }
+    Node      * root()       { C4_ASSERT(m_num > 0); Node *n = m_buf; C4_ASSERT(n->type() == TYPE_ROOT); return n; }
+    Node const* root() const { C4_ASSERT(m_num > 0); Node *n = m_buf; C4_ASSERT(n->type() == TYPE_ROOT); return n; }
 
     Node      * first_doc()         { Node *n = root()->child(0); C4_ASSERT(n && n->type() == TYPE_DOC); return n; }
     Node const* first_doc() const   { Node *n = root()->child(0); C4_ASSERT(n && n->type() == TYPE_DOC); return n; }
@@ -541,7 +564,8 @@ case _ev:                   \
                 {
                     C4_ASSERT(prev_scalar == true);
                     Node *n = s->begin_map(prev_scalar);
-                    s->set_parent(n, _stack_top(s));
+                    Node *p = _stack_top(s);
+                    s->set_parent(p, n, p->last_child(), nullptr);
                     prev_scalar.clear();
                     m_stack.push(s->id(n));
                 }
@@ -558,7 +582,8 @@ case _ev:                   \
                 {
                     C4_ASSERT(prev_scalar == true);
                     Node *n = s->begin_seq(prev_scalar);
-                    s->set_parent(n, _stack_top(s));
+                    Node *p = _stack_top(s);
+                    s->set_parent(p, n, p->last_child(), nullptr);
                     m_stack.push(s->id(n));
                 }
                 break;
@@ -571,7 +596,8 @@ case _ev:                   \
                 if(_stack_top_is_type(s, TYPE_SEQ))
                 {
                     Node *n = s->add_val({}, val);
-                    s->set_parent(n, _stack_top(s));
+                    Node *p = _stack_top(s);
+                    s->set_parent(p, n, p->last_child(), nullptr);
                     prev_scalar.clear();
                 }
                 else
@@ -579,7 +605,8 @@ case _ev:                   \
                     if(prev_scalar)
                     {
                         Node *n = s->add_val(prev_scalar, val);
-                        s->set_parent(n, _stack_top(s));
+                        Node *p = _stack_top(s);
+                        s->set_parent(p, n, p->last_child(), nullptr);
                         prev_scalar.clear();
                     }
                     else
@@ -593,7 +620,8 @@ case _ev:                   \
             _c4_handle_case(YAML_DOCUMENT_START_EVENT)
                 {
                     Node *n = s->begin_doc();
-                    s->set_parent(n, _stack_top(s));
+                    Node *p = _stack_top(s);
+                    s->set_parent(p, n, p->last_child(), nullptr);
                     m_stack.push(s->id(n));
                     doc_had_scalars = false;
                 }
@@ -644,63 +672,47 @@ case _ev:                   \
 
     void _handle_error()
     {
+        Location problem_loc, context_loc;
+        if(m_parser.problem)
+        {
+            problem_loc = Location(m_parser.problem, m_parser.problem_mark);
+        }
+        if(m_parser.context)
+        {
+            context_loc = Location(m_parser.context, m_parser.context_mark);
+        }
+
         switch(m_parser.error)
         {
 
         case YAML_MEMORY_ERROR:
-            fprintf(stderr, "Memory error: Not enough memory for parsing\n");
+            RymlCallbacks::error("Memory error: Not enough memory for parsing");
             break;
 
         case YAML_READER_ERROR:
             if (m_parser.problem_value != -1)
             {
-                fprintf(stderr, "Reader error: %s: #%X at %d\n", m_parser.problem,
-                        m_parser.problem_value, (int)m_parser.problem_offset);
+                char buf[32];
+                int ret = snprintf(buf, sizeof(buf), "Reader error: #%X", m_parser.problem_value);
+                RymlCallbacks::error(buf, ret, &problem_loc);
             }
             else
             {
-                fprintf(stderr, "Reader error: %s at %d\n", m_parser.problem,
-                        (int)m_parser.problem_offset);
+                RymlCallbacks::error("Reader error", &problem_loc);
             }
             break;
 
         case YAML_SCANNER_ERROR:
-            if (m_parser.context)
-            {
-                fprintf(stderr, "Scanner error: %s at line %d, column %d\n"
-                        "%s at line %d, column %d\n", m_parser.context,
-                        (int)m_parser.context_mark.line+1, (int)m_parser.context_mark.column+1,
-                        m_parser.problem, (int)m_parser.problem_mark.line+1,
-                        (int)m_parser.problem_mark.column+1);
-            }
-            else
-            {
-                fprintf(stderr, "Scanner error: %s at line %d, column %d\n",
-                        m_parser.problem, (int)m_parser.problem_mark.line+1,
-                        (int)m_parser.problem_mark.column+1);
-            }
+            RymlCallbacks::error("Scanner error", &context_loc, &problem_loc);
             break;
 
         case YAML_PARSER_ERROR:
-            if (m_parser.context)
-            {
-                fprintf(stderr, "Parser error: %s at line %d, column %d\n"
-                        "%s at line %d, column %d\n", m_parser.context,
-                        (int)m_parser.context_mark.line+1, (int)m_parser.context_mark.column+1,
-                        m_parser.problem, (int)m_parser.problem_mark.line+1,
-                        (int)m_parser.problem_mark.column+1);
-            }
-            else
-            {
-                fprintf(stderr, "Parser error: %s at line %d, column %d\n",
-                        m_parser.problem, (int)m_parser.problem_mark.line+1,
-                        (int)m_parser.problem_mark.column+1);
-            }
+            RymlCallbacks::error("Parser error", &context_loc, &problem_loc);
             break;
 
         default:
             /* Couldn't happen. */
-            fprintf(stderr, "Internal error\n");
+            RymlCallbacks::error("Internal error");
             break;
         };
     }

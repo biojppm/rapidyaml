@@ -10,14 +10,19 @@ namespace yml {
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+size_t Node::id() const
+{
+    return m_s->id(this);
+}
+
 Node * Node::prev_node() const
 {
-    return m_s->get(m_prev);
+    return m_s->get(m_list.prev);
 }
 
 Node * Node::next_node() const
 {
-    return m_s->get(m_next);
+    return m_s->get(m_list.next);
 }
 
 Node * Node::parent() const
@@ -76,7 +81,13 @@ Node * Node::find_child(cspan const& name) const
 
 size_t Node::num_siblings() const
 {
-    return (m_parent != NONE) ? m_s->get(m_parent)->num_children() : 1;
+    return (m_parent != NONE) ? m_s->get(m_parent)->num_children() : 0;
+}
+
+Node * Node::sibling(size_t i) const
+{
+    C4_ASSERT(parent() != nullptr);
+    return m_s->get(m_parent)->child(i);
 }
 
 Node * Node::first_sibling() const
@@ -96,18 +107,16 @@ Node * Node::find_sibling(cspan const& name) const
 
 Node * Node::prev_sibling() const
 {
-    Node *n = prev_node();
-    if( ! n) return nullptr;
-    if(n->m_parent == m_parent) return n;
-    return nullptr;
+    Node *n = m_s->get(m_siblings.prev);
+    C4_ASSERT(!n || n->m_parent == m_parent);
+    return n;
 }
 
 Node * Node::next_sibling() const
 {
-    Node *n = next_node();
-    if( ! n) return nullptr;
-    if(n->m_parent == m_parent) return n;
-    return nullptr;
+    Node *n = m_s->get(m_siblings.next);
+    C4_ASSERT(!n || n->m_parent == m_parent);
+    return n;
 }
 
 
@@ -158,7 +167,7 @@ void Tree::reserve(size_t sz)
     else
     {
         C4_ASSERT(m_free_tail != NONE);
-        m_buf[m_free_tail].m_next = m_num;
+        m_buf[m_free_tail].m_list.next = m_num;
     }
     size_t first = m_num, del = sz - m_num;
     m_num = sz;
@@ -185,13 +194,15 @@ void Tree::clear_range(size_t first, size_t num)
     for(size_t i = first, e = first + num; i < e; ++i)
     {
         Node *n = m_buf + i;
-        n->m_prev = i - 1;
-        n->m_next = i + 1;
+        n->m_list.prev = i - 1;
+        n->m_list.next = i + 1;
         n->m_parent = NONE;
         n->m_children.first = NONE;
         n->m_children.last = NONE;
+        n->m_siblings.prev = NONE;
+        n->m_siblings.next = NONE;
     }
-    m_buf[first + num - 1].m_next = NONE;
+    m_buf[first + num - 1].m_list.next = NONE;
 }
 
 //-----------------------------------------------------------------------------
@@ -214,60 +225,67 @@ Node *Tree::claim(size_t prev, size_t next)
     }
     size_t f = m_free_head;
     Node *n = m_buf + f;
-    m_free_head = n->m_next;
+    m_free_head = n->m_list.next;
     if(m_free_head == NONE)
     {
         m_free_tail = NONE;
     }
     n->m_s = this;
-    n->m_prev = prev;
-    n->m_next = next;
+    n->m_list.prev = prev;
+    n->m_list.next = next;
+    n->m_siblings.prev = NONE;
+    n->m_siblings.next = NONE;
     n->m_children.first = NONE;
     n->m_children.last = NONE;
     if(prev == NONE) m_head = f;
     else
     {
         Node *p = m_buf + prev;
-        p->m_next = f;
-        n->m_parent = p->m_parent;
+        p->m_list.next = f;
     }
     if(next == NONE) m_tail = f;
     else
     {
         Node *v = m_buf + next;
-        v->m_prev = f;
-        n->m_parent = v->m_parent;
-    }
-    if(prev != NONE && next != NONE)
-    {
-        C4_ASSERT((m_buf + prev)->m_parent == (m_buf + next)->m_parent);
+        v->m_list.prev = f;
     }
     return n;
 }
 
 //-----------------------------------------------------------------------------
-void Tree::set_parent(Node *child, Node *parent)
+void Tree::set_parent(Node *parent, Node *child, Node *prev_sibling, Node *next_sibling)
 {
     C4_ASSERT(child != nullptr && child >= m_buf && child < m_buf + m_num);
     C4_ASSERT(parent == nullptr || parent >= m_buf && parent < m_buf + m_num);
     child->m_parent = parent ? parent - m_buf : NONE;
-    size_t ichild = child - m_buf;
+    child->m_siblings.prev = NONE;
+    child->m_siblings.next = NONE;
+    if(prev_sibling)
+    {
+        child->m_siblings.prev = prev_sibling->id();
+        prev_sibling->m_siblings.next = child->id();
+    }
+    if(next_sibling)
+    {
+        child->m_siblings.next = next_sibling->id();
+        next_sibling->m_siblings.prev = child->id();
+    }
     if( ! parent) return;
     if(parent->m_children.first == NONE)
     {
-        C4_ASSERT(parent->m_children.first == parent->m_children.last);
-        parent->m_children.first = ichild;
-        parent->m_children.last = ichild;
+        C4_ASSERT(parent->m_children.last == NONE);
+        parent->m_children.first = child->id();
+        parent->m_children.last = child->id();
     }
     else
     {
-        if(child->m_next == parent->m_children.first)
+        if(child->m_siblings.next == parent->m_children.first)
         {
-            parent->m_children.first = ichild;
+            parent->m_children.first = child->id();
         }
-        if(child->m_prev == parent->m_children.last)
+        if(child->m_siblings.prev == parent->m_children.last)
         {
-            parent->m_children.last = ichild;
+            parent->m_children.last = child->id();
         }
     }
 }
@@ -276,9 +294,9 @@ void Tree::set_parent(Node *child, Node *parent)
 void Tree::free(size_t i)
 {
     C4_ASSERT(i >= 0 && i < m_num);
-    m_buf[i].m_next = m_free_head;
-    m_buf[i].m_prev = NONE;
-    m_buf[m_free_head].m_prev = i;
+    m_buf[i].m_list.next = m_free_head;
+    m_buf[i].m_list.prev = NONE;
+    m_buf[m_free_head].m_list.prev = i;
     m_free_head = i;
     if(m_free_tail == NONE)
     {
