@@ -354,22 +354,18 @@ public:
     void reserve(size_t sz);
 
     void clear();
-    void clear_range(size_t first, size_t num);
 
-    Node *claim(Node *after);
-    Node *claim(size_t prev, size_t next);
-
-    void free(size_t i);
+public:
 
     size_t id(Node const* n)
     {
-        if(!n) return NONE;
+        if( ! n) return NONE;
         C4_ASSERT(n >= m_buf && n < m_buf + m_num);
         return n - m_buf;
     }
     size_t id(Node const* n) const
     {
-        if(!n) return NONE;
+        if( ! n) return NONE;
         C4_ASSERT(n >= m_buf && n < m_buf + m_num);
         return n - m_buf;
     }
@@ -387,11 +383,7 @@ public:
         return m_buf + i;
     }
 
-    Node      * head()       { return m_buf + m_head; }
-    Node const* head() const { return m_buf + m_head; }
-
-    Node      * tail()       { return m_buf + m_tail; }
-    Node const* tail() const { return m_buf + m_tail; }
+public:
 
     Node *begin_stream()
     {
@@ -497,6 +489,21 @@ private:
         Node *n = get(m_stack.pop());
         return n;
     }
+
+private:
+
+    void clear_range(size_t first, size_t num);
+
+    Node *claim(Node *after);
+    Node *claim(size_t prev, size_t next);
+
+    void free(size_t i);
+
+    Node      * head()       { return m_buf + m_head; }
+    Node const* head() const { return m_buf + m_head; }
+
+    Node      * tail()       { return m_buf + m_tail; }
+    Node const* tail() const { return m_buf + m_tail; }
 
 public:
 
