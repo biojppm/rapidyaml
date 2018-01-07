@@ -332,7 +332,7 @@ public:
 
 class Tree
 {
-public:
+private:
 
     Node * m_buf;
     size_t m_num;
