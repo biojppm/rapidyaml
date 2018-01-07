@@ -51,8 +51,8 @@ fdx: crl
 
 int main()
 {
-    auto s = yml::Tree(2);
-    auto p = yml::Parser();
+    yml::Tree s(2);
+    yml::Parser p;
     p.parse(&s, ex);
     C4_ASSERT(s.root() != nullptr);
     auto &root = *s.root();
@@ -61,10 +61,10 @@ int main()
     auto &doc = *s.first_doc();
     C4_ASSERT(doc.type() == yml::TYPE_DOC);
     C4_ASSERT(doc.num_children() == 6);
-    //show_children(doc);
-    //show_children(doc["seq"]);
-    //show_children(doc["map"]);
-    //show_children(doc["map"]["submap"]);
+    show_children(doc);
+    show_children(doc["seq"]);
+    show_children(doc["map"]);
+    show_children(doc["map"]["submap"]);
     C4_ASSERT(&doc[0] == &doc["foo"]);
     C4_ASSERT(&doc[1] == &doc["bar"]);
     C4_ASSERT(&doc[2] == &doc["bat"]);
@@ -100,5 +100,6 @@ int main()
     _chm(smap, 2, "subbaz", "13");
     _chm(smap, 3, "subbat", "14");
 
+    printf("-----------------\nchecks ok!!!!!\n-----------------\n");
     return 0;
 }

@@ -343,6 +343,8 @@ public:
     size_t m_free_head;
     size_t m_free_tail;
 
+    detail::stack< size_t > m_stack;
+
 public:
 
     Tree();
@@ -391,63 +393,112 @@ public:
     Node      * tail()       { return m_buf + m_tail; }
     Node const* tail() const { return m_buf + m_tail; }
 
-    void set_parent(Node *parent, Node *child, Node *prev_sibling, Node *next_sibling);
-
     Node *begin_stream()
     {
         Node *n = claim(nullptr);
         n->m_type = TYPE_ROOT;
+
+        m_stack.push(id(n));
         return n;
     }
     Node *end_stream()
     {
-        return nullptr;
+        return _stack_pop();
     }
 
     Node *begin_doc(Node *after = nullptr)
     {
         C4_ASSERT(after == nullptr || after->m_parent == NONE);
-        Node *n = claim(after);
-        n->m_type = TYPE_DOC;
-        return n;
+        return _stack_push({}, TYPE_DOC, after);
     }
     Node *end_doc()
     {
-        return nullptr;
+        return _stack_pop();
     }
 
     Node *add_val(cspan const& name, cspan const& val, Node *after = nullptr)
     {
+        if( ! name)
+        {
+            C4_ASSERT(_stack_top()->m_type == TYPE_SEQ);
+        }
         Node *n = claim(after);
         n->m_type = TYPE_VAL;
         n->m_name = name;
         n->m_val  = val;
+
+        _set_hierarchy(_stack_top(), n, after);
         return n;
     }
 
     Node *begin_map(cspan const& name, Node *after = nullptr)
     {
-        Node *n = claim(after);
-        n->m_type = TYPE_MAP;
-        n->m_name = name;
-        return n;
+        return _stack_push(name, TYPE_MAP, after);
     }
     Node *end_map()
     {
-        return nullptr;
+        return _stack_pop();
     }
 
     Node *begin_seq(cspan const& name, Node *after = nullptr)
     {
-        Node *n = claim(after);
-        n->m_type = TYPE_SEQ;
-        n->m_name = name;
-        return n;
+        return _stack_push(name, TYPE_SEQ, after);
     }
     Node *end_seq()
     {
-        return nullptr;
+        return _stack_pop();
     }
+
+    bool stack_top_is_type(NodeType_e type)
+    {
+        return _stack_top()->m_type == type;
+    }
+
+private:
+
+    void _set_hierarchy(Node *p, Node *ch, Node *after = nullptr)
+    {
+        if( ! after)
+        {
+            after = p->last_child();
+        }
+        Node *before = nullptr;
+        if(after)
+        {
+            before = after->next_sibling();
+        }
+        set_parent(p, ch, after, before);
+    }
+
+    void set_parent(Node *parent, Node *child, Node *prev_sibling, Node *next_sibling);
+
+    Node * _stack_top()
+    {
+        C4_ASSERT( ! m_stack.empty());
+        size_t id = m_stack.peek();
+        Node *n = get(id);
+        return n;
+    }
+
+    Node * _stack_push(cspan const& name, NodeType_e type, Node *after)
+    {
+        Node *n = claim(after);
+        n->m_type = type;
+        n->m_name = name;
+
+        _set_hierarchy(_stack_top(), n, after);
+
+        m_stack.push(id(n));
+        return n;
+    }
+
+    Node *_stack_pop()
+    {
+        Node *n = get(m_stack.pop());
+        return n;
+    }
+
+public:
 
     Node      * root()       { C4_ASSERT(m_num > 0); Node *n = m_buf; C4_ASSERT(n->type() == TYPE_ROOT); return n; }
     Node const* root() const { C4_ASSERT(m_num > 0); Node *n = m_buf; C4_ASSERT(n->type() == TYPE_ROOT); return n; }
@@ -471,8 +522,6 @@ public:
 
     const char *  m_input;
     size_t        m_length;
-
-    detail::stack< size_t > m_stack;
 
 private:
 
@@ -559,53 +608,39 @@ case _ev:                   \
            (int)val.len, val.str);
 
             _c4_handle_case(YAML_MAPPING_START_EVENT)
-                if( ! _stack_top_is_type(s, TYPE_DOC) || doc_had_scalars)
+                if( ! s->stack_top_is_type(TYPE_DOC) || doc_had_scalars)
                 {
                     C4_ASSERT(prev_scalar == true);
-                    Node *n = s->begin_map(prev_scalar);
-                    Node *p = _stack_top(s);
-                    s->set_parent(p, n, p->last_child(), nullptr);
+                    s->begin_map(prev_scalar);
                     prev_scalar.clear();
-                    m_stack.push(s->id(n));
                 }
                 break;
             _c4_handle_case(YAML_MAPPING_END_EVENT)
-                if( ! _stack_top_is_type(s, TYPE_DOC))
+                if( ! s->stack_top_is_type(TYPE_DOC))
                 {
                     s->end_map();
-                    m_stack.pop();
                 }
                 break;
 
             _c4_handle_case(YAML_SEQUENCE_START_EVENT)
-                {
-                    C4_ASSERT(prev_scalar == true);
-                    Node *n = s->begin_seq(prev_scalar);
-                    Node *p = _stack_top(s);
-                    s->set_parent(p, n, p->last_child(), nullptr);
-                    m_stack.push(s->id(n));
-                }
+                C4_ASSERT(prev_scalar == true);
+                s->begin_seq(prev_scalar);
                 break;
             _c4_handle_case(YAML_SEQUENCE_END_EVENT)
                 s->end_seq();
-                m_stack.pop();
                 break;
 
             _c4_handle_case(YAML_SCALAR_EVENT)
-                if(_stack_top_is_type(s, TYPE_SEQ))
+                if(s->stack_top_is_type(TYPE_SEQ))
                 {
-                    Node *n = s->add_val({}, val);
-                    Node *p = _stack_top(s);
-                    s->set_parent(p, n, p->last_child(), nullptr);
+                    s->add_val({}, val);
                     prev_scalar.clear();
                 }
                 else
                 {
                     if(prev_scalar)
                     {
-                        Node *n = s->add_val(prev_scalar, val);
-                        Node *p = _stack_top(s);
-                        s->set_parent(p, n, p->last_child(), nullptr);
+                        s->add_val(prev_scalar, val);
                         prev_scalar.clear();
                     }
                     else
@@ -617,29 +652,19 @@ case _ev:                   \
                 break;
 
             _c4_handle_case(YAML_DOCUMENT_START_EVENT)
-                {
-                    Node *n = s->begin_doc();
-                    Node *p = _stack_top(s);
-                    s->set_parent(p, n, p->last_child(), nullptr);
-                    m_stack.push(s->id(n));
-                    doc_had_scalars = false;
-                }
+                s->begin_doc();
+                doc_had_scalars = false;
                 break;
             _c4_handle_case(YAML_DOCUMENT_END_EVENT)
                 s->end_doc();
-                m_stack.pop();
                 break;
 
             _c4_handle_case(YAML_STREAM_START_EVENT)
-                {
-                    s->clear();
-                    Node *n = s->begin_stream();
-                    m_stack.push(s->id(n));
-                }
+                s->clear();
+                s->begin_stream();
                 break;
             _c4_handle_case(YAML_STREAM_END_EVENT)
                 s->end_stream();
-                m_stack.pop();
                 done = true;
                 break;
 
@@ -651,22 +676,6 @@ case _ev:                   \
                 break;
             };
         }
-    }
-
-    Node * _stack_top(Tree *s) const
-    {
-        C4_ASSERT( ! m_stack.empty());
-        size_t id = m_stack.peek();
-        Node *n = s->get(id);
-        return n;
-    }
-
-    Node * _stack_top_is_type(Tree *s, NodeType_e type) const
-    {
-        C4_ASSERT( ! m_stack.empty());
-        size_t id = m_stack.peek();
-        Node *n = s->get(id);
-        return n->m_type == type ? n : nullptr;
     }
 
     void _handle_error()
