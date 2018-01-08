@@ -675,6 +675,22 @@ public:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+namespace detail {
+class Event;
+} // detail
+
+class detail::Event
+{
+public:
+    yaml_event_t m_event;
+public:
+    Event() {}
+    ~Event()
+    {
+        yaml_event_delete(&m_event);
+    }
+};
+
 class Parser
 {
 public:
@@ -688,19 +704,7 @@ public:
 
 private:
 
-    class Event
-    {
-    public:
-        yaml_event_t m_event;
-    public:
-        Event() {}
-        ~Event()
-        {
-            yaml_event_delete(&m_event);
-        }
-    };
-
-    cspan get_scalar_val(Event const &ev) const
+    cspan get_scalar_val(detail::Event const &ev) const
     {
         // the memory in data.scalar is allocated anew, so don't do this
         //auto const& scalar = e.m_event.data.scalar;
@@ -759,8 +763,7 @@ public:
         cspan prev_scalar;
         while( ! done)
         {
-
-            Event ev;
+            detail::Event ev;
             if( ! yaml_parser_parse(&m_parser, &ev.m_event))
             {
                 _handle_error();
@@ -794,7 +797,6 @@ case _ev:                   \
                 break;
 
             _c4_handle_case(YAML_SEQUENCE_START_EVENT)
-                printf("prev_scalar: %.*s\n", (int)prev_scalar.len, prev_scalar.str);
                 C4_ASSERT( ! prev_scalar.empty());
                 s->begin_seq(prev_scalar, s->top_last());
                 break;
