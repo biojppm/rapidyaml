@@ -100,6 +100,45 @@ int main()
     _chm(smap, 2, "subbaz", "13");
     _chm(smap, 3, "subbat", "14");
 
+    //-----------------------------------------------
+
+    //    doc["new_child"] = "new_value";
+    doc.append_child("new_child", "new_value");
+    C4_ASSERT(&doc[6] == &doc["new_child"]);
+    C4_ASSERT(doc["new_child"].val() == "new_value");
+
+    doc.append_child("new_map", yml::TYPE_MAP);
+    C4_ASSERT(&doc[7] == &doc["new_map"]);
+    C4_ASSERT(doc["new_map"].type() == yml::TYPE_MAP);
+
+    auto &nm = doc["new_map"];
+    nm.prepend_child("fdx", "crl");
+    nm.prepend_child("pqp", "ccm");
+    C4_ASSERT(nm.num_children() == 2);
+    C4_ASSERT(&nm[0] == &nm["pqp"] && nm[0] == "ccm");
+    C4_ASSERT(&nm[1] == &nm["fdx"] && nm[1] == "crl");
+    nm.insert_child("xxx", "yyy", &nm["pqp"]);
+    show_children(nm);
+    C4_ASSERT(nm.num_children() == 3);
+    C4_ASSERT(&nm[0] == &nm["pqp"] && nm[0] == "ccm");
+    C4_ASSERT(&nm[1] == &nm["xxx"] && nm[1] == "yyy");
+    C4_ASSERT(&nm[2] == &nm["fdx"] && nm[2] == "crl");
+
+    yml::Parser p2;
+    nm.append_child("serialized", yml::TYPE_MAP);
+    C4_ASSERT(nm.num_children() == 4);
+
+    C4_ASSERT(nm["serialized"].type() == yml::TYPE_MAP);
+    s.load(&nm["serialized"], R"(
+prop1: val1
+prop2: val2
+prop3: val3
+prop4: [seq1, seq2, seq3]
+)", &p2);
+    show_children((*s.first_doc())["new_map"]["serialized"]);
+
     printf("-----------------\nchecks ok!!!!!\n-----------------\n");
+
+
     return 0;
 }

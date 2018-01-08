@@ -32,6 +32,8 @@
 namespace c4 {
 namespace yml {
 
+class Parser;
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -43,6 +45,10 @@ public:
     C *str;
     size_t len;
 
+    // convert automatically to span of const C
+    operator basic_span< const C > () { basic_span< const C > s(str, len); return s; }
+    operator bool () const { return ! empty(); }
+
 public:
 
     basic_span() : str(nullptr), len(0) {}
@@ -52,7 +58,7 @@ public:
 
     void clear() { str = nullptr; len = 0; }
 
-    operator bool () const { return str != nullptr && len > 0; }
+    bool empty() const { return len == 0 || (str == nullptr || str[0] == '\0'); }
 
     bool operator== (basic_span const& that) const
     {
@@ -208,12 +214,12 @@ public:
         }
         m_stack[m_pos] = n;
         m_pos++;
-        //printf("stack_push: %zd %zd\n", m_pos, n);
+        printf("stack_push[%zd]: %zd\n", m_pos, n);
     }
 
     T pop()
     {
-        //printf("stack_pop: %zd %zd\n", m_pos, m_stack[m_pos - 1]);
+        printf("stack_pop[%zd]: %zd\n", m_pos, m_stack[m_pos - 1]);
         C4_ASSERT(m_pos > 0);
         m_pos--;
         T n = m_stack[m_pos];
@@ -289,13 +295,111 @@ public:
     cspan const& name() const { return m_name; }
     cspan const& val() const { C4_ASSERT(m_type == TYPE_VAL); return m_val; }
 
+    bool operator== (cspan const& cmp) const
+    {
+        C4_ASSERT(is_val_type());
+        return m_val == cmp;
+    }
+
+    bool   is_container_type() const { return m_type == TYPE_DOC || m_type == TYPE_MAP || m_type == TYPE_SEQ || m_type == TYPE_ROOT; }
+    bool   is_map_type() const { return m_type == TYPE_DOC || m_type == TYPE_MAP; }
+    bool   is_seq_type() const { return m_type == TYPE_ROOT || m_type == TYPE_SEQ; }
+    bool   is_val_type() const { return m_type == TYPE_VAL; }
+
     Node * parent() const;
 
+    bool   has_children() const { return num_children() != 0; }
     size_t num_children() const;
     Node * child(size_t i) const;
     Node * first_child() const;
     Node * last_child() const;
     Node * find_child(cspan const& name) const;
+
+    bool   is_child(Node const* ch) const;
+
+    bool   has_siblings() const { return num_siblings() != 0; }
+    size_t num_siblings() const;
+    Node * sibling(size_t i) const;
+    Node * first_sibling() const;
+    Node * last_sibling() const;
+    Node * find_sibling(cspan const& name) const;
+
+    Node * prev_sibling() const;
+    Node * next_sibling() const;
+
+    bool   is_sibling(Node const* n) const;
+
+
+public:
+
+    //! create and insert a new sibling as a key-value node. insert after "after"
+    Node *  insert_sibling(cspan const& name, cspan const& val, Node * after);
+    Node *  append_sibling(cspan const& name, cspan const& val) { return insert_sibling(name, val, last_sibling()); }
+    Node * prepend_sibling(cspan const& name, cspan const& val) { return insert_sibling(name, val, nullptr); }
+
+    //! create and insert a new sibling as a key-value node in a seq entry. insert after "after".
+    Node *  insert_sibling_seq(cspan const& val, Node * after) { return insert_sibling({}, val, after); }
+    Node *  append_sibling_seq(cspan const& val) { return insert_sibling({}, val, last_sibling()); }
+    Node * prepend_sibling_seq(cspan const& val) { return insert_sibling({}, val, nullptr); }
+
+    //! create and insert a new sibling while specifying its type. insert after "after".
+    Node *  insert_sibling(cspan const& name, NodeType_e sibtype, Node * after);
+    Node *  append_sibling(cspan const& name, NodeType_e sibtype) { return insert_sibling(name, sibtype, last_sibling()); }
+    Node * prepend_sibling(cspan const& name, NodeType_e sibtype) { return insert_sibling(name, sibtype, nullptr); }
+
+    //! create and insert a new sibling as a seq entry while specifying its type. insert after "after".
+    Node *  insert_sibling_seq(NodeType_e sibtype, Node * after) { return insert_sibling({}, sibtype, last_sibling()); }
+    Node *  append_sibling_seq(NodeType_e sibtype) { return insert_sibling({}, sibtype, last_sibling()); }
+    Node * prepend_sibling_seq(NodeType_e sibtype) { return insert_sibling({}, sibtype, nullptr); }
+
+    //! insert a node as sibling. insert after "after".
+    Node *  insert_sibling(Node *sib, Node * after);
+    Node *  append_sibling(Node *sib) { return insert_sibling(sib, last_sibling()); }
+    Node * prepend_sibling(Node *sib) { return insert_sibling(sib, nullptr); }
+
+public:
+
+    //! create and insert a new child as a key-value node. insert after "after"
+    Node *  insert_child(cspan const& name, cspan const& val, Node * after = nullptr);
+    Node *  append_child(cspan const& name, cspan const& val) { return insert_child(name, val, last_child()); }
+    Node * prepend_child(cspan const& name, cspan const& val) { return insert_child(name, val, nullptr); }
+
+    //! create and insert a new child as a key-value node in a seq entry. insert after "after".
+    Node *  insert_child_seq(cspan const& val, Node * after = nullptr) { return insert_child({}, val, last_child()); }
+    Node *  append_child_seq(cspan const& val) { return insert_child({}, val, last_child()); }
+    Node * prepend_child_seq(cspan const& val) { return insert_child({}, val, nullptr); }
+
+    //! create and insert a new sibling while specifying its type. insert after "after".
+    Node *  insert_child(cspan const& name, NodeType_e chtype, Node * after = nullptr);
+    Node *  append_child(cspan const& name, NodeType_e chtype) { return insert_child(name, chtype, last_child()); }
+    Node * prepend_child(cspan const& name, NodeType_e chtype) { return insert_child(name, chtype, nullptr); }
+
+    //! create and insert a new child as a seq entry while specifying its type. insert after "after".
+    Node *  insert_child_seq(NodeType_e chtype, Node * after = nullptr) { return insert_child({}, chtype, last_child()); }
+    Node *  append_child_seq(NodeType_e chtype) { return insert_child({}, chtype, last_child()); }
+    Node * prepend_child_seq(NodeType_e chtype) { return insert_child({}, chtype, nullptr); }
+
+    //! insert a node as child. insert after "after".
+    Node *  insert_child(Node *ch, Node * after);
+    Node *  append_child(Node *ch) { return insert_child(ch, last_child()); }
+    Node * prepend_child(Node *ch) { return insert_child(ch, nullptr); }
+
+private:
+
+    Node * _insert_by_type(Node *which_parent, cspan const& name, NodeType_e type, Node *after);
+
+public:
+
+    Node * remove_sibling(cspan const& name); ///< remove a sibling by name
+    Node * remove_sibling(size_t i); ///< remove a sibling by index
+    Node * remove_sibling(Node *n);  ///< remove a sibling
+
+    Node * remove_child(cspan const& name) { C4_ASSERT(has_children()); return first_child()->remove_sibling(name); }; ///< remove a child by name
+    Node * remove_child(size_t i) { C4_ASSERT(has_children()); return first_child()->remove_sibling(i); }; ///< remove a child by index
+    Node * remove_child(Node *n) { C4_ASSERT(has_children()); return first_child()->remove_sibling(n); };  ///< remove a child
+
+
+public:
 
     Node & operator[] (size_t i) const
     {
@@ -306,19 +410,13 @@ public:
 
     Node & operator[] (cspan const& name) const
     {
+        C4_ASSERT(m_type == TYPE_DOC || m_type == TYPE_MAP);
         Node *c = find_child(name);
-        if( ! c) { RymlCallbacks::error("could not find node");}
+        if( ! c) { RymlCallbacks::error("could not find node"); }
         return *c;
     }
 
-    size_t num_siblings() const;
-    Node * sibling(size_t i) const;
-    Node * first_sibling() const;
-    Node * last_sibling() const;
-    Node * find_sibling(cspan const& name) const;
-
-    Node * prev_sibling() const;
-    Node * next_sibling() const;
+private:
 
     Node * prev_node() const;
     Node * next_node() const;
@@ -344,6 +442,8 @@ private:
     size_t m_free_tail;
 
     detail::stack< size_t > m_stack;
+
+    size_t m_load_root_id;
 
 public:
 
@@ -385,8 +485,24 @@ public:
 
 public:
 
+    void serialize(Node *root, span const* buffer) const;
+    Node * load(Node *root, cspan const& yml_str, Parser *p_ = nullptr);
+
+public:
+
+    void set_load_root(Node *r) { m_load_root_id = r ? r->id() : NONE; }
+
     Node *begin_stream()
     {
+        if(m_load_root_id != NONE)
+        {
+            C4_ASSERT(get(m_load_root_id)->is_map_type());
+            m_stack.push(m_load_root_id);
+            printf("pushing: load root: %p %d\n", (void*)get(m_load_root_id), get(m_load_root_id)->m_type);
+            return get(m_load_root_id);
+        }
+
+        C4_ASSERT(m_stack.empty());
         Node *n = claim(nullptr);
         n->m_type = TYPE_ROOT;
 
@@ -400,7 +516,16 @@ public:
 
     Node *begin_doc(Node *after = nullptr)
     {
+        if(m_load_root_id != NONE)
+        {
+            m_stack.push(m_load_root_id);
+            return get(m_load_root_id);
+        }
+
         C4_ASSERT(after == nullptr || after->m_parent == NONE);
+        C4_ASSERT( ! after || after->m_type == TYPE_DOC);
+        C4_ASSERT( ! after || get(after->m_parent) == _stack_top());
+        C4_ASSERT(_stack_top() && _stack_top()->m_type == TYPE_ROOT);
         return _stack_push({}, TYPE_DOC, after);
     }
     Node *end_doc()
@@ -408,21 +533,34 @@ public:
         return _stack_pop();
     }
 
+    Node *add_val_seq(cspan const& val, Node *after = nullptr)
+    {
+        C4_ASSERT(_stack_top()->is_seq_type());
+        return add_val({}, val, after);
+    }
+    /** place the new node after "after" */
     Node *add_val(cspan const& name, cspan const& val, Node *after = nullptr)
     {
-        if( ! name)
+        if(name.empty())
         {
-            C4_ASSERT(_stack_top()->m_type == TYPE_SEQ);
+            C4_ASSERT(_stack_top()->is_seq_type());
         }
+        else
+        {
+            C4_ASSERT(_stack_top()->is_map_type());
+        }
+        size_t ida = id(after);
         Node *n = claim(after);
+        after = get(ida);
         n->m_type = TYPE_VAL;
         n->m_name = name;
         n->m_val  = val;
 
-        _set_hierarchy(_stack_top(), n, after);
+        set_parent(_stack_top(), n, after);
         return n;
     }
 
+    /** place the new node after "after" */
     Node *begin_map(cspan const& name, Node *after = nullptr)
     {
         return _stack_push(name, TYPE_MAP, after);
@@ -432,6 +570,7 @@ public:
         return _stack_pop();
     }
 
+    /** place the new node after "after" */
     Node *begin_seq(cspan const& name, Node *after = nullptr)
     {
         return _stack_push(name, TYPE_SEQ, after);
@@ -446,24 +585,6 @@ public:
         return _stack_top()->m_type == type;
     }
 
-private:
-
-    void _set_hierarchy(Node *p, Node *ch, Node *after = nullptr)
-    {
-        if( ! after)
-        {
-            after = p->last_child();
-        }
-        Node *before = nullptr;
-        if(after)
-        {
-            before = after->next_sibling();
-        }
-        set_parent(p, ch, after, before);
-    }
-
-    void set_parent(Node *parent, Node *child, Node *prev_sibling, Node *next_sibling);
-
     Node * _stack_top()
     {
         C4_ASSERT( ! m_stack.empty());
@@ -472,13 +593,30 @@ private:
         return n;
     }
 
+    Node * top_last()
+    {
+        return _stack_top()->last_child();
+    }
+
+    void set_parent(Node *parent, Node *child, Node *prev_sibling, Node *next_sibling = nullptr);
+
+private:
+
+    friend class Node;
+    void _stack_push(Node *n)
+    {
+        m_stack.push(id(n));
+    }
     Node * _stack_push(cspan const& name, NodeType_e type, Node *after)
     {
+        size_t ida = id(after);
         Node *n = claim(after);
+        after = get(ida);
+
         n->m_type = type;
         n->m_name = name;
 
-        _set_hierarchy(_stack_top(), n, after);
+        set_parent(_stack_top(), n, after);
 
         m_stack.push(id(n));
         return n;
@@ -530,6 +668,8 @@ public:
     const char *  m_input;
     size_t        m_length;
 
+    Node *        m_load_root;
+
 private:
 
     class Event
@@ -577,10 +717,16 @@ public:
     Parser(Parser &&that) = default;
     Parser& operator= (Parser &&that) = default;
 
+    void set_load_root(Node *r) { m_load_root = r; }
+
     template< size_t N >
     void parse(Tree *s, const char (&input)[N])
     {
         parse(s, &input[0], N-1);
+    }
+    void parse(Tree *s, cspan const& sp)
+    {
+        parse(s, sp.str, sp.len);
     }
     void parse(Tree *s, const char* input, size_t length)
     {
@@ -615,23 +761,26 @@ case _ev:                   \
            (int)val.len, val.str);
 
             _c4_handle_case(YAML_MAPPING_START_EVENT)
-                if( ! s->stack_top_is_type(TYPE_DOC) || doc_had_scalars)
+                if(( ! s->stack_top_is_type(TYPE_DOC) || doc_had_scalars)
+                   &&
+                   ( ! m_load_root))
                 {
-                    C4_ASSERT(prev_scalar == true);
-                    s->begin_map(prev_scalar);
+                    C4_ASSERT( ! prev_scalar.empty());
+                    s->begin_map(prev_scalar, s->top_last());
                     prev_scalar.clear();
                 }
                 break;
             _c4_handle_case(YAML_MAPPING_END_EVENT)
-                if( ! s->stack_top_is_type(TYPE_DOC))
+                if( ! s->stack_top_is_type(TYPE_DOC) && ! m_load_root)
                 {
                     s->end_map();
                 }
                 break;
 
             _c4_handle_case(YAML_SEQUENCE_START_EVENT)
-                C4_ASSERT(prev_scalar == true);
-                s->begin_seq(prev_scalar);
+                printf("prev_scalar: %.*s\n", (int)prev_scalar.len, prev_scalar.str);
+                C4_ASSERT( ! prev_scalar.empty());
+                s->begin_seq(prev_scalar, s->top_last());
                 break;
             _c4_handle_case(YAML_SEQUENCE_END_EVENT)
                 s->end_seq();
@@ -640,14 +789,14 @@ case _ev:                   \
             _c4_handle_case(YAML_SCALAR_EVENT)
                 if(s->stack_top_is_type(TYPE_SEQ))
                 {
-                    s->add_val({}, val);
+                    s->add_val({}, val, s->top_last());
                     prev_scalar.clear();
                 }
                 else
                 {
-                    if(prev_scalar)
+                    if( ! prev_scalar.empty())
                     {
-                        s->add_val(prev_scalar, val);
+                        s->add_val(prev_scalar, val, s->top_last());
                         prev_scalar.clear();
                     }
                     else
@@ -659,15 +808,20 @@ case _ev:                   \
                 break;
 
             _c4_handle_case(YAML_DOCUMENT_START_EVENT)
-                s->begin_doc();
-                doc_had_scalars = false;
+                if( ! m_load_root)
+                {
+                    s->begin_doc(s->top_last());
+                    doc_had_scalars = false;
+                }
                 break;
             _c4_handle_case(YAML_DOCUMENT_END_EVENT)
-                s->end_doc();
+                if( ! m_load_root)
+                {
+                    s->end_doc();
+                }
                 break;
 
             _c4_handle_case(YAML_STREAM_START_EVENT)
-                s->clear();
                 s->begin_stream();
                 break;
             _c4_handle_case(YAML_STREAM_END_EVENT)
