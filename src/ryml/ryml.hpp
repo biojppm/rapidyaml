@@ -214,12 +214,12 @@ public:
         }
         m_stack[m_pos] = n;
         m_pos++;
-        printf("stack_push[%zd]: %zd\n", m_pos, n);
+        //printf("stack_push[%zd]: %zd\n", m_pos, n);
     }
 
     T pop()
     {
-        printf("stack_pop[%zd]: %zd\n", m_pos, m_stack[m_pos - 1]);
+        //printf("stack_pop[%zd]: %zd\n", m_pos, m_stack[m_pos - 1]);
         C4_ASSERT(m_pos > 0);
         m_pos--;
         T n = m_stack[m_pos];
@@ -297,14 +297,16 @@ public:
 
     bool operator== (cspan const& cmp) const
     {
-        C4_ASSERT(is_val_type());
+        C4_ASSERT(is_val());
         return m_val == cmp;
     }
 
-    bool   is_container_type() const { return m_type == TYPE_DOC || m_type == TYPE_MAP || m_type == TYPE_SEQ || m_type == TYPE_ROOT; }
-    bool   is_map_type() const { return m_type == TYPE_DOC || m_type == TYPE_MAP; }
-    bool   is_seq_type() const { return m_type == TYPE_ROOT || m_type == TYPE_SEQ; }
-    bool   is_val_type() const { return m_type == TYPE_VAL; }
+    bool   is_container() const { return m_type == TYPE_DOC || m_type == TYPE_MAP || m_type == TYPE_SEQ || m_type == TYPE_ROOT; }
+    bool   is_map() const { return m_type == TYPE_DOC || m_type == TYPE_MAP; }
+    bool   is_seq() const { return m_type == TYPE_ROOT || m_type == TYPE_SEQ; }
+    bool   is_val() const { return m_type == TYPE_VAL; }
+    bool   parent_is_seq() const { return parent()->is_seq(); }
+    bool   parent_is_map() const { return parent()->is_map(); }
 
     Node * parent() const;
 
@@ -496,9 +498,9 @@ public:
     {
         if(m_load_root_id != NONE)
         {
-            C4_ASSERT(get(m_load_root_id)->is_map_type());
+            C4_ASSERT(get(m_load_root_id)->is_map());
             m_stack.push(m_load_root_id);
-            printf("pushing: load root: %p %d\n", (void*)get(m_load_root_id), get(m_load_root_id)->m_type);
+            //printf("pushing: load root: %p %d\n", (void*)get(m_load_root_id), get(m_load_root_id)->m_type);
             return get(m_load_root_id);
         }
 
@@ -535,7 +537,7 @@ public:
 
     Node *add_val_seq(cspan const& val, Node *after = nullptr)
     {
-        C4_ASSERT(_stack_top()->is_seq_type());
+        C4_ASSERT(_stack_top()->is_seq());
         return add_val({}, val, after);
     }
     /** place the new node after "after" */
@@ -543,11 +545,11 @@ public:
     {
         if(name.empty())
         {
-            C4_ASSERT(_stack_top()->is_seq_type());
+            C4_ASSERT(_stack_top()->is_seq());
         }
         else
         {
-            C4_ASSERT(_stack_top()->is_map_type());
+            C4_ASSERT(_stack_top()->is_map());
         }
         size_t ida = id(after);
         Node *n = claim(after);

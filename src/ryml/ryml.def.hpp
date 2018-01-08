@@ -150,7 +150,7 @@ bool Node::is_sibling(Node const* s) const
 Node * Node::insert_sibling(cspan const& name, cspan const& val, Node * after)
 {
     C4_ASSERT( ! after || (is_sibling(after) && after->is_sibling(this)));
-    C4_ASSERT(m_s->get(m_parent)->is_container_type());
+    C4_ASSERT(m_s->get(m_parent)->is_container());
     m_s->_stack_push(m_s->get(m_parent));
     Node *n = m_s->add_val(name, val, after);
     m_s->_stack_pop();
@@ -160,7 +160,7 @@ Node * Node::insert_sibling(cspan const& name, cspan const& val, Node * after)
 Node * Node::insert_sibling(cspan const& name, NodeType_e sibtype, Node * after)
 {
     C4_ASSERT( ! after || (is_sibling(after) && after->is_sibling(this)));
-    C4_ASSERT(m_s->get(m_parent)->is_container_type());
+    C4_ASSERT(m_s->get(m_parent)->is_container());
     Node *n = _insert_by_type(m_s->get(m_parent), name, sibtype, after);
     return n;
 }
@@ -169,10 +169,10 @@ Node * Node::insert_sibling(Node *sib, Node * after)
 {
     C4_ASSERT(sib && ( ! is_sibling(sib) && ! sib->is_sibling(this)));
     C4_ASSERT( ! after || (is_sibling(after) && after->is_sibling(this)));
-    C4_ASSERT( ! sib->name().empty() == is_map_type());
-    C4_ASSERT(   sib->name().empty() == is_seq_type());
+    C4_ASSERT( ! sib->name().empty() == is_map());
+    C4_ASSERT(   sib->name().empty() == is_seq());
     C4_ASSERT( ! sib->val().empty() == (sib->m_type == TYPE_VAL));
-    C4_ASSERT(   sib->val().empty() == (sib->is_container_type()));
+    C4_ASSERT(   sib->val().empty() == (sib->is_container()));
     m_s->set_parent(m_s->get(m_parent), sib, after);
     return sib;
 }
@@ -181,7 +181,7 @@ Node * Node::insert_sibling(Node *sib, Node * after)
 Node * Node::insert_child(cspan const& name, cspan const& val, Node * after)
 {
     C4_ASSERT( ! after || is_child(after));
-    C4_ASSERT(is_container_type());
+    C4_ASSERT(is_container());
     m_s->_stack_push(this);
     m_s->add_val(name, val, after);
     m_s->_stack_pop();
@@ -237,7 +237,6 @@ Node * Node::_insert_by_type(Node *which_parent, cspan const& name, NodeType_e t
     }
     m_s->_stack_pop();
     return n;
-
 }
 
 Node * Node::remove_sibling(cspan const& name)
@@ -301,8 +300,7 @@ Node * Tree::load(Node * root, cspan const& yml_str, Parser *p_)
     Parser p, *ptr;
     ptr = p_ ? p_ : &p;
 
-    printf("load root: %p %d\n", (void*)this, root->m_type);
-    C4_ASSERT(root->is_map_type());
+    C4_ASSERT(root->is_map());
 
     size_t idr = root->id();
 
