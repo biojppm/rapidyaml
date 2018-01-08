@@ -32,6 +32,7 @@ Node * Node::parent() const
 
 size_t Node::num_children() const
 {
+    if(is_val()) return 0;
     size_t count = 0;
     for(Node *n = m_s->get(m_children.first); n; n = n->next_sibling())
     {
@@ -42,6 +43,7 @@ size_t Node::num_children() const
 
 Node * Node::child(size_t i) const
 {
+    if(is_val()) return nullptr;
     size_t count = 0;
     for(Node *n = m_s->get(m_children.first); n; n = n->next_sibling(), ++count)
     {
@@ -52,15 +54,18 @@ Node * Node::child(size_t i) const
 }
 Node * Node::first_child() const
 {
+    if(is_val()) return nullptr;
     return m_s->get(m_children.first);
 }
 Node * Node::last_child() const
 {
+    if(is_val()) return nullptr;
     return m_s->get(m_children.last);
 }
 
 Node * Node::find_child(cspan const& name) const
 {
+    if(is_val()) return nullptr;
     C4_ASSERT(m_type == TYPE_DOC || m_type == TYPE_MAP);
     C4_ASSERT(bool(name) == true);
     if(m_children.first == NONE)
