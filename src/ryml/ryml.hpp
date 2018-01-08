@@ -37,51 +37,6 @@ class Parser;
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-template< class C >
-class basic_span
-{
-public:
-
-    C *str;
-    size_t len;
-
-    // convert automatically to span of const C
-    operator basic_span< const C > () { basic_span< const C > s(str, len); return s; }
-    operator bool () const { return ! empty(); }
-
-public:
-
-    basic_span() : str(nullptr), len(0) {}
-    basic_span(C *s_) : str(s_), len(strlen(s_)) {}
-    basic_span(C *s_, size_t len_) : str(s_), len(len_) {}
-    template< size_t N > basic_span(C *s_[N]) : str(s_), len(N-1) {}
-
-    void clear() { str = nullptr; len = 0; }
-
-    bool empty() const { return len == 0 || (str == nullptr || str[0] == '\0'); }
-
-    bool operator== (basic_span const& that) const
-    {
-        if(len != that.len) return false;
-        return (str == that.str || (strncmp(str, that.str, len) == 0));
-    }
-
-};
-
-using span = basic_span< char >;
-using cspan = basic_span< const char >;
-
-template< class OStream, class C >
-OStream& operator<< (OStream& s, basic_span< C > const& sp)
-{
-    s.write(sp.str, sp.len);
-    return s;
-}
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
 
 struct LineCol
 {
@@ -147,6 +102,65 @@ struct RymlCallbacks
     }
 };
 #endif // RYML_NO_DEFAULT_CALLBACKS
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+enum : size_t { npos = size_t(-1) };
+
+template< class C >
+class basic_span
+{
+public:
+
+    C *str;
+    size_t len;
+
+    // convert automatically to span of const C
+    operator basic_span< const C > () { basic_span< const C > s(str, len); return s; }
+    operator bool () const { return has_str(); }
+
+public:
+
+    basic_span() : str(nullptr), len(0) {}
+    basic_span(C *s_) : str(s_), len(strlen(s_)) {}
+    basic_span(C *s_, size_t len_) : str(s_), len(len_) {}
+    template< size_t N > basic_span(C *s_[N]) : str(s_), len(N-1) {}
+
+    void clear() { str = nullptr; len = 0; }
+
+    bool has_str() const { return ! empty() && str[0] != '\0'; }
+    bool empty() const { return (len == 0 || str == nullptr); }
+    size_t size() const { return len; }
+
+    bool operator== (basic_span const& that) const
+    {
+        if(len != that.len) return false;
+        return (str == that.str || (strncmp(str, that.str, len) == 0));
+    }
+
+    basic_span subspan(size_t first, size_t num = npos) const
+    {
+        size_t rnum = num != npos ? num : len - first;
+        C4_ASSERT((first >= 0 && first + rnum <= len) || num == 0);
+        return basic_span(str + first, rnum);
+    }
+
+    C      & operator[] (size_t i)       { C4_ASSERT(i >= 0 && i < len); return str[i]; }
+    C const& operator[] (size_t i) const { C4_ASSERT(i >= 0 && i < len); return str[i]; }
+};
+
+using span = basic_span< char >;
+using cspan = basic_span< const char >;
+
+template< class OStream, class C >
+OStream& operator<< (OStream& s, basic_span< C > const& sp)
+{
+    s.write(sp.str, sp.len);
+    return s;
+}
+
 
 
 
