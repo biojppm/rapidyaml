@@ -137,6 +137,22 @@ prop4: [seq1, seq2, seq3]
 )", &p2);
     show_children((*s.first_doc())["new_map"]["serialized"]);
 
+
+    //------------------------------------------------------------------------
+    printf(".....\n");
+
+    yml::Node *n = s.first_doc()->find_child("seq");
+    size_t num = yml::emit(n);
+    printf("stdout result: %zd chars\n", num);
+
+    char buf[1024] = {0};
+    yml::span sp(buf, sizeof(buf));
+
+    auto result = yml::emit(n, sp);
+    printf("str result: %zd chars:\n%.*s\n", result.len, (int)result.len, result.str);
+
+    C4_ASSERT(yml::emit(n) == yml::emit(n, sp).len);
+
     printf("-----------------\nchecks ok!!!!!\n-----------------\n");
 
 

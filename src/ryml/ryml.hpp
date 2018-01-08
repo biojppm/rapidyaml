@@ -346,6 +346,18 @@ public:
     bool   is_sibling(Node const* n) const;
 
 
+    template< class Visitor >
+    void visit(Visitor fn, size_t indentation_level = 0)
+    {
+        fn(this, indentation_level);
+        fn.push(this);
+        for(Node *ch = first_child(); ch; ch = ch->next_sibling())
+        {
+            ch->visit(fn, indentation_level + 1);
+        }
+        fn.pop(this);
+    }
+
 public:
 
     //! create and insert a new sibling as a key-value node. insert after "after"
@@ -905,6 +917,192 @@ case _ev:                   \
     }
 };
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+namespace detail {
+class Emitter;
+}  // detail
+
+class detail::Emitter
+{
+public:
+
+    span m_span;
+    size_t m_pos;
+
+    FILE *m_file;
+
+    friend struct Visitor;
+
+public:
+
+    Emitter(FILE *f = nullptr) : m_span(), m_pos(0), m_file(f ? f : stdout) {}
+    Emitter(span const& sp) : m_span(sp), m_pos(0), m_file(nullptr) {}
+
+    size_t tell() const { return m_pos; }
+    void   seek(size_t p) { m_pos = p; }
+
+    size_t visit(Node *root)
+    {
+        size_t b = m_pos;
+        Visitor v{this};
+        root->visit(v);
+        return m_pos - b;
+    }
+
+    struct Visitor
+    {
+        Emitter *this_;
+        void push(Node const *n) {}
+        void pop(Node const *n) {}
+        void operator()(Node const *n, size_t ilevel)
+        {
+            switch(n->type())
+            {
+            case TYPE_ROOT:
+                break;
+            case TYPE_DOC:
+                break;
+            case TYPE_MAP:
+            case TYPE_SEQ:
+                this_->_writeind(ilevel);
+                this_->_writek(n->name());
+                break;
+            case TYPE_VAL:
+                this_->_writeind(ilevel);
+                if(n->parent_is_seq())
+                {
+                    this_->_writev(n->val());
+                }
+                else if(n->parent_is_map())
+                {
+                    this_->_writekv(n->name(), n->val());
+                }
+                break;
+            case TYPE_NONE:
+            default:
+                break;
+            }
+        }
+    };
+
+#define _c4sargs ret.str, ret.len
+#define _c4kargs (int)k.len, k.str
+#define _c4vargs (int)v.len, v.str
+
+    void _writeind(size_t level)
+    {
+        size_t num = 2 * level; // 2 spaces per indentation level
+        if(m_file)
+        {
+            m_pos += fprintf(m_file, "%*s", (int)num, "");
+        }
+        else
+        {
+            auto ret = _has_room(num);
+            if( ! ret.empty())
+            {
+                m_pos += snprintf(_c4sargs, "%*s", (int)num, "");
+            }
+        }
+
+    }
+
+    void _writek(cspan const& k)
+    {
+        if(m_file)
+        {
+            m_pos += fprintf(m_file, "%.*s:\n", _c4kargs);
+        }
+        else
+        {
+            auto ret = _has_room(k.len + 2);
+            if( ! ret.empty())
+            {
+                m_pos += snprintf(_c4sargs, "%.*s:\n", _c4kargs);
+            }
+        }
+    }
+
+    void _writev(cspan const& v)
+    {
+        if(m_file)
+        {
+            m_pos += fprintf(m_file, "- %.*s\n", _c4vargs);
+        }
+        else
+        {
+            auto ret = _has_room(2 + v.len + 1);
+            if( ! ret.empty())
+            {
+                m_pos += snprintf(_c4sargs, "- %.*s\n", _c4vargs);
+            }
+        }
+    }
+
+    void _writekv(cspan const& k, cspan const& v)
+    {
+        if(m_file)
+        {
+            m_pos += fprintf(m_file, "%.*s: %.*s\n", _c4kargs, _c4vargs);
+        }
+        else
+        {
+            auto ret = _has_room(k.len + 2 + v.len + 1);
+            if( ! ret.empty())
+            {
+                m_pos += snprintf(_c4sargs, "%.*s: %.*s\n", _c4kargs, _c4vargs);
+            }
+        }
+    }
+
+#undef _c4spargs
+#undef _c4kargs
+#undef _c4vargs
+
+    span _has_room(size_t more)
+    {
+        bool ok = m_pos + more < m_span.len;
+        span ret = ok ? m_span.subspan(m_pos) : span();
+        return ret;
+    }
+};
+
+
+/** emit YAML to the given file */
+size_t emit(Node *n, FILE *f = nullptr)
+{
+    detail::Emitter em(f);
+    size_t num = em.visit(n);
+    return num;
+}
+
+/** emit YAML to the given buffer */
+span emit_unchecked(Node *n, span const& sp)
+{
+    detail::Emitter em(sp);
+    size_t num = em.visit(n);
+    span result = sp.subspan(0, num);
+    if(num >= sp.len)
+    {
+        result.str = nullptr;
+    }
+    return result;
+}
+
+span emit(Node *root, span const& sp)
+{
+    span ret = emit_unchecked(root, sp);
+    C4_ASSERT(ret.len <= sp.len);
+    if(ret.len > sp.len)
+    {
+        RymlCallbacks::error("not enough space in the given span");
+    }
+    return ret;
+}
 
 } // namespace yml
 } // namespace c4
