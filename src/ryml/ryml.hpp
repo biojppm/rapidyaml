@@ -121,6 +121,9 @@ public:
     operator basic_span< const C > () { basic_span< const C > s(str, len); return s; }
     operator bool () const { return has_str(); }
 
+    using iterator = C*;
+    using const_iterator = C const*;
+
 public:
 
     basic_span() : str(nullptr), len(0) {}
@@ -133,6 +136,15 @@ public:
     bool has_str() const { return ! empty() && str[0] != '\0'; }
     bool empty() const { return (len == 0 || str == nullptr); }
     size_t size() const { return len; }
+
+    iterator begin() { return str; }
+    iterator end  () { return str + len; }
+
+    const_iterator begin() const { return str; }
+    const_iterator end  () const { return str + len; }
+
+    inline C      & operator[] (size_t i)       { C4_ASSERT(i >= 0 && i < len); return str[i]; }
+    inline C const& operator[] (size_t i) const { C4_ASSERT(i >= 0 && i < len); return str[i]; }
 
     bool operator== (basic_span const& that) const
     {
@@ -147,8 +159,179 @@ public:
         return basic_span(str + first, rnum);
     }
 
-    C      & operator[] (size_t i)       { C4_ASSERT(i >= 0 && i < len); return str[i]; }
-    C const& operator[] (size_t i) const { C4_ASSERT(i >= 0 && i < len); return str[i]; }
+    basic_span right_of(size_t pos, bool include_pos = false) const
+    {
+        if(pos == npos) return subspan(0, 0);
+        if( ! include_pos) ++pos;
+        return subspan(pos);
+    }
+    basic_span left_of(size_t pos, bool include_pos = false) const
+    {
+        if(pos == npos) return *this;
+        if( ! include_pos && pos > 0) --pos;
+        return subspan(0, pos);
+    }
+
+    /** trim left */
+    basic_span triml(const C c) const
+    {
+        return right_of(first_not_of(c));
+    }
+    /** trim left any of the characters */
+    basic_span triml(basic_span< const C > const& chars) const
+    {
+        return right_of(first_not_of(chars));
+    }
+
+    /** trim right */
+    basic_span trimr(const C c) const
+    {
+        return left_of(last_not_of(c), /*include_pos*/true);
+    }
+    /** trim right any of the characters */
+    basic_span trimr(basic_span< const C > const& chars) const
+    {
+        return left_of(last_not_of(chars), /*include_pos*/true);
+    }
+
+    /** trim left and right */
+    basic_span trim(const C c) const
+    {
+        return triml(c).trimr(c);
+    }
+    /** trim left and right any of the characters */
+    basic_span trim(basic_span< const C > const& chars) const
+    {
+        return triml(chars).trimr(chars);
+    }
+
+    inline size_t find(const C c) const
+    {
+        return first_of(c);
+    }
+    inline size_t find(basic_span< const C > const& chars) const
+    {
+        if(len < chars.len) return npos;
+        for(size_t i = 0, e = len - chars.len; i < e; ++i)
+        {
+            bool gotit = true;
+            for(size_t j = 0; j < chars.len; ++j)
+            {
+                if(str[i] != chars[j])
+                {
+                    gotit = false;
+                }
+            }
+            if(gotit)
+            {
+                return i;
+            }
+        }
+        return npos;
+    }
+
+    inline bool begins_with(const C c) const
+    {
+        return len > 0 ? str[0] == c : false;
+    }
+    inline bool begins_with(basic_span< const C > const& pattern) const
+    {
+        for(size_t i = 0; i < len && i < pattern.len; ++i)
+        {
+            if(str[i] != pattern[i]) return false;
+        }
+        return true;
+    }
+
+    inline size_t first_of(const C c) const
+    {
+        for(size_t i = 0; i < len; ++i)
+        {
+            if(str[i] == c) return i;
+        }
+        return npos;
+    }
+    inline size_t first_of(basic_span< const C > const& chars) const
+    {
+        for(size_t i = 0; i < len; ++i)
+        {
+            for(size_t j = 0; j < chars.len; ++j)
+            {
+                if(str[i] == chars[j]) return i;
+            }
+        }
+        return npos;
+    }
+
+    inline size_t first_not_of(const C c) const
+    {
+        for(size_t i = 0; i < len; ++i)
+        {
+            if(str[i] != c) return i;
+        }
+        return npos;
+    }
+    inline size_t first_not_of(basic_span< const C > const& chars) const
+    {
+        for(size_t i = 0; i < len; ++i)
+        {
+            for(size_t j = 0; j < chars.len; ++j)
+            {
+                if(str[i] != chars[j]) return i;
+            }
+        }
+        return npos;
+    }
+
+    inline size_t last_of(const C c) const
+    {
+        for(size_t i = len-1; i != size_t(-1); --i)
+        {
+            if(str[i] == c) return i;
+        }
+        return npos;
+    }
+    inline size_t last_of(basic_span< const C > const& chars) const
+    {
+        for(size_t i = len-1; i != size_t(-1); --i)
+        {
+            for(size_t j = 0; j < chars.len; ++j)
+            {
+                if(str[i] == chars[j]) return i;
+            }
+        }
+        return npos;
+    }
+
+    inline size_t last_not_of(const C c) const
+    {
+        for(size_t i = len-1; i != size_t(-1); --i)
+        {
+            if(str[i] != c) return i;
+        }
+        return npos;
+    }
+    inline size_t last_not_of(basic_span< const C > const& chars) const
+    {
+        for(size_t i = len-1; i != size_t(-1); --i)
+        {
+            bool gotit = false;
+            for(size_t j = 0; j < chars.len; ++j)
+            {
+                if(str[i] == chars[j])
+                {
+                    gotit = true;
+                    break;
+                }
+            }
+            if(gotit)
+            {
+                return i;
+            }
+        }
+        return npos;
+    }
+
 };
 
 using span = basic_span< char >;
@@ -160,7 +343,7 @@ OStream& operator<< (OStream& s, basic_span< C > const& sp)
     s.write(sp.str, sp.len);
     return s;
 }
-
+#define _c4prsp(sp) ((int)(sp).len), (sp).str
 
 
 
@@ -195,8 +378,21 @@ public:
         }
     }
 
-    stack(stack const& ) = delete;
-    stack& operator= (stack const& ) = delete;
+    stack(stack const& that) : stack()
+    {
+        reserve(that.m_pos);
+        memcpy(m_stack, that.m_stack, sizeof(T) * that.m_pos);
+    }
+    stack& operator= (stack const& that)
+    {
+        if(m_stack)
+        {
+            RymlCallbacks::free(m_stack, m_size * sizeof(T));
+        }
+        reserve(that.m_pos);
+        memcpy(m_stack, that.m_stack, sizeof(T) * that.m_pos);
+        return *this;
+    }
 
     stack(stack &&that)
     {
@@ -213,18 +409,24 @@ public:
     size_t size() const { return m_pos; }
     size_t empty() const { return m_pos == 0; }
 
+    void reserve(size_t sz)
+    {
+        if(sz == 0) sz = 8;
+        C4_ASSERT(m_pos < sz);
+        T *buf = (T*) RymlCallbacks::allocate(sz * sizeof(T), m_stack);
+        if(m_stack)
+        {
+            memcpy(buf, m_stack, m_pos * sizeof(T));
+            RymlCallbacks::free(m_stack, m_size * sizeof(T));
+        }
+        m_stack = buf;
+        m_size = sz;
+    }
     void push(T n)
     {
         if(m_pos >= m_size)
         {
-            size_t sz = 2 * m_size;
-            if(sz == 0) sz = 8;
-            C4_ASSERT(m_pos < sz);
-            T *buf = (T*) RymlCallbacks::allocate(sz * sizeof(T), m_stack);
-            memcpy(buf, m_stack, m_pos * sizeof(T));
-            RymlCallbacks::free(m_stack, m_size * sizeof(T));
-            m_stack = buf;
-            m_size = sz;
+            reserve(2 * m_size);
         }
         m_stack[m_pos] = n;
         m_pos++;
@@ -303,6 +505,7 @@ public:
 
 public:
 
+    Tree *tree() const { return m_s; }
     size_t id() const;
 
     NodeType_e type() const { return m_type; }
@@ -321,6 +524,8 @@ public:
     bool   is_val() const { return m_type == TYPE_VAL; }
     bool   parent_is_seq() const { return parent()->is_seq(); }
     bool   parent_is_map() const { return parent()->is_map(); }
+
+    bool   empty() const { return ! has_children() && m_name.empty() && (m_type != TYPE_VAL || m_val.empty()); }
 
     Node * parent() const;
 
@@ -519,6 +724,12 @@ public:
 public:
 
     void set_load_root(Node *r) { m_load_root_id = r ? r->id() : NONE; }
+
+    void add_root()
+    {
+        begin_stream();
+        end_stream();
+    }
 
     Node *begin_stream()
     {
@@ -1071,17 +1282,19 @@ public:
     }
 };
 
-
+//-----------------------------------------------------------------------------
 /** emit YAML to the given file */
-size_t emit(Node *n, FILE *f = nullptr)
+inline size_t emit(Node *n, FILE *f = nullptr)
 {
     detail::Emitter em(f);
     size_t num = em.visit(n);
     return num;
 }
 
-/** emit YAML to the given buffer */
-span emit_unchecked(Node *n, span const& sp)
+/** emit YAML to the given buffer. Return a span of the emitted YAML.
+ * If the given buffer has insufficient space, the returned span will
+ * be null and its size will be the needed space. */
+inline span emit_unchecked(Node *n, span const& sp)
 {
     detail::Emitter em(sp);
     size_t num = em.visit(n);
@@ -1093,16 +1306,303 @@ span emit_unchecked(Node *n, span const& sp)
     return result;
 }
 
-span emit(Node *root, span const& sp)
+/** emit YAML to the given buffer. Raise an error if the space in the
+ * buffer is insufficient. */
+inline span emit(Node *root, span const& sp)
 {
     span ret = emit_unchecked(root, sp);
     C4_ASSERT(ret.len <= sp.len);
-    if(ret.len > sp.len)
+    if(ret.len >= sp.len)
     {
         RymlCallbacks::error("not enough space in the given span");
     }
     return ret;
 }
+
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+class NextParser
+{
+private:
+
+    typedef enum {
+       //STREAM_START, //(encoding)          ///< The stream start.
+       //STREAM_END,                         ///< The stream end.
+       VERSION_DIRECTIVE, //(major,minor)  ///< The '%YAML' directive.
+       TAG_DIRECTIVE, //(handle,prefix)    ///< The '%TAG' directive.
+       DOCUMENT_START,                     ///< '---'
+       DOCUMENT_END,                       ///< '...'
+       BLOCK_SEQUENCE_START,               ///< Indentation increase denoting a block
+       BLOCK_MAPPING_START,                ///< sequence or a block mapping.
+       BLOCK_END,                          ///< Indentation decrease.
+       SEQ_START,                          ///< '['
+       SEQ_END,                            ///< ']'
+       MAP_START,                          ///< '{'
+       MAP_END,                            ///< '}'
+       BLOCK_ENTRY,                        ///< '-'
+       FLOW_ENTRY,                         ///< ','
+       KEY,                                ///< '?' or nothing (simple keys).
+       VALUE,                              ///< ':'
+       ALIAS, //(anchor)                   ///< '*anchor'
+       ANCHOR, //(anchor)                  ///< '&anchor'
+       TAG, //(handle,suffix)              ///< '!handle!suffix'
+       SCALAR, //(value,style)             ///< A scalar.
+       COMMENT, //(text)                   ///< A comment
+    } Token_e;
+
+    struct Token : public Region
+    {
+        Token_e type;
+        cspan str;
+        struct version_s { int major, minor; };
+        struct tag_directive_s { cspan handle, prefix; };
+        union {
+            version_s version;
+            tag_directive_s tag_directive;
+        };
+    };
+
+    typedef enum {
+        RTOP = 0x01 <<  0, // reading at top level
+        RUNK = 0x01 <<  1, // reading an unknown: must determine whether scalar, map or seq
+        RMAP = 0x01 <<  2, // reading a map
+        RSEQ = 0x01 <<  3, // reading a seq
+        EXPL = 0x01 <<  4, // reading is inside explicit flow chars: [] or {}
+        RKEY = 0x01 <<  5, // reading a scalar as key
+        RVAL = 0x01 <<  6, // reading a scalar as val
+        CPLX = 0x01 <<  7, // reading a complex key
+        BLCK = 0x01 <<  8, // reading a block scalar (|)
+        FOLD = 0x01 <<  9, // reading a block scalar (>), folded (remove interior newlines)
+        KEEP = 0x01 << 10, // reading a block scalar (+): keep last newline
+        STRP = 0x01 << 11, // reading a block scalar (-): strip last newline
+        SSCL = 0x01 << 12, // there's a scalar stored
+    } State_e;
+
+    struct State
+    {
+
+        struct LineContents
+        {
+            cspan  full;        ///< the full line, excluding newlines on the right
+            cspan  ltrim;       ///< the line, starting at the first non-space character
+            size_t indentation; ///< the number of columns with space on the left
+
+            void reset(cspan const& full_)
+            {
+                full = full_;
+
+                // find the first column where the character is not a space
+                indentation = full.first_not_of(' ');
+                ltrim = full.subspan(indentation);
+            }
+        };
+
+        Location pos;
+        LineContents     line_contents;
+        size_t   flags;
+        size_t   level;
+        Node *   node;
+        cspan    scalar;
+
+        void reset(const char *file, Node *n)
+        {
+            flags = RUNK|RTOP;
+            level = 0;
+            pos.name = file;
+            pos.offset = 0;
+            pos.line = 1;
+            pos.col = 1;
+            node = n;
+        }
+
+        void line_scanned(cspan const& sp)
+        {
+            line_contents.reset(sp);
+            printf("%3zd: '%.*s'\n", pos.line-1, _c4prsp(line_contents.full));
+        }
+
+        void line_progressed(size_t first_remaining)
+        {
+            line_contents.ltrim = line_contents.ltrim.subspan(first_remaining);
+        }
+
+        void line_ended(size_t len)
+        {
+            pos.offset += len;
+            ++pos.line;
+            pos.col = 1;
+        }
+
+        bool has_all(size_t f) const { return (flags & f) == f; }
+        bool has_any(size_t f) const { return (flags & f) != 0; }
+        bool has_none(size_t f) const { return (flags & f) == 0; }
+    };
+
+    void _push_state(size_t next_state, Node *n)
+    {
+        m_stack.push(m_state);
+        m_state.flags = next_state;
+        m_state.node = n;
+        ++m_state.level;
+    }
+
+    void _pop_state()
+    {
+        C4_ASSERT( ! m_stack.empty());
+        m_state = m_stack.pop();
+        if(m_state.line_contents.indentation == 0)
+        {
+            C4_ASSERT(m_state.has_none(RTOP));
+            m_state.flags |= RTOP;
+        }
+    }
+
+    bool _indentation_pushed() const
+    {
+        if(m_stack.empty()) return false;
+        return m_state.line_contents.indentation > m_stack.peek().line_contents.indentation;
+    }
+
+    bool _indentation_popped() const
+    {
+        if(m_stack.empty()) return false;
+        return m_state.line_contents.indentation < m_stack.peek().line_contents.indentation;
+    }
+
+    void _store_scalar(cspan const& s)
+    {
+        C4_ASSERT(!(m_state.flags & SSCL));
+        m_state.flags |= SSCL;
+        m_state.scalar = s;
+    }
+
+public:
+
+    cspan  m_file;
+    cspan  m_buf;
+
+    State  m_state;
+    detail::stack< State > m_stack;
+
+public:
+
+    Tree parse(const char *file, cspan const& buf)
+    {
+        Tree t;
+        t.add_root();
+        parse(file, buf, &t);
+        return t;
+    }
+
+    void parse(const char *file, cspan const& buf, Tree *t)
+    {
+        parse(file, buf, t->root());
+    }
+
+    void parse(const char *file, cspan const& buf, Node *root);
+
+private:
+
+    cspan _scan_line();
+
+    void _handle_line(cspan ltrim);
+
+    cspan _read_scalar(cspan const& line_remainder, bool known_quoted = false);
+
+
+    void _push_map(cspan ltrim, size_t next_state, bool create_node)
+    {
+        printf("push_map\n");
+        C4_ASSERT(next_state & RMAP);
+        Node* node = m_state.node;
+        if(create_node)
+        {
+            node = node->append_child({}, TYPE_MAP);
+        }
+        else
+        {
+            C4_ASSERT(node->is_map() || node->empty());
+            node->m_type = TYPE_MAP;
+        }
+        _push_state(next_state, node);
+    }
+    void _pop_map(cspan ltrim)
+    {
+        printf("pop_map\n");
+        _pop_state();
+    }
+
+    void _push_seq(cspan ltrim, size_t next_state, bool create_node)
+    {
+        printf("push_seq\n");
+        C4_ASSERT(next_state & RSEQ);
+        Node* node = m_state.node;
+        if(create_node)
+        {
+            node = node->append_child({}, TYPE_SEQ);
+        }
+        else
+        {
+            C4_ASSERT(node->is_seq() || node->empty());
+            node->m_type = TYPE_SEQ;
+        }
+        _push_state(next_state, node);
+    }
+    void _pop_seq(cspan ltrim)
+    {
+        printf("pop_seq\n");
+        _pop_state();
+    }
+
+    void _append_val(cspan const& val)
+    {
+        printf("append val: %.*s\n", _c4prsp(val));
+    }
+
+    void _append_key_val(cspan const& key, cspan const& val)
+    {
+        printf("append key-val: %.*s %.*s\n", _c4prsp(key), _c4prsp(val));
+    }
+
+private:
+
+    static inline bool _matches(const char c, const char (&chars)[1])
+    {
+        RymlCallbacks::error("WTF???");
+        return false;
+    }
+    static inline bool _matches(const char c, const char (&chars)[2])
+    {
+        return (c == chars[0]);
+    }
+    static inline bool _matches(const char c, const char (&chars)[3])
+    {
+        return (c == chars[0]) || (c == chars[1]);
+    }
+    static inline bool _matches(const char c, const char (&chars)[4])
+    {
+        return (c == chars[0]) || (c == chars[1]) || (c == chars[2]);
+    }
+    static inline bool _matches(const char c, const char (&chars)[5])
+    {
+        return (c == chars[0]) || (c == chars[1]) || (c == chars[2]) || (c == chars[3]);
+    }
+    template< size_t N >
+    static inline bool _matches(const char c, const char (&chars)[N])
+    {
+        for(size_t i = 0; i < N; ++i)
+        {
+            if(c == chars[i])
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+};
 
 } // namespace yml
 } // namespace c4

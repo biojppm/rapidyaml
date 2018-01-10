@@ -3,6 +3,8 @@
 #include <ryml/ryml.hpp>
 #endif
 
+#include <ctype.h>
+
 namespace c4 {
 namespace yml {
 
@@ -384,9 +386,11 @@ Node *Tree::claim(size_t prev, size_t next)
 {
     C4_ASSERT(prev == NONE || prev >= 0 && prev < m_num);
     C4_ASSERT(next == NONE || next >= 0 && next < m_num);
-    if(m_free_head == NONE)
+    if(m_free_head == NONE || m_buf == nullptr)
     {
-        reserve(2 * m_num);
+        size_t sz = 2 * m_num;
+        sz = sz ? sz : 16;
+        reserve(sz);
     }
     size_t f = m_free_head;
     Node *n = m_buf + f;
@@ -485,6 +489,326 @@ void Tree::free(size_t i)
     {
         m_free_tail = m_free_head;
     }
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+void NextParser::parse(const char *file, cspan const& buf, Node *root)
+{
+    m_file = file ? file : "(no file)";
+    m_buf = buf;
+    m_state.reset(file, root);
+
+    while(m_state.pos.offset < m_buf.len)
+    {
+        m_state.line_scanned(_scan_line());
+
+        while(m_state.line_contents.ltrim)
+        {
+            _handle_line(m_state.line_contents.ltrim);
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+void NextParser::_handle_line(cspan ltrim)
+{
+    C4_ASSERT( ! ltrim.empty());
+
+    if(m_state.has_any(RMAP|RSEQ|BLCK))
+    {
+        if(_indentation_popped())
+        {
+            printf("indentation popped!\n");
+            if(m_state.has_any(RMAP))
+            {
+                _pop_map(ltrim);
+            }
+            else if(m_state.has_any(RSEQ))
+            {
+                _pop_seq(ltrim);
+            }
+            else if(m_state.has_any(BLCK))
+            {
+                RymlCallbacks::error("not implemented");
+            }
+            return;
+        }
+    }
+
+    if(m_state.has_any(RKEY|RVAL|RUNK|RTOP))
+    {
+        const bool alnum = isalnum(ltrim[0]);
+        const bool dquot = ltrim.begins_with('"');
+        const bool squot = ltrim.begins_with('\'');
+        const bool block = ltrim.begins_with('|') || ltrim.begins_with('>');
+
+        if(alnum || dquot || squot || block)
+        {
+            // it's a scalar
+            printf("it's a scalar\n");
+            cspan scalar = _read_scalar(ltrim, dquot || squot);
+            C4_ASSERT( ! scalar.empty());
+            printf("scalar was %.*s\n", _c4prsp(scalar));
+            if(m_state.has_any(RKEY|RVAL))
+            {
+                C4_ASSERT(m_state.has_any(RKEY) != m_state.has_any(RVAL));
+                C4_ASSERT(m_state.has_any(RKEY) != m_state.has_any(SSCL));
+            }
+            else if( ! m_state.has_any(RTOP|RUNK))
+            {
+                RymlCallbacks::error("was not expecting a scalar");
+            }
+
+            if(m_state.has_any(RUNK))
+            {
+                if(m_state.has_none(SSCL))
+                {
+                    _store_scalar(scalar);
+                }
+                if(m_state.has_any(SSCL))
+                {
+                    _append_key_val(m_state.scalar, scalar);
+                    m_state.flags &= ~SSCL;
+                }
+            }
+            else if(m_state.has_all(RKEY|RMAP))
+            {
+                _store_scalar(scalar);
+                m_state.flags &= ~RKEY;
+                m_state.flags |= RVAL;
+            }
+            else if(m_state.has_any(RSEQ))
+            {
+                _store_scalar(scalar);
+                m_state.flags &= ~RKEY;
+                m_state.flags |= RVAL;
+            }
+            else
+            {
+                RymlCallbacks::error("wtf?");
+            }
+            return;
+        }
+    }
+
+    size_t ind = m_state.line_contents.indentation;
+    if(m_state.flags & RUNK)
+    {
+        if(ltrim.begins_with("- ") || ltrim.begins_with('['))
+        {
+            // start a sequence
+            printf("start a sequence\n");
+            size_t nextstate = RSEQ|RVAL;
+            if(ltrim.begins_with('['))
+            {
+                nextstate |= EXPL;
+                m_state.line_progressed(1);
+            }
+            else if(ltrim.begins_with("- "))
+            {
+                ltrim = ltrim.subspan(2);
+                m_state.line_progressed(2);
+            }
+            _push_seq(ltrim, nextstate, false);
+            return;
+        }
+        else if(ltrim.begins_with('{') || ltrim.begins_with("? "))
+        {
+            // start a mapping
+            printf("start a mapping\n");
+            cspan k = ltrim.subspan(2);
+            printf("...key@%zd: %.*s\n", ind, _c4prsp(k));
+            size_t nextstate = RMAP|RKEY;
+            if(ltrim.begins_with('{'))
+            {
+                nextstate |= EXPL;
+            }
+            else if(ltrim.begins_with("? "))
+            {
+                ltrim = ltrim.subspan(2);
+            }
+            _push_map(ltrim, nextstate, false);
+            return;
+        }
+        else if(m_state.has_any(SSCL))
+        {
+            if(ltrim.begins_with(','))
+            {
+                _push_seq(ltrim, RSEQ, false);
+                m_state.line_progressed(1);
+            }
+            else if(ltrim.begins_with(": "))
+            {
+                _push_map(ltrim, RMAP, false);
+                m_state.line_progressed(1);
+            }
+        }
+    }
+
+    if(ltrim.begins_with('#'))
+    {
+        // a comment line
+        printf("a comment line\n");
+        m_state.line_progressed(ltrim.len);
+        return;
+    }
+    else if(ltrim.begins_with('!'))
+    {
+        printf("it's a tag\n");
+        RymlCallbacks::error("tags not implemented");
+    }
+    else if(ltrim.begins_with('|'))
+    {
+        // a block start line
+        printf("a block start line\n");
+        size_t next_state = BLCK|KEEP;
+        if(ltrim.begins_with("|-"))
+        {
+            next_state = BLCK|STRP;
+        }
+    }
+    else if(ltrim.begins_with('>'))
+    {
+        // a folded block start line
+        printf("a folded block start line\n");
+        RymlCallbacks::error("folded blocks not implemented");
+    }
+    else
+    {
+        // it's probably a scalar
+        if(ltrim.begins_with('"') || ltrim.begins_with('\''))
+        {
+            printf("it's a scalar\n");
+        }
+
+        size_t first_colon = ltrim.first_of(':');
+        if(first_colon != npos && first_colon > 0)
+        {
+            // a simple key - start a mapping
+            printf("a simple key - start a mapping");
+            cspan k = ltrim.subspan(0, first_colon);
+            printf("...key@%zd: %.*s\n", ind, _c4prsp(k));
+            size_t nextstate = RMAP;
+            _push_map(ltrim, nextstate, (m_state.flags & RUNK));
+        }
+        // must be a scalar
+        printf("must be a scalar\n");
+    }
+
+    // the following tokens can appear only at top level
+    if(m_state.flags & RTOP)
+    {
+        if(ltrim.begins_with('%'))
+        {
+            printf("%% directive!\n");
+            if(ltrim.begins_with("%YAML"))
+            {
+            }
+            else if(ltrim.begins_with("%TAG"))
+            {
+            }
+            else
+            {
+                RymlCallbacks::error("unknown directive starting with %");
+            }
+            RymlCallbacks::error("not implemented");
+        }
+        else if((m_state.flags & RTOP) && ltrim.begins_with("---"))
+        {
+            C4_ASSERT(m_state.level == 0);
+            // end/start a document
+            printf("end/start a document\n");
+        }
+        else if((m_state.flags & RTOP) && ltrim.begins_with("..."))
+        {
+            // end a document
+            printf("end a document\n");
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+cspan NextParser::_read_scalar(cspan const& line_remainder, bool known_quoted)
+{
+    cspan s = line_remainder;
+
+    if( ! known_quoted)
+    {
+        auto pos = s.first_of("'\"");
+        if(pos != npos)
+        {
+            RymlCallbacks::error("reading quoted scalars not yet implemented (hint: there can be colons inside the quotes)");
+        }
+    }
+
+    size_t colon_space = s.find(": ");
+    if(m_state.has_any(RKEY))
+    {
+        if(m_state.has_any(CPLX))
+        {
+            C4_ASSERT(m_state.has_any(RMAP));
+            s = s.left_of(colon_space);
+        }
+        else
+        {
+            s = s.triml(' ');
+            s = s.left_of(colon_space);
+            s = s.trimr(' ');
+        }
+
+        if(colon_space != npos)
+        {
+            colon_space += 2;
+        }
+        else
+        {
+            colon_space = s.len + (line_remainder.end() - s.end());
+        }
+        m_state.line_progressed(colon_space);
+    }
+    else if(m_state.has_any(RVAL))
+    {
+        if(m_state.has_any(BLCK))
+        {
+            RymlCallbacks::error("not implemented");
+        }
+        s = s.trim(' ');
+        size_t last = s.len + (line_remainder.end() - s.end());
+        m_state.line_progressed(last);
+    }
+    else
+    {
+        s = s.left_of(s.last_not_of(",: "));
+        size_t last = s.len + (line_remainder.end() - s.end());
+        m_state.line_progressed(last);
+    }
+
+    return s;
+}
+
+//-----------------------------------------------------------------------------
+cspan NextParser::_scan_line()
+{
+    if(m_state.pos.offset >= m_buf.len) return {};
+    char const* b = &m_buf[m_state.pos.offset];
+    char const* e = b;
+    while( ! _matches(*e, "\r\n\0"))
+    {
+        ++e;
+    }
+    size_t len = e - b;
+    cspan ret = m_buf.subspan(m_state.pos.offset, len);
+    // advance pos, including line ending chars
+    while(_matches(*e, "\r\n\0"))
+    {
+        ++e;
+        ++len;
+    }
+    m_state.line_ended(len);
+    return ret;
 }
 
 } // namespace ryml

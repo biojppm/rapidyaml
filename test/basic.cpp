@@ -156,5 +156,9 @@ prop4: [seq1, seq2, seq3]
     printf("-----------------\nchecks ok!!!!!\n-----------------\n");
 
 
+    //-----------------------------------------------------------------------------
+
+    yml::NextParser np;
+    yml::Tree t = np.parse("inline source", ex);
     return 0;
 }
