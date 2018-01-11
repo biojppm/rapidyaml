@@ -3,453 +3,14 @@
 
 #include <yaml.h>
 
-#define RYML_INLINE inline
-
-//#define RYML_NO_DEFAULT_CALLBACKS
-#ifndef RYML_NO_DEFAULT_CALLBACKS
-#   include <stdlib.h>
-#   include <stdio.h>
-#endif // RYML_NO_DEFAULT_CALLBACKS
-
-#ifndef C4_ASSERT
-#   ifdef NDEBUG
-#       define C4_ASSERT(expr) (void)(0)
-#   else
-#       include <assert.h>
-#       define C4_QUOTE(x) #x
-#       define C4_ASSERT(expr) _C4_ASSERT((expr), __FILE__, __LINE__)
-#       define _C4_ASSERT(expr, file, line)                             \
-    {                                                                   \
-        if( ! (expr))                                                   \
-        {                                                               \
-            c4::yml::RymlCallbacks::error(file ":" C4_QUOTE(line) ": Assert failed: " #expr "\n"); \
-            abort();                                                    \
-        }                                                               \
-    }
-#   endif
-#endif
+#include "./common.hpp"
+#include "./span.hpp"
+#include "./stack.hpp"
 
 namespace c4 {
 namespace yml {
 
 class Parser;
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-struct LineCol
-{
-    size_t offset, line, col;
-};
-
-struct Location : public LineCol
-{
-    const char *name;
-    operator bool () const { return name != nullptr || line != 0 || offset != 0; }
-
-    Location() { memset(this, 0, sizeof(*this)); }
-    Location(const char *n, size_t b, size_t l, size_t c) : LineCol{b, l, c}, name(n) {}
-    Location(const char *n, yaml_mark_t m) : LineCol{m.index, m.line+1, m.column+1}, name(n) {}
-};
-
-struct Region
-{
-   const char *name;
-   LineCol begin;
-   LineCol end;
-};
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-#ifndef RYML_NO_DEFAULT_CALLBACKS
-struct RymlCallbacks
-{
-    static void* allocate(size_t length, void * /*hint*/)
-    {
-        void *mem = ::malloc(length);
-        if(mem == nullptr)
-        {
-            const char msg[] = "could not allocate memory";
-            error(msg, sizeof(msg));
-        }
-        return mem;
-    }
-
-    static void free(void *mem, size_t /*length*/)
-    {
-        ::free(mem);
-    }
-
-    static void error(const char* msg, size_t length, Location *loc1 = nullptr, Location *loc2 = nullptr)
-    {
-        fprintf(stderr, "%.*s\n", (int)length, msg);
-        if(loc1 && *loc1)
-        {
-            fprintf(stderr, "    : %s at %zd:%zd (offset %zd)\n", loc1->name, loc1->line, loc1->col, loc1->offset);
-        }
-        if(loc2 && *loc2)
-        {
-            fprintf(stderr, "    : %s at %zd:%zd (offset %zd)\n", loc2->name, loc1->line, loc2->col, loc2->offset);
-        }
-        abort();
-    }
-    template< size_t N >
-    static void error(char const (&msg)[N], Location *loc1 = nullptr, Location *loc2 = nullptr)
-    {
-        error(&msg[0], N-1, loc1, loc2);
-    }
-};
-#endif // RYML_NO_DEFAULT_CALLBACKS
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-enum : size_t { npos = size_t(-1) };
-
-template< class C >
-class basic_span
-{
-public:
-
-    C *str;
-    size_t len;
-
-    // convert automatically to span of const C
-    operator basic_span< const C > () { basic_span< const C > s(str, len); return s; }
-    operator bool () const { return has_str(); }
-
-    using iterator = C*;
-    using const_iterator = C const*;
-
-public:
-
-    basic_span() : str(nullptr), len(0) {}
-    basic_span(C *s_) : str(s_), len(strlen(s_)) {}
-    basic_span(C *s_, size_t len_) : str(s_), len(len_) {}
-    template< size_t N > basic_span(C *s_[N]) : str(s_), len(N-1) {}
-
-    void clear() { str = nullptr; len = 0; }
-
-    bool has_str() const { return ! empty() && str[0] != '\0'; }
-    bool empty() const { return (len == 0 || str == nullptr); }
-    size_t size() const { return len; }
-
-    iterator begin() { return str; }
-    iterator end  () { return str + len; }
-
-    const_iterator begin() const { return str; }
-    const_iterator end  () const { return str + len; }
-
-    inline C      & operator[] (size_t i)       { C4_ASSERT(i >= 0 && i < len); return str[i]; }
-    inline C const& operator[] (size_t i) const { C4_ASSERT(i >= 0 && i < len); return str[i]; }
-
-    bool operator== (basic_span const& that) const
-    {
-        if(len != that.len) return false;
-        return (str == that.str || (strncmp(str, that.str, len) == 0));
-    }
-
-    basic_span subspan(size_t first, size_t num = npos) const
-    {
-        size_t rnum = num != npos ? num : len - first;
-        C4_ASSERT((first >= 0 && first + rnum <= len) || num == 0);
-        return basic_span(str + first, rnum);
-    }
-
-    basic_span right_of(size_t pos, bool include_pos = false) const
-    {
-        if(pos == npos) return subspan(0, 0);
-        if( ! include_pos) ++pos;
-        return subspan(pos);
-    }
-    basic_span left_of(size_t pos, bool include_pos = false) const
-    {
-        if(pos == npos) return *this;
-        if( ! include_pos && pos > 0) --pos;
-        return subspan(0, pos);
-    }
-
-    /** trim left */
-    basic_span triml(const C c) const
-    {
-        return right_of(first_not_of(c));
-    }
-    /** trim left any of the characters */
-    basic_span triml(basic_span< const C > const& chars) const
-    {
-        return right_of(first_not_of(chars));
-    }
-
-    /** trim right */
-    basic_span trimr(const C c) const
-    {
-        return left_of(last_not_of(c), /*include_pos*/true);
-    }
-    /** trim right any of the characters */
-    basic_span trimr(basic_span< const C > const& chars) const
-    {
-        return left_of(last_not_of(chars), /*include_pos*/true);
-    }
-
-    /** trim left and right */
-    basic_span trim(const C c) const
-    {
-        return triml(c).trimr(c);
-    }
-    /** trim left and right any of the characters */
-    basic_span trim(basic_span< const C > const& chars) const
-    {
-        return triml(chars).trimr(chars);
-    }
-
-    inline size_t find(const C c) const
-    {
-        return first_of(c);
-    }
-    inline size_t find(basic_span< const C > const& chars) const
-    {
-        if(len < chars.len) return npos;
-        for(size_t i = 0, e = len - chars.len; i < e; ++i)
-        {
-            bool gotit = true;
-            for(size_t j = 0; j < chars.len; ++j)
-            {
-                if(str[i] != chars[j])
-                {
-                    gotit = false;
-                }
-            }
-            if(gotit)
-            {
-                return i;
-            }
-        }
-        return npos;
-    }
-
-    inline bool begins_with(const C c) const
-    {
-        return len > 0 ? str[0] == c : false;
-    }
-    inline bool begins_with(basic_span< const C > const& pattern) const
-    {
-        for(size_t i = 0; i < len && i < pattern.len; ++i)
-        {
-            if(str[i] != pattern[i]) return false;
-        }
-        return true;
-    }
-
-    inline size_t first_of(const C c) const
-    {
-        for(size_t i = 0; i < len; ++i)
-        {
-            if(str[i] == c) return i;
-        }
-        return npos;
-    }
-    inline size_t first_of(basic_span< const C > const& chars) const
-    {
-        for(size_t i = 0; i < len; ++i)
-        {
-            for(size_t j = 0; j < chars.len; ++j)
-            {
-                if(str[i] == chars[j]) return i;
-            }
-        }
-        return npos;
-    }
-
-    inline size_t first_not_of(const C c) const
-    {
-        for(size_t i = 0; i < len; ++i)
-        {
-            if(str[i] != c) return i;
-        }
-        return npos;
-    }
-    inline size_t first_not_of(basic_span< const C > const& chars) const
-    {
-        for(size_t i = 0; i < len; ++i)
-        {
-            for(size_t j = 0; j < chars.len; ++j)
-            {
-                if(str[i] != chars[j]) return i;
-            }
-        }
-        return npos;
-    }
-
-    inline size_t last_of(const C c) const
-    {
-        for(size_t i = len-1; i != size_t(-1); --i)
-        {
-            if(str[i] == c) return i;
-        }
-        return npos;
-    }
-    inline size_t last_of(basic_span< const C > const& chars) const
-    {
-        for(size_t i = len-1; i != size_t(-1); --i)
-        {
-            for(size_t j = 0; j < chars.len; ++j)
-            {
-                if(str[i] == chars[j]) return i;
-            }
-        }
-        return npos;
-    }
-
-    inline size_t last_not_of(const C c) const
-    {
-        for(size_t i = len-1; i != size_t(-1); --i)
-        {
-            if(str[i] != c) return i;
-        }
-        return npos;
-    }
-    inline size_t last_not_of(basic_span< const C > const& chars) const
-    {
-        for(size_t i = len-1; i != size_t(-1); --i)
-        {
-            bool gotit = false;
-            for(size_t j = 0; j < chars.len; ++j)
-            {
-                if(str[i] == chars[j])
-                {
-                    gotit = true;
-                    break;
-                }
-            }
-            if(gotit)
-            {
-                return i;
-            }
-        }
-        return npos;
-    }
-
-};
-
-using span = basic_span< char >;
-using cspan = basic_span< const char >;
-
-template< class OStream, class C >
-OStream& operator<< (OStream& s, basic_span< C > const& sp)
-{
-    s.write(sp.str, sp.len);
-    return s;
-}
-#define _c4prsp(sp) ((int)(sp).len), (sp).str
-
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-namespace detail {
-template< class T > class stack;
-} // namespace detail
-
-/** A lightweight stack. This avoids a dependency on std. */
-template< class T >
-class detail::stack
-{
-private:
-
-    T *    m_stack;
-    size_t m_pos;
-    size_t m_size;
-
-public:
-
-    stack() : m_stack(nullptr), m_pos(0), m_size(0)
-    {
-    }
-    ~stack()
-    {
-        if(m_stack)
-        {
-            RymlCallbacks::free(m_stack, m_size * sizeof(T));
-        }
-    }
-
-    stack(stack const& that) : stack()
-    {
-        reserve(that.m_pos);
-        memcpy(m_stack, that.m_stack, sizeof(T) * that.m_pos);
-    }
-    stack& operator= (stack const& that)
-    {
-        if(m_stack)
-        {
-            RymlCallbacks::free(m_stack, m_size * sizeof(T));
-        }
-        reserve(that.m_pos);
-        memcpy(m_stack, that.m_stack, sizeof(T) * that.m_pos);
-        return *this;
-    }
-
-    stack(stack &&that)
-    {
-        memcpy(this, &that, sizeof(*this));
-        that.m_stack = nullptr;
-    }
-    stack& operator= (stack &&that)
-    {
-        memcpy(this, &that, sizeof(*this));
-        that.m_stack = nullptr;
-        return *this;
-    }
-
-    size_t size() const { return m_pos; }
-    size_t empty() const { return m_pos == 0; }
-
-    void reserve(size_t sz)
-    {
-        if(sz == 0) sz = 8;
-        C4_ASSERT(m_pos < sz);
-        T *buf = (T*) RymlCallbacks::allocate(sz * sizeof(T), m_stack);
-        if(m_stack)
-        {
-            memcpy(buf, m_stack, m_pos * sizeof(T));
-            RymlCallbacks::free(m_stack, m_size * sizeof(T));
-        }
-        m_stack = buf;
-        m_size = sz;
-    }
-    void push(T n)
-    {
-        if(m_pos >= m_size)
-        {
-            reserve(2 * m_size);
-        }
-        m_stack[m_pos] = n;
-        m_pos++;
-        //printf("stack_push[%zd]: %zd\n", m_pos, n);
-    }
-
-    T pop()
-    {
-        //printf("stack_pop[%zd]: %zd\n", m_pos, m_stack[m_pos - 1]);
-        C4_ASSERT(m_pos > 0);
-        m_pos--;
-        T n = m_stack[m_pos];
-        return n;
-    }
-
-    T peek() const
-    {
-        C4_ASSERT(m_pos > 0);
-        T n = m_stack[m_pos - 1];
-        return n;
-    }
-
-};
 
 
 //-----------------------------------------------------------------------------
@@ -570,7 +131,7 @@ public:
     Node *  append_sibling(cspan const& name, cspan const& val) { return insert_sibling(name, val, last_sibling()); }
     Node * prepend_sibling(cspan const& name, cspan const& val) { return insert_sibling(name, val, nullptr); }
 
-    //! create and insert a new sibling as a key-value node in a seq entry. insert after "after".
+    //! create and insert a new sibling as a value node in a seq entry. insert after "after".
     Node *  insert_sibling_seq(cspan const& val, Node * after) { return insert_sibling({}, val, after); }
     Node *  append_sibling_seq(cspan const& val) { return insert_sibling({}, val, last_sibling()); }
     Node * prepend_sibling_seq(cspan const& val) { return insert_sibling({}, val, nullptr); }
@@ -597,7 +158,7 @@ public:
     Node *  append_child(cspan const& name, cspan const& val) { return insert_child(name, val, last_child()); }
     Node * prepend_child(cspan const& name, cspan const& val) { return insert_child(name, val, nullptr); }
 
-    //! create and insert a new child as a key-value node in a seq entry. insert after "after".
+    //! create and insert a new child as a value node in a seq entry. insert after "after".
     Node *  insert_child_seq(cspan const& val, Node * after = nullptr) { return insert_child({}, val, last_child()); }
     Node *  append_child_seq(cspan const& val) { return insert_child({}, val, last_child()); }
     Node * prepend_child_seq(cspan const& val) { return insert_child({}, val, nullptr); }
@@ -808,6 +369,13 @@ public:
     {
         return _stack_pop();
     }
+    void make_map(Node *node, Node *after = nullptr)
+    {
+        C4_ASSERT( ! node->has_children());
+        _stack_push(node);
+        node->m_type = TYPE_SEQ;
+        set_parent(_stack_top(), node, after);
+    }
 
     /** place the new node after "after" */
     Node *begin_seq(cspan const& name, Node *after = nullptr)
@@ -817,6 +385,13 @@ public:
     Node *end_seq()
     {
         return _stack_pop();
+    }
+    void make_seq(Node *node, Node *after = nullptr)
+    {
+        C4_ASSERT( ! node->has_children());
+        node->m_type = TYPE_SEQ;
+        set_parent(_stack_top(), node, after);
+        _stack_push(node);
     }
 
     bool stack_top_is_type(NodeType_e type)
@@ -1387,7 +962,7 @@ private:
         struct LineContents
         {
             cspan  full;        ///< the full line, excluding newlines on the right
-            cspan  ltrim;       ///< the line, starting at the first non-space character
+            cspan  rem;         ///< the line remainder; initially starts at the first non-space character
             size_t indentation; ///< the number of columns with space on the left
 
             void reset(cspan const& full_)
@@ -1396,16 +971,16 @@ private:
 
                 // find the first column where the character is not a space
                 indentation = full.first_not_of(' ');
-                ltrim = full.subspan(indentation);
+                rem = full.subspan(indentation);
             }
         };
 
-        Location pos;
-        LineContents     line_contents;
-        size_t   flags;
-        size_t   level;
-        Node *   node;
-        cspan    scalar;
+        Location     pos;
+        LineContents line_contents;
+        size_t       flags;
+        size_t       level;
+        Node *       node;
+        cspan        scalar;
 
         void reset(const char *file, Node *n)
         {
@@ -1426,7 +1001,7 @@ private:
 
         void line_progressed(size_t first_remaining)
         {
-            line_contents.ltrim = line_contents.ltrim.subspan(first_remaining);
+            line_contents.rem = line_contents.rem.subspan(first_remaining);
         }
 
         void line_ended(size_t len)
@@ -1462,21 +1037,20 @@ private:
 
     bool _indentation_pushed() const
     {
-        if(m_stack.empty()) return false;
-        return m_state.line_contents.indentation > m_stack.peek().line_contents.indentation;
+        auto iprev = m_stack.empty() ? 0 : m_stack.peek().line_contents.indentation;
+        auto lprev = m_state.level;
+        auto icurr = m_state.line_contents.indentation;
+        auto lcurr = m_state.level;
+        return (lcurr == lprev) && icurr > iprev;
     }
 
     bool _indentation_popped() const
     {
-        if(m_stack.empty()) return false;
-        return m_state.line_contents.indentation < m_stack.peek().line_contents.indentation;
-    }
-
-    void _store_scalar(cspan const& s)
-    {
-        C4_ASSERT(!(m_state.flags & SSCL));
-        m_state.flags |= SSCL;
-        m_state.scalar = s;
+        auto iprev = m_stack.empty() ? 0 : m_stack.peek().line_contents.indentation;
+        auto lprev = m_state.level;
+        auto icurr = m_state.line_contents.indentation;
+        auto lcurr = m_state.level;
+        return (lcurr == lprev) && icurr < iprev;
     }
 
 public:
@@ -1508,63 +1082,117 @@ private:
 
     cspan _scan_line();
 
-    void _handle_line(cspan ltrim);
+    void _handle_line(cspan rem);
 
-    cspan _read_scalar(cspan const& line_remainder, bool known_quoted = false);
+    cspan _read_scalar(bool known_quoted = false);
 
-
-    void _push_map(cspan ltrim, size_t next_state, bool create_node)
+    void _push_level(bool explicit_flow_chars = false)
     {
-        printf("push_map\n");
-        C4_ASSERT(next_state & RMAP);
+        printf("indentation pushed!\n");
+        size_t st = RUNK;
+        if(explicit_flow_chars)
+        {
+            st |= EXPL;
+        }
+        if(m_state.flags & SSCL)
+        {
+            st |= SSCL;
+        }
         Node* node = m_state.node;
-        if(create_node)
+        if(m_state.flags & RTOP)
         {
-            node = node->append_child({}, TYPE_MAP);
+            node = node->append_child({}, TYPE_NONE);
         }
-        else
+        _push_state(st, node);
+        if(m_state.flags & SSCL)
         {
-            C4_ASSERT(node->is_map() || node->empty());
-            node->m_type = TYPE_MAP;
+            m_state.scalar = m_stack.peek().scalar;
         }
-        _push_state(next_state, node);
     }
-    void _pop_map(cspan ltrim)
+
+    void _pop_level()
     {
-        printf("pop_map\n");
+        printf("indentation popped!\n");
+        if(m_state.has_any(RMAP))
+        {
+            _stop_map();
+        }
+        else if(m_state.has_any(RSEQ))
+        {
+            _stop_seq();
+        }
+        else if(m_state.has_any(BLCK))
+        {
+            RymlCallbacks::error("not implemented");
+        }
         _pop_state();
     }
 
-    void _push_seq(cspan ltrim, size_t next_state, bool create_node)
+    void _start_map()
+    {
+        printf("start_map\n");
+        m_state.flags |= RMAP|RVAL;
+        m_state.flags &= ~RKEY;
+        m_state.flags &= ~RUNK;
+        Node *node = m_state.node;
+        C4_ASSERT(node->is_map() || node->empty());
+        node->tree()->make_map(node);
+    }
+    void _stop_map()
+    {
+        printf("stop_map\n");
+    }
+
+    void _start_seq()
     {
         printf("push_seq\n");
-        C4_ASSERT(next_state & RSEQ);
+        m_state.flags |= RSEQ|RVAL;
+        m_state.flags &= ~RUNK;
         Node* node = m_state.node;
-        if(create_node)
-        {
-            node = node->append_child({}, TYPE_SEQ);
-        }
-        else
-        {
-            C4_ASSERT(node->is_seq() || node->empty());
-            node->m_type = TYPE_SEQ;
-        }
-        _push_state(next_state, node);
+        C4_ASSERT(node->is_seq() || node->empty());
+        node->tree()->make_seq(node);
     }
-    void _pop_seq(cspan ltrim)
+    void _stop_seq()
     {
         printf("pop_seq\n");
-        _pop_state();
     }
 
     void _append_val(cspan const& val)
     {
-        printf("append val: %.*s\n", _c4prsp(val));
+        printf("append val: '%.*s'\n", _c4prsp(val));
+        m_state.node->append_child_seq(val);
     }
 
-    void _append_key_val(cspan const& key, cspan const& val)
+    void _append_key_val(cspan const& val)
     {
-        printf("append key-val: %.*s %.*s\n", _c4prsp(key), _c4prsp(val));
+        C4_ASSERT(m_state.flags & SSCL);
+        cspan key = m_state.scalar;
+        printf("append key-val: '%.*s' '%.*s'\n", _c4prsp(key), _c4prsp(val));
+        m_state.flags &= ~SSCL;
+        m_state.scalar.clear();
+        m_state.node->append_child(key, val);
+        _toggle_key_val();
+    }
+
+    void _store_scalar(cspan const& s)
+    {
+        C4_ASSERT(!(m_state.flags & SSCL));
+        m_state.flags |= SSCL;
+        m_state.scalar = s;
+    }
+
+    void _toggle_key_val()
+    {
+        if(m_state.flags & RKEY)
+        {
+            m_state.flags &= ~RKEY;
+            m_state.flags |= RVAL;
+        }
+        else
+        {
+            m_state.flags |= RKEY;
+            m_state.flags &= ~RVAL;
+        }
     }
 
 private:
