@@ -2,36 +2,6 @@
 
 namespace yml = c4::yml;
 
-const char* type_str(yml::Node const& p)
-{
-    switch(p.type())
-    {
-#define _c4_case(which) case yml::TYPE_##which: return #which;
-    _c4_case(NONE)
-    _c4_case(ROOT)
-    _c4_case(DOC)
-    _c4_case(VAL)
-    _c4_case(SEQ)
-    _c4_case(MAP)
-#undef _c4_case
-    default: return "(unknown?)";
-    }
-}
-
-void show_children(yml::Node const& p)
-{
-    printf("--------\n%zd children for %p(%s):\n", p.num_children(), (void*)&p, type_str(p));
-    for(yml::Node *n = p.first_child(); n; n = n->next_sibling())
-    {
-        printf("  %p(%s) %.*s", (void*)n, type_str(*n), (int)n->name().len, n->name().str);
-        if(n->type() == yml::TYPE_VAL)
-        {
-            printf(": %.*s", (int)n->val().len, n->val().str);
-        }
-        printf("\n");
-    }
-}
-
 const char ex[] = R"(# this is a comment
 foo: fsdfkjhsdfkh
 bar: sdfjkhfuu
@@ -51,6 +21,8 @@ fdx: crl
 
 int main()
 {
+    C4_ASSERT( ! yml::cspan(":").begins_with(": "));
+
     yml::Tree s(2);
     yml::Parser p;
     p.parse(&s, ex);
@@ -157,8 +129,132 @@ prop4: [seq1, seq2, seq3]
 
 
     //-----------------------------------------------------------------------------
+const char ex2[] = R"(# this is a comment
+foo: fsdfkjhsdfkh
+bar: sdfjkhfuu
+bat: 1
+seq:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+map:
+  foo: 1
+  bar: 2
+  baz: 3
+explseq: [0, 1, 2, 3, 4]
+explmap: {foo: 1, bar: 2, baz: 3}
+explseq2: [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]]
+explmap2: {keyfoo: {foo: 1, bar: 2, baz: 3}, keybar: {foo: 4, bar: 5, baz: 6}, keybaz: {foo: 7, bar: 8, baz: 9}}
+explseq3: [
+  [0, 1, 2],
+  [3, 4, 5],
+  [6, 7, 8],
+  [9, 10, 11]
+]
+explmap3: {
+  keyfoo: {foo: 1, bar: 2, baz: 3},
+  keybar: {foo: 4, bar: 5, baz: 6},
+  keybaz: {foo: 7, bar: 8, baz: 9}
+}
+explseq4: [
+  [
+    0,
+    1,
+    2
+  ]
+  ,
+  [ 3,
+    4,
+    5],
+  [6,
+    7,
+    8],[
+   9, 10, 11]]
+explmap3: {
+  keyfoo: {
+    foo: 1,
+    bar: 2,
+    baz: 3
+  }
+  ,
+  keybar: {
+    foo: 4,
+    bar: 5,
+    baz: 6
+  },
+  keybaz:
+  {
+    foo: 7,
+    bar: 8,
+    baz: 9
+}
+}
+seq2:
+  - - 0
+    - 1
+    - 2
+  - [3, 4, 5]
+  - - 6
+    - 7
+    - 8
+  - [9, 10, 11]
+map2:
+  indent: 1
+  submap:
+    subfoo: 11
+    subbar: 12
+    subbaz: 13
+    subbat: 14
+  deindent: 1
+  submap2:
+    subfoo: 11
+    subbar: 12
+    subbaz: 13
+    subbat: 14
+seq3:
+  - - - 0
+      - 1
+      - 2
+    - - 3
+      - 4
+      - 5
+  - -
+      - 6
+  -
+    -
+      - 7
+  -
+    -
+      -
+        8
+map3:
+  indent: 1
+  submap:
+    subfoo: 11
+    subbar: 12
+    subbaz: 13
+    subbat: 14
+  deindent: 1
+  submap2:
+    subfoo: 11
+    subbar: 12
+    subbaz: 13
+    subbat: 14
+seqmap:
+  -
+    foo: 1
+    bar: 2
+    baz: 3
+  -
+    foo: 4
+    bar: 5
+    baz: 6
+fdx: crl
+)";
 
     yml::NextParser np;
-    yml::Tree t = np.parse("inline source", ex);
+    yml::Tree t = np.parse("inline source", ex2);
     return 0;
 }

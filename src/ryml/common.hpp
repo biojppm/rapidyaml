@@ -13,6 +13,13 @@
 #   define C4_QUOTE(x) #x
 #endif
 
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
+
 #ifndef C4_ERROR
 #   define C4_ERROR(msg) C4_ERROR_(__FILE__, __LINE__, msg)
 #   define C4_ERROR_(file, line, msg) \
@@ -34,6 +41,9 @@
     }
 #   endif
 #endif
+
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
 
 namespace c4 {
 namespace yml {

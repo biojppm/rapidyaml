@@ -97,12 +97,8 @@ public:
         return n;
     }
 
-    T peek() const
-    {
-        C4_ASSERT(m_pos > 0);
-        T n = m_stack[m_pos - 1];
-        return n;
-    }
+    T const& peek() const { C4_ASSERT(m_pos > 0); return m_stack[m_pos - 1]; }
+    T      & peek()       { C4_ASSERT(m_pos > 0); return m_stack[m_pos - 1]; }
 
 };
 

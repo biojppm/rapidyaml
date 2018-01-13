@@ -80,8 +80,8 @@ public:
     }
 
     bool   is_container() const { return m_type == TYPE_DOC || m_type == TYPE_MAP || m_type == TYPE_SEQ || m_type == TYPE_ROOT; }
-    bool   is_map() const { return m_type == TYPE_DOC || m_type == TYPE_MAP; }
-    bool   is_seq() const { return m_type == TYPE_ROOT || m_type == TYPE_SEQ; }
+    bool   is_map() const { return m_type == TYPE_MAP || m_type == TYPE_DOC || m_type == TYPE_ROOT; }
+    bool   is_seq() const { return m_type == TYPE_SEQ || m_type == TYPE_DOC || m_type == TYPE_ROOT; }
     bool   is_val() const { return m_type == TYPE_VAL; }
     bool   parent_is_seq() const { return parent()->is_seq(); }
     bool   parent_is_map() const { return parent()->is_map(); }
@@ -218,6 +218,36 @@ private:
 };
 
 
+const char* type_str(Node const& p)
+{
+    switch(p.type())
+    {
+#define _c4_case(which) case TYPE_##which: return #which;
+    _c4_case(NONE)
+    _c4_case(ROOT)
+    _c4_case(DOC)
+    _c4_case(VAL)
+    _c4_case(SEQ)
+    _c4_case(MAP)
+#undef _c4_case
+    default: return "(unknown?)";
+    }
+}
+
+void show_children(Node const& p)
+{
+    printf("--------\n%zd children for %p(%s):\n", p.num_children(), (void*)&p, type_str(p));
+    for(Node *n = p.first_child(); n; n = n->next_sibling())
+    {
+        printf("  %p(%s) %.*s", (void*)n, type_str(*n), (int)n->name().len, n->name().str);
+        if(n->type() == TYPE_VAL)
+        {
+            printf(": %.*s", (int)n->val().len, n->val().str);
+        }
+        printf("\n");
+    }
+}
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -235,6 +265,7 @@ private:
     size_t m_free_head;
     size_t m_free_tail;
 
+    /** @todo this is wrong, and should be moved out of this class */
     detail::stack< size_t > m_stack;
 
     size_t m_load_root_id;
@@ -284,12 +315,13 @@ public:
 
 public:
 
-    void set_load_root(Node *r) { m_load_root_id = r ? r->id() : NONE; }
+    void set_load_root(Node *r) { m_load_root_id = r ? id(r) : NONE; }
 
     void add_root()
     {
         begin_stream();
         end_stream();
+        m_stack.push(id(root()));
     }
 
     Node *begin_stream()
@@ -359,6 +391,23 @@ public:
         set_parent(_stack_top(), n, after);
         return n;
     }
+    Node *add_empty(cspan const& name, Node *after = nullptr)
+    {
+        if(name.empty())
+        {
+            C4_ASSERT(_stack_top()->is_seq());
+        }
+        else
+        {
+            C4_ASSERT(_stack_top()->is_map());
+        }
+        size_t ida = id(after);
+        Node *n = claim(after);
+        after = get(ida);
+        n->m_type = TYPE_NONE;
+        set_parent(_stack_top(), n, after);
+        return n;
+    }
 
     /** place the new node after "after" */
     Node *begin_map(cspan const& name, Node *after = nullptr)
@@ -372,9 +421,9 @@ public:
     void make_map(Node *node, Node *after = nullptr)
     {
         C4_ASSERT( ! node->has_children());
-        _stack_push(node);
-        node->m_type = TYPE_SEQ;
+        node->m_type = TYPE_MAP;
         set_parent(_stack_top(), node, after);
+        _stack_push(node);
     }
 
     /** place the new node after "after" */
@@ -968,19 +1017,26 @@ private:
             void reset(cspan const& full_)
             {
                 full = full_;
-
+                rem = full_;
                 // find the first column where the character is not a space
                 indentation = full.first_not_of(' ');
-                rem = full.subspan(indentation);
             }
         };
 
-        Location     pos;
-        LineContents line_contents;
         size_t       flags;
         size_t       level;
         Node *       node;
+
+        // these should be moved out of state
+        Location     pos;
+        LineContents line_contents;
         cspan        scalar;
+        void _prepare_pop(State const& current)
+        {
+            pos = current.pos;
+            line_contents = current.line_contents;
+            scalar = current.scalar;
+        }
 
         void reset(const char *file, Node *n)
         {
@@ -991,6 +1047,7 @@ private:
             pos.line = 1;
             pos.col = 1;
             node = n;
+            scalar.clear();
         }
 
         void line_scanned(cspan const& sp)
@@ -1016,47 +1073,43 @@ private:
         bool has_none(size_t f) const { return (flags & f) == 0; }
     };
 
-    void _push_state(size_t next_state, Node *n)
+    void _push_state(size_t next_state)
     {
+        printf("stacking node %zd\n", m_state.node->id());
         m_stack.push(m_state);
         m_state.flags = next_state;
-        m_state.node = n;
+        m_state.node = nullptr;
         ++m_state.level;
     }
-
     void _pop_state()
     {
+        printf("popping node %zd top %zd\n", m_state.node->id(), m_stack.peek().node->id());
         C4_ASSERT( ! m_stack.empty());
+        m_stack.peek()._prepare_pop(m_state);
         m_state = m_stack.pop();
-        if(m_state.line_contents.indentation == 0)
+    }
+
+    int _indentation_jump()
+    {
+        if(m_stack.empty())
         {
-            C4_ASSERT(m_state.has_none(RTOP));
-            m_state.flags |= RTOP;
+            C4_ASSERT(m_state.has_all(RTOP));
+            return 0;
         }
-    }
-
-    bool _indentation_pushed() const
-    {
-        auto iprev = m_stack.empty() ? 0 : m_stack.peek().line_contents.indentation;
-        auto lprev = m_state.level;
-        auto icurr = m_state.line_contents.indentation;
-        auto lcurr = m_state.level;
-        return (lcurr == lprev) && icurr > iprev;
-    }
-
-    bool _indentation_popped() const
-    {
-        auto iprev = m_stack.empty() ? 0 : m_stack.peek().line_contents.indentation;
-        auto lprev = m_state.level;
-        auto icurr = m_state.line_contents.indentation;
-        auto lcurr = m_state.level;
-        return (lcurr == lprev) && icurr < iprev;
+        int lprev = (int)m_stack.peek().level;
+        int lcurr = (int)m_state.level;
+        int iprev = (int)m_stack.peek().line_contents.indentation;
+        int icurr = (int)m_state.line_contents.indentation;
+        return icurr != iprev ? lcurr - lprev : 0;
     }
 
 public:
 
     cspan  m_file;
     cspan  m_buf;
+
+    Node * m_root;
+    Tree * m_tree;
 
     State  m_state;
     detail::stack< State > m_stack;
@@ -1080,146 +1133,62 @@ public:
 
 private:
 
+    void _reset();
+
     cspan _scan_line();
+    cspan _scan_scalar(bool known_quoted = false);
 
     void _handle_line(cspan rem);
+    int  _handle_indentation();
 
-    cspan _read_scalar(bool known_quoted = false);
+    bool _handle_runk(cspan rem);
+    bool _handle_map(cspan rem);
+    bool _handle_seq(cspan rem);
+    bool _handle_scalar(cspan rem);
+    bool _handle_top(cspan rem);
 
-    void _push_level(bool explicit_flow_chars = false)
-    {
-        printf("indentation pushed!\n");
-        size_t st = RUNK;
-        if(explicit_flow_chars)
-        {
-            st |= EXPL;
-        }
-        if(m_state.flags & SSCL)
-        {
-            st |= SSCL;
-        }
-        Node* node = m_state.node;
-        if(m_state.flags & RTOP)
-        {
-            node = node->append_child({}, TYPE_NONE);
-        }
-        _push_state(st, node);
-        if(m_state.flags & SSCL)
-        {
-            m_state.scalar = m_stack.peek().scalar;
-        }
-    }
+    void _push_level(bool explicit_flow_chars = false);
+    void _pop_level();
 
-    void _pop_level()
-    {
-        printf("indentation popped!\n");
-        if(m_state.has_any(RMAP))
-        {
-            _stop_map();
-        }
-        else if(m_state.has_any(RSEQ))
-        {
-            _stop_seq();
-        }
-        else if(m_state.has_any(BLCK))
-        {
-            RymlCallbacks::error("not implemented");
-        }
-        _pop_state();
-    }
+    void _start_map(bool as_child=true);
+    void _stop_map();
 
-    void _start_map()
-    {
-        printf("start_map\n");
-        m_state.flags |= RMAP|RVAL;
-        m_state.flags &= ~RKEY;
-        m_state.flags &= ~RUNK;
-        Node *node = m_state.node;
-        C4_ASSERT(node->is_map() || node->empty());
-        node->tree()->make_map(node);
-    }
-    void _stop_map()
-    {
-        printf("stop_map\n");
-    }
+    void _start_seq(bool as_child=true);
+    void _stop_seq();
 
-    void _start_seq()
-    {
-        printf("push_seq\n");
-        m_state.flags |= RSEQ|RVAL;
-        m_state.flags &= ~RUNK;
-        Node* node = m_state.node;
-        C4_ASSERT(node->is_seq() || node->empty());
-        node->tree()->make_seq(node);
-    }
-    void _stop_seq()
-    {
-        printf("pop_seq\n");
-    }
+    void _append_val(cspan const& val);
+    void _append_key_val(cspan const& val);
+    void _toggle_key_val();
 
-    void _append_val(cspan const& val)
-    {
-        printf("append val: '%.*s'\n", _c4prsp(val));
-        m_state.node->append_child_seq(val);
-    }
-
-    void _append_key_val(cspan const& val)
-    {
-        C4_ASSERT(m_state.flags & SSCL);
-        cspan key = m_state.scalar;
-        printf("append key-val: '%.*s' '%.*s'\n", _c4prsp(key), _c4prsp(val));
-        m_state.flags &= ~SSCL;
-        m_state.scalar.clear();
-        m_state.node->append_child(key, val);
-        _toggle_key_val();
-    }
-
-    void _store_scalar(cspan const& s)
-    {
-        C4_ASSERT(!(m_state.flags & SSCL));
-        m_state.flags |= SSCL;
-        m_state.scalar = s;
-    }
-
-    void _toggle_key_val()
-    {
-        if(m_state.flags & RKEY)
-        {
-            m_state.flags &= ~RKEY;
-            m_state.flags |= RVAL;
-        }
-        else
-        {
-            m_state.flags |= RKEY;
-            m_state.flags &= ~RVAL;
-        }
-    }
+    void _store_scalar(cspan const& s);
+    cspan _consume_scalar();
+    void _move_scalar_from_top();
 
 private:
 
-    static inline bool _matches(const char c, const char (&chars)[1])
+    static inline bool _any_of(const char c, const char (&chars)[1])
     {
         RymlCallbacks::error("WTF???");
         return false;
     }
-    static inline bool _matches(const char c, const char (&chars)[2])
+    static inline bool _any_of(const char c, const char (&chars)[2])
     {
         return (c == chars[0]);
     }
-    static inline bool _matches(const char c, const char (&chars)[3])
+    static inline bool _any_of(const char c, const char (&chars)[3])
     {
         return (c == chars[0]) || (c == chars[1]);
     }
-    static inline bool _matches(const char c, const char (&chars)[4])
+    static inline bool _any_of(const char c, const char (&chars)[4])
     {
         return (c == chars[0]) || (c == chars[1]) || (c == chars[2]);
     }
-    static inline bool _matches(const char c, const char (&chars)[5])
+    static inline bool _any_of(const char c, const char (&chars)[5])
     {
         return (c == chars[0]) || (c == chars[1]) || (c == chars[2]) || (c == chars[3]);
     }
     template< size_t N >
-    static inline bool _matches(const char c, const char (&chars)[N])
+    static inline bool _any_of(const char c, const char (&chars)[N])
     {
         for(size_t i = 0; i < N; ++i)
         {

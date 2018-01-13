@@ -44,7 +44,7 @@ public:
 
     basic_span() : str(nullptr), len(0) {}
     basic_span(C *s_) : str(s_), len(strlen(s_)) {}
-    basic_span(C *s_, size_t len_) : str(s_), len(len_) {}
+    basic_span(C *s_, size_t len_) : str(s_), len(len_) { C4_ASSERT(str || !len_); }
     template< size_t N > basic_span(C const (&s_)[N]) : str(s_), len(N-1) {}
 
     void clear() { str = nullptr; len = 0; }
@@ -66,6 +66,15 @@ public:
     {
         if(len != that.len) return false;
         return (str == that.str || (strncmp(str, that.str, len) == 0));
+    }
+    bool operator== (C const* s) const
+    {
+        C4_ASSERT(s != nullptr);
+        return (strncmp(str, s, len) == 0);
+    }
+    bool operator== (C const c) const
+    {
+        return len == 1 && *str == c;
     }
 
     basic_span subspan(size_t first, size_t num = npos) const
@@ -128,12 +137,13 @@ public:
     inline size_t find(basic_span< const C > const& chars) const
     {
         if(len < chars.len) return npos;
-        for(size_t i = 0, e = len - chars.len; i < e; ++i)
+        for(size_t i = 0, e = len - chars.len + 1; i < e; ++i)
         {
             bool gotit = true;
             for(size_t j = 0; j < chars.len; ++j)
             {
-                if(str[i + j] != chars[j])
+                C4_ASSERT(i + j < len);
+                if(str[i + j] != chars.str[j])
                 {
                     gotit = false;
                 }
@@ -152,7 +162,22 @@ public:
     }
     inline bool begins_with(basic_span< const C > const& pattern) const
     {
-        for(size_t i = 0; i < len && i < pattern.len; ++i)
+        if(len < pattern.len) return false;
+        for(size_t i = 0; i < pattern.len; ++i)
+        {
+            if(str[i] != pattern[i]) return false;
+        }
+        return true;
+    }
+
+    inline bool ends_with(const C c) const
+    {
+        return len > 0 ? str[len-1] == c : false;
+    }
+    inline bool ends_with(basic_span< const C > const& pattern) const
+    {
+        if(len < pattern.len) return false;
+        for(size_t i = len - pattern.len; i < len; ++i)
         {
             if(str[i] != pattern[i]) return false;
         }

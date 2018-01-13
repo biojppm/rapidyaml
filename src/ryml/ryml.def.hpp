@@ -227,7 +227,7 @@ Node * Node::_insert_by_type(Node *which_parent, cspan const& name, NodeType_e t
         m_s->end_doc();
         break;
     case TYPE_NONE:
-        n = m_s->add_val(name, {}, after);
+        n = m_s->add_empty(name, after);
         //C4_ERROR("cannot add sibling with type NONE");
         break;
     case TYPE_ROOT:
@@ -495,31 +495,38 @@ void Tree::free(size_t i)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+void NextParser::_reset()
+{
+    m_state.reset(m_file.str, m_root);
+}
+
 void NextParser::parse(const char *file, cspan const& buf, Node *root)
 {
     m_file = file ? file : "(no file)";
     m_buf = buf;
-    m_state.reset(file, root);
+    m_root = root;
+    m_tree = root->tree();
+    _reset();
 
     while(m_state.pos.offset < m_buf.len)
     {
         m_state.line_scanned(_scan_line());
-
-        if(_indentation_popped())
-        {
-            _pop_level();
-        }
-        else if(_indentation_pushed())
-        {
-            _push_level();
-        }
 
         while(m_state.line_contents.rem)
         {
             _handle_line(m_state.line_contents.rem);
         }
     }
+
 }
+
+
+//-----------------------------------------------------------------------------
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 
 /** a debug utility */
 #define _prhl(fmt, ...)                                                 \
@@ -540,6 +547,31 @@ void NextParser::parse(const char *file, cspan const& buf, Node *root)
         }                                                               \
     }
 
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
+
+//-----------------------------------------------------------------------------
+int NextParser::_handle_indentation()
+{
+    int jump = _indentation_jump();
+    if(jump < 0)
+    {
+        printf("indentation decreased %zd level%s!\n", jump, jump>1?"s":"");
+        for(size_t i = 0; i < jump; ++i)
+        {
+            _pop_level();
+        }
+    }
+    else if(jump > 0)
+    {
+        C4_ERROR("never reach this");
+        C4_ASSERT(jump == 1);
+        printf("indentation increased %zd level%s!\n", jump, jump>1?"s":"");
+        _push_level();
+    }
+    return jump;
+}
+
 //-----------------------------------------------------------------------------
 void NextParser::_handle_line(cspan rem)
 {
@@ -548,90 +580,245 @@ void NextParser::_handle_line(cspan rem)
 
     C4_ASSERT( ! rem.empty());
 
-    if(m_state.has_any(RKEY|RVAL|RUNK|RTOP))
+    if(int jump = _indentation_jump())
     {
-        const bool alnum = isalnum(rem[0]);
-        const bool dquot = rem.begins_with('"');
-        const bool squot = rem.begins_with('\'');
-        const bool block = rem.begins_with('|') || rem.begins_with('>');
-
-        if(alnum || dquot || squot || block)
+        if(jump < 0)
         {
-            _prhl("it's a scalar");
-            cspan scalar = _read_scalar(dquot || squot);
-            C4_ASSERT( ! scalar.empty());
-
-            if(m_state.has_all(RSEQ))
-            {
-                _append_val(scalar);
-            }
-            else if(m_state.has_all(RKEY|RMAP))
-            {
-                C4_ASSERT(m_state.has_none(RVAL));
-                C4_ASSERT(m_state.has_none(SSCL));
-                _store_scalar(scalar);
-                _toggle_key_val();
-            }
-            else if(m_state.has_all(RVAL|RMAP))
-            {
-                C4_ASSERT(m_state.has_none(RKEY));
-                C4_ASSERT(m_state.has_all(SSCL));
-                _append_key_val(scalar); // toggles key val
-            }
-            else if(m_state.has_all(RUNK))
-            {
-                C4_ASSERT(m_state.has_none(RSEQ|RMAP));
-                C4_ASSERT(m_state.has_none(SSCL));
-                // we still don't know whether it's a seq or a map
-                // so just store the scalar
-                _store_scalar(scalar);
-            }
-            else
-            {
-                C4_ERROR("wtf?");
-            }
-            return;
+            _handle_indentation();
         }
+    }
+
+    if(_handle_scalar(rem))
+    {
+        return;
     }
 
     if(m_state.has_any(RSEQ))
     {
-        C4_ERROR("not implemented");
+        if(_handle_seq(rem))
+        {
+            return;
+        }
     }
     else if(m_state.has_any(RMAP))
     {
-        if(m_state.has_any(RVAL))
+        if(_handle_map(rem))
         {
-            if(rem.begins_with(": "))
-            {
-                m_state.line_progressed(2);
-                auto s = _read_scalar();
-                _append_key_val(s);
-            }
-            else
-            {
-                C4_ERROR("parse error");
-            }
+            return;
         }
-        else if(m_state.has_any(RKEY))
+    }
+    else if(m_state.flags & RUNK)
+    {
+        if(_handle_runk(rem))
         {
-            C4_ERROR("never reach this");
+            return;
+        }
+    }
+
+    if(_handle_top(rem))
+    {
+        return;
+    }
+}
+
+//-----------------------------------------------------------------------------
+bool NextParser::_handle_scalar(cspan rem)
+{
+    if(m_state.has_none(RKEY|RVAL|RUNK|RTOP)) return false;
+
+    const bool alnum = isalnum(rem[0]);
+    const bool dquot = rem.begins_with('"');
+    const bool squot = rem.begins_with('\'');
+    const bool block = rem.begins_with('|') || rem.begins_with('>');
+
+    if(alnum || dquot || squot || block)
+    {
+        _prhl("it's a scalar");
+        cspan s = _read_scalar(dquot || squot);
+        C4_ASSERT( ! s.empty());
+
+        if(m_state.has_all(RSEQ))
+        {
+            _append_val(s);
+        }
+        else if(m_state.has_all(RKEY|RMAP))
+        {
+            C4_ASSERT(m_state.has_none(RVAL));
+            _store_scalar(s);
+            _toggle_key_val();
+        }
+        else if(m_state.has_all(RVAL|RMAP))
+        {
+            C4_ASSERT(m_state.has_none(RKEY));
+            _append_key_val(s); // toggles key val
+        }
+        else if(m_state.has_all(RUNK))
+        {
+            C4_ASSERT(m_state.has_none(RSEQ|RMAP));
+            // we still don't know whether it's a seq or a map
+            // so just store the scalar
+            _store_scalar(s);
         }
         else
         {
             C4_ERROR("wtf?");
         }
+        return true;
     }
-    else if(m_state.flags & RUNK)
+
+    return false;
+}
+
+//-----------------------------------------------------------------------------
+bool NextParser::_handle_runk(cspan rem)
+{
+    const bool start_as_child = (m_state.level != 0) || m_state.node == nullptr;
+    if(rem.begins_with(' '))
+    {
+        _prhl("indentation jump=%d level=%zd #spaces=%zd", _indentation_jump(), m_state.level, m_state.line_contents.indentation);
+        C4_ASSERT(_indentation_jump() > 0);
+        m_state.line_progressed(m_state.line_contents.indentation);
+        return true;
+    }
+    else if(rem.begins_with("- "))
+    {
+        _prhl("it's a seq (as_child=%d)", start_as_child);
+        _start_seq(start_as_child);
+        m_state.line_progressed(2);
+        return true;
+    }
+    else if(rem.begins_with('['))
+    {
+        _prhl("it's a seq (as_child=%d)", start_as_child);
+        _start_seq(start_as_child);
+        m_state.flags |= EXPL;
+        m_state.line_progressed(1);
+        return true;
+    }
+
+    else if(rem.begins_with('{'))
+    {
+        _prhl("it's a map (as_child=%d)", start_as_child);
+        _start_map(start_as_child);
+        m_state.flags |= EXPL;
+        m_state.line_progressed(1);
+        return true;
+    }
+    else if(rem.begins_with("? "))
+    {
+        _prhl("it's a map (as_child=%d)", start_as_child);
+        _start_map(start_as_child);
+        m_state.line_progressed(2);
+        return true;
+    }
+
+    else if(m_state.has_all(SSCL))
+    {
+        _prhl("there's a stored scalar\n");
+        if(rem.begins_with(", "))
+        {
+            _prhl("it's a seq (as_child=%d)", start_as_child);
+            _start_seq(start_as_child);
+            _append_val(_consume_scalar());
+            m_state.line_progressed(2);
+        }
+        else if(rem.begins_with(": "))
+        {
+            _prhl("it's a map (as_child=%d)", start_as_child);
+            _start_map(start_as_child);
+            // wait for the val scalar to append the key-val pair
+            m_state.line_progressed(2);
+        }
+        return true;
+    }
+    return false;
+}
+
+//-----------------------------------------------------------------------------
+bool NextParser::_handle_seq(cspan rem)
+{
+    if(m_state.has_any(RVAL))
     {
         if(rem.begins_with("- "))
         {
-            // start a sequence
+            _prhl("expect another val");
+            m_state.line_progressed(2);
+            return true;
+        }
+        else if(rem == '-')
+        {
+            _prhl("start unknown");
+            _push_level();
+            m_state.line_progressed(1);
+            return true;
+        }
+        else if(rem.begins_with(", "))
+        {
+            _prhl("expect another val");
+            m_state.line_progressed(2);
+            return true;
+        }
+        else if(rem.begins_with(']'))
+        {
+            _prhl("end the sequence");
+            m_state.line_progressed(1);
+            _pop_level();
+            return true;
+        }
+        else if(rem.begins_with('&'))
+        {
+            C4_ERROR("not implemented");
+        }
+        else if(rem.begins_with('*'))
+        {
+            C4_ERROR("not implemented");
+        }
+        else if(rem.begins_with("!!"))
+        {
+            C4_ERROR("not implemented");
+        }
+        else if(rem.begins_with('!'))
+        {
+            C4_ERROR("not implemented");
+        }
+        else
+        {
+            C4_ERROR("internal error");
+        }
+    }
+    else
+    {
+        C4_ERROR("internal error");
+    }
+    return false;
+}
+
+//-----------------------------------------------------------------------------
+bool NextParser::_handle_map(cspan rem)
+{
+    C4_ASSERT(m_state.has_all(RMAP));
+    if(m_state.has_any(RVAL))
+    {
+        if(rem.begins_with(": "))
+        {
+            _prhl("wait for val");
+            m_state.line_progressed(2);
+            return true;
+        }
+        else if(rem == ':')
+        {
+            _prhl("start unknown");
+            _push_level();
+            m_state.line_progressed(1);
+            return true;
+        }
+        else if(rem.begins_with("- "))
+        {
             _prhl("start a sequence\n");
             _push_level();
             _start_seq();
             m_state.line_progressed(2);
-            return;
+            return true;
         }
         else if(rem.begins_with('['))
         {
@@ -639,60 +826,70 @@ void NextParser::_handle_line(cspan rem)
             _push_level(/*explicit flow*/true);
             _start_seq();
             m_state.line_progressed(1);
-            return;
+            return true;
         }
-
         else if(rem.begins_with('{'))
         {
-            _prhl("start a mapping");
+            _prhl("start a map");
             _push_level(/*explicit flow*/true);
             _start_map();
             m_state.line_progressed(1);
-            return;
+            return true;
         }
-        else if(rem.begins_with("? "))
+        else if(rem.begins_with(", "))
         {
-            // start a mapping
-            _prhl("start a mapping");
-            _push_level();
-            _start_map();
+            _prhl("expect another key-val");
             m_state.line_progressed(2);
+            return true;
         }
-
-        else if(m_state.has_any(SSCL))
+        else if(rem.begins_with('}'))
         {
-            _prhl("there's a stored scalar\n");
-            if(rem.begins_with(", "))
-            {
-                _prhl("it's a seq");
-                _push_level();
-                _start_seq();
-                _append_val(m_state.scalar);
-                m_state.line_progressed(2);
-            }
-            else if(rem.begins_with(": "))
-            {
-                _prhl("it's a map");
-                _push_level();
-                _start_map();
-                // wait for the val scalar to append the key-val pair
-                m_state.line_progressed(2);
-            }
-            return;
+            _prhl("end the map");
+            m_state.line_progressed(1);
+            _pop_level();
+            return true;
+        }
+        else if(rem.begins_with('&'))
+        {
+            C4_ERROR("not implemented");
+        }
+        else if(rem.begins_with('*'))
+        {
+            C4_ERROR("not implemented");
+        }
+        else if(rem.begins_with("!!"))
+        {
+            C4_ERROR("not implemented");
+        }
+        else if(rem.begins_with('!'))
+        {
+            C4_ERROR("not implemented");
+        }
+        else
+        {
+            C4_ERROR("parse error");
         }
     }
+    else if(m_state.has_any(RKEY))
+    {
+        C4_ERROR("never reach this");
+    }
+    else
+    {
+        C4_ERROR("wtf?");
+    }
+    return false;
+}
 
+//-----------------------------------------------------------------------------
+bool NextParser::_handle_top(cspan rem)
+{
     if(rem.begins_with('#'))
     {
         // a comment line
         printf("a comment line\n");
         m_state.line_progressed(rem.len);
-        return;
-    }
-    else if(rem.begins_with('!'))
-    {
-        printf("it's a tag\n");
-        C4_ERROR("tags not implemented");
+        return true;
     }
     else if(rem.begins_with('|'))
     {
@@ -710,32 +907,8 @@ void NextParser::_handle_line(cspan rem)
         printf("a folded block start line\n");
         C4_ERROR("folded blocks not implemented");
     }
-    else
-    {
-        C4_ERROR("WTF?");
-        /*
-        // it's probably a scalar
-        if(rem.begins_with('"') || rem.begins_with('\''))
-        {
-            printf("it's a scalar\n");
-        }
-
-        size_t first_colon = rem.first_of(':');
-        if(first_colon != npos && first_colon > 0)
-        {
-            // a simple key - start a mapping
-            printf("a simple key - start a mapping");
-            cspan k = rem.subspan(0, first_colon);
-            size_t nextstate = RMAP;
-            _push_map(rem, nextstate, (m_state.flags & RUNK));
-        }
-        // must be a scalar
-        printf("must be a scalar\n");
-        */
-    }
-
     // the following tokens can appear only at top level
-    if(m_state.flags & RTOP)
+    else if(m_state.flags & RTOP)
     {
         if(rem.begins_with('%'))
         {
@@ -764,44 +937,105 @@ void NextParser::_handle_line(cspan rem)
             printf("end a document\n");
         }
     }
+        /*
+    else
+    {
+        C4_ERROR("WTF?");
+        // it's probably a scalar
+        if(rem.begins_with('"') || rem.begins_with('\''))
+        {
+            printf("it's a scalar\n");
+        }
+
+        size_t first_colon = rem.first_of(':');
+        if(first_colon != npos && first_colon > 0)
+        {
+            // a simple key - start a mapping
+            printf("a simple key - start a mapping");
+            cspan k = rem.subspan(0, first_colon);
+            size_t nextstate = RMAP;
+            _push_map(rem, nextstate, (m_state.flags & RUNK));
+        }
+        // must be a scalar
+        printf("must be a scalar\n");
+    }
+        */
+    return false;
 }
 
 //-----------------------------------------------------------------------------
 cspan NextParser::_read_scalar(bool known_quoted)
 {
     cspan s = m_state.line_contents.rem;
+    if(s.len == 0) return s;
 
     if( ! known_quoted)
     {
         auto pos = s.first_of("'\"");
         if(pos != npos)
         {
-            C4_ERROR("reading quoted scalars not yet implemented (hint: there can be colons inside the quotes)");
+            C4_ERROR("reading quoted scalars not yet implemented");
         }
     }
 
     size_t colon_space = s.find(": ");
-    if(m_state.has_any(RKEY))
+    if(colon_space == npos)
     {
-        if(m_state.has_any(CPLX))
+        colon_space = s.find(":");
+        C4_ASSERT(s.len > 0);
+        if(colon_space != s.len-1)
         {
-            C4_ASSERT(m_state.has_any(RMAP));
-            s = s.left_of(colon_space);
+            colon_space = npos;
+        }
+    }
+
+    if(m_state.has_any(RSEQ))
+    {
+        if(m_state.has_all(RKEY))
+        {
+            C4_ERROR("internal error");
+        }
+        else if(m_state.has_all(RVAL))
+        {
+            if(m_state.has_any(BLCK))
+            {
+                C4_ERROR("not implemented");
+            }
+            s = s.left_of(s.first_of(",]"));
         }
         else
         {
-            s = s.triml(' ');
-            s = s.left_of(colon_space);
-            s = s.trimr(' ');
+            C4_ERROR("parse error");
         }
     }
-    else if(m_state.has_any(RVAL))
+    else if(m_state.has_any(RMAP))
     {
-        if(m_state.has_any(BLCK))
+        if(m_state.has_all(RKEY))
         {
-            C4_ERROR("not implemented");
+            if(m_state.has_any(CPLX))
+            {
+                C4_ASSERT(m_state.has_any(RMAP));
+                s = s.left_of(colon_space);
+            }
+            else
+            {
+                s = s.triml(' ');
+                s = s.left_of(colon_space);
+                s = s.trimr(' ');
+            }
         }
-        s = s.trim(' ');
+        else if(m_state.has_all(RVAL))
+        {
+            if(m_state.has_any(BLCK))
+            {
+                C4_ERROR("not implemented");
+            }
+            s = s.trim(' ');
+        }
+        else
+        {
+            C4_ERROR("parse error");
+        }
     }
     else
     {
@@ -821,20 +1055,196 @@ cspan NextParser::_scan_line()
     if(m_state.pos.offset >= m_buf.len) return {};
     char const* b = &m_buf[m_state.pos.offset];
     char const* e = b;
-    while( ! _matches(*e, "\r\n\0"))
+    while( ! _any_of(*e, "\r\n\0"))
     {
         ++e;
     }
     size_t len = e - b;
     cspan ret = m_buf.subspan(m_state.pos.offset, len);
     // advance pos, including line ending chars
-    while(_matches(*e, "\r\n\0"))
+    while(_any_of(*e, "\r\n\0"))
     {
         ++e;
         ++len;
     }
     m_state.line_ended(len);
     return ret;
+}
+
+//-----------------------------------------------------------------------------
+
+void NextParser::_push_level(bool explicit_flow_chars)
+{
+    if(m_state.node == nullptr)
+    {
+        C4_ASSERT( ! explicit_flow_chars);
+        return;
+    }
+    printf("level pushed!\n");
+    size_t st = RUNK;
+    if(explicit_flow_chars)
+    {
+        st |= EXPL;
+    }
+    _push_state(st);
+}
+void NextParser::_pop_level()
+{
+    printf("level popped!\n");
+    if(m_state.has_any(RMAP))
+    {
+        _stop_map();
+    }
+    else if(m_state.has_any(RSEQ))
+    {
+        _stop_seq();
+    }
+    else if(m_state.has_any(BLCK))
+    {
+        RymlCallbacks::error("not implemented");
+    }
+    _pop_state();
+    if(m_state.has_any(RMAP))
+    {
+        _toggle_key_val();
+    }
+    if(m_state.line_contents.indentation == 0)
+    {
+        C4_ASSERT(m_state.has_none(RTOP));
+        m_state.flags |= RTOP;
+    }
+
+    //emit(m_state.node->tree()->root());
+}
+
+//-----------------------------------------------------------------------------
+void NextParser::_start_map(bool as_child)
+{
+    printf("start_map\n");
+    m_state.flags |= RMAP|RVAL;
+    m_state.flags &= ~RKEY;
+    m_state.flags &= ~RUNK;
+    Node* parent = m_stack.empty() ? m_root : m_stack.peek().node;
+    C4_ASSERT(parent != nullptr);
+    C4_ASSERT(m_state.node == nullptr || m_state.node == m_root);
+    if(as_child)
+    {
+        cspan name = _consume_scalar();
+        m_state.node = parent->tree()->begin_map(name);
+    }
+    else
+    {
+        C4_ASSERT(parent->is_map() || parent->empty());
+        m_state.node = parent;
+        m_state.node->m_type = TYPE_MAP;
+        _move_scalar_from_top();
+    }
+    printf("start_map: id=%zd name='%.*s'\n", m_state.node->id(), _c4prsp(m_state.node->name()));
+}
+void NextParser::_stop_map()
+{
+    printf("stop_map\n");
+    C4_ASSERT(m_state.node->is_map());
+    m_state.node->tree()->end_map();
+}
+
+//-----------------------------------------------------------------------------
+void NextParser::_start_seq(bool as_child)
+{
+    printf("start_seq\n");
+    m_state.flags |= RSEQ|RVAL;
+    m_state.flags &= ~RUNK;
+    Node* parent = m_stack.empty() ? m_root : m_stack.peek().node;
+    C4_ASSERT(parent != nullptr);
+    C4_ASSERT(m_state.node == nullptr || m_state.node == m_root);
+    if(as_child)
+    {
+        cspan name = _consume_scalar();
+        m_state.node = parent->tree()->begin_seq(name);
+    }
+    else
+    {
+        C4_ASSERT(parent->is_seq() || parent->empty());
+        m_state.node = parent;
+        m_state.node->m_type = TYPE_SEQ;
+        _move_scalar_from_top();
+    }
+    printf("start_seq: id=%zd name='%.*s'\n", m_state.node->id(), _c4prsp(m_state.node->name()));
+}
+void NextParser::_stop_seq()
+{
+    printf("stop_seq\n");
+    C4_ASSERT(m_state.node->is_seq());
+    m_state.node->tree()->end_seq();
+}
+
+//-----------------------------------------------------------------------------
+void NextParser::_append_val(cspan const& val)
+{
+    C4_ASSERT(m_state.node != nullptr);
+    C4_ASSERT(m_state.node->is_seq());
+    printf("append val: '%.*s'\n", _c4prsp(val));
+    m_state.node->append_child_seq(val);
+    printf("append val: id=%zd name='%.*s' val='%.*s'\n", m_state.node->last_child()->id(), _c4prsp(m_state.node->last_child()->name()), _c4prsp(m_state.node->last_child()->val()));
+
+    //emit(m_state.node->tree()->root());
+}
+
+void NextParser::_append_key_val(cspan const& val)
+{
+    C4_ASSERT(m_state.node->is_map());
+    cspan key = _consume_scalar();;
+    printf("append key-val: '%.*s' '%.*s'\n", _c4prsp(key), _c4prsp(val));
+    m_state.node->append_child(key, val);
+    printf("append key-val: id=%zd name='%.*s' val='%.*s'\n", m_state.node->last_child()->id(), _c4prsp(m_state.node->last_child()->name()), _c4prsp(m_state.node->last_child()->val()));
+    _toggle_key_val();
+
+    //emit(m_state.node->tree()->root());
+}
+
+void NextParser::_toggle_key_val()
+{
+    if(m_state.flags & RKEY)
+    {
+        m_state.flags &= ~RKEY;
+        m_state.flags |= RVAL;
+    }
+    else
+    {
+        m_state.flags |= RKEY;
+        m_state.flags &= ~RVAL;
+    }
+}
+
+//-----------------------------------------------------------------------------
+void NextParser::_store_scalar(cspan const& s)
+{
+    printf("storing scalar: '%.*s'\n", _c4prsp(s));
+    C4_ASSERT(m_state.has_none(SSCL));
+    m_state.flags |= SSCL;
+    m_state.scalar = s;
+}
+cspan NextParser::_consume_scalar()
+{
+    printf("consuming scalar: '%.*s'\n", _c4prsp(m_state.scalar));
+    C4_ASSERT(m_state.flags & SSCL);
+    cspan s = m_state.scalar;
+    m_state.flags &= ~SSCL;
+    m_state.scalar.clear();
+    return s;
+}
+void NextParser::_move_scalar_from_top()
+{
+    if(m_stack.empty()) return;
+    if(m_stack.peek().flags & SSCL)
+    {
+        State &top = m_stack.peek();
+        printf("moving scalar: '%.*s' (overwriting '%.*s')\n", _c4prsp(top.scalar), _c4prsp(m_state.scalar));
+        m_state.flags |= (top.flags & SSCL);
+        m_state.scalar = top.scalar;
+        top.flags &= ~SSCL;
+        top.scalar.clear();
+    }
 }
 
 } // namespace ryml
