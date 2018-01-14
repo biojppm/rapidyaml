@@ -16,6 +16,20 @@ size_t Node::id() const
     return m_s->id(this);
 }
 
+const char* Node::type_str() const
+{
+    switch(m_type)
+    {
+    case TYPE_NONE: return "NONE";
+    case TYPE_ROOT: return "ROOT";
+    case TYPE_DOC: return "DOC";
+    case TYPE_VAL: return "VAL";
+    case TYPE_SEQ: return "SEQ";
+    case TYPE_MAP: return "MAP";
+    default: return "(unknown?)";
+    }
+}
+
 Node * Node::prev_node() const
 {
     return m_s->get(m_list.prev);
@@ -572,7 +586,7 @@ void NextParser::_handle_line(cspan rem)
 
     C4_ASSERT( ! rem.empty());
 
-    if(int jump = _get_indentation_jump())
+    if(int jump = m_state.indentation_jump)
     {
         _prhl("indentation jump: %d", jump);
         if(jump < 0)
@@ -671,8 +685,8 @@ bool NextParser::_handle_unk(cspan rem)
     const bool start_as_child = (m_state.level != 0) || m_state.node == nullptr;
     if(rem.begins_with(' '))
     {
-        _prhl("indentation jump=%d level=%zd #spaces=%zd", _get_indentation_jump(), m_state.level, m_state.line_contents.indentation);
-        C4_ASSERT(_get_indentation_jump() > 0);
+        _prhl("indentation jump=%d level=%zd #spaces=%zd", m_state.indentation_jump, m_state.level, m_state.line_contents.indentation);
+        C4_ASSERT(m_state.indentation_jump > 0);
         m_state.line_progressed(m_state.line_contents.indentation);
         return true;
     }
@@ -724,9 +738,26 @@ bool NextParser::_handle_unk(cspan rem)
             _start_map(start_as_child);
             // wait for the val scalar to append the key-val pair
             m_state.line_progressed(2);
+            if(rem == ": ")
+            {
+                _start_unk();
+            }
+        }
+        else if(rem == ":")
+        {
+            _prhl("it's a map (as_child=%d)", start_as_child);
+            _start_map(start_as_child);
+            // wait for the val scalar to append the key-val pair
+            m_state.line_progressed(1);
+            _start_unk();
+        }
+        else
+        {
+            C4_ERROR("parse error");
         }
         return true;
     }
+
     return false;
 }
 
@@ -744,7 +775,7 @@ bool NextParser::_handle_seq(cspan rem)
         else if(rem == '-')
         {
             _prhl("start unknown");
-            _push_level();
+            _start_unk();
             m_state.line_progressed(1);
             return true;
         }
@@ -798,7 +829,7 @@ bool NextParser::_handle_map(cspan rem)
         else if(rem == ':')
         {
             _prhl("start unknown");
-            _push_level();
+            _start_unk();
             m_state.line_progressed(1);
             return true;
         }
@@ -1047,14 +1078,15 @@ void NextParser::_scan_line()
     if(m_state.pos.offset >= m_buf.len) return;
     char const* b = &m_buf[m_state.pos.offset];
     char const* e = b;
-    while(*e != '\r' && *e != '\n')
+    // get the line stripped of newline chars
+    while(e != m_buf.end() && (*e != '\r' && *e != '\n'))
     {
         ++e;
     }
     size_t len = e - b;
     cspan stripped = m_buf.subspan(m_state.pos.offset, len);
-    // advance pos, including line ending chars
-    while(*e == '\r' || *e == '\n')
+    // advance pos to include the first line ending
+    while(e != m_buf.end() && (*e == '\r' || *e == '\n'))
     {
         ++e;
         ++len;
@@ -1115,6 +1147,17 @@ void NextParser::_pop_level()
     }
 
     //emit(m_state.node->tree()->root());
+}
+
+//-----------------------------------------------------------------------------
+void NextParser::_start_unk(bool as_child)
+{
+    printf("start_unk\n");
+    _push_level();
+    if(m_stack.peek().flags & SSCL)
+    {
+        _move_scalar_from_top();
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -1253,7 +1296,7 @@ void NextParser::_move_scalar_from_top()
 //-----------------------------------------------------------------------------
 int NextParser::_handle_indentation()
 {
-    int jump = _get_indentation_jump();
+    int jump = m_state.indentation_jump;
     if(jump < 0)
     {
         printf("indentation decreased %zd level%s!\n", jump, jump>1?"s":"");
@@ -1269,20 +1312,6 @@ int NextParser::_handle_indentation()
         // too complicated to deal with here
     }
     return jump;
-}
-
-int NextParser::_get_indentation_jump()
-{
-    if(m_stack.empty())
-    {
-        C4_ASSERT(m_state.has_all(RTOP));
-        return 0;
-    }
-    int lprev = (int)m_stack.peek().level;
-    int lcurr = (int)m_state.level;
-    int iprev = (int)m_stack.peek().line_contents.indentation;
-    int icurr = (int)m_state.line_contents.indentation;
-    return icurr != iprev ? lcurr - lprev : 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -1508,6 +1537,7 @@ cspan NextParser::_filter_raw_block(cspan const& block, BlockStyle_e style, Bloc
         }
     }
 
+    C4_ERROR("not implemented");
     return {};
 }
 

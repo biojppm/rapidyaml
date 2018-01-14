@@ -130,15 +130,15 @@ prop4: [seq1, seq2, seq3]
 
     //-----------------------------------------------------------------------------
 const char ex2[] = R"(# this is a comment
-foo: fsdfkjhsdfkh
-bar: sdfjkhfuu
-bat: 1
 seq:
   - 0
   - 1
   - 2
   - 3
   - 4
+foo: fsdfkjhsdfkh
+bar: sdfjkhfuu
+bat: 1
 map:
   foo: 1
   bar: 2

@@ -24,6 +24,7 @@ typedef enum {
     CHOMP_KEEP     ///< all newlines from end (+)
 } BlockChomp_e;
 
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -82,6 +83,8 @@ public:
     size_t id() const;
 
     NodeType_e type() const { return m_type; }
+    const char* type_str() const;
+
     cspan const& name() const { return m_name; }
     cspan const& val() const { C4_ASSERT(m_type == TYPE_VAL); return m_val; }
 
@@ -230,28 +233,12 @@ private:
 };
 
 
-const char* type_str(Node const& p)
-{
-    switch(p.type())
-    {
-#define _c4_case(which) case TYPE_##which: return #which;
-    _c4_case(NONE)
-    _c4_case(ROOT)
-    _c4_case(DOC)
-    _c4_case(VAL)
-    _c4_case(SEQ)
-    _c4_case(MAP)
-#undef _c4_case
-    default: return "(unknown?)";
-    }
-}
-
 void show_children(Node const& p)
 {
-    printf("--------\n%zd children for %p(%s):\n", p.num_children(), (void*)&p, type_str(p));
+    printf("--------\n%zd children for %p(%s):\n", p.num_children(), (void*)&p, p.type_str());
     for(Node *n = p.first_child(); n; n = n->next_sibling())
     {
-        printf("  %p(%s) %.*s", (void*)n, type_str(*n), (int)n->name().len, n->name().str);
+        printf("  %p(%s) %.*s", (void*)n, n->type_str(), (int)n->name().len, n->name().str);
         if(n->type() == TYPE_VAL)
         {
             printf(": %.*s", (int)n->val().len, n->val().str);
@@ -974,6 +961,7 @@ private:
         RVAL = 0x01 <<  6, // reading a scalar as val
         CPLX = 0x01 <<  7, // reading a complex key
         SSCL = 0x01 <<  8, // there's a scalar stored
+        STARTED_ = 0x01 << 16,
     } State_e;
 
     struct LineContents
@@ -981,7 +969,7 @@ private:
         cspan  full;        ///< the full line, including newlines on the right
         cspan  stripped;    ///< the stripped line, excluding newlines on the right
         cspan  rem;         ///< the stripped line remainder; initially starts at the first non-space character
-        size_t indentation; ///< the number of columns with space on the left
+        int    indentation; ///< the number of spaces on the beginning of the line
 
         void reset(cspan const& full_, cspan const& stripped_)
         {
@@ -989,7 +977,7 @@ private:
             stripped = stripped_;
             rem = stripped_;
             // find the first column where the character is not a space
-            indentation = full.first_not_of(' ');
+            indentation = (int)full.first_not_of(' ');
         }
     };
 
@@ -1002,6 +990,8 @@ private:
 
         Location     pos;
         LineContents line_contents;
+        int          prev_indentation;
+        int          indentation_jump;
 
         void _prepare_pop(State const& current)
         {
@@ -1020,12 +1010,20 @@ private:
             pos.col = 1;
             node = n;
             scalar.clear();
+            prev_indentation = 0;
+            indentation_jump = 0;
         }
 
         void line_scanned(cspan const& full, cspan const& stripped)
         {
+            prev_indentation = line_contents.indentation;
             line_contents.reset(full, stripped);
-            printf("%3zd: '%.*s'\n", pos.line-1, _c4prsp(line_contents.stripped));
+            if(flags & STARTED_)
+            {
+                indentation_jump = line_contents.indentation - prev_indentation;
+            }
+            flags |= STARTED_;
+            printf("%3zd: '%.*s' (jump=%d)\n", pos.line-1, _c4prsp(line_contents.stripped), indentation_jump);
         }
 
         void line_progressed(size_t ahead)
@@ -1094,7 +1092,6 @@ private:
 
     void  _handle_line(cspan rem);
     int   _handle_indentation();
-    int   _get_indentation_jump();
 
     bool  _handle_unk(cspan rem);
     bool  _handle_map(cspan rem);
@@ -1106,6 +1103,8 @@ private:
 
     void  _push_level(bool explicit_flow_chars = false);
     void  _pop_level();
+
+    void  _start_unk(bool as_child=true);
 
     void  _start_map(bool as_child=true);
     void  _stop_map();
@@ -1124,8 +1123,6 @@ private:
 private:
 
     static bool _read_decimal(cspan const& str, size_t *decimal);
-
-    static size_t _find_matching(const char sq_or_dq, cspan const& s);
 
     static inline bool _any_of(const char c, const char (&chars)[1])
     {
