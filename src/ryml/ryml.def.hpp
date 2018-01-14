@@ -398,8 +398,8 @@ Node *Tree::claim(Node *after)
 //-----------------------------------------------------------------------------
 Node *Tree::claim(size_t prev, size_t next)
 {
-    C4_ASSERT(prev == NONE || prev >= 0 && prev < m_num);
-    C4_ASSERT(next == NONE || next >= 0 && next < m_num);
+    C4_ASSERT(prev == NONE || (prev >= 0 && prev < m_num));
+    C4_ASSERT(next == NONE || (next >= 0 && next < m_num));
     if(m_free_head == NONE || m_buf == nullptr)
     {
         size_t sz = 2 * m_num;
@@ -438,8 +438,8 @@ Node *Tree::claim(size_t prev, size_t next)
 //-----------------------------------------------------------------------------
 void Tree::set_parent(Node *parent, Node *child, Node *prev_sibling, Node *next_sibling)
 {
-    C4_ASSERT(child != nullptr && child >= m_buf && child < m_buf + m_num);
-    C4_ASSERT(parent == nullptr || parent >= m_buf && parent < m_buf + m_num);
+    C4_ASSERT(child != nullptr && (child >= m_buf && child < m_buf + m_num));
+    C4_ASSERT(parent == nullptr || (parent >= m_buf && parent < m_buf + m_num));
 
     child->m_parent = parent ? parent - m_buf : NONE;
 
@@ -511,13 +511,14 @@ void Tree::free(size_t i)
 
 
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
+#pragma GCC system_header
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 
 /** a debug utility */
-#define _prhl(fmt, ...)                                                 \
+#define _prhl(fmt, ...)                                                \
     {                                                                   \
         auto _llen = printf("%s:%d: line %zd:%zd(%zd): ",               \
                           __FILE__, __LINE__,                           \
@@ -685,7 +686,7 @@ bool NextParser::_handle_unk(cspan rem)
     const bool start_as_child = (m_state.level != 0) || m_state.node == nullptr;
     if(rem.begins_with(' '))
     {
-        _prhl("indentation jump=%d level=%zd #spaces=%zd", m_state.indentation_jump, m_state.level, m_state.line_contents.indentation);
+        _prhl("indentation jump=%d level=%zd #spaces=%d", m_state.indentation_jump, m_state.level, m_state.line_contents.indentation);
         C4_ASSERT(m_state.indentation_jump > 0);
         m_state.line_progressed(m_state.line_contents.indentation);
         return true;
@@ -801,6 +802,10 @@ bool NextParser::_handle_seq(cspan rem)
         {
             C4_ERROR("not implemented");
             return true;
+        }
+        else if(rem.begins_with('#'))
+        {
+            C4_ERROR("not implemented");
         }
         else
         {
@@ -1184,6 +1189,7 @@ void NextParser::_start_map(bool as_child)
     }
     printf("start_map: id=%zd name='%.*s'\n", m_state.node->id(), _c4prsp(m_state.node->name()));
 }
+
 void NextParser::_stop_map()
 {
     printf("stop_map\n");
@@ -1225,6 +1231,7 @@ void NextParser::_stop_seq()
 //-----------------------------------------------------------------------------
 void NextParser::_append_val(cspan const& val)
 {
+    C4_ASSERT( ! m_state.has_all(SSCL));
     C4_ASSERT(m_state.node != nullptr);
     C4_ASSERT(m_state.node->is_seq());
     printf("append val: '%.*s'\n", _c4prsp(val));
@@ -1312,6 +1319,17 @@ int NextParser::_handle_indentation()
         // too complicated to deal with here
     }
     return jump;
+}
+
+//-----------------------------------------------------------------------------
+cspan NextParser::_scan_comment()
+{
+    cspan s = m_state.line_contents.rem;
+    C4_ASSERT(s.begins_with('#'));
+    m_state.line_progressed(s.len);
+    s = s.subspan(1);
+    s = s.right_of(s.first_not_of(' '), /*include_pos*/true);
+    return s;
 }
 
 //-----------------------------------------------------------------------------

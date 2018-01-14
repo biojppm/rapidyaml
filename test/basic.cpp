@@ -1,5 +1,8 @@
 #include <ryml/ryml.hpp>
 
+#include <map>
+#include <vector>
+
 namespace yml = c4::yml;
 
 const char ex[] = R"(# this is a comment
@@ -258,3 +261,431 @@ fdx: crl
     yml::Tree t = np.parse("inline source", ex2);
     return 0;
 }
+
+
+
+
+class RefNode
+{
+public:
+
+    using seq_type = std::vector< RefNode >;
+    using seq_value_type = seq_type::value_type;
+    using seq_init_type = std::initializer_list< seq_value_type >;
+
+    using map_type = std::map< yml::cspan, RefNode >;
+    using map_value_type = map_type::value_type;
+    using map_init_type = std::initializer_list< map_value_type >;
+
+public:
+
+    yml::NodeType_e type;
+    yml::cspan key;
+    yml::cspan value;
+    map_type map;
+    seq_type seq;
+
+    bool is_val() const { return type == yml::TYPE_VAL && key.empty(); }
+    bool is_key_val() const { return type == yml::TYPE_VAL && ! key.empty(); }
+    bool is_map() const { return type == yml::TYPE_MAP || (type == yml::TYPE_DOC && ! map.empty()); }
+    bool is_seq() const { return type == yml::TYPE_SEQ || (type == yml::TYPE_SEQ && ! map.empty()) || type == yml::TYPE_ROOT; }
+/*
+    void print(int level = 0) const
+    {
+        if(is_val())
+        {
+            printf("%.*s", (int)key.len, key.str);
+            return;
+        }
+        else if(is_key_val())
+        {
+            printf("%.*s", (int)key.len, key.str);
+            return;
+        }
+        ++level;
+        if(is_seq())
+        {
+            printf("\n");
+            for(auto const& c : seq)
+            {
+                printf("%*s", level, "  ");
+                printf("%.*s", (int)key.len, key.str);
+                c.print(level);
+            }
+        }
+        else if(is_map())
+        {
+            ++level;
+            for(auto const& c : map)
+            {
+                c.print(level);
+            }
+        }
+    }
+*/
+public:
+
+    RefNode(RefNode     &&) = default;
+    RefNode(RefNode const&) = default;
+
+    RefNode& operator= (RefNode     &&) = default;
+    RefNode& operator= (RefNode const&) = default;
+
+    RefNode() : type(yml::TYPE_NONE), key(), value(), map(), seq() {}
+
+    template< size_t N >
+    RefNode(const char (&v)[N]) : type(yml::TYPE_VAL), key(), value(v), map(), seq() {}
+    RefNode(yml::cspan const& v) : type(yml::TYPE_VAL), key(), value(v), map(), seq() {}
+
+    template< size_t N, size_t M >
+    RefNode(const char (&k)[N], const char (&v)[M]) : type(yml::TYPE_VAL), key(k), value(v), map(), seq() {}
+    RefNode(yml::cspan const& k, yml::cspan const& v) : type(yml::TYPE_VAL), key(k), value(v), map(), seq() {}
+
+    template< size_t N >
+    RefNode(const char (&k)[N], map_init_type m) : RefNode(yml::TYPE_MAP, k, m) {}
+    RefNode(yml::cspan const& k, map_init_type m) : RefNode(yml::TYPE_MAP, k, m) {}
+
+    template< size_t N >
+    RefNode(yml::NodeType_e t,  const char (&k)[N], map_init_type m) : type(t), key(k), value(), map(m), seq() {}
+    RefNode(yml::NodeType_e t, yml::cspan const& k, map_init_type m) : type(t), key(k), value(), map(m), seq() {}
+
+    RefNode(map_init_type m) : RefNode(yml::TYPE_MAP, {}, m) {}
+    RefNode(yml::NodeType_e t, map_init_type m) : RefNode(t, {}, m) {}
+
+    template< size_t N >
+    RefNode( const char (&k)[N], seq_init_type m) : RefNode(yml::TYPE_SEQ, k, m) {}
+    RefNode(yml::cspan const& k, seq_init_type m) : RefNode(yml::TYPE_SEQ, k, m) {}
+
+    template< size_t N >
+    RefNode(yml::NodeType_e t,  const char (&k)[N], seq_init_type s) : type(t), key(k), value(), map(), seq(s) {}
+    RefNode(yml::NodeType_e t, yml::cspan const& k, seq_init_type s) : type(t), key(k), value(), map(), seq(s) {}
+
+    RefNode(seq_init_type m) : RefNode(yml::TYPE_SEQ, {}, m) {}
+    RefNode(yml::NodeType_e t, seq_init_type m) : RefNode(t, {}, m) {}
+
+};
+
+
+struct ExampleSpec
+{
+    yml::cspan file;
+    RefNode root;
+
+    template< size_t N >
+    ExampleSpec(const char (&f)[N], RefNode const& ref) : file(f)
+    {
+
+    }
+};
+
+using namespace yml;
+
+
+template< size_t N, class... Args >
+ExampleSpec mkex(const char (&txt)[N], Args&&... a)
+{
+    return ExampleSpec(txt, RefNode(TYPE_ROOT, std::forward< Args >(a)...));
+}
+
+
+void do_test()
+{
+    using namespace yml;
+
+    using S = RefNode::seq_init_type;
+    using M = RefNode::map_init_type;
+
+    ExampleSpec examples[] = {
+
+//-----------------------------------------------------------------------------
+// https://en.wikipedia.org/wiki/YAML
+mkex(R"(--- # Favorite movies
+- Casablanca
+- North by Northwest
+- The Man Who Wasn't There
+)",
+     S{{TYPE_DOC, {"Casablanca", "North by Northwest", "The Man Who Wasn't There"}}}),
+
+//-----------------------------------------------------------------------------
+mkex(R"(--- # Shopping list
+[milk, pumpkin pie, eggs, juice]
+)",
+     S{{TYPE_DOC, {"milk", "pumpkin pie", "eggs", "juice"}}}),
+
+//-----------------------------------------------------------------------------
+mkex(R"(--- # Indented Block
+  name: John Smith
+  age: 33
+--- # Inline Block
+{name: John Smith, age: 33}
+)",
+     S{
+         {TYPE_DOC, M{{"name","John Smith"}, {"age","33"}}},
+         {TYPE_DOC, M{{"name","John Smith"}, {"age","33"}}},
+     }),
+
+//-----------------------------------------------------------------------------
+mkex(R"(
+- {name: John Smith, age: 33}
+- name: Mary Smith
+  age: 27
+)",
+     S{
+         M{{"name", "John Smith"}, {"age", "33"}},
+         M{{"name", "Mary Smith"}, {"age", "27"}},
+     }),
+
+//-----------------------------------------------------------------------------
+mkex(R"(
+men: [John Smith, Bill Jones]
+women:
+  - Mary Smith
+  - Susan Williams
+)",
+     M{
+         {"men", S{"John Smith", "Bill Jones"}},
+         {"women", S{"Mary Smith", "Susan Williams"}},
+     }),
+
+//-----------------------------------------------------------------------------
+mkex(R"(
+---
+receipt:     Oz-Ware Purchase Invoice
+date:        2012-08-06
+customer:
+    first_name:   Dorothy
+    family_name:  Gale
+
+items:
+    - part_no:   A4786
+      descrip:   Water Bucket (Filled)
+      price:     1.47
+      quantity:  4
+
+    - part_no:   E1628
+      descrip:   High Heeled \"Ruby\" Slippers
+      size:      8
+      price:     133.7
+      quantity:  1
+
+bill-to:  &id001
+    street: |
+            123 Tornado Alley
+            Suite 16
+    city:   East Centerville
+    state:  KS
+
+ship-to:  *id001
+
+specialDelivery:  >
+    Follow the Yellow Brick
+    Road to the Emerald City.
+    Pay no attention to the
+    man behind the curtain.
+...
+)",
+     S{{TYPE_DOC, M{
+{"receipt", ""},
+{"receipt", "Oz-Ware Purchase Invoice"},
+{"date", "2012-08-06"},
+{"customer", M{{"first_name", "Dorothy"}, {"family_name", "Gale"}}},
+{"items", S{
+        M{{"part_no", "A4786"},
+            {"descrip",   "Water Bucket (Filled)"},
+            {"price",     "1.47"},
+            {"quantity",  "4"},},
+        M{{"part_no", "E1628"},
+            {"descrip",   "High Heeled \"Ruby\" Slippers"},
+            {"size",     "8"},
+            {"price",     "133.7"},
+            {"quantity",  "1"},},
+{"bill-to", M{
+        {"street", R"(123 Tornado Alley
+Suite 16
+)"},
+        {"city", "East Centerville"},
+        {"state", "KS"},}},
+{"ship-to", M{
+        {"street", R"(123 Tornado Alley
+Suite 16
+)"},
+        {"city", "East Centerville"},
+        {"state", "KS"},}},
+{"specialDelivery", R"(Follow the Yellow Brick Road to the Emerald City. Pay no attention to the man behind the curtain.
+)"}
+    }
+},
+     }}}),
+
+//-----------------------------------------------------------------------------
+mkex(R"(
+# sequencer protocols for Laser eye surgery
+---
+- step:  &id001                  # defines anchor label &id001
+    instrument:      Lasik 2000
+    pulseEnergy:     5.4
+    pulseDuration:   12
+    repetition:      1000
+    spotSize:        1mm
+
+- step: &id002
+    instrument:      Lasik 2000
+    pulseEnergy:     5.0
+    pulseDuration:   10
+    repetition:      500
+    spotSize:        2mm
+- step: *id001                   # refers to the first step (with anchor &id001)
+- step: *id002                   # refers to the second step
+- step:
+    <<: *id001
+    spotSize: 2mm                # redefines just this key, refers rest from &id001
+- step: *id002
+)",
+     S{{TYPE_DOC, {
+M{{"step", M{
+    {"instrument",      "Lasik 2000"},
+    {"pulseEnergy",     "5.4"},
+    {"pulseDuration",   "12"},
+    {"repetition",      "1000"},
+    {"spotSize",        "1mm"},
+        }}},
+M{{"step", M{
+    {"instrument",      "Lasik 2000"},
+    {"pulseEnergy",     "5.0"},
+    {"pulseDuration",   "10"},
+    {"repetition",      "500"},
+    {"spotSize",        "2mm"},
+        }}},
+M{{"step", M{
+    {"instrument",      "Lasik 2000"},
+    {"pulseEnergy",     "5.4"},
+    {"pulseDuration",   "12"},
+    {"repetition",      "1000"},
+    {"spotSize",        "1mm"},
+        }}},
+M{{"step", M{
+    {"instrument",      "Lasik 2000"},
+    {"pulseEnergy",     "5.0"},
+    {"pulseDuration",   "10"},
+    {"repetition",      "500"},
+    {"spotSize",        "2mm"},
+        }}},
+M{{"step", M{
+    {"instrument",      "Lasik 2000"},
+    {"pulseEnergy",     "5.4"},
+    {"pulseDuration",   "12"},
+    {"repetition",      "1000"},
+    {"spotSize",        "2mm"},
+        }}},
+M{{"step", M{
+    {"instrument",      "Lasik 2000"},
+    {"pulseEnergy",     "5.0"},
+    {"pulseDuration",   "10"},
+    {"repetition",      "500"},
+    {"spotSize",        "2mm"},
+        }}},
+         }
+     }}),
+
+
+//-----------------------------------------------------------------------------
+mkex(R"(
+data: |
+   There once was a short man from Ealing
+   Who got on a bus to Darjeeling
+       It said on the door
+       \"Please don't spit on the floor\"
+   So he carefully spat on the ceiling
+)",
+     M{{"data", R"(There once was a short man from Ealing
+Who got on a bus to Darjeeling
+    It said on the door
+    \\\"Please don't spit on the floor\\\"
+So he carefully spat on the ceiling
+)"}}
+     ),
+
+//-----------------------------------------------------------------------------
+mkex(R"(
+data: >
+   Wrapped text
+   will be folded
+   into a single
+   paragraph
+
+   Blank lines denote
+   paragraph breaks
+)",
+     M{{"data",R"(Wrapped text will be folded into a single paragraph
+Blank lines denote paragraph breaks
+)"}}
+     ),
+
+//-----------------------------------------------------------------------------
+mkex(R"(
+---
+example: >
+        HTML goes into YAML without modification
+message: |
+        <blockquote style=\"font: italic 12pt Times\">
+        <p>\"Three is always greater than two,
+           even for large values of two\"</p>
+        <p>--Author Unknown</p>
+        </blockquote>
+date: 2007-06-01
+)",
+     S{{TYPE_DOC, M{
+                 {"example","HTML goes into YAML without modification"},
+                 {"message",R"(<blockquote style=\"font: italic 12pt Times\">
+<p>\"Three is always greater than two,
+   even for large values of two\"</p>
+<p>--Author Unknown</p>
+</blockquote>
+)"},
+                 {"date","2007-06-01"},
+                     }}}
+     ),
+
+    }; // end examples
+        ;
+}
+
+
+
+char const* const structure_examples[] = {
+// https://en.wikipedia.org/wiki/YAML
+R"(
+---
+a: 123                     # an integer
+b: \"123\"                   # a string, disambiguated by quotes
+c: 123.0                   # a float
+d: !!float 123             # also a float via explicit data type prefixed by (!!)
+e: !!str 123               # a string, disambiguated by explicit type
+f: !!str Yes               # a string via explicit type
+g: Yes                     # a boolean True (yaml1.1), string \"Yes\" (yaml1.2)
+h: Yes we have No bananas  # a string, \"Yes\" and \"No\" disambiguated by context.
+)",
+R"(
+---
+picture: !!binary |
+ R0lGODdhDQAIAIAAAAAAANn
+ Z2SwAAAAADQAIAAACF4SDGQ
+ ar3xxbJ9p0qa7R0YxwzaFME
+ 1IAADs=
+)",
+R"(
+---
+myObject:  !myClass { name: Joe, age: 15 }
+)",
+R"(
+
+)",
+R"(
+)",
+R"(
+)",
+R"(
+)",
+R"(
+)",
+};

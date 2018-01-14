@@ -77,6 +77,11 @@ public:
         return len == 1 && *str == c;
     }
 
+    bool operator<  (basic_span const& that) { size_t n = len < that.len ? len : that.len; return strncmp(str, that.str, n) < 0; }
+    bool operator>  (basic_span const& that) { size_t n = len < that.len ? len : that.len; return strncmp(str, that.str, n) > 0; }
+    bool operator<= (basic_span const& that) { size_t n = len < that.len ? len : that.len; return strncmp(str, that.str, n) <= 0; }
+    bool operator>= (basic_span const& that) { size_t n = len < that.len ? len : that.len; return strncmp(str, that.str, n) >= 0; }
+
     basic_span subspan(size_t first, size_t num = npos) const
     {
         size_t rnum = num != npos ? num : len - first;

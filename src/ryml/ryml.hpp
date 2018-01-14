@@ -961,7 +961,8 @@ private:
         RVAL = 0x01 <<  6, // reading a scalar as val
         CPLX = 0x01 <<  7, // reading a complex key
         SSCL = 0x01 <<  8, // there's a scalar stored
-        STARTED_ = 0x01 << 16,
+        STARTED_ = 0x01 << 16, // mark the parser started
+        INDENTED_ = 0x01 <<  17,
     } State_e;
 
     struct LineContents
@@ -1085,9 +1086,11 @@ private:
     void  _next_line() { m_state.line_ended(); }
 
     cspan _scan_scalar();
+    cspan _scan_comment();
     cspan _scan_quoted_scalar(const char q);
-    cspan _filter_quoted_scalar(cspan const& s, const char q);
     cspan _scan_block();
+
+    cspan _filter_quoted_scalar(cspan const& s, const char q);
     cspan _filter_raw_block(cspan const& block, BlockStyle_e style, BlockChomp_e chomp, size_t indentation);
 
     void  _handle_line(cspan rem);
@@ -1112,6 +1115,7 @@ private:
     void  _start_seq(bool as_child=true);
     void  _stop_seq();
 
+    void  _append_comment(cspan const& cmt);
     void  _append_val(cspan const& val);
     void  _append_key_val(cspan const& val);
     void  _toggle_key_val();
@@ -1124,39 +1128,6 @@ private:
 
     static bool _read_decimal(cspan const& str, size_t *decimal);
 
-    static inline bool _any_of(const char c, const char (&chars)[1])
-    {
-        RymlCallbacks::error("WTF???");
-        return false;
-    }
-    static inline bool _any_of(const char c, const char (&chars)[2])
-    {
-        return (c == chars[0]);
-    }
-    static inline bool _any_of(const char c, const char (&chars)[3])
-    {
-        return (c == chars[0]) || (c == chars[1]);
-    }
-    static inline bool _any_of(const char c, const char (&chars)[4])
-    {
-        return (c == chars[0]) || (c == chars[1]) || (c == chars[2]);
-    }
-    static inline bool _any_of(const char c, const char (&chars)[5])
-    {
-        return (c == chars[0]) || (c == chars[1]) || (c == chars[2]) || (c == chars[3]);
-    }
-    template< size_t N >
-    static inline bool _any_of(const char c, const char (&chars)[N])
-    {
-        for(size_t i = 0; i < N; ++i)
-        {
-            if(c == chars[i])
-            {
-                return true;
-            }
-        }
-        return false;
-    }
 };
 
 } // namespace yml
