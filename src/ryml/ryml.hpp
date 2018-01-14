@@ -13,21 +13,33 @@ namespace yml {
 class Parser;
 
 
+typedef enum {
+    BLOCK_LITERAL, ///< keep newlines (|)
+    BLOCK_FOLD     ///< replace newline with single space (>)
+} BlockStyle_e;
+
+typedef enum {
+    CHOMP_CLIP,    ///< single newline at end (default)
+    CHOMP_STRIP,   ///< no newline at end     (-)
+    CHOMP_KEEP     ///< all newlines from end (+)
+} BlockChomp_e;
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 typedef enum {
-    TYPE_NONE,
-    TYPE_ROOT,
-    TYPE_DOC,
-    TYPE_VAL,
-    TYPE_SEQ,
-    TYPE_MAP
+    TYPE_NONE,  ///< no type set yet
+    TYPE_ROOT,  ///< root; can be either a seq or a val; cannot have siblings
+    TYPE_DOC,   ///< document; can be either a seq or a val; can have siblings
+    TYPE_VAL,   ///< value; must have value; has no name of the parent is a seq; must have name if its parent is a map
+    TYPE_SEQ,   ///< sequence: the parent of values
+    TYPE_MAP    ///< map: the parent of key-values
 } NodeType_e;
 
 
 class Tree;
 
+/** an index to none */
 enum : size_t { NONE = size_t(-1) };
 
 
@@ -953,43 +965,6 @@ class NextParser
 private:
 
     typedef enum {
-       //STREAM_START, //(encoding)          ///< The stream start.
-       //STREAM_END,                         ///< The stream end.
-       VERSION_DIRECTIVE, //(major,minor)  ///< The '%YAML' directive.
-       TAG_DIRECTIVE, //(handle,prefix)    ///< The '%TAG' directive.
-       DOCUMENT_START,                     ///< '---'
-       DOCUMENT_END,                       ///< '...'
-       BLOCK_SEQUENCE_START,               ///< Indentation increase denoting a block
-       BLOCK_MAPPING_START,                ///< sequence or a block mapping.
-       BLOCK_END,                          ///< Indentation decrease.
-       SEQ_START,                          ///< '['
-       SEQ_END,                            ///< ']'
-       MAP_START,                          ///< '{'
-       MAP_END,                            ///< '}'
-       BLOCK_ENTRY,                        ///< '-'
-       FLOW_ENTRY,                         ///< ','
-       KEY,                                ///< '?' or nothing (simple keys).
-       VALUE,                              ///< ':'
-       ALIAS, //(anchor)                   ///< '*anchor'
-       ANCHOR, //(anchor)                  ///< '&anchor'
-       TAG, //(handle,suffix)              ///< '!handle!suffix'
-       SCALAR, //(value,style)             ///< A scalar.
-       COMMENT, //(text)                   ///< A comment
-    } Token_e;
-
-    struct Token : public Region
-    {
-        Token_e type;
-        cspan str;
-        struct version_s { int major, minor; };
-        struct tag_directive_s { cspan handle, prefix; };
-        union {
-            version_s version;
-            tag_directive_s tag_directive;
-        };
-    };
-
-    typedef enum {
         RTOP = 0x01 <<  0, // reading at top level
         RUNK = 0x01 <<  1, // reading an unknown: must determine whether scalar, map or seq
         RMAP = 0x01 <<  2, // reading a map
@@ -998,39 +973,36 @@ private:
         RKEY = 0x01 <<  5, // reading a scalar as key
         RVAL = 0x01 <<  6, // reading a scalar as val
         CPLX = 0x01 <<  7, // reading a complex key
-        BLCK = 0x01 <<  8, // reading a block scalar (|)
-        FOLD = 0x01 <<  9, // reading a block scalar (>), folded (remove interior newlines)
-        KEEP = 0x01 << 10, // reading a block scalar (+): keep last newline
-        STRP = 0x01 << 11, // reading a block scalar (-): strip last newline
-        SSCL = 0x01 << 12, // there's a scalar stored
+        SSCL = 0x01 <<  8, // there's a scalar stored
     } State_e;
+
+    struct LineContents
+    {
+        cspan  full;        ///< the full line, including newlines on the right
+        cspan  stripped;    ///< the stripped line, excluding newlines on the right
+        cspan  rem;         ///< the stripped line remainder; initially starts at the first non-space character
+        size_t indentation; ///< the number of columns with space on the left
+
+        void reset(cspan const& full_, cspan const& stripped_)
+        {
+            full = full_;
+            stripped = stripped_;
+            rem = stripped_;
+            // find the first column where the character is not a space
+            indentation = full.first_not_of(' ');
+        }
+    };
 
     struct State
     {
-
-        struct LineContents
-        {
-            cspan  full;        ///< the full line, excluding newlines on the right
-            cspan  rem;         ///< the line remainder; initially starts at the first non-space character
-            size_t indentation; ///< the number of columns with space on the left
-
-            void reset(cspan const& full_)
-            {
-                full = full_;
-                rem = full_;
-                // find the first column where the character is not a space
-                indentation = full.first_not_of(' ');
-            }
-        };
-
         size_t       flags;
         size_t       level;
         Node *       node;
+        cspan        scalar;
 
-        // these should be moved out of state
         Location     pos;
         LineContents line_contents;
-        cspan        scalar;
+
         void _prepare_pop(State const& current)
         {
             pos = current.pos;
@@ -1050,20 +1022,24 @@ private:
             scalar.clear();
         }
 
-        void line_scanned(cspan const& sp)
+        void line_scanned(cspan const& full, cspan const& stripped)
         {
-            line_contents.reset(sp);
-            printf("%3zd: '%.*s'\n", pos.line-1, _c4prsp(line_contents.full));
+            line_contents.reset(full, stripped);
+            printf("%3zd: '%.*s'\n", pos.line-1, _c4prsp(line_contents.stripped));
         }
 
-        void line_progressed(size_t first_remaining)
+        void line_progressed(size_t ahead)
         {
-            line_contents.rem = line_contents.rem.subspan(first_remaining);
+            pos.offset += ahead;
+            pos.col += ahead;
+            C4_ASSERT(pos.col <= line_contents.stripped.len+1);
+            line_contents.rem = line_contents.rem.subspan(ahead);
         }
 
-        void line_ended(size_t len)
+        void line_ended()
         {
-            pos.offset += len;
+            C4_ASSERT(pos.col == line_contents.stripped.len+1);
+            pos.offset += line_contents.full.len - line_contents.stripped.len;
             ++pos.line;
             pos.col = 1;
         }
@@ -1072,36 +1048,6 @@ private:
         bool has_any(size_t f) const { return (flags & f) != 0; }
         bool has_none(size_t f) const { return (flags & f) == 0; }
     };
-
-    void _push_state(size_t next_state)
-    {
-        printf("stacking node %zd\n", m_state.node->id());
-        m_stack.push(m_state);
-        m_state.flags = next_state;
-        m_state.node = nullptr;
-        ++m_state.level;
-    }
-    void _pop_state()
-    {
-        printf("popping node %zd top %zd\n", m_state.node->id(), m_stack.peek().node->id());
-        C4_ASSERT( ! m_stack.empty());
-        m_stack.peek()._prepare_pop(m_state);
-        m_state = m_stack.pop();
-    }
-
-    int _indentation_jump()
-    {
-        if(m_stack.empty())
-        {
-            C4_ASSERT(m_state.has_all(RTOP));
-            return 0;
-        }
-        int lprev = (int)m_stack.peek().level;
-        int lcurr = (int)m_state.level;
-        int iprev = (int)m_stack.peek().line_contents.indentation;
-        int icurr = (int)m_state.line_contents.indentation;
-        return icurr != iprev ? lcurr - lprev : 0;
-    }
 
 public:
 
@@ -1135,36 +1081,51 @@ private:
 
     void _reset();
 
-    cspan _scan_line();
-    cspan _scan_scalar(bool known_quoted = false);
+    bool  _finished_file() const;
 
-    void _handle_line(cspan rem);
-    int  _handle_indentation();
+    void  _scan_line();
+    void  _next_line() { m_state.line_ended(); }
 
-    bool _handle_runk(cspan rem);
-    bool _handle_map(cspan rem);
-    bool _handle_seq(cspan rem);
-    bool _handle_scalar(cspan rem);
-    bool _handle_top(cspan rem);
+    cspan _scan_scalar();
+    cspan _scan_quoted_scalar(const char q);
+    cspan _filter_quoted_scalar(cspan const& s, const char q);
+    cspan _scan_block();
+    cspan _filter_raw_block(cspan const& block, BlockStyle_e style, BlockChomp_e chomp, size_t indentation);
 
-    void _push_level(bool explicit_flow_chars = false);
-    void _pop_level();
+    void  _handle_line(cspan rem);
+    int   _handle_indentation();
+    int   _get_indentation_jump();
 
-    void _start_map(bool as_child=true);
-    void _stop_map();
+    bool  _handle_unk(cspan rem);
+    bool  _handle_map(cspan rem);
+    bool  _handle_seq(cspan rem);
+    bool  _handle_scalar(cspan rem);
+    bool  _handle_top(cspan rem);
+    bool  _handle_anchors_and_refs(cspan rem);
+    bool  _handle_types(cspan rem);
 
-    void _start_seq(bool as_child=true);
-    void _stop_seq();
+    void  _push_level(bool explicit_flow_chars = false);
+    void  _pop_level();
 
-    void _append_val(cspan const& val);
-    void _append_key_val(cspan const& val);
-    void _toggle_key_val();
+    void  _start_map(bool as_child=true);
+    void  _stop_map();
 
-    void _store_scalar(cspan const& s);
+    void  _start_seq(bool as_child=true);
+    void  _stop_seq();
+
+    void  _append_val(cspan const& val);
+    void  _append_key_val(cspan const& val);
+    void  _toggle_key_val();
+
+    void  _store_scalar(cspan const& s);
     cspan _consume_scalar();
-    void _move_scalar_from_top();
+    void  _move_scalar_from_top();
 
 private:
+
+    static bool _read_decimal(cspan const& str, size_t *decimal);
+
+    static size_t _find_matching(const char sq_or_dq, cspan const& s);
 
     static inline bool _any_of(const char c, const char (&chars)[1])
     {

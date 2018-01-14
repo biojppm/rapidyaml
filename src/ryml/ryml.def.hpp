@@ -495,33 +495,7 @@ void Tree::free(size_t i)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-void NextParser::_reset()
-{
-    m_state.reset(m_file.str, m_root);
-}
 
-void NextParser::parse(const char *file, cspan const& buf, Node *root)
-{
-    m_file = file ? file : "(no file)";
-    m_buf = buf;
-    m_root = root;
-    m_tree = root->tree();
-    _reset();
-
-    while(m_state.pos.offset < m_buf.len)
-    {
-        m_state.line_scanned(_scan_line());
-
-        while(m_state.line_contents.rem)
-        {
-            _handle_line(m_state.line_contents.rem);
-        }
-    }
-
-}
-
-
-//-----------------------------------------------------------------------------
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 
@@ -534,7 +508,7 @@ void NextParser::parse(const char *file, cspan const& buf, Node *root)
         auto _llen = printf("%s:%d: line %zd:%zd(%zd): ",               \
                           __FILE__, __LINE__,                           \
                           m_state.pos.line-1,                           \
-                          m_state.line_contents.rem.begin() - m_state.line_contents.full.begin(), \
+                          m_state.line_contents.rem.begin() - m_state.line_contents.stripped.begin(), \
                           m_state.line_contents.rem.len);               \
         if(m_state.line_contents.rem)                                   \
         {                                                               \
@@ -547,29 +521,47 @@ void NextParser::parse(const char *file, cspan const& buf, Node *root)
         }                                                               \
     }
 
-#pragma clang diagnostic pop
 #pragma GCC diagnostic pop
+#pragma clang diagnostic pop
 
 //-----------------------------------------------------------------------------
-int NextParser::_handle_indentation()
+void NextParser::_reset()
 {
-    int jump = _indentation_jump();
-    if(jump < 0)
+    m_state.reset(m_file.str, m_root);
+}
+
+//-----------------------------------------------------------------------------
+bool NextParser::_finished_file() const
+{
+    bool ret = m_state.pos.offset >= m_buf.len;
+    if(ret)
     {
-        printf("indentation decreased %zd level%s!\n", jump, jump>1?"s":"");
-        for(size_t i = 0; i < jump; ++i)
+        printf("finished file!!!\n");
+    }
+    return ret;
+}
+
+//-----------------------------------------------------------------------------
+void NextParser::parse(const char *file, cspan const& buf, Node *root)
+{
+    m_file = file ? file : "(no file)";
+    m_buf = buf;
+    m_root = root;
+    m_tree = root->tree();
+    _reset();
+
+    while( ! _finished_file())
+    {
+        _scan_line();
+
+        while(m_state.line_contents.rem)
         {
-            _pop_level();
+            _handle_line(m_state.line_contents.rem);
         }
+
+        _next_line();
     }
-    else if(jump > 0)
-    {
-        C4_ERROR("never reach this");
-        C4_ASSERT(jump == 1);
-        printf("indentation increased %zd level%s!\n", jump, jump>1?"s":"");
-        _push_level();
-    }
-    return jump;
+
 }
 
 //-----------------------------------------------------------------------------
@@ -580,8 +572,9 @@ void NextParser::_handle_line(cspan rem)
 
     C4_ASSERT( ! rem.empty());
 
-    if(int jump = _indentation_jump())
+    if(int jump = _get_indentation_jump())
     {
+        _prhl("indentation jump: %d", jump);
         if(jump < 0)
         {
             _handle_indentation();
@@ -595,6 +588,7 @@ void NextParser::_handle_line(cspan rem)
 
     if(m_state.has_any(RSEQ))
     {
+        _prhl("handle_seq");
         if(_handle_seq(rem))
         {
             return;
@@ -602,6 +596,7 @@ void NextParser::_handle_line(cspan rem)
     }
     else if(m_state.has_any(RMAP))
     {
+        _prhl("handle_map");
         if(_handle_map(rem))
         {
             return;
@@ -609,7 +604,8 @@ void NextParser::_handle_line(cspan rem)
     }
     else if(m_state.flags & RUNK)
     {
-        if(_handle_runk(rem))
+        _prhl("handle_unk");
+        if(_handle_unk(rem))
         {
             return;
         }
@@ -634,7 +630,7 @@ bool NextParser::_handle_scalar(cspan rem)
     if(alnum || dquot || squot || block)
     {
         _prhl("it's a scalar");
-        cspan s = _read_scalar(dquot || squot);
+        cspan s = _scan_scalar();
         C4_ASSERT( ! s.empty());
 
         if(m_state.has_all(RSEQ))
@@ -670,13 +666,13 @@ bool NextParser::_handle_scalar(cspan rem)
 }
 
 //-----------------------------------------------------------------------------
-bool NextParser::_handle_runk(cspan rem)
+bool NextParser::_handle_unk(cspan rem)
 {
     const bool start_as_child = (m_state.level != 0) || m_state.node == nullptr;
     if(rem.begins_with(' '))
     {
-        _prhl("indentation jump=%d level=%zd #spaces=%zd", _indentation_jump(), m_state.level, m_state.line_contents.indentation);
-        C4_ASSERT(_indentation_jump() > 0);
+        _prhl("indentation jump=%d level=%zd #spaces=%zd", _get_indentation_jump(), m_state.level, m_state.line_contents.indentation);
+        C4_ASSERT(_get_indentation_jump() > 0);
         m_state.line_progressed(m_state.line_contents.indentation);
         return true;
     }
@@ -765,21 +761,15 @@ bool NextParser::_handle_seq(cspan rem)
             _pop_level();
             return true;
         }
-        else if(rem.begins_with('&'))
+        else if(_handle_anchors_and_refs(rem))
         {
             C4_ERROR("not implemented");
+            return true;
         }
-        else if(rem.begins_with('*'))
+        else if(_handle_types(rem))
         {
             C4_ERROR("not implemented");
-        }
-        else if(rem.begins_with("!!"))
-        {
-            C4_ERROR("not implemented");
-        }
-        else if(rem.begins_with('!'))
-        {
-            C4_ERROR("not implemented");
+            return true;
         }
         else
         {
@@ -849,21 +839,15 @@ bool NextParser::_handle_map(cspan rem)
             _pop_level();
             return true;
         }
-        else if(rem.begins_with('&'))
+        else if(_handle_anchors_and_refs(rem))
         {
             C4_ERROR("not implemented");
+            return true;
         }
-        else if(rem.begins_with('*'))
+        else if(_handle_types(rem))
         {
             C4_ERROR("not implemented");
-        }
-        else if(rem.begins_with("!!"))
-        {
-            C4_ERROR("not implemented");
-        }
-        else if(rem.begins_with('!'))
-        {
-            C4_ERROR("not implemented");
+            return true;
         }
         else
         {
@@ -886,33 +870,17 @@ bool NextParser::_handle_top(cspan rem)
 {
     if(rem.begins_with('#'))
     {
-        // a comment line
-        printf("a comment line\n");
+        _prhl("a comment line");
         m_state.line_progressed(rem.len);
         return true;
-    }
-    else if(rem.begins_with('|'))
-    {
-        // a block start line
-        printf("a block start line\n");
-        size_t next_state = BLCK|KEEP;
-        if(rem.begins_with("|-"))
-        {
-            next_state = BLCK|STRP;
-        }
-    }
-    else if(rem.begins_with('>'))
-    {
-        // a folded block start line
-        printf("a folded block start line\n");
-        C4_ERROR("folded blocks not implemented");
     }
     // the following tokens can appear only at top level
     else if(m_state.flags & RTOP)
     {
         if(rem.begins_with('%'))
         {
-            printf("%% directive!\n");
+            _prhl("%% directive!");
+            C4_ERROR("not implemented");
             if(rem.begins_with("%YAML"))
             {
             }
@@ -923,73 +891,90 @@ bool NextParser::_handle_top(cspan rem)
             {
                 C4_ERROR("unknown directive starting with %");
             }
-            C4_ERROR("not implemented");
+            return true;
         }
         else if((m_state.flags & RTOP) && rem.begins_with("---"))
         {
             C4_ASSERT(m_state.level == 0);
             // end/start a document
-            printf("end/start a document\n");
+            C4_ERROR("not implemented");
+            _prhl("end/start a document\n");
+            return true;
         }
         else if((m_state.flags & RTOP) && rem.begins_with("..."))
         {
             // end a document
-            printf("end a document\n");
+            _prhl("end a document\n");
+            C4_ERROR("not implemented");
+            return true;
+        }
+        else
+        {
+            C4_ERROR("parse error");
         }
     }
-        /*
     else
     {
-        C4_ERROR("WTF?");
-        // it's probably a scalar
-        if(rem.begins_with('"') || rem.begins_with('\''))
-        {
-            printf("it's a scalar\n");
-        }
-
-        size_t first_colon = rem.first_of(':');
-        if(first_colon != npos && first_colon > 0)
-        {
-            // a simple key - start a mapping
-            printf("a simple key - start a mapping");
-            cspan k = rem.subspan(0, first_colon);
-            size_t nextstate = RMAP;
-            _push_map(rem, nextstate, (m_state.flags & RUNK));
-        }
-        // must be a scalar
-        printf("must be a scalar\n");
+        C4_ERROR("internal error");
     }
-        */
+
     return false;
 }
 
 //-----------------------------------------------------------------------------
-cspan NextParser::_read_scalar(bool known_quoted)
+bool NextParser::_handle_anchors_and_refs(cspan rem)
+{
+    if(rem.begins_with('&'))
+    {
+        C4_ERROR("not implemented");
+        return true;
+    }
+    else if(rem.begins_with('*'))
+    {
+        C4_ERROR("not implemented");
+        return true;
+    }
+    return false;
+}
+
+//-----------------------------------------------------------------------------
+bool NextParser::_handle_types(cspan rem)
+{
+    if(rem.begins_with("!!"))
+    {
+        C4_ERROR("not implemented");
+        return true;
+    }
+    else if(rem.begins_with('!'))
+    {
+        C4_ERROR("not implemented");
+        return true;
+    }
+    return false;
+}
+
+//-----------------------------------------------------------------------------
+cspan NextParser::_scan_scalar()
 {
     cspan s = m_state.line_contents.rem;
     if(s.len == 0) return s;
 
-    if( ! known_quoted)
+    if(s.begins_with('\''))
     {
-        auto pos = s.first_of("'\"");
-        if(pos != npos)
-        {
-            C4_ERROR("reading quoted scalars not yet implemented");
-        }
+        s = _scan_quoted_scalar(/*single*/true);
+        return s;
     }
-
-    size_t colon_space = s.find(": ");
-    if(colon_space == npos)
+    else if(s.begins_with('"'))
     {
-        colon_space = s.find(":");
-        C4_ASSERT(s.len > 0);
-        if(colon_space != s.len-1)
-        {
-            colon_space = npos;
-        }
+        s = _scan_quoted_scalar(/*single*/false);
+        return s;
     }
-
-    if(m_state.has_any(RSEQ))
+    else if(s.begins_with('|') || s.begins_with('>'))
+    {
+        s = _scan_block();
+        return s;
+    }
+    else if(m_state.has_any(RSEQ))
     {
         if(m_state.has_all(RKEY))
         {
@@ -997,10 +982,6 @@ cspan NextParser::_read_scalar(bool known_quoted)
         }
         else if(m_state.has_all(RVAL))
         {
-            if(m_state.has_any(BLCK))
-            {
-                C4_ERROR("not implemented");
-            }
             s = s.left_of(s.first_of(",]"));
         }
         else
@@ -1010,6 +991,17 @@ cspan NextParser::_read_scalar(bool known_quoted)
     }
     else if(m_state.has_any(RMAP))
     {
+        size_t colon_space = s.find(": ");
+        if(colon_space == npos)
+        {
+            colon_space = s.find(":");
+            C4_ASSERT(s.len > 0);
+            if(colon_space != s.len-1)
+            {
+                colon_space = npos;
+            }
+        }
+
         if(m_state.has_all(RKEY))
         {
             if(m_state.has_any(CPLX))
@@ -1026,10 +1018,6 @@ cspan NextParser::_read_scalar(bool known_quoted)
         }
         else if(m_state.has_all(RVAL))
         {
-            if(m_state.has_any(BLCK))
-            {
-                C4_ERROR("not implemented");
-            }
             s = s.trim(' ');
         }
         else
@@ -1037,9 +1025,13 @@ cspan NextParser::_read_scalar(bool known_quoted)
             C4_ERROR("parse error");
         }
     }
-    else
+    else if(m_state.has_all(RUNK))
     {
         s = s.left_of(s.first_of(",: "));
+    }
+    else
+    {
+        C4_ERROR("not implemented");
     }
 
     _prhl("scalar was '%.*s'", _c4prsp(s));
@@ -1050,25 +1042,25 @@ cspan NextParser::_read_scalar(bool known_quoted)
 }
 
 //-----------------------------------------------------------------------------
-cspan NextParser::_scan_line()
+void NextParser::_scan_line()
 {
-    if(m_state.pos.offset >= m_buf.len) return {};
+    if(m_state.pos.offset >= m_buf.len) return;
     char const* b = &m_buf[m_state.pos.offset];
     char const* e = b;
-    while( ! _any_of(*e, "\r\n\0"))
+    while(*e != '\r' && *e != '\n')
     {
         ++e;
     }
     size_t len = e - b;
-    cspan ret = m_buf.subspan(m_state.pos.offset, len);
+    cspan stripped = m_buf.subspan(m_state.pos.offset, len);
     // advance pos, including line ending chars
-    while(_any_of(*e, "\r\n\0"))
+    while(*e == '\r' || *e == '\n')
     {
         ++e;
         ++len;
     }
-    m_state.line_ended(len);
-    return ret;
+    cspan full = m_buf.subspan(m_state.pos.offset, len);
+    m_state.line_scanned(full, stripped);
 }
 
 //-----------------------------------------------------------------------------
@@ -1086,8 +1078,13 @@ void NextParser::_push_level(bool explicit_flow_chars)
     {
         st |= EXPL;
     }
-    _push_state(st);
+    printf("stacking node %zd\n", m_state.node->id());
+    m_stack.push(m_state);
+    m_state.flags = st;
+    m_state.node = nullptr;
+    ++m_state.level;
 }
+
 void NextParser::_pop_level()
 {
     printf("level popped!\n");
@@ -1099,11 +1096,14 @@ void NextParser::_pop_level()
     {
         _stop_seq();
     }
-    else if(m_state.has_any(BLCK))
+    else
     {
-        RymlCallbacks::error("not implemented");
+        C4_ERROR("internal error");
     }
-    _pop_state();
+    printf("popping node %zd top %zd\n", m_state.node->id(), m_stack.peek().node->id());
+    C4_ASSERT( ! m_stack.empty());
+    m_stack.peek()._prepare_pop(m_state);
+    m_state = m_stack.pop();
     if(m_state.has_any(RMAP))
     {
         _toggle_key_val();
@@ -1171,6 +1171,7 @@ void NextParser::_start_seq(bool as_child)
     }
     printf("start_seq: id=%zd name='%.*s'\n", m_state.node->id(), _c4prsp(m_state.node->name()));
 }
+
 void NextParser::_stop_seq()
 {
     printf("stop_seq\n");
@@ -1224,15 +1225,17 @@ void NextParser::_store_scalar(cspan const& s)
     m_state.flags |= SSCL;
     m_state.scalar = s;
 }
+
 cspan NextParser::_consume_scalar()
 {
-    printf("consuming scalar: '%.*s'\n", _c4prsp(m_state.scalar));
+    printf("consuming scalar: '%.*s' (flag: %d))\n", _c4prsp(m_state.scalar), m_state.scalar & SSCL);
     C4_ASSERT(m_state.flags & SSCL);
     cspan s = m_state.scalar;
     m_state.flags &= ~SSCL;
     m_state.scalar.clear();
     return s;
 }
+
 void NextParser::_move_scalar_from_top()
 {
     if(m_stack.empty()) return;
@@ -1245,6 +1248,282 @@ void NextParser::_move_scalar_from_top()
         top.flags &= ~SSCL;
         top.scalar.clear();
     }
+}
+
+//-----------------------------------------------------------------------------
+int NextParser::_handle_indentation()
+{
+    int jump = _get_indentation_jump();
+    if(jump < 0)
+    {
+        printf("indentation decreased %zd level%s!\n", jump, jump>1?"s":"");
+        for(size_t i = 0; i < jump; ++i)
+        {
+            _pop_level();
+        }
+    }
+    else if(jump > 0)
+    {
+        C4_ERROR("never reach this");
+        // level must be pushed elsewhere;
+        // too complicated to deal with here
+    }
+    return jump;
+}
+
+int NextParser::_get_indentation_jump()
+{
+    if(m_stack.empty())
+    {
+        C4_ASSERT(m_state.has_all(RTOP));
+        return 0;
+    }
+    int lprev = (int)m_stack.peek().level;
+    int lcurr = (int)m_state.level;
+    int iprev = (int)m_stack.peek().line_contents.indentation;
+    int icurr = (int)m_state.line_contents.indentation;
+    return icurr != iprev ? lcurr - lprev : 0;
+}
+
+//-----------------------------------------------------------------------------
+cspan NextParser::_scan_quoted_scalar(const char q)
+{
+    // quoted scalars can spread over multiple lines!
+    // nice explanation here: http://yaml-multiline.info/
+
+    cspan s = m_state.line_contents.rem;
+    C4_ASSERT(q == '\'' || q == '\"');
+
+    // find the pos of the matching quote
+    size_t pos = npos, sum = 0;
+    C4_ASSERT(s.begins_with(q));
+
+    // skip the opening quote
+    m_state.line_progressed(1);
+
+    bool needs_filter = true;
+
+    while( ! _finished_file())
+    {
+        _scan_line();
+        s = m_state.line_contents.rem;
+
+        for(size_t i = 1; i < s.len; ++i)
+        {
+            const char prev = s.str[i-1];
+            const char curr = s.str[i];
+            if(q == '\'') // scalars with single quotes
+            {
+                // ... are only escaped with two single quotes
+                if(curr == '\'')
+                {
+                    if(prev != '\'')
+                    {
+                        pos = i;
+                        break;
+                    }
+                    else
+                    {
+                        // there are two single quotes, so needs filter
+                        needs_filter = true;
+                    }
+                }
+            }
+            else // scalars with double quotes
+            {
+                // every \ is an escape
+                if(curr == '"')
+                {
+                    if(prev != '\\')
+                    {
+                        pos = i;
+                        break;
+                    }
+                    else
+                    {
+                        needs_filter = true;
+                    }
+                }
+                else if(curr == '\\')
+                {
+                    needs_filter = true;
+                }
+            }
+        }
+
+        if(pos != npos)
+        {
+            m_state.line_progressed(pos);
+            pos += sum;
+        }
+        else
+        {
+            m_state.line_progressed(s.len);
+            sum += s.len;
+            break;
+        }
+
+        _next_line();
+    }
+    if(pos == npos)
+    {
+        C4_ERROR("reached end of file while looking for closing quote");
+    }
+    C4_ASSERT(s[pos] == q);
+    s = s.subspan(1, pos - 1);
+
+    if(needs_filter)
+    {
+        cspan ret = _filter_quoted_scalar(s, q);
+        C4_ASSERT(ret.len < s.len);
+        return ret;
+    }
+
+    return s;
+}
+
+//-----------------------------------------------------------------------------
+cspan NextParser::_scan_block()
+{
+    // nice explanation here: http://yaml-multiline.info/
+    cspan s = m_state.line_contents.rem;
+    C4_ASSERT(s.begins_with('|') || s.begins_with('>'));
+
+    // parse the spec
+    BlockStyle_e newline = s.begins_with('>') ? BLOCK_FOLD : BLOCK_LITERAL;
+    BlockChomp_e chomp = CHOMP_CLIP; // default to clip unless + or - are used
+    size_t indentation = npos; // have to find out if no spec is given
+    if(s.len > 1)
+    {
+        char c = s.str[1];
+        if(c == '-')
+        {
+            chomp = CHOMP_STRIP;
+            c = s.len > 2 ? s.str[2] : '\0'; // advance
+        }
+        else if(c == '+')
+        {
+            chomp = CHOMP_KEEP;
+            c = s.len > 2 ? s.str[2] : '\0'; // advance
+        }
+
+        // from here to the end, only digits (or nothing) are allowed
+        if(c >= '0' && c <= '9')
+        {
+            for(size_t i = 1; i < s.len; ++i)
+            {
+                C4_ASSERT(s.str[i] >= '0' && s.str[i] <= '9');
+            }
+            cspan number = s.subspan(1);
+            if( ! _read_decimal(number, &indentation))
+            {
+                C4_ERROR("parse error: could not read decimal");
+            }
+        }
+        else if(c == '\0')
+        {
+            // no digit appears: we're done parsing the spec
+        }
+        else
+        {
+            C4_ERROR("parse error: invalid characters in block specification");
+        }
+    }
+
+    C4_ERROR("not implemented");
+
+    // finish the current line
+    _next_line();
+
+    // start with a zero-length block, already pointing at the right place
+    cspan raw_block = m_state.line_contents.full.subspan(0, 0);
+    C4_ASSERT(raw_block.begin() == m_state.line_contents.full.begin());
+
+    // read every full line into a raw block,
+    // from which newlines are to be stripped as needed
+    size_t num_lines = 0, first = m_state.pos.line;
+    while( ! _finished_file() && m_state.line_contents.indentation == indentation)
+    {
+        _scan_line();
+        raw_block.len += m_state.line_contents.full.len;
+        _next_line();
+        ++num_lines;
+    }
+    C4_ASSERT(m_state.pos.line == (first + num_lines));
+    (void)num_lines; // prevent warning
+    (void)first;
+
+    // ok! now we strip the newlines and spaces according to the specs
+    s = _filter_raw_block(raw_block, newline, chomp, indentation);
+
+    return s;
+}
+
+//-----------------------------------------------------------------------------
+cspan NextParser::_filter_quoted_scalar(cspan const& s, const char q)
+{
+    C4_ERROR("not implemented");
+    return {};
+}
+
+//-----------------------------------------------------------------------------
+cspan NextParser::_filter_raw_block(cspan const& block, BlockStyle_e style, BlockChomp_e chomp, size_t indentation)
+{
+    C4_ASSERT(block.ends_with('\n') || block.ends_with('\r'));
+
+    // with 0-indentation literal blocks we don't need
+    // to erase characters from the middle of the string,
+    // so we can just reuse the block and chomp at the end
+    // by getting a subspan of the block
+    if(style == BLOCK_LITERAL && indentation == 0)
+    {
+        switch(chomp)
+        {
+        case CHOMP_KEEP:
+            return block;
+        case CHOMP_STRIP: // strip everything
+            {
+                auto pos = block.last_not_of("\r\n");
+                C4_ASSERT(pos != npos);
+                auto ret = block.left_of(pos, /*include_pos*/true);
+                return ret;
+            }
+        case CHOMP_CLIP: // keep a single newline
+            {
+                auto pos = block.last_not_of("\r\n");
+                C4_ASSERT(pos != npos && pos+1 < block.len);
+                ++pos;
+                // deal for \r\n sequences
+                if(block[pos] == '\r')
+                {
+                    C4_ASSERT(pos+1 < block.len);
+                    ++pos;
+                    C4_ASSERT(block[pos] == '\n');
+                }
+                auto ret = block.left_of(pos, /*include_pos*/true);
+                return ret;
+            }
+        default:
+            C4_ERROR("unknown style");
+        }
+    }
+
+    return {};
+}
+
+//-----------------------------------------------------------------------------
+bool NextParser::_read_decimal(cspan const& str, size_t *decimal)
+{
+    C4_ASSERT(str.len > 1);
+    size_t n = 0, c = 0;
+    for(size_t i = 0; i < str.len; ++i)
+    {
+        if(str.str[i] < '0' || str.str[i] > '9') return false;
+        if(i > 1) n *= 10;
+        n += c;
+    }
+    *decimal = n;
+    return true;
 }
 
 } // namespace ryml
