@@ -4,11 +4,31 @@
 
 #include <vector>
 #include <map>
+#include <iostream>
 
 #include <ryml/ryml.hpp>
 
+
+
 namespace c4 {
 namespace yml {
+
+#define C4_EXPECT_IMPL_(relname, val1, cmp, val2) \
+    if( ! ((val1) cmp (val2))) \
+    {\
+        std::cout << "\n"                                               \
+                  << __FILE__ ":" << __LINE__ << ": ERROR: [" << current_case << "]:\n" \
+                  <<                             ":          expected " #relname " (" #cmp "):\n" \
+                  <<                             ":          lhs: '" #val1 "'=" << val1 << "\n" \
+                  <<                             ":          rhs: '" #val2 "'=" << val2 << "\n"; \
+        current_status = false;                                         \
+    }
+
+#define C4_EXPECT_EQ(val1, val2) C4_EXPECT_IMPL_(eq, val1, ==, val2)
+
+
+bool current_status;
+cspan current_case;
 
 /** a node class against which ryml structures are tested. Uses initializer
  * lists to facilitate minimal specification. */
@@ -147,6 +167,15 @@ public:
     }
 */
 
+    void compare(yml::Node const& n) const
+    {
+        C4_EXPECT_EQ(n.type(), type);
+        C4_EXPECT_EQ(n.num_children(), children.size());
+        for(size_t i = 0, ei = n.num_children(), j = 0, ej = children.size(); i < ei && j < ej; ++i, ++j)
+        {
+             children[j].compare(n[i]);
+        }
+    }
 };
 
 
@@ -155,14 +184,35 @@ public:
 //-----------------------------------------------------------------------------
 struct Case
 {
-    cspan file;
+    cspan name;
+    cspan src;
     CaseNode root;
 
     template< size_t N, class... Args >
-    Case(const char (&f)[N], Args&& ...args) : file(f), root(std::forward< Args >(args)...)
+    Case(cspan const& n, const char (&s)[N], Args&& ...args)
+        : name(n), src(s), root(std::forward< Args >(args)...)
     {
     }
 
+    void run() const
+    {
+        std::cout << "\n\n\n\n\n";
+        std::cout << "---------------------------------------------------\n";
+        std::cout << "Running test case: '" << name << "'\n";
+        std::cout << "---------------------------------------------------\n";
+        NextParser np;
+        Tree t = np.parse(src);
+
+        current_status = true;
+        current_case = name;
+
+        root.compare(*t.root());
+
+        cspan stat = current_status ? "succeeded!!!! :-)" :  "failed.... :-( ";
+        std::cout << "Test case '" << name << "' " << stat << "\n";
+        std::cout << "---------------------------------------------------\n";
+        C4_ASSERT(true);
+    }
 };
 
 

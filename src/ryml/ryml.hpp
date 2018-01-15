@@ -507,8 +507,8 @@ private:
 
 public:
 
-    Node      * root()       { C4_ASSERT(m_num > 0); Node *n = m_buf; C4_ASSERT(n->type() == TYPE_ROOT); return n; }
-    Node const* root() const { C4_ASSERT(m_num > 0); Node *n = m_buf; C4_ASSERT(n->type() == TYPE_ROOT); return n; }
+    Node      * root()       { C4_ASSERT(m_num > 0); Node *n = m_buf; return n; }
+    Node const* root() const { C4_ASSERT(m_num > 0); Node *n = m_buf; return n; }
 
     Node      * first_doc()         { Node *n = root()->child(0); C4_ASSERT(n && n->type() == TYPE_DOC); return n; }
     Node const* first_doc() const   { Node *n = root()->child(0); C4_ASSERT(n && n->type() == TYPE_DOC); return n; }
@@ -1061,7 +1061,8 @@ public:
 
 public:
 
-    Tree parse(const char *file, cspan const& buf)
+    Tree parse(                   cspan const& buf) { return parse("(inline source)", buf); }
+    Tree parse(cspan const& file, cspan const& buf)
     {
         Tree t;
         t.add_root();
@@ -1069,12 +1070,14 @@ public:
         return t;
     }
 
-    void parse(const char *file, cspan const& buf, Tree *t)
+    void parse(                   cspan const& buf, Tree *t) { return parse("(inline source)", buf, t); }
+    void parse(cspan const& file, cspan const& buf, Tree *t)
     {
         parse(file, buf, t->root());
     }
 
-    void parse(const char *file, cspan const& buf, Node *root);
+    void parse(                   cspan const& buf, Node *root) { return parse("(inline source)", buf, root); }
+    void parse(cspan const& file, cspan const& buf, Node *root);
 
 private:
 

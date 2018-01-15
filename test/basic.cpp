@@ -283,16 +283,148 @@ void do_test()
     const C tests[] = {
 
 //-----------------------------------------------------------------------------
+
+C("simple seq",
+R"(- 0
+- 1
+- 2
+- 3
+- 4
+)",
+    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}, N{"4"}}
+),
+
+C("simple seq, next line",
+R"(
+-
+  0
+-
+  1
+-
+  2
+-
+  3
+-
+  4
+)",
+    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}, N{"4"}}
+),
+
+C("simple seq, explicit",
+R"([0, 1, 2, 3, 4])",
+    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}, N{"4"}}
+),
+
+C("simple seq, explicit, breaks",
+R"([
+0, 1, 2, 3, 4
+])",
+    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}, N{"4"}}
+),
+
+C("simple seq, explicit, many breaks",
+R"([
+  0,
+  1,
+  2,
+  3,
+  4
+])",
+    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}, N{"4"}}
+),
+
+C("simple seq, explicit, many breaks, unindented",
+R"([
+0,
+1,
+2,
+3,
+4
+])",
+    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}, N{"4"}}
+),
+
+//-----------------------------------------------------------------------------
+C("nested seq x2",
+R"(
+-
+  - 00
+  - 01
+  - 02
+-
+  - 10
+  - 11
+  - 12
+-
+  - 20
+  - 21
+  - 22
+)",
+    L{
+      N{L{N{"00"}, N{"01"}, N{"02"}}},
+      N{L{N{"10"}, N{"11"}, N{"12"}}},
+      N{L{N{"20"}, N{"21"}, N{"22"}}},
+          }
+),
+
+C("nested seq x2, fmt 2",
+R"(
+- - 00
+  - 01
+  - 02
+- - 10
+  - 11
+  - 12
+- - 20
+  - 21
+  - 22
+)",
+    L{
+      N{L{N{"00"}, N{"01"}, N{"02"}}},
+      N{L{N{"10"}, N{"11"}, N{"12"}}},
+      N{L{N{"20"}, N{"21"}, N{"22"}}},
+          }
+),
+
+C("nested seq x2, implicit first, explicit last level",
+R"(
+- [00, 01, 02]
+- [10, 11, 12]
+- [20, 21, 22]
+)",
+    L{
+      N{L{N{"00"}, N{"01"}, N{"02"}}},
+      N{L{N{"10"}, N{"11"}, N{"12"}}},
+      N{L{N{"20"}, N{"21"}, N{"22"}}},
+          }
+),
+
+C("nested seq x2, explicit first+last level",
+R"([
+[00, 01, 02]
+[10, 11, 12]
+[20, 21, 22]
+)",
+    L{
+      N{L{N{"00"}, N{"01"}, N{"02"}}},
+      N{L{N{"10"}, N{"11"}, N{"12"}}},
+      N{L{N{"20"}, N{"21"}, N{"22"}}},
+          }
+),
+
+//-----------------------------------------------------------------------------
 // https://en.wikipedia.org/wiki/YAML
 
-C(R"(- Casablanca
+C("simple seq",
+R"(- Casablanca
 - North by Northwest
 - The Man Who Wasn't There
 )",
     L{N{"Casablanca"}, N{"North by Northwest"}, N{"The Man Who Wasn't There"}}
 ),
 
-C(R"(--- # Favorite movies
+C("simple seq in a doc",
+R"(--- # Favorite movies
 - Casablanca
 - North by Northwest
 - The Man Who Wasn't There
@@ -300,7 +432,8 @@ C(R"(--- # Favorite movies
     N{DOC, {N{"Casablanca"}, N{"North by Northwest"}, N{"The Man Who Wasn't There"}}}
 ),
 
-C(R"(--- # Favorite movies
+C("simple seq in a doc with explicit termination",
+R"(--- # Favorite movies
 - Casablanca
 - North by Northwest
 - The Man Who Wasn't There
@@ -310,18 +443,45 @@ C(R"(--- # Favorite movies
 ),
 
 //-----------------------------------------------------------------------------
-C(R"([milk, pumpkin pie, eggs, juice])",
+C("explicit seq",
+R"([milk, pumpkin pie, eggs, juice])",
   L{N{"milk"}, N{"pumpkin pie"}, N{"eggs"}, N{"juice"}}
 ),
 
-C(R"(--- # Shopping list
+C("explicit seq in a doc",
+R"(--- # Shopping list
 [milk, pumpkin pie, eggs, juice]
 )",
   N{DOC, {N{"milk"}, N{"pumpkin pie"}, N{"eggs"}, N{"juice"}}}
 ),
 
 //-----------------------------------------------------------------------------
-C(R"(--- # Indented Block
+C("simple map",
+R"(
+name: John Smith
+age: 33
+)",
+  L{
+      N{DOC, L{N("name", "John Smith"), N("age", "33")}},
+      N{DOC, L{N("name", "John Smith"), N("age", "33")}},
+  }
+),
+
+//-----------------------------------------------------------------------------
+C("simple map, nested",
+R"(
+  name: John Smith
+  age: 33
+)",
+  L{
+      N{DOC, L{N("name", "John Smith"), N("age", "33")}},
+      N{DOC, L{N("name", "John Smith"), N("age", "33")}},
+  }
+),
+
+//-----------------------------------------------------------------------------
+C("two docs with the same map",
+R"(--- # Indented Block
   name: John Smith
   age: 33
 --- # Inline Block
@@ -334,7 +494,8 @@ C(R"(--- # Indented Block
 ),
 
 //-----------------------------------------------------------------------------
-C(R"(
+C("seq of maps",
+R"(
 - {name: John Smith, age: 33}
 - name: Mary Smith
   age: 27
@@ -346,7 +507,8 @@ C(R"(
 ),
 
 //-----------------------------------------------------------------------------
-C(R"(
+C("map of seqs",
+R"(
 men: [John Smith, Bill Jones]
 women:
   - Mary Smith
@@ -360,7 +522,8 @@ women:
 
 
 //-----------------------------------------------------------------------------
-C(R"(
+C("anchor example",
+R"(
 ---
 receipt:     Oz-Ware Purchase Invoice
 date:        2012-08-06
@@ -424,7 +587,8 @@ N{"specialDelivery", "Follow the Yellow Brick Road to the Emerald City. Pay no a
 
 
 //-----------------------------------------------------------------------------
-C(R"(
+C("anchor example, 2",
+R"(
 # sequencer protocols for Laser eye surgery
 ---
 - step:  &id001                  # defines anchor label &id001
@@ -495,9 +659,9 @@ N{"step", L{
 ),
 
 
-#ifdef JAVAI
 //-----------------------------------------------------------------------------
-C(R"(
+C("literal block scalar as map entry",
+R"(
 data: |
    There once was a short man from Ealing
    Who got on a bus to Darjeeling
@@ -505,16 +669,12 @@ data: |
        \"Please don't spit on the floor\"
    So he carefully spat on the ceiling
 )",
-     L{{"data", R"(There once was a short man from Ealing
-Who got on a bus to Darjeeling
-    It said on the door
-    \\\"Please don't spit on the floor\\\"
-So he carefully spat on the ceiling
-)"}}
-     ),
+     N{"data", "There once was a short man from Ealing\nWho got on a bus to Darjeeling\n    It said on the door\n    \"Please don't spit on the floor\"\nSo he carefully spat on the ceiling\n"}
+),
 
 //-----------------------------------------------------------------------------
-C(R"(
+C("folded block scalar as map entry",
+R"(
 data: >
    Wrapped text
    will be folded
@@ -524,13 +684,12 @@ data: >
    Blank lines denote
    paragraph breaks
 )",
-     L{{"data",R"(Wrapped text will be folded into a single paragraph
-Blank lines denote paragraph breaks
-)"}}
-     ),
+  N{"data", "Wrapped text will be folded into a single paragraph\nBlank lines denote paragraph breaks\n"}
+),
 
 //-----------------------------------------------------------------------------
-C(R"(
+C("two scalars in a block, html example",
+R"(
 ---
 example: >
         HTML goes into YAML without modification
@@ -542,23 +701,28 @@ message: |
         </blockquote>
 date: 2007-06-01
 )",
-     L{{TYPE_DOC, L{
-                 {"example","HTML goes into YAML without modification"},
-                 {"message",R"(<blockquote style=\"font: italic 12pt Times\">
+     N{TYPE_DOC, L{
+          N{"example", "HTML goes into YAML without modification"},
+          N{"message", R"(<blockquote style=\"font: italic 12pt Times\">
 <p>\"Three is always greater than two,
    even for large values of two\"</p>
 <p>--Author Unknown</p>
 </blockquote>
 )"},
-                 {"date","2007-06-01"},
-                     }}}
-     ),
+          N{"date","2007-06-01"},
+              }}
+),
+#ifdef JAVAI
 #endif
     }; // end examples
 
 
 
     printf("cases built\n");
+    for(auto &t : tests)
+    {
+        t.run();
+    }
 }
 
 

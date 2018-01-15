@@ -557,7 +557,7 @@ bool NextParser::_finished_file() const
 }
 
 //-----------------------------------------------------------------------------
-void NextParser::parse(const char *file, cspan const& buf, Node *root)
+void NextParser::parse(cspan const& file, cspan const& buf, Node *root)
 {
     m_file = file ? file : "(no file)";
     m_buf = buf;
