@@ -1,7 +1,5 @@
-#include <ryml/ryml.hpp>
 
-#include <map>
-#include <vector>
+#include "./ref.hpp"
 
 namespace yml = c4::yml;
 
@@ -265,141 +263,20 @@ fdx: crl
 
 
 
-class RefNode
-{
-public:
-
-    using seq_type = std::vector< RefNode >;
-    using seq_value_type = seq_type::value_type;
-    using seq_init_type = std::initializer_list< seq_value_type >;
-
-    using map_type = std::map< yml::cspan, RefNode >;
-    using map_value_type = map_type::value_type;
-    using map_init_type = std::initializer_list< map_value_type >;
-
-public:
-
-    yml::NodeType_e type;
-    yml::cspan key;
-    yml::cspan value;
-    map_type map;
-    seq_type seq;
-
-    bool is_val() const { return type == yml::TYPE_VAL && key.empty(); }
-    bool is_key_val() const { return type == yml::TYPE_VAL && ! key.empty(); }
-    bool is_map() const { return type == yml::TYPE_MAP || (type == yml::TYPE_DOC && ! map.empty()); }
-    bool is_seq() const { return type == yml::TYPE_SEQ || (type == yml::TYPE_SEQ && ! map.empty()) || type == yml::TYPE_ROOT; }
-/*
-    void print(int level = 0) const
-    {
-        if(is_val())
-        {
-            printf("%.*s", (int)key.len, key.str);
-            return;
-        }
-        else if(is_key_val())
-        {
-            printf("%.*s", (int)key.len, key.str);
-            return;
-        }
-        ++level;
-        if(is_seq())
-        {
-            printf("\n");
-            for(auto const& c : seq)
-            {
-                printf("%*s", level, "  ");
-                printf("%.*s", (int)key.len, key.str);
-                c.print(level);
-            }
-        }
-        else if(is_map())
-        {
-            ++level;
-            for(auto const& c : map)
-            {
-                c.print(level);
-            }
-        }
-    }
-*/
-public:
-
-    RefNode(RefNode     &&) = default;
-    RefNode(RefNode const&) = default;
-
-    RefNode& operator= (RefNode     &&) = default;
-    RefNode& operator= (RefNode const&) = default;
-
-    RefNode() : type(yml::TYPE_NONE), key(), value(), map(), seq() {}
-
-    template< size_t N >
-    RefNode(const char (&v)[N]) : type(yml::TYPE_VAL), key(), value(v), map(), seq() {}
-    RefNode(yml::cspan const& v) : type(yml::TYPE_VAL), key(), value(v), map(), seq() {}
-
-    template< size_t N, size_t M >
-    RefNode(const char (&k)[N], const char (&v)[M]) : type(yml::TYPE_VAL), key(k), value(v), map(), seq() {}
-    RefNode(yml::cspan const& k, yml::cspan const& v) : type(yml::TYPE_VAL), key(k), value(v), map(), seq() {}
-
-    template< size_t N >
-    RefNode(const char (&k)[N], map_init_type m) : RefNode(yml::TYPE_MAP, k, m) {}
-    RefNode(yml::cspan const& k, map_init_type m) : RefNode(yml::TYPE_MAP, k, m) {}
-
-    template< size_t N >
-    RefNode(yml::NodeType_e t,  const char (&k)[N], map_init_type m) : type(t), key(k), value(), map(m), seq() {}
-    RefNode(yml::NodeType_e t, yml::cspan const& k, map_init_type m) : type(t), key(k), value(), map(m), seq() {}
-
-    RefNode(map_init_type m) : RefNode(yml::TYPE_MAP, {}, m) {}
-    RefNode(yml::NodeType_e t, map_init_type m) : RefNode(t, {}, m) {}
-
-    template< size_t N >
-    RefNode( const char (&k)[N], seq_init_type m) : RefNode(yml::TYPE_SEQ, k, m) {}
-    RefNode(yml::cspan const& k, seq_init_type m) : RefNode(yml::TYPE_SEQ, k, m) {}
-
-    template< size_t N >
-    RefNode(yml::NodeType_e t,  const char (&k)[N], seq_init_type s) : type(t), key(k), value(), map(), seq(s) {}
-    RefNode(yml::NodeType_e t, yml::cspan const& k, seq_init_type s) : type(t), key(k), value(), map(), seq(s) {}
-
-    RefNode(seq_init_type m) : RefNode(yml::TYPE_SEQ, {}, m) {}
-    RefNode(yml::NodeType_e t, seq_init_type m) : RefNode(t, {}, m) {}
-
-};
-
-
-struct ExampleSpec
-{
-    yml::cspan file;
-    RefNode root;
-
-    template< size_t N >
-    ExampleSpec(const char (&f)[N], RefNode const& ref) : file(f)
-    {
-
-    }
-};
-
-using namespace yml;
-
-
-template< size_t N, class... Args >
-ExampleSpec mkex(const char (&txt)[N], Args&&... a)
-{
-    return ExampleSpec(txt, RefNode(TYPE_ROOT, std::forward< Args >(a)...));
-}
 
 
 void do_test()
 {
-    using namespace yml;
+    using namespace c4::yml;
 
     using S = RefNode::seq_init_type;
     using M = RefNode::map_init_type;
 
-    ExampleSpec examples[] = {
+    Ref tests[] = {
 
 //-----------------------------------------------------------------------------
 // https://en.wikipedia.org/wiki/YAML
-mkex(R"(--- # Favorite movies
+mkref(R"(--- # Favorite movies
 - Casablanca
 - North by Northwest
 - The Man Who Wasn't There
@@ -407,13 +284,13 @@ mkex(R"(--- # Favorite movies
      S{{TYPE_DOC, {"Casablanca", "North by Northwest", "The Man Who Wasn't There"}}}),
 
 //-----------------------------------------------------------------------------
-mkex(R"(--- # Shopping list
+mkref(R"(--- # Shopping list
 [milk, pumpkin pie, eggs, juice]
 )",
      S{{TYPE_DOC, {"milk", "pumpkin pie", "eggs", "juice"}}}),
 
 //-----------------------------------------------------------------------------
-mkex(R"(--- # Indented Block
+mkref(R"(--- # Indented Block
   name: John Smith
   age: 33
 --- # Inline Block
@@ -425,7 +302,7 @@ mkex(R"(--- # Indented Block
      }),
 
 //-----------------------------------------------------------------------------
-mkex(R"(
+mkref(R"(
 - {name: John Smith, age: 33}
 - name: Mary Smith
   age: 27
@@ -436,7 +313,7 @@ mkex(R"(
      }),
 
 //-----------------------------------------------------------------------------
-mkex(R"(
+mkref(R"(
 men: [John Smith, Bill Jones]
 women:
   - Mary Smith
@@ -448,7 +325,7 @@ women:
      }),
 
 //-----------------------------------------------------------------------------
-mkex(R"(
+mkref(R"(
 ---
 receipt:     Oz-Ware Purchase Invoice
 date:        2012-08-06
@@ -518,7 +395,7 @@ Suite 16
      }}}),
 
 //-----------------------------------------------------------------------------
-mkex(R"(
+mkref(R"(
 # sequencer protocols for Laser eye surgery
 ---
 - step:  &id001                  # defines anchor label &id001
@@ -589,7 +466,7 @@ M{{"step", M{
 
 
 //-----------------------------------------------------------------------------
-mkex(R"(
+mkref(R"(
 data: |
    There once was a short man from Ealing
    Who got on a bus to Darjeeling
@@ -606,7 +483,7 @@ So he carefully spat on the ceiling
      ),
 
 //-----------------------------------------------------------------------------
-mkex(R"(
+mkref(R"(
 data: >
    Wrapped text
    will be folded
@@ -622,7 +499,7 @@ Blank lines denote paragraph breaks
      ),
 
 //-----------------------------------------------------------------------------
-mkex(R"(
+mkref(R"(
 ---
 example: >
         HTML goes into YAML without modification
