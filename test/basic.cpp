@@ -20,9 +20,13 @@ map:
 fdx: crl
 )";
 
+void do_test();
+
 int main()
 {
     C4_ASSERT( ! yml::cspan(":").begins_with(": "));
+
+    do_test();
 
     yml::Tree s(2);
     yml::Parser p;
@@ -257,6 +261,7 @@ fdx: crl
 
     yml::NextParser np;
     yml::Tree t = np.parse("inline source", ex2);
+
     return 0;
 }
 
@@ -269,63 +274,94 @@ void do_test()
 {
     using namespace c4::yml;
 
-    using S = RefNode::seq_init_type;
-    using M = RefNode::map_init_type;
+    using C = Case;
+    using N = CaseNode;
+    using L = CaseNode::children_init_type;
 
-    Ref tests[] = {
+    NodeType_e DOC = TYPE_DOC;
+
+    const C tests[] = {
 
 //-----------------------------------------------------------------------------
 // https://en.wikipedia.org/wiki/YAML
-mkref(R"(--- # Favorite movies
+
+C(R"(- Casablanca
+- North by Northwest
+- The Man Who Wasn't There
+)",
+    L{"Casablanca", "North by Northwest", "The Man Who Wasn't There"}
+),
+
+C(R"(--- # Favorite movies
 - Casablanca
 - North by Northwest
 - The Man Who Wasn't There
 )",
-     S{{TYPE_DOC, {"Casablanca", "North by Northwest", "The Man Who Wasn't There"}}}),
+    N{DOC, {"Casablanca", "North by Northwest", "The Man Who Wasn't There"}}
+),
+
+C(R"(--- # Favorite movies
+- Casablanca
+- North by Northwest
+- The Man Who Wasn't There
+...
+)",
+    N{DOC, {"Casablanca", "North by Northwest", "The Man Who Wasn't There"}}
+),
 
 //-----------------------------------------------------------------------------
-mkref(R"(--- # Shopping list
+C(R"([milk, pumpkin pie, eggs, juice])",
+  L{"milk", "pumpkin pie", "eggs", "juice"}
+),
+
+C(R"(--- # Shopping list
 [milk, pumpkin pie, eggs, juice]
 )",
-     S{{TYPE_DOC, {"milk", "pumpkin pie", "eggs", "juice"}}}),
+  N{DOC, {"milk", "pumpkin pie", "eggs", "juice"}}
+),
 
 //-----------------------------------------------------------------------------
-mkref(R"(--- # Indented Block
+C(R"(--- # Indented Block
   name: John Smith
   age: 33
 --- # Inline Block
 {name: John Smith, age: 33}
 )",
-     S{
-         {TYPE_DOC, M{{"name","John Smith"}, {"age","33"}}},
-         {TYPE_DOC, M{{"name","John Smith"}, {"age","33"}}},
-     }),
+  L{
+      N{DOC, L{N{"name","John Smith"}, N{"age","33"}}},
+      N{DOC, L{N{"name","John Smith"}, N{"age","33"}}},
+  }
+),
 
 //-----------------------------------------------------------------------------
-mkref(R"(
+C(R"(
 - {name: John Smith, age: 33}
 - name: Mary Smith
   age: 27
 )",
-     S{
-         M{{"name", "John Smith"}, {"age", "33"}},
-         M{{"name", "Mary Smith"}, {"age", "27"}},
-     }),
+  L{
+      L{N{"name", "John Smith"}, N{"age", "33"}},
+      L{N{"name", "Mary Smith"}, N{"age", "27"}},
+  }
+),
 
 //-----------------------------------------------------------------------------
-mkref(R"(
+C(R"(
 men: [John Smith, Bill Jones]
 women:
   - Mary Smith
   - Susan Williams
 )",
-     M{
-         {"men", S{"John Smith", "Bill Jones"}},
-         {"women", S{"Mary Smith", "Susan Williams"}},
-     }),
+     L{
+         {"men", L{"John Smith", "Bill Jones"}},
+         {"women", L{"Mary Smith", "Susan Williams"}},
+     }
+),
+
+#ifdef JAVAI
 
 //-----------------------------------------------------------------------------
-mkref(R"(
+C(R"(
 ---
 receipt:     Oz-Ware Purchase Invoice
 date:        2012-08-06
@@ -361,28 +397,28 @@ specialDelivery:  >
     man behind the curtain.
 ...
 )",
-     S{{TYPE_DOC, M{
+     L{{TYPE_DOC, L{
 {"receipt", ""},
 {"receipt", "Oz-Ware Purchase Invoice"},
 {"date", "2012-08-06"},
-{"customer", M{{"first_name", "Dorothy"}, {"family_name", "Gale"}}},
-{"items", S{
-        M{{"part_no", "A4786"},
+{"customer", L{{"first_name", "Dorothy"}, {"family_name", "Gale"}}},
+{"items", L{
+        L{{"part_no", "A4786"},
             {"descrip",   "Water Bucket (Filled)"},
             {"price",     "1.47"},
             {"quantity",  "4"},},
-        M{{"part_no", "E1628"},
+        L{{"part_no", "E1628"},
             {"descrip",   "High Heeled \"Ruby\" Slippers"},
             {"size",     "8"},
             {"price",     "133.7"},
             {"quantity",  "1"},},
-{"bill-to", M{
+{"bill-to", L{
         {"street", R"(123 Tornado Alley
 Suite 16
 )"},
         {"city", "East Centerville"},
         {"state", "KS"},}},
-{"ship-to", M{
+{"ship-to", L{
         {"street", R"(123 Tornado Alley
 Suite 16
 )"},
@@ -395,7 +431,7 @@ Suite 16
      }}}),
 
 //-----------------------------------------------------------------------------
-mkref(R"(
+C(R"(
 # sequencer protocols for Laser eye surgery
 ---
 - step:  &id001                  # defines anchor label &id001
@@ -418,43 +454,43 @@ mkref(R"(
     spotSize: 2mm                # redefines just this key, refers rest from &id001
 - step: *id002
 )",
-     S{{TYPE_DOC, {
-M{{"step", M{
+     L{{TYPE_DOC, {
+L{{"step", L{
     {"instrument",      "Lasik 2000"},
     {"pulseEnergy",     "5.4"},
     {"pulseDuration",   "12"},
     {"repetition",      "1000"},
     {"spotSize",        "1mm"},
         }}},
-M{{"step", M{
+L{{"step", L{
     {"instrument",      "Lasik 2000"},
     {"pulseEnergy",     "5.0"},
     {"pulseDuration",   "10"},
     {"repetition",      "500"},
     {"spotSize",        "2mm"},
         }}},
-M{{"step", M{
+L{{"step", L{
     {"instrument",      "Lasik 2000"},
     {"pulseEnergy",     "5.4"},
     {"pulseDuration",   "12"},
     {"repetition",      "1000"},
     {"spotSize",        "1mm"},
         }}},
-M{{"step", M{
+L{{"step", L{
     {"instrument",      "Lasik 2000"},
     {"pulseEnergy",     "5.0"},
     {"pulseDuration",   "10"},
     {"repetition",      "500"},
     {"spotSize",        "2mm"},
         }}},
-M{{"step", M{
+L{{"step", L{
     {"instrument",      "Lasik 2000"},
     {"pulseEnergy",     "5.4"},
     {"pulseDuration",   "12"},
     {"repetition",      "1000"},
     {"spotSize",        "2mm"},
         }}},
-M{{"step", M{
+L{{"step", L{
     {"instrument",      "Lasik 2000"},
     {"pulseEnergy",     "5.0"},
     {"pulseDuration",   "10"},
@@ -466,7 +502,7 @@ M{{"step", M{
 
 
 //-----------------------------------------------------------------------------
-mkref(R"(
+C(R"(
 data: |
    There once was a short man from Ealing
    Who got on a bus to Darjeeling
@@ -474,7 +510,7 @@ data: |
        \"Please don't spit on the floor\"
    So he carefully spat on the ceiling
 )",
-     M{{"data", R"(There once was a short man from Ealing
+     L{{"data", R"(There once was a short man from Ealing
 Who got on a bus to Darjeeling
     It said on the door
     \\\"Please don't spit on the floor\\\"
@@ -483,7 +519,7 @@ So he carefully spat on the ceiling
      ),
 
 //-----------------------------------------------------------------------------
-mkref(R"(
+C(R"(
 data: >
    Wrapped text
    will be folded
@@ -493,13 +529,13 @@ data: >
    Blank lines denote
    paragraph breaks
 )",
-     M{{"data",R"(Wrapped text will be folded into a single paragraph
+     L{{"data",R"(Wrapped text will be folded into a single paragraph
 Blank lines denote paragraph breaks
 )"}}
      ),
 
 //-----------------------------------------------------------------------------
-mkref(R"(
+C(R"(
 ---
 example: >
         HTML goes into YAML without modification
@@ -511,7 +547,7 @@ message: |
         </blockquote>
 date: 2007-06-01
 )",
-     S{{TYPE_DOC, M{
+     L{{TYPE_DOC, L{
                  {"example","HTML goes into YAML without modification"},
                  {"message",R"(<blockquote style=\"font: italic 12pt Times\">
 <p>\"Three is always greater than two,
@@ -522,9 +558,12 @@ date: 2007-06-01
                  {"date","2007-06-01"},
                      }}}
      ),
-
+#endif
     }; // end examples
-        ;
+
+
+
+    printf("cases built\n");
 }
 
 

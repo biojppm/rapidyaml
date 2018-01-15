@@ -1,5 +1,5 @@
-#ifndef _REF_HPP_
-#define _REF_HPP_
+#ifndef _CASE_HPP_
+#define _CASE_HPP_
 
 
 #include <vector>
@@ -10,76 +10,107 @@
 namespace c4 {
 namespace yml {
 
-/** */
-class RefNode
+/** a node class against which ryml structures are tested. Uses initializer
+ * lists to facilitate minimal specification. */
+class CaseNode
 {
 public:
 
-    using seq_type = std::vector< RefNode >;
-    using seq_value_type = seq_type::value_type;
-    using seq_init_type = std::initializer_list< seq_value_type >;
-
-    using map_type = std::map< cspan, RefNode >;
-    using map_value_type = map_type::value_type;
-    using map_init_type = std::initializer_list< map_value_type >;
-
-public:
-
-    RefNode(RefNode     &&) = default;
-    RefNode(RefNode const&) = default;
-
-    RefNode& operator= (RefNode     &&) = default;
-    RefNode& operator= (RefNode const&) = default;
-
-    RefNode() : type(TYPE_NONE), key(), value(), map(), seq() {}
-
-    template< size_t N >
-    RefNode(const char (&v)[N]) : type(TYPE_VAL), key(), value(v), map(), seq() {}
-    RefNode(cspan const& v) : type(TYPE_VAL), key(), value(v), map(), seq() {}
-
-    template< size_t N, size_t M >
-    RefNode(const char (&k)[N], const char (&v)[M]) : type(TYPE_VAL), key(k), value(v), map(), seq() {}
-    RefNode(cspan const& k, cspan const& v) : type(TYPE_VAL), key(k), value(v), map(), seq() {}
-
-    template< size_t N >
-    RefNode(const char (&k)[N], map_init_type m) : RefNode(TYPE_MAP, k, m) {}
-    RefNode(cspan const& k, map_init_type m) : RefNode(TYPE_MAP, k, m) {}
-
-    template< size_t N >
-    RefNode(NodeType_e t,  const char (&k)[N], map_init_type m) : type(t), key(k), value(), map(m), seq() {}
-    RefNode(NodeType_e t, cspan const& k, map_init_type m) : type(t), key(k), value(), map(m), seq() {}
-
-    RefNode(map_init_type m) : RefNode(TYPE_MAP, {}, m) {}
-    RefNode(NodeType_e t, map_init_type m) : RefNode(t, {}, m) {}
-
-    template< size_t N >
-    RefNode( const char (&k)[N], seq_init_type m) : RefNode(TYPE_SEQ, k, m) {}
-    RefNode(cspan const& k, seq_init_type m) : RefNode(TYPE_SEQ, k, m) {}
-
-    template< size_t N >
-    RefNode(NodeType_e t,  const char (&k)[N], seq_init_type s) : type(t), key(k), value(), map(), seq(s) {}
-    RefNode(NodeType_e t, cspan const& k, seq_init_type s) : type(t), key(k), value(), map(), seq(s) {}
-
-    RefNode(seq_init_type m) : RefNode(TYPE_SEQ, {}, m) {}
-    RefNode(NodeType_e t, seq_init_type m) : RefNode(t, {}, m) {}
+    using children_type = std::vector< CaseNode >;
+    using children_init_type = std::initializer_list< CaseNode >;
 
 public:
 
     NodeType_e type;
     cspan key;
-    cspan value;
-    map_type map;
-    seq_type seq;
+    cspan val;
+    children_type children;
 
+public:
+
+    CaseNode(CaseNode     &&) = default;
+    CaseNode(CaseNode const&) = default;
+
+    CaseNode& operator= (CaseNode     &&) = default;
+    CaseNode& operator= (CaseNode const&) = default;
+
+public:
+
+    CaseNode() : type(TYPE_NONE), key(), val(), children() {}
+
+    template< size_t N >
+    CaseNode(const char (&v)[N]) : type(TYPE_VAL), key(), val(v), children() {}
+
+    template< size_t N, size_t M >
+    CaseNode(const char (&k)[N], const char (&v)[M]) : type(TYPE_VAL), key(k), val(v), children() {}
+
+    template< size_t N >
+    CaseNode(const char (&k)[N], children_init_type s) : type(), key(k), val(), children(s) { type = guess(); }
+    CaseNode(children_init_type m) : CaseNode("", m) {}
+
+    template< size_t N >
+    CaseNode(NodeType_e t, const char (&k)[N], children_init_type s) : type(t), key(k), val(), children(s) {}
+    CaseNode(NodeType_e t, children_init_type m) : CaseNode(t, "", m) {}
+
+public:
+
+    NodeType_e guess() const
+    {
+        C4_ASSERT(val.empty() != children.empty());
+        if(children.empty())
+        {
+            return TYPE_VAL;
+        }
+        else
+        {
+            auto const& ch = children.front();
+            if(ch.key.empty())
+            {
+                return TYPE_SEQ;
+            }
+            else
+            {
+                return TYPE_MAP;
+            }
+        }
+    }
+
+    bool is_doc() const { return type == TYPE_DOC; }
     bool is_val() const { return type == TYPE_VAL && key.empty(); }
     bool is_key_val() const { return type == TYPE_VAL && ! key.empty(); }
-    bool is_map() const { return type == TYPE_MAP || (type == TYPE_DOC && ! map.empty()); }
-    bool is_seq() const { return type == TYPE_SEQ || (type == TYPE_SEQ && ! map.empty()) || type == TYPE_ROOT; }
+    bool is_map() const { return type == TYPE_MAP || (type == TYPE_DOC && ! children.empty() && ! children.front().key.empty() ); }
+    bool is_seq() const { return type == TYPE_MAP || (type == TYPE_DOC && ! children.empty() &&   children.front().key.empty() ); }
 
-    bool test() const
+public:
+
+    CaseNode const& operator[] (size_t i) const
     {
-        return true;
+        C4_ASSERT(i >= 0 && i < children.size());
+        return children[i];
     }
+
+    CaseNode const& operator[] (cspan const& name) const
+    {
+        auto ch = lookup(name);
+        C4_ASSERT(ch != nullptr);
+        return *ch;
+    }
+
+    CaseNode const* lookup(cspan const& name) const
+    {
+        C4_ASSERT( ! children.empty());
+        for(auto const& ch : children)
+        {
+            if(ch.key == name)
+            {
+                return &ch;
+            }
+        }
+        return nullptr;
+    }
+
+
+public:
 
     /*
     void print(int level = 0) const
@@ -122,31 +153,25 @@ public:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-struct Ref
+struct Case
 {
     cspan file;
-    RefNode root;
+    CaseNode root;
 
-    template< size_t N >
-    Ref(const char (&f)[N], RefNode const& r) : file(f), root(r)
+    template< size_t N, class... Args >
+    Case(const char (&f)[N], Args&& ...args) : file(f), root(std::forward< Args >(args)...)
     {
     }
 
-    bool test() const
-    {
-        return root.test();
-    }
 };
 
 
-template< size_t N, class... Args >
-Ref mkref(const char (&txt)[N], Args&&... a)
+struct CaseContainer : public std::vector< Case > // yeah I know.
 {
-    return Ref(txt, RefNode(TYPE_ROOT, std::forward< Args >(a)...));
-}
 
+};
 
 } // namespace yml
 } // namespace c4
 
-#endif /* _REF_HPP_ */
+#endif /* _CASE_HPP_ */
