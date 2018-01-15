@@ -328,8 +328,8 @@ C(R"(--- # Indented Block
 {name: John Smith, age: 33}
 )",
   L{
-      N{DOC, L{N{"name","John Smith"}, N{"age","33"}}},
-      N{DOC, L{N{"name","John Smith"}, N{"age","33"}}},
+      N{DOC, L{N("name", "John Smith"), N("age", "33")}},
+      N{DOC, L{N("name", "John Smith"), N("age", "33")}},
   }
 ),
 
@@ -340,8 +340,8 @@ C(R"(
   age: 27
 )",
   L{
-      L{N{"name", "John Smith"}, N{"age", "33"}},
-      L{N{"name", "Mary Smith"}, N{"age", "27"}},
+      L{N("name", "John Smith"), N("age", "33")},
+      L{N("name", "Mary Smith"), N("age", "27")},
   }
 ),
 
@@ -353,8 +353,8 @@ women:
   - Susan Williams
 )",
      L{
-         {"men", L{"John Smith", "Bill Jones"}},
-         {"women", L{"Mary Smith", "Susan Williams"}},
+         N("men", L{"John Smith", "Bill Jones"}),
+         N("women", L{"Mary Smith", "Susan Williams"})
      }
 ),
 
