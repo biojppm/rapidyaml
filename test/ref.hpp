@@ -39,18 +39,18 @@ public:
     CaseNode() : type(TYPE_NONE), key(), val(), children() {}
 
     template< size_t N >
-    CaseNode(const char (&v)[N]) : type(TYPE_VAL), key(), val(v), children() {}
+    explicit CaseNode(const char (&v)[N]) : type(TYPE_VAL), key(), val(v), children() {}
 
     template< size_t N, size_t M >
-    CaseNode(const char (&k)[N], const char (&v)[M]) : type(TYPE_VAL), key(k), val(v), children() {}
+    explicit CaseNode(const char (&k)[N], const char (&v)[M]) : type(TYPE_VAL), key(k), val(v), children() {}
 
     template< size_t N >
     CaseNode(const char (&k)[N], children_init_type s) : type(), key(k), val(), children(s) { type = guess(); }
-    CaseNode(children_init_type m) : CaseNode("", m) {}
+    explicit CaseNode(children_init_type m) : CaseNode("", m) {}
 
     template< size_t N >
-    CaseNode(NodeType_e t, const char (&k)[N], children_init_type s) : type(t), key(k), val(), children(s) {}
-    CaseNode(NodeType_e t, children_init_type m) : CaseNode(t, "", m) {}
+    explicit CaseNode(NodeType_e t, const char (&k)[N], children_init_type s) : type(t), key(k), val(), children(s) {}
+    explicit CaseNode(NodeType_e t, children_init_type m) : CaseNode(t, "", m) {}
 
 public:
 

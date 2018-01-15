@@ -289,7 +289,7 @@ C(R"(- Casablanca
 - North by Northwest
 - The Man Who Wasn't There
 )",
-    L{"Casablanca", "North by Northwest", "The Man Who Wasn't There"}
+    L{N{"Casablanca"}, N{"North by Northwest"}, N{"The Man Who Wasn't There"}}
 ),
 
 C(R"(--- # Favorite movies
@@ -297,7 +297,7 @@ C(R"(--- # Favorite movies
 - North by Northwest
 - The Man Who Wasn't There
 )",
-    N{DOC, {"Casablanca", "North by Northwest", "The Man Who Wasn't There"}}
+    N{DOC, {N{"Casablanca"}, N{"North by Northwest"}, N{"The Man Who Wasn't There"}}}
 ),
 
 C(R"(--- # Favorite movies
@@ -306,18 +306,18 @@ C(R"(--- # Favorite movies
 - The Man Who Wasn't There
 ...
 )",
-    N{DOC, {"Casablanca", "North by Northwest", "The Man Who Wasn't There"}}
+    N{DOC, {N{"Casablanca"}, N{"North by Northwest"}, N{"The Man Who Wasn't There"}}}
 ),
 
 //-----------------------------------------------------------------------------
 C(R"([milk, pumpkin pie, eggs, juice])",
-  L{"milk", "pumpkin pie", "eggs", "juice"}
+  L{N{"milk"}, N{"pumpkin pie"}, N{"eggs"}, N{"juice"}}
 ),
 
 C(R"(--- # Shopping list
 [milk, pumpkin pie, eggs, juice]
 )",
-  N{DOC, {"milk", "pumpkin pie", "eggs", "juice"}}
+  N{DOC, {N{"milk"}, N{"pumpkin pie"}, N{"eggs"}, N{"juice"}}}
 ),
 
 //-----------------------------------------------------------------------------
@@ -340,8 +340,8 @@ C(R"(
   age: 27
 )",
   L{
-      L{N("name", "John Smith"), N("age", "33")},
-      L{N("name", "Mary Smith"), N("age", "27")},
+      N{L{N("name", "John Smith"), N("age", "33")}},
+      N{L{N("name", "Mary Smith"), N("age", "27")}}
   }
 ),
 
@@ -353,12 +353,11 @@ women:
   - Susan Williams
 )",
      L{
-         N("men", L{"John Smith", "Bill Jones"}),
-         N("women", L{"Mary Smith", "Susan Williams"})
+         N("men", L{N{"John Smith"}, N{"Bill Jones"}}),
+         N("women", L{N{"Mary Smith"}, N{"Susan Williams"}})
      }
 ),
 
-#ifdef JAVAI
 
 //-----------------------------------------------------------------------------
 C(R"(
@@ -393,42 +392,36 @@ ship-to:  *id001
 specialDelivery:  >
     Follow the Yellow Brick
     Road to the Emerald City.
-    Pay no attention to the
+    Pay no attention to themR
     man behind the curtain.
 ...
 )",
-     L{{TYPE_DOC, L{
-{"receipt", ""},
-{"receipt", "Oz-Ware Purchase Invoice"},
-{"date", "2012-08-06"},
-{"customer", L{{"first_name", "Dorothy"}, {"family_name", "Gale"}}},
-{"items", L{
-        L{{"part_no", "A4786"},
-            {"descrip",   "Water Bucket (Filled)"},
-            {"price",     "1.47"},
-            {"quantity",  "4"},},
-        L{{"part_no", "E1628"},
-            {"descrip",   "High Heeled \"Ruby\" Slippers"},
-            {"size",     "8"},
-            {"price",     "133.7"},
-            {"quantity",  "1"},},
-{"bill-to", L{
-        {"street", R"(123 Tornado Alley
-Suite 16
-)"},
-        {"city", "East Centerville"},
-        {"state", "KS"},}},
-{"ship-to", L{
-        {"street", R"(123 Tornado Alley
-Suite 16
-)"},
-        {"city", "East Centerville"},
-        {"state", "KS"},}},
-{"specialDelivery", R"(Follow the Yellow Brick Road to the Emerald City. Pay no attention to the man behind the curtain.
-)"}
-    }
-},
-     }}}),
+     L{N{DOC, L{
+N{"receipt", "Oz-Ware Purchase Invoice"},
+N{"date", "2012-08-06"},
+N{"customer", L{N{"first_name", "Dorothy"}, N{"family_name", "Gale"}}},
+N{"items", L{
+        N{L{N{"part_no", "A4786"},
+          N{"descrip",   "Water Bucket (Filled)"},
+          N{"price",     "1.47"},
+          N{"quantity",  "4"},}},
+        N{L{N{"part_no", "E1628"},
+          N{"descrip",   "High Heeled \"Ruby\" Slippers"},
+          N{"size",     "8"},
+          N{"price",     "133.7"},
+          N{"quantity",  "1"},}}}},
+N{"bill-to", L{
+        N{"street", "123 Tornado Alley\nSuite 16\n"},
+        N{"city", "East Centerville"},
+        N{"state", "KS"},}},
+N{"ship-to", L{
+        N{"street", "123 Tornado Alley\nSuite 16\n"},
+        N{"city", "East Centerville"},
+        N{"state", "KS"},}},
+N{"specialDelivery", "Follow the Yellow Brick Road to the Emerald City. Pay no attention to the man behind the curtain.\n"}
+    }}}
+),
+
 
 //-----------------------------------------------------------------------------
 C(R"(
@@ -454,53 +447,55 @@ C(R"(
     spotSize: 2mm                # redefines just this key, refers rest from &id001
 - step: *id002
 )",
-     L{{TYPE_DOC, {
-L{{"step", L{
-    {"instrument",      "Lasik 2000"},
-    {"pulseEnergy",     "5.4"},
-    {"pulseDuration",   "12"},
-    {"repetition",      "1000"},
-    {"spotSize",        "1mm"},
-        }}},
-L{{"step", L{
-    {"instrument",      "Lasik 2000"},
-    {"pulseEnergy",     "5.0"},
-    {"pulseDuration",   "10"},
-    {"repetition",      "500"},
-    {"spotSize",        "2mm"},
-        }}},
-L{{"step", L{
-    {"instrument",      "Lasik 2000"},
-    {"pulseEnergy",     "5.4"},
-    {"pulseDuration",   "12"},
-    {"repetition",      "1000"},
-    {"spotSize",        "1mm"},
-        }}},
-L{{"step", L{
-    {"instrument",      "Lasik 2000"},
-    {"pulseEnergy",     "5.0"},
-    {"pulseDuration",   "10"},
-    {"repetition",      "500"},
-    {"spotSize",        "2mm"},
-        }}},
-L{{"step", L{
-    {"instrument",      "Lasik 2000"},
-    {"pulseEnergy",     "5.4"},
-    {"pulseDuration",   "12"},
-    {"repetition",      "1000"},
-    {"spotSize",        "2mm"},
-        }}},
-L{{"step", L{
-    {"instrument",      "Lasik 2000"},
-    {"pulseEnergy",     "5.0"},
-    {"pulseDuration",   "10"},
-    {"repetition",      "500"},
-    {"spotSize",        "2mm"},
-        }}},
+     L{N{DOC, L{
+N{"step", L{
+    N{"instrument",      "Lasik 2000"},
+    N{"pulseEnergy",     "5.4"},
+    N{"pulseDuration",   "12"},
+    N{"repetition",      "1000"},
+    N{"spotSize",        "1mm"},
+        }},
+N{"step", L{
+    N{"instrument",      "Lasik 2000"},
+    N{"pulseEnergy",     "5.0"},
+    N{"pulseDuration",   "10"},
+    N{"repetition",      "500"},
+    N{"spotSize",        "2mm"},
+        }},
+N{"step", L{
+    N{"instrument",      "Lasik 2000"},
+    N{"pulseEnergy",     "5.4"},
+    N{"pulseDuration",   "12"},
+    N{"repetition",      "1000"},
+    N{"spotSize",        "1mm"},
+        }},
+N{"step", L{
+    N{"instrument",      "Lasik 2000"},
+    N{"pulseEnergy",     "5.0"},
+    N{"pulseDuration",   "10"},
+    N{"repetition",      "500"},
+    N{"spotSize",        "2mm"},
+        }},
+N{"step", L{
+    N{"instrument",      "Lasik 2000"},
+    N{"pulseEnergy",     "5.4"},
+    N{"pulseDuration",   "12"},
+    N{"repetition",      "1000"},
+    N{"spotSize",        "2mm"},
+        }},
+N{"step", L{
+    N{"instrument",      "Lasik 2000"},
+    N{"pulseEnergy",     "5.0"},
+    N{"pulseDuration",   "10"},
+    N{"repetition",      "500"},
+    N{"spotSize",        "2mm"},
+        }},
          }
-     }}),
+     }}
+),
 
 
+#ifdef JAVAI
 //-----------------------------------------------------------------------------
 C(R"(
 data: |
