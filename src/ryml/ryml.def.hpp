@@ -518,7 +518,8 @@ void Tree::free(size_t i)
 #pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 
 /** a debug utility */
-#define _prhl(fmt, ...)                                                \
+/*
+#define _prhl(fmt, ...)                                                 \
     {                                                                   \
         auto _llen = printf("%s:%d: line %zd:%zd(%zd): ",               \
                           __FILE__, __LINE__,                           \
@@ -535,9 +536,23 @@ void Tree::free(size_t i)
             printf(fmt "\n", ## __VA_ARGS__);                           \
         }                                                               \
     }
+*/
+#ifdef RYML_DBG
+#   define _c4prt_(fn, file, line, what, msg, ...)        \
+    this->_##fn(file ":" C4_QUOTE(line) ": " what msg, ## __VA_ARGS__)
+#   define _c4err(fmt, ...)  _c4prt_(err, "\n" __FILE__, __LINE__, "ERROR parsing yml: ", fmt, ## __VA_ARGS__)
+#   define _c4dbgf(fmt, ...) _c4prt_(dbg,      __FILE__, __LINE__,                    "", fmt, ## __VA_ARGS__)
+#   define _c4dbgp(fmt, ...)  printf(__FILE__ ":" C4_XQUOTE(__LINE__) ": " fmt "\n", ## __VA_ARGS__)
+#   define _c4dbgs(fmt, ...)  printf(fmt "\n", ## __VA_ARGS__)
+#else
+#   define _c4err(fmt, ...) this->_err(fmt, ## __VA_ARGS__)
+#   define _c4dbg(fmt, ...)
+#   define _c4dbgs(fmt, ...)
+#endif
 
 #pragma GCC diagnostic pop
 #pragma clang diagnostic pop
+
 
 //-----------------------------------------------------------------------------
 void NextParser::_reset()
@@ -551,15 +566,22 @@ bool NextParser::_finished_file() const
     bool ret = m_state.pos.offset >= m_buf.len;
     if(ret)
     {
-        printf("finished file!!!\n");
+        _c4dbgp("finished file!!!\n");
     }
+    return ret;
+}
+
+//-----------------------------------------------------------------------------
+bool NextParser::_finished_line() const
+{
+    bool ret = ! m_state.line_contents.rem;
     return ret;
 }
 
 //-----------------------------------------------------------------------------
 void NextParser::parse(cspan const& file, cspan const& buf, Node *root)
 {
-    m_file = file ? file : "(no file)";
+    m_file = file;
     m_buf = buf;
     m_root = root;
     m_tree = root->tree();
@@ -568,31 +590,33 @@ void NextParser::parse(cspan const& file, cspan const& buf, Node *root)
     while( ! _finished_file())
     {
         _scan_line();
-
-        while(m_state.line_contents.rem)
+        while( ! _finished_line())
         {
-            _handle_line(m_state.line_contents.rem);
+            _handle_line();
         }
-
         _next_line();
     }
-
 }
 
 //-----------------------------------------------------------------------------
-void NextParser::_handle_line(cspan rem)
+void NextParser::_handle_line()
 {
-    printf("-----------\n");
-    _prhl("");
+    cspan rem = m_state.line_contents.rem;
+
+    _c4dbgs("\n-----------");
+    _c4dbgf("handling line %zd", m_state.pos.line);
 
     C4_ASSERT( ! rem.empty());
 
-    if(int jump = m_state.indentation_jump)
+    if(m_state.has_all(INDOK))
     {
-        _prhl("indentation jump: %d", jump);
-        if(jump < 0)
+        if(int jump = m_state.indentation_jump)
         {
-            _handle_indentation();
+            _c4dbgp("indentation jump: %d", jump);
+            if(jump < 0)
+            {
+                _handle_indentation();
+            }
         }
     }
 
@@ -603,7 +627,7 @@ void NextParser::_handle_line(cspan rem)
 
     if(m_state.has_any(RSEQ))
     {
-        _prhl("handle_seq");
+        _c4dbgp("handle_seq");
         if(_handle_seq(rem))
         {
             return;
@@ -611,15 +635,15 @@ void NextParser::_handle_line(cspan rem)
     }
     else if(m_state.has_any(RMAP))
     {
-        _prhl("handle_map");
+        _c4dbgp("handle_map");
         if(_handle_map(rem))
         {
             return;
         }
     }
-    else if(m_state.flags & RUNK)
+    else if(m_state.has_any(RUNK))
     {
-        _prhl("handle_unk");
+        _c4dbgp("handle_unk");
         if(_handle_unk(rem))
         {
             return;
@@ -644,7 +668,7 @@ bool NextParser::_handle_scalar(cspan rem)
 
     if(alnum || dquot || squot || block)
     {
-        _prhl("it's a scalar");
+        _c4dbgp("it's a scalar");
         cspan s = _scan_scalar();
         C4_ASSERT( ! s.empty());
 
@@ -672,7 +696,7 @@ bool NextParser::_handle_scalar(cspan rem)
         }
         else
         {
-            C4_ERROR("wtf?");
+            _c4err("wtf?");
         }
         return true;
     }
@@ -686,21 +710,31 @@ bool NextParser::_handle_unk(cspan rem)
     const bool start_as_child = (m_state.level != 0) || m_state.node == nullptr;
     if(rem.begins_with(' '))
     {
-        _prhl("indentation jump=%d level=%zd #spaces=%d", m_state.indentation_jump, m_state.level, m_state.line_contents.indentation);
-        C4_ASSERT(m_state.indentation_jump > 0);
+        if(m_state.has_all(INDOK))
+        {
+            _c4dbgp("indentation jump=%d level=%zd #spaces=%d", m_state.indentation_jump, m_state.level, m_state.line_contents.indentation);
+            C4_ASSERT(m_state.indentation_jump > 0);
+        }
         m_state.line_progressed(m_state.line_contents.indentation);
         return true;
     }
     else if(rem.begins_with("- "))
     {
-        _prhl("it's a seq (as_child=%d)", start_as_child);
+        _c4dbgp("it's a seq (as_child=%d)", start_as_child);
         _start_seq(start_as_child);
         m_state.line_progressed(2);
         return true;
     }
+    else if(rem == '-')
+    {
+        _c4dbgp("it's a seq (as_child=%d)", start_as_child);
+        _start_seq(start_as_child);
+        m_state.line_progressed(1);
+        return true;
+    }
     else if(rem.begins_with('['))
     {
-        _prhl("it's a seq (as_child=%d)", start_as_child);
+        _c4dbgp("it's a seq (as_child=%d)", start_as_child);
         _start_seq(start_as_child);
         m_state.flags |= EXPL;
         m_state.line_progressed(1);
@@ -709,15 +743,17 @@ bool NextParser::_handle_unk(cspan rem)
 
     else if(rem.begins_with('{'))
     {
-        _prhl("it's a map (as_child=%d)", start_as_child);
+        _c4dbgp("it's a map (as_child=%d)", start_as_child);
+        _push_level(/*explicit flow*/true);
         _start_map(start_as_child);
-        m_state.flags |= EXPL;
+        m_state.flags |= EXPL|RKEY;
+        m_state.flags &= ~RVAL;
         m_state.line_progressed(1);
         return true;
     }
     else if(rem.begins_with("? "))
     {
-        _prhl("it's a map (as_child=%d)", start_as_child);
+        _c4dbgp("it's a map (as_child=%d)", start_as_child);
         _start_map(start_as_child);
         m_state.line_progressed(2);
         return true;
@@ -725,17 +761,17 @@ bool NextParser::_handle_unk(cspan rem)
 
     else if(m_state.has_all(SSCL))
     {
-        _prhl("there's a stored scalar\n");
+        _c4dbgp("there's a stored scalar");
         if(rem.begins_with(", "))
         {
-            _prhl("it's a seq (as_child=%d)", start_as_child);
+            _c4dbgp("it's a seq (as_child=%d)", start_as_child);
             _start_seq(start_as_child);
             _append_val(_consume_scalar());
             m_state.line_progressed(2);
         }
         else if(rem.begins_with(": "))
         {
-            _prhl("it's a map (as_child=%d)", start_as_child);
+            _c4dbgp("it's a map (as_child=%d)", start_as_child);
             _start_map(start_as_child);
             // wait for the val scalar to append the key-val pair
             m_state.line_progressed(2);
@@ -746,7 +782,7 @@ bool NextParser::_handle_unk(cspan rem)
         }
         else if(rem == ":")
         {
-            _prhl("it's a map (as_child=%d)", start_as_child);
+            _c4dbgp("it's a map (as_child=%d)", start_as_child);
             _start_map(start_as_child);
             // wait for the val scalar to append the key-val pair
             m_state.line_progressed(1);
@@ -754,7 +790,7 @@ bool NextParser::_handle_unk(cspan rem)
         }
         else
         {
-            C4_ERROR("parse error");
+            _c4err("parse error");
         }
         return true;
     }
@@ -767,54 +803,64 @@ bool NextParser::_handle_seq(cspan rem)
 {
     if(m_state.has_any(RVAL))
     {
-        if(rem.begins_with("- "))
+        if(rem.begins_with(' '))
         {
-            _prhl("expect another val");
+            if(m_state.has_all(INDOK))
+            {
+                _c4dbgp("indentation jump=%d level=%zd #spaces=%d", m_state.indentation_jump, m_state.level, m_state.line_contents.indentation);
+                C4_ASSERT(m_state.indentation_jump > 0);
+            }
+            m_state.line_progressed(m_state.line_contents.indentation);
+            return true;
+        }
+        else if(rem.begins_with("- "))
+        {
+            _c4dbgp("expect another val");
             m_state.line_progressed(2);
             return true;
         }
         else if(rem == '-')
         {
-            _prhl("start unknown");
+            _c4dbgp("start unknown");
             _start_unk();
             m_state.line_progressed(1);
             return true;
         }
         else if(rem.begins_with(", "))
         {
-            _prhl("expect another val");
+            _c4dbgp("expect another val");
             m_state.line_progressed(2);
             return true;
         }
         else if(rem.begins_with(']'))
         {
-            _prhl("end the sequence");
+            _c4dbgp("end the sequence");
             m_state.line_progressed(1);
             _pop_level();
             return true;
         }
         else if(_handle_anchors_and_refs(rem))
         {
-            C4_ERROR("not implemented");
+            _c4err("not implemented");
             return true;
         }
         else if(_handle_types(rem))
         {
-            C4_ERROR("not implemented");
+            _c4err("not implemented");
             return true;
         }
         else if(rem.begins_with('#'))
         {
-            C4_ERROR("not implemented");
+            _c4err("not implemented");
         }
         else
         {
-            C4_ERROR("internal error");
+            _c4err("internal error");
         }
     }
     else
     {
-        C4_ERROR("internal error");
+        _c4err("internal error");
     }
     return false;
 }
@@ -827,20 +873,20 @@ bool NextParser::_handle_map(cspan rem)
     {
         if(rem.begins_with(": "))
         {
-            _prhl("wait for val");
+            _c4dbgp("wait for val");
             m_state.line_progressed(2);
             return true;
         }
         else if(rem == ':')
         {
-            _prhl("start unknown");
+            _c4dbgp("start unknown");
             _start_unk();
             m_state.line_progressed(1);
             return true;
         }
         else if(rem.begins_with("- "))
         {
-            _prhl("start a sequence\n");
+            _c4dbgp("start a sequence");
             _push_level();
             _start_seq();
             m_state.line_progressed(2);
@@ -848,7 +894,7 @@ bool NextParser::_handle_map(cspan rem)
         }
         else if(rem.begins_with('['))
         {
-            _prhl("start a sequence\n");
+            _c4dbgp("start a sequence");
             _push_level(/*explicit flow*/true);
             _start_seq();
             m_state.line_progressed(1);
@@ -856,7 +902,7 @@ bool NextParser::_handle_map(cspan rem)
         }
         else if(rem.begins_with('{'))
         {
-            _prhl("start a map");
+            _c4dbgp("start a map");
             _push_level(/*explicit flow*/true);
             _start_map();
             m_state.line_progressed(1);
@@ -864,39 +910,72 @@ bool NextParser::_handle_map(cspan rem)
         }
         else if(rem.begins_with(", "))
         {
-            _prhl("expect another key-val");
+            _c4dbgp("expect another key-val");
             m_state.line_progressed(2);
             return true;
         }
         else if(rem.begins_with('}'))
         {
-            _prhl("end the map");
+            _c4dbgp("end the map");
             m_state.line_progressed(1);
             _pop_level();
             return true;
         }
         else if(_handle_anchors_and_refs(rem))
         {
-            C4_ERROR("not implemented");
+            _c4err("not implemented");
             return true;
         }
         else if(_handle_types(rem))
         {
-            C4_ERROR("not implemented");
+            _c4err("not implemented");
             return true;
         }
         else
         {
-            C4_ERROR("parse error");
+            _c4err("parse error");
         }
     }
     else if(m_state.has_any(RKEY))
     {
-        C4_ERROR("never reach this");
+        if(m_state.has_any(EXPL))
+        {
+            if(rem.begins_with(' '))
+            {
+                rem = rem.left_of(rem.first_not_of(' '));
+                m_state.line_progressed(rem.len);
+                return true;
+            }
+            if(rem.begins_with(", "))
+            {
+                m_state.line_progressed(2);
+                return true;
+            }
+            else if(rem.begins_with(','))
+            {
+                m_state.line_progressed(1);
+                return true;
+            }
+            else if(rem.begins_with('}'))
+            {
+                _c4dbgp("end the map");
+                m_state.line_progressed(1);
+                _pop_level();
+                return true;
+            }
+            else
+            {
+                _c4err("never reach this");
+            }
+        }
+        else
+        {
+            _c4err("never reach this");
+        }
     }
     else
     {
-        C4_ERROR("wtf?");
+        _c4err("wtf?");
     }
     return false;
 }
@@ -906,7 +985,7 @@ bool NextParser::_handle_top(cspan rem)
 {
     if(rem.begins_with('#'))
     {
-        _prhl("a comment line");
+        _c4dbgp("a comment line");
         m_state.line_progressed(rem.len);
         return true;
     }
@@ -915,8 +994,8 @@ bool NextParser::_handle_top(cspan rem)
     {
         if(rem.begins_with('%'))
         {
-            _prhl("%% directive!");
-            C4_ERROR("not implemented");
+            _c4dbgp("%% directive!");
+            _c4err("not implemented");
             if(rem.begins_with("%YAML"))
             {
             }
@@ -925,7 +1004,7 @@ bool NextParser::_handle_top(cspan rem)
             }
             else
             {
-                C4_ERROR("unknown directive starting with %");
+                _c4err("unknown directive starting with %");
             }
             return true;
         }
@@ -933,25 +1012,25 @@ bool NextParser::_handle_top(cspan rem)
         {
             C4_ASSERT(m_state.level == 0);
             // end/start a document
-            C4_ERROR("not implemented");
-            _prhl("end/start a document\n");
+            _c4dbgp("end/start a document");
+            _c4err("not implemented");
             return true;
         }
         else if((m_state.flags & RTOP) && rem.begins_with("..."))
         {
             // end a document
-            _prhl("end a document\n");
-            C4_ERROR("not implemented");
+            _c4dbgp("end a document");
+            _c4err("not implemented");
             return true;
         }
         else
         {
-            C4_ERROR("parse error");
+            _c4err("parse error");
         }
     }
     else
     {
-        C4_ERROR("internal error");
+        _c4err("internal error");
     }
 
     return false;
@@ -962,12 +1041,12 @@ bool NextParser::_handle_anchors_and_refs(cspan rem)
 {
     if(rem.begins_with('&'))
     {
-        C4_ERROR("not implemented");
+        _c4err("not implemented");
         return true;
     }
     else if(rem.begins_with('*'))
     {
-        C4_ERROR("not implemented");
+        _c4err("not implemented");
         return true;
     }
     return false;
@@ -978,12 +1057,12 @@ bool NextParser::_handle_types(cspan rem)
 {
     if(rem.begins_with("!!"))
     {
-        C4_ERROR("not implemented");
+        _c4err("not implemented");
         return true;
     }
     else if(rem.begins_with('!'))
     {
-        C4_ERROR("not implemented");
+        _c4err("not implemented");
         return true;
     }
     return false;
@@ -1014,15 +1093,15 @@ cspan NextParser::_scan_scalar()
     {
         if(m_state.has_all(RKEY))
         {
-            C4_ERROR("internal error");
+            _c4err("internal error");
         }
         else if(m_state.has_all(RVAL))
         {
-            s = s.left_of(s.first_of(",]"));
+            s = s.left_of(s.first_of(",]#"));
         }
         else
         {
-            C4_ERROR("parse error");
+            _c4err("parse error");
         }
     }
     else if(m_state.has_any(RMAP))
@@ -1040,6 +1119,7 @@ cspan NextParser::_scan_scalar()
 
         if(m_state.has_all(RKEY))
         {
+            _c4dbgp("RMAP|RKEY");
             if(m_state.has_any(CPLX))
             {
                 C4_ASSERT(m_state.has_any(RMAP));
@@ -1054,25 +1134,27 @@ cspan NextParser::_scan_scalar()
         }
         else if(m_state.has_all(RVAL))
         {
+            _c4dbgp("RMAP|RVAL\n");
+            s = s.left_of(s.first_of(",}#"));
             s = s.trim(' ');
         }
         else
         {
-            C4_ERROR("parse error");
+            _c4err("parse error");
         }
     }
     else if(m_state.has_all(RUNK))
     {
-        s = s.left_of(s.first_of(",: "));
+        s = s.left_of(s.first_of(",: #"));
     }
     else
     {
-        C4_ERROR("not implemented");
+        _c4err("not implemented");
     }
 
-    _prhl("scalar was '%.*s'", _c4prsp(s));
+    _c4dbgp("scalar was '%.*s'", _c4prsp(s));
 
-    m_state.line_progressed(s.len);
+    m_state.line_progressed(s.str - m_state.line_contents.rem.str + s.len);
 
     return s;
 }
@@ -1109,13 +1191,13 @@ void NextParser::_push_level(bool explicit_flow_chars)
         C4_ASSERT( ! explicit_flow_chars);
         return;
     }
-    printf("level pushed!\n");
+    _c4dbgp("level pushed!");
     size_t st = RUNK;
     if(explicit_flow_chars)
     {
         st |= EXPL;
     }
-    printf("stacking node %zd\n", m_state.node->id());
+    _c4dbgp("stacking node %zd", m_state.node->id());
     m_stack.push(m_state);
     m_state.flags = st;
     m_state.node = nullptr;
@@ -1124,7 +1206,7 @@ void NextParser::_push_level(bool explicit_flow_chars)
 
 void NextParser::_pop_level()
 {
-    printf("level popped!\n");
+    _c4dbgp("level popped!");
     if(m_state.has_any(RMAP))
     {
         _stop_map();
@@ -1135,9 +1217,9 @@ void NextParser::_pop_level()
     }
     else
     {
-        C4_ERROR("internal error");
+        _c4err("internal error");
     }
-    printf("popping node %zd top %zd\n", m_state.node->id(), m_stack.peek().node->id());
+    _c4dbgp("popping node %zd top %zd", m_state.node->id(), m_stack.empty() ? NONE : m_stack.peek().node->id());
     C4_ASSERT( ! m_stack.empty());
     m_stack.peek()._prepare_pop(m_state);
     m_state = m_stack.pop();
@@ -1147,7 +1229,7 @@ void NextParser::_pop_level()
     }
     if(m_state.line_contents.indentation == 0)
     {
-        C4_ASSERT(m_state.has_none(RTOP));
+        //C4_ASSERT(m_state.has_none(RTOP));
         m_state.flags |= RTOP;
     }
 
@@ -1157,7 +1239,7 @@ void NextParser::_pop_level()
 //-----------------------------------------------------------------------------
 void NextParser::_start_unk(bool as_child)
 {
-    printf("start_unk\n");
+    _c4dbgp("start_unk");
     _push_level();
     if(m_stack.peek().flags & SSCL)
     {
@@ -1168,7 +1250,7 @@ void NextParser::_start_unk(bool as_child)
 //-----------------------------------------------------------------------------
 void NextParser::_start_map(bool as_child)
 {
-    printf("start_map\n");
+    _c4dbgp("start_map");
     m_state.flags |= RMAP|RVAL;
     m_state.flags &= ~RKEY;
     m_state.flags &= ~RUNK;
@@ -1187,12 +1269,12 @@ void NextParser::_start_map(bool as_child)
         m_state.node->m_type = TYPE_MAP;
         _move_scalar_from_top();
     }
-    printf("start_map: id=%zd name='%.*s'\n", m_state.node->id(), _c4prsp(m_state.node->name()));
+    _c4dbgp("start_map: id=%zd name='%.*s'", m_state.node->id(), _c4prsp(m_state.node->name()));
 }
 
 void NextParser::_stop_map()
 {
-    printf("stop_map\n");
+    _c4dbgp("stop_map");
     C4_ASSERT(m_state.node->is_map());
     m_state.node->tree()->end_map();
 }
@@ -1200,7 +1282,7 @@ void NextParser::_stop_map()
 //-----------------------------------------------------------------------------
 void NextParser::_start_seq(bool as_child)
 {
-    printf("start_seq\n");
+    _c4dbgp("start_seq");
     m_state.flags |= RSEQ|RVAL;
     m_state.flags &= ~RUNK;
     Node* parent = m_stack.empty() ? m_root : m_stack.peek().node;
@@ -1218,12 +1300,12 @@ void NextParser::_start_seq(bool as_child)
         m_state.node->m_type = TYPE_SEQ;
         _move_scalar_from_top();
     }
-    printf("start_seq: id=%zd name='%.*s'\n", m_state.node->id(), _c4prsp(m_state.node->name()));
+    _c4dbgp("start_seq: id=%zd name='%.*s'", m_state.node->id(), _c4prsp(m_state.node->name()));
 }
 
 void NextParser::_stop_seq()
 {
-    printf("stop_seq\n");
+    _c4dbgp("stop_seq");
     C4_ASSERT(m_state.node->is_seq());
     m_state.node->tree()->end_seq();
 }
@@ -1234,9 +1316,9 @@ void NextParser::_append_val(cspan const& val)
     C4_ASSERT( ! m_state.has_all(SSCL));
     C4_ASSERT(m_state.node != nullptr);
     C4_ASSERT(m_state.node->is_seq());
-    printf("append val: '%.*s'\n", _c4prsp(val));
+    _c4dbgp("append val: '%.*s'", _c4prsp(val));
     m_state.node->append_child_seq(val);
-    printf("append val: id=%zd name='%.*s' val='%.*s'\n", m_state.node->last_child()->id(), _c4prsp(m_state.node->last_child()->name()), _c4prsp(m_state.node->last_child()->val()));
+    _c4dbgp("append val: id=%zd name='%.*s' val='%.*s'", m_state.node->last_child()->id(), _c4prsp(m_state.node->last_child()->name()), _c4prsp(m_state.node->last_child()->val()));
 
     //emit(m_state.node->tree()->root());
 }
@@ -1245,9 +1327,9 @@ void NextParser::_append_key_val(cspan const& val)
 {
     C4_ASSERT(m_state.node->is_map());
     cspan key = _consume_scalar();;
-    printf("append key-val: '%.*s' '%.*s'\n", _c4prsp(key), _c4prsp(val));
+    _c4dbgp("append key-val: '%.*s' '%.*s'", _c4prsp(key), _c4prsp(val));
     m_state.node->append_child(key, val);
-    printf("append key-val: id=%zd name='%.*s' val='%.*s'\n", m_state.node->last_child()->id(), _c4prsp(m_state.node->last_child()->name()), _c4prsp(m_state.node->last_child()->val()));
+    _c4dbgp("append key-val: id=%zd name='%.*s' val='%.*s'", m_state.node->last_child()->id(), _c4prsp(m_state.node->last_child()->name()), _c4prsp(m_state.node->last_child()->val()));
     _toggle_key_val();
 
     //emit(m_state.node->tree()->root());
@@ -1270,7 +1352,7 @@ void NextParser::_toggle_key_val()
 //-----------------------------------------------------------------------------
 void NextParser::_store_scalar(cspan const& s)
 {
-    printf("storing scalar: '%.*s'\n", _c4prsp(s));
+    _c4dbgp("storing scalar: '%.*s'", _c4prsp(s));
     C4_ASSERT(m_state.has_none(SSCL));
     m_state.flags |= SSCL;
     m_state.scalar = s;
@@ -1278,7 +1360,7 @@ void NextParser::_store_scalar(cspan const& s)
 
 cspan NextParser::_consume_scalar()
 {
-    printf("consuming scalar: '%.*s' (flag: %d))\n", _c4prsp(m_state.scalar), m_state.scalar & SSCL);
+    _c4dbgp("consuming scalar: '%.*s' (flag: %d))", _c4prsp(m_state.scalar), m_state.scalar & SSCL);
     C4_ASSERT(m_state.flags & SSCL);
     cspan s = m_state.scalar;
     m_state.flags &= ~SSCL;
@@ -1292,7 +1374,7 @@ void NextParser::_move_scalar_from_top()
     if(m_stack.peek().flags & SSCL)
     {
         State &top = m_stack.peek();
-        printf("moving scalar: '%.*s' (overwriting '%.*s')\n", _c4prsp(top.scalar), _c4prsp(m_state.scalar));
+        _c4dbgp("moving scalar: '%.*s' (overwriting '%.*s')", _c4prsp(top.scalar), _c4prsp(m_state.scalar));
         m_state.flags |= (top.flags & SSCL);
         m_state.scalar = top.scalar;
         top.flags &= ~SSCL;
@@ -1306,7 +1388,7 @@ int NextParser::_handle_indentation()
     int jump = m_state.indentation_jump;
     if(jump < 0)
     {
-        printf("indentation decreased %zd level%s!\n", jump, jump>1?"s":"");
+        _c4dbgp("indentation decreased %d space%s!", (-jump), (-jump)>1?"s":"");
         for(size_t i = 0; i < jump; ++i)
         {
             _pop_level();
@@ -1314,7 +1396,7 @@ int NextParser::_handle_indentation()
     }
     else if(jump > 0)
     {
-        C4_ERROR("never reach this");
+        _c4err("never reach this");
         // level must be pushed elsewhere;
         // too complicated to deal with here
     }
@@ -1414,7 +1496,7 @@ cspan NextParser::_scan_quoted_scalar(const char q)
     }
     if(pos == npos)
     {
-        C4_ERROR("reached end of file while looking for closing quote");
+        _c4err("reached end of file while looking for closing quote");
     }
     C4_ASSERT(s[pos] == q);
     s = s.subspan(1, pos - 1);
@@ -1442,42 +1524,28 @@ cspan NextParser::_scan_block()
     size_t indentation = npos; // have to find out if no spec is given
     if(s.len > 1)
     {
-        char c = s.str[1];
-        if(c == '-')
+        s = s.subspan(1);
+        if(s[0] == '-')
         {
             chomp = CHOMP_STRIP;
-            c = s.len > 2 ? s.str[2] : '\0'; // advance
+            s = s.subspan(1);
         }
-        else if(c == '+')
+        else if(s[0] == '+')
         {
             chomp = CHOMP_KEEP;
-            c = s.len > 2 ? s.str[2] : '\0'; // advance
+            s = s.subspan(1);
         }
 
-        // from here to the end, only digits (or nothing) are allowed
-        if(c >= '0' && c <= '9')
+        // from here to the end, only digits are considered
+        cspan digits = s.left_of(s.first_not_of("0123456789"));
+        if(digits)
         {
-            for(size_t i = 1; i < s.len; ++i)
+            if( ! _read_decimal(digits, &indentation))
             {
-                C4_ASSERT(s.str[i] >= '0' && s.str[i] <= '9');
+                _c4err("parse error: could not read decimal");
             }
-            cspan number = s.subspan(1);
-            if( ! _read_decimal(number, &indentation))
-            {
-                C4_ERROR("parse error: could not read decimal");
-            }
-        }
-        else if(c == '\0')
-        {
-            // no digit appears: we're done parsing the spec
-        }
-        else
-        {
-            C4_ERROR("parse error: invalid characters in block specification");
         }
     }
-
-    C4_ERROR("not implemented");
 
     // finish the current line
     _next_line();
@@ -1489,7 +1557,7 @@ cspan NextParser::_scan_block()
     // read every full line into a raw block,
     // from which newlines are to be stripped as needed
     size_t num_lines = 0, first = m_state.pos.line;
-    while( ! _finished_file() && m_state.line_contents.indentation == indentation)
+    while( ! _finished_file() && m_state.line_contents.indentation >= indentation)
     {
         _scan_line();
         raw_block.len += m_state.line_contents.full.len;
@@ -1509,7 +1577,7 @@ cspan NextParser::_scan_block()
 //-----------------------------------------------------------------------------
 cspan NextParser::_filter_quoted_scalar(cspan const& s, const char q)
 {
-    C4_ERROR("not implemented");
+    _c4err("not implemented");
     return {};
 }
 
@@ -1551,11 +1619,11 @@ cspan NextParser::_filter_raw_block(cspan const& block, BlockStyle_e style, Bloc
                 return ret;
             }
         default:
-            C4_ERROR("unknown style");
+            _c4err("unknown style");
         }
     }
 
-    C4_ERROR("not implemented");
+    _c4err("not implemented");
     return {};
 }
 
@@ -1567,11 +1635,95 @@ bool NextParser::_read_decimal(cspan const& str, size_t *decimal)
     for(size_t i = 0; i < str.len; ++i)
     {
         if(str.str[i] < '0' || str.str[i] > '9') return false;
-        if(i > 1) n *= 10;
-        n += c;
+        n = n*10 + c;
     }
     *decimal = n;
     return true;
+}
+
+//-----------------------------------------------------------------------------
+void NextParser::_err(const char *fmt, ...) const
+{
+    char errmsg[RYML_ERRMSG_SIZE];
+    int len = sizeof(errmsg);
+
+    va_list args;
+    va_start(args, fmt);
+    len = _fmt_msg(errmsg, len, fmt, args);
+    va_end(args);
+    RymlCallbacks::error(errmsg, len);
+}
+
+#ifdef RYML_DBG
+//-----------------------------------------------------------------------------
+void NextParser::_dbg(const char *fmt, ...) const
+{
+    char errmsg[RYML_ERRMSG_SIZE];
+    int len = sizeof(errmsg);
+
+    va_list args;
+    va_start(args, fmt);
+    len = _fmt_msg(errmsg, len, fmt, args);
+    va_end(args);
+    printf("%.*s", len, errmsg);
+}
+#endif
+
+//-----------------------------------------------------------------------------
+int NextParser::_fmt_msg(char *buf, int buflen, const char *fmt, va_list args) const
+{
+    int len = buflen;
+    int pos = 0;
+    auto const& lc = m_state.line_contents;
+
+#define _wrapbuf() pos += del; len -= del; if(len < 0) { pos = 0; len = buflen; }
+
+    // first line: print the message
+    int del = vsnprintf(buf + pos, len, fmt, args);
+    _wrapbuf();
+    del = snprintf(buf + pos, len, "\n");
+    _wrapbuf();
+
+    // next line: print the yaml src line
+    if(m_file)
+    {
+        del = snprintf(buf + pos, len, "%.*s:%d: line %zd: '", (int)m_file.len, m_file.str, m_state.pos.line, m_state.pos.line);
+    }
+    else
+    {
+        del = snprintf(buf + pos, len, "(str):%d: line %zd: '", m_state.pos.line, m_state.pos.line);
+    }
+    int offs = del;
+    _wrapbuf();
+    del = snprintf(buf + pos, len, "%.*s' (sz=%zd)\n",
+                   (int)lc.stripped.len, lc.stripped.str, lc.stripped.len);
+    _wrapbuf();
+
+    // next line: highlight the remaining portion of the previous line
+    if(lc.rem.len)
+    {
+        size_t firstcol = lc.rem.begin() - lc.full.begin();
+        size_t lastcol = firstcol + lc.rem.len;
+        int numblanks = offs + firstcol;
+        numblanks -= numblanks >= 8 ? 8 : 0;
+        del = snprintf(buf + pos, len, "parsing:%*s", numblanks, ""); // this works only for spaces....
+        _wrapbuf();
+        // the %*s technique works only for spaces, so put the characters directly
+        del = (int)lc.rem.len;
+        for(int i = 0; i < del && i < len; ++i) { buf[pos + i] = (i ? '~' : '^'); }
+        _wrapbuf();
+        del = snprintf(buf + pos, len, "  (cols %zd-%zd)\n", firstcol+1, lastcol+1);
+        _wrapbuf();
+    }
+    else
+    {
+        del = snprintf(buf + pos, len, "\n");
+        _wrapbuf();
+    }
+
+#undef _wrapbuf
+
+    return pos;
 }
 
 } // namespace ryml

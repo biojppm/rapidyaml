@@ -7,6 +7,9 @@
 #include "./span.hpp"
 #include "./stack.hpp"
 
+#define RYML_DBG // remove this
+#define RYML_ERRMSG_SIZE 1024
+
 namespace c4 {
 namespace yml {
 
@@ -23,7 +26,6 @@ typedef enum {
     CHOMP_STRIP,   ///< no newline at end     (-)
     CHOMP_KEEP     ///< all newlines from end (+)
 } BlockChomp_e;
-
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -129,6 +131,18 @@ public:
 
     template< class Visitor >
     void visit(Visitor fn, size_t indentation_level = 0)
+    {
+        fn(this, indentation_level);
+        fn.push(this);
+        for(Node *ch = first_child(); ch; ch = ch->next_sibling())
+        {
+            ch->visit(fn, indentation_level + 1);
+        }
+        fn.pop(this);
+    }
+
+    template< class Visitor >
+    void visit(Visitor fn, size_t indentation_level = 0) const
     {
         fn(this, indentation_level);
         fn.push(this);
@@ -507,8 +521,8 @@ private:
 
 public:
 
-    Node      * root()       { C4_ASSERT(m_num > 0); Node *n = m_buf; return n; }
-    Node const* root() const { C4_ASSERT(m_num > 0); Node *n = m_buf; return n; }
+    Node      * root()       { C4_ASSERT(m_num > 0); Node *n = m_buf; C4_ASSERT(n->parent() == nullptr); return n; }
+    Node const* root() const { C4_ASSERT(m_num > 0); Node *n = m_buf; C4_ASSERT(n->parent() == nullptr); return n; }
 
     Node      * first_doc()         { Node *n = root()->child(0); C4_ASSERT(n && n->type() == TYPE_DOC); return n; }
     Node const* first_doc() const   { Node *n = root()->child(0); C4_ASSERT(n && n->type() == TYPE_DOC); return n; }
@@ -590,6 +604,7 @@ public:
     {
         parse(s, &input[0], N-1);
     }
+
     void parse(Tree *s, cspan const& sp)
     {
         parse(s, sp.str, sp.len);
@@ -620,12 +635,12 @@ public:
             switch(ev.m_event.type)
             {
 #define _c4_handle_case(_ev) \
-case _ev:                   \
+case YAML_ ## _ev ## _EVENT:                   \
     printf(#_ev " prev=%.*s val=%.*s\n",    \
            (int)prev_scalar.len, prev_scalar.str,   \
            (int)val.len, val.str);
 
-            _c4_handle_case(YAML_MAPPING_START_EVENT)
+            _c4_handle_case(MAPPING_START)
                 if(( ! s->stack_top_is_type(TYPE_DOC) || doc_had_scalars)
                    &&
                    ( ! m_load_root))
@@ -635,22 +650,21 @@ case _ev:                   \
                     prev_scalar.clear();
                 }
                 break;
-            _c4_handle_case(YAML_MAPPING_END_EVENT)
+            _c4_handle_case(MAPPING_END)
                 if( ! s->stack_top_is_type(TYPE_DOC) && ! m_load_root)
                 {
                     s->end_map();
                 }
                 break;
 
-            _c4_handle_case(YAML_SEQUENCE_START_EVENT)
-                C4_ASSERT( ! prev_scalar.empty());
+            _c4_handle_case(SEQUENCE_START)
                 s->begin_seq(prev_scalar, s->top_last());
                 break;
-            _c4_handle_case(YAML_SEQUENCE_END_EVENT)
+            _c4_handle_case(SEQUENCE_END)
                 s->end_seq();
                 break;
 
-            _c4_handle_case(YAML_SCALAR_EVENT)
+            _c4_handle_case(SCALAR)
                 if(s->stack_top_is_type(TYPE_SEQ))
                 {
                     s->add_val({}, val, s->top_last());
@@ -671,29 +685,29 @@ case _ev:                   \
                 doc_had_scalars = true;
                 break;
 
-            _c4_handle_case(YAML_DOCUMENT_START_EVENT)
+            _c4_handle_case(DOCUMENT_START)
                 if( ! m_load_root)
                 {
                     s->begin_doc(s->top_last());
                     doc_had_scalars = false;
                 }
                 break;
-            _c4_handle_case(YAML_DOCUMENT_END_EVENT)
+            _c4_handle_case(DOCUMENT_END)
                 if( ! m_load_root)
                 {
                     s->end_doc();
                 }
                 break;
 
-            _c4_handle_case(YAML_STREAM_START_EVENT)
+            _c4_handle_case(STREAM_START)
                 s->begin_stream();
                 break;
-            _c4_handle_case(YAML_STREAM_END_EVENT)
+            _c4_handle_case(STREAM_END)
                 s->end_stream();
                 done = true;
                 break;
 
-            _c4_handle_case(YAML_ALIAS_EVENT)
+            _c4_handle_case(ALIAS)
                 C4_ASSERT(false && "YAML_ALIAS_EVENT not implemented");
                 break;
 #undef _c4_handle_case
@@ -776,16 +790,53 @@ public:
     Emitter(FILE *f = nullptr) : m_span(), m_pos(0), m_file(f ? f : stdout) {}
     Emitter(span const& sp) : m_span(sp), m_pos(0), m_file(nullptr) {}
 
+    /** emit YAML to the given file or buffer.
+     *
+     * When writing to a buffer, returns a subspan of the emitted YAML.
+     * If the given buffer has insufficient space, the returned span will
+     * be null and its size will be the needed space. No writes are done
+     * after the end of the buffer.
+     *
+     * When writing to a file, the returned span will be null, but its
+     * length is set the number of bytes written. */
+    span emit(Node const* n, bool error_on_excess=true)
+    {
+        C4_ASSERT( ! m_span.empty() || m_file);
+        size_t num = this->visit(n);
+        span result = {};
+        if(m_file)
+        {
+            result.len = num;
+            result.str = nullptr;
+        }
+        else
+        {
+            result = m_span.subspan(0, num);
+            if(num > m_span.len)
+            {
+                result.str = nullptr;
+                if(error_on_excess)
+                {
+                    RymlCallbacks::error("not enough space in the given span");
+                }
+            }
+        }
+        return result;
+    }
+
     size_t tell() const { return m_pos; }
     void   seek(size_t p) { m_pos = p; }
 
-    size_t visit(Node *root)
+    size_t visit(Node const* root)
     {
         size_t b = m_pos;
         Visitor v{this};
         root->visit(v);
-        return m_pos - b;
+        size_t e = m_pos - b;
+        return e;
     }
+
+private:
 
     struct Visitor
     {
@@ -823,10 +874,6 @@ public:
         }
     };
 
-#define _c4sargs ret.str, ret.len
-#define _c4kargs (int)k.len, k.str
-#define _c4vargs (int)v.len, v.str
-
     void _writeind(size_t level)
     {
         size_t num = 2 * level; // 2 spaces per indentation level
@@ -836,10 +883,13 @@ public:
         }
         else
         {
-            auto ret = _has_room(num);
-            if( ! ret.empty())
+            if(m_pos + num < m_span.len)
             {
-                m_pos += snprintf(_c4sargs, "%*s", (int)num, "");
+                _write(' ',  num);
+            }
+            else
+            {
+                m_pos += num;
             }
         }
 
@@ -849,14 +899,19 @@ public:
     {
         if(m_file)
         {
-            m_pos += fprintf(m_file, "%.*s:\n", _c4kargs);
+            m_pos += fprintf(m_file, "%.*s:\n", (int)k.len, k.str);
         }
         else
         {
-            auto ret = _has_room(k.len + 2);
-            if( ! ret.empty())
+            size_t num = k.len + 1;
+            if(m_pos + num < m_span.len)
             {
-                m_pos += snprintf(_c4sargs, "%.*s:\n", _c4kargs);
+                _write(k);
+                _write('\n');
+            }
+            else
+            {
+                m_pos += num;
             }
         }
     }
@@ -865,14 +920,20 @@ public:
     {
         if(m_file)
         {
-            m_pos += fprintf(m_file, "- %.*s\n", _c4vargs);
+            m_pos += fprintf(m_file, "- %.*s\n", (int)v.len, v.str);
         }
         else
         {
-            auto ret = _has_room(2 + v.len + 1);
-            if( ! ret.empty())
+            size_t num = 2 + v.len + 1;
+            if(m_pos + num < m_span.len)
             {
-                m_pos += snprintf(_c4sargs, "- %.*s\n", _c4vargs);
+                _write("- ");
+                _write(v);
+                _write('\n');
+            }
+            else
+            {
+                m_pos += num;
             }
         }
     }
@@ -881,67 +942,91 @@ public:
     {
         if(m_file)
         {
-            m_pos += fprintf(m_file, "%.*s: %.*s\n", _c4kargs, _c4vargs);
+            m_pos += fprintf(m_file, "%.*s: %.*s\n",
+                             (int)k.len, k.str,
+                             (int)v.len, v.str);
         }
         else
         {
-            auto ret = _has_room(k.len + 2 + v.len + 1);
-            if( ! ret.empty())
+            size_t num = 2 + v.len + 1;
+            if(m_pos + num < m_span.len)
             {
-                m_pos += snprintf(_c4sargs, "%.*s: %.*s\n", _c4kargs, _c4vargs);
+                _write(k);
+                _write(" ");
+                _write(v);
+                _write('\n');
+            }
+            else
+            {
+                m_pos += num;
             }
         }
     }
 
-#undef _c4spargs
-#undef _c4kargs
-#undef _c4vargs
+private:
 
-    span _has_room(size_t more)
+    inline void _write(const char c)
     {
-        bool ok = m_pos + more < m_span.len;
-        span ret = ok ? m_span.subspan(m_pos) : span();
-        return ret;
+        C4_ASSERT(m_pos + 1 < m_span.len);
+        m_span[m_pos] = c;
+        ++m_pos;
+    }
+
+    inline void _write(const char c, size_t num_times)
+    {
+        for(size_t i = m_pos, e = m_pos + num_times; i < e; ++i)
+        {
+            m_span[m_pos + i] = c;
+        }
+        m_pos += num_times;
+    }
+
+    template< size_t N >
+    inline void _write(const char (&s)[N])
+    {
+        size_t nm1 = N-1;
+        C4_ASSERT(s[nm1] == '\0');
+        C4_ASSERT(m_pos + nm1 < m_span.len);
+        memcpy(&(m_span[m_pos]), s, nm1);
+        m_pos += nm1;
+    }
+
+    inline void _write(cspan const& sp)
+    {
+        C4_ASSERT(m_pos + sp.len < m_span.len);
+        memcpy(&(m_span[m_pos]), sp.str, sp.len);
+        m_pos += sp.len;
     }
 };
 
 //-----------------------------------------------------------------------------
-/** emit YAML to the given file */
-inline size_t emit(Node *n, FILE *f = nullptr)
+/** emit YAML to the given file. A null file defaults to stdout.
+ * Return the number of bytes written. */
+
+inline size_t emit(Node const* n, FILE *f = nullptr)
 {
     detail::Emitter em(f);
-    size_t num = em.visit(n);
+    size_t num = em.emit(n).len;
     return num;
 }
+inline size_t emit(Tree const &t, FILE *f = nullptr)
+{
+    return emit(t.root(), f);
+}
 
-/** emit YAML to the given buffer. Return a span of the emitted YAML.
- * If the given buffer has insufficient space, the returned span will
- * be null and its size will be the needed space. */
-inline span emit_unchecked(Node *n, span const& sp)
+//-----------------------------------------------------------------------------
+/** emit YAML to the given buffer. Return a subspan of the emitted YAML.
+ * Raise an error if the space in the buffer is insufficient. */
+inline span emit(Node const* n, span const& sp, bool error_on_excess=true)
 {
     detail::Emitter em(sp);
-    size_t num = em.visit(n);
-    span result = sp.subspan(0, num);
-    if(num >= sp.len)
-    {
-        result.str = nullptr;
-    }
+    span result = em.emit(n, error_on_excess);
     return result;
 }
-
-/** emit YAML to the given buffer. Raise an error if the space in the
- * buffer is insufficient. */
-inline span emit(Node *root, span const& sp)
+inline span emit(Tree const& t, span const& sp, bool error_on_excess=true)
 {
-    span ret = emit_unchecked(root, sp);
-    C4_ASSERT(ret.len <= sp.len);
-    if(ret.len >= sp.len)
-    {
-        RymlCallbacks::error("not enough space in the given span");
-    }
-    return ret;
+    return emit(t.root(), sp, error_on_excess);
 }
-
 
 
 //-----------------------------------------------------------------------------
@@ -961,8 +1046,9 @@ private:
         RVAL = 0x01 <<  6, // reading a scalar as val
         CPLX = 0x01 <<  7, // reading a complex key
         SSCL = 0x01 <<  8, // there's a scalar stored
+
         STARTED_ = 0x01 << 16, // mark the parser started
-        INDENTED_ = 0x01 <<  17,
+        INDOK = 0x01 << 17, // allow indentation jumps
     } State_e;
 
     struct LineContents
@@ -1061,7 +1147,7 @@ public:
 
 public:
 
-    Tree parse(                   cspan const& buf) { return parse("(inline source)", buf); }
+    Tree parse(                   cspan const& buf) { return parse({}, buf); }
     Tree parse(cspan const& file, cspan const& buf)
     {
         Tree t;
@@ -1070,13 +1156,13 @@ public:
         return t;
     }
 
-    void parse(                   cspan const& buf, Tree *t) { return parse("(inline source)", buf, t); }
+    void parse(                   cspan const& buf, Tree *t) { return parse({}, buf, t); }
     void parse(cspan const& file, cspan const& buf, Tree *t)
     {
         parse(file, buf, t->root());
     }
 
-    void parse(                   cspan const& buf, Node *root) { return parse("(inline source)", buf, root); }
+    void parse(                   cspan const& buf, Node *root) { return parse({}, buf, root); }
     void parse(cspan const& file, cspan const& buf, Node *root);
 
 private:
@@ -1084,6 +1170,7 @@ private:
     void _reset();
 
     bool  _finished_file() const;
+    bool  _finished_line() const;
 
     void  _scan_line();
     void  _next_line() { m_state.line_ended(); }
@@ -1096,7 +1183,7 @@ private:
     cspan _filter_quoted_scalar(cspan const& s, const char q);
     cspan _filter_raw_block(cspan const& block, BlockStyle_e style, BlockChomp_e chomp, size_t indentation);
 
-    void  _handle_line(cspan rem);
+    void  _handle_line();
     int   _handle_indentation();
 
     bool  _handle_unk(cspan rem);
@@ -1131,7 +1218,55 @@ private:
 
     static bool _read_decimal(cspan const& str, size_t *decimal);
 
+private:
+
+#ifdef RYML_DBG
+    void _dbg(const char *msg, ...) const;
+#endif
+    void _err(const char *msg, ...) const;
+    int  _fmt_msg(char *buf, int buflen, const char *msg, va_list args) const;
 };
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+inline Tree parse(cspan const& buf)
+{
+    NextParser np;
+    return np.parse(buf);
+}
+
+inline Tree parse(cspan const& file, cspan const& buf)
+{
+    NextParser np;
+    return np.parse(file, buf);
+}
+
+inline void parse(cspan const& buf, Tree *t)
+{
+    NextParser np;
+    np.parse(buf, t);
+}
+
+inline void parse(cspan const& file, cspan const& buf, Tree *t)
+{
+    NextParser np;
+    np.parse(file, buf, t);
+}
+
+inline void parse(cspan const& buf, Node *root)
+{
+    NextParser np;
+    np.parse(buf, root);
+}
+
+inline void parse(cspan const& file, cspan const& buf, Node *root)
+{
+    NextParser np;
+    np.parse(file, buf, root);
+}
 
 } // namespace yml
 } // namespace c4

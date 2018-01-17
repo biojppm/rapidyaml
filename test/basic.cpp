@@ -284,28 +284,73 @@ void do_test()
 
 //-----------------------------------------------------------------------------
 
+C("simple map, explicit, single line",
+"{foo: 0, bar: 1, baz: 2, bat: 3}",
+    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+),
+
+C("simple map, explicit, multiline, unindented",
+R"({
+foo: 0,
+bar: 1,
+baz: 2,
+bat: 3
+})",
+    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+),
+
+C("simple map, explicit, multiline, indented",
+R"({
+  foo: 0,
+  bar: 1,
+  baz: 2,
+  bat: 3
+})",
+    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+),
+
+C("simple map",
+R"(
+foo: 0
+bar: 1
+baz: 2
+bat: 3
+)",
+    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+),
+
+C("simple map, with comments",
+R"(
+foo: 0   # this is a foo
+bar: 1   # this is a bar
+baz: 2   # this is a bar
+bat: 3   # this is a bar
+)",
+    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+),
+
+C("simple map, with comments interspersed",
+R"(
+# this is a foo
+foo: 0
+# this is a bar
+bar: 1
+# this is a baz
+baz: 2
+# this is a bat
+bat: 3
+)",
+    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+),
+
+//-----------------------------------------------------------------------------
+
 C("simple seq",
 R"(- 0
 - 1
 - 2
 - 3
 - 4
-)",
-    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}, N{"4"}}
-),
-
-C("simple seq, next line",
-R"(
--
-  0
--
-  1
--
-  2
--
-  3
--
-  4
 )",
     L{N{"0"}, N{"1"}, N{"2"}, N{"3"}, N{"4"}}
 ),
@@ -345,28 +390,6 @@ R"([
 ),
 
 //-----------------------------------------------------------------------------
-C("nested seq x2",
-R"(
--
-  - 00
-  - 01
-  - 02
--
-  - 10
-  - 11
-  - 12
--
-  - 20
-  - 21
-  - 22
-)",
-    L{
-      N{L{N{"00"}, N{"01"}, N{"02"}}},
-      N{L{N{"10"}, N{"11"}, N{"12"}}},
-      N{L{N{"20"}, N{"21"}, N{"22"}}},
-          }
-),
-
 C("nested seq x2, fmt 2",
 R"(
 - - 00
@@ -712,6 +735,43 @@ date: 2007-06-01
           N{"date","2007-06-01"},
               }}
 ),
+
+
+
+//-----------------------------------------------------------------------------
+C("scalar block, literal, no chomp, no indentation",
+R"(example: |
+  Several lines of text,
+  with some \"quotes\" of various 'types',
+  and also a blank line:
+
+  plus another line at the end.
+
+another: text
+)",
+     L{
+      N{"example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"},
+      N{"another", "text"},
+          }
+),
+
+//-----------------------------------------------------------------------------
+C("scalar block, folded, no chomp, no indentation",
+R"(example: >
+  Several lines of text,
+  with some \"quotes\" of various 'types',
+  and also a blank line:
+
+  plus another line at the end.
+
+another: text
+)",
+     L{
+      N{"example", "Several lines of text,  with some \"quotes\" of various 'types',  and also a blank line:\nplus another line at the end.\n"},
+      N{"another", "text"},
+          }
+),
+
 #ifdef JAVAI
 #endif
     }; // end examples
@@ -726,7 +786,7 @@ date: 2007-06-01
 }
 
 
-
+#ifdef MORE_EXAMPLES
 char const* const structure_examples[] = {
 // https://en.wikipedia.org/wiki/YAML
 R"(
@@ -764,3 +824,4 @@ R"(
 R"(
 )",
 };
+#endif

@@ -11,7 +11,11 @@
 
 #ifndef C4_QUOTE
 #   define C4_QUOTE(x) #x
+#   define C4_XQUOTE(x) C4_QUOTE(x)
 #endif
+
+
+#define RYML_DBG
 
 
 #pragma GCC diagnostic push
@@ -32,8 +36,8 @@
 #       define C4_ASSERT(expr) (void)(0)
 #   else
 #       include <assert.h>
-#       define C4_ASSERT(expr) _C4_ASSERT((expr), __FILE__, __LINE__)
-#       define _C4_ASSERT(expr, file, line)                             \
+#       define C4_ASSERT(expr) C4_ASSERT_(__FILE__, __LINE__, expr)
+#       define C4_ASSERT_(file, line, expr)                             \
     {                                                                   \
         if( ! (expr))                                                   \
         {                                                               \

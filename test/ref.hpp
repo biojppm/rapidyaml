@@ -13,22 +13,23 @@
 namespace c4 {
 namespace yml {
 
-#define C4_EXPECT_IMPL_(relname, val1, cmp, val2) \
+
+bool current_status;
+cspan current_case;
+
+#define C4_EXPECT_IMPL_(relname, val1, cmp, val2)   \
     if( ! ((val1) cmp (val2))) \
     {\
         std::cout << "\n"                                               \
-                  << __FILE__ ":" << __LINE__ << ": ERROR: [" << current_case << "]:\n" \
+                  << __FILE__ ":" << __LINE__ << ": ERROR: [" << ::c4::yml::current_case << "]:\n" \
                   <<                             ":          expected " #relname " (" #cmp "):\n" \
                   <<                             ":          lhs: '" #val1 "'=" << val1 << "\n" \
                   <<                             ":          rhs: '" #val2 "'=" << val2 << "\n"; \
-        current_status = false;                                         \
+        ::c4::yml::current_status = false;                              \
     }
 
 #define C4_EXPECT_EQ(val1, val2) C4_EXPECT_IMPL_(eq, val1, ==, val2)
 
-
-bool current_status;
-cspan current_case;
 
 /** a node class against which ryml structures are tested. Uses initializer
  * lists to facilitate minimal specification. */
@@ -171,6 +172,11 @@ public:
     {
         C4_EXPECT_EQ(n.type(), type);
         C4_EXPECT_EQ(n.num_children(), children.size());
+        C4_EXPECT_EQ(n.name(), key);
+        if(n.is_val())
+        {
+            C4_EXPECT_EQ(n.val(), val);
+        }
         for(size_t i = 0, ei = n.num_children(), j = 0, ej = children.size(); i < ei && j < ej; ++i, ++j)
         {
              children[j].compare(n[i]);
@@ -188,38 +194,51 @@ struct Case
     cspan src;
     CaseNode root;
 
+
     template< size_t N, class... Args >
     Case(cspan const& n, const char (&s)[N], Args&& ...args)
         : name(n), src(s), root(std::forward< Args >(args)...)
     {
+        current_status = true;
+        current_case = name;
     }
 
-    void run() const
+    void print_preamble() const
     {
         std::cout << "\n\n\n\n\n";
         std::cout << "---------------------------------------------------\n";
         std::cout << "Running test case: '" << name << "'\n";
         std::cout << "---------------------------------------------------\n";
-        NextParser np;
-        Tree t = np.parse(src);
+        std::cout << "input yml:\n'" << src << "'\n";
+        std::cout << "---------------------------------------------------\n";
+    }
 
-        current_status = true;
-        current_case = name;
-
-        root.compare(*t.root());
-
+    void print_ending() const
+    {
         cspan stat = current_status ? "succeeded!!!! :-)" :  "failed.... :-( ";
+        std::cout << "---------------------------------------------------\n";
         std::cout << "Test case '" << name << "' " << stat << "\n";
         std::cout << "---------------------------------------------------\n";
-        C4_ASSERT(true);
+    }
+
+    void run() const
+    {
+        print_preamble();
+
+        c4::yml::Parser libyaml_parser;
+        Tree libyaml_tree;
+
+        libyaml_parser.parse(&libyaml_tree, src);
+        emit(libyaml_tree);
+
+        Tree t = parse(src);
+        emit(t);
+        root.compare(*t.root());
+
+        print_ending();
     }
 };
 
-
-struct CaseContainer : public std::vector< Case > // yeah I know.
-{
-
-};
 
 } // namespace yml
 } // namespace c4
