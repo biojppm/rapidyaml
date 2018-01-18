@@ -33,10 +33,10 @@ int main()
     p.parse(&s, ex);
     C4_ASSERT(s.root() != nullptr);
     auto &root = *s.root();
-    C4_ASSERT(root.type() == yml::TYPE_ROOT);
+    C4_ASSERT(root.is_root());
     show_children(root);
     auto &doc = *s.first_doc();
-    C4_ASSERT(doc.type() == yml::TYPE_DOC);
+    C4_ASSERT(doc.type() == yml::DOCMAP);
     C4_ASSERT(doc.num_children() == 6);
     show_children(doc);
     show_children(doc["seq"]);
@@ -48,12 +48,12 @@ int main()
     C4_ASSERT(&doc[3] == &doc["seq"]);
     C4_ASSERT(&doc[4] == &doc["map"]);
     C4_ASSERT(&doc[5] == &doc["fdx"]);
-    C4_ASSERT(doc[0].name() == "foo" && doc[0].type() == yml::TYPE_VAL && doc[0].val() == "fsdfkjhsdfkh");
-    C4_ASSERT(doc[1].name() == "bar" && doc[1].type() == yml::TYPE_VAL && doc[1].val() == "sdfjkhfuu");
-    C4_ASSERT(doc[2].name() == "bat" && doc[2].type() == yml::TYPE_VAL && doc[2].val() == "1");
-    C4_ASSERT(doc[3].name() == "seq" && doc[3].type() == yml::TYPE_SEQ);
-    C4_ASSERT(doc[4].name() == "map" && doc[4].type() == yml::TYPE_MAP);
-    C4_ASSERT(doc[5].name() == "fdx" && doc[5].type() == yml::TYPE_VAL && doc[5].val() == "crl");
+    C4_ASSERT(doc[0].name() == "foo" && doc[0].is_val() && doc[0].val() == "fsdfkjhsdfkh");
+    C4_ASSERT(doc[1].name() == "bar" && doc[1].is_val() && doc[1].val() == "sdfjkhfuu");
+    C4_ASSERT(doc[2].name() == "bat" && doc[2].is_val() && doc[2].val() == "1");
+    C4_ASSERT(doc[3].name() == "seq" && doc[3].is_seq());
+    C4_ASSERT(doc[4].name() == "map" && doc[4].is_map());
+    C4_ASSERT(doc[5].name() == "fdx" && doc[5].is_val() && doc[5].val() == "crl");
 
     auto &seq = doc["seq"];
     C4_ASSERT(seq.num_children() == 5);
@@ -70,7 +70,7 @@ int main()
     _chm(map, 1, "bar", "2");
     _chm(map, 2, "baz", "3");
 
-    C4_ASSERT(&map[3] == &map["submap"] && map["submap"].type() == yml::TYPE_MAP);
+    C4_ASSERT(&map[3] == &map["submap"] && map["submap"].is_map());
     auto &smap = doc["map"]["submap"];
     _chm(smap, 0, "subfoo", "11");
     _chm(smap, 1, "subbar", "12");
@@ -84,9 +84,9 @@ int main()
     C4_ASSERT(&doc[6] == &doc["new_child"]);
     C4_ASSERT(doc["new_child"].val() == "new_value");
 
-    doc.append_child("new_map", yml::TYPE_MAP);
+    doc.append_child("new_map", yml::MAP);
     C4_ASSERT(&doc[7] == &doc["new_map"]);
-    C4_ASSERT(doc["new_map"].type() == yml::TYPE_MAP);
+    C4_ASSERT(doc["new_map"].type() == yml::MAP);
 
     auto &nm = doc["new_map"];
     nm.prepend_child("fdx", "crl");
@@ -102,10 +102,10 @@ int main()
     C4_ASSERT(&nm[2] == &nm["fdx"] && nm[2] == "crl");
 
     yml::Parser p2;
-    nm.append_child("serialized", yml::TYPE_MAP);
+    nm.append_child("serialized", yml::MAP);
     C4_ASSERT(nm.num_children() == 4);
 
-    C4_ASSERT(nm["serialized"].type() == yml::TYPE_MAP);
+    C4_ASSERT(nm["serialized"].type() == yml::MAP);
     s.load(&nm["serialized"], R"(
 prop1: val1
 prop2: val2
@@ -278,32 +278,31 @@ void do_test()
     using N = CaseNode;
     using L = CaseNode::children_init_type;
 
-    NodeType_e DOC = TYPE_DOC;
-
     CaseContainer tests({
 
 //-----------------------------------------------------------------------------
 
-C("one doc, no children",
+C("one empty doc",
 R"(---
 )",
     N{DOC}
 ),
 
-C("one doc, no children, explicit termination",
+C("one empty doc, explicit termination",
 R"(---
 ...
 )",
     N{DOC}
 ),
 
-C("two docs, no children",
+C("two empty docs",
 R"(---
 ---
 )",
     L{N{DOC}, N{DOC}}
 ),
 
+#ifdef JAVAI
 //-----------------------------------------------------------------------------
 
 C("simple map, explicit, single line",
@@ -816,7 +815,7 @@ message: |
         </blockquote>
 date: 2007-06-01
 )",
-     N{TYPE_DOC, L{
+     N{DOC, L{
           N{"example", "HTML goes into YAML without modification"},
           N{"message", R"(<blockquote style=\"font: italic 12pt Times\">
 <p>\"Three is always greater than two,
@@ -864,7 +863,6 @@ another: text
           }
 ),
 
-#ifdef JAVAI
 #endif
     }); // end examples
 

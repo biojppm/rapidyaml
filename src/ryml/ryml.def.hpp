@@ -16,16 +16,18 @@ size_t Node::id() const
     return m_s->id(this);
 }
 
-const char* Node::type_str() const
+const char* Node::type_str(NodeType_e ty)
 {
-    switch(m_type)
+    switch(ty)
     {
-    case TYPE_NONE: return "NONE";
-    case TYPE_ROOT: return "ROOT";
-    case TYPE_DOC: return "DOC";
-    case TYPE_VAL: return "VAL";
-    case TYPE_SEQ: return "SEQ";
-    case TYPE_MAP: return "MAP";
+    case KEYVAL  : return "KEYVAL";
+    case VAL     : return "VAL";
+    case MAP     : return "MAP";
+    case SEQ     : return "SEQ";
+    case DOC     : return "DOC";
+    case DOCSEQ  : return "DOCSEQ";
+    case DOCMAP  : return "DOCMAP";
+    case NOTYPE  : return "NOTYPE";
     default: return "(unknown?)";
     }
 }
@@ -81,7 +83,7 @@ Node * Node::last_child() const
 Node * Node::find_child(cspan const& name) const
 {
     if(is_val()) return nullptr;
-    C4_ASSERT(m_type == TYPE_DOC || m_type == TYPE_MAP);
+    C4_ASSERT(is_map());
     C4_ASSERT(bool(name) == true);
     if(m_children.first == NONE)
     {
@@ -186,7 +188,7 @@ Node * Node::insert_sibling(Node *sib, Node * after)
     C4_ASSERT( ! after || (is_sibling(after) && after->is_sibling(this)));
     C4_ASSERT( ! sib->name().empty() == is_map());
     C4_ASSERT(   sib->name().empty() == is_seq());
-    C4_ASSERT( ! sib->val().empty() == (sib->m_type == TYPE_VAL));
+    C4_ASSERT( ! sib->val().empty() == (sib->is_val()));
     C4_ASSERT(   sib->val().empty() == (sib->is_container()));
     m_s->set_parent(m_s->get(m_parent), sib, after);
     return sib;
@@ -225,27 +227,27 @@ Node * Node::_insert_by_type(Node *which_parent, cspan const& name, NodeType_e t
     Node *n = nullptr;
     switch(type)
     {
-    case TYPE_VAL:
+    case KEYVAL:
+    case VAL:
         n = m_s->add_val(name, {}, after);
         break;
-    case TYPE_SEQ:
+    case SEQ:
         n = m_s->begin_seq(name, after);
         m_s->end_seq();
         break;
-    case TYPE_MAP:
+    case MAP:
         n = m_s->begin_map(name, after);
         m_s->end_map();
         break;
-    case TYPE_DOC:
+    case DOC:
+    case DOCMAP:
+    case DOCSEQ:
         n = m_s->begin_doc(after);
         m_s->end_doc();
         break;
-    case TYPE_NONE:
+    case NOTYPE:
         n = m_s->add_empty(name, after);
         //C4_ERROR("cannot add sibling with type NONE");
-        break;
-    case TYPE_ROOT:
-        C4_ERROR("cannot add sibling with type ROOT");
         break;
     default:
         C4_ERROR("unknown node type to add as sibling");
@@ -283,7 +285,8 @@ Node * Node::remove_sibling(Node *sib)
 Tree::Tree()
     :
     m_buf(nullptr),
-    m_num(0),
+    m_cap(0),
+    m_size(0),
     m_head(NONE),
     m_tail(NONE),
     m_free_head(NONE),
@@ -301,7 +304,7 @@ Tree::~Tree()
 {
     if(m_buf)
     {
-        RymlCallbacks::free(m_buf, m_num * sizeof(Node));
+        RymlCallbacks::free(m_buf, m_cap * sizeof(Node));
     }
 }
 
@@ -330,28 +333,28 @@ Node * Tree::load(Node * root, cspan const& yml_str, Parser *p_)
 }
 
 //-----------------------------------------------------------------------------
-void Tree::reserve(size_t sz)
+void Tree::reserve(size_t cap)
 {
-    if(sz <= m_num) return;
-    Node *buf = (Node*)RymlCallbacks::allocate(sz * sizeof(Node), nullptr);
+    if(cap <= m_cap) return;
+    Node *buf = (Node*)RymlCallbacks::allocate(cap * sizeof(Node), nullptr);
     if(m_buf)
     {
-        memcpy(buf, m_buf, m_num * sizeof(Node));
-        RymlCallbacks::free(m_buf, m_num * sizeof(Node));
+        memcpy(buf, m_buf, m_cap * sizeof(Node));
+        RymlCallbacks::free(m_buf, m_cap * sizeof(Node));
     }
     if(m_free_head == NONE)
     {
         C4_ASSERT(m_free_tail == m_free_head);
-        m_free_head = m_num;
-        m_free_tail = sz;
+        m_free_head = m_cap;
+        m_free_tail = cap;
     }
     else
     {
         C4_ASSERT(m_free_tail != NONE);
-        m_buf[m_free_tail].m_list.next = m_num;
+        m_buf[m_free_tail].m_list.next = m_cap;
     }
-    size_t first = m_num, del = sz - m_num;
-    m_num = sz;
+    size_t first = m_cap, del = cap - m_cap;
+    m_cap = cap;
     m_buf = buf;
     clear_range(first, del);
 }
@@ -359,18 +362,19 @@ void Tree::reserve(size_t sz)
 //-----------------------------------------------------------------------------
 void Tree::clear()
 {
-    clear_range(0, m_num);
+    clear_range(0, m_cap);
+    m_size = 0;
     m_head = NONE;
     m_tail = NONE;
     m_free_head = 0;
-    m_free_tail = m_num;
+    m_free_tail = m_cap;
 }
 
 //-----------------------------------------------------------------------------
 void Tree::clear_range(size_t first, size_t num)
 {
     if(num == 0) return; // prevent overflow when subtracting
-    C4_ASSERT(first >= 0 && first + num <= m_num);
+    C4_ASSERT(first >= 0 && first + num <= m_cap);
     memset(m_buf + first, 0, num * sizeof(Node));
     for(size_t i = first, e = first + num; i < e; ++i)
     {
@@ -389,7 +393,7 @@ void Tree::clear_range(size_t first, size_t num)
 //-----------------------------------------------------------------------------
 Node *Tree::claim(Node *after)
 {
-    C4_ASSERT(after == nullptr || (m_buf <= after && (after <= m_buf + m_num)));
+    C4_ASSERT(after == nullptr || (m_buf <= after && (after <= m_buf + m_cap)));
     size_t last = after ? after - m_buf : m_tail;
     Node *n = claim(last, NONE);
     return n;
@@ -398,11 +402,11 @@ Node *Tree::claim(Node *after)
 //-----------------------------------------------------------------------------
 Node *Tree::claim(size_t prev, size_t next)
 {
-    C4_ASSERT(prev == NONE || (prev >= 0 && prev < m_num));
-    C4_ASSERT(next == NONE || (next >= 0 && next < m_num));
+    C4_ASSERT(prev == NONE || (prev >= 0 && prev < m_cap));
+    C4_ASSERT(next == NONE || (next >= 0 && next < m_cap));
     if(m_free_head == NONE || m_buf == nullptr)
     {
-        size_t sz = 2 * m_num;
+        size_t sz = 2 * m_cap;
         sz = sz ? sz : 16;
         reserve(sz);
     }
@@ -413,6 +417,7 @@ Node *Tree::claim(size_t prev, size_t next)
     {
         m_free_tail = NONE;
     }
+    ++m_size;
     n->m_s = this;
     n->m_list.prev = prev;
     n->m_list.next = next;
@@ -438,8 +443,8 @@ Node *Tree::claim(size_t prev, size_t next)
 //-----------------------------------------------------------------------------
 void Tree::set_parent(Node *parent, Node *child, Node *prev_sibling, Node *next_sibling)
 {
-    C4_ASSERT(child != nullptr && (child >= m_buf && child < m_buf + m_num));
-    C4_ASSERT(parent == nullptr || (parent >= m_buf && parent < m_buf + m_num));
+    C4_ASSERT(child != nullptr && (child >= m_buf && child < m_buf + m_cap));
+    C4_ASSERT(parent == nullptr || (parent >= m_buf && parent < m_buf + m_cap));
 
     child->m_parent = parent ? parent - m_buf : NONE;
 
@@ -494,7 +499,7 @@ void Tree::set_parent(Node *parent, Node *child, Node *prev_sibling, Node *next_
 //-----------------------------------------------------------------------------
 void Tree::free(size_t i)
 {
-    C4_ASSERT(i >= 0 && i < m_num);
+    C4_ASSERT(i >= 0 && i < m_cap);
     m_buf[i].m_list.next = m_free_head;
     m_buf[i].m_list.prev = NONE;
     m_buf[m_free_head].m_list.prev = i;
@@ -503,12 +508,14 @@ void Tree::free(size_t i)
     {
         m_free_tail = m_free_head;
     }
+    --m_size;
 }
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+// some debugging scaffolds
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
@@ -1327,11 +1334,13 @@ void NextParser::_start_unk(bool as_child)
 //-----------------------------------------------------------------------------
 void NextParser::_start_doc(bool as_child)
 {
-    _c4dbgp("start_doc");
+    _c4dbgp("start_doc (as child=%d)", as_child);
     m_state.flags |= RUNK;
     Node* parent = m_stack.empty() ? m_root : m_stack.peek().node;
     C4_ASSERT(parent != nullptr);
+    C4_ASSERT(parent->is_root());
     C4_ASSERT(m_state.node == nullptr || m_state.node == m_root);
+    parent->_add_flags(SEQ);
     if(as_child)
     {
         m_state.node = parent->tree()->begin_doc();
@@ -1340,7 +1349,7 @@ void NextParser::_start_doc(bool as_child)
     {
         C4_ASSERT(parent->is_seq() || parent->empty());
         m_state.node = parent;
-        m_state.node->m_type = TYPE_DOC;
+        m_state.node->_add_flags(DOC);
     }
     _c4dbgp("start_doc: id=%zd", m_state.node->id(), _c4prsp(m_state.node->name()));
 }
@@ -1355,7 +1364,7 @@ void NextParser::_stop_doc()
 //-----------------------------------------------------------------------------
 void NextParser::_start_map(bool as_child)
 {
-    _c4dbgp("start_map");
+    _c4dbgp("start_map (as child=%d)", as_child);
     m_state.flags |= RMAP|RVAL;
     m_state.flags &= ~RKEY;
     m_state.flags &= ~RUNK;
@@ -1371,7 +1380,7 @@ void NextParser::_start_map(bool as_child)
     {
         C4_ASSERT(parent->is_map() || parent->empty());
         m_state.node = parent;
-        m_state.node->m_type = TYPE_MAP;
+        m_state.node->_add_flags(MAP);
         _move_scalar_from_top();
     }
     _c4dbgp("start_map: id=%zd name='%.*s'", m_state.node->id(), _c4prsp(m_state.node->name()));
@@ -1387,7 +1396,7 @@ void NextParser::_stop_map()
 //-----------------------------------------------------------------------------
 void NextParser::_start_seq(bool as_child)
 {
-    _c4dbgp("start_seq");
+    _c4dbgp("start_seq (as child=%d)", as_child);
     m_state.flags |= RSEQ|RVAL;
     m_state.flags &= ~RUNK;
     Node* parent = m_stack.empty() ? m_root : m_stack.peek().node;
@@ -1406,7 +1415,7 @@ void NextParser::_start_seq(bool as_child)
     {
         C4_ASSERT(parent->is_seq() || parent->empty());
         m_state.node = parent;
-        m_state.node->m_type = TYPE_SEQ;
+        m_state.node->_add_flags(SEQ);
         _move_scalar_from_top();
     }
     _c4dbgp("start_seq: id=%zd name='%.*s'", m_state.node->id(), _c4prsp(m_state.node->name()));
@@ -1428,8 +1437,6 @@ void NextParser::_append_val(cspan const& val)
     _c4dbgp("append val: '%.*s'", _c4prsp(val));
     m_state.node->append_child_seq(val);
     _c4dbgp("append val: id=%zd name='%.*s' val='%.*s'", m_state.node->last_child()->id(), _c4prsp(m_state.node->last_child()->name()), _c4prsp(m_state.node->last_child()->val()));
-
-    //emit(m_state.node->tree()->root());
 }
 
 void NextParser::_append_key_val(cspan const& val)
@@ -1440,8 +1447,6 @@ void NextParser::_append_key_val(cspan const& val)
     m_state.node->append_child(key, val);
     _c4dbgp("append key-val: id=%zd name='%.*s' val='%.*s'", m_state.node->last_child()->id(), _c4prsp(m_state.node->last_child()->name()), _c4prsp(m_state.node->last_child()->val()));
     _toggle_key_val();
-
-    //emit(m_state.node->tree()->root());
 }
 
 void NextParser::_toggle_key_val()

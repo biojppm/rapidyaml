@@ -30,8 +30,26 @@ public:
     cspan key;
     cspan val;
     children_type children;
+    CaseNode *parent;
 
 public:
+
+    CaseNode() : type(NOTYPE), key(), val(), children(), parent() {}
+    CaseNode(NodeType_e t) : type(t), key(), val(), children(), parent() {}
+
+    template< size_t N >
+    explicit CaseNode(const char (&v)[N]) : type(VAL), key(), val(v), children() {}
+
+    template< size_t N, size_t M >
+    explicit CaseNode(const char (&k)[N], const char (&v)[M]) : type(VAL), key(k), val(v), children() {}
+
+    template< size_t N >
+    explicit CaseNode(const char (&k)[N], children_init_type s) : type(), key(k), val(), children(s) { _set_parent(); type = _guess(); }
+    explicit CaseNode(                    children_init_type m) : CaseNode("", m) {}
+
+    template< size_t N >
+    explicit CaseNode(NodeType_e t, const char (&k)[N], children_init_type s) : type(t), key(k), val(), children(s) { _set_parent(); }
+    explicit CaseNode(NodeType_e t,                     children_init_type m) : CaseNode(t, "", m) {}
 
     CaseNode(CaseNode     &&) = default;
     CaseNode(CaseNode const&) = default;
@@ -41,51 +59,41 @@ public:
 
 public:
 
-    CaseNode() : type(TYPE_NONE), key(), val(), children() {}
-    CaseNode(NodeType_e t) : type(t), key(), val(), children() {}
+    void _set_parent()
+    {
+        for(auto &ch : children)
+        {
+            ch.parent = this;
+        }
+    }
 
-    template< size_t N >
-    explicit CaseNode(const char (&v)[N]) : type(TYPE_VAL), key(), val(v), children() {}
-
-    template< size_t N, size_t M >
-    explicit CaseNode(const char (&k)[N], const char (&v)[M]) : type(TYPE_VAL), key(k), val(v), children() {}
-
-    template< size_t N >
-    CaseNode(const char (&k)[N], children_init_type s) : type(), key(k), val(), children(s) { type = guess(); }
-    explicit CaseNode(children_init_type m) : CaseNode("", m) {}
-
-    template< size_t N >
-    explicit CaseNode(NodeType_e t, const char (&k)[N], children_init_type s) : type(t), key(k), val(), children(s) {}
-    explicit CaseNode(NodeType_e t, children_init_type m) : CaseNode(t, "", m) {}
-
-public:
-
-    NodeType_e guess() const
+    NodeType_e _guess() const
     {
         C4_ASSERT(val.empty() != children.empty());
         if(children.empty())
         {
-            return TYPE_VAL;
+            C4_ASSERT(parent);
+            return VAL;
         }
         else
         {
             auto const& ch = children.front();
             if(ch.key.empty())
             {
-                return TYPE_SEQ;
+                return SEQ;
             }
             else
             {
-                return TYPE_MAP;
+                return MAP;
             }
         }
     }
 
-    bool is_doc() const { return type == TYPE_DOC; }
-    bool is_val() const { return type == TYPE_VAL && key.empty(); }
-    bool is_key_val() const { return type == TYPE_VAL && ! key.empty(); }
-    bool is_map() const { return type == TYPE_MAP || (type == TYPE_DOC && ! children.empty() && ! children.front().key.empty() ); }
-    bool is_seq() const { return type == TYPE_MAP || (type == TYPE_DOC && ! children.empty() &&   children.front().key.empty() ); }
+    bool is_root() const { return parent; }
+    bool is_doc() const { return type & DOC; }
+    bool is_val() const { return type & VAL; }
+    bool is_map() const { return type & MAP; }
+    bool is_seq() const { return type & SEQ; }
 
 public:
 
@@ -117,6 +125,18 @@ public:
 
 
 public:
+
+    void compare(yml::Node const& n) const;
+
+    size_t reccount() const
+    {
+        size_t c = 1;
+        for(auto const& ch : children)
+        {
+            c += ch.reccount();
+        }
+        return c;
+    }
 
     /*
     void print(int level = 0) const
@@ -153,8 +173,6 @@ public:
     }
 */
 
-    void compare(yml::Node const& n) const;
-
 };
 
 
@@ -174,18 +192,8 @@ struct Case
     {
     }
 
-    void run() const
-    {
-        c4::yml::Parser libyaml_parser;
-        Tree libyaml_tree;
+    void run() const;
 
-        libyaml_parser.parse(&libyaml_tree, src);
-        emit(libyaml_tree);
-
-        Tree t = parse(src);
-        emit(t);
-        root.compare(*t.root());
-    }
 };
 
 
@@ -270,11 +278,37 @@ std::vector< cspan > CaseContainer::failed_tests;
     }
 
 #define C4_EXPECT_EQ(val1, val2) C4_EXPECT_IMPL_(eq, val1, ==, val2)
+#define C4_EXPECT_GE(val1, val2) C4_EXPECT_IMPL_(ge, val1, >=, val2)
+#define C4_EXPECT_GT(val1, val2) C4_EXPECT_IMPL_(gt, val1, > , val2)
+#define C4_EXPECT_LE(val1, val2) C4_EXPECT_IMPL_(le, val1, <=, val2)
+#define C4_EXPECT_LT(val1, val2) C4_EXPECT_IMPL_(lt, val1, < , val2)
 
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+
+void Case::run() const
+{
+    Parser libyaml_parser;
+    Tree libyaml_tree;
+
+    std::cout << "parsing using libyaml\n";
+    libyaml_parser.parse(&libyaml_tree, src);
+    emit(libyaml_tree);
+    std::cout << "parsing using libyaml: done\n";
+
+    std::cout << "parsing using ryml\n";
+    Tree t = parse(src);
+    emit(t);
+    std::cout << "parsing using ryml: done\n";
+
+    std::cout << "comparing trees...\n";
+    C4_EXPECT_GE(t.capacity(), root.reccount());
+    C4_EXPECT_EQ(t.size(), root.reccount());
+    root.compare(*t.root());
+    std::cout << "comparing trees: done\n";
+}
 
 void CaseNode::compare(yml::Node const& n) const
 {
