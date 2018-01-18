@@ -313,7 +313,7 @@ void Tree::serialize(Node * root, span const* buffer) const
 {
     C4_ASSERT(false && "not implemented");
 }
-
+/*
 Node * Tree::load(Node * root, cspan const& yml_str, Parser *p_)
 {
     Parser p, *ptr;
@@ -331,7 +331,7 @@ Node * Tree::load(Node * root, cspan const& yml_str, Parser *p_)
 
     return get(idr);
 }
-
+*/
 //-----------------------------------------------------------------------------
 void Tree::reserve(size_t cap)
 {

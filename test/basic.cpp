@@ -1,5 +1,5 @@
 
-#include "./ref.hpp"
+#include "./test_case.hpp"
 
 namespace yml = c4::yml;
 
@@ -20,14 +20,16 @@ map:
 fdx: crl
 )";
 
-void do_test();
+int do_test();
 
 int main()
 {
     C4_ASSERT( ! yml::cspan(":").begins_with(": "));
 
-    do_test();
+    int stat = do_test();
+    return stat;
 
+#ifdef OLDLIBYAML_PARSER
     yml::Tree s(2);
     yml::Parser p;
     p.parse(&s, ex);
@@ -263,6 +265,7 @@ fdx: crl
     yml::Tree t = np.parse("inline source", ex2);
 
     return 0;
+#endif
 }
 
 
@@ -270,7 +273,7 @@ fdx: crl
 
 
 
-void do_test()
+int do_test()
 {
     using namespace c4::yml;
 
@@ -867,7 +870,7 @@ another: text
     }); // end examples
 
 
-    tests.run();
+    return tests.run();
 }
 
 

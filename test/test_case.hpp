@@ -6,8 +6,9 @@
 #include <map>
 #include <iostream>
 
-#include <ryml/ryml.hpp>
+#include "./libyaml.hpp"
 
+#include <ryml/ryml.hpp>
 
 
 namespace c4 {
@@ -222,7 +223,7 @@ struct CaseContainer
 
     explicit CaseContainer(std::initializer_list< Case > il) : tests(il) {}
 
-    void run()
+    bool run()
     {
         failed_tests.clear();
 
@@ -257,6 +258,8 @@ struct CaseContainer
             }
             std::cout << "===================================================\n";
         }
+
+        return failed_tests.empty();
     }
 
     static void test_failed()
@@ -304,10 +307,10 @@ std::vector< cspan > CaseContainer::failed_tests;
 
 void Case::run() const
 {
-    Parser libyaml_parser;
     Tree libyaml_tree;
 
-    std::cout << "parsing using libyaml\n";
+    std::cout << "parsing using libyaml to check if the YAML source is legal\n";
+    LibyamlParser libyaml_parser;
     libyaml_parser.parse(&libyaml_tree, src);
     emit(libyaml_tree);
     std::cout << "parsing using libyaml: done\n";
