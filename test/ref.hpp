@@ -13,6 +13,20 @@
 namespace c4 {
 namespace yml {
 
+void show_children(Node const& p)
+{
+    printf("--------\n%zd children for %p(%s):\n", p.num_children(), (void*)&p, p.type_str());
+    for(Node *n = p.first_child(); n; n = n->next_sibling())
+    {
+        printf("  %p(%s) %.*s", (void*)n, n->type_str(), (int)n->name().len, n->name().str);
+        if(n->is_val())
+        {
+            printf(": %.*s", (int)n->val().len, n->val().str);
+        }
+        printf("\n");
+    }
+}
+
 struct Case;
 
 /** a node class against which ryml structures are tested. Uses initializer

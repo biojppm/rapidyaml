@@ -72,16 +72,16 @@ public:
 public:
 
     mutable Tree* m_s;
-    NodeType_e m_type;
-    cspan      m_name;
-    size_t     m_parent;
-    listseq    m_siblings;
+    NodeType_e    m_type;
+    cspan         m_name;
+    size_t        m_parent;
+    listseq       m_siblings;
     union {
-        cspan      m_val;
-        children   m_children;
+        cspan     m_val;
+        children  m_children;
     };
 
-    listseq    m_list;
+    listseq       m_list;
 
 public:
 
@@ -160,10 +160,10 @@ public:
 public:
 
     template< class Visitor >
-    void visit(Visitor fn, size_t indentation_level=0, bool skip_root=true);
+    bool visit(Visitor fn, size_t indentation_level=0, bool skip_root=true);
 
     template< class Visitor >
-    void visit(Visitor fn, size_t indentation_level=0, bool skip_root=true) const;
+    bool visit(Visitor fn, size_t indentation_level=0, bool skip_root=true) const;
 
 public:
 
@@ -253,51 +253,35 @@ private:
 
 
 template< class Visitor >
-void Node::visit(Visitor fn, size_t indentation_level, bool skip_root)
+bool Node::visit(Visitor fn, size_t indentation_level, bool skip_root)
 {
-    size_t increment = 0;
-    if( ! (is_root() && skip_root))
-    {
-        fn(this, indentation_level); // no need to forward skip_root as it won't be root
-        ++increment;
-    }
-    fn.push(this);
-    for(Node *ch = first_child(); ch; ch = ch->next_sibling())
-    {
-        ch->visit(fn, indentation_level + increment);
-    }
-    fn.pop(this);
+    return const_cast< Node const* >(this)->visit(fn, indentation_level, skip_root);
 }
 
 template< class Visitor >
-void Node::visit(Visitor fn, size_t indentation_level, bool skip_root) const
+bool Node::visit(Visitor fn, size_t indentation_level, bool skip_root) const
 {
     size_t increment = 0;
     if( ! (is_root() && skip_root))
     {
-        fn(this, indentation_level); // no need to forward skip_root as it won't be root
+        if(fn(this, indentation_level))
+        {
+            return true;
+        }
         ++increment;
     }
     fn.push(this);
     for(Node *ch = first_child(); ch; ch = ch->next_sibling())
     {
-        ch->visit(fn, indentation_level + increment);
+        // no need to forward skip_root as it won't be root
+        if(ch->visit(fn, indentation_level + increment))
+        {
+            fn.pop(this);
+            return true;
+        }
     }
     fn.pop(this);
-}
-
-void show_children(Node const& p)
-{
-    printf("--------\n%zd children for %p(%s):\n", p.num_children(), (void*)&p, p.type_str());
-    for(Node *n = p.first_child(); n; n = n->next_sibling())
-    {
-        printf("  %p(%s) %.*s", (void*)n, n->type_str(), (int)n->name().len, n->name().str);
-        if(n->is_val())
-        {
-            printf(": %.*s", (int)n->val().len, n->val().str);
-        }
-        printf("\n");
-    }
+    return false;
 }
 
 //-----------------------------------------------------------------------------
@@ -816,8 +800,6 @@ case YAML_ ## _ev ## _EVENT:                   \
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-class Emitter;
-
 class Emitter
 {
 public:
@@ -918,7 +900,7 @@ private:
             default:
                 break;
             }
-            return true;
+            return false;
         }
     };
 
@@ -1000,7 +982,7 @@ private:
             if(m_pos + num < m_span.len)
             {
                 _write(k);
-                _write(" ");
+                _write(": ");
                 _write(v);
                 _write('\n');
             }
