@@ -96,7 +96,9 @@ public:
         return m_val == cmp;
     }
 
-    bool   is_container() const { return m_type == TYPE_DOC || m_type == TYPE_MAP || m_type == TYPE_SEQ || m_type == TYPE_ROOT; }
+    bool   is_container() const { return m_type == TYPE_MAP || m_type == TYPE_SEQ || m_type == TYPE_DOC || m_type == TYPE_ROOT; }
+    bool   is_doc() const { return m_type == TYPE_DOC; }
+    bool   is_root() const { return m_type == TYPE_ROOT; }
     bool   is_map() const { return m_type == TYPE_MAP || m_type == TYPE_DOC || m_type == TYPE_ROOT; }
     bool   is_seq() const { return m_type == TYPE_SEQ || m_type == TYPE_DOC || m_type == TYPE_ROOT; }
     bool   is_val() const { return m_type == TYPE_VAL; }
@@ -130,25 +132,35 @@ public:
 
 
     template< class Visitor >
-    void visit(Visitor fn, size_t indentation_level = 0)
+    void visit(Visitor fn, size_t indentation_level=0, bool skip_root=true)
     {
-        fn(this, indentation_level);
+        size_t increment = 0;
+        if( ! (is_root() && skip_root))
+        {
+            fn(this, indentation_level); // no need to forward skip_root as it won't be root
+            ++increment;
+        }
         fn.push(this);
         for(Node *ch = first_child(); ch; ch = ch->next_sibling())
         {
-            ch->visit(fn, indentation_level + 1);
+            ch->visit(fn, indentation_level + increment);
         }
         fn.pop(this);
     }
 
     template< class Visitor >
-    void visit(Visitor fn, size_t indentation_level = 0) const
+    void visit(Visitor fn, size_t indentation_level=0, bool skip_root=true) const
     {
-        fn(this, indentation_level);
+        size_t increment = 0;
+        if( ! (is_root() && skip_root))
+        {
+            fn(this, indentation_level); // no need to forward skip_root as it won't be root
+            ++increment;
+        }
         fn.push(this);
         for(Node *ch = first_child(); ch; ch = ch->next_sibling())
         {
-            ch->visit(fn, indentation_level + 1);
+            ch->visit(fn, indentation_level + increment);
         }
         fn.pop(this);
     }
@@ -827,11 +839,11 @@ public:
     size_t tell() const { return m_pos; }
     void   seek(size_t p) { m_pos = p; }
 
-    size_t visit(Node const* root)
+    size_t visit(Node const* first)
     {
         size_t b = m_pos;
         Visitor v{this};
-        root->visit(v);
+        first->visit(v);
         size_t e = m_pos - b;
         return e;
     }
@@ -1183,6 +1195,7 @@ private:
     cspan _filter_quoted_scalar(cspan const& s, const char q);
     cspan _filter_raw_block(cspan const& block, BlockStyle_e style, BlockChomp_e chomp, size_t indentation);
 
+    void  _handle_finished_file();
     void  _handle_line();
     int   _handle_indentation();
 
@@ -1204,6 +1217,9 @@ private:
 
     void  _start_seq(bool as_child=true);
     void  _stop_seq();
+
+    void  _start_doc(bool as_child=true);
+    void  _stop_doc();
 
     void  _append_comment(cspan const& cmt);
     void  _append_val(cspan const& val);

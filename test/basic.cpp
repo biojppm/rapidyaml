@@ -280,7 +280,29 @@ void do_test()
 
     NodeType_e DOC = TYPE_DOC;
 
-    const C tests[] = {
+    CaseContainer tests({
+
+//-----------------------------------------------------------------------------
+
+C("one doc, no children",
+R"(---
+)",
+    N{DOC}
+),
+
+C("one doc, no children, explicit termination",
+R"(---
+...
+)",
+    N{DOC}
+),
+
+C("two docs, no children",
+R"(---
+---
+)",
+    L{N{DOC}, N{DOC}}
+),
 
 //-----------------------------------------------------------------------------
 
@@ -339,6 +361,67 @@ bar: 1
 baz: 2
 # this is a bat
 bat: 3
+)",
+    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+),
+
+//-----------------------------------------------------------------------------
+
+C("simple seq, explicit, single line",
+"[0, 1, 2, 3]",
+    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
+),
+
+C("simple seq, explicit, multiline, unindented",
+R"([
+0,
+1,
+2,
+3
+])",
+    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+),
+
+C("simple seq, explicit, multiline, indented",
+R"([
+  0,
+  1,
+  2,
+  3
+])",
+    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+),
+
+C("simple seq",
+R"(
+- 0
+- 1
+- 2
+- 3
+)",
+    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+),
+
+C("simple seq, with comments",
+R"(
+- 0   # this is a foo
+- 1   # this is a bar
+- 2   # this is a bar
+- 3   # this is a bar
+)",
+    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+),
+
+C("simple seq, with comments interspersed",
+R"(
+# this is a foo
+- 0
+# this is a bar
+- 1
+# this is a baz
+- 2
+# this is a bat
+- 3
 )",
     L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
 ),
@@ -424,10 +507,19 @@ R"(
 
 C("nested seq x2, explicit first+last level",
 R"([
-[00, 01, 02]
-[10, 11, 12]
-[20, 21, 22]
-)",
+[00, 01, 02],
+[10, 11, 12],
+[20, 21, 22],
+])",
+    L{
+      N{L{N{"00"}, N{"01"}, N{"02"}}},
+      N{L{N{"10"}, N{"11"}, N{"12"}}},
+      N{L{N{"20"}, N{"21"}, N{"22"}}},
+          }
+),
+
+C("nested seq x2, explicit first+last level, same line",
+R"([[00, 01, 02], [10, 11, 12], [20, 21, 22]])",
     L{
       N{L{N{"00"}, N{"01"}, N{"02"}}},
       N{L{N{"10"}, N{"11"}, N{"12"}}},
@@ -774,15 +866,10 @@ another: text
 
 #ifdef JAVAI
 #endif
-    }; // end examples
+    }); // end examples
 
 
-
-    printf("cases built\n");
-    for(auto &t : tests)
-    {
-        t.run();
-    }
+    tests.run();
 }
 
 

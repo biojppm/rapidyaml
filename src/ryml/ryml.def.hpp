@@ -566,7 +566,7 @@ bool NextParser::_finished_file() const
     bool ret = m_state.pos.offset >= m_buf.len;
     if(ret)
     {
-        _c4dbgp("finished file!!!\n");
+        _c4dbgp("finished file!!!");
     }
     return ret;
 }
@@ -596,6 +596,18 @@ void NextParser::parse(cspan const& file, cspan const& buf, Node *root)
         }
         _next_line();
     }
+
+    _handle_finished_file();
+}
+
+//-----------------------------------------------------------------------------
+void NextParser::_handle_finished_file()
+{
+    if(m_stack.empty()) return;
+    C4_ASSERT(m_stack.size() == 1);
+
+    _c4dbgp("emptying stack...");
+    _pop_level();
 }
 
 //-----------------------------------------------------------------------------
@@ -721,6 +733,7 @@ bool NextParser::_handle_unk(cspan rem)
     else if(rem.begins_with("- "))
     {
         _c4dbgp("it's a seq (as_child=%d)", start_as_child);
+        _push_level();
         _start_seq(start_as_child);
         m_state.line_progressed(2);
         return true;
@@ -728,6 +741,7 @@ bool NextParser::_handle_unk(cspan rem)
     else if(rem == '-')
     {
         _c4dbgp("it's a seq (as_child=%d)", start_as_child);
+        _push_level();
         _start_seq(start_as_child);
         m_state.line_progressed(1);
         return true;
@@ -735,6 +749,7 @@ bool NextParser::_handle_unk(cspan rem)
     else if(rem.begins_with('['))
     {
         _c4dbgp("it's a seq (as_child=%d)", start_as_child);
+        _push_level(/*explicit flow*/true);
         _start_seq(start_as_child);
         m_state.flags |= EXPL;
         m_state.line_progressed(1);
@@ -754,6 +769,7 @@ bool NextParser::_handle_unk(cspan rem)
     else if(rem.begins_with("? "))
     {
         _c4dbgp("it's a map (as_child=%d)", start_as_child);
+        _push_level();
         _start_map(start_as_child);
         m_state.line_progressed(2);
         return true;
@@ -832,11 +848,41 @@ bool NextParser::_handle_seq(cspan rem)
             m_state.line_progressed(2);
             return true;
         }
+        else if(rem.begins_with(','))
+        {
+            _c4dbgp("expect another val");
+            m_state.line_progressed(1);
+            return true;
+        }
         else if(rem.begins_with(']'))
         {
+            C4_ASSERT(m_state.has_all(EXPL));
             _c4dbgp("end the sequence");
             m_state.line_progressed(1);
             _pop_level();
+            return true;
+        }
+        else if(rem.begins_with('#'))
+        {
+            m_state.line_progressed(rem.len);
+            return true;
+        }
+        else if(rem.begins_with('['))
+        {
+            _c4dbgp("it's a seq");
+            _push_level(/*explicit flow*/true);
+            _start_seq();
+            m_state.flags |= EXPL;
+            m_state.line_progressed(1);
+            return true;
+        }
+        else if(rem.begins_with('{'))
+        {
+            _c4dbgp("it's a map");
+            _push_level(/*explicit flow*/true);
+            _start_map();
+            m_state.flags |= EXPL;
+            m_state.line_progressed(1);
             return true;
         }
         else if(_handle_anchors_and_refs(rem))
@@ -849,13 +895,17 @@ bool NextParser::_handle_seq(cspan rem)
             _c4err("not implemented");
             return true;
         }
-        else if(rem.begins_with('#'))
+        else if(rem.begins_with("---") || rem.begins_with("..."))
         {
-            _c4err("not implemented");
+            C4_ASSERT(m_state.line_contents.indentation == 0);
+            _c4dbgp("end the sequence");
+            m_state.line_progressed(3);
+            _pop_level();
+            return false; // these need further handling
         }
         else
         {
-            _c4err("internal error");
+            _c4err("parse error");
         }
     }
     else
@@ -938,14 +988,19 @@ bool NextParser::_handle_map(cspan rem)
     }
     else if(m_state.has_any(RKEY))
     {
-        if(m_state.has_any(EXPL))
+        if(rem.begins_with(' '))
         {
-            if(rem.begins_with(' '))
-            {
-                rem = rem.left_of(rem.first_not_of(' '));
-                m_state.line_progressed(rem.len);
-                return true;
-            }
+            rem = rem.left_of(rem.first_not_of(' '));
+            m_state.line_progressed(rem.len);
+            return true;
+        }
+        else if(rem.begins_with('#'))
+        {
+            m_state.line_progressed(rem.len);
+            return true;
+        }
+        else if(m_state.has_any(EXPL))
+        {
             if(rem.begins_with(", "))
             {
                 m_state.line_progressed(2);
@@ -983,54 +1038,71 @@ bool NextParser::_handle_map(cspan rem)
 //-----------------------------------------------------------------------------
 bool NextParser::_handle_top(cspan rem)
 {
+    // use the full line, as the following tokens can appear only at top level
+    C4_ASSERT(rem == m_state.line_contents.stripped);
+    rem = m_state.line_contents.stripped;
+
     if(rem.begins_with('#'))
     {
         _c4dbgp("a comment line");
         m_state.line_progressed(rem.len);
         return true;
     }
-    // the following tokens can appear only at top level
-    else if(m_state.flags & RTOP)
+    else if(rem.begins_with('%'))
     {
-        if(rem.begins_with('%'))
+        _c4dbgp("%% directive!");
+        if(rem.begins_with("%YAML"))
         {
-            _c4dbgp("%% directive!");
             _c4err("not implemented");
-            if(rem.begins_with("%YAML"))
-            {
-            }
-            else if(rem.begins_with("%TAG"))
-            {
-            }
-            else
-            {
-                _c4err("unknown directive starting with %");
-            }
-            return true;
         }
-        else if((m_state.flags & RTOP) && rem.begins_with("---"))
+        else if(rem.begins_with("%TAG"))
         {
-            C4_ASSERT(m_state.level == 0);
-            // end/start a document
-            _c4dbgp("end/start a document");
             _c4err("not implemented");
-            return true;
-        }
-        else if((m_state.flags & RTOP) && rem.begins_with("..."))
-        {
-            // end a document
-            _c4dbgp("end a document");
-            _c4err("not implemented");
-            return true;
         }
         else
         {
-            _c4err("parse error");
+            _c4err("unknown directive starting with %");
         }
+        return true;
+    }
+    else if(rem.begins_with("---"))
+    {
+        C4_ASSERT(m_state.level == 0 || m_state.level == 1);
+        if(m_state.level == 1)
+        {
+            // end/start a document
+            _c4dbgp("end current document");
+            _pop_level();
+        }
+
+        // start a document
+        _c4dbgp("start a document");
+        _push_level();
+        _start_doc();
+        m_state.line_progressed(3);
+
+        // skip spaces after the tag
+        rem = rem.subspan(3);
+        if(rem.begins_with(' '))
+        {
+            cspan s = rem.left_of(rem.first_not_of(' '));
+            m_state.line_progressed(rem.len);
+        }
+        return true;
+    }
+    else if(rem.begins_with("..."))
+    {
+        _c4dbgp("end current document");
+        if( ! m_stack.empty())
+        {
+            _pop_level();
+        }
+        m_state.line_progressed(3);
+        return true;
     }
     else
     {
-        _c4err("internal error");
+        _c4err("parse error");
     }
 
     return false;
@@ -1215,6 +1287,10 @@ void NextParser::_pop_level()
     {
         _stop_seq();
     }
+    else if(m_state.node->is_doc())
+    {
+        _stop_doc();
+    }
     else
     {
         _c4err("internal error");
@@ -1245,6 +1321,34 @@ void NextParser::_start_unk(bool as_child)
     {
         _move_scalar_from_top();
     }
+}
+
+//-----------------------------------------------------------------------------
+void NextParser::_start_doc(bool as_child)
+{
+    _c4dbgp("start_doc");
+    m_state.flags |= RUNK;
+    Node* parent = m_stack.empty() ? m_root : m_stack.peek().node;
+    C4_ASSERT(parent != nullptr);
+    C4_ASSERT(m_state.node == nullptr || m_state.node == m_root);
+    if(as_child)
+    {
+        m_state.node = parent->tree()->begin_doc();
+    }
+    else
+    {
+        C4_ASSERT(parent->is_seq() || parent->empty());
+        m_state.node = parent;
+        m_state.node->m_type = TYPE_DOC;
+    }
+    _c4dbgp("start_doc: id=%zd", m_state.node->id(), _c4prsp(m_state.node->name()));
+}
+
+void NextParser::_stop_doc()
+{
+    _c4dbgp("stop_doc");
+    C4_ASSERT(m_state.node->is_doc());
+    m_state.node->tree()->end_doc();
 }
 
 //-----------------------------------------------------------------------------
@@ -1290,7 +1394,11 @@ void NextParser::_start_seq(bool as_child)
     C4_ASSERT(m_state.node == nullptr || m_state.node == m_root);
     if(as_child)
     {
-        cspan name = _consume_scalar();
+        cspan name;
+        if(m_state.has_all(SSCL))
+        {
+            _consume_scalar();
+        }
         m_state.node = parent->tree()->begin_seq(name);
     }
     else
