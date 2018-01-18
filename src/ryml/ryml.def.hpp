@@ -664,6 +664,7 @@ void NextParser::_handle_line()
 
     if(_handle_top(rem))
     {
+        _c4dbgp("handle_top");
         return;
     }
 }
@@ -936,7 +937,7 @@ bool NextParser::_handle_map(cspan rem)
         }
         else if(rem.begins_with("- "))
         {
-            _c4dbgp("start a sequence");
+            _c4dbgp("start a seq");
             _push_level();
             _start_seq();
             m_state.line_progressed(2);
@@ -944,7 +945,7 @@ bool NextParser::_handle_map(cspan rem)
         }
         else if(rem.begins_with('['))
         {
-            _c4dbgp("start a sequence");
+            _c4dbgp("start a seq");
             _push_level(/*explicit flow*/true);
             _start_seq();
             m_state.line_progressed(1);

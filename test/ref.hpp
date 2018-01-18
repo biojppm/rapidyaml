@@ -196,10 +196,9 @@ struct Case
 
 struct CaseContainer
 {
+    std::vector< Case > tests;
 
     explicit CaseContainer(std::initializer_list< Case > il) : tests(il) {}
-
-    std::vector< Case > tests;
 
     void run()
     {
@@ -238,6 +237,14 @@ struct CaseContainer
         }
     }
 
+    static void test_failed()
+    {
+        current_status = false;
+        if(failed_tests.empty() || failed_tests.back() != current_case)
+        {
+            failed_tests.push_back(current_case);
+        }
+    }
     static bool current_status;
     static cspan current_case;
     static std::vector< cspan > failed_tests;
@@ -250,20 +257,16 @@ std::vector< cspan > CaseContainer::failed_tests;
 
 
 
-#define C4_EXPECT_IMPL_(relname, val1, cmp, val2)   \
+#define C4_EXPECT_IMPL_(relname, val1, cmp, val2)                       \
     if( ! ((val1) cmp (val2)))                                          \
     {                                                                   \
         std::cout << "\n"                                               \
                   << __FILE__ ":" << __LINE__ << ": ERROR: [" << ::c4::yml::CaseContainer::current_case << "]:\n" \
-                  <<                             ":          expected " #relname " (" #cmp "):\n" \
-                  <<                             ":          lhs: '" #val1 "'=" << val1 << "\n" \
-                  <<                             ":          rhs: '" #val2 "'=" << val2 << "\n"; \
-        ::c4::yml::CaseContainer::current_status = false;               \
-        auto &ft##__LINE__ = ::c4::yml::CaseContainer::failed_tests;              \
-        if(ft##__LINE__.empty() || ft##__LINE__.back() != ::c4::yml::CaseContainer::current_case) \
-        {                                                               \
-            ft##__LINE__.push_back(::c4::yml::CaseContainer::current_case);       \
-        }                                                               \
+                  << "    expected " #relname " (" #cmp "):\n"          \
+                  << "    lhs: '" #val1 "'=" << val1 << "\n"            \
+                  << "    "#cmp"\n"                                     \
+                  << "    rhs: '" #val2 "'=" << val2 << "\n";           \
+        ::c4::yml::CaseContainer::test_failed();                        \
     }
 
 #define C4_EXPECT_EQ(val1, val2) C4_EXPECT_IMPL_(eq, val1, ==, val2)
