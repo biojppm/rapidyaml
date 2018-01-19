@@ -73,37 +73,29 @@ public:
         memset(&m_parser, 0, sizeof(decltype(m_parser)));
     }
 
-    LibyamlParser(LibyamlParser const&) = delete;
-    LibyamlParser& operator= (LibyamlParser const&) = delete;
-
-    LibyamlParser(LibyamlParser &&that) = default;
-    LibyamlParser& operator= (LibyamlParser &&that) = default;
-
-    void set_load_root(Node *r) { m_load_root = r; }
-
     template< size_t N >
-    void parse(Tree *s, const char (&input)[N])
+    void parse(/*Tree *s, */const char (&input)[N])
     {
-        parse(s, &input[0], N-1);
+        parse(/*s, */&input[0], N-1);
     }
 
-    void parse(Tree *s, cspan const& sp)
+    void parse(/*Tree *s, */cspan const& sp)
     {
-        parse(s, sp.str, sp.len);
+        parse(/*s, */sp.str, sp.len);
     }
-    void parse(Tree *s, const char* input, size_t length)
+    void parse(/*Tree *s, */const char* input, size_t length)
     {
         m_input = input;
         m_length = length;
         yaml_parser_set_input_string(&m_parser, (const unsigned char*)input, length);
-        _do_parse(s);
+        _do_parse(/*s*/);
     }
 
-    void _do_parse(Tree *s)
+    void _do_parse(/*Tree *s*/)
     {
         bool done = false;
-        bool doc_had_scalars = false;
-        cspan prev_scalar;
+        //bool doc_had_scalars = false;
+        //cspan prev_scalar;
         while( ! done)
         {
             detail::Event ev;
@@ -113,17 +105,18 @@ public:
                 break;
             }
 
+#define _c4_handle_case(_ev)                            \
+case YAML_ ## _ev ## _EVENT:                            \
+    printf(#_ev " val=%.*s\n",                          \
+           /*(int)prev_scalar.len, prev_scalar.str,*/   \
+           (int)val.len, val.str);
+
             cspan val = get_scalar_val(ev);
             switch(ev.m_event.type)
             {
-#define _c4_handle_case(_ev) \
-case YAML_ ## _ev ## _EVENT:                   \
-    printf(#_ev " prev=%.*s val=%.*s\n",    \
-           (int)prev_scalar.len, prev_scalar.str,   \
-           (int)val.len, val.str);
 
             _c4_handle_case(MAPPING_START)
-                if(( ! s->stack_top_is_type(DOC) || doc_had_scalars)
+                /*if(( ! s->stack_top_is_type(DOC) || doc_had_scalars)
                    &&
                    ( ! m_load_root))
                 {
@@ -131,23 +124,24 @@ case YAML_ ## _ev ## _EVENT:                   \
                     s->begin_map(prev_scalar, s->top_last());
                     prev_scalar.clear();
                 }
+                */
                 break;
             _c4_handle_case(MAPPING_END)
-                if( ! s->stack_top_is_type(DOC) && ! m_load_root)
+                /*if( ! s->stack_top_is_type(DOC) && ! m_load_root)
                 {
                     s->end_map();
-                }
+                }*/
                 break;
 
             _c4_handle_case(SEQUENCE_START)
-                s->begin_seq(prev_scalar, s->top_last());
+                //s->begin_seq(prev_scalar, s->top_last());
                 break;
             _c4_handle_case(SEQUENCE_END)
-                s->end_seq();
+                //s->end_seq();
                 break;
 
             _c4_handle_case(SCALAR)
-                if(s->stack_top_is_type(SEQ))
+                /*if(s->stack_top_is_type(SEQ))
                 {
                     s->add_val({}, val, s->top_last());
                     prev_scalar.clear();
@@ -165,32 +159,33 @@ case YAML_ ## _ev ## _EVENT:                   \
                     }
                 }
                 doc_had_scalars = true;
+                */
                 break;
 
             _c4_handle_case(DOCUMENT_START)
-                if( ! m_load_root)
+                /*if( ! m_load_root)
                 {
                     s->begin_doc(s->top_last());
                     doc_had_scalars = false;
-                }
+                }*/
                 break;
             _c4_handle_case(DOCUMENT_END)
-                if( ! m_load_root)
+                /*if( ! m_load_root)
                 {
                     s->end_doc();
-                }
+                }*/
                 break;
 
             _c4_handle_case(STREAM_START)
-                s->begin_stream();
+                //s->begin_stream();
                 break;
             _c4_handle_case(STREAM_END)
-                s->end_stream();
+                //s->end_stream();
                 done = true;
                 break;
 
             _c4_handle_case(ALIAS)
-                C4_ASSERT(false && "YAML_ALIAS_EVENT not implemented");
+                //C4_ASSERT(false && "YAML_ALIAS_EVENT not implemented");
                 break;
 #undef _c4_handle_case
             default:

@@ -32,16 +32,6 @@ const char* Node::type_str(NodeType_e ty)
     }
 }
 
-Node * Node::prev_node() const
-{
-    return m_s->get(m_list.prev);
-}
-
-Node * Node::next_node() const
-{
-    return m_s->get(m_list.next);
-}
-
 Node * Node::parent() const
 {
     return m_s->get(m_parent);
@@ -357,6 +347,12 @@ void Tree::reserve(size_t cap)
     m_cap = cap;
     m_buf = buf;
     clear_range(first, del);
+    if( ! m_size)
+    {
+        claim(nullptr);
+        C4_ASSERT(id(root()) == 0);
+        m_stack.push(0); // push the root
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -562,13 +558,13 @@ void Tree::free(size_t i)
 
 
 //-----------------------------------------------------------------------------
-void NextParser::_reset()
+void Parser::_reset()
 {
     m_state.reset(m_file.str, m_root);
 }
 
 //-----------------------------------------------------------------------------
-bool NextParser::_finished_file() const
+bool Parser::_finished_file() const
 {
     bool ret = m_state.pos.offset >= m_buf.len;
     if(ret)
@@ -579,14 +575,14 @@ bool NextParser::_finished_file() const
 }
 
 //-----------------------------------------------------------------------------
-bool NextParser::_finished_line() const
+bool Parser::_finished_line() const
 {
     bool ret = ! m_state.line_contents.rem;
     return ret;
 }
 
 //-----------------------------------------------------------------------------
-void NextParser::parse(cspan const& file, cspan const& buf, Node *root)
+void Parser::parse(cspan const& file, cspan const& buf, Node *root)
 {
     m_file = file;
     m_buf = buf;
@@ -608,7 +604,7 @@ void NextParser::parse(cspan const& file, cspan const& buf, Node *root)
 }
 
 //-----------------------------------------------------------------------------
-void NextParser::_handle_finished_file()
+void Parser::_handle_finished_file()
 {
     if(m_stack.empty()) return;
     C4_ASSERT(m_stack.size() == 1);
@@ -618,7 +614,7 @@ void NextParser::_handle_finished_file()
 }
 
 //-----------------------------------------------------------------------------
-void NextParser::_handle_line()
+void Parser::_handle_line()
 {
     cspan rem = m_state.line_contents.rem;
 
@@ -677,7 +673,7 @@ void NextParser::_handle_line()
 }
 
 //-----------------------------------------------------------------------------
-bool NextParser::_handle_scalar(cspan rem)
+bool Parser::_handle_scalar(cspan rem)
 {
     if(m_state.has_none(RKEY|RVAL|RUNK|RTOP)) return false;
 
@@ -725,7 +721,7 @@ bool NextParser::_handle_scalar(cspan rem)
 }
 
 //-----------------------------------------------------------------------------
-bool NextParser::_handle_unk(cspan rem)
+bool Parser::_handle_unk(cspan rem)
 {
     const bool start_as_child = (m_state.level != 0) || m_state.node == nullptr;
     if(rem.begins_with(' '))
@@ -823,7 +819,7 @@ bool NextParser::_handle_unk(cspan rem)
 }
 
 //-----------------------------------------------------------------------------
-bool NextParser::_handle_seq(cspan rem)
+bool Parser::_handle_seq(cspan rem)
 {
     if(m_state.has_any(RVAL))
     {
@@ -924,7 +920,7 @@ bool NextParser::_handle_seq(cspan rem)
 }
 
 //-----------------------------------------------------------------------------
-bool NextParser::_handle_map(cspan rem)
+bool Parser::_handle_map(cspan rem)
 {
     C4_ASSERT(m_state.has_all(RMAP));
     if(m_state.has_any(RVAL))
@@ -1044,7 +1040,7 @@ bool NextParser::_handle_map(cspan rem)
 }
 
 //-----------------------------------------------------------------------------
-bool NextParser::_handle_top(cspan rem)
+bool Parser::_handle_top(cspan rem)
 {
     // use the full line, as the following tokens can appear only at top level
     C4_ASSERT(rem == m_state.line_contents.stripped);
@@ -1117,7 +1113,7 @@ bool NextParser::_handle_top(cspan rem)
 }
 
 //-----------------------------------------------------------------------------
-bool NextParser::_handle_anchors_and_refs(cspan rem)
+bool Parser::_handle_anchors_and_refs(cspan rem)
 {
     if(rem.begins_with('&'))
     {
@@ -1133,7 +1129,7 @@ bool NextParser::_handle_anchors_and_refs(cspan rem)
 }
 
 //-----------------------------------------------------------------------------
-bool NextParser::_handle_types(cspan rem)
+bool Parser::_handle_types(cspan rem)
 {
     if(rem.begins_with("!!"))
     {
@@ -1149,7 +1145,7 @@ bool NextParser::_handle_types(cspan rem)
 }
 
 //-----------------------------------------------------------------------------
-cspan NextParser::_scan_scalar()
+cspan Parser::_scan_scalar()
 {
     cspan s = m_state.line_contents.rem;
     if(s.len == 0) return s;
@@ -1240,7 +1236,7 @@ cspan NextParser::_scan_scalar()
 }
 
 //-----------------------------------------------------------------------------
-void NextParser::_scan_line()
+void Parser::_scan_line()
 {
     if(m_state.pos.offset >= m_buf.len) return;
     char const* b = &m_buf[m_state.pos.offset];
@@ -1264,7 +1260,7 @@ void NextParser::_scan_line()
 
 //-----------------------------------------------------------------------------
 
-void NextParser::_push_level(bool explicit_flow_chars)
+void Parser::_push_level(bool explicit_flow_chars)
 {
     if(m_state.node == nullptr)
     {
@@ -1284,7 +1280,7 @@ void NextParser::_push_level(bool explicit_flow_chars)
     ++m_state.level;
 }
 
-void NextParser::_pop_level()
+void Parser::_pop_level()
 {
     _c4dbgp("level popped!");
     if(m_state.has_any(RMAP))
@@ -1321,7 +1317,7 @@ void NextParser::_pop_level()
 }
 
 //-----------------------------------------------------------------------------
-void NextParser::_start_unk(bool as_child)
+void Parser::_start_unk(bool as_child)
 {
     _c4dbgp("start_unk");
     _push_level();
@@ -1332,7 +1328,7 @@ void NextParser::_start_unk(bool as_child)
 }
 
 //-----------------------------------------------------------------------------
-void NextParser::_start_doc(bool as_child)
+void Parser::_start_doc(bool as_child)
 {
     _c4dbgp("start_doc (as child=%d)", as_child);
     m_state.flags |= RUNK;
@@ -1354,7 +1350,7 @@ void NextParser::_start_doc(bool as_child)
     _c4dbgp("start_doc: id=%zd", m_state.node->id(), _c4prsp(m_state.node->name()));
 }
 
-void NextParser::_stop_doc()
+void Parser::_stop_doc()
 {
     _c4dbgp("stop_doc");
     C4_ASSERT(m_state.node->is_doc());
@@ -1362,7 +1358,7 @@ void NextParser::_stop_doc()
 }
 
 //-----------------------------------------------------------------------------
-void NextParser::_start_map(bool as_child)
+void Parser::_start_map(bool as_child)
 {
     _c4dbgp("start_map (as child=%d)", as_child);
     m_state.flags |= RMAP|RVAL;
@@ -1386,7 +1382,7 @@ void NextParser::_start_map(bool as_child)
     _c4dbgp("start_map: id=%zd name='%.*s'", m_state.node->id(), _c4prsp(m_state.node->name()));
 }
 
-void NextParser::_stop_map()
+void Parser::_stop_map()
 {
     _c4dbgp("stop_map");
     C4_ASSERT(m_state.node->is_map());
@@ -1394,7 +1390,7 @@ void NextParser::_stop_map()
 }
 
 //-----------------------------------------------------------------------------
-void NextParser::_start_seq(bool as_child)
+void Parser::_start_seq(bool as_child)
 {
     _c4dbgp("start_seq (as child=%d)", as_child);
     m_state.flags |= RSEQ|RVAL;
@@ -1421,7 +1417,7 @@ void NextParser::_start_seq(bool as_child)
     _c4dbgp("start_seq: id=%zd name='%.*s'", m_state.node->id(), _c4prsp(m_state.node->name()));
 }
 
-void NextParser::_stop_seq()
+void Parser::_stop_seq()
 {
     _c4dbgp("stop_seq");
     C4_ASSERT(m_state.node->is_seq());
@@ -1429,7 +1425,7 @@ void NextParser::_stop_seq()
 }
 
 //-----------------------------------------------------------------------------
-void NextParser::_append_val(cspan const& val)
+void Parser::_append_val(cspan const& val)
 {
     C4_ASSERT( ! m_state.has_all(SSCL));
     C4_ASSERT(m_state.node != nullptr);
@@ -1439,7 +1435,7 @@ void NextParser::_append_val(cspan const& val)
     _c4dbgp("append val: id=%zd name='%.*s' val='%.*s'", m_state.node->last_child()->id(), _c4prsp(m_state.node->last_child()->name()), _c4prsp(m_state.node->last_child()->val()));
 }
 
-void NextParser::_append_key_val(cspan const& val)
+void Parser::_append_key_val(cspan const& val)
 {
     C4_ASSERT(m_state.node->is_map());
     cspan key = _consume_scalar();;
@@ -1449,7 +1445,7 @@ void NextParser::_append_key_val(cspan const& val)
     _toggle_key_val();
 }
 
-void NextParser::_toggle_key_val()
+void Parser::_toggle_key_val()
 {
     if(m_state.flags & RKEY)
     {
@@ -1464,7 +1460,7 @@ void NextParser::_toggle_key_val()
 }
 
 //-----------------------------------------------------------------------------
-void NextParser::_store_scalar(cspan const& s)
+void Parser::_store_scalar(cspan const& s)
 {
     _c4dbgp("storing scalar: '%.*s'", _c4prsp(s));
     C4_ASSERT(m_state.has_none(SSCL));
@@ -1472,7 +1468,7 @@ void NextParser::_store_scalar(cspan const& s)
     m_state.scalar = s;
 }
 
-cspan NextParser::_consume_scalar()
+cspan Parser::_consume_scalar()
 {
     _c4dbgp("consuming scalar: '%.*s' (flag: %d))", _c4prsp(m_state.scalar), m_state.scalar & SSCL);
     C4_ASSERT(m_state.flags & SSCL);
@@ -1482,7 +1478,7 @@ cspan NextParser::_consume_scalar()
     return s;
 }
 
-void NextParser::_move_scalar_from_top()
+void Parser::_move_scalar_from_top()
 {
     if(m_stack.empty()) return;
     if(m_stack.peek().flags & SSCL)
@@ -1497,7 +1493,7 @@ void NextParser::_move_scalar_from_top()
 }
 
 //-----------------------------------------------------------------------------
-int NextParser::_handle_indentation()
+int Parser::_handle_indentation()
 {
     int jump = m_state.indentation_jump;
     if(jump < 0)
@@ -1518,7 +1514,7 @@ int NextParser::_handle_indentation()
 }
 
 //-----------------------------------------------------------------------------
-cspan NextParser::_scan_comment()
+cspan Parser::_scan_comment()
 {
     cspan s = m_state.line_contents.rem;
     C4_ASSERT(s.begins_with('#'));
@@ -1529,7 +1525,7 @@ cspan NextParser::_scan_comment()
 }
 
 //-----------------------------------------------------------------------------
-cspan NextParser::_scan_quoted_scalar(const char q)
+cspan Parser::_scan_quoted_scalar(const char q)
 {
     // quoted scalars can spread over multiple lines!
     // nice explanation here: http://yaml-multiline.info/
@@ -1626,7 +1622,7 @@ cspan NextParser::_scan_quoted_scalar(const char q)
 }
 
 //-----------------------------------------------------------------------------
-cspan NextParser::_scan_block()
+cspan Parser::_scan_block()
 {
     // nice explanation here: http://yaml-multiline.info/
     cspan s = m_state.line_contents.rem;
@@ -1689,14 +1685,14 @@ cspan NextParser::_scan_block()
 }
 
 //-----------------------------------------------------------------------------
-cspan NextParser::_filter_quoted_scalar(cspan const& s, const char q)
+cspan Parser::_filter_quoted_scalar(cspan const& s, const char q)
 {
     _c4err("not implemented");
     return {};
 }
 
 //-----------------------------------------------------------------------------
-cspan NextParser::_filter_raw_block(cspan const& block, BlockStyle_e style, BlockChomp_e chomp, size_t indentation)
+cspan Parser::_filter_raw_block(cspan const& block, BlockStyle_e style, BlockChomp_e chomp, size_t indentation)
 {
     C4_ASSERT(block.ends_with('\n') || block.ends_with('\r'));
 
@@ -1742,7 +1738,7 @@ cspan NextParser::_filter_raw_block(cspan const& block, BlockStyle_e style, Bloc
 }
 
 //-----------------------------------------------------------------------------
-bool NextParser::_read_decimal(cspan const& str, size_t *decimal)
+bool Parser::_read_decimal(cspan const& str, size_t *decimal)
 {
     C4_ASSERT(str.len > 1);
     size_t n = 0, c = 0;
@@ -1756,7 +1752,19 @@ bool NextParser::_read_decimal(cspan const& str, size_t *decimal)
 }
 
 //-----------------------------------------------------------------------------
-void NextParser::_err(const char *fmt, ...) const
+size_t Parser::_count_nlines(cspan src)
+{
+    size_t n = 0;
+    while(src.len > 0)
+    {
+        n += (src.begins_with('\n') || src.begins_with('\r'));
+        src = src.subspan(1);
+    }
+    return n;
+}
+
+//-----------------------------------------------------------------------------
+void Parser::_err(const char *fmt, ...) const
 {
     char errmsg[RYML_ERRMSG_SIZE];
     int len = sizeof(errmsg);
@@ -1770,7 +1778,7 @@ void NextParser::_err(const char *fmt, ...) const
 
 #ifdef RYML_DBG
 //-----------------------------------------------------------------------------
-void NextParser::_dbg(const char *fmt, ...) const
+void Parser::_dbg(const char *fmt, ...) const
 {
     char errmsg[RYML_ERRMSG_SIZE];
     int len = sizeof(errmsg);
@@ -1784,7 +1792,7 @@ void NextParser::_dbg(const char *fmt, ...) const
 #endif
 
 //-----------------------------------------------------------------------------
-int NextParser::_fmt_msg(char *buf, int buflen, const char *fmt, va_list args) const
+int Parser::_fmt_msg(char *buf, int buflen, const char *fmt, va_list args) const
 {
     int len = buflen;
     int pos = 0;

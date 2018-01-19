@@ -279,7 +279,7 @@ int do_test()
 
     using C = Case;
     using N = CaseNode;
-    using L = CaseNode::children_init_type;
+    using L = CaseNode::iseqmap;
 
     CaseContainer tests({
 

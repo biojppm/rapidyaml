@@ -112,7 +112,7 @@ public:
     bool   parent_is_map() const { return parent()->is_map(); }
 
     /** true when name and value are empty, and has no children */
-    bool   empty() const { return ! has_children() && m_name.empty() && ((m_type & VAL) || m_val.empty()); }
+    bool   empty() const { return ! has_children() && m_name.empty() && (( ! (m_type & VAL)) || m_val.empty()); }
     bool   has_children() const { return num_children() != 0; }
     bool   has_siblings() const { return num_siblings() != 0; }
 
@@ -313,9 +313,10 @@ public:
     Tree(size_t sz);
     ~Tree();
 
-    size_t capacity() const { return m_cap; }
-    size_t size    () const { return m_size; }
+    size_t size () const { return m_size; }
+    bool   empty() const { return m_size == 0; }
 
+    size_t capacity() const { return m_cap; }
     void reserve(size_t sz);
 
     void clear();
@@ -356,13 +357,6 @@ public:
 public:
 
     void set_load_root(Node *r) { m_load_root_id = r ? id(r) : NONE; }
-
-    void add_root()
-    {
-        begin_stream();
-        end_stream();
-        m_stack.push(id(root()));
-    }
 
     Node *begin_stream()
     {
@@ -426,8 +420,8 @@ public:
         Node *n = claim(after);
         after = get(ida);
         n->_set_flags(VAL);
-        n->m_name = name;
         n->m_val  = val;
+        n->m_name = name;
         if(n->m_name) n->_add_flags(KEY);
 
         set_parent(_stack_top(), n, after);
@@ -550,8 +544,8 @@ private:
 
 public:
 
-    Node      * root()       { C4_ASSERT(m_cap > 0); Node *n = m_buf; C4_ASSERT(n->parent() == nullptr); return n; }
-    Node const* root() const { C4_ASSERT(m_cap > 0); Node *n = m_buf; C4_ASSERT(n->parent() == nullptr); return n; }
+    Node      * root()       { C4_ASSERT(m_cap > 0 && m_size > 0); Node *n = m_buf; C4_ASSERT(n->parent() == nullptr); return n; }
+    Node const* root() const { C4_ASSERT(m_cap > 0 && m_size > 0); Node *n = m_buf; C4_ASSERT(n->parent() == nullptr); return n; }
 
     Node      * first_doc()         { Node *n = root()->child(0); C4_ASSERT(n && n->is_doc()); return n; }
     Node const* first_doc() const   { Node *n = root()->child(0); C4_ASSERT(n && n->is_doc()); return n; }
@@ -806,6 +800,7 @@ inline size_t emit(Node const* n, FILE *f = nullptr)
 }
 inline size_t emit(Tree const &t, FILE *f = nullptr)
 {
+    if(t.empty()) return 0;
     return emit(t.root(), f);
 }
 
@@ -827,7 +822,7 @@ inline span emit(Tree const& t, span const& sp, bool error_on_excess=true)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-class NextParser
+class Parser
 {
 private:
 
@@ -867,7 +862,7 @@ private:
     {
         size_t       flags;
         size_t       level;
-        Node *       node;
+        size_t       node_id;
         cspan        scalar;
 
         Location     pos;
@@ -890,7 +885,7 @@ private:
             pos.offset = 0;
             pos.line = 1;
             pos.col = 1;
-            node = n;
+            node_id = n->id();
             scalar.clear();
             prev_indentation = 0;
             indentation_jump = 0;
@@ -942,27 +937,27 @@ public:
 
 public:
 
-    Tree parse(                   cspan const& buf) { return parse({}, buf); }
-    Tree parse(cspan const& file, cspan const& buf)
+    Tree parse(                       cspan const& src) { return parse({}, src); }
+    Tree parse(cspan const& filename, cspan const& src)
     {
         Tree t;
-        t.add_root();
-        parse(file, buf, &t);
+        t.reserve(_count_nlines(src));
+        parse(filename, src, &t);
         return t;
     }
 
-    void parse(                   cspan const& buf, Tree *t) { return parse({}, buf, t); }
-    void parse(cspan const& file, cspan const& buf, Tree *t)
+    void parse(                       cspan const& src, Tree *t) { return parse({}, src, t); }
+    void parse(cspan const& filename, cspan const& src, Tree *t)
     {
-        parse(file, buf, t->root());
+        parse(filename, src, t->root());
     }
 
-    void parse(                   cspan const& buf, Node *root) { return parse({}, buf, root); }
-    void parse(cspan const& file, cspan const& buf, Node *root);
+    void parse(                       cspan const& src, Node *root) { return parse({}, src, root); }
+    void parse(cspan const& filename, cspan const& src, Node *root);
 
 private:
 
-    void _reset();
+    void  _reset();
 
     bool  _finished_file() const;
     bool  _finished_line() const;
@@ -1015,7 +1010,8 @@ private:
 
 private:
 
-    static bool _read_decimal(cspan const& str, size_t *decimal);
+    static bool   _read_decimal(cspan const& str, size_t *decimal);
+    static size_t _count_nlines(cspan src);
 
 private:
 
@@ -1033,37 +1029,37 @@ private:
 
 inline Tree parse(cspan const& buf)
 {
-    NextParser np;
+    Parser np;
     return np.parse(buf);
 }
 
 inline Tree parse(cspan const& file, cspan const& buf)
 {
-    NextParser np;
+    Parser np;
     return np.parse(file, buf);
 }
 
 inline void parse(cspan const& buf, Tree *t)
 {
-    NextParser np;
+    Parser np;
     np.parse(buf, t);
 }
 
 inline void parse(cspan const& file, cspan const& buf, Tree *t)
 {
-    NextParser np;
+    Parser np;
     np.parse(file, buf, t);
 }
 
 inline void parse(cspan const& buf, Node *root)
 {
-    NextParser np;
+    Parser np;
     np.parse(buf, root);
 }
 
 inline void parse(cspan const& file, cspan const& buf, Node *root)
 {
-    NextParser np;
+    Parser np;
     np.parse(file, buf, root);
 }
 

@@ -36,35 +36,35 @@ class CaseNode
 {
 public:
 
-    using children_type = std::vector< CaseNode >;
-    using children_init_type = std::initializer_list< CaseNode >;
+    using  seqmap = std::vector< CaseNode >;
+    using iseqmap = std::initializer_list< CaseNode >;
 
 public:
 
     NodeType_e type;
-    cspan key;
-    cspan val;
-    children_type children;
-    CaseNode *parent;
+    cspan      key;
+    cspan      val;
+    seqmap     children;
+    CaseNode * parent;
 
 public:
 
-    CaseNode() : type(NOTYPE), key(), val(), children(), parent() {}
-    CaseNode(NodeType_e t) : type(t), key(), val(), children(), parent() {}
+    CaseNode() : CaseNode(NOTYPE) {}
+    CaseNode(NodeType_e t) : type(t), key(), val(), children(), parent(nullptr) { _set_parent(); }
 
     template< size_t N >
-    explicit CaseNode(const char (&v)[N]) : type(VAL), key(), val(v), children() {}
+    explicit CaseNode(const char (&v)[N]) : type(VAL), key(), val(v), children(), parent(nullptr) { _set_parent(); }
 
     template< size_t N, size_t M >
-    explicit CaseNode(const char (&k)[N], const char (&v)[M]) : type(VAL), key(k), val(v), children() {}
+    explicit CaseNode(const char (&k)[N], const char (&v)[M]) : type(VAL), key(k), val(v), children(), parent(nullptr) { _set_parent(); }
 
     template< size_t N >
-    explicit CaseNode(const char (&k)[N], children_init_type s) : type(), key(k), val(), children(s) { _set_parent(); type = _guess(); }
-    explicit CaseNode(                    children_init_type m) : CaseNode("", m) {}
+    explicit CaseNode(const char (&k)[N], iseqmap s) : type(), key(k), val(), children(s), parent(nullptr) { _set_parent(); type = _guess(); }
+    explicit CaseNode(                    iseqmap m) : CaseNode("", m) {}
 
     template< size_t N >
-    explicit CaseNode(NodeType_e t, const char (&k)[N], children_init_type s) : type(t), key(k), val(), children(s) { _set_parent(); }
-    explicit CaseNode(NodeType_e t,                     children_init_type m) : CaseNode(t, "", m) {}
+    explicit CaseNode(NodeType_e t, const char (&k)[N], iseqmap s) : type(t), key(k), val(), children(s), parent(nullptr) { _set_parent(); }
+    explicit CaseNode(NodeType_e t,                     iseqmap m) : CaseNode(t, "", m) {}
 
     CaseNode(CaseNode     &&) = default;
     CaseNode(CaseNode const&) = default;
@@ -153,40 +153,7 @@ public:
         return c;
     }
 
-    /*
-    void print(int level = 0) const
-    {
-        if(is_val())
-        {
-            printf("%.*s", (int)key.len, key.str);
-            return;
-        }
-        else if(is_key_val())
-        {
-            printf("%.*s", (int)key.len, key.str);
-            return;
-        }
-        ++level;
-        if(is_seq())
-        {
-            printf("\n");
-            for(auto const& c : seq)
-            {
-                printf("%*s", level, "  ");
-                printf("%.*s", (int)key.len, key.str);
-                c.print(level);
-            }
-        }
-        else if(is_map())
-        {
-            ++level;
-            for(auto const& c : map)
-            {
-                c.print(level);
-            }
-        }
-    }
-*/
+    void recreate(yml::Node *n) const;
 
 };
 
@@ -307,24 +274,30 @@ std::vector< cspan > CaseContainer::failed_tests;
 
 void Case::run() const
 {
-    Tree libyaml_tree;
-
     std::cout << "parsing using libyaml to check if the YAML source is legal\n";
     LibyamlParser libyaml_parser;
-    libyaml_parser.parse(&libyaml_tree, src);
-    emit(libyaml_tree);
+    libyaml_parser.parse(src);
     std::cout << "parsing using libyaml: done\n";
+
 
     std::cout << "parsing using ryml\n";
     Tree t = parse(src);
     emit(t);
     std::cout << "parsing using ryml: done\n";
 
-    std::cout << "comparing trees...\n";
+
+    std::cout << "comparing parsed tree to ref tree...\n";
     C4_EXPECT_GE(t.capacity(), root.reccount());
     C4_EXPECT_EQ(t.size(), root.reccount());
     root.compare(*t.root());
-    std::cout << "comparing trees: done\n";
+    std::cout << "comparing parsed tree to ref tree: done\n";
+
+
+    std::cout << "recreating a new tree from the ref tree\n";
+    Tree dup;
+    dup.reserve(t.size());
+    root.recreate(dup.root());
+    std::cout << "recreating a new tree from the ref tree: done\n";
 }
 
 void CaseNode::compare(yml::Node const& n) const
@@ -339,6 +312,22 @@ void CaseNode::compare(yml::Node const& n) const
     for(size_t i = 0, ei = n.num_children(), j = 0, ej = children.size(); i < ei && j < ej; ++i, ++j)
     {
         children[j].compare(n[i]);
+    }
+}
+
+void CaseNode::recreate(yml::Node *n) const
+{
+    C4_ASSERT(n->empty());
+    n->m_type = type;
+    if( ! parent)
+    {
+        n->m_name = key;
+        n->m_val = val;
+    }
+    for(auto const& ch : children)
+    {
+        auto *chn = n->append_child(key, val);
+        ch.recreate(chn);
     }
 }
 
