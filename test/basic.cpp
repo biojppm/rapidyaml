@@ -281,6 +281,21 @@ int do_test()
     using N = CaseNode;
     using L = CaseNode::iseqmap;
 
+    {
+        L tl1 = {DOC, DOC};
+        L tl2 = {(DOC), (DOC)};
+
+        C4_ASSERT(tl1.size() == tl2.size());
+        N const& d1 = *tl1.begin();
+        N const& d2 = *(tl1.begin() + 1);
+        C4_ASSERT(d1.reccount() == d2.reccount());
+        C4_ASSERT(d1.type == DOC);
+        C4_ASSERT(d2.type == DOC);
+
+        N n1(tl1);
+        N n2(tl2);
+        C4_ASSERT(n1.reccount() == n2.reccount());
+    }
     CaseContainer tests({
 
 //-----------------------------------------------------------------------------
@@ -302,10 +317,8 @@ C("two empty docs",
 R"(---
 ---
 )",
-    L{N{DOC}, N{DOC}}
+    L{DOC, DOC}
 ),
-
-#ifdef JAVAI
 //-----------------------------------------------------------------------------
 
 C("simple map, explicit, single line",
@@ -381,7 +394,7 @@ R"([
 2,
 3
 ])",
-    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
 ),
 
 C("simple seq, explicit, multiline, indented",
@@ -391,7 +404,7 @@ R"([
   2,
   3
 ])",
-    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
 ),
 
 C("simple seq",
@@ -401,7 +414,7 @@ R"(
 - 2
 - 3
 )",
-    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
 ),
 
 C("simple seq, with comments",
@@ -411,7 +424,7 @@ R"(
 - 2   # this is a bar
 - 3   # this is a bar
 )",
-    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
 ),
 
 C("simple seq, with comments interspersed",
@@ -425,54 +438,10 @@ R"(
 # this is a bat
 - 3
 )",
-    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
 ),
 
-//-----------------------------------------------------------------------------
-
-C("simple seq",
-R"(- 0
-- 1
-- 2
-- 3
-- 4
-)",
-    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}, N{"4"}}
-),
-
-C("simple seq, explicit",
-R"([0, 1, 2, 3, 4])",
-    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}, N{"4"}}
-),
-
-C("simple seq, explicit, breaks",
-R"([
-0, 1, 2, 3, 4
-])",
-    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}, N{"4"}}
-),
-
-C("simple seq, explicit, many breaks",
-R"([
-  0,
-  1,
-  2,
-  3,
-  4
-])",
-    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}, N{"4"}}
-),
-
-C("simple seq, explicit, many breaks, unindented",
-R"([
-0,
-1,
-2,
-3,
-4
-])",
-    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}, N{"4"}}
-),
+#ifdef JAVAI
 
 //-----------------------------------------------------------------------------
 C("nested seq x2, fmt 2",

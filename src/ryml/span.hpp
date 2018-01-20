@@ -76,6 +76,11 @@ public:
     {
         return len == 1 && *str == c;
     }
+    template< class T >
+    bool operator!= (T const& that)
+    {
+        return ! (operator== (that));
+    }
 
     bool operator<  (basic_span const& that) { size_t n = len < that.len ? len : that.len; return strncmp(str, that.str, n) < 0; }
     bool operator>  (basic_span const& that) { size_t n = len < that.len ? len : that.len; return strncmp(str, that.str, n) > 0; }
