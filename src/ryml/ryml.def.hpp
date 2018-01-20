@@ -772,12 +772,19 @@ bool Parser::_handle_seq(cspan rem)
     {
         if(rem.begins_with(' '))
         {
+            _c4dbgp("starts with spaces");
             if(m_state.has_all(INDOK))
             {
                 _c4dbgp("indentation jump=%d level=%zd #spaces=%d", m_state.indentation_jump, m_state.level, m_state.line_contents.indentation);
+                m_state.line_progressed(m_state.line_contents.indentation);
                 C4_ASSERT(m_state.indentation_jump > 0);
             }
-            m_state.line_progressed(m_state.line_contents.indentation);
+            else
+            {
+                rem = rem.left_of(rem.first_not_of(' '));
+                _c4dbgp("skip %zd spaces", rem.len);
+                m_state.line_progressed(rem.len);
+            }
             return true;
         }
         else if(rem.begins_with("- "))
@@ -1121,6 +1128,7 @@ cspan Parser::_scan_scalar()
         else if(m_state.has_all(RVAL))
         {
             s = s.left_of(s.first_of(",]#"));
+            s = s.trimr(' ');
         }
         else
         {

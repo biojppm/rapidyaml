@@ -322,6 +322,26 @@ R"(---
 
 //-----------------------------------------------------------------------------
 
+C("empty map",
+"{}",
+    MAP
+),
+
+C("empty map, multiline",
+R"({
+}
+)",
+    MAP
+),
+
+C("empty map, multilines",
+R"({
+# foo bar baz akjasdkj
+}
+)",
+    MAP
+),
+
 C("simple map, explicit, single line",
 "{foo: 0, bar: 1, baz: 2, bat: 3}",
     L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
@@ -383,6 +403,28 @@ bat: 3
 
 //-----------------------------------------------------------------------------
 
+C("empty seq",
+"[]",
+    SEQ
+),
+
+C("empty seq, multiline",
+R"([
+]
+)",
+    SEQ
+),
+
+C("empty seq, multilines",
+R"([
+# ksjdfkjhsdfkjhsdfkjh
+
+
+]
+)",
+    SEQ
+),
+
 C("simple seq, explicit, single line",
 "[0, 1, 2, 3]",
     L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
@@ -442,8 +484,6 @@ R"(
     L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
 ),
 
-#ifdef JAVAI
-
 //-----------------------------------------------------------------------------
 C("nested seq x2, fmt 2",
 R"(
@@ -498,6 +538,8 @@ R"([[00, 01, 02], [10, 11, 12], [20, 21, 22]])",
       N{L{N{"20"}, N{"21"}, N{"22"}}},
           }
 ),
+
+#ifdef JAVAI
 
 //-----------------------------------------------------------------------------
 // https://en.wikipedia.org/wiki/YAML
