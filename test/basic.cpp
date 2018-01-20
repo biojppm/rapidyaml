@@ -303,22 +303,23 @@ int do_test()
 C("one empty doc",
 R"(---
 )",
-    N{DOC}
+    N(STREAM, L{DOC})
 ),
 
 C("one empty doc, explicit termination",
 R"(---
 ...
 )",
-    N{DOC}
+    N(STREAM, L{DOC})
 ),
 
 C("two empty docs",
 R"(---
 ---
 )",
-    L{DOC, DOC}
+    N(STREAM, L{DOC, DOC})
 ),
+
 //-----------------------------------------------------------------------------
 
 C("simple map, explicit, single line",
