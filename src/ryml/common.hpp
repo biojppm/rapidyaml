@@ -26,22 +26,24 @@
 #pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 
 #ifndef C4_ERROR
-#   define C4_ERROR(msg) C4_ERROR_(__FILE__, __LINE__, msg)
-#   define C4_ERROR_(file, line, msg) \
-    c4::yml::RymlCallbacks::error(file ":" C4_QUOTE(line) ": fatal error: " msg "\n")
+#   define C4_ERROR(msg) \
+    c4::yml::RymlCallbacks::error(__FILE__ ":" C4_XQUOTE(__LINE__) ": fatal error: " msg "\n")
 #endif
 
 #ifndef C4_ASSERT
 #   ifdef NDEBUG
 #       define C4_ASSERT(expr) (void)(0)
 #   else
+#       ifndef C4_DEBUG_BREAK  /* generates SIGTRAP. This assumes x86. Disable at will. */
+#           define C4_DEBUG_BREAK() asm("int $3")
+#       endif
 #       include <assert.h>
-#       define C4_ASSERT(expr) C4_ASSERT_(__FILE__, __LINE__, expr)
-#       define C4_ASSERT_(file, line, expr)                             \
+#       define C4_ASSERT(expr)                                          \
     {                                                                   \
         if( ! (expr))                                                   \
         {                                                               \
-            c4::yml::RymlCallbacks::error(file ":" C4_QUOTE(line) ": Assert failed: " #expr "\n"); \
+            C4_DEBUG_BREAK();                                           \
+            c4::yml::RymlCallbacks::error(__FILE__ ":" C4_XQUOTE(__LINE__) ": Assert failed: " #expr "\n"); \
         }                                                               \
     }
 #   endif
@@ -49,6 +51,10 @@
 
 #pragma clang diagnostic pop
 #pragma GCC diagnostic pop
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 namespace c4 {
 namespace yml {
