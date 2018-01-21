@@ -111,7 +111,7 @@ public:
 
     bool   is_root() const { return m_parent == NONE; }
     bool   is_container() const { return m_type & (MAP|SEQ|STREAM|DOC); }
-    bool   is_stream() const { return m_type & STREAM; }
+    bool   is_stream() const { return (m_type & STREAM) == STREAM; }
     bool   is_doc() const { return m_type & DOC; }
     bool   is_map() const { return m_type & MAP; }
     bool   is_seq() const { return m_type & SEQ; }
@@ -284,17 +284,17 @@ bool Node::visit(Visitor fn, size_t indentation_level, bool skip_root) const
         }
         ++increment;
     }
-    fn.push(this);
+    fn.push(this, indentation_level);
     for(Node *ch = first_child(); ch; ch = ch->next_sibling())
     {
         // no need to forward skip_root as it won't be root
         if(ch->visit(fn, indentation_level + increment))
         {
-            fn.pop(this);
+            fn.pop(this, indentation_level);
             return true;
         }
     }
-    fn.pop(this);
+    fn.pop(this, indentation_level);
     return false;
 }
 
@@ -576,177 +576,188 @@ public:
 
 private:
 
-    size_t _visit(Node const* first)
+    struct RepC
     {
-        size_t b = m_pos;
-        Visitor v{this};
-        first->visit(v);
-        size_t e = m_pos - b;
-        return e;
-    }
-
-    struct Visitor
-    {
-        Emitter *this_;
-        void push(Node const *n) {}
-        void pop(Node const *n) {}
-        bool operator()(Node const *n, size_t ilevel)
-        {
-            switch(n->type())
-            {
-            case KEYVAL:
-            case VAL:
-                this_->_writeind(ilevel);
-                if(n->parent_is_seq())
-                {
-                    this_->_writev(n->val());
-                }
-                else if(n->parent_is_map())
-                {
-                    this_->_writekv(n->key(), n->val());
-                }
-                break;
-            case MAP:
-            case SEQ:
-                this_->_writeind(ilevel);
-                this_->_writek(n->key());
-                break;
-            case DOC:
-            case DOCMAP:
-            case DOCSEQ:
-            case STREAM:
-                break;
-            case NOTYPE:
-                break;
-            default:
-                break;
-            }
-            return false;
-        }
+        char c;
+        size_t num_times;
     };
 
-    void _writeind(size_t level)
+    size_t _visit(Node const* n, size_t ilevel = 0)
     {
-        size_t num = 2 * level; // 2 spaces per indentation level
-        if(m_file)
-        {
-            m_pos += fprintf(m_file, "%*s", (int)num, "");
-        }
-        else
-        {
-            if(m_pos + num < m_span.len)
-            {
-                _write(' ',  num);
-            }
-            else
-            {
-                m_pos += num;
-            }
-        }
-
+        m_pos = 0;
+        _do_visit(n, ilevel);
+        return m_pos;
     }
 
-    void _writek(cspan const& k)
+    void _do_visit(Node const* n, size_t ilevel = 0)
     {
-        if(m_file)
+        RepC ind{' ', 2*ilevel};
+        bool no_ind = false;
+        if(n->is_stream())
         {
-            m_pos += fprintf(m_file, "%.*s:\n", (int)k.len, k.str);
+            ;
         }
-        else
+        else if(n->is_doc())
         {
-            size_t num = k.len + 1;
-            if(m_pos + num < m_span.len)
-            {
-                _write(k);
-                _write('\n');
-            }
-            else
-            {
-                m_pos += num;
-            }
+            _write("---\n");
         }
-    }
+        else if(n->is_keyval())
+        {
+            _write(ind, n->key(), ": ", n->val(), '\n');
+        }
+        else if(n->is_val())
+        {
+            _write(ind, "- ", n->val(), '\n');
+        }
+        else if(n->is_container() && ! n->is_root())
+        {
+            C4_ASSERT(n->parent_is_map() || n->parent_is_seq());
+            C4_ASSERT(n->is_map() || n->is_seq());
 
-    void _writev(cspan const& v)
-    {
-        if(m_file)
-        {
-            m_pos += fprintf(m_file, "- %.*s\n", (int)v.len, v.str);
-        }
-        else
-        {
-            size_t num = 2 + v.len + 1;
-            if(m_pos + num < m_span.len)
+            if(n->parent_is_seq())
             {
-                _write("- ");
-                _write(v);
-                _write('\n');
+                C4_ASSERT( ! n->has_key());
+                _write(ind, "- ");
             }
-            else
+            else if(n->parent_is_map())
             {
-                m_pos += num;
+                C4_ASSERT(n->has_key());
+                _write(ind, n->key(), ":");
             }
-        }
-    }
 
-    void _writekv(cspan const& k, cspan const& v)
-    {
-        if(m_file)
-        {
-            m_pos += fprintf(m_file, "%.*s: %.*s\n",
-                             (int)k.len, k.str,
-                             (int)v.len, v.str);
-        }
-        else
-        {
-            size_t num = 2 + v.len + 1;
-            if(m_pos + num < m_span.len)
+            if(n->has_children())
             {
-                _write(k);
-                _write(": ");
-                _write(v);
-                _write('\n');
+                if(n->is_seq())
+                {
+                    // do not indent the first child, as it will be written on the same line
+                    no_ind = true;
+                }
+                else if(n->is_map())
+                {
+                    _write('\n');
+                }
             }
             else
             {
-                m_pos += num;
+                if(n->is_seq())
+                {
+                    _write("[]\n");
+                }
+                else if(n->is_map())
+                {
+                    _write("{}\n");
+                }
             }
         }
+
+        size_t next_level = ilevel + 1;
+        if(n->is_stream() || n->is_doc() || n->is_root())
+        {
+            next_level = ilevel; // do not indent at top level
+        }
+
+        for(Node const* ch = n->first_child(); ch; ch = ch->next_sibling())
+        {
+            size_t nl = no_ind ? 0 : next_level;
+            _do_visit(ch, nl);
+            no_ind = false;
+        }
+
+        if(n->is_stream())
+        {
+            _write("...\n");
+        }
+
     }
 
 private:
 
-    inline void _write(const char c)
+    template< class T, class... Args >
+    inline void _write(T a, Args... more)
     {
-        C4_ASSERT(m_pos + 1 < m_span.len);
-        m_span[m_pos] = c;
-        ++m_pos;
+        _do_write(a);
+        _write(more...);
     }
 
-    inline void _write(const char c, size_t num_times)
+    template< class T >
+    inline void _write(T a)
     {
-        for(size_t i = m_pos, e = m_pos + num_times; i < e; ++i)
+        _do_write(a);
+    }
+
+    inline void _do_write(const char c)
+    {
+        if(m_file)
         {
-            m_span[m_pos + i] = c;
+            m_pos += fprintf(m_file, "%c", c);
         }
-        m_pos += num_times;
+        else
+        {
+            if(m_pos + 1 < m_span.len)
+            {
+                C4_ASSERT(m_pos + 1 < m_span.len);
+                m_span[m_pos] = c;
+            }
+            ++m_pos;
+        }
+    }
+
+    inline void _do_write(RepC rc)
+    {
+        if(m_file)
+        {
+            for(size_t i = 0; i < rc.num_times; ++i)
+            {
+                m_pos += fprintf(m_file, "%c", rc.c);
+            }
+        }
+        else
+        {
+            if(m_pos + rc.num_times < m_span.len)
+            {
+                for(size_t i = m_pos, e = m_pos + rc.num_times; i < e; ++i)
+                {
+                    m_span[m_pos + i] = rc.c;
+                }
+            }
+            m_pos += rc.num_times;
+        }
     }
 
     template< size_t N >
-    inline void _write(const char (&s)[N])
+    inline void _do_write(const char (&s)[N])
     {
         size_t nm1 = N-1;
         C4_ASSERT(s[nm1] == '\0');
-        C4_ASSERT(m_pos + nm1 < m_span.len);
-        memcpy(&(m_span[m_pos]), s, nm1);
-        m_pos += nm1;
+        if(m_file)
+        {
+            m_pos += fprintf(m_file, "%.*s", (int)nm1, s);
+        }
+        else
+        {
+            if(m_pos + nm1 < m_span.len)
+            {
+                memcpy(&(m_span[m_pos]), s, nm1);
+            }
+            m_pos += nm1;
+        }
     }
 
-    inline void _write(cspan const& sp)
+    inline void _do_write(cspan sp)
     {
-        C4_ASSERT(m_pos + sp.len < m_span.len);
-        memcpy(&(m_span[m_pos]), sp.str, sp.len);
-        m_pos += sp.len;
+        if(sp.empty()) sp = "";
+        if(m_file)
+        {
+            m_pos += fprintf(m_file, "%.*s", (int)sp.len, sp.str);
+        }
+        else
+        {
+            if(m_pos + sp.len < m_span.len)
+            {
+                memcpy(&(m_span[m_pos]), sp.str, sp.len);
+            }
+            m_pos += sp.len;
+        }
     }
 };
 
@@ -777,6 +788,7 @@ inline span emit(Node const* n, span const& sp, bool error_on_excess=true)
 }
 inline span emit(Tree const& t, span const& sp, bool error_on_excess=true)
 {
+    if(t.empty()) return span();
     return emit(t.root(), sp, error_on_excess);
 }
 

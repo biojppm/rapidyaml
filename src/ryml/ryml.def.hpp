@@ -42,7 +42,7 @@ size_t Node::num_children() const
 {
     if(is_val()) return 0;
     size_t count = 0;
-    for(Node *n = m_s->get(m_children.first); n; n = n->next_sibling())
+    for(Node const* n = m_s->get(m_children.first); n; n = n->next_sibling())
     {
         ++count;
     }
