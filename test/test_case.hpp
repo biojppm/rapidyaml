@@ -264,9 +264,9 @@ std::vector< std::string > CaseContainer::failed_tests;
         std::cout << "\n"                                               \
                   << __FILE__ ":" << __LINE__ << ": ERROR: [" << ::c4::yml::CaseContainer::current_case << "]:\n" \
                   << "    expected " #relname " (" #cmp "):\n"          \
-                  << "    lhs: '" #val1 "'='" << val1 << "'\n"          \
+                  << "    lhs: '" #val1 "'='" << (val1) << "'\n"          \
                   << "    "#cmp"\n"                                     \
-                  << "    rhs: '" #val2 "'='" << val2 << "'\n";         \
+                  << "    rhs: '" #val2 "'='" << (val2) << "'\n";         \
         ::c4::yml::CaseContainer::test_failed();                        \
     }
 
@@ -343,11 +343,16 @@ void CaseNode::compare(yml::Node const& n) const
 
     // check that the children are in the same order
     {
+        C4_EXPECT_EQ(children.size(), n.num_children());
         size_t ic = 0;
         for(auto const& ch : children)
         {
+            C4_EXPECT(ic < n.num_children());
+            if(ic >= n.num_children()) break;
+            C4_EXPECT(n.child(ic) != nullptr);
             if(type & MAP)
             {
+                C4_EXPECT(n.find_child(ch.key) != nullptr);
                 C4_EXPECT_EQ(&n[ic], &n[ch.key]);
                 C4_EXPECT_EQ(n[ch.key].key(), ch.key);
                 if(ch.type & VAL)
@@ -392,10 +397,12 @@ void CaseNode::recreate(yml::Node *n) const
         n->m_key = key;
         n->m_val = val;
     }
+    auto &tree = *n->tree();
+    size_t nid = n->id();
     for(auto const& ch : children)
     {
-        size_t id = n->tree()->append_child(n->id());
-        Node * chn = n->tree()->get(id);
+        size_t id = tree.append_child(nid);
+        Node * chn = tree.get(id);
         ch.recreate(chn);
     }
 }
