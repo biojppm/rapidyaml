@@ -188,69 +188,14 @@ public:
 
 public:
 
-    void to_val(cspan const& val, int more_flags = 0)
-    {
-        C4_ASSERT( ! has_children());
-        _set_flags(VAL|more_flags);
-        m_key.clear();
-        m_val = val;
-    }
-
-    void to_keyval(cspan const& key, cspan const& val, int more_flags = 0)
-    {
-        C4_ASSERT( ! has_children());
-        _set_flags(KEYVAL|more_flags);
-        m_key = key;
-        m_val = val;
-    }
-
-    void to_map(int more_flags = 0)
-    {
-        C4_ASSERT( ! has_children());
-        _set_flags(MAP|more_flags);
-        m_key.clear();
-        m_val.clear();
-    }
-
-    void to_map(cspan const& key, int more_flags = 0)
-    {
-        C4_ASSERT( ! has_children());
-        _set_flags(KEY|MAP|more_flags);
-        m_key = key;
-        m_val.clear();
-    }
-
-    void to_seq(int more_flags = 0)
-    {
-        C4_ASSERT( ! has_children());
-        _set_flags(SEQ|more_flags);
-        m_key.clear();
-        m_val.clear();
-    }
-
-    void to_seq(cspan const& key, int more_flags = 0)
-    {
-        C4_ASSERT( ! has_children());
-        _set_flags(KEY|SEQ|more_flags);
-        m_key = key;
-        m_val.clear();
-    }
-
-    void to_doc(int more_flags = 0)
-    {
-        C4_ASSERT( ! has_children());
-        _set_flags(DOC|more_flags);
-        m_key.clear();
-        m_val.clear();
-    }
-
-    void to_stream(int more_flags = 0)
-    {
-        C4_ASSERT( ! has_children());
-        _set_flags(STREAM|more_flags);
-        m_key.clear();
-        m_val.clear();
-    }
+    void to_val(cspan const& val, int more_flags = 0);
+    void to_keyval(cspan const& key, cspan const& val, int more_flags = 0);
+    void to_map(int more_flags = 0);
+    void to_map(cspan const& key, int more_flags = 0);
+    void to_seq(int more_flags = 0);
+    void to_seq(cspan const& key, int more_flags = 0);
+    void to_doc(int more_flags = 0);
+    void to_stream(int more_flags = 0);
 
 private:
 

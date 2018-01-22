@@ -185,6 +185,78 @@ void Node::remove_child(Node *n)
 }
 
 
+void Node::to_val(cspan const& val, int more_flags)
+{
+    C4_ASSERT( ! has_children());
+    C4_ASSERT(m_parent == NONE || ! m_s->get(m_parent)->is_map());
+    _set_flags(VAL|more_flags);
+    m_key.clear();
+    m_val = val;
+}
+
+void Node::to_keyval(cspan const& key, cspan const& val, int more_flags)
+{
+    C4_ASSERT( ! has_children());
+    C4_ASSERT( ! key.empty());
+    C4_ASSERT(m_parent != NONE && m_s->get(m_parent)->is_map());
+    _set_flags(KEYVAL|more_flags);
+    m_key = key;
+    m_val = val;
+}
+
+void Node::to_map(int more_flags)
+{
+    C4_ASSERT( ! has_children());
+    C4_ASSERT(m_parent == NONE || ! m_s->get(m_parent)->is_map());
+    _set_flags(MAP|more_flags);
+    m_key.clear();
+    m_val.clear();
+}
+
+void Node::to_map(cspan const& key, int more_flags)
+{
+    C4_ASSERT( ! has_children());
+    C4_ASSERT( ! key.empty());
+    C4_ASSERT(m_parent != NONE && m_s->get(m_parent)->is_map());
+    _set_flags(KEY|MAP|more_flags);
+    m_key = key;
+    m_val.clear();
+}
+
+void Node::to_seq(int more_flags)
+{
+    C4_ASSERT( ! has_children());
+    _set_flags(SEQ|more_flags);
+    m_key.clear();
+    m_val.clear();
+}
+
+void Node::to_seq(cspan const& key, int more_flags)
+{
+    C4_ASSERT( ! has_children());
+    C4_ASSERT(m_parent != NONE && m_s->get(m_parent)->is_map());
+    _set_flags(KEY|SEQ|more_flags);
+    m_key = key;
+    m_val.clear();
+}
+
+void Node::to_doc(int more_flags)
+{
+    C4_ASSERT( ! has_children());
+    _set_flags(DOC|more_flags);
+    m_key.clear();
+    m_val.clear();
+}
+
+void Node::to_stream(int more_flags)
+{
+    C4_ASSERT( ! has_children());
+    _set_flags(STREAM|more_flags);
+    m_key.clear();
+    m_val.clear();
+}
+
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
