@@ -17,35 +17,35 @@ class detail::stack
 private:
 
     T *    m_stack;
-    size_t m_pos;
     size_t m_size;
+    size_t m_capacity;
 
 public:
 
-    stack() : m_stack(nullptr), m_pos(0), m_size(0)
+    stack() : m_stack(nullptr), m_size(0), m_capacity(0)
     {
     }
     ~stack()
     {
         if(m_stack)
         {
-            RymlCallbacks::free(m_stack, m_size * sizeof(T));
+            RymlCallbacks::free(m_stack, m_capacity * sizeof(T));
         }
     }
 
     stack(stack const& that) : stack()
     {
-        reserve(that.m_pos);
-        memcpy(m_stack, that.m_stack, sizeof(T) * that.m_pos);
+        reserve(that.m_size);
+        memcpy(m_stack, that.m_stack, sizeof(T) * that.m_size);
     }
     stack& operator= (stack const& that)
     {
         if(m_stack)
         {
-            RymlCallbacks::free(m_stack, m_size * sizeof(T));
+            RymlCallbacks::free(m_stack, m_capacity * sizeof(T));
         }
-        reserve(that.m_pos);
-        memcpy(m_stack, that.m_stack, sizeof(T) * that.m_pos);
+        reserve(that.m_size);
+        memcpy(m_stack, that.m_stack, sizeof(T) * that.m_size);
         return *this;
     }
 
@@ -61,45 +61,68 @@ public:
         return *this;
     }
 
-    size_t size() const { return m_pos; }
-    size_t empty() const { return m_pos == 0; }
+    size_t size() const { return m_size; }
+    size_t empty() const { return m_size == 0; }
+    size_t capacity() const { return m_capacity; }
+
+    void clear()
+    {
+        m_size = 0;
+    }
 
     void reserve(size_t sz)
     {
         if(sz == 0) sz = 8;
-        C4_ASSERT(m_pos < sz);
+        if(sz <= m_size) return;
         T *buf = (T*) RymlCallbacks::allocate(sz * sizeof(T), m_stack);
         if(m_stack)
         {
-            memcpy(buf, m_stack, m_pos * sizeof(T));
-            RymlCallbacks::free(m_stack, m_size * sizeof(T));
+            memcpy(buf, m_stack, m_size * sizeof(T));
+            RymlCallbacks::free(m_stack, m_capacity * sizeof(T));
         }
         m_stack = buf;
-        m_size = sz;
+        m_capacity = sz;
     }
-    void push(T n)
+
+    void push(T const& n)
     {
-        if(m_pos >= m_size)
+        if(m_size >= m_capacity)
         {
-            reserve(2 * m_size);
+            reserve(2 * m_capacity);
         }
-        m_stack[m_pos] = n;
-        m_pos++;
-        //printf("stack_push[%zd]: %zd\n", m_pos, n);
+        m_stack[m_size] = n;
+        m_size++;
+        //printf("stack_push[%zd]: %zd\n", m_size, n);
     }
 
-    T pop()
+    T const& pop()
     {
-        //printf("stack_pop[%zd]: %zd\n", m_pos, m_stack[m_pos - 1]);
-        C4_ASSERT(m_pos > 0);
-        m_pos--;
-        T n = m_stack[m_pos];
-        return n;
+        //printf("stack_pop[%zd]: %zd\n", m_size, m_stack[m_size - 1]);
+        C4_ASSERT(m_size > 0);
+        m_size--;
+        return m_stack[m_size];
     }
 
-    T const& peek() const { C4_ASSERT(m_pos > 0); return m_stack[m_pos - 1]; }
-    T      & peek()       { C4_ASSERT(m_pos > 0); return m_stack[m_pos - 1]; }
+    T const& top() const { C4_ASSERT(m_size > 0); return m_stack[m_size - 1]; }
+    T      & top()       { C4_ASSERT(m_size > 0); return m_stack[m_size - 1]; }
 
+    T const& top(size_t i) const { C4_ASSERT(i >= 0 && i < m_size); return m_stack[m_size - 1 - i]; }
+    T      & top(size_t i)       { C4_ASSERT(i >= 0 && i < m_size); return m_stack[m_size - 1 - i]; }
+
+    T const& bottom() const { C4_ASSERT(m_size > 0); return m_stack[0]; }
+    T      & bottom()       { C4_ASSERT(m_size > 0); return m_stack[0]; }
+
+    T const& bottom(size_t i) const { C4_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
+    T      & bottom(size_t i)       { C4_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
+
+    using iterator = T *;
+    using const_iterator = T const *;
+
+    iterator begin() { return m_stack; }
+    iterator end  () { return m_stack + m_size; }
+
+    const_iterator begin() const { return m_stack; }
+    const_iterator end  () const { return m_stack + m_size; }
 };
 
 } // namespace yml

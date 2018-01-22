@@ -216,7 +216,7 @@ public:
     {
         C4_ASSERT( ! has_children());
         _set_flags(KEY|MAP|more_flags);
-        m_key.clear();
+        m_key = key;
         m_val.clear();
     }
 
@@ -232,7 +232,7 @@ public:
     {
         C4_ASSERT( ! has_children());
         _set_flags(KEY|SEQ|more_flags);
-        m_key.clear();
+        m_key = key;
         m_val.clear();
     }
 
@@ -806,10 +806,11 @@ private:
         RMAP = 0x01 <<  2, // reading a map
         RSEQ = 0x01 <<  3, // reading a seq
         EXPL = 0x01 <<  4, // reading is inside explicit flow chars: [] or {}
-        RKEY = 0x01 <<  5, // reading a scalar as key
-        RVAL = 0x01 <<  6, // reading a scalar as val
-        CPLX = 0x01 <<  7, // reading a complex key
-        SSCL = 0x01 <<  8, // there's a scalar stored
+        CPLX = 0x01 <<  5, // reading a complex key
+        RKEY = 0x01 <<  6, // reading a scalar as key
+        RVAL = 0x01 <<  7, // reading a scalar as val
+        RNXT = 0x01 <<  8, // read next val or keyval
+        SSCL = 0x01 <<  9, // there's a scalar stored
 
         STARTED_ = 0x01 << 16, // mark the parser started
         INDOK = 0x01 << 17, // allow indentation jumps
@@ -851,7 +852,7 @@ private:
             scalar = current.scalar;
         }
 
-        void reset(const char *file, Node *n)
+        void reset(const char *file, size_t node_id_)
         {
             flags = RUNK|RTOP;
             level = 0;
@@ -859,7 +860,7 @@ private:
             pos.offset = 0;
             pos.line = 1;
             pos.col = 1;
-            node_id = n->id();
+            node_id = node_id_;
             scalar.clear();
             prev_indentation = 0;
             indentation_jump = 0;
@@ -892,25 +893,30 @@ private:
             pos.col = 1;
         }
 
-        bool has_all(size_t f) const { return (flags & f) == f; }
-        bool has_any(size_t f) const { return (flags & f) != 0; }
-        bool has_none(size_t f) const { return (flags & f) == 0; }
+        inline bool has_all(size_t f) const { return (flags & f) == f; }
+        inline bool has_any(size_t f) const { return (flags & f) != 0; }
+        inline bool has_none(size_t f) const { return (flags & f) == 0; }
     };
 
-    inline Node * node(State const& s) { return m_tree->get(s.node_id); }
+    inline Node * node(State const* s) const { return m_tree->get(s->node_id); }
+    inline Node * node(State const& s) const { return m_tree->get(s .node_id); }
+    inline Node * node(size_t node_id) const { return m_tree->get(   node_id); }
 
 public:
 
-    cspan  m_file;
-    cspan  m_buf;
+    cspan   m_file;
+    cspan   m_buf;
 
-    Node * m_root;
-    Tree * m_tree;
+    size_t  m_root_id;
+    Tree *  m_tree;
 
-    State  m_state;
     detail::stack< State > m_stack;
+    State * m_state;
+    State * m_deindent;
 
 public:
+
+    Parser();
 
     Tree parse(                       cspan const& src) { return parse({}, src); }
     Tree parse(cspan const& filename, cspan const& src)
@@ -940,7 +946,7 @@ private:
     bool  _finished_line() const;
 
     void  _scan_line();
-    void  _next_line() { m_state.line_ended(); }
+    void  _next_line() { m_state->line_ended(); }
 
     cspan _scan_scalar();
     cspan _scan_comment();
