@@ -229,17 +229,20 @@ bool Node::visit(Visitor fn, size_t indentation_level, bool skip_root) const
         }
         ++increment;
     }
-    fn.push(this, indentation_level);
-    for(Node *ch = first_child(); ch; ch = ch->next_sibling())
+    if(has_children())
     {
-        // no need to forward skip_root as it won't be root
-        if(ch->visit(fn, indentation_level + increment))
+        fn.push(this, indentation_level);
+        for(Node *ch = first_child(); ch; ch = ch->next_sibling())
         {
-            fn.pop(this, indentation_level);
-            return true;
+            // no need to forward skip_root as it won't be root
+            if(ch->visit(fn, indentation_level + increment))
+            {
+                fn.pop(this, indentation_level);
+                return true;
+            }
         }
+        fn.pop(this, indentation_level);
     }
-    fn.pop(this, indentation_level);
     return false;
 }
 
@@ -534,10 +537,10 @@ private:
         return m_pos;
     }
 
-    void _do_visit(Node const* n, size_t ilevel = 0)
+    void _do_visit(Node const* n, size_t ilevel = 0, bool no_ind = false)
     {
-        RepC ind{' ', 2*ilevel};
-        bool no_ind = false;
+        RepC ind{' ', 2*(no_ind ? 0 : ilevel)};
+
         if(n->is_stream())
         {
             ;
@@ -567,7 +570,7 @@ private:
             else if(n->parent_is_map())
             {
                 C4_ASSERT(n->has_key());
-                _write(ind, n->key(), ":");
+                _write(ind, n->key(), ':');
             }
 
             if(n->has_children())
@@ -603,8 +606,7 @@ private:
 
         for(Node const* ch = n->first_child(); ch; ch = ch->next_sibling())
         {
-            size_t nl = no_ind ? 0 : next_level;
-            _do_visit(ch, nl);
+            _do_visit(ch, next_level, no_ind);
             no_ind = false;
         }
 
