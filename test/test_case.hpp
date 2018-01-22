@@ -222,19 +222,23 @@ struct CaseContainer
             std::cout << "---------------------------------------------------\n";
         }
 
+        std::cout << "\n\n\n";
+        std::cout << "===================================================\n";
         if( ! failed_tests.empty())
         {
-            std::cout << "\n\n\n";
-            std::cout << "===================================================\n";
             std::cout << "Failed tests:\n";
             for(auto const& t : failed_tests)
             {
                 std::cout << "'" << t << "'\n";
             }
-            std::cout << "===================================================\n";
         }
+        else
+        {
+            std::cout << "All tests passed! Yay!\n";
+        }
+        std::cout << "===================================================\n";
 
-        return failed_tests.empty();
+        return ! failed_tests.empty();
     }
 
     static void test_failed()

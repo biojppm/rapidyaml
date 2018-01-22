@@ -20,10 +20,12 @@ const char* Node::type_str(NodeType_e ty)
 {
     switch(ty)
     {
-    case KEYVAL  : return "KEYVAL";
     case VAL     : return "VAL";
     case MAP     : return "MAP";
     case SEQ     : return "SEQ";
+    case KEYVAL  : return "KEYVAL";
+    case KEYMAP  : return "KEYMAP";
+    case KEYSEQ  : return "KEYSEQ";
     case DOC     : return "DOC";
     case DOCSEQ  : return "DOCSEQ";
     case DOCMAP  : return "DOCMAP";
@@ -940,7 +942,8 @@ bool Parser::_handle_seq(cspan rem)
             _c4dbgp("it's a map");
             _push_level(/*explicit flow*/true);
             _start_map();
-            m_state->flags |= EXPL;
+            m_state->flags |= EXPL|RKEY;
+            m_state->flags &= ~RVAL;
             m_state->line_progressed(1);
             return true;
         }
@@ -980,6 +983,7 @@ bool Parser::_handle_map(cspan rem)
     _c4dbgp("handle_map");
     if(m_state->has_any(RVAL))
     {
+        C4_ASSERT(m_state->has_all(SSCL));
         if(rem.begins_with(": "))
         {
             _c4dbgp("wait for val");
@@ -1005,6 +1009,7 @@ bool Parser::_handle_map(cspan rem)
         {
             _c4dbgp("start a seq");
             _push_level(/*explicit flow*/true);
+            _move_scalar_from_top();
             _start_seq();
             m_state->line_progressed(1);
             return true;
@@ -1012,7 +1017,6 @@ bool Parser::_handle_map(cspan rem)
         else if(rem.begins_with('{'))
         {
             _c4dbgp("start a map");
-            C4_ASSERT(m_state->has_all(SSCL));
             _push_level(/*explicit flow*/true);
             _move_scalar_from_top();
             _start_map();
@@ -1329,7 +1333,6 @@ void Parser::_push_level(bool explicit_flow_chars)
     if(node(m_state) == nullptr)
     {
         C4_ASSERT( ! explicit_flow_chars);
-        C4_ERROR("never reach (?)");
         return;
     }
     size_t st = RUNK;

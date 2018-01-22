@@ -35,13 +35,15 @@ typedef enum {
     NOTYPE  = 0,       ///< no type is set
     VAL     = (1<<0),  ///< a leaf node, has a (possibly empty) value
     KEY     = (1<<1),  ///< is member of a map, must have non-empty key
-    KEYVAL  = KEY|VAL,
     MAP     = (1<<2),  ///< a map: a parent of keyvals
     SEQ     = (1<<3),  ///< a seq: a parent of vals
     DOC     = (1<<4),  ///< a document
+    STREAM  = (1<<5)|SEQ,  ///< a stream: a seq of docs
+    KEYVAL  = KEY|VAL,
+    KEYSEQ  = KEY|SEQ,
+    KEYMAP  = KEY|MAP,
     DOCMAP  = DOC|MAP,
     DOCSEQ  = DOC|SEQ,
-    STREAM  = (1<<5)|SEQ,  ///< a stream: a seq of docs
 } NodeType_e;
 
 
@@ -577,8 +579,15 @@ private:
             {
                 if(n->is_seq())
                 {
-                    // do not indent the first child, as it will be written on the same line
-                    no_ind = true;
+                    if(n->parent_is_map())
+                    {
+                        _write('\n');
+                    }
+                    else
+                    {
+                        // do not indent the first child, as it will be written on the same line
+                        no_ind = true;
+                    }
                 }
                 else if(n->is_map())
                 {

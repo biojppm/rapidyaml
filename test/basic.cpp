@@ -441,6 +441,9 @@ R"([
     SEQ
 ),
 
+
+//-----------------------------------------------------------------------------
+
 C("simple seq, explicit, single line",
 "[0, 1, 2, 3]",
     L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
@@ -500,7 +503,13 @@ R"(
     L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
 ),
 
+
 //-----------------------------------------------------------------------------
+
+C("nested seq x2, empty, oneline",
+R"([[], [], []])",
+    L{SEQ, SEQ, SEQ}
+),
 
 C("nested seq x2, explicit first+last level, same line",
 R"([[00, 01, 02], [10, 11, 12], [20, 21, 22]])",
@@ -614,6 +623,7 @@ R"(
           }
 ),
 
+#ifdef JAVAI
 C("nested seq x2, fmt 2",
 R"(
 - - 00
@@ -632,6 +642,85 @@ R"(
       N{L{N{"20"}, N{"21"}, N{"22"}}},
           }
 ),
+#endif
+
+//-----------------------------------------------------------------------------
+
+C("map of empty seqs",
+R"({foo: [], bar: [], baz: []})",
+     L{
+         N(KEYSEQ, "foo", L()),
+         N(KEYSEQ, "bar", L()),
+         N(KEYSEQ, "baz", L()),
+     }
+),
+
+C("map of seqs, one line",
+R"({men: [John Smith, Bill Jones], women: [Mary Smith, Susan Williams]})",
+     L{
+         N("men", L{N{"John Smith"}, N{"Bill Jones"}}),
+         N("women", L{N{"Mary Smith"}, N{"Susan Williams"}})
+     }
+),
+
+#ifdef JAVAI
+C("map of seqs",
+R"(
+men:
+  - John Smith
+  - Bill Jones
+women:
+  - Mary Smith
+  - Susan Williams
+)",
+     L{
+         N("men", L{N{"John Smith"}, N{"Bill Jones"}}),
+         N("women", L{N{"Mary Smith"}, N{"Susan Williams"}})
+     }
+),
+#endif
+
+
+//-----------------------------------------------------------------------------
+
+C("seq of empty maps, one line",
+R"([{}, {}, {}])",
+  L{MAP, MAP, MAP}
+),
+
+C("seq of maps, one line",
+R"([{name: John Smith, age: 33}, {name: Mary Smith, age: 27}])",
+  L{
+      N{L{N("name", "John Smith"), N("age", "33")}},
+      N{L{N("name", "Mary Smith"), N("age", "27")}}
+  }
+),
+
+C("seq of maps, implicit seq, explicit maps",
+R"(
+- {name: John Smith, age: 33}
+- {name: Mary Smith, age: 27}
+)",
+  L{
+      N{L{N("name", "John Smith"), N("age", "33")}},
+      N{L{N("name", "Mary Smith"), N("age", "27")}}
+  }
+),
+
+#ifdef JAVAI
+C("seq of maps",
+R"(
+- name: John Smith
+  age: 33
+- name: Mary Smith
+  age: 27
+)",
+  L{
+      N{L{N("name", "John Smith"), N("age", "33")}},
+      N{L{N("name", "Mary Smith"), N("age", "27")}}
+  }
+),
+#endif
 
 #ifdef JAVAI
 
@@ -714,33 +803,6 @@ R"(--- # Indented Block
       N{DOC, L{N("name", "John Smith"), N("age", "33")}},
       N{DOC, L{N("name", "John Smith"), N("age", "33")}},
   }
-),
-
-//-----------------------------------------------------------------------------
-C("seq of maps",
-R"(
-- {name: John Smith, age: 33}
-- name: Mary Smith
-  age: 27
-)",
-  L{
-      N{L{N("name", "John Smith"), N("age", "33")}},
-      N{L{N("name", "Mary Smith"), N("age", "27")}}
-  }
-),
-
-//-----------------------------------------------------------------------------
-C("map of seqs",
-R"(
-men: [John Smith, Bill Jones]
-women:
-  - Mary Smith
-  - Susan Williams
-)",
-     L{
-         N("men", L{N{"John Smith"}, N{"Bill Jones"}}),
-         N("women", L{N{"Mary Smith"}, N{"Susan Williams"}})
-     }
 ),
 
 
