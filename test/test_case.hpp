@@ -99,23 +99,26 @@ public:
         }
         else
         {
+            NodeType_e has_key = key.empty() ? NOTYPE : KEY;
             auto const& ch = children.front();
             if(ch.key.empty())
             {
-                return SEQ;
+                return ((NodeType_e)(has_key|SEQ));
             }
             else
             {
-                return MAP;
+                return ((NodeType_e)(has_key|MAP));
             }
         }
     }
 
     bool is_root() const { return parent; }
     bool is_doc() const { return type & DOC; }
-    bool is_val() const { return type & VAL; }
     bool is_map() const { return type & MAP; }
     bool is_seq() const { return type & SEQ; }
+    bool has_val() const { return type & VAL; }
+    bool has_key() const { return type & KEY; }
+    bool is_container() const { return type & (SEQ|MAP); }
 
 public:
 
@@ -424,7 +427,7 @@ void print_node(Node const& p, int level=0)
     {
         printf(" '%.*s'", (int)p.key().len, p.key().str);
     }
-    if(p.is_val())
+    if(p.has_val())
     {
         printf(" '%.*s'", (int)p.val().len, p.val().str);
     }
@@ -446,16 +449,16 @@ void print_node(CaseNode const& p, int level=0)
         printf(" [ROOT]");
     }
     printf(" %s:", Node::type_str(p.type));
-    if(p.type & KEY)
+    if(p.has_key())
     {
         printf(" '%.*s'", (int)p.key.len, p.key.str);
     }
-    if(p.is_val())
+    if(p.has_val())
     {
         printf(" '%.*s'", (int)p.val.len, p.val.str);
     }
     printf(" (%zd sibs)", p.parent ? p.parent->children.size() : 0);
-    if(p.type & (SEQ|MAP))
+    if(p.is_container())
     {
         printf(" %zd children:", p.children.size());
     }
@@ -508,7 +511,10 @@ void check_invariants(Node const& n)
         C4_EXPECT_NOT(n.is_root());
     }
     // vals cannot be containers
-    C4_EXPECT_NE(n.has_val(), n.is_container());
+    if( ! n.empty())
+    {
+        C4_EXPECT_NE(n.has_val(), n.is_container());
+    }
     if(n.has_children())
     {
         C4_EXPECT(n.is_container());

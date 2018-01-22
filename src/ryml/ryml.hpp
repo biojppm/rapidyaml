@@ -110,14 +110,14 @@ public:
     }
 
     bool   is_root() const { return m_parent == NONE; }
-    bool   is_container() const { return m_type & (MAP|SEQ|STREAM|DOC); }
     bool   is_stream() const { return (m_type & STREAM) == STREAM; }
     bool   is_doc() const { return m_type & DOC; }
+    bool   is_container() const { return m_type & (MAP|SEQ|STREAM|DOC); }
     bool   is_map() const { return m_type & MAP; }
     bool   is_seq() const { return m_type & SEQ; }
     bool   has_val() const { return m_type & VAL; }
-    bool   is_val() const { return (m_type & KEYVAL) == VAL; }
     bool   has_key() const { return m_type & KEY; }
+    bool   is_val() const { return (m_type & KEYVAL) == VAL; }
     bool   is_keyval() const { return (m_type & KEYVAL) == KEYVAL; }
     bool   parent_is_seq() const { C4_ASSERT(parent()); return parent()->is_seq(); }
     bool   parent_is_map() const { C4_ASSERT(parent()); return parent()->is_map(); }
@@ -923,7 +923,7 @@ public:
     {
         Tree t;
         size_t capacity = _count_nlines(src);
-        //capacity = capacity >= 8 ? capacity : 8;
+        capacity = capacity >= 8 ? capacity : 8;
         t.reserve(capacity);
         parse(filename, src, &t);
         return t;

@@ -614,7 +614,6 @@ void Parser::_handle_line()
 
     if(m_state->has_any(RSEQ))
     {
-        _c4dbgp("handle_seq");
         if(_handle_seq(rem))
         {
             return;
@@ -622,7 +621,6 @@ void Parser::_handle_line()
     }
     else if(m_state->has_any(RMAP))
     {
-        _c4dbgp("handle_map");
         if(_handle_map(rem))
         {
             return;
@@ -630,7 +628,6 @@ void Parser::_handle_line()
     }
     else if(m_state->has_any(RUNK))
     {
-        _c4dbgp("handle_unk");
         if(_handle_unk(rem))
         {
             return;
@@ -639,7 +636,6 @@ void Parser::_handle_line()
 
     if(_handle_top(rem))
     {
-        _c4dbgp("handle_top");
         return;
     }
 }
@@ -695,6 +691,7 @@ bool Parser::_handle_scalar(cspan rem)
 //-----------------------------------------------------------------------------
 bool Parser::_handle_unk(cspan rem)
 {
+    _c4dbgp("handle_unk");
     const bool start_as_child = (m_state->level != 0) || node(m_state) == nullptr;
     if(rem.begins_with(' '))
     {
@@ -793,6 +790,7 @@ bool Parser::_handle_unk(cspan rem)
 //-----------------------------------------------------------------------------
 bool Parser::_handle_seq(cspan rem)
 {
+    _c4dbgp("handle_seq");
     /*if(m_state->has_any(RNXT))
     {
         _c4err("not implemented");
@@ -907,7 +905,7 @@ bool Parser::_handle_seq(cspan rem)
 //-----------------------------------------------------------------------------
 bool Parser::_handle_map(cspan rem)
 {
-    C4_ASSERT(m_state->has_all(RMAP));
+    _c4dbgp("handle_map");
     if(m_state->has_any(RVAL))
     {
         if(rem.begins_with(": "))
@@ -942,9 +940,12 @@ bool Parser::_handle_map(cspan rem)
         else if(rem.begins_with('{'))
         {
             _c4dbgp("start a map");
+            C4_ASSERT(m_state->has_all(SSCL));
             _push_level(/*explicit flow*/true);
+            _move_scalar_from_top();
             _start_map();
             m_state->line_progressed(1);
+            _toggle_key_val();
             return true;
         }
         else if(rem.begins_with(", "))
@@ -1027,6 +1028,8 @@ bool Parser::_handle_map(cspan rem)
 //-----------------------------------------------------------------------------
 bool Parser::_handle_top(cspan rem)
 {
+    _c4dbgp("handle_top");
+
     // use the full line, as the following tokens can appear only at top level
     C4_ASSERT(rem == m_state->line_contents.stripped);
     rem = m_state->line_contents.stripped;
@@ -1159,6 +1162,7 @@ cspan Parser::_scan_scalar()
         }
         else if(m_state->has_all(RVAL))
         {
+            _c4dbgp("RSEQ|RVAL");
             s = s.left_of(s.first_of(",]#"));
             s = s.trimr(' ');
         }
@@ -1197,7 +1201,7 @@ cspan Parser::_scan_scalar()
         }
         else if(m_state->has_all(RVAL))
         {
-            _c4dbgp("RMAP|RVAL\n");
+            _c4dbgp("RMAP|RVAL");
             s = s.left_of(s.first_of(",}#"));
             s = s.trim(' ');
         }
@@ -1309,10 +1313,7 @@ void Parser::_start_unk(bool as_child)
 {
     _c4dbgp("start_unk");
     _push_level();
-    if(m_stack.top().flags & SSCL)
-    {
-        _move_scalar_from_top();
-    }
+    _move_scalar_from_top();
 }
 
 //-----------------------------------------------------------------------------
@@ -1369,6 +1370,7 @@ void Parser::_start_map(bool as_child)
         m_state->node_id = m_tree->append_child(parent->id());
         if(m_state->has_all(SSCL))
         {
+            C4_ASSERT(parent->is_map());
             cspan name = _consume_scalar();
             node(m_state)->to_map(name);
             _c4dbgp("start_map: id=%zd name='%.*s'", node(m_state)->id(), _c4prsp(node(m_state)->key()));
@@ -1495,15 +1497,16 @@ cspan Parser::_consume_scalar()
 void Parser::_move_scalar_from_top()
 {
     if(m_stack.size() < 2) return;
-    if(m_stack.top(1).flags & SSCL)
+    State &prev = m_stack.top(1);
+    C4_ASSERT(m_state == &m_stack.top());
+    C4_ASSERT(m_state != &prev);
+    if(prev.flags & SSCL)
     {
-        C4_ASSERT(m_state = &m_stack.top());
-        State &top = m_stack.top(1);
-        _c4dbgp("moving scalar: '%.*s' (overwriting '%.*s')", _c4prsp(top.scalar), _c4prsp(m_state->scalar));
-        m_state->flags |= (top.flags & SSCL);
-        m_state->scalar = top.scalar;
-        top.flags &= ~SSCL;
-        top.scalar.clear();
+        _c4dbgp("moving scalar: '%.*s'@%zd (overwriting '%.*s'@%zd)", _c4prsp(prev.scalar), &prev-m_stack.begin(), _c4prsp(m_state->scalar), m_state-m_stack.begin());
+        m_state->flags |= (prev.flags & SSCL);
+        m_state->scalar = prev.scalar;
+        prev.flags &= ~SSCL;
+        prev.scalar.clear();
     }
 }
 
@@ -1852,6 +1855,44 @@ int Parser::_fmt_msg(char *buf, int buflen, const char *fmt, va_list args) const
     }
     else
     {
+        del = snprintf(buf + pos, len, "\n");
+        _wrapbuf();
+    }
+
+    // next line: print the state flags
+    {
+        del = snprintf(buf + pos, len, "top state: ");
+        _wrapbuf();
+
+        bool gotone = false;
+#define _prflag(fl)                                                     \
+        if((m_state->flags & (fl)) == (fl))                             \
+        {                                                               \
+            if(!gotone)                                                 \
+            {                                                           \
+                gotone = true;                                          \
+            }                                                           \
+            else                                                        \
+            {                                                           \
+                del = snprintf(buf + pos, len, "|");                    \
+                _wrapbuf();                                             \
+            }                                                           \
+            del = snprintf(buf + pos, len, #fl);                        \
+            _wrapbuf();                                                 \
+        }
+
+        _prflag(RTOP);
+        _prflag(RUNK);
+        _prflag(RMAP);
+        _prflag(RSEQ);
+        _prflag(EXPL);
+        _prflag(CPLX);
+        _prflag(RKEY);
+        _prflag(RVAL);
+        _prflag(RNXT);
+        _prflag(SSCL);
+#undef _prflag
+
         del = snprintf(buf + pos, len, "\n");
         _wrapbuf();
     }
