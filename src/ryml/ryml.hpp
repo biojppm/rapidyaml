@@ -1,14 +1,12 @@
 #ifndef _C4_RYML_HPP_
 #define _C4_RYML_HPP_
 
-#include <yaml.h>
+#define RYML_DBG // remove this
+#define RYML_ERRMSG_SIZE 1024
 
 #include "./common.hpp"
 #include "./span.hpp"
 #include "./stack.hpp"
-
-#define RYML_DBG // remove this
-#define RYML_ERRMSG_SIZE 1024
 
 namespace c4 {
 namespace yml {
@@ -972,10 +970,10 @@ inline Tree parse(cspan const& buf)
     return np.parse(buf);
 }
 
-inline Tree parse(cspan const& file, cspan const& buf)
+inline Tree parse(cspan const& filename, cspan const& buf)
 {
     Parser np;
-    return np.parse(file, buf);
+    return np.parse(filename, buf);
 }
 
 inline void parse(cspan const& buf, Tree *t)
@@ -984,10 +982,10 @@ inline void parse(cspan const& buf, Tree *t)
     np.parse(buf, t);
 }
 
-inline void parse(cspan const& file, cspan const& buf, Tree *t)
+inline void parse(cspan const& filename, cspan const& buf, Tree *t)
 {
     Parser np;
-    np.parse(file, buf, t);
+    np.parse(filename, buf, t);
 }
 
 inline void parse(cspan const& buf, Node *root)
@@ -996,15 +994,15 @@ inline void parse(cspan const& buf, Node *root)
     np.parse(buf, root);
 }
 
-inline void parse(cspan const& file, cspan const& buf, Node *root)
+inline void parse(cspan const& filename, cspan const& buf, Node *root)
 {
     Parser np;
-    np.parse(file, buf, root);
+    np.parse(filename, buf, root);
 }
 
 } // namespace yml
 } // namespace c4
 
-#include <ryml/ryml.def.hpp>
+#include <ryml/ryml.cpp>
 
 #endif // _C4_RYML_HPP_
