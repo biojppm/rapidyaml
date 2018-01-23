@@ -45,7 +45,8 @@ public:
     basic_span() : str(nullptr), len(0) {}
     basic_span(C *s_) : str(s_), len(strlen(s_)) {}
     basic_span(C *s_, size_t len_) : str(s_), len(len_) { C4_ASSERT(str || !len_); }
-    template< size_t N > basic_span(C const (&s_)[N]) : str(s_), len(N-1) {}
+    template< size_t N >
+    basic_span(C const (&s_)[N]) : str(s_), len(N-1) { C4_ASSERT(s_[N-1] == '\0'); }
 
     void clear() { str = nullptr; len = 0; }
 
