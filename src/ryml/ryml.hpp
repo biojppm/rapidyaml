@@ -692,6 +692,7 @@ inline size_t emit(Node const* n, FILE *f = nullptr)
     size_t num = em.emit(n).len;
     return num;
 }
+
 inline size_t emit(Tree const &t, FILE *f = nullptr)
 {
     if(t.empty()) return 0;
@@ -707,6 +708,7 @@ inline span emit(Node const* n, span const& sp, bool error_on_excess=true)
     span result = em.emit(n, error_on_excess);
     return result;
 }
+
 inline span emit(Tree const& t, span const& sp, bool error_on_excess=true)
 {
     if(t.empty()) return span();
@@ -800,33 +802,29 @@ private:
             ++pos.line;
             pos.col = 1;
         }
-
-        inline bool has_all(size_t f) const { return (flags & f) == f; }
-        inline bool has_any(size_t f) const { return (flags & f) != 0; }
-        inline bool has_none(size_t f) const { return (flags & f) == 0; }
-
-        inline void set_flags(size_t f)
-        {
-            flags = f;
-        }
-        inline void add_flags(size_t on)
-        {
-            flags |= on;
-        }
-        inline void addrem_flags(size_t on, size_t off)
-        {
-            flags |= on;
-            flags &= ~off;
-        }
-        inline void rem_flags(size_t off)
-        {
-            flags &= ~off;
-        }
     };
 
     inline Node * node(State const* s) const { return m_tree->get(s->node_id); }
     inline Node * node(State const& s) const { return m_tree->get(s .node_id); }
     inline Node * node(size_t node_id) const { return m_tree->get(   node_id); }
+
+    inline bool has_all(size_t f) const { return has_all(f, m_state); }
+    inline bool has_any(size_t f) const { return has_any(f, m_state); }
+    inline bool has_none(size_t f) const { return has_none(f, m_state); }
+
+    inline bool has_all(size_t f, State const* s) const { return (s->flags & f) == f; }
+    inline bool has_any(size_t f, State const* s) const { return (s->flags & f) != 0; }
+    inline bool has_none(size_t f, State const* s) const { return (s->flags & f) == 0; }
+
+    inline void set_flags(size_t f) { set_flags(f, m_state); }
+    inline void add_flags(size_t on) { add_flags(on, m_state); }
+    inline void addrem_flags(size_t on, size_t off) { addrem_flags(on, off, m_state); }
+    inline void rem_flags(size_t off) { rem_flags(off, m_state); }
+
+    void set_flags(size_t f, State * s);
+    void add_flags(size_t on, State * s);
+    void addrem_flags(size_t on, size_t off, State * s);
+    void rem_flags(size_t off, State * s);
 
 public:
 

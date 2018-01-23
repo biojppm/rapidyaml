@@ -629,6 +629,25 @@ void Parser::_reset()
 }
 
 //-----------------------------------------------------------------------------
+void Parser::set_flags(size_t f, State * s)
+{
+    s->flags = f;
+}
+void Parser::add_flags(size_t on, State * s)
+{
+    s->flags |= on;
+}
+void Parser::addrem_flags(size_t on, size_t off, State * s)
+{
+    s->flags |= on;
+    s->flags &= ~off;
+}
+void Parser::rem_flags(size_t off, State * s)
+{
+    s->flags &= ~off;
+}
+
+//-----------------------------------------------------------------------------
 bool Parser::_finished_file() const
 {
     bool ret = m_state->pos.offset >= m_buf.len;
@@ -709,21 +728,21 @@ void Parser::_handle_line()
         return;
     }
 
-    if(m_state->has_any(RSEQ))
+    if(has_any(RSEQ))
     {
         if(_handle_seq())
         {
             return;
         }
     }
-    else if(m_state->has_any(RMAP))
+    else if(has_any(RMAP))
     {
         if(_handle_map())
         {
             return;
         }
     }
-    else if(m_state->has_any(RUNK))
+    else if(has_any(RUNK))
     {
         if(_handle_unk())
         {
@@ -740,7 +759,7 @@ void Parser::_handle_line()
 //-----------------------------------------------------------------------------
 bool Parser::_handle_scalar()
 {
-    if(m_state->has_none(RKEY|RVAL|RUNK|RTOP)) return false;
+    if(has_none(RKEY|RVAL|RUNK|RTOP)) return false;
 
     cspan rem = m_state->line_contents.rem;
     const bool alnum = isalnum(rem[0]);
@@ -754,24 +773,24 @@ bool Parser::_handle_scalar()
         cspan s = _scan_scalar();
         C4_ASSERT( ! s.empty());
 
-        if(m_state->has_all(RSEQ))
+        if(has_all(RSEQ))
         {
             _append_val(s);
         }
-        else if(m_state->has_all(RKEY|RMAP))
+        else if(has_all(RKEY|RMAP))
         {
-            C4_ASSERT(m_state->has_none(RVAL));
+            C4_ASSERT(has_none(RVAL));
             _store_scalar(s);
             _toggle_key_val();
         }
-        else if(m_state->has_all(RVAL|RMAP))
+        else if(has_all(RVAL|RMAP))
         {
-            C4_ASSERT(m_state->has_none(RKEY));
+            C4_ASSERT(has_none(RKEY));
             _append_key_val(s); // toggles key val
         }
-        else if(m_state->has_all(RUNK))
+        else if(has_all(RUNK))
         {
-            C4_ASSERT(m_state->has_none(RSEQ|RMAP));
+            C4_ASSERT(has_none(RSEQ|RMAP));
             // we still don't know whether it's a seq or a map
             // so just store the scalar
             _store_scalar(s);
@@ -794,11 +813,11 @@ bool Parser::_handle_unk()
     cspan rem = m_state->line_contents.rem;
     const bool start_as_child = (m_state->level != 0) || node(m_state) == nullptr;
 
-    C4_ASSERT(m_state->has_none(RNXT));
+    C4_ASSERT(has_none(RNXT));
 
     if(rem.begins_with(' '))
     {
-        /*if(m_state->has_all(INDOK))
+        /*if(has_all(INDOK))
         {
             _c4dbgp("indentation jump=%d level=%zd #spaces=%d", m_state->indentation_jump, m_state->level, m_state->line_contents.indentation);
             C4_ASSERT(m_state->indentation_jump > 0);
@@ -827,7 +846,7 @@ bool Parser::_handle_unk()
         _c4dbgp("it's a seq, explicit (as_child=%d)", start_as_child);
         _push_level(/*explicit flow*/true);
         _start_seq(start_as_child);
-        m_state->add_flags(EXPL);
+        add_flags(EXPL);
         m_state->line_progressed(1);
         return true;
     }
@@ -837,7 +856,7 @@ bool Parser::_handle_unk()
         _c4dbgp("it's a map, explicit (as_child=%d)", start_as_child);
         _push_level(/*explicit flow*/true);
         _start_map(start_as_child);
-        m_state->addrem_flags(EXPL|RKEY, RVAL);
+        addrem_flags(EXPL|RKEY, RVAL);
         m_state->line_progressed(1);
         return true;
     }
@@ -850,7 +869,7 @@ bool Parser::_handle_unk()
         return true;
     }
 
-    else if(m_state->has_all(SSCL))
+    else if(has_all(SSCL))
     {
         _c4dbgp("there's a stored scalar");
         if(rem.begins_with(", "))
@@ -894,16 +913,16 @@ bool Parser::_handle_seq()
 {
     _c4dbgp("handle_seq");
     cspan rem = m_state->line_contents.rem;
-    /*if(m_state->has_any(RNXT))
+    /*if(has_any(RNXT))
     {
         _c4err("not implemented");
     }
-    else */if(m_state->has_any(RVAL))
+    else */if(has_any(RVAL))
     {
         if(rem.begins_with(' '))
         {
             _c4dbgp("starts with spaces");
-            if(0 /*m_state->has_all(INDOK)*/)
+            if(0 /*has_all(INDOK)*/)
             {
                 /*_c4dbgp("indentation jump=%d level=%zd #spaces=%d", m_state->indentation_jump, m_state->level, m_state->line_contents.indentation);
                 m_state->line_progressed(m_state->line_contents.indentation);
@@ -933,20 +952,20 @@ bool Parser::_handle_seq()
         else if(rem.begins_with(", "))
         {
             _c4dbgp("expect another val");
-            m_state->add_flags(RNXT);
+            add_flags(RNXT);
             m_state->line_progressed(2);
             return true;
         }
         else if(rem.begins_with(','))
         {
             _c4dbgp("expect another val");
-            //m_state->addrem_flags(RNXT, RVAL);
+            //addrem_flags(RNXT, RVAL);
             m_state->line_progressed(1);
             return true;
         }
         else if(rem.begins_with(']'))
         {
-            C4_ASSERT(m_state->has_all(EXPL));
+            C4_ASSERT(has_all(EXPL));
             _c4dbgp("end the sequence");
             m_state->line_progressed(1);
             _pop_level();
@@ -962,7 +981,7 @@ bool Parser::_handle_seq()
             _c4dbgp("it's a seq");
             _push_level(/*explicit flow*/true);
             _start_seq();
-            m_state->add_flags(EXPL);
+            add_flags(EXPL);
             m_state->line_progressed(1);
             return true;
         }
@@ -971,7 +990,7 @@ bool Parser::_handle_seq()
             _c4dbgp("it's a map");
             _push_level(/*explicit flow*/true);
             _start_map();
-            m_state->addrem_flags(EXPL|RKEY, RVAL);
+            addrem_flags(EXPL|RKEY, RVAL);
             m_state->line_progressed(1);
             return true;
         }
@@ -1011,13 +1030,13 @@ bool Parser::_handle_map()
     _c4dbgp("handle_map");
     cspan rem = m_state->line_contents.rem;
 
-    if(m_state->has_any(RNXT))
+    if(has_any(RNXT))
     {
         _c4err("not implemented");
     }
-    else if(m_state->has_any(RVAL))
+    else if(has_any(RVAL))
     {
-        C4_ASSERT(m_state->has_all(SSCL));
+        C4_ASSERT(has_all(SSCL));
         if(rem.begins_with(": "))
         {
             _c4dbgp("wait for val");
@@ -1061,7 +1080,7 @@ bool Parser::_handle_map()
         else if(rem.begins_with(", "))
         {
             _c4dbgp("expect another key-val");
-            //m_state->addrem_flags(RNXT, RKEY|RVAL);
+            //addrem_flags(RNXT, RKEY|RVAL);
             m_state->line_progressed(2);
             return true;
         }
@@ -1087,7 +1106,7 @@ bool Parser::_handle_map()
             _c4err("parse error");
         }
     }
-    else if(m_state->has_any(RKEY))
+    else if(has_any(RKEY))
     {
         if(rem.begins_with(' '))
         {
@@ -1100,7 +1119,7 @@ bool Parser::_handle_map()
             m_state->line_progressed(rem.len);
             return true;
         }
-        else if(m_state->has_any(EXPL))
+        else if(has_any(EXPL))
         {
             if(rem.begins_with(", "))
             {
@@ -1268,13 +1287,13 @@ cspan Parser::_scan_scalar()
         s = _scan_block();
         return s;
     }
-    else if(m_state->has_any(RSEQ))
+    else if(has_any(RSEQ))
     {
-        if(m_state->has_all(RKEY))
+        if(has_all(RKEY))
         {
             _c4err("internal error");
         }
-        else if(m_state->has_all(RVAL))
+        else if(has_all(RVAL))
         {
             _c4dbgp("RSEQ|RVAL");
             s = s.left_of(s.first_of(",]#"));
@@ -1285,7 +1304,7 @@ cspan Parser::_scan_scalar()
             _c4err("parse error");
         }
     }
-    else if(m_state->has_any(RMAP))
+    else if(has_any(RMAP))
     {
         size_t colon_space = s.find(": ");
         if(colon_space == npos)
@@ -1298,12 +1317,12 @@ cspan Parser::_scan_scalar()
             }
         }
 
-        if(m_state->has_all(RKEY))
+        if(has_all(RKEY))
         {
             _c4dbgp("RMAP|RKEY");
-            if(m_state->has_any(CPLX))
+            if(has_any(CPLX))
             {
-                C4_ASSERT(m_state->has_any(RMAP));
+                C4_ASSERT(has_any(RMAP));
                 s = s.left_of(colon_space);
             }
             else
@@ -1313,7 +1332,7 @@ cspan Parser::_scan_scalar()
                 s = s.trimr(' ');
             }
         }
-        else if(m_state->has_all(RVAL))
+        else if(has_all(RVAL))
         {
             _c4dbgp("RMAP|RVAL");
             s = s.left_of(s.first_of(",}#"));
@@ -1324,7 +1343,7 @@ cspan Parser::_scan_scalar()
             _c4err("parse error");
         }
     }
-    else if(m_state->has_all(RUNK))
+    else if(has_all(RUNK))
     {
         s = s.left_of(s.first_of(",: #"));
     }
@@ -1385,7 +1404,7 @@ void Parser::_push_level(bool explicit_flow_chars)
     _c4dbgp("stacking node %zd", node(m_state)->id());
     m_stack.push(*m_state);
     m_state = &m_stack.top();
-    m_state->set_flags(st);
+    set_flags(st);
     m_state->node_id = NONE;
     ++m_state->level;
 }
@@ -1393,11 +1412,11 @@ void Parser::_push_level(bool explicit_flow_chars)
 void Parser::_pop_level()
 {
     _c4dbgp("popping level! sz=%zd (-1)", m_stack.size());
-    if(m_state->has_any(RMAP))
+    if(has_any(RMAP))
     {
         _stop_map();
     }
-    else if(m_state->has_any(RSEQ))
+    else if(has_any(RSEQ))
     {
         _stop_seq();
     }
@@ -1414,14 +1433,14 @@ void Parser::_pop_level()
     m_stack.top(1)._prepare_pop(m_stack.top());
     m_stack.pop();
     m_state = &m_stack.top();
-    if(m_state->has_any(RMAP))
+    if(has_any(RMAP))
     {
         _toggle_key_val();
     }
     if(m_state->line_contents.indentation == 0)
     {
-        //C4_ASSERT(m_state->has_none(RTOP));
-        m_state->add_flags(RTOP);
+        //C4_ASSERT(has_none(RTOP));
+        add_flags(RTOP);
     }
 }
 
@@ -1437,7 +1456,7 @@ void Parser::_start_unk(bool as_child)
 void Parser::_start_doc(bool as_child)
 {
     _c4dbgp("start_doc (as child=%d)", as_child);
-    m_state->add_flags(RUNK);
+    add_flags(RUNK);
     C4_ASSERT(node(m_stack.bottom()) == node(m_root_id));
     Node* parent = m_stack.size() < 2 ? node(m_root_id) : node(m_stack.top(1));
     size_t parent_id = parent->id();
@@ -1475,7 +1494,7 @@ void Parser::_stop_doc()
 void Parser::_start_map(bool as_child)
 {
     _c4dbgp("start_map (as child=%d)", as_child);
-    m_state->addrem_flags(RMAP|RVAL, RKEY|RUNK);
+    addrem_flags(RMAP|RVAL, RKEY|RUNK);
     C4_ASSERT(node(m_stack.bottom()) == node(m_root_id));
     Node* parent = m_stack.size() < 2 ? node(m_root_id) : node(m_stack.top(1));
     C4_ASSERT(parent != nullptr);
@@ -1483,7 +1502,7 @@ void Parser::_start_map(bool as_child)
     if(as_child)
     {
         m_state->node_id = m_tree->append_child(parent->id());
-        if(m_state->has_all(SSCL))
+        if(has_all(SSCL))
         {
             C4_ASSERT(parent->is_map());
             cspan name = _consume_scalar();
@@ -1516,7 +1535,7 @@ void Parser::_stop_map()
 void Parser::_start_seq(bool as_child)
 {
     _c4dbgp("start_seq (as child=%d)", as_child);
-    m_state->addrem_flags(RSEQ|RVAL, RUNK);
+    addrem_flags(RSEQ|RVAL, RUNK);
     C4_ASSERT(node(m_stack.bottom()) == node(m_root_id));
     Node* parent = m_stack.size() < 2 ? node(m_root_id) : node(m_stack.top(1));
     C4_ASSERT(parent != nullptr);
@@ -1524,7 +1543,7 @@ void Parser::_start_seq(bool as_child)
     if(as_child)
     {
         m_state->node_id = m_tree->append_child(parent->id());
-        if(m_state->has_all(SSCL))
+        if(has_all(SSCL))
         {
             C4_ASSERT(parent->is_map());
             cspan name = _consume_scalar();
@@ -1556,7 +1575,7 @@ void Parser::_stop_seq()
 //-----------------------------------------------------------------------------
 void Parser::_append_val(cspan const& val)
 {
-    C4_ASSERT( ! m_state->has_all(SSCL));
+    C4_ASSERT( ! has_all(SSCL));
     C4_ASSERT(node(m_state) != nullptr);
     C4_ASSERT(node(m_state)->is_seq());
     _c4dbgp("append val: '%.*s'", _c4prsp(val));
@@ -1580,13 +1599,13 @@ void Parser::_append_key_val(cspan const& val)
 
 void Parser::_toggle_key_val()
 {
-    if(m_state->has_all(RKEY))
+    if(has_all(RKEY))
     {
-        m_state->addrem_flags(RVAL, RKEY);
+        addrem_flags(RVAL, RKEY);
     }
     else
     {
-        m_state->addrem_flags(RKEY, RVAL);
+        addrem_flags(RKEY, RVAL);
     }
 }
 
@@ -1594,8 +1613,8 @@ void Parser::_toggle_key_val()
 void Parser::_store_scalar(cspan const& s)
 {
     _c4dbgp("storing scalar: '%.*s'@%zd", _c4prsp(s), m_state-m_stack.begin());
-    C4_ASSERT(m_state->has_none(SSCL));
-    m_state->add_flags(SSCL);
+    C4_ASSERT(has_none(SSCL));
+    add_flags(SSCL);
     m_state->scalar = s;
 }
 
@@ -1604,7 +1623,7 @@ cspan Parser::_consume_scalar()
     _c4dbgp("consuming scalar: '%.*s'@%zd (flag: %d))", _c4prsp(m_state->scalar), m_state-m_stack.begin(), m_state->scalar & SSCL);
     C4_ASSERT(m_state->flags & SSCL);
     cspan s = m_state->scalar;
-    m_state->rem_flags(SSCL);
+    rem_flags(SSCL);
     m_state->scalar.clear();
     return s;
 }
@@ -1618,9 +1637,9 @@ void Parser::_move_scalar_from_top()
     if(prev.flags & SSCL)
     {
         _c4dbgp("moving scalar: '%.*s'@%zd (overwriting '%.*s'@%zd)", _c4prsp(prev.scalar), &prev-m_stack.begin(), _c4prsp(m_state->scalar), m_state-m_stack.begin());
-        m_state->add_flags(prev.flags & SSCL);
+        add_flags(prev.flags & SSCL);
         m_state->scalar = prev.scalar;
-        prev.rem_flags(SSCL);
+        rem_flags(SSCL, &prev);
         prev.scalar.clear();
     }
 }
