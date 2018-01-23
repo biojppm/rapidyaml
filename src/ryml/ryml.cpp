@@ -684,12 +684,10 @@ void Parser::_handle_finished_file()
 //-----------------------------------------------------------------------------
 void Parser::_handle_line()
 {
-    cspan rem = m_state->line_contents.rem;
-
     _c4dbgs("\n-----------");
     _c4dbgf("handling line %zd", m_state->pos.line);
 
-    C4_ASSERT( ! rem.empty());
+    C4_ASSERT( ! m_state->line_contents.rem.empty());
 
     /*
     if(m_state->has_all(INDOK))
@@ -706,44 +704,45 @@ void Parser::_handle_line()
     */
 
     /** @todo remove this function and do it in each case */
-    if(_handle_scalar(rem))
+    if(_handle_scalar())
     {
         return;
     }
 
     if(m_state->has_any(RSEQ))
     {
-        if(_handle_seq(rem))
+        if(_handle_seq())
         {
             return;
         }
     }
     else if(m_state->has_any(RMAP))
     {
-        if(_handle_map(rem))
+        if(_handle_map())
         {
             return;
         }
     }
     else if(m_state->has_any(RUNK))
     {
-        if(_handle_unk(rem))
+        if(_handle_unk())
         {
             return;
         }
     }
 
-    if(_handle_top(rem))
+    if(_handle_top())
     {
         return;
     }
 }
 
 //-----------------------------------------------------------------------------
-bool Parser::_handle_scalar(cspan rem)
+bool Parser::_handle_scalar()
 {
     if(m_state->has_none(RKEY|RVAL|RUNK|RTOP)) return false;
 
+    cspan rem = m_state->line_contents.rem;
     const bool alnum = isalnum(rem[0]);
     const bool dquot = rem.begins_with('"');
     const bool squot = rem.begins_with('\'');
@@ -788,9 +787,11 @@ bool Parser::_handle_scalar(cspan rem)
 }
 
 //-----------------------------------------------------------------------------
-bool Parser::_handle_unk(cspan rem)
+bool Parser::_handle_unk()
 {
     _c4dbgp("handle_unk");
+
+    cspan rem = m_state->line_contents.rem;
     const bool start_as_child = (m_state->level != 0) || node(m_state) == nullptr;
 
     if(rem.begins_with(' '))
@@ -888,9 +889,10 @@ bool Parser::_handle_unk(cspan rem)
 }
 
 //-----------------------------------------------------------------------------
-bool Parser::_handle_seq(cspan rem)
+bool Parser::_handle_seq()
 {
     _c4dbgp("handle_seq");
+    cspan rem = m_state->line_contents.rem;
     /*if(m_state->has_any(RNXT))
     {
         _c4err("not implemented");
@@ -973,12 +975,12 @@ bool Parser::_handle_seq(cspan rem)
             m_state->line_progressed(1);
             return true;
         }
-        else if(_handle_anchors_and_refs(rem))
+        else if(_handle_anchors_and_refs())
         {
             _c4err("not implemented");
             return true;
         }
-        else if(_handle_types(rem))
+        else if(_handle_types())
         {
             _c4err("not implemented");
             return true;
@@ -1004,9 +1006,10 @@ bool Parser::_handle_seq(cspan rem)
 }
 
 //-----------------------------------------------------------------------------
-bool Parser::_handle_map(cspan rem)
+bool Parser::_handle_map()
 {
     _c4dbgp("handle_map");
+    cspan rem = m_state->line_contents.rem;
     if(m_state->has_any(RVAL))
     {
         C4_ASSERT(m_state->has_all(SSCL));
@@ -1063,12 +1066,12 @@ bool Parser::_handle_map(cspan rem)
             _pop_level();
             return true;
         }
-        else if(_handle_anchors_and_refs(rem))
+        else if(_handle_anchors_and_refs())
         {
             _c4err("not implemented");
             return true;
         }
-        else if(_handle_types(rem))
+        else if(_handle_types())
         {
             _c4err("not implemented");
             return true;
@@ -1128,9 +1131,10 @@ bool Parser::_handle_map(cspan rem)
 }
 
 //-----------------------------------------------------------------------------
-bool Parser::_handle_top(cspan rem)
+bool Parser::_handle_top()
 {
     _c4dbgp("handle_top");
+    cspan rem = m_state->line_contents.rem;
 
     // use the full line, as the following tokens can appear only at top level
     C4_ASSERT(rem == m_state->line_contents.stripped);
@@ -1204,8 +1208,9 @@ bool Parser::_handle_top(cspan rem)
 }
 
 //-----------------------------------------------------------------------------
-bool Parser::_handle_anchors_and_refs(cspan rem)
+bool Parser::_handle_anchors_and_refs()
 {
+    cspan rem = m_state->line_contents.rem;
     if(rem.begins_with('&'))
     {
         _c4err("not implemented");
@@ -1220,8 +1225,9 @@ bool Parser::_handle_anchors_and_refs(cspan rem)
 }
 
 //-----------------------------------------------------------------------------
-bool Parser::_handle_types(cspan rem)
+bool Parser::_handle_types()
 {
+    cspan rem = m_state->line_contents.rem;
     if(rem.begins_with("!!"))
     {
         _c4err("not implemented");
@@ -1332,8 +1338,10 @@ cspan Parser::_scan_scalar()
 void Parser::_scan_line()
 {
     if(m_state->pos.offset >= m_buf.len) return;
+
     char const* b = &m_buf[m_state->pos.offset];
     char const* e = b;
+
     // get the line stripped of newline chars
     while(e != m_buf.end() && (*e != '\r' && *e != '\n'))
     {
@@ -1341,6 +1349,7 @@ void Parser::_scan_line()
     }
     size_t len = e - b;
     cspan stripped = m_buf.subspan(m_state->pos.offset, len);
+
     // advance pos to include the first line ending
     while(e != m_buf.end() && (*e == '\r' || *e == '\n'))
     {
@@ -1348,6 +1357,7 @@ void Parser::_scan_line()
         ++len;
     }
     cspan full = m_buf.subspan(m_state->pos.offset, len);
+
     m_state->line_scanned(full, stripped);
 }
 

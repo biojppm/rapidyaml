@@ -755,7 +755,7 @@ private:
     {
         size_t       flags;
         size_t       level;
-        size_t       node_id; // don't hold a pointer to the node as it can be relocated during tree resizes
+        size_t       node_id; // don't hold a pointer to the node as it will be relocated during tree resizes
         cspan        scalar;
 
         Location     pos;
@@ -868,13 +868,13 @@ private:
     void  _handle_line();
     int   _handle_indentation();
 
-    bool  _handle_unk(cspan rem);
-    bool  _handle_map(cspan rem);
-    bool  _handle_seq(cspan rem);
-    bool  _handle_scalar(cspan rem);
-    bool  _handle_top(cspan rem);
-    bool  _handle_anchors_and_refs(cspan rem);
-    bool  _handle_types(cspan rem);
+    bool  _handle_unk();
+    bool  _handle_map();
+    bool  _handle_seq();
+    bool  _handle_scalar();
+    bool  _handle_top();
+    bool  _handle_anchors_and_refs();
+    bool  _handle_types();
 
     void  _push_level(bool explicit_flow_chars = false);
     void  _pop_level();
