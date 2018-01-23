@@ -753,7 +753,7 @@ private:
     bool  _finished_line() const;
 
     void  _scan_line();
-    void  _next_line() { m_state->line_ended(); }
+    void  _next_line() { _line_ended(); }
 
     cspan _scan_scalar();
     cspan _scan_comment();
@@ -855,13 +855,6 @@ private:
         size_t       indref;
         size_t       indprev;
 
-        void _prepare_pop(State const& current)
-        {
-            pos = current.pos;
-            line_contents = current.line_contents;
-            scalar = current.scalar;
-        }
-
         void reset(const char *file, size_t node_id_)
         {
             flags = RUNK|RTOP;
@@ -875,28 +868,33 @@ private:
             indref = 0;
             indprev = 0;
         }
-
-        void line_scanned(cspan const& full, cspan const& stripped)
-        {
-            line_contents.reset(full, stripped);
-        }
-
-        void line_progressed(size_t ahead)
-        {
-            pos.offset += ahead;
-            pos.col += ahead;
-            C4_ASSERT(pos.col <= line_contents.stripped.len+1);
-            line_contents.rem = line_contents.rem.subspan(ahead);
-        }
-
-        void line_ended()
-        {
-            C4_ASSERT(pos.col == line_contents.stripped.len+1);
-            pos.offset += line_contents.full.len - line_contents.stripped.len;
-            ++pos.line;
-            pos.col = 1;
-        }
     };
+
+    void _line_progressed(size_t ahead)
+    {
+        m_state->pos.offset += ahead;
+        m_state->pos.col += ahead;
+        C4_ASSERT(m_state->pos.col <= m_state->line_contents.stripped.len+1);
+        m_state->line_contents.rem = m_state->line_contents.rem.subspan(ahead);
+    }
+
+    void _line_ended()
+    {
+        C4_ASSERT(m_state->pos.col == m_state->line_contents.stripped.len+1);
+        m_state->pos.offset += m_state->line_contents.full.len - m_state->line_contents.stripped.len;
+        ++m_state->pos.line;
+        m_state->pos.col = 1;
+    }
+
+    void _prepare_pop()
+    {
+        C4_ASSERT(m_stack.size() > 1);
+        State const& curr = m_stack.top();
+        State      & next = m_stack.top(1);
+        next.pos = curr.pos;
+        next.line_contents = curr.line_contents;
+        next.scalar = curr.scalar;
+    }
 
     inline Node * node(State const* s) const { return m_tree->get(s->node_id); }
     inline Node * node(State const& s) const { return m_tree->get(s .node_id); }

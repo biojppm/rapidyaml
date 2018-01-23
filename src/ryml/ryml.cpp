@@ -822,7 +822,7 @@ bool Parser::_handle_unk()
             _c4dbgp("indentation jump=%d level=%zd #spaces=%d", m_state->indentation_jump, m_state->level, m_state->line_contents.indentation);
             C4_ASSERT(m_state->indentation_jump > 0);
         }*/
-        m_state->line_progressed(m_state->line_contents.indentation);
+        _line_progressed(m_state->line_contents.indentation);
         return true;
     }
     else if(rem.begins_with("- "))
@@ -830,7 +830,7 @@ bool Parser::_handle_unk()
         _c4dbgp("it's a seq (as_child=%d)", start_as_child);
         _push_level();
         _start_seq(start_as_child);
-        m_state->line_progressed(2);
+        _line_progressed(2);
         return true;
     }
     else if(rem == '-')
@@ -838,7 +838,7 @@ bool Parser::_handle_unk()
         _c4dbgp("it's a seq (as_child=%d)", start_as_child);
         _push_level();
         _start_seq(start_as_child);
-        m_state->line_progressed(1);
+        _line_progressed(1);
         return true;
     }
     else if(rem.begins_with('['))
@@ -847,7 +847,7 @@ bool Parser::_handle_unk()
         _push_level(/*explicit flow*/true);
         _start_seq(start_as_child);
         add_flags(EXPL);
-        m_state->line_progressed(1);
+        _line_progressed(1);
         return true;
     }
 
@@ -857,7 +857,7 @@ bool Parser::_handle_unk()
         _push_level(/*explicit flow*/true);
         _start_map(start_as_child);
         addrem_flags(EXPL|RKEY, RVAL);
-        m_state->line_progressed(1);
+        _line_progressed(1);
         return true;
     }
     else if(rem.begins_with("? "))
@@ -865,7 +865,7 @@ bool Parser::_handle_unk()
         _c4dbgp("it's a map (as_child=%d)", start_as_child);
         _push_level();
         _start_map(start_as_child);
-        m_state->line_progressed(2);
+        _line_progressed(2);
         return true;
     }
 
@@ -877,14 +877,14 @@ bool Parser::_handle_unk()
             _c4dbgp("it's a seq (as_child=%d)", start_as_child);
             _start_seq(start_as_child);
             _append_val(_consume_scalar());
-            m_state->line_progressed(2);
+            _line_progressed(2);
         }
         else if(rem.begins_with(": "))
         {
             _c4dbgp("it's a map (as_child=%d)", start_as_child);
             _start_map(start_as_child);
             // wait for the val scalar to append the key-val pair
-            m_state->line_progressed(2);
+            _line_progressed(2);
             if(rem == ": ")
             {
                 _start_unk();
@@ -895,7 +895,7 @@ bool Parser::_handle_unk()
             _c4dbgp("it's a map (as_child=%d)", start_as_child);
             _start_map(start_as_child);
             // wait for the val scalar to append the key-val pair
-            m_state->line_progressed(1);
+            _line_progressed(1);
             _start_unk();
         }
         else
@@ -932,48 +932,48 @@ bool Parser::_handle_seq()
             {
                 rem = rem.left_of(rem.first_not_of(' '));
                 _c4dbgp("skip %zd spaces", rem.len);
-                m_state->line_progressed(rem.len);
+                _line_progressed(rem.len);
             }
             return true;
         }
         else if(rem.begins_with("- "))
         {
             _c4dbgp("expect another val");
-            m_state->line_progressed(2);
+            _line_progressed(2);
             return true;
         }
         else if(rem == '-')
         {
             _c4dbgp("start unknown");
             _start_unk();
-            m_state->line_progressed(1);
+            _line_progressed(1);
             return true;
         }
         else if(rem.begins_with(", "))
         {
             _c4dbgp("expect another val");
             add_flags(RNXT);
-            m_state->line_progressed(2);
+            _line_progressed(2);
             return true;
         }
         else if(rem.begins_with(','))
         {
             _c4dbgp("expect another val");
             //addrem_flags(RNXT, RVAL);
-            m_state->line_progressed(1);
+            _line_progressed(1);
             return true;
         }
         else if(rem.begins_with(']'))
         {
             C4_ASSERT(has_all(EXPL));
             _c4dbgp("end the sequence");
-            m_state->line_progressed(1);
+            _line_progressed(1);
             _pop_level();
             return true;
         }
         else if(rem.begins_with('#'))
         {
-            m_state->line_progressed(rem.len);
+            _line_progressed(rem.len);
             return true;
         }
         else if(rem.begins_with('['))
@@ -982,7 +982,7 @@ bool Parser::_handle_seq()
             _push_level(/*explicit flow*/true);
             _start_seq();
             add_flags(EXPL);
-            m_state->line_progressed(1);
+            _line_progressed(1);
             return true;
         }
         else if(rem.begins_with('{'))
@@ -991,7 +991,7 @@ bool Parser::_handle_seq()
             _push_level(/*explicit flow*/true);
             _start_map();
             addrem_flags(EXPL|RKEY, RVAL);
-            m_state->line_progressed(1);
+            _line_progressed(1);
             return true;
         }
         else if(_handle_anchors_and_refs())
@@ -1008,7 +1008,7 @@ bool Parser::_handle_seq()
         {
             C4_ASSERT(m_state->line_contents.indentation == 0);
             _c4dbgp("end the sequence");
-            m_state->line_progressed(3);
+            _line_progressed(3);
             _pop_level();
             return false; // these need further handling
         }
@@ -1040,14 +1040,14 @@ bool Parser::_handle_map()
         if(rem.begins_with(": "))
         {
             _c4dbgp("wait for val");
-            m_state->line_progressed(2);
+            _line_progressed(2);
             return true;
         }
         else if(rem == ':')
         {
             _c4dbgp("start unknown");
             _start_unk();
-            m_state->line_progressed(1);
+            _line_progressed(1);
             return true;
         }
         else if(rem.begins_with("- "))
@@ -1055,7 +1055,7 @@ bool Parser::_handle_map()
             _c4dbgp("start a seq");
             _push_level();
             _start_seq();
-            m_state->line_progressed(2);
+            _line_progressed(2);
             return true;
         }
         else if(rem.begins_with('['))
@@ -1064,7 +1064,7 @@ bool Parser::_handle_map()
             _push_level(/*explicit flow*/true);
             _move_scalar_from_top();
             _start_seq();
-            m_state->line_progressed(1);
+            _line_progressed(1);
             return true;
         }
         else if(rem.begins_with('{'))
@@ -1073,7 +1073,7 @@ bool Parser::_handle_map()
             _push_level(/*explicit flow*/true);
             _move_scalar_from_top();
             _start_map();
-            m_state->line_progressed(1);
+            _line_progressed(1);
             _toggle_key_val();
             return true;
         }
@@ -1081,13 +1081,13 @@ bool Parser::_handle_map()
         {
             _c4dbgp("expect another key-val");
             //addrem_flags(RNXT, RKEY|RVAL);
-            m_state->line_progressed(2);
+            _line_progressed(2);
             return true;
         }
         else if(rem.begins_with('}'))
         {
             _c4dbgp("end the map");
-            m_state->line_progressed(1);
+            _line_progressed(1);
             _pop_level();
             return true;
         }
@@ -1111,30 +1111,30 @@ bool Parser::_handle_map()
         if(rem.begins_with(' '))
         {
             rem = rem.left_of(rem.first_not_of(' '));
-            m_state->line_progressed(rem.len);
+            _line_progressed(rem.len);
             return true;
         }
         else if(rem.begins_with('#'))
         {
-            m_state->line_progressed(rem.len);
+            _line_progressed(rem.len);
             return true;
         }
         else if(has_any(EXPL))
         {
             if(rem.begins_with(", "))
             {
-                m_state->line_progressed(2);
+                _line_progressed(2);
                 return true;
             }
             else if(rem.begins_with(','))
             {
-                m_state->line_progressed(1);
+                _line_progressed(1);
                 return true;
             }
             else if(rem.begins_with('}'))
             {
                 _c4dbgp("end the map");
-                m_state->line_progressed(1);
+                _line_progressed(1);
                 _pop_level();
                 return true;
             }
@@ -1203,14 +1203,14 @@ bool Parser::_handle_top()
         _c4dbgp("start a document");
         _push_level();
         _start_doc();
-        m_state->line_progressed(3);
+        _line_progressed(3);
 
         // skip spaces after the tag
         rem = rem.subspan(3);
         if(rem.begins_with(' '))
         {
             cspan s = rem.left_of(rem.first_not_of(' '));
-            m_state->line_progressed(rem.len);
+            _line_progressed(rem.len);
         }
         return true;
     }
@@ -1221,7 +1221,7 @@ bool Parser::_handle_top()
         {
             _pop_level();
         }
-        m_state->line_progressed(3);
+        _line_progressed(3);
         return true;
     }
     else
@@ -1354,7 +1354,7 @@ cspan Parser::_scan_scalar()
 
     _c4dbgp("scalar was '%.*s'", _c4prsp(s));
 
-    m_state->line_progressed(s.str - m_state->line_contents.rem.str + s.len);
+    _line_progressed(s.str - m_state->line_contents.rem.str + s.len);
 
     return s;
 }
@@ -1383,7 +1383,7 @@ void Parser::_scan_line()
     }
     cspan full = m_buf.subspan(m_state->pos.offset, len);
 
-    m_state->line_scanned(full, stripped);
+    m_state->line_contents.reset(full, stripped);
 }
 
 //-----------------------------------------------------------------------------
@@ -1437,7 +1437,7 @@ void Parser::_pop_level()
     }
     C4_ASSERT(m_stack.size() > 1);
     _c4dbgp("popping node %zd newtop %zd", node(m_state)->id(), m_stack.empty() ? NONE : node(m_stack.top())->id());
-    m_stack.top(1)._prepare_pop(m_stack.top());
+    _prepare_pop();
     m_stack.pop();
     m_state = &m_stack.top();
     if(has_any(RMAP))
@@ -1680,7 +1680,7 @@ cspan Parser::_scan_comment()
 {
     cspan s = m_state->line_contents.rem;
     C4_ASSERT(s.begins_with('#'));
-    m_state->line_progressed(s.len);
+    _line_progressed(s.len);
     s = s.subspan(1);
     s = s.right_of(s.first_not_of(' '), /*include_pos*/true);
     return s;
@@ -1700,7 +1700,7 @@ cspan Parser::_scan_quoted_scalar(const char q)
     C4_ASSERT(s.begins_with(q));
 
     // skip the opening quote
-    m_state->line_progressed(1);
+    _line_progressed(1);
 
     bool needs_filter = true;
 
@@ -1754,12 +1754,12 @@ cspan Parser::_scan_quoted_scalar(const char q)
 
         if(pos != npos)
         {
-            m_state->line_progressed(pos);
+            _line_progressed(pos);
             pos += sum;
         }
         else
         {
-            m_state->line_progressed(s.len);
+            _line_progressed(s.len);
             sum += s.len;
             break;
         }
