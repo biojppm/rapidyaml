@@ -805,14 +805,6 @@ private:
 
 private:
 
-#ifdef RYML_DBG
-    void _dbg(const char *msg, ...) const;
-#endif
-    void _err(const char *msg, ...) const;
-    int  _fmt_msg(char *buf, int buflen, const char *msg, va_list args) const;
-
-private:
-
     typedef enum {
         RTOP = 0x01 <<  0, // reading at top level
         RUNK = 0x01 <<  1, // reading an unknown: must determine whether scalar, map or seq
@@ -852,8 +844,8 @@ private:
 
         Location     pos;
         LineContents line_contents;
-        size_t       indref;
-        size_t       indprev;
+        int          indref;
+        int          indprev;
 
         void reset(const char *file, size_t node_id_)
         {
@@ -917,6 +909,15 @@ private:
     void add_flags(size_t on, State * s);
     void addrem_flags(size_t on, size_t off, State * s);
     void rem_flags(size_t off, State * s);
+
+private:
+
+#ifdef RYML_DBG
+    void _dbg(const char *msg, ...) const;
+#endif
+    void _err(const char *msg, ...) const;
+    int  _fmt_msg(char *buf, int buflen, const char *msg, va_list args) const;
+    static int  _prfl(char *buf, int buflen, size_t v);
 
 private:
 

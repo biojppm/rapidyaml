@@ -629,25 +629,6 @@ void Parser::_reset()
 }
 
 //-----------------------------------------------------------------------------
-void Parser::set_flags(size_t f, State * s)
-{
-    s->flags = f;
-}
-void Parser::add_flags(size_t on, State * s)
-{
-    s->flags |= on;
-}
-void Parser::addrem_flags(size_t on, size_t off, State * s)
-{
-    s->flags |= on;
-    s->flags &= ~off;
-}
-void Parser::rem_flags(size_t off, State * s)
-{
-    s->flags &= ~off;
-}
-
-//-----------------------------------------------------------------------------
 bool Parser::_finished_file() const
 {
     bool ret = m_state->pos.offset >= m_buf.len;
@@ -672,6 +653,7 @@ void Parser::parse(cspan const& file, cspan const& buf, Node *root)
     m_buf = buf;
     m_root_id = root->id();
     m_tree = root->tree();
+
     _reset();
 
     while( ! _finished_file())
@@ -1928,6 +1910,56 @@ size_t Parser::_count_nlines(cspan src)
 }
 
 //-----------------------------------------------------------------------------
+void Parser::set_flags(size_t f, State * s)
+{
+#ifdef RYML_DBG
+    char buf1[64], buf2[64];
+    int len1 = _prfl(buf1, sizeof(buf1), f);
+    int len2 = _prfl(buf2, sizeof(buf2), s->flags);
+    _c4dbgp("setting flags to %.*s: before=%.*s", len1, buf1, len2, buf2);
+#endif
+    s->flags = f;
+}
+
+void Parser::add_flags(size_t on, State * s)
+{
+#ifdef RYML_DBG
+    char buf1[64], buf2[64], buf3[64];
+    int len1 = _prfl(buf1, sizeof(buf1), on);
+    int len2 = _prfl(buf2, sizeof(buf2), s->flags);
+    int len3 = _prfl(buf3, sizeof(buf3), s->flags|on);
+    _c4dbgp("adding flags %.*s: before=%.*s after=%.*s", len1, buf1, len2, buf2, len3, buf3);
+#endif
+    s->flags |= on;
+}
+
+void Parser::addrem_flags(size_t on, size_t off, State * s)
+{
+#ifdef RYML_DBG
+    char buf1[64], buf2[64], buf3[64], buf4[64];
+    int len1 = _prfl(buf1, sizeof(buf1), on);
+    int len2 = _prfl(buf2, sizeof(buf2), off);
+    int len3 = _prfl(buf3, sizeof(buf3), s->flags);
+    int len4 = _prfl(buf4, sizeof(buf4), ((s->flags|on)&(~off)));
+    _c4dbgp("adding flags %.*s / removing flags %.*s: before=%.*s after=%.*s", len1, buf1, len2, buf2, len3, buf3, len4, buf4);
+#endif
+    s->flags |= on;
+    s->flags &= ~off;
+}
+
+void Parser::rem_flags(size_t off, State * s)
+{
+#ifdef RYML_DBG
+    char buf1[64], buf2[64], buf3[64];
+    int len1 = _prfl(buf1, sizeof(buf1), off);
+    int len2 = _prfl(buf2, sizeof(buf2), s->flags);
+    int len3 = _prfl(buf3, sizeof(buf3), s->flags&(~off));
+    _c4dbgp("removing flags %.*s: before=%.*s after=%.*s", len1, buf1, len2, buf2, len3, buf3);
+#endif
+    s->flags &= ~off;
+}
+
+//-----------------------------------------------------------------------------
 void Parser::_err(const char *fmt, ...) const
 {
     char errmsg[RYML_ERRMSG_SIZE];
@@ -1956,13 +1988,14 @@ void Parser::_dbg(const char *fmt, ...) const
 #endif
 
 //-----------------------------------------------------------------------------
+#define _wrapbuf() pos += del; len -= del; if(len < 0) { pos = 0; len = buflen; }
+
 int Parser::_fmt_msg(char *buf, int buflen, const char *fmt, va_list args) const
 {
     int len = buflen;
     int pos = 0;
     auto const& lc = m_state->line_contents;
 
-#define _wrapbuf() pos += del; len -= del; if(len < 0) { pos = 0; len = buflen; }
 
     // first line: print the message
     int del = vsnprintf(buf + pos, len, fmt, args);
@@ -2010,43 +2043,55 @@ int Parser::_fmt_msg(char *buf, int buflen, const char *fmt, va_list args) const
         del = snprintf(buf + pos, len, "top state: ");
         _wrapbuf();
 
-        bool gotone = false;
-#define _prflag(fl)                                                     \
-        if((m_state->flags & (fl)) == (fl))                             \
-        {                                                               \
-            if(!gotone)                                                 \
-            {                                                           \
-                gotone = true;                                          \
-            }                                                           \
-            else                                                        \
-            {                                                           \
-                del = snprintf(buf + pos, len, "|");                    \
-                _wrapbuf();                                             \
-            }                                                           \
-            del = snprintf(buf + pos, len, #fl);                        \
-            _wrapbuf();                                                 \
-        }
-
-        _prflag(RTOP);
-        _prflag(RUNK);
-        _prflag(RMAP);
-        _prflag(RSEQ);
-        _prflag(EXPL);
-        _prflag(CPLX);
-        _prflag(RKEY);
-        _prflag(RVAL);
-        _prflag(RNXT);
-        _prflag(SSCL);
-#undef _prflag
+        del = _prfl(buf + pos, len, m_state->flags);
+        _wrapbuf();
 
         del = snprintf(buf + pos, len, "\n");
         _wrapbuf();
     }
 
-#undef _wrapbuf
 
     return pos;
 }
+
+int Parser::_prfl(char *buf, int buflen, size_t v)
+{
+    int len = buflen;
+    int pos = 0, del = 0;
+
+    bool gotone = false;
+#define _prflag(fl)                                 \
+    if((v & (fl)) == (fl))                          \
+    {                                               \
+        if(!gotone)                                 \
+        {                                           \
+            gotone = true;                          \
+        }                                           \
+        else                                        \
+        {                                           \
+            del = snprintf(buf + pos, len, "|");    \
+            _wrapbuf();                             \
+        }                                           \
+        del = snprintf(buf + pos, len, #fl);        \
+        _wrapbuf();                                 \
+    }
+
+    _prflag(RTOP);
+    _prflag(RUNK);
+    _prflag(RMAP);
+    _prflag(RSEQ);
+    _prflag(EXPL);
+    _prflag(CPLX);
+    _prflag(RKEY);
+    _prflag(RVAL);
+    _prflag(RNXT);
+    _prflag(SSCL);
+#undef _prflag
+
+    return pos;
+}
+
+#undef _wrapbuf
 
 } // namespace ryml
 } // namespace c4
