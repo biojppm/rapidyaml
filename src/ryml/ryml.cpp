@@ -1407,6 +1407,13 @@ void Parser::_push_level(bool explicit_flow_chars)
     set_flags(st);
     m_state->node_id = NONE;
     ++m_state->level;
+
+    if(m_stack.size() > 1)
+    {
+        State const& prev = m_stack.top(1);
+        m_state->indref = NONE;
+        m_state->indprev = prev.indref;
+    }
 }
 
 void Parser::_pop_level()

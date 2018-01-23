@@ -721,123 +721,6 @@ inline span emit(Tree const& t, span const& sp, bool error_on_excess=true)
 //-----------------------------------------------------------------------------
 class Parser
 {
-private:
-
-    typedef enum {
-        RTOP = 0x01 <<  0, // reading at top level
-        RUNK = 0x01 <<  1, // reading an unknown: must determine whether scalar, map or seq
-        RMAP = 0x01 <<  2, // reading a map
-        RSEQ = 0x01 <<  3, // reading a seq
-        EXPL = 0x01 <<  4, // reading is inside explicit flow chars: [] or {}
-        CPLX = 0x01 <<  5, // reading a complex key
-        RKEY = 0x01 <<  6, // reading a scalar as key
-        RVAL = 0x01 <<  7, // reading a scalar as val
-        RNXT = 0x01 <<  8, // read next val or keyval
-        SSCL = 0x01 <<  9, // there's a scalar stored
-    } State_e;
-
-    struct LineContents
-    {
-        cspan  full;        ///< the full line, including newlines on the right
-        cspan  stripped;    ///< the stripped line, excluding newlines on the right
-        cspan  rem;         ///< the stripped line remainder; initially starts at the first non-space character
-        int    indentation; ///< the number of spaces on the beginning of the line
-
-        void reset(cspan const& full_, cspan const& stripped_)
-        {
-            full = full_;
-            stripped = stripped_;
-            rem = stripped_;
-            // find the first column where the character is not a space
-            indentation = (int)full.first_not_of(' ');
-        }
-    };
-
-    struct State
-    {
-        size_t       flags;
-        size_t       level;
-        size_t       node_id; // don't hold a pointer to the node as it will be relocated during tree resizes
-        cspan        scalar;
-
-        Location     pos;
-        LineContents line_contents;
-
-        void _prepare_pop(State const& current)
-        {
-            pos = current.pos;
-            line_contents = current.line_contents;
-            scalar = current.scalar;
-        }
-
-        void reset(const char *file, size_t node_id_)
-        {
-            flags = RUNK|RTOP;
-            level = 0;
-            pos.name = file;
-            pos.offset = 0;
-            pos.line = 1;
-            pos.col = 1;
-            node_id = node_id_;
-            scalar.clear();
-        }
-
-        void line_scanned(cspan const& full, cspan const& stripped)
-        {
-            line_contents.reset(full, stripped);
-        }
-
-        void line_progressed(size_t ahead)
-        {
-            pos.offset += ahead;
-            pos.col += ahead;
-            C4_ASSERT(pos.col <= line_contents.stripped.len+1);
-            line_contents.rem = line_contents.rem.subspan(ahead);
-        }
-
-        void line_ended()
-        {
-            C4_ASSERT(pos.col == line_contents.stripped.len+1);
-            pos.offset += line_contents.full.len - line_contents.stripped.len;
-            ++pos.line;
-            pos.col = 1;
-        }
-    };
-
-    inline Node * node(State const* s) const { return m_tree->get(s->node_id); }
-    inline Node * node(State const& s) const { return m_tree->get(s .node_id); }
-    inline Node * node(size_t node_id) const { return m_tree->get(   node_id); }
-
-    inline bool has_all(size_t f) const { return has_all(f, m_state); }
-    inline bool has_any(size_t f) const { return has_any(f, m_state); }
-    inline bool has_none(size_t f) const { return has_none(f, m_state); }
-
-    inline bool has_all(size_t f, State const* s) const { return (s->flags & f) == f; }
-    inline bool has_any(size_t f, State const* s) const { return (s->flags & f) != 0; }
-    inline bool has_none(size_t f, State const* s) const { return (s->flags & f) == 0; }
-
-    inline void set_flags(size_t f) { set_flags(f, m_state); }
-    inline void add_flags(size_t on) { add_flags(on, m_state); }
-    inline void addrem_flags(size_t on, size_t off) { addrem_flags(on, off, m_state); }
-    inline void rem_flags(size_t off) { rem_flags(off, m_state); }
-
-    void set_flags(size_t f, State * s);
-    void add_flags(size_t on, State * s);
-    void addrem_flags(size_t on, size_t off, State * s);
-    void rem_flags(size_t off, State * s);
-
-public:
-
-    cspan   m_file;
-    cspan   m_buf;
-
-    size_t  m_root_id;
-    Tree *  m_tree;
-
-    detail::stack< State > m_stack;
-    State * m_state;
-    State * m_deindent;
-
 public:
 
     Parser();
@@ -927,6 +810,128 @@ private:
 #endif
     void _err(const char *msg, ...) const;
     int  _fmt_msg(char *buf, int buflen, const char *msg, va_list args) const;
+
+private:
+
+    typedef enum {
+        RTOP = 0x01 <<  0, // reading at top level
+        RUNK = 0x01 <<  1, // reading an unknown: must determine whether scalar, map or seq
+        RMAP = 0x01 <<  2, // reading a map
+        RSEQ = 0x01 <<  3, // reading a seq
+        EXPL = 0x01 <<  4, // reading is inside explicit flow chars: [] or {}
+        CPLX = 0x01 <<  5, // reading a complex key
+        RKEY = 0x01 <<  6, // reading a scalar as key
+        RVAL = 0x01 <<  7, // reading a scalar as val
+        RNXT = 0x01 <<  8, // read next val or keyval
+        SSCL = 0x01 <<  9, // there's a scalar stored
+    } State_e;
+
+    struct LineContents
+    {
+        cspan  full;        ///< the full line, including newlines on the right
+        cspan  stripped;    ///< the stripped line, excluding newlines on the right
+        cspan  rem;         ///< the stripped line remainder; initially starts at the first non-space character
+        int    indentation; ///< the number of spaces on the beginning of the line
+
+        void reset(cspan const& full_, cspan const& stripped_)
+        {
+            full = full_;
+            stripped = stripped_;
+            rem = stripped_;
+            // find the first column where the character is not a space
+            indentation = (int)full.first_not_of(' ');
+        }
+    };
+
+    struct State
+    {
+        size_t       flags;
+        size_t       level;
+        size_t       node_id; // don't hold a pointer to the node as it will be relocated during tree resizes
+        cspan        scalar;
+
+        Location     pos;
+        LineContents line_contents;
+        size_t       indref;
+        size_t       indprev;
+
+        void _prepare_pop(State const& current)
+        {
+            pos = current.pos;
+            line_contents = current.line_contents;
+            scalar = current.scalar;
+        }
+
+        void reset(const char *file, size_t node_id_)
+        {
+            flags = RUNK|RTOP;
+            level = 0;
+            pos.name = file;
+            pos.offset = 0;
+            pos.line = 1;
+            pos.col = 1;
+            node_id = node_id_;
+            scalar.clear();
+            indref = 0;
+            indprev = 0;
+        }
+
+        void line_scanned(cspan const& full, cspan const& stripped)
+        {
+            line_contents.reset(full, stripped);
+        }
+
+        void line_progressed(size_t ahead)
+        {
+            pos.offset += ahead;
+            pos.col += ahead;
+            C4_ASSERT(pos.col <= line_contents.stripped.len+1);
+            line_contents.rem = line_contents.rem.subspan(ahead);
+        }
+
+        void line_ended()
+        {
+            C4_ASSERT(pos.col == line_contents.stripped.len+1);
+            pos.offset += line_contents.full.len - line_contents.stripped.len;
+            ++pos.line;
+            pos.col = 1;
+        }
+    };
+
+    inline Node * node(State const* s) const { return m_tree->get(s->node_id); }
+    inline Node * node(State const& s) const { return m_tree->get(s .node_id); }
+    inline Node * node(size_t node_id) const { return m_tree->get(   node_id); }
+
+    inline bool has_all(size_t f) const { return has_all(f, m_state); }
+    inline bool has_any(size_t f) const { return has_any(f, m_state); }
+    inline bool has_none(size_t f) const { return has_none(f, m_state); }
+
+    inline bool has_all(size_t f, State const* s) const { return (s->flags & f) == f; }
+    inline bool has_any(size_t f, State const* s) const { return (s->flags & f) != 0; }
+    inline bool has_none(size_t f, State const* s) const { return (s->flags & f) == 0; }
+
+    inline void set_flags(size_t f) { set_flags(f, m_state); }
+    inline void add_flags(size_t on) { add_flags(on, m_state); }
+    inline void addrem_flags(size_t on, size_t off) { addrem_flags(on, off, m_state); }
+    inline void rem_flags(size_t off) { rem_flags(off, m_state); }
+
+    void set_flags(size_t f, State * s);
+    void add_flags(size_t on, State * s);
+    void addrem_flags(size_t on, size_t off, State * s);
+    void rem_flags(size_t off, State * s);
+
+private:
+
+    cspan   m_file;
+    cspan   m_buf;
+
+    size_t  m_root_id;
+    Tree *  m_tree;
+
+    detail::stack< State > m_stack;
+    State * m_state;
+    State * m_deindent;
+
 };
 
 
