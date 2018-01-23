@@ -443,22 +443,6 @@ void Tree::release(size_t i)
         }
     }
 
-    /*
-    // remove from the siblings
-    if(w.m_siblings.prev != NONE)
-    {
-        Node &p = m_buf[w.m_siblings.prev];
-        p.m_siblings.next = w.m_siblings.next;
-    }
-    if(w.m_siblings.next != NONE)
-    {
-        Node &n = m_buf[w.m_siblings.next];
-        n.m_siblings.prev = w.m_siblings.prev;
-    }
-    w.m_siblings.next = NONE;
-    w.m_siblings.prev = NONE;
-    */
-
     // remove from the used list
     if(w.m_list.prev != NONE)
     {
