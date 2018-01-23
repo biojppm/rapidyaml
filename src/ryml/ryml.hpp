@@ -364,33 +364,6 @@ public:
 
 public:
 
-    size_t insert_val(size_t parent, size_t after, cspan const& val, int more_flags = 0)
-    {
-        size_t i = insert_child(parent, after);
-        get(i)->to_val(val, more_flags);
-        return i;
-    }
-    Node * insert_val(Node * parent, Node * after, cspan const& val, int more_flags = 0)
-    {
-        Node *n = insert_child(parent, after);
-        n->to_val(val, more_flags);
-        return n;
-    }
-    size_t prepend_val(size_t parent, cspan const& val, int more_flags = 0)
-    {
-        size_t i = prepend_child(parent);
-        get(i)->to_val(val, more_flags);
-        return i;
-    }
-    Node * append_val(Node * parent, cspan const& val, int more_flags = 0)
-    {
-        Node *n = append_child(parent);
-        n->to_val(val, more_flags);
-        return n;
-    }
-
-public:
-
     //! remove a child by name, pointer version
     void remove_child(Node * parent, Node * child)
     {
