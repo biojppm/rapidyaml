@@ -539,7 +539,7 @@ private:
 
     void _do_visit(Node const* n, size_t ilevel = 0, bool no_ind = false)
     {
-        RepC ind{' ', 2*(no_ind ? 0 : ilevel)};
+        RepC ind{' ', 2 * size_t(!no_ind) * ilevel};
 
         if(n->is_stream())
         {
@@ -551,10 +551,12 @@ private:
         }
         else if(n->is_keyval())
         {
+            C4_ASSERT(n->has_parent());
             _write(ind, n->key(), ": ", n->val(), '\n');
         }
         else if(n->is_val())
         {
+            C4_ASSERT(n->has_parent());
             _write(ind, "- ", n->val(), '\n');
         }
         else if(n->is_container() && ! n->is_root())
@@ -589,7 +591,19 @@ private:
                 }
                 else if(n->is_map())
                 {
-                    _write('\n');
+                    if(n->parent_is_seq())
+                    {
+                        // do not indent the first child, as it will be written on the same line
+                        no_ind = true;
+                    }
+                    else
+                    {
+                        _write('\n');
+                    }
+                }
+                else
+                {
+                    C4_ERROR("invalid node");
                 }
             }
             else
@@ -639,79 +653,53 @@ private:
         _do_write(a);
     }
 
+private:
+
     inline void _do_write(const char c)
     {
         if(m_file)
         {
-            m_pos += fprintf(m_file, "%c", c);
+            fwrite(&c, sizeof(char), 1, m_file);
         }
-        else
+        else if(m_pos + 1 < m_span.len)
         {
-            if(m_pos + 1 < m_span.len)
-            {
-                C4_ASSERT(m_pos + 1 < m_span.len);
-                m_span[m_pos] = c;
-            }
-            ++m_pos;
+            m_span[m_pos] = c;
         }
+        ++m_pos;
     }
 
-    inline void _do_write(RepC rc)
+    inline void _do_write(RepC const rc)
     {
         if(m_file)
+        {
+            //fwrite(&rc.c, sizeof(char), rc.num_times, m_file); // this fails... need to investigate
+            for(size_t i = 0; i < rc.num_times; ++i)
+            {
+                fputc(rc.c, m_file);
+            }
+        }
+        else if(m_pos + rc.num_times < m_span.len)
         {
             for(size_t i = 0; i < rc.num_times; ++i)
             {
-                m_pos += fprintf(m_file, "%c", rc.c);
+                m_span[m_pos + i] = rc.c;
             }
         }
-        else
-        {
-            if(m_pos + rc.num_times < m_span.len)
-            {
-                for(size_t i = m_pos, e = m_pos + rc.num_times; i < e; ++i)
-                {
-                    m_span[m_pos + i] = rc.c;
-                }
-            }
-            m_pos += rc.num_times;
-        }
+        m_pos += rc.num_times;
     }
 
-    template< size_t N >
-    inline void _do_write(const char (&s)[N])
+    inline void _do_write(cspan const& sp)
     {
-        size_t nm1 = N-1;
-        C4_ASSERT(s[nm1] == '\0');
+        if(sp.empty()) return;
         if(m_file)
         {
-            m_pos += fprintf(m_file, "%.*s", (int)nm1, s);
+            fwrite(sp.str, sp.len, 1, m_file);
         }
-        else
+        else if(m_pos + sp.len < m_span.len)
         {
-            if(m_pos + nm1 < m_span.len)
-            {
-                memcpy(&(m_span[m_pos]), s, nm1);
-            }
-            m_pos += nm1;
+            memcpy(&(m_span[m_pos]), sp.str, sp.len);
         }
-    }
-
-    inline void _do_write(cspan sp)
-    {
-        if(sp.empty()) sp = "";
-        if(m_file)
-        {
-            m_pos += fprintf(m_file, "%.*s", (int)sp.len, sp.str);
-        }
-        else
-        {
-            if(m_pos + sp.len < m_span.len)
-            {
-                memcpy(&(m_span[m_pos]), sp.str, sp.len);
-            }
-            m_pos += sp.len;
-        }
+        m_pos += sp.len;
     }
 };
 
