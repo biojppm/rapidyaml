@@ -691,6 +691,7 @@ void Parser::_handle_line()
 
     C4_ASSERT( ! rem.empty());
 
+    /*
     if(m_state->has_all(INDOK))
     {
         if(int jump = m_state->indentation_jump)
@@ -702,7 +703,9 @@ void Parser::_handle_line()
             }
         }
     }
+    */
 
+    /** @todo remove this function and do it in each case */
     if(_handle_scalar(rem))
     {
         return;
@@ -789,13 +792,14 @@ bool Parser::_handle_unk(cspan rem)
 {
     _c4dbgp("handle_unk");
     const bool start_as_child = (m_state->level != 0) || node(m_state) == nullptr;
+
     if(rem.begins_with(' '))
     {
-        if(m_state->has_all(INDOK))
+        /*if(m_state->has_all(INDOK))
         {
             _c4dbgp("indentation jump=%d level=%zd #spaces=%d", m_state->indentation_jump, m_state->level, m_state->line_contents.indentation);
             C4_ASSERT(m_state->indentation_jump > 0);
-        }
+        }*/
         m_state->line_progressed(m_state->line_contents.indentation);
         return true;
     }
@@ -817,7 +821,7 @@ bool Parser::_handle_unk(cspan rem)
     }
     else if(rem.begins_with('['))
     {
-        _c4dbgp("it's a seq (as_child=%d)", start_as_child);
+        _c4dbgp("it's a seq, explicit (as_child=%d)", start_as_child);
         _push_level(/*explicit flow*/true);
         _start_seq(start_as_child);
         m_state->flags |= EXPL;
@@ -827,7 +831,7 @@ bool Parser::_handle_unk(cspan rem)
 
     else if(rem.begins_with('{'))
     {
-        _c4dbgp("it's a map (as_child=%d)", start_as_child);
+        _c4dbgp("it's a map, explicit (as_child=%d)", start_as_child);
         _push_level(/*explicit flow*/true);
         _start_map(start_as_child);
         m_state->flags |= EXPL|RKEY;
@@ -896,11 +900,11 @@ bool Parser::_handle_seq(cspan rem)
         if(rem.begins_with(' '))
         {
             _c4dbgp("starts with spaces");
-            if(m_state->has_all(INDOK))
+            if(0 /*m_state->has_all(INDOK)*/)
             {
-                _c4dbgp("indentation jump=%d level=%zd #spaces=%d", m_state->indentation_jump, m_state->level, m_state->line_contents.indentation);
+                /*_c4dbgp("indentation jump=%d level=%zd #spaces=%d", m_state->indentation_jump, m_state->level, m_state->line_contents.indentation);
                 m_state->line_progressed(m_state->line_contents.indentation);
-                C4_ASSERT(m_state->indentation_jump > 0);
+                C4_ASSERT(m_state->indentation_jump > 0);*/
             }
             else
             {
@@ -1509,6 +1513,7 @@ void Parser::_start_seq(bool as_child)
         m_state->node_id = m_tree->append_child(parent->id());
         if(m_state->has_all(SSCL))
         {
+            C4_ASSERT(parent->is_map());
             cspan name = _consume_scalar();
             node(m_state)->to_seq(name);
             _c4dbgp("start_seq: id=%zd name='%.*s'", node(m_state)->id(), _c4prsp(node(m_state)->key()));
@@ -1542,19 +1547,21 @@ void Parser::_append_val(cspan const& val)
     C4_ASSERT(node(m_state) != nullptr);
     C4_ASSERT(node(m_state)->is_seq());
     _c4dbgp("append val: '%.*s'", _c4prsp(val));
-    size_t ch = m_tree->append_child(m_state->node_id);
-    m_tree->get(ch)->to_val(val);
-    _c4dbgp("append val: id=%zd name='%.*s' val='%.*s'", node(m_state)->last_child()->id(), _c4prsp(node(m_state)->last_child()->m_key), _c4prsp(node(m_state)->last_child()->m_val));
+    size_t nid = m_tree->append_child(m_state->node_id);
+    Node *n = m_tree->get(nid);
+    n->to_val(val);
+    _c4dbgp("append val: id=%zd name='%.*s' val='%.*s'", nid, _c4prsp(n->m_key), _c4prsp(n->m_val));
 }
 
 void Parser::_append_key_val(cspan const& val)
 {
     C4_ASSERT(node(m_state)->is_map());
-    cspan key = _consume_scalar();;
+    cspan key = _consume_scalar();
     _c4dbgp("append key-val: '%.*s' '%.*s'", _c4prsp(key), _c4prsp(val));
-    size_t ch = m_tree->append_child(m_state->node_id);
-    m_tree->get(ch)->to_keyval(key, val);
-    _c4dbgp("append key-val: id=%zd name='%.*s' val='%.*s'", node(m_state)->last_child()->id(), _c4prsp(node(m_state)->last_child()->key()), _c4prsp(node(m_state)->last_child()->val()));
+    size_t nid = m_tree->append_child(m_state->node_id);
+    Node *n = m_tree->get(nid);
+    n->to_keyval(key, val);
+    _c4dbgp("append key-val: id=%zd name='%.*s' val='%.*s'", nid, _c4prsp(n->key()), _c4prsp(n->val()));
     _toggle_key_val();
 }
 
@@ -1575,7 +1582,7 @@ void Parser::_toggle_key_val()
 //-----------------------------------------------------------------------------
 void Parser::_store_scalar(cspan const& s)
 {
-    _c4dbgp("storing scalar: '%.*s'", _c4prsp(s));
+    _c4dbgp("storing scalar: '%.*s'@%zd", _c4prsp(s), m_state-m_stack.begin());
     C4_ASSERT(m_state->has_none(SSCL));
     m_state->flags |= SSCL;
     m_state->scalar = s;
@@ -1583,7 +1590,7 @@ void Parser::_store_scalar(cspan const& s)
 
 cspan Parser::_consume_scalar()
 {
-    _c4dbgp("consuming scalar: '%.*s' (flag: %d))", _c4prsp(m_state->scalar), m_state->scalar & SSCL);
+    _c4dbgp("consuming scalar: '%.*s'@%zd (flag: %d))", _c4prsp(m_state->scalar), m_state-m_stack.begin(), m_state->scalar & SSCL);
     C4_ASSERT(m_state->flags & SSCL);
     cspan s = m_state->scalar;
     m_state->flags &= ~SSCL;
@@ -1610,7 +1617,10 @@ void Parser::_move_scalar_from_top()
 //-----------------------------------------------------------------------------
 int Parser::_handle_indentation()
 {
-    int jump = m_state->indentation_jump;
+    C4_ERROR("not implemented");
+    return;
+
+    int jump = 0;//m_state->indentation_jump;
     if(jump < 0)
     {
         _c4dbgp("indentation decreased %d space%s!", (-jump), (-jump)>1?"s":"");
@@ -1678,7 +1688,7 @@ cspan Parser::_scan_quoted_scalar(const char q)
                     }
                     else
                     {
-                        // there are two single quotes, so needs filter
+                        // there are escapes, so needs filter
                         needs_filter = true;
                     }
                 }
@@ -1719,10 +1729,12 @@ cspan Parser::_scan_quoted_scalar(const char q)
 
         _next_line();
     }
+
     if(pos == npos)
     {
         _c4err("reached end of file while looking for closing quote");
     }
+
     C4_ASSERT(s[pos] == q);
     s = s.subspan(1, pos - 1);
 

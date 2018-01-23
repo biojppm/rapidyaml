@@ -732,9 +732,6 @@ private:
         RVAL = 0x01 <<  7, // reading a scalar as val
         RNXT = 0x01 <<  8, // read next val or keyval
         SSCL = 0x01 <<  9, // there's a scalar stored
-
-        STARTED_ = 0x01 << 16, // mark the parser started
-        INDOK = 0x01 << 17, // allow indentation jumps
     } State_e;
 
     struct LineContents
@@ -763,8 +760,6 @@ private:
 
         Location     pos;
         LineContents line_contents;
-        int          prev_indentation;
-        int          indentation_jump;
 
         void _prepare_pop(State const& current)
         {
@@ -783,19 +778,11 @@ private:
             pos.col = 1;
             node_id = node_id_;
             scalar.clear();
-            prev_indentation = 0;
-            indentation_jump = 0;
         }
 
         void line_scanned(cspan const& full, cspan const& stripped)
         {
-            prev_indentation = line_contents.indentation;
             line_contents.reset(full, stripped);
-            if(flags & STARTED_)
-            {
-                indentation_jump = line_contents.indentation - prev_indentation;
-            }
-            flags |= STARTED_;
         }
 
         void line_progressed(size_t ahead)
