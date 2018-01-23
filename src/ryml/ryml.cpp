@@ -106,9 +106,31 @@ bool Node::has_child(Node const* ch) const
     return false;
 }
 
+bool Node::has_siblings() const
+{
+    if(m_parent == NONE) return false;
+    Node const* p = m_s->get(m_parent);
+    return p->has_children();
+}
+
+bool Node::has_other_siblings() const
+{
+    if(m_parent == NONE) return false;
+    Node const* p = m_s->get(m_parent);
+    size_t myid = m_s->id(this);
+    return p->m_children.first != myid || p->m_children.last != myid;
+}
+
 size_t Node::num_siblings() const
 {
     return (m_parent != NONE) ? m_s->get(m_parent)->num_children() : 0;
+}
+
+size_t Node::num_other_siblings() const
+{
+    size_t ns = num_siblings();
+    C4_ASSERT(ns >= 1);
+    return ns - 1;
 }
 
 Node * Node::sibling(size_t i) const

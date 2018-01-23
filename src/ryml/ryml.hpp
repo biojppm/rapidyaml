@@ -119,16 +119,21 @@ public:
     bool   has_key() const { return m_type & KEY; }
     bool   is_val() const { return (m_type & KEYVAL) == VAL; }
     bool   is_keyval() const { return (m_type & KEYVAL) == KEYVAL; }
+
     bool   parent_is_seq() const { C4_ASSERT(parent()); return parent()->is_seq(); }
     bool   parent_is_map() const { C4_ASSERT(parent()); return parent()->is_map(); }
 
     /** true when name and value are empty, and has no children */
     bool   empty() const { return ! has_children() && m_key.empty() && (( ! (m_type & VAL)) || m_val.empty()); }
-    bool   has_children() const { return num_children() != 0; }
-    bool   has_siblings() const { return num_siblings() != 0; }
+    bool   has_children() const { return m_children.first != NONE; }
+    /** counts with this */
+    bool   has_siblings() const;
+    /** does not count with this */
+    bool   has_other_siblings() const;
 
-    bool   has_child(Node const* ch) const;
+    bool   has_parent() const { return m_parent != NONE; }
     bool   has_sibling(Node const* n) const;
+    bool   has_child(Node const* ch) const;
 
 public:
 
@@ -143,6 +148,7 @@ public:
 
     /** O(#num_siblings) */
     size_t num_siblings() const;
+    size_t num_other_siblings() const;
     Node * sibling(size_t i) const;
     Node * first_sibling() const;
     Node * last_sibling() const;
