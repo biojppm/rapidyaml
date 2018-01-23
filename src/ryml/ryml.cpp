@@ -794,6 +794,8 @@ bool Parser::_handle_unk()
     cspan rem = m_state->line_contents.rem;
     const bool start_as_child = (m_state->level != 0) || node(m_state) == nullptr;
 
+    C4_ASSERT(m_state->has_none(RNXT));
+
     if(rem.begins_with(' '))
     {
         /*if(m_state->has_all(INDOK))
@@ -825,7 +827,7 @@ bool Parser::_handle_unk()
         _c4dbgp("it's a seq, explicit (as_child=%d)", start_as_child);
         _push_level(/*explicit flow*/true);
         _start_seq(start_as_child);
-        m_state->flags |= EXPL;
+        m_state->add_flags(EXPL);
         m_state->line_progressed(1);
         return true;
     }
@@ -835,8 +837,7 @@ bool Parser::_handle_unk()
         _c4dbgp("it's a map, explicit (as_child=%d)", start_as_child);
         _push_level(/*explicit flow*/true);
         _start_map(start_as_child);
-        m_state->flags |= EXPL|RKEY;
-        m_state->flags &= ~RVAL;
+        m_state->addrem_flags(EXPL|RKEY, RVAL);
         m_state->line_progressed(1);
         return true;
     }
@@ -932,14 +933,14 @@ bool Parser::_handle_seq()
         else if(rem.begins_with(", "))
         {
             _c4dbgp("expect another val");
-            m_state->flags |= RNXT;
+            m_state->add_flags(RNXT);
             m_state->line_progressed(2);
             return true;
         }
         else if(rem.begins_with(','))
         {
             _c4dbgp("expect another val");
-            m_state->flags |= RNXT;
+            //m_state->addrem_flags(RNXT, RVAL);
             m_state->line_progressed(1);
             return true;
         }
@@ -961,7 +962,7 @@ bool Parser::_handle_seq()
             _c4dbgp("it's a seq");
             _push_level(/*explicit flow*/true);
             _start_seq();
-            m_state->flags |= EXPL;
+            m_state->add_flags(EXPL);
             m_state->line_progressed(1);
             return true;
         }
@@ -970,8 +971,7 @@ bool Parser::_handle_seq()
             _c4dbgp("it's a map");
             _push_level(/*explicit flow*/true);
             _start_map();
-            m_state->flags |= EXPL|RKEY;
-            m_state->flags &= ~RVAL;
+            m_state->addrem_flags(EXPL|RKEY, RVAL);
             m_state->line_progressed(1);
             return true;
         }
@@ -1010,7 +1010,12 @@ bool Parser::_handle_map()
 {
     _c4dbgp("handle_map");
     cspan rem = m_state->line_contents.rem;
-    if(m_state->has_any(RVAL))
+
+    if(m_state->has_any(RNXT))
+    {
+        _c4err("not implemented");
+    }
+    else if(m_state->has_any(RVAL))
     {
         C4_ASSERT(m_state->has_all(SSCL));
         if(rem.begins_with(": "))
@@ -1056,6 +1061,7 @@ bool Parser::_handle_map()
         else if(rem.begins_with(", "))
         {
             _c4dbgp("expect another key-val");
+            //m_state->addrem_flags(RNXT, RKEY|RVAL);
             m_state->line_progressed(2);
             return true;
         }
@@ -1379,7 +1385,7 @@ void Parser::_push_level(bool explicit_flow_chars)
     _c4dbgp("stacking node %zd", node(m_state)->id());
     m_stack.push(*m_state);
     m_state = &m_stack.top();
-    m_state->flags = st;
+    m_state->set_flags(st);
     m_state->node_id = NONE;
     ++m_state->level;
 }
@@ -1415,7 +1421,7 @@ void Parser::_pop_level()
     if(m_state->line_contents.indentation == 0)
     {
         //C4_ASSERT(m_state->has_none(RTOP));
-        m_state->flags |= RTOP;
+        m_state->add_flags(RTOP);
     }
 }
 
@@ -1431,7 +1437,7 @@ void Parser::_start_unk(bool as_child)
 void Parser::_start_doc(bool as_child)
 {
     _c4dbgp("start_doc (as child=%d)", as_child);
-    m_state->flags |= RUNK;
+    m_state->add_flags(RUNK);
     C4_ASSERT(node(m_stack.bottom()) == node(m_root_id));
     Node* parent = m_stack.size() < 2 ? node(m_root_id) : node(m_stack.top(1));
     size_t parent_id = parent->id();
@@ -1469,9 +1475,7 @@ void Parser::_stop_doc()
 void Parser::_start_map(bool as_child)
 {
     _c4dbgp("start_map (as child=%d)", as_child);
-    m_state->flags |= RMAP|RVAL;
-    m_state->flags &= ~RKEY;
-    m_state->flags &= ~RUNK;
+    m_state->addrem_flags(RMAP|RVAL, RKEY|RUNK);
     C4_ASSERT(node(m_stack.bottom()) == node(m_root_id));
     Node* parent = m_stack.size() < 2 ? node(m_root_id) : node(m_stack.top(1));
     C4_ASSERT(parent != nullptr);
@@ -1512,8 +1516,7 @@ void Parser::_stop_map()
 void Parser::_start_seq(bool as_child)
 {
     _c4dbgp("start_seq (as child=%d)", as_child);
-    m_state->flags |= RSEQ|RVAL;
-    m_state->flags &= ~RUNK;
+    m_state->addrem_flags(RSEQ|RVAL, RUNK);
     C4_ASSERT(node(m_stack.bottom()) == node(m_root_id));
     Node* parent = m_stack.size() < 2 ? node(m_root_id) : node(m_stack.top(1));
     C4_ASSERT(parent != nullptr);
@@ -1577,15 +1580,13 @@ void Parser::_append_key_val(cspan const& val)
 
 void Parser::_toggle_key_val()
 {
-    if(m_state->flags & RKEY)
+    if(m_state->has_all(RKEY))
     {
-        m_state->flags &= ~RKEY;
-        m_state->flags |= RVAL;
+        m_state->addrem_flags(RVAL, RKEY);
     }
     else
     {
-        m_state->flags |= RKEY;
-        m_state->flags &= ~RVAL;
+        m_state->addrem_flags(RKEY, RVAL);
     }
 }
 
@@ -1594,7 +1595,7 @@ void Parser::_store_scalar(cspan const& s)
 {
     _c4dbgp("storing scalar: '%.*s'@%zd", _c4prsp(s), m_state-m_stack.begin());
     C4_ASSERT(m_state->has_none(SSCL));
-    m_state->flags |= SSCL;
+    m_state->add_flags(SSCL);
     m_state->scalar = s;
 }
 
@@ -1603,7 +1604,7 @@ cspan Parser::_consume_scalar()
     _c4dbgp("consuming scalar: '%.*s'@%zd (flag: %d))", _c4prsp(m_state->scalar), m_state-m_stack.begin(), m_state->scalar & SSCL);
     C4_ASSERT(m_state->flags & SSCL);
     cspan s = m_state->scalar;
-    m_state->flags &= ~SSCL;
+    m_state->rem_flags(SSCL);
     m_state->scalar.clear();
     return s;
 }
@@ -1617,9 +1618,9 @@ void Parser::_move_scalar_from_top()
     if(prev.flags & SSCL)
     {
         _c4dbgp("moving scalar: '%.*s'@%zd (overwriting '%.*s'@%zd)", _c4prsp(prev.scalar), &prev-m_stack.begin(), _c4prsp(m_state->scalar), m_state-m_stack.begin());
-        m_state->flags |= (prev.flags & SSCL);
+        m_state->add_flags(prev.flags & SSCL);
         m_state->scalar = prev.scalar;
-        prev.flags &= ~SSCL;
+        prev.rem_flags(SSCL);
         prev.scalar.clear();
     }
 }
