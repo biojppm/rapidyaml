@@ -755,6 +755,7 @@ private:
     void  _scan_line();
     void  _next_line() { _line_ended(); }
 
+    bool  _is_scalar_next() const;
     cspan _scan_scalar();
     cspan _scan_comment();
     cspan _scan_quoted_scalar(const char q);
@@ -767,10 +768,10 @@ private:
     void  _handle_line();
     int   _handle_indentation();
 
+
     bool  _handle_unk();
     bool  _handle_map();
     bool  _handle_seq();
-    bool  _handle_scalar();
     bool  _handle_top();
     bool  _handle_anchors_and_refs();
     bool  _handle_types();

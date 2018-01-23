@@ -64,12 +64,10 @@ Node * Node::child(size_t i) const
 }
 Node * Node::first_child() const
 {
-    if(is_val()) return nullptr;
     return m_s->get(m_children.first);
 }
 Node * Node::last_child() const
 {
-    if(is_val()) return nullptr;
     return m_s->get(m_children.last);
 }
 
@@ -538,7 +536,7 @@ void Tree::set_parent(size_t iparent, size_t ichild, size_t iprev_sibling, size_
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-// some debugging scaffolds
+// some debugging scaffolds for the parser
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
@@ -547,26 +545,6 @@ void Tree::set_parent(size_t iparent, size_t ichild, size_t iprev_sibling, size_
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 
-/** a debug utility */
-/*
-#define _prhl(fmt, ...)                                                 \
-    {                                                                   \
-        auto _llen = printf("%s:%d: line %zd:%zd(%zd): ",               \
-                          __FILE__, __LINE__,                           \
-                          m_state.pos.line-1,                           \
-                          m_state.line_contents.rem.begin() - m_state.line_contents.stripped.begin(), \
-                          m_state.line_contents.rem.len);               \
-        if(m_state.line_contents.rem)                                   \
-        {                                                               \
-            printf("'%.*s'\n", _c4prsp(m_state.line_contents.rem));     \
-        }                                                               \
-        if(strlen(fmt) > 0)                                             \
-        {                                                               \
-            printf("%*s", _llen, " ");                                  \
-            printf(fmt "\n", ## __VA_ARGS__);                           \
-        }                                                               \
-    }
-*/
 #ifdef RYML_DBG
 #   define _c4prt_(fn, file, line, what, msg, ...)        \
     this->_##fn(file ":" C4_QUOTE(line) ": " what msg, ## __VA_ARGS__)
@@ -674,26 +652,6 @@ void Parser::_handle_line()
 
     C4_ASSERT( ! m_state->line_contents.rem.empty());
 
-    /*
-    if(m_state->has_all(INDOK))
-    {
-        if(int jump = m_state->indentation_jump)
-        {
-            _c4dbgp("indentation jump: %d", jump);
-            if(jump < 0)
-            {
-                _handle_indentation();
-            }
-        }
-    }
-    */
-
-    /** @todo remove this function and do it in each case */
-    if(_handle_scalar())
-    {
-        return;
-    }
-
     if(has_any(RSEQ))
     {
         if(_handle_seq())
@@ -723,52 +681,13 @@ void Parser::_handle_line()
 }
 
 //-----------------------------------------------------------------------------
-bool Parser::_handle_scalar()
+bool Parser::_is_scalar_next() const
 {
-    if(has_none(RKEY|RVAL|RUNK|RTOP)) return false;
-
-    cspan rem = m_state->line_contents.rem;
-    const bool alnum = isalnum(rem[0]);
-    const bool dquot = rem.begins_with('"');
-    const bool squot = rem.begins_with('\'');
-    const bool block = rem.begins_with('|') || rem.begins_with('>');
-
-    if(alnum || dquot || squot || block)
-    {
-        _c4dbgp("it's a scalar");
-        cspan s = _scan_scalar();
-        C4_ASSERT( ! s.empty());
-
-        if(has_all(RSEQ))
-        {
-            _append_val(s);
-        }
-        else if(has_all(RKEY|RMAP))
-        {
-            C4_ASSERT(has_none(RVAL));
-            _store_scalar(s);
-            _toggle_key_val();
-        }
-        else if(has_all(RVAL|RMAP))
-        {
-            C4_ASSERT(has_none(RKEY));
-            _append_key_val(s); // toggles key val
-        }
-        else if(has_all(RUNK))
-        {
-            C4_ASSERT(has_none(RSEQ|RMAP));
-            // we still don't know whether it's a seq or a map
-            // so just store the scalar
-            _store_scalar(s);
-        }
-        else
-        {
-            _c4err("wtf?");
-        }
-        return true;
-    }
-
-    return false;
+    cspan const& rem = m_state->line_contents.rem;
+    return isalnum(rem[0])
+        || rem.begins_with('"')
+        || rem.begins_with('\'')
+        || rem.begins_with('|') || rem.begins_with('>');
 }
 
 //-----------------------------------------------------------------------------
@@ -779,16 +698,27 @@ bool Parser::_handle_unk()
     cspan rem = m_state->line_contents.rem;
     const bool start_as_child = (m_state->level != 0) || node(m_state) == nullptr;
 
-    C4_ASSERT(has_none(RNXT));
+    C4_ASSERT(has_none(RNXT|RSEQ|RMAP));
 
-    if(rem.begins_with(' '))
+    if(_is_scalar_next())
+    {
+        _c4dbgp("got a scalar");
+        const cspan s = _scan_scalar();
+        // we still don't know whether it's a seq or a map
+        // so just store the scalar
+        _store_scalar(s);
+        return true;
+    }
+    else if(rem.begins_with(' '))
     {
         /*if(has_all(INDOK))
         {
             _c4dbgp("indentation jump=%d level=%zd #spaces=%d", m_state->indentation_jump, m_state->level, m_state->line_contents.indentation);
             C4_ASSERT(m_state->indentation_jump > 0);
         }*/
-        _line_progressed(m_state->line_contents.indentation);
+        cspan s = rem.left_of(rem.first_not_of(' '));
+        _c4dbgp("skipping %zd spaces", s.len);
+        _line_progressed(s.len);
         return true;
     }
     else if(rem.begins_with("- "))
@@ -837,31 +767,31 @@ bool Parser::_handle_unk()
 
     else if(has_all(SSCL))
     {
-        _c4dbgp("there's a stored scalar");
+        _c4dbgp("there's a stored scalar (%.*s)", _c4prsp(m_state->scalar));
         if(rem.begins_with(", "))
         {
-            _c4dbgp("it's a seq (as_child=%d)", start_as_child);
+            _c4dbgp("got a ',' -- it's a seq (as_child=%d)", start_as_child);
             _start_seq(start_as_child);
             _append_val(_consume_scalar());
             _line_progressed(2);
         }
         else if(rem.begins_with(": "))
         {
-            _c4dbgp("it's a map (as_child=%d)", start_as_child);
-            _start_map(start_as_child);
-            // wait for the val scalar to append the key-val pair
+            _c4dbgp("got a ':' -- it's a map (as_child=%d)", start_as_child);
+            _start_map(start_as_child); // wait for the val scalar to append the key-val pair
             _line_progressed(2);
             if(rem == ": ")
             {
+                _c4dbgp("map key opened a new line -- starting val scope as unknown");
                 _start_unk();
             }
         }
         else if(rem == ":")
         {
-            _c4dbgp("it's a map (as_child=%d)", start_as_child);
-            _start_map(start_as_child);
-            // wait for the val scalar to append the key-val pair
+            _c4dbgp("got a ':' -- it's a map (as_child=%d)", start_as_child);
+            _start_map(start_as_child); // wait for the val scalar to append the key-val pair
             _line_progressed(1);
+            _c4dbgp("map key opened a new line -- starting val scope as unknown");
             _start_unk();
         }
         else
@@ -879,13 +809,21 @@ bool Parser::_handle_seq()
 {
     _c4dbgp("handle_seq");
     cspan rem = m_state->line_contents.rem;
-    /*if(has_any(RNXT))
+
+    if(has_any(RNXT))
     {
         _c4err("not implemented");
     }
-    else */if(has_any(RVAL))
+    else if(has_any(RVAL))
     {
-        if(rem.begins_with(' '))
+        if(_is_scalar_next())
+        {
+            _c4dbgp("it's a scalar");
+            rem = _scan_scalar();
+            _append_val(rem);
+            return true;
+        }
+        else if(rem.begins_with(' '))
         {
             _c4dbgp("starts with spaces");
             if(0 /*has_all(INDOK)*/)
@@ -917,15 +855,15 @@ bool Parser::_handle_seq()
         }
         else if(rem.begins_with(", "))
         {
-            _c4dbgp("expect another val");
-            add_flags(RNXT);
+            C4_ASSERT(has_all(EXPL));
+            _c4dbgp("seq: expect next");
             _line_progressed(2);
             return true;
         }
         else if(rem.begins_with(','))
         {
-            _c4dbgp("expect another val");
-            //addrem_flags(RNXT, RVAL);
+            C4_ASSERT(has_all(EXPL));
+            _c4dbgp("seq: expect next val");
             _line_progressed(1);
             return true;
         }
@@ -944,7 +882,7 @@ bool Parser::_handle_seq()
         }
         else if(rem.begins_with('['))
         {
-            _c4dbgp("it's a seq");
+            _c4dbgp("val is a child seq");
             _push_level(/*explicit flow*/true);
             _start_seq();
             add_flags(EXPL);
@@ -953,7 +891,7 @@ bool Parser::_handle_seq()
         }
         else if(rem.begins_with('{'))
         {
-            _c4dbgp("it's a map");
+            _c4dbgp("val is a child map");
             _push_level(/*explicit flow*/true);
             _start_map();
             addrem_flags(EXPL|RKEY, RVAL);
@@ -1002,6 +940,7 @@ bool Parser::_handle_map()
     }
     else if(has_any(RVAL))
     {
+        C4_ASSERT(has_none(RKEY));
         C4_ASSERT(has_all(SSCL));
         if(rem.begins_with(": "))
         {
@@ -1014,6 +953,13 @@ bool Parser::_handle_map()
             _c4dbgp("start unknown");
             _start_unk();
             _line_progressed(1);
+            return true;
+        }
+        else if(_is_scalar_next())
+        {
+            _c4dbgp("it's a scalar");
+            rem = _scan_scalar(); // advances by the scalar len
+            _append_key_val(rem); // toggles key val
             return true;
         }
         else if(rem.begins_with("- "))
@@ -1074,9 +1020,18 @@ bool Parser::_handle_map()
     }
     else if(has_any(RKEY))
     {
-        if(rem.begins_with(' '))
+        if(_is_scalar_next())
+        {
+            C4_ASSERT(has_none(RVAL));
+            rem = _scan_scalar();
+            _store_scalar(rem);
+            _toggle_key_val();
+            return true;
+        }
+        else if(rem.begins_with(' '))
         {
             rem = rem.left_of(rem.first_not_of(' '));
+            _c4dbgp("skip %zd spaces", rem.len);
             _line_progressed(rem.len);
             return true;
         }
