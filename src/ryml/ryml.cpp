@@ -931,6 +931,13 @@ bool Parser::_handle_seq()
                 _line_progressed(1);
                 return true;
             }
+            else if(rem.begins_with(' '))
+            {
+                C4_ASSERT( ! _at_line_begin());
+                rem = rem.left_of(rem.first_not_of(' '));
+                _line_progressed(rem.len);
+                return true;
+            }
             else
             {
                 _c4err("parse error");
@@ -1795,7 +1802,7 @@ void Parser::_move_scalar_from_top()
 //-----------------------------------------------------------------------------
 bool Parser::_handle_indentation()
 {
-    if( ! _at_line_begin()) return;
+    if( ! _at_line_begin()) return false;
 
     size_t ind = m_state->line_contents.indentation;
 
