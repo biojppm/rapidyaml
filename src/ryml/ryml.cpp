@@ -726,6 +726,7 @@ bool Parser::_handle_unk()
         _c4dbgp("it's a seq (as_child=%d)", start_as_child);
         _push_level();
         _start_seq(start_as_child);
+        _save_indentation();
         _line_progressed(2);
         return true;
     }
@@ -807,11 +808,228 @@ bool Parser::_handle_unk()
 //-----------------------------------------------------------------------------
 bool Parser::_handle_seq()
 {
-    _c4dbgp("handle_seq");
+    _c4dbgp("handle_seq: node_id=%zd level=%zd", m_state->node_id, m_state->level);
     cspan rem = m_state->line_contents.rem;
 
+    C4_ASSERT(has_none(RKEY));
+
+    if(has_any(EXPL)) // explicit flow, ie, inside [], separated by commas
+    {
+        if(rem.begins_with(' '))
+        {
+            // with explicit flow, indentation does not matter
+            _c4dbgp("starts with spaces");
+            rem = rem.left_of(rem.first_not_of(' '));
+            _c4dbgp("skip %zd spaces", rem.len);
+            _line_progressed(rem.len);
+            return true;
+        }
+        else if(rem.begins_with('#'))
+        {
+            _c4dbgp("it's a comment");
+            rem = _scan_comment(); // also progresses the line
+            return true;
+        }
+        else if(rem.begins_with(']'))
+        {
+            _c4dbgp("end the sequence");
+            _line_progressed(1);
+            _pop_level();
+            return true;
+        }
+
+        if(has_any(RVAL))
+        {
+            C4_ASSERT(has_none(RNXT));
+            if(_is_scalar_next())
+            {
+                _c4dbgp("it's a scalar");
+                rem = _scan_scalar();
+                addrem_flags(RNXT, RVAL);
+                _append_val(rem);
+                return true;
+            }
+            else if(rem.begins_with('['))
+            {
+                _c4dbgp("val is a child seq");
+                addrem_flags(RNXT, RVAL); // before _push_level!
+                _push_level(/*explicit flow*/true);
+                _start_seq();
+                add_flags(EXPL);
+                _line_progressed(1);
+                return true;
+            }
+            else if(rem.begins_with('{'))
+            {
+                _c4dbgp("val is a child map");
+                addrem_flags(RNXT, RVAL); // before _push_level!
+                _push_level(/*explicit flow*/true);
+                _start_map();
+                addrem_flags(EXPL|RKEY, RVAL);
+                _line_progressed(1);
+                return true;
+            }
+            else
+            {
+                _c4err("parse error");
+            }
+        }
+        else if(has_any(RNXT))
+        {
+            C4_ASSERT(has_none(RVAL));
+            if(rem.begins_with(", "))
+            {
+                C4_ASSERT(has_all(EXPL));
+                _c4dbgp("seq: expect next val");
+                addrem_flags(RVAL, RNXT);
+                _line_progressed(2);
+                return true;
+            }
+            else if(rem.begins_with(','))
+            {
+                C4_ASSERT(has_all(EXPL));
+                _c4dbgp("seq: expect next val");
+                addrem_flags(RVAL, RNXT);
+                _line_progressed(1);
+                return true;
+            }
+        }
+        else
+        {
+            _c4err("internal error");
+        }
+    }
+    else // we're reading an indentation-based seq
+    {
+        if(rem.begins_with('#'))
+        {
+            _c4dbgp("it's a comment");
+            rem = _scan_comment();
+            return true;
+        }
+
+        if(has_any(RNXT))
+        {
+            C4_ASSERT(has_none(RVAL));
+
+            if(_handle_indentation())
+            {
+                rem = m_state->line_contents.rem;
+            }
+
+            if(rem.begins_with("- "))
+            {
+                _c4dbgp("expect another val");
+                addrem_flags(RVAL, RNXT);
+                _line_progressed(2);
+                return true;
+            }
+            else if(rem == '-')
+            {
+                _c4dbgp("start unknown");
+                _start_unk();
+                _line_progressed(1);
+                return true;
+            }
+            else
+            {
+                _c4err("parse error");
+            }
+        }
+        else if(has_any(RVAL))
+        {
+            if(_is_scalar_next())
+            {
+                _c4dbgp("it's a scalar");
+                cspan s = _scan_scalar(); // this also progresses the line
+                rem = m_state->line_contents.rem;
+                if(rem.begins_with(": "))
+                {
+                    _c4dbgp("actually, the scalar is the first key of a map");
+                    addrem_flags(RNXT, RVAL); // before _push_level! This prepares the current level for popping by setting it to RNXT
+                    _push_level();
+                    _start_map();
+                    _save_indentation(/*behind*/s.len);
+                    addrem_flags(EXPL|VAL, RKEY);
+                    _line_progressed(2);
+                }
+                else if(rem.begins_with(':'))
+                {
+                    _c4dbgp("actually, the scalar is the first key of a map, and it opens a new scope");
+                    addrem_flags(RNXT, RVAL); // before _push_level! This prepares the current level for popping by setting it to RNXT
+                    _push_level();
+                    _start_map();
+                    _save_indentation(/*behind*/s.len);
+                    addrem_flags(EXPL|VAL, RKEY);
+                    _line_progressed(1);
+                }
+                else
+                {
+                    _c4dbgp("appending val to current seq");
+                    _append_val(s);
+                    addrem_flags(RNXT, RVAL);
+                }
+                return true;
+            }
+            else if(rem.begins_with("- "))
+            {
+                _c4dbgp("val is a nested seq, indented");
+                addrem_flags(RNXT, RVAL); // before _push_level!
+                _push_level();
+                _start_seq();
+                _save_indentation();
+                _line_progressed(2);
+                return true;
+            }
+            else if(rem == '-')
+            {
+                _c4dbgp("start unknown, indented");
+                _start_unk();
+                _save_indentation();
+                _line_progressed(1);
+                return true;
+            }
+            else if(rem.begins_with('['))
+            {
+                _c4dbgp("val is a child seq, explicit");
+                addrem_flags(RNXT, RVAL); // before _push_level!
+                _push_level(/*explicit flow*/true);
+                _start_seq();
+                add_flags(EXPL);
+                _line_progressed(1);
+                return true;
+            }
+            else if(rem.begins_with('{'))
+            {
+                _c4dbgp("val is a child map, explicit");
+                addrem_flags(RNXT, RVAL); // before _push_level!
+                _push_level(/*explicit flow*/true);
+                _start_map();
+                addrem_flags(EXPL|RKEY, RVAL);
+                _line_progressed(1);
+                return true;
+            }
+            else
+            {
+                _c4err("parse error");
+            }
+
+        }
+        else
+        {
+            _c4err("internal error");
+        }
+
+    }
+
+#ifdef OLD
     if(has_any(RNXT))
     {
+        C4_ASSERT(has_none(RVAL|RKEY));
+        if(has_none(EXPL) && _at_line_begin() && rem.begins_with(' '))
+        {
+
+        }
         _c4err("not implemented");
     }
     else if(has_any(RVAL))
@@ -925,6 +1143,7 @@ bool Parser::_handle_seq()
     {
         _c4err("internal error");
     }
+#endif
     return false;
 }
 
@@ -1210,11 +1429,8 @@ cspan Parser::_scan_scalar()
     }
     else if(has_any(RSEQ))
     {
-        if(has_all(RKEY))
-        {
-            _c4err("internal error");
-        }
-        else if(has_all(RVAL))
+        C4_ASSERT( ! has_all(RKEY));
+        if(has_all(RVAL))
         {
             _c4dbgp("RSEQ|RVAL");
             s = s.left_of(s.first_of(",]#"));
@@ -1222,7 +1438,7 @@ cspan Parser::_scan_scalar()
         }
         else
         {
-            _c4err("parse error");
+            _c4err("internal error");
         }
     }
     else if(has_any(RMAP))
@@ -1308,10 +1524,20 @@ void Parser::_scan_line()
 }
 
 //-----------------------------------------------------------------------------
+void Parser::_save_indentation(size_t behind)
+{
+    m_state->indref = m_state->line_contents.rem.begin() - m_state->line_contents.full.begin();
+    C4_ASSERT(behind <= m_state->indref);
+    m_state->indref -= behind;
+    _c4dbgp("saving indentation: %zd", m_state->indref);
+}
+
+//-----------------------------------------------------------------------------
 
 void Parser::_push_level(bool explicit_flow_chars)
 {
-    _c4dbgp("pushing level! sz=%zd (+1)", m_stack.size());
+    _c4dbgp("pushing level! currnode=%zd  currlevel=%zd", m_state->node_id, m_state->level);
+    C4_ASSERT(m_state == &m_stack.top());
     if(node(m_state) == nullptr)
     {
         C4_ASSERT( ! explicit_flow_chars);
@@ -1322,24 +1548,18 @@ void Parser::_push_level(bool explicit_flow_chars)
     {
         st |= EXPL;
     }
-    _c4dbgp("stacking node %zd", node(m_state)->id());
     m_stack.push(*m_state);
     m_state = &m_stack.top();
     set_flags(st);
     m_state->node_id = NONE;
+    m_state->indref = NONE;
     ++m_state->level;
-
-    if(m_stack.size() > 1)
-    {
-        State const& prev = m_stack.top(1);
-        m_state->indref = NONE;
-        m_state->indprev = prev.indref;
-    }
+    _c4dbgp("pushing level: now, currlevel=%zd", m_state->level);
 }
 
 void Parser::_pop_level()
 {
-    _c4dbgp("popping level! sz=%zd (-1)", m_stack.size());
+    _c4dbgp("popping level! currnode=%zd currlevel=%zd", m_state->node_id, m_state->level);
     if(has_any(RMAP))
     {
         _stop_map();
@@ -1357,7 +1577,6 @@ void Parser::_pop_level()
         _c4err("internal error");
     }
     C4_ASSERT(m_stack.size() > 1);
-    _c4dbgp("popping node %zd newtop %zd", node(m_state)->id(), m_stack.empty() ? NONE : node(m_stack.top())->id());
     _prepare_pop();
     m_stack.pop();
     m_state = &m_stack.top();
@@ -1370,6 +1589,7 @@ void Parser::_pop_level()
         //C4_ASSERT(has_none(RTOP));
         add_flags(RTOP);
     }
+    _c4dbgp("popping level: now, currnode=%zd currlevel=%zd", m_state->node_id, m_state->level);
 }
 
 //-----------------------------------------------------------------------------
@@ -1506,7 +1726,7 @@ void Parser::_append_val(cspan const& val)
     C4_ASSERT( ! has_all(SSCL));
     C4_ASSERT(node(m_state) != nullptr);
     C4_ASSERT(node(m_state)->is_seq());
-    _c4dbgp("append val: '%.*s'", _c4prsp(val));
+    _c4dbgp("append val: '%.*s' to parent id=%zd (level=%zd)", _c4prsp(val), m_state->node_id, m_state->level);
     size_t nid = m_tree->append_child(m_state->node_id);
     Node *n = m_tree->get(nid);
     n->to_val(val);
@@ -1517,11 +1737,11 @@ void Parser::_append_key_val(cspan const& val)
 {
     C4_ASSERT(node(m_state)->is_map());
     cspan key = _consume_scalar();
-    _c4dbgp("append key-val: '%.*s' '%.*s'", _c4prsp(key), _c4prsp(val));
+    _c4dbgp("append keyval: '%.*s' '%.*s' to parent id=%zd (level=%zd)", _c4prsp(key), _c4prsp(val), m_state->node_id, m_state->level);
     size_t nid = m_tree->append_child(m_state->node_id);
     Node *n = m_tree->get(nid);
     n->to_keyval(key, val);
-    _c4dbgp("append key-val: id=%zd name='%.*s' val='%.*s'", nid, _c4prsp(n->key()), _c4prsp(n->val()));
+    _c4dbgp("append keyval: id=%zd name='%.*s' val='%.*s'", nid, _c4prsp(n->key()), _c4prsp(n->val()));
     _toggle_key_val();
 }
 
@@ -1573,27 +1793,53 @@ void Parser::_move_scalar_from_top()
 }
 
 //-----------------------------------------------------------------------------
-int Parser::_handle_indentation()
+bool Parser::_handle_indentation()
 {
-    C4_ERROR("not implemented");
-    return;
+    if( ! _at_line_begin()) return;
 
-    int jump = 0;//m_state->indentation_jump;
-    if(jump < 0)
+    size_t ind = m_state->line_contents.indentation;
+
+    if(ind == m_state->indref)
     {
-        _c4dbgp("indentation decreased %d space%s!", (-jump), (-jump)>1?"s":"");
-        for(size_t i = 0; i < jump; ++i)
+        _c4dbgp("same indentation (%zd) -- nothing to see here", ind);
+        _line_progressed(ind);
+        return true;
+    }
+    else if(ind < m_state->indref)
+    {
+        _c4dbgp("smaller indentation (%zd < %zd)!!!", ind, m_state->indref);
+        State const* popto = nullptr;
+        C4_ASSERT(m_stack.is_contiguous()); // this search relies on the stack being contiguous
+        for(State const* s = m_state-1; s >= m_stack.begin(); --s)
         {
+            _c4dbgp("searching for state with indentation %zd. curr=%zd (curr level=%zd)", ind, s->indref, s->level);
+            if(s->indref == ind)
+            {
+                _c4dbgp("gotit!!! at level %zd", s->level);
+                popto = s;
+                break;
+            }
+        }
+        C4_ASSERT(popto != nullptr);
+        C4_ASSERT(popto != m_state);
+        C4_ASSERT(popto <  m_state);
+        C4_ASSERT(popto->level <  m_state->level);
+        _c4dbgp("popping %zd level%s: from level %zd to level %zd", m_state->level-popto->level, m_state->level-popto->level > 1 ? "s":"", m_state->level, popto->level);
+        while(m_state != popto)
+        {
+            _c4dbgp("popping level %zd (indentation=%zd)", m_state->level, m_state->indref);
             _pop_level();
         }
+        C4_ASSERT(m_state->indref == ind);
+        _line_progressed(ind);
+        return true;
     }
-    else if(jump > 0)
+    else
     {
-        _c4err("never reach this");
-        // level must be pushed elsewhere;
-        // too complicated to deal with here
+        _c4err("parse error - indentation should not increase at this point");
     }
-    return jump;
+
+    return false;
 }
 
 //-----------------------------------------------------------------------------
@@ -1604,6 +1850,7 @@ cspan Parser::_scan_comment()
     _line_progressed(s.len);
     s = s.subspan(1);
     s = s.right_of(s.first_not_of(' '), /*include_pos*/true);
+    _c4dbgp("comment was '%.*s'", _c4prsp(s));
     return s;
 }
 

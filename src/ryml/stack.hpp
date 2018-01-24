@@ -22,6 +22,8 @@ private:
 
 public:
 
+    constexpr static bool is_contiguous() { return true; }
+
     stack() : m_stack(nullptr), m_size(0), m_capacity(0)
     {
     }

@@ -252,6 +252,7 @@ bool Node::visit(Visitor fn, size_t indentation_level, bool skip_root) const
     return false;
 }
 
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -797,8 +798,8 @@ private:
 
     void  _handle_finished_file();
     void  _handle_line();
-    int   _handle_indentation();
 
+    bool  _handle_indentation();
 
     bool  _handle_unk();
     bool  _handle_map();
@@ -830,6 +831,8 @@ private:
     cspan _consume_scalar();
     void  _move_scalar_from_top();
 
+    void  _save_indentation(size_t behind = 0);
+
 private:
 
     static bool   _read_decimal(cspan const& str, size_t *decimal);
@@ -838,16 +841,16 @@ private:
 private:
 
     typedef enum {
-        RTOP = 0x01 <<  0, // reading at top level
-        RUNK = 0x01 <<  1, // reading an unknown: must determine whether scalar, map or seq
-        RMAP = 0x01 <<  2, // reading a map
-        RSEQ = 0x01 <<  3, // reading a seq
-        EXPL = 0x01 <<  4, // reading is inside explicit flow chars: [] or {}
-        CPLX = 0x01 <<  5, // reading a complex key
-        RKEY = 0x01 <<  6, // reading a scalar as key
-        RVAL = 0x01 <<  7, // reading a scalar as val
-        RNXT = 0x01 <<  8, // read next val or keyval
-        SSCL = 0x01 <<  9, // there's a scalar stored
+        RTOP = 0x01 <<  0,   ///< reading at top level
+        RUNK = 0x01 <<  1,   ///< reading an unknown: must determine whether scalar, map or seq
+        RMAP = 0x01 <<  2,   ///< reading a map
+        RSEQ = 0x01 <<  3,   ///< reading a seq
+        EXPL = 0x01 <<  4,   ///< reading is inside explicit flow chars: [] or {}
+        CPLX = 0x01 <<  5,   ///< reading a complex key
+        RKEY = 0x01 <<  6,   ///< reading a scalar as key
+        RVAL = 0x01 <<  7,   ///< reading a scalar as val
+        RNXT = 0x01 <<  8,   ///< read next val or keyval
+        SSCL = 0x01 <<  9,   ///< there's a scalar stored
     } State_e;
 
     struct LineContents
@@ -877,7 +880,6 @@ private:
         Location     pos;
         LineContents line_contents;
         int          indref;
-        int          indprev;
 
         void reset(const char *file, size_t node_id_)
         {
@@ -890,7 +892,6 @@ private:
             node_id = node_id_;
             scalar.clear();
             indref = 0;
-            indprev = 0;
         }
     };
 
@@ -918,6 +919,11 @@ private:
         next.pos = curr.pos;
         next.line_contents = curr.line_contents;
         next.scalar = curr.scalar;
+    }
+
+    bool _at_line_begin() const
+    {
+        return m_state->line_contents.rem.begin() == m_state->line_contents.full.begin();
     }
 
     inline Node * node(State const* s) const { return m_tree->get(s->node_id); }
