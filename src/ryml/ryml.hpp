@@ -446,25 +446,25 @@ public:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-class Emitter
+struct RepC
+{
+    char c;
+    size_t num_times;
+};
+
+
+
+template< class Writer >
+class Emitter : public Writer
 {
 public:
 
-    span m_span;
-    size_t m_pos;
+    using Writer::Writer;
 
-    FILE *m_file;
+#define _c4this  (static_cast< Writer      * >(this))
+#define _c4cthis (static_cast< Writer const* >(this))
 
-    friend struct Visitor;
-
-public:
-
-    /** create an emitter that outputs to a file. Defaults to stdout. */
-    Emitter(FILE *f = nullptr) : m_span(), m_pos(0), m_file(f ? f : stdout) {}
-    /** create an emitter that writes to a string span */
-    Emitter(span const& sp) : m_span(sp), m_pos(0), m_file(nullptr) {}
-
-    /** emit YAML to the given file or buffer.
+    /** emit YAML.
      *
      * When writing to a buffer, returns a subspan of the emitted YAML.
      * If the given buffer has insufficient space, the returned span will
@@ -475,56 +475,35 @@ public:
      * length is set the number of bytes written. */
     span emit(Node const* n, bool error_on_excess=true)
     {
-        C4_ASSERT( ! m_span.empty() || m_file);
-        size_t num = this->_visit(n);
-        span result = {};
-        if(m_file)
-        {
-            result.len = num;
-            result.str = nullptr;
-        }
-        else
-        {
-            result = m_span.subspan(0, num);
-            if(num > m_span.len)
-            {
-                result.str = nullptr;
-                if(error_on_excess)
-                {
-                    RymlCallbacks::error("not enough space in the given span");
-                }
-            }
-        }
+        this->_visit(n);
+        span result = _c4this->_get(error_on_excess);
         return result;
     }
 
-    size_t tell() const { return m_pos; }
-    void   seek(size_t p) { m_pos = p; }
+    size_t tell() const { return _c4cthis->m_pos; }
+    void   seek(size_t p) { _c4this->m_pos = p; }
 
 private:
 
-    struct RepC
-    {
-        char c;
-        size_t num_times;
-    };
-
     size_t _visit(Node const* n, size_t ilevel = 0)
     {
-        m_pos = 0;
+        if(n->is_stream())
+        {
+            ;
+        }
         _do_visit(n, ilevel);
-        return m_pos;
+        if(n->is_stream())
+        {
+            _write("...\n");
+        }
+        return _c4this->m_pos;
     }
 
     void _do_visit(Node const* n, size_t ilevel = 0, bool no_ind = false)
     {
         RepC ind{' ', 2 * size_t(!no_ind) * ilevel};
 
-        if(n->is_stream())
-        {
-            ;
-        }
-        else if(n->is_doc())
+        if(n->is_doc())
         {
             _write("---\n");
         }
@@ -610,11 +589,6 @@ private:
             no_ind = false;
         }
 
-        if(n->is_stream())
-        {
-            _write("...\n");
-        }
-
     }
 
 private:
@@ -622,25 +596,90 @@ private:
     template< class T, class... Args >
     inline void _write(T a, Args... more)
     {
-        _do_write(a);
+        _c4this->_do_write(a);
         _write(more...);
     }
 
     template< class T >
     inline void _write(T a)
     {
-        _do_write(a);
+        _c4this->_do_write(a);
     }
 
-private:
+#undef _c4this
+#undef _c4cthis
+
+};
+
+/** A writer that outputs to a file. Defaults to stdout. */
+struct FileWriter
+{
+    FILE *m_file;
+    size_t m_pos;
+
+    FileWriter(FILE *f = nullptr) : m_file(f ? f : stdout), m_pos(0) {}
+
+    inline span _get(bool /*error_on_excess*/)
+    {
+        span sp;
+        sp.str = nullptr;
+        sp.len = m_pos;
+        return sp;
+    }
 
     inline void _do_write(const char c)
     {
+        fwrite(&c, sizeof(char), 1, m_file);
+        ++m_pos;
+    }
+
+    inline void _do_write(RepC const rc)
+    {
+        //fwrite(&rc.c, sizeof(char), rc.num_times, m_file); // this fails... need to investigate
+        for(size_t i = 0; i < rc.num_times; ++i)
+        {
+            fputc(rc.c, m_file);
+        }
+        m_pos += rc.num_times;
+    }
+
+    inline void _do_write(cspan const& sp)
+    {
+        if(sp.empty()) return;
         if(m_file)
         {
-            fwrite(&c, sizeof(char), 1, m_file);
+            fwrite(sp.str, sp.len, 1, m_file);
         }
-        else if(m_pos + 1 < m_span.len)
+        m_pos += sp.len;
+    }
+
+};
+
+/** create an emitter that writes to a string span */
+struct SpanWriter
+{
+    span   m_span;
+    size_t m_pos;
+
+    SpanWriter(span const& sp) : m_span(sp), m_pos(0) {}
+
+    inline span _get(bool error_on_excess)
+    {
+        span sp = m_span;
+        if(m_pos > sp.len)
+        {
+            sp.str = nullptr;
+            if(error_on_excess)
+            {
+                RymlCallbacks::error("not enough space in the given span");
+            }
+        }
+        return sp;
+    }
+
+    inline void _do_write(const char c)
+    {
+        if(m_pos + 1 < m_span.len)
         {
             m_span[m_pos] = c;
         }
@@ -649,15 +688,7 @@ private:
 
     inline void _do_write(RepC const rc)
     {
-        if(m_file)
-        {
-            //fwrite(&rc.c, sizeof(char), rc.num_times, m_file); // this fails... need to investigate
-            for(size_t i = 0; i < rc.num_times; ++i)
-            {
-                fputc(rc.c, m_file);
-            }
-        }
-        else if(m_pos + rc.num_times < m_span.len)
+        if(m_pos + rc.num_times < m_span.len)
         {
             for(size_t i = 0; i < rc.num_times; ++i)
             {
@@ -670,17 +701,17 @@ private:
     inline void _do_write(cspan const& sp)
     {
         if(sp.empty()) return;
-        if(m_file)
-        {
-            fwrite(sp.str, sp.len, 1, m_file);
-        }
-        else if(m_pos + sp.len < m_span.len)
+        if(m_pos + sp.len < m_span.len)
         {
             memcpy(&(m_span[m_pos]), sp.str, sp.len);
         }
         m_pos += sp.len;
     }
+
 };
+
+using FileEmitter = Emitter< FileWriter >;
+using SpanEmitter = Emitter< SpanWriter >;
 
 //-----------------------------------------------------------------------------
 /** emit YAML to the given file. A null file defaults to stdout.
@@ -688,7 +719,7 @@ private:
 
 inline size_t emit(Node const* n, FILE *f = nullptr)
 {
-    Emitter em(f);
+    FileEmitter em(f);
     size_t num = em.emit(n).len;
     return num;
 }
@@ -704,7 +735,7 @@ inline size_t emit(Tree const &t, FILE *f = nullptr)
  * Raise an error if the space in the buffer is insufficient. */
 inline span emit(Node const* n, span const& sp, bool error_on_excess=true)
 {
-    Emitter em(sp);
+    SpanEmitter em(sp);
     span result = em.emit(n, error_on_excess);
     return result;
 }
