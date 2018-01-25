@@ -75,7 +75,7 @@ Node * Node::find_child(cspan const& name) const
 {
     if(is_val()) return nullptr;
     C4_ASSERT(is_map());
-    C4_ASSERT(bool(name) == true);
+    C4_ASSERT( ! name.empty());
     if(m_children.first == NONE)
     {
         C4_ASSERT(m_children.last == NONE);
@@ -545,6 +545,8 @@ void Tree::set_parent(size_t iparent, size_t ichild, size_t iprev_sibling, size_
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 
+#define _c4prsp(sp) ((int)(sp).len), (sp).str
+
 #ifdef RYML_DBG
 #   define _c4prt_(fn, file, line, what, msg, ...)        \
     this->_##fn(file ":" C4_QUOTE(line) ": " what msg, ## __VA_ARGS__)
@@ -604,7 +606,7 @@ bool Parser::_finished_file() const
 //-----------------------------------------------------------------------------
 bool Parser::_finished_line() const
 {
-    bool ret = ! m_state->line_contents.rem;
+    bool ret = m_state->line_contents.rem.empty();
     return ret;
 }
 
@@ -716,17 +718,19 @@ bool Parser::_handle_unk()
     _c4dbgp("handle_unk");
 
     cspan rem = m_state->line_contents.rem;
-    const bool start_as_child = (m_state->level != 0) || node(m_state) == nullptr;
+    const bool start_as_child = (node(m_state) == nullptr);
 
     C4_ASSERT(has_none(RNXT|RSEQ|RMAP));
 
-    if(_is_scalar_next())
+    const bool scnext = _is_scalar_next();
+
+    if(scnext && ! has_all(SSCL))
     {
         _c4dbgp("got a scalar");
-        const cspan s = _scan_scalar();
+        rem = _scan_scalar();
         // we still don't know whether it's a seq or a map
         // so just store the scalar
-        _store_scalar(s);
+        _store_scalar(rem);
         return true;
     }
     else if(rem.begins_with(' '))
@@ -736,9 +740,9 @@ bool Parser::_handle_unk()
             _c4dbgp("indentation jump=%d level=%zd #spaces=%d", m_state->indentation_jump, m_state->level, m_state->line_contents.indentation);
             C4_ASSERT(m_state->indentation_jump > 0);
         }*/
-        cspan s = rem.left_of(rem.first_not_of(' '));
-        _c4dbgp("skipping %zd spaces", s.len);
-        _line_progressed(s.len);
+        rem = rem.left_of(rem.first_not_of(' '));
+        _c4dbgp("skipping %zd spaces", rem.len);
+        _line_progressed(rem.len);
         return true;
     }
     else if(rem.begins_with("- "))
@@ -785,10 +789,18 @@ bool Parser::_handle_unk()
         _line_progressed(2);
         return true;
     }
-
     else if(has_all(SSCL))
     {
         _c4dbgp("there's a stored scalar (%.*s)", _c4prsp(m_state->scalar));
+
+        cspan saved_scalar;
+        if(scnext)
+        {
+            saved_scalar = _scan_scalar();
+            rem = m_state->line_contents.rem;
+            _c4dbgp("... and there's also a scalar next!", _c4prsp(saved_scalar));
+        }
+
         if(rem.begins_with(", "))
         {
             _c4dbgp("got a ',' -- it's a seq (as_child=%d)", start_as_child);
@@ -812,13 +824,19 @@ bool Parser::_handle_unk()
             _c4dbgp("got a ':' -- it's a map (as_child=%d)", start_as_child);
             _start_map(start_as_child); // wait for the val scalar to append the key-val pair
             _line_progressed(1);
-            /*_c4dbgp("map key opened a new line -- starting val scope as unknown");
-            _start_unk();*/
+            //_c4dbgp("map key opened a new line -- starting val scope as unknown");
+            //_start_unk();
         }
         else
         {
             _c4err("parse error");
         }
+
+        if( ! saved_scalar.empty())
+        {
+            _store_scalar(saved_scalar);
+        }
+
         return true;
     }
 
@@ -1271,7 +1289,7 @@ bool Parser::_handle_map_impl()
                 _c4dbgp("actually, the scalar is the first key of a map");
                 addrem_flags(RKEY, RVAL); // before _push_level! This prepares the current level for popping by setting it to RNXT
                 _push_level();
-                _start_map(s);
+                _start_map();
                 _save_indentation(/*behind*/s.len);
                 addrem_flags(RVAL, RKEY);
                 _line_progressed(2);
@@ -1281,7 +1299,7 @@ bool Parser::_handle_map_impl()
                 _c4dbgp("actually, the scalar is the first key of a map, and it opens a new scope");
                 addrem_flags(RKEY, RVAL); // before _push_level! This prepares the current level for popping by setting it to RNXT
                 _push_level();
-                _start_map(s);
+                _start_map();
                 _save_indentation(/*behind*/s.len);
                 addrem_flags(RVAL, RKEY);
                 _line_progressed(1);
@@ -1704,16 +1722,18 @@ void Parser::_start_map(bool as_child)
     C4_ASSERT(node(m_stack.bottom()) == node(m_root_id));
     Node* parent = m_stack.size() < 2 ? node(m_root_id) : node(m_stack.top(1));
     C4_ASSERT(parent != nullptr);
+    size_t parent_id = parent->id();
     C4_ASSERT(node(m_state) == nullptr || node(m_state) == node(m_root_id));
     if(as_child)
     {
-        m_state->node_id = m_tree->append_child(parent->id());
+        m_state->node_id = m_tree->append_child(parent_id);
+        // don't use parent here, as a resize may have happened during the append
         if(has_all(SSCL))
         {
-            C4_ASSERT(parent->is_map());
-            cspan name = _consume_scalar();
-            node(m_state)->to_map(name);
-            _c4dbgp("start_map: id=%zd name='%.*s'", node(m_state)->id(), _c4prsp(node(m_state)->key()));
+            C4_ASSERT(node(parent_id)->is_map());
+            cspan key = _consume_scalar();
+            node(m_state)->to_map(key);
+            _c4dbgp("start_map: id=%zd key='%.*s'", node(m_state)->id(), _c4prsp(node(m_state)->key()));
         }
         else
         {
@@ -1745,13 +1765,15 @@ void Parser::_start_seq(bool as_child)
     C4_ASSERT(node(m_stack.bottom()) == node(m_root_id));
     Node* parent = m_stack.size() < 2 ? node(m_root_id) : node(m_stack.top(1));
     C4_ASSERT(parent != nullptr);
+    size_t parent_id = parent->id();
     C4_ASSERT(node(m_state) == nullptr || node(m_state) == node(m_root_id));
     if(as_child)
     {
-        m_state->node_id = m_tree->append_child(parent->id());
+        m_state->node_id = m_tree->append_child(parent_id);
+        // don't use parent here, as a resize may have happened during the append
         if(has_all(SSCL))
         {
-            C4_ASSERT(parent->is_map());
+            C4_ASSERT(node(parent_id)->is_map());
             cspan name = _consume_scalar();
             node(m_state)->to_seq(name);
             _c4dbgp("start_seq: id=%zd name='%.*s'", node(m_state)->id(), _c4prsp(node(m_state)->key()));
@@ -1805,7 +1827,7 @@ void Parser::_append_key_val(cspan const& val)
 //-----------------------------------------------------------------------------
 void Parser::_store_scalar(cspan const& s)
 {
-    _c4dbgp("storing scalar: '%.*s'@%zd", _c4prsp(s), m_state-m_stack.begin());
+    _c4dbgp("state[%zd]: storing scalar '%.*s' (flag: %d)", m_state-m_stack.begin(), _c4prsp(s), m_state->flags & SSCL);
     C4_ASSERT(has_none(SSCL));
     add_flags(SSCL);
     m_state->scalar = s;
@@ -1813,7 +1835,7 @@ void Parser::_store_scalar(cspan const& s)
 
 cspan Parser::_consume_scalar()
 {
-    _c4dbgp("consuming scalar: '%.*s'@%zd (flag: %d))", _c4prsp(m_state->scalar), m_state-m_stack.begin(), m_state->scalar & SSCL);
+    _c4dbgp("state[%zd]: consuming scalar '%.*s' (flag: %d))", m_state-m_stack.begin(), _c4prsp(m_state->scalar), m_state->flags & SSCL);
     C4_ASSERT(m_state->flags & SSCL);
     cspan s = m_state->scalar;
     rem_flags(SSCL);
@@ -1829,7 +1851,7 @@ void Parser::_move_scalar_from_top()
     C4_ASSERT(m_state != &prev);
     if(prev.flags & SSCL)
     {
-        _c4dbgp("moving scalar: '%.*s'@%zd (overwriting '%.*s'@%zd)", _c4prsp(prev.scalar), &prev-m_stack.begin(), _c4prsp(m_state->scalar), m_state-m_stack.begin());
+        _c4dbgp("moving scalar '%.*s' from state[%zd] to state[%zd] (overwriting '%.*s')", _c4prsp(prev.scalar), &prev-m_stack.begin(), m_state-m_stack.begin(), _c4prsp(m_state->scalar));
         add_flags(prev.flags & SSCL);
         m_state->scalar = prev.scalar;
         rem_flags(SSCL, &prev);
@@ -1887,6 +1909,7 @@ bool Parser::_handle_indentation()
         {
             addrem_flags(RKEY, RVAL);
             _start_unk();
+            //_move_scalar_from_top();
             _line_progressed(ind);
             _save_indentation();
             return true;
@@ -1906,7 +1929,9 @@ cspan Parser::_scan_comment()
     cspan s = m_state->line_contents.rem;
     C4_ASSERT(s.begins_with('#'));
     _line_progressed(s.len);
+    // skip the # character
     s = s.subspan(1);
+    // skip leading whitespace
     s = s.right_of(s.first_not_of(' '), /*include_pos*/true);
     _c4dbgp("comment was '%.*s'", _c4prsp(s));
     return s;
@@ -2038,7 +2063,7 @@ cspan Parser::_scan_block()
 
         // from here to the end, only digits are considered
         cspan digits = s.left_of(s.first_not_of("0123456789"));
-        if(digits)
+        if( ! digits.empty())
         {
             if( ! _read_decimal(digits, &indentation))
             {
@@ -2160,7 +2185,7 @@ void Parser::set_flags(size_t f, State * s)
     char buf1[64], buf2[64];
     int len1 = _prfl(buf1, sizeof(buf1), f);
     int len2 = _prfl(buf2, sizeof(buf2), s->flags);
-    _c4dbgp("setting flags to %.*s: before=%.*s", len1, buf1, len2, buf2);
+    _c4dbgp("state[%zd]: setting flags to %.*s: before=%.*s", s-m_stack.begin(), len1, buf1, len2, buf2);
 #endif
     s->flags = f;
 }
@@ -2172,7 +2197,7 @@ void Parser::add_flags(size_t on, State * s)
     int len1 = _prfl(buf1, sizeof(buf1), on);
     int len2 = _prfl(buf2, sizeof(buf2), s->flags);
     int len3 = _prfl(buf3, sizeof(buf3), s->flags|on);
-    _c4dbgp("adding flags %.*s: before=%.*s after=%.*s", len1, buf1, len2, buf2, len3, buf3);
+    _c4dbgp("state[%zd]: adding flags %.*s: before=%.*s after=%.*s", s-m_stack.begin(), len1, buf1, len2, buf2, len3, buf3);
 #endif
     s->flags |= on;
 }
@@ -2185,7 +2210,7 @@ void Parser::addrem_flags(size_t on, size_t off, State * s)
     int len2 = _prfl(buf2, sizeof(buf2), off);
     int len3 = _prfl(buf3, sizeof(buf3), s->flags);
     int len4 = _prfl(buf4, sizeof(buf4), ((s->flags|on)&(~off)));
-    _c4dbgp("adding flags %.*s / removing flags %.*s: before=%.*s after=%.*s", len1, buf1, len2, buf2, len3, buf3, len4, buf4);
+    _c4dbgp("state[%zd]: adding flags %.*s / removing flags %.*s: before=%.*s after=%.*s", s-m_stack.begin(), len1, buf1, len2, buf2, len3, buf3, len4, buf4);
 #endif
     s->flags |= on;
     s->flags &= ~off;
@@ -2198,7 +2223,7 @@ void Parser::rem_flags(size_t off, State * s)
     int len1 = _prfl(buf1, sizeof(buf1), off);
     int len2 = _prfl(buf2, sizeof(buf2), s->flags);
     int len3 = _prfl(buf3, sizeof(buf3), s->flags&(~off));
-    _c4dbgp("removing flags %.*s: before=%.*s after=%.*s", len1, buf1, len2, buf2, len3, buf3);
+    _c4dbgp("state[%zd]: removing flags %.*s: before=%.*s after=%.*s", s-m_stack.begin(), len1, buf1, len2, buf2, len3, buf3);
 #endif
     s->flags &= ~off;
 }
@@ -2248,7 +2273,7 @@ int Parser::_fmt_msg(char *buf, int buflen, const char *fmt, va_list args) const
     _wrapbuf();
 
     // next line: print the yaml src line
-    if(m_file)
+    if( ! m_file.empty())
     {
         del = snprintf(buf + pos, len, "%.*s:%d: '", (int)m_file.len, m_file.str, m_state->pos.line);
     }

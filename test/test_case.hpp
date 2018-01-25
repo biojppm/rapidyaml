@@ -361,11 +361,15 @@ void CaseNode::compare(yml::Node const& n) const
             if(type & MAP)
             {
                 C4_EXPECT(n.find_child(ch.key) != nullptr);
-                C4_EXPECT_EQ(&n[ic], &n[ch.key]);
-                C4_EXPECT_EQ(n[ch.key].key(), ch.key);
-                if(ch.type & VAL)
+                auto fch = n.find_child(ch.key);
+                if(fch)
                 {
-                    C4_EXPECT_EQ(n[ch.key].val(), ch.val);
+                    C4_EXPECT_EQ(&n[ic], &n[ch.key]);
+                    C4_EXPECT_EQ(n[ch.key].key(), ch.key);
+                    if(ch.type & VAL)
+                    {
+                        C4_EXPECT_EQ(n[ch.key].val(), ch.val);
+                    }
                 }
             }
             if(type & SEQ)
