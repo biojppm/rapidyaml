@@ -802,8 +802,10 @@ private:
     bool  _handle_indentation();
 
     bool  _handle_unk();
-    bool  _handle_map();
-    bool  _handle_seq();
+    bool  _handle_map_expl();
+    bool  _handle_map_impl();
+    bool  _handle_seq_expl();
+    bool  _handle_seq_impl();
     bool  _handle_top();
     bool  _handle_anchors_and_refs();
     bool  _handle_types();
@@ -825,7 +827,6 @@ private:
     void  _append_comment(cspan const& cmt);
     void  _append_val(cspan const& val);
     void  _append_key_val(cspan const& val);
-    void  _toggle_key_val();
 
     void  _store_scalar(cspan const& s);
     cspan _consume_scalar();
