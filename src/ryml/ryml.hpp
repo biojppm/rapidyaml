@@ -501,9 +501,9 @@ private:
         return _c4this->m_pos;
     }
 
-    void _do_visit(Node const* n, size_t ilevel = 0, bool no_ind = false)
+    void _do_visit(Node const* n, size_t ilevel = 0, bool indent=true)
     {
-        RepC ind{' ', 2 * size_t(!no_ind) * ilevel};
+        RepC ind{' ', 2 * size_t(indent) * ilevel};
 
         if(n->is_doc())
         {
@@ -546,7 +546,7 @@ private:
                     else
                     {
                         // do not indent the first child, as it will be written on the same line
-                        no_ind = true;
+                        indent = false;
                     }
                 }
                 else if(n->is_map())
@@ -554,7 +554,7 @@ private:
                     if(n->parent_is_seq())
                     {
                         // do not indent the first child, as it will be written on the same line
-                        no_ind = true;
+                        indent = false;
                     }
                     else
                     {
@@ -587,8 +587,8 @@ private:
 
         for(Node const* ch = n->first_child(); ch; ch = ch->next_sibling())
         {
-            _do_visit(ch, next_level, no_ind);
-            no_ind = false;
+            _do_visit(ch, next_level, indent);
+            indent = true;
         }
 
     }
@@ -600,6 +600,15 @@ private:
     {
         _c4this->_do_write(a);
         _write(more...);
+    }
+
+    template< size_t N >
+    inline void _write(const char (&a)[N])
+    {
+        // a decays into const char*, so explicitly create using the array
+        cspan s;
+        s.assign<N>(a);
+        _c4this->_do_write(s);
     }
 
     template< class T >
@@ -682,7 +691,7 @@ struct SpanWriter
 
     inline void _do_write(const char c)
     {
-        if(m_pos + 1 < m_span.len)
+        if(m_pos + 1 <= m_span.len)
         {
             m_span[m_pos] = c;
         }
@@ -691,7 +700,7 @@ struct SpanWriter
 
     inline void _do_write(RepC const rc)
     {
-        if(m_pos + rc.num_times < m_span.len)
+        if(m_pos + rc.num_times <= m_span.len)
         {
             for(size_t i = 0; i < rc.num_times; ++i)
             {
@@ -704,7 +713,7 @@ struct SpanWriter
     inline void _do_write(cspan const& sp)
     {
         if(sp.empty()) return;
-        if(m_pos + sp.len < m_span.len)
+        if(m_pos + sp.len <= m_span.len)
         {
             memcpy(&(m_span[m_pos]), sp.str, sp.len);
         }
@@ -749,6 +758,28 @@ inline span emit(Tree const& t, span const& sp, bool error_on_excess=true)
     return emit(t.root(), sp, error_on_excess);
 }
 
+//-----------------------------------------------------------------------------
+/** emit YAML to the given container, resizing it as needed to fit the emitted YAML. */
+template< class CharOwningContainer >
+inline span emit_resize(Node const* n, CharOwningContainer * cont)
+{
+    span buf(cont->data(), cont->size());
+    span ret = emit(n, buf, /*error_on_excess*/false);
+    if(ret.str == nullptr)
+    {
+        cont->resize(ret.len);
+        buf.assign(cont->data(), cont->size());
+        ret = emit(n, buf);
+    }
+    return ret;
+}
+
+template< class CharOwningContainer >
+inline span emit_resize(Tree const& t, CharOwningContainer * cont)
+{
+    if(t.empty()) return span();
+    return emit_resize(t.root(), cont);
+}
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -764,7 +795,7 @@ public:
     {
         Tree t;
         size_t capacity = _count_nlines(src);
-        capacity = capacity >= 8 ? capacity : 8;
+        capacity = capacity >= 16 ? capacity : 16;
         t.reserve(capacity);
         parse(filename, src, &t);
         return t;
@@ -773,6 +804,10 @@ public:
     void parse(                       cspan const& src, Tree *t) { return parse({}, src, t); }
     void parse(cspan const& filename, cspan const& src, Tree *t)
     {
+        if(t->empty())
+        {
+            t->reserve(16);
+        }
         parse(filename, src, t->root());
     }
 
@@ -970,7 +1005,6 @@ private:
 
     detail::stack< State > m_stack;
     State * m_state;
-    State * m_deindent;
 
 };
 
