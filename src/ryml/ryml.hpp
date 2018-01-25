@@ -473,8 +473,8 @@ private:
 
 public:
 
-    Node      * root()       { C4_ASSERT(m_cap > 0 && m_size > 0); Node *n = m_buf; C4_ASSERT(n->parent() == nullptr); return n; }
-    Node const* root() const { C4_ASSERT(m_cap > 0 && m_size > 0); Node *n = m_buf; C4_ASSERT(n->parent() == nullptr); return n; }
+    Node      * root()       { C4_ASSERT(m_head != NONE); C4_ASSERT(m_cap > 0 && m_size > 0); Node *n = m_buf; C4_ASSERT(n->parent() == nullptr); return n; }
+    Node const* root() const { C4_ASSERT(m_head != NONE); C4_ASSERT(m_cap > 0 && m_size > 0); Node *n = m_buf; C4_ASSERT(n->parent() == nullptr); return n; }
 
     Node      * first_doc()         { Node *n = root()->child(0); C4_ASSERT(n && n->is_doc()); return n; }
     Node const* first_doc() const   { Node *n = root()->child(0); C4_ASSERT(n && n->is_doc()); return n; }
