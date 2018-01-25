@@ -980,22 +980,13 @@ bool Parser::_handle_seq_impl()
             _c4dbgp("it's a scalar");
             cspan s = _scan_scalar(); // this also progresses the line
             rem = m_state->line_contents.rem;
-            if(rem.begins_with(": "))
-            {
-                _c4dbgp("actually, the scalar is the first key of a map");
-                addrem_flags(RNXT, RVAL); // before _push_level! This prepares the current level for popping by setting it to RNXT
-                _push_level();
-                _start_map();
-                _save_indentation(/*behind*/s.len);
-                addrem_flags(RVAL, RKEY);
-                _line_progressed(2);
-            }
-            else if(rem.begins_with(':'))
+            if(rem.begins_with(':'))
             {
                 _c4dbgp("actually, the scalar is the first key of a map, and it opens a new scope");
                 addrem_flags(RNXT, RVAL); // before _push_level! This prepares the current level for popping by setting it to RNXT
                 _push_level();
                 _start_map();
+                _store_scalar(s);
                 _save_indentation(/*behind*/s.len);
                 addrem_flags(RVAL, RKEY);
                 _line_progressed(1);
@@ -1766,7 +1757,7 @@ cspan Parser::_scan_scalar()
         if(has_all(RVAL))
         {
             _c4dbgp("RSEQ|RVAL");
-            s = s.left_of(s.first_of(",]#"));
+            s = s.left_of(s.first_of(",]#:"));
             s = s.trimr(' ');
         }
         else
