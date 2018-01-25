@@ -801,19 +801,19 @@ bool Parser::_handle_unk()
             _c4dbgp("got a ':' -- it's a map (as_child=%d)", start_as_child);
             _start_map(start_as_child); // wait for the val scalar to append the key-val pair
             _line_progressed(2);
-            if(rem == ": ")
+            /*if(rem == ": ")
             {
                 _c4dbgp("map key opened a new line -- starting val scope as unknown");
                 _start_unk();
-            }
+            }*/
         }
         else if(rem == ":")
         {
             _c4dbgp("got a ':' -- it's a map (as_child=%d)", start_as_child);
             _start_map(start_as_child); // wait for the val scalar to append the key-val pair
             _line_progressed(1);
-            _c4dbgp("map key opened a new line -- starting val scope as unknown");
-            _start_unk();
+            /*_c4dbgp("map key opened a new line -- starting val scope as unknown");
+            _start_unk();*/
         }
         else
         {
@@ -943,7 +943,7 @@ bool Parser::_handle_seq_impl()
 
         if(_handle_indentation())
         {
-            rem = m_state->line_contents.rem;
+            return true;
         }
 
         if(rem.begins_with("- "))
@@ -964,6 +964,7 @@ bool Parser::_handle_seq_impl()
         {
             C4_ASSERT( ! _at_line_begin());
             rem = rem.left_of(rem.first_not_of(' '));
+            _c4dbgp("skipping %zd spaces", rem.len);
             _line_progressed(rem.len);
             return true;
         }
@@ -1339,15 +1340,16 @@ bool Parser::_handle_map_impl()
         addrem_flags(RKEY, RNXT);
     }
 
+    if(_handle_indentation())
+    {
+        //rem = m_state->line_contents.rem;
+        return true;
+    }
+
     if(has_any(RKEY))
     {
         C4_ASSERT(has_none(RNXT));
         C4_ASSERT(has_none(RVAL));
-
-        if(_handle_indentation())
-        {
-            rem = m_state->line_contents.rem;
-        }
 
         if(_is_scalar_next())
         {
@@ -1360,7 +1362,7 @@ bool Parser::_handle_map_impl()
             {
                 _c4dbgp("wait for val");
                 addrem_flags(RVAL, RKEY);
-                _line_progressed(2);
+                _line_progressed(1);
                 rem = m_state->line_contents.rem;
                 if(rem.begins_with(' '))
                 {
@@ -2113,6 +2115,7 @@ void Parser::_move_scalar_from_top()
 //-----------------------------------------------------------------------------
 bool Parser::_handle_indentation()
 {
+    C4_ASSERT(has_none(EXPL));
     if( ! _at_line_begin()) return false;
 
     size_t ind = m_state->line_contents.indentation;
@@ -2121,7 +2124,7 @@ bool Parser::_handle_indentation()
     {
         _c4dbgp("same indentation (%zd) -- nothing to see here", ind);
         _line_progressed(ind);
-        return true;
+        return ind > 0;
     }
     else if(ind < m_state->indref)
     {
@@ -2154,7 +2157,19 @@ bool Parser::_handle_indentation()
     }
     else
     {
-        _c4err("parse error - indentation should not increase at this point");
+        _c4dbgp("larger indentation (%zd > %zd)!!!", ind, m_state->indref);
+        if(has_all(RMAP|RVAL))
+        {
+            addrem_flags(RKEY, RVAL);
+            _start_unk();
+            _line_progressed(ind);
+            _save_indentation();
+            return true;
+        }
+        else
+        {
+            _c4err("parse error - indentation should not increase at this point");
+        }
     }
 
     return false;

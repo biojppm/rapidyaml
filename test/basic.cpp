@@ -821,7 +821,6 @@ R"({men: [John Smith, Bill Jones], women: [Mary Smith, Susan Williams]})",
      }
 ),
 
-#ifdef JAVAI
 C("map of seqs",
 R"(
 men:
@@ -836,7 +835,6 @@ women:
          N("women", L{N{"Mary Smith"}, N{"Susan Williams"}})
      }
 ),
-#endif
 
 //-----------------------------------------------------------------------------
 
@@ -864,7 +862,6 @@ R"(
   }
 ),
 
-#ifdef JAVAI
 C("seq of maps",
 R"(
 - name: John Smith
@@ -878,6 +875,7 @@ R"(
   }
 ),
 
+#ifdef JAVAI
 //-----------------------------------------------------------------------------
 // https://en.wikipedia.org/wiki/YAML
 
