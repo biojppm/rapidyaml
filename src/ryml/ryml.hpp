@@ -670,6 +670,7 @@ struct SpanWriter
         span sp = m_span;
         if(m_pos > sp.len)
         {
+            sp.len = m_pos;
             sp.str = nullptr;
             if(error_on_excess)
             {
