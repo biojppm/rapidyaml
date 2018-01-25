@@ -95,13 +95,19 @@ Node * Node::find_child(cspan const& name) const
     return nullptr;
 }
 
+size_t Node::child_pos(Node const* ch) const
+{
+    size_t i = 0;
+    for(Node const* n = first_child(); n; n = n->next_sibling(), ++i)
+    {
+        if(n == ch) return i;
+    }
+    return npos;
+}
+
 bool Node::has_child(Node const* ch) const
 {
-    for(Node const* n = first_child(); n; n = n->next_sibling())
-    {
-        if(n == ch) return true;
-    }
-    return false;
+    return child_pos(ch) != npos;
 }
 
 bool Node::has_siblings() const

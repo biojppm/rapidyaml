@@ -145,6 +145,7 @@ public:
     Node * first_child() const;
     Node * last_child() const;
     Node * find_child(cspan const& name) const;
+    size_t child_pos(Node const* n) const;
 
     /** O(#num_siblings) */
     size_t num_siblings() const;
