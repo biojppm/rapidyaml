@@ -314,6 +314,60 @@ Tree::~Tree()
     }
 }
 
+
+Tree::Tree(Tree const& that)
+{
+    memcpy(this, &that, sizeof(Tree));
+    m_buf = (Node*)RymlCallbacks::allocate(m_cap * sizeof(Node), that.m_buf);
+    memcpy(m_buf, that.m_buf, m_cap * sizeof(Node));
+    for(size_t i = 0; i < m_cap; ++i)
+    {
+        m_buf[i].m_s = this;
+    }
+}
+
+Tree& Tree::operator= (Tree const& that)
+{
+    if(m_buf)
+    {
+        RymlCallbacks::free(m_buf, m_cap * sizeof(Node));
+    }
+    memcpy(this, &that, sizeof(Tree));
+    m_buf = (Node*)RymlCallbacks::allocate(m_cap * sizeof(Node), that.m_buf);
+    memcpy(m_buf, that.m_buf, m_cap * sizeof(Node));
+    for(size_t i = 0; i < m_cap; ++i)
+    {
+        m_buf[i].m_s = this;
+    }
+
+    return *this;
+}
+
+Tree::Tree(Tree && that)
+{
+    memcpy(this, &that, sizeof(Tree));
+    that.m_buf = nullptr;
+    for(size_t i = 0; i < m_cap; ++i)
+    {
+        m_buf[i].m_s = this;
+    }
+}
+
+Tree& Tree::operator= (Tree && that)
+{
+    if(m_buf)
+    {
+        RymlCallbacks::free(m_buf, m_cap * sizeof(Node));
+    }
+    memcpy(this, &that, sizeof(Tree));
+    that.m_buf = nullptr;
+    for(size_t i = 0; i < m_cap; ++i)
+    {
+        m_buf[i].m_s = this;
+    }
+    return *this;
+}
+
 //-----------------------------------------------------------------------------
 void Tree::reserve(size_t cap)
 {
@@ -577,8 +631,7 @@ Parser::Parser()
     m_root_id(NONE),
     m_tree(),
     m_stack(),
-    m_state(),
-    m_deindent()
+    m_state()
 {
     m_stack.reserve(16);
     m_stack.push({});
@@ -593,9 +646,10 @@ void Parser::_reset()
         m_stack.pop();
     }
     C4_ASSERT(m_stack.size() == 1);
+    m_stack.clear();
+    m_stack.push({});
     m_state = &m_stack.top();
     m_state->reset(m_file.str, m_root_id);
-    m_deindent = nullptr;
 }
 
 //-----------------------------------------------------------------------------

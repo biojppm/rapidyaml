@@ -278,6 +278,14 @@ public:
     Tree(size_t sz);
     ~Tree();
 
+    Tree(Tree const& that);
+    Tree(Tree     && that);
+
+    Tree& operator= (Tree const& that);
+    Tree& operator= (Tree     && that);
+
+public:
+
     size_t size () const { return m_size; }
     bool   empty() const { return m_size == 0; }
 
