@@ -177,11 +177,11 @@ public:
 
 public:
 
-    template< class Visitor >
-    bool visit(Visitor fn, size_t indentation_level=0, bool skip_root=true);
+    template< class Visitor > bool visit(Visitor fn, size_t indentation_level=0, bool skip_root=true);
+    template< class Visitor > bool visit(Visitor fn, size_t indentation_level=0, bool skip_root=true) const;
 
-    template< class Visitor >
-    bool visit(Visitor fn, size_t indentation_level=0, bool skip_root=true) const;
+    template< class Visitor > bool visit_stacked(Visitor fn, size_t indentation_level=0, bool skip_root=true);
+    template< class Visitor > bool visit_stacked(Visitor fn, size_t indentation_level=0, bool skip_root=true) const;
 
 public:
 
@@ -226,6 +226,39 @@ bool Node::visit(Visitor fn, size_t indentation_level, bool skip_root)
 
 template< class Visitor >
 bool Node::visit(Visitor fn, size_t indentation_level, bool skip_root) const
+{
+    size_t increment = 0;
+    if( ! (is_root() && skip_root))
+    {
+        if(fn(this, indentation_level))
+        {
+            return true;
+        }
+        ++increment;
+    }
+    if(has_children())
+    {
+        for(Node *ch = first_child(); ch; ch = ch->next_sibling())
+        {
+            // no need to forward skip_root as it won't be root
+            if(ch->visit(fn, indentation_level + increment))
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+
+template< class Visitor >
+bool Node::visit_stacked(Visitor fn, size_t indentation_level, bool skip_root)
+{
+    return const_cast< Node const* >(this)->visit_stacked(fn, indentation_level, skip_root);
+}
+
+template< class Visitor >
+bool Node::visit_stacked(Visitor fn, size_t indentation_level, bool skip_root) const
 {
     size_t increment = 0;
     if( ! (is_root() && skip_root))
