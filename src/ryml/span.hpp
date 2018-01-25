@@ -18,7 +18,6 @@ OStream& operator<< (OStream& s, basic_span< C > const& sp)
     s.write(sp.str, sp.len);
     return s;
 }
-#define _c4prsp(sp) ((int)(sp).len), (sp).str
 
 
 //-----------------------------------------------------------------------------
@@ -35,7 +34,6 @@ public:
 
     // convert automatically to span of const C
     operator basic_span< const C > () { basic_span< const C > s(str, len); return s; }
-    operator bool () const { return has_str(); }
 
     using iterator = C*;
     using const_iterator = C const*;
@@ -180,6 +178,10 @@ public:
         }
         return true;
     }
+    inline bool begins_with_any(basic_span< const C > const& pattern) const
+    {
+        return first_of(pattern) == 0;
+    }
 
     inline bool ends_with(const C c) const
     {
@@ -193,6 +195,11 @@ public:
             if(str[i] != pattern[i]) return false;
         }
         return true;
+    }
+    inline bool ends_with_any(basic_span< const C > const& chars) const
+    {
+        if(len == 0) return false;
+        return last_of(chars) == len - 1;
     }
 
     inline size_t first_of(const C c) const
