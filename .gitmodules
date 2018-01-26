@@ -1,3 +1,6 @@
 [submodule "libyaml"]
-	path = libyaml
+	path = extern/libyaml
 	url = https://github.com/yaml/libyaml
+[submodule "extern/googletest"]
+	path = extern/googletest
+	url = https://github.com/google/googletest
