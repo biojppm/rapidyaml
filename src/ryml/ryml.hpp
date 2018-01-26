@@ -1055,7 +1055,7 @@ private:
         next.scalar = curr.scalar;
     }
 
-    bool _at_line_begin() const
+    inline bool _at_line_begin() const
     {
         return m_state->line_contents.rem.begin() == m_state->line_contents.full.begin();
     }

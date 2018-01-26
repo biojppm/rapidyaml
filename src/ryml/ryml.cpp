@@ -1087,8 +1087,10 @@ bool Parser::_handle_seq_impl()
         }
         else if(rem == '-')
         {
-            _c4dbgp("start unknown, indented");
-            _start_unk();
+            _c4dbgp("val is a nested seq, indented");
+            addrem_flags(RNXT, RVAL); // before _push_level!
+            _push_level();
+            _start_seq();
             _save_indentation();
             _line_progressed(1);
             return true;
@@ -1127,9 +1129,25 @@ bool Parser::_handle_seq_impl()
         else if(rem.begins_with(' '))
         {
             rem = rem.left_of(rem.first_not_of(' '));
-            _c4dbgp("skipping %zd spaces", rem.len);
-            _line_progressed(rem.len);
-            return true;
+            if(_at_line_begin())
+            {
+                if(rem.len == m_state->indref + 2)
+                {
+                    _c4dbgp("skipping indentation: %zd spaces", rem.len);
+                    _line_progressed(rem.len);
+                    return true;
+                }
+                else
+                {
+                    _c4err("invalid indentation");
+                }
+            }
+            else
+            {
+                _c4dbgp("skipping %zd spaces", rem.len);
+                _line_progressed(rem.len);
+                return true;
+            }
         }
         else
         {
@@ -1458,11 +1476,26 @@ bool Parser::_handle_map_impl()
         }
         else if(rem.begins_with(' '))
         {
-            C4_ASSERT( ! _at_line_begin());
             rem = rem.left_of(rem.first_not_of(' '));
-            _c4dbgp("skip %zd spaces", rem.len);
-            _line_progressed(rem.len);
-            return true;
+            if(_at_line_begin())
+            {
+                if(rem.len == m_state->indref + 2)
+                {
+                    _c4dbgp("skipping indentation: %zd spaces", rem.len);
+                    _line_progressed(rem.len);
+                    return true;
+                }
+                else
+                {
+                    _c4err("invalid indentation");
+                }
+            }
+            else
+            {
+                _c4dbgp("skipping %zd spaces", rem.len);
+                _line_progressed(rem.len);
+                return true;
+            }
         }
         else
         {
@@ -1712,7 +1745,7 @@ void Parser::_save_indentation(size_t behind)
     m_state->indref = m_state->line_contents.rem.begin() - m_state->line_contents.full.begin();
     C4_ASSERT(behind <= m_state->indref);
     m_state->indref -= behind;
-    _c4dbgp("saving indentation: %zd", m_state->indref);
+    _c4dbgp("state[%zd]: saving indentation: %zd", m_state->indref, m_state-m_stack.begin());
 }
 
 //-----------------------------------------------------------------------------
@@ -2008,7 +2041,7 @@ bool Parser::_handle_indentation()
         _line_progressed(ind);
         return true;
     }
-    else
+    else // ind > indref
     {
         _c4dbgp("larger indentation (%zd > %zd)!!!", ind, m_state->indref);
         if(has_all(RMAP|RVAL))
@@ -2020,6 +2053,14 @@ bool Parser::_handle_indentation()
             _save_indentation();
             return true;
         }
+        // else if(has_all(RSEQ|RVAL))
+        // {
+        //     addrem_flags(RNXT, RVAL);
+        //     _start_unk();
+        //     _line_progressed(ind);
+        //     _save_indentation();
+        //     return true;
+        // }
         else
         {
             _c4err("parse error - indentation should not increase at this point");
