@@ -553,12 +553,12 @@ private:
         else if(n->is_keyval())
         {
             C4_ASSERT(n->has_parent());
-            _write(ind, n->key(), ": ", n->val(), '\n');
+            _write(ind, keysc(n), ": ", valsc(n), '\n');
         }
         else if(n->is_val())
         {
             C4_ASSERT(n->has_parent());
-            _write(ind, "- ", n->val(), '\n');
+            _write(ind, "- ", valsc(n), '\n');
         }
         else if(n->is_container() && ! n->is_root())
         {
@@ -573,7 +573,7 @@ private:
             else if(n->parent_is_map())
             {
                 C4_ASSERT(n->has_key());
-                _write(ind, n->key(), ':');
+                _write(ind, keysc(n), ':');
             }
 
             if(n->has_children())
@@ -613,6 +613,7 @@ private:
                 {
                     _write(' ');
                 }
+
                 if(n->is_seq())
                 {
                     _write("[]\n");
@@ -649,31 +650,67 @@ private:
             _do_visit(ch, next_level, indent);
             indent = true;
         }
-
     }
 
 private:
 
+    struct Scalar
+    {
+        cspan s;
+        inline Scalar(cspan const& s_) : s(s_) {}
+    };
+
+    static inline Scalar keysc(Node const* n) { return Scalar(n->key()); }
+    static inline Scalar valsc(Node const* n) { return Scalar(n->val()); }
+
     template< class T, class... Args >
     inline void _write(T a, Args... more)
     {
-        _c4this->_do_write(a);
+        _write_one(a);
         _write(more...);
     }
+    inline void _write() {}
 
+    template< class T >
+    inline void _write_one(T a)
+    {
+        _c4this->_do_write(a);
+    }
+    inline void _write_one(Scalar const& sc)
+    {
+        const bool no_dquotes = sc.s.first_of( '"') == npos;
+        const bool no_squotes = sc.s.first_of('\'') == npos;
+        if(no_dquotes && no_squotes)
+        {
+            _c4this->_do_write(sc.s);
+        }
+        else
+        {
+            if(no_squotes && !no_dquotes)
+            {
+                _c4this->_do_write('\'');
+                _c4this->_do_write(sc.s);
+                _c4this->_do_write('\'');
+            }
+            else if(no_dquotes && !no_squotes)
+            {
+                _c4this->_do_write('"');
+                _c4this->_do_write(sc.s);
+                _c4this->_do_write('"');
+            }
+            else
+            {
+                C4_ERROR("not implemented");
+            }
+        }
+    }
     template< size_t N >
-    inline void _write(const char (&a)[N])
+    inline void _write_one(const char (&a)[N])
     {
         // a decays into const char*, so explicitly create using the array
         cspan s;
         s.assign<N>(a);
         _c4this->_do_write(s);
-    }
-
-    template< class T >
-    inline void _write(T a)
-    {
-        _c4this->_do_write(a);
     }
 
 #undef _c4this

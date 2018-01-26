@@ -843,9 +843,11 @@ bool Parser::_handle_unk()
     }
     else if(rem.begins_with("? "))
     {
-        _c4dbgp("it's a map (as_child=%d)", start_as_child);
+        _c4dbgp("it's a map (as_child=%d) + this key is complex", start_as_child);
         _push_level();
         _start_map(start_as_child);
+        addrem_flags(RKEY|CPLX, RVAL);
+        _save_indentation();
         _line_progressed(2);
         return true;
     }
@@ -1115,6 +1117,17 @@ bool Parser::_handle_seq_impl()
             _line_progressed(1);
             return true;
         }
+        else if(rem.begins_with("? "))
+        {
+            _c4dbgp("val is a child map + this key is complex");
+            addrem_flags(RNXT, RVAL); // before _push_level!
+            _push_level();
+            _start_map();
+            addrem_flags(CPLX|RKEY, RVAL);
+            _save_indentation();
+            _line_progressed(2);
+            return true;
+        }
         else
         {
             _c4err("parse error");
@@ -1196,15 +1209,21 @@ bool Parser::_handle_map_expl()
             if(rem.begins_with(": "))
             {
                 _c4dbgp("wait for val");
-                addrem_flags(RVAL, RKEY);
+                addrem_flags(RVAL, RKEY|CPLX);
                 _line_progressed(2);
                 return true;
             }
             else if(rem == ':')
             {
                 _c4dbgp("start unknown");
-                addrem_flags(RVAL, RKEY);
+                addrem_flags(RVAL, RKEY|CPLX);
                 _start_unk();
+                _line_progressed(1);
+                return true;
+            }
+            else if(rem.begins_with('?'))
+            {
+                add_flags(CPLX);
                 _line_progressed(1);
                 return true;
             }
@@ -1306,7 +1325,7 @@ bool Parser::_handle_map_impl()
             if(rem.begins_with(':'))
             {
                 _c4dbgp("wait for val");
-                addrem_flags(RVAL, RKEY);
+                addrem_flags(RVAL, RKEY|CPLX);
                 _line_progressed(1);
                 rem = m_state->line_contents.rem;
                 if(rem.begins_with(' '))
@@ -1325,6 +1344,28 @@ bool Parser::_handle_map_impl()
             rem = rem.left_of(rem.first_not_of(' '));
             _c4dbgp("skip %zd spaces", rem.len);
             _line_progressed(rem.len);
+            return true;
+        }
+        else if(rem.begins_with('?'))
+        {
+            _c4dbgp("it's a complex key", rem.len);
+            add_flags(CPLX);
+            _line_progressed(1);
+            return true;
+        }
+        else if(rem.begins_with(':') && has_all(CPLX))
+        {
+            _c4dbgp("complex key finished", rem.len);
+            addrem_flags(RVAL, RKEY|CPLX);
+            _line_progressed(1);
+            rem = m_state->line_contents.rem;
+            if(rem.begins_with(' '))
+            {
+                C4_ASSERT( ! _at_line_begin());
+                rem = rem.left_of(rem.first_not_of(' '));
+                _c4dbgp("skip %zd spaces", rem.len);
+                _line_progressed(rem.len);
+            }
             return true;
         }
         else
@@ -1609,6 +1650,7 @@ cspan Parser::_scan_scalar()
         }
         else if(has_all(RVAL))
         {
+            C4_ASSERT(has_none(CPLX));
             _c4dbgp("RMAP|RVAL");
             s = s.left_of(s.first_of(",}#"));
             s = s.trim(' ');
@@ -1620,7 +1662,7 @@ cspan Parser::_scan_scalar()
     }
     else if(has_all(RUNK))
     {
-        s = s.left_of(s.first_of(",: #"));
+        s = s.left_of(s.first_of(",:#"));
     }
     else
     {

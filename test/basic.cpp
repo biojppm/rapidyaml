@@ -480,6 +480,95 @@ baz0:
 
 //-----------------------------------------------------------------------------
 
+C("complex key with line break in between",
+R"(
+? a complex key
+: its value
+)",
+  L{N("a complex key", "its value")}
+),
+
+C("complex key 2nd, inside explicit map",
+R"(
+{
+    a simple key: a value,
+    ? a complex key: another value,
+}
+)",
+  L{
+      N("a simple key", "a value"),
+      N("a complex key", "another value"),
+  }
+),
+
+C("complex key 1st, inside explicit map",
+R"(
+{
+    ? a complex key: another value,
+    a simple key: a value,
+}
+)",
+  L{
+      N("a complex key", "another value"),
+      N("a simple key", "a value"),
+  }
+),
+
+C("complex key 2nd",
+R"(
+a simple key: a value
+? a complex key: another value
+)",
+  L{
+      N("a simple key", "a value"),
+      N("a complex key", "another value"),
+  }
+),
+
+C("complex key 1st",
+R"(
+? a complex key: another value
+a simple key: a value
+)",
+  L{
+      N("a complex key", "another value"),
+      N("a simple key", "a value"),
+  }
+),
+
+C("complex key nested in a map, 1st",
+R"(
+map:
+  ? a complex key: another value
+  a simple key: a value
+? a complex key deindented: its value
+)",
+  L{
+      N("map", L{
+          N("a complex key", "another value"),
+          N("a simple key", "a value"),
+      }),
+      N("a complex key deindented", "its value")
+   }
+),
+
+C("complex key nested in a seq, 1st",
+R"(
+- ? a complex key: another value
+  a simple key: a value
+- ? another complex key: its value
+)",
+  L{
+      N(L{
+          N("a complex key", "another value"),
+          N("a simple key", "a value"),
+      }),
+      N(L{N("another complex key", "its value")})
+   }
+),
+
+//-----------------------------------------------------------------------------
+
 C("empty seq, explicit",
 "[]",
     SEQ
