@@ -39,6 +39,7 @@ int do_test()
     }
     CaseContainer tests({
 
+
 //-----------------------------------------------------------------------------
 
 C("empty file",
@@ -741,6 +742,37 @@ R"(
           }
 ),
 
+C("nested seq x2, next line",
+R"(
+-
+  -
+    00
+  -
+    01
+  -
+    02
+-
+  -
+    10
+  -
+    11
+  -
+    12
+-
+  -
+    20
+  -
+    21
+  -
+    22
+)",
+    L{
+      N{L{N{"00"}, N{"01"}, N{"02"}}},
+      N{L{N{"10"}, N{"11"}, N{"12"}}},
+      N{L{N{"20"}, N{"21"}, N{"22"}}},
+          }
+),
+
 C("nested seq x2, implicit first, explicit last level",
 R"(
 - [00, 01, 02]
@@ -797,6 +829,82 @@ R"(
   - - 220
     - 221
     - 222
+)",
+    L{
+      N{L{N{L{N{"000"}, N{"001"}, N{"002"}}}, N{L{N{"010"}, N{"011"}, N{"012"}}}, N{L{N{"020"}, N{"021"}, N{"022"}}}}},
+      N{L{N{L{N{"100"}, N{"101"}, N{"102"}}}, N{L{N{"110"}, N{"111"}, N{"112"}}}, N{L{N{"120"}, N{"121"}, N{"122"}}}}},
+      N{L{N{L{N{"200"}, N{"201"}, N{"202"}}}, N{L{N{"210"}, N{"211"}, N{"212"}}}, N{L{N{"220"}, N{"221"}, N{"222"}}}}},
+          }
+),
+
+C("nested seq x3, continued on next line",
+R"(
+-
+  -
+    -
+      000
+    -
+      001
+    -
+      002
+  -
+    -
+      010
+    -
+      011
+    -
+      012
+  -
+    -
+      020
+    -
+      021
+    -
+      022
+-
+  -
+    -
+      100
+    -
+      101
+    -
+      102
+  -
+    -
+      110
+    -
+      111
+    -
+      112
+  -
+    -
+      120
+    -
+      121
+    -
+      122
+-
+  -
+    -
+      200
+    -
+      201
+    -
+      202
+  -
+    -
+      210
+    -
+      211
+    -
+      212
+  -
+    -
+      220
+    -
+      221
+    -
+      222
 )",
     L{
       N{L{N{L{N{"000"}, N{"001"}, N{"002"}}}, N{L{N{"010"}, N{"011"}, N{"012"}}}, N{L{N{"020"}, N{"021"}, N{"022"}}}}},
@@ -989,6 +1097,64 @@ R"(
   L{
       N{L{N("name", "John Smith"), N("age", "33")}},
       N{L{N("name", "Mary Smith"), N("age", "27")}}
+  }
+),
+
+//-----------------------------------------------------------------------------
+
+C("generic seq",
+R"(
+- item 1
+- item 2
+- - item 3.1
+  - item 3.2
+- key 1: value 1
+  key 2: value 2
+)",
+  L{
+      N("item 1"),
+      N("item 2"),
+      N(L{N("item 3.1"), N("item 3.2")}),
+      N(L{N("key 1", "value 1"), N("key 2", "value 2")})
+  }
+),
+
+C("generic seq v2",
+R"(
+- item 1
+- item 2
+-
+  - item 3.1
+  - item 3.2
+-
+  key 1: value 1
+  key 2: value 2
+)",
+  L{
+      N("item 1"),
+      N("item 2"),
+      N(L{N("item 3.1"), N("item 3.2")}),
+      N(L{N("key 1", "value 1"), N("key 2", "value 2")})
+  }
+),
+
+C("general map",
+R"(
+a simple key: a value   # The KEY token is produced here.
+? a complex key
+: another value
+a mapping:
+  key 1: value 1
+  key 2: value 2
+a sequence:
+  - item 1
+  - item 2
+)",
+  L{
+      N("a simple key", "a value"),
+      N("a complex key", "another value"),
+      N("a mapping", L{N("key 1", "value 1"), N("key 2", "value 2")}),
+      N("a sequence", L{N("item 1"), N("item 2")}),
   }
 ),
 

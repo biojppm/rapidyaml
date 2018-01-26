@@ -795,11 +795,6 @@ bool Parser::_handle_unk()
     }
     else if(rem.begins_with(' '))
     {
-        /*if(has_all(INDOK))
-        {
-            _c4dbgp("indentation jump=%d level=%zd #spaces=%d", m_state->indentation_jump, m_state->level, m_state->line_contents.indentation);
-            C4_ASSERT(m_state->indentation_jump > 0);
-        }*/
         rem = rem.left_of(rem.first_not_of(' '));
         _c4dbgp("skipping %zd spaces", rem.len);
         _line_progressed(rem.len);
@@ -819,6 +814,7 @@ bool Parser::_handle_unk()
         _c4dbgp("it's a seq (as_child=%d)", start_as_child);
         _push_level();
         _start_seq(start_as_child);
+        _save_indentation();
         _line_progressed(1);
         return true;
     }
@@ -1035,8 +1031,8 @@ bool Parser::_handle_seq_impl()
         }
         else if(rem == '-')
         {
-            _c4dbgp("start unknown");
-            _start_unk();
+            _c4dbgp("expect another val");
+            addrem_flags(RVAL, RNXT);
             _line_progressed(1);
             return true;
         }
@@ -1126,6 +1122,13 @@ bool Parser::_handle_seq_impl()
             addrem_flags(CPLX|RKEY, RVAL);
             _save_indentation();
             _line_progressed(2);
+            return true;
+        }
+        else if(rem.begins_with(' '))
+        {
+            rem = rem.left_of(rem.first_not_of(' '));
+            _c4dbgp("skipping %zd spaces", rem.len);
+            _line_progressed(rem.len);
             return true;
         }
         else
@@ -1834,7 +1837,6 @@ void Parser::_start_map(bool as_child)
         // don't use parent here, as a resize may have happened during the append
         if(has_all(SSCL))
         {
-            C4_ASSERT(node(parent_id)->is_map());
             cspan key = _consume_scalar();
             node(m_state)->to_map(key);
             _c4dbgp("start_map: id=%zd key='%.*s'", node(m_state)->id(), _c4prsp(node(m_state)->key()));
