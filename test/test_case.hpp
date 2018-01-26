@@ -402,7 +402,6 @@ void Case::run() const
         C4_EXPECT_EQ(rec.size(), 0);
     }
 
-/*
     {
         C4SUBTEST("complete a round trip");
         Tree t2;
@@ -412,7 +411,6 @@ void Case::run() const
         C4_EXPECT_EQ(t2.size(), root.reccount());
         root.compare(*t2.root());
     }
-*/
 }
 
 void CaseNode::compare(yml::Node const& n) const

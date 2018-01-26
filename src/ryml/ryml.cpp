@@ -1395,6 +1395,7 @@ bool Parser::_handle_map_impl()
             _c4dbgp("val is a child seq, explicit");
             addrem_flags(RKEY, RVAL); // before _push_level!
             _push_level(/*explicit flow*/true);
+            _move_scalar_from_top();
             _start_seq();
             add_flags(EXPL);
             _line_progressed(1);
@@ -1405,6 +1406,7 @@ bool Parser::_handle_map_impl()
             _c4dbgp("val is a child map, explicit");
             addrem_flags(RKEY, RVAL); // before _push_level!
             _push_level(/*explicit flow*/true);
+            _move_scalar_from_top();
             _start_map();
             addrem_flags(EXPL|RKEY, RVAL);
             _line_progressed(1);
@@ -1887,7 +1889,7 @@ void Parser::_append_key_val(cspan const& val)
 //-----------------------------------------------------------------------------
 void Parser::_store_scalar(cspan const& s)
 {
-    _c4dbgp("state[%zd]: storing scalar '%.*s' (flag: %d)", m_state-m_stack.begin(), _c4prsp(s), m_state->flags & SSCL);
+    _c4dbgp("state[%zd]: storing scalar '%.*s' (flag: %d) (old scalar='%.*s')", m_state-m_stack.begin(), _c4prsp(s), m_state->flags & SSCL, _c4prsp(m_state->scalar));
     C4_ASSERT(has_none(SSCL));
     add_flags(SSCL);
     m_state->scalar = s;

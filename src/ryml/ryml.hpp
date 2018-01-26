@@ -609,6 +609,24 @@ private:
             }
             else
             {
+                if(n->parent_is_map())
+                {
+                    _write(' ');
+                }
+                if(n->is_seq())
+                {
+                    _write("[]\n");
+                }
+                else if(n->is_map())
+                {
+                    _write("{}\n");
+                }
+            }
+        }
+        else if(n->is_container() && n->is_root())
+        {
+            if( ! n->has_children())
+            {
                 if(n->is_seq())
                 {
                     _write("[]\n");
