@@ -3,18 +3,29 @@
 
 #include <gtest/gtest.h>
 
-namespace yml = c4::yml;
 
+int main(int argc, char *argv[])
+{
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}
+
+
+namespace c4 {
+namespace yml {
+
+using N = CaseNode;
+using L = CaseNode::iseqmap;
 
 TEST(span, begins_with)
 {
-    EXPECT_TRUE( ! yml::cspan(":").begins_with(": "));
+    EXPECT_TRUE( ! cspan(":").begins_with(": "));
 }
 TEST(span, compare)
 {
     const char s1[] = "one empty doc";
     const char s2[] = "one empty doc, explicit termination";
-    yml::cspan c1(s1), c2(s2);
+    cspan c1(s1), c2(s2);
     EXPECT_NE(c1, c2);
     EXPECT_GT(c2, c1);
     EXPECT_TRUE((c1 > c2) != (c1 < c2));
@@ -22,10 +33,6 @@ TEST(span, compare)
 
 TEST(CaseNode, setting_up)
 {
-    using namespace c4::yml;
-    using N = CaseNode;
-    using L = CaseNode::iseqmap;
-
     L tl1 = {DOC, DOC};
     L tl2 = {(DOC), (DOC)};
 
@@ -41,39 +48,12 @@ TEST(CaseNode, setting_up)
     EXPECT_EQ(n1.reccount(), n2.reccount());
 }
 
-using namespace c4::yml;
-
-// a persistent data store to avoid repeating operations on every test
-struct CaseData
-{
-    LibyamlParser libyaml_parser;
-    Tree parsed_tree;
-
-    size_t numbytes_stdout;
-    std::vector< char > emit_buf;
-    cspan emitted_yml;
-
-    Tree emitted_tree;
-
-    Tree recreated;
-};
-
-Case* get_case(cspan name);
-
-
-CaseData* get_data(cspan name)
-{
-    static std::map< cspan, CaseData > d;
-    auto *cd = &d[name];
-    std::cout << "get case data for '" << name << "': " << cd << "\n";
-    return cd;
-}
 
 // a fixture for running the tests
-struct test_case : public ::testing::TestWithParam< cspan >
+struct test_case : public ::testing::TestWithParam< const char* >
 {
     cspan const name;
-    Case * c; // the case
+    Case const* c; // the case
     CaseData * d; // the case data
 
     test_case() : name(GetParam()), c(get_case(GetParam())), d(get_data(GetParam()))
@@ -85,7 +65,7 @@ struct test_case : public ::testing::TestWithParam< cspan >
         // Code here will be called immediately after the constructor (right
         // before each test).
         std::cout << "-------------------------------------------\n";
-        std::cout << "running test case " << name << ": " << c->name << "\n";
+        std::cout << "running test case '" << name << "'\n";
         std::cout << "-------------------------------------------\n";
     }
 };
@@ -132,6 +112,11 @@ TEST_P(test_case, emit_yml_string)
 
 TEST_P(test_case, complete_round_trip)
 {
+#ifdef RYML_DBG
+    print_tree(d->parsed_tree);
+    std::cout << d->emitted_yml;
+#endif
+
     {
         SCOPED_TRACE("parsing emitted yml");
         parse(d->emitted_yml, &d->emitted_tree);
@@ -139,10 +124,12 @@ TEST_P(test_case, complete_round_trip)
         print_tree(d->emitted_tree);
 #endif
     }
+
     {
         SCOPED_TRACE("checking invariants of parsed tree");
         check_invariants(*d->emitted_tree.root());
     }
+
     {
         SCOPED_TRACE("comparing parsed tree to ref tree");
         EXPECT_GE(d->parsed_tree.capacity(), c->root.reccount());
@@ -169,20 +156,14 @@ TEST_P(test_case, recreate_from_ref)
 
 
 
-
-
-int do_test();
-
-int main(int argc, char *argv[])
+CaseData* get_data(cspan name)
 {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-
-    int stat = do_test();
-    return stat;
+    static std::map< cspan, CaseData > m;
+    auto *cd = &m[name];
+    return cd;
 }
 
-Case* get_case(cspan name)
+Case const* get_case(cspan name)
 {
 
 using N = CaseNode;
@@ -1912,3 +1893,299 @@ R"(
 )",
 };
 #endif
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+void CaseNode::compare(yml::Node const& n) const
+{
+    EXPECT_EQ(n.type(), type);
+    EXPECT_EQ(n.num_children(), children.size());
+    if(n.has_key())
+    {
+        EXPECT_EQ(n.key(), key);
+    }
+    if(n.is_val())
+    {
+        EXPECT_EQ(n.val(), val);
+    }
+
+    // check that the children are in the same order
+    {
+        EXPECT_EQ(children.size(), n.num_children());
+        size_t ic = 0;
+        for(auto const& ch : children)
+        {
+            EXPECT_TRUE(ic < n.num_children());
+            if(ic >= n.num_children()) break;
+            EXPECT_TRUE(n.child(ic) != nullptr);
+            if(type & MAP)
+            {
+                EXPECT_NE(n.find_child(ch.key), nullptr);
+                auto fch = n.find_child(ch.key);
+                if(fch)
+                {
+                    EXPECT_EQ(&n[ic], &n[ch.key]);
+                    EXPECT_EQ(n[ch.key].key(), ch.key);
+                    if(ch.type & VAL)
+                    {
+                        EXPECT_EQ(n[ch.key].val(), ch.val);
+                    }
+                }
+                else
+                {
+                    printf("error: node should have child %.*s: ", (int)ch.key.len, ch.key.str);
+                    print_path(n);
+                    printf("\n");
+                    print_node(n);
+                }
+            }
+            if(type & SEQ)
+            {
+                EXPECT_EQ(n[ic].m_key, children[ic].key);
+                if(ch.type & VAL)
+                {
+                    EXPECT_EQ(n[ic].val(), ch.val);
+                }
+            }
+            if(ch.type & KEY)
+            {
+                EXPECT_TRUE(n[ic].has_key());
+                EXPECT_EQ(n[ic].key(), ch.key);
+            }
+            if(ch.type & VAL)
+            {
+                EXPECT_TRUE(n[ic].has_val());
+                EXPECT_EQ(n[ic].val(), ch.val);
+            }
+            ++ic;
+        }
+    }
+
+    for(size_t i = 0, ei = n.num_children(), j = 0, ej = children.size(); i < ei && j < ej; ++i, ++j)
+    {
+        children[j].compare(n[i]);
+    }
+}
+
+void CaseNode::recreate(yml::Node *n) const
+{
+    C4_ASSERT( ! n->has_children());
+    n->m_type = type;
+    n->m_key = key;
+    n->m_val = val;
+    auto &tree = *n->tree();
+    size_t nid = n->id(); // don't use node from now on
+    for(auto const& ch : children)
+    {
+        size_t id = tree.append_child(nid);
+        Node * chn = tree.get(id);
+        ch.recreate(chn);
+    }
+}
+
+//-----------------------------------------------------------------------------
+
+void print_path(Node const& n)
+{
+    size_t len = 0;
+    char buf[1024];
+    Node const *p = &n;
+    while(p)
+    {
+        if(p->has_key())
+        {
+            len += 1 + p->key().len;
+        }
+        else
+        {
+            len += snprintf(buf, sizeof(buf), "/%zd", p->parent() ? p->parent()->child_pos(p) : 0);
+        }
+        p = p->parent();
+    };
+    C4_ASSERT(len < sizeof(buf));
+    size_t pos = len;
+    while(p)
+    {
+        if(p->has_key())
+        {
+            size_t tl = p->key().len;
+            pos -= snprintf(buf + pos - tl, tl, "%.*s", (int)tl, p->key().str);
+        }
+        else
+        {
+            size_t pos = p->parent()->child_pos(p);
+            size_t tl = snprintf(buf, 0, "/%zd", pos);
+            pos -= snprintf(buf + pos - tl, tl, "/%zd", pos);
+        }
+        p = p->parent();
+    };
+    printf("%.*s", (int)len, buf);
+}
+
+
+void print_node(Node const& p, int level, bool print_children)
+{
+    printf("%*s[%zd] %p", (2*level), "", p.id(), (void*)&p);
+    if( ! p.parent())
+    {
+        printf(" [ROOT]");
+    }
+    printf(" %s:", p.type_str());
+    if(p.has_key())
+    {
+        printf(" '%.*s'", (int)p.key().len, p.key().str);
+    }
+    if(p.has_val())
+    {
+        printf(" '%.*s'", (int)p.val().len, p.val().str);
+    }
+    printf(" (%zd sibs)", p.num_siblings());
+    if(p.is_container())
+    {
+        printf(" %zd children:", p.num_children());
+        if(print_children)
+        {
+            for(Node const* ch = p.first_child(); ch; ch = ch->next_sibling())
+            {
+                print_node(*ch, level+1);
+            }
+        }
+    }
+    printf("\n");
+}
+
+
+
+void print_node(CaseNode const& p, int level)
+{
+    printf("%*s%p", (2*level), "", (void*)&p);
+    if( ! p.parent)
+    {
+        printf(" [ROOT]");
+    }
+    printf(" %s:", Node::type_str(p.type));
+    if(p.has_key())
+    {
+        printf(" '%.*s'", (int)p.key.len, p.key.str);
+    }
+    if(p.has_val())
+    {
+        printf(" '%.*s'", (int)p.val.len, p.val.str);
+    }
+    printf(" (%zd sibs)", p.parent ? p.parent->children.size() : 0);
+    if(p.is_container())
+    {
+        printf(" %zd children:", p.children.size());
+    }
+    printf("\n");
+}
+
+
+void print_tree(Node const& p, int level)
+{
+    print_node(p, level);
+    for(Node const* ch = p.first_child(); ch; ch = ch->next_sibling())
+    {
+        print_tree(*ch, level+1);
+    }
+}
+
+void print_tree(CaseNode const& p, int level)
+{
+    print_node(p, level);
+    for(auto const& ch : p.children)
+    {
+        print_tree(ch, level+1);
+    }
+}
+
+void print_tree(Tree const& t)
+{
+    printf("--------------------------------------\n");
+    print_tree(*t.root());
+    printf("#nodes: %zd\n", t.size());
+    printf("--------------------------------------\n");
+}
+
+void print_tree(CaseNode const& t)
+{
+    printf("--------------------------------------\n");
+    print_tree(t, 0);
+    printf("#nodes: %zd\n", t.reccount());
+    printf("--------------------------------------\n");
+}
+
+void check_invariants(Node const& n)
+{
+    EXPECT_NE(n.is_root(), n.has_siblings());
+    // keys or vals cannot be root
+    if(n.has_key() || n.is_val() || n.is_keyval())
+    {
+        EXPECT_FALSE(n.is_root());
+        EXPECT_FALSE(n.is_root());
+        EXPECT_FALSE(n.is_root());
+    }
+    // vals cannot be containers
+    if( ! n.empty())
+    {
+        EXPECT_NE(n.has_val(), n.is_container());
+    }
+    if(n.has_children())
+    {
+        EXPECT_TRUE(n.is_container());
+        EXPECT_FALSE(n.is_val());
+    }
+    // check parent & sibling reciprocity
+    for(Node const* s = n.first_sibling(); s; s = s->next_sibling())
+    {
+        EXPECT_TRUE(n.has_sibling(s));
+        EXPECT_TRUE(s->has_sibling(&n));
+        EXPECT_EQ(s->parent(), n.parent());
+    }
+    if(n.parent())
+    {
+        EXPECT_TRUE(n.parent()->has_child(&n));
+        EXPECT_EQ(n.parent()->num_children(), n.num_siblings());
+        // doc parent must be a seq and a stream
+        if(n.is_doc())
+        {
+            EXPECT_TRUE(n.parent()->is_seq());
+            EXPECT_TRUE(n.parent()->is_stream());
+        }
+    }
+    else
+    {
+        EXPECT_TRUE(n.is_root());
+    }
+    if(n.is_seq())
+    {
+        EXPECT_TRUE(n.is_container());
+        EXPECT_FALSE(n.is_map());
+        for(Node const* ch = n.first_child(); ch; ch = ch->next_sibling())
+        {
+            EXPECT_FALSE(ch->is_keyval());
+            EXPECT_FALSE(ch->has_key());
+        }
+    }
+    if(n.is_map())
+    {
+        EXPECT_TRUE(n.is_container());
+        EXPECT_FALSE(n.is_seq());
+        for(Node const* ch = n.first_child(); ch; ch = ch->next_sibling())
+        {
+            EXPECT_TRUE(ch->has_key());
+        }
+    }
+    // ... add more tests here
+
+    // now recurse into the children
+    for(Node const* ch = n.first_child(); ch; ch = ch->next_sibling())
+    {
+        check_invariants(*ch);
+    }
+}
+
+} // namespace yml
+} // namespace c4
