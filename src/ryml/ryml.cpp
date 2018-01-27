@@ -697,13 +697,36 @@ void Parser::parse(cspan const& file, cspan const& buf, Node *root)
 //-----------------------------------------------------------------------------
 void Parser::_handle_finished_file()
 {
-    if(m_stack.empty()) return;
+    C4_ASSERT( ! m_stack.empty());
+
+    if(has_any(SSCL))
+    {
+        if(node(m_state)->type() == NOTYPE)
+        {
+            node(m_state)->to_seq();
+        }
+        else if(node(m_state)->is_doc())
+        {
+            node(m_state)->to_doc(SEQ);
+        }
+        else if(node(m_state)->is_seq())
+        {
+            ;
+        }
+        else
+        {
+            _c4err("internal error");
+        }
+        _append_val(_consume_scalar());
+    }
 
     _c4dbgp("emptying stack...");
     while(m_stack.size() > 1)
     {
+        C4_ASSERT( ! has_any(SSCL, &m_stack.top()));
         _pop_level();
     }
+
     m_state = &m_stack.top();
 }
 
@@ -850,7 +873,7 @@ bool Parser::_handle_unk()
     }
     else if(has_all(SSCL))
     {
-        _c4dbgp("there's a stored scalar (%.*s)", _c4prsp(m_state->scalar));
+        _c4dbgp("there's a stored scalar: '%.*s'", _c4prsp(m_state->scalar));
 
         cspan saved_scalar;
         if(scnext)
@@ -885,6 +908,12 @@ bool Parser::_handle_unk()
             _line_progressed(1);
             //_c4dbgp("map key opened a new line -- starting val scope as unknown");
             //_start_unk();
+        }
+        else if(rem.begins_with('...'))
+        {
+            _c4dbgp("got stream end '...");
+            _line_progressed(3);
+            _handle_finished_file();
         }
         else
         {
@@ -1043,6 +1072,13 @@ bool Parser::_handle_seq_impl()
             rem = rem.left_of(rem.first_not_of(' '));
             _c4dbgp("skipping %zd spaces", rem.len);
             _line_progressed(rem.len);
+            return true;
+        }
+        else if(rem.begins_with('...'))
+        {
+            _c4dbgp("got stream end '...");
+            _line_progressed(3);
+            _handle_finished_file();
             return true;
         }
         else
@@ -1777,21 +1813,17 @@ void Parser::_push_level(bool explicit_flow_chars)
 void Parser::_pop_level()
 {
     _c4dbgp("popping level! currnode=%zd currlevel=%zd", m_state->node_id, m_state->level);
-    if(has_any(RMAP))
+    if(has_any(RMAP) || node(m_state)->is_map())
     {
         _stop_map();
     }
-    else if(has_any(RSEQ))
+    if(has_any(RSEQ) || node(m_state)->is_seq())
     {
         _stop_seq();
     }
-    else if(node(m_state)->is_doc())
+    if(node(m_state)->is_doc())
     {
         _stop_doc();
-    }
-    else
-    {
-        _c4err("internal error");
     }
     C4_ASSERT(m_stack.size() > 1);
     _prepare_pop();
@@ -1868,7 +1900,7 @@ void Parser::_start_map(bool as_child)
     if(as_child)
     {
         m_state->node_id = m_tree->append_child(parent_id);
-        // don't use parent here, as a resize may have happened during the append
+        // don't use node pointers here, as a tree resize may have happened during the append
         if(has_all(SSCL))
         {
             cspan key = _consume_scalar();
@@ -1910,7 +1942,7 @@ void Parser::_start_seq(bool as_child)
     if(as_child)
     {
         m_state->node_id = m_tree->append_child(parent_id);
-        // don't use parent here, as a resize may have happened during the append
+        // don't use node pointers here, as a tree resize may have happened during the append
         if(has_all(SSCL))
         {
             C4_ASSERT(node(parent_id)->is_map());
@@ -1920,17 +1952,21 @@ void Parser::_start_seq(bool as_child)
         }
         else
         {
-            node(m_state)->to_seq();
-            _c4dbgp("start_seq: id=%zd", node(m_state)->id());
+            size_t as_doc = 0;
+            if(node(m_state)->is_doc()) as_doc |= DOC;
+            node(m_state)->to_seq(as_doc);
+            _c4dbgp("start_seq: id=%zd%s", node(m_state)->id(), as_doc ? " as doc" : "");
         }
     }
     else
     {
         C4_ASSERT(parent->is_seq() || parent->empty());
         m_state->node_id = parent->id();
-        parent->to_seq(SEQ);
+        size_t as_doc = 0;
+        if(node(m_state)->is_doc()) as_doc |= DOC;
+        parent->to_seq(as_doc);
         _move_scalar_from_top();
-        _c4dbgp("start_seq: id=%zd", node(m_state)->id());
+        _c4dbgp("start_seq: id=%zd%s", node(m_state)->id(), as_doc?" as_doc":"");
     }
 }
 

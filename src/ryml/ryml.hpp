@@ -11,23 +11,10 @@
 namespace c4 {
 namespace yml {
 
+class Node;
+class Tree;
 class Parser;
 
-
-typedef enum {
-    BLOCK_LITERAL, ///< keep newlines (|)
-    BLOCK_FOLD     ///< replace newline with single space (>)
-} BlockStyle_e;
-
-typedef enum {
-    CHOMP_CLIP,    ///< single newline at end (default)
-    CHOMP_STRIP,   ///< no newline at end     (-)
-    CHOMP_KEEP     ///< all newlines from end (+)
-} BlockChomp_e;
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
 
 typedef enum {
     NOTYPE  = 0,       ///< no type is set
@@ -45,7 +32,17 @@ typedef enum {
 } NodeType_e;
 
 
-class Tree;
+typedef enum {
+    BLOCK_LITERAL, ///< keep newlines (|)
+    BLOCK_FOLD     ///< replace newline with single space (>)
+} BlockStyle_e;
+
+typedef enum {
+    CHOMP_CLIP,    ///< single newline at end (default)
+    CHOMP_STRIP,   ///< no newline at end     (-)
+    CHOMP_KEEP     ///< all newlines from end (+)
+} BlockChomp_e;
+
 
 /** an index to none */
 enum : size_t { NONE = size_t(-1) };

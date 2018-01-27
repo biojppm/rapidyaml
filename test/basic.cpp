@@ -240,6 +240,34 @@ R"(---
 ),
 
 //-----------------------------------------------------------------------------
+#define SIMPLE_DOC_CASES                                \
+    "single scalar, implicit doc",                      \
+    "single scalar, explicit doc, implicit termination",\
+    "single scalar, explicit doc, explicit termination"
+
+C("single scalar, implicit doc",
+R"(a scalar with some spaces inside
+)",
+    N(L{N("a scalar with some spaces inside")})
+),
+
+C("single scalar, explicit doc, implicit termination",
+R"(---
+a scalar with some spaces inside
+)",
+    N(STREAM, L{N(DOCSEQ, L{N("a scalar with some spaces inside")})})
+),
+
+C("single scalar, explicit doc, explicit termination",
+R"(---
+a scalar with some spaces inside
+...
+)",
+    N(STREAM, L{N(DOCSEQ, L{N("a scalar with some spaces inside")})})
+),
+
+
+//-----------------------------------------------------------------------------
 
 #define SIMPLE_MAP_CASES                                \
     "empty map",                                        \
@@ -1470,14 +1498,26 @@ a sequence:
 
     });
 
+//-----------------------------------------------------------------------------
+
     auto it = cases.find(name);
     C4_ASSERT(it != cases.end());
     return &it->second;
 }
 
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
+#pragma GCC diagnostic ignored "-Wpragma-system-header-outside-header"
+#pragma GCC system_header
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
+
+
 INSTANTIATE_TEST_CASE_P(empty_files , test_case, ::testing::Values(EMPTY_FILE_CASES));
-INSTANTIATE_TEST_CASE_P(empty_docs  , test_case, ::testing::Values(EMPTY_DOC_CASES));
+INSTANTIATE_TEST_CASE_P(docs_empty  , test_case, ::testing::Values(EMPTY_DOC_CASES));
+INSTANTIATE_TEST_CASE_P(docs_simple , test_case, ::testing::Values(SIMPLE_DOC_CASES));
 
 INSTANTIATE_TEST_CASE_P(maps_simple , test_case, ::testing::Values(SIMPLE_MAP_CASES));
 INSTANTIATE_TEST_CASE_P(maps_nested2, test_case, ::testing::Values(NESTED_MAPX2_CASES));
@@ -1494,9 +1534,12 @@ INSTANTIATE_TEST_CASE_P(seqs_nested4, test_case, ::testing::Values(NESTED_SEQX4_
 INSTANTIATE_TEST_CASE_P(map_of_seqs , test_case, ::testing::Values(MAP_OF_SEQ_CASES));
 INSTANTIATE_TEST_CASE_P(seq_of_maps , test_case, ::testing::Values(SEQ_OF_MAP_CASES));
 
-INSTANTIATE_TEST_CASE_P(generic_maps, test_case, ::testing::Values(GENERIC_MAP_CASES));
-INSTANTIATE_TEST_CASE_P(generic_seqs, test_case, ::testing::Values(GENERIC_SEQ_CASES));
+INSTANTIATE_TEST_CASE_P(maps_generic, test_case, ::testing::Values(GENERIC_MAP_CASES));
+INSTANTIATE_TEST_CASE_P(seqs_generic, test_case, ::testing::Values(GENERIC_SEQ_CASES));
 
+
+#pragma GCC diagnostic pop
+#pragma clang diagnostic pop
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
