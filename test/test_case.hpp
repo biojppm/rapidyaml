@@ -5,11 +5,11 @@
 #include <vector>
 #include <map>
 #include <iostream>
-#include <string>
 
 #include "./libyaml.hpp"
 
 #include <ryml/ryml.hpp>
+#include <gtest/gtest.h>
 
 
 namespace c4 {
@@ -181,271 +181,48 @@ struct Case
     cspan src;
     CaseNode root;
 
-
     template< size_t N, class... Args >
     Case(cspan const& n, const char (&s)[N], Args&& ...args)
         : name(n), src(s), root(std::forward< Args >(args)...)
     {
     }
 
-    void run() const;
-
 };
 
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-struct CaseContainer
-{
-    std::vector< Case > tests;
-
-    explicit CaseContainer(std::initializer_list< Case > il) : tests(il) {}
-
-    bool run()
-    {
-        failed_tests.clear();
-
-        for(auto &c : tests)
-        {
-            std::cout << "\n\n\n\n\n";
-            std::cout << "---------------------------------------------------\n";
-            std::cout << "Running test case: '" << c.name << "'\n";
-            std::cout << "---------------------------------------------------\n";
-
-            current_status = true;
-            current_case = c.name;
-
-            c.run();
-
-            cspan stat = current_status ? "succeeded!!!! :-)" :  "failed.... :-( ";
-            std::cout << "---------------------------------------------------\n";
-            std::cout << "Test case '" << c.name << "' " << stat << "\n";
-            std::cout << "---------------------------------------------------\n";
-        }
-
-        std::cout << "\n\n\n";
-        std::cout << "===================================================\n";
-        if( ! failed_tests.empty())
-        {
-            std::cout << "Failed tests:\n";
-            for(auto const& t : failed_tests)
-            {
-                std::cout << "'" << t << "'\n";
-            }
-        }
-        else
-        {
-            std::cout << "All tests passed! Yay!\n";
-        }
-        std::cout << "===================================================\n";
-
-        return ! failed_tests.empty();
-    }
-
-    static void test_failed()
-    {
-        current_status = false;
-        cspan back;
-        if( ! failed_tests.empty())
-        {
-            back = failed_tests.back().c_str();
-        }
-        if(current_case != back)
-        {
-            failed_tests.emplace_back(current_case.str, current_case.len);
-        }
-    }
-    static bool current_status;
-    static cspan current_case;
-    static std::vector< std::string > failed_tests;
-};
-
-
-bool CaseContainer::current_status;
-cspan CaseContainer::current_case;
-std::vector< std::string > CaseContainer::failed_tests;
-
-
-
-#define C4_EXPECT_IMPL_(relname, val1, cmp, val2)                       \
-    if( ! ((val1) cmp (val2)))                                          \
-    {                                                                   \
-        std::cout << "\n"                                               \
-                  << __FILE__ ":" << __LINE__ << ": ERROR: [" << ::c4::yml::CaseContainer::current_case << "]:\n" \
-                  << "    expected " #relname " (" #cmp "):\n"          \
-                  << "    lhs: '" #val1 "'='" << (val1) << "'\n"        \
-                  << "    "#cmp"\n"                                     \
-                  << "    rhs: '" #val2 "'='" << (val2) << "'\n";       \
-        ::c4::yml::CaseContainer::test_failed();                        \
-    }
-
-#define C4_EXPECT_EQ(val1, val2) C4_EXPECT_IMPL_(eq, val1, ==, val2)
-#define C4_EXPECT_NE(val1, val2) C4_EXPECT_IMPL_(ne, val1, !=, val2)
-#define C4_EXPECT_GE(val1, val2) C4_EXPECT_IMPL_(ge, val1, >=, val2)
-#define C4_EXPECT_GT(val1, val2) C4_EXPECT_IMPL_(gt, val1, > , val2)
-#define C4_EXPECT_LE(val1, val2) C4_EXPECT_IMPL_(le, val1, <=, val2)
-#define C4_EXPECT_LT(val1, val2) C4_EXPECT_IMPL_(lt, val1, < , val2)
-
-#define C4_EXPECT(expr)     C4_EXPECT_IMPL_(eq, expr, ==, true)
-#define C4_EXPECT_NOT(expr) C4_EXPECT_IMPL_(eq, expr, ==, false)
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-struct SubTest
-{
-    const char *d;
-    bool saved_status;
-
-    SubTest(const char* d_) : d(d_), saved_status(CaseContainer::current_status)
-    {
-        CaseContainer::current_status = true;
-        std::cout << "\n";
-        std::cout << d << "\n";
-    }
-
-    ~SubTest()
-    {
-        if(CaseContainer::current_status)
-        {
-            std::cout << d << ": done\n";
-        }
-        else
-        {
-            std::cout << d << ": FAILED...... :-(\n";
-            C4_ERROR("ASFDsldfjksdlfkj");
-        }
-        CaseContainer::current_status = saved_status && CaseContainer::current_status;
-    }
-};
-
-void Case::run() const
-{
-
-#define C4SUBTEST(desc) SubTest raii##__LINE__(desc)
-
-    std::cout << "ref src:\n";
-    std::cout << "--------------------------------------\n";
-    std::cout << src << "\n";
-    std::cout << "--------------------------------------\n";
-    std::cout << "ref tree:\n";
-    print_tree(root);
-
-    {
-        C4SUBTEST("parsing using libyaml to check if the YAML source is legal");
-        LibyamlParser libyaml_parser;
-        libyaml_parser.parse(src);
-    }
-
-    Tree t;
-
-    {
-        C4SUBTEST("parsing using ryml");
-        parse(src, &t);
-    }
-
-    {
-        C4SUBTEST("parsed tree");
-        print_tree(t);
-    }
-
-    size_t numbytes_stdout;
-    {
-        C4SUBTEST("emit yml to stdout");
-        numbytes_stdout = emit(t);
-    }
-
-    std::vector< char > emit_buf;
-    cspan emitted_yml;
-    {
-        C4SUBTEST("emit yml to a string");
-        span em = emit_resize(t, &emit_buf);
-        C4_EXPECT_EQ(em.len, emit_buf.size());
-        C4_EXPECT_EQ(em.len, numbytes_stdout);
-        std::cout << em;
-        emitted_yml = em;
-    }
-
-    {
-        C4SUBTEST("checking invariants...");
-        check_invariants(*t.root());
-    }
-
-    {
-        C4SUBTEST("comparing parsed tree to ref tree...");
-        C4_EXPECT_GE(t.capacity(), root.reccount());
-        C4_EXPECT_EQ(t.size(), root.reccount());
-        root.compare(*t.root());
-    }
-
-    Tree rec;
-
-    {
-        C4SUBTEST("recreating a new tree from the ref tree");
-        rec.reserve(t.size());
-        root.recreate(rec.root());
-    }
-
-    {
-        C4SUBTEST("comparing recreated tree to ref tree");
-        root.compare(*rec.root());
-    }
-
-    {
-        C4SUBTEST("clearing the duplicated tree");
-        rec.clear();
-        C4_EXPECT_EQ(rec.size(), 0);
-    }
-
-    {
-        C4SUBTEST("complete a round trip");
-        Tree t2;
-        parse(emitted_yml, &t2);
-        print_tree(t2);
-        C4_EXPECT_GE(t2.capacity(), root.reccount());
-        C4_EXPECT_EQ(t2.size(), root.reccount());
-        root.compare(*t2.root());
-    }
-}
 
 void CaseNode::compare(yml::Node const& n) const
 {
-    C4_EXPECT_EQ(n.type(), type);
-    C4_EXPECT_EQ(n.num_children(), children.size());
+    EXPECT_EQ(n.type(), type);
+    EXPECT_EQ(n.num_children(), children.size());
     if(n.has_key())
     {
-        C4_EXPECT_EQ(n.key(), key);
+        EXPECT_EQ(n.key(), key);
     }
     if(n.is_val())
     {
-        C4_EXPECT_EQ(n.val(), val);
+        EXPECT_EQ(n.val(), val);
     }
 
     // check that the children are in the same order
     {
-        C4_EXPECT_EQ(children.size(), n.num_children());
+        EXPECT_EQ(children.size(), n.num_children());
         size_t ic = 0;
         for(auto const& ch : children)
         {
-            C4_EXPECT(ic < n.num_children());
+            EXPECT_TRUE(ic < n.num_children());
             if(ic >= n.num_children()) break;
-            C4_EXPECT(n.child(ic) != nullptr);
+            EXPECT_TRUE(n.child(ic) != nullptr);
             if(type & MAP)
             {
-                C4_EXPECT_NE(n.find_child(ch.key), 0);
+                EXPECT_NE(n.find_child(ch.key), nullptr);
                 auto fch = n.find_child(ch.key);
                 if(fch)
                 {
-                    C4_EXPECT_EQ(&n[ic], &n[ch.key]);
-                    C4_EXPECT_EQ(n[ch.key].key(), ch.key);
+                    EXPECT_EQ(&n[ic], &n[ch.key]);
+                    EXPECT_EQ(n[ch.key].key(), ch.key);
                     if(ch.type & VAL)
                     {
-                        C4_EXPECT_EQ(n[ch.key].val(), ch.val);
+                        EXPECT_EQ(n[ch.key].val(), ch.val);
                     }
                 }
                 else
@@ -458,21 +235,21 @@ void CaseNode::compare(yml::Node const& n) const
             }
             if(type & SEQ)
             {
-                C4_EXPECT_EQ(n[ic].m_key, children[ic].key);
+                EXPECT_EQ(n[ic].m_key, children[ic].key);
                 if(ch.type & VAL)
                 {
-                    C4_EXPECT_EQ(n[ic].val(), ch.val);
+                    EXPECT_EQ(n[ic].val(), ch.val);
                 }
             }
             if(ch.type & KEY)
             {
-                C4_EXPECT(n[ic].has_key());
-                C4_EXPECT_EQ(n[ic].key(), ch.key);
+                EXPECT_TRUE(n[ic].has_key());
+                EXPECT_EQ(n[ic].key(), ch.key);
             }
             if(ch.type & VAL)
             {
-                C4_EXPECT(n[ic].has_val());
-                C4_EXPECT_EQ(n[ic].val(), ch.val);
+                EXPECT_TRUE(n[ic].has_val());
+                EXPECT_EQ(n[ic].val(), ch.val);
             }
             ++ic;
         }
@@ -634,63 +411,63 @@ void print_tree(CaseNode const& t)
 
 void check_invariants(Node const& n)
 {
-    C4_EXPECT_NE(n.is_root(), n.has_siblings());
+    EXPECT_NE(n.is_root(), n.has_siblings());
     // keys or vals cannot be root
     if(n.has_key() || n.is_val() || n.is_keyval())
     {
-        C4_EXPECT_NOT(n.is_root());
-        C4_EXPECT_NOT(n.is_root());
-        C4_EXPECT_NOT(n.is_root());
+        EXPECT_FALSE(n.is_root());
+        EXPECT_FALSE(n.is_root());
+        EXPECT_FALSE(n.is_root());
     }
     // vals cannot be containers
     if( ! n.empty())
     {
-        C4_EXPECT_NE(n.has_val(), n.is_container());
+        EXPECT_NE(n.has_val(), n.is_container());
     }
     if(n.has_children())
     {
-        C4_EXPECT(n.is_container());
-        C4_EXPECT_NOT(n.is_val());
+        EXPECT_TRUE(n.is_container());
+        EXPECT_FALSE(n.is_val());
     }
     // check parent & sibling reciprocity
     for(Node const* s = n.first_sibling(); s; s = s->next_sibling())
     {
-        C4_EXPECT(n.has_sibling(s));
-        C4_EXPECT(s->has_sibling(&n));
-        C4_EXPECT_EQ(s->parent(), n.parent());
+        EXPECT_TRUE(n.has_sibling(s));
+        EXPECT_TRUE(s->has_sibling(&n));
+        EXPECT_EQ(s->parent(), n.parent());
     }
     if(n.parent())
     {
-        C4_EXPECT(n.parent()->has_child(&n));
-        C4_EXPECT_EQ(n.parent()->num_children(), n.num_siblings());
+        EXPECT_TRUE(n.parent()->has_child(&n));
+        EXPECT_EQ(n.parent()->num_children(), n.num_siblings());
         // doc parent must be a seq and a stream
         if(n.is_doc())
         {
-            C4_EXPECT(n.parent()->is_seq());
-            C4_EXPECT(n.parent()->is_stream());
+            EXPECT_TRUE(n.parent()->is_seq());
+            EXPECT_TRUE(n.parent()->is_stream());
         }
     }
     else
     {
-        C4_EXPECT(n.is_root());
+        EXPECT_TRUE(n.is_root());
     }
     if(n.is_seq())
     {
-        C4_EXPECT(n.is_container());
-        C4_EXPECT_NOT(n.is_map());
+        EXPECT_TRUE(n.is_container());
+        EXPECT_FALSE(n.is_map());
         for(Node const* ch = n.first_child(); ch; ch = ch->next_sibling())
         {
-            C4_EXPECT_NOT(ch->is_keyval());
-            C4_EXPECT_NOT(ch->has_key());
+            EXPECT_FALSE(ch->is_keyval());
+            EXPECT_FALSE(ch->has_key());
         }
     }
     if(n.is_map())
     {
-        C4_EXPECT(n.is_container());
-        C4_EXPECT_NOT(n.is_seq());
+        EXPECT_TRUE(n.is_container());
+        EXPECT_FALSE(n.is_seq());
         for(Node const* ch = n.first_child(); ch; ch = ch->next_sibling())
         {
-            C4_EXPECT(ch->has_key());
+            EXPECT_TRUE(ch->has_key());
         }
     }
     // ... add more tests here

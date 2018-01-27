@@ -78,6 +78,8 @@ public:
     inline C      & operator[] (size_t i)       { C4_ASSERT(i >= 0 && i < len); return str[i]; }
     inline C const& operator[] (size_t i) const { C4_ASSERT(i >= 0 && i < len); return str[i]; }
 
+public:
+
     bool operator== (basic_span const& that) const
     {
         if(len != that.len) return false;
@@ -93,15 +95,28 @@ public:
         return len == 1 && *str == c;
     }
     template< class T >
-    bool operator!= (T const& that)
+    bool operator!= (T const& that) const
     {
         return ! (operator== (that));
     }
 
-    bool operator<  (basic_span const& that) { size_t n = len < that.len ? len : that.len; return strncmp(str, that.str, n) < 0; }
-    bool operator>  (basic_span const& that) { size_t n = len < that.len ? len : that.len; return strncmp(str, that.str, n) > 0; }
-    bool operator<= (basic_span const& that) { size_t n = len < that.len ? len : that.len; return strncmp(str, that.str, n) <= 0; }
-    bool operator>= (basic_span const& that) { size_t n = len < that.len ? len : that.len; return strncmp(str, that.str, n) >= 0; }
+    bool operator<  (basic_span const& that) const { return this->compare(that) < 0; }
+    bool operator>  (basic_span const& that) const { return this->compare(that) > 0; }
+    bool operator<= (basic_span const& that) const { return this->compare(that) <= 0; }
+    bool operator>= (basic_span const& that) const { return this->compare(that) >= 0; }
+
+    int compare(basic_span const& that) const
+    {
+        size_t n = len < that.len ? len : that.len;
+        int ret = strncmp(str, that.str, n);
+        if(ret == 0 && len != that.len)
+        {
+            ret = len < that.len ? -1 : 1;
+        }
+        return ret;
+    }
+
+public:
 
     basic_span subspan(size_t first, size_t num = npos) const
     {

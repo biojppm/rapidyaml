@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.9)
 project(ryml)
 
 set(RYML_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -13,5 +13,6 @@ set(RYML_SRC
 
 option(RYML_BUILD_TESTS "Build ryml tests" ON)
 if(RYML_BUILD_TESTS)
+    enable_testing()
     add_subdirectory(test test)
 endif()

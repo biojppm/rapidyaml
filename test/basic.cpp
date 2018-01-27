@@ -1,62 +1,223 @@
 
 #include "./test_case.hpp"
 
+#include <gtest/gtest.h>
+
 namespace yml = c4::yml;
+
+
+TEST(span, begins_with)
+{
+    EXPECT_TRUE( ! yml::cspan(":").begins_with(": "));
+}
+TEST(span, compare)
+{
+    const char s1[] = "one empty doc";
+    const char s2[] = "one empty doc, explicit termination";
+    yml::cspan c1(s1), c2(s2);
+    EXPECT_NE(c1, c2);
+    EXPECT_GT(c2, c1);
+    EXPECT_TRUE((c1 > c2) != (c1 < c2));
+}
+
+TEST(CaseNode, setting_up)
+{
+    using namespace c4::yml;
+    using N = CaseNode;
+    using L = CaseNode::iseqmap;
+
+    L tl1 = {DOC, DOC};
+    L tl2 = {(DOC), (DOC)};
+
+    EXPECT_EQ(tl1.size(), tl2.size());
+    N const& d1 = *tl1.begin();
+    N const& d2 = *(tl1.begin() + 1);
+    EXPECT_EQ(d1.reccount(), d2.reccount());
+    EXPECT_EQ(d1.type, DOC);
+    EXPECT_EQ(d2.type, DOC);
+
+    N n1(tl1);
+    N n2(tl2);
+    EXPECT_EQ(n1.reccount(), n2.reccount());
+}
+
+using namespace c4::yml;
+
+// a persistent data store to avoid repeating operations on every test
+struct CaseData
+{
+    LibyamlParser libyaml_parser;
+    Tree parsed_tree;
+
+    size_t numbytes_stdout;
+    std::vector< char > emit_buf;
+    cspan emitted_yml;
+
+    Tree emitted_tree;
+
+    Tree recreated;
+};
+
+Case* get_case(cspan name);
+
+
+CaseData* get_data(cspan name)
+{
+    static std::map< cspan, CaseData > d;
+    auto *cd = &d[name];
+    std::cout << "get case data for '" << name << "': " << cd << "\n";
+    return cd;
+}
+
+// a fixture for running the tests
+struct test_case : public ::testing::TestWithParam< cspan >
+{
+    cspan const name;
+    Case * c; // the case
+    CaseData * d; // the case data
+
+    test_case() : name(GetParam()), c(get_case(GetParam())), d(get_data(GetParam()))
+    {
+    }
+
+    void SetUp() override
+    {
+        // Code here will be called immediately after the constructor (right
+        // before each test).
+        std::cout << "-------------------------------------------\n";
+        std::cout << "running test case " << name << ": " << c->name << "\n";
+        std::cout << "-------------------------------------------\n";
+    }
+};
+
+TEST_P(test_case, parse_using_libyaml_to_test_yml_correctness)
+{
+    d->libyaml_parser.parse(c->src);
+}
+
+TEST_P(test_case, parse_using_ryml)
+{
+    parse(c->src, &d->parsed_tree);
+#ifdef RYML_DBG
+    print_tree(d->parsed_tree);
+#endif
+    {
+        SCOPED_TRACE("checking invariants of parsed tree");
+        check_invariants(*d->parsed_tree.root());
+    }
+    {
+        SCOPED_TRACE("comparing parsed tree to ref tree");
+        EXPECT_GE(d->parsed_tree.capacity(), c->root.reccount());
+        EXPECT_EQ(d->parsed_tree.size(), c->root.reccount());
+        c->root.compare(*d->parsed_tree.root());
+    }
+}
+
+TEST_P(test_case, emit_yml_stdout)
+{
+    d->numbytes_stdout = emit(d->parsed_tree);
+}
+
+TEST_P(test_case, emit_yml_string)
+{
+    auto em = emit_resize(d->parsed_tree, &d->emit_buf);
+    EXPECT_EQ(em.len, d->emit_buf.size());
+    EXPECT_EQ(em.len, d->numbytes_stdout);
+    d->emitted_yml = em;
+
+#ifdef RYML_DBG
+    std::cout << em;
+#endif
+}
+
+TEST_P(test_case, complete_round_trip)
+{
+    {
+        SCOPED_TRACE("parsing emitted yml");
+        parse(d->emitted_yml, &d->emitted_tree);
+#ifdef RYML_DBG
+        print_tree(d->emitted_tree);
+#endif
+    }
+    {
+        SCOPED_TRACE("checking invariants of parsed tree");
+        check_invariants(*d->emitted_tree.root());
+    }
+    {
+        SCOPED_TRACE("comparing parsed tree to ref tree");
+        EXPECT_GE(d->parsed_tree.capacity(), c->root.reccount());
+        EXPECT_EQ(d->parsed_tree.size(), c->root.reccount());
+        c->root.compare(*d->emitted_tree.root());
+    }
+}
+
+
+TEST_P(test_case, recreate_from_ref)
+{
+    {
+        SCOPED_TRACE("recreating a new tree from the ref tree");
+        d->recreated.reserve(d->parsed_tree.size());
+        c->root.recreate(d->recreated.root());
+    }
+
+    {
+        SCOPED_TRACE("comparing recreated tree to ref tree");
+        c->root.compare(*d->recreated.root());
+    }
+}
+
+
+
+
+
 
 int do_test();
 
-int main()
+int main(int argc, char *argv[])
 {
-    C4_ASSERT( ! yml::cspan(":").begins_with(": "));
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 
     int stat = do_test();
     return stat;
 }
 
-
-int do_test()
+Case* get_case(cspan name)
 {
-    using namespace c4::yml;
 
-    using C = Case;
-    using N = CaseNode;
-    using L = CaseNode::iseqmap;
+using N = CaseNode;
+using L = CaseNode::iseqmap;
 
-    {
-        L tl1 = {DOC, DOC};
-        L tl2 = {(DOC), (DOC)};
+#define C(name, ...)                                    \
+    std::pair< const cspan, Case >                      \
+    (                                                   \
+        std::piecewise_construct_t{},                   \
+        std::forward_as_tuple(name),                    \
+        std::forward_as_tuple(name, __VA_ARGS__)        \
+    )
 
-        C4_ASSERT(tl1.size() == tl2.size());
-        N const& d1 = *tl1.begin();
-        N const& d2 = *(tl1.begin() + 1);
-        C4_ASSERT(d1.reccount() == d2.reccount());
-        C4_ASSERT(d1.type == DOC);
-        C4_ASSERT(d2.type == DOC);
-
-        N n1(tl1);
-        N n2(tl2);
-        C4_ASSERT(n1.reccount() == n2.reccount());
-    }
-    CaseContainer tests({
-
+    static std::map< cspan, Case > cases({
 
 //-----------------------------------------------------------------------------
+#define EMPTY_FILE_CASES "empty0-nochars", "empty0-multiline"
 
-C("empty file",
+C("empty0-nochars",
 "",
-    NOTYPE
+NOTYPE
 ),
 
-C("empty file, multiline",
-R"(
+C("empty0-multiline", R"(
 
 
 
-)",
-    NOTYPE
+)", NOTYPE
 ),
 
 //-----------------------------------------------------------------------------
+#define EMPTY_DOC_CASES                                 \
+    "one empty doc",                                    \
+        "one empty doc, explicit termination",          \
+        "two empty docs"                                \
 
 C("one empty doc",
 R"(---
@@ -79,6 +240,17 @@ R"(---
 ),
 
 //-----------------------------------------------------------------------------
+
+#define SIMPLE_MAP_CASES                                \
+    "empty map",                                        \
+        "empty map, multiline",                         \
+        "empty map, multilines",                        \
+        "simple map, explicit, single line",            \
+        "simple map, explicit, multiline, unindented",  \
+        "simple map, explicit, multiline, indented",    \
+        "simple map",                                   \
+        "simple map, with comments",                    \
+        "simple map, with comments interspersed"
 
 C("empty map",
 "{}",
@@ -161,6 +333,10 @@ bat: 3
 
 
 //-----------------------------------------------------------------------------
+#define NESTED_MAPX2_CASES \
+    "nested map x2, explicit, same line", \
+        "nested map x2, explicit", \
+        "nested map x2"
 
 C("nested map x2, explicit, same line",
 R"({foo: {foo0: 00, bar0: 01, baz0: 02}, bar: {foo1: 10, bar1: 11, baz1: 12}, baz: {foo2: 20, bar2: 21, baz2: 22}})",
@@ -207,6 +383,12 @@ baz:
 ),
 
 //-----------------------------------------------------------------------------
+
+#define NESTED_MAPX3_CASES \
+    "nested map x3, explicit",               \
+        "nested map x3"
+
+
 C("nested map x3, explicit",
 R"({
   foo0: {
@@ -300,6 +482,10 @@ baz0:
 ),
 
 //-----------------------------------------------------------------------------
+#define NESTED_MAPX4_CASES                      \
+        "nested map x4, explicit",              \
+        "nested map x4"
+
 C("nested map x4, explicit",
 R"({
   foo0: {
@@ -480,6 +666,15 @@ baz0:
 ),
 
 //-----------------------------------------------------------------------------
+#define COMPLEX_KEY_CASES                       \
+"complex key with line break in between",       \
+"complex key 2nd, inside explicit map",         \
+"complex key 1st, inside explicit map",         \
+"complex key 2nd",                              \
+"complex key 1st",                              \
+"complex key nested in a map, 1st",             \
+"complex key nested in a seq, 1st"
+
 
 C("complex key with line break in between",
 R"(
@@ -569,11 +764,16 @@ R"(
 ),
 
 //-----------------------------------------------------------------------------
+#define EMPTY_SEQ_CASES                         \
+    "empty seq, explicit",                      \
+        "empty seq, multiline",                 \
+        "empty seq, multilines"
 
 C("empty seq, explicit",
 "[]",
     SEQ
 ),
+
 
 C("empty seq, multiline",
 R"([
@@ -592,8 +792,17 @@ R"([
     SEQ
 ),
 
-
 //-----------------------------------------------------------------------------
+#define SIMPLE_SEQ_CASES                                \
+"simple seq",                                           \
+"simple seq, explicit, single line",                    \
+"simple seq, explicit, multiline, unindented",          \
+"simple seq, explicit, multiline, comments inline",     \
+"simple seq, explicit, multiline, comments prev line",  \
+"simple seq, explicit, multiline, indented",            \
+"simple seq, comments inline",                          \
+"simple seq, comments prev line"
+
 
 C("simple seq",
 R"(- 0
@@ -603,6 +812,7 @@ R"(- 0
 )",
     L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
 ),
+
 
 C("simple seq, explicit, single line",
 "[0, 1, 2, 3]",
@@ -678,6 +888,15 @@ R"(
 ),
 
 //-----------------------------------------------------------------------------
+#define NESTED_SEQX2_CASES                                          \
+"nested seq x2, empty, oneline",                                    \
+"nested seq x2, explicit, same line",                               \
+"nested seq x2, explicit first+last level, same line, no spaces",   \
+"nested seq x2, explicit",                                          \
+"nested seq x2",                                                    \
+"nested seq x2, next line",                                         \
+"nested seq x2, all next line",                                     \
+"nested seq x2, implicit first, explicit last level"
 
 C("nested seq x2, empty, oneline",
 R"([[], [], []])",
@@ -693,9 +912,6 @@ R"([[00, 01, 02], [10, 11, 12], [20, 21, 22]])",
           }
 ),
 
-
-//-----------------------------------------------------------------------------
-
 C("nested seq x2, explicit first+last level, same line, no spaces",
 R"([[00,01,02],[10,11,12],[20,21,22]])",
     L{
@@ -704,9 +920,6 @@ R"([[00,01,02],[10,11,12],[20,21,22]])",
       N{L{N{"20"}, N{"21"}, N{"22"}}},
           }
 ),
-
-
-//-----------------------------------------------------------------------------
 
 C("nested seq x2, explicit",
 R"([
@@ -720,8 +933,6 @@ R"([
       N{L{N{"20"}, N{"21"}, N{"22"}}},
           }
 ),
-
-//-----------------------------------------------------------------------------
 
 C("nested seq x2",
 R"(
@@ -764,6 +975,37 @@ R"(
           }
 ),
 
+C("nested seq x2, all next line",
+R"(
+-
+  -
+    00
+  -
+    01
+  -
+    02
+-
+  -
+    10
+  -
+    11
+  -
+    12
+-
+  -
+    20
+  -
+    21
+  -
+    22
+)",
+    L{
+      N{L{N{"00"}, N{"01"}, N{"02"}}},
+      N{L{N{"10"}, N{"11"}, N{"12"}}},
+      N{L{N{"20"}, N{"21"}, N{"22"}}},
+          }
+),
+
 C("nested seq x2, implicit first, explicit last level",
 R"(
 - [00, 01, 02]
@@ -778,6 +1020,13 @@ R"(
 ),
 
 //-----------------------------------------------------------------------------
+#define NESTED_SEQX3_CASES \
+"nested seq x3, explicit", \
+"nested seq x3", \
+"nested seq x3, continued on next line", \
+"nested seq x3, all continued on next line"
+
+
 C("nested seq x3, explicit",
 R"([
 [[000, 001, 002], [010, 011, 012], [020, 021, 022]],
@@ -827,7 +1076,6 @@ R"(
       N{L{N{L{N{"200"}, N{"201"}, N{"202"}}}, N{L{N{"210"}, N{"211"}, N{"212"}}}, N{L{N{"220"}, N{"221"}, N{"222"}}}}},
           }
 ),
-
 
 C("nested seq x3, continued on next line",
 R"(
@@ -954,6 +1202,12 @@ R"(
           }
 ),
 
+//-----------------------------------------------------------------------------
+#define NESTED_SEQX4_CASES \
+    "nested seq x4, explicit", \
+    "nested seq x4"
+
+
 C("nested seq x4, explicit",
 R"([
 [[[0000, 0001, 0002], [0010, 0011, 0012], [0020, 0021, 0022]],
@@ -1068,6 +1322,10 @@ R"(
 
 
 //-----------------------------------------------------------------------------
+#define MAP_OF_SEQ_CASES \
+    "map of empty seqs", \
+    "map of seqs, one line", \
+       "map of seqs"
 
 C("map of empty seqs",
 R"({foo: [], bar: [], baz: []})",
@@ -1102,6 +1360,11 @@ women:
 ),
 
 //-----------------------------------------------------------------------------
+#define SEQ_OF_MAP_CASES                            \
+    "seq of empty maps, one line",                  \
+        "seq of maps, one line",                    \
+        "seq of maps, implicit seq, explicit maps", \
+        "seq of maps"
 
 C("seq of empty maps, one line",
 R"([{}, {}, {}])",
@@ -1141,6 +1404,9 @@ R"(
 ),
 
 //-----------------------------------------------------------------------------
+#define GENERIC_SEQ_CASES                       \
+    "generic seq",                              \
+        "generic seq v2"
 
 C("generic seq",
 R"(
@@ -1178,7 +1444,11 @@ R"(
   }
 ),
 
-C("general map",
+//-----------------------------------------------------------------------------
+#define GENERIC_MAP_CASES                       \
+        "generic map"
+
+C("generic map",
 R"(
 a simple key: a value   # The KEY token is produced here.
 ? a complex key
@@ -1198,7 +1468,52 @@ a sequence:
   }
 ),
 
+    });
+
+    auto it = cases.find(name);
+    C4_ASSERT(it != cases.end());
+    return &it->second;
+}
+
+
+INSTANTIATE_TEST_CASE_P(empty_files , test_case, ::testing::Values(EMPTY_FILE_CASES));
+INSTANTIATE_TEST_CASE_P(empty_docs  , test_case, ::testing::Values(EMPTY_DOC_CASES));
+
+INSTANTIATE_TEST_CASE_P(maps_simple , test_case, ::testing::Values(SIMPLE_MAP_CASES));
+INSTANTIATE_TEST_CASE_P(maps_nested2, test_case, ::testing::Values(NESTED_MAPX2_CASES));
+INSTANTIATE_TEST_CASE_P(maps_nested3, test_case, ::testing::Values(NESTED_MAPX3_CASES));
+INSTANTIATE_TEST_CASE_P(maps_nested4, test_case, ::testing::Values(NESTED_MAPX4_CASES));
+INSTANTIATE_TEST_CASE_P(complex_keys, test_case, ::testing::Values(COMPLEX_KEY_CASES));
+
+INSTANTIATE_TEST_CASE_P(seqs_empty  , test_case, ::testing::Values(EMPTY_SEQ_CASES));
+INSTANTIATE_TEST_CASE_P(seqs_simple , test_case, ::testing::Values(SIMPLE_SEQ_CASES));
+INSTANTIATE_TEST_CASE_P(seqs_nested2, test_case, ::testing::Values(NESTED_SEQX2_CASES));
+INSTANTIATE_TEST_CASE_P(seqs_nested3, test_case, ::testing::Values(NESTED_SEQX3_CASES));
+INSTANTIATE_TEST_CASE_P(seqs_nested4, test_case, ::testing::Values(NESTED_SEQX4_CASES));
+
+INSTANTIATE_TEST_CASE_P(map_of_seqs , test_case, ::testing::Values(MAP_OF_SEQ_CASES));
+INSTANTIATE_TEST_CASE_P(seq_of_maps , test_case, ::testing::Values(SEQ_OF_MAP_CASES));
+
+INSTANTIATE_TEST_CASE_P(generic_maps, test_case, ::testing::Values(GENERIC_MAP_CASES));
+INSTANTIATE_TEST_CASE_P(generic_seqs, test_case, ::testing::Values(GENERIC_SEQ_CASES));
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 #ifdef JAVAI
+int do_test()
+{
+    using namespace c4::yml;
+
+    using C = Case;
+    using N = CaseNode;
+    using L = CaseNode::iseqmap;
+
+
+
+    CaseContainer tests({
 //-----------------------------------------------------------------------------
 // https://en.wikipedia.org/wiki/YAML
 
@@ -1508,13 +1823,11 @@ another: text
       N{"another", "text"},
           }
 ),
-
-#endif
     }); // end examples
-
 
     return tests.run();
 }
+#endif
 
 
 #ifdef MORE_EXAMPLES
