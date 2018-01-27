@@ -887,8 +887,17 @@ bool Parser::_handle_unk()
         {
             _c4dbgp("got a ',' -- it's a seq (as_child=%d)", start_as_child);
             _start_seq(start_as_child);
+            add_flags(EXPL);
             _append_val(_consume_scalar());
             _line_progressed(2);
+        }
+        else if(rem.begins_with(','))
+        {
+            _c4dbgp("got a ',' -- it's a seq (as_child=%d)", start_as_child);
+            _start_seq(start_as_child);
+            add_flags(EXPL);
+            _append_val(_consume_scalar());
+            _line_progressed(1);
         }
         else if(rem.begins_with(": "))
         {
