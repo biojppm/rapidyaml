@@ -206,6 +206,75 @@ using L = CaseNode::iseqmap;
     static std::map< cspan, Case > cases({
 
 //-----------------------------------------------------------------------------
+#define SINGLE_QUOTED_CASES                     \
+            "squoted, only text",               \
+                "squoted, with double quotes",  \
+                "squoted, with escapes",        \
+                "squoted, with single quotes",  \
+                "squoted, all",                 \
+                "squoted, empty",               \
+                "squoted, 1 squote",            \
+                "squoted, 2 squotes",           \
+                "squoted, 3 squotes",           \
+                "squoted, 4 squotes"
+
+C("squoted, only text",
+R"('Some text without single quotes.'
+)",
+  L{N("Some text without single quotes.")}
+),
+
+C("squoted, with double quotes",
+R"('Some "text" "with double quotes"')",
+  L{N("Some \"text\" \"with double quotes\"")}
+),
+
+C("squoted, with escapes",
+R"('Some text with escapes \n \r \t')",
+  L{N("Some text with escapes \\n \\r \\t")}
+),
+
+C("squoted, with single quotes",
+R"('Some text ''with single quotes''')",
+  L{N("Some text 'with single quotes'")}
+),
+
+C("squoted, all",
+R"('Several lines of text,
+containing ''single quotes'' and "double quotes". Escapes (like \n) don''t do anything.
+
+Newlines can be added by leaving a blank line.
+            Leading whitespace on lines is ignored.'
+)",
+  L{N("Several lines of text, containing 'single quotes' and \"double quotes\". Escapes (like \\n) don't do anything.\nNewlines can be added by leaving a blank line. Leading whitespace on lines is ignored.")}
+),
+
+C("squoted, empty",
+R"('')",
+  L{N("")}
+),
+
+C("squoted, 1 squote",
+R"('''')",
+  L{N("'")}
+),
+
+C("squoted, 2 squotes",
+R"('''''')",
+  L{N("''")}
+),
+
+C("squoted, 3 squotes",
+R"('''''''')",
+  L{N("'''")}
+),
+
+C("squoted, 4 squotes",
+R"('''''''''')",
+  L{N("''''")}
+),
+
+//-----------------------------------------------------------------------------
 #define EMPTY_FILE_CASES "empty0-nochars", "empty0-multiline"
 
 C("empty0-nochars",
@@ -2202,6 +2271,8 @@ void check_invariants(Node const& n)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 
+
+INSTANTIATE_TEST_CASE_P(single_quotes, YmlTestCase, ::testing::Values(SINGLE_QUOTED_CASES));
 
 INSTANTIATE_TEST_CASE_P(empty_files , YmlTestCase, ::testing::Values(EMPTY_FILE_CASES));
 INSTANTIATE_TEST_CASE_P(docs_empty  , YmlTestCase, ::testing::Values(EMPTY_DOC_CASES));

@@ -1675,12 +1675,12 @@ cspan Parser::_scan_scalar()
 
     if(s.begins_with('\''))
     {
-        s = _scan_quoted_scalar(/*single*/true);
+        s = _scan_quoted_scalar('\'');
         return s;
     }
     else if(s.begins_with('"'))
     {
-        s = _scan_quoted_scalar(/*single*/false);
+        s = _scan_quoted_scalar('"');
         return s;
     }
     else if(s.begins_with('|') || s.begins_with('>'))
@@ -2133,49 +2133,57 @@ cspan Parser::_scan_comment()
 //-----------------------------------------------------------------------------
 cspan Parser::_scan_quoted_scalar(const char q)
 {
+    C4_ASSERT(q == '\'' || q == '\"');
+
     // quoted scalars can spread over multiple lines!
     // nice explanation here: http://yaml-multiline.info/
 
-    cspan s = m_state->line_contents.rem;
-    C4_ASSERT(q == '\'' || q == '\"');
+    bool needs_filter = false;
 
-    // find the pos of the matching quote
-    size_t pos = npos, sum = 0;
+    // a span to the end of the file
+    const size_t b = m_state->pos.offset;
+    cspan s = m_buf.subspan(b);
     C4_ASSERT(s.begins_with(q));
 
     // skip the opening quote
     _line_progressed(1);
+    s = s.subspan(1);
 
-    bool needs_filter = true;
-
+    // find the pos of the matching quote
+    size_t pos = npos;
     while( ! _finished_file())
     {
-        _scan_line();
-        s = m_state->line_contents.rem;
+        const cspan line = m_state->line_contents.rem;
 
-        for(size_t i = 1; i < s.len; ++i)
+        _c4dbgp("scanning quoted scalar @ line[%zd]:  line=\"%.*s\"", m_state->pos.line, _c4prsp(line));
+
+        if(q == '\'') // scalars with single quotes
         {
-            const char prev = s.str[i-1];
-            const char curr = s.str[i];
-            if(q == '\'') // scalars with single quotes
+            for(size_t i = 0; i < line.len; ++i)
             {
-                // ... are only escaped with two single quotes
-                if(curr == '\'')
+                const char curr = line.str[i];
+                const char next = i+1 < line.len ? line.str[i+1] : '\0';
+                if(curr == '\'') // single quotes are escaped with two single quotes
                 {
-                    if(prev != '\'')
-                    {
+                    if(next != '\'') // so just look for the first quote
+                    {                // without another after it
                         pos = i;
                         break;
                     }
                     else
                     {
-                        // there are escapes, so needs filter
-                        needs_filter = true;
+                        needs_filter = true; // needs filter to remove escaped quotes
+                        ++i; // skip the escaped quote
                     }
                 }
             }
-            else // scalars with double quotes
+        }
+        else // scalars with double quotes
+        {
+            for(size_t i = 1; i < line.len; ++i)
             {
+                const char prev = line.str[i-1];
+                const char curr = line.str[i];
                 // every \ is an escape
                 if(curr == '"')
                 {
@@ -2196,35 +2204,50 @@ cspan Parser::_scan_quoted_scalar(const char q)
             }
         }
 
-        if(pos != npos)
+        if(pos == npos)
         {
-            _line_progressed(pos);
-            pos += sum;
+            _line_progressed(line.len);
+            _c4dbgp("scanning scalar @ line[%zd]: sofar=\"%.*s\"", m_state->pos.line, _c4prsp(s.subspan(0, m_state->pos.offset-b)));
         }
         else
         {
-            _line_progressed(s.len);
-            sum += s.len;
+            C4_ASSERT(pos >= 0 && pos < m_buf.len);
+            C4_ASSERT(m_buf[m_state->pos.offset + pos] == q);
+            _line_progressed(pos + 1); // progress beyond the quote
+            pos = m_state->pos.offset - b - 1; // but we stop before it
             break;
         }
 
         _next_line();
+        _scan_line();
     }
 
     if(pos == npos)
     {
         _c4err("reached end of file while looking for closing quote");
     }
-
-    C4_ASSERT(s[pos] == q);
-    s = s.subspan(1, pos - 1);
+    else if(pos == 0)
+    {
+        s.clear();
+        C4_ASSERT( ! needs_filter);
+    }
+    else
+    {
+        C4_ASSERT(s.end() >= m_buf.begin() && s.end() <= m_buf.end());
+        C4_ASSERT(s.end() == m_buf.end() || *s.end() == q);
+        s = s.subspan(0, pos-1);
+    }
 
     if(needs_filter)
     {
+        _c4dbgp("unfiltered scalar: \"%.*s\"", _c4prsp(s));
         cspan ret = _filter_quoted_scalar(s, q);
+        _c4dbgp("filtered scalar: \"%.*s\"", _c4prsp(ret));
         C4_ASSERT(ret.len < s.len);
         return ret;
     }
+
+    _c4dbgp("final scalar: \"%.*s\"", _c4prsp(s));
 
     return s;
 }
