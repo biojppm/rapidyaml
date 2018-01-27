@@ -600,6 +600,7 @@ void Tree::set_parent(size_t iparent, size_t ichild, size_t iprev_sibling, size_
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
+#pragma GCC diagnostic ignored "-Wpragma-system-header-outside-header"
 #pragma GCC system_header
 
 #pragma clang diagnostic push
