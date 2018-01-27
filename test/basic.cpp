@@ -41,6 +41,9 @@ TEST(span, compare)
     EXPECT_TRUE((c1 > c2) != (c1 < c2));
 }
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 TEST(CaseNode, setting_up)
 {
     L tl1 = {DOC, DOC};
@@ -59,14 +62,17 @@ TEST(CaseNode, setting_up)
 }
 
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 // a fixture for running the tests
-struct test_case : public ::testing::TestWithParam< const char* >
+struct YmlTestCase : public ::testing::TestWithParam< const char* >
 {
     cspan const name;
     Case const* c; // the case
     CaseData * d; // the case data
 
-    test_case() : name(GetParam()), c(get_case(GetParam())), d(get_data(GetParam()))
+    YmlTestCase() : name(GetParam()), c(get_case(GetParam())), d(get_data(GetParam()))
     {
     }
 
@@ -80,12 +86,14 @@ struct test_case : public ::testing::TestWithParam< const char* >
     }
 };
 
-TEST_P(test_case, parse_using_libyaml_to_test_yml_correctness)
+//-----------------------------------------------------------------------------
+TEST_P(YmlTestCase, parse_using_libyaml_to_test_yml_correctness)
 {
     d->libyaml_parser.parse(c->src);
 }
 
-TEST_P(test_case, parse_using_ryml)
+//-----------------------------------------------------------------------------
+TEST_P(YmlTestCase, parse_using_ryml)
 {
     parse(c->src, &d->parsed_tree);
 #ifdef RYML_DBG
@@ -103,12 +111,14 @@ TEST_P(test_case, parse_using_ryml)
     }
 }
 
-TEST_P(test_case, emit_yml_stdout)
+//-----------------------------------------------------------------------------
+TEST_P(YmlTestCase, emit_yml_stdout)
 {
     d->numbytes_stdout = emit(d->parsed_tree);
 }
 
-TEST_P(test_case, emit_yml_string)
+//-----------------------------------------------------------------------------
+TEST_P(YmlTestCase, emit_yml_string)
 {
     auto em = emit_resize(d->parsed_tree, &d->emit_buf);
     EXPECT_EQ(em.len, d->emit_buf.size());
@@ -120,7 +130,8 @@ TEST_P(test_case, emit_yml_string)
 #endif
 }
 
-TEST_P(test_case, complete_round_trip)
+//-----------------------------------------------------------------------------
+TEST_P(YmlTestCase, complete_round_trip)
 {
 #ifdef RYML_DBG
     print_tree(d->parsed_tree);
@@ -148,8 +159,8 @@ TEST_P(test_case, complete_round_trip)
     }
 }
 
-
-TEST_P(test_case, recreate_from_ref)
+//-----------------------------------------------------------------------------
+TEST_P(YmlTestCase, recreate_from_ref)
 {
     {
         SCOPED_TRACE("recreating a new tree from the ref tree");
@@ -164,7 +175,9 @@ TEST_P(test_case, recreate_from_ref)
 }
 
 
-
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 CaseData* get_data(cspan name)
 {
@@ -173,6 +186,9 @@ CaseData* get_data(cspan name)
     return cd;
 }
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 Case const* get_case(cspan name)
 {
 
@@ -231,15 +247,28 @@ R"(---
 ),
 
 //-----------------------------------------------------------------------------
-#define SIMPLE_DOC_CASES                                \
-    "single scalar, implicit doc",                      \
-    "single scalar, explicit doc, implicit termination",\
-    "single scalar, explicit doc, explicit termination"
+#define SIMPLE_DOC_CASES                                        \
+    "single scalar, implicit doc",                              \
+        "multi scalar, implicit doc",                           \
+        "single scalar, explicit doc, implicit termination",    \
+        "single scalar, explicit doc, explicit termination"
 
 C("single scalar, implicit doc",
 R"(a scalar with some spaces inside
 )",
     N(L{N("a scalar with some spaces inside")})
+),
+
+C("multi scalar, implicit doc",
+R"(a scalar with some spaces inside,
+and yet another one with more spaces inside,
+and it doesn't really stop
+)",
+    N(L{
+     N("a scalar with some spaces inside"),
+     N("and yet another one with more spaces inside"),
+     N("and it doesn't really stop"),
+   })
 ),
 
 C("single scalar, explicit doc, implicit termination",
@@ -1496,42 +1525,6 @@ a sequence:
     return &it->second;
 }
 
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunknown-pragmas"
-#pragma GCC diagnostic ignored "-Wpragma-system-header-outside-header"
-#pragma GCC system_header
-
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
-
-
-INSTANTIATE_TEST_CASE_P(empty_files , test_case, ::testing::Values(EMPTY_FILE_CASES));
-INSTANTIATE_TEST_CASE_P(docs_empty  , test_case, ::testing::Values(EMPTY_DOC_CASES));
-INSTANTIATE_TEST_CASE_P(docs_simple , test_case, ::testing::Values(SIMPLE_DOC_CASES));
-
-INSTANTIATE_TEST_CASE_P(maps_simple , test_case, ::testing::Values(SIMPLE_MAP_CASES));
-INSTANTIATE_TEST_CASE_P(maps_nested2, test_case, ::testing::Values(NESTED_MAPX2_CASES));
-INSTANTIATE_TEST_CASE_P(maps_nested3, test_case, ::testing::Values(NESTED_MAPX3_CASES));
-INSTANTIATE_TEST_CASE_P(maps_nested4, test_case, ::testing::Values(NESTED_MAPX4_CASES));
-INSTANTIATE_TEST_CASE_P(complex_keys, test_case, ::testing::Values(COMPLEX_KEY_CASES));
-
-INSTANTIATE_TEST_CASE_P(seqs_empty  , test_case, ::testing::Values(EMPTY_SEQ_CASES));
-INSTANTIATE_TEST_CASE_P(seqs_simple , test_case, ::testing::Values(SIMPLE_SEQ_CASES));
-INSTANTIATE_TEST_CASE_P(seqs_nested2, test_case, ::testing::Values(NESTED_SEQX2_CASES));
-INSTANTIATE_TEST_CASE_P(seqs_nested3, test_case, ::testing::Values(NESTED_SEQX3_CASES));
-INSTANTIATE_TEST_CASE_P(seqs_nested4, test_case, ::testing::Values(NESTED_SEQX4_CASES));
-
-INSTANTIATE_TEST_CASE_P(map_of_seqs , test_case, ::testing::Values(MAP_OF_SEQ_CASES));
-INSTANTIATE_TEST_CASE_P(seq_of_maps , test_case, ::testing::Values(SEQ_OF_MAP_CASES));
-
-INSTANTIATE_TEST_CASE_P(maps_generic, test_case, ::testing::Values(GENERIC_MAP_CASES));
-INSTANTIATE_TEST_CASE_P(seqs_generic, test_case, ::testing::Values(GENERIC_SEQ_CASES));
-
-
-#pragma GCC diagnostic pop
-#pragma clang diagnostic pop
-
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -2196,6 +2189,45 @@ void check_invariants(Node const& n)
         check_invariants(*ch);
     }
 }
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
+#pragma GCC diagnostic ignored "-Wpragma-system-header-outside-header"
+#pragma GCC system_header
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
+
+
+INSTANTIATE_TEST_CASE_P(empty_files , YmlTestCase, ::testing::Values(EMPTY_FILE_CASES));
+INSTANTIATE_TEST_CASE_P(docs_empty  , YmlTestCase, ::testing::Values(EMPTY_DOC_CASES));
+INSTANTIATE_TEST_CASE_P(docs_simple , YmlTestCase, ::testing::Values(SIMPLE_DOC_CASES));
+
+INSTANTIATE_TEST_CASE_P(maps_simple , YmlTestCase, ::testing::Values(SIMPLE_MAP_CASES));
+INSTANTIATE_TEST_CASE_P(maps_nested2, YmlTestCase, ::testing::Values(NESTED_MAPX2_CASES));
+INSTANTIATE_TEST_CASE_P(maps_nested3, YmlTestCase, ::testing::Values(NESTED_MAPX3_CASES));
+INSTANTIATE_TEST_CASE_P(maps_nested4, YmlTestCase, ::testing::Values(NESTED_MAPX4_CASES));
+INSTANTIATE_TEST_CASE_P(complex_keys, YmlTestCase, ::testing::Values(COMPLEX_KEY_CASES));
+
+INSTANTIATE_TEST_CASE_P(seqs_empty  , YmlTestCase, ::testing::Values(EMPTY_SEQ_CASES));
+INSTANTIATE_TEST_CASE_P(seqs_simple , YmlTestCase, ::testing::Values(SIMPLE_SEQ_CASES));
+INSTANTIATE_TEST_CASE_P(seqs_nested2, YmlTestCase, ::testing::Values(NESTED_SEQX2_CASES));
+INSTANTIATE_TEST_CASE_P(seqs_nested3, YmlTestCase, ::testing::Values(NESTED_SEQX3_CASES));
+INSTANTIATE_TEST_CASE_P(seqs_nested4, YmlTestCase, ::testing::Values(NESTED_SEQX4_CASES));
+
+INSTANTIATE_TEST_CASE_P(map_of_seqs , YmlTestCase, ::testing::Values(MAP_OF_SEQ_CASES));
+INSTANTIATE_TEST_CASE_P(seq_of_maps , YmlTestCase, ::testing::Values(SEQ_OF_MAP_CASES));
+
+INSTANTIATE_TEST_CASE_P(maps_generic, YmlTestCase, ::testing::Values(GENERIC_MAP_CASES));
+INSTANTIATE_TEST_CASE_P(seqs_generic, YmlTestCase, ::testing::Values(GENERIC_SEQ_CASES));
+
+
+#pragma GCC diagnostic pop
+#pragma clang diagnostic pop
 
 } // namespace yml
 } // namespace c4
