@@ -232,87 +232,86 @@ using L = CaseNode::iseqmap;
     static std::map< cspan, Case > cases({
 
 //-----------------------------------------------------------------------------
-#define DOUBLE_QUOTED_CASES                                 \
-            "dquoted, only text",                           \
-                "dquoted, with single quotes",              \
-                "dquoted, with double quotes",              \
-                "dquoted, with single and double quotes",   \
-                "dquoted, with escapes",                    \
-                "dquoted, all",                             \
-                "dquoted, empty",                           \
-                "dquoted, 1 dquote",                        \
-                "dquoted, 2 dquotes",                       \
-                "dquoted, 3 dquotes",                       \
-                "dquoted, 4 dquotes"
+#define EMPTY_FILE_CASES "empty0-nochars", "empty0-multiline"
 
-C("dquoted, only text",
-R"("Some text without any quotes."
+C("empty0-nochars",
+"",
+NOTYPE
+),
+
+C("empty0-multiline", R"(
+
+
+
+)", NOTYPE
+),
+
+//-----------------------------------------------------------------------------
+#define EMPTY_DOC_CASES                                 \
+    "one empty doc",                                    \
+        "one empty doc, explicit termination",          \
+        "two empty docs"                                \
+
+C("one empty doc",
+R"(---
 )",
-  L{N("Some text without any quotes.")}
+    N(STREAM, L{DOC})
 ),
 
-C("dquoted, with single quotes",
-R"("Some text 'with single quotes'")",
-  L{N("Some text 'with single quotes'")}
-),
-
-C("dquoted, with double quotes",
-R"("Some \"text\" \"with double quotes\"")",
-  L{N("Some \"text\" \"with double quotes\"")}
-),
-
-C("dquoted, with single and double quotes",
-R"("Some text 'with single quotes' \"and double quotes\".")",
-  L{N("Some text 'with single quotes' \"and double quotes\".")}
-),
-
-C("dquoted, with escapes",
-R"("Some text with escapes \\n \\r \\t")",
-  L{N("Some text with escapes \\n \\r \\t")}
-),
-
-C("dquoted, all",
-R"("Several lines of text,
-containing 'single quotes' and \"double quotes\". \
-Escapes (like \\n) work.\nIn addition,
-newlines can be esc\
-aped to prevent them from being converted to a space.
-
-Newlines can also be added by leaving a blank line.
-    Leading whitespace on lines is ignored."
+C("one empty doc, explicit termination",
+R"(---
+...
 )",
-  L{N("Several lines of text, containing 'single quotes' and \"double quotes\". Escapes (like \\n) work.\nIn addition, newlines can be escaped to prevent them from being converted to a space.\nNewlines can also be added by leaving a blank line. Leading whitespace on lines is ignored.")}
+    N(STREAM, L{DOC})
 ),
 
-C("dquoted, empty",
-R"("")",
-  L{N("")}
+C("two empty docs",
+R"(---
+---
+)",
+    N(STREAM, L{DOC, DOC})
 ),
 
-C("dquoted, 1 dquote",
-R"("\"")",
-  L{N("\"")}
+//-----------------------------------------------------------------------------
+#define SIMPLE_DOC_CASES                                        \
+    "single scalar, implicit doc",                              \
+        "multi scalar, implicit doc",                           \
+        "single scalar, explicit doc, implicit termination",    \
+        "single scalar, explicit doc, explicit termination"
+
+C("single scalar, implicit doc",
+R"(a scalar with some spaces inside
+)",
+    N(L{N("a scalar with some spaces inside")})
 ),
 
-C("dquoted, 2 dquotes",
-R"("\"\"")",
-  L{N("\"\"")}
+C("multi scalar, implicit doc",
+R"(a scalar with some spaces inside,
+and yet another one with more spaces inside,
+and it doesn't really stop
+)",
+    N(L{
+     N("a scalar with some spaces inside"),
+     N("and yet another one with more spaces inside"),
+     N("and it doesn't really stop"),
+   })
 ),
 
-C("dquoted, 3 dquotes",
-R"("\"\"\"")",
-  L{N("\"\"\"")}
+C("single scalar, explicit doc, implicit termination",
+R"(---
+a scalar with some spaces inside
+)",
+    N(STREAM, L{N(DOCSEQ, L{N("a scalar with some spaces inside")})})
 ),
 
-C("dquoted, 4 dquotes",
-R"("\"\"\"\"")",
-  L{N("\"\"\"\"")}
+C("single scalar, explicit doc, explicit termination",
+R"(---
+a scalar with some spaces inside
+...
+)",
+    N(STREAM, L{N(DOCSEQ, L{N("a scalar with some spaces inside")})})
 ),
 
-C("dquoted, 5 dquotes",
-R"("\"\"\"\"\"")",
-  L{N("\"\"\"\"\"")}
-),
 
 //-----------------------------------------------------------------------------
 #define SINGLE_QUOTED_CASES                                 \
@@ -395,86 +394,147 @@ R"('''''''''''')",
 ),
 
 //-----------------------------------------------------------------------------
-#define EMPTY_FILE_CASES "empty0-nochars", "empty0-multiline"
+#define DOUBLE_QUOTED_CASES                                 \
+            "dquoted, only text",                           \
+                "dquoted, with single quotes",              \
+                "dquoted, with double quotes",              \
+                "dquoted, with single and double quotes",   \
+                "dquoted, with escapes",                    \
+                "dquoted, all",                             \
+                "dquoted, empty",                           \
+                "dquoted, 1 dquote",                        \
+                "dquoted, 2 dquotes",                       \
+                "dquoted, 3 dquotes",                       \
+                "dquoted, 4 dquotes"
 
-C("empty0-nochars",
-"",
-NOTYPE
+C("dquoted, only text",
+R"("Some text without any quotes."
+)",
+  L{N("Some text without any quotes.")}
 ),
 
-C("empty0-multiline", R"(
+C("dquoted, with single quotes",
+R"("Some text 'with single quotes'")",
+  L{N("Some text 'with single quotes'")}
+),
+
+C("dquoted, with double quotes",
+R"("Some \"text\" \"with double quotes\"")",
+  L{N("Some \"text\" \"with double quotes\"")}
+),
+
+C("dquoted, with single and double quotes",
+R"("Some text 'with single quotes' \"and double quotes\".")",
+  L{N("Some text 'with single quotes' \"and double quotes\".")}
+),
+
+C("dquoted, with escapes",
+R"("Some text with escapes \\n \\r \\t")",
+  L{N("Some text with escapes \\n \\r \\t")}
+),
+
+C("dquoted, all",
+R"("Several lines of text,
+containing 'single quotes' and \"double quotes\". \
+Escapes (like \\n) work.\nIn addition,
+newlines can be esc\
+aped to prevent them from being converted to a space.
+
+Newlines can also be added by leaving a blank line.
+    Leading whitespace on lines is ignored."
+)",
+  L{N("Several lines of text, containing 'single quotes' and \"double quotes\". Escapes (like \\n) work.\nIn addition, newlines can be escaped to prevent them from being converted to a space.\nNewlines can also be added by leaving a blank line. Leading whitespace on lines is ignored.")}
+),
+
+C("dquoted, empty",
+R"("")",
+  L{N("")}
+),
+
+C("dquoted, 1 dquote",
+R"("\"")",
+  L{N("\"")}
+),
+
+C("dquoted, 2 dquotes",
+R"("\"\"")",
+  L{N("\"\"")}
+),
+
+C("dquoted, 3 dquotes",
+R"("\"\"\"")",
+  L{N("\"\"\"")}
+),
+
+C("dquoted, 4 dquotes",
+R"("\"\"\"\"")",
+  L{N("\"\"\"\"")}
+),
+
+C("dquoted, 5 dquotes",
+R"("\"\"\"\"\"")",
+  L{N("\"\"\"\"\"")}
+),
 
 
+//-----------------------------------------------------------------------------
+#define EMPTY_MAP_CASES                         \
+    "empty map, explicit",                      \
+        "empty map, multiline",                 \
+        "empty map, multilines"
 
-)", NOTYPE
+C("empty map, explicit",
+"{}",
+    MAP
+),
+
+
+C("empty map, multiline",
+R"({
+
+}
+)",
+    MAP
+),
+
+C("empty map, multilines",
+R"({
+# ksjdfkjhsdfkjhsdfkjh
+
+
+}
+)",
+    MAP
 ),
 
 //-----------------------------------------------------------------------------
-#define EMPTY_DOC_CASES                                 \
-    "one empty doc",                                    \
-        "one empty doc, explicit termination",          \
-        "two empty docs"                                \
+#define EMPTY_SEQ_CASES                         \
+    "empty seq, explicit",                      \
+        "empty seq, multiline",                 \
+        "empty seq, multilines"
 
-C("one empty doc",
-R"(---
-)",
-    N(STREAM, L{DOC})
+C("empty seq, explicit",
+"[]",
+    SEQ
 ),
 
-C("one empty doc, explicit termination",
-R"(---
-...
+
+C("empty seq, multiline",
+R"([
+]
 )",
-    N(STREAM, L{DOC})
+    SEQ
 ),
 
-C("two empty docs",
-R"(---
----
+C("empty seq, multilines",
+R"([
+# ksjdfkjhsdfkjhsdfkjh
+
+
+]
 )",
-    N(STREAM, L{DOC, DOC})
+    SEQ
 ),
-
-//-----------------------------------------------------------------------------
-#define SIMPLE_DOC_CASES                                        \
-    "single scalar, implicit doc",                              \
-        "multi scalar, implicit doc",                           \
-        "single scalar, explicit doc, implicit termination",    \
-        "single scalar, explicit doc, explicit termination"
-
-C("single scalar, implicit doc",
-R"(a scalar with some spaces inside
-)",
-    N(L{N("a scalar with some spaces inside")})
-),
-
-C("multi scalar, implicit doc",
-R"(a scalar with some spaces inside,
-and yet another one with more spaces inside,
-and it doesn't really stop
-)",
-    N(L{
-     N("a scalar with some spaces inside"),
-     N("and yet another one with more spaces inside"),
-     N("and it doesn't really stop"),
-   })
-),
-
-C("single scalar, explicit doc, implicit termination",
-R"(---
-a scalar with some spaces inside
-)",
-    N(STREAM, L{N(DOCSEQ, L{N("a scalar with some spaces inside")})})
-),
-
-C("single scalar, explicit doc, explicit termination",
-R"(---
-a scalar with some spaces inside
-...
-)",
-    N(STREAM, L{N(DOCSEQ, L{N("a scalar with some spaces inside")})})
-),
-
 
 //-----------------------------------------------------------------------------
 
@@ -568,6 +628,156 @@ bat: 3
     L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
 ),
 
+//-----------------------------------------------------------------------------
+#define SIMPLE_SEQ_CASES                                \
+"simple seq",                                           \
+"simple seq, explicit, single line",                    \
+"simple seq, explicit, multiline, unindented",          \
+"simple seq, explicit, multiline, comments inline",     \
+"simple seq, explicit, multiline, comments prev line",  \
+"simple seq, explicit, multiline, indented",            \
+"simple seq, comments inline",                          \
+"simple seq, comments prev line"
+
+
+C("simple seq",
+R"(- 0
+- 1
+- 2
+- 3
+)",
+    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
+),
+
+
+C("simple seq, explicit, single line",
+"[0, 1, 2, 3]",
+    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
+),
+
+C("simple seq, explicit, multiline, unindented",
+R"([
+0,
+1,
+2,
+3
+])",
+    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
+),
+
+C("simple seq, explicit, multiline, comments inline",
+R"([
+0,  # bla0
+1,  # bla1
+2,  # bla2
+3   # bla3
+])",
+    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
+),
+
+C("simple seq, explicit, multiline, comments prev line",
+R"([
+# bla0
+0,
+# bla1
+1,
+# bla2
+2,
+# bla3
+3
+])",
+    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
+),
+
+C("simple seq, explicit, multiline, indented",
+R"([
+  0,
+  1,
+  2,
+  3
+])",
+    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
+),
+
+C("simple seq, comments inline",
+R"(
+- 0   # this is a foo
+- 1   # this is a bar
+- 2   # this is a bar
+- 3   # this is a bar
+)",
+    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
+),
+
+C("simple seq, comments prev line",
+R"(
+# this is a foo
+- 0
+# this is a bar
+- 1
+# this is a baz
+- 2
+# this is a bat
+- 3
+)",
+    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
+),
+
+//-----------------------------------------------------------------------------
+#define PLAIN_SCALAR_CASES                                          \
+    "plain scalar, 1 word only",                                    \
+        "plain scalar, 1 line with spaces",                         \
+        "plain scalar, multiline",                                  \
+        "plain scalar, multiline, quotes, escapes",                 \
+        "plain scalar, multiline, quotes, escapes, blank lines",    \
+        "plain scalar, example"
+
+
+C("plain scalar, 1 word only",
+R"(a_single_word_scalar_to_test)",
+  L{N("a_single_word_scalar_to_test")}
+),
+
+C("plain scalar, 1 line with spaces",
+R"(a scalar with spaces in it, all in one line)",
+  L{N("a scalar with spaces in it, all in one line")}
+),
+
+C("plain scalar, multiline",
+R"(
+a scalar with several lines in it,
+  of course also with spaces but for now there are no quotes
+  and also no blank lines to speak of)",
+  L{N("a scalar with several lines in it, of course also with spaces but for now there are no quotes and also no blank lines to speak of")}
+),
+
+C("plain scalar, multiline, quotes, escapes",
+R"(
+a scalar with several lines in it, and also 'single quotes'
+  and "double quotes" and assorted escapes such as \r or \n)",
+  L{N("a scalar with several lines in it, and also 'single quotes' and \"double quotes\" and assorted escapes such as \\r or \\n")}
+),
+
+C("plain scalar, multiline, quotes, escapes, blank lines",
+R"(
+a scalar with several lines in it, and also 'single quotes'
+  
+  and "double quotes" and assorted escapes such as \r or \n)",
+  L{N("a scalar with several lines in it, and also 'single quotes'\nand \"double quotes\" and assorted escapes such as \\r or \\n")}
+),
+
+C("plain scalar, example",
+R"(
+Several lines of text,
+  with some "quotes" of various 'types'.
+  Escapes (like \n) don't do anything.
+  
+  Newlines can be added by leaving a blank line.
+      Additional leading whitespace is ignored.
+)",
+  L{N("Several lines of text, with some \"quotes\" of various 'types'. Escapes (like \\n) don't do anything.\nNewlines can be added by leaving a blank line. Additional leading whitespace is ignored.")}
+),
+
 
 //-----------------------------------------------------------------------------
 #define NESTED_MAPX2_CASES \
@@ -616,6 +826,138 @@ baz:
       N{"foo", L{N{"foo0", "00"}, N{"bar0", "01"}, N{"baz0", "02"}}},
       N{"bar", L{N{"foo1", "10"}, N{"bar1", "11"}, N{"baz1", "12"}}},
       N{"baz", L{N{"foo2", "20"}, N{"bar2", "21"}, N{"baz2", "22"}}},
+          }
+),
+
+//-----------------------------------------------------------------------------
+#define NESTED_SEQX2_CASES                                          \
+"nested seq x2, empty, oneline",                                    \
+"nested seq x2, explicit, same line",                               \
+"nested seq x2, explicit first+last level, same line, no spaces",   \
+"nested seq x2, explicit",                                          \
+"nested seq x2",                                                    \
+"nested seq x2, next line",                                         \
+"nested seq x2, all next line",                                     \
+"nested seq x2, implicit first, explicit last level"
+
+C("nested seq x2, empty, oneline",
+R"([[], [], []])",
+    L{SEQ, SEQ, SEQ}
+),
+
+C("nested seq x2, explicit, same line",
+R"([[00, 01, 02], [10, 11, 12], [20, 21, 22]])",
+    L{
+      N{L{N{"00"}, N{"01"}, N{"02"}}},
+      N{L{N{"10"}, N{"11"}, N{"12"}}},
+      N{L{N{"20"}, N{"21"}, N{"22"}}},
+          }
+),
+
+C("nested seq x2, explicit first+last level, same line, no spaces",
+R"([[00,01,02],[10,11,12],[20,21,22]])",
+    L{
+      N{L{N{"00"}, N{"01"}, N{"02"}}},
+      N{L{N{"10"}, N{"11"}, N{"12"}}},
+      N{L{N{"20"}, N{"21"}, N{"22"}}},
+          }
+),
+
+C("nested seq x2, explicit",
+R"([
+[00, 01, 02],
+[10, 11, 12],
+[20, 21, 22],
+])",
+    L{
+      N{L{N{"00"}, N{"01"}, N{"02"}}},
+      N{L{N{"10"}, N{"11"}, N{"12"}}},
+      N{L{N{"20"}, N{"21"}, N{"22"}}},
+          }
+),
+
+C("nested seq x2",
+R"(
+- - 00
+  - 01
+  - 02
+- - 10
+  - 11
+  - 12
+- - 20
+  - 21
+  - 22
+)",
+    L{
+      N{L{N{"00"}, N{"01"}, N{"02"}}},
+      N{L{N{"10"}, N{"11"}, N{"12"}}},
+      N{L{N{"20"}, N{"21"}, N{"22"}}},
+          }
+),
+
+C("nested seq x2, next line",
+R"(
+-
+  - 00
+  - 01
+  - 02
+-
+  - 10
+  - 11
+  - 12
+-
+  - 20
+  - 21
+  - 22
+)",
+    L{
+      N{L{N{"00"}, N{"01"}, N{"02"}}},
+      N{L{N{"10"}, N{"11"}, N{"12"}}},
+      N{L{N{"20"}, N{"21"}, N{"22"}}},
+          }
+),
+
+C("nested seq x2, all next line",
+R"(
+-
+  -
+    00
+  -
+    01
+  -
+    02
+-
+  -
+    10
+  -
+    11
+  -
+    12
+-
+  -
+    20
+  -
+    21
+  -
+    22
+)",
+    L{
+      N{L{N{"00"}, N{"01"}, N{"02"}}},
+      N{L{N{"10"}, N{"11"}, N{"12"}}},
+      N{L{N{"20"}, N{"21"}, N{"22"}}},
+          }
+),
+
+C("nested seq x2, implicit first, explicit last level",
+R"(
+- [00, 01, 02]
+- [10, 11, 12]
+- [20, 21, 22]
+)",
+    L{
+      N{L{N{"00"}, N{"01"}, N{"02"}}},
+      N{L{N{"10"}, N{"11"}, N{"12"}}},
+      N{L{N{"20"}, N{"21"}, N{"22"}}},
           }
 ),
 
@@ -716,6 +1058,189 @@ baz0:
          N{"bar1", L{N{"foo2", "210"}, N{"bar2", "211"}, N{"baz2", "212"}}},
          N{"baz1", L{N{"foo2", "220"}, N{"bar2", "221"}, N{"baz2", "222"}}} }},
       }
+),
+
+//-----------------------------------------------------------------------------
+#define NESTED_SEQX3_CASES \
+"nested seq x3, explicit", \
+"nested seq x3", \
+"nested seq x3, continued on next line", \
+"nested seq x3, all continued on next line"
+
+
+C("nested seq x3, explicit",
+R"([
+[[000, 001, 002], [010, 011, 012], [020, 021, 022]],
+[[100, 101, 102], [110, 111, 112], [120, 121, 122]],
+[[200, 201, 202], [210, 211, 212], [220, 221, 222]],
+])",
+    L{
+      N{L{N{L{N{"000"}, N{"001"}, N{"002"}}}, N{L{N{"010"}, N{"011"}, N{"012"}}}, N{L{N{"020"}, N{"021"}, N{"022"}}}}},
+      N{L{N{L{N{"100"}, N{"101"}, N{"102"}}}, N{L{N{"110"}, N{"111"}, N{"112"}}}, N{L{N{"120"}, N{"121"}, N{"122"}}}}},
+      N{L{N{L{N{"200"}, N{"201"}, N{"202"}}}, N{L{N{"210"}, N{"211"}, N{"212"}}}, N{L{N{"220"}, N{"221"}, N{"222"}}}}},
+          }
+),
+
+C("nested seq x3",
+R"(
+- - - 000
+    - 001
+    - 002
+  - - 010
+    - 011
+    - 012
+  - - 020
+    - 021
+    - 022
+- - - 100
+    - 101
+    - 102
+  - - 110
+    - 111
+    - 112
+  - - 120
+    - 121
+    - 122
+- - - 200
+    - 201
+    - 202
+  - - 210
+    - 211
+    - 212
+  - - 220
+    - 221
+    - 222
+)",
+    L{
+      N{L{N{L{N{"000"}, N{"001"}, N{"002"}}}, N{L{N{"010"}, N{"011"}, N{"012"}}}, N{L{N{"020"}, N{"021"}, N{"022"}}}}},
+      N{L{N{L{N{"100"}, N{"101"}, N{"102"}}}, N{L{N{"110"}, N{"111"}, N{"112"}}}, N{L{N{"120"}, N{"121"}, N{"122"}}}}},
+      N{L{N{L{N{"200"}, N{"201"}, N{"202"}}}, N{L{N{"210"}, N{"211"}, N{"212"}}}, N{L{N{"220"}, N{"221"}, N{"222"}}}}},
+          }
+),
+
+C("nested seq x3, continued on next line",
+R"(
+-
+  -
+    - 000
+    - 001
+    - 002
+  -
+    - 010
+    - 011
+    - 012
+  -
+    - 020
+    - 021
+    - 022
+-
+  -
+    - 100
+    - 101
+    - 102
+  -
+    - 110
+    - 111
+    - 112
+  -
+    - 120
+    - 121
+    - 122
+-
+  -
+    - 200
+    - 201
+    - 202
+  -
+    - 210
+    - 211
+    - 212
+  -
+    - 220
+    - 221
+    - 222
+)",
+    L{
+      N{L{N{L{N{"000"}, N{"001"}, N{"002"}}}, N{L{N{"010"}, N{"011"}, N{"012"}}}, N{L{N{"020"}, N{"021"}, N{"022"}}}}},
+      N{L{N{L{N{"100"}, N{"101"}, N{"102"}}}, N{L{N{"110"}, N{"111"}, N{"112"}}}, N{L{N{"120"}, N{"121"}, N{"122"}}}}},
+      N{L{N{L{N{"200"}, N{"201"}, N{"202"}}}, N{L{N{"210"}, N{"211"}, N{"212"}}}, N{L{N{"220"}, N{"221"}, N{"222"}}}}},
+          }
+),
+
+C("nested seq x3, all continued on next line",
+R"(
+-
+  -
+    -
+      000
+    -
+      001
+    -
+      002
+  -
+    -
+      010
+    -
+      011
+    -
+      012
+  -
+    -
+      020
+    -
+      021
+    -
+      022
+-
+  -
+    -
+      100
+    -
+      101
+    -
+      102
+  -
+    -
+      110
+    -
+      111
+    -
+      112
+  -
+    -
+      120
+    -
+      121
+    -
+      122
+-
+  -
+    -
+      200
+    -
+      201
+    -
+      202
+  -
+    -
+      210
+    -
+      211
+    -
+      212
+  -
+    -
+      220
+    -
+      221
+    -
+      222
+)",
+    L{
+      N{L{N{L{N{"000"}, N{"001"}, N{"002"}}}, N{L{N{"010"}, N{"011"}, N{"012"}}}, N{L{N{"020"}, N{"021"}, N{"022"}}}}},
+      N{L{N{L{N{"100"}, N{"101"}, N{"102"}}}, N{L{N{"110"}, N{"111"}, N{"112"}}}, N{L{N{"120"}, N{"121"}, N{"122"}}}}},
+      N{L{N{L{N{"200"}, N{"201"}, N{"202"}}}, N{L{N{"210"}, N{"211"}, N{"212"}}}, N{L{N{"220"}, N{"221"}, N{"222"}}}}},
+          }
 ),
 
 //-----------------------------------------------------------------------------
@@ -903,543 +1428,6 @@ baz0:
 ),
 
 //-----------------------------------------------------------------------------
-#define COMPLEX_KEY_CASES                       \
-"complex key with line break in between",       \
-"complex key 2nd, inside explicit map",         \
-"complex key 1st, inside explicit map",         \
-"complex key 2nd",                              \
-"complex key 1st",                              \
-"complex key nested in a map, 1st",             \
-"complex key nested in a seq, 1st"
-
-
-C("complex key with line break in between",
-R"(
-? a complex key
-: its value
-)",
-  L{N("a complex key", "its value")}
-),
-
-C("complex key 2nd, inside explicit map",
-R"(
-{
-    a simple key: a value,
-    ? a complex key: another value,
-}
-)",
-  L{
-      N("a simple key", "a value"),
-      N("a complex key", "another value"),
-  }
-),
-
-C("complex key 1st, inside explicit map",
-R"(
-{
-    ? a complex key: another value,
-    a simple key: a value,
-}
-)",
-  L{
-      N("a complex key", "another value"),
-      N("a simple key", "a value"),
-  }
-),
-
-C("complex key 2nd",
-R"(
-a simple key: a value
-? a complex key: another value
-)",
-  L{
-      N("a simple key", "a value"),
-      N("a complex key", "another value"),
-  }
-),
-
-C("complex key 1st",
-R"(
-? a complex key: another value
-a simple key: a value
-)",
-  L{
-      N("a complex key", "another value"),
-      N("a simple key", "a value"),
-  }
-),
-
-C("complex key nested in a map, 1st",
-R"(
-map:
-  ? a complex key: another value
-  a simple key: a value
-? a complex key deindented: its value
-)",
-  L{
-      N("map", L{
-          N("a complex key", "another value"),
-          N("a simple key", "a value"),
-      }),
-      N("a complex key deindented", "its value")
-   }
-),
-
-C("complex key nested in a seq, 1st",
-R"(
-- ? a complex key: another value
-  a simple key: a value
-- ? another complex key: its value
-)",
-  L{
-      N(L{
-          N("a complex key", "another value"),
-          N("a simple key", "a value"),
-      }),
-      N(L{N("another complex key", "its value")})
-   }
-),
-
-//-----------------------------------------------------------------------------
-#define EMPTY_SEQ_CASES                         \
-    "empty seq, explicit",                      \
-        "empty seq, multiline",                 \
-        "empty seq, multilines"
-
-C("empty seq, explicit",
-"[]",
-    SEQ
-),
-
-
-C("empty seq, multiline",
-R"([
-]
-)",
-    SEQ
-),
-
-C("empty seq, multilines",
-R"([
-# ksjdfkjhsdfkjhsdfkjh
-
-
-]
-)",
-    SEQ
-),
-
-//-----------------------------------------------------------------------------
-#define SIMPLE_SEQ_CASES                                \
-"simple seq",                                           \
-"simple seq, explicit, single line",                    \
-"simple seq, explicit, multiline, unindented",          \
-"simple seq, explicit, multiline, comments inline",     \
-"simple seq, explicit, multiline, comments prev line",  \
-"simple seq, explicit, multiline, indented",            \
-"simple seq, comments inline",                          \
-"simple seq, comments prev line"
-
-
-C("simple seq",
-R"(- 0
-- 1
-- 2
-- 3
-)",
-    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
-),
-
-
-C("simple seq, explicit, single line",
-"[0, 1, 2, 3]",
-    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
-),
-
-C("simple seq, explicit, multiline, unindented",
-R"([
-0,
-1,
-2,
-3
-])",
-    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
-),
-
-C("simple seq, explicit, multiline, comments inline",
-R"([
-0,  # bla0
-1,  # bla1
-2,  # bla2
-3   # bla3
-])",
-    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
-),
-
-C("simple seq, explicit, multiline, comments prev line",
-R"([
-# bla0
-0,
-# bla1
-1,
-# bla2
-2,
-# bla3
-3
-])",
-    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
-),
-
-C("simple seq, explicit, multiline, indented",
-R"([
-  0,
-  1,
-  2,
-  3
-])",
-    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
-),
-
-C("simple seq, comments inline",
-R"(
-- 0   # this is a foo
-- 1   # this is a bar
-- 2   # this is a bar
-- 3   # this is a bar
-)",
-    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
-),
-
-C("simple seq, comments prev line",
-R"(
-# this is a foo
-- 0
-# this is a bar
-- 1
-# this is a baz
-- 2
-# this is a bat
-- 3
-)",
-    L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
-),
-
-//-----------------------------------------------------------------------------
-#define NESTED_SEQX2_CASES                                          \
-"nested seq x2, empty, oneline",                                    \
-"nested seq x2, explicit, same line",                               \
-"nested seq x2, explicit first+last level, same line, no spaces",   \
-"nested seq x2, explicit",                                          \
-"nested seq x2",                                                    \
-"nested seq x2, next line",                                         \
-"nested seq x2, all next line",                                     \
-"nested seq x2, implicit first, explicit last level"
-
-C("nested seq x2, empty, oneline",
-R"([[], [], []])",
-    L{SEQ, SEQ, SEQ}
-),
-
-C("nested seq x2, explicit, same line",
-R"([[00, 01, 02], [10, 11, 12], [20, 21, 22]])",
-    L{
-      N{L{N{"00"}, N{"01"}, N{"02"}}},
-      N{L{N{"10"}, N{"11"}, N{"12"}}},
-      N{L{N{"20"}, N{"21"}, N{"22"}}},
-          }
-),
-
-C("nested seq x2, explicit first+last level, same line, no spaces",
-R"([[00,01,02],[10,11,12],[20,21,22]])",
-    L{
-      N{L{N{"00"}, N{"01"}, N{"02"}}},
-      N{L{N{"10"}, N{"11"}, N{"12"}}},
-      N{L{N{"20"}, N{"21"}, N{"22"}}},
-          }
-),
-
-C("nested seq x2, explicit",
-R"([
-[00, 01, 02],
-[10, 11, 12],
-[20, 21, 22],
-])",
-    L{
-      N{L{N{"00"}, N{"01"}, N{"02"}}},
-      N{L{N{"10"}, N{"11"}, N{"12"}}},
-      N{L{N{"20"}, N{"21"}, N{"22"}}},
-          }
-),
-
-C("nested seq x2",
-R"(
-- - 00
-  - 01
-  - 02
-- - 10
-  - 11
-  - 12
-- - 20
-  - 21
-  - 22
-)",
-    L{
-      N{L{N{"00"}, N{"01"}, N{"02"}}},
-      N{L{N{"10"}, N{"11"}, N{"12"}}},
-      N{L{N{"20"}, N{"21"}, N{"22"}}},
-          }
-),
-
-C("nested seq x2, next line",
-R"(
--
-  - 00
-  - 01
-  - 02
--
-  - 10
-  - 11
-  - 12
--
-  - 20
-  - 21
-  - 22
-)",
-    L{
-      N{L{N{"00"}, N{"01"}, N{"02"}}},
-      N{L{N{"10"}, N{"11"}, N{"12"}}},
-      N{L{N{"20"}, N{"21"}, N{"22"}}},
-          }
-),
-
-C("nested seq x2, all next line",
-R"(
--
-  -
-    00
-  -
-    01
-  -
-    02
--
-  -
-    10
-  -
-    11
-  -
-    12
--
-  -
-    20
-  -
-    21
-  -
-    22
-)",
-    L{
-      N{L{N{"00"}, N{"01"}, N{"02"}}},
-      N{L{N{"10"}, N{"11"}, N{"12"}}},
-      N{L{N{"20"}, N{"21"}, N{"22"}}},
-          }
-),
-
-C("nested seq x2, implicit first, explicit last level",
-R"(
-- [00, 01, 02]
-- [10, 11, 12]
-- [20, 21, 22]
-)",
-    L{
-      N{L{N{"00"}, N{"01"}, N{"02"}}},
-      N{L{N{"10"}, N{"11"}, N{"12"}}},
-      N{L{N{"20"}, N{"21"}, N{"22"}}},
-          }
-),
-
-//-----------------------------------------------------------------------------
-#define NESTED_SEQX3_CASES \
-"nested seq x3, explicit", \
-"nested seq x3", \
-"nested seq x3, continued on next line", \
-"nested seq x3, all continued on next line"
-
-
-C("nested seq x3, explicit",
-R"([
-[[000, 001, 002], [010, 011, 012], [020, 021, 022]],
-[[100, 101, 102], [110, 111, 112], [120, 121, 122]],
-[[200, 201, 202], [210, 211, 212], [220, 221, 222]],
-])",
-    L{
-      N{L{N{L{N{"000"}, N{"001"}, N{"002"}}}, N{L{N{"010"}, N{"011"}, N{"012"}}}, N{L{N{"020"}, N{"021"}, N{"022"}}}}},
-      N{L{N{L{N{"100"}, N{"101"}, N{"102"}}}, N{L{N{"110"}, N{"111"}, N{"112"}}}, N{L{N{"120"}, N{"121"}, N{"122"}}}}},
-      N{L{N{L{N{"200"}, N{"201"}, N{"202"}}}, N{L{N{"210"}, N{"211"}, N{"212"}}}, N{L{N{"220"}, N{"221"}, N{"222"}}}}},
-          }
-),
-
-C("nested seq x3",
-R"(
-- - - 000
-    - 001
-    - 002
-  - - 010
-    - 011
-    - 012
-  - - 020
-    - 021
-    - 022
-- - - 100
-    - 101
-    - 102
-  - - 110
-    - 111
-    - 112
-  - - 120
-    - 121
-    - 122
-- - - 200
-    - 201
-    - 202
-  - - 210
-    - 211
-    - 212
-  - - 220
-    - 221
-    - 222
-)",
-    L{
-      N{L{N{L{N{"000"}, N{"001"}, N{"002"}}}, N{L{N{"010"}, N{"011"}, N{"012"}}}, N{L{N{"020"}, N{"021"}, N{"022"}}}}},
-      N{L{N{L{N{"100"}, N{"101"}, N{"102"}}}, N{L{N{"110"}, N{"111"}, N{"112"}}}, N{L{N{"120"}, N{"121"}, N{"122"}}}}},
-      N{L{N{L{N{"200"}, N{"201"}, N{"202"}}}, N{L{N{"210"}, N{"211"}, N{"212"}}}, N{L{N{"220"}, N{"221"}, N{"222"}}}}},
-          }
-),
-
-C("nested seq x3, continued on next line",
-R"(
--
-  -
-    - 000
-    - 001
-    - 002
-  -
-    - 010
-    - 011
-    - 012
-  -
-    - 020
-    - 021
-    - 022
--
-  -
-    - 100
-    - 101
-    - 102
-  -
-    - 110
-    - 111
-    - 112
-  -
-    - 120
-    - 121
-    - 122
--
-  -
-    - 200
-    - 201
-    - 202
-  -
-    - 210
-    - 211
-    - 212
-  -
-    - 220
-    - 221
-    - 222
-)",
-    L{
-      N{L{N{L{N{"000"}, N{"001"}, N{"002"}}}, N{L{N{"010"}, N{"011"}, N{"012"}}}, N{L{N{"020"}, N{"021"}, N{"022"}}}}},
-      N{L{N{L{N{"100"}, N{"101"}, N{"102"}}}, N{L{N{"110"}, N{"111"}, N{"112"}}}, N{L{N{"120"}, N{"121"}, N{"122"}}}}},
-      N{L{N{L{N{"200"}, N{"201"}, N{"202"}}}, N{L{N{"210"}, N{"211"}, N{"212"}}}, N{L{N{"220"}, N{"221"}, N{"222"}}}}},
-          }
-),
-
-C("nested seq x3, all continued on next line",
-R"(
--
-  -
-    -
-      000
-    -
-      001
-    -
-      002
-  -
-    -
-      010
-    -
-      011
-    -
-      012
-  -
-    -
-      020
-    -
-      021
-    -
-      022
--
-  -
-    -
-      100
-    -
-      101
-    -
-      102
-  -
-    -
-      110
-    -
-      111
-    -
-      112
-  -
-    -
-      120
-    -
-      121
-    -
-      122
--
-  -
-    -
-      200
-    -
-      201
-    -
-      202
-  -
-    -
-      210
-    -
-      211
-    -
-      212
-  -
-    -
-      220
-    -
-      221
-    -
-      222
-)",
-    L{
-      N{L{N{L{N{"000"}, N{"001"}, N{"002"}}}, N{L{N{"010"}, N{"011"}, N{"012"}}}, N{L{N{"020"}, N{"021"}, N{"022"}}}}},
-      N{L{N{L{N{"100"}, N{"101"}, N{"102"}}}, N{L{N{"110"}, N{"111"}, N{"112"}}}, N{L{N{"120"}, N{"121"}, N{"122"}}}}},
-      N{L{N{L{N{"200"}, N{"201"}, N{"202"}}}, N{L{N{"210"}, N{"211"}, N{"212"}}}, N{L{N{"220"}, N{"221"}, N{"222"}}}}},
-          }
-),
-
-//-----------------------------------------------------------------------------
 #define NESTED_SEQX4_CASES \
     "nested seq x4, explicit", \
     "nested seq x4"
@@ -1555,6 +1543,104 @@ R"(
       N{L{N{L{N{L{N{"1000"}, N{"1001"}, N{"1002"}}}, N{L{N{"1010"}, N{"1011"}, N{"1012"}}}, N{L{N{"1020"}, N{"1021"}, N{"1022"}}}}}, N{L{N{L{N{"1100"}, N{"1101"}, N{"1102"}}}, N{L{N{"1110"}, N{"1111"}, N{"1112"}}}, N{L{N{"1120"}, N{"1121"}, N{"1122"}}}}}, N{L{N{L{N{"1200"}, N{"1201"}, N{"1202"}}}, N{L{N{"1210"}, N{"1211"}, N{"1212"}}}, N{L{N{"1220"}, N{"1221"}, N{"1222"}}}}}}},
       N{L{N{L{N{L{N{"2000"}, N{"2001"}, N{"2002"}}}, N{L{N{"2010"}, N{"2011"}, N{"2012"}}}, N{L{N{"2020"}, N{"2021"}, N{"2022"}}}}}, N{L{N{L{N{"2100"}, N{"2101"}, N{"2102"}}}, N{L{N{"2110"}, N{"2111"}, N{"2112"}}}, N{L{N{"2120"}, N{"2121"}, N{"2122"}}}}}, N{L{N{L{N{"2200"}, N{"2201"}, N{"2202"}}}, N{L{N{"2210"}, N{"2211"}, N{"2212"}}}, N{L{N{"2220"}, N{"2221"}, N{"2222"}}}}}}},
           }
+),
+
+//-----------------------------------------------------------------------------
+#define COMPLEX_KEY_CASES                       \
+"complex key with line break in between",       \
+"complex key 2nd, inside explicit map",         \
+"complex key 1st, inside explicit map",         \
+"complex key 2nd",                              \
+"complex key 1st",                              \
+"complex key nested in a map, 1st",             \
+"complex key nested in a seq, 1st"
+
+
+C("complex key with line break in between",
+R"(
+? a complex key
+: its value
+)",
+  L{N("a complex key", "its value")}
+),
+
+C("complex key 2nd, inside explicit map",
+R"(
+{
+    a simple key: a value,
+    ? a complex key: another value,
+}
+)",
+  L{
+      N("a simple key", "a value"),
+      N("a complex key", "another value"),
+  }
+),
+
+C("complex key 1st, inside explicit map",
+R"(
+{
+    ? a complex key: another value,
+    a simple key: a value,
+}
+)",
+  L{
+      N("a complex key", "another value"),
+      N("a simple key", "a value"),
+  }
+),
+
+C("complex key 2nd",
+R"(
+a simple key: a value
+? a complex key: another value
+)",
+  L{
+      N("a simple key", "a value"),
+      N("a complex key", "another value"),
+  }
+),
+
+C("complex key 1st",
+R"(
+? a complex key: another value
+a simple key: a value
+)",
+  L{
+      N("a complex key", "another value"),
+      N("a simple key", "a value"),
+  }
+),
+
+C("complex key nested in a map, 1st",
+R"(
+map:
+  ? a complex key: another value
+  a simple key: a value
+? a complex key deindented: its value
+)",
+  L{
+      N("map", L{
+          N("a complex key", "another value"),
+          N("a simple key", "a value"),
+      }),
+      N("a complex key deindented", "its value")
+   }
+),
+
+C("complex key nested in a seq, 1st",
+R"(
+- ? a complex key: another value
+  a simple key: a value
+- ? another complex key: its value
+)",
+  L{
+      N(L{
+          N("a complex key", "another value"),
+          N("a simple key", "a value"),
+      }),
+      N(L{N("another complex key", "its value")})
+   }
 ),
 
 
@@ -2392,30 +2478,36 @@ void check_invariants(Node const& n)
 #pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 
 
+INSTANTIATE_TEST_CASE_P(empty_files  , YmlTestCase, ::testing::Values(EMPTY_FILE_CASES));
+INSTANTIATE_TEST_CASE_P(docs_empty   , YmlTestCase, ::testing::Values(EMPTY_DOC_CASES));
+INSTANTIATE_TEST_CASE_P(docs_simple  , YmlTestCase, ::testing::Values(SIMPLE_DOC_CASES));
+
+INSTANTIATE_TEST_CASE_P(maps_empty   , YmlTestCase, ::testing::Values(EMPTY_MAP_CASES));
+INSTANTIATE_TEST_CASE_P(seqs_empty   , YmlTestCase, ::testing::Values(EMPTY_SEQ_CASES));
+
+INSTANTIATE_TEST_CASE_P(maps_simple  , YmlTestCase, ::testing::Values(SIMPLE_MAP_CASES));
+INSTANTIATE_TEST_CASE_P(seqs_simple  , YmlTestCase, ::testing::Values(SIMPLE_SEQ_CASES));
+
 INSTANTIATE_TEST_CASE_P(double_quotes, YmlTestCase, ::testing::Values(DOUBLE_QUOTED_CASES));
 INSTANTIATE_TEST_CASE_P(single_quotes, YmlTestCase, ::testing::Values(SINGLE_QUOTED_CASES));
+INSTANTIATE_TEST_CASE_P(plain_scalars, YmlTestCase, ::testing::Values(PLAIN_SCALAR_CASES));
+INSTANTIATE_TEST_CASE_P(complex_keys , YmlTestCase, ::testing::Values(COMPLEX_KEY_CASES));
 
-INSTANTIATE_TEST_CASE_P(empty_files , YmlTestCase, ::testing::Values(EMPTY_FILE_CASES));
-INSTANTIATE_TEST_CASE_P(docs_empty  , YmlTestCase, ::testing::Values(EMPTY_DOC_CASES));
-INSTANTIATE_TEST_CASE_P(docs_simple , YmlTestCase, ::testing::Values(SIMPLE_DOC_CASES));
+INSTANTIATE_TEST_CASE_P(maps_nested2 , YmlTestCase, ::testing::Values(NESTED_MAPX2_CASES));
+INSTANTIATE_TEST_CASE_P(seqs_nested2 , YmlTestCase, ::testing::Values(NESTED_SEQX2_CASES));
 
-INSTANTIATE_TEST_CASE_P(maps_simple , YmlTestCase, ::testing::Values(SIMPLE_MAP_CASES));
-INSTANTIATE_TEST_CASE_P(maps_nested2, YmlTestCase, ::testing::Values(NESTED_MAPX2_CASES));
-INSTANTIATE_TEST_CASE_P(maps_nested3, YmlTestCase, ::testing::Values(NESTED_MAPX3_CASES));
-INSTANTIATE_TEST_CASE_P(maps_nested4, YmlTestCase, ::testing::Values(NESTED_MAPX4_CASES));
-INSTANTIATE_TEST_CASE_P(complex_keys, YmlTestCase, ::testing::Values(COMPLEX_KEY_CASES));
+INSTANTIATE_TEST_CASE_P(maps_nested3 , YmlTestCase, ::testing::Values(NESTED_MAPX3_CASES));
+INSTANTIATE_TEST_CASE_P(seqs_nested3 , YmlTestCase, ::testing::Values(NESTED_SEQX3_CASES));
 
-INSTANTIATE_TEST_CASE_P(seqs_empty  , YmlTestCase, ::testing::Values(EMPTY_SEQ_CASES));
-INSTANTIATE_TEST_CASE_P(seqs_simple , YmlTestCase, ::testing::Values(SIMPLE_SEQ_CASES));
-INSTANTIATE_TEST_CASE_P(seqs_nested2, YmlTestCase, ::testing::Values(NESTED_SEQX2_CASES));
-INSTANTIATE_TEST_CASE_P(seqs_nested3, YmlTestCase, ::testing::Values(NESTED_SEQX3_CASES));
-INSTANTIATE_TEST_CASE_P(seqs_nested4, YmlTestCase, ::testing::Values(NESTED_SEQX4_CASES));
+INSTANTIATE_TEST_CASE_P(maps_nested4 , YmlTestCase, ::testing::Values(NESTED_MAPX4_CASES));
+INSTANTIATE_TEST_CASE_P(seqs_nested4 , YmlTestCase, ::testing::Values(NESTED_SEQX4_CASES));
 
-INSTANTIATE_TEST_CASE_P(map_of_seqs , YmlTestCase, ::testing::Values(MAP_OF_SEQ_CASES));
-INSTANTIATE_TEST_CASE_P(seq_of_maps , YmlTestCase, ::testing::Values(SEQ_OF_MAP_CASES));
+INSTANTIATE_TEST_CASE_P(map_of_seqs  , YmlTestCase, ::testing::Values(MAP_OF_SEQ_CASES));
+INSTANTIATE_TEST_CASE_P(seq_of_maps  , YmlTestCase, ::testing::Values(SEQ_OF_MAP_CASES));
 
-INSTANTIATE_TEST_CASE_P(maps_generic, YmlTestCase, ::testing::Values(GENERIC_MAP_CASES));
-INSTANTIATE_TEST_CASE_P(seqs_generic, YmlTestCase, ::testing::Values(GENERIC_SEQ_CASES));
+
+INSTANTIATE_TEST_CASE_P(maps_generic , YmlTestCase, ::testing::Values(GENERIC_MAP_CASES));
+INSTANTIATE_TEST_CASE_P(seqs_generic , YmlTestCase, ::testing::Values(GENERIC_SEQ_CASES));
 
 
 #pragma GCC diagnostic pop
