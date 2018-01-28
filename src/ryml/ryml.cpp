@@ -2366,10 +2366,10 @@ cspan Parser::_scan_quoted_scalar(const char q)
     {
         const cspan line = m_state->line_contents.rem;
 
-        _c4dbgp("scanning quoted scalar @ line[%zd]:  line=\"%.*s\"", m_state->pos.line, _c4prsp(line));
 
         if(q == '\'') // scalars with single quotes
         {
+            _c4dbgp("scanning single quoted scalar @ line[%zd]:  line=\"%.*s\"", m_state->pos.line, _c4prsp(line));
             for(size_t i = 0; i < line.len; ++i)
             {
                 const char curr = line.str[i];
@@ -2393,28 +2393,32 @@ cspan Parser::_scan_quoted_scalar(const char q)
         }
         else // scalars with double quotes
         {
-            for(size_t i = 1; i < line.len; ++i)
+            _c4dbgp("scanning double quoted scalar @ line[%zd]:  line='%.*s'", m_state->pos.line, _c4prsp(line));
+            for(size_t i = 0; i < line.len; ++i)
             {
-                const char prev = line.str[i-1];
                 const char curr = line.str[i];
+                const char next = i+1 < line.len ? line.str[i+1] : '\0';
                 // every \ is an escape
-                if(curr == '"')
+                if(curr == '\\')
                 {
-                    if(prev != '\\')
-                    {
-                        pos = i;
-                        break;
-                    }
-                    else
+                    if(next == '\\' || (i+1 == line.len))
                     {
                         needs_filter = true;
                     }
+                    else if(next == '"')
+                    {
+                        needs_filter = true;
+                        ++i;
+                    }
                 }
-                else if(curr == '\\')
+                else if(curr == '"')
                 {
-                    needs_filter = true;
+                    pos = i;
+                    break;
                 }
             }
+            // leading whitespace also needs filtering
+            needs_filter = needs_filter || (_at_line_begin() && line.begins_with(' '));
         }
 
         if(pos == npos)
@@ -2541,85 +2545,119 @@ inline span erase(span d, size_t pos, size_t num)
 cspan Parser::_filter_quoted_scalar(span s, const char q)
 {
     span r = s;
-    if(q == '\'')
-    {
-        _c4dbgp("filtering single quoted scalar: \"%.*s\"", _c4prsp(s));
 
-        // do a first sweep to clean leading whitespace
-        for(size_t i = 0; i < r.len; ++i)
+    _c4dbgp("filtering quoted scalar: %c%.*s%c", q=='"'?'\'':'"', _c4prsp(s), q=='"'?'\'':'"');
+
+    // do a first sweep to clean leading whitespace and non-unix newlines
+    for(size_t i = 0; i < r.len; ++i)
+    {
+        const char curr = r[i];
+        const char prev = i   > 0     ? r[i-1] : '\0';
+        const char next = i+1 < r.len ? r[i+1] : '\0';
+        if(curr == ' ' && prev == '\n')
         {
-            const char curr = r[i];
-            const char prev = i   > 0     ? r[i-1] : '\0';
-            const char next = i+1 < r.len ? r[i+1] : '\0';
-            if(curr == ' ' && prev == '\n')
+            if(next == ' ')
             {
-                if(next == ' ')
-                {
-                    cspan ss = s.subspan(i);
-                    ss = ss.left_of(ss.first_not_of(' '));
-                    C4_ASSERT(ss.len > 1);
-                    r = erase(r, i, ss.len);
-                    i += s.len;
-                }
-                else
-                {
-                    r = erase(r, i, 1);
-                    ++i;
-                }
+                cspan ss = s.subspan(i);
+                ss = ss.left_of(ss.first_not_of(' '));
+                C4_ASSERT(ss.len > 1);
+                r = erase(r, i, ss.len);
+            }
+            else
+            {
+                r = erase(r, i, 1);
             }
         }
+        // erase \r --- https://stackoverflow.com/questions/1885900
+        else if(curr == '\r' && next == '\n') // this is the right order
+        {
+            r = erase(r, i, 1);
+        }
+        else if(curr == '\n' && next == '\r') // this is the wrong order
+        {
+            r = erase(r, i+1, 1);
+        }
+        else if(curr == '\r')
+        {
+            r[i] = '\n'; // use only \n
+        }
+    }
 
-        _c4dbgp("after filtering leading whitespace: \"%.*s\"", _c4prsp(r));
+    _c4dbgp("filtering quoted scalar: after leading whitespace: %c%.*s%c", q=='"'?'\'':'"', _c4prsp(r), q=='"'?'\'':'"');
 
-        // now another sweep for quotes and newlines
+    // now another sweep for quotes and newlines
+    if(q == '\'')
+    {
         for(size_t i = 0; i < r.len; ++i)
         {
             const char curr = r[i];
             const char prev = i   > 0     ? r[i-1] : '\0';
             const char next = i+1 < r.len ? r[i+1] : '\0';
-            // turn two single quotes into one
             if(curr == '\'' && (curr == next))
             {
-                r = erase(r, i+1, 1);
+                r = erase(r, i+1, 1); // turn two consecutive single quotes into one
             }
-            else if(curr == '\n' || curr == '\r')
+            else if(curr == '\n')
             {
-                if(next != '\n' && next != '\r')
+                if(next != '\n')
                 {
-                    // a single unix newline: turn it into a space
-                    r[i] = ' ';
+                    r[i] = ' '; // a single unix newline: turn it into a space
                 }
                 else if(curr == '\n' && next == '\n')
                 {
-                    r = erase(r, i+1, 1); // delete \r
-                }
-                else if(curr == '\r' && next == '\n') // this is the right order https://stackoverflow.com/questions/1885900
-                {
-                    // a single newline, but uses \r
-                    r = erase(r, i, 1); // delete \r
-                    r[i+1] = ' ';       // and turn \n into a space
-                    ++i;
-                }
-                else if(curr == '\n' && next == '\r') // this is the wrong order https://stackoverflow.com/questions/1885900
-                {
-                    // a single newline, but uses \r
-                    r[i] = ' ';           // turn \n into a space
-                    r = erase(r, i+1, 1); // and delete \r
-                    ++i;
+                    r = erase(r, i+1, 1); // keep only one of consecutive newlines
                 }
             }
         }
-#ifdef RYML_DBG
-        for(size_t i = r.len; i < s.len; ++i)
-        {
-            s[i] = '~';
-        }
-#endif
     }
     else
     {
-        _c4err("not implemented");
+        for(size_t i = 0; i < r.len; ++i)
+        {
+            const char curr = r[i];
+            const char prev = i   > 0     ? r[i-1] : '\0';
+            const char next = i+1 < r.len ? r[i+1] : '\0';
+            if(curr == '\\')
+            {
+                if(next == curr)
+                {
+                    r = erase(r, i+1, 1); // turn two consecutive backslashes into one
+                }
+                else if(next == '\n')
+                {
+                    r = erase(r, i, 2);  // newlines are escaped with \ -- delete both
+                }
+                else if(next == '"')
+                {
+                    r = erase(r, i, 1);  // fix escaped double quotes
+                }
+                else if(next == 'n')
+                {
+                    r = erase(r, i+1, 1);
+                    r[i] = '\n';
+                }
+            }
+            else if(curr == '\n')
+            {
+                if(next != '\n')
+                {
+                    r[i] = ' '; // a single unix newline: turn it into a space
+                }
+                else if(curr == '\n' && next == '\n')
+                {
+                    r = erase(r, i+1, 1); // keep only one of consecutive newlines
+                }
+            }
+        }
     }
+
+#ifdef RYML_DBG
+    for(size_t i = r.len; i < s.len; ++i)
+    {
+        s[i] = '~';
+    }
+#endif
+
     return r;
 }
 

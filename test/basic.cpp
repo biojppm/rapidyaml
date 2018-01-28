@@ -232,6 +232,89 @@ using L = CaseNode::iseqmap;
     static std::map< cspan, Case > cases({
 
 //-----------------------------------------------------------------------------
+#define DOUBLE_QUOTED_CASES                                 \
+            "dquoted, only text",                           \
+                "dquoted, with single quotes",              \
+                "dquoted, with double quotes",              \
+                "dquoted, with single and double quotes",   \
+                "dquoted, with escapes",                    \
+                "dquoted, all",                             \
+                "dquoted, empty",                           \
+                "dquoted, 1 dquote",                        \
+                "dquoted, 2 dquotes",                       \
+                "dquoted, 3 dquotes",                       \
+                "dquoted, 4 dquotes"
+
+C("dquoted, only text",
+R"("Some text without any quotes."
+)",
+  L{N("Some text without any quotes.")}
+),
+
+C("dquoted, with single quotes",
+R"("Some text 'with single quotes'")",
+  L{N("Some text 'with single quotes'")}
+),
+
+C("dquoted, with double quotes",
+R"("Some \"text\" \"with double quotes\"")",
+  L{N("Some \"text\" \"with double quotes\"")}
+),
+
+C("dquoted, with single and double quotes",
+R"("Some text 'with single quotes' \"and double quotes\".")",
+  L{N("Some text 'with single quotes' \"and double quotes\".")}
+),
+
+C("dquoted, with escapes",
+R"("Some text with escapes \\n \\r \\t")",
+  L{N("Some text with escapes \\n \\r \\t")}
+),
+
+C("dquoted, all",
+R"("Several lines of text,
+containing 'single quotes' and \"double quotes\". \
+Escapes (like \\n) work.\nIn addition,
+newlines can be esc\
+aped to prevent them from being converted to a space.
+
+Newlines can also be added by leaving a blank line.
+    Leading whitespace on lines is ignored."
+)",
+  L{N("Several lines of text, containing 'single quotes' and \"double quotes\". Escapes (like \\n) work.\nIn addition, newlines can be escaped to prevent them from being converted to a space.\nNewlines can also be added by leaving a blank line. Leading whitespace on lines is ignored.")}
+),
+
+C("dquoted, empty",
+R"("")",
+  L{N("")}
+),
+
+C("dquoted, 1 dquote",
+R"("\"")",
+  L{N("\"")}
+),
+
+C("dquoted, 2 dquotes",
+R"("\"\"")",
+  L{N("\"\"")}
+),
+
+C("dquoted, 3 dquotes",
+R"("\"\"\"")",
+  L{N("\"\"\"")}
+),
+
+C("dquoted, 4 dquotes",
+R"("\"\"\"\"")",
+  L{N("\"\"\"\"")}
+),
+
+C("dquoted, 5 dquotes",
+R"("\"\"\"\"\"")",
+  L{N("\"\"\"\"\"")}
+),
+
+//-----------------------------------------------------------------------------
 #define SINGLE_QUOTED_CASES                                 \
             "squoted, only text",                           \
                 "squoted, with double quotes",              \
@@ -2309,6 +2392,7 @@ void check_invariants(Node const& n)
 #pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 
 
+INSTANTIATE_TEST_CASE_P(double_quotes, YmlTestCase, ::testing::Values(DOUBLE_QUOTED_CASES));
 INSTANTIATE_TEST_CASE_P(single_quotes, YmlTestCase, ::testing::Values(SINGLE_QUOTED_CASES));
 
 INSTANTIATE_TEST_CASE_P(empty_files , YmlTestCase, ::testing::Values(EMPTY_FILE_CASES));
