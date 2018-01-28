@@ -41,6 +41,17 @@ TEST(span, compare)
     EXPECT_TRUE((c1 > c2) != (c1 < c2));
 }
 
+TEST(span, span2cspan)
+{
+    char b[] = "some string";
+    span s(b);
+    cspan sc = s;
+    EXPECT_EQ(sc, s);
+    const span cs(b);
+    const cspan csc(b);
+
+}
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -95,7 +106,7 @@ TEST_P(YmlTestCase, parse_using_libyaml_to_test_yml_correctness)
 //-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, parse_using_ryml)
 {
-    parse(c->src, &d->parsed_tree);
+    parse(d->src, &d->parsed_tree);
 #ifdef RYML_DBG
     print_tree(d->parsed_tree);
 #endif
@@ -140,7 +151,9 @@ TEST_P(YmlTestCase, complete_round_trip)
 
     {
         SCOPED_TRACE("parsing emitted yml");
-        parse(d->emitted_yml, &d->emitted_tree);
+        d->parse_buf = d->emit_buf;
+        d->parsed_yml.assign(d->parse_buf.data(), d->parse_buf.size());
+        parse(d->parsed_yml, &d->emitted_tree);
 #ifdef RYML_DBG
         print_tree(d->emitted_tree);
 #endif
@@ -182,7 +195,20 @@ TEST_P(YmlTestCase, recreate_from_ref)
 CaseData* get_data(cspan name)
 {
     static std::map< cspan, CaseData > m;
-    auto *cd = &m[name];
+
+    auto it = m.find(name);
+    CaseData *cd;
+    if(it == m.end())
+    {
+        cd = &m[name];
+        Case const* c = get_case(name);
+        cd->src_buf.assign(c->src.begin(), c->src.end());
+        cd->src.assign(cd->src_buf.data(), cd->src_buf.size());
+    }
+    else
+    {
+        cd = &it->second;
+    }
     return cd;
 }
 
@@ -272,6 +298,11 @@ R"('''''''')",
 C("squoted, 4 squotes",
 R"('''''''''')",
   L{N("''''")}
+),
+
+C("squoted, 5 squotes",
+R"('''''''''''')",
+  L{N("'''''")}
 ),
 
 //-----------------------------------------------------------------------------

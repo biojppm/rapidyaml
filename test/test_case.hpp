@@ -196,12 +196,17 @@ struct Case
 // a persistent data store to avoid repeating operations on every test
 struct CaseData
 {
+    std::vector< char > src_buf;
+    span src;
+
     LibyamlParser libyaml_parser;
     Tree parsed_tree;
 
     size_t numbytes_stdout;
     std::vector< char > emit_buf;
     cspan emitted_yml;
+    std::vector< char > parse_buf;
+    span parsed_yml;
 
     Tree emitted_tree;
 

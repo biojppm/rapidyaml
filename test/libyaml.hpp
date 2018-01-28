@@ -79,7 +79,7 @@ public:
         parse(/*s, */&input[0], N-1);
     }
 
-    void parse(/*Tree *s, */cspan const& sp)
+    void parse(/*Tree *s, */const cspan sp)
     {
         parse(/*s, */sp.str, sp.len);
     }

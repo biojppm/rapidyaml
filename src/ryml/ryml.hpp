@@ -305,7 +305,7 @@ private:
 public:
 
     Tree();
-    Tree(size_t sz);
+    Tree(size_t cap);
     ~Tree();
 
     Tree(Tree const& that);
@@ -478,6 +478,12 @@ public:
 
     Node      * doc(size_t i)       { Node *n = root()->child(i); C4_ASSERT(n && n->is_doc()); return n; }
     Node const* doc(size_t i) const { Node *n = root()->child(i); C4_ASSERT(n && n->is_doc()); return n; }
+
+public:
+
+    span request_span(size_t sz);
+
+    void _reserve_arena(size_t cap);
 
 };
 
@@ -883,8 +889,8 @@ public:
 
     Parser();
 
-    Tree parse(                       cspan const& src) { return parse({}, src); }
-    Tree parse(cspan const& filename, cspan const& src)
+    Tree parse(                       span src) { return parse({}, src); }
+    Tree parse(cspan const& filename, span src)
     {
         Tree t;
         size_t capacity = _count_nlines(src);
@@ -894,8 +900,8 @@ public:
         return t;
     }
 
-    void parse(                       cspan const& src, Tree *t) { return parse({}, src, t); }
-    void parse(cspan const& filename, cspan const& src, Tree *t)
+    void parse(                       span src, Tree *t) { return parse({}, src, t); }
+    void parse(cspan const& filename, span src, Tree *t)
     {
         if(t->empty())
         {
@@ -904,8 +910,8 @@ public:
         parse(filename, src, t->root());
     }
 
-    void parse(                       cspan const& src, Node *root) { return parse({}, src, root); }
-    void parse(cspan const& filename, cspan const& src, Node *root);
+    void parse(                       span src, Node *root) { return parse({}, src, root); }
+    void parse(cspan const& filename, span src, Node *root);
 
 private:
 
@@ -923,7 +929,7 @@ private:
     cspan _scan_quoted_scalar(const char q);
     cspan _scan_block();
 
-    cspan _filter_quoted_scalar(cspan const& s, const char q);
+    cspan _filter_quoted_scalar(span s, const char q);
     cspan _filter_raw_block(cspan const& block, BlockStyle_e style, BlockChomp_e chomp, size_t indentation);
 
     void  _handle_finished_file();
@@ -1091,7 +1097,7 @@ private:
 private:
 
     cspan   m_file;
-    cspan   m_buf;
+     span   m_buf;
 
     size_t  m_root_id;
     Tree *  m_tree;
@@ -1106,37 +1112,37 @@ private:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-inline Tree parse(cspan const& buf)
+inline Tree parse(span buf)
 {
     Parser np;
     return np.parse(buf);
 }
 
-inline Tree parse(cspan const& filename, cspan const& buf)
+inline Tree parse(cspan const& filename, span buf)
 {
     Parser np;
     return np.parse(filename, buf);
 }
 
-inline void parse(cspan const& buf, Tree *t)
+inline void parse(span buf, Tree *t)
 {
     Parser np;
     np.parse(buf, t);
 }
 
-inline void parse(cspan const& filename, cspan const& buf, Tree *t)
+inline void parse(cspan const& filename, span buf, Tree *t)
 {
     Parser np;
     np.parse(filename, buf, t);
 }
 
-inline void parse(cspan const& buf, Node *root)
+inline void parse(span buf, Node *root)
 {
     Parser np;
     np.parse(buf, root);
 }
 
-inline void parse(cspan const& filename, cspan const& buf, Node *root)
+inline void parse(cspan const& filename, span buf, Node *root)
 {
     Parser np;
     np.parse(filename, buf, root);

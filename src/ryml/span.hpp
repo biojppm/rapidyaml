@@ -29,11 +29,13 @@ class basic_span
 {
 public:
 
+    using char_type = C;
+
     C *str;
     size_t len;
 
     // convert automatically to span of const C
-    operator basic_span< const C > () { basic_span< const C > s(str, len); return s; }
+    operator basic_span< const C > () const { basic_span< const C > s(str, len); return s; }
 
     using iterator = C*;
     using const_iterator = C const*;
