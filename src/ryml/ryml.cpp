@@ -753,7 +753,14 @@ void Emitter< Writer >::_write_one(Scalar const& sc)
     const bool no_squotes = sc.s.first_of('\'') == npos;
     if(no_dquotes && no_squotes)
     {
-        _c4this->_do_write(sc.s);
+        if( ! sc.s.empty())
+        {
+            _c4this->_do_write(sc.s);
+        }
+        else
+        {
+            _c4this->_do_write("''");
+        }
     }
     else
     {
