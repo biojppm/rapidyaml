@@ -498,7 +498,11 @@ struct RepC
     size_t num_times;
 };
 
-
+struct Scalar
+{
+    cspan s;
+    inline Scalar(cspan const& s_) : s(s_) {}
+};
 
 template< class Writer >
 class Emitter : public Writer
@@ -506,9 +510,6 @@ class Emitter : public Writer
 public:
 
     using Writer::Writer;
-
-#define _c4this  (static_cast< Writer      * >(this))
-#define _c4cthis (static_cast< Writer const* >(this))
 
     /** emit YAML.
      *
@@ -519,149 +520,19 @@ public:
      *
      * When writing to a file, the returned span will be null, but its
      * length is set the number of bytes written. */
-    span emit(Node const* n, bool error_on_excess=true)
-    {
-        this->_visit(n);
-        span result = _c4this->_get(error_on_excess);
-        return result;
-    }
+    span emit(Node const* n, bool error_on_excess=true);
 
-    size_t tell() const { return _c4cthis->m_pos; }
-    void   seek(size_t p) { _c4this->m_pos = p; }
+    size_t tell() const;
+    void   seek(size_t p);
 
 private:
 
-    size_t _visit(Node const* n, size_t ilevel = 0)
-    {
-        if(n->is_stream())
-        {
-            ;
-        }
-        _do_visit(n, ilevel);
-        if(n->is_stream())
-        {
-            _write("...\n");
-        }
-        return _c4this->m_pos;
-    }
-
-    void _do_visit(Node const* n, size_t ilevel = 0, bool indent=true)
-    {
-        RepC ind{' ', 2 * size_t(indent) * ilevel};
-
-        if(n->is_doc())
-        {
-            _write("---\n");
-        }
-        else if(n->is_keyval())
-        {
-            C4_ASSERT(n->has_parent());
-            _write(ind, keysc(n), ": ", valsc(n), '\n');
-        }
-        else if(n->is_val())
-        {
-            C4_ASSERT(n->has_parent());
-            _write(ind, "- ", valsc(n), '\n');
-        }
-        else if(n->is_container() && ! n->is_root())
-        {
-            C4_ASSERT(n->parent_is_map() || n->parent_is_seq());
-            C4_ASSERT(n->is_map() || n->is_seq());
-
-            if(n->parent_is_seq())
-            {
-                C4_ASSERT( ! n->has_key());
-                _write(ind, "- ");
-            }
-            else if(n->parent_is_map())
-            {
-                C4_ASSERT(n->has_key());
-                _write(ind, keysc(n), ':');
-            }
-
-            if(n->has_children())
-            {
-                if(n->is_seq())
-                {
-                    if(n->parent_is_map())
-                    {
-                        _write('\n');
-                    }
-                    else
-                    {
-                        // do not indent the first child, as it will be written on the same line
-                        indent = false;
-                    }
-                }
-                else if(n->is_map())
-                {
-                    if(n->parent_is_seq())
-                    {
-                        // do not indent the first child, as it will be written on the same line
-                        indent = false;
-                    }
-                    else
-                    {
-                        _write('\n');
-                    }
-                }
-                else
-                {
-                    C4_ERROR("invalid node");
-                }
-            }
-            else
-            {
-                if(n->parent_is_map())
-                {
-                    _write(' ');
-                }
-
-                if(n->is_seq())
-                {
-                    _write("[]\n");
-                }
-                else if(n->is_map())
-                {
-                    _write("{}\n");
-                }
-            }
-        }
-        else if(n->is_container() && n->is_root())
-        {
-            if( ! n->has_children())
-            {
-                if(n->is_seq())
-                {
-                    _write("[]\n");
-                }
-                else if(n->is_map())
-                {
-                    _write("{}\n");
-                }
-            }
-        }
-
-        size_t next_level = ilevel + 1;
-        if(n->is_stream() || n->is_doc() || n->is_root())
-        {
-            next_level = ilevel; // do not indent at top level
-        }
-
-        for(Node const* ch = n->first_child(); ch; ch = ch->next_sibling())
-        {
-            _do_visit(ch, next_level, indent);
-            indent = true;
-        }
-    }
+    size_t _visit(Node const* n, size_t ilevel=0);
+    void _do_visit(Node const* n, size_t ilevel=0, bool indent=true);
 
 private:
 
-    struct Scalar
-    {
-        cspan s;
-        inline Scalar(cspan const& s_) : s(s_) {}
-    };
+#define _c4this (static_cast< Writer * >(this))
 
     static inline Scalar keysc(Node const* n) { return Scalar(n->key()); }
     static inline Scalar valsc(Node const* n) { return Scalar(n->val()); }
@@ -679,34 +550,6 @@ private:
     {
         _c4this->_do_write(a);
     }
-    inline void _write_one(Scalar const& sc)
-    {
-        const bool no_dquotes = sc.s.first_of( '"') == npos;
-        const bool no_squotes = sc.s.first_of('\'') == npos;
-        if(no_dquotes && no_squotes)
-        {
-            _c4this->_do_write(sc.s);
-        }
-        else
-        {
-            if(no_squotes && !no_dquotes)
-            {
-                _c4this->_do_write('\'');
-                _c4this->_do_write(sc.s);
-                _c4this->_do_write('\'');
-            }
-            else if(no_dquotes && !no_squotes)
-            {
-                _c4this->_do_write('"');
-                _c4this->_do_write(sc.s);
-                _c4this->_do_write('"');
-            }
-            else
-            {
-                C4_ERROR("not implemented");
-            }
-        }
-    }
     template< size_t N >
     inline void _write_one(const char (&a)[N])
     {
@@ -715,12 +558,13 @@ private:
         s.assign<N>(a);
         _c4this->_do_write(s);
     }
+    void _write_one(Scalar const& sc);
 
 #undef _c4this
-#undef _c4cthis
 
 };
 
+//-----------------------------------------------------------------------------
 /** A writer that outputs to a file. Defaults to stdout. */
 struct FileWriter
 {
@@ -765,7 +609,8 @@ struct FileWriter
 
 };
 
-/** create an emitter that writes to a string span */
+//-----------------------------------------------------------------------------
+/** a writer to a string span */
 struct SpanWriter
 {
     span   m_span;
@@ -868,7 +713,7 @@ inline span emit_resize(Node const* n, CharOwningContainer * cont)
     {
         cont->resize(ret.len);
         buf.assign(cont->data(), cont->size());
-        ret = emit(n, buf);
+        ret = emit(n, buf, /*error_on_excess*/true);
     }
     return ret;
 }
