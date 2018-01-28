@@ -771,7 +771,24 @@ void Emitter< Writer >::_write_one(Scalar const& sc)
         }
         else
         {
-            C4_ERROR("not implemented");
+            size_t pos = 0;
+            _c4this->_do_write('\'');
+            for(size_t i = 0; i < sc.s.len; ++i)
+            {
+                if(sc.s[i] == '\'')
+                {
+                    cspan sub = sc.s.subspan(pos, i-pos);
+                    pos = i;
+                    _c4this->_do_write(sub);
+                    _c4this->_do_write('\'');
+                }
+            }
+            if(pos+1 < sc.s.len)
+            {
+                cspan sub = sc.s.subspan(pos);
+                _c4this->_do_write(sub);
+            }
+            _c4this->_do_write('\'');
         }
     }
 }

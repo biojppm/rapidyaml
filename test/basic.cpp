@@ -232,22 +232,23 @@ using L = CaseNode::iseqmap;
     static std::map< cspan, Case > cases({
 
 //-----------------------------------------------------------------------------
-#define SINGLE_QUOTED_CASES                     \
-            "squoted, only text",               \
-                "squoted, with double quotes",  \
-                "squoted, with escapes",        \
-                "squoted, with single quotes",  \
-                "squoted, all",                 \
-                "squoted, empty",               \
-                "squoted, 1 squote",            \
-                "squoted, 2 squotes",           \
-                "squoted, 3 squotes",           \
+#define SINGLE_QUOTED_CASES                                 \
+            "squoted, only text",                           \
+                "squoted, with double quotes",              \
+                "squoted, with single quotes",              \
+                "squoted, with single and double quotes",   \
+                "squoted, with escapes",                    \
+                "squoted, all",                             \
+                "squoted, empty",                           \
+                "squoted, 1 squote",                        \
+                "squoted, 2 squotes",                       \
+                "squoted, 3 squotes",                       \
                 "squoted, 4 squotes"
 
 C("squoted, only text",
-R"('Some text without single quotes.'
+R"('Some text without any quotes.'
 )",
-  L{N("Some text without single quotes.")}
+  L{N("Some text without any quotes.")}
 ),
 
 C("squoted, with double quotes",
@@ -255,14 +256,19 @@ R"('Some "text" "with double quotes"')",
   L{N("Some \"text\" \"with double quotes\"")}
 ),
 
-C("squoted, with escapes",
-R"('Some text with escapes \n \r \t')",
-  L{N("Some text with escapes \\n \\r \\t")}
-),
-
 C("squoted, with single quotes",
 R"('Some text ''with single quotes''')",
   L{N("Some text 'with single quotes'")}
+),
+
+C("squoted, with single and double quotes",
+R"('Some text ''with single quotes'' "and double quotes".')",
+  L{N("Some text 'with single quotes' \"and double quotes\".")}
+),
+
+C("squoted, with escapes",
+R"('Some text with escapes \n \r \t')",
+  L{N("Some text with escapes \\n \\r \\t")}
 ),
 
 C("squoted, all",
