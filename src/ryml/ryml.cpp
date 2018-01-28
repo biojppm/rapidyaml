@@ -775,12 +775,12 @@ void Emitter< Writer >::_write_one(Scalar const& sc)
             _c4this->_do_write('\'');
             for(size_t i = 0; i < sc.s.len; ++i)
             {
-                if(sc.s[i] == '\'')
+                if(sc.s[i] == '\'' || sc.s[i] == '\n')
                 {
                     cspan sub = sc.s.subspan(pos, i-pos);
                     pos = i;
                     _c4this->_do_write(sub);
-                    _c4this->_do_write('\'');
+                    _c4this->_do_write(sc.s[i]);
                 }
             }
             if(pos+1 < sc.s.len)
