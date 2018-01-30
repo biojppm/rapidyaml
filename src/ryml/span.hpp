@@ -45,6 +45,7 @@ public:
     basic_span() : str(nullptr), len(0) {}
     basic_span(C *s_) : str(s_), len(s_ ? strlen(s_) : 0) {}
     basic_span(C *s_, size_t len_) : str(s_), len(len_) { C4_ASSERT(str || !len_); }
+    basic_span(C *beg_, C *end_) : str(beg_), len(end_ - beg_) { C4_ASSERT(end_ >= beg_); }
     template< size_t N >
     basic_span(C const (&s_)[N]) : str(s_), len(N-1) { C4_ASSERT(s_[N-1] == '\0'); }
 
@@ -60,6 +61,7 @@ public:
 
     void assign(C *s_) { str = (s_); len = (s_ ? strlen(s_) : 0); }
     void assign(C *s_, size_t len_) { str = s_; len = len_; C4_ASSERT(str || !len_); }
+    void assign(C *beg_, C *end_) { C4_ASSERT(end_ >= beg_); str = (beg_); len = (end_ - beg_); }
     template< size_t N >
     void assign(C const (&s_)[N]) { C4_ASSERT(s_[N-1] == '\0'); str = (s_); len = (N-1); }
 
@@ -203,6 +205,15 @@ public:
     {
         return len > 0 ? str[0] == c : false;
     }
+    inline bool begins_with(const C c, size_t num) const
+    {
+        if(len < num) return false;
+        for(size_t i = 0; i < num; ++i)
+        {
+            if(str[i] != c) return false;
+        }
+        return true;
+    }
     inline bool begins_with(basic_span< const C > const& pattern) const
     {
         if(len < pattern.len) return false;
@@ -220,6 +231,15 @@ public:
     inline bool ends_with(const C c) const
     {
         return len > 0 ? str[len-1] == c : false;
+    }
+    inline bool ends_with(const C c, size_t num) const
+    {
+        if(len < num) return false;
+        for(size_t i = len - num; i < len; ++i)
+        {
+            if(str[i] != c) return false;
+        }
+        return true;
     }
     inline bool ends_with(basic_span< const C > const& pattern) const
     {
