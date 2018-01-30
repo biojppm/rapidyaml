@@ -2,6 +2,7 @@
 #include "./test_case.hpp"
 
 #include <gtest/gtest.h>
+#include <yaml-cpp/yaml.h>
 
 
 int main(int argc, char *argv[])
@@ -96,27 +97,40 @@ TEST(CaseNode, setting_up)
     L tl1 = {DOC, DOC};
     L tl2 = {(DOC), (DOC)};
 
-    EXPECT_EQ(tl1.size(), tl2.size());
+    ASSERT_EQ(tl1.size(), tl2.size());
     N const& d1 = *tl1.begin();
     N const& d2 = *(tl1.begin() + 1);
-    EXPECT_EQ(d1.reccount(), d2.reccount());
-    EXPECT_EQ(d1.type, DOC);
-    EXPECT_EQ(d2.type, DOC);
+    ASSERT_EQ(d1.reccount(), d2.reccount());
+    ASSERT_EQ(d1.type, DOC);
+    ASSERT_EQ(d2.type, DOC);
 
     N n1(tl1);
     N n2(tl2);
-    EXPECT_EQ(n1.reccount(), n2.reccount());
+    ASSERT_EQ(n1.reccount(), n2.reccount());
 }
 
 //-----------------------------------------------------------------------------
-TEST_P(YmlTestCase, parse_using_libyaml_to_test_yml_correctness)
+TEST_P(YmlTestCase, parse_using_libyaml)
 {
 #ifdef RYML_DBG
     std::cout << "---------------\n";
     std::cout << c->src;
     std::cout << "---------------\n";
 #endif
-    d->libyaml_parser.parse(c->src);
+    LibyamlParser libyaml_parser;
+    libyaml_parser.parse(c->src);
+}
+
+//-----------------------------------------------------------------------------
+TEST_P(YmlTestCase, parse_using_yaml_cpp)
+{
+#ifdef RYML_DBG
+    std::cout << "---------------\n";
+    std::cout << c->src;
+    std::cout << "---------------\n";
+#endif
+    std::string src(c->src.str, c->src.len);
+    YAML::Node node = YAML::Load(src);
 }
 
 //-----------------------------------------------------------------------------

@@ -70,7 +70,7 @@ public:
         size_t prev;
         size_t next;
     };
-    struct children
+    struct childrenfl
     {
         size_t first;
         size_t last;
@@ -84,7 +84,7 @@ public:
     cspan          m_val;
 
     size_t         m_parent;
-    children       m_children;
+    childrenfl     m_children;
 
     listseq        m_list;
 
@@ -211,6 +211,45 @@ private:
 
     void _set_flags(NodeType_e f) { m_type = f; }
     void _set_flags(int        f) { m_type = (NodeType_e)f; }
+
+private:
+
+    struct child_iterator
+    {
+        Node const *child;
+
+        child_iterator(Node const* c) : child(c) {}
+
+        child_iterator& operator++ (   ) { child = child->next_sibling(); return *this; }
+        child_iterator  operator++ (int) { child_iterator ret = *this; child = child->next_sibling(); return ret; }
+
+        child_iterator& operator-- (   ) { child = child->prev_sibling(); return *this; }
+        child_iterator  operator-- (int) { child_iterator ret = *this; child = child->prev_sibling(); return ret; }
+
+        Node const& operator*  () const { return *child; }
+        Node const* operator-> () const { return  child; }
+
+        bool operator!= (child_iterator that) const { return child != that.child; }
+        bool operator== (child_iterator that) const { return child == that.child; }
+
+    };
+
+    struct children_container
+    {
+        Node const* parent;
+
+        using const_iterator = child_iterator;
+
+        children_container(Node const* p) : parent(p) {}
+
+        const_iterator begin() const { return const_iterator(parent->first_child()); }
+        const_iterator end  () const { return nullptr; }
+    };
+
+public:
+
+    children_container children() const {                        return children_container(    this); }
+    children_container siblings() const { C4_ASSERT(!is_root()); return children_container(parent()); }
 
 };
 

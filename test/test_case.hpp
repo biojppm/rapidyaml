@@ -176,6 +176,7 @@ public:
 public:
 
     void compare(yml::Node const& n) const;
+    void compare_child(yml::Node const& n, size_t pos) const;
 
     size_t reccount() const
     {
@@ -218,7 +219,6 @@ struct CaseData
     std::vector< char > src_buf;
     span src;
 
-    LibyamlParser libyaml_parser;
     Tree parsed_tree;
 
     size_t numbytes_stdout;
