@@ -75,9 +75,8 @@ struct Location : public LineCol
     const char *name;
     operator bool () const { return name != nullptr || line != 0 || offset != 0; }
 
-    Location() { memset(this, 0, sizeof(*this)); }
+    Location() : LineCol{0, 0, 0}, name(nullptr) {}
     Location(const char *n, size_t b, size_t l, size_t c) : LineCol{b, l, c}, name(n) {}
-    Location(const char *n, yaml_mark_t m) : LineCol{m.index, m.line+1, m.column+1}, name(n) {}
 };
 
 struct Region

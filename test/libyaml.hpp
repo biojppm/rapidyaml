@@ -199,11 +199,13 @@ case YAML_ ## _ev ## _EVENT:                            \
         Location problem_loc, context_loc;
         if(m_parser.problem)
         {
-            problem_loc = Location(m_parser.problem, m_parser.problem_mark);
+            auto const& m = m_parser.problem_mark;
+            problem_loc = Location(m_parser.problem, m.index, m.line+1, m.column+1);
         }
         if(m_parser.context)
         {
-            context_loc = Location(m_parser.context, m_parser.context_mark);
+            auto const& m = m_parser.context_mark;
+            problem_loc = Location(m_parser.problem, m.index, m.line+1, m.column+1);
         }
 
         switch(m_parser.error)

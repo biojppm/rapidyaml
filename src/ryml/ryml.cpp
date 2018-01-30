@@ -592,217 +592,6 @@ void Tree::set_parent(size_t iparent, size_t ichild, size_t iprev_sibling, size_
     }
 }
 
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-#define _c4this  (static_cast< Writer      * >(this))
-#define _c4cthis (static_cast< Writer const* >(this))
-
-template< class Writer >
-span Emitter< Writer >::emit(Node const* n, bool error_on_excess)
-{
-    this->_visit(n);
-    span result = _c4this->_get(error_on_excess);
-    return result;
-}
-
-template< class Writer >
-size_t Emitter< Writer >::tell() const
-{
-    return _c4cthis->m_pos;
-}
-
-template< class Writer >
-void Emitter< Writer >::seek(size_t p)
-{
-    _c4this->m_pos = p;
-}
-
-template< class Writer >
-size_t Emitter< Writer >::_visit(Node const* n, size_t ilevel)
-{
-    if(n->is_stream())
-    {
-        ;
-    }
-    _do_visit(n, ilevel);
-    if(n->is_stream())
-    {
-        _write("...\n");
-    }
-    return _c4this->m_pos;
-}
-
-template< class Writer >
-void Emitter< Writer >::_do_visit(Node const* n, size_t ilevel, bool indent)
-{
-    RepC ind{' ', 2 * size_t(indent) * ilevel};
-
-    if(n->is_doc())
-    {
-        _write("---\n");
-    }
-    else if(n->is_keyval())
-    {
-        C4_ASSERT(n->has_parent());
-        _write(ind, keysc(n), ": ", valsc(n), '\n');
-    }
-    else if(n->is_val())
-    {
-        C4_ASSERT(n->has_parent());
-        _write(ind, "- ", valsc(n), '\n');
-    }
-    else if(n->is_container() && ! n->is_root())
-    {
-        C4_ASSERT(n->parent_is_map() || n->parent_is_seq());
-        C4_ASSERT(n->is_map() || n->is_seq());
-
-        if(n->parent_is_seq())
-        {
-            C4_ASSERT( ! n->has_key());
-            _write(ind, "- ");
-        }
-        else if(n->parent_is_map())
-        {
-            C4_ASSERT(n->has_key());
-            _write(ind, keysc(n), ':');
-        }
-
-        if(n->has_children())
-        {
-            if(n->is_seq())
-            {
-                if(n->parent_is_map())
-                {
-                    _write('\n');
-                }
-                else
-                {
-                    // do not indent the first child, as it will be written on the same line
-                    indent = false;
-                }
-            }
-            else if(n->is_map())
-            {
-                if(n->parent_is_seq())
-                {
-                    // do not indent the first child, as it will be written on the same line
-                    indent = false;
-                }
-                else
-                {
-                    _write('\n');
-                }
-            }
-            else
-            {
-                C4_ERROR("invalid node");
-            }
-        }
-        else
-        {
-            if(n->parent_is_map())
-            {
-                _write(' ');
-            }
-
-            if(n->is_seq())
-            {
-                _write("[]\n");
-            }
-            else if(n->is_map())
-            {
-                _write("{}\n");
-            }
-        }
-    }
-    else if(n->is_container() && n->is_root())
-    {
-        if( ! n->has_children())
-        {
-            if(n->is_seq())
-            {
-                _write("[]\n");
-            }
-            else if(n->is_map())
-            {
-                _write("{}\n");
-            }
-        }
-    }
-
-    size_t next_level = ilevel + 1;
-    if(n->is_stream() || n->is_doc() || n->is_root())
-    {
-        next_level = ilevel; // do not indent at top level
-    }
-
-    for(Node const* ch = n->first_child(); ch; ch = ch->next_sibling())
-    {
-        _do_visit(ch, next_level, indent);
-        indent = true;
-    }
-}
-
-template< class Writer >
-void Emitter< Writer >::_write_one(Scalar const& sc)
-{
-    const bool no_dquotes = sc.s.first_of( '"') == npos;
-    const bool no_squotes = sc.s.first_of('\'') == npos;
-    if(no_dquotes && no_squotes)
-    {
-        if( ! sc.s.empty())
-        {
-            _c4this->_do_write(sc.s);
-        }
-        else
-        {
-            _c4this->_do_write("''");
-        }
-    }
-    else
-    {
-        if(no_squotes && !no_dquotes)
-        {
-            _c4this->_do_write('\'');
-            _c4this->_do_write(sc.s);
-            _c4this->_do_write('\'');
-        }
-        else if(no_dquotes && !no_squotes)
-        {
-            _c4this->_do_write('"');
-            _c4this->_do_write(sc.s);
-            _c4this->_do_write('"');
-        }
-        else
-        {
-            size_t pos = 0;
-            _c4this->_do_write('\'');
-            for(size_t i = 0; i < sc.s.len; ++i)
-            {
-                if(sc.s[i] == '\'' || sc.s[i] == '\n')
-                {
-                    cspan sub = sc.s.subspan(pos, i-pos);
-                    pos = i;
-                    _c4this->_do_write(sub);
-                    _c4this->_do_write(sc.s[i]);
-                }
-            }
-            if(pos+1 < sc.s.len)
-            {
-                cspan sub = sc.s.subspan(pos);
-                _c4this->_do_write(sub);
-            }
-            _c4this->_do_write('\'');
-        }
-    }
-}
-
-#undef _c4this
-#undef _c4cthis
-
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -1091,7 +880,7 @@ bool Parser::_handle_unk()
         {
             saved_scalar = _scan_scalar();
             rem = m_state->line_contents.rem;
-            _c4dbgp("... and there's also a scalar next!", _c4prsp(saved_scalar));
+            _c4dbgp("... and there's also a scalar next! '%.*s'", _c4prsp(saved_scalar));
         }
 
         if(rem.begins_with(", "))
@@ -1129,9 +918,9 @@ bool Parser::_handle_unk()
             //_c4dbgp("map key opened a new line -- starting val scope as unknown");
             //_start_unk();
         }
-        else if(rem.begins_with('...'))
+        else if(rem.begins_with("..."))
         {
-            _c4dbgp("got stream end '...");
+            _c4dbgp("got stream end '...'");
             _line_progressed(3);
             _handle_finished_file();
         }
@@ -1294,9 +1083,9 @@ bool Parser::_handle_seq_impl()
             _line_progressed(rem.len);
             return true;
         }
-        else if(rem.begins_with('...'))
+        else if(rem.begins_with("..."))
         {
-            _c4dbgp("got stream end '...");
+            _c4dbgp("got stream end '...'");
             _line_progressed(3);
             _handle_finished_file();
             return true;
@@ -1626,14 +1415,14 @@ bool Parser::_handle_map_impl()
         }
         else if(rem.begins_with('?'))
         {
-            _c4dbgp("it's a complex key", rem.len);
+            _c4dbgp("it's a complex key");
             add_flags(CPLX);
             _line_progressed(1);
             return true;
         }
         else if(rem.begins_with(':') && has_all(CPLX))
         {
-            _c4dbgp("complex key finished", rem.len);
+            _c4dbgp("complex key finished");
             addrem_flags(RVAL, RKEY|CPLX);
             _line_progressed(1);
             rem = m_state->line_contents.rem;
@@ -1821,7 +1610,7 @@ bool Parser::_handle_top()
         rem = rem.subspan(3);
         if(rem.begins_with(' '))
         {
-            cspan s = rem.left_of(rem.first_not_of(' '));
+            //cspan s = rem.left_of(rem.first_not_of(' '));
             _line_progressed(rem.len);
         }
         return true;
@@ -2035,7 +1824,6 @@ cspan Parser::_peek_next_line(size_t pos) const
     pos = pos == npos ? m_state->pos.offset : pos;
     if(pos >= m_buf.len) return {};
 
-    auto &lc = m_state->line_contents;
     char const* b = &m_buf[pos];
 
     if(*b == '\r') ++b;
@@ -2099,8 +1887,8 @@ void Parser::_push_level(bool explicit_flow_chars)
     m_stack.push(*m_state);
     m_state = &m_stack.top();
     set_flags(st);
-    m_state->node_id = NONE;
-    m_state->indref = NONE;
+    m_state->node_id = (size_t)NONE;
+    m_state->indref = (int)NONE;
     ++m_state->level;
     _c4dbgp("pushing level: now, currlevel=%zd", m_state->level);
 }
@@ -2298,7 +2086,7 @@ void Parser::_append_key_val(cspan const& val)
 //-----------------------------------------------------------------------------
 void Parser::_store_scalar(cspan const& s)
 {
-    _c4dbgp("state[%zd]: storing scalar '%.*s' (flag: %d) (old scalar='%.*s')", m_state-m_stack.begin(), _c4prsp(s), m_state->flags & SSCL, _c4prsp(m_state->scalar));
+    _c4dbgp("state[%zd]: storing scalar '%.*s' (flag: %zd) (old scalar='%.*s')", m_state-m_stack.begin(), _c4prsp(s), m_state->flags & SSCL, _c4prsp(m_state->scalar));
     C4_ASSERT(has_none(SSCL));
     add_flags(SSCL);
     m_state->scalar = s;
@@ -2306,7 +2094,7 @@ void Parser::_store_scalar(cspan const& s)
 
 cspan Parser::_consume_scalar()
 {
-    _c4dbgp("state[%zd]: consuming scalar '%.*s' (flag: %d))", m_state-m_stack.begin(), _c4prsp(m_state->scalar), m_state->flags & SSCL);
+    _c4dbgp("state[%zd]: consuming scalar '%.*s' (flag: %zd))", m_state-m_stack.begin(), _c4prsp(m_state->scalar), m_state->flags & SSCL);
     C4_ASSERT(m_state->flags & SSCL);
     cspan s = m_state->scalar;
     rem_flags(SSCL);
@@ -2634,7 +2422,7 @@ cspan Parser::_filter_plain_scalar(span s, size_t indentation)
     for(size_t i = 0; i < r.len; ++i)
     {
         const char curr = r[i];
-        const char prev = i   > 0     ? r[i-1] : '\0';
+        //const char prev = i   > 0     ? r[i-1] : '\0';
         const char next = i+1 < r.len ? r[i+1] : '\0';
         if(curr == '\n')
         {
@@ -2675,7 +2463,7 @@ cspan Parser::_filter_squot_scalar(span s)
     for(size_t i = 0; i < r.len; ++i)
     {
         const char curr = r[i];
-        const char prev = i   > 0     ? r[i-1] : '\0';
+        //const char prev = i   > 0     ? r[i-1] : '\0';
         const char next = i+1 < r.len ? r[i+1] : '\0';
         if(curr == '\'' && (curr == next))
         {
@@ -2719,7 +2507,7 @@ cspan Parser::_filter_dquot_scalar(span s)
     for(size_t i = 0; i < r.len; ++i)
     {
         const char curr = r[i];
-        const char prev = i   > 0     ? r[i-1] : '\0';
+        //const char prev = i   > 0     ? r[i-1] : '\0';
         const char next = i+1 < r.len ? r[i+1] : '\0';
         if(curr == '\\')
         {
@@ -2991,11 +2779,11 @@ int Parser::_fmt_msg(char *buf, int buflen, const char *fmt, va_list args) const
     // next line: print the yaml src line
     if( ! m_file.empty())
     {
-        del = snprintf(buf + pos, len, "%.*s:%d: '", (int)m_file.len, m_file.str, m_state->pos.line);
+        del = snprintf(buf + pos, len, "%.*s:%zd: '", (int)m_file.len, m_file.str, m_state->pos.line);
     }
     else
     {
-        del = snprintf(buf + pos, len, "line %zd: '", m_state->pos.line, m_state->pos.line);
+        del = snprintf(buf + pos, len, "line %zd: '", m_state->pos.line);
     }
     int offs = del;
     _wrapbuf();
@@ -3008,7 +2796,7 @@ int Parser::_fmt_msg(char *buf, int buflen, const char *fmt, va_list args) const
     {
         size_t firstcol = lc.rem.begin() - lc.full.begin();
         size_t lastcol = firstcol + lc.rem.len;
-        del = snprintf(buf + pos, len, "%*s", offs+firstcol, ""); // this works only for spaces....
+        del = snprintf(buf + pos, len, "%*s", (int)(offs+firstcol), ""); // this works only for spaces....
         _wrapbuf();
         // the %*s technique works only for spaces, so put the characters directly
         del = (int)lc.rem.len;

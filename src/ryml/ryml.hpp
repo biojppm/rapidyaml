@@ -992,6 +992,7 @@ inline void parse(cspan const& filename, span buf, Node *root)
 } // namespace yml
 } // namespace c4
 
-#include <ryml/ryml.cpp>
+//#include <ryml/ryml.cpp>
+#include <ryml/ryml.def.hpp>
 
 #endif // _C4_RYML_HPP_

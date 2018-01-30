@@ -8,7 +8,7 @@
 #include "./libyaml.hpp"
 
 #include <ryml/ryml.hpp>
-
+#include <gtest/gtest.h>
 
 namespace c4 {
 namespace yml {
@@ -231,6 +231,29 @@ struct CaseData
 
     Tree recreated;
 };
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+// a fixture for running the tests
+struct YmlTestCase : public ::testing::TestWithParam< const char* >
+{
+    cspan const name;
+    Case const* c; // the case
+    CaseData * d; // the case data
+
+    YmlTestCase() : name(GetParam()), c(get_case(GetParam())), d(get_data(GetParam())) {}
+
+    void SetUp() override
+    {
+        // Code here will be called immediately after the constructor (right
+        // before each test).
+        std::cout << "-------------------------------------------\n";
+        std::cout << "running test case '" << name << "'\n";
+        std::cout << "-------------------------------------------\n";
+    }
+};
+
 
 } // namespace yml
 } // namespace c4

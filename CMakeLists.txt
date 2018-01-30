@@ -7,7 +7,7 @@ set(RYML_EXT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/extern)
 set(RYML_SRC
     ${RYML_SRC_DIR}/ryml/common.hpp
     ${RYML_SRC_DIR}/ryml/ryml.hpp
-    #${RYML_SRC_DIR}/ryml/ryml.cpp # for now this is #included in ryml.hpp ; need to setup the library plumbing
+    ${RYML_SRC_DIR}/ryml/ryml.cpp # for now this is #included in ryml.hpp ; need to setup the library plumbing
     ${RYML_SRC_DIR}/ryml/span.hpp
     ${RYML_SRC_DIR}/ryml/stack.hpp)
 
