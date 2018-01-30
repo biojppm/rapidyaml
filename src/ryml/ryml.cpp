@@ -1693,9 +1693,18 @@ cspan Parser::_scan_scalar()
         C4_ASSERT( ! has_all(RKEY));
         if(has_all(RVAL))
         {
-            _c4dbgp("RSEQ|RVAL");
-            s = s.left_of(s.first_of(",]#:"));
-            s = s.trimr(' ');
+            if(has_all(EXPL))
+            {
+                _c4dbgp("RSEQ|RVAL|EXPL");
+                s = s.left_of(s.first_of(",]#:"));
+                s = s.trimr(' ');
+            }
+            else
+            {
+                _c4dbgp("RSEQ|RVAL");
+                s = s.left_of(s.first_of("#:"));
+                s = s.trimr(' ');
+            }
         }
         else
         {
@@ -1777,7 +1786,7 @@ cspan Parser::_scan_scalar()
                 _line_ended(); // advances to the peeked-at line, consuming all remaining (probably newline) characters on the current line
                 _scan_line();  // puts the peeked-at line in the buffer
                 C4_ASSERT(n == m_state->line_contents.rem);
-                _line_progressed(n.len);
+                _line_progressed(n.end() - (m_buf.str + m_state->pos.offset));
                 n = _peek_next_line(m_state->pos.offset);
             }
             span full(m_buf.str + (s.str - m_buf.str), m_buf.begin() + m_state->pos.offset);
@@ -1826,8 +1835,10 @@ cspan Parser::_peek_next_line(size_t pos) const
 
     char const* b = &m_buf[pos];
 
-    if(*b == '\r') ++b;
-    if(*b == '\n') ++b;
+    if(b != m_buf.end() && *b == '\r') ++b;
+    if(b != m_buf.end() && *b == '\n') ++b;
+    if(b != m_buf.end() && *b == '\r') ++b;
+    if(b != m_buf.end() && *b == '\n') ++b;
 
     // get the line stripped of newline chars
     char const* e = b;
@@ -1869,7 +1880,6 @@ void Parser::_save_indentation(size_t behind)
 }
 
 //-----------------------------------------------------------------------------
-
 void Parser::_push_level(bool explicit_flow_chars)
 {
     _c4dbgp("pushing level! currnode=%zd  currlevel=%zd", m_state->node_id, m_state->level);

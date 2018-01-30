@@ -196,10 +196,10 @@ void Emitter< Writer >::_write_one(Scalar const& sc)
                     cspan sub = sc.s.subspan(pos, i-pos);
                     pos = i;
                     _c4this->_do_write(sub);
-                    _c4this->_do_write(sc.s[i]);
+                    _c4this->_do_write(sc.s[i]); // write the character twice
                 }
             }
-            if(pos+1 < sc.s.len)
+            if(pos < sc.s.len)
             {
                 cspan sub = sc.s.subspan(pos);
                 _c4this->_do_write(sub);

@@ -877,10 +877,10 @@ R"(
         "plain scalar, multiline, quotes, escapes, blank lines first",  \
         "plain scalar, multiline, quotes, escapes, blank lines last",   \
         "plain scalar, example",                                        \
-        "plain scalar, map example 1",                                  \
-        "plain scalar, map example 2",                                  \
-        "plain scalar, seq example 1",                                  \
-        "plain scalar, seq example 2"
+        "plain scalar, map example 1"/*,                                  \
+        "plain scalar, map example 1"*/,                              \
+        "plain scalar, seq example 1"/*,                                  \
+        "plain scalar, seq example 2"*/
 
 
 C("plain scalar, 1 word only",
@@ -912,7 +912,7 @@ C("plain scalar, multiline, quotes, escapes, blank lines middle",
 R"(
 A scalar with several lines in it and also 'single quotes'.
   A blank line follows after this one.
-
+  
   And "double quotes" and assorted escapes such as \r or \n)",
   L{N("A scalar with several lines in it and also 'single quotes'. A blank line follows after this one.\nAnd \"double quotes\" and assorted escapes such as \\r or \\n")}
 ),
@@ -920,7 +920,7 @@ A scalar with several lines in it and also 'single quotes'.
 C("plain scalar, multiline, quotes, escapes, blank lines first",
 R"(
 A scalar with several lines in it and also 'single quotes'.
-
+  
   A blank line precedes this one.
   And "double quotes" and assorted escapes such as \r or \n)",
   L{N("A scalar with several lines in it and also 'single quotes'.\nA blank line precedes this one. And \"double quotes\" and assorted escapes such as \\r or \\n")}
@@ -931,7 +931,7 @@ R"(
 A scalar with several lines in it and also 'single quotes'.
   And "double quotes" and assorted escapes such as \r or \n.
   A blank line follows after this one.
-
+  
   )",
   L{N("A scalar with several lines in it and also 'single quotes'. And \"double quotes\" and assorted escapes such as \\r or \\n. A blank line follows after this one.\n")}
 ),
@@ -941,7 +941,7 @@ R"(
 Several lines of text
   with some "quotes" of various 'types'.
   Escapes (like \n) don't do anything.
-
+  
   Newlines can be added by leaving a blank line.
       Additional leading whitespace is ignored.
 )",
@@ -953,50 +953,54 @@ R"(
 example: Several lines of text,
   with some "quotes" of various 'types'.
   Escapes (like \n) don't do anything.
-
+  
   Newlines can be added by leaving a blank line.
       Additional leading whitespace is ignored.
 )",
   L{N("example", "Several lines of text, with some \"quotes\" of various 'types'. Escapes (like \\n) don't do anything.\nNewlines can be added by leaving a blank line. Additional leading whitespace is ignored.")}
 ),
 
+/*
 C("plain scalar, map example 2",
 R"(
 example:
   Several lines of text,
   with some "quotes" of various 'types'.
   Escapes (like \n) don't do anything.
-
+  
   Newlines can be added by leaving a blank line.
       Additional leading whitespace is ignored.
 )",
   L{N("example", "Several lines of text, with some \"quotes\" of various 'types'. Escapes (like \\n) don't do anything.\nNewlines can be added by leaving a blank line. Additional leading whitespace is ignored.")}
 ),
+*/
 
 C("plain scalar, seq example 1",
 R"(
 - Several lines of text,
   with some "quotes" of various 'types'.
   Escapes (like \n) don't do anything.
-
+  
   Newlines can be added by leaving a blank line.
       Additional leading whitespace is ignored.
 )",
   L{N("Several lines of text, with some \"quotes\" of various 'types'. Escapes (like \\n) don't do anything.\nNewlines can be added by leaving a blank line. Additional leading whitespace is ignored.")}
 ),
 
+/*
 C("plain scalar, seq example 2",
 R"(
 -
   Several lines of text,
   with some "quotes" of various 'types'.
   Escapes (like \n) don't do anything.
-
+  
   Newlines can be added by leaving a blank line.
       Additional leading whitespace is ignored.
 )",
   L{N("Several lines of text, with some \"quotes\" of various 'types'. Escapes (like \\n) don't do anything.\nNewlines can be added by leaving a blank line. Additional leading whitespace is ignored.")}
 ),
+*/
 
 //-----------------------------------------------------------------------------
 #define NESTED_MAPX2_CASES \

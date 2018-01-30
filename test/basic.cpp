@@ -110,6 +110,8 @@ TEST(CaseNode, setting_up)
 }
 
 //-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, parse_using_libyaml)
 {
 #ifdef RYML_DBG
@@ -197,8 +199,8 @@ TEST_P(YmlTestCase, complete_round_trip)
 
     {
         SCOPED_TRACE("comparing parsed tree to ref tree");
-        EXPECT_GE(d->parsed_tree.capacity(), c->root.reccount());
-        EXPECT_EQ(d->parsed_tree.size(), c->root.reccount());
+        EXPECT_GE(d->emitted_tree.capacity(), c->root.reccount());
+        EXPECT_EQ(d->emitted_tree.size(), c->root.reccount());
         c->root.compare(*d->emitted_tree.root());
     }
 }

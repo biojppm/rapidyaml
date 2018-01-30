@@ -1,9 +1,15 @@
+
+# extern libraries
+
 add_subdirectory(${RYML_EXT_DIR}/googletest googletest)
+
 set(BUILD_TESTING OFF)
 add_subdirectory(${RYML_EXT_DIR}/libyaml    libyaml)
+
 set(YAML_CPP_BUILD_TESTS OFF)
 set(YAML_CPP_BUILD_TOOLS OFF)
 add_subdirectory(${RYML_EXT_DIR}/yaml-cpp   yaml-cpp) # this includes googletest
+
 
 include(GoogleTest) # this module requires at least cmake 3.9
 
