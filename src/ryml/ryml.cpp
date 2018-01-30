@@ -1773,25 +1773,31 @@ cspan Parser::_scan_scalar()
     if(_at_line_end())
     {
         cspan n = _peek_next_line(m_state->pos.offset);
-        // does the indentation increase?
-        _c4dbgp("does indentation increase? '%.*s'", _c4prsp(n));
         if(n.begins_with(' ', m_state->line_contents.indentation + 1))
         {
+            _c4dbgp("does indentation increase? '%.*s'", _c4prsp(n));
             size_t ind = n.first_not_of(' ');
-            ind = ind == npos ? n.len : ind; // maybe n contains only spaces
-            _c4dbgp("reading scalar: it indents further: the scalar continues!!! indentation=%zd", ind);
-            while(n.begins_with(' ', ind))
+            if(ind == npos) // maybe n contains only spaces
             {
-                _c4dbgp("reading scalar: append another line: '%.*s'", _c4prsp(n));
-                _line_ended(); // advances to the peeked-at line, consuming all remaining (probably newline) characters on the current line
-                _scan_line();  // puts the peeked-at line in the buffer
-                C4_ASSERT(n == m_state->line_contents.rem);
-                _line_progressed(n.end() - (m_buf.str + m_state->pos.offset));
-                n = _peek_next_line(m_state->pos.offset);
+                ind = n.len;
             }
-            span full(m_buf.str + (s.str - m_buf.str), m_buf.begin() + m_state->pos.offset);
+            const cspan contents = n.right_of(ind, /*include_pos*/true);
+            if( ! contents.begins_with_any("-[{?") && (contents.first_of(':') == npos))
+            {
+                _c4dbgp("reading scalar: it indents further: the scalar continues!!! indentation=%zd", ind);
+                while(n.begins_with(' ', ind))
+                {
+                    _c4dbgp("reading scalar: append another line: '%.*s'", _c4prsp(n));
+                    _line_ended(); // advances to the peeked-at line, consuming all remaining (probably newline) characters on the current line
+                    _scan_line();  // puts the peeked-at line in the buffer
+                    C4_ASSERT(n == m_state->line_contents.rem);
+                    _line_progressed(n.end() - (m_buf.str + m_state->pos.offset));
+                    n = _peek_next_line(m_state->pos.offset);
+                }
+                span full(m_buf.str + (s.str - m_buf.str), m_buf.begin() + m_state->pos.offset);
 
-            s = _filter_plain_scalar(full, ind);
+                s = _filter_plain_scalar(full, ind);
+            }
         }
     }
 
@@ -1835,20 +1841,33 @@ cspan Parser::_peek_next_line(size_t pos) const
 
     char const* b = &m_buf[pos];
 
+    // skip one (or two) newlines
     if(b != m_buf.end() && *b == '\r') ++b;
     if(b != m_buf.end() && *b == '\n') ++b;
     if(b != m_buf.end() && *b == '\r') ++b;
     if(b != m_buf.end() && *b == '\n') ++b;
 
-    // get the line stripped of newline chars
+    // get the first non-empty line stripped of newline chars
+    cspan curr;
     char const* e = b;
-    while(e != m_buf.end() && (*e != '\n' && *e != '\r'))
+    while(1)
     {
-        ++e;
+        char const *tb = e;
+        while(e != m_buf.end() && (*e != '\n' && *e != '\r'))
+        {
+            ++e;
+        }
+        curr.assign(tb, e);
+        _c4dbgp("peeking next line: '%.*s'", _c4prsp(curr));
+        if(curr.empty() || curr.first_not_of(' ') != npos || e == m_buf.end())
+        {
+            break;
+        }
     }
-    cspan stripped(b, e);
 
-    return stripped;
+    cspan next(b, e);
+
+    return next;
 }
 
 //-----------------------------------------------------------------------------
