@@ -72,13 +72,32 @@ public:
     explicit CaseNode(NodeType_e t, const char (&k)[N], iseqmap s) : type(t), key(k), val(), children(s), parent(nullptr) { _set_parent(); }
     explicit CaseNode(NodeType_e t,                     iseqmap m) : CaseNode(t, "", m) {}
 
-    CaseNode(CaseNode     &&) = default;
-    CaseNode(CaseNode const&) = default;
+    CaseNode(CaseNode     && that) { _move(std::move(that)); }
+    CaseNode(CaseNode const& that) { _copy(that); }
 
-    CaseNode& operator= (CaseNode     &&) = default;
-    CaseNode& operator= (CaseNode const&) = default;
+    CaseNode& operator= (CaseNode     && that) { _move(std::move(that)); return *this; }
+    CaseNode& operator= (CaseNode const& that) { _copy(that); return *this; }
 
 public:
+
+    void _move(CaseNode&& that)
+    {
+        type = that.type;
+        key = that.key;
+        val = that.val;
+        children = std::move(that.children);
+        parent = nullptr;
+        _set_parent();
+    }
+    void _copy(CaseNode const& that)
+    {
+        type = that.type;
+        key = that.key;
+        val = that.val;
+        children = that.children;
+        parent = nullptr;
+        _set_parent();
+    }
 
     void _set_parent()
     {
