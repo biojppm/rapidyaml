@@ -1944,9 +1944,17 @@ cspan Parser::_scan_scalar()
         else if(has_all(RVAL))
         {
             C4_ASSERT(has_none(CPLX));
-            _c4dbgp("RMAP|RVAL");
-            s = s.left_of(s.first_of(",}#"));
-            s = s.trim(' ');
+            if(has_any(EXPL))
+            {
+                _c4dbgp("RMAP|RVAL|EXPL");
+                s = s.left_of(s.first_of(",}#"));
+                s = s.trim(' ');
+            }
+            else
+            {
+                s = s.left_of(s.first_of("#"));
+                s = s.trim(' ');
+            }
         }
         else
         {
@@ -1962,9 +1970,34 @@ cspan Parser::_scan_scalar()
         _c4err("not implemented");
     }
 
-    _c4dbgp("scalar was '%.*s'", _c4prsp(s));
-
     _line_progressed(s.str - m_state->line_contents.rem.str + s.len);
+
+    if(_at_line_end())
+    {
+        cspan n = _peek_next_line(m_state->pos.offset);
+        // does the indentation increase?
+        _c4dbgp("does indentation increase? '%.*s'", _c4prsp(n));
+        if(n.begins_with(' ', m_state->line_contents.indentation + 1))
+        {
+            size_t ind = n.first_not_of(' ');
+            ind = ind == npos ? n.len : ind; // maybe n contains only spaces
+            _c4dbgp("reading scalar: it indents further: the scalar continues!!! indentation=%zd", ind);
+            while(n.begins_with(' ', ind))
+            {
+                _c4dbgp("reading scalar: append another line: '%.*s'", _c4prsp(n));
+                _line_ended(); // advances to the peeked-at line, consuming all remaining (probably newline) characters on the current line
+                _scan_line();  // puts the peeked-at line in the buffer
+                C4_ASSERT(n == m_state->line_contents.rem);
+                _line_progressed(n.len);
+                n = _peek_next_line(m_state->pos.offset);
+            }
+            span full(m_buf.str + (s.str - m_buf.str), m_buf.begin() + m_state->pos.offset);
+
+            s = _filter_plain_scalar(full, ind);
+        }
+    }
+
+    _c4dbgp("scalar was '%.*s'", _c4prsp(s));
 
     return s;
 }
@@ -1978,7 +2011,7 @@ void Parser::_scan_line()
     char const* e = b;
 
     // get the line stripped of newline chars
-    while(e != m_buf.end() && (*e != '\r' && *e != '\n'))
+    while(e != m_buf.end() && (*e != '\n' && *e != '\r'))
     {
         ++e;
     }
@@ -1986,7 +2019,7 @@ void Parser::_scan_line()
     cspan stripped = m_buf.subspan(m_state->pos.offset, len);
 
     // advance pos to include the first line ending
-    while(e != m_buf.end() && (*e == '\r' || *e == '\n'))
+    while(e != m_buf.end() && (*e == '\n' || *e == '\r'))
     {
         ++e;
         ++len;
@@ -1994,6 +2027,48 @@ void Parser::_scan_line()
     cspan full = m_buf.subspan(m_state->pos.offset, len);
 
     m_state->line_contents.reset(full, stripped);
+}
+
+//-----------------------------------------------------------------------------
+cspan Parser::_peek_next_line(size_t pos) const
+{
+    pos = pos == npos ? m_state->pos.offset : pos;
+    if(pos >= m_buf.len) return {};
+
+    auto &lc = m_state->line_contents;
+    char const* b = &m_buf[pos];
+
+    if(*b == '\r') ++b;
+    if(*b == '\n') ++b;
+
+    // get the line stripped of newline chars
+    char const* e = b;
+    while(e != m_buf.end() && (*e != '\n' && *e != '\r'))
+    {
+        ++e;
+    }
+    cspan stripped(b, e);
+
+    return stripped;
+}
+
+//-----------------------------------------------------------------------------
+void Parser::_line_progressed(size_t ahead)
+{
+    _c4dbgp("line[%zd] (%zd cols) progressed by %zd:  col %zd --> %zd   offset %zd --> %zd", m_state->pos.line, m_state->line_contents.full.len, ahead, m_state->pos.col, m_state->pos.col+ahead, m_state->pos.offset, m_state->pos.offset+ahead);
+    m_state->pos.offset += ahead;
+    m_state->pos.col += ahead;
+    C4_ASSERT(m_state->pos.col <= m_state->line_contents.stripped.len+1);
+    m_state->line_contents.rem = m_state->line_contents.rem.subspan(ahead);
+}
+
+void Parser::_line_ended()
+{
+    _c4dbgp("line[%zd] (%zd cols) ended! offset %zd --> %zd", m_state->pos.line, m_state->line_contents.full.len, m_state->pos.offset, m_state->pos.offset+m_state->line_contents.full.len - m_state->line_contents.stripped.len);
+    C4_ASSERT(m_state->pos.col == m_state->line_contents.stripped.len+1);
+    m_state->pos.offset += m_state->line_contents.full.len - m_state->line_contents.stripped.len;
+    ++m_state->pos.line;
+    m_state->pos.col = 1;
 }
 
 //-----------------------------------------------------------------------------
@@ -2457,9 +2532,15 @@ cspan Parser::_scan_quoted_scalar(const char q)
 
     if(needs_filter)
     {
-        _c4dbgp("unfiltered scalar: \"%.*s\"", _c4prsp(s));
-        cspan ret = _filter_quoted_scalar(s, q);
-        _c4dbgp("filtered scalar: \"%.*s\"", _c4prsp(ret));
+        cspan ret;
+        if(q == '\'')
+        {
+            ret = _filter_squot_scalar(s);
+        }
+        else if(q == '"')
+        {
+            ret = _filter_dquot_scalar(s);
+        }
         C4_ASSERT(ret.len < s.len);
         return ret;
     }
@@ -2527,7 +2608,7 @@ cspan Parser::_scan_block()
     (void)first;
 
     // ok! now we strip the newlines and spaces according to the specs
-    s = _filter_raw_block(raw_block, newline, chomp, indentation);
+    s = _filter_block_scalar(raw_block, newline, chomp, indentation);
 
     return s;
 }
@@ -2542,13 +2623,156 @@ inline span erase(span d, size_t pos, size_t num)
 }
 
 //-----------------------------------------------------------------------------
-cspan Parser::_filter_quoted_scalar(span s, const char q)
+cspan Parser::_filter_plain_scalar(span s, size_t indentation)
 {
-    span r = s;
+    _c4dbgp("filtering plain scalar: before='%.*s'", _c4prsp(s));
 
-    _c4dbgp("filtering quoted scalar: %c%.*s%c", q=='"'?'\'':'"', _c4prsp(s), q=='"'?'\'':'"');
+    // do a first sweep to clean leading whitespace
+    span r = _filter_whitespace(s, indentation);
 
-    // do a first sweep to clean leading whitespace and non-unix newlines
+    // now another sweep for newlines
+    for(size_t i = 0; i < r.len; ++i)
+    {
+        const char curr = r[i];
+        const char prev = i   > 0     ? r[i-1] : '\0';
+        const char next = i+1 < r.len ? r[i+1] : '\0';
+        if(curr == '\n')
+        {
+            if(next != '\n')
+            {
+                r[i] = ' '; // a single unix newline: turn it into a space
+            }
+            else if(curr == '\n' && next == '\n')
+            {
+                r = erase(r, i+1, 1); // keep only one of consecutive newlines
+            }
+        }
+    }
+
+    C4_ASSERT(s.len >= r.len);
+    _c4dbgp("filtering plain scalar: num filtered chars=%zd", s.len - r.len);
+    _c4dbgp("filtering plain scalar: after='%.*s'", _c4prsp(r));
+
+#ifdef RYML_DBG
+    for(size_t i = r.len; i < s.len; ++i)
+    {
+        s[i] = '~';
+    }
+#endif
+
+    return r;
+}
+
+//-----------------------------------------------------------------------------
+cspan Parser::_filter_squot_scalar(span s)
+{
+    _c4dbgp("filtering single-quoted scalar: before=\"%.*s\"", _c4prsp(s));
+
+    // do a first sweep to clean leading whitespace
+    span r = _filter_whitespace(s);
+
+    // now another sweep for quotes and newlines
+    for(size_t i = 0; i < r.len; ++i)
+    {
+        const char curr = r[i];
+        const char prev = i   > 0     ? r[i-1] : '\0';
+        const char next = i+1 < r.len ? r[i+1] : '\0';
+        if(curr == '\'' && (curr == next))
+        {
+            r = erase(r, i+1, 1); // turn two consecutive single quotes into one
+        }
+        else if(curr == '\n')
+        {
+            if(next != '\n')
+            {
+                r[i] = ' '; // a single unix newline: turn it into a space
+            }
+            else if(curr == '\n' && next == '\n')
+            {
+                r = erase(r, i+1, 1); // keep only one of consecutive newlines
+            }
+        }
+    }
+
+    C4_ASSERT(s.len >= r.len);
+    _c4dbgp("filtering single-quoted scalar: num filtered chars=%zd", s.len - r.len);
+    _c4dbgp("filtering single-quoted scalar: after=\"%.*s\"", _c4prsp(r));
+
+#ifdef RYML_DBG
+    for(size_t i = r.len; i < s.len; ++i)
+    {
+        s[i] = '~';
+    }
+#endif
+
+    return r;
+}
+
+//-----------------------------------------------------------------------------
+cspan Parser::_filter_dquot_scalar(span s)
+{
+    _c4dbgp("filtering double-quoted scalar: before='%.*s'", _c4prsp(s));
+
+    // do a first sweep to clean leading whitespace
+    span r = _filter_whitespace(s);
+
+    for(size_t i = 0; i < r.len; ++i)
+    {
+        const char curr = r[i];
+        const char prev = i   > 0     ? r[i-1] : '\0';
+        const char next = i+1 < r.len ? r[i+1] : '\0';
+        if(curr == '\\')
+        {
+            if(next == curr)
+            {
+                r = erase(r, i+1, 1); // turn two consecutive backslashes into one
+            }
+            else if(next == '\n')
+            {
+                r = erase(r, i, 2);  // newlines are escaped with \ -- delete both
+            }
+            else if(next == '"')
+            {
+                r = erase(r, i, 1);  // fix escaped double quotes
+            }
+            else if(next == 'n')
+            {
+                r = erase(r, i+1, 1);
+                r[i] = '\n';
+            }
+        }
+        else if(curr == '\n')
+        {
+            if(next != '\n')
+            {
+                r[i] = ' '; // a single unix newline: turn it into a space
+            }
+            else if(curr == '\n' && next == '\n')
+            {
+                r = erase(r, i+1, 1); // keep only one of consecutive newlines
+            }
+        }
+    }
+
+    C4_ASSERT(s.len >= r.len);
+    _c4dbgp("filtering double-quoted scalar: num filtered chars=%zd", s.len - r.len);
+    _c4dbgp("filtering double-quoted scalar: after='%.*s'", _c4prsp(r));
+
+#ifdef RYML_DBG
+    for(size_t i = r.len; i < s.len; ++i)
+    {
+        s[i] = '~';
+    }
+#endif
+
+    return r;
+}
+
+//-----------------------------------------------------------------------------
+span Parser::_filter_whitespace(span r, size_t indentation, bool leading_whitespace)
+{
+    _c4dbgp("filtering whitespace: before=\"%.*s\"", _c4prsp(r));
+
     for(size_t i = 0; i < r.len; ++i)
     {
         const char curr = r[i];
@@ -2558,10 +2782,20 @@ cspan Parser::_filter_quoted_scalar(span s, const char q)
         {
             if(next == ' ')
             {
-                cspan ss = s.subspan(i);
+                cspan ss = r.subspan(i);
                 ss = ss.left_of(ss.first_not_of(' '));
                 C4_ASSERT(ss.len > 1);
-                r = erase(r, i, ss.len);
+                size_t num = ss.len;
+                C4_ASSERT(num >= indentation);
+                if(indentation)
+                {
+                    num = indentation;
+                }
+                if(leading_whitespace)
+                {
+                    num = ss.len;
+                }
+                r = erase(r, i, num);
             }
             else
             {
@@ -2583,86 +2817,13 @@ cspan Parser::_filter_quoted_scalar(span s, const char q)
         }
     }
 
-    _c4dbgp("filtering quoted scalar: after leading whitespace: %c%.*s%c", q=='"'?'\'':'"', _c4prsp(r), q=='"'?'\'':'"');
-
-    // now another sweep for quotes and newlines
-    if(q == '\'')
-    {
-        for(size_t i = 0; i < r.len; ++i)
-        {
-            const char curr = r[i];
-            const char prev = i   > 0     ? r[i-1] : '\0';
-            const char next = i+1 < r.len ? r[i+1] : '\0';
-            if(curr == '\'' && (curr == next))
-            {
-                r = erase(r, i+1, 1); // turn two consecutive single quotes into one
-            }
-            else if(curr == '\n')
-            {
-                if(next != '\n')
-                {
-                    r[i] = ' '; // a single unix newline: turn it into a space
-                }
-                else if(curr == '\n' && next == '\n')
-                {
-                    r = erase(r, i+1, 1); // keep only one of consecutive newlines
-                }
-            }
-        }
-    }
-    else
-    {
-        for(size_t i = 0; i < r.len; ++i)
-        {
-            const char curr = r[i];
-            const char prev = i   > 0     ? r[i-1] : '\0';
-            const char next = i+1 < r.len ? r[i+1] : '\0';
-            if(curr == '\\')
-            {
-                if(next == curr)
-                {
-                    r = erase(r, i+1, 1); // turn two consecutive backslashes into one
-                }
-                else if(next == '\n')
-                {
-                    r = erase(r, i, 2);  // newlines are escaped with \ -- delete both
-                }
-                else if(next == '"')
-                {
-                    r = erase(r, i, 1);  // fix escaped double quotes
-                }
-                else if(next == 'n')
-                {
-                    r = erase(r, i+1, 1);
-                    r[i] = '\n';
-                }
-            }
-            else if(curr == '\n')
-            {
-                if(next != '\n')
-                {
-                    r[i] = ' '; // a single unix newline: turn it into a space
-                }
-                else if(curr == '\n' && next == '\n')
-                {
-                    r = erase(r, i+1, 1); // keep only one of consecutive newlines
-                }
-            }
-        }
-    }
-
-#ifdef RYML_DBG
-    for(size_t i = r.len; i < s.len; ++i)
-    {
-        s[i] = '~';
-    }
-#endif
+    _c4dbgp("filtering whitespace: after=\"%.*s\"", _c4prsp(r));
 
     return r;
 }
 
 //-----------------------------------------------------------------------------
-cspan Parser::_filter_raw_block(cspan const& block, BlockStyle_e style, BlockChomp_e chomp, size_t indentation)
+cspan Parser::_filter_block_scalar(cspan const& block, BlockStyle_e style, BlockChomp_e chomp, size_t indentation)
 {
     C4_ASSERT(block.ends_with('\n') || block.ends_with('\r'));
 

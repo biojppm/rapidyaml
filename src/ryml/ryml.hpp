@@ -765,6 +765,7 @@ private:
     bool  _finished_file() const;
     bool  _finished_line() const;
 
+    cspan _peek_next_line(size_t pos=npos) const;
     void  _scan_line();
     void  _next_line() { _line_ended(); }
 
@@ -774,8 +775,11 @@ private:
     cspan _scan_quoted_scalar(const char q);
     cspan _scan_block();
 
-    cspan _filter_quoted_scalar(span s, const char q);
-    cspan _filter_raw_block(cspan const& block, BlockStyle_e style, BlockChomp_e chomp, size_t indentation);
+    cspan _filter_squot_scalar(span s);
+    cspan _filter_dquot_scalar(span s);
+    cspan _filter_plain_scalar(span s, size_t indentation);
+    cspan _filter_block_scalar(cspan const& block, BlockStyle_e style, BlockChomp_e chomp, size_t indentation);
+    span  _filter_whitespace(span s, size_t indentation=0, bool leading_whitespace=true);
 
     void  _handle_finished_file();
     void  _handle_line();
@@ -877,21 +881,8 @@ private:
         }
     };
 
-    void _line_progressed(size_t ahead)
-    {
-        m_state->pos.offset += ahead;
-        m_state->pos.col += ahead;
-        C4_ASSERT(m_state->pos.col <= m_state->line_contents.stripped.len+1);
-        m_state->line_contents.rem = m_state->line_contents.rem.subspan(ahead);
-    }
-
-    void _line_ended()
-    {
-        C4_ASSERT(m_state->pos.col == m_state->line_contents.stripped.len+1);
-        m_state->pos.offset += m_state->line_contents.full.len - m_state->line_contents.stripped.len;
-        ++m_state->pos.line;
-        m_state->pos.col = 1;
-    }
+    void _line_progressed(size_t ahead);
+    void _line_ended();
 
     void _prepare_pop()
     {
@@ -906,6 +897,11 @@ private:
     inline bool _at_line_begin() const
     {
         return m_state->line_contents.rem.begin() == m_state->line_contents.full.begin();
+    }
+    inline bool _at_line_end() const
+    {
+        cspan r = m_state->line_contents.rem;
+        return r.empty() || r.begins_with(' ', r.len);
     }
 
     inline Node * node(State const* s) const { return m_tree->get(s->node_id); }
