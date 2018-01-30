@@ -28,7 +28,43 @@ void PrintTo(const cspan& bar, ::std::ostream* os) { *os << bar; }
 //-----------------------------------------------------------------------------
 TEST(span, begins_with)
 {
-    EXPECT_TRUE( ! cspan(":").begins_with(": "));
+    EXPECT_TRUE (cspan(": ").begins_with(":"));
+    EXPECT_TRUE (cspan(": ").begins_with(':'));
+    EXPECT_FALSE(cspan(":").begins_with(": "));
+
+    EXPECT_TRUE (cspan(    "1234").begins_with('0', 0));
+    EXPECT_TRUE (cspan(   "01234").begins_with('0', 1));
+    EXPECT_FALSE(cspan(   "01234").begins_with('0', 2));
+    EXPECT_TRUE (cspan(  "001234").begins_with('0', 1));
+    EXPECT_TRUE (cspan(  "001234").begins_with('0', 2));
+    EXPECT_FALSE(cspan(  "001234").begins_with('0', 3));
+    EXPECT_TRUE (cspan( "0001234").begins_with('0', 1));
+    EXPECT_TRUE (cspan( "0001234").begins_with('0', 2));
+    EXPECT_TRUE (cspan( "0001234").begins_with('0', 3));
+    EXPECT_FALSE(cspan( "0001234").begins_with('0', 4));
+    EXPECT_TRUE (cspan("00001234").begins_with('0', 1));
+    EXPECT_TRUE (cspan("00001234").begins_with('0', 2));
+    EXPECT_TRUE (cspan("00001234").begins_with('0', 3));
+    EXPECT_TRUE (cspan("00001234").begins_with('0', 4));
+    EXPECT_FALSE(cspan("00001234").begins_with('0', 5));
+}
+TEST(span, ends_with)
+{
+    EXPECT_TRUE (cspan("1234"    ).ends_with('0', 0));
+    EXPECT_TRUE (cspan("12340"   ).ends_with('0', 1));
+    EXPECT_FALSE(cspan("12340"   ).ends_with('0', 2));
+    EXPECT_TRUE (cspan("123400"  ).ends_with('0', 1));
+    EXPECT_TRUE (cspan("123400"  ).ends_with('0', 2));
+    EXPECT_FALSE(cspan("123400"  ).ends_with('0', 3));
+    EXPECT_TRUE (cspan("1234000" ).ends_with('0', 1));
+    EXPECT_TRUE (cspan("1234000" ).ends_with('0', 2));
+    EXPECT_TRUE (cspan("1234000" ).ends_with('0', 3));
+    EXPECT_FALSE(cspan("1234000" ).ends_with('0', 4));
+    EXPECT_TRUE (cspan("12340000").ends_with('0', 1));
+    EXPECT_TRUE (cspan("12340000").ends_with('0', 2));
+    EXPECT_TRUE (cspan("12340000").ends_with('0', 3));
+    EXPECT_TRUE (cspan("12340000").ends_with('0', 4));
+    EXPECT_FALSE(cspan("12340000").ends_with('0', 5));
 }
 
 TEST(span, compare)
