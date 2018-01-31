@@ -1004,12 +1004,16 @@ R"(
 
 //-----------------------------------------------------------------------------
 #define BLOCK_LITERAL_CASES \
-    "block literal as seq val, implicit indentation 2", \
+    "block literal as seq val, implicit indentation 2",\
+    "block literal as seq val, implicit indentation 2, chomp=keep",\
+    "block literal as seq val, implicit indentation 2, chomp=strip",\
     "block literal as map val, implicit indentation 2",\
     "block literal as map val, implicit indentation 3",\
     "block literal as map val, implicit indentation 4",\
     "block literal as map val, implicit indentation 9",\
     "block literal as map val, explicit indentation 2",\
+    "block literal as map val, explicit indentation 2, chomp=keep",\
+    "block literal as map val, explicit indentation 2, chomp=strip",\
     "block literal as map val, explicit indentation 3",\
     "block literal as map val, explicit indentation 4",\
     "block literal as map val, explicit indentation 9"
@@ -1028,6 +1032,42 @@ R"(
 )",
   L{
     N("Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
+    N("another val")
+  }
+),
+
+C("block literal as seq val, implicit indentation 2, chomp=keep",
+R"(
+- |+
+  Several lines of text,
+  with some "quotes" of various 'types',
+  and also a blank line:
+  
+  plus another line at the end.
+  
+  
+- another val
+)",
+  L{
+    N("Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n\n\n"),
+    N("another val")
+  }
+),
+
+C("block literal as seq val, implicit indentation 2, chomp=strip",
+R"(
+- |-
+  Several lines of text,
+  with some "quotes" of various 'types',
+  and also a blank line:
+  
+  plus another line at the end.
+  
+  
+- another val
+)",
+  L{
+    N("Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end."),
     N("another val")
   }
 ),
@@ -1064,6 +1104,42 @@ another: val
 )",
   L{
     N("example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
+    N("another", "val")
+  }
+),
+
+C("block literal as map val, explicit indentation 2, chomp=keep",
+R"(
+example: |+2
+  Several lines of text,
+  with some "quotes" of various 'types',
+  and also a blank line:
+  
+  plus another line at the end.
+  
+  
+another: val
+)",
+  L{
+    N("example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n\n\n"),
+    N("another", "val")
+  }
+),
+
+C("block literal as map val, explicit indentation 2, chomp=strip",
+R"(
+example: |-2
+  Several lines of text,
+  with some "quotes" of various 'types',
+  and also a blank line:
+  
+  plus another line at the end.
+  
+  
+another: val
+)",
+  L{
+    N("example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end."),
     N("another", "val")
   }
 ),
@@ -1181,10 +1257,14 @@ another: val
 #define BLOCK_FOLDED_CASES \
     "block folded as seq val, implicit indentation 2", \
     "block folded as map val, implicit indentation 2",\
+    "block folded as map val, implicit indentation 2, chomp=keep",\
+    "block folded as map val, implicit indentation 2, chomp=strip",\
     "block folded as map val, implicit indentation 3",\
     "block folded as map val, implicit indentation 4",\
     "block folded as map val, implicit indentation 9",\
     "block folded as map val, explicit indentation 2",\
+    "block folded as map val, explicit indentation 2, chomp=keep",\
+    "block folded as map val, explicit indentation 2, chomp=strip",\
     "block folded as map val, explicit indentation 3",\
     "block folded as map val, explicit indentation 4",\
     "block folded as map val, explicit indentation 9"
@@ -1225,6 +1305,42 @@ another: val
   }
 ),
 
+C("block folded as map val, implicit indentation 2, chomp=keep",
+R"(
+example: >+
+  Several lines of text,
+  with some "quotes" of various 'types',
+  and also a blank line:
+  
+  plus another line at the end.
+  
+  
+another: val
+)",
+  L{
+    N("example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n\n\n"),
+    N("another", "val")
+  }
+),
+
+C("block folded as map val, implicit indentation 2, chomp=strip",
+R"(
+example: >-
+  Several lines of text,
+  with some "quotes" of various 'types',
+  and also a blank line:
+  
+  plus another line at the end.
+  
+  
+another: val
+)",
+  L{
+    N("example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end."),
+    N("another", "val")
+  }
+),
+
 C("block folded as map val, explicit indentation 2",
 R"(
 example: >2
@@ -1239,6 +1355,42 @@ another: val
 )",
   L{
     N("example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+    N("another", "val")
+  }
+),
+
+C("block folded as map val, explicit indentation 2, chomp=keep",
+R"(
+example: >+2
+  Several lines of text,
+  with some "quotes" of various 'types',
+  and also a blank line:
+  
+  plus another line at the end.
+  
+  
+another: val
+)",
+  L{
+    N("example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n\n\n"),
+    N("another", "val")
+  }
+),
+
+C("block folded as map val, explicit indentation 2, chomp=strip",
+R"(
+example: >-2
+  Several lines of text,
+  with some "quotes" of various 'types',
+  and also a blank line:
+  
+  plus another line at the end.
+  
+  
+another: val
+)",
+  L{
+    N("example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end."),
     N("another", "val")
   }
 ),

@@ -2385,6 +2385,7 @@ cspan Parser::_scan_block()
     if(s.len > 1)
     {
         cspan t = s.subspan(1);
+        C4_ASSERT(t.len >= 1);
         if(t[0] == '-')
         {
             chomp = CHOMP_STRIP;
@@ -2718,7 +2719,7 @@ cspan Parser::_filter_block_scalar(span s, BlockStyle_e style, BlockChomp_e chom
         {
             auto pos = r.last_not_of("\r\n"); // do not fold trailing newlines
             C4_ASSERT(pos != npos);
-            C4_ASSERT(pos+1 < r.len);
+            C4_ASSERT(pos < r.len);
             ++pos; // point pos at the first newline char
             span t = r.subspan(0, pos);
             for(size_t i = 0; i < t.len; ++i)
