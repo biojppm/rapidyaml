@@ -158,8 +158,15 @@ void Emitter< Writer >::_do_visit(Node const* n, size_t ilevel, bool indent)
 template< class Writer >
 void Emitter< Writer >::_write_one(Scalar const& sc)
 {
+    if( ! sc.tag.empty())
+    {
+        _c4this->_do_write(sc.tag);
+        _c4this->_do_write(' ');
+    }
+
     const bool no_dquotes = sc.s.first_of( '"') == npos;
     const bool no_squotes = sc.s.first_of('\'') == npos;
+
     if(no_dquotes && no_squotes)
     {
         if( ! sc.s.empty())

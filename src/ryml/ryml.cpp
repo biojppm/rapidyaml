@@ -18,7 +18,7 @@ size_t Node::id() const
 
 const char* Node::type_str(NodeType_e ty)
 {
-    switch(ty)
+    switch(ty & ~(KEYTAG|VALTAG))
     {
     case VAL     : return "VAL";
     case MAP     : return "MAP";
@@ -230,6 +230,20 @@ void Node::to_keyval(cspan const& key, cspan const& val, int more_flags)
     _set_flags(KEYVAL|more_flags);
     m_key = key;
     m_val = val;
+}
+
+void Node::set_key_tag(cspan const& tag)
+{
+    C4_ASSERT(has_key());
+    m_key_tag = tag;
+    _add_flags(KEYTAG);
+}
+
+void Node::set_val_tag(cspan const& tag)
+{
+    C4_ASSERT(has_val());
+    m_val_tag = tag;
+    _add_flags(VALTAG);
 }
 
 void Node::to_map(int more_flags)
@@ -1678,44 +1692,56 @@ bool Parser::_handle_anchors_and_refs()
 bool Parser::_handle_types()
 {
     cspan rem = m_state->line_contents.rem;
+    cspan t;
+
     if(rem.begins_with("!!"))
     {
-        cspan t = rem.left_of(rem.first_of(' '));
-        _line_progressed(t.len);
-        _c4dbgp("tag was '%.*s'", _c4prsp(t));
-        C4_ASSERT(t.len > 2);
-        t = t.subspan(2);
-        _c4dbgp("tag was '%.*s'", _c4prsp(t));
-        return true;
+        t = rem.left_of(rem.first_of(' '));
+        C4_ASSERT(t.len >= 2);
+        //t = t.subspan(2);
     }
     else if(rem.begins_with("!<"))
     {
         cspan t = rem.left_of(rem.first_of(' '));
-        _line_progressed(t.len);
-        C4_ASSERT(t.len > 2);
-        t = t.subspan(2, t.len-1);
-        _c4dbgp("tag was '%.*s'", _c4prsp(t));
-        return true;
+        C4_ASSERT(t.len >= 2);
+        //t = t.subspan(2, t.len-1);
     }
     else if(rem.begins_with("!h!"))
     {
         cspan t = rem.left_of(rem.first_of(' '));
-        _line_progressed(t.len);
-        C4_ASSERT(t.len > 3);
-        t = t.subspan(3);
-        _c4dbgp("tag was '%.*s'", _c4prsp(t));
-        return true;
+        C4_ASSERT(t.len >= 3);
+        //t = t.subspan(3);
     }
     else if(rem.begins_with('!'))
     {
         cspan t = rem.left_of(rem.first_of(' '));
-        _line_progressed(t.len);
         C4_ASSERT(t.len > 1);
-        t = t.subspan(1);
-        _c4dbgp("tag was '%.*s'", _c4prsp(t));
-        return true;
+        //t = t.subspan(1);
     }
-    return false;
+
+    if(t.empty()) return false;
+
+    _line_progressed(t.len);
+    _c4dbgp("tag was '%.*s'", _c4prsp(t));
+
+    if(has_all(RMAP|RKEY))
+    {
+        m_key_tag = t;
+    }
+    else if(has_all(RMAP|RVAL))
+    {
+        m_val_tag = t;
+    }
+    else if(has_all(RSEQ|RVAL))
+    {
+        m_val_tag = t;
+    }
+    else
+    {
+        _c4err("internal error");
+    }
+
+    return true;
 }
 
 //-----------------------------------------------------------------------------
@@ -2150,6 +2176,12 @@ void Parser::_append_val(cspan const& val)
     Node *n = m_tree->get(nid);
     n->to_val(val);
     _c4dbgp("append val: id=%zd name='%.*s' val='%.*s'", nid, _c4prsp(n->m_key), _c4prsp(n->m_val));
+    if( ! m_val_tag.empty())
+    {
+        _c4dbgp("append val: set tag to '%.*s'", _c4prsp(m_val_tag));
+        n->set_val_tag(m_val_tag);
+        m_val_tag.clear();
+    }
 }
 
 void Parser::_append_key_val(cspan const& val)
@@ -2161,6 +2193,18 @@ void Parser::_append_key_val(cspan const& val)
     Node *n = m_tree->get(nid);
     n->to_keyval(key, val);
     _c4dbgp("append keyval: id=%zd name='%.*s' val='%.*s'", nid, _c4prsp(n->key()), _c4prsp(n->val()));
+    if( ! m_key_tag.empty())
+    {
+        _c4dbgp("append keyval: set key tag to '%.*s'", _c4prsp(m_key_tag));
+        n->set_key_tag(m_key_tag);
+        m_key_tag.clear();
+    }
+    if( ! m_val_tag.empty())
+    {
+        _c4dbgp("append keyval: set val tag to '%.*s'", _c4prsp(m_val_tag));
+        n->set_val_tag(m_val_tag);
+        m_val_tag.clear();
+    }
 }
 
 //-----------------------------------------------------------------------------

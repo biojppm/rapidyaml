@@ -24,6 +24,8 @@ typedef enum {
     SEQ     = (1<<3),  ///< a seq: a parent of vals
     DOC     = (1<<4),  ///< a document
     STREAM  = (1<<5)|SEQ,  ///< a stream: a seq of docs
+    KEYTAG  = (1<<6),  ///< the key has an explicit tag/type
+    VALTAG  = (1<<7),  ///< the val has an explicit tag/type
     KEYVAL  = KEY|VAL,
     KEYSEQ  = KEY|SEQ,
     KEYMAP  = KEY|MAP,
@@ -80,8 +82,8 @@ public:
 
     mutable Tree * m_s;
     NodeType_e     m_type;
-    cspan          m_key;
-    cspan          m_val;
+    cspan          m_key, m_key_tag;
+    cspan          m_val, m_val_tag;
 
     size_t         m_parent;
     childrenfl     m_children;
@@ -93,12 +95,15 @@ public:
     Tree *tree() const { return m_s; }
     size_t id() const;
 
-    NodeType_e type() const { return m_type; }
+    NodeType_e type() const { return (NodeType_e)(m_type & ~(KEYTAG|VALTAG)); }
     const char* type_str() const { return type_str(m_type); }
     static const char* type_str(NodeType_e ty);
 
     cspan const& key() const { C4_ASSERT(m_type & KEY); return m_key; }
+    cspan const& key_tag() const { C4_ASSERT(m_type & KEY); return m_key_tag; }
+
     cspan const& val() const { C4_ASSERT(m_type & VAL); return m_val; }
+    cspan const& val_tag() const { C4_ASSERT(m_type & KEY); return m_val_tag; }
 
     bool operator== (cspan const& cmp) const
     {
@@ -116,6 +121,8 @@ public:
     bool   has_key() const { return m_type & KEY; }
     bool   is_val() const { return (m_type & KEYVAL) == VAL; }
     bool   is_keyval() const { return (m_type & KEYVAL) == KEYVAL; }
+    bool   has_key_tag() const { return (m_type & (KEY|KEYTAG)) == (KEY|KEYTAG); }
+    bool   has_val_tag() const { return (m_type & (VAL|VALTAG)) == (VAL|VALTAG); }
 
     bool   parent_is_seq() const { C4_ASSERT(parent()); return parent()->is_seq(); }
     bool   parent_is_map() const { C4_ASSERT(parent()); return parent()->is_map(); }
@@ -200,6 +207,9 @@ public:
     void to_seq(cspan const& key, int more_flags = 0);
     void to_doc(int more_flags = 0);
     void to_stream(int more_flags = 0);
+
+    void set_val_tag(cspan const& tag);
+    void set_key_tag(cspan const& tag);
 
 private:
 
@@ -540,7 +550,9 @@ struct RepC
 struct Scalar
 {
     cspan s;
+    cspan tag;
     inline Scalar(cspan const& s_) : s(s_) {}
+    inline Scalar(cspan const& s_, cspan const& t_) : s(s_), tag(t_) {}
 };
 
 template< class Writer >
@@ -573,8 +585,8 @@ private:
 
 #define _c4this (static_cast< Writer * >(this))
 
-    static inline Scalar keysc(Node const* n) { return Scalar(n->key()); }
-    static inline Scalar valsc(Node const* n) { return Scalar(n->val()); }
+    static inline Scalar keysc(Node const* n) { return n->has_key_tag() ? Scalar(n->key(), n->key_tag()) : Scalar(n->key()); }
+    static inline Scalar valsc(Node const* n) { return n->has_val_tag() ? Scalar(n->val(), n->val_tag()) : Scalar(n->val()); }
 
     template< class T, class... Args >
     inline void _write(T a, Args... more)
@@ -985,6 +997,8 @@ private:
     detail::stack< State > m_stack;
     State * m_state;
 
+    cspan   m_key_tag;
+    cspan   m_val_tag;
 };
 
 
