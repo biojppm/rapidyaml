@@ -2359,6 +2359,7 @@ cspan Parser::_scan_quoted_scalar(const char q)
             ret = _filter_dquot_scalar(s);
         }
         C4_ASSERT(ret.len < s.len);
+        _c4dbgp("final scalar: \"%.*s\"", _c4prsp(ret));
         return ret;
     }
 
@@ -2715,25 +2716,37 @@ cspan Parser::_filter_block_scalar(span s, BlockStyle_e style, BlockChomp_e chom
         break;
     case BLOCK_FOLD:
         {
-            auto pos = r.last_not_of("\r\n"); // do not fold the last newline
-            pos = pos == npos ? r.len : pos;
-            for(size_t i = 0; i <= pos; ++i)
+            auto pos = r.last_not_of("\r\n"); // do not fold trailing newlines
+            C4_ASSERT(pos != npos);
+            C4_ASSERT(pos+1 < r.len);
+            ++pos; // point pos at the first newline char
+            span t = r.subspan(0, pos);
+            for(size_t i = 0; i < t.len; ++i)
             {
-                const char curr = r[i];
-                //const char prev = i   > 0     ? r[i-1] : '\0';
-                const char next = i+1 < r.len ? r[i+1] : '\0';
+                const char curr = t[i];
+                //const char prev = i   > 0     ? t[i-1] : '\0';
+                const char next = i+1 < t.len ? t[i+1] : '\0';
                 if(curr == '\n')
                 {
                     if(next != '\n')
                     {
-                        r[i] = ' '; // a single unix newline: turn it into a space
+                        t[i] = ' '; // a single unix newline: turn it into a space
                     }
                     else if(curr == '\n' && next == '\n')
                     {
-                        r = erase(r, i+1, 1); // keep only one of consecutive newlines
+                        t = erase(t, i+1, 1); // keep only one of consecutive newlines
                     }
                 }
             }
+            // copy over the trailing newlines
+            span nl = r.subspan(pos);
+            C4_ASSERT(t.len + nl.len <= r.len);
+            for(size_t i = 0; i < nl.len; ++i)
+            {
+                r[t.len + i] = nl[i];
+            }
+            // now trim r
+            r = r.subspan(0, t.len + nl.len);
         }
         break;
     default:
