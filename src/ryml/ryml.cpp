@@ -1003,6 +1003,10 @@ bool Parser::_handle_seq_expl()
             _line_progressed(1);
             return true;
         }
+        else if(_handle_types())
+        {
+            return true;
+        }
         else
         {
             _c4err("parse error");
@@ -1195,6 +1199,10 @@ bool Parser::_handle_seq_impl()
                 return true;
             }
         }
+        else if(_handle_types())
+        {
+            return true;
+        }
         else
         {
             _c4err("parse error");
@@ -1294,6 +1302,10 @@ bool Parser::_handle_map_expl()
                 _line_progressed(1);
                 return true;
             }
+            else if(_handle_types())
+            {
+                return true;
+            }
             else
             {
                 _c4err("parse error");
@@ -1331,6 +1343,10 @@ bool Parser::_handle_map_expl()
                 _start_map();
                 addrem_flags(EXPL|RKEY, RNXT|RVAL);
                 _line_progressed(1);
+                return true;
+            }
+            else if(_handle_types())
+            {
                 return true;
             }
             else
@@ -1433,6 +1449,10 @@ bool Parser::_handle_map_impl()
                 _c4dbgp("skip %zd spaces", rem.len);
                 _line_progressed(rem.len);
             }
+            return true;
+        }
+        else if(_handle_types())
+        {
             return true;
         }
         else
@@ -1542,6 +1562,10 @@ bool Parser::_handle_map_impl()
                 _line_progressed(rem.len);
                 return true;
             }
+        }
+        else if(_handle_types())
+        {
+            return true;
         }
         else
         {
@@ -1656,12 +1680,39 @@ bool Parser::_handle_types()
     cspan rem = m_state->line_contents.rem;
     if(rem.begins_with("!!"))
     {
-        _c4err("not implemented");
+        cspan t = rem.left_of(rem.first_of(' '));
+        _line_progressed(t.len);
+        _c4dbgp("tag was '%.*s'", _c4prsp(t));
+        C4_ASSERT(t.len > 2);
+        t = t.subspan(2);
+        _c4dbgp("tag was '%.*s'", _c4prsp(t));
+        return true;
+    }
+    else if(rem.begins_with("!<"))
+    {
+        cspan t = rem.left_of(rem.first_of(' '));
+        _line_progressed(t.len);
+        C4_ASSERT(t.len > 2);
+        t = t.subspan(2, t.len-1);
+        _c4dbgp("tag was '%.*s'", _c4prsp(t));
+        return true;
+    }
+    else if(rem.begins_with("!h!"))
+    {
+        cspan t = rem.left_of(rem.first_of(' '));
+        _line_progressed(t.len);
+        C4_ASSERT(t.len > 3);
+        t = t.subspan(3);
+        _c4dbgp("tag was '%.*s'", _c4prsp(t));
         return true;
     }
     else if(rem.begins_with('!'))
     {
-        _c4err("not implemented");
+        cspan t = rem.left_of(rem.first_of(' '));
+        _line_progressed(t.len);
+        C4_ASSERT(t.len > 1);
+        t = t.subspan(1);
+        _c4dbgp("tag was '%.*s'", _c4prsp(t));
         return true;
     }
     return false;
