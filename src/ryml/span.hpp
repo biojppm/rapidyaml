@@ -79,6 +79,9 @@ public:
     const_iterator begin() const { return str; }
     const_iterator end  () const { return str + len; }
 
+    C      * data()       { return str; }
+    C const* data() const { return str; }
+
     inline C      & operator[] (size_t i)       { C4_ASSERT(i >= 0 && i < len); return str[i]; }
     inline C const& operator[] (size_t i) const { C4_ASSERT(i >= 0 && i < len); return str[i]; }
 
@@ -256,6 +259,8 @@ public:
         return last_of(chars) == len - 1;
     }
 
+public:
+
     inline size_t first_of(const C c) const
     {
         for(size_t i = 0; i < len; ++i)
@@ -264,6 +269,15 @@ public:
         }
         return npos;
     }
+    inline size_t last_of(const C c) const
+    {
+        for(size_t i = len-1; i != size_t(-1); --i)
+        {
+            if(str[i] == c) return i;
+        }
+        return npos;
+    }
+
     inline size_t first_of(basic_span< const C > const& chars) const
     {
         for(size_t i = 0; i < len; ++i)
@@ -272,35 +286,6 @@ public:
             {
                 if(str[i] == chars[j]) return i;
             }
-        }
-        return npos;
-    }
-
-    inline size_t first_not_of(const C c) const
-    {
-        for(size_t i = 0; i < len; ++i)
-        {
-            if(str[i] != c) return i;
-        }
-        return npos;
-    }
-    inline size_t first_not_of(basic_span< const C > const& chars) const
-    {
-        for(size_t i = 0; i < len; ++i)
-        {
-            for(size_t j = 0; j < chars.len; ++j)
-            {
-                if(str[i] != chars[j]) return i;
-            }
-        }
-        return npos;
-    }
-
-    inline size_t last_of(const C c) const
-    {
-        for(size_t i = len-1; i != size_t(-1); --i)
-        {
-            if(str[i] == c) return i;
         }
         return npos;
     }
@@ -316,6 +301,16 @@ public:
         return npos;
     }
 
+public:
+
+    inline size_t first_not_of(const C c) const
+    {
+        for(size_t i = 0; i < len; ++i)
+        {
+            if(str[i] != c) return i;
+        }
+        return npos;
+    }
     inline size_t last_not_of(const C c) const
     {
         for(size_t i = len-1; i != size_t(-1); --i)
@@ -324,16 +319,37 @@ public:
         }
         return npos;
     }
+
+    inline size_t first_not_of(basic_span< const C > const& chars) const
+    {
+        for(size_t i = 0; i < len; ++i)
+        {
+            bool gotit = true;
+            for(size_t j = 0; j < chars.len; ++j)
+            {
+                if(str[i] == chars.str[j])
+                {
+                    gotit = false;
+                    break;
+                }
+            }
+            if(gotit)
+            {
+                return i;
+            }
+        }
+        return npos;
+    }
     inline size_t last_not_of(basic_span< const C > const& chars) const
     {
         for(size_t i = len-1; i != size_t(-1); --i)
         {
-            bool gotit = false;
+            bool gotit = true;
             for(size_t j = 0; j < chars.len; ++j)
             {
-                if(str[i] == chars[j])
+                if(str[i] == chars.str[j])
                 {
-                    gotit = true;
+                    gotit = false;
                     break;
                 }
             }
