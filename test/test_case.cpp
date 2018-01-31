@@ -1003,6 +1003,89 @@ R"(
 */
 
 //-----------------------------------------------------------------------------
+#define BLOCK_LITERAL_CASES \
+    "block literal as seq val, implicit indentation 2", \
+    "block literal as map val, implicit indentation 2"
+
+C("block literal as seq val, implicit indentation 2",
+R"(
+- |
+  Several lines of text,
+  with some "quotes" of various 'types',
+  and also a blank line:
+  
+  plus another line at the end.
+  
+  
+- another val
+)",
+  L{
+    N("Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
+    N("another val")
+  }
+),
+
+C("block literal as map val, implicit indentation 2",
+R"(
+example: |
+  Several lines of text,
+  with some "quotes" of various 'types',
+  and also a blank line:
+  
+  plus another line at the end.
+  
+  
+another: val
+)",
+  L{
+    N("example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
+    N("another", "val")
+  }
+),
+
+
+//-----------------------------------------------------------------------------
+#define BLOCK_FOLDED_CASES \
+    "block folded as seq val, implicit indentation 2", \
+    "block folded as map val, implicit indentation 2"
+
+C("block folded as seq val, implicit indentation 2",
+R"(
+- >
+  Several lines of text,
+  with some "quotes" of various 'types',
+  and also a blank line:
+  
+  plus another line at the end.
+  
+  
+- another val
+)",
+  L{
+    N("Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+    N("another val")
+  }
+),
+
+C("block folded as map val, implicit indentation 2",
+R"(
+example: >
+  Several lines of text,
+  with some "quotes" of various 'types',
+  and also a blank line:
+  
+  plus another line at the end.
+  
+  
+another: val
+)",
+  L{
+    N("example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+    N("another", "val")
+  }
+),
+
+//-----------------------------------------------------------------------------
 #define NESTED_MAPX2_CASES \
     "nested map x2, explicit, same line", \
         "nested map x2, explicit", \
@@ -2421,6 +2504,10 @@ INSTANTIATE_TEST_CASE_P(seqs_simple  , YmlTestCase, ::testing::Values(SIMPLE_SEQ
 INSTANTIATE_TEST_CASE_P(double_quotes, YmlTestCase, ::testing::Values(DOUBLE_QUOTED_CASES));
 INSTANTIATE_TEST_CASE_P(single_quotes, YmlTestCase, ::testing::Values(SINGLE_QUOTED_CASES));
 INSTANTIATE_TEST_CASE_P(plain_scalars, YmlTestCase, ::testing::Values(PLAIN_SCALAR_CASES));
+
+INSTANTIATE_TEST_CASE_P(literal_blocks, YmlTestCase, ::testing::Values(BLOCK_LITERAL_CASES));
+INSTANTIATE_TEST_CASE_P(folded_blocks , YmlTestCase, ::testing::Values(BLOCK_FOLDED_CASES));
+
 INSTANTIATE_TEST_CASE_P(complex_keys , YmlTestCase, ::testing::Values(COMPLEX_KEY_CASES));
 
 INSTANTIATE_TEST_CASE_P(maps_nested2 , YmlTestCase, ::testing::Values(NESTED_MAPX2_CASES));

@@ -2374,10 +2374,13 @@ cspan Parser::_scan_block()
     cspan s = m_state->line_contents.rem;
     C4_ASSERT(s.begins_with('|') || s.begins_with('>'));
 
+    _c4dbgp("scanning block: specs=\"%.*s\"", _c4prsp(s));
+
     // parse the spec
     BlockStyle_e newline = s.begins_with('>') ? BLOCK_FOLD : BLOCK_LITERAL;
     BlockChomp_e chomp = CHOMP_CLIP; // default to clip unless + or - are used
     size_t indentation = npos; // have to find out if no spec is given
+    cspan digits;
     if(s.len > 1)
     {
         s = s.subspan(1);
@@ -2393,7 +2396,7 @@ cspan Parser::_scan_block()
         }
 
         // from here to the end, only digits are considered
-        cspan digits = s.left_of(s.first_not_of("0123456789"));
+        digits = s.left_of(s.first_not_of("0123456789"));
         if( ! digits.empty())
         {
             if( ! _read_decimal(digits, &indentation))
@@ -2404,19 +2407,33 @@ cspan Parser::_scan_block()
     }
 
     // finish the current line
+    _line_progressed(s.len);
     _next_line();
+    _scan_line();
+
+    if(indentation == npos)
+    {
+        indentation = m_state->line_contents.indentation;
+    }
+
+    _c4dbgp("scanning block:  style=%s", newline==BLOCK_FOLD ? "fold" : "literal");
+    _c4dbgp("scanning block:  chomp=%s", chomp==CHOMP_CLIP ? "clip" : (chomp==CHOMP_STRIP ? "strip" : "keep"));
+    _c4dbgp("scanning block: indent=%zd (digits='%.*s')", indentation, _c4prsp(digits));
 
     // start with a zero-length block, already pointing at the right place
-    cspan raw_block = m_state->line_contents.full.subspan(0, 0);
+    span raw_block(m_buf.data() + m_state->pos.offset, size_t(0));// m_state->line_contents.full.subspan(0, 0);
     C4_ASSERT(raw_block.begin() == m_state->line_contents.full.begin());
 
     // read every full line into a raw block,
     // from which newlines are to be stripped as needed
     size_t num_lines = 0, first = m_state->pos.line;
-    while( ! _finished_file() && m_state->line_contents.indentation >= indentation)
+    while(( ! _finished_file()))
     {
         _scan_line();
+        if(m_state->line_contents.indentation < indentation) break;
         raw_block.len += m_state->line_contents.full.len;
+        _c4dbgp("scanning block: append '%.*s'", _c4prsp(m_state->line_contents.rem));
+        _line_progressed(m_state->line_contents.rem.len);
         _next_line();
         ++num_lines;
     }
@@ -2424,8 +2441,12 @@ cspan Parser::_scan_block()
     (void)num_lines; // prevent warning
     (void)first;
 
+    _c4dbgp("scanning block: raw='%.*s'", _c4prsp(raw_block));
+
     // ok! now we strip the newlines and spaces according to the specs
     s = _filter_block_scalar(raw_block, newline, chomp, indentation);
+
+    _c4dbgp("scanning block: final='%.*s'", _c4prsp(s));
 
     return s;
 }
@@ -2640,49 +2661,95 @@ span Parser::_filter_whitespace(span r, size_t indentation, bool leading_whitesp
 }
 
 //-----------------------------------------------------------------------------
-cspan Parser::_filter_block_scalar(cspan const& block, BlockStyle_e style, BlockChomp_e chomp, size_t indentation)
+cspan Parser::_filter_block_scalar(span s, BlockStyle_e style, BlockChomp_e chomp, size_t indentation)
 {
-    C4_ASSERT(block.ends_with('\n') || block.ends_with('\r'));
+    _c4dbgp("filtering block: '%.*s'", _c4prsp(s));
 
-    // with 0-indentation literal blocks we don't need
-    // to erase characters from the middle of the string,
-    // so we can just reuse the block and chomp at the end
-    // by getting a subspan of the block
-    if(style == BLOCK_LITERAL && indentation == 0)
+    C4_ASSERT(s.ends_with('\n') || s.ends_with('\r'));
+
+    span r = s;
+
+    if(indentation > 0)
     {
-        switch(chomp)
-        {
-        case CHOMP_KEEP:
-            return block;
-        case CHOMP_STRIP: // strip everything
-            {
-                auto pos = block.last_not_of("\r\n");
-                C4_ASSERT(pos != npos);
-                auto ret = block.left_of(pos, /*include_pos*/true);
-                return ret;
-            }
-        case CHOMP_CLIP: // keep a single newline
-            {
-                auto pos = block.last_not_of("\r\n");
-                C4_ASSERT(pos != npos && pos+1 < block.len);
-                ++pos;
-                // deal for \r\n sequences
-                if(block[pos] == '\r')
-                {
-                    C4_ASSERT(pos+1 < block.len);
-                    ++pos;
-                    C4_ASSERT(block[pos] == '\n');
-                }
-                auto ret = block.left_of(pos, /*include_pos*/true);
-                return ret;
-            }
-        default:
-            _c4err("unknown style");
-        }
+        r = _filter_whitespace(s, indentation, /*leading whitespace*/false);
+        C4_ASSERT(r.begins_with(' ', indentation));
+        r = erase(r, 0, indentation);
     }
 
-    _c4err("not implemented");
-    return {};
+    _c4dbgp("filtering block: after whitespace='%.*s'", _c4prsp(r));
+
+    switch(chomp)
+    {
+    case CHOMP_KEEP: // nothing to do
+        break;
+    case CHOMP_STRIP: // strip everything
+    {
+        auto pos = r.last_not_of("\r\n");
+        C4_ASSERT(pos != npos);
+        r = r.left_of(pos, /*include_pos*/true);
+        break;
+    }
+    case CHOMP_CLIP: // clip to a single newline
+    {
+        auto pos = r.last_not_of("\r\n");
+        C4_ASSERT(pos != npos && pos+1 < r.len);
+        ++pos;
+        if(r[pos] == '\r') // deal with \r\n sequences
+        {
+            C4_ASSERT(pos+1 < s.len);
+            ++pos;
+            C4_ASSERT(r[pos] == '\n');
+        }
+        r = r.left_of(pos, /*include_pos*/true);
+        break;
+    }
+    default:
+        _c4err("unknown chomp style");
+    }
+
+    _c4dbgp("filtering block: after chomp='%.*s'", _c4prsp(r));
+
+    switch(style)
+    {
+    case BLOCK_LITERAL:
+        break;
+    case BLOCK_FOLD:
+        {
+            auto pos = r.last_not_of("\r\n"); // do not fold the last newline
+            pos = pos == npos ? r.len : pos;
+            for(size_t i = 0; i <= pos; ++i)
+            {
+                const char curr = r[i];
+                //const char prev = i   > 0     ? r[i-1] : '\0';
+                const char next = i+1 < r.len ? r[i+1] : '\0';
+                if(curr == '\n')
+                {
+                    if(next != '\n')
+                    {
+                        r[i] = ' '; // a single unix newline: turn it into a space
+                    }
+                    else if(curr == '\n' && next == '\n')
+                    {
+                        r = erase(r, i+1, 1); // keep only one of consecutive newlines
+                    }
+                }
+            }
+        }
+        break;
+    default:
+        _c4err("unknown block style");
+    }
+
+    _c4dbgp("filtering block: final='%.*s'", _c4prsp(r));
+
+#ifdef RYML_DBG
+    for(size_t i = r.len; i < s.len; ++i)
+    {
+        s[i] = '~';
+    }
+#endif
+
+    return r;
 }
 
 //-----------------------------------------------------------------------------

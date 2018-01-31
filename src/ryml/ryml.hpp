@@ -817,7 +817,7 @@ private:
     cspan _filter_squot_scalar(span s);
     cspan _filter_dquot_scalar(span s);
     cspan _filter_plain_scalar(span s, size_t indentation);
-    cspan _filter_block_scalar(cspan const& block, BlockStyle_e style, BlockChomp_e chomp, size_t indentation);
+    cspan _filter_block_scalar(span s, BlockStyle_e style, BlockChomp_e chomp, size_t indentation);
     span  _filter_whitespace(span s, size_t indentation=0, bool leading_whitespace=true);
 
     void  _handle_finished_file();
