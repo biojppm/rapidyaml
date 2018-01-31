@@ -2384,20 +2384,20 @@ cspan Parser::_scan_block()
     cspan digits;
     if(s.len > 1)
     {
-        s = s.subspan(1);
-        if(s[0] == '-')
+        cspan t = s.subspan(1);
+        if(t[0] == '-')
         {
             chomp = CHOMP_STRIP;
-            s = s.subspan(1);
+            t = t.subspan(1);
         }
-        else if(s[0] == '+')
+        else if(t[0] == '+')
         {
             chomp = CHOMP_KEEP;
-            s = s.subspan(1);
+            t = t.subspan(1);
         }
 
         // from here to the end, only digits are considered
-        digits = s.left_of(s.first_not_of("0123456789"));
+        digits = t.left_of(t.first_not_of("0123456789"));
         if( ! digits.empty())
         {
             if( ! _read_decimal(digits, &indentation))
@@ -2768,12 +2768,13 @@ cspan Parser::_filter_block_scalar(span s, BlockStyle_e style, BlockChomp_e chom
 //-----------------------------------------------------------------------------
 bool Parser::_read_decimal(cspan const& str, size_t *decimal)
 {
-    C4_ASSERT(str.len > 1);
-    size_t n = 0, c = 0;
+    C4_ASSERT(str.len >= 1);
+    size_t n = 0;
     for(size_t i = 0; i < str.len; ++i)
     {
-        if(str.str[i] < '0' || str.str[i] > '9') return false;
-        n = n*10 + c;
+        char c = str.str[i];
+        if(c < '0' || c > '9') return false;
+        n = n*10 + (c-'0');
     }
     *decimal = n;
     return true;
