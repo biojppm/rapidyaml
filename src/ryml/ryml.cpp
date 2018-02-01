@@ -1899,16 +1899,12 @@ void Parser::_scan_line()
     {
         ++e;
     }
-    size_t len = e - b;
-    cspan stripped = m_buf.subspan(m_state->pos.offset, len);
+    cspan stripped = m_buf.subspan(m_state->pos.offset, e - b);
 
     // advance pos to include the first line ending
-    while(e != m_buf.end() && (*e == '\n' || *e == '\r'))
-    {
-        ++e;
-        ++len;
-    }
-    cspan full = m_buf.subspan(m_state->pos.offset, len);
+    if(e != m_buf.end() && *e == '\r') ++e;
+    if(e != m_buf.end() && *e == '\n') ++e;
+    cspan full = m_buf.subspan(m_state->pos.offset, e - b);
 
     m_state->line_contents.reset(full, stripped);
 }
@@ -2355,7 +2351,7 @@ cspan Parser::_scan_quoted_scalar(const char q)
     while( ! _finished_file())
     {
         const cspan line = m_state->line_contents.rem;
-
+        bool line_is_blank = true;
 
         if(q == '\'') // scalars with single quotes
         {
@@ -2377,9 +2373,11 @@ cspan Parser::_scan_quoted_scalar(const char q)
                         ++i; // skip the escaped quote
                     }
                 }
+                else if(curr != ' ')
+                {
+                    line_is_blank = false;
+                }
             }
-            // leading whitespace also needs filtering
-            needs_filter = needs_filter || (_at_line_begin() && line.begins_with(' '));
         }
         else // scalars with double quotes
         {
@@ -2388,16 +2386,16 @@ cspan Parser::_scan_quoted_scalar(const char q)
             {
                 const char curr = line.str[i];
                 const char next = i+1 < line.len ? line.str[i+1] : '\0';
+                if(curr != ' ')
+                {
+                    line_is_blank = false;
+                }
                 // every \ is an escape
                 if(curr == '\\')
                 {
-                    if(next == '\\' || (i+1 == line.len))
+                    needs_filter = true;
+                    if(next == '"')
                     {
-                        needs_filter = true;
-                    }
-                    else if(next == '"')
-                    {
-                        needs_filter = true;
                         ++i;
                     }
                 }
@@ -2407,9 +2405,10 @@ cspan Parser::_scan_quoted_scalar(const char q)
                     break;
                 }
             }
-            // leading whitespace also needs filtering
-            needs_filter = needs_filter || (_at_line_begin() && line.begins_with(' '));
         }
+
+        // leading whitespace also needs filtering
+        needs_filter = needs_filter || line_is_blank || (_at_line_begin() && line.begins_with(' '));
 
         if(pos == npos)
         {
@@ -2456,7 +2455,7 @@ cspan Parser::_scan_quoted_scalar(const char q)
         {
             ret = _filter_dquot_scalar(s);
         }
-        C4_ASSERT(ret.len < s.len);
+        C4_ASSERT(ret.len < s.len || s.empty());
         _c4dbgp("final scalar: \"%.*s\"", _c4prsp(ret));
         return ret;
     }

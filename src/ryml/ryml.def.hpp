@@ -166,8 +166,9 @@ void Emitter< Writer >::_write_one(Scalar const& sc)
 
     const bool no_dquotes = sc.s.first_of( '"') == npos;
     const bool no_squotes = sc.s.first_of('\'') == npos;
+    const bool no_newline = sc.s.first_of('\n') == npos;
 
-    if(no_dquotes && no_squotes)
+    if(no_dquotes && no_squotes && no_newline)
     {
         if( ! sc.s.empty())
         {
