@@ -5,6 +5,8 @@
 #include <ryml/span.hpp>
 #include <ryml/ryml.hpp>
 
+#include <stdexcept>
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -205,14 +207,14 @@ case YAML_ ## _ev ## _EVENT:                            \
         if(m_parser.context)
         {
             auto const& m = m_parser.context_mark;
-            problem_loc = Location(m_parser.problem, m.index, m.line+1, m.column+1);
+            context_loc = Location(m_parser.problem, m.index, m.line+1, m.column+1);
         }
 
         switch(m_parser.error)
         {
 
         case YAML_MEMORY_ERROR:
-            RymlCallbacks::error("Memory error: Not enough memory for parsing");
+            error("Memory error: Not enough memory for parsing");
             break;
 
         case YAML_READER_ERROR:
@@ -220,28 +222,48 @@ case YAML_ ## _ev ## _EVENT:                            \
             {
                 char buf[32];
                 int ret = snprintf(buf, sizeof(buf), "Reader error: #%X", m_parser.problem_value);
-                RymlCallbacks::error(buf, ret, &problem_loc);
+                error(buf, ret, &problem_loc);
             }
             else
             {
-                RymlCallbacks::error("Reader error", &problem_loc);
+                error("Reader error", &problem_loc);
             }
             break;
 
         case YAML_SCANNER_ERROR:
-            RymlCallbacks::error("Scanner error", &context_loc, &problem_loc);
+            error("Scanner error", &context_loc, &problem_loc);
             break;
 
         case YAML_PARSER_ERROR:
-            RymlCallbacks::error("Parser error", &context_loc, &problem_loc);
+            error("Parser error", &context_loc, &problem_loc);
             break;
 
         default:
             /* Couldn't happen. */
-            RymlCallbacks::error("Internal error");
+            error("Internal error");
             break;
         };
     }
+
+    static void error(const char* msg, size_t length, Location *loc1 = nullptr, Location *loc2 = nullptr)
+    {
+        fprintf(stderr, "%.*s\n", (int)length, msg);
+        if(loc1 && *loc1)
+        {
+            fprintf(stderr, "    : %s at %zd:%zd (offset %zd)\n", loc1->name, loc1->line, loc1->col, loc1->offset);
+        }
+        if(loc2 && *loc2)
+        {
+            fprintf(stderr, "    : %s at %zd:%zd (offset %zd)\n", loc2->name, loc1->line, loc2->col, loc2->offset);
+        }
+        throw std::runtime_error({msg, length});
+    }
+    template< size_t N >
+    static void error(char const (&msg)[N], Location *loc1 = nullptr, Location *loc2 = nullptr)
+    {
+        error(&msg[0], N-1, loc1, loc2);
+    }
+
 };
 
 } // namespace yml

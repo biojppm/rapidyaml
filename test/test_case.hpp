@@ -34,8 +34,6 @@ void print_tree(CaseNode const& p, int level = 0);
 
 void print_path(Node const& p);
 
-
-
 /** a node class against which ryml structures are tested. Uses initializer
  * lists to facilitate minimal specification. */
 struct CaseNode
@@ -193,19 +191,30 @@ public:
 };
 
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+typedef enum {
+    IGNORE_LIBYAML_PARSE_FAIL = (1<<0),
+    IGNORE_YAMLCPP_PARSE_FAIL = (1<<1)
+} TestCaseFlags_e;
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
 struct Case
 {
     cspan name;
     cspan src;
     CaseNode root;
+    TestCaseFlags_e flags;
 
     template< size_t N, class... Args >
     Case(cspan const& n, const char (&s)[N], Args&& ...args)
-        : name(n), src(s), root(std::forward< Args >(args)...)
+        : name(n), src(s), root(std::forward< Args >(args)...), flags()
+    {
+    }
+
+    template< size_t N, class... Args >
+    Case(cspan const& n, int f_, const char (&s)[N], Args&& ...args)
+        : name(n), src(s), root(std::forward< Args >(args)...), flags((TestCaseFlags_e)f_)
     {
     }
 

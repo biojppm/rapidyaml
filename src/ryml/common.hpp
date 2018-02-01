@@ -108,23 +108,15 @@ struct RymlCallbacks
         ::free(mem);
     }
 
-    static void error(const char* msg, size_t length, Location *loc1 = nullptr, Location *loc2 = nullptr)
+    static void error(const char* msg, size_t length)
     {
         fprintf(stderr, "%.*s\n", (int)length, msg);
-        if(loc1 && *loc1)
-        {
-            fprintf(stderr, "    : %s at %zd:%zd (offset %zd)\n", loc1->name, loc1->line, loc1->col, loc1->offset);
-        }
-        if(loc2 && *loc2)
-        {
-            fprintf(stderr, "    : %s at %zd:%zd (offset %zd)\n", loc2->name, loc1->line, loc2->col, loc2->offset);
-        }
         abort();
     }
     template< size_t N >
-    static void error(char const (&msg)[N], Location *loc1 = nullptr, Location *loc2 = nullptr)
+    static void error(char const (&msg)[N])
     {
-        error(&msg[0], N-1, loc1, loc2);
+        error(&msg[0], N-1);
     }
 };
 #endif // RYML_NO_DEFAULT_CALLBACKS

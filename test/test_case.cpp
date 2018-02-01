@@ -914,7 +914,7 @@ R"("This is a key\nthat has multiple lines\n": and this is its value
   L{N("This is a key\nthat has multiple lines\n", "and this is its value")}
 ),
 
-C("dquoted, example 2.1",
+C("dquoted, example 2.1", IGNORE_LIBYAML_PARSE_FAIL|IGNORE_YAMLCPP_PARSE_FAIL,
 R"("This is a key
 
 that has multiple lines
@@ -936,7 +936,7 @@ that has multiple lines
         "plain scalar, multiline, quotes, escapes, blank lines last",   \
         "plain scalar, example",                                        \
         "plain scalar, map example 1"/*,                                  \
-        "plain scalar, map example 1"*/,                              \
+        "plain scalar, map example 2"*/,                                  \
         "plain scalar, seq example 1"/*,                                  \
         "plain scalar, seq example 2"*/
 
@@ -1019,7 +1019,7 @@ example: Several lines of text,
 ),
 
 /*
-C("plain scalar, map example 2",
+C("plain scalar, map example 2", IGNORE_LIBYAML_PARSE_FAIL|IGNORE_YAMLCPP_PARSE_FAIL,
 R"(
 example:
   Several lines of text,
@@ -1046,7 +1046,7 @@ R"(
 ),
 
 /*
-C("plain scalar, seq example 2",
+C("plain scalar, seq example 2", IGNORE_LIBYAML_PARSE_FAIL|IGNORE_YAMLCPP_PARSE_FAIL,
 R"(
 -
   Several lines of text,
@@ -2523,7 +2523,7 @@ R"(? |-
 ),
 
 C("complex block key, folded, clip",
-R"(? |
+R"(? >
     This is a key
     that has multiple lines
     
@@ -2535,7 +2535,7 @@ R"(? |
 ),
 
 C("complex block key, folded, keep",
-R"(? |+
+R"(? >+
     This is a key
     that has multiple lines
     
@@ -2547,7 +2547,7 @@ R"(? |+
 ),
 
 C("complex block key, folded, strip",
-R"(? |-
+R"(? >-
     This is a key
     that has multiple lines
     
