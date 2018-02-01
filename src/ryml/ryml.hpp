@@ -1012,7 +1012,6 @@ inline Tree parse(span buf)
     Parser np;
     return np.parse(buf);
 }
-
 inline Tree parse(cspan const& filename, span buf)
 {
     Parser np;
@@ -1024,7 +1023,6 @@ inline void parse(span buf, Tree *t)
     Parser np;
     np.parse(buf, t);
 }
-
 inline void parse(cspan const& filename, span buf, Tree *t)
 {
     Parser np;
@@ -1036,7 +1034,6 @@ inline void parse(span buf, Node *root)
     Parser np;
     np.parse(buf, root);
 }
-
 inline void parse(cspan const& filename, span buf, Node *root)
 {
     Parser np;

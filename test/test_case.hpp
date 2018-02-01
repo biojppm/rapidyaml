@@ -64,13 +64,13 @@ public:
     CaseNode(NodeType_e t) : type(t), key(), key_tag(), val(), val_tag(), children(), parent(nullptr) { _set_parent(); }
 
     template< size_t N >
-    explicit CaseNode(const char (&v)[N]   ) : type(VAL), key(), key_tag(), val(v       ), val_tag(     ), children(), parent(nullptr) { _set_parent(); }
-    explicit CaseNode(TaggedScalar const& v) : type(VAL), key(), key_tag(), val(v.scalar), val_tag(v.tag), children(), parent(nullptr) { _set_parent(); }
+    explicit CaseNode(const char (&v)[N]   ) : type(             VAL       ), key(), key_tag(), val(v       ), val_tag(     ), children(), parent(nullptr) { _set_parent(); }
+    explicit CaseNode(TaggedScalar const& v) : type((NodeType_e)(VAL|VALTAG)), key(), key_tag(), val(v.scalar), val_tag(v.tag), children(), parent(nullptr) { _set_parent(); }
 
-    template< size_t N, size_t M > explicit CaseNode(const char (&k)[N]   , const char (&v)[M]   ) : type(KEYVAL), key(k       ), key_tag(     ), val(v       ), val_tag(     ), children(), parent(nullptr) { _set_parent(); }
-    template< size_t N >           explicit CaseNode(const char (&k)[N]   , TaggedScalar const& v) : type(KEYVAL), key(k       ), key_tag(     ), val(v.scalar), val_tag(v.tag), children(), parent(nullptr) { _set_parent(); }
-    template< size_t M >           explicit CaseNode(TaggedScalar const& k, const char (&v)[M]   ) : type(KEYVAL), key(k.scalar), key_tag(k.tag), val(v       ), val_tag(     ), children(), parent(nullptr) { _set_parent(); }
-                                   explicit CaseNode(TaggedScalar const& k, TaggedScalar const& v) : type(KEYVAL), key(k.scalar), key_tag(k.tag), val(v.scalar), val_tag(v.tag), children(), parent(nullptr) { _set_parent(); }
+    template< size_t N, size_t M > explicit CaseNode(const char (&k)[N]   , const char (&v)[M]   ) : type((NodeType_e)(KEYVAL              )), key(k       ), key_tag(     ), val(v       ), val_tag(     ), children(), parent(nullptr) { _set_parent(); }
+    template< size_t N >           explicit CaseNode(const char (&k)[N]   , TaggedScalar const& v) : type((NodeType_e)(KEYVAL|VALTAG       )), key(k       ), key_tag(     ), val(v.scalar), val_tag(v.tag), children(), parent(nullptr) { _set_parent(); }
+    template< size_t M >           explicit CaseNode(TaggedScalar const& k, const char (&v)[M]   ) : type((NodeType_e)(KEYVAL|KEYTAG       )), key(k.scalar), key_tag(k.tag), val(v       ), val_tag(     ), children(), parent(nullptr) { _set_parent(); }
+                                   explicit CaseNode(TaggedScalar const& k, TaggedScalar const& v) : type((NodeType_e)(KEYVAL|KEYTAG|VALTAG)), key(k.scalar), key_tag(k.tag), val(v.scalar), val_tag(v.tag), children(), parent(nullptr) { _set_parent(); }
 
     template< size_t N >
     explicit CaseNode(const char (&k)[N]   , iseqmap s) : type(), key(k       ), key_tag(     ), val(), val_tag(), children(s), parent(nullptr) { _set_parent(); type = _guess(); }
@@ -78,8 +78,8 @@ public:
     explicit CaseNode(                       iseqmap m) : CaseNode("", m) {}
 
     template< size_t N >
-    explicit CaseNode(NodeType_e t, const char (&k)[N]   , iseqmap s) : type(t), key(k       ), key_tag(     ), val(), val_tag(), children(s), parent(nullptr) { _set_parent(); }
-    explicit CaseNode(NodeType_e t, TaggedScalar const& k, iseqmap s) : type(t), key(k.scalar), key_tag(k.tag), val(), val_tag(), children(s), parent(nullptr) { _set_parent(); }
+    explicit CaseNode(NodeType_e t, const char (&k)[N]   , iseqmap s) : type(t                     ), key(k       ), key_tag(     ), val(), val_tag(), children(s), parent(nullptr) { _set_parent(); }
+    explicit CaseNode(NodeType_e t, TaggedScalar const& k, iseqmap s) : type((NodeType_e)(t|KEYTAG)), key(k.scalar), key_tag(k.tag), val(), val_tag(), children(s), parent(nullptr) { _set_parent(); }
     explicit CaseNode(NodeType_e t,                     iseqmap m) : CaseNode(t, "", m) {}
 
     CaseNode(CaseNode     && that) { _move(std::move(that)); }
@@ -94,7 +94,9 @@ public:
     {
         type = that.type;
         key = that.key;
+        key_tag = that.key_tag;
         val = that.val;
+        val_tag = that.val_tag;
         children = std::move(that.children);
         parent = nullptr;
         _set_parent();
@@ -103,7 +105,9 @@ public:
     {
         type = that.type;
         key = that.key;
+        key_tag = that.key_tag;
         val = that.val;
+        val_tag = that.val_tag;
         children = that.children;
         parent = nullptr;
         _set_parent();
@@ -119,17 +123,18 @@ public:
 
     NodeType_e _guess() const
     {
+        NodeType_e t;
         C4_ASSERT(val.empty() != children.empty());
         if(children.empty())
         {
             C4_ASSERT(parent);
             if(key.empty())
             {
-                return VAL;
+                t = VAL;
             }
             else
             {
-                return KEYVAL;
+                t = KEYVAL;
             }
         }
         else
@@ -138,13 +143,24 @@ public:
             auto const& ch = children.front();
             if(ch.key.empty())
             {
-                return ((NodeType_e)(has_key|SEQ));
+                t = (NodeType_e)(has_key|SEQ);
             }
             else
             {
-                return ((NodeType_e)(has_key|MAP));
+                t = (NodeType_e)(has_key|MAP);
             }
         }
+        if( ! key_tag.empty())
+        {
+            C4_ASSERT( ! key.empty());
+            t = (NodeType_e)(t|KEYTAG);
+        }
+        if( ! val_tag.empty())
+        {
+            C4_ASSERT( ! val.empty());
+            t = (NodeType_e)(t|VALTAG);
+        }
+        return t;
     }
 
     bool is_root() const { return parent; }

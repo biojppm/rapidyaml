@@ -24,12 +24,10 @@ void CaseNode::compare_child(yml::Node const& n, size_t pos) const
         auto fch = n.find_child(ch.key);
         if(fch)
         {
+            EXPECT_EQ(fch, &n[ch.key]);
+            EXPECT_EQ(fch, &n[pos]);
             EXPECT_EQ(&n[pos], &n[ch.key]);
             EXPECT_EQ(n[ch.key].key(), ch.key);
-            if(ch.type & VAL)
-            {
-                EXPECT_EQ(n[ch.key].val(), ch.val);
-            }
         }
         else
         {
@@ -43,28 +41,40 @@ void CaseNode::compare_child(yml::Node const& n, size_t pos) const
     if(type & SEQ)
     {
         EXPECT_EQ(n[pos].m_key, children[pos].key);
-        if(ch.type & VAL)
-        {
-            EXPECT_EQ(n[pos].val(), ch.val);
-        }
+        auto fch = n.child(pos);
+        EXPECT_EQ(fch, &n[pos]);
     }
 
     if(ch.type & KEY)
     {
-        EXPECT_TRUE(n[pos].has_key());
-        EXPECT_EQ(n[pos].key(), ch.key);
+        auto fch = &n[pos];
+        EXPECT_TRUE(fch->has_key());
+        EXPECT_EQ(fch->key(), ch.key);
+
+        if( ! ch.key_tag.empty())
+        {
+            EXPECT_TRUE(fch->has_key_tag());
+            EXPECT_EQ(fch->key_tag(), ch.key_tag);
+        }
     }
 
     if(ch.type & VAL)
     {
-        EXPECT_TRUE(n[pos].has_val());
-        EXPECT_EQ(n[pos].val(), ch.val);
+        auto fch = &n[pos];
+        EXPECT_TRUE(fch->has_val());
+        EXPECT_EQ(fch->val(), ch.val);
+
+        if( ! ch.val_tag.empty())
+        {
+            EXPECT_TRUE(fch->has_val_tag());
+            EXPECT_EQ(fch->val_tag(), ch.val_tag);
+        }
     }
 }
 
 void CaseNode::compare(yml::Node const& n) const
 {
-    EXPECT_EQ(n.type(), type);
+    EXPECT_EQ(n.m_type, type); // the type() method masks the type, and thus tag flags are omitted on its return value
     EXPECT_EQ(n.num_children(), children.size());
 
     if(n.has_key())
@@ -120,7 +130,9 @@ void CaseNode::recreate(yml::Node *n) const
     C4_ASSERT( ! n->has_children());
     n->m_type = type;
     n->m_key = key;
+    n->m_key_tag = key_tag;
     n->m_val = val;
+    n->m_val_tag = val_tag;
     auto &tree = *n->tree();
     size_t nid = n->id(); // don't use node from now on
     for(auto const& ch : children)
@@ -234,11 +246,31 @@ void print_node(CaseNode const& p, int level)
     printf(" %s:", Node::type_str(p.type));
     if(p.has_key())
     {
-        printf(" '%.*s'", (int)p.key.len, p.key.str);
+        if(p.key_tag.empty())
+        {
+            cspan const& v  = p.key;
+            printf(" '%.*s'", (int)v.len, v.str);
+        }
+        else
+        {
+            cspan const& vt = p.key_tag;
+            cspan const& v  = p.key;
+            printf(" '%.*s %.*s'", (int)vt.len, vt.str, (int)v.len, v.str);
+        }
     }
     if(p.has_val())
     {
-        printf(" '%.*s'", (int)p.val.len, p.val.str);
+        if(p.val_tag.empty())
+        {
+            cspan const& v  = p.val;
+            printf(" '%.*s'", (int)v.len, v.str);
+        }
+        else
+        {
+            cspan const& vt = p.val_tag;
+            cspan const& v  = p.val;
+            printf(" '%.*s %.*s'", (int)vt.len, vt.str, (int)v.len, v.str);
+        }
     }
     printf(" (%zd sibs)", p.parent ? p.parent->children.size() : 0);
     if(p.is_container())
