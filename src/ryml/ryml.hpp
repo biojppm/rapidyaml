@@ -24,6 +24,7 @@ typedef enum {
     SEQ     = (1<<3),  ///< a seq: a parent of vals
     DOC     = (1<<4),  ///< a document
     STREAM  = (1<<5)|SEQ,  ///< a stream: a seq of docs
+    _TYMASK = (1<<6)-1,
     KEYTAG  = (1<<6),  ///< the key has an explicit tag/type
     VALTAG  = (1<<7),  ///< the val has an explicit tag/type
     KEYVAL  = KEY|VAL,
@@ -95,15 +96,15 @@ public:
     Tree *tree() const { return m_s; }
     size_t id() const;
 
-    NodeType_e type() const { return (NodeType_e)(m_type & ~(KEYTAG|VALTAG)); }
+    NodeType_e type() const { return (NodeType_e)(m_type & _TYMASK); }
     const char* type_str() const { return type_str(m_type); }
     static const char* type_str(NodeType_e ty);
 
-    cspan const& key() const { C4_ASSERT(m_type & KEY); return m_key; }
-    cspan const& key_tag() const { C4_ASSERT(m_type & KEY); return m_key_tag; }
+    cspan const& key() const { C4_ASSERT(has_key()); return m_key; }
+    cspan const& key_tag() const { C4_ASSERT(has_key_tag()); return m_key_tag; }
 
-    cspan const& val() const { C4_ASSERT(m_type & VAL); return m_val; }
-    cspan const& val_tag() const { C4_ASSERT(m_type & KEY); return m_val_tag; }
+    cspan const& val() const { C4_ASSERT(has_val()); return m_val; }
+    cspan const& val_tag() const { C4_ASSERT(has_val_tag()); return m_val_tag; }
 
     bool operator== (cspan const& cmp) const
     {

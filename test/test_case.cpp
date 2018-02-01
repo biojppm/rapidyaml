@@ -181,11 +181,31 @@ void print_node(Node const& p, int level, bool print_children)
     printf(" %s:", p.type_str());
     if(p.has_key())
     {
-        printf(" '%.*s'", (int)p.key().len, p.key().str);
+        if(p.has_key_tag())
+        {
+            cspan const& kt = p.key_tag();
+            cspan const& k  = p.key();
+            printf(" '%.*s %.*s'", (int)kt.len, kt.str, (int)k.len, k.str);
+        }
+        else
+        {
+            cspan const& k  = p.key();
+            printf(" '%.*s'", (int)k.len, k.str);
+        }
     }
     if(p.has_val())
     {
-        printf(" '%.*s'", (int)p.val().len, p.val().str);
+        if(p.has_val_tag())
+        {
+            cspan const& vt = p.val_tag();
+            cspan const& v  = p.val();
+            printf(" '%.*s %.*s'", (int)vt.len, vt.str, (int)v.len, v.str);
+        }
+        else
+        {
+            cspan const& v  = p.val();
+            printf(" '%.*s'", (int)v.len, v.str);
+        }
     }
     printf(" (%zd sibs)", p.num_siblings());
     if(p.is_container())
@@ -1507,8 +1527,8 @@ another: val
 #define TAG_PROPERTY_CASES \
     "tag property in implicit map",\
     "tag property in explicit map",\
-    "tag property in explicit seq",\
-    "tag property in implicit seq"
+    "tag property in implicit seq",\
+    "tag property in explicit seq"
 
 C("tag property in implicit map",
 R"(ivar: !!int 0

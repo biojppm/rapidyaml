@@ -18,7 +18,7 @@ size_t Node::id() const
 
 const char* Node::type_str(NodeType_e ty)
 {
-    switch(ty & ~(KEYTAG|VALTAG))
+    switch(ty & _TYMASK)
     {
     case VAL     : return "VAL";
     case MAP     : return "MAP";
@@ -1726,14 +1726,17 @@ bool Parser::_handle_types()
 
     if(has_all(RMAP|RKEY))
     {
+        _c4dbgp("saving key tag '%.*s'", _c4prsp(t));
         m_key_tag = t;
     }
     else if(has_all(RMAP|RVAL))
     {
+        _c4dbgp("saving val tag '%.*s'", _c4prsp(t));
         m_val_tag = t;
     }
     else if(has_all(RSEQ|RVAL))
     {
+        _c4dbgp("saving val tag '%.*s'", _c4prsp(t));
         m_val_tag = t;
     }
     else
