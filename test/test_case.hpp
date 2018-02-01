@@ -34,6 +34,13 @@ void print_tree(CaseNode const& p, int level = 0);
 
 void print_path(Node const& p);
 
+struct TaggedScalar
+{
+    cspan tag;
+    cspan scalar;
+    template< size_t N, size_t M > TaggedScalar(const char (&t)[N], const char (&s)[M]) : tag(t), scalar(s) {}
+};
+
 /** a node class against which ryml structures are tested. Uses initializer
  * lists to facilitate minimal specification. */
 struct CaseNode
@@ -46,28 +53,33 @@ public:
 public:
 
     NodeType_e type;
-    cspan      key;
-    cspan      val;
+    cspan      key, key_tag;
+    cspan      val, val_tag;
     seqmap     children;
     CaseNode * parent;
 
 public:
 
     CaseNode() : CaseNode(NOTYPE) {}
-    CaseNode(NodeType_e t) : type(t), key(), val(), children(), parent(nullptr) { _set_parent(); }
+    CaseNode(NodeType_e t) : type(t), key(), key_tag(), val(), val_tag(), children(), parent(nullptr) { _set_parent(); }
 
     template< size_t N >
-    explicit CaseNode(const char (&v)[N]) : type(VAL), key(), val(v), children(), parent(nullptr) { _set_parent(); }
+    explicit CaseNode(const char (&v)[N]   ) : type(VAL), key(), key_tag(), val(v       ), val_tag(     ), children(), parent(nullptr) { _set_parent(); }
+    explicit CaseNode(TaggedScalar const& v) : type(VAL), key(), key_tag(), val(v.scalar), val_tag(v.tag), children(), parent(nullptr) { _set_parent(); }
 
-    template< size_t N, size_t M >
-    explicit CaseNode(const char (&k)[N], const char (&v)[M]) : type(KEYVAL), key(k), val(v), children(), parent(nullptr) { _set_parent(); }
+    template< size_t N, size_t M > explicit CaseNode(const char (&k)[N]   , const char (&v)[M]   ) : type(KEYVAL), key(k       ), key_tag(     ), val(v       ), val_tag(     ), children(), parent(nullptr) { _set_parent(); }
+    template< size_t N >           explicit CaseNode(const char (&k)[N]   , TaggedScalar const& v) : type(KEYVAL), key(k       ), key_tag(     ), val(v.scalar), val_tag(v.tag), children(), parent(nullptr) { _set_parent(); }
+    template< size_t M >           explicit CaseNode(TaggedScalar const& k, const char (&v)[M]   ) : type(KEYVAL), key(k.scalar), key_tag(k.tag), val(v       ), val_tag(     ), children(), parent(nullptr) { _set_parent(); }
+                                   explicit CaseNode(TaggedScalar const& k, TaggedScalar const& v) : type(KEYVAL), key(k.scalar), key_tag(k.tag), val(v.scalar), val_tag(v.tag), children(), parent(nullptr) { _set_parent(); }
 
     template< size_t N >
-    explicit CaseNode(const char (&k)[N], iseqmap s) : type(), key(k), val(), children(s), parent(nullptr) { _set_parent(); type = _guess(); }
-    explicit CaseNode(                    iseqmap m) : CaseNode("", m) {}
+    explicit CaseNode(const char (&k)[N]   , iseqmap s) : type(), key(k       ), key_tag(     ), val(), val_tag(), children(s), parent(nullptr) { _set_parent(); type = _guess(); }
+    explicit CaseNode(TaggedScalar const& k, iseqmap s) : type(), key(k.scalar), key_tag(k.tag), val(), val_tag(), children(s), parent(nullptr) { _set_parent(); type = _guess(); }
+    explicit CaseNode(                       iseqmap m) : CaseNode("", m) {}
 
     template< size_t N >
-    explicit CaseNode(NodeType_e t, const char (&k)[N], iseqmap s) : type(t), key(k), val(), children(s), parent(nullptr) { _set_parent(); }
+    explicit CaseNode(NodeType_e t, const char (&k)[N]   , iseqmap s) : type(t), key(k       ), key_tag(     ), val(), val_tag(), children(s), parent(nullptr) { _set_parent(); }
+    explicit CaseNode(NodeType_e t, TaggedScalar const& k, iseqmap s) : type(t), key(k.scalar), key_tag(k.tag), val(), val_tag(), children(s), parent(nullptr) { _set_parent(); }
     explicit CaseNode(NodeType_e t,                     iseqmap m) : CaseNode(t, "", m) {}
 
     CaseNode(CaseNode     && that) { _move(std::move(that)); }

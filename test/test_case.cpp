@@ -384,6 +384,7 @@ Case const* get_case(cspan name)
 
 using N = CaseNode;
 using L = CaseNode::iseqmap;
+using TS = TaggedScalar;
 
 #define C(name, ...)                                    \
     std::pair< const cspan, Case >                      \
@@ -1574,9 +1575,9 @@ svar: !!str 0
 !!str key: !!int val
 )",
     L{
-      N{"ivar", "0"},
-      N{"svar", "0"},
-      N{"key", "val"},
+      N("ivar", TS("!!int", "0")),
+      N("svar", TS("!!str", "0")),
+      N(TS("!!str", "key"), TS("!!int", "val"))
     }
 ),
 
@@ -1588,9 +1589,9 @@ svar: !!str 0,
 }
 )",
     L{
-      N{"ivar", "0"},
-      N{"svar", "0"},
-      N{"key", "val"},
+      N("ivar", TS("!!int", "0")),
+      N("svar", TS("!!str", "0")),
+      N(TS("!!str", "key"), TS("!!int", "val"))
     }
 ),
 
@@ -1599,8 +1600,8 @@ R"(- !!int 0
 - !!str 0
 )",
     L{
-      N{"0"},
-      N{"0"},
+      N(TS("!!int", "0")),
+      N(TS("!!str", "0")),
     }
 ),
 
@@ -1611,8 +1612,8 @@ R"([
 ]
 )",
     L{
-      N{"0"},
-      N{"0"},
+      N(TS("!!int", "0")),
+      N(TS("!!str", "0")),
     }
 ),
 
