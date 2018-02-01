@@ -478,170 +478,6 @@ a scalar with some spaces inside
 
 
 //-----------------------------------------------------------------------------
-#define SINGLE_QUOTED_CASES                                 \
-            "squoted, only text",                           \
-                "squoted, with double quotes",              \
-                "squoted, with single quotes",              \
-                "squoted, with single and double quotes",   \
-                "squoted, with escapes",                    \
-                "squoted, all",                             \
-                "squoted, empty",                           \
-                "squoted, 1 squote",                        \
-                "squoted, 2 squotes",                       \
-                "squoted, 3 squotes",                       \
-                "squoted, 4 squotes"
-
-C("squoted, only text",
-R"('Some text without any quotes.'
-)",
-  L{N("Some text without any quotes.")}
-),
-
-C("squoted, with double quotes",
-R"('Some "text" "with double quotes"')",
-  L{N("Some \"text\" \"with double quotes\"")}
-),
-
-C("squoted, with single quotes",
-R"('Some text ''with single quotes''')",
-  L{N("Some text 'with single quotes'")}
-),
-
-C("squoted, with single and double quotes",
-R"('Some text ''with single quotes'' "and double quotes".')",
-  L{N("Some text 'with single quotes' \"and double quotes\".")}
-),
-
-C("squoted, with escapes",
-R"('Some text with escapes \n \r \t')",
-  L{N("Some text with escapes \\n \\r \\t")}
-),
-
-C("squoted, all",
-R"('Several lines of text,
-containing ''single quotes'' and "double quotes". Escapes (like \n) don''t do anything.
-
-Newlines can be added by leaving a blank line.
-            Leading whitespace on lines is ignored.'
-)",
-  L{N("Several lines of text, containing 'single quotes' and \"double quotes\". Escapes (like \\n) don't do anything.\nNewlines can be added by leaving a blank line. Leading whitespace on lines is ignored.")}
-),
-
-C("squoted, empty",
-R"('')",
-  L{N("")}
-),
-
-C("squoted, 1 squote",
-R"('''')",
-  L{N("'")}
-),
-
-C("squoted, 2 squotes",
-R"('''''')",
-  L{N("''")}
-),
-
-C("squoted, 3 squotes",
-R"('''''''')",
-  L{N("'''")}
-),
-
-C("squoted, 4 squotes",
-R"('''''''''')",
-  L{N("''''")}
-),
-
-C("squoted, 5 squotes",
-R"('''''''''''')",
-  L{N("'''''")}
-),
-
-//-----------------------------------------------------------------------------
-#define DOUBLE_QUOTED_CASES                                 \
-            "dquoted, only text",                           \
-                "dquoted, with single quotes",              \
-                "dquoted, with double quotes",              \
-                "dquoted, with single and double quotes",   \
-                "dquoted, with escapes",                    \
-                "dquoted, all",                             \
-                "dquoted, empty",                           \
-                "dquoted, 1 dquote",                        \
-                "dquoted, 2 dquotes",                       \
-                "dquoted, 3 dquotes",                       \
-                "dquoted, 4 dquotes"
-
-C("dquoted, only text",
-R"("Some text without any quotes."
-)",
-  L{N("Some text without any quotes.")}
-),
-
-C("dquoted, with single quotes",
-R"("Some text 'with single quotes'")",
-  L{N("Some text 'with single quotes'")}
-),
-
-C("dquoted, with double quotes",
-R"("Some \"text\" \"with double quotes\"")",
-  L{N("Some \"text\" \"with double quotes\"")}
-),
-
-C("dquoted, with single and double quotes",
-R"("Some text 'with single quotes' \"and double quotes\".")",
-  L{N("Some text 'with single quotes' \"and double quotes\".")}
-),
-
-C("dquoted, with escapes",
-R"("Some text with escapes \\n \\r \\t")",
-  L{N("Some text with escapes \\n \\r \\t")}
-),
-
-C("dquoted, all",
-R"("Several lines of text,
-containing 'single quotes' and \"double quotes\". \
-Escapes (like \\n) work.\nIn addition,
-newlines can be esc\
-aped to prevent them from being converted to a space.
-
-Newlines can also be added by leaving a blank line.
-    Leading whitespace on lines is ignored."
-)",
-  L{N("Several lines of text, containing 'single quotes' and \"double quotes\". Escapes (like \\n) work.\nIn addition, newlines can be escaped to prevent them from being converted to a space.\nNewlines can also be added by leaving a blank line. Leading whitespace on lines is ignored.")}
-),
-
-C("dquoted, empty",
-R"("")",
-  L{N("")}
-),
-
-C("dquoted, 1 dquote",
-R"("\"")",
-  L{N("\"")}
-),
-
-C("dquoted, 2 dquotes",
-R"("\"\"")",
-  L{N("\"\"")}
-),
-
-C("dquoted, 3 dquotes",
-R"("\"\"\"")",
-  L{N("\"\"\"")}
-),
-
-C("dquoted, 4 dquotes",
-R"("\"\"\"\"")",
-  L{N("\"\"\"\"")}
-),
-
-C("dquoted, 5 dquotes",
-R"("\"\"\"\"\"")",
-  L{N("\"\"\"\"\"")}
-),
-
-
-//-----------------------------------------------------------------------------
 #define EMPTY_MAP_CASES                         \
     "empty map, explicit",                      \
         "empty map, multiline",                 \
@@ -886,6 +722,208 @@ R"(
 )",
     L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
 ),
+
+
+//-----------------------------------------------------------------------------
+#define SINGLE_QUOTED_CASES                                 \
+            "squoted, only text",                           \
+                "squoted, with double quotes",              \
+                "squoted, with single quotes",              \
+                "squoted, with single and double quotes",   \
+                "squoted, with escapes",                    \
+                "squoted, all",                             \
+                "squoted, empty",                           \
+                "squoted, 1 squote",                        \
+                "squoted, 2 squotes",                       \
+                "squoted, 3 squotes",                       \
+                "squoted, 4 squotes",                       \
+                "squoted, 5 squotes"
+
+C("squoted, only text",
+R"('Some text without any quotes.'
+)",
+  L{N("Some text without any quotes.")}
+),
+
+C("squoted, with double quotes",
+R"('Some "text" "with double quotes"')",
+  L{N("Some \"text\" \"with double quotes\"")}
+),
+
+C("squoted, with single quotes",
+R"('Some text ''with single quotes''')",
+  L{N("Some text 'with single quotes'")}
+),
+
+C("squoted, with single and double quotes",
+R"('Some text ''with single quotes'' "and double quotes".')",
+  L{N("Some text 'with single quotes' \"and double quotes\".")}
+),
+
+C("squoted, with escapes",
+R"('Some text with escapes \n \r \t')",
+  L{N("Some text with escapes \\n \\r \\t")}
+),
+
+C("squoted, all",
+R"('Several lines of text,
+containing ''single quotes'' and "double quotes". Escapes (like \n) don''t do anything.
+
+Newlines can be added by leaving a blank line.
+            Leading whitespace on lines is ignored.'
+)",
+  L{N("Several lines of text, containing 'single quotes' and \"double quotes\". Escapes (like \\n) don't do anything.\nNewlines can be added by leaving a blank line. Leading whitespace on lines is ignored.")}
+),
+
+C("squoted, empty",
+R"('')",
+  L{N("")}
+),
+
+C("squoted, 1 squote",
+R"('''')",
+  L{N("'")}
+),
+
+C("squoted, 2 squotes",
+R"('''''')",
+  L{N("''")}
+),
+
+C("squoted, 3 squotes",
+R"('''''''')",
+  L{N("'''")}
+),
+
+C("squoted, 4 squotes",
+R"('''''''''')",
+  L{N("''''")}
+),
+
+C("squoted, 5 squotes",
+R"('''''''''''')",
+  L{N("'''''")}
+),
+
+/*
+C("squoted, example 2",
+R"('This is a key
+
+that has multiple lines
+
+': and this is its value
+)",
+  L{N("This is a key\nthat has multiple lines\n", "and this is its value")}
+),
+*/
+
+//-----------------------------------------------------------------------------
+#define DOUBLE_QUOTED_CASES                                 \
+            "dquoted, only text",                           \
+                "dquoted, with single quotes",              \
+                "dquoted, with double quotes",              \
+                "dquoted, with single and double quotes",   \
+                "dquoted, with escapes",                    \
+                "dquoted, with newline",                    \
+                "dquoted, all",                             \
+                "dquoted, empty",                           \
+                "dquoted, 1 dquote",                        \
+                "dquoted, 2 dquotes",                       \
+                "dquoted, 3 dquotes",                       \
+                "dquoted, 4 dquotes",                       \
+                "dquoted, example 2",                       \
+                "dquoted, example 2.1"
+
+C("dquoted, only text",
+R"("Some text without any quotes."
+)",
+  L{N("Some text without any quotes.")}
+),
+
+C("dquoted, with single quotes",
+R"("Some text 'with single quotes'")",
+  L{N("Some text 'with single quotes'")}
+),
+
+C("dquoted, with double quotes",
+R"("Some \"text\" \"with double quotes\"")",
+  L{N("Some \"text\" \"with double quotes\"")}
+),
+
+C("dquoted, with single and double quotes",
+R"("Some text 'with single quotes' \"and double quotes\".")",
+  L{N("Some text 'with single quotes' \"and double quotes\".")}
+),
+
+C("dquoted, with escapes",
+R"("Some text with escapes \\n \\r \\t")",
+  L{N("Some text with escapes \\n \\r \\t")}
+),
+
+C("dquoted, with newline",
+R"("Some text with\nnewline")",
+  L{N("Some text with\nnewline")}
+),
+
+C("dquoted, all",
+R"("Several lines of text,
+containing 'single quotes' and \"double quotes\". \
+Escapes (like \\n) work.\nIn addition,
+newlines can be esc\
+aped to prevent them from being converted to a space.
+
+Newlines can also be added by leaving a blank line.
+    Leading whitespace on lines is ignored."
+)",
+  L{N("Several lines of text, containing 'single quotes' and \"double quotes\". Escapes (like \\n) work.\nIn addition, newlines can be escaped to prevent them from being converted to a space.\nNewlines can also be added by leaving a blank line. Leading whitespace on lines is ignored.")}
+),
+
+C("dquoted, empty",
+R"("")",
+  L{N("")}
+),
+
+C("dquoted, 1 dquote",
+R"("\"")",
+  L{N("\"")}
+),
+
+C("dquoted, 2 dquotes",
+R"("\"\"")",
+  L{N("\"\"")}
+),
+
+C("dquoted, 3 dquotes",
+R"("\"\"\"")",
+  L{N("\"\"\"")}
+),
+
+C("dquoted, 4 dquotes",
+R"("\"\"\"\"")",
+  L{N("\"\"\"\"")}
+),
+
+C("dquoted, 5 dquotes",
+R"("\"\"\"\"\"")",
+  L{N("\"\"\"\"\"")}
+),
+
+C("dquoted, example 2",
+R"("This is a key\nthat has multiple lines\n": and this is its value
+)",
+  L{N("This is a key\nthat has multiple lines\n", "and this is its value")}
+),
+
+C("dquoted, example 2.1",
+R"("This is a key
+
+that has multiple lines
+
+": and this is its value
+)",
+  L{N("This is a key\nthat has multiple lines\n", "and this is its value")}
+),
+
 
 //-----------------------------------------------------------------------------
 #define PLAIN_SCALAR_CASES                                              \
@@ -2352,7 +2390,13 @@ R"(
 "complex key 2nd",                              \
 "complex key 1st",                              \
 "complex key nested in a map, 1st",             \
-"complex key nested in a seq, 1st"
+"complex key nested in a seq, 1st",\
+"complex block key, literal, clip",\
+"complex block key, literal, keep",\
+"complex block key, literal, strip",\
+"complex block key, folded, clip",\
+"complex block key, folded, keep",\
+"complex block key, folded, strip"
 
 
 C("complex key with line break in between",
@@ -2439,6 +2483,78 @@ R"(
           N("a simple key", "a value"),
       }),
       N(L{N("another complex key", "its value")})
+   }
+),
+
+C("complex block key, literal, clip",
+R"(? |
+    This is a key
+    that has multiple lines
+    
+: and this is its value
+)",
+  L{
+      N("This is a key\nthat has multiple lines\n", "and this is its value")
+   }
+),
+
+C("complex block key, literal, keep",
+R"(? |+
+    This is a key
+    that has multiple lines
+    
+: and this is its value
+)",
+  L{
+      N("This is a key\nthat has multiple lines\n\n", "and this is its value")
+   }
+),
+
+C("complex block key, literal, strip",
+R"(? |-
+    This is a key
+    that has multiple lines
+    
+: and this is its value
+)",
+  L{
+      N("This is a key\nthat has multiple lines", "and this is its value")
+   }
+),
+
+C("complex block key, folded, clip",
+R"(? |
+    This is a key
+    that has multiple lines
+    
+: and this is its value
+)",
+  L{
+      N("This is a key that has multiple lines\n", "and this is its value")
+   }
+),
+
+C("complex block key, folded, keep",
+R"(? |+
+    This is a key
+    that has multiple lines
+    
+: and this is its value
+)",
+  L{
+      N("This is a key that has multiple lines\n\n", "and this is its value")
+   }
+),
+
+C("complex block key, folded, strip",
+R"(? |-
+    This is a key
+    that has multiple lines
+    
+: and this is its value
+)",
+  L{
+      N("This is a key that has multiple lines", "and this is its value")
    }
 ),
 
