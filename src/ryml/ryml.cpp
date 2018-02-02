@@ -133,7 +133,7 @@ size_t Node::num_siblings() const
 size_t Node::num_other_siblings() const
 {
     size_t ns = num_siblings();
-    C4_ASSERT(ns >= 1);
+    C4_ASSERT(ns >= 1); // at least there's this node, no?
     return ns - 1;
 }
 
@@ -161,7 +161,10 @@ Node * Node::last_sibling() const
 
 Node * Node::find_sibling(cspan const& name) const
 {
-    return m_s->get(m_parent)->find_child(name);
+    auto p = parent();
+    C4_ASSERT(p || is_root());
+    if( ! p) return nullptr;
+    return p->find_child(name);
 }
 
 Node * Node::prev_sibling() const
@@ -370,24 +373,24 @@ void Tree::_copy(Tree const& that)
     memcpy(this, &that, sizeof(Tree));
     m_buf = (Node*)RymlCallbacks::allocate(m_cap * sizeof(Node), that.m_buf);
     memcpy(m_buf, that.m_buf, m_cap * sizeof(Node));
-    span arena((char*)RymlCallbacks::allocate(m_arena.len, m_arena.str), m_arena.len);
-    _relocate(arena);
-    m_arena = arena;
     for(size_t i = 0; i < m_cap; ++i)
     {
         m_buf[i].m_s = this;
     }
+    span arena((char*)RymlCallbacks::allocate(m_arena.len, m_arena.str), m_arena.len);
+    _relocate(arena); // does a memcpy and updates nodes with spans using the old arena
+    m_arena = arena;
 }
 
 void Tree::_move(Tree & that)
 {
     memcpy(this, &that, sizeof(Tree));
-    that.m_buf = nullptr;
-    that.m_arena = {};
     for(size_t i = 0; i < m_cap; ++i)
     {
         m_buf[i].m_s = this;
     }
+    that.m_buf = nullptr;
+    that.m_arena = {};
 }
 
 void Tree::_relocate(span const& next_arena)
@@ -459,6 +462,7 @@ void Tree::clear()
     m_tail = NONE;
     m_free_head = 0;
     m_free_tail = m_cap;
+    m_arena_pos = 0;
 }
 
 //-----------------------------------------------------------------------------

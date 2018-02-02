@@ -218,6 +218,529 @@ TEST(span, span2cspan)
 
 }
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+void node_scalar_test_empty(NodeScalar const& s)
+{
+    EXPECT_TRUE(s.empty());
+
+    EXPECT_EQ(s.tag, "");
+    EXPECT_EQ(s.tag.len, 0);
+    EXPECT_TRUE(s.tag.empty());
+
+    EXPECT_EQ(s.scalar, "");
+    EXPECT_EQ(s.scalar.len, 0);
+    EXPECT_TRUE(s.scalar.empty());
+}
+
+TEST(NodeScalar, empty_ctor)
+{
+    NodeScalar s;
+    node_scalar_test_empty(s);
+}
+
+void node_scalar_test_foo(NodeScalar const& s, bool with_tag=false)
+{
+    EXPECT_FALSE(s.empty());
+
+    if(with_tag)
+    {
+        EXPECT_EQ(s.tag, "!!str");
+        EXPECT_EQ(s.tag.len, 5);
+        EXPECT_FALSE(s.tag.empty());
+    }
+    else
+    {
+        EXPECT_EQ(s.tag, "");
+        EXPECT_EQ(s.tag.len, 0);
+        EXPECT_TRUE(s.tag.empty());
+    }
+
+    EXPECT_EQ(s.scalar, "foo");
+    EXPECT_EQ(s.scalar.len, 3);
+    EXPECT_FALSE(s.scalar.empty());
+}
+void node_scalar_test_foo3(NodeScalar const& s, bool with_tag=false)
+{
+    EXPECT_FALSE(s.empty());
+
+    if(with_tag)
+    {
+        EXPECT_EQ(s.tag, "!!str+++");
+        EXPECT_EQ(s.tag.len, 8);
+        EXPECT_FALSE(s.tag.empty());
+    }
+    else
+    {
+        EXPECT_EQ(s.tag, "");
+        EXPECT_EQ(s.tag.len, 0);
+        EXPECT_TRUE(s.tag.empty());
+    }
+
+    EXPECT_EQ(s.scalar, "foo3");
+    EXPECT_EQ(s.scalar.len, 4);
+    EXPECT_FALSE(s.scalar.empty());
+}
+
+TEST(NodeScalar, untagged_ctor)
+{
+    {
+        const char sarr[] = "foo";
+        const char *sptr = "foo"; size_t sptrlen = 3;
+        cspan ssp = "foo";
+
+        for(auto s : {NodeScalar(sarr), NodeScalar(sptr), NodeScalar(sptr, sptrlen), NodeScalar(ssp)})
+        {
+            node_scalar_test_foo(s);
+        }
+
+        NodeScalar s;
+        s = {sarr};
+        node_scalar_test_foo(s);
+        s = {sptr};
+        node_scalar_test_foo(s);
+        s = {sptr, sptrlen};
+        node_scalar_test_foo(s);
+        s = {ssp};
+        node_scalar_test_foo(s);
+    }
+
+    {
+        const char sarr[] = "foo3";
+        const char *sptr = "foo3"; size_t sptrlen = 4;
+        cspan ssp = "foo3";
+
+        for(auto s : {NodeScalar(sarr), NodeScalar(sptr), NodeScalar(sptr, sptrlen), NodeScalar(ssp)})
+        {
+            node_scalar_test_foo3(s);
+        }
+
+        NodeScalar s;
+        {
+            SCOPED_TRACE("here 1");
+            s = {sarr};
+            node_scalar_test_foo3(s);
+        }
+        {
+            SCOPED_TRACE("here 2");
+            s = {sptr};
+            node_scalar_test_foo3(s);
+        }
+        {
+            SCOPED_TRACE("here 3");
+            s = {sptr, sptrlen};
+            node_scalar_test_foo3(s);
+        }
+        {
+            SCOPED_TRACE("here 4");
+            s = {ssp};
+            node_scalar_test_foo3(s);
+        }
+    }
+}
+
+TEST(NodeScalar, tagged_ctor)
+{
+    {
+        const char sarr[] = "foo", tarr[] = "!!str";
+        const char *sptr = "foo"; size_t sptrlen = 3;
+        const char *tptr = "!!str"; size_t tptrlen = 5;
+        cspan ssp = "foo", tsp = "!!str";
+
+        for(auto s : {
+                NodeScalar(tsp, ssp),
+                    NodeScalar(tsp, sptr),
+                    NodeScalar(tsp, sptr, sptrlen),
+                    NodeScalar(tsp, sarr),
+                NodeScalar(tptr, ssp),
+                    NodeScalar(tptr, sptr),
+                    NodeScalar(tptr, sptr, sptrlen),
+                    NodeScalar(tptr, sarr),
+                NodeScalar(tptr, tptrlen, ssp),
+                    NodeScalar(tptr, tptrlen, sptr),
+                    NodeScalar(tptr, tptrlen, sptr, sptrlen),
+                    NodeScalar(tptr, tptrlen, sarr),
+                NodeScalar(tarr, ssp),
+                    NodeScalar(tarr, sptr),
+                    NodeScalar(tarr, sptr, sptrlen),
+                    NodeScalar(tarr, sarr),
+                    })
+        {
+            node_scalar_test_foo(s, true);
+        }
+
+        NodeScalar s;
+
+        {
+            SCOPED_TRACE("here 0.0");
+            s = {tsp, ssp};
+            node_scalar_test_foo(s, true);
+        }
+        {
+            SCOPED_TRACE("here 0.1");
+            s = {tsp, sptr};
+            node_scalar_test_foo(s, true);
+        }
+        {
+            SCOPED_TRACE("here 0.2");
+            s = {tsp, sptr, sptrlen};
+            node_scalar_test_foo(s, true);
+        }
+        {
+            SCOPED_TRACE("here 0.3");
+            s = {tsp, sarr};
+            node_scalar_test_foo(s, true);
+        }
+
+        {
+            SCOPED_TRACE("here 1.0");
+            s = {tptr, ssp};
+            node_scalar_test_foo(s, true);
+        }
+        {
+            SCOPED_TRACE("here 1.1");
+            s = {tptr, sptr};
+            node_scalar_test_foo(s, true);
+        }
+        {
+            SCOPED_TRACE("here 1.2");
+            s = {tptr, sptr, sptrlen};
+            node_scalar_test_foo(s, true);
+        }
+        {
+            SCOPED_TRACE("here 1.3");
+            s = {tptr, sarr};
+            node_scalar_test_foo(s, true);
+        }
+
+        {
+            SCOPED_TRACE("here 2.0");
+            s = {tptr, tptrlen, ssp};
+            node_scalar_test_foo(s, true);
+        }
+        {
+            SCOPED_TRACE("here 2.1");
+            s = {tptr, tptrlen, sptr};
+            node_scalar_test_foo(s, true);
+        }
+        {
+            SCOPED_TRACE("here 2.2");
+            s = {tptr, tptrlen, sptr, sptrlen};
+            node_scalar_test_foo(s, true);
+        }
+        {
+            SCOPED_TRACE("here 2.3");
+            s = {tptr, tptrlen, sarr};
+            node_scalar_test_foo(s, true);
+        }
+
+        {
+            SCOPED_TRACE("here 3.0");
+            s = {tarr, ssp};
+            node_scalar_test_foo(s, true);
+        }
+        {
+            SCOPED_TRACE("here 3.1");
+            s = {tarr, sptr};
+            node_scalar_test_foo(s, true);
+        }
+        {
+            SCOPED_TRACE("here 3.2");
+            s = {tarr, sptr, sptrlen};
+            node_scalar_test_foo(s, true);
+        }
+        {
+            SCOPED_TRACE("here 3.3");
+            s = {tarr, sarr};
+            node_scalar_test_foo(s, true);
+        }
+
+    }
+
+    {
+        const char sarr[] = "foo3", tarr[] = "!!str+++";
+        const char *sptr = "foo3"; size_t sptrlen = 4;
+        const char *tptr = "!!str+++"; size_t tptrlen = 8;
+        cspan ssp = "foo3", tsp = "!!str+++";
+
+        for(auto s : {
+                NodeScalar(tsp, ssp),
+                    NodeScalar(tsp, sptr),
+                    NodeScalar(tsp, sptr, sptrlen),
+                    NodeScalar(tsp, sarr),
+                NodeScalar(tptr, ssp),
+                    NodeScalar(tptr, sptr),
+                    NodeScalar(tptr, sptr, sptrlen),
+                    NodeScalar(tptr, sarr),
+                NodeScalar(tptr, tptrlen, ssp),
+                    NodeScalar(tptr, tptrlen, sptr),
+                    NodeScalar(tptr, tptrlen, sptr, sptrlen),
+                    NodeScalar(tptr, tptrlen, sarr),
+                NodeScalar(tarr, ssp),
+                    NodeScalar(tarr, sptr),
+                    NodeScalar(tarr, sptr, sptrlen),
+                    NodeScalar(tarr, sarr),
+                    })
+        {
+            node_scalar_test_foo3(s, true);
+        }
+
+        NodeScalar s;
+
+        {
+            SCOPED_TRACE("here 0.0");
+            s = {tsp, ssp};
+            node_scalar_test_foo3(s, true);
+        }
+        {
+            SCOPED_TRACE("here 0.1");
+            s = {tsp, sptr};
+            node_scalar_test_foo3(s, true);
+        }
+        {
+            SCOPED_TRACE("here 0.2");
+            s = {tsp, sptr, sptrlen};
+            node_scalar_test_foo3(s, true);
+        }
+        {
+            SCOPED_TRACE("here 0.3");
+            s = {tsp, sarr};
+            node_scalar_test_foo3(s, true);
+        }
+
+        {
+            SCOPED_TRACE("here 1.0");
+            s = {tptr, ssp};
+            node_scalar_test_foo3(s, true);
+        }
+        {
+            SCOPED_TRACE("here 1.1");
+            s = {tptr, sptr};
+            node_scalar_test_foo3(s, true);
+        }
+        {
+            SCOPED_TRACE("here 1.2");
+            s = {tptr, sptr, sptrlen};
+            node_scalar_test_foo3(s, true);
+        }
+        {
+            SCOPED_TRACE("here 1.3");
+            s = {tptr, sarr};
+            node_scalar_test_foo3(s, true);
+        }
+
+        {
+            SCOPED_TRACE("here 2.0");
+            s = {tptr, tptrlen, ssp};
+            node_scalar_test_foo3(s, true);
+        }
+        {
+            SCOPED_TRACE("here 2.1");
+            s = {tptr, tptrlen, sptr};
+            node_scalar_test_foo3(s, true);
+        }
+        {
+            SCOPED_TRACE("here 2.2");
+            s = {tptr, tptrlen, sptr, sptrlen};
+            node_scalar_test_foo3(s, true);
+        }
+        {
+            SCOPED_TRACE("here 2.3");
+            s = {tptr, tptrlen, sarr};
+            node_scalar_test_foo3(s, true);
+        }
+
+        {
+            SCOPED_TRACE("here 3.0");
+            s = {tarr, ssp};
+            node_scalar_test_foo3(s, true);
+        }
+        {
+            SCOPED_TRACE("here 3.1");
+            s = {tarr, sptr};
+            node_scalar_test_foo3(s, true);
+        }
+        {
+            SCOPED_TRACE("here 3.2");
+            s = {tarr, sptr, sptrlen};
+            node_scalar_test_foo3(s, true);
+        }
+        {
+            SCOPED_TRACE("here 3.3");
+            s = {tarr, sarr};
+            node_scalar_test_foo3(s, true);
+        }
+
+    }
+
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+TEST(NodeInit, ctor__empty)
+{
+    NodeInit n;
+    EXPECT_EQ(n.type, NOTYPE);
+    EXPECT_EQ(n.key.scalar, "");
+    EXPECT_EQ(n.key.tag, "");
+    EXPECT_EQ(n.val.scalar, "");
+    EXPECT_EQ(n.val.tag, "");
+}
+
+TEST(NodeInit, ctor__type_only)
+{
+    for(auto k : {KEY, KEYVAL, MAP, KEYMAP, SEQ, KEYSEQ})
+    {
+        SCOPED_TRACE(Node::type_str(k));
+        NodeInit n(k);
+        EXPECT_EQ(n.type, k);
+        EXPECT_EQ(n.key.scalar, "");
+        EXPECT_EQ(n.key.tag, "");
+        EXPECT_EQ(n.val.scalar, "");
+        EXPECT_EQ(n.val.tag, "");
+    }
+}
+
+TEST(NodeInit, ctor__val_only)
+{
+    {
+        const char sarr[] = "foo";
+        const char *sptr = "foo"; size_t sptrlen = 3;
+        cspan ssp = "foo";
+
+        {
+            SCOPED_TRACE("here 0");
+            NodeInit s = {sarr};
+            node_scalar_test_foo(s.val);
+            node_scalar_test_empty(s.key);
+        }
+        {   // FAILS
+            SCOPED_TRACE("here 1");
+            //NodeInit s = sarr;
+            //node_scalar_test_foo(s.val);
+            //node_scalar_test_empty(s.key);
+        }
+        {
+            SCOPED_TRACE("here 2");
+            NodeInit s{sarr};
+            node_scalar_test_foo(s.val);
+            node_scalar_test_empty(s.key);
+        }
+        {
+            SCOPED_TRACE("here 3");
+            NodeInit s(sarr);
+            node_scalar_test_foo(s.val);
+            node_scalar_test_empty(s.key);
+        }
+
+        using ilist = std::initializer_list< NodeInit >;
+        for(auto s : ilist{{sarr}, {sptr}, {{sptr, sptrlen}}, {ssp}})
+        {
+            SCOPED_TRACE("here LOOP");
+            node_scalar_test_foo(s.val);
+            node_scalar_test_empty(s.key);
+        }
+    }
+
+    {
+        const char sarr[] = "foo3";
+        const char *sptr = "foo3"; size_t sptrlen = 4;
+        cspan ssp = "foo3";
+
+        {
+            SCOPED_TRACE("here 0");
+            NodeInit s = {sarr};
+            node_scalar_test_foo3(s.val);
+            node_scalar_test_empty(s.key);
+        }
+        {   // FAILS
+            SCOPED_TRACE("here 1");
+            //NodeInit s = sarr;
+            //node_scalar_test_foo3(s.val);
+            //node_scalar_test_empty(s.key);
+        }
+        {
+            SCOPED_TRACE("here 2");
+            NodeInit s{sarr};
+            node_scalar_test_foo3(s.val);
+            node_scalar_test_empty(s.key);
+        }
+        {
+            SCOPED_TRACE("here 3");
+            NodeInit s(sarr);
+            node_scalar_test_foo3(s.val);
+            node_scalar_test_empty(s.key);
+        }
+
+        using ilist = std::initializer_list< NodeInit >;
+        for(auto s : ilist{{sarr}, {sptr}, {{sptr, sptrlen}}, {ssp}})
+        {
+            SCOPED_TRACE("here LOOP");
+            node_scalar_test_foo3(s.val);
+            node_scalar_test_empty(s.key);
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+TEST(NodeRef, setting_up)
+{
+    Tree t;
+    t.reserve(32);
+
+    NodeRef root(&t);
+
+    root = {MAP};
+    root.append_child({"a", "0"});
+    root.append_child({MAP, "b"});
+    root["b"].append_child({SEQ, "seq"});
+    root["b"]["seq"].append_child({"0"});
+    root["b"]["seq"].append_child({"1"});
+    root["b"]["seq"].append_child({"2"});
+    root["b"]["seq"].append_child({NodeScalar{"!!str", "3"}});
+    root["b"]["seq"][3].append_sibling({"4"});
+    root["b"]["seq"].append_sibling({NodeScalar{"!!str", "aaaa"}, NodeScalar{"!!int", "0"}});
+
+    emit(t);
+
+    EXPECT_EQ(root.type(), MAP);
+    EXPECT_EQ(root["a"].type(), KEYVAL);
+    EXPECT_EQ(root["a"].key(), "a");
+    EXPECT_EQ(root["a"].val(), "0");
+
+    EXPECT_EQ(root["b"].type(), KEYMAP);
+
+    EXPECT_EQ(root["b"]["seq"].type(), KEYSEQ);
+    EXPECT_EQ(root["b"]["seq"].key(), "seq");
+    EXPECT_EQ(root["b"]["seq"][0].type(), VAL);
+    EXPECT_EQ(root["b"]["seq"][0].val(), "0");
+    EXPECT_EQ(root["b"]["seq"][1].type(), VAL);
+    EXPECT_EQ(root["b"]["seq"][1].val(), "1");
+    EXPECT_EQ(root["b"]["seq"][2].type(), VAL);
+    EXPECT_EQ(root["b"]["seq"][2].val(), "2");
+    EXPECT_EQ(root["b"]["seq"][3].type(), VAL);
+    EXPECT_EQ(root["b"]["seq"][3].val(), "3");
+    EXPECT_EQ(root["b"]["seq"][3].val_tag(), "!!str");
+    EXPECT_EQ(root["b"]["seq"][4].val(), VAL);
+    EXPECT_EQ(root["b"]["seq"][4].val(), "4");
+
+    root["b"]["seq"][2].set_val_serialized(22);
+
+    emit(t);
+
+    EXPECT_EQ(root["b"]["aaa"].type(), KEYVAL);
+    EXPECT_EQ(root["b"]["aaa"].key_tag(), "!!str");
+    EXPECT_EQ(root["b"]["aaa"].key(), "aaa");
+    EXPECT_EQ(root["b"]["aaa"].val_tag(), "!!int");
+    EXPECT_EQ(root["b"]["aaa"].val(), "0");
+}
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

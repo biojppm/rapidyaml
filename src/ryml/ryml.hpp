@@ -333,6 +333,31 @@ bool Node::visit_stacked(Visitor fn, size_t indentation_level, bool skip_root) c
     return false;
 }
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+inline int to_str(span buf, int v)
+{
+    return snprintf(buf.str, buf.len, "%d", v);
+}
+inline int to_str(span buf, size_t v)
+{
+    return snprintf(buf.str, buf.len, "%zd", v);
+}
+inline int to_str(span buf, cspan const& v)
+{
+    return snprintf(buf.str, buf.len, "%.*s", (int)v.len, v.str);
+}
+template< size_t N >
+inline int to_str(span buf, const char (&v)[N])
+{
+    return snprintf(buf.str, buf.len, "%.*s", (int)(N-1), v.str);
+}
+inline int to_str(span buf, const char *v)
+{
+    return snprintf(buf.str, buf.len, "%s", v);
+}
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -369,13 +394,19 @@ public:
 
 public:
 
-    inline size_t size () const { return m_size; }
-    inline bool   empty() const { return m_size == 0; }
-
-    inline size_t capacity() const { return m_cap; }
     void reserve(size_t node_capacity, size_t arena_capacity=0);
 
     void clear();
+
+    inline bool   empty() const { return m_size == 0; }
+
+    inline size_t size () const { return m_size; }
+    inline size_t capacity() const { return m_cap; }
+    inline size_t slack() const { C4_ASSERT(m_cap >= m_size); return m_cap - m_size; }
+
+    inline size_t arena_size() const { return m_arena_pos; }
+    inline size_t arena_capacity() const { return m_arena.len; }
+    inline size_t arena_slack() const { C4_ASSERT(m_arena.len >= m_arena_pos); return m_arena.len - m_arena_pos; }
 
 public:
 
@@ -446,7 +477,7 @@ public:
     //! create and insert a new child of "parent". insert after "after"
     size_t insert_child(size_t parent, size_t after)
     {
-        C4_ASSERT(get(parent)->is_container());
+        C4_ASSERT(get(parent)->is_container() || get(parent)->is_root());
         C4_ASSERT(get(parent)->has_child(get(after)) || after == NONE);
         size_t child = claim(after);
         set_parent(parent, child, after);
@@ -536,14 +567,35 @@ public:
 
 public:
 
-    span request_span(size_t sz)
+    template< class T >
+    span to_str(T const& a)
     {
-        if(m_arena_pos + sz > m_arena.len)
+        span rem(m_arena.subspan(m_arena_pos));
+        // snprintf uses one more character to write \0
+        // and if the span has no room, it omits the last
+        // character to write the \0 terminator. So add 1.
+        size_t num = 1 + c4::yml::to_str(rem, a);
+        if(num > rem.len)
         {
-            size_t cap = m_arena_pos + sz;
-            cap = cap >= 2 * m_arena.len ? cap : 2 * m_arena.len;
-            reserve(m_cap, cap);
+            rem = _grow_arena(num);
+            num = c4::yml::to_str(rem, a);
+            C4_ASSERT(num <= rem.len);
         }
+        rem = _request_span(num);
+        return rem;
+    }
+
+    span _grow_arena(size_t num)
+    {
+        size_t cap = m_arena_pos + num;
+        cap = cap < 2 * m_arena.len ? 2 * m_arena.len : cap;
+        cap = cap < 64 ? 64 : cap;
+        reserve(m_cap, cap);
+        return m_arena.subspan(m_arena_pos);
+    }
+
+    span _request_span(size_t sz)
+    {
         span s;
         s = m_arena.subspan(m_arena_pos, sz);
         m_arena_pos += sz;
@@ -575,6 +627,275 @@ private:
     void _relocate(span const& next_arena);
 
 };
+
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+struct NodeScalar
+{
+    cspan tag;
+    cspan scalar;
+
+    /// initialize as an empty scalar
+
+    inline NodeScalar() : tag(), scalar() {}
+
+    /// initialize as an untagged scalar
+
+    inline NodeScalar(cspan const& s          ) : tag(), scalar(s   ) {}
+    inline NodeScalar(const char*  s          ) : tag(), scalar(s   ) {}
+    inline NodeScalar(const char*  s, size_t n) : tag(), scalar(s, n) {}
+    template< size_t N >
+    inline NodeScalar(const char (&s)[N]      ) : tag(), scalar(    ) { /*avoid strlen call*/ scalar.assign<N>(s); }
+
+    /// initialize as a tagged scalar
+
+    inline NodeScalar(cspan const& t           , cspan const& s           ) : tag(t    ), scalar(s    ) {}
+    inline NodeScalar(cspan const& t           , const char * s           ) : tag(t    ), scalar(s    ) {}
+    inline NodeScalar(cspan const& t           , const char * s, size_t ns) : tag(t    ), scalar(s, ns) {}
+    template< size_t M >
+    inline NodeScalar(cspan const& t           , const char (&s)[M]       ) : tag(t    ), scalar(     ) { /*avoid strlen call */scalar.assign<M>(s); }
+
+    inline NodeScalar(const char * t           , cspan const& s           ) : tag(t    ), scalar(s    ) {}
+    inline NodeScalar(const char * t           , const char * s           ) : tag(t    ), scalar(s    ) {}
+    inline NodeScalar(const char * t           , const char * s, size_t ns) : tag(t    ), scalar(s, ns) {}
+    template< size_t M >
+    inline NodeScalar(const char * t           , const char (&s)[M]       ) : tag(t    ), scalar(     ) { /*avoid strlen call */scalar.assign<M>(s); }
+
+    inline NodeScalar(const char  *t, size_t nt, cspan const& s           ) : tag(t, nt), scalar(s    ) {}
+    inline NodeScalar(const char  *t, size_t nt, const char * s           ) : tag(t, nt), scalar(s    ) {}
+    inline NodeScalar(const char  *t, size_t nt, const char * s, size_t ns) : tag(t, nt), scalar(s, ns) {}
+    template< size_t M >
+    inline NodeScalar(const char  *t, size_t nt, const char (&s)[M]       ) : tag(t, nt), scalar(     ) { /*avoid strlen call */scalar.assign<M>(s); }
+
+    template< size_t N >
+    inline NodeScalar(const char (&t)[N]       , cspan const& s           ) : tag(     ), scalar(s    ) {}
+    template< size_t N >
+    inline NodeScalar(const char (&t)[N]       , const char * s           ) : tag(     ), scalar(s    ) { /*avoid strlen call */tag.assign<N>(t); }
+    template< size_t N >
+    inline NodeScalar(const char (&t)[N]       , const char * s, size_t ns) : tag(     ), scalar(s, ns) { /*avoid strlen call */tag.assign<N>(t); }
+    template< size_t N, size_t M >
+    inline NodeScalar(const char (&t)[N]       , const char (&s)[M]       ) : tag(     ), scalar(     ) { /*avoid strlen call */tag.assign<N>(t); scalar.assign<M>(s); }
+
+    bool empty() const { return scalar.empty(); }
+
+};
+
+struct NodeInit
+{
+    NodeType_e type;
+    NodeScalar key;
+    NodeScalar val;
+
+    /// initialize as an empty node
+    NodeInit() : type(NOTYPE), key(), val() {}
+
+    /// initialize as a typed node
+    NodeInit(NodeType_e t) : type(t), key(), val() {}
+
+    /// initialize as a sequence member
+    //NodeInit(cspan      const& v) : type(VAL), key(), val(v              ) {}
+    NodeInit(NodeScalar const& v) : type(VAL), key(), val(v) { _add_flags(); }
+
+    /// initialize as a mapping member
+    //NodeInit(              cspan      const& k, cspan      const& v) : type(KEYVAL), key(k              ), val(v              ) { _add_flags(); }
+    //NodeInit(              cspan      const& k, NodeScalar const& v) : type(KEYVAL), key(k              ), val(v.tag, v.scalar) { _add_flags(); }
+    //NodeInit(              NodeScalar const& k, cspan      const& v) : type(KEYVAL), key(k.tag, k.scalar), val(v              ) { _add_flags(); }
+    NodeInit(              NodeScalar const& k, NodeScalar const& v) : type(KEYVAL), key(k.tag, k.scalar), val(v.tag, v.scalar) { _add_flags(); }
+    //NodeInit(NodeType_e t, cspan      const& k, cspan      const& v) : type(t     ), key(k              ), val(v              ) {}
+    //NodeInit(NodeType_e t, cspan      const& k, NodeScalar const& v) : type(t     ), key(k              ), val(v.tag, v.scalar) { _add_flags(); }
+    //NodeInit(NodeType_e t, NodeScalar const& k, cspan      const& v) : type(t     ), key(k.tag, k.scalar), val(v              ) { _add_flags(); }
+    NodeInit(NodeType_e t, NodeScalar const& k, NodeScalar const& v) : type(t     ), key(k.tag, k.scalar), val(v.tag, v.scalar) { _add_flags(); }
+
+    /// initialize as a mapping member with explicit type (eg SEQ or MAP)
+    //NodeInit(NodeType_e t, cspan      const& k                     ) : type(t     ), key(k              ), val(               ) { _add_flags(KEY); }
+    NodeInit(NodeType_e t, NodeScalar const& k                     ) : type(t     ), key(k.tag, k.scalar), val(               ) { _add_flags(KEY); }
+
+    void _add_flags(int more_flags=0)
+    {
+        type = (NodeType_e)(type|more_flags);
+        if( ! key.tag.empty()) type = (NodeType_e)(type|KEYTAG);
+        if( ! val.tag.empty()) type = (NodeType_e)(type|VALTAG);
+    }
+    void apply(Node *n) const
+    {
+        n->m_type = type;
+        n->m_key = key.scalar;
+        n->m_key_tag = key.tag;
+        n->m_val = val.scalar;
+        n->m_val_tag = val.tag;
+    }
+};
+
+class NodeRef;
+
+
+template<          class V > void serialize(NodeRef &node,          V & val);
+template< class K, class V > void serialize(NodeRef &node, K & key, V & val);
+
+
+class NodeRef
+{
+public:
+
+    NodeRef(Tree *t) : m_tree(t), m_id(t->root()->id()), m_child_seed(false) {}
+    NodeRef(Tree *t, size_t id, bool child_seed=false) : m_tree(t), m_id(id), m_child_seed(child_seed) {}
+
+public:
+
+    inline Tree      * tree()       { return m_tree; }
+    inline Tree const* tree() const { return m_tree; }
+
+    inline size_t id() const { return m_id; }
+
+    inline Node      * get()       { return m_tree->get(m_id); }
+    inline Node const* get() const { return m_tree->get(m_id); }
+
+    inline bool valid() const { return m_tree != nullptr && m_id != NONE; }
+
+    inline NodeRef       parent()       { return {m_tree, m_tree->get(m_id)->m_parent}; }
+    inline NodeRef const parent() const { return {m_tree, m_tree->get(m_id)->m_parent}; }
+
+public:
+
+    inline NodeType_e type() const { return get()->type(); }
+
+    inline cspan key    () const { return get()->key(); }
+    inline cspan key_tag() const { return get()->key_tag(); }
+
+    inline cspan val    () const { return get()->val(); }
+    inline cspan val_tag() const { return get()->val_tag(); }
+
+    inline bool is_map() const { return get()->is_map(); }
+    inline bool is_seq() const { return get()->is_seq(); }
+
+public:
+
+    template< class T >
+    inline void set_key_serialized(T const& k)
+    {
+        get()->m_key = m_tree->to_str(k);
+    }
+
+    template< class T >
+    inline void set_val_serialized(T const& v)
+    {
+        get()->m_val = m_tree->to_str(v);
+    }
+
+public:
+
+    NodeRef operator[] (cspan const& k)
+    {
+        C4_ASSERT(valid());
+        Node *n = get()->find_child(k);
+        NodeRef r(m_tree, n ? n->id() : m_id, n == nullptr);
+        return r;
+    }
+
+    NodeRef operator[] (size_t i)
+    {
+        C4_ASSERT(valid());
+        Node *n = get()->child(i);
+        NodeRef r(m_tree, n ? n->id() : m_id, n == nullptr);
+        return r;
+    }
+
+public:
+
+    NodeRef const operator[] (cspan const& k) const
+    {
+        C4_ASSERT(valid());
+        Node const& n = *get();
+        Node const& ch = n[k];
+        NodeRef r(m_tree, ch.id());
+        return r;
+    }
+
+    NodeRef const operator[] (size_t i) const
+    {
+        C4_ASSERT(valid());
+        Node const& n = *get();
+        Node const& ch = n[i];
+        NodeRef r(m_tree, ch.id());
+        return r;
+    }
+
+public:
+
+    NodeRef& operator= (NodeInit const& i)
+    {
+        if(m_child_seed)
+        {
+            m_id = m_tree->append_child(m_id);
+            m_child_seed = false;
+        }
+        C4_ASSERT(valid());
+        i.apply(get());
+        return *this;
+    }
+
+public:
+
+    NodeRef insert_child(NodeInit const& i, NodeRef after)
+    {
+        C4_ASSERT(valid());
+        size_t child_id = m_tree->insert_child(m_id, after.m_id);
+        NodeRef r(m_tree, child_id);
+        i.apply(r.get());
+        return r;
+    }
+
+    NodeRef prepend_child(NodeInit const& i)
+    {
+        NodeRef after(m_tree, NONE);
+        return insert_child(i, after);
+    }
+
+    NodeRef append_child(NodeInit const& i)
+    {
+        NodeRef after(m_tree, get()->m_children.last);
+        return insert_child(i, after);
+    }
+
+public:
+
+    NodeRef insert_sibling(NodeInit const& i, NodeRef after)
+    {
+        return parent().insert_child(i, after);
+    }
+
+    NodeRef prepend_sibling(NodeInit const& i)
+    {
+        return parent().prepend_child(i);
+    }
+
+    NodeRef append_sibling(NodeInit const& i)
+    {
+        return parent().append_child(i);
+    }
+
+private:
+
+    Tree * m_tree;
+    size_t m_id;
+    bool   m_child_seed;
+
+};
+
+template< class K, class V > void serialize(NodeRef & node, K & key, V & val)
+{
+    C4_ASSERT(node.is_map());
+    node.set_key_serialized(key);
+    serialize(node, val);
+}
+template< class V > void serialize(NodeRef & node, V & val)
+{
+    node.set_val_serialized(val);
+}
 
 
 //-----------------------------------------------------------------------------
