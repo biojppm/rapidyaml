@@ -212,13 +212,13 @@ public:
     void set_val_tag(cspan const& tag);
     void set_key_tag(cspan const& tag);
 
-private:
+public:
 
-    void _add_flags(NodeType_e f) { m_type = (NodeType_e)((int)f|(int)m_type); }
-    void _add_flags(int        f) { m_type = (NodeType_e)(     f|(int)m_type); }
+    void _add_flags(NodeType_e f) { m_type = (NodeType_e)(f | m_type); }
+    void _add_flags(int        f) { m_type = (NodeType_e)(f | m_type); }
 
-    void _rem_flags(NodeType_e f) { m_type = (NodeType_e)((~(int)f)&(int)m_type); }
-    void _rem_flags(int        f) { m_type = (NodeType_e)((~     f)&(int)m_type); }
+    void _rem_flags(NodeType_e f) { m_type = (NodeType_e)((~f) & m_type); }
+    void _rem_flags(int        f) { m_type = (NodeType_e)((~f) & m_type); }
 
     void _set_flags(NodeType_e f) { m_type = f; }
     void _set_flags(int        f) { m_type = (NodeType_e)f; }
@@ -724,14 +724,6 @@ struct NodeInit
         if( ! key.tag.empty()) type = (NodeType_e)(type|KEYTAG);
         if( ! val.tag.empty()) type = (NodeType_e)(type|VALTAG);
     }
-    void apply(Node *n) const
-    {
-        n->m_type = type;
-        n->m_key = key.scalar;
-        n->m_key_tag = key.tag;
-        n->m_val = val.scalar;
-        n->m_val_tag = val.tag;
-    }
 };
 
 class NodeRef;
@@ -843,33 +835,83 @@ public:
 
 public:
 
-    NodeRef& operator= (NodeInit const& i)
+    inline NodeRef& operator= (NodeInit const& i)
+    {
+        _apply(i);
+        return *this;
+    }
+
+    inline NodeRef& operator= (NodeScalar const& v)
+    {
+        _apply(v);
+        return *this;
+    }
+
+    inline NodeRef& operator= (cspan const& v)
+    {
+        _apply(v);
+        return *this;
+    }
+
+    inline NodeRef& operator= (const char * v)
+    {
+        _apply(cspan(v));
+        return *this;
+    }
+
+    template< class T >
+    void _apply(T const& x)
     {
         if(m_key.str)
         {
-            C4_ASSERT(i.key.scalar.empty() || m_key == i.key.scalar);
+            //C4_ASSERT(i.key.scalar.empty() || m_key == i.key.scalar || m_key.empty());
             m_id = m_tree->append_child(m_id);
+            _do_apply(x);
             Node *n = get();
-            i.apply(n);
             n->m_key = m_key;
-            n->m_type = (NodeType_e)(n->m_type|KEY);
+            n->_add_flags(KEY);
             m_key.str = nullptr;
             m_key.len = NONE;
         }
         else if(m_key.len != NONE)
         {
             C4_ASSERT(get()->num_children() == m_key.len);
-            m_tree->append_child(m_id);
-            i.apply(get());
+            m_id = m_tree->append_child(m_id);
+            _do_apply(x);
             m_key.str = nullptr;
             m_key.len = NONE;
         }
         else
         {
             C4_ASSERT(valid());
-            i.apply(get());
+            _do_apply(x);
         }
-        return *this;
+    }
+
+    inline void _do_apply(cspan const& v) { _do_apply(get(), v); }
+    static void _do_apply(Node *n, cspan const& v)
+    {
+        n->m_val = v;
+        n->m_val_tag = 0;
+        n->_add_flags(VAL);
+    }
+
+    inline void _do_apply(NodeScalar const& v) { _do_apply(get(), v); }
+    static void _do_apply(Node *n, NodeScalar const& v)
+    {
+        n->m_val = v.scalar;
+        n->m_val_tag = v.tag;
+        n->_add_flags(VAL);
+    }
+
+    inline void _do_apply(NodeInit const& i) { _do_apply(get(), i); }
+    static void _do_apply(Node *n, NodeInit const& i)
+    {
+        n->m_type = i.type;
+        n->m_key = i.key.scalar;
+        n->m_key_tag = i.key.tag;
+        n->m_val = i.val.scalar;
+        n->m_val_tag = i.val.tag;
     }
 
 public:
@@ -879,7 +921,7 @@ public:
         C4_ASSERT(valid());
         size_t child_id = m_tree->insert_child(m_id, after.m_id);
         NodeRef r(m_tree, child_id);
-        i.apply(r.get());
+        _do_apply(r.get(), i);
         return r;
     }
 

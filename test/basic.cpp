@@ -756,8 +756,16 @@ TEST(NodeRef, setting_up)
     //BUG!root["b"]["seq"][3].append_sibling({"4"});
     //BUG!root["b"]["seq"].append_sibling({NodeScalar{"!!str", "aaaa"}, NodeScalar{"!!int", "0"}});
 
-    root["b"]["key"] = {"val"};
-    root["b"]["seq2"] = {SEQ};
+    using S = cspan;
+    using V = NodeScalar;
+    using N = NodeInit;
+
+    root["b"]["key"] = S{"val"};
+    root["b"]["seq2"] = SEQ;
+    root["b"]["seq2"][0] = "00";
+    root["b"]["seq2"][1] = "01";
+    root["b"]["seq2"][2] = "02";
+    root["b"]["seq2"][3] = "03";
 
     emit(t);
 
@@ -784,6 +792,9 @@ TEST(NodeRef, setting_up)
 
     EXPECT_EQ(root["b"]["key"].key(), "key");
     EXPECT_EQ(root["b"]["key"].val(), "val");
+    EXPECT_EQ(root["b"]["seq2"][0].val(), "00");
+    EXPECT_EQ(root["b"]["seq2"][1].val(), "01");
+    EXPECT_EQ(root["b"]["seq2"][2].val(), "02");
 
     root["b"]["seq"][2].set_val_serialized(22);
 

@@ -59,7 +59,6 @@ Node * Node::child(size_t i) const
     {
         if(count == i) return n;
     }
-    C4_ASSERT(i < count);
     return nullptr;
 }
 Node * Node::first_child() const
