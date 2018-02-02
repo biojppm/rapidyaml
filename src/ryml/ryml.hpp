@@ -714,6 +714,10 @@ struct NodeInit
     //NodeInit(NodeType_e t, cspan      const& k                     ) : type(t     ), key(k              ), val(               ) { _add_flags(KEY); }
     NodeInit(NodeType_e t, NodeScalar const& k                     ) : type(t     ), key(k.tag, k.scalar), val(               ) { _add_flags(KEY); }
 
+    void clear()
+    {
+        memset(this, 0, sizeof(*this));
+    }
     void _add_flags(int more_flags=0)
     {
         type = (NodeType_e)(type|more_flags);
@@ -739,10 +743,23 @@ template< class K, class V > void serialize(NodeRef &node, K & key, V & val);
 
 class NodeRef
 {
+public://private:
+
+    friend class Tree;
+
+    NodeRef() : m_tree(nullptr), m_id(NONE), m_key() { /*do this manually or an assert is triggered*/m_key.str = nullptr; m_key.len = NONE; }
+    NodeRef(Tree *t) : m_tree(t), m_id(t->root()->id()), m_key() { /*do this manually or an assert is triggered*/m_key.str = nullptr; m_key.len = NONE; }
+    NodeRef(Tree *t, size_t id) : m_tree(t), m_id(id), m_key() { /*do this manually or an assert is triggered*/m_key.str = nullptr; m_key.len = NONE; }
+    NodeRef(Tree *t, size_t id, size_t pos) : m_tree(t), m_id(id), m_key() { /*do this manually or an assert is triggered*/m_key.str = nullptr; m_key.len = pos; }
+    NodeRef(Tree *t, size_t id, cspan  key) : m_tree(t), m_id(id), m_key(key) {}
+
 public:
 
-    NodeRef(Tree *t) : m_tree(t), m_id(t->root()->id()), m_child_seed(false) {}
-    NodeRef(Tree *t, size_t id, bool child_seed=false) : m_tree(t), m_id(id), m_child_seed(child_seed) {}
+    NodeRef(NodeRef const&) = default;
+    NodeRef(NodeRef     &&) = default;
+
+    NodeRef& operator= (NodeRef const&) = default;
+    NodeRef& operator= (NodeRef     &&) = default;
 
 public:
 
@@ -792,7 +809,7 @@ public:
     {
         C4_ASSERT(valid());
         Node *n = get()->find_child(k);
-        NodeRef r(m_tree, n ? n->id() : m_id, n == nullptr);
+        NodeRef r = n ? NodeRef(m_tree, n->id()) : NodeRef(m_tree, m_id, k);
         return r;
     }
 
@@ -800,7 +817,7 @@ public:
     {
         C4_ASSERT(valid());
         Node *n = get()->child(i);
-        NodeRef r(m_tree, n ? n->id() : m_id, n == nullptr);
+        NodeRef r = n ? NodeRef(m_tree, n->id()) : NodeRef(m_tree, m_id, i);
         return r;
     }
 
@@ -828,13 +845,30 @@ public:
 
     NodeRef& operator= (NodeInit const& i)
     {
-        if(m_child_seed)
+        if(m_key.str)
         {
+            C4_ASSERT(i.key.scalar.empty() || m_key == i.key.scalar);
             m_id = m_tree->append_child(m_id);
-            m_child_seed = false;
+            Node *n = get();
+            i.apply(n);
+            n->m_key = m_key;
+            n->m_type = (NodeType_e)(n->m_type|KEY);
+            m_key.str = nullptr;
+            m_key.len = NONE;
         }
-        C4_ASSERT(valid());
-        i.apply(get());
+        else if(m_key.len != NONE)
+        {
+            C4_ASSERT(get()->num_children() == m_key.len);
+            m_tree->append_child(m_id);
+            i.apply(get());
+            m_key.str = nullptr;
+            m_key.len = NONE;
+        }
+        else
+        {
+            C4_ASSERT(valid());
+            i.apply(get());
+        }
         return *this;
     }
 
@@ -882,7 +916,7 @@ private:
 
     Tree * m_tree;
     size_t m_id;
-    bool   m_child_seed;
+    cspan  m_key;
 
 };
 

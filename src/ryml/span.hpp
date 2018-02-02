@@ -43,11 +43,6 @@ public:
 public:
 
     basic_span() : str(nullptr), len(0) {}
-    basic_span(C *s_) : str(s_), len(s_ ? strlen(s_) : 0) {}
-    basic_span(C *s_, size_t len_) : str(s_), len(len_) { C4_ASSERT(str || !len_); }
-    basic_span(C *beg_, C *end_) : str(beg_), len(end_ - beg_) { C4_ASSERT(end_ >= beg_); }
-    template< size_t N >
-    basic_span(C const (&s_)[N]) : str(s_), len(N-1) { C4_ASSERT(s_[N-1] == '\0'); }
 
     basic_span(basic_span const&) = default;
     basic_span(basic_span     &&) = default;
@@ -58,6 +53,14 @@ public:
     basic_span& operator= (C *s_) { this->assign(s_); return *this; }
     template< size_t N >
     basic_span& operator= (C const (&s_)[N]) { this->assign(s_); return *this; }
+
+public:
+
+    basic_span(C *s_) : str(s_), len(s_ ? strlen(s_) : 0) {}
+    basic_span(C *s_, size_t len_) : str(s_), len(len_) { C4_ASSERT(str || !len_); }
+    basic_span(C *beg_, C *end_) : str(beg_), len(end_ - beg_) { C4_ASSERT(end_ >= beg_); }
+    template< size_t N >
+    basic_span(C const (&s_)[N]) : str(s_), len(N-1) { C4_ASSERT(s_[N-1] == '\0'); }
 
     void assign(C *s_) { str = (s_); len = (s_ ? strlen(s_) : 0); }
     void assign(C *s_, size_t len_) { str = s_; len = len_; C4_ASSERT(str || !len_); }
