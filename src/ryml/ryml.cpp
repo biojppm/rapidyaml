@@ -311,106 +311,142 @@ Tree::Tree()
     m_head(NONE),
     m_tail(NONE),
     m_free_head(NONE),
-    m_free_tail(NONE)
+    m_free_tail(NONE),
+    m_arena(),
+    m_arena_pos(0)
 {
 }
 
-Tree::Tree(size_t sz) : Tree()
+Tree::Tree(size_t node_capacity, size_t arena_capacity) : Tree()
 {
-    reserve(sz);
+    reserve(node_capacity, arena_capacity);
 }
 
 Tree::~Tree()
 {
-    if(m_buf)
-    {
-        RymlCallbacks::free(m_buf, m_cap * sizeof(Node));
-    }
+    _free();
 }
 
 
 Tree::Tree(Tree const& that)
 {
-    memcpy(this, &that, sizeof(Tree));
-    m_buf = (Node*)RymlCallbacks::allocate(m_cap * sizeof(Node), that.m_buf);
-    memcpy(m_buf, that.m_buf, m_cap * sizeof(Node));
-    for(size_t i = 0; i < m_cap; ++i)
-    {
-        m_buf[i].m_s = this;
-    }
+    _copy(that);
 }
 
 Tree& Tree::operator= (Tree const& that)
 {
-    if(m_buf)
-    {
-        RymlCallbacks::free(m_buf, m_cap * sizeof(Node));
-    }
-    memcpy(this, &that, sizeof(Tree));
-    m_buf = (Node*)RymlCallbacks::allocate(m_cap * sizeof(Node), that.m_buf);
-    memcpy(m_buf, that.m_buf, m_cap * sizeof(Node));
-    for(size_t i = 0; i < m_cap; ++i)
-    {
-        m_buf[i].m_s = this;
-    }
-
+    _free();
+    _copy(that);
     return *this;
 }
 
 Tree::Tree(Tree && that)
 {
-    memcpy(this, &that, sizeof(Tree));
-    that.m_buf = nullptr;
-    for(size_t i = 0; i < m_cap; ++i)
-    {
-        m_buf[i].m_s = this;
-    }
+    _free();
+    _move(that);
 }
 
 Tree& Tree::operator= (Tree && that)
 {
+    _free();
+    _move(that);
+    return *this;
+}
+
+void Tree::_free()
+{
     if(m_buf)
     {
         RymlCallbacks::free(m_buf, m_cap * sizeof(Node));
     }
+    if(m_arena.str)
+    {
+        RymlCallbacks::free(m_arena.str, m_arena.len);
+    }
+}
+
+void Tree::_copy(Tree const& that)
+{
     memcpy(this, &that, sizeof(Tree));
-    that.m_buf = nullptr;
+    m_buf = (Node*)RymlCallbacks::allocate(m_cap * sizeof(Node), that.m_buf);
+    memcpy(m_buf, that.m_buf, m_cap * sizeof(Node));
+    span arena((char*)RymlCallbacks::allocate(m_arena.len, m_arena.str), m_arena.len);
+    _relocate(arena);
+    m_arena = arena;
     for(size_t i = 0; i < m_cap; ++i)
     {
         m_buf[i].m_s = this;
     }
-    return *this;
+}
+
+void Tree::_move(Tree & that)
+{
+    memcpy(this, &that, sizeof(Tree));
+    that.m_buf = nullptr;
+    that.m_arena = {};
+    for(size_t i = 0; i < m_cap; ++i)
+    {
+        m_buf[i].m_s = this;
+    }
+}
+
+void Tree::_relocate(span const& next_arena)
+{
+    memcpy(next_arena.str, m_arena.str, m_arena_pos);
+    for(Node *n = get(m_head); n; n = get(n->m_list.next))
+    {
+        if(in_arena(n->m_key    )) n->m_key     = _relocate(n->m_key    , next_arena);
+        if(in_arena(n->m_key_tag)) n->m_key_tag = _relocate(n->m_key_tag, next_arena);
+        if(in_arena(n->m_val    )) n->m_val     = _relocate(n->m_val    , next_arena);
+        if(in_arena(n->m_val_tag)) n->m_val_tag = _relocate(n->m_val_tag, next_arena);
+    }
 }
 
 //-----------------------------------------------------------------------------
-void Tree::reserve(size_t cap)
+void Tree::reserve(size_t cap, size_t arena_cap)
 {
-    if(cap <= m_cap) return;
-    Node *buf = (Node*)RymlCallbacks::allocate(cap * sizeof(Node), nullptr);
-    if(m_buf)
+    if(cap > m_cap)
     {
-        memcpy(buf, m_buf, m_cap * sizeof(Node));
-        RymlCallbacks::free(m_buf, m_cap * sizeof(Node));
+        Node *buf = (Node*)RymlCallbacks::allocate(cap * sizeof(Node), m_buf);
+        if(m_buf)
+        {
+            memcpy(buf, m_buf, m_cap * sizeof(Node));
+            RymlCallbacks::free(m_buf, m_cap * sizeof(Node));
+        }
+        if(m_free_head == NONE)
+        {
+            C4_ASSERT(m_free_tail == m_free_head);
+            m_free_head = m_cap;
+            m_free_tail = cap;
+        }
+        else
+        {
+            C4_ASSERT(m_free_tail != NONE);
+            m_buf[m_free_tail].m_list.next = m_cap;
+        }
+        size_t first = m_cap, del = cap - m_cap;
+        m_cap = cap;
+        m_buf = buf;
+        clear_range(first, del);
+        if( ! m_size)
+        {
+            claim(NONE);
+            C4_ASSERT(id(root()) == 0);
+        }
     }
-    if(m_free_head == NONE)
+
+    if(arena_cap > m_arena.len)
     {
-        C4_ASSERT(m_free_tail == m_free_head);
-        m_free_head = m_cap;
-        m_free_tail = cap;
-    }
-    else
-    {
-        C4_ASSERT(m_free_tail != NONE);
-        m_buf[m_free_tail].m_list.next = m_cap;
-    }
-    size_t first = m_cap, del = cap - m_cap;
-    m_cap = cap;
-    m_buf = buf;
-    clear_range(first, del);
-    if( ! m_size)
-    {
-        claim(NONE);
-        C4_ASSERT(id(root()) == 0);
+        span buf;
+        buf.str = (char*)RymlCallbacks::allocate(arena_cap, m_arena.str);
+        buf.len = arena_cap;
+        if(m_arena.str)
+        {
+            C4_ASSERT(m_arena.len >= 0);
+            _relocate(buf); // does a memcpy and changes nodes using the arena
+            RymlCallbacks::free(m_arena.str, m_arena.len);
+        }
+        m_arena = buf;
     }
 }
 

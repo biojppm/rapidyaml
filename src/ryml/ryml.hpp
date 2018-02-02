@@ -352,10 +352,13 @@ private:
     size_t m_free_head;
     size_t m_free_tail;
 
+    span   m_arena;
+    size_t m_arena_pos;
+
 public:
 
     Tree();
-    Tree(size_t cap);
+    Tree(size_t node_capacity, size_t arena_capacity=0);
     ~Tree();
 
     Tree(Tree const& that);
@@ -366,11 +369,11 @@ public:
 
 public:
 
-    size_t size () const { return m_size; }
-    bool   empty() const { return m_size == 0; }
+    inline size_t size () const { return m_size; }
+    inline bool   empty() const { return m_size == 0; }
 
-    size_t capacity() const { return m_cap; }
-    void reserve(size_t sz);
+    inline size_t capacity() const { return m_cap; }
+    void reserve(size_t node_capacity, size_t arena_capacity=0);
 
     void clear();
 
@@ -506,7 +509,9 @@ private:
         n->m_s = nullptr;
         n->m_type = NOTYPE;
         n->m_key.clear();
+        n->m_key_tag.clear();
         n->m_val.clear();
+        n->m_val_tag.clear();
         n->m_parent = NONE;
         n->m_children.first = NONE;
         n->m_children.last = NONE;
@@ -531,9 +536,43 @@ public:
 
 public:
 
-    span request_span(size_t sz);
+    span request_span(size_t sz)
+    {
+        if(m_arena_pos + sz > m_arena.len)
+        {
+            size_t cap = m_arena_pos + sz;
+            cap = cap >= 2 * m_arena.len ? cap : 2 * m_arena.len;
+            reserve(m_cap, cap);
+        }
+        span s;
+        s = m_arena.subspan(m_arena_pos, sz);
+        m_arena_pos += sz;
+        return s;
+    }
 
-    void _reserve_arena(size_t cap);
+public:
+
+    inline bool in_arena(cspan const& s) const
+    {
+        return s.begin() >= m_arena.begin() && s.end() <= m_arena.end();
+    }
+
+private:
+
+    inline span _relocate(cspan const& s, span const& next_arena) const
+    {
+        C4_ASSERT(in_arena(s));
+        C4_ASSERT(s.begin() >= m_arena.begin() && s.end() <= m_arena.begin() + m_arena_pos);
+        span r(next_arena.str + (s.str - m_arena.str), s.len);
+        C4_ASSERT(r.begin() >= next_arena.begin() && r.end() <= next_arena.begin() + m_arena_pos);
+        return r;
+    }
+
+    void _free();
+    void _copy(Tree const& that);
+    void _move(Tree      & that);
+
+    void _relocate(span const& next_arena);
 
 };
 
