@@ -337,26 +337,20 @@ bool Node::visit_stacked(Visitor fn, size_t indentation_level, bool skip_root) c
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-inline int to_str(span buf, int v)
-{
-    return snprintf(buf.str, buf.len, "%d", v) - 1;
-}
-inline int to_str(span buf, size_t v)
-{
-    return snprintf(buf.str, buf.len, "%zd", v) - 1;
-}
-inline int to_str(span buf, float v)
-{
-    return snprintf(buf.str, buf.len, "%g", v) - 1;
-}
-inline int to_str(span buf, double v)
-{
-    return snprintf(buf.str, buf.len, "%lg", v) - 1;
-}
-inline int to_str(span buf, cspan const& v)
-{
-    return snprintf(buf.str, buf.len, "%.*s", (int)v.len, v.str);
-}
+inline int to_str(span buf, int v) { return snprintf(buf.str, buf.len, "%d", v) - 1; }
+inline bool from_str(cspan buf, int *v) { return sscanf(buf.str, "%d", v) == 1; }
+
+inline int to_str(span buf, size_t v) { return snprintf(buf.str, buf.len, "%zd", v) - 1; }
+inline bool from_str(cspan buf, size_t *v) { return sscanf(buf.str, "%zd", v) == 1; }
+
+inline int to_str(span buf, float v) { return snprintf(buf.str, buf.len, "%g", v) - 1; }
+inline bool from_str(cspan buf, float *v) { return sscanf(buf.str, "%g", v) == 1; }
+
+inline int to_str(span buf, double v) { return snprintf(buf.str, buf.len, "%lg", v) - 1; }
+inline bool from_str(cspan buf, double *v) { return sscanf(buf.str, "%lg", v) == 1; }
+
+inline int to_str(span buf, cspan const& v) { return snprintf(buf.str, buf.len, "%.*s", (int)v.len, v.str); }
+
 template< size_t N >
 inline int to_str(span buf, const char (&v)[N])
 {
@@ -857,8 +851,7 @@ public:
 
     inline NodeRef& operator= (cspan const& v)
     {
-        cspan sv = m_tree->to_str_arena(v);
-        _apply(sv);
+        _apply(v);
         return *this;
     }
 
@@ -871,12 +864,31 @@ public:
         return *this;
     }
 
-    template< class T >
-    inline NodeRef& operator= (T const& v)
+    inline NodeRef& operator<< (cspan const& v)
     {
         cspan sv = m_tree->to_str_arena(v);
         _apply(sv);
         return *this;
+    }
+
+    template< class T >
+    inline void operator<< (T const& v)
+    {
+        cspan sv = m_tree->to_str_arena(v);
+        _apply(sv);
+    }
+
+    template< class T >
+    inline void operator>> (T &v)
+    {
+        C4_ASSERT(valid());
+        C4_ASSERT(get() != nullptr);
+        C4_ASSERT(get()->has_val());
+        bool ok = from_str(get()->val(), &v);
+        if( ! ok)
+        {
+            RymlCallbacks::error("could not parse value");
+        }
     }
 
 private:

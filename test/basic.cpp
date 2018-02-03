@@ -760,14 +760,20 @@ TEST(NodeRef, setting_up)
     //BUG!root["b"]["seq"][3].append_sibling({"4"});
     //BUG!root["b"]["seq"].append_sibling({NodeScalar{"!!str", "aaaa"}, NodeScalar{"!!int", "0"}});
 
-    root["b"]["key"] = S{"val"};
+    root["b"]["key"] = "val";
     root["b"]["seq2"] = N(SEQ);
     root["b"]["seq2"][0] = "00";
     root["b"]["seq2"][1] = "01";
     root["b"]["seq2"][2] = "02";
     root["b"]["seq2"][3] = "03";
-    root["b"]["seq2"][4] = 55;
-    root["b"]["seq2"][5] = 5.5;
+    int iv = 0;
+    root["b"]["seq2"][4] << 55; root["b"]["seq2"][4] >> iv;
+    int zv = 0;
+    root["b"]["seq2"][5] << size_t(55); root["b"]["seq2"][5] >> zv;
+    float fv = 0;
+    root["b"]["seq2"][6] << 2.0f; root["b"]["seq2"][6] >> fv;
+    float dv = 0;
+    root["b"]["seq2"][7] << 2.0; root["b"]["seq2"][7] >> dv;
 
     emit(t);
 
@@ -792,14 +798,17 @@ TEST(NodeRef, setting_up)
     //BUG!EXPECT_EQ(root["b"]["seq"][4].val(), VAL);
     //BUG!EXPECT_EQ(root["b"]["seq"][4].val(), "4");
 
+    int tv;
     EXPECT_EQ(root["b"]["key"].key(), "key");
     EXPECT_EQ(root["b"]["key"].val(), "val");
-    EXPECT_EQ(root["b"]["seq2"][0].val(), "00");
-    EXPECT_EQ(root["b"]["seq2"][1].val(), "01");
-    EXPECT_EQ(root["b"]["seq2"][2].val(), "02");
-    EXPECT_EQ(root["b"]["seq2"][3].val(), "03");
-    EXPECT_EQ(root["b"]["seq2"][4].val(), "55");
-    EXPECT_EQ(root["b"]["seq2"][5].val(), "5.5");
+    EXPECT_EQ(root["b"]["seq2"][0].val(), "00"); root["b"]["seq2"][0] >> tv; EXPECT_EQ(tv, 0);
+    EXPECT_EQ(root["b"]["seq2"][1].val(), "01"); root["b"]["seq2"][1] >> tv; EXPECT_EQ(tv, 1);
+    EXPECT_EQ(root["b"]["seq2"][2].val(), "02"); root["b"]["seq2"][2] >> tv; EXPECT_EQ(tv, 2);
+    EXPECT_EQ(root["b"]["seq2"][3].val(), "03"); root["b"]["seq2"][3] >> tv; EXPECT_EQ(tv, 3);
+    EXPECT_EQ(root["b"]["seq2"][4].val(), "55"); EXPECT_EQ(iv, 55);
+    EXPECT_EQ(root["b"]["seq2"][5].val(), "55"); EXPECT_EQ(zv, size_t(55));
+    EXPECT_EQ(root["b"]["seq2"][6].val(), "2"); EXPECT_EQ(fv, 2.f);
+    EXPECT_EQ(root["b"]["seq2"][6].val(), "2"); EXPECT_EQ(dv, 2.);
 
     root["b"]["seq"][2].set_val_serialized(22);
 
