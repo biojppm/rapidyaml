@@ -745,7 +745,11 @@ TEST(NodeRef, setting_up)
 
     NodeRef root(&t);
 
-    root = {MAP};
+    using S = cspan;
+    using V = NodeScalar;
+    using N = NodeInit;
+
+    root = N{MAP};
     root.append_child({"a", "0"});
     root.append_child({MAP, "b"});
     root["b"].append_child({SEQ, "seq"});
@@ -756,16 +760,14 @@ TEST(NodeRef, setting_up)
     //BUG!root["b"]["seq"][3].append_sibling({"4"});
     //BUG!root["b"]["seq"].append_sibling({NodeScalar{"!!str", "aaaa"}, NodeScalar{"!!int", "0"}});
 
-    using S = cspan;
-    using V = NodeScalar;
-    using N = NodeInit;
-
     root["b"]["key"] = S{"val"};
-    root["b"]["seq2"] = SEQ;
+    root["b"]["seq2"] = N(SEQ);
     root["b"]["seq2"][0] = "00";
     root["b"]["seq2"][1] = "01";
     root["b"]["seq2"][2] = "02";
     root["b"]["seq2"][3] = "03";
+    root["b"]["seq2"][4] = 55;
+    root["b"]["seq2"][5] = 5.5;
 
     emit(t);
 
@@ -795,6 +797,9 @@ TEST(NodeRef, setting_up)
     EXPECT_EQ(root["b"]["seq2"][0].val(), "00");
     EXPECT_EQ(root["b"]["seq2"][1].val(), "01");
     EXPECT_EQ(root["b"]["seq2"][2].val(), "02");
+    EXPECT_EQ(root["b"]["seq2"][3].val(), "03");
+    EXPECT_EQ(root["b"]["seq2"][4].val(), "55");
+    EXPECT_EQ(root["b"]["seq2"][5].val(), "5.5");
 
     root["b"]["seq"][2].set_val_serialized(22);
 

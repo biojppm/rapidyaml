@@ -339,11 +339,19 @@ bool Node::visit_stacked(Visitor fn, size_t indentation_level, bool skip_root) c
 
 inline int to_str(span buf, int v)
 {
-    return snprintf(buf.str, buf.len, "%d", v);
+    return snprintf(buf.str, buf.len, "%d", v) - 1;
 }
 inline int to_str(span buf, size_t v)
 {
-    return snprintf(buf.str, buf.len, "%zd", v);
+    return snprintf(buf.str, buf.len, "%zd", v) - 1;
+}
+inline int to_str(span buf, float v)
+{
+    return snprintf(buf.str, buf.len, "%g", v) - 1;
+}
+inline int to_str(span buf, double v)
+{
+    return snprintf(buf.str, buf.len, "%lg", v) - 1;
 }
 inline int to_str(span buf, cspan const& v)
 {
@@ -568,7 +576,7 @@ public:
 public:
 
     template< class T >
-    span to_str(T const& a)
+    span to_str_arena(T const& a)
     {
         span rem(m_arena.subspan(m_arena_pos));
         // snprintf uses one more character to write \0
@@ -578,7 +586,7 @@ public:
         if(num > rem.len)
         {
             rem = _grow_arena(num);
-            num = c4::yml::to_str(rem, a);
+            num = to_str(rem, a);
             C4_ASSERT(num <= rem.len);
         }
         rem = _request_span(num);
@@ -786,13 +794,13 @@ public:
     template< class T >
     inline void set_key_serialized(T const& k)
     {
-        get()->m_key = m_tree->to_str(k);
+        get()->m_key = m_tree->to_str_arena(k);
     }
 
     template< class T >
     inline void set_val_serialized(T const& v)
     {
-        get()->m_val = m_tree->to_str(v);
+        get()->m_val = m_tree->to_str_arena(v);
     }
 
 public:
@@ -849,20 +857,34 @@ public:
 
     inline NodeRef& operator= (cspan const& v)
     {
-        _apply(v);
+        cspan sv = m_tree->to_str_arena(v);
+        _apply(sv);
         return *this;
     }
 
-    inline NodeRef& operator= (const char * v)
+    template< size_t N >
+    inline NodeRef& operator= (const char (&v)[N])
     {
-        _apply(cspan(v));
+        cspan sv;
+        sv.assign<N>(v);
+        _apply(sv);
         return *this;
     }
 
     template< class T >
+    inline NodeRef& operator= (T const& v)
+    {
+        cspan sv = m_tree->to_str_arena(v);
+        _apply(sv);
+        return *this;
+    }
+
+private:
+
+    template< class T >
     void _apply(T const& x)
     {
-        if(m_key.str)
+        if(m_key.str) // we have a key, so use it to create the new child
         {
             //C4_ASSERT(i.key.scalar.empty() || m_key == i.key.scalar || m_key.empty());
             m_id = m_tree->append_child(m_id);
@@ -873,7 +895,7 @@ public:
             m_key.str = nullptr;
             m_key.len = NONE;
         }
-        else if(m_key.len != NONE)
+        else if(m_key.len != NONE) // it's an index, create a child at that position
         {
             C4_ASSERT(get()->num_children() == m_key.len);
             m_id = m_tree->append_child(m_id);
@@ -958,6 +980,17 @@ private:
 
     Tree * m_tree;
     size_t m_id;
+
+    /** This member is used to enable lazy operator[] writing. When a child
+     * is not found with a key or index, m_id is set to the id of the parent
+     * and the key or index are stored in this member until a write does
+     * happen. Then it is given as key or index for creating the child.
+     *
+     * When a key is used, the span stores it (so the span's string is
+     * non-null and the span's size is different from NONE). When an index is
+     * used instead, the span's string is set to null, and only the span's size is
+     * set to a value different from NONE. Otherwise, when operator[] does find the
+     * child then this member is empty: the string is null and the size is NONE. */
     cspan  m_key;
 
 };
