@@ -383,9 +383,12 @@ private:
     span   m_arena;
     size_t m_arena_pos;
 
+    friend void check_invariants(Tree const&);
+
 public:
 
-    Tree(size_t node_capacity=16, size_t arena_capacity=0);
+    Tree();
+    Tree(size_t node_capacity, size_t arena_capacity=0);
     ~Tree();
 
     Tree(Tree const& that);
@@ -557,8 +560,8 @@ private:
 
 public:
 
-    Node      * root()       { C4_ASSERT(m_head != NONE); C4_ASSERT(m_cap > 0 && m_size > 0); Node *n = m_buf; C4_ASSERT(n->parent() == nullptr); return n; }
-    Node const* root() const { C4_ASSERT(m_head != NONE); C4_ASSERT(m_cap > 0 && m_size > 0); Node *n = m_buf; C4_ASSERT(n->parent() == nullptr); return n; }
+    Node      * root()       { if(m_cap == 0) { reserve(16); } C4_ASSERT(m_head != NONE); C4_ASSERT(m_cap > 0 && m_size > 0); Node *n = m_buf; C4_ASSERT(n->parent() == nullptr); return n; }
+    Node const* root() const {                                 C4_ASSERT(m_head != NONE); C4_ASSERT(m_cap > 0 && m_size > 0); Node *n = m_buf; C4_ASSERT(n->parent() == nullptr); return n; }
 
     Node      * first_doc()         { Node *n = root()->child(0); C4_ASSERT(n && n->is_doc()); return n; }
     Node const* first_doc() const   { Node *n = root()->child(0); C4_ASSERT(n && n->is_doc()); return n; }

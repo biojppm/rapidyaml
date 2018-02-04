@@ -305,7 +305,7 @@ void Node::to_stream(int more_flags)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-Tree::Tree(size_t node_capacity, size_t arena_capacity)
+Tree::Tree()
 :
     m_buf(nullptr),
     m_cap(0),
@@ -317,8 +317,11 @@ Tree::Tree(size_t node_capacity, size_t arena_capacity)
     m_arena(),
     m_arena_pos(0)
 {
+}
+
+Tree::Tree(size_t node_capacity, size_t arena_capacity) : Tree()
+{
     reserve(node_capacity, arena_capacity);
-    claim(NONE);
 }
 
 Tree::~Tree()
