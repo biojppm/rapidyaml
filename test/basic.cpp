@@ -12,11 +12,141 @@ int main(int argc, char *argv[])
 }
 
 
+namespace std {
+
+using namespace c4::yml;
+
+void write(NodeRef *n, std::string const& s)
+{
+    *n << cspan(s.data(), s.size());
+}
+bool read(NodeRef const& n, std::string *s)
+{
+    s->resize(n.val().len);
+    span sp(&(*s)[0], s->size());
+    n >> sp;
+    return true;
+}
+
+template< class V, class Alloc >
+void write(NodeRef *n, std::vector< V, Alloc > const& vec)
+{
+    *n = SEQ;
+    for(auto const& v : vec)
+    {
+        auto ch = n->append_child(VAL);
+        ch << v;
+    }
+}
+template< class V, class Alloc >
+bool read(NodeRef const& n, std::vector< V, Alloc > *vec)
+{
+    vec->resize(n.num_children());
+    size_t pos = 0;
+    for(auto b = n.begin(), e = n.end(); b != e; ++b)
+    {
+        *b >> (*vec)[pos++];
+    }
+    return true;
+    for(auto const& ch : n)
+    {
+        ch >> (*vec)[pos++];
+    }
+    return true;
+}
+
+template< class K, class V >
+void write(NodeRef *n, std::map< K, V > const& m)
+{
+    *n = MAP;
+    for(auto const& p : m)
+    {
+        auto ch = n->append_child(KEYVAL);
+        ch << key(p.first);
+        ch << p.second;
+    }
+}
+template< class K, class V >
+bool read(NodeRef const& n, std::map< K, V > * m)
+{
+    for(auto const& ch : n)
+    {
+        K k;
+        V v;
+        ch >> c4::yml::key(k);
+        ch >> v;
+        m->emplace(std::make_pair(std::move(k), std::move(v)));
+    }
+    return true;
+}
+
+
+} // namespace std
+
+namespace foo {
+
+TEST(serialize, std_string)
+{
+    using namespace c4::yml;
+    std::string s = "fooobaaar";
+    std::string out;
+
+    Tree t;
+    NodeRef n(&t);
+
+    n << s;
+    n >> out;
+    EXPECT_EQ(s, out);
+}
+/*
+TEST(serialize, std_map)
+{
+    using namespace c4::yml;
+    std::map< int, int > s({{10, 0}, {11, 1}, {22, 2}});
+    Tree t;
+
+    NodeRef n(&t);
+    n << s;
+    std::map< int, int > out;
+    n >> out;
+    EXPECT_EQ(s, out);
+}
+*/
+TEST(serialize, std_vector_int)
+{
+    using namespace c4::yml;
+    std::vector< int > v = {1, 2, 3, 4, 5};
+    std::vector< int > out;
+
+    Tree t;
+    NodeRef n(&t);
+
+    n << v;
+    emit(t);
+    n >> out;
+
+    EXPECT_EQ(v, out);
+}
+TEST(serialize, std_vector_std_vector_int)
+{
+    using namespace c4::yml;
+    std::vector< std::vector< int > > v = {{1, 2, 3, 4, 5}, {6, 7, 8, 9, 0}};
+    std::vector< std::vector< int > > out;
+
+    Tree t;
+    NodeRef n(&t);
+
+    n << v;
+    emit(t);
+    n >> out;
+
+    EXPECT_EQ(v, out);
+}
+
+} // namespace foo
+
 namespace c4 {
 namespace yml {
-
-using N = CaseNode;
-using L = CaseNode::iseqmap;
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -824,6 +954,10 @@ TEST(NodeRef, setting_up)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+
+using N = CaseNode;
+using L = CaseNode::iseqmap;
+
 TEST(CaseNode, setting_up)
 {
     L tl1 = {DOC, DOC};
