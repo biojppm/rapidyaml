@@ -45,8 +45,7 @@ void write(NodeRef *n, std::vector< V, Alloc > const& vec)
     *n |= SEQ;
     for(auto const& v : vec)
     {
-        auto ch = n->append_child();
-        ch << v;
+        n->append_child() << v;
     }
 }
 template< class V, class Alloc >
@@ -67,7 +66,7 @@ void write(NodeRef *n, std::map< K, V, Less, Alloc > const& m)
     *n |= MAP;
     for(auto const& p : m)
     {
-        auto ch = n->append_child(KEY);
+        auto ch = n->append_child();
         ch << key(p.first);
         ch << p.second;
     }
@@ -906,9 +905,28 @@ TEST(NodeRef, setting_up)
     //BUG!root["b"]["seq"].append_sibling({NodeScalar{"!!str", "aaaa"}, NodeScalar{"!!int", "0"}});
 
     root["b"]["key"] = "val";
+    auto seq = root["b"]["seq"];
+    auto seq2 = root["b"]["seq2"];
+    EXPECT_TRUE(seq2.is_seed());
     root["b"]["seq2"] = N(SEQ);
+    seq2 = root["b"]["seq2"];
+    EXPECT_FALSE(seq2.is_seed());
+    auto seq20 = root["b"]["seq2"][0];
+    EXPECT_NE(seq.get(), seq2.get());
+    seq20 = root["b"]["seq2"][0];
+    EXPECT_TRUE(seq20.is_seed());
     root["b"]["seq2"][0] = "00";
+    seq20 = root["b"]["seq2"][0];
+    EXPECT_FALSE(seq20.is_seed());
+    NodeRef before = root["b"]["key"];
+    EXPECT_EQ(before.key(), "key");
+    EXPECT_EQ(before.val(), "val");
     root["b"]["seq2"][1] = "01";
+    NodeRef after = root["b"]["key"];
+    EXPECT_EQ(before.key(), "key");
+    EXPECT_EQ(before.val(), "val");
+    EXPECT_EQ(after.key(), "key");
+    EXPECT_EQ(after.val(), "val");
     root["b"]["seq2"][2] = "02";
     root["b"]["seq2"][3] = "03";
     int iv = 0;
@@ -919,6 +937,10 @@ TEST(NodeRef, setting_up)
     root["b"]["seq2"][6] << 2.0f; root["b"]["seq2"][6] >> fv;
     float dv = 0;
     root["b"]["seq2"][7] << 2.0; root["b"]["seq2"][7] >> dv;
+
+    EXPECT_EQ(root["b"]["key"].key(), "key");
+    EXPECT_EQ(root["b"]["key"].val(), "val");
+
 
     emit(t);
 

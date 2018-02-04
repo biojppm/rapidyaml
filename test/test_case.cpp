@@ -385,6 +385,43 @@ void check_invariants(Node const& n)
     }
 }
 
+void check_invariants(Tree const& t)
+{
+    std::vector<bool> touched(t.capacity());
+
+    for(size_t i = t.m_head; i != NONE; i = t.get(i)->m_list.next)
+    {
+        touched[i] = true;
+    }
+
+    size_t size = 0;
+    for(auto v : touched)
+    {
+        size += v;
+    }
+
+    EXPECT_EQ(size, t.size());
+
+    touched.clear();
+    touched.resize(t.capacity());
+
+    for(size_t i = t.m_free_head; i != NONE; i = t.get(i)->m_list.next)
+    {
+        touched[i] = true;
+    }
+
+    size_t slack = 0;
+    for(auto v : touched)
+    {
+        slack += v;
+    }
+
+    EXPECT_EQ(slack, t.slack());
+    EXPECT_EQ(size+slack, t.capacity());
+
+    // there are more checks to be done
+}
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

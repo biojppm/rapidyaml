@@ -20,6 +20,7 @@ struct CaseData;
 Case const* get_case(cspan name);
 CaseData* get_data(cspan name);
 
+void check_invariants(Tree const& t);
 void check_invariants(Node const& n);
 
 void show_children(Node const& p);

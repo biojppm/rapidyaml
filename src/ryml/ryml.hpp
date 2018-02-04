@@ -725,6 +725,19 @@ struct NodeInit
         if( ! key.tag.empty()) type = (NodeType_e)(type|KEYTAG);
         if( ! val.tag.empty()) type = (NodeType_e)(type|VALTAG);
     }
+
+    bool _check() const
+    {
+        // key cannot be empty
+        C4_ASSERT(key.scalar.empty() == ((type & KEY) == 0));
+        // key tag cannot be empty
+        C4_ASSERT(key.tag.empty() == ((type & KEYTAG) == 0));
+        // val may be empty even though VAL is set. But when VAL is not set, val must be empty
+        C4_ASSERT(((type & VAL) != 0) || val.scalar.empty());
+        // val tag cannot be empty
+        C4_ASSERT(val.tag.empty() == ((type & VALTAG) == 0));
+        return true;
+    }
 };
 
 class NodeRef;
@@ -871,6 +884,7 @@ public:
     /** O(num_children) */
     NodeRef operator[] (cspan const& k)
     {
+        C4_ASSERT( ! is_seed());
         C4_ASSERT(valid());
         Node *n = get()->find_child(k);
         C4_ASSERT( ! n || (n->id() != NONE));
@@ -881,6 +895,7 @@ public:
     /** O(num_children) */
     NodeRef operator[] (size_t i)
     {
+        C4_ASSERT( ! is_seed());
         C4_ASSERT(valid());
         Node *n = get()->child(i);
         C4_ASSERT( ! n || (n->id() != NONE));
@@ -893,6 +908,7 @@ public:
     /** O(num_children) */
     NodeRef const operator[] (cspan const& k) const
     {
+        C4_ASSERT( ! is_seed());
         C4_ASSERT(valid());
         Node const& n = *get();
         Node const& ch = n[k];
@@ -904,46 +920,13 @@ public:
     /** O(num_children) */
     NodeRef const operator[] (size_t i) const
     {
+        C4_ASSERT( ! is_seed());
         C4_ASSERT(valid());
         Node const& n = *get();
         Node const& ch = n[i];
         C4_ASSERT(ch.id() != NONE);
         NodeRef r(m_tree, ch.id());
         return r;
-    }
-
-public:
-
-    inline void operator= (NodeType_e t)
-    {
-        get()->m_type = t;
-    }
-    inline void operator|= (NodeType_e t)
-    {
-        get()->_add_flags(t);
-    }
-
-    inline void operator= (NodeInit const& v)
-    {
-        _apply(v);
-    }
-
-    inline void operator= (NodeScalar const& v)
-    {
-        _apply(v);
-    }
-
-    inline void operator= (cspan const& v)
-    {
-        _apply(v);
-    }
-
-    template< size_t N >
-    inline void operator= (const char (&v)[N])
-    {
-        cspan sv;
-        sv.assign<N>(v);
-        _apply(sv);
     }
 
 public:
@@ -975,9 +958,49 @@ public:
 
 public:
 
+    inline void operator= (NodeType_e t)
+    {
+        _apply_seed();
+        get()->_set_flags(t);
+    }
+    inline void operator|= (NodeType_e t)
+    {
+        _apply_seed();
+        get()->_add_flags(t);
+    }
+
+    inline void operator= (NodeInit const& v)
+    {
+        _apply_seed();
+        _apply(v);
+    }
+
+    inline void operator= (NodeScalar const& v)
+    {
+        _apply_seed();
+        _apply(v);
+    }
+
+    inline void operator= (cspan const& v)
+    {
+        _apply_seed();
+        _apply(v);
+    }
+
+    template< size_t N >
+    inline void operator= (const char (&v)[N])
+    {
+        _apply_seed();
+        cspan sv;
+        sv.assign<N>(v);
+        _apply(sv);
+    }
+
+public:
+
     inline void operator<< (cspan const& s) // this overload is needed to prevent ambiguity (there's also << for writing a span to a stream)
     {
-        _apply();
+        _apply_seed();
         write(this, s);
         C4_ASSERT(get()->m_val == s);
     }
@@ -985,14 +1008,14 @@ public:
     template< class T >
     inline void operator<< (T const& v)
     {
-        _apply();
+        _apply_seed();
         write(this, v);
     }
 
     template< class T >
     inline void operator<< (Key<const T> const& v)
     {
-        _apply();
+        _apply_seed();
         set_key_serialized(v.k);
     }
 
@@ -1019,7 +1042,7 @@ public:
 
 private:
 
-    void _apply()
+    void _apply_seed()
     {
         if(m_seed.str) // we have a seed key: use it to create the new child
         {
@@ -1047,7 +1070,6 @@ private:
     template< class T >
     inline void _apply(T const& x)
     {
-        _apply();
         _do_apply(get(), x);
     }
 
@@ -1067,8 +1089,16 @@ private:
 
     static void _do_apply(Node *n, NodeInit const& i)
     {
-        n->m_type = i.type;
-        n->m_key = i.key.scalar;
+        C4_ASSERT(i._check());
+        C4_ASSERT(n->m_key.empty() || i.key.scalar.empty() || i.key.scalar == n->m_key);
+        n->_add_flags(i.type);
+        if(n->m_key.empty())
+        {
+            if( ! i.key.scalar.empty())
+            {
+                n->m_key = i.key.scalar;
+            }
+        }
         n->m_key_tag = i.key.tag;
         n->m_val = i.val.scalar;
         n->m_val_tag = i.val.tag;
@@ -1095,6 +1125,8 @@ public:
         NodeRef after(m_tree, get()->m_children.last);
         return insert_child(after);
     }
+
+public:
 
     NodeRef insert_child(NodeInit const& i, NodeRef after)
     {
@@ -1201,13 +1233,14 @@ private:
 
     /** This member is used to enable lazy operator[] writing. When a child
      * is not found with a key or index, m_id is set to the id of the parent
-     * and the asked-for key or index are stored in this member until a write does
-     * happen. Then it is given as key or index for creating the child.
+     * and the asked-for key or index are stored in this member until a write
+     * does happen. Then it is given as key or index for creating the child.
      * When a key is used, the span stores it (so the span's string is
      * non-null and the span's size is different from NONE). When an index is
-     * used instead, the span's string is set to null, and only the span's size is
-     * set to a value different from NONE. Otherwise, when operator[] does find the
-     * child then this member is empty: the string is null and the size is NONE. */
+     * used instead, the span's string is set to null, and only the span's
+     * size is set to a value different from NONE. Otherwise, when operator[]
+     * does find the child then this member is empty: the string is null and
+     * the size is NONE. */
     cspan  m_seed;
 
 };
