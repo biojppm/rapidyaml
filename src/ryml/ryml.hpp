@@ -215,14 +215,41 @@ public:
 
 public:
 
-    void _add_flags(NodeType_e f) { m_type = (NodeType_e)(f | m_type); }
-    void _add_flags(int        f) { m_type = (NodeType_e)(f | m_type); }
+    inline void _add_flags(NodeType_e f) { m_type = (NodeType_e)(f | m_type); }
+    inline void _add_flags(int        f) { m_type = (NodeType_e)(f | m_type); }
 
-    void _rem_flags(NodeType_e f) { m_type = (NodeType_e)((~f) & m_type); }
-    void _rem_flags(int        f) { m_type = (NodeType_e)((~f) & m_type); }
+    inline void _rem_flags(NodeType_e f) { m_type = (NodeType_e)((~f) & m_type); }
+    inline void _rem_flags(int        f) { m_type = (NodeType_e)((~f) & m_type); }
 
-    void _set_flags(NodeType_e f) { m_type = f; }
-    void _set_flags(int        f) { m_type = (NodeType_e)f; }
+    inline void _set_flags(NodeType_e f) { m_type = f; }
+    inline void _set_flags(int        f) { m_type = (NodeType_e)f; }
+
+    inline void _clear()
+    {
+        m_s = nullptr;
+        m_type = NOTYPE;
+        m_key.clear();
+        m_key_tag.clear();
+        m_val.clear();
+        m_val_tag.clear();
+        m_parent = NONE;
+        m_children.first = NONE;
+        m_children.last = NONE;
+    }
+
+    inline void _clear_key()
+    {
+        m_key.clear();
+        m_key_tag.clear();
+        _rem_flags(KEY);
+    }
+
+    inline void _clear_val()
+    {
+        m_key.clear();
+        m_key_tag.clear();
+        _rem_flags(VAL);
+    }
 
 private:
 
@@ -372,6 +399,7 @@ public:
     void reserve(size_t node_capacity, size_t arena_capacity=0);
 
     void clear();
+    inline void clear_arena() { m_arena_pos = 0; }
 
     inline bool   empty() const { return m_size == 0; }
 
@@ -488,6 +516,11 @@ public:
         C4_ERROR("not implemented");
     }
 
+    void remove_children(size_t parent)
+    {
+        C4_ERROR("not implemented");
+    }
+
 public:
 
     void move_branch(Node * branch, Node * new_parent, Node * after)
@@ -509,18 +542,11 @@ private:
 
     void release(size_t i);
 
+    /** does not do hyerarchical clearing */
     void _clear(size_t i)
     {
         Node *n = get(i);
-        n->m_s = nullptr;
-        n->m_type = NOTYPE;
-        n->m_key.clear();
-        n->m_key_tag.clear();
-        n->m_val.clear();
-        n->m_val_tag.clear();
-        n->m_parent = NONE;
-        n->m_children.first = NONE;
-        n->m_children.last = NONE;
+        n->_clear();
     }
 
     Node      * head()       { return m_buf + m_head; }
@@ -543,7 +569,7 @@ public:
 public:
 
     template< class T >
-    span to_str_arena(T const& a)
+    span to_arena(T const& a)
     {
         span rem(m_arena.subspan(m_arena_pos));
         size_t num = to_str(rem, a);
@@ -556,6 +582,13 @@ public:
         rem = _request_span(num);
         return rem;
     }
+
+    inline bool in_arena(cspan const& s) const
+    {
+        return s.begin() >= m_arena.begin() && s.end() <= m_arena.end();
+    }
+
+private:
 
     span _grow_arena(size_t num)
     {
@@ -574,16 +607,7 @@ public:
         return s;
     }
 
-public:
-
-    inline bool in_arena(cspan const& s) const
-    {
-        return s.begin() >= m_arena.begin() && s.end() <= m_arena.end();
-    }
-
-private:
-
-    inline span _relocate(cspan const& s, span const& next_arena) const
+    inline span _relocated(cspan const& s, span const& next_arena) const
     {
         C4_ASSERT(in_arena(s));
         C4_ASSERT(s.begin() >= m_arena.begin() && s.end() <= m_arena.begin() + m_arena_pos);
@@ -706,11 +730,11 @@ template< class T > bool read(NodeRef const& n, T *v);
 template< class K >
 struct Key
 {
-    K const& k;
-    inline Key(K const& k_) : k(k_) {}
+    K & k;
+    inline Key(K & k_) : k(k_) {}
 };
 template< class K >
-Key< K > key(K const& k)
+inline Key< K > key(K & k)
 {
     return Key< K >{k};
 }
@@ -753,10 +777,8 @@ public:
 
 public:
 
-    inline NodeType_e type() const { return get()->type(); }
-
-    const char* type_str() const { return get()->type_str(); }
-    static const char* type_str(NodeType_e ty);
+    inline NodeType_e   type() const { return get()->type(); }
+    inline const char*  type_str() const { return get()->type_str(); }
 
     inline cspan const& key    () const { return get()->key(); }
     inline cspan const& key_tag() const { return get()->key_tag(); }
@@ -786,9 +808,9 @@ public:
     /** true when name and value are empty, and has no children */
     inline bool empty() const { return get()->empty(); }
     inline bool has_children() const { return get()->has_children(); }
-    /** counts with this */
+    /** counts with *this */
     inline bool has_siblings() const { return get()->has_siblings(); }
-    /** does not count with this */
+    /** does not count with *this */
     inline bool has_other_siblings() const { return get()->has_other_siblings(); }
 
     inline bool has_parent() const { return get()->has_parent(); }
@@ -825,7 +847,7 @@ public:
     inline void set_key_serialized(T const& k)
     {
         Node *n = get();
-        n->m_key = m_tree->to_str_arena(k);
+        n->m_key = m_tree->to_arena(k);
         n->_add_flags(KEY);
     }
 
@@ -835,44 +857,52 @@ public:
         C4_ASSERT(num_children() == 0);
         C4_ASSERT( ! is_container());
         Node *n = get();
-        n->m_val = m_tree->to_str_arena(v);
+        n->m_val = m_tree->to_arena(v);
         n->_add_flags(VAL);
     }
 
 public:
 
+    /** O(num_children) */
     NodeRef operator[] (cspan const& k)
     {
         C4_ASSERT(valid());
         Node *n = get()->find_child(k);
+        C4_ASSERT( ! n || (n->id() != NONE));
         NodeRef r = n ? NodeRef(m_tree, n->id()) : NodeRef(m_tree, m_id, k);
         return r;
     }
 
+    /** O(num_children) */
     NodeRef operator[] (size_t i)
     {
         C4_ASSERT(valid());
         Node *n = get()->child(i);
+        C4_ASSERT( ! n || (n->id() != NONE));
         NodeRef r = n ? NodeRef(m_tree, n->id()) : NodeRef(m_tree, m_id, i);
         return r;
     }
 
 public:
 
+    /** O(num_children) */
     NodeRef const operator[] (cspan const& k) const
     {
         C4_ASSERT(valid());
         Node const& n = *get();
         Node const& ch = n[k];
+        C4_ASSERT(ch.id() != NONE);
         NodeRef r(m_tree, ch.id());
         return r;
     }
 
+    /** O(num_children) */
     NodeRef const operator[] (size_t i) const
     {
         C4_ASSERT(valid());
         Node const& n = *get();
         Node const& ch = n[i];
+        C4_ASSERT(ch.id() != NONE);
         NodeRef r(m_tree, ch.id());
         return r;
     }
@@ -881,32 +911,31 @@ public:
 
     inline void operator= (NodeType_e t)
     {
-        _clear_all();
         get()->m_type = t;
     }
-
-    inline void operator= (NodeInit const& i)
+    inline void operator|= (NodeType_e t)
     {
-        _clear_all();
-        _apply(i);
+        get()->_add_flags(t);
+    }
+
+    inline void operator= (NodeInit const& v)
+    {
+        _apply(v);
     }
 
     inline void operator= (NodeScalar const& v)
     {
-        _clear_all();
         _apply(v);
     }
 
     inline void operator= (cspan const& v)
     {
-        _clear_all();
         _apply(v);
     }
 
     template< size_t N >
     inline void operator= (const char (&v)[N])
     {
-        _clear_all();
         cspan sv;
         sv.assign<N>(v);
         _apply(sv);
@@ -914,18 +943,35 @@ public:
 
 public:
 
-    inline void _clear_all()
+    inline void clear()
     {
         if(is_seed()) return;
-        Node *n = get();
-        n->m_key.clear();
-        n->m_val.clear();
-        C4_ASSERT(num_children() == 0 && "not implemented");
+        m_tree->remove_children(m_id);
+        get()->_clear();
     }
+
+    inline void clear_key()
+    {
+        if(is_seed()) return;
+        get()->_clear_key();
+    }
+
+    inline void clear_val()
+    {
+        if(is_seed()) return;
+        get()->_clear_val();
+    }
+
+    inline void clear_children()
+    {
+        if(is_seed()) return;
+        m_tree->remove_children(m_id);
+    }
+
+public:
 
     inline void operator<< (cspan const& s) // this overload is needed to prevent ambiguity (there's also << for writing a span to a stream)
     {
-        _clear_all();
         write(this, s);
         C4_ASSERT(get()->m_val == s);
         _apply();
@@ -934,7 +980,6 @@ public:
     template< class T >
     inline void operator<< (T const& v)
     {
-        _clear_all();
         write(this, v);
         _apply();
     }
@@ -943,6 +988,7 @@ public:
     inline void operator>> (T &v) const
     {
         C4_ASSERT(valid());
+        C4_ASSERT( ! is_seed());
         C4_ASSERT(get() != nullptr);
         if( ! read(*this, &v))
         {
@@ -951,14 +997,14 @@ public:
     }
 
     template< class T >
-    inline void operator<< (Key<const T> v)
+    inline void operator<< (Key<const T> const& v)
     {
-        set_key_serialized(v);
+        set_key_serialized(v.k);
     }
     template< class T >
     inline void operator>> (Key<T> v) const
     {
-        from_str(key(), &v);
+        from_str(key(), &v.k);
     }
 
 private:
@@ -1020,6 +1066,26 @@ private:
 
 public:
 
+    NodeRef insert_child(NodeRef after)
+    {
+        C4_ASSERT(valid());
+        size_t child_id = m_tree->insert_child(m_id, after.m_id);
+        NodeRef r(m_tree, child_id);
+        return r;
+    }
+
+    NodeRef prepend_child()
+    {
+        NodeRef after(m_tree, NONE);
+        return insert_child(after);
+    }
+
+    NodeRef append_child()
+    {
+        NodeRef after(m_tree, get()->m_children.last);
+        return insert_child(after);
+    }
+
     NodeRef insert_child(NodeInit const& i, NodeRef after)
     {
         C4_ASSERT(valid());
@@ -1045,16 +1111,19 @@ public:
 
     NodeRef insert_sibling(NodeInit const& i, NodeRef after)
     {
+        C4_ASSERT( ! is_root());
         return parent().insert_child(i, after);
     }
 
     NodeRef prepend_sibling(NodeInit const& i)
     {
+        C4_ASSERT( ! is_root());
         return parent().prepend_child(i);
     }
 
     NodeRef append_sibling(NodeInit const& i)
     {
+        C4_ASSERT( ! is_root());
         return parent().append_child(i);
     }
 
@@ -1122,9 +1191,8 @@ private:
 
     /** This member is used to enable lazy operator[] writing. When a child
      * is not found with a key or index, m_id is set to the id of the parent
-     * and the key or index are stored in this member until a write does
+     * and the asked-for key or index are stored in this member until a write does
      * happen. Then it is given as key or index for creating the child.
-     *
      * When a key is used, the span stores it (so the span's string is
      * non-null and the span's size is different from NONE). When an index is
      * used instead, the span's string is set to null, and only the span's size is

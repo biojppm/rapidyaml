@@ -10,20 +10,33 @@
 namespace c4 {
 namespace yml {
 
+/** this macro defines a to_str()/from_str() pairs for intrinsic types. */
 #define _C4_DEFINE_TO_FROM_STR(ty, pri_fmt, scn_fmt)                    \
+                                                                        \
 inline size_t to_str(span buf, ty v)                                    \
 {                                                                       \
     return snprintf(buf.str, buf.len, "%" pri_fmt, v);                  \
 }                                                                       \
+                                                                        \
 inline bool from_str(cspan buf, ty *v)                                  \
 {                                                                       \
-    /* Alas, there's no snscanf, which is absolutely needed here. */    \
-    /* We fake snscanf with a dynamic field delimiter; this trick is */ \
-    /* taken from https://stackoverflow.com/a/18368910/5875572 */       \
+    /* Alas, there's no snscanf, which is absolutely needed here        \
+     * because we must be sure that buf.len is strictly respected,      \
+     * as the span string is generally not null-terminated.             \
+     * So we fake snscanf by using a dynamic format with an explicit    \
+     * field size set to the length of the given span.                  \
+     * This trick is taken from:                                        \
+     * https://stackoverflow.com/a/18368910/5875572 */                  \
+                                                                        \
+    /* this is the actual format used for scanning */                   \
     char fmt[8];                                                        \
+    /* write the length into it. Eg "%12d" for an int (scn_fmt="d") */  \
     int ret = snprintf(fmt, sizeof(fmt), "%%" "%zu" scn_fmt, buf.len);  \
+    /* no surprises, please! */                                         \
     C4_ASSERT(ret < sizeof(fmt));                                       \
+    /* now we scan with confidence that the span length is respected */ \
     ret = sscanf(buf.str, fmt, v);                                      \
+    /* scanf returns the number of successful conversions */            \
     return ret == 1;                                                    \
 }
 

@@ -16,6 +16,17 @@ namespace std {
 
 using namespace c4::yml;
 
+inline size_t to_str(span buf, std::string const& s)
+{
+    return to_str(buf, cspan(s.data(), s.size()));
+}
+inline size_t from_str(cspan buf, std::string * s)
+{
+    s->resize(buf.len);
+    span v(&(*s)[0], buf.len);
+    return from_str(buf, &v);
+}
+
 void write(NodeRef *n, std::string const& s)
 {
     *n << cspan(s.data(), s.size());
@@ -31,10 +42,10 @@ bool read(NodeRef const& n, std::string *s)
 template< class V, class Alloc >
 void write(NodeRef *n, std::vector< V, Alloc > const& vec)
 {
-    *n = SEQ;
+    *n |= SEQ;
     for(auto const& v : vec)
     {
-        auto ch = n->append_child(VAL);
+        auto ch = n->append_child();
         ch << v;
     }
 }
@@ -43,11 +54,6 @@ bool read(NodeRef const& n, std::vector< V, Alloc > *vec)
 {
     vec->resize(n.num_children());
     size_t pos = 0;
-    for(auto b = n.begin(), e = n.end(); b != e; ++b)
-    {
-        *b >> (*vec)[pos++];
-    }
-    return true;
     for(auto const& ch : n)
     {
         ch >> (*vec)[pos++];
@@ -55,92 +61,99 @@ bool read(NodeRef const& n, std::vector< V, Alloc > *vec)
     return true;
 }
 
-template< class K, class V >
-void write(NodeRef *n, std::map< K, V > const& m)
+template< class K, class V, class Less, class Alloc >
+void write(NodeRef *n, std::map< K, V, Less, Alloc > const& m)
 {
-    *n = MAP;
+    *n |= MAP;
     for(auto const& p : m)
     {
-        auto ch = n->append_child(KEYVAL);
+        auto ch = n->append_child(KEY);
         ch << key(p.first);
         ch << p.second;
     }
 }
-template< class K, class V >
-bool read(NodeRef const& n, std::map< K, V > * m)
+template< class K, class V, class Less, class Alloc >
+bool read(NodeRef const& n, std::map< K, V, Less, Alloc > * m)
 {
+    K k{};
+    V v;
     for(auto const& ch : n)
     {
-        K k;
-        V v;
-        ch >> c4::yml::key(k);
+        ch >> key(k);
         ch >> v;
-        m->emplace(std::make_pair(std::move(k), std::move(v)));
+        m->emplace(make_pair(move(k), move(v)));
     }
     return true;
 }
-
 
 } // namespace std
 
 namespace foo {
 
-TEST(serialize, std_string)
+template< class Container, class... Args >
+void do_test_serialize(Args&& ...args)
 {
     using namespace c4::yml;
-    std::string s = "fooobaaar";
-    std::string out;
+    Container s(std::forward< Args >(args)...);
+    Container out;
 
     Tree t;
     NodeRef n(&t);
 
     n << s;
-    n >> out;
-    EXPECT_EQ(s, out);
-}
-/*
-TEST(serialize, std_map)
-{
-    using namespace c4::yml;
-    std::map< int, int > s({{10, 0}, {11, 1}, {22, 2}});
-    Tree t;
-
-    NodeRef n(&t);
-    n << s;
-    std::map< int, int > out;
-    n >> out;
-    EXPECT_EQ(s, out);
-}
-*/
-TEST(serialize, std_vector_int)
-{
-    using namespace c4::yml;
-    std::vector< int > v = {1, 2, 3, 4, 5};
-    std::vector< int > out;
-
-    Tree t;
-    NodeRef n(&t);
-
-    n << v;
+    print_tree(t);
     emit(t);
     n >> out;
+    EXPECT_EQ(s, out);
+}
 
-    EXPECT_EQ(v, out);
+TEST(serialize, std_vector_int)
+{
+    using T = int;
+    using L = std::initializer_list<T>;
+    do_test_serialize< std::vector<T> >(L{1, 2, 3, 4, 5});
+}
+TEST(serialize, std_vector_string)
+{
+    using T = std::string;
+    using L = std::initializer_list<T>;
+    do_test_serialize< std::vector<T> >(L{"asdadk", "sdfkjdfgu", "fdfdjkhdfgkjhdfi", "e987dfgnfdg8", "'d0fgºçdfg«"});
 }
 TEST(serialize, std_vector_std_vector_int)
 {
-    using namespace c4::yml;
-    std::vector< std::vector< int > > v = {{1, 2, 3, 4, 5}, {6, 7, 8, 9, 0}};
-    std::vector< std::vector< int > > out;
+    using T = std::vector<int>;
+    using L = std::initializer_list<T>;
+    do_test_serialize< std::vector<T> >(L{{1, 2, 3, 4, 5}, {6, 7, 8, 9, 0}});
+}
 
-    Tree t;
-    NodeRef n(&t);
 
-    n << v;
-    emit(t);
-    n >> out;
-
-    EXPECT_EQ(v, out);
+TEST(serialize, std_map__int_int)
+{
+    using M = std::map<int, int>;
+    using L = std::initializer_list<typename M::value_type>;
+    do_test_serialize< M >(L{{10, 0}, {11, 1}, {22, 2}});
+}
+TEST(serialize, std_map__std_string_int)
+{
+    using M = std::map<std::string, int>;
+    using L = std::initializer_list<typename M::value_type>;
+    do_test_serialize< M >(L{{"asdsdf", 0}, {"dfgdfgdfg", 1}, {"dfgjdfgkjh", 2}});
+}
+TEST(serialize, std_map__string_vectori)
+{
+    using M = std::map<std::string, std::vector<int>>;
+    using L = std::initializer_list<typename M::value_type>;
+    do_test_serialize< M >(L{{"asdsdf", {0, 1, 2, 3}}, {"dfgdfgdfg", {4, 5, 6, 7}}, {"dfgjdfgkjh", {8, 9, 10, 11}}});
+}
+TEST(serialize, std_vector__map_string_int)
+{
+    using V = std::vector< std::map<std::string, int>>;
+    using L = std::initializer_list<typename V::value_type>;
+    do_test_serialize< V >(L{
+            {{"asdasf", 0}, {"dfgkjhdfg", 1}, {"dfgkjhdfg", 2}},
+            {{"asdasf", 10}, {"dfgkjhdfg", 11}, {"dfgkjhdfg", 12}},
+            {{"asdasf", 20}, {"dfgkjhdfg", 21}, {"dfgkjhdfg", 22}},
+    });
 }
 
 } // namespace foo

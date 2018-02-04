@@ -394,10 +394,10 @@ void Tree::_relocate(span const& next_arena)
     memcpy(next_arena.str, m_arena.str, m_arena_pos);
     for(Node *n = get(m_head); n; n = get(n->m_list.next))
     {
-        if(in_arena(n->m_key    )) n->m_key     = _relocate(n->m_key    , next_arena);
-        if(in_arena(n->m_key_tag)) n->m_key_tag = _relocate(n->m_key_tag, next_arena);
-        if(in_arena(n->m_val    )) n->m_val     = _relocate(n->m_val    , next_arena);
-        if(in_arena(n->m_val_tag)) n->m_val_tag = _relocate(n->m_val_tag, next_arena);
+        if(in_arena(n->m_key    )) n->m_key     = _relocated(n->m_key    , next_arena);
+        if(in_arena(n->m_key_tag)) n->m_key_tag = _relocated(n->m_key_tag, next_arena);
+        if(in_arena(n->m_val    )) n->m_val     = _relocated(n->m_val    , next_arena);
+        if(in_arena(n->m_val_tag)) n->m_val_tag = _relocated(n->m_val_tag, next_arena);
     }
 }
 
