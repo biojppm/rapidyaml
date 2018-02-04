@@ -205,6 +205,10 @@ void print_node(Node const& p, int level, bool print_children)
             printf(" '%.*s'", (int)k.len, k.str);
         }
     }
+    else
+    {
+        C4_ASSERT( ! p.has_key_tag());
+    }
     if(p.has_val())
     {
         if(p.has_val_tag())
@@ -217,6 +221,14 @@ void print_node(Node const& p, int level, bool print_children)
         {
             cspan const& v  = p.val();
             printf(" '%.*s'", (int)v.len, v.str);
+        }
+    }
+    else
+    {
+        if(p.has_val_tag())
+        {
+            cspan const& vt = p.val_tag();
+            printf(" %.*s", (int)vt.len, vt.str);
         }
     }
     printf(" (%zd sibs)", p.num_siblings());
@@ -270,6 +282,14 @@ void print_node(CaseNode const& p, int level)
             cspan const& vt = p.val_tag;
             cspan const& v  = p.val;
             printf(" '%.*s %.*s'", (int)vt.len, vt.str, (int)v.len, v.str);
+        }
+    }
+    else
+    {
+        if( ! p.val_tag.empty())
+        {
+            cspan const& vt = p.val_tag;
+            printf(" %.*s", (int)vt.len, vt.str);
         }
     }
     printf(" (%zd sibs)", p.parent ? p.parent->children.size() : 0);
@@ -454,6 +474,7 @@ Case const* get_case(cspan name)
 using N = CaseNode;
 using L = CaseNode::iseqmap;
 using TS = TaggedScalar;
+using TL = CaseNode::TaggedList;
 
 #define C(name, ...)                                    \
     std::pair< const cspan, Case >                      \
@@ -1636,7 +1657,8 @@ another: val
     "tag property in implicit map",\
     "tag property in explicit map",\
     "tag property in implicit seq",\
-    "tag property in explicit seq"
+    "tag property in explicit seq",\
+    "tagged explicit sequence in map"
 
 C("tag property in implicit map",
 R"(ivar: !!int 0
@@ -1684,6 +1706,19 @@ R"([
       N(TS("!!int", "0")),
       N(TS("!!str", "0")),
     }
+),
+
+C("tagged explicit sequence in map",
+R"(some_seq: !its_type [
+!!int 0,
+!!str 0
+]
+)",
+    L{N("some_seq", TL("!its_type", L{
+              N(TS("!!int", "0")),
+              N(TS("!!str", "0")),
+                  }))
+          }
 ),
 
 //-----------------------------------------------------------------------------

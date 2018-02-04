@@ -124,7 +124,7 @@ public:
     bool   is_val() const { return (m_type & KEYVAL) == VAL; }
     bool   is_keyval() const { return (m_type & KEYVAL) == KEYVAL; }
     bool   has_key_tag() const { return (m_type & (KEY|KEYTAG)) == (KEY|KEYTAG); }
-    bool   has_val_tag() const { return (m_type & (VAL|VALTAG)) == (VAL|VALTAG); }
+    bool   has_val_tag() const { return ((m_type & (VALTAG)) && (m_type & (VAL|MAP|SEQ))); }
 
     bool   parent_is_seq() const { C4_ASSERT(parent()); return parent()->is_seq(); }
     bool   parent_is_map() const { C4_ASSERT(parent()); return parent()->is_map(); }

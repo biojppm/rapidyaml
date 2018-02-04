@@ -72,11 +72,19 @@ void Emitter< Writer >::_do_visit(Node const* n, size_t ilevel, bool indent)
         {
             C4_ASSERT( ! n->has_key());
             _write(ind, "- ");
+            if(n->has_val_tag())
+            {
+                _write(n->val_tag(), ' ');
+            }
         }
         else if(n->parent_is_map())
         {
             C4_ASSERT(n->has_key());
             _write(ind, keysc(n), ':');
+            if(n->has_val_tag())
+            {
+                _write(' ', n->val_tag());
+            }
         }
 
         if(n->has_children())

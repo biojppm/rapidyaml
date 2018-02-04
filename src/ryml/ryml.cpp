@@ -243,7 +243,7 @@ void Node::set_key_tag(cspan const& tag)
 
 void Node::set_val_tag(cspan const& tag)
 {
-    C4_ASSERT(has_val());
+    //C4_ASSERT(has_val());
     m_val_tag = tag;
     _add_flags(VALTAG);
 }
@@ -1735,30 +1735,38 @@ bool Parser::_handle_types()
 
     if(rem.begins_with("!!"))
     {
+        _c4dbgp("begins with '!!'");
         t = rem.left_of(rem.first_of(' '));
         C4_ASSERT(t.len >= 2);
         //t = t.subspan(2);
     }
     else if(rem.begins_with("!<"))
     {
-        cspan t = rem.left_of(rem.first_of(' '));
+        _c4dbgp("begins with '!<'");
+        t = rem.left_of(rem.first_of(' '));
         C4_ASSERT(t.len >= 2);
         //t = t.subspan(2, t.len-1);
     }
     else if(rem.begins_with("!h!"))
     {
-        cspan t = rem.left_of(rem.first_of(' '));
+        _c4dbgp("begins with '!h!'");
+        t = rem.left_of(rem.first_of(' '));
         C4_ASSERT(t.len >= 3);
         //t = t.subspan(3);
     }
     else if(rem.begins_with('!'))
     {
-        cspan t = rem.left_of(rem.first_of(' '));
+        _c4dbgp("begins with '!'");
+        t = rem.left_of(rem.first_of(' '));
         C4_ASSERT(t.len > 1);
         //t = t.subspan(1);
     }
 
-    if(t.empty()) return false;
+    if(t.empty())
+    {
+        _c4dbgp(".... tag was empty");
+        return false;
+    }
 
     _line_progressed(t.len);
     _c4dbgp("tag was '%.*s'", _c4prsp(t));
@@ -2148,6 +2156,12 @@ void Parser::_start_map(bool as_child)
         _move_scalar_from_top();
         _c4dbgp("start_map: id=%zd", node(m_state)->id());
     }
+    if( ! m_val_tag.empty())
+    {
+        _c4dbgp("start_seq: set val tag to '%.*s'", _c4prsp(m_val_tag));
+        node(m_state)->set_val_tag(m_val_tag);
+        m_val_tag.clear();
+    }
 }
 
 void Parser::_stop_map()
@@ -2194,6 +2208,12 @@ void Parser::_start_seq(bool as_child)
         parent->to_seq(as_doc);
         _move_scalar_from_top();
         _c4dbgp("start_seq: id=%zd%s", node(m_state)->id(), as_doc?" as_doc":"");
+    }
+    if( ! m_val_tag.empty())
+    {
+        _c4dbgp("start_seq: set val tag to '%.*s'", _c4prsp(m_val_tag));
+        node(m_state)->set_val_tag(m_val_tag);
+        m_val_tag.clear();
     }
 }
 

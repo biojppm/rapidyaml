@@ -51,6 +51,13 @@ public:
     using  seqmap = std::vector< CaseNode >;
     using iseqmap = std::initializer_list< CaseNode >;
 
+    struct TaggedList
+    {
+        cspan tag;
+        iseqmap ilist;
+        template< size_t N > TaggedList(const char (&t)[N], iseqmap l) : tag(t), ilist(l) {}
+    };
+
 public:
 
     NodeType_e type;
@@ -73,15 +80,18 @@ public:
     template< size_t M >           explicit CaseNode(TaggedScalar const& k, const char (&v)[M]   ) : type((NodeType_e)(KEYVAL|KEYTAG       )), key(k.scalar), key_tag(k.tag), val(v       ), val_tag(     ), children(), parent(nullptr) { _set_parent(); }
                                    explicit CaseNode(TaggedScalar const& k, TaggedScalar const& v) : type((NodeType_e)(KEYVAL|KEYTAG|VALTAG)), key(k.scalar), key_tag(k.tag), val(v.scalar), val_tag(v.tag), children(), parent(nullptr) { _set_parent(); }
 
-    template< size_t N >
-    explicit CaseNode(const char (&k)[N]   , iseqmap s) : type(), key(k       ), key_tag(     ), val(), val_tag(), children(s), parent(nullptr) { _set_parent(); type = _guess(); }
-    explicit CaseNode(TaggedScalar const& k, iseqmap s) : type(), key(k.scalar), key_tag(k.tag), val(), val_tag(), children(s), parent(nullptr) { _set_parent(); type = _guess(); }
-    explicit CaseNode(                       iseqmap m) : CaseNode("", m) {}
+    template< size_t N > explicit CaseNode(const char (&k)[N]   , iseqmap    s) : type(), key(k       ), key_tag(     ), val(), val_tag(     ), children(s      ), parent(nullptr) { _set_parent(); type = _guess(); }
+    template< size_t N > explicit CaseNode(const char (&k)[N]   , TaggedList s) : type(), key(k       ), key_tag(     ), val(), val_tag(s.tag), children(s.ilist), parent(nullptr) { _set_parent(); type = _guess(); }
+                         explicit CaseNode(TaggedScalar const& k, iseqmap    s) : type(), key(k.scalar), key_tag(k.tag), val(), val_tag(     ), children(s      ), parent(nullptr) { _set_parent(); type = _guess(); }
+                         explicit CaseNode(TaggedScalar const& k, TaggedList s) : type(), key(k.scalar), key_tag(k.tag), val(), val_tag(s.tag), children(s.ilist), parent(nullptr) { _set_parent(); type = _guess(); }
+                         explicit CaseNode(                       iseqmap    m) : CaseNode("", m) {}
+                         explicit CaseNode(                       TaggedList m) : CaseNode("", m) {}
 
-    template< size_t N >
-    explicit CaseNode(NodeType_e t, const char (&k)[N]   , iseqmap s) : type(t                     ), key(k       ), key_tag(     ), val(), val_tag(), children(s), parent(nullptr) { _set_parent(); }
-    explicit CaseNode(NodeType_e t, TaggedScalar const& k, iseqmap s) : type((NodeType_e)(t|KEYTAG)), key(k.scalar), key_tag(k.tag), val(), val_tag(), children(s), parent(nullptr) { _set_parent(); }
-    explicit CaseNode(NodeType_e t,                     iseqmap m) : CaseNode(t, "", m) {}
+    template< size_t N > explicit CaseNode(NodeType_e t, const char (&k)[N]   , iseqmap    s) : type(t                     ), key(k       ), key_tag(     ), val(), val_tag(     ), children(s      ), parent(nullptr) { _set_parent(); }
+    template< size_t N > explicit CaseNode(NodeType_e t, const char (&k)[N]   , TaggedList s) : type(t                     ), key(k       ), key_tag(     ), val(), val_tag(s.tag), children(s.ilist), parent(nullptr) { _set_parent(); }
+                         explicit CaseNode(NodeType_e t, TaggedScalar const& k, iseqmap    s) : type((NodeType_e)(t|KEYTAG)), key(k.scalar), key_tag(k.tag), val(), val_tag(     ), children(s      ), parent(nullptr) { _set_parent(); }
+                         explicit CaseNode(NodeType_e t,                        iseqmap    s) : CaseNode(t, "", s) {}
+                         explicit CaseNode(NodeType_e t,                        TaggedList s) : CaseNode(t, "", s) {}
 
     CaseNode(CaseNode     && that) { _move(std::move(that)); }
     CaseNode(CaseNode const& that) { _copy(that); }
@@ -158,7 +168,7 @@ public:
         }
         if( ! val_tag.empty())
         {
-            C4_ASSERT( ! val.empty());
+            C4_ASSERT( ! val.empty() || ! children.empty());
             t = (NodeType_e)(t|VALTAG);
         }
         return t;
