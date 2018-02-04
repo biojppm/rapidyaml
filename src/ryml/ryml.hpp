@@ -585,14 +585,14 @@ public:
 
     inline bool in_arena(cspan const& s) const
     {
-        return s.begin() >= m_arena.begin() && s.end() <= m_arena.end();
+        return s.is_subspan(m_arena);
     }
 
 private:
 
-    span _grow_arena(size_t num)
+    span _grow_arena(size_t more)
     {
-        size_t cap = m_arena_pos + num;
+        size_t cap = m_arena_pos + more;
         cap = cap < 2 * m_arena.len ? 2 * m_arena.len : cap;
         cap = cap < 64 ? 64 : cap;
         reserve(m_cap, cap);
@@ -609,10 +609,12 @@ private:
 
     inline span _relocated(cspan const& s, span const& next_arena) const
     {
-        C4_ASSERT(in_arena(s));
-        C4_ASSERT(s.begin() >= m_arena.begin() && s.end() <= m_arena.begin() + m_arena_pos);
-        span r(next_arena.str + (s.str - m_arena.str), s.len);
-        C4_ASSERT(r.begin() >= next_arena.begin() && r.end() <= next_arena.begin() + m_arena_pos);
+        C4_ASSERT(s.is_subspan(m_arena));
+        C4_ASSERT(s.is_subspan(m_arena.subspan(0, m_arena_pos)));
+        auto pos = (s.str - m_arena.str);
+        span r(next_arena.str + pos, s.len);
+        C4_ASSERT(r.str - next_arena.str == pos);
+        C4_ASSERT(r.is_subspan(next_arena.subspan(0, m_arena_pos)));
         return r;
     }
 

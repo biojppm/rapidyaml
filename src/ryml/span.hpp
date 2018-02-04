@@ -135,6 +135,20 @@ public:
         return basic_span(str + first, rnum);
     }
 
+    /** true if *this is a subspan of that */
+    inline bool is_subspan(basic_span const super) const
+    {
+        return begin() >= super.begin() && end() <= super.end();
+    }
+
+    /** true if that is a subspan of this */
+    inline bool has_subspan(basic_span const sub) const
+    {
+        return sub.begin() >= begin() && sub.end() <= end();
+    }
+
+public:
+
     basic_span right_of(size_t pos, bool include_pos = false) const
     {
         if(pos == npos) return subspan(0, 0);
@@ -147,6 +161,8 @@ public:
         if( ! include_pos && pos > 0) --pos;
         return subspan(0, pos+1/* bump because this arg is a size, not a pos*/);
     }
+
+public:
 
     /** trim left */
     basic_span triml(const C c) const

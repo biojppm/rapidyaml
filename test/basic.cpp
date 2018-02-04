@@ -148,11 +148,13 @@ TEST(serialize, std_map__string_vectori)
 TEST(serialize, std_vector__map_string_int)
 {
     using V = std::vector< std::map<std::string, int>>;
-    using L = std::initializer_list<typename V::value_type>;
+    using M = typename V::value_type;
+    using L = std::initializer_list<M>;
     do_test_serialize< V >(L{
-            {{"asdasf", 0}, {"dfgkjhdfg", 1}, {"dfgkjhdfg", 2}},
-            {{"asdasf", 10}, {"dfgkjhdfg", 11}, {"dfgkjhdfg", 12}},
-            {{"asdasf", 20}, {"dfgkjhdfg", 21}, {"dfgkjhdfg", 22}},
+            M{{"asdasf",  0}, {"dfgkjhdfg",  1}, {"fghffg",  2}, {"r5656kjnh9b'dfgwg+*",  3}},
+            M{{"asdasf", 10}, {"dfgkjhdfg", 11}, {"fghffg", 12}, {"r5656kjnh9b'dfgwg+*", 13}},
+            M{{"asdasf", 20}, {"dfgkjhdfg", 21}, {"fghffg", 22}, {"r5656kjnh9b'dfgwg+*", 23}},
+            M{{"asdasf", 30}, {"dfgkjhdfg", 31}, {"fghffg", 32}, {"r5656kjnh9b'dfgwg+*", 33}},
     });
 }
 

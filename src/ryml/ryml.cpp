@@ -392,7 +392,7 @@ void Tree::_move(Tree & that)
 void Tree::_relocate(span const& next_arena)
 {
     memcpy(next_arena.str, m_arena.str, m_arena_pos);
-    for(Node *n = get(m_head); n; n = get(n->m_list.next))
+    for(Node *n = m_buf, *e = m_buf + m_cap; n != e; ++n)
     {
         if(in_arena(n->m_key    )) n->m_key     = _relocated(n->m_key    , next_arena);
         if(in_arena(n->m_key_tag)) n->m_key_tag = _relocated(n->m_key_tag, next_arena);
