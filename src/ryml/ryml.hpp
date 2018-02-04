@@ -977,23 +977,30 @@ public:
 
     inline void operator<< (cspan const& s) // this overload is needed to prevent ambiguity (there's also << for writing a span to a stream)
     {
+        _apply();
         write(this, s);
         C4_ASSERT(get()->m_val == s);
-        _apply();
     }
 
     template< class T >
     inline void operator<< (T const& v)
     {
-        write(this, v);
         _apply();
+        write(this, v);
+    }
+
+    template< class T >
+    inline void operator<< (Key<const T> const& v)
+    {
+        _apply();
+        set_key_serialized(v.k);
     }
 
     template< class T >
     inline void operator>> (T &v) const
     {
-        C4_ASSERT(valid());
         C4_ASSERT( ! is_seed());
+        C4_ASSERT(valid());
         C4_ASSERT(get() != nullptr);
         if( ! read(*this, &v))
         {
@@ -1002,13 +1009,11 @@ public:
     }
 
     template< class T >
-    inline void operator<< (Key<const T> const& v)
-    {
-        set_key_serialized(v.k);
-    }
-    template< class T >
     inline void operator>> (Key<T> v) const
     {
+        C4_ASSERT( ! is_seed());
+        C4_ASSERT(valid());
+        C4_ASSERT(get() != nullptr);
         from_str(key(), &v.k);
     }
 
