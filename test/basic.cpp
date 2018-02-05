@@ -882,15 +882,14 @@ TEST(NodeInit, ctor__val_only)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-TEST(NodeRef, setting_up)
+TEST(NodeRef, 0_general)
 {
     Tree t;
-    t.reserve(32);
 
     NodeRef root(&t);
 
-    using S = cspan;
-    using V = NodeScalar;
+    //using S = cspan;
+    //using V = NodeScalar;
     using N = NodeInit;
 
     root = N{MAP};
@@ -901,8 +900,14 @@ TEST(NodeRef, setting_up)
     root["b"]["seq"].append_child({"1"});
     root["b"]["seq"].append_child({"2"});
     root["b"]["seq"].append_child({NodeScalar{"!!str", "3"}});
-    //BUG!root["b"]["seq"][3].append_sibling({"4"});
-    //BUG!root["b"]["seq"].append_sibling({NodeScalar{"!!str", "aaaa"}, NodeScalar{"!!int", "0"}});
+    auto ch4 = root["b"]["seq"][3].append_sibling({"4"});
+    EXPECT_EQ(ch4.id(), root["b"]["seq"][4].id());
+    EXPECT_EQ(ch4.get(), root["b"]["seq"][4].get());
+    EXPECT_EQ(root["b"]["seq"][4].type(), VAL);
+    EXPECT_EQ(root["b"]["seq"][4].val(), "4");
+    root["b"]["seq"].append_sibling({NodeScalar{"!!str", "aaa"}, NodeScalar{"!!int", "0"}});
+    EXPECT_EQ(root["b"]["seq"][4].type(), VAL);
+    EXPECT_EQ(root["b"]["seq"][4].val(), "4");
 
     root["b"]["key"] = "val";
     auto seq = root["b"]["seq"];
@@ -962,8 +967,8 @@ TEST(NodeRef, setting_up)
     EXPECT_EQ(root["b"]["seq"][3].type(), VAL);
     EXPECT_EQ(root["b"]["seq"][3].val(), "3");
     EXPECT_EQ(root["b"]["seq"][3].val_tag(), "!!str");
-    //BUG!EXPECT_EQ(root["b"]["seq"][4].val(), VAL);
-    //BUG!EXPECT_EQ(root["b"]["seq"][4].val(), "4");
+    EXPECT_EQ(root["b"]["seq"][4].type(), VAL);
+    EXPECT_EQ(root["b"]["seq"][4].val(), "4");
 
     int tv;
     EXPECT_EQ(root["b"]["key"].key(), "key");
@@ -981,11 +986,11 @@ TEST(NodeRef, setting_up)
 
     emit(t);
 
-    //BUG!EXPECT_EQ(root["b"]["aaa"].type(), KEYVAL);
-    //BUG!EXPECT_EQ(root["b"]["aaa"].key_tag(), "!!str");
-    //BUG!EXPECT_EQ(root["b"]["aaa"].key(), "aaa");
-    //BUG!EXPECT_EQ(root["b"]["aaa"].val_tag(), "!!int");
-    //BUG!EXPECT_EQ(root["b"]["aaa"].val(), "0");
+    EXPECT_EQ(root["b"]["aaa"].type(), KEYVAL);
+    EXPECT_EQ(root["b"]["aaa"].key_tag(), "!!str");
+    EXPECT_EQ(root["b"]["aaa"].key(), "aaa");
+    EXPECT_EQ(root["b"]["aaa"].val_tag(), "!!int");
+    EXPECT_EQ(root["b"]["aaa"].val(), "0");
 }
 
 //-----------------------------------------------------------------------------
