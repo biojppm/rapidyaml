@@ -1,21 +1,31 @@
-#ifndef _C4_RYML_STACK_HPP_
-#define _C4_RYML_STACK_HPP_
+#ifndef _C4_YML_STACK_HPP_
+#define _C4_YML_STACK_HPP_
 
 #include "./common.hpp"
+
+#ifdef RYML_DBG
+#   include <type_traits>
+#endif
 
 namespace c4 {
 namespace yml {
 
 namespace detail {
-template< class T > class stack;
+template< class T, size_t N > class stack;
 } // namespace detail
 
-/** A lightweight stack. This avoids a dependency on std. */
-template< class T >
+
+/** A lightweight contiguous stack with SSO. This avoids a dependency on std. */
+template< class T, size_t N=16 >
 class detail::stack
 {
 private:
 
+#ifdef RYML_DBG
+    static_assert(std::is_trivially_copyable<T>::value, "T must be trivially copyable");
+#endif
+
+    T      m_buf[N];
     T *    m_stack;
     size_t m_size;
     size_t m_capacity;
@@ -29,7 +39,7 @@ public:
     }
     ~stack()
     {
-        if(m_stack)
+        if(m_stack != m_buf)
         {
             RymlCallbacks::free(m_stack, m_capacity * sizeof(T));
         }
@@ -42,7 +52,7 @@ public:
     }
     stack& operator= (stack const& that)
     {
-        if(m_stack)
+        if(m_stack != m_buf)
         {
             RymlCallbacks::free(m_stack, m_capacity * sizeof(T));
         }
@@ -54,12 +64,12 @@ public:
     stack(stack &&that)
     {
         memcpy(this, &that, sizeof(*this));
-        that.m_stack = nullptr;
+        if(m_size > N) that.m_ptr = nullptr;
     }
     stack& operator= (stack &&that)
     {
         memcpy(this, &that, sizeof(*this));
-        that.m_stack = nullptr;
+        if(m_size > N) that.m_ptr = nullptr;
         return *this;
     }
 
@@ -74,12 +84,17 @@ public:
 
     void reserve(size_t sz)
     {
-        if(sz == 0) sz = 8;
         if(sz <= m_size) return;
-        T *buf = (T*) RymlCallbacks::allocate(sz * sizeof(T), m_stack);
-        if(m_stack)
+        if(sz <= N)
         {
-            memcpy(buf, m_stack, m_size * sizeof(T));
+            m_stack = m_buf;
+            m_capacity = N;
+            return;
+        }
+        T *buf = (T*) RymlCallbacks::allocate(sz * sizeof(T), m_stack);
+        memcpy(buf, m_stack, m_size * sizeof(T));
+        if(m_stack != m_buf)
+        {
             RymlCallbacks::free(m_stack, m_capacity * sizeof(T));
         }
         m_stack = buf;
@@ -94,12 +109,10 @@ public:
         }
         m_stack[m_size] = n;
         m_size++;
-        //printf("stack_push[%zd]: %zd\n", m_size, n);
     }
 
     T const& pop()
     {
-        //printf("stack_pop[%zd]: %zd\n", m_size, m_stack[m_size - 1]);
         C4_ASSERT(m_size > 0);
         m_size--;
         return m_stack[m_size];
@@ -108,11 +121,11 @@ public:
     T const& top() const { C4_ASSERT(m_size > 0); return m_stack[m_size - 1]; }
     T      & top()       { C4_ASSERT(m_size > 0); return m_stack[m_size - 1]; }
 
-    T const& top(size_t i) const { C4_ASSERT(i >= 0 && i < m_size); return m_stack[m_size - 1 - i]; }
-    T      & top(size_t i)       { C4_ASSERT(i >= 0 && i < m_size); return m_stack[m_size - 1 - i]; }
-
     T const& bottom() const { C4_ASSERT(m_size > 0); return m_stack[0]; }
     T      & bottom()       { C4_ASSERT(m_size > 0); return m_stack[0]; }
+
+    T const& top(size_t i) const { C4_ASSERT(i >= 0 && i < m_size); return m_stack[m_size - 1 - i]; }
+    T      & top(size_t i)       { C4_ASSERT(i >= 0 && i < m_size); return m_stack[m_size - 1 - i]; }
 
     T const& bottom(size_t i) const { C4_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
     T      & bottom(size_t i)       { C4_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
@@ -130,4 +143,4 @@ public:
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_RYML_STACK_HPP_ */
+#endif /* _C4_YML_STACK_HPP_ */

@@ -2355,14 +2355,6 @@ bool Parser::_handle_indentation()
             _save_indentation();
             return true;
         }
-        // else if(has_all(RSEQ|RVAL))
-        // {
-        //     addrem_flags(RNXT, RVAL);
-        //     _start_unk();
-        //     _line_progressed(ind);
-        //     _save_indentation();
-        //     return true;
-        // }
         else
         {
             _c4err("parse error - indentation should not increase at this point");
