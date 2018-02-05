@@ -102,6 +102,7 @@ void do_test_serialize(Args&& ...args)
     n << s;
     print_tree(t);
     emit(t);
+    check_invariants(t);
     n >> out;
     EXPECT_EQ(s, out);
 }
@@ -999,6 +1000,8 @@ TEST(NodeRef, 0_general)
 
 void noderef_check_tree(NodeRef const& root)
 {
+    check_invariants(*root.tree());
+
     EXPECT_EQ(root.tree()->size(), 7);
     EXPECT_EQ(root.num_children(), 6);
     EXPECT_EQ(root.is_container(), true);
@@ -1060,19 +1063,12 @@ TEST(NodeRef, 3_insert_child)
     NodeRef none(&t, NONE);
 
     root |= SEQ;
-    printf("aqui 0\n"); emit(t);
     root.insert_child({"3"}, none);
-    printf("aqui 1\n"); emit(t);
     root.insert_child({"4"}, root[0]);
-    printf("aqui 2\n"); emit(t);
     root.insert_child({"0"}, none);
-    printf("aqui 3\n"); emit(t);
     root.insert_child({"5"}, root[2]);
-    printf("aqui 4\n"); emit(t);
     root.insert_child({"1"}, root[0]);
-    printf("aqui 5\n"); emit(t);
     root.insert_child({"2"}, root[1]);
-    printf("aqui 6\n"); emit(t);
 
     noderef_check_tree(root);
 }
@@ -1157,6 +1153,7 @@ TEST_P(YmlTestCase, parse_using_yaml_cpp)
 TEST_P(YmlTestCase, parse_using_ryml)
 {
     parse(d->src, &d->parsed_tree);
+    check_invariants(d->parsed_tree);
 #ifdef RYML_DBG
     print_tree(c->root);
     print_tree(d->parsed_tree);
@@ -1211,8 +1208,13 @@ TEST_P(YmlTestCase, complete_round_trip)
     }
 
     {
-        SCOPED_TRACE("checking invariants of parsed tree");
+        SCOPED_TRACE("checking node invariants of parsed tree");
         check_invariants(*d->emitted_tree.root());
+    }
+
+    {
+        SCOPED_TRACE("checking tree invariants of parsed tree");
+        check_invariants(d->emitted_tree);
     }
 
     {
@@ -1230,6 +1232,16 @@ TEST_P(YmlTestCase, recreate_from_ref)
         SCOPED_TRACE("recreating a new tree from the ref tree");
         d->recreated.reserve(d->parsed_tree.size());
         c->root.recreate(d->recreated.root());
+    }
+
+    {
+        SCOPED_TRACE("checking node invariants of recreated tree");
+        check_invariants(*d->recreated.root());
+    }
+
+    {
+        SCOPED_TRACE("checking tree invariants of recreated tree");
+        check_invariants(d->recreated);
     }
 
     {

@@ -407,6 +407,19 @@ void check_invariants(Node const& n)
 
 void check_invariants(Tree const& t)
 {
+    for(size_t i = 0; i < t.m_size; ++i)
+    {
+        auto n = t.get(i);
+        if(n->m_list.prev == NONE)
+        {
+            EXPECT_TRUE(i == t.m_head || i == t.m_free_head);
+        }
+        if(n->m_list.next == NONE)
+        {
+            EXPECT_TRUE(i == t.m_tail || i == t.m_free_tail);
+        }
+    }
+
     std::vector<bool> touched(t.capacity());
 
     for(size_t i = t.m_head; i != NONE; i = t.get(i)->m_list.next)
