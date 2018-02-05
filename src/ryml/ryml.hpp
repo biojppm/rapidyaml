@@ -469,13 +469,14 @@ public:
     Node * prepend_child(Node *n) { return insert_child(n, nullptr); }
     Node *  append_child(Node *n) { return insert_child(n, n->last_child()); }
 
-    //! create and insert a new child of "parent". insert after "after"
+    /** create and insert a new child of "parent". insert after the (to-be)
+     * sibling "after", which must be a child of "parent". */
     size_t insert_child(size_t parent, size_t after)
     {
         C4_ASSERT(get(parent)->is_container() || get(parent)->is_root());
         C4_ASSERT(get(parent)->has_child(get(after)) || after == NONE);
-        size_t child = claim(after);
-        set_parent(parent, child, after);
+        size_t child = (after == NONE) ? claim(parent) : claim(after);
+        set_parent(parent, child);
         return child;
     }
     size_t prepend_child(size_t n) { return insert_child(n, NONE); }
@@ -526,7 +527,7 @@ public:
 
 private:
 
-    void set_parent(size_t parent, size_t child, size_t prev_sibling, size_t next_sibling=NONE);
+    void set_parent(size_t parent, size_t child);
     void clear_range(size_t first, size_t num);
 
     size_t claim(size_t after);
@@ -534,7 +535,7 @@ private:
 
     void release(size_t i);
 
-    /** does not do hyerarchical clearing */
+    /** does not clear children */
     void _clear(size_t i)
     {
         Node *n = get(i);

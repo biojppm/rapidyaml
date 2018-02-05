@@ -997,6 +997,90 @@ TEST(NodeRef, 0_general)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+void noderef_check_tree(NodeRef const& root)
+{
+    EXPECT_EQ(root.tree()->size(), 7);
+    EXPECT_EQ(root.num_children(), 6);
+    EXPECT_EQ(root.is_container(), true);
+    EXPECT_EQ(root.is_seq(), true);
+
+    EXPECT_EQ(root[0].type(), VAL);
+    EXPECT_EQ(root[0].val(), "0");
+    EXPECT_EQ(root[1].type(), VAL);
+    EXPECT_EQ(root[1].val(), "1");
+    EXPECT_EQ(root[2].type(), VAL);
+    EXPECT_EQ(root[2].val(), "2");
+    EXPECT_EQ(root[3].type(), VAL);
+    EXPECT_EQ(root[3].val(), "3");
+    EXPECT_EQ(root[4].type(), VAL);
+    EXPECT_EQ(root[4].val(), "4");
+    EXPECT_EQ(root[5].type(), VAL);
+    EXPECT_EQ(root[5].val(), "5");
+}
+
+TEST(NodeRef, 1_append_child)
+{
+    Tree t;
+
+    NodeRef root(&t);
+
+    root |= SEQ;
+    root.append_child({"0"});
+    root.append_child({"1"});
+    root.append_child({"2"});
+    root.append_child({"3"});
+    root.append_child({"4"});
+    root.append_child({"5"});
+
+    noderef_check_tree(root);
+}
+
+TEST(NodeRef, 2_prepend_child)
+{
+    Tree t;
+
+    NodeRef root(&t);
+
+    root |= SEQ;
+    root.prepend_child({"5"});
+    root.prepend_child({"4"});
+    root.prepend_child({"3"});
+    root.prepend_child({"2"});
+    root.prepend_child({"1"});
+    root.prepend_child({"0"});
+
+    noderef_check_tree(root);
+}
+
+TEST(NodeRef, 3_insert_child)
+{
+    Tree t;
+
+    NodeRef root(&t);
+    NodeRef none(&t, NONE);
+
+    root |= SEQ;
+    printf("aqui 0\n"); emit(t);
+    root.insert_child({"3"}, none);
+    printf("aqui 1\n"); emit(t);
+    root.insert_child({"4"}, root[0]);
+    printf("aqui 2\n"); emit(t);
+    root.insert_child({"0"}, none);
+    printf("aqui 3\n"); emit(t);
+    root.insert_child({"5"}, root[2]);
+    printf("aqui 4\n"); emit(t);
+    root.insert_child({"1"}, root[0]);
+    printf("aqui 5\n"); emit(t);
+    root.insert_child({"2"}, root[1]);
+    printf("aqui 6\n"); emit(t);
+
+    noderef_check_tree(root);
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 using N = CaseNode;
 using L = CaseNode::iseqmap;
 

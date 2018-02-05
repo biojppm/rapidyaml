@@ -481,11 +481,11 @@ void Tree::clear_range(size_t first, size_t num)
 }
 
 //-----------------------------------------------------------------------------
-size_t Tree::claim(size_t after)
+size_t Tree::claim(size_t prev)
 {
-    C4_ASSERT(after == NONE || (after >= 0 && after < m_cap));
-    size_t last = after != NONE ? after : m_tail;
-    size_t i = claim(last, NONE);
+    C4_ASSERT(prev == NONE || (prev >= 0 && prev < m_cap));
+    size_t next = prev != NONE ? get(prev)->m_list.next : m_head;
+    size_t i = claim(prev, next);
     return i;
 }
 
@@ -494,26 +494,32 @@ size_t Tree::claim(size_t prev, size_t next)
 {
     C4_ASSERT(prev == NONE || (prev >= 0 && prev < m_cap));
     C4_ASSERT(next == NONE || (next >= 0 && next < m_cap));
+
     if(m_free_head == NONE || m_buf == nullptr)
     {
         size_t sz = 2 * m_cap;
         sz = sz ? sz : 16;
         reserve(sz);
     }
+
     size_t id = m_free_head;
     Node *n = m_buf + id;
+
     m_free_head = n->m_list.next;
     if(m_free_head == NONE)
     {
         m_free_tail = NONE;
     }
     ++m_size;
+
     _clear(id);
     n->m_s = this;
     n->m_list.prev = prev;
     n->m_list.next = next;
+
     if(prev == NONE)
     {
+        C4_ASSERT(m_head == next);
         m_head = id;
     }
     else
@@ -521,8 +527,10 @@ size_t Tree::claim(size_t prev, size_t next)
         Node *p = m_buf + prev;
         p->m_list.next = id;
     }
+
     if(next == NONE)
     {
+        C4_ASSERT(m_tail == prev);
         m_tail = id;
     }
     else
@@ -530,6 +538,7 @@ size_t Tree::claim(size_t prev, size_t next)
         Node *v = m_buf + next;
         v->m_list.prev = id;
     }
+
     return id;
 }
 
@@ -585,47 +594,18 @@ void Tree::release(size_t i)
 }
 
 //-----------------------------------------------------------------------------
-void Tree::set_parent(size_t iparent, size_t ichild, size_t iprev_sibling, size_t inext_sibling)
+void Tree::set_parent(size_t iparent, size_t ichild)
 {
     Node *parent = get(iparent);
     Node *child = get(ichild);
-    Node *prev_sibling = get(iprev_sibling);
-    Node *next_sibling = get(inext_sibling);
 
     C4_ASSERT(child != nullptr && (child >= m_buf && child < m_buf + m_cap));
     C4_ASSERT(parent == nullptr || (parent >= m_buf && parent < m_buf + m_cap));
 
     child->m_parent = parent ? parent - m_buf : NONE;
 
-    if( ! prev_sibling)
-    {
-        next_sibling = parent->first_child();
-    }
-
-    if( ! next_sibling)
-    {
-        if(prev_sibling)
-        {
-            next_sibling = prev_sibling->next_sibling();
-        }
-    }
-
-    child->m_list.prev = NONE;
-    child->m_list.next = NONE;
-    if(prev_sibling)
-    {
-        C4_ASSERT(prev_sibling->next_sibling() == next_sibling);
-        child->m_list.prev = prev_sibling->id();
-        prev_sibling->m_list.next = child->id();
-    }
-    if(next_sibling)
-    {
-        C4_ASSERT(next_sibling->prev_sibling() == prev_sibling);
-        child->m_list.next = next_sibling->id();
-        next_sibling->m_list.prev = child->id();
-    }
-
     if( ! parent) return;
+
     if(parent->m_children.first == NONE)
     {
         C4_ASSERT(parent->m_children.last == NONE);
@@ -643,6 +623,7 @@ void Tree::set_parent(size_t iparent, size_t ichild, size_t iprev_sibling, size_
             parent->m_children.last = child->id();
         }
     }
+
 }
 
 //-----------------------------------------------------------------------------
