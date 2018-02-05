@@ -36,17 +36,6 @@ typedef enum {
 } NodeType_e;
 
 
-typedef enum {
-    BLOCK_LITERAL, ///< keep newlines (|)
-    BLOCK_FOLD     ///< replace newline with single space (>)
-} BlockStyle_e;
-
-typedef enum {
-    CHOMP_CLIP,    ///< single newline at end (default)
-    CHOMP_STRIP,   ///< no newline at end     (-)
-    CHOMP_KEEP     ///< all newlines from end (+)
-} BlockChomp_e;
-
 
 /** an index to none */
 enum : size_t { NONE = size_t(-1) };
@@ -763,16 +752,12 @@ public://private:
 
     friend class Tree;
 
-
     NodeRef() : m_tree(nullptr), m_id(NONE), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = NONE; }
+    NodeRef(Node *n) : m_tree(n->tree()), m_id(n->id()), m_seed() {}
     NodeRef(Tree *t) : m_tree(t), m_id(t->root()->id()), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = NONE; }
     NodeRef(Tree *t, size_t id) : m_tree(t), m_id(id), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = NONE; }
     NodeRef(Tree *t, size_t id, size_t pos) : m_tree(t), m_id(id), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = pos; }
     NodeRef(Tree *t, size_t id, cspan  key) : m_tree(t), m_id(id), m_seed(key) {}
-
-    NodeRef(Node *n) : m_tree(n->tree()), m_id(n->id()) {}
-
-public:
 
     NodeRef(NodeRef const&) = default;
     NodeRef(NodeRef     &&) = default;
@@ -1530,6 +1515,19 @@ public:
 
     void parse(                       span src, Node *root) { return parse({}, src, root); }
     void parse(cspan const& filename, span src, Node *root);
+
+private:
+
+    typedef enum {
+        BLOCK_LITERAL, ///< keep newlines (|)
+        BLOCK_FOLD     ///< replace newline with single space (>)
+    } BlockStyle_e;
+
+    typedef enum {
+        CHOMP_CLIP,    ///< single newline at end (default)
+        CHOMP_STRIP,   ///< no newline at end     (-)
+        CHOMP_KEEP     ///< all newlines from end (+)
+    } BlockChomp_e;
 
 private:
 
