@@ -61,15 +61,28 @@ public:
     mutable Tree * m_s;
 
     NodeType_e     m_type;
-    cspan          m_key, m_key_tag;
-    cspan          m_val, m_val_tag;
+
+    cspan          m_key;
+    cspan          m_key_tag;
+
+    cspan          m_val;
+    cspan          m_val_tag;
 
     size_t         m_parent;
     size_t         m_first_child;
     size_t         m_last_child;
-
     size_t         m_next_sibling;
     size_t         m_prev_sibling;
+
+    void _copy_props(Node const& that)
+    {
+        m_s = that.m_s;
+        m_type = that.m_type;
+        m_key = that.m_key;
+        m_key_tag = that.m_key_tag;
+        m_val = that.m_val;
+        m_val_tag = that.m_val_tag;
+    }
 
 public:
 
@@ -443,13 +456,13 @@ public:
 public:
 
     //! remove an entire branch at once: ie remove the children and the node itself
-    inline void remove_branch(size_t node)
+    inline void remove(size_t node)
     {
         remove_children(node);
         _release(node);
     }
 
-    //! remove all the children at once; but keep the node itself
+    //! remove all the node's children, but keep the node itself
     void remove_children(size_t node)
     {
         size_t ich = get(node)->m_first_child;
@@ -471,7 +484,7 @@ public:
     /** change the node's parent and position */
     void move(size_t node, size_t new_parent, size_t after);
 
-    /** duplicate the node in a new parent */
+    /** duplicate the node (and its children) in a new parent */
     size_t duplicate(size_t node, size_t new_parent, size_t after);
 
 private:
@@ -1031,7 +1044,7 @@ private:
 
 public:
 
-    NodeRef insert_child(NodeRef after)
+    inline NodeRef insert_child(NodeRef after)
     {
         C4_ASSERT(valid());
         size_t child_id = m_tree->insert_child(m_id, after.m_id);
@@ -1039,21 +1052,7 @@ public:
         return r;
     }
 
-    NodeRef prepend_child()
-    {
-        NodeRef after(m_tree, NONE);
-        return insert_child(after);
-    }
-
-    NodeRef append_child()
-    {
-        NodeRef after(m_tree, get()->m_last_child);
-        return insert_child(after);
-    }
-
-public:
-
-    NodeRef insert_child(NodeInit const& i, NodeRef after)
+    inline NodeRef insert_child(NodeInit const& i, NodeRef after)
     {
         C4_ASSERT(valid());
         size_t child_id = m_tree->insert_child(m_id, after.m_id);
@@ -1062,13 +1061,25 @@ public:
         return r;
     }
 
-    NodeRef prepend_child(NodeInit const& i)
+    inline NodeRef prepend_child()
+    {
+        NodeRef after(m_tree, NONE);
+        return insert_child(after);
+    }
+
+    inline NodeRef prepend_child(NodeInit const& i)
     {
         NodeRef after(m_tree, NONE);
         return insert_child(i, after);
     }
 
-    NodeRef append_child(NodeInit const& i)
+    inline NodeRef append_child()
+    {
+        NodeRef after(m_tree, get()->m_last_child);
+        return insert_child(after);
+    }
+
+    inline NodeRef append_child(NodeInit const& i)
     {
         NodeRef after(m_tree, get()->m_last_child);
         return insert_child(i, after);
@@ -1076,46 +1087,84 @@ public:
 
 public:
 
-    NodeRef insert_sibling(NodeInit const& i, NodeRef after)
+    inline void remove_child(NodeRef & child)
+    {
+        C4_ASSERT(has_child(child));
+        C4_ASSERT(child.parent().id() == id());
+        m_tree->remove(child.id());
+        child.clear();
+    }
+
+    //! remove the nth child of this node
+    inline void remove_child(size_t n)
+    {
+        C4_ASSERT(n >= 0 && n < num_children());
+        Node const &child = (*m_tree->get(m_id))[n];
+        m_tree->remove(child.id());
+    }
+
+    //! remove a child by name
+    inline void remove_child(cspan name)
+    {
+        Node const &child = (*m_tree->get(m_id))[name];
+        m_tree->remove(child.id());
+    }
+
+public:
+
+    inline void move(NodeRef & parent, NodeRef & after)
+    {
+        m_tree->move(m_id, parent.m_id, after.m_id);
+    }
+
+    inline void move(NodeRef & after)
+    {
+        m_tree->move(m_id, after.m_id);
+    }
+
+    inline NodeRef duplicate(NodeRef & parent, NodeRef & after)
+    {
+        size_t dup = m_tree->duplicate(m_id, parent.m_id, after.m_id);
+        NodeRef r(m_tree, dup);
+        return r;
+    }
+
+public:
+
+    inline NodeRef insert_sibling(NodeRef after)
+    {
+        C4_ASSERT( ! is_root());
+        return parent().insert_child(after);
+    }
+
+    inline NodeRef insert_sibling(NodeInit const& i, NodeRef after)
     {
         C4_ASSERT( ! is_root());
         return parent().insert_child(i, after);
     }
 
-    NodeRef prepend_sibling(NodeInit const& i)
+    inline NodeRef prepend_sibling()
     {
-        C4_ASSERT( ! is_root());
-        return parent().prepend_child(i);
+        NodeRef after(m_tree, NONE);
+        return parent().insert_child(after);
     }
 
-    NodeRef append_sibling(NodeInit const& i)
+    inline NodeRef prepend_sibling(NodeInit const& i)
     {
-        C4_ASSERT( ! is_root());
-        return parent().append_child(i);
+        NodeRef after(m_tree, NONE);
+        return parent().insert_child(i, after);
     }
 
-public:
-
-    void remove_child(NodeRef & child)
+    inline NodeRef append_sibling()
     {
-        C4_ASSERT(has_child(child));
-        C4_ASSERT(child.parent().id() == id());
-        m_tree->remove_branch(child.id());
-        child.clear();
+        NodeRef after(m_tree, get()->parent()->m_last_child);
+        return parent().insert_child(after);
     }
 
-    //! remove the nth child of this node
-    void remove_child(size_t n)
+    inline NodeRef append_sibling(NodeInit const& i)
     {
-        Node const &child = (*m_tree->get(m_id))[n];
-        m_tree->remove_branch(child.id());
-    }
-
-    //! remove a child by name
-    void remove_child(cspan name)
-    {
-        Node const &child = (*m_tree->get(m_id))[name];
-        m_tree->remove_branch(child.id());
+        NodeRef after(m_tree, get()->parent()->m_last_child);
+        return parent().insert_child(i, after);
     }
 
 private:

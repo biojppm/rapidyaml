@@ -616,6 +616,7 @@ void Tree::move(size_t node, size_t after)
 {
     C4_ASSERT(node != NONE);
     C4_ASSERT( ! get(node)->is_root());
+    C4_ASSERT(get(after)->has_sibling(get(node)) && get(node)->has_sibling(get(after)));
 
     _rem_hierarchy(node);
     _set_hierarchy(node, get(node)->m_parent, after);
@@ -633,17 +634,22 @@ void Tree::move(size_t node, size_t new_parent, size_t after)
 }
 
 //-----------------------------------------------------------------------------
-size_t Tree::duplicate(size_t node, size_t new_parent, size_t after)
+size_t Tree::duplicate(size_t node, size_t parent, size_t after)
 {
     C4_ASSERT(node != NONE);
-    C4_ASSERT(new_parent != NONE);
+    C4_ASSERT(parent != NONE);
     C4_ASSERT( ! get(node)->is_root());
 
     size_t copy = _claim();
-    _set_hierarchy(copy, new_parent, after);
+
+    Node const* nnode = get(node);
+    Node      * ncopy = get(copy);
+
+    ncopy->_copy_props(*nnode);
+    _set_hierarchy(copy, parent, after);
 
     size_t last = NONE;
-    for(Node const* ch = get(node)->first_child(); ch; ch = ch->next_sibling())
+    for(Node const* ch = nnode->first_child(); ch; ch = ch->next_sibling())
     {
         last = duplicate(ch->id(), copy, last);
     }
