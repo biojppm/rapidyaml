@@ -414,59 +414,36 @@ public:
 public:
 
     //! create and insert a new sibling of n. insert after "after"
-    Node * insert_sibling(Node *n, Node *after)
-    {
-        C4_ASSERT(n->parent() != nullptr);
-        return insert_child(get(n->m_parent), after);
-    }
-    Node * prepend_sibling(Node *n) { return insert_sibling(n, nullptr); }
-    Node *  append_sibling(Node *n) { return insert_sibling(n, n->last_child()); }
-
-    //! create and insert a new sibling of n. insert after "after"
-    size_t insert_sibling(size_t n, size_t after)
+    inline size_t insert_sibling(size_t n, size_t after)
     {
         C4_ASSERT(get(n)->parent() != nullptr);
         C4_ASSERT( ! get(after) || (get(n)->has_sibling(get(after)) && get(after)->has_sibling(get(n))));
         return insert_child(get(n)->m_parent, after);
     }
-    size_t prepend_sibling(size_t n) { return insert_sibling(n, NONE); }
-    size_t  append_sibling(size_t n) { return insert_sibling(n, id(get(n)->last_child())); }
+    inline size_t prepend_sibling(size_t n) { return insert_sibling(n, NONE); }
+    inline size_t  append_sibling(size_t n) { return insert_sibling(n, id(get(n)->last_child())); }
 
 public:
-
-    //! create and insert a new child of "n". insert after "after"
-    Node * insert_child(Node *n, Node *after)
-    {
-        size_t cap = m_cap;
-        size_t ich = insert_child(id(n), id(after));
-        if(m_cap != cap)
-        {
-            C4_ERROR("pointers were invalidated");
-        }
-        Node *ch = get(ich);
-        return ch;
-    }
-    Node * prepend_child(Node *n) { return insert_child(n, nullptr); }
-    Node *  append_child(Node *n) { return insert_child(n, n->last_child()); }
 
     /** create and insert a new child of "parent". insert after the (to-be)
      * sibling "after", which must be a child of "parent". To insert as the
      * first child, set after to NONE */
-    size_t insert_child(size_t parent, size_t after)
+    inline size_t insert_child(size_t parent, size_t after)
     {
         C4_ASSERT(parent != NONE);
         C4_ASSERT(get(parent)->is_container() || get(parent)->is_root());
         C4_ASSERT(get(parent)->has_child(get(after)) || after == NONE);
-        size_t child = _claim(parent, after);
+        size_t child = _claim();
+        _set_hierarchy(child, parent, after);
         return child;
     }
-    size_t prepend_child(size_t n) { return insert_child(n, NONE); }
-    size_t  append_child(size_t n) { return insert_child(n, id(get(n)->last_child())); }
+    inline size_t prepend_child(size_t parent) { return insert_child(parent, NONE); }
+    inline size_t  append_child(size_t parent) { return insert_child(parent, id(get(parent)->last_child())); }
 
 public:
 
     //! remove an entire branch at once: ie remove the children and the node itself
-    void remove_branch(size_t node)
+    inline void remove_branch(size_t node)
     {
         remove_children(node);
         _release(node);
@@ -488,21 +465,24 @@ public:
 
 public:
 
-    void move_branch(Node * branch, Node * new_parent, Node * after)
-    {
-        move_branch(id(branch), id(new_parent), id(after));
-    }
-    void move_branch(size_t branch, size_t new_parent, size_t after)
-    {
-        C4_ERROR("not implemented");
-    }
+    /** change the node's position in the parent */
+    void move(size_t node, size_t after);
+
+    /** change the node's parent and position */
+    void move(size_t node, size_t new_parent, size_t after);
+
+    /** duplicate the node in a new parent */
+    size_t duplicate(size_t node, size_t new_parent, size_t after);
 
 private:
 
     void _clear_range(size_t first, size_t num);
 
-    size_t _claim(size_t parent, size_t after_sibling);
-    void   _release(size_t i);
+    size_t _claim();
+    void   _release(size_t node);
+
+    void _set_hierarchy(size_t node, size_t parent, size_t after_sibling);
+    void _rem_hierarchy(size_t node);
 
     /** does not clear children */
     void _clear(size_t i)

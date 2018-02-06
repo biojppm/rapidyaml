@@ -411,7 +411,9 @@ void Tree::reserve(size_t cap, size_t arena_cap)
         _clear_range(first, del);
         if( ! m_size)
         {
-            _claim(NONE, NONE);
+            size_t r = _claim();
+            _set_hierarchy(r, NONE, NONE);
+            C4_ASSERT(r == 0);
             C4_ASSERT(id(root()) == 0);
         }
     }
@@ -465,6 +467,123 @@ void Tree::_release(size_t i)
     C4_ASSERT(i >= 0 && i < m_cap);
     Node & w = m_buf[i];
 
+    _rem_hierarchy(i);
+
+    // add to the front of the free list
+    w.m_next_sibling = m_free_head;
+    w.m_prev_sibling = NONE;
+    if(m_free_head != NONE)
+    {
+        m_buf[m_free_head].m_prev_sibling = i;
+    }
+    m_free_head = i;
+    if(m_free_tail == NONE)
+    {
+        m_free_tail = m_free_head;
+    }
+
+    _clear(i);
+
+    --m_size;
+}
+
+//-----------------------------------------------------------------------------
+size_t Tree::_claim()
+{
+    if(m_free_head == NONE || m_buf == nullptr)
+    {
+        size_t sz = 2 * m_cap;
+        sz = sz ? sz : 16;
+        reserve(sz);
+        C4_ASSERT(m_free_head != NONE);
+    }
+
+    C4_ASSERT(m_size < m_cap);
+    size_t ichild = m_free_head;
+    Node *child = m_buf + ichild;
+
+    ++m_size;
+    m_free_head = child->m_next_sibling;
+    if(m_free_head == NONE)
+    {
+        m_free_tail = NONE;
+        C4_ASSERT(m_size == m_cap);
+    }
+
+    _clear(ichild);
+
+    return ichild;
+}
+
+//-----------------------------------------------------------------------------
+void Tree::_set_hierarchy(size_t ichild, size_t iparent, size_t iprev_sibling)
+{
+    C4_ASSERT(iparent == NONE || (iparent >= 0 && iparent < m_cap));
+    C4_ASSERT(iprev_sibling == NONE || (iprev_sibling >= 0 && iprev_sibling < m_cap));
+
+    Node * child = get(ichild);
+
+    child->m_s = this;
+    child->m_parent = iparent;
+    child->m_prev_sibling = NONE;
+    child->m_next_sibling = NONE;
+
+    if(iparent == NONE)
+    {
+        C4_ASSERT(ichild == 0);
+        C4_ASSERT(iprev_sibling == NONE);
+        m_head = ichild;
+    }
+    m_tail = ichild;
+
+    if(iparent == NONE) return;
+
+    Node *parent = get(iparent);
+    Node *psib   = get(iprev_sibling);
+    Node *nsib   = psib ? psib->next_sibling() : parent->first_child();
+
+    if(psib)
+    {
+        C4_ASSERT(psib->next_sibling() == nsib);
+        child->m_prev_sibling = psib->id();
+        psib->m_next_sibling = child->id();
+        C4_ASSERT(psib->m_prev_sibling != psib->m_next_sibling || psib->m_prev_sibling == NONE);
+    }
+
+    if(nsib)
+    {
+        C4_ASSERT(nsib->prev_sibling() == psib);
+        child->m_next_sibling = nsib->id();
+        nsib->m_prev_sibling = child->id();
+        C4_ASSERT(nsib->m_prev_sibling != nsib->m_next_sibling || nsib->m_prev_sibling == NONE);
+    }
+
+    if(parent->m_first_child == NONE)
+    {
+        C4_ASSERT(parent->m_last_child == NONE);
+        parent->m_first_child = child->id();
+        parent->m_last_child = child->id();
+    }
+    else
+    {
+        if(child->m_next_sibling == parent->m_first_child)
+        {
+            parent->m_first_child = child->id();
+        }
+        if(child->m_prev_sibling == parent->m_last_child)
+        {
+            parent->m_last_child = child->id();
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+void Tree::_rem_hierarchy(size_t i)
+{
+    C4_ASSERT(i >= 0 && i < m_cap);
+
+    Node & w = m_buf[i];
+
     // remove from the parent
     if(w.m_parent != NONE)
     {
@@ -490,108 +609,46 @@ void Tree::_release(size_t i)
         Node * next = get(w.m_next_sibling);
         next->m_prev_sibling = w.m_prev_sibling;
     }
-
-    // add to the front of the free list
-    w.m_next_sibling = m_free_head;
-    w.m_prev_sibling = NONE;
-    if(m_free_head != NONE)
-    {
-        m_buf[m_free_head].m_prev_sibling = i;
-    }
-    m_free_head = i;
-    if(m_free_tail == NONE)
-    {
-        m_free_tail = m_free_head;
-    }
-
-    _clear(i);
-
-    --m_size;
 }
 
 //-----------------------------------------------------------------------------
-size_t Tree::_claim(size_t iparent, size_t iprev_sibling)
+void Tree::move(size_t node, size_t after)
 {
-    C4_ASSERT(iparent == NONE || (iparent >= 0 && iparent < m_cap));
-    C4_ASSERT(iprev_sibling == NONE || (iprev_sibling >= 0 && iprev_sibling < m_cap));
+    C4_ASSERT(node != NONE);
+    C4_ASSERT( ! get(node)->is_root());
 
-    if(m_free_head == NONE || m_buf == nullptr)
+    _rem_hierarchy(node);
+    _set_hierarchy(node, get(node)->m_parent, after);
+}
+
+//-----------------------------------------------------------------------------
+void Tree::move(size_t node, size_t new_parent, size_t after)
+{
+    C4_ASSERT(node != NONE);
+    C4_ASSERT(new_parent != NONE);
+    C4_ASSERT( ! get(node)->is_root());
+
+    _rem_hierarchy(node);
+    _set_hierarchy(node, new_parent, after);
+}
+
+//-----------------------------------------------------------------------------
+size_t Tree::duplicate(size_t node, size_t new_parent, size_t after)
+{
+    C4_ASSERT(node != NONE);
+    C4_ASSERT(new_parent != NONE);
+    C4_ASSERT( ! get(node)->is_root());
+
+    size_t copy = _claim();
+    _set_hierarchy(copy, new_parent, after);
+
+    size_t last = NONE;
+    for(Node const* ch = get(node)->first_child(); ch; ch = ch->next_sibling())
     {
-        size_t sz = 2 * m_cap;
-        sz = sz ? sz : 16;
-        reserve(sz);
-        C4_ASSERT(m_free_head != NONE);
+        last = duplicate(ch->id(), copy, last);
     }
 
-    C4_ASSERT(m_size < m_cap);
-    size_t ichild = m_free_head;
-    Node *child = m_buf + ichild;
-
-    ++m_size;
-    m_free_head = child->m_next_sibling;
-    if(m_free_head == NONE)
-    {
-        m_free_tail = NONE;
-        C4_ASSERT(m_size == m_cap);
-    }
-
-    _clear(ichild);
-
-    child->m_s = this;
-    child->m_parent = iparent;
-    child->m_prev_sibling = NONE;
-    child->m_next_sibling = NONE;
-
-    if(iparent == NONE)
-    {
-        C4_ASSERT(ichild == 0);
-        C4_ASSERT(iprev_sibling == NONE);
-        m_head = ichild;
-    }
-    m_tail = ichild;
-
-    if(iparent == NONE) return ichild;
-
-    Node *parent = get(iparent);
-    Node *psib   = get(iprev_sibling);
-    Node *nsib   = psib ? psib->next_sibling() : parent->first_child();
-
-    if(psib)
-    {
-        C4_ASSERT(psib->next_sibling() == nsib);
-        child->m_prev_sibling = psib->id();
-        psib->m_next_sibling = child->id();
-        C4_ASSERT(psib->m_prev_sibling != psib->m_next_sibling || psib->m_prev_sibling == NONE);
-    }
-
-    if(nsib)
-    {
-        C4_ASSERT(nsib->prev_sibling() == psib);
-        child->m_next_sibling = nsib->id();
-        nsib->m_prev_sibling = child->id();
-        C4_ASSERT(nsib->m_prev_sibling != nsib->m_next_sibling || nsib->m_prev_sibling == NONE);
-    }
-
-
-    if(parent->m_first_child == NONE)
-    {
-        C4_ASSERT(parent->m_last_child == NONE);
-        parent->m_first_child = child->id();
-        parent->m_last_child = child->id();
-    }
-    else
-    {
-        if(child->m_next_sibling == parent->m_first_child)
-        {
-            parent->m_first_child = child->id();
-        }
-        if(child->m_prev_sibling == parent->m_last_child)
-        {
-            parent->m_last_child = child->id();
-        }
-    }
-
-    return ichild;
+    return copy;
 }
 
 //-----------------------------------------------------------------------------
