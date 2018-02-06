@@ -58,28 +58,18 @@ private:
 
 public:
 
-    struct listseq
-    {
-        size_t prev;
-        size_t next;
-    };
-    struct childrenfl
-    {
-        size_t first;
-        size_t last;
-    };
-
-public:
-
     mutable Tree * m_s;
+
     NodeType_e     m_type;
     cspan          m_key, m_key_tag;
     cspan          m_val, m_val_tag;
 
     size_t         m_parent;
-    childrenfl     m_children;
+    size_t         m_first_child;
+    size_t         m_last_child;
 
-    listseq        m_list;
+    size_t         m_next_sibling;
+    size_t         m_prev_sibling;
 
 public:
 
@@ -120,7 +110,7 @@ public:
 
     /** true when name and value are empty, and has no children */
     bool   empty() const { return ! has_children() && m_key.empty() && (( ! (m_type & VAL)) || m_val.empty()); }
-    bool   has_children() const { return m_children.first != NONE; }
+    bool   has_children() const { return m_first_child != NONE; }
     /** counts with this */
     bool   has_siblings() const;
     /** does not count with this */
@@ -222,8 +212,8 @@ public:
         m_val.clear();
         m_val_tag.clear();
         m_parent = NONE;
-        m_children.first = NONE;
-        m_children.last = NONE;
+        m_first_child = NONE;
+        m_last_child = NONE;
     }
 
     inline void _clear_key()
@@ -470,13 +460,14 @@ public:
     Node *  append_child(Node *n) { return insert_child(n, n->last_child()); }
 
     /** create and insert a new child of "parent". insert after the (to-be)
-     * sibling "after", which must be a child of "parent". */
+     * sibling "after", which must be a child of "parent". To insert as the
+     * first child, set after to NONE */
     size_t insert_child(size_t parent, size_t after)
     {
+        C4_ASSERT(parent != NONE);
         C4_ASSERT(get(parent)->is_container() || get(parent)->is_root());
         C4_ASSERT(get(parent)->has_child(get(after)) || after == NONE);
-        size_t child = (after == NONE) ? claim(parent) : claim(after);
-        set_parent(parent, child);
+        size_t child = _claim(parent, after);
         return child;
     }
     size_t prepend_child(size_t n) { return insert_child(n, NONE); }
@@ -484,34 +475,24 @@ public:
 
 public:
 
-    //! remove a child by name, pointer version
-    void remove_child(Node * parent, Node * child)
-    {
-        remove_child(id(parent), id(child));
-    }
-    //! remove a child by name, index version
-    void remove_child(size_t parent, size_t child)
-    {
-        C4_ASSERT(get(parent)->is_container());
-        C4_ASSERT(get(parent)->has_children());
-        release(child);
-        C4_ERROR("not implemented");
-    }
-
     //! remove an entire branch at once
-    void remove_branch(Node *first)
+    void remove_branch(size_t node)
     {
-        remove_branch(id(first));
-    }
-    //! remove an entire branch at once
-    void remove_branch(size_t first)
-    {
-        C4_ERROR("not implemented");
+        remove_children(node);
+        _release(node);
     }
 
     void remove_children(size_t parent)
     {
-        C4_ERROR("not implemented");
+        size_t ich = get(parent)->m_first_child;
+        while(ich != NONE)
+        {
+            remove_children(ich);
+            size_t next = get(ich)->m_next_sibling;
+            _release(ich);
+            if(ich == get(parent)->m_last_child) break;
+            ich = next;
+        }
     }
 
 public:
@@ -527,13 +508,10 @@ public:
 
 private:
 
-    void set_parent(size_t parent, size_t child);
-    void clear_range(size_t first, size_t num);
+    void _clear_range(size_t first, size_t num);
 
-    size_t claim(size_t after);
-    size_t claim(size_t prev, size_t next);
-
-    void release(size_t i);
+    size_t _claim(size_t parent, size_t after_sibling);
+    void   _release(size_t i);
 
     /** does not clear children */
     void _clear(size_t i)
@@ -541,12 +519,6 @@ private:
         Node *n = get(i);
         n->_clear();
     }
-
-    Node      * head()       { return m_buf + m_head; }
-    Node const* head() const { return m_buf + m_head; }
-
-    Node      * tail()       { return m_buf + m_tail; }
-    Node const* tail() const { return m_buf + m_tail; }
 
 public:
 
@@ -562,7 +534,7 @@ public:
 public:
 
     template< class T >
-    span to_arena(T const& a)
+    cspan to_arena(T const& a)
     {
         span rem(m_arena.subspan(m_arena_pos));
         size_t num = to_str(rem, a);
@@ -636,40 +608,36 @@ struct NodeScalar
 
     /// initialize as an untagged scalar
 
+    template< size_t N >
+    inline NodeScalar(const char (&s)[N]      ) : tag(), scalar(    ) { /*avoid strlen call*/ scalar.assign<N>(s); }
     inline NodeScalar(cspan const& s          ) : tag(), scalar(s   ) {}
     inline NodeScalar(const char*  s          ) : tag(), scalar(s   ) {}
     inline NodeScalar(const char*  s, size_t n) : tag(), scalar(s, n) {}
-    template< size_t N >
-    inline NodeScalar(const char (&s)[N]      ) : tag(), scalar(    ) { /*avoid strlen call*/ scalar.assign<N>(s); }
 
     /// initialize as a tagged scalar
 
+    template< size_t M >
+    inline NodeScalar(cspan const& t           , const char (&s)[M]       ) : tag(t    ), scalar(     ) { /*avoid strlen call */scalar.assign<M>(s); }
     inline NodeScalar(cspan const& t           , cspan const& s           ) : tag(t    ), scalar(s    ) {}
     inline NodeScalar(cspan const& t           , const char * s           ) : tag(t    ), scalar(s    ) {}
     inline NodeScalar(cspan const& t           , const char * s, size_t ns) : tag(t    ), scalar(s, ns) {}
-    template< size_t M >
-    inline NodeScalar(cspan const& t           , const char (&s)[M]       ) : tag(t    ), scalar(     ) { /*avoid strlen call */scalar.assign<M>(s); }
 
+    template< size_t M >
+    inline NodeScalar(const char * t           , const char (&s)[M]       ) : tag(t    ), scalar(     ) { /*avoid strlen call */scalar.assign<M>(s); }
     inline NodeScalar(const char * t           , cspan const& s           ) : tag(t    ), scalar(s    ) {}
     inline NodeScalar(const char * t           , const char * s           ) : tag(t    ), scalar(s    ) {}
     inline NodeScalar(const char * t           , const char * s, size_t ns) : tag(t    ), scalar(s, ns) {}
-    template< size_t M >
-    inline NodeScalar(const char * t           , const char (&s)[M]       ) : tag(t    ), scalar(     ) { /*avoid strlen call */scalar.assign<M>(s); }
 
-    inline NodeScalar(const char  *t, size_t nt, cspan const& s           ) : tag(t, nt), scalar(s    ) {}
-    inline NodeScalar(const char  *t, size_t nt, const char * s           ) : tag(t, nt), scalar(s    ) {}
-    inline NodeScalar(const char  *t, size_t nt, const char * s, size_t ns) : tag(t, nt), scalar(s, ns) {}
     template< size_t M >
-    inline NodeScalar(const char  *t, size_t nt, const char (&s)[M]       ) : tag(t, nt), scalar(     ) { /*avoid strlen call */scalar.assign<M>(s); }
+    inline NodeScalar(const char * t, size_t nt, const char (&s)[M]       ) : tag(t, nt), scalar(     ) { /*avoid strlen call */scalar.assign<M>(s); }
+    inline NodeScalar(const char * t, size_t nt, cspan const& s           ) : tag(t, nt), scalar(s    ) {}
+    inline NodeScalar(const char * t, size_t nt, const char * s           ) : tag(t, nt), scalar(s    ) {}
+    inline NodeScalar(const char * t, size_t nt, const char * s, size_t ns) : tag(t, nt), scalar(s, ns) {}
 
-    template< size_t N >
-    inline NodeScalar(const char (&t)[N]       , cspan const& s           ) : tag(     ), scalar(s    ) {}
-    template< size_t N >
-    inline NodeScalar(const char (&t)[N]       , const char * s           ) : tag(     ), scalar(s    ) { /*avoid strlen call */tag.assign<N>(t); }
-    template< size_t N >
-    inline NodeScalar(const char (&t)[N]       , const char * s, size_t ns) : tag(     ), scalar(s, ns) { /*avoid strlen call */tag.assign<N>(t); }
-    template< size_t N, size_t M >
-    inline NodeScalar(const char (&t)[N]       , const char (&s)[M]       ) : tag(     ), scalar(     ) { /*avoid strlen call */tag.assign<N>(t); scalar.assign<M>(s); }
+    template< size_t N, size_t M > inline NodeScalar(const char (&t)[N], const char (&s)[M]       ) : tag(     ), scalar(     ) { /*avoid strlen call */tag.assign<N>(t); scalar.assign<M>(s); }
+    template< size_t N >           inline NodeScalar(const char (&t)[N], cspan const& s           ) : tag(     ), scalar(s    ) { /*avoid strlen call */tag.assign<N>(t); }
+    template< size_t N >           inline NodeScalar(const char (&t)[N], const char * s           ) : tag(     ), scalar(s    ) { /*avoid strlen call */tag.assign<N>(t); }
+    template< size_t N >           inline NodeScalar(const char (&t)[N], const char * s, size_t ns) : tag(     ), scalar(s, ns) { /*avoid strlen call */tag.assign<N>(t); }
 
     bool empty() const { return scalar.empty(); }
 
@@ -1108,7 +1076,7 @@ public:
 
     NodeRef append_child()
     {
-        NodeRef after(m_tree, get()->m_children.last);
+        NodeRef after(m_tree, get()->m_last_child);
         return insert_child(after);
     }
 
@@ -1131,7 +1099,7 @@ public:
 
     NodeRef append_child(NodeInit const& i)
     {
-        NodeRef after(m_tree, get()->m_children.last);
+        NodeRef after(m_tree, get()->m_last_child);
         return insert_child(i, after);
     }
 
@@ -1153,6 +1121,30 @@ public:
     {
         C4_ASSERT( ! is_root());
         return parent().append_child(i);
+    }
+
+public:
+
+    void remove_child(NodeRef & child)
+    {
+        C4_ASSERT(has_child(child));
+        C4_ASSERT(child.parent().id() == id());
+        m_tree->remove_branch(child.id());
+        child.clear();
+    }
+
+    //! remove the nth child of this node
+    void remove_child(size_t n)
+    {
+        Node const &child = (*m_tree->get(m_id))[n];
+        m_tree->remove_branch(child.id());
+    }
+
+    //! remove a child by name
+    void remove_child(cspan name)
+    {
+        Node const &child = (*m_tree->get(m_id))[name];
+        m_tree->remove_branch(child.id());
     }
 
 private:
@@ -1209,8 +1201,8 @@ public:
           children_container children()       { return       children_container(begin(), end()); }
     const_children_container children() const { return const_children_container(begin(), end()); }
 
-          children_container siblings()       { if(is_root()) { return       children_container(end(), end()); } else { size_t p = get()->m_parent; return       children_container(iterator(m_tree, m_tree->get(p)->m_children.first), iterator(m_tree, NONE)); } }
-    const_children_container siblings() const { if(is_root()) { return const_children_container(end(), end()); } else { size_t p = get()->m_parent; return const_children_container(const_iterator(m_tree, m_tree->get(p)->m_children.first), const_iterator(m_tree, NONE)); } }
+          children_container siblings()       { if(is_root()) { return       children_container(end(), end()); } else { size_t p = get()->m_parent; return       children_container(iterator(m_tree, m_tree->get(p)->m_first_child), iterator(m_tree, NONE)); } }
+    const_children_container siblings() const { if(is_root()) { return const_children_container(end(), end()); } else { size_t p = get()->m_parent; return const_children_container(const_iterator(m_tree, m_tree->get(p)->m_first_child), const_iterator(m_tree, NONE)); } }
 
 private:
 

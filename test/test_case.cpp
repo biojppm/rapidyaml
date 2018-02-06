@@ -405,16 +405,67 @@ void check_invariants(Node const& n)
     }
 }
 
+size_t check_tree_invariants(Node const* n)
+{
+    auto parent = n->parent();
+
+    if(n->m_prev_sibling == NONE)
+    {
+        if(parent)
+        {
+            EXPECT_EQ(parent->first_child(), n);
+            EXPECT_EQ(parent->first_child()->id(), n->id());
+        }
+    }
+
+    if(n->m_next_sibling == NONE)
+    {
+        if(parent)
+        {
+            EXPECT_EQ(parent->last_child(), n);
+            EXPECT_EQ(parent->last_child()->id(), n->id());
+        }
+    }
+
+    if( ! parent)
+    {
+        EXPECT_TRUE(n->is_root());
+        EXPECT_EQ(n->prev_sibling(), nullptr);
+        EXPECT_EQ(n->next_sibling(), nullptr);
+    }
+
+    size_t count = 1, num = 0;
+    for(Node const* ch = n->first_child(); ch; ch = ch->next_sibling())
+    {
+        EXPECT_NE(ch, n);
+        count += check_tree_invariants(ch);
+        ++num;
+    }
+
+    EXPECT_EQ(num, n->num_children());
+
+    return count;
+}
+
 void check_invariants(Tree const& t)
 {
+
+    EXPECT_LE(t.size(), t.capacity());
+    EXPECT_EQ(t.size() + t.slack(), t.capacity());
+
+    size_t count = check_tree_invariants(t.root());
+    EXPECT_EQ(count, t.size());
+
+    return;
+
     for(size_t i = 0; i < t.m_size; ++i)
     {
         auto n = t.get(i);
-        if(n->m_list.prev == NONE)
+        if(n->m_prev_sibling == NONE)
         {
             EXPECT_TRUE(i == t.m_head || i == t.m_free_head);
         }
-        if(n->m_list.next == NONE)
+        if(n->m_next_sibling == NONE)
         {
             EXPECT_TRUE(i == t.m_tail || i == t.m_free_tail);
         }
@@ -422,7 +473,7 @@ void check_invariants(Tree const& t)
 
     std::vector<bool> touched(t.capacity());
 
-    for(size_t i = t.m_head; i != NONE; i = t.get(i)->m_list.next)
+    for(size_t i = t.m_head; i != NONE; i = t.get(i)->m_next_sibling)
     {
         touched[i] = true;
     }
@@ -438,7 +489,7 @@ void check_invariants(Tree const& t)
     touched.clear();
     touched.resize(t.capacity());
 
-    for(size_t i = t.m_free_head; i != NONE; i = t.get(i)->m_list.next)
+    for(size_t i = t.m_free_head; i != NONE; i = t.get(i)->m_next_sibling)
     {
         touched[i] = true;
     }

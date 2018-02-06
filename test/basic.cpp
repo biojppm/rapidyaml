@@ -1073,6 +1073,58 @@ TEST(NodeRef, 3_insert_child)
     noderef_check_tree(root);
 }
 
+TEST(NodeRef, 4_remove_child)
+{
+    Tree t;
+
+    NodeRef root(&t);
+    NodeRef none(&t, NONE);
+
+    root |= SEQ;
+    root.insert_child({"3"}, none);
+    root.insert_child({"4"}, root[0]);
+    root.insert_child({"0"}, none);
+    root.insert_child({"5"}, root[2]);
+    root.insert_child({"1"}, root[0]);
+    root.insert_child({"2"}, root[1]);
+
+    std::vector< int > vec({10, 20, 30, 40, 50, 60, 70, 80, 90});
+    root.insert_child(root[0]) << vec; // 1
+    root.insert_child(root[2]) << vec; // 3
+    root.insert_child(root[4]) << vec; // 5
+    root.insert_child(root[6]) << vec; // 7
+    root.insert_child(root[8]) << vec; // 9
+    root.append_child() << vec;        // 10
+
+    root.remove_child(11);
+    root.remove_child(9);
+    root.remove_child(7);
+    root.remove_child(5);
+    root.remove_child(3);
+    root.remove_child(1);
+
+    noderef_check_tree(root);
+
+    std::vector< std::vector<int> > vec2({{100, 200}, {300, 400}, {500, 600}, {700, 800, 900}});
+    root.prepend_child() << vec2; // 0
+    root.insert_child(root[1]) << vec2; // 2
+    root.insert_child(root[3]) << vec2; // 4
+    root.insert_child(root[5]) << vec2; // 6
+    root.insert_child(root[7]) << vec2; // 8
+    root.insert_child(root[9]) << vec2; // 10
+    root.append_child() << vec2;        // 12
+
+    root.remove_child(12);
+    root.remove_child(10);
+    root.remove_child(8);
+    root.remove_child(6);
+    root.remove_child(4);
+    root.remove_child(2);
+    root.remove_child(0);
+
+    noderef_check_tree(root);
+}
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
