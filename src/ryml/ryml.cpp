@@ -169,7 +169,7 @@ Node * Node::find_sibling(cspan const& name) const
 Node * Node::prev_sibling() const
 {
     if(m_prev_sibling == NONE) return nullptr;
-    if(m_s->id(this) == m_s->get(m_parent)->m_first_child) return nullptr;
+    //if(m_s->id(this) == m_s->get(m_parent)->m_first_child) return nullptr;
     Node *n = m_s->get(m_prev_sibling);
     C4_ASSERT( ! n || n->m_parent == m_parent);
     return n;
@@ -178,7 +178,7 @@ Node * Node::prev_sibling() const
 Node * Node::next_sibling() const
 {
     if(m_next_sibling == NONE) return nullptr;
-    if(m_s->id(this) == m_s->get(m_parent)->m_last_child) return nullptr;
+    //if(m_s->id(this) == m_s->get(m_parent)->m_last_child) return nullptr;
     Node *n = m_s->get(m_next_sibling);
     C4_ASSERT( ! n || n->m_parent == m_parent);
     return n;
@@ -191,27 +191,6 @@ bool Node::has_sibling(Node const* s) const
         if(n == s) return true;
     }
     return false;
-}
-
-void Node::remove_child(cspan const& name)
-{
-    C4_ASSERT(find_child(name));
-    Node *n = find_child(name);
-    remove_child(n);
-}
-
-void Node::remove_child(size_t i)
-{
-    C4_ASSERT(is_container());
-    C4_ASSERT(child(i));
-    Node *n = child(i);
-    remove_child(n);
-}
-
-void Node::remove_child(Node *n)
-{
-    C4_ASSERT(n && has_child(n));
-    C4_ERROR("not implemented");
 }
 
 

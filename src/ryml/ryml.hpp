@@ -170,16 +170,6 @@ public:
 
 public:
 
-    void  remove_sibling(cspan const& name); ///< remove a sibling by name
-    void  remove_sibling(size_t i); ///< remove a sibling by index
-    void  remove_sibling(Node *n);  ///< remove a sibling
-
-    void  remove_child  (cspan const& name); ///< remove a child by name
-    void  remove_child  (size_t i); ///< remove a child by index
-    void  remove_child  (Node *n);  ///< remove a child
-
-public:
-
     void to_val(cspan const& val, int more_flags = 0);
     void to_keyval(cspan const& key, cspan const& val, int more_flags = 0);
     void to_map(int more_flags = 0);
@@ -475,22 +465,23 @@ public:
 
 public:
 
-    //! remove an entire branch at once
+    //! remove an entire branch at once: ie remove the children and the node itself
     void remove_branch(size_t node)
     {
         remove_children(node);
         _release(node);
     }
 
-    void remove_children(size_t parent)
+    //! remove all the children at once; but keep the node itself
+    void remove_children(size_t node)
     {
-        size_t ich = get(parent)->m_first_child;
+        size_t ich = get(node)->m_first_child;
         while(ich != NONE)
         {
             remove_children(ich);
             size_t next = get(ich)->m_next_sibling;
             _release(ich);
-            if(ich == get(parent)->m_last_child) break;
+            if(ich == get(node)->m_last_child) break;
             ich = next;
         }
     }
