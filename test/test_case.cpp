@@ -2875,7 +2875,35 @@ a sequence:
   }
 ),
 
-    });
+//-----------------------------------------------------------------------------
+#define SIMPLE_ANCHOR_CASES                            \
+    "simple anchor 1"
+
+C("simple anchor 1",
+R"(
+# Anchors can be used to duplicate/inherit properties
+base: &base
+    name: Everyone has same name
+
+foo: &foo
+    <<: *base
+    age: 10
+
+bar: &bar
+    <<: *base
+    age: 20
+# foo and bar would also have name: Everyone has same name
+)",
+  L{
+      N("base", L{N("name", "Everyone has same name")}),
+      N("foo", L{N("age", "10")}),
+      N("bar", L{N("age", "20")}),
+  }
+),
+
+//-----------------------------------------------------------------------------
+
+    }); // ends the cases map
 
 //-----------------------------------------------------------------------------
 
@@ -3302,9 +3330,10 @@ INSTANTIATE_TEST_CASE_P(seqs_nested4  , YmlTestCase, ::testing::Values(NESTED_SE
 INSTANTIATE_TEST_CASE_P(map_of_seqs   , YmlTestCase, ::testing::Values(MAP_OF_SEQ_CASES));
 INSTANTIATE_TEST_CASE_P(seq_of_maps   , YmlTestCase, ::testing::Values(SEQ_OF_MAP_CASES));
 
-
 INSTANTIATE_TEST_CASE_P(maps_generic , YmlTestCase, ::testing::Values(GENERIC_MAP_CASES));
 INSTANTIATE_TEST_CASE_P(seqs_generic , YmlTestCase, ::testing::Values(GENERIC_SEQ_CASES));
+
+INSTANTIATE_TEST_CASE_P(simple_anchors, YmlTestCase, ::testing::Values(SIMPLE_ANCHOR_CASES));
 
 
 #pragma GCC diagnostic pop

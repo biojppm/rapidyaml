@@ -989,6 +989,14 @@ bool Parser::_handle_unk()
             _line_progressed(3);
             _handle_finished_file();
         }
+        else if(rem.begins_with("<<"))
+        {
+            _c4dbgp("got a reference << -- it's a map");
+            cspan ref = _scan_ref();
+            _c4dbgp("scanned ref value: '%.*s'", _c4prsp(ref));
+            _start_map(start_as_child);
+            addrem_flags(RKEY, RVAL);
+        }
         else
         {
             _c4err("parse error");
@@ -1632,6 +1640,10 @@ bool Parser::_handle_map_impl()
         {
             return true;
         }
+        else if(_handle_anchors_and_refs())
+        {
+            return true;
+        }
         else
         {
             _c4err("parse error");
@@ -1723,18 +1735,58 @@ bool Parser::_handle_top()
 }
 
 //-----------------------------------------------------------------------------
+cspan Parser::_scan_ref()
+{
+    cspan rem = m_state->line_contents.rem;
+    C4_ASSERT(rem.begins_with("<<"));
+
+    size_t pos = rem.find(": ");
+    // for now we require the target anchor to be in the same line
+    C4_ASSERT(pos != npos);
+    _line_progressed(pos + 2);
+
+    cspan ref = rem.right_of(pos);
+    pos = ref.first_of('*');
+    C4_ASSERT(pos != npos);
+    ref = ref.right_of(pos);
+    _line_progressed(pos);
+    ref = ref.left_of(ref.first_of(' '));
+    _line_progressed(ref.len);
+
+    _c4dbgp("scanned ref value: '%.*s'", _c4prsp(ref));
+    return ref;
+}
+
+//-----------------------------------------------------------------------------
 bool Parser::_handle_anchors_and_refs()
 {
     cspan rem = m_state->line_contents.rem;
-    if(rem.begins_with('&'))
+    if(has_all(RMAP|RKEY))
     {
-        _c4err("not implemented");
-        return true;
+        if(rem.begins_with("<<"))
+        {
+            _c4dbgp("found a ref!!!");
+            cspan ref = _scan_ref();
+            _c4dbgp("scanned ref value: '%.*s'", _c4prsp(ref));
+            return true;
+        }
     }
-    else if(rem.begins_with('*'))
+    else if(has_all(RVAL))
     {
-        _c4err("not implemented");
-        return true;
+        if(rem.begins_with('&'))
+        {
+            _c4dbgp("found an anchor!!!");
+            cspan anchor = rem.left_of(rem.first_of(' '));
+            _line_progressed(anchor.len);
+            anchor = anchor.subspan(1); // skip the first character
+            _c4dbgp("anchor value: '%.*s'", _c4prsp(anchor));
+            return true;
+        }
+        else if(rem.begins_with('*'))
+        {
+            _c4err("not implemented");
+            return true;
+        }
     }
     return false;
 }

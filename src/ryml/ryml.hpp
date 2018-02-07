@@ -18,16 +18,18 @@ class Parser;
 
 
 typedef enum {
-    NOTYPE  = 0,       ///< no type is set
-    VAL     = (1<<0),  ///< a leaf node, has a (possibly empty) value
-    KEY     = (1<<1),  ///< is member of a map, must have non-empty key
-    MAP     = (1<<2),  ///< a map: a parent of keyvals
-    SEQ     = (1<<3),  ///< a seq: a parent of vals
-    DOC     = (1<<4),  ///< a document
-    STREAM  = (1<<5)|SEQ,  ///< a stream: a seq of docs
-    _TYMASK = (1<<6)-1,
-    KEYTAG  = (1<<6),  ///< the key has an explicit tag/type
-    VALTAG  = (1<<7),  ///< the val has an explicit tag/type
+    NOTYPE  = 0,          ///< no type is set
+    VAL     = (1<<0),     ///< a leaf node, has a (possibly empty) value
+    KEY     = (1<<1),     ///< is member of a map, must have non-empty key
+    MAP     = (1<<2),     ///< a map: a parent of keyvals
+    SEQ     = (1<<3),     ///< a seq: a parent of vals
+    DOC     = (1<<4),     ///< a document
+    STREAM  = (1<<5)|SEQ, ///< a stream: a seq of docs
+    REF     = (1<<6),     ///< a *reference: references an &anchor
+    _TYMASK = (1<<7)-1,
+    KEYTAG  = (1<<7),     ///< the key has an explicit tag/type
+    VALTAG  = (1<<8),     ///< the val has an explicit tag/type
+    ANCHOR  = (1<<9),     ///< the node has an &anchor
     KEYVAL  = KEY|VAL,
     KEYSEQ  = KEY|SEQ,
     KEYMAP  = KEY|MAP,
@@ -58,21 +60,23 @@ private:
 
 public:
 
-    mutable Tree * m_s;
+    Tree *     m_s;
 
-    NodeType_e     m_type;
+    NodeType_e m_type;
 
-    cspan          m_key;
-    cspan          m_key_tag;
+    cspan      m_key;
+    cspan      m_key_tag;
 
-    cspan          m_val;
-    cspan          m_val_tag;
+    cspan      m_val;
+    cspan      m_val_tag;
 
-    size_t         m_parent;
-    size_t         m_first_child;
-    size_t         m_last_child;
-    size_t         m_next_sibling;
-    size_t         m_prev_sibling;
+    cspan      m_anchor;
+
+    size_t     m_parent;
+    size_t     m_first_child;
+    size_t     m_last_child;
+    size_t     m_next_sibling;
+    size_t     m_prev_sibling;
 
     void _copy_props(Node const& that)
     {
@@ -799,6 +803,12 @@ public:
     NodeRef next_sibling() const { return NodeRef(get()->next_sibling()); }
 
 public:
+
+    template< class T >
+    inline cspan to_arena(T const& s) const
+    {
+        return m_tree->to_arena(s);
+    }
 
     template< class T >
     inline void set_key_serialized(T const& k)
@@ -1597,6 +1607,7 @@ private:
     cspan _scan_comment();
     cspan _scan_quoted_scalar(const char q);
     cspan _scan_block();
+    cspan _scan_ref();
 
     cspan _filter_squot_scalar(span s);
     cspan _filter_dquot_scalar(span s);
