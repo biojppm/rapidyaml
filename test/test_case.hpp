@@ -246,7 +246,8 @@ public:
 //-----------------------------------------------------------------------------
 typedef enum {
     IGNORE_LIBYAML_PARSE_FAIL = (1<<0),
-    IGNORE_YAMLCPP_PARSE_FAIL = (1<<1)
+    IGNORE_YAMLCPP_PARSE_FAIL = (1<<1),
+    RESOLVE_REFS = (1<<2),
 } TestCaseFlags_e;
 
 struct Case

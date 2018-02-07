@@ -80,10 +80,15 @@ public:
 
     void _copy_props(Node const& that)
     {
-        m_s = that.m_s;
-        m_type = that.m_type;
         m_key = that.m_key;
         m_key_tag = that.m_key_tag;
+        _copy_props_wo_key(that);
+    }
+
+    void _copy_props_wo_key(Node const& that)
+    {
+        m_s = that.m_s;
+        m_type = that.m_type;
         m_val = that.m_val;
         m_val_tag = that.m_val_tag;
     }
@@ -103,6 +108,8 @@ public:
     cspan const& val() const { C4_ASSERT(has_val()); return m_val; }
     cspan const& val_tag() const { C4_ASSERT(has_val_tag()); return m_val_tag; }
 
+    cspan const& anchor() const { return m_anchor; }
+
     bool operator== (cspan const& cmp) const
     {
         C4_ASSERT(is_val());
@@ -121,6 +128,8 @@ public:
     bool   is_keyval() const { return (m_type & KEYVAL) == KEYVAL; }
     bool   has_key_tag() const { return (m_type & (KEY|KEYTAG)) == (KEY|KEYTAG); }
     bool   has_val_tag() const { return ((m_type & (VALTAG)) && (m_type & (VAL|MAP|SEQ))); }
+    bool   is_ref() const { return m_type & REF; }
+    bool   has_anchor() const { return ! m_anchor.empty(); }
 
     bool   parent_is_seq() const { C4_ASSERT(parent()); return parent()->is_seq(); }
     bool   parent_is_map() const { C4_ASSERT(parent()); return parent()->is_map(); }
@@ -428,6 +437,8 @@ public:
         return m_buf + i;
     }
 
+    void resolve();
+
 public:
 
     //! create and insert a new sibling of n. insert after "after"
@@ -491,6 +502,11 @@ public:
     /** duplicate the node (and its children) in a new parent */
     size_t duplicate(size_t node, size_t new_parent, size_t after);
 
+    /** duplicate the node's children (but not the node) in a new parent */
+    void   duplicate_children(size_t node, size_t parent, size_t after);
+
+    void   duplicate_contents(size_t node, size_t where);
+
 private:
 
     void _clear_range(size_t first, size_t num);
@@ -500,13 +516,6 @@ private:
 
     void _set_hierarchy(size_t node, size_t parent, size_t after_sibling);
     void _rem_hierarchy(size_t node);
-
-    /** does not clear children */
-    void _clear(size_t i)
-    {
-        Node *n = get(i);
-        n->_clear();
-    }
 
 public:
 

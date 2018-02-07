@@ -1294,15 +1294,36 @@ TEST_P(YmlTestCase, parse_using_yaml_cpp)
 TEST_P(YmlTestCase, parse_using_ryml)
 {
     parse(d->src, &d->parsed_tree);
-    check_invariants(d->parsed_tree);
+    {
+        SCOPED_TRACE("checking tree invariants of parsed tree");
+        check_invariants(d->parsed_tree);
+    }
 #ifdef RYML_DBG
     print_tree(c->root);
     print_tree(d->parsed_tree);
 #endif
     {
-        SCOPED_TRACE("checking invariants of parsed tree");
+        SCOPED_TRACE("checking node invariants of parsed tree");
         check_invariants(*d->parsed_tree.root());
     }
+
+    if(c->flags & RESOLVE_REFS)
+    {
+        d->parsed_tree.resolve();
+#ifdef RYML_DBG
+        std::cout << "resolved tree!!!\n";
+        print_tree(d->parsed_tree);
+#endif
+        {
+            SCOPED_TRACE("checking tree invariants of resolved parsed tree");
+            check_invariants(d->parsed_tree);
+        }
+        {
+            SCOPED_TRACE("checking node invariants of resolved parsed tree");
+            check_invariants(*d->parsed_tree.root());
+        }
+    }
+
     {
         SCOPED_TRACE("comparing parsed tree to ref tree");
         EXPECT_GE(d->parsed_tree.capacity(), c->root.reccount());

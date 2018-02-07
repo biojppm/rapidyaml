@@ -2878,7 +2878,9 @@ a sequence:
 //-----------------------------------------------------------------------------
 #define SIMPLE_ANCHOR_CASES                            \
     "simple anchor 1, implicit, unresolved",\
-    "simple anchor 1, explicit, unresolved"
+    "simple anchor 1, implicit, resolved",\
+    "simple anchor 1, explicit, unresolved",\
+    "simple anchor 1, explicit, resolved"
 
 C("simple anchor 1, implicit, unresolved",
 R"(
@@ -2909,7 +2911,7 @@ bar: &bar
   }
 ),
 
-C("simple anchor 1, implicit, resolved",
+C("simple anchor 1, implicit, resolved", RESOLVE_REFS,
 R"(
 anchored_content: &anchor_name This string will appear as the value of two keys.
 other_anchor: *anchor_name
@@ -2971,7 +2973,7 @@ bar: &bar {
   }
 ),
 
-C("simple anchor 1, explicit, resolved",
+C("simple anchor 1, explicit, resolved", RESOLVE_REFS,
 R"({
 anchored_content: &anchor_name This string will appear as the value of two keys.,
 other_anchor: *anchor_name,

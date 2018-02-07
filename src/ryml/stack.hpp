@@ -130,6 +130,9 @@ public:
     T const& bottom(size_t i) const { C4_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
     T      & bottom(size_t i)       { C4_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
 
+    T const& operator[](size_t i) const { C4_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
+    T      & operator[](size_t i)       { C4_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
+
     using iterator = T *;
     using const_iterator = T const *;
 

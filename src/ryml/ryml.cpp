@@ -458,7 +458,7 @@ void Tree::_clear_range(size_t first, size_t num)
     memset(m_buf + first, 0, num * sizeof(Node));
     for(size_t i = first, e = first + num; i < e; ++i)
     {
-        _clear(i);
+        get(i)->_clear();
         Node *n = m_buf + i;
         n->m_prev_sibling = i - 1;
         n->m_next_sibling = i + 1;
@@ -487,7 +487,7 @@ void Tree::_release(size_t i)
         m_free_tail = m_free_head;
     }
 
-    _clear(i);
+    get(i)->_clear();
 
     --m_size;
 }
@@ -504,6 +504,8 @@ size_t Tree::_claim()
     }
 
     C4_ASSERT(m_size < m_cap);
+    C4_ASSERT(m_free_head >= 0 && m_free_head < m_cap);
+
     size_t ichild = m_free_head;
     Node *child = m_buf + ichild;
 
@@ -515,7 +517,7 @@ size_t Tree::_claim()
         C4_ASSERT(m_size == m_cap);
     }
 
-    _clear(ichild);
+    get(ichild)->_clear();
 
     return ichild;
 }
@@ -660,6 +662,156 @@ size_t Tree::duplicate(size_t node, size_t parent, size_t after)
     }
 
     return copy;
+}
+
+void Tree::duplicate_children(size_t node, size_t parent, size_t after)
+{
+    C4_ASSERT(node != NONE);
+    Node const *nnode = get(node);
+    size_t prev = after;
+    for(Node const* ch = nnode->first_child(); ch; ch = ch->next_sibling())
+    {
+        prev = duplicate(ch->id(), parent, prev);
+    }
+}
+
+void Tree::duplicate_contents(size_t node, size_t where)
+{
+    C4_ASSERT(node != NONE);
+    Node const* nnode  = get(node);
+    Node      * nwhere = get(where);
+    nwhere->_copy_props_wo_key(*nnode);
+    duplicate_children(node, where, NONE);
+}
+
+//-----------------------------------------------------------------------------
+namespace detail {
+struct ReferenceResolver
+{
+    struct refdata {
+        bool   is_ref;
+        size_t node;
+        size_t prev_anchor;
+        size_t target;
+    };
+
+    Node * root;
+    stack<refdata> refs;
+
+    ReferenceResolver(Node *r_) : root(r_), refs()
+    {
+        resolve();
+    }
+
+    static size_t count(Node const* n)
+    {
+        size_t c = 0;
+        if(n->is_ref() || n->has_anchor())
+        {
+            ++c;
+        }
+        for(Node const* ch = n->first_child(); ch; ch = ch->next_sibling())
+        {
+            c += count(ch);
+        }
+        return c;
+    }
+
+    void store()
+    {
+        size_t nrefs = 0;
+        nrefs = count(root);
+        if(nrefs == 0) return;
+        refs.reserve(nrefs);
+        _store(root);
+
+        size_t prev_anchor = npos;
+        size_t count = 0;
+        for(auto &rd : refs)
+        {
+            rd.prev_anchor = prev_anchor;
+            if( ! rd.is_ref)
+            {
+                prev_anchor = count;
+            }
+            ++count;
+        }
+    }
+
+    void _store(Node const* n)
+    {
+        if(n->is_ref())
+        {
+            refs.push({true, n->id(), npos, npos});
+        }
+        else if(n->has_anchor())
+        {
+            refs.push({false, n->id(), npos, npos});
+        }
+
+        for(Node const* ch = n->first_child(); ch; ch = ch->next_sibling())
+        {
+            _store(ch);
+        }
+    }
+
+    void resolve()
+    {
+        store();
+        if(refs.empty()) return;
+
+        /** from the specs: "an alias node refers to the most recent
+         * node in the serialization having the specified anchor". So
+         * we start looking upward from ref nodes.
+         *
+         * @see http://yaml.org/spec/1.2/spec.html#id2765878 */
+        Tree &t = *root->tree();
+        for(size_t i = 0, e = refs.size(); i < e; ++i)
+        {
+            auto & rd = refs.top(i);
+            if( ! rd.is_ref) continue;
+            cspan refname = t.get(rd.node)->val().subspan(1);
+            auto const* ra = &rd;
+            while(ra->prev_anchor != npos)
+            {
+                ra = &refs[ra->prev_anchor];
+                cspan anchor_name = t.get(ra->node)->anchor();
+                if(anchor_name == refname)
+                {
+                    rd.target = ra->node;
+                    break;
+                }
+            }
+            C4_ASSERT(rd.target != npos);
+        }
+    }
+};
+
+} // empty namespace
+
+void Tree::resolve()
+{
+    if(m_size == 0) return;
+
+    detail::ReferenceResolver rr(root());
+
+    for(size_t i = 0, e = rr.refs.size(); i < e; ++i)
+    {
+        auto const& rd = rr.refs[i];
+        if( ! rd.is_ref) continue;
+        Node *n = get(rd.node);
+        size_t prev = n->m_prev_sibling;
+        size_t parent = n->m_parent;
+        if(n->is_keyval() && n->key() == "<<")
+        {
+            remove(rd.node);
+            duplicate_children(rd.target, parent, prev);
+        }
+        else
+        {
+            duplicate_contents(rd.target, rd.node);
+        }
+    }
 }
 
 //-----------------------------------------------------------------------------
