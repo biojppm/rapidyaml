@@ -2948,7 +2948,9 @@ a sequence:
     "simple anchor 1, implicit, unresolved",\
     "simple anchor 1, implicit, resolved",\
     "simple anchor 1, explicit, unresolved",\
-    "simple anchor 1, explicit, resolved"
+    "simple anchor 1, explicit, resolved",\
+    "anchor example 2, unresolved",   \
+    "anchor example 2, resolved"
 
 C("simple anchor 1, implicit, unresolved",
 R"(
@@ -3074,6 +3076,117 @@ bar: &bar {
   }
 ),
 
+
+C("anchor example 2, unresolved",
+R"(
+receipt:     Oz-Ware Purchase Invoice
+date:        2012-08-06
+customer:
+    first_name:   Dorothy
+    family_name:  Gale
+items:
+    - part_no:   A4786
+      descrip:   Water Bucket (Filled)
+      price:     1.47
+      quantity:  4
+    - part_no:   E1628
+      descrip:   High Heeled "Ruby" Slippers
+      size:      8
+      price:     133.7
+      quantity:  1
+bill-to:  &id001
+    street: |
+            123 Tornado Alley
+            Suite 16
+    city:   East Centerville
+    state:  KS
+ship-to:  *id001
+specialDelivery:  >
+    Follow the Yellow Brick
+    Road to the Emerald City.
+    Pay no attention to the
+    man behind the curtain.
+)",
+L{
+  N{"receipt", "Oz-Ware Purchase Invoice"},
+  N{"date",    "2012-08-06"},
+  N{"customer", L{N{"first_name", "Dorothy"}, N{"family_name", "Gale"}}},
+  N{"items", L{
+    N{L{N{"part_no",   "A4786"},
+        N{"descrip",   "Water Bucket (Filled)"},
+        N{"price",     "1.47"},
+        N{"quantity",  "4"},}},
+    N{L{N{"part_no", "E1628"},
+        N{"descrip",   "High Heeled \"Ruby\" Slippers"},
+        N{"size",      "8"},
+        N{"price",     "133.7"},
+        N{"quantity",  "1"},}}}},
+   N{"bill-to", L{
+        N{"street", "123 Tornado Alley\nSuite 16\n"},
+        N{"city", "East Centerville"},
+        N{"state", "KS"},}},
+   N{REF, "ship-to", "*id001"},
+   N{"specialDelivery", "Follow the Yellow Brick Road to the Emerald City. Pay no attention to the man behind the curtain.\n"}
+  }
+),
+
+
+C("anchor example 2, resolved", RESOLVE_REFS,
+R"(
+receipt:     Oz-Ware Purchase Invoice
+date:        2012-08-06
+customer:
+    first_name:   Dorothy
+    family_name:  Gale
+items:
+    - part_no:   A4786
+      descrip:   Water Bucket (Filled)
+      price:     1.47
+      quantity:  4
+    - part_no:   E1628
+      descrip:   High Heeled "Ruby" Slippers
+      size:      8
+      price:     133.7
+      quantity:  1
+bill-to:  &id001
+    street: |
+            123 Tornado Alley
+            Suite 16
+    city:   East Centerville
+    state:  KS
+ship-to:  *id001
+specialDelivery:  >
+    Follow the Yellow Brick
+    Road to the Emerald City.
+    Pay no attention to the
+    man behind the curtain.
+)",
+L{
+  N{"receipt", "Oz-Ware Purchase Invoice"},
+  N{"date",    "2012-08-06"},
+  N{"customer", L{N{"first_name", "Dorothy"}, N{"family_name", "Gale"}}},
+  N{"items", L{
+    N{L{N{"part_no",   "A4786"},
+        N{"descrip",   "Water Bucket (Filled)"},
+        N{"price",     "1.47"},
+        N{"quantity",  "4"},}},
+    N{L{N{"part_no", "E1628"},
+        N{"descrip",   "High Heeled \"Ruby\" Slippers"},
+        N{"size",      "8"},
+        N{"price",     "133.7"},
+        N{"quantity",  "1"},}}}},
+   N{"bill-to", L{
+        N{"street", "123 Tornado Alley\nSuite 16\n"},
+        N{"city", "East Centerville"},
+        N{"state", "KS"},}},
+   N{"ship-to", L{
+        N{"street", "123 Tornado Alley\nSuite 16\n"},
+        N{"city", "East Centerville"},
+        N{"state", "KS"},}},
+   N{"specialDelivery", "Follow the Yellow Brick Road to the Emerald City. Pay no attention to the man behind the curtain.\n"}
+  }
+),
+
 //-----------------------------------------------------------------------------
 
     }); // ends the cases map
@@ -3104,151 +3217,6 @@ int do_test()
 //-----------------------------------------------------------------------------
 // https://en.wikipedia.org/wiki/YAML
 
-C("simple seq",
-R"(- Casablanca
-- North by Northwest
-- The Man Who Wasn't There
-)",
-    L{N{"Casablanca"}, N{"North by Northwest"}, N{"The Man Who Wasn't There"}}
-),
-
-C("simple seq in a doc",
-R"(--- # Favorite movies
-- Casablanca
-- North by Northwest
-- The Man Who Wasn't There
-)",
-    N{DOC, {N{"Casablanca"}, N{"North by Northwest"}, N{"The Man Who Wasn't There"}}}
-),
-
-C("simple seq in a doc with explicit termination",
-R"(--- # Favorite movies
-- Casablanca
-- North by Northwest
-- The Man Who Wasn't There
-...
-)",
-    N{DOC, {N{"Casablanca"}, N{"North by Northwest"}, N{"The Man Who Wasn't There"}}}
-),
-
-//-----------------------------------------------------------------------------
-C("explicit seq",
-R"([milk, pumpkin pie, eggs, juice])",
-  L{N{"milk"}, N{"pumpkin pie"}, N{"eggs"}, N{"juice"}}
-),
-
-C("explicit seq in a doc",
-R"(--- # Shopping list
-[milk, pumpkin pie, eggs, juice]
-)",
-  N{DOC, {N{"milk"}, N{"pumpkin pie"}, N{"eggs"}, N{"juice"}}}
-),
-
-//-----------------------------------------------------------------------------
-C("simple map",
-R"(
-name: John Smith
-age: 33
-)",
-  L{
-      N{DOC, L{N("name", "John Smith"), N("age", "33")}},
-      N{DOC, L{N("name", "John Smith"), N("age", "33")}},
-  }
-),
-
-//-----------------------------------------------------------------------------
-C("simple map, nested",
-R"(
-  name: John Smith
-  age: 33
-)",
-  L{
-      N{DOC, L{N("name", "John Smith"), N("age", "33")}},
-      N{DOC, L{N("name", "John Smith"), N("age", "33")}},
-  }
-),
-
-//-----------------------------------------------------------------------------
-C("two docs with the same map",
-R"(--- # Indented Block
-  name: John Smith
-  age: 33
---- # Inline Block
-{name: John Smith, age: 33}
-)",
-  L{
-      N{DOC, L{N("name", "John Smith"), N("age", "33")}},
-      N{DOC, L{N("name", "John Smith"), N("age", "33")}},
-  }
-),
-
-
-//-----------------------------------------------------------------------------
-C("anchor example",
-R"(
----
-receipt:     Oz-Ware Purchase Invoice
-date:        2012-08-06
-customer:
-    first_name:   Dorothy
-    family_name:  Gale
-
-items:
-    - part_no:   A4786
-      descrip:   Water Bucket (Filled)
-      price:     1.47
-      quantity:  4
-
-    - part_no:   E1628
-      descrip:   High Heeled \"Ruby\" Slippers
-      size:      8
-      price:     133.7
-      quantity:  1
-
-bill-to:  &id001
-    street: |
-            123 Tornado Alley
-            Suite 16
-    city:   East Centerville
-    state:  KS
-
-ship-to:  *id001
-
-specialDelivery:  >
-    Follow the Yellow Brick
-    Road to the Emerald City.
-    Pay no attention to themR
-    man behind the curtain.
-...
-)",
-     L{N{DOC, L{
-N{"receipt", "Oz-Ware Purchase Invoice"},
-N{"date", "2012-08-06"},
-N{"customer", L{N{"first_name", "Dorothy"}, N{"family_name", "Gale"}}},
-N{"items", L{
-        N{L{N{"part_no", "A4786"},
-          N{"descrip",   "Water Bucket (Filled)"},
-          N{"price",     "1.47"},
-          N{"quantity",  "4"},}},
-        N{L{N{"part_no", "E1628"},
-          N{"descrip",   "High Heeled \"Ruby\" Slippers"},
-          N{"size",     "8"},
-          N{"price",     "133.7"},
-          N{"quantity",  "1"},}}}},
-N{"bill-to", L{
-        N{"street", "123 Tornado Alley\nSuite 16\n"},
-        N{"city", "East Centerville"},
-        N{"state", "KS"},}},
-N{"ship-to", L{
-        N{"street", "123 Tornado Alley\nSuite 16\n"},
-        N{"city", "East Centerville"},
-        N{"state", "KS"},}},
-N{"specialDelivery", "Follow the Yellow Brick Road to the Emerald City. Pay no attention to the man behind the curtain.\n"}
-    }}}
-),
-
-
-//-----------------------------------------------------------------------------
 C("anchor example, 2",
 R"(
 # sequencer protocols for Laser eye surgery
