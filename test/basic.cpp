@@ -1125,6 +1125,95 @@ TEST(NodeRef, 4_remove_child)
     noderef_check_tree(root);
 }
 
+TEST(NodeRef, 5_move_in_same_parent)
+{
+    Tree t;
+    NodeRef r = t;
+
+    std::vector< std::vector<int> > vec2({{100, 200}, {300, 400}, {500, 600}, {700, 800, 900}});
+    std::map< std::string, int > map2({{"foo", 100}, {"bar", 200}, {"baz", 300}});
+
+    r |= SEQ;
+    r.append_child() << vec2;
+    r.append_child() << map2;
+    r.append_child() << "elm2";
+    r.append_child() << "elm3";
+
+    Node *s = r[0].get();
+    Node *m = r[1].get();
+    EXPECT_TRUE(s->is_seq());
+    EXPECT_TRUE(m->is_map());
+    EXPECT_EQ(s->num_children(), vec2.size());
+    EXPECT_EQ(m->num_children(), map2.size());
+    //printf("fonix"); print_tree(t); emit(r);
+    r[0].move(r[1]);
+    EXPECT_EQ(r[0].get(), m);
+    EXPECT_EQ(r[0].num_children(), vec2.size());
+    EXPECT_EQ(r[1].get(), s);
+    EXPECT_EQ(r[1].num_children(), map2.size());
+    //printf("fonix"); print_tree(t); emit(r);
+}
+
+TEST(NodeRef, 6_move_to_other_parent)
+{
+    Tree t;
+    NodeRef r = t;
+
+    std::vector< std::vector<int> > vec2({{100, 200}, {300, 400}, {500, 600}, {700, 800, 900}});
+    std::map< std::string, int > map2({{"foo", 100}, {"bar", 200}, {"baz", 300}});
+
+    r |= SEQ;
+    r.append_child() << vec2;
+    r.append_child() << map2;
+    r.append_child() << "elm2";
+    r.append_child() << "elm3";
+
+    Node *elm2 = r[2].get();
+    EXPECT_EQ(r[2].val(), "elm2");
+    //printf("fonix"); print_tree(t); emit(r);
+    r[2].move(r[0], r[0][0]);
+    EXPECT_EQ(r[0][1].get(), elm2);
+    EXPECT_EQ(r[0][1].val(), "elm2");
+    //printf("fonix"); print_tree(t); emit(r);
+}
+
+TEST(NodeRef, 7_duplicate)
+{
+    Tree t;
+    NodeRef r = t;
+
+    std::vector< std::vector<int> > vec2({{100, 200}, {300, 400}, {500, 600}, {700, 800, 900}});
+    std::map< std::string, int > map2({{"bar", 200}, {"baz", 300}, {"foo", 100}});
+
+    r |= SEQ;
+    r.append_child() << vec2;
+    r.append_child() << map2;
+    r.append_child() << "elm2";
+    r.append_child() << "elm3";
+
+    EXPECT_EQ(r[0][0].num_children(), 2);
+    printf("fonix"); print_tree(t); emit(r);
+    NodeRef dup = r[1].duplicate(r[0][0], r[0][0][1]);
+    printf("fonix"); print_tree(t); emit(r);
+    EXPECT_EQ(r[0][0].num_children(), 3);
+    EXPECT_EQ(r[0][0][2].num_children(), map2.size());
+    EXPECT_NE(dup.get(), r[1].get());
+    EXPECT_EQ(dup[0].key(), "bar");
+    EXPECT_EQ(dup[0].val(), "200");
+    EXPECT_EQ(dup[1].key(), "baz");
+    EXPECT_EQ(dup[1].val(), "300");
+    EXPECT_EQ(dup[2].key(), "foo");
+    EXPECT_EQ(dup[2].val(), "100");
+    EXPECT_EQ(dup[0].key().str, r[1][0].key().str);
+    EXPECT_EQ(dup[0].val().str, r[1][0].val().str);
+    EXPECT_EQ(dup[0].key().len, r[1][0].key().len);
+    EXPECT_EQ(dup[0].val().len, r[1][0].val().len);
+    EXPECT_EQ(dup[1].key().str, r[1][1].key().str);
+    EXPECT_EQ(dup[1].val().str, r[1][1].val().str);
+    EXPECT_EQ(dup[1].key().len, r[1][1].key().len);
+    EXPECT_EQ(dup[1].val().len, r[1][1].val().len);
+}
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

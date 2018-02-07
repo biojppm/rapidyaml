@@ -706,8 +706,9 @@ public://private:
     friend class Tree;
 
     NodeRef() : m_tree(nullptr), m_id(NONE), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = NONE; }
-    NodeRef(Node *n) : m_tree(n->tree()), m_id(n->id()), m_seed() {}
-    NodeRef(Tree *t) : m_tree(t), m_id(t->root()->id()), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = NONE; }
+    NodeRef(Node *n) : m_tree(n->tree()), m_id(n->id()), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = NONE; }
+    NodeRef(Tree &t) : m_tree(&t), m_id(t .root()->id()), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = NONE; }
+    NodeRef(Tree *t) : m_tree(t ), m_id(t->root()->id()), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = NONE; }
     NodeRef(Tree *t, size_t id) : m_tree(t), m_id(id), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = NONE; }
     NodeRef(Tree *t, size_t id, size_t pos) : m_tree(t), m_id(id), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = pos; }
     NodeRef(Tree *t, size_t id, cspan  key) : m_tree(t), m_id(id), m_seed(key) {}
@@ -1042,6 +1043,28 @@ private:
         n->m_val_tag = i.val.tag;
     }
 
+    static void _set_parent_as_container_if_needed(Node *n)
+    {
+        Node *p = n->parent();
+        if(p)
+        {
+            if( ! (p->is_seq() || p->is_map()))
+            {
+                if((n->id() == p->m_first_child) && (n->id() == p->m_last_child))
+                {
+                    if( ! n->m_key.empty() || n->has_key())
+                    {
+                        p->_add_flags(MAP);
+                    }
+                    else
+                    {
+                        p->_add_flags(SEQ);
+                    }
+                }
+            }
+        }
+    }
+
 public:
 
     inline NodeRef insert_child(NodeRef after)
@@ -1112,17 +1135,17 @@ public:
 
 public:
 
-    inline void move(NodeRef & parent, NodeRef & after)
+    inline void move(NodeRef const parent, NodeRef const after)
     {
         m_tree->move(m_id, parent.m_id, after.m_id);
     }
 
-    inline void move(NodeRef & after)
+    inline void move(NodeRef const after)
     {
         m_tree->move(m_id, after.m_id);
     }
 
-    inline NodeRef duplicate(NodeRef & parent, NodeRef & after)
+    inline NodeRef duplicate(NodeRef const parent, NodeRef const after)
     {
         size_t dup = m_tree->duplicate(m_id, parent.m_id, after.m_id);
         NodeRef r(m_tree, dup);
@@ -1457,6 +1480,11 @@ inline size_t emit(Tree const &t, FILE *f = nullptr)
     return emit(t.root(), f);
 }
 
+inline size_t emit(NodeRef const& r, FILE *f = nullptr)
+{
+    return emit(r.get(), f);
+}
+
 //-----------------------------------------------------------------------------
 /** emit YAML to the given buffer. Return a subspan of the emitted YAML.
  * Raise an error if the space in the buffer is insufficient. */
@@ -1471,6 +1499,11 @@ inline span emit(Tree const& t, span const& sp, bool error_on_excess=true)
 {
     if(t.empty()) return span();
     return emit(t.root(), sp, error_on_excess);
+}
+
+inline span emit(NodeRef const& r, span const& sp, bool error_on_excess=true)
+{
+    return emit(r.get(), sp, error_on_excess);
 }
 
 //-----------------------------------------------------------------------------
@@ -1494,6 +1527,12 @@ inline span emit_resize(Tree const& t, CharOwningContainer * cont)
 {
     if(t.empty()) return span();
     return emit_resize(t.root(), cont);
+}
+
+template< class CharOwningContainer >
+inline span emit_resize(NodeRef const& r, CharOwningContainer * cont)
+{
+    return emit_resize(r.get(), cont);
 }
 
 //-----------------------------------------------------------------------------
