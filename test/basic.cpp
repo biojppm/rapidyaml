@@ -1147,11 +1147,11 @@ TEST(NodeRef, 5_move_in_same_parent)
     EXPECT_EQ(m->num_children(), map2.size());
     //printf("fonix"); print_tree(t); emit(r);
     r[0].move(r[1]);
-    EXPECT_EQ(r[0].get(), m);
-    EXPECT_EQ(r[0].num_children(), vec2.size());
-    EXPECT_EQ(r[1].get(), s);
-    EXPECT_EQ(r[1].num_children(), map2.size());
     //printf("fonix"); print_tree(t); emit(r);
+    EXPECT_EQ(r[0].get(), m);
+    EXPECT_EQ(r[0].num_children(), map2.size());
+    EXPECT_EQ(r[1].get(), s);
+    EXPECT_EQ(r[1].num_children(), vec2.size());
 }
 
 TEST(NodeRef, 6_move_to_other_parent)
