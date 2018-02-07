@@ -1089,6 +1089,10 @@ bool Parser::_handle_seq_expl()
         {
             return true;
         }
+        else if(_handle_anchors_and_refs())
+        {
+            return true;
+        }
         else
         {
             _c4err("parse error");
@@ -1432,6 +1436,10 @@ bool Parser::_handle_map_expl()
                 return true;
             }
             else if(_handle_types())
+            {
+                return true;
+            }
+            else if(_handle_anchors_and_refs())
             {
                 return true;
             }
