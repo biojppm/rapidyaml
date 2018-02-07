@@ -2950,7 +2950,9 @@ a sequence:
     "simple anchor 1, explicit, unresolved",\
     "simple anchor 1, explicit, resolved",\
     "anchor example 2, unresolved",   \
-    "anchor example 2, resolved"
+    "anchor example 2, resolved",\
+    "anchor example 3, unresolved",   \
+    "anchor example 3, resolved"
 
 C("simple anchor 1, implicit, unresolved",
 R"(
@@ -3187,6 +3189,132 @@ L{
   }
 ),
 
+C("anchor example 3, unresolved",
+R"(
+- step:  &id001                  # defines anchor label &id001
+    instrument:      Lasik 2000
+    pulseEnergy:     5.4
+    pulseDuration:   12
+    repetition:      1000
+    spotSize:        1mm
+- step: &id002
+    instrument:      Lasik 2000
+    pulseEnergy:     5.0
+    pulseDuration:   10
+    repetition:      500
+    spotSize:        2mm
+- step: *id001                   # refers to the first step (with anchor &id001)
+- step: *id002                   # refers to the second step
+- step:
+    <<: *id001
+    spotSize: 2mm                # redefines just this key, refers rest from &id001
+- step: *id002
+)",
+L{N(L{
+N{"step", L{
+    N{"instrument",      "Lasik 2000"},
+    N{"pulseEnergy",     "5.4"},
+    N{"pulseDuration",   "12"},
+    N{"repetition",      "1000"},
+    N{"spotSize",        "1mm"},
+        }},
+    }), N(L{
+N{"step", L{
+    N{"instrument",      "Lasik 2000"},
+    N{"pulseEnergy",     "5.0"},
+    N{"pulseDuration",   "10"},
+    N{"repetition",      "500"},
+    N{"spotSize",        "2mm"},
+        }},
+    }), N(L{
+N{REF, "step", "*id001"},
+    }), N(L{
+N{REF, "step", "*id002"},
+    }), N(L{
+N{"step", L{
+    N{REF, "<<", "*id001"},
+    N{"spotSize",        "2mm"},
+        }},
+    }), N(L{
+N{REF, "step", "*id002"},
+    }),
+    }
+),
+
+C("anchor example 3, resolved", RESOLVE_REFS,
+R"(
+- step:  &id001                  # defines anchor label &id001
+    instrument:      Lasik 2000
+    pulseEnergy:     5.4
+    pulseDuration:   12
+    repetition:      1000
+    spotSize:        1mm
+- step: &id002
+    instrument:      Lasik 2000
+    pulseEnergy:     5.0
+    pulseDuration:   10
+    repetition:      500
+    spotSize:        2mm
+- step: *id001                   # refers to the first step (with anchor &id001)
+- step: *id002                   # refers to the second step
+- step:
+    <<: *id001
+    spotSize: 2mm                # redefines just this key, refers rest from &id001
+- step: *id002
+)",
+  L{N(L{
+N{"step", L{
+    N{"instrument",      "Lasik 2000"},
+    N{"pulseEnergy",     "5.4"},
+    N{"pulseDuration",   "12"},
+    N{"repetition",      "1000"},
+    N{"spotSize",        "1mm"},
+        }},
+    }), N(L{
+N{"step", L{
+    N{"instrument",      "Lasik 2000"},
+    N{"pulseEnergy",     "5.0"},
+    N{"pulseDuration",   "10"},
+    N{"repetition",      "500"},
+    N{"spotSize",        "2mm"},
+        }},
+    }), N(L{
+N{"step", L{
+    N{"instrument",      "Lasik 2000"},
+    N{"pulseEnergy",     "5.4"},
+    N{"pulseDuration",   "12"},
+    N{"repetition",      "1000"},
+    N{"spotSize",        "1mm"},
+        }},
+    }), N(L{
+N{"step", L{
+    N{"instrument",      "Lasik 2000"},
+    N{"pulseEnergy",     "5.0"},
+    N{"pulseDuration",   "10"},
+    N{"repetition",      "500"},
+    N{"spotSize",        "2mm"},
+        }},
+    }), N(L{
+N{"step", L{
+    N{"instrument",      "Lasik 2000"},
+    N{"pulseEnergy",     "5.4"},
+    N{"pulseDuration",   "12"},
+    N{"repetition",      "1000"},
+    N{"spotSize",        "2mm"},
+        }},
+    }), N(L{
+N{"step", L{
+    N{"instrument",      "Lasik 2000"},
+    N{"pulseEnergy",     "5.0"},
+    N{"pulseDuration",   "10"},
+    N{"repetition",      "500"},
+    N{"spotSize",        "2mm"},
+        }},
+    }),
+    }
+),
+
+
 //-----------------------------------------------------------------------------
 
     }); // ends the cases map
@@ -3216,78 +3344,6 @@ int do_test()
     CaseContainer tests({
 //-----------------------------------------------------------------------------
 // https://en.wikipedia.org/wiki/YAML
-
-C("anchor example, 2",
-R"(
-# sequencer protocols for Laser eye surgery
----
-- step:  &id001                  # defines anchor label &id001
-    instrument:      Lasik 2000
-    pulseEnergy:     5.4
-    pulseDuration:   12
-    repetition:      1000
-    spotSize:        1mm
-
-- step: &id002
-    instrument:      Lasik 2000
-    pulseEnergy:     5.0
-    pulseDuration:   10
-    repetition:      500
-    spotSize:        2mm
-- step: *id001                   # refers to the first step (with anchor &id001)
-- step: *id002                   # refers to the second step
-- step:
-    <<: *id001
-    spotSize: 2mm                # redefines just this key, refers rest from &id001
-- step: *id002
-)",
-     L{N{DOC, L{
-N{"step", L{
-    N{"instrument",      "Lasik 2000"},
-    N{"pulseEnergy",     "5.4"},
-    N{"pulseDuration",   "12"},
-    N{"repetition",      "1000"},
-    N{"spotSize",        "1mm"},
-        }},
-N{"step", L{
-    N{"instrument",      "Lasik 2000"},
-    N{"pulseEnergy",     "5.0"},
-    N{"pulseDuration",   "10"},
-    N{"repetition",      "500"},
-    N{"spotSize",        "2mm"},
-        }},
-N{"step", L{
-    N{"instrument",      "Lasik 2000"},
-    N{"pulseEnergy",     "5.4"},
-    N{"pulseDuration",   "12"},
-    N{"repetition",      "1000"},
-    N{"spotSize",        "1mm"},
-        }},
-N{"step", L{
-    N{"instrument",      "Lasik 2000"},
-    N{"pulseEnergy",     "5.0"},
-    N{"pulseDuration",   "10"},
-    N{"repetition",      "500"},
-    N{"spotSize",        "2mm"},
-        }},
-N{"step", L{
-    N{"instrument",      "Lasik 2000"},
-    N{"pulseEnergy",     "5.4"},
-    N{"pulseDuration",   "12"},
-    N{"repetition",      "1000"},
-    N{"spotSize",        "2mm"},
-        }},
-N{"step", L{
-    N{"instrument",      "Lasik 2000"},
-    N{"pulseEnergy",     "5.0"},
-    N{"pulseDuration",   "10"},
-    N{"repetition",      "500"},
-    N{"spotSize",        "2mm"},
-        }},
-         }
-     }}
-),
-
 
 //-----------------------------------------------------------------------------
 C("literal block scalar as map entry",

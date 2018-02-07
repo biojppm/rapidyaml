@@ -504,6 +504,12 @@ public:
 
     /** duplicate the node's children (but not the node) in a new parent */
     void   duplicate_children(size_t node, size_t parent, size_t after);
+    /** duplicate the node's children (but not the node) in a new parent, but
+     * omit repetitions where a duplicated node has the same key (in maps) or
+     * value (in seqs). If one of the duplicated children has the same key
+     * (in maps) or value (in seqs) as one of the parent's children, the one
+     * that is placed closer to the end will prevail. */
+    void   duplicate_children_no_rep(size_t node, size_t parent, size_t after);
 
     void   duplicate_contents(size_t node, size_t where);
 

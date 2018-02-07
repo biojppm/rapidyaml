@@ -655,10 +655,11 @@ size_t Tree::duplicate(size_t node, size_t parent, size_t after)
     ncopy->_copy_props(*nnode);
     _set_hierarchy(copy, parent, after);
 
+    // don't loop using pointers as there may be a relocation
     size_t last = NONE;
-    for(Node const* ch = nnode->first_child(); ch; ch = ch->next_sibling())
+    for(size_t i = nnode->m_first_child; i != NONE; i = get(i)->m_next_sibling)
     {
-        last = duplicate(ch->id(), copy, last);
+        last = duplicate(i, copy, last);
     }
 
     return copy;
@@ -667,11 +668,13 @@ size_t Tree::duplicate(size_t node, size_t parent, size_t after)
 void Tree::duplicate_children(size_t node, size_t parent, size_t after)
 {
     C4_ASSERT(node != NONE);
-    Node const *nnode = get(node);
+    C4_ASSERT(after == NONE || get(parent)->has_child(get(after)));
+
+    // don't loop using pointers as there may be a relocation
     size_t prev = after;
-    for(Node const* ch = nnode->first_child(); ch; ch = ch->next_sibling())
+    for(size_t i = get(node)->m_first_child; i != NONE; i = get(i)->m_next_sibling)
     {
-        prev = duplicate(ch->id(), parent, prev);
+        prev = duplicate(i, parent, prev);
     }
 }
 
@@ -682,6 +685,75 @@ void Tree::duplicate_contents(size_t node, size_t where)
     Node      * nwhere = get(where);
     nwhere->_copy_props_wo_key(*nnode);
     duplicate_children(node, where, NONE);
+}
+
+void Tree::duplicate_children_no_rep(size_t node, size_t parent, size_t after)
+{
+    C4_ASSERT(node != NONE);
+    C4_ASSERT(after == NONE || get(parent)->has_child(get(after)));
+
+    // don't loop using pointers as there may be a relocation
+
+    // find the position where "after" is
+    size_t after_pos = NONE;
+    if(after != NONE)
+    {
+        for(size_t i = get(parent)->m_first_child, icount = 0; i != NONE; icount++, i = get(i)->m_next_sibling)
+        {
+            if(i == after)
+            {
+                after_pos = icount;
+                break;
+            }
+        }
+        C4_ASSERT(after_pos != NONE);
+    }
+
+    // for each child to be duplicated...
+    size_t prev = after;
+    for(size_t i = get(node)->m_first_child, icount = 0; i != NONE; ++icount, i = get(i)->m_next_sibling)
+    {
+        if(get(parent)->is_seq())
+        {
+            prev = duplicate(i, parent, prev);
+        }
+        else
+        {
+            C4_ASSERT(get(parent)->is_map());
+            // does the parent already have a node with the same key of the current duplicate?
+            size_t rep = NONE, rep_pos = NONE;
+            for(size_t j = get(parent)->m_first_child, jcount = 0; j != NONE; ++jcount, j = get(j)->m_next_sibling)
+            {
+                if(get(j)->key() == get(i)->key())
+                {
+                    rep = j;
+                    rep_pos = jcount;
+                    break;
+                }
+            }
+            if(rep == NONE) // there's no repetition; just duplicate
+            {
+                prev = duplicate(i, parent, prev);
+            }
+            else  // yes, there's a repetition
+            {
+                if(after_pos == NONE || rep_pos >= after_pos)
+                {
+                    // rep is located after the node which will be inserted
+                    // and overrides the duplicate. So do nothing here: don't
+                    // duplicate the child.
+                    ;
+                }
+                else if(after_pos != NONE && rep_pos < after_pos)
+                {
+                    // rep is located before the node which will be inserted,
+                    // and will be overridden by the duplicate. So replace it.
+                    remove(rep);
+                    prev = duplicate(i, parent, prev);
+                }
+            }
+        }
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -805,7 +877,7 @@ void Tree::resolve()
         if(n->is_keyval() && n->key() == "<<")
         {
             remove(rd.node);
-            duplicate_children(rd.target, parent, prev);
+            duplicate_children_no_rep(rd.target, parent, prev);
         }
         else
         {

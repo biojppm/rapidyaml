@@ -1293,6 +1293,11 @@ TEST_P(YmlTestCase, parse_using_yaml_cpp)
 //-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, parse_using_ryml)
 {
+#ifdef RYML_DBG
+    std::cout << "---------------\n";
+    std::cout << c->src;
+    std::cout << "---------------\n";
+#endif
     parse(d->src, &d->parsed_tree);
     {
         SCOPED_TRACE("checking tree invariants of parsed tree");
