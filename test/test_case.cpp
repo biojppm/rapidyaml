@@ -1220,6 +1220,8 @@ R"(
     "block literal as seq val, implicit indentation 2",\
     "block literal as seq val, implicit indentation 2, chomp=keep",\
     "block literal as seq val, implicit indentation 2, chomp=strip",\
+    "block literal as seq val at eof, implicit indentation 2",\
+    "block literal as seq val at eof, implicit indentation 4",\
     "block literal as map val, implicit indentation 2",\
     "block literal as map val, implicit indentation 3",\
     "block literal as map val, implicit indentation 4",\
@@ -1227,6 +1229,8 @@ R"(
     "block literal as map val, explicit indentation 2",\
     "block literal as map val, explicit indentation 2, chomp=keep",\
     "block literal as map val, explicit indentation 2, chomp=strip",\
+    "block literal as map val at eof, implicit indentation 2",\
+    "block literal as map val at eof, implicit indentation 4",\
     "block literal as map val, explicit indentation 3",\
     "block literal as map val, explicit indentation 4",\
     "block literal as map val, explicit indentation 9"
@@ -1282,6 +1286,38 @@ R"(
   L{
     N("Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end."),
     N("another val")
+  }
+),
+
+C("block literal as seq val at eof, implicit indentation 2",
+R"(
+- |
+  Several lines of text,
+  with some "quotes" of various 'types',
+  and also a blank line:
+  
+  plus another line at the end.
+  
+  
+)",
+  L{
+    N("Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
+  }
+),
+
+C("block literal as seq val at eof, implicit indentation 4",
+R"(
+- |
+    Several lines of text,
+    with some "quotes" of various 'types',
+    and also a blank line:
+    
+    plus another line at the end.
+    
+    
+)",
+  L{
+    N("Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
   }
 ),
 
@@ -1426,6 +1462,38 @@ another: val
   L{
     N("example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
     N("another", "val")
+  }
+),
+
+C("block literal as map val at eof, implicit indentation 2",
+R"(
+example: |
+  Several lines of text,
+  with some "quotes" of various 'types',
+  and also a blank line:
+  
+  plus another line at the end.
+  
+  
+)",
+  L{
+    N("example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
+  }
+),
+
+C("block literal as map val at eof, implicit indentation 4",
+R"(
+example: |
+    Several lines of text,
+    with some "quotes" of various 'types',
+    and also a blank line:
+    
+    plus another line at the end.
+    
+    
+)",
+  L{
+    N("example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
   }
 ),
 

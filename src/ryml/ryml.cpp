@@ -921,6 +921,7 @@ void Parser::parse(cspan const& file, span buf, Node *root)
         {
             _handle_line();
         }
+        if(_finished_file()) break; // it may have finished because of multiline blocks
         _next_line();
     }
 
