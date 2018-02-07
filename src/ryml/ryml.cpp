@@ -31,7 +31,12 @@ const char* Node::type_str(NodeType_e ty)
     case DOCMAP  : return "DOCMAP";
     case STREAM  : return "STREAM";
     case NOTYPE  : return "NOTYPE";
-    default: return "(unknown?)";
+    default:
+        if(ty & REF)
+        {
+            return "REF";
+        }
+        return "(unknown?)";
     }
 }
 
@@ -697,7 +702,12 @@ Parser::Parser()
     m_root_id(NONE),
     m_tree(),
     m_stack(),
-    m_state()
+    m_state(),
+    m_key_tag(),
+    m_val_tag(),
+    m_anchor(),
+    m_num_anchors(0),
+    m_num_references()
 {
     m_stack.reserve(16);
     m_stack.push({});
@@ -716,6 +726,12 @@ void Parser::_reset()
     m_stack.push({});
     m_state = &m_stack.top();
     m_state->reset(m_file.str, m_root_id);
+
+    m_key_tag.clear(),
+    m_val_tag.clear(),
+    m_anchor.clear(),
+    m_num_anchors = (0),
+    m_num_references = (0);
 }
 
 //-----------------------------------------------------------------------------
@@ -995,6 +1011,10 @@ bool Parser::_handle_unk()
             cspan ref = _scan_ref();
             _c4dbgp("scanned ref value: '%.*s'", _c4prsp(ref));
             _start_map(start_as_child);
+            _store_scalar("<<");
+            Node *kv = _append_key_val(ref);
+            kv->_add_flags(REF);
+            ++m_num_references;
             addrem_flags(RKEY, RVAL);
         }
         else
@@ -1765,6 +1785,7 @@ bool Parser::_handle_anchors_and_refs()
     {
         if(rem.begins_with("<<"))
         {
+            _c4err("not implemented");
             _c4dbgp("found a ref!!!");
             cspan ref = _scan_ref();
             _c4dbgp("scanned ref value: '%.*s'", _c4prsp(ref));
@@ -1776,15 +1797,17 @@ bool Parser::_handle_anchors_and_refs()
         if(rem.begins_with('&'))
         {
             _c4dbgp("found an anchor!!!");
+            C4_ASSERT(m_anchor.empty());
             cspan anchor = rem.left_of(rem.first_of(' '));
             _line_progressed(anchor.len);
             anchor = anchor.subspan(1); // skip the first character
             _c4dbgp("anchor value: '%.*s'", _c4prsp(anchor));
+            m_anchor = anchor;
             return true;
         }
         else if(rem.begins_with('*'))
         {
-            _c4err("not implemented");
+            _c4err("not implemented - this should have been catched elsewhere");
             return true;
         }
     }
@@ -2226,6 +2249,13 @@ void Parser::_start_map(bool as_child)
         node(m_state)->set_val_tag(m_val_tag);
         m_val_tag.clear();
     }
+    if( ! m_anchor.empty())
+    {
+        _c4dbgp("start_seq: set anchor to '%.*s'", _c4prsp(m_anchor));
+        node(m_state)->m_anchor = m_anchor;
+        ++m_num_anchors;
+        m_anchor.clear();
+    }
 }
 
 void Parser::_stop_map()
@@ -2279,6 +2309,13 @@ void Parser::_start_seq(bool as_child)
         node(m_state)->set_val_tag(m_val_tag);
         m_val_tag.clear();
     }
+    if( ! m_anchor.empty())
+    {
+        _c4dbgp("start_seq: set anchor to '%.*s'", _c4prsp(m_anchor));
+        node(m_state)->m_anchor = m_anchor;
+        ++m_num_anchors;
+        m_anchor.clear();
+    }
 }
 
 void Parser::_stop_seq()
@@ -2288,7 +2325,7 @@ void Parser::_stop_seq()
 }
 
 //-----------------------------------------------------------------------------
-void Parser::_append_val(cspan const& val)
+Node* Parser::_append_val(cspan const& val)
 {
     C4_ASSERT( ! has_all(SSCL));
     C4_ASSERT(node(m_state) != nullptr);
@@ -2304,9 +2341,17 @@ void Parser::_append_val(cspan const& val)
         n->set_val_tag(m_val_tag);
         m_val_tag.clear();
     }
+    if( ! m_anchor.empty())
+    {
+        _c4dbgp("append val: set anchor to '%.*s'", _c4prsp(m_anchor));
+        n->m_anchor = m_anchor;
+        ++m_num_anchors;
+        m_anchor.clear();
+    }
+    return n;
 }
 
-void Parser::_append_key_val(cspan const& val)
+Node* Parser::_append_key_val(cspan const& val)
 {
     C4_ASSERT(node(m_state)->is_map());
     cspan key = _consume_scalar();
@@ -2327,6 +2372,14 @@ void Parser::_append_key_val(cspan const& val)
         n->set_val_tag(m_val_tag);
         m_val_tag.clear();
     }
+    if( ! m_anchor.empty())
+    {
+        _c4dbgp("append keyval: set anchor to '%.*s'", _c4prsp(m_anchor));
+        n->m_anchor = m_anchor;
+        ++m_num_anchors;
+        m_anchor.clear();
+    }
+    return n;
 }
 
 //-----------------------------------------------------------------------------
@@ -2976,6 +3029,12 @@ cspan Parser::_filter_block_scalar(span s, BlockStyle_e style, BlockChomp_e chom
 #endif
 
     return r;
+}
+
+//-----------------------------------------------------------------------------
+void Parser::_resolve_references()
+{
+
 }
 
 //-----------------------------------------------------------------------------

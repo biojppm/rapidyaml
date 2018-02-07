@@ -1644,14 +1644,16 @@ private:
     void  _stop_doc();
 
     void  _append_comment(cspan const& cmt);
-    void  _append_val(cspan const& val);
-    void  _append_key_val(cspan const& val);
+    Node* _append_val(cspan const& val);
+    Node* _append_key_val(cspan const& val);
 
     void  _store_scalar(cspan const& s);
     cspan _consume_scalar();
     void  _move_scalar_from_top();
 
     void  _save_indentation(size_t behind = 0);
+
+    void  _resolve_references();
 
 private:
 
@@ -1782,6 +1784,10 @@ private:
 
     cspan   m_key_tag;
     cspan   m_val_tag;
+
+    cspan   m_anchor;
+    size_t  m_num_anchors;
+    size_t  m_num_references;
 };
 
 

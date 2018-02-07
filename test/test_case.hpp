@@ -80,6 +80,11 @@ public:
     template< size_t M >           explicit CaseNode(TaggedScalar const& k, const char (&v)[M]   ) : type((NodeType_e)(KEYVAL|KEYTAG       )), key(k.scalar), key_tag(k.tag), val(v       ), val_tag(     ), children(), parent(nullptr) { _set_parent(); }
                                    explicit CaseNode(TaggedScalar const& k, TaggedScalar const& v) : type((NodeType_e)(KEYVAL|KEYTAG|VALTAG)), key(k.scalar), key_tag(k.tag), val(v.scalar), val_tag(v.tag), children(), parent(nullptr) { _set_parent(); }
 
+    template< size_t N, size_t M > explicit CaseNode(NodeType_e t, const char (&k)[N]   , const char (&v)[M]   ) : type((NodeType_e)(KEYVAL|t              )), key(k       ), key_tag(     ), val(v       ), val_tag(     ), children(), parent(nullptr) { _set_parent(); }
+    template< size_t N >           explicit CaseNode(NodeType_e t, const char (&k)[N]   , TaggedScalar const& v) : type((NodeType_e)(KEYVAL|VALTAG|t       )), key(k       ), key_tag(     ), val(v.scalar), val_tag(v.tag), children(), parent(nullptr) { _set_parent(); }
+    template< size_t M >           explicit CaseNode(NodeType_e t, TaggedScalar const& k, const char (&v)[M]   ) : type((NodeType_e)(KEYVAL|KEYTAG|t       )), key(k.scalar), key_tag(k.tag), val(v       ), val_tag(     ), children(), parent(nullptr) { _set_parent(); }
+                                   explicit CaseNode(NodeType_e t, TaggedScalar const& k, TaggedScalar const& v) : type((NodeType_e)(KEYVAL|KEYTAG|VALTAG|t)), key(k.scalar), key_tag(k.tag), val(v.scalar), val_tag(v.tag), children(), parent(nullptr) { _set_parent(); }
+
     template< size_t N > explicit CaseNode(const char (&k)[N]   , iseqmap    s) : type(), key(k       ), key_tag(     ), val(), val_tag(     ), children(s      ), parent(nullptr) { _set_parent(); type = _guess(); }
     template< size_t N > explicit CaseNode(const char (&k)[N]   , TaggedList s) : type(), key(k       ), key_tag(     ), val(), val_tag(s.tag), children(s.ilist), parent(nullptr) { _set_parent(); type = _guess(); }
                          explicit CaseNode(TaggedScalar const& k, iseqmap    s) : type(), key(k.scalar), key_tag(k.tag), val(), val_tag(     ), children(s      ), parent(nullptr) { _set_parent(); type = _guess(); }
