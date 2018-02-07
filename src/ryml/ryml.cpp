@@ -1285,6 +1285,10 @@ bool Parser::_handle_seq_impl()
         {
             return true;
         }
+        else if(_handle_anchors_and_refs())
+        {
+            return true;
+        }
         else
         {
             _c4err("parse error");
@@ -2363,7 +2367,7 @@ Node* Parser::_append_key_val(cspan const& val)
         ++m_num_anchors;
         m_anchor.clear();
     }
-    if(n->m_key == "<<")
+    if(n->m_key == "<<" || n->m_val.begins_with('*'))
     {
         _c4dbgp("append keyval: it's a reference");
         if( ! (n->m_val.begins_with('*')))

@@ -2881,6 +2881,14 @@ a sequence:
 
 C("simple anchor 1",
 R"(
+# Both of these keys will have the same value:
+anchored_content: &anchor_name This string will appear as the value of two keys.
+other_anchor: *anchor_name
+
+anchors_in_seqs:
+  - &anchor_in_seq this value appears in both elements of the sequence
+  - *anchor_in_seq
+
 # Anchors can be used to duplicate/inherit properties
 base: &base
     name: Everyone has same name
@@ -2895,6 +2903,12 @@ bar: &bar
 # foo and bar would also have name: Everyone has same name
 )",
   L{
+      N("anchored_content", "This string will appear as the value of two keys."),
+      N(REF, "other_anchor", "*anchor_name"),
+      N("anchors_in_seqs", L{
+              N("this value appears in both elements of the sequence"),
+              N(REF, "*anchor_in_seq"),
+          }),
       N("base", L{N("name", "Everyone has same name")}),
       N("foo", L{N(REF, "<<", "*base"), N("age", "10")}),
       N("bar", L{N(REF, "<<", "*base"), N("age", "20")}),
