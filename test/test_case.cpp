@@ -2877,31 +2877,24 @@ a sequence:
 
 //-----------------------------------------------------------------------------
 #define SIMPLE_ANCHOR_CASES                            \
-    "simple anchor 1, implicit",\
-    "simple anchor 1, explicit"
+    "simple anchor 1, implicit, unresolved",\
+    "simple anchor 1, explicit, unresolved"
 
-C("simple anchor 1, implicit",
+C("simple anchor 1, implicit, unresolved",
 R"(
-# Both of these keys will have the same value:
 anchored_content: &anchor_name This string will appear as the value of two keys.
 other_anchor: *anchor_name
-
 anchors_in_seqs:
   - &anchor_in_seq this value appears in both elements of the sequence
   - *anchor_in_seq
-
-# Anchors can be used to duplicate/inherit properties
 base: &base
     name: Everyone has same name
-
 foo: &foo
     <<: *base
     age: 10
-
 bar: &bar
     <<: *base
     age: 20
-# foo and bar would also have name: Everyone has same name
 )",
   L{
       N("anchored_content", "This string will appear as the value of two keys."),
@@ -2916,27 +2909,50 @@ bar: &bar
   }
 ),
 
-C("simple anchor 1, explicit",
+C("simple anchor 1, implicit, resolved",
+R"(
+anchored_content: &anchor_name This string will appear as the value of two keys.
+other_anchor: *anchor_name
+anchors_in_seqs:
+  - &anchor_in_seq this value appears in both elements of the sequence
+  - *anchor_in_seq
+base: &base
+    name: Everyone has same name
+foo: &foo
+    <<: *base
+    age: 10
+bar: &bar
+    <<: *base
+    age: 20
+)",
+  L{
+      N("anchored_content", "This string will appear as the value of two keys."),
+      N("other_anchor", "This string will appear as the value of two keys."),
+      N("anchors_in_seqs", L{
+              N("this value appears in both elements of the sequence"),
+              N("this value appears in both elements of the sequence"),
+          }),
+      N("base", L{N("name", "Everyone has same name")}),
+      N("foo", L{N("name", "Everyone has same name"), N("age", "10")}),
+      N("bar", L{N("name", "Everyone has same name"), N("age", "20")}),
+  }
+),
+
+C("simple anchor 1, explicit, unresolved",
 R"({
-# Both of these keys will have the same value:
 anchored_content: &anchor_name This string will appear as the value of two keys.,
 other_anchor: *anchor_name,
-
 anchors_in_seqs: [
   &anchor_in_seq this value appears in both elements of the sequence,
   *anchor_in_seq
   ],
-
-# Anchors can be used to duplicate/inherit properties
 base: &base {
     name: Everyone has same name
   },
-
 foo: &foo {
     <<: *base,
     age: 10
   },
-
 bar: &bar {
     <<: *base,
     age: 20
@@ -2952,6 +2968,39 @@ bar: &bar {
       N("base", L{N("name", "Everyone has same name")}),
       N("foo", L{N(REF, "<<", "*base"), N("age", "10")}),
       N("bar", L{N(REF, "<<", "*base"), N("age", "20")}),
+  }
+),
+
+C("simple anchor 1, explicit, resolved",
+R"({
+anchored_content: &anchor_name This string will appear as the value of two keys.,
+other_anchor: *anchor_name,
+anchors_in_seqs: [
+  &anchor_in_seq this value appears in both elements of the sequence,
+  *anchor_in_seq
+  ],
+base: &base {
+    name: Everyone has same name
+  },
+foo: &foo {
+    <<: *base,
+    age: 10
+  },
+bar: &bar {
+    <<: *base,
+    age: 20
+  }
+})",
+  L{
+      N("anchored_content", "This string will appear as the value of two keys."),
+      N("other_anchor", "This string will appear as the value of two keys."),
+      N("anchors_in_seqs", L{
+              N("this value appears in both elements of the sequence"),
+              N("this value appears in both elements of the sequence"),
+          }),
+      N("base", L{N("name", "Everyone has same name")}),
+      N("foo", L{N("name", "Everyone has same name"), N("age", "10")}),
+      N("bar", L{N("name", "Everyone has same name"), N("age", "20")}),
   }
 ),
 
