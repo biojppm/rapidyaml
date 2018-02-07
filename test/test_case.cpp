@@ -2896,8 +2896,8 @@ bar: &bar
 )",
   L{
       N("base", L{N("name", "Everyone has same name")}),
-      N("foo", L{N(REF, "<<", "base"), N("age", "10")}),
-      N("bar", L{N(REF, "<<", "base"), N("age", "20")}),
+      N("foo", L{N(REF, "<<", "*base"), N("age", "10")}),
+      N("bar", L{N(REF, "<<", "*base"), N("age", "20")}),
   }
 ),
 

@@ -871,10 +871,11 @@ void Parser::_handle_line()
 bool Parser::_is_scalar_next() const
 {
     cspan const& rem = m_state->line_contents.rem;
-    return isalnum(rem[0])
-        || rem.begins_with('"')
-        || rem.begins_with('\'')
-        || rem.begins_with('|') || rem.begins_with('>');
+    // a scalar starts with either...
+    return isalnum(rem[0]) // an alpha-numeric character
+        || rem.begins_with('"') || rem.begins_with('\'') // double or single quotes
+        || rem.begins_with('|') || rem.begins_with('>')  // or a block indicator
+        || rem.begins_with("<<: ") || rem.begins_with('*'); // treat references as scalars
 }
 
 //-----------------------------------------------------------------------------
@@ -1004,18 +1005,6 @@ bool Parser::_handle_unk()
             _c4dbgp("got stream end '...'");
             _line_progressed(3);
             _handle_finished_file();
-        }
-        else if(rem.begins_with("<<"))
-        {
-            _c4dbgp("got a reference << -- it's a map");
-            cspan ref = _scan_ref();
-            _c4dbgp("scanned ref value: '%.*s'", _c4prsp(ref));
-            _start_map(start_as_child);
-            _store_scalar("<<");
-            Node *kv = _append_key_val(ref);
-            kv->_add_flags(REF);
-            ++m_num_references;
-            addrem_flags(RKEY, RVAL);
         }
         else
         {
@@ -1780,20 +1769,9 @@ cspan Parser::_scan_ref()
 //-----------------------------------------------------------------------------
 bool Parser::_handle_anchors_and_refs()
 {
-    cspan rem = m_state->line_contents.rem;
-    if(has_all(RMAP|RKEY))
+    if(has_all(RVAL))
     {
-        if(rem.begins_with("<<"))
-        {
-            _c4err("not implemented");
-            _c4dbgp("found a ref!!!");
-            cspan ref = _scan_ref();
-            _c4dbgp("scanned ref value: '%.*s'", _c4prsp(ref));
-            return true;
-        }
-    }
-    else if(has_all(RVAL))
-    {
+        cspan rem = m_state->line_contents.rem;
         if(rem.begins_with('&'))
         {
             _c4dbgp("found an anchor!!!");
@@ -2251,7 +2229,7 @@ void Parser::_start_map(bool as_child)
     }
     if( ! m_anchor.empty())
     {
-        _c4dbgp("start_seq: set anchor to '%.*s'", _c4prsp(m_anchor));
+        _c4dbgp("start_map: set anchor to '%.*s'", _c4prsp(m_anchor));
         node(m_state)->m_anchor = m_anchor;
         ++m_num_anchors;
         m_anchor.clear();
@@ -2348,6 +2326,12 @@ Node* Parser::_append_val(cspan const& val)
         ++m_num_anchors;
         m_anchor.clear();
     }
+    if(n->m_val.begins_with('*'))
+    {
+        _c4dbgp("append val: it's a reference");
+        n->_add_flags(REF);
+        ++m_num_references;
+    }
     return n;
 }
 
@@ -2378,6 +2362,16 @@ Node* Parser::_append_key_val(cspan const& val)
         n->m_anchor = m_anchor;
         ++m_num_anchors;
         m_anchor.clear();
+    }
+    if(n->m_key == "<<")
+    {
+        _c4dbgp("append keyval: it's a reference");
+        if( ! (n->m_val.begins_with('*')))
+        {
+             _c4err("malformed reference");
+        }
+        n->_add_flags(REF);
+        ++m_num_references;
     }
     return n;
 }
