@@ -22,7 +22,7 @@ void CaseNode::compare_child(yml::NodeRef const& n, size_t pos) const
     {
         EXPECT_NE(n.find_child(ch.key), nullptr);
         auto fch = n.find_child(ch.key);
-        if(fch)
+        if(fch != nullptr)
         {
             EXPECT_EQ(fch, n[ch.key]);
             EXPECT_EQ(fch, n[pos]);
@@ -107,7 +107,7 @@ void CaseNode::compare(yml::NodeRef const& n) const
             compare_child(n, ic++);
         }
 
-        if(n.first_child())
+        if(n.first_child() != nullptr)
         {
             ic = 0;
             for(auto const& ch : n.first_child().siblings())
@@ -150,7 +150,7 @@ void print_path(NodeRef const& n)
     size_t len = 0;
     char buf[1024];
     NodeRef p = n;
-    while(p)
+    while(p != nullptr)
     {
         if(p.has_key())
         {
@@ -165,7 +165,7 @@ void print_path(NodeRef const& n)
     C4_ASSERT(len < sizeof(buf));
     size_t pos = len;
     p = n;
-    while(p)
+    while(p != nullptr)
     {
         if(p.has_key())
         {
@@ -187,7 +187,7 @@ void print_path(NodeRef const& n)
 void print_node(NodeRef const& p, int level, bool print_children)
 {
     printf("%*s[%zd] %p", (2*level), "", p.id(), (void*)p.get());
-    if( ! p.parent())
+    if(p.parent() != nullptr)
     {
         printf(" [ROOT]");
     }
@@ -256,7 +256,7 @@ void print_node(CaseNode const& p, int level)
     {
         printf(" [ROOT]");
     }
-    printf(" %s:", NodeData::type_str(p.type));
+    printf(" %s:", NodeType::type_str(p.type));
     if(p.has_key())
     {
         if(p.key_tag.empty())
@@ -363,7 +363,7 @@ void check_invariants(NodeRef const& n)
         EXPECT_TRUE(s.has_sibling(n));
         EXPECT_EQ(s.parent(), n.parent());
     }
-    if(n.parent())
+    if(n.parent() != nullptr)
     {
         EXPECT_TRUE(n.parent().has_child(n));
         EXPECT_EQ(n.parent().num_children(), n.num_siblings());
@@ -412,7 +412,7 @@ size_t check_tree_invariants(NodeRef const& n)
 
     if(n.get()->m_prev_sibling == NONE)
     {
-        if(parent)
+        if(parent != nullptr)
         {
             EXPECT_EQ(parent.first_child(), n);
             EXPECT_EQ(parent.first_child().id(), n.id());
@@ -421,14 +421,14 @@ size_t check_tree_invariants(NodeRef const& n)
 
     if(n.get()->m_next_sibling == NONE)
     {
-        if(parent)
+        if(parent != nullptr)
         {
             EXPECT_EQ(parent.last_child(), n);
             EXPECT_EQ(parent.last_child().id(), n.id());
         }
     }
 
-    if( ! parent)
+    if(parent == nullptr)
     {
         EXPECT_TRUE(n.is_root());
         EXPECT_EQ(n.prev_sibling(), nullptr);

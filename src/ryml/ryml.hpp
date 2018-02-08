@@ -342,7 +342,7 @@ public:
 public:
 
     NodeType_e type(size_t node) const { return (NodeType_e)(_p(node)->m_type & _TYMASK); }
-    const char* type_str(size_t node) const { return NodeData::type_str(_p(node)->m_type); }
+    const char* type_str(size_t node) const { return NodeType::type_str(_p(node)->m_type); }
 
     cspan const& key(size_t node) const { C4_ASSERT(has_key(node)); return _p(node)->m_key.scalar; }
     cspan const& key_tag(size_t node) const { C4_ASSERT(has_key_tag(node)); return _p(node)->m_key.tag; }
@@ -732,6 +732,7 @@ public:
     NodeRef(Tree *t, size_t id) : m_tree(t), m_id(id), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = NONE; }
     NodeRef(Tree *t, size_t id, size_t seed_pos) : m_tree(t), m_id(id), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = seed_pos; }
     NodeRef(Tree *t, size_t id, cspan  seed_key) : m_tree(t), m_id(id), m_seed(seed_key) {}
+    NodeRef(std::nullptr_t) : m_tree(nullptr), m_id(NONE), m_seed() {}
 
     NodeRef(NodeRef const&) = default;
     NodeRef(NodeRef     &&) = default;
@@ -752,12 +753,15 @@ public:
     inline bool valid() const { return m_tree != nullptr && m_id != NONE; }
     inline bool is_seed() const { return m_seed.str != nullptr || m_seed.len != NONE; }
 
-    inline operator bool () const { return m_tree == nullptr || m_id == NONE || is_seed(); }
+    //inline operator bool () const { return m_tree == nullptr || m_id == NONE || is_seed(); }
 
     inline bool operator== (std::nullptr_t) const { return m_tree == nullptr || m_id == NONE || is_seed(); }
     inline bool operator!= (std::nullptr_t) const { return ! this->operator== (nullptr); }
 
 #define _C4RV() C4_ASSERT(valid() && !is_seed()) // save some typing (and some reading too!)
+
+    inline bool operator== (NodeRef const& that) const { _C4RV(); C4_ASSERT(that.valid() && !that.is_seed()); C4_ASSERT(that.m_tree == m_tree); return m_id == that.m_id; }
+    inline bool operator!= (NodeRef const& that) const { return ! this->operator==(that); }
 
 public:
 
@@ -938,7 +942,7 @@ public:
         C4_ASSERT(valid());
         size_t ch = m_tree->find_child(m_id, k);
         C4_ASSERT(ch != NONE);
-        NodeRef r(m_tree, ch);
+        NodeRef const r(m_tree, ch);
         return r;
     }
 
@@ -949,7 +953,7 @@ public:
         C4_ASSERT(valid());
         size_t ch = m_tree->child(m_id, pos);
         C4_ASSERT(ch != NONE);
-        NodeRef r(m_tree, ch);
+        NodeRef const r(m_tree, ch);
         return r;
     }
 
@@ -1257,6 +1261,8 @@ private:
         Tree * m_tree;
         size_t m_child_id;
 
+        using value_type = NodeRef;
+
         child_iterator(Tree * t, size_t id) : m_tree(t), m_child_id(id) {}
 
         child_iterator& operator++ () { C4_ASSERT(m_child_id != NONE); m_child_id = m_tree->next_sibling(m_child_id); return *this; }
@@ -1336,9 +1342,8 @@ private:
 
 //-----------------------------------------------------------------------------
 
-NodeRef       Tree::rootref()       { return NodeRef(this, root_id()); }
-
-NodeRef const Tree::rootref() const { return NodeRef((Tree*)this, root_id()); }
+inline NodeRef       Tree::rootref()       { return NodeRef(this, root_id()); }
+inline NodeRef const Tree::rootref() const { return NodeRef((Tree*)this, root_id()); }
 
 
 //-----------------------------------------------------------------------------

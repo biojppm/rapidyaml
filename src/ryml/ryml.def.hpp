@@ -39,7 +39,7 @@ size_t Emitter< Writer >::_visit(NodeRef const& n, size_t ilevel)
     _do_visit(n, ilevel);
     if(n.is_stream())
     {
-        _write("...\n");
+        _write(cspan("...\n", 4));
     }
     return _c4this->m_pos;
 }
@@ -51,17 +51,17 @@ void Emitter< Writer >::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
 
     if(n.is_doc())
     {
-        _write("---\n");
+        _write(cspan("---\n", 4));
     }
     else if(n.is_keyval())
     {
         C4_ASSERT(n.has_parent());
-        _write(ind, n.keysc(), ": ", n.valsc(), '\n');
+        _write(ind, n.keysc(), cspan(": ", 2), n.valsc(), '\n');
     }
     else if(n.is_val())
     {
         C4_ASSERT(n.has_parent());
-        _write(ind, "- ", n.valsc(), '\n');
+        _write(ind, cspan(": ", 2), n.valsc(), '\n');
     }
     else if(n.is_container() && ! n.is_root())
     {
@@ -71,7 +71,7 @@ void Emitter< Writer >::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
         if(n.parent_is_seq())
         {
             C4_ASSERT( ! n.has_key());
-            _write(ind, "- ");
+            _write(ind, cspan("- ", 2));
             if(n.has_val_tag())
             {
                 _write(n.val_tag(), ' ');
@@ -129,11 +129,11 @@ void Emitter< Writer >::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
 
             if(n.is_seq())
             {
-                _write("[]\n");
+                _write(cspan("[]\n", 3));
             }
             else if(n.is_map())
             {
-                _write("{}\n");
+                _write(cspan("{}\n", 3));
             }
         }
     }
@@ -143,11 +143,11 @@ void Emitter< Writer >::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
         {
             if(n.is_seq())
             {
-                _write("[]\n");
+                _write(cspan("[]\n", 3));
             }
             else if(n.is_map())
             {
-                _write("{}\n");
+                _write(cspan("{}\n", 3));
             }
         }
     }

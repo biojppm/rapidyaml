@@ -737,7 +737,7 @@ TEST(NodeInit, ctor__type_only)
 {
     for(auto k : {KEY, KEYVAL, MAP, KEYMAP, SEQ, KEYSEQ})
     {
-        SCOPED_TRACE(NodeData::type_str(k));
+        SCOPED_TRACE(NodeType::type_str(k));
         NodeInit n(k);
         EXPECT_EQ(n.type, k);
         EXPECT_EQ(n.key.scalar, "");
@@ -1139,18 +1139,18 @@ TEST(NodeRef, 5_move_in_same_parent)
     r.append_child() << "elm2";
     r.append_child() << "elm3";
 
-    NodeData *s = r[0].get();
-    NodeData *m = r[1].get();
-    EXPECT_TRUE(s->is_seq());
-    EXPECT_TRUE(m->is_map());
-    EXPECT_EQ(s->num_children(), vec2.size());
-    EXPECT_EQ(m->num_children(), map2.size());
+    auto s = r[0];
+    auto m = r[1];
+    EXPECT_TRUE(s.is_seq());
+    EXPECT_TRUE(m.is_map());
+    EXPECT_EQ(s.num_children(), vec2.size());
+    EXPECT_EQ(m.num_children(), map2.size());
     //printf("fonix"); print_tree(t); emit(r);
     r[0].move(r[1]);
     //printf("fonix"); print_tree(t); emit(r);
-    EXPECT_EQ(r[0].get(), m);
+    EXPECT_EQ(r[0], m);
     EXPECT_EQ(r[0].num_children(), map2.size());
-    EXPECT_EQ(r[1].get(), s);
+    EXPECT_EQ(r[1], s);
     EXPECT_EQ(r[1].num_children(), vec2.size());
 }
 
@@ -1309,7 +1309,7 @@ TEST_P(YmlTestCase, parse_using_ryml)
 #endif
     {
         SCOPED_TRACE("checking node invariants of parsed tree");
-        check_invariants(*d->parsed_tree.root());
+        check_invariants(d->parsed_tree.rootref());
     }
 
     if(c->flags & RESOLVE_REFS)
@@ -1325,7 +1325,7 @@ TEST_P(YmlTestCase, parse_using_ryml)
         }
         {
             SCOPED_TRACE("checking node invariants of resolved parsed tree");
-            check_invariants(*d->parsed_tree.root());
+            check_invariants(d->parsed_tree.rootref());
         }
     }
 
@@ -1333,7 +1333,7 @@ TEST_P(YmlTestCase, parse_using_ryml)
         SCOPED_TRACE("comparing parsed tree to ref tree");
         EXPECT_GE(d->parsed_tree.capacity(), c->root.reccount());
         EXPECT_EQ(d->parsed_tree.size(), c->root.reccount());
-        c->root.compare(*d->parsed_tree.root());
+        c->root.compare(d->parsed_tree.rootref());
     }
 }
 
@@ -1376,7 +1376,7 @@ TEST_P(YmlTestCase, complete_round_trip)
 
     {
         SCOPED_TRACE("checking node invariants of parsed tree");
-        check_invariants(*d->emitted_tree.root());
+        check_invariants(d->emitted_tree.rootref());
     }
 
     {
@@ -1388,7 +1388,7 @@ TEST_P(YmlTestCase, complete_round_trip)
         SCOPED_TRACE("comparing parsed tree to ref tree");
         EXPECT_GE(d->emitted_tree.capacity(), c->root.reccount());
         EXPECT_EQ(d->emitted_tree.size(), c->root.reccount());
-        c->root.compare(*d->emitted_tree.root());
+        c->root.compare(d->emitted_tree.rootref());
     }
 }
 
@@ -1398,12 +1398,13 @@ TEST_P(YmlTestCase, recreate_from_ref)
     {
         SCOPED_TRACE("recreating a new tree from the ref tree");
         d->recreated.reserve(d->parsed_tree.size());
-        c->root.recreate(d->recreated.root());
+        NodeRef r = d->recreated.rootref();
+        c->root.recreate(&r);
     }
 
     {
         SCOPED_TRACE("checking node invariants of recreated tree");
-        check_invariants(*d->recreated.root());
+        check_invariants(d->recreated.rootref());
     }
 
     {
@@ -1413,7 +1414,7 @@ TEST_P(YmlTestCase, recreate_from_ref)
 
     {
         SCOPED_TRACE("comparing recreated tree to ref tree");
-        c->root.compare(*d->recreated.root());
+        c->root.compare(d->recreated.rootref());
     }
 }
 
