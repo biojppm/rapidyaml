@@ -21,19 +21,19 @@ Case const* get_case(cspan name);
 CaseData* get_data(cspan name);
 
 void check_invariants(Tree const& t);
-void check_invariants(Node const& n);
+void check_invariants(NodeData const& n);
 
-void show_children(Node const& p);
+void show_children(NodeData const& p);
 
-void print_node(Node const& p, int level=0, bool print_children=false);
-void print_tree(Node const& p, int level=0);
+void print_node(NodeData const& p, int level=0, bool print_children=false);
+void print_tree(NodeData const& p, int level=0);
 void print_tree(Tree const& t);
 
 void print_node(CaseNode const& t, int level = 0);
 void print_tree(CaseNode const& p, int level = 0);
 
 
-void print_path(Node const& p);
+void print_path(NodeData const& p);
 
 struct TaggedScalar
 {
@@ -223,8 +223,8 @@ public:
 
 public:
 
-    void compare(yml::Node const& n) const;
-    void compare_child(yml::Node const& n, size_t pos) const;
+    void compare(yml::NodeData const& n) const;
+    void compare_child(yml::NodeData const& n, size_t pos) const;
 
     size_t reccount() const
     {
@@ -236,7 +236,7 @@ public:
         return c;
     }
 
-    void recreate(yml::Node *n) const;
+    void recreate(yml::NodeData *n) const;
 
 };
 

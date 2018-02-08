@@ -737,7 +737,7 @@ TEST(NodeInit, ctor__type_only)
 {
     for(auto k : {KEY, KEYVAL, MAP, KEYMAP, SEQ, KEYSEQ})
     {
-        SCOPED_TRACE(Node::type_str(k));
+        SCOPED_TRACE(NodeData::type_str(k));
         NodeInit n(k);
         EXPECT_EQ(n.type, k);
         EXPECT_EQ(n.key.scalar, "");
@@ -1139,8 +1139,8 @@ TEST(NodeRef, 5_move_in_same_parent)
     r.append_child() << "elm2";
     r.append_child() << "elm3";
 
-    Node *s = r[0].get();
-    Node *m = r[1].get();
+    NodeData *s = r[0].get();
+    NodeData *m = r[1].get();
     EXPECT_TRUE(s->is_seq());
     EXPECT_TRUE(m->is_map());
     EXPECT_EQ(s->num_children(), vec2.size());
@@ -1168,7 +1168,7 @@ TEST(NodeRef, 6_move_to_other_parent)
     r.append_child() << "elm2";
     r.append_child() << "elm3";
 
-    Node *elm2 = r[2].get();
+    NodeData *elm2 = r[2].get();
     EXPECT_EQ(r[2].val(), "elm2");
     //printf("fonix"); print_tree(t); emit(r);
     r[2].move(r[0], r[0][0]);

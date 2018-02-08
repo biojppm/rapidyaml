@@ -11,12 +11,12 @@ namespace yml {
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-size_t Node::id() const
+size_t NodeData::id() const
 {
     return m_s->id(this);
 }
 
-const char* Node::type_str(NodeType_e ty)
+const char* NodeData::type_str(NodeType_e ty)
 {
     switch(ty & _TYMASK)
     {
@@ -40,42 +40,42 @@ const char* Node::type_str(NodeType_e ty)
     }
 }
 
-Node * Node::parent() const
+NodeData * NodeData::parent() const
 {
     return m_s->get(m_parent);
 }
 
-size_t Node::num_children() const
+size_t NodeData::num_children() const
 {
     if(is_val()) return 0;
     size_t count = 0;
-    for(Node const* n = m_s->get(m_first_child); n; n = n->next_sibling())
+    for(NodeData const* n = m_s->get(m_first_child); n; n = n->next_sibling())
     {
         ++count;
     }
     return count;
 }
 
-Node * Node::child(size_t i) const
+NodeData * NodeData::child(size_t i) const
 {
     if(is_val()) return nullptr;
     size_t count = 0;
-    for(Node *n = m_s->get(m_first_child); n; n = n->next_sibling(), ++count)
+    for(NodeData *n = m_s->get(m_first_child); n; n = n->next_sibling(), ++count)
     {
         if(count == i) return n;
     }
     return nullptr;
 }
-Node * Node::first_child() const
+NodeData * NodeData::first_child() const
 {
     return m_s->get(m_first_child);
 }
-Node * Node::last_child() const
+NodeData * NodeData::last_child() const
 {
     return m_s->get(m_last_child);
 }
 
-Node * Node::find_child(cspan const& name) const
+NodeData * NodeData::find_child(cspan const& name) const
 {
     if(is_val()) return nullptr;
     C4_ASSERT(is_map());
@@ -89,7 +89,7 @@ Node * Node::find_child(cspan const& name) const
     {
         C4_ASSERT(m_last_child != NONE);
     }
-    for(Node *n = m_s->get(m_first_child); n; n = n->next_sibling())
+    for(NodeData *n = m_s->get(m_first_child); n; n = n->next_sibling())
     {
         if(n->m_key.scalar == name)
         {
@@ -99,55 +99,55 @@ Node * Node::find_child(cspan const& name) const
     return nullptr;
 }
 
-size_t Node::child_pos(Node const* ch) const
+size_t NodeData::child_pos(NodeData const* ch) const
 {
     size_t i = 0;
-    for(Node const* n = first_child(); n; n = n->next_sibling(), ++i)
+    for(NodeData const* n = first_child(); n; n = n->next_sibling(), ++i)
     {
         if(n == ch) return i;
     }
     return npos;
 }
 
-bool Node::has_child(Node const* ch) const
+bool NodeData::has_child(NodeData const* ch) const
 {
     return child_pos(ch) != npos;
 }
 
-bool Node::has_siblings() const
+bool NodeData::has_siblings() const
 {
     if(m_parent == NONE) return false;
-    Node const* p = m_s->get(m_parent);
+    NodeData const* p = m_s->get(m_parent);
     return p->has_children();
 }
 
-bool Node::has_other_siblings() const
+bool NodeData::has_other_siblings() const
 {
     if(m_parent == NONE) return false;
-    Node const* p = m_s->get(m_parent);
+    NodeData const* p = m_s->get(m_parent);
     size_t myid = m_s->id(this);
     return p->m_first_child != myid || p->m_last_child != myid;
 }
 
-size_t Node::num_siblings() const
+size_t NodeData::num_siblings() const
 {
     return (m_parent != NONE) ? m_s->get(m_parent)->num_children() : 0;
 }
 
-size_t Node::num_other_siblings() const
+size_t NodeData::num_other_siblings() const
 {
     size_t ns = num_siblings();
     C4_ASSERT(ns >= 1); // at least there's this node, no?
     return ns - 1;
 }
 
-Node * Node::sibling(size_t i) const
+NodeData * NodeData::sibling(size_t i) const
 {
     C4_ASSERT(parent() != nullptr);
     return m_s->get(m_parent)->child(i);
 }
 
-Node * Node::first_sibling() const
+NodeData * NodeData::first_sibling() const
 {
     auto p = parent();
     C4_ASSERT(p || is_root());
@@ -155,7 +155,7 @@ Node * Node::first_sibling() const
     return p->first_child();
 }
 
-Node * Node::last_sibling() const
+NodeData * NodeData::last_sibling() const
 {
     auto p = parent();
     C4_ASSERT(p || is_root());
@@ -163,7 +163,7 @@ Node * Node::last_sibling() const
     return p->last_child();
 }
 
-Node * Node::find_sibling(cspan const& name) const
+NodeData * NodeData::find_sibling(cspan const& name) const
 {
     auto p = parent();
     C4_ASSERT(p || is_root());
@@ -171,27 +171,25 @@ Node * Node::find_sibling(cspan const& name) const
     return p->find_child(name);
 }
 
-Node * Node::prev_sibling() const
+NodeData * NodeData::prev_sibling() const
 {
     if(m_prev_sibling == NONE) return nullptr;
-    //if(m_s->id(this) == m_s->get(m_parent)->m_first_child) return nullptr;
-    Node *n = m_s->get(m_prev_sibling);
+    NodeData *n = m_s->get(m_prev_sibling);
     C4_ASSERT( ! n || n->m_parent == m_parent);
     return n;
 }
 
-Node * Node::next_sibling() const
+NodeData * NodeData::next_sibling() const
 {
     if(m_next_sibling == NONE) return nullptr;
-    //if(m_s->id(this) == m_s->get(m_parent)->m_last_child) return nullptr;
-    Node *n = m_s->get(m_next_sibling);
+    NodeData *n = m_s->get(m_next_sibling);
     C4_ASSERT( ! n || n->m_parent == m_parent);
     return n;
 }
 
-bool Node::has_sibling(Node const* s) const
+bool NodeData::has_sibling(NodeData const* s) const
 {
-    for(Node *n = first_sibling(); n; n = n->next_sibling())
+    for(NodeData *n = first_sibling(); n; n = n->next_sibling())
     {
         if(n == s) return true;
     }
@@ -199,7 +197,7 @@ bool Node::has_sibling(Node const* s) const
 }
 
 
-void Node::to_val(cspan const& val, int more_flags)
+void NodeData::to_val(cspan const& val, int more_flags)
 {
     C4_ASSERT( ! has_children());
     C4_ASSERT(m_parent == NONE || ! m_s->get(m_parent)->is_map());
@@ -208,7 +206,7 @@ void Node::to_val(cspan const& val, int more_flags)
     m_val = val;
 }
 
-void Node::to_keyval(cspan const& key, cspan const& val, int more_flags)
+void NodeData::to_keyval(cspan const& key, cspan const& val, int more_flags)
 {
     C4_ASSERT( ! has_children());
     C4_ASSERT( ! key.empty());
@@ -218,21 +216,21 @@ void Node::to_keyval(cspan const& key, cspan const& val, int more_flags)
     m_val = val;
 }
 
-void Node::set_key_tag(cspan const& tag)
+void NodeData::set_key_tag(cspan const& tag)
 {
     C4_ASSERT(has_key());
     m_key.tag = tag;
     _add_flags(KEYTAG);
 }
 
-void Node::set_val_tag(cspan const& tag)
+void NodeData::set_val_tag(cspan const& tag)
 {
     //C4_ASSERT(has_val());
     m_val.tag = tag;
     _add_flags(VALTAG);
 }
 
-void Node::to_map(int more_flags)
+void NodeData::to_map(int more_flags)
 {
     C4_ASSERT( ! has_children());
     C4_ASSERT(m_parent == NONE || ! m_s->get(m_parent)->is_map());
@@ -241,7 +239,7 @@ void Node::to_map(int more_flags)
     m_val.clear();
 }
 
-void Node::to_map(cspan const& key, int more_flags)
+void NodeData::to_map(cspan const& key, int more_flags)
 {
     C4_ASSERT( ! has_children());
     C4_ASSERT( ! key.empty());
@@ -251,7 +249,7 @@ void Node::to_map(cspan const& key, int more_flags)
     m_val.clear();
 }
 
-void Node::to_seq(int more_flags)
+void NodeData::to_seq(int more_flags)
 {
     C4_ASSERT( ! has_children());
     _set_flags(SEQ|more_flags);
@@ -259,7 +257,7 @@ void Node::to_seq(int more_flags)
     m_val.clear();
 }
 
-void Node::to_seq(cspan const& key, int more_flags)
+void NodeData::to_seq(cspan const& key, int more_flags)
 {
     C4_ASSERT( ! has_children());
     C4_ASSERT(m_parent != NONE && m_s->get(m_parent)->is_map());
@@ -268,7 +266,7 @@ void Node::to_seq(cspan const& key, int more_flags)
     m_val.clear();
 }
 
-void Node::to_doc(int more_flags)
+void NodeData::to_doc(int more_flags)
 {
     C4_ASSERT( ! has_children());
     _set_flags(DOC|more_flags);
@@ -276,7 +274,7 @@ void Node::to_doc(int more_flags)
     m_val.clear();
 }
 
-void Node::to_stream(int more_flags)
+void NodeData::to_stream(int more_flags)
 {
     C4_ASSERT( ! has_children());
     _set_flags(STREAM|more_flags);
@@ -343,7 +341,7 @@ void Tree::_free()
 {
     if(m_buf)
     {
-        RymlCallbacks::free(m_buf, m_cap * sizeof(Node));
+        RymlCallbacks::free(m_buf, m_cap * sizeof(NodeData));
     }
     if(m_arena.str)
     {
@@ -354,8 +352,8 @@ void Tree::_free()
 void Tree::_copy(Tree const& that)
 {
     memcpy(this, &that, sizeof(Tree));
-    m_buf = (Node*)RymlCallbacks::allocate(m_cap * sizeof(Node), that.m_buf);
-    memcpy(m_buf, that.m_buf, m_cap * sizeof(Node));
+    m_buf = (NodeData*)RymlCallbacks::allocate(m_cap * sizeof(NodeData), that.m_buf);
+    memcpy(m_buf, that.m_buf, m_cap * sizeof(NodeData));
     for(size_t i = 0; i < m_cap; ++i)
     {
         m_buf[i].m_s = this;
@@ -379,7 +377,7 @@ void Tree::_move(Tree & that)
 void Tree::_relocate(span const& next_arena)
 {
     memcpy(next_arena.str, m_arena.str, m_arena_pos);
-    for(Node *n = m_buf, *e = m_buf + m_cap; n != e; ++n)
+    for(NodeData *n = m_buf, *e = m_buf + m_cap; n != e; ++n)
     {
         if(in_arena(n->m_key.scalar)) n->m_key.scalar = _relocated(n->m_key.scalar, next_arena);
         if(in_arena(n->m_key.tag   )) n->m_key.tag    = _relocated(n->m_key.tag   , next_arena);
@@ -393,11 +391,11 @@ void Tree::reserve(size_t cap, size_t arena_cap)
 {
     if(cap > m_cap)
     {
-        Node *buf = (Node*)RymlCallbacks::allocate(cap * sizeof(Node), m_buf);
+        NodeData *buf = (NodeData*)RymlCallbacks::allocate(cap * sizeof(NodeData), m_buf);
         if(m_buf)
         {
-            memcpy(buf, m_buf, m_cap * sizeof(Node));
-            RymlCallbacks::free(m_buf, m_cap * sizeof(Node));
+            memcpy(buf, m_buf, m_cap * sizeof(NodeData));
+            RymlCallbacks::free(m_buf, m_cap * sizeof(NodeData));
         }
         if(m_free_head == NONE)
         {
@@ -455,11 +453,11 @@ void Tree::_clear_range(size_t first, size_t num)
 {
     if(num == 0) return; // prevent overflow when subtracting
     C4_ASSERT(first >= 0 && first + num <= m_cap);
-    memset(m_buf + first, 0, num * sizeof(Node));
+    memset(m_buf + first, 0, num * sizeof(NodeData));
     for(size_t i = first, e = first + num; i < e; ++i)
     {
         get(i)->_clear();
-        Node *n = m_buf + i;
+        NodeData *n = m_buf + i;
         n->m_prev_sibling = i - 1;
         n->m_next_sibling = i + 1;
     }
@@ -470,7 +468,7 @@ void Tree::_clear_range(size_t first, size_t num)
 void Tree::_release(size_t i)
 {
     C4_ASSERT(i >= 0 && i < m_cap);
-    Node & w = m_buf[i];
+    NodeData & w = m_buf[i];
 
     _rem_hierarchy(i);
 
@@ -507,7 +505,7 @@ size_t Tree::_claim()
     C4_ASSERT(m_free_head >= 0 && m_free_head < m_cap);
 
     size_t ichild = m_free_head;
-    Node *child = m_buf + ichild;
+    NodeData *child = m_buf + ichild;
 
     ++m_size;
     m_free_head = child->m_next_sibling;
@@ -528,7 +526,7 @@ void Tree::_set_hierarchy(size_t ichild, size_t iparent, size_t iprev_sibling)
     C4_ASSERT(iparent == NONE || (iparent >= 0 && iparent < m_cap));
     C4_ASSERT(iprev_sibling == NONE || (iprev_sibling >= 0 && iprev_sibling < m_cap));
 
-    Node * child = get(ichild);
+    NodeData * child = get(ichild);
 
     child->m_s = this;
     child->m_parent = iparent;
@@ -545,9 +543,9 @@ void Tree::_set_hierarchy(size_t ichild, size_t iparent, size_t iprev_sibling)
 
     if(iparent == NONE) return;
 
-    Node *parent = get(iparent);
-    Node *psib   = get(iprev_sibling);
-    Node *nsib   = psib ? psib->next_sibling() : parent->first_child();
+    NodeData *parent = get(iparent);
+    NodeData *psib   = get(iprev_sibling);
+    NodeData *nsib   = psib ? psib->next_sibling() : parent->first_child();
 
     if(psib)
     {
@@ -589,12 +587,12 @@ void Tree::_rem_hierarchy(size_t i)
 {
     C4_ASSERT(i >= 0 && i < m_cap);
 
-    Node & w = m_buf[i];
+    NodeData & w = m_buf[i];
 
     // remove from the parent
     if(w.m_parent != NONE)
     {
-        Node & p = m_buf[w.m_parent];
+        NodeData & p = m_buf[w.m_parent];
         if(p.m_first_child == i)
         {
             p.m_first_child = w.m_next_sibling;
@@ -608,12 +606,12 @@ void Tree::_rem_hierarchy(size_t i)
     // remove from the used list
     if(w.m_prev_sibling != NONE)
     {
-        Node * prev = get(w.m_prev_sibling);
+        NodeData * prev = get(w.m_prev_sibling);
         prev->m_next_sibling = w.m_next_sibling;
     }
     if(w.m_next_sibling != NONE)
     {
-        Node * next = get(w.m_next_sibling);
+        NodeData * next = get(w.m_next_sibling);
         next->m_prev_sibling = w.m_prev_sibling;
     }
 }
@@ -649,8 +647,8 @@ size_t Tree::duplicate(size_t node, size_t parent, size_t after)
 
     size_t copy = _claim();
 
-    Node const* nnode = get(node);
-    Node      * ncopy = get(copy);
+    NodeData const* nnode = get(node);
+    NodeData      * ncopy = get(copy);
 
     ncopy->_copy_props(*nnode);
     _set_hierarchy(copy, parent, after);
@@ -681,8 +679,8 @@ void Tree::duplicate_children(size_t node, size_t parent, size_t after)
 void Tree::duplicate_contents(size_t node, size_t where)
 {
     C4_ASSERT(node != NONE);
-    Node const* nnode  = get(node);
-    Node      * nwhere = get(where);
+    NodeData const* nnode  = get(node);
+    NodeData      * nwhere = get(where);
     nwhere->_copy_props_wo_key(*nnode);
     duplicate_children(node, where, NONE);
 }
@@ -767,22 +765,22 @@ struct ReferenceResolver
         size_t target;
     };
 
-    Node * root;
+    NodeData * root;
     stack<refdata> refs;
 
-    ReferenceResolver(Node *r_) : root(r_), refs()
+    ReferenceResolver(NodeData *r_) : root(r_), refs()
     {
         resolve();
     }
 
-    static size_t count(Node const* n)
+    static size_t count(NodeData const* n)
     {
         size_t c = 0;
         if(n->is_ref() || n->has_anchor())
         {
             ++c;
         }
-        for(Node const* ch = n->first_child(); ch; ch = ch->next_sibling())
+        for(NodeData const* ch = n->first_child(); ch; ch = ch->next_sibling())
         {
             c += count(ch);
         }
@@ -810,7 +808,7 @@ struct ReferenceResolver
         }
     }
 
-    void _store(Node const* n)
+    void _store(NodeData const* n)
     {
         if(n->is_ref())
         {
@@ -821,7 +819,7 @@ struct ReferenceResolver
             refs.push({false, n->id(), npos, npos});
         }
 
-        for(Node const* ch = n->first_child(); ch; ch = ch->next_sibling())
+        for(NodeData const* ch = n->first_child(); ch; ch = ch->next_sibling())
         {
             _store(ch);
         }
@@ -871,7 +869,7 @@ void Tree::resolve()
     {
         auto const& rd = rr.refs[i];
         if( ! rd.is_ref) continue;
-        Node *n = get(rd.node);
+        NodeData *n = get(rd.node);
         size_t prev = n->m_prev_sibling;
         size_t parent = n->m_parent;
         if(n->is_keyval() && n->key() == "<<")
@@ -977,7 +975,7 @@ bool Parser::_finished_line() const
 }
 
 //-----------------------------------------------------------------------------
-void Parser::parse(cspan const& file, span buf, Node *root)
+void Parser::parse(cspan const& file, span buf, NodeRef *root)
 {
     m_file = file;
     m_buf = buf;
@@ -2392,7 +2390,7 @@ void Parser::_start_doc(bool as_child)
     _c4dbgp("start_doc (as child=%d)", as_child);
     add_flags(RUNK);
     C4_ASSERT(node(m_stack.bottom()) == node(m_root_id));
-    Node* parent = m_stack.size() < 2 ? node(m_root_id) : node(m_stack.top(1));
+    NodeData* parent = m_stack.size() < 2 ? node(m_root_id) : node(m_stack.top(1));
     size_t parent_id = parent->id();
     C4_ASSERT(parent != nullptr);
     C4_ASSERT(parent->is_root());
@@ -2430,7 +2428,7 @@ void Parser::_start_map(bool as_child)
     _c4dbgp("start_map (as child=%d)", as_child);
     addrem_flags(RMAP|RVAL, RKEY|RUNK);
     C4_ASSERT(node(m_stack.bottom()) == node(m_root_id));
-    Node* parent = m_stack.size() < 2 ? node(m_root_id) : node(m_stack.top(1));
+    NodeData* parent = m_stack.size() < 2 ? node(m_root_id) : node(m_stack.top(1));
     C4_ASSERT(parent != nullptr);
     size_t parent_id = parent->id();
     C4_ASSERT(node(m_state) == nullptr || node(m_state) == node(m_root_id));
@@ -2485,7 +2483,7 @@ void Parser::_start_seq(bool as_child)
     _c4dbgp("start_seq (as child=%d)", as_child);
     addrem_flags(RSEQ|RVAL, RUNK);
     C4_ASSERT(node(m_stack.bottom()) == node(m_root_id));
-    Node* parent = m_stack.size() < 2 ? node(m_root_id) : node(m_stack.top(1));
+    NodeData* parent = m_stack.size() < 2 ? node(m_root_id) : node(m_stack.top(1));
     C4_ASSERT(parent != nullptr);
     size_t parent_id = parent->id();
     C4_ASSERT(node(m_state) == nullptr || node(m_state) == node(m_root_id));
@@ -2540,14 +2538,14 @@ void Parser::_stop_seq()
 }
 
 //-----------------------------------------------------------------------------
-Node* Parser::_append_val(cspan const& val)
+NodeData* Parser::_append_val(cspan const& val)
 {
     C4_ASSERT( ! has_all(SSCL));
     C4_ASSERT(node(m_state) != nullptr);
     C4_ASSERT(node(m_state)->is_seq());
     _c4dbgp("append val: '%.*s' to parent id=%zd (level=%zd)", _c4prsp(val), m_state->node_id, m_state->level);
     size_t nid = m_tree->append_child(m_state->node_id);
-    Node *n = m_tree->get(nid);
+    NodeData *n = m_tree->get(nid);
     n->to_val(val);
     _c4dbgp("append val: id=%zd name='%.*s' val='%.*s'", nid, _c4prsp(n->m_key.scalar), _c4prsp(n->m_val.scalar));
     if( ! m_val_tag.empty())
@@ -2572,13 +2570,13 @@ Node* Parser::_append_val(cspan const& val)
     return n;
 }
 
-Node* Parser::_append_key_val(cspan const& val)
+NodeData* Parser::_append_key_val(cspan const& val)
 {
     C4_ASSERT(node(m_state)->is_map());
     cspan key = _consume_scalar();
     _c4dbgp("append keyval: '%.*s' '%.*s' to parent id=%zd (level=%zd)", _c4prsp(key), _c4prsp(val), m_state->node_id, m_state->level);
     size_t nid = m_tree->append_child(m_state->node_id);
-    Node *n = m_tree->get(nid);
+    NodeData *n = m_tree->get(nid);
     n->to_keyval(key, val);
     _c4dbgp("append keyval: id=%zd name='%.*s' val='%.*s'", nid, _c4prsp(n->key()), _c4prsp(n->val()));
     if( ! m_key_tag.empty())

@@ -10,7 +10,7 @@ namespace yml {
 #define _c4cthis (static_cast< Writer const* >(this))
 
 template< class Writer >
-span Emitter< Writer >::emit(Node const* n, bool error_on_excess)
+span Emitter< Writer >::emit(NodeData const* n, bool error_on_excess)
 {
     this->_visit(n);
     span result = _c4this->_get(error_on_excess);
@@ -30,7 +30,7 @@ void Emitter< Writer >::seek(size_t p)
 }
 
 template< class Writer >
-size_t Emitter< Writer >::_visit(Node const* n, size_t ilevel)
+size_t Emitter< Writer >::_visit(NodeData const* n, size_t ilevel)
 {
     if(n->is_stream())
     {
@@ -45,7 +45,7 @@ size_t Emitter< Writer >::_visit(Node const* n, size_t ilevel)
 }
 
 template< class Writer >
-void Emitter< Writer >::_do_visit(Node const* n, size_t ilevel, bool indent)
+void Emitter< Writer >::_do_visit(NodeData const* n, size_t ilevel, bool indent)
 {
     RepC ind{' ', 2 * size_t(indent) * ilevel};
 
@@ -158,7 +158,7 @@ void Emitter< Writer >::_do_visit(Node const* n, size_t ilevel, bool indent)
         next_level = ilevel; // do not indent at top level
     }
 
-    for(Node const* ch = n->first_child(); ch; ch = ch->next_sibling())
+    for(NodeData const* ch = n->first_child(); ch; ch = ch->next_sibling())
     {
         _do_visit(ch, next_level, indent);
         indent = true;

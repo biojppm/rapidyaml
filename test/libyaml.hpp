@@ -44,7 +44,7 @@ public:
     const char *  m_input;
     size_t        m_length;
 
-    Node *        m_load_root;
+    NodeData *    m_load_root;
 
 private:
 
