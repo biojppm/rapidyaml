@@ -94,6 +94,7 @@ void Emitter< Writer >::_do_visit(Node const* n, size_t ilevel, bool indent)
                 if(n->parent_is_map())
                 {
                     _write('\n');
+                    indent = true;
                 }
                 else
                 {
@@ -111,6 +112,7 @@ void Emitter< Writer >::_do_visit(Node const* n, size_t ilevel, bool indent)
                 else
                 {
                     _write('\n');
+                    indent = true;
                 }
             }
             else
