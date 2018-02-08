@@ -42,6 +42,58 @@ typedef enum {
 /** an index to none */
 enum : size_t { NONE = size_t(-1) };
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+struct NodeScalar
+{
+    cspan tag;
+    cspan scalar;
+
+    /// initialize as an empty scalar
+
+    inline NodeScalar() : tag(), scalar() {}
+
+    /// initialize as an untagged scalar
+
+    template< size_t N >
+    inline NodeScalar(const char (&s)[N]      ) : tag(), scalar(    ) { /*avoid strlen call*/ scalar.assign<N>(s); }
+    inline NodeScalar(cspan const& s          ) : tag(), scalar(s   ) {}
+    inline NodeScalar(const char*  s          ) : tag(), scalar(s   ) {}
+    inline NodeScalar(const char*  s, size_t n) : tag(), scalar(s, n) {}
+
+    /// initialize as a tagged scalar
+
+    template< size_t M >
+    inline NodeScalar(cspan const& t           , const char (&s)[M]       ) : tag(t    ), scalar(     ) { /*avoid strlen call */scalar.assign<M>(s); }
+    inline NodeScalar(cspan const& t           , cspan const& s           ) : tag(t    ), scalar(s    ) {}
+    inline NodeScalar(cspan const& t           , const char * s           ) : tag(t    ), scalar(s    ) {}
+    inline NodeScalar(cspan const& t           , const char * s, size_t ns) : tag(t    ), scalar(s, ns) {}
+
+    template< size_t M >
+    inline NodeScalar(const char * t           , const char (&s)[M]       ) : tag(t    ), scalar(     ) { /*avoid strlen call */scalar.assign<M>(s); }
+    inline NodeScalar(const char * t           , cspan const& s           ) : tag(t    ), scalar(s    ) {}
+    inline NodeScalar(const char * t           , const char * s           ) : tag(t    ), scalar(s    ) {}
+    inline NodeScalar(const char * t           , const char * s, size_t ns) : tag(t    ), scalar(s, ns) {}
+
+    template< size_t M >
+    inline NodeScalar(const char * t, size_t nt, const char (&s)[M]       ) : tag(t, nt), scalar(     ) { /*avoid strlen call */scalar.assign<M>(s); }
+    inline NodeScalar(const char * t, size_t nt, cspan const& s           ) : tag(t, nt), scalar(s    ) {}
+    inline NodeScalar(const char * t, size_t nt, const char * s           ) : tag(t, nt), scalar(s    ) {}
+    inline NodeScalar(const char * t, size_t nt, const char * s, size_t ns) : tag(t, nt), scalar(s, ns) {}
+
+    template< size_t N, size_t M > inline NodeScalar(const char (&t)[N], const char (&s)[M]       ) : tag(     ), scalar(     ) { /*avoid strlen call */tag.assign<N>(t); scalar.assign<M>(s); }
+    template< size_t N >           inline NodeScalar(const char (&t)[N], cspan const& s           ) : tag(     ), scalar(s    ) { /*avoid strlen call */tag.assign<N>(t); }
+    template< size_t N >           inline NodeScalar(const char (&t)[N], const char * s           ) : tag(     ), scalar(s    ) { /*avoid strlen call */tag.assign<N>(t); }
+    template< size_t N >           inline NodeScalar(const char (&t)[N], const char * s, size_t ns) : tag(     ), scalar(s, ns) { /*avoid strlen call */tag.assign<N>(t); }
+
+    bool empty() const { return tag.empty() && scalar.empty(); }
+
+    void clear() { tag.clear(); scalar.clear(); }
+
+};
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -64,11 +116,8 @@ public:
 
     NodeType_e m_type;
 
-    cspan      m_key;
-    cspan      m_key_tag;
-
-    cspan      m_val;
-    cspan      m_val_tag;
+    NodeScalar m_key;
+    NodeScalar m_val;
 
     cspan      m_anchor;
 
@@ -81,7 +130,6 @@ public:
     void _copy_props(Node const& that)
     {
         m_key = that.m_key;
-        m_key_tag = that.m_key_tag;
         _copy_props_wo_key(that);
     }
 
@@ -90,7 +138,6 @@ public:
         m_s = that.m_s;
         m_type = that.m_type;
         m_val = that.m_val;
-        m_val_tag = that.m_val_tag;
     }
 
 public:
@@ -102,19 +149,17 @@ public:
     const char* type_str() const { return type_str(m_type); }
     static const char* type_str(NodeType_e ty);
 
-    cspan const& key() const { C4_ASSERT(has_key()); return m_key; }
-    cspan const& key_tag() const { C4_ASSERT(has_key_tag()); return m_key_tag; }
+    cspan const& key() const { C4_ASSERT(has_key()); return m_key.scalar; }
+    cspan const& key_tag() const { C4_ASSERT(has_key_tag()); return m_key.tag; }
+    NodeScalar const& keysc() const { C4_ASSERT(has_key()); return m_key; }
 
-    cspan const& val() const { C4_ASSERT(has_val()); return m_val; }
-    cspan const& val_tag() const { C4_ASSERT(has_val_tag()); return m_val_tag; }
+    cspan const& val() const { C4_ASSERT(has_val()); return m_val.scalar; }
+    cspan const& val_tag() const { C4_ASSERT(has_val_tag()); return m_val.tag; }
+    NodeScalar const& valsc() const { C4_ASSERT(has_val()); return m_val; }
 
     cspan const& anchor() const { return m_anchor; }
 
-    bool operator== (cspan const& cmp) const
-    {
-        C4_ASSERT(is_val());
-        return m_val == cmp;
-    }
+public:
 
     bool   is_root() const { return m_parent == NONE; }
     bool   is_stream() const { return (m_type & STREAM) == STREAM; }
@@ -224,9 +269,7 @@ public:
         m_s = nullptr;
         m_type = NOTYPE;
         m_key.clear();
-        m_key_tag.clear();
         m_val.clear();
-        m_val_tag.clear();
         m_parent = NONE;
         m_first_child = NONE;
         m_last_child = NONE;
@@ -235,14 +278,12 @@ public:
     inline void _clear_key()
     {
         m_key.clear();
-        m_key_tag.clear();
         _rem_flags(KEY);
     }
 
     inline void _clear_val()
     {
         m_key.clear();
-        m_key_tag.clear();
         _rem_flags(VAL);
     }
 
@@ -600,52 +641,6 @@ private:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-struct NodeScalar
-{
-    cspan tag;
-    cspan scalar;
-
-    /// initialize as an empty scalar
-
-    inline NodeScalar() : tag(), scalar() {}
-
-    /// initialize as an untagged scalar
-
-    template< size_t N >
-    inline NodeScalar(const char (&s)[N]      ) : tag(), scalar(    ) { /*avoid strlen call*/ scalar.assign<N>(s); }
-    inline NodeScalar(cspan const& s          ) : tag(), scalar(s   ) {}
-    inline NodeScalar(const char*  s          ) : tag(), scalar(s   ) {}
-    inline NodeScalar(const char*  s, size_t n) : tag(), scalar(s, n) {}
-
-    /// initialize as a tagged scalar
-
-    template< size_t M >
-    inline NodeScalar(cspan const& t           , const char (&s)[M]       ) : tag(t    ), scalar(     ) { /*avoid strlen call */scalar.assign<M>(s); }
-    inline NodeScalar(cspan const& t           , cspan const& s           ) : tag(t    ), scalar(s    ) {}
-    inline NodeScalar(cspan const& t           , const char * s           ) : tag(t    ), scalar(s    ) {}
-    inline NodeScalar(cspan const& t           , const char * s, size_t ns) : tag(t    ), scalar(s, ns) {}
-
-    template< size_t M >
-    inline NodeScalar(const char * t           , const char (&s)[M]       ) : tag(t    ), scalar(     ) { /*avoid strlen call */scalar.assign<M>(s); }
-    inline NodeScalar(const char * t           , cspan const& s           ) : tag(t    ), scalar(s    ) {}
-    inline NodeScalar(const char * t           , const char * s           ) : tag(t    ), scalar(s    ) {}
-    inline NodeScalar(const char * t           , const char * s, size_t ns) : tag(t    ), scalar(s, ns) {}
-
-    template< size_t M >
-    inline NodeScalar(const char * t, size_t nt, const char (&s)[M]       ) : tag(t, nt), scalar(     ) { /*avoid strlen call */scalar.assign<M>(s); }
-    inline NodeScalar(const char * t, size_t nt, cspan const& s           ) : tag(t, nt), scalar(s    ) {}
-    inline NodeScalar(const char * t, size_t nt, const char * s           ) : tag(t, nt), scalar(s    ) {}
-    inline NodeScalar(const char * t, size_t nt, const char * s, size_t ns) : tag(t, nt), scalar(s, ns) {}
-
-    template< size_t N, size_t M > inline NodeScalar(const char (&t)[N], const char (&s)[M]       ) : tag(     ), scalar(     ) { /*avoid strlen call */tag.assign<N>(t); scalar.assign<M>(s); }
-    template< size_t N >           inline NodeScalar(const char (&t)[N], cspan const& s           ) : tag(     ), scalar(s    ) { /*avoid strlen call */tag.assign<N>(t); }
-    template< size_t N >           inline NodeScalar(const char (&t)[N], const char * s           ) : tag(     ), scalar(s    ) { /*avoid strlen call */tag.assign<N>(t); }
-    template< size_t N >           inline NodeScalar(const char (&t)[N], const char * s, size_t ns) : tag(     ), scalar(s, ns) { /*avoid strlen call */tag.assign<N>(t); }
-
-    bool empty() const { return scalar.empty(); }
-
-};
-
 struct NodeInit
 {
     NodeType_e type;
@@ -966,7 +961,7 @@ public:
     {
         _apply_seed();
         write(this, s);
-        C4_ASSERT(get()->m_val == s);
+        C4_ASSERT(get()->val() == s);
     }
 
     template< class T >
@@ -1040,32 +1035,29 @@ private:
     static void _do_apply(Node *n, cspan const& v)
     {
         n->m_val = v;
-        n->m_val_tag = 0;
         n->_add_flags(VAL);
     }
 
     static void _do_apply(Node *n, NodeScalar const& v)
     {
-        n->m_val = v.scalar;
-        n->m_val_tag = v.tag;
+        n->m_val = v;
         n->_add_flags(VAL);
     }
 
     static void _do_apply(Node *n, NodeInit const& i)
     {
         C4_ASSERT(i._check());
-        C4_ASSERT(n->m_key.empty() || i.key.scalar.empty() || i.key.scalar == n->m_key);
+        C4_ASSERT(n->m_key.scalar.empty() || i.key.scalar.empty() || i.key.scalar == n->m_key.scalar);
         n->_add_flags(i.type);
         if(n->m_key.empty())
         {
             if( ! i.key.scalar.empty())
             {
-                n->m_key = i.key.scalar;
+                n->m_key.scalar = i.key.scalar;
             }
         }
-        n->m_key_tag = i.key.tag;
-        n->m_val = i.val.scalar;
-        n->m_val_tag = i.val.tag;
+        n->m_key.tag = i.key.tag;
+        n->m_val = i.val;
     }
 
     static void _set_parent_as_container_if_needed(Node *n)
@@ -1315,14 +1307,6 @@ struct RepC
     size_t num_times;
 };
 
-struct Scalar
-{
-    cspan s;
-    cspan tag;
-    inline Scalar(cspan const& s_) : s(s_) {}
-    inline Scalar(cspan const& s_, cspan const& t_) : s(s_), tag(t_) {}
-};
-
 template< class Writer >
 class Emitter : public Writer
 {
@@ -1353,9 +1337,6 @@ private:
 
 #define _c4this (static_cast< Writer * >(this))
 
-    static inline Scalar keysc(Node const* n) { return n->has_key_tag() ? Scalar(n->key(), n->key_tag()) : Scalar(n->key()); }
-    static inline Scalar valsc(Node const* n) { return n->has_val_tag() ? Scalar(n->val(), n->val_tag()) : Scalar(n->val()); }
-
     template< class T, class... Args >
     inline void _write(T a, Args... more)
     {
@@ -1377,7 +1358,7 @@ private:
         s.assign<N>(a);
         _c4this->_do_write(s);
     }
-    void _write_one(Scalar const& sc);
+    void _write_one(NodeScalar const& sc);
 
 #undef _c4this
 

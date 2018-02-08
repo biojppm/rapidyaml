@@ -56,12 +56,12 @@ void Emitter< Writer >::_do_visit(Node const* n, size_t ilevel, bool indent)
     else if(n->is_keyval())
     {
         C4_ASSERT(n->has_parent());
-        _write(ind, keysc(n), ": ", valsc(n), '\n');
+        _write(ind, n->keysc(), ": ", n->valsc(), '\n');
     }
     else if(n->is_val())
     {
         C4_ASSERT(n->has_parent());
-        _write(ind, "- ", valsc(n), '\n');
+        _write(ind, "- ", n->valsc(), '\n');
     }
     else if(n->is_container() && ! n->is_root())
     {
@@ -80,7 +80,7 @@ void Emitter< Writer >::_do_visit(Node const* n, size_t ilevel, bool indent)
         else if(n->parent_is_map())
         {
             C4_ASSERT(n->has_key());
-            _write(ind, keysc(n), ':');
+            _write(ind, n->keysc(), ':');
             if(n->has_val_tag())
             {
                 _write(' ', n->val_tag());
@@ -166,7 +166,7 @@ void Emitter< Writer >::_do_visit(Node const* n, size_t ilevel, bool indent)
 }
 
 template< class Writer >
-void Emitter< Writer >::_write_one(Scalar const& sc)
+void Emitter< Writer >::_write_one(NodeScalar const& sc)
 {
     if( ! sc.tag.empty())
     {
@@ -174,15 +174,15 @@ void Emitter< Writer >::_write_one(Scalar const& sc)
         _c4this->_do_write(' ');
     }
 
-    const bool no_dquotes = sc.s.first_of( '"') == npos;
-    const bool no_squotes = sc.s.first_of('\'') == npos;
-    const bool no_newline = sc.s.first_of('\n') == npos;
+    const bool no_dquotes = sc.scalar.first_of( '"') == npos;
+    const bool no_squotes = sc.scalar.first_of('\'') == npos;
+    const bool no_newline = sc.scalar.first_of('\n') == npos;
 
     if(no_dquotes && no_squotes && no_newline)
     {
-        if( ! sc.s.empty())
+        if( ! sc.scalar.empty())
         {
-            _c4this->_do_write(sc.s);
+            _c4this->_do_write(sc.scalar);
         }
         else
         {
@@ -194,32 +194,32 @@ void Emitter< Writer >::_write_one(Scalar const& sc)
         if(no_squotes && !no_dquotes)
         {
             _c4this->_do_write('\'');
-            _c4this->_do_write(sc.s);
+            _c4this->_do_write(sc.scalar);
             _c4this->_do_write('\'');
         }
         else if(no_dquotes && !no_squotes)
         {
             _c4this->_do_write('"');
-            _c4this->_do_write(sc.s);
+            _c4this->_do_write(sc.scalar);
             _c4this->_do_write('"');
         }
         else
         {
             size_t pos = 0;
             _c4this->_do_write('\'');
-            for(size_t i = 0; i < sc.s.len; ++i)
+            for(size_t i = 0; i < sc.scalar.len; ++i)
             {
-                if(sc.s[i] == '\'' || sc.s[i] == '\n')
+                if(sc.scalar[i] == '\'' || sc.scalar[i] == '\n')
                 {
-                    cspan sub = sc.s.subspan(pos, i-pos);
+                    cspan sub = sc.scalar.subspan(pos, i-pos);
                     pos = i;
                     _c4this->_do_write(sub);
-                    _c4this->_do_write(sc.s[i]); // write the character twice
+                    _c4this->_do_write(sc.scalar[i]); // write the character twice
                 }
             }
-            if(pos < sc.s.len)
+            if(pos < sc.scalar.len)
             {
-                cspan sub = sc.s.subspan(pos);
+                cspan sub = sc.scalar.subspan(pos);
                 _c4this->_do_write(sub);
             }
             _c4this->_do_write('\'');

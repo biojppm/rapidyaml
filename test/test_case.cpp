@@ -40,7 +40,7 @@ void CaseNode::compare_child(yml::Node const& n, size_t pos) const
 
     if(type & SEQ)
     {
-        EXPECT_EQ(n[pos].m_key, children[pos].key);
+        EXPECT_EQ(n[pos].m_key.scalar, children[pos].key);
         auto fch = n.child(pos);
         EXPECT_EQ(fch, &n[pos]);
     }
@@ -129,10 +129,10 @@ void CaseNode::recreate(yml::Node *n) const
 {
     C4_ASSERT( ! n->has_children());
     n->m_type = type;
-    n->m_key = key;
-    n->m_key_tag = key_tag;
-    n->m_val = val;
-    n->m_val_tag = val_tag;
+    n->m_key.scalar = key;
+    n->m_key.tag = key_tag;
+    n->m_val.scalar = val;
+    n->m_val.tag = val_tag;
     auto &tree = *n->tree();
     size_t nid = n->id(); // don't use node from now on
     for(auto const& ch : children)

@@ -91,7 +91,7 @@ Node * Node::find_child(cspan const& name) const
     }
     for(Node *n = m_s->get(m_first_child); n; n = n->next_sibling())
     {
-        if(n->m_key == name)
+        if(n->m_key.scalar == name)
         {
             return n;
         }
@@ -221,14 +221,14 @@ void Node::to_keyval(cspan const& key, cspan const& val, int more_flags)
 void Node::set_key_tag(cspan const& tag)
 {
     C4_ASSERT(has_key());
-    m_key_tag = tag;
+    m_key.tag = tag;
     _add_flags(KEYTAG);
 }
 
 void Node::set_val_tag(cspan const& tag)
 {
     //C4_ASSERT(has_val());
-    m_val_tag = tag;
+    m_val.tag = tag;
     _add_flags(VALTAG);
 }
 
@@ -381,10 +381,10 @@ void Tree::_relocate(span const& next_arena)
     memcpy(next_arena.str, m_arena.str, m_arena_pos);
     for(Node *n = m_buf, *e = m_buf + m_cap; n != e; ++n)
     {
-        if(in_arena(n->m_key    )) n->m_key     = _relocated(n->m_key    , next_arena);
-        if(in_arena(n->m_key_tag)) n->m_key_tag = _relocated(n->m_key_tag, next_arena);
-        if(in_arena(n->m_val    )) n->m_val     = _relocated(n->m_val    , next_arena);
-        if(in_arena(n->m_val_tag)) n->m_val_tag = _relocated(n->m_val_tag, next_arena);
+        if(in_arena(n->m_key.scalar)) n->m_key.scalar = _relocated(n->m_key.scalar, next_arena);
+        if(in_arena(n->m_key.tag   )) n->m_key.tag    = _relocated(n->m_key.tag   , next_arena);
+        if(in_arena(n->m_val.scalar)) n->m_val.scalar = _relocated(n->m_val.scalar, next_arena);
+        if(in_arena(n->m_val.tag   )) n->m_val.tag    = _relocated(n->m_val.tag   , next_arena);
     }
 }
 
@@ -2549,7 +2549,7 @@ Node* Parser::_append_val(cspan const& val)
     size_t nid = m_tree->append_child(m_state->node_id);
     Node *n = m_tree->get(nid);
     n->to_val(val);
-    _c4dbgp("append val: id=%zd name='%.*s' val='%.*s'", nid, _c4prsp(n->m_key), _c4prsp(n->m_val));
+    _c4dbgp("append val: id=%zd name='%.*s' val='%.*s'", nid, _c4prsp(n->m_key.scalar), _c4prsp(n->m_val.scalar));
     if( ! m_val_tag.empty())
     {
         _c4dbgp("append val: set tag to '%.*s'", _c4prsp(m_val_tag));
@@ -2563,7 +2563,7 @@ Node* Parser::_append_val(cspan const& val)
         ++m_num_anchors;
         m_anchor.clear();
     }
-    if(n->m_val.begins_with('*'))
+    if(n->m_val.scalar.begins_with('*'))
     {
         _c4dbgp("append val: it's a reference");
         n->_add_flags(REF);
@@ -2600,10 +2600,10 @@ Node* Parser::_append_key_val(cspan const& val)
         ++m_num_anchors;
         m_anchor.clear();
     }
-    if(n->m_key == "<<" || n->m_val.begins_with('*'))
+    if(n->m_key.scalar == "<<" || n->m_val.scalar.begins_with('*'))
     {
         _c4dbgp("append keyval: it's a reference");
-        if( ! (n->m_val.begins_with('*')))
+        if( ! (n->m_val.scalar.begins_with('*')))
         {
              _c4err("malformed reference");
         }
