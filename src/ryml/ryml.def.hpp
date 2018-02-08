@@ -10,7 +10,7 @@ namespace yml {
 #define _c4cthis (static_cast< Writer const* >(this))
 
 template< class Writer >
-span Emitter< Writer >::emit(NodeData const* n, bool error_on_excess)
+span Emitter< Writer >::emit(NodeRef const& n, bool error_on_excess)
 {
     this->_visit(n);
     span result = _c4this->_get(error_on_excess);
@@ -30,14 +30,14 @@ void Emitter< Writer >::seek(size_t p)
 }
 
 template< class Writer >
-size_t Emitter< Writer >::_visit(NodeData const* n, size_t ilevel)
+size_t Emitter< Writer >::_visit(NodeRef const& n, size_t ilevel)
 {
-    if(n->is_stream())
+    if(n.is_stream())
     {
         ;
     }
     _do_visit(n, ilevel);
-    if(n->is_stream())
+    if(n.is_stream())
     {
         _write("...\n");
     }
@@ -45,53 +45,53 @@ size_t Emitter< Writer >::_visit(NodeData const* n, size_t ilevel)
 }
 
 template< class Writer >
-void Emitter< Writer >::_do_visit(NodeData const* n, size_t ilevel, bool indent)
+void Emitter< Writer >::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
 {
     RepC ind{' ', 2 * size_t(indent) * ilevel};
 
-    if(n->is_doc())
+    if(n.is_doc())
     {
         _write("---\n");
     }
-    else if(n->is_keyval())
+    else if(n.is_keyval())
     {
-        C4_ASSERT(n->has_parent());
-        _write(ind, n->keysc(), ": ", n->valsc(), '\n');
+        C4_ASSERT(n.has_parent());
+        _write(ind, n.keysc(), ": ", n.valsc(), '\n');
     }
-    else if(n->is_val())
+    else if(n.is_val())
     {
-        C4_ASSERT(n->has_parent());
-        _write(ind, "- ", n->valsc(), '\n');
+        C4_ASSERT(n.has_parent());
+        _write(ind, "- ", n.valsc(), '\n');
     }
-    else if(n->is_container() && ! n->is_root())
+    else if(n.is_container() && ! n.is_root())
     {
-        C4_ASSERT(n->parent_is_map() || n->parent_is_seq());
-        C4_ASSERT(n->is_map() || n->is_seq());
+        C4_ASSERT(n.parent_is_map() || n.parent_is_seq());
+        C4_ASSERT(n.is_map() || n.is_seq());
 
-        if(n->parent_is_seq())
+        if(n.parent_is_seq())
         {
-            C4_ASSERT( ! n->has_key());
+            C4_ASSERT( ! n.has_key());
             _write(ind, "- ");
-            if(n->has_val_tag())
+            if(n.has_val_tag())
             {
-                _write(n->val_tag(), ' ');
+                _write(n.val_tag(), ' ');
             }
         }
-        else if(n->parent_is_map())
+        else if(n.parent_is_map())
         {
-            C4_ASSERT(n->has_key());
-            _write(ind, n->keysc(), ':');
-            if(n->has_val_tag())
+            C4_ASSERT(n.has_key());
+            _write(ind, n.keysc(), ':');
+            if(n.has_val_tag())
             {
-                _write(' ', n->val_tag());
+                _write(' ', n.val_tag());
             }
         }
 
-        if(n->has_children())
+        if(n.has_children())
         {
-            if(n->is_seq())
+            if(n.is_seq())
             {
-                if(n->parent_is_map())
+                if(n.parent_is_map())
                 {
                     _write('\n');
                     indent = true;
@@ -102,9 +102,9 @@ void Emitter< Writer >::_do_visit(NodeData const* n, size_t ilevel, bool indent)
                     indent = false;
                 }
             }
-            else if(n->is_map())
+            else if(n.is_map())
             {
-                if(n->parent_is_seq())
+                if(n.parent_is_seq())
                 {
                     // do not indent the first child, as it will be written on the same line
                     indent = false;
@@ -122,30 +122,30 @@ void Emitter< Writer >::_do_visit(NodeData const* n, size_t ilevel, bool indent)
         }
         else
         {
-            if(n->parent_is_map())
+            if(n.parent_is_map())
             {
                 _write(' ');
             }
 
-            if(n->is_seq())
+            if(n.is_seq())
             {
                 _write("[]\n");
             }
-            else if(n->is_map())
+            else if(n.is_map())
             {
                 _write("{}\n");
             }
         }
     }
-    else if(n->is_container() && n->is_root())
+    else if(n.is_container() && n.is_root())
     {
-        if( ! n->has_children())
+        if( ! n.has_children())
         {
-            if(n->is_seq())
+            if(n.is_seq())
             {
                 _write("[]\n");
             }
-            else if(n->is_map())
+            else if(n.is_map())
             {
                 _write("{}\n");
             }
@@ -153,12 +153,12 @@ void Emitter< Writer >::_do_visit(NodeData const* n, size_t ilevel, bool indent)
     }
 
     size_t next_level = ilevel + 1;
-    if(n->is_stream() || n->is_doc() || n->is_root())
+    if(n.is_stream() || n.is_doc() || n.is_root())
     {
         next_level = ilevel; // do not indent at top level
     }
 
-    for(NodeData const* ch = n->first_child(); ch; ch = ch->next_sibling())
+    for(auto ch : n.children())
     {
         _do_visit(ch, next_level, indent);
         indent = true;

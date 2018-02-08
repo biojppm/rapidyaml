@@ -12,9 +12,15 @@
 namespace c4 {
 namespace yml {
 
+struct NodeScalar;
+struct NodeInit;
 class NodeData;
+class NodeRef;
 class Tree;
 class Parser;
+
+/** an index to none */
+enum : size_t { NONE = size_t(-1) };
 
 
 typedef enum {
@@ -39,8 +45,39 @@ typedef enum {
 
 
 
-/** an index to none */
-enum : size_t { NONE = size_t(-1) };
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+struct NodeType
+{
+    inline operator NodeType_e      & ()       { return type; }
+    inline operator NodeType_e const& () const { return type; }
+
+    NodeType() : type(NOTYPE) {}
+    NodeType(NodeType_e t) : type(t) {}
+    NodeType(int t) : type((NodeType_e)t) {}
+
+    const char *type_str() const { return type_str(type); }
+    static const char* type_str(NodeType_e t);
+
+public:
+
+    bool   is_stream() const { return (type & STREAM) == STREAM; }
+    bool   is_doc() const { return type & DOC; }
+    bool   is_container() const { return type & (MAP|SEQ|STREAM|DOC); }
+    bool   is_map() const { return type & MAP; }
+    bool   is_seq() const { return type & SEQ; }
+    bool   has_val() const { return type & VAL; }
+    bool   has_key() const { return type & KEY; }
+    bool   is_val() const { return (type & KEYVAL) == VAL; }
+    bool   is_keyval() const { return (type & KEYVAL) == KEYVAL; }
+    bool   has_key_tag() const { return (type & (KEY|KEYTAG)) == (KEY|KEYTAG); }
+    bool   has_val_tag() const { return ((type & (VALTAG)) && (type & (VAL|MAP|SEQ))); }
+    bool   is_ref() const { return type & REF; }
+
+    NodeType_e type;
+};
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -98,6 +135,58 @@ struct NodeScalar
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+struct NodeInit
+{
+    NodeType   type;
+    NodeScalar key;
+    NodeScalar val;
+
+    /// initialize as an empty node
+    NodeInit() : type(NOTYPE), key(), val() {}
+
+    /// initialize as a typed node
+    NodeInit(NodeType_e t) : type(t), key(), val() {}
+
+    /// initialize as a sequence member
+    NodeInit(NodeScalar const& v) : type(VAL), key(), val(v) { _add_flags(); }
+
+    /// initialize as a mapping member
+    NodeInit(              NodeScalar const& k, NodeScalar const& v) : type(KEYVAL), key(k.tag, k.scalar), val(v.tag, v.scalar) { _add_flags(); }
+    NodeInit(NodeType_e t, NodeScalar const& k, NodeScalar const& v) : type(t     ), key(k.tag, k.scalar), val(v.tag, v.scalar) { _add_flags(); }
+
+    /// initialize as a mapping member with explicit type (eg SEQ or MAP)
+    NodeInit(NodeType_e t, NodeScalar const& k                     ) : type(t     ), key(k.tag, k.scalar), val(               ) { _add_flags(KEY); }
+
+    void clear()
+    {
+        memset(this, 0, sizeof(*this));
+    }
+
+    void _add_flags(int more_flags=0)
+    {
+        type = (type|more_flags);
+        if( ! key.tag.empty()) type = (type|KEYTAG);
+        if( ! val.tag.empty()) type = (type|VALTAG);
+    }
+
+    bool _check() const
+    {
+        // key cannot be empty
+        C4_ASSERT(key.scalar.empty() == ((type & KEY) == 0));
+        // key tag cannot be empty
+        C4_ASSERT(key.tag.empty() == ((type & KEYTAG) == 0));
+        // val may be empty even though VAL is set. But when VAL is not set, val must be empty
+        C4_ASSERT(((type & VAL) != 0) || val.scalar.empty());
+        // val tag cannot be empty
+        C4_ASSERT(val.tag.empty() == ((type & VALTAG) == 0));
+        return true;
+    }
+};
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 class NodeData
 {
@@ -112,9 +201,7 @@ private:
 
 public:
 
-    Tree *     m_s;
-
-    NodeType_e m_type;
+    NodeType   m_type;
 
     NodeScalar m_key;
     NodeScalar m_val;
@@ -127,23 +214,7 @@ public:
     size_t     m_next_sibling;
     size_t     m_prev_sibling;
 
-    void _copy_props(NodeData const& that)
-    {
-        m_key = that.m_key;
-        _copy_props_wo_key(that);
-    }
-
-    void _copy_props_wo_key(NodeData const& that)
-    {
-        m_s = that.m_s;
-        m_type = that.m_type;
-        m_val = that.m_val;
-    }
-
 public:
-
-    Tree *tree() const { return m_s; }
-    size_t id() const;
 
     NodeType_e type() const { return (NodeType_e)(m_type & _TYMASK); }
     const char* type_str() const { return type_str(m_type); }
@@ -161,241 +232,23 @@ public:
 
 public:
 
-    bool   is_root() const { return m_parent == NONE; }
-    bool   is_stream() const { return (m_type & STREAM) == STREAM; }
-    bool   is_doc() const { return m_type & DOC; }
-    bool   is_container() const { return m_type & (MAP|SEQ|STREAM|DOC); }
-    bool   is_map() const { return m_type & MAP; }
-    bool   is_seq() const { return m_type & SEQ; }
-    bool   has_val() const { return m_type & VAL; }
-    bool   has_key() const { return m_type & KEY; }
-    bool   is_val() const { return (m_type & KEYVAL) == VAL; }
-    bool   is_keyval() const { return (m_type & KEYVAL) == KEYVAL; }
-    bool   has_key_tag() const { return (m_type & (KEY|KEYTAG)) == (KEY|KEYTAG); }
-    bool   has_val_tag() const { return ((m_type & (VALTAG)) && (m_type & (VAL|MAP|SEQ))); }
-    bool   is_ref() const { return m_type & REF; }
     bool   has_anchor() const { return ! m_anchor.empty(); }
+    bool   is_root() const { return m_parent == NONE; }
 
-    bool   parent_is_seq() const { C4_ASSERT(parent()); return parent()->is_seq(); }
-    bool   parent_is_map() const { C4_ASSERT(parent()); return parent()->is_map(); }
-
-    /** true when name and value are empty, and has no children */
-    bool   empty() const { return ! has_children() && m_key.empty() && (( ! (m_type & VAL)) || m_val.empty()); }
-    bool   has_children() const { return m_first_child != NONE; }
-    /** counts with this */
-    bool   has_siblings() const;
-    /** does not count with this */
-    bool   has_other_siblings() const;
-
-    bool   has_parent() const { return m_parent != NONE; }
-    bool   has_sibling(NodeData const* n) const;
-    bool   has_child(NodeData const* ch) const;
-
-public:
-
-    NodeData * parent() const;
-
-    /** O(#num_children) */
-    size_t num_children() const;
-    NodeData * child(size_t i) const;
-    NodeData * first_child() const;
-    NodeData * last_child() const;
-    NodeData * find_child(cspan const& name) const;
-    size_t child_pos(NodeData const* n) const;
-
-    /** O(#num_siblings) */
-    size_t num_siblings() const;
-    size_t num_other_siblings() const;
-    NodeData * sibling(size_t i) const;
-    NodeData * first_sibling() const;
-    NodeData * last_sibling() const;
-    NodeData * find_sibling(cspan const& name) const;
-
-    NodeData * prev_sibling() const;
-    NodeData * next_sibling() const;
-
-public:
-
-    NodeData & operator[] (size_t i) const
-    {
-        NodeData *c = child(i);
-        if( ! c) { RymlCallbacks::error("could not find node");}
-        return *c;
-    }
-
-    NodeData & operator[] (cspan const& name) const
-    {
-        C4_ASSERT(is_map());
-        NodeData *c = find_child(name);
-        if( ! c) { RymlCallbacks::error("could not find node"); }
-        return *c;
-    }
-
-public:
-
-    template< class Visitor > bool visit(Visitor fn, size_t indentation_level=0, bool skip_root=true);
-    template< class Visitor > bool visit(Visitor fn, size_t indentation_level=0, bool skip_root=true) const;
-
-    template< class Visitor > bool visit_stacked(Visitor fn, size_t indentation_level=0, bool skip_root=true);
-    template< class Visitor > bool visit_stacked(Visitor fn, size_t indentation_level=0, bool skip_root=true) const;
-
-public:
-
-    void to_val(cspan const& val, int more_flags = 0);
-    void to_keyval(cspan const& key, cspan const& val, int more_flags = 0);
-    void to_map(int more_flags = 0);
-    void to_map(cspan const& key, int more_flags = 0);
-    void to_seq(int more_flags = 0);
-    void to_seq(cspan const& key, int more_flags = 0);
-    void to_doc(int more_flags = 0);
-    void to_stream(int more_flags = 0);
-
-    void set_val_tag(cspan const& tag);
-    void set_key_tag(cspan const& tag);
-
-public:
-
-    inline void _add_flags(NodeType_e f) { m_type = (NodeType_e)(f | m_type); }
-    inline void _add_flags(int        f) { m_type = (NodeType_e)(f | m_type); }
-
-    inline void _rem_flags(NodeType_e f) { m_type = (NodeType_e)((~f) & m_type); }
-    inline void _rem_flags(int        f) { m_type = (NodeType_e)((~f) & m_type); }
-
-    inline void _set_flags(NodeType_e f) { m_type = f; }
-    inline void _set_flags(int        f) { m_type = (NodeType_e)f; }
-
-    inline void _clear()
-    {
-        m_s = nullptr;
-        m_type = NOTYPE;
-        m_key.clear();
-        m_val.clear();
-        m_parent = NONE;
-        m_first_child = NONE;
-        m_last_child = NONE;
-    }
-
-    inline void _clear_key()
-    {
-        m_key.clear();
-        _rem_flags(KEY);
-    }
-
-    inline void _clear_val()
-    {
-        m_key.clear();
-        _rem_flags(VAL);
-    }
-
-private:
-
-    struct child_iterator
-    {
-        NodeData const *child;
-
-        child_iterator(NodeData const* c) : child(c) {}
-
-        child_iterator& operator++ (   ) { child = child->next_sibling(); return *this; }
-        child_iterator  operator++ (int) { child_iterator ret = *this; child = child->next_sibling(); return ret; }
-
-        child_iterator& operator-- (   ) { child = child->prev_sibling(); return *this; }
-        child_iterator  operator-- (int) { child_iterator ret = *this; child = child->prev_sibling(); return ret; }
-
-        NodeData const& operator*  () const { return *child; }
-        NodeData const* operator-> () const { return  child; }
-
-        bool operator!= (child_iterator that) const { return child != that.child; }
-        bool operator== (child_iterator that) const { return child == that.child; }
-
-    };
-
-    struct children_container
-    {
-        NodeData const* parent;
-
-        using const_iterator = child_iterator;
-
-        children_container(NodeData const* p) : parent(p) {}
-
-        const_iterator begin() const { return const_iterator(parent->first_child()); }
-        const_iterator end  () const { return nullptr; }
-    };
-
-public:
-
-    children_container children() const {                        return children_container(    this); }
-    children_container siblings() const { C4_ASSERT(!is_root()); return children_container(parent()); }
+    bool   is_stream() const { return m_type.is_stream(); }
+    bool   is_doc() const { return m_type.is_doc(); }
+    bool   is_container() const { return m_type.is_container(); }
+    bool   is_map() const { return m_type.is_map(); }
+    bool   is_seq() const { return m_type.is_seq(); }
+    bool   has_val() const { return m_type.has_val(); }
+    bool   has_key() const { return m_type.has_key(); }
+    bool   is_val() const { return m_type.is_val(); }
+    bool   is_keyval() const { return m_type.is_keyval(); }
+    bool   has_key_tag() const { return m_type.has_key_tag(); }
+    bool   has_val_tag() const { return m_type.has_val_tag(); }
+    bool   is_ref() const { return m_type.is_ref(); }
 
 };
-
-
-template< class Visitor >
-bool NodeData::visit(Visitor fn, size_t indentation_level, bool skip_root)
-{
-    return const_cast< NodeData const* >(this)->visit(fn, indentation_level, skip_root);
-}
-
-template< class Visitor >
-bool NodeData::visit(Visitor fn, size_t indentation_level, bool skip_root) const
-{
-    size_t increment = 0;
-    if( ! (is_root() && skip_root))
-    {
-        if(fn(this, indentation_level))
-        {
-            return true;
-        }
-        ++increment;
-    }
-    if(has_children())
-    {
-        for(NodeData *ch = first_child(); ch; ch = ch->next_sibling())
-        {
-            // no need to forward skip_root as it won't be root
-            if(ch->visit(fn, indentation_level + increment))
-            {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-
-template< class Visitor >
-bool NodeData::visit_stacked(Visitor fn, size_t indentation_level, bool skip_root)
-{
-    return const_cast< NodeData const* >(this)->visit_stacked(fn, indentation_level, skip_root);
-}
-
-template< class Visitor >
-bool NodeData::visit_stacked(Visitor fn, size_t indentation_level, bool skip_root) const
-{
-    size_t increment = 0;
-    if( ! (is_root() && skip_root))
-    {
-        if(fn(this, indentation_level))
-        {
-            return true;
-        }
-        ++increment;
-    }
-    if(has_children())
-    {
-        fn.push(this, indentation_level);
-        for(NodeData *ch = first_child(); ch; ch = ch->next_sibling())
-        {
-            // no need to forward skip_root as it won't be root
-            if(ch->visit(fn, indentation_level + increment))
-            {
-                fn.pop(this, indentation_level);
-                return true;
-            }
-        }
-        fn.pop(this, indentation_level);
-    }
-    return false;
-}
 
 
 //-----------------------------------------------------------------------------
@@ -465,32 +318,234 @@ public:
         return n - m_buf;
     }
 
-    NodeData *get(size_t i)
+    // with the get() method, i can be NONE, in which case a nullptr is returned
+    inline NodeData *get(size_t i)
     {
         if(i == NONE) return nullptr;
         C4_ASSERT(i >= 0 && i < m_cap);
         return m_buf + i;
     }
-    NodeData const *get(size_t i) const
+    inline NodeData const *get(size_t i) const
     {
         if(i == NONE) return nullptr;
         C4_ASSERT(i >= 0 && i < m_cap);
         return m_buf + i;
     }
 
+    // a shorter form of []
+    inline NodeData       * _p(size_t i)       { C4_ASSERT(i != NONE && i >= 0 && i < m_cap); return m_buf + i; }
+    inline NodeData const * _p(size_t i) const { C4_ASSERT(i != NONE && i >= 0 && i < m_cap); return m_buf + i; }
+
+    /** resolve references in the tree */
     void resolve();
 
 public:
 
-    //! create and insert a new sibling of n. insert after "after"
-    inline size_t insert_sibling(size_t n, size_t after)
+    NodeType_e type(size_t node) const { return (NodeType_e)(_p(node)->m_type & _TYMASK); }
+    const char* type_str(size_t node) const { return NodeData::type_str(_p(node)->m_type); }
+
+    cspan const& key(size_t node) const { C4_ASSERT(has_key(node)); return _p(node)->m_key.scalar; }
+    cspan const& key_tag(size_t node) const { C4_ASSERT(has_key_tag(node)); return _p(node)->m_key.tag; }
+    NodeScalar const& keysc(size_t node) const { C4_ASSERT(has_key(node)); return _p(node)->m_key; }
+
+    cspan const& val(size_t node) const { C4_ASSERT(has_val(node)); return _p(node)->m_val.scalar; }
+    cspan const& val_tag(size_t node) const { C4_ASSERT(has_val_tag(node)); return _p(node)->m_val.tag; }
+    NodeScalar const& valsc(size_t node) const { C4_ASSERT(has_val(node)); return _p(node)->m_val; }
+
+    cspan const& anchor(size_t node) const { return _p(node)->m_anchor; }
+
+public:
+
+    // node predicates
+
+    bool is_root(size_t node) const { return _p(node)->m_parent == NONE; }
+    bool is_stream(size_t node) const { return (_p(node)->m_type & STREAM) == STREAM; }
+    bool is_doc(size_t node) const { return _p(node)->m_type & DOC; }
+    bool is_container(size_t node) const { return _p(node)->m_type & (MAP|SEQ|STREAM|DOC); }
+    bool is_map(size_t node) const { return _p(node)->m_type & MAP; }
+    bool is_seq(size_t node) const { return _p(node)->m_type & SEQ; }
+    bool has_val(size_t node) const { return _p(node)->m_type & VAL; }
+    bool has_key(size_t node) const { return _p(node)->m_type & KEY; }
+    bool is_val(size_t node) const { return (_p(node)->m_type & KEYVAL) == VAL; }
+    bool is_keyval(size_t node) const { return (_p(node)->m_type & KEYVAL) == KEYVAL; }
+    bool has_key_tag(size_t node) const { return (_p(node)->m_type & (KEY|KEYTAG)) == (KEY|KEYTAG); }
+    bool has_val_tag(size_t node) const { return ((_p(node)->m_type & (VALTAG)) && (_p(node)->m_type & (VAL|MAP|SEQ))); }
+    bool is_ref(size_t node) const { return _p(node)->m_type & REF; }
+    bool has_anchor(size_t node) const { return ! _p(node)->m_anchor.empty(); }
+
+    bool parent_is_seq(size_t node) const { C4_ASSERT(has_parent(node)); return is_seq(_p(node)->m_parent); }
+    bool parent_is_map(size_t node) const { C4_ASSERT(has_parent(node)); return is_seq(_p(node)->m_parent); }
+
+    /** true when name and value are empty, and has no children */
+    bool empty(size_t node) const { return ! has_children(node) && _p(node)->m_key.empty() && (( ! (_p(node)->m_type & VAL)) || _p(node)->m_val.empty()); }
+
+public:
+
+    // hierarchy predicates
+
+    bool has_parent(size_t node) const { return _p(node)->m_parent != NONE; }
+
+    bool has_child(size_t node, size_t ch) const { return child_pos(node, ch) == npos; }
+    bool has_children(size_t node) const { return _p(node)->m_first_child != NONE; }
+
+    bool has_sibling(size_t node, size_t sib) const { return child_pos(_p(node)->m_parent, sib) == npos; }
+    /** counts with this */
+    bool has_siblings(size_t node) const { C4_ASSERT(!is_root(node)); return _p(_p(node)->m_parent)->m_first_child != NONE; }
+    /** does not count with this */
+    bool has_other_siblings(size_t node) const { return is_root(node) ? false : num_siblings(node) > 1; }
+
+public:
+
+    // hierarchy getters
+
+    size_t parent(size_t node) const { return _p(node)->m_parent; }
+
+    size_t prev_sibling(size_t node) const { return _p(node)->m_prev_sibling; }
+    size_t next_sibling(size_t node) const { return _p(node)->m_next_sibling; }
+
+    /** O(#num_children) */
+    size_t num_children(size_t node) const;
+    size_t child_pos(size_t node, size_t ch) const;
+    size_t first_child(size_t node) const { return _p(node)->m_first_child; }
+    size_t last_child(size_t node) const { return _p(node)->m_last_child; }
+    size_t child(size_t node, size_t pos) const;
+    size_t find_child(size_t node, cspan const& key) const;
+
+    /** O(#num_siblings) */
+    size_t num_siblings(size_t node) const { return num_children(_p(node)->m_parent); }
+    size_t num_other_siblings(size_t node) const { size_t ns = num_siblings(node); C4_ASSERT(ns >= 1); return ns-1; }
+    size_t sibling_pos(size_t node, size_t sib) const { C4_ASSERT( ! is_root(node) || node == root_id()); return child_pos(_p(node)->m_parent, sib); }
+    size_t first_sibling(size_t node) const { return is_root(node) ? node : _p(_p(node)->m_parent)->m_first_child; }
+    size_t last_sibling(size_t node) const { return is_root(node) ? node : _p(_p(node)->m_parent)->m_last_child; }
+    size_t sibling(size_t node, size_t pos) const { return child(_p(node)->m_parent, pos); }
+    size_t find_sibling(size_t node, cspan const& key) const { return find_child(_p(node)->m_parent, key); }
+
+public:
+
+    void to_val(size_t node, cspan const& val, int more_flags = 0);
+    void to_keyval(size_t node, cspan const& key, cspan const& val, int more_flags = 0);
+    void to_map(size_t node, int more_flags = 0);
+    void to_map(size_t node, cspan const& key, int more_flags = 0);
+    void to_seq(size_t node, int more_flags = 0);
+    void to_seq(size_t node, cspan const& key, int more_flags = 0);
+    void to_doc(size_t node, int more_flags = 0);
+    void to_stream(size_t node, int more_flags = 0);
+
+    void set_val_tag(size_t node, cspan const& tag);
+    void set_key_tag(size_t node, cspan const& tag);
+
+    void set_anchor(size_t node, cspan const& anchor);
+
+    inline void _add_flags(size_t node, NodeType_e f) { _p(node)->m_type = (f | _p(node)->m_type); }
+    inline void _add_flags(size_t node, int        f) { _p(node)->m_type = (f | _p(node)->m_type); }
+
+    inline void _rem_flags(size_t node, NodeType_e f) { _p(node)->m_type = ((~f) & _p(node)->m_type); }
+    inline void _rem_flags(size_t node, int        f) { _p(node)->m_type = ((~f) & _p(node)->m_type); }
+
+    inline void _set_flags(size_t node, NodeType_e f) { _p(node)->m_type = f; }
+    inline void _set_flags(size_t node, int        f) { _p(node)->m_type = f; }
+
+    void _set_key(size_t node, cspan const& key, int more_flags = 0)
     {
-        C4_ASSERT(get(n)->parent() != nullptr);
-        C4_ASSERT( ! get(after) || (get(n)->has_sibling(get(after)) && get(after)->has_sibling(get(n))));
-        return insert_child(get(n)->m_parent, after);
+        _p(node)->m_key.scalar = key;
+        _add_flags(node, KEY|more_flags);
     }
-    inline size_t prepend_sibling(size_t n) { return insert_sibling(n, NONE); }
-    inline size_t  append_sibling(size_t n) { return insert_sibling(n, id(get(n)->last_child())); }
+    void _set_key(size_t node, NodeScalar const& key, int more_flags = 0)
+    {
+        _p(node)->m_key = key;
+        _add_flags(node, KEY|more_flags);
+    }
+
+    void _set_val(size_t node, cspan const& val, int more_flags = 0)
+    {
+        C4_ASSERT(num_children(node) == 0);
+        C4_ASSERT( ! is_container(node));
+        _p(node)->m_val.scalar = val;
+        _add_flags(node, VAL|more_flags);
+    }
+    void _set_val(size_t node, NodeScalar const& val, int more_flags = 0)
+    {
+        C4_ASSERT(num_children(node) == 0);
+        C4_ASSERT( ! is_container(node));
+        _p(node)->m_val = val;
+        _add_flags(node, VAL|more_flags);
+    }
+
+    void _set(size_t node, NodeInit const& i)
+    {
+        C4_ASSERT(i._check());
+        NodeData *n = _p(node);
+        C4_ASSERT(n->m_key.scalar.empty() || i.key.scalar.empty() || i.key.scalar == n->m_key.scalar);
+        _add_flags(node, i.type);
+        if(n->m_key.scalar.empty())
+        {
+            if( ! i.key.scalar.empty())
+            {
+                _set_key(node, i.key.scalar);
+            }
+        }
+        n->m_key.tag = i.key.tag;
+        n->m_val = i.val;
+    }
+
+    void _set_parent_as_container_if_needed(size_t in)
+    {
+        NodeData const* n = _p(in);
+        size_t ip = parent(in);
+        if(ip != NONE)
+        {
+            if( ! (is_seq(ip) || is_map(ip)))
+            {
+                if((in == first_child(ip)) && (in == last_child(ip)))
+                {
+                    if( ! n->m_key.empty() || n->has_key())
+                    {
+                        _add_flags(ip, MAP);
+                    }
+                    else
+                    {
+                        _add_flags(ip, SEQ);
+                    }
+                }
+            }
+        }
+    }
+
+    void _copy_props(size_t node, size_t that)
+    {
+        _p(node)->m_key = _p(that)->m_key;
+        _copy_props_wo_key(node, that);
+    }
+
+    void _copy_props_wo_key(size_t node, size_t that)
+    {
+        auto *n = _p(node), *t = _p(that);
+        n->m_type = t->m_type;
+        n->m_val = t->m_val;
+    }
+
+    inline void _clear(size_t node)
+    {
+        auto *n = _p(node);
+        n->m_type = NOTYPE;
+        n->m_key.clear();
+        n->m_val.clear();
+        n->m_parent = NONE;
+        n->m_first_child = NONE;
+        n->m_last_child = NONE;
+    }
+
+    inline void _clear_key(size_t node)
+    {
+        _p(node)->m_key.clear();
+        _rem_flags(node, KEY);
+    }
+
+    inline void _clear_val(size_t node)
+    {
+        _p(node)->m_key.clear();
+        _rem_flags(node, VAL);
+    }
 
 public:
 
@@ -500,14 +555,27 @@ public:
     inline size_t insert_child(size_t parent, size_t after)
     {
         C4_ASSERT(parent != NONE);
-        C4_ASSERT(get(parent)->is_container() || get(parent)->is_root());
-        C4_ASSERT(get(parent)->has_child(get(after)) || after == NONE);
+        C4_ASSERT(is_container(parent) || is_root(parent));
+        C4_ASSERT(after == NONE || has_child(parent, after));
         size_t child = _claim();
         _set_hierarchy(child, parent, after);
         return child;
     }
     inline size_t prepend_child(size_t parent) { return insert_child(parent, NONE); }
-    inline size_t  append_child(size_t parent) { return insert_child(parent, id(get(parent)->last_child())); }
+    inline size_t  append_child(size_t parent) { return insert_child(parent, last_child(parent)); }
+
+public:
+
+    //! create and insert a new sibling of n. insert after "after"
+    inline size_t insert_sibling(size_t node, size_t after)
+    {
+        C4_ASSERT(node != NONE);
+        C4_ASSERT(parent(node) != NONE);
+        C4_ASSERT(after == NONE || has_sibling(node, after) && has_sibling(after, node));
+        return insert_child(get(node)->m_parent, after);
+    }
+    inline size_t prepend_sibling(size_t node) { return insert_sibling(node, NONE); }
+    inline size_t  append_sibling(size_t node) { return insert_sibling(node, last_sibling(node)); }
 
 public:
 
@@ -545,6 +613,7 @@ public:
 
     /** duplicate the node's children (but not the node) in a new parent */
     void duplicate_children(size_t node, size_t parent, size_t after);
+
     /** duplicate the node's children (but not the node) in a new parent, but
      * omit repetitions where a duplicated node has the same key (in maps) or
      * value (in seqs). If one of the duplicated children has the same key
@@ -566,14 +635,11 @@ private:
 
 public:
 
-    NodeData      * root()       { if(m_cap == 0) { reserve(16); } C4_ASSERT(m_head != NONE); C4_ASSERT(m_cap > 0 && m_size > 0); NodeData *n = m_buf; C4_ASSERT(n->parent() == nullptr); return n; }
-    NodeData const* root() const {                                 C4_ASSERT(m_head != NONE); C4_ASSERT(m_cap > 0 && m_size > 0); NodeData *n = m_buf; C4_ASSERT(n->parent() == nullptr); return n; }
+    size_t root_id()       { if(m_cap == 0) { reserve(16); } C4_ASSERT(m_head != NONE); C4_ASSERT(m_cap > 0 && m_size > 0); return 0; }
+    size_t root_id() const {                                 C4_ASSERT(m_head != NONE); C4_ASSERT(m_cap > 0 && m_size > 0); return 0; }
 
-    NodeData      * first_doc()         { NodeData *n = root()->child(0); C4_ASSERT(n && n->is_doc()); return n; }
-    NodeData const* first_doc() const   { NodeData *n = root()->child(0); C4_ASSERT(n && n->is_doc()); return n; }
-
-    NodeData      * doc(size_t i)       { NodeData *n = root()->child(i); C4_ASSERT(n && n->is_doc()); return n; }
-    NodeData const* doc(size_t i) const { NodeData *n = root()->child(i); C4_ASSERT(n && n->is_doc()); return n; }
+    NodeRef       rootref();
+    NodeRef const rootref() const;
 
 public:
 
@@ -641,63 +707,6 @@ private:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-struct NodeInit
-{
-    NodeType_e type;
-    NodeScalar key;
-    NodeScalar val;
-
-    /// initialize as an empty node
-    NodeInit() : type(NOTYPE), key(), val() {}
-
-    /// initialize as a typed node
-    NodeInit(NodeType_e t) : type(t), key(), val() {}
-
-    /// initialize as a sequence member
-    //NodeInit(cspan      const& v) : type(VAL), key(), val(v              ) {}
-    NodeInit(NodeScalar const& v) : type(VAL), key(), val(v) { _add_flags(); }
-
-    /// initialize as a mapping member
-    //NodeInit(              cspan      const& k, cspan      const& v) : type(KEYVAL), key(k              ), val(v              ) { _add_flags(); }
-    //NodeInit(              cspan      const& k, NodeScalar const& v) : type(KEYVAL), key(k              ), val(v.tag, v.scalar) { _add_flags(); }
-    //NodeInit(              NodeScalar const& k, cspan      const& v) : type(KEYVAL), key(k.tag, k.scalar), val(v              ) { _add_flags(); }
-    NodeInit(              NodeScalar const& k, NodeScalar const& v) : type(KEYVAL), key(k.tag, k.scalar), val(v.tag, v.scalar) { _add_flags(); }
-    //NodeInit(NodeType_e t, cspan      const& k, cspan      const& v) : type(t     ), key(k              ), val(v              ) {}
-    //NodeInit(NodeType_e t, cspan      const& k, NodeScalar const& v) : type(t     ), key(k              ), val(v.tag, v.scalar) { _add_flags(); }
-    //NodeInit(NodeType_e t, NodeScalar const& k, cspan      const& v) : type(t     ), key(k.tag, k.scalar), val(v              ) { _add_flags(); }
-    NodeInit(NodeType_e t, NodeScalar const& k, NodeScalar const& v) : type(t     ), key(k.tag, k.scalar), val(v.tag, v.scalar) { _add_flags(); }
-
-    /// initialize as a mapping member with explicit type (eg SEQ or MAP)
-    //NodeInit(NodeType_e t, cspan      const& k                     ) : type(t     ), key(k              ), val(               ) { _add_flags(KEY); }
-    NodeInit(NodeType_e t, NodeScalar const& k                     ) : type(t     ), key(k.tag, k.scalar), val(               ) { _add_flags(KEY); }
-
-    void clear()
-    {
-        memset(this, 0, sizeof(*this));
-    }
-    void _add_flags(int more_flags=0)
-    {
-        type = (NodeType_e)(type|more_flags);
-        if( ! key.tag.empty()) type = (NodeType_e)(type|KEYTAG);
-        if( ! val.tag.empty()) type = (NodeType_e)(type|VALTAG);
-    }
-
-    bool _check() const
-    {
-        // key cannot be empty
-        C4_ASSERT(key.scalar.empty() == ((type & KEY) == 0));
-        // key tag cannot be empty
-        C4_ASSERT(key.tag.empty() == ((type & KEYTAG) == 0));
-        // val may be empty even though VAL is set. But when VAL is not set, val must be empty
-        C4_ASSERT(((type & VAL) != 0) || val.scalar.empty());
-        // val tag cannot be empty
-        C4_ASSERT(val.tag.empty() == ((type & VALTAG) == 0));
-        return true;
-    }
-};
-
-class NodeRef;
-
 template< class T > void write(NodeRef *n, T const& v);
 template< class T > bool read(NodeRef const& n, T *v);
 
@@ -715,17 +724,14 @@ inline Key< K > key(K & k)
 
 class NodeRef
 {
-public://private:
-
-    friend class Tree;
+public:
 
     NodeRef() : m_tree(nullptr), m_id(NONE), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = NONE; }
-    NodeRef(NodeData *n) : m_tree(n->tree()), m_id(n->id()), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = NONE; }
-    NodeRef(Tree &t) : m_tree(&t), m_id(t .root()->id()), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = NONE; }
-    NodeRef(Tree *t) : m_tree(t ), m_id(t->root()->id()), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = NONE; }
+    NodeRef(Tree &t) : m_tree(&t), m_id(t .root_id()), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = NONE; }
+    NodeRef(Tree *t) : m_tree(t ), m_id(t->root_id()), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = NONE; }
     NodeRef(Tree *t, size_t id) : m_tree(t), m_id(id), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = NONE; }
-    NodeRef(Tree *t, size_t id, size_t pos) : m_tree(t), m_id(id), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = pos; }
-    NodeRef(Tree *t, size_t id, cspan  key) : m_tree(t), m_id(id), m_seed(key) {}
+    NodeRef(Tree *t, size_t id, size_t seed_pos) : m_tree(t), m_id(id), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = seed_pos; }
+    NodeRef(Tree *t, size_t id, cspan  seed_key) : m_tree(t), m_id(id), m_seed(seed_key) {}
 
     NodeRef(NodeRef const&) = default;
     NodeRef(NodeRef     &&) = default;
@@ -746,95 +752,158 @@ public:
     inline bool valid() const { return m_tree != nullptr && m_id != NONE; }
     inline bool is_seed() const { return m_seed.str != nullptr || m_seed.len != NONE; }
 
-public:
+    inline operator bool () const { return m_tree == nullptr || m_id == NONE || is_seed(); }
 
-    inline NodeType_e   type() const { return get()->type(); }
-    inline const char*  type_str() const { return get()->type_str(); }
+    inline bool operator== (std::nullptr_t) const { return m_tree == nullptr || m_id == NONE || is_seed(); }
+    inline bool operator!= (std::nullptr_t) const { return ! this->operator== (nullptr); }
 
-    inline cspan const& key    () const { return get()->key(); }
-    inline cspan const& key_tag() const { return get()->key_tag(); }
-
-    inline cspan const& val    () const { return get()->val(); }
-    inline cspan const& val_tag() const { return get()->val_tag(); }
+#define _C4RV() C4_ASSERT(valid() && !is_seed()) // save some typing (and some reading too!)
 
 public:
 
-    inline bool is_map() const { return get()->is_map(); }
-    inline bool is_seq() const { return get()->is_seq(); }
+    inline NodeType_e   type() const { _C4RV(); return m_tree->type(m_id); }
+    inline const char*  type_str() const { _C4RV(); C4_ASSERT(valid() && ! is_seed()); return m_tree->type_str(m_id); }
 
-    inline bool is_root() const { return get()->is_root(); }
-    inline bool is_stream() const { return get()->is_stream(); }
-    inline bool is_doc() const { return get()->is_doc(); }
-    inline bool is_container() const { return get()->is_container(); }
-    inline bool has_val() const { return get()->has_val(); }
-    inline bool has_key() const { return get()->has_key(); }
-    inline bool is_val() const { return get()->is_val(); }
-    inline bool is_keyval() const { return get()->is_keyval(); }
-    inline bool has_key_tag() const { return get()->has_key_tag(); }
-    inline bool has_val_tag() const { return get()->has_val_tag(); }
+    inline cspan      const& key    () const { _C4RV(); return m_tree->key(m_id); }
+    inline cspan      const& key_tag() const { _C4RV(); return m_tree->key_tag(m_id); }
+    inline NodeScalar const& keysc  () const { _C4RV(); return m_tree->keysc(m_id); }
 
-    inline bool parent_is_seq() const { return get()->parent_is_seq(); }
-    inline bool parent_is_map() const { return get()->parent_is_map(); }
+    inline cspan      const& val    () const { _C4RV(); return m_tree->val(m_id); }
+    inline cspan      const& val_tag() const { _C4RV(); return m_tree->val_tag(m_id); }
+    inline NodeScalar const& valsc  () const { _C4RV(); return m_tree->valsc(m_id); }
+
+    inline cspan const& anchor() const { _C4RV(); return m_tree->anchor(m_id); }
+
+public:
+
+    // node predicates
+
+    inline bool is_root() const { _C4RV(); return m_tree->is_root(m_id); }
+    inline bool is_stream() const { _C4RV(); return m_tree->is_stream(m_id); }
+    inline bool is_doc() const { _C4RV(); return m_tree->is_doc(m_id); }
+    inline bool is_container() const { _C4RV(); return m_tree->is_container(m_id); }
+    inline bool is_map() const { _C4RV(); return m_tree->is_map(m_id); }
+    inline bool is_seq() const { _C4RV(); return m_tree->is_seq(m_id); }
+    inline bool has_val() const { _C4RV(); return m_tree->has_val(m_id); }
+    inline bool has_key() const { _C4RV(); return m_tree->has_key(m_id); }
+    inline bool is_val() const { _C4RV(); return m_tree->is_val(m_id); }
+    inline bool is_keyval() const { _C4RV(); return m_tree->is_keyval(m_id); }
+    inline bool has_key_tag() const { _C4RV(); return m_tree->has_key_tag(m_id); }
+    inline bool has_val_tag() const { _C4RV(); return m_tree->has_val_tag(m_id); }
+    inline bool is_ref() const { _C4RV(); return m_tree->is_ref(m_id); }
+    inline bool has_anchor() const { _C4RV(); return m_tree->has_anchor(m_id); }
+
+    inline bool parent_is_seq() const { _C4RV(); return m_tree->parent_is_seq(m_id); }
+    inline bool parent_is_map() const { _C4RV(); return m_tree->parent_is_map(m_id); }
 
     /** true when name and value are empty, and has no children */
-    inline bool empty() const { return get()->empty(); }
-    inline bool has_children() const { return get()->has_children(); }
-    /** counts with *this */
-    inline bool has_siblings() const { return get()->has_siblings(); }
-    /** does not count with *this */
-    inline bool has_other_siblings() const { return get()->has_other_siblings(); }
-
-    inline bool has_parent() const { return get()->has_parent(); }
-    inline bool has_sibling(NodeRef const& n) const { return get()->has_sibling(n.get()); }
-    inline bool has_child(NodeRef const& ch) const { return get()->has_child(ch.get()); }
+    inline bool empty() const { _C4RV(); return m_tree->empty(m_id); }
 
 public:
 
-    inline NodeRef       parent()       { return {m_tree, m_tree->get(m_id)->m_parent}; }
-    inline NodeRef const parent() const { return {m_tree, m_tree->get(m_id)->m_parent}; }
+    // hierarchy predicates
+
+    inline bool has_parent() const { _C4RV(); return m_tree->has_parent(m_id); }
+
+    inline bool has_child(NodeRef const& ch) const { _C4RV(); return m_tree->has_child(m_id, ch.m_id); }
+    inline bool has_children() const { _C4RV(); return m_tree->has_children(m_id); }
+
+    inline bool has_sibling(NodeRef const& n) const { _C4RV(); return m_tree->has_sibling(m_id, n.m_id); }
+    /** counts with this */
+    inline bool has_siblings() const { _C4RV(); return m_tree->has_siblings(m_id); }
+    /** does not count with this */
+    inline bool has_other_siblings() const { _C4RV(); return m_tree->has_other_siblings(m_id); }
+
+public:
+
+    // hierarchy getters
+
+    NodeRef       parent()       { _C4RV(); return {m_tree, m_tree->parent(m_id)}; }
+    NodeRef const parent() const { _C4RV(); return {m_tree, m_tree->parent(m_id)}; }
+
+    NodeRef       prev_sibling()       { _C4RV(); return {m_tree, m_tree->prev_sibling(m_id)}; }
+    NodeRef const prev_sibling() const { _C4RV(); return {m_tree, m_tree->prev_sibling(m_id)}; }
+
+    NodeRef       next_sibling()       { _C4RV(); return {m_tree, m_tree->next_sibling(m_id)}; }
+    NodeRef const next_sibling() const { _C4RV(); return {m_tree, m_tree->next_sibling(m_id)}; }
 
     /** O(#num_children) */
-    size_t  num_children() const { return get()->num_children(); }
-    NodeRef child(size_t i) const { return NodeRef(get()->child(i)); }
-    NodeRef first_child() const { return NodeRef(get()->first_child()); }
-    NodeRef last_child() const { return NodeRef(get()->last_child()); }
-    NodeRef find_child(cspan const& name) const { return NodeRef(get()->find_child(name)); }
-    size_t  child_pos(NodeRef const& n) const { return get()->child_pos(n.get()); }
+    size_t  num_children() const { _C4RV(); return m_tree->num_children(m_id); }
+    size_t  child_pos(NodeRef const& n) const { _C4RV(); return m_tree->child_pos(m_id, n.m_id); }
+    NodeRef       first_child()       { _C4RV(); return {m_tree, m_tree->first_child(m_id)}; }
+    NodeRef const first_child() const { _C4RV(); return {m_tree, m_tree->first_child(m_id)}; }
+    NodeRef       last_child ()       { _C4RV(); return {m_tree, m_tree->last_child (m_id)}; }
+    NodeRef const last_child () const { _C4RV(); return {m_tree, m_tree->last_child (m_id)}; }
+    NodeRef       child(size_t pos)       { _C4RV(); return {m_tree, m_tree->child(m_id, pos)}; }
+    NodeRef const child(size_t pos) const { _C4RV(); return {m_tree, m_tree->child(m_id, pos)}; }
+    NodeRef       find_child(cspan const& name)       { _C4RV(); return {m_tree, m_tree->find_child(m_id, name)}; }
+    NodeRef const find_child(cspan const& name) const { _C4RV(); return {m_tree, m_tree->find_child(m_id, name)}; }
 
     /** O(#num_siblings) */
-    size_t  num_siblings() const { return get()->num_siblings(); }
-    size_t  num_other_siblings() const { return get()->num_other_siblings(); }
-    NodeRef sibling(size_t i) const { return NodeRef(get()->sibling(i)); }
-    NodeRef first_sibling() const { return NodeRef(get()->first_sibling()); }
-    NodeRef last_sibling() const { return NodeRef(get()->last_sibling()); }
-    NodeRef find_sibling(cspan const& name) const { return NodeRef(get()->find_sibling(name)); }
-
-    NodeRef prev_sibling() const { return NodeRef(get()->prev_sibling()); }
-    NodeRef next_sibling() const { return NodeRef(get()->next_sibling()); }
+    size_t  num_siblings() const { _C4RV(); return m_tree->num_siblings(m_id); }
+    size_t  num_other_siblings() const { _C4RV(); return m_tree->num_other_siblings(m_id); }
+    size_t  sibling_pos(NodeRef const& n) const { _C4RV(); return m_tree->child_pos(m_tree->parent(m_id), n.m_id); }
+    NodeRef       first_sibling()       { _C4RV(); return {m_tree, m_tree->first_sibling(m_id)}; }
+    NodeRef const first_sibling() const { _C4RV(); return {m_tree, m_tree->first_sibling(m_id)}; }
+    NodeRef       last_sibling()       { _C4RV(); return {m_tree, m_tree->last_sibling(m_id)}; }
+    NodeRef const last_sibling() const { _C4RV(); return {m_tree, m_tree->last_sibling(m_id)}; }
+    NodeRef       sibling(size_t pos)       { _C4RV(); return {m_tree, m_tree->sibling(m_id, pos)}; }
+    NodeRef const sibling(size_t pos) const { _C4RV(); return {m_tree, m_tree->sibling(m_id, pos)}; }
+    NodeRef       find_sibling(cspan      & name) const { _C4RV(); return {m_tree, m_tree->find_sibling(m_id, name)}; }
+    NodeRef const find_sibling(cspan const& name) const { _C4RV(); return {m_tree, m_tree->find_sibling(m_id, name)}; }
 
 public:
+
+    inline void set_type(NodeType t)
+    {
+        _C4RV();
+        m_tree->_set_flags(m_id, t);
+    }
+
+    inline void set_key(cspan const& key)
+    {
+        _C4RV();
+        m_tree->_set_key(m_id, key);
+    }
 
     template< class T >
     inline void set_key_serialized(T const& k)
     {
-        NodeData *n = get();
-        n->m_key.scalar = m_tree->to_arena(k);
-        n->_add_flags(KEY);
+        _C4RV();
+        auto sp = m_tree->to_arena(k);
+        m_tree->_set_key(m_id, sp);
+    }
+
+    inline void set_key_tag(cspan const& key_tag)
+    {
+        _C4RV();
+        m_tree->set_key_tag(m_id, key_tag);
+    }
+
+    inline void set_val(cspan const& val)
+    {
+        _C4RV();
+        m_tree->_set_val(m_id, val);
     }
 
     template< class T >
     inline void set_val_serialized(T const& v)
     {
-        C4_ASSERT(num_children() == 0);
-        C4_ASSERT( ! is_container());
-        NodeData *n = get();
-        n->m_val.scalar = m_tree->to_arena(v);
-        n->_add_flags(VAL);
+        _C4RV();
+        auto sp = m_tree->to_arena(v);
+        m_tree->_set_val(m_id, sp);
+    }
+
+    inline void set_val_tag(cspan const& val_tag) const
+    {
+        _C4RV();
+        m_tree->set_val_tag(m_id, val_tag);
     }
 
     template< class T >
     inline cspan to_arena(T const& s) const
     {
+        _C4RV();
         return m_tree->to_arena(s);
     }
 
@@ -845,20 +914,18 @@ public:
     {
         C4_ASSERT( ! is_seed());
         C4_ASSERT(valid());
-        NodeData *n = get()->find_child(k);
-        C4_ASSERT( ! n || (n->id() != NONE));
-        NodeRef r = n ? NodeRef(m_tree, n->id()) : NodeRef(m_tree, m_id, k);
+        size_t ch = m_tree->find_child(m_id, k);
+        NodeRef r = ch != NONE ? NodeRef(m_tree, ch) : NodeRef(m_tree, m_id, k);
         return r;
     }
 
     /** O(num_children) */
-    NodeRef operator[] (size_t i)
+    NodeRef operator[] (size_t pos)
     {
         C4_ASSERT( ! is_seed());
         C4_ASSERT(valid());
-        NodeData *n = get()->child(i);
-        C4_ASSERT( ! n || (n->id() != NONE));
-        NodeRef r = n ? NodeRef(m_tree, n->id()) : NodeRef(m_tree, m_id, i);
+        size_t ch = m_tree->child(m_id, pos);
+        NodeRef r = ch != NONE ? NodeRef(m_tree, ch) : NodeRef(m_tree, m_id, pos);
         return r;
     }
 
@@ -869,22 +936,20 @@ public:
     {
         C4_ASSERT( ! is_seed());
         C4_ASSERT(valid());
-        NodeData const& n = *get();
-        NodeData const& ch = n[k];
-        C4_ASSERT(ch.id() != NONE);
-        NodeRef r(m_tree, ch.id());
+        size_t ch = m_tree->find_child(m_id, k);
+        C4_ASSERT(ch != NONE);
+        NodeRef r(m_tree, ch);
         return r;
     }
 
     /** O(num_children) */
-    NodeRef const operator[] (size_t i) const
+    NodeRef const operator[] (size_t pos) const
     {
         C4_ASSERT( ! is_seed());
         C4_ASSERT(valid());
-        NodeData const& n = *get();
-        NodeData const& ch = n[i];
-        C4_ASSERT(ch.id() != NONE);
-        NodeRef r(m_tree, ch.id());
+        size_t ch = m_tree->child(m_id, pos);
+        C4_ASSERT(ch != NONE);
+        NodeRef r(m_tree, ch);
         return r;
     }
 
@@ -894,19 +959,19 @@ public:
     {
         if(is_seed()) return;
         m_tree->remove_children(m_id);
-        get()->_clear();
+        m_tree->_clear(m_id);
     }
 
     inline void clear_key()
     {
         if(is_seed()) return;
-        get()->_clear_key();
+        m_tree->_clear_key(m_id);
     }
 
     inline void clear_val()
     {
         if(is_seed()) return;
-        get()->_clear_val();
+        m_tree->_clear_val(m_id);
     }
 
     inline void clear_children()
@@ -920,12 +985,12 @@ public:
     inline void operator= (NodeType_e t)
     {
         _apply_seed();
-        get()->_set_flags(t);
+        m_tree->_set_flags(m_id, t);
     }
     inline void operator|= (NodeType_e t)
     {
         _apply_seed();
-        get()->_add_flags(t);
+        m_tree->_add_flags(m_id, t);
     }
 
     inline void operator= (NodeInit const& v)
@@ -1007,15 +1072,13 @@ private:
         {
             //C4_ASSERT(i.key.scalar.empty() || m_key == i.key.scalar || m_key.empty());
             m_id = m_tree->append_child(m_id);
-            NodeData *n = get();
-            n->m_key = m_seed;
-            n->_add_flags(KEY);
+            m_tree->_set_key(m_id, m_seed);
             m_seed.str = nullptr;
             m_seed.len = NONE;
         }
         else if(m_seed.len != NONE) // we have a seed index: create a child at that position
         {
-            C4_ASSERT(get()->num_children() == m_seed.len);
+            C4_ASSERT(m_tree->num_children(m_id) == m_seed.len);
             m_id = m_tree->append_child(m_id);
             m_seed.str = nullptr;
             m_seed.len = NONE;
@@ -1026,66 +1089,26 @@ private:
         }
     }
 
-    template< class T >
-    inline void _apply(T const& x)
+    inline void _apply(cspan const& v)
     {
-        _do_apply(get(), x);
+        m_tree->_set_val(m_id, v);
     }
 
-    static void _do_apply(NodeData *n, cspan const& v)
+    inline void _apply(NodeScalar const& v)
     {
-        n->m_val.scalar = v;
-        n->_add_flags(VAL);
+        m_tree->_set_val(m_id, v);
     }
 
-    static void _do_apply(NodeData *n, NodeScalar const& v)
+    inline void _apply(NodeInit const& i)
     {
-        n->m_val = v;
-        n->_add_flags(VAL);
-    }
-
-    static void _do_apply(NodeData *n, NodeInit const& i)
-    {
-        C4_ASSERT(i._check());
-        C4_ASSERT(n->m_key.scalar.empty() || i.key.scalar.empty() || i.key.scalar == n->m_key.scalar);
-        n->_add_flags(i.type);
-        if(n->m_key.scalar.empty())
-        {
-            if( ! i.key.scalar.empty())
-            {
-                n->m_key.scalar = i.key.scalar;
-            }
-        }
-        n->m_key.tag = i.key.tag;
-        n->m_val = i.val;
-    }
-
-    static void _set_parent_as_container_if_needed(NodeData *n)
-    {
-        NodeData *p = n->parent();
-        if(p)
-        {
-            if( ! (p->is_seq() || p->is_map()))
-            {
-                if((n->id() == p->m_first_child) && (n->id() == p->m_last_child))
-                {
-                    if( ! n->m_key.empty() || n->has_key())
-                    {
-                        p->_add_flags(MAP);
-                    }
-                    else
-                    {
-                        p->_add_flags(SEQ);
-                    }
-                }
-            }
-        }
+        m_tree->_set(m_id, i);
     }
 
 public:
 
     inline NodeRef insert_child(NodeRef after)
     {
+        _C4RV();
         C4_ASSERT(valid());
         size_t child_id = m_tree->insert_child(m_id, after.m_id);
         NodeRef r(m_tree, child_id);
@@ -1094,33 +1117,38 @@ public:
 
     inline NodeRef insert_child(NodeInit const& i, NodeRef after)
     {
+        _C4RV();
         C4_ASSERT(valid());
         size_t child_id = m_tree->insert_child(m_id, after.m_id);
         NodeRef r(m_tree, child_id);
-        _do_apply(r.get(), i);
+        r._apply(i);
         return r;
     }
 
     inline NodeRef prepend_child()
     {
+        _C4RV();
         NodeRef after(m_tree, NONE);
         return insert_child(after);
     }
 
     inline NodeRef prepend_child(NodeInit const& i)
     {
+        _C4RV();
         NodeRef after(m_tree, NONE);
         return insert_child(i, after);
     }
 
     inline NodeRef append_child()
     {
+        _C4RV();
         NodeRef after(m_tree, get()->m_last_child);
         return insert_child(after);
     }
 
     inline NodeRef append_child(NodeInit const& i)
     {
+        _C4RV();
         NodeRef after(m_tree, get()->m_last_child);
         return insert_child(i, after);
     }
@@ -1129,6 +1157,7 @@ public:
 
     inline void remove_child(NodeRef & child)
     {
+        _C4RV();
         C4_ASSERT(has_child(child));
         C4_ASSERT(child.parent().id() == id());
         m_tree->remove(child.id());
@@ -1136,34 +1165,41 @@ public:
     }
 
     //! remove the nth child of this node
-    inline void remove_child(size_t n)
+    inline void remove_child(size_t pos)
     {
-        C4_ASSERT(n >= 0 && n < num_children());
-        NodeData const &child = (*m_tree->get(m_id))[n];
-        m_tree->remove(child.id());
+        _C4RV();
+        C4_ASSERT(pos >= 0 && pos < num_children());
+        size_t child = m_tree->child(m_id, pos);
+        C4_ASSERT(child != NONE);
+        m_tree->remove(child);
     }
 
     //! remove a child by name
-    inline void remove_child(cspan name)
+    inline void remove_child(cspan key)
     {
-        NodeData const &child = (*m_tree->get(m_id))[name];
-        m_tree->remove(child.id());
+        _C4RV();
+        size_t child = m_tree->find_child(m_id, key);
+        C4_ASSERT(child != NONE);
+        m_tree->remove(child);
     }
 
 public:
 
     inline void move(NodeRef const parent, NodeRef const after)
     {
+        _C4RV();
         m_tree->move(m_id, parent.m_id, after.m_id);
     }
 
     inline void move(NodeRef const after)
     {
+        _C4RV();
         m_tree->move(m_id, after.m_id);
     }
 
     inline NodeRef duplicate(NodeRef const parent, NodeRef const after)
     {
+        _C4RV();
         size_t dup = m_tree->duplicate(m_id, parent.m_id, after.m_id);
         NodeRef r(m_tree, dup);
         return r;
@@ -1173,37 +1209,43 @@ public:
 
     inline NodeRef insert_sibling(NodeRef const after)
     {
+        _C4RV();
         C4_ASSERT( ! is_root());
         return parent().insert_child(after);
     }
 
     inline NodeRef insert_sibling(NodeInit const& i, NodeRef const after)
     {
+        _C4RV();
         C4_ASSERT( ! is_root());
         return parent().insert_child(i, after);
     }
 
     inline NodeRef prepend_sibling()
     {
+        _C4RV();
         NodeRef after(m_tree, NONE);
         return parent().insert_child(after);
     }
 
     inline NodeRef prepend_sibling(NodeInit const& i)
     {
+        _C4RV();
         NodeRef after(m_tree, NONE);
         return parent().insert_child(i, after);
     }
 
     inline NodeRef append_sibling()
     {
-        NodeRef after(m_tree, get()->parent()->m_last_child);
+        _C4RV();
+        NodeRef after(m_tree, m_tree->last_child(m_id));
         return parent().insert_child(after);
     }
 
     inline NodeRef append_sibling(NodeInit const& i)
     {
-        NodeRef after(m_tree, get()->parent()->m_last_child);
+        _C4RV();
+        NodeRef after(m_tree, m_tree->last_child(m_id));
         return parent().insert_child(i, after);
     }
 
@@ -1217,8 +1259,8 @@ private:
 
         child_iterator(Tree * t, size_t id) : m_tree(t), m_child_id(id) {}
 
-        child_iterator& operator++ () { NodeData *s = m_tree->get(m_child_id)->next_sibling(); m_child_id = s ? s->id() : NONE; return *this; }
-        child_iterator& operator-- () { NodeData *s = m_tree->get(m_child_id)->prev_sibling(); m_child_id = s ? s->id() : NONE; return *this; }
+        child_iterator& operator++ () { C4_ASSERT(m_child_id != NONE); m_child_id = m_tree->next_sibling(m_child_id); return *this; }
+        child_iterator& operator-- () { C4_ASSERT(m_child_id != NONE); m_child_id = m_tree->prev_sibling(m_child_id); return *this; }
 
         N operator*  () const { return N(m_tree, m_child_id); }
         N operator-> () const { return N(m_tree, m_child_id); }
@@ -1232,10 +1274,10 @@ public:
     using       iterator = child_iterator<       NodeRef >;
     using const_iterator = child_iterator< const NodeRef >;
 
-    inline iterator begin() { return iterator(m_tree, m_tree->get(m_id)->first_child()->id()); }
+    inline iterator begin() { return iterator(m_tree, m_tree->first_child(m_id)); }
     inline iterator end  () { return iterator(m_tree, NONE); }
 
-    inline const_iterator begin() const { return const_iterator(m_tree, m_tree->get(m_id)->first_child()->id()); }
+    inline const_iterator begin() const { return const_iterator(m_tree, m_tree->first_child(m_id)); }
     inline const_iterator end  () const { return const_iterator(m_tree, NONE); }
 
 private:
@@ -1249,8 +1291,8 @@ private:
 
         inline children_container_(n_iterator const& b_, n_iterator const& e_) : b(b_), e(e_) {}
 
-        inline iterator begin() const { return b; }
-        inline iterator end  () const { return e; }
+        inline n_iterator begin() const { return b; }
+        inline n_iterator end  () const { return e; }
     };
 
 public:
@@ -1263,6 +1305,14 @@ public:
 
           children_container siblings()       { if(is_root()) { return       children_container(end(), end()); } else { size_t p = get()->m_parent; return       children_container(iterator(m_tree, m_tree->get(p)->m_first_child), iterator(m_tree, NONE)); } }
     const_children_container siblings() const { if(is_root()) { return const_children_container(end(), end()); } else { size_t p = get()->m_parent; return const_children_container(const_iterator(m_tree, m_tree->get(p)->m_first_child), const_iterator(m_tree, NONE)); } }
+
+public:
+
+    template< class Visitor > bool visit(Visitor fn, size_t indentation_level=0, bool skip_root=true);
+    template< class Visitor > bool visit(Visitor fn, size_t indentation_level=0, bool skip_root=true) const;
+
+    template< class Visitor > bool visit_stacked(Visitor fn, size_t indentation_level=0, bool skip_root=true);
+    template< class Visitor > bool visit_stacked(Visitor fn, size_t indentation_level=0, bool skip_root=true) const;
 
 private:
 
@@ -1281,9 +1331,17 @@ private:
      * the size is NONE. */
     cspan  m_seed;
 
+#undef _C4RV
 };
 
+//-----------------------------------------------------------------------------
 
+NodeRef       Tree::rootref()       { return NodeRef(this, root_id()); }
+
+NodeRef const Tree::rootref() const { return NodeRef((Tree*)this, root_id()); }
+
+
+//-----------------------------------------------------------------------------
 template< class T >
 inline void write(NodeRef *n, T const& v)
 {
@@ -1294,6 +1352,74 @@ template< class T >
 inline bool read(NodeRef const& n, T *v)
 {
     return from_str(n.val(), v);
+}
+
+
+//-----------------------------------------------------------------------------
+template< class Visitor >
+bool NodeRef::visit(Visitor fn, size_t indentation_level, bool skip_root)
+{
+    return const_cast< NodeRef const* >(this)->visit(fn, indentation_level, skip_root);
+}
+
+template< class Visitor >
+bool NodeRef::visit(Visitor fn, size_t indentation_level, bool skip_root) const
+{
+    size_t increment = 0;
+    if( ! (is_root() && skip_root))
+    {
+        if(fn(this, indentation_level))
+        {
+            return true;
+        }
+        ++increment;
+    }
+    if(has_children())
+    {
+        for(auto ch : children())
+        {
+            if(ch.visit(fn, indentation_level + increment)) // no need to forward skip_root as it won't be root
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+
+template< class Visitor >
+bool NodeRef::visit_stacked(Visitor fn, size_t indentation_level, bool skip_root)
+{
+    return const_cast< NodeRef const* >(this)->visit_stacked(fn, indentation_level, skip_root);
+}
+
+template< class Visitor >
+bool NodeRef::visit_stacked(Visitor fn, size_t indentation_level, bool skip_root) const
+{
+    size_t increment = 0;
+    if( ! (is_root() && skip_root))
+    {
+        if(fn(this, indentation_level))
+        {
+            return true;
+        }
+        ++increment;
+    }
+    if(has_children())
+    {
+        fn.push(this, indentation_level);
+        for(auto ch : children())
+        {
+            if(ch.visit(fn, indentation_level + increment)) // no need to forward skip_root as it won't be root
+            {
+                fn.pop(this, indentation_level);
+                return true;
+            }
+        }
+        fn.pop(this, indentation_level);
+    }
+    return false;
 }
 
 
@@ -1323,15 +1449,15 @@ public:
      *
      * When writing to a file, the returned span will be null, but its
      * length is set the number of bytes written. */
-    span emit(NodeData const* n, bool error_on_excess=true);
+    span emit(NodeRef const& n, bool error_on_excess=true);
 
     size_t tell() const;
     void   seek(size_t p);
 
 private:
 
-    size_t _visit(NodeData const* n, size_t ilevel=0);
-    void _do_visit(NodeData const* n, size_t ilevel=0, bool indent=true);
+    size_t _visit(NodeRef const& n, size_t ilevel=0);
+    void _do_visit(NodeRef const& n, size_t ilevel=0, bool indent=true);
 
 private:
 
@@ -1473,53 +1599,41 @@ using SpanEmitter = Emitter< SpanWriter >;
 /** emit YAML to the given file. A null file defaults to stdout.
  * Return the number of bytes written. */
 
-inline size_t emit(NodeData const* n, FILE *f = nullptr)
-{
-    FileEmitter em(f);
-    size_t num = em.emit(n).len;
-    return num;
-}
-
 inline size_t emit(NodeRef const& r, FILE *f = nullptr)
 {
     FileEmitter em(f);
-    size_t num = em.emit(r.get()).len;
+    size_t num = em.emit(r).len;
     return num;
 }
 
 inline size_t emit(Tree const &t, FILE *f = nullptr)
 {
     if(t.empty()) return 0;
-    return emit(t.root(), f);
+    const NodeRef n(t.rootref());
+    return emit(n, f);
 }
 
 //-----------------------------------------------------------------------------
 /** emit YAML to the given buffer. Return a subspan of the emitted YAML.
  * Raise an error if the space in the buffer is insufficient. */
-inline span emit(NodeData const* n, span const& sp, bool error_on_excess=true)
-{
-    SpanEmitter em(sp);
-    span result = em.emit(n, error_on_excess);
-    return result;
-}
 
 inline span emit(NodeRef const& r, span const& sp, bool error_on_excess=true)
 {
     SpanEmitter em(sp);
-    span result = em.emit(r.get(), error_on_excess);
+    span result = em.emit(r, error_on_excess);
     return result;
 }
 
 inline span emit(Tree const& t, span const& sp, bool error_on_excess=true)
 {
     if(t.empty()) return span();
-    return emit(t.root(), sp, error_on_excess);
+    return emit(t.rootref(), sp, error_on_excess);
 }
 
 //-----------------------------------------------------------------------------
 /** emit YAML to the given container, resizing it as needed to fit the emitted YAML. */
 template< class CharOwningContainer >
-inline span emit_resize(NodeData const* n, CharOwningContainer * cont)
+inline span emit_resize(NodeRef const& n, CharOwningContainer * cont)
 {
     span buf(cont->data(), cont->size());
     span ret = emit(n, buf, /*error_on_excess*/false);
@@ -1533,16 +1647,10 @@ inline span emit_resize(NodeData const* n, CharOwningContainer * cont)
 }
 
 template< class CharOwningContainer >
-inline span emit_resize(NodeRef const& r, CharOwningContainer * cont)
-{
-    return emit_resize(r.get(), cont);
-}
-
-template< class CharOwningContainer >
 inline span emit_resize(Tree const& t, CharOwningContainer * cont)
 {
     if(t.empty()) return span();
-    return emit_resize(t.root(), cont);
+    return emit_resize(t.rootref(), cont);
 }
 
 

@@ -8,15 +8,15 @@ namespace yml {
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-void CaseNode::compare_child(yml::NodeData const& n, size_t pos) const
+void CaseNode::compare_child(yml::NodeRef const& n, size_t pos) const
 {
     EXPECT_TRUE(pos < n.num_children());
     EXPECT_TRUE(pos < children.size());
 
     if(pos >= n.num_children() || pos >= children.size()) return;
 
+    ASSERT_GT(n.num_children(), pos);
     auto const& ch = children[pos];
-    EXPECT_TRUE(n.child(pos) != nullptr);
 
     if(type & MAP)
     {
@@ -24,9 +24,9 @@ void CaseNode::compare_child(yml::NodeData const& n, size_t pos) const
         auto fch = n.find_child(ch.key);
         if(fch)
         {
-            EXPECT_EQ(fch, &n[ch.key]);
-            EXPECT_EQ(fch, &n[pos]);
-            EXPECT_EQ(&n[pos], &n[ch.key]);
+            EXPECT_EQ(fch, n[ch.key]);
+            EXPECT_EQ(fch, n[pos]);
+            EXPECT_EQ(n[pos], n[ch.key]);
             EXPECT_EQ(n[ch.key].key(), ch.key);
         }
         else
@@ -40,41 +40,41 @@ void CaseNode::compare_child(yml::NodeData const& n, size_t pos) const
 
     if(type & SEQ)
     {
-        EXPECT_EQ(n[pos].m_key.scalar, children[pos].key);
+        EXPECT_EQ(n[pos].key(), children[pos].key);
         auto fch = n.child(pos);
-        EXPECT_EQ(fch, &n[pos]);
+        EXPECT_EQ(fch, n[pos]);
     }
 
     if(ch.type & KEY)
     {
-        auto fch = &n[pos];
-        EXPECT_TRUE(fch->has_key());
-        EXPECT_EQ(fch->key(), ch.key);
+        auto fch = n[pos];
+        EXPECT_TRUE(fch.has_key());
+        EXPECT_EQ(fch.key(), ch.key);
 
         if( ! ch.key_tag.empty())
         {
-            EXPECT_TRUE(fch->has_key_tag());
-            EXPECT_EQ(fch->key_tag(), ch.key_tag);
+            EXPECT_TRUE(fch.has_key_tag());
+            EXPECT_EQ(fch.key_tag(), ch.key_tag);
         }
     }
 
     if(ch.type & VAL)
     {
-        auto fch = &n[pos];
-        EXPECT_TRUE(fch->has_val());
-        EXPECT_EQ(fch->val(), ch.val);
+        auto fch = n[pos];
+        EXPECT_TRUE(fch.has_val());
+        EXPECT_EQ(fch.val(), ch.val);
 
         if( ! ch.val_tag.empty())
         {
-            EXPECT_TRUE(fch->has_val_tag());
-            EXPECT_EQ(fch->val_tag(), ch.val_tag);
+            EXPECT_TRUE(fch.has_val_tag());
+            EXPECT_EQ(fch.val_tag(), ch.val_tag);
         }
     }
 }
 
-void CaseNode::compare(yml::NodeData const& n) const
+void CaseNode::compare(yml::NodeRef const& n) const
 {
-    EXPECT_EQ(n.m_type, type); // the type() method masks the type, and thus tag flags are omitted on its return value
+    EXPECT_EQ(n.get()->m_type, type); // the type() method masks the type, and thus tag flags are omitted on its return value
     EXPECT_EQ(n.num_children(), children.size());
 
     if(n.has_key())
@@ -110,7 +110,7 @@ void CaseNode::compare(yml::NodeData const& n) const
         if(n.first_child())
         {
             ic = 0;
-            for(auto const& ch : n.first_child()->siblings())
+            for(auto const& ch : n.first_child().siblings())
             {
                 SCOPED_TRACE("comparing: iteration based on the yml::Node siblings");
                 (void)ch; // unused
@@ -125,67 +125,68 @@ void CaseNode::compare(yml::NodeData const& n) const
     }
 }
 
-void CaseNode::recreate(yml::NodeData *n) const
+void CaseNode::recreate(yml::NodeRef *n) const
 {
     C4_ASSERT( ! n->has_children());
-    n->m_type = type;
-    n->m_key.scalar = key;
-    n->m_key.tag = key_tag;
-    n->m_val.scalar = val;
-    n->m_val.tag = val_tag;
+    n->set_type(type);
+    n->set_key(key);
+    n->set_key_tag(key_tag);
+    n->set_val(val);
+    n->set_val_tag(val_tag);
     auto &tree = *n->tree();
     size_t nid = n->id(); // don't use node from now on
     for(auto const& ch : children)
     {
         size_t id = tree.append_child(nid);
-        NodeData * chn = tree.get(id);
-        ch.recreate(chn);
+        NodeRef chn(n->tree(), id);
+        ch.recreate(&chn);
     }
 }
 
 //-----------------------------------------------------------------------------
 
-void print_path(NodeData const& n)
+void print_path(NodeRef const& n)
 {
     size_t len = 0;
     char buf[1024];
-    NodeData const *p = &n;
+    NodeRef p = n;
     while(p)
     {
-        if(p->has_key())
+        if(p.has_key())
         {
-            len += 1 + p->key().len;
+            len += 1 + p.key().len;
         }
         else
         {
-            len += snprintf(buf, sizeof(buf), "/%zd", p->parent() ? p->parent()->child_pos(p) : 0);
+            len += snprintf(buf, sizeof(buf), "/%zd", p.has_parent() ? p.parent().child_pos(p) : 0);
         }
-        p = p->parent();
+        p = p.parent();
     };
     C4_ASSERT(len < sizeof(buf));
     size_t pos = len;
+    p = n;
     while(p)
     {
-        if(p->has_key())
+        if(p.has_key())
         {
-            size_t tl = p->key().len;
-            pos -= snprintf(buf + pos - tl, tl, "%.*s", (int)tl, p->key().str);
+            size_t tl = p.key().len;
+            pos -= snprintf(buf + pos - tl, tl, "%.*s", (int)tl, p.key().str);
         }
         else
         {
-            size_t pos = p->parent()->child_pos(p);
+            size_t pos = p.parent().child_pos(p);
             size_t tl = snprintf(buf, 0, "/%zd", pos);
             pos -= snprintf(buf + pos - tl, tl, "/%zd", pos);
         }
-        p = p->parent();
+        p = p.parent();
     };
     printf("%.*s", (int)len, buf);
 }
 
 
-void print_node(NodeData const& p, int level, bool print_children)
+void print_node(NodeRef const& p, int level, bool print_children)
 {
-    printf("%*s[%zd] %p", (2*level), "", p.id(), (void*)&p);
+    printf("%*s[%zd] %p", (2*level), "", p.id(), (void*)p.get());
     if( ! p.parent())
     {
         printf(" [ROOT]");
@@ -237,9 +238,9 @@ void print_node(NodeData const& p, int level, bool print_children)
         printf(" %zd children:", p.num_children());
         if(print_children)
         {
-            for(NodeData const* ch = p.first_child(); ch; ch = ch->next_sibling())
+            for(NodeRef const& ch : p.children())
             {
-                print_node(*ch, level+1);
+                print_node(ch, level+1);
             }
         }
     }
@@ -301,12 +302,12 @@ void print_node(CaseNode const& p, int level)
 }
 
 
-void print_tree(NodeData const& p, int level)
+void print_tree(NodeRef const& p, int level)
 {
     print_node(p, level);
-    for(NodeData const* ch = p.first_child(); ch; ch = ch->next_sibling())
+    for(NodeRef const& ch : p.children())
     {
-        print_tree(*ch, level+1);
+        print_tree(ch, level+1);
     }
 }
 
@@ -322,7 +323,7 @@ void print_tree(CaseNode const& p, int level)
 void print_tree(Tree const& t)
 {
     printf("--------------------------------------\n");
-    print_tree(*t.root());
+    print_tree(t.rootref());
     printf("#nodes: %zd\n", t.size());
     printf("--------------------------------------\n");
 }
@@ -335,7 +336,7 @@ void print_tree(CaseNode const& t)
     printf("--------------------------------------\n");
 }
 
-void check_invariants(NodeData const& n)
+void check_invariants(NodeRef const& n)
 {
     EXPECT_NE(n.is_root(), n.has_siblings());
     // keys or vals cannot be root
@@ -356,21 +357,21 @@ void check_invariants(NodeData const& n)
         EXPECT_FALSE(n.is_val());
     }
     // check parent & sibling reciprocity
-    for(NodeData const* s = n.first_sibling(); s; s = s->next_sibling())
+    for(NodeRef const& s : n.siblings())
     {
         EXPECT_TRUE(n.has_sibling(s));
-        EXPECT_TRUE(s->has_sibling(&n));
-        EXPECT_EQ(s->parent(), n.parent());
+        EXPECT_TRUE(s.has_sibling(n));
+        EXPECT_EQ(s.parent(), n.parent());
     }
     if(n.parent())
     {
-        EXPECT_TRUE(n.parent()->has_child(&n));
-        EXPECT_EQ(n.parent()->num_children(), n.num_siblings());
+        EXPECT_TRUE(n.parent().has_child(n));
+        EXPECT_EQ(n.parent().num_children(), n.num_siblings());
         // doc parent must be a seq and a stream
         if(n.is_doc())
         {
-            EXPECT_TRUE(n.parent()->is_seq());
-            EXPECT_TRUE(n.parent()->is_stream());
+            EXPECT_TRUE(n.parent().is_seq());
+            EXPECT_TRUE(n.parent().is_stream());
         }
     }
     else
@@ -381,68 +382,68 @@ void check_invariants(NodeData const& n)
     {
         EXPECT_TRUE(n.is_container());
         EXPECT_FALSE(n.is_map());
-        for(NodeData const* ch = n.first_child(); ch; ch = ch->next_sibling())
+        for(NodeRef const& ch : n.children())
         {
-            EXPECT_FALSE(ch->is_keyval());
-            EXPECT_FALSE(ch->has_key());
+            EXPECT_FALSE(ch.is_keyval());
+            EXPECT_FALSE(ch.has_key());
         }
     }
     if(n.is_map())
     {
         EXPECT_TRUE(n.is_container());
         EXPECT_FALSE(n.is_seq());
-        for(NodeData const* ch = n.first_child(); ch; ch = ch->next_sibling())
+        for(NodeRef const& ch : n.children())
         {
-            EXPECT_TRUE(ch->has_key());
+            EXPECT_TRUE(ch.has_key());
         }
     }
     // ... add more tests here
 
     // now recurse into the children
-    for(NodeData const* ch = n.first_child(); ch; ch = ch->next_sibling())
+    for(NodeRef const& ch : n.children())
     {
-        check_invariants(*ch);
+        check_invariants(ch);
     }
 }
 
-size_t check_tree_invariants(NodeData const* n)
+size_t check_tree_invariants(NodeRef const& n)
 {
-    auto parent = n->parent();
+    auto parent = n.parent();
 
-    if(n->m_prev_sibling == NONE)
+    if(n.get()->m_prev_sibling == NONE)
     {
         if(parent)
         {
-            EXPECT_EQ(parent->first_child(), n);
-            EXPECT_EQ(parent->first_child()->id(), n->id());
+            EXPECT_EQ(parent.first_child(), n);
+            EXPECT_EQ(parent.first_child().id(), n.id());
         }
     }
 
-    if(n->m_next_sibling == NONE)
+    if(n.get()->m_next_sibling == NONE)
     {
         if(parent)
         {
-            EXPECT_EQ(parent->last_child(), n);
-            EXPECT_EQ(parent->last_child()->id(), n->id());
+            EXPECT_EQ(parent.last_child(), n);
+            EXPECT_EQ(parent.last_child().id(), n.id());
         }
     }
 
     if( ! parent)
     {
-        EXPECT_TRUE(n->is_root());
-        EXPECT_EQ(n->prev_sibling(), nullptr);
-        EXPECT_EQ(n->next_sibling(), nullptr);
+        EXPECT_TRUE(n.is_root());
+        EXPECT_EQ(n.prev_sibling(), nullptr);
+        EXPECT_EQ(n.next_sibling(), nullptr);
     }
 
     size_t count = 1, num = 0;
-    for(NodeData const* ch = n->first_child(); ch; ch = ch->next_sibling())
+    for(NodeRef const& ch : n.children())
     {
         EXPECT_NE(ch, n);
         count += check_tree_invariants(ch);
         ++num;
     }
 
-    EXPECT_EQ(num, n->num_children());
+    EXPECT_EQ(num, n.num_children());
 
     return count;
 }
@@ -453,7 +454,7 @@ void check_invariants(Tree const& t)
     EXPECT_LE(t.size(), t.capacity());
     EXPECT_EQ(t.size() + t.slack(), t.capacity());
 
-    size_t count = check_tree_invariants(t.root());
+    size_t count = check_tree_invariants(t.rootref());
     EXPECT_EQ(count, t.size());
 
     return;
