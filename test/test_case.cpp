@@ -40,7 +40,8 @@ void CaseNode::compare_child(yml::NodeRef const& n, size_t pos) const
 
     if(type & SEQ)
     {
-        EXPECT_EQ(n[pos].key(), children[pos].key);
+        EXPECT_FALSE(n[pos].has_key());
+        EXPECT_EQ(n[pos].get()->m_key.scalar, children[pos].key);
         auto fch = n.child(pos);
         EXPECT_EQ(fch, n[pos]);
     }
@@ -128,11 +129,12 @@ void CaseNode::compare(yml::NodeRef const& n) const
 void CaseNode::recreate(yml::NodeRef *n) const
 {
     C4_ASSERT( ! n->has_children());
-    n->set_type(type);
-    n->set_key(key);
-    n->set_key_tag(key_tag);
-    n->set_val(val);
-    n->set_val_tag(val_tag);
+    auto *nd = n->get();
+    nd->m_type = type;
+    nd->m_key.scalar = key;
+    nd->m_key.tag = (key_tag);
+    nd->m_val.scalar = val;
+    nd->m_val.tag = (val_tag);
     auto &tree = *n->tree();
     size_t nid = n->id(); // don't use node from now on
     for(auto const& ch : children)
@@ -338,7 +340,10 @@ void print_tree(CaseNode const& t)
 
 void check_invariants(NodeRef const& n)
 {
-    EXPECT_NE(n.is_root(), n.has_siblings());
+    if(n.is_root())
+    {
+        EXPECT_FALSE(n.has_other_siblings());
+    }
     // keys or vals cannot be root
     if(n.has_key() || n.is_val() || n.is_keyval())
     {
@@ -2972,15 +2977,15 @@ bar: &bar
     age: 20
 )",
   L{
-      N("anchored_content", "This string will appear as the value of two keys."),
+      N(ANCHOR|KEYMAP, "anchored_content", "This string will appear as the value of two keys."),
       N(REF, "other_anchor", "*anchor_name"),
       N("anchors_in_seqs", L{
-              N("this value appears in both elements of the sequence"),
+              N(ANCHOR|KEYMAP, "this value appears in both elements of the sequence"),
               N(REF, "*anchor_in_seq"),
           }),
-      N("base", L{N("name", "Everyone has same name")}),
-      N("foo", L{N(REF, "<<", "*base"), N("age", "10")}),
-      N("bar", L{N(REF, "<<", "*base"), N("age", "20")}),
+      N(ANCHOR|KEYMAP, "base", L{N("name", "Everyone has same name")}),
+      N(ANCHOR|KEYMAP, "foo", L{N(REF, "<<", "*base"), N("age", "10")}),
+      N(ANCHOR|KEYMAP, "bar", L{N(REF, "<<", "*base"), N("age", "20")}),
   }
 ),
 
@@ -3034,15 +3039,15 @@ bar: &bar {
   }
 })",
   L{
-      N("anchored_content", "This string will appear as the value of two keys."),
+      N(ANCHOR|KEYMAP, "anchored_content", "This string will appear as the value of two keys."),
       N(REF, "other_anchor", "*anchor_name"),
       N("anchors_in_seqs", L{
-              N("this value appears in both elements of the sequence"),
+              N(ANCHOR|KEYMAP, "this value appears in both elements of the sequence"),
               N(REF, "*anchor_in_seq"),
           }),
-      N("base", L{N("name", "Everyone has same name")}),
-      N("foo", L{N(REF, "<<", "*base"), N("age", "10")}),
-      N("bar", L{N(REF, "<<", "*base"), N("age", "20")}),
+      N(ANCHOR|KEYMAP, "base", L{N("name", "Everyone has same name")}),
+      N(ANCHOR|KEYMAP, "foo", L{N(REF, "<<", "*base"), N("age", "10")}),
+      N(ANCHOR|KEYMAP, "bar", L{N(REF, "<<", "*base"), N("age", "20")}),
   }
 ),
 
@@ -3212,7 +3217,7 @@ R"(
 - step: *id002
 )",
 L{N(L{
-N{"step", L{
+N{ANCHOR|KEYMAP, "step", L{
     N{"instrument",      "Lasik 2000"},
     N{"pulseEnergy",     "5.4"},
     N{"pulseDuration",   "12"},
@@ -3220,7 +3225,7 @@ N{"step", L{
     N{"spotSize",        "1mm"},
         }},
     }), N(L{
-N{"step", L{
+N{ANCHOR|KEYMAP, "step", L{
     N{"instrument",      "Lasik 2000"},
     N{"pulseEnergy",     "5.0"},
     N{"pulseDuration",   "10"},

@@ -385,14 +385,14 @@ public:
 
     bool has_parent(size_t node) const { return _p(node)->m_parent != NONE; }
 
-    bool has_child(size_t node, size_t ch) const { return child_pos(node, ch) == npos; }
+    bool has_child(size_t node, size_t ch) const { return child_pos(node, ch) != npos; }
     bool has_children(size_t node) const { return _p(node)->m_first_child != NONE; }
 
-    bool has_sibling(size_t node, size_t sib) const { return child_pos(_p(node)->m_parent, sib) == npos; }
+    bool has_sibling(size_t node, size_t sib) const { return is_root(node) ? sib==node : child_pos(_p(node)->m_parent, sib) != npos; }
     /** counts with this */
-    bool has_siblings(size_t node) const { C4_ASSERT(!is_root(node)); return _p(_p(node)->m_parent)->m_first_child != NONE; }
+    bool has_siblings(size_t node) const { return true; }
     /** does not count with this */
-    bool has_other_siblings(size_t node) const { return is_root(node) ? false : num_siblings(node) > 1; }
+    bool has_other_siblings(size_t node) const { return is_root(node) ? false : (_p(_p(node)->m_parent)->m_first_child != _p(_p(node)->m_parent)->m_last_child); }
 
 public:
 
@@ -412,8 +412,10 @@ public:
     size_t find_child(size_t node, cspan const& key) const;
 
     /** O(#num_siblings) */
-    size_t num_siblings(size_t node) const { return num_children(_p(node)->m_parent); }
-    size_t num_other_siblings(size_t node) const { size_t ns = num_siblings(node); C4_ASSERT(ns >= 1); return ns-1; }
+    /** counts with this */
+    size_t num_siblings(size_t node) const { return is_root(node) ? 1 : num_children(_p(node)->m_parent); }
+    /** does not count with this */
+    size_t num_other_siblings(size_t node) const { size_t ns = num_siblings(node); C4_ASSERT(ns > 0); return ns-1; }
     size_t sibling_pos(size_t node, size_t sib) const { C4_ASSERT( ! is_root(node) || node == root_id()); return child_pos(_p(node)->m_parent, sib); }
     size_t first_sibling(size_t node) const { return is_root(node) ? node : _p(_p(node)->m_parent)->m_first_child; }
     size_t last_sibling(size_t node) const { return is_root(node) ? node : _p(_p(node)->m_parent)->m_last_child; }
