@@ -206,7 +206,7 @@ case YAML_ ## _ev ## _EVENT:                            \
         if(m_parser.context)
         {
             auto const& m = m_parser.context_mark;
-            context_loc = Location(m_parser.problem, m.index, m.line+1, m.column+1);
+            context_loc = Location(m_parser.context, m.index, m.line+1, m.column+1);
         }
 
         switch(m_parser.error)

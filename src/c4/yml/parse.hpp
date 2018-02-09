@@ -23,6 +23,8 @@ namespace yml {
 struct LineCol
 {
     size_t offset, line, col;
+    LineCol() : offset(), line(), col() {}
+    LineCol(size_t o, size_t l, size_t c) : offset(o), line(o), col(c) {}
 };
 
 struct Location : public LineCol
@@ -30,15 +32,8 @@ struct Location : public LineCol
     const char *name;
     operator bool () const { return name != nullptr || line != 0 || offset != 0; }
 
-    Location() : LineCol{0, 0, 0}, name(nullptr) {}
+    Location() : LineCol(), name(nullptr) {}
     Location(const char *n, size_t b, size_t l, size_t c) : LineCol{b, l, c}, name(n) {}
-};
-
-struct Region
-{
-   const char *name;
-   LineCol begin;
-   LineCol end;
 };
 
 //-----------------------------------------------------------------------------

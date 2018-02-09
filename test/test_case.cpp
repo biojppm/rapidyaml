@@ -176,7 +176,7 @@ void print_path(NodeRef const& n)
         }
         else
         {
-            size_t pos = p.parent().child_pos(p);
+            pos = p.parent().child_pos(p);
             size_t tl = snprintf(buf, 0, "/%zd", pos);
             pos -= snprintf(buf + pos - tl, tl, "/%zd", pos);
         }
