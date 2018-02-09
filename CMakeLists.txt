@@ -5,11 +5,12 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 include(c4project)
 
-option(RYML_DEV "enable ryml development targets: tests, benchmarks, sanitize, static analysis, coverage" OFF)
+option(RYML_DEV "enable ryml development targets: tests, benchmarks, sanitizers, static analysis, coverage" OFF)
 option(RYML_BUILD_TESTS "build ryml unit tests" ${RYML_DEV})
 option(RYML_BUILD_BENCHMARKS "build ryml benchmarks" ${RYML_DEV})
 
 option(RYML_LINT_PVS_STUDIO OFF)
+option(RYML_VALGRIND_SGCHECK OFF) # crashing in ubuntu16.04
 c4_setup_sanitize(RYML ${RYML_DEV})
 c4_setup_static_analysis(RYML ${RYML_DEV})
 c4_setup_valgrind(RYML ${RYML_DEV})
