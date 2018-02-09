@@ -584,6 +584,7 @@ public:
     inline size_t insert_sibling(size_t node, size_t after)
     {
         C4_ASSERT(node != NONE);
+        C4_ASSERT( ! is_root(node));
         C4_ASSERT(parent(node) != NONE);
         C4_ASSERT(after == NONE || has_sibling(node, after) && has_sibling(after, node));
         return insert_child(get(node)->m_parent, after);
@@ -1127,18 +1128,16 @@ public:
     inline NodeRef insert_child(NodeRef after)
     {
         _C4RV();
-        C4_ASSERT(valid());
-        size_t child_id = m_tree->insert_child(m_id, after.m_id);
-        NodeRef r(m_tree, child_id);
+        C4_ASSERT(after.m_tree == m_tree);
+        NodeRef r(m_tree, m_tree->insert_child(m_id, after.m_id));
         return r;
     }
 
     inline NodeRef insert_child(NodeInit const& i, NodeRef after)
     {
         _C4RV();
-        C4_ASSERT(valid());
-        size_t child_id = m_tree->insert_child(m_id, after.m_id);
-        NodeRef r(m_tree, child_id);
+        C4_ASSERT(after.m_tree == m_tree);
+        NodeRef r(m_tree, m_tree->insert_child(m_id, after.m_id));
         r._apply(i);
         return r;
     }
@@ -1146,29 +1145,80 @@ public:
     inline NodeRef prepend_child()
     {
         _C4RV();
-        NodeRef after(m_tree, NONE);
-        return insert_child(after);
+        NodeRef r(m_tree, m_tree->insert_child(m_id, NONE));
+        return r;
     }
 
     inline NodeRef prepend_child(NodeInit const& i)
     {
         _C4RV();
-        NodeRef after(m_tree, NONE);
-        return insert_child(i, after);
+        NodeRef r(m_tree, m_tree->insert_child(m_id, NONE));
+        r._apply(i);
+        return r;
     }
 
     inline NodeRef append_child()
     {
         _C4RV();
-        NodeRef after(m_tree, get()->m_last_child);
-        return insert_child(after);
+        NodeRef r(m_tree, m_tree->append_child(m_id));
+        return r;
     }
 
     inline NodeRef append_child(NodeInit const& i)
     {
         _C4RV();
-        NodeRef after(m_tree, get()->m_last_child);
-        return insert_child(i, after);
+        NodeRef r(m_tree, m_tree->append_child(m_id));
+        r._apply(i);
+        return r;
+    }
+
+public:
+
+    inline NodeRef insert_sibling(NodeRef const after)
+    {
+        _C4RV();
+        C4_ASSERT(after.m_tree == m_tree);
+        NodeRef r(m_tree, m_tree->insert_sibling(m_id, after.m_id));
+        return r;
+    }
+
+    inline NodeRef insert_sibling(NodeInit const& i, NodeRef const after)
+    {
+        _C4RV();
+        C4_ASSERT(after.m_tree == m_tree);
+        NodeRef r(m_tree, m_tree->insert_sibling(m_id, after.m_id));
+        r._apply(i);
+        return r;
+    }
+
+    inline NodeRef prepend_sibling()
+    {
+        _C4RV();
+        NodeRef r(m_tree, m_tree->prepend_sibling(m_id));
+        return r;
+    }
+
+    inline NodeRef prepend_sibling(NodeInit const& i)
+    {
+        _C4RV();
+        NodeRef r(m_tree, m_tree->prepend_sibling(m_id));
+        r._apply(i);
+        return r;
+    }
+
+    inline NodeRef append_sibling()
+    {
+        _C4RV();
+        NodeRef r(m_tree, m_tree->append_sibling(m_id));
+        return r;
+    }
+
+    inline NodeRef append_sibling(NodeInit const& i)
+    {
+        _C4RV();
+        NodeRef r(m_tree, m_tree->append_sibling(m_id));
+        r._apply(i);
+        return r;
     }
 
 public:
@@ -1221,50 +1271,6 @@ public:
         size_t dup = m_tree->duplicate(m_id, parent.m_id, after.m_id);
         NodeRef r(m_tree, dup);
         return r;
-    }
-
-public:
-
-    inline NodeRef insert_sibling(NodeRef const after)
-    {
-        _C4RV();
-        C4_ASSERT( ! is_root());
-        return parent().insert_child(after);
-    }
-
-    inline NodeRef insert_sibling(NodeInit const& i, NodeRef const after)
-    {
-        _C4RV();
-        C4_ASSERT( ! is_root());
-        return parent().insert_child(i, after);
-    }
-
-    inline NodeRef prepend_sibling()
-    {
-        _C4RV();
-        NodeRef after(m_tree, NONE);
-        return parent().insert_child(after);
-    }
-
-    inline NodeRef prepend_sibling(NodeInit const& i)
-    {
-        _C4RV();
-        NodeRef after(m_tree, NONE);
-        return parent().insert_child(i, after);
-    }
-
-    inline NodeRef append_sibling()
-    {
-        _C4RV();
-        NodeRef after(m_tree, m_tree->last_child(m_id));
-        return parent().insert_child(after);
-    }
-
-    inline NodeRef append_sibling(NodeInit const& i)
-    {
-        _C4RV();
-        NodeRef after(m_tree, m_tree->last_child(m_id));
-        return parent().insert_child(i, after);
     }
 
 private:
