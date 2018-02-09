@@ -24,7 +24,7 @@ function(ryml_add_test test_name test_src)
   #add_dependencies(${t} yaml yaml-cpp)
   #target_include_directories(${t} PUBLIC "${RYML_SRC_DIR}" "${GTEST_INCLUDE_DIRS}" "${RYML_EXT_DIR}/yaml-cpp/include")
   #target_link_libraries(${t} yaml yaml-cpp gtest)
-  add_target(RYML ${t} EXECUTABLE
+  add_target(RYML ${t} EXECUTABLE SANITIZE
       SOURCES test_case.hpp test_case.cpp ${test_src}
       LIBS ryml yaml yaml-cpp gtest
       INC_DIRS "${RYML_EXT_DIR}/googletest/googletest/include" "${RYML_EXT_DIR}/yaml-cpp/include"

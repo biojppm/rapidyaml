@@ -37,7 +37,9 @@ set(RYML_HPP
 
 set(RYML_SRC ${RYML_CPP} ${RYML_HPP})
 
-add_target(RYML ryml LIBRARY SOURCES ${RYML_SRC} INC_DIRS ${RYML_SRC_DIR})
+add_target(RYML ryml LIBRARY SANITIZE
+    SOURCES ${RYML_SRC}
+    INC_DIRS ${RYML_SRC_DIR})
 
 if(RYML_BUILD_TESTS)
     enable_testing()
