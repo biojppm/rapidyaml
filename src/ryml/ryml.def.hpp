@@ -71,11 +71,11 @@ void Emitter< Writer >::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
         C4_ASSERT(n.has_parent());
         if( ! n.has_anchor())
         {
-            _write(ind, cspan(": ", 2), n.valsc(), '\n');
+            _write(ind, cspan("- ", 2), n.valsc(), '\n');
         }
         else
         {
-            _write(ind, cspan(": ", 2), AnchorScalar(n), '\n');
+            _write(ind, cspan("- ", 2), AnchorScalar(n), '\n');
         }
     }
     else if(n.is_container() && ! n.is_root())
