@@ -1,7 +1,9 @@
 #ifndef _C4_YML_EMIT_DEF_HPP_
 #define _C4_YML_EMIT_DEF_HPP_
 
-#include "./span.hpp"
+#ifndef _C4_YML_EMIT_HPP_
+#include "./emit.hpp"
+#endif
 
 namespace c4 {
 namespace yml {

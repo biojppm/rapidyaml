@@ -1,38 +1,12 @@
 #include "./parse.hpp"
 
+#include "./detail/parser_dbg.hpp"
+
 #include <ctype.h>
+#include <stdarg.h>
 
 namespace c4 {
 namespace yml {
-
-//-----------------------------------------------------------------------------
-// some debugging scaffolds
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunknown-pragmas"
-#pragma GCC diagnostic ignored "-Wpragma-system-header-outside-header"
-#pragma GCC system_header
-
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
-
-#define _c4prsp(sp) ((int)(sp).len), (sp).str
-
-#ifdef RYML_DBG
-#   define _c4prt_(fn, file, line, what, msg, ...)        \
-    this->_##fn(file ":" C4_QUOTE(line) ": " what msg, ## __VA_ARGS__)
-#   define _c4err(fmt, ...)  _c4prt_(err, "\n" __FILE__, __LINE__, "ERROR parsing yml: ", fmt, ## __VA_ARGS__)
-#   define _c4dbgf(fmt, ...) _c4prt_(dbg,      __FILE__, __LINE__,                    "", fmt, ## __VA_ARGS__)
-#   define _c4dbgp(fmt, ...)  printf(__FILE__ ":" C4_XQUOTE(__LINE__) ": " fmt "\n", ## __VA_ARGS__)
-#   define _c4dbgs(fmt, ...)  printf(fmt "\n", ## __VA_ARGS__)
-#else
-#   define _c4err(fmt, ...) this->_err(fmt, ## __VA_ARGS__)
-#   define _c4dbg(fmt, ...)
-#   define _c4dbgs(fmt, ...)
-#endif
-
-#pragma GCC diagnostic pop
-#pragma clang diagnostic pop
 
 //-----------------------------------------------------------------------------
 Parser::Parser()
@@ -1433,6 +1407,7 @@ void Parser::_line_ended()
 //-----------------------------------------------------------------------------
 void Parser::_save_indentation(size_t behind)
 {
+    C4_ASSERT(m_state->line_contents.rem.begin() >= m_state->line_contents.full.begin())
     m_state->indref = m_state->line_contents.rem.begin() - m_state->line_contents.full.begin();
     C4_ASSERT(behind <= m_state->indref);
     m_state->indref -= behind;
@@ -1765,13 +1740,13 @@ bool Parser::_handle_indentation()
 
     size_t ind = m_state->line_contents.indentation;
 
-    if(ind == m_state->indref)
+    if(ind == (size_t)m_state->indref)
     {
         _c4dbgp("same indentation (%zd) -- nothing to see here", ind);
         _line_progressed(ind);
         return ind > 0;
     }
-    else if(ind < m_state->indref)
+    else if(ind < (size_t)m_state->indref)
     {
         _c4dbgp("smaller indentation (%zd < %zd)!!!", ind, m_state->indref);
         State const* popto = nullptr;
@@ -1779,7 +1754,7 @@ bool Parser::_handle_indentation()
         for(State const* s = m_state-1; s >= m_stack.begin(); --s)
         {
             _c4dbgp("searching for state with indentation %zd. curr=%zd (curr level=%zd)", ind, s->indref, s->level);
-            if(s->indref == ind)
+            if((size_t)s->indref == ind)
             {
                 _c4dbgp("gotit!!! at level %zd", s->level);
                 popto = s;

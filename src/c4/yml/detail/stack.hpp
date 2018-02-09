@@ -2,7 +2,7 @@
 #define _C4_YML_DETAIL_STACK_HPP_
 
 #ifndef _C4_YML_COMMON_HPP_
-#include "./common.hpp"
+#include "../common.hpp"
 #endif
 
 #ifdef RYML_DBG

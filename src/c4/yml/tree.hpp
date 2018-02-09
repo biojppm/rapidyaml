@@ -585,7 +585,7 @@ public:
         C4_ASSERT(node != NONE);
         C4_ASSERT( ! is_root(node));
         C4_ASSERT(parent(node) != NONE);
-        C4_ASSERT(after == NONE || has_sibling(node, after) && has_sibling(after, node));
+        C4_ASSERT(after == NONE || (has_sibling(node, after) && has_sibling(after, node)));
         return insert_child(get(node)->m_parent, after);
     }
     inline size_t prepend_sibling(size_t node) { return insert_sibling(node, NONE); }

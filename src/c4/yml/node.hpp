@@ -1,6 +1,8 @@
 #ifndef _C4_YML_NODE_HPP_
 #define _C4_YML_NODE_HPP_
 
+#include <cstddef>
+
 #include "./tree.hpp"
 
 namespace c4 {

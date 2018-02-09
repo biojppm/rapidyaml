@@ -3464,7 +3464,7 @@ char const* const structure_examples[] = {
 R"(
 ---
 a: 123                     # an integer
-b: \"123\"                   # a string, disambiguated by quotes
+b: "123"                   # a string, disambiguated by quotes
 c: 123.0                   # a float
 d: !!float 123             # also a float via explicit data type prefixed by (!!)
 e: !!str 123               # a string, disambiguated by explicit type

@@ -32,7 +32,7 @@ inline bool from_str(cspan buf, ty *v)                                  \
     /* write the length into it. Eg "%12d" for an int (scn_fmt="d") */  \
     int ret = snprintf(fmt, sizeof(fmt), "%%" "%zu" scn_fmt, buf.len);  \
     /* no nasty surprises, please! */                                   \
-    C4_ASSERT(ret < sizeof(fmt));                                       \
+    C4_ASSERT(size_t(ret) < sizeof(fmt));                               \
     /* now we scan with confidence that the span length is respected */ \
     ret = sscanf(buf.str, fmt, v);                                      \
     /* scanf returns the number of successful conversions */            \

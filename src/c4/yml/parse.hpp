@@ -174,7 +174,7 @@ private:
         cspan  full;        ///< the full line, including newlines on the right
         cspan  stripped;    ///< the stripped line, excluding newlines on the right
         cspan  rem;         ///< the stripped line remainder; initially starts at the first non-space character
-        int    indentation; ///< the number of spaces on the beginning of the line
+        size_t indentation; ///< the number of spaces on the beginning of the line
 
         void reset(cspan const& full_, cspan const& stripped_)
         {
@@ -182,7 +182,7 @@ private:
             stripped = stripped_;
             rem = stripped_;
             // find the first column where the character is not a space
-            indentation = (int)full.first_not_of(' ');
+            indentation = full.first_not_of(' ');
         }
     };
 
@@ -195,7 +195,7 @@ private:
 
         Location     pos;
         LineContents line_contents;
-        int          indref;
+        size_t       indref;
 
         void reset(const char *file, size_t node_id_)
         {

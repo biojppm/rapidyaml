@@ -145,12 +145,6 @@ void Tree::reserve(size_t cap, size_t arena_cap)
 {
     if(cap > m_cap)
     {
-        NodeData *buf = (NodeData*)RymlCallbacks::allocate(cap * sizeof(NodeData), m_buf);
-        if(m_buf)
-        {
-            memcpy(buf, m_buf, m_cap * sizeof(NodeData));
-            RymlCallbacks::free(m_buf, m_cap * sizeof(NodeData));
-        }
         if(m_free_head == NONE)
         {
             C4_ASSERT(m_free_tail == m_free_head);
@@ -159,8 +153,15 @@ void Tree::reserve(size_t cap, size_t arena_cap)
         }
         else
         {
+            C4_ASSERT(m_buf != nullptr);
             C4_ASSERT(m_free_tail != NONE);
             m_buf[m_free_tail].m_next_sibling = m_cap;
+        }
+        NodeData *buf = (NodeData*)RymlCallbacks::allocate(cap * sizeof(NodeData), m_buf);
+        if(m_buf)
+        {
+            memcpy(buf, m_buf, m_cap * sizeof(NodeData));
+            RymlCallbacks::free(m_buf, m_cap * sizeof(NodeData));
         }
         size_t first = m_cap, del = cap - m_cap;
         m_cap = cap;

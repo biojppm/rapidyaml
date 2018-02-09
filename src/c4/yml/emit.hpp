@@ -5,6 +5,14 @@
 #include "./writer.hpp"
 #endif
 
+#ifndef _C4_YML_TREE_HPP_
+#include "./tree.hpp"
+#endif
+
+#ifndef _C4_YML_NODE_HPP_
+#include "./node.hpp"
+#endif
+
 namespace c4 {
 namespace yml {
 
