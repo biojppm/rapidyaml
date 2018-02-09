@@ -15,20 +15,17 @@ add_subdirectory(${RYML_EXT_DIR}/yaml-cpp   yaml-cpp)
 
 include(GoogleTest) # this module requires at least cmake 3.9
 
+c4_setup_testing(ryml ON)
+
 function(ryml_add_test test_name test_src)
-  # we still have to configure ryml as a library; for now they're a
-  # bunch of source files, so just include them in the executable
-  # sources.
-  set(t test_${test_name})
-  #add_executable(${t} ${test_src} ${RYML_SRC} test_case.hpp test_case.cpp)
-  #add_dependencies(${t} yaml yaml-cpp)
-  #target_include_directories(${t} PUBLIC "${RYML_SRC_DIR}" "${GTEST_INCLUDE_DIRS}" "${RYML_EXT_DIR}/yaml-cpp/include")
-  #target_link_libraries(${t} yaml yaml-cpp gtest)
-  add_target(RYML ${t} EXECUTABLE SANITIZE
-      SOURCES test_case.hpp test_case.cpp ${test_src}
-      LIBS ryml yaml yaml-cpp gtest
-      INC_DIRS "${RYML_EXT_DIR}/googletest/googletest/include" "${RYML_EXT_DIR}/yaml-cpp/include"
-      )
+    set(t ryml-${test_name})
+    c4_add_target(ryml ${t} EXECUTABLE SANITIZE
+        SOURCES test_case.hpp test_case.cpp ${test_src}
+        LIBS ryml yaml yaml-cpp gtest
+        INC_DIRS "${RYML_EXT_DIR}/googletest/googletest/include" "${RYML_EXT_DIR}/yaml-cpp/include"
+        SANITIZED_TARGETS t_san
+        )
+    c4_add_test(ryml ${t} ${t_san})
 endfunction()
 
-ryml_add_test(basic basic.cpp)
+ryml_add_test(test_basic basic.cpp)
