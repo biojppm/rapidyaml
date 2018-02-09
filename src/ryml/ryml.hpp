@@ -1493,6 +1493,16 @@ private:
     }
     void _write_one(NodeScalar const& sc);
 
+    struct AnchorScalar : public NodeScalar
+    {
+        cspan anchor;
+        AnchorScalar(NodeRef const& n) : NodeScalar(n.valsc()), anchor(n.anchor()) {}
+    };
+
+    void _write_one(AnchorScalar const& sc);
+
+    void _write_scalar(cspan const& s);
+
 #undef _c4this
 
 };

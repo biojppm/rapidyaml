@@ -44,6 +44,7 @@ size_t Emitter< Writer >::_visit(NodeRef const& n, size_t ilevel)
     return _c4this->m_pos;
 }
 
+/** @todo this function is too complex. break it down into manageable pieces */
 template< class Writer >
 void Emitter< Writer >::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
 {
@@ -56,12 +57,26 @@ void Emitter< Writer >::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
     else if(n.is_keyval())
     {
         C4_ASSERT(n.has_parent());
-        _write(ind, n.keysc(), cspan(": ", 2), n.valsc(), '\n');
+        if( ! n.has_anchor())
+        {
+            _write(ind, n.keysc(), cspan(": ", 2), n.valsc(), '\n');
+        }
+        else
+        {
+            _write(ind, n.keysc(), cspan(": ", 2), AnchorScalar(n), '\n');
+        }
     }
     else if(n.is_val())
     {
         C4_ASSERT(n.has_parent());
-        _write(ind, cspan(": ", 2), n.valsc(), '\n');
+        if( ! n.has_anchor())
+        {
+            _write(ind, cspan(": ", 2), n.valsc(), '\n');
+        }
+        else
+        {
+            _write(ind, cspan(": ", 2), AnchorScalar(n), '\n');
+        }
     }
     else if(n.is_container() && ! n.is_root())
     {
@@ -85,6 +100,14 @@ void Emitter< Writer >::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
             {
                 _write(' ', n.val_tag());
             }
+        }
+        else
+        {
+            C4_ERROR("tree error");
+        }
+        if(n.has_anchor())
+        {
+            _write(' ', '&', n.anchor());
         }
 
         if(n.has_children())
@@ -166,6 +189,24 @@ void Emitter< Writer >::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
 }
 
 template< class Writer >
+void Emitter< Writer >::_write_one(AnchorScalar const& sc)
+{
+    if( ! sc.tag.empty())
+    {
+        _c4this->_do_write(sc.tag);
+        _c4this->_do_write(' ');
+    }
+    if( ! sc.anchor.empty())
+    {
+        _c4this->_do_write('&');
+        _c4this->_do_write(sc.anchor);
+        _c4this->_do_write(' ');
+    }
+
+    _write_scalar(sc.scalar);
+}
+
+template< class Writer >
 void Emitter< Writer >::_write_one(NodeScalar const& sc)
 {
     if( ! sc.tag.empty())
@@ -174,15 +215,21 @@ void Emitter< Writer >::_write_one(NodeScalar const& sc)
         _c4this->_do_write(' ');
     }
 
-    const bool no_dquotes = sc.scalar.first_of( '"') == npos;
-    const bool no_squotes = sc.scalar.first_of('\'') == npos;
-    const bool no_newline = sc.scalar.first_of('\n') == npos;
+    _write_scalar(sc.scalar);
+}
+
+template< class Writer >
+void Emitter< Writer >::_write_scalar(cspan const& s)
+{
+    const bool no_dquotes = s.first_of( '"') == npos;
+    const bool no_squotes = s.first_of('\'') == npos;
+    const bool no_newline = s.first_of('\n') == npos;
 
     if(no_dquotes && no_squotes && no_newline)
     {
-        if( ! sc.scalar.empty())
+        if( ! s.empty())
         {
-            _c4this->_do_write(sc.scalar);
+            _c4this->_do_write(s);
         }
         else
         {
@@ -194,32 +241,32 @@ void Emitter< Writer >::_write_one(NodeScalar const& sc)
         if(no_squotes && !no_dquotes)
         {
             _c4this->_do_write('\'');
-            _c4this->_do_write(sc.scalar);
+            _c4this->_do_write(s);
             _c4this->_do_write('\'');
         }
         else if(no_dquotes && !no_squotes)
         {
             _c4this->_do_write('"');
-            _c4this->_do_write(sc.scalar);
+            _c4this->_do_write(s);
             _c4this->_do_write('"');
         }
         else
         {
             size_t pos = 0;
             _c4this->_do_write('\'');
-            for(size_t i = 0; i < sc.scalar.len; ++i)
+            for(size_t i = 0; i < s.len; ++i)
             {
-                if(sc.scalar[i] == '\'' || sc.scalar[i] == '\n')
+                if(s[i] == '\'' || s[i] == '\n')
                 {
-                    cspan sub = sc.scalar.subspan(pos, i-pos);
+                    cspan sub = s.subspan(pos, i-pos);
                     pos = i;
                     _c4this->_do_write(sub);
-                    _c4this->_do_write(sc.scalar[i]); // write the character twice
+                    _c4this->_do_write(s[i]); // write the character twice
                 }
             }
-            if(pos < sc.scalar.len)
+            if(pos < s.len)
             {
-                cspan sub = sc.scalar.subspan(pos);
+                cspan sub = s.subspan(pos);
                 _c4this->_do_write(sub);
             }
             _c4this->_do_write('\'');
