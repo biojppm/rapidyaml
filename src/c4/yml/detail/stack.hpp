@@ -1,7 +1,9 @@
-#ifndef _C4_YML_STACK_HPP_
-#define _C4_YML_STACK_HPP_
+#ifndef _C4_YML_DETAIL_STACK_HPP_
+#define _C4_YML_DETAIL_STACK_HPP_
 
+#ifndef _C4_YML_COMMON_HPP_
 #include "./common.hpp"
+#endif
 
 #ifdef RYML_DBG
 #   include <type_traits>
@@ -13,7 +15,6 @@ namespace yml {
 namespace detail {
 template< class T, size_t N > class stack;
 } // namespace detail
-
 
 /** A lightweight contiguous stack with SSO. This avoids a dependency on std. */
 template< class T, size_t N=16 >
@@ -146,4 +147,4 @@ public:
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_YML_STACK_HPP_ */
+#endif /* _C4_YML_DETAIL_STACK_HPP_ */

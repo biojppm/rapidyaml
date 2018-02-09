@@ -1,5 +1,5 @@
-#ifndef _C4_RYML_DEF_HPP_
-#define _C4_RYML_DEF_HPP_
+#ifndef _C4_YML_EMIT_DEF_HPP_
+#define _C4_YML_EMIT_DEF_HPP_
 
 #include "./span.hpp"
 
@@ -280,4 +280,4 @@ void Emitter< Writer >::_write_scalar(cspan const& s)
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_RYML_DEF_HPP_ */
+#endif /* _C4_YML_EMIT_DEF_HPP_ */

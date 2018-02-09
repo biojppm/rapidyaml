@@ -1,7 +1,13 @@
-#ifndef _C4_RYML_COMMON_HPP_
-#define _C4_RYML_COMMON_HPP_
+#ifndef _C4_YML_COMMON_HPP_
+#define _C4_YML_COMMON_HPP_
+
+
+#define RYML_DBG
+#define RYML_ERRMSG_SIZE 1024
 
 #define RYML_INLINE inline
+
+
 
 //#define RYML_NO_DEFAULT_CALLBACKS
 #ifndef RYML_NO_DEFAULT_CALLBACKS
@@ -13,10 +19,6 @@
 #   define C4_QUOTE(x) #x
 #   define C4_XQUOTE(x) C4_QUOTE(x)
 #endif
-
-
-#define RYML_DBG
-
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
@@ -59,32 +61,11 @@
 namespace c4 {
 namespace yml {
 
+/** a null position */
 enum : size_t { npos = size_t(-1) };
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-struct LineCol
-{
-    size_t offset, line, col;
-};
-
-struct Location : public LineCol
-{
-    const char *name;
-    operator bool () const { return name != nullptr || line != 0 || offset != 0; }
-
-    Location() : LineCol{0, 0, 0}, name(nullptr) {}
-    Location(const char *n, size_t b, size_t l, size_t c) : LineCol{b, l, c}, name(n) {}
-};
-
-struct Region
-{
-   const char *name;
-   LineCol begin;
-   LineCol end;
-};
+/** an index to none */
+enum : size_t { NONE = size_t(-1) };
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -124,4 +105,4 @@ struct RymlCallbacks
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_RYML_COMMON_HPP_ */
+#endif /* _C4_YML_COMMON_HPP_ */

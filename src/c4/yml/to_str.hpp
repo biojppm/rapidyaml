@@ -1,11 +1,10 @@
-#ifndef _C4_RYML_TO_STR_HPP_
-#define _C4_RYML_TO_STR_HPP_
+#ifndef _C4_YML_TO_STR_HPP_
+#define _C4_YML_TO_STR_HPP_
 
 #include <stdio.h>
 #include <inttypes.h>
-#include <string.h>
 
-#include "./common.hpp"
+#include "./span.hpp"
 
 namespace c4 {
 namespace yml {
@@ -20,9 +19,9 @@ inline size_t to_str(span buf, ty v)                                    \
                                                                         \
 inline bool from_str(cspan buf, ty *v)                                  \
 {                                                                       \
-    /* Alas, there's no snscanf, which is absolutely needed here        \
-     * because we must be sure that buf.len is strictly respected,      \
-     * as the span string is generally not null-terminated.             \
+    /* Alas, there's no snscanf which is absolutely needed here         \
+     * as we must be sure that buf.len is strictly respected,           \
+     * because the span string is generally not null-terminated.        \
      * So we fake snscanf by using a dynamic format with an explicit    \
      * field size set to the length of the given span.                  \
      * This trick is taken from:                                        \
@@ -85,4 +84,4 @@ inline int to_str(span buf, const char *v)
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_RYML_TO_STR_HPP_ */
+#endif /* _C4_YML_TO_STR_HPP_ */

@@ -7,7 +7,7 @@
 
 #include "./libyaml.hpp"
 
-#include <ryml/ryml.hpp>
+#include <c4/yml/yml.hpp>
 #include <gtest/gtest.h>
 
 namespace c4 {

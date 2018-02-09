@@ -2,8 +2,7 @@
 #define _LIBYAML_HPP_
 
 #include <yaml.h>
-#include <ryml/span.hpp>
-#include <ryml/ryml.hpp>
+#include <c4/yml/yml.hpp>
 
 #include <stdexcept>
 

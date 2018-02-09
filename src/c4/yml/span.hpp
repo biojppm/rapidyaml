@@ -1,5 +1,5 @@
-#ifndef _C4_RYML_SPAN_HPP_
-#define _C4_RYML_SPAN_HPP_
+#ifndef _C4_YML_SPAN_HPP_
+#define _C4_YML_SPAN_HPP_
 
 #include <string.h>
 #include "./common.hpp"
@@ -385,4 +385,4 @@ public:
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_RYML_SPAN_HPP_ */
+#endif /* _C4_YML_SPAN_HPP_ */
