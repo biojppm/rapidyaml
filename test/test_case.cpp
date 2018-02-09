@@ -234,6 +234,11 @@ void print_node(NodeRef const& p, int level, bool print_children)
             printf(" %.*s", (int)vt.len, vt.str);
         }
     }
+    if(p.has_anchor())
+    {
+        auto &a = p.anchor();
+        printf(" anchor='&%.*s'", (int)a.len, a.str);
+    }
     printf(" (%zd sibs)", p.num_siblings());
     if(p.is_container())
     {
@@ -294,6 +299,11 @@ void print_node(CaseNode const& p, int level)
             cspan const& vt = p.val_tag;
             printf(" %.*s", (int)vt.len, vt.str);
         }
+    }
+    if(p.has_anchor())
+    {
+        auto &a = p.ancref.val;
+        printf(" anchor='&%.*s'", (int)a.len, a.str);
     }
     printf(" (%zd sibs)", p.parent ? p.parent->children.size() : 0);
     if(p.is_container())
@@ -545,6 +555,7 @@ using N = CaseNode;
 using L = CaseNode::iseqmap;
 using TS = TaggedScalar;
 using TL = CaseNode::TaggedList;
+using AR = AnchorRef;
 
 #define C(name, ...)                                    \
     std::pair< const cspan, Case >                      \
@@ -2977,15 +2988,48 @@ bar: &bar
     age: 20
 )",
   L{
-      N(ANCHOR|KEYMAP, "anchored_content", "This string will appear as the value of two keys."),
-      N(REF, "other_anchor", "*anchor_name"),
+      N("anchored_content", "This string will appear as the value of two keys.", AR(ANCHOR, "anchor_name")),
+      N("other_anchor", "*anchor_name", AR(REF, "anchor_name")),
       N("anchors_in_seqs", L{
-              N(ANCHOR|KEYMAP, "this value appears in both elements of the sequence"),
-              N(REF, "*anchor_in_seq"),
-          }),
-      N(ANCHOR|KEYMAP, "base", L{N("name", "Everyone has same name")}),
-      N(ANCHOR|KEYMAP, "foo", L{N(REF, "<<", "*base"), N("age", "10")}),
-      N(ANCHOR|KEYMAP, "bar", L{N(REF, "<<", "*base"), N("age", "20")}),
+              N("this value appears in both elements of the sequence", AR(ANCHOR, "anchor_in_seq")),
+              N(REF, "*anchor_in_seq", AR(REF, "anchor_in_seq")),
+          }, AR()),
+      N("base", L{N("name", "Everyone has same name")}, AR(ANCHOR, "base")),
+      N("foo", L{N(REF, "<<", "*base"), N("age", "10")}, AR(ANCHOR, "foo")),
+      N("bar", L{N(REF, "<<", "*base"), N("age", "20")}, AR(ANCHOR, "bar")),
+  }
+),
+
+C("simple anchor 1, explicit, unresolved",
+R"({
+anchored_content: &anchor_name This string will appear as the value of two keys.,
+other_anchor: *anchor_name,
+anchors_in_seqs: [
+  &anchor_in_seq this value appears in both elements of the sequence,
+  *anchor_in_seq
+  ],
+base: &base {
+    name: Everyone has same name
+  },
+foo: &foo {
+    <<: *base,
+    age: 10
+  },
+bar: &bar {
+    <<: *base,
+    age: 20
+  }
+})",
+  L{
+      N("anchored_content", "This string will appear as the value of two keys.", AR(ANCHOR, "anchor_name")),
+      N("other_anchor", "*anchor_name", AR(REF, "anchor_name")),
+      N("anchors_in_seqs", L{
+              N("this value appears in both elements of the sequence", AR(ANCHOR, "anchor_in_seq")),
+              N(REF, "*anchor_in_seq", AR(REF, "anchor_in_seq")),
+          }, AR()),
+      N("base", L{N("name", "Everyone has same name")}, AR(ANCHOR, "base")),
+      N("foo", L{N(REF, "<<", "*base"), N("age", "10")}, AR(ANCHOR, "foo")),
+      N("bar", L{N(REF, "<<", "*base"), N("age", "20")}, AR(ANCHOR, "bar")),
   }
 ),
 
@@ -3015,39 +3059,6 @@ bar: &bar
       N("base", L{N("name", "Everyone has same name")}),
       N("foo", L{N("name", "Everyone has same name"), N("age", "10")}),
       N("bar", L{N("name", "Everyone has same name"), N("age", "20")}),
-  }
-),
-
-C("simple anchor 1, explicit, unresolved",
-R"({
-anchored_content: &anchor_name This string will appear as the value of two keys.,
-other_anchor: *anchor_name,
-anchors_in_seqs: [
-  &anchor_in_seq this value appears in both elements of the sequence,
-  *anchor_in_seq
-  ],
-base: &base {
-    name: Everyone has same name
-  },
-foo: &foo {
-    <<: *base,
-    age: 10
-  },
-bar: &bar {
-    <<: *base,
-    age: 20
-  }
-})",
-  L{
-      N(ANCHOR|KEYMAP, "anchored_content", "This string will appear as the value of two keys."),
-      N(REF, "other_anchor", "*anchor_name"),
-      N("anchors_in_seqs", L{
-              N(ANCHOR|KEYMAP, "this value appears in both elements of the sequence"),
-              N(REF, "*anchor_in_seq"),
-          }),
-      N(ANCHOR|KEYMAP, "base", L{N("name", "Everyone has same name")}),
-      N(ANCHOR|KEYMAP, "foo", L{N(REF, "<<", "*base"), N("age", "10")}),
-      N(ANCHOR|KEYMAP, "bar", L{N(REF, "<<", "*base"), N("age", "20")}),
   }
 ),
 
@@ -3132,8 +3143,8 @@ L{
    N{"bill-to", L{
         N{"street", "123 Tornado Alley\nSuite 16\n"},
         N{"city", "East Centerville"},
-        N{"state", "KS"},}},
-   N{REF, "ship-to", "*id001"},
+        N{"state", "KS"},}, AR(ANCHOR, "id001")},
+   N{REF, "ship-to", "*id001", AR(REF, "id001")},
    N{"specialDelivery", "Follow the Yellow Brick Road to the Emerald City. Pay no attention to the man behind the curtain.\n"}
   }
 ),
@@ -3224,7 +3235,7 @@ N{ANCHOR|KEYMAP, "step", L{
     N{"repetition",      "1000"},
     N{"spotSize",        "1mm"},
         }},
-    }), N(L{
+    }, AR(ANCHOR, "id001")), N(L{
 N{ANCHOR|KEYMAP, "step", L{
     N{"instrument",      "Lasik 2000"},
     N{"pulseEnergy",     "5.0"},
@@ -3232,7 +3243,7 @@ N{ANCHOR|KEYMAP, "step", L{
     N{"repetition",      "500"},
     N{"spotSize",        "2mm"},
         }},
-    }), N(L{
+    }, AR(ANCHOR, "id002")), N(L{
 N{REF, "step", "*id001"},
     }), N(L{
 N{REF, "step", "*id002"},

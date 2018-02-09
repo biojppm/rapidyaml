@@ -498,7 +498,10 @@ void Tree::duplicate_children_no_rep(size_t node, size_t parent, size_t after)
 
 //-----------------------------------------------------------------------------
 namespace detail {
-struct ReferenceResolver
+struct ReferenceResolver;
+} // namespace detail
+
+struct detail::ReferenceResolver
 {
     struct refdata {
         bool   is_ref;
@@ -509,6 +512,11 @@ struct ReferenceResolver
 
     Tree *t;
     stack<refdata> refs;
+
+    using const_iterator = refdata const*;
+
+    const_iterator begin() const { return refs.begin(); }
+    const_iterator end() const { return refs.end(); }
 
     ReferenceResolver(Tree *t_) : t(t_)
     {
@@ -522,7 +530,7 @@ struct ReferenceResolver
         {
             ++c;
         }
-        for(size_t ch = t->first_child(n); ch != NONE; ch = t->next_sibling(n))
+        for(size_t ch = t->first_child(n); ch != NONE; ch = t->next_sibling(ch))
         {
             c += count(ch);
         }
@@ -596,9 +604,8 @@ struct ReferenceResolver
             C4_ASSERT(rd.target != npos);
         }
     }
-};
 
-} // empty namespace
+};
 
 void Tree::resolve()
 {
@@ -606,9 +613,9 @@ void Tree::resolve()
 
     detail::ReferenceResolver rr(this);
 
-    for(size_t i = 0, e = rr.refs.size(); i < e; ++i)
+    // resolve the references
+    for(auto const& rd : rr)
     {
-        auto const& rd = rr.refs[i];
         if( ! rd.is_ref) continue;
         NodeData *n = get(rd.node);
         size_t prev = n->m_prev_sibling;
@@ -623,6 +630,12 @@ void Tree::resolve()
             duplicate_contents(rd.target, rd.node);
         }
     }
+
+    // clear the anchors
+    for(auto const& rd : rr)
+    {
+        rem_anchor(rd.node);
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -631,7 +644,7 @@ size_t Tree::num_children(size_t node) const
 {
     if(_p(node)->is_val()) return 0;
     size_t count = 0;
-    for(size_t i = get(node)->m_first_child; i != NONE; i = get(i)->m_next_sibling)
+    for(size_t i = first_child(node); i != NONE; i = next_sibling(i))
     {
         ++count;
     }
@@ -643,7 +656,7 @@ size_t Tree::child(size_t node, size_t pos) const
     C4_ASSERT(node != NONE);
     if(_p(node)->is_val()) return NONE;
     size_t count = 0;
-    for(size_t i = get(node)->m_first_child; i != NONE; i = get(i)->m_next_sibling)
+    for(size_t i = first_child(node); i != NONE; i = next_sibling(i))
     {
         if(count++ == pos) return i;
     }
@@ -653,9 +666,10 @@ size_t Tree::child(size_t node, size_t pos) const
 size_t Tree::child_pos(size_t node, size_t ch) const
 {
     size_t count = 0;
-    for(size_t i = get(node)->m_first_child; i != NONE; ++count, i = get(i)->m_next_sibling)
+    for(size_t i = first_child(node); i != NONE; i = next_sibling(i))
     {
         if(i == ch) return count;
+        ++count;
     }
     return npos;
 }
@@ -675,7 +689,7 @@ size_t Tree::find_child(size_t node, cspan const& name) const
     {
         C4_ASSERT(_p(node)->m_last_child != NONE);
     }
-    for(size_t i = get(node)->m_first_child; i != NONE; i = get(i)->m_next_sibling)
+    for(size_t i = first_child(node); i != NONE; i = next_sibling(i))
     {
         if(_p(i)->m_key.scalar == name)
         {
@@ -685,7 +699,7 @@ size_t Tree::find_child(size_t node, cspan const& name) const
     return NONE;
 }
 
-
+//-----------------------------------------------------------------------------
 
 void Tree::to_val(size_t node, cspan const& val, int more_flags)
 {
@@ -722,9 +736,14 @@ void Tree::set_val_tag(size_t node, cspan const& tag)
 
 void Tree::set_anchor(size_t node, cspan const& anchor)
 {
-    //C4_ASSERT(has_val());
     _p(node)->m_anchor = anchor;
     _add_flags(node, ANCHOR);
+}
+
+void Tree::rem_anchor(size_t node)
+{
+    _p(node)->m_anchor.clear();
+    _rem_flags(node, ANCHOR);
 }
 
 void Tree::to_map(size_t node, int more_flags)

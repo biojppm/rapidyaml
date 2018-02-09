@@ -54,11 +54,20 @@ struct NodeType
     inline operator NodeType_e const& () const { return type; }
 
     NodeType() : type(NOTYPE) {}
-    NodeType(NodeType_e t) : type(t) {}
     NodeType(int t) : type((NodeType_e)t) {}
+    NodeType(NodeType_e t) : type(t) {}
 
     const char *type_str() const { return type_str(type); }
     static const char* type_str(NodeType_e t);
+
+    void set(NodeType_e t) { type = (NodeType_e)t; }
+    void set(int t) { type = (NodeType_e)t; }
+
+    void add(NodeType_e t) { type = (NodeType_e)(type|t); }
+    void add(int t) { type = (NodeType_e)(type|t); }
+
+    void rem(NodeType_e t) { type = (NodeType_e)(type & ~t); }
+    void rem(int t) { type = (NodeType_e)(type & ~t); }
 
 public:
 
@@ -74,6 +83,8 @@ public:
     bool   has_key_tag() const { return (type & (KEY|KEYTAG)) == (KEY|KEYTAG); }
     bool   has_val_tag() const { return ((type & (VALTAG)) && (type & (VAL|MAP|SEQ))); }
     bool   is_ref() const { return type & REF; }
+
+public:
 
     NodeType_e type;
 };
@@ -437,6 +448,7 @@ public:
     void set_key_tag(size_t node, cspan const& tag);
 
     void set_anchor(size_t node, cspan const& anchor);
+    void rem_anchor(size_t node);
 
     inline void _add_flags(size_t node, NodeType_e f) { _p(node)->m_type = (f | _p(node)->m_type); }
     inline void _add_flags(size_t node, int        f) { _p(node)->m_type = (f | _p(node)->m_type); }
