@@ -374,7 +374,7 @@ public:
     bool has_anchor(size_t node) const { return ! _p(node)->m_anchor.empty(); }
 
     bool parent_is_seq(size_t node) const { C4_ASSERT(has_parent(node)); return is_seq(_p(node)->m_parent); }
-    bool parent_is_map(size_t node) const { C4_ASSERT(has_parent(node)); return is_seq(_p(node)->m_parent); }
+    bool parent_is_map(size_t node) const { C4_ASSERT(has_parent(node)); return is_map(_p(node)->m_parent); }
 
     /** true when name and value are empty, and has no children */
     bool empty(size_t node) const { return ! has_children(node) && _p(node)->m_key.empty() && (( ! (_p(node)->m_type & VAL)) || _p(node)->m_val.empty()); }
