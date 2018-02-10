@@ -1,6 +1,6 @@
 [submodule "cmake"]
 	path = cmake
-	url = https://github.com/biojppm/libyaml
+	url = https://github.com/biojppm/cmake
 [submodule "libyaml"]
 	path = extern/libyaml
 	url = https://github.com/yaml/libyaml
