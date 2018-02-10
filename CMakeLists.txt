@@ -79,7 +79,7 @@ if(NOT RYML_DEFAULT_CALLBACKS)
     target_compile_definitions(ryml PRIVATE RYML_NO_DEFAULT_CALLBACKS)
 endif()
 if(RYML_DBG)
-    target_compile_definitions(ryml PUBLIC RYML_DBG)
+    target_compile_definitions(ryml PRIVATE RYML_DBG)
 endif()
 
 #-------------------------------------------------------

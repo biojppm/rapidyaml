@@ -870,7 +870,6 @@ TEST(NodeInit, ctor__val_only)
             node_scalar_test_empty(s.key);
         }
 
-        using ilist = std::initializer_list< NodeInit >;
         for(auto s : ilist{{sarr}, {sptr}, {{sptr, sptrlen}}, {ssp}})
         {
             SCOPED_TRACE("here LOOP");
@@ -1300,7 +1299,7 @@ TEST_P(YmlTestCase, parse_using_ryml)
 #endif
     parse(d->src, &d->parsed_tree);
     {
-        SCOPED_TRACE("checking tree invariants of parsed tree");
+        SCOPED_TRACE("checking tree invariants of unresolved parsed tree");
         check_invariants(d->parsed_tree);
     }
 #ifdef RYML_DBG
@@ -1308,7 +1307,7 @@ TEST_P(YmlTestCase, parse_using_ryml)
     print_tree(d->parsed_tree);
 #endif
     {
-        SCOPED_TRACE("checking node invariants of parsed tree");
+        SCOPED_TRACE("checking node invariants of unresolved parsed tree");
         check_invariants(d->parsed_tree.rootref());
     }
 

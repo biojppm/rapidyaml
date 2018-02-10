@@ -189,7 +189,7 @@ void print_path(NodeRef const& n)
 void print_node(NodeRef const& p, int level, bool print_children)
 {
     printf("%*s[%zd] %p", (2*level), "", p.id(), (void*)p.get());
-    if(p.parent() != nullptr)
+    if(p.is_root())
     {
         printf(" [ROOT]");
     }
@@ -3228,22 +3228,22 @@ R"(
 - step: *id002
 )",
 L{N(L{
-N{ANCHOR|KEYMAP, "step", L{
+N("step", L{
     N{"instrument",      "Lasik 2000"},
     N{"pulseEnergy",     "5.4"},
     N{"pulseDuration",   "12"},
     N{"repetition",      "1000"},
     N{"spotSize",        "1mm"},
-        }},
-    }, AR(ANCHOR, "id001")), N(L{
-N{ANCHOR|KEYMAP, "step", L{
+        }, AR(ANCHOR, "id001")),
+    }), N(L{
+N("step", L{
     N{"instrument",      "Lasik 2000"},
     N{"pulseEnergy",     "5.0"},
     N{"pulseDuration",   "10"},
     N{"repetition",      "500"},
     N{"spotSize",        "2mm"},
-        }},
-    }, AR(ANCHOR, "id002")), N(L{
+        }, AR(ANCHOR, "id002")),
+    }), N(L{
 N{REF, "step", "*id001"},
     }), N(L{
 N{REF, "step", "*id002"},

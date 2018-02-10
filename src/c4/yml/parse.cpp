@@ -2444,8 +2444,8 @@ void Parser::_err(const char *fmt, ...) const
     c4::yml::error(errmsg, len);
 }
 
-#ifdef RYML_DBG
 //-----------------------------------------------------------------------------
+#ifdef RYML_DBG
 void Parser::_dbg(const char *fmt, ...) const
 {
     char errmsg[RYML_ERRMSG_SIZE];

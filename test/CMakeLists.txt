@@ -13,7 +13,7 @@ set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
 add_subdirectory(${RYML_EXT_DIR}/yaml-cpp   yaml-cpp)
 
 
-include(GoogleTest) # this module requires at least cmake 3.9
+#include(GoogleTest) # this module requires at least cmake 3.9
 
 
 function(ryml_add_test test_name test_src)
@@ -24,6 +24,9 @@ function(ryml_add_test test_name test_src)
         INC_DIRS "${RYML_EXT_DIR}/googletest/googletest/include" "${RYML_EXT_DIR}/yaml-cpp/include"
         SANITIZERS t_san
         )
+    if(RYML_DBG)
+        target_compile_definitions(${t} PRIVATE RYML_DBG)
+    endif()
     c4_add_test(ryml ${t} "${t_san}")
 endfunction()
 

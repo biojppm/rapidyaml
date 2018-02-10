@@ -368,7 +368,7 @@ public:
 
     // node predicates
 
-    bool is_root(size_t node) const { return _p(node)->m_parent == NONE; }
+    bool is_root(size_t node) const { C4_ASSERT(_p(node)->m_parent != NONE || node == 0); return _p(node)->m_parent == NONE; }
     bool is_stream(size_t node) const { return (_p(node)->m_type & STREAM) == STREAM; }
     bool is_doc(size_t node) const { return _p(node)->m_type & DOC; }
     bool is_container(size_t node) const { return _p(node)->m_type & (MAP|SEQ|STREAM|DOC); }
