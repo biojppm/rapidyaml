@@ -400,7 +400,7 @@ public:
 
     bool has_sibling(size_t node, size_t sib) const { return is_root(node) ? sib==node : child_pos(_p(node)->m_parent, sib) != npos; }
     /** counts with this */
-    bool has_siblings(size_t node) const { return true; }
+    bool has_siblings(size_t /*node*/) const { return true; }
     /** does not count with this */
     bool has_other_siblings(size_t node) const { return is_root(node) ? false : (_p(_p(node)->m_parent)->m_first_child != _p(_p(node)->m_parent)->m_last_child); }
 

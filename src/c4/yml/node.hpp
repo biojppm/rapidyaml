@@ -361,7 +361,7 @@ public:
         C4_ASSERT(get() != nullptr);
         if( ! read(*this, &v))
         {
-            RymlCallbacks::error("could not parse value");
+            c4::yml::error("could not parse value");
         }
     }
 

@@ -91,11 +91,11 @@ public:
 
 
     // val, explicit type
-    template< size_t N > explicit CaseNode(NodeType t, const char (&v)[N]   ) : type((VAL|t     )), key(), key_tag(), val(v       ), val_tag(     ), ancref(), children(), parent(nullptr) { _set_parent(); }
-                         explicit CaseNode(NodeType t, TaggedScalar const& v) : type((VAL|VALTAG)), key(), key_tag(), val(v.scalar), val_tag(v.tag), ancref(), children(), parent(nullptr) { _set_parent(); }
+    template< size_t N > explicit CaseNode(NodeType t, const char (&v)[N]   ) : type((VAL|t       )), key(), key_tag(), val(v       ), val_tag(     ), ancref(), children(), parent(nullptr) { _set_parent(); }
+                         explicit CaseNode(NodeType t, TaggedScalar const& v) : type((VAL|VALTAG|t)), key(), key_tag(), val(v.scalar), val_tag(v.tag), ancref(), children(), parent(nullptr) { _set_parent(); }
     // val, explicit type, with anchor/ref
-    template< size_t N > explicit CaseNode(NodeType t, const char (&v)[N]   , AnchorRef const& ar) : type((ar.type|VAL|t     )), key(), key_tag(), val(v       ), val_tag(     ), ancref(ar), children(), parent(nullptr) { _set_parent(); }
-                         explicit CaseNode(NodeType t, TaggedScalar const& v, AnchorRef const& ar) : type((ar.type|VAL|VALTAG)), key(), key_tag(), val(v.scalar), val_tag(v.tag), ancref(ar), children(), parent(nullptr) { _set_parent(); }
+    template< size_t N > explicit CaseNode(NodeType t, const char (&v)[N]   , AnchorRef const& ar) : type((ar.type|VAL|t       )), key(), key_tag(), val(v       ), val_tag(     ), ancref(ar), children(), parent(nullptr) { _set_parent(); }
+                         explicit CaseNode(NodeType t, TaggedScalar const& v, AnchorRef const& ar) : type((ar.type|VAL|VALTAG|t)), key(), key_tag(), val(v.scalar), val_tag(v.tag), ancref(ar), children(), parent(nullptr) { _set_parent(); }
 
 
     // keyval
@@ -134,8 +134,8 @@ public:
     template< size_t N > explicit CaseNode(const char (&k)[N]   , TaggedList s, AnchorRef const& ar) : type(), key(k       ), key_tag(     ), val(), val_tag(s.tag), ancref(ar), children(s.ilist), parent(nullptr) { _set_parent(); type = _guess(); }
                          explicit CaseNode(TaggedScalar const& k, iseqmap    s, AnchorRef const& ar) : type(), key(k.scalar), key_tag(k.tag), val(), val_tag(     ), ancref(ar), children(s      ), parent(nullptr) { _set_parent(); type = _guess(); }
                          explicit CaseNode(TaggedScalar const& k, TaggedList s, AnchorRef const& ar) : type(), key(k.scalar), key_tag(k.tag), val(), val_tag(s.tag), ancref(ar), children(s.ilist), parent(nullptr) { _set_parent(); type = _guess(); }
-                         explicit CaseNode(                       iseqmap    m, AnchorRef const& ar) : CaseNode("", m) {}
-                         explicit CaseNode(                       TaggedList m, AnchorRef const& ar) : CaseNode("", m) {}
+                         explicit CaseNode(                       iseqmap    m, AnchorRef const& ar) : CaseNode("", m, ar) {}
+                         explicit CaseNode(                       TaggedList m, AnchorRef const& ar) : CaseNode("", m, ar) {}
 
 
     // container, explicit type

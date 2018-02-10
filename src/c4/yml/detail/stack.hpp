@@ -42,7 +42,7 @@ public:
     {
         if(m_stack != m_buf)
         {
-            RymlCallbacks::free(m_stack, m_capacity * sizeof(T));
+            c4::yml::free(m_stack, m_capacity * sizeof(T));
         }
     }
 
@@ -55,7 +55,7 @@ public:
     {
         if(m_stack != m_buf)
         {
-            RymlCallbacks::free(m_stack, m_capacity * sizeof(T));
+            c4::yml::free(m_stack, m_capacity * sizeof(T));
         }
         reserve(that.m_size);
         memcpy(m_stack, that.m_stack, sizeof(T) * that.m_size);
@@ -92,11 +92,11 @@ public:
             m_capacity = N;
             return;
         }
-        T *buf = (T*) RymlCallbacks::allocate(sz * sizeof(T), m_stack);
+        T *buf = (T*) c4::yml::allocate(sz * sizeof(T), m_stack);
         memcpy(buf, m_stack, m_size * sizeof(T));
         if(m_stack != m_buf)
         {
-            RymlCallbacks::free(m_stack, m_capacity * sizeof(T));
+            c4::yml::free(m_stack, m_capacity * sizeof(T));
         }
         m_stack = buf;
         m_capacity = sz;

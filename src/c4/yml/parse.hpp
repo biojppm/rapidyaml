@@ -24,7 +24,7 @@ struct LineCol
 {
     size_t offset, line, col;
     LineCol() : offset(), line(), col() {}
-    LineCol(size_t o, size_t l, size_t c) : offset(o), line(o), col(c) {}
+    LineCol(size_t o, size_t l, size_t c) : offset(o), line(l), col(c) {}
 };
 
 struct Location : public LineCol

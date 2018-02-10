@@ -1,19 +1,10 @@
 #ifndef _C4_YML_COMMON_HPP_
 #define _C4_YML_COMMON_HPP_
 
-
-#define RYML_DBG
-#define RYML_ERRMSG_SIZE 1024
+#include <cstddef>
 
 #define RYML_INLINE inline
 
-
-
-//#define RYML_NO_DEFAULT_CALLBACKS
-#ifndef RYML_NO_DEFAULT_CALLBACKS
-#   include <stdlib.h>
-#   include <stdio.h>
-#endif // RYML_NO_DEFAULT_CALLBACKS
 
 #ifndef C4_QUOTE
 #   define C4_QUOTE(x) #x
@@ -29,7 +20,7 @@
 
 #ifndef C4_ERROR
 #   define C4_ERROR(msg) \
-    c4::yml::RymlCallbacks::error(__FILE__ ":" C4_XQUOTE(__LINE__) ": fatal error: " msg "\n")
+    c4::yml::error(__FILE__ ":" C4_XQUOTE(__LINE__) ": fatal error: " msg "\n")
 #endif
 
 #ifndef C4_ASSERT
@@ -45,7 +36,7 @@
         if( ! (expr))                                                   \
         {                                                               \
             C4_DEBUG_BREAK();                                           \
-            c4::yml::RymlCallbacks::error(__FILE__ ":" C4_XQUOTE(__LINE__) ": Assert failed: " #expr "\n"); \
+            c4::yml::error(__FILE__ ":" C4_XQUOTE(__LINE__) ": assert failed: " #expr "\n"); \
         }                                                               \
     }
 #   endif
@@ -67,40 +58,29 @@ enum : size_t { npos = size_t(-1) };
 /** an index to none */
 enum : size_t { NONE = size_t(-1) };
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-#ifndef RYML_NO_DEFAULT_CALLBACKS
-struct RymlCallbacks
+/** the type of the function used to allocate memory */
+using allocate_callback = void* (*)(size_t len, void* hint);
+/** the type of the function used to free memory */
+using free_callback = void (*)(void* mem, size_t size);
+/** the type of the function used to report errors */
+using error_callback = void (*)(const char* msg, size_t msg_len);
+
+void set_allocate_callback(allocate_callback fn);
+allocate_callback get_allocate_callback();
+void* allocate(size_t len, void *hint);
+
+void set_free_callback(free_callback fn);
+free_callback get_free_callback();
+void free(void *mem, size_t mem_len);
+
+void set_error_callback(error_callback fn);
+error_callback get_error_callback();
+void error(const char *msg, size_t msg_len);
+template< size_t N >
+inline void error(const char (&msg)[N])
 {
-    static void* allocate(size_t length, void * /*hint*/)
-    {
-        void *mem = ::malloc(length);
-        if(mem == nullptr)
-        {
-            const char msg[] = "could not allocate memory";
-            error(msg, sizeof(msg));
-        }
-        return mem;
-    }
-
-    static void free(void *mem, size_t /*length*/)
-    {
-        ::free(mem);
-    }
-
-    static void error(const char* msg, size_t length)
-    {
-        fprintf(stderr, "%.*s\n", (int)length, msg);
-        abort();
-    }
-    template< size_t N >
-    static void error(char const (&msg)[N])
-    {
-        error(&msg[0], N-1);
-    }
-};
-#endif // RYML_NO_DEFAULT_CALLBACKS
+    error(msg, N-1);
+}
 
 } // namespace yml
 } // namespace c4

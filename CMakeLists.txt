@@ -20,11 +20,37 @@ c4_setup_static_analysis(RYML ${RYML_DEV})
 c4_setup_valgrind(RYML ${RYML_DEV})
 c4_setup_coverage(RYML ${RYML_DEV})
 
+
+#-------------------------------------------------------
+option(RYML_DEFAULT_CALLBACKS "Enable ryml default implementation of callbacks: allocate(), free(), error()" ON)
+option(RYML_DBG "Enable ryml debug code" ${RYML_DEV})
+
+option(RYML_PEDANTIC "Compile in pedantic mode" ${RYML_DEV})
+if(RYML_PEDANTIC)
+    if(MSVC)
+        set(RYML_CXX_FLAGS "${RYML_CXX_FLAGS} /W4")
+    else()
+        set(RYML_CXX_FLAGS "${RYML_CXX_FLAGS} -Wall -Wextra -Wshadow -pedantic -Wfloat-equal -fstrict-aliasing")
+    endif()
+endif()
+
+option(RYML_WERROR "Compile with warnings as errors" ${RYML_DEV})
+if(RYML_WERROR)
+    if(MSVC)
+        set(RYML_CXX_FLAGS "${RYML_CXX_FLAGS} /WX")
+        #set(RYML_LINKER_FLAGS "${RYML_LINKER_FLAGS} /WX")
+    else()
+        set(RYML_CXX_FLAGS "${RYML_CXX_FLAGS} -Werror -pedantic-errors")
+    endif()
+endif()
+
+
 #-------------------------------------------------------
 set(RYML_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(RYML_EXT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/extern)
 
 set(RYML_CPP
+    ${RYML_SRC_DIR}/c4/yml/common.cpp
     ${RYML_SRC_DIR}/c4/yml/parse.cpp
     ${RYML_SRC_DIR}/c4/yml/tree.cpp
     )
@@ -48,6 +74,13 @@ set(RYML_SRC ${RYML_CPP} ${RYML_HPP})
 c4_add_target(RYML ryml LIBRARY SANITIZE
     SOURCES ${RYML_SRC}
     INC_DIRS ${RYML_SRC_DIR})
+
+if(NOT RYML_DEFAULT_CALLBACKS)
+    target_compile_definitions(ryml PRIVATE RYML_NO_DEFAULT_CALLBACKS)
+endif()
+if(RYML_DBG)
+    target_compile_definitions(ryml PUBLIC RYML_DBG)
+endif()
 
 #-------------------------------------------------------
 if(RYML_BUILD_TESTS)

@@ -103,20 +103,20 @@ void Tree::_free()
 {
     if(m_buf)
     {
-        RymlCallbacks::free(m_buf, m_cap * sizeof(NodeData));
+        c4::yml::free(m_buf, m_cap * sizeof(NodeData));
     }
     if(m_arena.str)
     {
-        RymlCallbacks::free(m_arena.str, m_arena.len);
+        c4::yml::free(m_arena.str, m_arena.len);
     }
 }
 
 void Tree::_copy(Tree const& that)
 {
     memcpy(this, &that, sizeof(Tree));
-    m_buf = (NodeData*)RymlCallbacks::allocate(m_cap * sizeof(NodeData), that.m_buf);
+    m_buf = (NodeData*)c4::yml::allocate(m_cap * sizeof(NodeData), that.m_buf);
     memcpy(m_buf, that.m_buf, m_cap * sizeof(NodeData));
-    span arena((char*)RymlCallbacks::allocate(m_arena.len, m_arena.str), m_arena.len);
+    span arena((char*)c4::yml::allocate(m_arena.len, m_arena.str), m_arena.len);
     _relocate(arena); // does a memcpy and updates nodes with spans using the old arena
     m_arena = arena;
 }
@@ -157,11 +157,11 @@ void Tree::reserve(size_t cap, size_t arena_cap)
             C4_ASSERT(m_free_tail != NONE);
             m_buf[m_free_tail].m_next_sibling = m_cap;
         }
-        NodeData *buf = (NodeData*)RymlCallbacks::allocate(cap * sizeof(NodeData), m_buf);
+        NodeData *buf = (NodeData*)c4::yml::allocate(cap * sizeof(NodeData), m_buf);
         if(m_buf)
         {
             memcpy(buf, m_buf, m_cap * sizeof(NodeData));
-            RymlCallbacks::free(m_buf, m_cap * sizeof(NodeData));
+            c4::yml::free(m_buf, m_cap * sizeof(NodeData));
         }
         size_t first = m_cap, del = cap - m_cap;
         m_cap = cap;
@@ -179,13 +179,13 @@ void Tree::reserve(size_t cap, size_t arena_cap)
     if(arena_cap > m_arena.len)
     {
         span buf;
-        buf.str = (char*)RymlCallbacks::allocate(arena_cap, m_arena.str);
+        buf.str = (char*)c4::yml::allocate(arena_cap, m_arena.str);
         buf.len = arena_cap;
         if(m_arena.str)
         {
             C4_ASSERT(m_arena.len >= 0);
             _relocate(buf); // does a memcpy and changes nodes using the arena
-            RymlCallbacks::free(m_arena.str, m_arena.len);
+            c4::yml::free(m_arena.str, m_arena.len);
         }
         m_arena = buf;
     }

@@ -88,7 +88,7 @@ struct WriterSpan
             sp.str = nullptr;
             if(error_on_excess)
             {
-                RymlCallbacks::error("not enough space in the given span");
+                c4::yml::error("not enough space in the given span");
             }
         }
         return sp;
