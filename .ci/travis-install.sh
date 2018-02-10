@@ -13,6 +13,7 @@ deb http://llvm.org/apt/trusty/ llvm-toolchain-trusty-3.9 main
 deb http://llvm.org/apt/trusty/ llvm-toolchain-trusty-4.0 main
 deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-5.0 main
 deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-6.0 main
+deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-7.0 main
 # Also add the following for the appropriate libstdc++
 deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu trusty main
 EOF'
@@ -25,6 +26,8 @@ elif [ "$CXX_" == "g++-6" ] && [ "$A" == "64" ] ; then DPKG="$DPKG g++-6"
 elif [ "$CXX_" == "g++-6" ] && [ "$A" == "32" ] ; then DPKG="$DPKG g++-6 g++-6-multilib"
 elif [ "$CXX_" == "g++-7" ] && [ "$A" == "64" ] ; then DPKG="$DPKG g++-7"
 elif [ "$CXX_" == "g++-7" ] && [ "$A" == "32" ] ; then DPKG="$DPKG g++-7 g++-7-multilib"
+elif [ "$CXX_" == "g++-8" ] && [ "$A" == "64" ] ; then DPKG="$DPKG g++-8"
+elif [ "$CXX_" == "g++-8" ] && [ "$A" == "32" ] ; then DPKG="$DPKG g++-8 g++-8-multilib"
 elif [ "$CXX_" == "clang++-3.6" ] ; then DPKG="$DPKG clang-3.6"
 elif [ "$CXX_" == "clang++-3.7" ] ; then DPKG="$DPKG clang-3.7"
 elif [ "$CXX_" == "clang++-3.8" ] ; then DPKG="$DPKG clang-3.8"
@@ -32,11 +35,24 @@ elif [ "$CXX_" == "clang++-3.9" ] ; then DPKG="$DPKG clang-3.9"
 elif [ "$CXX_" == "clang++-4.0" ] ; then DPKG="$DPKG clang-4.0"
 elif [ "$CXX_" == "clang++-5.0" ] ; then DPKG="$DPKG clang-5.0"
 elif [ "$CXX_" == "clang++-6.0" ] ; then DPKG="$DPKG clang-6.0"
+elif [ "$CXX_" == "clang++-7.0" ] ; then DPKG="$DPKG clang-7.0"
+elif [ "$CXX_" == "all" ] ; then
+    DPKG="$DPKG \
+g++-6 g++-6-multilib \
+g++-7 g++-7-multilib \
+clang-3.6 \
+clang-3.7 \
+clang-3.8 \
+clang-3.9 \
+clang-4.0 \
+clang-5.0 \
+clang-6.0 \
+clang-7.0 \
+"
 fi
 
 if [ "$A" == "32" ] ; then
     DPKG="$DPKG libc6-dbg:i386"
-    XFLAGS="-m32"
 fi
 
 if [ ! -z "$DPKG" ] ; then

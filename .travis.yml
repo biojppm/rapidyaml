@@ -22,6 +22,16 @@ matrix:
   include:
     #
     #
+    - env: CXX_=clang++-7   A=32 BT=Debug   SAN=ALL VG=ON
+    - env: CXX_=clang++-7   A=64 BT=Debug   SAN=ALL VG=ON
+    - env: CXX_=clang++-7   A=32 BT=Release SAN=ALL VG=ON
+    - env: CXX_=clang++-7   A=64 BT=Release SAN=ALL VG=ON
+
+    - env: CXX_=g++-7       A=32 BT=Debug   SAN=ALL VG=ON
+    - env: CXX_=g++-7       A=64 BT=Debug   SAN=ALL VG=ON
+    - env: CXX_=g++-7       A=32 BT=Release SAN=ALL VG=ON
+    - env: CXX_=g++-7       A=64 BT=Release SAN=ALL VG=ON
+
     - env: CXX_=clang++-6.0 A=32 BT=Debug   SAN=ALL VG=ON
     - env: CXX_=clang++-6.0 A=64 BT=Debug   SAN=ALL VG=ON
     - env: CXX_=clang++-6.0 A=32 BT=Release SAN=ALL VG=ON
@@ -36,11 +46,6 @@ matrix:
     - env: CXX_=clang++-4.0 A=64 BT=Debug   SAN=ALL VG=ON
     - env: CXX_=clang++-4.0 A=32 BT=Release SAN=ALL VG=ON
     - env: CXX_=clang++-4.0 A=64 BT=Release SAN=ALL VG=ON
-
-    - env: CXX_=g++-7       A=32 BT=Debug   SAN=ALL VG=ON
-    - env: CXX_=g++-7       A=64 BT=Debug   SAN=ALL VG=ON
-    - env: CXX_=g++-7       A=32 BT=Release SAN=ALL VG=ON
-    - env: CXX_=g++-7       A=64 BT=Release SAN=ALL VG=ON
 
     - env: CXX_=clang++-3.9 A=32 BT=Debug   SAN=ALL VG=ON
     - env: CXX_=clang++-3.9 A=64 BT=Debug   SAN=ALL VG=ON
@@ -67,10 +72,10 @@ matrix:
     - env: CXX_=clang++-3.7 A=32 BT=Release SAN=ALL VG=ON
     - env: CXX_=clang++-3.7 A=64 BT=Release SAN=ALL VG=ON
  
-    - env: CXX_=g++-4.8     A=32 BT=Debug   SAN=ALL VG=ON
-    - env: CXX_=g++-4.8     A=64 BT=Debug   SAN=ALL VG=ON
-    - env: CXX_=g++-4.8     A=32 BT=Release SAN=ALL VG=ON
-    - env: CXX_=g++-4.8     A=64 BT=Release SAN=ALL VG=ON
+    - env: CXX_=g++-4.9     A=32 BT=Debug   SAN=ALL VG=ON
+    - env: CXX_=g++-4.9     A=64 BT=Debug   SAN=ALL VG=ON
+    - env: CXX_=g++-4.9     A=32 BT=Release SAN=ALL VG=ON
+    - env: CXX_=g++-4.9     A=64 BT=Release SAN=ALL VG=ON
 
     - env: CXX_=clang++-3.6 A=32 BT=Debug   SAN=ALL VG=ON
     - env: CXX_=clang++-3.6 A=64 BT=Debug   SAN=ALL VG=ON
@@ -79,10 +84,10 @@ matrix:
 
     # ----------- clang-tidy
     #
-    - env: CXX_=clang++-6.0 A=32 BT=Debug   LINT=clang-tidy
-    - env: CXX_=clang++-6.0 A=64 BT=Debug   LINT=clang-tidy
-    - env: CXX_=clang++-6.0 A=32 BT=Release LINT=clang-tidy
-    - env: CXX_=clang++-6.0 A=64 BT=Release LINT=clang-tidy
+    - env: CXX_=clang++-7.0 A=32 BT=Debug   LINT=clang-tidy
+    - env: CXX_=clang++-7.0 A=64 BT=Debug   LINT=clang-tidy
+    - env: CXX_=clang++-7.0 A=32 BT=Release LINT=clang-tidy
+    - env: CXX_=clang++-7.0 A=64 BT=Release LINT=clang-tidy
     #
     # ----------- Coverage (covers all tests, slow) -------------------------
     #
