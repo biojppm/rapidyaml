@@ -22,6 +22,16 @@ matrix:
   include:
     #
     #
+    - env: CXX_=clang++-6.0 A=32 BT=Debug   SAN=ALL VG=ON
+    - env: CXX_=clang++-6.0 A=64 BT=Debug   SAN=ALL VG=ON
+    - env: CXX_=clang++-6.0 A=32 BT=Release SAN=ALL VG=ON
+    - env: CXX_=clang++-6.0 A=64 BT=Release SAN=ALL VG=ON
+
+    - env: CXX_=clang++-5.0 A=32 BT=Debug   SAN=ALL VG=ON
+    - env: CXX_=clang++-5.0 A=64 BT=Debug   SAN=ALL VG=ON
+    - env: CXX_=clang++-5.0 A=32 BT=Release SAN=ALL VG=ON
+    - env: CXX_=clang++-5.0 A=64 BT=Release SAN=ALL VG=ON
+
     - env: CXX_=clang++-4.0 A=32 BT=Debug   SAN=ALL VG=ON
     - env: CXX_=clang++-4.0 A=64 BT=Debug   SAN=ALL VG=ON
     - env: CXX_=clang++-4.0 A=32 BT=Release SAN=ALL VG=ON
