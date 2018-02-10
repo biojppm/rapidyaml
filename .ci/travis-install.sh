@@ -35,7 +35,7 @@ elif [ "$CXX_" == "clang++-3.9" ] ; then DPKG="$DPKG clang-3.9"
 elif [ "$CXX_" == "clang++-4.0" ] ; then DPKG="$DPKG clang-4.0"
 elif [ "$CXX_" == "clang++-5.0" ] ; then DPKG="$DPKG clang-5.0"
 elif [ "$CXX_" == "clang++-6.0" ] ; then DPKG="$DPKG clang-6.0"
-elif [ "$CXX_" == "clang++-7.0" ] ; then DPKG="$DPKG clang-7.0"
+elif [ "$CXX_" == "clang++-7" ] ; then DPKG="$DPKG clang-7"
 elif [ "$CXX_" == "all" ] ; then
     DPKG="$DPKG \
 g++-6 g++-6-multilib \
@@ -47,7 +47,7 @@ clang-3.9 \
 clang-4.0 \
 clang-5.0 \
 clang-6.0 \
-clang-7.0 \
+clang-7 \
 "
 fi
 
