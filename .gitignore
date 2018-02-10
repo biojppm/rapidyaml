@@ -1,4 +1,5 @@
 \#*\#
 *~
+.ci/.vagrant
 build/
 CMakeLists.txt.user
