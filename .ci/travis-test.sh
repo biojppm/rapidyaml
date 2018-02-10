@@ -46,17 +46,17 @@ if [ ! -z "$CMFLAGS" ] ; then
     echo "additional cmake flags: $CMFLAGS"
 fi
 
-CFLAGS="-std=c99"
-XFLAGS="-std=c++11"
+CFLAGS_="-std=c99"
+XFLAGS_="-std=c++11"
 if [ "$A" == "32" ] ; then
-    CFLAGS="$CFLAGS -m32"
-    XFLAGS="$XFLAGS -m32"
+    CFLAGS_="$CFLAGS_ -m32"
+    XFLAGS_="$XFLAGS_ -m32"
 fi
 
 mkdir build
 cd build
-cmake -DCMAKE_C_COMPILER=$CC_ -DCMAKE_C_FLAGS="$CFLAGS" \
-      -DCMAKE_CXX_COMPILER=$CXX_ -DCMAKE_CXX_FLAGS="$XFLAGS" \
+cmake -DCMAKE_C_COMPILER=$CC_ -DCMAKE_C_FLAGS="$CFLAGS_" \
+      -DCMAKE_CXX_COMPILER=$CXX_ -DCMAKE_CXX_FLAGS="$XFLAGS_" \
       -DCMAKE_BUILD_TYPE=$BT \
       -DRYML_DEV=ON \
       $CMFLAGS \
