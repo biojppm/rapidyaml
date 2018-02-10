@@ -1407,7 +1407,7 @@ void Parser::_line_ended()
 //-----------------------------------------------------------------------------
 void Parser::_save_indentation(size_t behind)
 {
-    C4_ASSERT(m_state->line_contents.rem.begin() >= m_state->line_contents.full.begin())
+    C4_ASSERT(m_state->line_contents.rem.begin() >= m_state->line_contents.full.begin());
     m_state->indref = m_state->line_contents.rem.begin() - m_state->line_contents.full.begin();
     C4_ASSERT(behind <= m_state->indref);
     m_state->indref -= behind;

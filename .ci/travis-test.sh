@@ -46,8 +46,9 @@ if [ ! -z "$CMFLAGS" ] ; then
     echo "additional cmake flags: $CMFLAGS"
 fi
 
+XFLAGS="-std=c++11"
 if [ "$A" == "32" ] ; then
-    XFLAGS="-m32"
+    XFLAGS="$XFLAGS -m32"
 fi
 
 mkdir build
