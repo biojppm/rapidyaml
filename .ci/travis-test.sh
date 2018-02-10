@@ -44,4 +44,15 @@ if [ "$A" == "32" ] ; then
     XFLAGS="-m32"
 fi
 
+cd build
+cmake -DCMAKE_C_COMPILER=$CC_ -DCMAKE_CXX_COMPILER=$CXX_ \
+      -DCMAKE_BUILD_TYPE=$BT -DCMAKE_CXX_FLAGS="$XFLAGS" \
+      -DC4STL_EXTERN_DIR=`pwd`/extern_install \
+      -DC4STL_DEV=ON \
+      $CMFLAGS \
+      $RYML_DIR
+make help | sed 1d | sort
+make CTEST_OUTPUT_ON_FAILURE=1 c4stl-test
+cd -
+
 exit 0
