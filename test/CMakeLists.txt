@@ -15,17 +15,16 @@ add_subdirectory(${RYML_EXT_DIR}/yaml-cpp   yaml-cpp)
 
 include(GoogleTest) # this module requires at least cmake 3.9
 
-c4_setup_testing(ryml ON)
 
 function(ryml_add_test test_name test_src)
     set(t ryml-${test_name})
-    c4_add_target(ryml ${t} EXECUTABLE SANITIZE
+    c4_add_target(RYML ${t} EXECUTABLE SANITIZE
         SOURCES test_case.hpp test_case.cpp ${test_src}
         LIBS ryml yaml yaml-cpp gtest
         INC_DIRS "${RYML_EXT_DIR}/googletest/googletest/include" "${RYML_EXT_DIR}/yaml-cpp/include"
-        SANITIZED_TARGETS t_san
+        SANITIZERS t_san
         )
-    c4_add_test(ryml ${t} ${t_san})
+    c4_add_test(ryml ${t} "${t_san}")
 endfunction()
 
 ryml_add_test(test_basic basic.cpp)

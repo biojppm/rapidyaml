@@ -11,6 +11,10 @@ option(RYML_BUILD_BENCHMARKS "build ryml benchmarks" ${RYML_DEV})
 
 option(RYML_LINT_PVS_STUDIO OFF)
 option(RYML_VALGRIND_SGCHECK OFF) # crashing in ubuntu16.04
+if(RYML_BUILD_TESTS)
+    enable_testing()
+endif()
+c4_setup_testing(RYML ${RYML_BUILD_TESTS})
 c4_setup_sanitize(RYML ${RYML_DEV})
 c4_setup_static_analysis(RYML ${RYML_DEV})
 c4_setup_valgrind(RYML ${RYML_DEV})
@@ -49,6 +53,7 @@ c4_add_target(RYML ryml LIBRARY SANITIZE
 if(RYML_BUILD_TESTS)
     enable_testing()
     add_subdirectory(test test)
+    static_analysis_add_tests(RYML ryml)
 endif()
 
 #-------------------------------------------------------
