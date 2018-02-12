@@ -19,10 +19,13 @@ inline size_t to_str(span buf, ty v)                                    \
                                                                         \
 inline bool from_str(cspan buf, ty *v)                                  \
 {                                                                       \
-    /* Alas, there's no snscanf which is absolutely needed here         \
-     * as we must be sure that buf.len is strictly respected,           \
-     * because the span string is generally not null-terminated.        \
-     * So we fake snscanf by using a dynamic format with an explicit    \
+    /* snscanf() is absolutely needed here as we must be sure that      \
+     * buf.len is strictly respected, because the span string is        \
+     * generally not null-terminated.                                   \
+     *                                                                  \
+     * Alas, there is no snscanf().                                     \
+     *                                                                  \
+     * So we fake it by using a dynamic format with an explicit         \
      * field size set to the length of the given span.                  \
      * This trick is taken from:                                        \
      * https://stackoverflow.com/a/18368910/5875572 */                  \
@@ -30,7 +33,7 @@ inline bool from_str(cspan buf, ty *v)                                  \
     /* this is the actual format used for scanning */                   \
     char fmt[8];                                                        \
     /* write the length into it. Eg "%12d" for an int (scn_fmt="d") */  \
-    int ret = snprintf(fmt, sizeof(fmt), "%%" "%zu" scn_fmt, buf.len);  \
+    int ret = snprintf(fmt, sizeof(fmt), "%%""%zu" scn_fmt, buf.len);   \
     /* no nasty surprises, please! */                                   \
     C4_ASSERT(size_t(ret) < sizeof(fmt));                               \
     /* now we scan with confidence that the span length is respected */ \
@@ -43,8 +46,8 @@ _C4_DEFINE_TO_FROM_STR(void*   , "p"             , "p"             )
 _C4_DEFINE_TO_FROM_STR(char    , "c"             , "c"             )
 _C4_DEFINE_TO_FROM_STR(double  , "lg"            , "lg"            )
 _C4_DEFINE_TO_FROM_STR(float   , "g"             , "g"             )
-_C4_DEFINE_TO_FROM_STR( int8_t , PRId8 /*"%hhd"*/, SCNd8 /*"%hhd"*/)
-_C4_DEFINE_TO_FROM_STR(uint8_t , PRIu8 /*"%hhu"*/, SCNu8 /*"%hhu"*/)
+_C4_DEFINE_TO_FROM_STR(  int8_t, PRId8 /*"%hhd"*/, SCNd8 /*"%hhd"*/)
+_C4_DEFINE_TO_FROM_STR( uint8_t, PRIu8 /*"%hhu"*/, SCNu8 /*"%hhu"*/)
 _C4_DEFINE_TO_FROM_STR( int16_t, PRId16/*"%hd" */, SCNd16/*"%hd" */)
 _C4_DEFINE_TO_FROM_STR(uint16_t, PRIu16/*"%hu" */, SCNu16/*"%hu" */)
 _C4_DEFINE_TO_FROM_STR( int32_t, PRId32/*"%d"  */, SCNd32/*"%d"  */)

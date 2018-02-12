@@ -166,8 +166,8 @@ namespace yml {
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-void PrintTo(const span& bar, ::std::ostream* os) { *os << bar; }
-void PrintTo(const cspan& bar, ::std::ostream* os) { *os << bar; }
+void PrintTo(const span& s, ::std::ostream* os) { *os << s; }
+void PrintTo(const cspan& s, ::std::ostream* os) { *os << s; }
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -1419,3 +1419,6 @@ TEST_P(YmlTestCase, recreate_from_ref)
 
 } // namespace yml
 } // namespace c4
+
+#include "./c4/tpl/rope.hpp"
+#include "./c4/tpl/engine.hpp"

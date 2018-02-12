@@ -197,6 +197,8 @@ public:
         return triml(chars).trimr(chars);
     }
 
+public:
+
     inline size_t find(const C c) const
     {
         return first_of(c);
@@ -213,6 +215,7 @@ public:
                 if(str[i + j] != chars.str[j])
                 {
                     gotit = false;
+                    break;
                 }
             }
             if(gotit)
@@ -222,6 +225,62 @@ public:
         }
         return npos;
     }
+
+public:
+
+    struct first_of_any_result
+    {
+        size_t which;
+        size_t pos;
+        inline operator bool() const { return which != NONE && pos != npos; }
+    };
+
+    first_of_any_result first_of_any(basic_span< const C > const& s0, basic_span< const C > const& s1) const
+    {
+        basic_span< const C > spans[2] = {s0, s1};
+        return first_of_any(&spans[0], &spans[0] + 2);
+    }
+
+    first_of_any_result first_of_any(basic_span< const C > const& s0, basic_span< const C > const& s1, basic_span< const C > const& s2) const
+    {
+        basic_span< const C > spans[3] = {s0, s1, s2};
+        return first_of_any(&spans[0], &spans[0] + 3);
+    }
+
+    first_of_any_result first_of_any(basic_span< const C > const& s0, basic_span< const C > const& s1, basic_span< const C > const& s2, basic_span< const C > const& s3) const
+    {
+        basic_span< const C > spans[4] = {s0, s1, s2, s3};
+        return first_of_any(&spans[0], &spans[0] + 4);
+    }
+
+    template< class It >
+    first_of_any_result first_of_any(It first_span, It last_span) const
+    {
+        for(size_t i = 0; i < len; ++i)
+        {
+            size_t curr = 0;
+            for(It it = first_span; it != last_span; ++curr, ++it)
+            {
+                auto const& chars = *it;
+                bool gotit = true;
+                for(size_t j = 0; (j < chars.len) && (i+j < len); ++j)
+                {
+                    if(str[i + j] != chars[j])
+                    {
+                        gotit = false;
+                        break;
+                    }
+                }
+                if(gotit)
+                {
+                    return {curr, i};
+                }
+            }
+        }
+        return {NONE, npos};
+    }
+
+public:
 
     inline bool begins_with(const C c) const
     {
