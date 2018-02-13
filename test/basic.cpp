@@ -1421,4 +1421,6 @@ TEST_P(YmlTestCase, recreate_from_ref)
 } // namespace c4
 
 #include "./c4/tpl/rope.hpp"
+#include "./c4/tpl/token_container.cpp"
+#include "./c4/tpl/token.cpp"
 #include "./c4/tpl/engine.hpp"

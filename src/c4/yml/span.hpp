@@ -128,11 +128,20 @@ public:
 
 public:
 
+    /** return [first,first+num[ */
     basic_span subspan(size_t first, size_t num = npos) const
     {
         size_t rnum = num != npos ? num : len - first;
         C4_ASSERT((first >= 0 && first + rnum <= len) || num == 0);
         return basic_span(str + first, rnum);
+    }
+
+    /** return [first,last[ */
+    basic_span range(size_t first, size_t last=npos) const
+    {
+        last = last != npos ? last : len;
+        C4_ASSERT(first >= 0 && last <= len);
+        return basic_span(str + first, last - first);
     }
 
     /** true if *this is a subspan of that */
@@ -155,6 +164,7 @@ public:
         if( ! include_pos) ++pos;
         return subspan(pos);
     }
+
     basic_span left_of(size_t pos, bool include_pos = false) const
     {
         if(pos == npos) return *this;
@@ -251,6 +261,12 @@ public:
     {
         basic_span< const C > spans[4] = {s0, s1, s2, s3};
         return first_of_any(&spans[0], &spans[0] + 4);
+    }
+
+    first_of_any_result first_of_any(basic_span< const C > const& s0, basic_span< const C > const& s1, basic_span< const C > const& s2, basic_span< const C > const& s3, basic_span< const C > const& s4) const
+    {
+        basic_span< const C > spans[4] = {s0, s1, s2, s3, s4};
+        return first_of_any(&spans[0], &spans[0] + 5);
     }
 
     template< class It >

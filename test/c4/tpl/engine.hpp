@@ -23,12 +23,12 @@ public:
     void parse(cspan src)
     {
         m_src = src;
-
+        if(m_src.empty()) return;
         TplLocation pos{&m_rope, {m_rope.append(src), 0}};
         cspan rem = m_src;
         while( ! rem.empty())
         {
-            auto *tk = m_tokens.parse_next(&rem, &pos);
+            auto *tk = m_tokens.next_token(&rem, &pos);
             if( ! tk) break; // we're done
             tk->parse(&rem, &pos);
         }
@@ -39,7 +39,8 @@ public:
         auto root = t.rootref();
         for(auto const& token : m_tokens)
         {
-            cspan val = token.resolve(root);
+            cspan val = {};
+            token.resolve(root, &val);
             r->replace(token.rope_entry(), val);
         }
     }
@@ -55,228 +56,6 @@ public:
         return m_rope.chain_all(buf);
     }
 
-};
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-typedef enum
-{
-    VAL,
-    IF,
-    FOR,
-    COMMENT
-} TokenType_e;
-
-struct ValData
-{
-    cspan name;
-};
-
-struct ForData
-{
-    cspan var;
-    cspan value;
-    cspan body;
-};
-
-struct IfData
-{
-    cspan cond;
-    cspan if_branch;
-    cspan else_branch;
-};
-
-struct CommentData
-{
-};
-
-struct TokenData
-{
-    TokenType_e type;
-    size_t rope_entry;
-    cspan  text;
-    size_t parent;
-    TokenData(){}
-    TokenData(TokenData const&) = default;
-    TokenData(TokenData     &&) = default;
-    union {
-        ValData dval;
-        ForData dfor;
-        IfData  dif;
-        CommentData dcom;
-    };
-};
-
-
-class Engine
-{
-public:
-
-    struct State
-    {
-        size_t rope_entry;
-        void clear()
-        {
-            rope_entry = NONE;
-        }
-    };
-
-    cspan m_src;
-    Rope m_rope;
-    std::vector< TokenData > m_tokens;
-    State m_state;
-
-public:
-
-    Engine() : m_src(), m_rope(), m_tokens(), m_state() {}
-
-    Rope const& rope() { return m_rope; }
-
-    void parse(cspan src)
-    {
-        m_src = src;
-        cspan rem = src;
-        m_state.clear();
-        m_state.rope_entry = m_rope.append(src);
-        while( ! rem.empty())
-        {
-            auto result = rem.first_of_any("{{", "{% if", "{% for", "{# ");
-            switch(result.which)
-            {
-            case 0: // "{{"
-            {
-                auto const& d = _parse_val(rem, result.pos);
-                rem = rem.subspan(d.text.end() - rem.begin());
-                break;
-            }
-            case 1: // "{% if"
-                C4_ERROR("not implemented");
-                break;
-            case 2: // "{% for"
-                C4_ERROR("not implemented");
-                break;
-            default:
-                // we're done
-                rem = rem.subspan(rem.len);
-            }
-        }
-    }
-
-    void render(Tree const& t, Rope *r)
-    {
-        auto root = t.rootref();
-        for(auto const& token : m_tokens)
-        {
-            switch(token.type)
-            {
-            case VAL:
-            {
-                cspan val = _resolve_val(root, token.dval.name);
-                r->replace(token.rope_entry, val);
-                break;
-            }
-            default:
-                C4_ERROR("not implemented");
-            }
-        }
-    }
-
-    Rope const& render(Tree const& tree)
-    {
-        render(tree, &m_rope);
-        return m_rope;
-    }
-
-    TokenData const& _parse_val(cspan rem, size_t b)
-    {
-        C4_ASSERT(rem.subspan(b).begins_with("{{"));
-        m_tokens.emplace_back();
-        size_t e = rem.find("}}");
-        C4_ASSERT(e != npos && e >= b);
-        C4_ASSERT(b+2 <= e);
-        C4_ASSERT(b+4 <= rem.len);
-        TokenData &d = m_tokens.back();
-        d.type = VAL;
-        d.text = rem.subspan(b, e+2 -b);
-        d.rope_entry = m_rope.replace(m_state.rope_entry, b, e+2 - b, "<<<val>>>");
-        d.dval.name = rem.subspan(b+2, e-b-2).trim(" ");
-        m_state.rope_entry = m_rope.next(d.rope_entry);
-        return d;
-    }
-
-    span chain_all(span buf)
-    {
-        return m_rope.chain_all(buf);
-    }
-
-    cspan _resolve_val(NodeRef const& root, cspan key) const
-    {
-        C4_ASSERT(root.valid());
-        NodeRef n = root;
-        do {
-            auto pos = key.find('.');
-            if(pos != npos)
-            {
-                cspan left = key.left_of(pos);
-                n = n.find_child(left);
-                key = key.right_of(pos);
-            }
-            else
-            {
-                pos = key.find('[');
-                if(pos != npos)
-                {
-                    cspan left = key.left_of(pos);
-                    if( ! left.empty())
-                    {
-                        n = n.find_child(left);
-                        if( ! n.valid())
-                        {
-                            break;
-                        }
-                        key = key.right_of(pos);
-                        pos = key.find(']');
-                        C4_ASSERT(pos != npos);
-                        cspan subkey = key.left_of(pos);
-                        key = key.right_of(pos);
-                        subkey = _resolve_val(n, subkey);
-                        if(subkey.empty())
-                        {
-                            break;
-                        }
-                        else
-                        {
-                            return subkey;
-                        }
-                    }
-                }
-                else
-                {
-                    if(key.begins_with_any("0123456789"))
-                    {
-                        size_t num;
-                        bool ret = from_str(key, &num);
-                        if(ret)
-                        {
-                            if(n.num_children() >= num)
-                            {
-                                n = n[num];
-                                key.clear();
-                            }
-                        }
-                    }
-                    else
-                    {
-                        n = n.find_child(key);
-                        key.clear();
-                    }
-                }
-            }
-        } while( ! key.empty() && n.valid());
-        return n.valid() ? n.val() : cspan();
-    }
 };
 
 TEST(engine, basic)
@@ -310,7 +89,7 @@ foo is active!
 {% endif %}
 # a for here
 {% for s in seq %}
-   - s
+   - {{s}}
 {% endfor %}
 )");
 
@@ -379,7 +158,7 @@ nested.foo=10
 nested.very.bar=100
 nested.very.deeply.baz=1000
 # an if here
-
+foo is active!
 # a for here
 
 )");

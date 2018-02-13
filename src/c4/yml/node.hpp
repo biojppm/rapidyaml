@@ -374,6 +374,30 @@ public:
         from_str(key(), &v.k);
     }
 
+    template< class T >
+    void get_if(cspan const& name, T *var)
+    {
+        auto ch = find_child(name);
+        if(ch.valid())
+        {
+            ch >> *var;
+        }
+    }
+
+    template< class T >
+    void get_if(cspan const& name, T *var, T const& fallback)
+    {
+        auto ch = find_child(name);
+        if(ch.valid())
+        {
+            ch >> *var;
+        }
+        else
+        {
+            var = fallback;
+        }
+    }
+
 private:
 
     void _apply_seed()
