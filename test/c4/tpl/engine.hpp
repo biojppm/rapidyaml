@@ -87,6 +87,23 @@ nested.very.deeply.baz={{ nested.very.deeply.baz }}
 {% if foo %}
 foo is active!
 {% endif %}
+{% if nothing %}
+nothing is active!
+{% elif bar %}
+bar is active!
+{% endif %}
+{% if zzz %}
+zzz is active!
+{% elif zzz %}
+zzz is active!
+{% elif seq %}
+seq is not empty!
+{% endif %}
+{% if zzz %}
+zzz is active!
+{% elif c0 in seq %}
+c0 is in seq!
+{% endif %}
 # a for here
 {% for s in seq %}
    - {{s}}
@@ -114,6 +131,9 @@ nested.foo=<<<expr>>>
 nested.very.bar=<<<expr>>>
 nested.very.deeply.baz=<<<expr>>>
 # an if here
+<<<if>>>
+<<<if>>>
+<<<if>>>
 <<<if>>>
 # a for here
 <<<for>>>
@@ -159,6 +179,9 @@ nested.very.bar=100
 nested.very.deeply.baz=1000
 # an if here
 foo is active!
+bar is active!
+seq is not empty!
+c0 is in seq!
 # a for here
 
 )");

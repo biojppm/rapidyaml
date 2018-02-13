@@ -96,7 +96,9 @@ bool TokenBase::eval(NodeRef const& root, cspan key, cspan *value) const
 
     if(n.valid())
     {
-        *value = n.val();
+        if(n.is_map()) *value = "<<<map>>>";
+        else if(n.is_seq()) *value = "<<<seq>>>";
+        else *value = n.val();
         return true;
     }
 
@@ -109,51 +111,60 @@ bool TokenBase::eval(NodeRef const& root, cspan key, cspan *value) const
 
 void IfCondition::eval(NodeRef const& root)
 {
+    m_argval = {};
     if( ! m_arg.empty())
     {
-        if( ! m_token->eval(root, m_arg, &m_argval))
-        {
-            m_argval = m_arg;
-        }
+        m_token->eval(root, m_arg, &m_argval);
     }
+    m_cmpval = {};
     if( ! m_cmp.empty())
     {
-        if( ! m_token->eval(root, m_cmp, &m_cmpval))
-        {
-            m_cmpval = m_cmp;
-        }
+        m_token->eval(root, m_cmp, &m_cmpval);
     }
 }
 
 bool IfCondition::resolve(NodeRef const& root)
 {
-    eval(root);
     switch(m_ctype)
     {
-    case ARG:        return ! m_argval.empty();
-    case ARG_EQ_CMP: return   m_argval.compare(m_cmpval) == 0;
-    case ARG_NE_CMP: return   m_argval.compare(m_cmpval) != 0;
-    case ARG_GE_CMP: return   m_argval.compare(m_cmpval) >= 0;
-    case ARG_GT_CMP: return   m_argval.compare(m_cmpval) >  0;
-    case ARG_LE_CMP: return   m_argval.compare(m_cmpval) <= 0;
-    case ARG_LT_CMP: return   m_argval.compare(m_cmpval) <  0;
+    case ARG:        eval(root); return ! m_argval.empty();
+    case ARG_EQ_CMP: eval(root); return   m_argval.compare(m_cmpval) == 0;
+    case ARG_NE_CMP: eval(root); return   m_argval.compare(m_cmpval) != 0;
+    case ARG_GE_CMP: eval(root); return   m_argval.compare(m_cmpval) >= 0;
+    case ARG_GT_CMP: eval(root); return   m_argval.compare(m_cmpval) >  0;
+    case ARG_LE_CMP: eval(root); return   m_argval.compare(m_cmpval) <= 0;
+    case ARG_LT_CMP: eval(root); return   m_argval.compare(m_cmpval) <  0;
     case ARG_IN_CMP:
     case ARG_NOT_IN_CMP:
     {
         bool in_cmp;
-        if(root.is_map())
+        C4_ASSERT(root.is_map());
+        NodeRef n = root.find_child(m_cmp);
+        if(n.valid())
         {
-            in_cmp = root.find_child(m_arg).valid();
-        }
-        else if(root.is_seq())
-        {
-            for(auto &n : root.children())
+            if(n.is_map())
             {
-                if(n.is_val() && n.val() == m_arg) in_cmp = true;
+                in_cmp = n.find_child(m_arg).valid();
             }
-            in_cmp = false;
+            else if(n.is_seq())
+            {
+                in_cmp = false;
+                for(auto ch : n.children())
+                {
+                    if(ch.is_val() && ch.val() == m_arg)
+                    {
+                        in_cmp = true;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                return false;
+            }
+            return m_ctype == ARG_IN_CMP ? in_cmp : ! in_cmp;
         }
-        return m_ctype == ARG_IN_CMP ? in_cmp : ! in_cmp;
+        return false;
     }
     // do the other condition types
     default:
@@ -175,13 +186,13 @@ void IfCondition::parse()
         {
             m_ctype = ARG_LE_CMP;
             m_arg = m_str.left_of(pos).trim(' ');
-            m_cmp = m_str.right_of(pos+1).trim(' ');
+            m_cmp = m_str.right_of(pos+1, /*include*/true).trim(' ');
         }
         else
         {
             m_ctype = ARG_LT_CMP;
             m_arg = m_str.left_of(pos).trim(' ');
-            m_cmp = m_str.right_of(pos+1).trim(' ');
+            m_cmp = m_str.right_of(pos+1, /*include*/true).trim(' ');
         }
         return;
     }
@@ -194,13 +205,13 @@ void IfCondition::parse()
         {
             m_ctype = ARG_GE_CMP;
             m_arg = m_str.left_of(pos).trim(' ');
-            m_cmp = m_str.right_of(pos+1).trim(' ');
+            m_cmp = m_str.right_of(pos+1, /*include*/true).trim(' ');
         }
         else
         {
             m_ctype = ARG_GT_CMP;
             m_arg = m_str.left_of(pos).trim(' ');
-            m_cmp = m_str.right_of(pos+1).trim(' ');
+            m_cmp = m_str.right_of(pos+1, /*include*/true).trim(' ');
         }
         return;
     }
@@ -212,7 +223,7 @@ void IfCondition::parse()
         C4_ASSERT(m_str[pos+1] == '=');
         m_ctype = ARG_NE_CMP;
         m_arg = m_str.left_of(pos).trim(' ');
-        m_cmp = m_str.right_of(pos+1).trim(' ');
+        m_cmp = m_str.right_of(pos+1, /*include*/true).trim(' ');
         return;
     }
 
@@ -223,7 +234,7 @@ void IfCondition::parse()
         C4_ASSERT(m_str[pos+1] == '=');
         m_ctype = ARG_EQ_CMP;
         m_arg = m_str.left_of(pos).trim(' ');
-        m_cmp = m_str.right_of(pos+1).trim(' ');
+        m_cmp = m_str.right_of(pos+1, /*include*/true).trim(' ');
         return;
     }
 
@@ -232,7 +243,7 @@ void IfCondition::parse()
     {
         m_ctype = ARG_NOT_IN_CMP;
         m_arg = m_str.left_of(pos).trim(' ');
-        m_cmp = m_str.right_of(pos+8).trim(' ');
+        m_cmp = m_str.right_of(pos+8, /*include*/true).trim(' ');
         return;
     }
 
@@ -241,7 +252,7 @@ void IfCondition::parse()
     {
         m_ctype = ARG_IN_CMP;
         m_arg = m_str.left_of(pos).trim(' ');
-        m_cmp = m_str.right_of(pos+4).trim(' ');
+        m_cmp = m_str.right_of(pos+4, /*include*/true).trim(' ');
         return;
     }
 
