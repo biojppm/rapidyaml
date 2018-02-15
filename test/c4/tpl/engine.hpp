@@ -6,7 +6,7 @@
 namespace c4 {
 namespace tpl {
 
-class NewEngine
+class Engine
 {
 public:
 
@@ -16,7 +16,7 @@ public:
 
 public:
 
-    NewEngine() : m_src(), m_rope(), m_tokens() {}
+    Engine() : m_src(), m_rope(), m_tokens() {}
 
     Rope const& rope() { return m_rope; }
 
@@ -31,6 +31,11 @@ public:
             auto *tk = m_tokens.next_token(&rem, &pos);
             if( ! tk) break; // we're done
             tk->parse(&rem, &pos);
+            tk->parse_body(&m_tokens);
+        }
+        for(auto &tk : m_tokens)
+        {
+            tk.mark();
         }
     }
 
@@ -63,7 +68,7 @@ TEST(engine, basic)
     std::vector< char > output_buf(1024);
     span outbuf(output_buf.data(), output_buf.size());
 
-    c4::tpl::NewEngine eng;
+    c4::tpl::Engine eng;
     eng.parse(R"(
 foo={{foo}}
 bar={{bar}}
@@ -85,12 +90,12 @@ nested.very.bar={{ nested.very.bar }}
 nested.very.deeply.baz={{ nested.very.deeply.baz }}
 # an if here
 {% if foo %}
-foo is active!
+foo is active! val={{foo}}
 {% endif %}
 {% if nothing %}
 nothing is active!
 {% elif bar %}
-bar is active!
+bar is active! val={{bar}}
 {% endif %}
 {% if zzz %}
 zzz is active!
@@ -178,8 +183,8 @@ nested.foo=10
 nested.very.bar=100
 nested.very.deeply.baz=1000
 # an if here
-foo is active!
-bar is active!
+foo is active! val=0
+bar is active! val=1
 seq is not empty!
 c0 is in seq!
 # a for here

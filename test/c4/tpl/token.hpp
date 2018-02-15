@@ -50,6 +50,8 @@ public:
 
     virtual void parse(cspan *rem, TplLocation *curr_pos);
 
+    virtual void parse_body(TokenContainer */*cont*/) const {}
+
     virtual bool resolve(NodeRef const& /*n*/, cspan *value) const
     {
         *value = {};
@@ -58,6 +60,12 @@ public:
 
 
     bool eval(NodeRef const& root, cspan key, cspan *result) const;
+
+    void mark();
+
+protected:
+
+    void _do_parse_body(cspan body, TplLocation pos, TokenContainer *cont) const;
 
 };
 
@@ -91,6 +99,11 @@ public:
     virtual bool resolve(NodeRef const& root, cspan *value) const override
     {
         return this->eval(root, m_expr, value);
+    }
+
+    virtual void parse_body(TokenContainer *cont) const override
+    {
+        _do_parse_body(m_expr, m_start, cont);
     }
 
 };
@@ -198,12 +211,24 @@ public:
     {
         mutable IfCondition condition;
         cspan block;
+        TplLocation start;
     };
 
     std::vector< condblock > m_cond_blocks;
     cspan                    m_else_block;
 
     void parse(cspan *rem, TplLocation *curr_pos) override;
+
+    void parse_body(TokenContainer *cont) const override
+    {
+        for(auto const& b : m_cond_blocks)
+        {
+            std::cout << "\n\nparsing body: " << b.block << "\n";
+            _do_parse_body(b.block, b.start, cont);
+            std::cout << "\n\nparsing body: DONE: " << b.block << "\n";
+        }
+        _do_parse_body(m_else_block, m_start, cont);
+    }
 
     static cspan _scan_condition(cspan token, cspan *s);
 

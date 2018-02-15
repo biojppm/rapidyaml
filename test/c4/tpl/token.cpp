@@ -20,13 +20,29 @@ void TokenBase::parse(cspan *rem, TplLocation *curr_pos)
 
     auto &rp = curr_pos->m_rope_pos;
     C4_ASSERT(curr_pos->m_rope->get(rp.entry)->s.len >= m_full_text.len);
-    rp.entry = curr_pos->m_rope->replace(rp.entry, rp.i, m_full_text.len, this->marker());
+    rp.entry = curr_pos->m_rope->replace(rp.entry, rp.i, m_full_text.len, m_full_text);
     m_rope_entry = rp.entry;
     rp.entry = curr_pos->m_rope->next(rp.entry);
     rp.i = 0;
     m_end = *curr_pos;
 
     *rem = rem->subspan(m_full_text.len);
+}
+
+void TokenBase::mark()
+{
+    m_start.m_rope->replace(m_start.m_rope_pos.entry, marker());
+}
+
+void TokenBase::_do_parse_body(cspan body, TplLocation pos, TokenContainer *cont) const
+{
+    while( ! body.empty())
+    {
+        auto tk = cont->next_token(&body, &pos);
+        if( ! tk) break;
+        tk->parse(&body, &pos);
+        tk->parse_body(cont);
+    }
 }
 
 bool TokenBase::eval(NodeRef const& root, cspan key, cspan *value) const
@@ -177,6 +193,9 @@ bool IfCondition::resolve(NodeRef const& root)
 
 void IfCondition::parse()
 {
+    //! @todo the scanning is inefficient. Use a for loop to iterate in the
+    //! string instead of calling s.find().
+
     C4_ASSERT(m_str.first_of("{}*") == npos);
     auto pos = m_str.first_of('<');
     if(pos != npos)
@@ -274,6 +293,12 @@ void TokenIf::parse(cspan *rem, TplLocation *curr_pos)
     m_cond_blocks.emplace_back();
     auto *cb = &m_cond_blocks.back();
     cb->condition.init(this, c);
+    cb->start = *curr_pos;
+    C4_ASSERT(m_full_text.has_subspan(s));
+    cb->start.m_rope_pos.i = s.begin() - m_full_text.begin();
+
+    //! @todo the scanning is inefficient. Use a for loop to iterate in the
+    //! string instead of calling s.find().
 
     // scan the branches
     while(1)
@@ -313,6 +338,7 @@ void TokenIf::parse(cspan *rem, TplLocation *curr_pos)
         cb = &m_cond_blocks.back();
         auto cond = _scan_condition("{% elif ", &s);
         cb->condition.init(this, cond);
+        cb->start.m_rope_pos.i = s.begin() - m_full_text.begin();
     }
 
     m_else_block = s.trim("\r\n");
