@@ -9,6 +9,11 @@
 namespace c4 {
 namespace yml {
 
+#ifdef _MSC_VER
+#   pragma warning(push)
+#   pragma warning(disable: 4996/*This function or variable may be unsafe*/)
+#endif
+
 /** this macro defines a to_str()/from_str() pairs for intrinsic types. */
 #define _C4_DEFINE_TO_FROM_STR(ty, pri_fmt, scn_fmt)                    \
                                                                         \
@@ -19,16 +24,6 @@ inline size_t to_str(span buf, ty v)                                    \
                                                                         \
 inline bool from_str(cspan buf, ty *v)                                  \
 {                                                                       \
-    /* snscanf() is absolutely needed here as we must be sure that      \
-     * buf.len is strictly respected, because the span string is        \
-     * generally not null-terminated.                                   \
-     *                                                                  \
-     * Alas, there is no snscanf().                                     \
-     *                                                                  \
-     * So we fake it by using a dynamic format with an explicit         \
-     * field size set to the length of the given span.                  \
-     * This trick is taken from:                                        \
-     * https://stackoverflow.com/a/18368910/5875572 */                  \
                                                                         \
     /* this is the actual format used for scanning */                   \
     char fmt[8];                                                        \
@@ -57,6 +52,10 @@ _C4_DEFINE_TO_FROM_STR(uint64_t, PRIu64/*"%llu"*/, SCNu64/*"%llu"*/)
 
 #undef _C4_DEFINE_TO_FROM_STR
 
+#ifdef _MSC_VER
+#   pragma warning(pop)
+#endif
+
 inline size_t to_str(span buf, cspan const& v)
 {
     size_t len = buf.len < v.len ? buf.len : v.len;
@@ -78,7 +77,7 @@ inline size_t to_str(span buf, const char (&v)[N])
     return to_str(buf, sp);
 }
 
-inline int to_str(span buf, const char *v)
+inline size_t to_str(span buf, const char *v)
 {
     cspan sp(v);
     return to_str(buf, sp);

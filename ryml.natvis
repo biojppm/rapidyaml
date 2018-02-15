@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?> 
+
+<!--
+Very good intro:
+@see https://code.msdn.microsoft.com/windowsdesktop/Writing-type-visualizers-2eae77a2
+See also:
+@see http://blogs.msdn.com/b/vcblog/archive/2013/06/28/using-visual-studio-2013-to-write-maintainable-native-visualizations-natvis.aspx?PageIndex=2
+@see http://blogs.msdn.com/b/vcblog/archive/2015/09/28/debug-visualizers-in-visual-c-2015.aspx
+@see http://stackoverflow.com/questions/36883414/limit-display-of-char-in-natvis-file-to-specific-length
+-->
+
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+
+  <Type Name="c4::yml::span&lt;*&gt;">
+    <DisplayString>{str,[len]} (sz={len})</DisplayString>
+    <Expand>
+      <Item Name="[size]">len</Item>
+      <ArrayItems>
+        <Size>str</Size>
+        <ValuePointer>len</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+
+  <Type Name="c4::yml::cspan&lt;*&gt;">
+    <DisplayString>{str,[len]} (sz={len})</DisplayString>
+    <Expand>
+      <Item Name="[size]">len</Item>
+      <ArrayItems>
+        <Size>str</Size>
+        <ValuePointer>len</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+
+</AutoVisualizer>

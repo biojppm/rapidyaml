@@ -2,7 +2,15 @@
 #include "./test_case.hpp"
 
 #include <gtest/gtest.h>
+
+#if defined(_MSC_VER)
+#   pragma warning(push)
+#   pragma warning(disable: 4127/*conditional expression is constant*/)
+#endif
 #include <yaml-cpp/yaml.h>
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#endif
 
 
 int main(int argc, char *argv[])

@@ -473,7 +473,7 @@ void check_invariants(Tree const& t)
     EXPECT_EQ(count, t.size());
 
     return;
-
+#if 0 == 1
     for(size_t i = 0; i < t.m_size; ++i)
     {
         auto n = t.get(i);
@@ -520,6 +520,7 @@ void check_invariants(Tree const& t)
     EXPECT_EQ(size+slack, t.capacity());
 
     // there are more checks to be done
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -3502,6 +3503,11 @@ R"(
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+#if defined(_MSC_VER)
+#   pragma warning(push)
+#   pragma warning(disable: 4068/*unknown pragma*/)
+#endif
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
 #pragma GCC diagnostic ignored "-Wpragma-system-header-outside-header"
@@ -3553,6 +3559,10 @@ INSTANTIATE_TEST_CASE_P(simple_anchors, YmlTestCase, ::testing::Values(SIMPLE_AN
 #pragma GCC diagnostic pop
 #pragma clang diagnostic pop
 
+
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#endif
 
 } // namespace yml
 } // namespace c4

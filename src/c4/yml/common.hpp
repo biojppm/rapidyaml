@@ -5,10 +5,14 @@
 
 #define RYML_INLINE inline
 
-
 #ifndef C4_QUOTE
 #   define C4_QUOTE(x) #x
 #   define C4_XQUOTE(x) C4_QUOTE(x)
+#endif
+
+#if defined(_MSC_VER)
+#   pragma warning(push)
+#   pragma warning(disable: 4068/*unknown pragma*/)
 #endif
 
 #pragma GCC diagnostic push
@@ -28,7 +32,11 @@
 #       define C4_ASSERT(expr) (void)(0)
 #   else
 #       ifndef C4_DEBUG_BREAK  /* generates SIGTRAP. This assumes x86. Disable at will. */
-#           define C4_DEBUG_BREAK() asm("int $3")
+#           ifdef _MSC_VER
+#               define C4_DEBUG_BREAK() __debugbreak()
+#           else
+#               define C4_DEBUG_BREAK()	asm("int $3")
+#           endif
 #       endif
 #       include <assert.h>
 #       define C4_ASSERT(expr)                                          \
@@ -44,6 +52,10 @@
 
 #pragma clang diagnostic pop
 #pragma GCC diagnostic pop
+
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#endif
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
