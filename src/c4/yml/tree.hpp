@@ -70,18 +70,18 @@ struct NodeType
 
 public:
 
-    bool   is_stream() const { return (type & STREAM) == STREAM; }
-    bool   is_doc() const { return type & DOC; }
-    bool   is_container() const { return type & (MAP|SEQ|STREAM|DOC); }
-    bool   is_map() const { return type & MAP; }
-    bool   is_seq() const { return type & SEQ; }
-    bool   has_val() const { return type & VAL; }
-    bool   has_key() const { return type & KEY; }
+    bool   is_stream() const { return ((type & STREAM) == STREAM) != 0; }
+    bool   is_doc() const { return (type & DOC) != 0; }
+    bool   is_container() const { return (type & (MAP|SEQ|STREAM|DOC)) != 0; }
+    bool   is_map() const { return (type & MAP) != 0; }
+    bool   is_seq() const { return (type & SEQ) != 0; }
+    bool   has_val() const { return (type & VAL) != 0; }
+    bool   has_key() const { return (type & KEY) != 0; }
     bool   is_val() const { return (type & KEYVAL) == VAL; }
     bool   is_keyval() const { return (type & KEYVAL) == KEYVAL; }
     bool   has_key_tag() const { return (type & (KEY|KEYTAG)) == (KEY|KEYTAG); }
     bool   has_val_tag() const { return ((type & (VALTAG)) && (type & (VAL|MAP|SEQ))); }
-    bool   is_ref() const { return type & REF; }
+    bool   is_ref() const { return (type & REF) != 0; }
 
 public:
 
@@ -370,17 +370,17 @@ public:
 
     bool is_root(size_t node) const { C4_ASSERT(_p(node)->m_parent != NONE || node == 0); return _p(node)->m_parent == NONE; }
     bool is_stream(size_t node) const { return (_p(node)->m_type & STREAM) == STREAM; }
-    bool is_doc(size_t node) const { return _p(node)->m_type & DOC; }
-    bool is_container(size_t node) const { return _p(node)->m_type & (MAP|SEQ|STREAM|DOC); }
-    bool is_map(size_t node) const { return _p(node)->m_type & MAP; }
-    bool is_seq(size_t node) const { return _p(node)->m_type & SEQ; }
-    bool has_val(size_t node) const { return _p(node)->m_type & VAL; }
-    bool has_key(size_t node) const { return _p(node)->m_type & KEY; }
+    bool is_doc(size_t node) const { return (_p(node)->m_type & DOC) != 0; }
+    bool is_container(size_t node) const { return (_p(node)->m_type & (MAP|SEQ|STREAM|DOC)) != 0; }
+    bool is_map(size_t node) const { return (_p(node)->m_type & MAP) != 0; }
+    bool is_seq(size_t node) const { return (_p(node)->m_type & SEQ) != 0; }
+    bool has_val(size_t node) const { return (_p(node)->m_type & VAL) != 0; }
+    bool has_key(size_t node) const { return (_p(node)->m_type & KEY) != 0; }
     bool is_val(size_t node) const { return (_p(node)->m_type & KEYVAL) == VAL; }
     bool is_keyval(size_t node) const { return (_p(node)->m_type & KEYVAL) == KEYVAL; }
     bool has_key_tag(size_t node) const { return (_p(node)->m_type & (KEY|KEYTAG)) == (KEY|KEYTAG); }
     bool has_val_tag(size_t node) const { return ((_p(node)->m_type & (VALTAG)) && (_p(node)->m_type & (VAL|MAP|SEQ))); }
-    bool is_ref(size_t node) const { return _p(node)->m_type & REF; }
+    bool is_ref(size_t node) const { return (_p(node)->m_type & REF) != 0; }
     bool has_anchor(size_t node) const { return ! _p(node)->m_anchor.empty(); }
 
     bool parent_is_seq(size_t node) const { C4_ASSERT(has_parent(node)); return is_seq(_p(node)->m_parent); }
