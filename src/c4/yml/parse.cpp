@@ -320,6 +320,12 @@ bool Parser::_handle_unk()
             _line_progressed(3);
             _handle_finished_file();
         }
+        else if(rem.begins_with('#'))
+        {
+            _c4dbgpf("it's a comment: '%.*s'", _c4prsp(rem));
+            _scan_comment();
+            return true;
+        }
         else
         {
             _c4err("parse error");
