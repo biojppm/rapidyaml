@@ -11,24 +11,14 @@ See also:
 
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
 
-  <Type Name="c4::yml::span&lt;*&gt;">
+  <Type Name="c4::yml::basic_span&lt;*&gt;">
     <DisplayString>{str,[len]} (sz={len})</DisplayString>
+    <StringView>str,[len]</StringView>
     <Expand>
       <Item Name="[size]">len</Item>
       <ArrayItems>
-        <Size>str</Size>
-        <ValuePointer>len</ValuePointer>
-      </ArrayItems>
-    </Expand>
-  </Type>
-
-  <Type Name="c4::yml::cspan&lt;*&gt;">
-    <DisplayString>{str,[len]} (sz={len})</DisplayString>
-    <Expand>
-      <Item Name="[size]">len</Item>
-      <ArrayItems>
-        <Size>str</Size>
-        <ValuePointer>len</ValuePointer>
+        <Size>len</Size>
+        <ValuePointer>str</ValuePointer>
       </ArrayItems>
     </Expand>
   </Type>

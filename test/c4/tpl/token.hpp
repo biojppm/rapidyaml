@@ -218,6 +218,7 @@ public:
 
     std::vector< condblock > m_cond_blocks;
     cspan                    m_else_block;
+    size_t                   m_else_block_offs;
 
     void parse(cspan *rem, TplLocation *curr_pos) override;
 
