@@ -63,6 +63,8 @@ public:
 
     void mark();
 
+    cspan subspan() const { return m_start.m_rope->subspan(m_rope_entry, 0); }
+
 protected:
 
     void _do_parse_body(cspan body, TplLocation pos, TokenContainer *cont) const;
@@ -219,16 +221,7 @@ public:
 
     void parse(cspan *rem, TplLocation *curr_pos) override;
 
-    void parse_body(TokenContainer *cont) const override
-    {
-        for(auto const& b : m_cond_blocks)
-        {
-            std::cout << "\n\nparsing body: " << b.block << "\n";
-            _do_parse_body(b.block, b.start, cont);
-            std::cout << "\n\nparsing body: DONE: " << b.block << "\n";
-        }
-        _do_parse_body(m_else_block, m_start, cont);
-    }
+    void parse_body(TokenContainer *cont) const override;
 
     static cspan _scan_condition(cspan token, cspan *s);
 

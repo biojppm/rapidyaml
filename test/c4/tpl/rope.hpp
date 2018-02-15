@@ -339,6 +339,11 @@ public:
 
 public:
 
+    cspan subspan(size_t entry, size_t pos=0) const
+    {
+        return _p(entry).s.subspan(pos);
+    }
+
     cspan subspan(rope_pos pos) const
     {
         return _p(pos.entry).s.subspan(pos.i);

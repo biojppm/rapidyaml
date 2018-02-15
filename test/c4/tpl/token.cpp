@@ -8,15 +8,17 @@ namespace tpl {
 //-----------------------------------------------------------------------------
 void TokenBase::parse(cspan *rem, TplLocation *curr_pos)
 {
-    // todo deal with nested tokens
     auto const &s = stoken(), &e = etoken();
+    std::cout << "parsing token: '" << s << "': rem='" << *rem << "'\n";
     C4_ASSERT(rem->begins_with(s));
+
     m_start = *curr_pos;
     auto pos = rem->find(e);
     C4_ASSERT(pos != npos);
     C4_ASSERT(pos + e.len <= rem->len);
     m_full_text = rem->subspan(0, pos + e.len);
-    m_interior_text = m_full_text.subspan(e.len, m_full_text.len - e.len - s.len);
+    C4_ASSERT(m_full_text.len >= e.len + s.len);
+    m_interior_text = m_full_text.subspan(e.len, m_full_text.len - (e.len + s.len));
 
     auto &rp = curr_pos->m_rope_pos;
     C4_ASSERT(curr_pos->m_rope->get(rp.entry)->s.len >= m_full_text.len);
@@ -25,8 +27,10 @@ void TokenBase::parse(cspan *rem, TplLocation *curr_pos)
     rp.entry = curr_pos->m_rope->next(rp.entry);
     rp.i = 0;
     m_end = *curr_pos;
+    C4_ASSERT(this->subspan() == m_full_text);
 
     *rem = rem->subspan(m_full_text.len);
+    std::cout << "parsing token: DONE: '" << s << "'\n";
 }
 
 void TokenBase::mark()
@@ -295,6 +299,7 @@ void TokenIf::parse(cspan *rem, TplLocation *curr_pos)
     cb->condition.init(this, c);
     cb->start = *curr_pos;
     C4_ASSERT(m_full_text.has_subspan(s));
+    cb->start.m_rope_pos.entry = m_rope_entry;
     cb->start.m_rope_pos.i = s.begin() - m_full_text.begin();
 
     //! @todo the scanning is inefficient. Use a for loop to iterate in the
@@ -346,6 +351,17 @@ void TokenIf::parse(cspan *rem, TplLocation *curr_pos)
     {
         cond.block = cond.block.trim("\r\n");
     }
+}
+
+void TokenIf::parse_body(TokenContainer *cont) const
+{
+    for(auto const& b : m_cond_blocks)
+    {
+        std::cout << "\n\nparsing body: " << b.block << "\n";
+        _do_parse_body(b.block, b.start, cont);
+        std::cout << "\n\nparsing body: DONE: " << b.block << "\n";
+    }
+    _do_parse_body(m_else_block, m_start, cont);
 }
 
 cspan TokenIf::_scan_condition(cspan token, cspan *s)
