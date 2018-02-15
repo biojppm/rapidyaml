@@ -33,9 +33,9 @@ public:
             tk->parse(&rem, &pos);
             tk->parse_body(&m_tokens);
         }
-        for(auto &tk : m_tokens)
+        //for(auto &tk : m_tokens)
         {
-            tk.mark();
+            //tk.mark();
         }
     }
 
