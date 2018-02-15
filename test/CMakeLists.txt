@@ -1,6 +1,9 @@
 
 # extern libraries
 
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+set(BUILD_GTEST ON CACHE BOOL "" FORCE)
+set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
 set(gtest_build_samples OFF CACHE BOOL "" FORCE)
 set(gtest_build_tests OFF CACHE BOOL "" FORCE)
 add_subdirectory(${RYML_EXT_DIR}/googletest googletest)
