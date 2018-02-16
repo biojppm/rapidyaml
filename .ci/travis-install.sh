@@ -18,6 +18,11 @@ deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-6.0 main
 deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu trusty main
 EOF'
 
+cat /etc/apt/sources.list
+cat /etc/apt/sources.list.d/ubuntu-toolchain-r-test-trusty.list
+sed '33p' /etc/apt/sources.list
+sed '1p' /etc/apt/sources.list.d/ubuntu-toolchain-r-test-trusty.list
+
 sudo -E apt-get update
 
   if [ "$CXX_" == "g++-4.9" ] && [ "$A" == "64" ] ; then DPKG="$DPKG g++-4.9"
