@@ -1,11 +1,11 @@
 sudo: required
 dist: trusty
 language: cpp
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-      - llvm-toolchain-trusty
+#addons:
+#  apt:
+#    sources:
+#      - ubuntu-toolchain-r-test
+#      - llvm-toolchain-trusty
 
 # we're not using combination parameters here to ensure that the builds
 # run in the order we want. (We want to perform the fastest tests first so
