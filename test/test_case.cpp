@@ -473,7 +473,7 @@ void check_invariants(Tree const& t)
     EXPECT_EQ(count, t.size());
 
     return;
-
+#if 0 == 1
     for(size_t i = 0; i < t.m_size; ++i)
     {
         auto n = t.get(i);
@@ -520,6 +520,7 @@ void check_invariants(Tree const& t)
     EXPECT_EQ(size+slack, t.capacity());
 
     // there are more checks to be done
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1874,7 +1875,8 @@ R"(some_seq: !its_type [
 #define NESTED_MAPX2_CASES \
     "nested map x2, explicit, same line", \
         "nested map x2, explicit", \
-        "nested map x2"
+        "nested map x2",\
+		"nested map x2, commented"
 
 C("nested map x2, explicit, same line",
 R"({foo: {foo0: 00, bar0: 01, baz0: 02}, bar: {foo1: 10, bar1: 11, baz1: 12}, baz: {foo2: 20, bar2: 21, baz2: 22}})",
@@ -1918,6 +1920,24 @@ baz:
       N{"bar", L{N{"foo1", "10"}, N{"bar1", "11"}, N{"baz1", "12"}}},
       N{"baz", L{N{"foo2", "20"}, N{"bar2", "21"}, N{"baz2", "22"}}},
           }
+),
+
+
+C("nested map x2, commented",
+	R"(
+send_to:
+  #host: 192.168.1.100
+  #port: 7000
+  host: 192.168.1.101
+  port: 7001
+  #host: 192.168.1.102
+  #port: 7002
+)",
+    L{
+	  N("send_to", L{
+	    N("host", "192.168.1.101"),
+        N("port", "7001") })
+	}
 ),
 
 //-----------------------------------------------------------------------------
@@ -2150,6 +2170,7 @@ baz0:
          N{"baz1", L{N{"foo2", "220"}, N{"bar2", "221"}, N{"baz2", "222"}}} }},
       }
 ),
+
 
 //-----------------------------------------------------------------------------
 #define NESTED_SEQX3_CASES \
@@ -3502,6 +3523,11 @@ R"(
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+#if defined(_MSC_VER)
+#   pragma warning(push)
+#   pragma warning(disable: 4068/*unknown pragma*/)
+#endif
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
 //#pragma GCC diagnostic ignored "-Wpragma-system-header-outside-header"
@@ -3554,6 +3580,10 @@ INSTANTIATE_TEST_CASE_P(simple_anchors, YmlTestCase, ::testing::Values(SIMPLE_AN
 
 #ifdef __clang__
 #  pragma clang diagnostic pop
+#endif
+
+#if defined(_MSC_VER)
+#   pragma warning(pop)
 #endif
 
 } // namespace yml

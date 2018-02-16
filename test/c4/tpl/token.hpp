@@ -50,7 +50,7 @@ public:
 
     virtual void parse(cspan *rem, TplLocation *curr_pos);
 
-    virtual void parse_body(TokenContainer */*cont*/) const {}
+    virtual void parse_body(TokenContainer * /*cont*/) const {}
 
     virtual bool resolve(NodeRef const& /*n*/, cspan *value) const
     {
@@ -90,12 +90,16 @@ public:
     virtual cspan const& etoken() const override { static const cspan s("}}", 2); return s; }
     virtual cspan const& marker() const override { static const cspan s("<<<expr>>>", 10); return s; }
 
-    cspan m_expr;
+    cspan  m_expr;
+    size_t m_expr_offs;
 
     void parse(cspan *rem, TplLocation *curr_pos) override
     {
+        cspan orig = *rem; (void)orig;
         base_type::parse(rem, curr_pos);
         m_expr = m_interior_text.trim(" ");
+        C4_ASSERT(orig.has_subspan(m_expr));
+        m_expr_offs = m_expr.begin() - orig.begin();
     }
 
     virtual bool resolve(NodeRef const& root, cspan *value) const override
@@ -105,7 +109,7 @@ public:
 
     virtual void parse_body(TokenContainer *cont) const override
     {
-        _do_parse_body(m_expr, m_start, cont);
+        _do_parse_body(m_expr, {m_start.m_rope, {m_rope_entry, m_expr_offs}}, cont);
     }
 
 };
@@ -218,6 +222,7 @@ public:
 
     std::vector< condblock > m_cond_blocks;
     cspan                    m_else_block;
+    size_t                   m_else_block_offs;
 
     void parse(cspan *rem, TplLocation *curr_pos) override;
 

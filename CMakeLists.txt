@@ -26,6 +26,7 @@ option(RYML_DEFAULT_CALLBACKS "Enable ryml default implementation of callbacks: 
 option(RYML_DBG "Enable ryml debug code" ${RYML_DEV})
 
 option(RYML_PEDANTIC "Compile in pedantic mode" ${RYML_DEV})
+set(RYML_CXX_FLAGS "")
 if(RYML_PEDANTIC)
     if(MSVC)
         set(RYML_CXX_FLAGS "${RYML_CXX_FLAGS} /W4")
@@ -69,7 +70,7 @@ set(RYML_HPP
     ${RYML_SRC_DIR}/c4/yml/yml.hpp
     )
 
-set(RYML_SRC ${RYML_CPP} ${RYML_HPP})
+set(RYML_SRC ${RYML_CPP} ${RYML_HPP} ${CMAKE_CURRENT_SOURCE_DIR}/ryml.natvis)
 
 c4_add_target(RYML ryml LIBRARY SANITIZE
     SOURCES ${RYML_SRC}

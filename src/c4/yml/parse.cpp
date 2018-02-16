@@ -323,6 +323,12 @@ bool Parser::_handle_unk()
             _line_progressed(3);
             _handle_finished_file();
         }
+        else if(rem.begins_with('#'))
+        {
+            _c4dbgpf("it's a comment: '%.*s'", _c4prsp(rem));
+            _scan_comment();
+            return true;
+        }
         else
         {
             _c4err("parse error");
@@ -1435,7 +1441,7 @@ void Parser::_push_level(bool explicit_flow_chars)
     m_state = &m_stack.top();
     set_flags(st);
     m_state->node_id = (size_t)NONE;
-    m_state->indref = (int)NONE;
+    m_state->indref = (size_t)NONE;
     ++m_state->level;
     _c4dbgpf("pushing level: now, currlevel=%zd", m_state->level);
 }
@@ -1590,7 +1596,7 @@ void Parser::_start_seq(bool as_child)
         }
         else
         {
-            size_t as_doc = 0;
+            int as_doc = 0;
             if(node(m_state)->is_doc()) as_doc |= DOC;
             m_tree->to_seq(m_state->node_id, as_doc);
             _c4dbgpf("start_seq: id=%zd%s", m_state->node_id, as_doc ? " as doc" : "");
@@ -1600,7 +1606,7 @@ void Parser::_start_seq(bool as_child)
     {
         C4_ASSERT(m_tree->is_seq(parent_id) || m_tree->empty(parent_id));
         m_state->node_id = parent_id;
-        size_t as_doc = 0;
+        int as_doc = 0;
         if(node(m_state)->is_doc()) as_doc |= DOC;
         m_tree->to_seq(parent_id, as_doc);
         _move_scalar_from_top();
@@ -1815,7 +1821,7 @@ cspan Parser::_scan_comment()
 //-----------------------------------------------------------------------------
 cspan Parser::_scan_quoted_scalar(const char q)
 {
-    C4_ASSERT(q == '\'' || q == '\"');
+    C4_ASSERT(q == '\'' || q == '"');
 
     // quoted scalars can spread over multiple lines!
     // nice explanation here: http://yaml-multiline.info/

@@ -40,8 +40,13 @@ void TokenBase::mark()
 
 void TokenBase::_do_parse_body(cspan body, TplLocation pos, TokenContainer *cont) const
 {
+    C4_ASSERT(pos.m_rope != nullptr);
     while( ! body.empty())
     {
+        auto crl = pos.m_rope->subspan(pos.m_rope_pos).subspan(0, body.len);
+        std::cout << "FDX:" << body << "\n";
+        std::cout << "CRL:" << crl << "\n";
+        C4_ASSERT(body == pos.m_rope->subspan(pos.m_rope_pos).subspan(0, body.len));
         auto tk = cont->next_token(&body, &pos);
         if( ! tk) break;
         tk->parse(&body, &pos);
@@ -197,8 +202,9 @@ bool IfCondition::resolve(NodeRef const& root)
 
 void IfCondition::parse()
 {
-    //! @todo the scanning is inefficient. Use a for loop to iterate in the
-    //! string instead of calling s.find().
+    /** @todo the scanning is inefficient. Use a for loop to iterate
+     * through the string characters instead of calling s.find(). This 
+     * was written in a hurry, which explains the lazy use of find(). */
 
     C4_ASSERT(m_str.first_of("{}*") == npos);
     auto pos = m_str.first_of('<');
@@ -298,12 +304,13 @@ void TokenIf::parse(cspan *rem, TplLocation *curr_pos)
     auto *cb = &m_cond_blocks.back();
     cb->condition.init(this, c);
     cb->start = *curr_pos;
-    C4_ASSERT(m_full_text.has_subspan(s));
     cb->start.m_rope_pos.entry = m_rope_entry;
+    C4_ASSERT(m_full_text.has_subspan(s));
     cb->start.m_rope_pos.i = s.begin() - m_full_text.begin();
 
-    //! @todo the scanning is inefficient. Use a for loop to iterate in the
-    //! string instead of calling s.find().
+    /** @todo the scanning is inefficient. Use a for loop to iterate
+     * through the string characters instead of calling s.find(). This 
+     * was written in a hurry, which explains the lazy use of find(). */
 
     // scan the branches
     while(1)
@@ -339,17 +346,32 @@ void TokenIf::parse(cspan *rem, TplLocation *curr_pos)
 
         cb->block = s.subspan(0, pos);
         s = s.subspan(pos);
+        auto cond = _scan_condition("{% elif ", &s);
         m_cond_blocks.emplace_back();
         cb = &m_cond_blocks.back();
-        auto cond = _scan_condition("{% elif ", &s);
         cb->condition.init(this, cond);
+        cb->start.m_rope = m_start.m_rope; 
+        cb->start.m_rope_pos.entry = m_rope_entry;
         cb->start.m_rope_pos.i = s.begin() - m_full_text.begin();
     }
 
-    m_else_block = s.trim("\r\n");
+    if(s.empty())
+    {
+        m_else_block.clear();
+        m_else_block_offs = 0;
+    }
+    else
+    {
+        C4_ASSERT(m_full_text.has_subspan(s));
+        m_else_block = s.trim("\r\n");
+        m_else_block_offs = s.begin() - m_full_text.begin();
+    }
+
     for(auto &cond : m_cond_blocks)
     {
+        C4_ASSERT(m_full_text.has_subspan(cond.block));
         cond.block = cond.block.trim("\r\n");
+        cond.start.m_rope_pos.i = cond.block.begin() - m_full_text.begin();
     }
 }
 
@@ -361,7 +383,12 @@ void TokenIf::parse_body(TokenContainer *cont) const
         _do_parse_body(b.block, b.start, cont);
         std::cout << "\n\nparsing body: DONE: " << b.block << "\n";
     }
-    _do_parse_body(m_else_block, m_start, cont);
+
+    if( ! m_else_block.empty())
+    {
+        TplLocation else_pos = {m_end.m_rope, {m_rope_entry, m_else_block_offs}};
+        _do_parse_body(m_else_block, else_pos, cont);
+    }
 }
 
 cspan TokenIf::_scan_condition(cspan token, cspan *s)

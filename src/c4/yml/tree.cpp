@@ -91,7 +91,6 @@ Tree& Tree::operator= (Tree const& that)
 
 Tree::Tree(Tree && that)
 {
-    _free();
     _move(that);
 }
 

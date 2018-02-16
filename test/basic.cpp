@@ -1,91 +1,25 @@
-
 #include "./test_case.hpp"
+#include "yml/c4/std/std.hpp"
 
 #include <gtest/gtest.h>
+
+#if defined(_MSC_VER)
+#   pragma warning(push)
+#   pragma warning(disable: 4127/*conditional expression is constant*/)
+#endif
 #include <yaml-cpp/yaml.h>
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#endif
 
 
 int main(int argc, char *argv[])
 {
     ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+	int result = RUN_ALL_TESTS();
+	return result;
 }
 
-
-namespace std {
-
-using namespace c4::yml;
-
-inline size_t to_str(span buf, std::string const& s)
-{
-    return to_str(buf, cspan(s.data(), s.size()));
-}
-inline size_t from_str(cspan buf, std::string * s)
-{
-    s->resize(buf.len);
-    span v(&(*s)[0], buf.len);
-    return from_str(buf, &v);
-}
-
-void write(NodeRef *n, std::string const& s)
-{
-    *n << cspan(s.data(), s.size());
-}
-bool read(NodeRef const& n, std::string *s)
-{
-    s->resize(n.val().len);
-    span sp(&(*s)[0], s->size());
-    n >> sp;
-    return true;
-}
-
-template< class V, class Alloc >
-void write(NodeRef *n, std::vector< V, Alloc > const& vec)
-{
-    *n |= SEQ;
-    for(auto const& v : vec)
-    {
-        n->append_child() << v;
-    }
-}
-template< class V, class Alloc >
-bool read(NodeRef const& n, std::vector< V, Alloc > *vec)
-{
-    vec->resize(n.num_children());
-    size_t pos = 0;
-    for(auto const& ch : n)
-    {
-        ch >> (*vec)[pos++];
-    }
-    return true;
-}
-
-template< class K, class V, class Less, class Alloc >
-void write(NodeRef *n, std::map< K, V, Less, Alloc > const& m)
-{
-    *n |= MAP;
-    for(auto const& p : m)
-    {
-        auto ch = n->append_child();
-        ch << key(p.first);
-        ch << p.second;
-    }
-}
-template< class K, class V, class Less, class Alloc >
-bool read(NodeRef const& n, std::map< K, V, Less, Alloc > * m)
-{
-    K k{};
-    V v;
-    for(auto const& ch : n)
-    {
-        ch >> key(k);
-        ch >> v;
-        m->emplace(make_pair(move(k), move(v)));
-    }
-    return true;
-}
-
-} // namespace std
 
 namespace foo {
 
