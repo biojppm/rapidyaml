@@ -15,7 +15,7 @@ deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-5.0 main
 deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-6.0 main
 #deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-7.0 main
 # Also add the following for the appropriate libstdc++
-deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu trusty main
+#deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu trusty main
 EOF'
 
 cat /etc/apt/sources.list
