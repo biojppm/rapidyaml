@@ -3,6 +3,9 @@
 
 #include <vector>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wtype-limits"
+
 namespace c4 {
 namespace tpl {
 
@@ -242,5 +245,7 @@ public:
 
 } // namespace tpl
 } // namespace c4
+
+#pragma GCC diagnostic pop
 
 #endif /* _C4_TPL_TOKEN_CONTAINER_HPP_ */

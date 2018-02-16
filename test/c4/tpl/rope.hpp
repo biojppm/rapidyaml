@@ -3,6 +3,9 @@
 
 #include "./common.hpp"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wtype-limits"
+
 namespace c4 {
 namespace tpl {
 
@@ -679,5 +682,7 @@ but not this one {% u %}
 
 } // namespace tpl
 } // namespace c4
+
+#pragma GCC diagnostic pop
 
 #endif /* _C4_TPL_ROPE_HPP_ */

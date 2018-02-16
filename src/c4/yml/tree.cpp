@@ -2,6 +2,9 @@
 #include "./node.hpp"
 #include "./detail/stack.hpp"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wtype-limits"
+
 namespace c4 {
 namespace yml {
 
@@ -810,3 +813,5 @@ void Tree::to_stream(size_t node, int more_flags)
 
 } // namespace ryml
 } // namespace c4
+
+#pragma GCC diagnostic pop

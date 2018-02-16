@@ -10,8 +10,12 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
-#pragma GCC diagnostic ignored "-Wpragma-system-header-outside-header"
+//#pragma GCC diagnostic ignored "-Wpragma-system-header-outside-header"
 #pragma GCC system_header
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Werror"
+#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 
 // some debugging scaffolds
 
@@ -30,10 +34,6 @@
 #   define _c4dbgp(msg)
 #   define _c4dbgq(msg)
 #endif
-
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Werror"
-#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 
 #pragma clang diagnostic pop
 #pragma GCC diagnostic pop

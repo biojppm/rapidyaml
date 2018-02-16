@@ -3504,12 +3504,12 @@ R"(
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
-#pragma GCC diagnostic ignored "-Wpragma-system-header-outside-header"
-#pragma GCC system_header
+//#pragma GCC diagnostic ignored "-Wpragma-system-header-outside-header"
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
-
+#ifdef __clang__
+#   pragma clang diagnostic push
+#   pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
+#endif
 
 INSTANTIATE_TEST_CASE_P(empty_files   , YmlTestCase, ::testing::Values(EMPTY_FILE_CASES));
 INSTANTIATE_TEST_CASE_P(docs_empty    , YmlTestCase, ::testing::Values(EMPTY_DOC_CASES));
@@ -3551,8 +3551,10 @@ INSTANTIATE_TEST_CASE_P(simple_anchors, YmlTestCase, ::testing::Values(SIMPLE_AN
 
 
 #pragma GCC diagnostic pop
-#pragma clang diagnostic pop
 
+#ifdef __clang__
+#  pragma clang diagnostic pop
+#endif
 
 } // namespace yml
 } // namespace c4

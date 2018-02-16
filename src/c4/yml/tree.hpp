@@ -13,6 +13,9 @@
 #include "./to_str.hpp"
 #endif
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wtype-limits"
+
 namespace c4 {
 namespace yml {
 
@@ -717,5 +720,7 @@ private:
 
 } // namespace yml
 } // namespace c4
+
+#pragma GCC diagnostic pop
 
 #endif /* _C4_YML_TREE_HPP_ */
