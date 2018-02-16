@@ -4,7 +4,7 @@ set -e
 set -x
 
 # setup apt for installing
-sudo -E add-apt-repository -y ppa:ubuntu-toolchain-r/test
+#sudo -E add-apt-repository -y ppa:ubuntu-toolchain-r/test
 sudo bash -c 'cat >> /etc/apt/sources.list <<EOF
 
 deb http://llvm.org/apt/trusty/ llvm-toolchain-trusty-3.7 main
