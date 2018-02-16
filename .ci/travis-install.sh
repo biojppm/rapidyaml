@@ -18,11 +18,12 @@ deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-6.0 main
 #deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu trusty main
 EOF'
 
-cat /etc/apt/sources.list
-cat /etc/apt/sources.list.d/ubuntu-toolchain-r-test-trusty.list
-sed -n '33p' /etc/apt/sources.list
-sed -n '1p' /etc/apt/sources.list.d/ubuntu-toolchain-r-test-trusty.list
+#cat /etc/apt/sources.list
+#cat /etc/apt/sources.list.d/ubuntu-toolchain-r-test-trusty.list
+#sed -n '33p' /etc/apt/sources.list
+#sed -n '1p' /etc/apt/sources.list.d/ubuntu-toolchain-r-test-trusty.list
 
+sudo apt-get clean
 sudo -E apt-get update
 
   if [ "$CXX_" == "g++-4.9" ] && [ "$A" == "64" ] ; then DPKG="$DPKG g++-4.9"
@@ -86,8 +87,8 @@ $CXX_ --version
 $CC_ --version
 cmake --version
 
-C4STL_DIR=$(pwd)
-echo $C4STL_DIR
+RYML_DIR=$(pwd)
+echo $RYML_DIR
 pwd
 
 exit 0
