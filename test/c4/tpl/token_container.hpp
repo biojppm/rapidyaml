@@ -2,6 +2,7 @@
 #define _C4_TPL_TOKEN_CONTAINER_HPP_
 
 #include <vector>
+#include "./rope.hpp"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wtype-limits"
@@ -10,6 +11,7 @@ namespace c4 {
 namespace tpl {
 
 class TokenBase;
+class Rope;
 
 struct TplLocation
 {
@@ -198,6 +200,11 @@ public:
         return obj;
     }
 
+    TokenBase const* get(size_t i) const
+    {
+        return const_cast< TokenBase const* >(const_cast< TokenContainer* >(this)->get(i));
+    }
+
     TokenBase *next_token(cspan *rem, TplLocation *loc)
     {
         C4_ASSERT(TokenRegistry::get_max_size() == m_max_size);
@@ -217,27 +224,34 @@ public:
 
 public:
 
-    struct iterator
+    template< class TkC, class TkB >
+    struct token_iterator_impl
     {
-        TokenContainer *this_;
+        TkC *this_;
         size_t i;
 
-        using value_type = TokenBase*;
+        using value_type = TkB;
 
-        iterator(TokenContainer* t, size_t i_) : this_(t), i(i_) {}
+        token_iterator_impl(TkC* t, size_t i_) : this_(t), i(i_) {}
 
-        iterator operator++ () { ++i; return *this; }
-        iterator operator-- () { ++i; return *this; }
+        token_iterator_impl operator++ () { ++i; return *this; }
+        token_iterator_impl operator-- () { ++i; return *this; }
 
-        TokenBase* operator-> () { return  this_->get(i); }
-        TokenBase& operator*  () { return *this_->get(i); }
+        value_type* operator-> () { return  this_->get(i); }
+        value_type& operator*  () { return *this_->get(i); }
 
-        bool operator!= (iterator that) const { C4_ASSERT(this_ == that.this_); return i != that.i; }
-        bool operator== (iterator that) const { C4_ASSERT(this_ == that.this_); return i == that.i; }
+        bool operator!= (token_iterator_impl that) const { C4_ASSERT(this_ == that.this_); return i != that.i; }
+        bool operator== (token_iterator_impl that) const { C4_ASSERT(this_ == that.this_); return i == that.i; }
     };
 
+    using iterator = token_iterator_impl< TokenContainer, TokenBase >;
+    using const_iterator = token_iterator_impl< const TokenContainer, const TokenBase >;
+
     iterator begin() { return iterator(this, 0); }
-    iterator end() { return iterator(this, m_num_tokens); }
+    iterator end  () { return iterator(this, m_num_tokens); }
+
+    const_iterator begin() const { return const_iterator(this, 0); }
+    const_iterator end  () const { return const_iterator(this, m_num_tokens); }
 
 public:
 

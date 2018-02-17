@@ -62,6 +62,7 @@ inline size_t to_str(span buf, cspan const& v)
     memcpy(buf.str, v.str, len);
     return v.len;
 }
+
 inline bool from_str(cspan buf, span *v)
 {
     size_t len = buf.len > v->len ? v->len : buf.len;

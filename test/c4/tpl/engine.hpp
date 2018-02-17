@@ -18,7 +18,7 @@ public:
 
     Engine() : m_src(), m_rope(), m_tokens() {}
 
-    Rope const& rope() { return m_rope; }
+    Rope const& rope() const { return m_rope; }
 
     void parse(cspan src)
     {
@@ -39,15 +39,25 @@ public:
         }
     }
 
-    void render(Tree const& t, Rope *r)
+    void render(c4::yml::NodeRef const& root, Rope *r) const
     {
-        auto root = t.rootref();
         for(auto const& token : m_tokens)
         {
             cspan val = {};
             token.resolve(root, &val);
             r->replace(token.rope_entry(), val);
         }
+    }
+
+    void render(Tree const& t, Rope *r) const
+    {
+        render(t.rootref(), r);
+    }
+
+    Rope const& render(c4::yml::NodeRef const& root)
+    {
+        render(root, &m_rope);
+        return m_rope;
     }
 
     Rope const& render(Tree const& tree)

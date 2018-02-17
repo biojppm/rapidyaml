@@ -48,7 +48,7 @@ NodeRef Tree::rootref()
 
 NodeRef const Tree::rootref() const
 {
-    return NodeRef((Tree*)this, root_id());
+    return NodeRef(const_cast< Tree* >(this), root_id());
 }
 
 //-----------------------------------------------------------------------------

@@ -58,20 +58,39 @@ public:
     Rope() { memset(this, 0, sizeof(*this)); m_head = m_tail = m_free_head = m_free_tail = NONE; }
     Rope(size_t cap) : Rope() { reserve(cap); }
 
-    ~Rope()
+    ~Rope() { _free(); }
+
+    Rope(Rope const& that) : Rope() { _copy(that); }
+    Rope(Rope     && that) : Rope() { _move(&that); }
+
+    Rope& operator= (Rope const& that) { _free(); _copy(that); return *this; }
+    Rope& operator= (Rope     && that) { _free(); _move(&that); return *this; }
+
+private:
+
+    void _free()
     {
         if(m_buf)
         {
             c4::yml::free(m_buf, sizeof(rope_entry) * m_cap);
+            m_buf = nullptr;
         }
     }
 
-    // todo implement these
-    Rope(Rope const&) = delete;
-    Rope(Rope     &&) = delete;
+    void _copy(Rope const& that)
+    {
+        C4_ASSERT(m_buf == nullptr);
+        memcpy(this, &that, sizeof(*this));
+        m_buf = (rope_entry*)c4::yml::allocate(m_cap * sizeof(rope_entry), /*hint*/that.m_buf);
+        memcpy(m_buf, that.m_buf, m_cap * sizeof(rope_entry));
+    }
 
-    Rope& operator= (Rope const&) = delete;
-    Rope& operator= (Rope     &&) = delete;
+    void _move(Rope *that)
+    {
+        memcpy(this, &that, sizeof(*this));
+        m_buf = that->m_buf;
+        that->m_buf = nullptr;
+    }
 
 public:
 

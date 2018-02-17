@@ -2293,8 +2293,8 @@ cspan Parser::_filter_block_scalar(span s, BlockStyle_e style, BlockChomp_e chom
         r = r.left_of(pos, /*include_pos*/true);
         break;
     }
-    default:
-        _c4err("unknown chomp style");
+    //default:
+    //    _c4err("unknown chomp style");
     }
 
     _c4dbgpf("filtering block: after chomp='%.*s'", _c4prsp(r));
