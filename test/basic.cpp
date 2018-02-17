@@ -1356,9 +1356,9 @@ TEST_P(YmlTestCase, recreate_from_ref)
 } // namespace yml
 } // namespace c4
 
-//#ifdef these_should_be_moved_to_a_different_repo
-#include "./c4/tpl/rope.hpp"
+#ifdef these_should_be_moved_to_a_different_repo
 #include "./c4/tpl/token_container.cpp"
 #include "./c4/tpl/token.cpp"
-#include "./c4/tpl/engine.hpp"
-//#endif
+#include "./c4/tpl/test/test_rope.cpp"
+#include "./c4/tpl/test/test_engine.cpp"
+#endif

@@ -11,7 +11,7 @@ class Engine
 public:
 
     cspan m_src;
-    Rope m_rope;
+    mutable Rope m_rope;
     TokenContainer m_tokens;
 
 public:
@@ -33,14 +33,26 @@ public:
             tk->parse(&rem, &pos);
             tk->parse_body(&m_tokens);
         }
-        //for(auto &tk : m_tokens)
+    }
+
+    void mark()
+    {
+        for(auto &tk : m_tokens)
         {
-            //tk.mark();
+            tk.mark();
         }
     }
 
-    void render(c4::yml::NodeRef const& root, Rope *r) const
+    void render(c4::yml::NodeRef const& root, Rope *r=nullptr) const
     {
+        if(r == nullptr)
+        {
+            r = &m_rope;
+        }
+        if(r->num_entries() != m_rope.num_entries())
+        {
+            *r = m_rope;
+        }
         for(auto const& token : m_tokens)
         {
             cspan val = {};
@@ -49,7 +61,7 @@ public:
         }
     }
 
-    void render(Tree const& t, Rope *r) const
+    void render(Tree const& t, Rope *r=nullptr) const
     {
         render(t.rootref(), r);
     }
