@@ -9,11 +9,11 @@ namespace std {
 template< class K, class V, class Less, class Alloc >
 void write(c4::yml::NodeRef *n, std::map< K, V, Less, Alloc > const& m)
 {
-    *n |= MAP;
+    *n |= c4::yml::MAP;
     for(auto const& p : m)
     {
         auto ch = n->append_child();
-        ch << key(p.first);
+        ch << c4::yml::key(p.first);
         ch << p.second;
     }
 }
@@ -25,7 +25,7 @@ bool read(c4::yml::NodeRef const& n, std::map< K, V, Less, Alloc > * m)
     V v;
     for(auto const& ch : n)
     {
-        ch >> key(k);
+        ch >> c4::yml::key(k);
         ch >> v;
         m->emplace(make_pair(move(k), move(v)));
     }
