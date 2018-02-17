@@ -18,7 +18,9 @@ void TokenBase::parse(cspan *rem, TplLocation *curr_pos)
     C4_ASSERT(pos + e.len <= rem->len);
     m_full_text = rem->subspan(0, pos + e.len);
     C4_ASSERT(m_full_text.len >= e.len + s.len);
-    m_interior_text = m_full_text.subspan(e.len, m_full_text.len - (e.len + s.len));
+    C4_ASSERT(m_full_text.begins_with(s));
+    C4_ASSERT(m_full_text.ends_with(e));
+    m_interior_text = m_full_text.subspan(s.len, m_full_text.len - (e.len + s.len));
 
     auto &rp = curr_pos->m_rope_pos;
     C4_ASSERT(curr_pos->m_rope->get(rp.entry)->s.len >= m_full_text.len);
@@ -327,6 +329,9 @@ void TokenIf::parse(cspan *rem, TplLocation *curr_pos)
 {
     base_type::parse(rem, curr_pos);
 
+    C4_ASSERT(m_full_text.begins_with(stoken()));
+    C4_ASSERT(m_full_text.ends_with(etoken()));
+
     // scan the condition
     cspan s = m_full_text;
     cspan c = _scan_condition(stoken(), &s);
@@ -338,63 +343,47 @@ void TokenIf::parse(cspan *rem, TplLocation *curr_pos)
     C4_ASSERT(m_full_text.has_subspan(s));
     cb->start.m_rope_pos.i = s.begin() - m_full_text.begin();
 
-    /** @todo the scanning is inefficient. Use a for loop to iterate
-     * through the string characters instead of calling s.find(). This 
-     * was written in a hurry, which explains the lazy use of find(). */
-
     // scan the branches
     while(1)
     {
-        if(s.empty()) break;
-
-        auto pos = s.find("{% if ");
-        if(pos != npos) // there's a nested if - skip until it ends
+        auto result = s.first_of_any("{% endif %}", "{% else %}", "{% elif %}", "{% if ");
+        C4_ERROR_IF_NOT(result, "invalid {% if %} structure");
+        if(result.which == 0) // endif
         {
-            s = s.subspan(pos);
-            pos = s.find(etoken());
-            C4_ASSERT(pos != npos);
-            s = s.subspan(pos + etoken().len);
-        }
-
-        pos = s.find("{% else %}");
-        if(pos != npos)
-        {
-            cb->block = s.subspan(0, pos);
-            s = s.subspan(pos + 10); // 10==strlen("{% else %}")
+            cb->block = s.subspan(0, result.pos);
             break;
         }
-
-        pos = s.find("{% elif");
-        if(pos == npos)
+        else if(result.which == 1) // else
         {
-            pos = s.find(etoken());
-            C4_ASSERT(pos != npos);
-            cb->block = s.left_of(pos);
-            s.clear();
+            cb->block = s.subspan(0, result.pos);
+            s = s.subspan(result.pos + 10); // 10==strlen("{% else %}")
+            auto pos = s.find("{% endif %}");
+            C4_ERROR_IF(pos == npos, "invalid {% if %} structure");
+            s = s.subspan(0, pos);
+            m_else_block = s;
+            m_else_block_offs = s.begin() - m_full_text.begin();
             break;
         }
-
-        cb->block = s.subspan(0, pos);
-        s = s.subspan(pos);
-        auto cond = _scan_condition("{% elif ", &s);
-        m_cond_blocks.emplace_back();
-        cb = &m_cond_blocks.back();
-        cb->condition.init(this, cond);
-        cb->start.m_rope = m_start.m_rope; 
-        cb->start.m_rope_pos.entry = m_rope_entry;
-        cb->start.m_rope_pos.i = s.begin() - m_full_text.begin();
-    }
-
-    if(s.empty())
-    {
-        m_else_block.clear();
-        m_else_block_offs = 0;
-    }
-    else
-    {
-        C4_ASSERT(m_full_text.has_subspan(s));
-        m_else_block = s.trim("\r\n");
-        m_else_block_offs = s.begin() - m_full_text.begin();
+        else if(result.which == 2) // elif
+        {
+            cb->block = s.subspan(0, result.pos);
+            s = s.subspan(result.pos + 8); // 8 == strlen("{% elif ")
+            auto cond = _scan_condition("{% elif ", &s);
+            m_cond_blocks.emplace_back();
+            cb = &m_cond_blocks.back();
+            cb->condition.init(this, cond);
+            cb->start.m_rope = m_start.m_rope;
+            cb->start.m_rope_pos.entry = m_rope_entry;
+            cb->start.m_rope_pos.i = s.begin() - m_full_text.begin();
+        }
+        else if(result.which == 3) // nested if
+        {
+            s = skip_nested(s.subspan(result.pos));
+        }
+        else
+        {
+            C4_ERROR("internal error");
+        }
     }
 
     for(auto &cond : m_cond_blocks)
@@ -402,6 +391,12 @@ void TokenIf::parse(cspan *rem, TplLocation *curr_pos)
         C4_ASSERT(m_full_text.has_subspan(cond.block));
         cond.block = cond.block.trim("\r\n");
         cond.start.m_rope_pos.i = cond.block.begin() - m_full_text.begin();
+    }
+    if( ! m_else_block.empty())
+    {
+        C4_ASSERT(m_full_text.has_subspan(m_else_block));
+        m_else_block = m_else_block.trim("\r\n");
+        m_else_block_offs = m_else_block.begin() - m_full_text.begin();
     }
 }
 
