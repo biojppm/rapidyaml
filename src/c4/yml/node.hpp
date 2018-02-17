@@ -5,8 +5,11 @@
 
 #include "./tree.hpp"
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wtype-limits"
+
+#ifdef __GNUC__
+#   pragma GCC diagnostic push
+#   pragma GCC diagnostic ignored "-Wtype-limits"
+#endif
 
 namespace c4 {
 namespace yml {
@@ -762,6 +765,9 @@ bool NodeRef::visit_stacked(Visitor fn, size_t indentation_level, bool skip_root
 } // namespace yml
 } // namespace c4
 
-#pragma GCC diagnostic pop
+
+#ifdef __GNUC__
+#   pragma GCC diagnostic pop
+#endif
 
 #endif /* _C4_YML_NODE_HPP_ */

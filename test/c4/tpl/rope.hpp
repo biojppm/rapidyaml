@@ -3,8 +3,10 @@
 
 #include "./common.hpp"
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wtype-limits"
+#ifdef __GNUC__
+#   pragma GCC diagnostic push
+#   pragma GCC diagnostic ignored "-Wtype-limits"
+#endif
 
 namespace c4 {
 namespace tpl {
@@ -603,6 +605,8 @@ inline OStream& operator << (OStream &s, Rope const& r)
 } // namespace tpl
 } // namespace c4
 
-#pragma GCC diagnostic pop
+#ifdef __GNUC__
+#   pragma GCC diagnostic pop
+#endif
 
 #endif /* _C4_TPL_ROPE_HPP_ */

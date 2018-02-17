@@ -13,8 +13,10 @@
 #include "./to_str.hpp"
 #endif
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wtype-limits"
+#ifdef __GNUC__
+#   pragma GCC diagnostic push
+#   pragma GCC diagnostic ignored "-Wtype-limits"
+#endif
 
 namespace c4 {
 namespace yml {
@@ -721,6 +723,9 @@ private:
 } // namespace yml
 } // namespace c4
 
-#pragma GCC diagnostic pop
+
+#ifdef __GNUC__
+#  pragma GCC diagnostic pop
+#endif
 
 #endif /* _C4_YML_TREE_HPP_ */
