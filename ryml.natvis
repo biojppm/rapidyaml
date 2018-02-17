@@ -23,4 +23,101 @@ See also:
     </Expand>
   </Type>
 
+  <Type Name="c4::yml::NodeScalar">
+    <DisplayString Condition="(tag.len == 0)">{scalar.str,[scalar.len]}</DisplayString>
+    <DisplayString Condition="(tag.len >  0)">{scalar.str,[scalar.len]} tag='{tag.str,[tag.len]}</DisplayString>
+  </Type>
+
+  <Type Name="c4::yml::NodeData">
+    <DisplayString Condition="(m_type.type &amp; c4::yml::KEYSEQ) == c4::yml::KEYSEQ">[KEYSEQ] {m_key.scalar.str,[m_key.scalar.len]}</DisplayString>
+    <DisplayString Condition="(m_type.type &amp; c4::yml::KEYMAP) == c4::yml::KEYMAP">[KEYMAP] {m_key.scalar.str,[m_key.scalar.len]}</DisplayString>
+    <DisplayString Condition="(m_type.type &amp; c4::yml::KEYVAL) == c4::yml::KEYVAL">[KEYVAL] {m_key.scalar.str,[m_key.scalar.len]}: {m_val.scalar.str,[m_val.scalar.len]}</DisplayString>
+    <DisplayString Condition="(m_type.type &amp; c4::yml::SEQ   ) == c4::yml::SEQ"   >[SEQ]</DisplayString>
+    <DisplayString Condition="(m_type.type &amp; c4::yml::MAP   ) == c4::yml::MAP"   >[MAP]</DisplayString>
+    <DisplayString Condition="(m_type.type &amp; c4::yml::VAL   ) == c4::yml::VAL"   >[VAL] {m_val.scalar.str,[m_val.scalar.len]}</DisplayString>
+    <DisplayString Condition="(m_type.type &amp; c4::yml::NOTYPE) == c4::yml::NOTYPE">[NOTYPE]</DisplayString>
+    <Expand>
+      <Item Name="key" Condition="(m_type.type &amp; c4::yml::KEY) != 0">m_key</Item>
+      <Item Name="val" Condition="(m_type.type &amp; c4::yml::VAL) != 0">m_val</Item>
+      <Item Name="first child" Condition="m_first_child != c4::yml::NONE">m_first_child</Item>
+      <Item Name="last child" Condition="m_last_child != c4::yml::NONE">m_last_child</Item>
+      <Item Name="prev sibling" Condition="m_prev_sibling != c4::yml::NONE">m_prev_sibling</Item>
+      <Item Name="next sibling" Condition="m_next_sibling != c4::yml::NONE">m_next_sibling</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="c4::yml::Tree">
+    <DisplayString>sz={m_size}, cap={m_cap}</DisplayString>
+    <Expand>
+      <Item Name="[size]">m_size</Item>
+      <Item Name="[capacity]">m_cap</Item>
+      <Synthetic Name="[buffer]">
+        <Expand>
+          <ArrayItems>
+            <Size>m_cap</Size>
+            <ValuePointer>m_buf</ValuePointer>
+          </ArrayItems>
+        </Expand>
+      </Synthetic>
+      <Item Name="tail">m_tail</Item>
+      <Item Name="free head">m_free_head</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="c4::yml::NodeRef">
+    <DisplayString Condition="(m_id == c4::yml::NONE)">void</DisplayString>
+    <DisplayString Condition="(m_seed.len != c4::yml::NONE) &amp;&amp; (m_seed.str == nullptr)">[INDEX SEED for] {*(m_tree->m_buf + m_id)}</DisplayString>
+    <DisplayString Condition="(m_seed.len != c4::yml::NONE) &amp;&amp; (m_seed.str != nullptr)">[NAMED SEED for] {*(m_tree->m_buf + m_id)}</DisplayString>
+    <DisplayString>{*(m_tree->m_buf + m_id)}</DisplayString>
+    <Expand>
+      <Item Name="elm">*(m_tree->m_buf + m_id)</Item>
+      <Item Name="tree">m_tree</Item>
+      <Synthetic Name="[children]" Condition="(m_id != c4::yml::NONE) &amp;&amp; ((m_tree->m_buf + m_id)->m_type.type &amp; (c4::yml::MAP|c4::yml::SEQ) != 0)">
+        <Expand>
+          <CustomListItems>
+            <Variable Name="tree" InitialValue="m_tree"/>
+            <Variable Name="buf" InitialValue="m_tree->m_buf"/>
+            <Variable Name="curr" InitialValue="(m_tree->m_buf + m_id)->m_first_child"/>
+            <Loop>
+              <Item>buf + curr</Item>
+              <Exec>curr = (buf + curr)->m_next_sibling</Exec>
+              <Break Condition="curr == c4::tpl::NONE"/>
+            </Loop>
+          </CustomListItems>
+        </Expand>
+      </Synthetic>
+    </Expand>
+  </Type>
+
+  <Type Name="c4::tpl::Rope">
+    <DisplayString>strsz={m_str_size}, sz={m_size}, cap={m_cap}</DisplayString>
+    <Expand>
+      <Item Name="[str_size]">m_str_size</Item>
+      <Item Name="[size]">m_size</Item>
+      <Item Name="[capacity]">m_cap</Item>
+      <CustomListItems>
+        <Variable Name="buf" InitialValue="m_buf"/>
+        <Variable Name="curr" InitialValue="m_head"/>
+        <Variable Name="tail" InitialValue="m_tail"/>
+        <Loop>
+           <Item>(buf + curr)->s</Item>
+           <Exec>curr = (buf + curr)->m_next</Exec>
+           <Break Condition="curr == c4::tpl::NONE"/>
+        </Loop>
+      </CustomListItems>
+    </Expand>
+  </Type>
+
+  <Type Name="c4::tpl::TokenContainer">
+    <DisplayString>#tokens={m_num_tokens}</DisplayString>
+    <Expand>
+      <IndexListItems>
+        <Size>m_num_tokens</Size>
+        <ValueNode>*((TokenBase*)((size_t*)(&amp;m_tokens[$i * m_entry_size])+1))</ValueNode>
+      </IndexListItems>
+      <Item Name="[max size]">m_max_size</Item>
+      <Item Name="[entry size]">m_entry_size</Item>
+    </Expand>
+  </Type>
+
 </AutoVisualizer>
