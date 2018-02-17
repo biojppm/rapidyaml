@@ -31,6 +31,22 @@ bool read(c4::yml::NodeRef const& n, std::string *s)
     return true;
 }
 
+//-----------------------------------------------------------------------------
+c4::yml::span to_span(std::string &s)
+{
+    return c4::yml::span(&s[0], s.size());
+}
+
+c4::yml::cspan to_span(std::string const& s)
+{
+    return c4::yml::cspan(&s[0], s.size());
+}
+
+c4::yml::cspan to_cspan(std::string const& s)
+{
+    return c4::yml::cspan(&s[0], s.size());
+}
+
 } // namespace std
 
 #endif // _C4_YML_STD_STRING_HPP_
