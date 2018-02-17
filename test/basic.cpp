@@ -1,5 +1,5 @@
 #include "./test_case.hpp"
-#include "yml/c4/std/std.hpp"
+#include "c4/yml/std/std.hpp"
 
 #include <gtest/gtest.h>
 
@@ -131,6 +131,8 @@ TEST(span, begins_with)
 
 TEST(span, ends_with)
 {
+    EXPECT_TRUE(cspan("{% if foo %}bar{% endif %}").ends_with("{% endif %}"));
+
     EXPECT_TRUE (cspan("1234"    ).ends_with('0', 0));
     EXPECT_TRUE (cspan("12340"   ).ends_with('0', 1));
     EXPECT_FALSE(cspan("12340"   ).ends_with('0', 2));

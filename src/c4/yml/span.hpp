@@ -341,9 +341,9 @@ public:
     inline bool ends_with(basic_span< const C > const& pattern) const
     {
         if(len < pattern.len) return false;
-        for(size_t i = len - pattern.len; i < len; ++i)
+        for(size_t i = 0, s = len-pattern.len; i < pattern.len; ++i)
         {
-            if(str[i] != pattern[i]) return false;
+            if(str[s+i] != pattern[i]) return false;
         }
         return true;
     }
