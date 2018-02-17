@@ -539,16 +539,40 @@ public:
 
 public:
 
-    span chain_all(span buf) const
+    span chain_all(span buf, bool error_on_excess=true) const
     {
         C4_ASSERT(_count_total_len() == m_str_size);
-        C4_ASSERT(m_str_size <= buf.len);
+        if(buf.len < m_str_size)
+        {
+            if(error_on_excess)
+            {
+                C4_ERROR("insufficient space");
+            }
+            span ret;
+            ret.str = nullptr;
+            ret.len = m_str_size;
+            return ret;
+        }
         span ret = buf;
         ret.len = 0;
         for(auto const& s : *this)
         {
             memcpy(ret.str + ret.len, s.str, s.len);
             ret.len += s.len;
+        }
+        return ret;
+    }
+
+    template< class CharOwningContainer >
+    span chain_all_resize(CharOwningContainer * cont) const
+    {
+        span buf(cont->data(), cont->size());
+        span ret = chain_all(buf, /*error_on_excess*/false);
+        if(ret.str == nullptr)
+        {
+            cont->resize(ret.len);
+            buf.assign(cont->data(), cont->size());
+            ret = chain_all(buf, /*error_on_excess*/true);
         }
         return ret;
     }
