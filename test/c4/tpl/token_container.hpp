@@ -30,39 +30,46 @@ void register_known_tokens();
 //-----------------------------------------------------------------------------
 
 /** allow user-registered tokens */
-#define C4_DECLARE_TOKEN(cls)                           \
-    static TokenType _get_type()                        \
-    {                                                   \
-        return {_get_name(),                            \
-                sizeof(cls),                            \
-                &_create_inplace,                       \
-                &_destroy_inplace,                      \
-                &_get_ptr_inplace};                     \
-    }                                                   \
-    static const char* _get_name()                      \
-    {                                                   \
-        return #cls;                                    \
-    }                                                   \
-    static TokenBase* _create_inplace(span mem)         \
-    {                                                   \
-        C4_ASSERT(sizeof(cls) <= mem.len);              \
-        cls *ptr = new ((void*)mem.str) cls();          \
-        return ptr;                                     \
-    }                                                   \
-    static void _destroy_inplace(span mem)              \
-    {                                                   \
-        C4_ASSERT(sizeof(cls) <= mem.len);              \
-        cls *ptr = reinterpret_cast< cls* >(mem.str);   \
-        ptr->~cls();                                    \
-    }                                                   \
-    static TokenBase* _get_ptr_inplace(span mem)        \
-    {                                                   \
-        C4_ASSERT(sizeof(cls) <= mem.len);              \
-        cls *ptr = reinterpret_cast< cls* >(mem.str);   \
-        return ptr;                                     \
+#define C4TPL_DECLARE_TOKEN(cls, stok, etok, mrk)                       \
+                                                                        \
+    using base_type = TokenBase;                                        \
+                                                                        \
+    virtual cspan const& stoken() const override { static const cspan s(stok); return s; } \
+    virtual cspan const& etoken() const override { static const cspan s(etok); return s; } \
+    virtual cspan const& marker() const override { static const cspan s(mrk); return s; } \
+                                                                        \
+    static TokenType _get_type()                                        \
+    {                                                                   \
+        return {_get_name(),                                            \
+                sizeof(cls),                                            \
+                &_create_inplace,                                       \
+                &_destroy_inplace,                                      \
+                &_get_ptr_inplace};                                     \
+    }                                                                   \
+    static const char* _get_name()                                      \
+    {                                                                   \
+        return #cls;                                                    \
+    }                                                                   \
+    static TokenBase* _create_inplace(span mem)                         \
+    {                                                                   \
+        C4_ASSERT(sizeof(cls) <= mem.len);                              \
+        cls *ptr = new ((void*)mem.str) cls();                          \
+        return ptr;                                                     \
+    }                                                                   \
+    static void _destroy_inplace(span mem)                              \
+    {                                                                   \
+        C4_ASSERT(sizeof(cls) <= mem.len);                              \
+        cls *ptr = reinterpret_cast< cls* >(mem.str);                   \
+        ptr->~cls();                                                    \
+    }                                                                   \
+    static TokenBase* _get_ptr_inplace(span mem)                        \
+    {                                                                   \
+        C4_ASSERT(sizeof(cls) <= mem.len);                              \
+        cls *ptr = reinterpret_cast< cls* >(mem.str);                   \
+        return ptr;                                                     \
     }
 
-#define C4_REGISTER_TOKEN(cls) TokenRegistry::register_token< cls >()
+#define C4TPL_REGISTER_TOKEN(cls) TokenRegistry::register_token< cls >()
 
 
 //-----------------------------------------------------------------------------
@@ -160,8 +167,8 @@ public:
         if( ! m_max_size)
         {
             register_known_tokens();
+            m_max_size = TokenRegistry::get_max_size();
         }
-        m_max_size = TokenRegistry::get_max_size();
         m_entry_size = sizeof(size_t) + m_max_size;
         m_tokens.reserve(cap * m_entry_size);
     }
@@ -252,8 +259,6 @@ public:
 
     const_iterator begin() const { return const_iterator(this, 0); }
     const_iterator end  () const { return const_iterator(this, m_num_tokens); }
-
-public:
 
 };
 

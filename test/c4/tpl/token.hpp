@@ -20,10 +20,10 @@ class TokenComment;
 
 inline void register_known_tokens()
 {
-    C4_REGISTER_TOKEN(TokenExpression);
-    C4_REGISTER_TOKEN(TokenIf);
-    C4_REGISTER_TOKEN(TokenFor);
-    C4_REGISTER_TOKEN(TokenComment);
+    C4TPL_REGISTER_TOKEN(TokenExpression);
+    C4TPL_REGISTER_TOKEN(TokenIf);
+    C4TPL_REGISTER_TOKEN(TokenFor);
+    C4TPL_REGISTER_TOKEN(TokenComment);
 }
 
 //-----------------------------------------------------------------------------
@@ -35,6 +35,7 @@ class TokenBase
 public:
 
     virtual ~TokenBase() {}
+
     virtual cspan const& stoken() const = 0;
     virtual cspan const& etoken() const = 0;
     virtual cspan const& marker() const = 0;
@@ -80,15 +81,9 @@ class TokenExpression : public TokenBase
 {
 public:
 
-    C4_DECLARE_TOKEN(TokenExpression);
-
-    using base_type = TokenBase;
+    C4TPL_DECLARE_TOKEN(TokenExpression, "{{", "}}", "<<<expr>>>");
 
 public:
-
-    virtual cspan const& stoken() const override { static const cspan s("{{", 2); return s; }
-    virtual cspan const& etoken() const override { static const cspan s("}}", 2); return s; }
-    virtual cspan const& marker() const override { static const cspan s("<<<expr>>>", 10); return s; }
 
     cspan  m_expr;
     size_t m_expr_offs;
@@ -120,10 +115,7 @@ public:
 /*
 class TokenFilter : public TokenBase
 {
-    C4_DECLARE_TOKEN(TokenFilter);
-    virtual cspan const& stoken() const override { static const cspan s("|", 1); return s; }
-    virtual cspan const& etoken() const override { static const cspan s(" ", 3); return s; }
-    virtual cspan const& marker() const override { static const cspan s("<<<filter>>>", 12); return s; }
+    C4_DECLARE_TOKEN(TokenFilter, "|", " ", "<<<filter>>>");
 };
 */
 
@@ -134,10 +126,7 @@ class TokenFilter : public TokenBase
 class TokenComment : public TokenBase
 {
 public:
-    C4_DECLARE_TOKEN(TokenComment);
-    virtual cspan const& stoken() const override { static const cspan s("{# ", 3); return s; }
-    virtual cspan const& etoken() const override { static const cspan s(" #}", 3); return s; }
-    virtual cspan const& marker() const override { static const cspan s("<<<cmt>>>", 9); return s; }
+    C4TPL_DECLARE_TOKEN(TokenComment, "{#", "#}", "<<<cmt>>>");
 };
 
 
@@ -201,15 +190,7 @@ class TokenIf : public TokenBase
 {
 public:
 
-    C4_DECLARE_TOKEN(TokenIf);
-
-    using base_type = TokenBase;
-
-public:
-
-    virtual cspan const& stoken() const override { static const cspan s("{% if ", 6); return s; }
-    virtual cspan const& etoken() const override { static const cspan s("{% endif %}", 11); return s; }
-    virtual cspan const& marker() const override { static const cspan s("<<<if>>>", 8); return s; }
+    C4TPL_DECLARE_TOKEN(TokenIf, "{% if ", "{% endif %}", "<<<if>>>");
 
 public:
 
@@ -240,11 +221,7 @@ public:
 class TokenFor : public TokenBase
 {
 public:
-    C4_DECLARE_TOKEN(TokenFor);
-    virtual cspan const& stoken() const override { static const cspan s("{% for ", 7); return s; }
-    virtual cspan const& etoken() const override { static const cspan s("{% endfor %}", 12); return s; }
-    virtual cspan const& marker() const override { static const cspan s("<<<for>>>", 9); return s; }
-
+    C4TPL_DECLARE_TOKEN(TokenFor, "{% for ", "{% endfor %}", "<<<for>>>");
 };
 
 } // namespace tpl
