@@ -66,6 +66,8 @@ public:
 
     cspan subspan() const { return m_start.m_rope->subspan(m_rope_entry, 0); }
 
+    cspan skip_nested(cspan s) const;
+
 protected:
 
     void _do_parse_body(cspan body, TplLocation pos, TokenContainer *cont) const;

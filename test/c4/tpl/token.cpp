@@ -130,6 +130,36 @@ bool TokenBase::eval(NodeRef const& root, cspan key, cspan *value) const
     return false;
 }
 
+cspan TokenBase::skip_nested(cspan rem) const
+{
+    auto const& s = stoken(), e = etoken();
+    C4_ASSERT(rem.begins_with(s));
+    cspan r = rem.subspan(s.len);
+    size_t level = 1;
+    while( ! r.empty())
+    {
+        auto result = r.first_of_any(s, e);
+        C4_ERROR_IF_NOT(result, "invalid nested sequence");
+        C4_ERROR_IF_NOT(result.which == 0 || result.which == 1, "internal error");
+        if(result.which == 0)
+        {
+            ++level;
+        }
+        else
+        {
+            C4_ERROR_IF_NOT(level > 0, "internal error");
+            --level;
+        }
+        r = r.subspan(result.pos + (result.which = 0 ? s.len : e.len));
+        if(level == 0)
+        {
+            return r;
+        }
+    }
+    C4_ERROR("never reach this");
+    return {};
+}
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
