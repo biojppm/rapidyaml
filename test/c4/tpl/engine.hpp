@@ -54,23 +54,6 @@ public:
         render(t.rootref(), r);
     }
 
-    Rope const& render(c4::yml::NodeRef const& root)
-    {
-        render(root, &m_rope);
-        return m_rope;
-    }
-
-    Rope const& render(Tree const& tree)
-    {
-        render(tree, &m_rope);
-        return m_rope;
-    }
-
-    span chain_all(span buf)
-    {
-        return m_rope.chain_all(buf);
-    }
-
 };
 
 } // namespace tpl
