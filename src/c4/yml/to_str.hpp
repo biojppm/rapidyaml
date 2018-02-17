@@ -69,6 +69,12 @@ inline bool from_str(cspan buf, span *v)
     return buf.len <= v->len;
 }
 
+inline bool from_str(cspan buf, cspan *v)
+{
+    *v = buf;
+    return true;
+}
+
 template< size_t N >
 inline size_t to_str(span buf, const char (&v)[N])
 {

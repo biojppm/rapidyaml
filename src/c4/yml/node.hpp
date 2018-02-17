@@ -378,7 +378,7 @@ public:
     }
 
     template< class T >
-    void get_if(cspan const& name, T *var)
+    void get_if(cspan const& name, T *var) const
     {
         auto ch = find_child(name);
         if(ch.valid())
@@ -388,7 +388,7 @@ public:
     }
 
     template< class T >
-    void get_if(cspan const& name, T *var, T const& fallback)
+    void get_if(cspan const& name, T *var, T const& fallback) const
     {
         auto ch = find_child(name);
         if(ch.valid())
@@ -397,7 +397,7 @@ public:
         }
         else
         {
-            var = fallback;
+            *var = fallback;
         }
     }
 
