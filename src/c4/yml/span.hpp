@@ -434,6 +434,7 @@ public:
         }
         return npos;
     }
+ 
     inline size_t last_not_of(basic_span< const C > const& chars) const
     {
         for(size_t i = len-1; i != size_t(-1); --i)
@@ -453,6 +454,40 @@ public:
             }
         }
         return npos;
+    }
+
+public:
+
+    void reverse()
+    {
+        if(len == 0) return;
+        _do_reverse(str, str + len - 1);
+    }
+
+    void reverse_subspan(size_t ifirst, size_t num)
+    {
+        C4_ASSERT(ifirst >= 0 && ifirst < len);
+        C4_ASSERT(ifirst + num >= 0 && ifirst + num <= len);
+        if(num == 0) return;
+        _do_reverse(str + ifirst, ifirst + num - 1);
+    }
+
+    void reverse_range(size_t ifirst, size_t ilast)
+    {
+        C4_ASSERT(ifirst >= 0 && ifirst <= len);
+        C4_ASSERT(ilast  >= 0 && ilast  <= len);
+        if(ifirst == ilast) return;
+        _do_reverse(str + ifirst, str + ilast - 1);
+    }
+
+    inline static void  _do_reverse(C *first, C* last)
+    {
+        while(last > first)
+        {
+            C tmp = *last;
+            *last-- = *first;
+            *first++ = tmp;
+        }
     }
 
 }; // template class basic_span
