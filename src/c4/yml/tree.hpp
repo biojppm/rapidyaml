@@ -278,8 +278,6 @@ private:
     size_t m_cap;
 
     size_t m_size;
-    size_t m_head;
-    size_t m_tail;
 
     size_t m_free_head;
     size_t m_free_tail;
@@ -647,6 +645,7 @@ private:
     void _clear_range(size_t first, size_t num);
 
     size_t _claim();
+    void   _claim_root();
     void   _release(size_t node);
 
     void _set_hierarchy(size_t node, size_t parent, size_t after_sibling);
@@ -654,8 +653,8 @@ private:
 
 public:
 
-    size_t root_id()       { if(m_cap == 0) { reserve(16); } C4_ASSERT(m_head != NONE); C4_ASSERT(m_cap > 0 && m_size > 0); return 0; }
-    size_t root_id() const {                                 C4_ASSERT(m_head != NONE); C4_ASSERT(m_cap > 0 && m_size > 0); return 0; }
+    size_t root_id()       { if(m_cap == 0) { reserve(16); } C4_ASSERT(m_cap > 0 && m_size > 0); return 0; }
+    size_t root_id() const {                                 C4_ASSERT(m_cap > 0 && m_size > 0); return 0; }
 
     NodeRef       rootref();
     NodeRef const rootref() const;

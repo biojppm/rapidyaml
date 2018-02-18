@@ -59,8 +59,6 @@ Tree::Tree()
     m_buf(nullptr),
     m_cap(0),
     m_size(0),
-    m_head(NONE),
-    m_tail(NONE),
     m_free_head(NONE),
     m_free_tail(NONE),
     m_arena(),
@@ -173,10 +171,7 @@ void Tree::reserve(size_t cap, size_t arena_cap)
         _clear_range(first, del);
         if( ! m_size)
         {
-            size_t r = _claim();
-            _set_hierarchy(r, NONE, NONE);
-            C4_ASSERT(r == 0);
-            C4_ASSERT(root_id() == 0);
+            _claim_root();
         }
     }
 
@@ -200,11 +195,25 @@ void Tree::clear()
 {
     _clear_range(0, m_cap);
     m_size = 0;
-    m_head = NONE;
-    m_tail = NONE;
-    m_free_head = 0;
-    m_free_tail = m_cap;
+    if(m_buf)
+    {
+        m_free_head = 0;
+        m_free_tail = m_cap;
+        _claim_root();
+    }
+    else
+    {
+        m_free_head = NONE;
+        m_free_tail = NONE;
+    }
     m_arena_pos = 0;
+}
+
+void Tree::_claim_root()
+{
+    size_t r = _claim();
+    C4_ASSERT(r == 0);
+    _set_hierarchy(r, NONE, NONE);
 }
 
 //-----------------------------------------------------------------------------
@@ -295,9 +304,7 @@ void Tree::_set_hierarchy(size_t ichild, size_t iparent, size_t iprev_sibling)
     {
         C4_ASSERT(ichild == 0);
         C4_ASSERT(iprev_sibling == NONE);
-        m_head = ichild;
     }
-    m_tail = ichild;
 
     if(iparent == NONE) return;
 

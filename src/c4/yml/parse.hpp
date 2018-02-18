@@ -63,7 +63,6 @@ public:
         parse(filename, src, &root);
     }
 
-    // This is very wrong. Use
     void parse(                       span src, NodeRef * root) { return parse({}, src, root); }
     void parse(cspan const& filename, span src, NodeRef * root);
 
