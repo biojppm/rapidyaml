@@ -65,7 +65,7 @@ TEST(serialize, std_map__int_int)
 {
     using M = std::map<int, int>;
     using L = std::initializer_list<typename M::value_type>;
-    do_test_serialize< M >(L{{10, 0}, {11, 1}, {22, 2}});
+    do_test_serialize< M >(L{{10, 0}, {11, 1}, {22, 2}, {10001, 1000}, {20002, 2000}, {30003, 3000}});
 }
 TEST(serialize, std_map__std_string_int)
 {
@@ -102,6 +102,44 @@ namespace yml {
 //-----------------------------------------------------------------------------
 void PrintTo(const span& s, ::std::ostream* os) { *os << s; }
 void PrintTo(const cspan& s, ::std::ostream* os) { *os << s; }
+
+TEST(atoi, basic)
+{
+    char bufc[100];
+    span buf(bufc);
+    size_t ret;
+
+#define _woof(val) \
+    ret = itoa(buf, val); EXPECT_LT(ret, buf.len); EXPECT_EQ(buf.subspan(0, ret), #val)
+    _woof(0);
+    _woof(1);
+    _woof(2);
+    _woof(3);
+    _woof(4);
+    _woof(5);
+    _woof(6);
+    _woof(7);
+    _woof(8);
+    _woof(9);
+    _woof(10);
+    _woof(11);
+    _woof(12);
+    _woof(13);
+    _woof(14);
+    _woof(15);
+    _woof(16);
+    _woof(17);
+    _woof(18);
+    _woof(19);
+    _woof(20);
+    _woof(21);
+    _woof(100);
+    _woof(1000);
+    _woof(11);
+    _woof(101);
+    _woof(1001);
+    _woof(10001);
+}
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
