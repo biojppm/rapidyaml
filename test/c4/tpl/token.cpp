@@ -9,7 +9,6 @@ namespace tpl {
 void TokenBase::parse(cspan *rem, TplLocation *curr_pos)
 {
     auto const &s = stoken(), &e = etoken();
-    std::cout << "parsing token: '" << s << "': rem='" << *rem << "'\n";
     C4_ASSERT(rem->begins_with(s));
 
     m_start = *curr_pos;
@@ -32,7 +31,6 @@ void TokenBase::parse(cspan *rem, TplLocation *curr_pos)
     C4_ASSERT(this->subspan() == m_full_text);
 
     *rem = rem->subspan(m_full_text.len);
-    std::cout << "parsing token: DONE: '" << s << "'\n";
 }
 
 void TokenBase::mark()
@@ -42,17 +40,15 @@ void TokenBase::mark()
 
 void TokenBase::_do_parse_body(cspan body, TplLocation pos, TokenContainer *cont) const
 {
+    //size_t id = cont->get_id(this); // prepare for an eventual relocation of 'this' while adding tokens. Fishy, I know.
     C4_ASSERT(pos.m_rope != nullptr);
     while( ! body.empty())
     {
-        auto crl = pos.m_rope->subspan(pos.m_rope_pos).subspan(0, body.len);
-        std::cout << "FDX:" << body << "\n";
-        std::cout << "CRL:" << crl << "\n";
         C4_ASSERT(body == pos.m_rope->subspan(pos.m_rope_pos).subspan(0, body.len));
-        auto tk = cont->next_token(&body, &pos);
-        if( ! tk) break;
-        tk->parse(&body, &pos);
-        tk->parse_body(cont);
+        size_t tk_pos = cont->next_token(&body, &pos);
+        if(tk_pos == NONE) break;
+        cont->get(tk_pos)->parse(&body, &pos);
+        cont->get(tk_pos)->parse_body(cont);
     }
 }
 
@@ -343,10 +339,13 @@ void TokenIf::parse(cspan *rem, TplLocation *curr_pos)
     C4_ASSERT(m_full_text.has_subspan(s));
     cb->start.m_rope_pos.i = s.begin() - m_full_text.begin();
 
+    m_else_block.clear();
+    m_else_block_offs = 0;
+
     // scan the branches
     while(1)
     {
-        auto result = s.first_of_any("{% endif %}", "{% else %}", "{% elif %}", "{% if ");
+        auto result = s.first_of_any("{% endif %}", "{% else %}", "{% elif ", "{% if ");
         C4_ERROR_IF_NOT(result, "invalid {% if %} structure");
         if(result.which == 0) // endif
         {
@@ -367,7 +366,7 @@ void TokenIf::parse(cspan *rem, TplLocation *curr_pos)
         else if(result.which == 2) // elif
         {
             cb->block = s.subspan(0, result.pos);
-            s = s.subspan(result.pos + 8); // 8 == strlen("{% elif ")
+            s = s.subspan(result.pos);
             auto cond = _scan_condition("{% elif ", &s);
             m_cond_blocks.emplace_back();
             cb = &m_cond_blocks.back();
@@ -402,18 +401,21 @@ void TokenIf::parse(cspan *rem, TplLocation *curr_pos)
 
 void TokenIf::parse_body(TokenContainer *cont) const
 {
-    for(auto const& b : m_cond_blocks)
+    size_t my_id = cont->get_id(this); // defend against an eventual relocation
+#define _c4this static_cast< TokenIf const* >(cont->get(my_id))
+
+    for(auto const& b : _c4this->m_cond_blocks)
     {
-        std::cout << "\n\nparsing body: " << b.block << "\n";
-        _do_parse_body(b.block, b.start, cont);
-        std::cout << "\n\nparsing body: DONE: " << b.block << "\n";
+        _c4this->_do_parse_body(b.block, b.start, cont);
     }
 
-    if( ! m_else_block.empty())
+    if( ! _c4this->m_else_block.empty())
     {
-        TplLocation else_pos = {m_end.m_rope, {m_rope_entry, m_else_block_offs}};
-        _do_parse_body(m_else_block, else_pos, cont);
+        TplLocation else_pos = {_c4this->m_end.m_rope, {_c4this->m_rope_entry, _c4this->m_else_block_offs}};
+        _c4this->_do_parse_body(_c4this->m_else_block, else_pos, cont);
     }
+
+#undef _c4this
 }
 
 cspan TokenIf::_scan_condition(cspan token, cspan *s)

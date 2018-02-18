@@ -28,10 +28,10 @@ public:
         cspan rem = m_src;
         while( ! rem.empty())
         {
-            auto *tk = m_tokens.next_token(&rem, &pos);
-            if( ! tk) break; // we're done
-            tk->parse(&rem, &pos);
-            tk->parse_body(&m_tokens);
+            auto tk_pos = m_tokens.next_token(&rem, &pos);
+            if(tk_pos == NONE) break; // we're done
+            m_tokens.get(tk_pos)->parse(&rem, &pos);
+            m_tokens.get(tk_pos)->parse_body(&m_tokens);
         }
     }
 

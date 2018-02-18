@@ -1,10 +1,15 @@
 #include "../engine.hpp"
 #include "c4/yml/std/vector.hpp"
+#include "c4/yml/parse.hpp"
+
+#include "../../../test_case.hpp"
+
+#include <gtest/gtest.h>
 
 namespace c4 {
 namespace tpl {
 
-struct tpl_results { cspan props_yml, result; };
+struct tpl_results { const char* name; cspan props_yml, result; };
 using tpl_cases = std::initializer_list< tpl_results >;
 
 void do_engine_test(cspan tpl, cspan parsed_tpl, tpl_cases cases)
@@ -22,8 +27,10 @@ void do_engine_test(cspan tpl, cspan parsed_tpl, tpl_cases cases)
 
     for(auto const& c : cases)
     {
+        SCOPED_TRACE(c.name);
+        tree.clear();
         parsed_yml_buf.assign(c.props_yml.begin(), c.props_yml.end());
-        tree = c4::yml::parse(to_span(parsed_yml_buf));
+        c4::yml::parse(to_span(parsed_yml_buf), &tree);
         print_tree(tree);
         eng.render(tree);
         ret = eng.rope().chain_all_resize(&result_buf);
@@ -38,9 +45,9 @@ TEST(engine, expr)
     do_engine_test("foo is {{foo}}",
                    "foo is <<<expr>>>",
                    tpl_cases{
-                       {"{foo: 1}", "foo is 1"},
-                       {"{foo: 2}", "foo is 2"},
-                       {"{foo: 10}", "foo is 10"},
+                       {"0", "{foo: 1}", "foo is 1"},
+                       {"1", "{foo: 2}", "foo is 2"},
+                       {"2", "{foo: 10}", "foo is 10"},
                    });
 }
 
@@ -49,9 +56,9 @@ TEST(engine, expr2)
     do_engine_test("foo is {{foo}}, bar is {{bar}}",
                    "foo is <<<expr>>>, bar is <<<expr>>>",
                    tpl_cases{
-                       {"{foo: 1, bar: 10}", "foo is 1, bar is 10"},
-                       {"{foo: 2, bar: 20}", "foo is 2, bar is 20"},
-                       {"{foo: 3, bar: 30}", "foo is 3, bar is 30"},
+                       {"0", "{foo: 1, bar: 10}", "foo is 1, bar is 10"},
+                       {"1", "{foo: 2, bar: 20}", "foo is 2, bar is 20"},
+                       {"2", "{foo: 3, bar: 30}", "foo is 3, bar is 30"},
                    });
 
 }
@@ -62,8 +69,8 @@ TEST(engine, if_simple)
     do_engine_test("{% if foo %}bar{% endif %}",
                    "<<<if>>>",
                    tpl_cases{
-                       {"{}", ""},
-                       {"{foo: 2}", "bar"},
+                       {"0", "{}", ""},
+                       {"1", "{foo: 2}", "bar"},
                    });
 }
 
@@ -72,8 +79,8 @@ TEST(engine, if_simple_empty)
     do_engine_test("{% if foo %}{% endif %}",
                    "<<<if>>>",
                    tpl_cases{
-                       {"{}", ""},
-                       {"{foo: 2}", ""},
+                       {"0", "{}", ""},
+                       {"1", "{foo: 2}", ""},
                    });
 }
 
@@ -82,8 +89,8 @@ TEST(engine, if_else_simple)
     do_engine_test("{% if foo %}foo{% else %}bar{% endif %}",
                    "<<<if>>>",
                    tpl_cases{
-                       {"{}", "bar"},
-                       {"{foo: 2}", "foo"},
+                       {"0", "{}", "bar"},
+                       {"1", "{foo: 2}", "foo"},
                    });
 }
 
@@ -92,10 +99,10 @@ TEST(engine, if_elif_simple)
     do_engine_test("{% if foo %}foo{% elif bar %}bar{% endif %}",
                    "<<<if>>>",
                    tpl_cases{
-                       {"{}", ""},
-                       {"{foo: 2}", "foo"},
-                       {"{bar: 2}", "bar"},
-                       {"{foo: 2, bar: 2}", "foo"},
+                       {"0", "{}", ""},
+                       {"1", "{foo: 2}", "foo"},
+                       {"2", "{bar: 2}", "bar"},
+                       {"3", "{foo: 2, bar: 2}", "foo"},
                    });
 }
 
@@ -104,15 +111,52 @@ TEST(engine, if_elif_else_simple)
     do_engine_test("{% if foo %}foo{% elif bar %}bar{% else %}baz{% endif %}",
                    "<<<if>>>",
                    tpl_cases{
-                       {"{}", "baz"},
-                       {"{foo: 2}", "foo"},
-                       {"{bar: 2}", "bar"},
-                       {"{baz: 2}", "baz"},
-                       {"{foo: 2, bar: 2}", "foo"},
-                       {"{bar: 2, baz: 2}", "bar"},
+                       {"0", "{}", "baz"},
+                       {"1", "{foo: 2}", "foo"},
+                       {"2", "{bar: 2}", "bar"},
+                       {"3", "{baz: 2}", "baz"},
+                       {"4", "{foo: 2, bar: 2}", "foo"},
+                       {"5", "{bar: 2, baz: 2}", "bar"},
                    });
 }
 
+TEST(engine, if_with_vars_in_if_body)
+{
+    do_engine_test("{% if foo %}foo is active! val={{foo}}{% endif %}",
+                   "<<<if>>>",
+                   tpl_cases{
+                       {"case 0", "{}", ""},
+                       {"case 1", "{foo: 1}", "foo is active! val=1"},
+                       {"case 2", "{foo: 2}", "foo is active! val=2"},
+                       {"case 3", "{foo: 3}", "foo is active! val=3"},
+                   });
+}
+
+TEST(engine, if_with_vars_in_ifelse_body)
+{
+    do_engine_test("{% if foo %}foo is active! foo='{{foo}}' bar='{{bar}}'{% else %}actually, no. foo='{{foo}}' bar='{{bar}}'{% endif %}",
+                   "<<<if>>>",
+                   tpl_cases{
+                       {"case 0", "{}", "actually, no. foo='' bar=''"},
+                       {"case 1", "{bar: 1}", "actually, no. foo='' bar='1'"},
+                       {"case 2", "{bar: 2}", "actually, no. foo='' bar='2'"},
+                       {"case 3", "{foo: 3}", "foo is active! foo='3' bar=''"},
+                       {"case 4", "{foo: 4, bar: 4}", "foo is active! foo='4' bar='4'"},
+                   });
+}
+
+TEST(engine, if_with_vars_everywhere)
+{
+    do_engine_test("{% if foo %}foo is active! foo='{{foo}}' bar='{{bar}}'{% elif bar %}only bar is active: foo='{{foo}}' bar='{{bar}}'{% else %}actually, no. foo='{{foo}}' bar='{{bar}}'{% endif %}",
+                   "<<<if>>>",
+                   tpl_cases{
+                       {"case 0", "{}", "actually, no. foo='' bar=''"},
+                       {"case 1", "{bar: 1}", "only bar is active: foo='' bar='1'"},
+                       {"case 2", "{bar: 2}", "only bar is active: foo='' bar='2'"},
+                       {"case 3", "{foo: 3}", "foo is active! foo='3' bar=''"},
+                       {"case 4", "{foo: 4, bar: 4}", "foo is active! foo='4' bar='4'"},
+                   });
+}
 
 //-----------------------------------------------------------------------------
 TEST(engine, basic)
@@ -191,6 +235,7 @@ nested.very.deeply.baz=<<<expr>>>
 )",
                    tpl_cases{
                        {
+                           "case 0",
                            R"({
 foo: 0,
 bar: 1,

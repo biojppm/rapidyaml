@@ -1,3 +1,5 @@
+
+#include <gtest/gtest.h>
 #include "../rope.hpp"
 
 namespace c4 {

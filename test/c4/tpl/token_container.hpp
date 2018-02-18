@@ -214,21 +214,28 @@ public:
         return const_cast< TokenBase const* >(const_cast< TokenContainer* >(this)->get(i));
     }
 
-    TokenBase *next_token(cspan *rem, TplLocation *loc)
+    size_t get_id(TokenBase const* ptr) const
+    {
+        char const* address = reinterpret_cast< char const* >(ptr);
+        address -= sizeof(size_t);
+        return (address - m_tokens.data()) / m_entry_size;
+    }
+
+    size_t next_token(cspan *rem, TplLocation *loc)
     {
         C4_ASSERT(TokenRegistry::get_max_size() == m_max_size);
         auto result = TokenRegistry::match_any(*rem);
-        if( ! result) return nullptr;
+        if( ! result) return NONE;
         size_t pos = m_num_tokens++;
         m_tokens.resize(m_tokens.size() + m_entry_size);
         span entry = get_token_span(pos);
         memcpy(entry.str, &result.which, sizeof(size_t));
         span mem = entry.subspan(sizeof(size_t));
         auto const& type = TokenRegistry::get_type(result.which);
-        TokenBase *obj = type.create(mem);
+        /*TokenBase *obj = */type.create(mem);
         *rem = rem->subspan(result.pos);
-        loc->m_rope_pos.i = result.pos;
-        return obj;
+        loc->m_rope_pos.i += result.pos;
+        return pos;
     }
 
 public:

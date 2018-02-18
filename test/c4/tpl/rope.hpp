@@ -294,9 +294,18 @@ public:
 
     size_t replace(size_t entry, size_t pos, size_t num, cspan s)
     {
-        size_t n = _do_erase(entry, pos, num);
-        n = insert_after(n, s);
-        return n;
+        C4_ASSERT(pos     >= 0 && pos     <  _p(entry).s.len);
+        C4_ASSERT(pos+num >= 0 && pos+num <= _p(entry).s.len);
+        if(pos > 0 || num < _p(entry).s.len)  // replace just a portion of the string
+        {
+            size_t n = _do_erase(entry, pos, num);
+            n = insert_after(n, s);
+            return n;
+        }
+        // replace the whole span
+        C4_ASSERT(pos == 0 && num == _p(entry).s.len);
+        _p(entry).s = s;
+        return entry;
     }
 
     size_t replace(size_t entry, cspan s)

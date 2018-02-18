@@ -1,6 +1,8 @@
 #ifndef _C4_TPL_TOKEN_HPP_
 #define _C4_TPL_TOKEN_HPP_
 
+#include <c4/yml/tree.hpp>
+#include <c4/yml/node.hpp>
 #include "./token_container.hpp"
 
 namespace c4 {
