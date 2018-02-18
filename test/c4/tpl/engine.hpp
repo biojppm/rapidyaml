@@ -43,21 +43,20 @@ public:
         }
     }
 
-    void render(c4::yml::NodeRef const& root, Rope *r=nullptr) const
+    void render(c4::yml::NodeRef const& root, Rope *rope=nullptr) const
     {
-        if(r == nullptr)
+        if(rope == nullptr)
         {
-            r = &m_rope;
+            rope = &m_rope;
         }
-        if(r->num_entries() != m_rope.num_entries())
+        if(rope->num_entries() != m_rope.num_entries())
         {
-            *r = m_rope;
+            *rope = m_rope;
         }
         for(auto const& token : m_tokens)
         {
-            cspan val = {};
-            token.resolve(root, &val);
-            r->replace(token.rope_entry(), val);
+            if( ! token.m_root_level) continue;
+            token.render(root, rope);
         }
     }
 

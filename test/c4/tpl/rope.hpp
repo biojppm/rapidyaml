@@ -292,11 +292,13 @@ public:
         return _do_erase(entry, pos, 0);
     }
 
+    /** replace a portion of entry, starting at pos, num characters long */
     size_t replace(size_t entry, size_t pos, size_t num, cspan s)
     {
-        C4_ASSERT(pos     >= 0 && pos     <  _p(entry).s.len);
+        C4_ASSERT(pos     >= 0 && pos     <= _p(entry).s.len);
         C4_ASSERT(pos+num >= 0 && pos+num <= _p(entry).s.len);
-        if(pos > 0 || num < _p(entry).s.len)  // replace just a portion of the string
+        // replace a subspan: split the span once or twice as needed
+        if(pos > 0 || num < _p(entry).s.len)
         {
             size_t n = _do_erase(entry, pos, num);
             n = insert_after(n, s);
@@ -308,6 +310,7 @@ public:
         return entry;
     }
 
+    /** fully replace an entry */
     size_t replace(size_t entry, cspan s)
     {
         C4_ASSERT(entry != NONE && entry < m_cap);

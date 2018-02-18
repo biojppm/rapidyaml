@@ -38,20 +38,6 @@ void TokenBase::mark()
     m_start.m_rope->replace(m_start.m_rope_pos.entry, marker());
 }
 
-void TokenBase::_do_parse_body(cspan body, TplLocation pos, TokenContainer *cont) const
-{
-    //size_t id = cont->get_id(this); // prepare for an eventual relocation of 'this' while adding tokens. Fishy, I know.
-    C4_ASSERT(pos.m_rope != nullptr);
-    while( ! body.empty())
-    {
-        C4_ASSERT(body == pos.m_rope->subspan(pos.m_rope_pos).subspan(0, body.len));
-        size_t tk_pos = cont->next_token(&body, &pos);
-        if(tk_pos == NONE) break;
-        cont->get(tk_pos)->parse(&body, &pos);
-        cont->get(tk_pos)->parse_body(cont);
-    }
-}
-
 bool TokenBase::eval(NodeRef const& root, cspan key, cspan *value) const
 {
     C4_ASSERT(root.valid());
@@ -158,35 +144,127 @@ cspan TokenBase::skip_nested(cspan rem) const
     return {};
 }
 
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-void IfCondition::eval(NodeRef const& root)
+void TemplateBlock::parse(TokenContainer *cont)
+{
+    parts.clear();
+    tokens = cont;
+    C4_ASSERT(start.m_rope != nullptr);
+    cspan curr = body;
+    cspan rem = body;
+    TplLocation pos = start;
+    Rope *rope = pos.m_rope;
+    auto &rp = pos.m_rope_pos;
+    rope->replace(rp.entry, body);
+    rp.i = 0;
+    while( ! rem.empty())
+    {
+        C4_ASSERT(rem == rope->subspan(rp).subspan(0, rem.len));
+        size_t tk_pos = cont->next_token(&rem, &pos);
+        if(tk_pos == NONE)
+        {
+            parts.emplace_back();
+            auto &p = parts.back();
+            p.body = rem;
+            p.entry = rope->replace(rp.entry, rp.i, p.body.len, p.body);
+            curr = rem;
+            break;
+        }
+        // is there an entry for the block before the token?
+        if(rem.begin() != curr.begin())
+        {
+            parts.emplace_back();
+            auto &p = parts.back();
+            p.body = curr.subspan(0, rem.begin() - curr.begin());
+            p.entry = rp.entry;
+            rp.entry = rope->split(rp.entry, p.body.len);
+            rp.entry = rope->next(rp.entry);
+            C4_ASSERT(rp.entry != NONE);
+            rp.i = 0;
+            curr = rem;
+        }
+        // add the entry for the token
+        {
+            parts.emplace_back();
+            auto &p = parts.back();
+            p.token = tk_pos;
+            p.entry = NONE;
+            p.body = rem;
+            rope->replace(rp.entry, rem);
+            cont->get(tk_pos)->m_root_level = false;
+            cont->get(tk_pos)->parse(&rem, &pos);
+            cont->get(tk_pos)->parse_body(cont);
+            C4_ASSERT(p.body.has_subspan(rem));
+            p.body = p.body.subspan(0, rem.begin() - p.body.begin());
+            curr = rem;
+        }
+    }
+}
+
+void TemplateBlock::render(NodeRef const& root, Rope *rope) const
+{
+    for(auto const& p : parts)
+    {
+        if(p.token != NONE)
+        {
+            tokens->get(p.token)->render(root, rope);
+        }
+        else
+        {
+            rope->replace(p.entry, p.body);
+        }
+    }
+}
+
+void TemplateBlock::clear(Rope *rope) const
+{
+    for(auto const& p : parts)
+    {
+        if(p.token != NONE)
+        {
+            rope->replace(tokens->get(p.token)->rope_entry(), {});
+        }
+        else
+        {
+            rope->replace(p.entry, {});
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+void IfCondition::_eval(TokenIf const* tk, NodeRef const& root)
 {
     m_argval = {};
     if( ! m_arg.empty())
     {
-        m_token->eval(root, m_arg, &m_argval);
+        tk->eval(root, m_arg, &m_argval);
     }
     m_cmpval = {};
     if( ! m_cmp.empty())
     {
-        m_token->eval(root, m_cmp, &m_cmpval);
+        tk->eval(root, m_cmp, &m_cmpval);
     }
 }
 
-bool IfCondition::resolve(NodeRef const& root)
+bool IfCondition::resolve(TokenIf const* tk, NodeRef const& root)
 {
     switch(m_ctype)
     {
-    case ARG:        eval(root); return ! m_argval.empty();
-    case ARG_EQ_CMP: eval(root); return   m_argval.compare(m_cmpval) == 0;
-    case ARG_NE_CMP: eval(root); return   m_argval.compare(m_cmpval) != 0;
-    case ARG_GE_CMP: eval(root); return   m_argval.compare(m_cmpval) >= 0;
-    case ARG_GT_CMP: eval(root); return   m_argval.compare(m_cmpval) >  0;
-    case ARG_LE_CMP: eval(root); return   m_argval.compare(m_cmpval) <= 0;
-    case ARG_LT_CMP: eval(root); return   m_argval.compare(m_cmpval) <  0;
+    case ELSE:                        return   true;
+    case ARG:        _eval(tk, root); return ! m_argval.empty();
+    case ARG_EQ_CMP: _eval(tk, root); return   m_argval.compare(m_cmpval) == 0;
+    case ARG_NE_CMP: _eval(tk, root); return   m_argval.compare(m_cmpval) != 0;
+    case ARG_GE_CMP: _eval(tk, root); return   m_argval.compare(m_cmpval) >= 0;
+    case ARG_GT_CMP: _eval(tk, root); return   m_argval.compare(m_cmpval) >  0;
+    case ARG_LE_CMP: _eval(tk, root); return   m_argval.compare(m_cmpval) <= 0;
+    case ARG_LT_CMP: _eval(tk, root); return   m_argval.compare(m_cmpval) <  0;
     case ARG_IN_CMP:
     case ARG_NOT_IN_CMP:
     {
@@ -331,16 +409,7 @@ void TokenIf::parse(cspan *rem, TplLocation *curr_pos)
     // scan the condition
     cspan s = m_full_text;
     cspan c = _scan_condition(stoken(), &s);
-    m_cond_blocks.emplace_back();
-    auto *cb = &m_cond_blocks.back();
-    cb->condition.init(this, c);
-    cb->start = *curr_pos;
-    cb->start.m_rope_pos.entry = m_rope_entry;
-    C4_ASSERT(m_full_text.has_subspan(s));
-    cb->start.m_rope_pos.i = s.begin() - m_full_text.begin();
-
-    m_else_block.clear();
-    m_else_block_offs = 0;
+    condblock *cb = _add_block(c, s);
 
     // scan the branches
     while(1)
@@ -349,31 +418,25 @@ void TokenIf::parse(cspan *rem, TplLocation *curr_pos)
         C4_ERROR_IF_NOT(result, "invalid {% if %} structure");
         if(result.which == 0) // endif
         {
-            cb->block = s.subspan(0, result.pos);
+            cb->set_body(s.subspan(0, result.pos)); // terminate the current block
             break;
         }
         else if(result.which == 1) // else
         {
-            cb->block = s.subspan(0, result.pos);
+            cb->set_body(s.subspan(0, result.pos));
             s = s.subspan(result.pos + 10); // 10==strlen("{% else %}")
             auto pos = s.find("{% endif %}");
             C4_ERROR_IF(pos == npos, "invalid {% if %} structure");
             s = s.subspan(0, pos);
-            m_else_block = s;
-            m_else_block_offs = s.begin() - m_full_text.begin();
+            cb = _add_block({}, s, /*as_else*/true);
             break;
         }
         else if(result.which == 2) // elif
         {
-            cb->block = s.subspan(0, result.pos);
+            cb->set_body(s.subspan(0, result.pos));
             s = s.subspan(result.pos);
             auto cond = _scan_condition("{% elif ", &s);
-            m_cond_blocks.emplace_back();
-            cb = &m_cond_blocks.back();
-            cb->condition.init(this, cond);
-            cb->start.m_rope = m_start.m_rope;
-            cb->start.m_rope_pos.entry = m_rope_entry;
-            cb->start.m_rope_pos.i = s.begin() - m_full_text.begin();
+            cb = _add_block(cond, s);
         }
         else if(result.which == 3) // nested if
         {
@@ -385,34 +448,51 @@ void TokenIf::parse(cspan *rem, TplLocation *curr_pos)
         }
     }
 
-    for(auto &cond : m_cond_blocks)
+    for(auto &cond : m_blocks)
     {
-        C4_ASSERT(m_full_text.has_subspan(cond.block));
-        cond.block = cond.block.trim("\r\n");
-        cond.start.m_rope_pos.i = cond.block.begin() - m_full_text.begin();
+        C4_ASSERT(m_full_text.has_subspan(cond.body) || cond.body.empty());
+        cond.body = cond.body.trim("\r\n");
+        cond.start.m_rope_pos.i = cond.body.begin() - m_full_text.begin();
     }
-    if( ! m_else_block.empty())
+}
+
+TokenIf::condblock* TokenIf::_add_block(cspan cond, cspan s, bool as_else)
+{
+    C4_ASSERT(m_full_text.has_subspan(s));
+    m_blocks.emplace_back();
+    auto *cb = &m_blocks.back();
+    cb->body = s;
+    cb->start.m_rope = m_start.m_rope;
+    cb->start.m_rope_pos.i = 0;
+    if(m_blocks.size() == 1)
     {
-        C4_ASSERT(m_full_text.has_subspan(m_else_block));
-        m_else_block = m_else_block.trim("\r\n");
-        m_else_block_offs = m_else_block.begin() - m_full_text.begin();
+        cb->start.m_rope_pos.entry = m_rope_entry;
     }
+    else
+    {
+        C4_ASSERT(m_blocks.size() >= 2);
+        auto prev = m_blocks[m_blocks.size() - 2].start.m_rope_pos.entry;
+        cb->start.m_rope_pos.entry = m_start.m_rope->insert_after(prev, s);
+    }
+    if(as_else)
+    {
+        cb->condition.init_as_else();
+    }
+    else
+    {
+        cb->condition.init(cond);
+    }
+    return cb;
 }
 
 void TokenIf::parse_body(TokenContainer *cont) const
 {
-    size_t my_id = cont->get_id(this); // defend against an eventual relocation
 #define _c4this static_cast< TokenIf const* >(cont->get(my_id))
 
-    for(auto const& b : _c4this->m_cond_blocks)
+    size_t my_id = cont->get_id(this);
+    for(auto &b : _c4this->m_blocks)
     {
-        _c4this->_do_parse_body(b.block, b.start, cont);
-    }
-
-    if( ! _c4this->m_else_block.empty())
-    {
-        TplLocation else_pos = {_c4this->m_end.m_rope, {_c4this->m_rope_entry, _c4this->m_else_block_offs}};
-        _c4this->_do_parse_body(_c4this->m_else_block, else_pos, cont);
+        b.parse(cont);
     }
 
 #undef _c4this
@@ -429,18 +509,32 @@ cspan TokenIf::_scan_condition(cspan token, cspan *s)
     return c;
 }
 
-bool TokenIf::resolve(NodeRef const& root, cspan *value) const
+bool TokenIf::resolve(NodeRef const& /*root*/, cspan * /*value*/) const
 {
-    for(auto const& cb : m_cond_blocks)
+    C4_ERROR("never call this");
+    return true;
+}
+
+void TokenIf::render(NodeRef const& root, Rope *rope) const
+{
+    for(auto const& cb : m_blocks)
     {
-        if(cb.condition.resolve(root))
+        if(cb.condition.resolve(this, root))
         {
-            *value = cb.block;
-            return true;
+            cb.render(root, rope); // render this block
+            for(auto const& cb2 : m_blocks) // and clear all other blocks
+            {
+                if(&cb2 == &cb) continue;
+                cb2.clear(rope);
+            }
+            return; // make sure of returning here to avoid the code below
         }
     }
-    *value = m_else_block;
-    return true;
+    // no condition was matched - clear all blocks
+    for(auto const& cb : m_blocks)
+    {
+        cb.clear(rope);
+    }
 }
 
 } // namespace tpl

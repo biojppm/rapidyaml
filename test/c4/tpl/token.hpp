@@ -36,11 +36,13 @@ class TokenBase
 {
 public:
 
-    virtual ~TokenBase() {}
+    virtual ~TokenBase() = default;
 
     virtual cspan const& stoken() const = 0;
     virtual cspan const& etoken() const = 0;
     virtual cspan const& marker() const = 0;
+
+    bool m_root_level{true};
 
     TplLocation m_start;
     TplLocation m_end;
@@ -49,6 +51,7 @@ public:
     cspan m_full_text;
     cspan m_interior_text;
 
+    Rope * rope() const { return m_start.m_rope; }
     size_t rope_entry() const { return m_rope_entry; }
 
     virtual void parse(cspan *rem, TplLocation *curr_pos);
@@ -61,6 +64,12 @@ public:
         return false;
     }
 
+    virtual void render(NodeRef const& root, Rope *rope) const
+    {
+        cspan val = {};
+        resolve(root, &val);
+        rope->replace(m_rope_entry, val);
+    }
 
     bool eval(NodeRef const& root, cspan key, cspan *result) const;
 
@@ -72,10 +81,7 @@ public:
 
 protected:
 
-    void _do_parse_body(cspan body, TplLocation pos, TokenContainer *cont) const;
-
 };
-
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -101,14 +107,14 @@ public:
         m_expr_offs = m_expr.begin() - orig.begin();
     }
 
-    virtual bool resolve(NodeRef const& root, cspan *value) const override
+    bool resolve(NodeRef const& root, cspan *value) const override
     {
         return this->eval(root, m_expr, value);
     }
 
-    virtual void parse_body(TokenContainer *cont) const override
+    void parse_body(TokenContainer * /*cont*/) const override
     {
-        _do_parse_body(m_expr, {m_start.m_rope, {m_rope_entry, m_expr_offs}}, cont);
+        C4_ASSERT(m_expr.find('|') == npos && "filters not implemented");
     }
 
 };
@@ -138,6 +144,38 @@ public:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+struct TemplateBlock
+{
+    struct subpart
+    {
+        size_t entry{NONE};
+        cspan body{};
+        size_t token{NONE};
+    };
+
+    cspan body;
+    TplLocation start;
+    std::vector< subpart > parts;
+    TokenContainer *tokens; // to get the tokens from their ids
+
+    void set_body(cspan b)
+    {
+        body = b;
+        start.m_rope->replace(start.m_rope_pos.entry, b);
+    }
+
+    void parse(TokenContainer *cont);
+
+    void render(NodeRef const& root, Rope *r) const;
+
+    void clear(Rope *r) const;
+};
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 struct IfCondition
 {
 
@@ -152,62 +190,48 @@ struct IfCondition
         ARG_GT_CMP,      // foo >  bar
         ARG_LE_CMP,      // foo <= bar
         ARG_LT_CMP,      // foo <  bar
-    } ConditionType_e;
+        ELSE,            // else- blocks, always true
+    } Type_e;
 
-    cspan m_str;
-    cspan m_arg;
-    cspan m_argval;
-    cspan m_cmp;
-    cspan m_cmpval;
-    TokenIf const* m_token;
-    ConditionType_e m_ctype;
+    cspan  m_str;
+    cspan  m_arg;
+    cspan  m_argval;
+    cspan  m_cmp;
+    cspan  m_cmpval;
+    Type_e m_ctype;
 
-    void init(TokenIf *tk, cspan str)
+    void init_as_else()
+    {
+        m_str.clear();
+        m_ctype = ELSE;
+    }
+
+    void init(cspan str)
     {
         C4_ASSERT( ! str.begins_with("{% if"));
         m_str = str;
-        m_token = tk;
         parse();
     }
 
-    void eval(NodeRef const& root);
-
-    bool resolve(NodeRef const& root);
+    bool resolve(TokenIf const* tk, NodeRef const& root);
 
     void parse();
 
+private:
+
+    void _eval(TokenIf const* tk, NodeRef const& root);
+
 };
 
+
 //-----------------------------------------------------------------------------
-/**
-@begincode
-{% if kenny.sick %}
-    Kenny is sick.
-{% elif kenny.dead %}
-    You killed Kenny!  You bastard!!!
-{% else %}
-    Kenny looks okay --- so far
-{% endif %}
-@endcode
- */
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 class TokenIf : public TokenBase
 {
 public:
 
     C4TPL_DECLARE_TOKEN(TokenIf, "{% if ", "{% endif %}", "<<<if>>>");
-
-public:
-
-    struct condblock
-    {
-        mutable IfCondition condition;
-        cspan block;
-        TplLocation start;
-    };
-
-    std::vector< condblock > m_cond_blocks;
-    cspan                    m_else_block;
-    size_t                   m_else_block_offs;
 
     void parse(cspan *rem, TplLocation *curr_pos) override;
 
@@ -215,7 +239,20 @@ public:
 
     static cspan _scan_condition(cspan token, cspan *s);
 
-    virtual bool resolve(NodeRef const& root, cspan *value) const override;
+    bool resolve(NodeRef const& root, cspan *value) const override;
+
+    void render(NodeRef const& root, Rope *rope) const override;
+
+public:
+
+    struct condblock : public TemplateBlock
+    {
+        mutable IfCondition condition;
+    };
+
+    mutable std::vector< condblock > m_blocks;
+
+    condblock* _add_block(cspan cond, cspan s, bool as_else=false);
 };
 
 

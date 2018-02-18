@@ -177,13 +177,15 @@ public:
 
     ~TokenContainer();
 
-    span get_token_span(size_t i)
+    size_t size() const { return m_num_tokens; }
+
+    span get_token_mem(size_t i)
     {
         C4_ASSERT(i >= 0 && i < m_num_tokens);
         return {&m_tokens[i * m_entry_size], m_entry_size};
     }
 
-    cspan get_token_span(size_t i) const
+    cspan get_token_mem(size_t i) const
     {
         C4_ASSERT(i >= 0 && i < m_num_tokens);
         return {&m_tokens[i * m_entry_size], m_entry_size};
@@ -191,7 +193,7 @@ public:
 
     TokenType const& get_type(size_t i) const
     {
-        cspan mem = get_token_span(i);
+        cspan mem = get_token_mem(i);
         size_t type_pos;
         memcpy(&type_pos, mem.str, sizeof(size_t));
         auto const& type = TokenRegistry::get_type(type_pos);
@@ -200,7 +202,7 @@ public:
 
     TokenBase *get(size_t i)
     {
-        span mem = get_token_span(i);
+        span mem = get_token_mem(i);
         size_t type_pos;
         memcpy(&type_pos, mem.str, sizeof(size_t));
         auto const& type = TokenRegistry::get_type(type_pos);
@@ -228,7 +230,7 @@ public:
         if( ! result) return NONE;
         size_t pos = m_num_tokens++;
         m_tokens.resize(m_tokens.size() + m_entry_size);
-        span entry = get_token_span(pos);
+        span entry = get_token_mem(pos);
         memcpy(entry.str, &result.which, sizeof(size_t));
         span mem = entry.subspan(sizeof(size_t));
         auto const& type = TokenRegistry::get_type(result.which);
