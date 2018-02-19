@@ -159,6 +159,18 @@ TEST(engine, if_with_vars_everywhere)
 }
 
 //-----------------------------------------------------------------------------
+TEST(engine, for_simple)
+{
+    do_engine_test("{% for v in var %}this block will repeat{% endfor %}",
+                   "<<<for>>>",
+                   tpl_cases{
+                       {"case 0", "{}", ""},
+                       {"case 1", "{var: [0]}", "this block will repeat"},
+                       {"case 1", "{var: [0, 1]}", "this block will repeat\nthis block will repeat"},
+                   });
+}
+
+//-----------------------------------------------------------------------------
 TEST(engine, basic)
 {
     do_engine_test(R"(

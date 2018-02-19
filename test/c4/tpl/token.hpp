@@ -15,6 +15,7 @@ using Tree = c4::yml::Tree;
 using NodeRef = c4::yml::NodeRef;
 
 class TokenBase;
+
 class TokenExpression;
 class TokenIf;
 class TokenFor;
@@ -262,7 +263,22 @@ public:
 class TokenFor : public TokenBase
 {
 public:
+
     C4TPL_DECLARE_TOKEN(TokenFor, "{% for ", "{% endfor %}", "<<<for>>>");
+
+    void parse(cspan *rem, TplLocation *curr_pos) override;
+
+    void parse_body(TokenContainer *cont) const override;
+
+    bool resolve(NodeRef const& root, cspan *value) const override;
+
+    void render(NodeRef const& root, Rope *rope) const override;
+
+public:
+
+    mutable TemplateBlock m_block;
+    cspan m_var;
+    cspan m_val;
 };
 
 } // namespace tpl

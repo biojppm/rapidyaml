@@ -537,5 +537,54 @@ void TokenIf::render(NodeRef const& root, Rope *rope) const
     }
 }
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+bool TokenFor::resolve(NodeRef const& /*root*/, cspan * /*value*/) const
+{
+    C4_ERROR("never call this");
+    return true;
+}
+
+void TokenFor::parse(cspan *rem, TplLocation *curr_pos)
+{
+    base_type::parse(rem, curr_pos);
+
+    C4_ASSERT(m_full_text.begins_with(stoken()));
+    C4_ASSERT(m_full_text.ends_with(etoken()));
+
+    cspan s = m_interior_text;
+
+    size_t pos = s.find(" in ");
+    C4_ERROR_IF(pos == npos, "parse error");
+    m_var = s.left_of(pos);
+    m_val = s.right_of(pos + 4, /*include_pos*/true);
+    pos = m_val.first_of(' ');
+    C4_ERROR_IF(pos == npos, "parse error");
+    m_val = m_val.left_of(pos);
+
+    cspan body = s.right_of(m_val);
+    pos = body.find(" %}");
+    C4_ERROR_IF(pos == npos, "parse error");
+    C4_ERROR_IF(pos != 0, "parse error");
+    body = body.right_of(2);
+    body = body.trim("\r\n");
+
+    m_block.body = body;
+    m_block.start.m_rope = m_start.m_rope;
+    m_block.start.m_rope_pos.i = body.begin() - m_full_text.begin();
+    m_block.start.m_rope_pos.entry = m_rope_entry;
+}
+
+void TokenFor::parse_body(TokenContainer *cont) const
+{
+    m_block.parse(cont);
+}
+
+void TokenFor::render(NodeRef const& /*root*/, Rope * /*rope*/) const
+{
+}
+
 } // namespace tpl
 } // namespace c4
