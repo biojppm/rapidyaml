@@ -390,7 +390,8 @@ public:
     }
 
     /** this won't match splitted tokens */
-    rope_pos lookup_token(cspan token, rope_pos pos={}) const
+    rope_pos lookup_token(cspan token) const { return lookup_token(token, {m_head, 0}); }
+    rope_pos lookup_token(cspan token, rope_pos pos) const
     {
         while(pos.entry < m_cap && pos.valid())
         {
@@ -406,7 +407,8 @@ public:
         return {NONE, npos};
     }
 
-    rope_pos split_before(cspan token, rope_pos pos={})
+    rope_pos split_before(cspan token) { return split_before(token, {m_head, 0}); }
+    rope_pos split_before(cspan token, rope_pos pos)
     {
         pos = lookup_token(token, pos);
         if( ! pos.valid()) return {NONE, npos};
@@ -414,7 +416,8 @@ public:
         return {entry, 0};
     }
 
-    rope_pos split_after(cspan token, rope_pos pos={})
+    rope_pos split_after(cspan token) { return split_after(token, {m_head, 0}); }
+    rope_pos split_after(cspan token, rope_pos pos)
     {
         pos = lookup_token(token, pos);
         if( ! pos.valid()) return {NONE, npos};
@@ -423,7 +426,8 @@ public:
         return {entry, 0};
     }
 
-    rope_pos insert_before(cspan token, cspan val, rope_pos pos={})
+    rope_pos insert_before(cspan token, cspan val) { return insert_before(token, val, {m_head, 0}); }
+    rope_pos insert_before(cspan token, cspan val, rope_pos pos)
     {
         pos = split_before(token, pos);
         if( ! pos.valid()) return {NONE, npos};
@@ -431,7 +435,8 @@ public:
         return {entry, 0};
     }
 
-    rope_pos insert_after(cspan token, cspan val, rope_pos pos={})
+    rope_pos insert_after(cspan token, cspan val) { return insert_after(token, val, {m_head, 0}); }
+    rope_pos insert_after(cspan token, cspan val, rope_pos pos)
     {
         pos = split_after(token, pos);
         if( ! pos.valid()) return {NONE, npos};
