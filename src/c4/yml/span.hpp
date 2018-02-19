@@ -174,6 +174,38 @@ public:
 
 public:
 
+    basic_span left_of(basic_span ss) const
+    {
+        auto ssb = ss.begin();
+        auto b = begin();
+        auto e = end();
+        if(ssb >= b && ssb <= e)
+        {
+            return subspan(0, ssb - b);
+        }
+        else
+        {
+            return subspan(0, 0);
+        }
+    }
+
+    basic_span right_of(basic_span ss) const
+    {
+        auto sse = ss.end();
+        auto b = begin();
+        auto e = end();
+        if(sse >= b && sse <= e)
+        {
+            return subspan(sse - b, e - sse);
+        }
+        else
+        {
+            return subspan(0, 0);
+        }
+    }
+
+public:
+
     /** trim left */
     basic_span triml(const C c) const
     {
