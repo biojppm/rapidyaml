@@ -107,6 +107,10 @@ public:
 
 public:
 
+    bool empty() const { return m_str_size == 0 && m_size == 0; }
+
+    size_t str_size() const { return m_str_size; }
+
     size_t num_entries() const { return m_size; }
 
     void reserve(size_t cap)
@@ -439,21 +443,21 @@ public:
 
     void insert_before_all(cspan token, cspan val)
     {
-        rope_pos pos = {};
+        rope_pos pos = {m_head, 0};
         while(pos.valid())
         {
             pos = insert_before(token, val, pos);
             if( ! pos.valid()) break;
             C4_ASSERT(_p(pos.entry).s.str == val.str && _p(pos.entry).s.len == val.len);
             C4_ASSERT(next(pos.entry) != NONE);
-            C4_ASSERT(subspan({next(pos.entry), 0}).str == token.str);
+            C4_ASSERT(subspan({next(pos.entry), 0}).subspan(0, token.len) == token.str);
             pos = {next(pos.entry), token.len};
         }
     }
 
     void insert_after_all(cspan token, cspan val)
     {
-        rope_pos pos = {};
+        rope_pos pos = {m_head, 0};
         while(pos.valid())
         {
             pos = insert_after(token, val, pos);

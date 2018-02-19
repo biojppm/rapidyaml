@@ -94,6 +94,8 @@ TEST(rope, raw_replace_nonempty_at_end)
 
 TEST(rope, basic)
 {
+    std::vector< char > result;
+
     cspan s(R"(
 this is a long text {% t %}
 with some tokens in it {% t %}
@@ -103,29 +105,281 @@ and yet some more
 but not this one {% u %}
 )");
     Rope r;
+
+    EXPECT_TRUE(r.empty());
+    EXPECT_EQ(r.str_size(), 0);
+    EXPECT_EQ(r.num_entries(), 0);
+
     r.append(s);
 
-    r.append("\n\nand more lines still {% t %}\n\n{% t %}\n\n{% u %}\n\n{% t %}\n");
-    std::cout << "\n\nBEFORE:\n" << r << "\n";
+    EXPECT_FALSE(r.empty());
+    EXPECT_EQ(r.str_size(), s.len);
+    EXPECT_EQ(r.num_entries(), 1);
+
+    cspan ret = r.chain_all_resize(&result);
+    EXPECT_EQ(ret, s);
+
+    cspan p("\n\nand more lines still {% t %}\n\n{% t %}\n\n{% u %}\n\n{% t %}\n");
+    r.append(p);
+
+    EXPECT_EQ(r.str_size(), s.len + p.len);
+    EXPECT_EQ(r.num_entries(), 2);
+    EXPECT_EQ(r.get(0)->s, s);
+    EXPECT_EQ(r.get(1)->s, p);
+
+    ret = r.chain_all_resize(&result);
+    EXPECT_EQ(ret, R"(
+this is a long text {% t %}
+with some tokens in it {% t %}
+{% t %}
+and yet some more
+{% t %}
+but not this one {% u %}
+
+
+and more lines still {% t %}
+
+{% t %}
+
+{% u %}
+
+{% t %}
+)");
 
     r.replace_all("{% t %}", "______");
-    r.replace_all("{% u %}", "tututu");
-    r.replace_all("yet", "asdkjasdkjhaskdjasd");
+    ret = r.chain_all_resize(&result);
+    EXPECT_EQ(ret, R"(
+this is a long text ______
+with some tokens in it ______
+______
+and yet some more
+______
+but not this one {% u %}
 
-    std::cout << "\n\nAFTER:\n" << r << "\n";
+
+and more lines still ______
+
+______
+
+{% u %}
+
+______
+)");
+
+    r.replace_all("{% u %}", "tututu");
+    ret = r.chain_all_resize(&result);
+    EXPECT_EQ(ret, R"(
+this is a long text ______
+with some tokens in it ______
+______
+and yet some more
+______
+but not this one tututu
+
+
+and more lines still ______
+
+______
+
+tututu
+
+______
+)");
+
+    r.replace_all("yet", "asdkjasdkjhaskdjasd");
+    ret = r.chain_all_resize(&result);
+    EXPECT_EQ(ret, R"(
+this is a long text ______
+with some tokens in it ______
+______
+and asdkjasdkjhaskdjasd some more
+______
+but not this one tututu
+
+
+and more lines still ______
+
+______
+
+tututu
+
+______
+)");
+
 
     r.insert_after("is a", " REALLY");
-    std::cout << "\n\nAFTER:\n" << r << "\n";
+    ret = r.chain_all_resize(&result);
+    EXPECT_EQ(ret, R"(
+this is a REALLY long text ______
+with some tokens in it ______
+______
+and asdkjasdkjhaskdjasd some more
+______
+but not this one tututu
+
+
+and more lines still ______
+
+______
+
+tututu
+
+______
+)");
+
 
     r.insert_before("REALLY", "really ");
+    ret = r.chain_all_resize(&result);
+    EXPECT_EQ(ret, R"(
+this is a really REALLY long text ______
+with some tokens in it ______
+______
+and asdkjasdkjhaskdjasd some more
+______
+but not this one tututu
 
-    std::cout << "\n\nAFTER:\n" << r << "\n";
+
+and more lines still ______
+
+______
+
+tututu
+
+______
+)");
 
     r.insert_before_all("______", "^^^^");
-    std::cout << "\n\nAFTER:\n" << r << "\n";
+    ret = r.chain_all_resize(&result);
+    EXPECT_EQ(ret, R"(
+this is a really REALLY long text ^^^^______
+with some tokens in it ^^^^______
+^^^^______
+and asdkjasdkjhaskdjasd some more
+^^^^______
+but not this one tututu
+
+
+and more lines still ^^^^______
+
+^^^^______
+
+tututu
+
+^^^^______
+)");
 
     r.insert_after_all("______", "^^^^");
-    std::cout << "\n\nAFTER:\n" << r << "\n";
+    ret = r.chain_all_resize(&result);
+    EXPECT_EQ(ret, R"(
+this is a really REALLY long text ^^^^______^^^^
+with some tokens in it ^^^^______^^^^
+^^^^______^^^^
+and asdkjasdkjhaskdjasd some more
+^^^^______^^^^
+but not this one tututu
+
+
+and more lines still ^^^^______^^^^
+
+^^^^______^^^^
+
+tututu
+
+^^^^______^^^^
+)");
+
+    r.insert_before_all("this", "z");
+    ret = r.chain_all_resize(&result);
+    EXPECT_EQ(ret, R"(
+zthis is a really REALLY long text ^^^^______^^^^
+with some tokens in it ^^^^______^^^^
+^^^^______^^^^
+and asdkjasdkjhaskdjasd some more
+^^^^______^^^^
+but not zthis one tututu
+
+
+and more lines still ^^^^______^^^^
+
+^^^^______^^^^
+
+tututu
+
+^^^^______^^^^
+)");
+
+    r.insert_after_all("\n", "\n");
+    ret = r.chain_all_resize(&result);
+    EXPECT_EQ(ret, R"(
+
+zthis is a really REALLY long text ^^^^______^^^^
+
+with some tokens in it ^^^^______^^^^
+
+^^^^______^^^^
+
+and asdkjasdkjhaskdjasd some more
+
+^^^^______^^^^
+
+but not zthis one tututu
+
+
+
+
+
+and more lines still ^^^^______^^^^
+
+
+
+^^^^______^^^^
+
+
+
+tututu
+
+
+
+^^^^______^^^^
+
+)");
+
+
+    r.insert_after_all("\n", "-> ");
+    ret = r.chain_all_resize(&result);
+    EXPECT_EQ(ret, R"(
+-> 
+-> zthis is a really REALLY long text ^^^^______^^^^
+-> 
+-> with some tokens in it ^^^^______^^^^
+-> 
+-> ^^^^______^^^^
+-> 
+-> and asdkjasdkjhaskdjasd some more
+-> 
+-> ^^^^______^^^^
+-> 
+-> but not zthis one tututu
+-> 
+-> 
+-> 
+-> 
+-> 
+-> and more lines still ^^^^______^^^^
+-> 
+-> 
+-> 
+-> ^^^^______^^^^
+-> 
+-> 
+-> 
+-> tututu
+-> 
+-> 
+-> 
+-> ^^^^______^^^^
+-> 
+-> )");
 }
 
 
