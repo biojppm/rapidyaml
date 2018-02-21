@@ -11,19 +11,15 @@ namespace c4 {
 namespace yml {
 
 template< class CharOwningContainer, class... Args >
-inline void cat_resize(CharOwningContainer *cont, Args const& ...args)
+inline void catrs(CharOwningContainer *cont, Args const& ...args)
 {
     span buf(cont->empty() ? nullptr : &(*cont)[0], cont->size());
     size_t ret = cat(buf, args...);
+    cont->resize(ret);
     if(ret > buf.len)
     {
-        cont->resize(ret);
         buf.assign(&(*cont)[0], cont->size());
         ret = cat(buf, args...);
-    }
-    else
-    {
-        cont->resize(ret);
     }
 }
 
