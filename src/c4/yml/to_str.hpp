@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <inttypes.h>
+#include <type_traits>
 
 #include "./span.hpp"
 
