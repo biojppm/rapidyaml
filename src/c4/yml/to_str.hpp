@@ -10,6 +10,37 @@
 namespace c4 {
 namespace yml {
 
+template< class CharOwningContainer, class... Args >
+inline void cat_resize(CharOwningContainer *cont, Args const& ...args)
+{
+    span buf(cont->empty() ? nullptr : &(*cont)[0], cont->size());
+    size_t ret = cat(buf, args...);
+    if(ret > buf.len)
+    {
+        cont->resize(ret);
+        buf.assign(&(*cont)[0], cont->size());
+        ret = cat(buf, args...);
+    }
+    else
+    {
+        cont->resize(ret);
+    }
+}
+
+template< class Arg, class... Args >
+size_t cat(span buf, Arg const& a, Args const& ...more)
+{
+    size_t num = to_str(buf, a);
+    span rem = buf.len >= num ? buf.subspan(num) : span{};
+    num += cat(rem, more...);
+    return num;
+}
+
+inline size_t cat(span buf)
+{
+    return 0;
+}
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
