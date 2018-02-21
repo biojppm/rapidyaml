@@ -77,7 +77,7 @@ Tree::~Tree()
 }
 
 
-Tree::Tree(Tree const& that)
+Tree::Tree(Tree const& that) : Tree()
 {
     _copy(that);
 }
@@ -89,7 +89,7 @@ Tree& Tree::operator= (Tree const& that)
     return *this;
 }
 
-Tree::Tree(Tree && that)
+Tree::Tree(Tree && that) : Tree()
 {
     _move(that);
 }
@@ -118,9 +118,12 @@ void Tree::_copy(Tree const& that)
     memcpy(this, &that, sizeof(Tree));
     m_buf = (NodeData*)c4::yml::allocate(m_cap * sizeof(NodeData), that.m_buf);
     memcpy(m_buf, that.m_buf, m_cap * sizeof(NodeData));
-    span arena((char*)c4::yml::allocate(m_arena.len, m_arena.str), m_arena.len);
-    _relocate(arena); // does a memcpy and updates nodes with spans using the old arena
-    m_arena = arena;
+    if(m_arena.len)
+    {
+        span arena((char*)c4::yml::allocate(m_arena.len, m_arena.str), m_arena.len);
+        _relocate(arena); // does a memcpy and updates nodes with spans using the old arena
+        m_arena = arena;
+    }
 }
 
 void Tree::_move(Tree & that)
