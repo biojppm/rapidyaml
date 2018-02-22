@@ -10,6 +10,43 @@
 namespace c4 {
 namespace yml {
 
+//-----------------------------------------------------------------------------
+
+template< class Arg, class... Args >
+size_t cat(span buf, Arg const& a, Args const& ...more)
+{
+    size_t num = to_str(buf, a);
+    buf = buf.len >= num ? buf.subspan(num) : span{};
+    num += cat(buf, more...);
+    return num;
+}
+
+inline size_t cat(span /*buf*/)
+{
+    return 0;
+}
+
+//-----------------------------------------------------------------------------
+
+template< class Sep, class Arg, class... Args >
+size_t catsep(span buf, Sep const& sep, Arg const& a, Args const& ...more)
+{
+    size_t num = to_str(buf, sep);
+    buf = buf.len >= num ? buf.subspan(num) : span{};
+    num += to_str(buf, a);
+    buf = buf.len >= num ? buf.subspan(num) : span{};
+    num += catsep(buf, sep, more...);
+    return num;
+}
+
+template< class Sep >
+inline size_t catsep(span /*buf*/, Sep const& /*sep*/)
+{
+    return 0;
+}
+
+//-----------------------------------------------------------------------------
+
 template< class CharOwningContainer, class... Args >
 inline void catrs(CharOwningContainer *cont, Args const& ...args)
 {
@@ -23,19 +60,19 @@ inline void catrs(CharOwningContainer *cont, Args const& ...args)
     }
 }
 
-template< class Arg, class... Args >
-size_t cat(span buf, Arg const& a, Args const& ...more)
+template< class CharOwningContainer, class Sep, class... Args >
+inline void catseprs(CharOwningContainer *cont, Sep const& sep, Args const& ...args)
 {
-    size_t num = to_str(buf, a);
-    span rem = buf.len >= num ? buf.subspan(num) : span{};
-    num += cat(rem, more...);
-    return num;
+    span buf(cont->empty() ? nullptr : &(*cont)[0], cont->size());
+    size_t ret = catsep(buf, sep, args...);
+    cont->resize(ret);
+    if(ret > buf.len)
+    {
+        buf.assign(&(*cont)[0], cont->size());
+        ret = catsep(buf, sep, args...);
+    }
 }
 
-inline size_t cat(span buf)
-{
-    return 0;
-}
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
