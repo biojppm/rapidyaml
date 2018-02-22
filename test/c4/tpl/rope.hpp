@@ -336,7 +336,6 @@ public:
         _release(entry);
     }
 
-
     size_t _do_erase(size_t entry, size_t pos, size_t num)
     {
         C4_ASSERT(pos >= 0 && pos <= get(entry)->s.len);

@@ -141,7 +141,6 @@ public:
     {
         cspan val = {};
         resolve(root, &val);
-        rope->replace(m_rope_entry, val);
         size_t insert_entry = rope->insert_after(start_entry, val);
         return insert_entry;
     }

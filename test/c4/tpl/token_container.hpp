@@ -178,6 +178,8 @@ public:
 
     ~TokenContainer();
 
+    void clear() { m_num_tokens = 0; }
+
     size_t size() const { return m_num_tokens; }
 
     span get_token_mem(size_t i)

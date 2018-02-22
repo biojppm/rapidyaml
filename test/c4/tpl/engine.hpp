@@ -11,20 +11,23 @@ class Engine
 public:
 
     cspan m_src;
-    mutable Rope m_rope;
     TokenContainer m_tokens;
 
 public:
 
-    Engine() : m_src(), m_rope(), m_tokens() {}
+    Engine() : m_src(), m_tokens() {}
 
-    Rope const& rope() const { return m_rope; }
+    void clear()
+    {
+        m_tokens.clear();
+    }
 
-    void parse(cspan src)
+    void parse(cspan src, Rope *rope)
     {
         m_src = src;
+        clear();
         if(m_src.empty()) return;
-        TplLocation pos{&m_rope, {m_rope.append(src), 0}};
+        TplLocation pos{rope, {rope->append(src), 0}};
         cspan rem = m_src;
         while( ! rem.empty())
         {
@@ -43,15 +46,15 @@ public:
         }
     }
 
-    void render(c4::yml::NodeRef & root, Rope *rope=nullptr) const
+    void render(c4::yml::NodeRef & root, Rope *rope) const
     {
-        if(rope == nullptr)
+        if(m_tokens.size() > 0)
         {
-            rope = &m_rope;
-        }
-        if(rope->num_entries() != m_rope.num_entries())
-        {
-            *rope = m_rope;
+            Rope const* parsed_rope = m_tokens.get(0)->rope();
+            if(rope->num_entries() != parsed_rope->num_entries())
+            {
+                *rope = *parsed_rope;
+            }
         }
         for(auto const& token : m_tokens)
         {
@@ -60,10 +63,23 @@ public:
         }
     }
 
-    void render(Tree & t, Rope *r=nullptr) const
+    void render(Tree & t, Rope *r) const
     {
         auto n = t.rootref();
         render(n, r);
+    }
+
+    Rope render(c4::yml::NodeRef & root) const
+    {
+        Rope cp;
+        render(root, &cp);
+        return cp;
+    }
+
+    Rope render(Tree & t) const
+    {
+        auto n = t.rootref();
+        return render(n);
     }
 
 };

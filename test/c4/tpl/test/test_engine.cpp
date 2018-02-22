@@ -19,11 +19,13 @@ void do_engine_test(cspan tpl, cspan parsed_tpl, tpl_cases cases)
     std::vector< char > result_buf;
 
     c4::tpl::Engine eng;
-    eng.parse(tpl);
-    cspan ret = eng.rope().chain_all_resize(&parsed_tpl_buf);
+    c4::tpl::Rope parsed_rope;
+    eng.parse(tpl, &parsed_rope);
+    cspan ret = parsed_rope.chain_all_resize(&parsed_tpl_buf);
     (void)parsed_tpl;//EXPECT_EQ(ret, parsed_tpl);
 
     c4::yml::Tree tree;
+    c4::tpl::Rope rope;
 
     for(auto const& c : cases)
     {
@@ -32,8 +34,8 @@ void do_engine_test(cspan tpl, cspan parsed_tpl, tpl_cases cases)
         parsed_yml_buf.assign(c.props_yml.begin(), c.props_yml.end());
         c4::yml::parse(to_span(parsed_yml_buf), &tree);
         print_tree(tree);
-        eng.render(tree);
-        ret = eng.rope().chain_all_resize(&result_buf);
+        eng.render(tree, &rope);
+        ret = rope.chain_all_resize(&result_buf);
         EXPECT_EQ(ret, c.result);
     }
 }
@@ -178,7 +180,8 @@ TEST(engine, for_simple)
                    tpl_cases{
                        {"case 0", "{}", ""},
                        {"case 1", "{var: [0]}", "this block will repeat v=0. "},
-                       {"case 2", "{var: [0, 1]}", "this block will repeat v=0. this block will repeat v=1"},
+                       {"case 2", "{var: [0, 1]}", "this block will repeat v=0. this block will repeat v=1. "},
+                       {"case 3", "{var: [0, 1, 2, 3, 4, 5]}", "this block will repeat v=0. this block will repeat v=1. this block will repeat v=2. this block will repeat v=3. this block will repeat v=4. this block will repeat v=5. "},
                    });
 }
 

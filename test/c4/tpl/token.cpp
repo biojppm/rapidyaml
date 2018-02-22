@@ -21,6 +21,18 @@ void TokenBase::parse(cspan *rem, TplLocation *curr_pos)
     C4_ASSERT(m_full_text.ends_with(e));
     m_interior_text = m_full_text.subspan(s.len, m_full_text.len - (e.len + s.len));
 
+    // if the end token terminates with a line ending, "merge" it with any
+    // line ending of the interior text
+    *rem = rem->subspan(m_full_text.len);
+    if(m_interior_text.ends_with_any("\r\n") && rem->begins_with_any("\r\n"))
+    {
+        size_t inc = 0;
+        if((*rem)[0] == '\r' && (*rem)[1] == '\n') inc = 2;
+        else if((*rem)[0] == '\n') inc = 1;
+        m_full_text.len += inc;
+        *rem = rem->subspan(inc);
+    }
+
     auto &rp = curr_pos->m_rope_pos;
     C4_ASSERT(curr_pos->m_rope->get(rp.entry)->s.len >= m_full_text.len);
     rp.entry = curr_pos->m_rope->replace(rp.entry, rp.i, m_full_text.len, m_full_text);
@@ -29,8 +41,6 @@ void TokenBase::parse(cspan *rem, TplLocation *curr_pos)
     rp.i = 0;
     m_end = *curr_pos;
     C4_ASSERT(this->subspan() == m_full_text);
-
-    *rem = rem->subspan(m_full_text.len);
 }
 
 void TokenBase::mark()
@@ -427,9 +437,6 @@ void TokenIf::parse(cspan *rem, TplLocation *curr_pos)
 {
     base_type::parse(rem, curr_pos);
 
-    C4_ASSERT(m_full_text.begins_with(stoken()));
-    C4_ASSERT(m_full_text.ends_with(etoken()));
-
     // scan the condition
     cspan s = m_full_text;
     cspan c = _scan_condition(stoken(), &s);
@@ -475,7 +482,7 @@ void TokenIf::parse(cspan *rem, TplLocation *curr_pos)
     for(auto &cond : m_blocks)
     {
         C4_ASSERT(m_full_text.has_subspan(cond.body) || cond.body.empty());
-        cond.body = cond.body.trim("\r\n");
+        cond.body = cond.body.triml("\r\n");
         cond.start.m_rope_pos.i = cond.body.begin() - m_full_text.begin();
     }
 }
@@ -622,9 +629,6 @@ void TokenFor::parse(cspan *rem, TplLocation *curr_pos)
 {
     base_type::parse(rem, curr_pos);
 
-    C4_ASSERT(m_full_text.begins_with(stoken()));
-    C4_ASSERT(m_full_text.ends_with(etoken()));
-
     cspan s = m_interior_text;
 
     size_t pos = s.find(" in ");
@@ -640,7 +644,7 @@ void TokenFor::parse(cspan *rem, TplLocation *curr_pos)
     C4_ERROR_IF(pos == npos, "parse error");
     C4_ERROR_IF(pos != 0, "parse error");
     body = body.right_of(2);
-    body = body.trim("\r\n");
+    body = body.triml("\r\n");
 
     m_block.owner_id = this->m_id;
     m_block.block_id = 0;
