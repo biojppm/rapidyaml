@@ -52,10 +52,11 @@ void register_known_tokens();
     {                                                                   \
         return #cls;                                                    \
     }                                                                   \
-    static TokenBase* _create_inplace(span mem)                         \
+    static TokenBase* _create_inplace(span mem, size_t id)              \
     {                                                                   \
         C4_ASSERT(sizeof(cls) <= mem.len);                              \
         cls *ptr = new ((void*)mem.str) cls();                          \
+        ptr->m_id = id;                                                 \
         return ptr;                                                     \
     }                                                                   \
     static void _destroy_inplace(span mem)                              \
@@ -80,7 +81,7 @@ void register_known_tokens();
 
 struct TokenType
 {
-    using inplace_create  = TokenBase* (*)(span mem);
+    using inplace_create  = TokenBase* (*)(span mem, size_t id);
     using inplace_destroy = void       (*)(span mem);
     using inplace_get_ptr = TokenBase* (*)(span mem);
 
@@ -228,16 +229,16 @@ public:
         C4_ASSERT(TokenRegistry::get_max_size() == m_max_size);
         auto result = TokenRegistry::match_any(*rem);
         if( ! result) return NONE;
-        size_t pos = m_num_tokens++;
+        size_t id = m_num_tokens++;
         m_tokens.resize(m_tokens.size() + m_entry_size);
-        span entry = get_token_mem(pos);
+        span entry = get_token_mem(id);
         memcpy(entry.str, &result.which, sizeof(size_t));
         span mem = entry.subspan(sizeof(size_t));
         auto const& type = TokenRegistry::get_type(result.which);
-        /*TokenBase *obj = */type.create(mem);
+        /*TokenBase *obj = */type.create(mem, id);
         *rem = rem->subspan(result.pos);
         loc->m_rope_pos.i += result.pos;
-        return pos;
+        return id;
     }
 
 public:

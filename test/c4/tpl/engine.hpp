@@ -43,7 +43,7 @@ public:
         }
     }
 
-    void render(c4::yml::NodeRef const& root, Rope *rope=nullptr) const
+    void render(c4::yml::NodeRef & root, Rope *rope=nullptr) const
     {
         if(rope == nullptr)
         {
@@ -60,9 +60,10 @@ public:
         }
     }
 
-    void render(Tree const& t, Rope *r=nullptr) const
+    void render(Tree & t, Rope *r=nullptr) const
     {
-        render(t.rootref(), r);
+        auto n = t.rootref();
+        render(n, r);
     }
 
 };

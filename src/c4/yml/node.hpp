@@ -586,7 +586,7 @@ public:
         m_tree->move(m_id, after.m_id);
     }
 
-    inline NodeRef duplicate(NodeRef const parent, NodeRef const after)
+    inline NodeRef duplicate(NodeRef const parent, NodeRef const after) const
     {
         _C4RV();
         size_t dup = m_tree->duplicate(m_id, parent.m_id, after.m_id);

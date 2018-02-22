@@ -38,9 +38,8 @@ void TokenBase::mark()
     m_start.m_rope->replace(m_start.m_rope_pos.entry, marker());
 }
 
-bool TokenBase::eval(NodeRef const& root, cspan key, cspan *value) const
+NodeRef TokenBase::get_property(NodeRef const& root, cspan key)
 {
-    C4_ASSERT(root.valid());
     NodeRef n = root;
     do {
         auto pos = key.find('.');
@@ -68,15 +67,7 @@ bool TokenBase::eval(NodeRef const& root, cspan key, cspan *value) const
                     C4_ASSERT(pos != npos);
                     cspan subkey = key.left_of(pos);
                     key = key.right_of(pos);
-                    if( ! this->eval(n, subkey, &subkey))
-                    {
-                        break;
-                    }
-                    else
-                    {
-                        *value = subkey;
-                        return true;
-                    }
+                    return get_property(n, subkey);
                 }
             }
             else
@@ -102,6 +93,14 @@ bool TokenBase::eval(NodeRef const& root, cspan key, cspan *value) const
             }
         }
     } while( ! key.empty() && n.valid());
+
+    return n;
+}
+
+bool TokenBase::eval(NodeRef const& root, cspan key, cspan *value) const
+{
+    C4_ASSERT(root.valid());
+    NodeRef n = get_property(root, key);
 
     if(n.valid())
     {
@@ -151,15 +150,19 @@ cspan TokenBase::skip_nested(cspan rem) const
 
 void TemplateBlock::parse(TokenContainer *cont)
 {
-    parts.clear();
-    tokens = cont;
-    C4_ASSERT(start.m_rope != nullptr);
-    cspan curr = body;
-    cspan rem = body;
-    TplLocation pos = start;
+    // this object may be relocated while this function is executed.
+    size_t tkid = owner_id, bid = block_id;
+#define _c4this cont->get(tkid)->get_block(bid)
+
+    _c4this->parts.clear();
+    _c4this->tokens = cont;
+    C4_ASSERT(_c4this->start.m_rope != nullptr);
+    cspan curr = _c4this->body;
+    cspan rem = _c4this->body;
+    TplLocation pos = _c4this->start;
     Rope *rope = pos.m_rope;
     auto &rp = pos.m_rope_pos;
-    rope->replace(rp.entry, body);
+    rope->replace(rp.entry, _c4this->body);
     rp.i = 0;
     while( ! rem.empty())
     {
@@ -167,8 +170,8 @@ void TemplateBlock::parse(TokenContainer *cont)
         size_t tk_pos = cont->next_token(&rem, &pos);
         if(tk_pos == NONE)
         {
-            parts.emplace_back();
-            auto &p = parts.back();
+            _c4this->parts.emplace_back();
+            auto &p = _c4this->parts.back();
             p.body = rem;
             p.entry = rope->replace(rp.entry, rp.i, p.body.len, p.body);
             curr = rem;
@@ -177,8 +180,8 @@ void TemplateBlock::parse(TokenContainer *cont)
         // is there an entry for the block before the token?
         if(rem.begin() != curr.begin())
         {
-            parts.emplace_back();
-            auto &p = parts.back();
+            _c4this->parts.emplace_back();
+            auto &p = _c4this->parts.back();
             p.body = curr.subspan(0, rem.begin() - curr.begin());
             p.entry = rp.entry;
             rp.entry = rope->split(rp.entry, p.body.len);
@@ -189,8 +192,8 @@ void TemplateBlock::parse(TokenContainer *cont)
         }
         // add the entry for the token
         {
-            parts.emplace_back();
-            auto &p = parts.back();
+            _c4this->parts.emplace_back();
+            auto &p = _c4this->parts.back();
             p.token = tk_pos;
             p.entry = NONE;
             p.body = rem;
@@ -203,21 +206,42 @@ void TemplateBlock::parse(TokenContainer *cont)
             curr = rem;
         }
     }
+
+#undef _c4this
 }
 
-void TemplateBlock::render(NodeRef const& root, Rope *rope) const
+size_t TemplateBlock::render(NodeRef & root, Rope *rope) const
+{
+    size_t e = NONE;
+    for(auto const& p : parts)
+    {
+        if(p.token != NONE)
+        {
+            e = tokens->get(p.token)->render(root, rope);
+        }
+        else
+        {
+            rope->replace(p.entry, p.body);
+            e = p.entry;
+        }
+    }
+    return e;
+}
+
+size_t TemplateBlock::duplicate(NodeRef & root, Rope *rope, size_t start_entry) const
 {
     for(auto const& p : parts)
     {
         if(p.token != NONE)
         {
-            tokens->get(p.token)->render(root, rope);
+            start_entry = tokens->get(p.token)->duplicate(root, rope, start_entry);
         }
         else
         {
-            rope->replace(p.entry, p.body);
+            start_entry = rope->insert_after(start_entry, p.body);
         }
     }
+    return start_entry;
 }
 
 void TemplateBlock::clear(Rope *rope) const
@@ -239,7 +263,7 @@ void TemplateBlock::clear(Rope *rope) const
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-void IfCondition::_eval(TokenIf const* tk, NodeRef const& root)
+void IfCondition::_eval(TokenIf const* tk, NodeRef & root)
 {
     m_argval = {};
     if( ! m_arg.empty())
@@ -253,7 +277,7 @@ void IfCondition::_eval(TokenIf const* tk, NodeRef const& root)
     }
 }
 
-bool IfCondition::resolve(TokenIf const* tk, NodeRef const& root)
+bool IfCondition::resolve(TokenIf const* tk, NodeRef & root)
 {
     switch(m_ctype)
     {
@@ -464,6 +488,8 @@ TokenIf::condblock* TokenIf::_add_block(cspan cond, cspan s, bool as_else)
     cb->body = s;
     cb->start.m_rope = m_start.m_rope;
     cb->start.m_rope_pos.i = 0;
+    cb->owner_id = this->m_id;
+    cb->block_id = m_blocks.size() - 1;
     if(m_blocks.size() == 1)
     {
         cb->start.m_rope_pos.entry = m_rope_entry;
@@ -487,6 +513,7 @@ TokenIf::condblock* TokenIf::_add_block(cspan cond, cspan s, bool as_else)
 
 void TokenIf::parse_body(TokenContainer *cont) const
 {
+    // defend against relocation
 #define _c4this static_cast< TokenIf const* >(cont->get(my_id))
 
     size_t my_id = cont->get_id(this);
@@ -515,26 +542,70 @@ bool TokenIf::resolve(NodeRef const& /*root*/, cspan * /*value*/) const
     return true;
 }
 
-void TokenIf::render(NodeRef const& root, Rope *rope) const
+size_t TokenIf::render(NodeRef & root, Rope *rope) const
 {
+    TemplateBlock const* true_block = nullptr;
+
+    // find the block corresponding to a true condition
     for(auto const& cb : m_blocks)
     {
         if(cb.condition.resolve(this, root))
         {
-            cb.render(root, rope); // render this block
-            for(auto const& cb2 : m_blocks) // and clear all other blocks
-            {
-                if(&cb2 == &cb) continue;
-                cb2.clear(rope);
-            }
-            return; // make sure of returning here to avoid the code below
+            true_block = &cb;
+            break;
         }
     }
-    // no condition was matched - clear all blocks
+    
+    // render that block (if it exists) and clear all other blocks
+    size_t entry = NONE;
     for(auto const& cb : m_blocks)
     {
-        cb.clear(rope);
+        if(&cb == true_block)
+        {
+            entry = cb.render(root, rope);
+        }
+        else
+        {
+            cb.clear(rope);
+        }
     }
+
+    if(entry == NONE)
+    {
+        entry = m_rope_entry;
+    }
+
+    return entry;
+}
+
+size_t TokenIf::duplicate(NodeRef & root, Rope *rope, size_t start_entry) const
+{
+    TemplateBlock const* true_block = nullptr;
+
+    // find the block corresponding to a true condition
+    for(auto const& cb : m_blocks)
+    {
+        if(cb.condition.resolve(this, root))
+        {
+            true_block = &cb;
+            break;
+        }
+    }
+
+    // duplicate that block (if it exists) and clear all other blocks
+    for(auto const& cb : m_blocks)
+    {
+        if(&cb == true_block)
+        {
+            start_entry = cb.duplicate(root, rope, start_entry);
+        }
+        else
+        {
+            cb.clear(rope);
+        }
+    }
+
+    return start_entry;
 }
 
 //-----------------------------------------------------------------------------
@@ -571,6 +642,8 @@ void TokenFor::parse(cspan *rem, TplLocation *curr_pos)
     body = body.right_of(2);
     body = body.trim("\r\n");
 
+    m_block.owner_id = this->m_id;
+    m_block.block_id = 0;
     m_block.body = body;
     m_block.start.m_rope = m_start.m_rope;
     m_block.start.m_rope_pos.i = body.begin() - m_full_text.begin();
@@ -579,11 +652,95 @@ void TokenFor::parse(cspan *rem, TplLocation *curr_pos)
 
 void TokenFor::parse_body(TokenContainer *cont) const
 {
+    // watchout for relocations!!!
     m_block.parse(cont);
 }
 
-void TokenFor::render(NodeRef const& /*root*/, Rope * /*rope*/) const
+size_t TokenFor::render(NodeRef & root, Rope * rope) const
 {
+    return _do_render(root, rope, NONE, false);
+}
+
+size_t TokenFor::duplicate(NodeRef & root, Rope *rope, size_t start_entry) const
+{
+    return _do_render(root, rope, start_entry, true);
+}
+
+size_t TokenFor:: _do_render(NodeRef& root, Rope *rope, size_t start_entry, bool duplicating) const
+{
+    NodeRef n = get_property(root, m_val);
+    if(n.valid())
+    {
+        bool first_child = true;
+        size_t num = n.num_children();
+        size_t i = 0;
+        for(auto ch : n.children())
+        {
+            _set_loop_properties(root, ch, i++, num);
+            if(first_child && !duplicating)
+            {
+                start_entry = m_block.render(root, rope);
+            }
+            else
+            {
+                if(start_entry == NONE) start_entry = m_rope_entry;
+                start_entry = m_block.duplicate(root, rope, start_entry);
+            }
+            first_child = false;
+            _clear_loop_properties(root);
+        }
+    }
+
+    if(start_entry == NONE)
+    {
+        start_entry = m_rope_entry;
+        m_block.clear(rope);
+    }
+
+    return start_entry;
+}
+
+void TokenFor::_set_loop_properties(NodeRef & root, NodeRef const& var, size_t i, size_t num) const
+{
+    C4_ASSERT(num > 0);
+    C4_ERROR_IF(root.find_child(m_var).valid(), "cannot use an existing name for the loop variable value");
+    C4_ERROR_IF(root.find_child("loop").valid(), "cannot use an existing name for the loop information variable");
+    C4_ERROR_IF_NOT(root.is_map() || root.is_seq(), "for can only loop over containers");
+
+    auto v = root.append_child();
+    v.set_key(m_var);
+    if(var.is_container())
+    {
+        if(var.has_key())
+        {
+            v |= yml::SEQ;
+            v[0] = var.key();
+            var.duplicate(v, v.last_child());
+        }
+        else
+        {
+            var.duplicate(root, root.last_child());
+        }
+    }
+    else
+    {
+        v = var.val();
+    }
+
+    auto l = root.append_child();
+    l |= yml::MAP;
+    l.set_key("loop");
+    l["index"] << i;              // The current iteration of the loop. (0 indexed)
+    l["length"] << num;           // The number of items in the sequence.
+    l["revindex"] << num - i - 1; // The number of iterations from the end of the loop (0 indexed)
+    l["first"] << (i == 0);       // "1" if first iteration, "0" otherwise.
+    l["last"] << (i == num-1);    // "1" if last iteration, "0" otherwise.
+}
+
+void TokenFor::_clear_loop_properties(NodeRef & root) const
+{
+    root.remove_child(m_var);
+    root.remove_child("loop");
 }
 
 } // namespace tpl

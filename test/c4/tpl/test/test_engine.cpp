@@ -159,14 +159,26 @@ TEST(engine, if_with_vars_everywhere)
 }
 
 //-----------------------------------------------------------------------------
-TEST(engine, for_simple)
+TEST(engine, for_simple_no_vars)
 {
     do_engine_test("{% for v in var %}this block will repeat{% endfor %}",
                    "<<<for>>>",
                    tpl_cases{
                        {"case 0", "{}", ""},
                        {"case 1", "{var: [0]}", "this block will repeat"},
-                       {"case 1", "{var: [0, 1]}", "this block will repeat\nthis block will repeat"},
+                       {"case 2", "{var: [0, 1]}", "this block will repeatthis block will repeat"},
+                   });
+}
+
+//-----------------------------------------------------------------------------
+TEST(engine, for_simple)
+{
+    do_engine_test("{% for v in var %}this block will repeat v={{v}}. {% endfor %}",
+                   "<<<for>>>",
+                   tpl_cases{
+                       {"case 0", "{}", ""},
+                       {"case 1", "{var: [0]}", "this block will repeat v=0. "},
+                       {"case 2", "{var: [0, 1]}", "this block will repeat v=0. this block will repeat v=1"},
                    });
 }
 
@@ -286,7 +298,9 @@ bar is active! val=1
 seq is not empty!
 c0 is in seq!
 # a for here
-
+   - c0
+   - c1
+   - c2
 )"
 
                                },
