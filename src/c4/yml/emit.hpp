@@ -140,12 +140,12 @@ inline span emit(Tree const& t, span sp, bool error_on_excess=true)
 template< class CharOwningContainer >
 inline span emit_resize(NodeRef const& n, CharOwningContainer * cont)
 {
-    span buf(cont->data(), cont->size());
+    span buf(cont->empty() ? nullptr : &(*cont)[0], cont->size());
     span ret = emit(n, buf, /*error_on_excess*/false);
-    if(ret.str == nullptr)
+    if(ret.str == nullptr && ret > 0)
     {
         cont->resize(ret.len);
-        buf.assign(cont->data(), cont->size());
+        buf.assign(&(*cont)[0], cont->size());
         ret = emit(n, buf, /*error_on_excess*/true);
     }
     return ret;

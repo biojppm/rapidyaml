@@ -144,6 +144,26 @@ TEST(atoi, basic)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+TEST(span, ctor_from_char)
+{
+    char buf1[] = "{foo: 1}";
+    char buf2[] = "{foo: 2}";
+    span s(buf1);
+    EXPECT_EQ(s, "{foo: 1}");
+    s = buf2;
+    EXPECT_EQ(s, "{foo: 2}");
+}
+
+TEST(cspan, ctor_from_char)
+{
+    char buf1[] = "{foo: 1}";
+    char buf2[] = "{foo: 2}";
+    span s(buf1);
+    EXPECT_EQ(s, "{foo: 1}");
+    s = buf2;
+    EXPECT_EQ(s, "{foo: 2}");
+}
+
 TEST(span, begins_with)
 {
     EXPECT_TRUE (cspan(": ").begins_with(":" ));
@@ -1208,6 +1228,101 @@ TEST(NodeRef, 7_duplicate)
     EXPECT_EQ(dup[1].val().str, r[1][1].val().str);
     EXPECT_EQ(dup[1].key().len, r[1][1].key().len);
     EXPECT_EQ(dup[1].val().len, r[1][1].val().len);
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+TEST(general, parsing)
+{
+    char src[] = "{foo: 1}"; // needs to be writable
+    auto tree = parse(src);
+
+    char cmpbuf[128] = {0};
+    span cmp(cmpbuf);
+
+    cat(cmp, tree["foo"].val());
+    EXPECT_EQ(cmp, "1");
+
+    cat(cmp, tree["foo"].key());
+    EXPECT_EQ(cmp, "foo");
+}
+
+TEST(general, emitting)
+{
+    std::string cmpbuf;
+
+    Tree tree;
+    auto r = tree.rootref();
+
+    r = MAP;  // this is needed to make the root a map
+
+    r["foo"] = "1"; // ryml works only with strings.
+    // Note that the tree will be __pointing__ at the
+    // strings "foo" and "1" used here. You need
+    // to make sure they have at least the same
+    // lifetime as the tree.
+
+    auto s = r["seq"]; // does not change the tree until s is written to.
+    s |= SEQ;
+    r["seq"].append_child() = "bar0";
+    r["seq"].append_child() = "bar1";
+    r["seq"].append_child() = "bar2";
+
+    print_tree(tree);
+
+    // emit to stdout (can also emit to FILE* or ryml::span)
+    emit_resize(tree, &cmpbuf);
+    const char* exp = R"(foo: 1
+seq:
+  - bar0
+  - bar1
+  - bar2
+)";
+    EXPECT_EQ(cmpbuf, exp);
+
+    // serializing: using operator<< instead of operator=
+    // will make the tree serialize the value into a char
+    // arena inside the tree. This arena can be reserved at will.
+    int ch3 = 33, ch4 = 44;
+    s.append_child() << ch3;
+    s.append_child() << ch4;
+
+    {
+        std::string tmp = "child5";
+        s.append_child() << tmp;
+        // now tmp can go safely out of scope, as it was
+        // serialized to the tree's internal string arena
+    }
+
+    emit_resize(tree, &cmpbuf);
+    exp = R"(foo: 1
+seq:
+  - bar0
+  - bar1
+  - bar2
+  - 33
+  - 44
+  - child5
+)";
+    EXPECT_EQ(cmpbuf, exp);
+
+    // to serialize keys:
+    int k=66;
+    r.append_child() << key(k) << 7;
+
+    emit_resize(tree, &cmpbuf);
+    exp = R"(foo: 1
+seq:
+  - bar0
+  - bar1
+  - bar2
+  - 33
+  - 44
+  - child5
+66: 7
+)";
+    EXPECT_EQ(cmpbuf, exp);
 }
 
 //-----------------------------------------------------------------------------

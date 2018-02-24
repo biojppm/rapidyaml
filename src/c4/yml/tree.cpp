@@ -53,6 +53,24 @@ NodeRef const Tree::rootref() const
     return NodeRef(const_cast< Tree* >(this), root_id());
 }
 
+NodeRef Tree::operator[] (cspan key)
+{
+    return rootref()[key];
+}
+NodeRef const Tree::operator[] (cspan key) const
+{
+    return rootref()[key];
+}
+
+NodeRef Tree::operator[] (size_t i)
+{
+    return rootref()[i];
+}
+NodeRef const Tree::operator[] (size_t i) const
+{
+    return rootref()[i];
+}
+
 //-----------------------------------------------------------------------------
 Tree::Tree()
 :

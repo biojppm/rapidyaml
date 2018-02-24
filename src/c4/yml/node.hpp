@@ -338,29 +338,40 @@ public:
 
 public:
 
-    inline void operator<< (cspan const& s) // this overload is needed to prevent ambiguity (there's also << for writing a span to a stream)
+    inline NodeRef& operator<< (cspan const& s) // this overload is needed to prevent ambiguity (there's also << for writing a span to a stream)
     {
         _apply_seed();
         write(this, s);
         C4_ASSERT(get()->val() == s);
+        return *this;
     }
 
     template< class T >
-    inline void operator<< (T const& v)
+    inline NodeRef& operator<< (T const& v)
     {
         _apply_seed();
         write(this, v);
+        return *this;
     }
 
     template< class T >
-    inline void operator<< (Key<const T> const& v)
+    inline NodeRef& operator<< (Key<const T> const& v)
     {
         _apply_seed();
         set_key_serialized(v.k);
+        return *this;
     }
 
     template< class T >
-    inline void operator>> (T &v) const
+    inline NodeRef& operator<< (Key<T> const& v)
+    {
+        _apply_seed();
+        set_key_serialized(v.k);
+        return *this;
+    }
+
+    template< class T >
+    inline NodeRef const& operator>> (T &v) const
     {
         C4_ASSERT( ! is_seed());
         C4_ASSERT(valid());
@@ -369,15 +380,17 @@ public:
         {
             c4::yml::error("could not parse value");
         }
+        return *this;
     }
 
     template< class T >
-    inline void operator>> (Key<T> v) const
+    inline NodeRef const& operator>> (Key<T> v) const
     {
         C4_ASSERT( ! is_seed());
         C4_ASSERT(valid());
         C4_ASSERT(get() != nullptr);
         from_str(key(), &v.k);
+        return *this;
     }
 
     template< class T >

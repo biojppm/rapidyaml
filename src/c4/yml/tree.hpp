@@ -659,6 +659,12 @@ public:
     NodeRef       rootref();
     NodeRef const rootref() const;
 
+    NodeRef       operator[] (cspan key);
+    NodeRef const operator[] (cspan key) const;
+
+    NodeRef       operator[] (size_t i);
+    NodeRef const operator[] (size_t i) const;
+
 public:
 
     template< class T >
