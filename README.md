@@ -223,8 +223,9 @@ is very ably maintained, but is heavy on the use of streams, exceptions and
 string copies and allocations.
 
 For heavy or low-latency use cases, parsing in place and using non-owning
-strings is of central importance. Hence this rapid YAML library. This library
-takes inspiration from RapidXML and RapidJSON.
+strings is of central importance. Hence this rapid YAML library, which
+bridges the gap from efficiency to usability. This library takes inspiration
+from RapidXML and RapidJSON.
 
 ## License
 
