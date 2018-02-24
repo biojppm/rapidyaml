@@ -280,7 +280,7 @@ inline size_t from_str(cspan buf, bool *v)
 {
     int val;
     size_t ret = from_str(buf, &val);
-    *v = val;
+    *v = (bool)val;
     return ret;
 }
 
