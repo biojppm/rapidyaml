@@ -270,6 +270,20 @@ _C4_DEFINE_TO_FROM_STR_TOA(uint64_t, u)
 #endif
 
 
+inline size_t to_str(span buf, bool v)
+{
+    int val = v;
+    return to_str(buf, val);
+}
+
+inline size_t from_str(cspan buf, bool *v)
+{
+    int val;
+    size_t ret = from_str(buf, &val);
+    *v = val;
+    return ret;
+}
+
 inline size_t to_str(span buf, char v)
 {
     if(buf.len > 0) buf[0] = v;
