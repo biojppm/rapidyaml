@@ -1255,7 +1255,7 @@ TEST(general, emitting)
     Tree tree;
     auto r = tree.rootref();
 
-    r = MAP;  // this is needed to make the root a map
+    r |= MAP;  // this is needed to make the root a map
 
     r["foo"] = "1"; // ryml works only with strings.
     // Note that the tree will be __pointing__ at the
@@ -1265,7 +1265,7 @@ TEST(general, emitting)
 
     auto s = r["seq"]; // does not change the tree until s is written to.
     s |= SEQ;
-    r["seq"].append_child() = "bar0";
+    r["seq"].append_child() = "bar0"; // value of this child is now __pointing__ at "bar0"
     r["seq"].append_child() = "bar1";
     r["seq"].append_child() = "bar2";
 
@@ -1323,6 +1323,29 @@ seq:
 66: 7
 )";
     EXPECT_EQ(cmpbuf, exp);
+}
+
+TEST(general, map_to_root)
+{
+    std::string cmpbuf; const char *exp;
+    std::map< std::string, int > m({{"bar", 2}, {"foo", 1}});
+    Tree t;
+    t.rootref() << m;
+
+    emit_resize(t, &cmpbuf);
+    exp = R"(bar: 2
+foo: 1
+)";
+    EXPECT_EQ(cmpbuf, exp);
+
+    t["foo"] << 10;
+    t["bar"] << 20;
+
+    m.clear();
+    t.rootref() >> m;
+
+    EXPECT_EQ(m["foo"], 10);
+    EXPECT_EQ(m["bar"], 20);
 }
 
 //-----------------------------------------------------------------------------
