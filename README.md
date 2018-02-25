@@ -1,5 +1,10 @@
 # Rapid YAML
 
+License | Linux | Windows
+--- | --- | ---
+[![MIT Licensed](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/biojppm/rapidyaml/blob/master/LICENSE.txt)
+| [![Build Status](https://travis-ci.org/biojppm/rapidyaml.svg?branch=master)](https://travis-ci.org/biojppm/rapidyaml) | [![Build status](https://ci.appveyor.com/api/projects/status/github/biojppm/rapidyaml?branch=master&svg=true)](https://travis-ci.org/biojppm/rapidyaml)
+
 (This is under development).
 
 Or ryml, for short. ryml is a library to parse and emit YAML, and do it fast.

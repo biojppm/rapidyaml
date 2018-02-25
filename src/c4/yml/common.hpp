@@ -162,9 +162,9 @@ public:
 };
 
 /// set the global memory resource
-MemoryResource *get_memory_resource();
+void set_memory_resource(MemoryResource *r);
 /// get the global memory resource 
-void get_memory_resource(MemoryResource *r);
+MemoryResource *get_memory_resource();
 
 //-----------------------------------------------------------------------------
 
