@@ -144,7 +144,16 @@ inline bool atoi(cspan str, T *v)
     C4_ASSERT(!str.begins_with(' '));
     C4_ASSERT(!str.ends_with(' '));
     T n = 0;
-    if(str[0] == '-')
+    if(str[0] != '-')
+    {
+        for(size_t i = 0; i < str.len; ++i)
+        {
+            char c = str.str[i];
+            if(c < '0' || c > '9') return false;
+            n = n*10 + (c-'0');
+        }
+    }
+    else
     {
         for(size_t i = 1; i < str.len; ++i)
         {
@@ -153,15 +162,6 @@ inline bool atoi(cspan str, T *v)
             n = n*10 + (c-'0');
         }
         n = -n;
-    }
-    else
-    {
-        for(size_t i = 0; i < str.len; ++i)
-        {
-            char c = str.str[i];
-            if(c < '0' || c > '9') return false;
-            n = n*10 + (c-'0');
-        }
     }
     *v = n;
     return true;

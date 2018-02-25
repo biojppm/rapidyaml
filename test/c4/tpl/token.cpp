@@ -443,7 +443,7 @@ void TokenIf::parse(cspan *rem, TplLocation *curr_pos)
     condblock *cb = _add_block(c, s);
 
     // scan the branches
-    while(1)
+    while(!s.empty())
     {
         auto result = s.first_of_any("{% endif %}", "{% else %}", "{% elif ", "{% if ");
         C4_ERROR_IF_NOT(result, "invalid {% if %} structure");

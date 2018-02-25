@@ -18,6 +18,9 @@
 namespace c4 {
 namespace yml {
 
+inline void PrintTo(const span& s, ::std::ostream* os) { *os << s; }
+inline void PrintTo(const cspan& s, ::std::ostream* os) { *os << s; }
+
 struct Case;
 struct CaseNode;
 struct CaseData;

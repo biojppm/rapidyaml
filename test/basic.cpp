@@ -97,12 +97,6 @@ TEST(serialize, std_vector__map_string_int)
 namespace c4 {
 namespace yml {
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-void PrintTo(const span& s, ::std::ostream* os) { *os << s; }
-void PrintTo(const cspan& s, ::std::ostream* os) { *os << s; }
-
 TEST(atoi, basic)
 {
     char bufc[100];
