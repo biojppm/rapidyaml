@@ -55,10 +55,12 @@ public:
 
     size_t       m_str_size;
 
+    Allocator    m_alloc;
+
 public:
 
-    Rope() { memset(this, 0, sizeof(*this)); m_head = m_tail = m_free_head = m_free_tail = NONE; }
-    Rope(size_t cap) : Rope() { reserve(cap); }
+    Rope(Allocator const& a={}) { memset(this, 0, sizeof(*this)); m_head = m_tail = m_free_head = m_free_tail = NONE; m_alloc = a; }
+    Rope(size_t cap, Allocator const& a={}) : Rope(a) { reserve(cap); }
 
     ~Rope() { _free(); }
 
@@ -74,7 +76,7 @@ private:
     {
         if(m_buf)
         {
-            c4::yml::free(m_buf, sizeof(rope_entry) * m_cap);
+            m_alloc.free(m_buf, sizeof(rope_entry) * m_cap);
             m_buf = nullptr;
         }
     }
@@ -83,7 +85,7 @@ private:
     {
         C4_ASSERT(m_buf == nullptr);
         memcpy(this, &that, sizeof(*this));
-        m_buf = (rope_entry*)c4::yml::allocate(m_cap * sizeof(rope_entry), /*hint*/that.m_buf);
+        m_buf = (rope_entry*) m_alloc.allocate(m_cap * sizeof(rope_entry), /*hint*/that.m_buf);
         memcpy(m_buf, that.m_buf, m_cap * sizeof(rope_entry));
     }
 
@@ -128,11 +130,11 @@ public:
             C4_ASSERT(m_free_tail != NONE);
             m_buf[m_free_tail].m_next = m_cap;
         }
-        rope_entry *buf = (rope_entry*)c4::yml::allocate(cap * sizeof(rope_entry), /*hint*/m_buf);
+        rope_entry *buf = (rope_entry*) m_alloc.allocate(cap * sizeof(rope_entry), /*hint*/m_buf);
         if(m_buf)
         {
             memcpy(buf, m_buf, m_cap * sizeof(rope_entry));
-            c4::yml::free(m_buf, m_cap * sizeof(rope_entry));
+            m_alloc.free(m_buf, m_cap * sizeof(rope_entry));
         }
         size_t first = m_cap, del = cap - m_cap;
         m_cap = cap;

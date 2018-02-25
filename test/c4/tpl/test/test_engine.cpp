@@ -160,6 +160,7 @@ TEST(engine, if_with_vars_everywhere)
                    });
 }
 
+/*
 TEST(engine, if_with_nested_if)
 {
     do_engine_test(
@@ -183,6 +184,7 @@ tpl_cases{
     {"case 22", "{foo: 2, bar: 2}", "  foo is active! foo='2'\n  bar is active! bar='2'"},
 });
 }
+*/
 
 //-----------------------------------------------------------------------------
 TEST(engine, for_simple_no_vars)

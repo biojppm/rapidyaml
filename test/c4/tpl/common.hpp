@@ -9,9 +9,11 @@ namespace tpl {
 
 using cspan = c4::yml::cspan;
 using span  = c4::yml::span;
+using Allocator = c4::yml::Allocator;
 
 enum : size_t { NONE = size_t(-1) };
 enum : size_t { npos = size_t(-1) };
+
 
 } // namespace tpl
 } // namespace c4
