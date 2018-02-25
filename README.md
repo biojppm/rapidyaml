@@ -35,12 +35,12 @@ int main()
     char src[] = "{foo: 1}"; // needs to be writable
     auto tree = ryml::parse(src);
     auto node = tree["foo"];
-    std::cout << node.key(); // "key"
-    std::cout << node.val(); // "1"
+    std::cout << node.key() << "\n"; // "foo"
+    std::cout << node.val() << "\n"; // "1"
 
     // deserializing:
     int foo;
-    node >> foo; // now foo = 2
+    node >> foo; // now foo == 1
 }
 ```
 
@@ -61,7 +61,6 @@ auto s = r["seq"]; // does not change the tree until s is written to.
 s |= ryml::SEQ;
 r["seq"].append_child() = "bar0"; // value of this child is now __pointing__ at "bar0"
 r["seq"].append_child() = "bar1";
-r["seq"].append_child() = "bar2";
 r["seq"].append_child() = "bar2";
 
 // emit to stdout (can also emit to FILE* or ryml::span)
