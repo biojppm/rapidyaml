@@ -47,8 +47,8 @@ public:
     using const_iterator = CC*;
 
     // SFINAE (undefed at the end)
-    #define _C4_REQUIRE_CSPAN() class _require = std::enable_if< std::is_same<C, CC>::value >::type
-    #define _C4_REQUIRE_NCSPAN() class _require = std::enable_if< std::is_same<C, NCC>::value >::type
+    #define _C4_REQUIRE_CSPAN()  class _require = typename std::enable_if< std::is_same<C, CC>::value >::type
+    #define _C4_REQUIRE_NCSPAN() class _require = typename std::enable_if< std::is_same<C, NCC>::value >::type
 
 public:
 
@@ -87,6 +87,9 @@ public:
     void assign(C *s_, size_t len_) { str = s_; len = len_; C4_ASSERT(str || !len_); }
     void assign(C *beg_, C *end_) { C4_ASSERT(end_ >= beg_); str = (beg_); len = (end_ - beg_); }
 
+    template< size_t N, _C4_REQUIRE_CSPAN() >
+    basic_span(NCC (&s_)[N]) : str(s_), len(N-1) { C4_ASSERT(s_[N-1] == '\0'); }
+
 public:
 
     void clear() { str = nullptr; len = 0; }
@@ -109,11 +112,6 @@ public:
 
 public:
 
-    bool operator== (basic_cspan const& that) const
-    {
-        if(len != that.len) return false;
-        return (str == that.str || (strncmp(str, that.str, len) == 0));
-    }
     bool operator== (C const* s) const
     {
         C4_ASSERT(s != nullptr);
@@ -129,8 +127,9 @@ public:
         return ! (operator== (that));
     }
 
-    bool operator<  (basic_cspan const& that) const { return this->compare(that) < 0; }
-    bool operator>  (basic_cspan const& that) const { return this->compare(that) > 0; }
+    bool operator== (basic_cspan const& that) const { return this->compare(that) == 0; }
+    bool operator<  (basic_cspan const& that) const { return this->compare(that) <  0; }
+    bool operator>  (basic_cspan const& that) const { return this->compare(that) >  0; }
     bool operator<= (basic_cspan const& that) const { return this->compare(that) <= 0; }
     bool operator>= (basic_cspan const& that) const { return this->compare(that) >= 0; }
 
@@ -164,13 +163,13 @@ public:
     }
 
     /** true if *this is a subspan of that */
-    inline bool is_subspan(basic_cspan const& super) const
+    inline bool is_contained(basic_cspan const& super) const
     {
         return begin() >= super.begin() && end() <= super.end();
     }
 
     /** true if that is a subspan of this */
-    inline bool has_subspan(basic_cspan const& sub) const
+    inline bool contains(basic_cspan const& sub) const
     {
         return sub.begin() >= begin() && sub.end() <= end();
     }
