@@ -123,7 +123,7 @@ public:
         cspan orig = *rem; (void)orig;
         base_type::parse(rem, curr_pos);
         m_expr = m_interior_text.trim(" ");
-        C4_ASSERT(orig.has_subspan(m_expr));
+        C4_ASSERT(orig.contains(m_expr));
         m_expr_offs = m_expr.begin() - orig.begin();
     }
 

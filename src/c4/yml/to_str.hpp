@@ -327,8 +327,7 @@ inline size_t to_str(span buf, const char (&v)[N])
 
 inline size_t to_str(span buf, const char *v)
 {
-    cspan sp(v);
-    return to_str(buf, sp);
+    return to_str(buf, to_cspan(v));
 }
 
 } // namespace yml
