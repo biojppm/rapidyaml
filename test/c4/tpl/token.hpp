@@ -318,7 +318,7 @@ public:
 
     size_t duplicate(NodeRef & root, Rope *rope, size_t start_entry) const override;
 
-    TemplateBlock* get_block(size_t bid) override { C4_ASSERT(bid == 0); return &m_block; }
+    TemplateBlock* get_block(size_t bid) override { C4_ASSERT(bid == 0); (void)bid; return &m_block; }
 
 public:
 
