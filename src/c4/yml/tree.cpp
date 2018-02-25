@@ -72,7 +72,7 @@ NodeRef const Tree::operator[] (size_t i) const
 }
 
 //-----------------------------------------------------------------------------
-Tree::Tree()
+Tree::Tree(Allocator const& cb)
 :
     m_buf(nullptr),
     m_cap(0),
@@ -80,11 +80,12 @@ Tree::Tree()
     m_free_head(NONE),
     m_free_tail(NONE),
     m_arena(),
-    m_arena_pos(0)
+    m_arena_pos(0),
+    m_alloc(cb)
 {
 }
 
-Tree::Tree(size_t node_capacity, size_t arena_capacity) : Tree()
+Tree::Tree(size_t node_capacity, size_t arena_capacity, Allocator const& cb) : Tree(cb)
 {
     reserve(node_capacity, arena_capacity);
 }
@@ -123,22 +124,23 @@ void Tree::_free()
 {
     if(m_buf)
     {
-        c4::yml::free(m_buf, m_cap * sizeof(NodeData));
+        m_alloc.free(m_buf, m_cap * sizeof(NodeData));
     }
     if(m_arena.str)
     {
-        c4::yml::free(m_arena.str, m_arena.len);
+        m_alloc.free(m_arena.str, m_arena.len);
     }
+    memset(this, 0, sizeof(*this));
 }
 
 void Tree::_copy(Tree const& that)
 {
     memcpy(this, &that, sizeof(Tree));
-    m_buf = (NodeData*)c4::yml::allocate(m_cap * sizeof(NodeData), that.m_buf);
+    m_buf = (NodeData*) m_alloc.allocate(m_cap * sizeof(NodeData), that.m_buf);
     memcpy(m_buf, that.m_buf, m_cap * sizeof(NodeData));
     if(m_arena.len)
     {
-        span arena((char*)c4::yml::allocate(m_arena.len, m_arena.str), m_arena.len);
+        span arena((char*) m_alloc.allocate(m_arena.len, m_arena.str), m_arena.len);
         _relocate(arena); // does a memcpy and updates nodes with spans using the old arena
         m_arena = arena;
     }
@@ -180,11 +182,11 @@ void Tree::reserve(size_t cap, size_t arena_cap)
             C4_ASSERT(m_free_tail != NONE);
             m_buf[m_free_tail].m_next_sibling = m_cap;
         }
-        NodeData *buf = (NodeData*)c4::yml::allocate(cap * sizeof(NodeData), m_buf);
+        NodeData *buf = (NodeData*) m_alloc.allocate(cap * sizeof(NodeData), m_buf);
         if(m_buf)
         {
             memcpy(buf, m_buf, m_cap * sizeof(NodeData));
-            c4::yml::free(m_buf, m_cap * sizeof(NodeData));
+            m_alloc.free(m_buf, m_cap * sizeof(NodeData));
         }
         size_t first = m_cap, del = cap - m_cap;
         m_cap = cap;
@@ -199,13 +201,13 @@ void Tree::reserve(size_t cap, size_t arena_cap)
     if(arena_cap > m_arena.len)
     {
         span buf;
-        buf.str = (char*)c4::yml::allocate(arena_cap, m_arena.str);
+        buf.str = (char*) m_alloc.allocate(arena_cap, m_arena.str);
         buf.len = arena_cap;
         if(m_arena.str)
         {
             C4_ASSERT(m_arena.len >= 0);
             _relocate(buf); // does a memcpy and changes nodes using the arena
-            c4::yml::free(m_arena.str, m_arena.len);
+            m_alloc.free(m_arena.str, m_arena.len);
         }
         m_arena = buf;
     }
@@ -560,7 +562,7 @@ struct detail::ReferenceResolver
     const_iterator begin() const { return refs.begin(); }
     const_iterator end() const { return refs.end(); }
 
-    ReferenceResolver(Tree *t_) : t(t_)
+    ReferenceResolver(Tree *t_) : t(t_), refs(t_->allocator())
     {
         resolve();
     }

@@ -84,29 +84,131 @@ enum : size_t { npos = size_t(-1) };
 /** an index to none */
 enum : size_t { NONE = size_t(-1) };
 
-/** the type of the function used to allocate memory */
-using allocate_callback = void* (*)(size_t len, void* hint);
-/** the type of the function used to free memory */
-using free_callback = void (*)(void* mem, size_t size);
-/** the type of the function used to report errors */
-using error_callback = void (*)(const char* msg, size_t msg_len);
+//-----------------------------------------------------------------------------
 
-void set_allocate_callback(allocate_callback fn);
-allocate_callback get_allocate_callback();
-void* allocate(size_t len, void *hint);
+/** the type of the function used to report errors. This function must abort
+ * interrupt execution, either through abort() or by raising an exception. */
+using pfn_error = void (*)(const char* msg, size_t msg_len, void *user_data);
 
-void set_free_callback(free_callback fn);
-free_callback get_free_callback();
-void free(void *mem, size_t mem_len);
-
-void set_error_callback(error_callback fn);
-error_callback get_error_callback();
 void error(const char *msg, size_t msg_len);
+
 template< size_t N >
 inline void error(const char (&msg)[N])
 {
     error(msg, N-1);
 }
+
+//-----------------------------------------------------------------------------
+
+/** the type of the function used to allocate memory */
+using pfn_allocate = void* (*)(size_t len, void* hint, void *user_data);
+/** the type of the function used to free memory */
+using pfn_free = void (*)(void* mem, size_t size, void *user_data);
+
+/// a c-style callbacks class
+struct Callbacks
+{
+    void *       m_user_data;
+    pfn_allocate m_allocate;
+    pfn_free     m_free;
+    pfn_error    m_error;
+
+    Callbacks();
+    Callbacks(void *user_data, pfn_allocate alloc, pfn_free free, pfn_error);
+
+    inline void* allocate(size_t len, void* hint) const
+    {
+        void* mem = m_allocate(len, hint, m_user_data);
+        if(mem == nullptr)
+        {
+            c4::yml::error("out of memory");
+        }
+        return mem;
+    }
+
+    inline void free(void *mem, size_t len) const
+    {
+        m_free(mem, len, m_user_data);
+    }
+
+    void error(const char *msg, size_t msg_len)
+    {
+        m_error(msg, msg_len, m_user_data);
+    }
+
+    template< size_t N >
+    inline void error(const char (&msg)[N])
+    {
+        error(msg, N-1);
+    }
+
+};
+
+/// set the global callbacks
+void set_callbacks(Callbacks const& c);
+/// get the global callbacks
+Callbacks const& get_callbacks();
+
+//-----------------------------------------------------------------------------
+
+class MemoryResource
+{
+public:
+
+    virtual ~MemoryResource() = default;
+
+    virtual void * allocate(size_t num_bytes, void *hint) = 0;
+    virtual void   free(void *mem, size_t num_bytes) = 0;
+};
+
+/// set the global memory resource
+MemoryResource *get_memory_resource();
+/// get the global memory resource 
+void get_memory_resource(MemoryResource *r);
+
+//-----------------------------------------------------------------------------
+
+// a memory resource adapter to the c-style allocator
+class MemoryResourceCallbacks : public MemoryResource
+{
+public:
+
+    Callbacks cb;
+
+    MemoryResourceCallbacks() : cb(get_callbacks()) {}
+    MemoryResourceCallbacks(Callbacks const& c) : cb(c) {}
+
+    void* allocate(size_t len, void* hint) override final
+    {
+        return cb.allocate(len, hint);
+    }
+
+    void free(void *mem, size_t len) override final
+    {
+        return cb.free(mem, len);
+    }
+};
+
+//-----------------------------------------------------------------------------
+
+/** an allocator is a lightweight non-owning handle to a memory resource */
+struct Allocator
+{
+    MemoryResource *r;
+    Allocator() : r(get_memory_resource()) {}
+    Allocator(MemoryResource *m) : r(m) {}
+
+    inline void *allocate(size_t num_bytes, void *hint)
+    {
+        return r->allocate(num_bytes, hint);
+    }
+
+    inline void free(void *mem, size_t num_bytes)
+    {
+        r->free(mem, num_bytes);
+    }
+};
+
 
 } // namespace yml
 } // namespace c4

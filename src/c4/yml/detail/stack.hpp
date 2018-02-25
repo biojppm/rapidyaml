@@ -31,18 +31,21 @@ private:
     size_t m_size;
     size_t m_capacity;
 
+    Allocator m_alloc;
+
 public:
 
     constexpr static bool is_contiguous() { return true; }
 
-    stack() : m_stack(nullptr), m_size(0), m_capacity(0)
+    stack() : m_stack(nullptr), m_size(0), m_capacity(0), m_alloc() {}
+    stack(Allocator const& c) : m_stack(nullptr), m_size(0), m_capacity(0), m_alloc(c)
     {
     }
     ~stack()
     {
         if(m_stack != m_buf)
         {
-            c4::yml::free(m_stack, m_capacity * sizeof(T));
+            m_alloc.free(m_stack, m_capacity * sizeof(T));
         }
     }
 
@@ -55,7 +58,7 @@ public:
     {
         if(m_stack != m_buf)
         {
-            c4::yml::free(m_stack, m_capacity * sizeof(T));
+            m_alloc.free(m_stack, m_capacity * sizeof(T));
         }
         reserve(that.m_size);
         memcpy(m_stack, that.m_stack, sizeof(T) * that.m_size);
@@ -92,11 +95,11 @@ public:
             m_capacity = N;
             return;
         }
-        T *buf = (T*) c4::yml::allocate(sz * sizeof(T), m_stack);
+        T *buf = (T*) m_alloc.allocate(sz * sizeof(T), m_stack);
         memcpy(buf, m_stack, m_size * sizeof(T));
         if(m_stack != m_buf)
         {
-            c4::yml::free(m_stack, m_capacity * sizeof(T));
+            m_alloc.free(m_stack, m_capacity * sizeof(T));
         }
         m_stack = buf;
         m_capacity = sz;
@@ -104,9 +107,10 @@ public:
 
     void push(T const& n)
     {
-        if(m_size >= m_capacity)
+        if(m_size == m_capacity)
         {
-            reserve(2 * m_capacity);
+            size_t cap = m_capacity == 0 ? N : 2 * m_capacity;
+            reserve(cap);
         }
         m_stack[m_size] = n;
         m_size++;

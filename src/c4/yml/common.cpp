@@ -10,7 +10,7 @@ namespace yml {
 
 #ifndef RYML_NO_DEFAULT_CALLBACKS
 namespace {
-void* allocate_impl(size_t length, void * /*hint*/)
+void* allocate_impl(size_t length, void * /*hint*/, void * /*user_data*/)
 {
     void *mem = ::malloc(length);
     if(mem == nullptr)
@@ -20,85 +20,78 @@ void* allocate_impl(size_t length, void * /*hint*/)
     return mem;
 }
 
-void free_impl(void *mem, size_t /*length*/)
+void free_impl(void *mem, size_t /*length*/, void * /*user_data*/)
 {
     ::free(mem);
 }
 
-void error_impl(const char* msg, size_t length)
+void error_impl(const char* msg, size_t length, void * /*user_data*/)
 {
     fprintf(stderr, "%.*s\n", (int)length, msg);
-    abort();
+    ::abort();
+}
+} // empty namespace
+
+Callbacks::Callbacks()
+    :
+    m_user_data(nullptr),
+    m_allocate(&allocate_impl),
+    m_free(&free_impl),
+    m_error(&error_impl)
+{
 }
 
-allocate_callback s_allocate_fn = &allocate_impl;
-free_callback s_free_fn = &free_impl;
-error_callback s_error_fn = &error_impl;
-} // empty namespace
-#else
-allocate_callback s_allocate_fn = nullptr;
-free_callback s_free_fn = nullptr;
-error_callback s_error_fn = nullptr;
+#else // RYML_NO_DEFAULT_CALLBACKS
+
+Callbacks::Callbacks()
+    :
+    m_user_data(nullptr),
+    m_allocate(nullptr),
+    m_free(nullptr),
+    m_error(nullptr)
+{
+}
+
 #endif // RYML_NO_DEFAULT_CALLBACKS
 
-//-----------------------------------------------------------------------------
-void set_allocate_callback(allocate_callback fn)
+Callbacks::Callbacks(void *user_data, pfn_allocate alloc, pfn_free free, pfn_error error)
+    :
+    m_user_data(user_data),
+    m_allocate(alloc),
+    m_free(free),
+    m_error(error)
 {
-#ifdef RYML_NO_DEFAULT_CALLBACKS
-    s_allocate_fn = fn;
-#else
-    s_allocate_fn = fn ? fn : &allocate_impl;
-#endif
 }
 
-allocate_callback get_allocate_callback()
-{
-    return s_allocate_fn;
+namespace {
+Callbacks s_default_callbacks;
+MemoryResourceCallbacks s_default_memory_resource;
+MemoryResource* s_memory_resource = &s_default_memory_resource;
 }
 
-void* allocate(size_t len, void *hint)
+void set_callbacks(Callbacks const& c)
 {
-    return s_allocate_fn(len, hint);
+    s_default_callbacks = c;
 }
 
-//-----------------------------------------------------------------------------
-void set_free_callback(free_callback fn)
+Callbacks const& get_callbacks()
 {
-#ifdef RYML_NO_DEFAULT_CALLBACKS
-    s_free_fn = fn;
-#else
-    s_free_fn = fn ? fn : &free_impl;
-#endif
+    return s_default_callbacks;
 }
 
-free_callback get_free_callback()
+MemoryResource* get_memory_resource()
 {
-    return s_free_fn;
+    return s_memory_resource;
 }
 
-void free(void *mem, size_t mem_len)
+void set_memory_resource(MemoryResource* r)
 {
-    s_free_fn(mem, mem_len);
-}
-
-//-----------------------------------------------------------------------------
-void set_error_callback(error_callback fn)
-{
-#ifdef RYML_NO_DEFAULT_CALLBACKS
-    s_error_fn = fn;
-#else
-    s_error_fn = fn ? fn : &error_impl;
-#endif
-}
-
-error_callback get_error_callback()
-{
-    return s_error_fn;
+    s_memory_resource = r ? r : &s_default_memory_resource;
 }
 
 void error(const char *msg, size_t msg_len)
 {
-    s_error_fn(msg, msg_len);
+    s_default_callbacks.error(msg, msg_len);
 }
 
 } // namespace yml

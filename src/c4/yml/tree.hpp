@@ -285,12 +285,15 @@ private:
     span   m_arena;
     size_t m_arena_pos;
 
+    Allocator m_alloc;
+
     friend void check_invariants(Tree const&);
 
 public:
 
-    Tree();
-    Tree(size_t node_capacity, size_t arena_capacity=0);
+    Tree(Allocator const& cb={});
+    Tree(size_t node_capacity, size_t arena_capacity=0, Allocator const& cb={});
+
     ~Tree();
 
     Tree(Tree const& that);
@@ -315,6 +318,8 @@ public:
     inline size_t arena_size() const { return m_arena_pos; }
     inline size_t arena_capacity() const { return m_arena.len; }
     inline size_t arena_slack() const { C4_ASSERT(m_arena.len >= m_arena_pos); return m_arena.len - m_arena_pos; }
+
+    Allocator const& allocator() const { return m_alloc; }
 
 public:
 

@@ -43,7 +43,7 @@ class Parser
 {
 public:
 
-    Parser();
+    Parser(Allocator const& a={});
 
     Tree parse(                       span src) { return parse({}, src); }
     Tree parse(cspan const& filename, span src)

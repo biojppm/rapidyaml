@@ -13,13 +13,13 @@ namespace c4 {
 namespace yml {
 
 //-----------------------------------------------------------------------------
-Parser::Parser()
+Parser::Parser(Allocator const& a)
     :
     m_file(),
     m_buf(),
     m_root_id(NONE),
     m_tree(),
-    m_stack(),
+    m_stack(a),
     m_state(),
     m_key_tag(),
     m_val_tag(),
@@ -27,7 +27,6 @@ Parser::Parser()
     m_num_anchors(0),
     m_num_references()
 {
-    m_stack.reserve(16);
     m_stack.push({});
     m_state = &m_stack.top();
 }
