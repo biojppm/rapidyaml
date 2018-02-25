@@ -205,7 +205,7 @@ struct Allocator
         {
             error("out of memory");
         }
-        return nullptr;
+        return mem;
     }
 
     inline void free(void *mem, size_t num_bytes)
