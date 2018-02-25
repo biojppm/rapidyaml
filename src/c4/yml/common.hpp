@@ -121,7 +121,7 @@ struct Callbacks
         void* mem = m_allocate(len, hint, m_user_data);
         if(mem == nullptr)
         {
-            c4::yml::error("out of memory");
+            this->error("out of memory");
         }
         return mem;
     }
@@ -131,13 +131,13 @@ struct Callbacks
         m_free(mem, len, m_user_data);
     }
 
-    void error(const char *msg, size_t msg_len)
+    void error(const char *msg, size_t msg_len) const
     {
         m_error(msg, msg_len, m_user_data);
     }
 
     template< size_t N >
-    inline void error(const char (&msg)[N])
+    inline void error(const char (&msg)[N]) const
     {
         error(msg, N-1);
     }
@@ -200,7 +200,12 @@ struct Allocator
 
     inline void *allocate(size_t num_bytes, void *hint)
     {
-        return r->allocate(num_bytes, hint);
+        void *mem = r->allocate(num_bytes, hint);
+        if(mem == nullptr)
+        {
+            error("out of memory");
+        }
+        return nullptr;
     }
 
     inline void free(void *mem, size_t num_bytes)
