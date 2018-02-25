@@ -47,8 +47,8 @@ public:
     using const_iterator = CC*;
 
     // SFINAE (undefed at the end)
-    #define _C4_REQUIRE_CSPAN()  class _require = typename std::enable_if< std::is_same<C, CC>::value >::type
-    #define _C4_REQUIRE_NCSPAN() class _require = typename std::enable_if< std::is_same<C, NCC>::value >::type
+    #define _C4_REQUIRE_CSPAN()  class T=C, class _require = typename std::enable_if< std::is_same<T , CC>::value >::type
+    #define _C4_REQUIRE_NCSPAN() class T=C, class _require = typename std::enable_if< std::is_same<T, NCC>::value >::type
 
 public:
 
@@ -65,30 +65,53 @@ public:
     basic_span& operator= (basic_span const&) = default;
     basic_span& operator= (basic_span     &&) = default;
 
-    basic_span& operator= (C *s_) { this->assign(s_); return *this; }
+    //basic_span& operator= (C *s_) { this->assign(s_); return *this; }
     template< size_t N >
     basic_span& operator= (C (&s_)[N]) { this->assign(s_); return *this; }
 
-    // allow assignments from non-const chars when C is const char
-    template< _C4_REQUIRE_CSPAN() > explicit basic_span(basic_ncspan const& s) : str(s.str), len(s.len) { }
-    template< _C4_REQUIRE_CSPAN() > basic_span& operator= (basic_ncspan const& s) { str = s.str; len = s.len; return *this; }
-
 public:
 
+    //basic_span(C *s_) : str(s_), len(s_ ? strlen(s_) : 0) {}
+    /** the overload for receiving a single C* pointer will always
+     * hide the array overload. So it is disabled. If you want to
+     * construct a span from a single C* pointer, you can call
+     * c4::yml::to_span()/c4::yml::to_cspan().
+     * @see c4::yml::to_span()
+     * @see c4::yml::to_cspan() */
     template< size_t N >
     basic_span(C (&s_)[N]) : str(s_), len(N-1) { C4_ASSERT(s_[N-1] == '\0'); }
-    basic_span(C *s_) : str(s_), len(s_ ? strlen(s_) : 0) {}
     basic_span(C *s_, size_t len_) : str(s_), len(len_) { C4_ASSERT(str || !len_); }
     basic_span(C *beg_, C *end_) : str(beg_), len(end_ - beg_) { C4_ASSERT(end_ >= beg_); }
 
+    //void assign(C *s_) { str = (s_); len = (s_ ? strlen(s_) : 0); }
+    /** the overload for receiving a single C* pointer will always
+     * hide the array overload. So it is disabled. If you want to
+     * construct a span from a single C* pointer, you can call
+     * c4::yml::to_span()/c4::yml::to_cspan().
+     * @see c4::yml::to_span()
+     * @see c4::yml::to_cspan() */
     template< size_t N >
     void assign(C (&s_)[N]) { C4_ASSERT(s_[N-1] == '\0'); str = (s_); len = (N-1); }
-    void assign(C *s_) { str = (s_); len = (s_ ? strlen(s_) : 0); }
     void assign(C *s_, size_t len_) { str = s_; len = len_; C4_ASSERT(str || !len_); }
     void assign(C *beg_, C *end_) { C4_ASSERT(end_ >= beg_); str = (beg_); len = (end_ - beg_); }
 
-    template< size_t N, _C4_REQUIRE_CSPAN() >
-    basic_span(NCC (&s_)[N]) : str(s_), len(N-1) { C4_ASSERT(s_[N-1] == '\0'); }
+public:
+
+    // allow assignments from non-const chars when C is const char
+
+    template< _C4_REQUIRE_CSPAN() > basic_span(basic_ncspan const& s) : str(s.str), len(s.len) { }
+    template< _C4_REQUIRE_CSPAN() > basic_span& operator= (basic_ncspan const& s) { str = s.str; len = s.len; return *this; }
+
+    //template<           _C4_REQUIRE_CSPAN() > explicit basic_span(NCC *s_) : str(s_), len(s_ ? strlen(s_) : 0) {}
+    /** the overload for receiving a single C* pointer will always
+     * hide the array overload. So it is disabled. If you want to
+     * construct a span from a single C* pointer, you can call
+     * c4::yml::to_span()/c4::yml::to_cspan().
+     * @see c4::yml::to_span()
+     * @see c4::yml::to_cspan() */
+    template< size_t N, _C4_REQUIRE_CSPAN() > explicit basic_span(NCC (&s_)[N]) : str(s_), len(N-1) { C4_ASSERT(s_[N-1] == '\0'); }
+    template<           _C4_REQUIRE_CSPAN() > explicit basic_span(NCC *s_, size_t len_) : str(s_), len(len_) { C4_ASSERT(str || !len_); }
+    template<           _C4_REQUIRE_CSPAN() > explicit basic_span(NCC *beg_, NCC *end_) : str(beg_), len(end_ - beg_) { C4_ASSERT(end_ >= beg_); }
 
 public:
 
@@ -550,6 +573,47 @@ public:
     #undef _C4_REQUIRE_NCSPAN
 
 }; // template class basic_span
+
+
+/** Because of a C++ limitation, spans cannot provide simultaneous
+ * overloads for constructing from a char[N] and a char*; the latter
+ * will always be chosen by the compiler. So this specialization is
+ * provided to simplify obtaining a span from a char*. Being a
+ * function has the advantage of making evident the strlen() cost.
+ *
+ * @see For a more detailed explanation on why the overloads cannot
+ * coexist, see http://cplusplus.bordoon.com/specializeForCharacterArrays.html */
+inline span to_span(char *s)
+{
+    return span(s, s ? strlen(s) : 0);
+}
+
+/** Because of a C++ limitation, spans cannot provide simultaneous
+ * overloads for constructing from a char[N] and a char*; the latter
+ * will always be chosen by the compiler. So this specialization is
+ * provided to simplify obtaining a span from a char*. Being a
+ * function has the advantage of making evident the strlen() cost.
+ *
+ * @see For a more detailed explanation on why the overloads cannot
+ * coexist, see http://cplusplus.bordoon.com/specializeForCharacterArrays.html */
+inline cspan to_cspan(char *s)
+{
+    return cspan(s, s ? strlen(s) : 0);
+}
+
+/** Because of a C++ limitation, spans cannot provide simultaneous
+ * overloads for constructing from a const char[N] and a const char*;
+ * the latter will always be chosen by the compiler. So this
+ * specialization is provided to simplify obtaining a span from a
+ * char*. Being a function has the advantage of making evident the
+ * strlen() cost.
+ *
+ * @see For a more detailed explanation on why the overloads cannot
+ * coexist, see http://cplusplus.bordoon.com/specializeForCharacterArrays.html */
+inline cspan to_cspan(const char *s)
+{
+    return cspan(s, s ? strlen(s) : 0);
+}
 
 } // namespace yml
 } // namespace c4

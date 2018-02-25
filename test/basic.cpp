@@ -99,8 +99,10 @@ namespace yml {
 
 TEST(atoi, basic)
 {
-    char bufc[100];
+    char bufc[100] = {0};
     span buf(bufc);
+    C4_ASSERT(buf.len == sizeof(bufc)-1);
+
     size_t ret;
 
 #define _woof(val) \

@@ -110,35 +110,35 @@ struct NodeScalar
     /// initialize as an untagged scalar
 
     template< size_t N >
-    inline NodeScalar(const char (&s)[N]      ) : tag(), scalar(    ) { /*avoid strlen call*/ scalar.assign<N>(s); }
-    inline NodeScalar(cspan const& s          ) : tag(), scalar(s   ) {}
-    inline NodeScalar(const char*  s          ) : tag(), scalar(s   ) {}
-    inline NodeScalar(const char*  s, size_t n) : tag(), scalar(s, n) {}
+    inline NodeScalar(const char (&s)[N]      ) : tag(), scalar(s             ) {}
+    inline NodeScalar(cspan const& s          ) : tag(), scalar(s             ) {}
+    inline NodeScalar(const char*  s          ) : tag(), scalar(to_cspan(s)   ) {}
+    inline NodeScalar(const char*  s, size_t n) : tag(), scalar(s          , n) {}
 
     /// initialize as a tagged scalar
 
     template< size_t M >
-    inline NodeScalar(cspan const& t           , const char (&s)[M]       ) : tag(t    ), scalar(     ) { /*avoid strlen call */scalar.assign<M>(s); }
-    inline NodeScalar(cspan const& t           , cspan const& s           ) : tag(t    ), scalar(s    ) {}
-    inline NodeScalar(cspan const& t           , const char * s           ) : tag(t    ), scalar(s    ) {}
-    inline NodeScalar(cspan const& t           , const char * s, size_t ns) : tag(t    ), scalar(s, ns) {}
+    inline NodeScalar(cspan const& t           , const char (&s)[M]       ) : tag(t    ), scalar(s              ) {}
+    inline NodeScalar(cspan const& t           , cspan const& s           ) : tag(t    ), scalar(s              ) {}
+    inline NodeScalar(cspan const& t           , const char * s           ) : tag(t    ), scalar(to_cspan(s)    ) {}
+    inline NodeScalar(cspan const& t           , const char * s, size_t ns) : tag(t    ), scalar(s          , ns) {}
 
     template< size_t M >
-    inline NodeScalar(const char * t           , const char (&s)[M]       ) : tag(t    ), scalar(     ) { /*avoid strlen call */scalar.assign<M>(s); }
-    inline NodeScalar(const char * t           , cspan const& s           ) : tag(t    ), scalar(s    ) {}
-    inline NodeScalar(const char * t           , const char * s           ) : tag(t    ), scalar(s    ) {}
-    inline NodeScalar(const char * t           , const char * s, size_t ns) : tag(t    ), scalar(s, ns) {}
+    inline NodeScalar(const char * t           , const char (&s)[M]       ) : tag(to_cspan(t)), scalar(s              ) {}
+    inline NodeScalar(const char * t           , cspan const& s           ) : tag(to_cspan(t)), scalar(s              ) {}
+    inline NodeScalar(const char * t           , const char * s           ) : tag(to_cspan(t)), scalar(to_cspan(s)    ) {}
+    inline NodeScalar(const char * t           , const char * s, size_t ns) : tag(to_cspan(t)), scalar(s          , ns) {}
 
     template< size_t M >
-    inline NodeScalar(const char * t, size_t nt, const char (&s)[M]       ) : tag(t, nt), scalar(     ) { /*avoid strlen call */scalar.assign<M>(s); }
-    inline NodeScalar(const char * t, size_t nt, cspan const& s           ) : tag(t, nt), scalar(s    ) {}
-    inline NodeScalar(const char * t, size_t nt, const char * s           ) : tag(t, nt), scalar(s    ) {}
-    inline NodeScalar(const char * t, size_t nt, const char * s, size_t ns) : tag(t, nt), scalar(s, ns) {}
+    inline NodeScalar(const char * t, size_t nt, const char (&s)[M]       ) : tag(t, nt), scalar(s              ) {}
+    inline NodeScalar(const char * t, size_t nt, cspan const& s           ) : tag(t, nt), scalar(s              ) {}
+    inline NodeScalar(const char * t, size_t nt, const char * s           ) : tag(t, nt), scalar(to_cspan(s)    ) {}
+    inline NodeScalar(const char * t, size_t nt, const char * s, size_t ns) : tag(t, nt), scalar(s          , ns) {}
 
-    template< size_t N, size_t M > inline NodeScalar(const char (&t)[N], const char (&s)[M]       ) : tag(     ), scalar(     ) { /*avoid strlen call */tag.assign<N>(t); scalar.assign<M>(s); }
-    template< size_t N >           inline NodeScalar(const char (&t)[N], cspan const& s           ) : tag(     ), scalar(s    ) { /*avoid strlen call */tag.assign<N>(t); }
-    template< size_t N >           inline NodeScalar(const char (&t)[N], const char * s           ) : tag(     ), scalar(s    ) { /*avoid strlen call */tag.assign<N>(t); }
-    template< size_t N >           inline NodeScalar(const char (&t)[N], const char * s, size_t ns) : tag(     ), scalar(s, ns) { /*avoid strlen call */tag.assign<N>(t); }
+    template< size_t N, size_t M > inline NodeScalar(const char (&t)[N], const char (&s)[M]       ) : tag(t), scalar(s              ) {}
+    template< size_t N >           inline NodeScalar(const char (&t)[N], cspan const& s           ) : tag(t), scalar(s              ) {}
+    template< size_t N >           inline NodeScalar(const char (&t)[N], const char * s           ) : tag(t), scalar(to_cspan(s)    ) {}
+    template< size_t N >           inline NodeScalar(const char (&t)[N], const char * s, size_t ns) : tag(t), scalar(s          , ns) {}
 
     bool empty() const { return tag.empty() && scalar.empty(); }
 
@@ -689,7 +689,7 @@ public:
 
     inline bool in_arena(cspan const& s) const
     {
-        return s.is_subspan(m_arena);
+        return m_arena.contains(s);
     }
 
 private:
@@ -713,12 +713,12 @@ private:
 
     inline span _relocated(cspan const& s, span const& next_arena) const
     {
-        C4_ASSERT(s.is_subspan(m_arena));
-        C4_ASSERT(s.is_subspan(m_arena.subspan(0, m_arena_pos)));
+        C4_ASSERT(m_arena.contains(s));
+        C4_ASSERT(m_arena.subspan(0, m_arena_pos).contains(s));
         auto pos = (s.str - m_arena.str);
         span r(next_arena.str + pos, s.len);
         C4_ASSERT(r.str - next_arena.str == pos);
-        C4_ASSERT(r.is_subspan(next_arena.subspan(0, m_arena_pos)));
+        C4_ASSERT(next_arena.subspan(0, m_arena_pos).contains(r));
         return r;
     }
 

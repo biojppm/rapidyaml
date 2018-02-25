@@ -360,7 +360,7 @@ struct YmlTestCase : public ::testing::TestWithParam< const char* >
     Case const* c; // the case
     CaseData * d; // the case data
 
-    YmlTestCase() : name(GetParam()), c(get_case(GetParam())), d(get_data(GetParam())) {}
+    YmlTestCase() : name(to_cspan(GetParam())), c(get_case(to_cspan(GetParam()))), d(get_data(to_cspan(GetParam()))) {}
 
     void SetUp() override
     {

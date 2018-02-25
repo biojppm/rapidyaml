@@ -211,7 +211,7 @@ void TemplateBlock::parse(TokenContainer *cont)
             cont->get(tk_pos)->m_root_level = false;
             cont->get(tk_pos)->parse(&rem, &pos);
             cont->get(tk_pos)->parse_body(cont);
-            C4_ASSERT(p.body.has_subspan(rem));
+            C4_ASSERT(p.body.contains(rem));
             p.body = p.body.subspan(0, rem.begin() - p.body.begin());
             curr = rem;
         }
@@ -481,7 +481,7 @@ void TokenIf::parse(cspan *rem, TplLocation *curr_pos)
 
     for(auto &cond : m_blocks)
     {
-        C4_ASSERT(m_full_text.has_subspan(cond.body) || cond.body.empty());
+        C4_ASSERT(m_full_text.contains(cond.body) || cond.body.empty());
         cond.body = cond.body.triml("\r\n");
         cond.start.m_rope_pos.i = cond.body.begin() - m_full_text.begin();
     }
@@ -489,7 +489,7 @@ void TokenIf::parse(cspan *rem, TplLocation *curr_pos)
 
 TokenIf::condblock* TokenIf::_add_block(cspan cond, cspan s, bool as_else)
 {
-    C4_ASSERT(m_full_text.has_subspan(s));
+    C4_ASSERT(m_full_text.contains(s));
     m_blocks.emplace_back();
     auto *cb = &m_blocks.back();
     cb->body = s;
