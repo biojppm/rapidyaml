@@ -2,6 +2,12 @@
 #include <gtest/gtest.h>
 #include "../rope.hpp"
 
+#if defined(_MSC_VER)
+#   pragma warning(push)
+#   pragma warning(disable: 4127/*conditional expression is constant*/)
+#   pragma warning(disable: 4389/*'==': signed/unsigned mismatch*/)
+#endif
+
 namespace c4 {
 namespace tpl {
 
@@ -385,3 +391,7 @@ tututu
 
 } // namespace tpl
 } // namespace c4
+
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#endif

@@ -10,10 +10,6 @@
 #endif
 
 #include <yaml-cpp/yaml.h>
-#if defined(_MSC_VER)
-#   pragma warning(pop)
-#endif
-
 
 int main(int argc, char *argv[])
 {
@@ -1552,3 +1548,7 @@ TEST_P(YmlTestCase, recreate_from_ref)
 
 } // namespace yml
 } // namespace c4
+
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#endif
