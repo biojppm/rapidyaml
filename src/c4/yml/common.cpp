@@ -54,12 +54,12 @@ Callbacks::Callbacks()
 
 #endif // RYML_NO_DEFAULT_CALLBACKS
 
-Callbacks::Callbacks(void *user_data, pfn_allocate alloc, pfn_free free, pfn_error error)
+Callbacks::Callbacks(void *user_data, pfn_allocate alloc, pfn_free free_, pfn_error error_)
     :
     m_user_data(user_data),
     m_allocate(alloc),
-    m_free(free),
-    m_error(error)
+    m_free(free_),
+    m_error(error_)
 {
 }
 
