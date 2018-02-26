@@ -474,7 +474,7 @@ void node_scalar_test_foo(NodeScalar const& s, bool with_tag=false)
     else
     {
         EXPECT_EQ(s.tag, "");
-        EXPECT_EQ(s.tag.len, 0);
+        EXPECT_EQ(s.tag.len, 0u);
         EXPECT_TRUE(s.tag.empty());
     }
     EXPECT_EQ(s.scalar, "foo");
