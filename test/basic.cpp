@@ -21,6 +21,69 @@ int main(int argc, char *argv[])
 
 namespace foo {
 
+template< class T >
+struct vec2
+{
+    T x, y;
+};
+template< class T >
+struct vec3
+{
+    T x, y, z;
+};
+template< class T >
+struct vec4
+{
+    T x, y, z, w;
+};
+
+template< class T > size_t to_str(c4::yml::span buf, vec2<T> v) { return c4::yml::cat(buf, '(', v.x, ',', v.y, ')'); }
+template< class T > size_t to_str(c4::yml::span buf, vec3<T> v) { return c4::yml::cat(buf, '(', v.x, ',', v.y, ',', v.z, ')'); }
+template< class T > size_t to_str(c4::yml::span buf, vec4<T> v) { return c4::yml::cat(buf, '(', v.x, ',', v.y, ',', v.z, ',', v.w, ')'); }
+
+template< class T > size_t from_str(c4::yml::cspan buf, vec2<T> *v) { char c; return c4::yml::uncat(buf, c, v->x, c, v->y, c); }
+template< class T > size_t from_str(c4::yml::cspan buf, vec3<T> *v) { char c; return c4::yml::uncat(buf, c, v->x, c, v->y, c, v->z, c); }
+template< class T > size_t from_str(c4::yml::cspan buf, vec4<T> *v) { char c; return c4::yml::uncat(buf, c, v->x, c, v->y, c, v->z, c, v->w, c); }
+
+TEST(serialize, type_as_str)
+{
+    c4::yml::Tree t;
+
+    auto r = t.rootref();
+    r |= c4::yml::MAP;
+
+    vec2<int> v2in{10, 11};
+    vec2<int> v2out;
+    r["v2"] << v2in;
+    r["v2"] >> v2out;
+    EXPECT_EQ(v2in.x, v2out.x);
+    EXPECT_EQ(v2in.y, v2out.y);
+
+    vec3<int> v3in{100, 101, 102};
+    vec3<int> v3out;
+    r["v3"] << v3in;
+    r["v3"] >> v3out;
+    EXPECT_EQ(v3in.x, v3out.x);
+    EXPECT_EQ(v3in.y, v3out.y);
+    EXPECT_EQ(v3in.z, v3out.z);
+
+    vec4<int> v4in{1000, 1001, 1002, 1003};
+    vec4<int> v4out;
+    r["v4"] << v4in;
+    r["v4"] >> v4out;
+    EXPECT_EQ(v4in.x, v4out.x);
+    EXPECT_EQ(v4in.y, v4out.y);
+    EXPECT_EQ(v4in.z, v4out.z);
+    EXPECT_EQ(v4in.w, v4out.w);
+
+    char buf[256];
+    c4::yml::cspan ret = c4::yml::emit(t, buf);
+    EXPECT_EQ(ret, R"(v2: (10,11)
+v3: (100,101,102)
+v4: (1000,1001,1002,1003)
+)");
+}
+
 template< class Container, class... Args >
 void do_test_serialize(Args&& ...args)
 {
@@ -374,6 +437,15 @@ TEST(span, first_of_any)
     EXPECT_EQ(cspan("{% if foo %}foo{% elif bar %}bar{% else %}baz{% endif %}").first_of_any("{% elif bar %}" , "{% else %}"     , "{% endif %}", "{% if "      ).which, 3);
 }
 
+TEST(span, first_non_empty_span)
+{
+    EXPECT_EQ(cspan("foo bar").first_non_empty_span(), "foo");
+    EXPECT_EQ(cspan("       foo bar").first_non_empty_span(), "foo");
+    EXPECT_EQ(cspan("\n   \r  \t  foo bar").first_non_empty_span(), "foo");
+    EXPECT_EQ(cspan("\n   \r  \t  foo\n\r\t bar").first_non_empty_span(), "foo");
+    EXPECT_EQ(cspan("\n   \r  \t  foo\n\r\t bar").first_non_empty_span(), "foo");
+    EXPECT_EQ(cspan(",\n   \r  \t  foo\n\r\t bar").first_non_empty_span(), ",");
+}
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
