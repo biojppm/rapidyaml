@@ -252,6 +252,7 @@ inline size_t from_str_untrimmed(cspan buf, ty *v)  \
 
 #ifdef _MSC_VER
 #   pragma warning(push)
+#   pragma warning(disable: 4800) //'int': forcing value to bool 'true' or 'false' (performance warning)
 #   pragma warning(disable: 4996) // snprintf/scanf: this function or variable may be unsafe
 #endif
 
@@ -322,10 +323,6 @@ _C4_DEFINE_TO_FROM_STR_TOA(uint64_t, u)
 #undef _C4_DEFINE_TO_FROM_STR
 #undef _C4_DEFINE_TO_FROM_STR_TOA
 
-#ifdef _MSC_VER
-#   pragma warning(pop)
-#endif
-
 
 //-----------------------------------------------------------------------------
 inline size_t to_str(span buf, bool v)
@@ -349,6 +346,10 @@ inline size_t from_str_untrimmed(cspan buf, bool *v)
     *v = (bool)val;
     return ret;
 }
+
+#ifdef _MSC_VER
+#   pragma warning(pop)
+#endif
 
 //-----------------------------------------------------------------------------
 inline size_t to_str(span buf, char v)
