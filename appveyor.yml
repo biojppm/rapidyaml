@@ -38,22 +38,6 @@ environment:
       generator: "Visual Studio 14 2015 Win64"
       configuration: Release
 
-      
-    - compiler: msvc-12-seh
-      generator: "Visual Studio 12 2013"
-      configuration: Debug
-
-    - compiler: msvc-12-seh
-      generator: "Visual Studio 12 2013 Win64"
-      configuration: Debug
-
-    - compiler: msvc-12-seh
-      generator: "Visual Studio 12 2013"
-      configuration: Release
-
-    - compiler: msvc-12-seh
-      generator: "Visual Studio 12 2013 Win64"
-      configuration: Release
 
 
     #- compiler: gcc-5.3.0-posix

@@ -20,7 +20,7 @@ ryml does not depend on the STL, but can interact with it via `#include
 <ryml_std.hpp>`.
 
 ryml is written in C++11, and is known to compile with:
-* Visual Studio 2013 and later
+* Visual Studio 2015 and later
 * clang++ 3.9 and later
 * g++ 5 and later
 
