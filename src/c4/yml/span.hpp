@@ -49,6 +49,8 @@ public:
     // SFINAE (undefed at the end)
     #define _C4_REQUIRE_CSPAN()  class T=C, class _require = typename std::enable_if< std::is_same<T , CC>::value >::type
     #define _C4_REQUIRE_NCSPAN() class T=C, class _require = typename std::enable_if< std::is_same<T, NCC>::value >::type
+    // just to be sure
+    #define _C4REQNULLWHENCONST(ty, buf, sz) C4_ASSERT(buf[sz-1] == '\0' || ! std::is_const<ty>::value)
 
 public:
 
@@ -73,27 +75,28 @@ public:
 
     //basic_span(C *s_) : str(s_), len(s_ ? strlen(s_) : 0) {}
     /** the overload for receiving a single C* pointer will always
-     * hide the array overload. So it is disabled. If you want to
+     * hide the array[N] overload. So it is disabled. If you want to
      * construct a span from a single C* pointer, you can call
      * c4::yml::to_span()/c4::yml::to_cspan().
      * @see c4::yml::to_span()
      * @see c4::yml::to_cspan() */
     template< size_t N >
-    basic_span(C (&s_)[N]) : str(s_), len(N-1) { C4_ASSERT(s_[N-1] == '\0'); }
+    basic_span(C (&s_)[N]) : str(s_), len(N-1) { _C4REQNULLWHENCONST(C, s_, N); }
     basic_span(C *s_, size_t len_) : str(s_), len(len_) { C4_ASSERT(str || !len_); }
     basic_span(C *beg_, C *end_) : str(beg_), len(end_ - beg_) { C4_ASSERT(end_ >= beg_); }
 
     //void assign(C *s_) { str = (s_); len = (s_ ? strlen(s_) : 0); }
     /** the overload for receiving a single C* pointer will always
-     * hide the array overload. So it is disabled. If you want to
+     * hide the array[N] overload. So it is disabled. If you want to
      * construct a span from a single C* pointer, you can call
      * c4::yml::to_span()/c4::yml::to_cspan().
      * @see c4::yml::to_span()
      * @see c4::yml::to_cspan() */
     template< size_t N >
-    void assign(C (&s_)[N]) { C4_ASSERT(s_[N-1] == '\0'); str = (s_); len = (N-1); }
+    void assign(C (&s_)[N]) { _C4REQNULLWHENCONST(C, s_, N); str = (s_); len = (N-1); }
     void assign(C *s_, size_t len_) { str = s_; len = len_; C4_ASSERT(str || !len_); }
     void assign(C *beg_, C *end_) { C4_ASSERT(end_ >= beg_); str = (beg_); len = (end_ - beg_); }
+
 
 public:
 
@@ -104,12 +107,12 @@ public:
 
     //template<           _C4_REQUIRE_CSPAN() > explicit basic_span(NCC *s_) : str(s_), len(s_ ? strlen(s_) : 0) {}
     /** the overload for receiving a single C* pointer will always
-     * hide the array overload. So it is disabled. If you want to
+     * hide the array[N] overload. So it is disabled. If you want to
      * construct a span from a single C* pointer, you can call
      * c4::yml::to_span()/c4::yml::to_cspan().
      * @see c4::yml::to_span()
      * @see c4::yml::to_cspan() */
-    template< size_t N, _C4_REQUIRE_CSPAN() > explicit basic_span(NCC (&s_)[N]) : str(s_), len(N-1) { C4_ASSERT(s_[N-1] == '\0'); }
+    template< size_t N, _C4_REQUIRE_CSPAN() > explicit basic_span(NCC (&s_)[N]) : str(s_), len(N-1) {}
     template<           _C4_REQUIRE_CSPAN() > explicit basic_span(NCC *s_, size_t len_) : str(s_), len(len_) { C4_ASSERT(str || !len_); }
     template<           _C4_REQUIRE_CSPAN() > explicit basic_span(NCC *beg_, NCC *end_) : str(beg_), len(end_ - beg_) { C4_ASSERT(end_ >= beg_); }
 
