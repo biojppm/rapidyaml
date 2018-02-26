@@ -15,6 +15,12 @@
 #   pragma GCC diagnostic ignored "-Wtype-limits"
 #endif
 
+#if defined(_MSC_VER)
+#   pragma warning(push)
+#   pragma warning(disable: 4389/*'==': signed/unsigned mismatch*/)
+#   pragma warning(disable: 4800/*'int': forcing value to bool 'true' or 'false' (performance warning)*/)
+#endif
+
 namespace c4 {
 namespace yml {
 
@@ -375,6 +381,10 @@ struct YmlTestCase : public ::testing::TestWithParam< const char* >
 
 } // namespace yml
 } // namespace c4
+
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#endif
 
 #ifdef __GNUC__
 #   pragma GCC diagnostic pop
