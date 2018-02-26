@@ -106,11 +106,17 @@ public:
                 break;
             }
 
+#ifdef RYML_DBG
 #define _c4_handle_case(_ev)                            \
 case YAML_ ## _ev ## _EVENT:                            \
     printf(#_ev " val=%.*s\n",                          \
            /*(int)prev_scalar.len, prev_scalar.str,*/   \
            (int)val.len, val.str);
+#else
+#define _c4_handle_case(_ev)                            \
+case YAML_ ## _ev ## _EVENT:                            \
+    (void)val;
+#endif
 
             cspan val = get_scalar_val(ev);
             switch(ev.m_event.type)
