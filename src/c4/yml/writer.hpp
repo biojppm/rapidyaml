@@ -90,6 +90,7 @@ struct WriterSpan
             {
                 c4::yml::error("not enough space in the given span");
             }
+            return sp;
         }
         sp = sp.range(0, m_pos);
         return sp;
