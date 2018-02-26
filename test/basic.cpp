@@ -41,9 +41,9 @@ template< class T > size_t to_str(c4::yml::span buf, vec2<T> v) { return c4::yml
 template< class T > size_t to_str(c4::yml::span buf, vec3<T> v) { return c4::yml::cat(buf, '(', v.x, ',', v.y, ',', v.z, ')'); }
 template< class T > size_t to_str(c4::yml::span buf, vec4<T> v) { return c4::yml::cat(buf, '(', v.x, ',', v.y, ',', v.z, ',', v.w, ')'); }
 
-template< class T > size_t from_str(c4::yml::cspan buf, vec2<T> *v) { char c; return c4::yml::uncat(buf, c, v->x, c, v->y, c); }
-template< class T > size_t from_str(c4::yml::cspan buf, vec3<T> *v) { char c; return c4::yml::uncat(buf, c, v->x, c, v->y, c, v->z, c); }
-template< class T > size_t from_str(c4::yml::cspan buf, vec4<T> *v) { char c; return c4::yml::uncat(buf, c, v->x, c, v->y, c, v->z, c, v->w, c); }
+template< class T > bool from_str(c4::yml::cspan buf, vec2<T> *v) { char c; size_t ret = c4::yml::uncat(buf, c, v->x, c, v->y, c); return ret != c4::yml::npos; }
+template< class T > bool from_str(c4::yml::cspan buf, vec3<T> *v) { char c; size_t ret = c4::yml::uncat(buf, c, v->x, c, v->y, c, v->z, c); return ret != c4::yml::npos; }
+template< class T > bool from_str(c4::yml::cspan buf, vec4<T> *v) { char c; size_t ret = c4::yml::uncat(buf, c, v->x, c, v->y, c, v->z, c, v->w, c); return ret != c4::yml::npos; }
 
 TEST(serialize, type_as_str)
 {

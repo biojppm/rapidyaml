@@ -49,8 +49,6 @@ public:
     // SFINAE (undefed at the end)
     #define _C4_REQUIRE_CSPAN()  class T=C, class _require = typename std::enable_if< std::is_same<T , CC>::value >::type
     #define _C4_REQUIRE_NCSPAN() class T=C, class _require = typename std::enable_if< std::is_same<T, NCC>::value >::type
-    // just to be sure
-    #define _C4REQNULLWHENCONST(ty, buf, sz) C4_ASSERT(std::is_const<ty>::value == (buf[sz-1] == '\0'))
 
 public:
 
@@ -81,7 +79,7 @@ public:
      * @see c4::yml::to_span()
      * @see c4::yml::to_cspan() */
     template< size_t N >
-    basic_span(C (&s_)[N]) : str(s_), len(N-1) { _C4REQNULLWHENCONST(C, s_, N); }
+    basic_span(C (&s_)[N]) : str(s_), len(N-1) {}
     basic_span(C *s_, size_t len_) : str(s_), len(len_) { C4_ASSERT(str || !len_); }
     basic_span(C *beg_, C *end_) : str(beg_), len(end_ - beg_) { C4_ASSERT(end_ >= beg_); }
 
@@ -93,7 +91,7 @@ public:
      * @see c4::yml::to_span()
      * @see c4::yml::to_cspan() */
     template< size_t N >
-    void assign(C (&s_)[N]) { _C4REQNULLWHENCONST(C, s_, N); str = (s_); len = (N-1); }
+    void assign(C (&s_)[N]) { str = (s_); len = (N-1); }
     void assign(C *s_, size_t len_) { str = s_; len = len_; C4_ASSERT(str || !len_); }
     void assign(C *beg_, C *end_) { C4_ASSERT(end_ >= beg_); str = (beg_); len = (end_ - beg_); }
 

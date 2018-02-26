@@ -32,7 +32,7 @@ inline size_t to_str(c4::yml::span buf, std::string const& s)
     return to_str(buf, to_cspan(s));
 }
 
-inline size_t from_str(c4::yml::cspan buf, std::string * s)
+inline bool from_str(c4::yml::cspan buf, std::string * s)
 {
     s->resize(buf.len);
     c4::yml::span v = to_span(*s);
