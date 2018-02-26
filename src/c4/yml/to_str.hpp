@@ -281,7 +281,7 @@ inline size_t from_str_untrimmed(cspan buf, ty *v)                      \
     /* write the length into it. Eg "%12d" for an int (scn_fmt="d").    \
      * Also, get the number of characters read from the string.         \
      * So the final format ends up as "%12d%n"*/                        \
-    int ret = snprintf(fmt, sizeof(fmt), "%%""%zu%%n" scn_fmt, buf.len);\
+    int ret = snprintf(fmt, sizeof(fmt), "%%""%zu" scn_fmt "%%n", buf.len);\
     /* no nasty surprises, please! */                                   \
     C4_ASSERT(size_t(ret) < sizeof(fmt));                               \
     /* now we scan with confidence that the span length is respected */ \
