@@ -6,6 +6,10 @@
 
 namespace std {
 
+// std::string is a map-like type, and it requires child nodes
+// in the data tree hierarchy (a MAP node in ryml parlance).
+// So it should be serialized via write()/read().
+
 template< class K, class V, class Less, class Alloc >
 void write(c4::yml::NodeRef *n, std::map< K, V, Less, Alloc > const& m)
 {

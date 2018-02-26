@@ -6,6 +6,10 @@
 
 namespace std {
 
+// std::string is a sequence-like type, and it requires child nodes
+// in the data tree hierarchy (a SEQ node in ryml parlance).
+// So it should be serialized via write()/read().
+
 template< class V, class Alloc >
 void write(c4::yml::NodeRef *n, std::vector< V, Alloc > const& vec)
 {
