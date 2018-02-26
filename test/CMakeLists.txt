@@ -19,9 +19,9 @@ add_subdirectory(${RYML_EXT_DIR}/yaml-cpp   yaml-cpp)
 #include(GoogleTest) # this module requires at least cmake 3.9
 
 # these will eventually go into their own repo
-set(c4tpl_files
-    c4/tpl/common.hpp c4/tpl/engine.hpp c4/tpl/rope.hpp c4/tpl/token.hpp c4/tpl/token.cpp c4/tpl/ c4/tpl/token_container.hpp c4/tpl/token_container.cpp c4/tpl/test/test_engine.cpp c4/tpl/test/test_rope.cpp
-    )
+#set(c4tpl_files
+#    c4/tpl/common.hpp c4/tpl/engine.hpp c4/tpl/rope.hpp c4/tpl/token.hpp c4/tpl/token.cpp c4/tpl/ c4/tpl/token_container.hpp c4/tpl/token_container.cpp c4/tpl/test/test_engine.cpp c4/tpl/test/test_rope.cpp
+#    )
 
 function(ryml_add_test test_name test_src)
     set(t ryml-${test_name})

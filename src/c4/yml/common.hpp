@@ -195,6 +195,7 @@ public:
 struct Allocator
 {
     MemoryResource *r;
+
     Allocator() : r(get_memory_resource()) {}
     Allocator(MemoryResource *m) : r(m) {}
 
