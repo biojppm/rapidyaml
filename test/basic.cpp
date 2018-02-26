@@ -1019,7 +1019,7 @@ TEST(NodeRef, 0_general)
     root["b"]["seq2"][3] = "03";
     int iv = 0;
     root["b"]["seq2"][4] << 55; root["b"]["seq2"][4] >> iv;
-    int zv = 0;
+    size_t zv = 0;
     root["b"]["seq2"][5] << size_t(55); root["b"]["seq2"][5] >> zv;
     float fv = 0;
     root["b"]["seq2"][6] << 2.0f; root["b"]["seq2"][6] >> fv;
@@ -1084,8 +1084,8 @@ void noderef_check_tree(NodeRef const& root)
 {
     check_invariants(*root.tree());
 
-    EXPECT_EQ(root.tree()->size(), 7);
-    EXPECT_EQ(root.num_children(), 6);
+    EXPECT_EQ(root.tree()->size(), 7u);
+    EXPECT_EQ(root.num_children(), 6u);
     EXPECT_EQ(root.is_container(), true);
     EXPECT_EQ(root.is_seq(), true);
 
