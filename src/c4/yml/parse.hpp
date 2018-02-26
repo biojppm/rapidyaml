@@ -191,6 +191,7 @@ private:
         LineContents line_contents;
         size_t       indref;
 
+        State() { memset(this, 0, sizeof(*this)); }
         void reset(const char *file, size_t node_id_)
         {
             flags = RUNK|RTOP;

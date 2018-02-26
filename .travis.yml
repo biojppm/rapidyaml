@@ -84,10 +84,10 @@ matrix:
 
     # ----------- clang-tidy
     #
-    - env: CXX_=clang++-7.0 A=32 BT=Debug   LINT=clang-tidy
-    - env: CXX_=clang++-7.0 A=64 BT=Debug   LINT=clang-tidy
-    - env: CXX_=clang++-7.0 A=32 BT=Release LINT=clang-tidy
-    - env: CXX_=clang++-7.0 A=64 BT=Release LINT=clang-tidy
+    - env: CXX_=clang++-6.0 A=32 BT=Debug   LINT=clang-tidy
+    - env: CXX_=clang++-6.0 A=64 BT=Debug   LINT=clang-tidy
+    - env: CXX_=clang++-6.0 A=32 BT=Release LINT=clang-tidy
+    - env: CXX_=clang++-6.0 A=64 BT=Release LINT=clang-tidy
     #
     # ----------- Coverage (covers all tests, slow) -------------------------
     #

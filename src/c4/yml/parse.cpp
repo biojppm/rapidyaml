@@ -27,7 +27,8 @@ Parser::Parser(Allocator const& a)
     m_num_anchors(0),
     m_num_references()
 {
-    m_stack.push({});
+    State st{};
+    m_stack.push(st);
     m_state = &m_stack.top();
 }
 
