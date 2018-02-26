@@ -455,10 +455,10 @@ void node_scalar_test_empty(NodeScalar const& s)
 {
     EXPECT_TRUE(s.empty());
     EXPECT_EQ(s.tag, "");
-    EXPECT_EQ(s.tag.len, 0);
+    EXPECT_EQ(s.tag.len, 0u);
     EXPECT_TRUE(s.tag.empty());
     EXPECT_EQ(s.scalar, "");
-    EXPECT_EQ(s.scalar.len, 0);
+    EXPECT_EQ(s.scalar.len, 0u);
     EXPECT_TRUE(s.scalar.empty());
 }
 
