@@ -62,9 +62,9 @@ r["foo"] = "1"; // ryml works only with strings.
 
 auto s = r["seq"]; // does not change the tree until s is written to.
 s |= ryml::SEQ;
-r["seq"].append_child() = "bar0"; // value of this child is now __pointing__ at "bar0"
-r["seq"].append_child() = "bar1";
-r["seq"].append_child() = "bar2";
+s.append_child() = "bar0"; // value of this child is now __pointing__ at "bar0"
+s.append_child() = "bar1";
+s.append_child() = "bar2";
 
 // emit to stdout (can also emit to FILE* or ryml::span)
 emit(tree); // prints the following:
@@ -127,14 +127,7 @@ for(auto c : node.siblings())
     std::cout << c.key() << "---" << c.val() << "\n";
 }
 ```
-
-### Custom types
-
-Deserialization does not involve any allocations. Serialization may need to
-resize the tree's internal string arena.
-
-... describe how to add (de)serialization and stringification of user
-types. Example in [the std::string serialization code](src/c4/yml/std/string.hpp).
+ 
 
 ### STL interoperation
 
@@ -167,11 +160,33 @@ int main()
 
 The `<ryml_std.hpp>` header includes every default std type implementation
 for ryml. You can include just a specific header if you are interested only
-in a particular container; these headers are located in the folder
-c4/yml/std.
+in a particular container; these headers are located under a specific
+directory in the source folder [c4/yml/std](src/c4/yml/std).
 
 These headers also showcase how to implement your custom type. See for
 example [the map implementation](src/c4/yml/std/map.hpp).
+
+### Custom types
+
+ryml comes stocked with code to serialize the basic intrinsic types (integers
+and floating points). For types other than these, you need to instruct ryml
+how to serialize your type.
+
+There are two distinct categories of types when serializing to a YAML tree:
+
+* The type is serializable to a string, and it will be a leaf node in
+  the tree. For these, overload the `to_str()/from_str()` functions. An example
+  can be seen in
+  the [the `std::string` serialization code](src/c4/yml/std/string.hpp).
+
+* The type requires child nodes (it is either a sequence or map).
+  For these, overload the `write()/read()` functions. Examples can be seen in
+  the serialization of [`std::vector`](src/c4/yml/std/vector.hpp)
+  or [`std::map`](src/c4/yml/std/map.hpp).
+  
+It is important to overload these functions in the namespace where the type
+you're serializing was defined, to
+harness [C++'s ADL rules](http://en.cppreference.com/w/cpp/language/adl).
 
 ### Low-level API
 
@@ -185,7 +200,7 @@ example [the map implementation](src/c4/yml/std/map.hpp).
 
 ... describe [the custom error handler callback](src/c4/yml/common.hpp)
 
-## Standard conformance
+## YAML standard conformance
 
 ryml is under active development, but is close to feature complete. UTF8 has
 not yet been tested.
