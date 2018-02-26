@@ -57,6 +57,8 @@ set(RYML_CPP
     )
 
 set(RYML_HPP
+    ${RYML_SRC_DIR}/ryml.hpp
+    ${RYML_SRC_DIR}/ryml_std.hpp
     ${RYML_SRC_DIR}/c4/yml/detail/stack.hpp
     ${RYML_SRC_DIR}/c4/yml/common.hpp
     ${RYML_SRC_DIR}/c4/yml/emit.def.hpp
@@ -64,6 +66,10 @@ set(RYML_HPP
     ${RYML_SRC_DIR}/c4/yml/node.hpp
     ${RYML_SRC_DIR}/c4/yml/parse.hpp
     ${RYML_SRC_DIR}/c4/yml/span.hpp
+    ${RYML_SRC_DIR}/c4/yml/std/map.hpp
+    ${RYML_SRC_DIR}/c4/yml/std/std.hpp
+    ${RYML_SRC_DIR}/c4/yml/std/string.hpp
+    ${RYML_SRC_DIR}/c4/yml/std/vector.hpp
     ${RYML_SRC_DIR}/c4/yml/to_str.hpp
     ${RYML_SRC_DIR}/c4/yml/tree.hpp
     ${RYML_SRC_DIR}/c4/yml/writer.hpp
