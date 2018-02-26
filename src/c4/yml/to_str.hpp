@@ -11,7 +11,8 @@ namespace c4 {
 namespace yml {
 
 //-----------------------------------------------------------------------------
-
+/** serialize the arguments to the given span.
+ * @return the number of characters written to the buffer. */
 template< class Arg, class... Args >
 size_t cat(span buf, Arg const& a, Args const& ...more)
 {
@@ -22,6 +23,25 @@ size_t cat(span buf, Arg const& a, Args const& ...more)
 }
 
 inline size_t cat(span /*buf*/)
+{
+    return 0;
+}
+
+/** deserialize the arguments from the given span.
+ *
+ * @return the number of characters read from the buffer. If a
+ * conversion was not successful, return npos. */
+template< class Arg, class... Args >
+size_t uncat(cspan buf, Arg & a, Args & ...more)
+{
+    size_t num = from_str_untrimmed(buf, &a);
+    if(num == npos) return npos;
+    buf = buf.len >= num ? buf.subspan(num) : span{};
+    num += uncat(buf, more...);
+    return num;
+}
+
+inline size_t uncat(cspan /*buf*/)
 {
     return 0;
 }
@@ -44,6 +64,7 @@ inline size_t catsep(span /*buf*/, Sep const& /*sep*/)
 {
     return 0;
 }
+
 
 //-----------------------------------------------------------------------------
 
@@ -113,6 +134,7 @@ size_t itoa(span buf, T v)
     return pos;
 }
 
+
 //-----------------------------------------------------------------------------
 template< class T >
 size_t utoa(span buf, T v)
@@ -167,6 +189,15 @@ inline bool atoi(cspan str, T *v)
     return true;
 }
 
+template< class T >
+inline size_t atoi_untrimmed(cspan str, T *v)
+{
+    cspan trimmed = str.first_int_span();
+    if(trimmed.len == 0) return npos;
+    if(atoi(trimmed, v)) return trimmed.end() - str.begin();
+    return npos;
+}
+
 //-----------------------------------------------------------------------------
 template< class T >
 inline bool atou(cspan str, T *v)
@@ -187,20 +218,36 @@ inline bool atou(cspan str, T *v)
     return true;
 }
 
+
+template< class T >
+inline size_t atou_untrimmed(cspan str, T *v)
+{
+    cspan trimmed = str.first_uint_span();
+    if(trimmed.len == 0) return npos;
+    if(atou(trimmed, v)) return trimmed.end() - str.begin();
+    return npos;
+}
+
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-#define _C4_DEFINE_TO_FROM_STR_TOA(ty, id)      \
-                                                \
-inline size_t to_str(span buf, ty v)            \
-{                                               \
-    return id##toa<ty>(buf, v);                 \
-}                                               \
-                                                \
-inline bool from_str(cspan buf, ty *v)          \
-{                                               \
-    return ato##id<ty>(buf, v);                 \
+#define _C4_DEFINE_TO_FROM_STR_TOA(ty, id)          \
+                                                    \
+inline size_t to_str(span buf, ty v)                \
+{                                                   \
+    return id##toa<ty>(buf, v);                     \
+}                                                   \
+                                                    \
+inline bool from_str(cspan buf, ty *v)              \
+{                                                   \
+    return ato##id<ty>(buf, v);                     \
+}                                                   \
+                                                    \
+inline size_t from_str_untrimmed(cspan buf, ty *v)  \
+{                                                   \
+    return ato##id##_untrimmed<ty>(buf, v);         \
 }
 
 #ifdef _MSC_VER
@@ -216,7 +263,7 @@ inline size_t to_str(span buf, ty v)                                    \
     return snprintf(buf.str, buf.len, "%" pri_fmt, v);                  \
 }                                                                       \
                                                                         \
-inline bool from_str(cspan buf, ty *v)                                  \
+inline size_t from_str_untrimmed(cspan buf, ty *v)                      \
 {                                                                       \
     /* snscanf() is absolutely needed here as we must be sure that      \
      * buf.len is strictly respected, because the span string is        \
@@ -230,15 +277,25 @@ inline bool from_str(cspan buf, ty *v)                                  \
      * https://stackoverflow.com/a/18368910/5875572 */                  \
                                                                         \
     /* this is the actual format used for scanning */                   \
-    char fmt[8];                                                        \
-    /* write the length into it. Eg "%12d" for an int (scn_fmt="d") */  \
-    int ret = snprintf(fmt, sizeof(fmt), "%%""%zu" scn_fmt, buf.len);   \
+    char fmt[12];                                                       \
+    /* write the length into it. Eg "%12d" for an int (scn_fmt="d").    \
+     * Also, get the number of characters read from the string.         \
+     * So the final format ends up as "%12d%n"*/                        \
+    int ret = snprintf(fmt, sizeof(fmt), "%%""%zu%%n" scn_fmt, buf.len);\
     /* no nasty surprises, please! */                                   \
     C4_ASSERT(size_t(ret) < sizeof(fmt));                               \
     /* now we scan with confidence that the span length is respected */ \
-    ret = sscanf(buf.str, fmt, v);                                      \
+    int num_chars;                                                      \
+    ret = sscanf(buf.str, fmt, v, &num_chars);                          \
     /* scanf returns the number of successful conversions */            \
-    return ret == 1;                                                    \
+    if(ret != 1) return npos;                                           \
+    return (size_t)num_chars;                                           \
+}                                                                       \
+                                                                        \
+inline bool from_str(cspan buf, ty *v)                                  \
+{                                                                       \
+    size_t num = from_str_untrimmed(buf, v);                            \
+    return (num != npos);                                               \
 }
 
 _C4_DEFINE_TO_FROM_STR(void*   , "p"             , "p"             )
@@ -270,20 +327,30 @@ _C4_DEFINE_TO_FROM_STR_TOA(uint64_t, u)
 #endif
 
 
+//-----------------------------------------------------------------------------
 inline size_t to_str(span buf, bool v)
 {
     int val = v;
     return to_str(buf, val);
 }
 
-inline size_t from_str(cspan buf, bool *v)
+inline bool from_str(cspan buf, bool *v)
 {
     int val;
-    size_t ret = from_str(buf, &val);
+    bool ret = from_str(buf, &val);
     *v = (bool)val;
     return ret;
 }
 
+inline size_t from_str_untrimmed(cspan buf, bool *v)
+{
+    int val;
+    size_t ret = from_str_untrimmed(buf, &val);
+    *v = (bool)val;
+    return ret;
+}
+
+//-----------------------------------------------------------------------------
 inline size_t to_str(span buf, char v)
 {
     if(buf.len > 0) buf[0] = v;
@@ -297,7 +364,37 @@ inline bool from_str(cspan buf, char *v)
     return true;
 }
 
+inline size_t from_str_untrimmed(cspan buf, char *v)
+{
+    if(buf.len < 1) return npos;
+    *v = buf[0];
+    return 1;
+}
+
+//-----------------------------------------------------------------------------
 inline size_t to_str(span buf, cspan const& v)
+{
+    size_t len = buf.len < v.len ? buf.len : v.len;
+    memcpy(buf.str, v.str, len);
+    return v.len;
+}
+
+inline bool from_str(cspan buf, cspan *v)
+{
+    *v = buf;
+    return true;
+}
+
+inline size_t from_str_untrimmed(span buf, cspan *v)
+{
+    cspan trimmed = buf.first_non_empty_span();
+    if(trimmed.len == 0) return npos;
+    *v = trimmed;
+    return trimmed.end() - buf.begin();
+}
+
+//-----------------------------------------------------------------------------
+inline size_t to_str(span buf, span const& v)
 {
     size_t len = buf.len < v.len ? buf.len : v.len;
     memcpy(buf.str, v.str, len);
@@ -311,17 +408,22 @@ inline bool from_str(cspan buf, span *v)
     return buf.len <= v->len;
 }
 
-inline bool from_str(cspan buf, cspan *v)
+inline size_t from_str_untrimmed(cspan buf, span *v)
 {
-    *v = buf;
-    return true;
+    cspan trimmed = buf.first_non_empty_span();
+    if(trimmed.len == 0) return npos;
+    size_t len = trimmed.len > v->len ? v->len : trimmed.len;
+    memcpy(v->str, trimmed.str, len);
+    if(trimmed.len > v->len) return npos;
+    return trimmed.end() - buf.begin();
 }
+
+//-----------------------------------------------------------------------------
 
 template< size_t N >
 inline size_t to_str(span buf, const char (&v)[N])
 {
-    cspan sp;
-    sp.assign<N>(v);
+    cspan sp(v);
     return to_str(buf, sp);
 }
 

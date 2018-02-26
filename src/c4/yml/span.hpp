@@ -575,6 +575,84 @@ public:
     #undef _C4_REQUIRE_CSPAN
     #undef _C4_REQUIRE_NCSPAN
 
+public:
+
+    /** get the first span consisting exclusively of non-empty characters */
+    basic_span first_non_empty_span() const
+    {
+        basic_cspan empty_chars(" \n\r\t");
+        size_t pos = first_not_of(empty_chars);
+        if(pos == npos) return subspan(0, 0);
+        auto ret = subspan(pos);
+        pos = ret.first_of(empty_chars);
+        return ret.subspan(0, pos);
+    }
+
+    basic_span first_uint_span() const
+    {
+        basic_span ne = first_non_empty_span();
+        for(size_t i = 0; i < ne.len; ++i)
+        {
+            char c = ne.str[i];
+            if(c < '0' || c > '9')
+            {
+                return ne.subspan(0, i);
+            }
+        }
+        return ne;
+    }
+
+    basic_span first_int_span() const
+    {
+        basic_span ne = first_non_empty_span();
+        for(size_t i = 0; i < ne.len; ++i)
+        {
+            char c = ne.str[i];
+            if(c == '-' && i != 0)
+            {
+                return ne.subspan(0, i);
+            }
+            else if(c < '0' || c > '9')
+            {
+                return ne.subspan(0, i);
+            }
+        }
+        return ne;
+    }
+
+    basic_span first_real_span() const
+    {
+        basic_span ne = first_non_empty_span();
+        for(size_t i = 0; i < ne.len; ++i)
+        {
+            char c = ne.str[i];
+            if(c == '-' || c == '+')
+            {
+                if(i == 0) // a leading signal is valid 
+                {
+                    continue;
+                }
+                else // we can also have a sign for the exponent
+                {
+                    char e = ne[i-1];
+                    if(e == 'e' || e == 'E')
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        return ne.subspan(0, i);
+                    }
+                }
+            }
+            else if((c < '0' || c > '9') && (c != '.' && c != 'e' && c != 'E'))
+            {
+                return ne.subspan(0, i);
+            }
+        }
+        return ne;
+    }
+
 }; // template class basic_span
 
 
