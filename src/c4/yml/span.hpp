@@ -102,8 +102,8 @@ public:
 
     // allow assignments from non-const chars when C is const char
 
-    template< _C4_REQUIRE_CSPAN() > basic_span(basic_ncspan const& s) : str(s.str), len(s.len) { }
-    template< _C4_REQUIRE_CSPAN() > basic_span& operator= (basic_ncspan const& s) { str = s.str; len = s.len; return *this; }
+    //template< _C4_REQUIRE_CSPAN() > basic_span(basic_ncspan const& s) : str(s.str), len(s.len) { }
+    //template< _C4_REQUIRE_CSPAN() > basic_span& operator= (basic_ncspan const& s) { str = s.str; len = s.len; return *this; }
 
     //template<           _C4_REQUIRE_CSPAN() > explicit basic_span(NCC *s_) : str(s_), len(s_ ? strlen(s_) : 0) {}
     /** the overload for receiving a single C* pointer will always
