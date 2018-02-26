@@ -50,7 +50,7 @@ public:
     #define _C4_REQUIRE_CSPAN()  class T=C, class _require = typename std::enable_if< std::is_same<T , CC>::value >::type
     #define _C4_REQUIRE_NCSPAN() class T=C, class _require = typename std::enable_if< std::is_same<T, NCC>::value >::type
     // just to be sure
-    #define _C4REQNULLWHENCONST(ty, buf, sz) C4_ASSERT(buf[sz-1] == '\0' || ! std::is_const<ty>::value)
+    #define _C4REQNULLWHENCONST(ty, buf, sz) C4_ASSERT(std::is_const<ty>::value == (buf[sz-1] == '\0'))
 
 public:
 
