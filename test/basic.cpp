@@ -270,31 +270,31 @@ TEST(span, first_of)
     EXPECT_EQ(cspan("012345").first_of('a'), npos);
     EXPECT_EQ(cspan("012345").first_of("ab"), npos);
 
-    EXPECT_EQ(cspan("012345").first_of('0'), 0);
-    EXPECT_EQ(cspan("012345").first_of("0"), 0);
-    EXPECT_EQ(cspan("012345").first_of("01"), 0);
-    EXPECT_EQ(cspan("012345").first_of("10"), 0);
-    EXPECT_EQ(cspan("012345").first_of("012"), 0);
-    EXPECT_EQ(cspan("012345").first_of("210"), 0);
-    EXPECT_EQ(cspan("012345").first_of("0123"), 0);
-    EXPECT_EQ(cspan("012345").first_of("3210"), 0);
-    EXPECT_EQ(cspan("012345").first_of("01234"), 0);
-    EXPECT_EQ(cspan("012345").first_of("43210"), 0);
-    EXPECT_EQ(cspan("012345").first_of("012345"), 0);
-    EXPECT_EQ(cspan("012345").first_of("543210"), 0);
+    EXPECT_EQ(cspan("012345").first_of('0'), 0u);
+    EXPECT_EQ(cspan("012345").first_of("0"), 0u);
+    EXPECT_EQ(cspan("012345").first_of("01"), 0u);
+    EXPECT_EQ(cspan("012345").first_of("10"), 0u);
+    EXPECT_EQ(cspan("012345").first_of("012"), 0u);
+    EXPECT_EQ(cspan("012345").first_of("210"), 0u);
+    EXPECT_EQ(cspan("012345").first_of("0123"), 0u);
+    EXPECT_EQ(cspan("012345").first_of("3210"), 0u);
+    EXPECT_EQ(cspan("012345").first_of("01234"), 0u);
+    EXPECT_EQ(cspan("012345").first_of("43210"), 0u);
+    EXPECT_EQ(cspan("012345").first_of("012345"), 0u);
+    EXPECT_EQ(cspan("012345").first_of("543210"), 0u);
 
-    EXPECT_EQ(cspan("012345").first_of('5'), 5);
-    EXPECT_EQ(cspan("012345").first_of("5"), 5);
-    EXPECT_EQ(cspan("012345").first_of("45"), 4);
-    EXPECT_EQ(cspan("012345").first_of("54"), 4);
-    EXPECT_EQ(cspan("012345").first_of("345"), 3);
-    EXPECT_EQ(cspan("012345").first_of("543"), 3);
-    EXPECT_EQ(cspan("012345").first_of("2345"), 2);
-    EXPECT_EQ(cspan("012345").first_of("5432"), 2);
-    EXPECT_EQ(cspan("012345").first_of("12345"), 1);
-    EXPECT_EQ(cspan("012345").first_of("54321"), 1);
-    EXPECT_EQ(cspan("012345").first_of("012345"), 0);
-    EXPECT_EQ(cspan("012345").first_of("543210"), 0);
+    EXPECT_EQ(cspan("012345").first_of('5'), 5u);
+    EXPECT_EQ(cspan("012345").first_of("5"), 5u);
+    EXPECT_EQ(cspan("012345").first_of("45"), 4u);
+    EXPECT_EQ(cspan("012345").first_of("54"), 4u);
+    EXPECT_EQ(cspan("012345").first_of("345"), 3u);
+    EXPECT_EQ(cspan("012345").first_of("543"), 3u);
+    EXPECT_EQ(cspan("012345").first_of("2345"), 2u);
+    EXPECT_EQ(cspan("012345").first_of("5432"), 2u);
+    EXPECT_EQ(cspan("012345").first_of("12345"), 1u);
+    EXPECT_EQ(cspan("012345").first_of("54321"), 1u);
+    EXPECT_EQ(cspan("012345").first_of("012345"), 0u);
+    EXPECT_EQ(cspan("012345").first_of("543210"), 0u);
 }
 
 TEST(span, last_of)
@@ -302,93 +302,93 @@ TEST(span, last_of)
     EXPECT_EQ(cspan("012345").last_of('a'), npos);
     EXPECT_EQ(cspan("012345").last_of("ab"), npos);
 
-    EXPECT_EQ(cspan("012345").last_of('0'), 0);
-    EXPECT_EQ(cspan("012345").last_of("0"), 0);
-    EXPECT_EQ(cspan("012345").last_of("01"), 1);
-    EXPECT_EQ(cspan("012345").last_of("10"), 1);
-    EXPECT_EQ(cspan("012345").last_of("012"), 2);
-    EXPECT_EQ(cspan("012345").last_of("210"), 2);
-    EXPECT_EQ(cspan("012345").last_of("0123"), 3);
-    EXPECT_EQ(cspan("012345").last_of("3210"), 3);
-    EXPECT_EQ(cspan("012345").last_of("01234"), 4);
-    EXPECT_EQ(cspan("012345").last_of("43210"), 4);
-    EXPECT_EQ(cspan("012345").last_of("012345"), 5);
-    EXPECT_EQ(cspan("012345").last_of("543210"), 5);
+    EXPECT_EQ(cspan("012345").last_of('0'), 0u);
+    EXPECT_EQ(cspan("012345").last_of("0"), 0u);
+    EXPECT_EQ(cspan("012345").last_of("01"), 1u);
+    EXPECT_EQ(cspan("012345").last_of("10"), 1u);
+    EXPECT_EQ(cspan("012345").last_of("012"), 2u);
+    EXPECT_EQ(cspan("012345").last_of("210"), 2u);
+    EXPECT_EQ(cspan("012345").last_of("0123"), 3u);
+    EXPECT_EQ(cspan("012345").last_of("3210"), 3u);
+    EXPECT_EQ(cspan("012345").last_of("01234"), 4u);
+    EXPECT_EQ(cspan("012345").last_of("43210"), 4u);
+    EXPECT_EQ(cspan("012345").last_of("012345"), 5u);
+    EXPECT_EQ(cspan("012345").last_of("543210"), 5u);
 
-    EXPECT_EQ(cspan("012345").last_of('5'), 5);
-    EXPECT_EQ(cspan("012345").last_of("5"), 5);
-    EXPECT_EQ(cspan("012345").last_of("45"), 5);
-    EXPECT_EQ(cspan("012345").last_of("54"), 5);
-    EXPECT_EQ(cspan("012345").last_of("345"), 5);
-    EXPECT_EQ(cspan("012345").last_of("543"), 5);
-    EXPECT_EQ(cspan("012345").last_of("2345"), 5);
-    EXPECT_EQ(cspan("012345").last_of("5432"), 5);
-    EXPECT_EQ(cspan("012345").last_of("12345"), 5);
-    EXPECT_EQ(cspan("012345").last_of("54321"), 5);
-    EXPECT_EQ(cspan("012345").last_of("012345"), 5);
-    EXPECT_EQ(cspan("012345").last_of("543210"), 5);
+    EXPECT_EQ(cspan("012345").last_of('5'), 5u);
+    EXPECT_EQ(cspan("012345").last_of("5"), 5u);
+    EXPECT_EQ(cspan("012345").last_of("45"), 5u);
+    EXPECT_EQ(cspan("012345").last_of("54"), 5u);
+    EXPECT_EQ(cspan("012345").last_of("345"), 5u);
+    EXPECT_EQ(cspan("012345").last_of("543"), 5u);
+    EXPECT_EQ(cspan("012345").last_of("2345"), 5u);
+    EXPECT_EQ(cspan("012345").last_of("5432"), 5u);
+    EXPECT_EQ(cspan("012345").last_of("12345"), 5u);
+    EXPECT_EQ(cspan("012345").last_of("54321"), 5u);
+    EXPECT_EQ(cspan("012345").last_of("012345"), 5u);
+    EXPECT_EQ(cspan("012345").last_of("543210"), 5u);
 }
 
 TEST(span, first_not_of)
 {
-    EXPECT_EQ(cspan("012345").first_not_of('a'), 0);
-    EXPECT_EQ(cspan("012345").first_not_of("ab"), 0);
+    EXPECT_EQ(cspan("012345").first_not_of('a'), 0u);
+    EXPECT_EQ(cspan("012345").first_not_of("ab"), 0u);
 
-    EXPECT_EQ(cspan("012345").first_not_of('0'), 1);
-    EXPECT_EQ(cspan("012345").first_not_of("0"), 1);
-    EXPECT_EQ(cspan("012345").first_not_of("01"), 2);
-    EXPECT_EQ(cspan("012345").first_not_of("10"), 2);
-    EXPECT_EQ(cspan("012345").first_not_of("012"), 3);
-    EXPECT_EQ(cspan("012345").first_not_of("210"), 3);
-    EXPECT_EQ(cspan("012345").first_not_of("0123"), 4);
-    EXPECT_EQ(cspan("012345").first_not_of("3210"), 4);
-    EXPECT_EQ(cspan("012345").first_not_of("01234"), 5);
-    EXPECT_EQ(cspan("012345").first_not_of("43210"), 5);
+    EXPECT_EQ(cspan("012345").first_not_of('0'), 1u);
+    EXPECT_EQ(cspan("012345").first_not_of("0"), 1u);
+    EXPECT_EQ(cspan("012345").first_not_of("01"), 2u);
+    EXPECT_EQ(cspan("012345").first_not_of("10"), 2u);
+    EXPECT_EQ(cspan("012345").first_not_of("012"), 3u);
+    EXPECT_EQ(cspan("012345").first_not_of("210"), 3u);
+    EXPECT_EQ(cspan("012345").first_not_of("0123"), 4u);
+    EXPECT_EQ(cspan("012345").first_not_of("3210"), 4u);
+    EXPECT_EQ(cspan("012345").first_not_of("01234"), 5u);
+    EXPECT_EQ(cspan("012345").first_not_of("43210"), 5u);
     EXPECT_EQ(cspan("012345").first_not_of("012345"), npos);
     EXPECT_EQ(cspan("012345").first_not_of("543210"), npos);
 
-    EXPECT_EQ(cspan("012345").first_not_of('5'), 0);
-    EXPECT_EQ(cspan("012345").first_not_of("5"), 0);
-    EXPECT_EQ(cspan("012345").first_not_of("45"), 0);
-    EXPECT_EQ(cspan("012345").first_not_of("54"), 0);
-    EXPECT_EQ(cspan("012345").first_not_of("345"), 0);
-    EXPECT_EQ(cspan("012345").first_not_of("543"), 0);
-    EXPECT_EQ(cspan("012345").first_not_of("2345"), 0);
-    EXPECT_EQ(cspan("012345").first_not_of("5432"), 0);
-    EXPECT_EQ(cspan("012345").first_not_of("12345"), 0);
-    EXPECT_EQ(cspan("012345").first_not_of("54321"), 0);
+    EXPECT_EQ(cspan("012345").first_not_of('5'), 0u);
+    EXPECT_EQ(cspan("012345").first_not_of("5"), 0u);
+    EXPECT_EQ(cspan("012345").first_not_of("45"), 0u);
+    EXPECT_EQ(cspan("012345").first_not_of("54"), 0u);
+    EXPECT_EQ(cspan("012345").first_not_of("345"), 0u);
+    EXPECT_EQ(cspan("012345").first_not_of("543"), 0u);
+    EXPECT_EQ(cspan("012345").first_not_of("2345"), 0u);
+    EXPECT_EQ(cspan("012345").first_not_of("5432"), 0u);
+    EXPECT_EQ(cspan("012345").first_not_of("12345"), 0u);
+    EXPECT_EQ(cspan("012345").first_not_of("54321"), 0u);
     EXPECT_EQ(cspan("012345").first_not_of("012345"), npos);
     EXPECT_EQ(cspan("012345").first_not_of("543210"), npos);
 }
 
 TEST(span, last_not_of)
 {
-    EXPECT_EQ(cspan("012345").last_not_of('a'), 5);
-    EXPECT_EQ(cspan("012345").last_not_of("ab"), 5);
+    EXPECT_EQ(cspan("012345").last_not_of('a'), 5u);
+    EXPECT_EQ(cspan("012345").last_not_of("ab"), 5u);
 
-    EXPECT_EQ(cspan("012345").last_not_of('5'), 4);
-    EXPECT_EQ(cspan("012345").last_not_of("5"), 4);
-    EXPECT_EQ(cspan("012345").last_not_of("45"), 3);
-    EXPECT_EQ(cspan("012345").last_not_of("54"), 3);
-    EXPECT_EQ(cspan("012345").last_not_of("345"), 2);
-    EXPECT_EQ(cspan("012345").last_not_of("543"), 2);
-    EXPECT_EQ(cspan("012345").last_not_of("2345"), 1);
-    EXPECT_EQ(cspan("012345").last_not_of("5432"), 1);
-    EXPECT_EQ(cspan("012345").last_not_of("12345"), 0);
-    EXPECT_EQ(cspan("012345").last_not_of("54321"), 0);
+    EXPECT_EQ(cspan("012345").last_not_of('5'), 4u);
+    EXPECT_EQ(cspan("012345").last_not_of("5"), 4u);
+    EXPECT_EQ(cspan("012345").last_not_of("45"), 3u);
+    EXPECT_EQ(cspan("012345").last_not_of("54"), 3u);
+    EXPECT_EQ(cspan("012345").last_not_of("345"), 2u);
+    EXPECT_EQ(cspan("012345").last_not_of("543"), 2u);
+    EXPECT_EQ(cspan("012345").last_not_of("2345"), 1u);
+    EXPECT_EQ(cspan("012345").last_not_of("5432"), 1u);
+    EXPECT_EQ(cspan("012345").last_not_of("12345"), 0u);
+    EXPECT_EQ(cspan("012345").last_not_of("54321"), 0u);
     EXPECT_EQ(cspan("012345").last_not_of("012345"), npos);
     EXPECT_EQ(cspan("012345").last_not_of("543210"), npos);
 
-    EXPECT_EQ(cspan("012345").last_not_of('0'), 5);
-    EXPECT_EQ(cspan("012345").last_not_of("0"), 5);
-    EXPECT_EQ(cspan("012345").last_not_of("01"), 5);
-    EXPECT_EQ(cspan("012345").last_not_of("10"), 5);
-    EXPECT_EQ(cspan("012345").last_not_of("012"), 5);
-    EXPECT_EQ(cspan("012345").last_not_of("210"), 5);
-    EXPECT_EQ(cspan("012345").last_not_of("0123"), 5);
-    EXPECT_EQ(cspan("012345").last_not_of("3210"), 5);
-    EXPECT_EQ(cspan("012345").last_not_of("01234"), 5);
-    EXPECT_EQ(cspan("012345").last_not_of("43210"), 5);
+    EXPECT_EQ(cspan("012345").last_not_of('0'), 5u);
+    EXPECT_EQ(cspan("012345").last_not_of("0"), 5u);
+    EXPECT_EQ(cspan("012345").last_not_of("01"), 5u);
+    EXPECT_EQ(cspan("012345").last_not_of("10"), 5u);
+    EXPECT_EQ(cspan("012345").last_not_of("012"), 5u);
+    EXPECT_EQ(cspan("012345").last_not_of("210"), 5u);
+    EXPECT_EQ(cspan("012345").last_not_of("0123"), 5u);
+    EXPECT_EQ(cspan("012345").last_not_of("3210"), 5u);
+    EXPECT_EQ(cspan("012345").last_not_of("01234"), 5u);
+    EXPECT_EQ(cspan("012345").last_not_of("43210"), 5u);
     EXPECT_EQ(cspan("012345").last_not_of("012345"), npos);
     EXPECT_EQ(cspan("012345").last_not_of("543210"), npos);
 }
