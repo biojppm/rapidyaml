@@ -17,10 +17,10 @@ TEST(rope, raw_replace_empty_at_beginning)
     cspan ss("some selected words");
     Rope rp;
     rp.append(ss);
-    EXPECT_EQ(rp.num_entries(), 1);
+    EXPECT_EQ(rp.num_entries(), 1u);
     EXPECT_EQ(rp.get(0)->s, ss);
     rp.replace(0, 0, 0, "write down ");
-    EXPECT_EQ(rp.num_entries(), 2);
+    EXPECT_EQ(rp.num_entries(), 2u);
     size_t c = rp.head();
     EXPECT_EQ(rp.get(c)->s, "write down "); c = rp.next(c); EXPECT_NE(c, NONE);
     EXPECT_EQ(rp.get(c)->s, "some selected words"); c = rp.next(c); EXPECT_EQ(c, NONE);
@@ -31,10 +31,10 @@ TEST(rope, raw_replace_nonempty_at_beginning)
     cspan ss("some selected words");
     Rope rp;
     rp.append(ss);
-    EXPECT_EQ(rp.num_entries(), 1);
+    EXPECT_EQ(rp.num_entries(), 1u);
     EXPECT_EQ(rp.get(0)->s, ss);
     rp.replace(0, 0, 4, "write down these carefully");
-    EXPECT_EQ(rp.num_entries(), 2);
+    EXPECT_EQ(rp.num_entries(), 2u);
     size_t c = rp.head();
     EXPECT_EQ(rp.get(c)->s, "write down these carefully"); c = rp.next(c); EXPECT_NE(c, NONE);
     EXPECT_EQ(rp.get(c)->s, " selected words"); c = rp.next(c); EXPECT_EQ(c, NONE);
@@ -45,10 +45,10 @@ TEST(rope, raw_replace_empty_at_middle)
     cspan ss("some selected words");
     Rope rp;
     rp.append(ss);
-    EXPECT_EQ(rp.num_entries(), 1);
+    EXPECT_EQ(rp.num_entries(), 1u);
     EXPECT_EQ(rp.get(0)->s, ss);
     rp.replace(0, 5, 0, "carefully ");
-    EXPECT_EQ(rp.num_entries(), 3);
+    EXPECT_EQ(rp.num_entries(), 3u);
     size_t c = rp.head();
     EXPECT_EQ(rp.get(c)->s, "some "); c = rp.next(c); EXPECT_NE(c, NONE);
     EXPECT_EQ(rp.get(c)->s, "carefully "); c = rp.next(c); EXPECT_NE(c, NONE);
@@ -60,10 +60,10 @@ TEST(rope, raw_replace_nonempty_at_middle)
     cspan ss("some selected words");
     Rope rp;
     rp.append(ss);
-    EXPECT_EQ(rp.num_entries(), 1);
+    EXPECT_EQ(rp.num_entries(), 1u);
     EXPECT_EQ(rp.get(0)->s, ss);
     rp.replace(0, 5, 8, "carefully crafted");
-    EXPECT_EQ(rp.num_entries(), 3);
+    EXPECT_EQ(rp.num_entries(), 3u);
     size_t c = rp.head();
     EXPECT_EQ(rp.get(c)->s, "some "); c = rp.next(c); EXPECT_NE(c, NONE);
     EXPECT_EQ(rp.get(c)->s, "carefully crafted"); c = rp.next(c); EXPECT_NE(c, NONE);
@@ -75,10 +75,10 @@ TEST(rope, raw_replace_empty_at_end)
     cspan ss("some selected words");
     Rope rp;
     rp.append(ss);
-    EXPECT_EQ(rp.num_entries(), 1);
+    EXPECT_EQ(rp.num_entries(), 1u);
     EXPECT_EQ(rp.get(0)->s, ss);
     rp.replace(0, ss.len, 0, " before committing");
-    EXPECT_EQ(rp.num_entries(), 2);
+    EXPECT_EQ(rp.num_entries(), 2u);
     size_t c = rp.head();
     EXPECT_EQ(rp.get(c)->s, "some selected words"); c = rp.next(c); EXPECT_NE(c, NONE);
     EXPECT_EQ(rp.get(c)->s, " before committing"); c = rp.next(c); EXPECT_EQ(c, NONE);
@@ -89,10 +89,10 @@ TEST(rope, raw_replace_nonempty_at_end)
     cspan ss("some selected words");
     Rope rp;
     rp.append(ss);
-    EXPECT_EQ(rp.num_entries(), 1);
+    EXPECT_EQ(rp.num_entries(), 1u);
     EXPECT_EQ(rp.get(0)->s, ss);
     rp.replace(0, 5, ss.len-5, "more commits before pushing");
-    EXPECT_EQ(rp.num_entries(), 2);
+    EXPECT_EQ(rp.num_entries(), 2u);
     size_t c = rp.head();
     EXPECT_EQ(rp.get(c)->s, "some "); c = rp.next(c); EXPECT_NE(c, NONE);
     EXPECT_EQ(rp.get(c)->s, "more commits before pushing"); c = rp.next(c); EXPECT_EQ(c, NONE);
@@ -113,14 +113,14 @@ but not this one {% u %}
     Rope r;
 
     EXPECT_TRUE(r.empty());
-    EXPECT_EQ(r.str_size(), 0);
-    EXPECT_EQ(r.num_entries(), 0);
+    EXPECT_EQ(r.str_size(), 0u);
+    EXPECT_EQ(r.num_entries(), 0u);
 
     r.append(s);
 
     EXPECT_FALSE(r.empty());
     EXPECT_EQ(r.str_size(), s.len);
-    EXPECT_EQ(r.num_entries(), 1);
+    EXPECT_EQ(r.num_entries(), 1u);
 
     cspan ret = r.chain_all_resize(&result);
     EXPECT_EQ(ret, s);
@@ -129,7 +129,7 @@ but not this one {% u %}
     r.append(p);
 
     EXPECT_EQ(r.str_size(), s.len + p.len);
-    EXPECT_EQ(r.num_entries(), 2);
+    EXPECT_EQ(r.num_entries(), 2u);
     EXPECT_EQ(r.get(0)->s, s);
     EXPECT_EQ(r.get(1)->s, p);
 

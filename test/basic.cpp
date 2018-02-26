@@ -416,25 +416,25 @@ TEST(span, span2cspan)
 
 TEST(span, first_of_any)
 {
-    EXPECT_EQ(cspan("baz{% endif %}").first_of_any("{% endif %}", "{% if "         , "{% elif bar %}" , "{% else %}" ).which, 0);
-    EXPECT_EQ(cspan("baz{% endif %}").first_of_any("{% if "     , "{% endif %}"    , "{% elif bar %}" , "{% else %}" ).which, 1);
-    EXPECT_EQ(cspan("baz{% endif %}").first_of_any("{% if "     , "{% elif bar %}" , "{% endif %}"    , "{% else %}" ).which, 2);
-    EXPECT_EQ(cspan("baz{% endif %}").first_of_any("{% if "     , "{% elif bar %}" , "{% else %}"     , "{% endif %}").which, 3);
+    EXPECT_EQ(cspan("baz{% endif %}").first_of_any("{% endif %}", "{% if "         , "{% elif bar %}" , "{% else %}" ).which, 0u);
+    EXPECT_EQ(cspan("baz{% endif %}").first_of_any("{% if "     , "{% endif %}"    , "{% elif bar %}" , "{% else %}" ).which, 1u);
+    EXPECT_EQ(cspan("baz{% endif %}").first_of_any("{% if "     , "{% elif bar %}" , "{% endif %}"    , "{% else %}" ).which, 2u);
+    EXPECT_EQ(cspan("baz{% endif %}").first_of_any("{% if "     , "{% elif bar %}" , "{% else %}"     , "{% endif %}").which, 3u);
 
-    EXPECT_EQ(cspan("bar{% else %}baz{% endif %}").first_of_any("{% else %}" , "{% if "         , "{% elif bar %}" , "{% endif %}").which, 0);
-    EXPECT_EQ(cspan("bar{% else %}baz{% endif %}").first_of_any("{% if "     , "{% else %}"     , "{% elif bar %}" , "{% endif %}").which, 1);
-    EXPECT_EQ(cspan("bar{% else %}baz{% endif %}").first_of_any("{% if "     , "{% elif bar %}" , "{% else %}"     , "{% endif %}").which, 2);
-    EXPECT_EQ(cspan("bar{% else %}baz{% endif %}").first_of_any("{% if "     , "{% elif bar %}" , "{% endif %}"    , "{% else %}" ).which, 3);
+    EXPECT_EQ(cspan("bar{% else %}baz{% endif %}").first_of_any("{% else %}" , "{% if "         , "{% elif bar %}" , "{% endif %}").which, 0u);
+    EXPECT_EQ(cspan("bar{% else %}baz{% endif %}").first_of_any("{% if "     , "{% else %}"     , "{% elif bar %}" , "{% endif %}").which, 1u);
+    EXPECT_EQ(cspan("bar{% else %}baz{% endif %}").first_of_any("{% if "     , "{% elif bar %}" , "{% else %}"     , "{% endif %}").which, 2u);
+    EXPECT_EQ(cspan("bar{% else %}baz{% endif %}").first_of_any("{% if "     , "{% elif bar %}" , "{% endif %}"    , "{% else %}" ).which, 3u);
 
-    EXPECT_EQ(cspan("foo{% elif bar %}bar{% else %}baz{% endif %}").first_of_any("{% elif bar %}" , "{% if "         , "{% else %}"     , "{% endif %}"   ).which, 0);
-    EXPECT_EQ(cspan("foo{% elif bar %}bar{% else %}baz{% endif %}").first_of_any("{% if "         , "{% elif bar %}" , "{% else %}"     , "{% endif %}"   ).which, 1);
-    EXPECT_EQ(cspan("foo{% elif bar %}bar{% else %}baz{% endif %}").first_of_any("{% if "         , "{% else %}"     , "{% elif bar %}" , "{% endif %}"   ).which, 2);
-    EXPECT_EQ(cspan("foo{% elif bar %}bar{% else %}baz{% endif %}").first_of_any("{% if "         , "{% else %}"     , "{% endif %}"    , "{% elif bar %}").which, 3);
+    EXPECT_EQ(cspan("foo{% elif bar %}bar{% else %}baz{% endif %}").first_of_any("{% elif bar %}" , "{% if "         , "{% else %}"     , "{% endif %}"   ).which, 0u);
+    EXPECT_EQ(cspan("foo{% elif bar %}bar{% else %}baz{% endif %}").first_of_any("{% if "         , "{% elif bar %}" , "{% else %}"     , "{% endif %}"   ).which, 1u);
+    EXPECT_EQ(cspan("foo{% elif bar %}bar{% else %}baz{% endif %}").first_of_any("{% if "         , "{% else %}"     , "{% elif bar %}" , "{% endif %}"   ).which, 2u);
+    EXPECT_EQ(cspan("foo{% elif bar %}bar{% else %}baz{% endif %}").first_of_any("{% if "         , "{% else %}"     , "{% endif %}"    , "{% elif bar %}").which, 3u);
 
-    EXPECT_EQ(cspan("{% if foo %}foo{% elif bar %}bar{% else %}baz{% endif %}").first_of_any("{% if "         , "{% elif bar %}" , "{% else %}" , "{% endif %}" ).which, 0);
-    EXPECT_EQ(cspan("{% if foo %}foo{% elif bar %}bar{% else %}baz{% endif %}").first_of_any("{% elif bar %}" , "{% if "         , "{% else %}" , "{% endif %}" ).which, 1);
-    EXPECT_EQ(cspan("{% if foo %}foo{% elif bar %}bar{% else %}baz{% endif %}").first_of_any("{% elif bar %}" , "{% else %}"     , "{% if "     , "{% endif %}" ).which, 2);
-    EXPECT_EQ(cspan("{% if foo %}foo{% elif bar %}bar{% else %}baz{% endif %}").first_of_any("{% elif bar %}" , "{% else %}"     , "{% endif %}", "{% if "      ).which, 3);
+    EXPECT_EQ(cspan("{% if foo %}foo{% elif bar %}bar{% else %}baz{% endif %}").first_of_any("{% if "         , "{% elif bar %}" , "{% else %}" , "{% endif %}" ).which, 0u);
+    EXPECT_EQ(cspan("{% if foo %}foo{% elif bar %}bar{% else %}baz{% endif %}").first_of_any("{% elif bar %}" , "{% if "         , "{% else %}" , "{% endif %}" ).which, 1u);
+    EXPECT_EQ(cspan("{% if foo %}foo{% elif bar %}bar{% else %}baz{% endif %}").first_of_any("{% elif bar %}" , "{% else %}"     , "{% if "     , "{% endif %}" ).which, 2u);
+    EXPECT_EQ(cspan("{% if foo %}foo{% elif bar %}bar{% else %}baz{% endif %}").first_of_any("{% elif bar %}" , "{% else %}"     , "{% endif %}", "{% if "      ).which, 3u);
 }
 
 TEST(span, first_non_empty_span)
@@ -468,7 +468,7 @@ void node_scalar_test_foo(NodeScalar const& s, bool with_tag=false)
     if(with_tag)
     {
         EXPECT_EQ(s.tag, "!!str");
-        EXPECT_EQ(s.tag.len, 5);
+        EXPECT_EQ(s.tag.len, 5u);
         EXPECT_FALSE(s.tag.empty());
     }
     else
@@ -478,7 +478,7 @@ void node_scalar_test_foo(NodeScalar const& s, bool with_tag=false)
         EXPECT_TRUE(s.tag.empty());
     }
     EXPECT_EQ(s.scalar, "foo");
-    EXPECT_EQ(s.scalar.len, 3);
+    EXPECT_EQ(s.scalar.len, 3u);
     EXPECT_FALSE(s.scalar.empty());
 }
 
@@ -488,17 +488,17 @@ void node_scalar_test_foo3(NodeScalar const& s, bool with_tag=false)
     if(with_tag)
     {
         EXPECT_EQ(s.tag, "!!str+++");
-        EXPECT_EQ(s.tag.len, 8);
+        EXPECT_EQ(s.tag.len, 8u);
         EXPECT_FALSE(s.tag.empty());
     }
     else
     {
         EXPECT_EQ(s.tag, "");
-        EXPECT_EQ(s.tag.len, 0);
+        EXPECT_EQ(s.tag.len, 0u);
         EXPECT_TRUE(s.tag.empty());
     }
     EXPECT_EQ(s.scalar, "foo3");
-    EXPECT_EQ(s.scalar.len, 4);
+    EXPECT_EQ(s.scalar.len, 4u);
     EXPECT_FALSE(s.scalar.empty());
 }
 
@@ -1273,11 +1273,11 @@ TEST(NodeRef, 7_duplicate)
     r.append_child() << "elm2";
     r.append_child() << "elm3";
 
-    EXPECT_EQ(r[0][0].num_children(), 2);
+    EXPECT_EQ(r[0][0].num_children(), 2u);
     printf("fonix"); print_tree(t); emit(r);
     NodeRef dup = r[1].duplicate(r[0][0], r[0][0][1]);
     printf("fonix"); print_tree(t); emit(r);
-    EXPECT_EQ(r[0][0].num_children(), 3);
+    EXPECT_EQ(r[0][0].num_children(), 3u);
     EXPECT_EQ(r[0][0][2].num_children(), map2.size());
     EXPECT_NE(dup.get(), r[1].get());
     EXPECT_EQ(dup[0].key(), "bar");
