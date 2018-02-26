@@ -23,7 +23,7 @@ c4_setup_coverage(RYML ${RYML_DEV})
 
 #-------------------------------------------------------
 option(RYML_DEFAULT_CALLBACKS "Enable ryml default implementation of callbacks: allocate(), free(), error()" ON)
-option(RYML_DBG "Enable ryml debug code" ${RYML_DEV})
+option(RYML_DBG "Enable ryml debug code. Very verbose." OFF)#${RYML_DEV})
 
 option(RYML_PEDANTIC "Compile in pedantic mode" ${RYML_DEV})
 set(RYML_CXX_FLAGS "")
