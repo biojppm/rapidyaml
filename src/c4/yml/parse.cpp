@@ -194,7 +194,9 @@ bool Parser::_is_scalar_next() const
     return isalnum(rem[0]) // an alpha-numeric character
         || rem.begins_with('"') || rem.begins_with('\'') // double or single quotes
         || rem.begins_with('|') || rem.begins_with('>')  // or a block indicator
-        || rem.begins_with("<<: ") || rem.begins_with('*'); // treat references as scalars
+        || rem.begins_with("<<: ") || rem.begins_with('*') // treat references as scalars
+        || (rem.begins_with('-') && (rem.len > 1 && rem[1] >= '0' && rem[1] <= '9')) // negative numbers are scalars too.
+        ;
 }
 
 //-----------------------------------------------------------------------------
