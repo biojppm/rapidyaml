@@ -3352,6 +3352,142 @@ N{"step", L{
     }
 ),
 
+//-----------------------------------------------------------------------------
+#define GITHUB_ISSUE_CASES \
+        "github3-problem1",\
+        "github3-problem2",\
+        "github3-problem3",\
+        "github3-full"
+
+C("github3-problem1",
+R"(
+translation: [-2, -2, 5])",
+L{N("translation", L{N("-2"), N("-2"), N("5")})}
+),
+
+C("github3-problem2",
+R"(# TODO this must work without the quotes
+audio resource: ''
+)"
+L{N("audio resource", "")}
+),
+
+C("github3-problem3",
+R"(component:
+  type: perspective camera component
+  # TODO the empty brackets must work in the next line
+  data:
+    {}
+)"
+  L{N("component", L{N("type", "perspective camera component"), N(SEQ, "data", L{})})}
+),
+
+C("github3-full",
+R"(
+universe:
+  objects:
+    object:
+      uuid: A7AB039C0EF3A74480A1B398247039A7
+      components:
+        - component:
+            type: name component
+            data:
+              object name: Root Node
+        - component:
+            type: transform component
+            data:
+              translation: [-2, -2, 5]
+              rotation: [0, 0, 0, 1]
+              scaling: [1, 1, 1]
+        - component:
+            type: perspective camera component
+            data:
+             {}
+        - component:
+            type: mesh component
+            data:
+              mesh resource: TODO
+        - component:
+            type: lua script component
+            data:
+             {}
+        - component:
+            type: audio component
+            data:
+              audio resource: ''
+              type: 0
+              current sample: 184102
+              spatialized: true
+      children:
+        - object:
+            uuid: E1C364A925D649408E83C8EEF5179A87
+            components:
+              - component:
+                  type: name component
+                  data:
+                    object name: Prepend
+            children:
+              []
+        - object:
+            uuid: 377DBA885AF4CD42B8A56BB3471F60E5
+            components:
+              - component:
+                  type: name component
+                  data:
+                    object name: pivot
+            children:
+              []
+        - object:
+            uuid: 6DD1835797DADB4F95232CE7E9DE41BA
+            components:
+              - component:
+                  type: name component
+                  data:
+                    object name: Append
+            children:
+              []
+)",
+  L{N("universe", L{
+        N("objects", L{
+            N("object", L{
+                N("uuid", "A7AB039C0EF3A74480A1B398247039A7"),
+                N("components", L{
+                    N("component", L{N("type", "name component"), N("data", L{N("object name", "Root Node")}), }),
+                    N("component", L{N("type", "transform component"), N("data", L{N("translation", L{N("-2"), N("-2"), N("5")}), N("rotation", L{N("0"), N("0"), N("0"), N("1")}), N("scaling", L{N("1"), N("1"), N("1")}),}), }),
+                    N("component", L{N("type", "perspective camera component"), N(MAP, "data", L{}), }),
+                    N("component", L{N("type", "mesh component"), N("data", L{N("mesh resource", "TODO")}), }),
+                    N("component", L{N("type", "lua script component"), N(MAP, "data", L{}), }),
+                    N("component", L{N("type", "audio component"), N("data", L{N("audio resource", ""), N("type", "0"), N("current sample", "184102"), N("spatialized", "true"), }), }), // component
+                  }), // components
+                N("children", L{
+                    N("object", L{
+                        N("uuid", "E1C364A925D649408E83C8EEF5179A87"),
+                        N("components", L{
+                            N("component", L{N("type", "name component"), N("data", L{N("object name", "Prepend")}), }),
+                        }),
+                        N(SEQ, "children", L{}),
+                    }), // object
+                    N("object", L{
+                        N("uuid", "377DBA885AF4CD42B8A56BB3471F60E5"),
+                        N("components", L{
+                            N("component", L{N("type", "name component"), N("data", L{N("object name", "pivot")}), }),
+                        }),
+                        N(SEQ, "children", L{}),
+                    }), // object
+                    N("object", L{
+                        N("uuid", "6DD1835797DADB4F95232CE7E9DE41BA"),
+                        N("components", L{
+                            N("component", L{N("type", "name component"), N("data", L{N("object name", "Append")}), }),
+                        }),
+                        N(SEQ, "children", L{}),
+                    }), // object
+                  }), // children
+                }), // object
+              }) // objects
+          }) // universe
+      }
+),
+
 
 //-----------------------------------------------------------------------------
 
@@ -3570,10 +3706,12 @@ INSTANTIATE_TEST_CASE_P(seqs_nested4  , YmlTestCase, ::testing::Values(NESTED_SE
 INSTANTIATE_TEST_CASE_P(map_of_seqs   , YmlTestCase, ::testing::Values(MAP_OF_SEQ_CASES));
 INSTANTIATE_TEST_CASE_P(seq_of_maps   , YmlTestCase, ::testing::Values(SEQ_OF_MAP_CASES));
 
-INSTANTIATE_TEST_CASE_P(maps_generic , YmlTestCase, ::testing::Values(GENERIC_MAP_CASES));
-INSTANTIATE_TEST_CASE_P(seqs_generic , YmlTestCase, ::testing::Values(GENERIC_SEQ_CASES));
+INSTANTIATE_TEST_CASE_P(maps_generic  , YmlTestCase, ::testing::Values(GENERIC_MAP_CASES));
+INSTANTIATE_TEST_CASE_P(seqs_generic  , YmlTestCase, ::testing::Values(GENERIC_SEQ_CASES));
 
 INSTANTIATE_TEST_CASE_P(simple_anchors, YmlTestCase, ::testing::Values(SIMPLE_ANCHOR_CASES));
+
+INSTANTIATE_TEST_CASE_P(github_issues , YmlTestCase, ::testing::Values(GITHUB_ISSUE_CASES));
 
 
 #pragma GCC diagnostic pop
