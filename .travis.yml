@@ -72,10 +72,10 @@ matrix:
     - env: CXX_=clang++-3.7 A=32 BT=Release SAN=ALL VG=ON
     - env: CXX_=clang++-3.7 A=64 BT=Release SAN=ALL VG=ON
  
-    - env: CXX_=g++-4.9     A=32 BT=Debug   SAN=ALL VG=ON
-    - env: CXX_=g++-4.9     A=64 BT=Debug   SAN=ALL VG=ON
-    - env: CXX_=g++-4.9     A=32 BT=Release SAN=ALL VG=ON
-    - env: CXX_=g++-4.9     A=64 BT=Release SAN=ALL VG=ON
+    #- env: CXX_=g++-4.9     A=32 BT=Debug   SAN=ALL VG=ON
+    #- env: CXX_=g++-4.9     A=64 BT=Debug   SAN=ALL VG=ON
+    #- env: CXX_=g++-4.9     A=32 BT=Release SAN=ALL VG=ON
+    #- env: CXX_=g++-4.9     A=64 BT=Release SAN=ALL VG=ON
 
     - env: CXX_=clang++-3.6 A=32 BT=Debug   SAN=ALL VG=ON
     - env: CXX_=clang++-3.6 A=64 BT=Debug   SAN=ALL VG=ON
