@@ -3353,6 +3353,46 @@ N{"step", L{
 ),
 
 //-----------------------------------------------------------------------------
+#define NUMBER_CASES \
+    "integer numbers, expl",\
+    "integer numbers, impl",\
+    "floating point numbers, expl",\
+    "floating point numbers, impl"
+
+C("integer numbers, expl",
+R"(translation: [-2, -2, 5])",
+L{N("translation", L{N("-2"), N("-2"), N("5")})}
+),
+
+C("integer numbers, impl",
+R"(translation:
+  - -2
+  - -2
+  - -5
+)",
+L{N("translation", L{N("-2"), N("-2"), N("-5")})}
+),
+
+C("floating point numbers, expl",
+R"([-2.0, -2.1, 0.1, .1, -.2, -2.e+6, -3e-6, 1.12345e+011])",
+L{N("-2.0"), N("-2.1"), N("0.1"), N(".1"), N("-.2"), N("-2.e+6"), N("-3e-6"), N("1.12345e+011")}
+),
+
+C("floating point numbers, impl",
+R"(
+- -2.0
+- -2.1
+- 0.1
+- .1
+- -.2
+- -2.e+6
+- -3e-6
+- 1.12345e+011
+)",
+L{N("-2.0"), N("-2.1"), N("0.1"), N(".1"), N("-.2"), N("-2.e+6"), N("-3e-6"), N("1.12345e+011")}
+),
+
+//-----------------------------------------------------------------------------
 #define GITHUB_ISSUE_CASES \
         "github3-problem1",\
         "github3-problem2",\
@@ -3368,7 +3408,7 @@ L{N("translation", L{N("-2"), N("-2"), N("5")})}
 C("github3-problem2",
 R"(# TODO this must work without the quotes
 audio resource: ''
-)"
+)",
 L{N("audio resource", "")}
 ),
 
@@ -3378,7 +3418,7 @@ R"(component:
   # TODO the empty brackets must work in the next line
   data:
     {}
-)"
+)",
   L{N("component", L{N("type", "perspective camera component"), N(SEQ, "data", L{})})}
 ),
 
@@ -3711,6 +3751,7 @@ INSTANTIATE_TEST_CASE_P(seqs_generic  , YmlTestCase, ::testing::Values(GENERIC_S
 
 INSTANTIATE_TEST_CASE_P(simple_anchors, YmlTestCase, ::testing::Values(SIMPLE_ANCHOR_CASES));
 
+INSTANTIATE_TEST_CASE_P(number_cases  , YmlTestCase, ::testing::Values(NUMBER_CASES));
 INSTANTIATE_TEST_CASE_P(github_issues , YmlTestCase, ::testing::Values(GITHUB_ISSUE_CASES));
 
 

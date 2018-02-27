@@ -214,8 +214,9 @@ The following core features are tested:
 * tags
 * anchors and references
 
-Of course, there are some dark corners in YAML, and in those cases I welcome
-your bug reports or pull requests.
+Of course, there are some dark corners in YAML, and there certainly can
+appear many cases which YAML fails to parse. So we welcome
+your bug reports or pull requests!
 
 ## How rapid is it?
 

@@ -190,13 +190,27 @@ void Parser::_handle_line()
 bool Parser::_is_scalar_next() const
 {
     cspan const& rem = m_state->line_contents.rem;
+    C4_ASSERT(rem.len > 0);
     // a scalar starts with either...
-    return isalnum(rem[0]) // an alpha-numeric character
+    bool yes = isalnum(rem[0]) // an alpha-numeric character
         || rem.begins_with('"') || rem.begins_with('\'') // double or single quotes
         || rem.begins_with('|') || rem.begins_with('>')  // or a block indicator
-        || rem.begins_with("<<: ") || rem.begins_with('*') // treat references as scalars
-        || (rem.begins_with('-') && (rem.len > 1 && rem[1] >= '0' && rem[1] <= '9')) // negative numbers are scalars too.
-        ;
+        || rem.begins_with("<<: ") || rem.begins_with('*'); // treat references as scalars
+    if(yes) return true;
+    if(rem.len > 1)
+    {
+        if(rem.begins_with('-')) // negative numbers are scalars too.
+        {
+            size_t pos = 1;
+            if(rem[pos] == '.' && rem.len > 2) ++pos;
+            if(rem[pos] >= '0' && rem[pos] <= '9') return true;
+        }
+        else if(rem.begins_with('.')) // allow floats can start with a dot
+        {
+            if(rem[1] >= '0' && rem[1] <= '9') return true;
+        }
+    }
+    return false;
 }
 
 //-----------------------------------------------------------------------------
