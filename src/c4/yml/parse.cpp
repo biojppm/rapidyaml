@@ -1495,8 +1495,14 @@ void Parser::_push_level(bool explicit_flow_chars)
     C4_ASSERT(m_state == &m_stack.top());
     if(node(m_state) == nullptr)
     {
-        C4_ASSERT( ! explicit_flow_chars);
-        return;
+        if(explicit_flow_chars)
+        {
+
+        }
+        else
+        {
+            return;
+        }
     }
     size_t st = RUNK;
     if(explicit_flow_chars)
@@ -1894,6 +1900,9 @@ bool Parser::_handle_indentation()
             _line_progressed(ind);
             _save_indentation();
             return true;
+        }
+        else if(has_all(RSEQ|RVAL))
+        {
         }
         else
         {

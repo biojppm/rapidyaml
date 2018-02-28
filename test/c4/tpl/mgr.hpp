@@ -70,6 +70,7 @@ template< class I >
 struct object_id_tpl
 {
     I m_type_pos;
+ 
     object_id_tpl() { m_type_pos = (I)-1; }
     object_id_tpl(I type_pos)
     {
@@ -252,7 +253,7 @@ public:
     inline T* get(I id) const
     {
         I pg = _page(id), pos = _pos(id);
-        char *mem = (char*) m_pages[pg].mem;
+        T *mem = (char*) m_pages[pg].mem;
         mem += pos * m_type_size;
         return (T*) mem;
     }
@@ -297,6 +298,41 @@ public:
 
 public:
 
+    ObjMgr()
+    {
+    }
+    ~ObjMgr()
+    {
+        clear();
+        free();
+    }
+
+    ObjMgr(ObjMgr const&) = delete;
+    ObjMgr(ObjMgr     &&) = delete;
+
+    ObjMgr& operator= (ObjMgr const&) = delete;
+    ObjMgr& operator= (ObjMgr     &&) = delete;
+    
+public:
+
+    void clear()
+    {
+        for(auto &c : m_collections)
+        {
+            c.dum.clear();
+        }
+    }
+
+    void free()
+    {
+        for(auto &c : m_collections)
+        {
+            c.dum.free();
+        }
+    }
+
+public:
+
     template< class T >
     I register_type()
     {
@@ -335,41 +371,6 @@ public:
             }
         }
         return nullptr;
-    }
-
-public:
-
-    ObjMgr()
-    {
-    }
-    ~ObjMgr()
-    {
-        clear();
-        free();
-    }
-
-    ObjMgr(ObjMgr const&) = delete;
-    ObjMgr(ObjMgr     &&) = delete;
-
-    ObjMgr& operator= (ObjMgr const&) = delete;
-    ObjMgr& operator= (ObjMgr     &&) = delete;
-
-public:
-
-    void clear()
-    {
-        for(auto &c : m_collections)
-        {
-            c.dum.clear();
-        }
-    }
-
-    void free()
-    {
-        for(auto &c : m_collections)
-        {
-            c.dum.free();
-        }
     }
 
 public:
