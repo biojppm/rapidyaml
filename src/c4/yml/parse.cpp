@@ -104,20 +104,29 @@ void Parser::_handle_finished_file()
         if(m_tree->type(m_state->node_id) == NOTYPE)
         {
             m_tree->to_seq(m_state->node_id);
+            _append_val(_consume_scalar());
         }
         else if(m_tree->is_doc(m_state->node_id))
         {
             m_tree->to_doc(m_state->node_id, SEQ);
+            _append_val(_consume_scalar());
         }
         else if(m_tree->is_seq(m_state->node_id))
         {
-            ;
+            _append_val(_consume_scalar());
+        }
+        else if(m_tree->is_map(m_state->node_id))
+        {
+            _append_key_val("");
         }
         else
         {
             _c4err("internal error");
         }
-        _append_val(_consume_scalar());
+    }
+    else if(has_all(RSEQ|RVAL) && has_none(EXPL))
+    {
+        _append_val("");
     }
 
     _c4dbgp("emptying stack...");
@@ -528,6 +537,12 @@ bool Parser::_handle_seq_impl()
     }
     else if(has_any(RVAL))
     {
+        // there can be empty values
+        if(_handle_indentation())
+        {
+            return true;
+        }
+
         if(_is_scalar_next())
         {
             _c4dbgp("it's a scalar");
@@ -554,22 +569,18 @@ bool Parser::_handle_seq_impl()
         }
         else if(rem.begins_with("- "))
         {
-            _c4dbgp("val is a nested seq, indented");
-            addrem_flags(RNXT, RVAL); // before _push_level!
-            _push_level();
-            _start_seq();
-            _save_indentation();
-            _line_progressed(2);
+            if(_rval_dash_start_or_continue_seq())
+            {
+                _line_progressed(2);
+            }
             return true;
         }
         else if(rem == '-')
         {
-            _c4dbgp("val is a nested seq, indented");
-            addrem_flags(RNXT, RVAL); // before _push_level!
-            _push_level();
-            _start_seq();
-            _save_indentation();
-            _line_progressed(1);
+            if(_rval_dash_start_or_continue_seq())
+            {
+                _line_progressed(1);
+            }
             return true;
         }
         else if(rem.begins_with('['))
@@ -644,6 +655,29 @@ bool Parser::_handle_seq_impl()
 }
 
 //-----------------------------------------------------------------------------
+
+bool Parser::_rval_dash_start_or_continue_seq()
+{
+    const cspan rem = m_state->line_contents.rem;
+    size_t ind = rem.begin() - m_state->line_contents.full.begin();
+    C4_ASSERT(ind >= m_state->indref);
+    size_t delta_ind = ind - m_state->indref;
+    if( ! delta_ind)
+    {
+        _c4dbgp("prev val was empty");
+        addrem_flags(RNXT, RVAL);
+        _append_val("");
+        return false;
+    }
+    _c4dbgp("val is a nested seq, indented");
+    addrem_flags(RNXT, RVAL); // before _push_level!
+    _push_level();
+    _start_seq();
+    _save_indentation();
+    return true;
+}
+
+//-----------------------------------------------------------------------------
 bool Parser::_handle_map_expl()
 {
     _c4dbgpf("handle_map_expl: node_id=%zd  level=%zd", m_state->node_id, m_state->level);
@@ -671,6 +705,12 @@ bool Parser::_handle_map_expl()
         else if(rem.begins_with('}'))
         {
             _c4dbgp("end the map");
+            if(has_all(SSCL))
+            {
+                _c4dbgp("the last val was empty");
+                _append_key_val("");
+                rem_flags(RVAL);
+            }
             _pop_level();
             _line_progressed(1);
             return true;
@@ -782,6 +822,14 @@ bool Parser::_handle_map_expl()
             }
             else if(_handle_anchors_and_refs())
             {
+                return true;
+            }
+            else if(rem.begins_with(','))
+            {
+                _c4dbgp("appending empty val");
+                _append_key_val("");
+                addrem_flags(RKEY, RVAL);
+                _line_progressed(1);
                 return true;
             }
             else
@@ -1437,7 +1485,7 @@ void Parser::_save_indentation(size_t behind)
     m_state->indref = m_state->line_contents.rem.begin() - m_state->line_contents.full.begin();
     C4_ASSERT(behind <= m_state->indref);
     m_state->indref -= behind;
-    _c4dbgpf("state[%zd]: saving indentation: %zd", m_state->indref, m_state-m_stack.begin());
+    _c4dbgpf("state[%zd]: saving indentation: %zd", m_state-m_stack.begin(), m_state->indref);
 }
 
 //-----------------------------------------------------------------------------
@@ -1768,13 +1816,47 @@ bool Parser::_handle_indentation()
 
     if(ind == (size_t)m_state->indref)
     {
-        _c4dbgpf("same indentation (%zd) -- nothing to see here", ind);
+        if(has_all(SSCL|RVAL))
+        {
+            if(has_all(RMAP))
+            {
+                _append_key_val("");
+                addrem_flags(RKEY, RVAL);
+            }
+            else if(has_all(RSEQ))
+            {
+                _append_val(_consume_scalar());
+                addrem_flags(RNXT, RVAL);
+            }
+            else
+            {
+                _c4err("internal error");
+            }
+        }
+        else
+        {
+            _c4dbgpf("same indentation (%zd) -- nothing to see here", ind);
+        }
         _line_progressed(ind);
         return ind > 0;
     }
     else if(ind < (size_t)m_state->indref)
     {
         _c4dbgpf("smaller indentation (%zd < %zd)!!!", ind, m_state->indref);
+        if(has_all(RVAL))
+        {
+            _c4dbgp("there was an empty val -- appending");
+            if(has_all(RMAP))
+            {
+                C4_ASSERT(has_all(SSCL));
+                _append_key_val("");
+            }
+            else if(has_all(RSEQ))
+            {
+                C4_ASSERT(has_none(SSCL));
+                _append_val("");
+            }
+        }
         State const* popto = nullptr;
         C4_ASSERT(m_stack.is_contiguous()); // this search relies on the stack being contiguous
         for(State const* s = m_state-1; s >= m_stack.begin(); --s)
