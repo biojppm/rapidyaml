@@ -3392,10 +3392,116 @@ R"(
 L{N("-2.0"), N("-2.1"), N("0.1"), N(".1"), N("-.2"), N("-2.e+6"), N("-3e-6"), N("1.12345e+011")}
 ),
 
+
+//-----------------------------------------------------------------------------
+#define NULL_VAL_CASES \
+    "null map vals, expl",\
+    "null map vals, impl",\
+    "null seq vals, impl",\
+    "null seq vals in map, impl, mixed 1",\
+    "null seq vals in map, impl, mixed 2",\
+    "null seq vals in map, impl, mixed 3",\
+    "null map vals in seq, impl, mixed 1",\
+    "null map vals in seq, impl, mixed 2",\
+    "null map vals in seq, impl, mixed 3"
+
+C("null map vals, expl",
+R"({foo: , bar: , baz: }
+)",
+L{N("foo", ""), N("bar", ""), N("baz", "")}
+),
+
+C("null map vals, impl",
+R"(
+foo: 
+bar: 
+baz: 
+)",
+L{N("foo", ""), N("bar", ""), N("baz", "")}
+),
+
+C("null seq vals, impl",
+R"(- 
+- 
+- 
+)",
+L{N(""), N(""), N("")}
+),
+
+C("null seq vals in map, impl, mixed 1",
+R"(
+foo:
+  - 
+  - 
+  - 
+bar: 
+baz: 
+)",
+L{N("foo", L{N(""), N(""), N("")}), N("bar", ""), N("baz", "")}
+),
+
+C("null seq vals in map, impl, mixed 2",
+R"(
+foo:
+bar: 
+  - 
+  - 
+  - 
+baz: 
+)",
+L{N("foo", ""), N("bar", L{N(""), N(""), N("")}), N("baz", "")}
+),
+
+C("null seq vals in map, impl, mixed 3",
+R"(
+foo:
+bar: 
+baz: 
+  - 
+  - 
+  - 
+)",
+L{N("foo", ""), N("bar", ""), N("baz", L{N(""), N(""), N("")})}
+),
+
+C("null map vals in seq, impl, mixed 1",
+R"(
+- foo:
+  bar: 
+  baz: 
+- 
+- 
+)",
+L{N(L{N("foo", ""), N("bar", ""), N("baz", "")}), N(""), N("")}
+),
+
+C("null map vals in seq, impl, mixed 2",
+R"(
+- 
+- foo:
+  bar: 
+  baz: 
+- 
+)",
+L{N(""), N(L{N("foo", ""), N("bar", ""), N("baz", "")}), N("")}
+),
+
+C("null map vals in seq, impl, mixed 3",
+R"(
+- 
+- 
+- foo:
+  bar: 
+  baz: 
+)",
+L{N(""), N(""), N(L{N("foo", ""), N("bar", ""), N("baz", "")})}
+),
+
 //-----------------------------------------------------------------------------
 #define GITHUB_ISSUE_CASES \
         "github3-problem1",\
-        "github3-problem2",\
+        "github3-problem2-ex1",\
+        "github3-problem2-ex2",\
         "github3-problem3",\
         "github3-full"
 
@@ -3405,21 +3511,31 @@ translation: [-2, -2, 5])",
 L{N("translation", L{N("-2"), N("-2"), N("5")})}
 ),
 
-C("github3-problem2",
-R"(# TODO this must work without the quotes
-audio resource: ''
+// these must work without quotes
+C("github3-problem2-ex1",
+R"(
+audio resource: 
 )",
 L{N("audio resource", "")}
 ),
+C("github3-problem2-ex2",
+R"(
+audio resource: 
+more:
+  example: y
+)",
+L{N("audio resource", ""), N("more", L{N("example", "y")})}
+),
+
 
 C("github3-problem3",
 R"(component:
   type: perspective camera component
-  # TODO the empty brackets must work in the next line
+  some_data: {}  # this was working
   data:
-    {}
+    {}           # but this was not working
 )",
-  L{N("component", L{N("type", "perspective camera component"), N(SEQ, "data", L{})})}
+L{N("component", L{N("type", "perspective camera component"), N(MAP, "some_data", L{}), N(MAP, "data", L{})})}
 ),
 
 C("github3-full",
@@ -3751,7 +3867,9 @@ INSTANTIATE_TEST_CASE_P(seqs_generic  , YmlTestCase, ::testing::Values(GENERIC_S
 
 INSTANTIATE_TEST_CASE_P(simple_anchors, YmlTestCase, ::testing::Values(SIMPLE_ANCHOR_CASES));
 
-INSTANTIATE_TEST_CASE_P(number_cases  , YmlTestCase, ::testing::Values(NUMBER_CASES));
+INSTANTIATE_TEST_CASE_P(numbers       , YmlTestCase, ::testing::Values(NUMBER_CASES));
+INSTANTIATE_TEST_CASE_P(null_vals     , YmlTestCase, ::testing::Values(NULL_VAL_CASES));
+
 INSTANTIATE_TEST_CASE_P(github_issues , YmlTestCase, ::testing::Values(GITHUB_ISSUE_CASES));
 
 
