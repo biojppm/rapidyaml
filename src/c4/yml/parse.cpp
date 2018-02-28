@@ -1495,7 +1495,7 @@ void Parser::_push_level(bool explicit_flow_chars)
     C4_ASSERT(m_state == &m_stack.top());
     if(node(m_state) == nullptr)
     {
-        _c4dbgpf("pushing level! actually no, current node is null");
+        _c4dbgp("pushing level! actually no, current node is null");
         //C4_ASSERT( ! explicit_flow_chars);
         return;
     }
