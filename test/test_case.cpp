@@ -3502,8 +3502,8 @@ L{N(""), N(""), N(L{N("foo", ""), N("bar", ""), N("baz", "")})}
         "github3-problem1",\
         "github3-problem2-ex1",\
         "github3-problem2-ex2",\
-        "github3-problem3"/*,\
-        "github3-full"*/
+        "github3-problem3",\
+        "github3-full"
 
 C("github3-problem1",
 R"(
@@ -3531,7 +3531,8 @@ C("github3-problem3",
 R"(component:
   type: perspective camera component
   some_data: {}  # this was working
-  data: {}           # but this was not working
+  data:
+    {}           # but this was not working
 )",
 L{N("component", L{N("type", "perspective camera component"), N(KEYMAP, "some_data", L{}), N(KEYMAP, "data", L{})})}
 ),
@@ -3555,8 +3556,8 @@ universe:
               scaling: [1, 1, 1]
         - component:
             type: perspective camera component
-            #FIXME data:
-            #FIXME  {}
+            data:
+             {}
         - component:
             type: mesh component
             data:
@@ -3580,8 +3581,8 @@ universe:
                   type: name component
                   data:
                     object name: Prepend
-            #FIXME children:
-            #FIXME   []
+            children:
+              []
         - object:
             uuid: 377DBA885AF4CD42B8A56BB3471F60E5
             components:
@@ -3589,8 +3590,8 @@ universe:
                   type: name component
                   data:
                     object name: pivot
-            #FIXME children:
-            #FIXME   []
+            children:
+              []
         - object:
             uuid: 6DD1835797DADB4F95232CE7E9DE41BA
             components:
@@ -3598,43 +3599,37 @@ universe:
                   type: name component
                   data:
                     object name: Append
-            #FIXME children:
-            #FIXME   []
+            children:
+              []
 )",
   L{N("universe", L{
         N("objects", L{
             N("object", L{
                 N("uuid", "A7AB039C0EF3A74480A1B398247039A7"),
                 N("components", L{
-                    N("component", L{N("type", "name component"), N("data", L{N("object name", "Root Node")}), }),
-                    N("component", L{N("type", "transform component"), N("data", L{N("translation", L{N("-2"), N("-2"), N("5")}), N("rotation", L{N("0"), N("0"), N("0"), N("1")}), N("scaling", L{N("1"), N("1"), N("1")}),}), }),
-                    N("component", L{N("type", "perspective camera component"), N(MAP, "data", L{}), }),
-                    N("component", L{N("type", "mesh component"), N("data", L{N("mesh resource", "TODO")}), }),
-                    N("component", L{N("type", "lua script component"), N(MAP, "data", L{}), }),
-                    N("component", L{N("type", "audio component"), N("data", L{N("audio resource", ""), N("type", "0"), N("current sample", "184102"), N("spatialized", "true"), }), }), // component
+                    N(L{N("component", L{N("type", "name component"), N("data", L{N("object name", "Root Node")}), }), }),
+                    N(L{N("component", L{N("type", "transform component"), N("data", L{N("translation", L{N("-2"), N("-2"), N("5")}), N("rotation", L{N("0"), N("0"), N("0"), N("1")}), N("scaling", L{N("1"), N("1"), N("1")}),}), }), }),
+                    N(L{N("component", L{N("type", "perspective camera component"), N(KEYMAP, "data", L{}), }), }),
+                    N(L{N("component", L{N("type", "mesh component"), N("data", L{N("mesh resource", "TODO")}), }), }),
+                    N(L{N("component", L{N("type", "lua script component"), N(KEYMAP, "data", L{}), }), }),
+                    N(L{N("component", L{N("type", "audio component"), N("data", L{N("audio resource", ""), N("type", "0"), N("current sample", "184102"), N("spatialized", "true"), }), }), }), // component
                   }), // components
                 N("children", L{
-                    N("object", L{
+                    N(L{N("object", L{
                         N("uuid", "E1C364A925D649408E83C8EEF5179A87"),
-                        N("components", L{
-                            N("component", L{N("type", "name component"), N("data", L{N("object name", "Prepend")}), }),
-                        }),
-                        N(SEQ, "children", L{}),
-                    }), // object
-                    N("object", L{
+                        N("components", L{N(L{N("component", L{N("type", "name component"), N("data", L{N("object name", "Prepend")}), }), }), }),
+                        N(KEYSEQ, "children", L{}),
+                    }), }), // object
+                    N(L{N("object", L{
                         N("uuid", "377DBA885AF4CD42B8A56BB3471F60E5"),
-                        N("components", L{
-                            N("component", L{N("type", "name component"), N("data", L{N("object name", "pivot")}), }),
-                        }),
-                        N(SEQ, "children", L{}),
-                    }), // object
-                    N("object", L{
+                        N("components", L{N(L{N("component", L{N("type", "name component"), N("data", L{N("object name", "pivot")}), }), }), }),
+                        N(KEYSEQ, "children", L{}),
+                    }), }), // object
+                    N(L{N("object", L{
                         N("uuid", "6DD1835797DADB4F95232CE7E9DE41BA"),
-                        N("components", L{
-                            N("component", L{N("type", "name component"), N("data", L{N("object name", "Append")}), }),
-                        }),
-                        N(SEQ, "children", L{}),
-                    }), // object
+                        N("components", L{N(L{N("component", L{N("type", "name component"), N("data", L{N("object name", "Append")}), }), }), }),
+                        N(KEYSEQ, "children", L{}),
+                    }), }), // object
                   }), // children
                 }), // object
               }) // objects
