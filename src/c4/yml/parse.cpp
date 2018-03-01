@@ -906,7 +906,7 @@ bool Parser::_handle_map_impl()
         }
         else if(rem.begins_with(' '))
         {
-            C4_ASSERT( ! _at_line_begin());
+            //C4_ASSERT( ! _at_line_begin());
             rem = rem.left_of(rem.first_not_of(' '));
             _c4dbgpf("skip %zd spaces", rem.len);
             _line_progressed(rem.len);
@@ -1073,17 +1073,17 @@ bool Parser::_handle_top()
     _c4dbgp("handle_top");
     cspan rem = m_state->line_contents.rem;
 
-    // use the full line, as the following tokens can appear only at top level
-    C4_ASSERT(rem == m_state->line_contents.stripped);
-    rem = m_state->line_contents.stripped;
-
     if(rem.begins_with('#'))
     {
         _c4dbgp("a comment line");
         _scan_comment();
         return true;
     }
-    else if(rem.begins_with('%'))
+
+    // use the full line, as the following tokens can appear only at top level
+    C4_ASSERT(rem == m_state->line_contents.stripped);
+    rem = m_state->line_contents.stripped;
+    if(rem.begins_with('%'))
     {
         _c4dbgp("%% directive!");
         if(rem.begins_with("%YAML"))
@@ -1375,7 +1375,7 @@ cspan Parser::_scan_scalar()
                 ind = n.len;
             }
             const cspan contents = n.right_of(ind, /*include_pos*/true);
-            if( ! contents.begins_with_any("-[{?") && (contents.first_of(':') == npos))
+            if( ! contents.begins_with_any("-[{?#") && (contents.first_of(':') == npos))
             {
                 _c4dbgpf("reading scalar: it indents further: the scalar continues!!! indentation=%zd", ind);
                 while(n.begins_with(' ', ind))
@@ -1897,6 +1897,9 @@ bool Parser::_handle_indentation()
             return true;
         }
         else if(has_all(RSEQ|RVAL))
+        {
+        }
+        else if(m_state->line_contents.rem.triml(' ').begins_with("#"))
         {
         }
         else
