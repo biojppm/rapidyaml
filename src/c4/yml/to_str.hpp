@@ -266,7 +266,7 @@ inline size_t to_str(span buf, ty v)                                    \
         /* when buf.len is not enough, VS returns a negative value.     \
          * so call it again with a negative value for getting an        \
          * actual length of the string */                               \
-        iret = snprintf(nullptr, buf.len, "%" pri_fmt, v);              \
+        iret = snprintf(nullptr, 0, "%" pri_fmt, v);                    \
         C4_ASSERT(iret > 0);                                            \
     }                                                                   \
     size_t ret = (size_t) iret;                                         \
