@@ -719,6 +719,7 @@ R"([
         "simple map, explicit, multiline, unindented",  \
         "simple map, explicit, multiline, indented",    \
         "simple map",                                   \
+        "simple map, values on next line",              \
         "simple map, with comments",                    \
         "simple map, with comments interspersed",       \
         "simple map, with indented comments interspersed, before",\
@@ -775,6 +776,20 @@ foo: 0
 bar: 1
 baz: 2
 bat: 3
+)",
+    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+),
+
+C("simple map, values on next line",
+R"(
+foo:
+  0
+bar:
+  1
+baz:
+  2
+bat:
+  3
 )",
     L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
 ),
@@ -2870,7 +2885,8 @@ R"(? >-
 #define MAP_OF_SEQ_CASES \
     "map of empty seqs", \
     "map of seqs, one line", \
-       "map of seqs"
+    "map of seqs",           \
+    "map of seqs, next line"
 
 C("map of empty seqs",
 R"({foo: [], bar: [], baz: []})",
@@ -2904,12 +2920,32 @@ women:
      }
 ),
 
+C("map of seqs, next line",
+R"(
+men:
+  - 
+    John Smith
+  - 
+    Bill Jones
+women:
+  - 
+    Mary Smith
+  - 
+    Susan Williams
+)",
+     L{
+         N("men", L{N{"John Smith"}, N{"Bill Jones"}}),
+         N("women", L{N{"Mary Smith"}, N{"Susan Williams"}})
+     }
+),
+
 //-----------------------------------------------------------------------------
 #define SEQ_OF_MAP_CASES                            \
     "seq of empty maps, one line",                  \
         "seq of maps, one line",                    \
         "seq of maps, implicit seq, explicit maps", \
-        "seq of maps"
+        "seq of maps",                              \
+        "seq of maps, next line"
 
 C("seq of empty maps, one line",
 R"([{}, {}, {}])",
@@ -2941,6 +2977,25 @@ R"(
   age: 33
 - name: Mary Smith
   age: 27
+)",
+  L{
+      N{L{N("name", "John Smith"), N("age", "33")}},
+      N{L{N("name", "Mary Smith"), N("age", "27")}}
+  }
+),
+
+C("seq of maps, next line",
+R"(
+- 
+  name:
+    John Smith
+  age:
+    33
+- 
+  name: 
+    Mary Smith
+  age:
+    27
 )",
   L{
       N{L{N("name", "John Smith"), N("age", "33")}},
@@ -3383,6 +3438,112 @@ N{"step", L{
     }),
     }
 ),
+
+
+//-----------------------------------------------------------------------------
+#define INDENTATION_CASES \
+    "4 chars",\
+    "2 chars + 4 chars, ex0",\
+    "2 chars + 4 chars, ex1",\
+    "2 chars + 4 chars, ex2"
+
+C("4 chars",
+R"(
+key:
+     value
+another_key:
+    sub_key0:
+      - val0
+      - val1
+    sub_key1:
+      - val2
+      - val3
+    sub_key2:
+      - val4
+      - val5
+)",
+L{
+    N("key", "value"),
+    N("another_key", L{
+        N("sub_key0", L{N("val0"), N("val1")}),
+        N("sub_key1", L{N("val2"), N("val3")}),
+        N("sub_key2", L{N("val4"), N("val5")}),
+    })
+}),
+
+
+C("2 chars + 4 chars, ex0",
+R"(
+key:
+     value
+another_key:
+    sub_key0:
+        - val0
+        - val1
+    sub_key1:
+      - val2
+      - val3
+    sub_key2:
+      - val4
+      - val5
+)",
+L{
+    N("key", "value"),
+    N("another_key", L{
+        N("sub_key0", L{N("val0"), N("val1")}),
+        N("sub_key1", L{N("val2"), N("val3")}),
+        N("sub_key2", L{N("val4"), N("val5")}),
+    })
+}),
+
+C("2 chars + 4 chars, ex1",
+R"(
+key:
+     value
+another_key:
+    sub_key0:
+      - val0
+      - val1
+    sub_key1:
+        - val2
+        - val3
+    sub_key2:
+      - val4
+      - val5
+)",
+L{
+    N("key", "value"),
+    N("another_key", L{
+        N("sub_key0", L{N("val0"), N("val1")}),
+        N("sub_key1", L{N("val2"), N("val3")}),
+        N("sub_key2", L{N("val4"), N("val5")}),
+    })
+}),
+
+C("2 chars + 4 chars, ex2",
+R"(
+key:
+     value
+another_key:
+    sub_key0:
+      - val0
+      - val1
+    sub_key1:
+      - val2
+      - val3
+    sub_key2:
+        - val4
+        - val5
+)",
+L{
+    N("key", "value"),
+    N("another_key", L{
+        N("sub_key0", L{N("val0"), N("val1")}),
+        N("sub_key1", L{N("val2"), N("val3")}),
+        N("sub_key2", L{N("val4"), N("val5")}),
+    })
+}),
+
 
 //-----------------------------------------------------------------------------
 #define NUMBER_CASES \
@@ -3891,6 +4052,8 @@ INSTANTIATE_TEST_CASE_P(maps_generic  , YmlTestCase, ::testing::Values(GENERIC_M
 INSTANTIATE_TEST_CASE_P(seqs_generic  , YmlTestCase, ::testing::Values(GENERIC_SEQ_CASES));
 
 INSTANTIATE_TEST_CASE_P(simple_anchors, YmlTestCase, ::testing::Values(SIMPLE_ANCHOR_CASES));
+
+INSTANTIATE_TEST_CASE_P(indentation   , YmlTestCase, ::testing::Values(INDENTATION_CASES));
 
 INSTANTIATE_TEST_CASE_P(numbers       , YmlTestCase, ::testing::Values(NUMBER_CASES));
 INSTANTIATE_TEST_CASE_P(null_vals     , YmlTestCase, ::testing::Values(NULL_VAL_CASES));

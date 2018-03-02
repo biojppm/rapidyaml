@@ -90,7 +90,8 @@ private:
     void  _scan_line();
     void  _next_line() { _line_ended(); }
 
-    bool  _is_scalar_next() const;
+    bool  _is_scalar_next(cspan rem) const;
+    bool  _is_scalar_next() const { return _is_scalar_next(m_state->line_contents.rem); }
     cspan _scan_scalar();
     cspan _scan_comment();
     cspan _scan_quoted_scalar(const char q);
