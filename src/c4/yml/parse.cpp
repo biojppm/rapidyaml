@@ -196,9 +196,8 @@ void Parser::_handle_line()
 }
 
 //-----------------------------------------------------------------------------
-bool Parser::_is_scalar_next() const
+bool Parser::_is_scalar_next(cspan rem) const
 {
-    cspan const& rem = m_state->line_contents.rem;
     C4_ASSERT(rem.len > 0);
     // a scalar starts with either...
     bool yes = isalnum(rem[0]) // an alpha-numeric character
@@ -616,24 +615,17 @@ bool Parser::_handle_seq_impl()
         }
         else if(rem.begins_with(' '))
         {
-            rem = rem.left_of(rem.first_not_of(' '));
+            cspan spc = rem.left_of(rem.first_not_of(' '));
             if(_at_line_begin())
             {
-                if(rem.len == m_state->indref + 2)
-                {
-                    _c4dbgpf("skipping indentation: %zd spaces", rem.len);
-                    _line_progressed(rem.len);
-                    return true;
-                }
-                else
-                {
-                    _c4err("invalid indentation");
-                }
+                _c4dbgpf("skipping value indentation: %zd spaces", spc.len);
+                _line_progressed(spc.len);
+                return true;
             }
             else
             {
-                _c4dbgpf("skipping %zd spaces", rem.len);
-                _line_progressed(rem.len);
+                _c4dbgpf("skipping %zd spaces", spc.len);
+                _line_progressed(spc.len);
                 return true;
             }
         }
@@ -1025,24 +1017,17 @@ bool Parser::_handle_map_impl()
         }
         else if(rem.begins_with(' '))
         {
-            rem = rem.left_of(rem.first_not_of(' '));
+            cspan spc = rem.left_of(rem.first_not_of(' '));
             if(_at_line_begin())
             {
-                if(rem.len == m_state->indref + 2)
-                {
-                    _c4dbgpf("skipping indentation: %zd spaces", rem.len);
-                    _line_progressed(rem.len);
-                    return true;
-                }
-                else
-                {
-                    _c4err("invalid indentation");
-                }
+                _c4dbgpf("skipping value indentation: %zd spaces", spc.len);
+                _line_progressed(spc.len);
+                return true;
             }
             else
             {
-                _c4dbgpf("skipping %zd spaces", rem.len);
-                _line_progressed(rem.len);
+                _c4dbgpf("skipping %zd spaces", spc.len);
+                _line_progressed(spc.len);
                 return true;
             }
         }
@@ -1889,12 +1874,20 @@ bool Parser::_handle_indentation()
         _c4dbgpf("larger indentation (%zd > %zd)!!!", ind, m_state->indref);
         if(has_all(RMAP|RVAL))
         {
-            addrem_flags(RKEY, RVAL);
-            _start_unk();
-            //_move_scalar_from_top();
-            _line_progressed(ind);
-            _save_indentation();
-            return true;
+            auto rem = m_state->line_contents.rem.triml(' ');
+            if(/*ind == m_state->indref + 2 && */_is_scalar_next(rem) && rem.find(":") == npos)
+            {
+                _c4dbgpf("actually it seems a value: '%.*s'", _c4prsp(rem));
+            }
+            else
+            {
+                addrem_flags(RKEY, RVAL);
+                _start_unk();
+                //_move_scalar_from_top();
+                _line_progressed(ind);
+                _save_indentation();
+                return true;
+            }
         }
         else if(has_all(RSEQ|RVAL))
         {
