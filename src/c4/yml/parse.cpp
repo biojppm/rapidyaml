@@ -2619,6 +2619,7 @@ int Parser::_fmt_msg(char *buf, int buflen, const char *fmt, va_list args) const
         _wrapbuf();
     }
 
+#ifdef RYML_DBG
     // next line: print the state flags
     {
         del = snprintf(buf + pos, len, "top state: ");
@@ -2630,7 +2631,7 @@ int Parser::_fmt_msg(char *buf, int buflen, const char *fmt, va_list args) const
         del = snprintf(buf + pos, len, "\n");
         _wrapbuf();
     }
-
+#endif
 
     return pos;
 }
