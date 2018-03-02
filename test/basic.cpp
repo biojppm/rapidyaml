@@ -198,6 +198,70 @@ TEST(atoi, basic)
     _woof(10001);
 }
 
+TEST(to_str, trimmed_fit_int)
+{
+    // test that no characters are trimmed at the end of
+    // the number due to printf-based implementations
+    // needing space for the \0
+    int v = 12345678;
+    char buf[128];
+    span sp(buf);
+    size_t sz = to_str(sp, v);
+    sp = sp.left_of(sz);
+    EXPECT_EQ(sp, "12345678"); // ehemm.
+    char buf2[8+1];
+    C4_ASSERT(sizeof(buf2) == sz+1);
+    span sp2(buf2, sizeof(buf2)); // make sure it spans the whole buffer
+    sp2 = to_str_span(sp2, v);
+    EXPECT_EQ(sp2, sp); // ehemm.
+    std::string str;
+    catrs(&str, v);
+    EXPECT_EQ(sp, to_cspan(str)); // ehemm.
+}
+
+TEST(to_str, trimmed_fit_float)
+{
+    // test that no characters are trimmed at the end of
+    // the number due to printf-based implementations
+    // needing space for the \0
+    float v = 1024.1568f;
+    char buf[128];
+    span sp(buf);
+    size_t sz = to_str(sp, v);
+    sp = sp.left_of(sz);
+    EXPECT_EQ(sp, "1024.16"); // ehemm.
+    char buf2[7 + 1];
+    C4_ASSERT(sizeof(buf2) == sz+1);
+    span sp2(buf2, sizeof(buf2)); // make sure it spans the whole buffer
+    sp2 = to_str_span(sp2, v);
+    EXPECT_EQ(sp2, sp); // ehemm.
+    std::string str;
+    catrs(&str, v);
+    EXPECT_EQ(sp, to_cspan(str)); // ehemm.
+}
+
+TEST(to_str, trimmed_fit_double)
+{
+    // test that no characters are trimmed at the end of
+    // the number due to printf-based implementations
+    // needing space for the \0
+    double v = 1024.1568;
+    char buf[128];
+    span sp(buf);
+    size_t sz = to_str(sp, v);
+    sp = sp.left_of(sz);
+    EXPECT_EQ(sp, "1024.16"); // ehemm.
+    char buf2[7 + 1];
+    C4_ASSERT(sizeof(buf2) == sz+1);
+    span sp2(buf2, sizeof(buf2)); // make sure it spans the whole buffer
+    sp2 = to_str_span(sp2, v);
+    EXPECT_EQ(sp2, sp); // ehemm.
+    std::string str;
+    catrs(&str, v);
+    EXPECT_EQ(sp, to_cspan(str)); // ehemm.
+
+}
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
