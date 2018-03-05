@@ -120,6 +120,7 @@ public:
 
     bool has_str() const { return ! empty() && str[0] != C(0); }
     bool empty() const { return (len == 0 || str == nullptr); }
+    bool not_empty() const { return (len != 0 && str != nullptr); }
     size_t size() const { return len; }
 
     iterator begin() { return str; }
