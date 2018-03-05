@@ -71,12 +71,12 @@ inline size_t catsep(span /*buf*/, Sep const& /*sep*/)
 template< class CharOwningContainer, class... Args >
 inline void catrs(CharOwningContainer *cont, Args const& ...args)
 {
-    span buf(cont->empty() ? nullptr : &(*cont)[0], cont->size());
+    span buf = to_span(*cont);
     size_t ret = cat(buf, args...);
     cont->resize(ret);
     if(ret > buf.len)
     {
-        buf.assign(&(*cont)[0], cont->size());
+        buf = to_span(*cont);
         ret = cat(buf, args...);
     }
 }
@@ -84,12 +84,12 @@ inline void catrs(CharOwningContainer *cont, Args const& ...args)
 template< class CharOwningContainer, class Sep, class... Args >
 inline void catseprs(CharOwningContainer *cont, Sep const& sep, Args const& ...args)
 {
-    span buf(cont->empty() ? nullptr : &(*cont)[0], cont->size());
+    span buf = to_span(*cont);
     size_t ret = catsep(buf, sep, args...);
     cont->resize(ret);
     if(ret > buf.len)
     {
-        buf.assign(&(*cont)[0], cont->size());
+        buf = to_span(*cont);
         ret = catsep(buf, sep, args...);
     }
 }
