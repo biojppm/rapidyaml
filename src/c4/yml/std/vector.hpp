@@ -37,25 +37,36 @@ bool read(c4::yml::NodeRef const& n, std::vector< V, Alloc > *vec)
 template< class Alloc >
 c4::yml::span to_span(std::vector< char, Alloc > &vec)
 {
-    return c4::yml::span(vec.data(), vec.size());
-}
-
-template< class Alloc >
-c4::yml::cspan to_cspan(std::vector< char, Alloc > const& vec)
-{
-    return c4::yml::cspan(vec.data(), vec.size());
+    char *data = vec.empty() ? nullptr : vec.data(); // data() may or may not return a null pointer.
+    return c4::yml::span(data, vec.size());
 }
 
 template< class Alloc >
 c4::yml::cspan to_span(std::vector< char, Alloc > const& vec)
 {
-    return c4::yml::cspan(vec.data(), vec.size());
+    const char *data = vec.empty() ? nullptr : vec.data(); // data() may or may not return a null pointer.
+    return c4::yml::cspan(data, vec.size());
 }
 
 template< class Alloc >
 c4::yml::cspan to_span(std::vector< const char, Alloc > const& vec)
 {
-    return c4::yml::cspan(vec.data(), vec.size());
+    const char *data = vec.empty() ? nullptr : vec.data(); // data() may or may not return a null pointer.
+    return c4::yml::cspan(data, vec.size());
+}
+
+template< class Alloc >
+c4::yml::cspan to_cspan(std::vector< char, Alloc > const& vec)
+{
+    const char *data = vec.empty() ? nullptr : vec.data(); // data() may or may not return a null pointer.
+    return c4::yml::cspan(data, vec.size());
+}
+
+template< class Alloc >
+c4::yml::cspan to_cspan(std::vector< const char, Alloc > const& vec)
+{
+    const char *data = vec.empty() ? nullptr : vec.data(); // data() may or may not return a null pointer.
+    return c4::yml::cspan(data, vec.size());
 }
 
 } // namespace std

@@ -10,21 +10,23 @@ namespace std {
 // converting std::strings to yml::span / yml::cspan.
 // This is not required, but is handy.
 
-c4::yml::span to_span(std::string &s)
+inline c4::yml::span to_span(std::string &s)
 {
-    return c4::yml::span(&s[0], s.size());
+    char* data = s.empty() ? nullptr : &s[0];
+    return c4::yml::span(data, s.size());
 }
 
-c4::yml::cspan to_cspan(std::string const& s)
+inline c4::yml::cspan to_cspan(std::string const& s)
 {
-    return c4::yml::cspan(&s[0], s.size());
+    const char* data = s.empty() ? nullptr : &s[0];
+    return c4::yml::cspan(data, s.size());
 }
 
 
 //-----------------------------------------------------------------------------
 
 // std::string is a value-like type, and it will be a leaf node
-// in the data tree hierarchy (a VAL node in ryml parlance).
+// in the YAML data tree hierarchy (a VAL node in ryml parlance).
 // So it should be serialized via to_str()/from_str().
 
 inline size_t to_str(c4::yml::span buf, std::string const& s)
