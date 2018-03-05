@@ -20,7 +20,7 @@ ryml does not depend on the STL, but can interact with it via `#include
 <ryml_std.hpp>`.
 
 ryml is written in C++11, and is known to compile with:
-* Visual Studio 2013 and later
+* Visual Studio 2015 and later
 * clang++ 3.9 and later
 * g++ 5 and later
 
@@ -214,8 +214,9 @@ The following core features are tested:
 * tags
 * anchors and references
 
-Of course, there are some dark corners in YAML, and in those cases I welcome
-your bug reports or pull requests.
+Of course, there are some dark corners in YAML, and there certainly can
+appear many cases which YAML fails to parse. So we welcome
+your bug reports or pull requests!
 
 ## How rapid is it?
 

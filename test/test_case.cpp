@@ -719,8 +719,11 @@ R"([
         "simple map, explicit, multiline, unindented",  \
         "simple map, explicit, multiline, indented",    \
         "simple map",                                   \
+        "simple map, values on next line",              \
         "simple map, with comments",                    \
-        "simple map, with comments interspersed"
+        "simple map, with comments interspersed",       \
+        "simple map, with indented comments interspersed, before",\
+        "simple map, with indented comments interspersed, after"
 
 C("empty map",
 "{}",
@@ -777,12 +780,26 @@ bat: 3
     L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
 ),
 
+C("simple map, values on next line",
+R"(
+foo:
+  0
+bar:
+  1
+baz:
+  2
+bat:
+  3
+)",
+    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+),
+
 C("simple map, with comments",
 R"(
 foo: 0   # this is a foo
 bar: 1   # this is a bar
-baz: 2   # this is a bar
-bat: 3   # this is a bar
+baz: 2   # this is a baz
+bat: 3   # this is a bat
 )",
     L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
 ),
@@ -800,6 +817,36 @@ bat: 3
 )",
     L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
 ),
+
+C("simple map, with indented comments interspersed, before",
+R"(
+  # this is a foo
+foo: 0
+  # this is a bar
+bar: 1
+  # this is a baz
+baz: 2
+  # this is a bat
+bat: 3
+)",
+    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+),
+
+C("simple map, with indented comments interspersed, after",
+R"(
+foo: 0
+  # this is a foo
+bar: 1
+  # this is a bar
+baz: 2
+  # this is a baz
+bat: 3
+  # this is a bat
+)",
+    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+),
+
+
 
 //-----------------------------------------------------------------------------
 #define SIMPLE_SEQ_CASES                                \
@@ -2838,7 +2885,8 @@ R"(? >-
 #define MAP_OF_SEQ_CASES \
     "map of empty seqs", \
     "map of seqs, one line", \
-       "map of seqs"
+    "map of seqs",           \
+    "map of seqs, next line"
 
 C("map of empty seqs",
 R"({foo: [], bar: [], baz: []})",
@@ -2872,12 +2920,32 @@ women:
      }
 ),
 
+C("map of seqs, next line",
+R"(
+men:
+  - 
+    John Smith
+  - 
+    Bill Jones
+women:
+  - 
+    Mary Smith
+  - 
+    Susan Williams
+)",
+     L{
+         N("men", L{N{"John Smith"}, N{"Bill Jones"}}),
+         N("women", L{N{"Mary Smith"}, N{"Susan Williams"}})
+     }
+),
+
 //-----------------------------------------------------------------------------
 #define SEQ_OF_MAP_CASES                            \
     "seq of empty maps, one line",                  \
         "seq of maps, one line",                    \
         "seq of maps, implicit seq, explicit maps", \
-        "seq of maps"
+        "seq of maps",                              \
+        "seq of maps, next line"
 
 C("seq of empty maps, one line",
 R"([{}, {}, {}])",
@@ -2916,12 +2984,32 @@ R"(
   }
 ),
 
+C("seq of maps, next line",
+R"(
+- 
+  name:
+    John Smith
+  age:
+    33
+- 
+  name: 
+    Mary Smith
+  age:
+    27
+)",
+  L{
+      N{L{N("name", "John Smith"), N("age", "33")}},
+      N{L{N("name", "Mary Smith"), N("age", "27")}}
+  }
+),
+
 //-----------------------------------------------------------------------------
 #define GENERIC_SEQ_CASES                       \
-    "generic seq",                              \
+    "generic seq v0",                              \
+        "generic seq v1",\
         "generic seq v2"
 
-C("generic seq",
+C("generic seq v0",
 R"(
 - item 1
 - item 2
@@ -2938,7 +3026,7 @@ R"(
   }
 ),
 
-C("generic seq v2",
+C("generic seq v1",
 R"(
 - item 1
 - item 2
@@ -2955,6 +3043,33 @@ R"(
       N(L{N("item 3.1"), N("item 3.2")}),
       N(L{N("key 1", "value 1"), N("key 2", "value 2")})
   }
+),
+
+C("generic seq v2",
+R"(videos:
+  - UQxRibHKEDI:
+    - UQxRibHKEDI.640x210.mp4
+    - UQxRibHKEDI.1280x418.mp4
+    - UQxRibHKEDI.1920x628.mp4
+    - UQxRibHKEDI.2560x838.mp4
+    - UQxRibHKEDI.3840x1256.webm
+  - DcYsg8VFdC0:
+    - DcYsg8VFdC0.640x164.mp4
+    - DcYsg8VFdC0.1280x326.mp4
+    - DcYsg8VFdC0.1920x490.mp4
+    - DcYsg8VFdC0.2560x652.mp4
+    - DcYsg8VFdC0.3840x978.webm
+  - Yt3ymqZXzLY:
+    - Yt3ymqZXzLY.640x118.mp4
+    - Yt3ymqZXzLY.1280x236.mp4
+    - Yt3ymqZXzLY.1920x354.mp4
+    - Yt3ymqZXzLY.3840x706.webm
+)",
+L{N("videos", L{
+N("UQxRibHKEDI", L{N("UQxRibHKEDI.640x210.mp4"), N("UQxRibHKEDI.1280x418.mp4"), N("UQxRibHKEDI.1920x628.mp4"), N("UQxRibHKEDI.2560x838.mp4"), N("UQxRibHKEDI.3840x1256.webm")}),
+N("DcYsg8VFdC0", L{N("DcYsg8VFdC0.640x164.mp4"), N("DcYsg8VFdC0.1280x326.mp4"), N("DcYsg8VFdC0.1920x490.mp4"), N("DcYsg8VFdC0.2560x652.mp4"), N("DcYsg8VFdC0.3840x978.webm")}),
+N("Yt3ymqZXzLY", L{N("Yt3ymqZXzLY.640x118.mp4"), N("Yt3ymqZXzLY.1280x236.mp4"), N("Yt3ymqZXzLY.1920x354.mp4"), N("Yt3ymqZXzLY.3840x706.webm")}),
+})}
 ),
 
 //-----------------------------------------------------------------------------
@@ -3354,6 +3469,397 @@ N{"step", L{
 
 
 //-----------------------------------------------------------------------------
+#define INDENTATION_CASES \
+    "4 chars",\
+    "2 chars + 4 chars, ex0",\
+    "2 chars + 4 chars, ex1",\
+    "2 chars + 4 chars, ex2"
+
+C("4 chars",
+R"(
+key:
+     value
+another_key:
+    sub_key0:
+      - val0
+      - val1
+    sub_key1:
+      - val2
+      - val3
+    sub_key2:
+      - val4
+      - val5
+)",
+L{
+    N("key", "value"),
+    N("another_key", L{
+        N("sub_key0", L{N("val0"), N("val1")}),
+        N("sub_key1", L{N("val2"), N("val3")}),
+        N("sub_key2", L{N("val4"), N("val5")}),
+    })
+}),
+
+
+C("2 chars + 4 chars, ex0",
+R"(
+key:
+     value
+another_key:
+    sub_key0:
+        - val0
+        - val1
+    sub_key1:
+      - val2
+      - val3
+    sub_key2:
+      - val4
+      - val5
+)",
+L{
+    N("key", "value"),
+    N("another_key", L{
+        N("sub_key0", L{N("val0"), N("val1")}),
+        N("sub_key1", L{N("val2"), N("val3")}),
+        N("sub_key2", L{N("val4"), N("val5")}),
+    })
+}),
+
+C("2 chars + 4 chars, ex1",
+R"(
+key:
+     value
+another_key:
+    sub_key0:
+      - val0
+      - val1
+    sub_key1:
+        - val2
+        - val3
+    sub_key2:
+      - val4
+      - val5
+)",
+L{
+    N("key", "value"),
+    N("another_key", L{
+        N("sub_key0", L{N("val0"), N("val1")}),
+        N("sub_key1", L{N("val2"), N("val3")}),
+        N("sub_key2", L{N("val4"), N("val5")}),
+    })
+}),
+
+C("2 chars + 4 chars, ex2",
+R"(
+key:
+     value
+another_key:
+    sub_key0:
+      - val0
+      - val1
+    sub_key1:
+      - val2
+      - val3
+    sub_key2:
+        - val4
+        - val5
+)",
+L{
+    N("key", "value"),
+    N("another_key", L{
+        N("sub_key0", L{N("val0"), N("val1")}),
+        N("sub_key1", L{N("val2"), N("val3")}),
+        N("sub_key2", L{N("val4"), N("val5")}),
+    })
+}),
+
+
+//-----------------------------------------------------------------------------
+#define NUMBER_CASES \
+    "integer numbers, expl",\
+    "integer numbers, impl",\
+    "floating point numbers, expl",\
+    "floating point numbers, impl"
+
+C("integer numbers, expl",
+R"(translation: [-2, -2, 5])",
+L{N("translation", L{N("-2"), N("-2"), N("5")})}
+),
+
+C("integer numbers, impl",
+R"(translation:
+  - -2
+  - -2
+  - -5
+)",
+L{N("translation", L{N("-2"), N("-2"), N("-5")})}
+),
+
+C("floating point numbers, expl",
+R"([-2.0, -2.1, 0.1, .1, -.2, -2.e+6, -3e-6, 1.12345e+011])",
+L{N("-2.0"), N("-2.1"), N("0.1"), N(".1"), N("-.2"), N("-2.e+6"), N("-3e-6"), N("1.12345e+011")}
+),
+
+C("floating point numbers, impl",
+R"(
+- -2.0
+- -2.1
+- 0.1
+- .1
+- -.2
+- -2.e+6
+- -3e-6
+- 1.12345e+011
+)",
+L{N("-2.0"), N("-2.1"), N("0.1"), N(".1"), N("-.2"), N("-2.e+6"), N("-3e-6"), N("1.12345e+011")}
+),
+
+
+//-----------------------------------------------------------------------------
+#define NULL_VAL_CASES \
+    "null map vals, expl",\
+    "null map vals, impl",\
+    "null seq vals, impl",\
+    "null seq vals in map, impl, mixed 1",\
+    "null seq vals in map, impl, mixed 2",\
+    "null seq vals in map, impl, mixed 3",\
+    "null map vals in seq, impl, mixed 1",\
+    "null map vals in seq, impl, mixed 2",\
+    "null map vals in seq, impl, mixed 3"
+
+C("null map vals, expl",
+R"({foo: , bar: , baz: }
+)",
+L{N("foo", ""), N("bar", ""), N("baz", "")}
+),
+
+C("null map vals, impl",
+R"(
+foo: 
+bar: 
+baz: 
+)",
+L{N("foo", ""), N("bar", ""), N("baz", "")}
+),
+
+C("null seq vals, impl",
+R"(- 
+- 
+- 
+)",
+L{N(""), N(""), N("")}
+),
+
+C("null seq vals in map, impl, mixed 1",
+R"(
+foo:
+  - 
+  - 
+  - 
+bar: 
+baz: 
+)",
+L{N("foo", L{N(""), N(""), N("")}), N("bar", ""), N("baz", "")}
+),
+
+C("null seq vals in map, impl, mixed 2",
+R"(
+foo:
+bar: 
+  - 
+  - 
+  - 
+baz: 
+)",
+L{N("foo", ""), N("bar", L{N(""), N(""), N("")}), N("baz", "")}
+),
+
+C("null seq vals in map, impl, mixed 3",
+R"(
+foo:
+bar: 
+baz: 
+  - 
+  - 
+  - 
+)",
+L{N("foo", ""), N("bar", ""), N("baz", L{N(""), N(""), N("")})}
+),
+
+C("null map vals in seq, impl, mixed 1",
+R"(
+- foo:
+  bar: 
+  baz: 
+- 
+- 
+)",
+L{N(L{N("foo", ""), N("bar", ""), N("baz", "")}), N(""), N("")}
+),
+
+C("null map vals in seq, impl, mixed 2",
+R"(
+- 
+- foo:
+  bar: 
+  baz: 
+- 
+)",
+L{N(""), N(L{N("foo", ""), N("bar", ""), N("baz", "")}), N("")}
+),
+
+C("null map vals in seq, impl, mixed 3",
+R"(
+- 
+- 
+- foo:
+  bar: 
+  baz: 
+)",
+L{N(""), N(""), N(L{N("foo", ""), N("bar", ""), N("baz", "")})}
+),
+
+//-----------------------------------------------------------------------------
+#define GITHUB_ISSUE_CASES \
+        "github3-problem1",\
+        "github3-problem2-ex1",\
+        "github3-problem2-ex2",\
+        "github3-problem3",\
+        "github3-full"
+
+C("github3-problem1",
+R"(
+translation: [-2, -2, 5])",
+L{N("translation", L{N("-2"), N("-2"), N("5")})}
+),
+
+// these must work without quotes
+C("github3-problem2-ex1",
+R"(
+audio resource: 
+)",
+L{N("audio resource", "")}
+),
+C("github3-problem2-ex2",
+R"(
+audio resource: 
+more:
+  example: y
+)",
+L{N("audio resource", ""), N("more", L{N("example", "y")})}
+),
+
+C("github3-problem3",
+R"(component:
+  type: perspective camera component
+  some_data: {}  # this was working
+  data:
+    {}           # but this was not working
+)",
+L{N("component", L{N("type", "perspective camera component"), N(KEYMAP, "some_data", L{}), N(KEYMAP, "data", L{})})}
+),
+
+C("github3-full",
+R"(
+universe:
+  objects:
+    object:
+      uuid: A7AB039C0EF3A74480A1B398247039A7
+      components:
+        - component:
+            type: name component
+            data:
+              object name: Root Node
+        - component:
+            type: transform component
+            data:
+              translation: [-2, -2, 5]
+              rotation: [0, 0, 0, 1]
+              scaling: [1, 1, 1]
+        - component:
+            type: perspective camera component
+            data:
+             {}
+        - component:
+            type: mesh component
+            data:
+              mesh resource: TODO
+        - component:
+            type: lua script component
+            data:
+             {}
+        - component:
+            type: audio component
+            data:
+              audio resource: ''
+              type: 0
+              current sample: 184102
+              spatialized: true
+      children:
+        - object:
+            uuid: E1C364A925D649408E83C8EEF5179A87
+            components:
+              - component:
+                  type: name component
+                  data:
+                    object name: Prepend
+            children:
+              []
+        - object:
+            uuid: 377DBA885AF4CD42B8A56BB3471F60E5
+            components:
+              - component:
+                  type: name component
+                  data:
+                    object name: pivot
+            children:
+              []
+        - object:
+            uuid: 6DD1835797DADB4F95232CE7E9DE41BA
+            components:
+              - component:
+                  type: name component
+                  data:
+                    object name: Append
+            children:
+              []
+)",
+  L{N("universe", L{
+        N("objects", L{
+            N("object", L{
+                N("uuid", "A7AB039C0EF3A74480A1B398247039A7"),
+                N("components", L{
+                    N(L{N("component", L{N("type", "name component"), N("data", L{N("object name", "Root Node")}), }), }),
+                    N(L{N("component", L{N("type", "transform component"), N("data", L{N("translation", L{N("-2"), N("-2"), N("5")}), N("rotation", L{N("0"), N("0"), N("0"), N("1")}), N("scaling", L{N("1"), N("1"), N("1")}),}), }), }),
+                    N(L{N("component", L{N("type", "perspective camera component"), N(KEYMAP, "data", L{}), }), }),
+                    N(L{N("component", L{N("type", "mesh component"), N("data", L{N("mesh resource", "TODO")}), }), }),
+                    N(L{N("component", L{N("type", "lua script component"), N(KEYMAP, "data", L{}), }), }),
+                    N(L{N("component", L{N("type", "audio component"), N("data", L{N("audio resource", ""), N("type", "0"), N("current sample", "184102"), N("spatialized", "true"), }), }), }), // component
+                  }), // components
+                N("children", L{
+                    N(L{N("object", L{
+                        N("uuid", "E1C364A925D649408E83C8EEF5179A87"),
+                        N("components", L{N(L{N("component", L{N("type", "name component"), N("data", L{N("object name", "Prepend")}), }), }), }),
+                        N(KEYSEQ, "children", L{}),
+                    }), }), // object
+                    N(L{N("object", L{
+                        N("uuid", "377DBA885AF4CD42B8A56BB3471F60E5"),
+                        N("components", L{N(L{N("component", L{N("type", "name component"), N("data", L{N("object name", "pivot")}), }), }), }),
+                        N(KEYSEQ, "children", L{}),
+                    }), }), // object
+                    N(L{N("object", L{
+                        N("uuid", "6DD1835797DADB4F95232CE7E9DE41BA"),
+                        N("components", L{N(L{N("component", L{N("type", "name component"), N("data", L{N("object name", "Append")}), }), }), }),
+                        N(KEYSEQ, "children", L{}),
+                    }), }), // object
+                  }), // children
+                }), // object
+              }) // objects
+          }) // universe
+      }
+),
+
+
+//-----------------------------------------------------------------------------
 
     }); // ends the cases map
 
@@ -3570,10 +4076,17 @@ INSTANTIATE_TEST_CASE_P(seqs_nested4  , YmlTestCase, ::testing::Values(NESTED_SE
 INSTANTIATE_TEST_CASE_P(map_of_seqs   , YmlTestCase, ::testing::Values(MAP_OF_SEQ_CASES));
 INSTANTIATE_TEST_CASE_P(seq_of_maps   , YmlTestCase, ::testing::Values(SEQ_OF_MAP_CASES));
 
-INSTANTIATE_TEST_CASE_P(maps_generic , YmlTestCase, ::testing::Values(GENERIC_MAP_CASES));
-INSTANTIATE_TEST_CASE_P(seqs_generic , YmlTestCase, ::testing::Values(GENERIC_SEQ_CASES));
+INSTANTIATE_TEST_CASE_P(maps_generic  , YmlTestCase, ::testing::Values(GENERIC_MAP_CASES));
+INSTANTIATE_TEST_CASE_P(seqs_generic  , YmlTestCase, ::testing::Values(GENERIC_SEQ_CASES));
 
 INSTANTIATE_TEST_CASE_P(simple_anchors, YmlTestCase, ::testing::Values(SIMPLE_ANCHOR_CASES));
+
+INSTANTIATE_TEST_CASE_P(indentation   , YmlTestCase, ::testing::Values(INDENTATION_CASES));
+
+INSTANTIATE_TEST_CASE_P(numbers       , YmlTestCase, ::testing::Values(NUMBER_CASES));
+INSTANTIATE_TEST_CASE_P(null_vals     , YmlTestCase, ::testing::Values(NULL_VAL_CASES));
+
+INSTANTIATE_TEST_CASE_P(github_issues , YmlTestCase, ::testing::Values(GITHUB_ISSUE_CASES));
 
 
 #pragma GCC diagnostic pop

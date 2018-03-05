@@ -90,7 +90,8 @@ private:
     void  _scan_line();
     void  _next_line() { _line_ended(); }
 
-    bool  _is_scalar_next() const;
+    bool  _is_scalar_next(cspan rem) const;
+    bool  _is_scalar_next() const { return _is_scalar_next(m_state->line_contents.rem); }
     cspan _scan_scalar();
     cspan _scan_comment();
     cspan _scan_quoted_scalar(const char q);
@@ -134,6 +135,7 @@ private:
     void  _append_comment(cspan const& cmt);
     NodeData* _append_val(cspan const& val);
     NodeData* _append_key_val(cspan const& val);
+    bool  _rval_dash_start_or_continue_seq();
 
     void  _store_scalar(cspan const& s);
     cspan _consume_scalar();
@@ -191,6 +193,7 @@ private:
         LineContents line_contents;
         size_t       indref;
 
+        State() { memset(this, 0, sizeof(*this)); }
         void reset(const char *file, size_t node_id_)
         {
             flags = RUNK|RTOP;

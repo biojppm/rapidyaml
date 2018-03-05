@@ -115,10 +115,7 @@ size_t itoa(span buf, T v)
             _c4append((char)(v % 10) + '0');
             v /= 10;
         } while(v);
-        if(pos <= buf.len)
-        {
-            buf.reverse_range(1, pos);
-        }
+        buf.reverse_range(1, pos <= buf.len ? pos : buf.len);
     }
     else
     {
@@ -126,10 +123,7 @@ size_t itoa(span buf, T v)
             _c4append((char)(v % 10) + '0');
             v /= 10;
         } while(v);
-        if(pos <= buf.len)
-        {
-            buf.reverse_range(0, pos);
-        }
+        buf.reverse_range(0, pos <= buf.len ? pos : buf.len);
     }
     return pos;
 }
@@ -145,10 +139,7 @@ size_t utoa(span buf, T v)
         _c4append((char)(v % 10) + '0');
         v /= 10;
     } while(v);
-    if(pos <= buf.len)
-    {
-        buf.reverse_range(0, pos);
-    }
+    buf.reverse_range(0, pos <= buf.len ? pos : buf.len);
     return pos;
 }
 
@@ -228,7 +219,6 @@ inline size_t atou_untrimmed(cspan str, T *v)
     return npos;
 }
 
-
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -256,13 +246,50 @@ inline size_t from_str_untrimmed(cspan buf, ty *v)  \
 #   pragma warning(disable: 4996) // snprintf/scanf: this function or variable may be unsafe
 #endif
 
-/** this macro defines a to_str()/from_str() pairs for intrinsic types. */
-#define _C4_DEFINE_TO_FROM_STR(ty, pri_fmt, scn_fmt)                    \
-                                                                        \
+template< class T >
+inline span to_str_span(span buf, T const& v)
+{
+    size_t sz = to_str(buf, v);
+    return buf.left_of(sz <= buf.len ? sz : buf.len);
+}
+
+#ifdef _MSC_VER
+#define _C4_DEFINE_TO_STR(ty, pri_fmt)                                  \
 inline size_t to_str(span buf, ty v)                                    \
 {                                                                       \
-    return snprintf(buf.str, buf.len, "%" pri_fmt, v);                  \
-}                                                                       \
+    /** use _snprintf() to prevent early termination of the output      \
+     * for writing the null character at the last position              \
+     * @see https://msdn.microsoft.com/en-us/library/2ts7cx93.aspx */   \
+    int iret = _snprintf(buf.str, buf.len, "%" pri_fmt, v);             \
+    if(iret < 0)                                                        \
+    {                                                                   \
+        /* when buf.len is not enough, VS returns a negative value.     \
+         * so call it again with a negative value for getting an        \
+         * actual length of the string */                               \
+        iret = snprintf(nullptr, 0, "%" pri_fmt, v);                    \
+        C4_ASSERT(iret > 0);                                            \
+    }                                                                   \
+    size_t ret = (size_t) iret;                                         \
+    return ret;                                                         \
+}
+#else
+#define _C4_DEFINE_TO_STR(ty)\
+inline size_t to_str(span buf, ty v)                                    \
+{                                                                       \
+    int iret = snprintf(buf.str, buf.len, "%" pri_fmt, v);              \
+    C4_ASSERT(iret >= 0);                                               \
+    if(iret == buf.len)                                                 \
+    {                                                                   \
+        ++iret; /* snprintf() reserves the last character to write \0 */\
+    }                                                                   \
+    return ret;                                                         \
+}
+#endif
+
+/** this macro defines to_str()/from_str() pairs for intrinsic types. */
+#define _C4_DEFINE_TO_FROM_STR(ty, pri_fmt, scn_fmt)                    \
+                                                                        \
+_C4_DEFINE_TO_STR(ty, pri_fmt)                                          \
                                                                         \
 inline size_t from_str_untrimmed(cspan buf, ty *v)                      \
 {                                                                       \
@@ -277,7 +304,7 @@ inline size_t from_str_untrimmed(cspan buf, ty *v)                      \
      * This trick is taken from:                                        \
      * https://stackoverflow.com/a/18368910/5875572 */                  \
                                                                         \
-    /* this is the actual format used for scanning */                   \
+    /* this is the actual format we'll use for scanning */              \
     char fmt[12];                                                       \
     /* write the length into it. Eg "%12d" for an int (scn_fmt="d").    \
      * Also, get the number of characters read from the string.         \
@@ -290,7 +317,7 @@ inline size_t from_str_untrimmed(cspan buf, ty *v)                      \
     ret = sscanf(buf.str, fmt, v, &num_chars);                          \
     /* scanf returns the number of successful conversions */            \
     if(ret != 1) return npos;                                           \
-    return (size_t)num_chars;                                           \
+    return (size_t)(num_chars);                                         \
 }                                                                       \
                                                                         \
 inline bool from_str(cspan buf, ty *v)                                  \

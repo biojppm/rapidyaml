@@ -65,10 +65,6 @@ public:
     basic_span& operator= (basic_span const&) = default;
     basic_span& operator= (basic_span     &&) = default;
 
-    //basic_span& operator= (C *s_) { this->assign(s_); return *this; }
-    template< size_t N >
-    basic_span& operator= (C (&s_)[N]) { this->assign(s_); return *this; }
-
 public:
 
     //basic_span(C *s_) : str(s_), len(s_ ? strlen(s_) : 0) {}
@@ -82,6 +78,10 @@ public:
     basic_span(C (&s_)[N]) : str(s_), len(N-1) {}
     basic_span(C *s_, size_t len_) : str(s_), len(len_) { C4_ASSERT(str || !len_); }
     basic_span(C *beg_, C *end_) : str(beg_), len(end_ - beg_) { C4_ASSERT(end_ >= beg_); }
+
+	//basic_span& operator= (C *s_) { this->assign(s_); return *this; }
+	template< size_t N >
+	basic_span& operator= (C(&s_)[N]) { this->assign<N>(s_); return *this; }
 
     //void assign(C *s_) { str = (s_); len = (s_ ? strlen(s_) : 0); }
     /** the overload for receiving a single C* pointer will always
