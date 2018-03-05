@@ -86,7 +86,7 @@ enum : size_t { NONE = size_t(-1) };
 
 //-----------------------------------------------------------------------------
 
-/** the type of the function used to report errors. This function must abort
+/** the type of the function used to report errors. This function must
  * interrupt execution, either through abort() or by raising an exception. */
 using pfn_error = void (*)(const char* msg, size_t msg_len, void *user_data);
 
