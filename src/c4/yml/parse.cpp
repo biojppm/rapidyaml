@@ -27,7 +27,8 @@ Parser::Parser(Allocator const& a)
     m_num_anchors(0),
     m_num_references()
 {
-    m_stack.push({});
+    State st{};
+    m_stack.push(st);
     m_state = &m_stack.top();
 }
 
@@ -103,20 +104,29 @@ void Parser::_handle_finished_file()
         if(m_tree->type(m_state->node_id) == NOTYPE)
         {
             m_tree->to_seq(m_state->node_id);
+            _append_val(_consume_scalar());
         }
         else if(m_tree->is_doc(m_state->node_id))
         {
             m_tree->to_doc(m_state->node_id, SEQ);
+            _append_val(_consume_scalar());
         }
         else if(m_tree->is_seq(m_state->node_id))
         {
-            ;
+            _append_val(_consume_scalar());
+        }
+        else if(m_tree->is_map(m_state->node_id))
+        {
+            _append_key_val("");
         }
         else
         {
             _c4err("internal error");
         }
-        _append_val(_consume_scalar());
+    }
+    else if(has_all(RSEQ|RVAL) && has_none(EXPL))
+    {
+        _append_val("");
     }
 
     _c4dbgp("emptying stack...");
@@ -186,14 +196,29 @@ void Parser::_handle_line()
 }
 
 //-----------------------------------------------------------------------------
-bool Parser::_is_scalar_next() const
+bool Parser::_is_scalar_next(cspan rem) const
 {
-    cspan const& rem = m_state->line_contents.rem;
+    C4_ASSERT(rem.len > 0);
     // a scalar starts with either...
-    return isalnum(rem[0]) // an alpha-numeric character
+    bool yes = isalnum(rem[0]) // an alpha-numeric character
         || rem.begins_with('"') || rem.begins_with('\'') // double or single quotes
         || rem.begins_with('|') || rem.begins_with('>')  // or a block indicator
         || rem.begins_with("<<: ") || rem.begins_with('*'); // treat references as scalars
+    if(yes) return true;
+    if(rem.len > 1)
+    {
+        if(rem.begins_with('-')) // negative numbers are scalars too.
+        {
+            size_t pos = 1;
+            if(rem[pos] == '.' && rem.len > 2) ++pos;
+            if(rem[pos] >= '0' && rem[pos] <= '9') return true;
+        }
+        else if(rem.begins_with('.')) // allow floats can start with a dot
+        {
+            if(rem[1] >= '0' && rem[1] <= '9') return true;
+        }
+    }
+    return false;
 }
 
 //-----------------------------------------------------------------------------
@@ -511,6 +536,12 @@ bool Parser::_handle_seq_impl()
     }
     else if(has_any(RVAL))
     {
+        // there can be empty values
+        if(_handle_indentation())
+        {
+            return true;
+        }
+
         if(_is_scalar_next())
         {
             _c4dbgp("it's a scalar");
@@ -537,22 +568,18 @@ bool Parser::_handle_seq_impl()
         }
         else if(rem.begins_with("- "))
         {
-            _c4dbgp("val is a nested seq, indented");
-            addrem_flags(RNXT, RVAL); // before _push_level!
-            _push_level();
-            _start_seq();
-            _save_indentation();
-            _line_progressed(2);
+            if(_rval_dash_start_or_continue_seq())
+            {
+                _line_progressed(2);
+            }
             return true;
         }
         else if(rem == '-')
         {
-            _c4dbgp("val is a nested seq, indented");
-            addrem_flags(RNXT, RVAL); // before _push_level!
-            _push_level();
-            _start_seq();
-            _save_indentation();
-            _line_progressed(1);
+            if(_rval_dash_start_or_continue_seq())
+            {
+                _line_progressed(1);
+            }
             return true;
         }
         else if(rem.begins_with('['))
@@ -588,24 +615,17 @@ bool Parser::_handle_seq_impl()
         }
         else if(rem.begins_with(' '))
         {
-            rem = rem.left_of(rem.first_not_of(' '));
+            cspan spc = rem.left_of(rem.first_not_of(' '));
             if(_at_line_begin())
             {
-                if(rem.len == m_state->indref + 2)
-                {
-                    _c4dbgpf("skipping indentation: %zd spaces", rem.len);
-                    _line_progressed(rem.len);
-                    return true;
-                }
-                else
-                {
-                    _c4err("invalid indentation");
-                }
+                _c4dbgpf("skipping value indentation: %zd spaces", spc.len);
+                _line_progressed(spc.len);
+                return true;
             }
             else
             {
-                _c4dbgpf("skipping %zd spaces", rem.len);
-                _line_progressed(rem.len);
+                _c4dbgpf("skipping %zd spaces", spc.len);
+                _line_progressed(spc.len);
                 return true;
             }
         }
@@ -624,6 +644,29 @@ bool Parser::_handle_seq_impl()
     }
 
     return false;
+}
+
+//-----------------------------------------------------------------------------
+
+bool Parser::_rval_dash_start_or_continue_seq()
+{
+    const cspan rem = m_state->line_contents.rem;
+    size_t ind = rem.begin() - m_state->line_contents.full.begin();
+    C4_ASSERT(ind >= m_state->indref);
+    size_t delta_ind = ind - m_state->indref;
+    if( ! delta_ind)
+    {
+        _c4dbgp("prev val was empty");
+        addrem_flags(RNXT, RVAL);
+        _append_val("");
+        return false;
+    }
+    _c4dbgp("val is a nested seq, indented");
+    addrem_flags(RNXT, RVAL); // before _push_level!
+    _push_level();
+    _start_seq();
+    _save_indentation();
+    return true;
 }
 
 //-----------------------------------------------------------------------------
@@ -654,6 +697,12 @@ bool Parser::_handle_map_expl()
         else if(rem.begins_with('}'))
         {
             _c4dbgp("end the map");
+            if(has_all(SSCL))
+            {
+                _c4dbgp("the last val was empty");
+                _append_key_val("");
+                rem_flags(RVAL);
+            }
             _pop_level();
             _line_progressed(1);
             return true;
@@ -767,6 +816,14 @@ bool Parser::_handle_map_expl()
             {
                 return true;
             }
+            else if(rem.begins_with(','))
+            {
+                _c4dbgp("appending empty val");
+                _append_key_val("");
+                addrem_flags(RKEY, RVAL);
+                _line_progressed(1);
+                return true;
+            }
             else
             {
                 _c4err("parse error");
@@ -841,7 +898,7 @@ bool Parser::_handle_map_impl()
         }
         else if(rem.begins_with(' '))
         {
-            C4_ASSERT( ! _at_line_begin());
+            //C4_ASSERT( ! _at_line_begin());
             rem = rem.left_of(rem.first_not_of(' '));
             _c4dbgpf("skip %zd spaces", rem.len);
             _line_progressed(rem.len);
@@ -960,24 +1017,17 @@ bool Parser::_handle_map_impl()
         }
         else if(rem.begins_with(' '))
         {
-            rem = rem.left_of(rem.first_not_of(' '));
+            cspan spc = rem.left_of(rem.first_not_of(' '));
             if(_at_line_begin())
             {
-                if(rem.len == m_state->indref + 2)
-                {
-                    _c4dbgpf("skipping indentation: %zd spaces", rem.len);
-                    _line_progressed(rem.len);
-                    return true;
-                }
-                else
-                {
-                    _c4err("invalid indentation");
-                }
+                _c4dbgpf("skipping value indentation: %zd spaces", spc.len);
+                _line_progressed(spc.len);
+                return true;
             }
             else
             {
-                _c4dbgpf("skipping %zd spaces", rem.len);
-                _line_progressed(rem.len);
+                _c4dbgpf("skipping %zd spaces", spc.len);
+                _line_progressed(spc.len);
                 return true;
             }
         }
@@ -1008,17 +1058,17 @@ bool Parser::_handle_top()
     _c4dbgp("handle_top");
     cspan rem = m_state->line_contents.rem;
 
-    // use the full line, as the following tokens can appear only at top level
-    C4_ASSERT(rem == m_state->line_contents.stripped);
-    rem = m_state->line_contents.stripped;
-
     if(rem.begins_with('#'))
     {
         _c4dbgp("a comment line");
         _scan_comment();
         return true;
     }
-    else if(rem.begins_with('%'))
+
+    // use the full line, as the following tokens can appear only at top level
+    C4_ASSERT(rem == m_state->line_contents.stripped);
+    rem = m_state->line_contents.stripped;
+    if(rem.begins_with('%'))
     {
         _c4dbgp("%% directive!");
         if(rem.begins_with("%YAML"))
@@ -1310,7 +1360,7 @@ cspan Parser::_scan_scalar()
                 ind = n.len;
             }
             const cspan contents = n.right_of(ind, /*include_pos*/true);
-            if( ! contents.begins_with_any("-[{?") && (contents.first_of(':') == npos))
+            if( ! contents.begins_with_any("-[{?#") && (contents.first_of(':') == npos))
             {
                 _c4dbgpf("reading scalar: it indents further: the scalar continues!!! indentation=%zd", ind);
                 while(n.begins_with(' ', ind))
@@ -1420,7 +1470,7 @@ void Parser::_save_indentation(size_t behind)
     m_state->indref = m_state->line_contents.rem.begin() - m_state->line_contents.full.begin();
     C4_ASSERT(behind <= m_state->indref);
     m_state->indref -= behind;
-    _c4dbgpf("state[%zd]: saving indentation: %zd", m_state->indref, m_state-m_stack.begin());
+    _c4dbgpf("state[%zd]: saving indentation: %zd", m_state-m_stack.begin(), m_state->indref);
 }
 
 //-----------------------------------------------------------------------------
@@ -1430,7 +1480,8 @@ void Parser::_push_level(bool explicit_flow_chars)
     C4_ASSERT(m_state == &m_stack.top());
     if(node(m_state) == nullptr)
     {
-        C4_ASSERT( ! explicit_flow_chars);
+        _c4dbgp("pushing level! actually no, current node is null");
+        //C4_ASSERT( ! explicit_flow_chars);
         return;
     }
     size_t st = RUNK;
@@ -1751,13 +1802,47 @@ bool Parser::_handle_indentation()
 
     if(ind == (size_t)m_state->indref)
     {
-        _c4dbgpf("same indentation (%zd) -- nothing to see here", ind);
+        if(has_all(SSCL|RVAL))
+        {
+            if(has_all(RMAP))
+            {
+                _append_key_val("");
+                addrem_flags(RKEY, RVAL);
+            }
+            else if(has_all(RSEQ))
+            {
+                _append_val(_consume_scalar());
+                addrem_flags(RNXT, RVAL);
+            }
+            else
+            {
+                _c4err("internal error");
+            }
+        }
+        else
+        {
+            _c4dbgpf("same indentation (%zd) -- nothing to see here", ind);
+        }
         _line_progressed(ind);
         return ind > 0;
     }
     else if(ind < (size_t)m_state->indref)
     {
         _c4dbgpf("smaller indentation (%zd < %zd)!!!", ind, m_state->indref);
+        if(has_all(RVAL))
+        {
+            _c4dbgp("there was an empty val -- appending");
+            if(has_all(RMAP))
+            {
+                C4_ASSERT(has_all(SSCL));
+                _append_key_val("");
+            }
+            else if(has_all(RSEQ))
+            {
+                C4_ASSERT(has_none(SSCL));
+                _append_val("");
+            }
+        }
         State const* popto = nullptr;
         C4_ASSERT(m_stack.is_contiguous()); // this search relies on the stack being contiguous
         for(State const* s = m_state-1; s >= m_stack.begin(); --s)
@@ -1789,12 +1874,26 @@ bool Parser::_handle_indentation()
         _c4dbgpf("larger indentation (%zd > %zd)!!!", ind, m_state->indref);
         if(has_all(RMAP|RVAL))
         {
-            addrem_flags(RKEY, RVAL);
-            _start_unk();
-            //_move_scalar_from_top();
-            _line_progressed(ind);
-            _save_indentation();
-            return true;
+            auto rem = m_state->line_contents.rem.triml(' ');
+            if(/*ind == m_state->indref + 2 && */_is_scalar_next(rem) && rem.find(":") == npos)
+            {
+                _c4dbgpf("actually it seems a value: '%.*s'", _c4prsp(rem));
+            }
+            else
+            {
+                addrem_flags(RKEY, RVAL);
+                _start_unk();
+                //_move_scalar_from_top();
+                _line_progressed(ind);
+                _save_indentation();
+                return true;
+            }
+        }
+        else if(has_all(RSEQ|RVAL))
+        {
+        }
+        else if(m_state->line_contents.rem.triml(' ').begins_with("#"))
+        {
         }
         else
         {
@@ -2520,6 +2619,7 @@ int Parser::_fmt_msg(char *buf, int buflen, const char *fmt, va_list args) const
         _wrapbuf();
     }
 
+#ifdef RYML_DBG
     // next line: print the state flags
     {
         del = snprintf(buf + pos, len, "top state: ");
@@ -2531,7 +2631,7 @@ int Parser::_fmt_msg(char *buf, int buflen, const char *fmt, va_list args) const
         del = snprintf(buf + pos, len, "\n");
         _wrapbuf();
     }
-
+#endif
 
     return pos;
 }
