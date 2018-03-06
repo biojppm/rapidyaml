@@ -633,7 +633,7 @@ struct detail::ReferenceResolver
         {
             auto & rd = refs.top(i);
             if( ! rd.is_ref) continue;
-            csubs refname = t->val(rd.node).subspan(1);
+            csubs refname = t->val(rd.node).sub(1);
             auto const* ra = &rd;
             while(ra->prev_anchor != npos)
             {

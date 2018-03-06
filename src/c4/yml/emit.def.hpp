@@ -260,7 +260,7 @@ void Emitter< Writer >::_write_scalar(csubs const& s)
             {
                 if(s[i] == '\'' || s[i] == '\n')
                 {
-                    csubs sub = s.subspan(pos, i-pos);
+                    csubs sub = s.sub(pos, i-pos);
                     pos = i;
                     _c4this->_do_write(sub);
                     _c4this->_do_write(s[i]); // write the character twice
@@ -268,7 +268,7 @@ void Emitter< Writer >::_write_scalar(csubs const& s)
             }
             if(pos < s.len)
             {
-                csubs sub = s.subspan(pos);
+                csubs sub = s.sub(pos);
                 _c4this->_do_write(sub);
             }
             _c4this->_do_write('\'');

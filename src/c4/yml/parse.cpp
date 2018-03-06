@@ -1106,7 +1106,7 @@ bool Parser::_handle_top()
         _line_progressed(3);
 
         // skip spaces after the tag
-        rem = rem.subspan(3);
+        rem = rem.sub(3);
         if(rem.begins_with(' '))
         {
             //cspan s = rem.left_of(rem.first_not_of(' '));
@@ -1167,7 +1167,7 @@ bool Parser::_handle_anchors_and_refs()
             C4_ASSERT(m_anchor.empty());
             csubs anchor = rem.left_of(rem.first_of(' '));
             _line_progressed(anchor.len);
-            anchor = anchor.subspan(1); // skip the first character
+            anchor = anchor.sub(1); // skip the first character
             _c4dbgpf("anchor value: '%.*s'", _c4prsp(anchor));
             m_anchor = anchor;
             return true;
@@ -1192,28 +1192,28 @@ bool Parser::_handle_types()
         _c4dbgp("begins with '!!'");
         t = rem.left_of(rem.first_of(' '));
         C4_ASSERT(t.len >= 2);
-        //t = t.subspan(2);
+        //t = t.sub(2);
     }
     else if(rem.begins_with("!<"))
     {
         _c4dbgp("begins with '!<'");
         t = rem.left_of(rem.first_of(' '));
         C4_ASSERT(t.len >= 2);
-        //t = t.subspan(2, t.len-1);
+        //t = t.sub(2, t.len-1);
     }
     else if(rem.begins_with("!h!"))
     {
         _c4dbgp("begins with '!h!'");
         t = rem.left_of(rem.first_of(' '));
         C4_ASSERT(t.len >= 3);
-        //t = t.subspan(3);
+        //t = t.sub(3);
     }
     else if(rem.begins_with('!'))
     {
         _c4dbgp("begins with '!'");
         t = rem.left_of(rem.first_of(' '));
         C4_ASSERT(t.len > 1);
-        //t = t.subspan(1);
+        //t = t.sub(1);
     }
 
     if(t.empty())
@@ -1400,12 +1400,12 @@ void Parser::_scan_line()
     {
         ++e;
     }
-    csubs stripped = m_buf.subspan(m_state->pos.offset, e - b);
+    csubs stripped = m_buf.sub(m_state->pos.offset, e - b);
 
     // advance pos to include the first line ending
     if(e != m_buf.end() && *e == '\r') ++e;
     if(e != m_buf.end() && *e == '\n') ++e;
-    csubs full = m_buf.subspan(m_state->pos.offset, e - b);
+    csubs full = m_buf.sub(m_state->pos.offset, e - b);
 
     m_state->line_contents.reset(full, stripped);
 }
@@ -1454,7 +1454,7 @@ void Parser::_line_progressed(size_t ahead)
     m_state->pos.offset += ahead;
     m_state->pos.col += ahead;
     C4_ASSERT(m_state->pos.col <= m_state->line_contents.stripped.len+1);
-    m_state->line_contents.rem = m_state->line_contents.rem.subspan(ahead);
+    m_state->line_contents.rem = m_state->line_contents.rem.sub(ahead);
 }
 
 void Parser::_line_ended()
@@ -1805,7 +1805,7 @@ bool Parser::_handle_indentation()
 
     if(ind == (size_t)m_state->indref)
     {
-        if(has_all(SSCL|RVAL) && ! m_state->line_contents.rem.subspan(ind).begins_with('-'))
+        if(has_all(SSCL|RVAL) && ! m_state->line_contents.rem.sub(ind).begins_with('-'))
         {
             if(has_all(RMAP))
             {
@@ -1914,7 +1914,7 @@ csubs Parser::_scan_comment()
     C4_ASSERT(s.begins_with('#'));
     _line_progressed(s.len);
     // skip the # character
-    s = s.subspan(1);
+    s = s.sub(1);
     // skip leading whitespace
     s = s.right_of(s.first_not_of(' '), /*include_pos*/true);
     _c4dbgpf("comment was '%.*s'", _c4prsp(s));
@@ -1933,12 +1933,12 @@ csubs Parser::_scan_quoted_scalar(const char q)
 
     // a span to the end of the file
     const size_t b = m_state->pos.offset;
-    subs s = m_buf.subspan(b);
+    subs s = m_buf.sub(b);
     C4_ASSERT(s.begins_with(q));
 
     // skip the opening quote
     _line_progressed(1);
-    s = s.subspan(1);
+    s = s.sub(1);
 
     // find the pos of the matching quote
     size_t pos = npos;
@@ -2007,7 +2007,7 @@ csubs Parser::_scan_quoted_scalar(const char q)
         if(pos == npos)
         {
             _line_progressed(line.len);
-            _c4dbgpf("scanning scalar @ line[%zd]: sofar=\"%.*s\"", m_state->pos.line, _c4prsp(s.subspan(0, m_state->pos.offset-b)));
+            _c4dbgpf("scanning scalar @ line[%zd]: sofar=\"%.*s\"", m_state->pos.line, _c4prsp(s.sub(0, m_state->pos.offset-b)));
         }
         else
         {
@@ -2035,7 +2035,7 @@ csubs Parser::_scan_quoted_scalar(const char q)
     {
         C4_ASSERT(s.end() >= m_buf.begin() && s.end() <= m_buf.end());
         C4_ASSERT(s.end() == m_buf.end() || *s.end() == q);
-        s = s.subspan(0, pos-1);
+        s = s.sub(0, pos-1);
     }
 
     if(needs_filter)
@@ -2075,17 +2075,17 @@ csubs Parser::_scan_block()
     csubs digits;
     if(s.len > 1)
     {
-        csubs t = s.subspan(1);
+        csubs t = s.sub(1);
         C4_ASSERT(t.len >= 1);
         if(t[0] == '-')
         {
             chomp = CHOMP_STRIP;
-            t = t.subspan(1);
+            t = t.sub(1);
         }
         else if(t[0] == '+')
         {
             chomp = CHOMP_KEEP;
-            t = t.subspan(1);
+            t = t.sub(1);
         }
 
         // from here to the end, only digits are considered
@@ -2114,7 +2114,7 @@ csubs Parser::_scan_block()
     _c4dbgpf("scanning block: indent=%zd (digits='%.*s')", indentation, _c4prsp(digits));
 
     // start with a zero-length block, already pointing at the right place
-    subs raw_block(m_buf.data() + m_state->pos.offset, size_t(0));// m_state->line_contents.full.subspan(0, 0);
+    subs raw_block(m_buf.data() + m_state->pos.offset, size_t(0));// m_state->line_contents.full.sub(0, 0);
     C4_ASSERT(raw_block.begin() == m_state->line_contents.full.begin());
 
     // read every full line into a raw block,
@@ -2314,7 +2314,7 @@ subs Parser::_filter_whitespace(subs r, size_t indentation, bool leading_whitesp
         {
             if(next == ' ')
             {
-                csubs ss = r.subspan(i);
+                csubs ss = r.sub(i);
                 ss = ss.left_of(ss.first_not_of(' '));
                 C4_ASSERT(ss.len > 1);
                 size_t num = ss.len;
@@ -2413,7 +2413,7 @@ csubs Parser::_filter_block_scalar(subs s, BlockStyle_e style, BlockChomp_e chom
             C4_ASSERT(pos != npos);
             C4_ASSERT(pos < r.len);
             ++pos; // point pos at the first newline char
-            subs t = r.subspan(0, pos);
+            subs t = r.sub(0, pos);
             for(size_t i = 0; i < t.len; ++i)
             {
                 const char curr = t[i];
@@ -2432,14 +2432,14 @@ csubs Parser::_filter_block_scalar(subs s, BlockStyle_e style, BlockChomp_e chom
                 }
             }
             // copy over the trailing newlines
-            subs nl = r.subspan(pos);
+            subs nl = r.sub(pos);
             C4_ASSERT(t.len + nl.len <= r.len);
             for(size_t i = 0; i < nl.len; ++i)
             {
                 r[t.len + i] = nl[i];
             }
             // now trim r
-            r = r.subspan(0, t.len + nl.len);
+            r = r.sub(0, t.len + nl.len);
         }
         break;
     default:
@@ -2486,7 +2486,7 @@ size_t Parser::_count_nlines(csubs src)
     while(src.len > 0)
     {
         n += (src.begins_with('\n') || src.begins_with('\r'));
-        src = src.subspan(1);
+        src = src.sub(1);
     }
     return n;
 }

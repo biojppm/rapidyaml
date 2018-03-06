@@ -93,7 +93,7 @@ public:
 
     void mark();
 
-    cspan subspan() const { return m_start.m_rope->subspan(m_rope_entry, 0); }
+    cspan sub() const { return m_start.m_rope->sub(m_rope_entry, 0); }
 
     cspan skip_nested(cspan s) const;
 

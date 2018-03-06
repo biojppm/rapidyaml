@@ -167,7 +167,7 @@ TEST(atoi, basic)
     size_t ret;
 
 #define _woof(val) \
-    ret = itoa(buf, val); EXPECT_LT(ret, buf.len); EXPECT_EQ(buf.subspan(0, ret), #val)
+    ret = itoa(buf, val); EXPECT_LT(ret, buf.len); EXPECT_EQ(buf.sub(0, ret), #val)
     _woof(0);
     _woof(1);
     _woof(2);
