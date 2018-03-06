@@ -278,7 +278,8 @@ inline size_t to_str(subs buf, ty v)                                    \
 {                                                                       \
     int iret = snprintf(buf.str, buf.len, "%" pri_fmt, v);              \
     C4_ASSERT(iret >= 0);                                               \
-    if(iret == buf.len)                                                 \
+    size_t ret = (size_t) iret;                                         \
+    if(ret == buf.len)                                                  \
     {                                                                   \
         ++iret; /* snprintf() reserves the last character to write \0 */\
     }                                                                   \
