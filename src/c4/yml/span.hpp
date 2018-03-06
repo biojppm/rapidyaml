@@ -14,7 +14,7 @@ using span = basic_span< char >;
 using cspan = basic_span< const char >;
 
 template< class OStream, class C >
-OStream& operator<< (OStream& s, basic_span< C > const& sp)
+inline OStream& operator<< (OStream& s, basic_span< C > sp)
 {
     s.write(sp.str, sp.len);
     return s;
@@ -24,10 +24,118 @@ OStream& operator<< (OStream& s, basic_span< C > const& sp)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+template< class C, class Impl >
+struct _basic_span_crtp;
+
+/** specialize for const chars */
+template< class C, class Impl >
+struct _basic_span_crtp< const C, Impl >
+{
+#define _c4this   static_cast<      Impl*>(this)
+#define _c4cthis  static_cast<const Impl*>(this)
+
+    // allow construction and assignments from non-const chars
+    _basic_span_crtp() {}
+
+    template< size_t N > explicit
+    _basic_span_crtp(C (&s_)[N]) { _c4this->str = s_; _c4this->len = N-1; }
+    _basic_span_crtp(C *s_, size_t len_) { _c4this->str = s_; _c4this->len = len_; }
+    _basic_span_crtp(C *beg_, C *end_) { C4_ASSERT(end_ >= beg_); _c4this->str = beg_; _c4this->len = end_ - beg_;  }
+
+    template< size_t N >
+    void assign(C (&s_)[N]) { _c4this->str = s; _c4this->len = N-1; }
+    void assign(C *s_, size_t len_) { _c4this->str = s_; _c4this->len = len_; }
+    void assign(C *beg_, C *end_) { C4_ASSERT(end_ >= beg_); _c4this->str = beg_; _c4this->len = end_ - beg_;  }
+
+    template< size_t N >
+    Impl& operator=(C (&s_)[N]) { _c4this->str = s_; _c4this->len = N-1; return *_c4this; }
+
+#undef _c4this
+#undef _c4cthis
+};
+
+
+//-----------------------------------------------------------------------------
+/** since there's a specialization for const C, here we can provide methods
+ * which modify the string, provided they don't expand it. */
+template< class C, class Impl >
+struct _basic_span_crtp
+{
+#define _c4this   static_cast<      Impl*>(this)
+#define _c4cthis  static_cast<const Impl*>(this)
+public:
+
+    using const_impl_type = _basic_span_crtp< const C, Impl >;
+
+    void reverse()
+    {
+        if(len == 0) return;
+        _do_reverse(_c4this->str, _c4this->str + _c4this->len - 1);
+    }
+
+    void reverse_subspan(size_t ifirst, size_t num)
+    {
+        C4_ASSERT(ifirst >= 0 && ifirst < _c4cthis->len);
+        C4_ASSERT(ifirst + num >= 0 && ifirst + num <= _c4cthis->len);
+        if(num == 0) return;
+        _do_reverse(_c4this->str + ifirst, ifirst + num - 1);
+    }
+
+    void reverse_range(size_t ifirst, size_t ilast)
+    {
+        C4_ASSERT(ifirst >= 0 && ifirst <= _c4cthis->len);
+        C4_ASSERT(ilast  >= 0 && ilast  <= _c4cthis->len);
+        if(ifirst == ilast) return;
+        _do_reverse(_c4this->str + ifirst, _c4this->str + ilast - 1);
+    }
+
+    inline static void  _do_reverse(char *first, char* last)
+    {
+        while(last > first)
+        {
+            C tmp = *last;
+            *last-- = *first;
+            *first++ = tmp;
+        }
+    }
+
+public:
+
+    Impl erase(size_t pos, size_t num)
+    {
+        C4_ASSERT(pos >= 0 && pos+num <= _c4this->len);
+        size_t num_to_move = _c4this->len - pos - num;
+        memmove(_c4this->str + pos, _c4this->str + pos + num, sizeof(C) * num_to_move);
+        return Impl(_c4this->str, _c4this->len - num);
+    }
+
+    Impl erase_range(size_t first, size_t last)
+    {
+        C4_ASSERT(first <= last);
+        return erase(first, last-first);
+    }
+
+    Impl erase(const_impl_type sub)
+    {
+        C4_ASSERT(_c4cthis->has_subspan(sub));
+        C4_ASSERT(sub.str >= _c4cthis->str);
+        return erase(sub.str - _c4cthis->str, sub.len);
+    }
+
+#undef _c4this
+#undef _c4cthis
+};
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 /** a span of characters and a length. Works like a writeable string_view. */
 template< class C >
-class basic_span
+class basic_span : public _basic_span_crtp< C, basic_span<C> >
 {
+
+    using base_crtp = _basic_span_crtp< C, basic_span<C> >;
+
 public:
 
     C *str;
@@ -46,10 +154,6 @@ public:
     using iterator = C*;
     using const_iterator = CC*;
 
-    // SFINAE (undefed at the end)
-    #define _C4_REQUIRE_CSPAN()  class T=C, class _require = typename std::enable_if< std::is_same<T , CC>::value >::type
-    #define _C4_REQUIRE_NCSPAN() class T=C, class _require = typename std::enable_if< std::is_same<T, NCC>::value >::type
-
 public:
 
     /// convert automatically to span of const C
@@ -67,11 +171,13 @@ public:
 
 public:
 
+    using base_crtp::base_crtp;
+
     //basic_span(C *s_) : str(s_), len(s_ ? strlen(s_) : 0) {}
     /** the overload for receiving a single C* pointer will always
      * hide the array[N] overload. So it is disabled. If you want to
-     * construct a span from a single C* pointer, you can call
-     * c4::yml::to_span()/c4::yml::to_cspan().
+     * construct a span from a single pointer containing a c-style string,
+     * you can call c4::yml::to_span()/c4::yml::to_cspan().
      * @see c4::yml::to_span()
      * @see c4::yml::to_cspan() */
     template< size_t N >
@@ -81,38 +187,19 @@ public:
 
 	//basic_span& operator= (C *s_) { this->assign(s_); return *this; }
 	template< size_t N >
-	basic_span& operator= (C(&s_)[N]) { this->assign<N>(s_); return *this; }
+	basic_span& operator= (C (&s_)[N]) { this->assign<N>(s_); return *this; }
 
     //void assign(C *s_) { str = (s_); len = (s_ ? strlen(s_) : 0); }
     /** the overload for receiving a single C* pointer will always
      * hide the array[N] overload. So it is disabled. If you want to
-     * construct a span from a single C* pointer, you can call
-     * c4::yml::to_span()/c4::yml::to_cspan().
+     * construct a span from a single pointer containing a c-style string,
+     * you can call c4::yml::to_span()/c4::yml::to_cspan().
      * @see c4::yml::to_span()
      * @see c4::yml::to_cspan() */
     template< size_t N >
     void assign(C (&s_)[N]) { str = (s_); len = (N-1); }
     void assign(C *s_, size_t len_) { str = s_; len = len_; C4_ASSERT(str || !len_); }
     void assign(C *beg_, C *end_) { C4_ASSERT(end_ >= beg_); str = (beg_); len = (end_ - beg_); }
-
-
-public:
-
-    // allow assignments from non-const chars when C is const char
-
-    //template< _C4_REQUIRE_CSPAN() > basic_span(basic_ncspan const& s) : str(s.str), len(s.len) { }
-    //template< _C4_REQUIRE_CSPAN() > basic_span& operator= (basic_ncspan const& s) { str = s.str; len = s.len; return *this; }
-
-    //template<           _C4_REQUIRE_CSPAN() > explicit basic_span(NCC *s_) : str(s_), len(s_ ? strlen(s_) : 0) {}
-    /** the overload for receiving a single C* pointer will always
-     * hide the array[N] overload. So it is disabled. If you want to
-     * construct a span from a single C* pointer, you can call
-     * c4::yml::to_span()/c4::yml::to_cspan().
-     * @see c4::yml::to_span()
-     * @see c4::yml::to_cspan() */
-    template< size_t N, _C4_REQUIRE_CSPAN() > explicit basic_span(NCC (&s_)[N]) : str(s_), len(N-1) {}
-    template<           _C4_REQUIRE_CSPAN() > explicit basic_span(NCC *s_, size_t len_) : str(s_), len(len_) { C4_ASSERT(str || !len_); }
-    template<           _C4_REQUIRE_CSPAN() > explicit basic_span(NCC *beg_, NCC *end_) : str(beg_), len(end_ - beg_) { C4_ASSERT(end_ >= beg_); }
 
 public:
 
@@ -255,7 +342,7 @@ public:
         return right_of(first_not_of(c), /*include_pos*/true);
     }
     /** trim left ANY of the characters */
-    basic_span triml(basic_cspan const& chars) const
+    basic_span triml(basic_cspan chars) const
     {
         return right_of(first_not_of(chars), /*include_pos*/true);
     }
@@ -266,7 +353,7 @@ public:
         return left_of(last_not_of(c), /*include_pos*/true);
     }
     /** trim right ANY of the characters */
-    basic_span trimr(basic_cspan const& chars) const
+    basic_span trimr(basic_cspan chars) const
     {
         return left_of(last_not_of(chars), /*include_pos*/true);
     }
@@ -288,7 +375,7 @@ public:
     {
         return first_of(c);
     }
-    inline size_t find(basic_cspan const& chars) const
+    inline size_t find(basic_cspan chars) const
     {
         if(len < chars.len) return npos;
         for(size_t i = 0, e = len - chars.len + 1; i < e; ++i)
@@ -320,25 +407,25 @@ public:
         inline operator bool() const { return which != NONE && pos != npos; }
     };
 
-    first_of_any_result first_of_any(basic_cspan const& s0, basic_cspan const& s1) const
+    first_of_any_result first_of_any(basic_cspan s0, basic_cspan s1) const
     {
         basic_cspan spans[2] = {s0, s1};
         return first_of_any(&spans[0], &spans[0] + 2);
     }
 
-    first_of_any_result first_of_any(basic_cspan const& s0, basic_cspan const& s1, basic_cspan const& s2) const
+    first_of_any_result first_of_any(basic_cspan s0, basic_cspan s1, basic_cspan s2) const
     {
         basic_cspan spans[3] = {s0, s1, s2};
         return first_of_any(&spans[0], &spans[0] + 3);
     }
 
-    first_of_any_result first_of_any(basic_cspan const& s0, basic_cspan const& s1, basic_cspan const& s2, basic_cspan const& s3) const
+    first_of_any_result first_of_any(basic_cspan s0, basic_cspan s1, basic_cspan s2, basic_cspan s3) const
     {
         basic_cspan spans[4] = {s0, s1, s2, s3};
         return first_of_any(&spans[0], &spans[0] + 4);
     }
 
-    first_of_any_result first_of_any(basic_cspan const& s0, basic_cspan const& s1, basic_cspan const& s2, basic_cspan const& s3, basic_cspan const& s4) const
+    first_of_any_result first_of_any(basic_cspan s0, basic_cspan s1, basic_cspan s2, basic_cspan s3, basic_cspan s4) const
     {
         basic_cspan spans[4] = {s0, s1, s2, s3, s4};
         return first_of_any(&spans[0], &spans[0] + 5);
@@ -386,7 +473,7 @@ public:
         }
         return true;
     }
-    inline bool begins_with(basic_cspan const& pattern) const
+    inline bool begins_with(basic_cspan pattern) const
     {
         if(len < pattern.len) return false;
         for(size_t i = 0; i < pattern.len; ++i)
@@ -395,7 +482,7 @@ public:
         }
         return true;
     }
-    inline bool begins_with_any(basic_cspan const& pattern) const
+    inline bool begins_with_any(basic_cspan pattern) const
     {
         return first_of(pattern) == 0;
     }
@@ -413,7 +500,7 @@ public:
         }
         return true;
     }
-    inline bool ends_with(basic_cspan const& pattern) const
+    inline bool ends_with(basic_cspan pattern) const
     {
         if(len < pattern.len) return false;
         for(size_t i = 0, s = len-pattern.len; i < pattern.len; ++i)
@@ -422,7 +509,7 @@ public:
         }
         return true;
     }
-    inline bool ends_with_any(basic_cspan const& chars) const
+    inline bool ends_with_any(basic_cspan chars) const
     {
         if(len == 0) return false;
         return last_of(chars) == len - 1;
@@ -447,7 +534,7 @@ public:
         return npos;
     }
 
-    inline size_t first_of(basic_cspan const& chars) const
+    inline size_t first_of(basic_cspan chars) const
     {
         for(size_t i = 0; i < len; ++i)
         {
@@ -458,7 +545,7 @@ public:
         }
         return npos;
     }
-    inline size_t last_of(basic_cspan const& chars) const
+    inline size_t last_of(basic_cspan chars) const
     {
         for(size_t i = len-1; i != size_t(-1); --i)
         {
@@ -489,7 +576,7 @@ public:
         return npos;
     }
 
-    inline size_t first_not_of(basic_cspan const& chars) const
+    inline size_t first_not_of(basic_cspan chars) const
     {
         for(size_t i = 0; i < len; ++i)
         {
@@ -510,7 +597,7 @@ public:
         return npos;
     }
 
-    inline size_t last_not_of(basic_cspan const& chars) const
+    inline size_t last_not_of(basic_cspan chars) const
     {
         for(size_t i = len-1; i != size_t(-1); --i)
         {
@@ -533,49 +620,6 @@ public:
 
 public:
 
-    // this is SFINAE'd out for spans of const chars
-
-    template< _C4_REQUIRE_NCSPAN() >
-    void reverse()
-    {
-        if(len == 0) return;
-        _do_reverse(str, str + len - 1);
-    }
-
-    template< _C4_REQUIRE_NCSPAN() >
-    void reverse_subspan(size_t ifirst, size_t num)
-    {
-        C4_ASSERT(ifirst >= 0 && ifirst < len);
-        C4_ASSERT(ifirst + num >= 0 && ifirst + num <= len);
-        if(num == 0) return;
-        _do_reverse(str + ifirst, ifirst + num - 1);
-    }
-
-    template< _C4_REQUIRE_NCSPAN() >
-    void reverse_range(size_t ifirst, size_t ilast)
-    {
-        C4_ASSERT(ifirst >= 0 && ifirst <= len);
-        C4_ASSERT(ilast  >= 0 && ilast  <= len);
-        if(ifirst == ilast) return;
-        _do_reverse(str + ifirst, str + ilast - 1);
-    }
-
-    template< _C4_REQUIRE_NCSPAN() >
-    inline static void  _do_reverse(C *first, C* last)
-    {
-        while(last > first)
-        {
-            C tmp = *last;
-            *last-- = *first;
-            *first++ = tmp;
-        }
-    }
-
-    #undef _C4_REQUIRE_CSPAN
-    #undef _C4_REQUIRE_NCSPAN
-
-public:
-
     /** get the first span consisting exclusively of non-empty characters */
     basic_span first_non_empty_span() const
     {
@@ -587,6 +631,7 @@ public:
         return ret.subspan(0, pos);
     }
 
+    /** get the first span which can be interpreted as an unsigned integer */
     basic_span first_uint_span() const
     {
         basic_span ne = first_non_empty_span();
@@ -601,6 +646,7 @@ public:
         return ne;
     }
 
+    /** get the first span which can be interpreted as a signed integer */
     basic_span first_int_span() const
     {
         basic_span ne = first_non_empty_span();
@@ -619,6 +665,7 @@ public:
         return ne;
     }
 
+    /** get the first span which can be interpreted as a real (floating-point) number */
     basic_span first_real_span() const
     {
         basic_span ne = first_non_empty_span();
