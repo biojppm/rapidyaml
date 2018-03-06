@@ -3697,6 +3697,7 @@ L{N(""), N(""), N(L{N("foo", ""), N("bar", ""), N("baz", "")})}
         "github3-problem2-ex2",\
         "github3-problem3",\
         "github3",\
+        "github6-problem1",\
         "github6"
 
 
@@ -3832,28 +3833,53 @@ universe:
       }
 ),
 
+C("github6-problem1",
+R"(
+- UQxRibHKEDI:
+  - 0.mp4
+  - 1.mp4
+  - 2.mp4
+  - 3.mp4
+- DcYsg8VFdC0:
+  - 0.mp4
+  - 1.mp4
+  - 2.mp4
+  - 3.mp4
+- Yt3ymqZXzLY:
+  - 0.mp4
+  - 1.mp4
+  - 2.mp4
+  - 3.mp4
+)",
+L{
+N(L{N("UQxRibHKEDI", L{N("0.mp4"), N("1.mp4"), N("2.mp4"), N("3.mp4")})}),
+N(L{N("DcYsg8VFdC0", L{N("0.mp4"), N("1.mp4"), N("2.mp4"), N("3.mp4")})}),
+N(L{N("Yt3ymqZXzLY", L{N("0.mp4"), N("1.mp4"), N("2.mp4"), N("3.mp4")})}),
+}
+),
+
 C("github6",
 R"(videos:
-  - UQxRibHKEDI:
-    - UQxRibHKEDI.mp4
-    - UQxRibHKEDI.mp4
-    - UQxRibHKEDI.mp4
-    - UQxRibHKEDI.mp4
-  - DcYsg8VFdC0:
-    - DcYsg8VFdC0.mp4
-    - DcYsg8VFdC0.mp4
-    - DcYsg8VFdC0.mp4
-    - DcYsg8VFdC0.mp4
-  - Yt3ymqZXzLY:
-    - Yt3ymqZXzLY.mp4
-    - Yt3ymqZXzLY.mp4
-    - Yt3ymqZXzLY.mp4
-    - Yt3ymqZXzLY.mp4
+- UQxRibHKEDI:
+  - 0.mp4
+  - 1.mp4
+  - 2.mp4
+  - 3.mp4
+- DcYsg8VFdC0:
+  - 0.mp4
+  - 1.mp4
+  - 2.mp4
+  - 3.mp4
+- Yt3ymqZXzLY:
+  - 0.mp4
+  - 1.mp4
+  - 2.mp4
+  - 3.mp4
 )",
 L{N("videos", L{
-N("UQxRibHKEDI", L{N("UQxRibHKEDI.mp4"), N("UQxRibHKEDI.mp4"), N("UQxRibHKEDI.mp4"), N("UQxRibHKEDI.mp4")}),
-N("DcYsg8VFdC0", L{N("DcYsg8VFdC0.mp4"), N("DcYsg8VFdC0.mp4"), N("DcYsg8VFdC0.mp4"), N("DcYsg8VFdC0.mp4")}),
-N("Yt3ymqZXzLY", L{N("Yt3ymqZXzLY.mp4"), N("Yt3ymqZXzLY.mp4"), N("Yt3ymqZXzLY.mp4"), N("Yt3ymqZXzLY.mp4")}),
+N(L{N("UQxRibHKEDI", L{N("0.mp4"), N("1.mp4"), N("2.mp4"), N("3.mp4")})}),
+N(L{N("DcYsg8VFdC0", L{N("0.mp4"), N("1.mp4"), N("2.mp4"), N("3.mp4")})}),
+N(L{N("Yt3ymqZXzLY", L{N("0.mp4"), N("1.mp4"), N("2.mp4"), N("3.mp4")})}),
 })}
 ),
 
