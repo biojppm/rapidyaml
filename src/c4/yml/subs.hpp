@@ -69,7 +69,7 @@ public:
 
     void reverse()
     {
-        if(len == 0) return;
+        if(_c4this->len == 0) return;
         _do_reverse(_c4this->str, _c4this->str + _c4this->len - 1);
     }
 
