@@ -1,8 +1,8 @@
 #ifndef _C4_YML_TREE_HPP_
 #define _C4_YML_TREE_HPP_
 
-#ifndef _C4_YML_SPAN_HPP_
-#include "./span.hpp"
+#ifndef _C4_YML_SUBS_HPP_
+#include "./subs.hpp"
 #endif
 
 #ifndef _C4_YML_COMMON_HPP_
