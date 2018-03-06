@@ -3006,8 +3006,7 @@ R"(
 //-----------------------------------------------------------------------------
 #define GENERIC_SEQ_CASES                       \
     "generic seq v0",                              \
-        "generic seq v1",\
-        "generic seq v2"
+        "generic seq v1"
 
 C("generic seq v0",
 R"(
@@ -3043,33 +3042,6 @@ R"(
       N(L{N("item 3.1"), N("item 3.2")}),
       N(L{N("key 1", "value 1"), N("key 2", "value 2")})
   }
-),
-
-C("generic seq v2",
-R"(videos:
-  - UQxRibHKEDI:
-    - UQxRibHKEDI.640x210.mp4
-    - UQxRibHKEDI.1280x418.mp4
-    - UQxRibHKEDI.1920x628.mp4
-    - UQxRibHKEDI.2560x838.mp4
-    - UQxRibHKEDI.3840x1256.webm
-  - DcYsg8VFdC0:
-    - DcYsg8VFdC0.640x164.mp4
-    - DcYsg8VFdC0.1280x326.mp4
-    - DcYsg8VFdC0.1920x490.mp4
-    - DcYsg8VFdC0.2560x652.mp4
-    - DcYsg8VFdC0.3840x978.webm
-  - Yt3ymqZXzLY:
-    - Yt3ymqZXzLY.640x118.mp4
-    - Yt3ymqZXzLY.1280x236.mp4
-    - Yt3ymqZXzLY.1920x354.mp4
-    - Yt3ymqZXzLY.3840x706.webm
-)",
-L{N("videos", L{
-N("UQxRibHKEDI", L{N("UQxRibHKEDI.640x210.mp4"), N("UQxRibHKEDI.1280x418.mp4"), N("UQxRibHKEDI.1920x628.mp4"), N("UQxRibHKEDI.2560x838.mp4"), N("UQxRibHKEDI.3840x1256.webm")}),
-N("DcYsg8VFdC0", L{N("DcYsg8VFdC0.640x164.mp4"), N("DcYsg8VFdC0.1280x326.mp4"), N("DcYsg8VFdC0.1920x490.mp4"), N("DcYsg8VFdC0.2560x652.mp4"), N("DcYsg8VFdC0.3840x978.webm")}),
-N("Yt3ymqZXzLY", L{N("Yt3ymqZXzLY.640x118.mp4"), N("Yt3ymqZXzLY.1280x236.mp4"), N("Yt3ymqZXzLY.1920x354.mp4"), N("Yt3ymqZXzLY.3840x706.webm")}),
-})}
 ),
 
 //-----------------------------------------------------------------------------
@@ -3724,7 +3696,9 @@ L{N(""), N(""), N(L{N("foo", ""), N("bar", ""), N("baz", "")})}
         "github3-problem2-ex1",\
         "github3-problem2-ex2",\
         "github3-problem3",\
-        "github3-full"
+        "github3",\
+        "github6"
+
 
 C("github3-problem1",
 R"(
@@ -3758,7 +3732,7 @@ R"(component:
 L{N("component", L{N("type", "perspective camera component"), N(KEYMAP, "some_data", L{}), N(KEYMAP, "data", L{})})}
 ),
 
-C("github3-full",
+C("github3",
 R"(
 universe:
   objects:
@@ -3858,6 +3832,30 @@ universe:
       }
 ),
 
+C("github6",
+R"(videos:
+  - UQxRibHKEDI:
+    - UQxRibHKEDI.mp4
+    - UQxRibHKEDI.mp4
+    - UQxRibHKEDI.mp4
+    - UQxRibHKEDI.mp4
+  - DcYsg8VFdC0:
+    - DcYsg8VFdC0.mp4
+    - DcYsg8VFdC0.mp4
+    - DcYsg8VFdC0.mp4
+    - DcYsg8VFdC0.mp4
+  - Yt3ymqZXzLY:
+    - Yt3ymqZXzLY.mp4
+    - Yt3ymqZXzLY.mp4
+    - Yt3ymqZXzLY.mp4
+    - Yt3ymqZXzLY.mp4
+)",
+L{N("videos", L{
+N("UQxRibHKEDI", L{N("UQxRibHKEDI.mp4"), N("UQxRibHKEDI.mp4"), N("UQxRibHKEDI.mp4"), N("UQxRibHKEDI.mp4")}),
+N("DcYsg8VFdC0", L{N("DcYsg8VFdC0.mp4"), N("DcYsg8VFdC0.mp4"), N("DcYsg8VFdC0.mp4"), N("DcYsg8VFdC0.mp4")}),
+N("Yt3ymqZXzLY", L{N("Yt3ymqZXzLY.mp4"), N("Yt3ymqZXzLY.mp4"), N("Yt3ymqZXzLY.mp4"), N("Yt3ymqZXzLY.mp4")}),
+})}
+),
 
 //-----------------------------------------------------------------------------
 
