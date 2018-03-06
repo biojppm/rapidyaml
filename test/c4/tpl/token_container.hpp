@@ -84,7 +84,7 @@ public:
         if( ! result) return NONE;
         TokenBase *t = m_tokens.create(result.pos);
         m_token_seq.push_back(t->m_id);
-        *rem = rem->subspan(result.pos);
+        *rem = rem->sub(result.pos);
         loc->m_rope_pos.i += result.pos;
         return t->m_id;
     }

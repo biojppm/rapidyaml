@@ -346,7 +346,7 @@ public:
         if(pos == 0)
         {
             auto &w = _p(entry);
-            w.s = w.s.subspan(pos + num);
+            w.s = w.s.sub(pos + num);
             i = w.m_prev;
         }
         else if(pos > 0 && pos+num < get(entry)->s.len)
@@ -354,14 +354,14 @@ public:
             i = insert_after(entry); // may cause a relocation
             auto &e = _p(i), &w = _p(entry);
             e.s = w.s;
-            w.s = e.s.subspan(0, pos);
-            e.s = e.s.subspan(pos + num);
+            w.s = e.s.sub(0, pos);
+            e.s = e.s.sub(pos + num);
             i = entry;
         }
         else if(pos > 0 && pos+num == get(entry)->s.len)
         {
             auto &w = _p(entry);
-            w.s = w.s.subspan(0, pos);
+            w.s = w.s.sub(0, pos);
             i = entry;
         }
         else if(pos == get(entry)->s.len)
@@ -380,14 +380,14 @@ public:
 
 public:
 
-    cspan subspan(size_t entry, size_t pos=0) const
+    cspan sub(size_t entry, size_t pos=0) const
     {
-        return _p(entry).s.subspan(pos);
+        return _p(entry).s.sub(pos);
     }
 
-    cspan subspan(rope_pos pos) const
+    cspan sub(rope_pos pos) const
     {
-        return _p(pos.entry).s.subspan(pos.i);
+        return _p(pos.entry).s.sub(pos.i);
     }
 
     /** this won't match splitted tokens */
@@ -396,7 +396,7 @@ public:
     {
         while(pos.entry < m_cap && pos.valid())
         {
-            auto p = subspan(pos).find(token);
+            auto p = sub(pos).find(token);
             if(p != npos)
             {
                 rope_pos ret(pos.entry, p);
@@ -422,7 +422,7 @@ public:
     {
         pos = lookup_token(token, pos);
         if( ! pos.valid()) return {NONE, npos};
-        C4_ASSERT(subspan(pos).len >= token.len);
+        C4_ASSERT(sub(pos).len >= token.len);
         size_t entry = split(pos.entry, pos.i + token.len);
         return {entry, 0};
     }
@@ -456,7 +456,7 @@ public:
             if( ! pos.valid()) break;
             C4_ASSERT(_p(pos.entry).s.str == val.str && _p(pos.entry).s.len == val.len);
             C4_ASSERT(next(pos.entry) != NONE);
-            C4_ASSERT(subspan({next(pos.entry), 0}).subspan(0, token.len) == token.str);
+            C4_ASSERT(sub({next(pos.entry), 0}).sub(0, token.len) == token.str);
             pos = {next(pos.entry), token.len};
         }
     }
@@ -477,7 +477,7 @@ public:
     {
         for(auto const& tk : tokens(token))
         {
-            C4_ASSERT(subspan(tk).begins_with(token));
+            C4_ASSERT(sub(tk).begins_with(token));
             replace(tk.entry, tk.i, token.len, repl);
         }
     }

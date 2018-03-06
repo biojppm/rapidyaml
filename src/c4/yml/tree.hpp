@@ -675,7 +675,7 @@ public:
     template< class T >
     csubs to_arena(T const& a)
     {
-        subs rem(m_arena.subspan(m_arena_pos));
+        subs rem(m_arena.sub(m_arena_pos));
         size_t num = to_str(rem, a);
         if(num > rem.len)
         {
@@ -700,13 +700,13 @@ private:
         cap = cap < 2 * m_arena.len ? 2 * m_arena.len : cap;
         cap = cap < 64 ? 64 : cap;
         reserve(m_cap, cap);
-        return m_arena.subspan(m_arena_pos);
+        return m_arena.sub(m_arena_pos);
     }
 
     subs _request_span(size_t sz)
     {
         subs s;
-        s = m_arena.subspan(m_arena_pos, sz);
+        s = m_arena.sub(m_arena_pos, sz);
         m_arena_pos += sz;
         return s;
     }
@@ -714,11 +714,11 @@ private:
     inline subs _relocated(csubs const& s, subs const& next_arena) const
     {
         C4_ASSERT(m_arena.contains(s));
-        C4_ASSERT(m_arena.subspan(0, m_arena_pos).contains(s));
+        C4_ASSERT(m_arena.sub(0, m_arena_pos).contains(s));
         auto pos = (s.str - m_arena.str);
         subs r(next_arena.str + pos, s.len);
         C4_ASSERT(r.str - next_arena.str == pos);
-        C4_ASSERT(next_arena.subspan(0, m_arena_pos).contains(r));
+        C4_ASSERT(next_arena.sub(0, m_arena_pos).contains(r));
         return r;
     }
 

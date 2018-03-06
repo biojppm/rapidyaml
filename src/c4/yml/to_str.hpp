@@ -17,7 +17,7 @@ template< class Arg, class... Args >
 size_t cat(subs buf, Arg const& a, Args const& ...more)
 {
     size_t num = to_str(buf, a);
-    buf = buf.len >= num ? buf.subspan(num) : subs{};
+    buf = buf.len >= num ? buf.sub(num) : subs{};
     num += cat(buf, more...);
     return num;
 }
@@ -36,7 +36,7 @@ size_t uncat(csubs buf, Arg & a, Args & ...more)
 {
     size_t num = from_str_untrimmed(buf, &a);
     if(num == npos) return npos;
-    buf = buf.len >= num ? buf.subspan(num) : subs{};
+    buf = buf.len >= num ? buf.sub(num) : subs{};
     num += uncat(buf, more...);
     return num;
 }
@@ -52,9 +52,9 @@ template< class Sep, class Arg, class... Args >
 size_t catsep(subs buf, Sep const& sep, Arg const& a, Args const& ...more)
 {
     size_t num = to_str(buf, sep);
-    buf = buf.len >= num ? buf.subspan(num) : subs{};
+    buf = buf.len >= num ? buf.sub(num) : subs{};
     num += to_str(buf, a);
-    buf = buf.len >= num ? buf.subspan(num) : subs{};
+    buf = buf.len >= num ? buf.sub(num) : subs{};
     num += catsep(buf, sep, more...);
     return num;
 }

@@ -1,5 +1,5 @@
-#ifndef _C4_YML_SPAN_HPP_
-#define _C4_YML_SPAN_HPP_
+#ifndef _C4_YML_SUBS_HPP_
+#define _C4_YML_SUBS_HPP_
 
 #include <string.h>
 #include "./common.hpp"
@@ -73,7 +73,7 @@ public:
         _do_reverse(_c4this->str, _c4this->str + _c4this->len - 1);
     }
 
-    void reverse_subspan(size_t ifirst, size_t num)
+    void reverse_sub(size_t ifirst, size_t num)
     {
         C4_ASSERT(ifirst >= 0 && ifirst < _c4cthis->len);
         C4_ASSERT(ifirst + num >= 0 && ifirst + num <= _c4cthis->len);
@@ -117,7 +117,7 @@ public:
 
     Impl erase(const_impl_type sub)
     {
-        C4_ASSERT(_c4cthis->has_subspan(sub));
+        C4_ASSERT(_c4cthis->has_sub(sub));
         C4_ASSERT(sub.str >= _c4cthis->str);
         return erase(sub.str - _c4cthis->str, sub.len);
     }
@@ -146,8 +146,8 @@ public:
     using  CC = typename std::add_const< C >::type;
     using NCC = typename std::remove_const< C >::type;
 
-    using basic_cspan  = basic_substring<  CC >;
-    using basic_ncspan = basic_substring< NCC >;
+    using basic_csubs = basic_substring<  CC >;
+    using basic_ncsubs = basic_substring< NCC >;
 
     using char_type = C;
 
@@ -156,8 +156,8 @@ public:
 
 public:
 
-    /// convert automatically to span of const C
-    operator basic_cspan () const { basic_cspan s(str, len); return s; }
+    /// convert automatically to substring of const C
+    operator basic_csubs () const { basic_csubs s(str, len); return s; }
 
 public:
 
@@ -239,13 +239,13 @@ public:
         return ! (operator== (that));
     }
 
-    bool operator== (basic_cspan const& that) const { return this->compare(that) == 0; }
-    bool operator<  (basic_cspan const& that) const { return this->compare(that) <  0; }
-    bool operator>  (basic_cspan const& that) const { return this->compare(that) >  0; }
-    bool operator<= (basic_cspan const& that) const { return this->compare(that) <= 0; }
-    bool operator>= (basic_cspan const& that) const { return this->compare(that) >= 0; }
+    bool operator== (basic_csubs const that) const { return this->compare(that) == 0; }
+    bool operator<  (basic_csubs const that) const { return this->compare(that) <  0; }
+    bool operator>  (basic_csubs const that) const { return this->compare(that) >  0; }
+    bool operator<= (basic_csubs const that) const { return this->compare(that) <= 0; }
+    bool operator>= (basic_csubs const that) const { return this->compare(that) >= 0; }
 
-    int compare(basic_cspan const& that) const
+    int compare(basic_csubs const that) const
     {
         size_t n = len < that.len ? len : that.len;
         int ret = strncmp(str, that.str, n);
@@ -259,7 +259,7 @@ public:
 public:
 
     /** return [first,first+num[ */
-    basic_substring subspan(size_t first, size_t num = npos) const
+    basic_substring sub(size_t first, size_t num = npos) const
     {
         size_t rnum = num != npos ? num : len - first;
         C4_ASSERT((first >= 0 && first + rnum <= len) || num == 0);
@@ -274,14 +274,14 @@ public:
         return basic_substring(str + first, last - first);
     }
 
-    /** true if *this is a subspan of that */
-    inline bool is_contained(basic_cspan const& super) const
+    /** true if *this is a sub of that */
+    inline bool is_contained(basic_csubs const super) const
     {
         return begin() >= super.begin() && end() <= super.end();
     }
 
-    /** true if that is a subspan of this */
-    inline bool contains(basic_cspan const& sub) const
+    /** true if that is a sub of this */
+    inline bool contains(basic_csubs const sub) const
     {
         return sub.begin() >= begin() && sub.end() <= end();
     }
@@ -290,47 +290,47 @@ public:
 
     basic_substring right_of(size_t pos, bool include_pos = false) const
     {
-        if(pos == npos) return subspan(0, 0);
+        if(pos == npos) return sub(0, 0);
         if( ! include_pos) ++pos;
-        return subspan(pos);
+        return sub(pos);
     }
 
     basic_substring left_of(size_t pos, bool include_pos = false) const
     {
         if(pos == npos) return *this;
         if( ! include_pos && pos > 0) --pos;
-        return subspan(0, pos+1/* bump because this arg is a size, not a pos*/);
+        return sub(0, pos+1/* bump because this arg is a size, not a pos*/);
     }
 
 public:
 
-    basic_substring left_of(basic_cspan const& ss) const
+    basic_substring left_of(basic_csubs const ss) const
     {
         auto ssb = ss.begin();
         auto b = begin();
         auto e = end();
         if(ssb >= b && ssb <= e)
         {
-            return subspan(0, ssb - b);
+            return sub(0, ssb - b);
         }
         else
         {
-            return subspan(0, 0);
+            return sub(0, 0);
         }
     }
 
-    basic_substring right_of(basic_cspan const& ss) const
+    basic_substring right_of(basic_csubs const ss) const
     {
         auto sse = ss.end();
         auto b = begin();
         auto e = end();
         if(sse >= b && sse <= e)
         {
-            return subspan(sse - b, e - sse);
+            return sub(sse - b, e - sse);
         }
         else
         {
-            return subspan(0, 0);
+            return sub(0, 0);
         }
     }
 
@@ -342,7 +342,7 @@ public:
         return right_of(first_not_of(c), /*include_pos*/true);
     }
     /** trim left ANY of the characters */
-    basic_substring triml(basic_cspan chars) const
+    basic_substring triml(basic_csubs chars) const
     {
         return right_of(first_not_of(chars), /*include_pos*/true);
     }
@@ -353,7 +353,7 @@ public:
         return left_of(last_not_of(c), /*include_pos*/true);
     }
     /** trim right ANY of the characters */
-    basic_substring trimr(basic_cspan chars) const
+    basic_substring trimr(basic_csubs chars) const
     {
         return left_of(last_not_of(chars), /*include_pos*/true);
     }
@@ -364,7 +364,7 @@ public:
         return triml(c).trimr(c);
     }
     /** trim left and right ANY of the characters */
-    basic_substring trim(basic_cspan const& chars) const
+    basic_substring trim(basic_csubs const chars) const
     {
         return triml(chars).trimr(chars);
     }
@@ -375,7 +375,7 @@ public:
     {
         return first_of(c);
     }
-    inline size_t find(basic_cspan chars) const
+    inline size_t find(basic_csubs chars) const
     {
         if(len < chars.len) return npos;
         for(size_t i = 0, e = len - chars.len + 1; i < e; ++i)
@@ -407,27 +407,27 @@ public:
         inline operator bool() const { return which != NONE && pos != npos; }
     };
 
-    first_of_any_result first_of_any(basic_cspan s0, basic_cspan s1) const
+    first_of_any_result first_of_any(basic_csubs s0, basic_csubs s1) const
     {
-        basic_cspan spans[2] = {s0, s1};
+        basic_csubs spans[2] = {s0, s1};
         return first_of_any(&spans[0], &spans[0] + 2);
     }
 
-    first_of_any_result first_of_any(basic_cspan s0, basic_cspan s1, basic_cspan s2) const
+    first_of_any_result first_of_any(basic_csubs s0, basic_csubs s1, basic_csubs s2) const
     {
-        basic_cspan spans[3] = {s0, s1, s2};
+        basic_csubs spans[3] = {s0, s1, s2};
         return first_of_any(&spans[0], &spans[0] + 3);
     }
 
-    first_of_any_result first_of_any(basic_cspan s0, basic_cspan s1, basic_cspan s2, basic_cspan s3) const
+    first_of_any_result first_of_any(basic_csubs s0, basic_csubs s1, basic_csubs s2, basic_csubs s3) const
     {
-        basic_cspan spans[4] = {s0, s1, s2, s3};
+        basic_csubs spans[4] = {s0, s1, s2, s3};
         return first_of_any(&spans[0], &spans[0] + 4);
     }
 
-    first_of_any_result first_of_any(basic_cspan s0, basic_cspan s1, basic_cspan s2, basic_cspan s3, basic_cspan s4) const
+    first_of_any_result first_of_any(basic_csubs s0, basic_csubs s1, basic_csubs s2, basic_csubs s3, basic_csubs s4) const
     {
-        basic_cspan spans[4] = {s0, s1, s2, s3, s4};
+        basic_csubs spans[4] = {s0, s1, s2, s3, s4};
         return first_of_any(&spans[0], &spans[0] + 5);
     }
 
@@ -473,7 +473,7 @@ public:
         }
         return true;
     }
-    inline bool begins_with(basic_cspan pattern) const
+    inline bool begins_with(basic_csubs pattern) const
     {
         if(len < pattern.len) return false;
         for(size_t i = 0; i < pattern.len; ++i)
@@ -482,7 +482,7 @@ public:
         }
         return true;
     }
-    inline bool begins_with_any(basic_cspan pattern) const
+    inline bool begins_with_any(basic_csubs pattern) const
     {
         return first_of(pattern) == 0;
     }
@@ -500,7 +500,7 @@ public:
         }
         return true;
     }
-    inline bool ends_with(basic_cspan pattern) const
+    inline bool ends_with(basic_csubs pattern) const
     {
         if(len < pattern.len) return false;
         for(size_t i = 0, s = len-pattern.len; i < pattern.len; ++i)
@@ -509,7 +509,7 @@ public:
         }
         return true;
     }
-    inline bool ends_with_any(basic_cspan chars) const
+    inline bool ends_with_any(basic_csubs chars) const
     {
         if(len == 0) return false;
         return last_of(chars) == len - 1;
@@ -534,7 +534,7 @@ public:
         return npos;
     }
 
-    inline size_t first_of(basic_cspan chars) const
+    inline size_t first_of(basic_csubs chars) const
     {
         for(size_t i = 0; i < len; ++i)
         {
@@ -545,7 +545,7 @@ public:
         }
         return npos;
     }
-    inline size_t last_of(basic_cspan chars) const
+    inline size_t last_of(basic_csubs chars) const
     {
         for(size_t i = len-1; i != size_t(-1); --i)
         {
@@ -576,7 +576,7 @@ public:
         return npos;
     }
 
-    inline size_t first_not_of(basic_cspan chars) const
+    inline size_t first_not_of(basic_csubs chars) const
     {
         for(size_t i = 0; i < len; ++i)
         {
@@ -597,7 +597,7 @@ public:
         return npos;
     }
 
-    inline size_t last_not_of(basic_cspan chars) const
+    inline size_t last_not_of(basic_csubs chars) const
     {
         for(size_t i = len-1; i != size_t(-1); --i)
         {
@@ -623,12 +623,12 @@ public:
     /** get the first span consisting exclusively of non-empty characters */
     basic_substring first_non_empty_span() const
     {
-        basic_cspan empty_chars(" \n\r\t");
+        basic_csubs empty_chars(" \n\r\t");
         size_t pos = first_not_of(empty_chars);
-        if(pos == npos) return subspan(0, 0);
-        auto ret = subspan(pos);
+        if(pos == npos) return sub(0, 0);
+        auto ret = sub(pos);
         pos = ret.first_of(empty_chars);
-        return ret.subspan(0, pos);
+        return ret.sub(0, pos);
     }
 
     /** get the first span which can be interpreted as an unsigned integer */
@@ -640,7 +640,7 @@ public:
             char c = ne.str[i];
             if(c < '0' || c > '9')
             {
-                return ne.subspan(0, i);
+                return ne.sub(0, i);
             }
         }
         return ne;
@@ -655,11 +655,11 @@ public:
             char c = ne.str[i];
             if(c == '-' && i != 0)
             {
-                return ne.subspan(0, i);
+                return ne.sub(0, i);
             }
             else if(c < '0' || c > '9')
             {
-                return ne.subspan(0, i);
+                return ne.sub(0, i);
             }
         }
         return ne;
@@ -687,19 +687,19 @@ public:
                     }
                     else
                     {
-                        return ne.subspan(0, i);
+                        return ne.sub(0, i);
                     }
                 }
             }
             else if((c < '0' || c > '9') && (c != '.' && c != 'e' && c != 'E'))
             {
-                return ne.subspan(0, i);
+                return ne.sub(0, i);
             }
         }
         return ne;
     }
 
-}; // template class basic_span
+}; // template class basic_substr
 
 
 /** Because of a C++ limitation, spans cannot provide simultaneous
@@ -745,4 +745,4 @@ inline csubs to_csubs(const char *s)
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_YML_SPAN_HPP_ */
+#endif /* _C4_YML_SUBS_HPP_ */

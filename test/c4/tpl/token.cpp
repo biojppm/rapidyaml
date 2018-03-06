@@ -15,22 +15,22 @@ void TokenBase::parse(cspan *rem, TplLocation *curr_pos)
     auto pos = rem->find(e);
     C4_ASSERT(pos != npos);
     C4_ASSERT(pos + e.len <= rem->len);
-    m_full_text = rem->subspan(0, pos + e.len);
+    m_full_text = rem->sub(0, pos + e.len);
     C4_ASSERT(m_full_text.len >= e.len + s.len);
     C4_ASSERT(m_full_text.begins_with(s));
     C4_ASSERT(m_full_text.ends_with(e));
-    m_interior_text = m_full_text.subspan(s.len, m_full_text.len - (e.len + s.len));
+    m_interior_text = m_full_text.sub(s.len, m_full_text.len - (e.len + s.len));
 
     // if the end token terminates with a line ending, "merge" it with any
     // line ending of the interior text
-    *rem = rem->subspan(m_full_text.len);
+    *rem = rem->sub(m_full_text.len);
     if(m_interior_text.ends_with_any("\r\n") && rem->begins_with_any("\r\n"))
     {
         size_t inc = 0;
         if((*rem)[0] == '\r' && (*rem)[1] == '\n') inc = 2;
         else if((*rem)[0] == '\n') inc = 1;
         m_full_text.len += inc;
-        *rem = rem->subspan(inc);
+        *rem = rem->sub(inc);
     }
 
     auto &rp = curr_pos->m_rope_pos;
@@ -40,7 +40,7 @@ void TokenBase::parse(cspan *rem, TplLocation *curr_pos)
     rp.entry = curr_pos->m_rope->next(rp.entry);
     rp.i = 0;
     m_end = *curr_pos;
-    C4_ASSERT(this->subspan() == m_full_text);
+    C4_ASSERT(this->sub() == m_full_text);
 }
 
 void TokenBase::mark()
@@ -127,7 +127,7 @@ cspan TokenBase::skip_nested(cspan rem) const
 {
     auto const& s = stoken(), e = etoken();
     C4_ASSERT(rem.begins_with(s));
-    cspan r = rem.subspan(s.len);
+    cspan r = rem.sub(s.len);
     size_t level = 1;
     while( ! r.empty())
     {
@@ -143,7 +143,7 @@ cspan TokenBase::skip_nested(cspan rem) const
             C4_ERROR_IF_NOT(level > 0, "internal error");
             --level;
         }
-        r = r.subspan(result.pos + (result.which = 0 ? s.len : e.len));
+        r = r.sub(result.pos + (result.which = 0 ? s.len : e.len));
         if(level == 0)
         {
             return r;
@@ -176,7 +176,7 @@ void TemplateBlock::parse(TokenContainer *cont)
     rp.i = 0;
     while( ! rem.empty())
     {
-        C4_ASSERT(rem == rope->subspan(rp).subspan(0, rem.len));
+        C4_ASSERT(rem == rope->sub(rp).sub(0, rem.len));
         size_t tk_pos = cont->next_token(&rem, &pos);
         if(tk_pos == NONE)
         {
@@ -192,7 +192,7 @@ void TemplateBlock::parse(TokenContainer *cont)
         {
             _c4this->parts.emplace_back();
             auto &p = _c4this->parts.back();
-            p.body = curr.subspan(0, rem.begin() - curr.begin());
+            p.body = curr.sub(0, rem.begin() - curr.begin());
             p.entry = rp.entry;
             rp.entry = rope->split(rp.entry, p.body.len);
             rp.entry = rope->next(rp.entry);
@@ -212,7 +212,7 @@ void TemplateBlock::parse(TokenContainer *cont)
             cont->get(tk_pos)->parse(&rem, &pos);
             cont->get(tk_pos)->parse_body(cont);
             C4_ASSERT(p.body.contains(rem));
-            p.body = p.body.subspan(0, rem.begin() - p.body.begin());
+            p.body = p.body.sub(0, rem.begin() - p.body.begin());
             curr = rem;
         }
     }
@@ -449,29 +449,29 @@ void TokenIf::parse(cspan *rem, TplLocation *curr_pos)
         C4_ERROR_IF_NOT(result, "invalid {% if %} structure");
         if(result.which == 0) // endif
         {
-            cb->set_body(s.subspan(0, result.pos)); // terminate the current block
+            cb->set_body(s.sub(0, result.pos)); // terminate the current block
             break;
         }
         else if(result.which == 1) // else
         {
-            cb->set_body(s.subspan(0, result.pos));
-            s = s.subspan(result.pos + 10); // 10==strlen("{% else %}")
+            cb->set_body(s.sub(0, result.pos));
+            s = s.sub(result.pos + 10); // 10==strlen("{% else %}")
             auto pos = s.find("{% endif %}");
             C4_ERROR_IF(pos == npos, "invalid {% if %} structure");
-            s = s.subspan(0, pos);
+            s = s.sub(0, pos);
             cb = _add_block({}, s, /*as_else*/true);
             break;
         }
         else if(result.which == 2) // elif
         {
-            cb->set_body(s.subspan(0, result.pos));
-            s = s.subspan(result.pos);
+            cb->set_body(s.sub(0, result.pos));
+            s = s.sub(result.pos);
             auto cond = _scan_condition("{% elif ", &s);
             cb = _add_block(cond, s);
         }
         else if(result.which == 3) // nested if
         {
-            s = skip_nested(s.subspan(result.pos));
+            s = skip_nested(s.sub(result.pos));
         }
         else
         {
@@ -539,7 +539,7 @@ cspan TokenIf::_scan_condition(cspan token, cspan *s)
     C4_ASSERT(pos != npos);
     cspan c = s->range(token.len, pos);
     c = c.trim(' ');
-    *s = s->subspan(pos + 2);
+    *s = s->sub(pos + 2);
     return c;
 }
 
