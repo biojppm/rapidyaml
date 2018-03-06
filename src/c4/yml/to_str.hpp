@@ -273,7 +273,7 @@ inline size_t to_str(subs buf, ty v)                                    \
     return ret;                                                         \
 }
 #else
-#define _C4_DEFINE_TO_STR(ty)\
+#define _C4_DEFINE_TO_STR(ty, pri_fmt)\
 inline size_t to_str(span buf, ty v)                                    \
 {                                                                       \
     int iret = snprintf(buf.str, buf.len, "%" pri_fmt, v);              \
