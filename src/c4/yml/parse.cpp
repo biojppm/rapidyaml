@@ -952,6 +952,7 @@ bool Parser::_handle_map_impl()
                 _c4dbgp("actually, the scalar is the first key of a map");
                 addrem_flags(RKEY, RVAL); // before _push_level! This prepares the current level for popping by setting it to RNXT
                 _push_level();
+                _move_scalar_from_top();
                 _start_map();
                 _save_indentation(/*behind*/s.len);
                 addrem_flags(RVAL, RKEY);
@@ -962,6 +963,7 @@ bool Parser::_handle_map_impl()
                 _c4dbgp("actually, the scalar is the first key of a map, and it opens a new scope");
                 addrem_flags(RKEY, RVAL); // before _push_level! This prepares the current level for popping by setting it to RNXT
                 _push_level();
+                _move_scalar_from_top();
                 _start_map();
                 _save_indentation(/*behind*/s.len);
                 addrem_flags(RVAL, RKEY);
@@ -980,6 +982,7 @@ bool Parser::_handle_map_impl()
             _c4dbgp("val is a nested seq, indented");
             addrem_flags(RKEY, RVAL); // before _push_level!
             _push_level();
+            _move_scalar_from_top();
             _start_seq();
             _save_indentation();
             _line_progressed(2);
@@ -1802,7 +1805,7 @@ bool Parser::_handle_indentation()
 
     if(ind == (size_t)m_state->indref)
     {
-        if(has_all(SSCL|RVAL))
+        if(has_all(SSCL|RVAL) && ! m_state->line_contents.rem.subspan(ind).begins_with('-'))
         {
             if(has_all(RMAP))
             {
