@@ -43,7 +43,7 @@ struct _basic_substring_crtp< const C, Impl >
     _basic_substring_crtp(C *beg_, C *end_) { C4_ASSERT(end_ >= beg_); _c4this->str = beg_; _c4this->len = end_ - beg_;  }
 
     template< size_t N >
-    void assign(C (&s_)[N]) { _c4this->str = s; _c4this->len = N-1; }
+    void assign(C (&s_)[N]) { _c4this->str = s_; _c4this->len = N-1; }
     void assign(C *s_, size_t len_) { _c4this->str = s_; _c4this->len = len_; }
     void assign(C *beg_, C *end_) { C4_ASSERT(end_ >= beg_); _c4this->str = beg_; _c4this->len = end_ - beg_;  }
 
