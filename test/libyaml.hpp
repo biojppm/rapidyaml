@@ -47,7 +47,7 @@ public:
 
 private:
 
-    cspan get_scalar_val(detail::Event const &ev) const
+    csubs get_scalar_val(detail::Event const &ev) const
     {
         // the memory in data.scalar is allocated anew, so don't do this
         //auto const& scalar = e.m_event.data.scalar;
@@ -56,7 +56,7 @@ private:
         // ... but the event tells us where in the string the value is
         auto const& e = ev.m_event;
         size_t len = e.end_mark.index - e.start_mark.index;
-        cspan val(m_input + e.start_mark.index, len);
+        csubs val(m_input + e.start_mark.index, len);
         return val;
     }
 
@@ -80,7 +80,7 @@ public:
         parse(/*s, */&input[0], N-1);
     }
 
-    void parse(/*Tree *s, */const cspan sp)
+    void parse(/*Tree *s, */const csubs sp)
     {
         parse(/*s, */sp.str, sp.len);
     }
@@ -118,7 +118,7 @@ case YAML_ ## _ev ## _EVENT:                            \
     (void)val;
 #endif
 
-            cspan val = get_scalar_val(ev);
+            csubs val = get_scalar_val(ev);
             switch(ev.m_event.type)
             {
 

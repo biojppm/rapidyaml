@@ -12,10 +12,10 @@ namespace yml {
 #define _c4cthis (static_cast< Writer const* >(this))
 
 template< class Writer >
-span Emitter< Writer >::emit(NodeRef const& n, bool error_on_excess)
+subs Emitter< Writer >::emit(NodeRef const& n, bool error_on_excess)
 {
     this->_visit(n);
-    span result = _c4this->_get(error_on_excess);
+    subs result = _c4this->_get(error_on_excess);
     return result;
 }
 
@@ -41,7 +41,7 @@ size_t Emitter< Writer >::_visit(NodeRef const& n, size_t ilevel)
     _do_visit(n, ilevel);
     if(n.is_stream())
     {
-        _write(cspan("...\n", 4));
+        _write(csubs("...\n"));
     }
     return _c4this->m_pos;
 }
@@ -54,18 +54,18 @@ void Emitter< Writer >::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
 
     if(n.is_doc())
     {
-        _write(cspan("---\n", 4));
+        _write(csubs("---\n"));
     }
     else if(n.is_keyval())
     {
         C4_ASSERT(n.has_parent());
         if( ! n.has_anchor())
         {
-            _write(ind, n.keysc(), cspan(": ", 2), n.valsc(), '\n');
+            _write(ind, n.keysc(), csubs(": "), n.valsc(), '\n');
         }
         else
         {
-            _write(ind, n.keysc(), cspan(": ", 2), AnchorScalar(n), '\n');
+            _write(ind, n.keysc(), csubs(": "), AnchorScalar(n), '\n');
         }
     }
     else if(n.is_val())
@@ -73,11 +73,11 @@ void Emitter< Writer >::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
         C4_ASSERT(n.has_parent());
         if( ! n.has_anchor())
         {
-            _write(ind, cspan("- ", 2), n.valsc(), '\n');
+            _write(ind, csubs("- "), n.valsc(), '\n');
         }
         else
         {
-            _write(ind, cspan("- ", 2), AnchorScalar(n), '\n');
+            _write(ind, csubs("- "), AnchorScalar(n), '\n');
         }
     }
     else if(n.is_container() && ! n.is_root())
@@ -88,7 +88,7 @@ void Emitter< Writer >::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
         if(n.parent_is_seq())
         {
             C4_ASSERT( ! n.has_key());
-            _write(ind, cspan("- ", 2));
+            _write(ind, csubs("- "));
             if(n.has_val_tag())
             {
                 _write(n.val_tag(), ' ');
@@ -154,11 +154,11 @@ void Emitter< Writer >::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
 
             if(n.is_seq())
             {
-                _write(cspan("[]\n", 3));
+                _write(csubs("[]\n"));
             }
             else if(n.is_map())
             {
-                _write(cspan("{}\n", 3));
+                _write(csubs("{}\n"));
             }
         }
     }
@@ -168,11 +168,11 @@ void Emitter< Writer >::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
         {
             if(n.is_seq())
             {
-                _write(cspan("[]\n", 3));
+                _write(csubs("[]\n"));
             }
             else if(n.is_map())
             {
-                _write(cspan("{}\n", 3));
+                _write(csubs("{}\n"));
             }
         }
     }
@@ -221,7 +221,7 @@ void Emitter< Writer >::_write_one(NodeScalar const& sc)
 }
 
 template< class Writer >
-void Emitter< Writer >::_write_scalar(cspan const& s)
+void Emitter< Writer >::_write_scalar(csubs const& s)
 {
     const bool no_dquotes = s.first_of( '"') == npos;
     const bool no_squotes = s.first_of('\'') == npos;
@@ -260,7 +260,7 @@ void Emitter< Writer >::_write_scalar(cspan const& s)
             {
                 if(s[i] == '\'' || s[i] == '\n')
                 {
-                    cspan sub = s.subspan(pos, i-pos);
+                    csubs sub = s.subspan(pos, i-pos);
                     pos = i;
                     _c4this->_do_write(sub);
                     _c4this->_do_write(s[i]); // write the character twice
@@ -268,7 +268,7 @@ void Emitter< Writer >::_write_scalar(cspan const& s)
             }
             if(pos < s.len)
             {
-                cspan sub = s.subspan(pos);
+                csubs sub = s.subspan(pos);
                 _c4this->_do_write(sub);
             }
             _c4this->_do_write('\'');

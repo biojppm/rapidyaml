@@ -35,38 +35,38 @@ bool read(c4::yml::NodeRef const& n, std::vector< V, Alloc > *vec)
 
 //-----------------------------------------------------------------------------
 template< class Alloc >
-c4::yml::span to_span(std::vector< char, Alloc > &vec)
+c4::yml::subs to_subs(std::vector< char, Alloc > &vec)
 {
     char *data = vec.empty() ? nullptr : vec.data(); // data() may or may not return a null pointer.
-    return c4::yml::span(data, vec.size());
+    return c4::yml::subs(data, vec.size());
 }
 
 template< class Alloc >
-c4::yml::cspan to_span(std::vector< char, Alloc > const& vec)
+c4::yml::csubs to_subs(std::vector< char, Alloc > const& vec)
 {
     const char *data = vec.empty() ? nullptr : vec.data(); // data() may or may not return a null pointer.
-    return c4::yml::cspan(data, vec.size());
+    return c4::yml::csubs(data, vec.size());
 }
 
 template< class Alloc >
-c4::yml::cspan to_span(std::vector< const char, Alloc > const& vec)
+c4::yml::csubs to_subs(std::vector< const char, Alloc > const& vec)
 {
     const char *data = vec.empty() ? nullptr : vec.data(); // data() may or may not return a null pointer.
-    return c4::yml::cspan(data, vec.size());
+    return c4::yml::csubs(data, vec.size());
 }
 
 template< class Alloc >
-c4::yml::cspan to_cspan(std::vector< char, Alloc > const& vec)
+c4::yml::csubs to_csubs(std::vector< char, Alloc > const& vec)
 {
     const char *data = vec.empty() ? nullptr : vec.data(); // data() may or may not return a null pointer.
-    return c4::yml::cspan(data, vec.size());
+    return c4::yml::csubs(data, vec.size());
 }
 
 template< class Alloc >
-c4::yml::cspan to_cspan(std::vector< const char, Alloc > const& vec)
+c4::yml::csubs to_csubs(std::vector< const char, Alloc > const& vec)
 {
     const char *data = vec.empty() ? nullptr : vec.data(); // data() may or may not return a null pointer.
-    return c4::yml::cspan(data, vec.size());
+    return c4::yml::csubs(data, vec.size());
 }
 
 } // namespace std

@@ -14,15 +14,15 @@ namespace yml {
 /** serialize the arguments to the given span.
  * @return the number of characters written to the buffer. */
 template< class Arg, class... Args >
-size_t cat(span buf, Arg const& a, Args const& ...more)
+size_t cat(subs buf, Arg const& a, Args const& ...more)
 {
     size_t num = to_str(buf, a);
-    buf = buf.len >= num ? buf.subspan(num) : span{};
+    buf = buf.len >= num ? buf.subspan(num) : subs{};
     num += cat(buf, more...);
     return num;
 }
 
-inline size_t cat(span /*buf*/)
+inline size_t cat(subs /*buf*/)
 {
     return 0;
 }
@@ -32,16 +32,16 @@ inline size_t cat(span /*buf*/)
  * @return the number of characters read from the buffer. If a
  * conversion was not successful, return npos. */
 template< class Arg, class... Args >
-size_t uncat(cspan buf, Arg & a, Args & ...more)
+size_t uncat(csubs buf, Arg & a, Args & ...more)
 {
     size_t num = from_str_untrimmed(buf, &a);
     if(num == npos) return npos;
-    buf = buf.len >= num ? buf.subspan(num) : span{};
+    buf = buf.len >= num ? buf.subspan(num) : subs{};
     num += uncat(buf, more...);
     return num;
 }
 
-inline size_t uncat(cspan /*buf*/)
+inline size_t uncat(csubs /*buf*/)
 {
     return 0;
 }
@@ -49,18 +49,18 @@ inline size_t uncat(cspan /*buf*/)
 //-----------------------------------------------------------------------------
 
 template< class Sep, class Arg, class... Args >
-size_t catsep(span buf, Sep const& sep, Arg const& a, Args const& ...more)
+size_t catsep(subs buf, Sep const& sep, Arg const& a, Args const& ...more)
 {
     size_t num = to_str(buf, sep);
-    buf = buf.len >= num ? buf.subspan(num) : span{};
+    buf = buf.len >= num ? buf.subspan(num) : subs{};
     num += to_str(buf, a);
-    buf = buf.len >= num ? buf.subspan(num) : span{};
+    buf = buf.len >= num ? buf.subspan(num) : subs{};
     num += catsep(buf, sep, more...);
     return num;
 }
 
 template< class Sep >
-inline size_t catsep(span /*buf*/, Sep const& /*sep*/)
+inline size_t catsep(subs /*buf*/, Sep const& /*sep*/)
 {
     return 0;
 }
@@ -71,12 +71,12 @@ inline size_t catsep(span /*buf*/, Sep const& /*sep*/)
 template< class CharOwningContainer, class... Args >
 inline void catrs(CharOwningContainer *cont, Args const& ...args)
 {
-    span buf = to_span(*cont);
+    subs buf = to_subs(*cont);
     size_t ret = cat(buf, args...);
     cont->resize(ret);
     if(ret > buf.len)
     {
-        buf = to_span(*cont);
+        buf = to_subs(*cont);
         ret = cat(buf, args...);
     }
 }
@@ -84,12 +84,12 @@ inline void catrs(CharOwningContainer *cont, Args const& ...args)
 template< class CharOwningContainer, class Sep, class... Args >
 inline void catseprs(CharOwningContainer *cont, Sep const& sep, Args const& ...args)
 {
-    span buf = to_span(*cont);
+    subs buf = to_subs(*cont);
     size_t ret = catsep(buf, sep, args...);
     cont->resize(ret);
     if(ret > buf.len)
     {
-        buf = to_span(*cont);
+        buf = to_subs(*cont);
         ret = catsep(buf, sep, args...);
     }
 }
@@ -103,7 +103,7 @@ inline void catseprs(CharOwningContainer *cont, Sep const& sep, Args const& ...a
 #define _c4append(c) { if(pos < buf.len) { buf.str[pos++] = (c); } else { ++pos; } }
 
 template< class T >
-size_t itoa(span buf, T v)
+size_t itoa(subs buf, T v)
 {
     static_assert(std::is_integral<T>::value, "must be integral type");
     size_t pos = 0;
@@ -131,7 +131,7 @@ size_t itoa(span buf, T v)
 
 //-----------------------------------------------------------------------------
 template< class T >
-size_t utoa(span buf, T v)
+size_t utoa(subs buf, T v)
 {
     static_assert(std::is_integral<T>::value, "must be integral type");
     size_t pos = 0;
@@ -150,7 +150,7 @@ size_t utoa(span buf, T v)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 template< class T >
-inline bool atoi(cspan str, T *v)
+inline bool atoi(csubs str, T *v)
 {
     static_assert(std::is_integral<T>::value, "must be integral type");
     C4_ASSERT(str.len > 0);
@@ -181,9 +181,9 @@ inline bool atoi(cspan str, T *v)
 }
 
 template< class T >
-inline size_t atoi_untrimmed(cspan str, T *v)
+inline size_t atoi_untrimmed(csubs str, T *v)
 {
-    cspan trimmed = str.first_int_span();
+    csubs trimmed = str.first_int_span();
     if(trimmed.len == 0) return npos;
     if(atoi(trimmed, v)) return trimmed.end() - str.begin();
     return npos;
@@ -191,7 +191,7 @@ inline size_t atoi_untrimmed(cspan str, T *v)
 
 //-----------------------------------------------------------------------------
 template< class T >
-inline bool atou(cspan str, T *v)
+inline bool atou(csubs str, T *v)
 {
     static_assert(std::is_integral<T>::value, "must be integral type");
     C4_ASSERT(str.len > 0);
@@ -211,9 +211,9 @@ inline bool atou(cspan str, T *v)
 
 
 template< class T >
-inline size_t atou_untrimmed(cspan str, T *v)
+inline size_t atou_untrimmed(csubs str, T *v)
 {
-    cspan trimmed = str.first_uint_span();
+    csubs trimmed = str.first_uint_span();
     if(trimmed.len == 0) return npos;
     if(atou(trimmed, v)) return trimmed.end() - str.begin();
     return npos;
@@ -225,17 +225,17 @@ inline size_t atou_untrimmed(cspan str, T *v)
 
 #define _C4_DEFINE_TO_FROM_STR_TOA(ty, id)          \
                                                     \
-inline size_t to_str(span buf, ty v)                \
+inline size_t to_str(subs buf, ty v)                \
 {                                                   \
     return id##toa<ty>(buf, v);                     \
 }                                                   \
                                                     \
-inline bool from_str(cspan buf, ty *v)              \
+inline bool from_str(csubs buf, ty *v)              \
 {                                                   \
     return ato##id<ty>(buf, v);                     \
 }                                                   \
                                                     \
-inline size_t from_str_untrimmed(cspan buf, ty *v)  \
+inline size_t from_str_untrimmed(csubs buf, ty *v)  \
 {                                                   \
     return ato##id##_untrimmed<ty>(buf, v);         \
 }
@@ -247,7 +247,7 @@ inline size_t from_str_untrimmed(cspan buf, ty *v)  \
 #endif
 
 template< class T >
-inline span to_str_span(span buf, T const& v)
+inline subs to_str_span(subs buf, T const& v)
 {
     size_t sz = to_str(buf, v);
     return buf.left_of(sz <= buf.len ? sz : buf.len);
@@ -255,7 +255,7 @@ inline span to_str_span(span buf, T const& v)
 
 #ifdef _MSC_VER
 #define _C4_DEFINE_TO_STR(ty, pri_fmt)                                  \
-inline size_t to_str(span buf, ty v)                                    \
+inline size_t to_str(subs buf, ty v)                                    \
 {                                                                       \
     /** use _snprintf() to prevent early termination of the output      \
      * for writing the null character at the last position              \
@@ -291,7 +291,7 @@ inline size_t to_str(span buf, ty v)                                    \
                                                                         \
 _C4_DEFINE_TO_STR(ty, pri_fmt)                                          \
                                                                         \
-inline size_t from_str_untrimmed(cspan buf, ty *v)                      \
+inline size_t from_str_untrimmed(csubs buf, ty *v)                      \
 {                                                                       \
     /* snscanf() is absolutely needed here as we must be sure that      \
      * buf.len is strictly respected, because the span string is        \
@@ -320,7 +320,7 @@ inline size_t from_str_untrimmed(cspan buf, ty *v)                      \
     return (size_t)(num_chars);                                         \
 }                                                                       \
                                                                         \
-inline bool from_str(cspan buf, ty *v)                                  \
+inline bool from_str(csubs buf, ty *v)                                  \
 {                                                                       \
     size_t num = from_str_untrimmed(buf, v);                            \
     return (num != npos);                                               \
@@ -352,13 +352,13 @@ _C4_DEFINE_TO_FROM_STR_TOA(uint64_t, u)
 
 
 //-----------------------------------------------------------------------------
-inline size_t to_str(span buf, bool v)
+inline size_t to_str(subs buf, bool v)
 {
     int val = v;
     return to_str(buf, val);
 }
 
-inline bool from_str(cspan buf, bool *v)
+inline bool from_str(csubs buf, bool *v)
 {
     int val;
     bool ret = from_str(buf, &val);
@@ -366,7 +366,7 @@ inline bool from_str(cspan buf, bool *v)
     return ret;
 }
 
-inline size_t from_str_untrimmed(cspan buf, bool *v)
+inline size_t from_str_untrimmed(csubs buf, bool *v)
 {
     int val;
     size_t ret = from_str_untrimmed(buf, &val);
@@ -379,20 +379,20 @@ inline size_t from_str_untrimmed(cspan buf, bool *v)
 #endif
 
 //-----------------------------------------------------------------------------
-inline size_t to_str(span buf, char v)
+inline size_t to_str(subs buf, char v)
 {
     if(buf.len > 0) buf[0] = v;
     return 1;
 }
 
-inline bool from_str(cspan buf, char *v)
+inline bool from_str(csubs buf, char *v)
 {
     if(buf.len != 1) return false;
     *v = buf[0];
     return true;
 }
 
-inline size_t from_str_untrimmed(cspan buf, char *v)
+inline size_t from_str_untrimmed(csubs buf, char *v)
 {
     if(buf.len < 1) return npos;
     *v = buf[0];
@@ -400,45 +400,45 @@ inline size_t from_str_untrimmed(cspan buf, char *v)
 }
 
 //-----------------------------------------------------------------------------
-inline size_t to_str(span buf, cspan const& v)
+inline size_t to_str(subs buf, csubs const& v)
 {
     size_t len = buf.len < v.len ? buf.len : v.len;
     memcpy(buf.str, v.str, len);
     return v.len;
 }
 
-inline bool from_str(cspan buf, cspan *v)
+inline bool from_str(csubs buf, csubs *v)
 {
     *v = buf;
     return true;
 }
 
-inline size_t from_str_untrimmed(span buf, cspan *v)
+inline size_t from_str_untrimmed(subs buf, csubs *v)
 {
-    cspan trimmed = buf.first_non_empty_span();
+    csubs trimmed = buf.first_non_empty_span();
     if(trimmed.len == 0) return npos;
     *v = trimmed;
     return trimmed.end() - buf.begin();
 }
 
 //-----------------------------------------------------------------------------
-inline size_t to_str(span buf, span const& v)
+inline size_t to_str(subs buf, subs const& v)
 {
     size_t len = buf.len < v.len ? buf.len : v.len;
     memcpy(buf.str, v.str, len);
     return v.len;
 }
 
-inline bool from_str(cspan buf, span *v)
+inline bool from_str(csubs buf, subs *v)
 {
     size_t len = buf.len > v->len ? v->len : buf.len;
     memcpy(v->str, buf.str, len);
     return buf.len <= v->len;
 }
 
-inline size_t from_str_untrimmed(cspan buf, span *v)
+inline size_t from_str_untrimmed(csubs buf, subs *v)
 {
-    cspan trimmed = buf.first_non_empty_span();
+    csubs trimmed = buf.first_non_empty_span();
     if(trimmed.len == 0) return npos;
     size_t len = trimmed.len > v->len ? v->len : trimmed.len;
     memcpy(v->str, trimmed.str, len);
@@ -449,15 +449,15 @@ inline size_t from_str_untrimmed(cspan buf, span *v)
 //-----------------------------------------------------------------------------
 
 template< size_t N >
-inline size_t to_str(span buf, const char (&v)[N])
+inline size_t to_str(subs buf, const char (&v)[N])
 {
-    cspan sp(v);
+    csubs sp(v);
     return to_str(buf, sp);
 }
 
-inline size_t to_str(span buf, const char *v)
+inline size_t to_str(subs buf, const char *v)
 {
-    return to_str(buf, to_cspan(v));
+    return to_str(buf, to_csubs(v));
 }
 
 } // namespace yml

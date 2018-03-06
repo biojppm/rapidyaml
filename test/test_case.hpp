@@ -24,15 +24,15 @@
 namespace c4 {
 namespace yml {
 
-inline void PrintTo(const span& s, ::std::ostream* os) { *os << s; }
-inline void PrintTo(const cspan& s, ::std::ostream* os) { *os << s; }
+inline void PrintTo(const subs& s, ::std::ostream* os) { *os << s; }
+inline void PrintTo(const csubs& s, ::std::ostream* os) { *os << s; }
 
 struct Case;
 struct CaseNode;
 struct CaseData;
 
-Case const* get_case(cspan name);
-CaseData* get_data(cspan name);
+Case const* get_case(csubs name);
+CaseData* get_data(csubs name);
 
 void check_invariants(Tree const& t);
 void check_invariants(NodeRef const& n);
@@ -51,18 +51,18 @@ void print_path(NodeRef const& p);
 
 struct TaggedScalar
 {
-    cspan tag;
-    cspan scalar;
+    csubs tag;
+    csubs scalar;
     template< size_t N, size_t M > TaggedScalar(const char (&t)[N], const char (&s)[M]) : tag(t), scalar(s) {}
 };
 
 struct AnchorRef
 {
     NodeType_e type;
-    cspan val;
+    csubs val;
     AnchorRef() : type(NOTYPE), val() {}
     AnchorRef(NodeType_e t) : type(t), val() {}
-    AnchorRef(NodeType_e t, cspan v) : type(t), val(v) {}
+    AnchorRef(NodeType_e t, csubs v) : type(t), val(v) {}
 };
 
 /** a node class against which ryml structures are tested. Uses initializer
@@ -76,7 +76,7 @@ public:
 
     struct TaggedList
     {
-        cspan tag;
+        csubs tag;
         iseqmap ilist;
         template< size_t N > TaggedList(const char (&t)[N], iseqmap l) : tag(t), ilist(l) {}
     };
@@ -84,8 +84,8 @@ public:
 public:
 
     NodeType   type;
-    cspan      key, key_tag;
-    cspan      val, val_tag;
+    csubs      key, key_tag;
+    csubs      val, val_tag;
     AnchorRef  ancref;
     seqmap     children;
     CaseNode * parent;
@@ -265,14 +265,14 @@ public:
         return children[i];
     }
 
-    CaseNode const& operator[] (cspan const& name) const
+    CaseNode const& operator[] (csubs const& name) const
     {
         auto ch = lookup(name);
         C4_ASSERT(ch != nullptr);
         return *ch;
     }
 
-    CaseNode const* lookup(cspan const& name) const
+    CaseNode const* lookup(csubs const& name) const
     {
         C4_ASSERT( ! children.empty());
         for(auto const& ch : children)
@@ -316,19 +316,19 @@ typedef enum {
 
 struct Case
 {
-    cspan name;
-    cspan src;
+    csubs name;
+    csubs src;
     CaseNode root;
     TestCaseFlags_e flags;
 
     template< size_t N, class... Args >
-    Case(cspan const& n, const char (&s)[N], Args&& ...args)
+    Case(csubs const& n, const char (&s)[N], Args&& ...args)
         : name(n), src(s), root(std::forward< Args >(args)...), flags()
     {
     }
 
     template< size_t N, class... Args >
-    Case(cspan const& n, int f_, const char (&s)[N], Args&& ...args)
+    Case(csubs const& n, int f_, const char (&s)[N], Args&& ...args)
         : name(n), src(s), root(std::forward< Args >(args)...), flags((TestCaseFlags_e)f_)
     {
     }
@@ -341,15 +341,15 @@ struct Case
 struct CaseData
 {
     std::vector< char > src_buf;
-    span src;
+    subs src;
 
     Tree parsed_tree;
 
     size_t numbytes_stdout;
     std::vector< char > emit_buf;
-    cspan emitted_yml;
+    csubs emitted_yml;
     std::vector< char > parse_buf;
-    span parsed_yml;
+    subs parsed_yml;
 
     Tree emitted_tree;
 
@@ -362,11 +362,11 @@ struct CaseData
 // a fixture for running the tests
 struct YmlTestCase : public ::testing::TestWithParam< const char* >
 {
-    cspan const name;
+    csubs const name;
     Case const* c; // the case
     CaseData * d; // the case data
 
-    YmlTestCase() : name(to_cspan(GetParam())), c(get_case(to_cspan(GetParam()))), d(get_data(to_cspan(GetParam()))) {}
+    YmlTestCase() : name(to_csubs(GetParam())), c(get_case(to_csubs(GetParam()))), d(get_data(to_csubs(GetParam()))) {}
 
     void SetUp() override
     {

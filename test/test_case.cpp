@@ -198,13 +198,13 @@ void print_node(NodeRef const& p, int level, bool print_children)
     {
         if(p.has_key_tag())
         {
-            cspan const& kt = p.key_tag();
-            cspan const& k  = p.key();
+            csubs const& kt = p.key_tag();
+            csubs const& k  = p.key();
             printf(" '%.*s %.*s'", (int)kt.len, kt.str, (int)k.len, k.str);
         }
         else
         {
-            cspan const& k  = p.key();
+            csubs const& k  = p.key();
             printf(" '%.*s'", (int)k.len, k.str);
         }
     }
@@ -216,13 +216,13 @@ void print_node(NodeRef const& p, int level, bool print_children)
     {
         if(p.has_val_tag())
         {
-            cspan const& vt = p.val_tag();
-            cspan const& v  = p.val();
+            csubs const& vt = p.val_tag();
+            csubs const& v  = p.val();
             printf(" '%.*s %.*s'", (int)vt.len, vt.str, (int)v.len, v.str);
         }
         else
         {
-            cspan const& v  = p.val();
+            csubs const& v  = p.val();
             printf(" '%.*s'", (int)v.len, v.str);
         }
     }
@@ -230,7 +230,7 @@ void print_node(NodeRef const& p, int level, bool print_children)
     {
         if(p.has_val_tag())
         {
-            cspan const& vt = p.val_tag();
+            csubs const& vt = p.val_tag();
             printf(" %.*s", (int)vt.len, vt.str);
         }
     }
@@ -268,13 +268,13 @@ void print_node(CaseNode const& p, int level)
     {
         if(p.key_tag.empty())
         {
-            cspan const& v  = p.key;
+            csubs const& v  = p.key;
             printf(" '%.*s'", (int)v.len, v.str);
         }
         else
         {
-            cspan const& vt = p.key_tag;
-            cspan const& v  = p.key;
+            csubs const& vt = p.key_tag;
+            csubs const& v  = p.key;
             printf(" '%.*s %.*s'", (int)vt.len, vt.str, (int)v.len, v.str);
         }
     }
@@ -282,13 +282,13 @@ void print_node(CaseNode const& p, int level)
     {
         if(p.val_tag.empty())
         {
-            cspan const& v  = p.val;
+            csubs const& v  = p.val;
             printf(" '%.*s'", (int)v.len, v.str);
         }
         else
         {
-            cspan const& vt = p.val_tag;
-            cspan const& v  = p.val;
+            csubs const& vt = p.val_tag;
+            csubs const& v  = p.val;
             printf(" '%.*s %.*s'", (int)vt.len, vt.str, (int)v.len, v.str);
         }
     }
@@ -296,7 +296,7 @@ void print_node(CaseNode const& p, int level)
     {
         if( ! p.val_tag.empty())
         {
-            cspan const& vt = p.val_tag;
+            csubs const& vt = p.val_tag;
             printf(" %.*s", (int)vt.len, vt.str);
         }
     }
@@ -526,9 +526,9 @@ void check_invariants(Tree const& t)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-CaseData* get_data(cspan name)
+CaseData* get_data(csubs name)
 {
-    static std::map< cspan, CaseData > m;
+    static std::map< csubs, CaseData > m;
 
     auto it = m.find(name);
     CaseData *cd;
@@ -549,7 +549,7 @@ CaseData* get_data(cspan name)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-Case const* get_case(cspan name)
+Case const* get_case(csubs name)
 {
 
 using N = CaseNode;
@@ -559,14 +559,14 @@ using TL = CaseNode::TaggedList;
 using AR = AnchorRef;
 
 #define C(name, ...)                                    \
-    std::pair< const cspan, Case >                      \
+    std::pair< const csubs, Case >                      \
     (                                                   \
         std::piecewise_construct_t{},                   \
         std::forward_as_tuple(name),                    \
         std::forward_as_tuple(name, __VA_ARGS__)        \
     )
 
-    static std::map< cspan, Case > cases({
+    static std::map< csubs, Case > cases({
 
 //-----------------------------------------------------------------------------
 #define EMPTY_FILE_CASES "empty0-nochars", "empty0-multiline"

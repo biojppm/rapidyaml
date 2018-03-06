@@ -43,7 +43,7 @@ public:
     NodeRef(Tree *t) : m_tree(t ), m_id(t->root_id()), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = NONE; }
     NodeRef(Tree *t, size_t id) : m_tree(t), m_id(id), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = NONE; }
     NodeRef(Tree *t, size_t id, size_t seed_pos) : m_tree(t), m_id(id), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = seed_pos; }
-    NodeRef(Tree *t, size_t id, cspan  seed_key) : m_tree(t), m_id(id), m_seed(seed_key) {}
+    NodeRef(Tree *t, size_t id, csubs  seed_key) : m_tree(t), m_id(id), m_seed(seed_key) {}
     NodeRef(std::nullptr_t) : m_tree(nullptr), m_id(NONE), m_seed() {}
 
     NodeRef(NodeRef const&) = default;
@@ -80,15 +80,15 @@ public:
     inline NodeType_e   type() const { _C4RV(); return m_tree->type(m_id); }
     inline const char*  type_str() const { _C4RV(); C4_ASSERT(valid() && ! is_seed()); return m_tree->type_str(m_id); }
 
-    inline cspan      const& key    () const { _C4RV(); return m_tree->key(m_id); }
-    inline cspan      const& key_tag() const { _C4RV(); return m_tree->key_tag(m_id); }
+    inline csubs      const& key    () const { _C4RV(); return m_tree->key(m_id); }
+    inline csubs      const& key_tag() const { _C4RV(); return m_tree->key_tag(m_id); }
     inline NodeScalar const& keysc  () const { _C4RV(); return m_tree->keysc(m_id); }
 
-    inline cspan      const& val    () const { _C4RV(); return m_tree->val(m_id); }
-    inline cspan      const& val_tag() const { _C4RV(); return m_tree->val_tag(m_id); }
+    inline csubs      const& val    () const { _C4RV(); return m_tree->val(m_id); }
+    inline csubs      const& val_tag() const { _C4RV(); return m_tree->val_tag(m_id); }
     inline NodeScalar const& valsc  () const { _C4RV(); return m_tree->valsc(m_id); }
 
-    inline cspan const& anchor() const { _C4RV(); return m_tree->anchor(m_id); }
+    inline csubs const& anchor() const { _C4RV(); return m_tree->anchor(m_id); }
 
 public:
 
@@ -152,8 +152,8 @@ public:
     NodeRef const last_child () const { _C4RV(); return {m_tree, m_tree->last_child (m_id)}; }
     NodeRef       child(size_t pos)       { _C4RV(); return {m_tree, m_tree->child(m_id, pos)}; }
     NodeRef const child(size_t pos) const { _C4RV(); return {m_tree, m_tree->child(m_id, pos)}; }
-    NodeRef       find_child(cspan const& name)       { _C4RV(); return {m_tree, m_tree->find_child(m_id, name)}; }
-    NodeRef const find_child(cspan const& name) const { _C4RV(); return {m_tree, m_tree->find_child(m_id, name)}; }
+    NodeRef       find_child(csubs const& name)       { _C4RV(); return {m_tree, m_tree->find_child(m_id, name)}; }
+    NodeRef const find_child(csubs const& name) const { _C4RV(); return {m_tree, m_tree->find_child(m_id, name)}; }
 
     /** O(#num_siblings) */
     size_t  num_siblings() const { _C4RV(); return m_tree->num_siblings(m_id); }
@@ -165,8 +165,8 @@ public:
     NodeRef const last_sibling() const { _C4RV(); return {m_tree, m_tree->last_sibling(m_id)}; }
     NodeRef       sibling(size_t pos)       { _C4RV(); return {m_tree, m_tree->sibling(m_id, pos)}; }
     NodeRef const sibling(size_t pos) const { _C4RV(); return {m_tree, m_tree->sibling(m_id, pos)}; }
-    NodeRef       find_sibling(cspan      & name) const { _C4RV(); return {m_tree, m_tree->find_sibling(m_id, name)}; }
-    NodeRef const find_sibling(cspan const& name) const { _C4RV(); return {m_tree, m_tree->find_sibling(m_id, name)}; }
+    NodeRef       find_sibling(csubs      & name) const { _C4RV(); return {m_tree, m_tree->find_sibling(m_id, name)}; }
+    NodeRef const find_sibling(csubs const& name) const { _C4RV(); return {m_tree, m_tree->find_sibling(m_id, name)}; }
 
 public:
 
@@ -176,7 +176,7 @@ public:
         m_tree->_set_flags(m_id, t);
     }
 
-    inline void set_key(cspan const& key)
+    inline void set_key(csubs const& key)
     {
         _C4RV();
         m_tree->_set_key(m_id, key);
@@ -190,13 +190,13 @@ public:
         m_tree->_set_key(m_id, sp);
     }
 
-    inline void set_key_tag(cspan const& key_tag)
+    inline void set_key_tag(csubs const& key_tag)
     {
         _C4RV();
         m_tree->set_key_tag(m_id, key_tag);
     }
 
-    inline void set_val(cspan const& val)
+    inline void set_val(csubs const& val)
     {
         _C4RV();
         m_tree->_set_val(m_id, val);
@@ -210,14 +210,14 @@ public:
         m_tree->_set_val(m_id, sp);
     }
 
-    inline void set_val_tag(cspan const& val_tag) const
+    inline void set_val_tag(csubs const& val_tag) const
     {
         _C4RV();
         m_tree->set_val_tag(m_id, val_tag);
     }
 
     template< class T >
-    inline cspan to_arena(T const& s) const
+    inline csubs to_arena(T const& s) const
     {
         _C4RV();
         return m_tree->to_arena(s);
@@ -226,7 +226,7 @@ public:
 public:
 
     /** O(num_children) */
-    NodeRef operator[] (cspan const& k)
+    NodeRef operator[] (csubs const& k)
     {
         C4_ASSERT( ! is_seed());
         C4_ASSERT(valid());
@@ -248,7 +248,7 @@ public:
 public:
 
     /** O(num_children) */
-    NodeRef const operator[] (cspan const& k) const
+    NodeRef const operator[] (csubs const& k) const
     {
         C4_ASSERT( ! is_seed());
         C4_ASSERT(valid());
@@ -321,7 +321,7 @@ public:
         _apply(v);
     }
 
-    inline void operator= (cspan const& v)
+    inline void operator= (csubs const& v)
     {
         _apply_seed();
         _apply(v);
@@ -331,14 +331,14 @@ public:
     inline void operator= (const char (&v)[N])
     {
         _apply_seed();
-        cspan sv;
+        csubs sv;
         sv.assign<N>(v);
         _apply(sv);
     }
 
 public:
 
-    inline NodeRef& operator<< (cspan const& s) // this overload is needed to prevent ambiguity (there's also << for writing a span to a stream)
+    inline NodeRef& operator<< (csubs const& s) // this overload is needed to prevent ambiguity (there's also << for writing a span to a stream)
     {
         _apply_seed();
         write(this, s);
@@ -394,7 +394,7 @@ public:
     }
 
     template< class T >
-    void get_if(cspan const& name, T *var) const
+    void get_if(csubs const& name, T *var) const
     {
         auto ch = find_child(name);
         if(ch.valid())
@@ -404,7 +404,7 @@ public:
     }
 
     template< class T >
-    void get_if(cspan const& name, T *var, T const& fallback) const
+    void get_if(csubs const& name, T *var, T const& fallback) const
     {
         auto ch = find_child(name);
         if(ch.valid())
@@ -442,7 +442,7 @@ private:
         }
     }
 
-    inline void _apply(cspan const& v)
+    inline void _apply(csubs const& v)
     {
         m_tree->_set_val(m_id, v);
     }
@@ -577,7 +577,7 @@ public:
     }
 
     //! remove a child by name
-    inline void remove_child(cspan key)
+    inline void remove_child(csubs key)
     {
         _C4RV();
         size_t child = m_tree->find_child(m_id, key);
@@ -689,7 +689,7 @@ private:
      * size is set to a value different from NONE. Otherwise, when operator[]
      * does find the child then this member is empty: the string is null and
      * the size is NONE. */
-    cspan  m_seed;
+    csubs  m_seed;
 
 #undef _C4RV
 };
