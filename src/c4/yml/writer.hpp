@@ -7,8 +7,8 @@
 #ifndef _C4_YML_COMMON_HPP_
 #include "./common.hpp"
 #endif
-#ifndef _C4_YML_SPAN_HPP_
-#include "./span.hpp"
+#ifndef _C4_YML_SUBS_HPP_
+#include "./subs.hpp"
 #endif
 
 namespace c4 {

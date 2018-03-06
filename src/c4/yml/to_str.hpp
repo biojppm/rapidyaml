@@ -5,7 +5,7 @@
 #include <inttypes.h>
 #include <type_traits>
 
-#include "./span.hpp"
+#include "./subs.hpp"
 
 namespace c4 {
 namespace yml {

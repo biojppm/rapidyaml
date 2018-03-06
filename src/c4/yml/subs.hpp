@@ -25,22 +25,22 @@ inline OStream& operator<< (OStream& s, basic_substring< C > sp)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 template< class C, class Impl >
-struct _basic_span_crtp;
+struct _basic_substring_crtp;
 
 /** specialize for const chars */
 template< class C, class Impl >
-struct _basic_span_crtp< const C, Impl >
+struct _basic_substring_crtp< const C, Impl >
 {
 #define _c4this   static_cast<      Impl*>(this)
 #define _c4cthis  static_cast<const Impl*>(this)
 
     // allow construction and assignments from non-const chars
-    _basic_span_crtp() {}
+    _basic_substring_crtp() {}
 
     template< size_t N > explicit
-    _basic_span_crtp(C (&s_)[N]) { _c4this->str = s_; _c4this->len = N-1; }
-    _basic_span_crtp(C *s_, size_t len_) { _c4this->str = s_; _c4this->len = len_; }
-    _basic_span_crtp(C *beg_, C *end_) { C4_ASSERT(end_ >= beg_); _c4this->str = beg_; _c4this->len = end_ - beg_;  }
+    _basic_substring_crtp(C (&s_)[N]) { _c4this->str = s_; _c4this->len = N-1; }
+    _basic_substring_crtp(C *s_, size_t len_) { _c4this->str = s_; _c4this->len = len_; }
+    _basic_substring_crtp(C *beg_, C *end_) { C4_ASSERT(end_ >= beg_); _c4this->str = beg_; _c4this->len = end_ - beg_;  }
 
     template< size_t N >
     void assign(C (&s_)[N]) { _c4this->str = s; _c4this->len = N-1; }
@@ -59,13 +59,13 @@ struct _basic_span_crtp< const C, Impl >
 /** since there's a specialization for const C, here we can provide methods
  * which modify the string, provided they don't expand it. */
 template< class C, class Impl >
-struct _basic_span_crtp
+struct _basic_substring_crtp
 {
 #define _c4this   static_cast<      Impl*>(this)
 #define _c4cthis  static_cast<const Impl*>(this)
 public:
 
-    using const_impl_type = _basic_span_crtp< const C, Impl >;
+    using const_impl_type = _basic_substring_crtp< const C, Impl >;
 
     void reverse()
     {
@@ -131,10 +131,10 @@ public:
 //-----------------------------------------------------------------------------
 /** a span of characters and a length. Works like a writeable string_view. */
 template< class C >
-class basic_substring : public _basic_span_crtp< C, basic_substring<C> >
+class basic_substring : public _basic_substring_crtp< C, basic_substring<C> >
 {
 
-    using base_crtp = _basic_span_crtp< C, basic_substring<C> >;
+    using base_crtp = _basic_substring_crtp< C, basic_substring<C> >;
 
 public:
 
