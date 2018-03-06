@@ -33,9 +33,9 @@ struct WriterFile
 
     WriterFile(FILE *f = nullptr) : m_file(f ? f : stdout), m_pos(0) {}
 
-    inline span _get(bool /*error_on_excess*/)
+    inline subs _get(bool /*error_on_excess*/)
     {
-        span sp;
+        subs sp;
         sp.str = nullptr;
         sp.len = m_pos;
         return sp;
@@ -57,7 +57,7 @@ struct WriterFile
         m_pos += rc.num_times;
     }
 
-    inline void _do_write(cspan const& sp)
+    inline void _do_write(csubs sp)
     {
         if(sp.empty()) return;
         if(m_file)
@@ -74,14 +74,14 @@ struct WriterFile
 /** a writer to a string span */
 struct WriterSpan
 {
-    span   m_span;
+    subs   m_span;
     size_t m_pos;
 
-    WriterSpan(span const& sp) : m_span(sp), m_pos(0) {}
+    WriterSpan(subs const& sp) : m_span(sp), m_pos(0) {}
 
-    inline span _get(bool error_on_excess)
+    inline subs _get(bool error_on_excess)
     {
-        span sp = m_span;
+        subs sp = m_span;
         if(m_pos > sp.len)
         {
             sp.len = m_pos;
@@ -117,7 +117,7 @@ struct WriterSpan
         m_pos += rc.num_times;
     }
 
-    inline void _do_write(cspan const& sp)
+    inline void _do_write(csubs sp)
     {
         if(sp.empty()) return;
         if(m_pos + sp.len <= m_span.len)

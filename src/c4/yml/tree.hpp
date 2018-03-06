@@ -100,8 +100,8 @@ public:
 
 struct NodeScalar
 {
-    cspan tag;
-    cspan scalar;
+    csubs tag;
+    csubs scalar;
 
     /// initialize as an empty scalar
 
@@ -111,33 +111,33 @@ struct NodeScalar
 
     template< size_t N >
     inline NodeScalar(const char (&s)[N]      ) : tag(), scalar(s             ) {}
-    inline NodeScalar(cspan const& s          ) : tag(), scalar(s             ) {}
-    inline NodeScalar(const char*  s          ) : tag(), scalar(to_cspan(s)   ) {}
+    inline NodeScalar(csubs const& s          ) : tag(), scalar(s             ) {}
+    inline NodeScalar(const char*  s          ) : tag(), scalar(to_csubs(s)   ) {}
     inline NodeScalar(const char*  s, size_t n) : tag(), scalar(s          , n) {}
 
     /// initialize as a tagged scalar
 
     template< size_t M >
-    inline NodeScalar(cspan const& t           , const char (&s)[M]       ) : tag(t    ), scalar(s              ) {}
-    inline NodeScalar(cspan const& t           , cspan const& s           ) : tag(t    ), scalar(s              ) {}
-    inline NodeScalar(cspan const& t           , const char * s           ) : tag(t    ), scalar(to_cspan(s)    ) {}
-    inline NodeScalar(cspan const& t           , const char * s, size_t ns) : tag(t    ), scalar(s          , ns) {}
+    inline NodeScalar(csubs const& t           , const char (&s)[M]       ) : tag(t    ), scalar(s              ) {}
+    inline NodeScalar(csubs const& t           , csubs const& s           ) : tag(t    ), scalar(s              ) {}
+    inline NodeScalar(csubs const& t           , const char * s           ) : tag(t    ), scalar(to_csubs(s)    ) {}
+    inline NodeScalar(csubs const& t           , const char * s, size_t ns) : tag(t    ), scalar(s          , ns) {}
 
     template< size_t M >
-    inline NodeScalar(const char * t           , const char (&s)[M]       ) : tag(to_cspan(t)), scalar(s              ) {}
-    inline NodeScalar(const char * t           , cspan const& s           ) : tag(to_cspan(t)), scalar(s              ) {}
-    inline NodeScalar(const char * t           , const char * s           ) : tag(to_cspan(t)), scalar(to_cspan(s)    ) {}
-    inline NodeScalar(const char * t           , const char * s, size_t ns) : tag(to_cspan(t)), scalar(s          , ns) {}
+    inline NodeScalar(const char * t           , const char (&s)[M]       ) : tag(to_csubs(t)), scalar(s              ) {}
+    inline NodeScalar(const char * t           , csubs const& s           ) : tag(to_csubs(t)), scalar(s              ) {}
+    inline NodeScalar(const char * t           , const char * s           ) : tag(to_csubs(t)), scalar(to_csubs(s)    ) {}
+    inline NodeScalar(const char * t           , const char * s, size_t ns) : tag(to_csubs(t)), scalar(s          , ns) {}
 
     template< size_t M >
     inline NodeScalar(const char * t, size_t nt, const char (&s)[M]       ) : tag(t, nt), scalar(s              ) {}
-    inline NodeScalar(const char * t, size_t nt, cspan const& s           ) : tag(t, nt), scalar(s              ) {}
-    inline NodeScalar(const char * t, size_t nt, const char * s           ) : tag(t, nt), scalar(to_cspan(s)    ) {}
+    inline NodeScalar(const char * t, size_t nt, csubs const& s           ) : tag(t, nt), scalar(s              ) {}
+    inline NodeScalar(const char * t, size_t nt, const char * s           ) : tag(t, nt), scalar(to_csubs(s)    ) {}
     inline NodeScalar(const char * t, size_t nt, const char * s, size_t ns) : tag(t, nt), scalar(s          , ns) {}
 
     template< size_t N, size_t M > inline NodeScalar(const char (&t)[N], const char (&s)[M]       ) : tag(t), scalar(s              ) {}
-    template< size_t N >           inline NodeScalar(const char (&t)[N], cspan const& s           ) : tag(t), scalar(s              ) {}
-    template< size_t N >           inline NodeScalar(const char (&t)[N], const char * s           ) : tag(t), scalar(to_cspan(s)    ) {}
+    template< size_t N >           inline NodeScalar(const char (&t)[N], csubs const& s           ) : tag(t), scalar(s              ) {}
+    template< size_t N >           inline NodeScalar(const char (&t)[N], const char * s           ) : tag(t), scalar(to_csubs(s)    ) {}
     template< size_t N >           inline NodeScalar(const char (&t)[N], const char * s, size_t ns) : tag(t), scalar(s          , ns) {}
 
     bool empty() const { return tag.empty() && scalar.empty(); }
@@ -221,7 +221,7 @@ public:
     NodeScalar m_key;
     NodeScalar m_val;
 
-    cspan      m_anchor;
+    csubs      m_anchor;
 
     size_t     m_parent;
     size_t     m_first_child;
@@ -235,15 +235,15 @@ public:
     const char* type_str() const { return type_str(m_type); }
     static const char* type_str(NodeType_e ty);
 
-    cspan const& key() const { C4_ASSERT(has_key()); return m_key.scalar; }
-    cspan const& key_tag() const { C4_ASSERT(has_key_tag()); return m_key.tag; }
+    csubs const& key() const { C4_ASSERT(has_key()); return m_key.scalar; }
+    csubs const& key_tag() const { C4_ASSERT(has_key_tag()); return m_key.tag; }
     NodeScalar const& keysc() const { C4_ASSERT(has_key()); return m_key; }
 
-    cspan const& val() const { C4_ASSERT(has_val()); return m_val.scalar; }
-    cspan const& val_tag() const { C4_ASSERT(has_val_tag()); return m_val.tag; }
+    csubs const& val() const { C4_ASSERT(has_val()); return m_val.scalar; }
+    csubs const& val_tag() const { C4_ASSERT(has_val_tag()); return m_val.tag; }
     NodeScalar const& valsc() const { C4_ASSERT(has_val()); return m_val; }
 
-    cspan const& anchor() const { return m_anchor; }
+    csubs const& anchor() const { return m_anchor; }
 
 public:
 
@@ -282,7 +282,7 @@ private:
     size_t m_free_head;
     size_t m_free_tail;
 
-    span   m_arena;
+    subs   m_arena;
     size_t m_arena_pos;
 
     Allocator m_alloc;
@@ -362,15 +362,15 @@ public:
     NodeType_e type(size_t node) const { return (NodeType_e)(_p(node)->m_type & _TYMASK); }
     const char* type_str(size_t node) const { return NodeType::type_str(_p(node)->m_type); }
 
-    cspan const& key(size_t node) const { C4_ASSERT(has_key(node)); return _p(node)->m_key.scalar; }
-    cspan const& key_tag(size_t node) const { C4_ASSERT(has_key_tag(node)); return _p(node)->m_key.tag; }
+    csubs const& key(size_t node) const { C4_ASSERT(has_key(node)); return _p(node)->m_key.scalar; }
+    csubs const& key_tag(size_t node) const { C4_ASSERT(has_key_tag(node)); return _p(node)->m_key.tag; }
     NodeScalar const& keysc(size_t node) const { C4_ASSERT(has_key(node)); return _p(node)->m_key; }
 
-    cspan const& val(size_t node) const { C4_ASSERT(has_val(node)); return _p(node)->m_val.scalar; }
-    cspan const& val_tag(size_t node) const { C4_ASSERT(has_val_tag(node)); return _p(node)->m_val.tag; }
+    csubs const& val(size_t node) const { C4_ASSERT(has_val(node)); return _p(node)->m_val.scalar; }
+    csubs const& val_tag(size_t node) const { C4_ASSERT(has_val_tag(node)); return _p(node)->m_val.tag; }
     NodeScalar const& valsc(size_t node) const { C4_ASSERT(has_val(node)); return _p(node)->m_val; }
 
-    cspan const& anchor(size_t node) const { return _p(node)->m_anchor; }
+    csubs const& anchor(size_t node) const { return _p(node)->m_anchor; }
 
 public:
 
@@ -427,7 +427,7 @@ public:
     size_t first_child(size_t node) const { return _p(node)->m_first_child; }
     size_t last_child(size_t node) const { return _p(node)->m_last_child; }
     size_t child(size_t node, size_t pos) const;
-    size_t find_child(size_t node, cspan const& key) const;
+    size_t find_child(size_t node, csubs const& key) const;
 
     /** O(#num_siblings) */
     /** counts with this */
@@ -438,23 +438,23 @@ public:
     size_t first_sibling(size_t node) const { return is_root(node) ? node : _p(_p(node)->m_parent)->m_first_child; }
     size_t last_sibling(size_t node) const { return is_root(node) ? node : _p(_p(node)->m_parent)->m_last_child; }
     size_t sibling(size_t node, size_t pos) const { return child(_p(node)->m_parent, pos); }
-    size_t find_sibling(size_t node, cspan const& key) const { return find_child(_p(node)->m_parent, key); }
+    size_t find_sibling(size_t node, csubs const& key) const { return find_child(_p(node)->m_parent, key); }
 
 public:
 
-    void to_val(size_t node, cspan const& val, int more_flags = 0);
-    void to_keyval(size_t node, cspan const& key, cspan const& val, int more_flags = 0);
+    void to_val(size_t node, csubs const& val, int more_flags = 0);
+    void to_keyval(size_t node, csubs const& key, csubs const& val, int more_flags = 0);
     void to_map(size_t node, int more_flags = 0);
-    void to_map(size_t node, cspan const& key, int more_flags = 0);
+    void to_map(size_t node, csubs const& key, int more_flags = 0);
     void to_seq(size_t node, int more_flags = 0);
-    void to_seq(size_t node, cspan const& key, int more_flags = 0);
+    void to_seq(size_t node, csubs const& key, int more_flags = 0);
     void to_doc(size_t node, int more_flags = 0);
     void to_stream(size_t node, int more_flags = 0);
 
-    void set_val_tag(size_t node, cspan const& tag);
-    void set_key_tag(size_t node, cspan const& tag);
+    void set_val_tag(size_t node, csubs const& tag);
+    void set_key_tag(size_t node, csubs const& tag);
 
-    void set_anchor(size_t node, cspan const& anchor);
+    void set_anchor(size_t node, csubs const& anchor);
     void rem_anchor(size_t node);
 
     inline void _add_flags(size_t node, NodeType_e f) { _p(node)->m_type = (f | _p(node)->m_type); }
@@ -466,7 +466,7 @@ public:
     inline void _set_flags(size_t node, NodeType_e f) { _p(node)->m_type = f; }
     inline void _set_flags(size_t node, int        f) { _p(node)->m_type = f; }
 
-    void _set_key(size_t node, cspan const& key, int more_flags = 0)
+    void _set_key(size_t node, csubs const& key, int more_flags = 0)
     {
         _p(node)->m_key.scalar = key;
         _add_flags(node, KEY|more_flags);
@@ -477,7 +477,7 @@ public:
         _add_flags(node, KEY|more_flags);
     }
 
-    void _set_val(size_t node, cspan const& val, int more_flags = 0)
+    void _set_val(size_t node, csubs const& val, int more_flags = 0)
     {
         C4_ASSERT(num_children(node) == 0);
         C4_ASSERT( ! is_container(node));
@@ -664,8 +664,8 @@ public:
     NodeRef       rootref();
     NodeRef const rootref() const;
 
-    NodeRef       operator[] (cspan key);
-    NodeRef const operator[] (cspan key) const;
+    NodeRef       operator[] (csubs key);
+    NodeRef const operator[] (csubs key) const;
 
     NodeRef       operator[] (size_t i);
     NodeRef const operator[] (size_t i) const;
@@ -673,9 +673,9 @@ public:
 public:
 
     template< class T >
-    cspan to_arena(T const& a)
+    csubs to_arena(T const& a)
     {
-        span rem(m_arena.subspan(m_arena_pos));
+        subs rem(m_arena.subspan(m_arena_pos));
         size_t num = to_str(rem, a);
         if(num > rem.len)
         {
@@ -687,14 +687,14 @@ public:
         return rem;
     }
 
-    inline bool in_arena(cspan const& s) const
+    inline bool in_arena(csubs const& s) const
     {
         return m_arena.contains(s);
     }
 
 private:
 
-    span _grow_arena(size_t more)
+    subs _grow_arena(size_t more)
     {
         size_t cap = m_arena_pos + more;
         cap = cap < 2 * m_arena.len ? 2 * m_arena.len : cap;
@@ -703,20 +703,20 @@ private:
         return m_arena.subspan(m_arena_pos);
     }
 
-    span _request_span(size_t sz)
+    subs _request_span(size_t sz)
     {
-        span s;
+        subs s;
         s = m_arena.subspan(m_arena_pos, sz);
         m_arena_pos += sz;
         return s;
     }
 
-    inline span _relocated(cspan const& s, span const& next_arena) const
+    inline subs _relocated(csubs const& s, subs const& next_arena) const
     {
         C4_ASSERT(m_arena.contains(s));
         C4_ASSERT(m_arena.subspan(0, m_arena_pos).contains(s));
         auto pos = (s.str - m_arena.str);
-        span r(next_arena.str + pos, s.len);
+        subs r(next_arena.str + pos, s.len);
         C4_ASSERT(r.str - next_arena.str == pos);
         C4_ASSERT(next_arena.subspan(0, m_arena_pos).contains(r));
         return r;
@@ -726,7 +726,7 @@ private:
     void _copy(Tree const& that);
     void _move(Tree      & that);
 
-    void _relocate(span const& next_arena);
+    void _relocate(subs const& next_arena);
 
 };
 

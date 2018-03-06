@@ -8,13 +8,13 @@
 namespace c4 {
 namespace yml {
 
-template< class C > class basic_span;
+template< class C > class basic_substring;
 
-using span = basic_span< char >;
-using cspan = basic_span< const char >;
+using subs = basic_substring< char >;
+using csubs = basic_substring< const char >;
 
 template< class OStream, class C >
-inline OStream& operator<< (OStream& s, basic_span< C > sp)
+inline OStream& operator<< (OStream& s, basic_substring< C > sp)
 {
     s.write(sp.str, sp.len);
     return s;
@@ -131,10 +131,10 @@ public:
 //-----------------------------------------------------------------------------
 /** a span of characters and a length. Works like a writeable string_view. */
 template< class C >
-class basic_span : public _basic_span_crtp< C, basic_span<C> >
+class basic_substring : public _basic_span_crtp< C, basic_substring<C> >
 {
 
-    using base_crtp = _basic_span_crtp< C, basic_span<C> >;
+    using base_crtp = _basic_span_crtp< C, basic_substring<C> >;
 
 public:
 
@@ -146,8 +146,8 @@ public:
     using  CC = typename std::add_const< C >::type;
     using NCC = typename std::remove_const< C >::type;
 
-    using basic_cspan  = basic_span<  CC >;
-    using basic_ncspan = basic_span< NCC >;
+    using basic_cspan  = basic_substring<  CC >;
+    using basic_ncspan = basic_substring< NCC >;
 
     using char_type = C;
 
@@ -161,13 +161,13 @@ public:
 
 public:
 
-    basic_span() : str(nullptr), len(0) {}
+    basic_substring() : str(nullptr), len(0) {}
 
-    basic_span(basic_span const&) = default;
-    basic_span(basic_span     &&) = default;
+    basic_substring(basic_substring const&) = default;
+    basic_substring(basic_substring     &&) = default;
 
-    basic_span& operator= (basic_span const&) = default;
-    basic_span& operator= (basic_span     &&) = default;
+    basic_substring& operator= (basic_substring const&) = default;
+    basic_substring& operator= (basic_substring     &&) = default;
 
 public:
 
@@ -181,13 +181,13 @@ public:
      * @see c4::yml::to_span()
      * @see c4::yml::to_cspan() */
     template< size_t N >
-    basic_span(C (&s_)[N]) : str(s_), len(N-1) {}
-    basic_span(C *s_, size_t len_) : str(s_), len(len_) { C4_ASSERT(str || !len_); }
-    basic_span(C *beg_, C *end_) : str(beg_), len(end_ - beg_) { C4_ASSERT(end_ >= beg_); }
+    basic_substring(C (&s_)[N]) : str(s_), len(N-1) {}
+    basic_substring(C *s_, size_t len_) : str(s_), len(len_) { C4_ASSERT(str || !len_); }
+    basic_substring(C *beg_, C *end_) : str(beg_), len(end_ - beg_) { C4_ASSERT(end_ >= beg_); }
 
 	//basic_span& operator= (C *s_) { this->assign(s_); return *this; }
 	template< size_t N >
-	basic_span& operator= (C (&s_)[N]) { this->assign<N>(s_); return *this; }
+	basic_substring& operator= (C (&s_)[N]) { this->assign<N>(s_); return *this; }
 
     //void assign(C *s_) { str = (s_); len = (s_ ? strlen(s_) : 0); }
     /** the overload for receiving a single C* pointer will always
@@ -259,19 +259,19 @@ public:
 public:
 
     /** return [first,first+num[ */
-    basic_span subspan(size_t first, size_t num = npos) const
+    basic_substring subspan(size_t first, size_t num = npos) const
     {
         size_t rnum = num != npos ? num : len - first;
         C4_ASSERT((first >= 0 && first + rnum <= len) || num == 0);
-        return basic_span(str + first, rnum);
+        return basic_substring(str + first, rnum);
     }
 
     /** return [first,last[ */
-    basic_span range(size_t first, size_t last=npos) const
+    basic_substring range(size_t first, size_t last=npos) const
     {
         last = last != npos ? last : len;
         C4_ASSERT(first >= 0 && last <= len);
-        return basic_span(str + first, last - first);
+        return basic_substring(str + first, last - first);
     }
 
     /** true if *this is a subspan of that */
@@ -288,14 +288,14 @@ public:
 
 public:
 
-    basic_span right_of(size_t pos, bool include_pos = false) const
+    basic_substring right_of(size_t pos, bool include_pos = false) const
     {
         if(pos == npos) return subspan(0, 0);
         if( ! include_pos) ++pos;
         return subspan(pos);
     }
 
-    basic_span left_of(size_t pos, bool include_pos = false) const
+    basic_substring left_of(size_t pos, bool include_pos = false) const
     {
         if(pos == npos) return *this;
         if( ! include_pos && pos > 0) --pos;
@@ -304,7 +304,7 @@ public:
 
 public:
 
-    basic_span left_of(basic_cspan const& ss) const
+    basic_substring left_of(basic_cspan const& ss) const
     {
         auto ssb = ss.begin();
         auto b = begin();
@@ -319,7 +319,7 @@ public:
         }
     }
 
-    basic_span right_of(basic_cspan const& ss) const
+    basic_substring right_of(basic_cspan const& ss) const
     {
         auto sse = ss.end();
         auto b = begin();
@@ -337,34 +337,34 @@ public:
 public:
 
     /** trim left */
-    basic_span triml(const C c) const
+    basic_substring triml(const C c) const
     {
         return right_of(first_not_of(c), /*include_pos*/true);
     }
     /** trim left ANY of the characters */
-    basic_span triml(basic_cspan chars) const
+    basic_substring triml(basic_cspan chars) const
     {
         return right_of(first_not_of(chars), /*include_pos*/true);
     }
 
     /** trim right */
-    basic_span trimr(const C c) const
+    basic_substring trimr(const C c) const
     {
         return left_of(last_not_of(c), /*include_pos*/true);
     }
     /** trim right ANY of the characters */
-    basic_span trimr(basic_cspan chars) const
+    basic_substring trimr(basic_cspan chars) const
     {
         return left_of(last_not_of(chars), /*include_pos*/true);
     }
 
     /** trim left and right */
-    basic_span trim(const C c) const
+    basic_substring trim(const C c) const
     {
         return triml(c).trimr(c);
     }
     /** trim left and right ANY of the characters */
-    basic_span trim(basic_cspan const& chars) const
+    basic_substring trim(basic_cspan const& chars) const
     {
         return triml(chars).trimr(chars);
     }
@@ -621,7 +621,7 @@ public:
 public:
 
     /** get the first span consisting exclusively of non-empty characters */
-    basic_span first_non_empty_span() const
+    basic_substring first_non_empty_span() const
     {
         basic_cspan empty_chars(" \n\r\t");
         size_t pos = first_not_of(empty_chars);
@@ -632,9 +632,9 @@ public:
     }
 
     /** get the first span which can be interpreted as an unsigned integer */
-    basic_span first_uint_span() const
+    basic_substring first_uint_span() const
     {
-        basic_span ne = first_non_empty_span();
+        basic_substring ne = first_non_empty_span();
         for(size_t i = 0; i < ne.len; ++i)
         {
             char c = ne.str[i];
@@ -647,9 +647,9 @@ public:
     }
 
     /** get the first span which can be interpreted as a signed integer */
-    basic_span first_int_span() const
+    basic_substring first_int_span() const
     {
-        basic_span ne = first_non_empty_span();
+        basic_substring ne = first_non_empty_span();
         for(size_t i = 0; i < ne.len; ++i)
         {
             char c = ne.str[i];
@@ -666,9 +666,9 @@ public:
     }
 
     /** get the first span which can be interpreted as a real (floating-point) number */
-    basic_span first_real_span() const
+    basic_substring first_real_span() const
     {
-        basic_span ne = first_non_empty_span();
+        basic_substring ne = first_non_empty_span();
         for(size_t i = 0; i < ne.len; ++i)
         {
             char c = ne.str[i];
@@ -710,9 +710,9 @@ public:
  *
  * @see For a more detailed explanation on why the overloads cannot
  * coexist, see http://cplusplus.bordoon.com/specializeForCharacterArrays.html */
-inline span to_span(char *s)
+inline subs to_subs(char *s)
 {
-    return span(s, s ? strlen(s) : 0);
+    return subs(s, s ? strlen(s) : 0);
 }
 
 /** Because of a C++ limitation, spans cannot provide simultaneous
@@ -723,9 +723,9 @@ inline span to_span(char *s)
  *
  * @see For a more detailed explanation on why the overloads cannot
  * coexist, see http://cplusplus.bordoon.com/specializeForCharacterArrays.html */
-inline cspan to_cspan(char *s)
+inline csubs to_csubs(char *s)
 {
-    return cspan(s, s ? strlen(s) : 0);
+    return csubs(s, s ? strlen(s) : 0);
 }
 
 /** Because of a C++ limitation, spans cannot provide simultaneous
@@ -737,9 +737,9 @@ inline cspan to_cspan(char *s)
  *
  * @see For a more detailed explanation on why the overloads cannot
  * coexist, see http://cplusplus.bordoon.com/specializeForCharacterArrays.html */
-inline cspan to_cspan(const char *s)
+inline csubs to_csubs(const char *s)
 {
-    return cspan(s, s ? strlen(s) : 0);
+    return csubs(s, s ? strlen(s) : 0);
 }
 
 } // namespace yml

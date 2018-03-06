@@ -53,11 +53,11 @@ NodeRef const Tree::rootref() const
     return NodeRef(const_cast< Tree* >(this), root_id());
 }
 
-NodeRef Tree::operator[] (cspan key)
+NodeRef Tree::operator[] (csubs key)
 {
     return rootref()[key];
 }
-NodeRef const Tree::operator[] (cspan key) const
+NodeRef const Tree::operator[] (csubs key) const
 {
     return rootref()[key];
 }
@@ -140,7 +140,7 @@ void Tree::_copy(Tree const& that)
     memcpy(m_buf, that.m_buf, m_cap * sizeof(NodeData));
     if(m_arena.len)
     {
-        span arena((char*) m_alloc.allocate(m_arena.len, m_arena.str), m_arena.len);
+        subs arena((char*) m_alloc.allocate(m_arena.len, m_arena.str), m_arena.len);
         _relocate(arena); // does a memcpy and updates nodes with spans using the old arena
         m_arena = arena;
     }
@@ -153,7 +153,7 @@ void Tree::_move(Tree & that)
     that.m_arena = {};
 }
 
-void Tree::_relocate(span const& next_arena)
+void Tree::_relocate(subs const& next_arena)
 {
     memcpy(next_arena.str, m_arena.str, m_arena_pos);
     for(NodeData *n = m_buf, *e = m_buf + m_cap; n != e; ++n)
@@ -200,7 +200,7 @@ void Tree::reserve(size_t cap, size_t arena_cap)
 
     if(arena_cap > m_arena.len)
     {
-        span buf;
+        subs buf;
         buf.str = (char*) m_alloc.allocate(arena_cap, m_arena.str);
         buf.len = arena_cap;
         if(m_arena.str)
@@ -633,12 +633,12 @@ struct detail::ReferenceResolver
         {
             auto & rd = refs.top(i);
             if( ! rd.is_ref) continue;
-            cspan refname = t->val(rd.node).subspan(1);
+            csubs refname = t->val(rd.node).subspan(1);
             auto const* ra = &rd;
             while(ra->prev_anchor != npos)
             {
                 ra = &refs[ra->prev_anchor];
-                cspan anchor_name = t->anchor(ra->node);
+                csubs anchor_name = t->anchor(ra->node);
                 if(anchor_name == refname)
                 {
                     rd.target = ra->node;
@@ -718,7 +718,7 @@ size_t Tree::child_pos(size_t node, size_t ch) const
     return npos;
 }
 
-size_t Tree::find_child(size_t node, cspan const& name) const
+size_t Tree::find_child(size_t node, csubs const& name) const
 {
     C4_ASSERT(node != NONE);
     if(_p(node)->is_val()) return NONE;
@@ -745,7 +745,7 @@ size_t Tree::find_child(size_t node, cspan const& name) const
 
 //-----------------------------------------------------------------------------
 
-void Tree::to_val(size_t node, cspan const& val, int more_flags)
+void Tree::to_val(size_t node, csubs const& val, int more_flags)
 {
     C4_ASSERT( ! has_children(node));
     C4_ASSERT(parent(node) == NONE || ! parent_is_map(node));
@@ -754,7 +754,7 @@ void Tree::to_val(size_t node, cspan const& val, int more_flags)
     _p(node)->m_val = val;
 }
 
-void Tree::to_keyval(size_t node, cspan const& key, cspan const& val, int more_flags)
+void Tree::to_keyval(size_t node, csubs const& key, csubs const& val, int more_flags)
 {
     C4_ASSERT( ! has_children(node));
     //C4_ASSERT( ! key.empty());
@@ -764,21 +764,21 @@ void Tree::to_keyval(size_t node, cspan const& key, cspan const& val, int more_f
     _p(node)->m_val = val;
 }
 
-void Tree::set_key_tag(size_t node, cspan const& tag)
+void Tree::set_key_tag(size_t node, csubs const& tag)
 {
     C4_ASSERT(has_key(node));
     _p(node)->m_key.tag = tag;
     _add_flags(node, KEYTAG);
 }
 
-void Tree::set_val_tag(size_t node, cspan const& tag)
+void Tree::set_val_tag(size_t node, csubs const& tag)
 {
     //C4_ASSERT(has_val());
     _p(node)->m_val.tag = tag;
     _add_flags(node, VALTAG);
 }
 
-void Tree::set_anchor(size_t node, cspan const& anchor)
+void Tree::set_anchor(size_t node, csubs const& anchor)
 {
     _p(node)->m_anchor = anchor;
     _add_flags(node, ANCHOR);
@@ -799,7 +799,7 @@ void Tree::to_map(size_t node, int more_flags)
     _p(node)->m_val.clear();
 }
 
-void Tree::to_map(size_t node, cspan const& key, int more_flags)
+void Tree::to_map(size_t node, csubs const& key, int more_flags)
 {
     C4_ASSERT( ! has_children(node));
     C4_ASSERT( ! key.empty());
@@ -817,7 +817,7 @@ void Tree::to_seq(size_t node, int more_flags)
     _p(node)->m_val.clear();
 }
 
-void Tree::to_seq(size_t node, cspan const& key, int more_flags)
+void Tree::to_seq(size_t node, csubs const& key, int more_flags)
 {
     C4_ASSERT( ! has_children(node));
     C4_ASSERT(parent(node) == NONE || parent_is_map(node));
