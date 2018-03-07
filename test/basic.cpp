@@ -212,7 +212,7 @@ TEST(to_str, trimmed_fit_int)
     char buf2[8+1];
     C4_ASSERT(sizeof(buf2) == sz+1);
     subs sp2(buf2, sizeof(buf2)); // make sure it spans the whole buffer
-    sp2 = to_str_span(sp2, v);
+    sp2 = to_str_subs(sp2, v);
     EXPECT_EQ(sp2, sp); // ehemm.
     std::string str;
     catrs(&str, v);
@@ -233,7 +233,7 @@ TEST(to_str, trimmed_fit_float)
     char buf2[7 + 1];
     C4_ASSERT(sizeof(buf2) == sz+1);
     subs sp2(buf2, sizeof(buf2)); // make sure it spans the whole buffer
-    sp2 = to_str_span(sp2, v);
+    sp2 = to_str_subs(sp2, v);
     EXPECT_EQ(sp2, sp); // ehemm.
     std::string str;
     catrs(&str, v);
@@ -254,12 +254,11 @@ TEST(to_str, trimmed_fit_double)
     char buf2[7 + 1];
     C4_ASSERT(sizeof(buf2) == sz+1);
     subs sp2(buf2, sizeof(buf2)); // make sure it spans the whole buffer
-    sp2 = to_str_span(sp2, v);
+    sp2 = to_str_subs(sp2, v);
     EXPECT_EQ(sp2, sp); // ehemm.
     std::string str;
     catrs(&str, v);
     EXPECT_EQ(sp, to_csubs(str)); // ehemm.
-
 }
 
 //-----------------------------------------------------------------------------
