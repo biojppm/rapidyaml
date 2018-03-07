@@ -78,6 +78,10 @@ inline void catrs(CharOwningContainer *cont, Args const& ...args)
     {
         buf = to_subs(*cont);
         ret = cat(buf, args...);
+        if(ret != buf.len)
+        {
+            cont->resize(ret);
+        }
     }
 }
 
@@ -91,6 +95,10 @@ inline void catseprs(CharOwningContainer *cont, Sep const& sep, Args const& ...a
     {
         buf = to_subs(*cont);
         ret = catsep(buf, sep, args...);
+        if(ret != buf.len)
+        {
+            cont->resize(ret);
+        }
     }
 }
 
@@ -247,7 +255,7 @@ inline size_t from_str_untrimmed(csubs buf, ty *v)  \
 #endif
 
 template< class T >
-inline subs to_str_span(subs buf, T const& v)
+inline subs to_str_subs(subs buf, T const& v)
 {
     size_t sz = to_str(buf, v);
     return buf.left_of(sz <= buf.len ? sz : buf.len);
@@ -279,9 +287,9 @@ inline size_t to_str(subs buf, ty v)                                    \
     int iret = snprintf(buf.str, buf.len, "%" pri_fmt, v);              \
     C4_ASSERT(iret >= 0);                                               \
     size_t ret = (size_t) iret;                                         \
-    if(ret == buf.len)                                                  \
+    if(ret >= buf.len)                                                  \
     {                                                                   \
-        ++iret; /* snprintf() reserves the last character to write \0 */\
+        ++ret; /* snprintf() reserves the last character to write \0 */ \
     }                                                                   \
     return ret;                                                         \
 }
