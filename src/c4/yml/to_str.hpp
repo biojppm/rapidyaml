@@ -380,18 +380,24 @@ inline size_t to_str(subs buf, const char *v)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+
+inline size_t cat(subs /*buf*/)
+{
+    return 0;
+}
+
 /** serialize the arguments to the given span.
  * @return the number of characters written to the buffer. */
 template< class Arg, class... Args >
 size_t cat(subs buf, Arg const& a, Args const& ...more)
 {
     size_t num = to_str(buf, a);
-    buf = buf.len >= num ? buf.sub(num) : subs{};
+    buf  = buf.len >= num ? buf.sub(num) : subs{};
     num += cat(buf, std::forward< Args const >(more)...);
     return num;
 }
 
-inline size_t cat(subs /*buf*/)
+inline size_t uncat(csubs /*buf*/)
 {
     return 0;
 }
@@ -405,14 +411,9 @@ size_t uncat(csubs buf, Arg & a, Args & ...more)
 {
     size_t num = from_str_untrimmed(buf, &a);
     if(num == npos) return npos;
-    buf = buf.len >= num ? buf.sub(num) : subs{};
+    buf  = buf.len >= num ? buf.sub(num) : subs{};
     num += uncat(buf, std::forward< Args >(more)...);
     return num;
-}
-
-inline size_t uncat(csubs /*buf*/)
-{
-    return 0;
 }
 
 
@@ -424,9 +425,9 @@ template< class Sep, class Arg, class... Args >
 size_t catsep(subs buf, Sep const& sep, Arg const& a, Args const& ...more)
 {
     size_t num = to_str(buf, sep);
-    buf = buf.len >= num ? buf.sub(num) : subs{};
+    buf  = buf.len >= num ? buf.sub(num) : subs{};
     num += to_str(buf, a);
-    buf = buf.len >= num ? buf.sub(num) : subs{};
+    buf  = buf.len >= num ? buf.sub(num) : subs{};
     num += catsep(buf, sep, std::forward< Args const >(more)...);
     return num;
 }
@@ -455,11 +456,11 @@ size_t format(subs buf, csubs fmt, Arg const& a, Args const& ...more)
     {
         size_t num = to_str(buf, fmt.sub(0, pos));
         size_t out = num;
-        buf = buf.len >= num ? buf.sub(num) : subs{};
-        num = to_str(buf, a);
+        buf  = buf.len >= num ? buf.sub(num) : subs{};
+        num  = to_str(buf, a);
         out += num;
-        buf = buf.len >= num ? buf.sub(num) : subs{};
-        num = format(buf, fmt.sub(pos + 2), std::forward< Args const >(more)...);
+        buf  = buf.len >= num ? buf.sub(num) : subs{};
+        num  = format(buf, fmt.sub(pos + 2), std::forward< Args const >(more)...);
         out += num;
         return out;
     }
