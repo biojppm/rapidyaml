@@ -4,104 +4,12 @@
 #include <stdio.h>
 #include <inttypes.h>
 #include <type_traits>
+#include <utility>
 
 #include "./subs.hpp"
 
 namespace c4 {
 namespace yml {
-
-//-----------------------------------------------------------------------------
-/** serialize the arguments to the given span.
- * @return the number of characters written to the buffer. */
-template< class Arg, class... Args >
-size_t cat(subs buf, Arg const& a, Args const& ...more)
-{
-    size_t num = to_str(buf, a);
-    buf = buf.len >= num ? buf.sub(num) : subs{};
-    num += cat(buf, more...);
-    return num;
-}
-
-inline size_t cat(subs /*buf*/)
-{
-    return 0;
-}
-
-/** deserialize the arguments from the given span.
- *
- * @return the number of characters read from the buffer. If a
- * conversion was not successful, return npos. */
-template< class Arg, class... Args >
-size_t uncat(csubs buf, Arg & a, Args & ...more)
-{
-    size_t num = from_str_untrimmed(buf, &a);
-    if(num == npos) return npos;
-    buf = buf.len >= num ? buf.sub(num) : subs{};
-    num += uncat(buf, more...);
-    return num;
-}
-
-inline size_t uncat(csubs /*buf*/)
-{
-    return 0;
-}
-
-//-----------------------------------------------------------------------------
-
-template< class Sep, class Arg, class... Args >
-size_t catsep(subs buf, Sep const& sep, Arg const& a, Args const& ...more)
-{
-    size_t num = to_str(buf, sep);
-    buf = buf.len >= num ? buf.sub(num) : subs{};
-    num += to_str(buf, a);
-    buf = buf.len >= num ? buf.sub(num) : subs{};
-    num += catsep(buf, sep, more...);
-    return num;
-}
-
-template< class Sep >
-inline size_t catsep(subs /*buf*/, Sep const& /*sep*/)
-{
-    return 0;
-}
-
-
-//-----------------------------------------------------------------------------
-
-template< class CharOwningContainer, class... Args >
-inline void catrs(CharOwningContainer *cont, Args const& ...args)
-{
-    subs buf = to_subs(*cont);
-    size_t ret = cat(buf, args...);
-    cont->resize(ret);
-    if(ret > buf.len)
-    {
-        buf = to_subs(*cont);
-        ret = cat(buf, args...);
-        if(ret != buf.len)
-        {
-            cont->resize(ret);
-        }
-    }
-}
-
-template< class CharOwningContainer, class Sep, class... Args >
-inline void catseprs(CharOwningContainer *cont, Sep const& sep, Args const& ...args)
-{
-    subs buf = to_subs(*cont);
-    size_t ret = catsep(buf, sep, args...);
-    cont->resize(ret);
-    if(ret > buf.len)
-    {
-        buf = to_subs(*cont);
-        ret = catsep(buf, sep, args...);
-        if(ret != buf.len)
-        {
-            cont->resize(ret);
-        }
-    }
-}
-
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -409,7 +317,7 @@ inline size_t from_str_untrimmed(csubs buf, char *v)
 }
 
 //-----------------------------------------------------------------------------
-inline size_t to_str(subs buf, csubs const& v)
+inline size_t to_str(subs buf, csubs v)
 {
     size_t len = buf.len < v.len ? buf.len : v.len;
     memcpy(buf.str, v.str, len);
@@ -467,6 +375,154 @@ inline size_t to_str(subs buf, const char (&v)[N])
 inline size_t to_str(subs buf, const char *v)
 {
     return to_str(buf, to_csubs(v));
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+/** serialize the arguments to the given span.
+ * @return the number of characters written to the buffer. */
+template< class Arg, class... Args >
+size_t cat(subs buf, Arg const& a, Args const& ...more)
+{
+    size_t num = to_str(buf, a);
+    buf = buf.len >= num ? buf.sub(num) : subs{};
+    num += cat(buf, std::forward< Args const >(more)...);
+    return num;
+}
+
+inline size_t cat(subs /*buf*/)
+{
+    return 0;
+}
+
+/** deserialize the arguments from the given span.
+ *
+ * @return the number of characters read from the buffer. If a
+ * conversion was not successful, return npos. */
+template< class Arg, class... Args >
+size_t uncat(csubs buf, Arg & a, Args & ...more)
+{
+    size_t num = from_str_untrimmed(buf, &a);
+    if(num == npos) return npos;
+    buf = buf.len >= num ? buf.sub(num) : subs{};
+    num += uncat(buf, std::forward< Args >(more)...);
+    return num;
+}
+
+inline size_t uncat(csubs /*buf*/)
+{
+    return 0;
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+template< class Sep, class Arg, class... Args >
+size_t catsep(subs buf, Sep const& sep, Arg const& a, Args const& ...more)
+{
+    size_t num = to_str(buf, sep);
+    buf = buf.len >= num ? buf.sub(num) : subs{};
+    num += to_str(buf, a);
+    buf = buf.len >= num ? buf.sub(num) : subs{};
+    num += catsep(buf, sep, std::forward< Args const >(more)...);
+    return num;
+}
+
+template< class Sep >
+inline size_t catsep(subs /*buf*/, Sep const& /*sep*/)
+{
+    return 0;
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+inline size_t format(subs buf, csubs fmt)
+{
+    return to_str(buf, fmt);
+}
+
+template< class Arg, class... Args >
+size_t format(subs buf, csubs fmt, Arg const& a, Args const& ...more)
+{
+    auto pos = fmt.find("{}");
+    if(pos != npos)
+    {
+        size_t num = to_str(buf, fmt.sub(0, pos));
+        size_t out = num;
+        buf = buf.len >= num ? buf.sub(num) : subs{};
+        num = to_str(buf, a);
+        out += num;
+        buf = buf.len >= num ? buf.sub(num) : subs{};
+        num = format(buf, fmt.sub(pos + 2), std::forward< Args const >(more)...);
+        out += num;
+        return out;
+    }
+    else
+    {
+        return format(buf, fmt);
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+template< class CharOwningContainer, class... Args >
+inline void catrs(CharOwningContainer *cont, Args const& ...args)
+{
+    subs buf = to_subs(*cont);
+    size_t ret = cat(buf, std::forward< Args const >(args)...);
+    cont->resize(ret);
+    if(ret > buf.len)
+    {
+        buf = to_subs(*cont);
+        ret = cat(buf, std::forward< Args const >(args)...);
+        if(ret != buf.len)
+        {
+            cont->resize(ret);
+        }
+    }
+}
+
+template< class CharOwningContainer, class Sep, class... Args >
+inline void catseprs(CharOwningContainer *cont, Sep const& sep, Args const& ...args)
+{
+    subs buf = to_subs(*cont);
+    size_t ret = catsep(buf, sep, std::forward< Args const >(args)...);
+    cont->resize(ret);
+    if(ret > buf.len)
+    {
+        buf = to_subs(*cont);
+        ret = catsep(buf, sep, std::forward< Args const >(args)...);
+        if(ret != buf.len)
+        {
+            cont->resize(ret);
+        }
+    }
+}
+
+template< class CharOwningContainer, class... Args >
+inline void formatrs(CharOwningContainer *cont, csubs fmt, Args const& ...args)
+{
+    subs buf = to_subs(*cont);
+    size_t ret = format(buf, fmt, std::forward< Args const >(args)...);
+    cont->resize(ret);
+    if(ret > buf.len)
+    {
+        buf = to_subs(*cont);
+        ret = format(buf, fmt, std::forward< Args const >(args)...);
+        if(ret != buf.len)
+        {
+            cont->resize(ret);
+        }
+    }
 }
 
 } // namespace yml
