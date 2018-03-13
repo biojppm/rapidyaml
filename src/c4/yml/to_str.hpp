@@ -393,7 +393,7 @@ size_t cat(subs buf, Arg const& a, Args const& ...more)
 {
     size_t num = to_str(buf, a);
     buf  = buf.len >= num ? buf.sub(num) : subs{};
-    num += cat(buf, std::forward< Args const >(more)...);
+    num += cat(buf, more...);
     return num;
 }
 
@@ -412,7 +412,7 @@ size_t uncat(csubs buf, Arg & a, Args & ...more)
     size_t num = from_str_untrimmed(buf, &a);
     if(num == npos) return npos;
     buf  = buf.len >= num ? buf.sub(num) : subs{};
-    num += uncat(buf, std::forward< Args >(more)...);
+    num += uncat(buf, more...);
     return num;
 }
 
@@ -428,7 +428,7 @@ size_t catsep(subs buf, Sep const& sep, Arg const& a, Args const& ...more)
     buf  = buf.len >= num ? buf.sub(num) : subs{};
     num += to_str(buf, a);
     buf  = buf.len >= num ? buf.sub(num) : subs{};
-    num += catsep(buf, sep, std::forward< Args const >(more)...);
+    num += catsep(buf, sep, more...);
     return num;
 }
 
@@ -460,7 +460,7 @@ size_t format(subs buf, csubs fmt, Arg const& a, Args const& ...more)
         num  = to_str(buf, a);
         out += num;
         buf  = buf.len >= num ? buf.sub(num) : subs{};
-        num  = format(buf, fmt.sub(pos + 2), std::forward< Args const >(more)...);
+        num  = format(buf, fmt.sub(pos + 2), more...);
         out += num;
         return out;
     }
@@ -479,12 +479,12 @@ template< class CharOwningContainer, class... Args >
 inline void catrs(CharOwningContainer *cont, Args const& ...args)
 {
     subs buf = to_subs(*cont);
-    size_t ret = cat(buf, std::forward< Args const >(args)...);
+    size_t ret = cat(buf, args...);
     cont->resize(ret);
     if(ret > buf.len)
     {
         buf = to_subs(*cont);
-        ret = cat(buf, std::forward< Args const >(args)...);
+        ret = cat(buf, args...);
         if(ret != buf.len)
         {
             cont->resize(ret);
@@ -496,12 +496,12 @@ template< class CharOwningContainer, class Sep, class... Args >
 inline void catseprs(CharOwningContainer *cont, Sep const& sep, Args const& ...args)
 {
     subs buf = to_subs(*cont);
-    size_t ret = catsep(buf, sep, std::forward< Args const >(args)...);
+    size_t ret = catsep(buf, sep, args...);
     cont->resize(ret);
     if(ret > buf.len)
     {
         buf = to_subs(*cont);
-        ret = catsep(buf, sep, std::forward< Args const >(args)...);
+        ret = catsep(buf, sep, args...);
         if(ret != buf.len)
         {
             cont->resize(ret);
@@ -513,12 +513,12 @@ template< class CharOwningContainer, class... Args >
 inline void formatrs(CharOwningContainer *cont, csubs fmt, Args const& ...args)
 {
     subs buf = to_subs(*cont);
-    size_t ret = format(buf, fmt, std::forward< Args const >(args)...);
+    size_t ret = format(buf, fmt, args...);
     cont->resize(ret);
     if(ret > buf.len)
     {
         buf = to_subs(*cont);
-        ret = format(buf, fmt, std::forward< Args const >(args)...);
+        ret = format(buf, fmt, args...);
         if(ret != buf.len)
         {
             cont->resize(ret);
