@@ -31,7 +31,10 @@ size_t itoa(subs buf, T v)
             _c4append((char)(v % 10) + '0');
             v /= 10;
         } while(v);
-        buf.reverse_range(1, pos <= buf.len ? pos : buf.len);
+        if(buf.len)
+        {
+            buf.reverse_range(1, pos <= buf.len ? pos : buf.len);
+        }
     }
     else
     {
