@@ -2,48 +2,12 @@ cmake_minimum_required(VERSION 3.9) # because of the GoogleTest module
 project(ryml)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+include(c4Project)
 
-include(c4project)
+c4_declare_project(ryml)
 
-option(RYML_DEV "enable ryml development targets: tests, benchmarks, sanitizers, static analysis, coverage" OFF)
-option(RYML_BUILD_TESTS "build ryml unit tests" ${RYML_DEV})
-option(RYML_BUILD_BENCHMARKS "build ryml benchmarks" ${RYML_DEV})
-
-option(RYML_LINT_PVS_STUDIO OFF)
-option(RYML_VALGRIND_SGCHECK OFF) # crashing in ubuntu16.04
-if(RYML_BUILD_TESTS)
-    enable_testing()
-endif()
-c4_setup_testing(RYML ${RYML_BUILD_TESTS})
-c4_setup_sanitize(RYML ${RYML_DEV})
-c4_setup_static_analysis(RYML ${RYML_DEV})
-c4_setup_valgrind(RYML ${RYML_DEV})
-c4_setup_coverage(RYML ${RYML_DEV})
-
-
-#-------------------------------------------------------
 option(RYML_DEFAULT_CALLBACKS "Enable ryml default implementation of callbacks: allocate(), free(), error()" ON)
 option(RYML_DBG "Enable ryml debug code. Very verbose." OFF)#${RYML_DEV})
-
-option(RYML_PEDANTIC "Compile in pedantic mode" ${RYML_DEV})
-set(RYML_CXX_FLAGS "")
-if(RYML_PEDANTIC)
-    if(MSVC)
-        set(RYML_CXX_FLAGS "${RYML_CXX_FLAGS} /W4")
-    else()
-        set(RYML_CXX_FLAGS "${RYML_CXX_FLAGS} -Wall -Wextra -Wshadow -pedantic -Wfloat-equal -fstrict-aliasing")
-    endif()
-endif()
-
-option(RYML_WERROR "Compile with warnings as errors" ${RYML_DEV})
-if(RYML_WERROR)
-    if(MSVC)
-        set(RYML_CXX_FLAGS "${RYML_CXX_FLAGS} /WX")
-        #set(RYML_LINKER_FLAGS "${RYML_LINKER_FLAGS} /WX")
-    else()
-        set(RYML_CXX_FLAGS "${RYML_CXX_FLAGS} -Werror -pedantic-errors")
-    endif()
-endif()
 
 
 #-------------------------------------------------------
@@ -94,7 +58,6 @@ endif()
 if(RYML_BUILD_TESTS)
     enable_testing()
     add_subdirectory(test test)
-    static_analysis_add_tests(RYML ryml)
 endif()
 
 #-------------------------------------------------------
