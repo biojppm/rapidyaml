@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 3.9) # because of the GoogleTest module
 project(ryml)
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-include(c4Project)
+include(./cmake/c4Project.cmake)
 
 c4_declare_project(ryml)
 
