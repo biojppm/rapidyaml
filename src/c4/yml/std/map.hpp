@@ -1,7 +1,7 @@
 #ifndef _C4_YML_STD_MAP_HPP_
 #define _C4_YML_STD_MAP_HPP_
 
-#include "../node.hpp"
+#include "c4/yml/node.hpp"
 #include <map>
 
 namespace std {

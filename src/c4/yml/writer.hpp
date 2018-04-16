@@ -1,15 +1,13 @@
 #ifndef _C4_YML_WRITER_HPP_
 #define _C4_YML_WRITER_HPP_
 
-#include <stdio.h> // fwrite(), fputc()
-#include <string.h> // memcpy()
-
 #ifndef _C4_YML_COMMON_HPP_
 #include "./common.hpp"
 #endif
-#ifndef _C4_YML_SUBS_HPP_
-#include "./subs.hpp"
-#endif
+
+#include <c4/substr.hpp>
+#include <stdio.h> // fwrite(), fputc()
+#include <string.h> // memcpy()
 
 namespace c4 {
 namespace yml {
@@ -33,9 +31,9 @@ struct WriterFile
 
     WriterFile(FILE *f = nullptr) : m_file(f ? f : stdout), m_pos(0) {}
 
-    inline subs _get(bool /*error_on_excess*/)
+    inline substr _get(bool /*error_on_excess*/)
     {
-        subs sp;
+        substr sp;
         sp.str = nullptr;
         sp.len = m_pos;
         return sp;
@@ -57,7 +55,7 @@ struct WriterFile
         m_pos += rc.num_times;
     }
 
-    inline void _do_write(csubs sp)
+    inline void _do_write(csubstr sp)
     {
         if(sp.empty()) return;
         if(m_file)
@@ -74,14 +72,14 @@ struct WriterFile
 /** a writer to a string span */
 struct WriterSpan
 {
-    subs   m_span;
+    substr   m_span;
     size_t m_pos;
 
-    WriterSpan(subs const& sp) : m_span(sp), m_pos(0) {}
+    WriterSpan(substr const& sp) : m_span(sp), m_pos(0) {}
 
-    inline subs _get(bool error_on_excess)
+    inline substr _get(bool error_on_excess)
     {
-        subs sp = m_span;
+        substr sp = m_span;
         if(m_pos > sp.len)
         {
             sp.len = m_pos;
@@ -117,7 +115,7 @@ struct WriterSpan
         m_pos += rc.num_times;
     }
 
-    inline void _do_write(csubs sp)
+    inline void _do_write(csubstr sp)
     {
         if(sp.empty()) return;
         if(m_pos + sp.len <= m_span.len)

@@ -9,10 +9,13 @@ c4_declare_project(ryml)
 option(RYML_DEFAULT_CALLBACKS "Enable ryml default implementation of callbacks: allocate(), free(), error()" ON)
 option(RYML_DBG "Enable ryml debug code. Very verbose." OFF)#${RYML_DEV})
 
-
 #-------------------------------------------------------
 set(RYML_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(RYML_EXT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/extern)
+
+#-------------------------------------------------------
+c4_require_module(ryml
+    c4core SUBDIRECTORY ${RYML_EXT_DIR}/c4core)
 
 set(RYML_CPP
     ${RYML_SRC_DIR}/c4/yml/common.cpp
@@ -32,10 +35,7 @@ set(RYML_HPP
     ${RYML_SRC_DIR}/c4/yml/parse.hpp
     ${RYML_SRC_DIR}/c4/yml/std/map.hpp
     ${RYML_SRC_DIR}/c4/yml/std/std.hpp
-    ${RYML_SRC_DIR}/c4/yml/std/string.hpp
     ${RYML_SRC_DIR}/c4/yml/std/vector.hpp
-    ${RYML_SRC_DIR}/c4/yml/subs.hpp
-    ${RYML_SRC_DIR}/c4/yml/to_str.hpp
     ${RYML_SRC_DIR}/c4/yml/tree.hpp
     ${RYML_SRC_DIR}/c4/yml/writer.hpp
     ${RYML_SRC_DIR}/c4/yml/yml.hpp
@@ -45,7 +45,9 @@ set(RYML_SRC ${RYML_CPP} ${RYML_HPP} ${CMAKE_CURRENT_SOURCE_DIR}/ryml.natvis)
 
 c4_add_target(RYML ryml LIBRARY SANITIZE
     SOURCES ${RYML_SRC}
-    INC_DIRS ${RYML_SRC_DIR})
+    INC_DIRS ${RYML_SRC_DIR}
+    LIBS c4core
+    )
 
 if(NOT RYML_DEFAULT_CALLBACKS)
     target_compile_definitions(ryml PRIVATE RYML_NO_DEFAULT_CALLBACKS)

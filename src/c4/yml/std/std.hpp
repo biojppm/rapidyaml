@@ -1,9 +1,9 @@
 #ifndef _C4_YML_STD_STD_HPP_
 #define _C4_YML_STD_STD_HPP_
 
-#include "./string.hpp"
-#include "./vector.hpp"
-#include "./map.hpp"
+#include <c4/std/string.hpp>
+#include "c4/yml/std/vector.hpp"
+#include "c4/yml/std/map.hpp"
 
 namespace std {
 
