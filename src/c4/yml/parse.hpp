@@ -13,6 +13,8 @@
 #include "./detail/stack.hpp"
 #endif
 
+#include <stdarg.h>
+
 namespace c4 {
 namespace yml {
 
@@ -45,8 +47,8 @@ public:
 
     Parser(Allocator const& a={});
 
-    Tree parse(                       subs src) { return parse({}, src); }
-    Tree parse(csubs const& filename, subs src)
+    Tree parse(                         substr src) { return parse({}, src); }
+    Tree parse(csubstr const& filename, substr src)
     {
         Tree t;
         size_t capacity = _count_nlines(src);
@@ -56,15 +58,15 @@ public:
         return t;
     }
 
-    void parse(                       subs src, Tree *t) { return parse({}, src, t); }
-    void parse(csubs const& filename, subs src, Tree *t)
+    void parse(                         substr src, Tree *t) { return parse({}, src, t); }
+    void parse(csubstr const& filename, substr src, Tree *t)
     {
         NodeRef root(t);
         parse(filename, src, &root);
     }
 
-    void parse(                       subs src, NodeRef * root) { return parse({}, src, root); }
-    void parse(csubs const& filename, subs src, NodeRef * root);
+    void parse(                         substr src, NodeRef * root) { return parse({}, src, root); }
+    void parse(csubstr const& filename, substr src, NodeRef * root);
 
 private:
 
@@ -86,23 +88,23 @@ private:
     bool  _finished_file() const;
     bool  _finished_line() const;
 
-    csubs _peek_next_line(size_t pos=npos) const;
+    csubstr _peek_next_line(size_t pos=npos) const;
     void  _scan_line();
     void  _next_line() { _line_ended(); }
 
-    bool  _is_scalar_next(csubs rem) const;
+    bool  _is_scalar_next(csubstr rem) const;
     bool  _is_scalar_next() const { return _is_scalar_next(m_state->line_contents.rem); }
-    csubs _scan_scalar();
-    csubs _scan_comment();
-    csubs _scan_quoted_scalar(const char q);
-    csubs _scan_block();
-    csubs _scan_ref();
+    csubstr _scan_scalar();
+    csubstr _scan_comment();
+    csubstr _scan_quoted_scalar(const char q);
+    csubstr _scan_block();
+    csubstr _scan_ref();
 
-    csubs _filter_squot_scalar(subs s);
-    csubs _filter_dquot_scalar(subs s);
-    csubs _filter_plain_scalar(subs s, size_t indentation);
-    csubs _filter_block_scalar(subs s, BlockStyle_e style, BlockChomp_e chomp, size_t indentation);
-    subs  _filter_whitespace(subs s, size_t indentation=0, bool leading_whitespace=true);
+    csubstr _filter_squot_scalar(substr s);
+    csubstr _filter_dquot_scalar(substr s);
+    csubstr _filter_plain_scalar(substr s, size_t indentation);
+    csubstr _filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e chomp, size_t indentation);
+    substr  _filter_whitespace(substr s, size_t indentation=0, bool leading_whitespace=true);
 
     void  _handle_finished_file();
     void  _handle_line();
@@ -132,13 +134,13 @@ private:
     void  _start_doc(bool as_child=true);
     void  _stop_doc();
 
-    void  _append_comment(csubs const& cmt);
-    NodeData* _append_val(csubs const& val);
-    NodeData* _append_key_val(csubs const& val);
+    void  _append_comment(csubstr const& cmt);
+    NodeData* _append_val(csubstr const& val);
+    NodeData* _append_key_val(csubstr const& val);
     bool  _rval_dash_start_or_continue_seq();
 
-    void  _store_scalar(csubs const& s);
-    csubs _consume_scalar();
+    void  _store_scalar(csubstr const& s);
+    csubstr _consume_scalar();
     void  _move_scalar_from_top();
 
     void  _save_indentation(size_t behind = 0);
@@ -147,8 +149,8 @@ private:
 
 private:
 
-    static bool   _read_decimal(csubs const& str, size_t *decimal);
-    static size_t _count_nlines(csubs src);
+    static bool   _read_decimal(csubstr const& str, size_t *decimal);
+    static size_t _count_nlines(csubstr src);
 
 private:
 
@@ -167,12 +169,12 @@ private:
 
     struct LineContents
     {
-        csubs  full;        ///< the full line, including newlines on the right
-        csubs  stripped;    ///< the stripped line, excluding newlines on the right
-        csubs  rem;         ///< the stripped line remainder; initially starts at the first non-space character
+        csubstr  full;        ///< the full line, including newlines on the right
+        csubstr  stripped;    ///< the stripped line, excluding newlines on the right
+        csubstr  rem;         ///< the stripped line remainder; initially starts at the first non-space character
         size_t indentation; ///< the number of spaces on the beginning of the line
 
-        void reset(csubs const& full_, csubs const& stripped_)
+        void reset(csubstr const& full_, csubstr const& stripped_)
         {
             full = full_;
             stripped = stripped_;
@@ -187,7 +189,7 @@ private:
         size_t       flags;
         size_t       level;
         size_t       node_id; // don't hold a pointer to the node as it will be relocated during tree resizes
-        csubs        scalar;
+        csubstr        scalar;
 
         Location     pos;
         LineContents line_contents;
@@ -227,7 +229,7 @@ private:
     }
     inline bool _at_line_end() const
     {
-        csubs r = m_state->line_contents.rem;
+        csubstr r = m_state->line_contents.rem;
         return r.empty() || r.begins_with(' ', r.len);
     }
 
@@ -264,8 +266,8 @@ private:
 
 private:
 
-    csubs   m_file;
-     subs   m_buf;
+    csubstr   m_file;
+     substr   m_buf;
 
     size_t  m_root_id;
     Tree *  m_tree;
@@ -273,10 +275,10 @@ private:
     detail::stack< State > m_stack;
     State * m_state;
 
-    csubs   m_key_tag;
-    csubs   m_val_tag;
+    csubstr   m_key_tag;
+    csubstr   m_val_tag;
 
-    csubs   m_anchor;
+    csubstr   m_anchor;
     size_t  m_num_anchors;
     size_t  m_num_references;
 };
@@ -286,34 +288,34 @@ private:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-inline Tree parse(subs buf)
+inline Tree parse(substr buf)
 {
     Parser np;
     return np.parse(buf);
 }
-inline Tree parse(csubs const& filename, subs buf)
+inline Tree parse(csubstr const& filename, substr buf)
 {
     Parser np;
     return np.parse(filename, buf);
 }
 
-inline void parse(subs buf, Tree *t)
+inline void parse(substr buf, Tree *t)
 {
     Parser np;
     np.parse(buf, t);
 }
-inline void parse(csubs const& filename, subs buf, Tree *t)
+inline void parse(csubstr const& filename, substr buf, Tree *t)
 {
     Parser np;
     np.parse(filename, buf, t);
 }
 
-inline void parse(subs buf, NodeRef * root)
+inline void parse(substr buf, NodeRef * root)
 {
     Parser np;
     np.parse(buf, root);
 }
-inline void parse(csubs const& filename, subs buf, NodeRef * root)
+inline void parse(csubstr const& filename, substr buf, NodeRef * root)
 {
     Parser np;
     np.parse(filename, buf, root);

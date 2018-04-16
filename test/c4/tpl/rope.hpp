@@ -303,7 +303,7 @@ public:
     {
         C4_ASSERT(pos     >= 0 && pos     <= _p(entry).s.len);
         C4_ASSERT(pos+num >= 0 && pos+num <= _p(entry).s.len);
-        // replace a subspan: split the span once or twice as needed
+        // replace a substr: split the span once or twice as needed
         if(pos > 0 || num < _p(entry).s.len)
         {
             size_t n = _do_erase(entry, pos, num);

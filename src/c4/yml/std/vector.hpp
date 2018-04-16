@@ -1,12 +1,13 @@
 #ifndef _C4_YML_STD_VECTOR_HPP_
 #define _C4_YML_STD_VECTOR_HPP_
 
-#include "../node.hpp"
+#include "c4/yml/node.hpp"
+#include <c4/std/vector.hpp>
 #include <vector>
 
 namespace std {
 
-// std::string is a sequence-like type, and it requires child nodes
+// vector is a sequence-like type, and it requires child nodes
 // in the data tree hierarchy (a SEQ node in ryml parlance).
 // So it should be serialized via write()/read().
 
@@ -30,43 +31,6 @@ bool read(c4::yml::NodeRef const& n, std::vector< V, Alloc > *vec)
         ch >> (*vec)[pos++];
     }
     return true;
-}
-
-
-//-----------------------------------------------------------------------------
-template< class Alloc >
-c4::yml::subs to_subs(std::vector< char, Alloc > &vec)
-{
-    char *data = vec.empty() ? nullptr : vec.data(); // data() may or may not return a null pointer.
-    return c4::yml::subs(data, vec.size());
-}
-
-template< class Alloc >
-c4::yml::csubs to_subs(std::vector< char, Alloc > const& vec)
-{
-    const char *data = vec.empty() ? nullptr : vec.data(); // data() may or may not return a null pointer.
-    return c4::yml::csubs(data, vec.size());
-}
-
-template< class Alloc >
-c4::yml::csubs to_subs(std::vector< const char, Alloc > const& vec)
-{
-    const char *data = vec.empty() ? nullptr : vec.data(); // data() may or may not return a null pointer.
-    return c4::yml::csubs(data, vec.size());
-}
-
-template< class Alloc >
-c4::yml::csubs to_csubs(std::vector< char, Alloc > const& vec)
-{
-    const char *data = vec.empty() ? nullptr : vec.data(); // data() may or may not return a null pointer.
-    return c4::yml::csubs(data, vec.size());
-}
-
-template< class Alloc >
-c4::yml::csubs to_csubs(std::vector< const char, Alloc > const& vec)
-{
-    const char *data = vec.empty() ? nullptr : vec.data(); // data() may or may not return a null pointer.
-    return c4::yml::csubs(data, vec.size());
 }
 
 } // namespace std

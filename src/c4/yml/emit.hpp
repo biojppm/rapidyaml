@@ -34,14 +34,14 @@ public:
 
     /** emit YAML.
      *
-     * When writing to a buffer, returns a subspan of the emitted YAML.
+     * When writing to a buffer, returns a substr of the emitted YAML.
      * If the given buffer has insufficient space, the returned span will
      * be null and its size will be the needed space. No writes are done
      * after the end of the buffer.
      *
      * When writing to a file, the returned span will be null, but its
      * length is set the number of bytes written. */
-    subs emit(NodeRef const& n, bool error_on_excess=true);
+    substr emit(NodeRef const& n, bool error_on_excess=true);
 
     size_t tell() const;
     void   seek(size_t p);
@@ -72,7 +72,7 @@ private:
     inline void _write_one(const char (&a)[N])
     {
         // a decays into const char*, so explicitly create using the array
-        csubs s;
+        csubstr s;
         s.assign<N>(a);
         _c4this->_do_write(s);
     }
@@ -80,13 +80,13 @@ private:
 
     struct AnchorScalar : public NodeScalar
     {
-        csubs anchor;
+        csubstr anchor;
         AnchorScalar(NodeRef const& n) : NodeScalar(n.valsc()), anchor(n.anchor()) {}
     };
 
     void _write_one(AnchorScalar const& sc);
 
-    void _write_scalar(csubs const& s);
+    void _write_scalar(csubstr const& s);
 
 #undef _c4this
 
@@ -116,20 +116,20 @@ inline size_t emit(Tree const &t, FILE *f=nullptr)
 
 //-----------------------------------------------------------------------------
 
-/** emit YAML to the given buffer. Return a subspan of the emitted YAML.
+/** emit YAML to the given buffer. Return a substr of the emitted YAML.
  * Raise an error if the space in the buffer is insufficient. */
-inline subs emit(NodeRef const& r, subs sp, bool error_on_excess=true)
+inline substr emit(NodeRef const& r, substr sp, bool error_on_excess=true)
 {
     EmitterSpan em(sp);
-    subs result = em.emit(r, error_on_excess);
+    substr result = em.emit(r, error_on_excess);
     return result;
 }
 
-/** emit YAML to the given buffer. Return a subspan of the emitted YAML.
+/** emit YAML to the given buffer. Return a substr of the emitted YAML.
  * Raise an error if the space in the buffer is insufficient. */
-inline subs emit(Tree const& t, subs sp, bool error_on_excess=true)
+inline substr emit(Tree const& t, substr sp, bool error_on_excess=true)
 {
-    if(t.empty()) return subs();
+    if(t.empty()) return substr();
     return emit(t.rootref(), sp, error_on_excess);
 }
 
@@ -138,14 +138,14 @@ inline subs emit(Tree const& t, subs sp, bool error_on_excess=true)
 /** emit YAML to the given std::vector-like container, resizing it as needed
  * to fit the emitted YAML. */
 template< class CharOwningContainer >
-inline subs emit_resize(NodeRef const& n, CharOwningContainer * cont)
+inline substr emit_resize(NodeRef const& n, CharOwningContainer * cont)
 {
-    subs buf = to_subs(*cont);
-    subs ret = emit(n, buf, /*error_on_excess*/false);
+    substr buf = to_substr(*cont);
+    substr ret = emit(n, buf, /*error_on_excess*/false);
     if(ret.str == nullptr && ret.len > 0)
     {
         cont->resize(ret.len);
-        buf = to_subs(*cont);
+        buf = to_substr(*cont);
         ret = emit(n, buf, /*error_on_excess*/true);
     }
     return ret;
@@ -154,9 +154,9 @@ inline subs emit_resize(NodeRef const& n, CharOwningContainer * cont)
 /** emit YAML to the given std::vector-like container, resizing it as needed
  * to fit the emitted YAML. */
 template< class CharOwningContainer >
-inline subs emit_resize(Tree const& t, CharOwningContainer * cont)
+inline substr emit_resize(Tree const& t, CharOwningContainer * cont)
 {
-    if(t.empty()) return subs();
+    if(t.empty()) return substr();
     return emit_resize(t.rootref(), cont);
 }
 

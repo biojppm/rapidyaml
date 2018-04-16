@@ -1,5 +1,6 @@
 #include "./test_case.hpp"
 #include "c4/yml/std/std.hpp"
+#include <c4/to_str.hpp>
 
 #include <gtest/gtest.h>
 
@@ -37,13 +38,13 @@ struct vec4
     T x, y, z, w;
 };
 
-template< class T > size_t to_str(c4::yml::subs buf, vec2<T> v) { return c4::yml::cat(buf, '(', v.x, ',', v.y, ')'); }
-template< class T > size_t to_str(c4::yml::subs buf, vec3<T> v) { return c4::yml::cat(buf, '(', v.x, ',', v.y, ',', v.z, ')'); }
-template< class T > size_t to_str(c4::yml::subs buf, vec4<T> v) { return c4::yml::cat(buf, '(', v.x, ',', v.y, ',', v.z, ',', v.w, ')'); }
+template< class T > size_t to_str(c4::substr buf, vec2<T> v) { return c4::cat(buf, '(', v.x, ',', v.y, ')'); }
+template< class T > size_t to_str(c4::substr buf, vec3<T> v) { return c4::cat(buf, '(', v.x, ',', v.y, ',', v.z, ')'); }
+template< class T > size_t to_str(c4::substr buf, vec4<T> v) { return c4::cat(buf, '(', v.x, ',', v.y, ',', v.z, ',', v.w, ')'); }
 
-template< class T > bool from_str(c4::yml::csubs buf, vec2<T> *v) { char c; size_t ret = c4::yml::uncat(buf, c, v->x, c, v->y, c); return ret != c4::yml::npos; }
-template< class T > bool from_str(c4::yml::csubs buf, vec3<T> *v) { char c; size_t ret = c4::yml::uncat(buf, c, v->x, c, v->y, c, v->z, c); return ret != c4::yml::npos; }
-template< class T > bool from_str(c4::yml::csubs buf, vec4<T> *v) { char c; size_t ret = c4::yml::uncat(buf, c, v->x, c, v->y, c, v->z, c, v->w, c); return ret != c4::yml::npos; }
+template< class T > bool from_str(c4::csubstr buf, vec2<T> *v) { char c; size_t ret = c4::uncat(buf, c, v->x, c, v->y, c); return ret != c4::yml::npos; }
+template< class T > bool from_str(c4::csubstr buf, vec3<T> *v) { char c; size_t ret = c4::uncat(buf, c, v->x, c, v->y, c, v->z, c); return ret != c4::yml::npos; }
+template< class T > bool from_str(c4::csubstr buf, vec4<T> *v) { char c; size_t ret = c4::uncat(buf, c, v->x, c, v->y, c, v->z, c, v->w, c); return ret != c4::yml::npos; }
 
 TEST(serialize, type_as_str)
 {
@@ -77,7 +78,7 @@ TEST(serialize, type_as_str)
     EXPECT_EQ(v4in.w, v4out.w);
 
     char buf[256];
-    c4::yml::csubs ret = c4::yml::emit(t, buf);
+    c4::csubstr ret = c4::yml::emit(t, buf);
     EXPECT_EQ(ret, R"(v2: (10,11)
 v3: (100,101,102)
 v4: (1000,1001,1002,1003)
@@ -155,364 +156,12 @@ TEST(serialize, std_vector__map_string_int)
 
 } // namespace foo
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 namespace c4 {
 namespace yml {
-
-TEST(atoi, basic)
-{
-    char bufc[100] = {0};
-    subs buf(bufc);
-    C4_ASSERT(buf.len == sizeof(bufc)-1);
-
-    size_t ret;
-
-#define _woof(val) \
-    ret = itoa(buf, val); EXPECT_LT(ret, buf.len); EXPECT_EQ(buf.sub(0, ret), #val)
-    _woof(0);
-    _woof(1);
-    _woof(2);
-    _woof(3);
-    _woof(4);
-    _woof(5);
-    _woof(6);
-    _woof(7);
-    _woof(8);
-    _woof(9);
-    _woof(10);
-    _woof(11);
-    _woof(12);
-    _woof(13);
-    _woof(14);
-    _woof(15);
-    _woof(16);
-    _woof(17);
-    _woof(18);
-    _woof(19);
-    _woof(20);
-    _woof(21);
-    _woof(100);
-    _woof(1000);
-    _woof(11);
-    _woof(101);
-    _woof(1001);
-    _woof(10001);
-}
-
-TEST(to_str, trimmed_fit_int)
-{
-    // test that no characters are trimmed at the end of
-    // the number due to printf-based implementations
-    // needing space for the \0
-    int v = 12345678;
-    char buf[128];
-    subs sp(buf);
-    size_t sz = to_str(sp, v);
-    sp = sp.left_of(sz);
-    EXPECT_EQ(sp, "12345678"); // ehemm.
-    char buf2[8+1];
-    C4_ASSERT(sizeof(buf2) == sz+1);
-    subs sp2(buf2, sizeof(buf2)); // make sure it spans the whole buffer
-    sp2 = to_str_subs(sp2, v);
-    EXPECT_EQ(sp2, sp); // ehemm.
-    std::string str;
-    catrs(&str, v);
-    EXPECT_EQ(sp, to_csubs(str)); // ehemm.
-}
-
-TEST(to_str, trimmed_fit_float)
-{
-    // test that no characters are trimmed at the end of
-    // the number due to printf-based implementations
-    // needing space for the \0
-    float v = 1024.1568f;
-    char buf[128];
-    subs sp(buf);
-    size_t sz = to_str(sp, v);
-    sp = sp.left_of(sz);
-    EXPECT_EQ(sp, "1024.16"); // ehemm.
-    char buf2[7 + 1];
-    C4_ASSERT(sizeof(buf2) == sz+1);
-    subs sp2(buf2, sizeof(buf2)); // make sure it spans the whole buffer
-    sp2 = to_str_subs(sp2, v);
-    EXPECT_EQ(sp2, sp); // ehemm.
-    std::string str;
-    catrs(&str, v);
-    EXPECT_EQ(sp, to_csubs(str)); // ehemm.
-}
-
-TEST(to_str, trimmed_fit_double)
-{
-    // test that no characters are trimmed at the end of
-    // the number due to printf-based implementations
-    // needing space for the \0
-    double v = 1024.1568;
-    char buf[128];
-    subs sp(buf);
-    size_t sz = to_str(sp, v);
-    sp = sp.left_of(sz);
-    EXPECT_EQ(sp, "1024.16"); // ehemm.
-    char buf2[7 + 1];
-    C4_ASSERT(sizeof(buf2) == sz+1);
-    subs sp2(buf2, sizeof(buf2)); // make sure it spans the whole buffer
-    sp2 = to_str_subs(sp2, v);
-    EXPECT_EQ(sp2, sp); // ehemm.
-    std::string str;
-    catrs(&str, v);
-    EXPECT_EQ(sp, to_csubs(str)); // ehemm.
-}
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-TEST(subs, ctor_from_char)
-{
-    char buf1[] = "{foo: 1}";
-    char buf2[] = "{foo: 2}";
-    subs s(buf1);
-    EXPECT_EQ(s, "{foo: 1}");
-    s = buf2;
-    EXPECT_EQ(s, "{foo: 2}");
-}
-
-TEST(csubs, ctor_from_char)
-{
-    char buf1[] = "{foo: 1}";
-    char buf2[] = "{foo: 2}";
-    subs s(buf1);
-    EXPECT_EQ(s, "{foo: 1}");
-    s = buf2;
-    EXPECT_EQ(s, "{foo: 2}");
-}
-
-TEST(subs, begins_with)
-{
-    EXPECT_TRUE (csubs(": ").begins_with(":" ));
-    EXPECT_TRUE (csubs(": ").begins_with(':' ));
-    EXPECT_FALSE(csubs(":") .begins_with(": "));
-
-    EXPECT_TRUE (csubs(    "1234").begins_with('0', 0));
-    EXPECT_TRUE (csubs(   "01234").begins_with('0', 1));
-    EXPECT_FALSE(csubs(   "01234").begins_with('0', 2));
-    EXPECT_TRUE (csubs(  "001234").begins_with('0', 1));
-    EXPECT_TRUE (csubs(  "001234").begins_with('0', 2));
-    EXPECT_FALSE(csubs(  "001234").begins_with('0', 3));
-    EXPECT_TRUE (csubs( "0001234").begins_with('0', 1));
-    EXPECT_TRUE (csubs( "0001234").begins_with('0', 2));
-    EXPECT_TRUE (csubs( "0001234").begins_with('0', 3));
-    EXPECT_FALSE(csubs( "0001234").begins_with('0', 4));
-    EXPECT_TRUE (csubs("00001234").begins_with('0', 1));
-    EXPECT_TRUE (csubs("00001234").begins_with('0', 2));
-    EXPECT_TRUE (csubs("00001234").begins_with('0', 3));
-    EXPECT_TRUE (csubs("00001234").begins_with('0', 4));
-    EXPECT_FALSE(csubs("00001234").begins_with('0', 5));
-}
-
-TEST(subs, ends_with)
-{
-    EXPECT_TRUE(csubs("{% if foo %}bar{% endif %}").ends_with("{% endif %}"));
-
-    EXPECT_TRUE (csubs("1234"    ).ends_with('0', 0));
-    EXPECT_TRUE (csubs("12340"   ).ends_with('0', 1));
-    EXPECT_FALSE(csubs("12340"   ).ends_with('0', 2));
-    EXPECT_TRUE (csubs("123400"  ).ends_with('0', 1));
-    EXPECT_TRUE (csubs("123400"  ).ends_with('0', 2));
-    EXPECT_FALSE(csubs("123400"  ).ends_with('0', 3));
-    EXPECT_TRUE (csubs("1234000" ).ends_with('0', 1));
-    EXPECT_TRUE (csubs("1234000" ).ends_with('0', 2));
-    EXPECT_TRUE (csubs("1234000" ).ends_with('0', 3));
-    EXPECT_FALSE(csubs("1234000" ).ends_with('0', 4));
-    EXPECT_TRUE (csubs("12340000").ends_with('0', 1));
-    EXPECT_TRUE (csubs("12340000").ends_with('0', 2));
-    EXPECT_TRUE (csubs("12340000").ends_with('0', 3));
-    EXPECT_TRUE (csubs("12340000").ends_with('0', 4));
-    EXPECT_FALSE(csubs("12340000").ends_with('0', 5));
-}
-
-TEST(subs, first_of)
-{
-    EXPECT_EQ(csubs("012345").first_of('a'), npos);
-    EXPECT_EQ(csubs("012345").first_of("ab"), npos);
-
-    EXPECT_EQ(csubs("012345").first_of('0'), 0u);
-    EXPECT_EQ(csubs("012345").first_of("0"), 0u);
-    EXPECT_EQ(csubs("012345").first_of("01"), 0u);
-    EXPECT_EQ(csubs("012345").first_of("10"), 0u);
-    EXPECT_EQ(csubs("012345").first_of("012"), 0u);
-    EXPECT_EQ(csubs("012345").first_of("210"), 0u);
-    EXPECT_EQ(csubs("012345").first_of("0123"), 0u);
-    EXPECT_EQ(csubs("012345").first_of("3210"), 0u);
-    EXPECT_EQ(csubs("012345").first_of("01234"), 0u);
-    EXPECT_EQ(csubs("012345").first_of("43210"), 0u);
-    EXPECT_EQ(csubs("012345").first_of("012345"), 0u);
-    EXPECT_EQ(csubs("012345").first_of("543210"), 0u);
-
-    EXPECT_EQ(csubs("012345").first_of('5'), 5u);
-    EXPECT_EQ(csubs("012345").first_of("5"), 5u);
-    EXPECT_EQ(csubs("012345").first_of("45"), 4u);
-    EXPECT_EQ(csubs("012345").first_of("54"), 4u);
-    EXPECT_EQ(csubs("012345").first_of("345"), 3u);
-    EXPECT_EQ(csubs("012345").first_of("543"), 3u);
-    EXPECT_EQ(csubs("012345").first_of("2345"), 2u);
-    EXPECT_EQ(csubs("012345").first_of("5432"), 2u);
-    EXPECT_EQ(csubs("012345").first_of("12345"), 1u);
-    EXPECT_EQ(csubs("012345").first_of("54321"), 1u);
-    EXPECT_EQ(csubs("012345").first_of("012345"), 0u);
-    EXPECT_EQ(csubs("012345").first_of("543210"), 0u);
-}
-
-TEST(subs, last_of)
-{
-    EXPECT_EQ(csubs("012345").last_of('a'), npos);
-    EXPECT_EQ(csubs("012345").last_of("ab"), npos);
-
-    EXPECT_EQ(csubs("012345").last_of('0'), 0u);
-    EXPECT_EQ(csubs("012345").last_of("0"), 0u);
-    EXPECT_EQ(csubs("012345").last_of("01"), 1u);
-    EXPECT_EQ(csubs("012345").last_of("10"), 1u);
-    EXPECT_EQ(csubs("012345").last_of("012"), 2u);
-    EXPECT_EQ(csubs("012345").last_of("210"), 2u);
-    EXPECT_EQ(csubs("012345").last_of("0123"), 3u);
-    EXPECT_EQ(csubs("012345").last_of("3210"), 3u);
-    EXPECT_EQ(csubs("012345").last_of("01234"), 4u);
-    EXPECT_EQ(csubs("012345").last_of("43210"), 4u);
-    EXPECT_EQ(csubs("012345").last_of("012345"), 5u);
-    EXPECT_EQ(csubs("012345").last_of("543210"), 5u);
-
-    EXPECT_EQ(csubs("012345").last_of('5'), 5u);
-    EXPECT_EQ(csubs("012345").last_of("5"), 5u);
-    EXPECT_EQ(csubs("012345").last_of("45"), 5u);
-    EXPECT_EQ(csubs("012345").last_of("54"), 5u);
-    EXPECT_EQ(csubs("012345").last_of("345"), 5u);
-    EXPECT_EQ(csubs("012345").last_of("543"), 5u);
-    EXPECT_EQ(csubs("012345").last_of("2345"), 5u);
-    EXPECT_EQ(csubs("012345").last_of("5432"), 5u);
-    EXPECT_EQ(csubs("012345").last_of("12345"), 5u);
-    EXPECT_EQ(csubs("012345").last_of("54321"), 5u);
-    EXPECT_EQ(csubs("012345").last_of("012345"), 5u);
-    EXPECT_EQ(csubs("012345").last_of("543210"), 5u);
-}
-
-TEST(subs, first_not_of)
-{
-    EXPECT_EQ(csubs("012345").first_not_of('a'), 0u);
-    EXPECT_EQ(csubs("012345").first_not_of("ab"), 0u);
-
-    EXPECT_EQ(csubs("012345").first_not_of('0'), 1u);
-    EXPECT_EQ(csubs("012345").first_not_of("0"), 1u);
-    EXPECT_EQ(csubs("012345").first_not_of("01"), 2u);
-    EXPECT_EQ(csubs("012345").first_not_of("10"), 2u);
-    EXPECT_EQ(csubs("012345").first_not_of("012"), 3u);
-    EXPECT_EQ(csubs("012345").first_not_of("210"), 3u);
-    EXPECT_EQ(csubs("012345").first_not_of("0123"), 4u);
-    EXPECT_EQ(csubs("012345").first_not_of("3210"), 4u);
-    EXPECT_EQ(csubs("012345").first_not_of("01234"), 5u);
-    EXPECT_EQ(csubs("012345").first_not_of("43210"), 5u);
-    EXPECT_EQ(csubs("012345").first_not_of("012345"), npos);
-    EXPECT_EQ(csubs("012345").first_not_of("543210"), npos);
-
-    EXPECT_EQ(csubs("012345").first_not_of('5'), 0u);
-    EXPECT_EQ(csubs("012345").first_not_of("5"), 0u);
-    EXPECT_EQ(csubs("012345").first_not_of("45"), 0u);
-    EXPECT_EQ(csubs("012345").first_not_of("54"), 0u);
-    EXPECT_EQ(csubs("012345").first_not_of("345"), 0u);
-    EXPECT_EQ(csubs("012345").first_not_of("543"), 0u);
-    EXPECT_EQ(csubs("012345").first_not_of("2345"), 0u);
-    EXPECT_EQ(csubs("012345").first_not_of("5432"), 0u);
-    EXPECT_EQ(csubs("012345").first_not_of("12345"), 0u);
-    EXPECT_EQ(csubs("012345").first_not_of("54321"), 0u);
-    EXPECT_EQ(csubs("012345").first_not_of("012345"), npos);
-    EXPECT_EQ(csubs("012345").first_not_of("543210"), npos);
-}
-
-TEST(subs, last_not_of)
-{
-    EXPECT_EQ(csubs("012345").last_not_of('a'), 5u);
-    EXPECT_EQ(csubs("012345").last_not_of("ab"), 5u);
-
-    EXPECT_EQ(csubs("012345").last_not_of('5'), 4u);
-    EXPECT_EQ(csubs("012345").last_not_of("5"), 4u);
-    EXPECT_EQ(csubs("012345").last_not_of("45"), 3u);
-    EXPECT_EQ(csubs("012345").last_not_of("54"), 3u);
-    EXPECT_EQ(csubs("012345").last_not_of("345"), 2u);
-    EXPECT_EQ(csubs("012345").last_not_of("543"), 2u);
-    EXPECT_EQ(csubs("012345").last_not_of("2345"), 1u);
-    EXPECT_EQ(csubs("012345").last_not_of("5432"), 1u);
-    EXPECT_EQ(csubs("012345").last_not_of("12345"), 0u);
-    EXPECT_EQ(csubs("012345").last_not_of("54321"), 0u);
-    EXPECT_EQ(csubs("012345").last_not_of("012345"), npos);
-    EXPECT_EQ(csubs("012345").last_not_of("543210"), npos);
-
-    EXPECT_EQ(csubs("012345").last_not_of('0'), 5u);
-    EXPECT_EQ(csubs("012345").last_not_of("0"), 5u);
-    EXPECT_EQ(csubs("012345").last_not_of("01"), 5u);
-    EXPECT_EQ(csubs("012345").last_not_of("10"), 5u);
-    EXPECT_EQ(csubs("012345").last_not_of("012"), 5u);
-    EXPECT_EQ(csubs("012345").last_not_of("210"), 5u);
-    EXPECT_EQ(csubs("012345").last_not_of("0123"), 5u);
-    EXPECT_EQ(csubs("012345").last_not_of("3210"), 5u);
-    EXPECT_EQ(csubs("012345").last_not_of("01234"), 5u);
-    EXPECT_EQ(csubs("012345").last_not_of("43210"), 5u);
-    EXPECT_EQ(csubs("012345").last_not_of("012345"), npos);
-    EXPECT_EQ(csubs("012345").last_not_of("543210"), npos);
-}
-
-TEST(subs, compare)
-{
-    const char s1[] = "one empty doc";
-    const char s2[] = "one empty doc, explicit termination";
-    csubs c1(s1), c2(s2);
-    EXPECT_NE(c1, c2);
-    EXPECT_GT(c2, c1);
-    EXPECT_TRUE((c1 > c2) != (c1 < c2));
-}
-
-TEST(subs, subs2csubs)
-{
-    char b[] = "some string";
-    subs s(b);
-    csubs sc = s;
-    EXPECT_EQ(sc, s);
-    const subs cs(b);
-    const csubs csc(b);
-
-}
-
-TEST(subs, first_of_any)
-{
-    EXPECT_EQ(csubs("baz{% endif %}").first_of_any("{% endif %}", "{% if "         , "{% elif bar %}" , "{% else %}" ).which, 0u);
-    EXPECT_EQ(csubs("baz{% endif %}").first_of_any("{% if "     , "{% endif %}"    , "{% elif bar %}" , "{% else %}" ).which, 1u);
-    EXPECT_EQ(csubs("baz{% endif %}").first_of_any("{% if "     , "{% elif bar %}" , "{% endif %}"    , "{% else %}" ).which, 2u);
-    EXPECT_EQ(csubs("baz{% endif %}").first_of_any("{% if "     , "{% elif bar %}" , "{% else %}"     , "{% endif %}").which, 3u);
-
-    EXPECT_EQ(csubs("bar{% else %}baz{% endif %}").first_of_any("{% else %}" , "{% if "         , "{% elif bar %}" , "{% endif %}").which, 0u);
-    EXPECT_EQ(csubs("bar{% else %}baz{% endif %}").first_of_any("{% if "     , "{% else %}"     , "{% elif bar %}" , "{% endif %}").which, 1u);
-    EXPECT_EQ(csubs("bar{% else %}baz{% endif %}").first_of_any("{% if "     , "{% elif bar %}" , "{% else %}"     , "{% endif %}").which, 2u);
-    EXPECT_EQ(csubs("bar{% else %}baz{% endif %}").first_of_any("{% if "     , "{% elif bar %}" , "{% endif %}"    , "{% else %}" ).which, 3u);
-
-    EXPECT_EQ(csubs("foo{% elif bar %}bar{% else %}baz{% endif %}").first_of_any("{% elif bar %}" , "{% if "         , "{% else %}"     , "{% endif %}"   ).which, 0u);
-    EXPECT_EQ(csubs("foo{% elif bar %}bar{% else %}baz{% endif %}").first_of_any("{% if "         , "{% elif bar %}" , "{% else %}"     , "{% endif %}"   ).which, 1u);
-    EXPECT_EQ(csubs("foo{% elif bar %}bar{% else %}baz{% endif %}").first_of_any("{% if "         , "{% else %}"     , "{% elif bar %}" , "{% endif %}"   ).which, 2u);
-    EXPECT_EQ(csubs("foo{% elif bar %}bar{% else %}baz{% endif %}").first_of_any("{% if "         , "{% else %}"     , "{% endif %}"    , "{% elif bar %}").which, 3u);
-
-    EXPECT_EQ(csubs("{% if foo %}foo{% elif bar %}bar{% else %}baz{% endif %}").first_of_any("{% if "         , "{% elif bar %}" , "{% else %}" , "{% endif %}" ).which, 0u);
-    EXPECT_EQ(csubs("{% if foo %}foo{% elif bar %}bar{% else %}baz{% endif %}").first_of_any("{% elif bar %}" , "{% if "         , "{% else %}" , "{% endif %}" ).which, 1u);
-    EXPECT_EQ(csubs("{% if foo %}foo{% elif bar %}bar{% else %}baz{% endif %}").first_of_any("{% elif bar %}" , "{% else %}"     , "{% if "     , "{% endif %}" ).which, 2u);
-    EXPECT_EQ(csubs("{% if foo %}foo{% elif bar %}bar{% else %}baz{% endif %}").first_of_any("{% elif bar %}" , "{% else %}"     , "{% endif %}", "{% if "      ).which, 3u);
-}
-
-TEST(subs, first_non_empty_span)
-{
-    EXPECT_EQ(csubs("foo bar").first_non_empty_span(), "foo");
-    EXPECT_EQ(csubs("       foo bar").first_non_empty_span(), "foo");
-    EXPECT_EQ(csubs("\n   \r  \t  foo bar").first_non_empty_span(), "foo");
-    EXPECT_EQ(csubs("\n   \r  \t  foo\n\r\t bar").first_non_empty_span(), "foo");
-    EXPECT_EQ(csubs("\n   \r  \t  foo\n\r\t bar").first_non_empty_span(), "foo");
-    EXPECT_EQ(csubs(",\n   \r  \t  foo\n\r\t bar").first_non_empty_span(), ",");
-}
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
 
 void node_scalar_test_empty(NodeScalar const& s)
 {
@@ -576,7 +225,7 @@ TEST(NodeScalar, ctor__untagged)
     {
         const char sarr[] = "foo";
         const char *sptr = "foo"; size_t sptrlen = 3;
-        csubs ssp = "foo";
+        csubstr ssp = "foo";
 
         for(auto s : {NodeScalar(sarr), NodeScalar(sptr), NodeScalar(sptr, sptrlen), NodeScalar(ssp)})
         {
@@ -597,7 +246,7 @@ TEST(NodeScalar, ctor__untagged)
     {
         const char sarr[] = "foo3";
         const char *sptr = "foo3"; size_t sptrlen = 4;
-        csubs ssp = "foo3";
+        csubstr ssp = "foo3";
 
         for(auto s : {NodeScalar(sarr), NodeScalar(sptr), NodeScalar(sptr, sptrlen), NodeScalar(ssp)})
         {
@@ -636,7 +285,7 @@ TEST(NodeScalar, ctor__tagged)
         const char sarr[] = "foo", tarr[] = "!!str";
         const char *sptr = "foo"; size_t sptrlen = 3;
         const char *tptr = "!!str"; size_t tptrlen = 5;
-        csubs ssp = "foo", tsp = "!!str";
+        csubstr ssp = "foo", tsp = "!!str";
 
         for(auto s : ilist{
                 {tsp, ssp},
@@ -752,7 +401,7 @@ TEST(NodeScalar, ctor__tagged)
         const char sarr[] = "foo3", tarr[] = "!!str+++";
         const char *sptr = "foo3"; size_t sptrlen = 4;
         const char *tptr = "!!str+++"; size_t tptrlen = 8;
-        csubs ssp = "foo3", tsp = "!!str+++";
+        csubstr ssp = "foo3", tsp = "!!str+++";
 
         for(auto s : ilist{
                 {tsp, ssp},
@@ -899,7 +548,7 @@ TEST(NodeInit, ctor__val_only)
     {
         const char sarr[] = "foo";
         const char *sptr = "foo"; size_t sptrlen = 3;
-        csubs ssp = "foo";
+        csubstr ssp = "foo";
 
         {
             SCOPED_TRACE("here 0");
@@ -989,7 +638,7 @@ TEST(NodeInit, ctor__val_only)
     {
         const char sarr[] = "foo3";
         const char *sptr = "foo3"; size_t sptrlen = 4;
-        csubs ssp = "foo3";
+        csubstr ssp = "foo3";
 
         {
             SCOPED_TRACE("here 0");
@@ -1034,7 +683,7 @@ TEST(NodeRef, 0_general)
 
     NodeRef root(&t);
 
-    //using S = csubs;
+    //using S = csubstr;
     //using V = NodeScalar;
     using N = NodeInit;
 
@@ -1368,13 +1017,14 @@ TEST(general, parsing)
     auto tree = parse(src);
 
     char cmpbuf[128] = {0};
-    subs cmp(cmpbuf);
+    substr cmp(cmpbuf);
+    size_t ret;
 
-    cat(cmp, tree["foo"].val());
-    EXPECT_EQ(cmp, "1");
+    ret = cat(cmp, tree["foo"].val());
+    EXPECT_EQ(cmp.first(ret), "1");
 
-    cat(cmp, tree["foo"].key());
-    EXPECT_EQ(cmp, "foo");
+    ret = cat(cmp, tree["foo"].key());
+    EXPECT_EQ(cmp.first(ret), "foo");
 }
 
 TEST(general, emitting)

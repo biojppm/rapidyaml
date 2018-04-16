@@ -3,10 +3,11 @@
 
 #include <ctype.h>
 #include <stdarg.h>
+#include <stdio.h>
 
 #ifdef __GNUC__
 #   pragma GCC diagnostic push
-#   pragma GCC diagnostic ignored "-Wtype-limits"
+#   pragma GCC diagnostic ignored "-Wtype-limits" // to remove a warning on an assertion that a size_t >= 0. Later on, this size_t will turn into a template argument, and then it can become < 0.
 #endif
 
 namespace c4 {
@@ -71,7 +72,7 @@ bool Parser::_finished_line() const
 }
 
 //-----------------------------------------------------------------------------
-void Parser::parse(csubs const& file, subs buf, NodeRef *root)
+void Parser::parse(csubstr const& file, substr buf, NodeRef *root)
 {
     m_file = file;
     m_buf = buf;
@@ -196,7 +197,7 @@ void Parser::_handle_line()
 }
 
 //-----------------------------------------------------------------------------
-bool Parser::_is_scalar_next(csubs rem) const
+bool Parser::_is_scalar_next(csubstr rem) const
 {
     C4_ASSERT(rem.len > 0);
     // a scalar starts with either...
@@ -226,7 +227,7 @@ bool Parser::_handle_unk()
 {
     _c4dbgp("handle_unk");
 
-    csubs rem = m_state->line_contents.rem;
+    csubstr rem = m_state->line_contents.rem;
     const bool start_as_child = (node(m_state) == nullptr);
 
     C4_ASSERT(has_none(RNXT|RSEQ|RMAP));
@@ -300,7 +301,7 @@ bool Parser::_handle_unk()
     {
         _c4dbgpf("there's a stored scalar: '%.*s'", _c4prsp(m_state->scalar));
 
-        csubs saved_scalar;
+        csubstr saved_scalar;
         if(scnext)
         {
             saved_scalar = _scan_scalar();
@@ -375,7 +376,7 @@ bool Parser::_handle_unk()
 bool Parser::_handle_seq_expl()
 {
     _c4dbgpf("handle_seq_expl: node_id=%zd level=%zd", m_state->node_id, m_state->level);
-    csubs rem = m_state->line_contents.rem;
+    csubstr rem = m_state->line_contents.rem;
 
     C4_ASSERT(has_none(RKEY));
     C4_ASSERT(has_all(EXPL));
@@ -479,7 +480,7 @@ bool Parser::_handle_seq_expl()
 bool Parser::_handle_seq_impl()
 {
     _c4dbgpf("handle_seq_impl: node_id=%zd level=%zd", m_state->node_id, m_state->level);
-    csubs rem = m_state->line_contents.rem;
+    csubstr rem = m_state->line_contents.rem;
 
     C4_ASSERT(has_none(RKEY));
     C4_ASSERT(has_none(EXPL));
@@ -545,7 +546,7 @@ bool Parser::_handle_seq_impl()
         if(_is_scalar_next())
         {
             _c4dbgp("it's a scalar");
-            csubs s = _scan_scalar(); // this also progresses the line
+            csubstr s = _scan_scalar(); // this also progresses the line
             rem = m_state->line_contents.rem;
             if(rem.begins_with(':'))
             {
@@ -615,7 +616,7 @@ bool Parser::_handle_seq_impl()
         }
         else if(rem.begins_with(' '))
         {
-            csubs spc = rem.left_of(rem.first_not_of(' '));
+            csubstr spc = rem.left_of(rem.first_not_of(' '));
             if(_at_line_begin())
             {
                 _c4dbgpf("skipping value indentation: %zd spaces", spc.len);
@@ -650,7 +651,7 @@ bool Parser::_handle_seq_impl()
 
 bool Parser::_rval_dash_start_or_continue_seq()
 {
-    const csubs rem = m_state->line_contents.rem;
+    const csubstr rem = m_state->line_contents.rem;
     size_t ind = rem.begin() - m_state->line_contents.full.begin();
     C4_ASSERT(ind >= m_state->indref);
     size_t delta_ind = ind - m_state->indref;
@@ -673,7 +674,7 @@ bool Parser::_rval_dash_start_or_continue_seq()
 bool Parser::_handle_map_expl()
 {
     _c4dbgpf("handle_map_expl: node_id=%zd  level=%zd", m_state->node_id, m_state->level);
-    csubs rem = m_state->line_contents.rem;
+    csubstr rem = m_state->line_contents.rem;
 
     C4_ASSERT(has_all(EXPL));
 
@@ -842,7 +843,7 @@ bool Parser::_handle_map_expl()
 bool Parser::_handle_map_impl()
 {
     _c4dbgpf("handle_map_impl: node_id=%zd  level=%zd", m_state->node_id, m_state->level);
-    csubs rem = m_state->line_contents.rem;
+    csubstr rem = m_state->line_contents.rem;
 
     C4_ASSERT(has_none(EXPL));
 
@@ -944,7 +945,7 @@ bool Parser::_handle_map_impl()
         {
             _c4dbgp("it's a scalar");
 
-            csubs s = _scan_scalar(); // this also progresses the line
+            csubstr s = _scan_scalar(); // this also progresses the line
             rem = m_state->line_contents.rem;
 
             if(rem.begins_with(": "))
@@ -1020,7 +1021,7 @@ bool Parser::_handle_map_impl()
         }
         else if(rem.begins_with(' '))
         {
-            csubs spc = rem.left_of(rem.first_not_of(' '));
+            csubstr spc = rem.left_of(rem.first_not_of(' '));
             if(_at_line_begin())
             {
                 _c4dbgpf("skipping value indentation: %zd spaces", spc.len);
@@ -1059,7 +1060,7 @@ bool Parser::_handle_map_impl()
 bool Parser::_handle_top()
 {
     _c4dbgp("handle_top");
-    csubs rem = m_state->line_contents.rem;
+    csubstr rem = m_state->line_contents.rem;
 
     if(rem.begins_with('#'))
     {
@@ -1133,9 +1134,9 @@ bool Parser::_handle_top()
 }
 
 //-----------------------------------------------------------------------------
-csubs Parser::_scan_ref()
+csubstr Parser::_scan_ref()
 {
-    csubs rem = m_state->line_contents.rem;
+    csubstr rem = m_state->line_contents.rem;
     C4_ASSERT(rem.begins_with("<<"));
 
     size_t pos = rem.find(": ");
@@ -1143,7 +1144,7 @@ csubs Parser::_scan_ref()
     C4_ASSERT(pos != npos);
     _line_progressed(pos + 2);
 
-    csubs ref = rem.right_of(pos);
+    csubstr ref = rem.right_of(pos);
     pos = ref.first_of('*');
     C4_ASSERT(pos != npos);
     ref = ref.right_of(pos);
@@ -1160,12 +1161,12 @@ bool Parser::_handle_anchors_and_refs()
 {
     if(has_all(RVAL))
     {
-        csubs rem = m_state->line_contents.rem;
+        csubstr rem = m_state->line_contents.rem;
         if(rem.begins_with('&'))
         {
             _c4dbgp("found an anchor!!!");
             C4_ASSERT(m_anchor.empty());
-            csubs anchor = rem.left_of(rem.first_of(' '));
+            csubstr anchor = rem.left_of(rem.first_of(' '));
             _line_progressed(anchor.len);
             anchor = anchor.sub(1); // skip the first character
             _c4dbgpf("anchor value: '%.*s'", _c4prsp(anchor));
@@ -1184,8 +1185,8 @@ bool Parser::_handle_anchors_and_refs()
 //-----------------------------------------------------------------------------
 bool Parser::_handle_types()
 {
-    csubs rem = m_state->line_contents.rem;
-    csubs t;
+    csubstr rem = m_state->line_contents.rem;
+    csubstr t;
 
     if(rem.begins_with("!!"))
     {
@@ -1249,9 +1250,9 @@ bool Parser::_handle_types()
 }
 
 //-----------------------------------------------------------------------------
-csubs Parser::_scan_scalar()
+csubstr Parser::_scan_scalar()
 {
-    csubs s = m_state->line_contents.rem;
+    csubstr s = m_state->line_contents.rem;
     if(s.len == 0) return s;
 
     if(s.begins_with('\''))
@@ -1353,7 +1354,7 @@ csubs Parser::_scan_scalar()
 
     if(_at_line_end())
     {
-        csubs n = _peek_next_line(m_state->pos.offset);
+        csubstr n = _peek_next_line(m_state->pos.offset);
         if(n.begins_with(' ', m_state->line_contents.indentation + 1))
         {
             _c4dbgpf("does indentation increase? '%.*s'", _c4prsp(n));
@@ -1362,7 +1363,7 @@ csubs Parser::_scan_scalar()
             {
                 ind = n.len;
             }
-            const csubs contents = n.right_of(ind, /*include_pos*/true);
+            const csubstr contents = n.right_of(ind, /*include_pos*/true);
             if( ! contents.begins_with_any("-[{?#") && (contents.first_of(':') == npos))
             {
                 _c4dbgpf("reading scalar: it indents further: the scalar continues!!! indentation=%zd", ind);
@@ -1375,7 +1376,7 @@ csubs Parser::_scan_scalar()
                     _line_progressed(n.end() - (m_buf.str + m_state->pos.offset));
                     n = _peek_next_line(m_state->pos.offset);
                 }
-                subs full(m_buf.str + (s.str - m_buf.str), m_buf.begin() + m_state->pos.offset);
+                substr full(m_buf.str + (s.str - m_buf.str), m_buf.begin() + m_state->pos.offset);
 
                 s = _filter_plain_scalar(full, ind);
             }
@@ -1400,18 +1401,18 @@ void Parser::_scan_line()
     {
         ++e;
     }
-    csubs stripped = m_buf.sub(m_state->pos.offset, e - b);
+    csubstr stripped = m_buf.sub(m_state->pos.offset, e - b);
 
     // advance pos to include the first line ending
     if(e != m_buf.end() && *e == '\r') ++e;
     if(e != m_buf.end() && *e == '\n') ++e;
-    csubs full = m_buf.sub(m_state->pos.offset, e - b);
+    csubstr full = m_buf.sub(m_state->pos.offset, e - b);
 
     m_state->line_contents.reset(full, stripped);
 }
 
 //-----------------------------------------------------------------------------
-csubs Parser::_peek_next_line(size_t pos) const
+csubstr Parser::_peek_next_line(size_t pos) const
 {
     pos = pos == npos ? m_state->pos.offset : pos;
     if(pos >= m_buf.len) return {};
@@ -1425,7 +1426,7 @@ csubs Parser::_peek_next_line(size_t pos) const
     if(b != m_buf.end() && *b == '\n') ++b;
 
     // get the first non-empty line stripped of newline chars
-    csubs curr;
+    csubstr curr;
     char const* e = b;
     while(1)
     {
@@ -1442,7 +1443,7 @@ csubs Parser::_peek_next_line(size_t pos) const
         }
     }
 
-    csubs next(b, e);
+    csubstr next(b, e);
 
     return next;
 }
@@ -1591,7 +1592,7 @@ void Parser::_start_map(bool as_child)
         m_state->node_id = m_tree->append_child(parent_id);
         if(has_all(SSCL))
         {
-            csubs key = _consume_scalar();
+            csubstr key = _consume_scalar();
             m_tree->to_map(m_state->node_id, key);
             _c4dbgpf("start_map: id=%zd key='%.*s'", m_state->node_id, _c4prsp(node(m_state)->key()));
         }
@@ -1645,7 +1646,7 @@ void Parser::_start_seq(bool as_child)
         if(has_all(SSCL))
         {
             C4_ASSERT(node(parent_id)->is_map());
-            csubs name = _consume_scalar();
+            csubstr name = _consume_scalar();
             m_tree->to_seq(m_state->node_id, name);
             _c4dbgpf("start_seq: id=%zd name='%.*s'", m_state->node_id, _c4prsp(node(m_state)->key()));
         }
@@ -1689,7 +1690,7 @@ void Parser::_stop_seq()
 }
 
 //-----------------------------------------------------------------------------
-NodeData* Parser::_append_val(csubs const& val)
+NodeData* Parser::_append_val(csubstr const& val)
 {
     C4_ASSERT( ! has_all(SSCL));
     C4_ASSERT(node(m_state) != nullptr);
@@ -1720,10 +1721,10 @@ NodeData* Parser::_append_val(csubs const& val)
     return m_tree->get(nid);
 }
 
-NodeData* Parser::_append_key_val(csubs const& val)
+NodeData* Parser::_append_key_val(csubstr const& val)
 {
     C4_ASSERT(node(m_state)->is_map());
-    csubs key = _consume_scalar();
+    csubstr key = _consume_scalar();
     _c4dbgpf("append keyval: '%.*s' '%.*s' to parent id=%zd (level=%zd)", _c4prsp(key), _c4prsp(val), m_state->node_id, m_state->level);
     size_t nid = m_tree->append_child(m_state->node_id);
     m_tree->to_keyval(nid, key, val);
@@ -1761,7 +1762,7 @@ NodeData* Parser::_append_key_val(csubs const& val)
 }
 
 //-----------------------------------------------------------------------------
-void Parser::_store_scalar(csubs const& s)
+void Parser::_store_scalar(csubstr const& s)
 {
     _c4dbgpf("state[%zd]: storing scalar '%.*s' (flag: %zd) (old scalar='%.*s')", m_state-m_stack.begin(), _c4prsp(s), m_state->flags & SSCL, _c4prsp(m_state->scalar));
     C4_ASSERT(has_none(SSCL));
@@ -1769,11 +1770,11 @@ void Parser::_store_scalar(csubs const& s)
     m_state->scalar = s;
 }
 
-csubs Parser::_consume_scalar()
+csubstr Parser::_consume_scalar()
 {
     _c4dbgpf("state[%zd]: consuming scalar '%.*s' (flag: %zd))", m_state-m_stack.begin(), _c4prsp(m_state->scalar), m_state->flags & SSCL);
     C4_ASSERT(m_state->flags & SSCL);
-    csubs s = m_state->scalar;
+    csubstr s = m_state->scalar;
     rem_flags(SSCL);
     m_state->scalar.clear();
     return s;
@@ -1908,9 +1909,9 @@ bool Parser::_handle_indentation()
 }
 
 //-----------------------------------------------------------------------------
-csubs Parser::_scan_comment()
+csubstr Parser::_scan_comment()
 {
-    csubs s = m_state->line_contents.rem;
+    csubstr s = m_state->line_contents.rem;
     C4_ASSERT(s.begins_with('#'));
     _line_progressed(s.len);
     // skip the # character
@@ -1922,7 +1923,7 @@ csubs Parser::_scan_comment()
 }
 
 //-----------------------------------------------------------------------------
-csubs Parser::_scan_quoted_scalar(const char q)
+csubstr Parser::_scan_quoted_scalar(const char q)
 {
     C4_ASSERT(q == '\'' || q == '"');
 
@@ -1933,7 +1934,7 @@ csubs Parser::_scan_quoted_scalar(const char q)
 
     // a span to the end of the file
     const size_t b = m_state->pos.offset;
-    subs s = m_buf.sub(b);
+    substr s = m_buf.sub(b);
     C4_ASSERT(s.begins_with(q));
 
     // skip the opening quote
@@ -1944,7 +1945,7 @@ csubs Parser::_scan_quoted_scalar(const char q)
     size_t pos = npos;
     while( ! _finished_file())
     {
-        const csubs line = m_state->line_contents.rem;
+        const csubstr line = m_state->line_contents.rem;
         bool line_is_blank = true;
 
         if(q == '\'') // scalars with single quotes
@@ -2040,7 +2041,7 @@ csubs Parser::_scan_quoted_scalar(const char q)
 
     if(needs_filter)
     {
-        csubs ret;
+        csubstr ret;
         if(q == '\'')
         {
             ret = _filter_squot_scalar(s);
@@ -2060,10 +2061,10 @@ csubs Parser::_scan_quoted_scalar(const char q)
 }
 
 //-----------------------------------------------------------------------------
-csubs Parser::_scan_block()
+csubstr Parser::_scan_block()
 {
     // nice explanation here: http://yaml-multiline.info/
-    csubs s = m_state->line_contents.rem;
+    csubstr s = m_state->line_contents.rem;
     C4_ASSERT(s.begins_with('|') || s.begins_with('>'));
 
     _c4dbgpf("scanning block: specs=\"%.*s\"", _c4prsp(s));
@@ -2072,10 +2073,10 @@ csubs Parser::_scan_block()
     BlockStyle_e newline = s.begins_with('>') ? BLOCK_FOLD : BLOCK_LITERAL;
     BlockChomp_e chomp = CHOMP_CLIP; // default to clip unless + or - are used
     size_t indentation = npos; // have to find out if no spec is given
-    csubs digits;
+    csubstr digits;
     if(s.len > 1)
     {
-        csubs t = s.sub(1);
+        csubstr t = s.sub(1);
         C4_ASSERT(t.len >= 1);
         if(t[0] == '-')
         {
@@ -2114,7 +2115,7 @@ csubs Parser::_scan_block()
     _c4dbgpf("scanning block: indent=%zd (digits='%.*s')", indentation, _c4prsp(digits));
 
     // start with a zero-length block, already pointing at the right place
-    subs raw_block(m_buf.data() + m_state->pos.offset, size_t(0));// m_state->line_contents.full.sub(0, 0);
+    substr raw_block(m_buf.data() + m_state->pos.offset, size_t(0));// m_state->line_contents.full.sub(0, 0);
     C4_ASSERT(raw_block.begin() == m_state->line_contents.full.begin());
 
     // read every full line into a raw block,
@@ -2145,22 +2146,22 @@ csubs Parser::_scan_block()
 }
 
 //-----------------------------------------------------------------------------
-inline subs erase(subs d, size_t pos, size_t num)
+inline substr erase(substr d, size_t pos, size_t num)
 {
     return d.erase(pos, num);
 /*    C4_ASSERT(pos >= 0 && pos+num <= d.len);
     size_t num_to_move = d.len - pos - num;
-    memmove(d.str + pos, d.str + pos + num, sizeof(subs::char_type) * num_to_move);
-    return subs(d.str, d.len - num);*/
+    memmove(d.str + pos, d.str + pos + num, sizeof(substr::char_type) * num_to_move);
+    return substr(d.str, d.len - num);*/
 }
 
 //-----------------------------------------------------------------------------
-csubs Parser::_filter_plain_scalar(subs s, size_t indentation)
+csubstr Parser::_filter_plain_scalar(substr s, size_t indentation)
 {
     _c4dbgpf("filtering plain scalar: before='%.*s'", _c4prsp(s));
 
     // do a first sweep to clean leading whitespace
-    subs r = _filter_whitespace(s, indentation);
+    substr r = _filter_whitespace(s, indentation);
 
     // now another sweep for newlines
     for(size_t i = 0; i < r.len; ++i)
@@ -2196,12 +2197,12 @@ csubs Parser::_filter_plain_scalar(subs s, size_t indentation)
 }
 
 //-----------------------------------------------------------------------------
-csubs Parser::_filter_squot_scalar(subs s)
+csubstr Parser::_filter_squot_scalar(substr s)
 {
     _c4dbgpf("filtering single-quoted scalar: before=\"%.*s\"", _c4prsp(s));
 
     // do a first sweep to clean leading whitespace
-    subs r = _filter_whitespace(s);
+    substr r = _filter_whitespace(s);
 
     // now another sweep for quotes and newlines
     for(size_t i = 0; i < r.len; ++i)
@@ -2241,12 +2242,12 @@ csubs Parser::_filter_squot_scalar(subs s)
 }
 
 //-----------------------------------------------------------------------------
-csubs Parser::_filter_dquot_scalar(subs s)
+csubstr Parser::_filter_dquot_scalar(substr s)
 {
     _c4dbgpf("filtering double-quoted scalar: before='%.*s'", _c4prsp(s));
 
     // do a first sweep to clean leading whitespace
-    subs r = _filter_whitespace(s);
+    substr r = _filter_whitespace(s);
 
     for(size_t i = 0; i < r.len; ++i)
     {
@@ -2301,7 +2302,7 @@ csubs Parser::_filter_dquot_scalar(subs s)
 }
 
 //-----------------------------------------------------------------------------
-subs Parser::_filter_whitespace(subs r, size_t indentation, bool leading_whitespace)
+substr Parser::_filter_whitespace(substr r, size_t indentation, bool leading_whitespace)
 {
     _c4dbgpf("filtering whitespace: before=\"%.*s\"", _c4prsp(r));
 
@@ -2314,7 +2315,7 @@ subs Parser::_filter_whitespace(subs r, size_t indentation, bool leading_whitesp
         {
             if(next == ' ')
             {
-                csubs ss = r.sub(i);
+                csubstr ss = r.sub(i);
                 ss = ss.left_of(ss.first_not_of(' '));
                 C4_ASSERT(ss.len > 1);
                 size_t num = ss.len;
@@ -2355,13 +2356,13 @@ subs Parser::_filter_whitespace(subs r, size_t indentation, bool leading_whitesp
 }
 
 //-----------------------------------------------------------------------------
-csubs Parser::_filter_block_scalar(subs s, BlockStyle_e style, BlockChomp_e chomp, size_t indentation)
+csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e chomp, size_t indentation)
 {
     _c4dbgpf("filtering block: '%.*s'", _c4prsp(s));
 
     C4_ASSERT(s.ends_with('\n') || s.ends_with('\r'));
 
-    subs r = s;
+    substr r = s;
 
     if(indentation > 0)
     {
@@ -2413,7 +2414,7 @@ csubs Parser::_filter_block_scalar(subs s, BlockStyle_e style, BlockChomp_e chom
             C4_ASSERT(pos != npos);
             C4_ASSERT(pos < r.len);
             ++pos; // point pos at the first newline char
-            subs t = r.sub(0, pos);
+            substr t = r.sub(0, pos);
             for(size_t i = 0; i < t.len; ++i)
             {
                 const char curr = t[i];
@@ -2432,7 +2433,7 @@ csubs Parser::_filter_block_scalar(subs s, BlockStyle_e style, BlockChomp_e chom
                 }
             }
             // copy over the trailing newlines
-            subs nl = r.sub(pos);
+            substr nl = r.sub(pos);
             C4_ASSERT(t.len + nl.len <= r.len);
             for(size_t i = 0; i < nl.len; ++i)
             {
@@ -2465,7 +2466,7 @@ void Parser::_resolve_references()
 }
 
 //-----------------------------------------------------------------------------
-bool Parser::_read_decimal(csubs const& str, size_t *decimal)
+bool Parser::_read_decimal(csubstr const& str, size_t *decimal)
 {
     C4_ASSERT(str.len >= 1);
     size_t n = 0;
@@ -2480,7 +2481,7 @@ bool Parser::_read_decimal(csubs const& str, size_t *decimal)
 }
 
 //-----------------------------------------------------------------------------
-size_t Parser::_count_nlines(csubs src)
+size_t Parser::_count_nlines(csubstr src)
 {
     size_t n = (src.len > 0);
     while(src.len > 0)

@@ -12,10 +12,10 @@ namespace yml {
 #define _c4cthis (static_cast< Writer const* >(this))
 
 template< class Writer >
-subs Emitter< Writer >::emit(NodeRef const& n, bool error_on_excess)
+substr Emitter< Writer >::emit(NodeRef const& n, bool error_on_excess)
 {
     this->_visit(n);
-    subs result = _c4this->_get(error_on_excess);
+    substr result = _c4this->_get(error_on_excess);
     return result;
 }
 
@@ -41,7 +41,7 @@ size_t Emitter< Writer >::_visit(NodeRef const& n, size_t ilevel)
     _do_visit(n, ilevel);
     if(n.is_stream())
     {
-        _write(csubs("...\n"));
+        _write(csubstr("...\n"));
     }
     return _c4this->m_pos;
 }
@@ -54,18 +54,18 @@ void Emitter< Writer >::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
 
     if(n.is_doc())
     {
-        _write(csubs("---\n"));
+        _write(csubstr("---\n"));
     }
     else if(n.is_keyval())
     {
         C4_ASSERT(n.has_parent());
         if( ! n.has_anchor())
         {
-            _write(ind, n.keysc(), csubs(": "), n.valsc(), '\n');
+            _write(ind, n.keysc(), csubstr(": "), n.valsc(), '\n');
         }
         else
         {
-            _write(ind, n.keysc(), csubs(": "), AnchorScalar(n), '\n');
+            _write(ind, n.keysc(), csubstr(": "), AnchorScalar(n), '\n');
         }
     }
     else if(n.is_val())
@@ -73,11 +73,11 @@ void Emitter< Writer >::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
         C4_ASSERT(n.has_parent());
         if( ! n.has_anchor())
         {
-            _write(ind, csubs("- "), n.valsc(), '\n');
+            _write(ind, csubstr("- "), n.valsc(), '\n');
         }
         else
         {
-            _write(ind, csubs("- "), AnchorScalar(n), '\n');
+            _write(ind, csubstr("- "), AnchorScalar(n), '\n');
         }
     }
     else if(n.is_container() && ! n.is_root())
@@ -88,7 +88,7 @@ void Emitter< Writer >::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
         if(n.parent_is_seq())
         {
             C4_ASSERT( ! n.has_key());
-            _write(ind, csubs("- "));
+            _write(ind, csubstr("- "));
             if(n.has_val_tag())
             {
                 _write(n.val_tag(), ' ');
@@ -154,11 +154,11 @@ void Emitter< Writer >::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
 
             if(n.is_seq())
             {
-                _write(csubs("[]\n"));
+                _write(csubstr("[]\n"));
             }
             else if(n.is_map())
             {
-                _write(csubs("{}\n"));
+                _write(csubstr("{}\n"));
             }
         }
     }
@@ -168,11 +168,11 @@ void Emitter< Writer >::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
         {
             if(n.is_seq())
             {
-                _write(csubs("[]\n"));
+                _write(csubstr("[]\n"));
             }
             else if(n.is_map())
             {
-                _write(csubs("{}\n"));
+                _write(csubstr("{}\n"));
             }
         }
     }
@@ -221,7 +221,7 @@ void Emitter< Writer >::_write_one(NodeScalar const& sc)
 }
 
 template< class Writer >
-void Emitter< Writer >::_write_scalar(csubs const& s)
+void Emitter< Writer >::_write_scalar(csubstr const& s)
 {
     const bool no_dquotes = s.first_of( '"') == npos;
     const bool no_squotes = s.first_of('\'') == npos;
@@ -260,7 +260,7 @@ void Emitter< Writer >::_write_scalar(csubs const& s)
             {
                 if(s[i] == '\'' || s[i] == '\n')
                 {
-                    csubs sub = s.sub(pos, i-pos);
+                    csubstr sub = s.sub(pos, i-pos);
                     pos = i;
                     _c4this->_do_write(sub);
                     _c4this->_do_write(s[i]); // write the character twice
@@ -268,7 +268,7 @@ void Emitter< Writer >::_write_scalar(csubs const& s)
             }
             if(pos < s.len)
             {
-                csubs sub = s.sub(pos);
+                csubstr sub = s.sub(pos);
                 _c4this->_do_write(sub);
             }
             _c4this->_do_write('\'');
