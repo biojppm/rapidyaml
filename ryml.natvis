@@ -11,18 +11,6 @@ See also:
 
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
 
-  <Type Name="c4::yml::basic_span&lt;*&gt;">
-    <DisplayString>{str,[len]} (sz={len})</DisplayString>
-    <StringView>str,[len]</StringView>
-    <Expand>
-      <Item Name="[size]">len</Item>
-      <ArrayItems>
-        <Size>len</Size>
-        <ValuePointer>str</ValuePointer>
-      </ArrayItems>
-    </Expand>
-  </Type>
-
   <Type Name="c4::yml::NodeScalar">
     <DisplayString Condition="(tag.len == 0)">{scalar.str,[scalar.len]}</DisplayString>
     <DisplayString Condition="(tag.len >  0)">{scalar.str,[scalar.len]} tag='{tag.str,[tag.len]}</DisplayString>
@@ -85,54 +73,6 @@ See also:
           </CustomListItems>
         </Expand>
       </Synthetic>
-    </Expand>
-  </Type>
-
-  <Type Name="c4::tpl::Rope::rope_entry">
-    <DisplayString>{s}</DisplayString>
-  </Type>
-  <Type Name="c4::tpl::Rope">
-    <DisplayString>strsz={m_str_size}, sz={m_size}, cap={m_cap}</DisplayString>
-    <Expand>
-      <Item Name="[str_size]">m_str_size</Item>
-      <Item Name="[size]">m_size</Item>
-      <Item Name="[capacity]">m_cap</Item>
-      <Item Name="[head]">m_head</Item>
-      <Item Name="[tail]">m_tail</Item>
-      <Synthetic Name="[seq]">
-        <Expand>
-          <CustomListItems>
-            <Variable Name="buf" InitialValue="m_buf"/>
-            <Variable Name="curr" InitialValue="m_head"/>
-            <Variable Name="tail" InitialValue="m_tail"/>
-            <Loop>
-              <Item>(buf + curr)</Item>
-              <Exec>curr = (buf + curr)->m_next</Exec>
-              <Break Condition="curr == c4::tpl::NONE"/>
-            </Loop>
-          </CustomListItems>
-        </Expand>
-      </Synthetic>
-      <Synthetic Name="[buf]">
-        <Expand>
-          <ArrayItems>
-            <Size>m_cap</Size>
-            <ValuePointer>m_buf</ValuePointer>
-          </ArrayItems>
-        </Expand>
-      </Synthetic>
-    </Expand>
-  </Type>
-
-  <Type Name="c4::tpl::TokenContainer">
-    <DisplayString>#tokens={m_num_tokens}</DisplayString>
-    <Expand>
-      <IndexListItems>
-        <Size>m_num_tokens</Size>
-        <ValueNode>*((TokenBase*)((size_t*)(&amp;m_tokens[$i * m_entry_size])+1))</ValueNode>
-      </IndexListItems>
-      <Item Name="[max size]">m_max_size</Item>
-      <Item Name="[entry size]">m_entry_size</Item>
     </Expand>
   </Type>
 
