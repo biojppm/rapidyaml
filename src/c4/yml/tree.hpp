@@ -278,7 +278,7 @@ private:
     size_t m_free_head;
     size_t m_free_tail;
 
-    substr   m_arena;
+    substr m_arena;
     size_t m_arena_pos;
 
     Allocator m_alloc;
