@@ -51,9 +51,7 @@ public:
     Tree parse(csubstr const& filename, substr src)
     {
         Tree t;
-        size_t capacity = _count_nlines(src);
-        capacity = capacity >= 16 ? capacity : 16;
-        t.reserve(capacity);
+        t.reserve(_estimate_capacity(src));
         parse(filename, src, &t);
         return t;
     }
@@ -82,6 +80,8 @@ private:
     } BlockChomp_e;
 
 private:
+
+    static size_t _estimate_capacity(csubstr src) { size_t c = _count_nlines(src); c = c >= 16 ? c : 16; return c; }
 
     void  _reset();
 
