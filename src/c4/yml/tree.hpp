@@ -217,7 +217,7 @@ public:
     NodeScalar m_key;
     NodeScalar m_val;
 
-    csubstr      m_anchor;
+    csubstr    m_anchor;
 
     size_t     m_parent;
     size_t     m_first_child;
@@ -683,9 +683,27 @@ public:
         return rem;
     }
 
-    inline bool in_arena(csubstr const& s) const
+    bool in_arena(csubstr const& s) const
     {
         return m_arena.contains(s);
+    }
+
+    substr alloc_arena(size_t sz)
+    {
+        if(sz >= arena_slack())
+        {
+            _grow_arena(sz - arena_slack());
+        }
+        substr s = _request_span(sz);
+        return s;
+    }
+
+    substr copy_to_arena(csubstr s)
+    {
+        substr cp = alloc_arena(s.len);
+        C4_ASSERT(cp.len == s.len);
+        memcpy(cp.str, s.str, s.len);
+        return cp;
     }
 
 private:
@@ -707,7 +725,7 @@ private:
         return s;
     }
 
-    inline substr _relocated(csubstr const& s, substr const& next_arena) const
+    substr _relocated(csubstr const& s, substr const& next_arena) const
     {
         C4_ASSERT(m_arena.contains(s));
         C4_ASSERT(m_arena.sub(0, m_arena_pos).contains(s));
