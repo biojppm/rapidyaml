@@ -152,8 +152,8 @@ public:
     NodeRef const last_child () const { _C4RV(); return {m_tree, m_tree->last_child (m_id)}; }
     NodeRef       child(size_t pos)       { _C4RV(); return {m_tree, m_tree->child(m_id, pos)}; }
     NodeRef const child(size_t pos) const { _C4RV(); return {m_tree, m_tree->child(m_id, pos)}; }
-    NodeRef       find_child(csubstr const& name)       { _C4RV(); return {m_tree, m_tree->find_child(m_id, name)}; }
-    NodeRef const find_child(csubstr const& name) const { _C4RV(); return {m_tree, m_tree->find_child(m_id, name)}; }
+    NodeRef       find_child(csubstr name)       { _C4RV(); return {m_tree, m_tree->find_child(m_id, name)}; }
+    NodeRef const find_child(csubstr name) const { _C4RV(); return {m_tree, m_tree->find_child(m_id, name)}; }
 
     /** O(#num_siblings) */
     size_t  num_siblings() const { _C4RV(); return m_tree->num_siblings(m_id); }
@@ -165,8 +165,8 @@ public:
     NodeRef const last_sibling() const { _C4RV(); return {m_tree, m_tree->last_sibling(m_id)}; }
     NodeRef       sibling(size_t pos)       { _C4RV(); return {m_tree, m_tree->sibling(m_id, pos)}; }
     NodeRef const sibling(size_t pos) const { _C4RV(); return {m_tree, m_tree->sibling(m_id, pos)}; }
-    NodeRef       find_sibling(csubstr      & name) const { _C4RV(); return {m_tree, m_tree->find_sibling(m_id, name)}; }
-    NodeRef const find_sibling(csubstr const& name) const { _C4RV(); return {m_tree, m_tree->find_sibling(m_id, name)}; }
+    NodeRef       find_sibling(csubstr name)       { _C4RV(); return {m_tree, m_tree->find_sibling(m_id, name)}; }
+    NodeRef const find_sibling(csubstr name) const { _C4RV(); return {m_tree, m_tree->find_sibling(m_id, name)}; }
 
 public:
 
@@ -303,6 +303,7 @@ public:
         _apply_seed();
         m_tree->_set_flags(m_id, t);
     }
+
     inline void operator|= (NodeType_e t)
     {
         _apply_seed();
