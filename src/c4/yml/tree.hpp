@@ -107,33 +107,33 @@ struct NodeScalar
 
     template< size_t N >
     inline NodeScalar(const char (&s)[N]      ) : tag(), scalar(s             ) {}
-    inline NodeScalar(csubstr const& s          ) : tag(), scalar(s             ) {}
-    inline NodeScalar(const char*  s          ) : tag(), scalar(to_csubstr(s)   ) {}
+    inline NodeScalar(csubstr const& s        ) : tag(), scalar(s             ) {}
+    inline NodeScalar(const char*  s          ) : tag(), scalar(to_csubstr(s) ) {}
     inline NodeScalar(const char*  s, size_t n) : tag(), scalar(s          , n) {}
 
     /// initialize as a tagged scalar
 
     template< size_t M >
     inline NodeScalar(csubstr const& t           , const char (&s)[M]       ) : tag(t    ), scalar(s              ) {}
-    inline NodeScalar(csubstr const& t           , csubstr const& s           ) : tag(t    ), scalar(s              ) {}
-    inline NodeScalar(csubstr const& t           , const char * s           ) : tag(t    ), scalar(to_csubstr(s)    ) {}
+    inline NodeScalar(csubstr const& t           , csubstr const& s         ) : tag(t    ), scalar(s              ) {}
+    inline NodeScalar(csubstr const& t           , const char * s           ) : tag(t    ), scalar(to_csubstr(s)  ) {}
     inline NodeScalar(csubstr const& t           , const char * s, size_t ns) : tag(t    ), scalar(s          , ns) {}
 
     template< size_t M >
     inline NodeScalar(const char * t           , const char (&s)[M]       ) : tag(to_csubstr(t)), scalar(s              ) {}
-    inline NodeScalar(const char * t           , csubstr const& s           ) : tag(to_csubstr(t)), scalar(s              ) {}
-    inline NodeScalar(const char * t           , const char * s           ) : tag(to_csubstr(t)), scalar(to_csubstr(s)    ) {}
+    inline NodeScalar(const char * t           , csubstr const& s         ) : tag(to_csubstr(t)), scalar(s              ) {}
+    inline NodeScalar(const char * t           , const char * s           ) : tag(to_csubstr(t)), scalar(to_csubstr(s)  ) {}
     inline NodeScalar(const char * t           , const char * s, size_t ns) : tag(to_csubstr(t)), scalar(s          , ns) {}
 
     template< size_t M >
     inline NodeScalar(const char * t, size_t nt, const char (&s)[M]       ) : tag(t, nt), scalar(s              ) {}
-    inline NodeScalar(const char * t, size_t nt, csubstr const& s           ) : tag(t, nt), scalar(s              ) {}
-    inline NodeScalar(const char * t, size_t nt, const char * s           ) : tag(t, nt), scalar(to_csubstr(s)    ) {}
+    inline NodeScalar(const char * t, size_t nt, csubstr const& s         ) : tag(t, nt), scalar(s              ) {}
+    inline NodeScalar(const char * t, size_t nt, const char * s           ) : tag(t, nt), scalar(to_csubstr(s)  ) {}
     inline NodeScalar(const char * t, size_t nt, const char * s, size_t ns) : tag(t, nt), scalar(s          , ns) {}
 
     template< size_t N, size_t M > inline NodeScalar(const char (&t)[N], const char (&s)[M]       ) : tag(t), scalar(s              ) {}
-    template< size_t N >           inline NodeScalar(const char (&t)[N], csubstr const& s           ) : tag(t), scalar(s              ) {}
-    template< size_t N >           inline NodeScalar(const char (&t)[N], const char * s           ) : tag(t), scalar(to_csubstr(s)    ) {}
+    template< size_t N >           inline NodeScalar(const char (&t)[N], csubstr const& s         ) : tag(t), scalar(s              ) {}
+    template< size_t N >           inline NodeScalar(const char (&t)[N], const char * s           ) : tag(t), scalar(to_csubstr(s)  ) {}
     template< size_t N >           inline NodeScalar(const char (&t)[N], const char * s, size_t ns) : tag(t), scalar(s          , ns) {}
 
     bool empty() const { return tag.empty() && scalar.empty(); }
