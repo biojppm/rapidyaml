@@ -3,7 +3,7 @@
 
 #include <cstddef>
 
-#include "./tree.hpp"
+#include "c4/yml/tree.hpp"
 
 
 #ifdef __GNUC__
@@ -36,6 +36,23 @@ inline Key< K > key(K & k)
 
 class NodeRef
 {
+private:
+
+    Tree * m_tree;
+    size_t m_id;
+
+    /** This member is used to enable lazy operator[] writing. When a child
+     * with a key or index is not found, m_id is set to the id of the parent
+     * and the asked-for key or index are stored in this member until a write
+     * does happen. Then it is given as key or index for creating the child.
+     * When a key is used, the csubstr stores it (so the csubstr's string is
+     * non-null and the csubstr's size is different from NONE). When an index is
+     * used instead, the csubstr's string is set to null, and only the csubstr's
+     * size is set to a value different from NONE. Otherwise, when operator[]
+     * does find the child then this member is empty: the string is null and
+     * the size is NONE. */
+    csubstr m_seed;
+
 public:
 
     NodeRef() : m_tree(nullptr), m_id(NONE), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = NONE; }
@@ -80,12 +97,12 @@ public:
     inline NodeType_e   type() const { _C4RV(); return m_tree->type(m_id); }
     inline const char*  type_str() const { _C4RV(); C4_ASSERT(valid() && ! is_seed()); return m_tree->type_str(m_id); }
 
-    inline csubstr      const& key    () const { _C4RV(); return m_tree->key(m_id); }
-    inline csubstr      const& key_tag() const { _C4RV(); return m_tree->key_tag(m_id); }
+    inline csubstr    const& key    () const { _C4RV(); return m_tree->key(m_id); }
+    inline csubstr    const& key_tag() const { _C4RV(); return m_tree->key_tag(m_id); }
     inline NodeScalar const& keysc  () const { _C4RV(); return m_tree->keysc(m_id); }
 
-    inline csubstr      const& val    () const { _C4RV(); return m_tree->val(m_id); }
-    inline csubstr      const& val_tag() const { _C4RV(); return m_tree->val_tag(m_id); }
+    inline csubstr    const& val    () const { _C4RV(); return m_tree->val(m_id); }
+    inline csubstr    const& val_tag() const { _C4RV(); return m_tree->val_tag(m_id); }
     inline NodeScalar const& valsc  () const { _C4RV(); return m_tree->valsc(m_id); }
 
     inline csubstr const& anchor() const { _C4RV(); return m_tree->anchor(m_id); }
@@ -161,8 +178,8 @@ public:
     size_t  sibling_pos(NodeRef const& n) const { _C4RV(); return m_tree->child_pos(m_tree->parent(m_id), n.m_id); }
     NodeRef       first_sibling()       { _C4RV(); return {m_tree, m_tree->first_sibling(m_id)}; }
     NodeRef const first_sibling() const { _C4RV(); return {m_tree, m_tree->first_sibling(m_id)}; }
-    NodeRef       last_sibling()       { _C4RV(); return {m_tree, m_tree->last_sibling(m_id)}; }
-    NodeRef const last_sibling() const { _C4RV(); return {m_tree, m_tree->last_sibling(m_id)}; }
+    NodeRef       last_sibling ()       { _C4RV(); return {m_tree, m_tree->last_sibling(m_id)}; }
+    NodeRef const last_sibling () const { _C4RV(); return {m_tree, m_tree->last_sibling(m_id)}; }
     NodeRef       sibling(size_t pos)       { _C4RV(); return {m_tree, m_tree->sibling(m_id, pos)}; }
     NodeRef const sibling(size_t pos) const { _C4RV(); return {m_tree, m_tree->sibling(m_id, pos)}; }
     NodeRef       find_sibling(csubstr name)       { _C4RV(); return {m_tree, m_tree->find_sibling(m_id, name)}; }
@@ -674,23 +691,6 @@ public:
 
     template< class Visitor > bool visit_stacked(Visitor fn, size_t indentation_level=0, bool skip_root=true);
     template< class Visitor > bool visit_stacked(Visitor fn, size_t indentation_level=0, bool skip_root=true) const;
-
-private:
-
-    Tree * m_tree;
-    size_t m_id;
-
-    /** This member is used to enable lazy operator[] writing. When a child
-     * is not found with a key or index, m_id is set to the id of the parent
-     * and the asked-for key or index are stored in this member until a write
-     * does happen. Then it is given as key or index for creating the child.
-     * When a key is used, the span stores it (so the span's string is
-     * non-null and the span's size is different from NONE). When an index is
-     * used instead, the span's string is set to null, and only the span's
-     * size is set to a value different from NONE. Otherwise, when operator[]
-     * does find the child then this member is empty: the string is null and
-     * the size is NONE. */
-    csubstr  m_seed;
 
 #undef _C4RV
 };
