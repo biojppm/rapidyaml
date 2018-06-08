@@ -438,8 +438,8 @@ public:
 
 public:
 
-    void to_val(size_t node, csubstr const& val, int more_flags = 0);
-    void to_keyval(size_t node, csubstr const& key, csubstr const& val, int more_flags = 0);
+    void to_val(size_t node, csubstr const& val, int more_flags=0);
+    void to_keyval(size_t node, csubstr const& key, csubstr const& val, int more_flags=0);
     void to_map(size_t node, int more_flags = 0);
     void to_map(size_t node, csubstr const& key, int more_flags = 0);
     void to_seq(size_t node, int more_flags = 0);
