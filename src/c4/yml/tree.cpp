@@ -1,6 +1,6 @@
-#include "./tree.hpp"
-#include "./node.hpp"
-#include "./detail/stack.hpp"
+#include "c4/yml/tree.hpp"
+#include "c4/yml/node.hpp"
+#include "c4/yml/detail/stack.hpp"
 
 #ifdef __GNUC__
 #   pragma GCC diagnostic push

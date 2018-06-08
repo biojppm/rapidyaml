@@ -2,15 +2,15 @@
 #define _C4_YML_PARSE_HPP_
 
 #ifndef _C4_YML_TREE_HPP_
-#include "./tree.hpp"
+#include "c4/yml/tree.hpp"
 #endif
 
 #ifndef _C4_YML_NODE_HPP_
-#include "./node.hpp"
+#include "c4/yml/node.hpp"
 #endif
 
 #ifndef _C4_YML_DETAIL_STACK_HPP_
-#include "./detail/stack.hpp"
+#include "c4/yml/detail/stack.hpp"
 #endif
 
 #include <stdarg.h>
