@@ -3,11 +3,11 @@
 
 
 #ifndef _C4_YML_COMMON_HPP_
-#include "./common.hpp"
+#include "c4/yml/common.hpp"
 #endif
 
-#include "c4/substr.hpp"
-#include "c4/to_str.hpp"
+#include <c4/substr.hpp>
+#include <c4/to_str.hpp>
 
 #ifdef __GNUC__
 #   pragma GCC diagnostic push
