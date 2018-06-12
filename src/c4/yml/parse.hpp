@@ -69,14 +69,14 @@ public:
 private:
 
     typedef enum {
-        BLOCK_LITERAL, ///< keep newlines (|)
-        BLOCK_FOLD     ///< replace newline with single space (>)
+        BLOCK_LITERAL, //!< keep newlines (|)
+        BLOCK_FOLD     //!< replace newline with single space (>)
     } BlockStyle_e;
 
     typedef enum {
-        CHOMP_CLIP,    ///< single newline at end (default)
-        CHOMP_STRIP,   ///< no newline at end     (-)
-        CHOMP_KEEP     ///< all newlines from end (+)
+        CHOMP_CLIP,    //!< single newline at end (default)
+        CHOMP_STRIP,   //!< no newline at end     (-)
+        CHOMP_KEEP     //!< all newlines from end (+)
     } BlockChomp_e;
 
 private:
@@ -266,8 +266,9 @@ private:
 
 private:
 
-    csubstr   m_file;
-     substr   m_buf;
+
+    csubstr m_file;
+     substr m_buf;
 
     size_t  m_root_id;
     Tree *  m_tree;
@@ -275,12 +276,13 @@ private:
     detail::stack< State > m_stack;
     State * m_state;
 
-    csubstr   m_key_tag;
-    csubstr   m_val_tag;
+    csubstr m_key_tag;
+    csubstr m_val_tag;
 
-    csubstr   m_anchor;
+    csubstr m_anchor;
     size_t  m_num_anchors;
     size_t  m_num_references;
+
 };
 
 

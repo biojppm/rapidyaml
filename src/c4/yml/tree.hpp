@@ -44,12 +44,19 @@ typedef enum {
 } NodeType_e;
 
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
+/** wraps a NodeType_e element with some syntactic sugar and predicates */
 struct NodeType
 {
+public:
+
+    NodeType_e type;
+
+public:
+
     inline operator NodeType_e      & ()       { return type; }
     inline operator NodeType_e const& () const { return type; }
 
@@ -71,22 +78,18 @@ struct NodeType
 
 public:
 
-    bool   is_stream() const { return ((type & STREAM) == STREAM) != 0; }
-    bool   is_doc() const { return (type & DOC) != 0; }
-    bool   is_container() const { return (type & (MAP|SEQ|STREAM|DOC)) != 0; }
-    bool   is_map() const { return (type & MAP) != 0; }
-    bool   is_seq() const { return (type & SEQ) != 0; }
-    bool   has_val() const { return (type & VAL) != 0; }
-    bool   has_key() const { return (type & KEY) != 0; }
-    bool   is_val() const { return (type & KEYVAL) == VAL; }
-    bool   is_keyval() const { return (type & KEYVAL) == KEYVAL; }
-    bool   has_key_tag() const { return (type & (KEY|KEYTAG)) == (KEY|KEYTAG); }
-    bool   has_val_tag() const { return ((type & (VALTAG)) && (type & (VAL|MAP|SEQ))); }
-    bool   is_ref() const { return (type & REF) != 0; }
-
-public:
-
-    NodeType_e type;
+    bool is_stream() const { return ((type & STREAM) == STREAM) != 0; }
+    bool is_doc() const { return (type & DOC) != 0; }
+    bool is_container() const { return (type & (MAP|SEQ|STREAM|DOC)) != 0; }
+    bool is_map() const { return (type & MAP) != 0; }
+    bool is_seq() const { return (type & SEQ) != 0; }
+    bool has_val() const { return (type & VAL) != 0; }
+    bool has_key() const { return (type & KEY) != 0; }
+    bool is_val() const { return (type & KEYVAL) == VAL; }
+    bool is_keyval() const { return (type & KEYVAL) == KEYVAL; }
+    bool has_key_tag() const { return (type & (KEY|KEYTAG)) == (KEY|KEYTAG); }
+    bool has_val_tag() const { return ((type & (VALTAG)) && (type & (VAL|MAP|SEQ))); }
+    bool is_ref() const { return (type & REF) != 0; }
 };
 
 
@@ -94,6 +97,7 @@ public:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+/** a node scalar is a csubstr, which may be tagged. */
 struct NodeScalar
 {
     csubstr tag;
@@ -114,10 +118,10 @@ struct NodeScalar
     /// initialize as a tagged scalar
 
     template< size_t M >
-    inline NodeScalar(csubstr const& t           , const char (&s)[M]       ) : tag(t    ), scalar(s              ) {}
-    inline NodeScalar(csubstr const& t           , csubstr const& s         ) : tag(t    ), scalar(s              ) {}
-    inline NodeScalar(csubstr const& t           , const char * s           ) : tag(t    ), scalar(to_csubstr(s)  ) {}
-    inline NodeScalar(csubstr const& t           , const char * s, size_t ns) : tag(t    ), scalar(s          , ns) {}
+    inline NodeScalar(csubstr const& t         , const char (&s)[M]       ) : tag(t    ), scalar(s              ) {}
+    inline NodeScalar(csubstr const& t         , csubstr const& s         ) : tag(t    ), scalar(s              ) {}
+    inline NodeScalar(csubstr const& t         , const char * s           ) : tag(t    ), scalar(to_csubstr(s)  ) {}
+    inline NodeScalar(csubstr const& t         , const char * s, size_t ns) : tag(t    ), scalar(s          , ns) {}
 
     template< size_t M >
     inline NodeScalar(const char * t           , const char (&s)[M]       ) : tag(to_csubstr(t)), scalar(s              ) {}
@@ -146,11 +150,17 @@ struct NodeScalar
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+
+/** convenience class to initialize nodes */
 struct NodeInit
 {
+public:
+
     NodeType   type;
     NodeScalar key;
     NodeScalar val;
+
+public:
 
     /// initialize as an empty node
     NodeInit() : type(NOTYPE), key(), val() {}
@@ -167,6 +177,8 @@ struct NodeInit
 
     /// initialize as a mapping member with explicit type (eg SEQ or MAP)
     NodeInit(NodeType_e t, NodeScalar const& k                     ) : type(t     ), key(k.tag, k.scalar), val(               ) { _add_flags(KEY); }
+
+public:
 
     void clear()
     {
@@ -199,6 +211,7 @@ struct NodeInit
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+/** contains the data for each YAML node. */
 class NodeData
 {
 private:
@@ -528,15 +541,44 @@ public:
         }
     }
 
-    void _copy_props(size_t node, size_t that)
+    void _seq2map(size_t node)
     {
-        _p(node)->m_key = _p(that)->m_key;
-        _copy_props_wo_key(node, that);
+        C4_ASSERT(is_seq(node));
+        for(size_t i = first_child(node); i != NONE; i = next_sibling(i))
+        {
+            auto *C4_RESTRICT ch = _p(i);
+            if(ch->m_type.is_keyval()) continue;
+            ch->m_type.add(KEY);
+            ch->m_key = ch->m_val;
+        }
+        auto *C4_RESTRICT n = _p(node);
+        n->m_type.rem(SEQ);
+        n->m_type.add(MAP);
     }
 
-    void _copy_props_wo_key(size_t node, size_t that)
+    void _copy_props(size_t node, size_t that_node)
     {
-        auto *n = _p(node), *t = _p(that);
+        _p(node)->m_key = _p(that_node)->m_key;
+        _copy_props_wo_key(node, that_node);
+    }
+
+    void _copy_props(size_t node, Tree const* that_tree, size_t that_node)
+    {
+        _p(node)->m_key = that_tree->_p(that_node)->m_key;
+        _copy_props_wo_key(node, that_tree, that_node);
+    }
+
+    void _copy_props_wo_key(size_t node, size_t that_node)
+    {
+        auto *n = _p(node), *t = _p(that_node);
+        n->m_type = t->m_type;
+        n->m_val = t->m_val;
+    }
+
+    void _copy_props_wo_key(size_t node, Tree const* that_tree, size_t that_node)
+    {
+        auto      * n = _p(node);
+        auto const* t = that_tree->_p(that_node);
         n->m_type = t->m_type;
         n->m_val = t->m_val;
     }
@@ -624,22 +666,28 @@ public:
     void move(size_t node, size_t after);
 
     /** change the node's parent and position */
-    void move(size_t node, size_t new_parent, size_t after);
+    void   move(size_t node, size_t new_parent, size_t after);
+    /** change the node's parent and position */
+    size_t move(Tree * src, size_t node, size_t new_parent, size_t after);
 
-    /** duplicate the node (and its children) in a new parent */
+    /** recursively duplicate the node */
     size_t duplicate(size_t node, size_t new_parent, size_t after);
+    /** recursively duplicate a node from a different tree */
+    size_t duplicate(Tree const* src, size_t node, size_t new_parent, size_t after);
 
-    /** duplicate the node's children (but not the node) in a new parent */
+    /** recursively duplicate the node's children (but not the node) */
     void duplicate_children(size_t node, size_t parent, size_t after);
+    /** recursively duplicate the node's children (but not the node), where the node is from a different tree */
+    void duplicate_children(Tree const* src, size_t node, size_t parent, size_t after);
+
+    void duplicate_contents(size_t node, size_t where);
 
     /** duplicate the node's children (but not the node) in a new parent, but
      * omit repetitions where a duplicated node has the same key (in maps) or
      * value (in seqs). If one of the duplicated children has the same key
      * (in maps) or value (in seqs) as one of the parent's children, the one
-     * that is placed closer to the end will prevail. */
+     * that is placed closest to the end will prevail. */
     void duplicate_children_no_rep(size_t node, size_t parent, size_t after);
-
-    void duplicate_contents(size_t node, size_t where);
 
 private:
 

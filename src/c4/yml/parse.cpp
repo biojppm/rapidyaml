@@ -214,7 +214,7 @@ bool Parser::_is_scalar_next(csubstr rem) const
             if(rem[pos] == '.' && rem.len > 2) ++pos;
             if(rem[pos] >= '0' && rem[pos] <= '9') return true;
         }
-        else if(rem.begins_with('.')) // allow floats can start with a dot
+        else if(rem.begins_with('.')) // allow floats starting with a dot
         {
             if(rem[1] >= '0' && rem[1] <= '9') return true;
         }

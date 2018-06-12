@@ -17,13 +17,13 @@ See also:
   </Type>
 
   <Type Name="c4::yml::NodeData">
+    <DisplayString Condition="(m_type.type == c4::yml::NOTYPE)">[NOTYPE]</DisplayString>
     <DisplayString Condition="(m_type.type &amp; c4::yml::KEYSEQ) == c4::yml::KEYSEQ">[KEYSEQ] {m_key.scalar.str,[m_key.scalar.len]}</DisplayString>
     <DisplayString Condition="(m_type.type &amp; c4::yml::KEYMAP) == c4::yml::KEYMAP">[KEYMAP] {m_key.scalar.str,[m_key.scalar.len]}</DisplayString>
     <DisplayString Condition="(m_type.type &amp; c4::yml::KEYVAL) == c4::yml::KEYVAL">[KEYVAL] {m_key.scalar.str,[m_key.scalar.len]}: {m_val.scalar.str,[m_val.scalar.len]}</DisplayString>
     <DisplayString Condition="(m_type.type &amp; c4::yml::SEQ   ) == c4::yml::SEQ"   >[SEQ]</DisplayString>
     <DisplayString Condition="(m_type.type &amp; c4::yml::MAP   ) == c4::yml::MAP"   >[MAP]</DisplayString>
     <DisplayString Condition="(m_type.type &amp; c4::yml::VAL   ) == c4::yml::VAL"   >[VAL] {m_val.scalar.str,[m_val.scalar.len]}</DisplayString>
-    <DisplayString Condition="(m_type.type &amp; c4::yml::NOTYPE) == c4::yml::NOTYPE">[NOTYPE]</DisplayString>
     <Expand>
       <Item Name="key" Condition="(m_type.type &amp; c4::yml::KEY) != 0">m_key</Item>
       <Item Name="val" Condition="(m_type.type &amp; c4::yml::VAL) != 0">m_val</Item>
@@ -52,7 +52,7 @@ See also:
   </Type>
 
   <Type Name="c4::yml::NodeRef">
-    <DisplayString Condition="(m_id == c4::yml::NONE)">void</DisplayString>
+    <DisplayString Condition="(m_id == c4::yml::NONE)">(void)</DisplayString>
     <DisplayString Condition="(m_seed.len != c4::yml::NONE) &amp;&amp; (m_seed.str == nullptr)">[INDEX SEED for] {*(m_tree->m_buf + m_id)}</DisplayString>
     <DisplayString Condition="(m_seed.len != c4::yml::NONE) &amp;&amp; (m_seed.str != nullptr)">[NAMED SEED for] {*(m_tree->m_buf + m_id)}</DisplayString>
     <DisplayString>{*(m_tree->m_buf + m_id)}</DisplayString>

@@ -55,11 +55,11 @@ private:
 
 public:
 
-    NodeRef() : m_tree(nullptr), m_id(NONE), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = NONE; }
-    NodeRef(Tree &t) : m_tree(&t), m_id(t .root_id()), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = NONE; }
-    NodeRef(Tree *t) : m_tree(t ), m_id(t->root_id()), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = NONE; }
-    NodeRef(Tree *t, size_t id) : m_tree(t), m_id(id), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = NONE; }
-    NodeRef(Tree *t, size_t id, size_t seed_pos) : m_tree(t), m_id(id), m_seed() { /*do this manually or an assert is triggered*/m_seed.str = nullptr; m_seed.len = seed_pos; }
+    NodeRef() : m_tree(nullptr), m_id(NONE), m_seed() { _clear_seed(); }
+    NodeRef(Tree &t) : m_tree(&t), m_id(t .root_id()), m_seed() { _clear_seed(); }
+    NodeRef(Tree *t) : m_tree(t ), m_id(t->root_id()), m_seed() { _clear_seed(); }
+    NodeRef(Tree *t, size_t id) : m_tree(t), m_id(id), m_seed() { _clear_seed(); }
+    NodeRef(Tree *t, size_t id, size_t seed_pos) : m_tree(t), m_id(id), m_seed() { _clear_seed(); }
     NodeRef(Tree *t, size_t id, csubstr  seed_key) : m_tree(t), m_id(id), m_seed(seed_key) {}
     NodeRef(std::nullptr_t) : m_tree(nullptr), m_id(NONE), m_seed() {}
 
@@ -79,18 +79,22 @@ public:
     inline NodeData      * get()       { return m_tree->get(m_id); }
     inline NodeData const* get() const { return m_tree->get(m_id); }
 
-    inline bool valid() const { return m_tree != nullptr && m_id != NONE; }
-    inline bool is_seed() const { return m_seed.str != nullptr || m_seed.len != NONE; }
-
-    //inline operator bool () const { return m_tree == nullptr || m_id == NONE || is_seed(); }
-
-    inline bool operator== (std::nullptr_t) const { return m_tree == nullptr || m_id == NONE || is_seed(); }
-    inline bool operator!= (std::nullptr_t) const { return ! this->operator== (nullptr); }
-
 #define _C4RV() C4_ASSERT(valid() && !is_seed()) // save some typing (and some reading too!)
 
     inline bool operator== (NodeRef const& that) const { _C4RV(); C4_ASSERT(that.valid() && !that.is_seed()); C4_ASSERT(that.m_tree == m_tree); return m_id == that.m_id; }
     inline bool operator!= (NodeRef const& that) const { return ! this->operator==(that); }
+
+    inline bool operator== (std::nullptr_t) const { return m_tree == nullptr || m_id == NONE || is_seed(); }
+    inline bool operator!= (std::nullptr_t) const { return ! this->operator== (nullptr); }
+
+    //inline operator bool () const { return m_tree == nullptr || m_id == NONE || is_seed(); }
+
+public:
+
+    inline bool valid() const { return m_tree != nullptr && m_id != NONE; }
+    inline bool is_seed() const { return m_seed.str != nullptr || m_seed.len != NONE; }
+
+    inline void _clear_seed() { /*do this manually or an assert is triggered*/ m_seed.str = nullptr; m_seed.len = NONE; }
 
 public:
 
@@ -605,24 +609,61 @@ public:
 
 public:
 
-    inline void move(NodeRef const parent, NodeRef const after)
-    {
-        _C4RV();
-        m_tree->move(m_id, parent.m_id, after.m_id);
-    }
-
+    /** change the node's position within its parent */
     inline void move(NodeRef const after)
     {
         _C4RV();
         m_tree->move(m_id, after.m_id);
     }
 
+    /** move the node to a different parent, which may belong to a different
+     * tree. When this is the case, then this node's tree pointer is reset to
+     * the tree of the parent node. */
+    inline void move(NodeRef const parent, NodeRef const after)
+    {
+        _C4RV();
+        C4_ASSERT(parent.m_tree == after.m_tree);
+        if(parent.m_tree == m_tree)
+        {
+            m_tree->move(m_id, parent.m_id, after.m_id);
+        }
+        else
+        {
+            parent.m_tree->move(m_tree, m_id, parent.m_id, after.m_id);
+            m_tree = parent.m_tree;
+        }
+    }
+
     inline NodeRef duplicate(NodeRef const parent, NodeRef const after) const
     {
         _C4RV();
-        size_t dup = m_tree->duplicate(m_id, parent.m_id, after.m_id);
-        NodeRef r(m_tree, dup);
-        return r;
+        C4_ASSERT(parent.m_tree == after.m_tree);
+        if(parent.m_tree == m_tree)
+        {
+            size_t dup = m_tree->duplicate(m_id, parent.m_id, after.m_id);
+            NodeRef r(m_tree, dup);
+            return r;
+        }
+        else
+        {
+            size_t dup = parent.m_tree->duplicate(m_tree, m_id, parent.m_id, after.m_id);
+            NodeRef r(parent.m_tree, dup);
+            return r;
+        }
+    }
+
+    inline void duplicate_children(NodeRef const parent, NodeRef const after) const
+    {
+        _C4RV();
+        C4_ASSERT(parent.m_tree == after.m_tree);
+        if(parent.m_tree == m_tree)
+        {
+            m_tree->duplicate_children(m_id, parent.m_id, after.m_id);
+        }
+        else
+        {
+            parent.m_tree->duplicate_children(m_tree, m_id, parent.m_id, after.m_id);
+        }
     }
 
 private:
