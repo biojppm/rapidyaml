@@ -317,7 +317,7 @@ void Tree::_set_hierarchy(size_t ichild, size_t iparent, size_t iprev_sibling)
     C4_ASSERT(iparent == NONE || (iparent >= 0 && iparent < m_cap));
     C4_ASSERT(iprev_sibling == NONE || (iprev_sibling >= 0 && iprev_sibling < m_cap));
 
-    NodeData * child = get(ichild);
+    NodeData *C4_RESTRICT child = get(ichild);
 
     child->m_parent = iparent;
     child->m_prev_sibling = NONE;
@@ -332,9 +332,9 @@ void Tree::_set_hierarchy(size_t ichild, size_t iparent, size_t iprev_sibling)
     if(iparent == NONE) return;
 
     size_t inext_sibling = iprev_sibling != NONE ? next_sibling(iprev_sibling) : first_child(iparent);
-    NodeData *parent = get(iparent);
-    NodeData *psib   = get(iprev_sibling);
-    NodeData *nsib   = get(inext_sibling);
+    NodeData *C4_RESTRICT parent = get(iparent);
+    NodeData *C4_RESTRICT psib   = get(iprev_sibling);
+    NodeData *C4_RESTRICT nsib   = get(inext_sibling);
 
     if(psib)
     {
@@ -376,12 +376,12 @@ void Tree::_rem_hierarchy(size_t i)
 {
     C4_ASSERT(i >= 0 && i < m_cap);
 
-    NodeData & w = m_buf[i];
+    NodeData &C4_RESTRICT w = m_buf[i];
 
     // remove from the parent
     if(w.m_parent != NONE)
     {
-        NodeData & p = m_buf[w.m_parent];
+        NodeData &C4_RESTRICT p = m_buf[w.m_parent];
         if(p.m_first_child == i)
         {
             p.m_first_child = w.m_next_sibling;
@@ -395,12 +395,12 @@ void Tree::_rem_hierarchy(size_t i)
     // remove from the used list
     if(w.m_prev_sibling != NONE)
     {
-        NodeData * prev = get(w.m_prev_sibling);
+        NodeData *C4_RESTRICT prev = get(w.m_prev_sibling);
         prev->m_next_sibling = w.m_next_sibling;
     }
     if(w.m_next_sibling != NONE)
     {
-        NodeData * next = get(w.m_next_sibling);
+        NodeData *C4_RESTRICT next = get(w.m_next_sibling);
         next->m_prev_sibling = w.m_prev_sibling;
     }
 }
@@ -427,6 +427,16 @@ void Tree::move(size_t node, size_t new_parent, size_t after)
     _set_hierarchy(node, new_parent, after);
 }
 
+size_t Tree::move(Tree *src, size_t node, size_t new_parent, size_t after)
+{
+    C4_ASSERT(node != NONE);
+    C4_ASSERT(new_parent != NONE);
+
+    size_t dup = duplicate(src, node, new_parent, after);
+    src->remove(node);
+    return dup;
+}
+
 //-----------------------------------------------------------------------------
 size_t Tree::duplicate(size_t node, size_t parent, size_t after)
 {
@@ -448,13 +458,33 @@ size_t Tree::duplicate(size_t node, size_t parent, size_t after)
     return copy;
 }
 
+size_t Tree::duplicate(Tree const* src, size_t node, size_t parent, size_t after)
+{
+    C4_ASSERT(node != NONE);
+    C4_ASSERT(parent != NONE);
+    C4_ASSERT( ! get(node)->is_root());
+
+    size_t copy = _claim();
+
+    _copy_props(copy, src, node);
+    _set_hierarchy(copy, parent, after);
+
+    size_t last = NONE;
+    for(size_t i = first_child(node); i != NONE; i = next_sibling(i))
+    {
+        last = duplicate(src, i, copy, last);
+    }
+
+    return copy;
+}
+
+//-----------------------------------------------------------------------------
 void Tree::duplicate_children(size_t node, size_t parent, size_t after)
 {
     C4_ASSERT(node != NONE);
     C4_ASSERT(parent != NONE);
     C4_ASSERT(after == NONE || has_child(parent, after));
 
-    // don't loop using pointers as there may be a relocation
     size_t prev = after;
     for(size_t i = first_child(node); i != NONE; i = next_sibling(i))
     {
@@ -462,6 +492,20 @@ void Tree::duplicate_children(size_t node, size_t parent, size_t after)
     }
 }
 
+void Tree::duplicate_children(Tree const* src, size_t node, size_t parent, size_t after)
+{
+    C4_ASSERT(node != NONE);
+    C4_ASSERT(parent != NONE);
+    C4_ASSERT(after == NONE || has_child(parent, after));
+
+    size_t prev = after;
+    for(size_t i = src->first_child(node); i != NONE; i = src->next_sibling(i))
+    {
+        prev = duplicate(src, i, parent, prev);
+    }
+}
+
+//-----------------------------------------------------------------------------
 void Tree::duplicate_contents(size_t node, size_t where)
 {
     C4_ASSERT(node != NONE);
@@ -470,6 +514,7 @@ void Tree::duplicate_contents(size_t node, size_t where)
     duplicate_children(node, where, NONE);
 }
 
+//-----------------------------------------------------------------------------
 void Tree::duplicate_children_no_rep(size_t node, size_t parent, size_t after)
 {
     C4_ASSERT(node != NONE);
