@@ -716,6 +716,9 @@ public:
 
 public:
 
+    substr arena() const { return m_arena.range(0, m_arena_pos); }
+    size_t arena_pos() const { return m_arena_pos; }
+
     template< class T >
     csubstr to_arena(T const& a)
     {
