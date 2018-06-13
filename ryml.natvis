@@ -27,6 +27,7 @@ See also:
     <Expand>
       <Item Name="key" Condition="(m_type.type &amp; c4::yml::KEY) != 0">m_key</Item>
       <Item Name="val" Condition="(m_type.type &amp; c4::yml::VAL) != 0">m_val</Item>
+      <Item Name="parent">m_parent</Item>
       <Item Name="first child" Condition="m_first_child != c4::yml::NONE">m_first_child</Item>
       <Item Name="last child" Condition="m_last_child != c4::yml::NONE">m_last_child</Item>
       <Item Name="prev sibling" Condition="m_prev_sibling != c4::yml::NONE">m_prev_sibling</Item>
