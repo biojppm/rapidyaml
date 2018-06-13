@@ -470,7 +470,7 @@ size_t Tree::duplicate(Tree const* src, size_t node, size_t parent, size_t after
     _set_hierarchy(copy, parent, after);
 
     size_t last = NONE;
-    for(size_t i = first_child(node); i != NONE; i = next_sibling(i))
+    for(size_t i = src->first_child(node); i != NONE; i = src->next_sibling(i))
     {
         last = duplicate(src, i, copy, last);
     }
