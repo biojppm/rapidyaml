@@ -72,7 +72,7 @@ bool Parser::_finished_line() const
 }
 
 //-----------------------------------------------------------------------------
-void Parser::parse(csubstr const& file, substr buf, NodeRef *root)
+void Parser::parse(csubstr file, substr buf, NodeRef *root)
 {
     m_file = file;
     m_buf = buf;
