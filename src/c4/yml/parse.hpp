@@ -47,24 +47,22 @@ public:
 
     Parser(Allocator const& a={});
 
-    Tree parse(                         substr src) { return parse({}, src); }
-    Tree parse(csubstr const& filename, substr src)
-    {
-        Tree t;
-        t.reserve(_estimate_capacity(src));
-        parse(filename, src, &t);
-        return t;
-    }
+public:
 
-    void parse(                         substr src, Tree *t) { return parse({}, src, t); }
-    void parse(csubstr const& filename, substr src, Tree *t)
-    {
-        NodeRef root(t);
-        parse(filename, src, &root);
-    }
+    // parse and get a new YAML tree
 
-    void parse(                         substr src, NodeRef * root) { return parse({}, src, root); }
-    void parse(csubstr const& filename, substr src, NodeRef * root);
+    Tree parse(csubstr filename, csubstr src) { Tree t; t.reserve(_estimate_capacity(src)); parse(filename, t.copy_to_arena(src), &t); return t; }
+    Tree parse(csubstr filename,  substr src) { Tree t; t.reserve(_estimate_capacity(src)); parse(filename, src, &t); return t; }
+
+    // parse with reuse of a YAML tree
+
+    void parse(csubstr filename,  substr src, Tree *t) { NodeRef root(t); parse(filename, src, &root); }
+    void parse(csubstr filename, csubstr src, Tree *t) { NodeRef root(t); parse(filename, t->copy_to_arena(src), &root); }
+
+    // parse directly into a node
+
+    void parse(csubstr filename,  substr src, NodeRef *root); // this is the workhorse overload; everything else is syntactic candy
+    void parse(csubstr filename, csubstr src, NodeRef *root) { parse(filename, root->tree()->copy_to_arena(src), root); }
 
 private:
 
@@ -266,7 +264,6 @@ private:
 
 private:
 
-
     csubstr m_file;
      substr m_buf;
 
@@ -290,38 +287,20 @@ private:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-inline Tree parse(substr buf)
-{
-    Parser np;
-    return np.parse(buf);
-}
-inline Tree parse(csubstr const& filename, substr buf)
-{
-    Parser np;
-    return np.parse(filename, buf);
-}
+inline Tree parse(                   substr buf)                { Parser np; return np.parse({}      , buf); }
+inline Tree parse(                  csubstr buf)                { Parser np; return np.parse({}      , buf); }
+inline Tree parse(csubstr filename,  substr buf)                { Parser np; return np.parse(filename, buf); }
+inline Tree parse(csubstr filename, csubstr buf)                { Parser np; return np.parse(filename, buf); }
 
-inline void parse(substr buf, Tree *t)
-{
-    Parser np;
-    np.parse(buf, t);
-}
-inline void parse(csubstr const& filename, substr buf, Tree *t)
-{
-    Parser np;
-    np.parse(filename, buf, t);
-}
+inline void parse(                   substr buf, Tree *t)       { Parser np; np.parse({}      , buf, t); }
+inline void parse(                  csubstr buf, Tree *t)       { Parser np; np.parse({}      , buf, t); }
+inline void parse(csubstr filename,  substr buf, Tree *t)       { Parser np; np.parse(filename, buf, t); }
+inline void parse(csubstr filename, csubstr buf, Tree *t)       { Parser np; np.parse(filename, buf, t); }
 
-inline void parse(substr buf, NodeRef * root)
-{
-    Parser np;
-    np.parse(buf, root);
-}
-inline void parse(csubstr const& filename, substr buf, NodeRef * root)
-{
-    Parser np;
-    np.parse(filename, buf, root);
-}
+inline void parse(                   substr buf, NodeRef *root) { Parser np; np.parse({}      , buf, root); }
+inline void parse(                  csubstr buf, NodeRef *root) { Parser np; np.parse({}      , buf, root); }
+inline void parse(csubstr filename,  substr buf, NodeRef *root) { Parser np; np.parse(filename, buf, root); }
+inline void parse(csubstr filename, csubstr buf, NodeRef *root) { Parser np; np.parse(filename, buf, root); }
 
 } // namespace yml
 } // namespace c4
