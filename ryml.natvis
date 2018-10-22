@@ -72,7 +72,7 @@ See also:
             <Loop>
               <Item>buf + curr</Item>
               <Exec>curr = (buf + curr)->m_next_sibling</Exec>
-              <Break Condition="curr == c4::tpl::NONE"/>
+              <Break Condition="curr == c4::yml::NONE"/>
             </Loop>
           </CustomListItems>
         </Expand>
