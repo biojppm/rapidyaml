@@ -1008,13 +1008,23 @@ TEST(NodeRef, 7_duplicate)
     EXPECT_EQ(dup[1].val().len, r[1][1].val().len);
 }
 
+TEST(NodeRef, intseq)
+{
+    Tree t = parse("iseq: [8, 10]");
+    NodeRef n = t["iseq"];
+    int a, b;
+    n[0] >> a;
+    n[1] >> b;
+    EXPECT_EQ(a, 8);
+    EXPECT_EQ(b, 10);
+}
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 TEST(general, parsing)
 {
-    char src[] = "{foo: 1}"; // needs to be writable
-    auto tree = parse(src);
+    auto tree = parse("{foo: 1}");
 
     char cmpbuf[128] = {0};
     substr cmp(cmpbuf);
