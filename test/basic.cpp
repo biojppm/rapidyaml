@@ -711,7 +711,15 @@ TEST(NodeRef, 0_general)
     root["b"]["seq2"] = N(SEQ);
     seq2 = root["b"]["seq2"];
     EXPECT_FALSE(seq2.is_seed());
-    auto seq20 = root["b"]["seq2"][0];
+    EXPECT_TRUE(seq2.is_seq());
+    EXPECT_EQ(seq2.num_children(), 0);
+    EXPECT_EQ(root["b"]["seq2"].get(), seq2.get());
+    auto seq20 = seq2[0];
+    EXPECT_TRUE(seq20.is_seed());
+    EXPECT_TRUE(seq2[0].is_seed());
+    EXPECT_EQ(seq2.num_children(), 0);
+    EXPECT_TRUE(seq2[0].is_seed());
+    EXPECT_TRUE(seq20.is_seed());
     EXPECT_NE(seq.get(), seq2.get());
     seq20 = root["b"]["seq2"][0];
     EXPECT_TRUE(seq20.is_seed());
