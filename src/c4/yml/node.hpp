@@ -143,9 +143,11 @@ public:
     inline bool has_parent() const { _C4RV(); return m_tree->has_parent(m_id); }
 
     inline bool has_child(NodeRef const& ch) const { _C4RV(); return m_tree->has_child(m_id, ch.m_id); }
+    inline bool has_child(csubstr name) const { _C4RV();  return m_tree->has_child(m_id, name); }
     inline bool has_children() const { _C4RV(); return m_tree->has_children(m_id); }
 
     inline bool has_sibling(NodeRef const& n) const { _C4RV(); return m_tree->has_sibling(m_id, n.m_id); }
+    inline bool has_sibling(csubstr name) const { _C4RV();  return m_tree->has_sibling(m_id, name); }
     /** counts with this */
     inline bool has_siblings() const { _C4RV(); return m_tree->has_siblings(m_id); }
     /** does not count with this */
