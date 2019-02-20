@@ -59,7 +59,7 @@ public:
     NodeRef(Tree &t) : m_tree(&t), m_id(t .root_id()), m_seed() { _clear_seed(); }
     NodeRef(Tree *t) : m_tree(t ), m_id(t->root_id()), m_seed() { _clear_seed(); }
     NodeRef(Tree *t, size_t id) : m_tree(t), m_id(id), m_seed() { _clear_seed(); }
-    NodeRef(Tree *t, size_t id, size_t seed_pos) : m_tree(t), m_id(id), m_seed() { _clear_seed(); }
+    NodeRef(Tree *t, size_t id, size_t seed_pos) : m_tree(t), m_id(id), m_seed() { m_seed.str = nullptr; m_seed.len = seed_pos; }
     NodeRef(Tree *t, size_t id, csubstr  seed_key) : m_tree(t), m_id(id), m_seed(seed_key) {}
     NodeRef(std::nullptr_t) : m_tree(nullptr), m_id(NONE), m_seed() {}
 
@@ -143,9 +143,11 @@ public:
     inline bool has_parent() const { _C4RV(); return m_tree->has_parent(m_id); }
 
     inline bool has_child(NodeRef const& ch) const { _C4RV(); return m_tree->has_child(m_id, ch.m_id); }
+    inline bool has_child(csubstr name) const { _C4RV();  return m_tree->has_child(m_id, name); }
     inline bool has_children() const { _C4RV(); return m_tree->has_children(m_id); }
 
     inline bool has_sibling(NodeRef const& n) const { _C4RV(); return m_tree->has_sibling(m_id, n.m_id); }
+    inline bool has_sibling(csubstr name) const { _C4RV();  return m_tree->has_sibling(m_id, name); }
     /** counts with this */
     inline bool has_siblings() const { _C4RV(); return m_tree->has_siblings(m_id); }
     /** does not count with this */

@@ -711,7 +711,15 @@ TEST(NodeRef, 0_general)
     root["b"]["seq2"] = N(SEQ);
     seq2 = root["b"]["seq2"];
     EXPECT_FALSE(seq2.is_seed());
-    auto seq20 = root["b"]["seq2"][0];
+    EXPECT_TRUE(seq2.is_seq());
+    EXPECT_EQ(seq2.num_children(), 0);
+    EXPECT_EQ(root["b"]["seq2"].get(), seq2.get());
+    auto seq20 = seq2[0];
+    EXPECT_TRUE(seq20.is_seed());
+    EXPECT_TRUE(seq2[0].is_seed());
+    EXPECT_EQ(seq2.num_children(), 0);
+    EXPECT_TRUE(seq2[0].is_seed());
+    EXPECT_TRUE(seq20.is_seed());
     EXPECT_NE(seq.get(), seq2.get());
     seq20 = root["b"]["seq2"][0];
     EXPECT_TRUE(seq20.is_seed());
@@ -1008,13 +1016,23 @@ TEST(NodeRef, 7_duplicate)
     EXPECT_EQ(dup[1].val().len, r[1][1].val().len);
 }
 
+TEST(NodeRef, intseq)
+{
+    Tree t = parse("iseq: [8, 10]");
+    NodeRef n = t["iseq"];
+    int a, b;
+    n[0] >> a;
+    n[1] >> b;
+    EXPECT_EQ(a, 8);
+    EXPECT_EQ(b, 10);
+}
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 TEST(general, parsing)
 {
-    char src[] = "{foo: 1}"; // needs to be writable
-    auto tree = parse(src);
+    auto tree = parse("{foo: 1}");
 
     char cmpbuf[128] = {0};
     substr cmp(cmpbuf);
