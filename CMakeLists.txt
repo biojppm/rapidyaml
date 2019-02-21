@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.9) # because of the GoogleTest module
 project(ryml)
 
-include(./cmake/c4Project.cmake)
+include(./extern/c4core/cmake/c4Project.cmake)
 
 c4_declare_project(ryml)
 
