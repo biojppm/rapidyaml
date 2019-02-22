@@ -12,6 +12,83 @@
 
 enum : size_t { npos = c4::csubstr::npos };
 
+struct Parsed
+{
+    bool was_parsed, was_emitted;
+    c4::yml::Tree tree;
+    std::string emitted;
+};
+
+struct Parsable
+{
+    c4::csubstr ro; // read-only  (copied to tree's arena before parsing)
+    std::string rw; // read/write (parsed in situ)
+    Parsed      ro_parsed;
+    Parsed      rw_parsed;
+
+    Parsable() { init(""); }
+
+    void init(c4::csubstr contents)
+    {
+        ro = contents;
+        rw.assign(ro.begin(), ro.end());
+        ro_parsed.was_parsed = false;
+        rw_parsed.was_parsed = false;
+        ro_parsed.was_emitted = false;
+        rw_parsed.was_emitted = false;
+    }
+
+    bool empty() const
+    {
+        return ro.empty();
+    }
+
+    void parse_ro()
+    {
+        if(empty()) return;
+        c4::yml::parse(ro, &ro_parsed.tree);
+        ro_parsed.was_parsed = true;
+    }
+
+    void parse_rw()
+    {
+        if(empty()) return;
+        c4::yml::parse(to_substr(rw), &rw_parsed.tree);
+        rw_parsed.was_parsed = true;
+    }
+
+    void emit_ro()
+    {
+        if(empty()) return;
+        if(!ro_parsed.was_parsed) parse_ro();
+        c4::yml::emit_resize(ro_parsed.tree, &ro_parsed.emitted);
+        ro_parsed.was_emitted = true;
+    }
+
+    void emit_rw()
+    {
+        if(empty()) return;
+        if(!rw_parsed.was_parsed) parse_rw();
+        c4::yml::emit_resize(rw_parsed.tree, &rw_parsed.emitted);
+        rw_parsed.was_emitted = true;
+    }
+
+    void compare_src()
+    {
+        if(empty()) return;
+        EXPECT_EQ(std::string(ro.begin(), ro.end()), rw);
+    }
+    void compare_emitted()
+    {
+        if(empty()) return;
+        if(!ro_parsed.was_parsed) parse_ro();
+        if(!rw_parsed.was_parsed) parse_rw();
+        if(!ro_parsed.was_emitted) emit_ro();
+        if(!rw_parsed.was_emitted) emit_rw();
+        EXPECT_EQ(ro_parsed.emitted, rw_parsed.emitted);
+    }
+};
+
 struct SuiteCase
 {
     c4::csubstr filename;
@@ -21,16 +98,12 @@ struct SuiteCase
     c4::csubstr from;
     c4::csubstr tags;
 
-    c4::csubstr in_yaml;
     std::string in_yaml_filtered;
+    Parsable    in_yaml;
+    Parsable    in_json;
+    Parsable    out_yaml;
 
-    c4::csubstr in_json;
-    c4::csubstr out_yaml;
     c4::csubstr events;
-
-    std::string in_yaml_in_situ;
-    c4::yml::Tree in_tree_in_situ;
-    c4::yml::Tree in_tree;
 
     bool load(const char* filename_)
     {
@@ -42,6 +115,7 @@ struct SuiteCase
 
         // now parse the file
         c4::csubstr ws = " \t\r\n";
+        c4::csubstr txt;
         size_t b, e;
 
         // desc
@@ -67,42 +141,63 @@ struct SuiteCase
         C4_CHECK(tags.begins_with("tags: "));
         C4_CHECK(tags.size() >= 6);
         tags = tags.sub(6).trimr(ws);
-        if(tags.find("error") != npos) return false;
+
+        if(tags.find("error") != npos) return false; // MARKED WITH ERROR. SKIP THE REST!
+
+        size_t end_tags = e;
+        size_t begin_in_yaml  = contents.find("--- in-yaml"   , end_tags);
+        size_t begin_in_json  = contents.find("--- in-json"   , end_tags);
+        size_t begin_out_yaml = contents.find("--- out-yaml"  , end_tags);
+        size_t begin_events   = contents.find("--- test-event", end_tags);
+        size_t first_after_yaml = std::min(begin_in_json, std::min(begin_out_yaml, begin_events));
+        size_t first_after_json = std::min(begin_out_yaml, begin_events);
 
         // in_yaml
-        b = e + 4;
-        b = 1 + contents.find('\n', b);
-        e = contents.find("--- in-json");
-        in_yaml = contents.range(b, e).trimr(ws);
+        C4_CHECK(begin_in_yaml != npos);
+        begin_in_yaml = 1 + contents.find('\n', begin_in_yaml); // skip this line
+        txt = contents.range(begin_in_yaml, first_after_yaml).trimr(ws);
+        in_yaml.init(txt);
 
         // in_json
-        b = e + 4;
-        b = 1 + contents.find('\n', b);
-        e = contents.find("--- test-event");
-        in_json = contents.range(b, e).trimr(ws);
+        if(begin_in_json != npos)
+        {
+            begin_in_json = 1 + contents.find('\n', begin_in_json); // skip this line
+            txt = contents.range(begin_in_json, first_after_json).trimr(ws);
+            in_json.init(txt);
+        }
+
+        // out_yaml
+        if(begin_out_yaml != npos)
+        {
+            if(begin_in_json == npos) begin_in_json = begin_in_yaml;
+            begin_out_yaml = 1 + contents.find('\n', begin_out_yaml); // skip this line
+            txt = contents.range(begin_in_json, begin_events).trimr(ws);
+            out_yaml.init(txt);
+        }
 
         // events
-        b = e + 4;
-        b = 1 + contents.find('\n', b);
-        events = contents.range(b).trimr(ws);
+        C4_CHECK(begin_events != npos);
+        begin_events = 1 + contents.find('\n', begin_events); // skip this line
+        events = contents.sub(begin_events).trimr(ws);
 
         // filter
         if(tags.find("whitespace") != npos)
         {
+            auto y = in_yaml.ro;
             in_yaml_filtered.clear();
             b = 0;
             do {
-                e = in_yaml.find("<SPC>", b);
+                e = y.find("<SPC>", b);
                 if(e == npos)
                 {
-                    in_yaml_filtered.append(&in_yaml[b], in_yaml.end());
+                    in_yaml_filtered.append(&y[b], y.end());
                     break;
                 }
-                in_yaml_filtered.append(&in_yaml[b], &in_yaml[e]);
+                in_yaml_filtered.append(&y[b], &y[e]);
                 in_yaml_filtered.append(" ");
                 b = e + 5;
             } while(b != npos);
-            in_yaml = to_csubstr(in_yaml_filtered);
+            in_yaml.init(to_csubstr(in_yaml_filtered));
         }
 
         return true;
@@ -110,24 +205,15 @@ struct SuiteCase
 
     void print() const
     {
-        c4::printvar("% desc   : " , desc   , " %\n",
-                     "% from   : " , from   , " %\n",
-                     "% tags   : " , tags   , " %\n",
-                     "% in_yaml:\n", in_yaml, " %\n",
-                     "% in_json:\n", in_json, " %\n",
-                     "% events :\n", events , " %\n");
+        c4::printvar("% desc   : "  , desc       , " %\n",
+                     "% from   : "  , from       , " %\n",
+                     "% tags   : "  , tags       , " %\n",
+                     "% in_yaml:\n" , in_yaml.ro , " %\n",
+                     "% in_json:\n" , in_json.ro , " %\n",
+                     "% out_yaml:\n", out_yaml.ro, " %\n",
+                     "% events :\n" , events     , " %\n");
     }
 
-    void parse()
-    {
-        c4::yml::parse(filename, in_yaml, &in_tree);
-    }
-
-    void parse_in_situ()
-    {
-        in_yaml_in_situ.assign(in_yaml.begin(), in_yaml.end());
-        c4::yml::parse(filename, to_substr(in_yaml_in_situ), &in_tree_in_situ);
-    }
 };
 
 
@@ -159,14 +245,71 @@ int main(int argc, char* argv[])
 
 
 //-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
-TEST(parse_yaml, in_situ)
+TEST(out_yaml_rw, parse)
 {
-    g_suite_case.parse_in_situ();
+    g_suite_case.out_yaml.parse_rw();
+}
+TEST(out_yaml_rw, emit)
+{
+    g_suite_case.out_yaml.emit_rw();
 }
 
-
-TEST(parse_yaml, out_of_situ)
+TEST(out_yaml_ro, parse)
 {
-    g_suite_case.parse();
+    g_suite_case.out_yaml.parse_ro();
+}
+TEST(out_yaml_ro, emit)
+{
+    g_suite_case.out_yaml.emit_ro();
+}
+
+TEST(out_yaml_roVSrw, compare_src)
+{
+    g_suite_case.out_yaml.compare_src();
+}
+
+TEST(out_yaml_roVSrw, compare_emitted)
+{
+    g_suite_case.out_yaml.compare_emitted();
+}
+
+//-----------------------------------------------------------------------------
+TEST(in_yaml_rw, parse)
+{
+    g_suite_case.in_yaml.parse_rw();
+}
+TEST(in_yaml_rw, emit)
+{
+    g_suite_case.in_yaml.emit_rw();
+}
+
+TEST(in_yaml_ro, parse)
+{
+    g_suite_case.in_yaml.parse_ro();
+}
+TEST(in_yaml_ro, emit)
+{
+    g_suite_case.in_yaml.emit_ro();
+}
+
+//-----------------------------------------------------------------------------
+TEST(in_json_rw, parse)
+{
+    g_suite_case.in_json.parse_rw();
+}
+TEST(in_json_rw, emit)
+{
+    g_suite_case.in_json.emit_rw();
+}
+
+TEST(in_json_ro, parse)
+{
+    g_suite_case.in_json.parse_ro();
+}
+TEST(in_json_ro, emit)
+{
+    g_suite_case.in_json.emit_ro();
 }
