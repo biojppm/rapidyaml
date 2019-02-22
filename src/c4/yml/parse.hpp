@@ -170,7 +170,7 @@ private:
         csubstr  full;        ///< the full line, including newlines on the right
         csubstr  stripped;    ///< the stripped line, excluding newlines on the right
         csubstr  rem;         ///< the stripped line remainder; initially starts at the first non-space character
-        size_t indentation; ///< the number of spaces on the beginning of the line
+        size_t   indentation; ///< the number of spaces on the beginning of the line
 
         void reset(csubstr const& full_, csubstr const& stripped_)
         {
@@ -187,7 +187,7 @@ private:
         size_t       flags;
         size_t       level;
         size_t       node_id; // don't hold a pointer to the node as it will be relocated during tree resizes
-        csubstr        scalar;
+        csubstr      scalar;
 
         Location     pos;
         LineContents line_contents;
@@ -235,13 +235,13 @@ private:
     inline NodeData * node(State const& s) const { return m_tree->get(s .node_id); }
     inline NodeData * node(size_t node_id) const { return m_tree->get(   node_id); }
 
-    inline bool has_all(size_t f) const { return has_all(f, m_state); }
-    inline bool has_any(size_t f) const { return has_any(f, m_state); }
-    inline bool has_none(size_t f) const { return has_none(f, m_state); }
+    inline bool has_all(size_t f) const { return (m_state->flags & f) == f; }
+    inline bool has_any(size_t f) const { return (m_state->flags & f) != 0; }
+    inline bool has_none(size_t f) const { return (m_state->flags & f) == 0; }
 
-    inline bool has_all(size_t f, State const* s) const { return (s->flags & f) == f; }
-    inline bool has_any(size_t f, State const* s) const { return (s->flags & f) != 0; }
-    inline bool has_none(size_t f, State const* s) const { return (s->flags & f) == 0; }
+    static inline bool has_all(size_t f, State const* s) { return (s->flags & f) == f; }
+    static inline bool has_any(size_t f, State const* s) { return (s->flags & f) != 0; }
+    static inline bool has_none(size_t f, State const* s) { return (s->flags & f) == 0; }
 
     inline void set_flags(size_t f) { set_flags(f, m_state); }
     inline void add_flags(size_t on) { add_flags(on, m_state); }
