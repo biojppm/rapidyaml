@@ -177,6 +177,7 @@ struct SuiteCase
         C4_CHECK(begin_in_yaml != npos);
         begin_in_yaml = 1 + contents.find('\n', begin_in_yaml); // skip this line
         txt = contents.range(begin_in_yaml, first_after_yaml).trimr(ws);
+        C4_ASSERT( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "---test-event"));
         in_yaml.init(txt);
 
         // in_json
@@ -184,6 +185,7 @@ struct SuiteCase
         {
             begin_in_json = 1 + contents.find('\n', begin_in_json); // skip this line
             txt = contents.range(begin_in_json, first_after_json).trimr(ws);
+            C4_ASSERT( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "---test-event"));
             in_json.init(txt);
         }
 
@@ -192,7 +194,8 @@ struct SuiteCase
         {
             if(begin_in_json == npos) begin_in_json = begin_in_yaml;
             begin_out_yaml = 1 + contents.find('\n', begin_out_yaml); // skip this line
-            txt = contents.range(begin_in_json, begin_events).trimr(ws);
+            txt = contents.range(begin_out_yaml, begin_events).trimr(ws);
+            C4_ASSERT( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "---test-event"));
             out_yaml.init(txt);
         }
 
@@ -200,6 +203,7 @@ struct SuiteCase
         C4_CHECK(begin_events != npos);
         begin_events = 1 + contents.find('\n', begin_events); // skip this line
         events = contents.sub(begin_events).trimr(ws);
+        C4_ASSERT( ! events.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "---test-event"));
 
         // filter
         if(tags.find("whitespace") != npos)
@@ -256,6 +260,27 @@ int main(int argc, char* argv[])
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+TEST(in_json_rw, parse)
+{
+    g_suite_case.in_json.parse_rw();
+}
+TEST(in_json_rw, emit)
+{
+    g_suite_case.in_json.emit_rw();
+}
+
+TEST(in_json_ro, parse)
+{
+    g_suite_case.in_json.parse_ro();
+}
+TEST(in_json_ro, emit)
+{
+    g_suite_case.in_json.emit_ro();
+}
+
+
+//-----------------------------------------------------------------------------
+
 TEST(out_yaml_rw, parse)
 {
     g_suite_case.out_yaml.parse_rw();
@@ -284,7 +309,9 @@ TEST(out_yaml_roVSrw, compare_emitted)
     g_suite_case.out_yaml.compare_emitted();
 }
 
+
 //-----------------------------------------------------------------------------
+
 TEST(in_yaml_rw, parse)
 {
     g_suite_case.in_yaml.parse_rw();
@@ -301,23 +328,4 @@ TEST(in_yaml_ro, parse)
 TEST(in_yaml_ro, emit)
 {
     g_suite_case.in_yaml.emit_ro();
-}
-
-//-----------------------------------------------------------------------------
-TEST(in_json_rw, parse)
-{
-    g_suite_case.in_json.parse_rw();
-}
-TEST(in_json_rw, emit)
-{
-    g_suite_case.in_json.emit_rw();
-}
-
-TEST(in_json_ro, parse)
-{
-    g_suite_case.in_json.parse_ro();
-}
-TEST(in_json_ro, emit)
-{
-    g_suite_case.in_json.emit_ro();
 }

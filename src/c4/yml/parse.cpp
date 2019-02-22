@@ -1397,7 +1397,7 @@ void Parser::_scan_line()
     char const* e = b;
 
     // get the line stripped of newline chars
-    while(e != m_buf.end() && (*e != '\n' && *e != '\r'))
+    while(e < m_buf.end() && (*e != '\n' && *e != '\r'))
     {
         ++e;
     }
