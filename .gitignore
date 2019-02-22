@@ -2,4 +2,5 @@
 *~
 .ci/.vagrant
 build/
+Testing/
 CMakeLists.txt.user

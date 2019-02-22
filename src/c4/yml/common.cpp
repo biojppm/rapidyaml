@@ -10,12 +10,21 @@ namespace yml {
 
 #ifndef RYML_NO_DEFAULT_CALLBACKS
 namespace {
+
+void error_impl(const char* msg, size_t length, void * /*user_data*/)
+{
+    fprintf(stderr, "%.*s\n", (int)length, msg);
+    C4_DEBUG_BREAK();
+    ::abort();
+}
+
 void* allocate_impl(size_t length, void * /*hint*/, void * /*user_data*/)
 {
     void *mem = ::malloc(length);
     if(mem == nullptr)
     {
-        C4_ERROR("could not allocate memory");
+        const char msg[] = "could not allocate memory";
+        error_impl(msg, sizeof(msg)-1, nullptr);
     }
     return mem;
 }
@@ -23,12 +32,6 @@ void* allocate_impl(size_t length, void * /*hint*/, void * /*user_data*/)
 void free_impl(void *mem, size_t /*length*/, void * /*user_data*/)
 {
     ::free(mem);
-}
-
-void error_impl(const char* msg, size_t length, void * /*user_data*/)
-{
-    fprintf(stderr, "%.*s\n", (int)length, msg);
-    ::abort();
 }
 } // empty namespace
 
