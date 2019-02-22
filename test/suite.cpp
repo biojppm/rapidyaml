@@ -89,6 +89,27 @@ struct Parsable
     }
 };
 
+
+c4::csubstr replace_all(c4::csubstr pattern, c4::csubstr repl, c4::csubstr subject, std::string *dst)
+{
+    dst->clear();
+    size_t b = 0;
+    do {
+        size_t e = subject.find(pattern, b);
+        if(e == npos)
+        {
+            dst->append(&subject[b], subject.end());
+            break;
+        }
+        dst->append(&subject[b], &subject[e]);
+        dst->append(repl.begin(), repl.end());
+        b = e + pattern.size();
+    } while(b != npos);
+
+    return to_csubstr(*dst);
+}
+
+
 struct SuiteCase
 {
     c4::csubstr filename;
@@ -183,21 +204,8 @@ struct SuiteCase
         // filter
         if(tags.find("whitespace") != npos)
         {
-            auto y = in_yaml.ro;
-            in_yaml_filtered.clear();
-            b = 0;
-            do {
-                e = y.find("<SPC>", b);
-                if(e == npos)
-                {
-                    in_yaml_filtered.append(&y[b], y.end());
-                    break;
-                }
-                in_yaml_filtered.append(&y[b], &y[e]);
-                in_yaml_filtered.append(" ");
-                b = e + 5;
-            } while(b != npos);
-            in_yaml.init(to_csubstr(in_yaml_filtered));
+            c4::csubstr filtered = replace_all("<SPC>", " ", in_yaml.ro, &in_yaml_filtered);
+            in_yaml.init(filtered);
         }
 
         return true;
@@ -205,13 +213,13 @@ struct SuiteCase
 
     void print() const
     {
-        c4::printvar("% desc   : "  , desc       , " %\n",
-                     "% from   : "  , from       , " %\n",
-                     "% tags   : "  , tags       , " %\n",
-                     "% in_yaml:\n" , in_yaml.ro , " %\n",
-                     "% in_json:\n" , in_json.ro , " %\n",
-                     "% out_yaml:\n", out_yaml.ro, " %\n",
-                     "% events :\n" , events     , " %\n");
+        c4::dump("% desc   : "  , desc       , " %\n",
+                 "% from   : "  , from       , " %\n",
+                 "% tags   : "  , tags       , " %\n",
+                 "% in_yaml:\n" , in_yaml.ro , " %\n",
+                 "% in_json:\n" , in_json.ro , " %\n",
+                 "% out_yaml:\n", out_yaml.ro, " %\n",
+                 "% events :\n" , events     , " %\n");
     }
 
 };
