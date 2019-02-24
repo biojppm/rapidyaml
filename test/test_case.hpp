@@ -1,7 +1,6 @@
 #ifndef _TEST_CASE_HPP_
 #define _TEST_CASE_HPP_
 
-
 #include <vector>
 #include <map>
 
@@ -24,8 +23,8 @@
 namespace c4 {
 namespace yml {
 
-inline void PrintTo(const substr& s, ::std::ostream* os) { *os << s; }
-inline void PrintTo(const csubstr& s, ::std::ostream* os) { *os << s; }
+inline void PrintTo(substr  s, ::std::ostream* os) { *os << s; }
+inline void PrintTo(csubstr s, ::std::ostream* os) { *os << s; }
 
 struct Case;
 struct CaseNode;
@@ -363,8 +362,8 @@ struct CaseData
 struct YmlTestCase : public ::testing::TestWithParam< const char* >
 {
     csubstr const name;
-    Case const* c; // the case
-    CaseData * d; // the case data
+    Case const* c;
+    CaseData * d;
 
     YmlTestCase() : name(to_csubstr(GetParam())), c(get_case(to_csubstr(GetParam()))), d(get_data(to_csubstr(GetParam()))) {}
 
