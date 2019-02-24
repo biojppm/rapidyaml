@@ -1,4 +1,5 @@
 #include "./test_case.hpp"
+#include "c4/span.hpp"
 
 #include <gtest/gtest.h>
 
@@ -546,42 +547,55 @@ CaseData* get_data(csubstr name)
     return cd;
 }
 
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-Case const* get_case(csubstr name)
-{
 
 using N = CaseNode;
 using L = CaseNode::iseqmap;
 using TS = TaggedScalar;
 using TL = CaseNode::TaggedList;
 using AR = AnchorRef;
-
+using PT = std::pair<const csubstr, Case>;
 #define C(name, ...)                                    \
-    std::pair< const csubstr, Case >                      \
-    (                                                   \
-        std::piecewise_construct_t{},                   \
-        std::forward_as_tuple(name),                    \
-        std::forward_as_tuple(name, __VA_ARGS__)        \
+    PT \
+    ( \
+        std::piecewise_construct_t{} C4_COMMA \
+        std::forward_as_tuple(name) C4_COMMA                    \
+        std::forward_as_tuple(name C4_COMMA __VA_ARGS__)        \
     )
 
-    static std::map< csubstr, Case > cases({
+#define CASE_GROUP(name) \
+    c4::cspan<PT> get_cases_##name()
+#define ADD_CASE_GROUP(name) \
+    {\
+        c4::cspan<PT> li = get_cases_##name();\
+        cases.insert(li.begin(), li.end());\
+    }
+#define APPEND_CASES(data, ...) \
+    static const PT arr[] = {data, ## __VA_ARGS__}; \
+    return arr;
+
 
 //-----------------------------------------------------------------------------
 #define EMPTY_FILE_CASES "empty0-nochars", "empty0-multiline"
 
+CASE_GROUP(EMPTY_FILE)
+{
+    APPEND_CASES(
 C("empty0-nochars",
 "",
-NOTYPE
-),
+NOTYPE),
 
 C("empty0-multiline", R"(
 
 
 
-)", NOTYPE
-),
+)", NOTYPE),
+        );
+}
+
 
 //-----------------------------------------------------------------------------
 #define EMPTY_DOC_CASES                                 \
@@ -589,6 +603,9 @@ C("empty0-multiline", R"(
         "one empty doc, explicit termination",          \
         "two empty docs"                                \
 
+CASE_GROUP(EMPTY_DOC)
+{
+    APPEND_CASES(
 C("one empty doc",
 R"(---
 )",
@@ -608,6 +625,8 @@ R"(---
 )",
     N(STREAM, L{DOC, DOC})
 ),
+       );
+}
 
 //-----------------------------------------------------------------------------
 #define SIMPLE_DOC_CASES                                        \
@@ -616,6 +635,9 @@ R"(---
         "single scalar, explicit doc, implicit termination",    \
         "single scalar, explicit doc, explicit termination"
 
+CASE_GROUP(SIMPLE_DOC)
+{
+    APPEND_CASES(
 C("single scalar, implicit doc",
 R"(a scalar with some spaces inside
 )",
@@ -648,6 +670,8 @@ a scalar with some spaces inside
 )",
     N(STREAM, L{N(DOCSEQ, L{N("a scalar with some spaces inside")})})
 ),
+    );
+}
 
 
 //-----------------------------------------------------------------------------
@@ -655,6 +679,10 @@ a scalar with some spaces inside
     "empty map, explicit",                      \
         "empty map, multiline",                 \
         "empty map, multilines"
+
+CASE_GROUP(EMPTY_MAP)
+{
+    APPEND_CASES(
 
 C("empty map, explicit",
 "{}",
@@ -679,6 +707,8 @@ R"({
 )",
     MAP
 ),
+    );
+}
 
 //-----------------------------------------------------------------------------
 #define EMPTY_SEQ_CASES                         \
@@ -686,6 +716,9 @@ R"({
         "empty seq, multiline",                 \
         "empty seq, multilines"
 
+CASE_GROUP(EMPTY_SEQ)
+{
+    APPEND_CASES(
 C("empty seq, explicit",
 "[]",
     SEQ
@@ -708,6 +741,8 @@ R"([
 )",
     SEQ
 ),
+    );
+}
 
 //-----------------------------------------------------------------------------
 
@@ -724,6 +759,10 @@ R"([
         "simple map, with comments interspersed",       \
         "simple map, with indented comments interspersed, before",\
         "simple map, with indented comments interspersed, after"
+
+CASE_GROUP(SIMPLE_MAP)
+{
+    APPEND_CASES(
 
 C("empty map",
 "{}",
@@ -845,7 +884,8 @@ bat: 3
 )",
     L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
 ),
-
+    )
+}
 
 
 //-----------------------------------------------------------------------------
@@ -859,6 +899,10 @@ bat: 3
 "simple seq, comments inline",                          \
 "simple seq, comments prev line"
 
+
+CASE_GROUP(SIMPLE_SEQ)
+{
+    APPEND_CASES(
 
 C("simple seq",
 R"(- 0
@@ -942,7 +986,8 @@ R"(
 )",
     L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
 ),
-
+    )
+}
 
 //-----------------------------------------------------------------------------
 #define SINGLE_QUOTED_CASES                                 \
@@ -958,6 +1003,10 @@ R"(
                 "squoted, 3 squotes",                       \
                 "squoted, 4 squotes",                       \
                 "squoted, 5 squotes"
+
+CASE_GROUP(SINGLE_QUOTED)
+{
+    APPEND_CASES(
 
 C("squoted, only text",
 R"('Some text without any quotes.'
@@ -1036,6 +1085,8 @@ that has multiple lines
   L{N("This is a key\nthat has multiple lines\n", "and this is its value")}
 ),
 */
+    )
+}
 
 //-----------------------------------------------------------------------------
 #define DOUBLE_QUOTED_CASES                                 \
@@ -1053,6 +1104,10 @@ that has multiple lines
                 "dquoted, 4 dquotes",                       \
                 "dquoted, example 2",                       \
                 "dquoted, example 2.1"
+
+CASE_GROUP(DOUBLE_QUOTED)
+{
+    APPEND_CASES(
 
 C("dquoted, only text",
 R"("Some text without any quotes."
@@ -1143,6 +1198,8 @@ that has multiple lines
 )",
   L{N("This is a key\nthat has multiple lines\n", "and this is its value")}
 ),
+    )
+}
 
 
 //-----------------------------------------------------------------------------
@@ -1160,6 +1217,10 @@ that has multiple lines
         "plain scalar, seq example 1"/*,                                  \
         "plain scalar, seq example 2"*/
 
+
+CASE_GROUP(PLAIN_SCALAR)
+{
+    APPEND_CASES(
 
 C("plain scalar, 1 word only",
 R"(a_single_word_scalar_to_test)",
@@ -1279,6 +1340,9 @@ R"(
   L{N("Several lines of text, with some \"quotes\" of various 'types'. Escapes (like \\n) don't do anything.\nNewlines can be added by leaving a blank line. Additional leading whitespace is ignored.")}
 ),
 */
+    )
+}
+
 
 //-----------------------------------------------------------------------------
 #define BLOCK_LITERAL_CASES \
@@ -1299,6 +1363,11 @@ R"(
     "block literal as map val, explicit indentation 3",\
     "block literal as map val, explicit indentation 4",\
     "block literal as map val, explicit indentation 9"
+
+
+CASE_GROUP(BLOCK_LITERAL)
+{
+    APPEND_CASES(
 
 C("block literal as seq val, implicit indentation 2",
 R"(
@@ -1597,6 +1666,8 @@ another: val
     N("another", "val")
   }
 ),
+    )
+}
 
 
 //-----------------------------------------------------------------------------
@@ -1614,6 +1685,11 @@ another: val
     "block folded as map val, explicit indentation 3",\
     "block folded as map val, explicit indentation 4",\
     "block folded as map val, explicit indentation 9"
+
+
+CASE_GROUP(BLOCK_FOLDED)
+{
+    APPEND_CASES(
 
 C("block folded as seq val, implicit indentation 2",
 R"(
@@ -1848,6 +1924,9 @@ another: val
     N("another", "val")
   }
 ),
+    )
+}
+
 
 //-----------------------------------------------------------------------------
 #define TAG_PROPERTY_CASES \
@@ -1856,6 +1935,11 @@ another: val
     "tag property in implicit seq",\
     "tag property in explicit seq",\
     "tagged explicit sequence in map"
+
+
+CASE_GROUP(TAG_PROPERTY)
+{
+    APPEND_CASES(
 
 C("tag property in implicit map",
 R"(ivar: !!int 0
@@ -1917,6 +2001,8 @@ R"(some_seq: !its_type [
                   }))
           }
 ),
+    )
+}
 
 //-----------------------------------------------------------------------------
 #define NESTED_MAPX2_CASES \
@@ -1924,6 +2010,10 @@ R"(some_seq: !its_type [
         "nested map x2, explicit", \
         "nested map x2",\
 		"nested map x2, commented"
+
+CASE_GROUP(NESTED_MAPX2)
+{
+    APPEND_CASES(
 
 C("nested map x2, explicit, same line",
 R"({foo: {foo0: 00, bar0: 01, baz0: 02}, bar: {foo1: 10, bar1: 11, baz1: 12}, baz: {foo2: 20, bar2: 21, baz2: 22}})",
@@ -1986,6 +2076,8 @@ send_to:
         N("port", "7001") })
 	}
 ),
+    )
+}
 
 //-----------------------------------------------------------------------------
 #define NESTED_SEQX2_CASES                                          \
@@ -1997,6 +2089,10 @@ send_to:
 "nested seq x2, next line",                                         \
 "nested seq x2, all next line",                                     \
 "nested seq x2, implicit first, explicit last level"
+
+CASE_GROUP(NESTED_SEQX2)
+{
+    APPEND_CASES(
 
 C("nested seq x2, empty, oneline",
 R"([[], [], []])",
@@ -2118,6 +2214,8 @@ R"(
       N{L{N{"20"}, N{"21"}, N{"22"}}},
           }
 ),
+    )
+}
 
 //-----------------------------------------------------------------------------
 
@@ -2125,6 +2223,10 @@ R"(
     "nested map x3, explicit",               \
         "nested map x3"
 
+
+CASE_GROUP(NESTED_MAPX3)
+{
+    APPEND_CASES(
 
 C("nested map x3, explicit",
 R"({
@@ -2217,6 +2319,8 @@ baz0:
          N{"baz1", L{N{"foo2", "220"}, N{"bar2", "221"}, N{"baz2", "222"}}} }},
       }
 ),
+    )
+}
 
 
 //-----------------------------------------------------------------------------
@@ -2226,6 +2330,10 @@ baz0:
 "nested seq x3, continued on next line", \
 "nested seq x3, all continued on next line"
 
+
+CASE_GROUP(NESTED_SEQX3)
+{
+    APPEND_CASES(
 
 C("nested seq x3, explicit",
 R"([
@@ -2401,11 +2509,17 @@ R"(
       N{L{N{L{N{"200"}, N{"201"}, N{"202"}}}, N{L{N{"210"}, N{"211"}, N{"212"}}}, N{L{N{"220"}, N{"221"}, N{"222"}}}}},
           }
 ),
+    )
+}
 
 //-----------------------------------------------------------------------------
 #define NESTED_MAPX4_CASES                      \
         "nested map x4, explicit",              \
         "nested map x4"
+
+CASE_GROUP(NESTED_MAPX4)
+{
+    APPEND_CASES(
 
 C("nested map x4, explicit",
 R"({
@@ -2585,12 +2699,19 @@ baz0:
       })
     }
 ),
+    )
+}
+
 
 //-----------------------------------------------------------------------------
 #define NESTED_SEQX4_CASES \
     "nested seq x4, explicit", \
     "nested seq x4"
 
+
+CASE_GROUP(NESTED_SEQX4)
+{
+    APPEND_CASES(
 
 C("nested seq x4, explicit",
 R"([
@@ -2703,6 +2824,8 @@ R"(
       N{L{N{L{N{L{N{"2000"}, N{"2001"}, N{"2002"}}}, N{L{N{"2010"}, N{"2011"}, N{"2012"}}}, N{L{N{"2020"}, N{"2021"}, N{"2022"}}}}}, N{L{N{L{N{"2100"}, N{"2101"}, N{"2102"}}}, N{L{N{"2110"}, N{"2111"}, N{"2112"}}}, N{L{N{"2120"}, N{"2121"}, N{"2122"}}}}}, N{L{N{L{N{"2200"}, N{"2201"}, N{"2202"}}}, N{L{N{"2210"}, N{"2211"}, N{"2212"}}}, N{L{N{"2220"}, N{"2221"}, N{"2222"}}}}}}},
           }
 ),
+    )
+}
 
 //-----------------------------------------------------------------------------
 #define COMPLEX_KEY_CASES                       \
@@ -2719,6 +2842,11 @@ R"(
 "complex block key, folded, clip",\
 "complex block key, folded, keep",\
 "complex block key, folded, strip"
+
+
+CASE_GROUP(COMPLEX_KEY)
+{
+    APPEND_CASES(
 
 
 C("complex key with line break in between",
@@ -2879,7 +3007,8 @@ R"(? >-
       N("This is a key that has multiple lines", "and this is its value")
    }
 ),
-
+    )
+}
 
 //-----------------------------------------------------------------------------
 #define MAP_OF_SEQ_CASES \
@@ -2887,6 +3016,11 @@ R"(? >-
     "map of seqs, one line", \
     "map of seqs",           \
     "map of seqs, next line"
+
+
+CASE_GROUP(MAP_OF_SEQ)
+{
+    APPEND_CASES(
 
 C("map of empty seqs",
 R"({foo: [], bar: [], baz: []})",
@@ -2938,6 +3072,9 @@ women:
          N("women", L{N{"Mary Smith"}, N{"Susan Williams"}})
      }
 ),
+    )
+}
+
 
 //-----------------------------------------------------------------------------
 #define SEQ_OF_MAP_CASES                            \
@@ -2946,6 +3083,10 @@ women:
         "seq of maps, implicit seq, explicit maps", \
         "seq of maps",                              \
         "seq of maps, next line"
+
+CASE_GROUP(SEQ_OF_MAP)
+{
+    APPEND_CASES(
 
 C("seq of empty maps, one line",
 R"([{}, {}, {}])",
@@ -3002,11 +3143,18 @@ R"(
       N{L{N("name", "Mary Smith"), N("age", "27")}}
   }
 ),
+    )
+}
 
 //-----------------------------------------------------------------------------
 #define GENERIC_SEQ_CASES                       \
     "generic seq v0",                              \
         "generic seq v1"
+
+
+CASE_GROUP(GENERIC_SEQ)
+{
+    APPEND_CASES(
 
 C("generic seq v0",
 R"(
@@ -3043,10 +3191,16 @@ R"(
       N(L{N("key 1", "value 1"), N("key 2", "value 2")})
   }
 ),
+    )
+}
 
 //-----------------------------------------------------------------------------
 #define GENERIC_MAP_CASES                       \
         "generic map"
+
+CASE_GROUP(GENERIC_MAP)
+{
+    APPEND_CASES(
 
 C("generic map",
 R"(
@@ -3067,6 +3221,8 @@ a sequence:
       N("a sequence", L{N("item 1"), N("item 2")}),
   }
 ),
+    )
+}
 
 //-----------------------------------------------------------------------------
 #define SIMPLE_ANCHOR_CASES                            \
@@ -3078,6 +3234,11 @@ a sequence:
     "anchor example 2, resolved",\
     "anchor example 3, unresolved",   \
     "anchor example 3, resolved"
+
+
+CASE_GROUP(SIMPLE_ANCHOR)
+{
+    APPEND_CASES(
 
 C("simple anchor 1, implicit, unresolved",
 R"(
@@ -3438,7 +3599,8 @@ N{"step", L{
     }),
     }
 ),
-
+    )
+}
 
 //-----------------------------------------------------------------------------
 #define INDENTATION_CASES \
@@ -3446,6 +3608,10 @@ N{"step", L{
     "2 chars + 4 chars, ex0",\
     "2 chars + 4 chars, ex1",\
     "2 chars + 4 chars, ex2"
+
+CASE_GROUP(INDENTATION)
+{
+    APPEND_CASES(
 
 C("4 chars",
 R"(
@@ -3470,7 +3636,6 @@ L{
         N("sub_key2", L{N("val4"), N("val5")}),
     })
 }),
-
 
 C("2 chars + 4 chars, ex0",
 R"(
@@ -3543,7 +3708,8 @@ L{
         N("sub_key2", L{N("val4"), N("val5")}),
     })
 }),
-
+    )
+}
 
 //-----------------------------------------------------------------------------
 #define NUMBER_CASES \
@@ -3551,6 +3717,11 @@ L{
     "integer numbers, impl",\
     "floating point numbers, expl",\
     "floating point numbers, impl"
+
+
+CASE_GROUP(NUMBER)
+{
+    APPEND_CASES(
 
 C("integer numbers, expl",
 R"(translation: [-2, -2, 5])",
@@ -3584,6 +3755,8 @@ R"(
 )",
 L{N("-2.0"), N("-2.1"), N("0.1"), N(".1"), N("-.2"), N("-2.e+6"), N("-3e-6"), N("1.12345e+011")}
 ),
+    )
+}
 
 
 //-----------------------------------------------------------------------------
@@ -3597,6 +3770,10 @@ L{N("-2.0"), N("-2.1"), N("0.1"), N(".1"), N("-.2"), N("-2.e+6"), N("-3e-6"), N(
     "null map vals in seq, impl, mixed 1",\
     "null map vals in seq, impl, mixed 2",\
     "null map vals in seq, impl, mixed 3"
+
+CASE_GROUP(NULL_VAL)
+{
+    APPEND_CASES(
 
 C("null map vals, expl",
 R"({foo: , bar: , baz: }
@@ -3689,7 +3866,10 @@ R"(
 )",
 L{N(""), N(""), N(L{N("foo", ""), N("bar", ""), N("baz", "")})}
 ),
+    )
+}
 
+#ifdef CRL
 //-----------------------------------------------------------------------------
 #define GITHUB_ISSUE_CASES \
         "github3-problem1",\
@@ -3700,6 +3880,10 @@ L{N(""), N(""), N(L{N("foo", ""), N("bar", ""), N("baz", "")})}
         "github6-problem1",\
         "github6"
 
+
+CASE_GROUP(GITHUB_ISSUE)
+{
+    APPEND_CASES(
 
 C("github3-problem1",
 R"(
@@ -3882,17 +4066,57 @@ N(L{N("DcYsg8VFdC0", L{N("0.mp4"), N("1.mp4"), N("2.mp4"), N("3.mp4")})}),
 N(L{N("Yt3ymqZXzLY", L{N("0.mp4"), N("1.mp4"), N("2.mp4"), N("3.mp4")})}),
 })}
 ),
+    )
+}
+#endif
 
 //-----------------------------------------------------------------------------
-
-    }); // ends the cases map
-
 //-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+
+Case const* get_case(csubstr name)
+{
+    static std::map<csubstr, Case> cases;
+
+    if(cases.empty())
+    {
+        ADD_CASE_GROUP(EMPTY_FILE);
+        ADD_CASE_GROUP(EMPTY_DOC);
+        ADD_CASE_GROUP(SIMPLE_DOC);
+        ADD_CASE_GROUP(EMPTY_MAP);
+        ADD_CASE_GROUP(EMPTY_SEQ);
+        ADD_CASE_GROUP(SIMPLE_MAP);
+        ADD_CASE_GROUP(SIMPLE_SEQ);
+        ADD_CASE_GROUP(SINGLE_QUOTED);
+        ADD_CASE_GROUP(DOUBLE_QUOTED);
+        ADD_CASE_GROUP(PLAIN_SCALAR);
+        ADD_CASE_GROUP(BLOCK_LITERAL);
+        ADD_CASE_GROUP(BLOCK_FOLDED);
+        ADD_CASE_GROUP(TAG_PROPERTY);
+        ADD_CASE_GROUP(COMPLEX_KEY);
+        ADD_CASE_GROUP(NESTED_MAPX2);
+        ADD_CASE_GROUP(NESTED_SEQX2);
+        ADD_CASE_GROUP(NESTED_MAPX3);
+        ADD_CASE_GROUP(NESTED_SEQX3);
+        ADD_CASE_GROUP(NESTED_MAPX4);
+        ADD_CASE_GROUP(NESTED_SEQX4);
+        ADD_CASE_GROUP(MAP_OF_SEQ);
+        ADD_CASE_GROUP(SEQ_OF_MAP);
+        ADD_CASE_GROUP(GENERIC_MAP);
+        ADD_CASE_GROUP(GENERIC_SEQ);
+        ADD_CASE_GROUP(SIMPLE_ANCHOR);
+        ADD_CASE_GROUP(INDENTATION);
+        ADD_CASE_GROUP(NUMBER);
+        ADD_CASE_GROUP(NULL_VAL);
+        //ADD_CASE_GROUP(GITHUB_ISSUE);
+    }
 
     auto it = cases.find(name);
     C4_ASSERT(it != cases.end());
     return &it->second;
 }
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -4109,9 +4333,9 @@ INSTANTIATE_TEST_SUITE_P(indentation   , YmlTestCase, ::testing::Values(INDENTAT
 
 INSTANTIATE_TEST_SUITE_P(numbers       , YmlTestCase, ::testing::Values(NUMBER_CASES));
 INSTANTIATE_TEST_SUITE_P(null_vals     , YmlTestCase, ::testing::Values(NULL_VAL_CASES));
-
+#ifdef CRL
 INSTANTIATE_TEST_SUITE_P(github_issues , YmlTestCase, ::testing::Values(GITHUB_ISSUE_CASES));
-
+#endif
 
 #pragma GCC diagnostic pop
 
