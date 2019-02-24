@@ -4067,50 +4067,50 @@ R"(
 #   pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 #endif
 
-INSTANTIATE_TEST_CASE_P(empty_files   , YmlTestCase, ::testing::Values(EMPTY_FILE_CASES));
-INSTANTIATE_TEST_CASE_P(docs_empty    , YmlTestCase, ::testing::Values(EMPTY_DOC_CASES));
-INSTANTIATE_TEST_CASE_P(docs_simple   , YmlTestCase, ::testing::Values(SIMPLE_DOC_CASES));
+INSTANTIATE_TEST_SUITE_P(empty_files   , YmlTestCase, ::testing::Values(EMPTY_FILE_CASES));
+INSTANTIATE_TEST_SUITE_P(docs_empty    , YmlTestCase, ::testing::Values(EMPTY_DOC_CASES));
+INSTANTIATE_TEST_SUITE_P(docs_simple   , YmlTestCase, ::testing::Values(SIMPLE_DOC_CASES));
 
-INSTANTIATE_TEST_CASE_P(maps_empty    , YmlTestCase, ::testing::Values(EMPTY_MAP_CASES));
-INSTANTIATE_TEST_CASE_P(seqs_empty    , YmlTestCase, ::testing::Values(EMPTY_SEQ_CASES));
+INSTANTIATE_TEST_SUITE_P(maps_empty    , YmlTestCase, ::testing::Values(EMPTY_MAP_CASES));
+INSTANTIATE_TEST_SUITE_P(seqs_empty    , YmlTestCase, ::testing::Values(EMPTY_SEQ_CASES));
 
-INSTANTIATE_TEST_CASE_P(maps_simple   , YmlTestCase, ::testing::Values(SIMPLE_MAP_CASES));
-INSTANTIATE_TEST_CASE_P(seqs_simple   , YmlTestCase, ::testing::Values(SIMPLE_SEQ_CASES));
+INSTANTIATE_TEST_SUITE_P(maps_simple   , YmlTestCase, ::testing::Values(SIMPLE_MAP_CASES));
+INSTANTIATE_TEST_SUITE_P(seqs_simple   , YmlTestCase, ::testing::Values(SIMPLE_SEQ_CASES));
 
-INSTANTIATE_TEST_CASE_P(double_quotes , YmlTestCase, ::testing::Values(DOUBLE_QUOTED_CASES));
-INSTANTIATE_TEST_CASE_P(single_quotes , YmlTestCase, ::testing::Values(SINGLE_QUOTED_CASES));
-INSTANTIATE_TEST_CASE_P(plain_scalars , YmlTestCase, ::testing::Values(PLAIN_SCALAR_CASES));
+INSTANTIATE_TEST_SUITE_P(double_quotes , YmlTestCase, ::testing::Values(DOUBLE_QUOTED_CASES));
+INSTANTIATE_TEST_SUITE_P(single_quotes , YmlTestCase, ::testing::Values(SINGLE_QUOTED_CASES));
+INSTANTIATE_TEST_SUITE_P(plain_scalars , YmlTestCase, ::testing::Values(PLAIN_SCALAR_CASES));
 
-INSTANTIATE_TEST_CASE_P(literal_blocks, YmlTestCase, ::testing::Values(BLOCK_LITERAL_CASES));
-INSTANTIATE_TEST_CASE_P(folded_blocks , YmlTestCase, ::testing::Values(BLOCK_FOLDED_CASES));
+INSTANTIATE_TEST_SUITE_P(literal_blocks, YmlTestCase, ::testing::Values(BLOCK_LITERAL_CASES));
+INSTANTIATE_TEST_SUITE_P(folded_blocks , YmlTestCase, ::testing::Values(BLOCK_FOLDED_CASES));
 
-INSTANTIATE_TEST_CASE_P(tag_properties, YmlTestCase, ::testing::Values(TAG_PROPERTY_CASES));
+INSTANTIATE_TEST_SUITE_P(tag_properties, YmlTestCase, ::testing::Values(TAG_PROPERTY_CASES));
 
-INSTANTIATE_TEST_CASE_P(complex_keys  , YmlTestCase, ::testing::Values(COMPLEX_KEY_CASES));
+INSTANTIATE_TEST_SUITE_P(complex_keys  , YmlTestCase, ::testing::Values(COMPLEX_KEY_CASES));
 
-INSTANTIATE_TEST_CASE_P(maps_nested2  , YmlTestCase, ::testing::Values(NESTED_MAPX2_CASES));
-INSTANTIATE_TEST_CASE_P(seqs_nested2  , YmlTestCase, ::testing::Values(NESTED_SEQX2_CASES));
+INSTANTIATE_TEST_SUITE_P(maps_nested2  , YmlTestCase, ::testing::Values(NESTED_MAPX2_CASES));
+INSTANTIATE_TEST_SUITE_P(seqs_nested2  , YmlTestCase, ::testing::Values(NESTED_SEQX2_CASES));
 
-INSTANTIATE_TEST_CASE_P(maps_nested3  , YmlTestCase, ::testing::Values(NESTED_MAPX3_CASES));
-INSTANTIATE_TEST_CASE_P(seqs_nested3  , YmlTestCase, ::testing::Values(NESTED_SEQX3_CASES));
+INSTANTIATE_TEST_SUITE_P(maps_nested3  , YmlTestCase, ::testing::Values(NESTED_MAPX3_CASES));
+INSTANTIATE_TEST_SUITE_P(seqs_nested3  , YmlTestCase, ::testing::Values(NESTED_SEQX3_CASES));
 
-INSTANTIATE_TEST_CASE_P(maps_nested4  , YmlTestCase, ::testing::Values(NESTED_MAPX4_CASES));
-INSTANTIATE_TEST_CASE_P(seqs_nested4  , YmlTestCase, ::testing::Values(NESTED_SEQX4_CASES));
+INSTANTIATE_TEST_SUITE_P(maps_nested4  , YmlTestCase, ::testing::Values(NESTED_MAPX4_CASES));
+INSTANTIATE_TEST_SUITE_P(seqs_nested4  , YmlTestCase, ::testing::Values(NESTED_SEQX4_CASES));
 
-INSTANTIATE_TEST_CASE_P(map_of_seqs   , YmlTestCase, ::testing::Values(MAP_OF_SEQ_CASES));
-INSTANTIATE_TEST_CASE_P(seq_of_maps   , YmlTestCase, ::testing::Values(SEQ_OF_MAP_CASES));
+INSTANTIATE_TEST_SUITE_P(map_of_seqs   , YmlTestCase, ::testing::Values(MAP_OF_SEQ_CASES));
+INSTANTIATE_TEST_SUITE_P(seq_of_maps   , YmlTestCase, ::testing::Values(SEQ_OF_MAP_CASES));
 
-INSTANTIATE_TEST_CASE_P(maps_generic  , YmlTestCase, ::testing::Values(GENERIC_MAP_CASES));
-INSTANTIATE_TEST_CASE_P(seqs_generic  , YmlTestCase, ::testing::Values(GENERIC_SEQ_CASES));
+INSTANTIATE_TEST_SUITE_P(maps_generic  , YmlTestCase, ::testing::Values(GENERIC_MAP_CASES));
+INSTANTIATE_TEST_SUITE_P(seqs_generic  , YmlTestCase, ::testing::Values(GENERIC_SEQ_CASES));
 
-INSTANTIATE_TEST_CASE_P(simple_anchors, YmlTestCase, ::testing::Values(SIMPLE_ANCHOR_CASES));
+INSTANTIATE_TEST_SUITE_P(simple_anchors, YmlTestCase, ::testing::Values(SIMPLE_ANCHOR_CASES));
 
-INSTANTIATE_TEST_CASE_P(indentation   , YmlTestCase, ::testing::Values(INDENTATION_CASES));
+INSTANTIATE_TEST_SUITE_P(indentation   , YmlTestCase, ::testing::Values(INDENTATION_CASES));
 
-INSTANTIATE_TEST_CASE_P(numbers       , YmlTestCase, ::testing::Values(NUMBER_CASES));
-INSTANTIATE_TEST_CASE_P(null_vals     , YmlTestCase, ::testing::Values(NULL_VAL_CASES));
+INSTANTIATE_TEST_SUITE_P(numbers       , YmlTestCase, ::testing::Values(NUMBER_CASES));
+INSTANTIATE_TEST_SUITE_P(null_vals     , YmlTestCase, ::testing::Values(NULL_VAL_CASES));
 
-INSTANTIATE_TEST_CASE_P(github_issues , YmlTestCase, ::testing::Values(GITHUB_ISSUE_CASES));
+INSTANTIATE_TEST_SUITE_P(github_issues , YmlTestCase, ::testing::Values(GITHUB_ISSUE_CASES));
 
 
 #pragma GCC diagnostic pop
