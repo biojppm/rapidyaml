@@ -1,50 +1,37 @@
-#include "./test_case.hpp"
 #include "c4/yml/std/std.hpp"
+#include "c4/yml/parse.hpp"
+#include "c4/yml/emit.hpp"
 #include <c4/to_str.hpp>
+
+#include "./test_case.hpp"
 
 #include <gtest/gtest.h>
 
-#if defined(_MSC_VER)
-#   pragma warning(push)
-#   pragma warning(disable: 4127/*conditional expression is constant*/)
-#   pragma warning(disable: 4389/*'==': signed/unsigned mismatch*/)
-#endif
-
-#include <yaml-cpp/yaml.h>
-
-int main(int argc, char *argv[])
-{
-    ::testing::InitGoogleTest(&argc, argv);
-	int result = RUN_ALL_TESTS();
-	return result;
-}
-
-
 namespace foo {
 
-template< class T >
+template<class T>
 struct vec2
 {
     T x, y;
 };
-template< class T >
+template<class T>
 struct vec3
 {
     T x, y, z;
 };
-template< class T >
+template<class T>
 struct vec4
 {
     T x, y, z, w;
 };
 
-template< class T > size_t to_str(c4::substr buf, vec2<T> v) { return c4::cat(buf, '(', v.x, ',', v.y, ')'); }
-template< class T > size_t to_str(c4::substr buf, vec3<T> v) { return c4::cat(buf, '(', v.x, ',', v.y, ',', v.z, ')'); }
-template< class T > size_t to_str(c4::substr buf, vec4<T> v) { return c4::cat(buf, '(', v.x, ',', v.y, ',', v.z, ',', v.w, ')'); }
+template<class T> size_t to_str(c4::substr buf, vec2<T> v) { return c4::cat(buf, '(', v.x, ',', v.y, ')'); }
+template<class T> size_t to_str(c4::substr buf, vec3<T> v) { return c4::cat(buf, '(', v.x, ',', v.y, ',', v.z, ')'); }
+template<class T> size_t to_str(c4::substr buf, vec4<T> v) { return c4::cat(buf, '(', v.x, ',', v.y, ',', v.z, ',', v.w, ')'); }
 
-template< class T > bool from_str(c4::csubstr buf, vec2<T> *v) { char c; size_t ret = c4::uncat(buf, c, v->x, c, v->y, c); return ret != c4::yml::npos; }
-template< class T > bool from_str(c4::csubstr buf, vec3<T> *v) { char c; size_t ret = c4::uncat(buf, c, v->x, c, v->y, c, v->z, c); return ret != c4::yml::npos; }
-template< class T > bool from_str(c4::csubstr buf, vec4<T> *v) { char c; size_t ret = c4::uncat(buf, c, v->x, c, v->y, c, v->z, c, v->w, c); return ret != c4::yml::npos; }
+template<class T> bool from_str(c4::csubstr buf, vec2<T> *v) { char c; size_t ret = c4::uncat(buf, c, v->x, c, v->y, c); return ret != c4::yml::npos; }
+template<class T> bool from_str(c4::csubstr buf, vec3<T> *v) { char c; size_t ret = c4::uncat(buf, c, v->x, c, v->y, c, v->z, c); return ret != c4::yml::npos; }
+template<class T> bool from_str(c4::csubstr buf, vec4<T> *v) { char c; size_t ret = c4::uncat(buf, c, v->x, c, v->y, c, v->z, c, v->w, c); return ret != c4::yml::npos; }
 
 TEST(serialize, type_as_str)
 {
@@ -96,7 +83,7 @@ void do_test_serialize(Args&& ...args)
     NodeRef n(&t);
 
     n << s;
-    print_tree(t);
+    //print_tree(t);
     emit(t);
     check_invariants(t);
     n >> out;
@@ -994,9 +981,7 @@ TEST(NodeRef, 7_duplicate)
     r.append_child() << "elm3";
 
     EXPECT_EQ(r[0][0].num_children(), 2u);
-    printf("fonix"); print_tree(t); emit(r);
     NodeRef dup = r[1].duplicate(r[0][0], r[0][0][1]);
-    printf("fonix"); print_tree(t); emit(r);
     EXPECT_EQ(r[0][0].num_children(), 3u);
     EXPECT_EQ(r[0][0][2].num_children(), map2.size());
     EXPECT_NE(dup.get(), r[1].get());
@@ -1066,7 +1051,7 @@ TEST(general, emitting)
     r["seq"].append_child() = "bar1";
     r["seq"].append_child() = "bar2";
 
-    print_tree(tree);
+    //print_tree(tree);
 
     // emit to stdout (can also emit to FILE* or ryml::span)
     emit_resize(tree, &cmpbuf);
@@ -1145,213 +1130,13 @@ foo: 1
     EXPECT_EQ(m["bar"], 20);
 }
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
 
-using N = CaseNode;
-using L = CaseNode::iseqmap;
-
-TEST(CaseNode, setting_up)
+//-------------------------------------------
+// this is needed to use the test case library
+Case const* get_case(csubstr name)
 {
-    L tl1 = {DOC, DOC};
-    L tl2 = {(DOC), (DOC)};
-
-    ASSERT_EQ(tl1.size(), tl2.size());
-    N const& d1 = *tl1.begin();
-    N const& d2 = *(tl1.begin() + 1);
-    ASSERT_EQ(d1.reccount(), d2.reccount());
-    ASSERT_EQ(d1.type, DOC);
-    ASSERT_EQ(d2.type, DOC);
-
-    N n1(tl1);
-    N n2(tl2);
-    ASSERT_EQ(n1.reccount(), n2.reccount());
-}
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-TEST_P(YmlTestCase, parse_using_libyaml)
-{
-    try
-    {
-        LibyamlParser libyaml_parser;
-        libyaml_parser.parse(c->src);
-    }
-    catch(...)
-    {
-        if(c->flags & IGNORE_LIBYAML_PARSE_FAIL)
-        {
-            std::cout << "libyaml failed parsing; ignoring\n";
-        }
-        else
-        {
-            std::cout << "libyaml failed parsing the following source:\n";
-            std::cout << "---------------\n";
-            std::cout << c->src;
-            std::cout << "---------------\n";
-            throw;
-        }
-    }
-}
-
-//-----------------------------------------------------------------------------
-TEST_P(YmlTestCase, parse_using_yaml_cpp)
-{
-    try
-    {
-        std::string src(c->src.str, c->src.len);
-        YAML::Node node = YAML::Load(src);
-    }
-    catch(...)
-    {
-        if(c->flags & IGNORE_YAMLCPP_PARSE_FAIL)
-        {
-            std::cout << "yamlcpp failed parsing the following source:\n";
-        }
-        else
-        {
-            std::cout << "yamlcpp failed parsing the following source:\n";
-            std::cout << "---------------\n";
-            std::cout << c->src;
-            std::cout << "---------------\n";
-            throw;
-        }
-    }
-}
-
-//-----------------------------------------------------------------------------
-TEST_P(YmlTestCase, parse_using_ryml)
-{
-#ifdef RYML_DBG
-    std::cout << "---------------\n";
-    std::cout << c->src;
-    std::cout << "---------------\n";
-#endif
-    parse(d->src, &d->parsed_tree);
-    {
-        SCOPED_TRACE("checking tree invariants of unresolved parsed tree");
-        check_invariants(d->parsed_tree);
-    }
-#ifdef RYML_DBG
-    print_tree(c->root);
-    print_tree(d->parsed_tree);
-#endif
-    {
-        SCOPED_TRACE("checking node invariants of unresolved parsed tree");
-        check_invariants(d->parsed_tree.rootref());
-    }
-
-    if(c->flags & RESOLVE_REFS)
-    {
-        d->parsed_tree.resolve();
-#ifdef RYML_DBG
-        std::cout << "resolved tree!!!\n";
-        print_tree(d->parsed_tree);
-#endif
-        {
-            SCOPED_TRACE("checking tree invariants of resolved parsed tree");
-            check_invariants(d->parsed_tree);
-        }
-        {
-            SCOPED_TRACE("checking node invariants of resolved parsed tree");
-            check_invariants(d->parsed_tree.rootref());
-        }
-    }
-
-    {
-        SCOPED_TRACE("comparing parsed tree to ref tree");
-        EXPECT_GE(d->parsed_tree.capacity(), c->root.reccount());
-        EXPECT_EQ(d->parsed_tree.size(), c->root.reccount());
-        c->root.compare(d->parsed_tree.rootref());
-    }
-}
-
-//-----------------------------------------------------------------------------
-TEST_P(YmlTestCase, emit_yml_stdout)
-{
-    d->numbytes_stdout = emit(d->parsed_tree);
-}
-
-//-----------------------------------------------------------------------------
-TEST_P(YmlTestCase, emit_yml_string)
-{
-    auto em = emit_resize(d->parsed_tree, &d->emit_buf);
-    EXPECT_EQ(em.len, d->emit_buf.size());
-    EXPECT_EQ(em.len, d->numbytes_stdout);
-    d->emitted_yml = em;
-
-#ifdef RYML_DBG
-    std::cout << em;
-#endif
-}
-
-//-----------------------------------------------------------------------------
-TEST_P(YmlTestCase, complete_round_trip)
-{
-#ifdef RYML_DBG
-    print_tree(d->parsed_tree);
-    std::cout << d->emitted_yml;
-#endif
-
-    {
-        SCOPED_TRACE("parsing emitted yml");
-        d->parse_buf = d->emit_buf;
-        d->parsed_yml.assign(d->parse_buf.data(), d->parse_buf.size());
-        parse(d->parsed_yml, &d->emitted_tree);
-#ifdef RYML_DBG
-        print_tree(d->emitted_tree);
-#endif
-    }
-
-    {
-        SCOPED_TRACE("checking node invariants of parsed tree");
-        check_invariants(d->emitted_tree.rootref());
-    }
-
-    {
-        SCOPED_TRACE("checking tree invariants of parsed tree");
-        check_invariants(d->emitted_tree);
-    }
-
-    {
-        SCOPED_TRACE("comparing parsed tree to ref tree");
-        EXPECT_GE(d->emitted_tree.capacity(), c->root.reccount());
-        EXPECT_EQ(d->emitted_tree.size(), c->root.reccount());
-        c->root.compare(d->emitted_tree.rootref());
-    }
-}
-
-//-----------------------------------------------------------------------------
-TEST_P(YmlTestCase, recreate_from_ref)
-{
-    {
-        SCOPED_TRACE("recreating a new tree from the ref tree");
-        d->recreated.reserve(d->parsed_tree.size());
-        NodeRef r = d->recreated.rootref();
-        c->root.recreate(&r);
-    }
-
-    {
-        SCOPED_TRACE("checking node invariants of recreated tree");
-        check_invariants(d->recreated.rootref());
-    }
-
-    {
-        SCOPED_TRACE("checking tree invariants of recreated tree");
-        check_invariants(d->recreated);
-    }
-
-    {
-        SCOPED_TRACE("comparing recreated tree to ref tree");
-        c->root.compare(d->recreated.rootref());
-    }
+    return nullptr;
 }
 
 } // namespace yml
 } // namespace c4
-
-#if defined(_MSC_VER)
-#   pragma warning(pop)
-#endif

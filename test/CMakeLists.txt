@@ -25,12 +25,17 @@ c4_import_remote_proj(ryml yaml-cpp ${ryml_ext_dir}/yaml-cpp
 
 #-------------------------------------------------------------------------
 
-function(ryml_add_test test_name test_src)
+c4_add_library(RYML ryml_util_test
+    SOURCES test_case.hpp test_case.cpp
+    INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${ryml_ext_dir}/yaml-cpp/src/include
+    LIBS ryml yaml yaml-cpp gtest gtest_main
+    FOLDER ryml-test)
+
+function(ryml_add_test test_name)
     set(t ryml-test-${test_name})
     c4_add_executable(RYML ${t}
-        SOURCES test_case.hpp test_case.cpp ${test_src} ${c4tpl_files}
-        INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${ryml_ext_dir}/yaml-cpp/src/include
-        LIBS ryml yaml yaml-cpp gtest
+        SOURCES ${test_name}.cpp ${ARGN}
+        LIBS ryml_util_test
         FOLDER ryml-test)
     if(RYML_DBG)
         target_compile_definitions(${t} PRIVATE RYML_DBG)
@@ -38,12 +43,46 @@ function(ryml_add_test test_name test_src)
     c4_add_test(RYML ${t} ON)
 endfunction()
 
-ryml_add_test(test_basic basic.cpp)
+function(ryml_add_test_case_group name)
+    ryml_add_test(${name} test_group.hpp ${name}.cpp)
+endfunction()
+
+ryml_add_test(basic)
+ryml_add_test_case_group(empty_file)
+ryml_add_test_case_group(empty_doc)
+ryml_add_test_case_group(simple_doc)
+ryml_add_test_case_group(empty_map)
+ryml_add_test_case_group(empty_seq)
+ryml_add_test_case_group(simple_map)
+ryml_add_test_case_group(simple_seq)
+ryml_add_test_case_group(single_quoted)
+ryml_add_test_case_group(double_quoted)
+ryml_add_test_case_group(plain_scalar)
+ryml_add_test_case_group(block_literal)
+ryml_add_test_case_group(block_folded)
+ryml_add_test_case_group(tag_property)
+ryml_add_test_case_group(complex_key)
+ryml_add_test_case_group(nested_mapx2)
+ryml_add_test_case_group(nested_seqx2)
+ryml_add_test_case_group(nested_mapx3)
+ryml_add_test_case_group(nested_seqx3)
+ryml_add_test_case_group(nested_mapx4)
+ryml_add_test_case_group(nested_seqx4)
+ryml_add_test_case_group(map_of_seq)
+ryml_add_test_case_group(seq_of_map)
+ryml_add_test_case_group(generic_map)
+ryml_add_test_case_group(generic_seq)
+ryml_add_test_case_group(simple_anchor)
+ryml_add_test_case_group(indentation)
+ryml_add_test_case_group(number)
+ryml_add_test_case_group(null_val)
+ryml_add_test_case_group(github_issues)
+
 
 #-------------------------------------------------------------------------
 
 # run every case in the yaml-test-suite
-option(RYML_TEST_SUITE "Enable ~300 tests from yaml-test-suite.")
+option(RYML_TEST_SUITE "Enable ~300 tests from yaml-test-suite." OFF)
 
 if(RYML_TEST_SUITE)
 
