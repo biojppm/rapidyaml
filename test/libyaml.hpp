@@ -5,6 +5,7 @@
 #include <c4/yml/yml.hpp>
 
 #include <stdexcept>
+#include <string>
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -261,7 +262,7 @@ case YAML_ ## _ev ## _EVENT:                            \
         {
             fprintf(stderr, "    : %s at %zd:%zd (offset %zd)\n", loc2->name, loc1->line, loc2->col, loc2->offset);
         }
-        throw std::runtime_error({msg, length});
+        throw std::runtime_error(std::string(msg, msg+length));
     }
     template< size_t N >
     static void error(char const (&msg)[N], Location *loc1 = nullptr, Location *loc2 = nullptr)
