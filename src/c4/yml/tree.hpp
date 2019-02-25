@@ -361,19 +361,20 @@ public:
 
 public:
 
-    NodeType_e type(size_t node) const { return (NodeType_e)(_p(node)->m_type & _TYMASK); }
+    NodeType_e  type(size_t node) const { return (NodeType_e)(_p(node)->m_type & _TYMASK); }
     const char* type_str(size_t node) const { return NodeType::type_str(_p(node)->m_type); }
 
-    csubstr const& key(size_t node) const { C4_ASSERT(has_key(node)); return _p(node)->m_key.scalar; }
-    csubstr const& key_tag(size_t node) const { C4_ASSERT(has_key_tag(node)); return _p(node)->m_key.tag; }
-    NodeScalar const& keysc(size_t node) const { C4_ASSERT(has_key(node)); return _p(node)->m_key; }
+    csubstr    const& key       (size_t node) const { C4_ASSERT(has_key(node)); return _p(node)->m_key.scalar; }
+    csubstr    const& key_tag   (size_t node) const { C4_ASSERT(has_key_tag(node)); return _p(node)->m_key.tag; }
+    csubstr    const& key_ref   (size_t node) const { C4_ASSERT(is_key_ref(node) && ! has_key_anchor(node)); return _p(node)->m_key.anchor; }
+    csubstr    const& key_anchor(size_t node) const { C4_ASSERT( ! is_key_ref(node) && has_key_anchor(node)); return _p(node)->m_key.anchor; }
+    NodeScalar const& keysc     (size_t node) const { C4_ASSERT(has_key(node)); return _p(node)->m_key; }
 
-    csubstr const& val(size_t node) const { C4_ASSERT(has_val(node)); return _p(node)->m_val.scalar; }
-    csubstr const& val_tag(size_t node) const { C4_ASSERT(has_val_tag(node)); return _p(node)->m_val.tag; }
-    NodeScalar const& valsc(size_t node) const { C4_ASSERT(has_val(node)); return _p(node)->m_val; }
-
-    csubstr const& key_anchor(size_t node) const { return _p(node)->m_key.anchor; }
-    csubstr const& val_anchor(size_t node) const { return _p(node)->m_val.anchor; }
+    csubstr    const& val       (size_t node) const { C4_ASSERT(has_val(node)); return _p(node)->m_val.scalar; }
+    csubstr    const& val_tag   (size_t node) const { C4_ASSERT(has_val_tag(node)); return _p(node)->m_val.tag; }
+    csubstr    const& val_ref   (size_t node) const { C4_ASSERT(is_val_ref(node) && ! has_val_anchor(node)); return _p(node)->m_val.anchor; }
+    csubstr    const& val_anchor(size_t node) const { C4_ASSERT( ! is_val_ref(node) && has_val_anchor(node)); return _p(node)->m_val.anchor; }
+    NodeScalar const& valsc     (size_t node) const { C4_ASSERT(has_val(node)); return _p(node)->m_val; }
 
 public:
 
@@ -391,8 +392,8 @@ public:
     bool is_keyval(size_t node) const { return (_p(node)->m_type & KEYVAL) == KEYVAL; }
     bool has_key_tag(size_t node) const { return (_p(node)->m_type & (KEY|KEYTAG)) == (KEY|KEYTAG); }
     bool has_val_tag(size_t node) const { return ((_p(node)->m_type & (VALTAG)) && (_p(node)->m_type & (VAL|MAP|SEQ))); }
-    bool has_key_anchor(size_t node) const { return (_p(node)->m_type & KEYREF) != 0; }
-    bool has_val_anchor(size_t node) const { return (_p(node)->m_type & VALREF) != 0; }
+    bool has_key_anchor(size_t node) const { return (_p(node)->m_type & KEYANCH) != 0; }
+    bool has_val_anchor(size_t node) const { return (_p(node)->m_type & VALANCH) != 0; }
     bool is_key_ref(size_t node) const { return (_p(node)->m_type & KEYREF) != 0; }
     bool is_val_ref(size_t node) const { return (_p(node)->m_type & VALREF) != 0; }
 
@@ -449,22 +450,29 @@ public:
 
 public:
 
-    void to_val(size_t node, csubstr const& val, int more_flags=0);
     void to_keyval(size_t node, csubstr const& key, csubstr const& val, int more_flags=0);
-    void to_map(size_t node, int more_flags = 0);
-    void to_map(size_t node, csubstr const& key, int more_flags = 0);
-    void to_seq(size_t node, int more_flags = 0);
-    void to_seq(size_t node, csubstr const& key, int more_flags = 0);
-    void to_doc(size_t node, int more_flags = 0);
-    void to_stream(size_t node, int more_flags = 0);
+    void to_map(size_t node, csubstr const& key, int more_flags=0);
+    void to_seq(size_t node, csubstr const& key, int more_flags=0);
+    void to_val(size_t node, csubstr const& val, int more_flags=0);
+    void to_stream(size_t node, int more_flags=0);
+    void to_map(size_t node, int more_flags=0);
+    void to_seq(size_t node, int more_flags=0);
+    void to_doc(size_t node, int more_flags=0);
 
-    void set_val_tag(size_t node, csubstr const& tag);
-    void set_key_tag(size_t node, csubstr const& tag);
+    void set_key_tag(size_t node, csubstr const& tag) { C4_ASSERT(has_key(node)); _p(node)->m_key.tag = tag; _add_flags(node, KEYTAG); }
+    void set_val_tag(size_t node, csubstr const& tag) { C4_ASSERT(has_val(node)); _p(node)->m_val.tag = tag; _add_flags(node, VALTAG); }
 
-    void set_key_anchor(size_t node, csubstr anchor);
-    void set_val_anchor(size_t node, csubstr anchor);
-    void rem_key_anchor(size_t node);
-    void rem_val_anchor(size_t node);
+    void set_key_anchor(size_t node, csubstr anchor) { C4_ASSERT( ! is_key_ref(node)); _p(node)->m_key.anchor = anchor; _add_flags(node, KEYANCH); }
+    void set_val_anchor(size_t node, csubstr anchor) { C4_ASSERT( ! is_val_ref(node)); _p(node)->m_val.anchor = anchor; _add_flags(node, VALANCH); }
+    void set_key_ref   (size_t node, csubstr ref   ) { C4_ASSERT( ! has_key_anchor(node)); _p(node)->m_key.anchor = ref; _add_flags(node, KEYREF); }
+    void set_val_ref   (size_t node, csubstr ref   ) { C4_ASSERT( ! has_val_anchor(node)); _p(node)->m_val.anchor = ref; _add_flags(node, VALREF); }
+
+    void rem_key_anchor(size_t node) { C4_ASSERT( ! is_key_ref(node)); _p(node)->m_key.anchor.clear(); _rem_flags(node, KEYANCH); }
+    void rem_val_anchor(size_t node) { C4_ASSERT( ! is_val_ref(node)); _p(node)->m_val.anchor.clear(); _rem_flags(node, VALANCH); }
+    void rem_key_ref   (size_t node) { C4_ASSERT( ! has_key_anchor(node)); _p(node)->m_key.anchor.clear(); _rem_flags(node, KEYREF); }
+    void rem_val_ref   (size_t node) { C4_ASSERT( ! has_val_anchor(node)); _p(node)->m_val.anchor.clear(); _rem_flags(node, VALREF); }
+
+public:
 
     inline void _add_flags(size_t node, NodeType_e f) { _p(node)->m_type = (f | _p(node)->m_type); }
     inline void _add_flags(size_t node, int        f) { _p(node)->m_type = (f | _p(node)->m_type); }
