@@ -115,7 +115,8 @@ private:
     bool  _handle_seq_expl();
     bool  _handle_seq_impl();
     bool  _handle_top();
-    bool  _handle_anchors_and_refs();
+    bool  _handle_key_anchors_and_refs();
+    bool  _handle_val_anchors_and_refs();
     bool  _handle_types();
 
     void  _push_level(bool explicit_flow_chars = false);
@@ -143,6 +144,8 @@ private:
 
     void  _save_indentation(size_t behind = 0);
 
+    void  _write_key_anchor();
+    void  _write_val_anchor();
     void  _resolve_references();
 
 private:
@@ -276,9 +279,12 @@ private:
     csubstr m_key_tag;
     csubstr m_val_tag;
 
-    csubstr m_anchor;
-    size_t  m_num_anchors;
-    size_t  m_num_references;
+    csubstr m_key_anchor;
+    csubstr m_val_anchor;
+    size_t  m_num_key_anchors;
+    size_t  m_num_val_anchors;
+    size_t  m_num_key_references;
+    size_t  m_num_val_references;
 
 };
 

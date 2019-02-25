@@ -52,7 +52,7 @@ struct Parsable
 
     void parse_rw()
     {
-        if(empty()) return;
+        if(rw.empty()) return;
         c4::yml::parse(to_substr(rw), &rw_parsed.tree);
         rw_parsed.was_parsed = true;
     }
@@ -67,7 +67,7 @@ struct Parsable
 
     void emit_rw()
     {
-        if(empty()) return;
+        if(rw.empty()) return;
         if(!rw_parsed.was_parsed) parse_rw();
         c4::yml::emit_resize(rw_parsed.tree, &rw_parsed.emitted);
         rw_parsed.was_emitted = true;
@@ -236,26 +236,6 @@ struct SuiteCase
 SuiteCase g_suite_case;
 
 
-int main(int argc, char* argv[])
-{
-    // check input
-    C4_CHECK(argc == 2);
-    if(argc < 2) return 1;
-    C4_CHECK(c4::fs::path_exists(argv[1]));
-
-    if( ! g_suite_case.load(argv[1]))
-    {
-        return 0;
-    }
-
-    c4::print(g_suite_case.file_contents);
-    g_suite_case.print();
-
-    ::testing::InitGoogleTest(&argc, argv);
-	return RUN_ALL_TESTS();
-}
-
-
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -280,6 +260,7 @@ TEST(in_json_ro, emit)
 
 
 //-----------------------------------------------------------------------------
+/*
 
 TEST(out_yaml_rw, parse)
 {
@@ -299,19 +280,18 @@ TEST(out_yaml_ro, emit)
     g_suite_case.out_yaml.emit_ro();
 }
 
-TEST(out_yaml_roVSrw, compare_src)
+TEST(out_yaml__ro_vs_rw, compare_src)
 {
     g_suite_case.out_yaml.compare_src();
 }
 
-TEST(out_yaml_roVSrw, compare_emitted)
+TEST(out_yaml__ro_vs_rw, compare_emitted)
 {
     g_suite_case.out_yaml.compare_emitted();
 }
 
 
 //-----------------------------------------------------------------------------
-
 TEST(in_yaml_rw, parse)
 {
     g_suite_case.in_yaml.parse_rw();
@@ -328,4 +308,33 @@ TEST(in_yaml_ro, parse)
 TEST(in_yaml_ro, emit)
 {
     g_suite_case.in_yaml.emit_ro();
+}
+*/
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+int main(int argc, char* argv[])
+{
+    ::testing::InitGoogleTest(&argc, argv);
+
+    if(argc > 1)
+    {
+        const char *path = argv[1];
+        if(strlen(path) < 2) return 1;
+        if(path[0] != '-')
+        {
+            C4_CHECK(c4::fs::path_exists(argv[1]));
+            if( ! g_suite_case.load(argv[1]))
+            {
+                return 0;
+            }
+            c4::print(g_suite_case.file_contents);
+            g_suite_case.print();
+        }
+    }
+
+    return RUN_ALL_TESTS();
 }

@@ -30,7 +30,7 @@ const char* NodeType::type_str(NodeType_e ty)
     case STREAM  : return "STREAM";
     case NOTYPE  : return "NOTYPE";
     default:
-        if(ty & REF)
+        if(ty & (KEYREF|VALREF))
         {
             return "REF";
         }
@@ -586,13 +586,12 @@ void Tree::duplicate_children_no_rep(size_t node, size_t parent, size_t after)
 }
 
 //-----------------------------------------------------------------------------
-namespace detail {
-struct ReferenceResolver;
-} // namespace detail
 
-struct detail::ReferenceResolver
+namespace detail {
+struct ReferenceResolver
 {
-    struct refdata {
+    struct refdata
+    {
         bool   is_ref;
         size_t node;
         size_t prev_anchor;
@@ -600,6 +599,11 @@ struct detail::ReferenceResolver
     };
 
     Tree *t;
+    /** from the specs: "an alias node refers to the most recent
+     * node in the serialization having the specified anchor". So
+     * we need to start looking upward from ref nodes.
+     *
+     * @see http://yaml.org/spec/1.2/spec.html#id2765878 */
     stack<refdata> refs;
 
     using const_iterator = refdata const*;
@@ -615,7 +619,7 @@ struct detail::ReferenceResolver
     size_t count(size_t n)
     {
         size_t c = 0;
-        if(t->is_ref(n) || t->has_anchor(n))
+        if(t->is_key_ref(n) || t->is_val_ref(n) || t->has_key_anchor(n) || t->has_val_anchor(n))
         {
             ++c;
         }
@@ -628,12 +632,16 @@ struct detail::ReferenceResolver
 
     void store()
     {
+        // minimize (re-)allocations by counting first
         size_t nrefs = 0;
         nrefs = count(t->root_id());
         if(nrefs == 0) return;
         refs.reserve(nrefs);
-        _store(t->root_id());
 
+        // now descend through the hierarchy
+        _store_anchors_and_refs(t->root_id());
+
+        // finally connect the reference list
         size_t prev_anchor = npos;
         size_t count = 0;
         for(auto &rd : refs)
@@ -647,20 +655,20 @@ struct detail::ReferenceResolver
         }
     }
 
-    void _store(size_t n)
+    void _store_anchors_and_refs(size_t n)
     {
-        if(t->is_ref(n))
+        if(t->is_key_ref(n) || t->is_val_ref(n))
         {
             refs.push({true, n, npos, npos});
         }
-        else if(t->has_anchor(n))
+        else if(t->has_key_anchor(n) || t->has_val_anchor(n))
         {
             refs.push({false, n, npos, npos});
         }
 
         for(size_t ch = t->first_child(n); ch != NONE; ch = t->next_sibling(ch))
         {
-            _store(ch);
+            _store_anchors_and_refs(ch);
         }
     }
 
@@ -671,7 +679,7 @@ struct detail::ReferenceResolver
 
         /** from the specs: "an alias node refers to the most recent
          * node in the serialization having the specified anchor". So
-         * we start looking upward from ref nodes.
+         * we need to start looking upward from ref nodes.
          *
          * @see http://yaml.org/spec/1.2/spec.html#id2765878 */
         for(size_t i = 0, e = refs.size(); i < e; ++i)
@@ -683,8 +691,7 @@ struct detail::ReferenceResolver
             while(ra->prev_anchor != npos)
             {
                 ra = &refs[ra->prev_anchor];
-                csubstr anchor_name = t->anchor(ra->node);
-                if(anchor_name == refname)
+                if(t->key_anchor(ra->node) == refname || t->val_anchor(ra->node) == refname)
                 {
                     rd.target = ra->node;
                     break;
@@ -694,7 +701,8 @@ struct detail::ReferenceResolver
         }
     }
 
-};
+}; // ReferenceResolver
+} // namespace detail
 
 void Tree::resolve()
 {
@@ -720,11 +728,12 @@ void Tree::resolve()
         }
     }
 
-    // clear the anchors
-    for(auto const& rd : rr)
-    {
-        rem_anchor(rd.node);
-    }
+    //// clear the anchors
+    //for(auto const& rd : rr)
+    //{
+    //    rem_key_anchor(rd.node);
+    //    rem_val_anchor(rd.node);
+    //}
 }
 
 //-----------------------------------------------------------------------------
@@ -823,16 +832,28 @@ void Tree::set_val_tag(size_t node, csubstr const& tag)
     _add_flags(node, VALTAG);
 }
 
-void Tree::set_anchor(size_t node, csubstr const& anchor)
+void Tree::set_key_anchor(size_t node, csubstr anchor)
 {
-    _p(node)->m_anchor = anchor;
-    _add_flags(node, ANCHOR);
+    _p(node)->m_key.anchor = anchor;
+    _add_flags(node, KEYANCH);
 }
 
-void Tree::rem_anchor(size_t node)
+void Tree::set_val_anchor(size_t node, csubstr anchor)
 {
-    _p(node)->m_anchor.clear();
-    _rem_flags(node, ANCHOR);
+    _p(node)->m_val.anchor = anchor;
+    _add_flags(node, VALANCH);
+}
+
+void Tree::rem_key_anchor(size_t node)
+{
+    _p(node)->m_key.anchor.clear();
+    _rem_flags(node, KEYANCH);
+}
+
+void Tree::rem_val_anchor(size_t node)
+{
+    _p(node)->m_val.anchor.clear();
+    _rem_flags(node, VALANCH);
 }
 
 void Tree::to_map(size_t node, int more_flags)

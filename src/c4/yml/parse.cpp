@@ -24,9 +24,12 @@ Parser::Parser(Allocator const& a)
     m_state(),
     m_key_tag(),
     m_val_tag(),
-    m_anchor(),
-    m_num_anchors(0),
-    m_num_references()
+    m_key_anchor(),
+    m_val_anchor(),
+    m_num_key_anchors(0),
+    m_num_val_anchors(0),
+    m_num_key_references(0),
+    m_num_val_references(0)
 {
     State st{};
     m_stack.push(st);
@@ -46,11 +49,14 @@ void Parser::_reset()
     m_state = &m_stack.top();
     m_state->reset(m_file.str, m_root_id);
 
-    m_key_tag.clear(),
-    m_val_tag.clear(),
-    m_anchor.clear(),
-    m_num_anchors = (0),
-    m_num_references = (0);
+    m_key_tag.clear();
+    m_val_tag.clear();
+    m_key_anchor.clear();
+    m_val_anchor.clear();
+    m_num_key_anchors = (0);
+    m_num_val_anchors = (0);
+    m_num_key_references = (0);
+    m_num_val_references = (0);
 }
 
 //-----------------------------------------------------------------------------
@@ -356,6 +362,10 @@ bool Parser::_handle_unk()
             _scan_comment();
             return true;
         }
+        else if(_handle_key_anchors_and_refs())
+        {
+            return true;
+        }
         else
         {
             _c4err("parse error");
@@ -439,7 +449,7 @@ bool Parser::_handle_seq_expl()
         {
             return true;
         }
-        else if(_handle_anchors_and_refs())
+        else if(_handle_val_anchors_and_refs())
         {
             return true;
         }
@@ -634,7 +644,7 @@ bool Parser::_handle_seq_impl()
         {
             return true;
         }
-        else if(_handle_anchors_and_refs())
+        else if(_handle_val_anchors_and_refs())
         {
             return true;
         }
@@ -770,6 +780,10 @@ bool Parser::_handle_map_expl()
             {
                 return true;
             }
+            else if(_handle_key_anchors_and_refs())
+            {
+                return true;
+            }
             else
             {
                 _c4err("parse error");
@@ -813,7 +827,7 @@ bool Parser::_handle_map_expl()
             {
                 return true;
             }
-            else if(_handle_anchors_and_refs())
+            else if(_handle_val_anchors_and_refs())
             {
                 return true;
             }
@@ -931,6 +945,11 @@ bool Parser::_handle_map_impl()
         {
             return true;
         }
+        else if(_handle_key_anchors_and_refs())
+        {
+            return true;
+        }
+
         else
         {
             _c4err("parse error");
@@ -1039,7 +1058,7 @@ bool Parser::_handle_map_impl()
         {
             return true;
         }
-        else if(_handle_anchors_and_refs())
+        else if(_handle_val_anchors_and_refs())
         {
             return true;
         }
@@ -1157,28 +1176,54 @@ csubstr Parser::_scan_ref()
 }
 
 //-----------------------------------------------------------------------------
-bool Parser::_handle_anchors_and_refs()
+bool Parser::_handle_key_anchors_and_refs()
 {
-    if(has_all(RVAL))
+    C4_ASSERT(!has_any(RVAL));
+    csubstr rem = m_state->line_contents.rem;
+    if(rem.begins_with('&'))
     {
-        csubstr rem = m_state->line_contents.rem;
-        if(rem.begins_with('&'))
-        {
-            _c4dbgp("found an anchor!!!");
-            C4_ASSERT(m_anchor.empty());
-            csubstr anchor = rem.left_of(rem.first_of(' '));
-            _line_progressed(anchor.len);
-            anchor = anchor.sub(1); // skip the first character
-            _c4dbgpf("anchor value: '%.*s'", _c4prsp(anchor));
-            m_anchor = anchor;
-            return true;
-        }
-        else if(rem.begins_with('*'))
-        {
-            _c4err("not implemented - this should have been catched elsewhere");
-            return true;
-        }
+        _c4dbgp("found a key anchor!!!");
+        C4_ASSERT(m_key_anchor.empty());
+        csubstr anchor = rem.left_of(rem.first_of(' '));
+        _line_progressed(anchor.len);
+        anchor = anchor.sub(1); // skip the first character
+        _c4dbgpf("key anchor value: '%.*s'", _c4prsp(anchor));
+        m_key_anchor = anchor;
+        return true;
     }
+    else if(rem.begins_with('*'))
+    {
+        _c4err("not implemented - this should have been catched elsewhere");
+        C4_NEVER_REACH();
+        return false;
+    }
+
+    return false;
+}
+
+//-----------------------------------------------------------------------------
+bool Parser::_handle_val_anchors_and_refs()
+{
+    C4_ASSERT(!has_any(RKEY));
+    csubstr rem = m_state->line_contents.rem;
+    if(rem.begins_with('&'))
+    {
+        _c4dbgp("found a val anchor!!!");
+        C4_ASSERT(m_val_anchor.empty());
+        csubstr anchor = rem.left_of(rem.first_of(' '));
+        _line_progressed(anchor.len);
+        anchor = anchor.sub(1); // skip the first character
+        _c4dbgpf("val anchor value: '%.*s'", _c4prsp(anchor));
+        m_val_anchor = anchor;
+        return true;
+    }
+    else if(rem.begins_with('*'))
+    {
+        _c4err("not implemented - this should have been catched elsewhere");
+        C4_NEVER_REACH();
+        return false;
+    }
+
     return false;
 }
 
@@ -1478,6 +1523,30 @@ void Parser::_save_indentation(size_t behind)
 }
 
 //-----------------------------------------------------------------------------
+void Parser::_write_key_anchor()
+{
+    if( ! m_key_anchor.empty())
+    {
+        _c4dbgpf("start_seq: set key anchor to '%.*s'", _c4prsp(m_key_anchor));
+        m_tree->set_key_anchor(m_state->node_id, m_key_anchor);
+        m_key_anchor.clear();
+        ++m_num_key_anchors;
+    }
+}
+
+//-----------------------------------------------------------------------------
+void Parser::_write_val_anchor()
+{
+    if( ! m_val_anchor.empty())
+    {
+        _c4dbgpf("start_seq: set val anchor to '%.*s'", _c4prsp(m_val_anchor));
+        m_tree->set_val_anchor(m_state->node_id, m_val_anchor);
+        m_val_anchor.clear();
+        ++m_num_val_anchors;
+    }
+}
+
+//-----------------------------------------------------------------------------
 void Parser::_push_level(bool explicit_flow_chars)
 {
     _c4dbgpf("pushing level! currnode=%zd  currlevel=%zd", m_state->node_id, m_state->level);
@@ -1595,6 +1664,7 @@ void Parser::_start_map(bool as_child)
             csubstr key = _consume_scalar();
             m_tree->to_map(m_state->node_id, key);
             _c4dbgpf("start_map: id=%zd key='%.*s'", m_state->node_id, _c4prsp(node(m_state)->key()));
+            _write_key_anchor();
         }
         else
         {
@@ -1616,13 +1686,7 @@ void Parser::_start_map(bool as_child)
         m_tree->set_val_tag(m_state->node_id, m_val_tag);
         m_val_tag.clear();
     }
-    if( ! m_anchor.empty())
-    {
-        _c4dbgpf("start_map: set anchor to '%.*s'", _c4prsp(m_anchor));
-        m_tree->set_anchor(m_state->node_id, m_anchor);
-        m_anchor.clear();
-        ++m_num_anchors;
-    }
+    _write_val_anchor();
 }
 
 void Parser::_stop_map()
@@ -1649,6 +1713,7 @@ void Parser::_start_seq(bool as_child)
             csubstr name = _consume_scalar();
             m_tree->to_seq(m_state->node_id, name);
             _c4dbgpf("start_seq: id=%zd name='%.*s'", m_state->node_id, _c4prsp(node(m_state)->key()));
+            _write_key_anchor();
         }
         else
         {
@@ -1668,19 +1733,7 @@ void Parser::_start_seq(bool as_child)
         _move_scalar_from_top();
         _c4dbgpf("start_seq: id=%zd%s", m_state->node_id, as_doc?" as_doc":"");
     }
-    if( ! m_val_tag.empty())
-    {
-        _c4dbgpf("start_seq: set val tag to '%.*s'", _c4prsp(m_val_tag));
-        m_tree->set_val_tag(m_state->node_id, m_val_tag);
-        m_val_tag.clear();
-    }
-    if( ! m_anchor.empty())
-    {
-        _c4dbgpf("start_seq: set anchor to '%.*s'", _c4prsp(m_anchor));
-        m_tree->set_anchor(m_state->node_id, m_anchor);
-        m_anchor.clear();
-        ++m_num_anchors;
-    }
+    _write_val_anchor();
 }
 
 void Parser::_stop_seq()
@@ -1705,18 +1758,12 @@ NodeData* Parser::_append_val(csubstr const& val)
         m_tree->set_val_tag(nid, m_val_tag);
         m_val_tag.clear();
     }
-    if( ! m_anchor.empty())
-    {
-        _c4dbgpf("append val: set anchor to '%.*s'", _c4prsp(m_anchor));
-        m_tree->set_anchor(nid, m_anchor);
-        m_anchor.clear();
-        ++m_num_anchors;
-    }
+    _write_val_anchor();
     if(m_tree->val(nid).begins_with('*'))
     {
         _c4dbgp("append val: it's a reference");
-        m_tree->_add_flags(nid, REF);
-        ++m_num_references;
+        m_tree->_add_flags(nid, VALREF);
+        ++m_num_val_references;
     }
     return m_tree->get(nid);
 }
@@ -1741,13 +1788,8 @@ NodeData* Parser::_append_key_val(csubstr const& val)
         m_tree->set_val_tag(nid, m_val_tag);
         m_val_tag.clear();
     }
-    if( ! m_anchor.empty())
-    {
-        _c4dbgpf("append keyval: set anchor to '%.*s'", _c4prsp(m_anchor));
-        m_tree->set_anchor(nid, m_anchor);
-        m_anchor.clear();
-        ++m_num_anchors;
-    }
+    _write_key_anchor();
+    _write_val_anchor();
     if(m_tree->key(nid) == "<<" || m_tree->val(nid).begins_with('*'))
     {
         _c4dbgp("append keyval: it's a reference");
@@ -1755,8 +1797,8 @@ NodeData* Parser::_append_key_val(csubstr const& val)
         {
              _c4err("malformed reference");
         }
-        m_tree->_add_flags(nid, REF);
-        ++m_num_references;
+        m_tree->_add_flags(nid, KEYREF);
+        ++m_num_key_references;
     }
     return m_tree->get(nid);
 }

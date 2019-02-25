@@ -31,11 +31,13 @@ typedef enum {
     SEQ     = (1<<3),     ///< a seq: a parent of vals
     DOC     = (1<<4),     ///< a document
     STREAM  = (1<<5)|SEQ, ///< a stream: a seq of docs
-    REF     = (1<<6),     ///< a *reference: references an &anchor
+    KEYREF  = (1<<6),     ///< a *reference: the key references an &anchor
+    VALREF  = (1<<7),     ///< a *reference: the val references an &anchor
     _TYMASK = (1<<7)-1,
-    KEYTAG  = (1<<7),     ///< the key has an explicit tag/type
-    VALTAG  = (1<<8),     ///< the val has an explicit tag/type
-    ANCHOR  = (1<<9),     ///< the node has an &anchor
+    KEYTAG  = (1<<8),     ///< the key has an explicit tag/type
+    VALTAG  = (1<<9),     ///< the val has an explicit tag/type
+    KEYANCH = (1<<10),    ///< the key has an &anchor
+    VALANCH = (1<<11),    ///< the val has an &anchor
     KEYVAL  = KEY|VAL,
     KEYSEQ  = KEY|SEQ,
     KEYMAP  = KEY|MAP,
@@ -89,7 +91,11 @@ public:
     bool is_keyval() const { return (type & KEYVAL) == KEYVAL; }
     bool has_key_tag() const { return (type & (KEY|KEYTAG)) == (KEY|KEYTAG); }
     bool has_val_tag() const { return ((type & (VALTAG)) && (type & (VAL|MAP|SEQ))); }
-    bool is_ref() const { return (type & REF) != 0; }
+    bool has_key_anchor() const { return (type & KEYANCH) != 0; }
+    bool has_val_anchor() const { return (type & KEYANCH) != 0; }
+    bool is_key_ref() const { return (type & KEYREF) != 0; }
+    bool is_val_ref() const { return (type & VALREF) != 0; }
+
 };
 
 
@@ -97,52 +103,35 @@ public:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-/** a node scalar is a csubstr, which may be tagged. */
+/** a node scalar is a csubstr, which may be tagged and anchored. */
 struct NodeScalar
 {
     csubstr tag;
     csubstr scalar;
+    csubstr anchor;
+
+    ~NodeScalar() = default;
+    NodeScalar(NodeScalar &&) = default;
+    NodeScalar(NodeScalar const&) = default;
+    NodeScalar& operator= (NodeScalar &&) = default;
+    NodeScalar& operator= (NodeScalar const&) = default;
 
     /// initialize as an empty scalar
-
-    inline NodeScalar() : tag(), scalar() {}
+    inline NodeScalar() noexcept : tag(), scalar(), anchor() {}
 
     /// initialize as an untagged scalar
-
-    template< size_t N >
-    inline NodeScalar(const char (&s)[N]      ) : tag(), scalar(s             ) {}
-    inline NodeScalar(csubstr const& s        ) : tag(), scalar(s             ) {}
-    inline NodeScalar(const char*  s          ) : tag(), scalar(to_csubstr(s) ) {}
-    inline NodeScalar(const char*  s, size_t n) : tag(), scalar(s          , n) {}
+    inline NodeScalar(csubstr s) noexcept : tag(), scalar(s), anchor() {}
+    template<size_t N>
+    inline NodeScalar(const char (&s)[N]) noexcept : tag(), scalar(s), anchor() {}
 
     /// initialize as a tagged scalar
+    inline NodeScalar(csubstr t, csubstr s) noexcept : tag(t), scalar(s), anchor() {}
+    template<size_t N, size_t M>
+    inline NodeScalar(const char (&t)[N], const char (&s)[N]) noexcept : tag(t), scalar(s), anchor() {}
 
-    template< size_t M >
-    inline NodeScalar(csubstr const& t         , const char (&s)[M]       ) : tag(t    ), scalar(s              ) {}
-    inline NodeScalar(csubstr const& t         , csubstr const& s         ) : tag(t    ), scalar(s              ) {}
-    inline NodeScalar(csubstr const& t         , const char * s           ) : tag(t    ), scalar(to_csubstr(s)  ) {}
-    inline NodeScalar(csubstr const& t         , const char * s, size_t ns) : tag(t    ), scalar(s          , ns) {}
+    bool empty() const noexcept { return tag.empty() && scalar.empty() && anchor.empty(); }
 
-    template< size_t M >
-    inline NodeScalar(const char * t           , const char (&s)[M]       ) : tag(to_csubstr(t)), scalar(s              ) {}
-    inline NodeScalar(const char * t           , csubstr const& s         ) : tag(to_csubstr(t)), scalar(s              ) {}
-    inline NodeScalar(const char * t           , const char * s           ) : tag(to_csubstr(t)), scalar(to_csubstr(s)  ) {}
-    inline NodeScalar(const char * t           , const char * s, size_t ns) : tag(to_csubstr(t)), scalar(s          , ns) {}
-
-    template< size_t M >
-    inline NodeScalar(const char * t, size_t nt, const char (&s)[M]       ) : tag(t, nt), scalar(s              ) {}
-    inline NodeScalar(const char * t, size_t nt, csubstr const& s         ) : tag(t, nt), scalar(s              ) {}
-    inline NodeScalar(const char * t, size_t nt, const char * s           ) : tag(t, nt), scalar(to_csubstr(s)  ) {}
-    inline NodeScalar(const char * t, size_t nt, const char * s, size_t ns) : tag(t, nt), scalar(s          , ns) {}
-
-    template< size_t N, size_t M > inline NodeScalar(const char (&t)[N], const char (&s)[M]       ) : tag(t), scalar(s              ) {}
-    template< size_t N >           inline NodeScalar(const char (&t)[N], csubstr const& s         ) : tag(t), scalar(s              ) {}
-    template< size_t N >           inline NodeScalar(const char (&t)[N], const char * s           ) : tag(t), scalar(to_csubstr(s)  ) {}
-    template< size_t N >           inline NodeScalar(const char (&t)[N], const char * s, size_t ns) : tag(t), scalar(s          , ns) {}
-
-    bool empty() const { return tag.empty() && scalar.empty(); }
-
-    void clear() { tag.clear(); scalar.clear(); }
+    void clear() noexcept { tag.clear(); scalar.clear(); anchor.clear(); }
 
 };
 
@@ -170,9 +159,10 @@ public:
 
     /// initialize as a sequence member
     NodeInit(NodeScalar const& v) : type(VAL), key(), val(v) { _add_flags(); }
-
+    
     /// initialize as a mapping member
     NodeInit(              NodeScalar const& k, NodeScalar const& v) : type(KEYVAL), key(k.tag, k.scalar), val(v.tag, v.scalar) { _add_flags(); }
+    /// initialize as a mapping member with explicit type
     NodeInit(NodeType_e t, NodeScalar const& k, NodeScalar const& v) : type(t     ), key(k.tag, k.scalar), val(v.tag, v.scalar) { _add_flags(); }
 
     /// initialize as a mapping member with explicit type (eg SEQ or MAP)
@@ -190,6 +180,8 @@ public:
         type = (type|more_flags);
         if( ! key.tag.empty()) type = (type|KEYTAG);
         if( ! val.tag.empty()) type = (type|VALTAG);
+        if( ! key.anchor.empty()) type = (type|KEYANCH);
+        if( ! val.anchor.empty()) type = (type|VALANCH);
     }
 
     bool _check() const
@@ -230,8 +222,6 @@ public:
     NodeScalar m_key;
     NodeScalar m_val;
 
-    csubstr    m_anchor;
-
     size_t     m_parent;
     size_t     m_first_child;
     size_t     m_last_child;
@@ -246,17 +236,17 @@ public:
 
     csubstr const& key() const { C4_ASSERT(has_key()); return m_key.scalar; }
     csubstr const& key_tag() const { C4_ASSERT(has_key_tag()); return m_key.tag; }
+    csubstr const& key_anchor() const { return m_key.anchor; }
     NodeScalar const& keysc() const { C4_ASSERT(has_key()); return m_key; }
 
     csubstr const& val() const { C4_ASSERT(has_val()); return m_val.scalar; }
     csubstr const& val_tag() const { C4_ASSERT(has_val_tag()); return m_val.tag; }
+    csubstr const& val_anchor() const { C4_ASSERT(has_val_tag()); return m_val.anchor; }
     NodeScalar const& valsc() const { C4_ASSERT(has_val()); return m_val; }
 
-    csubstr const& anchor() const { return m_anchor; }
 
 public:
 
-    bool   has_anchor() const { return ! m_anchor.empty(); }
     bool   is_root() const { return m_parent == NONE; }
 
     bool   is_stream() const { return m_type.is_stream(); }
@@ -270,7 +260,10 @@ public:
     bool   is_keyval() const { return m_type.is_keyval(); }
     bool   has_key_tag() const { return m_type.has_key_tag(); }
     bool   has_val_tag() const { return m_type.has_val_tag(); }
-    bool   is_ref() const { return m_type.is_ref(); }
+    bool   has_key_anchor() const { return ! m_type.has_key_anchor(); }
+    bool   has_val_anchor() const { return ! m_type.has_val_anchor(); }
+    bool   is_key_ref() const { return m_type.is_key_ref(); }
+    bool   is_val_ref() const { return m_type.is_val_ref(); }
 
 };
 
@@ -379,7 +372,8 @@ public:
     csubstr const& val_tag(size_t node) const { C4_ASSERT(has_val_tag(node)); return _p(node)->m_val.tag; }
     NodeScalar const& valsc(size_t node) const { C4_ASSERT(has_val(node)); return _p(node)->m_val; }
 
-    csubstr const& anchor(size_t node) const { return _p(node)->m_anchor; }
+    csubstr const& key_anchor(size_t node) const { return _p(node)->m_key.anchor; }
+    csubstr const& val_anchor(size_t node) const { return _p(node)->m_val.anchor; }
 
 public:
 
@@ -397,8 +391,10 @@ public:
     bool is_keyval(size_t node) const { return (_p(node)->m_type & KEYVAL) == KEYVAL; }
     bool has_key_tag(size_t node) const { return (_p(node)->m_type & (KEY|KEYTAG)) == (KEY|KEYTAG); }
     bool has_val_tag(size_t node) const { return ((_p(node)->m_type & (VALTAG)) && (_p(node)->m_type & (VAL|MAP|SEQ))); }
-    bool is_ref(size_t node) const { return (_p(node)->m_type & REF) != 0; }
-    bool has_anchor(size_t node) const { return ! _p(node)->m_anchor.empty(); }
+    bool has_key_anchor(size_t node) const { return (_p(node)->m_type & KEYREF) != 0; }
+    bool has_val_anchor(size_t node) const { return (_p(node)->m_type & VALREF) != 0; }
+    bool is_key_ref(size_t node) const { return (_p(node)->m_type & KEYREF) != 0; }
+    bool is_val_ref(size_t node) const { return (_p(node)->m_type & VALREF) != 0; }
 
     bool parent_is_seq(size_t node) const { C4_ASSERT(has_parent(node)); return is_seq(_p(node)->m_parent); }
     bool parent_is_map(size_t node) const { C4_ASSERT(has_parent(node)); return is_map(_p(node)->m_parent); }
@@ -465,8 +461,10 @@ public:
     void set_val_tag(size_t node, csubstr const& tag);
     void set_key_tag(size_t node, csubstr const& tag);
 
-    void set_anchor(size_t node, csubstr const& anchor);
-    void rem_anchor(size_t node);
+    void set_key_anchor(size_t node, csubstr anchor);
+    void set_val_anchor(size_t node, csubstr anchor);
+    void rem_key_anchor(size_t node);
+    void rem_val_anchor(size_t node);
 
     inline void _add_flags(size_t node, NodeType_e f) { _p(node)->m_type = (f | _p(node)->m_type); }
     inline void _add_flags(size_t node, int        f) { _p(node)->m_type = (f | _p(node)->m_type); }
@@ -736,7 +734,7 @@ public:
         return rem;
     }
 
-    bool in_arena(csubstr const& s) const
+    bool in_arena(csubstr      s  ) const
     {
         return m_arena.contains(s);
     }
@@ -778,7 +776,7 @@ private:
         return s;
     }
 
-    substr _relocated(csubstr const& s, substr const& next_arena) const
+    substr _relocated(csubstr s, substr next_arena) const
     {
         C4_ASSERT(m_arena.contains(s));
         C4_ASSERT(m_arena.sub(0, m_arena_pos).contains(s));

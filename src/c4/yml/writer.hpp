@@ -26,7 +26,7 @@ struct RepC
 /** A writer that outputs to a file. Defaults to stdout. */
 struct WriterFile
 {
-    FILE *m_file;
+    FILE * m_file;
     size_t m_pos;
 
     WriterFile(FILE *f = nullptr) : m_file(f ? f : stdout), m_pos(0) {}
@@ -37,6 +37,16 @@ struct WriterFile
         sp.str = nullptr;
         sp.len = m_pos;
         return sp;
+    }
+
+    inline void _do_write(csubstr sp)
+    {
+        if(sp.empty()) return;
+        if(m_file)
+        {
+            fwrite(sp.str, sp.len, 1, m_file);
+        }
+        m_pos += sp.len;
     }
 
     inline void _do_write(const char c)
@@ -54,39 +64,29 @@ struct WriterFile
         }
         m_pos += rc.num_times;
     }
-
-    inline void _do_write(csubstr sp)
-    {
-        if(sp.empty()) return;
-        if(m_file)
-        {
-            fwrite(sp.str, sp.len, 1, m_file);
-        }
-        m_pos += sp.len;
-    }
 };
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 /** a writer to a string span */
-struct WriterSpan
+struct WriterBuf
 {
-    substr   m_span;
+    substr m_buf;
     size_t m_pos;
 
-    WriterSpan(substr const& sp) : m_span(sp), m_pos(0) {}
+    WriterBuf(substr sp) : m_buf(sp), m_pos(0) {}
 
     inline substr _get(bool error_on_excess)
     {
-        substr sp = m_span;
+        substr sp = m_buf;
         if(m_pos > sp.len)
         {
             sp.len = m_pos;
             sp.str = nullptr;
             if(error_on_excess)
             {
-                c4::yml::error("not enough space in the given span");
+                c4::yml::error("not enough space in the given buffer");
             }
             return sp;
         }
@@ -94,35 +94,35 @@ struct WriterSpan
         return sp;
     }
 
+    inline void _do_write(csubstr sp)
+    {
+        if(sp.empty()) return;
+        if(m_pos + sp.len <= m_buf.len)
+        {
+            memcpy(&(m_buf[m_pos]), sp.str, sp.len);
+        }
+        m_pos += sp.len;
+    }
+
     inline void _do_write(const char c)
     {
-        if(m_pos + 1 <= m_span.len)
+        if(m_pos + 1 <= m_buf.len)
         {
-            m_span[m_pos] = c;
+            m_buf[m_pos] = c;
         }
         ++m_pos;
     }
 
     inline void _do_write(RepC const rc)
     {
-        if(m_pos + rc.num_times <= m_span.len)
+        if(m_pos + rc.num_times <= m_buf.len)
         {
             for(size_t i = 0; i < rc.num_times; ++i)
             {
-                m_span[m_pos + i] = rc.c;
+                m_buf[m_pos + i] = rc.c;
             }
         }
         m_pos += rc.num_times;
-    }
-
-    inline void _do_write(csubstr sp)
-    {
-        if(sp.empty()) return;
-        if(m_pos + sp.len <= m_span.len)
-        {
-            memcpy(&(m_span[m_pos]), sp.str, sp.len);
-        }
-        m_pos += sp.len;
     }
 };
 

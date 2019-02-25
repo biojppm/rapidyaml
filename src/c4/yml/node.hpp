@@ -109,7 +109,8 @@ public:
     inline csubstr    const& val_tag() const { _C4RV(); return m_tree->val_tag(m_id); }
     inline NodeScalar const& valsc  () const { _C4RV(); return m_tree->valsc(m_id); }
 
-    inline csubstr const& anchor() const { _C4RV(); return m_tree->anchor(m_id); }
+    inline csubstr const& key_anchor() const { _C4RV(); return m_tree->key_anchor(m_id); }
+    inline csubstr const& val_anchor() const { _C4RV(); return m_tree->val_anchor(m_id); }
 
 public:
 
@@ -127,8 +128,10 @@ public:
     inline bool is_keyval() const { _C4RV(); return m_tree->is_keyval(m_id); }
     inline bool has_key_tag() const { _C4RV(); return m_tree->has_key_tag(m_id); }
     inline bool has_val_tag() const { _C4RV(); return m_tree->has_val_tag(m_id); }
-    inline bool is_ref() const { _C4RV(); return m_tree->is_ref(m_id); }
-    inline bool has_anchor() const { _C4RV(); return m_tree->has_anchor(m_id); }
+    inline bool is_key_ref() const { _C4RV(); return m_tree->is_key_ref(m_id); }
+    inline bool is_val_ref() const { _C4RV(); return m_tree->is_val_ref(m_id); }
+    inline bool has_key_anchor() const { _C4RV(); return m_tree->has_key_anchor(m_id); }
+    inline bool has_val_anchor() const { _C4RV(); return m_tree->has_val_anchor(m_id); }
 
     inline bool parent_is_seq() const { _C4RV(); return m_tree->parent_is_seq(m_id); }
     inline bool parent_is_map() const { _C4RV(); return m_tree->parent_is_map(m_id); }

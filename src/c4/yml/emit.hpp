@@ -16,16 +16,16 @@
 namespace c4 {
 namespace yml {
 
-template< class Writer > class Emitter;
+template<class Writer> class Emitter;
 
-using EmitterFile = Emitter< WriterFile >;
-using EmitterSpan = Emitter< WriterSpan >;
+using EmitterFile = Emitter<WriterFile>;
+using EmitterBuf  = Emitter<WriterBuf>;
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-template< class Writer >
+template<class Writer>
 class Emitter : public Writer
 {
 public:
@@ -53,42 +53,22 @@ private:
 
 private:
 
-#define _c4this (static_cast< Writer * >(this))
-
-    template< class T, class... Args >
-    inline void _write(T a, Args... more)
+    template<class T>
+    inline void _write(T a)
     {
-        _write_one(a);
-        _write(more...);
+        this->Writer::_do_write(a);
     }
-    inline void _write() {}
 
-    template< class T >
-    inline void _write_one(T a)
+    template<size_t N>
+    inline void _write(const char (&a)[N])
     {
-        _c4this->_do_write(a);
+        csubstr s(a);
+        (static_cast<Writer *>(this))->_do_write(s);
     }
-    template< size_t N >
-    inline void _write_one(const char (&a)[N])
-    {
-        // a decays into const char*, so explicitly create using the array
-        csubstr s;
-        s.assign<N>(a);
-        _c4this->_do_write(s);
-    }
-    void _write_one(NodeScalar const& sc);
 
-    struct AnchorScalar : public NodeScalar
-    {
-        csubstr anchor;
-        AnchorScalar(NodeRef const& n) : NodeScalar(n.valsc()), anchor(n.anchor()) {}
-    };
-
-    void _write_one(AnchorScalar const& sc);
+    void _write(NodeScalar const& sc);
 
     void _write_scalar(csubstr const& s);
-
-#undef _c4this
 
 };
 
@@ -120,7 +100,7 @@ inline size_t emit(Tree const &t, FILE *f=nullptr)
  * Raise an error if the space in the buffer is insufficient. */
 inline substr emit(NodeRef const& r, substr sp, bool error_on_excess=true)
 {
-    EmitterSpan em(sp);
+    EmitterBuf em(sp);
     substr result = em.emit(r, error_on_excess);
     return result;
 }
@@ -137,7 +117,7 @@ inline substr emit(Tree const& t, substr sp, bool error_on_excess=true)
 
 /** emit YAML to the given std::vector-like container, resizing it as needed
  * to fit the emitted YAML. */
-template< class CharOwningContainer >
+template<class CharOwningContainer>
 inline substr emit_resize(NodeRef const& n, CharOwningContainer * cont)
 {
     substr buf = to_substr(*cont);
@@ -153,7 +133,7 @@ inline substr emit_resize(NodeRef const& n, CharOwningContainer * cont)
 
 /** emit YAML to the given std::vector-like container, resizing it as needed
  * to fit the emitted YAML. */
-template< class CharOwningContainer >
+template<class CharOwningContainer>
 inline substr emit_resize(Tree const& t, CharOwningContainer * cont)
 {
     if(t.empty()) return substr();

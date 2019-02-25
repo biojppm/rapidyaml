@@ -13,18 +13,17 @@ namespace c4 {
 namespace yml {
 
 namespace detail {
-template< class T, size_t N > class stack;
+template<class T, size_t N> class stack;
 } // namespace detail
 
 /** A lightweight contiguous stack with SSO. This avoids a dependency on std. */
-template< class T, size_t N=16 >
+template<class T, size_t N=16>
 class detail::stack
 {
-private:
-
-#ifdef RYML_DBG
     static_assert(std::is_trivially_copyable<T>::value, "T must be trivially copyable");
-#endif
+    static_assert(std::is_trivially_destructible<T>::value, "T must be trivially destructible");
+
+private:
 
     T      m_buf[N];
     T *    m_stack;
@@ -76,6 +75,8 @@ public:
         if(m_size > N) that.m_ptr = nullptr;
         return *this;
     }
+
+public:
 
     size_t size() const { return m_size; }
     size_t empty() const { return m_size == 0; }
