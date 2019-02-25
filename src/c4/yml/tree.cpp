@@ -729,11 +729,10 @@ void Tree::resolve()
         }
     }
 
-    // clear the anchors
+    // clear anchors and refs
     for(auto const& rd : rr)
     {
-        rem_key_anchor(rd.node);
-        rem_val_anchor(rd.node);
+        rem_anchor_ref(rd.node);
     }
 }
 

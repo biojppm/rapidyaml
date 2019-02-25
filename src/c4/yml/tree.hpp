@@ -471,6 +471,7 @@ public:
     void rem_val_anchor(size_t node) { C4_ASSERT( ! is_val_ref(node)); _p(node)->m_val.anchor.clear(); _rem_flags(node, VALANCH); }
     void rem_key_ref   (size_t node) { C4_ASSERT( ! has_key_anchor(node)); _p(node)->m_key.anchor.clear(); _rem_flags(node, KEYREF); }
     void rem_val_ref   (size_t node) { C4_ASSERT( ! has_val_anchor(node)); _p(node)->m_val.anchor.clear(); _rem_flags(node, VALREF); }
+    void rem_anchor_ref(size_t node) { _p(node)->m_key.anchor.clear(); _p(node)->m_val.anchor.clear(); _rem_flags(node, KEYANCH|VALANCH|KEYREF|VALREF); }
 
 public:
 
