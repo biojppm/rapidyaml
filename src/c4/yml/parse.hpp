@@ -144,9 +144,8 @@ private:
 
     void  _save_indentation(size_t behind = 0);
 
-    void  _write_key_anchor();
-    void  _write_val_anchor();
-    void  _resolve_references();
+    void  _write_key_anchor(size_t node_id);
+    void  _write_val_anchor(size_t node_id);
 
 private:
 

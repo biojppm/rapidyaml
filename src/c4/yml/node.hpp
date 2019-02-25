@@ -103,10 +103,12 @@ public:
 
     inline csubstr    const& key    () const { _C4RV(); return m_tree->key(m_id); }
     inline csubstr    const& key_tag() const { _C4RV(); return m_tree->key_tag(m_id); }
+    inline csubstr    const& key_ref() const { _C4RV(); return m_tree->key_ref(m_id); }
     inline NodeScalar const& keysc  () const { _C4RV(); return m_tree->keysc(m_id); }
 
     inline csubstr    const& val    () const { _C4RV(); return m_tree->val(m_id); }
     inline csubstr    const& val_tag() const { _C4RV(); return m_tree->val_tag(m_id); }
+    inline csubstr    const& val_ref() const { _C4RV(); return m_tree->val_ref(m_id); }
     inline NodeScalar const& valsc  () const { _C4RV(); return m_tree->valsc(m_id); }
 
     inline csubstr const& key_anchor() const { _C4RV(); return m_tree->key_anchor(m_id); }

@@ -661,11 +661,10 @@ struct ReferenceResolver
         {
             refs.push({true, n, npos, npos});
         }
-        else if(t->has_key_anchor(n) || t->has_val_anchor(n))
+        if(t->has_key_anchor(n) || t->has_val_anchor(n))
         {
             refs.push({false, n, npos, npos});
         }
-
         for(size_t ch = t->first_child(n); ch != NONE; ch = t->next_sibling(ch))
         {
             _store_anchors_and_refs(ch);
@@ -686,7 +685,9 @@ struct ReferenceResolver
         {
             auto & rd = refs.top(i);
             if( ! rd.is_ref) continue;
-            csubstr refname = t->val(rd.node).sub(1);
+            csubstr refname = t->val(rd.node);
+            C4_ASSERT(refname.begins_with('*'));
+            refname = refname.sub(1);
             auto const* ra = &rd;
             while(ra->prev_anchor != npos)
             {
@@ -728,12 +729,12 @@ void Tree::resolve()
         }
     }
 
-    //// clear the anchors
-    //for(auto const& rd : rr)
-    //{
-    //    rem_key_anchor(rd.node);
-    //    rem_val_anchor(rd.node);
-    //}
+    // clear the anchors
+    for(auto const& rd : rr)
+    {
+        rem_key_anchor(rd.node);
+        rem_val_anchor(rd.node);
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -816,44 +817,6 @@ void Tree::to_keyval(size_t node, csubstr const& key, csubstr const& val, int mo
     _set_flags(node, KEYVAL|more_flags);
     _p(node)->m_key = key;
     _p(node)->m_val = val;
-}
-
-void Tree::set_key_tag(size_t node, csubstr const& tag)
-{
-    C4_ASSERT(has_key(node));
-    _p(node)->m_key.tag = tag;
-    _add_flags(node, KEYTAG);
-}
-
-void Tree::set_val_tag(size_t node, csubstr const& tag)
-{
-    //C4_ASSERT(has_val());
-    _p(node)->m_val.tag = tag;
-    _add_flags(node, VALTAG);
-}
-
-void Tree::set_key_anchor(size_t node, csubstr anchor)
-{
-    _p(node)->m_key.anchor = anchor;
-    _add_flags(node, KEYANCH);
-}
-
-void Tree::set_val_anchor(size_t node, csubstr anchor)
-{
-    _p(node)->m_val.anchor = anchor;
-    _add_flags(node, VALANCH);
-}
-
-void Tree::rem_key_anchor(size_t node)
-{
-    _p(node)->m_key.anchor.clear();
-    _rem_flags(node, KEYANCH);
-}
-
-void Tree::rem_val_anchor(size_t node)
-{
-    _p(node)->m_val.anchor.clear();
-    _rem_flags(node, VALANCH);
 }
 
 void Tree::to_map(size_t node, int more_flags)

@@ -25,19 +25,18 @@ class detail::stack
 
 private:
 
-    T      m_buf[N];
-    T *    m_stack;
-    size_t m_size;
-    size_t m_capacity;
-
+    T         m_buf[N];
+    T *       m_stack;
+    size_t    m_size;
+    size_t    m_capacity;
     Allocator m_alloc;
 
 public:
 
     constexpr static bool is_contiguous() { return true; }
 
-    stack() : m_stack(nullptr), m_size(0), m_capacity(0), m_alloc() {}
-    stack(Allocator const& c) : m_stack(nullptr), m_size(0), m_capacity(0), m_alloc(c)
+    stack() : m_stack(m_buf), m_size(0), m_capacity(0), m_alloc() {}
+    stack(Allocator const& c) : m_stack(m_buf), m_size(0), m_capacity(0), m_alloc(c)
     {
     }
     ~stack()
@@ -124,20 +123,20 @@ public:
         return m_stack[m_size];
     }
 
-    T const& top() const { C4_ASSERT(m_size > 0); return m_stack[m_size - 1]; }
-    T      & top()       { C4_ASSERT(m_size > 0); return m_stack[m_size - 1]; }
+    C4_ALWAYS_INLINE T const& top() const { C4_ASSERT(m_size > 0); return m_stack[m_size - 1]; }
+    C4_ALWAYS_INLINE T      & top()       { C4_ASSERT(m_size > 0); return m_stack[m_size - 1]; }
 
-    T const& bottom() const { C4_ASSERT(m_size > 0); return m_stack[0]; }
-    T      & bottom()       { C4_ASSERT(m_size > 0); return m_stack[0]; }
+    C4_ALWAYS_INLINE T const& bottom() const { C4_ASSERT(m_size > 0); return m_stack[0]; }
+    C4_ALWAYS_INLINE T      & bottom()       { C4_ASSERT(m_size > 0); return m_stack[0]; }
 
-    T const& top(size_t i) const { C4_ASSERT(i >= 0 && i < m_size); return m_stack[m_size - 1 - i]; }
-    T      & top(size_t i)       { C4_ASSERT(i >= 0 && i < m_size); return m_stack[m_size - 1 - i]; }
+    C4_ALWAYS_INLINE T const& top(size_t i) const { C4_ASSERT(i >= 0 && i < m_size); return m_stack[m_size - 1 - i]; }
+    C4_ALWAYS_INLINE T      & top(size_t i)       { C4_ASSERT(i >= 0 && i < m_size); return m_stack[m_size - 1 - i]; }
 
-    T const& bottom(size_t i) const { C4_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
-    T      & bottom(size_t i)       { C4_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
+    C4_ALWAYS_INLINE T const& bottom(size_t i) const { C4_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
+    C4_ALWAYS_INLINE T      & bottom(size_t i)       { C4_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
 
-    T const& operator[](size_t i) const { C4_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
-    T      & operator[](size_t i)       { C4_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
+    C4_ALWAYS_INLINE T const& operator[](size_t i) const { C4_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
+    C4_ALWAYS_INLINE T      & operator[](size_t i)       { C4_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
 
     using iterator = T *;
     using const_iterator = T const *;

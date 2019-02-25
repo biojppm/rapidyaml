@@ -87,4 +87,31 @@ See also:
     </Expand>
   </Type>
 
+  <Type Name="c4::yml::detail::ReferenceResolver">
+    <DisplayString>#refs={refs.m_size} #nodes={t->m_size}</DisplayString>
+    <Expand>
+      <Synthetic Name="[ref_nodes]">
+        <Expand>
+          <CustomListItems>
+            <Variable Name="curr" InitialValue="0"/>
+            <Loop>
+              <Item>t->m_buf + (refs.m_stack + curr)->node</Item>
+              <Exec>curr = curr+1</Exec>
+              <Break Condition="curr >= refs.m_size"/>
+            </Loop>
+          </CustomListItems>
+        </Expand>
+      </Synthetic>
+      <Synthetic Name="[refs]">
+        <Expand>
+          <ArrayItems>
+            <Size>refs.m_size</Size>
+            <ValuePointer>refs.m_stack</ValuePointer>
+          </ArrayItems>
+        </Expand>
+      </Synthetic>
+      <Item Name="[tree]">t</Item>
+    </Expand>
+  </Type>
+
 </AutoVisualizer>
