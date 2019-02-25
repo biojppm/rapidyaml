@@ -12,8 +12,15 @@ See also:
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
 
   <Type Name="c4::yml::NodeScalar">
-    <DisplayString Condition="(tag.len == 0)">{scalar.str,[scalar.len]}</DisplayString>
-    <DisplayString Condition="(tag.len >  0)">{scalar.str,[scalar.len]} tag='{tag.str,[tag.len]}</DisplayString>
+    <DisplayString Condition="(tag.len == 0) &amp;&amp; (anchor.len == 0)">{scalar.str,[scalar.len]}</DisplayString>
+    <DisplayString Condition="(tag.len >  0) &amp;&amp; (anchor.len == 0)">{scalar.str,[scalar.len]} [T]</DisplayString>
+    <DisplayString Condition="(tag.len == 0) &amp;&amp; (anchor.len >  0)">{scalar.str,[scalar.len]} [A]</DisplayString>
+    <DisplayString Condition="(tag.len >  0) &amp;&amp; (anchor.len >  0)">{scalar.str,[scalar.len]} [T][A]</DisplayString>
+    <Expand>
+      <Item Name="scalar">scalar</Item>
+      <Item Name="tag">tag</Item>
+      <Item Name="anchor">anchor</Item>
+    </Expand>
   </Type>
 
   <Type Name="c4::yml::NodeData">

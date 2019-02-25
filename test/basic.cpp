@@ -214,7 +214,7 @@ TEST(NodeScalar, ctor__untagged)
         const char *sptr = "foo"; size_t sptrlen = 3;
         csubstr ssp = "foo";
 
-        for(auto s : {NodeScalar(sarr), NodeScalar(sptr), NodeScalar(sptr, sptrlen), NodeScalar(ssp)})
+        for(auto s : {NodeScalar(sarr), NodeScalar(to_csubstr(sptr)), NodeScalar(ssp)})
         {
             node_scalar_test_foo(s);
         }
@@ -222,9 +222,7 @@ TEST(NodeScalar, ctor__untagged)
         NodeScalar s;
         s = {sarr};
         node_scalar_test_foo(s);
-        s = {sptr};
-        node_scalar_test_foo(s);
-        s = {sptr, sptrlen};
+        s = to_csubstr(sptr);
         node_scalar_test_foo(s);
         s = {ssp};
         node_scalar_test_foo(s);
@@ -235,7 +233,7 @@ TEST(NodeScalar, ctor__untagged)
         const char *sptr = "foo3"; size_t sptrlen = 4;
         csubstr ssp = "foo3";
 
-        for(auto s : {NodeScalar(sarr), NodeScalar(sptr), NodeScalar(sptr, sptrlen), NodeScalar(ssp)})
+        for(auto s : {NodeScalar(sarr), NodeScalar(to_csubstr(sptr)), NodeScalar(ssp)})
         {
             node_scalar_test_foo3(s);
         }
@@ -248,17 +246,12 @@ TEST(NodeScalar, ctor__untagged)
         }
         {
             SCOPED_TRACE("here 2");
-            s = {sptr};
+            s = to_csubstr(sptr);
             node_scalar_test_foo3(s);
         }
         {
             SCOPED_TRACE("here 3");
-            s = {sptr, sptrlen};
-            node_scalar_test_foo3(s);
-        }
-        {
-            SCOPED_TRACE("here 4");
-            s = {ssp};
+            s = ssp;
             node_scalar_test_foo3(s);
         }
     }
@@ -276,20 +269,13 @@ TEST(NodeScalar, ctor__tagged)
 
         for(auto s : ilist{
                 {tsp, ssp},
-                    {tsp, sptr},
-                    {tsp, sptr, sptrlen},
+                    {tsp, to_csubstr(sptr)},
                     {tsp, sarr},
-                {tptr, ssp},
-                    {tptr, sptr},
-                    {tptr, sptr, sptrlen},
-                    {tptr, sarr},
-                {tptr, tptrlen, ssp},
-                    {tptr, tptrlen, sptr},
-                    {tptr, tptrlen, sptr, sptrlen},
-                    {tptr, tptrlen, sarr},
+                {to_csubstr(tptr), ssp},
+                    {to_csubstr(tptr), to_csubstr(sptr)},
+                    {to_csubstr(tptr), sarr},
                 {tarr, ssp},
-                    {tarr, sptr},
-                    {tarr, sptr, sptrlen},
+                    {tarr, to_csubstr(sptr)},
                     {tarr, sarr},
                     })
         {
@@ -305,59 +291,28 @@ TEST(NodeScalar, ctor__tagged)
         }
         {
             SCOPED_TRACE("here 0.1");
-            s = {tsp, sptr};
+            s = {tsp, to_csubstr(sptr)};
             node_scalar_test_foo(s, true);
         }
         {
             SCOPED_TRACE("here 0.2");
-            s = {tsp, sptr, sptrlen};
-            node_scalar_test_foo(s, true);
-        }
-        {
-            SCOPED_TRACE("here 0.3");
             s = {tsp, sarr};
             node_scalar_test_foo(s, true);
         }
 
         {
             SCOPED_TRACE("here 1.0");
-            s = {tptr, ssp};
+            s = {to_csubstr(tptr), ssp};
             node_scalar_test_foo(s, true);
         }
         {
             SCOPED_TRACE("here 1.1");
-            s = {tptr, sptr};
-            node_scalar_test_foo(s, true);
-        }
-        {
-            SCOPED_TRACE("here 1.2");
-            s = {tptr, sptr, sptrlen};
+            s = {to_csubstr(tptr), to_csubstr(sptr)};
             node_scalar_test_foo(s, true);
         }
         {
             SCOPED_TRACE("here 1.3");
-            s = {tptr, sarr};
-            node_scalar_test_foo(s, true);
-        }
-
-        {
-            SCOPED_TRACE("here 2.0");
-            s = {tptr, tptrlen, ssp};
-            node_scalar_test_foo(s, true);
-        }
-        {
-            SCOPED_TRACE("here 2.1");
-            s = {tptr, tptrlen, sptr};
-            node_scalar_test_foo(s, true);
-        }
-        {
-            SCOPED_TRACE("here 2.2");
-            s = {tptr, tptrlen, sptr, sptrlen};
-            node_scalar_test_foo(s, true);
-        }
-        {
-            SCOPED_TRACE("here 2.3");
-            s = {tptr, tptrlen, sarr};
+            s = {to_csubstr(tptr), sarr};
             node_scalar_test_foo(s, true);
         }
 
@@ -368,12 +323,7 @@ TEST(NodeScalar, ctor__tagged)
         }
         {
             SCOPED_TRACE("here 3.1");
-            s = {tarr, sptr};
-            node_scalar_test_foo(s, true);
-        }
-        {
-            SCOPED_TRACE("here 3.2");
-            s = {tarr, sptr, sptrlen};
+            s = {tarr, to_csubstr(sptr)};
             node_scalar_test_foo(s, true);
         }
         {
@@ -392,20 +342,13 @@ TEST(NodeScalar, ctor__tagged)
 
         for(auto s : ilist{
                 {tsp, ssp},
-                    {tsp, sptr},
-                    {tsp, sptr, sptrlen},
+                    {tsp, to_csubstr(sptr)},
                     {tsp, sarr},
-                {tptr, ssp},
-                    {tptr, sptr},
-                    {tptr, sptr, sptrlen},
-                    {tptr, sarr},
-                {tptr, tptrlen, ssp},
-                    {tptr, tptrlen, sptr},
-                    {tptr, tptrlen, sptr, sptrlen},
-                    {tptr, tptrlen, sarr},
+                {to_csubstr(tptr), ssp},
+                    {to_csubstr(tptr), to_csubstr(sptr)},
+                    {to_csubstr(tptr), sarr},
                 {tarr, ssp},
-                    {tarr, sptr},
-                    {tarr, sptr, sptrlen},
+                    {tarr, to_csubstr(sptr)},
                     {tarr, sarr},
                     })
         {
@@ -421,12 +364,7 @@ TEST(NodeScalar, ctor__tagged)
         }
         {
             SCOPED_TRACE("here 0.1");
-            s = {tsp, sptr};
-            node_scalar_test_foo3(s, true);
-        }
-        {
-            SCOPED_TRACE("here 0.2");
-            s = {tsp, sptr, sptrlen};
+            s = {tsp, to_csubstr(sptr)};
             node_scalar_test_foo3(s, true);
         }
         {
@@ -437,43 +375,17 @@ TEST(NodeScalar, ctor__tagged)
 
         {
             SCOPED_TRACE("here 1.0");
-            s = {tptr, ssp};
+            s = {to_csubstr(tptr), ssp};
             node_scalar_test_foo3(s, true);
         }
         {
             SCOPED_TRACE("here 1.1");
-            s = {tptr, sptr};
-            node_scalar_test_foo3(s, true);
-        }
-        {
-            SCOPED_TRACE("here 1.2");
-            s = {tptr, sptr, sptrlen};
+            s = {to_csubstr(tptr), to_csubstr(sptr)};
             node_scalar_test_foo3(s, true);
         }
         {
             SCOPED_TRACE("here 1.3");
-            s = {tptr, sarr};
-            node_scalar_test_foo3(s, true);
-        }
-
-        {
-            SCOPED_TRACE("here 2.0");
-            s = {tptr, tptrlen, ssp};
-            node_scalar_test_foo3(s, true);
-        }
-        {
-            SCOPED_TRACE("here 2.1");
-            s = {tptr, tptrlen, sptr};
-            node_scalar_test_foo3(s, true);
-        }
-        {
-            SCOPED_TRACE("here 2.2");
-            s = {tptr, tptrlen, sptr, sptrlen};
-            node_scalar_test_foo3(s, true);
-        }
-        {
-            SCOPED_TRACE("here 2.3");
-            s = {tptr, tptrlen, sarr};
+            s = {to_csubstr(tptr), sarr};
             node_scalar_test_foo3(s, true);
         }
 
@@ -484,12 +396,7 @@ TEST(NodeScalar, ctor__tagged)
         }
         {
             SCOPED_TRACE("here 3.1");
-            s = {tarr, sptr};
-            node_scalar_test_foo3(s, true);
-        }
-        {
-            SCOPED_TRACE("here 3.2");
-            s = {tarr, sptr, sptrlen};
+            s = {tarr, to_csubstr(sptr)};
             node_scalar_test_foo3(s, true);
         }
         {
@@ -546,13 +453,7 @@ TEST(NodeInit, ctor__val_only)
                 s.clear();
             }
             {
-                NodeInit s{sptr};
-                node_scalar_test_foo(s.val);
-                node_scalar_test_empty(s.key);
-                s.clear();
-            }
-            {
-                NodeInit s{{sptr, sptrlen}};
+                NodeInit s{to_csubstr(sptr)};
                 node_scalar_test_foo(s.val);
                 node_scalar_test_empty(s.key);
                 s.clear();
@@ -574,13 +475,7 @@ TEST(NodeInit, ctor__val_only)
                 s.clear();
             }
             {
-                NodeInit s(sptr);
-                node_scalar_test_foo(s.val);
-                node_scalar_test_empty(s.key);
-                s.clear();
-            }
-            {
-                NodeInit s({sptr, sptrlen});
+                NodeInit s(to_csubstr(sptr));
                 node_scalar_test_foo(s.val);
                 node_scalar_test_empty(s.key);
                 s.clear();
@@ -600,7 +495,7 @@ TEST(NodeInit, ctor__val_only)
             node_scalar_test_foo(s.val);
             node_scalar_test_empty(s.key);
             s.clear();
-            s = {sptr};
+            s = {to_csubstr(sptr)};
             node_scalar_test_foo(s.val);
             node_scalar_test_empty(s.key);
             s.clear();
@@ -614,7 +509,7 @@ TEST(NodeInit, ctor__val_only)
             s.clear();
         }
 
-        for(auto s : ilist{{sarr}, {sptr}, {{sptr, sptrlen}}, {ssp}})
+        for(auto s : ilist{{sarr}, {to_csubstr(sptr)}, {csubstr{sptr, sptrlen}}, {ssp}})
         {
             SCOPED_TRACE("here LOOP");
             node_scalar_test_foo(s.val);
@@ -652,7 +547,7 @@ TEST(NodeInit, ctor__val_only)
             node_scalar_test_empty(s.key);
         }
 
-        for(auto s : ilist{{sarr}, {sptr}, {{sptr, sptrlen}}, {ssp}})
+        for(auto s : ilist{{sarr}, {to_csubstr(sptr)}, {csubstr{sptr, sptrlen}}, {ssp}})
         {
             SCOPED_TRACE("here LOOP");
             node_scalar_test_foo3(s.val);

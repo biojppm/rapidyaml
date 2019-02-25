@@ -8,31 +8,31 @@
 namespace c4 {
 namespace yml {
 
-#define _c4this  (static_cast< Writer      * >(this))
-#define _c4cthis (static_cast< Writer const* >(this))
+#define _c4this  (static_cast<Writer      *>(this))
+#define _c4cthis (static_cast<Writer const*>(this))
 
-template< class Writer >
-substr Emitter< Writer >::emit(NodeRef const& n, bool error_on_excess)
+template<class Writer>
+substr Emitter<Writer>::emit(NodeRef const& n, bool error_on_excess)
 {
     this->_visit(n);
     substr result = _c4this->_get(error_on_excess);
     return result;
 }
 
-template< class Writer >
-size_t Emitter< Writer >::tell() const
+template<class Writer>
+size_t Emitter<Writer>::tell() const
 {
     return _c4cthis->m_pos;
 }
 
-template< class Writer >
-void Emitter< Writer >::seek(size_t p)
+template<class Writer>
+void Emitter<Writer>::seek(size_t p)
 {
     _c4this->m_pos = p;
 }
 
-template< class Writer >
-size_t Emitter< Writer >::_visit(NodeRef const& n, size_t ilevel)
+template<class Writer>
+size_t Emitter<Writer>::_visit(NodeRef const& n, size_t ilevel)
 {
     if(n.is_stream())
     {
@@ -41,44 +41,30 @@ size_t Emitter< Writer >::_visit(NodeRef const& n, size_t ilevel)
     _do_visit(n, ilevel);
     if(n.is_stream())
     {
-        _write(csubstr("...\n"));
+        _write("...\n");
     }
     return _c4this->m_pos;
 }
 
 /** @todo this function is too complex. break it down into manageable pieces */
-template< class Writer >
-void Emitter< Writer >::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
+template<class Writer>
+void Emitter<Writer>::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
 {
     RepC ind{' ', 2 * size_t(indent) * ilevel};
 
     if(n.is_doc())
     {
-        _write(csubstr("---\n"));
+        _write("---\n");
     }
     else if(n.is_keyval())
     {
         C4_ASSERT(n.has_parent());
-        if( ! n.has_anchor())
-        {
-            _write(ind, n.keysc(), csubstr(": "), n.valsc(), '\n');
-        }
-        else
-        {
-            _write(ind, n.keysc(), csubstr(": "), AnchorScalar(n), '\n');
-        }
+        _write(ind); _write(n.keysc()); _write(": "); _write(n.valsc()); _write('\n');
     }
     else if(n.is_val())
     {
         C4_ASSERT(n.has_parent());
-        if( ! n.has_anchor())
-        {
-            _write(ind, csubstr("- "), n.valsc(), '\n');
-        }
-        else
-        {
-            _write(ind, csubstr("- "), AnchorScalar(n), '\n');
-        }
+        _write(ind); _write("- "); _write(n.valsc()); _write('\n');
     }
     else if(n.is_container() && ! n.is_root())
     {
@@ -88,28 +74,28 @@ void Emitter< Writer >::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
         if(n.parent_is_seq())
         {
             C4_ASSERT( ! n.has_key());
-            _write(ind, csubstr("- "));
+            _write(ind); _write("- ");
             if(n.has_val_tag())
             {
-                _write(n.val_tag(), ' ');
+                _write(n.val_tag()); _write(' ');
             }
         }
         else if(n.parent_is_map())
         {
             C4_ASSERT(n.has_key());
-            _write(ind, n.keysc(), ':');
+            _write(ind); _write(n.keysc()); _write(':');
             if(n.has_val_tag())
             {
-                _write(' ', n.val_tag());
+                _write(' '); _write(n.val_tag());
             }
         }
         else
         {
             C4_ERROR("tree error");
         }
-        if(n.has_anchor())
+        if(n.has_val_anchor())
         {
-            _write(' ', '&', n.anchor());
+            _write(" &"); _write(n.val_anchor());
         }
 
         if(n.has_children())
@@ -151,14 +137,13 @@ void Emitter< Writer >::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
             {
                 _write(' ');
             }
-
             if(n.is_seq())
             {
-                _write(csubstr("[]\n"));
+                _write("[]\n");
             }
             else if(n.is_map())
             {
-                _write(csubstr("{}\n"));
+                _write("{}\n");
             }
         }
     }
@@ -168,11 +153,11 @@ void Emitter< Writer >::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
         {
             if(n.is_seq())
             {
-                _write(csubstr("[]\n"));
+                _write("[]\n");
             }
             else if(n.is_map())
             {
-                _write(csubstr("{}\n"));
+                _write("{}\n");
             }
         }
     }
@@ -190,8 +175,8 @@ void Emitter< Writer >::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
     }
 }
 
-template< class Writer >
-void Emitter< Writer >::_write_one(AnchorScalar const& sc)
+template<class Writer>
+void Emitter<Writer>::_write(NodeScalar const& sc)
 {
     if( ! sc.tag.empty())
     {
@@ -208,20 +193,8 @@ void Emitter< Writer >::_write_one(AnchorScalar const& sc)
     _write_scalar(sc.scalar);
 }
 
-template< class Writer >
-void Emitter< Writer >::_write_one(NodeScalar const& sc)
-{
-    if( ! sc.tag.empty())
-    {
-        _c4this->_do_write(sc.tag);
-        _c4this->_do_write(' ');
-    }
-
-    _write_scalar(sc.scalar);
-}
-
-template< class Writer >
-void Emitter< Writer >::_write_scalar(csubstr const& s)
+template<class Writer>
+void Emitter<Writer>::_write_scalar(csubstr const& s)
 {
     const bool no_dquotes = s.first_of( '"') == npos;
     const bool no_squotes = s.first_of('\'') == npos;

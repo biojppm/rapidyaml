@@ -35,15 +35,15 @@ bar: &bar
     age: 20
 )",
   L{
-      N("anchored_content", "This string will appear as the value of two keys.", AR(ANCHOR, "anchor_name")),
-      N("other_anchor", "*anchor_name", AR(REF, "anchor_name")),
+      N("anchored_content", "This string will appear as the value of two keys.", AR(VALANCH, "anchor_name")),
+      N("other_anchor", "*anchor_name", AR(VALREF, "anchor_name")),
       N("anchors_in_seqs", L{
-              N("this value appears in both elements of the sequence", AR(ANCHOR, "anchor_in_seq")),
-              N(REF, "*anchor_in_seq", AR(REF, "anchor_in_seq")),
+              N("this value appears in both elements of the sequence", AR(VALANCH, "anchor_in_seq")),
+              N(VALREF, "*anchor_in_seq", AR(VALREF, "anchor_in_seq")),
           }, AR()),
-      N("base", L{N("name", "Everyone has same name")}, AR(ANCHOR, "base")),
-      N("foo", L{N(REF, "<<", "*base"), N("age", "10")}, AR(ANCHOR, "foo")),
-      N("bar", L{N(REF, "<<", "*base"), N("age", "20")}, AR(ANCHOR, "bar")),
+      N("base", L{N("name", "Everyone has same name")}, AR(VALANCH, "base")),
+      N("foo", L{N(VALREF, "<<", "*base"), N("age", "10")}, AR(VALANCH, "foo")),
+      N("bar", L{N(VALREF, "<<", "*base"), N("age", "20")}, AR(VALANCH, "bar")),
   }
 ),
 
@@ -68,15 +68,15 @@ bar: &bar {
   }
 })",
   L{
-      N("anchored_content", "This string will appear as the value of two keys.", AR(ANCHOR, "anchor_name")),
-      N("other_anchor", "*anchor_name", AR(REF, "anchor_name")),
+      N("anchored_content", "This string will appear as the value of two keys.", AR(VALANCH, "anchor_name")),
+      N("other_anchor", "*anchor_name", AR(VALREF, "anchor_name")),
       N("anchors_in_seqs", L{
-              N("this value appears in both elements of the sequence", AR(ANCHOR, "anchor_in_seq")),
-              N(REF, "*anchor_in_seq", AR(REF, "anchor_in_seq")),
+              N("this value appears in both elements of the sequence", AR(VALANCH, "anchor_in_seq")),
+              N(VALREF, "*anchor_in_seq", AR(VALREF, "anchor_in_seq")),
           }, AR()),
-      N("base", L{N("name", "Everyone has same name")}, AR(ANCHOR, "base")),
-      N("foo", L{N(REF, "<<", "*base"), N("age", "10")}, AR(ANCHOR, "foo")),
-      N("bar", L{N(REF, "<<", "*base"), N("age", "20")}, AR(ANCHOR, "bar")),
+      N("base", L{N("name", "Everyone has same name")}, AR(VALANCH, "base")),
+      N("foo", L{N(VALREF, "<<", "*base"), N("age", "10")}, AR(VALANCH, "foo")),
+      N("bar", L{N(VALREF, "<<", "*base"), N("age", "20")}, AR(VALANCH, "bar")),
   }
 ),
 
@@ -190,8 +190,8 @@ L{
    N{"bill-to", L{
         N{"street", "123 Tornado Alley\nSuite 16\n"},
         N{"city", "East Centerville"},
-        N{"state", "KS"},}, AR(ANCHOR, "id001")},
-   N{REF, "ship-to", "*id001", AR(REF, "id001")},
+        N{"state", "KS"},}, AR(VALANCH, "id001")},
+   N{VALREF, "ship-to", "*id001", AR(VALREF, "id001")},
    N{"specialDelivery", "Follow the Yellow Brick Road to the Emerald City. Pay no attention to the man behind the curtain.\n"}
   }
 ),
@@ -281,7 +281,7 @@ N("step", L{
     N{"pulseDuration",   "12"},
     N{"repetition",      "1000"},
     N{"spotSize",        "1mm"},
-        }, AR(ANCHOR, "id001")),
+        }, AR(VALANCH, "id001")),
     }), N(L{
 N("step", L{
     N{"instrument",      "Lasik 2000"},
@@ -289,18 +289,18 @@ N("step", L{
     N{"pulseDuration",   "10"},
     N{"repetition",      "500"},
     N{"spotSize",        "2mm"},
-        }, AR(ANCHOR, "id002")),
+        }, AR(VALANCH, "id002")),
     }), N(L{
-N{REF, "step", "*id001"},
+N{VALREF, "step", "*id001"},
     }), N(L{
-N{REF, "step", "*id002"},
+N{VALREF, "step", "*id002"},
     }), N(L{
 N{"step", L{
-    N{REF, "<<", "*id001"},
+    N{VALREF, "<<", "*id001"},
     N{"spotSize",        "2mm"},
         }},
     }), N(L{
-N{REF, "step", "*id002"},
+N{VALREF, "step", "*id002"},
     }),
     }
 ),
@@ -377,115 +377,6 @@ N{"step", L{
     }),
     }
 ),
-    )
-}
-
-//-----------------------------------------------------------------------------
-#define INDENTATION_CASES \
-    "4 chars",\
-    "2 chars + 4 chars, ex0",\
-    "2 chars + 4 chars, ex1",\
-    "2 chars + 4 chars, ex2"
-
-CASE_GROUP(INDENTATION)
-{
-    APPEND_CASES(
-
-C("4 chars",
-R"(
-key:
-     value
-another_key:
-    sub_key0:
-      - val0
-      - val1
-    sub_key1:
-      - val2
-      - val3
-    sub_key2:
-      - val4
-      - val5
-)",
-L{
-    N("key", "value"),
-    N("another_key", L{
-        N("sub_key0", L{N("val0"), N("val1")}),
-        N("sub_key1", L{N("val2"), N("val3")}),
-        N("sub_key2", L{N("val4"), N("val5")}),
-    })
-}),
-
-C("2 chars + 4 chars, ex0",
-R"(
-key:
-     value
-another_key:
-    sub_key0:
-        - val0
-        - val1
-    sub_key1:
-      - val2
-      - val3
-    sub_key2:
-      - val4
-      - val5
-)",
-L{
-    N("key", "value"),
-    N("another_key", L{
-        N("sub_key0", L{N("val0"), N("val1")}),
-        N("sub_key1", L{N("val2"), N("val3")}),
-        N("sub_key2", L{N("val4"), N("val5")}),
-    })
-}),
-
-C("2 chars + 4 chars, ex1",
-R"(
-key:
-     value
-another_key:
-    sub_key0:
-      - val0
-      - val1
-    sub_key1:
-        - val2
-        - val3
-    sub_key2:
-      - val4
-      - val5
-)",
-L{
-    N("key", "value"),
-    N("another_key", L{
-        N("sub_key0", L{N("val0"), N("val1")}),
-        N("sub_key1", L{N("val2"), N("val3")}),
-        N("sub_key2", L{N("val4"), N("val5")}),
-    })
-}),
-
-C("2 chars + 4 chars, ex2",
-R"(
-key:
-     value
-another_key:
-    sub_key0:
-      - val0
-      - val1
-    sub_key1:
-      - val2
-      - val3
-    sub_key2:
-        - val4
-        - val5
-)",
-L{
-    N("key", "value"),
-    N("another_key", L{
-        N("sub_key0", L{N("val0"), N("val1")}),
-        N("sub_key1", L{N("val2"), N("val3")}),
-        N("sub_key2", L{N("val4"), N("val5")}),
-    })
-}),
     )
 }
 

@@ -44,7 +44,7 @@ function(ryml_add_test test_name)
 endfunction()
 
 function(ryml_add_test_case_group name)
-    ryml_add_test(${name} test_group.hpp ${name}.cpp)
+    ryml_add_test(${name} test_group.cpp test_group.hpp)
 endfunction()
 
 ryml_add_test(basic)
@@ -82,7 +82,7 @@ ryml_add_test_case_group(github_issues)
 #-------------------------------------------------------------------------
 
 # run every case in the yaml-test-suite
-option(RYML_TEST_SUITE "Enable ~300 tests from yaml-test-suite." OFF)
+option(RYML_TEST_SUITE "Enable ~300 extensive tests from yaml-test-suite." OFF)
 
 if(RYML_TEST_SUITE)
 
