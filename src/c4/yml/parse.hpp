@@ -280,10 +280,6 @@ private:
 
     csubstr m_key_anchor;
     csubstr m_val_anchor;
-    size_t  m_num_key_anchors;
-    size_t  m_num_val_anchors;
-    size_t  m_num_key_references;
-    size_t  m_num_val_references;
 
 };
 
