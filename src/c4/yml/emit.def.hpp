@@ -8,27 +8,24 @@
 namespace c4 {
 namespace yml {
 
-#define _c4this  (static_cast<Writer      *>(this))
-#define _c4cthis (static_cast<Writer const*>(this))
-
 template<class Writer>
 substr Emitter<Writer>::emit(NodeRef const& n, bool error_on_excess)
 {
     this->_visit(n);
-    substr result = _c4this->_get(error_on_excess);
+    substr result = this->Writer::_get(error_on_excess);
     return result;
 }
 
 template<class Writer>
 size_t Emitter<Writer>::tell() const
 {
-    return _c4cthis->m_pos;
+    return this->Writer::m_pos;
 }
 
 template<class Writer>
 void Emitter<Writer>::seek(size_t p)
 {
-    _c4this->m_pos = p;
+    this->Writer::m_pos = p;
 }
 
 template<class Writer>
@@ -43,7 +40,7 @@ size_t Emitter<Writer>::_visit(NodeRef const& n, size_t ilevel)
     {
         _write("...\n");
     }
-    return _c4this->m_pos;
+    return this->Writer::m_pos;
 }
 
 /** @todo this function is too complex. break it down into manageable pieces */
@@ -59,12 +56,12 @@ void Emitter<Writer>::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
     else if(n.is_keyval())
     {
         C4_ASSERT(n.has_parent());
-        _write(ind); _write(n.keysc()); _write(": "); _write(n.valsc()); _write('\n');
+        _write(ind); _writek(n); _write(": "); _writev(n); _write('\n');
     }
     else if(n.is_val())
     {
         C4_ASSERT(n.has_parent());
-        _write(ind); _write("- "); _write(n.valsc()); _write('\n');
+        _write(ind); _write("- "); _writev(n); _write('\n');
     }
     else if(n.is_container() && ! n.is_root())
     {
@@ -83,7 +80,7 @@ void Emitter<Writer>::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
         else if(n.parent_is_map())
         {
             C4_ASSERT(n.has_key());
-            _write(ind); _write(n.keysc()); _write(':');
+            _write(ind); _writek(n); _write(':');
             if(n.has_val_tag())
             {
                 _write(' '); _write(n.val_tag());
@@ -176,25 +173,27 @@ void Emitter<Writer>::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
 }
 
 template<class Writer>
-void Emitter<Writer>::_write(NodeScalar const& sc)
+void Emitter<Writer>::_write(NodeScalar const& sc, NodeType flags)
 {
     if( ! sc.tag.empty())
     {
-        _c4this->_do_write(sc.tag);
-        _c4this->_do_write(' ');
+        this->Writer::_do_write(sc.tag);
+        this->Writer::_do_write(' ');
     }
-    if( ! sc.anchor.empty())
+    if(flags.has_anchor())
     {
-        _c4this->_do_write('&');
-        _c4this->_do_write(sc.anchor);
-        _c4this->_do_write(' ');
+        C4_ASSERT(flags.is_ref() != flags.has_anchor());
+        C4_ASSERT( ! sc.anchor.empty());
+        this->Writer::_do_write('&');
+        this->Writer::_do_write(sc.anchor);
+        this->Writer::_do_write(' ');
     }
 
     _write_scalar(sc.scalar);
 }
 
 template<class Writer>
-void Emitter<Writer>::_write_scalar(csubstr const& s)
+void Emitter<Writer>::_write_scalar(csubstr s)
 {
     const bool no_dquotes = s.first_of( '"') == npos;
     const bool no_squotes = s.first_of('\'') == npos;
@@ -204,53 +203,50 @@ void Emitter<Writer>::_write_scalar(csubstr const& s)
     {
         if( ! s.empty())
         {
-            _c4this->_do_write(s);
+            this->Writer::_do_write(s);
         }
         else
         {
-            _c4this->_do_write("''");
+            this->Writer::_do_write("''");
         }
     }
     else
     {
         if(no_squotes && !no_dquotes)
         {
-            _c4this->_do_write('\'');
-            _c4this->_do_write(s);
-            _c4this->_do_write('\'');
+            this->Writer::_do_write('\'');
+            this->Writer::_do_write(s);
+            this->Writer::_do_write('\'');
         }
         else if(no_dquotes && !no_squotes)
         {
-            _c4this->_do_write('"');
-            _c4this->_do_write(s);
-            _c4this->_do_write('"');
+            this->Writer::_do_write('"');
+            this->Writer::_do_write(s);
+            this->Writer::_do_write('"');
         }
         else
         {
             size_t pos = 0;
-            _c4this->_do_write('\'');
+            this->Writer::_do_write('\'');
             for(size_t i = 0; i < s.len; ++i)
             {
                 if(s[i] == '\'' || s[i] == '\n')
                 {
                     csubstr sub = s.sub(pos, i-pos);
                     pos = i;
-                    _c4this->_do_write(sub);
-                    _c4this->_do_write(s[i]); // write the character twice
+                    this->Writer::_do_write(sub);
+                    this->Writer::_do_write(s[i]); // write the character twice
                 }
             }
             if(pos < s.len)
             {
                 csubstr sub = s.sub(pos);
-                _c4this->_do_write(sub);
+                this->Writer::_do_write(sub);
             }
-            _c4this->_do_write('\'');
+            this->Writer::_do_write('\'');
         }
     }
 }
-
-#undef _c4this
-#undef _c4cthis
 
 } // namespace yml
 } // namespace c4

@@ -28,6 +28,11 @@ using EmitterBuf  = Emitter<WriterBuf>;
 template<class Writer>
 class Emitter : public Writer
 {
+    enum {
+        _keysc =  (KEY|KEYREF|KEYANCH)  | ~(VAL|VALREF|VALANCH),
+        _valsc = ~(KEY|KEYREF|KEYANCH)  |  (VAL|VALREF|VALANCH),
+    };
+
 public:
 
     using Writer::Writer;
@@ -53,22 +58,25 @@ private:
 
 private:
 
+    C4_ALWAYS_INLINE void _writek(NodeRef const& n) { _write(n.keysc(), n.type() & ~(VAL|VALREF|VALANCH)); }
+    C4_ALWAYS_INLINE void _writev(NodeRef const& n) { _write(n.valsc(), n.type() & ~(KEY|KEYREF|KEYANCH)); }
+
     template<class T>
-    inline void _write(T a)
+    C4_ALWAYS_INLINE void _write(T a)
     {
         this->Writer::_do_write(a);
     }
 
     template<size_t N>
-    inline void _write(const char (&a)[N])
+    C4_ALWAYS_INLINE void _write(const char (&a)[N])
     {
         csubstr s(a);
-        (static_cast<Writer *>(this))->_do_write(s);
+        this->Writer::_do_write(s);
     }
 
-    void _write(NodeScalar const& sc);
+    void _write(NodeScalar const& sc, NodeType flags);
 
-    void _write_scalar(csubstr const& s);
+    void _write_scalar(csubstr s);
 
 };
 

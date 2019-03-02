@@ -33,11 +33,11 @@ typedef enum {
     STREAM  = (1<<5)|SEQ, ///< a stream: a seq of docs
     KEYREF  = (1<<6),     ///< a *reference: the key references an &anchor
     VALREF  = (1<<7),     ///< a *reference: the val references an &anchor
-    _TYMASK = (1<<7)-1,
-    KEYTAG  = (1<<8),     ///< the key has an explicit tag/type
-    VALTAG  = (1<<9),     ///< the val has an explicit tag/type
-    KEYANCH = (1<<10),    ///< the key has an &anchor
-    VALANCH = (1<<11),    ///< the val has an &anchor
+    KEYANCH = (1<<8),     ///< the key has an &anchor
+    VALANCH = (1<<9),     ///< the val has an &anchor
+    _TYMASK = (1<<10)-1,
+    KEYTAG  = (1<<10),    ///< the key has an explicit tag/type
+    VALTAG  = (1<<11),    ///< the val has an explicit tag/type
     KEYVAL  = KEY|VAL,
     KEYSEQ  = KEY|SEQ,
     KEYMAP  = KEY|MAP,
@@ -92,9 +92,11 @@ public:
     bool has_key_tag() const { return (type & (KEY|KEYTAG)) == (KEY|KEYTAG); }
     bool has_val_tag() const { return ((type & (VALTAG)) && (type & (VAL|MAP|SEQ))); }
     bool has_key_anchor() const { return (type & KEYANCH) != 0; }
-    bool has_val_anchor() const { return (type & KEYANCH) != 0; }
+    bool has_val_anchor() const { return (type & VALANCH) != 0; }
+    bool has_anchor() const { return (type & (KEYANCH|VALANCH)) != 0; }
     bool is_key_ref() const { return (type & KEYREF) != 0; }
     bool is_val_ref() const { return (type & VALREF) != 0; }
+    bool is_ref() const { return (type & (KEYREF|VALREF)) != 0; }
 
 };
 
@@ -153,18 +155,14 @@ public:
 
     /// initialize as an empty node
     NodeInit() : type(NOTYPE), key(), val() {}
-
     /// initialize as a typed node
     NodeInit(NodeType_e t) : type(t), key(), val() {}
-
     /// initialize as a sequence member
     NodeInit(NodeScalar const& v) : type(VAL), key(), val(v) { _add_flags(); }
-    
     /// initialize as a mapping member
     NodeInit(              NodeScalar const& k, NodeScalar const& v) : type(KEYVAL), key(k.tag, k.scalar), val(v.tag, v.scalar) { _add_flags(); }
     /// initialize as a mapping member with explicit type
     NodeInit(NodeType_e t, NodeScalar const& k, NodeScalar const& v) : type(t     ), key(k.tag, k.scalar), val(v.tag, v.scalar) { _add_flags(); }
-
     /// initialize as a mapping member with explicit type (eg SEQ or MAP)
     NodeInit(NodeType_e t, NodeScalar const& k                     ) : type(t     ), key(k.tag, k.scalar), val(               ) { _add_flags(KEY); }
 
@@ -243,7 +241,6 @@ public:
     csubstr const& val_tag() const { C4_ASSERT(has_val_tag()); return m_val.tag; }
     csubstr const& val_anchor() const { C4_ASSERT(has_val_tag()); return m_val.anchor; }
     NodeScalar const& valsc() const { C4_ASSERT(has_val()); return m_val; }
-
 
 public:
 
@@ -376,6 +373,8 @@ public:
     csubstr    const& val_anchor(size_t node) const { C4_ASSERT( ! is_val_ref(node) && has_val_anchor(node)); return _p(node)->m_val.anchor; }
     NodeScalar const& valsc     (size_t node) const { C4_ASSERT(has_val(node)); return _p(node)->m_val; }
 
+    bool has_anchor(size_t node, csubstr a) const { return _p(node)->m_key.anchor == a || _p(node)->m_val.anchor == a; }
+
 public:
 
     // node predicates
@@ -396,6 +395,8 @@ public:
     bool has_val_anchor(size_t node) const { return (_p(node)->m_type & VALANCH) != 0; }
     bool is_key_ref(size_t node) const { return (_p(node)->m_type & KEYREF) != 0; }
     bool is_val_ref(size_t node) const { return (_p(node)->m_type & VALREF) != 0; }
+    bool is_ref(size_t node) const { return (_p(node)->m_type & (KEYREF|VALREF)) != 0; }
+    bool is_anchor(size_t node) const { return (_p(node)->m_type & (KEYANCH|VALANCH)) != 0; }
 
     bool parent_is_seq(size_t node) const { C4_ASSERT(has_parent(node)); return is_seq(_p(node)->m_parent); }
     bool parent_is_map(size_t node) const { C4_ASSERT(has_parent(node)); return is_map(_p(node)->m_parent); }
@@ -484,25 +485,25 @@ public:
     inline void _set_flags(size_t node, NodeType_e f) { _p(node)->m_type = f; }
     inline void _set_flags(size_t node, int        f) { _p(node)->m_type = f; }
 
-    void _set_key(size_t node, csubstr const& key, int more_flags = 0)
+    void _set_key(size_t node, csubstr const& key, int more_flags=0)
     {
         _p(node)->m_key.scalar = key;
         _add_flags(node, KEY|more_flags);
     }
-    void _set_key(size_t node, NodeScalar const& key, int more_flags = 0)
+    void _set_key(size_t node, NodeScalar const& key, int more_flags=0)
     {
         _p(node)->m_key = key;
         _add_flags(node, KEY|more_flags);
     }
 
-    void _set_val(size_t node, csubstr const& val, int more_flags = 0)
+    void _set_val(size_t node, csubstr const& val, int more_flags=0)
     {
         C4_ASSERT(num_children(node) == 0);
         C4_ASSERT( ! is_container(node));
         _p(node)->m_val.scalar = val;
         _add_flags(node, VAL|more_flags);
     }
-    void _set_val(size_t node, NodeScalar const& val, int more_flags = 0)
+    void _set_val(size_t node, NodeScalar const& val, int more_flags=0)
     {
         C4_ASSERT(num_children(node) == 0);
         C4_ASSERT( ! is_container(node));
@@ -555,7 +556,7 @@ public:
         C4_ASSERT(is_seq(node));
         for(size_t i = first_child(node); i != NONE; i = next_sibling(i))
         {
-            auto *C4_RESTRICT ch = _p(i);
+            NodeData *C4_RESTRICT ch = _p(i);
             if(ch->m_type.is_keyval()) continue;
             ch->m_type.add(KEY);
             ch->m_key = ch->m_val;

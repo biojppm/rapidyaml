@@ -132,6 +132,8 @@ public:
     inline bool has_val_tag() const { _C4RV(); return m_tree->has_val_tag(m_id); }
     inline bool is_key_ref() const { _C4RV(); return m_tree->is_key_ref(m_id); }
     inline bool is_val_ref() const { _C4RV(); return m_tree->is_val_ref(m_id); }
+    inline bool is_ref() const { _C4RV(); return m_tree->is_ref(m_id); }
+    inline bool is_anchor() const { _C4RV(); return m_tree->is_anchor(m_id); }
     inline bool has_key_anchor() const { _C4RV(); return m_tree->has_key_anchor(m_id); }
     inline bool has_val_anchor() const { _C4RV(); return m_tree->has_val_anchor(m_id); }
 

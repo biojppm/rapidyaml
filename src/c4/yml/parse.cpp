@@ -1525,6 +1525,7 @@ void Parser::_save_indentation(size_t behind)
 //-----------------------------------------------------------------------------
 void Parser::_write_key_anchor(size_t node_id)
 {
+    C4_ASSERT(m_tree->has_key(node_id));
     if( ! m_key_anchor.empty())
     {
         _c4dbgpf("node=%zd: set key anchor to '%.*s'", node_id, _c4prsp(m_key_anchor));
@@ -1534,7 +1535,7 @@ void Parser::_write_key_anchor(size_t node_id)
     }
     else
     {
-        csubstr r = m_tree->has_key(node_id) ? m_tree->key(node_id) : "";
+        csubstr r = m_tree->key(node_id);
         if(r.begins_with('*'))
         {
             _c4dbgpf("node=%zd: set key reference: '%.*s'", node_id, _c4prsp(r));
@@ -1548,7 +1549,7 @@ void Parser::_write_key_anchor(size_t node_id)
             {
                  _c4err("malformed reference");
             }
-            m_tree->set_key_ref(node_id, r);
+            //m_tree->set_key_ref(node_id, r);
             ++m_num_key_references;
         }
     }
@@ -1819,22 +1820,6 @@ NodeData* Parser::_append_key_val(csubstr const& val)
     }
     _write_key_anchor(nid);
     _write_val_anchor(nid);
-    if(m_tree->key(nid) == "<<")
-    {
-        _c4dbgp("append keyval: it's a key reference");
-        if( ! (m_tree->val(nid).begins_with('*')))
-        {
-             _c4err("malformed reference");
-        }
-        m_tree->_add_flags(nid, KEYREF);
-        ++m_num_key_references;
-    }
-    if(m_tree->val(nid).begins_with('*'))
-    {
-        _c4dbgp("append keyval: it's a val reference");
-        m_tree->_add_flags(nid, VALREF);
-        ++m_num_val_references;
-    }
     return m_tree->get(nid);
 }
 

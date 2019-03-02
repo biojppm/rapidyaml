@@ -137,6 +137,15 @@ TEST_P(YmlTestCase, emit_yml_string)
 //-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, complete_round_trip)
 {
+    if(d->parsed_tree.empty())
+    {
+        parse(d->src, &d->parsed_tree);
+    }
+    if(d->emit_buf.empty())
+    {
+        d->emitted_yml = emit_resize(d->parsed_tree, &d->emit_buf);
+    }
+
 #ifdef RYML_DBG
     print_tree(d->parsed_tree);
     std::cout << d->emitted_yml;
@@ -173,6 +182,15 @@ TEST_P(YmlTestCase, complete_round_trip)
 //-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, recreate_from_ref)
 {
+    if(d->parsed_tree.empty())
+    {
+        parse(d->src, &d->parsed_tree);
+    }
+    if(d->emit_buf.empty())
+    {
+        d->emitted_yml = emit_resize(d->parsed_tree, &d->emit_buf);
+    }
+
     {
         SCOPED_TRACE("recreating a new tree from the ref tree");
         d->recreated.reserve(d->parsed_tree.size());

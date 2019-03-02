@@ -156,11 +156,13 @@ void CaseNode::recreate(yml::NodeRef *n) const
 {
     C4_ASSERT( ! n->has_children());
     auto *nd = n->get();
-    nd->m_type = type;
+    nd->m_type = type|key_anchor.type|val_anchor.type;
     nd->m_key.scalar = key;
     nd->m_key.tag = (key_tag);
+    nd->m_key.anchor = key_anchor.str;
     nd->m_val.scalar = val;
     nd->m_val.tag = (val_tag);
+    nd->m_val.anchor = val_anchor.str;
     auto &tree = *n->tree();
     size_t nid = n->id(); // don't use node from now on
     for(auto const& ch : children)

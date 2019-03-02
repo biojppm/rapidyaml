@@ -91,12 +91,20 @@ public:
     CaseNode * parent;
 
 public:
+    
+    CaseNode(CaseNode     && that) { _move(std::move(that)); }
+    CaseNode(CaseNode const& that) { _copy(that); }
 
+    CaseNode& operator= (CaseNode     && that) { _move(std::move(that)); return *this; }
+    CaseNode& operator= (CaseNode const& that) { _copy(that); return *this; }
+
+    ~CaseNode() = default;
+
+public:
 
     CaseNode() : CaseNode(NOTYPE) {}
     CaseNode(NodeType_e t) : type(t), key(), key_tag(), key_anchor(), val(), val_tag(), val_anchor(), children(), parent(nullptr) { _set_parent(); }
-
-
+    
     // val
     template< size_t N > explicit CaseNode(const char (&v)[N]   ) : type((VAL       )), key(), key_tag(), key_anchor(), val(v       ), val_tag(     ), val_anchor(), children(), parent(nullptr) { _set_parent(); }
                          explicit CaseNode(TaggedScalar const& v) : type((VAL|VALTAG)), key(), key_tag(), key_anchor(), val(v.scalar), val_tag(v.tag), val_anchor(), children(), parent(nullptr) { _set_parent(); }
@@ -205,12 +213,6 @@ public:
                          explicit CaseNode(NodeType t, TaggedScalar const& k, AnchorRef const& ark, iseqmap    s, AnchorRef const& arv) : type((t|KEYTAG)), key(k.scalar), key_tag(k.tag), key_anchor(ark), val(), val_tag(     ), val_anchor(arv), children(s      ), parent(nullptr) { _set_parent(); }
 
 
-    CaseNode(CaseNode     && that) { _move(std::move(that)); }
-    CaseNode(CaseNode const& that) { _copy(that); }
-
-    CaseNode& operator= (CaseNode     && that) { _move(std::move(that)); return *this; }
-    CaseNode& operator= (CaseNode const& that) { _copy(that); return *this; }
-
 public:
 
     void _move(CaseNode&& that)
@@ -218,8 +220,10 @@ public:
         type = that.type;
         key = that.key;
         key_tag = that.key_tag;
+        key_anchor = that.key_anchor;
         val = that.val;
         val_tag = that.val_tag;
+        val_anchor = that.val_anchor;
         children = std::move(that.children);
         parent = nullptr;
         _set_parent();
@@ -229,8 +233,10 @@ public:
         type = that.type;
         key = that.key;
         key_tag = that.key_tag;
+        key_anchor = that.key_anchor;
         val = that.val;
         val_tag = that.val_tag;
+        val_anchor = that.val_anchor;
         children = that.children;
         parent = nullptr;
         _set_parent();
