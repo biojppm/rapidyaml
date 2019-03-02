@@ -461,7 +461,7 @@ public:
     void to_doc(size_t node, int more_flags=0);
 
     void set_key_tag(size_t node, csubstr const& tag) { C4_ASSERT(has_key(node)); _p(node)->m_key.tag = tag; _add_flags(node, KEYTAG); }
-    void set_val_tag(size_t node, csubstr const& tag) { C4_ASSERT(has_val(node)); _p(node)->m_val.tag = tag; _add_flags(node, VALTAG); }
+    void set_val_tag(size_t node, csubstr const& tag) { C4_ASSERT(has_val(node) || is_container(node)); _p(node)->m_val.tag = tag; _add_flags(node, VALTAG); }
 
     void set_key_anchor(size_t node, csubstr anchor) { C4_ASSERT( ! is_key_ref(node)); _p(node)->m_key.anchor = anchor; _add_flags(node, KEYANCH); }
     void set_val_anchor(size_t node, csubstr anchor) { C4_ASSERT( ! is_val_ref(node)); _p(node)->m_val.anchor = anchor; _add_flags(node, VALANCH); }

@@ -14,8 +14,8 @@ namespace {
 void error_impl(const char* msg, size_t length, void * /*user_data*/)
 {
     fprintf(stderr, "%.*s\n", (int)length, msg);
-    //C4_DEBUG_BREAK();
-    //::abort();
+    C4_DEBUG_BREAK();
+    ::abort();
 }
 
 void* allocate_impl(size_t length, void * /*hint*/, void * /*user_data*/)
