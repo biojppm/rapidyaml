@@ -83,7 +83,8 @@ using PT = std::pair<const csubstr, Case>;
 
 #define APPEND_CASES(...) \
     static const PT arr[] = {__VA_ARGS__}; \
-    return arr;
+    c4::cspan<PT> buf(arr);                \
+    return buf;
 
 
 #define INSTANTIATE_GROUP(group_name) \
