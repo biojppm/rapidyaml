@@ -110,6 +110,17 @@ c4::csubstr replace_all(c4::csubstr pattern, c4::csubstr repl, c4::csubstr subje
 }
 
 
+size_t find_first_after(size_t pos, std::initializer_list<size_t> candidates)
+{
+    size_t ret = npos;
+    for(size_t s : candidates)
+    {
+        if(s > pos && s < ret) ret = s;
+    }
+    return ret;
+}
+
+
 struct SuiteCase
 {
     c4::csubstr filename;
@@ -170,21 +181,22 @@ struct SuiteCase
         size_t begin_in_json  = contents.find("--- in-json"   , end_tags);
         size_t begin_out_yaml = contents.find("--- out-yaml"  , end_tags);
         size_t begin_events   = contents.find("--- test-event", end_tags);
-        size_t first_after_yaml = std::min(begin_in_json, std::min(begin_out_yaml, begin_events));
-        size_t first_after_json = std::min(begin_out_yaml, begin_events);
+        std::initializer_list<size_t> all = {begin_in_yaml, begin_in_json, begin_out_yaml, begin_events, contents.size()};
 
         // in_yaml
         C4_CHECK(begin_in_yaml != npos);
+        size_t first_after_in_yaml = find_first_after(begin_in_yaml, all);
         begin_in_yaml = 1 + contents.find('\n', begin_in_yaml); // skip this line
-        txt = contents.range(begin_in_yaml, first_after_yaml).trimr(ws);
+        txt = contents.range(begin_in_yaml, first_after_in_yaml).trimr(ws);
         C4_ASSERT( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "---test-event"));
         in_yaml.init(txt);
 
         // in_json
         if(begin_in_json != npos)
         {
+            size_t first_after_in_json = find_first_after(begin_in_json, all);
             begin_in_json = 1 + contents.find('\n', begin_in_json); // skip this line
-            txt = contents.range(begin_in_json, first_after_json).trimr(ws);
+            txt = contents.range(begin_in_json, first_after_in_json).trimr(ws);
             C4_ASSERT( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "---test-event"));
             in_json.init(txt);
         }
@@ -193,14 +205,16 @@ struct SuiteCase
         if(begin_out_yaml != npos)
         {
             if(begin_in_json == npos) begin_in_json = begin_in_yaml;
+            size_t first_after_out_yaml = find_first_after(begin_out_yaml, all);
             begin_out_yaml = 1 + contents.find('\n', begin_out_yaml); // skip this line
-            txt = contents.range(begin_out_yaml, begin_events).trimr(ws);
+            txt = contents.range(begin_out_yaml, first_after_out_yaml).trimr(ws);
             C4_ASSERT( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "---test-event"));
             out_yaml.init(txt);
         }
 
         // events
         C4_CHECK(begin_events != npos);
+        size_t first_after_events = find_first_after(begin_events, all);
         begin_events = 1 + contents.find('\n', begin_events); // skip this line
         events = contents.sub(begin_events).trimr(ws);
         C4_ASSERT( ! events.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "---test-event"));
