@@ -2038,7 +2038,7 @@ csubstr Parser::_scan_quoted_scalar(const char q)
                 if(curr == '\\')
                 {
                     needs_filter = true;
-                    if(next == '"')
+                    if(next == '"' || next == '\\')
                     {
                         ++i;
                     }
