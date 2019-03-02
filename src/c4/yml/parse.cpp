@@ -25,11 +25,7 @@ Parser::Parser(Allocator const& a)
     m_key_tag(),
     m_val_tag(),
     m_key_anchor(),
-    m_val_anchor(),
-    m_num_key_anchors(0),
-    m_num_val_anchors(0),
-    m_num_key_references(0),
-    m_num_val_references(0)
+    m_val_anchor()
 {
     State st{};
     m_stack.push(st);
@@ -53,10 +49,6 @@ void Parser::_reset()
     m_val_tag.clear();
     m_key_anchor.clear();
     m_val_anchor.clear();
-    m_num_key_anchors = (0);
-    m_num_val_anchors = (0);
-    m_num_key_references = (0);
-    m_num_val_references = (0);
 }
 
 //-----------------------------------------------------------------------------
@@ -1531,7 +1523,6 @@ void Parser::_write_key_anchor(size_t node_id)
         _c4dbgpf("node=%zd: set key anchor to '%.*s'", node_id, _c4prsp(m_key_anchor));
         m_tree->set_key_anchor(node_id, m_key_anchor);
         m_key_anchor.clear();
-        ++m_num_key_anchors;
     }
     else
     {
@@ -1540,7 +1531,6 @@ void Parser::_write_key_anchor(size_t node_id)
         {
             _c4dbgpf("node=%zd: set key reference: '%.*s'", node_id, _c4prsp(r));
             m_tree->set_key_ref(node_id, r.sub(1));
-            ++m_num_key_references;
         }
         else if(r == "<<")
         {
@@ -1550,7 +1540,6 @@ void Parser::_write_key_anchor(size_t node_id)
                  _c4err("malformed reference");
             }
             //m_tree->set_key_ref(node_id, r);
-            ++m_num_key_references;
         }
     }
 }
@@ -1563,14 +1552,12 @@ void Parser::_write_val_anchor(size_t node_id)
         _c4dbgpf("node=%zd: set val anchor to '%.*s'", node_id, _c4prsp(m_val_anchor));
         m_tree->set_val_anchor(node_id, m_val_anchor);
         m_val_anchor.clear();
-        ++m_num_val_anchors;
     }
     csubstr r = m_tree->has_val(node_id) ? m_tree->val(node_id) : "";
     if(r.begins_with('*'))
     {
         _c4dbgpf("node=%zd: set val reference: '%.*s'", node_id, _c4prsp(r));
         m_tree->set_val_ref(node_id, r.sub(1));
-        ++m_num_val_references;
     }
 }
 
