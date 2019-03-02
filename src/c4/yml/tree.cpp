@@ -692,7 +692,7 @@ struct ReferenceResolver
             while(ra->prev_anchor != npos)
             {
                 ra = &refs[ra->prev_anchor];
-                if(t->key_anchor(ra->node) == refname || t->val_anchor(ra->node) == refname)
+                if(t->has_anchor(ra->node, refname))
                 {
                     rd.target = ra->node;
                     break;

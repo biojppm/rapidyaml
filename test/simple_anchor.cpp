@@ -3,6 +3,99 @@
 namespace c4 {
 namespace yml {
 
+//     SIMPLE_ANCHOR/YmlTestCase.parse_using_ryml/0
+
+/** verify that the reference class is working correctly (meta testing, yay) */
+TEST(CaseNode, anchors)
+{
+    const NodeType mask = KEYREF|KEYANCH|VALREF|VALANCH;
+    {
+        CaseNode n("<<", "*base", AR(VALANCH, "base"));
+        EXPECT_EQ(n.key, "<<");
+        EXPECT_EQ(n.val, "*base");
+        EXPECT_EQ(n.type & mask, VALANCH);
+        EXPECT_EQ(n.key_anchor.type, NOTYPE);
+        EXPECT_EQ(n.val_anchor.type, VALANCH);
+        EXPECT_EQ(n.key_anchor.str, "");
+        EXPECT_EQ(n.val_anchor.str, "base");
+    }
+
+    {
+        CaseNode n("base", L{N("name", "Everyone has same name")}, AR(VALANCH, "base"));
+        EXPECT_EQ(n.key, "base");
+        EXPECT_EQ(n.val, "");
+        EXPECT_NE(n.type.is_seq(), true);
+        EXPECT_EQ(n.type & mask, VALANCH);
+        EXPECT_EQ(n.key_anchor.type, NOTYPE);
+        EXPECT_EQ(n.val_anchor.type, VALANCH);
+        EXPECT_EQ(n.key_anchor.str, "");
+        EXPECT_EQ(n.val_anchor.str, "base");
+    }
+    
+    {
+        L l{N("<<", "*base", AR(VALREF, "base"))};
+        CaseNode const& base = *l.begin();
+        EXPECT_EQ(base.key, "<<");
+        EXPECT_EQ(base.val, "*base");
+        EXPECT_EQ(base.type.is_keyval(), true);
+        EXPECT_EQ(base.type & mask, VALREF);
+        EXPECT_EQ(base.key_anchor.type, NOTYPE);
+        EXPECT_EQ(base.val_anchor.type, VALREF);
+        EXPECT_EQ(base.key_anchor.str, "");
+        EXPECT_EQ(base.val_anchor.str, "base");
+    }
+
+    {
+        L l{N("<<", "*base", AR(VALREF, "base")), N("age", "10")};
+        CaseNode const& base = *l.begin();
+        CaseNode const& age = *(&base + 1);
+        EXPECT_EQ(base.key, "<<");
+        EXPECT_EQ(base.val, "*base");
+        EXPECT_EQ(base.type.is_keyval(), true);
+        EXPECT_EQ(base.type & mask, VALREF);
+        EXPECT_EQ(base.key_anchor.type, NOTYPE);
+        EXPECT_EQ(base.val_anchor.type, VALREF);
+        EXPECT_EQ(base.key_anchor.str, "");
+        EXPECT_EQ(base.val_anchor.str, "base");
+
+        EXPECT_EQ(age.key, "age");
+        EXPECT_EQ(age.val, "10");
+        EXPECT_EQ(age.type.is_keyval(), true);
+        EXPECT_EQ(age.type & mask, 0);
+        EXPECT_EQ(age.key_anchor.type, NOTYPE);
+        EXPECT_EQ(age.val_anchor.type, NOTYPE);
+        EXPECT_EQ(age.key_anchor.str, "");
+        EXPECT_EQ(age.val_anchor.str, "");
+    }
+
+    {
+        CaseNode n("foo", L{N("<<", "*base", AR(VALREF, "base")), N("age", "10")}, AR(VALANCH, "foo"));
+        EXPECT_EQ(n.key, "foo");
+        EXPECT_EQ(n.val, "");
+        EXPECT_EQ(n.type.has_key(), true);
+        EXPECT_EQ(n.type.is_map(), true);
+        EXPECT_EQ(n.type & mask, VALANCH);
+        EXPECT_EQ(n.key_anchor.type, NOTYPE);
+        EXPECT_EQ(n.val_anchor.type, VALANCH);
+        EXPECT_EQ(n.key_anchor.str, "");
+        EXPECT_EQ(n.val_anchor.str, "foo");
+
+        CaseNode const& base = n.children[0];
+        EXPECT_EQ(base.key, "<<");
+        EXPECT_EQ(base.val, "*base");
+        EXPECT_EQ(base.type.has_key() && base.type.has_val(), true);
+        EXPECT_EQ(base.type & mask, VALREF);
+        EXPECT_EQ(base.key_anchor.type, NOTYPE);
+        EXPECT_EQ(base.val_anchor.type, VALREF);
+        EXPECT_EQ(base.key_anchor.str, "");
+        EXPECT_EQ(base.val_anchor.str, "base");
+    }
+
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 #define SIMPLE_ANCHOR_CASES                            \
     "simple anchor 1, implicit, unresolved",\
     "simple anchor 1, implicit, resolved",\
@@ -12,7 +105,6 @@ namespace yml {
     "anchor example 2, resolved",\
     "anchor example 3, unresolved",   \
     "anchor example 3, resolved"
-
 
 CASE_GROUP(SIMPLE_ANCHOR)
 {
@@ -39,11 +131,11 @@ bar: &bar
       N("other_anchor", "*anchor_name", AR(VALREF, "anchor_name")),
       N("anchors_in_seqs", L{
               N("this value appears in both elements of the sequence", AR(VALANCH, "anchor_in_seq")),
-              N(VALREF, "*anchor_in_seq", AR(VALREF, "anchor_in_seq")),
-          }, AR()),
+              N("*anchor_in_seq", AR(VALREF, "anchor_in_seq")),
+          }),
       N("base", L{N("name", "Everyone has same name")}, AR(VALANCH, "base")),
-      N("foo", L{N(VALREF, "<<", "*base"), N("age", "10")}, AR(VALANCH, "foo")),
-      N("bar", L{N(VALREF, "<<", "*base"), N("age", "20")}, AR(VALANCH, "bar")),
+      N("foo", L{N("<<", "*base", AR(VALREF, "base")), N("age", "10")}, AR(VALANCH, "foo")),
+      N("bar", L{N("<<", "*base", AR(VALREF, "base")), N("age", "20")}, AR(VALANCH, "bar")),
   }
 ),
 
@@ -72,11 +164,11 @@ bar: &bar {
       N("other_anchor", "*anchor_name", AR(VALREF, "anchor_name")),
       N("anchors_in_seqs", L{
               N("this value appears in both elements of the sequence", AR(VALANCH, "anchor_in_seq")),
-              N(VALREF, "*anchor_in_seq", AR(VALREF, "anchor_in_seq")),
-          }, AR()),
+              N("*anchor_in_seq", AR(VALREF, "anchor_in_seq")),
+          }),
       N("base", L{N("name", "Everyone has same name")}, AR(VALANCH, "base")),
-      N("foo", L{N(VALREF, "<<", "*base"), N("age", "10")}, AR(VALANCH, "foo")),
-      N("bar", L{N(VALREF, "<<", "*base"), N("age", "20")}, AR(VALANCH, "bar")),
+      N("foo", L{N("<<", "*base", AR(VALREF, "base")), N("age", "10")}, AR(VALANCH, "foo")),
+      N("bar", L{N("<<", "*base", AR(VALREF, "base")), N("age", "20")}, AR(VALANCH, "bar")),
   }
 ),
 
@@ -191,7 +283,7 @@ L{
         N{"street", "123 Tornado Alley\nSuite 16\n"},
         N{"city", "East Centerville"},
         N{"state", "KS"},}, AR(VALANCH, "id001")},
-   N{VALREF, "ship-to", "*id001", AR(VALREF, "id001")},
+   N{"ship-to", "*id001", AR(VALREF, "id001")},
    N{"specialDelivery", "Follow the Yellow Brick Road to the Emerald City. Pay no attention to the man behind the curtain.\n"}
   }
 ),
@@ -291,16 +383,16 @@ N("step", L{
     N{"spotSize",        "2mm"},
         }, AR(VALANCH, "id002")),
     }), N(L{
-N{VALREF, "step", "*id001"},
+N{"step", "*id001", AR(VALREF, "id001")},
     }), N(L{
-N{VALREF, "step", "*id002"},
+N{"step", "*id002", AR(VALREF, "id002")},
     }), N(L{
 N{"step", L{
-    N{VALREF, "<<", "*id001"},
+    N{"<<", "*id001", AR(VALREF, "id002")},
     N{"spotSize",        "2mm"},
         }},
     }), N(L{
-N{VALREF, "step", "*id002"},
+N{"step", "*id002", AR(VALREF, "id002")},
     }),
     }
 ),
@@ -377,6 +469,7 @@ N{"step", L{
     }),
     }
 ),
+
     )
 }
 
