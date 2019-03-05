@@ -59,6 +59,7 @@ cmake -DCMAKE_C_COMPILER=$CC_ -DCMAKE_C_FLAGS="$CFLAGS_" \
       -DCMAKE_CXX_COMPILER=$CXX_ -DCMAKE_CXX_FLAGS="$XFLAGS_" \
       -DCMAKE_BUILD_TYPE=$BT \
       -DRYML_DEV=ON \
+      -DRYML_BUILD_BENCHMARKS=OFF \
       $CMFLAGS \
       $RYML_DIR
 make help | sed 1d | sort

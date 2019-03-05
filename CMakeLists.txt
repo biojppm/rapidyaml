@@ -60,6 +60,23 @@ if(RYML_DBG)
 endif()
 
 #-------------------------------------------------------
+if(RYML_BUILD_TESTS OR RYML_BUILD_BENCHMARKS)
+    # extern libraries
+    set(ryml_ext_dir ${CMAKE_CURRENT_BINARY_DIR}/extern)
+    set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+    c4_import_remote_proj(ryml libyaml ${ryml_ext_dir}/libyaml
+        GIT_REPOSITORY https://github.com/yaml/libyaml
+        GIT_TAG master
+        )
+    set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+    c4_import_remote_proj(ryml yaml-cpp ${ryml_ext_dir}/yaml-cpp
+        GIT_REPOSITORY https://github.com/jbeder/yaml-cpp
+        GIT_TAG master
+        )
+endif()
+
+#-------------------------------------------------------
 if(RYML_BUILD_TESTS)
     enable_testing()
     add_subdirectory(test test)
@@ -67,5 +84,5 @@ endif()
 
 #-------------------------------------------------------
 if(RYML_BUILD_BENCHMARKS)
-    #
+    add_subdirectory(bm bm)
 endif()
