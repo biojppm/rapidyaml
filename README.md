@@ -30,7 +30,11 @@ ryml is written in C++11, and is known to compile with:
 
 ## Quick start
 
-You can have your cake and eat it too: being fast doesn't need to mean being unpractical!
+You can have your cake and eat it too: being rapid doesn't mean being
+unpractical! ryml was written with easy usage in mind, and comes with a two level
+API for accessing and traversing the data tree: a low-level index-based API
+and a higher level wrapping it via a ``NodeRef`` class. The examples in this
+section are using the high-level ``NodeRef``.
 
 Parsing from source:
 ```c++
@@ -59,18 +63,18 @@ parsing:
 auto tree = ryml::parse("{foo: 1}");
 ```
 
-`node.key()` and `node.val()` return an object of type `c4::csubstr`
-(*C*onstant *SUBSTR*ing) which is a read-only string-view, with some more
-methods that make it practical to use. There's also a writable `c4::substr`
-string view, which in fact is used heavily by ryml to transform YAML blocks
-and scalars during parsing. You can browse these classes here:
-[https://github.com/biojppm/c4core/src/c4/substr.hpp](c4/substr.hpp).
+`node.key()` and `node.val()` return an object of type `c4::csubstr` (the
+name comes from constant substring) which is a read-only string view, with
+some more methods that make it practical to use. There's also a writable
+`c4::substr` string view, which in fact is used heavily by ryml to transform
+YAML blocks and scalars during parsing. You can browse these classes
+here: [c4/substr.hpp](https://github.com/biojppm/c4core/src/c4/substr.hpp).
 
 
 To create a tree programatically:
 ```c++
 ryml::Tree tree;
-auto r = tree.rootref();
+NodeRef r = tree.rootref();
 
 r |= ryml::MAP;  // this is needed to make the root a map
 
@@ -151,12 +155,59 @@ for(auto c : node.siblings())
 }
 ```
 
+For container-type nodes, the square-bracket operator can
+be used either with integers (both for sequence and map nodes) or with
+strings (only for map nodes):
+```c++
+ryml::Tree = ryml::parse("[a, b, {c: 0, d: 1}]");
+ryml::NodeRef root = tree.rootref();
+std::cout << root[0].val() << "\n"; // "a"
+std::cout << root[1].val() << "\n"; // "b"
+std::cout << root[2][ 0 ].val() << "\n"; // "0" // index-based
+std::cout << root[2]["c"].val() << "\n"; // "0" // string-based
+std::cout << root[2][ 1 ].val() << "\n"; // "1" // index-based
+std::cout << root[2]["d"].val() << "\n"; // "1" // string-based
+```
+
+What about `NodeRef`? Before we look at it, let's take a moment to consider
+when a non-existing key or index is requested via the square-bracket
+operator. Unlike with `std::map`, this operator does *not* modify the tree.
+Instead you get a seed `NodeRef`, and only if this seed-state ref is written
+to will the tree be modified, by creating a node with the seed name or index.
+To allow for this, `NodeRef` is a simple structure with a declaration like:
+
+```c++
+class NodeRef
+{
+    // a pointer to the node tree
+    Tree * m_tree; 
+    
+    // either the (tree-scoped) index of an existing node or the (node-scoped) index of a seed state
+    size_t m_node_or_seed_id;
+    
+    // the key name of a seed state
+    const char* m_seed_name;
+
+public:
+
+    bool valid() { return m_node_id != npos && m_node_name == nullptr; }
+
+    // forward all calls to m_tree. For example:
+    csubstr val() const { assert(valid()); return m_tree->val(m_node_or_seed_id); }
+    void set_val(csubstr v) { if(!valid()) {/*create node in tree*/;} m_tree->set_val(m_node_or_seed_id, v); }
+    // etc
+};
+```
+
+So using this high-level API is not going to cost a lot more than the less
+practical low level API.
+
 
 ### STL interoperation
 
 ryml does not require use of the STL. Use of STL is opt-in: you need to
-`#include` the proper ryml header. Having done that, you can serialize them with a
-single step. For example:
+`#include` the proper ryml header. Having done that, you can serialize them
+with a single step. For example:
 
 ```c++
 #include <ryml_std.hpp>
@@ -211,9 +262,11 @@ It is important to overload these functions in the namespace where the type
 you're serializing was defined, to
 harness [C++'s ADL rules](http://en.cppreference.com/w/cpp/language/adl).
 
+
 ### Low-level API
 
 ... describe index-based API of the tree.
+
 
 ### Custom allocation
 
@@ -222,6 +275,7 @@ harness [C++'s ADL rules](http://en.cppreference.com/w/cpp/language/adl).
 ### Custom error handling
 
 ... describe [the custom error handler callback](src/c4/yml/common.hpp)
+
 
 ## YAML standard conformance
 
@@ -244,16 +298,16 @@ your bug reports or pull requests!
 I am currently working on integrating (and fixing) the ~300 cases in the YAML
 test suite.
 
+
 ## Rapid? How rapid is it?
 
-There are already some very impressive figures: compared
-against [yaml-cpp](https://github.com/jbeder/yaml-cpp) in
-a
+There are already some very impressive figures: compared against
+[yaml-cpp](https://github.com/jbeder/yaml-cpp) in a
 [particular test case](https://github.com/biojppm/rapidyaml/issues/1#issuecomment-370300625),
-rapidyaml was ~5x faster (~20% CPU time) in Release builds and ~30x faster
-(~3.5% CPU time) in Debug builds:
+*rapidyaml was ~5x faster (~20% CPU time)* in Release builds and *~30x faster
+(~3.5% CPU time) in Debug builds*:
 
-[[[./.ci/first_comparison_yaml_cpp.png]]](https://github.com/biojppm/rapidyaml/issues/1#issuecomment-370300625)
+[![./img/first_comparison_yaml_cpp.png]](https://github.com/biojppm/rapidyaml/issues/1#issuecomment-370300625)
 
 When I finish work on the test suite, I will get down to write some
 comparison benchmarks.
