@@ -21,6 +21,12 @@ matrix:
 
   include:
     #
+    # ----------- Coverage (covers all tests, slow) -------------------------
+    #
+    - env: CXX_=g++-7 A=64 BT=Coverage
+    - env: CXX_=g++-7 A=32 BT=Coverage
+    #
+    # ----------- other tests -----------------------------------------------
     #
     #- env: CXX_=clang++-7   A=32 BT=Debug   SAN=ALL VG=ON
     #- env: CXX_=clang++-7   A=64 BT=Debug   SAN=ALL VG=ON
@@ -89,11 +95,6 @@ matrix:
     - env: CXX_=clang++-6.0 A=32 BT=Release LINT=clang-tidy
     - env: CXX_=clang++-6.0 A=64 BT=Release LINT=clang-tidy
     #
-    # ----------- Coverage (covers all tests, slow) -------------------------
-    #
-    #- env: CXX_=g++-7 A=64 BT=Coverage
-    #- env: CXX_=g++-7 A=32 BT=Coverage
-    #
 
 install:
   - bash -x .ci/travis-install.sh
@@ -103,6 +104,4 @@ script:
 
 after_success:
   - echo "Success!"
-  #- if [ "${BT}" == "Coverage" -a "${TRAVIS_OS_NAME}" == "linux" ]; then
-  #    coveralls --include src --include include --gcov-options '\-lp' --root .. --build-root .;
-  #  fi
+  - bash -x .ci/travis-coverage.sh

@@ -2,6 +2,10 @@
 [![MIT Licensed](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/biojppm/rapidyaml/blob/master/LICENSE.txt)
 [![Build Status](https://travis-ci.org/biojppm/rapidyaml.svg?branch=master)](https://travis-ci.org/biojppm/rapidyaml)
 [![Build status](https://ci.appveyor.com/api/projects/status/github/biojppm/rapidyaml?branch=master&svg=true)](https://ci.appveyor.com/project/biojppm/rapidyaml)
+[![Coverage: coveralls](https://coveralls.io/repos/github/biojppm/rapidyaml/badge.svg)](https://coveralls.io/github/biojppm/rapidyaml)
+[![Coverage: codecov](https://codecov.io/gh/biojppm/rapidyaml/branch/master/graph/badge.svg)](https://codecov.io/gh/biojppm/rapidyaml)
+[![LGTM alerts](https://img.shields.io/lgtm/alerts/g/biojppm/rapidyaml.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/biojppm/rapidyaml/alerts/)
+[![Language grade: C++](https://img.shields.io/lgtm/grade/python/g/biojppm/rapidyaml.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/biojppm/rapidyaml/context:C++)
 
 (This is under development).
 
