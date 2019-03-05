@@ -1,30 +1,5 @@
 c4_setup_testing(ryml)
 
-# a test suite for YAML
-c4_download_remote_proj(ryml yaml-test-suite ${CMAKE_CURRENT_BINARY_DIR}/extern/yaml-test-suite
-    GIT_REPOSITORY https://github.com/yaml/yaml-test-suite
-    GIT_TAG master
-    )
-
-# extern libraries
-
-set(ryml_ext_dir ${CMAKE_CURRENT_BINARY_DIR}/extern)
-
-set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
-c4_import_remote_proj(ryml libyaml ${ryml_ext_dir}/libyaml
-    GIT_REPOSITORY https://github.com/yaml/libyaml
-    GIT_TAG master
-    )
-
-set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
-c4_import_remote_proj(ryml yaml-cpp ${ryml_ext_dir}/yaml-cpp
-    GIT_REPOSITORY https://github.com/jbeder/yaml-cpp
-    GIT_TAG master
-    )
-
-#-------------------------------------------------------------------------
-
 c4_add_library(RYML ryml_util_test
     SOURCES test_case.hpp test_case.cpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${ryml_ext_dir}/yaml-cpp/src/include
