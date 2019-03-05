@@ -1096,7 +1096,7 @@ bool Parser::_handle_top()
         }
         else
         {
-            _c4err("unknown directive starting with %");
+            _c4err("unknown directive starting with %%");
         }
         return true;
     }
@@ -1944,9 +1944,11 @@ bool Parser::_handle_indentation()
         }
         else if(has_all(RSEQ|RVAL))
         {
+            // nothing to do here
         }
         else if(m_state->line_contents.rem.triml(' ').begins_with("#"))
         {
+            // nothing to do here
         }
         else
         {

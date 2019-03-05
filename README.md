@@ -4,10 +4,9 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/github/biojppm/rapidyaml?branch=master&svg=true)](https://ci.appveyor.com/project/biojppm/rapidyaml)
 [![Coverage: coveralls](https://coveralls.io/repos/github/biojppm/rapidyaml/badge.svg)](https://coveralls.io/github/biojppm/rapidyaml)
 [![Coverage: codecov](https://codecov.io/gh/biojppm/rapidyaml/branch/master/graph/badge.svg)](https://codecov.io/gh/biojppm/rapidyaml)
-[![LGTM alerts](https://img.shields.io/lgtm/alerts/g/biojppm/rapidyaml.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/biojppm/rapidyaml/alerts/)
-[![Language grade: C++](https://img.shields.io/lgtm/grade/python/g/biojppm/rapidyaml.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/biojppm/rapidyaml/context:C++)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/biojppm/rapidyaml.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/biojppm/rapidyaml/alerts/)
+[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/biojppm/rapidyaml.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/biojppm/rapidyaml/context:cpp)
 
-(This is under development).
 
 Or ryml, for short. ryml is a library to parse and emit YAML, and do it fast.
 
@@ -15,7 +14,7 @@ ryml parses the source buffer in place, and the resulting tree holds only
 sub-ranges of the source buffer. No string copies or duplications are done, and
 no virtual functions are used. Serialization happens only when the user wants
 it to happen, so internally the data tree representation has no knowledge of
-types.
+types. The resulting tree is easy and fast to iterate through and change.
 
 ryml can use custom memory allocators, and is made exception-agnostic via a
 custom error handler callback.
@@ -35,13 +34,14 @@ and eat it too".
 
 Parsing from source:
 ```c++
-#include <iostream>
 #include <ryml.hpp>
+#include <iostream> // not needed by ryml, just for these examples
 int main()
 {
-    char src[] = "{foo: 1}"; // needs to be writable
-    auto tree = ryml::parse(src);
-    auto node = tree["foo"];
+    char src[] = "{foo: 1}"; // needs to be writable; will be modified in place
+    ryml::Tree tree = ryml::parse(src); // there are also overloads for reusing the tree
+    ryml::NodeRef node = tree["foo"]; // get a reference to the "foo" node
+
     std::cout << node.key() << "\n"; // "foo"
     std::cout << node.val() << "\n"; // "1"
 
@@ -50,6 +50,15 @@ int main()
     node >> foo; // now foo == 1
 }
 ```
+
+It is also possible to parse constant buffers, but before parsing ryml will
+copy these over to an arena buffer in the tree object, and modify those while
+parsing:
+```c++
+// "{foo: 1}" is a read-only buffer; it will be copied to the tree's arena
+auto tree = ryml::parse("{foo: 1}");
+```
+
 
 Creating a tree programatically:
 ```c++
@@ -222,9 +231,23 @@ Of course, there are some dark corners in YAML, and there certainly can
 appear many cases which YAML fails to parse. So we welcome
 your bug reports or pull requests!
 
-## How rapid is it?
+I am currently working on integrating (and fixing) the ~300 cases in the YAML
+test suite.
 
-... Show here.
+## Rapid? How rapid is it?
+
+There are already some very impressive figures: compared
+against [yaml-cpp](https://github.com/jbeder/yaml-cpp) in
+a
+[particular test case](https://github.com/biojppm/rapidyaml/issues/1#issuecomment-370300625),
+rapidyaml was ~5x faster (~20% CPU time) in Release builds and ~30x faster
+(~3.5% CPU time) in Debug builds:
+
+[[[/.ci/first_comparison_yaml_cpp.png]]](https://github.com/biojppm/rapidyaml/issues/1#issuecomment-370300625)
+
+When I finish work on the test suite, I will get down to write some
+comparison benchmarks.
+
 
 ## Alternative libraries
 
