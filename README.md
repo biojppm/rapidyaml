@@ -27,10 +27,10 @@ ryml is written in C++11, and is known to compile with:
 * clang++ 3.9 and later
 * g++ 5 and later
 
+
 ## Quick start
 
-Being fast doesn't need to mean being unpractical, AKA "you can have your cake
-and eat it too".
+You can have your cake and eat it too: being fast doesn't need to mean being unpractical!
 
 Parsing from source:
 ```c++
@@ -59,8 +59,15 @@ parsing:
 auto tree = ryml::parse("{foo: 1}");
 ```
 
+`node.key()` and `node.val()` return an object of type `c4::csubstr`
+(*C*onstant *SUBSTR*ing) which is a read-only string-view, with some more
+methods that make it practical to use. There's also a writable `c4::substr`
+string view, which in fact is used heavily by ryml to transform YAML blocks
+and scalars during parsing. You can browse these classes here:
+[https://github.com/biojppm/c4core/src/c4/substr.hpp](c4/substr.hpp).
 
-Creating a tree programatically:
+
+To create a tree programatically:
 ```c++
 ryml::Tree tree;
 auto r = tree.rootref();
@@ -128,19 +135,22 @@ emit(tree); // now prints the following:
 ```
 
 
+To iterate over children:
 ```c++
-//To iterate over children:
 for(auto c : node.children())
 {
     std::cout << c.key() << "---" << c.val() << "\n";
 }
-//To iterate over siblings:
+```
+
+To iterate over siblings:
+```c++
 for(auto c : node.siblings())
 {
     std::cout << c.key() << "---" << c.val() << "\n";
 }
 ```
- 
+
 
 ### STL interoperation
 
@@ -243,7 +253,7 @@ a
 rapidyaml was ~5x faster (~20% CPU time) in Release builds and ~30x faster
 (~3.5% CPU time) in Debug builds:
 
-[[[/.ci/first_comparison_yaml_cpp.png]]](https://github.com/biojppm/rapidyaml/issues/1#issuecomment-370300625)
+[[[./.ci/first_comparison_yaml_cpp.png]]](https://github.com/biojppm/rapidyaml/issues/1#issuecomment-370300625)
 
 When I finish work on the test suite, I will get down to write some
 comparison benchmarks.
