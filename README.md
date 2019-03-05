@@ -304,10 +304,10 @@ test suite.
 There are already some very impressive figures: compared against
 [yaml-cpp](https://github.com/jbeder/yaml-cpp) in a
 [particular test case](https://github.com/biojppm/rapidyaml/issues/1#issuecomment-370300625),
-*rapidyaml was ~5x faster (~20% CPU time)* in Release builds and *~30x faster
-(~3.5% CPU time) in Debug builds*:
+**rapidyaml was ~5x faster (~20% CPU time)** in Release builds and **~30x faster
+(~3.5% CPU time)** in Debug builds:
 
-[![./img/first_comparison_yaml_cpp.png]](https://github.com/biojppm/rapidyaml/issues/1#issuecomment-370300625)
+[![test case results](img/first_comparison_yaml_cpp.png)](https://github.com/biojppm/rapidyaml/issues/1#issuecomment-370300625)
 
 When I finish work on the test suite, I will get down to write some
 comparison benchmarks.
