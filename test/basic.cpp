@@ -66,9 +66,9 @@ TEST(serialize, type_as_str)
 
     char buf[256];
     c4::csubstr ret = c4::yml::emit(t, buf);
-    EXPECT_EQ(ret, R"(v2: (10,11)
-v3: (100,101,102)
-v4: (1000,1001,1002,1003)
+    EXPECT_EQ(ret, R"(v2: '(10,11)'
+v3: '(100,101,102)'
+v4: '(1000,1001,1002,1003)'
 )");
 }
 
