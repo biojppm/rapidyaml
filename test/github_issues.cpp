@@ -28,7 +28,7 @@ C("github3-problem2-ex1",
 R"(
 audio resource: 
 )",
-L{N("audio resource", "")}
+L{N("audio resource", "~")}
 ),
 C("github3-problem2-ex2",
 R"(
@@ -36,7 +36,7 @@ audio resource:
 more:
   example: y
 )",
-L{N("audio resource", ""), N("more", L{N("example", "y")})}
+L{N("audio resource", "~"), N("more", L{N("example", "y")})}
 ),
 
 C("github3-problem3",

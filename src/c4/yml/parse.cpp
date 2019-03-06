@@ -116,7 +116,7 @@ void Parser::_handle_finished_file()
         }
         else if(m_tree->is_map(m_state->node_id))
         {
-            _append_key_val("");
+            _append_key_val("~");
         }
         else
         {
@@ -125,7 +125,7 @@ void Parser::_handle_finished_file()
     }
     else if(has_all(RSEQ|RVAL) && has_none(EXPL))
     {
-        _append_val("");
+        _append_val("~");
     }
 
     _c4dbgp("emptying stack...");
@@ -562,7 +562,7 @@ bool Parser::_handle_seq_impl()
                 _line_progressed(skip);
                 rem = rem.sub(skip);
             }
-            if(rem.begins_with(": "))
+            if(rem.begins_with(": ") || rem.ends_with(':'))
             {
                 _c4dbgp("actually, the scalar is the first key of a map, and it opens a new scope");
                 addrem_flags(RNXT, RVAL); // before _push_level! This prepares the current level for popping by setting it to RNXT
@@ -673,7 +673,7 @@ bool Parser::_rval_dash_start_or_continue_seq()
     {
         _c4dbgp("prev val was empty");
         addrem_flags(RNXT, RVAL);
-        _append_val("");
+        _append_val("~");
         return false;
     }
     _c4dbgp("val is a nested seq, indented");
@@ -1337,8 +1337,9 @@ csubstr Parser::_scan_scalar()
         if(has_all(RVAL))
         {
             _c4dbgp("RSEQ|RVAL");
-            s = s.left_of(s.find(": ")); // is there a key-value?
             s = s.left_of(s.find(" #")); // is there a comment?
+            s = s.left_of(s.find(": ")); // is there a key-value?
+            if(s.ends_with(':')) s = s.left_of(s.len-1);
             if(has_all(EXPL))
             {
                 _c4dbgp("RSEQ|RVAL|EXPL");
@@ -1925,13 +1926,13 @@ bool Parser::_handle_indentation()
     C4_ASSERT(has_none(EXPL));
     if( ! _at_line_begin()) return false;
 
-    size_t ind = m_state->line_contents.indentation;
-
-    if(m_state->line_contents.rem.trimr(' ').empty())
+    if(m_state->line_contents.rem.trimr(' ').empty()) // this is a blank line
     {
         _line_progressed(m_state->line_contents.rem.size());
         return true;
     }
+
+    size_t ind = m_state->line_contents.indentation;
 
     if(ind == (size_t)m_state->indref)
     {
@@ -1968,12 +1969,12 @@ bool Parser::_handle_indentation()
             if(has_all(RMAP))
             {
                 C4_ASSERT(has_all(SSCL));
-                _append_key_val("");
+                _append_key_val("~");
             }
             else if(has_all(RSEQ))
             {
                 C4_ASSERT(has_none(SSCL));
-                _append_val("");
+                _append_val("~");
             }
         }
         State const* popto = nullptr;
