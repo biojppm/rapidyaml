@@ -202,7 +202,8 @@ bool Parser::_is_scalar_next(csubstr rem) const
     bool yes = isalnum(rem[0]) // an alpha-numeric character
         || rem.begins_with('"') || rem.begins_with('\'') // double or single quotes
         || rem.begins_with('|') || rem.begins_with('>')  // or a block indicator
-        || rem.begins_with("<<: ") || rem.begins_with('*'); // treat references as scalars
+        || rem.begins_with("<<: ") || rem.begins_with('*') // treat references as scalars
+        || rem.begins_with('~'); // treat null as scalars
     if(yes) return true;
     if(rem.len > 1)
     {
@@ -713,8 +714,8 @@ bool Parser::_handle_map_expl()
             _c4dbgp("end the map");
             if(has_all(SSCL))
             {
-                _c4dbgp("the last val was empty");
-                _append_key_val("");
+                _c4dbgp("the last val was null");
+                _append_key_val("~");
                 rem_flags(RVAL);
             }
             _pop_level();
@@ -775,7 +776,15 @@ bool Parser::_handle_map_expl()
             }
             else if(rem.begins_with('?'))
             {
+                _c4dbgp("complex key");
                 add_flags(CPLX);
+                _line_progressed(1);
+                return true;
+            }
+            else if(rem.begins_with(','))
+            {
+                _c4dbgp("prev scalar was a key with null value");
+                _append_key_val("~");
                 _line_progressed(1);
                 return true;
             }
@@ -784,6 +793,10 @@ bool Parser::_handle_map_expl()
                 return true;
             }
             else if(_handle_key_anchors_and_refs())
+            {
+                return true;
+            }
+            else if(rem == "")
             {
                 return true;
             }
@@ -837,7 +850,7 @@ bool Parser::_handle_map_expl()
             else if(rem.begins_with(','))
             {
                 _c4dbgp("appending empty val");
-                _append_key_val("");
+                _append_key_val("~");
                 addrem_flags(RKEY, RVAL);
                 _line_progressed(1);
                 return true;
@@ -1366,23 +1379,27 @@ csubstr Parser::_scan_scalar()
                 s = s.triml(' ');
                 s = s.left_of(colon_space);
                 s = s.trimr(' ');
+                if(has_any(EXPL))
+                {
+                    _c4dbgp("RMAP|RVAL|EXPL");
+                    s = s.left_of(s.first_of(",}"));
+                }
             }
         }
         else if(has_all(RVAL))
         {
             C4_ASSERT(has_none(CPLX));
+            s = s.left_of(s.find(" #")); // is there a comment?
             if(has_any(EXPL))
             {
                 _c4dbgp("RMAP|RVAL|EXPL");
-                s = s.left_of(s.first_of(",}#"));
-                s = s.trim(' ');
+                s = s.left_of(s.first_of(",}"));
             }
             else
             {
                 _c4dbgp("RMAP|RVAL");
-                s = s.left_of(s.first_of("#"));
-                s = s.trim(' ');
             }
+            s = s.trim(' ');
         }
         else
         {
@@ -1392,7 +1409,21 @@ csubstr Parser::_scan_scalar()
     else if(has_all(RUNK))
     {
         _c4dbgp("RUNK");
-        s = s.left_of(s.first_of(",:#"));
+        s = s.left_of(s.find(" #"));
+        size_t pos = s.find(": ");
+        if(pos != npos)
+        {
+            s = s.left_of(pos);
+        }
+        else if(s.ends_with(':'))
+        {
+            s = s.left_of(s.len-1);
+        }
+        else
+        {
+            s = s.left_of(s.first_of(','));
+        }
+        s = s.trim(' ');
     }
     else
     {
@@ -1401,14 +1432,15 @@ csubstr Parser::_scan_scalar()
 
     _line_progressed(s.str - m_state->line_contents.rem.str + s.len);
 
+    // PHEWW*. this is crazy and very fragile. revisit and make this better.
     if(_at_line_end())
     {
         csubstr n = _peek_next_line(m_state->pos.offset);
-        if(n.begins_with(' ', m_state->line_contents.indentation + 1))
+        if(has_none(EXPL) && n.begins_with(' ', m_state->line_contents.indentation + 1))
         {
             _c4dbgpf("does indentation increase? '%.*s'", _c4prsp(n));
-            size_t ind = n.first_not_of(' ');
-            if(ind == npos) // maybe n contains only spaces
+            size_t ind = n.first_not_of(' ');  // maybe n contains only spaces
+            if(ind == npos)
             {
                 ind = n.len;
             }
@@ -1426,9 +1458,39 @@ csubstr Parser::_scan_scalar()
                     n = _peek_next_line(m_state->pos.offset);
                 }
                 substr full(m_buf.str + (s.str - m_buf.str), m_buf.begin() + m_state->pos.offset);
-
                 s = _filter_plain_scalar(full, ind);
             }
+        }
+        else if(has_all(EXPL))
+        {
+            constexpr const csubstr chars = "[]{}?#,";
+            size_t pos = n.first_of(chars);
+            while(pos != 0)
+            {
+                if(pos == npos)
+                {
+                    _c4dbgpf("reading scalar: append another line: '%.*s'", _c4prsp(n));
+                    pos = n.len;
+                    _line_ended(); // advances to the peeked-at line, consuming all remaining (probably newline) characters on the current line
+                    _scan_line();  // puts the peeked-at line in the buffer
+                    C4_ASSERT(n == m_state->line_contents.rem);
+                    _line_progressed(n.end() - (m_buf.str + m_state->pos.offset));
+                    n = _peek_next_line(m_state->pos.offset);
+                    pos = n.first_of(chars);
+                }
+                else
+                {
+                    n = n.left_of(pos);
+                    _c4dbgpf("reading scalar: append another line: '%.*s'", _c4prsp(n));
+                    _line_ended(); // advances to the peeked-at line, consuming all remaining (probably newline) characters on the current line
+                    _scan_line();  // puts the peeked-at line in the buffer
+                    _line_progressed(n.end() - (m_buf.str + m_state->pos.offset));
+                    break;
+                }
+            }
+            substr full(m_buf.str + (s.str - m_buf.str), m_buf.begin() + m_state->pos.offset);
+            full = full.trimr(' ');
+            s = _filter_plain_scalar(full, /*indentation*/0);
         }
     }
 
@@ -1871,7 +1933,7 @@ bool Parser::_handle_indentation()
         {
             if(has_all(RMAP))
             {
-                _append_key_val("");
+                _append_key_val("~");
                 addrem_flags(RKEY, RVAL);
             }
             else if(has_all(RSEQ))
@@ -2209,16 +2271,6 @@ csubstr Parser::_scan_block()
 }
 
 //-----------------------------------------------------------------------------
-inline substr erase(substr d, size_t pos, size_t num)
-{
-    return d.erase(pos, num);
-/*    C4_ASSERT(pos >= 0 && pos+num <= d.len);
-    size_t num_to_move = d.len - pos - num;
-    memmove(d.str + pos, d.str + pos + num, sizeof(substr::char_type) * num_to_move);
-    return substr(d.str, d.len - num);*/
-}
-
-//-----------------------------------------------------------------------------
 csubstr Parser::_filter_plain_scalar(substr s, size_t indentation)
 {
     _c4dbgpf("filtering plain scalar: before='%.*s'", _c4prsp(s));
@@ -2240,7 +2292,7 @@ csubstr Parser::_filter_plain_scalar(substr s, size_t indentation)
             }
             else if(curr == '\n' && next == '\n')
             {
-                r = erase(r, i+1, 1); // keep only one of consecutive newlines
+                r = r.erase(i+1, 1); // keep only one of consecutive newlines
             }
         }
     }
@@ -2275,7 +2327,7 @@ csubstr Parser::_filter_squot_scalar(substr s)
         const char next = i+1 < r.len ? r[i+1] : '\0';
         if(curr == '\'' && (curr == next))
         {
-            r = erase(r, i+1, 1); // turn two consecutive single quotes into one
+            r = r.erase(i+1, 1); // turn two consecutive single quotes into one
         }
         else if(curr == '\n')
         {
@@ -2285,7 +2337,7 @@ csubstr Parser::_filter_squot_scalar(substr s)
             }
             else if(curr == '\n' && next == '\n')
             {
-                r = erase(r, i+1, 1); // keep only one of consecutive newlines
+                r = r.erase(i+1, 1); // keep only one of consecutive newlines
             }
         }
     }
@@ -2321,19 +2373,19 @@ csubstr Parser::_filter_dquot_scalar(substr s)
         {
             if(next == curr)
             {
-                r = erase(r, i+1, 1); // turn two consecutive backslashes into one
+                r = r.erase(i+1, 1); // turn two consecutive backslashes into one
             }
             else if(next == '\n')
             {
-                r = erase(r, i, 2);  // newlines are escaped with \ -- delete both
+                r = r.erase(i, 2);  // newlines are escaped with \ -- delete both
             }
             else if(next == '"')
             {
-                r = erase(r, i, 1);  // fix escaped double quotes
+                r = r.erase(i, 1);  // fix escaped double quotes
             }
             else if(next == 'n')
             {
-                r = erase(r, i+1, 1);
+                r = r.erase(i+1, 1);
                 r[i] = '\n';
             }
         }
@@ -2345,7 +2397,7 @@ csubstr Parser::_filter_dquot_scalar(substr s)
             }
             else if(curr == '\n' && next == '\n')
             {
-                r = erase(r, i+1, 1); // keep only one of consecutive newlines
+                r = r.erase(i+1, 1); // keep only one of consecutive newlines
             }
         }
     }
@@ -2391,21 +2443,21 @@ substr Parser::_filter_whitespace(substr r, size_t indentation, bool leading_whi
                 {
                     num = ss.len;
                 }
-                r = erase(r, i, num);
+                r = r.erase(i, num);
             }
             else
             {
-                r = erase(r, i, 1);
+                r = r.erase(i, 1);
             }
         }
         // erase \r --- https://stackoverflow.com/questions/1885900
         else if(curr == '\r' && next == '\n') // this is the right order
         {
-            r = erase(r, i, 1);
+            r = r.erase(i, 1);
         }
         else if(curr == '\n' && next == '\r') // this is the wrong order
         {
-            r = erase(r, i+1, 1);
+            r = r.erase(i+1, 1);
         }
         else if(curr == '\r')
         {
@@ -2431,7 +2483,7 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
     {
         r = _filter_whitespace(s, indentation, /*leading whitespace*/false);
         C4_ASSERT(r.begins_with(' ', indentation));
-        r = erase(r, 0, indentation);
+        r = r.erase(0, indentation);
     }
 
     _c4dbgpf("filtering block: after whitespace='%.*s'", _c4prsp(r));
@@ -2491,7 +2543,7 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
                     }
                     else if(curr == '\n' && next == '\n')
                     {
-                        t = erase(t, i+1, 1); // keep only one of consecutive newlines
+                        t = t.erase(i+1, 1); // keep only one of consecutive newlines
                     }
                 }
             }
