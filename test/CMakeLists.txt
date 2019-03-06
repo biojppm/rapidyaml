@@ -61,20 +61,13 @@ option(RYML_TEST_SUITE "Enable ~300 extensive tests from yaml-test-suite." OFF)
 
 if(RYML_TEST_SUITE)
 
-    c4_import_remote_proj(ryml c4fs ${ryml_ext_dir}/c4fs
-        GIT_REPOSITORY https://github.com/biojppm/c4fs
-        GIT_TAG master
-        )
-
     c4_import_remote_proj(ryml c4log ${ryml_ext_dir}/c4log
         GIT_REPOSITORY https://github.com/biojppm/c4log
-        GIT_TAG master
-        )
+        GIT_TAG master)
 
     c4_download_remote_proj(ryml yaml-test-suite ${ryml_ext_dir}/yaml-test-suite
         GIT_REPOSITORY https://github.com/yaml/yaml-test-suite
-        GIT_TAG master
-        )
+        GIT_TAG master)
 
     set(suite_dir ${ryml_ext_dir}/yaml-test-suite/src/test)
     if(NOT EXISTS ${suite_dir})
