@@ -469,6 +469,10 @@ bool Parser::_handle_seq_expl()
             _line_progressed(1);
             return true;
         }
+        else
+        {
+            _c4err("was expecting a comma");
+        }
     }
     else
     {
@@ -550,7 +554,14 @@ bool Parser::_handle_seq_impl()
             _c4dbgp("it's a scalar");
             csubstr s = _scan_scalar(); // this also progresses the line
             rem = m_state->line_contents.rem;
-            if(rem.begins_with(':'))
+            if(rem.begins_with(' '))
+            {
+                _c4dbgp("skipping whitespace...");
+                size_t skip = rem.first_not_of(' ');
+                _line_progressed(skip);
+                rem = rem.sub(skip);
+            }
+            if(rem.begins_with(": "))
             {
                 _c4dbgp("actually, the scalar is the first key of a map, and it opens a new scope");
                 addrem_flags(RNXT, RVAL); // before _push_level! This prepares the current level for popping by setting it to RNXT
@@ -1312,18 +1323,16 @@ csubstr Parser::_scan_scalar()
         C4_ASSERT( ! has_all(RKEY));
         if(has_all(RVAL))
         {
+            _c4dbgp("RSEQ|RVAL");
+            s = s.left_of(s.find(": ")); // is there a key-value?
+            s = s.left_of(s.find(" #")); // is there a comment?
             if(has_all(EXPL))
             {
                 _c4dbgp("RSEQ|RVAL|EXPL");
-                s = s.left_of(s.first_of(",]#:"));
-                s = s.trimr(' ');
+                s = s.left_of(s.first_of(",]"));
             }
-            else
-            {
-                _c4dbgp("RSEQ|RVAL");
-                s = s.left_of(s.first_of("#:"));
-                s = s.trimr(' ');
-            }
+            _c4dbgp("RSEQ|RVAL");
+            s = s.trimr(' ');
         }
         else
         {
@@ -1345,14 +1354,15 @@ csubstr Parser::_scan_scalar()
 
         if(has_all(RKEY))
         {
-            _c4dbgp("RMAP|RKEY");
             if(has_any(CPLX))
             {
+                _c4dbgp("RMAP|RKEY|CPLX");
                 C4_ASSERT(has_any(RMAP));
                 s = s.left_of(colon_space);
             }
             else
             {
+                _c4dbgp("RMAP|RKEY");
                 s = s.triml(' ');
                 s = s.left_of(colon_space);
                 s = s.trimr(' ');
@@ -1369,6 +1379,7 @@ csubstr Parser::_scan_scalar()
             }
             else
             {
+                _c4dbgp("RMAP|RVAL");
                 s = s.left_of(s.first_of("#"));
                 s = s.trim(' ');
             }
@@ -1380,6 +1391,7 @@ csubstr Parser::_scan_scalar()
     }
     else if(has_all(RUNK))
     {
+        _c4dbgp("RUNK");
         s = s.left_of(s.first_of(",:#"));
     }
     else

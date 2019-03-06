@@ -197,9 +197,10 @@ void Emitter<Writer>::_write_scalar(csubstr s)
 {
     const bool no_dquotes = s.first_of( '"') == npos;
     const bool no_squotes = s.first_of('\'') == npos;
-    const bool no_newline = s.first_of('\n') == npos;
+    // force use quotes when any of these characters is present
+    const bool no_special = s.first_of("#:-,\n{}[]") == npos;
 
-    if(no_dquotes && no_squotes && no_newline)
+    if(no_dquotes && no_squotes && no_special)
     {
         if( ! s.empty())
         {
