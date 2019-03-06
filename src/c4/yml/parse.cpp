@@ -1927,6 +1927,12 @@ bool Parser::_handle_indentation()
 
     size_t ind = m_state->line_contents.indentation;
 
+    if(m_state->line_contents.rem.trimr(' ').empty())
+    {
+        _line_progressed(m_state->line_contents.rem.size());
+        return true;
+    }
+
     if(ind == (size_t)m_state->indref)
     {
         if(has_all(SSCL|RVAL) && ! m_state->line_contents.rem.sub(ind).begins_with('-'))
