@@ -1,9 +1,5 @@
 c4_setup_benchmarks(ryml)
 
-c4_import_remote_proj(ryml c4fs ${ryml_ext_dir}/c4fs
-    GIT_REPOSITORY https://github.com/biojppm/c4fs
-    GIT_TAG master)
-
 function(ryml_add_bm bm_name case_file)
     set(bm ryml-benchmark-${bm_name})
     if(NOT TARGET ${bm})
