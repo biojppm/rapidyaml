@@ -408,7 +408,7 @@ c ,d: val, 000
 e ,f: val , 000
 h ,i: val ,000
 })",
-    L{ // this is fun...
+    L{ // this is crazy...
         N{"a", "~"}, N{"b", "val"}, N{"000 c", "~"},
                      N{"d", "val"}, N{"000 e", "~"},
                      N{"f", "val"}, N{"000 h", "~"},
