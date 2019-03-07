@@ -6,7 +6,6 @@
 #include <iostream>
 #include <yaml-cpp/yaml.h>
 
-
 namespace bm = benchmark;
 
 
@@ -14,30 +13,47 @@ namespace bm = benchmark;
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-struct Case
+struct BmCase
 {
     c4::csubstr filename;
     std::vector<char> src;
     std::vector<char> in_place;
-    bool is_json;
     ryml::Tree ryml_tree;
+    bool is_json;
+
+    void run(int argc, char **argv)
+    {
+        bm::Initialize(&argc, argv);
+        C4_CHECK(argc == 2);
+        load(argv[1]);
+        bm::RunSpecifiedBenchmarks();
+    }
 
     void load(const char* file)
     {
         filename = c4::to_csubstr(file);
         is_json = filename.ends_with(".json");
-        src = c4::fs::file_get_contents<std::vector<char>>(file);
+        c4::fs::file_get_contents(file, &src);
         in_place = src;
     }
-
 };
-Case c;
 
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+BmCase c; // this is used by the benchmarks
+
+int main(int argc, char** argv)
+{
+    c.run(argc, argv);
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 void yamlcpp(bm::State& st)
 {
@@ -108,16 +124,3 @@ BENCHMARK(ryml_ro);
 BENCHMARK(ryml_rw);
 BENCHMARK(ryml_ro_reuse);
 BENCHMARK(ryml_rw_reuse);
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-int main(int argc, char** argv)
-{
-    bm::Initialize(&argc, argv);
-    C4_CHECK(argc == 2);
-    c.load(argv[1]);
-    bm::RunSpecifiedBenchmarks();
-}

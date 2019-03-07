@@ -28,10 +28,46 @@ ryml is written in C++11, and is known to compile with:
 * g++ 5 and later
 
 
+## Rapid? How rapid is it?
+
+A lot, actually!
+
+Here's a benchmark repeatedly parsing an [appveyor.yml config
+file](./bm/cases/appveyor.yml), and comparing with [yaml-cpp](https://github.com/jbeder/yaml-cpp):
+
+```
+------------------------------------------------------------------------
+Benchmark                      Time             CPU   Iterations UserCounters...
+------------------------------------------------------------------------
+Debug/yamlcpp           25423992 ns     25669643 ns           28 bytes_per_second=84.4185k/s
+Debug/ryml_rw_reuse       328672 ns       329641 ns         2133 bytes_per_second=6.41971M/s items_per_second=218.419k/s
+Release/yamlcpp           394764 ns       399013 ns         1723 bytes_per_second=5.30359M/s
+Release/ryml_rw_reuse      20737 ns        20856 ns        34462 bytes_per_second=101.466M/s items_per_second=3.45219M/s
+```
+
+Note the average 100MB/s read rate! You
+can [look at the code here](./bm/parse.cpp). A comparison of these results is
+summarized on the table below:
+
+| ryml runs... | Times faster than yamlcpp | % of yamlcpp |
+|--------------|---------------------------|--------------|
+| Release      |           ~20x            |     ~5%      |
+| Debug        |           ~80x            |     ~1.3%    |
+
+The 100MB/s read rate puts ryml in the same ballpark
+as [RapidJSON](https://github.com/Tencent/rapidjson) and other fast(-ish)
+json readers
+([data from here](https://lemire.me/blog/2018/05/03/how-fast-can-you-parse-json/)),
+which is something to be proud of, as YAML is a language much more complex than
+JSON.
+
+
 ## Quick start
 
 You can have your cake and eat it too: being rapid doesn't mean being
-unpractical! ryml was written with easy usage in mind, and comes with a two level
+unpractical!
+
+ryml was written with easy usage in mind, and comes with a two level
 API for accessing and traversing the data tree: a low-level index-based API
 and a higher level wrapping it via a ``NodeRef`` class. The examples in this
 section are using the high-level ``NodeRef``.
@@ -141,7 +177,7 @@ emit(tree); // now prints the following:
 
 To iterate over children:
 ```c++
-for(auto c : node.children())
+for(NodeRef c : node.children())
 {
     std::cout << c.key() << "---" << c.val() << "\n";
 }
@@ -149,7 +185,7 @@ for(auto c : node.children())
 
 To iterate over siblings:
 ```c++
-for(auto c : node.siblings())
+for(NodeRef c : node.siblings())
 {
     std::cout << c.key() << "---" << c.val() << "\n";
 }
@@ -169,17 +205,19 @@ std::cout << root[2][ 1 ].val() << "\n"; // "1" // index-based
 std::cout << root[2]["d"].val() << "\n"; // "1" // string-based
 ```
 
-What about `NodeRef`? Before we look at it, let's take a moment to consider
-when a non-existing key or index is requested via the square-bracket
-operator. Unlike with `std::map`, this operator does *not* modify the tree.
-Instead you get a seed `NodeRef`, and only if this seed-state ref is written
-to will the tree be modified, by creating a node with the seed name or index.
-To allow for this, `NodeRef` is a simple structure with a declaration like:
+What about `NodeRef`? Let's consider when a non-existing key or index is
+requested via the square-bracket operator. Unlike with `std::map`, **this
+operator does not modify the tree**. Instead you get a seed `NodeRef`, and
+the tree will be modified only when this seed-state reference is written
+to. Thus `NodeRef` can either point to a valid tree node, or if no such node
+exists is in seed-state by holding the index or name passed to
+`operator[]`. To allow for this, `NodeRef` is a simple structure with a
+declaration like:
 
 ```c++
 class NodeRef
 {
-    // a pointer to the node tree
+    // a pointer to the tree
     Tree * m_tree; 
     
     // either the (tree-scoped) index of an existing node or the (node-scoped) index of a seed state
@@ -190,12 +228,14 @@ class NodeRef
 
 public:
 
+    // this can be used to query whether a node is in seed state
     bool valid() { return m_node_id != npos && m_node_name == nullptr; }
 
     // forward all calls to m_tree. For example:
     csubstr val() const { assert(valid()); return m_tree->val(m_node_or_seed_id); }
     void set_val(csubstr v) { if(!valid()) {/*create node in tree*/;} m_tree->set_val(m_node_or_seed_id, v); }
-    // etc
+
+    // etc...
 };
 ```
 
@@ -240,6 +280,7 @@ directory in the source folder [c4/yml/std](src/c4/yml/std).
 These headers also showcase how to implement your custom type. See for
 example [the map implementation](src/c4/yml/std/map.hpp).
 
+
 ### Custom types
 
 ryml comes stocked with code to serialize the basic intrinsic types (integers
@@ -248,15 +289,15 @@ how to serialize your type.
 
 There are two distinct categories of types when serializing to a YAML tree:
 
-* The type is serializable to a string, and it will be a leaf node in
-  the tree. For these, overload the `to_str()/from_str()` functions. An example
-  can be seen in
-  the [the `std::string` serialization code](src/c4/yml/std/string.hpp).
-
 * The type requires child nodes (it is either a sequence or map).
   For these, overload the `write()/read()` functions. Examples can be seen in
   the serialization of [`std::vector`](src/c4/yml/std/vector.hpp)
   or [`std::map`](src/c4/yml/std/map.hpp).
+
+* The type is serializable to a string, and it will be a leaf node in
+  the tree. For these, overload the `to_str()/from_str()` functions. An example
+  can be seen in
+  the [the `std::string` serialization code](extern/c4core/src/c4/std/string.hpp).
   
 It is important to overload these functions in the namespace where the type
 you're serializing was defined, to
@@ -297,39 +338,6 @@ your bug reports or pull requests!
 
 I am currently working on integrating (and fixing) the ~300 cases in the YAML
 test suite.
-
-
-## Rapid? How rapid is it?
-
-A lot, actually!
-
-Here's a benchmark repeatedly parsing in situ an [appveyor.yml config
-file](./bm/cases/appveyor.yml), and comparing with [yaml-cpp](https://github.com/jbeder/yaml-cpp):
-
-```
-------------------------------------------------------------------------
-Benchmark                      Time             CPU   Iterations UserCounters...
-------------------------------------------------------------------------
-Debug/yamlcpp           25423992 ns     25669643 ns           28 bytes_per_second=84.4185k/s
-Debug/ryml_rw_reuse       328672 ns       329641 ns         2133 bytes_per_second=6.41971M/s items_per_second=218.419k/s
-Release/yamlcpp           394764 ns       399013 ns         1723 bytes_per_second=5.30359M/s
-Release/ryml_rw_reuse      20737 ns        20856 ns        34462 bytes_per_second=101.466M/s items_per_second=3.45219M/s
-```
-
-Note the average 100MB/s read rate for Release. You
-can [look at the code here](./bm/parse.cpp). A comparison of the figures
-above is summarized on the table below:
-
-| ryml runs... | Times faster than yamlcpp | % of yamlcpp |
-|--------------|---------------------------|--------------|
-| Release      |           ~20x            |     ~5%      |
-| Debug        |           ~80x            |     ~1.3%    |
-
-The 100MB/s read rate puts ryml in the same
-ballpark as [RapidJSON](https://github.com/Tencent/rapidjson) and other
-fast(-ish) json readers
-([data from here](https://lemire.me/blog/2018/05/03/how-fast-can-you-parse-json/)),
-even when YAML being much more complex than JSON.
 
 
 ## Alternative libraries
