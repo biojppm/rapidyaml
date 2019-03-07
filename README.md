@@ -32,7 +32,7 @@ ryml is written in C++11, and is known to compile with:
 
 A lot, actually!
 
-Here's a benchmark repeatedly parsing an [appveyor.yml config
+[Here's a benchmark](./bm/parse.cpp) repeatedly parsing an [appveyor.yml config
 file](./bm/cases/appveyor.yml), and comparing with [yaml-cpp](https://github.com/jbeder/yaml-cpp):
 
 ```
@@ -45,8 +45,7 @@ Release/yamlcpp           394764 ns       399013 ns         1723 bytes_per_secon
 Release/ryml_rw_reuse      20737 ns        20856 ns        34462 bytes_per_second=101.466M/s items_per_second=3.45219M/s
 ```
 
-Note the average 100MB/s read rate! You
-can [look at the code here](./bm/parse.cpp). A comparison of these results is
+Note the average 100MB/s read rate! A comparison of these results is
 summarized on the table below:
 
 | ryml runs... | Times faster than yamlcpp | % of yamlcpp |
@@ -57,8 +56,7 @@ summarized on the table below:
 The 100MB/s read rate puts ryml in the same ballpark
 as [RapidJSON](https://github.com/Tencent/rapidjson) and other fast(-ish)
 json readers
-([data from here](https://lemire.me/blog/2018/05/03/how-fast-can-you-parse-json/)),
-which is something to be proud of, as YAML is a language much more complex than
+([data from here](https://lemire.me/blog/2018/05/03/how-fast-can-you-parse-json/)). This is something to be proud of, as YAML is a language much more complex than
 JSON.
 
 
@@ -75,15 +73,20 @@ section are using the high-level ``NodeRef``.
 Parsing from source:
 ```c++
 #include <ryml.hpp>
-#include <iostream> // not needed by ryml, just for these examples
+// not needed by ryml, just for these examples
+#include <iostream>
 int main()
 {
-    char src[] = "{foo: 1}"; // needs to be writable; will be modified in place
-    ryml::Tree tree = ryml::parse(src); // there are also overloads for reusing the tree
-    ryml::NodeRef node = tree["foo"]; // get a reference to the "foo" node
+    // needs to be writable; will be modified in place
+    char src[] = "{foo: 1}";
+    // there are also overloads for reusing the tree and parser
+    ryml::Tree tree = ryml::parse(src);
 
-    std::cout << node.key() << "\n"; // "foo"
-    std::cout << node.val() << "\n"; // "1"
+    // get a reference to the "foo" node
+    ryml::NodeRef node = tree["foo"];
+
+    // "foo: 1"
+    std::cout << node.key() << ": " << node.val() << "\n";
 
     // deserializing:
     int foo;
@@ -92,11 +95,11 @@ int main()
 ```
 
 It is also possible to parse constant buffers, but before parsing ryml will
-copy these over to an arena buffer in the tree object, and modify those while
-parsing:
+copy these buffers over to an arena buffer in the tree object, and modify
+those while parsing:
 ```c++
 // "{foo: 1}" is a read-only buffer; it will be copied to the tree's arena
-auto tree = ryml::parse("{foo: 1}");
+ryml::Tree tree = ryml::parse("{foo: 1}");
 ```
 
 `node.key()` and `node.val()` return an object of type `c4::csubstr` (the
@@ -104,7 +107,7 @@ name comes from constant substring) which is a read-only string view, with
 some more methods that make it practical to use. There's also a writable
 `c4::substr` string view, which in fact is used heavily by ryml to transform
 YAML blocks and scalars during parsing. You can browse these classes
-here: [c4/substr.hpp](https://github.com/biojppm/c4core/src/c4/substr.hpp).
+here: [c4/substr.hpp](https://github.com/biojppm/c4core/blob/master/src/c4/substr.hpp).
 
 
 To create a tree programatically:
@@ -112,7 +115,8 @@ To create a tree programatically:
 ryml::Tree tree;
 NodeRef r = tree.rootref();
 
-r |= ryml::MAP;  // this is needed to make the root a map
+// Each container node must be explicitly set (either MAP or SEQ):
+r |= ryml::MAP;
 
 r["foo"] = "1"; // ryml works only with strings.
 // Note that the tree will be __pointing__ at the
@@ -120,9 +124,11 @@ r["foo"] = "1"; // ryml works only with strings.
 // to make sure they have at least the same
 // lifetime as the tree.
 
-auto s = r["seq"]; // does not change the tree until s is written to.
-s |= ryml::SEQ;
-s.append_child() = "bar0"; // value of this child is now __pointing__ at "bar0"
+// does not change the tree until s is written to.
+ryml::NodeRef s = r["seq"]; // here, s is not valid()
+s |= ryml::SEQ; // now s is valid()
+
+s.append_child() = "bar0"; // this child is now __pointing__ at "bar0"
 s.append_child() = "bar1";
 s.append_child() = "bar2";
 
@@ -210,7 +216,7 @@ requested via the square-bracket operator. Unlike with `std::map`, **this
 operator does not modify the tree**. Instead you get a seed `NodeRef`, and
 the tree will be modified only when this seed-state reference is written
 to. Thus `NodeRef` can either point to a valid tree node, or if no such node
-exists is in seed-state by holding the index or name passed to
+exists it will be in seed-state by holding the index or name passed to
 `operator[]`. To allow for this, `NodeRef` is a simple structure with a
 declaration like:
 
@@ -275,7 +281,7 @@ int main()
 The `<ryml_std.hpp>` header includes every default std type implementation
 for ryml. You can include just a specific header if you are interested only
 in a particular container; these headers are located under a specific
-directory in the source folder [c4/yml/std](src/c4/yml/std).
+directory in the ryml source folder: [c4/yml/std](src/c4/yml/std).
 
 These headers also showcase how to implement your custom type. See for
 example [the map implementation](src/c4/yml/std/map.hpp).
@@ -289,33 +295,89 @@ how to serialize your type.
 
 There are two distinct categories of types when serializing to a YAML tree:
 
-* The type requires child nodes (it is either a sequence or map).
-  For these, overload the `write()/read()` functions. Examples can be seen in
-  the serialization of [`std::vector`](src/c4/yml/std/vector.hpp)
-  or [`std::map`](src/c4/yml/std/map.hpp).
+* The type requires child nodes (it is either a sequence or map).  For these,
+  overload the `write()/read()` functions. Examples can be seen in the
+  serialization of [`std::vector`](src/c4/yml/std/vector.hpp)
+  or [`std::map`](src/c4/yml/std/map.hpp). It is important to overload these
+  functions in the namespace where the type you're serializing was defined,
+  to harness [C++'s ADL rules](http://en.cppreference.com/w/cpp/language/adl).
 
-* The type is serializable to a string, and it will be a leaf node in
-  the tree. For these, overload the `to_str()/from_str()` functions. An example
-  can be seen in
-  the [the `std::string` serialization code](extern/c4core/src/c4/std/string.hpp).
-  
-It is important to overload these functions in the namespace where the type
-you're serializing was defined, to
-harness [C++'s ADL rules](http://en.cppreference.com/w/cpp/language/adl).
+* The type is serializable to a string, and it will be a leaf node in the
+  tree. For these, overload the `to_str(c4::substr, T)/from_str(c4::csubstr,
+  *T)` functions. For example, here's a 3D vector type:
+  ```c++
+  struct vec3 { float x, y, z; };
+
+  // format v to the given string view + return the number of
+  // characters written into it. The view size (buf.len) must
+  // be strictly respected. Return the number of characters
+  // that need to be written. So if the return value
+  // is larger than buf.len, ryml will resize the buffer and
+  // call this again with a larger buffer.
+  size_t to_str(c4::substr buf, vec3 v)
+  {
+      // this call to c4::format() is a type-safe version
+      // of snprintf(buf.str, buf.len, "(%f,%f,%f)", v.x, v.y, v.z)
+      return c4::format(buf, "({},{},{})", v.x, v.y, v.z);
+  }
+
+  bool from_str(c4::csubstr buf, vec3 *v)
+  {
+      // equivalent to sscanf(buf.str, "(%f,%f,%f)", &v.x, &v.y, &v.z)
+      // --- actually snscanf(buf.str, buf.len, ...) but there's
+      // no such function in the standard.
+      size_t ret = c4::unformat(buf, "({},{},{})", v.x, v.y, v.z);
+      return ret != c4::yml::npos;
+  }
+  ```
+
+You can also look at [the `std::string` serialization code](https://github.com/biojppm/c4core/blob/master/src/c4/std/string.hpp).
 
 
 ### Low-level API
 
-... describe index-based API of the tree.
+Some examples:
+
+```c++
+void print_keyval(Tree const& t, size_t elm_id)
+{
+    std::cout << t.get_key(elm_id)
+              << ": "
+              << t.get_val(elm_id) << "\n";
+}
+
+ryml::Tree t = parse("{foo: 1, bar: 2, baz: 3}")
+
+size_t root_id = t.root_id();
+size_t foo_id  = t.first_child(root_id);
+size_t bar_id  = t.next_sibling(foo_id);
+size_t baz_id  = t.last_child(root_id);
+
+assert(baz == t.next_sibling(ibar));
+assert(bar == t.prev_sibling(ibaz));
+
+print_keyval(t, foo_id); // "foo: 1"
+print_keyval(t, bar_id); // "bar: 2"
+print_keyval(t, baz_id); // "baz: 3"
+
+// to iterate over the children of a node:
+for(size_t i = t.first_child(root_id); i != ryml::npos; i = t->next_sibling(i))
+{
+    // ...
+}
+
+// to iterate over the siblings of a node:
+for(size_t i = t.first_sibling(foo_id); i != ryml::npos; i = t->next_sibling(i))
+{
+    // ...
+}
+```
 
 
-### Custom allocation
+### Custom allocators and error handlers
 
-... describe [custom allocation callbacks](src/c4/yml/common.hpp)
-
-### Custom error handling
-
-... describe [the custom error handler callback](src/c4/yml/common.hpp)
+ryml accepts your own allocators and error handlers. Read through
+[this header file](src/c4/yml/common.hpp) to set it up.
 
 
 ## YAML standard conformance
