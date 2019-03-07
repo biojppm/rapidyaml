@@ -305,6 +305,9 @@ public:
 
     void reserve(size_t node_capacity, size_t arena_capacity=0);
 
+    /** clear the tree and zero every node
+     * @note does NOT clear the arena
+     * @see clear_arena() */
     void clear();
     inline void clear_arena() { m_arena_pos = 0; }
 
