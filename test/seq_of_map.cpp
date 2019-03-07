@@ -3,13 +3,12 @@
 namespace c4 {
 namespace yml {
 
-#define SEQ_OF_MAP_CASES                            \
-    "seq of empty maps, one line",                  \
-        "seq of maps, one line",                    \
-        "seq of maps, implicit seq, explicit maps", \
-        "seq of maps",                              \
-        "seq of maps, next line"
-
+#define SEQ_OF_MAP_CASES                        \
+    "seq of empty maps, one line",              \
+    "seq of maps, one line",                    \
+    "seq of maps, implicit seq, explicit maps", \
+    "seq of maps",                              \
+    "seq of maps, next line"
 CASE_GROUP(SEQ_OF_MAP)
 {
     APPEND_CASES(
@@ -69,6 +68,7 @@ R"(
       N{L{N("name", "Mary Smith"), N("age", "27")}}
   }
 ),
+
     )
 }
 

@@ -8,7 +8,8 @@ namespace yml {
     "map of empty seqs", \
     "map of seqs, one line", \
     "map of seqs",           \
-    "map of seqs, next line"
+    "map of seqs, next line",\
+    "map of seqs, deal with unk"
 
 
 CASE_GROUP(MAP_OF_SEQ)
@@ -64,6 +65,23 @@ women:
          N("men", L{N{"John Smith"}, N{"Bill Jones"}}),
          N("women", L{N{"Mary Smith"}, N{"Susan Williams"}})
      }
+),
+
+C("map of seqs, deal with unk",
+R"(
+skip_commits:
+  files:
+    - a
+    - b
+    - c
+    - d
+    - e
+)",
+L{
+  N("skip_commits", L{N("files",
+    L{N("a"), N("b"), N("c"), N("d"), N("e")}
+  )}),
+}
 ),
     )
 }

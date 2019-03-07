@@ -70,12 +70,12 @@ bool Parser::_finished_line() const
 }
 
 //-----------------------------------------------------------------------------
-void Parser::parse(csubstr file, substr buf, NodeRef *root)
+void Parser::parse(csubstr file, substr buf, Tree *t, size_t node_id)
 {
     m_file = file;
     m_buf = buf;
-    m_root_id = root->id();
-    m_tree = root->tree();
+    m_root_id = node_id;
+    m_tree = t;
 
     _reset();
 
@@ -195,15 +195,22 @@ void Parser::_handle_line()
 }
 
 //-----------------------------------------------------------------------------
-bool Parser::_is_scalar_next(csubstr rem) const
+/** @todo this function is a wart and depends on context, and therefore it's wrong.
+ * Delete it and refactor scan_scalar() so that it flags whether a
+ * scalar was scanned or not. */
+bool Parser::is_scalar_next(csubstr rem)
 {
     C4_ASSERT(rem.len > 0);
     // a scalar starts with either...
     bool yes = isalnum(rem[0]) // an alpha-numeric character
+        || rem.begins_with_any("/+$@")
         || rem.begins_with('"') || rem.begins_with('\'') // double or single quotes
         || rem.begins_with('|') || rem.begins_with('>')  // or a block indicator
         || rem.begins_with("<<: ") || rem.begins_with('*') // treat references as scalars
-        || rem.begins_with('~'); // treat null as scalars
+        || rem.begins_with('~') // treat null as scalars
+        || (rem.begins_with('.') && ! rem.begins_with("..."))
+        || (rem.begins_with('-') && ! rem.begins_with("- ") && ! rem.stripr(" ").ends_with(':') && ! rem.begins_with("---"))
+        || (rem.begins_with(':') && ! rem.begins_with(": ") && ! rem.stripr(" ").ends_with(':'));
     if(yes) return true;
     if(rem.len > 1)
     {
@@ -231,18 +238,7 @@ bool Parser::_handle_unk()
 
     C4_ASSERT(has_none(RNXT|RSEQ|RMAP));
 
-    const bool scnext = _is_scalar_next();
-
-    if(scnext && ! has_all(SSCL))
-    {
-        _c4dbgp("got a scalar");
-        rem = _scan_scalar();
-        // we still don't know whether it's a seq or a map
-        // so just store the scalar
-        _store_scalar(rem);
-        return true;
-    }
-    else if(rem.begins_with(' '))
+    if(rem.begins_with(' '))
     {
         rem = rem.left_of(rem.first_not_of(' '));
         _c4dbgpf("skipping %zd spaces", rem.len);
@@ -276,7 +272,6 @@ bool Parser::_handle_unk()
         _line_progressed(1);
         return true;
     }
-
     else if(rem.begins_with('{'))
     {
         _c4dbgpf("it's a map, explicit (as_child=%d)", start_as_child);
@@ -301,7 +296,7 @@ bool Parser::_handle_unk()
         _c4dbgpf("there's a stored scalar: '%.*s'", _c4prsp(m_state->scalar));
 
         csubstr saved_scalar;
-        if(scnext)
+        if(is_scalar_next(rem))
         {
             saved_scalar = _scan_scalar();
             rem = m_state->line_contents.rem;
@@ -370,6 +365,19 @@ bool Parser::_handle_unk()
         }
 
         return true;
+    }
+    else
+    {
+        C4_ASSERT( ! has_any(SSCL));
+        if(_is_scalar_next())
+        {
+            _c4dbgp("got a scalar");
+            rem = _scan_scalar();
+            // we still don't know whether it's a seq or a map
+            // so just store the scalar
+            _store_scalar(rem);
+            return true;
+        }
     }
 
     return false;
@@ -1433,7 +1441,8 @@ csubstr Parser::_scan_scalar()
 
     _line_progressed(s.str - m_state->line_contents.rem.str + s.len);
 
-    // PHEWW*. this is crazy and very fragile. revisit and make this better.
+    // deal with scalars that continue to the next line
+    // PHEWW*. this sucks. it's crazy and very fragile. revisit and make this better.
     if(_at_line_end())
     {
         csubstr n = _peek_next_line(m_state->pos.offset);
@@ -1455,6 +1464,7 @@ csubstr Parser::_scan_scalar()
                     _line_ended(); // advances to the peeked-at line, consuming all remaining (probably newline) characters on the current line
                     _scan_line();  // puts the peeked-at line in the buffer
                     C4_ASSERT(n == m_state->line_contents.rem);
+                    if(_finished_file()) break;
                     _line_progressed(n.end() - (m_buf.str + m_state->pos.offset));
                     n = _peek_next_line(m_state->pos.offset);
                 }
@@ -1475,6 +1485,7 @@ csubstr Parser::_scan_scalar()
                     _line_ended(); // advances to the peeked-at line, consuming all remaining (probably newline) characters on the current line
                     _scan_line();  // puts the peeked-at line in the buffer
                     C4_ASSERT(n == m_state->line_contents.rem);
+                    if(_finished_file()) break;
                     _line_progressed(n.end() - (m_buf.str + m_state->pos.offset));
                     n = _peek_next_line(m_state->pos.offset);
                     pos = n.first_of(chars);
@@ -1485,12 +1496,13 @@ csubstr Parser::_scan_scalar()
                     _c4dbgpf("reading scalar: append another line: '%.*s'", _c4prsp(n));
                     _line_ended(); // advances to the peeked-at line, consuming all remaining (probably newline) characters on the current line
                     _scan_line();  // puts the peeked-at line in the buffer
+                    if(_finished_file()) break;
                     _line_progressed(n.end() - (m_buf.str + m_state->pos.offset));
                     break;
                 }
             }
             substr full(m_buf.str + (s.str - m_buf.str), m_buf.begin() + m_state->pos.offset);
-            full = full.trimr(' ');
+            full = full.trimr("\r\n ");
             s = _filter_plain_scalar(full, /*indentation*/0);
         }
     }
@@ -2009,7 +2021,7 @@ bool Parser::_handle_indentation()
         if(has_all(RMAP|RVAL))
         {
             auto rem = m_state->line_contents.rem.triml(' ');
-            if(/*ind == m_state->indref + 2 && */_is_scalar_next(rem) && rem.find(":") == npos)
+            if(/*ind == m_state->indref + 2 && */is_scalar_next(rem) && rem.find(":") == npos)
             {
                 _c4dbgpf("actually it seems a value: '%.*s'", _c4prsp(rem));
             }

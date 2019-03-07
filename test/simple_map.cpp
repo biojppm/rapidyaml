@@ -23,7 +23,7 @@ namespace yml {
 "simple map, scalars with special chars, left-bracket",         \
 "simple map, scalars with special chars, right-bracket",        \
 "simple map, scalars with special chars, left-curly",           \
-"simple map, scalars with special chars, right-curly"           \
+"simple map, scalars with special chars, right-curly",          \
 "simple map, null values",                                      \
 "simple map expl, null values",                                 \
 "simple map expl, scalars with special chars, comma"            \

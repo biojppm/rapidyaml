@@ -49,20 +49,25 @@ public:
 
 public:
 
-    // parse and get a new YAML tree
+    // create a new YAML tree and parse into its root
 
     Tree parse(csubstr filename, csubstr src) { Tree t; t.reserve(_estimate_capacity(src)); parse(filename, t.copy_to_arena(src), &t); return t; }
     Tree parse(csubstr filename,  substr src) { Tree t; t.reserve(_estimate_capacity(src)); parse(filename, src, &t); return t; }
 
     // parse with reuse of a YAML tree
 
-    void parse(csubstr filename,  substr src, Tree *t) { NodeRef root(t); parse(filename, src, &root); }
-    void parse(csubstr filename, csubstr src, Tree *t) { NodeRef root(t); parse(filename, t->copy_to_arena(src), &root); }
+    void parse(csubstr filename,  substr src, Tree *t) { parse(filename, src, t, t->root_id()); }
+    void parse(csubstr filename, csubstr src, Tree *t) { parse(filename, t->copy_to_arena(src), t, t->root_id()); }
 
     // parse directly into a node
 
-    void parse(csubstr filename,  substr src, NodeRef *root); // this is the workhorse overload; everything else is syntactic candy
-    void parse(csubstr filename, csubstr src, NodeRef *root) { parse(filename, root->tree()->copy_to_arena(src), root); }
+    void parse(csubstr filename,  substr src, Tree *t, size_t node_id); // this is the workhorse overload; everything else is syntactic candy
+    void parse(csubstr filename, csubstr src, Tree *t, size_t node_id) { parse(filename, t->copy_to_arena(src), t, node_id); }
+
+    // parse directly into a node ref
+
+    void parse(csubstr filename,  substr src, NodeRef node) { parse(filename, src, node.tree(), node.id()); }
+    void parse(csubstr filename, csubstr src, NodeRef node) { parse(filename, node.tree()->copy_to_arena(src), node.tree(), node.id()); }
 
 private:
 
@@ -77,6 +82,10 @@ private:
         CHOMP_KEEP     //!< all newlines from end (+)
     } BlockChomp_e;
 
+public:
+    
+    static bool  is_scalar_next(csubstr rem);
+
 private:
 
     static size_t _estimate_capacity(csubstr src) { size_t c = _count_nlines(src); c = c >= 16 ? c : 16; return c; }
@@ -90,8 +99,7 @@ private:
     void  _scan_line();
     void  _next_line() { _line_ended(); }
 
-    bool  _is_scalar_next(csubstr rem) const;
-    bool  _is_scalar_next() const { return _is_scalar_next(m_state->line_contents.rem); }
+    bool  _is_scalar_next() const { return is_scalar_next(m_state->line_contents.rem); }
     csubstr _scan_scalar();
     csubstr _scan_comment();
     csubstr _scan_quoted_scalar(const char q);
@@ -288,20 +296,25 @@ private:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-inline Tree parse(                   substr buf)                { Parser np; return np.parse({}      , buf); }
-inline Tree parse(                  csubstr buf)                { Parser np; return np.parse({}      , buf); }
-inline Tree parse(csubstr filename,  substr buf)                { Parser np; return np.parse(filename, buf); }
-inline Tree parse(csubstr filename, csubstr buf)                { Parser np; return np.parse(filename, buf); }
+inline Tree parse(                   substr buf) { Parser np; return np.parse({}      , buf); } //!< parse in-situ a modifiable YAML source buffer.
+inline Tree parse(csubstr filename,  substr buf) { Parser np; return np.parse(filename, buf); } //!< parse in-situ a modifiable YAML source buffer, providing a filename for error messages.
+inline Tree parse(                  csubstr buf) { Parser np; return np.parse({}      , buf); } //!< parse a read-only YAML source buffer, copying it first to the tree's source arena.
+inline Tree parse(csubstr filename, csubstr buf) { Parser np; return np.parse(filename, buf); } //!< parse a read-only YAML source buffer, copying it first to the tree's source arena, providing a filename for error messages.
 
-inline void parse(                   substr buf, Tree *t)       { Parser np; np.parse({}      , buf, t); }
-inline void parse(                  csubstr buf, Tree *t)       { Parser np; np.parse({}      , buf, t); }
-inline void parse(csubstr filename,  substr buf, Tree *t)       { Parser np; np.parse(filename, buf, t); }
-inline void parse(csubstr filename, csubstr buf, Tree *t)       { Parser np; np.parse(filename, buf, t); }
+inline void parse(                   substr buf, Tree *t) { Parser np; np.parse({}      , buf, t); } //!< reusing the YAML tree, parse in-situ a modifiable YAML source buffer
+inline void parse(csubstr filename,  substr buf, Tree *t) { Parser np; np.parse(filename, buf, t); } //!< reusing the YAML tree, parse in-situ a modifiable YAML source buffer, providing a filename for error messages.
+inline void parse(                  csubstr buf, Tree *t) { Parser np; np.parse({}      , buf, t); } //!< reusing the YAML tree, parse a read-only YAML source buffer, copying it first to the tree's source arena.
+inline void parse(csubstr filename, csubstr buf, Tree *t) { Parser np; np.parse(filename, buf, t); } //!< reusing the YAML tree, parse a read-only YAML source buffer, copying it first to the tree's source arena, providing a filename for error messages.
 
-inline void parse(                   substr buf, NodeRef *root) { Parser np; np.parse({}      , buf, root); }
-inline void parse(                  csubstr buf, NodeRef *root) { Parser np; np.parse({}      , buf, root); }
-inline void parse(csubstr filename,  substr buf, NodeRef *root) { Parser np; np.parse(filename, buf, root); }
-inline void parse(csubstr filename, csubstr buf, NodeRef *root) { Parser np; np.parse(filename, buf, root); }
+inline void parse(                   substr buf, Tree *t, size_t node_id) { Parser np; np.parse({}      , buf, t, node_id); } //!< reusing the YAML tree, parse in-situ a modifiable YAML source buffer
+inline void parse(csubstr filename,  substr buf, Tree *t, size_t node_id) { Parser np; np.parse(filename, buf, t, node_id); } //!< reusing the YAML tree, parse in-situ a modifiable YAML source buffer, providing a filename for error messages.
+inline void parse(                  csubstr buf, Tree *t, size_t node_id) { Parser np; np.parse({}      , buf, t, node_id); } //!< reusing the YAML tree, parse a read-only YAML source buffer, copying it first to the tree's source arena.
+inline void parse(csubstr filename, csubstr buf, Tree *t, size_t node_id) { Parser np; np.parse(filename, buf, t, node_id); } //!< reusing the YAML tree, parse a read-only YAML source buffer, copying it first to the tree's source arena, providing a filename for error messages.
+
+inline void parse(                   substr buf, NodeRef node) { Parser np; np.parse({}      , buf, node); } //!< reusing the YAML tree, parse in-situ a modifiable YAML source buffer
+inline void parse(csubstr filename,  substr buf, NodeRef node) { Parser np; np.parse(filename, buf, node); } //!< reusing the YAML tree, parse in-situ a modifiable YAML source buffer, providing a filename for error messages.
+inline void parse(                  csubstr buf, NodeRef node) { Parser np; np.parse({}      , buf, node); } //!< reusing the YAML tree, parse a read-only YAML source buffer, copying it first to the tree's source arena.
+inline void parse(csubstr filename, csubstr buf, NodeRef node) { Parser np; np.parse(filename, buf, node); } //!< reusing the YAML tree, parse a read-only YAML source buffer, copying it first to the tree's source arena, providing a filename for error messages.
 
 } // namespace yml
 } // namespace c4

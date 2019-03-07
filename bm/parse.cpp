@@ -4,6 +4,7 @@
 #include <c4/fs/fs.hpp>
 #include <vector>
 #include <iostream>
+#include <yaml-cpp/yaml.h>
 
 
 namespace bm = benchmark;
@@ -32,66 +33,91 @@ struct Case
 };
 Case c;
 
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-void ryml_parse_rw(bm::State& st)
+
+void yamlcpp(bm::State& st)
 {
+    std::string src(c.src.begin(), c.src.end());
+    for(auto _ : st)
+    {
+        YAML::Node node = YAML::Load(src);
+    }
+    st.SetBytesProcessed(st.iterations() * src.size());
+}
+
+void ryml_rw(bm::State& st)
+{
+    size_t sz;
     for(auto _ : st)
     {
         ryml::Tree tree = ryml::parse(c.filename, to_substr(c.in_place));
+        sz = tree.size();
     }
+    st.SetItemsProcessed(st.iterations() * sz);
+    st.SetBytesProcessed(st.iterations() * c.in_place.size());
 }
 
-void ryml_parse_rw_reuse(bm::State& st)
+void ryml_ro(bm::State& st)
 {
-    for(auto _ : st)
-    {
-        parse(c.filename, to_substr(c.in_place), &c.ryml_tree);
-    }
-}
-
-void ryml_parse_ro(bm::State& st)
-{
+    size_t sz;
     for(auto _ : st)
     {
         ryml::Tree tree = ryml::parse(c.filename, to_csubstr(c.src));
+        sz = tree.size();
     }
+    st.SetItemsProcessed(st.iterations() * sz);
+    st.SetBytesProcessed(st.iterations() * c.in_place.size());
 }
 
-void ryml_parse_ro_reuse(bm::State& st)
+void ryml_rw_reuse(bm::State& st)
 {
+    size_t sz;
+    ryml::Parser p;
     for(auto _ : st)
     {
-        parse(c.filename, to_csubstr(c.src), &c.ryml_tree);
+        c.ryml_tree.clear();
+        c.ryml_tree.clear_arena();
+        p.parse(c.filename, to_substr(c.in_place), &c.ryml_tree);
+        sz = c.ryml_tree.size();
     }
+    st.SetItemsProcessed(st.iterations() * sz);
+    st.SetBytesProcessed(st.iterations() * c.in_place.size());
 }
 
-BENCHMARK(ryml_parse_ro);
-BENCHMARK(ryml_parse_ro_reuse);
-BENCHMARK(ryml_parse_rw);
-BENCHMARK(ryml_parse_rw_reuse);
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-void print(const char* ctx, int argc, char** argv)
+void ryml_ro_reuse(bm::State& st)
 {
-    std::cout << ctx << ": " << "argc=" << argc << "\n";
-    for(int i = 0; i < argc; ++i)
-        std::cout << ctx << ": " << "argv[" << i << "]=" << argv[i] << "\n";
+    size_t sz;
+    ryml::Parser p;
+    for(auto _ : st)
+    {
+        c.ryml_tree.clear();
+        c.ryml_tree.clear_arena();
+        p.parse(c.filename, to_csubstr(c.src), &c.ryml_tree);
+        sz = c.ryml_tree.size();
+    }
+    st.SetItemsProcessed(st.iterations() * sz);
+    st.SetBytesProcessed(st.iterations() * c.in_place.size());
 }
+
+BENCHMARK(yamlcpp);
+BENCHMARK(ryml_ro);
+BENCHMARK(ryml_rw);
+BENCHMARK(ryml_ro_reuse);
+BENCHMARK(ryml_rw_reuse);
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 int main(int argc, char** argv)
 {
-    print("before", argc, argv);
     bm::Initialize(&argc, argv);
-    print("after", argc, argv);
-    std::cout << "argc==2: " << argc << "  " << (argc==2) << "\n";
-    C4_ASSERT(argc == 2);
+    C4_CHECK(argc == 2);
     c.load(argv[1]);
     bm::RunSpecifiedBenchmarks();
 }

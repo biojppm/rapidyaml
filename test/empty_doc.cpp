@@ -6,7 +6,8 @@ namespace yml {
 #define EMPTY_DOC_CASES                             \
     "one empty doc",                                \
     "one empty doc, explicit termination",          \
-    "two empty docs"                                \
+    "two empty docs",                               \
+    "two empty docs, with termination"
 
 CASE_GROUP(EMPTY_DOC)
 {
@@ -26,6 +27,14 @@ R"(---
 
 C("two empty docs",
 R"(---
+---
+)",
+    N(STREAM, L{DOC, DOC})
+),
+
+C("two empty docs, with termination",
+R"(---
+...
 ---
 )",
     N(STREAM, L{DOC, DOC})

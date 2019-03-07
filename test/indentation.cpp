@@ -8,7 +8,8 @@ namespace yml {
     "2 chars + 4 chars, ex0",\
     "2 chars + 4 chars, ex1",\
     "2 chars + 4 chars, ex2",\
-    "non-indented blank lines"
+    "non-indented blank lines",\
+    "unnecessary indentation"
 
 CASE_GROUP(INDENTATION)
 {
@@ -163,7 +164,47 @@ L{N("matrix", L{
         }
   )})
 }),
-    )
+
+C("unnecessary indentation",
+R"(
+skip_commits:
+  files:
+    - a
+    - b
+    - c
+    - d
+    - e
+    - f
+  more_files:
+  - a
+  - b
+  even_more_files:
+  - a
+  - b
+more_skip:
+  files:
+  - a
+  - b
+  - c
+  - d
+  - e
+  - f
+  more_files:
+    - a
+    - b
+)",
+L{
+  N("skip_commits", L{
+    N("files", L{N("a"), N("b"), N("c"), N("d"), N("e"), N("f"),}),
+    N("more_files", L{N("a"), N("b"),}),
+    N("even_more_files", L{N("a"), N("b"),}),
+  }),
+  N("more_skip", L{
+    N("files", L{N("a"), N("b"), N("c"), N("d"), N("e"), N("f"),}),
+    N("more_files", L{N("a"), N("b"),}),
+  })
+}),
+  )
 }
 
 INSTANTIATE_GROUP(INDENTATION);

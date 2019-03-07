@@ -229,7 +229,6 @@ void Tree::clear()
         m_free_head = NONE;
         m_free_tail = NONE;
     }
-    m_arena_pos = 0;
 }
 
 void Tree::_claim_root()
