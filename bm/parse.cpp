@@ -18,7 +18,8 @@ struct BmCase
     c4::csubstr filename;
     std::vector<char> src;
     std::vector<char> in_place;
-    ryml::Tree ryml_tree;
+    ryml::Parser ryml_parser;
+    ryml::Tree   ryml_tree;
     bool is_json;
 
     void run(int argc, char **argv)
@@ -74,7 +75,7 @@ void ryml_rw(bm::State& st)
         sz = tree.size();
     }
     st.SetItemsProcessed(st.iterations() * sz);
-    st.SetBytesProcessed(st.iterations() * c.in_place.size());
+    st.SetBytesProcessed(st.iterations() * c.src.size());
 }
 
 void ryml_ro(bm::State& st)
@@ -86,37 +87,35 @@ void ryml_ro(bm::State& st)
         sz = tree.size();
     }
     st.SetItemsProcessed(st.iterations() * sz);
-    st.SetBytesProcessed(st.iterations() * c.in_place.size());
+    st.SetBytesProcessed(st.iterations() * c.src.size());
 }
 
 void ryml_rw_reuse(bm::State& st)
 {
     size_t sz;
-    ryml::Parser p;
     for(auto _ : st)
     {
         c.ryml_tree.clear();
         c.ryml_tree.clear_arena();
-        p.parse(c.filename, to_substr(c.in_place), &c.ryml_tree);
+        c.ryml_parser.parse(c.filename, to_substr(c.in_place), &c.ryml_tree);
         sz = c.ryml_tree.size();
     }
     st.SetItemsProcessed(st.iterations() * sz);
-    st.SetBytesProcessed(st.iterations() * c.in_place.size());
+    st.SetBytesProcessed(st.iterations() * c.src.size());
 }
 
 void ryml_ro_reuse(bm::State& st)
 {
     size_t sz;
-    ryml::Parser p;
     for(auto _ : st)
     {
         c.ryml_tree.clear();
         c.ryml_tree.clear_arena();
-        p.parse(c.filename, to_csubstr(c.src), &c.ryml_tree);
+        c.ryml_parser.parse(c.filename, to_csubstr(c.src), &c.ryml_tree);
         sz = c.ryml_tree.size();
     }
     st.SetItemsProcessed(st.iterations() * sz);
-    st.SetBytesProcessed(st.iterations() * c.in_place.size());
+    st.SetBytesProcessed(st.iterations() * c.src.size());
 }
 
 BENCHMARK(yamlcpp);
