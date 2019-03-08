@@ -13,6 +13,77 @@
 namespace c4 {
 namespace yml {
 
+static bool _is_scalar_next__runk(csubstr s)
+{
+    if(s.begins_with(": ") || s.begins_with_any("#,:?"))
+    {
+        return false;
+    }
+    return true;
+}
+
+static bool _is_scalar_next__rseq_rval(csubstr s)
+{
+    if(s.begins_with_any("[{!?&"))
+    {
+        return false;
+    }
+    else if(s.begins_with("- ") || s == "-")
+    {
+        return false;
+    }
+    return true;
+}
+
+static bool _is_scalar_next__rseq_rnxt(csubstr s)
+{
+    if(s.begins_with("- "))
+    {
+        return false;
+    }
+    else if(s == "-")
+    {
+        return false;
+    }
+
+    return true;
+}
+
+static bool _is_scalar_next__rmap(csubstr s)
+{
+    if(s.begins_with(": ") || s.begins_with_any("#,!?&"))
+    {
+        return false;
+    }
+    return true;
+}
+
+static bool _is_scalar_next__rmap_val(csubstr s)
+{
+    if(s.begins_with("- ") || s.begins_with_any("{["))
+    {
+        return false;
+    }
+    return true;
+}
+
+static bool _is_doc_sep(csubstr s)
+{
+    constexpr const csubstr dashes = "---";
+    constexpr const csubstr ellipsis = "...";
+    constexpr const csubstr whitesp = " \t";
+    if(s.begins_with(dashes))
+    {
+        return s == dashes || s.sub(3).begins_with_any(whitesp);
+    }
+    else if(s.begins_with(ellipsis))
+    {
+        return s == ellipsis || s.sub(3).begins_with_any(whitesp); 
+    }
+    return false;
+}
+
+
 //-----------------------------------------------------------------------------
 Parser::Parser(Allocator const& a)
     :
@@ -194,39 +265,6 @@ void Parser::_handle_line()
     }
 }
 
-//-----------------------------------------------------------------------------
-/** @todo this function is a wart and depends on context, and therefore it's wrong.
- * Delete it and refactor scan_scalar() so that it flags whether a
- * scalar was scanned or not. */
-bool Parser::is_scalar_next(csubstr rem)
-{
-    C4_ASSERT(rem.len > 0);
-    // a scalar starts with either...
-    bool yes = isalnum(rem[0]) // an alpha-numeric character
-        || rem.begins_with_any("/+$@")
-        || rem.begins_with('"') || rem.begins_with('\'') // double or single quotes
-        || rem.begins_with('|') || rem.begins_with('>')  // or a block indicator
-        || rem.begins_with("<<: ") || rem.begins_with('*') // treat references as scalars
-        || rem.begins_with('~') // treat null as scalars
-        || (rem.begins_with('.') && ! rem.begins_with("..."))
-        || (rem.begins_with('-') && ! rem.begins_with("- ") && ! rem.stripr(" ").ends_with(':') && ! rem.begins_with("---"))
-        || (rem.begins_with(':') && ! rem.begins_with(": ") && ! rem.stripr(" ").ends_with(':'));
-    if(yes) return true;
-    if(rem.len > 1)
-    {
-        if(rem.begins_with('-')) // negative numbers are scalars too.
-        {
-            size_t pos = 1;
-            if(rem[pos] == '.' && rem.len > 2) ++pos;
-            if(rem[pos] >= '0' && rem[pos] <= '9') return true;
-        }
-        else if(rem.begins_with('.')) // allow floats starting with a dot
-        {
-            if(rem[1] >= '0' && rem[1] <= '9') return true;
-        }
-    }
-    return false;
-}
 
 //-----------------------------------------------------------------------------
 bool Parser::_handle_unk()
@@ -296,9 +334,8 @@ bool Parser::_handle_unk()
         _c4dbgpf("there's a stored scalar: '%.*s'", _c4prsp(m_state->scalar));
 
         csubstr saved_scalar;
-        if(is_scalar_next(rem))
+        if(_scan_scalar(&saved_scalar))
         {
-            saved_scalar = _scan_scalar();
             rem = m_state->line_contents.rem;
             _c4dbgpf("... and there's also a scalar next! '%.*s'", _c4prsp(saved_scalar));
         }
@@ -369,10 +406,9 @@ bool Parser::_handle_unk()
     else
     {
         C4_ASSERT( ! has_any(SSCL));
-        if(_is_scalar_next())
+        if(_scan_scalar(&rem))
         {
             _c4dbgp("got a scalar");
-            rem = _scan_scalar();
             // we still don't know whether it's a seq or a map
             // so just store the scalar
             _store_scalar(rem);
@@ -418,10 +454,9 @@ bool Parser::_handle_seq_expl()
     if(has_any(RVAL))
     {
         C4_ASSERT(has_none(RNXT));
-        if(_is_scalar_next())
+        if(_scan_scalar(&rem))
         {
             _c4dbgp("it's a scalar");
-            rem = _scan_scalar();
             addrem_flags(RNXT, RVAL);
             _append_val(rem);
             return true;
@@ -558,10 +593,10 @@ bool Parser::_handle_seq_impl()
             return true;
         }
 
-        if(_is_scalar_next())
+        csubstr s;
+        if(_scan_scalar(&s)) // this also progresses the line
         {
             _c4dbgp("it's a scalar");
-            csubstr s = _scan_scalar(); // this also progresses the line
             rem = m_state->line_contents.rem;
             if(rem.begins_with(' '))
             {
@@ -759,10 +794,9 @@ bool Parser::_handle_map_expl()
             C4_ASSERT(has_none(RVAL));
             C4_ASSERT(has_none(SSCL));
 
-            if(_is_scalar_next())
+            if(_scan_scalar(&rem))
             {
                 _c4dbgp("it's a scalar");
-                rem = _scan_scalar();
                 _store_scalar(rem);
                 rem = m_state->line_contents.rem;
             }
@@ -817,10 +851,9 @@ bool Parser::_handle_map_expl()
         {
             C4_ASSERT(has_none(RNXT|RKEY));
             C4_ASSERT(has_all(SSCL));
-            if(_is_scalar_next())
+            if(_scan_scalar(&rem))
             {
                 _c4dbgp("it's a scalar");
-                rem = _scan_scalar();
                 addrem_flags(RNXT, RVAL|RKEY);
                 _append_key_val(rem);
                 return true;
@@ -912,10 +945,9 @@ bool Parser::_handle_map_impl()
         C4_ASSERT(has_none(RNXT));
         C4_ASSERT(has_none(RVAL));
 
-        if(_is_scalar_next())
+        if(_scan_scalar(&rem)) // this also progresses the line
         {
             _c4dbgp("it's a scalar");
-            rem = _scan_scalar(); // this also progresses the line
             _store_scalar(rem);
             rem = m_state->line_contents.rem;
 
@@ -984,11 +1016,11 @@ bool Parser::_handle_map_impl()
         C4_ASSERT(has_none(RNXT));
         C4_ASSERT(has_none(RKEY));
 
-        if(_is_scalar_next())
+        csubstr s;
+        if(_scan_scalar(&s)) // this also progresses the line
         {
             _c4dbgp("it's a scalar");
 
-            csubstr s = _scan_scalar(); // this also progresses the line
             rem = m_state->line_contents.rem;
 
             if(rem.begins_with(": "))
@@ -1318,26 +1350,33 @@ bool Parser::_handle_types()
     return true;
 }
 
+
 //-----------------------------------------------------------------------------
-csubstr Parser::_scan_scalar()
+bool Parser::_scan_scalar(csubstr *scalar)
 {
     csubstr s = m_state->line_contents.rem;
-    if(s.len == 0) return s;
+    if(s.len == 0) return false;
+    s = s.trim(' ');
+    if(s.len == 0) return false;
 
     if(s.begins_with('\''))
     {
-        s = _scan_quoted_scalar('\'');
-        return s;
+        *scalar = _scan_quoted_scalar('\'');
+        return true;
     }
     else if(s.begins_with('"'))
     {
-        s = _scan_quoted_scalar('"');
-        return s;
+        *scalar = _scan_quoted_scalar('"');
+        return true;
     }
     else if(s.begins_with('|') || s.begins_with('>'))
     {
-        s = _scan_block();
-        return s;
+        *scalar = _scan_block();
+        return true;
+    }
+    else if(has_any(RTOP) && _is_doc_sep(s))
+    {
+        return false;
     }
     else if(has_any(RSEQ))
     {
@@ -1345,6 +1384,10 @@ csubstr Parser::_scan_scalar()
         if(has_all(RVAL))
         {
             _c4dbgp("RSEQ|RVAL");
+            if( ! _is_scalar_next__rseq_rval(s))
+            {
+                return false;
+            }
             s = s.left_of(s.find(" #")); // is there a comment?
             s = s.left_of(s.find(": ")); // is there a key-value?
             if(s.ends_with(':')) s = s.left_of(s.len-1);
@@ -1353,8 +1396,15 @@ csubstr Parser::_scan_scalar()
                 _c4dbgp("RSEQ|RVAL|EXPL");
                 s = s.left_of(s.first_of(",]"));
             }
-            _c4dbgp("RSEQ|RVAL");
             s = s.trimr(' ');
+        }
+        else if(has_all(RNXT))
+        {
+            if( ! _is_scalar_next__rseq_rnxt(s))
+            {
+                return false;
+            }
+            _c4err("internal error");
         }
         else
         {
@@ -1363,6 +1413,10 @@ csubstr Parser::_scan_scalar()
     }
     else if(has_any(RMAP))
     {
+        if( ! _is_scalar_next__rmap(s))
+        {
+            return false;
+        }
         size_t colon_space = s.find(": ");
         if(colon_space == npos)
         {
@@ -1397,16 +1451,17 @@ csubstr Parser::_scan_scalar()
         }
         else if(has_all(RVAL))
         {
+            _c4dbgp("RMAP|RVAL");
             C4_ASSERT(has_none(CPLX));
+            if( ! _is_scalar_next__rmap_val(s))
+            {
+                return false;
+            }
             s = s.left_of(s.find(" #")); // is there a comment?
             if(has_any(EXPL))
             {
                 _c4dbgp("RMAP|RVAL|EXPL");
                 s = s.left_of(s.first_of(",}"));
-            }
-            else
-            {
-                _c4dbgp("RMAP|RVAL");
             }
             s = s.trim(' ');
         }
@@ -1418,6 +1473,10 @@ csubstr Parser::_scan_scalar()
     else if(has_all(RUNK))
     {
         _c4dbgp("RUNK");
+        if( ! _is_scalar_next__runk(s))
+        {
+            return false;
+        }
         s = s.left_of(s.find(" #"));
         size_t pos = s.find(": ");
         if(pos != npos)
@@ -1443,7 +1502,7 @@ csubstr Parser::_scan_scalar()
 
     // deal with scalars that continue to the next line
     // PHEWW*. this sucks. it's crazy and very fragile. revisit and make this better.
-    if(_at_line_end())
+    if(_at_line_end() && !s.begins_with_any("*"))
     {
         csubstr n = _peek_next_line(m_state->pos.offset);
         if(has_none(EXPL) && n.begins_with(' ', m_state->line_contents.indentation + 1))
@@ -1509,7 +1568,8 @@ csubstr Parser::_scan_scalar()
 
     _c4dbgpf("scalar was '%.*s'", _c4prsp(s));
 
-    return s;
+    *scalar = s;
+    return true;
 }
 
 //-----------------------------------------------------------------------------
@@ -1716,7 +1776,7 @@ void Parser::_start_unk(bool /*as_child*/)
 void Parser::_start_doc(bool as_child)
 {
     _c4dbgpf("start_doc (as child=%d)", as_child);
-    add_flags(RUNK);
+    add_flags(RUNK|RTOP);
     C4_ASSERT(node(m_stack.bottom()) == node(m_root_id));
     size_t parent_id = m_stack.size() < 2 ? m_root_id : m_stack.top(1).node_id;
     C4_ASSERT(parent_id != NONE);
@@ -2020,8 +2080,8 @@ bool Parser::_handle_indentation()
         _c4dbgpf("larger indentation (%zd > %zd)!!!", ind, m_state->indref);
         if(has_all(RMAP|RVAL))
         {
-            auto rem = m_state->line_contents.rem.triml(' ');
-            if(/*ind == m_state->indref + 2 && */is_scalar_next(rem) && rem.find(":") == npos)
+            csubstr rem = m_state->line_contents.rem.triml(' ');
+            if(/*ind == m_state->indref + 2 && */_is_scalar_next__rmap_val(rem) && rem.find(":") == npos)
             {
                 _c4dbgpf("actually it seems a value: '%.*s'", _c4prsp(rem));
             }
