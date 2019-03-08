@@ -82,10 +82,6 @@ private:
         CHOMP_KEEP     //!< all newlines from end (+)
     } BlockChomp_e;
 
-public:
-    
-    static bool  is_scalar_next(csubstr rem);
-
 private:
 
     static size_t _estimate_capacity(csubstr src) { size_t c = _count_nlines(src); c = c >= 16 ? c : 16; return c; }
@@ -98,9 +94,8 @@ private:
     csubstr _peek_next_line(size_t pos=npos) const;
     void  _scan_line();
     void  _next_line() { _line_ended(); }
-
-    bool  _is_scalar_next() const { return is_scalar_next(m_state->line_contents.rem); }
-    csubstr _scan_scalar();
+ 
+    bool  _scan_scalar(csubstr *scalar);
     csubstr _scan_comment();
     csubstr _scan_quoted_scalar(const char q);
     csubstr _scan_block();
@@ -141,7 +136,6 @@ private:
     void  _start_doc(bool as_child=true);
     void  _stop_doc();
 
-    void  _append_comment(csubstr const& cmt);
     NodeData* _append_val(csubstr const& val);
     NodeData* _append_key_val(csubstr const& val);
     bool  _rval_dash_start_or_continue_seq();
