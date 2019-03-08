@@ -169,26 +169,26 @@ C("unnecessary indentation",
 R"(
 skip_commits:
   files:
-    - a
-    - b
-    - c
-    - d
-    - e
-    - f
+                - a
+                - b
+                - c
+                - d
+                - e
+                - f
   more_files:
-  - a
-  - b
+           - a
+           - b
   even_more_files:
-  - a
-  - b
+     - a
+     - b
 more_skip:
   files:
-  - a
-  - b
-  - c
-  - d
-  - e
-  - f
+          - a
+          - b
+          - c
+          - d
+          - e
+          - f
   more_files:
     - a
     - b

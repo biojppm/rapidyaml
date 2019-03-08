@@ -21,10 +21,11 @@
 #endif
 
 namespace c4 {
-namespace yml {
 
 inline void PrintTo(substr  s, ::std::ostream* os) { *os << s; }
 inline void PrintTo(csubstr s, ::std::ostream* os) { *os << s; }
+
+namespace yml {
 
 struct Case;
 struct CaseNode;
