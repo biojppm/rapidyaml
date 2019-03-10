@@ -64,7 +64,7 @@ if [ "$A" == "32" ] ; then
 fi
 
 if [ "$BT" == "Coverage" ] ; then
-    DPKG="$DPKG lcov"
+    DPKG="$DPKG lcov libffi-dev libssl-dev"
 fi
 
 if [ ! -z "$DPKG" ] ; then
@@ -80,9 +80,8 @@ sudo -E apt-get install -y --force-yes \
      valgrind \
      $DPKG
 
-if [ "${BUILD_TYPE}" == "Coverage" -a "${TRAVIS_OS_NAME}" == "linux" ]; then
+if [ "$BT" == "Coverage" ]; then
     export PATH=~/.local/bin:${PATH};
-    sudo -E apt-get install libffi-dev libssl-dev
     pip install --user --upgrade pip;
     # https://github.com/pypa/pip/issues/5221#issuecomment-381568428
     # (via https://github.com/pypa/pip/issues/5240)
