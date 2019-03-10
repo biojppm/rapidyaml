@@ -14,19 +14,20 @@
 namespace c4 {
 namespace yml {
 
-template< class T > void write(NodeRef *n, T const& v);
-template< class T > bool read(NodeRef const& n, T *v);
+template<class T> void write(NodeRef *n, T const& v);
+template<class T> bool read(NodeRef const& n, T *v);
 
-template< class K >
+template<class K>
 struct Key
 {
     K & k;
     inline Key(K & k_) : k(k_) {}
 };
-template< class K >
-inline Key< K > key(K & k)
+
+template<class K>
+inline Key<K> key(K & k)
 {
-    return Key< K >{k};
+    return Key<K>{k};
 }
 
 
@@ -118,22 +119,22 @@ public:
 
     // node predicates
 
-    inline bool is_root() const { _C4RV(); return m_tree->is_root(m_id); }
-    inline bool is_stream() const { _C4RV(); return m_tree->is_stream(m_id); }
-    inline bool is_doc() const { _C4RV(); return m_tree->is_doc(m_id); }
-    inline bool is_container() const { _C4RV(); return m_tree->is_container(m_id); }
-    inline bool is_map() const { _C4RV(); return m_tree->is_map(m_id); }
-    inline bool is_seq() const { _C4RV(); return m_tree->is_seq(m_id); }
-    inline bool has_val() const { _C4RV(); return m_tree->has_val(m_id); }
-    inline bool has_key() const { _C4RV(); return m_tree->has_key(m_id); }
-    inline bool is_val() const { _C4RV(); return m_tree->is_val(m_id); }
-    inline bool is_keyval() const { _C4RV(); return m_tree->is_keyval(m_id); }
-    inline bool has_key_tag() const { _C4RV(); return m_tree->has_key_tag(m_id); }
-    inline bool has_val_tag() const { _C4RV(); return m_tree->has_val_tag(m_id); }
-    inline bool is_key_ref() const { _C4RV(); return m_tree->is_key_ref(m_id); }
-    inline bool is_val_ref() const { _C4RV(); return m_tree->is_val_ref(m_id); }
-    inline bool is_ref() const { _C4RV(); return m_tree->is_ref(m_id); }
-    inline bool is_anchor() const { _C4RV(); return m_tree->is_anchor(m_id); }
+    inline bool is_root()        const { _C4RV(); return m_tree->is_root(m_id); }
+    inline bool is_stream()      const { _C4RV(); return m_tree->is_stream(m_id); }
+    inline bool is_doc()         const { _C4RV(); return m_tree->is_doc(m_id); }
+    inline bool is_container()   const { _C4RV(); return m_tree->is_container(m_id); }
+    inline bool is_map()         const { _C4RV(); return m_tree->is_map(m_id); }
+    inline bool is_seq()         const { _C4RV(); return m_tree->is_seq(m_id); }
+    inline bool has_val()        const { _C4RV(); return m_tree->has_val(m_id); }
+    inline bool has_key()        const { _C4RV(); return m_tree->has_key(m_id); }
+    inline bool is_val()         const { _C4RV(); return m_tree->is_val(m_id); }
+    inline bool is_keyval()      const { _C4RV(); return m_tree->is_keyval(m_id); }
+    inline bool has_key_tag()    const { _C4RV(); return m_tree->has_key_tag(m_id); }
+    inline bool has_val_tag()    const { _C4RV(); return m_tree->has_val_tag(m_id); }
+    inline bool is_key_ref()     const { _C4RV(); return m_tree->is_key_ref(m_id); }
+    inline bool is_val_ref()     const { _C4RV(); return m_tree->is_val_ref(m_id); }
+    inline bool is_ref()         const { _C4RV(); return m_tree->is_ref(m_id); }
+    inline bool is_anchor()      const { _C4RV(); return m_tree->is_anchor(m_id); }
     inline bool has_key_anchor() const { _C4RV(); return m_tree->has_key_anchor(m_id); }
     inline bool has_val_anchor() const { _C4RV(); return m_tree->has_val_anchor(m_id); }
 
@@ -212,7 +213,7 @@ public:
         m_tree->_set_key(m_id, key);
     }
 
-    template< class T >
+    template<class T>
     inline void set_key_serialized(T const& k)
     {
         _C4RV();
@@ -232,7 +233,7 @@ public:
         m_tree->_set_val(m_id, val);
     }
 
-    template< class T >
+    template<class T>
     inline void set_val_serialized(T const& v)
     {
         _C4RV();
@@ -246,7 +247,7 @@ public:
         m_tree->set_val_tag(m_id, val_tag);
     }
 
-    template< class T >
+    template<class T>
     inline csubstr to_arena(T const& s) const
     {
         _C4RV();
@@ -377,7 +378,7 @@ public:
         return *this;
     }
 
-    template< class T >
+    template<class T>
     inline NodeRef& operator<< (T const& v)
     {
         _apply_seed();
@@ -385,7 +386,7 @@ public:
         return *this;
     }
 
-    template< class T >
+    template<class T>
     inline NodeRef& operator<< (Key<const T> const& v)
     {
         _apply_seed();
@@ -393,7 +394,7 @@ public:
         return *this;
     }
 
-    template< class T >
+    template<class T>
     inline NodeRef& operator<< (Key<T> const& v)
     {
         _apply_seed();
@@ -401,7 +402,7 @@ public:
         return *this;
     }
 
-    template< class T >
+    template<class T>
     inline NodeRef const& operator>> (T &v) const
     {
         C4_ASSERT( ! is_seed());
@@ -414,7 +415,7 @@ public:
         return *this;
     }
 
-    template< class T >
+    template<class T>
     inline NodeRef const& operator>> (Key<T> v) const
     {
         C4_ASSERT( ! is_seed());
@@ -424,7 +425,9 @@ public:
         return *this;
     }
 
-    template< class T >
+public:
+
+    template<class T>
     void get_if(csubstr const& name, T *var) const
     {
         auto ch = find_child(name);
@@ -434,7 +437,7 @@ public:
         }
     }
 
-    template< class T >
+    template<class T>
     void get_if(csubstr const& name, T *var, T const& fallback) const
     {
         auto ch = find_child(name);
@@ -677,7 +680,7 @@ public:
 
 private:
 
-    template< class N >
+    template<class Nd>
     struct child_iterator
     {
         Tree * m_tree;
@@ -690,8 +693,8 @@ private:
         child_iterator& operator++ () { C4_ASSERT(m_child_id != NONE); m_child_id = m_tree->next_sibling(m_child_id); return *this; }
         child_iterator& operator-- () { C4_ASSERT(m_child_id != NONE); m_child_id = m_tree->prev_sibling(m_child_id); return *this; }
 
-        N operator*  () const { return N(m_tree, m_child_id); }
-        N operator-> () const { return N(m_tree, m_child_id); }
+        Nd operator*  () const { return Nd(m_tree, m_child_id); }
+        Nd operator-> () const { return Nd(m_tree, m_child_id); }
 
         bool operator!= (child_iterator that) const { C4_ASSERT(m_tree == that.m_tree); return m_child_id != that.m_child_id; }
         bool operator== (child_iterator that) const { C4_ASSERT(m_tree == that.m_tree); return m_child_id == that.m_child_id; }
@@ -699,8 +702,8 @@ private:
 
 public:
 
-    using       iterator = child_iterator<       NodeRef >;
-    using const_iterator = child_iterator< const NodeRef >;
+    using       iterator = child_iterator<      NodeRef>;
+    using const_iterator = child_iterator<const NodeRef>;
 
     inline iterator begin() { return iterator(m_tree, m_tree->first_child(m_id)); }
     inline iterator end  () { return iterator(m_tree, NONE); }
@@ -710,14 +713,14 @@ public:
 
 private:
 
-    template< class N >
-    struct children_container_
+    template<class Nd>
+    struct children_view_
     {
-        using n_iterator = child_iterator< N >;
+        using n_iterator = child_iterator<Nd>;
 
         n_iterator b, e;
 
-        inline children_container_(n_iterator const& b_, n_iterator const& e_) : b(b_), e(e_) {}
+        inline children_view_(n_iterator const& b_, n_iterator const& e_) : b(b_), e(e_) {}
 
         inline n_iterator begin() const { return b; }
         inline n_iterator end  () const { return e; }
@@ -725,34 +728,38 @@ private:
 
 public:
 
-    using children_container = children_container_< NodeRef >;
-    using const_children_container = children_container_< const NodeRef >;
+    using       children_view = children_view_<      NodeRef>;
+    using const_children_view = children_view_<const NodeRef>;
 
-          children_container children()       { return       children_container(begin(), end()); }
-    const_children_container children() const { return const_children_container(begin(), end()); }
+          children_view children()       { return       children_view(begin(), end()); }
+    const_children_view children() const { return const_children_view(begin(), end()); }
 
-          children_container siblings()       { if(is_root()) { return       children_container(end(), end()); } else { size_t p = get()->m_parent; return       children_container(iterator(m_tree, m_tree->get(p)->m_first_child), iterator(m_tree, NONE)); } }
-    const_children_container siblings() const { if(is_root()) { return const_children_container(end(), end()); } else { size_t p = get()->m_parent; return const_children_container(const_iterator(m_tree, m_tree->get(p)->m_first_child), const_iterator(m_tree, NONE)); } }
+          children_view siblings()       { if(is_root()) { return       children_view(end(), end()); } else { size_t p = get()->m_parent; return       children_view(iterator(m_tree, m_tree->get(p)->m_first_child), iterator(m_tree, NONE)); } }
+    const_children_view siblings() const { if(is_root()) { return const_children_view(end(), end()); } else { size_t p = get()->m_parent; return const_children_view(const_iterator(m_tree, m_tree->get(p)->m_first_child), const_iterator(m_tree, NONE)); } }
 
 public:
 
-    template< class Visitor > bool visit(Visitor fn, size_t indentation_level=0, bool skip_root=true);
-    template< class Visitor > bool visit(Visitor fn, size_t indentation_level=0, bool skip_root=true) const;
+    /** visit every child node calling fn(node) */
+    template<class Visitor> bool visit(Visitor fn, size_t indentation_level=0, bool skip_root=true);
+    /** visit every child node calling fn(node) */
+    template<class Visitor> bool visit(Visitor fn, size_t indentation_level=0, bool skip_root=true) const;
 
-    template< class Visitor > bool visit_stacked(Visitor fn, size_t indentation_level=0, bool skip_root=true);
-    template< class Visitor > bool visit_stacked(Visitor fn, size_t indentation_level=0, bool skip_root=true) const;
+    /** visit every child node calling fn(node, level) */
+    template<class Visitor> bool visit_stacked(Visitor fn, size_t indentation_level=0, bool skip_root=true);
+    /** visit every child node calling fn(node, level) */
+    template<class Visitor> bool visit_stacked(Visitor fn, size_t indentation_level=0, bool skip_root=true) const;
 
 #undef _C4RV
 };
 
 //-----------------------------------------------------------------------------
-template< class T >
+template<class T>
 inline void write(NodeRef *n, T const& v)
 {
     n->set_val_serialized(v);
 }
 
-template< class T >
+template<class T>
 inline bool read(NodeRef const& n, T *v)
 {
     return from_str(n.val(), v);
@@ -760,13 +767,13 @@ inline bool read(NodeRef const& n, T *v)
 
 
 //-----------------------------------------------------------------------------
-template< class Visitor >
+template<class Visitor>
 bool NodeRef::visit(Visitor fn, size_t indentation_level, bool skip_root)
 {
-    return const_cast< NodeRef const* >(this)->visit(fn, indentation_level, skip_root);
+    return const_cast<NodeRef const*>(this)->visit(fn, indentation_level, skip_root);
 }
 
-template< class Visitor >
+template<class Visitor>
 bool NodeRef::visit(Visitor fn, size_t indentation_level, bool skip_root) const
 {
     size_t increment = 0;
@@ -792,13 +799,13 @@ bool NodeRef::visit(Visitor fn, size_t indentation_level, bool skip_root) const
 }
 
 
-template< class Visitor >
+template<class Visitor>
 bool NodeRef::visit_stacked(Visitor fn, size_t indentation_level, bool skip_root)
 {
     return const_cast< NodeRef const* >(this)->visit_stacked(fn, indentation_level, skip_root);
 }
 
-template< class Visitor >
+template<class Visitor>
 bool NodeRef::visit_stacked(Visitor fn, size_t indentation_level, bool skip_root) const
 {
     size_t increment = 0;

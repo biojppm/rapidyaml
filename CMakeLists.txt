@@ -32,6 +32,7 @@ set(RYML_HPP
     ${RYML_SRC_DIR}/c4/yml/parse.hpp
     ${RYML_SRC_DIR}/c4/yml/std/map.hpp
     ${RYML_SRC_DIR}/c4/yml/std/std.hpp
+    ${RYML_SRC_DIR}/c4/yml/std/string.hpp
     ${RYML_SRC_DIR}/c4/yml/std/vector.hpp
     ${RYML_SRC_DIR}/c4/yml/tree.hpp
     ${RYML_SRC_DIR}/c4/yml/writer.hpp
@@ -60,8 +61,8 @@ if(RYML_DBG)
 endif()
 
 #-------------------------------------------------------
+# extern libraries, used only for testing/benchmarking
 if(RYML_BUILD_TESTS OR RYML_BUILD_BENCHMARKS)
-    # extern libraries
     set(ryml_ext_dir ${CMAKE_CURRENT_BINARY_DIR}/extern)
     c4_import_remote_proj(ryml c4fs ${ryml_ext_dir}/c4fs
         GIT_REPOSITORY https://github.com/biojppm/c4fs

@@ -1005,7 +1005,7 @@ seq:
 TEST(general, map_to_root)
 {
     std::string cmpbuf; const char *exp;
-    std::map< std::string, int > m({{"bar", 2}, {"foo", 1}});
+    std::map<std::string, int> m({{"bar", 2}, {"foo", 1}});
     Tree t;
     t.rootref() << m;
 

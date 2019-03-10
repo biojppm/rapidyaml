@@ -53,7 +53,7 @@ struct Parsable
     void parse_rw()
     {
         if(rw.empty()) return;
-        c4::yml::parse(to_substr(rw), &rw_parsed.tree);
+        c4::yml::parse(c4::to_substr(rw), &rw_parsed.tree);
         rw_parsed.was_parsed = true;
     }
 
@@ -106,7 +106,7 @@ c4::csubstr replace_all(c4::csubstr pattern, c4::csubstr repl, c4::csubstr subje
         b = e + pattern.size();
     } while(b != npos);
 
-    return to_csubstr(*dst);
+    return c4::to_csubstr(*dst);
 }
 
 
@@ -143,7 +143,7 @@ struct SuiteCase
 
         // read the file
         c4::fs::file_get_contents(filename_, &file_contents);
-        c4::csubstr contents = to_csubstr(file_contents);
+        c4::csubstr contents = c4::to_csubstr(file_contents);
 
         // now parse the file
         c4::csubstr ws = " \t\r\n";
@@ -253,6 +253,7 @@ SuiteCase g_suite_case;
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+
 #ifdef CRL
 TEST(in_json_rw, parse)
 {
@@ -271,6 +272,7 @@ TEST(in_json_ro, emit)
 {
     g_suite_case.in_json.emit_ro();
 }
+#endif CRL
 
 
 //-----------------------------------------------------------------------------
@@ -305,6 +307,8 @@ TEST(out_yaml__ro_vs_rw, compare_emitted)
 
 
 //-----------------------------------------------------------------------------
+
+#ifdef CRL
 TEST(in_yaml_rw, parse)
 {
     g_suite_case.in_yaml.parse_rw();
@@ -322,7 +326,6 @@ TEST(in_yaml_ro, emit)
 {
     g_suite_case.in_yaml.emit_ro();
 }
-
 #endif
 
 //-----------------------------------------------------------------------------
@@ -331,8 +334,6 @@ TEST(in_yaml_ro, emit)
 
 int main(int argc, char* argv[])
 {
-    return 0;
-
     ::testing::InitGoogleTest(&argc, argv);
 
     if(argc > 1)
@@ -351,5 +352,12 @@ int main(int argc, char* argv[])
         }
     }
 
-    return RUN_ALL_TESTS();
+    int status = RUN_ALL_TESTS();
+
+    if(status != 0)
+    {
+        c4::dump("TESTS FAILED: ", g_suite_case.filename);
+    }
+
+    return status;
 }
