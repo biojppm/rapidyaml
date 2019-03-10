@@ -63,6 +63,10 @@ if [ "$A" == "32" ] ; then
     DPKG="$DPKG libc6-dbg:i386"
 fi
 
+if [ "$BT" == "Coverage" ] ; then
+    DPKG="$DPKG lcov"
+fi
+
 if [ ! -z "$DPKG" ] ; then
     echo "additional packages: $DPKG"
 fi
@@ -77,8 +81,14 @@ sudo -E apt-get install -y --force-yes \
      $DPKG
 
 if [ "${BUILD_TYPE}" == "Coverage" -a "${TRAVIS_OS_NAME}" == "linux" ]; then
-    PATH=~/.local/bin:${PATH};
+    export PATH=~/.local/bin:${PATH};
+    sudo -E apt-get install libffi-dev libssl-dev
     pip install --user --upgrade pip;
+    # https://github.com/pypa/pip/issues/5221#issuecomment-381568428
+    # (via https://github.com/pypa/pip/issues/5240)
+    hash -d pip || hash -d $(which pip) || echo "WTF???"
+    # https://stackoverflow.com/questions/29134512/insecureplatformwarning-a-true-sslcontext-object-is-not-available-this-prevent
+    pip install --user requests[security] pyopenssl ndg-httpsclient pyasn1
     pip install --user cpp-coveralls;
 fi
 
