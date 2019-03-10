@@ -235,7 +235,7 @@ class NodeRef
 public:
 
     // this can be used to query whether a node is in seed state
-    bool valid() { return m_node_id != npos && m_node_name == nullptr; }
+    bool valid() { return m_node_id != NONE && m_node_name == nullptr; }
 
     // forward all calls to m_tree. For example:
     csubstr val() const { assert(valid()); return m_tree->val(m_node_or_seed_id); }
@@ -293,18 +293,59 @@ ryml comes stocked with code to serialize the basic intrinsic types (integers
 and floating points). For types other than these, you need to instruct ryml
 how to serialize your type.
 
-There are two distinct categories of types when serializing to a YAML tree:
+There are two distinct type categories when serializing to a YAML tree:
 
-* The type requires child nodes (it is either a sequence or map).  For these,
-  overload the `write()/read()` functions. Examples can be seen in the
-  serialization of [`std::vector`](src/c4/yml/std/vector.hpp)
-  or [`std::map`](src/c4/yml/std/map.hpp). It is important to overload these
-  functions in the namespace where the type you're serializing was defined,
-  to harness [C++'s ADL rules](http://en.cppreference.com/w/cpp/language/adl).
+* Container types requiring child nodes (ie, either sequences or maps). For
+  these, overload the `write()/read()` functions. For example,
+  ```c++
+  namespace foo {
+  struct MyStruct; // a container-type struct 
+  {
+      int subject;
+      std::map<std::string, int> counts;
+  };
+  
+  // ... will need these functions to convert to YAML:
+  void write(c4::yml::NodeRef *n, MyStruct const& v);
+  void  read(c4::yml::NodeRef const& n, MyStruct *v);
+  } // namespace foo
+  ```
+  which could be implemented as:
+  ```c++
+  #include <c4/yml/std/map.hpp>
+  #include <c4/yml/std/string.hpp>
+  
+  void foo::read(c4::yml::NodeRef const& n, MyStruct *v)
+  {
+      n["subject"] >> v->subject;
+      n["counts"] >> v->counts;
+  }
+  
+  void foo::write(c4::yml::NodeRef *n, MyStruct const& v)
+  {
+      *n |= c4::yml::MAP;
+      
+      NodeRef ch = n->append_child();
+      ch.set_key("subject");
+      ch.set_val_serialized(v.subject);
+      
+      ch = n->append_child();
+      ch.set_key("counts");
+      write(&ch, v.counts);
+  }
+  ```
+  To harness [C++'s ADL rules](http://en.cppreference.com/w/cpp/language/adl),
+  it is important to overload these functions in the namespace where the type
+  you're serializing was defined (or in the c4::yml namespace). Generic
+  examples can be seen in the (optional) implementations of `std::vector`
+  or `std::map`, at their respective headers 
+  [`c4/yml/std/vector.hpp`](src/c4/yml/std/vector.hpp) and
+  [`c4/yml/std/map.hpp`](src/c4/yml/std/map.hpp).
 
-* The type is serializable to a string, and it will be a leaf node in the
-  tree. For these, overload the `to_str(c4::substr, T)/from_str(c4::csubstr,
-  *T)` functions. For example, here's a 3D vector type:
+* The second category is for types which should serialize to a string,
+  resulting in leaf node in the YAML tree. For these, overload the
+  `to_str(c4::substr, T)/from_str(c4::csubstr,
+  *T)` functions. Here's an example for a 3D vector type:
   ```c++
   struct vec3 { float x, y, z; };
 
@@ -327,11 +368,10 @@ There are two distinct categories of types when serializing to a YAML tree:
       // --- actually snscanf(buf.str, buf.len, ...) but there's
       // no such function in the standard.
       size_t ret = c4::unformat(buf, "({},{},{})", v.x, v.y, v.z);
-      return ret != c4::yml::npos;
+      return ret != c4::csubstr::npos;
   }
   ```
-
-You can also look at [the `std::string` serialization code](https://github.com/biojppm/c4core/blob/master/src/c4/std/string.hpp).
+   You can also look at [the `std::string` serialization code](https://github.com/biojppm/c4core/blob/master/src/c4/std/string.hpp).
 
 
 ### Low-level API
@@ -361,13 +401,13 @@ print_keyval(t, bar_id); // "bar: 2"
 print_keyval(t, baz_id); // "baz: 3"
 
 // to iterate over the children of a node:
-for(size_t i = t.first_child(root_id); i != ryml::npos; i = t->next_sibling(i))
+for(size_t i = t.first_child(root_id); i != ryml::NONE; i = t->next_sibling(i))
 {
     // ...
 }
 
 // to iterate over the siblings of a node:
-for(size_t i = t.first_sibling(foo_id); i != ryml::npos; i = t->next_sibling(i))
+for(size_t i = t.first_sibling(foo_id); i != ryml::NONE; i = t->next_sibling(i))
 {
     // ...
 }
@@ -398,7 +438,7 @@ Of course, there are some dark corners in YAML, and there certainly can
 appear many cases which YAML fails to parse. So we welcome
 your bug reports or pull requests!
 
-I am currently working on integrating (and fixing) the ~300 cases in the YAML
+I am currently working on integrating the ~300 cases in the YAML
 test suite.
 
 

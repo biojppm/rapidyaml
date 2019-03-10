@@ -5,14 +5,15 @@
 #include <c4/std/vector.hpp>
 #include <vector>
 
-namespace std {
+namespace c4 {
+namespace yml {
 
 // vector is a sequence-like type, and it requires child nodes
 // in the data tree hierarchy (a SEQ node in ryml parlance).
 // So it should be serialized via write()/read().
 
-template< class V, class Alloc >
-void write(c4::yml::NodeRef *n, std::vector< V, Alloc > const& vec)
+template<class V, class Alloc>
+void write(c4::yml::NodeRef *n, std::vector<V, Alloc> const& vec)
 {
     *n |= c4::yml::SEQ;
     for(auto const& v : vec)
@@ -21,8 +22,8 @@ void write(c4::yml::NodeRef *n, std::vector< V, Alloc > const& vec)
     }
 }
 
-template< class V, class Alloc >
-bool read(c4::yml::NodeRef const& n, std::vector< V, Alloc > *vec)
+template<class V, class Alloc>
+bool read(c4::yml::NodeRef const& n, std::vector<V, Alloc> *vec)
 {
     vec->resize(n.num_children());
     size_t pos = 0;
@@ -33,6 +34,7 @@ bool read(c4::yml::NodeRef const& n, std::vector< V, Alloc > *vec)
     return true;
 }
 
-} // namespace std
+} // namespace yml
+} // namespace c4
 
 #endif // _C4_YML_STD_VECTOR_HPP_
