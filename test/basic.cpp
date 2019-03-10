@@ -1,7 +1,7 @@
 #include "c4/yml/std/std.hpp"
+#include <c4/to_str.hpp>
 #include "c4/yml/parse.hpp"
 #include "c4/yml/emit.hpp"
-#include <c4/to_str.hpp>
 
 #include "./test_case.hpp"
 
@@ -71,12 +71,15 @@ v3: '(100,101,102)'
 v4: '(1000,1001,1002,1003)'
 )");
 }
+} // namespace foo
 
-template< class Container, class... Args >
+namespace c4 { namespace yml {
+
+template<class Container, class... Args>
 void do_test_serialize(Args&& ...args)
 {
     using namespace c4::yml;
-    Container s(std::forward< Args >(args)...);
+    Container s(std::forward<Args>(args)...);
     Container out;
 
     Tree t;
@@ -90,23 +93,24 @@ void do_test_serialize(Args&& ...args)
     EXPECT_EQ(s, out);
 }
 
+
 TEST(serialize, std_vector_int)
 {
     using T = int;
     using L = std::initializer_list<T>;
-    do_test_serialize< std::vector<T> >(L{1, 2, 3, 4, 5});
+    do_test_serialize<std::vector<T>>(L{1, 2, 3, 4, 5});
 }
 TEST(serialize, std_vector_string)
 {
     using T = std::string;
     using L = std::initializer_list<T>;
-    do_test_serialize< std::vector<T> >(L{"asdadk", "sdfkjdfgu", "fdfdjkhdfgkjhdfi", "e987dfgnfdg8", "'d0fgºçdfg«"});
+    do_test_serialize<std::vector<T>>(L{"0asdadk0", "1sdfkjdfgu1", "2fdfdjkhdfgkjhdfi2", "3e987dfgnfdg83", "4'd0fgºçdfg«4"});
 }
 TEST(serialize, std_vector_std_vector_int)
 {
     using T = std::vector<int>;
     using L = std::initializer_list<T>;
-    do_test_serialize< std::vector<T> >(L{{1, 2, 3, 4, 5}, {6, 7, 8, 9, 0}});
+    do_test_serialize<std::vector<T>>(L{{1, 2, 3, 4, 5}, {6, 7, 8, 9, 0}});
 }
 
 
@@ -114,26 +118,26 @@ TEST(serialize, std_map__int_int)
 {
     using M = std::map<int, int>;
     using L = std::initializer_list<typename M::value_type>;
-    do_test_serialize< M >(L{{10, 0}, {11, 1}, {22, 2}, {10001, 1000}, {20002, 2000}, {30003, 3000}});
+    do_test_serialize<M>(L{{10, 0}, {11, 1}, {22, 2}, {10001, 1000}, {20002, 2000}, {30003, 3000}});
 }
 TEST(serialize, std_map__std_string_int)
 {
     using M = std::map<std::string, int>;
     using L = std::initializer_list<typename M::value_type>;
-    do_test_serialize< M >(L{{"asdsdf", 0}, {"dfgdfgdfg", 1}, {"dfgjdfgkjh", 2}});
+    do_test_serialize<M>(L{{"asdsdf", 0}, {"dfgdfgdfg", 1}, {"dfgjdfgkjh", 2}});
 }
 TEST(serialize, std_map__string_vectori)
 {
     using M = std::map<std::string, std::vector<int>>;
     using L = std::initializer_list<typename M::value_type>;
-    do_test_serialize< M >(L{{"asdsdf", {0, 1, 2, 3}}, {"dfgdfgdfg", {4, 5, 6, 7}}, {"dfgjdfgkjh", {8, 9, 10, 11}}});
+    do_test_serialize<M>(L{{"asdsdf", {0, 1, 2, 3}}, {"dfgdfgdfg", {4, 5, 6, 7}}, {"dfgjdfgkjh", {8, 9, 10, 11}}});
 }
 TEST(serialize, std_vector__map_string_int)
 {
     using V = std::vector< std::map<std::string, int>>;
     using M = typename V::value_type;
     using L = std::initializer_list<M>;
-    do_test_serialize< V >(L{
+    do_test_serialize<V>(L{
             M{{"asdasf",  0}, {"dfgkjhdfg",  1}, {"fghffg",  2}, {"r5656kjnh9b'dfgwg+*",  3}},
             M{{"asdasf", 10}, {"dfgkjhdfg", 11}, {"fghffg", 12}, {"r5656kjnh9b'dfgwg+*", 13}},
             M{{"asdasf", 20}, {"dfgkjhdfg", 21}, {"fghffg", 22}, {"r5656kjnh9b'dfgwg+*", 23}},
@@ -141,7 +145,8 @@ TEST(serialize, std_vector__map_string_int)
     });
 }
 
-} // namespace foo
+} /*namespace yml*/
+} /*namespace c4*/
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
