@@ -7,10 +7,12 @@ c4_declare_project(ryml)
 
 option(RYML_DEFAULT_CALLBACKS "Enable ryml default implementation of callbacks: allocate(), free(), error()" ON)
 option(RYML_DBG "Enable ryml debug code. Very verbose." OFF)#${RYML_DEV})
+option(RYML_BUILD_API "Enable API libraries (python, etc)" OFF)
 
 #-------------------------------------------------------
 set(RYML_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(RYML_EXT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/extern)
+set(RYML_API_DIR ${CMAKE_CURRENT_SOURCE_DIR}/api)
 
 #-------------------------------------------------------
 
@@ -89,4 +91,9 @@ endif()
 #-------------------------------------------------------
 if(RYML_BUILD_BENCHMARKS)
     add_subdirectory(bm bm)
+endif()
+
+#-------------------------------------------------------
+if(RYML_BUILD_API)
+    add_subdirectory(api api)
 endif()
