@@ -15,6 +15,12 @@
 
 #include <stdarg.h>
 
+/** @todo remove this */
+void swig_test()
+{
+    printf("swig is working!\n");
+}
+
 namespace c4 {
 namespace yml {
 
@@ -94,7 +100,7 @@ private:
     csubstr _peek_next_line(size_t pos=npos) const;
     void  _scan_line();
     void  _next_line() { _line_ended(); }
- 
+
     bool  _scan_scalar(csubstr *scalar);
     csubstr _scan_comment();
     csubstr _scan_quoted_scalar(const char q);
@@ -274,7 +280,7 @@ private:
     size_t  m_root_id;
     Tree *  m_tree;
 
-    detail::stack< State > m_stack;
+    detail::stack<State> m_stack;
     State * m_state;
 
     csubstr m_key_tag;
