@@ -1,0 +1,362 @@
+[
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug",
+  "command": "/usr/bin/clang  -DRYML_DBG -I/home/jpmag/proj/rapidyaml/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern   -m64 -g    -std=c++11 -o CMakeFiles/ryml.dir/src/c4/yml/common.cpp.o -c /home/jpmag/proj/rapidyaml/src/c4/yml/common.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/src/c4/yml/common.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug",
+  "command": "/usr/bin/clang  -DRYML_DBG -I/home/jpmag/proj/rapidyaml/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern   -m64 -g    -std=c++11 -o CMakeFiles/ryml.dir/src/c4/yml/parse.cpp.o -c /home/jpmag/proj/rapidyaml/src/c4/yml/parse.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/src/c4/yml/parse.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug",
+  "command": "/usr/bin/clang  -DRYML_DBG -I/home/jpmag/proj/rapidyaml/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern   -m64 -g    -std=c++11 -o CMakeFiles/ryml.dir/src/c4/yml/tree.cpp.o -c /home/jpmag/proj/rapidyaml/src/c4/yml/tree.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/src/c4/yml/tree.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern   -m64 -g   -o CMakeFiles/ryml-ubsan.dir/src/c4/yml/common.cpp.o -c /home/jpmag/proj/rapidyaml/src/c4/yml/common.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/src/c4/yml/common.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern   -m64 -g   -o CMakeFiles/ryml-ubsan.dir/src/c4/yml/parse.cpp.o -c /home/jpmag/proj/rapidyaml/src/c4/yml/parse.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/src/c4/yml/parse.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern   -m64 -g   -o CMakeFiles/ryml-ubsan.dir/src/c4/yml/tree.cpp.o -c /home/jpmag/proj/rapidyaml/src/c4/yml/tree.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/src/c4/yml/tree.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern   -m64 -g   -o CMakeFiles/ryml-tsan.dir/src/c4/yml/common.cpp.o -c /home/jpmag/proj/rapidyaml/src/c4/yml/common.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/src/c4/yml/common.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern   -m64 -g   -o CMakeFiles/ryml-tsan.dir/src/c4/yml/parse.cpp.o -c /home/jpmag/proj/rapidyaml/src/c4/yml/parse.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/src/c4/yml/parse.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern   -m64 -g   -o CMakeFiles/ryml-tsan.dir/src/c4/yml/tree.cpp.o -c /home/jpmag/proj/rapidyaml/src/c4/yml/tree.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/src/c4/yml/tree.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern   -m64 -g   -o CMakeFiles/ryml-asan.dir/src/c4/yml/common.cpp.o -c /home/jpmag/proj/rapidyaml/src/c4/yml/common.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/src/c4/yml/common.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern   -m64 -g   -o CMakeFiles/ryml-asan.dir/src/c4/yml/parse.cpp.o -c /home/jpmag/proj/rapidyaml/src/c4/yml/parse.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/src/c4/yml/parse.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern   -m64 -g   -o CMakeFiles/ryml-asan.dir/src/c4/yml/tree.cpp.o -c /home/jpmag/proj/rapidyaml/src/c4/yml/tree.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/src/c4/yml/tree.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern   -m64 -g   -o CMakeFiles/ryml-msan.dir/src/c4/yml/common.cpp.o -c /home/jpmag/proj/rapidyaml/src/c4/yml/common.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/src/c4/yml/common.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern   -m64 -g   -o CMakeFiles/ryml-msan.dir/src/c4/yml/parse.cpp.o -c /home/jpmag/proj/rapidyaml/src/c4/yml/parse.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/src/c4/yml/parse.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern   -m64 -g   -o CMakeFiles/ryml-msan.dir/src/c4/yml/tree.cpp.o -c /home/jpmag/proj/rapidyaml/src/c4/yml/tree.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/src/c4/yml/tree.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/modules/c4core/build/src",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern   -m64 -g    -std=c++11 -o CMakeFiles/c4core.dir/c4/char_traits.cpp.o -c /home/jpmag/proj/rapidyaml/extern/c4core/src/c4/char_traits.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/extern/c4core/src/c4/char_traits.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/modules/c4core/build/src",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern   -m64 -g    -std=c++11 -o CMakeFiles/c4core.dir/c4/error.cpp.o -c /home/jpmag/proj/rapidyaml/extern/c4core/src/c4/error.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/extern/c4core/src/c4/error.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/modules/c4core/build/src",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern   -m64 -g    -std=c++11 -o CMakeFiles/c4core.dir/c4/language.cpp.o -c /home/jpmag/proj/rapidyaml/extern/c4core/src/c4/language.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/extern/c4core/src/c4/language.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/modules/c4core/build/src",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern   -m64 -g    -std=c++11 -o CMakeFiles/c4core.dir/c4/memory_resource.cpp.o -c /home/jpmag/proj/rapidyaml/extern/c4core/src/c4/memory_resource.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/extern/c4core/src/c4/memory_resource.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/modules/c4core/build/src",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern   -m64 -g    -std=c++11 -o CMakeFiles/c4core.dir/c4/memory_util.cpp.o -c /home/jpmag/proj/rapidyaml/extern/c4core/src/c4/memory_util.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/extern/c4core/src/c4/memory_util.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/modules/c4core/build/src",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern   -m64 -g    -std=c++11 -o CMakeFiles/c4core.dir/c4/time.cpp.o -c /home/jpmag/proj/rapidyaml/extern/c4core/src/c4/time.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/extern/c4core/src/c4/time.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/modules/c4core/build/src",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern   -m64 -g    -std=c++11 -o CMakeFiles/c4core.dir/c4/to_str.cpp.o -c /home/jpmag/proj/rapidyaml/extern/c4core/src/c4/to_str.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/extern/c4core/src/c4/to_str.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test",
+  "command": "/usr/bin/clang  -DYAML_DECLARE_STATIC -I/home/jpmag/proj/rapidyaml/test -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/build/include -isystem /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest/include -isystem /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest   -m64 -g   -o CMakeFiles/ryml-test-test_basic-msan.dir/test_case.cpp.o -c /home/jpmag/proj/rapidyaml/test/test_case.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/test/test_case.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test",
+  "command": "/usr/bin/clang  -DYAML_DECLARE_STATIC -I/home/jpmag/proj/rapidyaml/test -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/build/include -isystem /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest/include -isystem /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest   -m64 -g   -o CMakeFiles/ryml-test-test_basic-msan.dir/basic.cpp.o -c /home/jpmag/proj/rapidyaml/test/basic.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/test/basic.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test",
+  "command": "/usr/bin/clang  -DYAML_DECLARE_STATIC -I/home/jpmag/proj/rapidyaml/test -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/build/include -isystem /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest/include -isystem /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest   -m64 -g   -o CMakeFiles/ryml-test-test_basic-asan.dir/test_case.cpp.o -c /home/jpmag/proj/rapidyaml/test/test_case.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/test/test_case.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test",
+  "command": "/usr/bin/clang  -DYAML_DECLARE_STATIC -I/home/jpmag/proj/rapidyaml/test -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/build/include -isystem /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest/include -isystem /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest   -m64 -g   -o CMakeFiles/ryml-test-test_basic-asan.dir/basic.cpp.o -c /home/jpmag/proj/rapidyaml/test/basic.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/test/basic.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test",
+  "command": "/usr/bin/clang  -DRYML_DBG -DYAML_DECLARE_STATIC -I/home/jpmag/proj/rapidyaml/test -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/build/include -isystem /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest/include -isystem /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest   -m64 -g    -std=c++11 -o CMakeFiles/ryml-test-test_basic.dir/test_case.cpp.o -c /home/jpmag/proj/rapidyaml/test/test_case.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/test/test_case.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test",
+  "command": "/usr/bin/clang  -DRYML_DBG -DYAML_DECLARE_STATIC -I/home/jpmag/proj/rapidyaml/test -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/build/include -isystem /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest/include -isystem /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest   -m64 -g    -std=c++11 -o CMakeFiles/ryml-test-test_basic.dir/basic.cpp.o -c /home/jpmag/proj/rapidyaml/test/basic.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/test/basic.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test",
+  "command": "/usr/bin/clang  -DYAML_DECLARE_STATIC -I/home/jpmag/proj/rapidyaml/test -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/build/include -isystem /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest/include -isystem /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest   -m64 -g   -o CMakeFiles/ryml-test-test_basic-tsan.dir/test_case.cpp.o -c /home/jpmag/proj/rapidyaml/test/test_case.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/test/test_case.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test",
+  "command": "/usr/bin/clang  -DYAML_DECLARE_STATIC -I/home/jpmag/proj/rapidyaml/test -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/build/include -isystem /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest/include -isystem /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest   -m64 -g   -o CMakeFiles/ryml-test-test_basic-tsan.dir/basic.cpp.o -c /home/jpmag/proj/rapidyaml/test/basic.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/test/basic.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test",
+  "command": "/usr/bin/clang  -DYAML_DECLARE_STATIC -I/home/jpmag/proj/rapidyaml/test -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/build/include -isystem /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest/include -isystem /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest   -m64 -g   -o CMakeFiles/ryml-test-test_basic-ubsan.dir/test_case.cpp.o -c /home/jpmag/proj/rapidyaml/test/test_case.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/test/test_case.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test",
+  "command": "/usr/bin/clang  -DYAML_DECLARE_STATIC -I/home/jpmag/proj/rapidyaml/test -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src -I/home/jpmag/proj/rapidyaml/extern/c4core/src/../extern -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/build/include -isystem /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest/include -isystem /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest   -m64 -g   -o CMakeFiles/ryml-test-test_basic-ubsan.dir/basic.cpp.o -c /home/jpmag/proj/rapidyaml/test/basic.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/test/basic.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/build/googletest",
+  "command": "/usr/bin/clang   -isystem /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest/include -isystem /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest   -m64 -g   -Wall -Wshadow -Werror -Wno-error=sign-conversion -DGTEST_HAS_PTHREAD=1 -fexceptions -W -Wpointer-arith -Wreturn-type -Wcast-qual -Wwrite-strings -Wswitch -Wunused-parameter -Wcast-align -Wchar-subscripts -Winline -Wredundant-decls -std=c++11 -o CMakeFiles/gtest_main.dir/src/gtest_main.cc.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest/src/gtest_main.cc",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest/src/gtest_main.cc"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/build/googletest",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest   -m64 -g   -Wall -Wshadow -Werror -Wno-error=sign-conversion -DGTEST_HAS_PTHREAD=1 -fexceptions -W -Wpointer-arith -Wreturn-type -Wcast-qual -Wwrite-strings -Wswitch -Wunused-parameter -Wcast-align -Wchar-subscripts -Winline -Wredundant-decls -std=c++11 -o CMakeFiles/gtest.dir/src/gtest-all.cc.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest/src/gtest-all.cc",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/gtest/src/googletest/src/gtest-all.cc"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/build",
+  "command": "/usr/bin/clang -DHAVE_CONFIG_H -DYAML_DECLARE_STATIC -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/build/include   -m64 -g   -o CMakeFiles/yaml.dir/src/api.c.o   -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/src/api.c",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/src/api.c"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/build",
+  "command": "/usr/bin/clang -DHAVE_CONFIG_H -DYAML_DECLARE_STATIC -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/build/include   -m64 -g   -o CMakeFiles/yaml.dir/src/dumper.c.o   -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/src/dumper.c",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/src/dumper.c"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/build",
+  "command": "/usr/bin/clang -DHAVE_CONFIG_H -DYAML_DECLARE_STATIC -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/build/include   -m64 -g   -o CMakeFiles/yaml.dir/src/emitter.c.o   -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/src/emitter.c",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/src/emitter.c"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/build",
+  "command": "/usr/bin/clang -DHAVE_CONFIG_H -DYAML_DECLARE_STATIC -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/build/include   -m64 -g   -o CMakeFiles/yaml.dir/src/loader.c.o   -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/src/loader.c",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/src/loader.c"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/build",
+  "command": "/usr/bin/clang -DHAVE_CONFIG_H -DYAML_DECLARE_STATIC -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/build/include   -m64 -g   -o CMakeFiles/yaml.dir/src/parser.c.o   -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/src/parser.c",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/src/parser.c"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/build",
+  "command": "/usr/bin/clang -DHAVE_CONFIG_H -DYAML_DECLARE_STATIC -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/build/include   -m64 -g   -o CMakeFiles/yaml.dir/src/reader.c.o   -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/src/reader.c",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/src/reader.c"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/build",
+  "command": "/usr/bin/clang -DHAVE_CONFIG_H -DYAML_DECLARE_STATIC -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/build/include   -m64 -g   -o CMakeFiles/yaml.dir/src/scanner.c.o   -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/src/scanner.c",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/src/scanner.c"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/build",
+  "command": "/usr/bin/clang -DHAVE_CONFIG_H -DYAML_DECLARE_STATIC -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/build/include   -m64 -g   -o CMakeFiles/yaml.dir/src/writer.c.o   -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/src/writer.c",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/libyaml/src/src/writer.c"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/binary.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/binary.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/binary.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/convert.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/convert.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/convert.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/directives.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/directives.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/directives.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/emit.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/emit.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/emit.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/emitfromevents.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/emitfromevents.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/emitfromevents.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/emitter.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/emitter.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/emitter.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/emitterstate.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/emitterstate.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/emitterstate.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/emitterutils.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/emitterutils.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/emitterutils.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/exceptions.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/exceptions.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/exceptions.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/exp.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/exp.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/exp.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/memory.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/memory.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/memory.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/node.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/node.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/node.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/node_data.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/node_data.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/node_data.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/nodebuilder.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/nodebuilder.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/nodebuilder.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/nodeevents.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/nodeevents.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/nodeevents.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/null.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/null.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/null.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/ostream_wrapper.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/ostream_wrapper.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/ostream_wrapper.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/parse.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/parse.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/parse.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/parser.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/parser.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/parser.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/regex_yaml.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/regex_yaml.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/regex_yaml.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/scanner.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/scanner.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/scanner.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/scanscalar.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/scanscalar.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/scanscalar.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/scantag.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/scantag.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/scantag.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/scantoken.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/scantoken.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/scantoken.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/simplekey.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/simplekey.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/simplekey.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/singledocparser.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/singledocparser.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/singledocparser.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/stream.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/stream.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/stream.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/tag.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/tag.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/tag.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/contrib/graphbuilder.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/contrib/graphbuilder.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/contrib/graphbuilder.cpp"
+},
+{
+  "directory": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/build",
+  "command": "/usr/bin/clang   -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/include -I/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src   -m64 -g    -m64 -Wall  -Wextra -pedantic -Wno-long-long  -m64 -std=gnu++11 -o CMakeFiles/yaml-cpp.dir/src/contrib/graphbuilderadapter.cpp.o -c /home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/contrib/graphbuilderadapter.cpp",
+  "file": "/home/jpmag/proj/rapidyaml/build/linux-x86_64-clang7.0-Debug/test/extern/yaml-cpp/src/src/contrib/graphbuilderadapter.cpp"
+}
+]

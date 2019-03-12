@@ -44,11 +44,19 @@ struct BmCase
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-BmCase c; // this is used by the benchmarks
+
+/** this is used by the benchmarks.
+ *
+ * don't declare the case as static as there's no guarantee the allocator's
+ * lifetime starts before and ends after the case's lifetime */
+BmCase * C4_RESTRICT c = nullptr;
+
 
 int main(int argc, char** argv)
 {
-    c.run(argc, argv);
+    BmCase fixture;
+    c = &fixture;
+    c->run(argc, argv);
 }
 
 
@@ -58,7 +66,7 @@ int main(int argc, char** argv)
 
 void yamlcpp(bm::State& st)
 {
-    std::string src(c.src.begin(), c.src.end());
+    std::string src(c->src.begin(), c->src.end());
     for(auto _ : st)
     {
         YAML::Node node = YAML::Load(src);
@@ -71,11 +79,11 @@ void ryml_rw(bm::State& st)
     size_t sz;
     for(auto _ : st)
     {
-        ryml::Tree tree = ryml::parse(c.filename, to_substr(c.in_place));
+        ryml::Tree tree = ryml::parse(c->filename, c4::to_substr(c->in_place));
         sz = tree.size();
     }
     st.SetItemsProcessed(st.iterations() * sz);
-    st.SetBytesProcessed(st.iterations() * c.src.size());
+    st.SetBytesProcessed(st.iterations() * c->src.size());
 }
 
 void ryml_ro(bm::State& st)
@@ -83,11 +91,11 @@ void ryml_ro(bm::State& st)
     size_t sz;
     for(auto _ : st)
     {
-        ryml::Tree tree = ryml::parse(c.filename, to_csubstr(c.src));
+        ryml::Tree tree = ryml::parse(c->filename, c4::to_csubstr(c->src));
         sz = tree.size();
     }
     st.SetItemsProcessed(st.iterations() * sz);
-    st.SetBytesProcessed(st.iterations() * c.src.size());
+    st.SetBytesProcessed(st.iterations() * c->src.size());
 }
 
 void ryml_rw_reuse(bm::State& st)
@@ -95,13 +103,13 @@ void ryml_rw_reuse(bm::State& st)
     size_t sz;
     for(auto _ : st)
     {
-        c.ryml_tree.clear();
-        c.ryml_tree.clear_arena();
-        c.ryml_parser.parse(c.filename, to_substr(c.in_place), &c.ryml_tree);
-        sz = c.ryml_tree.size();
+        c->ryml_tree.clear();
+        c->ryml_tree.clear_arena();
+        c->ryml_parser.parse(c->filename, c4::to_substr(c->in_place), &c->ryml_tree);
+        sz = c->ryml_tree.size();
     }
     st.SetItemsProcessed(st.iterations() * sz);
-    st.SetBytesProcessed(st.iterations() * c.src.size());
+    st.SetBytesProcessed(st.iterations() * c->src.size());
 }
 
 void ryml_ro_reuse(bm::State& st)
@@ -109,13 +117,13 @@ void ryml_ro_reuse(bm::State& st)
     size_t sz;
     for(auto _ : st)
     {
-        c.ryml_tree.clear();
-        c.ryml_tree.clear_arena();
-        c.ryml_parser.parse(c.filename, to_csubstr(c.src), &c.ryml_tree);
-        sz = c.ryml_tree.size();
+        c->ryml_tree.clear();
+        c->ryml_tree.clear_arena();
+        c->ryml_parser.parse(c->filename, c4::to_csubstr(c->src), &c->ryml_tree);
+        sz = c->ryml_tree.size();
     }
     st.SetItemsProcessed(st.iterations() * sz);
-    st.SetBytesProcessed(st.iterations() * c.src.size());
+    st.SetBytesProcessed(st.iterations() * c->src.size());
 }
 
 BENCHMARK(yamlcpp);
