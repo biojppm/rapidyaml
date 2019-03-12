@@ -30,34 +30,53 @@ ryml is written in C++11, and is known to compile with:
 
 ## Rapid? How rapid is it?
 
-A lot, actually!
+Quite a lot, actually! The first microbenchmark results are in. On my i7-6800K CPU @
+3.40GHz, I get:
+ * ryml parses YAML at about ~150MB/s on Linux and ~100MB/s on Windows. 
+ * But it gets better. **ryml parses JSON at about 450MB/s on Linux**
+   (didn't try yet on Windows).
 
-[Here's a benchmark](./bm/parse.cpp) repeatedly parsing an [appveyor.yml config
-file](./bm/cases/appveyor.yml), and comparing with [yaml-cpp](https://github.com/jbeder/yaml-cpp):
+[Here's the benchmark](./bm/parse.cpp). Using different approaches within
+ryml (in-situ/read-only vs. with/without reuse), a YAML / JSON buffer is
+repeatedly parsed, comparing with [yaml-cpp](https://github.com/jbeder/yaml-cpp). I'll eventually
+compare and systematize the results also against libyaml, RapidJSON and other
+alternatives, but for now the existing figures are very encouraging.
 
-```
-------------------------------------------------------------------------
-Benchmark                      Time             CPU   Iterations UserCounters...
-------------------------------------------------------------------------
-Debug/yamlcpp           25423992 ns     25669643 ns           28 bytes_per_second=84.4185k/s
-Debug/ryml_rw_reuse       328672 ns       329641 ns         2133 bytes_per_second=6.41971M/s items_per_second=218.419k/s
-Release/yamlcpp           394764 ns       399013 ns         1723 bytes_per_second=5.30359M/s
-Release/ryml_rw_reuse      20737 ns        20856 ns        34462 bytes_per_second=101.466M/s items_per_second=3.45219M/s
-```
-
-Note the average 100MB/s read rate! A comparison of these results is
+The first result set is for Windows, and is using a [appveyor.yml config
+file](./bm/cases/appveyor.yml). A comparison of these results is
 summarized on the table below:
 
-| ryml runs... | Times faster than yamlcpp | % of yamlcpp |
-|--------------|---------------------------|--------------|
-| Release      |           ~20x            |     ~5%      |
-| Debug        |           ~80x            |     ~1.3%    |
+| Read rates (MB/s)            | ryml   | yamlcpp | compared     |
+|------------------------------|--------|---------|--------------|
+| appveyor / vs2017 / Release  | 101.5  | 5.3     |  20x / 5.2%  |
+| appveyor / vs2017 / Debug    |   6.4  | 0.0844  |  76x / 1.3%  |
 
-The 100MB/s read rate puts ryml in the same ballpark
-as [RapidJSON](https://github.com/Tencent/rapidjson) and other fast(-ish)
-json readers
-([data from here](https://lemire.me/blog/2018/05/03/how-fast-can-you-parse-json/)). This is something to be proud of, as YAML is a language much more complex than
-JSON.
+
+The next set of results is taken in Linux, comparing g++ 8.2 and clang++ 7.0.1 in
+parsing a YAML buffer from a [travis.yml config
+file](./bm/cases/travis.yml) or a JSON buffer from a [compile_commands.json
+file](./bm/cases/compile_commands.yml). You
+can [see the full results here](./bm/results/parse.linux.i7_6800K.md).
+Summarizing:
+
+| Read rates (MB/s)           | ryml   | yamlcpp | compared   |
+|-----------------------------|--------|---------|------------|
+| json   / clang++ / Release  | 453.5  | 15.1    |  30x / 3%  |
+| json   /     g++ / Release  | 430.5  | 16.3    |  26x / 4%  |
+| json   / clang++ / Debug    |  61.9  | 1.63    |  38x / 3%  |
+| json   /     g++ / Debug    |  72.6  | 1.53    |  47x / 2%  |
+| travis / clang++ / Release  | 131.6  | 8.08    |  16x / 6%  |
+| travis /     g++ / Release  | 176.4  | 8.23    |  21x / 5%  |
+| travis / clang++ / Debug    |  10.2  | 1.08    |   9x / 1%  |
+| travis /     g++ / Debug    |  12.5  | 1.01    |  12x / 8%  |
+
+The 450MB/s read rate for JSON puts ryml squarely in the same ballpark
+as [RapidJSON](https://github.com/Tencent/rapidjson) and other fast json
+readers
+([data from here](https://lemire.me/blog/2018/05/03/how-fast-can-you-parse-json/)).
+Even parsing full YAML is at ~150MB/s, which is still in that performance
+ballpark, allbeit at its lower end. This is something to be proud of, as YAML
+is much more complex than JSON.
 
 
 ## Quick start
@@ -77,7 +96,7 @@ Parsing from source:
 #include <iostream>
 int main()
 {
-    // needs to be writable; will be modified in place
+    // ryml can parse in situ (and read-only buffers too):
     char src[] = "{foo: 1}";
     // there are also overloads for reusing the tree and parser
     ryml::Tree tree = ryml::parse(src);
