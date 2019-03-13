@@ -5,9 +5,15 @@ include(./extern/c4core/cmake/c4Project.cmake)
 
 c4_declare_project(ryml)
 
+set(RYML_VERSION 0.1.0)
+set(RYML_DESC "Rapid YAML parsing and emitting")
+set(RYML_AUTHOR "Joao Paulo Magalhaes <dev@jpmag.me>")
+
+#-------------------------------------------------------
+option(RYML_STANDALONE "" ON)
 option(RYML_DEFAULT_CALLBACKS "Enable ryml default implementation of callbacks: allocate(), free(), error()" ON)
 option(RYML_DBG "Enable ryml debug code. Very verbose." OFF)#${RYML_DEV})
-option(RYML_BUILD_API "Enable API libraries (python, etc)" OFF)
+option(RYML_BUILD_API "Enable API generation (python, etc)" OFF)
 
 #-------------------------------------------------------
 set(RYML_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -45,10 +51,10 @@ set(RYML_SRC ${RYML_CPP} ${RYML_HPP} ${CMAKE_CURRENT_SOURCE_DIR}/ryml.natvis)
 
 #-------------------------------------------------------
 
-c4_require_module(ryml
-    c4core SUBDIRECTORY ${RYML_EXT_DIR}/c4core)
+c4_require_module(ryml c4core
+    SUBDIRECTORY ${RYML_EXT_DIR}/c4core)
 
-c4_add_target(RYML ryml LIBRARY SANITIZE
+c4_add_library(RYML ryml SANITIZE
     SOURCES ${RYML_SRC}
     INC_DIRS ${RYML_SRC_DIR}
     LIBS c4core

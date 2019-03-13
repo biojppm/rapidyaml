@@ -15,14 +15,13 @@
 
 #include <stdarg.h>
 
-/** @todo remove this */
-void swig_test()
-{
-    printf("swig is working!\n");
-}
-
 namespace c4 {
 namespace yml {
+
+struct fdx {
+    char *str;
+    size_t sz;
+};
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
