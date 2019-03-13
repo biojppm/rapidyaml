@@ -97,6 +97,12 @@ matrix:
     #
 
 install:
+  # update cmake https://riptutorial.com/cmake/example/4723/configure-travis-ci-with-newest-cmake
+  - travis_retry wget --no-check-certificate https://cmake.org/files/3.13/cmake-3.13.4-Linux-x86_64.tar.gz
+  - tar xf cmake-3.13.4-Linux-x86_64.tar.gz ; ls
+  - cmkd=$TRAVIS_BUILD_DIR/cmake-3.13.4
+  - mv cmake-3.13.4-Linux-x86_64 $cmkd
+  - export PATH=$cmkd:$cmkd/bin:$PATH
   - bash -x .ci/travis-install.sh
 
 script:

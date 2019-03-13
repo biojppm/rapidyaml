@@ -56,6 +56,7 @@ install:
   # git bash conflicts with MinGW makefiles
   - if "%generator%"=="MinGW Makefiles" (set "PATH=%PATH:C:\Program Files\Git\usr\bin;=%")
   - if not "%cxx_path%"=="" (set "PATH=%PATH%;%cxx_path%")
+  - cmake --version
 
 build_script:
   - md _build -Force
