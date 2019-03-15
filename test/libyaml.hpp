@@ -4,6 +4,7 @@
 #include <yaml.h>
 #include <c4/yml/std/std.hpp>
 #include <c4/yml/yml.hpp>
+#include <c4/yml/detail/stack.hpp>
 
 #include <stdexcept>
 #include <string>
@@ -41,26 +42,9 @@ class LibyamlParser
 public:
 
     yaml_parser_t m_parser;
-
-    const char *  m_input;
-    size_t        m_length;
-
-    NodeData *    m_load_root;
-
-private:
-
-    csubstr get_scalar_val(detail::Event const &ev) const
-    {
-        // the memory in data.scalar is allocated anew, so don't do this
-        //auto const& scalar = e.m_event.data.scalar;
-        //cspan val((const char*)scalar.value, scalar.length);
-        //return val;
-        // ... but the event tells us where in the string the value is
-        auto const& e = ev.m_event;
-        size_t len = e.end_mark.index - e.start_mark.index;
-        csubstr val(m_input + e.start_mark.index, len);
-        return val;
-    }
+    csubstr       m_input;
+    Tree        * m_tree;
+    c4::yml::detail::stack<size_t> m_stack;
 
 public:
 
@@ -76,29 +60,21 @@ public:
         memset(&m_parser, 0, sizeof(decltype(m_parser)));
     }
 
-    template< size_t N >
-    void parse(/*Tree *s, */const char (&input)[N])
+    void parse(Tree *t, const csubstr sp)
     {
-        parse(/*s, */&input[0], N-1);
+        m_input = sp;
+        m_tree = t;
+        m_tree->clear();
+        yaml_parser_set_input_string(&m_parser, (const unsigned char*)m_input.str, m_input.len);
+        m_stack.clear();
+        _do_parse();
     }
 
-    void parse(/*Tree *s, */const csubstr sp)
-    {
-        parse(/*s, */sp.str, sp.len);
-    }
-    void parse(/*Tree *s, */const char* input, size_t length)
-    {
-        m_input = input;
-        m_length = length;
-        yaml_parser_set_input_string(&m_parser, (const unsigned char*)input, length);
-        _do_parse(/*s*/);
-    }
-
-    void _do_parse(/*Tree *s*/)
+    void _do_parse()
     {
         bool done = false;
-        //bool doc_had_scalars = false;
-        //cspan prev_scalar;
+        bool doc_had_scalars = false;
+        csubstr prev_scalar;
         while( ! done)
         {
             detail::Event ev;
@@ -108,7 +84,7 @@ public:
                 break;
             }
 
-#ifdef RYML_DBG
+#if defined(RYML_DBG)
 #define _c4_handle_case(_ev)                            \
 case YAML_ ## _ev ## _EVENT:                            \
     printf(#_ev " val=%.*s\n",                          \
@@ -123,8 +99,8 @@ case YAML_ ## _ev ## _EVENT:                            \
             csubstr val = get_scalar_val(ev);
             switch(ev.m_event.type)
             {
-
             _c4_handle_case(MAPPING_START)
+            {
                 /*if(( ! s->stack_top_is_type(DOC) || doc_had_scalars)
                    &&
                    ( ! m_load_root))
@@ -134,32 +110,39 @@ case YAML_ ## _ev ## _EVENT:                            \
                     prev_scalar.clear();
                 }
                 */
+                begin_container(MAP, prev_scalar);
+                prev_scalar.clear();
                 break;
+            }
             _c4_handle_case(MAPPING_END)
-                /*if( ! s->stack_top_is_type(DOC) && ! m_load_root)
-                {
-                    s->end_map();
-                }*/
+            {
+                end_container();
                 break;
-
+            }
             _c4_handle_case(SEQUENCE_START)
-                //s->begin_seq(prev_scalar, s->top_last());
+            {
+                begin_container(SEQ, prev_scalar);
+                prev_scalar.clear();
                 break;
+            }
             _c4_handle_case(SEQUENCE_END)
-                //s->end_seq();
+            {
+                end_container();
                 break;
-
+            }
             _c4_handle_case(SCALAR)
-                /*if(s->stack_top_is_type(SEQ))
+            {
+                size_t parent = m_stack.top();
+                if(m_tree->is_seq(parent))
                 {
-                    s->add_val({}, val, s->top_last());
-                    prev_scalar.clear();
+                    C4_ASSERT(prev_scalar.empty());
+                    append_val(val);
                 }
-                else
+                else if(m_tree->is_map(parent))
                 {
                     if( ! prev_scalar.empty())
                     {
-                        s->add_val(prev_scalar, val, s->top_last());
+                        append_keyval(prev_scalar, val);
                         prev_scalar.clear();
                     }
                     else
@@ -168,39 +151,138 @@ case YAML_ ## _ev ## _EVENT:                            \
                     }
                 }
                 doc_had_scalars = true;
-                */
                 break;
-
+            }
             _c4_handle_case(DOCUMENT_START)
-                /*if( ! m_load_root)
-                {
-                    s->begin_doc(s->top_last());
-                    doc_had_scalars = false;
-                }*/
+            {
+                auto r = m_tree->root_id();
+                m_tree->to_doc(r);
+                //m_stack.push(r);
                 break;
+            }
             _c4_handle_case(DOCUMENT_END)
-                /*if( ! m_load_root)
-                {
-                    s->end_doc();
-                }*/
+            {
+                //m_stack.pop();
                 break;
-
+            }
             _c4_handle_case(STREAM_START)
+            {
                 //s->begin_stream();
                 break;
+            }
             _c4_handle_case(STREAM_END)
+            {
                 //s->end_stream();
                 done = true;
                 break;
-
+            }
             _c4_handle_case(ALIAS)
-                //C4_ASSERT(false && "YAML_ALIAS_EVENT not implemented");
+            {
+                C4_NOT_IMPLEMENTED();
                 break;
+            }
+            _c4_handle_case(NO)
+            {
+                break;
+            }
+
 #undef _c4_handle_case
             default:
                 break;
             };
         }
+    }
+
+private:
+
+    void begin_container(NodeType type, csubstr key)
+    {
+        size_t parent, elm;
+        if( ! m_stack.empty())
+        {
+            parent = m_stack.top();
+            elm = m_tree->append_child(parent);
+        }
+        else
+        {
+            parent = m_tree->root_id();
+            C4_ASSERT(m_tree->is_container(parent));
+            if(type.is_map())
+            {
+                m_tree->to_map(parent);
+            }
+            else
+            {
+                m_tree->to_seq(parent);
+            }
+            elm = parent;
+        }
+        m_stack.push(elm);
+        if(type.is_map())
+        {
+            if(key.not_empty())
+            {
+                //printf("append map! key=%.*s elm=%zu parent=%zu\n", (int)key.len, key.str, elm, parent);
+                m_tree->to_map(elm, key);
+            }
+            else
+            {
+                //printf("append map! elm=%zu parent=%zu\n", elm, parent);
+                m_tree->to_map(elm);
+            }
+        }
+        else if(type.is_seq())
+        {
+            if(key.not_empty())
+            {
+                //printf("append seq! key=%.*s elm=%zu parent=%zu\n", (int)key.len, key.str, elm, parent);
+                m_tree->to_seq(elm, key);
+            }
+            else
+            {
+                //printf("append seq! elm=%zu parent=%zu\n", elm, parent);
+                m_tree->to_seq(elm);
+            }
+        }
+        else
+        {
+            C4_ERROR("");
+        }
+    }
+
+    void end_container()
+    {
+        if( ! m_stack.empty())
+        {
+            m_stack.pop();
+        }
+    }
+
+    void append_val(csubstr val)
+    {
+        size_t elm = m_tree->append_child(m_stack.top());
+        m_tree->to_val(elm, val);
+        //printf("append val! %.*s  elm=%zu parent=%zu\n", (int)val.len, val.str, elm, m_tree->parent(elm));
+    }
+
+    void append_keyval(csubstr key, csubstr val)
+    {
+        size_t elm = m_tree->append_child(m_stack.top());
+        m_tree->to_keyval(elm, key, val);
+        //printf("append keyval! %.*s: %.*s  elm=%zu parent=%zu\n", (int)key.len, key.str, (int)val.len, val.str, elm, m_tree->parent(elm));
+    }
+
+    csubstr get_scalar_val(detail::Event const &ev) const
+    {
+        // the memory in data.scalar is allocated anew, so don't do this
+        //auto const& scalar = e.m_event.data.scalar;
+        //csubstr val((const char*)scalar.value, scalar.length);
+        //return val;
+        // ... but the event tells us where in the string the value is
+        auto const& e = ev.m_event;
+        size_t len = e.end_mark.index - e.start_mark.index;
+        csubstr val(m_input.str + e.start_mark.index, len);
+        return val;
     }
 
     void _handle_error()

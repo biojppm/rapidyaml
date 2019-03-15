@@ -71,21 +71,54 @@ endif()
 #-------------------------------------------------------
 # extern libraries, used only for testing/benchmarking
 if(RYML_BUILD_TESTS OR RYML_BUILD_BENCHMARKS)
+    #
     set(ryml_ext_dir ${CMAKE_CURRENT_BINARY_DIR}/extern)
+    macro(_override_option opt val)
+        set(${opt} ${val} CACHE BOOL "" FORCE)
+    endmacro()
+    #
     c4_import_remote_proj(ryml c4fs ${ryml_ext_dir}/c4fs
         GIT_REPOSITORY https://github.com/biojppm/c4fs
         GIT_TAG master)
     #
-    set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+    _override_option(BUILD_TESTING OFF)
     c4_import_remote_proj(ryml libyaml ${ryml_ext_dir}/libyaml
         GIT_REPOSITORY https://github.com/yaml/libyaml
         GIT_TAG master)
     #
-    set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-    set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+    _override_option(YAML_CPP_BUILD_TESTS OFF)
+    _override_option(YAML_CPP_BUILD_TOOLS OFF)
     c4_import_remote_proj(ryml yaml-cpp ${ryml_ext_dir}/yaml-cpp
         GIT_REPOSITORY https://github.com/jbeder/yaml-cpp
         GIT_TAG master)
+    #
+    _override_option(JSONCPP_WITH_TESTS OFF)
+    _override_option(JSONCPP_WITH_POST_BUILD_UNITTEST OFF)
+    _override_option(JSONCPP_WITH_WARNING_AS_ERROR OFF)
+    _override_option(JSONCPP_WITH_STRICT_ISO OFF)
+    _override_option(JSONCPP_WITH_PKGCONFIG_SUPPORT OFF)
+    _override_option(JSONCPP_WITH_CMAKE_PACKAGE OFF)
+    c4_import_remote_proj(ryml jsoncpp ${ryml_ext_dir}/jsoncpp
+        GIT_REPOSITORY https://github.com/open-source-parsers/jsoncpp
+        GIT_TAG master)
+    #
+    _override_option(JSON_BuildTests OFF)
+    _override_option(JSON_Install OFF)
+    _override_option(JSON_MultipleHeaders OFF)
+    c4_import_remote_proj(ryml nlohmann_json ${ryml_ext_dir}/nlohmann_json
+        GIT_REPOSITORY https://github.com/nlohmann/json
+        GIT_TAG master)
+    #
+    c4_download_remote_proj(ryml rapidjson ${ryml_ext_dir}/rapidjson
+        GIT_REPOSITORY https://github.com/Tencent/rapidjson
+        GIT_TAG version1.1.0)
+    set(RYML_RAPIDJSON_INC_DIR ${ryml_ext_dir}/rapidjson/src/include)
+    #
+    c4_download_remote_proj(ryml sajson ${ryml_ext_dir}/sajson
+        GIT_REPOSITORY https://github.com/chadaustin/sajson
+        GIT_TAG master)
+    set(RYML_SAJSON_INC_DIR ${ryml_ext_dir}/sajson/src/include)
+    #
 endif()
 
 #-------------------------------------------------------

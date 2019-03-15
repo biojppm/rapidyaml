@@ -5,22 +5,27 @@ function(ryml_add_bm bm_name case_file)
     if(NOT TARGET ${bm})
         c4_add_executable(RYML ${bm}
             SOURCES ${bm_name}.cpp ${ARGN}
-            LIBS ryml yaml yaml-cpp benchmark c4fs
+            LIBS ryml yaml yaml-cpp benchmark jsoncpp nlohmann_json c4fs
+            INC_DIRS ${RYML_RAPIDJSON_INC_DIR} ${RYML_SAJSON_INC_DIR}
             FOLDER ryml-benchmark)
         if(RYML_DBG)
             target_compile_definitions(${bm} PRIVATE RYML_DBG)
         endif()
     endif()
-    set(rdir ${CMAKE_CURRENT_BINARY_DIR}/bm_results)
+    set(rdir ${CMAKE_CURRENT_BINARY_DIR}/results)
     get_filename_component(case ${case_file} NAME_WE)
     set(rt ${bm}-${case})
     set(rf ${rdir}/${bm_name}-${case}.json)
     if(NOT EXISTS ${rdir})
         file(MAKE_DIRECTORY ${rdir})
     endif()
+    get_filename_component(ext ${case_file} EXT)
+    if(NOT ("${ext}" STREQUAL ".json"))
+        set(filter_json "--benchmark_filter='yml|yaml'")
+    endif()
     c4_add_benchmark(RYML ${bm} ${rt} ${rdir} "${rt}: results are in ${rf}"
         # these are arguments to the benchmark
-        --benchmark_out_format=json --benchmark_out=${rf} ${case_file})
+        ${filter_json} --benchmark_out_format=json --benchmark_out=${rf} ${case_file})
 endfunction()
 
 set(cdir "${CMAKE_CURRENT_LIST_DIR}/cases")
