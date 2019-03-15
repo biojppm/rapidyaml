@@ -2145,6 +2145,11 @@ csubstr Parser::_scan_quoted_scalar(const char q)
     // a span to the end of the file
     const size_t b = m_state->pos.offset;
     substr s = m_buf.sub(b);
+    if(s.begins_with(' '))
+    {
+        s = s.triml(' ');
+        _line_progressed((size_t)(s.begin() - m_buf.sub(b).begin()));
+    }
     C4_ASSERT(s.begins_with(q));
 
     // skip the opening quote
