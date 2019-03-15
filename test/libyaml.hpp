@@ -48,9 +48,9 @@ public:
 
 public:
 
-    LibyamlParser()
+    LibyamlParser() : m_parser(), m_input(), m_tree(), m_stack()
     {
-        memset(this, 0, sizeof(*this));
+        memset(&m_parser, 0, sizeof(decltype(m_parser)));
         yaml_parser_initialize(&m_parser);
     }
 
@@ -65,8 +65,8 @@ public:
         m_input = sp;
         m_tree = t;
         m_tree->clear();
-        yaml_parser_set_input_string(&m_parser, (const unsigned char*)m_input.str, m_input.len);
         m_stack.clear();
+        yaml_parser_set_input_string(&m_parser, (const unsigned char*)m_input.str, m_input.len);
         _do_parse();
     }
 
