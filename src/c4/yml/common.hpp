@@ -129,7 +129,7 @@ public:
 
 /// set the global memory resource
 void set_memory_resource(MemoryResource *r);
-/// get the global memory resource 
+/// get the global memory resource
 MemoryResource *get_memory_resource();
 
 //-----------------------------------------------------------------------------
@@ -177,6 +177,7 @@ struct Allocator
 
     inline void free(void *mem, size_t num_bytes)
     {
+        C4_ASSERT(r != nullptr);
         r->free(mem, num_bytes);
     }
 };
