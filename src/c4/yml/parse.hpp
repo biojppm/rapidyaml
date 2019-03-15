@@ -19,7 +19,7 @@ namespace c4 {
 namespace yml {
 
 struct fdx {
-    char *str;
+    const char *str;
     size_t sz;
 };
 
