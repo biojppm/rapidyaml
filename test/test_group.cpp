@@ -1,5 +1,4 @@
 #include "./test_group.hpp"
-#include "c4/yml/std/std.hpp"
 
 #if defined(_MSC_VER)
 #   pragma warning(push)
@@ -23,8 +22,9 @@ TEST_P(YmlTestCase, parse_using_libyaml)
 {
     try
     {
+        Tree t;
         LibyamlParser libyaml_parser;
-        libyaml_parser.parse(c->src);
+        libyaml_parser.parse(&t, c->src);
     }
     catch(...)
     {
