@@ -9,6 +9,8 @@
 #   include <type_traits>
 #endif
 
+#include <string.h>
+
 namespace c4 {
 namespace yml {
 
@@ -25,7 +27,7 @@ class detail::stack
 
     enum : size_t { sso_size = N };
 
-private:
+public:
 
     T         m_buf[N];
     T *       m_stack;
@@ -49,51 +51,24 @@ public:
     stack(stack const& that) : stack()
     {
         resize(that.m_size);
-        memcpy(m_stack, that.m_stack, that.m_size * sizeof(T));
+        _cp(&that);
     }
     stack& operator= (stack const& that)
     {
         resize(that.m_size);
-        memcpy(m_stack, that.m_stack, that.m_size * sizeof(T));
+        _cp(&that);
         return *this;
     }
 
     stack(stack &&that)
     {
-        memcpy(this, &that, sizeof(*this));
-        that._yield();
+        _mv(&that);
     }
     stack& operator= (stack &&that)
     {
         _free();
-        memcpy(this, &that, sizeof(*this));
-        that._yield();
+        _mv(&that);
         return *this;
-    }
-
-public:
-
-    void _free()
-    {
-        C4_ASSERT(m_stack != nullptr); // this structure cannot be memset() to zero
-        if(m_stack != m_buf)
-        {
-            C4_ASSERT(m_capacity > N);
-            m_alloc.free(m_stack, m_capacity * sizeof(T));
-        }
-        else
-        {
-            C4_ASSERT(m_capacity == N);
-        }
-    }
-
-    void _yield()
-    {
-        // make sure no deallocation happens on destruction
-        if(m_size <= N) return;
-        C4_ASSERT(m_stack != m_buf);
-        m_stack = m_buf;
-        m_capacity = N;
     }
 
 public:
@@ -122,7 +97,6 @@ public:
             m_capacity = N;
             return;
         }
-        C4_ASSERT(false);
         T *buf = (T*) m_alloc.allocate(sz * sizeof(T), m_stack);
         memcpy(buf, m_stack, m_size * sizeof(T));
         if(m_stack != m_buf)
@@ -174,6 +148,59 @@ public:
 
     const_iterator begin() const { return m_stack; }
     const_iterator end  () const { return m_stack + m_size; }
+
+public:
+
+    void _free()
+    {
+        C4_ASSERT(m_stack != nullptr); // this structure cannot be memset() to zero
+        if(m_stack != m_buf)
+        {
+            C4_ASSERT(m_capacity > N);
+            m_alloc.free(m_stack, m_capacity * sizeof(T));
+        }
+        else
+        {
+            C4_ASSERT(m_capacity == N);
+        }
+    }
+
+    void _cp(stack const* C4_RESTRICT that)
+    {
+        if(that->m_stack == that->m_buf)
+        {
+            C4_ASSERT(that->m_capacity <= N);
+            C4_ASSERT(that->m_size <= N);
+            memcpy(m_buf, that->m_buf, that->m_size * sizeof(T));
+            m_stack = m_buf;
+        }
+        m_size = that->m_size;
+        m_capacity = that->m_size;
+        m_alloc = that->m_alloc;
+    }
+
+    void _mv(stack * that)
+    {
+        if(that->m_stack != that->m_buf)
+        {
+            m_stack = that->m_stack;
+        }
+        else
+        {
+            C4_ASSERT(that->m_capacity <= N);
+            C4_ASSERT(that->m_size <= N);
+            memcpy(m_buf, that->m_buf, that->m_size * sizeof(T));
+            m_stack = m_buf;
+        }
+        m_size = that->m_size;
+        m_capacity = that->m_size;
+        m_alloc = that->m_alloc;
+        // make sure no deallocation happens on destruction
+        C4_ASSERT(that->m_stack != m_buf);
+        that->m_stack = that->m_buf;
+        that->m_capacity = N;
+        that->m_size = 0;
+    }
 };
 
 } // namespace yml
