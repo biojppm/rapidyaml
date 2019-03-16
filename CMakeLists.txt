@@ -60,11 +60,27 @@ set(RYML_SRC
 c4_require_module(ryml c4core
     SUBDIRECTORY ${RYML_EXT_DIR}/c4core)
 
+if(NOT RYML_STANDALONE)
+    set(ryml_link_c4core LIBS c4core)
+    set(ryml_link_c4core_interface ${d} INTERFACE_LIBS c4core)
+else()
+    set(d INTERFACE_INC_DIRS "${RYML_EXT_DIR}/c4core/src;${RYML_EXT_DIR}/c4core/extern")
+    set(ryml_link_c4core ${d} PRIVATE_LIBS c4core)
+    set(ryml_link_c4core_interface ${d} INTERFACE_LIBS c4core)
+endif()
+
 c4_add_library(RYML ryml SANITIZE
     SOURCES ${RYML_SRC}
     INC_DIRS ${RYML_SRC_DIR}
-    LIBS c4core
+    ${ryml_link_c4core}
     )
+if(RYML_BUILD_API)
+    c4_add_library(RYML ryml-interface LIBRARY_TYPE INTERFACE
+        SOURCES ${RYML_SRC}
+        INTERFACE_INC_DIRS ${RYML_SRC_DIR}
+        ${ryml_link_c4core_interface}
+        )
+endif()
 
 if(NOT RYML_DEFAULT_CALLBACKS)
     target_compile_definitions(ryml PRIVATE RYML_NO_DEFAULT_CALLBACKS)
@@ -72,6 +88,11 @@ endif()
 
 if(RYML_DBG)
     target_compile_definitions(ryml PRIVATE RYML_DBG)
+endif()
+
+#-------------------------------------------------------
+if(RYML_BUILD_API)
+    add_subdirectory(api api)
 endif()
 
 #-------------------------------------------------------
@@ -107,9 +128,4 @@ endif()
 #-------------------------------------------------------
 if(RYML_BUILD_BENCHMARKS)
     add_subdirectory(bm bm)
-endif()
-
-#-------------------------------------------------------
-if(RYML_BUILD_API)
-    add_subdirectory(api api)
 endif()

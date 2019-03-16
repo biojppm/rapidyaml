@@ -73,7 +73,7 @@ if(RYML_BUILD_API_PYTHON3)
         OUTPUT_DIR ${r}
         OUTFILE_DIR ${g}
         SOURCES ${RYML_SWIG_SRC})
-    swig_link_libraries(${t} ryml ${Python3_LIBRARIES})
+    swig_link_libraries(${t} ryml-interface ${Python3_LIBRARIES})
     set_target_properties(${t} PROPERTIES
         OUTPUT_NAME "ryml"
         SWIG_GENERATED_INCLUDE_DIRECTORIES ${Python3_INCLUDE_DIRS}
