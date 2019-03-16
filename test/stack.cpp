@@ -76,7 +76,10 @@ void test_copy_ctor()
     }
 
     // large
-    src.push(N);
+    for(size_t i = 0; i < 2*N; ++i)
+    {
+        src.push(i); // large
+    }
     EXPECT_NE(src.m_stack, src.m_buf);
     b = src.begin();
     {
@@ -135,8 +138,11 @@ void test_move_ctor()
     EXPECT_EQ(src.capacity(), N);
     EXPECT_EQ(src.m_stack, src.m_buf);
     // large
-    src.push(N);
-    EXPECT_EQ(src.size(), N+1);
+    for(size_t i = 0; i < 2*N; ++i)
+    {
+        src.push(i); // large
+    }
+    EXPECT_EQ(src.size(), 3*N);
     EXPECT_NE(src.m_stack, src.m_buf);
     b = src.begin();
     sz = src.size();
@@ -166,14 +172,19 @@ TEST(stack, move_ctor)
 template<size_t N>
 void test_copy_assign()
 {
-    istack<N> srcs, srcl, dst;
+    istack<N> srcs;
+    istack<N> srcl;
+    istack<N> dst;
 
     for(size_t i = 0; i < N; ++i)
     {
         srcs.push(i); // small
         srcl.push(i); // large
     }
-    srcl.push(N);
+    for(size_t i = 0; i < 2*N; ++i)
+    {
+        srcl.push(i); // large
+    }
     EXPECT_EQ(srcs.m_stack, srcs.m_buf);
     EXPECT_NE(srcl.m_stack, srcl.m_buf);
 
@@ -198,7 +209,7 @@ void test_copy_assign()
     {
         dst = srcs;
         EXPECT_EQ(dst.size(), srcs.size());
-        EXPECT_EQ(dst.m_stack, dst.m_buf);
+        EXPECT_NE(dst.m_stack, dst.m_buf); // it stays in long mode (it's no trimmed when assigned from a short-mode stack)
         EXPECT_EQ((ip)srcs.begin(), bs);
         EXPECT_NE((ip)dst.begin(), (ip)srcs.begin());
     }
@@ -226,7 +237,10 @@ void test_move_assign()
         srcs.push(i); // small
         srcl.push(i); // large
     }
-    srcl.push(N);
+    for(size_t i = 0; i < 2*N; ++i)
+    {
+        srcl.push(i); // large
+    }
     EXPECT_EQ(srcs.m_stack, srcs.m_buf);
     EXPECT_NE(srcl.m_stack, srcl.m_buf);
 
@@ -256,7 +270,7 @@ void test_move_assign()
 
     for(int i = 0; i < 10; ++i)
     {
-        EXPECT_EQ(srcl.size(), N+1);
+        EXPECT_EQ(srcl.size(), 3*N);
         EXPECT_FALSE(srcl.empty());
         EXPECT_TRUE(dst.empty());
         EXPECT_EQ(dst.m_stack, dst.m_buf);

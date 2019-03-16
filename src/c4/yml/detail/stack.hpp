@@ -13,14 +13,11 @@
 
 namespace c4 {
 namespace yml {
-
 namespace detail {
-template<class T, size_t N> class stack;
-} // namespace detail
 
 /** A lightweight contiguous stack with SSO. This avoids a dependency on std. */
 template<class T, size_t N=16>
-class detail::stack
+class stack
 {
     static_assert(std::is_trivially_copyable<T>::value, "T must be trivially copyable");
     static_assert(std::is_trivially_destructible<T>::value, "T must be trivially destructible");
@@ -88,24 +85,7 @@ public:
         m_size = sz;
     }
 
-    void reserve(size_t sz)
-    {
-        if(sz <= m_size) return;
-        if(sz <= N)
-        {
-            m_stack = m_buf;
-            m_capacity = N;
-            return;
-        }
-        T *buf = (T*) m_alloc.allocate(sz * sizeof(T), m_stack);
-        memcpy(buf, m_stack, m_size * sizeof(T));
-        if(m_stack != m_buf)
-        {
-            m_alloc.free(m_stack, m_capacity * sizeof(T));
-        }
-        m_stack = buf;
-        m_capacity = sz;
-    }
+    void reserve(size_t sz);
 
     void push(T const& C4_RESTRICT n)
     {
@@ -151,58 +131,109 @@ public:
 
 public:
 
-    void _free()
-    {
-        C4_ASSERT(m_stack != nullptr); // this structure cannot be memset() to zero
-        if(m_stack != m_buf)
-        {
-            C4_ASSERT(m_capacity > N);
-            m_alloc.free(m_stack, m_capacity * sizeof(T));
-        }
-        else
-        {
-            C4_ASSERT(m_capacity == N);
-        }
-    }
-
-    void _cp(stack const* C4_RESTRICT that)
-    {
-        if(that->m_stack == that->m_buf)
-        {
-            C4_ASSERT(that->m_capacity <= N);
-            C4_ASSERT(that->m_size <= N);
-            memcpy(m_buf, that->m_buf, that->m_size * sizeof(T));
-            m_stack = m_buf;
-        }
-        m_size = that->m_size;
-        m_capacity = that->m_size;
-        m_alloc = that->m_alloc;
-    }
-
-    void _mv(stack * that)
-    {
-        if(that->m_stack != that->m_buf)
-        {
-            m_stack = that->m_stack;
-        }
-        else
-        {
-            C4_ASSERT(that->m_capacity <= N);
-            C4_ASSERT(that->m_size <= N);
-            memcpy(m_buf, that->m_buf, that->m_size * sizeof(T));
-            m_stack = m_buf;
-        }
-        m_size = that->m_size;
-        m_capacity = that->m_size;
-        m_alloc = that->m_alloc;
-        // make sure no deallocation happens on destruction
-        C4_ASSERT(that->m_stack != m_buf);
-        that->m_stack = that->m_buf;
-        that->m_capacity = N;
-        that->m_size = 0;
-    }
+    void _free();
+    void _cp(stack const* C4_RESTRICT that);
+    void _mv(stack * that);
 };
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+template<class T, size_t N>
+void stack<T, N>::reserve(size_t sz)
+{
+    if(sz <= m_size) return;
+    if(sz <= N)
+    {
+        m_stack = m_buf;
+        m_capacity = N;
+        return;
+    }
+    T *buf = (T*) m_alloc.allocate(sz * sizeof(T), m_stack);
+    memcpy(buf, m_stack, m_size * sizeof(T));
+    if(m_stack != m_buf)
+    {
+        m_alloc.free(m_stack, m_capacity * sizeof(T));
+    }
+    m_stack = buf;
+    m_capacity = sz;
+}
+
+
+//-----------------------------------------------------------------------------
+
+template<class T, size_t N>
+void stack<T, N>::_free()
+{
+    C4_ASSERT(m_stack != nullptr); // this structure cannot be memset() to zero
+    if(m_stack != m_buf)
+    {
+        m_alloc.free(m_stack, m_capacity * sizeof(T));
+        m_stack = m_buf;
+    }
+    else
+    {
+        C4_ASSERT(m_capacity == N);
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+
+template<class T, size_t N>
+void stack<T, N>::_cp(stack const* C4_RESTRICT that)
+{
+    if(that->m_stack != that->m_buf)
+    {
+        C4_ASSERT(m_stack != m_buf);
+        C4_ASSERT(that->m_capacity > N);
+        C4_ASSERT(that->m_size > N);
+        C4_ASSERT(that->m_size <= that->m_capacity);
+    }
+    else
+    {
+        C4_ASSERT(that->m_capacity <= N);
+        C4_ASSERT(that->m_size <= that->m_capacity);
+    }
+    memcpy(m_stack, that->m_stack, that->m_size * sizeof(T));
+    m_size = that->m_size;
+    m_capacity = that->m_size;
+    m_alloc = that->m_alloc;
+}
+
+
+//-----------------------------------------------------------------------------
+
+template<class T, size_t N>
+void stack<T, N>::_mv(stack * that)
+{
+    if(that->m_stack != that->m_buf)
+    {
+        C4_ASSERT(that->m_capacity > N);
+        C4_ASSERT(that->m_size > N);
+        C4_ASSERT(that->m_size <= that->m_capacity);
+        m_stack = that->m_stack;
+    }
+    else
+    {
+        C4_ASSERT(that->m_capacity <= N);
+        C4_ASSERT(that->m_size <= that->m_capacity);
+        memcpy(m_buf, that->m_buf, that->m_size * sizeof(T));
+        m_stack = m_buf;
+    }
+    m_size = that->m_size;
+    m_capacity = that->m_size;
+    m_alloc = that->m_alloc;
+    // make sure no deallocation happens on destruction
+    C4_ASSERT(that->m_stack != m_buf);
+    that->m_stack = that->m_buf;
+    that->m_capacity = N;
+    that->m_size = 0;
+}
+
+} // namespace detail
 } // namespace yml
 } // namespace c4
 
