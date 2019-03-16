@@ -151,34 +151,57 @@ significantly alter these results.
 
 If you're wondering whether ryml's speed comes at a usage cost, you need
 not. With ryml, you can have your cake and eat it too: being rapid is
-definitely NOT the same as being unpractical!
+definitely NOT the same as being unpractical! ryml was written with easy AND
+efficient usage in mind, and comes with a two level API for accessing and
+traversing the data tree.
 
-ryml was written with easy usage in mind, and comes with a two level API for
-accessing and traversing the data tree: a low-level index-based API and a
-thin abstraction on top, wrapping it via a `NodeRef` class allowing for a
-more object-oriented use. The examples in this section are using the
-high-level `NodeRef`.
+The low-level interface is an index-based API available through
+the [`ryml::Tree`](src/c4/yml/tree.hpp) class (see examples below). This
+class is essentially a contiguous array of `NodeData` elements; these are
+linked to parent, children and siblings via indices.
+
+On top of this index-based API, there is a thin
+abstraction [`ryml::NodeRef`](src/c4/yml/node.hpp) which is essentially a
+non-owning pointer to a `NodeData` element. It provides convenient methods
+for accessing the `NodeData` properties wrapping it via a class allowing for
+a more object-oriented use.
 
 
 ### Parsing
 
-Parsing from source:
+A parser takes a source buffer and fills
+a [`ryml::Tree`](src/c4/yml/tree.hpp) object:
+
 ```c++
 #include <ryml.hpp>
-// not needed by ryml, just for these examples
+
+// not needed by ryml, just for these examples (and below)
 #include <iostream>
+// convenience functions to print a node
+void show_keyval(ryml::NodeRef n)
+{
+    assert(n.has_keyval());
+    std::cout << n.key() << ": " << n.val() << "\n";
+}
+void show_val(ryml::NodeRef n)
+{
+    assert(n.has_val());
+    std::cout << n.val() << "\n";
+}
+    
 int main()
 {
     // ryml can parse in situ (and read-only buffers too):
-    char src[] = "{foo: 1}";
+    char src[] = "{foo: 1, bar: [a: 2, b: 3]}";
     // there are also overloads for reusing the tree and parser
     ryml::Tree tree = ryml::parse(src);
 
     // get a reference to the "foo" node
     ryml::NodeRef node = tree["foo"];
 
-    // "foo: 1"
-    std::cout << node.key() << ": " << node.val() << "\n";
+    show_keyval(node);  // "foo: 1"
+    show_val(node["bar"][0]);  // "2"
+    show_val(node["bar"][1]);  // "3"
 
     // deserializing:
     int foo;
@@ -186,9 +209,9 @@ int main()
 }
 ```
 
-It is also possible to parse read-only buffers, but these will be copied over
-to an arena buffer in the tree object, and that buffer copy will be the one
-to be parsed:
+It is also possible to parse read-only buffers, but note these will be copied
+over to an arena buffer in the tree object, and that buffer copy will be the
+one to be parsed:
 
 ```c++
 // "{foo: 1}" is a read-only buffer; it will be
@@ -196,37 +219,126 @@ to be parsed:
 ryml::Tree tree = ryml::parse("{foo: 1}");
 ```
 
-For leaf-type nodes, `node.key()` and `node.val()` return a simple struct of
-type `c4::csubstr` (the name comes from constant substring) which is a
-read-only string view, with many methods that make it practical to use. (In
-fact, `c4::csubstr` is the workhorse of the parsing code; there's also a
-writable `c4::substr` string view; you can browse these classes
-here:
-[c4/substr.hpp](https://github.com/biojppm/c4core/blob/master/src/c4/substr.hpp).)
+When parsing, you can reuse the existing trees and parsers. You can also
+parse into particular tree nodes, so that you can parse an entire file into a
+node which is deep in the hierarchy of an existing tree. To see the various
+overloads for parser, consult
+the [c4/yml/parse.hpp header](src/c4/yml/parse.hpp).
+The free-standing `parse()`
+functions (towards the end of the file) are just convenience wrappers for
+calling the several `Parser::parse()` overloads.
 
 
-For container-type nodes, the square-bracket operator can
-be used either with integers (both for sequence and map nodes) or with
-strings (only for map nodes):
+### Browsing the tree
+
+The data tree is an index-linked array of `NodeData` elements. These are
+defined roughly as (browse the [c4/yml/tree.hpp header](src/c4/yml/tree.hpp)):
+
 ```c++
-ryml::Tree = ryml::parse("[a, b, {c: 0, d: 1}]");
-ryml::NodeRef root = tree.rootref();
-std::cout << root[0].val() << "\n"; // "a"
-std::cout << root[1].val() << "\n"; // "b"
-std::cout << root[2][ 0 ].val() << "\n"; // "0" // index-based
-std::cout << root[2]["c"].val() << "\n"; // "0" // string-based
-std::cout << root[2][ 1 ].val() << "\n"; // "1" // index-based
-std::cout << root[2]["d"].val() << "\n"; // "1" // string-based
+// (inside namespace c4::yml)
+
+typedef enum : int // bitflags for marking node features
+{
+   KEY=1<<0,
+   VAL=1<<1,
+   MAP=1<<2,
+   SEQ=1<<4,
+   DOC=1<<5,
+   TAG=...,
+   REF=...,
+   ANCHOR=..., // etc 
+} NodeType_e;
+struct NodeType
+{
+   NodeType_e m_flags;
+   // ... predicate methods such as
+   // has_key(), is_map(), is_seq(), etc
+};
+struct NodeScalar // this is both for keys and vals
+{
+    csubstr tag;
+    csubstr scalar;
+    csubstr anchor;
+    // csubstr is a constant substring:
+    // a non-owning read-only string view
+    // consisting of a pointer and a length
+}
+constexpr const size_t NONE = (size_t)-1;
+struct NodeData
+{
+    NodeType   type;
+    NodeScalar key; // data for the key (if applicable)
+    NodeScalar val; // data for the value
+    
+    size_t     parent;      // NONE when this is the root node
+    size_t     first_child; // NONE if this is a leaf node
+    size_t     last_child;  // etc
+    size_t     next_sibling;
+    size_t     prev_sibling;
+}
 ```
 
+Please note that you should not rely on this particular structure; the above
+definitions are given only to provide an idea on how the tree is structured.
+To access and modify node properties, please use the APIs provided through
+the Tree (low-level) or the NodeRef (high-level) classes.
+
+You may have noticed above the use of a `csubstr` class. This class is
+defined in another library, [c4core](https://github.com/biojppm/c4core),
+which is imported by ryml (so technically it's not a dependency, is
+it?). This is a library I use with my projects consisting of multiplatform
+low-level utilities. One of these is `c4::csubstr` (the name comes from
+"constant substring") which is a non-owning read-only string view, with many
+methods that make it practical to use (I would certainly argue more practical
+than `std::string`). (In fact, `c4::csubstr` and its writeable counterpart
+`c4::substr` are the workhorses of the ryml parsing and serialization code;
+you can browse these classes here:
+[c4/substr.hpp](https://github.com/biojppm/c4core/blob/master/src/c4/substr.hpp).)
+
+Now, let's parse and go through a tree. To obtain a `NodeRef` from the tree,
+you only need to invoke `operator[]`. This operator can take indices (when
+invoked on sequence and map nodes) and also strings (only when invoked on map
+nodes):
+
+```c++
+ryml::Tree tree = ryml::parse("[a, b, {c: 0, d: 1}]");
+
+// note: show_val() was defined above
+
+show_val(tree[0]); // "a"
+show_val(tree[1]); // "b"
+show_val(tree[2][ 0 ]); // "0" // index-based
+show_val(tree[2][ 1 ]); // "1" // index-based
+show_val(tree[2]["c"]); // "0" // string-based
+show_val(tree[2]["d"]); // "1" // string-based
+
+// note that trying to obtain the value on a non-value
+// node such as a container will fail an assert:
+// ERROR, assertion triggered: a container has no value
+show_val(tree[2]);
+// ERROR: the same
+show_val(tree.rootref());
+
+// the same for keys:
+show_keyval(tree[0]); // ERROR: sequence element has no key
+show_keyval(tree[2][0]); // ok
+```
+
+Please note that since a ryml tree uses linear storage, the complexity of
+`operator[]` is linear on the number of children of the node on which it is
+invoked. If you use it with a large tree with many siblings at the root
+level, you may get a performance hit. To avoid this, you can create your own
+accelerator structure (eg, do a single loop at the root level to fill an
+`std::map<csubstr,size_t>` mapping key names to node indices; with a node
+index, a lookup is O(1), so this way you can get O(log n) lookup from a key.)
+
 What about `NodeRef`? Let's consider when a non-existing key or index is
-requested via the square-bracket operator. Unlike with `std::map`, **this
-operator does not modify the tree**. Instead you get a seed `NodeRef`, and
-the tree will be modified only when this seed-state reference is written
-to. Thus `NodeRef` can either point to a valid tree node, or if no such node
-exists it will be in seed-state by holding the index or name passed to
-`operator[]`. To allow for this, `NodeRef` is a simple structure with a
-declaration like:
+requested via `operator[]`. Unlike with `std::map`, **this operator does not
+modify the tree**. Instead you get a seed-state `NodeRef`, and the tree will
+be modified only when this seed-state reference is written to. Thus `NodeRef`
+can either point to a valid tree node, or if no such node exists it will be
+in seed-state by holding the index or name passed to `operator[]`. To allow
+for this, `NodeRef` is a simple structure with a declaration like:
 
 ```c++
 class NodeRef
@@ -237,13 +349,18 @@ class NodeRef
     // either the (tree-scoped) index of an existing node or the (node-scoped) index of a seed state
     size_t m_node_or_seed_id;
     
-    // the key name of a seed state
+    // the key name of a seed state. null when valid
     const char* m_seed_name;
 
 public:
 
     // this can be used to query whether a node is in seed state
-    bool valid() { return m_node_id != NONE && m_node_name == nullptr; }
+    bool valid()
+    {
+        return m_node_or_seed_id != NONE
+               &&
+               m_seed_name == nullptr;
+    }
 
     // forward all calls to m_tree. For example:
     csubstr val() const { assert(valid()); return m_tree->val(m_node_or_seed_id); }
@@ -253,16 +370,21 @@ public:
 };
 ```
 
-So using this high-level API is not going to cost a lot more than the less
-practical low level API.
+To iterate over children:
+```c++
+for(NodeRef c : node.children())
+{
+    std::cout << c.key() << "---" << c.val() << "\n";
+}
+```
 
-Please note that since a ryml tree uses linear storage, the complexity of
-`operator[]` is linear on the number of children of the node on which [] is
-invoked. If you use it with a large tree with many siblings at the root
-level, you may see a hit. To avoid this, you can create your own
-accelerator structure (eg, do a single loop at the root level to fill an
-`std::map<csubstr,size_t>`` mapping key names to node indices; with a node
-index, a lookup is O(1), so this way you can get O(n) lookup from a key.)
+To iterate over siblings:
+```c++
+for(NodeRef c : node.siblings())
+{
+    std::cout << c.key() << "---" << c.val() << "\n";
+}
+```
 
 
 ### Creating a tree
@@ -338,19 +460,49 @@ emit(tree); // now prints the following:
 ```
 
 
-To iterate over children:
-```c++
-for(NodeRef c : node.children())
-{
-    std::cout << c.key() << "---" << c.val() << "\n";
-}
-```
 
-To iterate over siblings:
+
+### Low-level API
+
+The low-level api is an index-based API accessible from
+the [`ryml::Tree`](src/c4/yml/tree.hpp) object. Here are some examples:
+
 ```c++
-for(NodeRef c : node.siblings())
+void print_keyval(Tree const& t, size_t elm_id)
 {
-    std::cout << c.key() << "---" << c.val() << "\n";
+    std::cout << t.get_key(elm_id)
+              << ": "
+              << t.get_val(elm_id) << "\n";
+}
+
+ryml::Tree t = parse("{foo: 1, bar: 2, baz: 3}")
+
+size_t root_id = t.root_id();
+size_t foo_id  = t.first_child(root_id);
+size_t bar_id  = t.next_sibling(foo_id);
+size_t baz_id  = t.last_child(root_id);
+
+assert(baz == t.next_sibling(bar_id));
+assert(bar == t.prev_sibling(baz_id));
+
+print_keyval(t, foo_id); // "foo: 1"
+print_keyval(t, bar_id); // "bar: 2"
+print_keyval(t, baz_id); // "baz: 3"
+
+// to iterate over the children of a node:
+for(size_t i  = t.first_child(root_id);
+           i != ryml::NONE;
+           i  = t.next_sibling(i))
+{
+    // ...
+}
+
+// to iterate over the siblings of a node:
+for(size_t i  = t.first_sibling(foo_id);
+           i != ryml::NONE;
+           i  = t.next_sibling(i))
+{
+    // ...
 }
 ```
 
@@ -358,8 +510,9 @@ for(NodeRef c : node.siblings())
 ### Custom types
 
 ryml provides code to serialize the basic intrinsic types (integers, floating
-points and strings). For types other than these, you need to instruct ryml
-how to serialize your type.
+points and strings): you can see it in the [the `c4/to_str.hpp`
+header]([c4core](https://github.com/biojppm/c4core/src/c4/to_str.hpp). For
+types other than these, you need to instruct ryml how to serialize your type.
 
 There are two distinct type categories when serializing to a YAML tree:
 
@@ -445,10 +598,11 @@ There are two distinct type categories when serializing to a YAML tree:
 
 ### STL interoperation
 
-ryml does not require use of the STL. Use of STL is opt-in: you need to
-`#include` the proper ryml header for the container you want to
-serialize. Having done that, you can serialize it with a single step. For
-example:
+ryml does not use the STL internally, but you can use ryml to serialize and
+deserialize STL containers. That is, the use of STL is opt-in: you need to
+`#include` the proper ryml header for the container you want to serialize, or
+provide an implementation of your own, as above. Having done that, you can
+serialize / deserialize your containers with a single step. For example:
 
 ```c++
 #include <ryml_std.hpp>
@@ -462,8 +616,10 @@ int main()
     // foo: 1
     // bar: 2
     
-    t["foo"] << 1111;  // serialize 10 into the tree's arena, and point foo at it
-    t["bar"] << 2222;  // ditto
+    t["foo"] << 1111;  // serialize an integer into
+                       // the tree's arena, and make
+                       // foo's value point at it
+    t["bar"] << 2222;  // the same, but for bar
     
     emit(t);
     // foo: 1111
@@ -477,59 +633,19 @@ int main()
 }
 ```
 
-The `<ryml_std.hpp>` header includes every available std type implementation
-for ryml. You can include just a specific header if you are interested only
-in a particular container; these headers are located under a specific
-directory in the ryml source folder: [c4/yml/std](src/c4/yml/std). If you'd
-like to see a particular STL container implemented, feel free to [submit a
-pull request or open an issue](https://github.com/biojppm/rapidyaml/issues).
+The [`<ryml_std.hpp>`](src/ryml_std.hpp) header includes every std type
+implementation available in ryml. But you can include just a specific header
+if you are interested only in a particular container; these headers are
+located under a specific directory in the ryml source
+folder: [c4/yml/std](src/c4/yml/std) You can see browse them to learn how to
+implement your custom type: for containers, see for
+example [the `std::vector` implementation](src/c4/yml/std/vector.hpp),
+or [the `std::map` implementation](src/c4/yml/std/map.hpp); for example of
+value nodes, see [the `std::string` implementation]() `fo. If you'd like to
+see a particular STL container implemented, feel free
+to
+[submit a pull request or open an issue](https://github.com/biojppm/rapidyaml/issues).
 
-These headers also showcase how to implement your custom type. See for
-example [the map implementation](src/c4/yml/std/map.hpp).
-
-
-
-### Low-level API
-
-The low-level api is an index-based API accessible from
-the [`ryml::Tree`](src/c4/yml/tree.hpp) object. Here are some examples:
-
-```c++
-void print_keyval(Tree const& t, size_t elm_id)
-{
-    std::cout << t.get_key(elm_id)
-              << ": "
-              << t.get_val(elm_id) << "\n";
-}
-
-ryml::Tree t = parse("{foo: 1, bar: 2, baz: 3}")
-
-size_t root_id = t.root_id();
-size_t foo_id  = t.first_child(root_id);
-size_t bar_id  = t.next_sibling(foo_id);
-size_t baz_id  = t.last_child(root_id);
-
-assert(baz == t.next_sibling(bar_id));
-assert(bar == t.prev_sibling(baz_id));
-
-print_keyval(t, foo_id); // "foo: 1"
-print_keyval(t, bar_id); // "bar: 2"
-print_keyval(t, baz_id); // "baz: 3"
-
-// to iterate over the children of a node:
-for(size_t i = t.first_child(root_id); i != ryml::NONE;
-           i = t.next_sibling(i))
-{
-    // ...
-}
-
-// to iterate over the siblings of a node:
-for(size_t i = t.first_sibling(foo_id); i != ryml::NONE;
-           i = t.next_sibling(i))
-{
-    // ...
-}
-```
 
 
 ### Custom allocators and error handlers
@@ -547,6 +663,7 @@ guaranteed to see this fail). So please carefully consider your choices, and
 ponder whether you really need to use ryml static trees and parsers. If you
 do need this, then you will need to declare and use an allocator from a ryml
 memory resource that outlives the tree and/or parser.
+
 
 ------
 
