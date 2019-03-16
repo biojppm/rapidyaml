@@ -421,7 +421,7 @@ public:
         C4_ASSERT( ! is_seed());
         C4_ASSERT(valid());
         C4_ASSERT(get() != nullptr);
-        from_str(key(), &v.k);
+        from_chars(key(), &v.k);
         return *this;
     }
 
@@ -762,7 +762,7 @@ inline void write(NodeRef *n, T const& v)
 template<class T>
 inline bool read(NodeRef const& n, T *v)
 {
-    return from_str(n.val(), v);
+    return from_chars(n.val(), v);
 }
 
 

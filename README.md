@@ -510,8 +510,8 @@ for(size_t i  = t.first_sibling(foo_id);
 ### Custom types
 
 ryml provides code to serialize the basic intrinsic types (integers, floating
-points and strings): you can see it in the [the `c4/to_str.hpp`
-header]([c4core](https://github.com/biojppm/c4core/src/c4/to_str.hpp). For
+points and strings): you can see it in the [the `c4/to_chars.hpp`
+header]([c4core](https://github.com/biojppm/c4core/src/c4/to_chars.hpp). For
 types other than these, you need to instruct ryml how to serialize your type.
 
 There are two distinct type categories when serializing to a YAML tree:
@@ -565,7 +565,7 @@ There are two distinct type categories when serializing to a YAML tree:
 
 * The second category is for types which should serialize to a string,
   resulting in leaf node in the YAML tree. For these, overload the
-  `to_str(c4::substr, T)/from_str(c4::csubstr,
+  `to_chars(c4::substr, T)/from_chars(c4::csubstr,
   *T)` functions. Here's an example for a 3D vector type:
   ```c++
   struct vec3 { float x, y, z; };
@@ -576,14 +576,14 @@ There are two distinct type categories when serializing to a YAML tree:
   // that need to be written. So if the return value
   // is larger than buf.len, ryml will resize the buffer and
   // call this again with a larger buffer.
-  size_t to_str(c4::substr buf, vec3 v)
+  size_t to_chars(c4::substr buf, vec3 v)
   {
       // this call to c4::format() is a type-safe version
       // of snprintf(buf.str, buf.len, "(%f,%f,%f)", v.x, v.y, v.z)
       return c4::format(buf, "({},{},{})", v.x, v.y, v.z);
   }
 
-  bool from_str(c4::csubstr buf, vec3 *v)
+  bool from_chars(c4::csubstr buf, vec3 *v)
   {
       // equivalent to sscanf(buf.str, "(%f,%f,%f)", &v.x, &v.y, &v.z)
       // --- actually snscanf(buf.str, buf.len, ...) but there's
@@ -709,15 +709,16 @@ around libyaml, but to my surprise I found out it makes heavy use of
 allocations and string duplications when parsing.
 
 [yaml-cpp](https://github.com/jbeder/yaml-cpp) is full of functionality, but
-is heavy on the use of node-based structures, allocations, string copies and
-slow C++ stream serializations. This is generally a sure way of making your
-code slower, and strong evidence of this can be seen in the benchmark results
-above.
+is heavy on the use of pointer-based structures like `std::map`, allocations,
+string copies and slow C++ stream serializations. This is generally a sure
+way of making your code slower, and strong evidence of this can be seen in
+the benchmark results above.
 
 If you care about performance and low latency, using contiguous structures,
 parsing in place and using non-owning strings is of central importance. Hence
-this rapid YAML library, which bridges the gap from efficiency to
-usability. This library takes inspiration from RapidXML and RapidJSON.
+this rapid YAML library, which bridges with minimal compromise the gap from
+efficiency to usability. This library takes inspiration from RapidXML and
+RapidJSON.
 
 
 ------
