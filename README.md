@@ -10,17 +10,27 @@
 
 Or ryml, for short. ryml is a library to parse and emit YAML, and do it fast.
 
-ryml parses the source buffer in place, and the resulting tree holds only
-sub-ranges of the source buffer. No string copies or duplications are done, and
-no virtual functions are used. Serialization happens only when the user wants
-it to happen, so internally the data tree representation has no knowledge of
-types. The resulting tree is easy and fast to iterate through and change.
+ryml parses both read-only and in-situ source buffers; the resulting data
+nodes hold only views to sub-ranges of the source buffer. No string copies or
+duplications are done, and no virtual functions are used. The data tree is a
+flat index-based structure stored in a single array (which you can reserve at
+will). Serialization happens only at the user's request after parsing /
+before emitting; internally the data tree representation has no knowledge of
+types (but of course, every node can have a YAML type tag). The resulting
+tree is easy and fast to iterate through and change.
 
-ryml can use custom memory allocators, and is made exception-agnostic via a
-custom error handler callback.
+ryml can use custom per-tree memory allocators, and is
+exception-agnostic. Errors are reported via a custom error handler callback
+(and a default implementation using std::abort is provided, but you can opt
+out).
 
-ryml does not depend on the STL, but can interact with it via `#include
-<ryml_std.hpp>`.
+ryml has respect for your compilation times and therefore it is NOT
+header-only. (Work is still needed on installing it, but you can just
+add it as a subdirectory of your CMake project).
+
+ryml has no dependencies, not even on the STL (although it does use the
+libc). But it provides optional headers that let you serialize/deserialize
+STL strings and containers.
 
 ryml is written in C++11, and is known to compile with:
 * Visual Studio 2015 and later
@@ -28,19 +38,28 @@ ryml is written in C++11, and is known to compile with:
 * g++ 5 and later
 
 
-## Rapid? How rapid is it?
+------
 
-Quite a lot, actually! The first microbenchmark results are in. On my i7-6800K CPU @
-3.40GHz, I get:
- * ryml parses YAML at about ~150MB/s on Linux and ~100MB/s on Windows. 
- * But it gets better. **ryml parses JSON at about 450MB/s on Linux**
-   (didn't try yet on Windows).
+## Is it rapid?
 
-[Here's the benchmark](./bm/parse.cpp). Using different approaches within
-ryml (in-situ/read-only vs. with/without reuse), a YAML / JSON buffer is
-repeatedly parsed, comparing with [yaml-cpp](https://github.com/jbeder/yaml-cpp). I'll eventually
-compare and systematize the results also against libyaml, RapidJSON and other
-alternatives, but for now the existing figures are very encouraging.
+You bet!
+
+This project is fairly new, and only recently there was the change to
+benchmark it. The results are extremely satisfying. On a i7-6800K CPU @
+3.40GHz:
+ * ryml parses YAML at about ~150MB/s on Linux and ~100MB/s on Windows (vs2017). 
+ * **ryml parses JSON at about 450MB/s on Linux**, faster than sajson (didn't
+   try yet on Windows).
+ * compared against the other existing YAML libraries for C/C++:
+   * ryml is in general between 2 and 3 times faster than [libyaml](https://github.com/yaml/libyaml)
+   * ryml is in general between 20 and 70 times faster than [yaml-cpp](https://github.com/jbeder/yaml-cpp)
+
+(The results presented below are a bit scattered; and they need to be
+sistematized.) [Here's the benchmark](./bm/parse.cpp). Using different
+approaches within ryml (in-situ/read-only vs. with/without reuse), a YAML /
+JSON buffer is repeatedly parsed, and compared against other libraries.
+
+### Comparison with yaml-cpp
 
 The first result set is for Windows, and is using a [appveyor.yml config
 file](./bm/cases/appveyor.yml). A comparison of these results is
@@ -55,7 +74,7 @@ summarized on the table below:
 The next set of results is taken in Linux, comparing g++ 8.2 and clang++ 7.0.1 in
 parsing a YAML buffer from a [travis.yml config
 file](./bm/cases/travis.yml) or a JSON buffer from a [compile_commands.json
-file](./bm/cases/compile_commands.yml). You
+file](./bm/cases/compile_commands.json). You
 can [see the full results here](./bm/results/parse.linux.i7_6800K.md).
 Summarizing:
 
@@ -75,19 +94,73 @@ as [RapidJSON](https://github.com/Tencent/rapidjson) and other fast json
 readers
 ([data from here](https://lemire.me/blog/2018/05/03/how-fast-can-you-parse-json/)).
 Even parsing full YAML is at ~150MB/s, which is still in that performance
-ballpark, allbeit at its lower end. This is something to be proud of, as YAML
-is much more complex than JSON.
+ballpark, allbeit at its lower end. This is something to be proud of, as the
+YAML specification is much more complex than JSON.
 
+
+### Performance reading JSON
+
+So how does ryml compare against other JSON readers? Well, it's one of the
+fastest! 
+
+The benchmark is the [same as above](./bm/parse.cpp), and it is reading
+the [compile_commands.json](./bm/cases/compile_commands.json), The `_ro`
+suffix notes parsing a read-only buffer (so buffer copies are performed),
+while the `_rw` suffix means that the source buffer can be parsed in
+situ. The `_reuse` means the data tree and/or parser are reused on each
+benchmark repeat.
+
+Here's what we get with g++ 8.2:
+
+```
+|------------------|-------------------------------|-------------------------------
+|                  |           Release             |           Debug               
+| Benchmark        |  Iterations    Bytes/sec      |  Iterations    Bytes/sec      
+|------------------|-------------------------------|-------------------------------
+| rapidjson_ro     |        7941    509.855M/s     |         633    43.3632M/s     
+| rapidjson_rw     |       21400    1.32937G/s     |        1067    68.171M/s     
+| sajson_rw        |        6808    434.245M/s     |        2770    176.478M/s     
+| sajson_ro        |        6726    430.723M/s     |        2748    175.613M/s     
+| jsoncpp_ro       |        2871    183.616M/s     |        2941    187.937M/s     
+| nlohmann_json_ro |        1807    115.801M/s     |         337    21.5237M/s     
+| yamlcpp_ro       |         261    16.6322M/s     |          25    1.58178M/s     
+| libyaml_ro       |        1786    113.909M/s     |         560    35.6599M/s     
+| libyaml_ro_reuse |        1797    114.594M/s     |         561    35.8531M/s     
+| ryml_ro          |        6088    388.585M/s     |         576    36.8634M/s     
+| ryml_rw          |        6179    393.658M/s     |         577    36.8474M/s     
+| ryml_ro_reuse    |        6986    446.248M/s     |        1164    74.636M/s      
+| ryml_rw_reuse    |        7157    457.076M/s     |        1175    74.8721M/s     
+|------------------|-------------------------------|-------------------------------
+```
+
+You can verify that (for this test) ryml beats most json parsers at their own
+game, with the notable exception
+of [rapidjson](https://github.com/Tencent/rapidjson) --- *but this exception
+only occurs when in Release mode*. When in Debug
+mode, [rapidjson](https://github.com/Tencent/rapidjson) is slower than ryml,
+and only [sajson](https://github.com/chadaustin/sajson) manages to be
+faster. 
+
+More json comparison benchmarks will be added, but seem unlikely to
+significantly alter these results.
+
+
+------
 
 ## Quick start
 
-You can have your cake and eat it too: being rapid doesn't mean being
-unpractical!
+If you're wondering whether ryml's speed comes at a usage cost, you need
+not. With ryml, you can have your cake and eat it too: being rapid is
+definitely NOT the same as being unpractical!
 
-ryml was written with easy usage in mind, and comes with a two level
-API for accessing and traversing the data tree: a low-level index-based API
-and a higher level wrapping it via a ``NodeRef`` class. The examples in this
-section are using the high-level ``NodeRef``.
+ryml was written with easy usage in mind, and comes with a two level API for
+accessing and traversing the data tree: a low-level index-based API and a
+thin abstraction on top, wrapping it via a `NodeRef` class allowing for a
+more object-oriented use. The examples in this section are using the
+high-level `NodeRef`.
+
+
+### Parsing
 
 Parsing from source:
 ```c++
@@ -113,21 +186,86 @@ int main()
 }
 ```
 
-It is also possible to parse constant buffers, but before parsing ryml will
-copy these buffers over to an arena buffer in the tree object, and modify
-those while parsing:
+It is also possible to parse read-only buffers, but these will be copied over
+to an arena buffer in the tree object, and that buffer copy will be the one
+to be parsed:
+
 ```c++
-// "{foo: 1}" is a read-only buffer; it will be copied to the tree's arena
+// "{foo: 1}" is a read-only buffer; it will be
+// copied to the tree's arena before parsing
 ryml::Tree tree = ryml::parse("{foo: 1}");
 ```
 
-`node.key()` and `node.val()` return an object of type `c4::csubstr` (the
-name comes from constant substring) which is a read-only string view, with
-some more methods that make it practical to use. There's also a writable
-`c4::substr` string view, which in fact is used heavily by ryml to transform
-YAML blocks and scalars during parsing. You can browse these classes
-here: [c4/substr.hpp](https://github.com/biojppm/c4core/blob/master/src/c4/substr.hpp).
+For leaf-type nodes, `node.key()` and `node.val()` return a simple struct of
+type `c4::csubstr` (the name comes from constant substring) which is a
+read-only string view, with many methods that make it practical to use. (In
+fact, `c4::csubstr` is the workhorse of the parsing code; there's also a
+writable `c4::substr` string view; you can browse these classes
+here:
+[c4/substr.hpp](https://github.com/biojppm/c4core/blob/master/src/c4/substr.hpp).)
 
+
+For container-type nodes, the square-bracket operator can
+be used either with integers (both for sequence and map nodes) or with
+strings (only for map nodes):
+```c++
+ryml::Tree = ryml::parse("[a, b, {c: 0, d: 1}]");
+ryml::NodeRef root = tree.rootref();
+std::cout << root[0].val() << "\n"; // "a"
+std::cout << root[1].val() << "\n"; // "b"
+std::cout << root[2][ 0 ].val() << "\n"; // "0" // index-based
+std::cout << root[2]["c"].val() << "\n"; // "0" // string-based
+std::cout << root[2][ 1 ].val() << "\n"; // "1" // index-based
+std::cout << root[2]["d"].val() << "\n"; // "1" // string-based
+```
+
+What about `NodeRef`? Let's consider when a non-existing key or index is
+requested via the square-bracket operator. Unlike with `std::map`, **this
+operator does not modify the tree**. Instead you get a seed `NodeRef`, and
+the tree will be modified only when this seed-state reference is written
+to. Thus `NodeRef` can either point to a valid tree node, or if no such node
+exists it will be in seed-state by holding the index or name passed to
+`operator[]`. To allow for this, `NodeRef` is a simple structure with a
+declaration like:
+
+```c++
+class NodeRef
+{
+    // a pointer to the tree
+    Tree * m_tree; 
+    
+    // either the (tree-scoped) index of an existing node or the (node-scoped) index of a seed state
+    size_t m_node_or_seed_id;
+    
+    // the key name of a seed state
+    const char* m_seed_name;
+
+public:
+
+    // this can be used to query whether a node is in seed state
+    bool valid() { return m_node_id != NONE && m_node_name == nullptr; }
+
+    // forward all calls to m_tree. For example:
+    csubstr val() const { assert(valid()); return m_tree->val(m_node_or_seed_id); }
+    void set_val(csubstr v) { if(!valid()) {/*create node in tree*/;} m_tree->set_val(m_node_or_seed_id, v); }
+
+    // etc...
+};
+```
+
+So using this high-level API is not going to cost a lot more than the less
+practical low level API.
+
+Please note that since a ryml tree uses linear storage, the complexity of
+`operator[]` is linear on the number of children of the node on which [] is
+invoked. If you use it with a large tree with many siblings at the root
+level, you may see a hit. To avoid this, you can create your own
+accelerator structure (eg, do a single loop at the root level to fill an
+`std::map<csubstr,size_t>`` mapping key names to node indices; with a node
+index, a lookup is O(1), so this way you can get O(n) lookup from a key.)
+
+
+### Creating a tree
 
 To create a tree programatically:
 ```c++
@@ -216,100 +354,11 @@ for(NodeRef c : node.siblings())
 }
 ```
 
-For container-type nodes, the square-bracket operator can
-be used either with integers (both for sequence and map nodes) or with
-strings (only for map nodes):
-```c++
-ryml::Tree = ryml::parse("[a, b, {c: 0, d: 1}]");
-ryml::NodeRef root = tree.rootref();
-std::cout << root[0].val() << "\n"; // "a"
-std::cout << root[1].val() << "\n"; // "b"
-std::cout << root[2][ 0 ].val() << "\n"; // "0" // index-based
-std::cout << root[2]["c"].val() << "\n"; // "0" // string-based
-std::cout << root[2][ 1 ].val() << "\n"; // "1" // index-based
-std::cout << root[2]["d"].val() << "\n"; // "1" // string-based
-```
-
-What about `NodeRef`? Let's consider when a non-existing key or index is
-requested via the square-bracket operator. Unlike with `std::map`, **this
-operator does not modify the tree**. Instead you get a seed `NodeRef`, and
-the tree will be modified only when this seed-state reference is written
-to. Thus `NodeRef` can either point to a valid tree node, or if no such node
-exists it will be in seed-state by holding the index or name passed to
-`operator[]`. To allow for this, `NodeRef` is a simple structure with a
-declaration like:
-
-```c++
-class NodeRef
-{
-    // a pointer to the tree
-    Tree * m_tree; 
-    
-    // either the (tree-scoped) index of an existing node or the (node-scoped) index of a seed state
-    size_t m_node_or_seed_id;
-    
-    // the key name of a seed state
-    const char* m_seed_name;
-
-public:
-
-    // this can be used to query whether a node is in seed state
-    bool valid() { return m_node_id != NONE && m_node_name == nullptr; }
-
-    // forward all calls to m_tree. For example:
-    csubstr val() const { assert(valid()); return m_tree->val(m_node_or_seed_id); }
-    void set_val(csubstr v) { if(!valid()) {/*create node in tree*/;} m_tree->set_val(m_node_or_seed_id, v); }
-
-    // etc...
-};
-```
-
-So using this high-level API is not going to cost a lot more than the less
-practical low level API.
-
-
-### STL interoperation
-
-ryml does not require use of the STL. Use of STL is opt-in: you need to
-`#include` the proper ryml header. Having done that, you can serialize them
-with a single step. For example:
-
-```c++
-#include <ryml_std.hpp>
-int main()
-{
-    std::map< std::string, int > m({{"foo", 1}, {"bar", 2}});
-    ryml::Tree t;
-    t.rootref() << m;
-    
-    emit(t);
-    // foo: 1
-    // bar: 2
-    
-    t["foo"] << 10;
-    t["bar"] << 20;
-    
-    m.clear();
-    t.rootref() >> m;
-    
-    std::cout << m["foo"] << "\n"; // 10
-    std::cout << m["bar"] << "\n"; // 20
-}
-```
-
-The `<ryml_std.hpp>` header includes every default std type implementation
-for ryml. You can include just a specific header if you are interested only
-in a particular container; these headers are located under a specific
-directory in the ryml source folder: [c4/yml/std](src/c4/yml/std).
-
-These headers also showcase how to implement your custom type. See for
-example [the map implementation](src/c4/yml/std/map.hpp).
-
 
 ### Custom types
 
-ryml comes stocked with code to serialize the basic intrinsic types (integers
-and floating points). For types other than these, you need to instruct ryml
+ryml provides code to serialize the basic intrinsic types (integers, floating
+points and strings). For types other than these, you need to instruct ryml
 how to serialize your type.
 
 There are two distinct type categories when serializing to a YAML tree:
@@ -393,9 +442,57 @@ There are two distinct type categories when serializing to a YAML tree:
    You can also look at [the `std::string` serialization code](https://github.com/biojppm/c4core/blob/master/src/c4/std/string.hpp).
 
 
+
+### STL interoperation
+
+ryml does not require use of the STL. Use of STL is opt-in: you need to
+`#include` the proper ryml header for the container you want to
+serialize. Having done that, you can serialize it with a single step. For
+example:
+
+```c++
+#include <ryml_std.hpp>
+int main()
+{
+    std::map<std::string, int> m({{"foo", 1}, {"bar", 2}});
+    ryml::Tree t;
+    t.rootref() << m; // serialization of the map happens here
+    
+    emit(t);
+    // foo: 1
+    // bar: 2
+    
+    t["foo"] << 1111;  // serialize 10 into the tree's arena, and point foo at it
+    t["bar"] << 2222;  // ditto
+    
+    emit(t);
+    // foo: 1111
+    // bar: 2222
+    
+    m.clear();
+    t.rootref() >> m; // deserialization of the map happens here
+
+    assert(m["foo"] == 1111); // ok
+    assert(m["bar"] == 2222); // ok
+}
+```
+
+The `<ryml_std.hpp>` header includes every available std type implementation
+for ryml. You can include just a specific header if you are interested only
+in a particular container; these headers are located under a specific
+directory in the ryml source folder: [c4/yml/std](src/c4/yml/std). If you'd
+like to see a particular STL container implemented, feel free to [submit a
+pull request or open an issue](https://github.com/biojppm/rapidyaml/issues).
+
+These headers also showcase how to implement your custom type. See for
+example [the map implementation](src/c4/yml/std/map.hpp).
+
+
+
 ### Low-level API
 
-Some examples:
+The low-level api is an index-based API accessible from
+the [`ryml::Tree`](src/c4/yml/tree.hpp) object. Here are some examples:
 
 ```c++
 void print_keyval(Tree const& t, size_t elm_id)
@@ -412,21 +509,23 @@ size_t foo_id  = t.first_child(root_id);
 size_t bar_id  = t.next_sibling(foo_id);
 size_t baz_id  = t.last_child(root_id);
 
-assert(baz == t.next_sibling(ibar));
-assert(bar == t.prev_sibling(ibaz));
+assert(baz == t.next_sibling(bar_id));
+assert(bar == t.prev_sibling(baz_id));
 
 print_keyval(t, foo_id); // "foo: 1"
 print_keyval(t, bar_id); // "bar: 2"
 print_keyval(t, baz_id); // "baz: 3"
 
 // to iterate over the children of a node:
-for(size_t i = t.first_child(root_id); i != ryml::NONE; i = t->next_sibling(i))
+for(size_t i = t.first_child(root_id); i != ryml::NONE;
+           i = t.next_sibling(i))
 {
     // ...
 }
 
 // to iterate over the siblings of a node:
-for(size_t i = t.first_sibling(foo_id); i != ryml::NONE; i = t->next_sibling(i))
+for(size_t i = t.first_sibling(foo_id); i != ryml::NONE;
+           i = t.next_sibling(i))
 {
     // ...
 }
@@ -438,11 +537,23 @@ for(size_t i = t.first_sibling(foo_id); i != ryml::NONE; i = t->next_sibling(i))
 ryml accepts your own allocators and error handlers. Read through
 [this header file](src/c4/yml/common.hpp) to set it up.
 
+Please note the following about the use of custom allocators with ryml. If
+you use static ryml trees or parsers, you need to make sure that their
+allocator has the same lifetime. So you can't use ryml's default allocator,
+as it is declared in a ryml file, and the standard provides no guarantee on
+the relative initialization order, such that the allocator is constructed
+before and destroyed after your variables (in fact you are pretty much
+guaranteed to see this fail). So please carefully consider your choices, and
+ponder whether you really need to use ryml static trees and parsers. If you
+do need this, then you will need to declare and use an allocator from a ryml
+memory resource that outlives the tree and/or parser.
+
+------
 
 ## YAML standard conformance
 
-ryml is under active development, but is close to feature complete. UTF8 has
-not yet been tested.
+ryml is under active development, but is close to feature complete. (With the
+notable exception of UTF8 support, which we haven't had the chance to verify.)
 
 The following core features are tested:
 * mappings
@@ -453,13 +564,18 @@ The following core features are tested:
 * tags
 * anchors and references
 
-Of course, there are some dark corners in YAML, and there certainly can
-appear many cases which YAML fails to parse. So we welcome
-your bug reports or pull requests!
+Of course, there are *many* dark corners in YAML, and there certainly can
+appear some cases which YAML fails to parse. So we welcome
+your
+[bug reports or pull requests!](https://github.com/biojppm/rapidyaml/issues).
 
-I am currently working on integrating the ~300 cases in the YAML
-test suite.
+Integration of the ~300 cases in
+the [YAML test suite](https://github.com/yaml/yaml-test-suite) is ongoing
+work.
 
+
+
+------
 
 ## Alternative libraries
 
@@ -475,15 +591,19 @@ qualify as practical. My initial idea was to wrap parsing and emitting
 around libyaml, but to my surprise I found out it makes heavy use of
 allocations and string duplications when parsing.
 
-[yaml-cpp](https://github.com/jbeder/yaml-cpp) is full of functionality and
-is very ably maintained, but is heavy on the use of streams, exceptions and
-string copies and allocations.
+[yaml-cpp](https://github.com/jbeder/yaml-cpp) is full of functionality, but
+is heavy on the use of node-based structures, allocations, string copies and
+slow C++ stream serializations. This is generally a sure way of making your
+code slower, and strong evidence of this can be seen in the benchmark results
+above.
 
-For heavy or low-latency use cases, parsing in place and using non-owning
-strings is of central importance. Hence this rapid YAML library, which
-bridges the gap from efficiency to usability. This library takes inspiration
-from RapidXML and RapidJSON.
+If you care about performance and low latency, using contiguous structures,
+parsing in place and using non-owning strings is of central importance. Hence
+this rapid YAML library, which bridges the gap from efficiency to
+usability. This library takes inspiration from RapidXML and RapidJSON.
 
+
+------
 ## License
 
 ryml is permissively licensed under the [MIT license](LICENSE.txt).
