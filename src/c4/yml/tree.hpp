@@ -7,7 +7,7 @@
 #endif
 
 #include <c4/substr.hpp>
-#include <c4/to_str.hpp>
+#include <c4/to_chars.hpp>
 
 #ifdef __GNUC__
 #   pragma GCC diagnostic push
@@ -736,11 +736,11 @@ public:
     csubstr to_arena(T const& a)
     {
         substr rem(m_arena.sub(m_arena_pos));
-        size_t num = to_str(rem, a);
+        size_t num = to_chars(rem, a);
         if(num > rem.len)
         {
             rem = _grow_arena(num);
-            num = to_str(rem, a);
+            num = to_chars(rem, a);
             C4_ASSERT(num <= rem.len);
         }
         rem = _request_span(num);
