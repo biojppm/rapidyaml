@@ -746,7 +746,7 @@ R"(
 
 CaseData* get_data(csubstr name)
 {
-    static std::map< csubstr, CaseData > m;
+    static std::map<csubstr, CaseData> m;
 
     auto it = m.find(name);
     CaseData *cd;
