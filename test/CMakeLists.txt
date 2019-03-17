@@ -6,20 +6,23 @@ c4_add_library(RYML ryml_util_test
     LIBS ryml yaml yaml-cpp gtest gtest_main
     FOLDER ryml-test)
 
+print_var(ryml_yaml_cpp_inc)
+
 function(ryml_add_test test_name)
-    # NOTE: the library order here is fragile because the sanitization code
-    # goes recursively through the target and its dependencies to figure out
-    # the include paths, and some of them (notably from libyaml) use a
-    # generator expression $<INSTALL_INTERFACE:include> which for some reason
-    # cmake resolves to an empty string; after this, clang_tidy fails to find
-    # some includes. The way that this could be overcome was by respecifying
-    # the libraries although technically it was not necessary for correct
-    # compilation and linking. This is happening only withh the clang-tidy
-    # sanitizer.
+    # NOTE: the library order here is fragile because the cmake sanitization
+    # code goes recursively through the target and its dependencies to figure
+    # out the include paths, and some of them (notably from libyaml) use a
+    # generator expression $<INSTALL_INTERFACE:include>, which for some
+    # reason cmake resolves to an empty string; that results in an empty -I
+    # directive: for example "-I -I other/path", which prevents clang-tidy
+    # from considering other/path. The way that this could be overcome was by
+    # respecifying the libraries although technically it was not necessary
+    # for correct compilation and linking. This is happening only with the
+    # clang-tidy sanitizer.
     set(t ryml-test-${test_name})
     c4_add_executable(RYML ${t}
         SOURCES ${test_name}.cpp ${ARGN}
-        LIBS ryml yaml-cpp ryml_util_test  # FRAGILE! see the NOTE above
+        LIBS ryml yaml-cpp ryml_util_test yaml-cpp ryml # FRAGILE! see the NOTE above
         FOLDER ryml-test)
     if(RYML_DBG)
         target_compile_definitions(${t} PRIVATE RYML_DBG)

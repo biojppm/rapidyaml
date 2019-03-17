@@ -4,14 +4,14 @@ option(RYML_BUILD_API_PYTHON2 "Enable Python2 API" OFF)
 message(STATUS "ryml: enabling API")
 
 cmake_policy(PUSH)
-cmake_policy(SET CMP0078 NEW) # https://cmake.org/cmake/help/v3.13/policy/CMP0078.html#policy:CMP0078
+cmake_policy(SET CMP0078 NEW) # https://cmake.org/cmake/help/v3.13/policy/CMP0078.html
+cmake_policy(SET CMP0086 NEW) # https://cmake.org/cmake/help/v3.14/policy/CMP0086.html
 
 find_package(SWIG)
 if(NOT SWIG_FOUND)
     message(FATAL_ERROR "cannot find swig")
 endif()
 message(STATUS "found swig ${SWIG_VERSION}: ${SWIG_EXECUTABLE}")
-
 # https://cmake.org/cmake/help/v3.13/module/UseSWIG.html
 include(UseSWIG)
 
@@ -21,26 +21,26 @@ set(RYML_SWIG_SRC ${RYML_API_DIR}/ryml.i)
 foreach(f ${RYML_SWIG_SRC})
     set_source_files_properties(${f} PROPERTIES
         CPLUSPLUS ON
+        SWIT_MODULE_NAME ryml
         SWIG_FLAGS "-includeall"
         INCLUDE_DIRECTORIES "${incdirs}" # this needs quotes here!
         )
 endforeach()
 
-
 function(create_setup_py src dst)
-    set(options0arg
+    set(opt0arg
     )
-    set(options1arg
+    set(opt1arg
         NAME
         VERSION
         AUTHOR
         DESC
         SRC
     )
-    set(optionsnarg
+    set(optnarg
         PYMODS
     )
-    cmake_parse_arguments("" "${options0arg}" "${options1arg}" "${optionsnarg}" "${ARGN}")
+    cmake_parse_arguments("" "${opt0arg}" "${opt1arg}" "${optnarg}" "${ARGN}")
     configure_file("${src}" "${dst}" @ONLY)
 endfunction()
 
@@ -52,7 +52,6 @@ function(pylist li out)
     endforeach()
     set(${out} ${l} PARENT_SCOPE)
 endfunction()
-
 
 if(RYML_BUILD_API_PYTHON3)
     message(STATUS "ryml: enabling python3 API")
