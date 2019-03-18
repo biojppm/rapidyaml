@@ -97,6 +97,25 @@ if(RYML_BUILD_API_PYTHON3)
     #add_custom_target(${t}-distutils
     #    COMMAND ${Python3_EXECUTABLE} setup.py build_ext --inplace
     #    WORKING_DIRECTORY ${g})
+
+    function(add_python_test script)
+        set(pydir ${CMAKE_CURRENT_LIST_DIR}/python)
+        get_filename_component(script_name ${script} NAME_WE)
+        set(script ${pydir}/${script})
+        set(tn ${t}-run-${script_name})
+        set(cmd PYTHONPATH=${r} ${Python3_EXECUTABLE} ${script})
+        add_custom_target(${tn}
+            COMMAND ${cmd}
+            DEPENDS ${t}
+            WORKING_DIRECTORY ${pydir}
+            )
+        if(RYML_BUILD_TESTS)
+            add_test(NAME ${tn}-test
+                COMMAND ${CMAKE_PROGRAM} --build ${tn})
+        endif()
+    endfunction()
+
+    add_python_test(parse.py)
 endif()
 
 
