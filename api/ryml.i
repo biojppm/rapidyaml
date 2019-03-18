@@ -33,9 +33,6 @@ using csubstr = c4::csubstr;
 
 %}
 
-%typemap(out) c4::csubstr {
-}
-
 %typemap(in) c4::substr {
 #if defined(SWIGPYTHON)
   Py_buffer view;
@@ -84,27 +81,22 @@ using csubstr = c4::csubstr;
 };
 
 
+%typemap(out) c4::csubstr {
+#if defined(SWIGPYTHON)
+  PyObject *obj = PyMemoryView_FromMemory((char*)$1.str, $1.len, PyBUF_READ);
+  if( ! obj)
+  {
+      PyErr_SetString(PyExc_TypeError, "could not get readonly memory from c4::csubstr - have you passed a str?");
+      SWIG_fail;
+  }
+  $result = obj;
+#else
+#error no "out" typemap defined for this export language
+#endif
+};
+
+
 %inline %{
-
-void fdx_(c4::csubstr s)
-{
-    printf("FDX READONLY: s='%.*s'\n", (int)s.len, s.str);
-}
-
-void fdxw_(c4::substr s)
-{
-    printf("FDX INPLACE: s='%.*s'\n", (int)s.len, s.str);
-}
-
-void fdx(const char *str, size_t len)
-{
-    fdx_(c4::csubstr(str, len));
-}
-
-void fdxw(char *str, size_t len)
-{
-    fdxw_(c4::substr(str, len));
-}
 
 void parse_csubstr(c4::csubstr s, c4::yml::Tree *t)
 {
@@ -126,17 +118,50 @@ void parse_substr(c4::substr s, c4::yml::Tree *t)
 
 %pythoncode %{
 
+
+def children(tree, node=None):
+    assert tree is not None
+    if node is None: node = tree.root_id()
+    ch = tree.first_child(node)
+    while ch != NONE:
+       yield ch
+       ch = tree.next_sibling(ch)
+
+
+def siblings(tree, node):
+    assert tree is not None
+    if node is None: return
+    ch = tree.first_sibling(node)
+    while ch != NONE:
+       yield ch
+       ch = tree.next_sibling(ch)
+
+
+def walk(tree, node=None):
+    assert tree is not None
+    if node is None: node = tree.root_id()
+    yield node
+    ch = tree.first_child(node)
+    while ch != NONE:
+       for gc in walk(tree, ch):
+           yield gc
+       ch = tree.next_sibling(ch)
+
+
 def parse_in_situ(buf, **kwargs):
     _check_valid_for_in_situ(buf)
     return _call_parse(parse_substr, buf, **kwargs)
 
+
 def parse(buf, **kwargs):
     return _call_parse(parse_csubstr, buf, **kwargs)
+
 
 def _call_parse(parse_fn, buf, **kwargs):
     tree = kwargs.get("tree", Tree())
     parse_fn(buf, tree)
     return tree
+
 
 def _check_valid_for_in_situ(obj):
     if type(obj) in (str, bytes):
@@ -148,6 +173,8 @@ def _check_valid_for_in_situ(obj):
 
 namespace c4 {
 namespace yml {
+
+constexpr const size_t NONE = (size_t)-1;
 
 typedef enum {
     NOTYPE  = 0,          ///< no type is set
@@ -171,7 +198,6 @@ struct NodeType
     NodeType_e type;
 
     NodeType();
-    NodeType(int t);
     NodeType(NodeType_e t);
     ~NodeType();
 
@@ -228,6 +254,18 @@ public:
     NodeType_e  type(size_t node) const;
     const char* type_str(size_t node) const;
 
+    c4::csubstr key       (size_t node) const;
+    c4::csubstr key_tag   (size_t node) const;
+    c4::csubstr key_ref   (size_t node) const;
+    c4::csubstr key_anchor(size_t node) const;
+    c4::yml::NodeScalar  keysc     (size_t node) const;
+
+    c4::csubstr val       (size_t node) const;
+    c4::csubstr val_tag   (size_t node) const;
+    c4::csubstr val_ref   (size_t node) const;
+    c4::csubstr val_anchor(size_t node) const;
+    c4::yml::NodeScalar  valsc     (size_t node) const;
+
 public:
 
     // node predicates
@@ -271,6 +309,8 @@ public:
 public:
 
     // hierarchy getters
+
+    size_t root_id() const;
 
     size_t parent(size_t node) const;
     size_t prev_sibling(size_t node) const;
@@ -343,7 +383,7 @@ public:
     void move(size_t node, size_t after);
 
     /** change the node's parent and position */
-    void   move(size_t node, size_t new_parent, size_t after);
+    void move(size_t node, size_t new_parent, size_t after);
     /** change the node's parent and position */
     size_t move(Tree * src, size_t node, size_t new_parent, size_t after);
 
