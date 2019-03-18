@@ -13,11 +13,11 @@ Or ryml, for short. ryml is a library to parse and emit YAML, and do it fast.
 ryml parses both read-only and in-situ source buffers; the resulting data
 nodes hold only views to sub-ranges of the source buffer. No string copies or
 duplications are done, and no virtual functions are used. The data tree is a
-flat index-based structure stored in a single array (which you can reserve at
-will). Serialization happens only at the user's request after parsing /
-before emitting; internally the data tree representation has no knowledge of
-types (but of course, every node can have a YAML type tag). The resulting
-tree is easy and fast to iterate through and change.
+flat index-based structure stored in a single array. Serialization happens
+only at your request, after parsing / before emitting. Internally the data
+tree representation has no knowledge of types (but of course, every node can
+have a YAML type tag). It is easy and fast to read, write and iterate through
+the data tree.
 
 ryml can use custom per-tree memory allocators, and is
 exception-agnostic. Errors are reported via a custom error handler callback
@@ -30,12 +30,24 @@ add it as a subdirectory of your CMake project).
 
 ryml has no dependencies, not even on the STL (although it does use the
 libc). But it provides optional headers that let you serialize/deserialize
-STL strings and containers.
+STL strings and containers (or show you how to do it).
 
 ryml is written in C++11, and is known to compile with:
 * Visual Studio 2015 and later
 * clang++ 3.9 and later
 * g++ 5 and later
+
+ryml is extensively unit-tested in [Linux](https://travis-ci.org/biojppm/rapidyaml)
+and [Windows](https://ci.appveyor.com/project/biojppm/rapidyaml). The tests
+include analysing ryml with:
+  * [LGTM.com](https://lgtm.com/projects/g/biojppm/rapidyaml)
+  * valgrind
+  * clang-tidy
+  * clang sanitizers:
+    * memory
+    * address
+    * undefined behavior
+    * thread
 
 
 ------
@@ -133,13 +145,13 @@ Here's what we get with g++ 8.2:
 |------------------|-------------------------------|-------------------------------
 ```
 
-You can verify that (for this test) ryml beats most json parsers at their own
-game, with the notable exception
-of [rapidjson](https://github.com/Tencent/rapidjson) --- *but this exception
-only occurs when in Release mode*. When in Debug
-mode, [rapidjson](https://github.com/Tencent/rapidjson) is slower than ryml,
-and only [sajson](https://github.com/chadaustin/sajson) manages to be
-faster. 
+You can verify that (at least for this test) ryml beats most json parsers at
+their own game, with the notable exception
+of [rapidjson](https://github.com/Tencent/rapidjson) --- *but this occurs
+only in Release mode*. When in Debug
+mode, [rapidjson](https://github.com/Tencent/rapidjson) is actually slower
+than ryml, and only [sajson](https://github.com/chadaustin/sajson) manages to
+be faster.
 
 More json comparison benchmarks will be added, but seem unlikely to
 significantly alter these results.
@@ -637,13 +649,13 @@ The [`<ryml_std.hpp>`](src/ryml_std.hpp) header includes every std type
 implementation available in ryml. But you can include just a specific header
 if you are interested only in a particular container; these headers are
 located under a specific directory in the ryml source
-folder: [c4/yml/std](src/c4/yml/std) You can see browse them to learn how to
-implement your custom type: for containers, see for
-example [the `std::vector` implementation](src/c4/yml/std/vector.hpp),
-or [the `std::map` implementation](src/c4/yml/std/map.hpp); for example of
-value nodes, see [the `std::string` implementation]() `fo. If you'd like to
-see a particular STL container implemented, feel free
-to
+folder: [c4/yml/std](src/c4/yml/std). You can browse them to learn how to
+implement your custom type: for containers, see for example
+[the `std::vector` implementation](src/c4/yml/std/vector.hpp),
+or [the `std::map` implementation](src/c4/yml/std/map.hpp); for an example
+of value nodes, see
+[the `std::string` implementation](https://github.com/biojppm/c4core/src/c4/std/string.hpp).
+If you'd like to see a particular STL container implemented, feel free to
 [submit a pull request or open an issue](https://github.com/biojppm/rapidyaml/issues).
 
 
@@ -714,11 +726,12 @@ string copies and slow C++ stream serializations. This is generally a sure
 way of making your code slower, and strong evidence of this can be seen in
 the benchmark results above.
 
-If you care about performance and low latency, using contiguous structures,
+When performance and low latency are important, using contiguous structures,
 parsing in place and using non-owning strings is of central importance. Hence
-this rapid YAML library, which bridges with minimal compromise the gap from
-efficiency to usability. This library takes inspiration from RapidXML and
-RapidJSON.
+this rapid YAML library which, with minimal compromise, bridges the gap from
+efficiency to usability. This library takes inspiration
+from [RapidJSON](https://github.com/Tencent/rapidjson)
+and [RapidXML](http://rapidxml.sourceforge.net/).
 
 
 ------
