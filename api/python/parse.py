@@ -47,10 +47,15 @@ class SimpleHardcoded:
         eq(t.key(2), b"foo")
         eq(t.key(3), b"bar")
         eq(t.key(4), b"baz")
+        eq(t.key(5), b"seq")
         eq(t.val(1), b"a")
         eq(t.val(2), b"b")
         eq(t.val(3), b"c")
         eq(t.val(4), b"d")
+        eq(t.val(6), b"0")
+        eq(t.val(7), b"1")
+        eq(t.val(8), b"2")
+        eq(t.val(9), b"3")
         tr(t.has_sibling(1, b"bar"))
         tr(t.has_sibling(1, b"baz"))
         tr(t.has_sibling(2, b"foo"))
@@ -72,17 +77,28 @@ class SimpleHardcoded:
         eq(num, t.num_siblings(t.first_child(t.root_id())))
         #
         num = 0
+        for id in ryml.children(t, 1):
+            num += 1
+        eq(num, 0)
+        #
+        num = 0
         for id in ryml.siblings(t, 1):
             num += 1
             eq(id, num)
         eq(num, t.num_children(t.root_id()))
         eq(num, t.num_siblings(t.first_child(t.root_id())))
+        #
         num = 0
         for id in ryml.siblings(t, 3):
             num += 1
             eq(id, num)
         eq(num, 5)
         eq(num, t.num_siblings(t.first_child(t.root_id())))
+        #
+        num = 0
+        for id in ryml.siblings(t, 0):
+            num += 1
+        eq(num, 1)
         #
         num = 0
         for id in ryml.walk(t):
@@ -98,6 +114,16 @@ class SimpleHardcoded:
             if t.is_val(id):
                 tr(id > 5)
         eq(num, t.size())
+        #
+        num = 0
+        for id in ryml.walk(t, 5):
+            num += 1
+        eq(num, 5)
+        #
+        num = 0
+        for id in ryml.walk(t, 9):
+            num += 1
+        eq(num, 1)
 
 
 # -----------------------------------------------------------------------------
