@@ -290,7 +290,8 @@ private:
 
 public:
 
-    Tree(Allocator const& cb={});
+    Tree(Allocator const& cb);
+    Tree() : Tree(Allocator()) {}
     Tree(size_t node_capacity, size_t arena_capacity=0, Allocator const& cb={});
 
     ~Tree();
@@ -361,6 +362,20 @@ public:
 
 public:
 
+    size_t root_id()       { if(m_cap == 0) { reserve(16); } C4_ASSERT(m_cap > 0 && m_size > 0); return 0; }
+    size_t root_id() const {                                 C4_ASSERT(m_cap > 0 && m_size > 0); return 0; }
+
+    NodeRef       rootref();
+    NodeRef const rootref() const;
+
+    NodeRef       operator[] (csubstr key);
+    NodeRef const operator[] (csubstr key) const;
+
+    NodeRef       operator[] (size_t i);
+    NodeRef const operator[] (size_t i) const;
+
+public:
+
     NodeType_e  type(size_t node) const { return (NodeType_e)(_p(node)->m_type & _TYMASK); }
     const char* type_str(size_t node) const { return NodeType::type_str(_p(node)->m_type); }
 
@@ -376,7 +391,6 @@ public:
     csubstr    const& val_anchor(size_t node) const { C4_ASSERT( ! is_val_ref(node) && has_val_anchor(node)); return _p(node)->m_val.anchor; }
     NodeScalar const& valsc     (size_t node) const { C4_ASSERT(has_val(node)); return _p(node)->m_val; }
 
-    bool has_anchor(size_t node, csubstr a) const { return _p(node)->m_key.anchor == a || _p(node)->m_val.anchor == a; }
 
 public:
 
@@ -406,6 +420,8 @@ public:
 
     /** true when name and value are empty, and has no children */
     bool empty(size_t node) const { return ! has_children(node) && _p(node)->m_key.empty() && (( ! (_p(node)->m_type & VAL)) || _p(node)->m_val.empty()); }
+    /** true when the node has an anchor named a */
+    bool has_anchor(size_t node, csubstr a) const { return _p(node)->m_key.anchor == a || _p(node)->m_val.anchor == a; }
 
 public:
 
@@ -476,6 +492,168 @@ public:
     void rem_key_ref   (size_t node) { C4_ASSERT( ! has_key_anchor(node)); _p(node)->m_key.anchor.clear(); _rem_flags(node, KEYREF); }
     void rem_val_ref   (size_t node) { C4_ASSERT( ! has_val_anchor(node)); _p(node)->m_val.anchor.clear(); _rem_flags(node, VALREF); }
     void rem_anchor_ref(size_t node) { _p(node)->m_key.anchor.clear(); _p(node)->m_val.anchor.clear(); _rem_flags(node, KEYANCH|VALANCH|KEYREF|VALREF); }
+
+public:
+
+    /** create and insert a new child of "parent". insert after the (to-be)
+     * sibling "after", which must be a child of "parent". To insert as the
+     * first child, set after to NONE */
+    inline size_t insert_child(size_t parent, size_t after)
+    {
+        C4_ASSERT(parent != NONE);
+        C4_ASSERT(is_container(parent) || is_root(parent));
+        C4_ASSERT(after == NONE || has_child(parent, after));
+        size_t child = _claim();
+        _set_hierarchy(child, parent, after);
+        return child;
+    }
+    inline size_t prepend_child(size_t parent) { return insert_child(parent, NONE); }
+    inline size_t  append_child(size_t parent) { return insert_child(parent, last_child(parent)); }
+
+public:
+
+    //! create and insert a new sibling of n. insert after "after"
+    inline size_t insert_sibling(size_t node, size_t after)
+    {
+        C4_ASSERT(node != NONE);
+        C4_ASSERT( ! is_root(node));
+        C4_ASSERT(parent(node) != NONE);
+        C4_ASSERT(after == NONE || (has_sibling(node, after) && has_sibling(after, node)));
+        return insert_child(get(node)->m_parent, after);
+    }
+    inline size_t prepend_sibling(size_t node) { return insert_sibling(node, NONE); }
+    inline size_t  append_sibling(size_t node) { return insert_sibling(node, last_sibling(node)); }
+
+public:
+
+    //! remove an entire branch at once: ie remove the children and the node itself
+    inline void remove(size_t node)
+    {
+        remove_children(node);
+        _release(node);
+    }
+
+    //! remove all the node's children, but keep the node itself
+    void remove_children(size_t node)
+    {
+        size_t ich = get(node)->m_first_child;
+        while(ich != NONE)
+        {
+            remove_children(ich);
+            size_t next = get(ich)->m_next_sibling;
+            _release(ich);
+            if(ich == get(node)->m_last_child) break;
+            ich = next;
+        }
+    }
+
+public:
+
+    /** change the node's position in the parent */
+    void move(size_t node, size_t after);
+
+    /** change the node's parent and position */
+    void   move(size_t node, size_t new_parent, size_t after);
+    /** change the node's parent and position */
+    size_t move(Tree * src, size_t node, size_t new_parent, size_t after);
+
+    /** recursively duplicate the node */
+    size_t duplicate(size_t node, size_t new_parent, size_t after);
+    /** recursively duplicate a node from a different tree */
+    size_t duplicate(Tree const* src, size_t node, size_t new_parent, size_t after);
+
+    /** recursively duplicate the node's children (but not the node) */
+    void duplicate_children(size_t node, size_t parent, size_t after);
+    /** recursively duplicate the node's children (but not the node), where the node is from a different tree */
+    void duplicate_children(Tree const* src, size_t node, size_t parent, size_t after);
+
+    void duplicate_contents(size_t node, size_t where);
+
+    /** duplicate the node's children (but not the node) in a new parent, but
+     * omit repetitions where a duplicated node has the same key (in maps) or
+     * value (in seqs). If one of the duplicated children has the same key
+     * (in maps) or value (in seqs) as one of the parent's children, the one
+     * that is placed closest to the end will prevail. */
+    void duplicate_children_no_rep(size_t node, size_t parent, size_t after);
+
+public:
+
+    substr arena() const { return m_arena.range(0, m_arena_pos); }
+    size_t arena_pos() const { return m_arena_pos; }
+
+    template< class T >
+    csubstr to_arena(T const& a)
+    {
+        substr rem(m_arena.sub(m_arena_pos));
+        size_t num = to_chars(rem, a);
+        if(num > rem.len)
+        {
+            rem = _grow_arena(num);
+            num = to_chars(rem, a);
+            C4_ASSERT(num <= rem.len);
+        }
+        rem = _request_span(num);
+        return rem;
+    }
+
+    bool in_arena(csubstr      s  ) const
+    {
+        return m_arena.contains(s);
+    }
+
+    substr alloc_arena(size_t sz)
+    {
+        if(sz >= arena_slack())
+        {
+            _grow_arena(sz - arena_slack());
+        }
+        substr s = _request_span(sz);
+        return s;
+    }
+
+    substr copy_to_arena(csubstr s)
+    {
+        substr cp = alloc_arena(s.len);
+        C4_ASSERT(cp.len == s.len);
+        memcpy(cp.str, s.str, s.len);
+        return cp;
+    }
+
+private:
+
+    substr _grow_arena(size_t more)
+    {
+        size_t cap = m_arena_pos + more;
+        cap = cap < 2 * m_arena.len ? 2 * m_arena.len : cap;
+        cap = cap < 64 ? 64 : cap;
+        reserve(m_cap, cap);
+        return m_arena.sub(m_arena_pos);
+    }
+
+    substr _request_span(size_t sz)
+    {
+        substr s;
+        s = m_arena.sub(m_arena_pos, sz);
+        m_arena_pos += sz;
+        return s;
+    }
+
+    substr _relocated(csubstr s, substr next_arena) const
+    {
+        C4_ASSERT(m_arena.contains(s));
+        C4_ASSERT(m_arena.sub(0, m_arena_pos).contains(s));
+        auto pos = (s.str - m_arena.str);
+        substr r(next_arena.str + pos, s.len);
+        C4_ASSERT(r.str - next_arena.str == pos);
+        C4_ASSERT(next_arena.sub(0, m_arena_pos).contains(r));
+        return r;
+    }
+
+    void _free();
+    void _copy(Tree const& that);
+    void _move(Tree      & that);
+
+    void _relocate(substr const& next_arena);
 
 public:
 
@@ -619,89 +797,6 @@ public:
         _rem_flags(node, VAL);
     }
 
-public:
-
-    /** create and insert a new child of "parent". insert after the (to-be)
-     * sibling "after", which must be a child of "parent". To insert as the
-     * first child, set after to NONE */
-    inline size_t insert_child(size_t parent, size_t after)
-    {
-        C4_ASSERT(parent != NONE);
-        C4_ASSERT(is_container(parent) || is_root(parent));
-        C4_ASSERT(after == NONE || has_child(parent, after));
-        size_t child = _claim();
-        _set_hierarchy(child, parent, after);
-        return child;
-    }
-    inline size_t prepend_child(size_t parent) { return insert_child(parent, NONE); }
-    inline size_t  append_child(size_t parent) { return insert_child(parent, last_child(parent)); }
-
-public:
-
-    //! create and insert a new sibling of n. insert after "after"
-    inline size_t insert_sibling(size_t node, size_t after)
-    {
-        C4_ASSERT(node != NONE);
-        C4_ASSERT( ! is_root(node));
-        C4_ASSERT(parent(node) != NONE);
-        C4_ASSERT(after == NONE || (has_sibling(node, after) && has_sibling(after, node)));
-        return insert_child(get(node)->m_parent, after);
-    }
-    inline size_t prepend_sibling(size_t node) { return insert_sibling(node, NONE); }
-    inline size_t  append_sibling(size_t node) { return insert_sibling(node, last_sibling(node)); }
-
-public:
-
-    //! remove an entire branch at once: ie remove the children and the node itself
-    inline void remove(size_t node)
-    {
-        remove_children(node);
-        _release(node);
-    }
-
-    //! remove all the node's children, but keep the node itself
-    void remove_children(size_t node)
-    {
-        size_t ich = get(node)->m_first_child;
-        while(ich != NONE)
-        {
-            remove_children(ich);
-            size_t next = get(ich)->m_next_sibling;
-            _release(ich);
-            if(ich == get(node)->m_last_child) break;
-            ich = next;
-        }
-    }
-
-public:
-
-    /** change the node's position in the parent */
-    void move(size_t node, size_t after);
-
-    /** change the node's parent and position */
-    void   move(size_t node, size_t new_parent, size_t after);
-    /** change the node's parent and position */
-    size_t move(Tree * src, size_t node, size_t new_parent, size_t after);
-
-    /** recursively duplicate the node */
-    size_t duplicate(size_t node, size_t new_parent, size_t after);
-    /** recursively duplicate a node from a different tree */
-    size_t duplicate(Tree const* src, size_t node, size_t new_parent, size_t after);
-
-    /** recursively duplicate the node's children (but not the node) */
-    void duplicate_children(size_t node, size_t parent, size_t after);
-    /** recursively duplicate the node's children (but not the node), where the node is from a different tree */
-    void duplicate_children(Tree const* src, size_t node, size_t parent, size_t after);
-
-    void duplicate_contents(size_t node, size_t where);
-
-    /** duplicate the node's children (but not the node) in a new parent, but
-     * omit repetitions where a duplicated node has the same key (in maps) or
-     * value (in seqs). If one of the duplicated children has the same key
-     * (in maps) or value (in seqs) as one of the parent's children, the one
-     * that is placed closest to the end will prevail. */
-    void duplicate_children_no_rep(size_t node, size_t parent, size_t after);
-
 private:
 
     void _clear_range(size_t first, size_t num);
@@ -712,99 +807,6 @@ private:
 
     void _set_hierarchy(size_t node, size_t parent, size_t after_sibling);
     void _rem_hierarchy(size_t node);
-
-public:
-
-    size_t root_id()       { if(m_cap == 0) { reserve(16); } C4_ASSERT(m_cap > 0 && m_size > 0); return 0; }
-    size_t root_id() const {                                 C4_ASSERT(m_cap > 0 && m_size > 0); return 0; }
-
-    NodeRef       rootref();
-    NodeRef const rootref() const;
-
-    NodeRef       operator[] (csubstr key);
-    NodeRef const operator[] (csubstr key) const;
-
-    NodeRef       operator[] (size_t i);
-    NodeRef const operator[] (size_t i) const;
-
-public:
-
-    substr arena() const { return m_arena.range(0, m_arena_pos); }
-    size_t arena_pos() const { return m_arena_pos; }
-
-    template< class T >
-    csubstr to_arena(T const& a)
-    {
-        substr rem(m_arena.sub(m_arena_pos));
-        size_t num = to_chars(rem, a);
-        if(num > rem.len)
-        {
-            rem = _grow_arena(num);
-            num = to_chars(rem, a);
-            C4_ASSERT(num <= rem.len);
-        }
-        rem = _request_span(num);
-        return rem;
-    }
-
-    bool in_arena(csubstr      s  ) const
-    {
-        return m_arena.contains(s);
-    }
-
-    substr alloc_arena(size_t sz)
-    {
-        if(sz >= arena_slack())
-        {
-            _grow_arena(sz - arena_slack());
-        }
-        substr s = _request_span(sz);
-        return s;
-    }
-
-    substr copy_to_arena(csubstr s)
-    {
-        substr cp = alloc_arena(s.len);
-        C4_ASSERT(cp.len == s.len);
-        memcpy(cp.str, s.str, s.len);
-        return cp;
-    }
-
-private:
-
-    substr _grow_arena(size_t more)
-    {
-        size_t cap = m_arena_pos + more;
-        cap = cap < 2 * m_arena.len ? 2 * m_arena.len : cap;
-        cap = cap < 64 ? 64 : cap;
-        reserve(m_cap, cap);
-        return m_arena.sub(m_arena_pos);
-    }
-
-    substr _request_span(size_t sz)
-    {
-        substr s;
-        s = m_arena.sub(m_arena_pos, sz);
-        m_arena_pos += sz;
-        return s;
-    }
-
-    substr _relocated(csubstr s, substr next_arena) const
-    {
-        C4_ASSERT(m_arena.contains(s));
-        C4_ASSERT(m_arena.sub(0, m_arena_pos).contains(s));
-        auto pos = (s.str - m_arena.str);
-        substr r(next_arena.str + pos, s.len);
-        C4_ASSERT(r.str - next_arena.str == pos);
-        C4_ASSERT(next_arena.sub(0, m_arena_pos).contains(r));
-        return r;
-    }
-
-    void _free();
-    void _copy(Tree const& that);
-    void _move(Tree      & that);
-
-    void _relocate(substr const& next_arena);
 
 };
 
