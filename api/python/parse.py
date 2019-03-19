@@ -7,8 +7,18 @@ class SimpleHardcoded:
     yaml = "{HELLO: a, foo: b, bar: c, baz: d, seq: [0, 1, 2, 3]}"
 
     def check(self, ut, t):
+
+        for i, sib in enumerate(ryml.siblings(t, 5)):
+            s = t.key(sib)
+            r = [b"HELLO", b"foo", b"bar", b"baz", b"seq"][i]
+            print("'{}' vs '{}': {}, {}".format(s, r, s == r, s is not r))
+            s = str(t.key(sib), "utf8")
+            r = ["HELLO", "foo", "bar", "baz", "seq"][i]
+            print("'{}' vs '{}': {}, {}".format(s, r, s == r, s is not r))
+
         # some convenient shorthands
         eq = ut.assertEqual
+        ne = ut.assertNotEqual
         fs = ut.assertFalse
         tr = ut.assertTrue
         #
@@ -95,24 +105,45 @@ class SimpleHardcoded:
         eq(num, 5)
         eq(num, t.num_siblings(t.first_child(t.root_id())))
         #
+
+        for i, ch in enumerate(ryml.children(t, 5)):
+            eq(t.val(ch), [b"0", b"1", b"2", b"3"][i])
+
+        sibs = [b"HELLO", b"foo", b"bar", b"baz", b"seq"]
+        sibs_s = ["HELLO", "foo", "bar", "baz", "seq"]
+        for i, sib in enumerate(ryml.siblings(t, 5)):
+            k = t.key(sib)
+            k_s = str(k, "utf8")
+            eq(k, sibs[i])
+            eq(k_s, sibs_s[i])
+            ne(k, sibs_s[i])
+            ne(k_s, sibs[i])
+            k_s = str(k)
+            ne(k_s, sibs_s[i])
+            ne(k_s, sibs[i])
+
         num = 0
         for id in ryml.siblings(t, 0):
             num += 1
         eq(num, 1)
         #
         num = 0
-        for id in ryml.walk(t):
+        for id, level in ryml.walk(t):
             num += 1
             if t.is_root(id):
                 eq(id, 0)
+                eq(level, 0)
             if t.is_map(id):
                 eq(id, 0)
+                eq(level, 0)
             if t.is_seq(id):
                 eq(id, 5)
+                eq(level, 1)
             if t.is_keyval(id):
                 tr(id > 0 and id < 5)
             if t.is_val(id):
                 tr(id > 5)
+                eq(level, 2)
         eq(num, t.size())
         #
         num = 0

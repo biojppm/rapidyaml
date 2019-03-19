@@ -116,6 +116,14 @@ if(RYML_BUILD_API_PYTHON3)
     endfunction()
 
     add_python_test(parse.py)
+    #if(RYML_BUILD_BENCHMARKS)
+    #    c4_add_benchmark_cmd(ryml ryml-python3-api-bm-travis-ryml
+    #        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/travis.yml ryml)
+    #    c4_add_benchmark_cmd(ryml ryml-python3-api-bm-appveyor-ryml
+    #        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/appveyor.yml ryml)
+    #    c4_add_benchmark_cmd(ryml ryml-python3-api-bm-compile_commands-ryml
+    #        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/compile_commands.json ryml)
+    #endif()
 endif()
 
 

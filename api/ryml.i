@@ -100,16 +100,16 @@ using csubstr = c4::csubstr;
 
 void parse_csubstr(c4::csubstr s, c4::yml::Tree *t)
 {
-    printf("PARSE READONLY: s=%.*s\n", (int)s.len, s.str);
+    //printf("PARSE READONLY: s=%.*s\n", (int)s.len, s.str);
     c4::yml::parse(s, t);
-    printf("PARSE READONLY OK: tree size=%zu\n", t->size());
+    //printf("PARSE READONLY OK: tree size=%zu\n", t->size());
 }
 
 void parse_substr(c4::substr s, c4::yml::Tree *t)
 {
-    printf("PARSE INPLACE: s=%.*s\n", (int)s.len, s.str);
+    //printf("PARSE INPLACE: s=%.*s\n", (int)s.len, s.str);
     c4::yml::parse(s, t);
-    printf("PARSE INPLACE OK: tree size=%zu\n", t->size());
+    //printf("PARSE INPLACE OK: tree size=%zu\n", t->size());
 }
 
 %}
@@ -137,14 +137,14 @@ def siblings(tree, node):
        ch = tree.next_sibling(ch)
 
 
-def walk(tree, node=None):
+def walk(tree, node=None, indentation_level=0):
     assert tree is not None
     if node is None: node = tree.root_id()
-    yield node
+    yield node, indentation_level
     ch = tree.first_child(node)
     while ch != NONE:
-       for gc in walk(tree, ch):
-           yield gc
+       for gc, il in walk(tree, ch, indentation_level + 1):
+           yield gc, il
        ch = tree.next_sibling(ch)
 
 
