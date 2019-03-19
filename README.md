@@ -49,6 +49,9 @@ include analysing ryml with:
     * undefined behavior
     * thread
 
+ryml is also partially available in Python, with more languages to follow (see
+below).
+
 
 ------
 
@@ -679,6 +682,105 @@ memory resource that outlives the tree and/or parser.
 
 ------
 
+## Other languages
+
+One of the aims of ryml is to provide an efficient YAML API for other
+languages. There's already a cursory implementation for Python (using only
+the low-level API). After ironing out the general approach, other languages
+are likely to follow: probably (in order) JavaScript, C#, Java, Ruby, PHP,
+Octave and R (all of this is possible because we're
+using [SWIG](http://www.swig.org/), which makes it easy to do so).
+
+### Python
+
+(Note that this is a work in progress. Additions will be made and things will
+be changed.) With that said, here's an example of the Python API:
+
+```python
+import ryml
+
+# because ryml does not take ownership of the source buffer
+# ryml cannot accept strings; only bytes or bytearrays
+src = b"{HELLO: a, foo: b, bar: c, baz: d, seq: [0, 1, 2, 3]}"
+
+def check(tree):
+    # for now, only the index-based low-level API is implemented
+    assert tree.size() == 10
+    assert tree.root_id() == 0
+    assert tree.first_child(0) == 1
+    assert tree.next_sibling(1) == 2
+    assert tree.first_sibling(5) == 2
+    assert tree.last_sibling(1) == 5
+    # use bytes objects for queries
+    assert tree.find_child(0, b"foo") == 1
+    assert tree.key(1) == b"foo")
+    assert tree.val(1) == b"b")
+    assert tree.find_child(0, b"seq") == 5
+    assert tree.is_seq(5)
+    # to loop over children:
+    for i, ch in enumerate(ryml.children(tree, 5)):
+        assert tree.val(ch) == [b"0", b"1", b"2", b"3"][i]
+    # to loop over siblings:
+    for i, sib in enumerate(ryml.siblings(tree, 5)):
+        assert tree.key(sib) == [b"HELLO", b"foo", b"bar", b"baz", b"seq"][i]
+    # to walk over all elements
+    visited = [False] * tree.size()
+    for n, indentation_level in ryml.walk(tree):
+        # just a dumb emitter
+        left = "  " * indentation_level
+        if tree.is_keyval(n):
+           print("{}{}: {}".format(left, tree.key(n), tree.val(n))
+        elif tree.is_val(n):
+           print("- {}".format(left, tree.val(n))
+        elif tree.is_keyseq(n):
+           print("{}{}:".format(left, tree.key(n))
+        visited[inode] = True
+    assert False not in visited
+    # NOTE about encoding!
+    k = tree.get_key(5)
+    print(k)  # '<memory at 0x7f80d5b93f48>'
+    assert k == b"seq"               # ok, as expected
+    assert k != "seq"                # not ok - NOTE THIS! 
+    assert str(k) != "seq"           # not ok
+    assert str(k, "utf8") == "seq"   # ok again
+
+# parse immutable buffer
+tree = ryml.parse(src)
+check(tree) # OK
+
+# also works, but requires bytearrays or
+# objects offering writeable memory
+mutable = bytearray(src)
+tree = ryml.parse_in_situ(mutable)
+check(tree) # OK
+```
+
+As expected, the performance results so far are encouraging. In
+a [timeit benchmark](api/python/parse_bm.py) compared
+against [PyYaml](https://pyyaml.org/)
+and [ruamel.yaml](https://yaml.readthedocs.io/en/latest/), ryml parses
+quicker by a factor of 30x-50x:
+
+```
++-----------------------+-------+----------+---------+----------------+
+| case                  | iters | time(ms) | avg(ms) | avg_read(MB/s) |
++-----------------------+-------+----------+---------+----------------+
+| parse:RuamelYaml      |    88 | 800.483  |  9.096  |      0.234     |
+| parse:PyYaml          |    88 | 541.370  |  6.152  |      0.346     |
+| parse:RymlRo          |  3888 | 776.020  |  0.200  |     10.667     |
+| parse:RymlRoReuse     |  1888 | 381.558  |  0.202  |     10.535     |
+| parse:RymlInSitu      |  3888 | 775.121  |  0.199  |     10.679     |
+| parse:RymlInSituReuse |  3888 | 774.534  |  0.199  |     10.687     |
++-----------------------+-------+----------+---------+----------------+
+```
+
+(Note that the results above are biased in favour of ryml, because ryml does
+not perform any type conversions: return types are merely `memoryviews` to
+the source buffer.)
+
+
+------
+
 ## YAML standard conformance
 
 ryml is under active development, but is close to feature complete. (With the
@@ -698,10 +800,9 @@ appear some cases which YAML fails to parse. So we welcome
 your
 [bug reports or pull requests!](https://github.com/biojppm/rapidyaml/issues).
 
-Integration of the ~300 cases in
-the [YAML test suite](https://github.com/yaml/yaml-test-suite) is ongoing
+Integration of the ~300 cases in the
+[YAML test suite](https://github.com/yaml/yaml-test-suite) is ongoing
 work.
-
 
 
 ------
