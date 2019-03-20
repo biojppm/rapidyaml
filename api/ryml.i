@@ -115,7 +115,7 @@ void parse_substr(c4::substr s, c4::yml::Tree *t)
 }
 
 
-
+// force a roundtrip to C++, which triggers a conversion to csubstr and returns it as a memoryview
 c4::csubstr _get_as_csubstr(c4::csubstr s)
 {
     //printf("_get_as_csubstr: %p[%zu]'%.*s'\n", s.str, s.len, (int)s.len, s.str);
@@ -128,6 +128,8 @@ c4::csubstr  _get_as_substr(c4::substr s)
     return s;
 }
 
+
+// utilities for testing
 bool _same_ptr(c4::csubstr l, c4::csubstr r)
 {
     return l.str == r.str;
