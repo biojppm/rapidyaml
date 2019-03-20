@@ -8,7 +8,7 @@
 %{
 // specifies that the resulting C file should be built as a python
 // extension, inserting the module init code
-//#define SWIG_FILE_WITH_INIT
+#define SWIG_FILE_WITH_INIT
 
 #include "ryml.hpp"
 
@@ -28,10 +28,6 @@ using csubstr = c4::csubstr;
 
 %apply (const char *STRING, size_t LENGTH) { (const char *str, size_t len) };
 %apply (char *STRING, size_t LENGTH) { (char *str, size_t len) };
-
-%inline %{
-
-%}
 
 %typemap(in) c4::substr {
 #if defined(SWIGPYTHON)
@@ -72,8 +68,18 @@ using csubstr = c4::csubstr;
   }
   else
   {
-      PyErr_SetString(PyExc_TypeError, "could not get readonly memory for c4::csubstr - have you passed a str?");
-      SWIG_fail;
+      // https://stackoverflow.com/questions/36098984/python-3-3-c-api-and-utf-8-strings
+      Py_ssize_t sz = 0;
+      const char *buf = PyUnicode_AsUTF8AndSize($input, &sz);
+      if(buf || sz == 0)
+      {
+          $1 = c4::csubstr(buf, sz);
+      }
+      else
+      {
+          PyErr_SetString(PyExc_TypeError, "c4::csubstr: could not get readonly memory from python object");
+          SWIG_fail;
+      }
   }
 #else
 #error no "in" typemap defined for this export language
@@ -100,23 +106,55 @@ using csubstr = c4::csubstr;
 
 void parse_csubstr(c4::csubstr s, c4::yml::Tree *t)
 {
-    //printf("PARSE READONLY: s=%.*s\n", (int)s.len, s.str);
     c4::yml::parse(s, t);
-    //printf("PARSE READONLY OK: tree size=%zu\n", t->size());
 }
 
 void parse_substr(c4::substr s, c4::yml::Tree *t)
 {
-    //printf("PARSE INPLACE: s=%.*s\n", (int)s.len, s.str);
     c4::yml::parse(s, t);
-    //printf("PARSE INPLACE OK: tree size=%zu\n", t->size());
 }
 
+
+
+c4::csubstr _get_as_csubstr(c4::csubstr s)
+{
+    //printf("_get_as_csubstr: %p[%zu]'%.*s'\n", s.str, s.len, (int)s.len, s.str);
+    return s;
+}
+
+c4::csubstr  _get_as_substr(c4::substr s)
+{
+    //printf("_get_as_substr: %p[%zu]'%.*s'\n", s.str, s.len, (int)s.len, s.str);
+    return s;
+}
+
+bool _same_ptr(c4::csubstr l, c4::csubstr r)
+{
+    return l.str == r.str;
+}
+
+bool _same_mem(c4::csubstr l, c4::csubstr r)
+{
+    return l.str == r.str && l.len == r.len;
+}
+
+
 %}
+
 
 //-----------------------------------------------------------------------------
 
 %pythoncode %{
+
+
+def as_csubstr(s):
+    return _get_as_csubstr(s)
+
+def as_substr(s):
+    return _get_as_substr(s)
+
+def u(memview):
+    return str(memview, "utf8")
 
 
 def children(tree, node=None):
