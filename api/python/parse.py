@@ -2,19 +2,95 @@ import ryml
 import unittest
 
 
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+class TestSubstrInterop(unittest.TestCase):
+
+    # ------------------------------------------------
+    # str
+
+    # CAN create c4::csubstr from string object
+    def test11_str2csubstr(self):
+        s = "asdasd"
+        m = ryml.as_csubstr(s)
+        self.assertTrue(ryml._same_ptr(s, m))
+        self.assertTrue(ryml._same_mem(s, m))
+        self.assertEqual(s, ryml.u(m))
+        #
+        m = ryml.as_csubstr(m)
+        self.assertTrue(ryml._same_ptr(s, m))
+        self.assertTrue(ryml._same_mem(s, m))
+        self.assertEqual(s, ryml.u(m))
+
+    # CANNOT create c4::substr from string object
+    def test12_str2substr(self):
+        s = ""
+        with self.assertRaises(TypeError) as context:
+            c = ryml.as_substr(s)
+        self.assertTrue(type(context.exception), TypeError)
+
+    # ------------------------------------------------
+    # bytes
+
+    # CAN create c4::csubstr from string object
+    def test21_bytes2csubstr(self):
+        s = b"foo21"
+        m = ryml.as_csubstr(s)
+        self.assertTrue(ryml._same_ptr(s, m))
+        self.assertTrue(ryml._same_mem(s, m))
+        self.assertEqual(s, m)
+        #
+        m = ryml.as_csubstr(m)
+        self.assertTrue(ryml._same_ptr(s, m))
+        self.assertTrue(ryml._same_mem(s, m))
+        self.assertEqual(s, m)
+
+    # CANNOT create c4::csubstr from string object
+    def test22_bytes2substr(self):
+        s = b"foo22"
+        with self.assertRaises(TypeError) as context:
+            c = ryml.as_substr(s)
+        self.assertTrue(type(context.exception), TypeError)
+
+    # ------------------------------------------------
+    # bytearray
+
+    # CAN create c4::csubstr from string object
+    def test31_bytes2csubstr(self):
+        s = bytearray("foo31", "utf8")
+        m = ryml.as_csubstr(s)
+        self.assertTrue(ryml._same_ptr(s, m))
+        self.assertTrue(ryml._same_mem(s, m))
+        self.assertEqual(s, m)
+        #
+        m = ryml.as_csubstr(m)
+        self.assertTrue(ryml._same_ptr(s, m))
+        self.assertTrue(ryml._same_mem(s, m))
+        self.assertEqual(s, m)
+
+    # CANNOT create c4::csubstr from string object
+    def test32_bytes2substr(self):
+        s = bytearray("foo31", "utf8")
+        m = ryml.as_csubstr(s)
+        self.assertTrue(ryml._same_ptr(s, m))
+        self.assertTrue(ryml._same_mem(s, m))
+        self.assertEqual(s, m)
+        #
+        m = ryml.as_csubstr(m)
+        self.assertTrue(ryml._same_ptr(s, m))
+        self.assertTrue(ryml._same_mem(s, m))
+        self.assertEqual(s, m)
+
+
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 class SimpleHardcoded:
 
     yaml = "{HELLO: a, foo: b, bar: c, baz: d, seq: [0, 1, 2, 3]}"
 
     def check(self, ut, t):
-
-        for i, sib in enumerate(ryml.siblings(t, 5)):
-            s = t.key(sib)
-            r = [b"HELLO", b"foo", b"bar", b"baz", b"seq"][i]
-            print("'{}' vs '{}': {}, {}".format(s, r, s == r, s is not r))
-            s = str(t.key(sib), "utf8")
-            r = ["HELLO", "foo", "bar", "baz", "seq"][i]
-            print("'{}' vs '{}': {}, {}".format(s, r, s == r, s is not r))
 
         # some convenient shorthands
         eq = ut.assertEqual
@@ -170,15 +246,13 @@ class _TestBase(unittest.TestCase):
 
     # ----------------------------------------------------------
     def _test11_str__ro(self):  # cannot read string buffers (or can we?)
-        with self.assertRaises(TypeError) as context:
-            ryml.parse(self.src_as_str)
-        self.assertTrue(type(context.exception), TypeError)
+        tree = ryml.parse(self.src_as_str)
+        self.case.check(self, tree)
 
     def _test12_str__ro__reuse_tree(self):  # cannot read string buffers (or can we?)
-        with self.assertRaises(TypeError) as context:
-            t = ryml.Tree()
-            ryml.parse(self.src_as_str, tree=t)
-        self.assertTrue(type(context.exception), TypeError)
+        t = ryml.Tree()
+        ryml.parse(self.src_as_str, tree=t)
+        self.case.check(self, t)
 
     def _test13_str__rw(self):  # cannot mutate string buffers (or can we?)
         with self.assertRaises(TypeError) as context:
