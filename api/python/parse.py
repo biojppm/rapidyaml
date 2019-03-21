@@ -86,12 +86,78 @@ class TestSubstrInterop(unittest.TestCase):
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
+
+def _addmap(t, node, k=None):
+    m = t.append_child(node)
+    if k is None:
+        t.to_map(m)
+    else:
+        t.to_map(m, k)
+    return m
+
+
+def _addseq(t, node, k=None):
+    m = t.append_child(node)
+    if k is None:
+        t.to_seq(m)
+    else:
+        t.to_seq(m, k)
+    return m
+
+
+def _addleaf(t, node, k, v=None):
+    ch = t.append_child(node)
+    if v is None:
+        t.to_val(ch, k)
+    else:
+        t.to_keyval(ch, k, v)
+    return ch
+
+
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+def check_tree_mod(ut, t):
+    # some convenient shorthands
+    eq = ut.assertEqual
+    def _leaf(node, k, v=None):
+        ch = _addleaf(t, node, k, v)
+        pos = t.child_pos(node, ch)
+        eq(t.child(node, pos), ch)
+        if v is not None:
+            eq(t.find_child(node, k), ch)
+            eq(t.child(node, pos), t.find_child(node, k))
+        return ch
+    def _seq(node, k):
+        ch = _addseq(t, node, k)
+        eq(t.find_child(node, k), ch)
+        return ch
+    def _map(node, k):
+        ch = _addmap(t, node, k)
+        eq(t.find_child(node, k), ch)
+        return ch
+    m = _map(t.root_id(), "check_tree_mod_map")
+    _leaf(m, "k1", "v1")
+    _leaf(m, "k2", "v2")
+    _leaf(m, "k3", "v3")
+    eq(t.num_children(m), 3)
+    eq(t.num_siblings(t.first_child(m)), 3)
+    s = _seq(t.root_id(), "check_tree_mod_seq")
+    _leaf(s, "v1")
+    _leaf(s, "v2")
+    _leaf(s, "v3")
+    eq(t.num_children(s), 3)
+    eq(t.num_siblings(t.first_child(m)), 3)
+
+
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 class SimpleHardcoded:
 
     yaml = "{HELLO: a, foo: b, bar: c, baz: d, seq: [0, 1, 2, 3]}"
 
     def check(self, ut, t):
-
         # some convenient shorthands
         eq = ut.assertEqual
         ne = ut.assertNotEqual
@@ -231,6 +297,8 @@ class SimpleHardcoded:
         for id in ryml.walk(t, 9):
             num += 1
         eq(num, 1)
+
+        check_tree_mod(ut, t)
 
 
 # -----------------------------------------------------------------------------
