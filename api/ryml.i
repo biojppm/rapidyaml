@@ -85,6 +85,9 @@ using csubstr = c4::csubstr;
 #error no "in" typemap defined for this export language
 #endif
 };
+// Copy the typecheck code for "char *".
+%typemap(typecheck) c4::substr = char *;
+%typemap(typecheck) c4::csubstr = const char *;
 
 
 %typemap(out) c4::csubstr {
@@ -298,13 +301,13 @@ public:
     c4::csubstr key_tag   (size_t node) const;
     c4::csubstr key_ref   (size_t node) const;
     c4::csubstr key_anchor(size_t node) const;
-    c4::yml::NodeScalar  keysc     (size_t node) const;
+    c4::yml::NodeScalar keysc(size_t node) const;
 
     c4::csubstr val       (size_t node) const;
     c4::csubstr val_tag   (size_t node) const;
     c4::csubstr val_ref   (size_t node) const;
     c4::csubstr val_anchor(size_t node) const;
-    c4::yml::NodeScalar  valsc     (size_t node) const;
+    c4::yml::NodeScalar valsc(size_t node) const;
 
 public:
 
@@ -371,22 +374,22 @@ public:
 
 public:
 
-    void to_keyval(size_t node, c4::csubstr const& key, c4::csubstr const& val, int more_flags=0);
-    void to_map(size_t node, c4::csubstr const& key, int more_flags=0);
-    void to_seq(size_t node, c4::csubstr const& key, int more_flags=0);
-    void to_val(size_t node, c4::csubstr const& val, int more_flags=0);
+    void to_keyval(size_t node, c4::csubstr key, c4::csubstr val, int more_flags=0);
+    void to_map(size_t node, c4::csubstr key, int more_flags=0);
+    void to_seq(size_t node, c4::csubstr key, int more_flags=0);
+    void to_val(size_t node, c4::csubstr val, int more_flags=0);
     void to_stream(size_t node, int more_flags=0);
     void to_map(size_t node, int more_flags=0);
     void to_seq(size_t node, int more_flags=0);
     void to_doc(size_t node, int more_flags=0);
 
-    void set_key_tag(size_t node, c4::csubstr const& tag);
+    void set_key_tag(size_t node, c4::csubstr tag);
     void set_key_anchor(size_t node, c4::csubstr anchor);
     void set_val_anchor(size_t node, c4::csubstr anchor);
     void set_key_ref   (size_t node, c4::csubstr ref   );
     void set_val_ref   (size_t node, c4::csubstr ref   );
 
-    void set_val_tag(size_t node, c4::csubstr const& tag);
+    void set_val_tag(size_t node, c4::csubstr tag);
     void rem_key_anchor(size_t node);
     void rem_val_anchor(size_t node);
     void rem_key_ref   (size_t node);
