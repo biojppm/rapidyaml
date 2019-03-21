@@ -102,16 +102,16 @@ if(RYML_BUILD_API_PYTHON3)
         set(pydir ${CMAKE_CURRENT_LIST_DIR}/python)
         get_filename_component(script_name ${script} NAME_WE)
         set(script ${pydir}/${script})
-        set(tn ${t}-run-${script_name})
-        set(cmd PYTHONPATH=${r} ${Python3_EXECUTABLE} ${script})
+        set(tn ${t}-test-${script_name})
+        set(cmd env PYTHONPATH=${r} ${Python3_EXECUTABLE} ${script})
         add_custom_target(${tn}
             COMMAND ${cmd}
             DEPENDS ${t}
-            WORKING_DIRECTORY ${pydir}
-            )
+            WORKING_DIRECTORY ${pydir})
         if(RYML_BUILD_TESTS)
-            add_test(NAME ${tn}-test
-                COMMAND ${CMAKE_PROGRAM} --build ${tn})
+            add_test(NAME ${tn}-run
+                COMMAND ${cmd}
+                WORKING_DIRECTORY ${pydir})
         endif()
     endfunction()
 

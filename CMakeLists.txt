@@ -90,11 +90,6 @@ if(RYML_DBG)
 endif()
 
 #-------------------------------------------------------
-if(RYML_BUILD_API)
-    add_subdirectory(api api)
-endif()
-
-#-------------------------------------------------------
 # extern libraries, used only for testing/benchmarking
 if(RYML_BUILD_TESTS OR RYML_BUILD_BENCHMARKS)
     set(ed ${CMAKE_CURRENT_BINARY_DIR}/extern) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)
@@ -127,4 +122,9 @@ endif()
 #-------------------------------------------------------
 if(RYML_BUILD_BENCHMARKS)
     add_subdirectory(bm bm)
+endif()
+
+#-------------------------------------------------------
+if(RYML_BUILD_API)
+    add_subdirectory(api api)
 endif()
