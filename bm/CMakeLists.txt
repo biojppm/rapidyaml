@@ -43,7 +43,7 @@ function(ryml_add_bm bm_name case_file)
     if(NOT TARGET ${bm})
         c4_add_executable(RYML ${bm}
             SOURCES ${bm_name}.cpp ${ARGN}
-            LIBS ryml yaml yaml-cpp benchmark jsoncpp nlohmann_json c4fs
+            LIBS ryml yaml yaml-cpp benchmark jsoncpp_lib nlohmann_json c4fs
             INC_DIRS ${RYML_RAPIDJSON_INC_DIR} ${RYML_SAJSON_INC_DIR}
             FOLDER ryml-benchmark)
         if(RYML_DBG)
