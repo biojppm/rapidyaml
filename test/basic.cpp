@@ -29,9 +29,9 @@ template<class T> size_t to_chars(c4::substr buf, vec2<T> v) { return c4::format
 template<class T> size_t to_chars(c4::substr buf, vec3<T> v) { return c4::format(buf, "({},{},{})", v.x, v.y, v.z); }
 template<class T> size_t to_chars(c4::substr buf, vec4<T> v) { return c4::format(buf, "({},{},{},{})", v.x, v.y, v.z, v.w); }
 
-template<class T> bool from_chars(c4::csubstr buf, vec2<T> *v) { char c; size_t ret = c4::unformat(buf, "({},{})", v->x, v->y, c); return ret != c4::yml::npos; }
-template<class T> bool from_chars(c4::csubstr buf, vec3<T> *v) { char c; size_t ret = c4::unformat(buf, "({},{},{})", v->x, v->y, v->z); return ret != c4::yml::npos; }
-template<class T> bool from_chars(c4::csubstr buf, vec4<T> *v) { char c; size_t ret = c4::unformat(buf, "({},{},{},{})", v->x, v->y, v->z, v->w); return ret != c4::yml::npos; }
+template<class T> bool from_chars(c4::csubstr buf, vec2<T> *v) { size_t ret = c4::unformat(buf, "({},{})", v->x, v->y); return ret != c4::yml::npos; }
+template<class T> bool from_chars(c4::csubstr buf, vec3<T> *v) { size_t ret = c4::unformat(buf, "({},{},{})", v->x, v->y, v->z); return ret != c4::yml::npos; }
+template<class T> bool from_chars(c4::csubstr buf, vec4<T> *v) { size_t ret = c4::unformat(buf, "({},{},{},{})", v->x, v->y, v->z, v->w); return ret != c4::yml::npos; }
 
 TEST(serialize, type_as_str)
 {

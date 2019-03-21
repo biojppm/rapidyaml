@@ -23,7 +23,7 @@ void test_stack_small_vs_large()
     istack<N> s;
     for(size_t i = 0; i < N; ++i)
     {
-        s.push(i);
+        s.push((int)i);
         EXPECT_EQ(s.size(), i+1);
     }
     EXPECT_EQ(s.size(), N);
@@ -63,7 +63,7 @@ void test_copy_ctor()
     // small
     for(size_t i = 0; i < N; ++i)
     {
-        src.push(i);
+        src.push((int)i);
     }
     EXPECT_EQ(src.m_stack, src.m_buf);
     ip b = src.begin();
@@ -78,7 +78,7 @@ void test_copy_ctor()
     // large
     for(size_t i = 0; i < 2*N; ++i)
     {
-        src.push(i); // large
+        src.push((int)i); // large
     }
     EXPECT_NE(src.m_stack, src.m_buf);
     b = src.begin();
@@ -111,7 +111,7 @@ void test_move_ctor()
     // small
     for(size_t i = 0; i < N; ++i)
     {
-        src.push(i);
+        src.push((int)i);
     }
     EXPECT_EQ(src.m_stack, src.m_buf);
     ip b = src.begin();
@@ -132,7 +132,7 @@ void test_move_ctor()
     // redo
     for(size_t i = 0; i < N; ++i)
     {
-        src.push(i);
+        src.push((int)i);
     }
     EXPECT_EQ(src.size(), N);
     EXPECT_EQ(src.capacity(), N);
@@ -140,7 +140,7 @@ void test_move_ctor()
     // large
     for(size_t i = 0; i < 2*N; ++i)
     {
-        src.push(i); // large
+        src.push((int)i); // large
     }
     EXPECT_EQ(src.size(), 3*N);
     EXPECT_NE(src.m_stack, src.m_buf);
@@ -178,12 +178,12 @@ void test_copy_assign()
 
     for(size_t i = 0; i < N; ++i)
     {
-        srcs.push(i); // small
-        srcl.push(i); // large
+        srcs.push((int)i); // small
+        srcl.push((int)i); // large
     }
     for(size_t i = 0; i < 2*N; ++i)
     {
-        srcl.push(i); // large
+        srcl.push((int)i); // large
     }
     EXPECT_EQ(srcs.m_stack, srcs.m_buf);
     EXPECT_NE(srcl.m_stack, srcl.m_buf);
@@ -234,12 +234,12 @@ void test_move_assign()
 
     for(size_t i = 0; i < N; ++i)
     {
-        srcs.push(i); // small
-        srcl.push(i); // large
+        srcs.push((int)i); // small
+        srcl.push((int)i); // large
     }
     for(size_t i = 0; i < 2*N; ++i)
     {
-        srcl.push(i); // large
+        srcl.push((int)i); // large
     }
     EXPECT_EQ(srcs.m_stack, srcs.m_buf);
     EXPECT_NE(srcl.m_stack, srcl.m_buf);
