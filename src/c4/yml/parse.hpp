@@ -149,7 +149,8 @@ private:
     csubstr _consume_scalar();
     void  _move_scalar_from_top();
 
-    void  _save_indentation(size_t behind = 0);
+    void  _set_indentation(size_t behind);
+    void  _save_indentation(size_t behind=0);
 
     void  _write_key_anchor(size_t node_id);
     void  _write_val_anchor(size_t node_id);

@@ -4,16 +4,30 @@ namespace c4 {
 namespace yml {
 
 #define INDENTATION_CASES \
+    "indented doc",\
     "4 chars",\
     "2 chars + 4 chars, ex0",\
     "2 chars + 4 chars, ex1",\
     "2 chars + 4 chars, ex2",\
     "non-indented blank lines",\
-    "unnecessary indentation"
+    "unnecessary indentation",\
+    "blank lines indented, 1 - at same scope",\
+    "indentation at start",\
+    "unaligned comments"
 
 CASE_GROUP(INDENTATION)
 {
     APPEND_CASES(
+
+C("indented doc", R"(
+    # this is an indented doc
+    ---
+    - foo
+    - bar
+    - baz
+)",
+N(STREAM, L{N(DOCSEQ, L{N("foo"), N("bar"), N("baz")})})
+),
 
 C("4 chars",
 R"(
@@ -204,6 +218,119 @@ L{
     N("more_files", L{N("a"), N("b"),}),
   })
 }),
+
+
+C("blank lines indented, 1 - at same scope",
+R"(
+skip_commits:
+  files:
+                - a  # next line has 22 spaces (aligns with -)
+                
+                - b  # next line has 23 spaces (aligns with #)
+                     
+                - c  # next line has 3 spaces
+   
+                - d
+)",
+L{
+  N("skip_commits", L{
+    N("files", L{N("a"), N("b"), N("c"), N("d"),}),
+  }),
+}),
+
+C("indentation at start",
+R"(
+      foo:
+        - a
+        - b
+      bar:
+        - c
+        - d
+)",
+L{
+  N("foo", L{N("a"), N("b"),}),
+  N("bar", L{N("c"), N("d"),}),
+}),
+ 
+C("unaligned comments",
+R"(
+      stand2sit:
+        map: mirror
+        dat:
+          - a
+          - b
+#
+          - b1
+ #
+          - b2
+  #
+   #
+    #
+          - b3
+     #
+      #
+       #
+          - b4
+        #
+         # - c
+          #- d
+          - b5
+           #- d2
+            #- d3
+             #- d4
+          - b6
+              #- d41
+               #
+          - b61
+                 #
+                   #
+          - b62
+                     #
+                       #
+                         #
+          - b63
+                           #
+          - b64
+                           #
+          - b65
+                         #
+                       #
+                     #
+          - b66
+                     #
+                   #
+                 #
+               #
+              #- d41
+             #- d5
+            #- d6
+           #- d7
+          - b7
+          #- d8
+         #
+        #
+       #
+          - b8
+      #
+     #
+    #
+          - b9
+   #
+  #
+          - b10
+ #
+#
+          - e
+          - f
+          - g
+)",
+L{
+  N("stand2sit", L{
+    N("map", "mirror"),
+    N("dat", L{N("a"), N("b"), N("b1"), N("b2"), N("b3"), N("b4"), N("b5"), N("b6"), N("b61"), N("b62"), N("b63"), N("b64"), N("b65"), N("b66"), N("b7"), N("b8"), N("b9"), N("b10"), N("e"), N("f"), N("g")}),
+  }),
+}),
+
   )
 }
 
