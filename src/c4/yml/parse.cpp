@@ -281,15 +281,18 @@ bool Parser::_handle_unk()
     const bool start_as_child = (node(m_state) == nullptr);
 
     C4_ASSERT(has_none(RNXT|RSEQ|RMAP));
-
-    if(rem.begins_with(' '))
+    if(m_state->indref > 0)
     {
-        rem = rem.left_of(rem.first_not_of(' '));
-        _c4dbgpf("skipping %zd spaces", rem.len);
-        _line_progressed(rem.len);
-        return true;
+        csubstr ws = rem.left_of(rem.first_not_of(' '));
+        if(m_state->indref <= ws.len)
+        {
+            _c4dbgpf("skipping base indentation of %zd", m_state->indref);
+            _line_progressed(m_state->indref);
+            rem = rem.sub(m_state->indref);
+        }
     }
-    else if(rem.begins_with("- "))
+
+    if(rem.begins_with("- "))
     {
         _c4dbgpf("it's a seq (as_child=%d)", start_as_child);
         _push_level();
@@ -412,12 +415,50 @@ bool Parser::_handle_unk()
     else
     {
         C4_ASSERT( ! has_any(SSCL));
-        if(_scan_scalar(&rem))
+        csubstr scalar;
+        size_t indentation = m_state->line_contents.indentation; // save
+        if(_scan_scalar(&scalar))
         {
             _c4dbgp("got a scalar");
-            // we still don't know whether it's a seq or a map
-            // so just store the scalar
-            _store_scalar(rem);
+            rem = m_state->line_contents.rem;
+            _store_scalar(scalar);
+            if(rem.begins_with(": "))
+            {
+                _c4dbgpf("got a ': ' next -- it's a map (as_child=%d)", start_as_child);
+                _push_level();
+                _start_map(start_as_child); // wait for the val scalar to append the key-val pair
+                _set_indentation(indentation);
+                _line_progressed(2); // call this AFTER saving the indentation
+            }
+            else if(rem == ":")
+            {
+                _c4dbgpf("got a ':' next -- it's a map (as_child=%d)", start_as_child);
+                _push_level();
+                _start_map(start_as_child); // wait for the val scalar to append the key-val pair
+                _set_indentation(indentation);
+                _line_progressed(1); // call this AFTER saving the indentation
+            }
+            else
+            {
+                // we still don't know whether it's a seq or a map
+                // so just store the scalar
+            }
+            return true;
+        }
+        else if(rem.begins_with(' '))
+        {
+            csubstr ws = rem.left_of(rem.first_not_of(' '));
+            rem = rem.right_of(ws);
+            if(has_all(RTOP) && rem.begins_with("---"))
+            {
+                _c4dbgp("there's a doc starting, and it's indented");
+                _set_indentation(ws.len);
+            }
+            else
+            {
+                _c4dbgpf("skipping %zd spaces", ws.len);
+            }
+            _line_progressed(ws.len);
             return true;
         }
     }
@@ -1151,8 +1192,15 @@ bool Parser::_handle_top()
     }
 
     // use the full line, as the following tokens can appear only at top level
-    C4_ASSERT(rem == m_state->line_contents.stripped);
-    rem = m_state->line_contents.stripped;
+    C4_ASSERT(rem == m_state->line_contents.stripped
+              ||
+              m_state->indref > 0 && rem.begin() > m_state->line_contents.stripped.begin() && 
+              m_state->indref == (rem.begin() - m_state->line_contents.stripped.begin()));
+    if(m_state->indref == 0)
+    {
+        rem = m_state->line_contents.stripped;
+    }
+
     if(rem.begins_with('%'))
     {
         _c4dbgp("%% directive!");
@@ -1183,15 +1231,17 @@ bool Parser::_handle_top()
 
         // start a document
         _c4dbgp("start a document");
+        size_t indref = m_state->indref;
         _push_level();
         _start_doc();
+        _set_indentation(indref);
         _line_progressed(3);
 
         // skip spaces after the tag
         rem = rem.sub(3);
         if(rem.begins_with(' '))
         {
-            //cspan s = rem.left_of(rem.first_not_of(' '));
+            rem = rem.left_of(rem.first_not_of(' '));
             _line_progressed(rem.len);
         }
         return true;
@@ -1658,6 +1708,11 @@ void Parser::_line_ended()
 }
 
 //-----------------------------------------------------------------------------
+void Parser::_set_indentation(size_t indentation)
+{
+    m_state->indref = indentation;
+    _c4dbgpf("state[%zd]: saving indentation: %zd", m_state-m_stack.begin(), m_state->indref);
+}
 void Parser::_save_indentation(size_t behind)
 {
     C4_ASSERT(m_state->line_contents.rem.begin() >= m_state->line_contents.full.begin());
@@ -2003,18 +2058,21 @@ bool Parser::_handle_indentation()
 {
     C4_ASSERT(has_none(EXPL));
     if( ! _at_line_begin()) return false;
+    
+    size_t ind = m_state->line_contents.indentation;
+    csubstr rem = m_state->line_contents.rem;
+    /** @todo instead of trimming, we should suse the indentation index from above */
+    csubstr remt = rem.triml(' ');
 
-    if(m_state->line_contents.rem.trimr(' ').empty()) // this is a blank line
+    if(remt.empty() || remt.begins_with('#')) // this is a blank or comment line
     {
-        _line_progressed(m_state->line_contents.rem.size());
+        _line_progressed(rem.size());
         return true;
     }
 
-    size_t ind = m_state->line_contents.indentation;
-
     if(ind == (size_t)m_state->indref)
     {
-        if(has_all(SSCL|RVAL) && ! m_state->line_contents.rem.sub(ind).begins_with('-'))
+        if(has_all(SSCL|RVAL) && ! rem.sub(ind).begins_with('-'))
         {
             if(has_all(RMAP))
             {
@@ -2086,10 +2144,9 @@ bool Parser::_handle_indentation()
         _c4dbgpf("larger indentation (%zd > %zd)!!!", ind, m_state->indref);
         if(has_all(RMAP|RVAL))
         {
-            csubstr rem = m_state->line_contents.rem.triml(' ');
-            if(/*ind == m_state->indref + 2 && */_is_scalar_next__rmap_val(rem) && rem.find(":") == npos)
+            if(/*ind == m_state->indref + 2 && */_is_scalar_next__rmap_val(remt) && remt.find(":") == npos)
             {
-                _c4dbgpf("actually it seems a value: '%.*s'", _c4prsp(rem));
+                _c4dbgpf("actually it seems a value: '%.*s'", _c4prsp(remt));
             }
             else
             {
@@ -2105,9 +2162,9 @@ bool Parser::_handle_indentation()
         {
             // nothing to do here
         }
-        else if(m_state->line_contents.rem.triml(' ').begins_with("#"))
+        else if(rem.triml(' ').begins_with("#"))
         {
-            // nothing to do here
+            C4_NEVER_REACH(); // this should have been handled earlier
         }
         else
         {
