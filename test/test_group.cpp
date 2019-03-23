@@ -133,13 +133,12 @@ TEST_P(YmlTestCase, emit_yml_stringstream)
 {
     std::string s;
     std::vector<char> v;
+    csubstr sv = emitrs(d->parsed_tree, &v);
 
     {
         std::stringstream ss;
         ss << d->parsed_tree;
         s = ss.str();
-
-        csubstr sv = emit_resize(d->parsed_tree, &v);
         EXPECT_EQ(sv, s);
     }
 
@@ -148,7 +147,7 @@ TEST_P(YmlTestCase, emit_yml_stringstream)
         ss << d->parsed_tree.rootref();
         s = ss.str();
 
-        csubstr sv = emit_resize(d->parsed_tree, &v);
+        csubstr sv = emitrs(d->parsed_tree, &v);
         EXPECT_EQ(sv, s);
     }
 }
@@ -156,7 +155,7 @@ TEST_P(YmlTestCase, emit_yml_stringstream)
 //-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, emit_yml_string)
 {
-    auto em = emit_resize(d->parsed_tree, &d->emit_buf);
+    auto em = emitrs(d->parsed_tree, &d->emit_buf);
     EXPECT_EQ(em.len, d->emit_buf.size());
     EXPECT_EQ(em.len, d->numbytes_stdout);
     d->emitted_yml = em;
@@ -164,6 +163,20 @@ TEST_P(YmlTestCase, emit_yml_string)
 #ifdef RYML_DBG
     std::cout << em;
 #endif
+}
+
+TEST_P(YmlTestCase, emitrs)
+{
+    using vtype = std::vector<char>;
+    using stype = std::string;
+
+    vtype vv, v = emitrs<vtype>(d->parsed_tree);
+    stype ss, s = emitrs<stype>(d->parsed_tree);
+    EXPECT_EQ(to_csubstr(v), to_csubstr(s));
+
+    csubstr svv = emitrs(d->parsed_tree, &vv);
+    csubstr sss = emitrs(d->parsed_tree, &ss);
+    EXPECT_EQ(svv, sss);
 }
 
 //-----------------------------------------------------------------------------
@@ -175,7 +188,7 @@ TEST_P(YmlTestCase, complete_round_trip)
     }
     if(d->emit_buf.empty())
     {
-        d->emitted_yml = emit_resize(d->parsed_tree, &d->emit_buf);
+        d->emitted_yml = emitrs(d->parsed_tree, &d->emit_buf);
     }
 
 #ifdef RYML_DBG
@@ -220,7 +233,7 @@ TEST_P(YmlTestCase, recreate_from_ref)
     }
     if(d->emit_buf.empty())
     {
-        d->emitted_yml = emit_resize(d->parsed_tree, &d->emit_buf);
+        d->emitted_yml = emitrs(d->parsed_tree, &d->emit_buf);
     }
 
     {
