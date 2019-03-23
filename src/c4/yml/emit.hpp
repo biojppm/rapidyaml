@@ -149,10 +149,10 @@ inline substr emit(Tree const& t, substr buf, bool error_on_excess=true)
 
 //-----------------------------------------------------------------------------
 
-/** emit YAML to the given std::vector-like container, resizing it as needed
- * to fit the emitted YAML. */
+/** emit+resize: YAML to the given std::string/std::vector-like container,
+ * resizing it as needed to fit the emitted YAML. */
 template<class CharOwningContainer>
-inline substr emit_resize(NodeRef const& n, CharOwningContainer * cont)
+inline substr emitrs(NodeRef const& n, CharOwningContainer * cont)
 {
     substr buf = to_substr(*cont);
     substr ret = emit(n, buf, /*error_on_excess*/false);
@@ -164,14 +164,32 @@ inline substr emit_resize(NodeRef const& n, CharOwningContainer * cont)
     }
     return ret;
 }
-
-/** emit YAML to the given std::vector-like container, resizing it as needed
- * to fit the emitted YAML. */
+/** emit+resize: YAML to the given std::string/std::vector-like container,
+ * resizing it as needed to fit the emitted YAML. */
 template<class CharOwningContainer>
-inline substr emit_resize(Tree const& t, CharOwningContainer * cont)
+inline CharOwningContainer emitrs(NodeRef const& n)
+{
+    CharOwningContainer c;
+    emitrs(n, &c);
+    return c;
+}
+
+/** emit+resize: YAML to the given std::string/std::vector-like container,
+ * resizing it as needed to fit the emitted YAML. */
+template<class CharOwningContainer>
+inline substr emitrs(Tree const& t, CharOwningContainer * cont)
 {
     if(t.empty()) return substr();
-    return emit_resize(t.rootref(), cont);
+    return emitrs(t.rootref(), cont);
+}
+/** emit+resize: YAML to the given std::string/std::vector-like container,
+ * resizing it as needed to fit the emitted YAML. */
+template<class CharOwningContainer>
+inline CharOwningContainer emitrs(Tree const& t)
+{
+    CharOwningContainer c;
+    emitrs(t, &c);
+    return c;
 }
 
 } // namespace yml
