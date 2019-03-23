@@ -23,21 +23,31 @@ class NodeData;
 class NodeRef;
 class Tree;
 
-typedef enum {
-    NOTYPE  = 0,          ///< no type is set
-    VAL     = (1<<0),     ///< a leaf node, has a (possibly empty) value
-    KEY     = (1<<1),     ///< is member of a map, must have non-empty key
-    MAP     = (1<<2),     ///< a map: a parent of keyvals
-    SEQ     = (1<<3),     ///< a seq: a parent of vals
-    DOC     = (1<<4),     ///< a document
-    STREAM  = (1<<5)|SEQ, ///< a stream: a seq of docs
-    KEYREF  = (1<<6),     ///< a *reference: the key references an &anchor
-    VALREF  = (1<<7),     ///< a *reference: the val references an &anchor
-    KEYANCH = (1<<8),     ///< the key has an &anchor
-    VALANCH = (1<<9),     ///< the val has an &anchor
-    _TYMASK = (1<<10)-1,
-    KEYTAG  = (1<<10),    ///< the key has an explicit tag/type
-    VALTAG  = (1<<11),    ///< the val has an explicit tag/type
+
+/** the integer necessary to cover all the bits marking node types */
+using type_bits = uint64_t;
+
+
+/** the regular bytes for */
+typedef enum : type_bits {
+
+// a convenience define, undefined below
+#define c4bit(v) type_bits(type_bits(1) << v)
+
+    NOTYPE  = 0,            ///< no node type is set
+    VAL     = c4bit(0),     ///< a leaf node, has a (possibly empty) value
+    KEY     = c4bit(1),     ///< is member of a map, must have non-empty key
+    MAP     = c4bit(2),     ///< a map: a parent of keyvals
+    SEQ     = c4bit(3),     ///< a seq: a parent of vals
+    DOC     = c4bit(4),     ///< a document
+    STREAM  = c4bit(5)|SEQ, ///< a stream: a seq of docs
+    KEYREF  = c4bit(6),     ///< a *reference: the key references an &anchor
+    VALREF  = c4bit(7),     ///< a *reference: the val references an &anchor
+    KEYANCH = c4bit(8),     ///< the key has an &anchor
+    VALANCH = c4bit(9),     ///< the val has an &anchor
+    _TYMASK = c4bit(10)-1,
+    KEYTAG  = c4bit(10),    ///< the key has an explicit tag/type
+    VALTAG  = c4bit(11),    ///< the val has an explicit tag/type
     KEYVAL  = KEY|VAL,
     KEYSEQ  = KEY|SEQ,
     KEYMAP  = KEY|MAP,
@@ -59,24 +69,24 @@ public:
 
 public:
 
-    inline operator NodeType_e      & ()       { return type; }
-    inline operator NodeType_e const& () const { return type; }
+    inline operator NodeType_e      & C4_RESTRICT ()       { return type; }
+    inline operator NodeType_e const& C4_RESTRICT () const { return type; }
 
     NodeType() : type(NOTYPE) {}
-    NodeType(int t) : type((NodeType_e)t) {}
     NodeType(NodeType_e t) : type(t) {}
+    NodeType(type_bits t) : type((NodeType_e)t) {}
 
     const char *type_str() const { return type_str(type); }
     static const char* type_str(NodeType_e t);
 
-    void set(NodeType_e t) { type = (NodeType_e)t; }
-    void set(int t) { type = (NodeType_e)t; }
+    void set(NodeType_e t) { type = t; }
+    void set(type_bits  t) { type = (NodeType_e)t; }
 
     void add(NodeType_e t) { type = (NodeType_e)(type|t); }
-    void add(int t) { type = (NodeType_e)(type|t); }
+    void add(type_bits  t) { type = (NodeType_e)(type|t); }
 
     void rem(NodeType_e t) { type = (NodeType_e)(type & ~t); }
-    void rem(int t) { type = (NodeType_e)(type & ~t); }
+    void rem(type_bits  t) { type = (NodeType_e)(type & ~t); }
 
 public:
 
@@ -112,24 +122,30 @@ struct NodeScalar
     csubstr scalar;
     csubstr anchor;
 
-    ~NodeScalar() = default;
-    NodeScalar(NodeScalar &&) = default;
-    NodeScalar(NodeScalar const&) = default;
-    NodeScalar& operator= (NodeScalar &&) = default;
-    NodeScalar& operator= (NodeScalar const&) = default;
+public:
 
     /// initialize as an empty scalar
     inline NodeScalar() noexcept : tag(), scalar(), anchor() {}
 
     /// initialize as an untagged scalar
-    inline NodeScalar(csubstr s) noexcept : tag(), scalar(s), anchor() {}
     template<size_t N>
     inline NodeScalar(const char (&s)[N]) noexcept : tag(), scalar(s), anchor() {}
+    inline NodeScalar(csubstr      s    ) noexcept : tag(), scalar(s), anchor() {}
 
     /// initialize as a tagged scalar
-    inline NodeScalar(csubstr t, csubstr s) noexcept : tag(t), scalar(s), anchor() {}
     template<size_t N, size_t M>
     inline NodeScalar(const char (&t)[N], const char (&s)[N]) noexcept : tag(t), scalar(s), anchor() {}
+    inline NodeScalar(csubstr      t    , csubstr      s    ) noexcept : tag(t), scalar(s), anchor() {}
+
+public:
+
+    ~NodeScalar() noexcept = default;
+    NodeScalar(NodeScalar &&) noexcept = default;
+    NodeScalar(NodeScalar const&) noexcept = default;
+    NodeScalar& operator= (NodeScalar &&) noexcept = default;
+    NodeScalar& operator= (NodeScalar const&) noexcept = default;
+
+public:
 
     bool empty() const noexcept { return tag.empty() && scalar.empty() && anchor.empty(); }
 
@@ -173,7 +189,7 @@ public:
         memset(this, 0, sizeof(*this));
     }
 
-    void _add_flags(int more_flags=0)
+    void _add_flags(type_bits more_flags=0)
     {
         type = (type|more_flags);
         if( ! key.tag.empty()) type = (type|KEYTAG);
@@ -470,14 +486,14 @@ public:
 
 public:
 
-    void to_keyval(size_t node, csubstr const& key, csubstr const& val, int more_flags=0);
-    void to_map(size_t node, csubstr const& key, int more_flags=0);
-    void to_seq(size_t node, csubstr const& key, int more_flags=0);
-    void to_val(size_t node, csubstr const& val, int more_flags=0);
-    void to_stream(size_t node, int more_flags=0);
-    void to_map(size_t node, int more_flags=0);
-    void to_seq(size_t node, int more_flags=0);
-    void to_doc(size_t node, int more_flags=0);
+    void to_keyval(size_t node, csubstr const& key, csubstr const& val, type_bits more_flags=0);
+    void to_map(size_t node, csubstr const& key, type_bits more_flags=0);
+    void to_seq(size_t node, csubstr const& key, type_bits more_flags=0);
+    void to_val(size_t node, csubstr const& val, type_bits more_flags=0);
+    void to_stream(size_t node, type_bits more_flags=0);
+    void to_map(size_t node, type_bits more_flags=0);
+    void to_seq(size_t node, type_bits more_flags=0);
+    void to_doc(size_t node, type_bits more_flags=0);
 
     void set_key_tag(size_t node, csubstr const& tag) { C4_ASSERT(has_key(node)); _p(node)->m_key.tag = tag; _add_flags(node, KEYTAG); }
     void set_val_tag(size_t node, csubstr const& tag) { C4_ASSERT(has_val(node) || is_container(node)); _p(node)->m_val.tag = tag; _add_flags(node, VALTAG); }
@@ -658,33 +674,33 @@ private:
 public:
 
     inline void _add_flags(size_t node, NodeType_e f) { _p(node)->m_type = (f | _p(node)->m_type); }
-    inline void _add_flags(size_t node, int        f) { _p(node)->m_type = (f | _p(node)->m_type); }
+    inline void _add_flags(size_t node, type_bits  f) { _p(node)->m_type = (f | _p(node)->m_type); }
 
     inline void _rem_flags(size_t node, NodeType_e f) { _p(node)->m_type = ((~f) & _p(node)->m_type); }
-    inline void _rem_flags(size_t node, int        f) { _p(node)->m_type = ((~f) & _p(node)->m_type); }
+    inline void _rem_flags(size_t node, type_bits  f) { _p(node)->m_type = ((~f) & _p(node)->m_type); }
 
     inline void _set_flags(size_t node, NodeType_e f) { _p(node)->m_type = f; }
-    inline void _set_flags(size_t node, int        f) { _p(node)->m_type = f; }
+    inline void _set_flags(size_t node, type_bits  f) { _p(node)->m_type = f; }
 
-    void _set_key(size_t node, csubstr const& key, int more_flags=0)
+    void _set_key(size_t node, csubstr const& key, type_bits more_flags=0)
     {
         _p(node)->m_key.scalar = key;
         _add_flags(node, KEY|more_flags);
     }
-    void _set_key(size_t node, NodeScalar const& key, int more_flags=0)
+    void _set_key(size_t node, NodeScalar const& key, type_bits more_flags=0)
     {
         _p(node)->m_key = key;
         _add_flags(node, KEY|more_flags);
     }
 
-    void _set_val(size_t node, csubstr const& val, int more_flags=0)
+    void _set_val(size_t node, csubstr const& val, type_bits more_flags=0)
     {
         C4_ASSERT(num_children(node) == 0);
         C4_ASSERT( ! is_container(node));
         _p(node)->m_val.scalar = val;
         _add_flags(node, VAL|more_flags);
     }
-    void _set_val(size_t node, NodeScalar const& val, int more_flags=0)
+    void _set_val(size_t node, NodeScalar const& val, type_bits more_flags=0)
     {
         C4_ASSERT(num_children(node) == 0);
         C4_ASSERT( ! is_container(node));

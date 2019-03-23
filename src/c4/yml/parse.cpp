@@ -1743,9 +1743,20 @@ void Parser::_write_key_anchor(size_t node_id)
         else if(r == "<<")
         {
             _c4dbgpf("node=%zd: it's an inheriting reference", node_id);
-            if( ! (m_tree->val(node_id).begins_with('*')))
+            if(m_tree->is_seq(node_id))
             {
-                 _c4err("malformed reference");
+                _c4dbgpf("node=%zd: inheriting from seq of %zd", node_id, m_tree->num_children(node_id));
+                for(size_t i = m_tree->first_child(node_id); i != NONE; i = m_tree->next_sibling(i))
+                {
+                    if( ! (m_tree->val(i).begins_with('*')))
+                    {
+                        _c4err("malformed reference: '%.*s'", _c4prsp(m_tree->val(i)));
+                    }
+                }
+            }
+            else if( ! (m_tree->val(node_id).begins_with('*') ))
+            {
+                 _c4err("malformed reference: '%.*s'", _c4prsp(m_tree->val(node_id)));
             }
             //m_tree->set_key_ref(node_id, r);
         }

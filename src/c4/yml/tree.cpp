@@ -565,20 +565,20 @@ void Tree::duplicate_children_no_rep(size_t node, size_t parent, size_t after)
             }
             else  // yes, there's a repetition
             {
-                if(after_pos == NONE || rep_pos >= after_pos)
-                {
-                    // rep is located after the node which will be inserted
-                    // and overrides the duplicate. So do nothing here: don't
-                    // duplicate the child.
-                    ;
-                }
-                else if(after_pos != NONE && rep_pos < after_pos)
+                if(after_pos != NONE && rep_pos < after_pos)
                 {
                     // rep is located before the node which will be inserted,
                     // and will be overridden by the duplicate. So replace it.
                     remove(rep);
                     prev = duplicate(i, parent, prev);
                 }
+                //else if(after_pos == NONE || rep_pos >= after_pos)
+                //{
+                //    // rep is located after the node which will be inserted
+                //    // and overrides the duplicate. So do nothing here: don't
+                //    // duplicate the child.
+                //    ;
+                //}
             }
         }
     }
@@ -604,11 +604,6 @@ struct ReferenceResolver
      *
      * @see http://yaml.org/spec/1.2/spec.html#id2765878 */
     stack<refdata> refs;
-
-    using const_iterator = refdata const*;
-
-    const_iterator begin() const { return refs.begin(); }
-    const_iterator end() const { return refs.end(); }
 
     ReferenceResolver(Tree *t_) : t(t_), refs(t_->allocator())
     {
@@ -656,9 +651,20 @@ struct ReferenceResolver
 
     void _store_anchors_and_refs(size_t n)
     {
-        if(t->is_key_ref(n) || t->is_val_ref(n))
+        if(t->is_key_ref(n) || t->is_val_ref(n) || t->has_key(n) && t->key(n) == "<<")
         {
-            refs.push({true, n, npos, npos});
+            if(t->is_seq(n))
+            {
+                for(size_t i = t->first_child(n); i != NONE; i = t->next_sibling(i))
+                {
+                    refs.push({true, n, npos, npos});
+                }
+            }
+            else
+            {
+                C4_CHECK(t->has_val(n));
+                refs.push({true, n, npos, npos});
+            }
         }
         if(t->has_key_anchor(n) || t->has_val_anchor(n))
         {
@@ -668,6 +674,24 @@ struct ReferenceResolver
         {
             _store_anchors_and_refs(ch);
         }
+    }
+
+    size_t lookup_(size_t refnode, refdata *C4_RESTRICT ra)
+    {
+        C4_ASSERT(t->has_val(refnode));
+        csubstr refname = t->val(refnode);
+        C4_ASSERT(refname.begins_with('*'));
+        refname = refname.sub(1);
+        while(ra->prev_anchor != npos)
+        {
+            ra = &refs[ra->prev_anchor];
+            if(t->has_anchor(ra->node, refname))
+            {
+                return ra->node;
+            }
+        }
+        C4_NEVER_REACH();
+        return NONE;
     }
 
     void resolve()
@@ -684,20 +708,21 @@ struct ReferenceResolver
         {
             auto & rd = refs.top(i);
             if( ! rd.is_ref) continue;
-            csubstr refname = t->val(rd.node);
-            C4_ASSERT(refname.begins_with('*'));
-            refname = refname.sub(1);
-            auto const* ra = &rd;
-            while(ra->prev_anchor != npos)
+            if(t->is_seq(rd.node))
             {
-                ra = &refs[ra->prev_anchor];
-                if(t->has_anchor(ra->node, refname))
+                for(size_t ich = t->first_child(rd.node); ich != NONE; ich = t->next_sibling(ich))
                 {
-                    rd.target = ra->node;
-                    break;
+                    rd.target = lookup_(ich, &rd);
                 }
             }
-            C4_ASSERT(rd.target != npos);
+            else if(t->has_val(rd.node))
+            {
+                rd.target = lookup_(rd.node, &rd);
+            }
+            else
+            {
+                C4_NEVER_REACH();
+            }
         }
     }
 
@@ -711,16 +736,24 @@ void Tree::resolve()
     detail::ReferenceResolver rr(this);
 
     // resolve the references
-    for(auto const& rd : rr)
+    for(size_t i = 0, e = rr.refs.size(); i < e; ++i)
     {
+        auto const& rd = rr.refs[i];
         if( ! rd.is_ref) continue;
         NodeData *n = get(rd.node);
         size_t prev = n->m_prev_sibling;
         size_t parent = n->m_parent;
-        if(n->is_keyval() && n->key() == "<<")
+        if(n->has_key() && n->key() == "<<")
         {
-            remove(rd.node);
-            duplicate_children_no_rep(rd.target, parent, prev);
+            if(n->is_keyval())
+            {
+                remove(rd.node);
+                duplicate_children_no_rep(rd.target, parent, prev);
+            }
+            else if(n->is_seq())
+            {
+                duplicate_children_no_rep(rd.target, parent, prev);
+            }
         }
         else
         {
@@ -729,9 +762,9 @@ void Tree::resolve()
     }
 
     // clear anchors and refs
-    for(auto const& rd : rr)
+    for(size_t i = 0, e = rr.refs.size(); i < e; ++i)
     {
-        rem_anchor_ref(rd.node);
+        rem_anchor_ref(rr.refs[i].node);
     }
 }
 
@@ -798,7 +831,7 @@ size_t Tree::find_child(size_t node, csubstr const& name) const
 
 //-----------------------------------------------------------------------------
 
-void Tree::to_val(size_t node, csubstr const& val, int more_flags)
+void Tree::to_val(size_t node, csubstr const& val, type_bits more_flags)
 {
     C4_ASSERT( ! has_children(node));
     C4_ASSERT(parent(node) == NONE || ! parent_is_map(node));
@@ -807,7 +840,7 @@ void Tree::to_val(size_t node, csubstr const& val, int more_flags)
     _p(node)->m_val = val;
 }
 
-void Tree::to_keyval(size_t node, csubstr const& key, csubstr const& val, int more_flags)
+void Tree::to_keyval(size_t node, csubstr const& key, csubstr const& val, type_bits more_flags)
 {
     C4_ASSERT( ! has_children(node));
     //C4_ASSERT( ! key.empty());
@@ -817,7 +850,7 @@ void Tree::to_keyval(size_t node, csubstr const& key, csubstr const& val, int mo
     _p(node)->m_val = val;
 }
 
-void Tree::to_map(size_t node, int more_flags)
+void Tree::to_map(size_t node, type_bits more_flags)
 {
     C4_ASSERT( ! has_children(node));
     C4_ASSERT(parent(node) == NONE || ! parent_is_map(node));
@@ -826,7 +859,7 @@ void Tree::to_map(size_t node, int more_flags)
     _p(node)->m_val.clear();
 }
 
-void Tree::to_map(size_t node, csubstr const& key, int more_flags)
+void Tree::to_map(size_t node, csubstr const& key, type_bits more_flags)
 {
     C4_ASSERT( ! has_children(node));
     C4_ASSERT( ! key.empty());
@@ -836,7 +869,7 @@ void Tree::to_map(size_t node, csubstr const& key, int more_flags)
     _p(node)->m_val.clear();
 }
 
-void Tree::to_seq(size_t node, int more_flags)
+void Tree::to_seq(size_t node, type_bits more_flags)
 {
     C4_ASSERT( ! has_children(node));
     _set_flags(node, SEQ|more_flags);
@@ -844,7 +877,7 @@ void Tree::to_seq(size_t node, int more_flags)
     _p(node)->m_val.clear();
 }
 
-void Tree::to_seq(size_t node, csubstr const& key, int more_flags)
+void Tree::to_seq(size_t node, csubstr const& key, type_bits more_flags)
 {
     C4_ASSERT( ! has_children(node));
     C4_ASSERT(parent(node) == NONE || parent_is_map(node));
@@ -853,7 +886,7 @@ void Tree::to_seq(size_t node, csubstr const& key, int more_flags)
     _p(node)->m_val.clear();
 }
 
-void Tree::to_doc(size_t node, int more_flags)
+void Tree::to_doc(size_t node, type_bits more_flags)
 {
     C4_ASSERT( ! has_children(node));
     _set_flags(node, DOC|more_flags);
@@ -861,7 +894,7 @@ void Tree::to_doc(size_t node, int more_flags)
     _p(node)->m_val.clear();
 }
 
-void Tree::to_stream(size_t node, int more_flags)
+void Tree::to_stream(size_t node, type_bits more_flags)
 {
     C4_ASSERT( ! has_children(node));
     _set_flags(node, STREAM|more_flags);
