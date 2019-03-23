@@ -645,13 +645,15 @@ bool Parser::_handle_seq_impl()
         {
             _c4dbgp("it's a scalar");
             rem = m_state->line_contents.rem;
+            size_t skip = 0;
             if(rem.begins_with(' '))
             {
                 _c4dbgp("skipping whitespace...");
-                size_t skip = rem.first_not_of(' ');
+                skip = rem.first_not_of(' ');
                 _line_progressed(skip);
                 rem = rem.sub(skip);
             }
+
             if(rem.begins_with(": ") || rem.ends_with(':'))
             {
                 _c4dbgp("actually, the scalar is the first key of a map, and it opens a new scope");
@@ -659,7 +661,7 @@ bool Parser::_handle_seq_impl()
                 _push_level();
                 _start_map();
                 _store_scalar(s);
-                _save_indentation(/*behind*/s.len);
+                _save_indentation(/*behind*/s.len + skip);
                 addrem_flags(RVAL, RKEY);
                 _line_progressed(1);
             }
@@ -1232,10 +1234,10 @@ bool Parser::_handle_top()
         // start a document
         _c4dbgp("start a document");
         size_t indref = m_state->indref;
+        _line_progressed(3);
         _push_level();
         _start_doc();
         _set_indentation(indref);
-        _line_progressed(3);
 
         // skip spaces after the tag
         rem = rem.sub(3);
@@ -1342,7 +1344,7 @@ bool Parser::_handle_val_anchors_and_refs()
 //-----------------------------------------------------------------------------
 bool Parser::_handle_types()
 {
-    csubstr rem = m_state->line_contents.rem;
+    csubstr rem = m_state->line_contents.rem.triml(' ');
     csubstr t;
 
     if(rem.begins_with("!!"))
@@ -1380,8 +1382,8 @@ bool Parser::_handle_types()
         return false;
     }
 
+    _c4dbgpf("there was a tag: '%.*s'", _c4prsp(t));
     _line_progressed(t.len);
-    _c4dbgpf("tag was '%.*s'", _c4prsp(t));
 
     if(has_all(RMAP|RKEY))
     {
@@ -1396,6 +1398,11 @@ bool Parser::_handle_types()
     else if(has_all(RSEQ|RVAL))
     {
         _c4dbgpf("saving val tag '%.*s'", _c4prsp(t));
+        m_val_tag = t;
+    }
+    else if(has_all(RTOP|RUNK))
+    {
+        _c4dbgpf("saving doc tag '%.*s'", _c4prsp(t));
         m_val_tag = t;
     }
     else
@@ -1873,6 +1880,7 @@ void Parser::_start_doc(bool as_child)
         }
     }
     _c4dbgpf("start_doc: id=%zd", m_state->node_id);
+    _handle_types();
 }
 
 void Parser::_stop_doc()
