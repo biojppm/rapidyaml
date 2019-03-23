@@ -44,7 +44,7 @@ struct WriterFile
         if(sp.empty()) return;
         if(m_file)
         {
-            fwrite(sp.str, sp.len, 1, m_file);
+            fwrite(sp.str, 1, sp.len, m_file);
         }
         m_pos += sp.len;
     }
