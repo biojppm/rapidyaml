@@ -123,6 +123,37 @@ TEST_P(YmlTestCase, emit_yml_stdout)
 }
 
 //-----------------------------------------------------------------------------
+TEST_P(YmlTestCase, emit_yml_cout)
+{
+    std::cout << d->parsed_tree;
+}
+
+//-----------------------------------------------------------------------------
+TEST_P(YmlTestCase, emit_yml_stringstream)
+{
+    std::string s;
+    std::vector<char> v;
+
+    {
+        std::stringstream ss;
+        ss << d->parsed_tree;
+        s = ss.str();
+
+        csubstr sv = emit_resize(d->parsed_tree, &v);
+        EXPECT_EQ(sv, s);
+    }
+
+    {
+        std::stringstream ss;
+        ss << d->parsed_tree.rootref();
+        s = ss.str();
+
+        csubstr sv = emit_resize(d->parsed_tree, &v);
+        EXPECT_EQ(sv, s);
+    }
+}
+
+//-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, emit_yml_string)
 {
     auto em = emit_resize(d->parsed_tree, &d->emit_buf);
