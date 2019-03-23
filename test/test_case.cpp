@@ -46,14 +46,14 @@ void CaseNode::compare_child(yml::NodeRef const& n, size_t pos) const
 
     if(type & MAP)
     {
-        EXPECT_NE(n.find_child(ch.key), nullptr);
+        EXPECT_NE(n.find_child(ch.key).get(), nullptr);
         auto fch = n.find_child(ch.key);
         if(fch != nullptr)
         {
             // there may be duplicate keys.
             if(fch.id() != n[pos].id()) fch = n[pos];
             //EXPECT_EQ(fch, n[ch.key]);
-            EXPECT_EQ(fch, n[pos]);
+            EXPECT_EQ(fch.get(), n[pos].get());
             //EXPECT_EQ(n[pos], n[ch.key]);
             EXPECT_EQ(n[ch.key].key(), ch.key);
         }
@@ -71,7 +71,7 @@ void CaseNode::compare_child(yml::NodeRef const& n, size_t pos) const
         EXPECT_FALSE(n[pos].has_key());
         EXPECT_EQ(n[pos].get()->m_key.scalar, children[pos].key);
         auto fch = n.child(pos);
-        EXPECT_EQ(fch, n[pos]);
+        EXPECT_EQ(fch.get(), n[pos].get());
     }
 
     if(ch.type & KEY)
@@ -416,7 +416,7 @@ void check_invariants(NodeRef const& n)
     {
         EXPECT_TRUE(n.has_sibling(s));
         EXPECT_TRUE(s.has_sibling(n));
-        EXPECT_EQ(s.parent(), n.parent());
+        EXPECT_EQ(s.parent().get(), n.parent().get());
     }
     if(n.parent() != nullptr)
     {
@@ -489,7 +489,7 @@ size_t check_tree_invariants(NodeRef const& n)
     {
         if(parent != nullptr)
         {
-            EXPECT_EQ(parent.first_child(), n);
+            EXPECT_EQ(parent.first_child().get(), n.get());
             EXPECT_EQ(parent.first_child().id(), n.id());
         }
     }
@@ -498,7 +498,7 @@ size_t check_tree_invariants(NodeRef const& n)
     {
         if(parent != nullptr)
         {
-            EXPECT_EQ(parent.last_child(), n);
+            EXPECT_EQ(parent.last_child().get(), n.get());
             EXPECT_EQ(parent.last_child().id(), n.id());
         }
     }
@@ -506,14 +506,14 @@ size_t check_tree_invariants(NodeRef const& n)
     if(parent == nullptr)
     {
         EXPECT_TRUE(n.is_root());
-        EXPECT_EQ(n.prev_sibling(), nullptr);
-        EXPECT_EQ(n.next_sibling(), nullptr);
+        EXPECT_EQ(n.prev_sibling().get(), nullptr);
+        EXPECT_EQ(n.next_sibling().get(), nullptr);
     }
 
     size_t count = 1, num = 0;
     for(NodeRef const& ch : n.children())
     {
-        EXPECT_NE(ch, n);
+        EXPECT_NE(ch.id(), n.id());
         count += check_tree_invariants(ch);
         ++num;
     }
