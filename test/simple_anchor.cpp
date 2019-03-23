@@ -97,7 +97,7 @@ TEST(CaseNode, anchors)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 #define SIMPLE_ANCHOR_CASES                            \
-    /*"simple anchor 1, implicit, unresolved",\
+    "simple anchor 1, implicit, unresolved",\
     "simple anchor 1, implicit, resolved",\
     "simple anchor 1, explicit, unresolved",\
     "simple anchor 1, explicit, resolved",\
@@ -105,7 +105,7 @@ TEST(CaseNode, anchors)
     "anchor example 2, resolved",\
     "anchor example 3, unresolved",\
     "anchor example 3, resolved",\
-    "merge example, unresolved",*/\
+    "merge example, unresolved",\
     "merge example, resolved"
 
 CASE_GROUP(SIMPLE_ANCHOR)
@@ -177,15 +177,15 @@ R"(# https://yaml.org/type/merge.html
   label: center/big
 
 - # Override
-  << : [ *BIG, *LEFT, *SMALL ]
+  << : [ *SMALL, *LEFT, *BIG ]
   x: 1
   label: center/big
 )",
 L{
-    N(L{N("x", "1" ), N("y", "2")}, AR(VALANCH, "CENTER")),
-    N(L{N("x", "0" ), N("y", "2")}, AR(VALANCH, "LEFT"  )),
-    N(L{N("r", "10")             }, AR(VALANCH, "BIG"   )),
-    N(L{N("r", "1" )             }, AR(VALANCH, "SMALL" )),
+    N(L{N("x", "1" ), N("y", "2")}),
+    N(L{N("x", "0" ), N("y", "2")}),
+    N(L{N("r", "10")             }),
+    N(L{N("r", "1" )             }),
     N(L{N("x", "1" ), N("y", "2"), N("r", "10"), N("label", "center/big")}),
     N(L{N("x", "1" ), N("y", "2"), N("r", "10"), N("label", "center/big")}),
     N(L{N("x", "1" ), N("y", "2"), N("r", "10"), N("label", "center/big")}),
