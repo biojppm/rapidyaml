@@ -1,4 +1,6 @@
 #include "./test_group.hpp"
+#include <c4/fs/fs.hpp>
+#include <fstream>
 
 #if defined(_MSC_VER)
 #   pragma warning(push)
@@ -153,6 +155,27 @@ TEST_P(YmlTestCase, emit_yml_stringstream)
 }
 
 //-----------------------------------------------------------------------------
+TEST_P(YmlTestCase, emit_ofstream)
+{
+    auto s = emitrs<std::string>(d->parsed_tree);
+    auto fn = c4::fs::tmpnam<std::string>();
+    {
+        std::ofstream f(fn);
+        f << d->parsed_tree;
+    }
+    auto r = c4::fs::file_get_contents<std::string>(fn.c_str());
+    c4::fs::delete_file(fn.c_str());
+    // using ofstream will use \r\n. So delete it.
+    std::string filtered;
+    filtered.reserve(r.size());
+    for(auto c : r)
+    {
+        if(c != '\r') filtered += c;
+    }
+    EXPECT_EQ(s, filtered);
+}
+
+//-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, emit_yml_string)
 {
     auto em = emitrs(d->parsed_tree, &d->emit_buf);
@@ -165,6 +188,7 @@ TEST_P(YmlTestCase, emit_yml_string)
 #endif
 }
 
+//-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, emitrs)
 {
     using vtype = std::vector<char>;
@@ -177,6 +201,20 @@ TEST_P(YmlTestCase, emitrs)
     csubstr svv = emitrs(d->parsed_tree, &vv);
     csubstr sss = emitrs(d->parsed_tree, &ss);
     EXPECT_EQ(svv, sss);
+}
+
+//-----------------------------------------------------------------------------
+TEST_P(YmlTestCase, emitrs_cfile)
+{
+    auto s = emitrs<std::string>(d->parsed_tree);
+    std::string r;
+    {
+        c4::fs::ScopedTmpFile f;
+        emit(d->parsed_tree, f.m_file);
+        fflush(f.m_file);
+        r = f.contents<std::string>();
+    }
+    EXPECT_EQ(s, r);
 }
 
 //-----------------------------------------------------------------------------
