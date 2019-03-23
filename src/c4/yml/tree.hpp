@@ -616,19 +616,28 @@ public:
     void move(size_t node, size_t after);
 
     /** change the node's parent and position */
-    void   move(size_t node, size_t new_parent, size_t after);
-    /** change the node's parent and position */
+    void move(size_t node, size_t new_parent, size_t after);
+
+    /** change the node's parent and position to a different tree
+     * @return the index of the new node in the destination tree */
     size_t move(Tree * src, size_t node, size_t new_parent, size_t after);
 
-    /** recursively duplicate the node */
+public:
+
+    /** recursively duplicate the node
+     * @return the index of the copy */
     size_t duplicate(size_t node, size_t new_parent, size_t after);
-    /** recursively duplicate a node from a different tree */
+    /** recursively duplicate a node from a different tree
+     * @return the index of the copy */
     size_t duplicate(Tree const* src, size_t node, size_t new_parent, size_t after);
 
-    /** recursively duplicate the node's children (but not the node) */
-    void duplicate_children(size_t node, size_t parent, size_t after);
-    /** recursively duplicate the node's children (but not the node), where the node is from a different tree */
-    void duplicate_children(Tree const* src, size_t node, size_t parent, size_t after);
+    /** recursively duplicate the node's children (but not the node)
+     * @return the index of the last duplicated child */
+    size_t duplicate_children(size_t node, size_t parent, size_t after);
+    /** recursively duplicate the node's children (but not the node), where
+     * the node is from a different tree
+     * @return the index of the last duplicated child */
+    size_t duplicate_children(Tree const* src, size_t node, size_t parent, size_t after);
 
     void duplicate_contents(size_t node, size_t where);
 
@@ -637,7 +646,7 @@ public:
      * value (in seqs). If one of the duplicated children has the same key
      * (in maps) or value (in seqs) as one of the parent's children, the one
      * that is placed closest to the end will prevail. */
-    void duplicate_children_no_rep(size_t node, size_t parent, size_t after);
+    size_t duplicate_children_no_rep(size_t node, size_t parent, size_t after);
 
 public:
 
@@ -810,29 +819,30 @@ public:
         n->m_type.add(MAP);
     }
 
-    void _copy_props(size_t node, size_t that_node)
+    void _copy_props(size_t dst, size_t src)
     {
-        _p(node)->m_key = _p(that_node)->m_key;
-        _copy_props_wo_key(node, that_node);
+        _p(dst)->m_key = _p(src)->m_key;
+        _copy_props_wo_key(dst, src);
     }
 
-    void _copy_props(size_t node, Tree const* that_tree, size_t that_node)
+    void _copy_props(size_t dst, Tree const* that_tree, size_t src)
     {
-        _p(node)->m_key = that_tree->_p(that_node)->m_key;
-        _copy_props_wo_key(node, that_tree, that_node);
+        _p(dst)->m_key = that_tree->_p(src)->m_key;
+        _copy_props_wo_key(dst, that_tree, src);
     }
 
-    void _copy_props_wo_key(size_t node, size_t that_node)
+    void _copy_props_wo_key(size_t dst, size_t src)
     {
-        auto *n = _p(node), *t = _p(that_node);
+        auto *C4_RESTRICT n = _p(dst),
+             *C4_RESTRICT t = _p(src);
         n->m_type = t->m_type;
         n->m_val = t->m_val;
     }
 
-    void _copy_props_wo_key(size_t node, Tree const* that_tree, size_t that_node)
+    void _copy_props_wo_key(size_t dst, Tree const* that_tree, size_t src)
     {
-        auto      * n = _p(node);
-        auto const* t = that_tree->_p(that_node);
+        auto      * n = _p(dst);
+        auto const* t = that_tree->_p(src);
         n->m_type = t->m_type;
         n->m_val = t->m_val;
     }

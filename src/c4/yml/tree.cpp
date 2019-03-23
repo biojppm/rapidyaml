@@ -408,19 +408,20 @@ void Tree::_rem_hierarchy(size_t i)
 void Tree::move(size_t node, size_t after)
 {
     C4_ASSERT(node != NONE);
-    C4_ASSERT( ! get(node)->is_root());
+    C4_ASSERT( ! is_root(node));
     C4_ASSERT(has_sibling(node, after) && has_sibling(after, node));
 
     _rem_hierarchy(node);
-    _set_hierarchy(node, get(node)->m_parent, after);
+    _set_hierarchy(node, parent(node), after);
 }
 
 //-----------------------------------------------------------------------------
+
 void Tree::move(size_t node, size_t new_parent, size_t after)
 {
     C4_ASSERT(node != NONE);
     C4_ASSERT(new_parent != NONE);
-    C4_ASSERT( ! get(node)->is_root());
+    C4_ASSERT( ! is_root(node));
 
     _rem_hierarchy(node);
     _set_hierarchy(node, new_parent, after);
@@ -441,7 +442,7 @@ size_t Tree::duplicate(size_t node, size_t parent, size_t after)
 {
     C4_ASSERT(node != NONE);
     C4_ASSERT(parent != NONE);
-    C4_ASSERT( ! get(node)->is_root());
+    C4_ASSERT( ! is_root(node));
 
     size_t copy = _claim();
 
@@ -461,7 +462,7 @@ size_t Tree::duplicate(Tree const* src, size_t node, size_t parent, size_t after
 {
     C4_ASSERT(node != NONE);
     C4_ASSERT(parent != NONE);
-    C4_ASSERT( ! get(node)->is_root());
+    C4_ASSERT( ! is_root(node));
 
     size_t copy = _claim();
 
@@ -478,7 +479,7 @@ size_t Tree::duplicate(Tree const* src, size_t node, size_t parent, size_t after
 }
 
 //-----------------------------------------------------------------------------
-void Tree::duplicate_children(size_t node, size_t parent, size_t after)
+size_t Tree::duplicate_children(size_t node, size_t parent, size_t after)
 {
     C4_ASSERT(node != NONE);
     C4_ASSERT(parent != NONE);
@@ -489,9 +490,11 @@ void Tree::duplicate_children(size_t node, size_t parent, size_t after)
     {
         prev = duplicate(i, parent, prev);
     }
+
+    return prev;
 }
 
-void Tree::duplicate_children(Tree const* src, size_t node, size_t parent, size_t after)
+size_t Tree::duplicate_children(Tree const* src, size_t node, size_t parent, size_t after)
 {
     C4_ASSERT(node != NONE);
     C4_ASSERT(parent != NONE);
@@ -502,6 +505,8 @@ void Tree::duplicate_children(Tree const* src, size_t node, size_t parent, size_
     {
         prev = duplicate(src, i, parent, prev);
     }
+
+    return prev;
 }
 
 //-----------------------------------------------------------------------------
@@ -514,7 +519,7 @@ void Tree::duplicate_contents(size_t node, size_t where)
 }
 
 //-----------------------------------------------------------------------------
-void Tree::duplicate_children_no_rep(size_t node, size_t parent, size_t after)
+size_t Tree::duplicate_children_no_rep(size_t node, size_t parent, size_t after)
 {
     C4_ASSERT(node != NONE);
     C4_ASSERT(parent != NONE);
@@ -541,18 +546,18 @@ void Tree::duplicate_children_no_rep(size_t node, size_t parent, size_t after)
     size_t prev = after;
     for(size_t i = first_child(node), icount = 0; i != NONE; ++icount, i = next_sibling(i))
     {
-        if(get(parent)->is_seq())
+        if(is_seq(parent))
         {
             prev = duplicate(i, parent, prev);
         }
         else
         {
-            C4_ASSERT(get(parent)->is_map());
-            // does the parent already have a node with the same key of the current duplicate?
+            C4_ASSERT(is_map(parent));
+            // does the parent already have a node with key equal to that of the current duplicate?
             size_t rep = NONE, rep_pos = NONE;
             for(size_t j = first_child(parent), jcount = 0; j != NONE; ++jcount, j = next_sibling(j))
             {
-                if(get(j)->key() == get(i)->key())
+                if(key(j) == key(i))
                 {
                     rep = j;
                     rep_pos = jcount;
@@ -572,17 +577,23 @@ void Tree::duplicate_children_no_rep(size_t node, size_t parent, size_t after)
                     remove(rep);
                     prev = duplicate(i, parent, prev);
                 }
-                //else if(after_pos == NONE || rep_pos >= after_pos)
-                //{
-                //    // rep is located after the node which will be inserted
-                //    // and overrides the duplicate. So do nothing here: don't
-                //    // duplicate the child.
-                //    ;
-                //}
+                else if(after_pos == NONE || rep_pos >= after_pos)
+                {
+                    // rep is located after the node which will be inserted
+                    // and overrides it. So move the rep into this node's place.
+                    if(rep != prev)
+                    {
+                        move(rep, prev);
+                        prev = rep;
+                    }
+                }
             }
         }
     }
+
+    return prev;
 }
+
 
 //-----------------------------------------------------------------------------
 
@@ -595,6 +606,8 @@ struct ReferenceResolver
         size_t node;
         size_t prev_anchor;
         size_t target;
+        size_t parent_ref;
+        size_t parent_ref_sibling;
     };
 
     Tree *t;
@@ -657,18 +670,24 @@ struct ReferenceResolver
             {
                 for(size_t i = t->first_child(n); i != NONE; i = t->next_sibling(i))
                 {
-                    refs.push({true, n, npos, npos});
+                    C4_ASSERT(t->num_children(i) == 0);
+                    refs.push({true, i, npos, npos, n, t->next_sibling(n)});
                 }
+                return;
+            }
+            else if(t->has_val(n))
+            {
+                C4_CHECK(t->has_val(n));
+                refs.push({true, n, npos, npos, NONE, NONE});
             }
             else
             {
-                C4_CHECK(t->has_val(n));
-                refs.push({true, n, npos, npos});
+                C4_NEVER_REACH();
             }
         }
         if(t->has_key_anchor(n) || t->has_val_anchor(n))
         {
-            refs.push({false, n, npos, npos});
+            refs.push({false, n, npos, npos, NONE, NONE});
         }
         for(size_t ch = t->first_child(n); ch != NONE; ch = t->next_sibling(ch))
         {
@@ -708,21 +727,7 @@ struct ReferenceResolver
         {
             auto & rd = refs.top(i);
             if( ! rd.is_ref) continue;
-            if(t->is_seq(rd.node))
-            {
-                for(size_t ich = t->first_child(rd.node); ich != NONE; ich = t->next_sibling(ich))
-                {
-                    rd.target = lookup_(ich, &rd);
-                }
-            }
-            else if(t->has_val(rd.node))
-            {
-                rd.target = lookup_(rd.node, &rd);
-            }
-            else
-            {
-                C4_NEVER_REACH();
-            }
+            rd.target = lookup_(rd.node, &rd);
         }
     }
 
@@ -735,37 +740,59 @@ void Tree::resolve()
 
     detail::ReferenceResolver rr(this);
 
-    // resolve the references
-    for(size_t i = 0, e = rr.refs.size(); i < e; ++i)
+    // insert the resolved references
+    size_t prev_parent_ref = NONE;
+    size_t prev_parent_ref_after = NONE;
+    for(auto const& C4_RESTRICT rd : rr.refs)
     {
-        auto const& rd = rr.refs[i];
         if( ! rd.is_ref) continue;
-        NodeData *n = get(rd.node);
-        size_t prev = n->m_prev_sibling;
-        size_t parent = n->m_parent;
-        if(n->has_key() && n->key() == "<<")
+        if(rd.parent_ref != NONE)
         {
-            if(n->is_keyval())
+            C4_ASSERT(is_seq(rd.parent_ref));
+            size_t after, p = parent(rd.parent_ref);
+            if(prev_parent_ref != rd.parent_ref)
             {
-                remove(rd.node);
-                duplicate_children_no_rep(rd.target, parent, prev);
+                after = rd.parent_ref;//prev_sibling(rd.parent_ref_sibling);
+                prev_parent_ref_after = after;
             }
-            else if(n->is_seq())
+            else
             {
-                duplicate_children_no_rep(rd.target, parent, prev);
+                after = prev_parent_ref_after;
             }
+            prev_parent_ref = rd.parent_ref;
+            prev_parent_ref_after = duplicate_children_no_rep(rd.target, p, after);
+            remove(rd.node);
         }
         else
         {
-            duplicate_contents(rd.target, rd.node);
+            if(has_key(rd.node) && key(rd.node) == "<<")
+            {
+                C4_ASSERT(is_keyval(rd.node));
+                size_t p = parent(rd.node);
+                size_t after = prev_sibling(rd.node);
+                duplicate_children_no_rep(rd.target, p, after);
+                remove(rd.node);
+            }
+            else
+            {
+                duplicate_contents(rd.target, rd.node);
+            }
         }
     }
 
     // clear anchors and refs
-    for(size_t i = 0, e = rr.refs.size(); i < e; ++i)
+    for(auto const& C4_RESTRICT rr : rr.refs)
     {
-        rem_anchor_ref(rr.refs[i].node);
+        rem_anchor_ref(rr.node);
+        if(rr.parent_ref != NONE)
+        {
+            if(type(rr.parent_ref) != NOTYPE)
+            {
+                remove(rr.parent_ref);
+            }
+        }
     }
+
 }
 
 //-----------------------------------------------------------------------------
