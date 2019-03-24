@@ -8,10 +8,9 @@ namespace c4 {
 namespace yml {
 
 
+void check_invariants(Tree const& t, size_t node=NONE);
+void check_free_list(Tree const& t);
 void check_arena(Tree const& t);
-void check_free_list(Tree const& t)
-void check_invariants(Tree const& t, size_t node);
-void check_tree_invariants(Tree const& t, size_t node);
 
 
 //-----------------------------------------------------------------------------
@@ -20,8 +19,12 @@ void check_tree_invariants(Tree const& t, size_t node);
 
 inline void check_invariants(Tree const& t, size_t node)
 {
-    auto const& n = *t._p(node);
+    if(node == NONE)
+    {
+        node = t.root_id();
+    }
 
+    auto const& n = *t._p(node);
 #ifdef RYML_DBG
     if(n.m_first_child != NONE || n.m_last_child != NONE)
     {
@@ -111,7 +114,11 @@ inline void check_invariants(Tree const& t, size_t node)
 
     if(node == t.root_id())
     {
-        check_tree_invariants();
+        C4_CHECK(t.size() == t.m_size);
+        C4_CHECK(t.capacity() == t.m_cap);
+        C4_CHECK(t.m_cap == t.m_size + t.slack());
+        check_free_list(t);
+        check_arena(t);
     }
 
     for(size_t i = t.first_child(node); i != NONE; i = t.next_sibling(i))
@@ -125,37 +132,27 @@ inline void check_invariants(Tree const& t, size_t node)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-inline void check_tree_invariants(Tree const& t)
-{
-    C4_CHECK(t.size() == m_size);
-    C4_CHECK(t.capacity() == m_capacity);
-    C4_CHECK(t.m_cap == m_size + slack());
-    check_free_list(t);
-    check_arena(t);
-}
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
 inline void check_free_list(Tree const& t)
 {
     if(t.m_free_head == NONE)
     {
-        C4_CHECK(t.m_free_tail == NONE);
+        C4_CHECK(t.m_free_tail == t.m_free_head);
         return;
     }
 
-    auto const& head = t._p(t.m_free_head);
-    auto const& tail = t._p(t.m_free_tail);
+    C4_CHECK(t.m_free_head >= 0 && t.m_free_head < t.m_cap)
+    C4_CHECK(t.m_free_tail >= 0 && t.m_free_tail < t.m_cap)
 
-    C4_CHECK(head.m_prev_sibling == NONE);
-    C4_CHECK(tail.m_next_sibling == NONE);
-    size_t count;
-    for(size_t i = t.m_free_head, prev = NONE; i != t.m_free_tail; i = t._p(i)->m_next_sibling)
+    auto const& head = *t._p(t.m_free_head);
+    auto const& tail = *t._p(t.m_free_tail);
+
+    //C4_CHECK(head.m_prev_sibling == NONE);
+    //C4_CHECK(tail.m_next_sibling == NONE);
+
+    size_t count = 0;
+    for(size_t i = t.m_free_head, prev = NONE; i != NONE; i = t._p(i)->m_next_sibling)
     {
-        auto const& elm = t._p(i);
+        auto const& elm = *t._p(i);
         if(&elm != &head)
         {
             C4_CHECK(elm.m_prev_sibling == prev);
@@ -173,7 +170,7 @@ inline void check_free_list(Tree const& t)
 
 inline void check_arena(Tree const& t)
 {
-    C4_CHECK(t.m_arena_pos >= 0 && t.m_arena_pos < t.m_arena.len);
+    C4_CHECK(t.m_arena.len == 0 || t.m_arena_pos >= 0 && t.m_arena_pos < t.m_arena.len);
     C4_CHECK(t.arena_size() == t.m_arena_pos);
     C4_CHECK(t.arena_slack() == t.m_arena.len - t.m_arena_pos);
 }

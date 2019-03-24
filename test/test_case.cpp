@@ -2,6 +2,7 @@
 #include "c4/span.hpp"
 #include "c4/yml/std/std.hpp"
 #include "c4/yml/detail/print.hpp"
+#include "c4/yml/detail/checks.hpp"
 
 #include <gtest/gtest.h>
 
@@ -175,6 +176,7 @@ void CaseNode::recreate(yml::NodeRef *n) const
         ch.recreate(&chn);
     }
 }
+
 
 //-----------------------------------------------------------------------------
 
@@ -450,6 +452,8 @@ void test_invariants(Tree const& t)
 
     size_t count = test_tree_invariants(t.rootref());
     EXPECT_EQ(count, t.size());
+
+    check_invariants(t);
 
     return;
 #if 0 == 1

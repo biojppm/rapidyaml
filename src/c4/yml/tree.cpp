@@ -174,14 +174,17 @@ void Tree::reserve(size_t cap, size_t arena_cap)
         {
             C4_ASSERT(m_free_tail == m_free_head);
             m_free_head = m_cap;
-            m_free_tail = cap;
+            m_free_tail = cap-1;
         }
         else
         {
             C4_ASSERT(m_buf != nullptr);
             C4_ASSERT(m_free_tail != NONE);
-            m_buf[m_free_tail].m_next_sibling = m_cap;
+            m_buf[m_free_tail].m_next_sibling = NONE;
         }
+        C4_ASSERT(m_free_head == NONE || m_free_head >= 0 && m_free_head < cap);
+        C4_ASSERT(m_free_tail == NONE || m_free_tail >= 0 && m_free_tail < cap);
+
         NodeData *buf = (NodeData*) m_alloc.allocate(cap * sizeof(NodeData), m_buf);
         if(m_buf)
         {
@@ -220,8 +223,9 @@ void Tree::clear()
     m_size = 0;
     if(m_buf)
     {
+        C4_ASSERT(m_cap >= 0);
         m_free_head = 0;
-        m_free_tail = m_cap;
+        m_free_tail = m_cap-1;
         _claim_root();
     }
     else
