@@ -258,11 +258,22 @@ void Tree::_clear_range(size_t first, size_t num)
 void Tree::_release(size_t i)
 {
     C4_ASSERT(i >= 0 && i < m_cap);
-    NodeData & w = m_buf[i];
 
     _rem_hierarchy(i);
+    _free_list_add(i);
+    _clear(i);
 
-    // add to the front of the free list
+    --m_size;
+}
+
+//-----------------------------------------------------------------------------
+// add to the front of the free list
+void Tree::_free_list_add(size_t i)
+{
+    C4_ASSERT(i >= 0 && i < m_cap);
+    NodeData &C4_RESTRICT w = m_buf[i];
+
+    w.m_parent = NONE;
     w.m_next_sibling = m_free_head;
     w.m_prev_sibling = NONE;
     if(m_free_head != NONE)
@@ -274,10 +285,15 @@ void Tree::_release(size_t i)
     {
         m_free_tail = m_free_head;
     }
+}
 
-    _clear(i);
-
-    --m_size;
+void Tree::_free_list_rem(size_t i)
+{
+    if(m_free_head == i)
+    {
+        m_free_head = _p(i)->m_next_sibling;
+    }
+    _rem_hierarchy(i);
 }
 
 //-----------------------------------------------------------------------------
@@ -402,6 +418,255 @@ void Tree::_rem_hierarchy(size_t i)
         NodeData *C4_RESTRICT next = get(w.m_next_sibling);
         next->m_prev_sibling = w.m_prev_sibling;
     }
+}
+
+//-----------------------------------------------------------------------------
+void Tree::reorder()
+{
+    size_t r = root_id();
+    _do_reorder(&r, 0);
+}
+
+//-----------------------------------------------------------------------------
+size_t Tree::_do_reorder(size_t *node, size_t count)
+{
+    // swap this node if it's not in place
+    if(*node != count)
+    {
+        _swap(*node, count);
+        *node = count;
+    }
+    ++count; // bump the count for this node
+
+    // now descend in the hierarchy
+    for(size_t i = first_child(*node); i != NONE; i = next_sibling(i))
+    {
+        // this child may have been relocated to a different index,
+        // so get an updated version
+        count = _do_reorder(&i, count);
+    }
+    return count;
+}
+
+//-----------------------------------------------------------------------------
+void Tree::_swap(size_t n_, size_t m_)
+{
+    C4_ASSERT((parent(n_) != NONE) || type(n_) == NOTYPE);
+    C4_ASSERT((parent(m_) != NONE) || type(m_) == NOTYPE);
+    NodeType tn = type(n_);
+    NodeType tm = type(m_);
+    if(tn != NOTYPE && tm != NOTYPE)
+    {
+        _swap_props(n_, m_);
+        _swap_hierarchy(n_, m_);
+    }
+    else if(tn == NOTYPE && tm != NOTYPE)
+    {
+        _copy_props(n_, m_);
+        _free_list_rem(n_);
+        _copy_hierarchy(n_, m_);
+        _clear(m_);
+        _free_list_add(m_);
+    }
+    else if(tn != NOTYPE && tm == NOTYPE)
+    {
+        _copy_props(m_, n_);
+        _free_list_rem(m_);
+        _copy_hierarchy(m_, n_);
+        _clear(n_);
+        _free_list_add(n_);
+    }
+    else
+    {
+        C4_NEVER_REACH();
+    }
+}
+
+//-----------------------------------------------------------------------------
+void Tree::_swap_hierarchy(size_t ia, size_t ib)
+{
+    if(ia == ib) return;
+
+    for(size_t i = first_child(ia); i != NONE; i = next_sibling(i))
+    {
+        if(i == ib || i == ia) continue;
+        _p(i)->m_parent = ib;
+    }
+
+    for(size_t i = first_child(ib); i != NONE; i = next_sibling(i))
+    {
+        if(i == ib || i == ia) continue;
+        _p(i)->m_parent = ia;
+    }
+
+    auto & C4_RESTRICT a  = *_p(ia);
+    auto & C4_RESTRICT b  = *_p(ib);
+    auto & C4_RESTRICT pa = *_p(a.m_parent);
+    auto & C4_RESTRICT pb = *_p(b.m_parent);
+    
+    if(&pa == &pb)
+    {
+        if((pa.m_first_child == ib && pa.m_last_child == ia)
+            ||
+           (pa.m_first_child == ia && pa.m_last_child == ib))
+        {
+            std::swap(pa.m_first_child, pa.m_last_child);
+        }
+        else
+        {
+            bool changed = false;
+            if(pa.m_first_child == ia) { pa.m_first_child = ib; changed = true; }
+            if(pa.m_last_child  == ia) { pa.m_last_child  = ib; changed = true; }
+            if(pb.m_first_child == ib && !changed) { pb.m_first_child = ia; }
+            if(pb.m_last_child  == ib && !changed) { pb.m_last_child  = ia; }
+        }
+    }
+    else
+    {
+        if(pa.m_first_child == ia) pa.m_first_child = ib;
+        if(pa.m_last_child  == ia) pa.m_last_child  = ib;
+        if(pb.m_first_child == ib) pb.m_first_child = ia;
+        if(pb.m_last_child  == ib) pb.m_last_child  = ia;
+    }
+    std::swap(a.m_first_child , b.m_first_child);
+    std::swap(a.m_last_child  , b.m_last_child);
+
+    if(a.m_prev_sibling != ib && b.m_prev_sibling != ia &&
+       a.m_next_sibling != ib && b.m_next_sibling != ia)
+    {
+        if(a.m_prev_sibling != NONE && a.m_prev_sibling != ib)
+        {
+            _p(a.m_prev_sibling)->m_next_sibling = ib;
+        }
+        if(a.m_next_sibling != NONE && a.m_next_sibling != ib)
+        {
+            _p(a.m_next_sibling)->m_prev_sibling = ib;
+        }
+        if(b.m_prev_sibling != NONE && b.m_prev_sibling != ia)
+        {
+            _p(b.m_prev_sibling)->m_next_sibling = ia;
+        }
+        if(b.m_next_sibling != NONE && b.m_next_sibling != ia)
+        {
+            _p(b.m_next_sibling)->m_prev_sibling = ia;
+        }
+        std::swap(a.m_prev_sibling, b.m_prev_sibling);
+        std::swap(a.m_next_sibling, b.m_next_sibling);
+    }
+    else
+    {
+        if(a.m_next_sibling == ib) // n will go after m
+        {
+            C4_ASSERT(b.m_prev_sibling == ia);
+            if(a.m_prev_sibling != NONE)
+            {
+                C4_ASSERT(a.m_prev_sibling != ib);
+                _p(a.m_prev_sibling)->m_next_sibling = ib;
+            }
+            if(b.m_next_sibling != NONE)
+            {
+                C4_ASSERT(b.m_next_sibling != ia);
+                _p(b.m_next_sibling)->m_prev_sibling = ia;
+            }
+            size_t ns = b.m_next_sibling;
+            b.m_prev_sibling = a.m_prev_sibling;
+            b.m_next_sibling = ia;
+            a.m_prev_sibling = ib;
+            a.m_next_sibling = ns;
+        }
+        else if(a.m_prev_sibling == ib) // m will go after n
+        {
+            C4_ASSERT(b.m_next_sibling == ia);
+            if(b.m_prev_sibling != NONE)
+            {
+                C4_ASSERT(b.m_prev_sibling != ia);
+                _p(b.m_prev_sibling)->m_next_sibling = ia;
+            }
+            if(a.m_next_sibling != NONE)
+            {
+                C4_ASSERT(a.m_next_sibling != ib);
+                _p(a.m_next_sibling)->m_prev_sibling = ib;
+            }
+            size_t ns = b.m_prev_sibling;
+            a.m_prev_sibling = b.m_prev_sibling;
+            a.m_next_sibling = ib;
+            b.m_prev_sibling = ia;
+            b.m_next_sibling = ns;
+        }
+        else
+        {
+            C4_NEVER_REACH();
+        }
+    }
+    C4_ASSERT(a.m_next_sibling != ia);
+    C4_ASSERT(a.m_prev_sibling != ia);
+    C4_ASSERT(b.m_next_sibling != ib);
+    C4_ASSERT(b.m_prev_sibling != ib);
+
+    if(a.m_parent != ib && b.m_parent != ia)
+    {
+        std::swap(a.m_parent, b.m_parent);
+    }
+    else
+    {
+        if(a.m_parent == ib && b.m_parent != ia)
+        {
+            a.m_parent = b.m_parent;
+            b.m_parent = ia;
+        }
+        else if(a.m_parent != ib && b.m_parent == ia)
+        {
+            b.m_parent = a.m_parent;
+            a.m_parent = ib;
+        }
+        else
+        {
+            C4_NEVER_REACH();
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+void Tree::_copy_hierarchy(size_t dst_, size_t src_)
+{
+    auto const& C4_RESTRICT src = *_p(src_);
+    auto      & C4_RESTRICT dst = *_p(dst_);
+    auto      & C4_RESTRICT prt = *_p(src.m_parent);
+    for(size_t i = src.m_first_child; i != NONE; i = next_sibling(i))
+    {
+        _p(i)->m_parent = dst_;
+    }
+    if(src.m_prev_sibling != NONE)
+    {
+        _p(src.m_prev_sibling)->m_next_sibling = dst_;
+    }
+    if(src.m_next_sibling != NONE)
+    {
+        _p(src.m_next_sibling)->m_prev_sibling = dst_;
+    }
+    if(prt.m_first_child == src_)
+    {
+        prt.m_first_child = dst_;
+    }
+    if(prt.m_last_child  == src_)
+    {
+        prt.m_last_child  = dst_;
+    }
+    dst.m_parent       = src.m_parent;
+    dst.m_first_child  = src.m_first_child;
+    dst.m_last_child   = src.m_last_child;
+    dst.m_prev_sibling = src.m_prev_sibling;
+    dst.m_next_sibling = src.m_next_sibling;
+}
+
+//-----------------------------------------------------------------------------
+void Tree::_swap_props(size_t n_, size_t m_)
+{
+    NodeData &C4_RESTRICT n = *_p(n_);
+    NodeData &C4_RESTRICT m = *_p(m_);
+    std::swap(n.m_type, m.m_type);
+    std::swap(n.m_key, m.m_key);
+    std::swap(n.m_val, m.m_val);
 }
 
 //-----------------------------------------------------------------------------

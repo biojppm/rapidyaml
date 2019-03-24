@@ -101,7 +101,7 @@ TEST(CaseNode, anchors)
     "simple anchor 1, implicit, resolved",\
     "simple anchor 1, explicit, unresolved",\
     "simple anchor 1, explicit, resolved",\
-    "anchor example 2, unresolved",   \
+    "anchor example 2, unresolved",\
     "anchor example 2, resolved",\
     "anchor example 3, unresolved",\
     "anchor example 3, resolved",\
