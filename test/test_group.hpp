@@ -5,8 +5,6 @@
 #include "./test_case.hpp"
 #include "c4/span.hpp"
 
-#include <gtest/gtest.h>
-
 #if defined(_MSC_VER)
 #   pragma warning(push)
 #   pragma warning(disable: 4068/*unknown pragma*/)
