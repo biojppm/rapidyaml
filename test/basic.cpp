@@ -2,6 +2,7 @@
 #include "c4/yml/parse.hpp"
 #include "c4/yml/emit.hpp"
 #include <c4/format.hpp>
+#include <c4/yml/detail/checks.hpp>
 
 #include "./test_case.hpp"
 
@@ -88,7 +89,7 @@ void do_test_serialize(Args&& ...args)
     n << s;
     //print_tree(t);
     emit(t);
-    check_invariants(t);
+    c4::yml::check_invariants(t);
     n >> out;
     EXPECT_EQ(s, out);
 }
@@ -689,7 +690,7 @@ TEST(NodeRef, 0_general)
 
 void noderef_check_tree(NodeRef const& root)
 {
-    check_invariants(*root.tree());
+    test_invariants(*root.tree());
 
     EXPECT_EQ(root.tree()->size(), 7u);
     EXPECT_EQ(root.num_children(), 6u);
