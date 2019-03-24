@@ -22,9 +22,6 @@
 
 namespace c4 {
 
-inline void PrintTo(substr  s, ::std::ostream* os) { *os << s; }
-inline void PrintTo(csubstr s, ::std::ostream* os) { *os << s; }
-
 namespace yml {
 
 struct Case;
@@ -34,14 +31,10 @@ struct CaseData;
 Case const* get_case(csubstr name);
 CaseData* get_data(csubstr name);
 
-void check_invariants(Tree const& t);
-void check_invariants(NodeRef const& n);
+void test_invariants(Tree const& t);
+void test_invariants(NodeRef const& n);
 
 void show_children(NodeRef const& p);
-
-void print_node(NodeRef const& p, int level=0, bool print_children=false);
-void print_tree(NodeRef const& p, int level=0);
-void print_tree(Tree const& t);
 
 void print_node(CaseNode const& t, int level=0);
 void print_tree(CaseNode const& p, int level=0);

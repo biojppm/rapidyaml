@@ -1,6 +1,7 @@
 #include "./test_case.hpp"
 #include "c4/span.hpp"
 #include "c4/yml/std/std.hpp"
+#include "c4/yml/detail/print.hpp"
 
 #include <gtest/gtest.h>
 
@@ -216,80 +217,6 @@ void print_path(NodeRef const& n)
 }
 
 
-void print_node(NodeRef const& p, int level, bool print_children)
-{
-    printf("%*s[%zd] %p", (2*level), "", p.id(), (void*)p.get());
-    if(p.is_root())
-    {
-        printf(" [ROOT]");
-    }
-    printf(" %s:", p.type_str());
-    if(p.has_key())
-    {
-        if(p.has_key_anchor())
-        {
-            csubstr const& ka = p.key_anchor();
-            printf(" &%.*s", (int)ka.len, ka.str);
-        }
-        if(p.has_key_tag())
-        {
-            csubstr const& kt = p.key_tag();
-            csubstr const& k  = p.key();
-            printf(" '%.*s %.*s'", (int)kt.len, kt.str, (int)k.len, k.str);
-        }
-        else
-        {
-            csubstr const& k  = p.key();
-            printf(" '%.*s'", (int)k.len, k.str);
-        }
-    }
-    else
-    {
-        C4_ASSERT( ! p.has_key_tag());
-    }
-    if(p.has_val())
-    {
-        if(p.has_val_tag())
-        {
-            csubstr const& vt = p.val_tag();
-            csubstr const& v  = p.val();
-            printf(" '%.*s %.*s'", (int)vt.len, vt.str, (int)v.len, v.str);
-        }
-        else
-        {
-            csubstr const& v  = p.val();
-            printf(" '%.*s'", (int)v.len, v.str);
-        }
-    }
-    else
-    {
-        if(p.has_val_tag())
-        {
-            csubstr const& vt = p.val_tag();
-            printf(" %.*s", (int)vt.len, vt.str);
-        }
-    }
-    if(p.has_val_anchor())
-    {
-        auto &a = p.val_anchor();
-        printf(" valanchor='&%.*s'", (int)a.len, a.str);
-    }
-    printf(" (%zd sibs)", p.num_siblings());
-    if(p.is_container())
-    {
-        printf(" %zd children:", p.num_children());
-        if(print_children)
-        {
-            for(NodeRef const& ch : p.children())
-            {
-                print_node(ch, level+1);
-            }
-        }
-    }
-    printf("\n");
-}
-
-
 
 void print_node(CaseNode const& p, int level)
 {
@@ -372,14 +299,6 @@ void print_tree(CaseNode const& p, int level)
     }
 }
 
-void print_tree(Tree const& t)
-{
-    printf("--------------------------------------\n");
-    print_tree(t.rootref());
-    printf("#nodes: %zd\n", t.size());
-    printf("--------------------------------------\n");
-}
-
 void print_tree(CaseNode const& t)
 {
     printf("--------------------------------------\n");
@@ -388,7 +307,7 @@ void print_tree(CaseNode const& t)
     printf("--------------------------------------\n");
 }
 
-void check_invariants(NodeRef const& n)
+void test_invariants(NodeRef const& n)
 {
     if(n.is_root())
     {
@@ -477,11 +396,11 @@ void check_invariants(NodeRef const& n)
     // now recurse into the children
     for(NodeRef const& ch : n.children())
     {
-        check_invariants(ch);
+        test_invariants(ch);
     }
 }
 
-size_t check_tree_invariants(NodeRef const& n)
+size_t test_tree_invariants(NodeRef const& n)
 {
     auto parent = n.parent();
 
@@ -514,7 +433,7 @@ size_t check_tree_invariants(NodeRef const& n)
     for(NodeRef const& ch : n.children())
     {
         EXPECT_NE(ch.id(), n.id());
-        count += check_tree_invariants(ch);
+        count += test_tree_invariants(ch);
         ++num;
     }
 
@@ -523,13 +442,13 @@ size_t check_tree_invariants(NodeRef const& n)
     return count;
 }
 
-void check_invariants(Tree const& t)
+void test_invariants(Tree const& t)
 {
 
     EXPECT_LE(t.size(), t.capacity());
     EXPECT_EQ(t.size() + t.slack(), t.capacity());
 
-    size_t count = check_tree_invariants(t.rootref());
+    size_t count = test_tree_invariants(t.rootref());
     EXPECT_EQ(count, t.size());
 
     return;

@@ -334,23 +334,6 @@ public:
 
 class Tree
 {
-private:
-
-    NodeData * m_buf;
-    size_t m_cap;
-
-    size_t m_size;
-
-    size_t m_free_head;
-    size_t m_free_tail;
-
-    substr m_arena;
-    size_t m_arena_pos;
-
-    Allocator m_alloc;
-
-    friend void check_invariants(Tree const&);
-
 public:
 
     Tree(Allocator const& cb);
@@ -611,6 +594,10 @@ public:
     }
 
 public:
+    
+    /** reorder the tree in memory so that all the nodes are stored
+     * in a linear sequence when visited in depth-first order */
+    void reorder();
 
     /** change the node's position in the parent */
     void move(size_t node, size_t after);
@@ -653,7 +640,7 @@ public:
     substr arena() const { return m_arena.range(0, m_arena_pos); }
     size_t arena_pos() const { return m_arena_pos; }
 
-    template< class T >
+    template<class T>
     csubstr to_arena(T const& a)
     {
         substr rem(m_arena.sub(m_arena_pos));
@@ -668,7 +655,7 @@ public:
         return rem;
     }
 
-    bool in_arena(csubstr      s  ) const
+    bool in_arena(csubstr s) const
     {
         return m_arena.contains(s);
     }
@@ -819,37 +806,50 @@ public:
         n->m_type.add(MAP);
     }
 
-    void _copy_props(size_t dst, size_t src)
+    size_t _do_reorder(size_t *node, size_t count);
+
+    void _swap(size_t n_, size_t m_);
+    void _swap_props(size_t n_, size_t m_);
+    void _swap_hierarchy(size_t n_, size_t m_);
+    void _copy_hierarchy(size_t dst_, size_t src_);
+
+    void _copy_props(size_t dst_, size_t src_)
     {
-        _p(dst)->m_key = _p(src)->m_key;
-        _copy_props_wo_key(dst, src);
+        auto      & C4_RESTRICT dst = *_p(dst_);
+        auto const& C4_RESTRICT src = *_p(src_);
+        dst.m_type = src.m_type;
+        dst.m_key  = src.m_key;
+        dst.m_val  = src.m_val;
     }
 
-    void _copy_props(size_t dst, Tree const* that_tree, size_t src)
+    void _copy_props_wo_key(size_t dst_, size_t src_)
     {
-        _p(dst)->m_key = that_tree->_p(src)->m_key;
-        _copy_props_wo_key(dst, that_tree, src);
+        auto      & C4_RESTRICT dst = *_p(dst_);
+        auto const& C4_RESTRICT src = *_p(src_);
+        dst.m_type = src.m_type;
+        dst.m_val  = src.m_val;
     }
 
-    void _copy_props_wo_key(size_t dst, size_t src)
+    void _copy_props(size_t dst_, Tree const* that_tree, size_t src_)
     {
-        auto *C4_RESTRICT n = _p(dst),
-             *C4_RESTRICT t = _p(src);
-        n->m_type = t->m_type;
-        n->m_val = t->m_val;
+        auto      & C4_RESTRICT dst = *_p(dst_);
+        auto const& C4_RESTRICT src = *that_tree->_p(src_);
+        dst.m_type = src.m_type;
+        dst.m_key  = src.m_key;
+        dst.m_val  = src.m_val;
     }
 
-    void _copy_props_wo_key(size_t dst, Tree const* that_tree, size_t src)
+    void _copy_props_wo_key(size_t dst_, Tree const* that_tree, size_t src_)
     {
-        auto      * n = _p(dst);
-        auto const* t = that_tree->_p(src);
-        n->m_type = t->m_type;
-        n->m_val = t->m_val;
+        auto      & C4_RESTRICT dst = *_p(dst_);
+        auto const& C4_RESTRICT src = *that_tree->_p(src_);
+        dst.m_type = src.m_type;
+        dst.m_val  = src.m_val;
     }
 
     inline void _clear(size_t node)
     {
-        auto *n = _p(node);
+        auto *C4_RESTRICT n = _p(node);
         n->m_type = NOTYPE;
         n->m_key.clear();
         n->m_val.clear();
@@ -877,9 +877,28 @@ private:
     size_t _claim();
     void   _claim_root();
     void   _release(size_t node);
+    void   _free_list_add(size_t node);
+    void   _free_list_rem(size_t node);
 
     void _set_hierarchy(size_t node, size_t parent, size_t after_sibling);
     void _rem_hierarchy(size_t node);
+
+public:
+
+    // members are exposed, but you should NOT access them
+
+    NodeData * m_buf;
+    size_t m_cap;
+
+    size_t m_size;
+
+    size_t m_free_head;
+    size_t m_free_tail;
+
+    substr m_arena;
+    size_t m_arena_pos;
+
+    Allocator m_alloc;
 
 };
 
