@@ -3,8 +3,12 @@
 namespace c4 {
 namespace yml {
 
-#define GENERIC_MAP_CASES                       \
-        "generic map"
+
+#define GENERIC_MAP_CASES \
+    "generic map",\
+    "seq nested in map",\
+    "seq nested in map, v2"
+
 
 CASE_GROUP(GENERIC_MAP)
 {
@@ -29,6 +33,64 @@ a sequence:
       N("a sequence", L{N("item 1"), N("item 2")}),
   }
 ),
+
+
+C("seq nested in map",
+R"(
+items:
+    - part_no:   A4786
+      descrip:   Water Bucket (Filled)
+      price:     1.47
+      quantity:  4
+    - part_no:   E1628
+      descrip:   High Heeled "Ruby" Slippers
+      size:      8
+      price:     133.7
+      quantity:  1
+)",
+L{
+  N{"items", L{
+    N{L{N{"part_no",   "A4786"},
+        N{"descrip",   "Water Bucket (Filled)"},
+        N{"price",     "1.47"},
+        N{"quantity",  "4"},}},
+    N{L{N{"part_no", "E1628"},
+        N{"descrip",   "High Heeled \"Ruby\" Slippers"},
+        N{"size",      "8"},
+        N{"price",     "133.7"},
+        N{"quantity",  "1"},}}}},
+  }
+),
+
+C("seq nested in map, v2",
+R"(
+items:
+    -
+      part_no:   A4786
+      descrip:   Water Bucket (Filled)
+      price:     1.47
+      quantity:  4
+    -
+      part_no:   E1628
+      descrip:   High Heeled "Ruby" Slippers
+      size:      8
+      price:     133.7
+      quantity:  1
+)",
+L{
+  N{"items", L{
+    N{L{N{"part_no",   "A4786"},
+        N{"descrip",   "Water Bucket (Filled)"},
+        N{"price",     "1.47"},
+        N{"quantity",  "4"},}},
+    N{L{N{"part_no", "E1628"},
+        N{"descrip",   "High Heeled \"Ruby\" Slippers"},
+        N{"size",      "8"},
+        N{"price",     "133.7"},
+        N{"quantity",  "1"},}}}},
+  }
+),
+
     )
 }
 

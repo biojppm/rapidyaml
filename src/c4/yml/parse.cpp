@@ -66,7 +66,7 @@ static bool _is_scalar_next__rmap(csubstr s)
 
 static bool _is_scalar_next__rmap_val(csubstr s)
 {
-    if(s.begins_with("- ") || s.begins_with_any("{["))
+    if(s.begins_with("- ") || s.begins_with_any("{[") || s == "-")
     {
         return false;
     }
@@ -1115,7 +1115,7 @@ bool Parser::_handle_map_impl()
         }
         else if(rem == '-')
         {
-            _c4dbgp("start unknown, indented");
+            _c4dbgp("maybe a seq. start unknown, indented");
             _start_unk();
             _save_indentation();
             _line_progressed(1);
