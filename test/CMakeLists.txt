@@ -3,7 +3,7 @@ c4_setup_testing(ryml)
 c4_add_library(RYML ryml_util_test
     SOURCES test_case.hpp test_case.cpp libyaml.hpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${ryml_yaml_cpp_inc}
-    LIBS ryml yaml yaml-cpp gtest gtest_main
+    LIBS ryml c4fs yaml yaml-cpp gtest gtest_main
     FOLDER ryml-test)
 
 print_var(ryml_yaml_cpp_inc)

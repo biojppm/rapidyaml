@@ -18,8 +18,11 @@ namespace yml {
 
 template<class Writer> class Emitter;
 
+template<class OStream>
+using EmitterOStream = Emitter<WriterOStream<OStream>>;
 using EmitterFile = Emitter<WriterFile>;
 using EmitterBuf  = Emitter<WriterBuf>;
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -28,11 +31,6 @@ using EmitterBuf  = Emitter<WriterBuf>;
 template<class Writer>
 class Emitter : public Writer
 {
-    enum {
-        _keysc =  (KEY|KEYREF|KEYANCH)  | ~(VAL|VALREF|VALANCH),
-        _valsc = ~(KEY|KEYREF|KEYANCH)  |  (VAL|VALREF|VALANCH),
-    };
-
 public:
 
     using Writer::Writer;
@@ -44,22 +42,23 @@ public:
      * be null and its size will be the needed space. No writes are done
      * after the end of the buffer.
      *
-     * When writing to a file, the returned span will be null, but its
-     * length is set the number of bytes written. */
-    substr emit(NodeRef const& n, bool error_on_excess=true);
+     * When writing to a file, the returned substr will be null, but its
+     * length will be set to the number of bytes written. */
+    substr emit(Tree const& t, size_t id, bool error_on_excess);
+    /** @overload */
+    substr emit(Tree const& t, bool error_on_excess=true) { return emit(t, t.root_id(), error_on_excess); }
+    /** @overload */
+    substr emit(NodeRef const& n, bool error_on_excess=true) { return emit(*n.tree(), n.id(), error_on_excess); }
 
     size_t tell() const;
     void   seek(size_t p);
 
 private:
 
-    size_t _visit(NodeRef const& n, size_t ilevel=0);
-    void _do_visit(NodeRef const& n, size_t ilevel=0, bool indent=true);
+    size_t  _visit(Tree const& t, size_t id, size_t ilevel=0);
+    void _do_visit(Tree const& t, size_t id, size_t ilevel=0, bool indent=true);
 
 private:
-
-    C4_ALWAYS_INLINE void _writek(NodeRef const& n) { _write(n.keysc(), n.type() & ~(VAL|VALREF|VALANCH)); }
-    C4_ALWAYS_INLINE void _writev(NodeRef const& n) { _write(n.valsc(), n.type() & ~(KEY|KEYREF|KEYANCH)); }
 
     template<class T>
     C4_ALWAYS_INLINE void _write(T a)
@@ -78,6 +77,19 @@ private:
 
     void _write_scalar(csubstr s);
 
+    void _indent(size_t ilevel)
+    {
+        RepC ind{' ', 2 * ilevel};
+        this->Writer::_do_write(ind);
+    }
+
+    enum {
+        _keysc =  (KEY|KEYREF|KEYANCH)  | ~(VAL|VALREF|VALANCH),
+        _valsc = ~(KEY|KEYREF|KEYANCH)  |  (VAL|VALREF|VALANCH),
+    };
+
+    C4_ALWAYS_INLINE void _writek(Tree const& t, size_t id) { _write(t.keysc(id), t.type(id) & ~(VAL|VALREF|VALANCH)); }
+    C4_ALWAYS_INLINE void _writev(Tree const& t, size_t id) { _write(t.valsc(id), t.type(id) & ~(KEY|KEYREF|KEYANCH)); }
 };
 
 //-----------------------------------------------------------------------------
@@ -86,66 +98,143 @@ private:
 
 /** emit YAML to the given file. A null file defaults to stdout.
  * Return the number of bytes written. */
-inline size_t emit(NodeRef const& r, FILE *f=nullptr)
+inline size_t emit(Tree const& t, size_t id, FILE *f)
 {
     EmitterFile em(f);
-    size_t num = em.emit(r).len;
-    return num;
+    size_t len = em.emit(t, id, /*error_on_excess*/true).len;
+    return len;
 }
 
 /** emit YAML to the given file. A null file defaults to stdout.
- * Return the number of bytes written. */
-inline size_t emit(Tree const &t, FILE *f=nullptr)
+ * Return the number of bytes written.
+ * @overload */
+inline size_t emit(Tree const& t, FILE *f=nullptr)
 {
-    if(t.empty()) return 0;
-    const NodeRef n(t.rootref());
-    return emit(n, f);
+    return emit(t, t.root_id(), f);
 }
+
+/** emit YAML to the given file. A null file defaults to stdout.
+ * Return the number of bytes written.
+ * @overload */
+inline size_t emit(NodeRef const& r, FILE *f=nullptr)
+{
+    return emit(*r.tree(), r.id(), f);
+}
+
 
 //-----------------------------------------------------------------------------
 
-/** emit YAML to the given buffer. Return a substr of the emitted YAML.
- * Raise an error if the space in the buffer is insufficient. */
-inline substr emit(NodeRef const& r, substr sp, bool error_on_excess=true)
+/** emit YAML to an STL-like ostream */
+template<class OStream>
+inline OStream& operator<< (OStream& s, Tree const& t)
 {
-    EmitterBuf em(sp);
-    substr result = em.emit(r, error_on_excess);
+    EmitterOStream<OStream> em(s);
+    em.emit(t.rootref());
+    return s;
+}
+
+/** emit YAML to an STL-like ostream
+ * @overload */
+template<class OStream>
+inline OStream& operator<< (OStream& s, NodeRef const& n)
+{
+    EmitterOStream<OStream> em(s);
+    em.emit(n);
+    return s;
+}
+
+
+//-----------------------------------------------------------------------------
+
+/** emit YAML to the given buffer. Return a substr trimmed to the emitted YAML.
+ * Raise an error if the space in the buffer is insufficient.
+ * @overload */
+inline substr emit(Tree const& t, size_t id, substr buf, bool error_on_excess=true)
+{
+    EmitterBuf em(buf);
+    substr result = em.emit(t, id, error_on_excess);
     return result;
 }
 
-/** emit YAML to the given buffer. Return a substr of the emitted YAML.
- * Raise an error if the space in the buffer is insufficient. */
-inline substr emit(Tree const& t, substr sp, bool error_on_excess=true)
+/** emit YAML to the given buffer. Return a substr trimmed to the emitted YAML.
+ * Raise an error if the space in the buffer is insufficient.
+ * @overload */
+inline substr emit(Tree const& t, substr buf, bool error_on_excess=true)
 {
-    if(t.empty()) return substr();
-    return emit(t.rootref(), sp, error_on_excess);
+    return emit(t, t.root_id(), buf, error_on_excess);
 }
+
+/** emit YAML to the given buffer. Return a substr trimmed to the emitted YAML.
+ * Raise an error if the space in the buffer is insufficient.
+ * @overload
+ */
+inline substr emit(NodeRef const& r, substr buf, bool error_on_excess=true)
+{
+    return emit(*r.tree(), r.id(), buf, error_on_excess);
+}
+
 
 //-----------------------------------------------------------------------------
 
-/** emit YAML to the given std::vector-like container, resizing it as needed
- * to fit the emitted YAML. */
+/** emit+resize: YAML to the given std::string/std::vector-like container,
+ * resizing it as needed to fit the emitted YAML. */
 template<class CharOwningContainer>
-inline substr emit_resize(NodeRef const& n, CharOwningContainer * cont)
+substr emitrs(Tree const& t, size_t id, CharOwningContainer * cont)
 {
     substr buf = to_substr(*cont);
-    substr ret = emit(n, buf, /*error_on_excess*/false);
+    substr ret = emit(t, id, buf, /*error_on_excess*/false);
     if(ret.str == nullptr && ret.len > 0)
     {
         cont->resize(ret.len);
         buf = to_substr(*cont);
-        ret = emit(n, buf, /*error_on_excess*/true);
+        ret = emit(t, id, buf, /*error_on_excess*/true);
     }
     return ret;
 }
-
-/** emit YAML to the given std::vector-like container, resizing it as needed
- * to fit the emitted YAML. */
+/** emit+resize: YAML to the given std::string/std::vector-like container,
+ * resizing it as needed to fit the emitted YAML. */
 template<class CharOwningContainer>
-inline substr emit_resize(Tree const& t, CharOwningContainer * cont)
+ CharOwningContainer emitrs(Tree const& t, size_t id)
 {
-    if(t.empty()) return substr();
-    return emit_resize(t.rootref(), cont);
+    CharOwningContainer c;
+    emitrs(t, id, &c);
+    return c;
+}
+
+/** emit+resize: YAML to the given std::string/std::vector-like container,
+ * resizing it as needed to fit the emitted YAML. */
+template<class CharOwningContainer>
+substr emitrs(Tree const& t, CharOwningContainer * cont)
+{
+    return emitrs(t, t.root_id(), cont);
+}
+
+/** emit+resize: YAML to the given std::string/std::vector-like container,
+ * resizing it as needed to fit the emitted YAML. */
+template<class CharOwningContainer>
+CharOwningContainer emitrs(Tree const& t)
+{
+    CharOwningContainer c;
+    emitrs(t, t.root_id(), &c);
+    return c;
+}
+
+/** emit+resize: YAML to the given std::string/std::vector-like container,
+ * resizing it as needed to fit the emitted YAML. */
+template<class CharOwningContainer>
+substr emitrs(NodeRef const& n, CharOwningContainer * cont)
+{
+    return emitrs(*n.tree(), n.id(), cont);
+}
+
+/** emit+resize: YAML to the given std::string/std::vector-like container,
+ * resizing it as needed to fit the emitted YAML. */
+template<class CharOwningContainer>
+CharOwningContainer emitrs(NodeRef const& n)
+{
+    CharOwningContainer c;
+    emitrs(*n.tree(), n.id(), &c);
+    return c;
 }
 
 } // namespace yml

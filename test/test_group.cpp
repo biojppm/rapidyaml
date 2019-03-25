@@ -1,4 +1,7 @@
 #include "./test_group.hpp"
+#include "c4/yml/detail/print.hpp"
+#include <c4/fs/fs.hpp>
+#include <fstream>
 
 #if defined(_MSC_VER)
 #   pragma warning(push)
@@ -80,7 +83,7 @@ TEST_P(YmlTestCase, parse_using_ryml)
     parse(d->src, &d->parsed_tree);
     {
         SCOPED_TRACE("checking tree invariants of unresolved parsed tree");
-        check_invariants(d->parsed_tree);
+        test_invariants(d->parsed_tree);
     }
 #ifdef RYML_DBG
     print_tree(c->root);
@@ -88,7 +91,7 @@ TEST_P(YmlTestCase, parse_using_ryml)
 #endif
     {
         SCOPED_TRACE("checking node invariants of unresolved parsed tree");
-        check_invariants(d->parsed_tree.rootref());
+        test_invariants(d->parsed_tree.rootref());
     }
 
     if(c->flags & RESOLVE_REFS)
@@ -100,11 +103,11 @@ TEST_P(YmlTestCase, parse_using_ryml)
 #endif
         {
             SCOPED_TRACE("checking tree invariants of resolved parsed tree");
-            check_invariants(d->parsed_tree);
+            test_invariants(d->parsed_tree);
         }
         {
             SCOPED_TRACE("checking node invariants of resolved parsed tree");
-            check_invariants(d->parsed_tree.rootref());
+            test_invariants(d->parsed_tree.rootref());
         }
     }
 
@@ -113,6 +116,30 @@ TEST_P(YmlTestCase, parse_using_ryml)
         EXPECT_GE(d->parsed_tree.capacity(), c->root.reccount());
         EXPECT_EQ(d->parsed_tree.size(), c->root.reccount());
         c->root.compare(d->parsed_tree.rootref());
+    }
+
+    if(c->flags & RESOLVE_REFS)
+    {
+        d->parsed_tree.reorder();
+#ifdef RYML_DBG
+        std::cout << "reordered tree!!!\n";
+        print_tree(d->parsed_tree);
+#endif
+        {
+            SCOPED_TRACE("checking tree invariants of reordered parsed tree after resolving");
+            test_invariants(d->parsed_tree);
+        }
+        {
+            SCOPED_TRACE("checking node invariants of reordered parsed tree after resolving");
+            test_invariants(d->parsed_tree.rootref());
+        }
+
+        {
+            SCOPED_TRACE("comparing parsed tree to ref tree");
+            EXPECT_GE(d->parsed_tree.capacity(), c->root.reccount());
+            EXPECT_EQ(d->parsed_tree.size(), c->root.reccount());
+            c->root.compare(d->parsed_tree.rootref());
+        }
     }
 }
 
@@ -123,9 +150,60 @@ TEST_P(YmlTestCase, emit_yml_stdout)
 }
 
 //-----------------------------------------------------------------------------
+TEST_P(YmlTestCase, emit_yml_cout)
+{
+    std::cout << d->parsed_tree;
+}
+
+//-----------------------------------------------------------------------------
+TEST_P(YmlTestCase, emit_yml_stringstream)
+{
+    std::string s;
+    std::vector<char> v;
+    csubstr sv = emitrs(d->parsed_tree, &v);
+
+    {
+        std::stringstream ss;
+        ss << d->parsed_tree;
+        s = ss.str();
+        EXPECT_EQ(sv, s);
+    }
+
+    {
+        std::stringstream ss;
+        ss << d->parsed_tree.rootref();
+        s = ss.str();
+
+        csubstr sv = emitrs(d->parsed_tree, &v);
+        EXPECT_EQ(sv, s);
+    }
+}
+
+//-----------------------------------------------------------------------------
+TEST_P(YmlTestCase, emit_ofstream)
+{
+    auto s = emitrs<std::string>(d->parsed_tree);
+    auto fn = c4::fs::tmpnam<std::string>();
+    {
+        std::ofstream f(fn);
+        f << d->parsed_tree;
+    }
+    auto r = c4::fs::file_get_contents<std::string>(fn.c_str());
+    c4::fs::delete_file(fn.c_str());
+    // using ofstream will use \r\n. So delete it.
+    std::string filtered;
+    filtered.reserve(r.size());
+    for(auto c : r)
+    {
+        if(c != '\r') filtered += c;
+    }
+    EXPECT_EQ(s, filtered);
+}
+
+//-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, emit_yml_string)
 {
-    auto em = emit_resize(d->parsed_tree, &d->emit_buf);
+    auto em = emitrs(d->parsed_tree, &d->emit_buf);
     EXPECT_EQ(em.len, d->emit_buf.size());
     EXPECT_EQ(em.len, d->numbytes_stdout);
     d->emitted_yml = em;
@@ -133,6 +211,35 @@ TEST_P(YmlTestCase, emit_yml_string)
 #ifdef RYML_DBG
     std::cout << em;
 #endif
+}
+
+//-----------------------------------------------------------------------------
+TEST_P(YmlTestCase, emitrs)
+{
+    using vtype = std::vector<char>;
+    using stype = std::string;
+
+    vtype vv, v = emitrs<vtype>(d->parsed_tree);
+    stype ss, s = emitrs<stype>(d->parsed_tree);
+    EXPECT_EQ(to_csubstr(v), to_csubstr(s));
+
+    csubstr svv = emitrs(d->parsed_tree, &vv);
+    csubstr sss = emitrs(d->parsed_tree, &ss);
+    EXPECT_EQ(svv, sss);
+}
+
+//-----------------------------------------------------------------------------
+TEST_P(YmlTestCase, emitrs_cfile)
+{
+    auto s = emitrs<std::string>(d->parsed_tree);
+    std::string r;
+    {
+        c4::fs::ScopedTmpFile f;
+        emit(d->parsed_tree, f.m_file);
+        fflush(f.m_file);
+        r = f.contents<std::string>();
+    }
+    EXPECT_EQ(s, r);
 }
 
 //-----------------------------------------------------------------------------
@@ -144,7 +251,7 @@ TEST_P(YmlTestCase, complete_round_trip)
     }
     if(d->emit_buf.empty())
     {
-        d->emitted_yml = emit_resize(d->parsed_tree, &d->emit_buf);
+        d->emitted_yml = emitrs(d->parsed_tree, &d->emit_buf);
     }
 
 #ifdef RYML_DBG
@@ -164,12 +271,12 @@ TEST_P(YmlTestCase, complete_round_trip)
 
     {
         SCOPED_TRACE("checking node invariants of parsed tree");
-        check_invariants(d->emitted_tree.rootref());
+        test_invariants(d->emitted_tree.rootref());
     }
 
     {
         SCOPED_TRACE("checking tree invariants of parsed tree");
-        check_invariants(d->emitted_tree);
+        test_invariants(d->emitted_tree);
     }
 
     {
@@ -189,7 +296,7 @@ TEST_P(YmlTestCase, recreate_from_ref)
     }
     if(d->emit_buf.empty())
     {
-        d->emitted_yml = emit_resize(d->parsed_tree, &d->emit_buf);
+        d->emitted_yml = emitrs(d->parsed_tree, &d->emit_buf);
     }
 
     {
@@ -201,12 +308,12 @@ TEST_P(YmlTestCase, recreate_from_ref)
 
     {
         SCOPED_TRACE("checking node invariants of recreated tree");
-        check_invariants(d->recreated.rootref());
+        test_invariants(d->recreated.rootref());
     }
 
     {
         SCOPED_TRACE("checking tree invariants of recreated tree");
-        check_invariants(d->recreated);
+        test_invariants(d->recreated);
     }
 
     {

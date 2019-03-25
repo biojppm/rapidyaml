@@ -23,26 +23,83 @@ class NodeData;
 class NodeRef;
 class Tree;
 
-typedef enum {
-    NOTYPE  = 0,          ///< no type is set
-    VAL     = (1<<0),     ///< a leaf node, has a (possibly empty) value
-    KEY     = (1<<1),     ///< is member of a map, must have non-empty key
-    MAP     = (1<<2),     ///< a map: a parent of keyvals
-    SEQ     = (1<<3),     ///< a seq: a parent of vals
-    DOC     = (1<<4),     ///< a document
-    STREAM  = (1<<5)|SEQ, ///< a stream: a seq of docs
-    KEYREF  = (1<<6),     ///< a *reference: the key references an &anchor
-    VALREF  = (1<<7),     ///< a *reference: the val references an &anchor
-    KEYANCH = (1<<8),     ///< the key has an &anchor
-    VALANCH = (1<<9),     ///< the val has an &anchor
-    _TYMASK = (1<<10)-1,
-    KEYTAG  = (1<<10),    ///< the key has an explicit tag/type
-    VALTAG  = (1<<11),    ///< the val has an explicit tag/type
+
+/** the integer necessary to cover all the bits marking node types */
+using type_bits = uint64_t;
+
+
+/** the regular bytes for */
+typedef enum : type_bits {
+
+// a convenience define, undefined below
+#define c4bit(v) type_bits(type_bits(1) << v)
+
+    NOTYPE  = 0,            ///< no node type is set
+    VAL     = c4bit(0),     ///< a leaf node, has a (possibly empty) value
+    KEY     = c4bit(1),     ///< is member of a map, must have non-empty key
+    MAP     = c4bit(2),     ///< a map: a parent of keyvals
+    SEQ     = c4bit(3),     ///< a seq: a parent of vals
+    DOC     = c4bit(4),     ///< a document
+    STREAM  = c4bit(5)|SEQ, ///< a stream: a seq of docs
+    KEYREF  = c4bit(6),     ///< a *reference: the key references an &anchor
+    VALREF  = c4bit(7),     ///< a *reference: the val references an &anchor
+    KEYANCH = c4bit(8),     ///< the key has an &anchor
+    VALANCH = c4bit(9),     ///< the val has an &anchor
+    _TYMASK = c4bit(10)-1,
+    KEYTAG  = c4bit(10),    ///< the key has an explicit tag/type
+    VALTAG  = c4bit(11),    ///< the val has an explicit tag/type
     KEYVAL  = KEY|VAL,
     KEYSEQ  = KEY|SEQ,
     KEYMAP  = KEY|MAP,
     DOCMAP  = DOC|MAP,
     DOCSEQ  = DOC|SEQ,
+
+#ifdef C4_WORK_IN_PROGRESS_
+    // https://yaml.org/type/
+    _NUM_TAG_TYPES = 15,
+    _KTAG_SHIFT = type_bits(12),
+    _VTAG_SHIFT = type_bits(_KTAG_SHIFT + _NUM_TAG_TYPES),
+    _TAG_END_SHIFT = type_bits(_VTAG_SHIFT + _NUM_TAG_TYPES + 1), // the first non-tagtype bit after 
+    _KVTAG_MASK = (~(c4bit(_KTAG_SHIFT)-1))/*zeros to the left of tagtype bits */
+                  & (c4bit(_TAG_END_SHIFT)-1)/*ones until the end of tagtype bits*/,
+    // key: collection types
+    KTAG_MAP    = c4bit( 0+_KTAG_SHIFT), /**< !!map   Unordered set of key: value pairs without duplicates. @see https://yaml.org/type/map.html */
+    KTAG_OMAP   = c4bit( 1+_KTAG_SHIFT), /**< !!omap  Ordered sequence of key: value pairs without duplicates. @see https://yaml.org/type/omap.html */
+    KTAG_PAIRS  = c4bit( 2+_KTAG_SHIFT), /**< !!pairs Ordered sequence of key: value pairs allowing duplicates. @see https://yaml.org/type/pairs.html */
+    KTAG_SET    = c4bit( 3+_KTAG_SHIFT), /**< !!set   Unordered set of non-equal values. @see https://yaml.org/type/set.html */
+    KTAG_SEQ    = c4bit( 4+_KTAG_SHIFT), /**< !!set   Sequence of arbitrary values. @see https://yaml.org/type/seq.html */
+    // key: scalar types
+    KTAG_BINARY = c4bit( 5+_KTAG_SHIFT), /**< !!binary A sequence of zero or more octets (8 bit values). @see https://yaml.org/type/binary.html */
+    KTAG_BOOL   = c4bit( 6+_KTAG_SHIFT), /**< !!bool   Mathematical Booleans. @see https://yaml.org/type/bool.html */
+    KTAG_FLOAT  = c4bit( 7+_KTAG_SHIFT), /**< !!float  Floating-point approximation to real numbers. https://yaml.org/type/float.html */
+    KTAG_INT    = c4bit( 8+_KTAG_SHIFT), /**< !!float  Mathematical integers. https://yaml.org/type/int.html */
+    KTAG_MERGE  = c4bit( 9+_KTAG_SHIFT), /**< !!merge  Specify one or more mapping to be merged with the current one. https://yaml.org/type/merge.html */
+    KTAG_NULL   = c4bit(10+_KTAG_SHIFT), /**< !!null   Devoid of value. https://yaml.org/type/null.html */
+    KTAG_STR    = c4bit(11+_KTAG_SHIFT), /**< !!str    A sequence of zero or more Unicode characters. https://yaml.org/type/str.html */
+    KTAG_TIME   = c4bit(12+_KTAG_SHIFT), /**< !!timestamp A point in time https://yaml.org/type/timestamp.html */
+    KTAG_VALUE  = c4bit(13+_KTAG_SHIFT), /**< !!value  Specify the default value of a mapping https://yaml.org/type/value.html */
+    KTAG_YAML   = c4bit(14+_KTAG_SHIFT), /**< !!yaml   Specify the default value of a mapping https://yaml.org/type/yaml.html */
+    // key: collection types
+    VTAG_MAP    = c4bit( 0+_VTAG_SHIFT), /**< !!map   Unordered set of key: value pairs without duplicates. @see https://yaml.org/type/map.html */
+    VTAG_OMAP   = c4bit( 1+_VTAG_SHIFT), /**< !!omap  Ordered sequence of key: value pairs without duplicates. @see https://yaml.org/type/omap.html */
+    VTAG_PAIRS  = c4bit( 2+_VTAG_SHIFT), /**< !!pairs Ordered sequence of key: value pairs allowing duplicates. @see https://yaml.org/type/pairs.html */
+    VTAG_SET    = c4bit( 3+_VTAG_SHIFT), /**< !!set   Unordered set of non-equal values. @see https://yaml.org/type/set.html */
+    VTAG_SEQ    = c4bit( 4+_VTAG_SHIFT), /**< !!set   Sequence of arbitrary values. @see https://yaml.org/type/seq.html */
+    // key: scalar types
+    VTAG_BINARY = c4bit( 5+_VTAG_SHIFT), /**< !!binary A sequence of zero or more octets (8 bit values). @see https://yaml.org/type/binary.html */
+    VTAG_BOOL   = c4bit( 6+_VTAG_SHIFT), /**< !!bool   Mathematical Booleans. @see https://yaml.org/type/bool.html */
+    VTAG_FLOAT  = c4bit( 7+_VTAG_SHIFT), /**< !!float  Floating-point approximation to real numbers. https://yaml.org/type/float.html */
+    VTAG_INT    = c4bit( 8+_VTAG_SHIFT), /**< !!float  Mathematical integers. https://yaml.org/type/int.html */
+    VTAG_MERGE  = c4bit( 9+_VTAG_SHIFT), /**< !!merge  Specify one or more mapping to be merged with the current one. https://yaml.org/type/merge.html */
+    VTAG_NULL   = c4bit(10+_VTAG_SHIFT), /**< !!null   Devoid of value. https://yaml.org/type/null.html */
+    VTAG_STR    = c4bit(11+_VTAG_SHIFT), /**< !!str    A sequence of zero or more Unicode characters. https://yaml.org/type/str.html */
+    VTAG_TIME   = c4bit(12+_VTAG_SHIFT), /**< !!timestamp A point in time https://yaml.org/type/timestamp.html */
+    VTAG_VALUE  = c4bit(13+_VTAG_SHIFT), /**< !!value  Specify the default value of a mapping https://yaml.org/type/value.html */
+    VTAG_YAML   = c4bit(14+_VTAG_SHIFT), /**< !!yaml   Specify the default value of a mapping https://yaml.org/type/yaml.html */
+#endif // C4_WORK_IN_PROGRESS_
+
+#undef c4bit
+
 } NodeType_e;
 
 
@@ -59,24 +116,24 @@ public:
 
 public:
 
-    inline operator NodeType_e      & ()       { return type; }
-    inline operator NodeType_e const& () const { return type; }
+    inline operator NodeType_e      & C4_RESTRICT ()       { return type; }
+    inline operator NodeType_e const& C4_RESTRICT () const { return type; }
 
     NodeType() : type(NOTYPE) {}
-    NodeType(int t) : type((NodeType_e)t) {}
     NodeType(NodeType_e t) : type(t) {}
+    NodeType(type_bits t) : type((NodeType_e)t) {}
 
     const char *type_str() const { return type_str(type); }
     static const char* type_str(NodeType_e t);
 
-    void set(NodeType_e t) { type = (NodeType_e)t; }
-    void set(int t) { type = (NodeType_e)t; }
+    void set(NodeType_e t) { type = t; }
+    void set(type_bits  t) { type = (NodeType_e)t; }
 
     void add(NodeType_e t) { type = (NodeType_e)(type|t); }
-    void add(int t) { type = (NodeType_e)(type|t); }
+    void add(type_bits  t) { type = (NodeType_e)(type|t); }
 
     void rem(NodeType_e t) { type = (NodeType_e)(type & ~t); }
-    void rem(int t) { type = (NodeType_e)(type & ~t); }
+    void rem(type_bits  t) { type = (NodeType_e)(type & ~t); }
 
 public:
 
@@ -112,24 +169,30 @@ struct NodeScalar
     csubstr scalar;
     csubstr anchor;
 
-    ~NodeScalar() = default;
-    NodeScalar(NodeScalar &&) = default;
-    NodeScalar(NodeScalar const&) = default;
-    NodeScalar& operator= (NodeScalar &&) = default;
-    NodeScalar& operator= (NodeScalar const&) = default;
+public:
 
     /// initialize as an empty scalar
     inline NodeScalar() noexcept : tag(), scalar(), anchor() {}
 
     /// initialize as an untagged scalar
-    inline NodeScalar(csubstr s) noexcept : tag(), scalar(s), anchor() {}
     template<size_t N>
     inline NodeScalar(const char (&s)[N]) noexcept : tag(), scalar(s), anchor() {}
+    inline NodeScalar(csubstr      s    ) noexcept : tag(), scalar(s), anchor() {}
 
     /// initialize as a tagged scalar
-    inline NodeScalar(csubstr t, csubstr s) noexcept : tag(t), scalar(s), anchor() {}
     template<size_t N, size_t M>
     inline NodeScalar(const char (&t)[N], const char (&s)[N]) noexcept : tag(t), scalar(s), anchor() {}
+    inline NodeScalar(csubstr      t    , csubstr      s    ) noexcept : tag(t), scalar(s), anchor() {}
+
+public:
+
+    ~NodeScalar() noexcept = default;
+    NodeScalar(NodeScalar &&) noexcept = default;
+    NodeScalar(NodeScalar const&) noexcept = default;
+    NodeScalar& operator= (NodeScalar &&) noexcept = default;
+    NodeScalar& operator= (NodeScalar const&) noexcept = default;
+
+public:
 
     bool empty() const noexcept { return tag.empty() && scalar.empty() && anchor.empty(); }
 
@@ -173,7 +236,7 @@ public:
         memset(this, 0, sizeof(*this));
     }
 
-    void _add_flags(int more_flags=0)
+    void _add_flags(type_bits more_flags=0)
     {
         type = (type|more_flags);
         if( ! key.tag.empty()) type = (type|KEYTAG);
@@ -271,23 +334,6 @@ public:
 
 class Tree
 {
-private:
-
-    NodeData * m_buf;
-    size_t m_cap;
-
-    size_t m_size;
-
-    size_t m_free_head;
-    size_t m_free_tail;
-
-    substr m_arena;
-    size_t m_arena_pos;
-
-    Allocator m_alloc;
-
-    friend void check_invariants(Tree const&);
-
 public:
 
     Tree(Allocator const& cb);
@@ -470,14 +516,14 @@ public:
 
 public:
 
-    void to_keyval(size_t node, csubstr const& key, csubstr const& val, int more_flags=0);
-    void to_map(size_t node, csubstr const& key, int more_flags=0);
-    void to_seq(size_t node, csubstr const& key, int more_flags=0);
-    void to_val(size_t node, csubstr const& val, int more_flags=0);
-    void to_stream(size_t node, int more_flags=0);
-    void to_map(size_t node, int more_flags=0);
-    void to_seq(size_t node, int more_flags=0);
-    void to_doc(size_t node, int more_flags=0);
+    void to_keyval(size_t node, csubstr const& key, csubstr const& val, type_bits more_flags=0);
+    void to_map(size_t node, csubstr const& key, type_bits more_flags=0);
+    void to_seq(size_t node, csubstr const& key, type_bits more_flags=0);
+    void to_val(size_t node, csubstr const& val, type_bits more_flags=0);
+    void to_stream(size_t node, type_bits more_flags=0);
+    void to_map(size_t node, type_bits more_flags=0);
+    void to_seq(size_t node, type_bits more_flags=0);
+    void to_doc(size_t node, type_bits more_flags=0);
 
     void set_key_tag(size_t node, csubstr const& tag) { C4_ASSERT(has_key(node)); _p(node)->m_key.tag = tag; _add_flags(node, KEYTAG); }
     void set_val_tag(size_t node, csubstr const& tag) { C4_ASSERT(has_val(node) || is_container(node)); _p(node)->m_val.tag = tag; _add_flags(node, VALTAG); }
@@ -548,24 +594,37 @@ public:
     }
 
 public:
+    
+    /** reorder the tree in memory so that all the nodes are stored
+     * in a linear sequence when visited in depth-first order */
+    void reorder();
 
     /** change the node's position in the parent */
     void move(size_t node, size_t after);
 
     /** change the node's parent and position */
-    void   move(size_t node, size_t new_parent, size_t after);
-    /** change the node's parent and position */
+    void move(size_t node, size_t new_parent, size_t after);
+
+    /** change the node's parent and position to a different tree
+     * @return the index of the new node in the destination tree */
     size_t move(Tree * src, size_t node, size_t new_parent, size_t after);
 
-    /** recursively duplicate the node */
+public:
+
+    /** recursively duplicate the node
+     * @return the index of the copy */
     size_t duplicate(size_t node, size_t new_parent, size_t after);
-    /** recursively duplicate a node from a different tree */
+    /** recursively duplicate a node from a different tree
+     * @return the index of the copy */
     size_t duplicate(Tree const* src, size_t node, size_t new_parent, size_t after);
 
-    /** recursively duplicate the node's children (but not the node) */
-    void duplicate_children(size_t node, size_t parent, size_t after);
-    /** recursively duplicate the node's children (but not the node), where the node is from a different tree */
-    void duplicate_children(Tree const* src, size_t node, size_t parent, size_t after);
+    /** recursively duplicate the node's children (but not the node)
+     * @return the index of the last duplicated child */
+    size_t duplicate_children(size_t node, size_t parent, size_t after);
+    /** recursively duplicate the node's children (but not the node), where
+     * the node is from a different tree
+     * @return the index of the last duplicated child */
+    size_t duplicate_children(Tree const* src, size_t node, size_t parent, size_t after);
 
     void duplicate_contents(size_t node, size_t where);
 
@@ -574,14 +633,14 @@ public:
      * value (in seqs). If one of the duplicated children has the same key
      * (in maps) or value (in seqs) as one of the parent's children, the one
      * that is placed closest to the end will prevail. */
-    void duplicate_children_no_rep(size_t node, size_t parent, size_t after);
+    size_t duplicate_children_no_rep(size_t node, size_t parent, size_t after);
 
 public:
 
     substr arena() const { return m_arena.range(0, m_arena_pos); }
     size_t arena_pos() const { return m_arena_pos; }
 
-    template< class T >
+    template<class T>
     csubstr to_arena(T const& a)
     {
         substr rem(m_arena.sub(m_arena_pos));
@@ -596,7 +655,7 @@ public:
         return rem;
     }
 
-    bool in_arena(csubstr      s  ) const
+    bool in_arena(csubstr s) const
     {
         return m_arena.contains(s);
     }
@@ -658,33 +717,33 @@ private:
 public:
 
     inline void _add_flags(size_t node, NodeType_e f) { _p(node)->m_type = (f | _p(node)->m_type); }
-    inline void _add_flags(size_t node, int        f) { _p(node)->m_type = (f | _p(node)->m_type); }
+    inline void _add_flags(size_t node, type_bits  f) { _p(node)->m_type = (f | _p(node)->m_type); }
 
     inline void _rem_flags(size_t node, NodeType_e f) { _p(node)->m_type = ((~f) & _p(node)->m_type); }
-    inline void _rem_flags(size_t node, int        f) { _p(node)->m_type = ((~f) & _p(node)->m_type); }
+    inline void _rem_flags(size_t node, type_bits  f) { _p(node)->m_type = ((~f) & _p(node)->m_type); }
 
     inline void _set_flags(size_t node, NodeType_e f) { _p(node)->m_type = f; }
-    inline void _set_flags(size_t node, int        f) { _p(node)->m_type = f; }
+    inline void _set_flags(size_t node, type_bits  f) { _p(node)->m_type = f; }
 
-    void _set_key(size_t node, csubstr const& key, int more_flags=0)
+    void _set_key(size_t node, csubstr const& key, type_bits more_flags=0)
     {
         _p(node)->m_key.scalar = key;
         _add_flags(node, KEY|more_flags);
     }
-    void _set_key(size_t node, NodeScalar const& key, int more_flags=0)
+    void _set_key(size_t node, NodeScalar const& key, type_bits more_flags=0)
     {
         _p(node)->m_key = key;
         _add_flags(node, KEY|more_flags);
     }
 
-    void _set_val(size_t node, csubstr const& val, int more_flags=0)
+    void _set_val(size_t node, csubstr const& val, type_bits more_flags=0)
     {
         C4_ASSERT(num_children(node) == 0);
         C4_ASSERT( ! is_container(node));
         _p(node)->m_val.scalar = val;
         _add_flags(node, VAL|more_flags);
     }
-    void _set_val(size_t node, NodeScalar const& val, int more_flags=0)
+    void _set_val(size_t node, NodeScalar const& val, type_bits more_flags=0)
     {
         C4_ASSERT(num_children(node) == 0);
         C4_ASSERT( ! is_container(node));
@@ -747,36 +806,50 @@ public:
         n->m_type.add(MAP);
     }
 
-    void _copy_props(size_t node, size_t that_node)
+    size_t _do_reorder(size_t *node, size_t count);
+
+    void _swap(size_t n_, size_t m_);
+    void _swap_props(size_t n_, size_t m_);
+    void _swap_hierarchy(size_t n_, size_t m_);
+    void _copy_hierarchy(size_t dst_, size_t src_);
+
+    void _copy_props(size_t dst_, size_t src_)
     {
-        _p(node)->m_key = _p(that_node)->m_key;
-        _copy_props_wo_key(node, that_node);
+        auto      & C4_RESTRICT dst = *_p(dst_);
+        auto const& C4_RESTRICT src = *_p(src_);
+        dst.m_type = src.m_type;
+        dst.m_key  = src.m_key;
+        dst.m_val  = src.m_val;
     }
 
-    void _copy_props(size_t node, Tree const* that_tree, size_t that_node)
+    void _copy_props_wo_key(size_t dst_, size_t src_)
     {
-        _p(node)->m_key = that_tree->_p(that_node)->m_key;
-        _copy_props_wo_key(node, that_tree, that_node);
+        auto      & C4_RESTRICT dst = *_p(dst_);
+        auto const& C4_RESTRICT src = *_p(src_);
+        dst.m_type = src.m_type;
+        dst.m_val  = src.m_val;
     }
 
-    void _copy_props_wo_key(size_t node, size_t that_node)
+    void _copy_props(size_t dst_, Tree const* that_tree, size_t src_)
     {
-        auto *n = _p(node), *t = _p(that_node);
-        n->m_type = t->m_type;
-        n->m_val = t->m_val;
+        auto      & C4_RESTRICT dst = *_p(dst_);
+        auto const& C4_RESTRICT src = *that_tree->_p(src_);
+        dst.m_type = src.m_type;
+        dst.m_key  = src.m_key;
+        dst.m_val  = src.m_val;
     }
 
-    void _copy_props_wo_key(size_t node, Tree const* that_tree, size_t that_node)
+    void _copy_props_wo_key(size_t dst_, Tree const* that_tree, size_t src_)
     {
-        auto      * n = _p(node);
-        auto const* t = that_tree->_p(that_node);
-        n->m_type = t->m_type;
-        n->m_val = t->m_val;
+        auto      & C4_RESTRICT dst = *_p(dst_);
+        auto const& C4_RESTRICT src = *that_tree->_p(src_);
+        dst.m_type = src.m_type;
+        dst.m_val  = src.m_val;
     }
 
     inline void _clear(size_t node)
     {
-        auto *n = _p(node);
+        auto *C4_RESTRICT n = _p(node);
         n->m_type = NOTYPE;
         n->m_key.clear();
         n->m_val.clear();
@@ -804,9 +877,28 @@ private:
     size_t _claim();
     void   _claim_root();
     void   _release(size_t node);
+    void   _free_list_add(size_t node);
+    void   _free_list_rem(size_t node);
 
     void _set_hierarchy(size_t node, size_t parent, size_t after_sibling);
     void _rem_hierarchy(size_t node);
+
+public:
+
+    // members are exposed, but you should NOT access them
+
+    NodeData * m_buf;
+    size_t m_cap;
+
+    size_t m_size;
+
+    size_t m_free_head;
+    size_t m_free_tail;
+
+    substr m_arena;
+    size_t m_arena_pos;
+
+    Allocator m_alloc;
 
 };
 

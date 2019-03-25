@@ -2,6 +2,7 @@
 #include "c4/yml/parse.hpp"
 #include "c4/yml/emit.hpp"
 #include <c4/format.hpp>
+#include <c4/yml/detail/checks.hpp>
 
 #include "./test_case.hpp"
 
@@ -88,7 +89,7 @@ void do_test_serialize(Args&& ...args)
     n << s;
     //print_tree(t);
     emit(t);
-    check_invariants(t);
+    c4::yml::check_invariants(t);
     n >> out;
     EXPECT_EQ(s, out);
 }
@@ -689,7 +690,7 @@ TEST(NodeRef, 0_general)
 
 void noderef_check_tree(NodeRef const& root)
 {
-    check_invariants(*root.tree());
+    test_invariants(*root.tree());
 
     EXPECT_EQ(root.tree()->size(), 7u);
     EXPECT_EQ(root.num_children(), 6u);
@@ -837,9 +838,9 @@ TEST(NodeRef, 5_move_in_same_parent)
     //printf("fonix"); print_tree(t); emit(r);
     r[0].move(r[1]);
     //printf("fonix"); print_tree(t); emit(r);
-    EXPECT_EQ(r[0], m);
+    EXPECT_EQ(r[0].get(), m.get());
     EXPECT_EQ(r[0].num_children(), map2.size());
-    EXPECT_EQ(r[1], s);
+    EXPECT_EQ(r[1].get(), s.get());
     EXPECT_EQ(r[1].num_children(), vec2.size());
 }
 
@@ -954,7 +955,7 @@ TEST(general, emitting)
     //print_tree(tree);
 
     // emit to stdout (can also emit to FILE* or ryml::span)
-    emit_resize(tree, &cmpbuf);
+    emitrs(tree, &cmpbuf);
     const char* exp = R"(foo: 1
 seq:
   - bar0
@@ -977,7 +978,7 @@ seq:
         // serialized to the tree's internal string arena
     }
 
-    emit_resize(tree, &cmpbuf);
+    emitrs(tree, &cmpbuf);
     exp = R"(foo: 1
 seq:
   - bar0
@@ -993,7 +994,7 @@ seq:
     int k=66;
     r.append_child() << key(k) << 7;
 
-    emit_resize(tree, &cmpbuf);
+    emitrs(tree, &cmpbuf);
     exp = R"(foo: 1
 seq:
   - bar0
@@ -1014,7 +1015,7 @@ TEST(general, map_to_root)
     Tree t;
     t.rootref() << m;
 
-    emit_resize(t, &cmpbuf);
+    emitrs(t, &cmpbuf);
     exp = R"(bar: 2
 foo: 1
 )";

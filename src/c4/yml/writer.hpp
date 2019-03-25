@@ -44,7 +44,7 @@ struct WriterFile
         if(sp.empty()) return;
         if(m_file)
         {
-            fwrite(sp.str, sp.len, 1, m_file);
+            fwrite(sp.str, 1, sp.len, m_file);
         }
         m_pos += sp.len;
     }
@@ -65,6 +65,51 @@ struct WriterFile
         m_pos += rc.num_times;
     }
 };
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+/** A writer that outputs to an STL-like ostream. */
+template<class OStream>
+struct WriterOStream
+{
+    OStream& m_stream;
+    size_t   m_pos;
+
+    WriterOStream(OStream &s) : m_stream(s), m_pos(0) {}
+
+    inline substr _get(bool /*error_on_excess*/)
+    {
+        substr sp;
+        sp.str = nullptr;
+        sp.len = m_pos;
+        return sp;
+    }
+
+    inline void _do_write(csubstr sp)
+    {
+        if(sp.empty()) return;
+        m_stream.write(sp.str, sp.len);
+        m_pos += sp.len;
+    }
+
+    inline void _do_write(const char c)
+    {
+        m_stream.put(c);
+        ++m_pos;
+    }
+
+    inline void _do_write(RepC const rc)
+    {
+        for(size_t i = 0; i < rc.num_times; ++i)
+        {
+            m_stream.put(rc.c);
+        }
+        m_pos += rc.num_times;
+    }
+};
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -97,6 +142,7 @@ struct WriterBuf
     inline void _do_write(csubstr sp)
     {
         if(sp.empty()) return;
+        C4_ASSERT( ! sp.overlaps(m_buf));
         if(m_pos + sp.len <= m_buf.len)
         {
             memcpy(&(m_buf[m_pos]), sp.str, sp.len);

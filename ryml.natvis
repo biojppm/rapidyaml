@@ -2,6 +2,7 @@
 
 <!--
 Very good intro:
+@see https://docs.microsoft.com/en-us/visualstudio/debugger/create-custom-views-of-native-objects?view=vs-2017
 @see https://code.msdn.microsoft.com/windowsdesktop/Writing-type-visualizers-2eae77a2
 See also:
 @see http://blogs.msdn.com/b/vcblog/archive/2013/06/28/using-visual-studio-2013-to-write-maintainable-native-visualizations-natvis.aspx?PageIndex=2

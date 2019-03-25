@@ -101,14 +101,96 @@ TEST(CaseNode, anchors)
     "simple anchor 1, implicit, resolved",\
     "simple anchor 1, explicit, unresolved",\
     "simple anchor 1, explicit, resolved",\
-    "anchor example 2, unresolved",   \
+    "anchor example 2, unresolved",\
     "anchor example 2, resolved",\
-    "anchor example 3, unresolved",   \
-    "anchor example 3, resolved"
+    "anchor example 3, unresolved",\
+    "anchor example 3, resolved",\
+    "merge example, unresolved",\
+    "merge example, resolved"
 
 CASE_GROUP(SIMPLE_ANCHOR)
 {
     APPEND_CASES(
+
+C("merge example, unresolved",
+R"(# https://yaml.org/type/merge.html
+- &CENTER { x: 1, y: 2 }
+- &LEFT { x: 0, y: 2 }
+- &BIG { r: 10 }
+- &SMALL { r: 1 }
+
+# All the following maps are equal:
+
+- # Explicit keys
+  x: 1
+  y: 2
+  r: 10
+  label: center/big
+
+- # Merge one map
+  << : *CENTER
+  r: 10
+  label: center/big
+
+- # Merge multiple maps
+  << : [ *CENTER, *BIG ]
+  label: center/big
+
+- # Override
+  << : [ *BIG, *LEFT, *SMALL ]
+  x: 1
+  label: center/big
+)",
+L{
+    N(L{N("x", "1" ), N("y", "2")}, AR(VALANCH, "CENTER")),
+    N(L{N("x", "0" ), N("y", "2")}, AR(VALANCH, "LEFT"  )),
+    N(L{N("r", "10")             }, AR(VALANCH, "BIG"   )),
+    N(L{N("r", "1" )             }, AR(VALANCH, "SMALL" )),
+    N(L{N("x", "1" ), N("y", "2"), N("r", "10"), N("label", "center/big")}),
+    N(L{N("<<", "*CENTER", AR(VALREF, "*CENTER")), N("r", "10"), N("label", "center/big")}),
+    N(L{N("<<", L{N("*CENTER", AR(VALREF, "*CENTER")), N("*BIG", AR(VALREF, "*BIG"))}), N("label", "center/big")}),
+    N(L{N("<<", L{N("*BIG", AR(VALREF, "*BIG")), N("*LEFT", AR(VALREF, "*LEFT")), N("*SMALL", AR(VALREF, "*SMALL"))}), N("x", "1"), N("label", "center/big")}),
+}),
+
+C("merge example, resolved", RESOLVE_REFS,
+R"(# https://yaml.org/type/merge.html
+- &CENTER { x: 1, y: 2 }
+- &LEFT { x: 0, y: 2 }
+- &BIG { r: 10 }
+- &SMALL { r: 1 }
+
+# All the following maps are equal:
+
+- # Explicit keys
+  x: 1
+  y: 2
+  r: 10
+  label: center/big
+
+- # Merge one map
+  << : *CENTER
+  r: 10
+  label: center/big
+
+- # Merge multiple maps
+  << : [ *CENTER, *BIG ]
+  label: center/big
+
+- # Override
+  << : [ *SMALL, *LEFT, *BIG ]
+  x: 1
+  label: center/big
+)",
+L{
+    N(L{N("x", "1" ), N("y", "2")}),
+    N(L{N("x", "0" ), N("y", "2")}),
+    N(L{N("r", "10")             }),
+    N(L{N("r", "1" )             }),
+    N(L{N("x", "1" ), N("y", "2"), N("r", "10"), N("label", "center/big")}),
+    N(L{N("x", "1" ), N("y", "2"), N("r", "10"), N("label", "center/big")}),
+    N(L{N("x", "1" ), N("y", "2"), N("r", "10"), N("label", "center/big")}),
+    N(L{N("x", "1" ), N("y", "2"), N("r", "10"), N("label", "center/big")}),
+}),
 
 C("simple anchor 1, implicit, unresolved",
 R"(

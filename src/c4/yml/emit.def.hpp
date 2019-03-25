@@ -9,9 +9,9 @@ namespace c4 {
 namespace yml {
 
 template<class Writer>
-substr Emitter<Writer>::emit(NodeRef const& n, bool error_on_excess)
+substr Emitter<Writer>::emit(Tree const& t, size_t id, bool error_on_excess)
 {
-    this->_visit(n);
+    this->_visit(t, id);
     substr result = this->Writer::_get(error_on_excess);
     return result;
 }
@@ -29,14 +29,14 @@ void Emitter<Writer>::seek(size_t p)
 }
 
 template<class Writer>
-size_t Emitter<Writer>::_visit(NodeRef const& n, size_t ilevel)
+size_t Emitter<Writer>::_visit(Tree const& t, size_t id, size_t ilevel)
 {
-    if(n.is_stream())
+    if(t.is_stream(id))
     {
         ;
     }
-    _do_visit(n, ilevel);
-    if(n.is_stream())
+    _do_visit(t, id, ilevel);
+    if(t.is_stream(id))
     {
         _write("...\n");
     }
@@ -45,129 +45,155 @@ size_t Emitter<Writer>::_visit(NodeRef const& n, size_t ilevel)
 
 /** @todo this function is too complex. break it down into manageable pieces */
 template<class Writer>
-void Emitter<Writer>::_do_visit(NodeRef const& n, size_t ilevel, bool indent)
+void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, bool indent)
 {
     RepC ind{' ', 2 * size_t(indent) * ilevel};
 
-    if(n.is_doc())
+    if(t.is_doc(id))
     {
         _write("---\n");
     }
-    else if(n.is_keyval())
+    else if(t.is_keyval(id))
     {
-        C4_ASSERT(n.has_parent());
-        _write(ind); _writek(n); _write(": "); _writev(n); _write('\n');
+        C4_ASSERT(t.has_parent(id));
+        _write(ind); _writek(t, id); _write(": "); _writev(t, id); _write('\n');
     }
-    else if(n.is_val())
+    else if(t.is_val(id))
     {
-        C4_ASSERT(n.has_parent());
-        _write(ind); _write("- "); _writev(n); _write('\n');
+        C4_ASSERT(t.has_parent(id));
+        _write(ind); _write("- "); _writev(t, id); _write('\n');
     }
-    else if(n.is_container() && ! n.is_root())
+    else if(t.is_container(id))
     {
-        C4_ASSERT(n.parent_is_map() || n.parent_is_seq());
-        C4_ASSERT(n.is_map() || n.is_seq());
+        if(C4_LIKELY( ! t.is_root(id)))
+        {
+            C4_ASSERT(t.parent_is_map(id) || t.parent_is_seq(id));
+            C4_ASSERT(t.is_map(id) || t.is_seq(id));
 
-        if(n.parent_is_seq())
-        {
-            C4_ASSERT( ! n.has_key());
-            _write(ind); _write("- ");
-            if(n.has_val_tag())
+            if(t.parent_is_seq(id))
             {
-                _write(n.val_tag()); _write(' ');
-            }
-        }
-        else if(n.parent_is_map())
-        {
-            C4_ASSERT(n.has_key());
-            _write(ind); _writek(n); _write(':');
-            if(n.has_val_tag())
-            {
-                _write(' '); _write(n.val_tag());
-            }
-        }
-        else
-        {
-            C4_ERROR("tree error");
-        }
-        if(n.has_val_anchor())
-        {
-            _write(" &"); _write(n.val_anchor());
-        }
-
-        if(n.has_children())
-        {
-            if(n.is_seq())
-            {
-                if(n.parent_is_map())
+                C4_ASSERT( ! t.has_key(id));
+                _write(ind); _write("- ");
+                if(t.has_val_tag(id))
                 {
-                    _write('\n');
-                    indent = true;
-                }
-                else
-                {
-                    // do not indent the first child, as it will be written on the same line
-                    indent = false;
+                    _write(t.val_tag(id)); _write(' ');
                 }
             }
-            else if(n.is_map())
+            else if(t.parent_is_map(id))
             {
-                if(n.parent_is_seq())
+                C4_ASSERT(t.has_key(id));
+                _write(ind); _writek(t, id); _write(':');
+                if(t.has_val_tag(id))
                 {
-                    // do not indent the first child, as it will be written on the same line
-                    indent = false;
-                }
-                else
-                {
-                    _write('\n');
-                    indent = true;
+                    _write(' '); _write(t.val_tag(id));
                 }
             }
             else
             {
-                C4_ERROR("invalid node");
+                C4_NEVER_REACH();
             }
-        }
-        else
+
+            if(t.has_val_anchor(id))
+            {
+                if(t.parent_is_seq(id))
+                {
+                    _write('&');
+                    _write(t.val_anchor(id));
+                    _write('\n');
+                    _indent(ilevel + 1);
+                }
+                else
+                {
+                    _write(" &");
+                    _write(t.val_anchor(id));
+                    _write(' ');
+                }
+            }
+
+            if(t.has_children(id))
+            {
+                if(t.is_seq(id))
+                {
+                    if(t.parent_is_map(id))
+                    {
+                        _write('\n');
+                        indent = true;
+                    }
+                    else
+                    {
+                        // do not indent the first child, as it will be written on the same line
+                        indent = false;
+                    }
+                }
+                else if(t.is_map(id))
+                {
+                    if(t.parent_is_seq(id))
+                    {
+                        // do not indent the first child, as it will be written on the same line
+                        indent = false;
+                    }
+                    else
+                    {
+                        _write('\n');
+                        indent = true;
+                    }
+                }
+                else
+                {
+                    C4_NEVER_REACH();
+                }
+            }
+            else // no children
+            {
+                if(t.parent_is_map(id))
+                {
+                    _write(' ');
+                }
+                if(t.is_seq(id))
+                {
+                    _write("[]\n");
+                }
+                else if(t.is_map(id))
+                {
+                    _write("{}\n");
+                }
+                else
+                {
+                    C4_NEVER_REACH();
+                }
+            }
+        } // !root
+        else // root
         {
-            if(n.parent_is_map())
+            C4_ASSERT(t.is_root(id));
+            if( ! t.has_children(id))
             {
-                _write(' ');
+                if(t.is_seq(id))
+                {
+                    _write("[]\n");
+                }
+                else if(t.is_map(id))
+                {
+                    _write("{}\n");
+                }
+                else
+                {
+                    C4_NEVER_REACH();
+                }
+
             }
-            if(n.is_seq())
-            {
-                _write("[]\n");
-            }
-            else if(n.is_map())
-            {
-                _write("{}\n");
-            }
-        }
-    }
-    else if(n.is_container() && n.is_root())
-    {
-        if( ! n.has_children())
-        {
-            if(n.is_seq())
-            {
-                _write("[]\n");
-            }
-            else if(n.is_map())
-            {
-                _write("{}\n");
-            }
-        }
-    }
+        } // root
+    } // container
 
     size_t next_level = ilevel + 1;
-    if(n.is_stream() || n.is_doc() || n.is_root())
+    if(t.is_stream(id) || t.is_doc(id) || t.is_root(id))
     {
         next_level = ilevel; // do not indent at top level
     }
 
-    for(auto ch : n.children())
+    for(size_t ich = t.first_child(id); ich != NONE; ich = t.next_sibling(ich))
     {
-        _do_visit(ch, next_level, indent);
+        _do_visit(t, ich, next_level, indent);
         indent = true;
     }
 }

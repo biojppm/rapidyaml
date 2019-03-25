@@ -174,14 +174,17 @@ void Tree::reserve(size_t cap, size_t arena_cap)
         {
             C4_ASSERT(m_free_tail == m_free_head);
             m_free_head = m_cap;
-            m_free_tail = cap;
+            m_free_tail = cap-1;
         }
         else
         {
             C4_ASSERT(m_buf != nullptr);
             C4_ASSERT(m_free_tail != NONE);
-            m_buf[m_free_tail].m_next_sibling = m_cap;
+            m_buf[m_free_tail].m_next_sibling = NONE;
         }
+        C4_ASSERT(m_free_head == NONE || m_free_head >= 0 && m_free_head < cap);
+        C4_ASSERT(m_free_tail == NONE || m_free_tail >= 0 && m_free_tail < cap);
+
         NodeData *buf = (NodeData*) m_alloc.allocate(cap * sizeof(NodeData), m_buf);
         if(m_buf)
         {
@@ -220,8 +223,9 @@ void Tree::clear()
     m_size = 0;
     if(m_buf)
     {
+        C4_ASSERT(m_cap >= 0);
         m_free_head = 0;
-        m_free_tail = m_cap;
+        m_free_tail = m_cap-1;
         _claim_root();
     }
     else
@@ -258,11 +262,22 @@ void Tree::_clear_range(size_t first, size_t num)
 void Tree::_release(size_t i)
 {
     C4_ASSERT(i >= 0 && i < m_cap);
-    NodeData & w = m_buf[i];
 
     _rem_hierarchy(i);
+    _free_list_add(i);
+    _clear(i);
 
-    // add to the front of the free list
+    --m_size;
+}
+
+//-----------------------------------------------------------------------------
+// add to the front of the free list
+void Tree::_free_list_add(size_t i)
+{
+    C4_ASSERT(i >= 0 && i < m_cap);
+    NodeData &C4_RESTRICT w = m_buf[i];
+
+    w.m_parent = NONE;
     w.m_next_sibling = m_free_head;
     w.m_prev_sibling = NONE;
     if(m_free_head != NONE)
@@ -274,10 +289,15 @@ void Tree::_release(size_t i)
     {
         m_free_tail = m_free_head;
     }
+}
 
-    _clear(i);
-
-    --m_size;
+void Tree::_free_list_rem(size_t i)
+{
+    if(m_free_head == i)
+    {
+        m_free_head = _p(i)->m_next_sibling;
+    }
+    _rem_hierarchy(i);
 }
 
 //-----------------------------------------------------------------------------
@@ -405,22 +425,272 @@ void Tree::_rem_hierarchy(size_t i)
 }
 
 //-----------------------------------------------------------------------------
-void Tree::move(size_t node, size_t after)
+void Tree::reorder()
 {
-    C4_ASSERT(node != NONE);
-    C4_ASSERT( ! get(node)->is_root());
-    C4_ASSERT(has_sibling(node, after) && has_sibling(after, node));
-
-    _rem_hierarchy(node);
-    _set_hierarchy(node, get(node)->m_parent, after);
+    size_t r = root_id();
+    _do_reorder(&r, 0);
 }
 
 //-----------------------------------------------------------------------------
+size_t Tree::_do_reorder(size_t *node, size_t count)
+{
+    // swap this node if it's not in place
+    if(*node != count)
+    {
+        _swap(*node, count);
+        *node = count;
+    }
+    ++count; // bump the count for this node
+
+    // now descend in the hierarchy
+    for(size_t i = first_child(*node); i != NONE; i = next_sibling(i))
+    {
+        // this child may have been relocated to a different index,
+        // so get an updated version
+        count = _do_reorder(&i, count);
+    }
+    return count;
+}
+
+//-----------------------------------------------------------------------------
+void Tree::_swap(size_t n_, size_t m_)
+{
+    C4_ASSERT((parent(n_) != NONE) || type(n_) == NOTYPE);
+    C4_ASSERT((parent(m_) != NONE) || type(m_) == NOTYPE);
+    NodeType tn = type(n_);
+    NodeType tm = type(m_);
+    if(tn != NOTYPE && tm != NOTYPE)
+    {
+        _swap_props(n_, m_);
+        _swap_hierarchy(n_, m_);
+    }
+    else if(tn == NOTYPE && tm != NOTYPE)
+    {
+        _copy_props(n_, m_);
+        _free_list_rem(n_);
+        _copy_hierarchy(n_, m_);
+        _clear(m_);
+        _free_list_add(m_);
+    }
+    else if(tn != NOTYPE && tm == NOTYPE)
+    {
+        _copy_props(m_, n_);
+        _free_list_rem(m_);
+        _copy_hierarchy(m_, n_);
+        _clear(n_);
+        _free_list_add(n_);
+    }
+    else
+    {
+        C4_NEVER_REACH();
+    }
+}
+
+//-----------------------------------------------------------------------------
+void Tree::_swap_hierarchy(size_t ia, size_t ib)
+{
+    if(ia == ib) return;
+
+    for(size_t i = first_child(ia); i != NONE; i = next_sibling(i))
+    {
+        if(i == ib || i == ia) continue;
+        _p(i)->m_parent = ib;
+    }
+
+    for(size_t i = first_child(ib); i != NONE; i = next_sibling(i))
+    {
+        if(i == ib || i == ia) continue;
+        _p(i)->m_parent = ia;
+    }
+
+    auto & C4_RESTRICT a  = *_p(ia);
+    auto & C4_RESTRICT b  = *_p(ib);
+    auto & C4_RESTRICT pa = *_p(a.m_parent);
+    auto & C4_RESTRICT pb = *_p(b.m_parent);
+    
+    if(&pa == &pb)
+    {
+        if((pa.m_first_child == ib && pa.m_last_child == ia)
+            ||
+           (pa.m_first_child == ia && pa.m_last_child == ib))
+        {
+            std::swap(pa.m_first_child, pa.m_last_child);
+        }
+        else
+        {
+            bool changed = false;
+            if(pa.m_first_child == ia) { pa.m_first_child = ib; changed = true; }
+            if(pa.m_last_child  == ia) { pa.m_last_child  = ib; changed = true; }
+            if(pb.m_first_child == ib && !changed) { pb.m_first_child = ia; }
+            if(pb.m_last_child  == ib && !changed) { pb.m_last_child  = ia; }
+        }
+    }
+    else
+    {
+        if(pa.m_first_child == ia) pa.m_first_child = ib;
+        if(pa.m_last_child  == ia) pa.m_last_child  = ib;
+        if(pb.m_first_child == ib) pb.m_first_child = ia;
+        if(pb.m_last_child  == ib) pb.m_last_child  = ia;
+    }
+    std::swap(a.m_first_child , b.m_first_child);
+    std::swap(a.m_last_child  , b.m_last_child);
+
+    if(a.m_prev_sibling != ib && b.m_prev_sibling != ia &&
+       a.m_next_sibling != ib && b.m_next_sibling != ia)
+    {
+        if(a.m_prev_sibling != NONE && a.m_prev_sibling != ib)
+        {
+            _p(a.m_prev_sibling)->m_next_sibling = ib;
+        }
+        if(a.m_next_sibling != NONE && a.m_next_sibling != ib)
+        {
+            _p(a.m_next_sibling)->m_prev_sibling = ib;
+        }
+        if(b.m_prev_sibling != NONE && b.m_prev_sibling != ia)
+        {
+            _p(b.m_prev_sibling)->m_next_sibling = ia;
+        }
+        if(b.m_next_sibling != NONE && b.m_next_sibling != ia)
+        {
+            _p(b.m_next_sibling)->m_prev_sibling = ia;
+        }
+        std::swap(a.m_prev_sibling, b.m_prev_sibling);
+        std::swap(a.m_next_sibling, b.m_next_sibling);
+    }
+    else
+    {
+        if(a.m_next_sibling == ib) // n will go after m
+        {
+            C4_ASSERT(b.m_prev_sibling == ia);
+            if(a.m_prev_sibling != NONE)
+            {
+                C4_ASSERT(a.m_prev_sibling != ib);
+                _p(a.m_prev_sibling)->m_next_sibling = ib;
+            }
+            if(b.m_next_sibling != NONE)
+            {
+                C4_ASSERT(b.m_next_sibling != ia);
+                _p(b.m_next_sibling)->m_prev_sibling = ia;
+            }
+            size_t ns = b.m_next_sibling;
+            b.m_prev_sibling = a.m_prev_sibling;
+            b.m_next_sibling = ia;
+            a.m_prev_sibling = ib;
+            a.m_next_sibling = ns;
+        }
+        else if(a.m_prev_sibling == ib) // m will go after n
+        {
+            C4_ASSERT(b.m_next_sibling == ia);
+            if(b.m_prev_sibling != NONE)
+            {
+                C4_ASSERT(b.m_prev_sibling != ia);
+                _p(b.m_prev_sibling)->m_next_sibling = ia;
+            }
+            if(a.m_next_sibling != NONE)
+            {
+                C4_ASSERT(a.m_next_sibling != ib);
+                _p(a.m_next_sibling)->m_prev_sibling = ib;
+            }
+            size_t ns = b.m_prev_sibling;
+            a.m_prev_sibling = b.m_prev_sibling;
+            a.m_next_sibling = ib;
+            b.m_prev_sibling = ia;
+            b.m_next_sibling = ns;
+        }
+        else
+        {
+            C4_NEVER_REACH();
+        }
+    }
+    C4_ASSERT(a.m_next_sibling != ia);
+    C4_ASSERT(a.m_prev_sibling != ia);
+    C4_ASSERT(b.m_next_sibling != ib);
+    C4_ASSERT(b.m_prev_sibling != ib);
+
+    if(a.m_parent != ib && b.m_parent != ia)
+    {
+        std::swap(a.m_parent, b.m_parent);
+    }
+    else
+    {
+        if(a.m_parent == ib && b.m_parent != ia)
+        {
+            a.m_parent = b.m_parent;
+            b.m_parent = ia;
+        }
+        else if(a.m_parent != ib && b.m_parent == ia)
+        {
+            b.m_parent = a.m_parent;
+            a.m_parent = ib;
+        }
+        else
+        {
+            C4_NEVER_REACH();
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+void Tree::_copy_hierarchy(size_t dst_, size_t src_)
+{
+    auto const& C4_RESTRICT src = *_p(src_);
+    auto      & C4_RESTRICT dst = *_p(dst_);
+    auto      & C4_RESTRICT prt = *_p(src.m_parent);
+    for(size_t i = src.m_first_child; i != NONE; i = next_sibling(i))
+    {
+        _p(i)->m_parent = dst_;
+    }
+    if(src.m_prev_sibling != NONE)
+    {
+        _p(src.m_prev_sibling)->m_next_sibling = dst_;
+    }
+    if(src.m_next_sibling != NONE)
+    {
+        _p(src.m_next_sibling)->m_prev_sibling = dst_;
+    }
+    if(prt.m_first_child == src_)
+    {
+        prt.m_first_child = dst_;
+    }
+    if(prt.m_last_child  == src_)
+    {
+        prt.m_last_child  = dst_;
+    }
+    dst.m_parent       = src.m_parent;
+    dst.m_first_child  = src.m_first_child;
+    dst.m_last_child   = src.m_last_child;
+    dst.m_prev_sibling = src.m_prev_sibling;
+    dst.m_next_sibling = src.m_next_sibling;
+}
+
+//-----------------------------------------------------------------------------
+void Tree::_swap_props(size_t n_, size_t m_)
+{
+    NodeData &C4_RESTRICT n = *_p(n_);
+    NodeData &C4_RESTRICT m = *_p(m_);
+    std::swap(n.m_type, m.m_type);
+    std::swap(n.m_key, m.m_key);
+    std::swap(n.m_val, m.m_val);
+}
+
+//-----------------------------------------------------------------------------
+void Tree::move(size_t node, size_t after)
+{
+    C4_ASSERT(node != NONE);
+    C4_ASSERT( ! is_root(node));
+    C4_ASSERT(has_sibling(node, after) && has_sibling(after, node));
+
+    _rem_hierarchy(node);
+    _set_hierarchy(node, parent(node), after);
+}
+
+//-----------------------------------------------------------------------------
+
 void Tree::move(size_t node, size_t new_parent, size_t after)
 {
     C4_ASSERT(node != NONE);
     C4_ASSERT(new_parent != NONE);
-    C4_ASSERT( ! get(node)->is_root());
+    C4_ASSERT( ! is_root(node));
 
     _rem_hierarchy(node);
     _set_hierarchy(node, new_parent, after);
@@ -441,7 +711,7 @@ size_t Tree::duplicate(size_t node, size_t parent, size_t after)
 {
     C4_ASSERT(node != NONE);
     C4_ASSERT(parent != NONE);
-    C4_ASSERT( ! get(node)->is_root());
+    C4_ASSERT( ! is_root(node));
 
     size_t copy = _claim();
 
@@ -461,7 +731,7 @@ size_t Tree::duplicate(Tree const* src, size_t node, size_t parent, size_t after
 {
     C4_ASSERT(node != NONE);
     C4_ASSERT(parent != NONE);
-    C4_ASSERT( ! get(node)->is_root());
+    C4_ASSERT( ! is_root(node));
 
     size_t copy = _claim();
 
@@ -478,7 +748,7 @@ size_t Tree::duplicate(Tree const* src, size_t node, size_t parent, size_t after
 }
 
 //-----------------------------------------------------------------------------
-void Tree::duplicate_children(size_t node, size_t parent, size_t after)
+size_t Tree::duplicate_children(size_t node, size_t parent, size_t after)
 {
     C4_ASSERT(node != NONE);
     C4_ASSERT(parent != NONE);
@@ -489,9 +759,11 @@ void Tree::duplicate_children(size_t node, size_t parent, size_t after)
     {
         prev = duplicate(i, parent, prev);
     }
+
+    return prev;
 }
 
-void Tree::duplicate_children(Tree const* src, size_t node, size_t parent, size_t after)
+size_t Tree::duplicate_children(Tree const* src, size_t node, size_t parent, size_t after)
 {
     C4_ASSERT(node != NONE);
     C4_ASSERT(parent != NONE);
@@ -502,6 +774,8 @@ void Tree::duplicate_children(Tree const* src, size_t node, size_t parent, size_
     {
         prev = duplicate(src, i, parent, prev);
     }
+
+    return prev;
 }
 
 //-----------------------------------------------------------------------------
@@ -514,7 +788,7 @@ void Tree::duplicate_contents(size_t node, size_t where)
 }
 
 //-----------------------------------------------------------------------------
-void Tree::duplicate_children_no_rep(size_t node, size_t parent, size_t after)
+size_t Tree::duplicate_children_no_rep(size_t node, size_t parent, size_t after)
 {
     C4_ASSERT(node != NONE);
     C4_ASSERT(parent != NONE);
@@ -541,18 +815,18 @@ void Tree::duplicate_children_no_rep(size_t node, size_t parent, size_t after)
     size_t prev = after;
     for(size_t i = first_child(node), icount = 0; i != NONE; ++icount, i = next_sibling(i))
     {
-        if(get(parent)->is_seq())
+        if(is_seq(parent))
         {
             prev = duplicate(i, parent, prev);
         }
         else
         {
-            C4_ASSERT(get(parent)->is_map());
-            // does the parent already have a node with the same key of the current duplicate?
+            C4_ASSERT(is_map(parent));
+            // does the parent already have a node with key equal to that of the current duplicate?
             size_t rep = NONE, rep_pos = NONE;
             for(size_t j = first_child(parent), jcount = 0; j != NONE; ++jcount, j = next_sibling(j))
             {
-                if(get(j)->key() == get(i)->key())
+                if(key(j) == key(i))
                 {
                     rep = j;
                     rep_pos = jcount;
@@ -565,24 +839,30 @@ void Tree::duplicate_children_no_rep(size_t node, size_t parent, size_t after)
             }
             else  // yes, there's a repetition
             {
-                if(after_pos == NONE || rep_pos >= after_pos)
-                {
-                    // rep is located after the node which will be inserted
-                    // and overrides the duplicate. So do nothing here: don't
-                    // duplicate the child.
-                    ;
-                }
-                else if(after_pos != NONE && rep_pos < after_pos)
+                if(after_pos != NONE && rep_pos < after_pos)
                 {
                     // rep is located before the node which will be inserted,
                     // and will be overridden by the duplicate. So replace it.
                     remove(rep);
                     prev = duplicate(i, parent, prev);
                 }
+                else if(after_pos == NONE || rep_pos >= after_pos)
+                {
+                    // rep is located after the node which will be inserted
+                    // and overrides it. So move the rep into this node's place.
+                    if(rep != prev)
+                    {
+                        move(rep, prev);
+                        prev = rep;
+                    }
+                }
             }
         }
     }
+
+    return prev;
 }
+
 
 //-----------------------------------------------------------------------------
 
@@ -595,6 +875,8 @@ struct ReferenceResolver
         size_t node;
         size_t prev_anchor;
         size_t target;
+        size_t parent_ref;
+        size_t parent_ref_sibling;
     };
 
     Tree *t;
@@ -604,11 +886,6 @@ struct ReferenceResolver
      *
      * @see http://yaml.org/spec/1.2/spec.html#id2765878 */
     stack<refdata> refs;
-
-    using const_iterator = refdata const*;
-
-    const_iterator begin() const { return refs.begin(); }
-    const_iterator end() const { return refs.end(); }
 
     ReferenceResolver(Tree *t_) : t(t_), refs(t_->allocator())
     {
@@ -656,18 +933,53 @@ struct ReferenceResolver
 
     void _store_anchors_and_refs(size_t n)
     {
-        if(t->is_key_ref(n) || t->is_val_ref(n))
+        if(t->is_key_ref(n) || t->is_val_ref(n) || t->has_key(n) && t->key(n) == "<<")
         {
-            refs.push({true, n, npos, npos});
+            if(t->is_seq(n))
+            {
+                for(size_t i = t->first_child(n); i != NONE; i = t->next_sibling(i))
+                {
+                    C4_ASSERT(t->num_children(i) == 0);
+                    refs.push({true, i, npos, npos, n, t->next_sibling(n)});
+                }
+                return;
+            }
+            else if(t->has_val(n))
+            {
+                C4_CHECK(t->has_val(n));
+                refs.push({true, n, npos, npos, NONE, NONE});
+            }
+            else
+            {
+                C4_NEVER_REACH();
+            }
         }
         if(t->has_key_anchor(n) || t->has_val_anchor(n))
         {
-            refs.push({false, n, npos, npos});
+            refs.push({false, n, npos, npos, NONE, NONE});
         }
         for(size_t ch = t->first_child(n); ch != NONE; ch = t->next_sibling(ch))
         {
             _store_anchors_and_refs(ch);
         }
+    }
+
+    size_t lookup_(size_t refnode, refdata *C4_RESTRICT ra)
+    {
+        C4_ASSERT(t->has_val(refnode));
+        csubstr refname = t->val(refnode);
+        C4_ASSERT(refname.begins_with('*'));
+        refname = refname.sub(1);
+        while(ra->prev_anchor != npos)
+        {
+            ra = &refs[ra->prev_anchor];
+            if(t->has_anchor(ra->node, refname))
+            {
+                return ra->node;
+            }
+        }
+        C4_NEVER_REACH();
+        return NONE;
     }
 
     void resolve()
@@ -684,20 +996,7 @@ struct ReferenceResolver
         {
             auto & rd = refs.top(i);
             if( ! rd.is_ref) continue;
-            csubstr refname = t->val(rd.node);
-            C4_ASSERT(refname.begins_with('*'));
-            refname = refname.sub(1);
-            auto const* ra = &rd;
-            while(ra->prev_anchor != npos)
-            {
-                ra = &refs[ra->prev_anchor];
-                if(t->has_anchor(ra->node, refname))
-                {
-                    rd.target = ra->node;
-                    break;
-                }
-            }
-            C4_ASSERT(rd.target != npos);
+            rd.target = lookup_(rd.node, &rd);
         }
     }
 
@@ -710,29 +1009,59 @@ void Tree::resolve()
 
     detail::ReferenceResolver rr(this);
 
-    // resolve the references
-    for(auto const& rd : rr)
+    // insert the resolved references
+    size_t prev_parent_ref = NONE;
+    size_t prev_parent_ref_after = NONE;
+    for(auto const& C4_RESTRICT rd : rr.refs)
     {
         if( ! rd.is_ref) continue;
-        NodeData *n = get(rd.node);
-        size_t prev = n->m_prev_sibling;
-        size_t parent = n->m_parent;
-        if(n->is_keyval() && n->key() == "<<")
+        if(rd.parent_ref != NONE)
         {
+            C4_ASSERT(is_seq(rd.parent_ref));
+            size_t after, p = parent(rd.parent_ref);
+            if(prev_parent_ref != rd.parent_ref)
+            {
+                after = rd.parent_ref;//prev_sibling(rd.parent_ref_sibling);
+                prev_parent_ref_after = after;
+            }
+            else
+            {
+                after = prev_parent_ref_after;
+            }
+            prev_parent_ref = rd.parent_ref;
+            prev_parent_ref_after = duplicate_children_no_rep(rd.target, p, after);
             remove(rd.node);
-            duplicate_children_no_rep(rd.target, parent, prev);
         }
         else
         {
-            duplicate_contents(rd.target, rd.node);
+            if(has_key(rd.node) && key(rd.node) == "<<")
+            {
+                C4_ASSERT(is_keyval(rd.node));
+                size_t p = parent(rd.node);
+                size_t after = prev_sibling(rd.node);
+                duplicate_children_no_rep(rd.target, p, after);
+                remove(rd.node);
+            }
+            else
+            {
+                duplicate_contents(rd.target, rd.node);
+            }
         }
     }
 
     // clear anchors and refs
-    for(auto const& rd : rr)
+    for(auto const& C4_RESTRICT ar : rr.refs)
     {
-        rem_anchor_ref(rd.node);
+        rem_anchor_ref(ar.node);
+        if(ar.parent_ref != NONE)
+        {
+            if(type(ar.parent_ref) != NOTYPE)
+            {
+                remove(ar.parent_ref);
+            }
+        }
     }
+
 }
 
 //-----------------------------------------------------------------------------
@@ -798,7 +1127,7 @@ size_t Tree::find_child(size_t node, csubstr const& name) const
 
 //-----------------------------------------------------------------------------
 
-void Tree::to_val(size_t node, csubstr const& val, int more_flags)
+void Tree::to_val(size_t node, csubstr const& val, type_bits more_flags)
 {
     C4_ASSERT( ! has_children(node));
     C4_ASSERT(parent(node) == NONE || ! parent_is_map(node));
@@ -807,7 +1136,7 @@ void Tree::to_val(size_t node, csubstr const& val, int more_flags)
     _p(node)->m_val = val;
 }
 
-void Tree::to_keyval(size_t node, csubstr const& key, csubstr const& val, int more_flags)
+void Tree::to_keyval(size_t node, csubstr const& key, csubstr const& val, type_bits more_flags)
 {
     C4_ASSERT( ! has_children(node));
     //C4_ASSERT( ! key.empty());
@@ -817,7 +1146,7 @@ void Tree::to_keyval(size_t node, csubstr const& key, csubstr const& val, int mo
     _p(node)->m_val = val;
 }
 
-void Tree::to_map(size_t node, int more_flags)
+void Tree::to_map(size_t node, type_bits more_flags)
 {
     C4_ASSERT( ! has_children(node));
     C4_ASSERT(parent(node) == NONE || ! parent_is_map(node));
@@ -826,7 +1155,7 @@ void Tree::to_map(size_t node, int more_flags)
     _p(node)->m_val.clear();
 }
 
-void Tree::to_map(size_t node, csubstr const& key, int more_flags)
+void Tree::to_map(size_t node, csubstr const& key, type_bits more_flags)
 {
     C4_ASSERT( ! has_children(node));
     C4_ASSERT( ! key.empty());
@@ -836,7 +1165,7 @@ void Tree::to_map(size_t node, csubstr const& key, int more_flags)
     _p(node)->m_val.clear();
 }
 
-void Tree::to_seq(size_t node, int more_flags)
+void Tree::to_seq(size_t node, type_bits more_flags)
 {
     C4_ASSERT( ! has_children(node));
     _set_flags(node, SEQ|more_flags);
@@ -844,7 +1173,7 @@ void Tree::to_seq(size_t node, int more_flags)
     _p(node)->m_val.clear();
 }
 
-void Tree::to_seq(size_t node, csubstr const& key, int more_flags)
+void Tree::to_seq(size_t node, csubstr const& key, type_bits more_flags)
 {
     C4_ASSERT( ! has_children(node));
     C4_ASSERT(parent(node) == NONE || parent_is_map(node));
@@ -853,7 +1182,7 @@ void Tree::to_seq(size_t node, csubstr const& key, int more_flags)
     _p(node)->m_val.clear();
 }
 
-void Tree::to_doc(size_t node, int more_flags)
+void Tree::to_doc(size_t node, type_bits more_flags)
 {
     C4_ASSERT( ! has_children(node));
     _set_flags(node, DOC|more_flags);
@@ -861,7 +1190,7 @@ void Tree::to_doc(size_t node, int more_flags)
     _p(node)->m_val.clear();
 }
 
-void Tree::to_stream(size_t node, int more_flags)
+void Tree::to_stream(size_t node, type_bits more_flags)
 {
     C4_ASSERT( ! has_children(node));
     _set_flags(node, STREAM|more_flags);
