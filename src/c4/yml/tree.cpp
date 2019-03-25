@@ -1050,14 +1050,14 @@ void Tree::resolve()
     }
 
     // clear anchors and refs
-    for(auto const& C4_RESTRICT rr : rr.refs)
+    for(auto const& C4_RESTRICT ar : rr.refs)
     {
-        rem_anchor_ref(rr.node);
-        if(rr.parent_ref != NONE)
+        rem_anchor_ref(ar.node);
+        if(ar.parent_ref != NONE)
         {
-            if(type(rr.parent_ref) != NOTYPE)
+            if(type(ar.parent_ref) != NOTYPE)
             {
-                remove(rr.parent_ref);
+                remove(ar.parent_ref);
             }
         }
     }
