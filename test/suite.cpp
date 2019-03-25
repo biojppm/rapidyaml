@@ -6,86 +6,204 @@
 #include <c4/yml/tree.hpp>
 #include <c4/yml/parse.hpp>
 #include <c4/yml/emit.hpp>
+#include <c4/yml/detail/print.hpp>
+#include <c4/yml/detail/checks.hpp>
 
 #include <gtest/gtest.h>
 
+#define NLEVELS 4
 
 enum : size_t { npos = c4::csubstr::npos };
 
-struct Parsed
+
+struct ProcLevel
 {
-    bool was_parsed, was_emitted;
-    c4::yml::Tree tree;
-    std::string emitted;
+    c4::csubstr     filename;
+    std::string     src;
+    c4::yml::Parser parser;
+    c4::yml::Tree   tree;
+    std::string     emitted;
+
+    bool            is_yaml_events = false;
+    bool            immutable = false;
+    bool            reuse = false;
+    bool            was_parsed = false;
+    bool            was_emitted = false;
+
+    void init(c4::csubstr filename, c4::csubstr src_, bool immutable_, bool reuse_, bool is_yaml_events_)
+    {
+        src.assign(src_.begin(), src_.end());
+        immutable = immutable_;
+        reuse = reuse_;
+        was_parsed = false;
+        was_emitted = false;
+    }
+
+    void receive_src(ProcLevel & prev)
+    {
+        if(!prev.was_emitted)
+        {
+            prev.emit();
+        }
+        if(src != prev.emitted)
+        {
+            was_parsed = false;
+            was_emitted = false;
+            src = prev.emitted;
+        }
+    }
+
+    template<class T>
+    void log(const char* context, T const& v)
+    {
+#ifdef RYML_DBG
+        c4::log(R"({}:
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+{}
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+)", context, v);
+#endif
+    }
+
+    void parse()
+    {
+        if(was_parsed) return;
+        log("parsing source", src);
+        if(is_yaml_events)
+        {
+            C4_NOT_IMPLEMENTED();
+        }
+        else
+        {
+            if(reuse)
+            {
+                if(immutable)
+                {
+                    parser.parse(filename, c4::to_csubstr(src), &tree);
+                }
+                else
+                {
+                    parser.parse(filename, c4::to_substr(src), &tree);
+                }
+            }
+            else
+            {
+                if(immutable)
+                {
+                    tree = c4::yml::parse(filename, c4::to_csubstr(src));
+                }
+                else
+                {
+                    tree = c4::yml::parse(filename, c4::to_substr(src));
+                }
+            }
+        }
+        was_parsed = true;
+#ifdef RYML_DBG
+        c4::yml::print_tree(tree);
+#endif
+    }
+
+    void emit()
+    {
+        if(was_emitted) return;
+        if(!was_parsed) parse();
+        emitrs(tree, &emitted);
+        auto ss = c4::to_csubstr(emitted);
+        if(ss.ends_with("\n...\n"))
+        {
+            emitted.resize(emitted.size() - 4);
+        }
+        log("emitted YAML", emitted);
+        was_emitted = true;
+    }
+
+    void compare_trees(ProcLevel const& prev)
+    {
+        if(!was_parsed) parse();
+        // do it
+    }
+
+    void compare_emitted(ProcLevel const& prev)
+    {
+        if(!was_emitted) emit();
+        EXPECT_EQ(emitted, prev.emitted);
+    }
 };
 
-struct Parsable
+
+struct Approach
 {
-    c4::csubstr ro; // read-only  (copied to tree's arena before parsing)
-    std::string rw; // read/write (parsed in situ)
-    Parsed      ro_parsed;
-    Parsed      rw_parsed;
+    ProcLevel levels[NLEVELS];
 
-    Parsable() { init(""); }
-
-    void init(c4::csubstr contents)
+    void init(c4::csubstr filename, c4::csubstr src, bool immutable_, bool reuse_, bool is_yaml_events)
     {
-        ro = contents;
-        rw.assign(ro.begin(), ro.end());
-        ro_parsed.was_parsed = false;
-        rw_parsed.was_parsed = false;
-        ro_parsed.was_emitted = false;
-        rw_parsed.was_emitted = false;
+        for(auto &l : levels)
+        {
+            l.init(filename, src, immutable_, reuse_, is_yaml_events);
+            is_yaml_events = false; // only the first one
+        }
     }
 
-    bool empty() const
+    void parse(size_t num, bool emit)
     {
-        return ro.empty();
+        C4_ASSERT(num <= NLEVELS);
+        for(size_t i = 0; i < num; ++i)
+        {
+            levels[i].parse();
+            if(emit) levels[i].emit();
+            if(i + 1 < num)
+            {
+                levels[i+1].receive_src(levels[i]);
+            }
+        }
     }
 
-    void parse_ro()
+    void compare_trees(size_t num)
     {
-        if(empty()) return;
-        c4::yml::parse(ro, &ro_parsed.tree);
-        ro_parsed.was_parsed = true;
+        for(size_t i = 1; i < num; ++i)
+        {
+            levels[i].compare_trees(levels[i-1]);
+        }
+    }
+    void compare_trees(size_t num, Approach const& other)
+    {
+        for(size_t i = 0; i < num; ++i)
+        {
+            levels[i].compare_trees(other.levels[i]);
+        }
     }
 
-    void parse_rw()
+    void compare_emitted(size_t num)
     {
-        if(rw.empty()) return;
-        c4::yml::parse(c4::to_substr(rw), &rw_parsed.tree);
-        rw_parsed.was_parsed = true;
+        for(size_t i = 1; i < num; ++i)
+        {
+            levels[i].compare_emitted(levels[i-1]);
+        }
     }
+    void compare_emitted(size_t num, Approach const& other)
+    {
+        for(size_t i = 0; i < num; ++i)
+        {
+            levels[i].compare_emitted(other.levels[i]);
+        }
+    }
+};
 
-    void emit_ro()
-    {
-        if(empty()) return;
-        if(!ro_parsed.was_parsed) parse_ro();
-        c4::yml::emit_resize(ro_parsed.tree, &ro_parsed.emitted);
-        ro_parsed.was_emitted = true;
-    }
 
-    void emit_rw()
-    {
-        if(rw.empty()) return;
-        if(!rw_parsed.was_parsed) parse_rw();
-        c4::yml::emit_resize(rw_parsed.tree, &rw_parsed.emitted);
-        rw_parsed.was_emitted = true;
-    }
+struct Subject
+{
+    Approach ro;
+    Approach ro_reuse;
+    Approach rw;
+    Approach rw_reuse;
 
-    void compare_src()
+    void init(c4::csubstr filename, c4::csubstr src, bool is_yaml_event=false)
     {
-        if(empty()) return;
-        EXPECT_EQ(std::string(ro.begin(), ro.end()), rw);
-    }
-    void compare_emitted()
-    {
-        if(empty()) return;
-        if(!ro_parsed.was_parsed) parse_ro();
-        if(!rw_parsed.was_parsed) parse_rw();
-        if(!ro_parsed.was_emitted) emit_ro();
-        if(!rw_parsed.was_emitted) emit_rw();
-        EXPECT_EQ(ro_parsed.emitted, rw_parsed.emitted);
+        ro      .init(filename, src, /*immutable*/true , /*reuse*/false, is_yaml_event);
+        ro_reuse.init(filename, src, /*immutable*/true , /*reuse*/true , is_yaml_event);
+        rw      .init(filename, src, /*immutable*/false, /*reuse*/false, is_yaml_event);
+        rw_reuse.init(filename, src, /*immutable*/false, /*reuse*/true , is_yaml_event);
     }
 };
 
@@ -131,11 +249,15 @@ struct SuiteCase
     c4::csubstr tags;
 
     std::string in_yaml_filtered;
-    Parsable    in_yaml;
-    Parsable    in_json;
-    Parsable    out_yaml;
+    Subject     in_yaml;
+    Subject     in_json;
+    Subject     out_yaml;
+    Subject     events;
 
-    c4::csubstr events;
+    static c4::csubstr src(Subject const& s)
+    {
+        return c4::to_csubstr(s.ro.levels[0].src);
+    }
 
     bool load(const char* filename_)
     {
@@ -189,7 +311,7 @@ struct SuiteCase
         begin_in_yaml = 1 + contents.find('\n', begin_in_yaml); // skip this line
         txt = contents.range(begin_in_yaml, first_after_in_yaml).trimr(ws);
         C4_ASSERT( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "---test-event"));
-        in_yaml.init(txt);
+        in_yaml.init(filename, txt);
 
         // in_json
         if(begin_in_json != npos)
@@ -198,7 +320,7 @@ struct SuiteCase
             begin_in_json = 1 + contents.find('\n', begin_in_json); // skip this line
             txt = contents.range(begin_in_json, first_after_in_json).trimr(ws);
             C4_ASSERT( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "---test-event"));
-            in_json.init(txt);
+            in_json.init(filename, txt);
         }
 
         // out_yaml
@@ -209,21 +331,23 @@ struct SuiteCase
             begin_out_yaml = 1 + contents.find('\n', begin_out_yaml); // skip this line
             txt = contents.range(begin_out_yaml, first_after_out_yaml).trimr(ws);
             C4_ASSERT( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "---test-event"));
-            out_yaml.init(txt);
+            out_yaml.init(filename, txt);
         }
 
         // events
         C4_CHECK(begin_events != npos);
         size_t first_after_events = find_first_after(begin_events, all);
         begin_events = 1 + contents.find('\n', begin_events); // skip this line
-        events = contents.sub(begin_events).trimr(ws);
-        C4_ASSERT( ! events.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "---test-event"));
+        c4::csubstr src_events = contents.sub(begin_events).trimr(ws);
+        C4_ASSERT( ! src_events.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "---test-event"));
+        events.init(filename, src_events);
+
 
         // filter
         if(tags.find("whitespace") != npos)
         {
-            c4::csubstr filtered = replace_all("<SPC>", " ", in_yaml.ro, &in_yaml_filtered);
-            in_yaml.init(filtered);
+            c4::csubstr filtered = replace_all("<SPC>", " ", src(in_yaml), &in_yaml_filtered);
+            in_yaml.init(filename, filtered);
         }
 
         return true;
@@ -231,13 +355,14 @@ struct SuiteCase
 
     void print() const
     {
-        c4::dump("% desc   : "  , desc       , " %\n",
-                 "% from   : "  , from       , " %\n",
-                 "% tags   : "  , tags       , " %\n",
-                 "% in_yaml:\n" , in_yaml.ro , " %\n",
-                 "% in_json:\n" , in_json.ro , " %\n",
-                 "% out_yaml:\n", out_yaml.ro, " %\n",
-                 "% events :\n" , events     , " %\n");
+        c4::dump("% file   : "  , filename     , " %\n",
+                 "% desc   : "  , desc         , " %\n",
+                 "% from   : "  , from         , " %\n",
+                 "% tags   : "  , tags         , " %\n",
+                 "% in_yaml:\n" , src(in_yaml ), " %\n",
+                 "% in_json:\n" , src(in_json ), " %\n",
+                 "% out_yaml:\n", src(out_yaml), " %\n",
+                 "% events :\n" , src(events  ), " %\n");
     }
 
 };
@@ -250,83 +375,50 @@ struct SuiteCase
 SuiteCase g_suite_case;
 
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-#ifdef CRL
-TEST(in_json_rw, parse)
-{
-    g_suite_case.in_json.parse_rw();
-}
-TEST(in_json_rw, emit)
-{
-    g_suite_case.in_json.emit_rw();
-}
-
-TEST(in_json_ro, parse)
-{
-    g_suite_case.in_json.parse_ro();
-}
-TEST(in_json_ro, emit)
-{
-    g_suite_case.in_json.emit_ro();
-}
-#endif CRL
-
-
-//-----------------------------------------------------------------------------
-
-TEST(out_yaml_rw, parse)
-{
-    g_suite_case.out_yaml.parse_rw();
-}
-TEST(out_yaml_rw, emit)
-{
-    g_suite_case.out_yaml.emit_rw();
-}
-
-TEST(out_yaml_ro, parse)
-{
-    g_suite_case.out_yaml.parse_ro();
-}
-TEST(out_yaml_ro, emit)
-{
-    g_suite_case.out_yaml.emit_ro();
-}
-
-TEST(out_yaml__ro_vs_rw, compare_src)
-{
-    g_suite_case.out_yaml.compare_src();
-}
-
-TEST(out_yaml__ro_vs_rw, compare_emitted)
-{
-    g_suite_case.out_yaml.compare_emitted();
-}
+#define DECLARE_TEST_CLASS(cls, pfx) \
+\
+class cls##_##pfx : public ::testing::TestWithParam<size_t> {};\
+\
+TEST_P(cls##_##pfx, parse)\
+{\
+    g_suite_case.cls.pfx.parse(GetParam(), false);\
+}\
+TEST_P(cls##_##pfx, emit)\
+{\
+    g_suite_case.cls.pfx.parse(GetParam(), true);\
+}\
+TEST_P(cls##_##pfx, compare_trees)\
+{\
+    g_suite_case.cls.pfx.compare_trees(GetParam());\
+}\
+TEST_P(cls##_##pfx, compare_emitted)\
+{\
+    g_suite_case.cls.pfx.compare_emitted(GetParam());\
+}\
+/**/\
+/**/\
+/**/\
 
 
-//-----------------------------------------------------------------------------
+#define DECLARE_TESTS(cls) \
+\
+DECLARE_TEST_CLASS(cls, ro)\
+DECLARE_TEST_CLASS(cls, rw)\
+DECLARE_TEST_CLASS(cls, ro_reuse)\
+DECLARE_TEST_CLASS(cls, rw_reuse)\
+\
+INSTANTIATE_TEST_SUITE_P(_, cls##_ro      , testing::Range<size_t>(1, NLEVELS+1));\
+INSTANTIATE_TEST_SUITE_P(_, cls##_rw      , testing::Range<size_t>(1, NLEVELS+1));\
+INSTANTIATE_TEST_SUITE_P(_, cls##_ro_reuse, testing::Range<size_t>(1, NLEVELS+1));\
+INSTANTIATE_TEST_SUITE_P(_, cls##_rw_reuse, testing::Range<size_t>(1, NLEVELS+1));
 
-#ifdef CRL
-TEST(in_yaml_rw, parse)
-{
-    g_suite_case.in_yaml.parse_rw();
-}
-TEST(in_yaml_rw, emit)
-{
-    g_suite_case.in_yaml.emit_rw();
-}
 
-TEST(in_yaml_ro, parse)
-{
-    g_suite_case.in_yaml.parse_ro();
-}
-TEST(in_yaml_ro, emit)
-{
-    g_suite_case.in_yaml.emit_ro();
-}
-#endif
+DECLARE_TESTS(out_yaml);
+//DECLARE_TESTS(events);
+//DECLARE_TESTS(in_json);
+//DECLARE_TESTS(in_yaml);
+
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -343,6 +435,8 @@ int main(int argc, char* argv[])
         if(path[0] != '-')
         {
             C4_CHECK(c4::fs::path_exists(argv[1]));
+            auto fn = c4::to_csubstr(argv[1]);
+            c4::log("testing suite case: {} ({})", fn.basename(), fn);
             if( ! g_suite_case.load(argv[1]))
             {
                 return 0;
@@ -354,9 +448,12 @@ int main(int argc, char* argv[])
 
     int status = RUN_ALL_TESTS();
 
-    if(status != 0)
+    if(g_suite_case.filename.not_empty())
     {
-        c4::dump("TESTS FAILED: ", g_suite_case.filename);
+        c4::log("\nTESTS {}: {} ({})\n",
+            status == 0 ? "SUCCEEDED" : "FAILED",
+            g_suite_case.filename.basename(),
+            g_suite_case.filename);
     }
 
     return status;
