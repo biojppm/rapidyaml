@@ -1055,6 +1055,127 @@ a:
     print_tree(t); // to make sure this is covered too
 }
 
+TEST(general, lookup_path)
+{
+    const char yaml[] = R"(
+a:
+  b: bval
+  c:
+    d:
+      - e
+      - d
+      - f: fval
+        g: gval
+        h:
+          -
+            x: a
+            y: b
+          -
+            z: c
+            u:
+)";
+    Tree t = parse(yaml);
+    print_tree(t);
+
+    EXPECT_EQ(t.lookup_path("a").target, 1);
+    EXPECT_EQ(t.lookup_path("a.b").target, 2);
+    EXPECT_EQ(t.lookup_path("a.c").target, 3);
+    EXPECT_EQ(t.lookup_path("a.c.d").target, 4);
+    EXPECT_EQ(t.lookup_path("a.c.d[0]").target, 5);
+    EXPECT_EQ(t.lookup_path("a.c.d[1]").target, 6);
+    EXPECT_EQ(t.lookup_path("a.c.d[2]").target, 7);
+    EXPECT_EQ(t.lookup_path("a.c.d[2].f").target, 8);
+    EXPECT_EQ(t.lookup_path("a.c.d[2].g").target, 9);
+    EXPECT_EQ(t.lookup_path("a.c.d[2].h").target, 10);
+    EXPECT_EQ(t.lookup_path("a.c.d[2].h[0]").target, 11);
+    EXPECT_EQ(t.lookup_path("a.c.d[2].h[0].x").target, 12);
+    EXPECT_EQ(t.lookup_path("a.c.d[2].h[0].y").target, 13);
+    EXPECT_EQ(t.lookup_path("a.c.d[2].h[1]").target, 14);
+    EXPECT_EQ(t.lookup_path("a.c.d[2].h[1].z").target, 15);
+    EXPECT_EQ(t.lookup_path("a.c.d[2].h[1].u").target, 16);
+    EXPECT_EQ(t.lookup_path("d", 3).target, 4);
+    EXPECT_EQ(t.lookup_path("d[0]", 3).target, 5);
+    EXPECT_EQ(t.lookup_path("d[1]", 3).target, 6);
+    EXPECT_EQ(t.lookup_path("d[2]", 3).target, 7);
+    EXPECT_EQ(t.lookup_path("d[2].f", 3).target, 8);
+    EXPECT_EQ(t.lookup_path("d[2].g", 3).target, 9);
+    EXPECT_EQ(t.lookup_path("d[2].h", 3).target, 10);
+    EXPECT_EQ(t.lookup_path("d[2].h[0]", 3).target, 11);
+    EXPECT_EQ(t.lookup_path("d[2].h[0].x", 3).target, 12);
+    EXPECT_EQ(t.lookup_path("d[2].h[0].y", 3).target, 13);
+    EXPECT_EQ(t.lookup_path("d[2].h[1]", 3).target, 14);
+    EXPECT_EQ(t.lookup_path("d[2].h[1].z", 3).target, 15);
+    EXPECT_EQ(t.lookup_path("d[2].h[1].u", 3).target, 16);
+
+    auto lp = t.lookup_path("x");
+    EXPECT_FALSE(lp);
+    EXPECT_EQ(lp.target, NONE);
+    EXPECT_EQ(lp.closest, NONE);
+    EXPECT_EQ(lp.resolved(), "");
+    EXPECT_EQ(lp.unresolved(), "x");
+    lp = t.lookup_path("a.x");
+    EXPECT_FALSE(lp);
+    EXPECT_EQ(lp.target, NONE);
+    EXPECT_EQ(lp.closest, 1);
+    EXPECT_EQ(lp.resolved(), "a");
+    EXPECT_EQ(lp.unresolved(), "x");
+    lp = t.lookup_path("a.b.x");
+    EXPECT_FALSE(lp);
+    EXPECT_EQ(lp.target, NONE);
+    EXPECT_EQ(lp.closest, 2);
+    EXPECT_EQ(lp.resolved(), "a.b");
+    EXPECT_EQ(lp.unresolved(), "x");
+    lp = t.lookup_path("a.c.x");
+    EXPECT_FALSE(lp);
+    EXPECT_EQ(lp.target, NONE);
+    EXPECT_EQ(lp.closest, 3);
+    EXPECT_EQ(lp.resolved(), "a.c");
+    EXPECT_EQ(lp.unresolved(), "x");
+
+    size_t sz = t.size();
+    EXPECT_EQ(t.lookup_path("x").target, NONE);
+    EXPECT_EQ(t.lookup_path_or_modify("x", "x"), sz);
+    EXPECT_EQ(t.lookup_path("x").target, sz);
+    EXPECT_EQ(t.val(sz), "x");
+    EXPECT_EQ(t.lookup_path_or_modify("y", "x"), sz);
+    EXPECT_EQ(t.val(sz), "x");
+    EXPECT_EQ(t.lookup_path_or_modify("z", "x"), sz);
+    EXPECT_EQ(t.val(sz), "x");
+    
+    sz = t.size();
+    EXPECT_EQ(t.lookup_path("a.x").target, NONE);
+    EXPECT_EQ(t.lookup_path_or_modify("x", "a.x"), sz);
+    EXPECT_EQ(t.lookup_path("a.x").target, sz);
+    EXPECT_EQ(t.val(sz), "x");
+    EXPECT_EQ(t.lookup_path_or_modify("y", "a.x"), sz);
+    EXPECT_EQ(t.val(sz), "x");
+    EXPECT_EQ(t.lookup_path_or_modify("z", "a.x"), sz);
+    EXPECT_EQ(t.val(sz), "x");
+ 
+    sz = t.size();
+    EXPECT_EQ(t.lookup_path("a.c.x").target, NONE);
+    EXPECT_EQ(t.lookup_path_or_modify("x", "a.c.x"), sz);
+    EXPECT_EQ(t.lookup_path("a.c.x").target, sz);
+    EXPECT_EQ(t.val(sz), "x");
+    EXPECT_EQ(t.lookup_path_or_modify("y", "a.c.x"), sz);
+    EXPECT_EQ(t.val(sz), "x");
+    EXPECT_EQ(t.lookup_path_or_modify("z", "a.c.x"), sz);
+    EXPECT_EQ(t.val(sz), "x");
+
+    csubstr bigpath = "newmap.newseq[0].newmap.newseq[0].first";
+    EXPECT_EQ(t.lookup_path(bigpath).target, NONE);
+    EXPECT_EQ(t.lookup_path(bigpath).closest, NONE);
+    EXPECT_EQ(t.lookup_path(bigpath).resolved(), "");
+    EXPECT_EQ(t.lookup_path(bigpath).unresolved(), bigpath);
+    sz = t.lookup_path_or_modify("x", bigpath);
+    EXPECT_EQ(t.lookup_path(bigpath).target, sz);
+    EXPECT_EQ(t.val(sz), "x");
+
+    bigpath = "newmap2.newseq2[2].newmap2.newseq2[2].first2";
+    sz = t.lookup_path_or_modify("x", bigpath);
+    EXPECT_EQ(t.lookup_path(bigpath).target, sz);
+    EXPECT_EQ(t.val(sz), "x");
+}
 
 //-------------------------------------------
 // this is needed to use the test case library

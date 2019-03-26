@@ -681,6 +681,47 @@ public:
         return cp;
     }
 
+public:
+
+    struct lookup_result
+    {
+        size_t  target;
+        size_t  closest;
+        size_t  path_pos;
+        csubstr path;
+
+        inline operator bool() const { return target != NONE; }
+
+        lookup_result() : target(NONE), closest(NONE), path_pos(0), path() {}
+        lookup_result(csubstr path, size_t start) : target(NONE), closest(start), path_pos(0), path(path) {}
+
+        csubstr resolved() const;
+        csubstr unresolved() const;
+    };
+
+    /** for example foo.bar[0].baz */
+    lookup_result lookup_path(csubstr path, size_t start=NONE) const;
+
+    /** defaulted lookup: lookup path; if the lookup fails, recursively modify
+     * the tree so that the corresponding lookup_path() would return the 
+     * default value */
+    size_t lookup_path_or_modify(csubstr default_value, csubstr path, size_t start=NONE);
+
+private:
+
+    struct _lookup_path_token
+    {
+        csubstr value = {};
+        NodeType type = NOTYPE;
+        inline operator bool() const { return type != NOTYPE; }
+        bool is_index() const { return value.begins_with('[') && value.ends_with(']'); }
+    };
+
+    void _lookup_path(lookup_result *r, bool modify);
+    size_t _next_node(lookup_result *r, bool modify, _lookup_path_token *parent);
+    _lookup_path_token _next_token(lookup_result *r, _lookup_path_token const& parent);
+    void _advance(lookup_result *r, size_t more);
+
 private:
 
     substr _grow_arena(size_t more)
