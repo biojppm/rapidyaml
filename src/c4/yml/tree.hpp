@@ -711,8 +711,10 @@ private:
 
     struct _lookup_path_token
     {
-        csubstr value = {};
-        NodeType type = NOTYPE;
+        csubstr value;
+        NodeType type;
+        _lookup_path_token() : value(), type() {}
+        _lookup_path_token(csubstr v, NodeType t) : value(v), type(t) {}
         inline operator bool() const { return type != NOTYPE; }
         bool is_index() const { return value.begins_with('[') && value.ends_with(']'); }
     };
