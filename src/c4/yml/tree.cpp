@@ -1125,6 +1125,7 @@ size_t Tree::find_child(size_t node, csubstr const& name) const
     return NONE;
 }
 
+
 //-----------------------------------------------------------------------------
 
 void Tree::to_val(size_t node, csubstr const& val, type_bits more_flags)
@@ -1196,6 +1197,276 @@ void Tree::to_stream(size_t node, type_bits more_flags)
     _set_flags(node, STREAM|more_flags);
     _p(node)->m_key.clear();
     _p(node)->m_val.clear();
+}
+
+
+//-----------------------------------------------------------------------------
+
+csubstr Tree::lookup_result::resolved() const
+{
+    auto p = path.first(path_pos);
+    if(p.ends_with('.')) p = p.first(p.len-1);
+    return p;
+}
+
+csubstr Tree::lookup_result::unresolved() const
+{
+    return path.sub(path_pos);
+}
+
+inline void Tree::_advance(lookup_result *r, size_t more)
+{
+    r->path_pos += more;
+    if(r->path.sub(r->path_pos).begins_with('.'))
+    {
+        ++r->path_pos;
+    }
+}
+
+Tree::lookup_result Tree::lookup_path(csubstr path, size_t start) const
+{
+    if(start == NONE) start = root_id();
+    lookup_result r(path, start);
+    if(path.empty()) return r;
+    const_cast<Tree*>(this)->_lookup_path(&r, /*modify*/false); // no writes will occur
+    if(r.target == NONE && r.closest == start)
+    {
+        r.closest = NONE;
+    }
+    return r;
+}
+
+size_t Tree::lookup_path_or_modify(csubstr default_value, csubstr path, size_t start)
+{
+    if(start == NONE) start = root_id();
+    lookup_result r(path, start);
+    _lookup_path(&r, /*modify*/false);
+    if(r.target != NONE) return r.target;
+    _lookup_path(&r, /*modify*/true);
+    C4_CHECK(r.target != NONE);
+    if(parent_is_map(r.target))
+    {
+        to_keyval(r.target, key(r.target), default_value);
+    }
+    else
+    {
+        C4_ASSERT(parent_is_map(r.target));
+        to_val(r.target, default_value);
+    }
+    return r.target;
+}
+
+void Tree::_lookup_path(lookup_result *r, bool modify)
+{
+    _lookup_path_token parent{"", type(r->closest)};
+    size_t node;
+    do
+    {
+        node = _next_node(r, modify, &parent);
+        if(node != NONE)
+        {
+            r->closest = node;
+        }
+        if(r->unresolved().empty())
+        {
+            r->target = node;
+            return;
+        }
+    } while(node != NONE);
+}
+
+size_t Tree::_next_node(lookup_result * r, bool modify, _lookup_path_token *parent)
+{
+    _lookup_path_token token = _next_token(r, *parent);
+
+    if( ! token) return NONE;
+
+    size_t node = NONE;
+    csubstr tk = token.value;
+    auto type = token.type;
+
+    if(type == MAP || type == SEQ)
+    {
+        C4_ASSERT(!tk.begins_with('['));
+        //C4_ASSERT(is_container(r->closest) || r->closest == NONE);
+        if( ! modify)
+        {
+            C4_ASSERT(is_map(r->closest));
+            node = find_child(r->closest, tk);
+            if(node == NONE) goto failure;
+        }
+        else
+        {
+            if( ! is_container(r->closest))
+            {
+                if(has_key(r->closest))
+                {
+                    to_map(r->closest, key(r->closest));
+                }
+                else
+                {
+                    to_map(r->closest);
+                }
+            }
+            C4_ASSERT(is_map(r->closest));
+            node = find_child(r->closest, tk);
+            if(node == NONE)
+            {
+                C4_ASSERT(is_map(r->closest));
+                node = append_child(r->closest);
+                NodeData *n = _p(node);
+                n->m_key.scalar = tk;
+                n->m_type.add(KEY);
+            }
+        }
+    }
+    else if(type == KEYVAL)
+    {
+        C4_ASSERT(r->unresolved().empty());
+        if(is_map(r->closest))
+        {
+            node = find_child(r->closest, tk);
+        }
+        if( ! modify)
+        {
+            if(node == NONE) goto failure;
+        }
+        else
+        {
+            if(this->type(r->closest) == NOTYPE)
+            {
+                NodeData *c = _p(r->closest);
+                c->m_type.add(MAP);
+            }
+            C4_ASSERT(is_map(r->closest));
+            node = append_child(r->closest);
+            NodeData *n = _p(node);
+            n->m_key.scalar = tk;
+            n->m_val.scalar = "";
+            n->m_type.add(KEYVAL);
+        }
+    }
+    else if(type == KEY)
+    {
+        C4_ASSERT(tk.begins_with('[') && tk.ends_with(']'));
+        tk = tk.offs(1, 1).trim(' ');
+        size_t idx;
+        if( ! from_chars(tk, &idx))
+        {
+             goto failure;
+        }
+        if( ! modify)
+        {
+            node = child(r->closest, idx);
+            if(node == NONE) goto failure;
+        }
+        else
+        {
+            if( ! is_container(r->closest))
+            {
+                if(has_key(r->closest))
+                {
+                    to_seq(r->closest, key(r->closest));
+                }
+                else
+                {
+                    to_seq(r->closest);
+                }
+            }
+            C4_ASSERT(is_container(r->closest));
+            node = child(r->closest, idx);
+            if(node == NONE)
+            {
+                C4_ASSERT(num_children(r->closest) <= idx);
+                for(size_t i = num_children(r->closest); i <= idx; ++i)
+                {
+                    node = append_child(r->closest);
+                    if(i < idx)
+                    {
+                        if(is_map(r->closest))
+                        {
+                            to_keyval(node, "~", "~");
+                        }
+                        else if(is_seq(r->closest))
+                        {
+                            to_val(node, "~");
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+    else
+    {
+        C4_NEVER_REACH();
+    }
+
+    *parent = token;
+    return node;
+
+failure:
+    C4_ASSERT(node == NONE);
+    if( ! modify) // rollback
+    {
+        csubstr p = r->path.sub(r->path_pos);
+        csubstr pb = r->path.sub(r->path_pos > 0 ? r->path_pos - 1 : r->path_pos);
+        size_t adj = (p.begins_with_any(".]") || pb.begins_with_any(".]")) ? 1 : 0;
+        r->path_pos -= token.value.len + adj;
+    }
+    return NONE;
+}
+
+/** types of tokens:
+ * - seeing "map."  ---> "map"/MAP
+ * - finishing "scalar" ---> "scalar"/KEYVAL
+ * - seeing "seq[n]" ---> "seq"/SEQ (--> "[n]"/KEY)
+ * - seeing "[n]" ---> "[n]"/KEY
+ */
+Tree::_lookup_path_token Tree::_next_token(lookup_result *r, _lookup_path_token const& parent)
+{
+    csubstr unres = r->unresolved();
+    if(unres.empty())
+    {
+        return {};
+    }
+
+    // is it an indexation like [0], [1], etc?
+    if(unres.begins_with('['))
+    {
+        size_t pos = unres.find(']');
+        if(pos == csubstr::npos) return {};
+        csubstr idx = unres.first(pos + 1);
+        _advance(r, pos + 1);
+        return {idx, KEY};
+    }
+
+    // no. so it must be a name
+    size_t pos = unres.first_of(".[");
+
+    if(pos == csubstr::npos)
+    {
+        _advance(r, unres.len);
+        NodeType t;
+        if(( ! parent) || parent.type.is_seq())
+        {
+            return {unres, VAL};
+        }
+        return {unres, KEYVAL};
+    }
+
+    // it's either a map or a seq
+    C4_ASSERT(unres[pos] == '.' || unres[pos] == '[');
+    if(unres[pos] == '.')
+    {
+        C4_ASSERT(pos != 0);
+        _advance(r, pos + 1);
+        return {unres.first(pos), MAP};
+    }
+
+    C4_ASSERT(unres[pos] == '[');
+    _advance(r, pos);
+    return {unres.first(pos), SEQ};
 }
 
 } // namespace ryml
