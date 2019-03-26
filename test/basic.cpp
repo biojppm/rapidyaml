@@ -3,6 +3,7 @@
 #include "c4/yml/emit.hpp"
 #include <c4/format.hpp>
 #include <c4/yml/detail/checks.hpp>
+#include <c4/yml/detail/print.hpp>
 
 #include "./test_case.hpp"
 
@@ -1029,6 +1030,29 @@ foo: 1
 
     EXPECT_EQ(m["foo"], 10);
     EXPECT_EQ(m["bar"], 20);
+}
+
+TEST(general, print_tree)
+{
+    const char yaml[] = R"(
+a:
+  b: bval
+  c:
+    d:
+      - e
+      - d
+      - f: fval
+        g: gval
+        h:
+          -
+            x: a
+            y: b
+          -
+            z: c
+            u:
+)";
+    Tree t = parse(yaml);
+    print_tree(t); // to make sure this is covered too
 }
 
 
