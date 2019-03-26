@@ -525,6 +525,9 @@ public:
     void to_seq(size_t node, type_bits more_flags=0);
     void to_doc(size_t node, type_bits more_flags=0);
 
+    void set_key(size_t node, csubstr key) { C4_ASSERT(has_key(node)); _p(node)->m_key.scalar = key; }
+    void set_val(size_t node, csubstr val) { C4_ASSERT(has_val(node)); _p(node)->m_val.scalar = val; }
+
     void set_key_tag(size_t node, csubstr const& tag) { C4_ASSERT(has_key(node)); _p(node)->m_key.tag = tag; _add_flags(node, KEYTAG); }
     void set_val_tag(size_t node, csubstr const& tag) { C4_ASSERT(has_val(node) || is_container(node)); _p(node)->m_val.tag = tag; _add_flags(node, VALTAG); }
 
@@ -885,7 +888,7 @@ private:
 
 public:
 
-    // members are exposed, but you should NOT access them
+    // members are exposed, but you should NOT access them directly
 
     NodeData * m_buf;
     size_t m_cap;
