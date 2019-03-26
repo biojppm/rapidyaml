@@ -1438,7 +1438,7 @@ Tree::_lookup_path_token Tree::_next_token(lookup_result *r, _lookup_path_token 
         if(pos == csubstr::npos) return {};
         csubstr idx = unres.first(pos + 1);
         _advance(r, pos + 1);
-        return {idx, KEY};
+        return _lookup_path_token{idx, KEY};
     }
 
     // no. so it must be a name
@@ -1452,7 +1452,7 @@ Tree::_lookup_path_token Tree::_next_token(lookup_result *r, _lookup_path_token 
         {
             return {unres, VAL};
         }
-        return {unres, KEYVAL};
+        return _lookup_path_token{unres, KEYVAL};
     }
 
     // it's either a map or a seq
@@ -1461,12 +1461,12 @@ Tree::_lookup_path_token Tree::_next_token(lookup_result *r, _lookup_path_token 
     {
         C4_ASSERT(pos != 0);
         _advance(r, pos + 1);
-        return {unres.first(pos), MAP};
+        return _lookup_path_token{unres.first(pos), MAP};
     }
 
     C4_ASSERT(unres[pos] == '[');
     _advance(r, pos);
-    return {unres.first(pos), SEQ};
+    return _lookup_path_token{unres.first(pos), SEQ};
 }
 
 } // namespace ryml
