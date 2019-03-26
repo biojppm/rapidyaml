@@ -147,7 +147,6 @@ struct Approach
 
     void parse(size_t num, bool emit)
     {
-        C4_ASSERT(num <= NLEVELS);
         for(size_t i = 0; i < num; ++i)
         {
             levels[i].parse();
@@ -381,18 +380,22 @@ class cls##_##pfx : public ::testing::TestWithParam<size_t> {};\
 \
 TEST_P(cls##_##pfx, parse)\
 {\
+    C4_ASSERT(GetParam() < NLEVELS);\
     g_suite_case.cls.pfx.parse(GetParam(), false);\
 }\
 TEST_P(cls##_##pfx, emit)\
 {\
+    C4_ASSERT(GetParam() < NLEVELS);\
     g_suite_case.cls.pfx.parse(GetParam(), true);\
 }\
 TEST_P(cls##_##pfx, compare_trees)\
 {\
+    C4_ASSERT(GetParam() < NLEVELS);\
     g_suite_case.cls.pfx.compare_trees(GetParam());\
 }\
 TEST_P(cls##_##pfx, compare_emitted)\
 {\
+    C4_ASSERT(GetParam() < NLEVELS);\
     g_suite_case.cls.pfx.compare_emitted(GetParam());\
 }\
 /**/\
