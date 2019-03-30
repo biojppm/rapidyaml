@@ -77,6 +77,84 @@ v4: '(1000,1001,1002,1003)'
 
 namespace c4 { namespace yml {
 
+//-------------------------------------------
+Tree get_test_tree()
+{
+    Tree t = parse("{a: b, c: d, e: [0, 1, 2, 3]}");
+    // make sure the tree has strings in its arena
+    NodeRef n = t.rootref();
+    NodeRef ch = n.append_child();
+    ch << key("serialized_key");
+    ch << 89;
+    return t;
+}
+
+//-------------------------------------------
+TEST(tree, copy_ctor)
+{
+    Tree t = get_test_tree();
+    {
+        Tree cp(t);
+        test_invariants(t);
+        test_invariants(cp); 
+        test_compare(t, cp);
+        test_arena_not_shared(t, cp);
+    }
+}
+
+//-------------------------------------------
+TEST(tree, move_ctor)
+{
+    Tree t = get_test_tree();
+    Tree save(t);
+    EXPECT_EQ(t.size(), save.size());
+
+    {
+        Tree cp(std::move(t));
+        EXPECT_EQ(t.size(), 0);
+        EXPECT_EQ(save.size(), cp.size());
+        test_invariants(t);
+        test_invariants(cp);
+        test_invariants(save);
+        test_compare(cp, save);
+        test_arena_not_shared(t, cp);
+        test_arena_not_shared(save, cp);
+    }
+}
+
+//-------------------------------------------
+TEST(tree, copy_assign)
+{
+    Tree t = get_test_tree();
+    Tree cp;
+
+    cp = t;
+    test_invariants(t);
+    test_invariants(cp);
+    test_compare(t, cp);
+    test_arena_not_shared(t, cp);
+}
+
+//-------------------------------------------
+TEST(tree, move_assign)
+{
+    Tree t = get_test_tree();
+    Tree cp;
+    Tree save(t);
+    EXPECT_EQ(t.size(), save.size());
+
+    cp = std::move(t);
+    test_invariants(t);
+    test_invariants(cp);
+    test_invariants(cp);
+    test_invariants(save);
+    test_compare(save, cp);
+    test_arena_not_shared(t, cp);
+    test_arena_not_shared(save, cp);
+}
+
+
+//-------------------------------------------
 template<class Container, class... Args>
 void do_test_serialize(Args&& ...args)
 {
@@ -1175,6 +1253,7 @@ a:
     sz = t.lookup_path_or_modify("x", bigpath);
     EXPECT_EQ(t.lookup_path(bigpath).target, sz);
     EXPECT_EQ(t.val(sz), "x");
+    print_tree(t);
 }
 
 //-------------------------------------------

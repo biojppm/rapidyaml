@@ -9,6 +9,107 @@
 namespace c4 {
 namespace yml {
 
+size_t _num_leaves(Tree const& t, size_t node)
+{
+    size_t count = 0;
+    for(size_t i = t.first_child(node); i != NONE; i = t.next_sibling(i))
+    {
+        count += _num_leaves(t, i);
+    }
+    return count;
+}
+
+
+void test_compare(Tree const& a, Tree const& b)
+{
+    EXPECT_EQ(a.size(), b.size());
+    EXPECT_EQ(_num_leaves(a, a.root_id()), _num_leaves(b, b.root_id()));
+    test_compare(a, a.root_id(), 0, b, b.root_id(), 0, 0);
+}
+
+
+void test_compare(Tree const& a, size_t node_a, size_t pos_a,
+     Tree const& b, size_t node_b, size_t pos_b,
+     size_t level)
+{
+    ASSERT_NE(node_a, NONE);
+    ASSERT_NE(node_b, NONE);
+    ASSERT_LT(node_a, a.capacity());
+    ASSERT_LT(node_b, b.capacity());
+
+    EXPECT_EQ(a.type(node_a), b.type(node_b));
+    
+    EXPECT_EQ(a.has_key(node_a), b.has_key(node_b));
+    if(a.has_key(node_a) && b.has_key(node_b))
+    {
+        EXPECT_EQ(a.key(node_a), b.key(node_b));
+    }
+    
+    EXPECT_EQ(a.has_val(node_a), b.has_val(node_b));
+    if(a.has_val(node_a) && b.has_val(node_b))
+    {
+        EXPECT_EQ(a.val(node_a), b.val(node_b));
+    }
+    
+    EXPECT_EQ(a.has_key_tag(node_a), b.has_key_tag(node_b));
+    if(a.has_key_tag(node_a) && b.has_key_tag(node_b))
+    {
+        EXPECT_EQ(a.key_tag(node_a), b.key_tag(node_b));
+    }
+    
+    EXPECT_EQ(a.has_val_tag(node_a), b.has_val_tag(node_b));
+    if(a.has_val_tag(node_a) && b.has_val_tag(node_b))
+    {
+        EXPECT_EQ(a.val_tag(node_a), b.val_tag(node_b));
+    }
+  
+    EXPECT_EQ(a.has_key_anchor(node_a), b.has_key_anchor(node_b));
+    if(a.has_key_anchor(node_a) && b.has_key_anchor(node_b))
+    {
+        EXPECT_EQ(a.key_anchor(node_a), b.key_anchor(node_b));
+    }
+    
+    EXPECT_EQ(a.has_val_anchor(node_a), b.has_val_anchor(node_b));
+    if(a.has_val_anchor(node_a) && b.has_val_anchor(node_b))
+    {
+        EXPECT_EQ(a.val_anchor(node_a), b.val_anchor(node_b));
+    }
+
+    // check that the children are in the same order
+    EXPECT_EQ(a.num_children(node_a), b.num_children(node_b));
+    for(size_t ia = a.first_child(node_a),
+               ib = b.first_child(node_b),
+               pa = 0,
+               pb = 0;
+        ia != NONE && ib != NONE;
+        ia = a.next_sibling(ia), ib = b.next_sibling(ib), ++pa, ++pb)
+    {
+        test_compare(a, ia, pa, b, ib, pb, level+1);
+    }
+}
+
+void test_arena_not_shared(Tree const& a, Tree const& b)
+{
+    for(NodeData *n = a.m_buf, *e = a.m_buf + a.m_cap; n != e; ++n)
+    {
+        EXPECT_FALSE(b.in_arena(n->m_key.scalar)) << n - a.m_buf;
+        EXPECT_FALSE(b.in_arena(n->m_key.tag   )) << n - a.m_buf;
+        EXPECT_FALSE(b.in_arena(n->m_key.anchor)) << n - a.m_buf;
+        EXPECT_FALSE(b.in_arena(n->m_val.scalar)) << n - a.m_buf;
+        EXPECT_FALSE(b.in_arena(n->m_val.tag   )) << n - a.m_buf;
+        EXPECT_FALSE(b.in_arena(n->m_val.anchor)) << n - a.m_buf;
+    }
+    for(NodeData *n = b.m_buf, *e = b.m_buf + b.m_cap; n != e; ++n)
+    {
+        EXPECT_FALSE(a.in_arena(n->m_key.scalar)) << n - b.m_buf;
+        EXPECT_FALSE(a.in_arena(n->m_key.tag   )) << n - b.m_buf;
+        EXPECT_FALSE(a.in_arena(n->m_key.anchor)) << n - b.m_buf;
+        EXPECT_FALSE(a.in_arena(n->m_val.scalar)) << n - b.m_buf;
+        EXPECT_FALSE(a.in_arena(n->m_val.tag   )) << n - b.m_buf;
+        EXPECT_FALSE(a.in_arena(n->m_val.anchor)) << n - b.m_buf;
+    }
+}
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -449,6 +550,8 @@ void test_invariants(Tree const& t)
 
     EXPECT_LE(t.size(), t.capacity());
     EXPECT_EQ(t.size() + t.slack(), t.capacity());
+
+    if(t.empty()) return;
 
     size_t count = test_tree_invariants(t.rootref());
     EXPECT_EQ(count, t.size());

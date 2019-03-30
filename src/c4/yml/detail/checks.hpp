@@ -21,6 +21,7 @@ inline void check_invariants(Tree const& t, size_t node)
 {
     if(node == NONE)
     {
+        if(t.size() == 0) return;
         node = t.root_id();
     }
 

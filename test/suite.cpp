@@ -56,12 +56,9 @@ struct ProcLevel
     template<class T>
     void log(const char* context, T const& v)
     {
+        const char sep[] = "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n";
 #ifdef RYML_DBG
-        c4::log(R"({}:
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-{}
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-)", context, v);
+        c4::log("{}:\n{}{}{}", context, sep, v, sep);
 #endif
     }
 
@@ -381,22 +378,22 @@ class cls##_##pfx : public ::testing::TestWithParam<size_t> {};\
 TEST_P(cls##_##pfx, parse)\
 {\
     C4_ASSERT(GetParam() < NLEVELS);\
-    g_suite_case.cls.pfx.parse(GetParam(), false);\
-}\
-TEST_P(cls##_##pfx, emit)\
-{\
-    C4_ASSERT(GetParam() < NLEVELS);\
-    g_suite_case.cls.pfx.parse(GetParam(), true);\
+    g_suite_case.cls.pfx.parse(1 + GetParam(), false);\
 }\
 TEST_P(cls##_##pfx, compare_trees)\
 {\
     C4_ASSERT(GetParam() < NLEVELS);\
-    g_suite_case.cls.pfx.compare_trees(GetParam());\
+    g_suite_case.cls.pfx.compare_trees(1 + GetParam());\
+}\
+TEST_P(cls##_##pfx, emit)\
+{\
+    C4_ASSERT(GetParam() < NLEVELS);\
+    g_suite_case.cls.pfx.parse(1 + GetParam(), true);\
 }\
 TEST_P(cls##_##pfx, compare_emitted)\
 {\
     C4_ASSERT(GetParam() < NLEVELS);\
-    g_suite_case.cls.pfx.compare_emitted(GetParam());\
+    g_suite_case.cls.pfx.compare_emitted(1 + GetParam());\
 }\
 /**/\
 /**/\
@@ -410,16 +407,16 @@ DECLARE_TEST_CLASS(cls, rw)\
 DECLARE_TEST_CLASS(cls, ro_reuse)\
 DECLARE_TEST_CLASS(cls, rw_reuse)\
 \
-INSTANTIATE_TEST_SUITE_P(_, cls##_ro      , testing::Range<size_t>(1, NLEVELS+1));\
-INSTANTIATE_TEST_SUITE_P(_, cls##_rw      , testing::Range<size_t>(1, NLEVELS+1));\
-INSTANTIATE_TEST_SUITE_P(_, cls##_ro_reuse, testing::Range<size_t>(1, NLEVELS+1));\
-INSTANTIATE_TEST_SUITE_P(_, cls##_rw_reuse, testing::Range<size_t>(1, NLEVELS+1));
+INSTANTIATE_TEST_SUITE_P(_, cls##_ro      , testing::Range<size_t>(0, NLEVELS));\
+INSTANTIATE_TEST_SUITE_P(_, cls##_rw      , testing::Range<size_t>(0, NLEVELS));\
+INSTANTIATE_TEST_SUITE_P(_, cls##_ro_reuse, testing::Range<size_t>(0, NLEVELS));\
+INSTANTIATE_TEST_SUITE_P(_, cls##_rw_reuse, testing::Range<size_t>(0, NLEVELS));
 
 
 DECLARE_TESTS(out_yaml);
 //DECLARE_TESTS(events);
 //DECLARE_TESTS(in_json);
-//DECLARE_TESTS(in_yaml);
+DECLARE_TESTS(in_yaml);
 
 
 

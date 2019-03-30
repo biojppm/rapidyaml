@@ -13,12 +13,6 @@
 namespace c4 {
 namespace yml {
 
-/** @todo remove this */
-void swig_test(fdx f)
-{
-    printf("swig is working! '%.*s'\n", (int)f.sz, f.str);
-}
-
 static bool _is_scalar_next__runk(csubstr s)
 {
     if(s.begins_with(": ") || s.begins_with_any("#,:?"))

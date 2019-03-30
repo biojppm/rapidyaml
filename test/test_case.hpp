@@ -33,6 +33,13 @@ struct CaseData;
 Case const* get_case(csubstr name);
 CaseData* get_data(csubstr name);
 
+void test_compare(Tree const& a, Tree const& b);
+void test_compare(Tree const& a, size_t node_a, size_t pos_a,
+     Tree const& b, size_t node_b, size_t pos_b,
+     size_t level=0);
+
+void test_arena_not_shared(Tree const& a, Tree const& b);
+
 void test_invariants(Tree const& t);
 void test_invariants(NodeRef const& n);
 

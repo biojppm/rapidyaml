@@ -130,6 +130,11 @@ void Tree::_free()
     {
         m_alloc.free(m_arena.str, m_arena.len);
     }
+    _clear();
+}
+
+void Tree::_clear()
+{
     memset(this, 0, sizeof(*this));
 }
 
@@ -149,19 +154,22 @@ void Tree::_copy(Tree const& that)
 void Tree::_move(Tree & that)
 {
     memcpy(this, &that, sizeof(Tree));
-    that.m_buf = nullptr;
-    that.m_arena = {};
+    that._clear();
 }
 
 void Tree::_relocate(substr const& next_arena)
 {
+    C4_ASSERT(next_arena.not_empty());
+    C4_ASSERT(next_arena.len >= m_arena.len);
     memcpy(next_arena.str, m_arena.str, m_arena_pos);
     for(NodeData *n = m_buf, *e = m_buf + m_cap; n != e; ++n)
     {
         if(in_arena(n->m_key.scalar)) n->m_key.scalar = _relocated(n->m_key.scalar, next_arena);
         if(in_arena(n->m_key.tag   )) n->m_key.tag    = _relocated(n->m_key.tag   , next_arena);
+        if(in_arena(n->m_key.anchor)) n->m_key.anchor = _relocated(n->m_key.anchor, next_arena);
         if(in_arena(n->m_val.scalar)) n->m_val.scalar = _relocated(n->m_val.scalar, next_arena);
         if(in_arena(n->m_val.tag   )) n->m_val.tag    = _relocated(n->m_val.tag   , next_arena);
+        if(in_arena(n->m_val.anchor)) n->m_val.anchor = _relocated(n->m_val.anchor, next_arena);
     }
 }
 
