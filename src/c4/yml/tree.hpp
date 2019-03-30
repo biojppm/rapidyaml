@@ -754,6 +754,7 @@ private:
         return r;
     }
 
+    void _clear();
     void _free();
     void _copy(Tree const& that);
     void _move(Tree      & that);
