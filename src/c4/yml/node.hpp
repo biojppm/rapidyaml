@@ -88,6 +88,9 @@ public:
     inline bool operator== (std::nullptr_t) const { return m_tree == nullptr || m_id == NONE || is_seed(); }
     inline bool operator!= (std::nullptr_t) const { return ! this->operator== (nullptr); }
 
+    inline bool operator== (csubstr val) const { _C4RV(); C4_ASSERT(has_val()); return m_tree->val(m_id) == val; }
+    inline bool operator!= (csubstr val) const { _C4RV(); C4_ASSERT(has_val()); return m_tree->val(m_id) != val; }
+
     //inline operator bool () const { return m_tree == nullptr || m_id == NONE || is_seed(); }
 
 public:
