@@ -13,12 +13,6 @@
 namespace c4 {
 namespace yml {
 
-/** @todo remove this */
-void swig_test(fdx f)
-{
-    printf("swig is working! '%.*s'\n", (int)f.sz, f.str);
-}
-
 static bool _is_scalar_next__runk(csubstr s)
 {
     if(s.begins_with(": ") || s.begins_with_any("#,:?"))
@@ -66,7 +60,7 @@ static bool _is_scalar_next__rmap(csubstr s)
 
 static bool _is_scalar_next__rmap_val(csubstr s)
 {
-    if(s.begins_with("- ") || s.begins_with_any("{["))
+    if(s.begins_with("- ") || s.begins_with_any("{[") || s == "-")
     {
         return false;
     }
@@ -173,46 +167,7 @@ void Parser::parse(csubstr file, substr buf, Tree *t, size_t node_id)
 //-----------------------------------------------------------------------------
 void Parser::_handle_finished_file()
 {
-    C4_ASSERT( ! m_stack.empty());
-
-    if(has_any(SSCL))
-    {
-        if(m_tree->type(m_state->node_id) == NOTYPE)
-        {
-            m_tree->to_seq(m_state->node_id);
-            _append_val(_consume_scalar());
-        }
-        else if(m_tree->is_doc(m_state->node_id))
-        {
-            m_tree->to_doc(m_state->node_id, SEQ);
-            _append_val(_consume_scalar());
-        }
-        else if(m_tree->is_seq(m_state->node_id))
-        {
-            _append_val(_consume_scalar());
-        }
-        else if(m_tree->is_map(m_state->node_id))
-        {
-            _append_key_val("~");
-        }
-        else
-        {
-            _c4err("internal error");
-        }
-    }
-    else if(has_all(RSEQ|RVAL) && has_none(EXPL))
-    {
-        _append_val("~");
-    }
-
-    _c4dbgp("emptying stack...");
-    while(m_stack.size() > 1)
-    {
-        C4_ASSERT( ! has_any(SSCL, &m_stack.top()));
-        _pop_level();
-    }
-
-    m_state = &m_stack.top();
+    _end_stream();
 }
 
 //-----------------------------------------------------------------------------
@@ -338,6 +293,10 @@ bool Parser::_handle_unk()
         _line_progressed(2);
         return true;
     }
+    else if(_handle_types())
+    {
+        return true;
+    }
     else if(has_all(SSCL))
     {
         _c4dbgpf("there's a stored scalar: '%.*s'", _c4prsp(m_state->scalar));
@@ -387,8 +346,8 @@ bool Parser::_handle_unk()
         else if(rem.begins_with("..."))
         {
             _c4dbgp("got stream end '...'");
+            _end_stream();
             _line_progressed(3);
-            _handle_finished_file();
         }
         else if(rem.begins_with('#'))
         {
@@ -623,8 +582,14 @@ bool Parser::_handle_seq_impl()
         else if(rem.begins_with("..."))
         {
             _c4dbgp("got stream end '...'");
+            _end_stream();
             _line_progressed(3);
-            _handle_finished_file();
+            return true;
+        }
+        else if(rem.begins_with("---"))
+        {
+            _c4dbgp("got document start '---'");
+            _start_new_doc(rem);
             return true;
         }
         else
@@ -998,6 +963,11 @@ bool Parser::_handle_map_impl()
         {
             _c4dbgp("it's a scalar");
             _store_scalar(rem);
+            if(has_all(CPLX|RSET))
+            {
+                _c4dbgp("it's a complex key, so use null value '~'");
+                _append_key_val("~");
+            }
             rem = m_state->line_contents.rem;
 
             if(rem.begins_with(':'))
@@ -1031,7 +1001,7 @@ bool Parser::_handle_map_impl()
             _line_progressed(1);
             return true;
         }
-        else if(rem.begins_with(':') && has_all(CPLX))
+        else if(has_all(CPLX) && rem.begins_with(':'))
         {
             _c4dbgp("complex key finished");
             addrem_flags(RVAL, RKEY|CPLX);
@@ -1044,6 +1014,19 @@ bool Parser::_handle_map_impl()
                 _c4dbgpf("skip %zd spaces", rem.len);
                 _line_progressed(rem.len);
             }
+            return true;
+        }
+        else if(rem.begins_with("..."))
+        {
+            _c4dbgp("end current document");
+            _end_stream();
+            _line_progressed(3);
+            return true;
+        }
+        else if(rem.begins_with("---"))
+        {
+            _c4dbgp("start new document '---'");
+            _start_new_doc(rem);
             return true;
         }
         else if(_handle_types())
@@ -1115,7 +1098,7 @@ bool Parser::_handle_map_impl()
         }
         else if(rem == '-')
         {
-            _c4dbgp("start unknown, indented");
+            _c4dbgp("maybe a seq. start unknown, indented");
             _start_unk();
             _save_indentation();
             _line_progressed(1);
@@ -1222,39 +1205,13 @@ bool Parser::_handle_top()
     }
     else if(rem.begins_with("---"))
     {
-        C4_ASSERT(m_state->level == 0 || m_state->level == 1);
-        if(m_state->level == 1)
-        {
-            // end/start a document
-            C4_ASSERT(node(m_state)->is_doc());
-            _c4dbgp("end current document");
-            _pop_level();
-        }
-
-        // start a document
-        _c4dbgp("start a document");
-        size_t indref = m_state->indref;
-        _line_progressed(3);
-        _push_level();
-        _start_doc();
-        _set_indentation(indref);
-
-        // skip spaces after the tag
-        rem = rem.sub(3);
-        if(rem.begins_with(' '))
-        {
-            rem = rem.left_of(rem.first_not_of(' '));
-            _line_progressed(rem.len);
-        }
+        _start_new_doc(rem);
         return true;
     }
     else if(rem.begins_with("..."))
     {
         _c4dbgp("end current document");
-        if( ! m_stack.empty())
-        {
-            _pop_level();
-        }
+        _end_stream();
         _line_progressed(3);
         return true;
     }
@@ -1353,6 +1310,10 @@ bool Parser::_handle_types()
         t = rem.left_of(rem.first_of(' '));
         C4_ASSERT(t.len >= 2);
         //t = t.sub(2);
+        if(t == "!!set")
+        {
+            add_flags(RSET);
+        }
     }
     else if(rem.begins_with("!<"))
     {
@@ -1510,6 +1471,14 @@ bool Parser::_scan_scalar(csubstr *scalar)
                     _c4dbgp("RMAP|RVAL|EXPL");
                     s = s.left_of(s.first_of(",}"));
                 }
+                else if(s.begins_with("..."))
+                {
+                    return false;
+                }
+                else if(s.begins_with("---"))
+                {
+                    return false;
+                }
             }
         }
         else if(has_all(RVAL))
@@ -1564,6 +1533,7 @@ bool Parser::_scan_scalar(csubstr *scalar)
     _line_progressed(s.str - m_state->line_contents.rem.str + s.len);
 
     // deal with scalars that continue to the next line
+
     // PHEWW*. this sucks. it's crazy and very fragile. revisit and make this better.
     if(_at_line_end() && !s.begins_with_any("*"))
     {
@@ -1889,6 +1859,72 @@ void Parser::_stop_doc()
     C4_ASSERT(node(m_state)->is_doc());
 }
 
+void Parser::_end_stream()
+{
+    C4_ASSERT( ! m_stack.empty());
+    if(has_any(SSCL))
+    {
+        if(m_tree->type(m_state->node_id) == NOTYPE)
+        {
+            m_tree->to_seq(m_state->node_id);
+            _append_val(_consume_scalar());
+        }
+        else if(m_tree->is_doc(m_state->node_id))
+        {
+            m_tree->to_doc(m_state->node_id, SEQ);
+            _append_val(_consume_scalar());
+        }
+        else if(m_tree->is_seq(m_state->node_id))
+        {
+            _append_val(_consume_scalar());
+        }
+        else if(m_tree->is_map(m_state->node_id))
+        {
+            _append_key_val("~");
+        }
+        else
+        {
+            _c4err("internal error");
+        }
+    }
+    else if(has_all(RSEQ|RVAL) && has_none(EXPL))
+    {
+        _append_val("~");
+    }
+
+    while(m_stack.size() > 1)
+    {
+        _c4dbgpf("popping level: %zu (stack sz=%zu...", m_state->level, m_stack.size());
+        C4_ASSERT( ! has_any(SSCL, &m_stack.top()));
+        _pop_level();
+    }
+
+}
+
+void Parser::_start_new_doc(csubstr rem)
+{
+    _c4dbgp("_start_new_doc");
+    C4_ASSERT(rem.begins_with("---"));
+
+    _end_stream();
+
+    // start a document
+    _c4dbgp("start a document");
+    size_t indref = m_state->indref;
+    _line_progressed(3);
+    _push_level();
+    _start_doc();
+    _set_indentation(indref);
+
+    // skip spaces after the tag
+    rem = rem.sub(3);
+    if(rem.begins_with(' '))
+    {
+        rem = rem.left_of(rem.first_not_of(' '));
+        _line_progressed(rem.len);
+    }
+}
+
 //-----------------------------------------------------------------------------
 void Parser::_start_map(bool as_child)
 {
@@ -1920,9 +1956,19 @@ void Parser::_start_map(bool as_child)
         C4_ASSERT(m_tree->is_map(parent_id) || m_tree->empty(parent_id));
         m_state->node_id = parent_id;
         _c4dbgpf("start_map: id=%zd", m_state->node_id);
-        m_tree->to_map(parent_id);
+        int as_doc = 0;
+        if(node(m_state)->is_doc()) as_doc |= DOC;
+        m_tree->to_map(parent_id, as_doc);
         _move_scalar_from_top();
         _write_val_anchor(parent_id);
+        if(parent_id != NONE)
+        {
+            State const& parent_state = m_stack.top(1);
+            if(parent_state.flags & RSET)
+            {
+                add_flags(RSET);
+            }
+        }
     }
     if( ! m_val_tag.empty())
     {
@@ -2019,7 +2065,7 @@ NodeData* Parser::_append_key_val(csubstr const& val)
     _c4dbgpf("append keyval: '%.*s' '%.*s' to parent id=%zd (level=%zd)", _c4prsp(key), _c4prsp(val), m_state->node_id, m_state->level);
     size_t nid = m_tree->append_child(m_state->node_id);
     m_tree->to_keyval(nid, key, val);
-    _c4dbgpf("append keyval: id=%zd name='%.*s' val='%.*s'", nid, _c4prsp(m_tree->get(nid)->key()), _c4prsp(m_tree->get(nid)->val()));
+    _c4dbgpf("append keyval: id=%zd key='%.*s' val='%.*s'", nid, _c4prsp(m_tree->get(nid)->key()), _c4prsp(m_tree->get(nid)->val()));
     if( ! m_key_tag.empty())
     {
         _c4dbgpf("append keyval: set key tag to '%.*s'", _c4prsp(m_key_tag));
@@ -2356,6 +2402,13 @@ csubstr Parser::_scan_block()
 {
     // nice explanation here: http://yaml-multiline.info/
     csubstr s = m_state->line_contents.rem;
+    csubstr trimmed = s.triml(" ");
+    if(trimmed.str > s.str)
+    {
+        _c4dbgp("skipping whitespace");
+        _line_progressed(trimmed.str - s.str);
+        s = trimmed;
+    }
     C4_ASSERT(s.begins_with('|') || s.begins_with('>'));
 
     _c4dbgpf("scanning block: specs=\"%.*s\"", _c4prsp(s));
@@ -2948,6 +3001,7 @@ int Parser::_prfl(char *buf, int buflen, size_t v)
     _prflag(RVAL);
     _prflag(RNXT);
     _prflag(SSCL);
+    _prflag(RSET);
 #undef _prflag
 
     return pos;

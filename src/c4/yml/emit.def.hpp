@@ -51,17 +51,39 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, bool in
 
     if(t.is_doc(id))
     {
-        _write("---\n");
+        _write("---");
+        bool nl = false;
+        if(t.has_val_tag(id))
+        {
+            if( ! nl) _write(' ');
+            _write(t.val_tag(id));
+            nl = true;
+        }
+        if(t.has_val_anchor(id))
+        {
+            if( ! nl) _write(' ');
+            _write('&');
+            _write(t.val_anchor(id));
+            nl = true;
+        }
+        _write('\n');
     }
     else if(t.is_keyval(id))
     {
         C4_ASSERT(t.has_parent(id));
-        _write(ind); _writek(t, id); _write(": "); _writev(t, id); _write('\n');
+        _write(ind);
+        _writek(t, id);
+        _write(": ");
+        _writev(t, id);
+        _write('\n');
     }
     else if(t.is_val(id))
     {
         C4_ASSERT(t.has_parent(id));
-        _write(ind); _write("- "); _writev(t, id); _write('\n');
+        _write(ind);
+        _write("- ");
+        _writev(t, id);
+        _write('\n');
     }
     else if(t.is_container(id))
     {
@@ -70,117 +92,85 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, bool in
             C4_ASSERT(t.parent_is_map(id) || t.parent_is_seq(id));
             C4_ASSERT(t.is_map(id) || t.is_seq(id));
 
-            if(t.parent_is_seq(id))
+            if(t.has_key(id))
             {
-                C4_ASSERT( ! t.has_key(id));
-                _write(ind); _write("- ");
-                if(t.has_val_tag(id))
-                {
-                    _write(t.val_tag(id)); _write(' ');
-                }
-            }
-            else if(t.parent_is_map(id))
-            {
-                C4_ASSERT(t.has_key(id));
-                _write(ind); _writek(t, id); _write(':');
-                if(t.has_val_tag(id))
-                {
-                    _write(' '); _write(t.val_tag(id));
-                }
+                C4_ASSERT(t.parent_is_map(id));
+                _write(ind);
+                _writek(t, id);
+                _write(':');
             }
             else
             {
-                C4_NEVER_REACH();
+                C4_ASSERT(t.parent_is_seq(id));
+                _write(ind);
+                _write('-');
             }
 
+            if(t.has_val_tag(id))
+            {
+                _write(' ');
+                _write(t.val_tag(id));
+            }
             if(t.has_val_anchor(id))
             {
-                if(t.parent_is_seq(id))
-                {
-                    _write('&');
-                    _write(t.val_anchor(id));
-                    _write('\n');
-                    _indent(ilevel + 1);
-                }
-                else
-                {
-                    _write(" &");
-                    _write(t.val_anchor(id));
-                    _write(' ');
-                }
+                _write(' ');
+                _write('&');
+                _write(t.val_anchor(id));
             }
-
+            
+            indent = true;
             if(t.has_children(id))
             {
-                if(t.is_seq(id))
-                {
-                    if(t.parent_is_map(id))
-                    {
-                        _write('\n');
-                        indent = true;
-                    }
-                    else
-                    {
-                        // do not indent the first child, as it will be written on the same line
-                        indent = false;
-                    }
-                }
-                else if(t.is_map(id))
-                {
-                    if(t.parent_is_seq(id))
-                    {
-                        // do not indent the first child, as it will be written on the same line
-                        indent = false;
-                    }
-                    else
-                    {
-                        _write('\n');
-                        indent = true;
-                    }
-                }
-                else
-                {
-                    C4_NEVER_REACH();
-                }
+                _write('\n');
             }
-            else // no children
+            else
             {
-                if(t.parent_is_map(id))
-                {
-                    _write(' ');
-                }
                 if(t.is_seq(id))
                 {
-                    _write("[]\n");
+                    _write(" []\n");
                 }
                 else if(t.is_map(id))
                 {
-                    _write("{}\n");
-                }
-                else
-                {
-                    C4_NEVER_REACH();
+                    _write(" {}\n");
                 }
             }
         } // !root
-        else // root
+        else // root // @todo this branch should not be needed
         {
             C4_ASSERT(t.is_root(id));
+            bool nl = false;
+            if(t.has_val_tag(id))
+            {
+                _write(t.val_tag(id));
+                nl = true;
+            }
+            if(t.has_val_anchor(id))
+            {
+                _write('&');
+                _write(t.val_anchor(id));
+                nl = true;
+            }
+
             if( ! t.has_children(id))
             {
+                C4_ASSERT(t.is_seq(id) || t.is_map(id));
                 if(t.is_seq(id))
                 {
-                    _write("[]\n");
+                    if(nl) _write(' ');
+                    _write("[]");
+                    nl = true;
                 }
                 else if(t.is_map(id))
                 {
-                    _write("{}\n");
+                    if(nl) _write(' ');
+                    _write("{}");
+                    nl = true;
                 }
-                else
-                {
-                    C4_NEVER_REACH();
-                }
+            }
 
+            if(nl)
+            {
+                _write('\n');
             }
         } // root
     } // container

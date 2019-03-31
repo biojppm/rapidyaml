@@ -59,11 +59,10 @@ below).
 
 You bet!
 
-This project is fairly new, and only recently there was the change to
-benchmark it. The results are extremely satisfying. On a i7-6800K CPU @
+The first benchmarks results are extremely satisfying. On a i7-6800K CPU @
 3.40GHz:
  * ryml parses YAML at about ~150MB/s on Linux and ~100MB/s on Windows (vs2017). 
- * **ryml parses JSON at about 450MB/s on Linux**, faster than sajson (didn't
+ * **ryml parses JSON at about ~450MB/s on Linux**, faster than sajson (didn't
    try yet on Windows).
  * compared against the other existing YAML libraries for C/C++:
    * ryml is in general between 2 and 3 times faster than [libyaml](https://github.com/yaml/libyaml)
@@ -237,11 +236,9 @@ ryml::Tree tree = ryml::parse("{foo: 1}");
 When parsing, you can reuse the existing trees and parsers. You can also
 parse into particular tree nodes, so that you can parse an entire file into a
 node which is deep in the hierarchy of an existing tree. To see the various
-overloads for parser, consult
-the [c4/yml/parse.hpp header](src/c4/yml/parse.hpp).
-The free-standing `parse()`
-functions (towards the end of the file) are just convenience wrappers for
-calling the several `Parser::parse()` overloads.
+parse overloads, consult the [c4/yml/parse.hpp header](src/c4/yml/parse.hpp).
+The free-standing `parse()` functions (towards the end of the file) are just
+convenience wrappers for calling the several `Parser::parse()` overloads.
 
 
 ### Browsing the tree
@@ -526,7 +523,7 @@ for(size_t i  = t.first_sibling(foo_id);
 
 ryml provides code to serialize the basic intrinsic types (integers, floating
 points and strings): you can see it in the [the `c4/to_chars.hpp`
-header]([c4core](https://github.com/biojppm/c4core/src/c4/to_chars.hpp). For
+header](https://github.com/biojppm/c4core/blob/master/src/c4/to_chars.hpp). For
 types other than these, you need to instruct ryml how to serialize your type.
 
 There are two distinct type categories when serializing to a YAML tree:
@@ -769,12 +766,12 @@ quicker by a factor of 30x-50x:
 | parse:PyYaml          |    88 | 541.370  |  6.152  |      0.346     |
 | parse:RymlRo          |  3888 | 776.020  |  0.200  |     10.667     |
 | parse:RymlRoReuse     |  1888 | 381.558  |  0.202  |     10.535     |
-| parse:RymlInSitu      |  3888 | 775.121  |  0.199  |     10.679     |
-| parse:RymlInSituReuse |  3888 | 774.534  |  0.199  |     10.687     |
+| parse:RymlRw          |  3888 | 775.121  |  0.199  |     10.679     |
+| parse:RymlRwReuse     |  3888 | 774.534  |  0.199  |     10.687     |
 +-----------------------+-------+----------+---------+----------------+
 ```
 
-(Note that the results above are biased in favour of ryml, because ryml does
+(Note that the results above are somewhat biased towards ryml, because it does
 not perform any type conversions: return types are merely `memoryviews` to
 the source buffer.)
 
@@ -796,8 +793,7 @@ The following core features are tested:
 * anchors and references
 
 Of course, there are *many* dark corners in YAML, and there certainly can
-appear some cases which YAML fails to parse. So we welcome
-your
+appear some cases which ryml fails to parse. So we welcome your
 [bug reports or pull requests!](https://github.com/biojppm/rapidyaml/issues).
 
 Integration of the ~300 cases in the
@@ -817,20 +813,23 @@ wanted. There are two C/C++ libraries that I know of:
 
 The standard [libyaml](https://github.com/yaml/libyaml) is a bare C
 library. It does not create a representation of the data tree, so it can't
-qualify as practical. My initial idea was to wrap parsing and emitting
-around libyaml, but to my surprise I found out it makes heavy use of
-allocations and string duplications when parsing.
+qualify as practical. My initial idea was to wrap parsing and emitting around
+libyaml, but to my surprise I found out it makes heavy use of allocations and
+string duplications when parsing. I briefly pondered on sending PRs to reduce
+these allocation needs, but not having a permanent tree to store the parsed
+data was too much of a downside.
 
 [yaml-cpp](https://github.com/jbeder/yaml-cpp) is full of functionality, but
-is heavy on the use of pointer-based structures like `std::map`, allocations,
-string copies and slow C++ stream serializations. This is generally a sure
-way of making your code slower, and strong evidence of this can be seen in
-the benchmark results above.
+is heavy on the use of node-pointer-based structures like `std::map`,
+allocations, string copies and slow C++ stream serializations. This is
+generally a sure way of making your code slower, and strong evidence of this
+can be seen in the benchmark results above.
 
-When performance and low latency are important, using contiguous structures,
-parsing in place and using non-owning strings is of central importance. Hence
-this rapid YAML library which, with minimal compromise, bridges the gap from
-efficiency to usability. This library takes inspiration
+When performance and low latency are important, using contiguous structures
+for better cache behavior and to prevent the library from trampling over the
+client's caches, parsing in place and using non-owning strings is of central
+importance. Hence this Rapid YAML library which, with minimal compromise,
+bridges the gap from efficiency to usability. This library takes inspiration
 from [RapidJSON](https://github.com/Tencent/rapidjson)
 and [RapidXML](http://rapidxml.sourceforge.net/).
 

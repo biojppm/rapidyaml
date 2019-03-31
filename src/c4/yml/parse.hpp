@@ -127,6 +127,7 @@ private:
     bool  _handle_val_anchors_and_refs();
     bool  _handle_types();
 
+
     void  _push_level(bool explicit_flow_chars = false);
     void  _pop_level();
 
@@ -140,6 +141,8 @@ private:
 
     void  _start_doc(bool as_child=true);
     void  _stop_doc();
+    void  _start_new_doc(csubstr rem);
+    void  _end_stream();
 
     NodeData* _append_val(csubstr const& val);
     NodeData* _append_key_val(csubstr const& val);
@@ -154,6 +157,7 @@ private:
 
     void  _write_key_anchor(size_t node_id);
     void  _write_val_anchor(size_t node_id);
+
 
 private:
 
@@ -173,6 +177,7 @@ private:
         RVAL = 0x01 <<  7,   ///< reading a scalar as val
         RNXT = 0x01 <<  8,   ///< read next val or keyval
         SSCL = 0x01 <<  9,   ///< there's a scalar stored
+        RSET = 0x01 << 10,   ///< the (implicit) map being read is a !!set. @see https://yaml.org/type/set.html
     } State_e;
 
     struct LineContents

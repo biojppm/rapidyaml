@@ -525,6 +525,9 @@ public:
     void to_seq(size_t node, type_bits more_flags=0);
     void to_doc(size_t node, type_bits more_flags=0);
 
+    void set_key(size_t node, csubstr key) { C4_ASSERT(has_key(node)); _p(node)->m_key.scalar = key; }
+    void set_val(size_t node, csubstr val) { C4_ASSERT(has_val(node)); _p(node)->m_val.scalar = val; }
+
     void set_key_tag(size_t node, csubstr const& tag) { C4_ASSERT(has_key(node)); _p(node)->m_key.tag = tag; _add_flags(node, KEYTAG); }
     void set_val_tag(size_t node, csubstr const& tag) { C4_ASSERT(has_val(node) || is_container(node)); _p(node)->m_val.tag = tag; _add_flags(node, VALTAG); }
 
@@ -678,6 +681,49 @@ public:
         return cp;
     }
 
+public:
+
+    struct lookup_result
+    {
+        size_t  target;
+        size_t  closest;
+        size_t  path_pos;
+        csubstr path;
+
+        inline operator bool() const { return target != NONE; }
+
+        lookup_result() : target(NONE), closest(NONE), path_pos(0), path() {}
+        lookup_result(csubstr path, size_t start) : target(NONE), closest(start), path_pos(0), path(path) {}
+
+        csubstr resolved() const;
+        csubstr unresolved() const;
+    };
+
+    /** for example foo.bar[0].baz */
+    lookup_result lookup_path(csubstr path, size_t start=NONE) const;
+
+    /** defaulted lookup: lookup path; if the lookup fails, recursively modify
+     * the tree so that the corresponding lookup_path() would return the 
+     * default value */
+    size_t lookup_path_or_modify(csubstr default_value, csubstr path, size_t start=NONE);
+
+private:
+
+    struct _lookup_path_token
+    {
+        csubstr value;
+        NodeType type;
+        _lookup_path_token() : value(), type() {}
+        _lookup_path_token(csubstr v, NodeType t) : value(v), type(t) {}
+        inline operator bool() const { return type != NOTYPE; }
+        bool is_index() const { return value.begins_with('[') && value.ends_with(']'); }
+    };
+
+    void _lookup_path(lookup_result *r, bool modify);
+    size_t _next_node(lookup_result *r, bool modify, _lookup_path_token *parent);
+    _lookup_path_token _next_token(lookup_result *r, _lookup_path_token const& parent);
+    void _advance(lookup_result *r, size_t more);
+
 private:
 
     substr _grow_arena(size_t more)
@@ -708,6 +754,7 @@ private:
         return r;
     }
 
+    void _clear();
     void _free();
     void _copy(Tree const& that);
     void _move(Tree      & that);
@@ -885,7 +932,7 @@ private:
 
 public:
 
-    // members are exposed, but you should NOT access them
+    // members are exposed, but you should NOT access them directly
 
     NodeData * m_buf;
     size_t m_cap;
