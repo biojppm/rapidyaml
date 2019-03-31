@@ -51,7 +51,22 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, bool in
 
     if(t.is_doc(id))
     {
-        _write("---\n");
+        _write("---");
+        bool nl = false;
+        if(t.has_val_tag(id))
+        {
+            if( ! nl) _write(' ');
+            _write(t.val_tag(id));
+            nl = true;
+        }
+        if(t.has_val_anchor(id))
+        {
+            if( ! nl) _write(' ');
+            _write('&');
+            _write(t.val_anchor(id));
+            nl = true;
+        }
+        _write('\n');
     }
     else if(t.is_keyval(id))
     {
@@ -120,20 +135,42 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, bool in
                 }
             }
         } // !root
-        else // root
+        else // root // @todo this branch should not be needed
         {
             C4_ASSERT(t.is_root(id));
+            bool nl = false;
+            if(t.has_val_tag(id))
+            {
+                _write(t.val_tag(id));
+                nl = true;
+            }
+            if(t.has_val_anchor(id))
+            {
+                _write('&');
+                _write(t.val_anchor(id));
+                nl = true;
+            }
+
             if( ! t.has_children(id))
             {
                 C4_ASSERT(t.is_seq(id) || t.is_map(id));
                 if(t.is_seq(id))
                 {
-                    _write("[]\n");
+                    if(nl) _write(' ');
+                    _write("[]");
+                    nl = true;
                 }
                 else if(t.is_map(id))
                 {
-                    _write("{}\n");
+                    if(nl) _write(' ');
+                    _write("{}");
+                    nl = true;
                 }
+            }
+
+            if(nl)
+            {
+                _write('\n');
             }
         } // root
     } // container

@@ -725,47 +725,6 @@ another: text
 #endif
 
 
-#ifdef MORE_EXAMPLES
-char const* const structure_examples[] = {
-// https://en.wikipedia.org/wiki/YAML
-R"(
----
-a: 123                     # an integer
-b: "123"                   # a string, disambiguated by quotes
-c: 123.0                   # a float
-d: !!float 123             # also a float via explicit data type prefixed by (!!)
-e: !!str 123               # a string, disambiguated by explicit type
-f: !!str Yes               # a string via explicit type
-g: Yes                     # a boolean True (yaml1.1), string \"Yes\" (yaml1.2)
-h: Yes we have No bananas  # a string, \"Yes\" and \"No\" disambiguated by context.
-)",
-R"(
----
-picture: !!binary |
- R0lGODdhDQAIAIAAAAAAANn
- Z2SwAAAAADQAIAAACF4SDGQ
- ar3xxbJ9p0qa7R0YxwzaFME
- 1IAADs=
-)",
-R"(
----
-myObject:  !myClass { name: Joe, age: 15 }
-)",
-R"(
-
-)",
-R"(
-)",
-R"(
-)",
-R"(
-)",
-R"(
-)",
-};
-#endif
-
-
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

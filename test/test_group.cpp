@@ -19,60 +19,6 @@ namespace c4 {
 namespace yml {
 
 //-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-TEST_P(YmlTestCase, parse_using_libyaml)
-{
-    try
-    {
-        return; // disable this for now
-        Tree t;
-        LibyamlParser libyaml_parser;
-        libyaml_parser.parse(&t, c->src);
-    }
-    catch(...)
-    {
-        if(c->flags & IGNORE_LIBYAML_PARSE_FAIL)
-        {
-            std::cout << "libyaml failed parsing; ignoring\n";
-        }
-        else
-        {
-            std::cout << "libyaml failed parsing the following source:\n";
-            std::cout << "---------------\n";
-            std::cout << c->src;
-            std::cout << "---------------\n";
-            throw;
-        }
-    }
-}
-
-//-----------------------------------------------------------------------------
-TEST_P(YmlTestCase, parse_using_yaml_cpp)
-{
-    try
-    {
-        std::string src(c->src.str, c->src.len);
-        YAML::Node node = YAML::Load(src);
-    }
-    catch(...)
-    {
-        if(c->flags & IGNORE_YAMLCPP_PARSE_FAIL)
-        {
-            std::cout << "yamlcpp failed parsing the following source:\n";
-        }
-        else
-        {
-            std::cout << "yamlcpp failed parsing the following source:\n";
-            std::cout << "---------------\n";
-            std::cout << c->src;
-            std::cout << "---------------\n";
-            throw;
-        }
-    }
-}
-
-//-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, parse_using_ryml)
 {
 #ifdef RYML_DBG
