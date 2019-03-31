@@ -18,15 +18,15 @@ const char* NodeType::type_str(NodeType_e ty)
 {
     switch(ty & _TYMASK)
     {
+    case KEYVAL  : return "KEYVAL";
     case VAL     : return "VAL";
+    case DOCSEQ  : return "DOCSEQ";
+    case DOCMAP  : return "DOCMAP";
     case MAP     : return "MAP";
     case SEQ     : return "SEQ";
-    case KEYVAL  : return "KEYVAL";
     case KEYMAP  : return "KEYMAP";
     case KEYSEQ  : return "KEYSEQ";
     case DOC     : return "DOC";
-    case DOCSEQ  : return "DOCSEQ";
-    case DOCMAP  : return "DOCMAP";
     case STREAM  : return "STREAM";
     case NOTYPE  : return "NOTYPE";
     default:
