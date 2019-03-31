@@ -153,6 +153,202 @@ TEST(tree, move_assign)
     test_arena_not_shared(save, cp);
 }
 
+//-------------------------------------------
+TEST(tree, reserve)
+{
+    Tree t(16, 64);
+    EXPECT_EQ(t.capacity(), 16);
+    EXPECT_EQ(t.slack(), 15);
+    EXPECT_EQ(t.size(), 1);
+    EXPECT_EQ(t.arena_capacity(), 64);
+    EXPECT_EQ(t.arena_slack(), 64);
+    EXPECT_EQ(t.arena_size(), 0);
+    test_invariants(t);
+    
+    auto buf = t.m_buf;
+    t.reserve(16, 64);
+    EXPECT_EQ(t.m_buf, buf);
+    EXPECT_EQ(t.capacity(), 16);
+    EXPECT_EQ(t.slack(), 15);
+    EXPECT_EQ(t.size(), 1);
+    EXPECT_EQ(t.arena_capacity(), 64);
+    EXPECT_EQ(t.arena_slack(), 64);
+    EXPECT_EQ(t.arena_size(), 0);
+    test_invariants(t);
+    
+    t.reserve(32, 128);
+    EXPECT_EQ(t.capacity(), 32);
+    EXPECT_EQ(t.slack(), 31);
+    EXPECT_EQ(t.size(), 1);
+    EXPECT_EQ(t.arena_capacity(), 128);
+    EXPECT_EQ(t.arena_slack(), 128);
+    EXPECT_EQ(t.arena_size(), 0);
+    test_invariants(t);
+    
+    buf = t.m_buf;
+    parse("[a, b, c, d, e, f]", &t);
+    EXPECT_EQ(t.m_buf, buf);
+    EXPECT_EQ(t.capacity(), 32);
+    EXPECT_EQ(t.slack(), 25);
+    EXPECT_EQ(t.size(), 7);
+    EXPECT_EQ(t.arena_capacity(), 128);
+    EXPECT_EQ(t.arena_slack(), 110);
+    EXPECT_EQ(t.arena_size(), 18);
+    test_invariants(t);
+    
+    t.reserve(64, 256);
+    EXPECT_EQ(t.capacity(), 64);
+    EXPECT_EQ(t.slack(), 57);
+    EXPECT_EQ(t.size(), 7);
+    EXPECT_EQ(t.arena_capacity(), 256);
+    EXPECT_EQ(t.arena_slack(), 238);
+    EXPECT_EQ(t.arena_size(), 18);
+    test_invariants(t);
+}
+
+TEST(tree, clear)
+{
+    Tree t(16, 64);
+    EXPECT_EQ(t.capacity(), 16);
+    EXPECT_EQ(t.slack(), 15);
+    EXPECT_EQ(t.size(), 1);
+    EXPECT_EQ(t.arena_capacity(), 64);
+    EXPECT_EQ(t.arena_slack(), 64);
+    EXPECT_EQ(t.arena_size(), 0);
+    test_invariants(t);
+
+    t.clear();
+    t.clear_arena();
+    EXPECT_EQ(t.capacity(), 16);
+    EXPECT_EQ(t.slack(), 15);
+    EXPECT_EQ(t.size(), 1);
+    EXPECT_EQ(t.arena_capacity(), 64);
+    EXPECT_EQ(t.arena_slack(), 64);
+    EXPECT_EQ(t.arena_size(), 0);
+    test_invariants(t);
+    
+    auto buf = t.m_buf;
+    t.reserve(16, 64);
+    EXPECT_EQ(t.m_buf, buf);
+    EXPECT_EQ(t.capacity(), 16);
+    EXPECT_EQ(t.slack(), 15);
+    EXPECT_EQ(t.size(), 1);
+    EXPECT_EQ(t.arena_capacity(), 64);
+    EXPECT_EQ(t.arena_slack(), 64);
+    EXPECT_EQ(t.arena_size(), 0);
+    test_invariants(t);
+    
+    t.reserve(32, 128);
+    EXPECT_EQ(t.capacity(), 32);
+    EXPECT_EQ(t.slack(), 31);
+    EXPECT_EQ(t.size(), 1);
+    EXPECT_EQ(t.arena_capacity(), 128);
+    EXPECT_EQ(t.arena_slack(), 128);
+    EXPECT_EQ(t.arena_size(), 0);
+    test_invariants(t);
+    
+    buf = t.m_buf;
+    parse("[a, b, c, d, e, f]", &t);
+    EXPECT_EQ(t.m_buf, buf);
+    EXPECT_EQ(t.capacity(), 32);
+    EXPECT_EQ(t.slack(), 25);
+    EXPECT_EQ(t.size(), 7);
+    EXPECT_EQ(t.arena_capacity(), 128);
+    EXPECT_EQ(t.arena_slack(), 110);
+    EXPECT_EQ(t.arena_size(), 18);
+    test_invariants(t);
+
+    t.clear();
+    t.clear_arena();
+    EXPECT_EQ(t.capacity(), 32);
+    EXPECT_EQ(t.slack(), 31);
+    EXPECT_EQ(t.size(), 1);
+    EXPECT_EQ(t.arena_capacity(), 128);
+    EXPECT_EQ(t.arena_slack(), 128);
+    EXPECT_EQ(t.arena_size(), 0);
+    test_invariants(t);
+}
+
+
+//-------------------------------------------
+TEST(tree, operator_square_brackets)
+{
+    {
+        Tree t = parse("[0, 1, 2, 3, 4]");
+        Tree &m = t;
+        Tree const& cm = t;
+        EXPECT_EQ(m[0].val(), "0");
+        EXPECT_EQ(m[1].val(), "1");
+        EXPECT_EQ(m[2].val(), "2");
+        EXPECT_EQ(m[3].val(), "3");
+        EXPECT_EQ(m[4].val(), "4");
+        EXPECT_EQ(cm[0].val(), "0");
+        EXPECT_EQ(cm[1].val(), "1");
+        EXPECT_EQ(cm[2].val(), "2");
+        EXPECT_EQ(cm[3].val(), "3");
+        EXPECT_EQ(cm[4].val(), "4");
+        //
+        EXPECT_TRUE(m[0]  == "0");
+        EXPECT_TRUE(m[1]  == "1");
+        EXPECT_TRUE(m[2]  == "2");
+        EXPECT_TRUE(m[3]  == "3");
+        EXPECT_TRUE(m[4]  == "4");
+        EXPECT_TRUE(cm[0] == "0");
+        EXPECT_TRUE(cm[1] == "1");
+        EXPECT_TRUE(cm[2] == "2");
+        EXPECT_TRUE(cm[3] == "3");
+        EXPECT_TRUE(cm[4] == "4");
+        //
+        EXPECT_FALSE(m[0]  != "0");
+        EXPECT_FALSE(m[1]  != "1");
+        EXPECT_FALSE(m[2]  != "2");
+        EXPECT_FALSE(m[3]  != "3");
+        EXPECT_FALSE(m[4]  != "4");
+        EXPECT_FALSE(cm[0] != "0");
+        EXPECT_FALSE(cm[1] != "1");
+        EXPECT_FALSE(cm[2] != "2");
+        EXPECT_FALSE(cm[3] != "3");
+        EXPECT_FALSE(cm[4] != "4");
+    }
+    {
+        Tree t = parse("{a: 0, b: 1, c: 2, d: 3, e: 4}");
+        Tree &m = t;
+        Tree const& cm = t;
+        EXPECT_EQ(m["a"].val(), "0");
+        EXPECT_EQ(m["b"].val(), "1");
+        EXPECT_EQ(m["c"].val(), "2");
+        EXPECT_EQ(m["d"].val(), "3");
+        EXPECT_EQ(m["e"].val(), "4");
+        EXPECT_EQ(cm["a"].val(), "0");
+        EXPECT_EQ(cm["b"].val(), "1");
+        EXPECT_EQ(cm["c"].val(), "2");
+        EXPECT_EQ(cm["d"].val(), "3");
+        EXPECT_EQ(cm["e"].val(), "4");
+        //
+        EXPECT_TRUE(m["a"] == "0");
+        EXPECT_TRUE(m["b"] == "1");
+        EXPECT_TRUE(m["c"] == "2");
+        EXPECT_TRUE(m["d"] == "3");
+        EXPECT_TRUE(m["e"] == "4");
+        EXPECT_TRUE(cm["a"] == "0");
+        EXPECT_TRUE(cm["b"] == "1");
+        EXPECT_TRUE(cm["c"] == "2");
+        EXPECT_TRUE(cm["d"] == "3");
+        EXPECT_TRUE(cm["e"] == "4");
+        //
+        EXPECT_FALSE(m["a"] != "0");
+        EXPECT_FALSE(m["b"] != "1");
+        EXPECT_FALSE(m["c"] != "2");
+        EXPECT_FALSE(m["d"] != "3");
+        EXPECT_FALSE(m["e"] != "4");
+        EXPECT_FALSE(cm["a"] != "0");
+        EXPECT_FALSE(cm["b"] != "1");
+        EXPECT_FALSE(cm["c"] != "2");
+        EXPECT_FALSE(cm["d"] != "3");
+        EXPECT_FALSE(cm["e"] != "4");
+    }
+}
+
 
 //-------------------------------------------
 template<class Container, class... Args>
@@ -641,9 +837,11 @@ TEST(NodeInit, ctor__val_only)
     }
 }
 
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+
 TEST(NodeRef, 0_general)
 {
     Tree t;
