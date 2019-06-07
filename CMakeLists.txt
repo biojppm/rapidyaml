@@ -3,7 +3,7 @@ project(ryml)
 
 include(./extern/c4core/cmake/c4Project.cmake)
 
-c4_declare_project(ryml STANDALONE
+c4_declare_project(RYML STANDALONE
     DESC "Rapid YAML parsing and emitting"
     AUTHOR "Joao Paulo Magalhaes <dev@jpmag.me>"
     MAJOR 0 MINOR 1 RELEASE 0)
@@ -55,25 +55,25 @@ set(RYML_SRC ${RYML_CPP} ${RYML_HPP} ${RYML_FILES}
 
 #-------------------------------------------------------
 
-c4_require_module(ryml c4core
+ryml_require_module(c4core
     SUBDIRECTORY ${RYML_EXT_DIR}/c4core)
 
 if(RYML_STANDALONE)
     # use c4core-interface as PRIVATE to prevent sources from propagating
-    c4_add_library(RYML ryml SANITIZE
+    ryml_add_library(ryml SANITIZE
         SOURCES ${RYML_SRC}
         PUBLIC_INC_DIRS ${RYML_SRC_DIR} ${RYML_EXT_DIR}/c4core/src ${RYML_EXT_DIR}/c4core/extern
         PRIVATE_LIBS c4core-interface
     )
 else()
-    c4_add_library(RYML ryml SANITIZE
+    ryml_add_library(ryml SANITIZE
         SOURCES ${RYML_SRC}
         PUBLIC_INC_DIRS ${RYML_SRC_DIR}
         PUBLIC_LIBS c4core
     )
 endif(RYML_STANDALONE)
 
-c4_add_library(RYML ryml-interface LIBRARY_TYPE INTERFACE
+ryml_add_library(ryml-interface LIBRARY_TYPE INTERFACE
     SOURCES ${RYML_SRC}
     INTERFACE_INC_DIRS ${RYML_SRC_DIR}
     INTERFACE_LIBS c4core-interface
@@ -96,18 +96,19 @@ if(RYML_BUILD_TESTS OR RYML_BUILD_BENCHMARKS)
     #
     # these are used both for testing and benchmarking
     #
-    c4_import_remote_proj(ryml c4fs ${ed}/c4fs
+    ryml_require_module(c4fs
+        REMOTE
         GIT_REPOSITORY https://github.com/biojppm/c4fs
         GIT_TAG master)
     #
     c4_override(BUILD_TESTING OFF)
-    c4_import_remote_proj(ryml libyaml ${ed}/libyaml
+    ryml_import_remote_proj(libyaml ${ed}/libyaml
         GIT_REPOSITORY https://github.com/yaml/libyaml
         GIT_TAG master)
     #
     c4_override(YAML_CPP_BUILD_TESTS OFF)
     c4_override(YAML_CPP_BUILD_TOOLS OFF)
-    c4_import_remote_proj(ryml yaml-cpp ${ed}/yaml-cpp
+    ryml_import_remote_proj(yaml-cpp ${ed}/yaml-cpp
         GIT_REPOSITORY https://github.com/jbeder/yaml-cpp
         GIT_TAG master)
     set(ryml_yaml_cpp_inc ${ed}/yaml-cpp/src/include)
