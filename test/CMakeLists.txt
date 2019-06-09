@@ -75,18 +75,19 @@ ryml_add_test_case_group(github_issues)
 option(RYML_TEST_SUITE "Enable ~300 extensive tests from yaml-test-suite." OFF)
 
 if(RYML_TEST_SUITE)
+    set(ed ${CMAKE_CURRENT_BINARY_DIR}/ext) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)
 
-    c4_import_remote_proj(ryml c4log ${ryml_ext_dir}/c4log
+    ryml_require_module(c4log REMOTE
         GIT_REPOSITORY https://github.com/biojppm/c4log
         GIT_TAG master)
 
-    c4_download_remote_proj(ryml yaml-test-suite ${ryml_ext_dir}/yaml-test-suite
+    ryml_download_remote_proj(yaml-test-suite ${ed}/yaml-test-suite
         GIT_REPOSITORY https://github.com/yaml/yaml-test-suite
         GIT_TAG master)
 
-    set(suite_dir ${ryml_ext_dir}/yaml-test-suite/src/test)
+    set(suite_dir ${ed}/yaml-test-suite/src/test)
     if(NOT EXISTS ${suite_dir})
-        message(FATAL_ERROR "cannot find yaml-test-suite -- was there an error downloading the project")
+        message(FATAL_ERROR "cannot find yaml-test-suite -- was there an error downloading the project?")
     endif()
 
     c4_add_executable(RYML ryml-test-suite

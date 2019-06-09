@@ -102,15 +102,17 @@ if(RYML_BUILD_TESTS OR RYML_BUILD_BENCHMARKS)
         GIT_TAG master)
     #
     c4_override(BUILD_TESTING OFF)
-    ryml_import_remote_proj(libyaml ${ed}/libyaml
+    ryml_require_module(libyaml REMOTE
         GIT_REPOSITORY https://github.com/yaml/libyaml
         GIT_TAG master)
+    c4_set_folder_remote_project_targets(ext yaml)
     #
     c4_override(YAML_CPP_BUILD_TESTS OFF)
     c4_override(YAML_CPP_BUILD_TOOLS OFF)
     ryml_import_remote_proj(yaml-cpp ${ed}/yaml-cpp
         GIT_REPOSITORY https://github.com/jbeder/yaml-cpp
         GIT_TAG master)
+    c4_set_folder_remote_project_targets(ext yaml-cpp format)
     set(ryml_yaml_cpp_inc ${ed}/yaml-cpp/src/include)
 endif()
 

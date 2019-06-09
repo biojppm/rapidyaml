@@ -12,26 +12,27 @@ c4_override(JSONCPP_WITH_WARNING_AS_ERROR OFF)
 c4_override(JSONCPP_WITH_STRICT_ISO OFF)
 c4_override(JSONCPP_WITH_PKGCONFIG_SUPPORT OFF)
 c4_override(JSONCPP_WITH_CMAKE_PACKAGE OFF)
-c4_import_remote_proj(ryml jsoncpp ${_ed}/jsoncpp
+ryml_require_module(jsoncpp REMOTE
     GIT_REPOSITORY https://github.com/open-source-parsers/jsoncpp
     GIT_TAG master)
+c4_set_folder_remote_project_targets(ext jsoncpp_lib)
 
 # nlohmannjson needs to be compiled
 c4_override(JSON_BuildTests OFF)
 c4_override(JSON_Install OFF)
 c4_override(JSON_MultipleHeaders OFF)
-c4_import_remote_proj(ryml nlohmann_json ${_ed}/nlohmann_json
+ryml_require_module(nlohmann_json REMOTE
     GIT_REPOSITORY https://github.com/nlohmann/json
     GIT_TAG master)
 
 # rapidjson is header only
-c4_download_remote_proj(ryml rapidjson ${_ed}/rapidjson
+ryml_download_remote_proj(rapidjson ${_ed}/rapidjson
     GIT_REPOSITORY https://github.com/Tencent/rapidjson
     GIT_TAG version1.1.0)
 set(RYML_RAPIDJSON_INC_DIR ${_ed}/rapidjson/src/include)
 
 # sajson is header only
-c4_download_remote_proj(ryml sajson ${_ed}/sajson
+ryml_download_remote_proj(sajson ${_ed}/sajson
     GIT_REPOSITORY https://github.com/chadaustin/sajson
     GIT_TAG master)
 set(RYML_SAJSON_INC_DIR ${_ed}/sajson/src/include)
