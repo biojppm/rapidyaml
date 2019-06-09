@@ -87,7 +87,8 @@ Tree::Tree(Allocator const& cb)
 
 Tree::Tree(size_t node_capacity, size_t arena_capacity, Allocator const& cb) : Tree(cb)
 {
-    reserve(node_capacity, arena_capacity);
+    reserve(node_capacity);
+    reserve_arena(arena_capacity);
 }
 
 Tree::~Tree()
@@ -174,7 +175,7 @@ void Tree::_relocate(substr const& next_arena)
 }
 
 //-----------------------------------------------------------------------------
-void Tree::reserve(size_t cap, size_t arena_cap)
+void Tree::reserve(size_t cap)
 {
     if(cap > m_cap)
     {
@@ -210,21 +211,6 @@ void Tree::reserve(size_t cap, size_t arena_cap)
         {
             _claim_root();
         }
-
-    }
-
-    if(arena_cap > m_arena.len)
-    {
-        substr buf;
-        buf.str = (char*) m_alloc.allocate(arena_cap, m_arena.str);
-        buf.len = arena_cap;
-        if(m_arena.str)
-        {
-            C4_ASSERT(m_arena.len >= 0);
-            _relocate(buf); // does a memcpy and changes nodes using the arena
-            m_alloc.free(m_arena.str, m_arena.len);
-        }
-        m_arena = buf;
     }
 }
 
@@ -743,7 +729,7 @@ size_t Tree::duplicate(Tree const* src, size_t node, size_t parent, size_t after
 {
     C4_ASSERT(node != NONE);
     C4_ASSERT(parent != NONE);
-    C4_ASSERT( ! is_root(node));
+    C4_ASSERT( ! src->is_root(node));
 
     size_t copy = _claim();
 
@@ -796,7 +782,16 @@ void Tree::duplicate_contents(size_t node, size_t where)
     C4_ASSERT(node != NONE);
     C4_ASSERT(where != NONE);
     _copy_props_wo_key(where, node);
-    duplicate_children(node, where, NONE);
+    duplicate_children(node, where, last_child(where));
+}
+
+void Tree::duplicate_contents(Tree const *src, size_t node, size_t where)
+{
+    C4_ASSERT(src != nullptr);
+    C4_ASSERT(node != NONE);
+    C4_ASSERT(where != NONE);
+    _copy_props_wo_key(where, src, node);
+    duplicate_children(src, node, where, last_child(where));
 }
 
 //-----------------------------------------------------------------------------

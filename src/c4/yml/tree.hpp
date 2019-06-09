@@ -350,7 +350,7 @@ public:
 
 public:
 
-    void reserve(size_t node_capacity, size_t arena_capacity=0);
+    void reserve(size_t node_capacity);
 
     /** clear the tree and zero every node
      * @note does NOT clear the arena
@@ -630,6 +630,7 @@ public:
     size_t duplicate_children(Tree const* src, size_t node, size_t parent, size_t after);
 
     void duplicate_contents(size_t node, size_t where);
+    void duplicate_contents(Tree const* src, size_t node, size_t where);
 
     /** duplicate the node's children (but not the node) in a new parent, but
      * omit repetitions where a duplicated node has the same key (in maps) or
@@ -679,6 +680,23 @@ public:
         C4_ASSERT(cp.len == s.len);
         memcpy(cp.str, s.str, s.len);
         return cp;
+    }
+
+    void reserve_arena(size_t arena_cap)
+    {
+        if(arena_cap > m_arena.len)
+        {
+            substr buf;
+            buf.str = (char*) m_alloc.allocate(arena_cap, m_arena.str);
+            buf.len = arena_cap;
+            if(m_arena.str)
+            {
+                C4_ASSERT(m_arena.len >= 0);
+                _relocate(buf); // does a memcpy and changes nodes using the arena
+                m_alloc.free(m_arena.str, m_arena.len);
+            }
+            m_arena = buf;
+        }
     }
 
 public:
@@ -731,7 +749,7 @@ private:
         size_t cap = m_arena_pos + more;
         cap = cap < 2 * m_arena.len ? 2 * m_arena.len : cap;
         cap = cap < 64 ? 64 : cap;
-        reserve(m_cap, cap);
+        reserve_arena(cap);
         return m_arena.sub(m_arena_pos);
     }
 

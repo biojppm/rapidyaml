@@ -191,10 +191,11 @@ substr emitrs(Tree const& t, size_t id, CharOwningContainer * cont)
     }
     return ret;
 }
+
 /** emit+resize: YAML to the given std::string/std::vector-like container,
  * resizing it as needed to fit the emitted YAML. */
 template<class CharOwningContainer>
- CharOwningContainer emitrs(Tree const& t, size_t id)
+CharOwningContainer emitrs(Tree const& t, size_t id)
 {
     CharOwningContainer c;
     emitrs(t, id, &c);
