@@ -597,7 +597,7 @@ public:
     }
 
 public:
-    
+
     /** reorder the tree in memory so that all the nodes are stored
      * in a linear sequence when visited in depth-first order */
     void reorder();
@@ -614,10 +614,12 @@ public:
 
 public:
 
-    /** recursively duplicate the node
+    /** recursively duplicate a node from this tree into a new parent,
+     * placing it after one of its children
      * @return the index of the copy */
     size_t duplicate(size_t node, size_t new_parent, size_t after);
-    /** recursively duplicate a node from a different tree
+    /** recursively duplicate a node from a different tree into a new parent,
+     * placing it after one of its children
      * @return the index of the copy */
     size_t duplicate(Tree const* src, size_t node, size_t new_parent, size_t after);
 

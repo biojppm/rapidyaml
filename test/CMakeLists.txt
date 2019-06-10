@@ -1,6 +1,6 @@
-c4_setup_testing(ryml)
+ryml_setup_testing()
 
-c4_add_library(RYML ryml_util_test
+ryml_add_library(ryml_util_test
     SOURCES test_case.hpp test_case.cpp libyaml.hpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${ryml_yaml_cpp_inc}
     LIBS ryml c4fs yaml yaml-cpp gtest gtest_main
@@ -90,7 +90,7 @@ if(RYML_TEST_SUITE)
         message(FATAL_ERROR "cannot find yaml-test-suite -- was there an error downloading the project?")
     endif()
 
-    c4_add_executable(RYML ryml-test-suite
+    ryml_add_executable(ryml-test-suite
         SOURCES suite.cpp
         LIBS ryml c4fs c4log gtest
         FOLDER ryml-test)

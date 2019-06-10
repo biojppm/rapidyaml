@@ -505,7 +505,7 @@ void Tree::_swap_hierarchy(size_t ia, size_t ib)
     auto & C4_RESTRICT b  = *_p(ib);
     auto & C4_RESTRICT pa = *_p(a.m_parent);
     auto & C4_RESTRICT pb = *_p(b.m_parent);
-    
+
     if(&pa == &pb)
     {
         if((pa.m_first_child == ib && pa.m_last_child == ia)
@@ -707,26 +707,12 @@ size_t Tree::move(Tree *src, size_t node, size_t new_parent, size_t after)
 //-----------------------------------------------------------------------------
 size_t Tree::duplicate(size_t node, size_t parent, size_t after)
 {
-    C4_ASSERT(node != NONE);
-    C4_ASSERT(parent != NONE);
-    C4_ASSERT( ! is_root(node));
-
-    size_t copy = _claim();
-
-    _copy_props(copy, node);
-    _set_hierarchy(copy, parent, after);
-
-    size_t last = NONE;
-    for(size_t i = first_child(node); i != NONE; i = next_sibling(i))
-    {
-        last = duplicate(i, copy, last);
-    }
-
-    return copy;
+    return duplicate(this, node, parent, after);
 }
 
 size_t Tree::duplicate(Tree const* src, size_t node, size_t parent, size_t after)
 {
+    C4_ASSERT(src != nullptr);
     C4_ASSERT(node != NONE);
     C4_ASSERT(parent != NONE);
     C4_ASSERT( ! src->is_root(node));
@@ -735,12 +721,7 @@ size_t Tree::duplicate(Tree const* src, size_t node, size_t parent, size_t after
 
     _copy_props(copy, src, node);
     _set_hierarchy(copy, parent, after);
-
-    size_t last = NONE;
-    for(size_t i = src->first_child(node); i != NONE; i = src->next_sibling(i))
-    {
-        last = duplicate(src, i, copy, last);
-    }
+    duplicate_children(src, node, copy, NONE);
 
     return copy;
 }
@@ -748,21 +729,12 @@ size_t Tree::duplicate(Tree const* src, size_t node, size_t parent, size_t after
 //-----------------------------------------------------------------------------
 size_t Tree::duplicate_children(size_t node, size_t parent, size_t after)
 {
-    C4_ASSERT(node != NONE);
-    C4_ASSERT(parent != NONE);
-    C4_ASSERT(after == NONE || has_child(parent, after));
-
-    size_t prev = after;
-    for(size_t i = first_child(node); i != NONE; i = next_sibling(i))
-    {
-        prev = duplicate(i, parent, prev);
-    }
-
-    return prev;
+    return duplicate_children(this, node, parent, after);
 }
 
 size_t Tree::duplicate_children(Tree const* src, size_t node, size_t parent, size_t after)
 {
+    C4_ASSERT(src != nullptr);
     C4_ASSERT(node != NONE);
     C4_ASSERT(parent != NONE);
     C4_ASSERT(after == NONE || has_child(parent, after));
@@ -779,10 +751,7 @@ size_t Tree::duplicate_children(Tree const* src, size_t node, size_t parent, siz
 //-----------------------------------------------------------------------------
 void Tree::duplicate_contents(size_t node, size_t where)
 {
-    C4_ASSERT(node != NONE);
-    C4_ASSERT(where != NONE);
-    _copy_props_wo_key(where, node);
-    duplicate_children(node, where, last_child(where));
+    duplicate_contents(this, node, where);
 }
 
 void Tree::duplicate_contents(Tree const *src, size_t node, size_t where)
@@ -863,7 +832,7 @@ size_t Tree::duplicate_children_no_rep(size_t node, size_t parent, size_t after)
                         prev = rep;
                     }
                 }
-            }
+            } // there's a repetition
         }
     }
 
@@ -874,6 +843,8 @@ size_t Tree::duplicate_children_no_rep(size_t node, size_t parent, size_t after)
 //-----------------------------------------------------------------------------
 
 namespace detail {
+/** @todo make this part of the public API, refactoring as appropriate to be
+ * able multiple trees (one at a time) */
 struct ReferenceResolver
 {
     struct refdata
