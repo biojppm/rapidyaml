@@ -97,24 +97,24 @@ Tree::~Tree()
 }
 
 
-Tree::Tree(Tree const& that) : Tree()
+Tree::Tree(Tree const& that) noexcept : Tree()
 {
     _copy(that);
 }
 
-Tree& Tree::operator= (Tree const& that)
+Tree& Tree::operator= (Tree const& that) noexcept
 {
     _free();
     _copy(that);
     return *this;
 }
 
-Tree::Tree(Tree && that) : Tree()
+Tree::Tree(Tree && that) noexcept : Tree()
 {
     _move(that);
 }
 
-Tree& Tree::operator= (Tree && that)
+Tree& Tree::operator= (Tree && that) noexcept
 {
     _free();
     _move(that);

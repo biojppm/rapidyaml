@@ -93,11 +93,11 @@ public:
 
 public:
     
-    CaseNode(CaseNode     && that) { _move(std::move(that)); }
-    CaseNode(CaseNode const& that) { _copy(that); }
+    CaseNode(CaseNode     && that) noexcept { _move(std::move(that)); }
+    CaseNode(CaseNode const& that) noexcept { _copy(that); }
 
-    CaseNode& operator= (CaseNode     && that) { _move(std::move(that)); return *this; }
-    CaseNode& operator= (CaseNode const& that) { _copy(that); return *this; }
+    CaseNode& operator= (CaseNode     && that) noexcept { _move(std::move(that)); return *this; }
+    CaseNode& operator= (CaseNode const& that) noexcept { _copy(that); return *this; }
 
     ~CaseNode() = default;
 
