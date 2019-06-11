@@ -766,6 +766,11 @@ void Tree::duplicate_contents(Tree const *src, size_t node, size_t where)
 //-----------------------------------------------------------------------------
 size_t Tree::duplicate_children_no_rep(size_t node, size_t parent, size_t after)
 {
+    return duplicate_children_no_rep(this, node, parent, after);
+}
+
+size_t Tree::duplicate_children_no_rep(Tree const *src, size_t node, size_t parent, size_t after)
+{
     C4_ASSERT(node != NONE);
     C4_ASSERT(parent != NONE);
     C4_ASSERT(after == NONE || has_child(parent, after));
@@ -789,7 +794,7 @@ size_t Tree::duplicate_children_no_rep(size_t node, size_t parent, size_t after)
 
     // for each child to be duplicated...
     size_t prev = after;
-    for(size_t i = first_child(node), icount = 0; i != NONE; ++icount, i = next_sibling(i))
+    for(size_t i = src->first_child(node), icount = 0; i != NONE; ++icount, i = src->next_sibling(i))
     {
         if(is_seq(parent))
         {
@@ -811,7 +816,7 @@ size_t Tree::duplicate_children_no_rep(size_t node, size_t parent, size_t after)
             }
             if(rep == NONE) // there's no repetition; just duplicate
             {
-                prev = duplicate(i, parent, prev);
+                prev = duplicate(src, i, parent, prev);
             }
             else  // yes, there's a repetition
             {
@@ -820,7 +825,7 @@ size_t Tree::duplicate_children_no_rep(size_t node, size_t parent, size_t after)
                     // rep is located before the node which will be inserted,
                     // and will be overridden by the duplicate. So replace it.
                     remove(rep);
-                    prev = duplicate(i, parent, prev);
+                    prev = duplicate(src, i, parent, prev);
                 }
                 else if(after_pos == NONE || rep_pos >= after_pos)
                 {

@@ -640,6 +640,7 @@ public:
      * (in maps) or value (in seqs) as one of the parent's children, the one
      * that is placed closest to the end will prevail. */
     size_t duplicate_children_no_rep(size_t node, size_t parent, size_t after);
+    size_t duplicate_children_no_rep(Tree const* src, size_t node, size_t parent, size_t after);
 
 public:
 
