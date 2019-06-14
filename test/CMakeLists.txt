@@ -100,8 +100,14 @@ if(RYML_TEST_SUITE)
 
     function(ryml_add_test_from_suite tml_file)
         get_filename_component(name ${tml_file} NAME_WE)
-        add_test(NAME ryml-test-suite-${name}
-            COMMAND $<TARGET_FILE:ryml-test-suite> ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-in_yaml
+            COMMAND $<TARGET_FILE:ryml-test-suite> --gtest_filter="*/in_yaml_*" ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-out_yaml
+            COMMAND $<TARGET_FILE:ryml-test-suite> --gtest_filter="*/out_yaml_*" ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-events
+            COMMAND $<TARGET_FILE:ryml-test-suite> --gtest_filter="*/events_*" ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-in_json
+            COMMAND $<TARGET_FILE:ryml-test-suite> --gtest_filter="*/in_json_*" ${suite_dir}/${tml_file})
     endfunction()
 
     file(GLOB suite_cases RELATIVE "${suite_dir}" "${suite_dir}/*.tml")

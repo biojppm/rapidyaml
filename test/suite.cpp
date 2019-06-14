@@ -414,8 +414,8 @@ INSTANTIATE_TEST_SUITE_P(_, cls##_rw_reuse, testing::Range<size_t>(0, NLEVELS));
 
 
 DECLARE_TESTS(out_yaml);
-//DECLARE_TESTS(events);
-//DECLARE_TESTS(in_json);
+DECLARE_TESTS(events);
+DECLARE_TESTS(in_json);
 DECLARE_TESTS(in_yaml);
 
 
