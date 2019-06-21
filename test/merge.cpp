@@ -17,7 +17,7 @@ void test_merge(std::initializer_list<csubstr> li, csubstr expected)
     for(csubstr src : li)
     {
         loaded.clear(); // do not clear the arena
-        parse(src, &loaded);
+        parse(src, &loaded); // WIP: investigate why the strings in merged are deallocated here
         merged.merge_with(&loaded);
     }
 
@@ -73,8 +73,34 @@ TEST(merge, simple_map_orthogonal)
 TEST(merge, simple_map_overriding)
 {
     test_merge(
-        {"a: 0", "{a: 1, b: 1}", "c: 2"},
+        {
+            "a: 0",
+            "{a: 1, b: 1}",
+            "c: 2"
+        },
         "{a: 1, b: 1, c: 2}"
+    );
+}
+
+TEST(merge, seq_nested_in_map)
+{
+    test_merge(
+        {
+            "{a: 0, seq: [a, b, c], d: 2}",
+            "{a: 1, seq: [d, e, f], d: 3}"
+        },
+        "{a: 1, seq: [a, b, c, d, e, f], d: 3}"
+    );
+}
+
+TEST(merge, seq_nested_in_map_override_with_map)
+{
+    test_merge(
+        {
+            "{a: 0, ovr: [a, b, c], d: 2}",
+            "{a: 1, ovr: {d: 0, b: 1, c: 2}, d: 3}"
+        },
+        "{a: 1, ovr: {d: 0, b: 1, c: 2}, d: 3}"
     );
 }
 

@@ -891,6 +891,7 @@ void Tree::merge_with(Tree const *src, size_t src_node, size_t dst_node)
         for(size_t sch = src->first_child(src_node); sch != NONE; sch = src->next_sibling(sch))
         {
             size_t dch = append_child(dst_node);
+            _copy_props_wo_key(dch, src, sch);
             merge_with(src, sch, dch);
         }
     }
@@ -911,6 +912,7 @@ void Tree::merge_with(Tree const *src, size_t src_node, size_t dst_node)
             if(dch == NONE)
             {
                 dch = append_child(dst_node);
+                _copy_props(dch, src, sch);
             }
             merge_with(src, sch, dch);
         }
