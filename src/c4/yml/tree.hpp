@@ -644,6 +644,10 @@ public:
 
 public:
 
+    void merge_with(Tree const* src, size_t src_node=NONE, size_t dst_root=NONE);
+
+public:
+
     substr arena() const { return m_arena.range(0, m_arena_pos); }
     size_t arena_pos() const { return m_arena_pos; }
 

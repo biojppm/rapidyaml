@@ -847,6 +847,83 @@ size_t Tree::duplicate_children_no_rep(Tree const *src, size_t node, size_t pare
 
 //-----------------------------------------------------------------------------
 
+void Tree::merge_with(Tree const *src, size_t src_node, size_t dst_node)
+{
+    C4_ASSERT(src != nullptr);
+    if(src_node == NONE) src_node = src->root_id();
+    if(dst_node == NONE) dst_node = root_id();
+    C4_ASSERT(src->has_val(src_node) || src->is_seq(src_node) || src->is_map(src_node));
+
+    // CASE 1: (KEY)VALUE NODES
+    if(src->has_val(src_node))
+    {
+        if( ! has_val(dst_node))
+        {
+            if(has_children(dst_node))
+            {
+                remove_children(dst_node);
+            }
+        }
+        if(src->is_keyval(src_node))
+        {
+            _copy_props(dst_node, src, src_node);
+        }
+        else if(src->is_val(src_node))
+        {
+            _copy_props_wo_key(dst_node, src, src_node);
+        }
+        else
+        {
+            C4_NEVER_REACH();
+        }
+    }
+    // CASE 2: SEQ NODES
+    else if(src->is_seq(src_node))
+    {
+        if( ! is_seq(dst_node))
+        {
+            if(has_children(dst_node))
+            {
+                remove_children(dst_node);
+            }
+            to_seq(dst_node);
+        }
+        for(size_t sch = src->first_child(src_node); sch != NONE; sch = src->next_sibling(sch))
+        {
+            size_t dch = append_child(dst_node);
+            merge_with(src, sch, dch);
+        }
+    }
+    // CASE 3: MAP NODES
+    else if(src->is_map(src_node))
+    {
+        if( ! is_map(dst_node))
+        {
+            if(has_children(dst_node))
+            {
+                remove_children(dst_node);
+            }
+            to_map(dst_node);
+        }
+        for(size_t sch = src->first_child(src_node); sch != NONE; sch = src->next_sibling(sch))
+        {
+            size_t dch = find_child(dst_node, src->key(sch));
+            if(dch == NONE)
+            {
+                dch = append_child(dst_node);
+            }
+            merge_with(src, sch, dch);
+        }
+    }
+    else
+    {
+        C4_NEVER_REACH();
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+
 namespace detail {
 /** @todo make this part of the public API, refactoring as appropriate to be
  * able multiple trees (one at a time) */

@@ -36,6 +36,7 @@ endfunction()
 
 ryml_add_test(basic)
 ryml_add_test(stack)
+ryml_add_test(merge)
 ryml_add_test_case_group(empty_file)
 ryml_add_test_case_group(empty_doc)
 ryml_add_test_case_group(simple_doc)
