@@ -14,10 +14,18 @@ void test_merge(std::initializer_list<csubstr> li, csubstr expected)
 
     parse(expected, &ref);
 
+    // make sure the arena in the loaded tree is never resized
+    size_t arena_dim = 2;
     for(csubstr src : li)
     {
-        loaded.clear(); // do not clear the arena
-        parse(src, &loaded); // WIP: investigate why the strings in merged are deallocated here
+        arena_dim += src.len;
+    }
+    loaded.reserve_arena(arena_dim);
+
+    for(csubstr src : li)
+    {
+        loaded.clear(); // do not clear the arena of the loaded tree
+        parse(src, &loaded);
         merged.merge_with(&loaded);
     }
 
