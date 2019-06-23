@@ -886,7 +886,14 @@ void Tree::merge_with(Tree const *src, size_t src_node, size_t dst_node)
             {
                 remove_children(dst_node);
             }
-            to_seq(dst_node);
+            if(src->has_key(src_node))
+            {
+                to_seq(dst_node, src->key(src_node));
+            }
+            else
+            {
+                to_seq(dst_node);
+            }
         }
         for(size_t sch = src->first_child(src_node); sch != NONE; sch = src->next_sibling(sch))
         {
@@ -904,7 +911,14 @@ void Tree::merge_with(Tree const *src, size_t src_node, size_t dst_node)
             {
                 remove_children(dst_node);
             }
-            to_map(dst_node);
+            if(src->has_key(src_node))
+            {
+                to_map(dst_node, src->key(src_node));
+            }
+            else
+            {
+                to_map(dst_node);
+            }
         }
         for(size_t sch = src->first_child(src_node); sch != NONE; sch = src->next_sibling(sch))
         {
