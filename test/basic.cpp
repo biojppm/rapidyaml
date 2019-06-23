@@ -166,7 +166,8 @@ TEST(tree, reserve)
     test_invariants(t);
     
     auto buf = t.m_buf;
-    t.reserve(16, 64);
+    t.reserve(16);
+    t.reserve_arena(64);
     EXPECT_EQ(t.m_buf, buf);
     EXPECT_EQ(t.capacity(), 16);
     EXPECT_EQ(t.slack(), 15);
@@ -176,7 +177,8 @@ TEST(tree, reserve)
     EXPECT_EQ(t.arena_size(), 0);
     test_invariants(t);
     
-    t.reserve(32, 128);
+    t.reserve(32);
+    t.reserve_arena(128);
     EXPECT_EQ(t.capacity(), 32);
     EXPECT_EQ(t.slack(), 31);
     EXPECT_EQ(t.size(), 1);
@@ -196,7 +198,8 @@ TEST(tree, reserve)
     EXPECT_EQ(t.arena_size(), 18);
     test_invariants(t);
     
-    t.reserve(64, 256);
+    t.reserve(64);
+    t.reserve_arena(256);
     EXPECT_EQ(t.capacity(), 64);
     EXPECT_EQ(t.slack(), 57);
     EXPECT_EQ(t.size(), 7);
@@ -228,7 +231,8 @@ TEST(tree, clear)
     test_invariants(t);
     
     auto buf = t.m_buf;
-    t.reserve(16, 64);
+    t.reserve(16);
+    t.reserve_arena(64);
     EXPECT_EQ(t.m_buf, buf);
     EXPECT_EQ(t.capacity(), 16);
     EXPECT_EQ(t.slack(), 15);
@@ -238,7 +242,8 @@ TEST(tree, clear)
     EXPECT_EQ(t.arena_size(), 0);
     test_invariants(t);
     
-    t.reserve(32, 128);
+    t.reserve(32);
+    t.reserve_arena(128);
     EXPECT_EQ(t.capacity(), 32);
     EXPECT_EQ(t.slack(), 31);
     EXPECT_EQ(t.size(), 1);

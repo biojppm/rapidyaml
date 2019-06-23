@@ -1,6 +1,6 @@
-c4_setup_testing(ryml)
+ryml_setup_testing()
 
-c4_add_library(RYML ryml_util_test
+ryml_add_library(ryml_util_test
     SOURCES test_case.hpp test_case.cpp libyaml.hpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${ryml_yaml_cpp_inc}
     LIBS ryml c4fs yaml yaml-cpp gtest gtest_main
@@ -36,6 +36,7 @@ endfunction()
 
 ryml_add_test(basic)
 ryml_add_test(stack)
+ryml_add_test(merge)
 ryml_add_test_case_group(empty_file)
 ryml_add_test_case_group(empty_doc)
 ryml_add_test_case_group(simple_doc)
@@ -90,7 +91,7 @@ if(RYML_TEST_SUITE)
         message(FATAL_ERROR "cannot find yaml-test-suite -- was there an error downloading the project?")
     endif()
 
-    c4_add_executable(RYML ryml-test-suite
+    ryml_add_executable(ryml-test-suite
         SOURCES suite.cpp
         LIBS ryml c4fs c4log gtest
         FOLDER ryml-test)
@@ -100,8 +101,14 @@ if(RYML_TEST_SUITE)
 
     function(ryml_add_test_from_suite tml_file)
         get_filename_component(name ${tml_file} NAME_WE)
-        add_test(NAME ryml-test-suite-${name}
-            COMMAND $<TARGET_FILE:ryml-test-suite> ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-in_yaml
+            COMMAND $<TARGET_FILE:ryml-test-suite> --gtest_filter="*/in_yaml_*" ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-out_yaml
+            COMMAND $<TARGET_FILE:ryml-test-suite> --gtest_filter="*/out_yaml_*" ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-events
+            COMMAND $<TARGET_FILE:ryml-test-suite> --gtest_filter="*/events_*" ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-in_json
+            COMMAND $<TARGET_FILE:ryml-test-suite> --gtest_filter="*/in_json_*" ${suite_dir}/${tml_file})
     endfunction()
 
     file(GLOB suite_cases RELATIVE "${suite_dir}" "${suite_dir}/*.tml")

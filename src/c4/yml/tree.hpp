@@ -342,15 +342,15 @@ public:
 
     ~Tree();
 
-    Tree(Tree const& that);
-    Tree(Tree     && that);
+    Tree(Tree const& that) noexcept;
+    Tree(Tree     && that) noexcept;
 
-    Tree& operator= (Tree const& that);
-    Tree& operator= (Tree     && that);
+    Tree& operator= (Tree const& that) noexcept;
+    Tree& operator= (Tree     && that) noexcept;
 
 public:
 
-    void reserve(size_t node_capacity, size_t arena_capacity=0);
+    void reserve(size_t node_capacity);
 
     /** clear the tree and zero every node
      * @note does NOT clear the arena
@@ -597,7 +597,7 @@ public:
     }
 
 public:
-    
+
     /** reorder the tree in memory so that all the nodes are stored
      * in a linear sequence when visited in depth-first order */
     void reorder();
@@ -614,10 +614,12 @@ public:
 
 public:
 
-    /** recursively duplicate the node
+    /** recursively duplicate a node from this tree into a new parent,
+     * placing it after one of its children
      * @return the index of the copy */
     size_t duplicate(size_t node, size_t new_parent, size_t after);
-    /** recursively duplicate a node from a different tree
+    /** recursively duplicate a node from a different tree into a new parent,
+     * placing it after one of its children
      * @return the index of the copy */
     size_t duplicate(Tree const* src, size_t node, size_t new_parent, size_t after);
 
@@ -630,6 +632,7 @@ public:
     size_t duplicate_children(Tree const* src, size_t node, size_t parent, size_t after);
 
     void duplicate_contents(size_t node, size_t where);
+    void duplicate_contents(Tree const* src, size_t node, size_t where);
 
     /** duplicate the node's children (but not the node) in a new parent, but
      * omit repetitions where a duplicated node has the same key (in maps) or
@@ -637,6 +640,11 @@ public:
      * (in maps) or value (in seqs) as one of the parent's children, the one
      * that is placed closest to the end will prevail. */
     size_t duplicate_children_no_rep(size_t node, size_t parent, size_t after);
+    size_t duplicate_children_no_rep(Tree const* src, size_t node, size_t parent, size_t after);
+
+public:
+
+    void merge_with(Tree const* src, size_t src_node=NONE, size_t dst_root=NONE);
 
 public:
 
@@ -679,6 +687,23 @@ public:
         C4_ASSERT(cp.len == s.len);
         memcpy(cp.str, s.str, s.len);
         return cp;
+    }
+
+    void reserve_arena(size_t arena_cap)
+    {
+        if(arena_cap > m_arena.len)
+        {
+            substr buf;
+            buf.str = (char*) m_alloc.allocate(arena_cap, m_arena.str);
+            buf.len = arena_cap;
+            if(m_arena.str)
+            {
+                C4_ASSERT(m_arena.len >= 0);
+                _relocate(buf); // does a memcpy and changes nodes using the arena
+                m_alloc.free(m_arena.str, m_arena.len);
+            }
+            m_arena = buf;
+        }
     }
 
 public:
@@ -731,7 +756,7 @@ private:
         size_t cap = m_arena_pos + more;
         cap = cap < 2 * m_arena.len ? 2 * m_arena.len : cap;
         cap = cap < 64 ? 64 : cap;
-        reserve(m_cap, cap);
+        reserve_arena(cap);
         return m_arena.sub(m_arena_pos);
     }
 

@@ -67,6 +67,7 @@ See also:
         </Expand>
       </Synthetic>
       <Item Name="free head">m_free_head</Item>
+      <Item Name="arena">m_arena</Item>
     </Expand>
   </Type>
 

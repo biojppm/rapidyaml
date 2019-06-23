@@ -343,7 +343,7 @@ private:
         }
         if(loc2 && *loc2)
         {
-            fprintf(stderr, "    : %s at %zd:%zd (offset %zd)\n", loc2->name, loc1->line, loc2->col, loc2->offset);
+            fprintf(stderr, "    : %s at %zd:%zd (offset %zd)\n", loc2->name, loc2->line, loc2->col, loc2->offset);
         }
         throw std::runtime_error(std::string(msg, msg+length));
     }
