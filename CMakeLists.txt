@@ -10,7 +10,7 @@ c4_declare_project(RYML STANDALONE
 
 #-------------------------------------------------------
 #
-option(RYML_DEFAULT_CALLBACKS "Enable ryml default implementation of callbacks: allocate(), free(), error()" ON)
+option(RYML_DEFAULT_CALLBACKS "Enable ryml's default implementation of callbacks: allocate(), free(), error()" ON)
 option(RYML_DBG "Enable (very verbose) ryml debug prints." OFF)
 option(RYML_BUILD_API "Enable API generation (python, etc)" OFF)
 
