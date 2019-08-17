@@ -224,7 +224,7 @@ void libyaml_ro_reuse(bm::State& st)
 
 void ryml_ro(bm::State& st)
 {
-    size_t sz;
+    size_t sz = 0;
     c4::csubstr src = c4::to_csubstr(c->src);
     for(auto _ : st)
     {
@@ -237,7 +237,7 @@ void ryml_ro(bm::State& st)
 
 void ryml_rw(bm::State& st)
 {
-    size_t sz;
+    size_t sz = 0;
     c4::substr src = c4::to_substr(c->in_place);
     for(auto _ : st)
     {
@@ -251,7 +251,7 @@ void ryml_rw(bm::State& st)
 
 void ryml_ro_reuse(bm::State& st)
 {
-    size_t sz;
+    size_t sz = 0;
     c4::csubstr src = c4::to_csubstr(c->src);
     for(auto _ : st)
     {
@@ -265,7 +265,7 @@ void ryml_ro_reuse(bm::State& st)
 
 void ryml_rw_reuse(bm::State& st)
 {
-    size_t sz;
+    size_t sz = 0;
     c4::substr src = c4::to_substr(c->in_place);
     for(auto _ : st)
     {
