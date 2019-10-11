@@ -112,7 +112,7 @@ if(RYML_BUILD_TESTS OR RYML_BUILD_BENCHMARKS)
     ryml_import_remote_proj(yaml-cpp ${ed}/yaml-cpp
         GIT_REPOSITORY https://github.com/jbeder/yaml-cpp
         GIT_TAG master)
-    c4_set_folder_remote_project_targets(ext yaml-cpp format)
+    c4_set_folder_remote_project_targets(ext yaml-cpp)
     set(ryml_yaml_cpp_inc ${ed}/yaml-cpp/src/include)
 endif()
 
