@@ -2123,7 +2123,7 @@ bool Parser::_handle_indentation()
 {
     C4_ASSERT(has_none(EXPL));
     if( ! _at_line_begin()) return false;
-    
+
     size_t ind = m_state->line_contents.indentation;
     csubstr rem = m_state->line_contents.rem;
     /** @todo instead of trimming, we should suse the indentation index from above */
@@ -2209,7 +2209,9 @@ bool Parser::_handle_indentation()
         _c4dbgpf("larger indentation (%zd > %zd)!!!", ind, m_state->indref);
         if(has_all(RMAP|RVAL))
         {
-            if(/*ind == m_state->indref + 2 && */_is_scalar_next__rmap_val(remt) && remt.find(":") == npos)
+            if(/*ind == m_state->indref + 2 && */_is_scalar_next__rmap_val(remt)
+               && remt.find(":") == npos
+               && remt.find("?") == npos)
             {
                 _c4dbgpf("actually it seems a value: '%.*s'", _c4prsp(remt));
             }
