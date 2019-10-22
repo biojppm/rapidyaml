@@ -16,9 +16,9 @@
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-// don't forget to list these allowed failures in this repo's readme.md,
+// don't forget to list these allowed failures in the repo's readme.md,
 // under the section "Known limitations"
-constexpr const std::map<c4::csubstr, c4::csubstr> g_allowed_failures = {
+const std::map<c4::csubstr, c4::csubstr> g_allowed_failures = {
     {"KK5P", "only string keys allowed (keys cannot be maps or seqs)"},
 };
 
