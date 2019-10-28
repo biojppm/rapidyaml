@@ -11,11 +11,63 @@
 
 #include <gtest/gtest.h>
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+// don't forget to list these allowed failures in the repo's readme.md,
+// under the section "Known limitations"
+const std::map<c4::csubstr, c4::csubstr> g_allowed_failures = {
+    {"KK5P", "only string keys allowed (keys cannot be maps or seqs)"},
+};
+
+
+struct AllowedFailure
+{
+    c4::csubstr test_code;
+    c4::csubstr reason;
+    inline operator bool () const { return reason.len > 0; }
+};
+
+AllowedFailure failure_expected(c4::csubstr filename)
+{
+    C4_ASSERT(filename.ends_with(".tml"));
+    auto test_code = filename.basename();
+    test_code = test_code.offs(0, 4);
+    auto it = g_allowed_failures.find(test_code);
+    if(it == g_allowed_failures.end()) return {};
+    return {test_code, it->second};
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+/** This is the number of processing levels.
+ *
+ * Each case from the test suite contains:
+ *
+ *  - (awkward) input yaml (in_yaml)
+ *  - (somewhat standard) output equivalent (out_yaml)
+ *  - (when meaningful/possible) json equivalent (in_json)
+ *  - yaml parsing events (events)
+ *
+ * Running a test consists of parsing the contents above into a data
+ * structure, and then repeatedly parsing and emitting yaml in a sort
+ * of pipe. Ie, (eg for in_yaml) parse in_yaml, emit corresponding
+ * yaml, then parse this emitted yaml, and so on. Each parse/emit pair
+ * is named a processing level in this test. */
 #define NLEVELS 4
 
 enum : size_t { npos = c4::csubstr::npos };
 
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+/** a processing level */
 struct ProcLevel
 {
     c4::csubstr     filename;
@@ -129,6 +181,10 @@ struct ProcLevel
 };
 
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+/** holds data for one particular test suite approach. */
 struct Approach
 {
     ProcLevel levels[NLEVELS];
@@ -187,6 +243,11 @@ struct Approach
 };
 
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+/** Each approach can be read from mutable/immutable yaml source and
+ * with/without reuse. */
 struct Subject
 {
     Approach ro;
@@ -203,6 +264,11 @@ struct Subject
     }
 };
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+// some utility functions, used below
 
 c4::csubstr replace_all(c4::csubstr pattern, c4::csubstr repl, c4::csubstr subject, std::string *dst)
 {
@@ -235,6 +301,13 @@ size_t find_first_after(size_t pos, std::initializer_list<size_t> candidates)
 }
 
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+/** now finally all the ways that a test case can be processed are
+ * available through this class. Tests are defined below and use only
+ * one of these. */
 struct SuiteCase
 {
     c4::csubstr filename;
@@ -255,6 +328,8 @@ struct SuiteCase
         return c4::to_csubstr(s.ro.levels[0].src);
     }
 
+    /** loads the several types of tests from an input test suite
+     * template file (tml)*/
     bool load(const char* filename_)
     {
         filename = c4::to_csubstr(filename_);
@@ -368,36 +443,37 @@ struct SuiteCase
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+// a global holding the test case data
 SuiteCase g_suite_case;
 
 
-#define DECLARE_TEST_CLASS(cls, pfx) \
-\
-class cls##_##pfx : public ::testing::TestWithParam<size_t> {};\
-\
-TEST_P(cls##_##pfx, parse)\
-{\
-    C4_ASSERT(GetParam() < NLEVELS);\
-    g_suite_case.cls.pfx.parse(1 + GetParam(), false);\
-}\
-TEST_P(cls##_##pfx, compare_trees)\
-{\
-    C4_ASSERT(GetParam() < NLEVELS);\
-    g_suite_case.cls.pfx.compare_trees(1 + GetParam());\
-}\
-TEST_P(cls##_##pfx, emit)\
-{\
-    C4_ASSERT(GetParam() < NLEVELS);\
-    g_suite_case.cls.pfx.parse(1 + GetParam(), true);\
-}\
-TEST_P(cls##_##pfx, compare_emitted)\
-{\
-    C4_ASSERT(GetParam() < NLEVELS);\
-    g_suite_case.cls.pfx.compare_emitted(1 + GetParam());\
-}\
-/**/\
-/**/\
-/**/\
+#define DECLARE_TEST_CLASS(cls, pfx)                            \
+                                                                \
+class cls##_##pfx : public ::testing::TestWithParam<size_t> {}; \
+                                                                \
+TEST_P(cls##_##pfx, parse)                                      \
+{                                                               \
+    C4_ASSERT(GetParam() < NLEVELS);                            \
+    g_suite_case.cls.pfx.parse(1 + GetParam(), false);          \
+}                                                               \
+TEST_P(cls##_##pfx, compare_trees)                              \
+{                                                               \
+    C4_ASSERT(GetParam() < NLEVELS);                            \
+    g_suite_case.cls.pfx.compare_trees(1 + GetParam());         \
+}                                                               \
+TEST_P(cls##_##pfx, emit)                                       \
+{                                                               \
+    C4_ASSERT(GetParam() < NLEVELS);                            \
+    g_suite_case.cls.pfx.parse(1 + GetParam(), true);           \
+}                                                               \
+TEST_P(cls##_##pfx, compare_emitted)                            \
+{                                                               \
+    C4_ASSERT(GetParam() < NLEVELS);                            \
+    g_suite_case.cls.pfx.compare_emitted(1 + GetParam());       \
+}                                                               \
+/**/                                                            \
+/**/                                                            \
+/**/
 
 
 #define DECLARE_TESTS(cls) \
@@ -414,7 +490,7 @@ INSTANTIATE_TEST_SUITE_P(_, cls##_rw_reuse, testing::Range<size_t>(0, NLEVELS));
 
 
 DECLARE_TESTS(out_yaml);
-DECLARE_TESTS(events);
+//DECLARE_TESTS(events); // TODO
 DECLARE_TESTS(in_json);
 DECLARE_TESTS(in_yaml);
 
@@ -426,33 +502,48 @@ DECLARE_TESTS(in_yaml);
 
 int main(int argc, char* argv[])
 {
+    // make gtest parse its args
     ::testing::InitGoogleTest(&argc, argv);
 
-    if(argc > 1)
+    // now we have only our args to consider
+    if(argc != 2)
     {
-        const char *path = argv[1];
-        if(strlen(path) < 2) return 1;
-        if(path[0] != '-')
-        {
-            C4_CHECK(c4::fs::path_exists(argv[1]));
-            auto fn = c4::to_csubstr(argv[1]);
-            c4::log("testing suite case: {} ({})", fn.basename(), fn);
-            if( ! g_suite_case.load(argv[1]))
-            {
-                return 0;
-            }
-            c4::print(g_suite_case.file_contents);
-            g_suite_case.print();
-        }
+        c4::log("usage:\n{} <test-suite-file>", argv[0]);
+        return 1;
     }
 
+    // load the test case from the suite file
+    auto path = c4::to_substr(argv[1]);
+    path.replace_all('\\', '/');
+    C4_CHECK(path.len > 0);
+    C4_CHECK(path[0] != '-');
+    C4_CHECK(c4::fs::path_exists(path.str));
+    c4::log("testing suite case: {} ({})", path.basename(), path);
+    {
+        auto allowed_to_fail = failure_expected(path);
+        if(allowed_to_fail)
+        {
+            c4::log("\n{}: this case is deliberately not implemented in rapidyaml: {}\n",
+                allowed_to_fail.test_code, allowed_to_fail.reason);
+        }
+        return 0;
+    }
+    if( ! g_suite_case.load(path.str))
+    {
+        return 1;
+    }
+    c4::print(g_suite_case.file_contents);
+    g_suite_case.print();
+
+    // run all tests!
     int status = RUN_ALL_TESTS();
 
+    // a terminating message
     if(g_suite_case.filename.not_empty())
     {
-        c4::log("\nTESTS {}: {} ({})\n",
-            status == 0 ? "SUCCEEDED" : "FAILED",
+        c4::log("\n{}: TESTS {}: {}\n",
             g_suite_case.filename.basename(),
+            status == 0 ? "SUCCEEDED" : "FAILED",
             g_suite_case.filename);
     }
 

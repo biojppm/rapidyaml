@@ -5,8 +5,10 @@
 #include <string>
 #include <iostream>
 
+
 namespace c4 {
 namespace yml {
+
 
 void test_merge(std::initializer_list<csubstr> li, csubstr expected)
 {
@@ -35,7 +37,12 @@ void test_merge(std::initializer_list<csubstr> li, csubstr expected)
     EXPECT_EQ(buf_result, buf_expected);
 }
 
-TEST(merge, simple_seq_no_overlap_explicit)
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+TEST(merge, seq_no_overlap_explicit)
 {
     test_merge(
         {"[0, 1, 2]", "[3, 4, 5]", "[6, 7, 8]"},
@@ -43,7 +50,8 @@ TEST(merge, simple_seq_no_overlap_explicit)
     );
 }
 
-TEST(merge, simple_seq_no_overlap_implicit)
+
+TEST(merge, seq_no_overlap_implicit)
 {
     test_merge(
         {"0, 1, 2", "3, 4, 5", "6, 7, 8"},
@@ -51,7 +59,8 @@ TEST(merge, simple_seq_no_overlap_implicit)
     );
 }
 
-TEST(merge, simple_seq_overlap_explicit)
+
+TEST(merge, seq_overlap_explicit)
 {
     test_merge(
         {"[0, 1, 2]", "[1, 2, 3]", "[2, 3, 4]"},
@@ -60,7 +69,8 @@ TEST(merge, simple_seq_overlap_explicit)
     );
 }
 
-TEST(merge, simple_seq_overlap_implicit)
+
+TEST(merge, seq_overlap_implicit)
 {
     // now a bit more difficult
     test_merge(
@@ -70,7 +80,8 @@ TEST(merge, simple_seq_overlap_implicit)
     );
 }
 
-TEST(merge, simple_map_orthogonal)
+
+TEST(merge, map_orthogonal)
 {
     test_merge(
         {"a: 0", "b: 1", "c: 2"},
@@ -78,7 +89,8 @@ TEST(merge, simple_map_orthogonal)
     );
 }
 
-TEST(merge, simple_map_overriding)
+
+TEST(merge, map_overriding)
 {
     test_merge(
         {
@@ -90,27 +102,59 @@ TEST(merge, simple_map_overriding)
     );
 }
 
+TEST(merge, map_overriding_multiple)
+{
+    test_merge(
+        {
+            "a: 0",
+            "{a: 1, b: 1}",
+            "c: 2",
+            "a: 2",
+            "a: 3",
+            "c: 4",
+            "c: 5",
+            "a: 4",
+        },
+        "{a: 4, b: 1, c: 5}"
+    );
+}
+
+
 TEST(merge, seq_nested_in_map)
 {
     test_merge(
         {
             "{a: 0, seq: [a, b, c], d: 2}",
-            "{a: 1, seq: [d, e, f], d: 3}"
+            "{a: 1, seq: [d, e, f], d: 3, c: 3}"
         },
-        "{a: 1, seq: [a, b, c, d, e, f], d: 3}"
+        "{a: 1, seq: [a, b, c, d, e, f], d: 3, c: 3}"
     );
 }
+
 
 TEST(merge, seq_nested_in_map_override_with_map)
 {
     test_merge(
         {
             "{a: 0, ovr: [a, b, c], d: 2}",
-            "{a: 1, ovr: {d: 0, b: 1, c: 2}, d: 3}"
+            "{a: 1, ovr: {d: 0, b: 1, c: 2}, d: 3, c: 3}"
         },
-        "{a: 1, ovr: {d: 0, b: 1, c: 2}, d: 3}"
+        "{a: 1, ovr: {d: 0, b: 1, c: 2}, d: 3, c: 3}"
     );
 }
+
+
+TEST(merge, seq_nested_in_map_override_with_keyval)
+{
+    test_merge(
+        {
+            "{a: 0, ovr: [a, b, c], d: 2}",
+            "{a: 1, ovr: foo, d: 3, c: 3}"
+        },
+        "{a: 1, ovr: foo, d: 3, c: 3}"
+    );
+}
+
 
 } // namespace yml
 } // namespace c4

@@ -1,4 +1,4 @@
-c4_setup_benchmarks(ryml)
+ryml_setup_benchmarking(ryml)
 
 # -----------------------------------------------------------------------------
 # json libs that will be compared with ryml (and the other yaml libs)
@@ -39,36 +39,32 @@ set(RYML_SAJSON_INC_DIR ${_ed}/sajson/src/include)
 
 
 # -----------------------------------------------------------------------------
-function(ryml_add_bm bm_name case_file)
-    set(bm ryml-benchmark-${bm_name})
-    if(NOT TARGET ${bm})
-        c4_add_executable(RYML ${bm}
-            SOURCES ${bm_name}.cpp ${ARGN}
-            LIBS ryml yaml yaml-cpp benchmark jsoncpp_lib nlohmann_json c4fs
-            INC_DIRS ${RYML_RAPIDJSON_INC_DIR} ${RYML_SAJSON_INC_DIR}
-            FOLDER ryml-benchmark)
-        if(RYML_DBG)
-            target_compile_definitions(${bm} PRIVATE RYML_DBG)
-        endif()
-    endif()
-    set(rdir ${CMAKE_CURRENT_BINARY_DIR}/results)
+function(ryml_add_bm_case target case_file)
+    # case identifier
     get_filename_component(case ${case_file} NAME_WE)
-    set(rt ${bm}-${case})
-    set(rf ${rdir}/${bm_name}-${case}.json)
-    if(NOT EXISTS ${rdir})
-        file(MAKE_DIRECTORY ${rdir})
-    endif()
+    # prevent json readers from reading yml data
     get_filename_component(ext ${case_file} EXT)
     if(NOT ("${ext}" STREQUAL ".json"))
-        set(filter_json "--benchmark_filter='yml|yaml'")
+        set(filter_json "yml|yaml")
     endif()
-    c4_add_benchmark(RYML ${bm} ${rt} ${rdir} "${rt}: results are in ${rf}"
-        # these are arguments to the benchmark
-        ${filter_json} --benchmark_out_format=json --benchmark_out=${rf} ${case_file})
+    # that's it!
+    ryml_add_target_benchmark(${target} ${case}
+        FILTER "${filter_json}"
+        ARGS ${case_file})
 endfunction()
+
+ryml_add_executable(ryml-bm-parse
+    SOURCES parse.cpp
+    LIBS ryml yaml yaml-cpp benchmark jsoncpp_lib nlohmann_json c4fs
+    INC_DIRS ${RYML_RAPIDJSON_INC_DIR} ${RYML_SAJSON_INC_DIR}
+    FOLDER ryml-benchmark)
+if(RYML_DBG)
+    target_compile_definitions(parse PRIVATE RYML_DBG)
+endif()
 
 set(cdir "${CMAKE_CURRENT_LIST_DIR}/cases")
 file(GLOB bm_cases RELATIVE "${cdir}" "${cdir}/*.*")
 foreach(case_file ${bm_cases})
-    ryml_add_bm(parse "${cdir}/${case_file}")
+    message(STATUS "adding case: ${case_file}")
+    ryml_add_bm_case(ryml-bm-parse "${cdir}/${case_file}")
 endforeach()

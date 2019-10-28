@@ -792,13 +792,19 @@ The following core features are tested:
 * tags
 * anchors and references
 
+Integration of the ~300 cases in the
+[YAML test suite](https://github.com/yaml/yaml-test-suite) is ongoing
+work.
+
 Of course, there are *many* dark corners in YAML, and there certainly can
 appear some cases which ryml fails to parse. So we welcome your
 [bug reports or pull requests!](https://github.com/biojppm/rapidyaml/issues).
 
-Integration of the ~300 cases in the
-[YAML test suite](https://github.com/yaml/yaml-test-suite) is ongoing
-work.
+### Known limitations
+
+* ryml does not handle complex elements as mapping keys: keys must be simple
+  values and cannot themselves be mappings or sequences. Yaml test suite
+  cases: [KK5P](https://github.com/yaml/yaml-test-suite)
 
 
 ------
