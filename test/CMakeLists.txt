@@ -78,7 +78,7 @@ option(RYML_TEST_SUITE "Enable ~300 extensive tests from yaml-test-suite." OFF)
 if(RYML_TEST_SUITE)
     set(ed ${CMAKE_CURRENT_BINARY_DIR}/ext) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)
 
-    ryml_require_module(c4log REMOTE
+    ryml_require_subproject(c4log REMOTE
         GIT_REPOSITORY https://github.com/biojppm/c4log
         GIT_TAG master)
 

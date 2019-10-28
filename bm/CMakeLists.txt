@@ -12,7 +12,7 @@ c4_override(JSONCPP_WITH_WARNING_AS_ERROR OFF)
 c4_override(JSONCPP_WITH_STRICT_ISO OFF)
 c4_override(JSONCPP_WITH_PKGCONFIG_SUPPORT OFF)
 c4_override(JSONCPP_WITH_CMAKE_PACKAGE OFF)
-ryml_require_module(jsoncpp REMOTE
+ryml_require_subproject(jsoncpp REMOTE
     GIT_REPOSITORY https://github.com/open-source-parsers/jsoncpp
     GIT_TAG master)
 c4_set_folder_remote_project_targets(ext jsoncpp_lib)
@@ -21,7 +21,7 @@ c4_set_folder_remote_project_targets(ext jsoncpp_lib)
 c4_override(JSON_BuildTests OFF)
 c4_override(JSON_Install OFF)
 c4_override(JSON_MultipleHeaders OFF)
-ryml_require_module(nlohmann_json REMOTE
+ryml_require_subproject(nlohmann_json REMOTE
     GIT_REPOSITORY https://github.com/nlohmann/json
     GIT_TAG master)
 
