@@ -64,6 +64,7 @@ ryml_add_library(ryml SANITIZE
     SOURCES ${RYML_SRC}
     PUBLIC_INC_DIRS ${RYML_SRC_DIR}
     PUBLIC_LIBS c4core
+    INCORPORATE c4core
     )
 
 if(NOT RYML_DEFAULT_CALLBACKS)
@@ -80,7 +81,7 @@ endif()
 #-------------------------------------------------------
 # extern libraries, used only for testing/benchmarking
 if(RYML_BUILD_TESTS OR RYML_BUILD_BENCHMARKS)
-    set(ed ${CMAKE_CURRENT_BINARY_DIR}/extern) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)
+    set(ed ${CMAKE_CURRENT_BINARY_DIR}/subprojects) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)
     #
     # these are used both for testing and benchmarking
     #
