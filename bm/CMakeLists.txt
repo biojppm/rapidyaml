@@ -15,7 +15,13 @@ c4_override(JSONCPP_WITH_CMAKE_PACKAGE OFF)
 ryml_require_subproject(jsoncpp REMOTE
     GIT_REPOSITORY https://github.com/open-source-parsers/jsoncpp
     GIT_TAG master)
-c4_set_folder_remote_project_targets(ext jsoncpp_lib)
+c4_set_folder_remote_project_targets(ext/jsoncpp
+    jsoncpp_lib
+    examples
+    readFromStream
+    readFromString
+    streamWrite
+    stringWrite)
 
 # nlohmannjson needs to be compiled
 c4_override(JSON_BuildTests OFF)
@@ -57,7 +63,7 @@ ryml_add_executable(ryml-bm-parse
     SOURCES parse.cpp
     LIBS ryml yaml yaml-cpp benchmark jsoncpp_lib nlohmann_json c4fs
     INC_DIRS ${RYML_RAPIDJSON_INC_DIR} ${RYML_SAJSON_INC_DIR}
-    FOLDER ryml-benchmark)
+    FOLDER ryml-bm)
 if(RYML_DBG)
     target_compile_definitions(parse PRIVATE RYML_DBG)
 endif()

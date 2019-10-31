@@ -6,8 +6,6 @@ ryml_add_library(ryml_util_test
     LIBS ryml c4fs yaml yaml-cpp gtest gtest_main
     FOLDER ryml-test)
 
-print_var(ryml_yaml_cpp_inc)
-
 function(ryml_add_test test_name)
     # NOTE: the library order here is fragile because the cmake sanitization
     # code goes recursively through the target and its dependencies to figure
