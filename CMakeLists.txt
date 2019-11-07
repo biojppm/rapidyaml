@@ -135,3 +135,6 @@ endif()
 if(RYML_BUILD_API)
     add_subdirectory(api api)
 endif()
+  
+install(TARGETS ryml DESTINATION lib)
+install(FILES ${RYML_HPP}  DESTINATION include)
