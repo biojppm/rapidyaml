@@ -139,5 +139,5 @@ endif()
 #-------------------------------------------------------
 #install(TARGETS ryml DESTINATION lib)
 foreach(HDR ${RYML_HPP})
-  install(FILES RYML_SRC_DIR/${HDR} DESTINATION include/ryml/${HDR})
+  install(FILES ${RYML_SRC_DIR}/${HDR} DESTINATION include/ryml/${HDR})
 endforeach()
