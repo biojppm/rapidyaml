@@ -137,7 +137,7 @@ if(RYML_BUILD_API)
 endif()
 
 #-------------------------------------------------------
-install(TARGETS ryml DESTINATION lib)
-set(RYML_HPP_ABS ${RYML_HPP})
-list(TRANSFORM RYML_HPP_ABS PREPEND ${RYML_SRC_DIR}/)
-install(FILES ${RYML_HPP_ABS}  DESTINATION include)
+#install(TARGETS ryml DESTINATION lib)
+foreach(HDR ${RYML_HPP})
+  install(FILES RYML_SRC_DIR/${HDR} DESTINATION include/ryml/${HDR})
+endforeach()
