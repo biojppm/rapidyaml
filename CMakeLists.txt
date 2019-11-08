@@ -51,7 +51,7 @@ set(RYML_FILES
 )
 
 set(RYML_SRC ${RYML_CPP} ${RYML_HPP} ${RYML_FILES}
-    SOURCE_ROOT ${RYML_SRC_DIR})
+  SOURCE_ROOT ${RYML_SRC_DIR})
 
 #-------------------------------------------------------
 
@@ -135,6 +135,9 @@ endif()
 if(RYML_BUILD_API)
     add_subdirectory(api api)
 endif()
-  
+
+#-------------------------------------------------------
 install(TARGETS ryml DESTINATION lib)
-install(FILES ${RYML_HPP}  DESTINATION include)
+set(RYML_HPP_ABS ${RYML_HPP})
+list(TRANSFORM RYML_HPP_ABS PREPEND ${RYML_SRC_DIR}/)
+install(FILES ${RYML_HPP_ABS}  DESTINATION include)
