@@ -1,0 +1,5 @@
+# Compute paths
+get_filename_component(RooFitExtensions_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+set(RooFitExtensions_INCLUDE_DIRS "@CONF_INCLUDE_DIRS@")
+set(RooFitExtensions_LIBRARIES "@CONF_LIBRARIES@")
+set(RooFitExtensions_LIBRARY_DIRS "@CONF_LIBRARY_DIRS@")
