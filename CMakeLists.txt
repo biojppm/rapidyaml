@@ -44,6 +44,42 @@ set(RYML_HPP
     c4/yml/tree.hpp
     c4/yml/writer.hpp
     c4/yml/yml.hpp
+    )
+
+set (C4_HPP
+  c4/allocator.hpp
+  c4/base64.hpp
+  c4/bitmask.hpp
+  c4/blob.hpp
+  c4/c4_pop.hpp
+  c4/c4_push.hpp
+  c4/charconv.hpp
+  c4/char_traits.hpp
+  c4/common.hpp
+  c4/compiler.hpp
+  c4/config.hpp
+  c4/cpu.hpp
+  c4/ctor_dtor.hpp
+  c4/enum.hpp
+  c4/error.hpp
+  c4/format.hpp
+  c4/hash.hpp
+  c4/language.hpp
+  c4/memory_resource.hpp
+  c4/memory_util.hpp
+  c4/platform.hpp
+  c4/preprocessor.hpp
+  c4/restrict.hpp
+  c4/span.hpp
+  c4/substr.hpp
+  c4/szconv.hpp
+  c4/time.hpp
+  c4/type_name.hpp
+  c4/types.hpp
+  c4/unrestrict.hpp
+  c4/windows.hpp
+  c4/windows_pop.hpp
+  c4/windows_push.hpp
 )
 
 set(RYML_FILES
@@ -153,4 +189,8 @@ install(TARGETS ryml DESTINATION lib/ryml)
 foreach(HDR ${RYML_HPP})
   get_filename_component(HDRDIR ${HDR} DIRECTORY)
   install(FILES ${RYML_SRC_DIR}/${HDR} DESTINATION include/ryml/${HDRDIR})
+endforeach()
+foreach(HDR ${C4_HPP})
+  get_filename_component(HDRDIR ${HDR} DIRECTORY)
+  install(FILES ${RYML_SRC_DIR}/extern/c4core/src/${HDR} DESTINATION include/ryml/${HDRDIR})
 endforeach()
