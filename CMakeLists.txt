@@ -80,6 +80,10 @@ set (C4_HPP
   c4/windows.hpp
   c4/windows_pop.hpp
   c4/windows_push.hpp
+  c4/std/std.hpp
+  c4/std/string.hpp
+  c4/std/tuple.hpp
+  c4/std/vector.hpp
 )
 
 set(RYML_FILES
