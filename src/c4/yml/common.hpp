@@ -2,7 +2,7 @@
 #define _C4_YML_COMMON_HPP_
 
 #include <cstddef>
-#include <c4/yml/common.hpp>
+#include <c4/common.hpp>
 
 #define RYML_INLINE inline
 
