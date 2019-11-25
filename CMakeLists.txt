@@ -142,12 +142,13 @@ endif()
 # (this registers the build-tree with a global CMake-registry)
 export(PACKAGE rapidyaml)
 
-set(CONF_INCLUDE_DIRS include/ryml/${HDRDIR})
-set(CONF_LIBRARY_DIRS lib/ryml)
+set(CONF_INCLUDE_DIRS ${CMAKE_INSTALL_PREFIX}/include/ryml/${HDRDIR})
+set(CONF_LIBRARY_DIRS ${CMAKE_INSTALL_PREFIX}/lib/ryml)
 set(CONF_LIBRARIES    ryml)
 configure_file(rapidyamlConfig.cmake.in
   "${PROJECT_BINARY_DIR}/rapidyamlConfig.cmake" @ONLY)
 
+install(FILES "${PROJECT_BINARY_DIR}/rapidyamlConfig.cmake" DESTINATION share/ryml)
 install(TARGETS ryml DESTINATION lib/ryml)
 foreach(HDR ${RYML_HPP})
   get_filename_component(HDRDIR ${HDR} DIRECTORY)
