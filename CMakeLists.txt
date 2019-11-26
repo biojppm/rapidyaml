@@ -190,6 +190,7 @@ configure_file(rapidyamlConfig.cmake.in
 
 install(FILES "${PROJECT_BINARY_DIR}/rapidyamlConfig.cmake" DESTINATION share/ryml)
 install(TARGETS ryml DESTINATION lib/ryml)
+install(TARGETS c4core DESTINATION lib/ryml)
 foreach(HDR ${RYML_HPP})
   get_filename_component(HDRDIR ${HDR} DIRECTORY)
   install(FILES ${RYML_SRC_DIR}/${HDR} DESTINATION include/ryml/${HDRDIR})
