@@ -95,7 +95,7 @@ set(RYML_SRC ${RYML_CPP} ${RYML_HPP} ${RYML_FILES}
 
 #-------------------------------------------------------
 
-ryml_require_module(c4core
+ryml_require_subproject(c4core
   SUBDIRECTORY ${RYML_EXT_DIR}/c4core)
 
 if(NOT RYML_LIBRARY_TYPE)
