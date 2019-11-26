@@ -1,0 +1,44 @@
+# Maintainer: Carsten Burgard <cburgard@cern.ch>
+pkgname=rapidyaml-git
+pkgver=r549.636bd1d
+pkgver() {
+  cd "$pkgname"
+  ( set -o pipefail
+    git describe --long 2>/dev/null | sed 's/\([^-]*-g\)/r\1/;s/-/./g' ||
+    printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+  )
+}
+pkgrel=1
+pkgdesc="ryml is a library to parse and emit YAML, and do it fast."
+arch=('any')
+url="https://github.com/biojppm/rapidyaml"
+license=('MIT')
+groups=()
+depends=()
+makedepends=('git')
+provides=("${pkgname%-VCS}")
+conflicts=("${pkgname%-VCS}")
+replaces=()
+backup=()
+options=()
+install=
+source=(rapidyaml-git::"git://github.com/cburgard/rapidyaml.git#branch=makepkg")
+noextract=()
+md5sums=('SKIP')
+
+prepare() {
+	cd "$srcdir/${pkgname%-VCS}"
+        git submodule update --init --recursive
+}
+
+build() {
+        mkdir -p build
+        cd build
+        cmake "$srcdir/${pkgname%-VCS}" -DRYML_LIBRARY_TYPE=SHARED -DC4_LIBRARY_TYPE=SHARED -DCMAKE_INSTALL_PREFIX=/usr
+	make
+}
+
+package() {
+	cd "$srcdir/build"
+	make DESTDIR="$pkgdir/" install
+}
