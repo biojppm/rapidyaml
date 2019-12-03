@@ -22,7 +22,7 @@ replaces=()
 backup=()
 options=()
 install=
-source=(rapidyaml-git::"git://github.com/cburgard/rapidyaml.git#branch=makepkg")
+source=(rapidyaml-git::"git://github.com/biojppm/rapidyaml.git#branch=makepkg")
 noextract=()
 md5sums=('SKIP')
 
@@ -34,7 +34,7 @@ prepare() {
 build() {
         mkdir -p build
         cd build
-        cmake "$srcdir/${pkgname%-VCS}" -DRYML_LIBRARY_TYPE=SHARED -DC4_LIBRARY_TYPE=SHARED -DCMAKE_INSTALL_PREFIX=/usr
+        cmake "$srcdir/${pkgname%-VCS}" -DBUILD_SHARED_LIBS=1 -DCMAKE_INSTALL_PREFIX=/usr
 	make
 }
 

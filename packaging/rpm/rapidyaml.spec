@@ -33,19 +33,11 @@ the libc). But it provides optional headers that let you
 serialize/deserialize STL strings and containers (or show you how to
 do it).
 %prep
-git clone --recursive https://github.com/cburgard/rapidyaml
-cd rapidyaml
-git checkout makepkg
-cd extern/c4core
-git remote add fork https://github.com/cburgard/c4core
-git fetch fork
-git checkout -b fork fork/master
-cd cmake
-git checkout master
+git clone --recursive https://github.com/biojppm/rapidyaml
 %build
 mkdir build
 cd build
-cmake ../rapidyaml -DRYML_LIBRARY_TYPE=SHARED -DC4_LIBRARY_TYPE=SHARED -DCMAKE_INSTALL_PREFIX=/usr 
+cmake ../rapidyaml -DBUILD_SHARED_LIBS=1 -DCMAKE_INSTALL_PREFIX=/usr 
 make
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
