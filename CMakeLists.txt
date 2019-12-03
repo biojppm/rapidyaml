@@ -98,19 +98,15 @@ set(RYML_SRC ${RYML_CPP} ${RYML_HPP} ${RYML_FILES}
 ryml_require_subproject(c4core
   SUBDIRECTORY ${RYML_EXT_DIR}/c4core)
 
-if(NOT RYML_LIBRARY_TYPE)
-    set(RYML_LIBRARY_TYPE STATIC)
-endif()
-  
 if(RYML_STANDALONE)
     # use c4core-interface as PRIVATE to prevent sources from propagating
-    ryml_add_library(ryml SANITIZE LIBRARY_TYPE ${RYML_LIBRARY_TYPE}
+    ryml_add_library(ryml SANITIZE
         SOURCES ${RYML_SRC}
         PUBLIC_INC_DIRS ${RYML_SRC_DIR} ${RYML_EXT_DIR}/c4core/src ${RYML_EXT_DIR}/c4core/extern
         PRIVATE_LIBS c4core-interface
     )
 else()
-    ryml_add_library(ryml SANITIZE LIBRARY_TYPE  ${RYML_LIBRARY_TYPE}
+    ryml_add_library(ryml SANITIZE
         SOURCES ${RYML_SRC}
         PUBLIC_INC_DIRS ${RYML_SRC_DIR}
         PUBLIC_LIBS c4core
