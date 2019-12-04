@@ -5,8 +5,6 @@
 #include "./emit.hpp"
 #endif
 
-#include <iostream>
-
 namespace c4 {
 namespace yml {
 
