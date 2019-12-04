@@ -343,27 +343,20 @@ inline size_t emit_json(NodeRef const& r, FILE *f=nullptr)
 }
 
 
-//-----------------------------------------------------------------------------
 
-/** emit JSON to an STL-like ostream */
-//template<class OStream>
-//inline OStream& operator<< (OStream& s, Tree const& t)
-//{
-//    EmitterOStream<OStream> em(s);
-//    em.emit(t.rootref());
-//    return s;
-//}
-//
-///** emit JSON to an STL-like ostream
-// * @overload */
-//template<class OStream>
-//inline OStream& operator<< (OStream& s, NodeRef const& n)
-//{
-//    EmitterOStream<OStream> em(s);
-//    em.emit(n);
-//    return s;
-//}
-
+struct as_json
+{
+    NodeRef node;
+    as_json(NodeRef const& n) : node(n) {}
+    as_json(Tree const& t) : node(t.rootref()) {}
+};
+template<class OStream>
+inline OStream& operator<< (OStream& s, as_json const& js)
+{
+    EmitterJSONOStream<OStream> em(*s.tree); // instantiate a json emitter instead
+    em.emit(js.node);
+    return s;
+}
 
 //-----------------------------------------------------------------------------
 
@@ -382,7 +375,7 @@ inline substr emit_json(Tree const& t, size_t id, substr buf, bool error_on_exce
  * @overload */
 inline substr emit_json(Tree const& t, substr buf, bool error_on_excess=true)
 {
-    return emit(t, t.root_id(), buf, error_on_excess);
+    return emit_json(t, t.root_id(), buf, error_on_excess);
 }
 
 /** emit JSON to the given buffer. Return a substr trimmed to the emitted JSON.
@@ -391,7 +384,7 @@ inline substr emit_json(Tree const& t, substr buf, bool error_on_excess=true)
  */
 inline substr emit_json(NodeRef const& r, substr buf, bool error_on_excess=true)
 {
-    return emit(*r.tree(), r.id(), buf, error_on_excess);
+    return emit_json(*r.tree(), r.id(), buf, error_on_excess);
 }
 
 
@@ -408,7 +401,7 @@ substr emitrs_json(Tree const& t, size_t id, CharOwningContainer * cont)
     {
         cont->resize(ret.len);
         buf = to_substr(*cont);
-        ret = emit(t, id, buf, /*error_on_excess*/true);
+        ret = emit_json(t, id, buf, /*error_on_excess*/true);
     }
     return ret;
 }
@@ -437,7 +430,7 @@ template<class CharOwningContainer>
 CharOwningContainer emitrs_json(Tree const& t)
 {
     CharOwningContainer c;
-    emitrs(t, t.root_id(), &c);
+    emitrs_json(t, t.root_id(), &c);
     return c;
 }
 
@@ -446,7 +439,7 @@ CharOwningContainer emitrs_json(Tree const& t)
 template<class CharOwningContainer>
 substr emitrs_json(NodeRef const& n, CharOwningContainer * cont)
 {
-    return emitrs(*n.tree(), n.id(), cont);
+    return emitrs_json(*n.tree(), n.id(), cont);
 }
 
 /** emit+resize: JSON to the given std::string/std::vector-like container,
@@ -455,7 +448,7 @@ template<class CharOwningContainer>
 CharOwningContainer emitrs_json(NodeRef const& n)
 {
     CharOwningContainer c;
-    emitrs(*n.tree(), n.id(), &c);
+    emitrs_json(*n.tree(), n.id(), &c);
     return c;
 }
 

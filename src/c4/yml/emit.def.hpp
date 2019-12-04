@@ -270,170 +270,170 @@ void Emitter<Writer>::_write_scalar(csubstr s)
 
 
 namespace c4 {
-namespace yml {
+  namespace yml {
 
-template<class Writer>
-substr EmitterJSON<Writer>::emit(Tree const& t, size_t id, bool error_on_excess)
-{
-    this->_visit(t, id);
-    substr result = this->Writer::_get(error_on_excess);
-    return result;
-}
+    template<class Writer>
+    substr EmitterJSON<Writer>::emit(Tree const& t, size_t id, bool error_on_excess)
+    {
+      this->_visit(t, id);
+      substr result = this->Writer::_get(error_on_excess);
+      return result;
+    }
+    
+    template<class Writer>
+    size_t EmitterJSON<Writer>::tell() const
+    {
+      return this->Writer::m_pos;
+    }
 
-template<class Writer>
-size_t EmitterJSON<Writer>::tell() const
-{
-    return this->Writer::m_pos;
-}
+    template<class Writer>
+    void EmitterJSON<Writer>::seek(size_t p)
+    {
+      this->Writer::m_pos = p;
+    }
 
-template<class Writer>
-void EmitterJSON<Writer>::seek(size_t p)
-{
-    this->Writer::m_pos = p;
-}
+    template<class Writer>
+    size_t EmitterJSON<Writer>::_visit(Tree const& t, size_t id)
+    {
+      if(t.is_stream(id))
+        {
+          ;
+        }
+      _do_visit(t, id);
+      if(t.is_stream(id))
+        {
+          _write("...\n");
+        }
+      return this->Writer::m_pos;
+    }
 
-template<class Writer>
-size_t EmitterJSON<Writer>::_visit(Tree const& t, size_t id)
-{
-    if(t.is_stream(id))
+    /** @todo this function is too complex. break it down into manageable pieces */
+    template<class Writer>
+    void EmitterJSON<Writer>::_do_visit(Tree const& t, size_t id)
     {
-        ;
-    }
-    _do_visit(t, id);
-    if(t.is_stream(id))
-    {
-        _write("...\n");
-    }
-    return this->Writer::m_pos;
-}
-
-/** @todo this function is too complex. break it down into manageable pieces */
-template<class Writer>
-void EmitterJSON<Writer>::_do_visit(Tree const& t, size_t id)
-{
-  if(t.is_doc(id))
-    {
-      throw "we don't do that yet";
-    }
-  else if(t.is_keyval(id))
-    {
-      _writek(t, id);
-      _write(":");
-      _writev(t, id);
-    }
-  else if(t.is_val(id))
-    {
-      _writev(t, id);
-    }
-  else if(t.is_container(id))
-    {
-      if(t.has_key(id))
+      if(t.is_doc(id))
+        {
+          c4::yml::error("no doc processing for JSON");
+        }
+      else if(t.is_keyval(id))
         {
           _writek(t, id);
-          _write(':');
+          _write(":");
+          _writev(t, id);
         }
+      else if(t.is_val(id))
+        {
+          _writev(t, id);
+        }
+      else if(t.is_container(id))
+        {
+          if(t.has_key(id))
+            {
+              _writek(t, id);
+              _write(':');
+            }
       
-      if(t.is_seq(id))
-        {
-          _write('[');
-        }
-      else if(t.is_map(id))
-        {
-          _write('{');
-        }
-    } // container
-  for(size_t ich = t.first_child(id); ich != NONE; ich = t.next_sibling(ich))
-    {
-      if(ich!=t.first_child(id)) _write(",");
-      _do_visit(t, ich);
-    }
-  if(t.is_container(id))
-    {
-      if(t.is_seq(id))
-        {
-          _write("]");
-        }
-      else if(t.is_map(id))
-        {
-          _write("}");
-        }
-    }
-}
-
-template<class Writer>
-void EmitterJSON<Writer>::_write(NodeScalar const& sc, NodeType flags)
-{
-    if( ! sc.tag.empty())
-    {
-        this->Writer::_do_write(sc.tag);
-        this->Writer::_do_write(' ');
-    }
-    if(flags.has_anchor())
-    {
-      throw "we don't do that yet";              
-    }
-
-    _write_scalar(sc.scalar);
-}
-
-template<class Writer>
-void EmitterJSON<Writer>::_write_scalar(csubstr s)
-{
-    const bool no_dquotes = s.first_of( '"') == npos;
-    const bool no_squotes = s.first_of('\'') == npos;
-    // force use quotes when any of these characters is present
-    const bool no_special = s.first_of("#:-,\n{}[]") == npos;
-
-    if(no_dquotes && no_squotes && no_special)
-    {
-        if( ! s.empty())
-        {
-            this->Writer::_do_write(s);
-        }
-        else
-        {
-            this->Writer::_do_write("''");
-        }
-    }
-    else
-    {
-        if(no_squotes && !no_dquotes)
-        {
-            this->Writer::_do_write('\'');
-            this->Writer::_do_write(s);
-            this->Writer::_do_write('\'');
-        }
-        else if(no_dquotes && !no_squotes)
-        {
-            this->Writer::_do_write('"');
-            this->Writer::_do_write(s);
-            this->Writer::_do_write('"');
-        }
-        else
-        {
-            size_t pos = 0;
-            this->Writer::_do_write('\'');
-            for(size_t i = 0; i < s.len; ++i)
+          if(t.is_seq(id))
             {
-                if(s[i] == '\'' || s[i] == '\n')
+              _write('[');
+            }
+          else if(t.is_map(id))
+            {
+              _write('{');
+            }
+        } // container
+      for(size_t ich = t.first_child(id); ich != NONE; ich = t.next_sibling(ich))
+        {
+          if(ich!=t.first_child(id)) _write(",");
+          _do_visit(t, ich);
+        }
+      if(t.is_container(id))
+        {
+          if(t.is_seq(id))
+            {
+              _write("]");
+            }
+          else if(t.is_map(id))
+            {
+              _write("}");
+            }
+        }
+    }
+
+    template<class Writer>
+    void EmitterJSON<Writer>::_write(NodeScalar const& sc, NodeType flags)
+    {
+      if( ! sc.tag.empty())
+        {
+          this->Writer::_do_write(sc.tag);
+          this->Writer::_do_write(' ');
+        }
+      if(flags.has_anchor())
+        {
+          c4::yml::error("no anchor processing for JSON");
+        }
+
+      _write_scalar(sc.scalar);
+    }
+
+    template<class Writer>
+    void EmitterJSON<Writer>::_write_scalar(csubstr s)
+    {
+      const bool no_dquotes = s.first_of( '"') == npos;
+      const bool no_squotes = s.first_of('\'') == npos;
+      // force use quotes when any of these characters is present
+      const bool no_special = s.first_of("#:-,\n{}[]") == npos;
+
+      if(no_dquotes && no_squotes && no_special)
+        {
+          if( ! s.empty())
+            {
+              this->Writer::_do_write(s);
+            }
+          else
+            {
+              this->Writer::_do_write("''");
+            }
+        }
+      else
+        {
+          if(no_squotes && !no_dquotes)
+            {
+              this->Writer::_do_write('\'');
+              this->Writer::_do_write(s);
+              this->Writer::_do_write('\'');
+            }
+          else if(no_dquotes && !no_squotes)
+            {
+              this->Writer::_do_write('"');
+              this->Writer::_do_write(s);
+              this->Writer::_do_write('"');
+            }
+          else
+            {
+              size_t pos = 0;
+              this->Writer::_do_write('\'');
+              for(size_t i = 0; i < s.len; ++i)
                 {
-                    csubstr sub = s.sub(pos, i-pos);
-                    pos = i;
-                    this->Writer::_do_write(sub);
-                    this->Writer::_do_write(s[i]); // write the character twice
+                  if(s[i] == '\'' || s[i] == '\n')
+                    {
+                      csubstr sub = s.sub(pos, i-pos);
+                      pos = i;
+                      this->Writer::_do_write(sub);
+                      this->Writer::_do_write(s[i]); // write the character twice
+                    }
                 }
+              if(pos < s.len)
+                {
+                  csubstr sub = s.sub(pos);
+                  this->Writer::_do_write(sub);
+                }
+              this->Writer::_do_write('\'');
             }
-            if(pos < s.len)
-            {
-                csubstr sub = s.sub(pos);
-                this->Writer::_do_write(sub);
-            }
-            this->Writer::_do_write('\'');
         }
     }
-}
-
-} // namespace yml
+  
+  } // namespace yml
 } // namespace c4
 
 #endif /* _C4_YML_EMIT_DEF_HPP_ */
