@@ -379,58 +379,27 @@ namespace yml {
     template<class Writer>
     void EmitterJSON<Writer>::_write_scalar(csubstr s)
     {
-        const bool no_dquotes = s.first_of( '"') == npos;
-        const bool no_squotes = s.first_of('\'') == npos;
-        // force use quotes when any of these characters is present
-        const bool no_special = s.first_of("#:-,\n{}[]") == npos;
-        
-        if(no_dquotes && no_squotes && no_special)
+        size_t pos = 0;
+        this->Writer::_do_write('\"');
+        for(size_t i = 0; i < s.len; ++i)
         {
-            if( ! s.empty())
+            if(s[i] == '\"')
             {
-                this->Writer::_do_write(s);
-            }
-            else
-            {
-                this->Writer::_do_write("''");
-            }
-        }
-        else
-        {
-            if(no_squotes && !no_dquotes)
-            {
-                this->Writer::_do_write('\'');
-                this->Writer::_do_write(s);
-                this->Writer::_do_write('\'');
-            }
-            else if(no_dquotes && !no_squotes)
-            {
-                this->Writer::_do_write('"');
-                this->Writer::_do_write(s);
-                this->Writer::_do_write('"');
-            }
-            else
-            {
-                size_t pos = 0;
-                this->Writer::_do_write('\'');
-                for(size_t i = 0; i < s.len; ++i)
+                if(i>0)
                 {
-                    if(s[i] == '\'' || s[i] == '\n')
-                    {
-                        csubstr sub = s.sub(pos, i-pos);
-                        pos = i;
-                        this->Writer::_do_write(sub);
-                        this->Writer::_do_write(s[i]); // write the character twice
-                    }
-                }
-                if(pos < s.len)
-                {
-                    csubstr sub = s.sub(pos);
+                    csubstr sub = s.sub(pos, i-pos);
                     this->Writer::_do_write(sub);
                 }
-                this->Writer::_do_write('\'');
+                pos = i+1;
+                this->Writer::_do_write("\\\"");
             }
         }
+        if(pos < s.len)
+        {
+            csubstr sub = s.sub(pos);
+            this->Writer::_do_write(sub);
+        }
+        this->Writer::_do_write('\"');
     }
   
 } // namespace yml
