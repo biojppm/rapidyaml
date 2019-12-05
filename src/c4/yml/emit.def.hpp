@@ -272,135 +272,135 @@ void Emitter<Writer>::_write_scalar(csubstr s)
 namespace c4 {
 namespace yml {
 
-    template<class Writer>
-    substr EmitterJSON<Writer>::emit(Tree const& t, size_t id, bool error_on_excess)
-    {
-        this->_visit(t, id);
-        substr result = this->Writer::_get(error_on_excess);
-        return result;
-    }
+template<class Writer>
+substr EmitterJSON<Writer>::emit(Tree const& t, size_t id, bool error_on_excess)
+{
+    this->_visit(t, id);
+    substr result = this->Writer::_get(error_on_excess);
+    return result;
+}
 
-    template<class Writer>
-    size_t EmitterJSON<Writer>::tell() const
-    {
-        return this->Writer::m_pos;
-    }
+template<class Writer>
+size_t EmitterJSON<Writer>::tell() const
+{
+    return this->Writer::m_pos;
+}
 
-    template<class Writer>
-    void EmitterJSON<Writer>::seek(size_t p)
-    {
-        this->Writer::m_pos = p;
-    }
+template<class Writer>
+void EmitterJSON<Writer>::seek(size_t p)
+{
+    this->Writer::m_pos = p;
+}
 
-    template<class Writer>
-    size_t EmitterJSON<Writer>::_visit(Tree const& t, size_t id)
+template<class Writer>
+size_t EmitterJSON<Writer>::_visit(Tree const& t, size_t id)
+{
+    if(t.is_stream(id))
     {
-        if(t.is_stream(id))
-        {
-            ;
-        }
-        _do_visit(t, id);
-        if(t.is_stream(id))
-        {
-            _write("...\n");
-        }
-        return this->Writer::m_pos;
+        ;
     }
-
-    /** @todo this function is too complex. break it down into manageable pieces */
-    template<class Writer>
-    void EmitterJSON<Writer>::_do_visit(Tree const& t, size_t id)
+    _do_visit(t, id);
+    if(t.is_stream(id))
     {
-        if(t.is_doc(id))
-        {
-            c4::yml::error("no doc processing for JSON");
-        }
-        else if(t.is_keyval(id))
+        _write("...\n");
+    }
+    return this->Writer::m_pos;
+}
+
+/** @todo this function is too complex. break it down into manageable pieces */
+template<class Writer>
+void EmitterJSON<Writer>::_do_visit(Tree const& t, size_t id)
+{
+    if(t.is_doc(id))
+    {
+        c4::yml::error("no doc processing for JSON");
+    }
+    else if(t.is_keyval(id))
+    {
+        _writek(t, id);
+        _write(":");
+        _writev(t, id);
+    }
+    else if(t.is_val(id))
+    {
+        _writev(t, id);
+    }
+    else if(t.is_container(id))
+    {
+        if(t.has_key(id))
         {
             _writek(t, id);
-            _write(":");
-            _writev(t, id);
+            _write(':');
         }
-        else if(t.is_val(id))
+    
+        if(t.is_seq(id))
         {
-            _writev(t, id);
+            _write('[');
         }
-        else if(t.is_container(id))
+        else if(t.is_map(id))
         {
-            if(t.has_key(id))
-            {
-                _writek(t, id);
-                _write(':');
-            }
-        
-            if(t.is_seq(id))
-            {
-                _write('[');
-            }
-            else if(t.is_map(id))
-            {
-                _write('{');
-            }
-        } // container
-        for(size_t ich = t.first_child(id); ich != NONE; ich = t.next_sibling(ich))
-        {
-            if(ich!=t.first_child(id)) _write(",");
-            _do_visit(t, ich);
+            _write('{');
         }
-        if(t.is_container(id))
-        {
-            if(t.is_seq(id))
-            {
-                _write("]");
-            }
-            else if(t.is_map(id))
-            {
-                _write("}");
-            }
-        }
-    }
-
-    template<class Writer>
-    void EmitterJSON<Writer>::_write(NodeScalar const& sc, NodeType flags)
+    } // container
+    for(size_t ich = t.first_child(id); ich != NONE; ich = t.next_sibling(ich))
     {
-        if( ! sc.tag.empty())
-        {
-            this->Writer::_do_write(sc.tag);
-            this->Writer::_do_write(' ');
-        }
-        if(flags.has_anchor())
-        {
-            c4::yml::error("no anchor processing for JSON");
-        }
-        
-        _write_scalar(sc.scalar);
+        if(ich!=t.first_child(id)) _write(",");
+        _do_visit(t, ich);
     }
-
-    template<class Writer>
-    void EmitterJSON<Writer>::_write_scalar(csubstr s)
+    if(t.is_container(id))
     {
-        size_t pos = 0;
-        this->Writer::_do_write('\"');
-        for(size_t i = 0; i < s.len; ++i)
+        if(t.is_seq(id))
         {
-            if(s[i] == '\"')
-            {
-                if(i>0)
-                {
-                    csubstr sub = s.sub(pos, i-pos);
-                    this->Writer::_do_write(sub);
-                }
-                pos = i+1;
-                this->Writer::_do_write("\\\"");
-            }
+            _write("]");
         }
-        if(pos < s.len)
+        else if(t.is_map(id))
         {
-            csubstr sub = s.sub(pos);
-            this->Writer::_do_write(sub);
+            _write("}");
         }
-        this->Writer::_do_write('\"');
     }
+}
+
+template<class Writer>
+void EmitterJSON<Writer>::_write(NodeScalar const& sc, NodeType flags)
+{
+    if( ! sc.tag.empty())
+    {
+        this->Writer::_do_write(sc.tag);
+        this->Writer::_do_write(' ');
+    }
+    if(flags.has_anchor())
+    {
+        c4::yml::error("no anchor processing for JSON");
+    }
+    
+    _write_scalar(sc.scalar);
+}
+
+template<class Writer>
+void EmitterJSON<Writer>::_write_scalar(csubstr s)
+{
+    size_t pos = 0;
+    this->Writer::_do_write('\"');
+    for(size_t i = 0; i < s.len; ++i)
+    {
+        if(s[i] == '\"')
+        {
+            if(i>0)
+            {
+                csubstr sub = s.sub(pos, i-pos);
+                this->Writer::_do_write(sub);
+            }
+            pos = i+1;
+            this->Writer::_do_write("\\\"");
+        }
+    }
+    if(pos < s.len)
+    {
+        csubstr sub = s.sub(pos);
+        this->Writer::_do_write(sub);
+    }
+    this->Writer::_do_write('\"');
+}
   
 } // namespace yml
 } // namespace c4
