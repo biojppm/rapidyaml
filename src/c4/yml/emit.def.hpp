@@ -5,6 +5,14 @@
 #include "./emit.hpp"
 #endif
 
+namespace {
+bool is_number(c4::csubstr s)
+{
+    if(s.empty() || (s.first_non_empty_span().empty())) return false;
+    return ((s.first_real_span() == s) || (s.first_int_span() == s) || (s.first_uint_span() == s));
+}
+}
+
 namespace c4 {
 namespace yml {
 
@@ -379,27 +387,34 @@ void EmitterJSON<Writer>::_write(NodeScalar const& sc, NodeType flags)
 template<class Writer>
 void EmitterJSON<Writer>::_write_scalar(csubstr s)
 {
-    size_t pos = 0;
-    this->Writer::_do_write('\"');
-    for(size_t i = 0; i < s.len; ++i)
+    if(is_number(s))
     {
-        if(s[i] == '\"')
+      this->Writer::_do_write(s);
+    }
+    else
+    {
+        size_t pos = 0;
+        this->Writer::_do_write('\"');
+        for(size_t i = 0; i < s.len; ++i)
         {
-            if(i>0)
+            if(s[i] == '\"')
             {
-                csubstr sub = s.sub(pos, i-pos);
-                this->Writer::_do_write(sub);
+                if(i>0)
+                {
+                    csubstr sub = s.sub(pos, i-pos);
+                    this->Writer::_do_write(sub);
+                }
+                pos = i+1;
+                this->Writer::_do_write("\\\"");
             }
-            pos = i+1;
-            this->Writer::_do_write("\\\"");
         }
+        if(pos < s.len)
+        {
+            csubstr sub = s.sub(pos);
+            this->Writer::_do_write(sub);
+        }
+        this->Writer::_do_write('\"');
     }
-    if(pos < s.len)
-    {
-        csubstr sub = s.sub(pos);
-        this->Writer::_do_write(sub);
-    }
-    this->Writer::_do_write('\"');
 }
   
 } // namespace yml
