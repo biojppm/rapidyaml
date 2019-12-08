@@ -48,7 +48,7 @@ set(RYML_HPP
 )
 
 set(RYML_FILES
-    ../ryml.natvis
+    ryml.natvis
 )
 
 set(RYML_SRC ${RYML_CPP} ${RYML_HPP} ${RYML_FILES}
@@ -62,23 +62,31 @@ ryml_require_subproject(c4core
 
 ryml_add_library(ryml SANITIZE
     SOURCES ${RYML_SRC}
-    PUBLIC_INC_DIRS ${RYML_SRC_DIR}
-    PUBLIC_LIBS c4core
+    INC_DIRS
+        $<BUILD_INTERFACE:${RYML_SRC_DIR}>
+        $<INSTALL_INTERFACE:include>
+    LIBS c4core
     INCORPORATE c4core
     )
 
 if(NOT RYML_DEFAULT_CALLBACKS)
-    target_compile_definitions(ryml
-        PRIVATE RYML_NO_DEFAULT_CALLBACKS)
+    target_compile_definitions(ryml PRIVATE RYML_NO_DEFAULT_CALLBACKS)
 endif()
 
 if(RYML_DBG)
-    target_compile_definitions(ryml
-        PRIVATE RYML_DBG)
+    target_compile_definitions(ryml PRIVATE RYML_DBG)
 endif()
 
 
 #-------------------------------------------------------
+
+ryml_install_target(ryml)
+ryml_install_exports(DEPENDENCIES c4core)
+
+
+#-------------------------------------------------------
+# developer targets
+
 # extern libraries, used only for testing/benchmarking
 if(RYML_BUILD_TESTS OR RYML_BUILD_BENCHMARKS)
     set(ed ${CMAKE_CURRENT_BINARY_DIR}/subprojects) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)

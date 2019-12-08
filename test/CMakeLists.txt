@@ -1,5 +1,35 @@
 ryml_setup_testing()
 
+ryml_add_install_include_test(ryml "ryml::")
+ryml_add_install_link_test(ryml "ryml::" "
+#include <c4/yml/yml.hpp>
+int main()
+{
+    auto tree = c4::yml::parse(R\"(
+a: 1
+b: {b0: 2, b1: 3}
+c: [4, 5, 6]
+)\")\;
+    #define check(cond) if(!(cond)) { return __LINE__\; }
+    check(!tree.empty())
+    check(tree.rootref().is_map())
+    check(tree.rootref().num_children() == 3)
+    check(tree[\"a\"].is_keyval())
+    check(tree[\"a\"].num_children() == 0)
+    check(tree[\"a\"].val() == \"1\")
+    check(tree[\"b\"].is_map())
+    check(tree[\"b\"].num_children() == 2)
+    check(tree[\"b\"][\"b0\"].val() == \"2\")
+    check(tree[\"b\"][\"b1\"].val() == \"3\")
+    check(tree[\"c\"].is_seq())
+    check(tree[\"c\"].num_children() == 3)
+    check(tree[\"c\"][0].val() == \"4\")
+    check(tree[\"c\"][1].val() == \"5\")
+    check(tree[\"c\"][2].val() == \"6\")
+    return 1\;
+}
+")
+
 ryml_add_library(ryml_util_test
     SOURCES test_case.hpp test_case.cpp libyaml.hpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${ryml_yaml_cpp_inc}
