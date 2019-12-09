@@ -65,7 +65,7 @@ ryml_add_executable(ryml-bm-parse
     INC_DIRS ${RYML_RAPIDJSON_INC_DIR} ${RYML_SAJSON_INC_DIR}
     FOLDER ryml-bm)
 if(RYML_DBG)
-    target_compile_definitions(parse PRIVATE RYML_DBG)
+    target_compile_definitions(ryml-bm-parse PRIVATE RYML_DBG)
 endif()
 
 set(cdir "${CMAKE_CURRENT_LIST_DIR}/cases")
