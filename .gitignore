@@ -2,6 +2,7 @@
 *~
 .ci/.vagrant
 build/
+install/
 Testing/
 CMakeLists.txt.user*
 compile_commands.json
