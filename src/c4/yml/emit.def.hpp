@@ -315,7 +315,6 @@ size_t EmitterJSON<Writer>::_visit(Tree const& t, size_t id)
     return this->Writer::m_pos;
 }
 
-/** @todo this function is too complex. break it down into manageable pieces */
 template<class Writer>
 void EmitterJSON<Writer>::_do_visit(Tree const& t, size_t id)
 {
@@ -389,7 +388,7 @@ void EmitterJSON<Writer>::_write_scalar(csubstr s)
 {
     if(is_number(s))
     {
-      this->Writer::_do_write(s);
+        this->Writer::_do_write(s);
     }
     else
     {
