@@ -192,6 +192,15 @@ TEST(general, map_to_root)
     EXPECT_EQ(m["bar"], 20);
 }
 
+TEST(general, json_stream_operator)
+{
+    const char *exp;
+    std::map<std::string, int> m({{"bar", 2}, {"foo", 1}});
+    Tree t;
+    t.rootref() << m;
+    std::cout << as_json(t) << std::endl;
+}
+
 //-------------------------------------------
 // this is needed to use the test case library
 Case const* get_case(csubstr name)
