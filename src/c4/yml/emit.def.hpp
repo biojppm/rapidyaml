@@ -326,7 +326,7 @@ void EmitterJSON<Writer>::_do_visit(Tree const& t, size_t id)
     else if(t.is_keyval(id))
     {
         _writek(t, id);
-        _write(":");
+        _write(": ");
         _writev(t, id);
     }
     else if(t.is_val(id))
@@ -338,7 +338,7 @@ void EmitterJSON<Writer>::_do_visit(Tree const& t, size_t id)
         if(t.has_key(id))
         {
             _writek(t, id);
-            _write(':');
+            _write(": ");
         }
     
         if(t.is_seq(id))
