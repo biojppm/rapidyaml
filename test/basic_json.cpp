@@ -198,7 +198,13 @@ TEST(general, json_stream_operator)
     std::map<std::string, int> m({{"bar", 2}, {"foo", 1}});
     Tree t;
     t.rootref() << m;
-    std::cout << as_json(t) << std::endl;
+    std::stringstream ss;
+    ss << as_json(t);
+    Tree res = c4::yml::parse(to_csubstr(ss.str()));
+    m.clear();
+    res.rootref() >> m;
+    EXPECT_EQ(m["foo"], 1);
+    EXPECT_EQ(m["bar"], 2);
 }
 
 //-------------------------------------------
