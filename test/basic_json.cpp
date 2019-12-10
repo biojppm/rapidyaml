@@ -195,7 +195,7 @@ TEST(general, map_to_root)
 TEST(general, json_stream_operator)
 {
     const char *exp;
-    std::map<std::string, int> m({{"bar", 2}, {"foo", 1}});
+    std::map<std::string, int> m({{"bar", 2}, {"foo", 1}, {"foobar_barfoo:barfoo_foobar", 1001}, {"asdfjkl;", 42}, {"00000000000000000000000000000000000000000000000000000000000000", 1}});
     Tree t;
     t.rootref() << m;
     std::stringstream ss;
@@ -205,6 +205,9 @@ TEST(general, json_stream_operator)
     res.rootref() >> m;
     EXPECT_EQ(m["foo"], 1);
     EXPECT_EQ(m["bar"], 2);
+    EXPECT_EQ(m["foobar_barfoo:barfoo_foobar"], 1001);
+    EXPECT_EQ(m["asdfjkl;"], 42);
+    EXPECT_EQ(m["00000000000000000000000000000000000000000000000000000000000000"], 1);
 }
 
 //-------------------------------------------
