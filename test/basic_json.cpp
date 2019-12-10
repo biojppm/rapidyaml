@@ -200,7 +200,8 @@ TEST(general, json_stream_operator)
     t.rootref() << m;
     std::stringstream ss;
     ss << as_json(t);
-    Tree res = c4::yml::parse(to_csubstr(ss.str()));
+    std::string result = ss.str();  // keep the memory in scope!
+    Tree res = c4::yml::parse(to_csubstr(result));
     m.clear();
     res.rootref() >> m;
     EXPECT_EQ(m["foo"], 1);
