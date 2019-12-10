@@ -136,7 +136,7 @@ seq:
     }
 
     emitrs_json(tree, &cmpbuf);
-    c4cmp=to_substr(cmpbuf);
+    c4cmp = to_substr(cmpbuf);
     res = c4::yml::parse(c4cmp);
     emitrs(res, &cmpbuf2);
     exp = R"(foo: 1
@@ -151,11 +151,11 @@ seq:
     EXPECT_EQ(cmpbuf2, exp);
 
     // to serialize keys:
-    int k=66;
+    int k = 66;
     r.append_child() << key(k) << 7;
 
     emitrs_json(tree, &cmpbuf);
-    c4cmp=to_substr(cmpbuf);    
+    c4cmp = to_substr(cmpbuf);    
     res = c4::yml::parse(c4cmp);
     emitrs(res, &cmpbuf2);
     exp = R"(foo: 1
