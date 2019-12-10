@@ -67,7 +67,9 @@ TEST(serialize, type_as_str)
     EXPECT_EQ(v4in.w, v4out.w);
 
     char buf[256];
-    c4::csubstr ret = c4::yml::emit(t, buf);
+    c4::csubstr interm = c4::yml::emit_json(t, buf);
+    c4::yml::Tree res = c4::yml::parse(interm);
+    c4::substr ret = c4::yml::emit(res, buf);
     EXPECT_EQ(ret, R"(v2: '(10,11)'
 v3: '(100,101,102)'
 v4: '(1000,1001,1002,1003)'
@@ -368,7 +370,7 @@ void do_test_serialize(Args&& ...args)
 
     n << s;
     //print_tree(t);
-    emit(t);
+    emit_json(t);
     c4::yml::check_invariants(t);
     n >> out;
     EXPECT_EQ(s, out);
@@ -920,7 +922,7 @@ TEST(NodeRef, 0_general)
     EXPECT_EQ(root["b"]["key"].val(), "val");
 
 
-    emit(t);
+    emit_json(t);
 
     EXPECT_EQ(root.type(), MAP);
     EXPECT_EQ(root["a"].type(), KEYVAL);
@@ -957,7 +959,7 @@ TEST(NodeRef, 0_general)
 
     root["b"]["seq"][2].set_val_serialized(22);
 
-    emit(t);
+    emit_json(t);
 
     EXPECT_EQ(root["b"]["aaa"].type(), KEYVAL);
     EXPECT_EQ(root["b"]["aaa"].key_tag(), "!!str");
@@ -1117,9 +1119,9 @@ TEST(NodeRef, 5_move_in_same_parent)
     EXPECT_TRUE(m.is_map());
     EXPECT_EQ(s.num_children(), vec2.size());
     EXPECT_EQ(m.num_children(), map2.size());
-    //printf("fonix"); print_tree(t); emit(r);
+    //printf("fonix"); print_tree(t); emit_json(r);
     r[0].move(r[1]);
-    //printf("fonix"); print_tree(t); emit(r);
+    //printf("fonix"); print_tree(t); emit_json(r);
     EXPECT_EQ(r[0].get(), m.get());
     EXPECT_EQ(r[0].num_children(), map2.size());
     EXPECT_EQ(r[1].get(), s.get());
@@ -1142,11 +1144,11 @@ TEST(NodeRef, 6_move_to_other_parent)
 
     NodeData *elm2 = r[2].get();
     EXPECT_EQ(r[2].val(), "elm2");
-    //printf("fonix"); print_tree(t); emit(r);
+    //printf("fonix"); print_tree(t); emit_json(r);
     r[2].move(r[0], r[0][0]);
     EXPECT_EQ(r[0][1].get(), elm2);
     EXPECT_EQ(r[0][1].val(), "elm2");
-    //printf("fonix"); print_tree(t); emit(r);
+    //printf("fonix"); print_tree(t); emit_json(r);
 }
 
 TEST(NodeRef, 7_duplicate)
@@ -1216,6 +1218,7 @@ TEST(general, parsing)
 TEST(general, emitting)
 {
     std::string cmpbuf;
+    std::string cmpbuf2;
 
     Tree tree;
     auto r = tree.rootref();
@@ -1237,14 +1240,17 @@ TEST(general, emitting)
     //print_tree(tree);
 
     // emit to stdout (can also emit to FILE* or ryml::span)
-    emitrs(tree, &cmpbuf);
+    emitrs_json(tree, &cmpbuf);
+    c4::substr c4cmp(to_substr(cmpbuf));
+    c4::yml::Tree res = c4::yml::parse(c4cmp);
+    emitrs(res, &cmpbuf2);
     const char* exp = R"(foo: 1
 seq:
   - bar0
   - bar1
   - bar2
 )";
-    EXPECT_EQ(cmpbuf, exp);
+    EXPECT_EQ(cmpbuf2, exp);
 
     // serializing: using operator<< instead of operator=
     // will make the tree serialize the value into a char
@@ -1260,7 +1266,10 @@ seq:
         // serialized to the tree's internal string arena
     }
 
-    emitrs(tree, &cmpbuf);
+    emitrs_json(tree, &cmpbuf);
+    c4cmp=to_substr(cmpbuf);
+    res = c4::yml::parse(c4cmp);
+    emitrs(res, &cmpbuf2);
     exp = R"(foo: 1
 seq:
   - bar0
@@ -1270,13 +1279,16 @@ seq:
   - 44
   - child5
 )";
-    EXPECT_EQ(cmpbuf, exp);
+    EXPECT_EQ(cmpbuf2, exp);
 
     // to serialize keys:
     int k=66;
     r.append_child() << key(k) << 7;
 
-    emitrs(tree, &cmpbuf);
+    emitrs_json(tree, &cmpbuf);
+    c4cmp=to_substr(cmpbuf);    
+    res = c4::yml::parse(c4cmp);
+    emitrs(res, &cmpbuf2);
     exp = R"(foo: 1
 seq:
   - bar0
@@ -1287,7 +1299,7 @@ seq:
   - child5
 66: 7
 )";
-    EXPECT_EQ(cmpbuf, exp);
+    EXPECT_EQ(cmpbuf2, exp);
 }
 
 TEST(general, map_to_root)
@@ -1297,10 +1309,8 @@ TEST(general, map_to_root)
     Tree t;
     t.rootref() << m;
 
-    emitrs(t, &cmpbuf);
-    exp = R"(bar: 2
-foo: 1
-)";
+    emitrs_json(t, &cmpbuf);
+    exp = "{\"bar\": 2,\"foo\": 1}";
     EXPECT_EQ(cmpbuf, exp);
 
     t["foo"] << 10;
