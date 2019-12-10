@@ -353,7 +353,7 @@ struct as_json
 template<class OStream>
 inline OStream& operator<< (OStream& s, as_json const& js)
 {
-    EmitterJSONOStream<OStream> em(*s.tree); // instantiate a json emitter instead
+    EmitterJSONOStream<OStream> em(s); // instantiate a json emitter instead
     em.emit(js.node);
     return s;
 }
