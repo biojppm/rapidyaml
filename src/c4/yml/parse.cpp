@@ -2804,7 +2804,7 @@ bool Parser::_read_decimal(csubstr const& str, size_t *decimal)
     {
         char c = str.str[i];
         if(c < '0' || c > '9') return false;
-        n = n*10 + (c-'0');
+        n = n*10 + size_t(c-'0');
     }
     *decimal = n;
     return true;

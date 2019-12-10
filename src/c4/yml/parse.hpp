@@ -182,10 +182,10 @@ private:
 
     struct LineContents
     {
-        csubstr  full;        ///< the full line, including newlines on the right
-        csubstr  stripped;    ///< the stripped line, excluding newlines on the right
-        csubstr  rem;         ///< the stripped line remainder; initially starts at the first non-space character
-        size_t   indentation; ///< the number of spaces on the beginning of the line
+        csubstr  full;           ///< the full line, including newlines on the right
+        csubstr  stripped;       ///< the stripped line, excluding newlines on the right
+        csubstr  rem;            ///< the stripped line remainder; initially starts at the first non-space character
+        size_t   indentation{0}; ///< the number of spaces on the beginning of the line
 
         void reset(csubstr const& full_, csubstr const& stripped_)
         {
