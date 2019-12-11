@@ -194,21 +194,27 @@ TEST(general, map_to_root)
 
 TEST(general, json_stream_operator)
 {
-    const char *exp;
-    std::map<std::string, int> m({{"bar", 2}, {"foo", 1}, {"foobar_barfoo:barfoo_foobar", 1001}, {"asdfjkl;", 42}, {"00000000000000000000000000000000000000000000000000000000000000", 1}});
+    std::map<std::string, int> out, m({{"bar", 2}, {"foo", 1}, {"foobar_barfoo:barfoo_foobar", 1001}, {"asdfjkl;", 42}, {"00000000000000000000000000000000000000000000000000000000000000", 1}});
     Tree t;
     t.rootref() << m;
-    std::stringstream ss;
-    ss << as_json(t);
-    std::string result = ss.str();  // keep the memory in scope!
-    Tree res = c4::yml::parse(to_csubstr(result));
-    m.clear();
-    res.rootref() >> m;
-    EXPECT_EQ(m["foo"], 1);
-    EXPECT_EQ(m["bar"], 2);
-    EXPECT_EQ(m["foobar_barfoo:barfoo_foobar"], 1001);
-    EXPECT_EQ(m["asdfjkl;"], 42);
-    EXPECT_EQ(m["00000000000000000000000000000000000000000000000000000000000000"], 1);
+    std::string str;
+    {
+        std::stringstream ss;
+        ss << as_json(t);
+        str = ss.str();
+    }
+    Tree res = c4::yml::parse(to_substr(str));
+    EXPECT_EQ(res["foo"].val(), "1");
+    EXPECT_EQ(res["bar"].val(), "2");
+    EXPECT_EQ(res["foobar_barfoo:barfoo_foobar"].val(), "1001");
+    EXPECT_EQ(res["asdfjkl;"].val(), "42");
+    EXPECT_EQ(res["00000000000000000000000000000000000000000000000000000000000000"].val(), "1");
+    res.rootref() >> out;
+    EXPECT_EQ(out["foo"], 1);
+    EXPECT_EQ(out["bar"], 2);
+    EXPECT_EQ(out["foobar_barfoo:barfoo_foobar"], 1001);
+    EXPECT_EQ(out["asdfjkl;"], 42);
+    EXPECT_EQ(out["00000000000000000000000000000000000000000000000000000000000000"], 1);
 }
 
 //-------------------------------------------
