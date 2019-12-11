@@ -63,6 +63,7 @@ function(ryml_add_test_case_group name)
 endfunction()
 
 ryml_add_test(basic)
+ryml_add_test(basic_json)
 ryml_add_test(stack)
 ryml_add_test(merge)
 ryml_add_test_case_group(empty_file)
