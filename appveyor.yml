@@ -64,7 +64,7 @@ build_script:
 
 test_script:
   - echo %configuration%
-  - cmake -G "%generator%" "-DCMAKE_BUILD_TYPE=%configuration%" -DRYML_DEV=ON ..
+  - cmake -DRYML_DEV=ON -G "%generator%" "-DCMAKE_BUILD_TYPE=%configuration%" "-DCMAKE_INSTALL_PREFIX=../_install" ..
   - dir
   - dir test
   - cmake --build . --config %configuration% --target ryml-test
