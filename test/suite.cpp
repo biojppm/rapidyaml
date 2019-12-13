@@ -30,6 +30,7 @@ struct AllowedFailure
     inline operator bool () const { return reason.len > 0; }
 };
 
+
 AllowedFailure failure_expected(c4::csubstr filename)
 {
     C4_ASSERT(filename.ends_with(".tml"));
@@ -58,7 +59,7 @@ AllowedFailure failure_expected(c4::csubstr filename)
  * of pipe. Ie, (eg for in_yaml) parse in_yaml, emit corresponding
  * yaml, then parse this emitted yaml, and so on. Each parse/emit pair
  * is named a processing level in this test. */
-#define NLEVELS 4
+#define NLEVELS 4   // this is the number of processing levels
 
 enum : size_t { npos = c4::csubstr::npos };
 
@@ -373,9 +374,13 @@ struct SuiteCase
         C4_CHECK(tags.size() >= 6);
         tags = tags.sub(6).trimr(ws);
 
-        if(tags.find("error") != npos) return false; // MARKED WITH ERROR. SKIP THE REST!
+        if(tags.find("error") != npos)
+        {
+            c4::log("{}: test case tagged with error: {}:\n{}\n", filename, tags, contents);
+            return false; // tagged with error. skip this test.
+        }
 
-        size_t end_tags = e;
+        size_t end_tags       = e;
         size_t begin_in_yaml  = contents.find("--- in-yaml"   , end_tags);
         size_t begin_in_json  = contents.find("--- in-json"   , end_tags);
         size_t begin_out_yaml = contents.find("--- out-yaml"  , end_tags);
@@ -418,7 +423,6 @@ struct SuiteCase
         c4::csubstr src_events = contents.sub(begin_events).trimr(ws);
         C4_ASSERT( ! src_events.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "---test-event"));
         events.init(filename, src_events);
-
 
         // filter
         if(tags.find("whitespace") != npos)
@@ -534,9 +538,14 @@ int main(int argc, char* argv[])
             return 0;
         }
     }
+
     if( ! g_suite_case.load(path.str))
     {
-        return 1;
+        // if an error occurs during loading, the test intentionally crashes,
+        // so the load() above never returns. This is NOT the same as
+        // a return of false. That means the test was tagged as error,
+        // and for now we skip those, and return success.
+        return 0;
     }
     c4::print(g_suite_case.file_contents);
     g_suite_case.print();
