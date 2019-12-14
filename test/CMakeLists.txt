@@ -1,24 +1,52 @@
 ryml_setup_testing()
 
+ryml_add_install_include_test(ryml "ryml::")
+ryml_add_install_link_test(ryml "ryml::" "
+#include <c4/yml/yml.hpp>
+int main()
+{
+    auto tree = c4::yml::parse(R\"(
+a: 1
+b: {b0: 2, b1: 3}
+c: [4, 5, 6]
+)\")\;
+    #define check(cond) if(!(cond)) { return __LINE__\; }
+    check(!tree.empty())
+    check(tree.rootref().is_map())
+    check(tree.rootref().num_children() == 3)
+    check(tree[\"a\"].is_keyval())
+    check(tree[\"a\"].num_children() == 0)
+    check(tree[\"a\"].val() == \"1\")
+    check(tree[\"b\"].is_map())
+    check(tree[\"b\"].num_children() == 2)
+    check(tree[\"b\"][\"b0\"].val() == \"2\")
+    check(tree[\"b\"][\"b1\"].val() == \"3\")
+    check(tree[\"c\"].is_seq())
+    check(tree[\"c\"].num_children() == 3)
+    check(tree[\"c\"][0].val() == \"4\")
+    check(tree[\"c\"][1].val() == \"5\")
+    check(tree[\"c\"][2].val() == \"6\")
+    return 0\;
+}
+")
+
 ryml_add_library(ryml_util_test
     SOURCES test_case.hpp test_case.cpp libyaml.hpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${ryml_yaml_cpp_inc}
     LIBS ryml c4fs yaml yaml-cpp gtest gtest_main
     FOLDER ryml-test)
 
-print_var(ryml_yaml_cpp_inc)
-
 function(ryml_add_test test_name)
     # NOTE: the library order here is fragile because the cmake sanitization
     # code goes recursively through the target and its dependencies to figure
-    # out the include paths, and some of them (notably from libyaml) use a
-    # generator expression $<INSTALL_INTERFACE:include>, which for some
-    # reason cmake resolves to an empty string; that results in an empty -I
-    # directive: for example "-I -I other/path", which prevents clang-tidy
-    # from considering other/path. The way that this could be overcome was by
-    # respecifying the libraries although technically it was not necessary
-    # for correct compilation and linking. This is happening only with the
-    # clang-tidy sanitizer.
+    # out the include paths, and some of them use a generator expression
+    # $<INSTALL_INTERFACE:include>, which for some reason cmake resolves to
+    # an empty string; that results in an empty -I directive: for example "-I
+    # -I other/path", which prevents clang-tidy from considering
+    # other/path. The way that this could be overcome was by respecifying the
+    # libraries although technically it was not necessary for correct
+    # compilation and linking. This is happening only with the clang-tidy
+    # sanitizer.
     set(t ryml-test-${test_name})
     c4_add_executable(RYML ${t}
         SOURCES ${test_name}.cpp ${ARGN}
@@ -35,6 +63,7 @@ function(ryml_add_test_case_group name)
 endfunction()
 
 ryml_add_test(basic)
+ryml_add_test(basic_json)
 ryml_add_test(stack)
 ryml_add_test(merge)
 ryml_add_test_case_group(empty_file)
@@ -78,7 +107,7 @@ option(RYML_TEST_SUITE "Enable ~300 extensive tests from yaml-test-suite." OFF)
 if(RYML_TEST_SUITE)
     set(ed ${CMAKE_CURRENT_BINARY_DIR}/ext) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)
 
-    ryml_require_module(c4log REMOTE
+    ryml_require_subproject(c4log REMOTE
         GIT_REPOSITORY https://github.com/biojppm/c4log
         GIT_TAG master)
 

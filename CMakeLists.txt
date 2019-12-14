@@ -3,7 +3,8 @@ project(ryml)
 
 include(./extern/c4core/cmake/c4Project.cmake)
 
-c4_declare_project(RYML STANDALONE
+c4_declare_project(RYML
+    STANDALONE
     DESC "Rapid YAML parsing and emitting"
     AUTHOR "Joao Paulo Magalhaes <dev@jpmag.me>"
     MAJOR 0 MINOR 1 RELEASE 0)
@@ -47,72 +48,70 @@ set(RYML_HPP
 )
 
 set(RYML_FILES
-    ../ryml.natvis
+    ryml.natvis
 )
 
 set(RYML_SRC ${RYML_CPP} ${RYML_HPP} ${RYML_FILES}
     SOURCE_ROOT ${RYML_SRC_DIR})
 
+
 #-------------------------------------------------------
 
-ryml_require_module(c4core
+ryml_require_subproject(c4core
     SUBDIRECTORY ${RYML_EXT_DIR}/c4core)
 
-if(RYML_STANDALONE)
-    # use c4core-interface as PRIVATE to prevent sources from propagating
-    ryml_add_library(ryml SANITIZE
-        SOURCES ${RYML_SRC}
-        PUBLIC_INC_DIRS ${RYML_SRC_DIR} ${RYML_EXT_DIR}/c4core/src ${RYML_EXT_DIR}/c4core/extern
-        PRIVATE_LIBS c4core-interface
-    )
-else()
-    ryml_add_library(ryml SANITIZE
-        SOURCES ${RYML_SRC}
-        PUBLIC_INC_DIRS ${RYML_SRC_DIR}
-        PUBLIC_LIBS c4core
-    )
-endif(RYML_STANDALONE)
-
-ryml_add_library(ryml-interface LIBRARY_TYPE INTERFACE
+ryml_add_library(ryml SANITIZE
     SOURCES ${RYML_SRC}
-    INTERFACE_INC_DIRS ${RYML_SRC_DIR}
-    INTERFACE_LIBS c4core-interface
+    INC_DIRS
+        $<BUILD_INTERFACE:${RYML_SRC_DIR}>
+        $<INSTALL_INTERFACE:include>
+    LIBS c4core
+    INCORPORATE c4core
     )
 
 if(NOT RYML_DEFAULT_CALLBACKS)
-    target_compile_definitions(ryml           PRIVATE   RYML_NO_DEFAULT_CALLBACKS)
-    target_compile_definitions(ryml-interface INTERFACE RYML_NO_DEFAULT_CALLBACKS)
+    target_compile_definitions(ryml PRIVATE RYML_NO_DEFAULT_CALLBACKS)
 endif()
 
 if(RYML_DBG)
-    target_compile_definitions(ryml           PRIVATE   RYML_DBG)
-    target_compile_definitions(ryml-interface INTERFACE RYML_DBG)
+    target_compile_definitions(ryml PRIVATE RYML_DBG)
 endif()
 
+
 #-------------------------------------------------------
+
+ryml_install_target(ryml)
+ryml_install_exports(DEPENDENCIES c4core)
+
+
+#-------------------------------------------------------
+# developer targets
+
 # extern libraries, used only for testing/benchmarking
 if(RYML_BUILD_TESTS OR RYML_BUILD_BENCHMARKS)
-    set(ed ${CMAKE_CURRENT_BINARY_DIR}/extern) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)
+    set(ed ${CMAKE_CURRENT_BINARY_DIR}/subprojects) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)
     #
     # these are used both for testing and benchmarking
     #
-    ryml_require_module(c4fs
+    ryml_require_subproject(c4fs
         REMOTE
         GIT_REPOSITORY https://github.com/biojppm/c4fs
         GIT_TAG master)
     #
     c4_override(BUILD_TESTING OFF)
-    ryml_require_module(libyaml REMOTE
+    ryml_require_subproject(libyaml REMOTE
         GIT_REPOSITORY https://github.com/yaml/libyaml
         GIT_TAG master)
     c4_set_folder_remote_project_targets(ext yaml)
     #
     c4_override(YAML_CPP_BUILD_TESTS OFF)
     c4_override(YAML_CPP_BUILD_TOOLS OFF)
+    c4_override(YAML_CPP_BUILD_CONTRIB OFF)
+    c4_override(YAML_CPP_BUILD_INSTALL OFF)
     ryml_import_remote_proj(yaml-cpp ${ed}/yaml-cpp
         GIT_REPOSITORY https://github.com/jbeder/yaml-cpp
         GIT_TAG master)
-    c4_set_folder_remote_project_targets(ext yaml-cpp)
+    c4_set_folder_remote_project_targets(ext/yaml-cpp yaml-cpp format)
     set(ryml_yaml_cpp_inc ${ed}/yaml-cpp/src/include)
 endif()
 
