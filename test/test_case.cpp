@@ -76,10 +76,8 @@ void test_compare(Tree const& a, size_t node_a,
         EXPECT_EQ(a.val_anchor(node_a), b.val_anchor(node_b));
     }
 
-    // check that the children are in the same order
     EXPECT_EQ(a.num_children(node_a), b.num_children(node_b));
-    for(size_t ia = a.first_child(node_a),
-               ib = b.first_child(node_b);
+    for(size_t ia = a.first_child(node_a), ib = b.first_child(node_b);
         ia != NONE && ib != NONE;
         ia = a.next_sibling(ia), ib = b.next_sibling(ib))
     {

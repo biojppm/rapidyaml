@@ -1,3 +1,5 @@
+#include <gtest/gtest.h>
+
 #include <c4/substr.hpp>
 #include <c4/std/string.hpp>
 #include <c4/fs/fs.hpp>
@@ -9,7 +11,7 @@
 #include <c4/yml/detail/print.hpp>
 #include <c4/yml/detail/checks.hpp>
 
-#include <gtest/gtest.h>
+#include "test_case.hpp"
 
 
 //-----------------------------------------------------------------------------
@@ -89,6 +91,7 @@ struct ProcLevel
         src.assign(src_.begin(), src_.end());
         immutable = immutable_;
         reuse = reuse_;
+        is_yaml_events = is_yaml_events_;
         was_parsed = false;
         was_emitted = false;
     }
@@ -113,11 +116,6 @@ struct ProcLevel
     {
         constexpr const char sep[] = "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n";
         c4::log("{}:\n{}{}{}", context, sep, v, sep);
-    }
-#else
-    template<class T>
-    void log(const char* /*context*/, T const& /*v*/)
-    {
     }
 #endif
 
@@ -177,7 +175,7 @@ struct ProcLevel
     void compare_trees(ProcLevel const& /*prev*/)
     {
         if(!was_parsed) parse();
-        // do it
+        test_compare(tree, prev.tree);
     }
 
     void compare_emitted(ProcLevel const& prev)
@@ -504,6 +502,17 @@ DECLARE_TESTS(out_yaml);
 DECLARE_TESTS(in_json);
 DECLARE_TESTS(in_yaml);
 
+
+//-------------------------------------------
+// this is needed to use the test case library
+namespace c4 {
+namespace yml {
+Case const* get_case(csubstr name)
+{
+    return nullptr;
+}
+} // namespace yml
+} // namespace c4
 
 
 //-----------------------------------------------------------------------------
