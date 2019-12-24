@@ -32,7 +32,7 @@ N(STREAM, L{N(DOCMAP, TL("!!set", L{N("aa", "~"), N("bb", "~"), N("cc", "~")}))}
     )
 }
 
-INSTANTIATE_GROUP(SIMPLE_SET);
+INSTANTIATE_GROUP(SIMPLE_SET)
 
 } // namespace yml
 } // namespace c4

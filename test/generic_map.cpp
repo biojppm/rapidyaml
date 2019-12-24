@@ -94,7 +94,7 @@ L{
     )
 }
 
-INSTANTIATE_GROUP(GENERIC_MAP);
+INSTANTIATE_GROUP(GENERIC_MAP)
 
 } // namespace yml
 } // namespace c4

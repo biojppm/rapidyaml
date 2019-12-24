@@ -185,7 +185,7 @@ R"(? >-
     )
 }
 
-INSTANTIATE_GROUP(COMPLEX_KEY);
+INSTANTIATE_GROUP(COMPLEX_KEY)
 
 } // namespace yml
 } // namespace c4

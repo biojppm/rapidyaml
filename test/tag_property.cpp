@@ -93,7 +93,7 @@ R"(some_seq: !its_type [
     )
 }
 
-INSTANTIATE_GROUP(TAG_PROPERTY);
+INSTANTIATE_GROUP(TAG_PROPERTY)
 
 } // namespace yml
 } // namespace c4

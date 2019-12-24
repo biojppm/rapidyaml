@@ -107,7 +107,7 @@ baz0:
 }
 
 
-INSTANTIATE_GROUP(NESTED_MAPX3);
+INSTANTIATE_GROUP(NESTED_MAPX3)
 
 } // namespace yml
 } // namespace c4

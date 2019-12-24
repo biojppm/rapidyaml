@@ -1179,8 +1179,8 @@ bool Parser::_handle_top()
     // use the full line, as the following tokens can appear only at top level
     C4_ASSERT(rem == m_state->line_contents.stripped
               ||
-              m_state->indref > 0 && rem.begin() > m_state->line_contents.stripped.begin() && 
-              m_state->indref == (rem.begin() - m_state->line_contents.stripped.begin()));
+              (m_state->indref > 0 && (rem.begin() > m_state->line_contents.stripped.begin() &&
+              m_state->indref + m_state->line_contents.stripped.begin() == rem.begin())));
     if(m_state->indref == 0)
     {
         rem = m_state->line_contents.stripped;

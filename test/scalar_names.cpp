@@ -1,5 +1,16 @@
 #include "./test_group.hpp"
 
+#if defined(_MSC_VER)
+#   pragma warning(push)
+//#   pragma warning(disable: 4127/*conditional expression is constant*/)
+//#   pragma warning(disable: 4389/*'==': signed/unsigned mismatch*/)
+#elif defined(__clang__)
+#   pragma clang diagnostic push
+#   pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
+#elif defined(__GNUC__)
+#   pragma GCC diagnostic push
+#endif
+
 namespace c4 {
 namespace yml {
 
@@ -66,7 +77,15 @@ L{__(a), __(b), __(c), __(.foo), __(.), __(-a), __(+b), __(/b), __(:c), __($g)}
     )
 }
 
-INSTANTIATE_GROUP(SCALAR_NAMES);
+INSTANTIATE_GROUP(SCALAR_NAMES)
 
 } // namespace yml
 } // namespace c4
+
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#elif defined(__clang__)
+#   pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#   pragma GCC diagnostic pop
+#endif

@@ -141,7 +141,7 @@ R"(
 }
 
 
-INSTANTIATE_GROUP(NESTED_SEQX2);
+INSTANTIATE_GROUP(NESTED_SEQX2)
 
 } // namespace yml
 } // namespace c4

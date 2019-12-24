@@ -135,6 +135,8 @@ public:
     void rem(NodeType_e t) { type = (NodeType_e)(type & ~t); }
     void rem(type_bits  t) { type = (NodeType_e)(type & ~t); }
 
+    void clear() { type = NOTYPE; }
+
 public:
 
     bool is_stream() const { return ((type & STREAM) == STREAM) != 0; }
@@ -233,7 +235,9 @@ public:
 
     void clear()
     {
-        memset(this, 0, sizeof(*this));
+        type.clear();
+        key.clear();
+        val.clear();
     }
 
     void _add_flags(type_bits more_flags=0)
@@ -718,7 +722,7 @@ public:
         inline operator bool() const { return target != NONE; }
 
         lookup_result() : target(NONE), closest(NONE), path_pos(0), path() {}
-        lookup_result(csubstr path, size_t start) : target(NONE), closest(start), path_pos(0), path(path) {}
+        lookup_result(csubstr path_, size_t start) : target(NONE), closest(start), path_pos(0), path(path_) {}
 
         csubstr resolved() const;
         csubstr unresolved() const;

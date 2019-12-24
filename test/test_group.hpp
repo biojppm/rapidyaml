@@ -8,20 +8,19 @@
 #if defined(_MSC_VER)
 #   pragma warning(push)
 #   pragma warning(disable: 4068/*unknown pragma*/)
-#endif
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunknown-pragmas"
-//#pragma GCC diagnostic ignored "-Wpragma-system-header-outside-header"
-
-#ifdef __clang__
+#elif defined(__clang__)
 #   pragma clang diagnostic push
 #   pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
+#elif defined(__GNUC__)
+#   pragma GCC diagnostic push
+#   pragma GCC diagnostic ignored "-Wunknown-pragmas"
+//#   pragma GCC diagnostic ignored "-Wpragma-system-header-outside-header"
 #endif
+
 
 namespace c4 {
 namespace yml {
-    
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -104,14 +103,12 @@ Case const* get_case(csubstr name)\
 } // namespace yml
 } // namespace c4
 
-#pragma GCC diagnostic pop
-
-#ifdef __clang__
-#  pragma clang diagnostic pop
-#endif
-
 #if defined(_MSC_VER)
 #   pragma warning(pop)
+#elif defined(__clang__)
+#   pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#   pragma GCC diagnostic pop
 #endif
 
 #endif // C4_RYML_TEST_GROUP_HPP_

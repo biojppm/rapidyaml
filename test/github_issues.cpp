@@ -208,7 +208,7 @@ N(L{N("Yt3ymqZXzLY", L{N("0.mp4"), N("1.mp4"), N("2.mp4"), N("3.mp4")})}),
     )
 }
 
-INSTANTIATE_GROUP(GITHUB_ISSUES);
+INSTANTIATE_GROUP(GITHUB_ISSUES)
 
 } // namespace yml
 } // namespace c4

@@ -49,7 +49,7 @@ R"(
     )
 }
 
-INSTANTIATE_GROUP(GENERIC_SEQ);
+INSTANTIATE_GROUP(GENERIC_SEQ)
 
 } // namespace yml
 } // namespace c4

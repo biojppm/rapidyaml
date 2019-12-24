@@ -334,7 +334,7 @@ L{
   )
 }
 
-INSTANTIATE_GROUP(INDENTATION);
+INSTANTIATE_GROUP(INDENTATION)
 
 } // namespace yml
 } // namespace c4

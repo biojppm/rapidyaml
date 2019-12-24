@@ -208,7 +208,24 @@ private:
         LineContents line_contents;
         size_t       indref;
 
-        State() { memset(this, 0, sizeof(*this)); }
+        State()
+        {
+            #ifdef __clang__
+            #    pragma clang diagnostic push
+            //#    pragma clang diagnostic ignored "-Wgnu-inline-cpp-without-extern" // debugbreak/debugbreak.h:50:16: error: 'gnu_inline' attribute without 'extern' in C++ treated as externally available, this changed in Clang 10 [-Werror,-Wgnu-inline-cpp-without-extern]
+            #elif defined(__GNUC__)
+            #    pragma GCC diagnostic push
+            #    if __GNUC__>= 8
+            #        pragma GCC diagnostic ignored "-Wclass-memaccess" // error: ‘void* memset(void*, int, size_t)’ clearing an object of type ‘class c4::yml::Tree’ with no trivial copy-assignment; use assignment or value-initialization instead
+            #    endif
+            #endif
+            memset(this, 0, sizeof(*this));
+            #ifdef __clang__
+            #    pragma clang diagnostic pop
+            #elif defined(__GNUC__)
+            #    pragma GCC diagnostic pop
+            #endif
+        }
         void reset(const char *file, size_t node_id_)
         {
             flags = RUNK|RTOP;

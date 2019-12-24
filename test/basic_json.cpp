@@ -219,7 +219,7 @@ TEST(general, json_stream_operator)
 
 //-------------------------------------------
 // this is needed to use the test case library
-Case const* get_case(csubstr name)
+Case const* get_case(csubstr /*name*/)
 {
     return nullptr;
 }

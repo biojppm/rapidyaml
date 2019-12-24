@@ -114,7 +114,7 @@ that has multiple lines
     )
 }
 
-INSTANTIATE_GROUP(DOUBLE_QUOTED);
+INSTANTIATE_GROUP(DOUBLE_QUOTED)
 
 } // namespace yml
 } // namespace c4

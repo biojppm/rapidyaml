@@ -76,7 +76,7 @@ send_to:
     )
 }
 
-INSTANTIATE_GROUP(NESTED_MAPX2);
+INSTANTIATE_GROUP(NESTED_MAPX2)
 
 } // namespace yml
 } // namespace c4
