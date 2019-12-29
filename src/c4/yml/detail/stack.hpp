@@ -36,8 +36,8 @@ public:
 
     constexpr static bool is_contiguous() { return true; }
 
-    stack() : m_stack(m_buf), m_size(0), m_capacity(N), m_alloc() {}
-    stack(Allocator const& c) : m_stack(m_buf), m_size(0), m_capacity(N), m_alloc(c)
+    stack() : m_buf(), m_stack(m_buf), m_size(0), m_capacity(N), m_alloc() {}
+    stack(Allocator const& c) : m_buf(), m_stack(m_buf), m_size(0), m_capacity(N), m_alloc(c)
     {
     }
     ~stack()
@@ -120,17 +120,18 @@ public:
     C4_ALWAYS_INLINE T const& C4_RESTRICT operator[](size_t i) const { C4_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
     C4_ALWAYS_INLINE T      & C4_RESTRICT operator[](size_t i)       { C4_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
 
-    using       iterator = T       * C4_RESTRICT;
-    using const_iterator = T const * C4_RESTRICT;
+public:
+
+    using       iterator = T       *;
+    using const_iterator = T const *;
 
     iterator begin() { return m_stack; }
     iterator end  () { return m_stack + m_size; }
 
-    const_iterator begin() const { return m_stack; }
-    const_iterator end  () const { return m_stack + m_size; }
+    const_iterator begin() const { return (const_iterator)m_stack; }
+    const_iterator end  () const { return (const_iterator)m_stack + m_size; }
 
 public:
-
     void _free();
     void _cp(stack const* C4_RESTRICT that);
     void _mv(stack * that);

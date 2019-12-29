@@ -111,7 +111,7 @@ L{N("~"), N("~"), N(L{N("foo", "~"), N("bar", "~"), N("baz", "~")})}
     )
 }
 
-INSTANTIATE_GROUP(NULL_VAL);
+INSTANTIATE_GROUP(NULL_VAL)
 
 } // namespace yml
 } // namespace c4

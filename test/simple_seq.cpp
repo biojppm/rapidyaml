@@ -460,7 +460,7 @@ L{
     )
 }
 
-INSTANTIATE_GROUP(SIMPLE_SEQ);
+INSTANTIATE_GROUP(SIMPLE_SEQ)
 
 } // namespace yml
 } // namespace c4

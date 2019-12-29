@@ -3,16 +3,29 @@
 #include <c4/fs/fs.hpp>
 #include <fstream>
 
+// this is needed to include yaml-cpp (!)
 #if defined(_MSC_VER)
 #   pragma warning(push)
 #   pragma warning(disable: 4127/*conditional expression is constant*/)
 #   pragma warning(disable: 4389/*'==': signed/unsigned mismatch*/)
+#elif defined(__clang__)
+#   pragma clang diagnostic push
+#   pragma clang diagnostic ignored "-Wshadow"
+#   pragma clang diagnostic ignored "-Wfloat-equal"
+#   pragma clang diagnostic ignored "-Wunused-parameter"
+#elif defined(__GNUC__)
+#   pragma GCC diagnostic push
+#   pragma GCC diagnostic ignored "-Wshadow"
+#   pragma GCC diagnostic ignored "-Wfloat-equal"
+#   pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
-
 #include <yaml-cpp/yaml.h>
-
 #if defined(_MSC_VER)
 #   pragma warning(pop)
+#elif defined(__clang__)
+#   pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#   pragma GCC diagnostic pop
 #endif
 
 namespace c4 {
@@ -120,8 +133,8 @@ TEST_P(YmlTestCase, emit_yml_stringstream)
         ss << d->parsed_tree.rootref();
         s = ss.str();
 
-        csubstr sv = emitrs(d->parsed_tree, &v);
-        EXPECT_EQ(sv, s);
+        csubstr sv2 = emitrs(d->parsed_tree, &v);
+        EXPECT_EQ(sv2, s);
     }
 }
 
@@ -139,9 +152,9 @@ TEST_P(YmlTestCase, emit_ofstream)
     // using ofstream will use \r\n. So delete it.
     std::string filtered;
     filtered.reserve(r.size());
-    for(auto c : r)
+    for(auto c_ : r)
     {
-        if(c != '\r') filtered += c;
+        if(c_ != '\r') filtered += c_;
     }
     EXPECT_EQ(s, filtered);
 }

@@ -328,7 +328,7 @@ another: val
 }
 
 
-INSTANTIATE_GROUP(BLOCK_LITERAL);
+INSTANTIATE_GROUP(BLOCK_LITERAL)
 
 } // namespace yml
 } // namespace c4

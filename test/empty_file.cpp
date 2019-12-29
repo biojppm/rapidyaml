@@ -25,7 +25,7 @@ C("empty0-multiline-with-comments", R"(
         );
 }
 
-INSTANTIATE_GROUP(EMPTY_FILE);
+INSTANTIATE_GROUP(EMPTY_FILE)
 
 } // namespace yml
 } // namespace c4

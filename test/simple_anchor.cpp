@@ -555,7 +555,7 @@ N{"step", L{
     )
 }
 
-INSTANTIATE_GROUP(SIMPLE_ANCHOR);
+INSTANTIATE_GROUP(SIMPLE_ANCHOR)
 
 } // namespace yml
 } // namespace c4

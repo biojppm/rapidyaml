@@ -142,7 +142,7 @@ R"(
     )
 }
 
-INSTANTIATE_GROUP(PLAIN_SCALAR);
+INSTANTIATE_GROUP(PLAIN_SCALAR)
 
 } // namespace yml
 } // namespace c4

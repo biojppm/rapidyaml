@@ -36,7 +36,7 @@ R"([
     );
 }
 
-INSTANTIATE_GROUP(EMPTY_SEQ);
+INSTANTIATE_GROUP(EMPTY_SEQ)
 
 } // namespace yml
 } // namespace c4

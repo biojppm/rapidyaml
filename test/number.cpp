@@ -50,7 +50,7 @@ L{N("-2.0"), N("-2.1"), N("0.1"), N(".1"), N("-.2"), N("-2.e+6"), N("-3e-6"), N(
 }
 
 
-INSTANTIATE_GROUP(NUMBER);
+INSTANTIATE_GROUP(NUMBER)
 
 } // namespace yml
 } // namespace c4

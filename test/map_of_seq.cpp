@@ -86,7 +86,7 @@ L{
     )
 }
 
-INSTANTIATE_GROUP(MAP_OF_SEQ);
+INSTANTIATE_GROUP(MAP_OF_SEQ)
 
 } // namespace yml
 } // namespace c4

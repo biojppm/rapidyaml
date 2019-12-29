@@ -259,7 +259,7 @@ another: val
     )
 }
 
-INSTANTIATE_GROUP(BLOCK_FOLDED);
+INSTANTIATE_GROUP(BLOCK_FOLDED)
 
 } // namespace yml
 } // namespace c4

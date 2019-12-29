@@ -3,6 +3,12 @@
 
 #include "c4/yml/tree.hpp"
 
+#ifdef __clang__
+#    pragma clang diagnostic push
+#elif defined(__GNUC__)
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Wtype-limits" // error: comparison of unsigned expression >= 0 is always true
+#endif
 
 namespace c4 {
 namespace yml {
@@ -145,7 +151,7 @@ inline void check_free_list(Tree const& t)
     C4_CHECK(t.m_free_tail >= 0 && t.m_free_tail < t.m_cap)
 
     auto const& head = *t._p(t.m_free_head);
-    auto const& tail = *t._p(t.m_free_tail);
+    //auto const& tail = *t._p(t.m_free_tail);
 
     //C4_CHECK(head.m_prev_sibling == NONE);
     //C4_CHECK(tail.m_next_sibling == NONE);
@@ -171,14 +177,19 @@ inline void check_free_list(Tree const& t)
 
 inline void check_arena(Tree const& t)
 {
-    C4_CHECK(t.m_arena.len == 0 || t.m_arena_pos >= 0 && t.m_arena_pos < t.m_arena.len);
+    C4_CHECK(t.m_arena.len == 0 || (t.m_arena_pos >= 0 && t.m_arena_pos < t.m_arena.len));
     C4_CHECK(t.arena_size() == t.m_arena_pos);
-    C4_CHECK(t.arena_slack() == t.m_arena.len - t.m_arena_pos);
+    C4_CHECK(t.arena_slack() + t.m_arena_pos == t.m_arena.len);
 }
 
 
 } /* namespace yml */
 } /* namespace c4 */
 
+#ifdef __clang__
+#    pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#    pragma GCC diagnostic pop
+#endif
 
 #endif /* C4_YML_DETAIL_CHECKS_HPP_ */

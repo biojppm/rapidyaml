@@ -82,8 +82,9 @@ struct ProcLevel
     bool            was_parsed = false;
     bool            was_emitted = false;
 
-    void init(c4::csubstr filename, c4::csubstr src_, bool immutable_, bool reuse_, bool is_yaml_events_)
+    void init(c4::csubstr filename_, c4::csubstr src_, bool immutable_, bool reuse_, bool /*is_yaml_events_*/)
     {
+        filename = filename_;
         src.assign(src_.begin(), src_.end());
         immutable = immutable_;
         reuse = reuse_;
@@ -105,14 +106,19 @@ struct ProcLevel
         }
     }
 
+#ifdef RYML_DBG
     template<class T>
     void log(const char* context, T const& v)
     {
-        const char sep[] = "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n";
-#ifdef RYML_DBG
+        constexpr const char sep[] = "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n";
         c4::log("{}:\n{}{}{}", context, sep, v, sep);
-#endif
     }
+#else
+    template<class T>
+    void log(const char* /*context*/, T const& /*v*/)
+    {
+    }
+#endif
 
     void parse()
     {
@@ -167,7 +173,7 @@ struct ProcLevel
         was_emitted = true;
     }
 
-    void compare_trees(ProcLevel const& prev)
+    void compare_trees(ProcLevel const& /*prev*/)
     {
         if(!was_parsed) parse();
         // do it
@@ -407,7 +413,7 @@ struct SuiteCase
 
         // events
         C4_CHECK(begin_events != npos);
-        size_t first_after_events = find_first_after(begin_events, all);
+        //size_t first_after_events = find_first_after(begin_events, all);
         begin_events = 1 + contents.find('\n', begin_events); // skip this line
         c4::csubstr src_events = contents.sub(begin_events).trimr(ws);
         C4_ASSERT( ! src_events.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "---test-event"));
@@ -525,8 +531,8 @@ int main(int argc, char* argv[])
         {
             c4::log("\n{}: this case is deliberately not implemented in rapidyaml: {}\n",
                 allowed_to_fail.test_code, allowed_to_fail.reason);
+            return 0;
         }
-        return 0;
     }
     if( ! g_suite_case.load(path.str))
     {

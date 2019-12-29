@@ -9,6 +9,16 @@
 
 #include <gtest/gtest.h>
 
+#if defined(_MSC_VER)
+#   pragma warning(push)
+#   pragma warning(disable: 4389) // signed/unsigned mismatch
+#elif defined(__clang__)
+#   pragma clang diagnostic push
+#   pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
+#elif defined(__GNUC__)
+#   pragma GCC diagnostic push
+#endif
+
 namespace foo {
 
 template<class T>
@@ -497,7 +507,7 @@ TEST(NodeScalar, ctor__untagged)
 {
     {
         const char sarr[] = "foo";
-        const char *sptr = "foo"; size_t sptrlen = 3;
+        const char *sptr = "foo";
         csubstr ssp = "foo";
 
         for(auto s : {NodeScalar(sarr), NodeScalar(to_csubstr(sptr)), NodeScalar(ssp)})
@@ -516,7 +526,7 @@ TEST(NodeScalar, ctor__untagged)
 
     {
         const char sarr[] = "foo3";
-        const char *sptr = "foo3"; size_t sptrlen = 4;
+        const char *sptr = "foo3";
         csubstr ssp = "foo3";
 
         for(auto s : {NodeScalar(sarr), NodeScalar(to_csubstr(sptr)), NodeScalar(ssp)})
@@ -549,8 +559,8 @@ TEST(NodeScalar, ctor__tagged)
 
     {
         const char sarr[] = "foo", tarr[] = "!!str";
-        const char *sptr = "foo"; size_t sptrlen = 3;
-        const char *tptr = "!!str"; size_t tptrlen = 5;
+        const char *sptr = "foo";
+        const char *tptr = "!!str";
         csubstr ssp = "foo", tsp = "!!str";
 
         for(auto s : ilist{
@@ -622,8 +632,8 @@ TEST(NodeScalar, ctor__tagged)
 
     {
         const char sarr[] = "foo3", tarr[] = "!!str+++";
-        const char *sptr = "foo3"; size_t sptrlen = 4;
-        const char *tptr = "!!str+++"; size_t tptrlen = 8;
+        const char *sptr = "foo3";
+        const char *tptr = "!!str+++";
         csubstr ssp = "foo3", tsp = "!!str+++";
 
         for(auto s : ilist{
@@ -1461,10 +1471,18 @@ a:
 
 //-------------------------------------------
 // this is needed to use the test case library
-Case const* get_case(csubstr name)
+Case const* get_case(csubstr /*name*/)
 {
     return nullptr;
 }
 
 } // namespace yml
 } // namespace c4
+
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#elif defined(__clang__)
+#   pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#   pragma GCC diagnostic pop
+#endif

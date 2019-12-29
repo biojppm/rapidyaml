@@ -134,6 +134,17 @@ void Tree::_free()
     _clear();
 }
 
+
+#ifdef __clang__
+#    pragma clang diagnostic push
+//#    pragma clang diagnostic ignored "-Wgnu-inline-cpp-without-extern" // debugbreak/debugbreak.h:50:16: error: 'gnu_inline' attribute without 'extern' in C++ treated as externally available, this changed in Clang 10 [-Werror,-Wgnu-inline-cpp-without-extern]
+#elif defined(__GNUC__)
+#    pragma GCC diagnostic push
+#    if __GNUC__>= 8
+#        pragma GCC diagnostic ignored "-Wclass-memaccess" // error: ‘void* memset(void*, int, size_t)’ clearing an object of type ‘class c4::yml::Tree’ with no trivial copy-assignment; use assignment or value-initialization instead
+#    endif
+#endif
+
 void Tree::_clear()
 {
     memset(this, 0, sizeof(*this));
@@ -174,6 +185,7 @@ void Tree::_relocate(substr const& next_arena)
     }
 }
 
+
 //-----------------------------------------------------------------------------
 void Tree::reserve(size_t cap)
 {
@@ -204,8 +216,8 @@ void Tree::reserve(size_t cap)
             m_free_head = first;
             m_free_tail = cap-1;
         }
-        C4_ASSERT(m_free_head == NONE || m_free_head >= 0 && m_free_head < cap);
-        C4_ASSERT(m_free_tail == NONE || m_free_tail >= 0 && m_free_tail < cap);
+        C4_ASSERT(m_free_head == NONE || (m_free_head >= 0 && m_free_head < cap));
+        C4_ASSERT(m_free_tail == NONE || (m_free_tail >= 0 && m_free_tail < cap));
 
         if( ! m_size)
         {
@@ -213,6 +225,7 @@ void Tree::reserve(size_t cap)
         }
     }
 }
+
 
 //-----------------------------------------------------------------------------
 void Tree::clear()
@@ -240,6 +253,7 @@ void Tree::_claim_root()
     _set_hierarchy(r, NONE, NONE);
 }
 
+
 //-----------------------------------------------------------------------------
 void Tree::_clear_range(size_t first, size_t num)
 {
@@ -255,6 +269,13 @@ void Tree::_clear_range(size_t first, size_t num)
     }
     m_buf[first + num - 1].m_next_sibling = NONE;
 }
+
+#ifdef __clang__
+#    pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#    pragma GCC diagnostic pop
+#endif
+
 
 //-----------------------------------------------------------------------------
 void Tree::_release(size_t i)
@@ -1009,7 +1030,7 @@ struct ReferenceResolver
 
     void _store_anchors_and_refs(size_t n)
     {
-        if(t->is_key_ref(n) || t->is_val_ref(n) || t->has_key(n) && t->key(n) == "<<")
+        if(t->is_key_ref(n) || t->is_val_ref(n) || (t->has_key(n) && t->key(n) == "<<"))
         {
             if(t->is_seq(n))
             {

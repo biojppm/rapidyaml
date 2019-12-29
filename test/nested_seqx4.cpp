@@ -126,7 +126,7 @@ R"(
     )
 }
 
-INSTANTIATE_GROUP(NESTED_SEQX4);
+INSTANTIATE_GROUP(NESTED_SEQX4)
 
 } // namespace yml
 } // namespace c4

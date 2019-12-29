@@ -17,18 +17,18 @@ using ip = int const*;
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-template<size_t N>
+template<int N>
 void test_stack_small_vs_large()
 {
     istack<N> s;
-    for(size_t i = 0; i < N; ++i)
+    for(int i = 0; i < N; ++i)
     {
-        s.push((int)i);
-        EXPECT_EQ(s.size(), i+1);
+        s.push(i);
+        EXPECT_EQ(s.size(), (size_t)i+1);
     }
-    EXPECT_EQ(s.size(), N);
+    EXPECT_EQ(s.size(), (size_t)N);
     EXPECT_EQ(s.m_stack, s.m_buf);
-    for(size_t i = 0; i < N; ++i)
+    for(int i = 0; i < N; ++i)
     {
         EXPECT_EQ(s.top(N-1-i), i);
     }
@@ -37,7 +37,7 @@ void test_stack_small_vs_large()
     EXPECT_EQ(s.top(), N);
     EXPECT_EQ(s.pop(), N);
     EXPECT_NE(s.m_stack, s.m_buf);
-    for(size_t i = 0; i < N; ++i)
+    for(int i = 0; i < N; ++i)
     {
         EXPECT_EQ(s.top(N-1-i), i);
     }
@@ -121,11 +121,11 @@ void test_move_ctor()
         EXPECT_EQ(dst.size(), sz);
         EXPECT_EQ(dst.m_stack, dst.m_buf);
         EXPECT_NE(dst.m_stack, b);
-        EXPECT_EQ(src.size(), 0);
+        EXPECT_EQ(src.size(), size_t(0));
         EXPECT_EQ((ip)src.begin(), src.m_buf);
         EXPECT_NE((ip)dst.begin(), b);
     }
-    EXPECT_EQ(src.size(), 0);
+    EXPECT_EQ(src.size(), size_t(0));
     EXPECT_EQ(src.capacity(), N);
     EXPECT_EQ(src.m_stack, src.m_buf);
 
@@ -152,7 +152,7 @@ void test_move_ctor()
         EXPECT_NE(dst.m_stack, dst.m_buf);
         EXPECT_EQ(dst.m_stack, b);
         EXPECT_EQ(src.capacity(), N);
-        EXPECT_EQ(src.size(), 0);
+        EXPECT_EQ(src.size(), size_t(0));
         EXPECT_EQ((ip)src.begin(), src.m_buf);
         EXPECT_EQ((ip)dst.begin(), b);
     }
@@ -244,7 +244,7 @@ void test_move_assign()
     EXPECT_EQ(srcs.m_stack, srcs.m_buf);
     EXPECT_NE(srcl.m_stack, srcl.m_buf);
 
-    ip bs = srcs.begin(), bl = srcl.begin();
+    ip bs = srcs.begin()/*, bl = srcl.begin()*/;
     size_t szs = srcs.size(), szl = srcl.size();
 
     for(int i = 0; i < 10; ++i)
@@ -257,7 +257,7 @@ void test_move_assign()
         dst = std::move(srcs);
         EXPECT_TRUE(srcs.empty());
         EXPECT_FALSE(dst.empty());
-        EXPECT_EQ(srcs.size(), 0);
+        EXPECT_EQ(srcs.size(), size_t(0));
         EXPECT_EQ(srcs.capacity(), N);
         EXPECT_EQ(dst.size(), szs);
         EXPECT_EQ(dst.m_stack, dst.m_buf);
@@ -279,7 +279,7 @@ void test_move_assign()
         dst = std::move(srcl);
         EXPECT_TRUE(srcl.empty());
         EXPECT_FALSE(dst.empty());
-        EXPECT_EQ(srcl.size(), 0);
+        EXPECT_EQ(srcl.size(), size_t(0));
         EXPECT_EQ(srcl.capacity(), N);
         EXPECT_EQ(dst.size(), szl);
         EXPECT_NE(dst.m_stack, dst.m_buf);
@@ -315,7 +315,7 @@ TEST(stack, move_assign)
 namespace c4 {
 namespace yml {
 struct Case;
-Case const* get_case(csubstr name)
+Case const* get_case(csubstr /*name*/)
 {
     return nullptr;
 }

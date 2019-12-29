@@ -201,7 +201,7 @@ R"(---
     );
 }
 
-INSTANTIATE_GROUP(SIMPLE_DOC);
+INSTANTIATE_GROUP(SIMPLE_DOC)
 
 } // namespace yml
 } // namespace c4

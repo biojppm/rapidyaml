@@ -3,7 +3,7 @@ ryml_setup_benchmarking(ryml)
 # -----------------------------------------------------------------------------
 # json libs that will be compared with ryml (and the other yaml libs)
 
-set(_ed ${CMAKE_CURRENT_BINARY_DIR}/extern) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)
+set(_ed ${CMAKE_CURRENT_BINARY_DIR}/ext) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)
 
 # jsoncpp needs to be compiled
 c4_override(JSONCPP_WITH_TESTS OFF)
@@ -32,16 +32,18 @@ ryml_require_subproject(nlohmann_json REMOTE
     GIT_TAG master)
 
 # rapidjson is header only
-ryml_download_remote_proj(rapidjson ${_ed}/rapidjson
+set(rapidjson_dir ${_ed}/rapidjson)
+ryml_download_remote_proj(rapidjson rapidjson_dir
     GIT_REPOSITORY https://github.com/Tencent/rapidjson
     GIT_TAG version1.1.0)
-set(RYML_RAPIDJSON_INC_DIR ${_ed}/rapidjson/src/include)
+set(RYML_RAPIDJSON_INC_DIR ${rapidjson_dir}/include)
 
 # sajson is header only
-ryml_download_remote_proj(sajson ${_ed}/sajson
+set(sajson_dir ${_ed}/sajson)
+ryml_download_remote_proj(sajson sajson_dir
     GIT_REPOSITORY https://github.com/chadaustin/sajson
     GIT_TAG master)
-set(RYML_SAJSON_INC_DIR ${_ed}/sajson/src/include)
+set(RYML_SAJSON_INC_DIR ${sajson_dir}/include)
 
 
 # -----------------------------------------------------------------------------

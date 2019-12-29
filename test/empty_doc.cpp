@@ -42,7 +42,7 @@ R"(---
        );
 }
 
-INSTANTIATE_GROUP(EMPTY_DOC);
+INSTANTIATE_GROUP(EMPTY_DOC)
 
 } // namespace yml
 } // namespace c4

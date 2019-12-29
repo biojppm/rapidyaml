@@ -24,12 +24,12 @@ void test_compare(Tree const& a, Tree const& b)
 {
     EXPECT_EQ(a.size(), b.size());
     EXPECT_EQ(_num_leaves(a, a.root_id()), _num_leaves(b, b.root_id()));
-    test_compare(a, a.root_id(), 0, b, b.root_id(), 0, 0);
+    test_compare(a, a.root_id(), b, b.root_id(), 0);
 }
 
 
-void test_compare(Tree const& a, size_t node_a, size_t pos_a,
-     Tree const& b, size_t node_b, size_t pos_b,
+void test_compare(Tree const& a, size_t node_a,
+     Tree const& b, size_t node_b,
      size_t level)
 {
     ASSERT_NE(node_a, NONE);
@@ -38,37 +38,37 @@ void test_compare(Tree const& a, size_t node_a, size_t pos_a,
     ASSERT_LT(node_b, b.capacity());
 
     EXPECT_EQ(a.type(node_a), b.type(node_b));
-    
+
     EXPECT_EQ(a.has_key(node_a), b.has_key(node_b));
     if(a.has_key(node_a) && b.has_key(node_b))
     {
         EXPECT_EQ(a.key(node_a), b.key(node_b));
     }
-    
+
     EXPECT_EQ(a.has_val(node_a), b.has_val(node_b));
     if(a.has_val(node_a) && b.has_val(node_b))
     {
         EXPECT_EQ(a.val(node_a), b.val(node_b));
     }
-    
+
     EXPECT_EQ(a.has_key_tag(node_a), b.has_key_tag(node_b));
     if(a.has_key_tag(node_a) && b.has_key_tag(node_b))
     {
         EXPECT_EQ(a.key_tag(node_a), b.key_tag(node_b));
     }
-    
+
     EXPECT_EQ(a.has_val_tag(node_a), b.has_val_tag(node_b));
     if(a.has_val_tag(node_a) && b.has_val_tag(node_b))
     {
         EXPECT_EQ(a.val_tag(node_a), b.val_tag(node_b));
     }
-  
+
     EXPECT_EQ(a.has_key_anchor(node_a), b.has_key_anchor(node_b));
     if(a.has_key_anchor(node_a) && b.has_key_anchor(node_b))
     {
         EXPECT_EQ(a.key_anchor(node_a), b.key_anchor(node_b));
     }
-    
+
     EXPECT_EQ(a.has_val_anchor(node_a), b.has_val_anchor(node_b));
     if(a.has_val_anchor(node_a) && b.has_val_anchor(node_b))
     {
@@ -78,13 +78,11 @@ void test_compare(Tree const& a, size_t node_a, size_t pos_a,
     // check that the children are in the same order
     EXPECT_EQ(a.num_children(node_a), b.num_children(node_b));
     for(size_t ia = a.first_child(node_a),
-               ib = b.first_child(node_b),
-               pa = 0,
-               pb = 0;
+               ib = b.first_child(node_b);
         ia != NONE && ib != NONE;
-        ia = a.next_sibling(ia), ib = b.next_sibling(ib), ++pa, ++pb)
+        ia = a.next_sibling(ia), ib = b.next_sibling(ib))
     {
-        test_compare(a, ia, pa, b, ib, pb, level+1);
+        test_compare(a, ia, b, ib, level+1);
     }
 }
 

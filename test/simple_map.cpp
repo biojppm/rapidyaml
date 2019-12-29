@@ -431,7 +431,7 @@ h ,i: val ,000
     )
 }
 
-INSTANTIATE_GROUP(SIMPLE_MAP);
+INSTANTIATE_GROUP(SIMPLE_MAP)
 
 } // namespace yml
 } // namespace c4

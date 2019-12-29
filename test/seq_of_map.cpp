@@ -72,7 +72,7 @@ R"(
     )
 }
 
-INSTANTIATE_GROUP(SEQ_OF_MAP);
+INSTANTIATE_GROUP(SEQ_OF_MAP)
 
 } // namespace yml
 } // namespace c4

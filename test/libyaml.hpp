@@ -73,7 +73,7 @@ public:
     void _do_parse()
     {
         bool done = false;
-        bool doc_had_scalars = false;
+        //bool doc_had_scalars = false;
         csubstr prev_scalar;
         while( ! done)
         {
@@ -150,7 +150,7 @@ case YAML_ ## _ev ## _EVENT:                            \
                         prev_scalar = val;
                     }
                 }
-                doc_had_scalars = true;
+                //doc_had_scalars = true;
                 break;
             }
             _c4_handle_case(DOCUMENT_START)
