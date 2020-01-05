@@ -1,4 +1,4 @@
-ryml_setup_benchmarking(ryml)
+c4_setup_benchmarking()
 
 # -----------------------------------------------------------------------------
 # json libs that will be compared with ryml (and the other yaml libs)
@@ -12,7 +12,7 @@ c4_override(JSONCPP_WITH_WARNING_AS_ERROR OFF)
 c4_override(JSONCPP_WITH_STRICT_ISO OFF)
 c4_override(JSONCPP_WITH_PKGCONFIG_SUPPORT OFF)
 c4_override(JSONCPP_WITH_CMAKE_PACKAGE OFF)
-ryml_require_subproject(jsoncpp REMOTE
+c4_require_subproject(jsoncpp REMOTE
     GIT_REPOSITORY https://github.com/open-source-parsers/jsoncpp
     GIT_TAG master)
 c4_set_folder_remote_project_targets(ext/jsoncpp
@@ -27,20 +27,20 @@ c4_set_folder_remote_project_targets(ext/jsoncpp
 c4_override(JSON_BuildTests OFF)
 c4_override(JSON_Install OFF)
 c4_override(JSON_MultipleHeaders OFF)
-ryml_require_subproject(nlohmann_json REMOTE
+c4_require_subproject(nlohmann_json REMOTE
     GIT_REPOSITORY https://github.com/nlohmann/json
     GIT_TAG master)
 
 # rapidjson is header only
 set(rapidjson_dir ${_ed}/rapidjson)
-ryml_download_remote_proj(rapidjson rapidjson_dir
+c4_download_remote_proj(rapidjson rapidjson_dir
     GIT_REPOSITORY https://github.com/Tencent/rapidjson
     GIT_TAG version1.1.0)
 set(RYML_RAPIDJSON_INC_DIR ${rapidjson_dir}/include)
 
 # sajson is header only
 set(sajson_dir ${_ed}/sajson)
-ryml_download_remote_proj(sajson sajson_dir
+c4_download_remote_proj(sajson sajson_dir
     GIT_REPOSITORY https://github.com/chadaustin/sajson
     GIT_TAG master)
 set(RYML_SAJSON_INC_DIR ${sajson_dir}/include)
@@ -56,12 +56,12 @@ function(ryml_add_bm_case target case_file)
         set(filter_json "yml|yaml")
     endif()
     # that's it!
-    ryml_add_target_benchmark(${target} ${case}
+    c4_add_target_benchmark(${target} ${case}
         FILTER "${filter_json}"
         ARGS ${case_file})
 endfunction()
 
-ryml_add_executable(ryml-bm-parse
+c4_add_executable(ryml-bm-parse
     SOURCES parse.cpp
     LIBS ryml yaml yaml-cpp benchmark jsoncpp_lib nlohmann_json c4fs
     INC_DIRS ${RYML_RAPIDJSON_INC_DIR} ${RYML_SAJSON_INC_DIR}

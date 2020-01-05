@@ -3,7 +3,7 @@ project(ryml)
 
 include(./extern/c4core/cmake/c4Project.cmake)
 
-c4_declare_project(RYML
+c4_declare_project(ryml
     STANDALONE
     DESC "Rapid YAML parsing and emitting"
     AUTHOR "Joao Paulo Magalhaes <dev@jpmag.me>"
@@ -57,10 +57,10 @@ set(RYML_SRC ${RYML_CPP} ${RYML_HPP} ${RYML_FILES}
 
 #-------------------------------------------------------
 
-ryml_require_subproject(c4core
+c4_require_subproject(c4core
     SUBDIRECTORY ${RYML_EXT_DIR}/c4core)
 
-ryml_add_library(ryml SANITIZE
+c4_add_library(ryml SANITIZE
     SOURCES ${RYML_SRC}
     INC_DIRS
         $<BUILD_INTERFACE:${RYML_SRC_DIR}>
@@ -80,8 +80,8 @@ endif()
 
 #-------------------------------------------------------
 
-ryml_install_target(ryml)
-ryml_install_exports(DEPENDENCIES c4core)
+c4_install_target(ryml)
+c4_install_exports(DEPENDENCIES c4core)
 
 
 #-------------------------------------------------------
@@ -93,13 +93,13 @@ if(RYML_BUILD_TESTS OR RYML_BUILD_BENCHMARKS)
     #
     # these are used both for testing and benchmarking
     #
-    ryml_require_subproject(c4fs
+    c4_require_subproject(c4fs
         REMOTE
         GIT_REPOSITORY https://github.com/biojppm/c4fs
         GIT_TAG master)
     #
     c4_override(BUILD_TESTING OFF)
-    ryml_require_subproject(libyaml REMOTE
+    c4_require_subproject(libyaml REMOTE
         GIT_REPOSITORY https://github.com/yaml/libyaml
         GIT_TAG master)
     c4_set_folder_remote_project_targets(ext yaml)
@@ -108,12 +108,13 @@ if(RYML_BUILD_TESTS OR RYML_BUILD_BENCHMARKS)
     c4_override(YAML_CPP_BUILD_TOOLS OFF)
     c4_override(YAML_CPP_BUILD_CONTRIB OFF)
     c4_override(YAML_CPP_BUILD_INSTALL OFF)
-    ryml_import_remote_proj(yaml-cpp ${ed}/yaml-cpp
+    c4_import_remote_proj(yaml-cpp ${ed}/yaml-cpp
         GIT_REPOSITORY https://github.com/jbeder/yaml-cpp
         GIT_TAG master)
     c4_set_folder_remote_project_targets(ext/yaml-cpp yaml-cpp format)
     set(ryml_yaml_cpp_inc ${ed}/yaml-cpp/src/include)
 endif()
+
 
 #-------------------------------------------------------
 if(RYML_BUILD_TESTS)
@@ -121,10 +122,12 @@ if(RYML_BUILD_TESTS)
     add_subdirectory(test test)
 endif()
 
+
 #-------------------------------------------------------
 if(RYML_BUILD_BENCHMARKS)
     add_subdirectory(bm bm)
 endif()
+
 
 #-------------------------------------------------------
 if(RYML_BUILD_API)
