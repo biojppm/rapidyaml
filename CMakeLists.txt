@@ -20,48 +20,35 @@ set(RYML_SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(RYML_EXT_DIR ${CMAKE_CURRENT_LIST_DIR}/extern)
 set(RYML_API_DIR ${CMAKE_CURRENT_LIST_DIR}/api)
 
-#-------------------------------------------------------
-
-set(RYML_CPP
-    c4/yml/common.cpp
-    c4/yml/parse.cpp
-    c4/yml/tree.cpp
-)
-
-set(RYML_HPP
-    ryml.hpp
-    ryml_std.hpp
-    c4/yml/detail/stack.hpp
-    c4/yml/detail/parser_dbg.hpp
-    c4/yml/common.hpp
-    c4/yml/emit.def.hpp
-    c4/yml/emit.hpp
-    c4/yml/node.hpp
-    c4/yml/parse.hpp
-    c4/yml/std/map.hpp
-    c4/yml/std/std.hpp
-    c4/yml/std/string.hpp
-    c4/yml/std/vector.hpp
-    c4/yml/tree.hpp
-    c4/yml/writer.hpp
-    c4/yml/yml.hpp
-)
-
-set(RYML_FILES
-    ryml.natvis
-)
-
-set(RYML_SRC ${RYML_CPP} ${RYML_HPP} ${RYML_FILES}
-    SOURCE_ROOT ${RYML_SRC_DIR})
-
 
 #-------------------------------------------------------
 
-c4_require_subproject(c4core
+c4_require_subproject(c4core INCORPORATE
     SUBDIRECTORY ${RYML_EXT_DIR}/c4core)
 
-c4_add_library(ryml SANITIZE
-    SOURCES ${RYML_SRC}
+c4_add_library(ryml
+    SOURCES
+        ryml.hpp
+        ryml_std.hpp
+        c4/yml/detail/stack.hpp
+        c4/yml/detail/parser_dbg.hpp
+        c4/yml/common.hpp
+        c4/yml/common.cpp
+        c4/yml/emit.def.hpp
+        c4/yml/emit.hpp
+        c4/yml/node.hpp
+        c4/yml/parse.hpp
+        c4/yml/parse.cpp
+        c4/yml/std/map.hpp
+        c4/yml/std/std.hpp
+        c4/yml/std/string.hpp
+        c4/yml/std/vector.hpp
+        c4/yml/tree.hpp
+        c4/yml/tree.cpp
+        c4/yml/writer.hpp
+        c4/yml/yml.hpp
+        ryml.natvis
+    SOURCE_ROOT ${RYML_SRC_DIR}
     INC_DIRS
         $<BUILD_INTERFACE:${RYML_SRC_DIR}>
         $<INSTALL_INTERFACE:include>
@@ -119,17 +106,17 @@ endif()
 #-------------------------------------------------------
 if(RYML_BUILD_TESTS)
     enable_testing()
-    add_subdirectory(test test)
+    add_subdirectory(test)
 endif()
 
 
 #-------------------------------------------------------
 if(RYML_BUILD_BENCHMARKS)
-    add_subdirectory(bm bm)
+    add_subdirectory(bm)
 endif()
 
 
 #-------------------------------------------------------
 if(RYML_BUILD_API)
-    add_subdirectory(api api)
+    add_subdirectory(api)
 endif()

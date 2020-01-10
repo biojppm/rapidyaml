@@ -1,7 +1,7 @@
 option(RYML_BUILD_API_PYTHON3 "Enable Python3 API" ON)
 option(RYML_BUILD_API_PYTHON2 "Enable Python2 API" OFF)
 
-message(STATUS "ryml: enabling API")
+c4_log("enabling API")
 
 cmake_policy(PUSH)
 cmake_policy(SET CMP0078 NEW) # https://cmake.org/cmake/help/v3.13/policy/CMP0078.html
@@ -11,7 +11,7 @@ find_package(SWIG)
 if(NOT SWIG_FOUND)
     message(FATAL_ERROR "cannot find swig")
 endif()
-message(STATUS "found swig ${SWIG_VERSION}: ${SWIG_EXECUTABLE}")
+c4_log("found swig ${SWIG_VERSION}: ${SWIG_EXECUTABLE}")
 # https://cmake.org/cmake/help/v3.13/module/UseSWIG.html
 include(UseSWIG)
 
@@ -26,6 +26,7 @@ foreach(f ${RYML_SWIG_SRC})
         INCLUDE_DIRECTORIES "${incdirs}" # this needs quotes here!
         )
 endforeach()
+
 
 function(create_setup_py src dst)
     set(opt0arg
@@ -44,6 +45,7 @@ function(create_setup_py src dst)
     configure_file("${src}" "${dst}" @ONLY)
 endfunction()
 
+
 function(pylist li out)
     print_var(li)
     set(l)
@@ -53,13 +55,14 @@ function(pylist li out)
     set(${out} ${l} PARENT_SCOPE)
 endfunction()
 
+
 if(RYML_BUILD_API_PYTHON3)
-    message(STATUS "ryml: enabling python3 API")
+    c4_log("enabling python3 API")
     find_package(Python3 COMPONENTS Interpreter Development)
     if(NOT Python3_FOUND)
         message(FATAL_ERROR "cannot find python3")
     endif()
-    message(STATUS "found python ${Python3_VERSION}: ${Python3_EXECUTABLE}")
+    c4_log("found python ${Python3_VERSION}: ${Python3_EXECUTABLE}")
     #
     set(t ryml-api-python3) # the target name
     set(g ${CMAKE_CURRENT_BINARY_DIR}/src/python3) # where to put c++ generated srcs
