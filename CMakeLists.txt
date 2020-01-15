@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.9)
 project(ryml)
 
-include(./extern/c4core/cmake/c4Project.cmake)
+include(./ext/c4core/cmake/c4Project.cmake)
 
 c4_declare_project(ryml
     STANDALONE
@@ -17,7 +17,7 @@ option(RYML_BUILD_API "Enable API generation (python, etc)" OFF)
 
 #-------------------------------------------------------
 set(RYML_SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
-set(RYML_EXT_DIR ${CMAKE_CURRENT_LIST_DIR}/extern)
+set(RYML_EXT_DIR ${CMAKE_CURRENT_LIST_DIR}/ext)
 set(RYML_API_DIR ${CMAKE_CURRENT_LIST_DIR}/api)
 
 
