@@ -30,7 +30,7 @@ bool read(c4::yml::NodeRef const& n, std::map<K, V, Less, Alloc> * m)
 {
     K k{};
     V v;
-    for(auto const& ch : n)
+    for(auto const ch : n)
     {
         ch >> c4::yml::key(k);
         ch >> v;

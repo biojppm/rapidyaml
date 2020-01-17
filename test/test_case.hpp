@@ -41,7 +41,7 @@ void test_compare(Tree const& a, size_t node_a,
 void test_arena_not_shared(Tree const& a, Tree const& b);
 
 void test_invariants(Tree const& t);
-void test_invariants(NodeRef const& n);
+void test_invariants(NodeRef const n);
 
 void print_node(CaseNode const& t, int level=0);
 void print_tree(CaseNode const& p, int level=0);

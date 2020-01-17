@@ -48,6 +48,7 @@ set(RYML_SAJSON_INC_DIR ${sajson_dir}/include)
 
 # -----------------------------------------------------------------------------
 function(ryml_add_bm_case target case_file)
+    c4_dbg("adding benchmark case: ${case_file}")
     # case identifier
     get_filename_component(case ${case_file} NAME_WE)
     # prevent json readers from reading yml data
@@ -73,6 +74,5 @@ endif()
 set(cdir "${CMAKE_CURRENT_LIST_DIR}/cases")
 file(GLOB bm_cases RELATIVE "${cdir}" "${cdir}/*.*")
 foreach(case_file ${bm_cases})
-    message(STATUS "adding case: ${case_file}")
     ryml_add_bm_case(ryml-bm-parse "${cdir}/${case_file}")
 endforeach()
