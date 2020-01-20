@@ -1265,9 +1265,11 @@ seq:
 
     {
         std::string tmp = "child5";
-        s.append_child() << tmp;
+        s.append_child() << tmp;   // requires #include <c4/yml/std/string.hpp>
         // now tmp can go safely out of scope, as it was
         // serialized to the tree's internal string arena
+        // Note the include highlighted above is required so that ryml
+        // knows how to turn an std::string into a c4::csubstr/c4::substr.
     }
 
     emitrs(tree, &cmpbuf);
