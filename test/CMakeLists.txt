@@ -4,7 +4,7 @@ c4_add_library(ryml_util_test
     SOURCES test_case.hpp test_case.cpp libyaml.hpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${ryml_yaml_cpp_inc}
     LIBS ryml c4fs yaml yaml-cpp gtest gtest_main
-    FOLDER ryml-test)
+    FOLDER test)
 
 function(ryml_add_test test_name)
     # NOTE: the library order here is fragile because the c4proj sanitization
@@ -21,7 +21,7 @@ function(ryml_add_test test_name)
     c4_add_executable(${t}
         SOURCES ${test_name}.cpp ${ARGN}
         LIBS ryml yaml-cpp ryml_util_test yaml-cpp ryml # FRAGILE! see the NOTE above
-        FOLDER ryml-test)
+        FOLDER test)
     if(RYML_DBG)
         target_compile_definitions(${t} PRIVATE RYML_DBG)
     endif()
@@ -124,7 +124,7 @@ if(RYML_TEST_SUITE)
     c4_add_executable(ryml-test-suite
         SOURCES suite.cpp
         LIBS ryml c4fs c4log gtest
-        FOLDER ryml-test)
+        FOLDER test)
     if(RYML_DBG)
         target_compile_definitions(ryml-test-suite PRIVATE RYML_DBG)
     endif()

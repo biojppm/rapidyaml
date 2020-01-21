@@ -9,16 +9,12 @@ c4_declare_project(ryml
     AUTHOR "Joao Paulo Magalhaes <dev@jpmag.me>"
     MAJOR 0 MINOR 1 RELEASE 0)
 
+
 #-------------------------------------------------------
-#
+
 option(RYML_DEFAULT_CALLBACKS "Enable ryml's default implementation of callbacks: allocate(), free(), error()" ON)
 option(RYML_DBG "Enable (very verbose) ryml debug prints." OFF)
 option(RYML_BUILD_API "Enable API generation (python, etc)" OFF)
-
-#-------------------------------------------------------
-set(RYML_SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
-set(RYML_EXT_DIR ${CMAKE_CURRENT_LIST_DIR}/ext)
-set(RYML_API_DIR ${CMAKE_CURRENT_LIST_DIR}/api)
 
 
 #-------------------------------------------------------
@@ -102,21 +98,4 @@ if(RYML_BUILD_TESTS OR RYML_BUILD_BENCHMARKS)
     set(ryml_yaml_cpp_inc ${ed}/yaml-cpp/src/include)
 endif()
 
-
-#-------------------------------------------------------
-if(RYML_BUILD_TESTS)
-    enable_testing()
-    add_subdirectory(test)
-endif()
-
-
-#-------------------------------------------------------
-if(RYML_BUILD_BENCHMARKS)
-    add_subdirectory(bm)
-endif()
-
-
-#-------------------------------------------------------
-if(RYML_BUILD_API)
-    add_subdirectory(api)
-endif()
+c4_add_dev_targets()
