@@ -594,7 +594,12 @@ bool Parser::_handle_seq_impl()
         }
         else
         {
-            _c4err("parse error");
+            //_c4err("parse error");
+            // thanks @leoetlino
+            // https://github.com/biojppm/rapidyaml/issues/28#issuecomment-578505724
+            _c4dbgp("end the indentless sequence");
+            _pop_level();
+            return true;
         }
     }
     else if(has_any(RVAL))

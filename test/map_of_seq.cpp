@@ -8,7 +8,9 @@ namespace yml {
     "map of empty seqs", \
     "map of seqs, one line", \
     "map of seqs",           \
+    "map of seqs, not indented", \
     "map of seqs, next line",\
+    "map of seqs, next line without space",\
     "map of seqs, deal with unk"
 
 
@@ -48,6 +50,21 @@ women:
      }
 ),
 
+C("map of seqs, not indented",
+R"(
+men:
+- John Smith
+- Bill Jones
+women:
+- Mary Smith
+- Susan Williams
+)",
+     L{
+         N("men", L{N{"John Smith"}, N{"Bill Jones"}}),
+         N("women", L{N{"Mary Smith"}, N{"Susan Williams"}})
+     }
+),
+
 C("map of seqs, next line",
 R"(
 men:
@@ -59,6 +76,25 @@ women:
   - 
     Mary Smith
   - 
+    Susan Williams
+)",
+     L{
+         N("men", L{N{"John Smith"}, N{"Bill Jones"}}),
+         N("women", L{N{"Mary Smith"}, N{"Susan Williams"}})
+     }
+),
+
+C("map of seqs, next line without space",
+R"(
+men:
+  -
+    John Smith
+  -
+    Bill Jones
+women:
+  -
+    Mary Smith
+  -
     Susan Williams
 )",
      L{
