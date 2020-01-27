@@ -66,7 +66,7 @@ cmake -DCMAKE_C_COMPILER=$CC_ -DCMAKE_C_FLAGS="$CFLAGS_" \
       $CMFLAGS \
       $RYML_DIR
 make help | sed 1d | sort
-make CTEST_OUTPUT_ON_FAILURE=1 ryml-test
+make CTEST_OUTPUT_ON_FAILURE=1 test
 cd -
 
 exit 0
