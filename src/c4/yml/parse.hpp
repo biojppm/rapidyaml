@@ -187,13 +187,26 @@ private:
         csubstr  rem;            ///< the stripped line remainder; initially starts at the first non-space character
         size_t   indentation{0}; ///< the number of spaces on the beginning of the line
 
-        void reset(csubstr const& full_, csubstr const& stripped_)
+        void reset(csubstr full_, csubstr stripped_)
         {
             full = full_;
             stripped = stripped_;
             rem = stripped_;
             // find the first column where the character is not a space
             indentation = full.first_not_of(' ');
+        }
+
+        size_t current_col() const
+        {
+            return current_col(rem);
+        }
+
+        size_t current_col(csubstr s) const
+        {
+            C4_ASSERT(s.str >= full.str);
+            C4_ASSERT(full.contains(s));
+            size_t col = s.str - full.str;
+            return col;
         }
     };
 
@@ -203,6 +216,7 @@ private:
         size_t       level;
         size_t       node_id; // don't hold a pointer to the node as it will be relocated during tree resizes
         csubstr      scalar;
+        size_t       scalar_col; // the column where the scalar (or its quotes) begin
 
         Location     pos;
         LineContents line_contents;
@@ -235,6 +249,7 @@ private:
             pos.line = 1;
             pos.col = 1;
             node_id = node_id_;
+            scalar_col = 0;
             scalar.clear();
             indref = 0;
         }

@@ -614,12 +614,12 @@ bool Parser::_handle_seq_impl()
         if(_scan_scalar(&s)) // this also progresses the line
         {
             _c4dbgp("it's a scalar");
+
             rem = m_state->line_contents.rem;
-            size_t skip = 0;
             if(rem.begins_with(' '))
             {
                 _c4dbgp("skipping whitespace...");
-                skip = rem.first_not_of(' ');
+                size_t skip = rem.first_not_of(' ');
                 _line_progressed(skip);
                 rem = rem.sub(skip);
             }
@@ -631,7 +631,7 @@ bool Parser::_handle_seq_impl()
                 _push_level();
                 _start_map();
                 _store_scalar(s);
-                _save_indentation(/*behind*/s.len + skip);
+                _set_indentation(m_state->scalar_col); // this is the column where the scalar starts
                 addrem_flags(RVAL, RKEY);
                 _line_progressed(1);
             }
@@ -727,8 +727,7 @@ bool Parser::_handle_seq_impl()
 
 bool Parser::_rval_dash_start_or_continue_seq()
 {
-    const csubstr rem = m_state->line_contents.rem;
-    size_t ind = rem.begin() - m_state->line_contents.full.begin();
+    size_t ind = m_state->line_contents.current_col();
     C4_ASSERT(ind >= m_state->indref);
     size_t delta_ind = ind - m_state->indref;
     if( ! delta_ind)
@@ -1067,7 +1066,7 @@ bool Parser::_handle_map_impl()
                 _push_level();
                 _move_scalar_from_top();
                 _start_map();
-                _save_indentation(/*behind*/s.len);
+                _save_indentation(m_state->scalar_col);
                 addrem_flags(RVAL, RKEY);
                 _line_progressed(2);
             }
@@ -1390,11 +1389,13 @@ bool Parser::_scan_scalar(csubstr *scalar)
 
     if(s.begins_with('\''))
     {
+        m_state->scalar_col = m_state->line_contents.current_col(s);
         *scalar = _scan_quoted_scalar('\'');
         return true;
     }
     else if(s.begins_with('"'))
     {
+        m_state->scalar_col = m_state->line_contents.current_col(s);
         *scalar = _scan_quoted_scalar('"');
         return true;
     }
@@ -1535,6 +1536,7 @@ bool Parser::_scan_scalar(csubstr *scalar)
         _c4err("not implemented");
     }
 
+    m_state->scalar_col = m_state->line_contents.current_col(s);
     _line_progressed(s.str - m_state->line_contents.rem.str + s.len);
 
     // deal with scalars that continue to the next line
@@ -2131,7 +2133,7 @@ bool Parser::_handle_indentation()
 
     size_t ind = m_state->line_contents.indentation;
     csubstr rem = m_state->line_contents.rem;
-    /** @todo instead of trimming, we should suse the indentation index from above */
+    /** @todo instead of trimming, we should use the indentation index from above */
     csubstr remt = rem.triml(' ');
 
     if(remt.empty() || remt.begins_with('#')) // this is a blank or comment line
