@@ -4,7 +4,7 @@ option(RYML_BUILD_API_PYTHON2 "Enable Python2 API" OFF)
 c4_log("enabling API")
 
 cmake_policy(PUSH)
-cmake_policy(SET CMP0078 NEW) # https://cmake.org/cmake/help/v3.13/policy/CMP0078.html
+cmake_policy(SET CMP0078 NEW) # https://cmake.org/cmake/help/v3.14/policy/CMP0078.html
 cmake_policy(SET CMP0086 NEW) # https://cmake.org/cmake/help/v3.14/policy/CMP0086.html
 
 find_package(SWIG)

@@ -66,7 +66,7 @@ c4_add_executable(ryml-bm-parse
     SOURCES parse.cpp
     LIBS ryml yaml yaml-cpp benchmark jsoncpp_lib nlohmann_json c4fs
     INC_DIRS ${RYML_RAPIDJSON_INC_DIR} ${RYML_SAJSON_INC_DIR}
-    FOLDER ryml-bm)
+    FOLDER bm)
 if(RYML_DBG)
     target_compile_definitions(ryml-bm-parse PRIVATE RYML_DBG)
 endif()

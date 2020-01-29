@@ -3,12 +3,17 @@
 namespace c4 {
 namespace yml {
 
-#define SEQ_OF_MAP_CASES                        \
-    "seq of empty maps, one line",              \
-    "seq of maps, one line",                    \
-    "seq of maps, implicit seq, explicit maps", \
-    "seq of maps",                              \
-    "seq of maps, next line"
+#define SEQ_OF_MAP_CASES                                \
+    "seq of empty maps, one line",                      \
+    "seq of maps, one line",                            \
+    "seq of maps, implicit seq, explicit maps",         \
+    "seq of maps",                                      \
+    "seq of maps, next line",                           \
+    "seq of maps, bug #32 ex1",                         \
+    "seq of maps, bug #32 ex2",                         \
+    "seq of maps, bug #32 ex3"
+
+
 CASE_GROUP(SEQ_OF_MAP)
 {
     APPEND_CASES(
@@ -68,6 +73,47 @@ R"(
       N{L{N("name", "Mary Smith"), N("age", "27")}}
   }
 ),
+
+C("seq of maps, bug #32 ex1",
+R"(
+- 'a': 1
+  b: 2
+)",
+  L{
+      N{L{N("a", "1"), N("b", "2")}}
+  }
+),
+
+C("seq of maps, bug #32 ex2",
+R"(
+- a: 1
+  b: 2
+- b: 2
+  'a': 1
+- b: 2
+  'a': 1
+  c: 3
+- {'a': 1, b: 2}
+)",
+  L{
+      N{L{N("a", "1"), N("b", "2")}},
+      N{L{N("b", "2"), N("a", "1")}},
+      N{L{N("b", "2"), N("a", "1"), N("c", "3")}},
+      N{L{N("a", "1"), N("b", "2")}},
+  }
+),
+
+C("seq of maps, bug #32 ex3",
+R"(
+'a': 1
+b: 2
+b: 2
+'a': 1
+)",
+  L{
+      N("a", "1"), N("b", "2"), N("b", "2"), N("a", "1"),
+  }
+)
 
     )
 }

@@ -53,14 +53,14 @@ TEST(serialize, type_as_str)
     r |= c4::yml::MAP;
 
     vec2<int> v2in{10, 11};
-    vec2<int> v2out;
+    vec2<int> v2out{1, 2};
     r["v2"] << v2in;
     r["v2"] >> v2out;
     EXPECT_EQ(v2in.x, v2out.x);
     EXPECT_EQ(v2in.y, v2out.y);
 
     vec3<int> v3in{100, 101, 102};
-    vec3<int> v3out;
+    vec3<int> v3out{1, 2, 3};
     r["v3"] << v3in;
     r["v3"] >> v3out;
     EXPECT_EQ(v3in.x, v3out.x);
@@ -68,7 +68,7 @@ TEST(serialize, type_as_str)
     EXPECT_EQ(v3in.z, v3out.z);
 
     vec4<int> v4in{1000, 1001, 1002, 1003};
-    vec4<int> v4out;
+    vec4<int> v4out{1, 2, 3, 4};
     r["v4"] << v4in;
     r["v4"] >> v4out;
     EXPECT_EQ(v4in.x, v4out.x);

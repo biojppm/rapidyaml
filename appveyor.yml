@@ -97,7 +97,7 @@ test_script:
   - cmake -DRYML_DEV=ON -G "%generator%" %genarch% "-DCMAKE_BUILD_TYPE=%configuration%" "-DCMAKE_INSTALL_PREFIX=../_install" ..
   - dir
   - dir test
-  - cmake --build . --config %configuration% --target ryml-test
+  - cmake --build . --config %configuration% --target test
   #- ctest -c %configuration% --timeout 300 --output-on-failure
 
 artifacts:
