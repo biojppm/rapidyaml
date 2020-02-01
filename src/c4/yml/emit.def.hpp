@@ -9,69 +9,30 @@ namespace c4 {
 namespace yml {
 
 template<class Writer>
-substr Emitter<Writer>::emit(Tree const& t, size_t id, bool error_on_excess)
+substr Emitter<Writer>::emit(EmitType_e type,Tree const& t, size_t id, bool error_on_excess)
 {
-    this->_visit(t, id);
+    if(type == YAML)
+    {
+        if(t.is_stream(id))
+        {
+            ;
+        }
+        _do_visit(t, id, 0);
+        if(t.is_stream(id))
+        {
+            this->Writer::_do_write("...\n");
+        }
+    }
+    else if(type == JSON)
+    {
+        _do_visit_json(t, id);
+    }
+    else
+    {
+        c4::yml::error("unknown emit type");
+    }
     substr result = this->Writer::_get(error_on_excess);
     return result;
-}
-template<class Writer>
-substr EmitterJSON<Writer>::emit(Tree const& t, size_t id, bool error_on_excess)
-{
-    this->_visit(t, id);
-    substr result = this->Writer::_get(error_on_excess);
-    return result;
-}
-
-template<class Writer>
-size_t Emitter<Writer>::tell() const
-{
-    return this->Writer::m_pos;
-}
-template<class Writer>
-size_t EmitterJSON<Writer>::tell() const
-{
-    return this->Writer::m_pos;
-}
-
-template<class Writer>
-void Emitter<Writer>::seek(size_t p)
-{
-    this->Writer::m_pos = p;
-}
-template<class Writer>
-void EmitterJSON<Writer>::seek(size_t p)
-{
-    this->Writer::m_pos = p;
-}
-
-template<class Writer>
-size_t Emitter<Writer>::_visit(Tree const& t, size_t id, size_t ilevel)
-{
-    if(t.is_stream(id))
-    {
-        ;
-    }
-    _do_visit(t, id, ilevel);
-    if(t.is_stream(id))
-    {
-        _write("...\n");
-    }
-    return this->Writer::m_pos;
-}
-template<class Writer>
-size_t EmitterJSON<Writer>::_visit(Tree const& t, size_t id)
-{
-    if(t.is_stream(id))
-    {
-        ;
-    }
-    _do_visit(t, id);
-    if(t.is_stream(id))
-    {
-        _write("...\n");
-    }
-    return this->Writer::m_pos;
 }
 
 /** @todo this function is too complex. break it down into manageable pieces */
@@ -82,39 +43,39 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, bool in
 
     if(t.is_doc(id))
     {
-        _write("---");
+        this->Writer::_do_write("---");
         bool nl = false;
         if(t.has_val_tag(id))
         {
-            if( ! nl) _write(' ');
-            _write(t.val_tag(id));
+            if( ! nl) this->Writer::_do_write(' ');
+            this->Writer::_do_write(t.val_tag(id));
             nl = true;
         }
         if(t.has_val_anchor(id))
         {
-            if( ! nl) _write(' ');
-            _write('&');
-            _write(t.val_anchor(id));
+            if( ! nl) this->Writer::_do_write(' ');
+            this->Writer::_do_write('&');
+            this->Writer::_do_write(t.val_anchor(id));
             nl = true;
         }
-        _write('\n');
+        this->Writer::_do_write('\n');
     }
     else if(t.is_keyval(id))
     {
         C4_ASSERT(t.has_parent(id));
-        _write(ind);
+        this->Writer::_do_write(ind);
         _writek(t, id);
-        _write(": ");
+        this->Writer::_do_write(": ");
         _writev(t, id);
-        _write('\n');
+        this->Writer::_do_write('\n');
     }
     else if(t.is_val(id))
     {
         C4_ASSERT(t.has_parent(id));
-        _write(ind);
-        _write("- ");
+        this->Writer::_do_write(ind);
+        this->Writer::_do_write("- ");
         _writev(t, id);
-        _write('\n');
+        this->Writer::_do_write('\n');
     }
     else if(t.is_container(id))
     {
@@ -126,43 +87,43 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, bool in
             if(t.has_key(id))
             {
                 C4_ASSERT(t.parent_is_map(id));
-                _write(ind);
+                this->Writer::_do_write(ind);
                 _writek(t, id);
-                _write(':');
+                this->Writer::_do_write(':');
             }
             else
             {
                 C4_ASSERT(t.parent_is_seq(id));
-                _write(ind);
-                _write('-');
+                this->Writer::_do_write(ind);
+                this->Writer::_do_write('-');
             }
 
             if(t.has_val_tag(id))
             {
-                _write(' ');
-                _write(t.val_tag(id));
+                this->Writer::_do_write(' ');
+                this->Writer::_do_write(t.val_tag(id));
             }
             if(t.has_val_anchor(id))
             {
-                _write(' ');
-                _write('&');
-                _write(t.val_anchor(id));
+                this->Writer::_do_write(' ');
+                this->Writer::_do_write('&');
+                this->Writer::_do_write(t.val_anchor(id));
             }
 
             indent = true;
             if(t.has_children(id))
             {
-                _write('\n');
+                this->Writer::_do_write('\n');
             }
             else
             {
                 if(t.is_seq(id))
                 {
-                    _write(" []\n");
+                    this->Writer::_do_write(" []\n");
                 }
                 else if(t.is_map(id))
                 {
-                    _write(" {}\n");
+                    this->Writer::_do_write(" {}\n");
                 }
             }
         } // !root
@@ -172,13 +133,13 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, bool in
             bool nl = false;
             if(t.has_val_tag(id))
             {
-                _write(t.val_tag(id));
+                this->Writer::_do_write(t.val_tag(id));
                 nl = true;
             }
             if(t.has_val_anchor(id))
             {
-                _write('&');
-                _write(t.val_anchor(id));
+                this->Writer::_do_write('&');
+                this->Writer::_do_write(t.val_anchor(id));
                 nl = true;
             }
 
@@ -187,21 +148,21 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, bool in
                 C4_ASSERT(t.is_seq(id) || t.is_map(id));
                 if(t.is_seq(id))
                 {
-                    if(nl) _write(' ');
-                    _write("[]");
+                    if(nl) this->Writer::_do_write(' ');
+                    this->Writer::_do_write("[]");
                     nl = true;
                 }
                 else if(t.is_map(id))
                 {
-                    if(nl) _write(' ');
-                    _write("{}");
+                    if(nl) this->Writer::_do_write(' ');
+                    this->Writer::_do_write("{}");
                     nl = true;
                 }
             }
 
             if(nl)
             {
-                _write('\n');
+                this->Writer::_do_write('\n');
             }
         } // root
     } // container
@@ -219,7 +180,7 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, bool in
     }
 }
 template<class Writer>
-void EmitterJSON<Writer>::_do_visit(Tree const& t, size_t id)
+void Emitter<Writer>::_do_visit_json(Tree const& t, size_t id)
 {
     if(t.is_doc(id))
     {
@@ -227,45 +188,45 @@ void EmitterJSON<Writer>::_do_visit(Tree const& t, size_t id)
     }
     else if(t.is_keyval(id))
     {
-        _writek(t, id);
-        _write(": ");
-        _writev(t, id);
+        _writek_json(t, id);
+        this->Writer::_do_write(": ");
+        _writev_json(t, id);
     }
     else if(t.is_val(id))
     {
-        _writev(t, id);
+        _writev_json(t, id);
     }
     else if(t.is_container(id))
     {
         if(t.has_key(id))
         {
-            _writek(t, id);
-            _write(": ");
+            _writek_json(t, id);
+            this->Writer::_do_write(": ");
         }
 
         if(t.is_seq(id))
         {
-            _write('[');
+            this->Writer::_do_write('[');
         }
         else if(t.is_map(id))
         {
-            _write('{');
+            this->Writer::_do_write('{');
         }
     } // container
     for(size_t ich = t.first_child(id); ich != NONE; ich = t.next_sibling(ich))
     {
-        if(ich!=t.first_child(id)) _write(",");
-        _do_visit(t, ich);
+        if(ich != t.first_child(id)) this->Writer::_do_write(',');
+        _do_visit_json(t, ich);
     }
     if(t.is_container(id))
     {
         if(t.is_seq(id))
         {
-            _write("]");
+            this->Writer::_do_write(']');
         }
         else if(t.is_map(id))
         {
-            _write("}");
+            this->Writer::_do_write('}');
         }
     }
 }
@@ -290,7 +251,7 @@ void Emitter<Writer>::_write(NodeScalar const& sc, NodeType flags)
     _write_scalar(sc.scalar);
 }
 template<class Writer>
-void EmitterJSON<Writer>::_write(NodeScalar const& sc, NodeType flags)
+void Emitter<Writer>::_write_json(NodeScalar const& sc, NodeType flags)
 {
     if( ! sc.tag.empty())
     {
@@ -302,7 +263,7 @@ void EmitterJSON<Writer>::_write(NodeScalar const& sc, NodeType flags)
         c4::yml::error("no anchor processing for JSON");
     }
 
-    _write_scalar(sc.scalar);
+    _write_scalar_json(sc.scalar);
 }
 
 template<class Writer>
@@ -346,7 +307,7 @@ void Emitter<Writer>::_write_scalar(csubstr s)
             {
                 if(s[i] == '\'' || s[i] == '\n')
                 {
-                    csubstr sub = s.sub(pos, i-pos);
+                    csubstr sub = s.range(pos, i);
                     pos = i;
                     this->Writer::_do_write(sub);
                     this->Writer::_do_write(s[i]); // write the character twice
@@ -362,7 +323,7 @@ void Emitter<Writer>::_write_scalar(csubstr s)
     }
 }
 template<class Writer>
-void EmitterJSON<Writer>::_write_scalar(csubstr s)
+void Emitter<Writer>::_write_scalar_json(csubstr s)
 {
     if(s.is_number())
     {
@@ -371,17 +332,17 @@ void EmitterJSON<Writer>::_write_scalar(csubstr s)
     else
     {
         size_t pos = 0;
-        this->Writer::_do_write('\"');
+        this->Writer::_do_write('"');
         for(size_t i = 0; i < s.len; ++i)
         {
-            if(s[i] == '\"')
+            if(s[i] == '"')
             {
-                if(i>0)
+                if(i > 0)
                 {
-                    csubstr sub = s.sub(pos, i-pos);
+                    csubstr sub = s.range(pos, i);
                     this->Writer::_do_write(sub);
                 }
-                pos = i+1;
+                pos = i + 1;
                 this->Writer::_do_write("\\\"");
             }
         }
@@ -390,7 +351,7 @@ void EmitterJSON<Writer>::_write_scalar(csubstr s)
             csubstr sub = s.sub(pos);
             this->Writer::_do_write(sub);
         }
-        this->Writer::_do_write('\"');
+        this->Writer::_do_write('"');
     }
 }
 
