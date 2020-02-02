@@ -2,21 +2,26 @@
 
 namespace c4 {
 namespace yml {
-#define DOUBLE_QUOTED_CASES                                 \
-            "dquoted, only text",                           \
-                "dquoted, with single quotes",              \
-                "dquoted, with double quotes",              \
-                "dquoted, with single and double quotes",   \
-                "dquoted, with escapes",                    \
-                "dquoted, with newline",                    \
-                "dquoted, all",                             \
-                "dquoted, empty",                           \
-                "dquoted, 1 dquote",                        \
-                "dquoted, 2 dquotes",                       \
-                "dquoted, 3 dquotes",                       \
-                "dquoted, 4 dquotes",                       \
-                "dquoted, example 2",                       \
-                "dquoted, example 2.1"
+
+#define DOUBLE_QUOTED_CASES                             \
+            "dquoted, only text",                       \
+            "dquoted, with single quotes",              \
+            "dquoted, with double quotes",              \
+            "dquoted, with single and double quotes",   \
+            "dquoted, with escapes",                    \
+            "dquoted, with newline",                    \
+            "dquoted, all",                             \
+            "dquoted, empty",                           \
+            "dquoted, numbers",                         \
+            "dquoted, trailing space",                  \
+            "dquoted, leading space",                   \
+            "dquoted, trailing and leading space",      \
+            "dquoted, 1 dquote",                        \
+            "dquoted, 2 dquotes",                       \
+            "dquoted, 3 dquotes",                       \
+            "dquoted, 4 dquotes",                       \
+            "dquoted, example 2",                       \
+            "dquoted, example 2.1"
 
 CASE_GROUP(DOUBLE_QUOTED)
 {
@@ -69,6 +74,32 @@ Newlines can also be added by leaving a blank line.
 C("dquoted, empty",
 R"("")",
   L{N("")}
+),
+
+C("dquoted, numbers", // these should not be quoted when emitting
+R"(
+- -1
+- -1.0
+- +1.0
+- 1e-2
+- 1e+2
+)",
+  L{N("-1"), N("-1.0"), N("+1.0"), N("1e-2"), N("1e+2")}
+),
+
+C("dquoted, trailing space",
+R"('a aaaa  ')",
+  L{N("a aaaa  ")}
+),
+
+C("dquoted, leading space",
+R"('  a aaaa')",
+  L{N("  a aaaa")}
+),
+
+C("dquoted, trailing and leading space",
+R"('  012345  ')",
+  L{N("  012345  ")}
 ),
 
 C("dquoted, 1 dquote",

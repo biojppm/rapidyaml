@@ -269,12 +269,17 @@ void Emitter<Writer>::_write_json(NodeScalar const& sc, NodeType flags)
 template<class Writer>
 void Emitter<Writer>::_write_scalar(csubstr s)
 {
-    const bool no_dquotes = s.first_of( '"') == npos;
-    const bool no_squotes = s.first_of('\'') == npos;
-    // force use quotes when any of these characters is present
-    const bool no_special = s.first_of("#:-,\n{}[]") == npos;
+    const bool needs_quotes = (
+        !s.is_number() // is not a number
+        &&
+        (
+            (s != s.trim(" \t\n\r")) // has leading or trailing whitespace
+            ||
+            s.first_of("#:-,\n{}[]'\"") != npos // has special chars
+        )
+    );
 
-    if(no_dquotes && no_squotes && no_special)
+    if(!needs_quotes)
     {
         if( ! s.empty())
         {
@@ -287,13 +292,15 @@ void Emitter<Writer>::_write_scalar(csubstr s)
     }
     else
     {
-        if(no_squotes && !no_dquotes)
+        const bool has_dquotes = s.first_of( '"') != npos;
+        const bool has_squotes = s.first_of('\'') != npos;
+        if(!has_squotes && has_dquotes)
         {
             this->Writer::_do_write('\'');
             this->Writer::_do_write(s);
             this->Writer::_do_write('\'');
         }
-        else if(no_dquotes && !no_squotes)
+        else if(has_squotes && !has_dquotes)
         {
             this->Writer::_do_write('"');
             this->Writer::_do_write(s);

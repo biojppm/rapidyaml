@@ -1348,6 +1348,19 @@ a:
     print_tree(t); // to make sure this is covered too
 }
 
+TEST(general, numbers)
+{
+    const char yaml[] = R"(- -1
+- -1.0
+- +1.0
+- 1e-2
+- 1e+2
+)";
+    Tree t = parse(yaml);
+    auto s = emitrs<std::string>(t);
+    EXPECT_EQ(s, std::string(yaml));
+}
+
 TEST(general, lookup_path)
 {
     const char yaml[] = R"(
