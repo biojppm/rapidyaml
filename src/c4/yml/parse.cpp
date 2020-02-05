@@ -15,7 +15,7 @@ namespace yml {
 
 static bool _is_scalar_next__runk(csubstr s)
 {
-    if(s.begins_with(": ") || s.begins_with_any("#,:?"))
+    if(s.begins_with(": ") || s.begins_with_any("#,:?{[-"))
     {
         return false;
     }
@@ -1513,6 +1513,7 @@ bool Parser::_scan_scalar(csubstr *scalar)
         _c4dbgp("RUNK");
         if( ! _is_scalar_next__runk(s))
         {
+            _c4dbgp("RUNK: no scalar next");
             return false;
         }
         s = s.left_of(s.find(" #"));
@@ -1530,6 +1531,7 @@ bool Parser::_scan_scalar(csubstr *scalar)
             s = s.left_of(s.first_of(','));
         }
         s = s.trim(' ');
+        _c4dbgpf("RUNK: scalar='%.*s'", _c4prsp(s));
     }
     else
     {

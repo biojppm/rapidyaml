@@ -3,16 +3,25 @@
 namespace c4 {
 namespace yml {
 
-#define EMPTY_SEQ_CASES                         \
-    "empty seq, explicit",                      \
-        "empty seq, multiline",                 \
-        "empty seq, multilines"
+#define EMPTY_SEQ_CASES                     \
+    "empty seq, explicit",                  \
+    "empty seq, explicit, whitespace",      \
+    "empty seq, multiline",                 \
+    "empty seq, multilines"
 
 CASE_GROUP(EMPTY_SEQ)
 {
     APPEND_CASES(
+
+
 C("empty seq, explicit",
 "[]",
+    SEQ
+),
+
+
+C("empty seq, explicit, whitespace",
+" []",
     SEQ
 ),
 
