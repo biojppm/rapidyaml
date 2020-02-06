@@ -57,7 +57,7 @@ public:
 
 private:
 
-    void _do_visit(Tree const& t, size_t id, size_t ilevel=0, bool indent=true);
+    void _do_visit(Tree const& t, size_t id, size_t ilevel=0, size_t do_indent=1);
     void _do_visit_json(Tree const& t, size_t id);
 
 private:
@@ -70,8 +70,7 @@ private:
 
     void _indent(size_t ilevel)
     {
-        RepC ind{' ', 2 * ilevel};
-        this->Writer::_do_write(ind);
+        this->Writer::_do_write(indent_to(ilevel));
     }
 
     enum {
@@ -171,7 +170,7 @@ struct as_json
 template<class OStream>
 inline OStream& operator<< (OStream& s, as_json const& js)
 {
-    EmitterOStream<OStream> em(s); // instantiate a json emitter instead
+    EmitterOStream<OStream> em(s);
     em.emit(JSON, js.node);
     return s;
 }

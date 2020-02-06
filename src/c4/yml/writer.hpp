@@ -20,6 +20,10 @@ struct RepC
     char c;
     size_t num_times;
 };
+inline RepC indent_to(size_t num_levels)
+{
+    return {' ', size_t(2) * num_levels};
+}
 
 
 //-----------------------------------------------------------------------------

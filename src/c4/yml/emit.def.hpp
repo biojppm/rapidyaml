@@ -35,11 +35,13 @@ substr Emitter<Writer>::emit(EmitType_e type,Tree const& t, size_t id, bool erro
     return result;
 }
 
-/** @todo this function is too complex. break it down into manageable pieces */
+/** @todo this function is too complex. break it down into manageable
+ * pieces */
 template<class Writer>
-void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, bool indent)
+void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, size_t do_indent)
 {
-    RepC ind{' ', 2 * size_t(indent) * ilevel};
+    RepC ind = indent_to(do_indent * ilevel);
+    C4_ASSERT(t.is_root(id) || (t.parent_is_map(id) || t.parent_is_seq(id)));
 
     if(t.is_doc(id))
     {
@@ -47,7 +49,7 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, bool in
         bool nl = false;
         if(t.has_val_tag(id))
         {
-            if( ! nl) this->Writer::_do_write(' ');
+            this->Writer::_do_write(' ');
             this->Writer::_do_write(t.val_tag(id));
             nl = true;
         }
@@ -56,7 +58,6 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, bool in
             if( ! nl) this->Writer::_do_write(' ');
             this->Writer::_do_write('&');
             this->Writer::_do_write(t.val_anchor(id));
-            nl = true;
         }
         this->Writer::_do_write('\n');
     }
@@ -68,6 +69,7 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, bool in
         this->Writer::_do_write(": ");
         _writev(t, id);
         this->Writer::_do_write('\n');
+        return;
     }
     else if(t.is_val(id))
     {
@@ -76,95 +78,84 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, bool in
         this->Writer::_do_write("- ");
         _writev(t, id);
         this->Writer::_do_write('\n');
+        return;
     }
     else if(t.is_container(id))
     {
-        if(C4_LIKELY( ! t.is_root(id)))
-        {
-            C4_ASSERT(t.parent_is_map(id) || t.parent_is_seq(id));
-            C4_ASSERT(t.is_map(id) || t.is_seq(id));
+        C4_ASSERT(t.is_map(id) || t.is_seq(id));
 
+        bool spc = false; // write a space
+        bool nl = false;  // write a newline
+
+        if(t.has_key(id))
+        {
+            this->Writer::_do_write(ind);
+            _writek(t, id);
+            this->Writer::_do_write(':');
+            spc = true;
+        }
+        else if(!t.is_root(id))
+        {
+            this->Writer::_do_write(ind);
+            this->Writer::_do_write('-');
+            spc = true;
+        }
+
+        if(t.has_val_tag(id))
+        {
+            if(spc) this->Writer::_do_write(' ');
+            this->Writer::_do_write(t.val_tag(id));
+            spc = true;
+            nl = true;
+        }
+
+        if(t.has_val_anchor(id))
+        {
+            if(spc) this->Writer::_do_write(' ');
+            this->Writer::_do_write('&');
+            this->Writer::_do_write(t.val_anchor(id));
+            spc = true;
+            nl = true;
+        }
+
+        if(t.has_children(id))
+        {
             if(t.has_key(id))
             {
-                C4_ASSERT(t.parent_is_map(id));
-                this->Writer::_do_write(ind);
-                _writek(t, id);
-                this->Writer::_do_write(':');
+                nl = true;
             }
             else
             {
-                C4_ASSERT(t.parent_is_seq(id));
-                this->Writer::_do_write(ind);
-                this->Writer::_do_write('-');
-            }
-
-            if(t.has_val_tag(id))
-            {
-                this->Writer::_do_write(' ');
-                this->Writer::_do_write(t.val_tag(id));
-            }
-            if(t.has_val_anchor(id))
-            {
-                this->Writer::_do_write(' ');
-                this->Writer::_do_write('&');
-                this->Writer::_do_write(t.val_anchor(id));
-            }
-
-            indent = true;
-            if(t.has_children(id))
-            {
-                this->Writer::_do_write('\n');
-            }
-            else
-            {
-                if(t.is_seq(id))
+                if(!t.is_root(id) && !nl)
                 {
-                    this->Writer::_do_write(" []\n");
-                }
-                else if(t.is_map(id))
-                {
-                    this->Writer::_do_write(" {}\n");
+                    spc = true;
                 }
             }
-        } // !root
-        else // root // @todo this branch should not be needed
+        }
+        else
         {
-            C4_ASSERT(t.is_root(id));
-            bool nl = false;
-            if(t.has_val_tag(id))
+            if(t.is_seq(id))
             {
-                this->Writer::_do_write(t.val_tag(id));
-                nl = true;
+                this->Writer::_do_write(" []\n");
             }
-            if(t.has_val_anchor(id))
+            else if(t.is_map(id))
             {
-                this->Writer::_do_write('&');
-                this->Writer::_do_write(t.val_anchor(id));
-                nl = true;
+                this->Writer::_do_write(" {}\n");
             }
+            return;
+        }
 
-            if( ! t.has_children(id))
-            {
-                C4_ASSERT(t.is_seq(id) || t.is_map(id));
-                if(t.is_seq(id))
-                {
-                    if(nl) this->Writer::_do_write(' ');
-                    this->Writer::_do_write("[]");
-                    nl = true;
-                }
-                else if(t.is_map(id))
-                {
-                    if(nl) this->Writer::_do_write(' ');
-                    this->Writer::_do_write("{}");
-                    nl = true;
-                }
-            }
+        if(spc && !nl)
+        {
+            this->Writer::_do_write(' ');
+        }
 
-            if(nl)
-            {
-                this->Writer::_do_write('\n');
-            }
-        } // root
+        do_indent = 0;
+        if(nl)
+        {
+            this->Writer::_do_write('\n');
+            do_indent = 1;
+        }
     } // container
 
     size_t next_level = ilevel + 1;
@@ -175,8 +166,8 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, bool in
 
     for(size_t ich = t.first_child(id); ich != NONE; ich = t.next_sibling(ich))
     {
-        _do_visit(t, ich, next_level, indent);
-        indent = true;
+        _do_visit(t, ich, next_level, do_indent);
+        do_indent = true;
     }
 }
 template<class Writer>
