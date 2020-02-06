@@ -1,6 +1,6 @@
 c4_setup_testing()
 
-c4_add_library(ryml_util_test
+c4_add_library(ryml-testlib
     SOURCES test_case.hpp test_case.cpp libyaml.hpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${ryml_yaml_cpp_inc}
     LIBS ryml c4fs yaml yaml-cpp gtest gtest_main
@@ -20,7 +20,7 @@ function(ryml_add_test test_name)
     set(t ryml-test-${test_name})
     c4_add_executable(${t}
         SOURCES ${test_name}.cpp ${ARGN}
-        LIBS ryml yaml-cpp ryml_util_test yaml-cpp ryml # FRAGILE! see the NOTE above
+        LIBS ryml yaml-cpp ryml-testlib yaml-cpp ryml # FRAGILE! see the NOTE above
         FOLDER test)
     if(RYML_DBG)
         target_compile_definitions(${t} PRIVATE RYML_DBG)
