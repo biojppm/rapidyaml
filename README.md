@@ -14,22 +14,22 @@ ryml parses both read-only and in-situ source buffers; the resulting data
 nodes hold only views to sub-ranges of the source buffer. No string copies or
 duplications are done, and no virtual functions are used. The data tree is a
 flat index-based structure stored in a single array. Serialization happens
-only at your request, after parsing / before emitting. Internally the data
-tree representation has no knowledge of types (but of course, every node can
-have a YAML type tag). It is easy and fast to read, write and iterate through
-the data tree.
+only at your direct request, after parsing / before emitting. Internally the
+data tree representation has no knowledge of types (but of course, every node
+can have a YAML type tag). It is easy and fast to read, write and iterate
+through the data tree.
 
 ryml can use custom per-tree memory allocators, and is
-exception-agnostic. Errors are reported via a custom error handler callback
-(and a default implementation using std::abort is provided, but you can opt
-out).
+exception-agnostic. Errors are reported via a custom error handler callback.
+A default error handler implementation using `std::abort` is provided, but
+you can opt out, or provide your exception-throwing callback.
 
 ryml has respect for your compilation times and therefore it is NOT
-header-only. (Work is still needed on installing it, but you can just
-add it as a subdirectory of your CMake project).
+header-only. It uses standard cmake build files, so it is easy to compile and
+install.
 
 ryml has no dependencies, not even on the STL (although it does use the
-libc). But it provides optional headers that let you serialize/deserialize
+libc). It provides optional headers that let you serialize/deserialize
 STL strings and containers (or show you how to do it).
 
 ryml is written in C++11, and is known to compile with:
@@ -59,6 +59,9 @@ below).
 
 You bet!
 
+(The results presented below are a bit scattered; and they need to be
+sistematized.) 
+
 The first benchmarks results are extremely satisfying. On a i7-6800K CPU @
 3.40GHz:
  * ryml parses YAML at about ~150MB/s on Linux and ~100MB/s on Windows (vs2017). 
@@ -68,8 +71,7 @@ The first benchmarks results are extremely satisfying. On a i7-6800K CPU @
    * ryml is in general between 2 and 3 times faster than [libyaml](https://github.com/yaml/libyaml)
    * ryml is in general between 20 and 70 times faster than [yaml-cpp](https://github.com/jbeder/yaml-cpp)
 
-(The results presented below are a bit scattered; and they need to be
-sistematized.) [Here's the benchmark](./bm/parse.cpp). Using different
+[Here's the benchmark](./bm/parse.cpp). Using different
 approaches within ryml (in-situ/read-only vs. with/without reuse), a YAML /
 JSON buffer is repeatedly parsed, and compared against other libraries.
 
@@ -99,7 +101,7 @@ Summarizing:
 | json   / clang++ / Debug    |  61.9  | 1.63    |  38x / 3%  |
 | json   /     g++ / Debug    |  72.6  | 1.53    |  47x / 2%  |
 | travis / clang++ / Release  | 131.6  | 8.08    |  16x / 6%  |
-| travis /     g++ / Release  | 176.4  | 8.23    |  21x / 5%  |
+| travis /      g++ / Release  | 176.4  | 8.23    |  21x / 5%  |
 | travis / clang++ / Debug    |  10.2  | 1.08    |   9x / 1%  |
 | travis /     g++ / Debug    |  12.5  | 1.01    |  12x / 8%  |
 
@@ -108,7 +110,7 @@ as [RapidJSON](https://github.com/Tencent/rapidjson) and other fast json
 readers
 ([data from here](https://lemire.me/blog/2018/05/03/how-fast-can-you-parse-json/)).
 Even parsing full YAML is at ~150MB/s, which is still in that performance
-ballpark, allbeit at its lower end. This is something to be proud of, as the
+ballpark, albeit at its lower end. This is something to be proud of, as the
 YAML specification is much more complex than JSON.
 
 
@@ -157,6 +159,76 @@ be faster.
 
 More json comparison benchmarks will be added, but seem unlikely to
 significantly alter these results.
+
+
+## Performance emitting
+
+Emitting benchmarks were not created yet, but feedback from some users
+reports as much as 25x speedup from yaml-cpp [(eg,
+here)](https://github.com/biojppm/rapidyaml/issues/28#issue-553855608).
+
+If you have data or YAML code for this, please submit a merge request, or
+just send us the files!
+
+
+------
+
+## Installing
+
+First, clone the repo:
+```bash
+git clone --recursive https://github.com/biojppm/rapidyaml
+```
+Next, you can either use ryml as a cmake subdirectory or build and install to
+a directory of your choice.
+
+### Use ryml as cmake subproject
+
+ryml is a small library, so this is the advised way.
+```cmake
+# somewhere in your CMakeLists.txt
+add_subdirectory(path/to/ryml ryml) # gives you the ryml target
+
+# this is the target you wish to link with ryml
+add_executable(foo main.cpp)
+target_link_libraries(foo ryml)
+
+# that's it!
+```
+If you're using git, we also suggest you add ryml as git submodule of
+your repo. This makes it easy to track any upstream changes in ryml.
+
+### The traditional way: build and install
+
+You can also build and install using [cmake](https://cmake.org/):
+```bash
+# configure
+cmake -S path/to/rapidyaml -B path/to/build/dir -DCMAKE_INSTALL_PREFIX=path/to/install/dir
+# build
+cmake --build path/to/build/dir --parallel 
+# install
+cmake --build path/to/build/dir --target install
+```
+Of course, `build/dir` is a build directory of your choice.
+
+### cmake build settings for ryml
+The following cmake variables can be used to control the build behavior of
+ryml:
+
+  * `RYML_DEFAULT_CALLBACKS=ON/OFF`. Enable/disable ryml's default
+    implementation of error and allocation callbacks. Defaults to `ON`.
+  * `RYML_STANDALONE=ON/OFF`. ryml uses
+    [c4core](https://github.com/biojppm/c4core), a C++ library with low-level
+    multi-platform utilities for C++. When `RYML_STANDALONE=ON`, c4core is
+    incorporated into ryml as if it is the same library. Defaults to `ON`.
+
+If you're developing ryml or just debugging problems with ryml itself, the
+following variables can be helpful:
+  * `RYML_DEV=ON/OFF`: a bool variable which enables development targets such as
+    unit tests, benchmarks, etc. Defaults to `OFF`.
+  * `RYML_DBG=ON/OFF`: a bool variable which enables verbose prints from
+    parsing code; can be useful to figure out parsing problems. Defaults to
+    `OFF`.
 
 
 ------
@@ -241,7 +313,7 @@ The free-standing `parse()` functions (towards the end of the file) are just
 convenience wrappers for calling the several `Parser::parse()` overloads.
 
 
-### Browsing the tree
+### Traversing the tree
 
 The data tree is an index-linked array of `NodeData` elements. These are
 defined roughly as (browse the [c4/yml/tree.hpp header](src/c4/yml/tree.hpp)):
@@ -302,12 +374,12 @@ it?). This is a library I use with my projects consisting of multiplatform
 low-level utilities. One of these is `c4::csubstr` (the name comes from
 "constant substring") which is a non-owning read-only string view, with many
 methods that make it practical to use (I would certainly argue more practical
-than `std::string`). (In fact, `c4::csubstr` and its writeable counterpart
+than `std::string`). In fact, `c4::csubstr` and its writeable counterpart
 `c4::substr` are the workhorses of the ryml parsing and serialization code;
 you can browse these classes here:
-[c4/substr.hpp](https://github.com/biojppm/c4core/blob/master/src/c4/substr.hpp).)
+[c4/substr.hpp](https://github.com/biojppm/c4core/blob/master/src/c4/substr.hpp).
 
-Now, let's parse and go through a tree. To obtain a `NodeRef` from the tree,
+Now, let's parse and traverse a tree. To obtain a `NodeRef` from the tree,
 you only need to invoke `operator[]`. This operator can take indices (when
 invoked on sequence and map nodes) and also strings (only when invoked on map
 nodes):
@@ -661,11 +733,59 @@ If you'd like to see a particular STL container implemented, feel free to
 [submit a pull request or open an issue](https://github.com/biojppm/rapidyaml/issues).
 
 
+### Custom formatting for intrinsic types
+
+Sometimes the general formatting from ryml may not be what is required.
+
+Consider the following:
+```c++
+NodeRef r = tree.rootref();
+
+bool t = true;
+float a = 24.0f;
+float b = 2.41f;
+
+r["t"] << t;
+r["a"] << a;
+r["b"] << b;
+print_keyval(r["t"]); // "t=1" -- true was formatted as an int
+print_keyval(r["a"]); // "a=24" -- the decimal was lost with general formatting
+print_keyval(r["b"]); // "b=2.41" -- as expected
+```
+The behavior above may not be ideal in some cases. There are alternatives for
+this situation:
+```c++
+// if you want the decimal to remain, you can provide the string yourself:
+r["t"] << (t ? "true" : "false");
+std::string sa = ...; // something resulting in "24.0"
+r["a"] << c4::to_csubstr(sa);
+
+print_keyval(r["t"]); // "t=true" -- as expected
+print_keyval(r["a"]); // "a=24.0" -- as expected
+print_keyval(r["b"]); // "b=2.41" -- as expected
+```
+If, understandably, you want to avoid the likely allocation caused
+by the `std::to_string()` antipattern (or even worse, the `std::stringstream::str()`
+allocation cookie monster), [ryml has you covered](https://github.com/biojppm/c4core/tree/master/src/c4/format.hpp):
+```c++
+#include <c4/format.hpp> // look for the appropriate formatting functions in this header
+//...
+
+int precision = 2; // print floats with two digits.
+r["a"] << c4::fmt::real(val, precision); // OK, result: "24.00"
+
+// c4::fmt::real() is a lazy marker which will be used by ryml to format the
+// float directly in the arena without any extra allocation (other than
+// possible arena growth, which would happen just the same for the approach
+// above). It calls ftoa() on the arena range.
+```
+Again, note that you don't have to use the tree's arena. If you use
+`operator=`, the `csubstr` you provide will be directly used instead.
 
 ### Custom allocators and error handlers
 
-ryml accepts your own allocators and error handlers. Read through
-[this header file](src/c4/yml/common.hpp) to set it up.
+ryml accepts your own allocators and error handlers. Read through [this
+header file](src/c4/yml/common.hpp) to set it up.
 
 Please note the following about the use of custom allocators with ryml. If
 you use static ryml trees or parsers, you need to make sure that their
@@ -806,7 +926,8 @@ appear some cases which ryml fails to parse. So we welcome your
 
 * ryml does not handle complex elements as mapping keys: keys must be simple
   values and cannot themselves be mappings or sequences. Yaml test suite
-  cases: [KK5P](https://github.com/yaml/yaml-test-suite)
+  cases:
+    * [KK5P](https://github.com/yaml/yaml-test-suite/tree/master/test/KK5P.tml)
 
 
 ------
