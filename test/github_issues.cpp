@@ -10,7 +10,10 @@ namespace yml {
         "github3-problem3",\
         /*"github3",*/\
         "github6-problem1",\
-        "github6"
+        "github6",\
+        "github34/ex1",\
+        "github34/ex2",\
+        "github34"
 
 
 CASE_GROUP(GITHUB_ISSUES)
@@ -204,6 +207,114 @@ N(L{N("UQxRibHKEDI", L{N("0.mp4"), N("1.mp4"), N("2.mp4"), N("3.mp4")})}),
 N(L{N("DcYsg8VFdC0", L{N("0.mp4"), N("1.mp4"), N("2.mp4"), N("3.mp4")})}),
 N(L{N("Yt3ymqZXzLY", L{N("0.mp4"), N("1.mp4"), N("2.mp4"), N("3.mp4")})}),
 })}
+),
+
+C("github34/ex1",
+R"(
+# correct:
+MessageID1: 'MapRegion_HyrulePrairie'
+MessageID2: "MapRegion_HyrulePrairie"
+MessageID3: 'MapRegion_HyrulePrairie'
+MessageID4: "MapRegion_HyrulePrairie"
+# incorrect: uninitialised memory?
+MessageID5:  'MapRegion_HyrulePrairie'
+MessageID6:  "MapRegion_HyrulePrairie"
+MessageID7:   'MapRegion_HyrulePrairie'
+MessageID8:   "MapRegion_HyrulePrairie"
+MessageID9:          'MapRegion_HyrulePrairie'
+MessageID0:          "MapRegion_HyrulePrairie"
+)",
+L{
+  N("MessageID1", "MapRegion_HyrulePrairie"),
+  N("MessageID2", "MapRegion_HyrulePrairie"),
+  N("MessageID3", "MapRegion_HyrulePrairie"),
+  N("MessageID4", "MapRegion_HyrulePrairie"),
+  N("MessageID5", "MapRegion_HyrulePrairie"),
+  N("MessageID6", "MapRegion_HyrulePrairie"),
+  N("MessageID7", "MapRegion_HyrulePrairie"),
+  N("MessageID8", "MapRegion_HyrulePrairie"),
+  N("MessageID9", "MapRegion_HyrulePrairie"),
+  N("MessageID0", "MapRegion_HyrulePrairie"),
+}
+),
+
+C("github34/ex2",
+R"(
+# correct:
+- MessageID1: 'MapRegion_HyrulePrairie'
+- MessageID2: "MapRegion_HyrulePrairie"
+-  MessageID3: 'MapRegion_HyrulePrairie'
+-  MessageID4: "MapRegion_HyrulePrairie"
+# incorrect: uninitialised memory?
+- MessageID5:  'MapRegion_HyrulePrairie'
+- MessageID6:  "MapRegion_HyrulePrairie"
+- MessageID7:   'MapRegion_HyrulePrairie'
+- MessageID8:   "MapRegion_HyrulePrairie"
+-  MessageID9:          'MapRegion_HyrulePrairie'
+-  MessageID0:          "MapRegion_HyrulePrairie"
+)",
+L{
+  N(L{N("MessageID1", "MapRegion_HyrulePrairie")}),
+  N(L{N("MessageID2", "MapRegion_HyrulePrairie")}),
+  N(L{N("MessageID3", "MapRegion_HyrulePrairie")}),
+  N(L{N("MessageID4", "MapRegion_HyrulePrairie")}),
+  N(L{N("MessageID5", "MapRegion_HyrulePrairie")}),
+  N(L{N("MessageID6", "MapRegion_HyrulePrairie")}),
+  N(L{N("MessageID7", "MapRegion_HyrulePrairie")}),
+  N(L{N("MessageID8", "MapRegion_HyrulePrairie")}),
+  N(L{N("MessageID9", "MapRegion_HyrulePrairie")}),
+  N(L{N("MessageID0", "MapRegion_HyrulePrairie")}),
+}
+),
+
+C("github34",
+R"(
+# incorrect: uninitialised memory?
+-  MessageID1:          'MapRegion_HyrulePrairie'
+-  MessageID2:          "MapRegion_HyrulePrairie"
+
+# incorrect: uninitialised memory?
+-  MessageID3:          'MapRegion_HyrulePrairie '
+-  MessageID4:          "MapRegion_HyrulePrairie "
+
+# incorrect: for some reason the ' is included in the string
+-  MessageID5: 'MapRegion_HyrulePrairie '
+- MessageID6: 'MapRegion_HyrulePrairie '
+-  MessageID7: "MapRegion_HyrulePrairie "
+- MessageID8: "MapRegion_HyrulePrairie "
+
+# incorrect: same issue
+- MessageID9: 'MapRegion_HyrulePrairie '
+- MessageID10: "MapRegion_HyrulePrairie "
+
+# incorrect: still has the trailing quote
+- MessageID11: 'MapRegion_HyrulePrairie'
+- MessageID12: "MapRegion_HyrulePrairie"
+
+# the string is parsed correctly in this case
+- key1: true1
+  MessageID1:          'MapRegion_HyrulePrairie1 '
+- key2: true2
+  MessageID2:          "MapRegion_HyrulePrairie2 "
+)",
+L{
+  N(L{N("MessageID1",  "MapRegion_HyrulePrairie")}),
+  N(L{N("MessageID2",  "MapRegion_HyrulePrairie")}),
+  N(L{N("MessageID3",  "MapRegion_HyrulePrairie ")}),
+  N(L{N("MessageID4",  "MapRegion_HyrulePrairie ")}),
+  N(L{N("MessageID5",  "MapRegion_HyrulePrairie ")}),
+  N(L{N("MessageID6",  "MapRegion_HyrulePrairie ")}),
+  N(L{N("MessageID7",  "MapRegion_HyrulePrairie ")}),
+  N(L{N("MessageID8",  "MapRegion_HyrulePrairie ")}),
+  N(L{N("MessageID9",  "MapRegion_HyrulePrairie ")}),
+  N(L{N("MessageID10", "MapRegion_HyrulePrairie ")}),
+  N(L{N("MessageID11", "MapRegion_HyrulePrairie")}),
+  N(L{N("MessageID12", "MapRegion_HyrulePrairie")}),
+  N(L{N("key1", "true1"), N("MessageID1", "MapRegion_HyrulePrairie1 ")}),
+  N(L{N("key2", "true2"), N("MessageID2", "MapRegion_HyrulePrairie2 ")}),
+  N(L{N("key1", "true1"), N("MessageID1", "MapRegion_HyrulePrairie1 ")}),
+  N(L{N("key2", "true2"), N("MessageID2", "MapRegion_HyrulePrairie2 ")}),
+}
 ),
     )
 }
