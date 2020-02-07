@@ -52,6 +52,34 @@ include analysing ryml with:
 ryml is also partially available in Python, with more languages to follow (see
 below).
 
+------
+
+## Table of contents
+
+   * [Rapid YAML](#rapid-yaml)
+      * [Is it rapid?](#is-it-rapid)
+         * [Comparison with yaml-cpp](#comparison-with-yaml-cpp)
+         * [Performance reading JSON](#performance-reading-json)
+         * [Performance emitting](#performance-emitting)
+      * [Installing](#installing)
+         * [Using ryml as cmake subproject](#using-ryml-as-cmake-subproject)
+         * [The traditional way: build and install](#the-traditional-way-build-and-install)
+         * [cmake build settings for ryml](#cmake-build-settings-for-ryml)
+      * [Quick start](#quick-start)
+         * [Parsing](#parsing)
+         * [Traversing the tree](#traversing-the-tree)
+         * [Creating a tree](#creating-a-tree)
+         * [Low-level API](#low-level-api)
+         * [Custom types](#custom-types)
+         * [STL interoperation](#stl-interoperation)
+         * [Custom formatting for intrinsic types](#custom-formatting-for-intrinsic-types)
+         * [Custom allocators and error handlers](#custom-allocators-and-error-handlers)
+      * [Other languages](#other-languages)
+         * [Python](#python)
+      * [YAML standard conformance](#yaml-standard-conformance)
+         * [Known limitations](#known-limitations)
+      * [Alternative libraries](#alternative-libraries)
+      * [License](#license)
 
 ------
 
@@ -161,7 +189,7 @@ More json comparison benchmarks will be added, but seem unlikely to
 significantly alter these results.
 
 
-## Performance emitting
+### Performance emitting
 
 Emitting benchmarks were not created yet, but feedback from some users
 reports as much as 25x speedup from yaml-cpp [(eg,
@@ -182,18 +210,21 @@ git clone --recursive https://github.com/biojppm/rapidyaml
 Next, you can either use ryml as a cmake subdirectory or build and install to
 a directory of your choice.
 
-### Use ryml as cmake subproject
+### Using ryml as cmake subproject
 
 ryml is a small library, so this is the advised way.
 ```cmake
 # somewhere in your CMakeLists.txt
-add_subdirectory(path/to/ryml ryml) # gives you the ryml target
 
 # this is the target you wish to link with ryml
-add_executable(foo main.cpp)
-target_link_libraries(foo ryml)
+add_library(foolib a.cpp b.cpp)
 
-# that's it!
+# make ryml a subproject of your project
+add_subdirectory(path/to/rapidyaml ryml)
+target_link_libraries(foolib PUBLIC ryml)  # that's it!
+
+add_executable(fooexe main.cpp)
+target_link_libraries(fooexe foolib) # brings in ryml!
 ```
 If you're using git, we also suggest you add ryml as git submodule of
 your repo. This makes it easy to track any upstream changes in ryml.
