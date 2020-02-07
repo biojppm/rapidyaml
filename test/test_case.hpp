@@ -92,7 +92,7 @@ public:
     CaseNode * parent;
 
 public:
-    
+
     CaseNode(CaseNode     && that) noexcept { _move(std::move(that)); }
     CaseNode(CaseNode const& that) noexcept { _copy(that); }
 
@@ -105,7 +105,7 @@ public:
 
     CaseNode() : CaseNode(NOTYPE) {}
     CaseNode(NodeType_e t) : type(t), key(), key_tag(), key_anchor(), val(), val_tag(), val_anchor(), children(), parent(nullptr) { _set_parent(); }
-    
+
     // val
     template<size_t N> explicit CaseNode(const char (&v)[N]   ) : type((VAL       )), key(), key_tag(), key_anchor(), val(v       ), val_tag(     ), val_anchor(), children(), parent(nullptr) { _set_parent(); }
                        explicit CaseNode(TaggedScalar const& v) : type((VAL|VALTAG)), key(), key_tag(), key_anchor(), val(v.scalar), val_tag(v.tag), val_anchor(), children(), parent(nullptr) { _set_parent(); }
@@ -365,7 +365,10 @@ public:
 typedef enum {
     IGNORE_LIBYAML_PARSE_FAIL = (1<<0),
     IGNORE_YAMLCPP_PARSE_FAIL = (1<<1),
-    RESOLVE_REFS = (1<<2),
+    EXPECT_PARSE_ERROR = (1<<2),
+    RESOLVE_REFS = (1<<3),
+    IGNORE_THIRDPARTY_PARSE_FAIL = IGNORE_LIBYAML_PARSE_FAIL|IGNORE_YAMLCPP_PARSE_FAIL,
+    HAS_PARSE_ERROR = EXPECT_PARSE_ERROR|IGNORE_THIRDPARTY_PARSE_FAIL,
 } TestCaseFlags_e;
 
 struct Case

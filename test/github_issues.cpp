@@ -13,7 +13,9 @@ namespace yml {
         "github6",\
         "github34/ex1",\
         "github34/ex2",\
-        "github34"
+        "github34",\
+        "github35/expected_error1",\
+        "github35/expected_error2"
 
 
 CASE_GROUP(GITHUB_ISSUES)
@@ -312,10 +314,37 @@ L{
   N(L{N("MessageID12", "MapRegion_HyrulePrairie")}),
   N(L{N("key1", "true1"), N("MessageID1", "MapRegion_HyrulePrairie1 ")}),
   N(L{N("key2", "true2"), N("MessageID2", "MapRegion_HyrulePrairie2 ")}),
+}
+),
+
+C("github35/expected_error1", HAS_PARSE_ERROR,
+R"(
+# *segfault* // not anymore!
+- key1: true1
+ MessageID1:          'MapRegion_HyrulePrairie1 '
+- key2: true2
+ MessageID2:          "MapRegion_HyrulePrairie2 "
+)",
+L{
   N(L{N("key1", "true1"), N("MessageID1", "MapRegion_HyrulePrairie1 ")}),
   N(L{N("key2", "true2"), N("MessageID2", "MapRegion_HyrulePrairie2 ")}),
 }
 ),
+
+C("github35/expected_error2", HAS_PARSE_ERROR,
+R"(
+# *segfault* // not anymore!
+- key1: true1
+    MessageID1:          'MapRegion_HyrulePrairie1 '
+- key2: true2
+    MessageID2:          "MapRegion_HyrulePrairie2 "
+)",
+L{
+  N(L{N("key1", "true1"), N("MessageID1", "MapRegion_HyrulePrairie1 ")}),
+  N(L{N("key2", "true2"), N("MessageID2", "MapRegion_HyrulePrairie2 ")}),
+}
+),
+
     )
 }
 

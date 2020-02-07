@@ -58,12 +58,12 @@ using TS = TaggedScalar;
 using TL = CaseNode::TaggedList;
 using AR = AnchorRef;
 using PT = std::pair<const csubstr, Case>;
-#define C(name, ...)                                    \
-    PT \
-    ( \
-        std::piecewise_construct_t{} C4_COMMA \
-        std::forward_as_tuple(name) C4_COMMA                    \
-        std::forward_as_tuple(name C4_COMMA __VA_ARGS__)        \
+#define C(name, ...)                                        \
+    PT                                                      \
+    (                                                       \
+        std::piecewise_construct_t{} C4_COMMA               \
+        std::forward_as_tuple(name) C4_COMMA                \
+        std::forward_as_tuple(name C4_COMMA __VA_ARGS__)    \
     )
 
 

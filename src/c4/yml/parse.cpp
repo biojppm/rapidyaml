@@ -2199,10 +2199,10 @@ bool Parser::_handle_indentation()
                 break;
             }
         }
-        C4_ASSERT(popto != nullptr);
-        C4_ASSERT(popto != m_state);
-        C4_ASSERT(popto <  m_state);
-        C4_ASSERT(popto->level <  m_state->level);
+        if(!popto || popto >= m_state || popto->level >= m_state->level)
+        {
+            _c4err("parse error: incorrect indentation?");
+        }
         _c4dbgpf("popping %zd level%s: from level %zd to level %zd", m_state->level-popto->level, m_state->level-popto->level > 1 ? "s":"", m_state->level, popto->level);
         while(m_state != popto)
         {
