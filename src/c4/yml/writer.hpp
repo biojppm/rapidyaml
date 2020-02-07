@@ -6,19 +6,25 @@
 #endif
 
 #include <c4/substr.hpp>
-#include <stdio.h> // fwrite(), fputc()
+#include <stdio.h>  // fwrite(), fputc()
 #include <string.h> // memcpy()
+
 
 namespace c4 {
 namespace yml {
 
 
-/** A character to be written a number of times. */
+/** Repeat-Character: a character to be written a number of times. */
 struct RepC
 {
     char c;
     size_t num_times;
 };
+inline RepC indent_to(size_t num_levels)
+{
+    return {' ', size_t(2) * num_levels};
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -39,25 +45,28 @@ struct WriterFile
         return sp;
     }
 
+    template<size_t N>
+    inline void _do_write(const char (&a)[N])
+    {
+        fwrite(a, sizeof(char), N - 1, m_file);
+        m_pos += N - 1;
+    }
+
     inline void _do_write(csubstr sp)
     {
         if(sp.empty()) return;
-        if(m_file)
-        {
-            fwrite(sp.str, 1, sp.len, m_file);
-        }
+        fwrite(sp.str, sizeof(csubstr::char_type), sp.len, m_file);
         m_pos += sp.len;
     }
 
     inline void _do_write(const char c)
     {
-        fwrite(&c, sizeof(char), 1, m_file);
+        fputc(c, m_file);
         ++m_pos;
     }
 
     inline void _do_write(RepC const rc)
     {
-        //fwrite(&rc.c, sizeof(char), rc.num_times, m_file); // this fails... need to investigate
         for(size_t i = 0; i < rc.num_times; ++i)
         {
             fputc(rc.c, m_file);
@@ -87,6 +96,13 @@ struct WriterOStream
         return sp;
     }
 
+    template<size_t N>
+    inline void _do_write(const char (&a)[N])
+    {
+        m_stream.write(a, N - 1);
+        m_pos += N - 1;
+    }
+
     inline void _do_write(csubstr sp)
     {
         if(sp.empty()) return;
@@ -114,7 +130,7 @@ struct WriterOStream
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-/** a writer to a string span */
+/** a writer to a substr */
 struct WriterBuf
 {
     substr m_buf;
@@ -124,19 +140,29 @@ struct WriterBuf
 
     inline substr _get(bool error_on_excess)
     {
-        substr sp = m_buf;
-        if(m_pos > sp.len)
+        if(m_pos <= m_buf.len)
         {
-            sp.len = m_pos;
-            sp.str = nullptr;
-            if(error_on_excess)
-            {
-                c4::yml::error("not enough space in the given buffer");
-            }
-            return sp;
+            return m_buf.first(m_pos);
         }
-        sp = sp.range(0, m_pos);
+        if(error_on_excess)
+        {
+            c4::yml::error("not enough space in the given buffer");
+        }
+        substr sp;
+        sp.str = nullptr;
+        sp.len = m_pos;
         return sp;
+    }
+
+    template<size_t N>
+    inline void _do_write(const char (&a)[N])
+    {
+        C4_ASSERT( ! m_buf.overlaps(a));
+        if(m_pos + N-1 <= m_buf.len)
+        {
+            memcpy(&(m_buf[m_pos]), a, N-1);
+        }
+        m_pos += N-1;
     }
 
     inline void _do_write(csubstr sp)

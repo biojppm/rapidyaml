@@ -5,8 +5,45 @@ namespace yml {
 
 #define SIMPLE_SET_CASES                     \
 "doc as set, implicit",                      \
-"doc as set"                                 \
-                                             \
+"doc as set"
+
+
+TEST(simple_set, emit)
+{
+    const char yaml[] = R"(!!set
+? aa
+? bb
+? cc
+)";
+    std::string expected = R"(!!set
+aa: ~
+bb: ~
+cc: ~
+)";
+    Tree t = parse(yaml);
+    auto s = emitrs<std::string>(t);
+    EXPECT_EQ(std::string(expected), s);
+}
+
+
+TEST(simple_set, emit_doc)
+{
+    const char yaml[] = R"(--- !!set
+? aa
+? bb
+? cc
+)";
+    std::string expected = R"(--- !!set
+aa: ~
+bb: ~
+cc: ~
+...
+)";
+    Tree t = parse(yaml);
+    auto s = emitrs<std::string>(t);
+    EXPECT_EQ(std::string(expected), s);
+}
+
 
 CASE_GROUP(SIMPLE_SET)
 {

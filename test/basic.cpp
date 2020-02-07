@@ -1348,6 +1348,47 @@ a:
     print_tree(t); // to make sure this is covered too
 }
 
+TEST(general, numbers)
+{
+    const char yaml[] = R"(- -1
+- -1.0
+- +1.0
+- 1e-2
+- 1e+2
+)";
+    Tree t = parse(yaml);
+    auto s = emitrs<std::string>(t);
+    EXPECT_EQ(s, std::string(yaml));
+}
+
+// github issue 29: https://github.com/biojppm/rapidyaml/issues/29
+TEST(general, newlines_on_maps_nested_in_seqs)
+{
+    const char yaml[] = R"(enemy:
+- actors:
+  - {name: Enemy_Bokoblin_Junior, value: 4.0}
+  - {name: Enemy_Bokoblin_Middle, value: 16.0}
+  - {name: Enemy_Bokoblin_Senior, value: 32.0}
+  - {name: Enemy_Bokoblin_Dark, value: 48.0}
+  species: BokoblinSeries
+)";
+    std::string expected = R"(enemy:
+  - actors:
+      - name: Enemy_Bokoblin_Junior
+        value: 4.0
+      - name: Enemy_Bokoblin_Middle
+        value: 16.0
+      - name: Enemy_Bokoblin_Senior
+        value: 32.0
+      - name: Enemy_Bokoblin_Dark
+        value: 48.0
+    species: BokoblinSeries
+)";
+    Tree t = parse(yaml);
+    auto s = emitrs<std::string>(t);
+    EXPECT_EQ(std::string(expected), s);
+}
+
 TEST(general, lookup_path)
 {
     const char yaml[] = R"(
