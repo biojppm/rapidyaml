@@ -80,7 +80,7 @@ struct Callbacks
     pfn_error    m_error;
 
     Callbacks();
-    Callbacks(void *user_data, pfn_allocate alloc, pfn_free free, pfn_error);
+    Callbacks(void *user_data, pfn_allocate alloc, pfn_free free, pfn_error error_);
 
     inline void* allocate(size_t len, void* hint) const
     {
@@ -110,10 +110,10 @@ struct Callbacks
 
 };
 
-/// set the global callbacks
-void set_callbacks(Callbacks const& c);
 /// get the global callbacks
 Callbacks const& get_callbacks();
+/// set the global callbacks
+void set_callbacks(Callbacks const& c);
 
 //-----------------------------------------------------------------------------
 

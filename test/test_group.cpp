@@ -2,6 +2,7 @@
 #include "c4/yml/detail/print.hpp"
 #include <c4/fs/fs.hpp>
 #include <fstream>
+#include <stdexcept>
 
 // this is needed to include yaml-cpp (!)
 #if defined(_MSC_VER)
@@ -28,6 +29,59 @@
 #   pragma GCC diagnostic pop
 #endif
 
+
+struct ExpectError
+{
+    bool m_got_an_error;
+    c4::yml::Callbacks m_prev;
+
+    ExpectError()
+        : m_got_an_error(false)
+        , m_prev(c4::yml::get_callbacks())
+    {
+        #ifdef RYML_NO_DEFAULT_CALLBACKS
+        c4::yml::Callbacks cb((void*)this, m_prev.m_allocate, m_prev.m_free, &ExpectErrors::error);
+        #else
+        c4::yml::Callbacks cb((void*)this, nullptr, nullptr, &ExpectError::error);
+        #endif
+        c4::yml::set_callbacks(cb);
+    }
+
+    ~ExpectError()
+    {
+        c4::yml::set_callbacks(m_prev);
+    }
+
+    static void error(const char* msg, size_t len, void *user_data)
+    {
+        ExpectError *this_ = reinterpret_cast<ExpectError*>(user_data);
+        this_->m_got_an_error = true;
+        throw std::runtime_error({msg, msg+len});
+    }
+
+    static void do_check(std::function<void()> fn)
+    {
+        auto fdx = ExpectError();
+        try
+        {
+            fn();
+        }
+        catch(std::runtime_error const& e)
+        {
+            C4_UNUSED(e);
+            #ifdef RYML_DBG
+            std::cout << "---------------\n";
+            std::cout << "got an expected error:\n" << e.what() << "\n";
+            std::cout << "---------------\n";
+            #endif
+        };
+        EXPECT_TRUE(fdx.m_got_an_error);
+    }
+};
+
+
+
+//-----------------------------------------------------------------------------
 namespace c4 {
 namespace yml {
 
@@ -39,6 +93,15 @@ TEST_P(YmlTestCase, parse_using_ryml)
     std::cout << c->src;
     std::cout << "---------------\n";
 #endif
+
+    if(c->flags & EXPECT_PARSE_ERROR)
+    {
+        ExpectError::do_check([this](){
+            parse(d->src, &d->parsed_tree);
+        });
+        return;
+    }
+
     parse(d->src, &d->parsed_tree);
     {
         SCOPED_TRACE("checking tree invariants of unresolved parsed tree");
@@ -105,18 +168,22 @@ TEST_P(YmlTestCase, parse_using_ryml)
 //-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, emit_yml_stdout)
 {
+    if(c->flags & EXPECT_PARSE_ERROR) return;
     d->numbytes_stdout = emit(d->parsed_tree);
 }
 
 //-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, emit_yml_cout)
 {
+    if(c->flags & EXPECT_PARSE_ERROR) return;
     std::cout << d->parsed_tree;
 }
 
 //-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, emit_yml_stringstream)
 {
+    if(c->flags & EXPECT_PARSE_ERROR) return;
+
     std::string s;
     std::vector<char> v;
     csubstr sv = emitrs(d->parsed_tree, &v);
@@ -141,6 +208,7 @@ TEST_P(YmlTestCase, emit_yml_stringstream)
 //-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, emit_ofstream)
 {
+    if(c->flags & EXPECT_PARSE_ERROR) return;
     auto s = emitrs<std::string>(d->parsed_tree);
     auto fn = c4::fs::tmpnam<std::string>();
     {
@@ -162,6 +230,7 @@ TEST_P(YmlTestCase, emit_ofstream)
 //-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, emit_yml_string)
 {
+    if(c->flags & EXPECT_PARSE_ERROR) return;
     auto em = emitrs(d->parsed_tree, &d->emit_buf);
     EXPECT_EQ(em.len, d->emit_buf.size());
     EXPECT_EQ(em.len, d->numbytes_stdout);
@@ -175,6 +244,7 @@ TEST_P(YmlTestCase, emit_yml_string)
 //-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, emitrs)
 {
+    if(c->flags & EXPECT_PARSE_ERROR) return;
     using vtype = std::vector<char>;
     using stype = std::string;
 
@@ -190,6 +260,7 @@ TEST_P(YmlTestCase, emitrs)
 //-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, emitrs_cfile)
 {
+    if(c->flags & EXPECT_PARSE_ERROR) return;
     auto s = emitrs<std::string>(d->parsed_tree);
     std::string r;
     {
@@ -204,6 +275,7 @@ TEST_P(YmlTestCase, emitrs_cfile)
 //-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, complete_round_trip)
 {
+    if(c->flags & EXPECT_PARSE_ERROR) return;
     if(d->parsed_tree.empty())
     {
         parse(d->src, &d->parsed_tree);
@@ -249,6 +321,8 @@ TEST_P(YmlTestCase, complete_round_trip)
 //-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, recreate_from_ref)
 {
+    if(c->flags & EXPECT_PARSE_ERROR) return;
+
     if(d->parsed_tree.empty())
     {
         parse(d->src, &d->parsed_tree);

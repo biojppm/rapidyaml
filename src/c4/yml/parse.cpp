@@ -2199,10 +2199,10 @@ bool Parser::_handle_indentation()
                 break;
             }
         }
-        C4_ASSERT(popto != nullptr);
-        C4_ASSERT(popto != m_state);
-        C4_ASSERT(popto <  m_state);
-        C4_ASSERT(popto->level <  m_state->level);
+        if(!popto || popto >= m_state || popto->level >= m_state->level)
+        {
+            _c4err("parse error: incorrect indentation?");
+        }
         _c4dbgpf("popping %zd level%s: from level %zd to level %zd", m_state->level-popto->level, m_state->level-popto->level > 1 ? "s":"", m_state->level, popto->level);
         while(m_state != popto)
         {
@@ -2276,13 +2276,14 @@ csubstr Parser::_scan_quoted_scalar(const char q)
     bool needs_filter = false;
 
     // a span to the end of the file
-    const size_t b = m_state->pos.offset;
+    size_t b = m_state->pos.offset;
     substr s = m_buf.sub(b);
     if(s.begins_with(' '))
     {
         s = s.triml(' ');
         _line_progressed((size_t)(s.begin() - m_buf.sub(b).begin()));
     }
+    b = m_state->pos.offset; // take this into account
     C4_ASSERT(s.begins_with(q));
 
     // skip the opening quote
@@ -2302,7 +2303,7 @@ csubstr Parser::_scan_quoted_scalar(const char q)
             for(size_t i = 0; i < line.len; ++i)
             {
                 const char curr = line.str[i];
-                const char next = i+1 < line.len ? line.str[i+1] : '\0';
+                const char next = i+1 < line.len ? line.str[i+1] : '~';
                 if(curr == '\'') // single quotes are escaped with two single quotes
                 {
                     if(next != '\'') // so just look for the first quote
@@ -2328,7 +2329,7 @@ csubstr Parser::_scan_quoted_scalar(const char q)
             for(size_t i = 0; i < line.len; ++i)
             {
                 const char curr = line.str[i];
-                const char next = i+1 < line.len ? line.str[i+1] : '\0';
+                const char next = i+1 < line.len ? line.str[i+1] : '~';
                 if(curr != ' ')
                 {
                     line_is_blank = false;
