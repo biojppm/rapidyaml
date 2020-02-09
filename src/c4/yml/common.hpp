@@ -53,6 +53,7 @@
 #   pragma warning(pop)
 #endif
 
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -69,12 +70,13 @@ enum : size_t { NONE = size_t(-1) };
 //-----------------------------------------------------------------------------
 
 /** the type of the function used to report errors. This function must
- * interrupt execution, either through abort() or by raising an exception. */
+ * interrupt execution, either by raising an exception or calling
+ * std::terminate()/std::abort(). */
 using pfn_error = void (*)(const char* msg, size_t msg_len, void *user_data);
 
 void error(const char *msg, size_t msg_len);
 
-template< size_t N >
+template<size_t N>
 inline void error(const char (&msg)[N])
 {
     error(msg, N-1);
@@ -118,7 +120,7 @@ struct Callbacks
         m_error(msg, msg_len, m_user_data);
     }
 
-    template< size_t N >
+    template<size_t N>
     inline void error(const char (&msg)[N]) const
     {
         error(msg, N-1);
@@ -130,6 +132,11 @@ struct Callbacks
 Callbacks const& get_callbacks();
 /// set the global callbacks
 void set_callbacks(Callbacks const& c);
+#ifdef RYML_NO_DEFAULT_CALLBACKS
+/// set the global callbacks to their defaults
+void reset_callbacks();
+#endif
+
 
 //-----------------------------------------------------------------------------
 

@@ -220,8 +220,8 @@ public:
     inline void set_key_serialized(T const& k)
     {
         _C4RV();
-        auto sp = m_tree->to_arena(k);
-        m_tree->_set_key(m_id, sp);
+        csubstr s = m_tree->to_arena(k);
+        m_tree->_set_key(m_id, s);
     }
 
     inline void set_key_tag(csubstr const& key_tag)
@@ -362,7 +362,7 @@ public:
         _apply(v);
     }
 
-    template< size_t N >
+    template<size_t N>
     inline void operator= (const char (&v)[N])
     {
         _apply_seed();
