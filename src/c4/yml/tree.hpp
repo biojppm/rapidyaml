@@ -24,11 +24,11 @@ class NodeRef;
 class Tree;
 
 
-/** the integer necessary to cover all the bits marking node types */
+/** the integral type necessary to cover all the bits marking node types */
 using type_bits = uint64_t;
 
 
-/** the regular bytes for */
+/** a bit mask for marking node types */
 typedef enum : type_bits {
 
 // a convenience define, undefined below
@@ -792,14 +792,50 @@ private:
 
 public:
 
-    inline void _add_flags(size_t node, NodeType_e f) { _p(node)->m_type = (f | _p(node)->m_type); }
-    inline void _add_flags(size_t node, type_bits  f) { _p(node)->m_type = (f | _p(node)->m_type); }
+    #ifndef RYML_USE_ASSERT
+    #define _check_next_flags(node, f)
+    #else
+    inline void _check_next_flags(size_t node, type_bits f)
+    {
+        auto n = _p(node);
+        type_bits o = n->m_type; // old
+        if(f & MAP)
+        {
+            RYML_ASSERT_MSG((f & SEQ) == 0, "cannot mark simultaneously as map and seq");
+            RYML_ASSERT_MSG((f & VAL) == 0, "cannot mark simultaneously as map and val");
+            RYML_ASSERT_MSG((o & SEQ) == 0, "cannot turn a seq into a map; clear first");
+            RYML_ASSERT_MSG((o & VAL) == 0, "cannot turn a val into a map; clear first");
+        }
+        else if(f & SEQ)
+        {
+            RYML_ASSERT_MSG((f & MAP) == 0, "cannot mark simultaneously as seq and map");
+            RYML_ASSERT_MSG((f & VAL) == 0, "cannot mark simultaneously as seq and val");
+            RYML_ASSERT_MSG((o & MAP) == 0, "cannot turn a map into a seq; clear first");
+            RYML_ASSERT_MSG((o & VAL) == 0, "cannot turn a val into a seq; clear first");
+        }
+        if(f & KEY)
+        {
+            RYML_ASSERT(!is_root(node));
+            auto pid = parent(node);
+            RYML_ASSERT(is_map(pid));
+        }
+        if(f & VAL)
+        {
+            RYML_ASSERT(!is_root(node));
+            auto pid = parent(node);
+            RYML_ASSERT(is_map(pid) || is_seq(pid));
+        }
+    }
+    #endif
 
-    inline void _rem_flags(size_t node, NodeType_e f) { _p(node)->m_type = ((~f) & _p(node)->m_type); }
-    inline void _rem_flags(size_t node, type_bits  f) { _p(node)->m_type = ((~f) & _p(node)->m_type); }
+    inline void _set_flags(size_t node, NodeType_e f) { _check_next_flags(node, f); _p(node)->m_type = f; }
+    inline void _set_flags(size_t node, type_bits  f) { _check_next_flags(node, f); _p(node)->m_type = f; }
 
-    inline void _set_flags(size_t node, NodeType_e f) { _p(node)->m_type = f; }
-    inline void _set_flags(size_t node, type_bits  f) { _p(node)->m_type = f; }
+    inline void _add_flags(size_t node, NodeType_e f) { NodeData *d = _p(node); type_bits fb = f | d->m_type; _check_next_flags(node, fb); d->m_type = (NodeType_e) fb; }
+    inline void _add_flags(size_t node, type_bits  f) { NodeData *d = _p(node);               f |= d->m_type; _check_next_flags(node,  f); d->m_type = f; }
+
+    inline void _rem_flags(size_t node, NodeType_e f) { NodeData *d = _p(node); type_bits fb = d->m_type & ~f; _check_next_flags(node, fb); d->m_type = (NodeType_e) fb; }
+    inline void _rem_flags(size_t node, type_bits  f) { NodeData *d = _p(node);            f = d->m_type & ~f; _check_next_flags(node,  f); d->m_type = f; }
 
     void _set_key(size_t node, csubstr const& key, type_bits more_flags=0)
     {
@@ -814,8 +850,8 @@ public:
 
     void _set_val(size_t node, csubstr const& val, type_bits more_flags=0)
     {
-        C4_ASSERT(num_children(node) == 0);
-        C4_ASSERT( ! is_container(node));
+        RYML_ASSERT(num_children(node) == 0);
+        RYML_ASSERT( ! is_container(node));
         _p(node)->m_val.scalar = val;
         _add_flags(node, VAL|more_flags);
     }
@@ -921,6 +957,11 @@ public:
         auto const& C4_RESTRICT src = *that_tree->_p(src_);
         dst.m_type = src.m_type;
         dst.m_val  = src.m_val;
+    }
+
+    inline void _clear_type(size_t node)
+    {
+        _p(node)->m_type = NOTYPE;
     }
 
     inline void _clear(size_t node)

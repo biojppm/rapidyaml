@@ -907,6 +907,7 @@ void Tree::merge_with(Tree const *src, size_t src_node, size_t dst_node)
             {
                 remove_children(dst_node);
             }
+            _clear_type(dst_node);
             if(src->has_key(src_node))
             {
                 to_seq(dst_node, src->key(src_node));
@@ -932,6 +933,7 @@ void Tree::merge_with(Tree const *src, size_t src_node, size_t dst_node)
             {
                 remove_children(dst_node);
             }
+            _clear_type(dst_node);
             if(src->has_key(src_node))
             {
                 to_map(dst_node, src->key(src_node));
