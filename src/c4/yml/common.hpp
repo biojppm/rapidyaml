@@ -18,17 +18,33 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 
-#define C4_ERROR_IF(cond, msg)         \
-    if(cond)                           \
-    {                                  \
-        C4_ERROR(msg);                 \
+
+#ifndef RYML_USE_ASSERT
+#   define RYML_USE_ASSERT C4_USE_ASSERT
+#endif
+
+
+#ifndef RYML_USE_ASSERT
+#   define RYML_ASSERT(cond)
+#   define RYML_ASSERT_MSG(cond, msg)
+#else
+#   define RYML_ASSERT(cond) RYML_CHECK(cond)
+#   define RYML_ASSERT_MSG(cond, msg) RYML_CHECK_MSG(cond, msg)
+#endif
+
+
+#define RYML_CHECK_MSG(cond, msg)                           \
+    if(!(cond))                                             \
+    {                                                       \
+        ::c4::yml::error(msg ": expected true: " #cond);    \
     }
 
-#define C4_ERROR_IF_NOT(cond, msg)     \
-    if(!(cond))                        \
-    {                                  \
-        C4_ERROR(msg);                 \
+#define RYML_CHECK(cond)                            \
+    if(!(cond))                                     \
+    {                                               \
+        ::c4::yml::error("expected true: " #cond);  \
     }
+
 
 #pragma clang diagnostic pop
 #pragma GCC diagnostic pop
