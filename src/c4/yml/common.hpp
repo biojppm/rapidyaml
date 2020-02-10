@@ -200,7 +200,7 @@ struct Allocator
 
     inline void free(void *mem, size_t num_bytes)
     {
-        C4_ASSERT(r != nullptr);
+        RYML_ASSERT(r != nullptr);
         r->free(mem, num_bytes);
     }
 };

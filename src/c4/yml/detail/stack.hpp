@@ -100,25 +100,25 @@ public:
 
     T const& C4_RESTRICT pop()
     {
-        C4_ASSERT(m_size > 0);
+        RYML_ASSERT(m_size > 0);
         --m_size;
         return m_stack[m_size];
     }
 
-    C4_ALWAYS_INLINE T const& C4_RESTRICT top() const { C4_ASSERT(m_size > 0); return m_stack[m_size - 1]; }
-    C4_ALWAYS_INLINE T      & C4_RESTRICT top()       { C4_ASSERT(m_size > 0); return m_stack[m_size - 1]; }
+    C4_ALWAYS_INLINE T const& C4_RESTRICT top() const { RYML_ASSERT(m_size > 0); return m_stack[m_size - 1]; }
+    C4_ALWAYS_INLINE T      & C4_RESTRICT top()       { RYML_ASSERT(m_size > 0); return m_stack[m_size - 1]; }
 
-    C4_ALWAYS_INLINE T const& C4_RESTRICT bottom() const { C4_ASSERT(m_size > 0); return m_stack[0]; }
-    C4_ALWAYS_INLINE T      & C4_RESTRICT bottom()       { C4_ASSERT(m_size > 0); return m_stack[0]; }
+    C4_ALWAYS_INLINE T const& C4_RESTRICT bottom() const { RYML_ASSERT(m_size > 0); return m_stack[0]; }
+    C4_ALWAYS_INLINE T      & C4_RESTRICT bottom()       { RYML_ASSERT(m_size > 0); return m_stack[0]; }
 
-    C4_ALWAYS_INLINE T const& C4_RESTRICT top(size_t i) const { C4_ASSERT(i >= 0 && i < m_size); return m_stack[m_size - 1 - i]; }
-    C4_ALWAYS_INLINE T      & C4_RESTRICT top(size_t i)       { C4_ASSERT(i >= 0 && i < m_size); return m_stack[m_size - 1 - i]; }
+    C4_ALWAYS_INLINE T const& C4_RESTRICT top(size_t i) const { RYML_ASSERT(i >= 0 && i < m_size); return m_stack[m_size - 1 - i]; }
+    C4_ALWAYS_INLINE T      & C4_RESTRICT top(size_t i)       { RYML_ASSERT(i >= 0 && i < m_size); return m_stack[m_size - 1 - i]; }
 
-    C4_ALWAYS_INLINE T const& C4_RESTRICT bottom(size_t i) const { C4_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
-    C4_ALWAYS_INLINE T      & C4_RESTRICT bottom(size_t i)       { C4_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
+    C4_ALWAYS_INLINE T const& C4_RESTRICT bottom(size_t i) const { RYML_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
+    C4_ALWAYS_INLINE T      & C4_RESTRICT bottom(size_t i)       { RYML_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
 
-    C4_ALWAYS_INLINE T const& C4_RESTRICT operator[](size_t i) const { C4_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
-    C4_ALWAYS_INLINE T      & C4_RESTRICT operator[](size_t i)       { C4_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
+    C4_ALWAYS_INLINE T const& C4_RESTRICT operator[](size_t i) const { RYML_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
+    C4_ALWAYS_INLINE T      & C4_RESTRICT operator[](size_t i)       { RYML_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
 
 public:
 
@@ -168,7 +168,7 @@ void stack<T, N>::reserve(size_t sz)
 template<class T, size_t N>
 void stack<T, N>::_free()
 {
-    C4_ASSERT(m_stack != nullptr); // this structure cannot be memset() to zero
+    RYML_ASSERT(m_stack != nullptr); // this structure cannot be memset() to zero
     if(m_stack != m_buf)
     {
         m_alloc.free(m_stack, m_capacity * sizeof(T));
@@ -176,7 +176,7 @@ void stack<T, N>::_free()
     }
     else
     {
-        C4_ASSERT(m_capacity == N);
+        RYML_ASSERT(m_capacity == N);
     }
 }
 
@@ -188,15 +188,15 @@ void stack<T, N>::_cp(stack const* C4_RESTRICT that)
 {
     if(that->m_stack != that->m_buf)
     {
-        C4_ASSERT(m_stack != m_buf);
-        C4_ASSERT(that->m_capacity > N);
-        C4_ASSERT(that->m_size > N);
-        C4_ASSERT(that->m_size <= that->m_capacity);
+        RYML_ASSERT(m_stack != m_buf);
+        RYML_ASSERT(that->m_capacity > N);
+        RYML_ASSERT(that->m_size > N);
+        RYML_ASSERT(that->m_size <= that->m_capacity);
     }
     else
     {
-        C4_ASSERT(that->m_capacity <= N);
-        C4_ASSERT(that->m_size <= that->m_capacity);
+        RYML_ASSERT(that->m_capacity <= N);
+        RYML_ASSERT(that->m_size <= that->m_capacity);
     }
     memcpy(m_stack, that->m_stack, that->m_size * sizeof(T));
     m_size = that->m_size;
@@ -212,15 +212,15 @@ void stack<T, N>::_mv(stack * that)
 {
     if(that->m_stack != that->m_buf)
     {
-        C4_ASSERT(that->m_capacity > N);
-        C4_ASSERT(that->m_size > N);
-        C4_ASSERT(that->m_size <= that->m_capacity);
+        RYML_ASSERT(that->m_capacity > N);
+        RYML_ASSERT(that->m_size > N);
+        RYML_ASSERT(that->m_size <= that->m_capacity);
         m_stack = that->m_stack;
     }
     else
     {
-        C4_ASSERT(that->m_capacity <= N);
-        C4_ASSERT(that->m_size <= that->m_capacity);
+        RYML_ASSERT(that->m_capacity <= N);
+        RYML_ASSERT(that->m_size <= that->m_capacity);
         memcpy(m_buf, that->m_buf, that->m_size * sizeof(T));
         m_stack = m_buf;
     }
@@ -228,7 +228,7 @@ void stack<T, N>::_mv(stack * that)
     m_capacity = that->m_size;
     m_alloc = that->m_alloc;
     // make sure no deallocation happens on destruction
-    C4_ASSERT(that->m_stack != m_buf);
+    RYML_ASSERT(that->m_stack != m_buf);
     that->m_stack = that->m_buf;
     that->m_capacity = N;
     that->m_size = 0;

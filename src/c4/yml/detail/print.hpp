@@ -7,7 +7,7 @@
 
 namespace c4 {
 namespace yml {
-   
+
 
 inline size_t print_node(Tree const& p, size_t node, int level, size_t count, bool print_children)
 {
@@ -38,7 +38,7 @@ inline size_t print_node(Tree const& p, size_t node, int level, size_t count, bo
     }
     else
     {
-        C4_ASSERT( ! p.has_key_tag(node));
+        RYML_ASSERT( ! p.has_key_tag(node));
     }
     if(p.has_val(node))
     {

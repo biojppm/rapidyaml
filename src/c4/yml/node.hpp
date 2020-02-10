@@ -80,16 +80,16 @@ public:
     inline NodeData      * get()       { return m_tree->get(m_id); }
     inline NodeData const* get() const { return m_tree->get(m_id); }
 
-#define _C4RV() C4_ASSERT(valid() && !is_seed()) // save some typing (and some reading too!)
+#define _C4RV() RYML_ASSERT(valid() && !is_seed()) // save some typing (and some reading too!)
 
-    inline bool operator== (NodeRef const& that) const { _C4RV(); C4_ASSERT(that.valid() && !that.is_seed()); C4_ASSERT(that.m_tree == m_tree); return m_id == that.m_id; }
+    inline bool operator== (NodeRef const& that) const { _C4RV(); RYML_ASSERT(that.valid() && !that.is_seed()); RYML_ASSERT(that.m_tree == m_tree); return m_id == that.m_id; }
     inline bool operator!= (NodeRef const& that) const { return ! this->operator==(that); }
 
     inline bool operator== (std::nullptr_t) const { return m_tree == nullptr || m_id == NONE || is_seed(); }
     inline bool operator!= (std::nullptr_t) const { return ! this->operator== (nullptr); }
 
-    inline bool operator== (csubstr val) const { _C4RV(); C4_ASSERT(has_val()); return m_tree->val(m_id) == val; }
-    inline bool operator!= (csubstr val) const { _C4RV(); C4_ASSERT(has_val()); return m_tree->val(m_id) != val; }
+    inline bool operator== (csubstr val) const { _C4RV(); RYML_ASSERT(has_val()); return m_tree->val(m_id) == val; }
+    inline bool operator!= (csubstr val) const { _C4RV(); RYML_ASSERT(has_val()); return m_tree->val(m_id) != val; }
 
     //inline operator bool () const { return m_tree == nullptr || m_id == NONE || is_seed(); }
 
@@ -103,7 +103,7 @@ public:
 public:
 
     inline NodeType_e   type() const { _C4RV(); return m_tree->type(m_id); }
-    inline const char*  type_str() const { _C4RV(); C4_ASSERT(valid() && ! is_seed()); return m_tree->type_str(m_id); }
+    inline const char*  type_str() const { _C4RV(); RYML_ASSERT(valid() && ! is_seed()); return m_tree->type_str(m_id); }
 
     inline csubstr    const& key    () const { _C4RV(); return m_tree->key(m_id); }
     inline csubstr    const& key_tag() const { _C4RV(); return m_tree->key_tag(m_id); }
@@ -262,8 +262,8 @@ public:
     /** O(num_children) */
     NodeRef operator[] (csubstr const& k)
     {
-        C4_ASSERT( ! is_seed());
-        C4_ASSERT(valid());
+        RYML_ASSERT( ! is_seed());
+        RYML_ASSERT(valid());
         size_t ch = m_tree->find_child(m_id, k);
         NodeRef r = ch != NONE ? NodeRef(m_tree, ch) : NodeRef(m_tree, m_id, k);
         return r;
@@ -272,8 +272,8 @@ public:
     /** O(num_children) */
     NodeRef operator[] (size_t pos)
     {
-        C4_ASSERT( ! is_seed());
-        C4_ASSERT(valid());
+        RYML_ASSERT( ! is_seed());
+        RYML_ASSERT(valid());
         size_t ch = m_tree->child(m_id, pos);
         NodeRef r = ch != NONE ? NodeRef(m_tree, ch) : NodeRef(m_tree, m_id, pos);
         return r;
@@ -284,10 +284,10 @@ public:
     /** O(num_children) */
     NodeRef const operator[] (csubstr const& k) const
     {
-        C4_ASSERT( ! is_seed());
-        C4_ASSERT(valid());
+        RYML_ASSERT( ! is_seed());
+        RYML_ASSERT(valid());
         size_t ch = m_tree->find_child(m_id, k);
-        C4_ASSERT(ch != NONE);
+        RYML_ASSERT(ch != NONE);
         NodeRef const r(m_tree, ch);
         return r;
     }
@@ -295,10 +295,10 @@ public:
     /** O(num_children) */
     NodeRef const operator[] (size_t pos) const
     {
-        C4_ASSERT( ! is_seed());
-        C4_ASSERT(valid());
+        RYML_ASSERT( ! is_seed());
+        RYML_ASSERT(valid());
         size_t ch = m_tree->child(m_id, pos);
-        C4_ASSERT(ch != NONE);
+        RYML_ASSERT(ch != NONE);
         NodeRef const r(m_tree, ch);
         return r;
     }
@@ -377,7 +377,7 @@ public:
     {
         _apply_seed();
         write(this, s);
-        C4_ASSERT(get()->val() == s);
+        RYML_ASSERT(get()->val() == s);
         return *this;
     }
 
@@ -408,9 +408,9 @@ public:
     template<class T>
     inline NodeRef const& operator>> (T &v) const
     {
-        C4_ASSERT( ! is_seed());
-        C4_ASSERT(valid());
-        C4_ASSERT(get() != nullptr);
+        RYML_ASSERT( ! is_seed());
+        RYML_ASSERT(valid());
+        RYML_ASSERT(get() != nullptr);
         if( ! read(*this, &v))
         {
             c4::yml::error("could not parse value");
@@ -421,9 +421,9 @@ public:
     template<class T>
     inline NodeRef const& operator>> (Key<T> v) const
     {
-        C4_ASSERT( ! is_seed());
-        C4_ASSERT(valid());
-        C4_ASSERT(get() != nullptr);
+        RYML_ASSERT( ! is_seed());
+        RYML_ASSERT(valid());
+        RYML_ASSERT(get() != nullptr);
         from_chars(key(), &v.k);
         return *this;
     }
@@ -460,7 +460,7 @@ private:
     {
         if(m_seed.str) // we have a seed key: use it to create the new child
         {
-            //C4_ASSERT(i.key.scalar.empty() || m_key == i.key.scalar || m_key.empty());
+            //RYML_ASSERT(i.key.scalar.empty() || m_key == i.key.scalar || m_key.empty());
             m_id = m_tree->append_child(m_id);
             m_tree->_set_key(m_id, m_seed);
             m_seed.str = nullptr;
@@ -468,14 +468,14 @@ private:
         }
         else if(m_seed.len != NONE) // we have a seed index: create a child at that position
         {
-            C4_ASSERT(m_tree->num_children(m_id) == m_seed.len);
+            RYML_ASSERT(m_tree->num_children(m_id) == m_seed.len);
             m_id = m_tree->append_child(m_id);
             m_seed.str = nullptr;
             m_seed.len = NONE;
         }
         else
         {
-            C4_ASSERT(valid());
+            RYML_ASSERT(valid());
         }
     }
 
@@ -499,7 +499,7 @@ public:
     inline NodeRef insert_child(NodeRef after)
     {
         _C4RV();
-        C4_ASSERT(after.m_tree == m_tree);
+        RYML_ASSERT(after.m_tree == m_tree);
         NodeRef r(m_tree, m_tree->insert_child(m_id, after.m_id));
         return r;
     }
@@ -507,7 +507,7 @@ public:
     inline NodeRef insert_child(NodeInit const& i, NodeRef after)
     {
         _C4RV();
-        C4_ASSERT(after.m_tree == m_tree);
+        RYML_ASSERT(after.m_tree == m_tree);
         NodeRef r(m_tree, m_tree->insert_child(m_id, after.m_id));
         r._apply(i);
         return r;
@@ -548,7 +548,7 @@ public:
     inline NodeRef insert_sibling(NodeRef const after)
     {
         _C4RV();
-        C4_ASSERT(after.m_tree == m_tree);
+        RYML_ASSERT(after.m_tree == m_tree);
         NodeRef r(m_tree, m_tree->insert_sibling(m_id, after.m_id));
         return r;
     }
@@ -556,7 +556,7 @@ public:
     inline NodeRef insert_sibling(NodeInit const& i, NodeRef const after)
     {
         _C4RV();
-        C4_ASSERT(after.m_tree == m_tree);
+        RYML_ASSERT(after.m_tree == m_tree);
         NodeRef r(m_tree, m_tree->insert_sibling(m_id, after.m_id));
         r._apply(i);
         return r;
@@ -597,8 +597,8 @@ public:
     inline void remove_child(NodeRef & child)
     {
         _C4RV();
-        C4_ASSERT(has_child(child));
-        C4_ASSERT(child.parent().id() == id());
+        RYML_ASSERT(has_child(child));
+        RYML_ASSERT(child.parent().id() == id());
         m_tree->remove(child.id());
         child.clear();
     }
@@ -607,9 +607,9 @@ public:
     inline void remove_child(size_t pos)
     {
         _C4RV();
-        C4_ASSERT(pos >= 0 && pos < num_children());
+        RYML_ASSERT(pos >= 0 && pos < num_children());
         size_t child = m_tree->child(m_id, pos);
-        C4_ASSERT(child != NONE);
+        RYML_ASSERT(child != NONE);
         m_tree->remove(child);
     }
 
@@ -618,7 +618,7 @@ public:
     {
         _C4RV();
         size_t child = m_tree->find_child(m_id, key);
-        C4_ASSERT(child != NONE);
+        RYML_ASSERT(child != NONE);
         m_tree->remove(child);
     }
 
@@ -637,7 +637,7 @@ public:
     inline void move(NodeRef const parent, NodeRef const after)
     {
         _C4RV();
-        C4_ASSERT(parent.m_tree == after.m_tree);
+        RYML_ASSERT(parent.m_tree == after.m_tree);
         if(parent.m_tree == m_tree)
         {
             m_tree->move(m_id, parent.m_id, after.m_id);
@@ -652,7 +652,7 @@ public:
     inline NodeRef duplicate(NodeRef const parent, NodeRef const after) const
     {
         _C4RV();
-        C4_ASSERT(parent.m_tree == after.m_tree);
+        RYML_ASSERT(parent.m_tree == after.m_tree);
         if(parent.m_tree == m_tree)
         {
             size_t dup = m_tree->duplicate(m_id, parent.m_id, after.m_id);
@@ -670,7 +670,7 @@ public:
     inline void duplicate_children(NodeRef const parent, NodeRef const after) const
     {
         _C4RV();
-        C4_ASSERT(parent.m_tree == after.m_tree);
+        RYML_ASSERT(parent.m_tree == after.m_tree);
         if(parent.m_tree == m_tree)
         {
             m_tree->duplicate_children(m_id, parent.m_id, after.m_id);
@@ -693,14 +693,14 @@ private:
 
         child_iterator(Tree * t, size_t id) : m_tree(t), m_child_id(id) {}
 
-        child_iterator& operator++ () { C4_ASSERT(m_child_id != NONE); m_child_id = m_tree->next_sibling(m_child_id); return *this; }
-        child_iterator& operator-- () { C4_ASSERT(m_child_id != NONE); m_child_id = m_tree->prev_sibling(m_child_id); return *this; }
+        child_iterator& operator++ () { RYML_ASSERT(m_child_id != NONE); m_child_id = m_tree->next_sibling(m_child_id); return *this; }
+        child_iterator& operator-- () { RYML_ASSERT(m_child_id != NONE); m_child_id = m_tree->prev_sibling(m_child_id); return *this; }
 
         Nd operator*  () const { return Nd(m_tree, m_child_id); }
         Nd operator-> () const { return Nd(m_tree, m_child_id); }
 
-        bool operator!= (child_iterator that) const { C4_ASSERT(m_tree == that.m_tree); return m_child_id != that.m_child_id; }
-        bool operator== (child_iterator that) const { C4_ASSERT(m_tree == that.m_tree); return m_child_id == that.m_child_id; }
+        bool operator!= (child_iterator that) const { RYML_ASSERT(m_tree == that.m_tree); return m_child_id != that.m_child_id; }
+        bool operator== (child_iterator that) const { RYML_ASSERT(m_tree == that.m_tree); return m_child_id == that.m_child_id; }
     };
 
 public:
