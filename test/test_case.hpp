@@ -49,6 +49,28 @@ void print_tree(CaseNode const& p, int level=0);
 
 void print_path(NodeRef const& p);
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+struct ExpectError
+{
+    bool m_got_an_error;
+    c4::yml::Callbacks m_prev;
+
+    ExpectError();
+    ~ExpectError();
+
+    static void error(const char* msg, size_t len, void *user_data);
+    static void do_check(std::function<void()> fn);
+};
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 struct TaggedScalar
 {
     csubstr tag;
@@ -66,6 +88,10 @@ struct AnchorRef
     AnchorRef(NodeType_e t, csubstr v) : type(t), str(v) {}
 };
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 /** a node class against which ryml structures are tested. Uses initializer
  * lists to facilitate minimal specification. */

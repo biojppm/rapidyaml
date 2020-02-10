@@ -24,11 +24,11 @@ class NodeRef;
 class Tree;
 
 
-/** the integer necessary to cover all the bits marking node types */
+/** the integral type necessary to cover all the bits marking node types */
 using type_bits = uint64_t;
 
 
-/** the regular bytes for */
+/** a bit mask for marking node types */
 typedef enum : type_bits {
 
 // a convenience define, undefined below
@@ -252,13 +252,13 @@ public:
     bool _check() const
     {
         // key cannot be empty
-        C4_ASSERT(key.scalar.empty() == ((type & KEY) == 0));
+        RYML_ASSERT(key.scalar.empty() == ((type & KEY) == 0));
         // key tag cannot be empty
-        C4_ASSERT(key.tag.empty() == ((type & KEYTAG) == 0));
+        RYML_ASSERT(key.tag.empty() == ((type & KEYTAG) == 0));
         // val may be empty even though VAL is set. But when VAL is not set, val must be empty
-        C4_ASSERT(((type & VAL) != 0) || val.scalar.empty());
+        RYML_ASSERT(((type & VAL) != 0) || val.scalar.empty());
         // val tag cannot be empty
-        C4_ASSERT(val.tag.empty() == ((type & VALTAG) == 0));
+        RYML_ASSERT(val.tag.empty() == ((type & VALTAG) == 0));
         return true;
     }
 };
@@ -299,15 +299,15 @@ public:
     const char* type_str() const { return type_str(m_type); }
     static const char* type_str(NodeType_e ty);
 
-    csubstr const& key() const { C4_ASSERT(has_key()); return m_key.scalar; }
-    csubstr const& key_tag() const { C4_ASSERT(has_key_tag()); return m_key.tag; }
+    csubstr const& key() const { RYML_ASSERT(has_key()); return m_key.scalar; }
+    csubstr const& key_tag() const { RYML_ASSERT(has_key_tag()); return m_key.tag; }
     csubstr const& key_anchor() const { return m_key.anchor; }
-    NodeScalar const& keysc() const { C4_ASSERT(has_key()); return m_key; }
+    NodeScalar const& keysc() const { RYML_ASSERT(has_key()); return m_key; }
 
-    csubstr const& val() const { C4_ASSERT(has_val()); return m_val.scalar; }
-    csubstr const& val_tag() const { C4_ASSERT(has_val_tag()); return m_val.tag; }
-    csubstr const& val_anchor() const { C4_ASSERT(has_val_tag()); return m_val.anchor; }
-    NodeScalar const& valsc() const { C4_ASSERT(has_val()); return m_val; }
+    csubstr const& val() const { RYML_ASSERT(has_val()); return m_val.scalar; }
+    csubstr const& val_tag() const { RYML_ASSERT(has_val_tag()); return m_val.tag; }
+    csubstr const& val_anchor() const { RYML_ASSERT(has_val_tag()); return m_val.anchor; }
+    NodeScalar const& valsc() const { RYML_ASSERT(has_val()); return m_val; }
 
 public:
 
@@ -366,11 +366,11 @@ public:
 
     inline size_t size () const { return m_size; }
     inline size_t capacity() const { return m_cap; }
-    inline size_t slack() const { C4_ASSERT(m_cap >= m_size); return m_cap - m_size; }
+    inline size_t slack() const { RYML_ASSERT(m_cap >= m_size); return m_cap - m_size; }
 
     inline size_t arena_size() const { return m_arena_pos; }
     inline size_t arena_capacity() const { return m_arena.len; }
-    inline size_t arena_slack() const { C4_ASSERT(m_arena.len >= m_arena_pos); return m_arena.len - m_arena_pos; }
+    inline size_t arena_slack() const { RYML_ASSERT(m_arena.len >= m_arena_pos); return m_arena.len - m_arena_pos; }
 
     Allocator const& allocator() const { return m_alloc; }
 
@@ -379,13 +379,13 @@ public:
     size_t id(NodeData const* n)
     {
         if( ! n) return NONE;
-        C4_ASSERT(n >= m_buf && n < m_buf + m_cap);
+        RYML_ASSERT(n >= m_buf && n < m_buf + m_cap);
         return n - m_buf;
     }
     size_t id(NodeData const* n) const
     {
         if( ! n) return NONE;
-        C4_ASSERT(n >= m_buf && n < m_buf + m_cap);
+        RYML_ASSERT(n >= m_buf && n < m_buf + m_cap);
         return n - m_buf;
     }
 
@@ -393,27 +393,27 @@ public:
     inline NodeData *get(size_t i)
     {
         if(i == NONE) return nullptr;
-        C4_ASSERT(i >= 0 && i < m_cap);
+        RYML_ASSERT(i >= 0 && i < m_cap);
         return m_buf + i;
     }
     inline NodeData const *get(size_t i) const
     {
         if(i == NONE) return nullptr;
-        C4_ASSERT(i >= 0 && i < m_cap);
+        RYML_ASSERT(i >= 0 && i < m_cap);
         return m_buf + i;
     }
 
     // a shorter form of []
-    inline NodeData       * _p(size_t i)       { C4_ASSERT(i != NONE && i >= 0 && i < m_cap); return m_buf + i; }
-    inline NodeData const * _p(size_t i) const { C4_ASSERT(i != NONE && i >= 0 && i < m_cap); return m_buf + i; }
+    inline NodeData       * _p(size_t i)       { RYML_ASSERT(i != NONE && i >= 0 && i < m_cap); return m_buf + i; }
+    inline NodeData const * _p(size_t i) const { RYML_ASSERT(i != NONE && i >= 0 && i < m_cap); return m_buf + i; }
 
     /** resolve references in the tree */
     void resolve();
 
 public:
 
-    size_t root_id()       { if(m_cap == 0) { reserve(16); } C4_ASSERT(m_cap > 0 && m_size > 0); return 0; }
-    size_t root_id() const {                                 C4_ASSERT(m_cap > 0 && m_size > 0); return 0; }
+    size_t root_id()       { if(m_cap == 0) { reserve(16); } RYML_ASSERT(m_cap > 0 && m_size > 0); return 0; }
+    size_t root_id() const {                                 RYML_ASSERT(m_cap > 0 && m_size > 0); return 0; }
 
     NodeRef       rootref();
     NodeRef const rootref() const;
@@ -429,24 +429,24 @@ public:
     NodeType_e  type(size_t node) const { return (NodeType_e)(_p(node)->m_type & _TYMASK); }
     const char* type_str(size_t node) const { return NodeType::type_str(_p(node)->m_type); }
 
-    csubstr    const& key       (size_t node) const { C4_ASSERT(has_key(node)); return _p(node)->m_key.scalar; }
-    csubstr    const& key_tag   (size_t node) const { C4_ASSERT(has_key_tag(node)); return _p(node)->m_key.tag; }
-    csubstr    const& key_ref   (size_t node) const { C4_ASSERT(is_key_ref(node) && ! has_key_anchor(node)); return _p(node)->m_key.anchor; }
-    csubstr    const& key_anchor(size_t node) const { C4_ASSERT( ! is_key_ref(node) && has_key_anchor(node)); return _p(node)->m_key.anchor; }
-    NodeScalar const& keysc     (size_t node) const { C4_ASSERT(has_key(node)); return _p(node)->m_key; }
+    csubstr    const& key       (size_t node) const { RYML_ASSERT(has_key(node)); return _p(node)->m_key.scalar; }
+    csubstr    const& key_tag   (size_t node) const { RYML_ASSERT(has_key_tag(node)); return _p(node)->m_key.tag; }
+    csubstr    const& key_ref   (size_t node) const { RYML_ASSERT(is_key_ref(node) && ! has_key_anchor(node)); return _p(node)->m_key.anchor; }
+    csubstr    const& key_anchor(size_t node) const { RYML_ASSERT( ! is_key_ref(node) && has_key_anchor(node)); return _p(node)->m_key.anchor; }
+    NodeScalar const& keysc     (size_t node) const { RYML_ASSERT(has_key(node)); return _p(node)->m_key; }
 
-    csubstr    const& val       (size_t node) const { C4_ASSERT(has_val(node)); return _p(node)->m_val.scalar; }
-    csubstr    const& val_tag   (size_t node) const { C4_ASSERT(has_val_tag(node)); return _p(node)->m_val.tag; }
-    csubstr    const& val_ref   (size_t node) const { C4_ASSERT(is_val_ref(node) && ! has_val_anchor(node)); return _p(node)->m_val.anchor; }
-    csubstr    const& val_anchor(size_t node) const { C4_ASSERT( ! is_val_ref(node) && has_val_anchor(node)); return _p(node)->m_val.anchor; }
-    NodeScalar const& valsc     (size_t node) const { C4_ASSERT(has_val(node)); return _p(node)->m_val; }
+    csubstr    const& val       (size_t node) const { RYML_ASSERT(has_val(node)); return _p(node)->m_val.scalar; }
+    csubstr    const& val_tag   (size_t node) const { RYML_ASSERT(has_val_tag(node)); return _p(node)->m_val.tag; }
+    csubstr    const& val_ref   (size_t node) const { RYML_ASSERT(is_val_ref(node) && ! has_val_anchor(node)); return _p(node)->m_val.anchor; }
+    csubstr    const& val_anchor(size_t node) const { RYML_ASSERT( ! is_val_ref(node) && has_val_anchor(node)); return _p(node)->m_val.anchor; }
+    NodeScalar const& valsc     (size_t node) const { RYML_ASSERT(has_val(node)); return _p(node)->m_val; }
 
 
 public:
 
     // node predicates
 
-    bool is_root(size_t node) const { C4_ASSERT(_p(node)->m_parent != NONE || node == 0); return _p(node)->m_parent == NONE; }
+    bool is_root(size_t node) const { RYML_ASSERT(_p(node)->m_parent != NONE || node == 0); return _p(node)->m_parent == NONE; }
     bool is_stream(size_t node) const { return (_p(node)->m_type & STREAM) == STREAM; }
     bool is_doc(size_t node) const { return (_p(node)->m_type & DOC) != 0; }
     bool is_container(size_t node) const { return (_p(node)->m_type & (MAP|SEQ|STREAM|DOC)) != 0; }
@@ -465,8 +465,8 @@ public:
     bool is_ref(size_t node) const { return (_p(node)->m_type & (KEYREF|VALREF)) != 0; }
     bool is_anchor(size_t node) const { return (_p(node)->m_type & (KEYANCH|VALANCH)) != 0; }
 
-    bool parent_is_seq(size_t node) const { C4_ASSERT(has_parent(node)); return is_seq(_p(node)->m_parent); }
-    bool parent_is_map(size_t node) const { C4_ASSERT(has_parent(node)); return is_map(_p(node)->m_parent); }
+    bool parent_is_seq(size_t node) const { RYML_ASSERT(has_parent(node)); return is_seq(_p(node)->m_parent); }
+    bool parent_is_map(size_t node) const { RYML_ASSERT(has_parent(node)); return is_map(_p(node)->m_parent); }
 
     /** true when name and value are empty, and has no children */
     bool empty(size_t node) const { return ! has_children(node) && _p(node)->m_key.empty() && (( ! (_p(node)->m_type & VAL)) || _p(node)->m_val.empty()); }
@@ -511,8 +511,8 @@ public:
     /** counts with this */
     size_t num_siblings(size_t node) const { return is_root(node) ? 1 : num_children(_p(node)->m_parent); }
     /** does not count with this */
-    size_t num_other_siblings(size_t node) const { size_t ns = num_siblings(node); C4_ASSERT(ns > 0); return ns-1; }
-    size_t sibling_pos(size_t node, size_t sib) const { C4_ASSERT( ! is_root(node) || node == root_id()); return child_pos(_p(node)->m_parent, sib); }
+    size_t num_other_siblings(size_t node) const { size_t ns = num_siblings(node); RYML_ASSERT(ns > 0); return ns-1; }
+    size_t sibling_pos(size_t node, size_t sib) const { RYML_ASSERT( ! is_root(node) || node == root_id()); return child_pos(_p(node)->m_parent, sib); }
     size_t first_sibling(size_t node) const { return is_root(node) ? node : _p(_p(node)->m_parent)->m_first_child; }
     size_t last_sibling(size_t node) const { return is_root(node) ? node : _p(_p(node)->m_parent)->m_last_child; }
     size_t sibling(size_t node, size_t pos) const { return child(_p(node)->m_parent, pos); }
@@ -529,21 +529,21 @@ public:
     void to_seq(size_t node, type_bits more_flags=0);
     void to_doc(size_t node, type_bits more_flags=0);
 
-    void set_key(size_t node, csubstr key) { C4_ASSERT(has_key(node)); _p(node)->m_key.scalar = key; }
-    void set_val(size_t node, csubstr val) { C4_ASSERT(has_val(node)); _p(node)->m_val.scalar = val; }
+    void set_key(size_t node, csubstr key) { RYML_ASSERT(has_key(node)); _p(node)->m_key.scalar = key; }
+    void set_val(size_t node, csubstr val) { RYML_ASSERT(has_val(node)); _p(node)->m_val.scalar = val; }
 
-    void set_key_tag(size_t node, csubstr const& tag) { C4_ASSERT(has_key(node)); _p(node)->m_key.tag = tag; _add_flags(node, KEYTAG); }
-    void set_val_tag(size_t node, csubstr const& tag) { C4_ASSERT(has_val(node) || is_container(node)); _p(node)->m_val.tag = tag; _add_flags(node, VALTAG); }
+    void set_key_tag(size_t node, csubstr const& tag) { RYML_ASSERT(has_key(node)); _p(node)->m_key.tag = tag; _add_flags(node, KEYTAG); }
+    void set_val_tag(size_t node, csubstr const& tag) { RYML_ASSERT(has_val(node) || is_container(node)); _p(node)->m_val.tag = tag; _add_flags(node, VALTAG); }
 
-    void set_key_anchor(size_t node, csubstr anchor) { C4_ASSERT( ! is_key_ref(node)); _p(node)->m_key.anchor = anchor; _add_flags(node, KEYANCH); }
-    void set_val_anchor(size_t node, csubstr anchor) { C4_ASSERT( ! is_val_ref(node)); _p(node)->m_val.anchor = anchor; _add_flags(node, VALANCH); }
-    void set_key_ref   (size_t node, csubstr ref   ) { C4_ASSERT( ! has_key_anchor(node)); _p(node)->m_key.anchor = ref; _add_flags(node, KEYREF); }
-    void set_val_ref   (size_t node, csubstr ref   ) { C4_ASSERT( ! has_val_anchor(node)); _p(node)->m_val.anchor = ref; _add_flags(node, VALREF); }
+    void set_key_anchor(size_t node, csubstr anchor) { RYML_ASSERT( ! is_key_ref(node)); _p(node)->m_key.anchor = anchor; _add_flags(node, KEYANCH); }
+    void set_val_anchor(size_t node, csubstr anchor) { RYML_ASSERT( ! is_val_ref(node)); _p(node)->m_val.anchor = anchor; _add_flags(node, VALANCH); }
+    void set_key_ref   (size_t node, csubstr ref   ) { RYML_ASSERT( ! has_key_anchor(node)); _p(node)->m_key.anchor = ref; _add_flags(node, KEYREF); }
+    void set_val_ref   (size_t node, csubstr ref   ) { RYML_ASSERT( ! has_val_anchor(node)); _p(node)->m_val.anchor = ref; _add_flags(node, VALREF); }
 
-    void rem_key_anchor(size_t node) { C4_ASSERT( ! is_key_ref(node)); _p(node)->m_key.anchor.clear(); _rem_flags(node, KEYANCH); }
-    void rem_val_anchor(size_t node) { C4_ASSERT( ! is_val_ref(node)); _p(node)->m_val.anchor.clear(); _rem_flags(node, VALANCH); }
-    void rem_key_ref   (size_t node) { C4_ASSERT( ! has_key_anchor(node)); _p(node)->m_key.anchor.clear(); _rem_flags(node, KEYREF); }
-    void rem_val_ref   (size_t node) { C4_ASSERT( ! has_val_anchor(node)); _p(node)->m_val.anchor.clear(); _rem_flags(node, VALREF); }
+    void rem_key_anchor(size_t node) { RYML_ASSERT( ! is_key_ref(node)); _p(node)->m_key.anchor.clear(); _rem_flags(node, KEYANCH); }
+    void rem_val_anchor(size_t node) { RYML_ASSERT( ! is_val_ref(node)); _p(node)->m_val.anchor.clear(); _rem_flags(node, VALANCH); }
+    void rem_key_ref   (size_t node) { RYML_ASSERT( ! has_key_anchor(node)); _p(node)->m_key.anchor.clear(); _rem_flags(node, KEYREF); }
+    void rem_val_ref   (size_t node) { RYML_ASSERT( ! has_val_anchor(node)); _p(node)->m_val.anchor.clear(); _rem_flags(node, VALREF); }
     void rem_anchor_ref(size_t node) { _p(node)->m_key.anchor.clear(); _p(node)->m_val.anchor.clear(); _rem_flags(node, KEYANCH|VALANCH|KEYREF|VALREF); }
 
 public:
@@ -553,9 +553,9 @@ public:
      * first child, set after to NONE */
     inline size_t insert_child(size_t parent, size_t after)
     {
-        C4_ASSERT(parent != NONE);
-        C4_ASSERT(is_container(parent) || is_root(parent));
-        C4_ASSERT(after == NONE || has_child(parent, after));
+        RYML_ASSERT(parent != NONE);
+        RYML_ASSERT(is_container(parent) || is_root(parent));
+        RYML_ASSERT(after == NONE || has_child(parent, after));
         size_t child = _claim();
         _set_hierarchy(child, parent, after);
         return child;
@@ -568,10 +568,10 @@ public:
     //! create and insert a new sibling of n. insert after "after"
     inline size_t insert_sibling(size_t node, size_t after)
     {
-        C4_ASSERT(node != NONE);
-        C4_ASSERT( ! is_root(node));
-        C4_ASSERT(parent(node) != NONE);
-        C4_ASSERT(after == NONE || (has_sibling(node, after) && has_sibling(after, node)));
+        RYML_ASSERT(node != NONE);
+        RYML_ASSERT( ! is_root(node));
+        RYML_ASSERT(parent(node) != NONE);
+        RYML_ASSERT(after == NONE || (has_sibling(node, after) && has_sibling(after, node)));
         return insert_child(get(node)->m_parent, after);
     }
     inline size_t prepend_sibling(size_t node) { return insert_sibling(node, NONE); }
@@ -664,7 +664,7 @@ public:
         {
             rem = _grow_arena(num);
             num = to_chars(rem, a);
-            C4_ASSERT(num <= rem.len);
+            RYML_ASSERT(num <= rem.len);
         }
         rem = _request_span(num);
         return rem;
@@ -688,7 +688,7 @@ public:
     substr copy_to_arena(csubstr s)
     {
         substr cp = alloc_arena(s.len);
-        C4_ASSERT(cp.len == s.len);
+        RYML_ASSERT(cp.len == s.len);
         memcpy(cp.str, s.str, s.len);
         return cp;
     }
@@ -702,7 +702,7 @@ public:
             buf.len = arena_cap;
             if(m_arena.str)
             {
-                C4_ASSERT(m_arena.len >= 0);
+                RYML_ASSERT(m_arena.len >= 0);
                 _relocate(buf); // does a memcpy and changes nodes using the arena
                 m_alloc.free(m_arena.str, m_arena.len);
             }
@@ -774,12 +774,12 @@ private:
 
     substr _relocated(csubstr s, substr next_arena) const
     {
-        C4_ASSERT(m_arena.contains(s));
-        C4_ASSERT(m_arena.sub(0, m_arena_pos).contains(s));
+        RYML_ASSERT(m_arena.contains(s));
+        RYML_ASSERT(m_arena.sub(0, m_arena_pos).contains(s));
         auto pos = (s.str - m_arena.str);
         substr r(next_arena.str + pos, s.len);
-        C4_ASSERT(r.str - next_arena.str == pos);
-        C4_ASSERT(next_arena.sub(0, m_arena_pos).contains(r));
+        RYML_ASSERT(r.str - next_arena.str == pos);
+        RYML_ASSERT(next_arena.sub(0, m_arena_pos).contains(r));
         return r;
     }
 
@@ -792,14 +792,50 @@ private:
 
 public:
 
-    inline void _add_flags(size_t node, NodeType_e f) { _p(node)->m_type = (f | _p(node)->m_type); }
-    inline void _add_flags(size_t node, type_bits  f) { _p(node)->m_type = (f | _p(node)->m_type); }
+    #ifndef RYML_USE_ASSERT
+    #define _check_next_flags(node, f)
+    #else
+    inline void _check_next_flags(size_t node, type_bits f)
+    {
+        auto n = _p(node);
+        type_bits o = n->m_type; // old
+        if(f & MAP)
+        {
+            RYML_ASSERT_MSG((f & SEQ) == 0, "cannot mark simultaneously as map and seq");
+            RYML_ASSERT_MSG((f & VAL) == 0, "cannot mark simultaneously as map and val");
+            RYML_ASSERT_MSG((o & SEQ) == 0, "cannot turn a seq into a map; clear first");
+            RYML_ASSERT_MSG((o & VAL) == 0, "cannot turn a val into a map; clear first");
+        }
+        else if(f & SEQ)
+        {
+            RYML_ASSERT_MSG((f & MAP) == 0, "cannot mark simultaneously as seq and map");
+            RYML_ASSERT_MSG((f & VAL) == 0, "cannot mark simultaneously as seq and val");
+            RYML_ASSERT_MSG((o & MAP) == 0, "cannot turn a map into a seq; clear first");
+            RYML_ASSERT_MSG((o & VAL) == 0, "cannot turn a val into a seq; clear first");
+        }
+        if(f & KEY)
+        {
+            RYML_ASSERT(!is_root(node));
+            auto pid = parent(node);
+            RYML_ASSERT(is_map(pid));
+        }
+        if(f & VAL)
+        {
+            RYML_ASSERT(!is_root(node));
+            auto pid = parent(node);
+            RYML_ASSERT(is_map(pid) || is_seq(pid));
+        }
+    }
+    #endif
 
-    inline void _rem_flags(size_t node, NodeType_e f) { _p(node)->m_type = ((~f) & _p(node)->m_type); }
-    inline void _rem_flags(size_t node, type_bits  f) { _p(node)->m_type = ((~f) & _p(node)->m_type); }
+    inline void _set_flags(size_t node, NodeType_e f) { _check_next_flags(node, f); _p(node)->m_type = f; }
+    inline void _set_flags(size_t node, type_bits  f) { _check_next_flags(node, f); _p(node)->m_type = f; }
 
-    inline void _set_flags(size_t node, NodeType_e f) { _p(node)->m_type = f; }
-    inline void _set_flags(size_t node, type_bits  f) { _p(node)->m_type = f; }
+    inline void _add_flags(size_t node, NodeType_e f) { NodeData *d = _p(node); type_bits fb = f | d->m_type; _check_next_flags(node, fb); d->m_type = (NodeType_e) fb; }
+    inline void _add_flags(size_t node, type_bits  f) { NodeData *d = _p(node);               f |= d->m_type; _check_next_flags(node,  f); d->m_type = f; }
+
+    inline void _rem_flags(size_t node, NodeType_e f) { NodeData *d = _p(node); type_bits fb = d->m_type & ~f; _check_next_flags(node, fb); d->m_type = (NodeType_e) fb; }
+    inline void _rem_flags(size_t node, type_bits  f) { NodeData *d = _p(node);            f = d->m_type & ~f; _check_next_flags(node,  f); d->m_type = f; }
 
     void _set_key(size_t node, csubstr const& key, type_bits more_flags=0)
     {
@@ -814,24 +850,24 @@ public:
 
     void _set_val(size_t node, csubstr const& val, type_bits more_flags=0)
     {
-        C4_ASSERT(num_children(node) == 0);
-        C4_ASSERT( ! is_container(node));
+        RYML_ASSERT(num_children(node) == 0);
+        RYML_ASSERT( ! is_container(node));
         _p(node)->m_val.scalar = val;
         _add_flags(node, VAL|more_flags);
     }
     void _set_val(size_t node, NodeScalar const& val, type_bits more_flags=0)
     {
-        C4_ASSERT(num_children(node) == 0);
-        C4_ASSERT( ! is_container(node));
+        RYML_ASSERT(num_children(node) == 0);
+        RYML_ASSERT( ! is_container(node));
         _p(node)->m_val = val;
         _add_flags(node, VAL|more_flags);
     }
 
     void _set(size_t node, NodeInit const& i)
     {
-        C4_ASSERT(i._check());
+        RYML_ASSERT(i._check());
         NodeData *n = _p(node);
-        C4_ASSERT(n->m_key.scalar.empty() || i.key.scalar.empty() || i.key.scalar == n->m_key.scalar);
+        RYML_ASSERT(n->m_key.scalar.empty() || i.key.scalar.empty() || i.key.scalar == n->m_key.scalar);
         _add_flags(node, i.type);
         if(n->m_key.scalar.empty())
         {
@@ -869,7 +905,7 @@ public:
 
     void _seq2map(size_t node)
     {
-        C4_ASSERT(is_seq(node));
+        RYML_ASSERT(is_seq(node));
         for(size_t i = first_child(node); i != NONE; i = next_sibling(i))
         {
             NodeData *C4_RESTRICT ch = _p(i);
@@ -921,6 +957,11 @@ public:
         auto const& C4_RESTRICT src = *that_tree->_p(src_);
         dst.m_type = src.m_type;
         dst.m_val  = src.m_val;
+    }
+
+    inline void _clear_type(size_t node)
+    {
+        _p(node)->m_type = NOTYPE;
     }
 
     inline void _clear(size_t node)

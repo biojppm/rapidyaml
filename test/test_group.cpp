@@ -30,57 +30,6 @@
 #endif
 
 
-struct ExpectError
-{
-    bool m_got_an_error;
-    c4::yml::Callbacks m_prev;
-
-    ExpectError()
-        : m_got_an_error(false)
-        , m_prev(c4::yml::get_callbacks())
-    {
-        #ifdef RYML_NO_DEFAULT_CALLBACKS
-        c4::yml::Callbacks cb((void*)this, m_prev.m_allocate, m_prev.m_free, &ExpectErrors::error);
-        #else
-        c4::yml::Callbacks cb((void*)this, nullptr, nullptr, &ExpectError::error);
-        #endif
-        c4::yml::set_callbacks(cb);
-    }
-
-    ~ExpectError()
-    {
-        c4::yml::set_callbacks(m_prev);
-    }
-
-    static void error(const char* msg, size_t len, void *user_data)
-    {
-        ExpectError *this_ = reinterpret_cast<ExpectError*>(user_data);
-        this_->m_got_an_error = true;
-        throw std::runtime_error({msg, msg+len});
-    }
-
-    static void do_check(std::function<void()> fn)
-    {
-        auto fdx = ExpectError();
-        try
-        {
-            fn();
-        }
-        catch(std::runtime_error const& e)
-        {
-            C4_UNUSED(e);
-            #ifdef RYML_DBG
-            std::cout << "---------------\n";
-            std::cout << "got an expected error:\n" << e.what() << "\n";
-            std::cout << "---------------\n";
-            #endif
-        };
-        EXPECT_TRUE(fdx.m_got_an_error);
-    }
-};
-
-
-
 //-----------------------------------------------------------------------------
 namespace c4 {
 namespace yml {

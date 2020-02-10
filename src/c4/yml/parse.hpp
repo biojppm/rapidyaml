@@ -203,8 +203,8 @@ private:
 
         size_t current_col(csubstr s) const
         {
-            C4_ASSERT(s.str >= full.str);
-            C4_ASSERT(full.contains(s));
+            RYML_ASSERT(s.str >= full.str);
+            RYML_ASSERT(full.contains(s));
             size_t col = s.str - full.str;
             return col;
         }
@@ -260,7 +260,7 @@ private:
 
     void _prepare_pop()
     {
-        C4_ASSERT(m_stack.size() > 1);
+        RYML_ASSERT(m_stack.size() > 1);
         State const& curr = m_stack.top();
         State      & next = m_stack.top(1);
         next.pos = curr.pos;

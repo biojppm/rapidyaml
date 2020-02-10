@@ -157,7 +157,7 @@ struct WriterBuf
     template<size_t N>
     inline void _do_write(const char (&a)[N])
     {
-        C4_ASSERT( ! m_buf.overlaps(a));
+        RYML_ASSERT( ! m_buf.overlaps(a));
         if(m_pos + N-1 <= m_buf.len)
         {
             memcpy(&(m_buf[m_pos]), a, N-1);
@@ -168,7 +168,7 @@ struct WriterBuf
     inline void _do_write(csubstr sp)
     {
         if(sp.empty()) return;
-        C4_ASSERT( ! sp.overlaps(m_buf));
+        RYML_ASSERT( ! sp.overlaps(m_buf));
         if(m_pos + sp.len <= m_buf.len)
         {
             memcpy(&(m_buf[m_pos]), sp.str, sp.len);

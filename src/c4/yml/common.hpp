@@ -18,17 +18,33 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 
-#define C4_ERROR_IF(cond, msg)         \
-    if(cond)                           \
-    {                                  \
-        C4_ERROR(msg);                 \
+
+#ifndef RYML_USE_ASSERT
+#   define RYML_USE_ASSERT C4_USE_ASSERT
+#endif
+
+
+#ifndef RYML_USE_ASSERT
+#   define RYML_ASSERT(cond)
+#   define RYML_ASSERT_MSG(cond, msg)
+#else
+#   define RYML_ASSERT(cond) RYML_CHECK(cond)
+#   define RYML_ASSERT_MSG(cond, msg) RYML_CHECK_MSG(cond, msg)
+#endif
+
+
+#define RYML_CHECK_MSG(cond, msg)                           \
+    if(!(cond))                                             \
+    {                                                       \
+        ::c4::yml::error(msg ": expected true: " #cond);    \
     }
 
-#define C4_ERROR_IF_NOT(cond, msg)     \
-    if(!(cond))                        \
-    {                                  \
-        C4_ERROR(msg);                 \
+#define RYML_CHECK(cond)                            \
+    if(!(cond))                                     \
+    {                                               \
+        ::c4::yml::error("expected true: " #cond);  \
     }
+
 
 #pragma clang diagnostic pop
 #pragma GCC diagnostic pop
@@ -36,6 +52,7 @@
 #if defined(_MSC_VER)
 #   pragma warning(pop)
 #endif
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -53,12 +70,13 @@ enum : size_t { NONE = size_t(-1) };
 //-----------------------------------------------------------------------------
 
 /** the type of the function used to report errors. This function must
- * interrupt execution, either through abort() or by raising an exception. */
+ * interrupt execution, either by raising an exception or calling
+ * std::terminate()/std::abort(). */
 using pfn_error = void (*)(const char* msg, size_t msg_len, void *user_data);
 
 void error(const char *msg, size_t msg_len);
 
-template< size_t N >
+template<size_t N>
 inline void error(const char (&msg)[N])
 {
     error(msg, N-1);
@@ -102,7 +120,7 @@ struct Callbacks
         m_error(msg, msg_len, m_user_data);
     }
 
-    template< size_t N >
+    template<size_t N>
     inline void error(const char (&msg)[N]) const
     {
         error(msg, N-1);
@@ -114,6 +132,11 @@ struct Callbacks
 Callbacks const& get_callbacks();
 /// set the global callbacks
 void set_callbacks(Callbacks const& c);
+#ifdef RYML_NO_DEFAULT_CALLBACKS
+/// set the global callbacks to their defaults
+void reset_callbacks();
+#endif
+
 
 //-----------------------------------------------------------------------------
 
@@ -177,7 +200,7 @@ struct Allocator
 
     inline void free(void *mem, size_t num_bytes)
     {
-        C4_ASSERT(r != nullptr);
+        RYML_ASSERT(r != nullptr);
         r->free(mem, num_bytes);
     }
 };

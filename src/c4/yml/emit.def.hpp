@@ -41,7 +41,7 @@ template<class Writer>
 void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, size_t do_indent)
 {
     RepC ind = indent_to(do_indent * ilevel);
-    C4_ASSERT(t.is_root(id) || (t.parent_is_map(id) || t.parent_is_seq(id)));
+    RYML_ASSERT(t.is_root(id) || (t.parent_is_map(id) || t.parent_is_seq(id)));
 
     if(t.is_doc(id))
     {
@@ -63,7 +63,7 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, size_t 
     }
     else if(t.is_keyval(id))
     {
-        C4_ASSERT(t.has_parent(id));
+        RYML_ASSERT(t.has_parent(id));
         this->Writer::_do_write(ind);
         _writek(t, id);
         this->Writer::_do_write(": ");
@@ -73,7 +73,7 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, size_t 
     }
     else if(t.is_val(id))
     {
-        C4_ASSERT(t.has_parent(id));
+        RYML_ASSERT(t.has_parent(id));
         this->Writer::_do_write(ind);
         this->Writer::_do_write("- ");
         _writev(t, id);
@@ -82,7 +82,7 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, size_t 
     }
     else if(t.is_container(id))
     {
-        C4_ASSERT(t.is_map(id) || t.is_seq(id));
+        RYML_ASSERT(t.is_map(id) || t.is_seq(id));
 
         bool spc = false; // write a space
         bool nl = false;  // write a newline
@@ -232,8 +232,8 @@ void Emitter<Writer>::_write(NodeScalar const& sc, NodeType flags)
     }
     if(flags.has_anchor())
     {
-        C4_ASSERT(flags.is_ref() != flags.has_anchor());
-        C4_ASSERT( ! sc.anchor.empty());
+        RYML_ASSERT(flags.is_ref() != flags.has_anchor());
+        RYML_ASSERT( ! sc.anchor.empty());
         this->Writer::_do_write('&');
         this->Writer::_do_write(sc.anchor);
         this->Writer::_do_write(' ');
