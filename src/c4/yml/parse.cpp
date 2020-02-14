@@ -1972,6 +1972,7 @@ void Parser::_start_map(bool as_child)
         _write_val_anchor(parent_id);
         if(parent_id != NONE)
         {
+            if(m_stack.size() < 2) _c4err("internal error");
             State const& parent_state = m_stack.top(1);
             if(parent_state.flags & RSET)
             {
