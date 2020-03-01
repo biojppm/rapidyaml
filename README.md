@@ -61,9 +61,9 @@ below).
          * [Comparison with yaml-cpp](#comparison-with-yaml-cpp)
          * [Performance reading JSON](#performance-reading-json)
          * [Performance emitting](#performance-emitting)
-      * [Installing](#installing)
+      * [Installing and using](#installing-and-using)
          * [Using ryml as cmake subproject](#using-ryml-as-cmake-subproject)
-         * [The traditional way: build and install](#the-traditional-way-build-and-install)
+         * [The traditional way: using an installed version](#the-traditional-way-using-an-installed-version)
          * [cmake build settings for ryml](#cmake-build-settings-for-ryml)
       * [Quick start](#quick-start)
          * [Parsing](#parsing)
@@ -201,14 +201,15 @@ just send us the files!
 
 ------
 
-## Installing
+## Installing and using
 
 First, clone the repo:
 ```bash
 git clone --recursive https://github.com/biojppm/rapidyaml
 ```
 Next, you can either use ryml as a cmake subdirectory or build and install to
-a directory of your choice.
+a directory of your choice. Currently [cmake](https://cmake.org/) is required
+for using ryml; we recommend a recent cmake version, at least 3.13.
 
 ### Using ryml as cmake subproject
 
@@ -224,23 +225,70 @@ add_subdirectory(path/to/rapidyaml ryml)
 target_link_libraries(foolib PUBLIC ryml)  # that's it!
 
 add_executable(fooexe main.cpp)
-target_link_libraries(fooexe foolib) # brings in ryml!
+target_link_libraries(fooexe foolib) # brings in ryml
 ```
 If you're using git, we also suggest you add ryml as git submodule of
 your repo. This makes it easy to track any upstream changes in ryml.
 
-### The traditional way: build and install
+### The traditional way: using an installed version
 
-You can also build and install using [cmake](https://cmake.org/):
+You can also use ryml in the customary cmake way, by first building and
+installing it, and then consuming it in your project via `find_package()`.
+
+First, build ryml. For Visual Studio & multi-configuration CMake generators,
+this would be:
 ```bash
-# configure
-cmake -S path/to/rapidyaml -B path/to/build/dir -DCMAKE_INSTALL_PREFIX=path/to/install/dir
-# build
-cmake --build path/to/build/dir --parallel 
-# install
-cmake --build path/to/build/dir --target install
+cmake -S path/to/rapidyaml -B path/to/ryml/build/dir \
+      -DCMAKE_INSTALL_PREFIX=path/to/ryml/install/dir
+cmake --build path/to/ryml/build/dir --parallel --config Release
 ```
-Of course, `build/dir` is a build directory of your choice.
+whereas for single configuration CMake generators (Unix Makefiles, etc), this
+would be:
+```bash
+cmake -S path/to/rapidyaml -B path/to/ryml/build/dir \
+      -DCMAKE_INSTALL_PREFIX=path/to/ryml/install/dir \
+      -DCMAKE_BUILD_TYPE=Release
+cmake --build path/to/ryml/build/dir --parallel
+```
+(Note the `-S` and `-B` options first appeared in cmake 3.13 and are not
+available in earlier cmake versions). Now you can install ryml:
+```bash
+cmake --build path/to/ryml/build/dir --target install
+```
+
+This will get ryml installed into the directory
+`path/to/ryml/install/dir`, together with cmake export files for ryml,
+which `find_package()` will need to successfully import ryml to your project.
+
+Now to consume this installed ryml version, do the following:
+```cmake
+# somewhere in your CMakeLists.txt
+
+# this is the target you wish to link with ryml
+add_library(foolib a.cpp b.cpp)
+
+# instruct cmake to search for ryml
+find_package(ryml REQUIRED)
+target_link_libraries(foolib PUBLIC ryml::ryml)  # NOTE namespace ryml::
+
+add_executable(fooexe main.cpp)
+target_link_libraries(fooexe foolib) # brings in ryml
+```
+Note a significant difference to the subdirectory approach from the previous
+section: the installed ryml cmake exports file places the ryml library target in the
+`ryml::` namespace.
+
+Now when building your project, you will need to point cmake to the installed ryml.
+To do this, simply add the ryml install directory to your project's `CMAKE_PREFIX_PATH` by doing eg
+`-DCMAKE_PREFIX_PATH=path/to/ryml/install/dir` when configuring your project,
+or by setting this variable in the cmake GUI if that's what you prefer to use.
+
+You can also set (via command line or GUI) the variable `ryml_DIR` to the
+directory where the exports file `rymlConfig.cmake` was installed (which is
+different across platforms); search for this file in the ryml install tree,
+and provide the directory where it is located. For example, in Windows with
+the example above, this would be `-Dryml_DIR=path/to/ryml/install/dir/cmake`.
+
 
 ### cmake build settings for ryml
 The following cmake variables can be used to control the build behavior of
@@ -998,4 +1046,3 @@ and [RapidXML](http://rapidxml.sourceforge.net/).
 ## License
 
 ryml is permissively licensed under the [MIT license](LICENSE.txt).
-
