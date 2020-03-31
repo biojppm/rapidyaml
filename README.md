@@ -712,89 +712,103 @@ for(size_t i  = t.first_sibling(foo_id);
 ### Custom types
 
 ryml provides code to serialize the basic intrinsic types (integers, floating
-points and strings): you can see it in the [the `c4/to_chars.hpp`
-header](https://github.com/biojppm/c4core/blob/master/src/c4/to_chars.hpp). For
-types other than these, you need to instruct ryml how to serialize your type.
+points and strings): you can see it in the [the `c4/charconv.hpp`
+header](https://github.com/biojppm/c4core/blob/master/src/c4/charconv.hpp). For
+types other than these, you need to instruct ryml how to serialize your
+type, and here we explain how to do this.
 
 There are two distinct type categories when serializing to a YAML tree:
+leaf types (value or key-value) and container types (sequences or maps).
 
-* Container types requiring child nodes (ie, either sequences or maps). For
-  these, overload the `write()/read()` functions. For example,
-  ```c++
-  namespace foo {
-  struct MyStruct; // a container-type struct 
-  {
-      int subject;
-      std::map<std::string, int> counts;
-  };
+
+#### Leaf types
+
+These are types which should serialize to a string, resulting in a leaf node
+in the YAML tree.
+
+For these, overload the `to_chars(c4::substr, T)/from_chars(c4::csubstr, *T)`
+functions.
+
+Here's an example for a 3D vector type:
+```c++
+struct vec3 { float x, y, z; };
+
+// format v to the given string view + return the number of
+// characters written into it. The view size (buf.len) must
+// be strictly respected. Return the number of characters
+// that need to be written. So if the return value
+// is larger than buf.len, ryml will resize the buffer and
+// call this again with a larger buffer of the correct sizeXS.
+size_t to_chars(c4::substr buf, vec3 v)
+{
+    // this call to c4::format() is the type-safe equivalent
+    // of snprintf(buf.str, buf.len, "(%f,%f,%f)", v.x, v.y, v.z)
+    return c4::format(buf, "({},{},{})", v.x, v.y, v.z);
+}
+
+bool from_chars(c4::csubstr buf, vec3 *v)
+{
+    // equivalent to sscanf(buf.str, "(%f,%f,%f)", &v->x, &v->y, &v->z)
+    // --- actually snscanf(buf.str, buf.len, ...) but there's
+    // no such function in the standard.
+    size_t ret = c4::unformat(buf, "({},{},{})", v->x, v->y, v->z);
+    return ret != c4::csubstr::npos;
+}
+```
+Now you can provide your formats with
+For a live example you can look at [the `std::string` serialization code](https://github.com/biojppm/c4core/blob/master/src/c4/std/string.hpp).
+
+
+#### Container types
+
+These are types requiring child nodes (ie, either sequences or maps).
+
+For these, overload the `write()/read()` functions. For example,
+```c++
+namespace foo {
+struct MyStruct; // a container-type struct
+{
+    int subject;
+    std::map<std::string, int> counts;
+};
   
-  // ... will need these functions to convert to YAML:
-  void write(c4::yml::NodeRef *n, MyStruct const& v);
-  void  read(c4::yml::NodeRef const& n, MyStruct *v);
-  } // namespace foo
-  ```
-  which could be implemented as:
-  ```c++
-  #include <c4/yml/std/map.hpp>
-  #include <c4/yml/std/string.hpp>
+// ... will need these functions to convert to YAML:
+void write(c4::yml::NodeRef *n, MyStruct const& v);
+void  read(c4::yml::NodeRef const& n, MyStruct *v);
+} // namespace foo
+```
+which could be implemented as:
+```c++
+// include the functions for std::string and std::map (not included by default)
+#include <c4/yml/std/map.hpp>
+#include <c4/yml/std/string.hpp>
   
-  void foo::read(c4::yml::NodeRef const& n, MyStruct *v)
-  {
-      n["subject"] >> v->subject;
-      n["counts"] >> v->counts;
-  }
+void foo::read(c4::yml::NodeRef const& n, MyStruct *v)
+{
+    n["subject"] >> v->subject;
+    n["counts"] >> v->counts;
+}
   
-  void foo::write(c4::yml::NodeRef *n, MyStruct const& v)
-  {
-      *n |= c4::yml::MAP;
-      
-      NodeRef ch = n->append_child();
-      ch.set_key("subject");
-      ch.set_val_serialized(v.subject);
-      
-      ch = n->append_child();
-      ch.set_key("counts");
-      write(&ch, v.counts);
-  }
-  ```
-  To harness [C++'s ADL rules](http://en.cppreference.com/w/cpp/language/adl),
-  it is important to overload these functions in the namespace where the type
-  you're serializing was defined (or in the c4::yml namespace). Generic
-  examples can be seen in the (optional) implementations of `std::vector`
-  or `std::map`, at their respective headers 
-  [`c4/yml/std/vector.hpp`](src/c4/yml/std/vector.hpp) and
-  [`c4/yml/std/map.hpp`](src/c4/yml/std/map.hpp).
+void foo::write(c4::yml::NodeRef *n, MyStruct const& v)
+{
+    *n |= c4::yml::MAP;
 
-* The second category is for types which should serialize to a string,
-  resulting in leaf node in the YAML tree. For these, overload the
-  `to_chars(c4::substr, T)/from_chars(c4::csubstr,
-  *T)` functions. Here's an example for a 3D vector type:
-  ```c++
-  struct vec3 { float x, y, z; };
+    NodeRef ch = n->append_child();
+    ch.set_key("subject");
+    ch.set_val_serialized(v.subject);
 
-  // format v to the given string view + return the number of
-  // characters written into it. The view size (buf.len) must
-  // be strictly respected. Return the number of characters
-  // that need to be written. So if the return value
-  // is larger than buf.len, ryml will resize the buffer and
-  // call this again with a larger buffer.
-  size_t to_chars(c4::substr buf, vec3 v)
-  {
-      // this call to c4::format() is a type-safe version
-      // of snprintf(buf.str, buf.len, "(%f,%f,%f)", v.x, v.y, v.z)
-      return c4::format(buf, "({},{},{})", v.x, v.y, v.z);
-  }
-
-  bool from_chars(c4::csubstr buf, vec3 *v)
-  {
-      // equivalent to sscanf(buf.str, "(%f,%f,%f)", &v.x, &v.y, &v.z)
-      // --- actually snscanf(buf.str, buf.len, ...) but there's
-      // no such function in the standard.
-      size_t ret = c4::unformat(buf, "({},{},{})", v.x, v.y, v.z);
-      return ret != c4::csubstr::npos;
-  }
-  ```
-   You can also look at [the `std::string` serialization code](https://github.com/biojppm/c4core/blob/master/src/c4/std/string.hpp).
+    ch = n->append_child();
+    ch.set_key("counts");
+    write(&ch, v.counts);
+}
+```
+To harness [C++'s ADL rules](http://en.cppreference.com/w/cpp/language/adl),
+it is important to overload these functions in the namespace of the type
+you're serializing (or in the c4::yml namespace). Generic
+examples can be seen in the (optional) implementations of `std::vector`
+or `std::map`, at their respective headers
+[`c4/yml/std/vector.hpp`](src/c4/yml/std/vector.hpp) and
+[`c4/yml/std/map.hpp`](src/c4/yml/std/map.hpp).
 
 
 
@@ -834,7 +848,6 @@ int main()
     assert(m["bar"] == 2222); // ok
 }
 ```
-
 The [`<ryml_std.hpp>`](src/ryml_std.hpp) header includes every std type
 implementation available in ryml. But you can include just a specific header
 if you are interested only in a particular container; these headers are
