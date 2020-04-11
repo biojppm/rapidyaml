@@ -831,6 +831,7 @@ public:
     {
         auto n = _p(node);
         type_bits o = n->m_type; // old
+        C4_UNUSED(o);
         if(f & MAP)
         {
             RYML_ASSERT_MSG((f & SEQ) == 0, "cannot mark simultaneously as map and seq");
@@ -848,13 +849,13 @@ public:
         if(f & KEY)
         {
             RYML_ASSERT(!is_root(node));
-            auto pid = parent(node);
+            auto pid = parent(node); C4_UNUSED(pid);
             RYML_ASSERT(is_map(pid));
         }
         if(f & VAL)
         {
             RYML_ASSERT(!is_root(node));
-            auto pid = parent(node);
+            auto pid = parent(node); C4_UNUSED(pid);
             RYML_ASSERT(is_map(pid) || is_seq(pid));
         }
     }
