@@ -25,11 +25,11 @@
 
 
 #if RYML_USE_ASSERT
-#   define RYML_ASSERT(cond)
-#   define RYML_ASSERT_MSG(cond, msg)
-#else
 #   define RYML_ASSERT(cond) RYML_CHECK(cond)
 #   define RYML_ASSERT_MSG(cond, msg) RYML_CHECK_MSG(cond, msg)
+#else
+#   define RYML_ASSERT(cond)
+#   define RYML_ASSERT_MSG(cond, msg)
 #endif
 
 

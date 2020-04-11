@@ -31,27 +31,33 @@ TEST(github, 31)
     }
 
     {
+        #ifdef RYML_USE_ASSERT
         ExpectError::do_check([&](){
             auto lumi = plist.append_child();
             lumi << "Lumi";
             lumi |= MAP;
         });
+        #endif // RYML_USE_ASSERT
     }
 
     {
+        #ifdef RYML_USE_ASSERT
         ExpectError::do_check([&](){
             auto lumi = plist.append_child();
             lumi << "Lumi";
             lumi |= SEQ;
         });
+        #endif // RYML_USE_ASSERT
     }
 
     {
+        #ifdef RYML_USE_ASSERT
         ExpectError::do_check([&](){
             auto lumi = plist.append_child();
             lumi |= MAP;
             lumi << "Lumi";
         });
+        #endif // RYML_USE_ASSERT
     }
 }
 
