@@ -411,9 +411,6 @@ public:
     // An if-less form of get() that demands a valid node index
     inline NodeData const * _p(size_t i) const { RYML_ASSERT(i != NONE && i >= 0 && i < m_cap); return m_buf + i; }
 
-    /** resolve references in the tree */
-    void resolve();
-
 public:
 
     //! Get the id of the root node
@@ -457,6 +454,25 @@ public:
     csubstr    const& val_anchor(size_t node) const { RYML_ASSERT( ! is_val_ref(node) && has_val_anchor(node)); return _p(node)->m_val.anchor; }
     NodeScalar const& valsc     (size_t node) const { RYML_ASSERT(has_val(node)); return _p(node)->m_val; }
 
+    /** Resolve references (aliases <- anchors) in the tree.
+     *
+     * Dereferencing is opt-in; after parsing, you have to call
+     * Tree::resolve() explicitly if you want resolved references in the
+     * tree. This method will resolve all references and substitute the
+     * anchored values in place of the reference.
+     *
+     * This method first does a full traversal of the tree to gather all
+     * anchors and references in a separate collection, then it goes through
+     * that collection to locate the names, which it does by obeying the YAML
+     * standard diktat that "an alias node refers to the most recent node in
+     * the serialization having the specified anchor"
+     *
+     * So, depending on the number of anchor/alias nodes, this is a
+     * potentially expensive operation, with a best-case linear complexity
+     * (from the initial traversal). This potential cost is the reason for
+     * requiring an explicit call.
+     */
+    void resolve();
 
 public:
 

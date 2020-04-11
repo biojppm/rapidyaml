@@ -459,7 +459,7 @@ size_t Tree::_do_reorder(size_t *node, size_t count)
         _swap(*node, count);
         *node = count;
     }
-    ++count; // bump the count for this node
+    ++count; // bump the count from this node
 
     // now descend in the hierarchy
     for(size_t i = first_child(*node); i != NONE; i = next_sibling(i))

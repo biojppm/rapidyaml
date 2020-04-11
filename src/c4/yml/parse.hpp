@@ -54,25 +54,45 @@ public:
 
 public:
 
-    // create a new YAML tree and parse into its root
-
+    //! create a new YAML tree and parse into its root
+    //! @note aliases and anchors are not resolved. You
+    //! can do this by calling Tree::resolve() after parsing.
     Tree parse(csubstr filename, csubstr src) { Tree t; t.reserve(_estimate_capacity(src)); parse(filename, t.copy_to_arena(src), &t); return t; }
+    //! create a new YAML tree and parse into its root
+    //! @note aliases and anchors are not resolved. You
+    //! can do this by calling Tree::resolve() after parsing.
     Tree parse(csubstr filename,  substr src) { Tree t; t.reserve(_estimate_capacity(src)); parse(filename, src, &t); return t; }
 
-    // parse with reuse of a YAML tree
 
+    //! parse with reuse of a YAML tree
+    //! @note aliases and anchors are not resolved. You
+    //! can do this by calling Tree::resolve() after parsing.
     void parse(csubstr filename,  substr src, Tree *t) { parse(filename, src, t, t->root_id()); }
+    //! parse with reuse of a YAML tree
+    //! @note aliases and anchors are not resolved. You
+    //! can do this by calling Tree::resolve() after parsing.
     void parse(csubstr filename, csubstr src, Tree *t) { parse(filename, t->copy_to_arena(src), t, t->root_id()); }
 
-    // parse directly into a node
 
+    //! parse directly into a node
+    //! @note aliases and anchors are not resolved. You
+    //! can do this by calling Tree::resolve() after parsing.
     void parse(csubstr filename,  substr src, Tree *t, size_t node_id); // this is the workhorse overload; everything else is syntactic candy
+    //! parse directly into a node
+    //! @note aliases and anchors are not resolved. You
+    //! can do this by calling Tree::resolve() after parsing.
     void parse(csubstr filename, csubstr src, Tree *t, size_t node_id) { parse(filename, t->copy_to_arena(src), t, node_id); }
 
-    // parse directly into a node ref
 
+    //! parse directly into a node ref
+    //! @note aliases and anchors are not resolved. You
+    //! can do this by calling Tree::resolve() after parsing.
     void parse(csubstr filename,  substr src, NodeRef node) { parse(filename, src, node.tree(), node.id()); }
+    //! parse directly into a node ref
+    //! @note aliases and anchors are not resolved. You
+    //! can do this by calling Tree::resolve() after parsing.
     void parse(csubstr filename, csubstr src, NodeRef node) { parse(filename, node.tree()->copy_to_arena(src), node.tree(), node.id()); }
+
 
 private:
 

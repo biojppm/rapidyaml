@@ -392,6 +392,27 @@ The free-standing `parse()` functions (towards the end of the file) are just
 convenience wrappers for calling the several `Parser::parse()` overloads.
 
 
+### References: anchors and aliases
+
+Note that dereferencing is opt-in; after parsing, you have to call
+`Tree::resolve()` explicitly if you want resolved references in the
+tree. This method will resolve all references and substitute the anchored
+values in place of the reference.
+
+The `Tree::resolve()` method first does a full traversal of the tree to
+gather all anchors and references in a separate collection, then it goes
+through that collection to locate the names, which it does by obeying the
+YAML standard diktat that
+
+    an alias node refers to the most recent node in the serialization having the specified anchor
+
+So, depending on the number of anchor/alias nodes, this is a potentially
+expensive operation, with a best-case linear complexity (from the initial
+traversal) and a worst-case quadratic complexity (if every node has an
+alias/anchor). This potential cost is the reason for requiring an explicit
+call to `Tree::resolve()`.
+
+
 ### Traversing the tree
 
 The data tree is an index-linked array of `NodeData` elements. These are
@@ -523,10 +544,8 @@ class NodeRef
 {
     // a pointer to the tree
     Tree * m_tree; 
-    
     // either the (tree-scoped) index of an existing node or the (node-scoped) index of a seed state
     size_t m_node_or_seed_id;
-    
     // the key name of a seed state. null when valid
     const char* m_seed_name;
 
