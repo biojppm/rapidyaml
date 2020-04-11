@@ -442,9 +442,9 @@ struct NodeData
 ```
 
 Please note that you should not rely on this particular structure; the above
-definitions are given only to provide an idea on how the tree is structured.
+definitions are given only to provide an idea on how the tree is organized.
 To access and modify node properties, please use the APIs provided through
-the Tree (low-level) or the NodeRef (high-level) classes.
+the `Tree` (low-level) or the `NodeRef` (high-level) classes.
 
 You may have noticed above the use of a `csubstr` class. This class is
 defined in another library, [c4core](https://github.com/biojppm/c4core),
@@ -486,16 +486,31 @@ show_val(tree.rootref());
 show_keyval(tree[0]); // ERROR: sequence element has no key
 show_keyval(tree[2][0]); // ok
 ```
+The square bracket operators `Tree::operator[csubstr]` and
+`Tree::operator[size_t]` do a lookup on the root node and return a
+`NodeRef`. The first overload (valid only for map nodes) looks for a child having the given key, and the
+second overload looks for the i-th root's child. If you prefer to stick to
+the low level API, you can use `Tree::find_child()` which takes a node on
+which the child should be looked for and also that child's key or position
+within the parent.
 
-Please note that since a ryml tree uses linear storage, the complexity of
-`operator[]` is linear on the number of children of the node on which it is
-invoked. If you use it with a large tree with many siblings at the root
-level, you may get a performance hit. To avoid this, you can create your own
-accelerator structure (eg, do a single loop at the root level to fill an
-`std::map<csubstr,size_t>` mapping key names to node indices; with a node
-index, a lookup is O(1), so this way you can get O(log n) lookup from a key.)
+Please note that since a ryml tree uses indexed linked lists for storing
+children, the complexity of `Tree::operator[csubstr]` and
+`Tree::operator[size_t]` is linear on the number of root children. If you use
+it with a large tree where the root has many children, you may get a
+performance hit. To avoid this hit, you can create your own accelerator
+structure. For example, before doing a lookup, do a single traverse at the
+root level to fill an `std::map<csubstr,size_t>` mapping key names to node
+indices; with a node index, a lookup (via `Tree::get()`) is O(1), so this way
+you can get O(log n) lookup from a key.
 
-What about `NodeRef`? Let's consider when a non-existing key or index is
+As for `NodeRef`, `NodeRef::operator[]`is linear on the number of children
+of the node on which it is invoked. The difference from `NodeRef::operator[]`
+and ``
+
+Now, let's address how to mutate the tree via `operator[]`. We should stress
+that there is an important difference to the mutability behavior of the STL's
+`std::map::operator[]`. Consider when a non-existing key or index is
 requested via `operator[]`. Unlike with `std::map`, **this operator does not
 modify the tree**. Instead you get a seed-state `NodeRef`, and the tree will
 be modified only when this seed-state reference is written to. Thus `NodeRef`

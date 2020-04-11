@@ -403,8 +403,12 @@ public:
         return m_buf + i;
     }
 
-    // a shorter form of []
+    // these next two functions are implementation only; use at your
+    // own risk.
+
+    // An if-less form of get() that demands a valid node index
     inline NodeData       * _p(size_t i)       { RYML_ASSERT(i != NONE && i >= 0 && i < m_cap); return m_buf + i; }
+    // An if-less form of get() that demands a valid node index
     inline NodeData const * _p(size_t i) const { RYML_ASSERT(i != NONE && i >= 0 && i < m_cap); return m_buf + i; }
 
     /** resolve references in the tree */
@@ -412,16 +416,28 @@ public:
 
 public:
 
+    //! Get the id of the root node
     size_t root_id()       { if(m_cap == 0) { reserve(16); } RYML_ASSERT(m_cap > 0 && m_size > 0); return 0; }
+    //! Get the id of the root node
     size_t root_id() const {                                 RYML_ASSERT(m_cap > 0 && m_size > 0); return 0; }
 
+    //! Get the root as a NodeRef
     NodeRef       rootref();
+    //! Get the root as a NodeRef
     NodeRef const rootref() const;
 
+    //! find a root child by name, return it as a NodeRef
+    //! @note requires the root to be a map.
     NodeRef       operator[] (csubstr key);
+    //! find a root child by name, return it as a NodeRef
+    //! @note requires the root to be a map.
     NodeRef const operator[] (csubstr key) const;
 
+    //! find a root child by index: return the root node's @p i-th child as a NodeRef
+    //! @note @i is NOT the node id, but the child's position
     NodeRef       operator[] (size_t i);
+    //! find a root child by index: return the root node's @p i-th child as a NodeRef
+    //! @note @i is NOT the node id, but the child's position
     NodeRef const operator[] (size_t i) const;
 
 public:
