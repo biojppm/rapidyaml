@@ -824,7 +824,7 @@ private:
 
 public:
 
-    #ifndef RYML_USE_ASSERT
+    #if ! RYML_USE_ASSERT
     #define _check_next_flags(node, f)
     #else
     inline void _check_next_flags(size_t node, type_bits f)
