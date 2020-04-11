@@ -24,7 +24,7 @@
 #endif
 
 
-#ifndef RYML_USE_ASSERT
+#if RYML_USE_ASSERT
 #   define RYML_ASSERT(cond)
 #   define RYML_ASSERT_MSG(cond, msg)
 #else
