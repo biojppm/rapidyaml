@@ -31,7 +31,7 @@ TEST(github, 31)
     }
 
     {
-        #ifdef RYML_USE_ASSERT
+        #if RYML_USE_ASSERT
         ExpectError::do_check([&](){
             auto lumi = plist.append_child();
             lumi << "Lumi";
@@ -41,7 +41,7 @@ TEST(github, 31)
     }
 
     {
-        #ifdef RYML_USE_ASSERT
+        #if RYML_USE_ASSERT
         ExpectError::do_check([&](){
             auto lumi = plist.append_child();
             lumi << "Lumi";
@@ -51,7 +51,7 @@ TEST(github, 31)
     }
 
     {
-        #ifdef RYML_USE_ASSERT
+        #if RYML_USE_ASSERT
         ExpectError::do_check([&](){
             auto lumi = plist.append_child();
             lumi |= MAP;
