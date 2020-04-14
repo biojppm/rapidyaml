@@ -525,9 +525,12 @@ root level to fill an `std::map<csubstr,size_t>` mapping key names to node
 indices; with a node index, a lookup (via `Tree::get()`) is O(1), so this way
 you can get O(log n) lookup from a key.
 
-As for `NodeRef`, `NodeRef::operator[]`is linear on the number of children
-of the node on which it is invoked. The difference from `NodeRef::operator[]`
-and ``
+As for `NodeRef`, the difference from `NodeRef::operator[]`
+to `Tree::operator[]` is that the latter refers to the root node, whereas
+the former can be invoked on any node. But the lookup process is the same for
+both and their algorithmic complexity is the same: they are both linear in
+the number of direct children; but depending on the data, that number may
+be very different from one to another.
 
 Now, let's address how to mutate the tree via `operator[]`. We should stress
 that there is an important difference to the mutability behavior of the STL's
