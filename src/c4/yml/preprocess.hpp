@@ -1,6 +1,17 @@
 #ifndef _C4_YML_EMIT_HPP_
 #define _C4_YML_EMIT_HPP_
 
+/** @file preprocess.hpp Functions for preprocessing YAML prior to parsing. */
+
+/** @defgroup Preprocessors Preprocessor functions
+ *
+ * These are the existing preprocessors:
+ *
+ * @code{.cpp}
+ * size_t preprocess_json(csubstr json, substr buf)
+ * size_t preprocess_rxmap(csubstr json, substr buf)
+ * @endcode
+ */
 
 #ifndef _C4_YML_COMMON_HPP_
 #include "./common.hpp"
@@ -85,6 +96,12 @@ CharContainer preprocess_json(csubstr json)
  * Convert flow-type relaxed maps (with implicit bools) into strict YAML
  * flow map.
  *
+ * @code{.yaml}
+ * {a, b, c, d: [e, f], g: {a, b}}
+ * # is converted into this:
+ * {a: 1, b: 1, c: 1, d: [e, f], g: {a, b}}
+ * @endcode
+
  * @note this is NOT recursive - conversion happens only in the top-level map
  * @param rxmap A relaxed map
  * @param buf output buffer

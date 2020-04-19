@@ -57,6 +57,7 @@ below).
 ## Table of contents
 
    * [Rapid YAML](#rapid-yaml)
+      * [Table of contents](#table-of-contents)
       * [Is it rapid?](#is-it-rapid)
          * [Comparison with yaml-cpp](#comparison-with-yaml-cpp)
          * [Performance reading JSON](#performance-reading-json)
@@ -67,13 +68,17 @@ below).
          * [cmake build settings for ryml](#cmake-build-settings-for-ryml)
       * [Quick start](#quick-start)
          * [Parsing](#parsing)
+         * [References: anchors and aliases](#references-anchors-and-aliases)
          * [Traversing the tree](#traversing-the-tree)
          * [Creating a tree](#creating-a-tree)
          * [Low-level API](#low-level-api)
          * [Custom types](#custom-types)
+            * [Leaf types](#leaf-types)
+            * [Container types](#container-types)
          * [STL interoperation](#stl-interoperation)
          * [Custom formatting for intrinsic types](#custom-formatting-for-intrinsic-types)
          * [Custom allocators and error handlers](#custom-allocators-and-error-handlers)
+         * [Using ryml to parse JSON, and preprocessing functions](#using-ryml-to-parse-json-and-preprocessing-functions)
       * [Other languages](#other-languages)
          * [Python](#python)
       * [YAML standard conformance](#yaml-standard-conformance)
@@ -911,6 +916,7 @@ r["a"] << c4::fmt::real(val, precision); // OK, result: "24.00"
 Again, note that you don't have to use the tree's arena. If you use
 `operator=`, the `csubstr` you provide will be directly used instead.
 
+
 ### Custom allocators and error handlers
 
 ryml accepts your own allocators and error handlers. Read through [this
@@ -926,6 +932,49 @@ guaranteed to see this fail). So please carefully consider your choices, and
 ponder whether you really need to use ryml static trees and parsers. If you
 do need this, then you will need to declare and use an allocator from a ryml
 memory resource that outlives the tree and/or parser.
+
+
+### Using ryml to parse JSON, and preprocessing functions
+
+Although JSON is generally a subset of YAML, [there is an exception that is
+valid JSON, but not valid YAML](https://stackoverflow.com/questions/42124227/why-does-the-yaml-spec-mandate-a-space-after-the-colon):
+```yaml
+{"a":"b"}  # note the missing space after the semicolon
+```
+As a result, you will get a parse error if you try to do this:
+```c++
+auto tree = ryml::parse("{\"a\":\"b\"}");
+```
+This behavior is intended, and this was chosen to save added complexity in
+the parser code.
+
+However, you can still parse this with ryml if (prior to parsing) you
+preprocess the JSON into valid YAML, adding the missing spaces after the
+semicolons. ryml provides a freestanding function to do this:
+`ryml::preprocess_json()`:
+
+```c++
+#include <c4/yml/preprocess.hpp>
+// you can also use in-place overloads
+auto yaml = ryml::preprocess_json<std::string>("{\"a\":\"b\"}");
+// now you have a buffer with valid yaml - note the space:
+std::cout << yaml << "\n"; // {"a": "b"}
+// ... which you can parse:
+ryml::Tree t = ryml::parse(to_substr(yaml));
+std::cout << t["a"] << "\n"; // b
+```
+
+There is also `ryml::preprocess_rxmap()`, a function to convert non-standard
+relaxed maps (ie, keys with implicit true values) into standard YAML maps.
+
+```c++
+#include <c4/yml/preprocess.hpp>
+// you can also use in-place overloads
+auto yaml = ryml::preprocess_rxmap<std::string>("{a, b, c, d: [e, f, g]}");
+std::cout << yaml << "\n"; // {a: 1, b: 1, c: 1, d: [e, f, g]}
+ryml::Tree t = ryml::parse(to_substr(yaml));
+std::cout << t["a"] << "\n"; // 1
+```
 
 
 ------

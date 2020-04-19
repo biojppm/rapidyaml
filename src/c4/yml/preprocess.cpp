@@ -2,6 +2,7 @@
 #include "c4/yml/detail/parser_dbg.hpp"
 #include <cstdio>
 
+/** @file preprocess.hpp Functions for preprocessing YAML prior to parsing. */
 
 namespace c4 {
 namespace yml {

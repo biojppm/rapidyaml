@@ -5,5 +5,6 @@
 #include "./node.hpp"
 #include "./emit.hpp"
 #include "./parse.hpp"
+#include "./preprocess.hpp"
 
 #endif // _C4_YML_YML_HPP_
