@@ -28,6 +28,7 @@ struct _SubstrWriter
         }
         ++pos;
     }
+    csubstr curr() const { return pos <= buf.len ? buf.first(pos) : buf; }
     size_t excess() const { return pos > buf.len ? pos - buf.len : 0; }
 };
 
@@ -45,7 +46,6 @@ _ppstate _next(_ppstate s)
     int n = (int)s + 1;
     return (_ppstate)(n <= (int)kValPending ? n : 0);
 }
-
 } // empty namespace
 
 
@@ -131,12 +131,15 @@ size_t preproc_relaxed_map(csubstr s, substr buf)
             break;
         }
         default:
-            C4_NEVER_REACH();
+            // nothing to do
+            break;
         }
     }
+
     _append(s.sub(last));
     if(state == kKeyPending) _append(": 1");
     _append('}');
+
     return _append.pos;
 }
 
