@@ -8,14 +8,26 @@ namespace yml {
 
 TEST(preprocess, json_basic)
 {
+    #define _test(val, expected)                                \
+        EXPECT_EQ(preprocess_json<std::string>(val), expected)
 
+    _test("", "");
+    _test("{}", "{}");
+    _test("\"a\":\"b\"", "\"a\": \"b\"");
+    _test("'a':'b'", "'a': 'b'");
+    _test("{'a':'b'}", "{'a': 'b'}");
+    _test("{\"a\":\"b\"}", "{\"a\": \"b\"}");
+
+    _test("{\"a\":{\"a\":\"b\"}}", "{\"a\": {\"a\": \"b\"}}");
+    _test("{'a':{'a':'b'}}", "{'a': {'a': 'b'}}");
+    #undef _test
 }
 
 
-TEST(preprocess, relaxed_map_basic)
+TEST(preprocess, rxmap_basic)
 {
     #define _test(val, expected)                                \
-        EXPECT_EQ(preproc_relaxed_map<std::string>(val), expected)
+        EXPECT_EQ(preprocess_rxmap<std::string>(val), expected)
 
     _test("{}", "{}");
     _test("a", "{a: 1}");

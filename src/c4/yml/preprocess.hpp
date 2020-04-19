@@ -11,34 +11,117 @@
 namespace c4 {
 namespace yml {
 
+namespace detail {
+using Preprocessor = size_t(csubstr, substr);
+template<Preprocessor PP, class CharContainer>
+substr preprocess_into_container(csubstr input, CharContainer *out)
+{
+    // try to write once. the preprocessor will stop writing at the end of
+    // the container, but will process all the input to determine the
+    // required container size.
+    size_t sz = PP(input, to_substr(*out));
+    // if the container size is not enough, resize, and run again in the
+    // resized container
+    if(sz > out->size())
+    {
+        out->resize(sz);
+        sz = PP(input, to_substr(*out));
+    }
+    return to_substr(*out).first(sz);
+}
+} // namespace detail
 
 
 //-----------------------------------------------------------------------------
 
-/** convert flow-type relaxed maps into strict YAML flow map
+/** @name preprocess_json
+ * Convert JSON that may be not YAML to valid YAML.
+ *
+ * @code{.json}
+ * {"a":"b"} ---> {"a": "b"}
+ * @endcode
+ *
+ * @see https://stackoverflow.com/questions/42124227/why-does-the-yaml-spec-mandate-a-space-after-the-colon
+ * @note this is recursive - conversion happens on every tree node
+ * @param json A relaxed map
+ * @param buf output buffer
+ * @param out output container
  */
-size_t preproc_relaxed_map(csubstr s, substr buf);
 
+//@{
+
+/** Write into a given output buffer. This function is safe to call with
+ * empty or small buffers; it won't write beyond the end of the buffer.
+ *
+ * @return the number of characters required for output
+ */
+size_t preprocess_json(csubstr json, substr buf);
+
+/** Write into an existing container. It is resized to contained the output.
+ * @return a substr of the container
+ * @overload preprocess_json */
 template<class CharContainer>
-substr preproc_relaxed_map(csubstr s, CharContainer *out)
+substr preprocess_json(csubstr json, CharContainer *out)
 {
-    size_t sz = preproc_relaxed_map(s, to_substr(*out));
-    if(sz > out->size())
-    {
-        out->resize(sz);
-        sz = preproc_relaxed_map(s, to_substr(*out));
-    }
-    return to_substr(*out).first(sz);
+    return detail::preprocess_into_container<preprocess_json>(json, out);
 }
 
+/** Create a container with the result.
+ * @overload preprocess_json */
 template<class CharContainer>
-CharContainer preproc_relaxed_map(csubstr s)
+CharContainer preprocess_json(csubstr json)
 {
     CharContainer c;
-    preproc_relaxed_map(s, &c);
+    preprocess_json(json, &c);
     return c;
 }
 
+//@}
+
+
+//-----------------------------------------------------------------------------
+
+/** @name preprocess_rxmap
+ * Convert flow-type relaxed maps (with implicit bools) into strict YAML
+ * flow map.
+ *
+ * @note this is NOT recursive - conversion happens only in the top-level map
+ * @param rxmap A relaxed map
+ * @param buf output buffer
+ * @param out output container
+ */
+
+//@{
+
+/** Write into a given output buffer. This function is safe to call with
+ * empty or small buffers; it won't write beyond the end of the buffer.
+ *
+ * @return the number of characters required for output
+ */
+size_t preprocess_rxmap(csubstr rxmap, substr buf);
+
+
+/** Write into an existing container. It is resized to contained the output.
+ * @return a substr of the container
+ * @overload preprocess_rxmap */
+template<class CharContainer>
+substr preprocess_rxmap(csubstr rxmap, CharContainer *out)
+{
+    return detail::preprocess_into_container<preprocess_rxmap>(rxmap, out);
+}
+
+
+/** Create a container with the result.
+ * @overload preprocess_rxmap */
+template<class CharContainer>
+CharContainer preprocess_rxmap(csubstr rxmap)
+{
+    CharContainer out;
+    preprocess_rxmap(rxmap, &out);
+    return out;
+}
+
+//@}
 
 } // namespace yml
 } // namespace c4
