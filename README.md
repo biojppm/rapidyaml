@@ -212,6 +212,11 @@ First, clone the repo:
 ```bash
 git clone --recursive https://github.com/biojppm/rapidyaml
 ```
+Take care to use the `--recursive` flag to force git to clone the 
+submodules as well. If you omit `--recursive`, after cloning you
+will have to do `git submodule init` and ` submodule update` 
+to ensure the submodules are checked out.
+
 Next, you can either use ryml as a cmake subdirectory or build and install to
 a directory of your choice. Currently [cmake](https://cmake.org/) is required
 for using ryml; we recommend a recent cmake version, at least 3.13.
