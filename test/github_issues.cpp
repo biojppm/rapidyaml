@@ -7,11 +7,11 @@ namespace yml {
 TEST(github, 54)
 {
     Tree tree = parse(R"(
-#foo   : crl
-#keyA :
-#    keyA.B : test value
-#"key C"     : val C
-#'key D'     : val D
+foo   : crl
+keyA :
+    keyA.B : test value
+"key C"     : val C
+'key D'     : val D
 elm2     :
     "key C"     : val C
     'key D'     : val D
@@ -28,15 +28,14 @@ elm4     :
     EXPECT_TRUE(!tree.empty());
     auto root = tree.rootref();
     EXPECT_EQ(root.type(), MAP);
-    EXPECT_EQ(root.num_children(), 7);
+    EXPECT_EQ(root.num_children(), 7u);
 
     EXPECT_TRUE(root.has_child("keyA"));
     auto keyA = root["keyA"];
-    EXPECT_EQ(keyA.type(), MAP);
-    EXPECT_EQ(keyA.num_children(), 1);
+    EXPECT_TRUE(keyA.is_map());
+    EXPECT_EQ(keyA.num_children(), 1u);
     EXPECT_TRUE(keyA.has_child("keyA.B"));
-    EXPECT_EQ(keyA["keyA.B"].val(), "test value");
-    auto keyA_B = keyA["keyB"];
+    auto keyA_B = keyA["keyA.B"];
     EXPECT_EQ(keyA_B.type(), KEYVAL);
     EXPECT_EQ(keyA_B.val(), "test value");
 
@@ -45,8 +44,8 @@ elm4     :
 
     EXPECT_TRUE(root.has_child("elm2"));
     auto elm2 = root["elm2"];
-    EXPECT_EQ(elm2.type(), MAP);
-    EXPECT_EQ(elm2.num_children(), 3);
+    EXPECT_TRUE(elm2.is_map());
+    EXPECT_EQ(elm2.num_children(), 3u);
     EXPECT_TRUE(elm2.has_child("key C"));
     EXPECT_EQ(elm2["key C"].val(), "val C");
     EXPECT_TRUE(elm2.has_child("key D"));
@@ -56,8 +55,8 @@ elm4     :
 
     EXPECT_TRUE(root.has_child("elm3"));
     auto elm3 = root["elm3"];
-    EXPECT_EQ(elm3.type(), MAP);
-    EXPECT_EQ(elm3.num_children(), 3);
+    EXPECT_TRUE(elm3.is_map());
+    EXPECT_EQ(elm3.num_children(), 3u);
     EXPECT_TRUE(elm3.has_child("key C"));
     EXPECT_EQ(elm3["key C"].val(), "val C");
     EXPECT_TRUE(elm3.has_child("key D"));
@@ -67,8 +66,8 @@ elm4     :
 
     EXPECT_TRUE(root.has_child("elm4"));
     auto elm4 = root["elm4"];
-    EXPECT_EQ(elm4.type(), MAP);
-    EXPECT_EQ(elm4.num_children(), 3);
+    EXPECT_TRUE(elm4.is_map());
+    EXPECT_EQ(elm4.num_children(), 3u);
     EXPECT_TRUE(elm4.has_child("key C"));
     EXPECT_EQ(elm4["key C"].val(), "val C");
     EXPECT_TRUE(elm4.has_child("key D"));

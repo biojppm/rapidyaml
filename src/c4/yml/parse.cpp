@@ -304,9 +304,18 @@ bool Parser::_handle_unk()
         csubstr saved_scalar;
         if(_scan_scalar(&saved_scalar))
         {
-            rem = m_state->line_contents.rem.triml(" \t");
+            rem = m_state->line_contents.rem;
             _c4dbgpf("... and there's also a scalar next! '%.*s'", _c4prsp(saved_scalar));
+            if(rem.begins_with_any(" \t"))
+            {
+                size_t n = rem.first_not_of(" \t");
+                _c4dbgpf("skipping %zu spaces/tabs", n);
+                rem = rem.sub(n);
+                _line_progressed(n);
+            }
         }
+
+        _c4dbgpf("rem='%.*s'", _c4prsp(rem));
 
         if(rem.begins_with(", "))
         {
