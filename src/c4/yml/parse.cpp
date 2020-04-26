@@ -306,7 +306,16 @@ bool Parser::_handle_unk()
         {
             rem = m_state->line_contents.rem;
             _c4dbgpf("... and there's also a scalar next! '%.*s'", _c4prsp(saved_scalar));
+            if(rem.begins_with_any(" \t"))
+            {
+                size_t n = rem.first_not_of(" \t");
+                _c4dbgpf("skipping %zu spaces/tabs", n);
+                rem = rem.sub(n);
+                _line_progressed(n);
+            }
         }
+
+        _c4dbgpf("rem='%.*s'", _c4prsp(rem));
 
         if(rem.begins_with(", "))
         {
@@ -326,7 +335,7 @@ bool Parser::_handle_unk()
         }
         else if(rem.begins_with(": "))
         {
-            _c4dbgpf("got a ':' -- it's a map (as_child=%d)", start_as_child);
+            _c4dbgpf("got a \": \" -- it's a map (as_child=%d)", start_as_child);
             _start_map(start_as_child); // wait for the val scalar to append the key-val pair
             _line_progressed(2);
             /*if(rem == ": ")
@@ -357,6 +366,13 @@ bool Parser::_handle_unk()
         }
         else if(_handle_key_anchors_and_refs())
         {
+            return true;
+        }
+        else if(rem.begins_with(" ") || rem.begins_with("\t"))
+        {
+            auto n = rem.first_not_of(" \t");
+            _c4dbgpf("has %zu spaces/tabs, skip...", n);
+            _line_progressed(n);
             return true;
         }
         else
@@ -1020,6 +1036,20 @@ bool Parser::_handle_map_impl()
             }
             return true;
         }
+        else if(rem.begins_with(": "))
+        {
+            _c4dbgp("key finished");
+            addrem_flags(RVAL, RKEY);
+            _line_progressed(2);
+            return true;
+        }
+        else if(rem == ':')
+        {
+            _c4dbgp("key finished");
+            addrem_flags(RVAL, RKEY);
+            _line_progressed(1);
+            return true;
+        }
         else if(rem.begins_with("..."))
         {
             _c4dbgp("end current document");
@@ -1041,7 +1071,6 @@ bool Parser::_handle_map_impl()
         {
             return true;
         }
-
         else
         {
             _c4err("parse error");
@@ -1538,12 +1567,15 @@ bool Parser::_scan_scalar(csubstr *scalar)
         _c4err("not implemented");
     }
 
+    if(s.empty()) return false;
+
     m_state->scalar_col = m_state->line_contents.current_col(s);
     _line_progressed(s.str - m_state->line_contents.rem.str + s.len);
 
     // deal with scalars that continue to the next line
 
-    // PHEWW*. this sucks. it's crazy and very fragile. revisit and make this better.
+    // PHEWW*. this sucks really bad.
+    // it's crazy and very fragile. revisit and make this better.
     if(_at_line_end() && !s.begins_with_any("*"))
     {
         csubstr n = _peek_next_line(m_state->pos.offset);
@@ -1972,11 +2004,13 @@ void Parser::_start_map(bool as_child)
         _write_val_anchor(parent_id);
         if(parent_id != NONE)
         {
-            if(m_stack.size() < 2) _c4err("internal error");
-            State const& parent_state = m_stack.top(1);
-            if(parent_state.flags & RSET)
+            if(m_stack.size() >= 2)
             {
-                add_flags(RSET);
+                State const& parent_state = m_stack.top(1);
+                if(parent_state.flags & RSET)
+                {
+                    add_flags(RSET);
+                }
             }
         }
     }
@@ -2204,7 +2238,7 @@ bool Parser::_handle_indentation()
         {
             _c4err("parse error: incorrect indentation?");
         }
-        _c4dbgpf("popping %zd level%s: from level %zd to level %zd", m_state->level-popto->level, m_state->level-popto->level > 1 ? "s":"", m_state->level, popto->level);
+        _c4dbgpf("popping %zd levels: from level %zd to level %zd", m_state->level-popto->level, m_state->level, popto->level);
         while(m_state != popto)
         {
             _c4dbgpf("popping level %zd (indentation=%zd)", m_state->level, m_state->indref);
