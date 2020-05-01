@@ -368,8 +368,9 @@ int main()
 {
     // ryml can parse in situ (and read-only buffers too):
     char src[] = "{foo: 1, bar: [a: 2, b: 3]}";
+    ryml::substr srcview = src_; // a mutable view to the source buffer
     // there are also overloads for reusing the tree and parser
-    ryml::Tree tree = ryml::parse(src);
+    ryml::Tree tree = ryml::parse(srcview);
 
     // get a reference to the "foo" node
     ryml::NodeRef node = tree["foo"];
@@ -389,7 +390,7 @@ over to an arena buffer in the tree object, and that buffer copy will be the
 one to be parsed:
 
 ```c++
-// "{foo: 1}" is a read-only buffer; it will be
+// "{foo: 1}" is a const char[], so a read-only buffer; it will be
 // copied to the tree's arena before parsing
 ryml::Tree tree = ryml::parse("{foo: 1}");
 ```
