@@ -2,7 +2,45 @@
 
 namespace c4 {
 namespace yml {
-    
+
+TEST(github, 58)
+{
+    Tree tree;
+    NodeRef root;
+
+    tree = parse("{a}");
+    root = tree.rootref();
+    EXPECT_EQ(root["a"].val(), "~");
+
+    tree = parse("{a, b, c}");
+    root = tree.rootref();
+    EXPECT_EQ(root["a"].val(), "~");
+    EXPECT_EQ(root["b"].val(), "~");
+    EXPECT_EQ(root["c"].val(), "~");
+
+    tree = parse("{a: 1, b: 2, c}");
+    root = tree.rootref();
+    EXPECT_EQ(root["a"].val(), "1");
+    EXPECT_EQ(root["b"].val(), "2");
+    EXPECT_EQ(root["c"].val(), "~");
+
+    tree = parse("{a: 1, b, c: 2}");
+    root = tree.rootref();
+    EXPECT_EQ(root["a"].val(), "1");
+    EXPECT_EQ(root["b"].val(), "~");
+    EXPECT_EQ(root["c"].val(), "2");
+
+    tree = parse("{a, b: 1, c: 2}");
+    root = tree.rootref();
+    EXPECT_EQ(root["a"].val(), "~");
+    EXPECT_EQ(root["b"].val(), "1");
+    EXPECT_EQ(root["c"].val(), "2");
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 TEST(github, 54)
 {
