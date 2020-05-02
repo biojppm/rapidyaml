@@ -117,6 +117,6 @@ function ryml_submit_coverage()
         coverage_service=$3
         build_dir=`pwd`/build/$bits-$linktype
         echo "Submitting coverage data: $build_dir --> $coverage_service"
-        cmake --build $build_dir --target c4core-coverage-submit-$coverage_service
+        cmake --build $build_dir --target ryml-coverage-submit-$coverage_service
     fi
 }
