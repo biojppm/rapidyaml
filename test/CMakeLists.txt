@@ -1,6 +1,6 @@
 c4_setup_testing()
 
-c4_add_library(ryml-testlib
+c4_add_library(ryml-testlib STATIC
     SOURCES test_case.hpp test_case.cpp libyaml.hpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${ryml_yaml_cpp_inc}
     LIBS ryml c4fs yaml yaml-cpp gtest gtest_main
