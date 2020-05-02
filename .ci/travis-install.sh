@@ -121,5 +121,7 @@ dpkg -s cmake
 dpkg -L cmake
 which cmake
 cmake --version
+$CXX_ --version
+which $CXX_
 
 echo "INSTALL COMPLETE: current directory: $(pwd)"
