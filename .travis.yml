@@ -79,15 +79,15 @@ install:
 script:
   - source .ci/travis-setenv.sh
   
-  - ryml_cfg_test 64 dynamic
-  - ryml_run_test 64 dynamic
-  
   - ryml_cfg_test 64 static
   - ryml_run_test 64 static
   
   - ryml_cfg_test 32 static
   - ryml_run_test 32 static
   
+  - ryml_cfg_test 64 dynamic
+  - ryml_run_test 64 dynamic
+
   - echo "Success!"
 
 after_success:
