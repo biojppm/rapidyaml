@@ -1,5 +1,10 @@
 c4_setup_testing()
 
+c4_add_executable(ryml-parse-emit
+    SOURCES parse_emit.cpp
+    LIBS ryml c4fs
+    FOLDER test)
+
 c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
     SOURCES test_case.hpp test_case.cpp libyaml.hpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${ryml_yaml_cpp_inc}
