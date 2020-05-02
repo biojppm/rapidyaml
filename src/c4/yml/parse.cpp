@@ -1589,36 +1589,60 @@ bool Parser::_scan_scalar(csubstr *scalar)
     // it's crazy and very fragile. revisit and make this better.
     if(_at_line_end() && !s.begins_with_any("*"))
     {
-        csubstr n = _peek_next_line(m_state->pos.offset);
-        if(has_none(EXPL) && n.begins_with(' ', m_state->line_contents.indentation + 1))
+        if(has_none(EXPL))
         {
-            _c4dbgpf("does indentation increase? '%.*s'", _c4prsp(n));
-            size_t ind = n.first_not_of(' ');  // maybe n contains only spaces
-            if(ind == npos)
+            csubstr n = _peek_next_line(m_state->pos.offset);
+            _c4dbgpf("IMPL. reading scalar: does indentation increase? '%.*s'", _c4prsp(n));
+            if(n.begins_with(' ', m_state->line_contents.indentation + 1))
             {
-                ind = n.len;
-            }
-            const csubstr contents = n.right_of(ind, /*include_pos*/true);
-            if( ! contents.begins_with_any("-[{?#") && (contents.first_of(':') == npos))
-            {
-                _c4dbgpf("reading scalar: it indents further: the scalar continues!!! indentation=%zd", ind);
-                while(n.begins_with(' ', ind))
+                size_t ind = n.first_not_of(' ');  // maybe n contains only spaces
+                if(ind != npos)
                 {
-                    _c4dbgpf("reading scalar: append another line: '%.*s'", _c4prsp(n));
-                    _line_ended(); // advances to the peeked-at line, consuming all remaining (probably newline) characters on the current line
-                    _scan_line();  // puts the peeked-at line in the buffer
-                    RYML_ASSERT(n == m_state->line_contents.rem);
-                    if(_finished_file()) break;
-                    _line_progressed(n.end() - (m_buf.str + m_state->pos.offset));
-                    n = _peek_next_line(m_state->pos.offset);
+                    _c4dbgpf("reading scalar: indentation increases from %zu to %zu",
+                             m_state->line_contents.indentation, ind);
                 }
-                substr full(m_buf.str + (s.str - m_buf.str), m_buf.begin() + m_state->pos.offset);
-                s = _filter_plain_scalar(full, ind);
+                else
+                {
+                    _c4dbgpf("line was blank. len=%zu", n.len);
+                    ind = n.len;
+                }
+                const csubstr contents = n.right_of(ind, /*include_pos*/true);
+                if( ! contents.begins_with_any("-[{?#"))
+                {
+                    _c4dbgpf("does not begin with special characters \"-[{?#\"");
+                    if(contents.find(": ") != npos || contents.ends_with(':'))
+                    {
+                        _c4dbgpf("there's a map starting: contents='%.*s' first_of(\": \")=%zu  ends_with(':')=%d",
+                                 _c4prsp(contents), contents.find(": "), contents.ends_with(':'));
+                    }
+                    else
+                    {
+                        _c4dbgpf("continuing reading scalar...");
+                        while(n.begins_with(' ', ind))
+                        {
+                            _c4dbgpf("reading scalar: append another line: '%.*s'", _c4prsp(n));
+                            _line_ended(); // advances to the peeked-at line, consuming all remaining (probably newline) characters on the current line
+                            _scan_line();  // puts the peeked-at line in the buffer
+                            RYML_ASSERT(n == m_state->line_contents.rem);
+                            if(_finished_file()) break;
+                            _line_progressed(n.end() - (m_buf.str + m_state->pos.offset));
+                            n = _peek_next_line(m_state->pos.offset);
+                        }
+                        substr full(m_buf.str + (s.str - m_buf.str), m_buf.begin() + m_state->pos.offset);
+                        s = _filter_plain_scalar(full, ind);
+                    }
+                }
+                else
+                {
+                    _c4dbgpf("reading scalar: it does not indent further. begins_with_any(\"-[{?#\")=%d has(':')=%d",
+                             contents.begins_with_any("-[{?#"), (contents.first_of(':') == npos));
+                }
             }
         }
         else if(has_all(EXPL))
         {
             constexpr const csubstr chars = "[]{}?#,";
+            csubstr n = _peek_next_line(m_state->pos.offset);
             size_t pos = n.first_of(chars);
             while(pos != 0)
             {

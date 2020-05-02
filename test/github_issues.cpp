@@ -8,6 +8,55 @@ namespace yml {
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+TEST(github, 60)
+{
+    Tree tree = parse(R"(
+    traits:
+        roleBonuses:
+        -   bonus: 5
+            bonusText:
+                de: Bonus auf die Virusstärke von <a href=showinfo:22177>Relikt-</a>
+                    und <a href=showinfo:22175>Datenanalysatoren</a>
+                en: bonus to <a href=showinfo:22177>Relic</a> and <a href=showinfo:22175>Data
+                    Analyzer</a> virus strength
+                fr: de bonus à la puissance du virus des <a href=showinfo:22177>analyseurs
+                    de reliques</a> et des <a href=showinfo:22175>analyseurs de données</a>
+                ja: <a href=showinfo:22177>遺物アナライザー</a>と<a href=showinfo:22175>データアナライザー</a>のウイルス強度が増加
+                ru: повышается степень опасности вирусов, применяемых в <a href=showinfo:22175>комплексах
+                    анализа данных</a> и <a href=showinfo:22177>комплексах анализа
+                    артефактов</a>
+                zh: <a href="showinfo:22177">遗迹分析仪</a>和<a href="showinfo:22175">数据分析仪</a>病毒强度加成
+            importance: 1
+            unitID: 139
+)");
+    auto root = tree.rootref();
+    ASSERT_TRUE(root.is_map());
+    ASSERT_TRUE(root.has_child("traits"));
+    auto rb = root["traits"]["roleBonuses"][0];
+    ASSERT_TRUE(rb.valid());
+    EXPECT_EQ(rb["bonus"].val(), "5");
+    auto txt = rb["bonusText"];
+    ASSERT_TRUE(txt.valid());
+    ASSERT_TRUE(txt.is_map());
+    EXPECT_TRUE(txt.has_child("de"));
+    EXPECT_TRUE(txt.has_child("en"));
+    EXPECT_TRUE(txt.has_child("fr"));
+    EXPECT_TRUE(txt.has_child("ja"));
+    EXPECT_TRUE(txt.has_child("ru"));
+    EXPECT_TRUE(txt.has_child("zh"));
+    EXPECT_EQ(txt["de"].val(), "Bonus auf die Virusstärke von <a href=showinfo:22177>Relikt-</a> und <a href=showinfo:22175>Datenanalysatoren</a>");
+    EXPECT_EQ(txt["en"].val(), "bonus to <a href=showinfo:22177>Relic</a> and <a href=showinfo:22175>Data Analyzer</a> virus strength");
+    EXPECT_EQ(txt["fr"].val(), "de bonus à la puissance du virus des <a href=showinfo:22177>analyseurs de reliques</a> et des <a href=showinfo:22175>analyseurs de données</a>");
+    EXPECT_EQ(txt["ja"].val(), "<a href=showinfo:22177>遺物アナライザー</a>と<a href=showinfo:22175>データアナライザー</a>のウイルス強度が増加");
+    EXPECT_EQ(txt["ru"].val(), "повышается степень опасности вирусов, применяемых в <a href=showinfo:22175>комплексах анализа данных</a> и <a href=showinfo:22177>комплексах анализа артефактов</a>");
+    EXPECT_EQ(txt["zh"].val(), "<a href=\"showinfo:22177\">遗迹分析仪</a>和<a href=\"showinfo:22175\">数据分析仪</a>病毒强度加成");
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 TEST(github, 54)
 {
     Tree tree = parse(R"(
@@ -175,13 +224,13 @@ L{N("translation", L{N("-2"), N("-2"), N("5")})}
 // these must work without quotes
 C("github3-problem2-ex1",
 R"(
-audio resource: 
+audio resource:
 )",
 L{N("audio resource", "~")}
 ),
 C("github3-problem2-ex2",
 R"(
-audio resource: 
+audio resource:
 more:
   example: y
 )",
