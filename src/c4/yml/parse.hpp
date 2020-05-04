@@ -117,14 +117,16 @@ private:
     bool  _finished_line() const;
 
     csubstr _peek_next_line(size_t pos=npos) const;
-    void  _scan_line();
-    void  _next_line() { _line_ended(); }
+    bool    _advance_to_peeked(csubstr peeked_line);
+    void    _scan_line();
 
-    bool  _scan_scalar(csubstr *scalar);
+    bool    _scan_scalar(csubstr *scalar);
     csubstr _scan_comment();
     csubstr _scan_quoted_scalar(const char q);
     csubstr _scan_block();
     csubstr _scan_ref();
+    substr  _scan_plain_scalar_expl(csubstr currscalar, csubstr peeked_line, size_t indentation);
+    csubstr _scan_to_next_nonempty_line(size_t indentation);
 
     csubstr _filter_squot_scalar(substr s);
     csubstr _filter_dquot_scalar(substr s);

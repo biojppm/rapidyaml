@@ -50,6 +50,46 @@ TEST(github, 60)
     EXPECT_EQ(txt["ja"].val(), "<a href=showinfo:22177>遺物アナライザー</a>と<a href=showinfo:22175>データアナライザー</a>のウイルス強度が増加");
     EXPECT_EQ(txt["ru"].val(), "повышается степень опасности вирусов, применяемых в <a href=showinfo:22175>комплексах анализа данных</a> и <a href=showinfo:22177>комплексах анализа артефактов</a>");
     EXPECT_EQ(txt["zh"].val(), "<a href=\"showinfo:22177\">遗迹分析仪</a>和<a href=\"showinfo:22175\">数据分析仪</a>病毒强度加成");
+
+
+    tree = parse(R"(208:
+    basePrice: 3000.0
+    description:
+        de: Ursprünglich als Rakete für den Fangschuss entworfen, um einem beschädigten
+            Schiff den Todesstoß zu geben, hat die Inferno Heavy Missile seither eine
+            Reihe technischer Upgrades durchlaufen. Die neueste Version hat eine leichtere
+            Sprengladung als das Original, aber stark verbesserte Lenksysteme.
+        en: Originally designed as a 'finisher' - the killing blow to a crippled ship
+            - the Inferno heavy missile has since gone through various technological
+            upgrades. The latest version has a lighter payload than the original,
+            but much improved guidance systems.
+        fr: Conçu à l'origine pour donner le coup de grâce, le missile lourd Inferno
+            a depuis subi de nombreuses améliorations techniques. La dernière version
+            emporte une charge utile réduite par rapport à l'originale, mais est dotée
+            de systèmes de guidage améliorés.
+        ja: 元々「フィニッシャー」―大破した船にとどめを刺す兵器として設計されたインフェルノヘビーミサイルは、以来各種の技術改良を経てきた。現行型は初期型より軽い弾頭を採用しているが、それを補って余りある優れた誘導システムを持つ。
+        ru: Тяжелая ракета Inferno изначально была спроектирована как «оружие последнего
+            удара» для уничтожения подбитых кораблей. С тех пор было выпущено несколько
+            ее модификаций. В последней модификации используется заряд меньшей мощности,
+            но более совершенная система наведения.
+        zh: 炼狱重型导弹历经多种技术改良，原本被设计为给予落魄敌舰最后一击的“终结者”角色。相比原型，最新版导弹载荷较轻，但装配了大幅改进的制导系统。
+    graphicID: 20048
+    groupID: 385
+    iconID: 188
+    marketGroupID: 924
+    mass: 1000.0
+    name:
+        de: Inferno Heavy Missile
+        en: Inferno Heavy Missile
+        fr: Missile lourd Inferno
+        ja: インフェルノヘビーミサイル
+        ru: Inferno Heavy Missile
+        zh: 炼狱重型导弹
+    portionSize: 100
+    published: true
+    radius: 300.0
+    volume: 0.03
+)");
 }
 
 

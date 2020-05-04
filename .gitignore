@@ -6,6 +6,10 @@
 .clangd/
 .ccls-cache/
 
+# gdb files
+.gdbinit
+setup.gdb
+
 # Visual Studio files
 .vs/
 .vscode/
