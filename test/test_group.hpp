@@ -85,20 +85,20 @@ using PT = std::pair<const csubstr, Case>;
     return buf;
 
 
-#define INSTANTIATE_GROUP(group_name) \
-\
-INSTANTIATE_TEST_SUITE_P(group_name, YmlTestCase, ::testing::Values(group_name##_CASES));\
-\
-Case const* get_case(csubstr name)\
-{\
-    static std::map<csubstr, Case> cases;\
-    if(cases.empty())\
-    {\
-        ADD_CASE_GROUP(group_name);\
-    }\
-    auto it = cases.find(name);\
-    C4_ASSERT(it != cases.end());\
-    return &it->second;\
+#define INSTANTIATE_GROUP(group_name)                                   \
+                                                                        \
+INSTANTIATE_TEST_SUITE_P(group_name, YmlTestCase, ::testing::Values(group_name##_CASES)); \
+                                                                        \
+Case const* get_case(csubstr name)                                      \
+{                                                                       \
+    static std::map<csubstr, Case> cases;                               \
+    if(cases.empty())                                                   \
+    {                                                                   \
+        ADD_CASE_GROUP(group_name);                                     \
+    }                                                                   \
+    auto it = cases.find(name);                                         \
+    C4_ASSERT(it != cases.end());                                       \
+    return &it->second;                                                 \
 }
 
 } // namespace yml
