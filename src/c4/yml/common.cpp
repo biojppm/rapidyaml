@@ -15,10 +15,6 @@ void error_impl(const char* msg, size_t length, void * /*user_data*/)
 {
     fprintf(stderr, "%.*s\n", (int)length, msg);
     fflush(stderr);
-    if(c4::is_debugger_attached())
-    {
-        C4_DEBUG_BREAK();
-    }
     ::abort();
 }
 
