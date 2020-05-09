@@ -2,7 +2,7 @@
 #define _C4_YML_COMMON_HPP_
 
 #include <cstddef>
-#include <c4/common.hpp>
+#include <c4/substr.hpp>
 
 #define RYML_INLINE inline
 
@@ -80,18 +80,65 @@ enum : size_t { npos = size_t(-1) };
 enum : size_t { NONE = size_t(-1) };
 
 //-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+//! holds a position into a source buffer
+struct LineCol
+{
+    //!< number of bytes from the beginning of the source buffer
+    size_t offset;
+    //!< line
+    size_t line;
+    //!< column
+    size_t col;
+
+    LineCol() : offset(), line(), col() {}
+    //! construct from line and column
+    LineCol(size_t l, size_t c) : offset(0), line(l), col(c) {}
+    //! construct from offset, line and column
+    LineCol(size_t o, size_t l, size_t c) : offset(o), line(l), col(c) {}
+};
+
+
+//! a source file position
+struct Location : public LineCol
+{
+    csubstr name;
+
+    operator bool () const { return !name.empty() || line != 0 || offset != 0; }
+
+    Location() : LineCol(), name() {}
+    Location(                     size_t l, size_t c) : LineCol{   l, c}, name( ) {}
+    Location(csubstr n,           size_t l, size_t c) : LineCol{   l, c}, name(n) {}
+    Location(csubstr n, size_t b, size_t l, size_t c) : LineCol{b, l, c}, name(n) {}
+    Location(const char *n,           size_t l, size_t c) : LineCol{   l, c}, name(to_csubstr(n)) {}
+    Location(const char *n, size_t b, size_t l, size_t c) : LineCol{b, l, c}, name(to_csubstr(n)) {}
+};
+
+
+//-----------------------------------------------------------------------------
 
 /** the type of the function used to report errors. This function must
  * interrupt execution, either by raising an exception or calling
  * std::terminate()/std::abort(). */
-using pfn_error = void (*)(const char* msg, size_t msg_len, void *user_data);
+using pfn_error = void (*)(const char* msg, size_t msg_len, Location location, void *user_data);
 
-void error(const char *msg, size_t msg_len);
+void error(const char *msg, size_t msg_len, Location loc);
+inline void error(const char *msg, size_t msg_len)
+{
+    error(msg, msg_len, Location{});
+}
 
+template<size_t N>
+inline void error(const char (&msg)[N], Location loc)
+{
+    error(msg, N-1, loc);
+}
 template<size_t N>
 inline void error(const char (&msg)[N])
 {
-    error(msg, N-1);
+    error(msg, N-1, Location{});
 }
 
 //-----------------------------------------------------------------------------
@@ -117,7 +164,7 @@ struct Callbacks
         void* mem = m_allocate(len, hint, m_user_data);
         if(mem == nullptr)
         {
-            this->error("out of memory");
+            this->error("out of memory", {});
         }
         return mem;
     }
@@ -127,15 +174,26 @@ struct Callbacks
         m_free(mem, len, m_user_data);
     }
 
+    void error(const char *msg, size_t msg_len, Location loc) const
+    {
+        m_error(msg, msg_len, loc, m_user_data);
+    }
+
     void error(const char *msg, size_t msg_len) const
     {
-        m_error(msg, msg_len, m_user_data);
+        m_error(msg, msg_len, {}, m_user_data);
+    }
+
+    template<size_t N>
+    inline void error(const char (&msg)[N], Location loc) const
+    {
+        error(msg, N-1, loc);
     }
 
     template<size_t N>
     inline void error(const char (&msg)[N]) const
     {
-        error(msg, N-1);
+        error(msg, N-1, {});
     }
 
 };

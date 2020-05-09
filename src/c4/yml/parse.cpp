@@ -3085,7 +3085,7 @@ void Parser::_err(const char *fmt, ...) const
     va_start(args, fmt);
     len = _fmt_msg(errmsg, len, fmt, args);
     va_end(args);
-    c4::yml::error(errmsg, len);
+    c4::yml::error(errmsg, len, m_state->pos);
 }
 
 //-----------------------------------------------------------------------------

@@ -11,8 +11,20 @@ namespace yml {
 #ifndef RYML_NO_DEFAULT_CALLBACKS
 namespace {
 
-void error_impl(const char* msg, size_t length, void * /*user_data*/)
+void error_impl(const char* msg, size_t length, Location loc, void * /*user_data*/)
 {
+    if(loc)
+    {
+        if(!loc.name.empty())
+        {
+            fprintf(stderr, "%.*s:", (int)loc.name.len, loc.name.str);
+        }
+        fprintf(stderr, "%zu:%zu:", loc.line, loc.col);
+        if(loc.offset)
+        {
+            fprintf(stderr, " (%zuB):", loc.offset);
+        }
+    }
     fprintf(stderr, "%.*s\n", (int)length, msg);
     fflush(stderr);
     ::abort();
@@ -24,7 +36,7 @@ void* allocate_impl(size_t length, void * /*hint*/, void * /*user_data*/)
     if(mem == nullptr)
     {
         const char msg[] = "could not allocate memory";
-        error_impl(msg, sizeof(msg)-1, nullptr);
+        error_impl(msg, sizeof(msg)-1, {}, nullptr);
     }
     return mem;
 }
@@ -34,6 +46,7 @@ void free_impl(void *mem, size_t /*length*/, void * /*user_data*/)
     ::free(mem);
 }
 } // empty namespace
+
 
 Callbacks::Callbacks()
     :
@@ -107,9 +120,9 @@ void set_memory_resource(MemoryResource* r)
     s_memory_resource = r ? r : &s_default_memory_resource;
 }
 
-void error(const char *msg, size_t msg_len)
+void error(const char *msg, size_t msg_len, Location loc)
 {
-    s_default_callbacks.error(msg, msg_len);
+    s_default_callbacks.error(msg, msg_len, loc);
 }
 
 } // namespace yml
