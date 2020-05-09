@@ -251,8 +251,10 @@ TEST(github, 31)
         "github34/ex1",\
         "github34/ex2",\
         "github34",\
-        "github35/expected_error1",\
-        "github35/expected_error2"
+        "github35/expected_error11",\
+        "github35/expected_error12",\
+        "github35/expected_error21",\
+        "github35/expected_error22"
 
 
 CASE_GROUP(GITHUB_ISSUES)
@@ -554,26 +556,40 @@ L{
 }
 ),
 
-C("github35/expected_error1", HAS_PARSE_ERROR,
+C("github35/expected_error11", HAS_PARSE_ERROR,
 R"(
 # *segfault* // not anymore!
 - key1: true1
  MessageID1:          'MapRegion_HyrulePrairie1 '
+)",
+  LineCol(4, 1)
+),
+
+C("github35/expected_error12", HAS_PARSE_ERROR,
+R"(
+# *segfault* // not anymore!
 - key2: true2
  MessageID2:          "MapRegion_HyrulePrairie2 "
 )",
-L{N("----parse errors")}
+  LineCol(4, 1)
 ),
 
-C("github35/expected_error2", HAS_PARSE_ERROR,
+C("github35/expected_error21", HAS_PARSE_ERROR,
 R"(
 # *segfault* // not anymore!
 - key1: true1
     MessageID1:          'MapRegion_HyrulePrairie1 '
+)",
+  LineCol(4, 15)
+),
+
+C("github35/expected_error22", HAS_PARSE_ERROR,
+R"(
+# *segfault* // not anymore!
 - key2: true2
     MessageID2:          "MapRegion_HyrulePrairie2 "
 )",
-L{N("----parse errors")}
+  LineCol(4, 15)
 ),
 
     )

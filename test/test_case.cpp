@@ -1,4 +1,5 @@
 #include "./test_case.hpp"
+#include "c4/format.hpp"
 #include "c4/span.hpp"
 #include "c4/yml/std/std.hpp"
 #include "c4/yml/detail/print.hpp"
@@ -113,14 +114,39 @@ void test_arena_not_shared(Tree const& a, Tree const& b)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-ExpectError::ExpectError()
+std::string format_error(const char* msg, size_t len, Location loc)
+{
+    if(!loc) return msg;
+    std::string out;
+    if(!loc.name.empty()) c4::formatrs(append, &out, "{}:", loc.name);
+    c4::formatrs(append, &out, "{}:{}:", loc.line, loc.col);
+    if(loc.offset) c4::formatrs(append, &out, " (@{}B):", loc.offset);
+    c4::formatrs(append, &out, "{}:", csubstr(msg, len));
+    return out;
+}
+
+struct ExpectedError : public std::runtime_error
+{
+    Location error_location;
+    ExpectedError(const char* msg, size_t len, Location loc)
+        : std::runtime_error(format_error(msg, len, loc))
+        , error_location(loc)
+    {
+    }
+};
+
+
+//-----------------------------------------------------------------------------
+
+ExpectError::ExpectError(Location loc)
     : m_got_an_error(false)
     , m_prev(c4::yml::get_callbacks())
+    , expected_location(loc)
 {
     #ifdef RYML_NO_DEFAULT_CALLBACKS
-    c4::yml::Callbacks cb((void*)this, m_prev.m_allocate, m_prev.m_free, &ExpectErrors::error);
+    c4::yml::Callbacks cb((void*)this, m_prev.m_allocate, m_prev.m_free, &ExpectError::error);
     #else
-    c4::yml::Callbacks cb((void*)this, nullptr, nullptr, &ExpectError::error);
+    c4::yml::Callbacks cb((void*)this, nullptr,           nullptr,       &ExpectError::error);
     #endif
     c4::yml::set_callbacks(cb);
 }
@@ -130,28 +156,41 @@ ExpectError::~ExpectError()
     c4::yml::set_callbacks(m_prev);
 }
 
-void ExpectError::error(const char* msg, size_t len, void *user_data)
+void ExpectError::error(const char* msg, size_t len, Location loc, void *user_data)
 {
     ExpectError *this_ = reinterpret_cast<ExpectError*>(user_data);
     this_->m_got_an_error = true;
-    throw std::runtime_error({msg, msg+len});
+    throw ExpectedError(msg, len, loc);
 }
 
-void ExpectError::do_check(std::function<void()> fn)
+void ExpectError::do_check(std::function<void()> fn, Location expected_location)
 {
-    auto context = ExpectError();
+    auto context = ExpectError(expected_location);
     try
     {
         fn();
     }
-    catch(std::runtime_error const& e)
+    catch(ExpectedError const& e)
     {
-        C4_UNUSED(e);
         #ifdef RYML_DBG
         std::cout << "---------------\n";
         std::cout << "got an expected error:\n" << e.what() << "\n";
         std::cout << "---------------\n";
         #endif
+        if(context.expected_location)
+        {
+            EXPECT_TRUE(e.error_location);
+            EXPECT_EQ(e.error_location.line, context.expected_location.line);
+            EXPECT_EQ(e.error_location.col, context.expected_location.col);
+            if(context.expected_location.offset)
+            {
+                EXPECT_EQ(e.error_location.offset, context.expected_location.offset);
+            }
+            if(!context.expected_location.name.empty())
+            {
+                EXPECT_EQ(e.error_location.name, context.expected_location.name);
+            }
+        }
     };
     EXPECT_TRUE(context.m_got_an_error);
 }

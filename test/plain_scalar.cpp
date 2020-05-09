@@ -344,7 +344,7 @@ R"(- Several lines of text,
   - and some "quotes" of various 'types'.
   But this: must cause a parse error.
 )",
-  L{N(".error.")}
+  LineCol(4, 11)
 ),
 
 C("plain scalar, do not accept ': ' start line", HAS_PARSE_ERROR,
@@ -355,7 +355,7 @@ R"(
   But this must cause a parse error -
   : foo bar
 )",
-  L{N(".error.")}
+  LineCol(6, 3)
 ),
 
 C("plain scalar, do not accept ': ' at line end", HAS_PARSE_ERROR,
@@ -364,7 +364,7 @@ R"(- Several lines of text,
   - and some "quotes" of various 'types'.
   But this must cause a parse error: 
 )",
-  L{N(".error.")}
+  LineCol(4, 36)
 ),
 
 C("plain scalar, do not accept ':' at line end", HAS_PARSE_ERROR,
@@ -373,7 +373,7 @@ R"(- Several lines of text,
   - and some "quotes" of various 'types'.
   But this: must cause a parse error.
 )",
-  L{N(".error.")}
+  LineCol(4, 11)
 ),
 
 C("plain scalar, do not accept ' #', at line start", HAS_PARSE_ERROR,
@@ -381,7 +381,7 @@ R"(- Several lines of text,
   and this is NOT valid -
   #with special:characters, like:this-or-this -
 )",
-  L{N(".error.")}
+  LineCol(3, 2)
 ),
 
 C("plain scalar, do not accept ' #', at line start, but accept on first line",
@@ -395,7 +395,7 @@ C("plain scalar, do not accept ' #', at line end", HAS_PARSE_ERROR,
 R"(- Several lines of text,
   with special:characters, #comment at the end
 )",
-  L{N(".error.")}
+  LineCol(2, 27)
 ),
 
 C("plain scalar, accept '#'",
