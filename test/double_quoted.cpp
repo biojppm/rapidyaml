@@ -12,6 +12,7 @@ namespace yml {
             "dquoted, with newline",                    \
             "dquoted, all",                             \
             "dquoted, empty",                           \
+            "dquoted, blank",                           \
             "dquoted, numbers",                         \
             "dquoted, trailing space",                  \
             "dquoted, leading space",                   \
@@ -74,6 +75,17 @@ Newlines can also be added by leaving a blank line.
 C("dquoted, empty",
 R"("")",
   L{N("")}
+),
+
+C("dquoted, blank",
+R"(
+- ""
+- " "
+- "  "
+- "   "
+- "    "
+)",
+  L{N(""), N(" "), N("  "), N("   "), N("    ")}
 ),
 
 C("dquoted, numbers", // these should not be quoted when emitting

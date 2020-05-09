@@ -47,6 +47,7 @@ int main(int argc, const char *argv[])
         return 1;
     }
     csubstr file = to_csubstr(argv[1]);
+    C4_CHECK_MSG(fs::path_exists(file.str), "cannot find file: %s (cwd=%s)", file.str, fs::cwd<std::string>().c_str());
 
     {
         TS(objects);
