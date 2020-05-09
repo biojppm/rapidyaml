@@ -90,6 +90,10 @@ TEST(github, 60)
     radius: 300.0
     volume: 0.03
 )");
+    root = tree.rootref()["208"];
+    EXPECT_EQ(root["description"]["ja"].val(), "元々「フィニッシャー」―大破した船にとどめを刺す兵器として設計されたインフェルノヘビーミサイルは、以来各種の技術改良を経てきた。現行型は初期型より軽い弾頭を採用しているが、それを補って余りある優れた誘導システムを持つ。");
+    EXPECT_EQ(root["name"]["ja"].val(), "インフェルノヘビーミサイル");
+    EXPECT_EQ(root["name"]["zh"].val(), "炼狱重型导弹");
 }
 
 
@@ -558,10 +562,7 @@ R"(
 - key2: true2
  MessageID2:          "MapRegion_HyrulePrairie2 "
 )",
-L{
-  N(L{N("key1", "true1"), N("MessageID1", "MapRegion_HyrulePrairie1 ")}),
-  N(L{N("key2", "true2"), N("MessageID2", "MapRegion_HyrulePrairie2 ")}),
-}
+L{N("----parse errors")}
 ),
 
 C("github35/expected_error2", HAS_PARSE_ERROR,
@@ -572,10 +573,7 @@ R"(
 - key2: true2
     MessageID2:          "MapRegion_HyrulePrairie2 "
 )",
-L{
-  N(L{N("key1", "true1"), N("MessageID1", "MapRegion_HyrulePrairie1 ")}),
-  N(L{N("key2", "true2"), N("MessageID2", "MapRegion_HyrulePrairie2 ")}),
-}
+L{N("----parse errors")}
 ),
 
     )

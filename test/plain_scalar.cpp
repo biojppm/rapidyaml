@@ -2,24 +2,32 @@
 
 namespace c4 {
 namespace yml {
-#define PLAIN_SCALAR_CASES                                              \
-    "plain scalar, 1 word only",                                        \
-        "plain scalar, 1 line with spaces",                             \
-        "plain scalar, multiline",                                      \
-        "plain scalar, multiline, unindented",                          \
-        "plain scalar, multiline, quotes, escapes",                     \
-        "plain scalar, multiline, quotes, escapes, blank lines middle", \
-        "plain scalar, multiline, quotes, escapes, blank lines first",  \
-        "plain scalar, multiline, quotes, escapes, blank lines last",   \
-        "plain scalar, example",                                        \
-        "plain scalar, map example 1"/*,                                \
-        "plain scalar, map example 2"*/,                                \
-        "plain scalar, seq example 1"/*,                                \
-        "plain scalar, seq example 2"*/,                                \
-        "plain scalar, special characters 1",                           \
-        "plain scalar, sequence ambiguity",                             \
-        "plain scalar, empty lines at the beginning",                   \
-        "plain scalar, empty continuation lines"
+#define PLAIN_SCALAR_CASES                                          \
+    "plain scalar, 1 word only",                                    \
+    "plain scalar, 1 line with spaces",                             \
+    "plain scalar, multiline",                                      \
+    "plain scalar, multiline, unindented",                          \
+    "plain scalar, multiline, quotes, escapes",                     \
+    "plain scalar, multiline, quotes, escapes, blank lines middle", \
+    "plain scalar, multiline, quotes, escapes, blank lines first",  \
+    "plain scalar, multiline, quotes, escapes, blank lines last",   \
+    "plain scalar, example",                                        \
+    "plain scalar, map example 1"/*,                                \
+    "plain scalar, map example 2"*/,                                \
+    "plain scalar, seq example 1"/*,                                \
+    "plain scalar, seq example 2"*/,                                \
+    "plain scalar, special characters 1",                           \
+    "plain scalar, sequence ambiguity",                             \
+    "plain scalar, empty lines at the beginning",                   \
+    "plain scalar, empty continuation lines",                       \
+    "plain scalar, do not accept ': ' mid line",                    \
+    "plain scalar, do not accept ': ' start line",                  \
+    "plain scalar, do not accept ': ' at line end",                 \
+    "plain scalar, do not accept ':' at line end",                  \
+    "plain scalar, do not accept ' #', at line start",              \
+    "plain scalar, do not accept ' #', at line start, but accept on first line", \
+    "plain scalar, do not accept ' #', at line end",                \
+    "plain scalar, accept '#'"
 
 
 CASE_GROUP(PLAIN_SCALAR)
@@ -294,7 +302,6 @@ R"(
 
 
   and finally some more text
- # deindented comments at the end
 )",
   L{
       N("the next lines have 2cols, 0cols, 2cols,"
@@ -329,7 +336,83 @@ R"(
       N("Several lines of text, with special:characters, like:this-or-this - - and some \"quotes\" of various 'types'."),
       N("Several lines of text, with special:characters, like:this-or-this - - and some \"quotes\" of various 'types'."),
   }
-)
+),
+
+C("plain scalar, do not accept ': ' mid line", HAS_PARSE_ERROR,
+R"(- Several lines of text,
+  with special:characters, like:this-or-this -
+  - and some "quotes" of various 'types'.
+  But this: must cause a parse error.
+)",
+  L{N(".error.")}
+),
+
+C("plain scalar, do not accept ': ' start line", HAS_PARSE_ERROR,
+R"(
+- Several lines of text,
+  with special:characters, like:this-or-this -
+  - and some "quotes" of various 'types'.
+  But this must cause a parse error -
+  : foo bar
+)",
+  L{N(".error.")}
+),
+
+C("plain scalar, do not accept ': ' at line end", HAS_PARSE_ERROR,
+R"(- Several lines of text,
+  with special:characters, like:this-or-this -
+  - and some "quotes" of various 'types'.
+  But this must cause a parse error: 
+)",
+  L{N(".error.")}
+),
+
+C("plain scalar, do not accept ':' at line end", HAS_PARSE_ERROR,
+R"(- Several lines of text,
+  with special:characters, like:this-or-this -
+  - and some "quotes" of various 'types'.
+  But this: must cause a parse error.
+)",
+  L{N(".error.")}
+),
+
+C("plain scalar, do not accept ' #', at line start", HAS_PARSE_ERROR,
+R"(- Several lines of text,
+  and this is NOT valid -
+  #with special:characters, like:this-or-this -
+)",
+  L{N(".error.")}
+),
+
+C("plain scalar, do not accept ' #', at line start, but accept on first line",
+R"(- Several lines of text, and this is valid -
+  #with special:characters, like:this-or-this -
+)",
+  L{N("Several lines of text, and this is valid -")}
+),
+
+C("plain scalar, do not accept ' #', at line end", HAS_PARSE_ERROR,
+R"(- Several lines of text,
+  with special:characters, #comment at the end
+)",
+  L{N(".error.")}
+),
+
+C("plain scalar, accept '#'",
+R"(
+- Several lines of text, # with a comment
+- Several lines of text,
+  with special#characters, like#this_#_-or-#-:this -
+  - and some "quotes" of various 'types'.
+)",
+  L{
+      N("Several lines of text,"),
+      N("Several lines of text, "
+        "with special#characters, like#this_#_-or-#-:this - "
+        "- and some \"quotes\" of various 'types'."),
+   }
+),
+
     )
 
 }

@@ -1681,18 +1681,26 @@ substr Parser::_scan_plain_scalar_expl(csubstr currscalar, csubstr peeked_line, 
             peeked_line = next_peeked;
         }
 
-        const csubstr contents = peeked_line.right_of(indentation, /*include_pos*/true);
-        _c4dbgpf("rscalar[IMPL]: line contents: '%.*s'", _c4prsp(contents.trimr("\r\n")));
-        if(contents.find(": ") != npos || contents.ends_with(':'))
+        _c4dbgpf("rscalar[IMPL]: line contents: '%.*s'", _c4prsp(peeked_line.right_of(indentation, true).trimr("\r\n")));
+        if(peeked_line.find(": ") != npos)
         {
-            _c4dbgpf("rscalar[IMPL]: there's a map starting: first_of(\": \")=%zu  ends_with(':')=%d", contents.find(": "), contents.ends_with(':'));
+            _line_progressed(peeked_line.find(": "));
+            _c4err("': ' is not a valid token in plain flow (unquoted) scalars");
             break;
         }
-        else if(contents.find('#') != npos)
+        else if(peeked_line.ends_with(':'))
         {
-            _c4dbgpf("rscalar[IMPL]: there's a comment at %zu, stop", contents.find('#'));
+            _line_progressed(peeked_line.find(':'));
+            _c4err("lines cannot end with ':' in plain flow (unquoted) scalars");
             break;
         }
+        else if(peeked_line.find(" #") != npos)
+        {
+            _line_progressed(peeked_line.find(" #"));
+            _c4err("' #' is not a valid token in plain flow (unquoted) scalars");
+            break;
+        }
+
         _c4dbgpf("rscalar[IMPL]: append another line: (len=%zu)'%.*s'", peeked_line.len, _c4prsp(peeked_line.trimr("\r\n")));
         if(!_advance_to_peeked(peeked_line))
         {
@@ -1716,7 +1724,11 @@ csubstr Parser::_scan_to_next_nonempty_line(size_t indentation)
         _c4dbgpf("rscalar: ... curr offset: %zu", m_state->pos.offset);
         next_peeked = _peek_next_line(m_state->pos.offset);
         _c4dbgpf("rscalar: ... next peeked line='%.*s'", _c4prsp(next_peeked.trimr("\r\n")));
-        if(next_peeked.begins_with(' ', indentation))
+        if(next_peeked.triml(' ').begins_with('#'))
+        {
+            ; // nothing to do
+        }
+        else if(next_peeked.begins_with(' ', indentation))
         {
             _c4dbgpf("rscalar: ... begins at same indentation %zu, assuming continuation", indentation);
             _advance_to_peeked(next_peeked);
@@ -1785,11 +1797,11 @@ csubstr Parser::_peek_next_line(size_t pos) const
     size_t nlpos{}; // declare here because of the goto
     pos = pos == npos ? m_state->pos.offset : pos;
     if(pos >= m_buf.len) goto next_is_empty;
-    
+
     // look for the next newline chars, and jump to the right of those
     rem = from_next_line(m_buf.sub(pos));
     if(rem.empty()) goto next_is_empty;
-    
+
     // now get everything up to and including the following newline chars
     nlpos = rem.first_of("\r\n");
     if((nlpos != csubstr::npos) && (nlpos + 1 < rem.len))
