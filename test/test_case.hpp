@@ -7,6 +7,7 @@
 
 #include <c4/yml/yml.hpp>
 #include <gtest/gtest.h>
+#include <functional>
 
 #ifdef __GNUC__
 #   pragma GCC diagnostic push
