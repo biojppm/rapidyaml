@@ -236,6 +236,16 @@ bool Parser::_handle_unk()
     csubstr rem = m_state->line_contents.rem;
     const bool start_as_child = (node(m_state) == nullptr);
 
+    if(C4_UNLIKELY(has_any(NDOC)))
+    {
+        if(rem.begins_with("---"))
+        {
+            _start_new_doc(rem);
+            return true;
+        }
+        _c4err("unexpected token: outside of document");
+    }
+
     RYML_ASSERT(has_none(RNXT|RSEQ|RMAP));
     if(m_state->indref > 0)
     {
@@ -2047,7 +2057,7 @@ void Parser::_start_unk(bool /*as_child*/)
 void Parser::_start_doc(bool as_child)
 {
     _c4dbgpf("start_doc (as child=%d)", as_child);
-    add_flags(RUNK|RTOP);
+    addrem_flags(RUNK|RTOP, NDOC);
     RYML_ASSERT(node(m_stack.bottom()) == node(m_root_id));
     size_t parent_id = m_stack.size() < 2 ? m_root_id : m_stack.top(1).node_id;
     RYML_ASSERT(parent_id != NONE);
@@ -2120,7 +2130,7 @@ void Parser::_end_stream()
         RYML_ASSERT( ! has_any(SSCL, &m_stack.top()));
         _pop_level();
     }
-
+    add_flags(NDOC);
 }
 
 void Parser::_start_new_doc(csubstr rem)
@@ -3251,6 +3261,7 @@ int Parser::_prfl(char *buf, int buflen, size_t v)
     _prflag(RNXT);
     _prflag(SSCL);
     _prflag(RSET);
+    _prflag(NDOC);
 #undef _prflag
 
     return pos;

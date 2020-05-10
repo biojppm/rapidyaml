@@ -178,6 +178,7 @@ private:
         RNXT = 0x01 <<  8,   ///< read next val or keyval
         SSCL = 0x01 <<  9,   ///< there's a scalar stored
         RSET = 0x01 << 10,   ///< the (implicit) map being read is a !!set. @see https://yaml.org/type/set.html
+        NDOC = 0x01 << 11,   ///< no document mode. a document has ended and another has not started yet.
     } State_e;
 
     struct LineContents
