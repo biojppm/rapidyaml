@@ -34,8 +34,8 @@
 
 
 #ifndef RYML_DBG
-#   define RYML_CHECK(cond) if(!(cond)) { ::c4::yml::error("expected true: " #cond); }
-#   define RYML_CHECK_MSG(cond, msg) if(!(cond)) { ::c4::yml::error(msg ": expected true: " #cond); }
+#   define RYML_CHECK(cond) if(!(cond)) { ::c4::yml::error("ERROR: expected true: " #cond); }
+#   define RYML_CHECK_MSG(cond, msg) if(!(cond)) { ::c4::yml::error(msg ": ERROR: expected true: " #cond); }
 #else
 #   define RYML_CHECK(cond)                             \
         if(!(cond))                                     \
@@ -44,7 +44,7 @@
             {                                           \
                 C4_DEBUG_BREAK();                       \
             }                                           \
-            ::c4::yml::error("expected true: " #cond);  \
+            ::c4::yml::error(__FILE__ ":" C4_XQUOTE(__LINE__) ": ERROR: expected true: " #cond);  \
         }
 #   define RYML_CHECK_MSG(cond, msg)                          \
         if(!(cond))                                           \
@@ -53,7 +53,7 @@
             {                                                 \
                 C4_DEBUG_BREAK();                             \
             }                                                 \
-            ::c4::yml::error(msg ": expected true: " #cond);  \
+            ::c4::yml::error(__FILE__ ":" C4_XQUOTE(__LINE__) ": ERROR: expected true: " #cond "\n" msg);  \
         }
 #endif
 
