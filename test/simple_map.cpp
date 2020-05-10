@@ -25,7 +25,8 @@ namespace yml {
 "simple map, scalars with special chars, left-curly",           \
 "simple map, scalars with special chars, right-curly",          \
 "simple map, null values",                                      \
-"simple map expl, null values",                                 \
+"simple map expl, null values 1",                               \
+"simple map expl, null values 2",                               \
 "simple map expl, scalars with special chars, comma"            \
 
 CASE_GROUP(SIMPLE_MAP)
@@ -168,9 +169,26 @@ foo: bar
 L{N("key", "val"), N("a", "~"), N("b", "~"), N("c", "~"), N("d", "~"), N("e", "~"), N("f", "~"), N("g", "~"), N("foo", "bar"),}
 ),
 
-C("simple map expl, null values",
+C("simple map expl, null values 1",
 R"({key: val, a, b, c, d, e: , f: , g: , foo: bar})",
 L{N("key", "val"), N("a", "~"), N("b", "~"), N("c", "~"), N("d", "~"), N("e", "~"), N("f", "~"), N("g", "~"), N("foo", "bar"),}
+),
+
+C("simple map expl, null values 2",
+R"(
+- {a}
+- {a, b, c}
+- {a: 1, b: 2, c}
+- {a: 1, b, c: 2}
+- {a, b: 1, c: 2}
+)",
+L{
+   N(L{N("a", "~")}),
+   N(L{N("a", "~"), N("b", "~"), N("c", "~")}),
+   N(L{N("a", "1"), N("b", "2"), N("c", "~")}),
+   N(L{N("a", "1"), N("b", "~"), N("c", "2")}),
+   N(L{N("a", "~"), N("b", "1"), N("c", "2")}),
+ }
 ),
 
 C("simple map, scalars with special chars, comma",
