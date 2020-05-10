@@ -1,6 +1,6 @@
 c4_setup_testing()
 
-c4_add_library(ryml-testlib STATIC
+c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
     SOURCES test_case.hpp test_case.cpp libyaml.hpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${ryml_yaml_cpp_inc}
     LIBS ryml c4fs yaml yaml-cpp gtest gtest_main
@@ -19,8 +19,8 @@ function(ryml_add_test test_name)
     # sanitizer.
     set(t ryml-test-${test_name})
     c4_add_executable(${t}
-        SOURCES ${test_name}.cpp ${ARGN}
-        LIBS ryml yaml-cpp ryml-testlib yaml-cpp ryml # FRAGILE! see the NOTE above
+        SOURCES ${test_name}.cpp
+        LIBS ${ARGN} ryml yaml-cpp ryml-_testlib yaml-cpp ryml # FRAGILE! see the NOTE above
         FOLDER test)
     if(RYML_DBG)
         target_compile_definitions(${t} PRIVATE RYML_DBG)
@@ -28,8 +28,13 @@ function(ryml_add_test test_name)
     c4_add_test(${t})
 endfunction()
 
+c4_add_library(ryml-_testgroup LIBRARY_TYPE OBJECT
+    SOURCES test_group.cpp test_group.hpp
+    LIBS ryml ryml-_testlib c4fs
+    FOLDER test)
+
 function(ryml_add_test_case_group name)
-    ryml_add_test(${name} test_group.cpp test_group.hpp)
+    ryml_add_test(${name} ryml-_testgroup)
 endfunction()
 
 ryml_add_test(basic)
@@ -104,7 +109,7 @@ c: [4, 5, 6]
 #-------------------------------------------------------------------------
 
 # run every case in the yaml-test-suite
-option(RYML_TEST_SUITE "Enable ~300 extensive tests from yaml-test-suite." OFF)
+option(RYML_TEST_SUITE "Enable ~300 extensive test cases from yaml-test-suite, https://github.com/yaml/yaml-test-suite." OFF)
 
 if(RYML_TEST_SUITE)
     set(ed ${CMAKE_CURRENT_BINARY_DIR}/ext) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)
@@ -119,7 +124,7 @@ if(RYML_TEST_SUITE)
 
     set(suite_dir ${ed}/yaml-test-suite/src/test)
     if(NOT EXISTS ${suite_dir})
-        message(FATAL_ERROR "cannot find yaml-test-suite -- was there an error downloading the project?")
+        c4_err("cannot find yaml-test-suite -- was there an error downloading the project?")
     endif()
 
     c4_add_executable(ryml-test-suite
@@ -130,16 +135,17 @@ if(RYML_TEST_SUITE)
         target_compile_definitions(ryml-test-suite PRIVATE RYML_DBG)
     endif()
 
+    set(tgt $<TARGET_FILE:ryml-test-suite>)
     function(ryml_add_test_from_suite tml_file)
         get_filename_component(name ${tml_file} NAME_WE)
         add_test(NAME ryml-test-suite-${name}-in_yaml
-            COMMAND $<TARGET_FILE:ryml-test-suite> --gtest_filter="*/in_yaml*" ${suite_dir}/${tml_file})
+            COMMAND ${tgt} --gtest_filter="*/in_yaml*" ${suite_dir}/${tml_file})
         add_test(NAME ryml-test-suite-${name}-out_yaml
-            COMMAND $<TARGET_FILE:ryml-test-suite> --gtest_filter="*/out_yaml*" ${suite_dir}/${tml_file})
+            COMMAND ${tgt} --gtest_filter="*/out_yaml*" ${suite_dir}/${tml_file})
         add_test(NAME ryml-test-suite-${name}-events
-            COMMAND $<TARGET_FILE:ryml-test-suite> --gtest_filter="*/events*" ${suite_dir}/${tml_file})
+            COMMAND ${tgt} --gtest_filter="*/events*" ${suite_dir}/${tml_file})
         add_test(NAME ryml-test-suite-${name}-in_json
-            COMMAND $<TARGET_FILE:ryml-test-suite> --gtest_filter="*/in_json*" ${suite_dir}/${tml_file})
+            COMMAND ${tgt} --gtest_filter="*/in_json*" ${suite_dir}/${tml_file})
     endfunction()
 
     file(GLOB suite_cases RELATIVE "${suite_dir}" "${suite_dir}/*.tml")
