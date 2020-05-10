@@ -2001,7 +2001,7 @@ void Parser::_push_level(bool explicit_flow_chars)
         return;
     }
     size_t st = RUNK;
-    if(explicit_flow_chars)
+    if(explicit_flow_chars || has_all(EXPL))
     {
         st |= EXPL;
     }
