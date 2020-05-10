@@ -3,6 +3,7 @@
 set -e
 set -x
 
+NUM_JOBS=2
 PROJ_DIR=$(pwd)
 PROJ_PFX=RYML_
 
@@ -106,7 +107,7 @@ function ryml_run_test()
     linktype=$2
     build_dir=`pwd`/build/$bits-$linktype
     export CTEST_OUTPUT_ON_FAILURE=1
-    cmake --build $build_dir --target test
+    cmake --build $build_dir --parallel $NUM_JOBS --target test
 }
 
 function ryml_submit_coverage()
@@ -117,6 +118,6 @@ function ryml_submit_coverage()
         coverage_service=$3
         build_dir=`pwd`/build/$bits-$linktype
         echo "Submitting coverage data: $build_dir --> $coverage_service"
-        cmake --build $build_dir --target ryml-coverage-submit-$coverage_service
+        cmake --build $build_dir --parallel $NUM_JOBS --target ryml-coverage-submit-$coverage_service
     fi
 }
