@@ -27,7 +27,8 @@ namespace yml {
     "plain scalar, do not accept ' #', at line start",              \
     "plain scalar, do not accept ' #', at line start, but accept on first line", \
     "plain scalar, do not accept ' #', at line end",                \
-    "plain scalar, accept '#'"
+    "plain scalar, accept '#'",                                     \
+    "plain scalar, explicit"
 
 
 CASE_GROUP(PLAIN_SCALAR)
@@ -410,6 +411,35 @@ R"(
       N("Several lines of text, "
         "with special#characters, like#this_#_-or-#-:this - "
         "- and some \"quotes\" of various 'types'."),
+   }
+),
+
+C("plain scalar, explicit",
+R"(
+[
+  a plain scalar
+    with several lines
+
+    and blank lines
+    
+    as well
+  ,
+  and another plain scalar
+  ,
+  and yet another one
+
+
+
+with many lines
+
+and yet more, deindented
+]
+)",
+  L{
+      N("a plain scalar with several lines\nand blank lines\nas well"),
+      N("and another plain scalar"),
+      N("and yet another one\n\n\nwith many lines\nand yet more"),
+      N("deindented"),
    }
 ),
 

@@ -93,7 +93,8 @@ private:
     bool  _finished_line() const;
 
     csubstr _peek_next_line(size_t pos=npos) const;
-    bool    _advance_to_peeked(csubstr peeked_line);
+    bool    _advance_to_peeked();
+    bool    _advance_to_peeked(csubstr peeked_portion);
     void    _scan_line();
 
     bool    _scan_scalar(csubstr *scalar);
@@ -101,7 +102,8 @@ private:
     csubstr _scan_quoted_scalar(const char q);
     csubstr _scan_block();
     csubstr _scan_ref();
-    substr  _scan_plain_scalar_expl(csubstr currscalar, csubstr peeked_line, size_t indentation);
+    substr  _scan_plain_scalar_impl(csubstr currscalar, csubstr peeked_line, size_t indentation);
+    substr  _scan_plain_scalar_expl(csubstr currscalar, csubstr peeked_line);
     csubstr _scan_to_next_nonempty_line(size_t indentation);
 
     csubstr _filter_squot_scalar(substr s);
