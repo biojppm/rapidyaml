@@ -94,7 +94,6 @@ private:
 
     csubstr _peek_next_line(size_t pos=npos) const;
     bool    _advance_to_peeked();
-    bool    _advance_to_peeked(csubstr peeked_portion);
     void    _scan_line();
 
     bool    _scan_scalar(csubstr *scalar);

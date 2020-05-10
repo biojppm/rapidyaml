@@ -414,7 +414,7 @@ struct Case
     template<size_t N, class... Args> Case(csubstr name_, int f_, const char (&src_)[N], Args&& ...args) : name(name_), src(src_), root(std::forward<Args>(args)...), flags((TestCaseFlags_e)f_), expected_location()  {}
 
     //! create a test case with an error on an expected location
-    template<size_t N>                Case(csubstr name_, int f_, const char (&src_)[N], LineCol loc) : name(name_), src(src_), root(), flags((TestCaseFlags_e)f_), expected_location(loc.line, loc.col) {}
+    template<size_t N>                Case(csubstr name_, int f_, const char (&src_)[N], LineCol loc) : name(name_), src(src_), root(), flags((TestCaseFlags_e)f_), expected_location(name, loc.line, loc.col) {}
 
 };
 

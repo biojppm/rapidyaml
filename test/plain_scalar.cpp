@@ -28,7 +28,11 @@ namespace yml {
     "plain scalar, do not accept ' #', at line start, but accept on first line", \
     "plain scalar, do not accept ' #', at line end",                \
     "plain scalar, accept '#'",                                     \
-    "plain scalar, explicit"
+    "plain scalar, explicit",                                       \
+    "plain scalar, explicit, early end, seq",                       \
+    "plain scalar, explicit, early end, map",                       \
+    "plain scalar, multiple docs",                                  \
+    "plain scalar, multiple docs, termination"
 
 
 CASE_GROUP(PLAIN_SCALAR)
@@ -372,9 +376,10 @@ C("plain scalar, do not accept ':' at line end", HAS_PARSE_ERROR,
 R"(- Several lines of text,
   with special:characters, like:this-or-this -
   - and some "quotes" of various 'types'.
-  But this: must cause a parse error.
+  But this must cause a parse error:
+  - well, did it?
 )",
-  LineCol(4, 11)
+  LineCol(4, 36)
 ),
 
 C("plain scalar, do not accept ' #', at line start", HAS_PARSE_ERROR,
@@ -441,6 +446,51 @@ and yet more, deindented
       N("and yet another one\n\n\nwith many lines\nand yet more"),
       N("deindented"),
    }
+),
+
+C("plain scalar, explicit, early end, seq", HAS_PARSE_ERROR,
+R"([
+  a plain scalar
+    with several lines
+)",
+  LineCol(4, 1)
+),
+
+C("plain scalar, explicit, early end, map", HAS_PARSE_ERROR,
+R"({foo:
+  a plain scalar
+    with several lines
+)",
+  LineCol(4, 1)
+),
+
+C("plain scalar, multiple docs",
+R"(---
+- a plain scalar
+    with several lines
+---
+- a second plain scalar
+    with several lines
+)",
+  N(STREAM, L{
+    N(DOCSEQ, L{N("a plain scalar with several lines")}),
+    N(DOCSEQ, L{N("a second plain scalar with several lines")}),
+  })
+),
+
+C("plain scalar, multiple docs, termination",
+R"(---
+- a plain scalar
+    with several lines
+...
+---
+- a second plain scalar
+    with several lines
+)",
+  N(STREAM, L{
+    N(DOCSEQ, L{N("a plain scalar with several lines")}),
+    N(DOCSEQ, L{N("a second plain scalar with several lines")}),
+  })
 ),
 
     )

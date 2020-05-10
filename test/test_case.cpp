@@ -114,8 +114,17 @@ void test_arena_not_shared(Tree const& a, Tree const& b)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+// ensure coverage of the default callback report
+#ifndef RYML_NO_DEFAULT_CALLBACKS
+extern void report_error_impl(const char* msg, size_t len, Location loc, FILE *file);
+#endif
+
 std::string format_error(const char* msg, size_t len, Location loc)
 {
+    // ensure coverage of the default callback report
+    #ifndef RYML_NO_DEFAULT_CALLBACKS
+    report_error_impl(msg, len, loc, nullptr);
+    #endif
     if(!loc) return msg;
     std::string out;
     if(!loc.name.empty()) c4::formatrs(append, &out, "{}:", loc.name);
@@ -185,10 +194,6 @@ void ExpectError::do_check(std::function<void()> fn, Location expected_location)
             if(context.expected_location.offset)
             {
                 EXPECT_EQ(e.error_location.offset, context.expected_location.offset);
-            }
-            if(!context.expected_location.name.empty())
-            {
-                EXPECT_EQ(e.error_location.name, context.expected_location.name);
             }
         }
     };

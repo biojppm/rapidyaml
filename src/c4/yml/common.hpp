@@ -124,17 +124,20 @@ struct Location : public LineCol
  * std::terminate()/std::abort(). */
 using pfn_error = void (*)(const char* msg, size_t msg_len, Location location, void *user_data);
 
+/** trigger an error: call the current error callback. */
 void error(const char *msg, size_t msg_len, Location loc);
+/** @overload error */
 inline void error(const char *msg, size_t msg_len)
 {
     error(msg, msg_len, Location{});
 }
-
+/** @overload error */
 template<size_t N>
 inline void error(const char (&msg)[N], Location loc)
 {
     error(msg, N-1, loc);
 }
+/** @overload error */
 template<size_t N>
 inline void error(const char (&msg)[N])
 {

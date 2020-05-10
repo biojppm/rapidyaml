@@ -9,24 +9,34 @@ namespace c4 {
 namespace yml {
 
 #ifndef RYML_NO_DEFAULT_CALLBACKS
-namespace {
 
-void error_impl(const char* msg, size_t length, Location loc, void * /*user_data*/)
+void report_error_impl(const char* msg, size_t length, Location loc, FILE *f)
 {
+    if(!f)
+    {
+        f = stderr;
+    }
     if(loc)
     {
         if(!loc.name.empty())
         {
-            fprintf(stderr, "%.*s:", (int)loc.name.len, loc.name.str);
+            fprintf(f, "%.*s:", (int)loc.name.len, loc.name.str);
         }
-        fprintf(stderr, "%zu:%zu:", loc.line, loc.col);
+        fprintf(f, "%zu:%zu:", loc.line, loc.col);
         if(loc.offset)
         {
-            fprintf(stderr, " (%zuB):", loc.offset);
+            fprintf(f, " (%zuB):", loc.offset);
         }
     }
-    fprintf(stderr, "%.*s\n", (int)length, msg);
-    fflush(stderr);
+    fprintf(f, "ERROR: %.*s\n", (int)length, msg);
+    fflush(f);
+}
+
+namespace {
+
+void error_impl(const char* msg, size_t length, Location loc, void * /*user_data*/)
+{
+    report_error_impl(msg, length, loc, nullptr);
     ::abort();
 }
 

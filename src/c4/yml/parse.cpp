@@ -1656,22 +1656,18 @@ substr Parser::_scan_plain_scalar_expl(csubstr currscalar, csubstr peeked_line)
         {
             _c4dbgpf("rscalar[EXPL]: found special character '%c' at %zu, stopping: '%.*s'", peeked_line[pos], pos, _c4prsp(peeked_line.left_of(pos).trimr("\r\n")));
             peeked_line = peeked_line.left_of(pos);
-            _advance_to_peeked(peeked_line);
+            _line_progressed(peeked_line.end() - m_state->line_contents.rem.begin());
             break;
         }
         _c4dbgpf("rscalar[EXPL]: append another line, full: '%.*s'", _c4prsp(peeked_line.trimr("\r\n")));
         if(!first)
         {
-            if(!_advance_to_peeked())
-            {
-                break;
-            }
+            RYML_CHECK(_advance_to_peeked());
         }
         peeked_line = _scan_to_next_nonempty_line(/*indentation*/0);
         if(peeked_line.empty())
         {
-            _c4dbgp("rscalar[EXPL]: ... finished.");
-            break;
+            _c4err("expected token or continuation");
         }
         pos = peeked_line.first_of(chars);
         first = false;
@@ -1694,7 +1690,7 @@ substr Parser::_scan_plain_scalar_impl(csubstr currscalar, csubstr peeked_line, 
     while(true)
     {
         _c4dbgpf("rscalar[IMPL]: continuing... ref_indentation=%zu", indentation);
-        if(peeked_line.begins_with("..."))
+        if(peeked_line.begins_with("...") || peeked_line.begins_with("---"))
         {
             _c4dbgpf("rscalar[IMPL]: document termination next -- bail now '%.*s'", _c4prsp(peeked_line.trimr("\r\n")));
             break;
@@ -1723,19 +1719,16 @@ substr Parser::_scan_plain_scalar_impl(csubstr currscalar, csubstr peeked_line, 
         {
             _line_progressed(peeked_line.find(": "));
             _c4err("': ' is not a valid token in plain flow (unquoted) scalars");
-            break;
         }
         else if(peeked_line.ends_with(':'))
         {
             _line_progressed(peeked_line.find(':'));
             _c4err("lines cannot end with ':' in plain flow (unquoted) scalars");
-            break;
         }
         else if(peeked_line.find(" #") != npos)
         {
             _line_progressed(peeked_line.find(" #"));
             _c4err("' #' is not a valid token in plain flow (unquoted) scalars");
-            break;
         }
 
         _c4dbgpf("rscalar[IMPL]: append another line: (len=%zu)'%.*s'", peeked_line.len, _c4prsp(peeked_line.trimr("\r\n")));
@@ -1791,26 +1784,6 @@ csubstr Parser::_scan_to_next_nonempty_line(size_t indentation)
 }
 
 // returns false when the file finished
-bool Parser::_advance_to_peeked(csubstr peeked_part)
-{
-    RYML_ASSERT(m_state->line_contents.rem.contains(peeked_part));
-    _line_progressed(peeked_part.end() - m_state->line_contents.rem.begin());
-    if(m_state->line_contents.rem.empty())
-    {
-        _line_ended(); // advances to the peeked-at line, consuming all remaining (probably newline) characters on the current line
-        RYML_ASSERT(m_state->line_contents.rem.first_of("\r\n") == csubstr::npos);
-        _c4dbgpf("advance to peeked: scan more... pos=%zu len=%zu", m_state->pos.offset, m_buf.len);
-        _scan_line();  // puts the peeked-at line in the buffer
-        if(_finished_file())
-        {
-            _c4dbgp("rscalar[IMPL]: finished file!");
-            return false;
-        }
-    }
-    return true;
-}
-
-// returns false when the file finished
 bool Parser::_advance_to_peeked()
 {
     _line_progressed(m_state->line_contents.rem.len);
@@ -1820,7 +1793,7 @@ bool Parser::_advance_to_peeked()
     _scan_line();  // puts the peeked-at line in the buffer
     if(_finished_file())
     {
-        _c4dbgp("rscalar[IMPL]: finished file!");
+        _c4dbgp("rscalar: finished file!");
         return false;
     }
     return true;
