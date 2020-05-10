@@ -864,6 +864,17 @@ bool Parser::_handle_map_expl()
                 _line_progressed(1);
                 return true;
             }
+            else if(rem.begins_with('}'))
+            {
+                _c4dbgp("map terminates after a key...");
+                RYML_ASSERT(has_all(SSCL));
+                _c4dbgp("the last val was null");
+                _append_key_val("~");
+                rem_flags(RVAL);
+                _pop_level();
+                _line_progressed(1);
+                return true;
+            }
             else if(_handle_types())
             {
                 return true;
