@@ -47,7 +47,7 @@ TEST_P(YmlTestCase, parse_using_ryml)
     {
         ExpectError::do_check([this](){
             parse(d->src, &d->parsed_tree);
-        });
+        }, c->expected_location);
         return;
     }
 

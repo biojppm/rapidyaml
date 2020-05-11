@@ -27,7 +27,9 @@
 #define _c4prsp(sp) ((int)(sp).len), (sp).str
 
 #ifdef RYML_DBG
-#   define _c4err(fmt, ...)   this->_err("\n" "%s:%d: ERROR parsing yml: " fmt     , __FILE__, __LINE__, ## __VA_ARGS__)
+#   define _c4err(fmt, ...)   \
+        if(c4::is_debugger_attached()) { C4_DEBUG_BREAK(); } \
+        this->_err("\n" "%s:%d: ERROR parsing yml: " fmt     , __FILE__, __LINE__, ## __VA_ARGS__)
 #   define _c4dbgt(fmt, ...)  this->_dbg(     "%s:%d: "                    fmt     , __FILE__, __LINE__, ## __VA_ARGS__)
 #   define _c4dbgpf(fmt, ...)  printf   (     "%s:%d: "                    fmt "\n", __FILE__, __LINE__, ## __VA_ARGS__)
 #   define _c4dbgp(msg)        printf   (     "%s:%d: "                    msg "\n", __FILE__, __LINE__                )

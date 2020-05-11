@@ -8,6 +8,99 @@ namespace yml {
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+TEST(github, 60)
+{
+    Tree tree = parse(R"(
+    traits:
+        roleBonuses:
+        -   bonus: 5
+            bonusText:
+                de: Bonus auf die Virusstärke von <a href=showinfo:22177>Relikt-</a>
+                    und <a href=showinfo:22175>Datenanalysatoren</a>
+                en: bonus to <a href=showinfo:22177>Relic</a> and <a href=showinfo:22175>Data
+                    Analyzer</a> virus strength
+                fr: de bonus à la puissance du virus des <a href=showinfo:22177>analyseurs
+                    de reliques</a> et des <a href=showinfo:22175>analyseurs de données</a>
+                ja: <a href=showinfo:22177>遺物アナライザー</a>と<a href=showinfo:22175>データアナライザー</a>のウイルス強度が増加
+                ru: повышается степень опасности вирусов, применяемых в <a href=showinfo:22175>комплексах
+                    анализа данных</a> и <a href=showinfo:22177>комплексах анализа
+                    артефактов</a>
+                zh: <a href="showinfo:22177">遗迹分析仪</a>和<a href="showinfo:22175">数据分析仪</a>病毒强度加成
+            importance: 1
+            unitID: 139
+)");
+    auto root = tree.rootref();
+    ASSERT_TRUE(root.is_map());
+    ASSERT_TRUE(root.has_child("traits"));
+    auto rb = root["traits"]["roleBonuses"][0];
+    ASSERT_TRUE(rb.valid());
+    EXPECT_EQ(rb["bonus"].val(), "5");
+    auto txt = rb["bonusText"];
+    ASSERT_TRUE(txt.valid());
+    ASSERT_TRUE(txt.is_map());
+    EXPECT_TRUE(txt.has_child("de"));
+    EXPECT_TRUE(txt.has_child("en"));
+    EXPECT_TRUE(txt.has_child("fr"));
+    EXPECT_TRUE(txt.has_child("ja"));
+    EXPECT_TRUE(txt.has_child("ru"));
+    EXPECT_TRUE(txt.has_child("zh"));
+    EXPECT_EQ(txt["de"].val(), "Bonus auf die Virusstärke von <a href=showinfo:22177>Relikt-</a> und <a href=showinfo:22175>Datenanalysatoren</a>");
+    EXPECT_EQ(txt["en"].val(), "bonus to <a href=showinfo:22177>Relic</a> and <a href=showinfo:22175>Data Analyzer</a> virus strength");
+    EXPECT_EQ(txt["fr"].val(), "de bonus à la puissance du virus des <a href=showinfo:22177>analyseurs de reliques</a> et des <a href=showinfo:22175>analyseurs de données</a>");
+    EXPECT_EQ(txt["ja"].val(), "<a href=showinfo:22177>遺物アナライザー</a>と<a href=showinfo:22175>データアナライザー</a>のウイルス強度が増加");
+    EXPECT_EQ(txt["ru"].val(), "повышается степень опасности вирусов, применяемых в <a href=showinfo:22175>комплексах анализа данных</a> и <a href=showinfo:22177>комплексах анализа артефактов</a>");
+    EXPECT_EQ(txt["zh"].val(), "<a href=\"showinfo:22177\">遗迹分析仪</a>和<a href=\"showinfo:22175\">数据分析仪</a>病毒强度加成");
+
+
+    tree = parse(R"(208:
+    basePrice: 3000.0
+    description:
+        de: Ursprünglich als Rakete für den Fangschuss entworfen, um einem beschädigten
+            Schiff den Todesstoß zu geben, hat die Inferno Heavy Missile seither eine
+            Reihe technischer Upgrades durchlaufen. Die neueste Version hat eine leichtere
+            Sprengladung als das Original, aber stark verbesserte Lenksysteme.
+        en: Originally designed as a 'finisher' - the killing blow to a crippled ship
+            - the Inferno heavy missile has since gone through various technological
+            upgrades. The latest version has a lighter payload than the original,
+            but much improved guidance systems.
+        fr: Conçu à l'origine pour donner le coup de grâce, le missile lourd Inferno
+            a depuis subi de nombreuses améliorations techniques. La dernière version
+            emporte une charge utile réduite par rapport à l'originale, mais est dotée
+            de systèmes de guidage améliorés.
+        ja: 元々「フィニッシャー」―大破した船にとどめを刺す兵器として設計されたインフェルノヘビーミサイルは、以来各種の技術改良を経てきた。現行型は初期型より軽い弾頭を採用しているが、それを補って余りある優れた誘導システムを持つ。
+        ru: Тяжелая ракета Inferno изначально была спроектирована как «оружие последнего
+            удара» для уничтожения подбитых кораблей. С тех пор было выпущено несколько
+            ее модификаций. В последней модификации используется заряд меньшей мощности,
+            но более совершенная система наведения.
+        zh: 炼狱重型导弹历经多种技术改良，原本被设计为给予落魄敌舰最后一击的“终结者”角色。相比原型，最新版导弹载荷较轻，但装配了大幅改进的制导系统。
+    graphicID: 20048
+    groupID: 385
+    iconID: 188
+    marketGroupID: 924
+    mass: 1000.0
+    name:
+        de: Inferno Heavy Missile
+        en: Inferno Heavy Missile
+        fr: Missile lourd Inferno
+        ja: インフェルノヘビーミサイル
+        ru: Inferno Heavy Missile
+        zh: 炼狱重型导弹
+    portionSize: 100
+    published: true
+    radius: 300.0
+    volume: 0.03
+)");
+    root = tree.rootref()["208"];
+    EXPECT_EQ(root["description"]["ja"].val(), "元々「フィニッシャー」―大破した船にとどめを刺す兵器として設計されたインフェルノヘビーミサイルは、以来各種の技術改良を経てきた。現行型は初期型より軽い弾頭を採用しているが、それを補って余りある優れた誘導システムを持つ。");
+    EXPECT_EQ(root["name"]["ja"].val(), "インフェルノヘビーミサイル");
+    EXPECT_EQ(root["name"]["zh"].val(), "炼狱重型导弹");
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 TEST(github, 54)
 {
     Tree tree = parse(R"(
@@ -158,8 +251,10 @@ TEST(github, 31)
         "github34/ex1",\
         "github34/ex2",\
         "github34",\
-        "github35/expected_error1",\
-        "github35/expected_error2"
+        "github35/expected_error11",\
+        "github35/expected_error12",\
+        "github35/expected_error21",\
+        "github35/expected_error22"
 
 
 CASE_GROUP(GITHUB_ISSUES)
@@ -175,13 +270,13 @@ L{N("translation", L{N("-2"), N("-2"), N("5")})}
 // these must work without quotes
 C("github3-problem2-ex1",
 R"(
-audio resource: 
+audio resource:
 )",
 L{N("audio resource", "~")}
 ),
 C("github3-problem2-ex2",
 R"(
-audio resource: 
+audio resource:
 more:
   example: y
 )",
@@ -461,32 +556,40 @@ L{
 }
 ),
 
-C("github35/expected_error1", HAS_PARSE_ERROR,
+C("github35/expected_error11", HAS_PARSE_ERROR,
 R"(
 # *segfault* // not anymore!
 - key1: true1
  MessageID1:          'MapRegion_HyrulePrairie1 '
+)",
+  LineCol(4, 1)
+),
+
+C("github35/expected_error12", HAS_PARSE_ERROR,
+R"(
+# *segfault* // not anymore!
 - key2: true2
  MessageID2:          "MapRegion_HyrulePrairie2 "
 )",
-L{
-  N(L{N("key1", "true1"), N("MessageID1", "MapRegion_HyrulePrairie1 ")}),
-  N(L{N("key2", "true2"), N("MessageID2", "MapRegion_HyrulePrairie2 ")}),
-}
+  LineCol(4, 1)
 ),
 
-C("github35/expected_error2", HAS_PARSE_ERROR,
+C("github35/expected_error21", HAS_PARSE_ERROR,
 R"(
 # *segfault* // not anymore!
 - key1: true1
     MessageID1:          'MapRegion_HyrulePrairie1 '
+)",
+  LineCol(4, 15)
+),
+
+C("github35/expected_error22", HAS_PARSE_ERROR,
+R"(
+# *segfault* // not anymore!
 - key2: true2
     MessageID2:          "MapRegion_HyrulePrairie2 "
 )",
-L{
-  N(L{N("key1", "true1"), N("MessageID1", "MapRegion_HyrulePrairie1 ")}),
-  N(L{N("key2", "true2"), N("MessageID2", "MapRegion_HyrulePrairie2 ")}),
-}
+  LineCol(4, 15)
 ),
 
     )

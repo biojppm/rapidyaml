@@ -11,6 +11,7 @@ namespace yml {
             "squoted, with escapes",                    \
             "squoted, all",                             \
             "squoted, empty",                           \
+            "squoted, blank",                           \
             "squoted, numbers",                         \
             "squoted, trailing space",                  \
             "squoted, leading space",                   \
@@ -64,6 +65,17 @@ Newlines can be added by leaving a blank line.
 C("squoted, empty",
 R"('')",
   L{N("")}
+),
+
+C("squoted, blank",
+R"(
+- ''
+- ' '
+- '  '
+- '   '
+- '    '
+)",
+  L{N(""), N(" "), N("  "), N("   "), N("    ")}
 ),
 
 C("squoted, numbers", // these should not be quoted when emitting

@@ -1,4 +1,5 @@
 #include "c4/yml/parse.hpp"
+#include "c4/error.hpp"
 #include "c4/yml/detail/parser_dbg.hpp"
 
 #include <ctype.h>
@@ -78,7 +79,7 @@ static bool _is_doc_sep(csubstr s)
     }
     else if(s.begins_with(ellipsis))
     {
-        return s == ellipsis || s.sub(3).begins_with_any(whitesp); 
+        return s == ellipsis || s.sub(3).begins_with_any(whitesp);
     }
     return false;
 }
@@ -158,7 +159,7 @@ void Parser::parse(csubstr file, substr buf, Tree *t, size_t node_id)
             _handle_line();
         }
         if(_finished_file()) break; // it may have finished because of multiline blocks
-        _next_line();
+        _line_ended();
     }
 
     _handle_finished_file();
@@ -234,6 +235,16 @@ bool Parser::_handle_unk()
 
     csubstr rem = m_state->line_contents.rem;
     const bool start_as_child = (node(m_state) == nullptr);
+
+    if(C4_UNLIKELY(has_any(NDOC)))
+    {
+        if(rem.begins_with("---"))
+        {
+            _start_new_doc(rem);
+            return true;
+        }
+        _c4err("unexpected token: outside of document");
+    }
 
     RYML_ASSERT(has_none(RNXT|RSEQ|RMAP));
     if(m_state->indref > 0)
@@ -374,6 +385,10 @@ bool Parser::_handle_unk()
             _c4dbgpf("has %zu spaces/tabs, skip...", n);
             _line_progressed(n);
             return true;
+        }
+        else if(rem.empty())
+        {
+            // nothing to do
         }
         else
         {
@@ -885,6 +900,12 @@ bool Parser::_handle_map_expl()
             }
             else if(rem == "")
             {
+                return true;
+            }
+            else if(rem.begins_with('}'))
+            {
+                _append_key_val("~");
+                _line_progressed(1);
                 return true;
             }
             else
@@ -1583,71 +1604,35 @@ bool Parser::_scan_scalar(csubstr *scalar)
     m_state->scalar_col = m_state->line_contents.current_col(s);
     _line_progressed(s.str - m_state->line_contents.rem.str + s.len);
 
-    // deal with scalars that continue to the next line
-
-    // PHEWW*. this sucks really bad.
-    // it's crazy and very fragile. revisit and make this better.
-    if(_at_line_end() && !s.begins_with_any("*"))
+    // deal with plain (unquoted) scalars that continue to the next line
+    if(_at_line_end() && !s.begins_with_any("*")) // cannot be a plain scalar if it starts with * (that's an anchor reference)
     {
-        csubstr n = _peek_next_line(m_state->pos.offset);
-        if(has_none(EXPL) && n.begins_with(' ', m_state->line_contents.indentation + 1))
+        _c4dbgpf("reading plain scalar: line ended, scalar='%.*s'", _c4prsp(s));
+        if(has_none(EXPL))
         {
-            _c4dbgpf("does indentation increase? '%.*s'", _c4prsp(n));
-            size_t ind = n.first_not_of(' ');  // maybe n contains only spaces
-            if(ind == npos)
+            size_t scalar_indentation = m_state->indref + 1;
+            csubstr n = _scan_to_next_nonempty_line(scalar_indentation);
+            if(!n.empty())
             {
-                ind = n.len;
-            }
-            const csubstr contents = n.right_of(ind, /*include_pos*/true);
-            if( ! contents.begins_with_any("-[{?#") && (contents.first_of(':') == npos))
-            {
-                _c4dbgpf("reading scalar: it indents further: the scalar continues!!! indentation=%zd", ind);
-                while(n.begins_with(' ', ind))
+                RYML_ASSERT(m_state->line_contents.full.contains(n));
+                _c4dbgpf("rscalar[IMPL]: state_indref=%zu state_indentation=%zu scalar_indentation=%zu", m_state->indref, m_state->line_contents.indentation, scalar_indentation);
+                substr full = _scan_plain_scalar_impl(s, n, scalar_indentation);
+                if(full != s)
                 {
-                    _c4dbgpf("reading scalar: append another line: '%.*s'", _c4prsp(n));
-                    _line_ended(); // advances to the peeked-at line, consuming all remaining (probably newline) characters on the current line
-                    _scan_line();  // puts the peeked-at line in the buffer
-                    RYML_ASSERT(n == m_state->line_contents.rem);
-                    if(_finished_file()) break;
-                    _line_progressed(n.end() - (m_buf.str + m_state->pos.offset));
-                    n = _peek_next_line(m_state->pos.offset);
+                    s = _filter_plain_scalar(full, scalar_indentation);
                 }
-                substr full(m_buf.str + (s.str - m_buf.str), m_buf.begin() + m_state->pos.offset);
-                s = _filter_plain_scalar(full, ind);
             }
         }
-        else if(has_all(EXPL))
+        else
         {
-            constexpr const csubstr chars = "[]{}?#,";
-            size_t pos = n.first_of(chars);
-            while(pos != 0)
+            RYML_ASSERT(has_all(EXPL));
+            csubstr n = _scan_to_next_nonempty_line(/*indentation*/0);
+            if(!n.empty())
             {
-                if(pos == npos)
-                {
-                    _c4dbgpf("reading scalar: append another line: '%.*s'", _c4prsp(n));
-                    pos = n.len;
-                    _line_ended(); // advances to the peeked-at line, consuming all remaining (probably newline) characters on the current line
-                    _scan_line();  // puts the peeked-at line in the buffer
-                    RYML_ASSERT(n == m_state->line_contents.rem);
-                    if(_finished_file()) break;
-                    _line_progressed(n.end() - (m_buf.str + m_state->pos.offset));
-                    n = _peek_next_line(m_state->pos.offset);
-                    pos = n.first_of(chars);
-                }
-                else
-                {
-                    n = n.left_of(pos);
-                    _c4dbgpf("reading scalar: append another line: '%.*s'", _c4prsp(n));
-                    _line_ended(); // advances to the peeked-at line, consuming all remaining (probably newline) characters on the current line
-                    _scan_line();  // puts the peeked-at line in the buffer
-                    if(_finished_file()) break;
-                    _line_progressed(n.end() - (m_buf.str + m_state->pos.offset));
-                    break;
-                }
+                _c4dbgp("rscalar[EXPL]");
+                substr full = _scan_plain_scalar_expl(s, n);
+                s = _filter_plain_scalar(full, /*indentation*/0);
             }
-            substr full(m_buf.str + (s.str - m_buf.str), m_buf.begin() + m_state->pos.offset);
-            full = full.trimr("\r\n ");
-            s = _filter_plain_scalar(full, /*indentation*/0);
         }
     }
 
@@ -1655,6 +1640,211 @@ bool Parser::_scan_scalar(csubstr *scalar)
 
     *scalar = s;
     return true;
+}
+
+
+//-----------------------------------------------------------------------------
+
+substr Parser::_scan_plain_scalar_expl(csubstr currscalar, csubstr peeked_line)
+{
+    static constexpr const csubstr chars = "[]{}?#,";
+    size_t pos = peeked_line.first_of(chars);
+    bool first = true;
+    while(pos != 0)
+    {
+        if(pos != npos)
+        {
+            _c4dbgpf("rscalar[EXPL]: found special character '%c' at %zu, stopping: '%.*s'", peeked_line[pos], pos, _c4prsp(peeked_line.left_of(pos).trimr("\r\n")));
+            peeked_line = peeked_line.left_of(pos);
+            _line_progressed(peeked_line.end() - m_state->line_contents.rem.begin());
+            break;
+        }
+        _c4dbgpf("rscalar[EXPL]: append another line, full: '%.*s'", _c4prsp(peeked_line.trimr("\r\n")));
+        if(!first)
+        {
+            RYML_CHECK(_advance_to_peeked());
+        }
+        peeked_line = _scan_to_next_nonempty_line(/*indentation*/0);
+        if(peeked_line.empty())
+        {
+            _c4err("expected token or continuation");
+        }
+        pos = peeked_line.first_of(chars);
+        first = false;
+    }
+    substr full(m_buf.str + (currscalar.str - m_buf.str), m_buf.begin() + m_state->pos.offset);
+    full = full.trimr("\r\n ");
+    return full;
+}
+
+
+//-----------------------------------------------------------------------------
+
+substr Parser::_scan_plain_scalar_impl(csubstr currscalar, csubstr peeked_line, size_t indentation)
+{
+    RYML_ASSERT(m_buf.contains(currscalar));
+    // NOTE. there's a problem with _scan_to_next_nonempty_line(), as it counts newlines twice
+    // size_t offs = m_state->pos.offset;   // so we workaround by directly counting from the end of the given scalar
+    size_t offs = currscalar.end() - m_buf.begin();
+    RYML_ASSERT(peeked_line.begins_with(' ', indentation));
+    while(true)
+    {
+        _c4dbgpf("rscalar[IMPL]: continuing... ref_indentation=%zu", indentation);
+        if(peeked_line.begins_with("...") || peeked_line.begins_with("---"))
+        {
+            _c4dbgpf("rscalar[IMPL]: document termination next -- bail now '%.*s'", _c4prsp(peeked_line.trimr("\r\n")));
+            break;
+        }
+        else if(( ! peeked_line.begins_with(' ', indentation))) // is the line deindented?
+        {
+            if(!peeked_line.trim(" \r\n\t").empty()) // is the line not blank?
+            {
+                _c4dbgpf("rscalar[IMPL]: deindented line, not blank -- bail now '%.*s'", _c4prsp(peeked_line.trimr("\r\n")));
+                break;
+            }
+            _c4dbgpf("rscalar[IMPL]: line is blank and has less indentation: ref=%zu line=%zu: '%.*s'", indentation, peeked_line.first_not_of(' ') == csubstr::npos ? 0 : peeked_line.first_not_of(' '), _c4prsp(peeked_line.trimr("\r\n")));
+            _c4dbgpf("rscalar[IMPL]: ... searching for a line starting at indentation %zu", indentation);
+            csubstr next_peeked = _scan_to_next_nonempty_line(indentation);
+            if(next_peeked.empty())
+            {
+                _c4dbgp("rscalar[IMPL]: ... finished.");
+                break;
+            }
+            _c4dbgp("rscalar[IMPL]: ... continuing.");
+            peeked_line = next_peeked;
+        }
+
+        _c4dbgpf("rscalar[IMPL]: line contents: '%.*s'", _c4prsp(peeked_line.right_of(indentation, true).trimr("\r\n")));
+        if(peeked_line.find(": ") != npos)
+        {
+            _line_progressed(peeked_line.find(": "));
+            _c4err("': ' is not a valid token in plain flow (unquoted) scalars");
+        }
+        else if(peeked_line.ends_with(':'))
+        {
+            _line_progressed(peeked_line.find(':'));
+            _c4err("lines cannot end with ':' in plain flow (unquoted) scalars");
+        }
+        else if(peeked_line.find(" #") != npos)
+        {
+            _line_progressed(peeked_line.find(" #"));
+            _c4err("' #' is not a valid token in plain flow (unquoted) scalars");
+        }
+
+        _c4dbgpf("rscalar[IMPL]: append another line: (len=%zu)'%.*s'", peeked_line.len, _c4prsp(peeked_line.trimr("\r\n")));
+        if(!_advance_to_peeked())
+        {
+            _c4dbgp("rscalar[IMPL]: file finishes after the scalar");
+            break;
+        }
+        peeked_line = m_state->line_contents.rem;
+    }
+    RYML_ASSERT(m_state->pos.offset >= offs);
+    substr full(m_buf.str + (currscalar.str - m_buf.str),
+                currscalar.len + (m_state->pos.offset - offs));
+    return full;
+}
+
+//! scans to the next non-blank line starting with the given indentation
+csubstr Parser::_scan_to_next_nonempty_line(size_t indentation)
+{
+    csubstr next_peeked;
+    while(true)
+    {
+        _c4dbgpf("rscalar: ... curr offset: %zu", m_state->pos.offset);
+        next_peeked = _peek_next_line(m_state->pos.offset);
+        _c4dbgpf("rscalar: ... next peeked line='%.*s'", _c4prsp(next_peeked.trimr("\r\n")));
+        if(next_peeked.triml(' ').begins_with('#'))
+        {
+            ; // nothing to do
+        }
+        else if(next_peeked.begins_with(' ', indentation))
+        {
+            _c4dbgpf("rscalar: ... begins at same indentation %zu, assuming continuation", indentation);
+            _advance_to_peeked();
+            return next_peeked;
+        }
+        else   // check for de-indentation
+        {
+            csubstr trimmed = next_peeked.triml(' ').trimr("\t\r\n");
+            _c4dbgpf("rscalar: ... deindented! trimmed='%.*s'", _c4prsp(trimmed));
+            if(!trimmed.empty())
+            {
+                _c4dbgp("rscalar: ... and not empty. bailing out.");
+                return {};
+            }
+        }
+        if(!_advance_to_peeked())
+        {
+            _c4dbgp("rscalar: file finished");
+            return {};
+        }
+    }
+    return {};
+}
+
+// returns false when the file finished
+bool Parser::_advance_to_peeked()
+{
+    _line_progressed(m_state->line_contents.rem.len);
+    _line_ended(); // advances to the peeked-at line, consuming all remaining (probably newline) characters on the current line
+    RYML_ASSERT(m_state->line_contents.rem.first_of("\r\n") == csubstr::npos);
+    _c4dbgpf("advance to peeked: scan more... pos=%zu len=%zu", m_state->pos.offset, m_buf.len);
+    _scan_line();  // puts the peeked-at line in the buffer
+    if(_finished_file())
+    {
+        _c4dbgp("rscalar: finished file!");
+        return false;
+    }
+    return true;
+}
+
+//-----------------------------------------------------------------------------
+
+C4_ALWAYS_INLINE size_t _extend_from_combined_newline(char nl, char following)
+{
+    return (nl == '\n' && following == '\r') || (nl == '\r' && following == '\n');
+}
+
+//! look for the next newline chars, and jump to the right of those
+csubstr from_next_line(csubstr rem)
+{
+    size_t nlpos = rem.first_of("\r\n");
+    if(nlpos == csubstr::npos) return {};
+    const char nl = rem[nlpos];
+    rem = rem.right_of(nlpos);
+    if(rem.empty()) return {};
+    if(_extend_from_combined_newline(nl, rem.front()))
+    {
+        rem = rem.sub(1);
+    }
+    return rem;
+}
+
+csubstr Parser::_peek_next_line(size_t pos) const
+{
+    csubstr rem{}; // declare here because of the goto
+    size_t nlpos{}; // declare here because of the goto
+    pos = pos == npos ? m_state->pos.offset : pos;
+    if(pos >= m_buf.len) goto next_is_empty;
+
+    // look for the next newline chars, and jump to the right of those
+    rem = from_next_line(m_buf.sub(pos));
+    if(rem.empty()) goto next_is_empty;
+
+    // now get everything up to and including the following newline chars
+    nlpos = rem.first_of("\r\n");
+    if((nlpos != csubstr::npos) && (nlpos + 1 < rem.len))
+    {
+        nlpos += _extend_from_combined_newline(rem[nlpos], rem[nlpos+1]);
+    }
+    rem = rem.left_of(nlpos, /*include_pos*/true);
+
+    _c4dbgpf("peek next line @ %zu: (len=%zu)'%.*s'", pos, rem.len, _c4prsp(rem.trimr("\r\n")));
+    return rem;
+next_is_empty:
+    _c4dbgpf("peek next line @ %zu: (len=0)''", pos);
+    return {};
 }
 
 //-----------------------------------------------------------------------------
@@ -1681,46 +1871,9 @@ void Parser::_scan_line()
 }
 
 //-----------------------------------------------------------------------------
-csubstr Parser::_peek_next_line(size_t pos) const
-{
-    pos = pos == npos ? m_state->pos.offset : pos;
-    if(pos >= m_buf.len) return {};
-
-    char const* b = &m_buf[pos];
-
-    // skip one (or two) newlines
-    if(b != m_buf.end() && *b == '\r') ++b;
-    if(b != m_buf.end() && *b == '\n') ++b;
-    if(b != m_buf.end() && *b == '\r') ++b;
-    if(b != m_buf.end() && *b == '\n') ++b;
-
-    // get the first non-empty line stripped of newline chars
-    csubstr curr;
-    char const* e = b;
-    while(1)
-    {
-        char const *tb = e;
-        while(e != m_buf.end() && (*e != '\n' && *e != '\r'))
-        {
-            ++e;
-        }
-        curr.assign(tb, e);
-        _c4dbgpf("peeking next line: '%.*s'", _c4prsp(curr));
-        if(curr.empty() || curr.first_not_of(' ') != npos || e == m_buf.end())
-        {
-            break;
-        }
-    }
-
-    csubstr next(b, e);
-
-    return next;
-}
-
-//-----------------------------------------------------------------------------
 void Parser::_line_progressed(size_t ahead)
 {
-    _c4dbgpf("line[%zd] (%zd cols) progressed by %zd:  col %zd --> %zd   offset %zd --> %zd", m_state->pos.line, m_state->line_contents.full.len, ahead, m_state->pos.col, m_state->pos.col+ahead, m_state->pos.offset, m_state->pos.offset+ahead);
+    _c4dbgpf("line[%zu] (%zu cols) progressed by %zu:  col %zu --> %zu   offset %zu --> %zu", m_state->pos.line, m_state->line_contents.full.len, ahead, m_state->pos.col, m_state->pos.col+ahead, m_state->pos.offset, m_state->pos.offset+ahead);
     m_state->pos.offset += ahead;
     m_state->pos.col += ahead;
     RYML_ASSERT(m_state->pos.col <= m_state->line_contents.stripped.len+1);
@@ -1729,7 +1882,7 @@ void Parser::_line_progressed(size_t ahead)
 
 void Parser::_line_ended()
 {
-    _c4dbgpf("line[%zd] (%zd cols) ended! offset %zd --> %zd", m_state->pos.line, m_state->line_contents.full.len, m_state->pos.offset, m_state->pos.offset+m_state->line_contents.full.len - m_state->line_contents.stripped.len);
+    _c4dbgpf("line[%zu] (%zu cols) ended! offset %zu --> %zu", m_state->pos.line, m_state->line_contents.full.len, m_state->pos.offset, m_state->pos.offset+m_state->line_contents.full.len - m_state->line_contents.stripped.len);
     RYML_ASSERT(m_state->pos.col == m_state->line_contents.stripped.len+1);
     m_state->pos.offset += m_state->line_contents.full.len - m_state->line_contents.stripped.len;
     ++m_state->pos.line;
@@ -1821,7 +1974,7 @@ void Parser::_push_level(bool explicit_flow_chars)
         return;
     }
     size_t st = RUNK;
-    if(explicit_flow_chars)
+    if(explicit_flow_chars || has_all(EXPL))
     {
         st |= EXPL;
     }
@@ -1877,7 +2030,7 @@ void Parser::_start_unk(bool /*as_child*/)
 void Parser::_start_doc(bool as_child)
 {
     _c4dbgpf("start_doc (as child=%d)", as_child);
-    add_flags(RUNK|RTOP);
+    addrem_flags(RUNK|RTOP, NDOC);
     RYML_ASSERT(node(m_stack.bottom()) == node(m_root_id));
     size_t parent_id = m_stack.size() < 2 ? m_root_id : m_stack.top(1).node_id;
     RYML_ASSERT(parent_id != NONE);
@@ -1950,7 +2103,7 @@ void Parser::_end_stream()
         RYML_ASSERT( ! has_any(SSCL, &m_stack.top()));
         _pop_level();
     }
-
+    add_flags(NDOC);
 }
 
 void Parser::_start_new_doc(csubstr rem)
@@ -2414,7 +2567,7 @@ csubstr Parser::_scan_quoted_scalar(const char q)
             break;
         }
 
-        _next_line();
+        _line_ended();
         _scan_line();
     }
 
@@ -2445,7 +2598,7 @@ csubstr Parser::_scan_quoted_scalar(const char q)
         {
             ret = _filter_dquot_scalar(s);
         }
-        RYML_ASSERT(ret.len < s.len || s.empty());
+        RYML_ASSERT(ret.len < s.len || s.empty() || s.trim(' ').empty());
         _c4dbgpf("final scalar: \"%.*s\"", _c4prsp(ret));
         return ret;
     }
@@ -2504,7 +2657,7 @@ csubstr Parser::_scan_block()
 
     // finish the current line
     _line_progressed(s.len);
-    _next_line();
+    _line_ended();
     _scan_line();
 
     if(indentation == npos)
@@ -2530,7 +2683,7 @@ csubstr Parser::_scan_block()
         raw_block.len += m_state->line_contents.full.len;
         _c4dbgpf("scanning block: append '%.*s'", _c4prsp(m_state->line_contents.rem));
         _line_progressed(m_state->line_contents.rem.len);
-        _next_line();
+        _line_ended();
         ++num_lines;
     }
     RYML_ASSERT(m_state->pos.line == (first + num_lines));
@@ -2559,17 +2712,38 @@ csubstr Parser::_filter_plain_scalar(substr s, size_t indentation)
     for(size_t i = 0; i < r.len; ++i)
     {
         const char curr = r[i];
-        //const char prev = i   > 0     ? r[i-1] : '\0';
         const char next = i+1 < r.len ? r[i+1] : '\0';
         if(curr == '\n')
         {
+            _c4dbgpf("looked at: '%.*s'", _c4prsp(r.first(i)));
             if(next != '\n')
             {
-                r[i] = ' '; // a single unix newline: turn it into a space
+                _c4dbgpf("filtering plain scalar: filter single newline at %zu", i);
+                RYML_ASSERT(next != '\r');
+                if(i + 1 < r.len)
+                {
+                    r[i] = ' '; // a single unix newline: turn it into a space
+                }
+                else
+                {
+                    --r.len;
+                }
             }
-            else if(curr == '\n' && next == '\n')
+            else
             {
-                r = r.erase(i+1, 1); // keep only one of consecutive newlines
+                 // multiple new lines
+                RYML_ASSERT(next == '\n');
+                r = r.erase(i, 1);  // erase one
+                RYML_ASSERT(r[i] == '\n');
+                size_t nl = r.sub(i).first_not_of('\n');
+                if(nl == csubstr::npos)
+                {
+                    _c4dbgpf("filtering plain scalar: newlines starting at %zu go up to the end at %zu", i, r.len);
+                    break;
+                }
+                _c4dbgpf("filtering plain scalar: erasing one of %zu newlines found at %zu", nl, i);
+                RYML_ASSERT(nl > 0);
+                i += nl; // and skip the rest
             }
         }
     }
@@ -2941,7 +3115,7 @@ void Parser::_err(const char *fmt, ...) const
     va_start(args, fmt);
     len = _fmt_msg(errmsg, len, fmt, args);
     va_end(args);
-    c4::yml::error(errmsg, len);
+    c4::yml::error(errmsg, len, m_state->pos);
 }
 
 //-----------------------------------------------------------------------------
@@ -3060,6 +3234,7 @@ int Parser::_prfl(char *buf, int buflen, size_t v)
     _prflag(RNXT);
     _prflag(SSCL);
     _prflag(RSET);
+    _prflag(NDOC);
 #undef _prflag
 
     return pos;

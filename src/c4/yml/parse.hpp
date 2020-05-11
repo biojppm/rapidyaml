@@ -18,30 +18,6 @@
 namespace c4 {
 namespace yml {
 
-struct fdx {
-    const char *str;
-    size_t sz;
-};
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-struct LineCol
-{
-    size_t offset, line, col;
-    LineCol() : offset(), line(), col() {}
-    LineCol(size_t o, size_t l, size_t c) : offset(o), line(l), col(c) {}
-};
-
-struct Location : public LineCol
-{
-    const char *name;
-    operator bool () const { return name != nullptr || line != 0 || offset != 0; }
-
-    Location() : LineCol(), name(nullptr) {}
-    Location(const char *n, size_t b, size_t l, size_t c) : LineCol{b, l, c}, name(n) {}
-};
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -56,41 +32,41 @@ public:
 
     //! create a new YAML tree and parse into its root
     //! @note aliases and anchors are not resolved. You
-    //! can do this by calling Tree::resolve() after parsing.
+    //! can resolve by calling Tree::resolve() after parsing.
     Tree parse(csubstr filename, csubstr src) { Tree t; t.reserve(_estimate_capacity(src)); parse(filename, t.copy_to_arena(src), &t); return t; }
     //! create a new YAML tree and parse into its root
     //! @note aliases and anchors are not resolved. You
-    //! can do this by calling Tree::resolve() after parsing.
+    //! can resolve by calling Tree::resolve() after parsing.
     Tree parse(csubstr filename,  substr src) { Tree t; t.reserve(_estimate_capacity(src)); parse(filename, src, &t); return t; }
 
 
     //! parse with reuse of a YAML tree
     //! @note aliases and anchors are not resolved. You
-    //! can do this by calling Tree::resolve() after parsing.
+    //! can resolve by calling Tree::resolve() after parsing.
     void parse(csubstr filename,  substr src, Tree *t) { parse(filename, src, t, t->root_id()); }
     //! parse with reuse of a YAML tree
     //! @note aliases and anchors are not resolved. You
-    //! can do this by calling Tree::resolve() after parsing.
+    //! can resolve by calling Tree::resolve() after parsing.
     void parse(csubstr filename, csubstr src, Tree *t) { parse(filename, t->copy_to_arena(src), t, t->root_id()); }
 
 
     //! parse directly into a node
     //! @note aliases and anchors are not resolved. You
-    //! can do this by calling Tree::resolve() after parsing.
+    //! can resolve by calling Tree::resolve() after parsing.
     void parse(csubstr filename,  substr src, Tree *t, size_t node_id); // this is the workhorse overload; everything else is syntactic candy
     //! parse directly into a node
     //! @note aliases and anchors are not resolved. You
-    //! can do this by calling Tree::resolve() after parsing.
+    //! can resolve by calling Tree::resolve() after parsing.
     void parse(csubstr filename, csubstr src, Tree *t, size_t node_id) { parse(filename, t->copy_to_arena(src), t, node_id); }
 
 
     //! parse directly into a node ref
     //! @note aliases and anchors are not resolved. You
-    //! can do this by calling Tree::resolve() after parsing.
+    //! can resolve by calling Tree::resolve() after parsing.
     void parse(csubstr filename,  substr src, NodeRef node) { parse(filename, src, node.tree(), node.id()); }
     //! parse directly into a node ref
     //! @note aliases and anchors are not resolved. You
-    //! can do this by calling Tree::resolve() after parsing.
+    //! can resolve by calling Tree::resolve() after parsing.
     void parse(csubstr filename, csubstr src, NodeRef node) { parse(filename, node.tree()->copy_to_arena(src), node.tree(), node.id()); }
 
 
@@ -117,14 +93,17 @@ private:
     bool  _finished_line() const;
 
     csubstr _peek_next_line(size_t pos=npos) const;
-    void  _scan_line();
-    void  _next_line() { _line_ended(); }
+    bool    _advance_to_peeked();
+    void    _scan_line();
 
-    bool  _scan_scalar(csubstr *scalar);
+    bool    _scan_scalar(csubstr *scalar);
     csubstr _scan_comment();
     csubstr _scan_quoted_scalar(const char q);
     csubstr _scan_block();
     csubstr _scan_ref();
+    substr  _scan_plain_scalar_impl(csubstr currscalar, csubstr peeked_line, size_t indentation);
+    substr  _scan_plain_scalar_expl(csubstr currscalar, csubstr peeked_line);
+    csubstr _scan_to_next_nonempty_line(size_t indentation);
 
     csubstr _filter_squot_scalar(substr s);
     csubstr _filter_dquot_scalar(substr s);
@@ -198,6 +177,7 @@ private:
         RNXT = 0x01 <<  8,   ///< read next val or keyval
         SSCL = 0x01 <<  9,   ///< there's a scalar stored
         RSET = 0x01 << 10,   ///< the (implicit) map being read is a !!set. @see https://yaml.org/type/set.html
+        NDOC = 0x01 << 11,   ///< no document mode. a document has ended and another has not started yet.
     } State_e;
 
     struct LineContents
@@ -264,7 +244,7 @@ private:
         {
             flags = RUNK|RTOP;
             level = 0;
-            pos.name = file;
+            pos.name = to_csubstr(file);
             pos.offset = 0;
             pos.line = 1;
             pos.col = 1;

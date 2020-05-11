@@ -59,12 +59,13 @@ struct ExpectError
 {
     bool m_got_an_error;
     c4::yml::Callbacks m_prev;
+    Location expected_location;
 
-    ExpectError();
+    ExpectError(Location loc={});
     ~ExpectError();
 
-    static void error(const char* msg, size_t len, void *user_data);
-    static void do_check(std::function<void()> fn);
+    static void error(const char* msg, size_t len, Location loc, void *user_data);
+    static void do_check(std::function<void()> fn, Location expected={});
 };
 
 
@@ -398,24 +399,22 @@ typedef enum {
     HAS_PARSE_ERROR = EXPECT_PARSE_ERROR|IGNORE_THIRDPARTY_PARSE_FAIL,
 } TestCaseFlags_e;
 
+
 struct Case
 {
     csubstr name;
     csubstr src;
     CaseNode root;
     TestCaseFlags_e flags;
+    Location expected_location;
 
-    template<size_t N, class... Args>
-    Case(csubstr const& n, const char (&s)[N], Args&& ...args)
-        : name(n), src(s), root(std::forward<Args>(args)...), flags()
-    {
-    }
+    //! create a standard test case: name, source and expected CaseNode structure
+    template<size_t N, class... Args> Case(csubstr name_,         const char (&src_)[N], Args&& ...args) : name(name_), src(src_), root(std::forward<Args>(args)...), flags(), expected_location() {}
+    //! create a test case with explicit flags: name, source flags, and expected CaseNode structure
+    template<size_t N, class... Args> Case(csubstr name_, int f_, const char (&src_)[N], Args&& ...args) : name(name_), src(src_), root(std::forward<Args>(args)...), flags((TestCaseFlags_e)f_), expected_location()  {}
 
-    template<size_t N, class... Args>
-    Case(csubstr const& n, int f_, const char (&s)[N], Args&& ...args)
-        : name(n), src(s), root(std::forward<Args>(args)...), flags((TestCaseFlags_e)f_)
-    {
-    }
+    //! create a test case with an error on an expected location
+    template<size_t N>                Case(csubstr name_, int f_, const char (&src_)[N], LineCol loc) : name(name_), src(src_), root(), flags((TestCaseFlags_e)f_), expected_location(name, loc.line, loc.col) {}
 
 };
 

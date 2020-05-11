@@ -4,28 +4,29 @@ namespace c4 {
 namespace yml {
 
 
-#define SIMPLE_DOC_CASES                                \
-    "empty docs",                                       \
-    "empty docs, term",                                 \
-    "single scalar, implicit doc",                      \
-    "multi scalar, implicit doc",                       \
-    "single scalar, explicit doc, implicit termination",\
-    "single scalar, explicit doc, explicit termination",\
-    "multi doc, seq-map",\
-    "multi doc, seq-map, no term",\
-    "multi doc, map-seq",\
-    "multi doc, map-seq, no term",\
-    "multi doc, impl seq-map",\
-    "multi doc, impl seq-map, no term",\
-    "multi doc, impl map-seq",\
-    "multi doc, impl map-seq, no term"
+#define SIMPLE_DOC_CASES                                                \
+    "simple doc, empty docs",                                           \
+    "simple doc, empty docs, term",                                     \
+    "simple doc, plain scalar, multiple docs",                          \
+    "simple doc, single scalar, implicit doc",                          \
+    "simple doc, multi scalar, implicit doc",                           \
+    "simple doc, single scalar, explicit doc, implicit termination",    \
+    "simple doc, single scalar, explicit doc, explicit termination",    \
+    "simple doc, multi doc, seq-map",                                   \
+    "simple doc, multi doc, seq-map, no term",                          \
+    "simple doc, multi doc, map-seq",                                   \
+    "simple doc, multi doc, map-seq, no term",                          \
+    "simple doc, multi doc, impl seq-map",                              \
+    "simple doc, multi doc, impl seq-map, no term",                     \
+    "simple doc, multi doc, impl map-seq",                              \
+    "simple doc, multi doc, impl map-seq, no term"
 
 
 CASE_GROUP(SIMPLE_DOC)
 {
     APPEND_CASES(
 
-C("empty docs",
+C("simple doc, empty docs",
 R"(---
 ---
 ---
@@ -34,9 +35,11 @@ R"(---
     N(STREAM, L{N(DOC), N(DOC), N(DOC), N(DOC)})
 ),
 
-C("empty docs, term",
+C("simple doc, empty docs, term",
 R"(---
 ...
+
+
 ---
 ...
 ---
@@ -47,13 +50,24 @@ R"(---
     N(STREAM, L{N(DOC), N(DOC), N(DOC), N(DOC)})
 ),
 
-C("single scalar, implicit doc",
+C("simple doc, plain scalar, multiple docs", HAS_PARSE_ERROR,
+R"(---
+- a plain scalar
+    with several lines
+...
+- a second plain scalar
+    with several lines
+)",
+  LineCol(5, 1)
+),
+
+C("simple doc, single scalar, implicit doc",
 R"(a scalar with some spaces inside
 )",
     N(L{N("a scalar with some spaces inside")})
 ),
 
-C("multi scalar, implicit doc",
+C("simple doc, multi scalar, implicit doc",
 R"(a scalar with some spaces inside,
 and yet another one with more spaces inside,
 and it doesn't really stop
@@ -65,14 +79,14 @@ and it doesn't really stop
    })
 ),
 
-C("single scalar, explicit doc, implicit termination",
+C("simple doc, single scalar, explicit doc, implicit termination",
 R"(---
 a scalar with some spaces inside
 )",
     N(STREAM, L{N(DOCSEQ, L{N("a scalar with some spaces inside")})})
 ),
 
-C("single scalar, explicit doc, explicit termination",
+C("simple doc, single scalar, explicit doc, explicit termination",
 R"(---
 a scalar with some spaces inside
 ...
@@ -80,7 +94,7 @@ a scalar with some spaces inside
     N(STREAM, L{N(DOCSEQ, L{N("a scalar with some spaces inside")})})
 ),
 
-C("multi doc, seq-map",
+C("simple doc, multi doc, seq-map",
 R"(---
 - a
 - b
@@ -97,7 +111,7 @@ c: 2
     })
 ),
 
-C("multi doc, seq-map, no term",
+C("simple doc, multi doc, seq-map, no term",
 R"(---
 - a
 - b
@@ -113,7 +127,7 @@ c: 2
     })
 ),
 
-C("multi doc, map-seq",
+C("simple doc, multi doc, map-seq",
 R"(---
 a: 0
 b: 1
@@ -131,7 +145,7 @@ c: 2
     })
 ),
 
-C("multi doc, map-seq, no term",
+C("simple doc, multi doc, map-seq, no term",
 R"(---
 a: 0
 b: 1
@@ -147,7 +161,7 @@ c: 2
     })
 ),
 
-C("multi doc, impl seq-map",
+C("simple doc, multi doc, impl seq-map",
 R"(---
 [a, b, c]
 ...
@@ -161,7 +175,7 @@ R"(---
     })
 ),
 
-C("multi doc, impl seq-map, no term",
+C("simple doc, multi doc, impl seq-map, no term",
 R"(---
 [a, b, c]
 ---
@@ -173,7 +187,7 @@ R"(---
     })
 ),
 
-C("multi doc, impl map-seq",
+C("simple doc, multi doc, impl map-seq",
 R"(---
 {a: 0, b: 1, c: 2}
 ...
@@ -187,7 +201,7 @@ R"(---
     })
 ),
 
-C("multi doc, impl map-seq, no term",
+C("simple doc, multi doc, impl map-seq, no term",
 R"(---
 {a: 0, b: 1, c: 2}
 ---
