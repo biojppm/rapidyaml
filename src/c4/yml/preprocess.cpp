@@ -1,6 +1,5 @@
 #include "c4/yml/preprocess.hpp"
 #include "c4/yml/detail/parser_dbg.hpp"
-#include <cstdio>
 
 /** @file preprocess.hpp Functions for preprocessing YAML prior to parsing. */
 
@@ -31,6 +30,7 @@ struct _SubstrWriter
         }
         ++pos;
     }
+    size_t slack() const { return pos <= buf.len ? buf.len - pos : 0; }
     size_t excess() const { return pos > buf.len ? pos - buf.len : 0; }
     //! get the part written so far
     csubstr curr() const { return pos <= buf.len ? buf.first(pos) : buf; }
@@ -39,7 +39,97 @@ struct _SubstrWriter
 
     size_t advance(size_t more) { pos += more; return pos; }
 };
+} // empty namespace
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+size_t preprocess_json(csubstr s, substr buf)
+{
+    _SubstrWriter _append(buf);
+    size_t last = 0; // the index of the last character in s that was copied to buf
+
+    // append everything that was not written yet
+    #define _apfromlast() { csubstr _s_ = s.range(last, i); _append(_s_); last += _s_.len; }
+    // append element from the buffer
+    #define _apelm(c) { _append(c); ++last; }
+    #define _adv(nsrc, ndst) { _append.advance(ndst); i += nsrc; last += nsrc; }
+
+    for(size_t i = 0; i < s.len; ++i)
+    {
+        const char curr = s[i];
+        const char next = i+1 < s.len ? s[i+1] : '\0';
+        if(curr == ':')  // if a space is missing after a semicolon, add it
+        {
+            bool insert = false;
+            if(next == '"' || next == '\'' || next == '{' || next == '[' || (next >= '0' && next <= '9'))
+            {
+                insert = true;
+            }
+            else if(i+1 < s.len)
+            {
+                csubstr rem = s.sub(i+1);
+                if(rem.begins_with("true") || rem.begins_with("false"))
+                {
+                    insert = true;
+                }
+            }
+            if(insert)
+            {
+                _apfromlast();
+                _apelm(curr);
+                _append(' ');
+            }
+        }
+        else if((curr == '{' || curr == '[') && next != '\0') // recurse into substructures
+        {
+            // get the close-character maching the open-character.
+            // In ascii: {=123,}=125 and [=91,]=93. So just add 2!
+            const char close = static_cast<char>(curr + 2);
+            // get the contents inside the brackets
+            csubstr ss = s.sub(i).pair_range_nested(curr, close);
+            RYML_ASSERT(ss.size() >= 2);
+            RYML_ASSERT(ss.ends_with(close));
+            ss = ss.offs(1, 1); // skip the open-close bracket characters
+            _apfromlast();
+            _apelm(curr);
+            if(!ss.empty())  // recurse into the substring
+            {
+                size_t ret = preprocess_json(ss, _append.rem());
+                _adv(ss.len, ret);
+            }
+            _apelm(close);
+        }
+        else if(curr == '\'' || curr == '"')  // consume quoted strings at once
+        {
+            csubstr ss = s.sub(i).pair_range_esc(curr, '\\');
+            RYML_ASSERT(ss.begins_with(curr) && ss.ends_with(curr));
+            i += ss.len;
+            _apfromlast();
+            --i;
+        }
+    }
+
+    if(last + 1 < s.len)
+    {
+        _append(s.sub(last));
+    }
+
+    #undef _apfromlast
+    #undef _apelm
+    #undef _adv
+
+    return _append.pos;
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+namespace {
 bool _is_idchar(char c)
 {
     return (c >= 'a' && c <= 'z')
@@ -57,77 +147,6 @@ _ppstate _next(_ppstate s)
 } // empty namespace
 
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-size_t preprocess_json(csubstr s, substr buf)
-{
-    _SubstrWriter _append(buf);
-    size_t last = 0; // the index of the last character in s that was copied to buf
-
-    // append everything that was not written yet
-    #define _apfromlast() { csubstr _s_ = (s.range(last, i)); _append(_s_); last += _s_.len; i += _s_.len; }
-    #define _adv(n) { size_t _n_ = (n); _append.advance(_n_); last += _n_; i += _n_; }
-    #define _apelm(c) { _append(c); ++last; ++i; }   // append element from the buffer
-
-    for(size_t i = 0; i < s.len; ++i)
-    {
-        const char curr = s[i];
-        const char next = i+1 < s.len ? s[i+1] : '\0';
-        if(curr == ':')  // if it was missing, add a space after semicolon
-        {
-            if(next == '"' || next == '\'' || next == '{' || next == '['
-               || (next >= '0' && next <= '9'))
-            {
-                _apfromlast();
-                _apelm(':');
-                _append(' ');
-            }
-        }
-        else if((curr == '{' || curr == '[') && next != '\0') // recurse into substructures
-        {
-            const char close = static_cast<char>(curr + 2); // in ascii: {=123,}=125 and [=91,]=93. So add 2!
-            // get the contents inside the brackets
-            csubstr ss = s.sub(i).pair_range_nested(curr, close);
-            C4_ASSERT(ss.size() >= 2);
-            C4_ASSERT(ss.ends_with(close));
-            ss = ss.offs(1, 1); // skip the open-close bracket characters
-            _apfromlast();
-            _apelm(curr);
-            if(!ss.empty())  // recurse into the substring
-            {
-                size_t ret = preprocess_json(ss, _append.rem());
-                _adv(ret);
-            }
-            _apelm(close);
-        }
-        else if(curr == '\'' || curr == '"')  // consume quoted strings at once
-        {
-            csubstr ss = s.sub(i).pair_range_esc(curr, '\\');
-            C4_ASSERT(ss.end() >= (s.str + i));
-            i += ss.end() - (s.str + i);
-            C4_ASSERT(i > 0);
-            i -= 1; //
-        }
-    }
-
-    if(last + 1 < s.len)
-    {
-        _append(s.sub(last));
-    }
-
-    #undef _apfromlast
-    #undef _apchar
-    #undef _apelm
-    #undef _adv
-
-    return _append.pos;
-}
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
 size_t preprocess_rxmap(csubstr s, substr buf)
