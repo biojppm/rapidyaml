@@ -1,5 +1,5 @@
-#ifndef _C4_YML_EMIT_HPP_
-#define _C4_YML_EMIT_HPP_
+#ifndef _C4_YML_PREPROCESS_HPP_
+#define _C4_YML_PREPROCESS_HPP_
 
 /** @file preprocess.hpp Functions for preprocessing YAML prior to parsing. */
 
@@ -143,4 +143,4 @@ CharContainer preprocess_rxmap(csubstr rxmap)
 } // namespace yml
 } // namespace c4
 
-#endif /* _C4_YML_COMMON_HPP_ */
+#endif /* _C4_YML_PREPROCESS_HPP_ */
