@@ -4,6 +4,7 @@
 #ifndef _C4_YML_COMMON_HPP_
 #include "../common.hpp"
 #endif
+#include <cstdio>
 
 //-----------------------------------------------------------------------------
 // some debugging scaffolds

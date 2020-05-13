@@ -6,24 +6,87 @@
 namespace c4 {
 namespace yml {
 
+#define _test(val, expected)                                \
+    EXPECT_EQ(preprocess_json<std::string>(val), expected)
 
-TEST(preprocess, json_basic)
+
+TEST(preprocess_json, basic)
 {
-    #define _test(val, expected)                                \
-        EXPECT_EQ(preprocess_json<std::string>(val), expected)
-
     _test("", "");
     _test("{}", "{}");
-    _test("\"a\":\"b\"", "\"a\": \"b\"");
-    _test("'a':'b'", "'a': 'b'");
-    _test("{'a':'b'}", "{'a': 'b'}");
-    _test("{\"a\":\"b\"}", "{\"a\": \"b\"}");
+    _test(R"("a":"b")",
+          R"("a": "b")");
+    _test(R"('a':'b')",
+          R"('a': 'b')");
+    _test(R"({'a':'b'})",
+          R"({'a': 'b'})");
+    _test(R"({"a":"b"})",
+          R"({"a": "b"})");
 
-    _test("{\"a\":{\"a\":\"b\"}}", "{\"a\": {\"a\": \"b\"}}");
-    _test("{'a':{'a':'b'}}", "{'a': {'a': 'b'}}");
-    #undef _test
+    _test(R"({"a":{"a":"b"}})",
+          R"({"a": {"a": "b"}})");
+    _test(R"({'a':{'a':'b'}})",
+          R"({'a': {'a': 'b'}})");
 }
 
+TEST(preprocess_json, github52)
+{
+    _test(R"({"a": "b","c": 42,"d": "e"})",
+          R"({"a": "b","c": 42,"d": "e"})");
+    _test(R"({"aaaa": "bbbb","cccc": 424242,"dddddd": "eeeeeee"})",
+          R"({"aaaa": "bbbb","cccc": 424242,"dddddd": "eeeeeee"})");
+
+    _test(R"({"a":"b","c":42,"d":"e"})",
+          R"({"a": "b","c": 42,"d": "e"})");
+    _test(R"({"aaaaa":"bbbbb","ccccc":424242,"ddddd":"eeeee"})",
+          R"({"aaaaa": "bbbbb","ccccc": 424242,"ddddd": "eeeee"})");
+    _test(R"({"a":"b","c":{},"d":"e"})",
+          R"({"a": "b","c": {},"d": "e"})");
+    _test(R"({"aaaaa":"bbbbb","ccccc":{    },"ddddd":"eeeee"})",
+          R"({"aaaaa": "bbbbb","ccccc": {    },"ddddd": "eeeee"})");
+    _test(R"({"a":"b","c":false,"d":"e"})",
+          R"({"a": "b","c": false,"d": "e"})");
+    _test(R"({"aaaaa":"bbbbb","ccccc":false,"ddddd":"eeeee"})",
+          R"({"aaaaa": "bbbbb","ccccc": false,"ddddd": "eeeee"})");
+    _test(R"({"a":"b","c":false,"d":"e"})",
+          R"({"a": "b","c": false,"d": "e"})");
+    _test(R"({"aaaaa":"bbbbb","ccccc":true,"ddddd":"eeeee"})",
+          R"({"aaaaa": "bbbbb","ccccc": true,"ddddd": "eeeee"})");
+}
+
+TEST(preprocess_json, nested)
+{
+    _test(R"({"a":"b","c":{"a":"b","c":{},"d":"e"},"d":"e"})",
+          R"({"a": "b","c": {"a": "b","c": {},"d": "e"},"d": "e"})");
+    _test(R"({"a":"b","c":{"a":"b","c":{"a":"b","c":{},"d":"e"},"d":"e"},"d":"e"})",
+          R"({"a": "b","c": {"a": "b","c": {"a": "b","c": {},"d": "e"},"d": "e"},"d": "e"})");
+    _test(R"({"a":"b","c":{"a":"b","c":{"a":"b","c":{"a":"b","c":{},"d":"e"},"d":"e"},"d":"e"},"d":"e"})",
+          R"({"a": "b","c": {"a": "b","c": {"a": "b","c": {"a": "b","c": {},"d": "e"},"d": "e"},"d": "e"},"d": "e"})");
+    _test(R"({"a":"b","c":{"a":"b","c":{"a":"b","c":{"a":"b","c":{"a":"b","c":{},"d":"e"},"d":"e"},"d":"e"},"d":"e"},"d":"e"})",
+          R"({"a": "b","c": {"a": "b","c": {"a": "b","c": {"a": "b","c": {"a": "b","c": {},"d": "e"},"d": "e"},"d": "e"},"d": "e"},"d": "e"})");
+
+    _test(R"({"a":"b","c":["a","c","d","e"],"d":"e"})",
+          R"({"a": "b","c": ["a","c","d","e"],"d": "e"})");
+}
+
+TEST(preprocess_json, nested_end)
+{
+    _test(R"({"a":"b","d":"e","c":{"a":"b","d":"e","c":{}}})",
+          R"({"a": "b","d": "e","c": {"a": "b","d": "e","c": {}}})");
+    _test(R"({"a":"b","d":"e","c":{"a":"b","d":"e","c":{"a":"b","d":"e","c":{}}}})",
+          R"({"a": "b","d": "e","c": {"a": "b","d": "e","c": {"a": "b","d": "e","c": {}}}})");
+    _test(R"({"a":"b","d":"e","c":{"a":"b","d":"e","c":{"a":"b","d":"e","c":{"a":"b","d":"e","c":{}}}}})",
+          R"({"a": "b","d": "e","c": {"a": "b","d": "e","c": {"a": "b","d": "e","c": {"a": "b","d": "e","c": {}}}}})");
+    _test(R"({"a":"b","d":"e","c":{"a":"b","d":"e","c":{"a":"b","d":"e","c":{"a":"b","d":"e","c":{"a":"b","d":"e","c":{}}}}}})",
+          R"({"a": "b","d": "e","c": {"a": "b","d": "e","c": {"a": "b","d": "e","c": {"a": "b","d": "e","c": {"a": "b","d": "e","c": {}}}}}})");
+}
+
+#undef _test
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 TEST(preprocess, rxmap_basic)
 {
