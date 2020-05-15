@@ -71,7 +71,7 @@ size_t preprocess_json(csubstr s, substr buf)
             else if(i+1 < s.len)
             {
                 csubstr rem = s.sub(i+1);
-                if(rem.begins_with("true") || rem.begins_with("false"))
+                if(rem.begins_with("true") || rem.begins_with("false") || rem.begins_with("null"))
                 {
                     insert = true;
                 }

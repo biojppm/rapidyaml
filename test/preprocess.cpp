@@ -44,8 +44,14 @@ TEST(preprocess_json, github52)
           R"({"a": "b","c": {},"d": "e"})");
     _test(R"({"aaaaa":"bbbbb","ccccc":{    },"ddddd":"eeeee"})",
           R"({"aaaaa": "bbbbb","ccccc": {    },"ddddd": "eeeee"})");
+    _test(R"({"a":"b","c":true,"d":"e"})",
+          R"({"a": "b","c": true,"d": "e"})");
     _test(R"({"a":"b","c":false,"d":"e"})",
           R"({"a": "b","c": false,"d": "e"})");
+    _test(R"({"a":"b","c":true,"d":"e"})",
+          R"({"a": "b","c": true,"d": "e"})");
+    _test(R"({"a":"b","c":null,"d":"e"})",
+          R"({"a": "b","c": null,"d": "e"})");
     _test(R"({"aaaaa":"bbbbb","ccccc":false,"ddddd":"eeeee"})",
           R"({"aaaaa": "bbbbb","ccccc": false,"ddddd": "eeeee"})");
     _test(R"({"a":"b","c":false,"d":"e"})",
@@ -119,8 +125,7 @@ TEST(preprocess, rxmap_basic)
 // YmlTestCases. This executable does not have any but the build setup
 // assumes it does, and links with the test lib, which requires an existing
 // get_case() function. So this is here to act as placeholder until (if?)
-// proper test cases are added here. This was detected in #47 (thanks
-// @cburgard).
+// proper test cases are added here.
 Case const* get_case(csubstr)
 {
     return nullptr;
