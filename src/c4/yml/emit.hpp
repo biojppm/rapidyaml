@@ -62,11 +62,12 @@ private:
 
 private:
 
-    void _write(NodeScalar const& sc, NodeType flags);
+    void _write(NodeScalar const& sc, NodeType flags, size_t level);
     void _write_json(NodeScalar const& sc, NodeType flags);
 
     void _write_scalar(csubstr s);
     void _write_scalar_json(csubstr s);
+    void _write_scalar_block(csubstr s, size_t level, bool as_key);
 
     void _indent(size_t ilevel)
     {
@@ -80,8 +81,8 @@ private:
         _valsc_json = ~(KEY)  |  (VAL),
     };
 
-    C4_ALWAYS_INLINE void _writek(Tree const& t, size_t id) { _write(t.keysc(id), t.type(id) & ~(VAL|VALREF|VALANCH)); }
-    C4_ALWAYS_INLINE void _writev(Tree const& t, size_t id) { _write(t.valsc(id), t.type(id) & ~(KEY|KEYREF|KEYANCH)); }
+    C4_ALWAYS_INLINE void _writek(Tree const& t, size_t id, size_t level) { _write(t.keysc(id), t.type(id) & ~(VAL|VALREF|VALANCH), level); }
+    C4_ALWAYS_INLINE void _writev(Tree const& t, size_t id, size_t level) { _write(t.valsc(id), t.type(id) & ~(KEY|KEYREF|KEYANCH), level); }
 
     C4_ALWAYS_INLINE void _writek_json(Tree const& t, size_t id) { _write_json(t.keysc(id), t.type(id) & ~(VAL)); }
     C4_ALWAYS_INLINE void _writev_json(Tree const& t, size_t id) { _write_json(t.valsc(id), t.type(id) & ~(KEY)); }
