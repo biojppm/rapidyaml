@@ -2676,10 +2676,18 @@ csubstr Parser::_scan_block()
     // read every full line into a raw block,
     // from which newlines are to be stripped as needed
     size_t num_lines = 0, first = m_state->pos.line;
+    auto &lc = m_state->line_contents;
     while(( ! _finished_file()))
     {
         _scan_line();
-        if(m_state->line_contents.indentation < indentation) break;
+        if(lc.indentation < indentation)
+        {
+            // stop when the line is deindented and not empty
+            if( ! lc.rem.trim(" \t\r\n").empty())
+            {
+                break;
+            }
+        }
         raw_block.len += m_state->line_contents.full.len;
         _c4dbgpf("scanning block: append '%.*s'", _c4prsp(m_state->line_contents.rem));
         _line_progressed(m_state->line_contents.rem.len);
@@ -2885,10 +2893,10 @@ substr Parser::_filter_whitespace(substr r, size_t indentation, bool leading_whi
                 ss = ss.left_of(ss.first_not_of(' '));
                 RYML_ASSERT(ss.len > 1);
                 size_t num = ss.len;
-                RYML_ASSERT(num >= indentation);
+                // RYML_ASSERT(num >= indentation); // empty lines are allowed
                 if(indentation)
                 {
-                    num = indentation;
+                    num = num < indentation ? num : indentation;
                 }
                 if(leading_whitespace)
                 {

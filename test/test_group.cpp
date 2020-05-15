@@ -118,6 +118,15 @@ TEST_P(YmlTestCase, parse_using_ryml)
 TEST_P(YmlTestCase, emit_yml_stdout)
 {
     if(c->flags & EXPECT_PARSE_ERROR) return;
+    if(d->parsed_tree.empty())
+    {
+        parse(d->src, &d->parsed_tree);
+    }
+    if(d->emit_buf.empty())
+    {
+        d->emitted_yml = emitrs(d->parsed_tree, &d->emit_buf);
+    }
+
     d->numbytes_stdout = emit(d->parsed_tree);
 }
 
@@ -125,6 +134,15 @@ TEST_P(YmlTestCase, emit_yml_stdout)
 TEST_P(YmlTestCase, emit_yml_cout)
 {
     if(c->flags & EXPECT_PARSE_ERROR) return;
+    if(d->parsed_tree.empty())
+    {
+        parse(d->src, &d->parsed_tree);
+    }
+    if(d->emit_buf.empty())
+    {
+        d->emitted_yml = emitrs(d->parsed_tree, &d->emit_buf);
+    }
+
     std::cout << d->parsed_tree;
 }
 

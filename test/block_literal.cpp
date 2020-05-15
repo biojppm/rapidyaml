@@ -20,7 +20,10 @@ namespace yml {
     "block literal as map val at eof, implicit indentation 4",\
     "block literal as map val, explicit indentation 3",\
     "block literal as map val, explicit indentation 4",\
-    "block literal as map val, explicit indentation 9"
+    "block literal as map val, explicit indentation 9",\
+    "block literal with empty unindented lines, without quotes",\
+    "block literal with empty unindented lines, with double quotes",\
+    "block literal with empty unindented lines, with single quotes"
 
 
 CASE_GROUP(BLOCK_LITERAL)
@@ -322,6 +325,42 @@ another: val
   L{
     N("example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
     N("another", "val")
+  }
+),
+
+C("block literal with empty unindented lines, without quotes",
+    R"(tpl:
+  src: |
+    #include <{{hdr.filename}}>
+  
+    {{src.gencode}}
+)",
+  L{
+    N("tpl", L{N("src", "#include <{{hdr.filename}}>\n\n{{src.gencode}}\n")})
+  }
+),
+
+C("block literal with empty unindented lines, with double quotes",
+    R"(tpl:
+  src: |
+    #include "{{hdr.filename}}"
+  
+    {{src.gencode}}
+)",
+  L{
+    N("tpl", L{N("src", "#include \"{{hdr.filename}}\"\n\n{{src.gencode}}\n")})
+  }
+),
+
+C("block literal with empty unindented lines, with single quotes",
+    R"(tpl:
+  src: |
+    #include '{{hdr.filename}}'
+  
+    {{src.gencode}}
+)",
+  L{
+    N("tpl", L{N("src", "#include '{{hdr.filename}}'\n\n{{src.gencode}}\n")})
   }
 ),
     )

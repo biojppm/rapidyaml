@@ -65,9 +65,9 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, size_t 
     {
         RYML_ASSERT(t.has_parent(id));
         this->Writer::_do_write(ind);
-        _writek(t, id);
+        _writek(t, id, ilevel);
         this->Writer::_do_write(": ");
-        _writev(t, id);
+        _writev(t, id, ilevel);
         this->Writer::_do_write('\n');
         return;
     }
@@ -76,7 +76,7 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, size_t 
         RYML_ASSERT(t.has_parent(id));
         this->Writer::_do_write(ind);
         this->Writer::_do_write("- ");
-        _writev(t, id);
+        _writev(t, id, ilevel);
         this->Writer::_do_write('\n');
         return;
     }
@@ -90,7 +90,7 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, size_t 
         if(t.has_key(id))
         {
             this->Writer::_do_write(ind);
-            _writek(t, id);
+            _writek(t, id, ilevel);
             this->Writer::_do_write(':');
             spc = true;
         }
@@ -223,7 +223,7 @@ void Emitter<Writer>::_do_visit_json(Tree const& t, size_t id)
 }
 
 template<class Writer>
-void Emitter<Writer>::_write(NodeScalar const& sc, NodeType flags)
+void Emitter<Writer>::_write(NodeScalar const& sc, NodeType flags, size_t ilevel)
 {
     if( ! sc.tag.empty())
     {
@@ -239,7 +239,15 @@ void Emitter<Writer>::_write(NodeScalar const& sc, NodeType flags)
         this->Writer::_do_write(' ');
     }
 
-    _write_scalar(sc.scalar);
+    const bool has_newlines = sc.scalar.first_of('\n') != npos;
+    if(!has_newlines)
+    {
+        _write_scalar(sc.scalar);
+    }
+    else
+    {
+        _write_scalar_block(sc.scalar, ilevel, flags.has_key());
+    }
 }
 template<class Writer>
 void Emitter<Writer>::_write_json(NodeScalar const& sc, NodeType flags)
@@ -255,6 +263,59 @@ void Emitter<Writer>::_write_json(NodeScalar const& sc, NodeType flags)
     }
 
     _write_scalar_json(sc.scalar);
+}
+
+template<class Writer>
+void Emitter<Writer>::_write_scalar_block(csubstr s, size_t ilevel, bool as_key)
+{
+    #define _rymlindent_nextline() for(size_t lv = 0; lv < ilevel+1; ++lv) { this->Writer::_do_write("  "); }
+    if(as_key)
+    {
+        this->Writer::_do_write("? ");
+    }
+    csubstr trimmed = s.trimr("\r\n");
+    size_t numnewlines_at_end = s.sub(trimmed.len).count('\n');
+    if(numnewlines_at_end == 0)
+    {
+        this->Writer::_do_write("|-\n");
+    }
+    else if(numnewlines_at_end == 1)
+    {
+        this->Writer::_do_write("|\n");
+    }
+    else if(numnewlines_at_end > 1)
+    {
+        this->Writer::_do_write("|+\n");
+        if(!as_key)
+        {
+            s = s.offs(0, 1); // do not write the last newline
+        }
+    }
+    _rymlindent_nextline()
+    size_t pos = 0; // tracks the last character that was already written
+    for(size_t i = 0; i < s.len; ++i)
+    {
+        if(s[i] != '\n') continue;
+        // write everything up to this point
+        csubstr sub = s.range(pos, i+1); // include the newline
+        pos = i+1; // because of the newline
+        this->Writer::_do_write(sub);
+        if(i+1 != s.len)
+        {
+            _rymlindent_nextline();
+        }
+    }
+    if(pos < s.len)
+    {
+        RYML_ASSERT(numnewlines_at_end == 0);
+        csubstr sub = s.sub(pos);
+        this->Writer::_do_write(sub);
+    }
+    if(as_key && numnewlines_at_end == 0)
+    {
+        this->Writer::_do_write('\n');
+    }
+    #undef _rymlindent_nextline
 }
 
 template<class Writer>
@@ -299,15 +360,16 @@ void Emitter<Writer>::_write_scalar(csubstr s)
         }
         else
         {
-            size_t pos = 0;
+            size_t pos = 0; // tracks the last character that was already written
             this->Writer::_do_write('\'');
             for(size_t i = 0; i < s.len; ++i)
             {
-                if(s[i] == '\'' || s[i] == '\n')
+                RYML_ASSERT(s[i] != '\n');
+                if(s[i] == '\'')
                 {
                     csubstr sub = s.range(pos, i);
                     pos = i;
-                    this->Writer::_do_write(sub);
+                    this->Writer::_do_write(sub); // write everything up to this point
                     this->Writer::_do_write(s[i]); // write the character twice
                 }
             }
