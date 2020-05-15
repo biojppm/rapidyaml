@@ -833,7 +833,8 @@ provide an implementation of your own, as above. Having done that, you can
 serialize / deserialize your containers with a single step. For example:
 
 ```c++
-#include <ryml_std.hpp>
+#include <ryml_std.hpp> // include this before any other ryml header
+#include <ryml.hpp>
 int main()
 {
     std::map<std::string, int> m({{"foo", 1}, {"bar", 2}});
@@ -872,6 +873,37 @@ of value nodes, see
 [the `std::string` implementation](https://github.com/biojppm/c4core/src/c4/std/string.hpp).
 If you'd like to see a particular STL container implemented, feel free to
 [submit a pull request or open an issue](https://github.com/biojppm/rapidyaml/issues).
+
+The need for separate inclusion of ryml's std interoperation headers is dictated
+by ryml's design requirement of not forcing clients to use the STL. 
+
+Please take note of the following pitfall when using the std headers: you have to include
+the std header before any other headers that use functions from it. For example:
+```c++
+// the to_csubstr(std::string const&) overload is not found in the resolution set
+#include <ryml.hpp>
+#include <ryml_std.hpp>
+int main()
+{
+    std::string in = R"({"a":"b","c":null,"d":"e"})";
+    // COMPILE ERROR: to_csubstr() not found for std::string
+    std::string yaml = ryml::preprocess_json<std::string>(c4::to_csubstr(in));
+}
+```
+But this works:
+```c++
+#include <ryml_std.hpp> // note the inclusion order changed
+#include <ryml.hpp>
+int main()
+{
+    std::string in = R"({"a":"b","c":null,"d":"e"})";
+    // OK:
+    std::string yaml = ryml::preprocess_json<std::string>(c4::to_csubstr(in));
+}
+```
+This constraint also applies to the conversion functions for your types;
+just like with the STL's headers, they should be included prior to
+ryml's headers.
 
 
 ### Custom formatting for intrinsic types
