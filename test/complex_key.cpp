@@ -5,7 +5,9 @@ namespace yml {
 
 #define COMPLEX_KEY_CASES                       \
 "complex block key, ambiguity 2EBW",            \
-"complex block key, ambiguity 2EBW, json",      \
+"complex block key, ambiguity 2EBW, expl",      \
+"complex block key, ambiguity 2EBW, impl seq",  \
+"complex block key, ambiguity 2EBW, expl seq",  \
 "complex key with line break in between",       \
 "complex key 2nd, inside explicit map",         \
 "complex key 1st, inside explicit map",         \
@@ -41,20 +43,52 @@ L{
   N("this is#not", "a comment"),
 }),
 
-C("complex block key, ambiguity 2EBW, json",
+C("complex block key, ambiguity 2EBW, expl",
 R"({
-  "a!\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~": "safe",
-  "?foo": "safe question mark",
-  ":foo": "safe colon",
-  "-foo": "safe dash",
-  "this is#not": "a comment"
+  a!"#$%&'()*+-./09:;<=>?@AZ[\]^_`az{|~: safe,
+  ?foo: safe question mark,
+  :foo: safe colon,
+  -foo: safe dash,
+  this is#not: a comment,
 })",
 L{
-  N("a!\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~", "safe"),
+  N("a!\"#$%&'()*+-./09:;<=>?@AZ[\\]^_`az{|~", "safe"),
   N("?foo", "safe question mark"),
   N(":foo", "safe colon"),
   N("-foo", "safe dash"),
   N("this is#not", "a comment"),
+}),
+
+C("complex block key, ambiguity 2EBW, impl seq",
+R"(
+- a!"#$%&'()*+,-./09:;<=>?@AZ[\]^_`az{|}~
+- ?foo
+- :foo
+- -foo
+- this is#not:a comment
+)",
+L{
+  N("a!\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~"),
+  N("?foo"),
+  N(":foo"),
+  N("-foo"),
+  N("this is#not:a comment"),
+}),
+
+C("complex block key, ambiguity 2EBW, expl seq",
+R"([
+  a!"#$%&'()*+-./09:;<=>?@AZ[\^_`az{|}~,
+  ?foo,
+  :foo,
+  -foo,
+  this is#not:a comment,
+])",
+L{
+  N("a!\"#$%&'()*+-./09:;<=>?@AZ[\\^_`az{|}~"),
+  N("?foo"),
+  N(":foo"),
+  N("-foo"),
+  N("this is#not:a comment"),
 }),
 
 C("complex key with line break in between",
