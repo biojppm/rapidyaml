@@ -128,7 +128,6 @@ if(RYML_TEST_SUITE)
         GIT_REPOSITORY https://github.com/yaml/yaml-test-suite
         GIT_TAG master)
     set(suite_dir ${tsdir}/test)
-
     if(NOT EXISTS ${suite_dir})
         c4_err("cannot find yaml-test-suite at ${suite_dir} -- was there an error downloading the project?")
     endif()
@@ -144,14 +143,10 @@ if(RYML_TEST_SUITE)
     set(tgt $<TARGET_FILE:ryml-test-suite>)
     function(ryml_add_test_from_suite tml_file)
         get_filename_component(name ${tml_file} NAME_WE)
-        add_test(NAME ryml-test-suite-${name}-in_yaml
-            COMMAND ${tgt} --gtest_filter="*/in_yaml*" ${suite_dir}/${tml_file})
-        add_test(NAME ryml-test-suite-${name}-out_yaml
-            COMMAND ${tgt} --gtest_filter="*/out_yaml*" ${suite_dir}/${tml_file})
-        add_test(NAME ryml-test-suite-${name}-events
-            COMMAND ${tgt} --gtest_filter="*/events*" ${suite_dir}/${tml_file})
-        add_test(NAME ryml-test-suite-${name}-in_json
-            COMMAND ${tgt} --gtest_filter="*/in_json*" ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-in_yaml  COMMAND ${tgt} --gtest_filter=*/in_yaml*  ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-out_yaml COMMAND ${tgt} --gtest_filter=*/out_yaml* ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-events   COMMAND ${tgt} --gtest_filter=*/events*   ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-in_json  COMMAND ${tgt} --gtest_filter=*/in_json*  ${suite_dir}/${tml_file})
     endfunction()
 
     file(GLOB suite_cases RELATIVE "${suite_dir}" "${suite_dir}/*.tml")
