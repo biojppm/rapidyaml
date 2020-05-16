@@ -1048,7 +1048,6 @@ bool Parser::_handle_map_impl()
     {
         RYML_ASSERT(has_none(RKEY));
         RYML_ASSERT(has_none(RVAL));
-
         // actually, we don't need RNXT in indent-based maps.
         addrem_flags(RKEY, RNXT);
     }
@@ -2122,7 +2121,15 @@ void Parser::_end_stream()
     RYML_ASSERT( ! m_stack.empty());
     if(has_any(SSCL))
     {
-        if(m_tree->type(m_state->node_id) == NOTYPE)
+        if(m_tree->is_seq(m_state->node_id))
+        {
+            _append_val(_consume_scalar());
+        }
+        else if(m_tree->is_map(m_state->node_id))
+        {
+            _append_key_val("~");
+        }
+        else if(m_tree->type(m_state->node_id) == NOTYPE)
         {
             m_tree->to_seq(m_state->node_id);
             _append_val(_consume_scalar());
@@ -2131,14 +2138,6 @@ void Parser::_end_stream()
         {
             m_tree->to_doc(m_state->node_id, SEQ);
             _append_val(_consume_scalar());
-        }
-        else if(m_tree->is_seq(m_state->node_id))
-        {
-            _append_val(_consume_scalar());
-        }
-        else if(m_tree->is_map(m_state->node_id))
-        {
-            _append_key_val("~");
         }
         else
         {
