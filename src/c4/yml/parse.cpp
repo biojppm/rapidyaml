@@ -52,7 +52,7 @@ static bool _is_scalar_next__rseq_rnxt(csubstr s)
 
 static bool _is_scalar_next__rmap(csubstr s)
 {
-    if(s.begins_with(": ") || s.begins_with_any("#,!?&"))
+    if(s.begins_with(": ") || s.begins_with_any("#,!&") || s.begins_with("? "))
     {
         return false;
     }
@@ -1020,6 +1020,7 @@ bool Parser::_handle_map_impl()
         RYML_ASSERT(has_none(RNXT));
         RYML_ASSERT(has_none(RVAL));
 
+        _c4dbgp("read scalar?");
         if(_scan_scalar(&rem)) // this also progresses the line
         {
             _c4dbgp("it's a scalar");
@@ -1055,11 +1056,11 @@ bool Parser::_handle_map_impl()
             _line_progressed(rem.len);
             return true;
         }
-        else if(rem.begins_with('?'))
+        else if(rem.begins_with("? "))
         {
             _c4dbgp("it's a complex key");
             add_flags(CPLX);
-            _line_progressed(1);
+            _line_progressed(2);
             return true;
         }
         else if(has_all(CPLX) && rem.begins_with(':'))
@@ -2943,15 +2944,15 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
 {
     _c4dbgpf("filtering block: '%.*s'", _c4prsp(s));
 
-    RYML_ASSERT(s.ends_with('\n') || s.ends_with('\r'));
-
     substr r = s;
 
     if(indentation > 0)
     {
         r = _filter_whitespace(s, indentation, /*leading whitespace*/false);
-        RYML_ASSERT(r.begins_with(' ', indentation));
-        r = r.erase(0, indentation);
+        if(r.begins_with(' ', indentation))
+        {
+            r = r.erase(0, indentation);
+        }
     }
 
     _c4dbgpf("filtering block: after whitespace='%.*s'", _c4prsp(r));
@@ -2963,22 +2964,26 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
     case CHOMP_STRIP: // strip everything
     {
         auto pos = r.last_not_of("\r\n");
-        RYML_ASSERT(pos != npos);
-        r = r.left_of(pos, /*include_pos*/true);
+        if(pos != npos)
+        {
+            r = r.left_of(pos, /*include_pos*/true);
+        }
         break;
     }
     case CHOMP_CLIP: // clip to a single newline
     {
         auto pos = r.last_not_of("\r\n");
-        RYML_ASSERT(pos != npos && pos+1 < r.len);
-        ++pos;
-        if(r[pos] == '\r') // deal with \r\n sequences
+        if(pos != npos && pos+1 < r.len)
         {
-            RYML_ASSERT(pos+1 < s.len);
             ++pos;
-            RYML_ASSERT(r[pos] == '\n');
+            if(r[pos] == '\r') // deal with \r\n sequences
+            {
+                RYML_ASSERT(pos+1 < s.len);
+                ++pos;
+                RYML_ASSERT(r[pos] == '\n');
+            }
+            r = r.left_of(pos, /*include_pos*/true);
         }
-        r = r.left_of(pos, /*include_pos*/true);
         break;
     }
     //default:
@@ -2994,36 +2999,37 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
     case BLOCK_FOLD:
         {
             auto pos = r.last_not_of("\r\n"); // do not fold trailing newlines
-            RYML_ASSERT(pos != npos);
-            RYML_ASSERT(pos < r.len);
-            ++pos; // point pos at the first newline char
-            substr t = r.sub(0, pos);
-            for(size_t i = 0; i < t.len; ++i)
+            if((pos != npos) && (pos < r.len))
             {
-                const char curr = t[i];
-                //const char prev = i   > 0     ? t[i-1] : '\0';
-                const char next = i+1 < t.len ? t[i+1] : '\0';
-                if(curr == '\n')
+                ++pos; // point pos at the first newline char
+                substr t = r.sub(0, pos);
+                for(size_t i = 0; i < t.len; ++i)
                 {
-                    if(next != '\n')
+                    const char curr = t[i];
+                    //const char prev = i   > 0     ? t[i-1] : '\0';
+                    const char next = i+1 < t.len ? t[i+1] : '\0';
+                    if(curr == '\n')
                     {
-                        t[i] = ' '; // a single unix newline: turn it into a space
-                    }
-                    else if(curr == '\n' && next == '\n')
-                    {
-                        t = t.erase(i+1, 1); // keep only one of consecutive newlines
+                        if(next != '\n')
+                        {
+                            t[i] = ' '; // a single unix newline: turn it into a space
+                        }
+                        else if(curr == '\n' && next == '\n')
+                        {
+                            t = t.erase(i+1, 1); // keep only one of consecutive newlines
+                        }
                     }
                 }
+                // copy over the trailing newlines
+                substr nl = r.sub(pos);
+                RYML_ASSERT(t.len + nl.len <= r.len);
+                for(size_t i = 0; i < nl.len; ++i)
+                {
+                    r[t.len + i] = nl[i];
+                }
+                // now trim r
+                r = r.sub(0, t.len + nl.len);
             }
-            // copy over the trailing newlines
-            substr nl = r.sub(pos);
-            RYML_ASSERT(t.len + nl.len <= r.len);
-            for(size_t i = 0; i < nl.len; ++i)
-            {
-                r[t.len + i] = nl[i];
-            }
-            // now trim r
-            r = r.sub(0, t.len + nl.len);
         }
         break;
     default:

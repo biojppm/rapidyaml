@@ -10,6 +10,9 @@ c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${ryml_yaml_cpp_inc}
     LIBS ryml c4fs yaml yaml-cpp gtest gtest_main
     FOLDER test)
+if(RYML_DBG)
+    target_compile_definitions(ryml-_testlib PUBLIC RYML_DBG)
+endif()
 
 function(ryml_add_test test_name)
     # NOTE: the library order here is fragile because the c4proj sanitization
@@ -136,9 +139,6 @@ if(RYML_TEST_SUITE)
         SOURCES suite.cpp
         LIBS ryml-_testlib c4log
         FOLDER test)
-    if(RYML_DBG)
-        target_compile_definitions(ryml-test-suite PRIVATE RYML_DBG)
-    endif()
 
     set(tgt $<TARGET_FILE:ryml-test-suite>)
     function(ryml_add_test_from_suite tml_file)

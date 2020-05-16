@@ -327,7 +327,7 @@ void Emitter<Writer>::_write_scalar(csubstr s)
         (
             (s != s.trim(" \t\n\r")) // has leading or trailing whitespace
             ||
-            s.first_of("#:-,\n{}[]'\"") != npos // has special chars
+            s.first_of("#:-?,\n{}[]'\"") != npos // has special chars
         )
     );
 
