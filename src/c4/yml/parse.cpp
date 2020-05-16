@@ -320,7 +320,7 @@ bool Parser::_handle_unk()
     }
     else if(rem.begins_with(": ") && !has_all(SSCL))
     {
-        _c4dbgpf("it's a map with an empty key");
+        _c4dbgp("it's a map with an empty key");
         _push_level();
         _start_map(start_as_child);
         _store_scalar("");
@@ -331,7 +331,7 @@ bool Parser::_handle_unk()
     }
     else if(rem == ':' && !has_all(SSCL))
     {
-        _c4dbgpf("it's a map with an empty key");
+        _c4dbgp("it's a map with an empty key");
         _push_level();
         _start_map(start_as_child);
         _store_scalar("");
