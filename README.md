@@ -1141,10 +1141,16 @@ appear some cases which ryml fails to parse. So we welcome your
 
 ### Known limitations
 
-* ryml does not handle complex elements as mapping keys: keys must be simple
+ryml does not follow the standard in the following situations:
+
+* complex elements as mapping keys: keys must be simple
   values and cannot themselves be mappings or sequences. Yaml test suite
   cases:
     * [KK5P](https://github.com/yaml/yaml-test-suite/tree/master/test/KK5P.tml)
+* these directives have no effect and are ignored:
+    * `%YAML`
+    * `%TAG`
+    * any other directives found at document level which start with the `%` character
 
 
 ------

@@ -243,6 +243,20 @@ bool Parser::_handle_unk()
             _start_new_doc(rem);
             return true;
         }
+        auto trimmed = rem.triml(' ');
+        if(trimmed.begins_with("---"))
+        {
+            RYML_ASSERT(rem.len >= trimmed.len);
+            _line_progressed(rem.len - trimmed.len);
+            _start_new_doc(trimmed);
+            _save_indentation();
+            return true;
+        }
+        else if(trimmed.empty())
+        {
+            _line_progressed(rem.len);
+            return true;
+        }
         _c4err("unexpected token: outside of document");
     }
 
@@ -1291,42 +1305,32 @@ bool Parser::_handle_top()
         return true;
     }
 
-    // use the full line, as the following tokens can appear only at top level
-    RYML_ASSERT(rem == m_state->line_contents.stripped
-              ||
-              (m_state->indref > 0 && (rem.begin() > m_state->line_contents.stripped.begin() &&
-              m_state->indref + m_state->line_contents.stripped.begin() == rem.begin())));
-    if(m_state->indref == 0)
-    {
-        rem = m_state->line_contents.stripped;
-    }
+    csubstr trimmed = rem.triml(' ');
 
-    if(rem.begins_with('%'))
+    if(trimmed.begins_with('%'))
     {
-        _c4dbgp("%% directive!");
-        if(rem.begins_with("%YAML"))
-        {
-            _c4err("not implemented");
-        }
-        else if(rem.begins_with("%TAG"))
-        {
-            _c4err("not implemented");
-        }
-        else
-        {
-            _c4err("unknown directive starting with %%");
-        }
+        _c4dbgpf("%% directive! ignoring...: '%.*s'", _c4prsp(rem));
+        _line_progressed(rem.len);
         return true;
     }
-    else if(rem.begins_with("---"))
+    else if(trimmed.begins_with("---"))
     {
         _start_new_doc(rem);
+        if(trimmed.len < rem.len)
+        {
+            _line_progressed(rem.len - trimmed.len);
+            _save_indentation();
+        }
         return true;
     }
-    else if(rem.begins_with("..."))
+    else if(trimmed.begins_with("..."))
     {
         _c4dbgp("end current document");
         _end_stream();
+        if(trimmed.len < rem.len)
+        {
+            _line_progressed(rem.len - trimmed.len);
+        }
         _line_progressed(3);
         return true;
     }
