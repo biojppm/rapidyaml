@@ -35,7 +35,7 @@ struct AllowedFailure
 
 AllowedFailure failure_expected(c4::csubstr filename)
 {
-    C4_ASSERT(filename.ends_with(".tml"));
+    RYML_CHECK(filename.ends_with(".tml"));
     auto test_code = filename.basename();
     test_code = test_code.offs(0, 4);
     auto it = g_allowed_failures.find(test_code);
@@ -352,27 +352,27 @@ struct SuiteCase
         size_t b, e;
 
         // desc
-        C4_CHECK(contents.begins_with("=== "));
+        RYML_CHECK(contents.begins_with("=== "));
         e = contents.find("--- from: ", 4);
-        C4_CHECK(e != npos);
+        RYML_CHECK(e != npos);
         desc = contents.range(4, e).trimr(ws);
 
         // from
         b = e + 4;
         e = contents.find("--- tags: ", b);
-        C4_CHECK(e != npos);
+        RYML_CHECK(e != npos);
         from = contents.range(b, e);
-        C4_CHECK(from.begins_with("from: "));
-        C4_CHECK(from.size() >= 6);
+        RYML_CHECK(from.begins_with("from: "));
+        RYML_CHECK(from.size() >= 6);
         from = from.sub(6).trimr(ws);
 
         // tags
         b = e + 4;
         e = contents.find("--- in-yaml", b);
-        C4_CHECK(e != npos);
+        RYML_CHECK(e != npos);
         tags = contents.range(b, e);
-        C4_CHECK(tags.begins_with("tags: "));
-        C4_CHECK(tags.size() >= 6);
+        RYML_CHECK(tags.begins_with("tags: "));
+        RYML_CHECK(tags.size() >= 6);
         tags = tags.sub(6).trimr(ws);
 
         if(tags.find("error") != npos)
@@ -381,19 +381,20 @@ struct SuiteCase
             return false; // tagged with error. skip this test.
         }
 
-        size_t end_tags       = e;
-        size_t begin_in_yaml  = contents.find("--- in-yaml"   , end_tags);
-        size_t begin_in_json  = contents.find("--- in-json"   , end_tags);
-        size_t begin_out_yaml = contents.find("--- out-yaml"  , end_tags);
-        size_t begin_events   = contents.find("--- test-event", end_tags);
-        std::initializer_list<size_t> all = {begin_in_yaml, begin_in_json, begin_out_yaml, begin_events, contents.size()};
+        size_t end_tags        = e;
+        size_t begin_in_yaml   = contents.find("--- in-yaml"   , end_tags);
+        size_t begin_in_json   = contents.find("--- in-json"   , end_tags);
+        size_t begin_out_yaml  = contents.find("--- out-yaml"  , end_tags);
+        size_t begin_emit_yaml = contents.find("--- emit-yaml" , end_tags);
+        size_t begin_events    = contents.find("--- test-event", end_tags);
+        std::initializer_list<size_t> all = {begin_in_yaml, begin_in_json, begin_out_yaml, begin_emit_yaml, begin_events, contents.size()};
 
         // in_yaml
-        C4_CHECK(begin_in_yaml != npos);
+        RYML_CHECK(begin_in_yaml != npos);
         size_t first_after_in_yaml = find_first_after(begin_in_yaml, all);
         begin_in_yaml = 1 + contents.find('\n', begin_in_yaml); // skip this line
-        txt = contents.range(begin_in_yaml, first_after_in_yaml).trimr(ws);
-        C4_ASSERT( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "---test-event"));
+        txt = contents.range(begin_in_yaml, first_after_in_yaml);
+        RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
         in_yaml.init(filename, txt);
 
         // in_json
@@ -401,8 +402,8 @@ struct SuiteCase
         {
             size_t first_after_in_json = find_first_after(begin_in_json, all);
             begin_in_json = 1 + contents.find('\n', begin_in_json); // skip this line
-            txt = contents.range(begin_in_json, first_after_in_json).trimr(ws);
-            C4_ASSERT( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "---test-event"));
+            txt = contents.range(begin_in_json, first_after_in_json);
+            RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
             in_json.init(filename, txt);
         }
 
@@ -412,17 +413,17 @@ struct SuiteCase
             if(begin_in_json == npos) begin_in_json = begin_in_yaml;
             size_t first_after_out_yaml = find_first_after(begin_out_yaml, all);
             begin_out_yaml = 1 + contents.find('\n', begin_out_yaml); // skip this line
-            txt = contents.range(begin_out_yaml, first_after_out_yaml).trimr(ws);
-            C4_ASSERT( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "---test-event"));
+            txt = contents.range(begin_out_yaml, first_after_out_yaml);
+            RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
             out_yaml.init(filename, txt);
         }
 
         // events
-        C4_CHECK(begin_events != npos);
+        RYML_CHECK(begin_events != npos);
         //size_t first_after_events = find_first_after(begin_events, all);
         begin_events = 1 + contents.find('\n', begin_events); // skip this line
-        c4::csubstr src_events = contents.sub(begin_events).trimr(ws);
-        C4_ASSERT( ! src_events.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "---test-event"));
+        c4::csubstr src_events = contents.sub(begin_events);
+        RYML_CHECK( ! src_events.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
         events.init(filename, src_events);
 
         // filter
@@ -437,14 +438,14 @@ struct SuiteCase
 
     void print() const
     {
-        c4::dump("% file   : "  , filename     , " %\n",
-                 "% desc   : "  , desc         , " %\n",
-                 "% from   : "  , from         , " %\n",
-                 "% tags   : "  , tags         , " %\n",
-                 "% in_yaml:\n" , src(in_yaml ), " %\n",
-                 "% in_json:\n" , src(in_json ), " %\n",
-                 "% out_yaml:\n", src(out_yaml), " %\n",
-                 "% events :\n" , src(events  ), " %\n");
+        c4::dump("~~~ file   : "  , filename     , "~~~\n",
+                 "~~~ desc   : "  , desc         , "~~~\n",
+                 "~~~ from   : "  , from         , "~~~\n",
+                 "~~~ tags   : "  , tags         , "~~~\n",
+                 "~~~ in-yaml:\n" , src(in_yaml ), "~~~\n",
+                 "~~~ in-json:\n" , src(in_json ), "~~~\n",
+                 "~~~ out-yaml:\n", src(out_yaml), "~~~\n",
+                 "~~~ events :\n" , src(events  ), "~~~\n");
     }
 
 };
@@ -464,22 +465,22 @@ class cls##_##pfx : public ::testing::TestWithParam<size_t> {}; \
                                                                 \
 TEST_P(cls##_##pfx, parse)                                      \
 {                                                               \
-    C4_ASSERT(GetParam() < NLEVELS);                            \
+    RYML_CHECK(GetParam() < NLEVELS);                           \
     g_suite_case.cls.pfx.parse(1 + GetParam(), false);          \
 }                                                               \
 TEST_P(cls##_##pfx, compare_trees)                              \
 {                                                               \
-    C4_ASSERT(GetParam() < NLEVELS);                            \
+    RYML_CHECK(GetParam() < NLEVELS);                           \
     g_suite_case.cls.pfx.compare_trees(1 + GetParam());         \
 }                                                               \
 TEST_P(cls##_##pfx, emit)                                       \
 {                                                               \
-    C4_ASSERT(GetParam() < NLEVELS);                            \
+    RYML_CHECK(GetParam() < NLEVELS);                           \
     g_suite_case.cls.pfx.parse(1 + GetParam(), true);           \
 }                                                               \
 TEST_P(cls##_##pfx, compare_emitted)                            \
 {                                                               \
-    C4_ASSERT(GetParam() < NLEVELS);                            \
+    RYML_CHECK(GetParam() < NLEVELS);                           \
     g_suite_case.cls.pfx.compare_emitted(1 + GetParam());       \
 }                                                               \
 /**/                                                            \
@@ -537,9 +538,9 @@ int main(int argc, char* argv[])
     // load the test case from the suite file
     auto path = c4::to_substr(argv[1]);
     path.replace('\\', '/');
-    C4_CHECK(path.len > 0);
-    C4_CHECK(path[0] != '-');
-    C4_CHECK(c4::fs::path_exists(path.str));
+    RYML_CHECK(path.len > 0);
+    RYML_CHECK(path[0] != '-');
+    RYML_CHECK(c4::fs::path_exists(path.str));
     c4::log("testing suite case: {} ({})", path.basename(), path);
     {
         auto allowed_to_fail = failure_expected(path);
