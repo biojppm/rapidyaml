@@ -85,7 +85,7 @@ struct ProcLevel
     bool            was_parsed = false;
     bool            was_emitted = false;
 
-    void init(c4::csubstr filename_, c4::csubstr src_, bool immutable_, bool reuse_, bool /*is_yaml_events_*/)
+    void init(c4::csubstr filename_, c4::csubstr src_, bool immutable_, bool reuse_, bool is_yaml_events_)
     {
         filename = filename_;
         src.assign(src_.begin(), src_.end());
@@ -172,7 +172,7 @@ struct ProcLevel
         was_emitted = true;
     }
 
-    void compare_trees(ProcLevel const& /*prev*/)
+    void compare_trees(ProcLevel const& prev)
     {
         if(!was_parsed) parse();
         test_compare(tree, prev.tree);
@@ -507,7 +507,7 @@ DECLARE_TESTS(in_yaml);
 // this is needed to use the test case library
 namespace c4 {
 namespace yml {
-Case const* get_case(csubstr name)
+Case const* get_case(csubstr /*name*/)
 {
     return nullptr;
 }
@@ -533,7 +533,7 @@ int main(int argc, char* argv[])
 
     // load the test case from the suite file
     auto path = c4::to_substr(argv[1]);
-    path.replace_all('\\', '/');
+    path.replace('\\', '/');
     C4_CHECK(path.len > 0);
     C4_CHECK(path[0] != '-');
     C4_CHECK(c4::fs::path_exists(path.str));

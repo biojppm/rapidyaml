@@ -123,18 +123,19 @@ if(RYML_TEST_SUITE)
         GIT_REPOSITORY https://github.com/biojppm/c4log
         GIT_TAG master)
 
-    c4_download_remote_proj(yaml-test-suite ${ed}/yaml-test-suite
+    set(tsdir ${ed}/yaml-test-suite)
+    c4_download_remote_proj(yaml-test-suite tsdir
         GIT_REPOSITORY https://github.com/yaml/yaml-test-suite
         GIT_TAG master)
+    set(suite_dir ${tsdir}/test)
 
-    set(suite_dir ${ed}/yaml-test-suite/src/test)
     if(NOT EXISTS ${suite_dir})
-        c4_err("cannot find yaml-test-suite -- was there an error downloading the project?")
+        c4_err("cannot find yaml-test-suite at ${suite_dir} -- was there an error downloading the project?")
     endif()
 
     c4_add_executable(ryml-test-suite
         SOURCES suite.cpp
-        LIBS ryml c4fs c4log gtest
+        LIBS ryml-_testlib c4log
         FOLDER test)
     if(RYML_DBG)
         target_compile_definitions(ryml-test-suite PRIVATE RYML_DBG)
