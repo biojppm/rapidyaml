@@ -16,7 +16,7 @@ namespace yml {
 
 static bool _is_scalar_next__runk(csubstr s)
 {
-    if(s.begins_with(": ") || s.begins_with_any("#,:?{[-"))
+    if(s.begins_with(": ") || s.begins_with_any("#,:{}[]-%") || s.begins_with("? "))
     {
         return false;
     }
@@ -25,7 +25,7 @@ static bool _is_scalar_next__runk(csubstr s)
 
 static bool _is_scalar_next__rseq_rval(csubstr s)
 {
-    if(s.begins_with_any("[{!?&"))
+    if(s.begins_with_any("[{!&") || s.begins_with("? "))
     {
         return false;
     }
@@ -385,6 +385,20 @@ bool Parser::_handle_unk()
             //_c4dbgp("map key opened a new line -- starting val scope as unknown");
             //_start_unk();
         }
+        else if(rem.begins_with('}'))
+        {
+            if(!has_all(RMAP|EXPL))
+            {
+                _c4err("invalid token: not reading a map");
+            }
+            if(!has_all(SSCL))
+            {
+                _c4err("no scalar stored");
+            }
+            _append_key_val(saved_scalar);
+            _stop_map();
+            _line_progressed(1);
+        }
         else if(rem.begins_with("..."))
         {
             _c4dbgp("got stream end '...'");
@@ -647,12 +661,7 @@ bool Parser::_handle_seq_impl()
         }
         else
         {
-            //_c4err("parse error");
-            // thanks @leoetlino
-            // https://github.com/biojppm/rapidyaml/issues/28#issuecomment-578505724
-            _c4dbgp("end the indentless sequence");
-            _pop_level();
-            return true;
+            _c4err("parse error");
         }
     }
     else if(has_any(RVAL))
@@ -890,9 +899,8 @@ bool Parser::_handle_map_expl()
             }
             else if(rem == ':')
             {
-                _c4dbgp("start unknown");
+                _c4dbgp("wait for val");
                 addrem_flags(RVAL, RKEY|CPLX);
-                _start_unk();
                 _line_progressed(1);
                 return true;
             }
@@ -1446,7 +1454,6 @@ bool Parser::_handle_types()
 
     if(t.empty())
     {
-        _c4dbgp(".... tag was empty");
         return false;
     }
 
@@ -2200,7 +2207,10 @@ void Parser::_start_map(bool as_child)
     }
     else
     {
-        RYML_ASSERT(m_tree->is_map(parent_id) || m_tree->empty(parent_id));
+        if(!(m_tree->is_map(parent_id) || m_tree->empty(parent_id)))
+        {
+            _c4err("parse error");
+        }
         m_state->node_id = parent_id;
         _c4dbgpf("start_map: id=%zd", m_state->node_id);
         int as_doc = 0;
@@ -2385,7 +2395,7 @@ bool Parser::_handle_indentation()
         return true;
     }
 
-    if(ind == (size_t)m_state->indref)
+    if(ind == m_state->indref)
     {
         if(has_all(SSCL|RVAL) && ! rem.sub(ind).begins_with('-'))
         {
@@ -2404,6 +2414,15 @@ bool Parser::_handle_indentation()
                 _c4err("internal error");
             }
         }
+        else if(has_all(RSEQ|RNXT) && ! rem.sub(ind).begins_with('-'))
+        {
+            if(m_stack.size() > 2) // do not pop to root level
+            {
+                _c4dbgp("end the indentless seq");
+                _pop_level();
+                return true;
+            }
+        }
         else
         {
             _c4dbgpf("same indentation (%zd) -- nothing to see here", ind);
@@ -2411,7 +2430,7 @@ bool Parser::_handle_indentation()
         _line_progressed(ind);
         return ind > 0;
     }
-    else if(ind < (size_t)m_state->indref)
+    else if(ind < m_state->indref)
     {
         _c4dbgpf("smaller indentation (%zd < %zd)!!!", ind, m_state->indref);
         if(has_all(RVAL))
@@ -2450,18 +2469,17 @@ bool Parser::_handle_indentation()
             _c4dbgpf("popping level %zd (indentation=%zd)", m_state->level, m_state->indref);
             _pop_level();
         }
-        RYML_ASSERT(m_state->indref == ind);
+        RYML_ASSERT(ind == m_state->indref);
         _line_progressed(ind);
         return true;
     }
-    else // ind > indref
+    else
     {
         _c4dbgpf("larger indentation (%zd > %zd)!!!", ind, m_state->indref);
+        RYML_ASSERT(ind > m_state->indref);
         if(has_all(RMAP|RVAL))
         {
-            if(/*ind == m_state->indref + 2 && */_is_scalar_next__rmap_val(remt)
-               && remt.find(":") == npos
-               && remt.find("?") == npos)
+            if(_is_scalar_next__rmap_val(remt) && remt.first_of(":?") == npos)
             {
                 _c4dbgpf("actually it seems a value: '%.*s'", _c4prsp(remt));
             }
