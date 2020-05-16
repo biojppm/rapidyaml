@@ -280,8 +280,10 @@ c4::csubstr replace_all(c4::csubstr pattern, c4::csubstr repl, c4::csubstr subje
     dst->clear();
     size_t b = 0;
     do {
+        RYML_CHECK(b <= subject.len);
         size_t e = subject.find(pattern, b);
-        if(e == npos)
+        RYML_CHECK(e < subject.len || e == npos);
+        if(e == npos && b < subject.len)
         {
             dst->append(&subject[b], subject.end());
             break;
@@ -289,7 +291,7 @@ c4::csubstr replace_all(c4::csubstr pattern, c4::csubstr repl, c4::csubstr subje
         dst->append(&subject[b], &subject[e]);
         dst->append(repl.begin(), repl.end());
         b = e + pattern.size();
-    } while(b != npos);
+    } while(b != npos && b < subject.len);
 
     return c4::to_csubstr(*dst);
 }
