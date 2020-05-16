@@ -27,7 +27,13 @@ namespace yml {
 "simple map, null values",                                      \
 "simple map expl, null values 1",                               \
 "simple map expl, null values 2",                               \
-"simple map expl, scalars with special chars, comma"            \
+"simple map expl, scalars with special chars, comma",           \
+"simple map, spaces before semicolon, issue54",                 \
+"simple map, spaces before semicolon, issue65, v0",             \
+"simple map, spaces before semicolon, issue65, v1",             \
+"simple map, spaces before semicolon, issue65, v2",             \
+"simple map, spaces before semicolon, issue65, v3"
+
 
 CASE_GROUP(SIMPLE_MAP)
 {
@@ -446,6 +452,88 @@ h ,i: val ,000
 }
 ),
 
+
+C("simple map, spaces before semicolon, issue54",
+R"(
+foo   : crl
+keyA :
+    keyA.B : test value
+"key C"     : val C
+'key D'     : val D
+elm2     :
+    "key C"     : val C
+    'key D'     : val D
+    key E       : val E
+elm3     :
+    'key D'     : val D
+    "key C"     : val C
+    key E       : val E
+elm4     :
+    key E       : val E
+    'key D'     : val D
+    "key C"     : val C
+)",
+L{
+    N("foo", "crl"),
+    N("keyA", L{N("keyA.B", "test value")}),
+    N("key C", "val C"),
+    N("key D", "val D"),
+    N("elm2", L{N("key C", "val C"), N("key D", "val D"), N("key E", "val E"),}),
+    N("elm3", L{N("key D", "val D"), N("key C", "val C"), N("key E", "val E"),}),
+    N("elm4", L{N("key E", "val E"), N("key D", "val D"), N("key C", "val C"),}),
+}
+),
+
+C("simple map, spaces before semicolon, issue65, v0",
+R"({a : b})",
+L{
+    N("a", "b"),
+}
+),
+
+C("simple map, spaces before semicolon, issue65, v1",
+R"(a : b)",
+L{
+    N("a", "b"),
+}
+),
+
+C("simple map, spaces before semicolon, issue65, v2",
+R"(
+is it ok      :     let's see
+ok     : {a : b, c     : d,      e      : f,}
+must be ok   :
+    c0  : d
+    c1    : d
+    c2       : d
+)",
+L{
+    N("is it ok", "let's see"),
+    N("ok", L{N("a", "b"), N("c", "d"), N("e", "f")}),
+    N("must be ok", L{N("c0", "d"), N("c1", "d"), N("c2", "d")}),
+}
+),
+
+C("simple map, spaces before semicolon, issue65, v3",
+R"({
+oka: {a : b},
+is it ok      :     let's see,
+okb: {a : b},
+ok   : {a : b},
+must be ok   : {
+    c0  : d,
+    c1    : d,
+    c2       : d,
+}
+})",
+L{
+    N("oka", L{N("a", "b")}),
+    N("is it ok", "let's see"),
+    N("okb", L{N("a", "b")}),
+    N("ok", L{N("a", "b")}),
+    N("must be ok", L{N("c0", "d"), N("c1", "d"), N("c2", "d")}),
+}
+),
     )
 }
 

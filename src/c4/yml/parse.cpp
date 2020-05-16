@@ -848,6 +848,15 @@ bool Parser::_handle_map_expl()
                 _c4dbgp("it's a scalar");
                 _store_scalar(rem);
                 rem = m_state->line_contents.rem;
+                csubstr trimmed = rem.triml(" \t");
+                if(trimmed.len && (trimmed.begins_with(": ") || trimmed.begins_with_any(":,}")))
+                {
+                    RYML_ASSERT(trimmed.str >= rem.str);
+                    size_t num = trimmed.str - rem.str;
+                    _c4dbgpf("trimming %zu whitespace after the scalar: '%.*s' --> '%.*s'", num, _c4prsp(rem), _c4prsp(rem.sub(num)));
+                    rem = rem.sub(num);
+                    _line_progressed(num);
+                }
             }
 
             if(rem.begins_with(": "))
