@@ -304,6 +304,28 @@ bool Parser::_handle_unk()
         _line_progressed(2);
         return true;
     }
+    else if(rem.begins_with(": ") && !has_all(SSCL))
+    {
+        _c4dbgpf("it's a map with an empty key");
+        _push_level();
+        _start_map(start_as_child);
+        _store_scalar("");
+        addrem_flags(RVAL, RKEY);
+        _save_indentation();
+        _line_progressed(2);
+        return true;
+    }
+    else if(rem == ':' && !has_all(SSCL))
+    {
+        _c4dbgpf("it's a map with an empty key");
+        _push_level();
+        _start_map(start_as_child);
+        _store_scalar("");
+        addrem_flags(RVAL, RKEY);
+        _save_indentation();
+        _line_progressed(1);
+        return true;
+    }
     else if(_handle_types())
     {
         return true;
@@ -1081,6 +1103,11 @@ bool Parser::_handle_map_impl()
         else if(rem.begins_with(": "))
         {
             _c4dbgp("key finished");
+            if(!has_all(SSCL))
+            {
+                _c4dbgp("key was empty...");
+                _store_scalar("");
+            }
             addrem_flags(RVAL, RKEY);
             _line_progressed(2);
             return true;
@@ -1088,6 +1115,11 @@ bool Parser::_handle_map_impl()
         else if(rem == ':')
         {
             _c4dbgp("key finished");
+            if(!has_all(SSCL))
+            {
+                _c4dbgp("key was empty...");
+                _store_scalar("");
+            }
             addrem_flags(RVAL, RKEY);
             _line_progressed(1);
             return true;

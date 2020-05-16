@@ -57,7 +57,9 @@ TEST_P(YmlTestCase, parse_using_ryml)
         test_invariants(d->parsed_tree);
     }
 #ifdef RYML_DBG
+    std::cout << "REF TREE:\n";
     print_tree(c->root);
+    std::cout << "PARSED TREE:\n";
     print_tree(d->parsed_tree);
 #endif
     {

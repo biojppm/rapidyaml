@@ -1204,7 +1204,6 @@ size_t Tree::find_child(size_t node, csubstr const& name) const
     RYML_ASSERT(node != NONE);
     if(_p(node)->is_val()) return NONE;
     RYML_ASSERT(_p(node)->is_map());
-    RYML_ASSERT( ! name.empty());
     if(get(node)->m_first_child == NONE)
     {
         RYML_ASSERT(_p(node)->m_last_child == NONE);
