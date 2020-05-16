@@ -131,6 +131,7 @@ struct ProcLevel
         {
             if(reuse)
             {
+                tree.clear();
                 if(immutable)
                 {
                     parser.parse(filename, c4::to_csubstr(src), &tree);
