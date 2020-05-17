@@ -1468,7 +1468,7 @@ bool Parser::_handle_types()
     {
         _c4dbgp("begins with '!'");
         t = rem.left_of(rem.first_of(' '));
-        RYML_ASSERT(t.len > 1);
+        RYML_ASSERT(t.len >= 1);
         //t = t.sub(1);
     }
 
