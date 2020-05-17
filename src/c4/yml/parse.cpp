@@ -890,9 +890,8 @@ bool Parser::_handle_map_expl()
     {
         RYML_ASSERT(has_none(RNXT));
         RYML_ASSERT(has_none(RVAL));
-        RYML_ASSERT(has_none(SSCL));
 
-        if(_scan_scalar(&rem))
+        if(has_none(SSCL) && _scan_scalar(&rem))
         {
             _c4dbgp("it's a scalar");
             _store_scalar(rem);
@@ -1722,6 +1721,16 @@ substr Parser::_scan_plain_scalar_expl(csubstr currscalar, csubstr peeked_line)
     bool first = true;
     while(pos != 0)
     {
+        if(has_any(RMAP|RUNK))
+        {
+            csubstr tpkl = peeked_line.triml(' ').trimr("\r\n");
+            if(tpkl.begins_with(": ") || tpkl == ':')
+            {
+                _c4dbgpf("rscalar[EXPL]: map value starts on the peeked line: '%.*s'", _c4prsp(peeked_line));
+                peeked_line = peeked_line.first(0);
+                break;
+            }
+        }
         if(pos != npos)
         {
             _c4dbgpf("rscalar[EXPL]: found special character '%c' at %zu, stopping: '%.*s'", peeked_line[pos], pos, _c4prsp(peeked_line.left_of(pos).trimr("\r\n")));
