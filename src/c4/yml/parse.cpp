@@ -2233,6 +2233,7 @@ void Parser::_start_new_doc(csubstr rem)
 {
     _c4dbgp("_start_new_doc");
     RYML_ASSERT(rem.begins_with("---"));
+    C4_UNUSED(rem);
 
     _end_stream();
 
