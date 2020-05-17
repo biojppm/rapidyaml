@@ -80,11 +80,41 @@ struct AllowedFailure
 // under the section "Known limitations"
 constexpr const AllowedFailure g_allowed_failures[] = {
     {"3UYS", CPART_IN_YAML, "no need to escape the slash in \"a\\/b\""},
+    // malformed json
     {"7Z25", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"35KP", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents/[IN_YAML not implemented because of \"d e\" plain scalar continuing on the next line with the same indentation]"},
+    {"35KP", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents|TODO[hard]: \"d e\" plain scalar continuing on the next line with the same indentation]"},
+    {"6XDY", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"6ZKB", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents|TODO[next]: document handling"},
     {"9KAX", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"9DXL", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents|TODO[next]: document handling"},
+    {"W4TN", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents|TODO[next]: document handling"},
+    // complex keys
     {"4FJ6", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"6BFJ", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"6PBE", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
     {"KK5P", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"LX3P", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"M5DY", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"Q9WF", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"XW4D", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+
+    // TODO
+    {"5MUD", CPART_IN_YAML, "TODO[hard]"},
+    {"9WXW", CPART_ALL, "TODO[next]: document handling"},
+    {"M7A3", CPART_ALL, "TODO[next]: document handling/special tags in .tml file with test specs"},
+    {"735Y", CPART_IN_YAML, "TODO[next]: plain scalar parsing"},
+    {"7T8X", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: scalar block parsing"},
+    {"RZP5", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: plain scalar block parsing, anchors"},
+    {"FH7J", CPART_ALL, "TODO[next]: implicit keys"},
+    {"7W2P", CPART_IN_YAML, "TODO[next]: implicit key/explicit key"},
+    {"PW8X", CPART_ALL, "TODO[next]: anchors with implicit key"},
+    {"CN3R", CPART_ALL, "TODO[next]: anchors + maps nested in seqs"},
+    {"6BCT", CPART_IN_YAML, "TODO[hard]: allow tabs after - or :"},
+    {"7ZZ5", CPART_ALL, "TODO[next]: nested sequences"},
+    {"G5U8", CPART_ALL, "TODO[next]: sequences with -"},
+    {"K858", CPART_OUT_YAML|CPART_IN_JSON, "TODO[next]: emitting block scalars is not idempotent"},
+    {"NAT4", CPART_IN_YAML|CPART_IN_JSON, "TODO[next]: emitting block scalars is not idempotent"},
+
 };
 
 
