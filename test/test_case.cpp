@@ -239,6 +239,7 @@ void CaseNode::compare_child(yml::NodeRef const& n, size_t pos) const
 
     if(type & MAP)
     {
+        ASSERT_TRUE(n.find_child(ch.key).valid());
         EXPECT_NE(n.find_child(ch.key).get(), nullptr);
         auto fch = n.find_child(ch.key);
         if(fch != nullptr)

@@ -4,10 +4,10 @@ namespace c4 {
 namespace yml {
 
 #define COMPLEX_KEY_CASES                       \
-"complex block key, ambiguity 2EBW",            \
-"complex block key, ambiguity 2EBW, expl",      \
-"complex block key, ambiguity 2EBW, impl seq",  \
-"complex block key, ambiguity 2EBW, expl seq",  \
+"complex key, ambiguity 2EBW",                  \
+"complex key, ambiguity 2EBW, expl",            \
+"complex key, ambiguity 2EBW, impl seq",        \
+"complex key, ambiguity 2EBW, expl seq",        \
 "complex key with line break in between",       \
 "complex key 2nd, inside explicit map",         \
 "complex key 1st, inside explicit map",         \
@@ -27,7 +27,7 @@ CASE_GROUP(COMPLEX_KEY)
 {
     APPEND_CASES(
 
-C("complex block key, ambiguity 2EBW",
+C("complex key, ambiguity 2EBW",
 R"(
 a!"#$%&'()*+,-./09:;<=>?@AZ[\]^_`az{|}~: safe
 ?foo: safe question mark
@@ -43,7 +43,7 @@ L{
   N("this is#not", "a comment"),
 }),
 
-C("complex block key, ambiguity 2EBW, expl",
+C("complex key, ambiguity 2EBW, expl",
 R"({
   a!"#$%&'()*+-./09:;<=>?@AZ[\]^_`az{|~: safe,
   ?foo: safe question mark,
@@ -59,7 +59,7 @@ L{
   N("this is#not", "a comment"),
 }),
 
-C("complex block key, ambiguity 2EBW, impl seq",
+C("complex key, ambiguity 2EBW, impl seq",
 R"(
 - a!"#$%&'()*+,-./09:;<=>?@AZ[\]^_`az{|}~
 - ?foo
@@ -75,7 +75,7 @@ L{
   N("this is#not:a comment"),
 }),
 
-C("complex block key, ambiguity 2EBW, expl seq",
+C("complex key, ambiguity 2EBW, expl seq",
 R"([
   a!"#$%&'()*+-./09:;<=>?@AZ[\^_`az{|}~,
   ?foo,

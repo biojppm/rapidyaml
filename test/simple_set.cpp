@@ -5,7 +5,12 @@ namespace yml {
 
 #define SIMPLE_SET_CASES                     \
 "doc as set, implicit",                      \
-"doc as set"
+"doc as set",\
+"sets 2XXW",                       \
+"sets 2XXW, indented",             \
+"sets 2XXW, no set",               \
+"sets 2XXW, no doc",               \
+"sets 2XXW, no doc, no set"
 
 
 TEST(simple_set, emit)
@@ -65,6 +70,69 @@ R"(--- !!set
 )",
 N(STREAM, L{N(DOCMAP, TL("!!set", L{N("aa", "~"), N("bb", "~"), N("cc", "~")}))})
 ),
+
+C("sets 2XXW",
+R"(
+--- !!set
+? Mark McGwire
+? Sammy Sosa
+? Ken Griff
+)",
+N(STREAM, L{N(DOCMAP, TL("!!set", L{
+  N("Mark McGwire", "~"),
+  N("Sammy Sosa", "~"),
+  N("Ken Griff", "~"),})
+)})),
+
+C("sets 2XXW, indented",
+R"(
+    --- !!set
+    ? Mark McGwire
+    ? Sammy Sosa
+    ? Ken Griff
+)",
+N(STREAM, L{N(DOCMAP, TL("!!set", L{
+  N("Mark McGwire", "~"),
+  N("Sammy Sosa", "~"),
+  N("Ken Griff", "~"),})
+)})),
+
+C("sets 2XXW, no set",
+R"(
+---
+? Mark McGwire
+? Sammy Sosa
+? Ken Griff
+)",
+N(STREAM, L{N(DOCMAP, L{
+  N("Mark McGwire", "~"),
+  N("Sammy Sosa", "~"),
+  N("Ken Griff", "~"),}
+)})),
+
+C("sets 2XXW, no doc",
+R"(!!set
+? Mark McGwire
+? Sammy Sosa
+? Ken Griff
+)",
+TL("!!set", L{
+  N("Mark McGwire", "~"),
+  N("Sammy Sosa", "~"),
+  N("Ken Griff", "~"),
+})),
+
+C("sets 2XXW, no doc, no set",
+R"(
+? Mark McGwire
+? Sammy Sosa
+? Ken Griff
+)",
+L{
+  N("Mark McGwire", "~"),
+  N("Sammy Sosa", "~"),
+  N("Ken Griff", "~"),
+}),
 
     )
 }

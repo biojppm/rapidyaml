@@ -1104,6 +1104,10 @@ bool Parser::_handle_map_impl()
             _c4dbgp("it's a complex key");
             add_flags(CPLX);
             _line_progressed(2);
+            if(has_all(SSCL))
+            {
+                _append_key_val("~");
+            }
             return true;
         }
         else if(has_all(CPLX) && rem.begins_with(':'))
