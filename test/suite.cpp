@@ -18,18 +18,27 @@
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+typedef enum {
+    AFC_IN_YAML = 1 << 0,
+    AFC_IN_JSON = 1 << 1,
+    AFC_OUT_YAML = 1 << 2,
+    AFC_EVENTS = 1 << 3,
+    AFC_ALL = AFC_IN_YAML|AFC_IN_JSON|AFC_OUT_YAML|AFC_EVENTS,
+} CasePart_e;
+
 // don't forget to list these allowed failures in the repo's readme.md,
 // under the section "Known limitations"
-const std::map<c4::csubstr, c4::csubstr> g_allowed_failures = {
-    {"KK5P", "only string keys allowed (keys cannot be maps or seqs)"},
-};
-
-
 struct AllowedFailure
 {
     c4::csubstr test_code;
+    CasePart_e contexts;
     c4::csubstr reason;
     inline operator bool () const { return reason.len > 0; }
+};
+
+constexpr const AllowedFailure g_allowed_failures[] = {
+    {"35KP", AFC_IN_JSON, "malformed JSON"},
+    {"KK5P", AFC_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
 };
 
 
@@ -38,9 +47,14 @@ AllowedFailure failure_expected(c4::csubstr filename)
     RYML_CHECK(filename.ends_with(".tml"));
     auto test_code = filename.basename();
     test_code = test_code.offs(0, 4);
-    auto it = g_allowed_failures.find(test_code);
-    if(it == g_allowed_failures.end()) return {};
-    return {test_code, it->second};
+    for(auto af : g_allowed_failures)
+    {
+        if(af.test_code == test_code)
+        {
+            return af;
+        }
+    }
+    return {};
 }
 
 
@@ -547,7 +561,7 @@ int main(int argc, char* argv[])
         if(allowed_to_fail)
         {
             c4::log("\n{}: this case is deliberately not implemented in rapidyaml: {}\n",
-                allowed_to_fail.test_code, allowed_to_fail.reason);
+                    allowed_to_fail.test_code, allowed_to_fail.reason);
             return 0;
         }
     }
