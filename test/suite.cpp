@@ -18,15 +18,40 @@
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+/* Each case from the test suite contains:
+ *
+ *  - (awkward) input yaml (in_yaml)
+ *  - (somewhat standard) output equivalent (out_yaml)
+ *  - (when meaningful/possible) json equivalent (in_json)
+ *  - yaml parsing events (events)
+ *
+ * Running a test consists of parsing the contents above into a data
+ * structure, and then repeatedly parsing and emitting yaml in a sort
+ * of pipe. Ie, (eg for in_yaml) parse in_yaml, emit corresponding
+ * yaml, then parse this emitted yaml, and so on. Each parse/emit pair
+ * is named a processing level in this test. */
+
 
 typedef enum {
-    AFC_NONE = 0,
-    AFC_IN_YAML = 1 << 0,
-    AFC_IN_JSON = 1 << 1,
-    AFC_OUT_YAML = 1 << 2,
-    AFC_EVENTS = 1 << 3,
-    AFC_ALL = AFC_IN_YAML|AFC_IN_JSON|AFC_OUT_YAML|AFC_EVENTS,
+    CPART_NONE = 0,
+    CPART_IN_YAML = 1 << 0,
+    CPART_IN_JSON = 1 << 1,
+    CPART_OUT_YAML = 1 << 2,
+    CPART_EVENTS = 1 << 3,
+    CPART_ALL = CPART_IN_YAML|CPART_IN_JSON|CPART_OUT_YAML|CPART_EVENTS,
+    CPART_ANY = CPART_ALL,
 } CasePart_e;
+
+c4::csubstr to_csubstr(CasePart_e cp)
+{
+    if(cp == CPART_NONE) return "NONE";
+    else if(cp == CPART_IN_YAML) return "IN_YAML";
+    else if(cp == CPART_IN_JSON) return "IN_JSON";
+    else if(cp == CPART_OUT_YAML) return "OUT_YAML";
+    else if(cp == CPART_EVENTS) return "EVENTS";
+    else if(cp == CPART_ALL) return "ALL";
+    return "<unknown>";
+}
 
 
 struct AllowedFailure
@@ -34,17 +59,30 @@ struct AllowedFailure
     c4::csubstr test_code;
     CasePart_e contexts;
     c4::csubstr reason;
-    inline operator bool () const { return reason.len > 0; }
+    bool skip() const { return skip(CPART_ALL); }
+    bool skip(CasePart_e case_part) const
+    {
+        if((case_part != CPART_ALL && (contexts & case_part))
+           ||
+           (case_part == CPART_ALL && (contexts == CPART_ALL)))
+        {
+            c4::log("skipping test {} in {}: matches {}. Reason: {}",
+                    test_code, to_csubstr(case_part), to_csubstr(contexts), reason);
+            return true;
+        }
+        return false;
+    }
 };
 
 
 // don't forget to list these allowed failures in the repo's README.md,
 // under the section "Known limitations"
 constexpr const AllowedFailure g_allowed_failures[] = {
-    {"3UYS", AFC_IN_YAML, "no need to escape the slash in \"a\\/b\""},
-    {"35KP", AFC_IN_JSON, "malformed JSON"},
-    {"4FJ6", AFC_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"KK5P", AFC_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"3UYS", CPART_IN_YAML, "no need to escape the slash in \"a\\/b\""},
+    {"7Z25", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"35KP", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"4FJ6", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"KK5P", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
 };
 
 
@@ -67,20 +105,7 @@ AllowedFailure is_failure_expected(c4::csubstr filename)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-/** This is the number of processing levels.
- *
- * Each case from the test suite contains:
- *
- *  - (awkward) input yaml (in_yaml)
- *  - (somewhat standard) output equivalent (out_yaml)
- *  - (when meaningful/possible) json equivalent (in_json)
- *  - yaml parsing events (events)
- *
- * Running a test consists of parsing the contents above into a data
- * structure, and then repeatedly parsing and emitting yaml in a sort
- * of pipe. Ie, (eg for in_yaml) parse in_yaml, emit corresponding
- * yaml, then parse this emitted yaml, and so on. Each parse/emit pair
- * is named a processing level in this test. */
+
 #define NLEVELS 4   // this is the number of processing levels
 
 enum : size_t { npos = c4::csubstr::npos };
@@ -99,19 +124,21 @@ struct ProcLevel
     c4::yml::Tree   tree;
     std::string     emitted;
 
-    bool            is_yaml_events = false;
+    AllowedFailure  allowed_failure;
+    CasePart_e      case_part;
     bool            immutable = false;
     bool            reuse = false;
     bool            was_parsed = false;
     bool            was_emitted = false;
 
-    void init(c4::csubstr filename_, c4::csubstr src_, bool immutable_, bool reuse_, bool is_yaml_events_)
+    void init(c4::csubstr filename_, c4::csubstr src_, bool immutable_, bool reuse_, CasePart_e case_part_, AllowedFailure af)
     {
         filename = filename_;
         src.assign(src_.begin(), src_.end());
+        allowed_failure = af;
+        case_part = case_part_;
         immutable = immutable_;
         reuse = reuse_;
-        is_yaml_events = is_yaml_events_;
         was_parsed = false;
         was_emitted = false;
     }
@@ -141,9 +168,10 @@ struct ProcLevel
 
     void parse()
     {
+        if(allowed_failure.skip(case_part)) return;
         if(was_parsed) return;
         log("parsing source", src);
-        if(is_yaml_events)
+        if(case_part == CPART_EVENTS)
         {
             C4_NOT_IMPLEMENTED();
         }
@@ -181,6 +209,7 @@ struct ProcLevel
 
     void emit()
     {
+        if(allowed_failure.skip(case_part)) return;
         if(was_emitted) return;
         if(!was_parsed) parse();
         emitrs(tree, &emitted);
@@ -195,12 +224,14 @@ struct ProcLevel
 
     void compare_trees(ProcLevel const& prev)
     {
+        if(allowed_failure.skip(case_part)) return;
         if(!was_parsed) parse();
         test_compare(tree, prev.tree);
     }
 
     void compare_emitted(ProcLevel const& prev)
     {
+        if(allowed_failure.skip(case_part)) return;
         if(!was_emitted) emit();
         EXPECT_EQ(emitted, prev.emitted);
     }
@@ -215,12 +246,15 @@ struct Approach
 {
     ProcLevel levels[NLEVELS];
 
-    void init(c4::csubstr filename, c4::csubstr src, bool immutable_, bool reuse_, bool is_yaml_events)
+    void init(c4::csubstr filename, c4::csubstr src, bool immutable_, bool reuse_, CasePart_e case_part, AllowedFailure af)
     {
         for(auto &l : levels)
         {
-            l.init(filename, src, immutable_, reuse_, is_yaml_events);
-            is_yaml_events = false; // only the first one
+            l.init(filename, src, immutable_, reuse_, case_part, af);
+            if(case_part == CPART_EVENTS)
+            {
+                case_part = CPART_IN_YAML; // only the first one
+            }
         }
     }
 
@@ -281,12 +315,12 @@ struct Subject
     Approach rw;
     Approach rw_reuse;
 
-    void init(c4::csubstr filename, c4::csubstr src, bool is_yaml_event=false)
+    void init(c4::csubstr filename, c4::csubstr src, CasePart_e case_part, AllowedFailure af)
     {
-        ro      .init(filename, src, /*immutable*/true , /*reuse*/false, is_yaml_event);
-        ro_reuse.init(filename, src, /*immutable*/true , /*reuse*/true , is_yaml_event);
-        rw      .init(filename, src, /*immutable*/false, /*reuse*/false, is_yaml_event);
-        rw_reuse.init(filename, src, /*immutable*/false, /*reuse*/true , is_yaml_event);
+        ro      .init(filename, src, /*immutable*/true , /*reuse*/false, case_part, af);
+        ro_reuse.init(filename, src, /*immutable*/true , /*reuse*/true , case_part, af);
+        rw      .init(filename, src, /*immutable*/false, /*reuse*/false, case_part, af);
+        rw_reuse.init(filename, src, /*immutable*/false, /*reuse*/true , case_part, af);
     }
 };
 
@@ -358,7 +392,7 @@ struct SuiteCase
 
     /** loads the several types of tests from an input test suite
      * template file (tml)*/
-    bool load(const char* filename_)
+    bool load(const char* filename_, AllowedFailure allowed_failure)
     {
         filename = c4::to_csubstr(filename_);
 
@@ -415,7 +449,7 @@ struct SuiteCase
         begin_in_yaml = 1 + contents.find('\n', begin_in_yaml); // skip this line
         txt = contents.range(begin_in_yaml, first_after_in_yaml);
         RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
-        in_yaml.init(filename, txt);
+        in_yaml.init(filename, txt, CPART_IN_YAML, allowed_failure);
 
         // in_json
         if(begin_in_json != npos)
@@ -424,7 +458,7 @@ struct SuiteCase
             begin_in_json = 1 + contents.find('\n', begin_in_json); // skip this line
             txt = contents.range(begin_in_json, first_after_in_json);
             RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
-            in_json.init(filename, txt);
+            in_json.init(filename, txt, CPART_IN_JSON, allowed_failure);
         }
 
         // out_yaml
@@ -435,7 +469,7 @@ struct SuiteCase
             begin_out_yaml = 1 + contents.find('\n', begin_out_yaml); // skip this line
             txt = contents.range(begin_out_yaml, first_after_out_yaml);
             RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
-            out_yaml.init(filename, txt);
+            out_yaml.init(filename, txt, CPART_OUT_YAML, allowed_failure);
         }
 
         // events
@@ -444,13 +478,13 @@ struct SuiteCase
         begin_events = 1 + contents.find('\n', begin_events); // skip this line
         c4::csubstr src_events = contents.sub(begin_events);
         RYML_CHECK( ! src_events.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
-        events.init(filename, src_events);
+        events.init(filename, src_events, CPART_EVENTS, allowed_failure);
 
         // filter
         if(tags.find("whitespace") != npos)
         {
             c4::csubstr filtered = replace_all("<SPC>", " ", src(in_yaml), &in_yaml_filtered);
-            in_yaml.init(filename, filtered);
+            in_yaml.init(filename, filtered, CPART_IN_YAML, allowed_failure);
         }
 
         return true;
@@ -562,17 +596,16 @@ int main(int argc, char* argv[])
     RYML_CHECK(path[0] != '-');
     RYML_CHECK(c4::fs::path_exists(path.str));
     c4::log("testing suite case: {} ({})", path.basename(), path);
+
+    AllowedFailure allowed_to_fail = is_failure_expected(path);
+    if(allowed_to_fail.skip())
     {
-        auto allowed_to_fail = is_failure_expected(path);
-        if(allowed_to_fail)
-        {
-            c4::log("\n{}: this case is deliberately not implemented in rapidyaml: {}\n",
-                    allowed_to_fail.test_code, allowed_to_fail.reason);
-            return 0;
-        }
+        c4::log("\n{}: this case is deliberately not implemented in rapidyaml: {}\n",
+                allowed_to_fail.test_code, allowed_to_fail.reason);
+        return 0;
     }
 
-    if( ! g_suite_case.load(path.str))
+    if( ! g_suite_case.load(path.str, allowed_to_fail))
     {
         // if an error occurs during loading, the test intentionally crashes,
         // so the load() above never returns. This is NOT the same as
