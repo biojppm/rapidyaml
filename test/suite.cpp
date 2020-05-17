@@ -43,6 +43,7 @@ struct AllowedFailure
 constexpr const AllowedFailure g_allowed_failures[] = {
     {"3UYS", AFC_IN_YAML, "no need to escape the slash in \"a\\/b\""},
     {"35KP", AFC_IN_JSON, "malformed JSON"},
+    {"4FJ6", AFC_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
     {"KK5P", AFC_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
 };
 
