@@ -18,7 +18,9 @@
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+
 typedef enum {
+    AFC_NONE = 0,
     AFC_IN_YAML = 1 << 0,
     AFC_IN_JSON = 1 << 1,
     AFC_OUT_YAML = 1 << 2,
@@ -26,8 +28,7 @@ typedef enum {
     AFC_ALL = AFC_IN_YAML|AFC_IN_JSON|AFC_OUT_YAML|AFC_EVENTS,
 } CasePart_e;
 
-// don't forget to list these allowed failures in the repo's readme.md,
-// under the section "Known limitations"
+
 struct AllowedFailure
 {
     c4::csubstr test_code;
@@ -36,13 +37,17 @@ struct AllowedFailure
     inline operator bool () const { return reason.len > 0; }
 };
 
+
+// don't forget to list these allowed failures in the repo's README.md,
+// under the section "Known limitations"
 constexpr const AllowedFailure g_allowed_failures[] = {
+    {"3UYS", AFC_IN_YAML, "no need to escape the slash in \"a\\/b\""},
     {"35KP", AFC_IN_JSON, "malformed JSON"},
     {"KK5P", AFC_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
 };
 
 
-AllowedFailure failure_expected(c4::csubstr filename)
+AllowedFailure is_failure_expected(c4::csubstr filename)
 {
     RYML_CHECK(filename.ends_with(".tml"));
     auto test_code = filename.basename();
@@ -557,7 +562,7 @@ int main(int argc, char* argv[])
     RYML_CHECK(c4::fs::path_exists(path.str));
     c4::log("testing suite case: {} ({})", path.basename(), path);
     {
-        auto allowed_to_fail = failure_expected(path);
+        auto allowed_to_fail = is_failure_expected(path);
         if(allowed_to_fail)
         {
             c4::log("\n{}: this case is deliberately not implemented in rapidyaml: {}\n",

@@ -2669,7 +2669,7 @@ csubstr Parser::_scan_quoted_scalar(const char q)
         {
             ret = _filter_dquot_scalar(s);
         }
-        RYML_ASSERT(ret.len < s.len || s.empty() || s.trim(' ').empty());
+        RYML_ASSERT(ret.len <= s.len || s.empty() || s.trim(' ').empty());
         _c4dbgpf("final scalar: \"%.*s\"", _c4prsp(ret));
         return ret;
     }
