@@ -16,7 +16,7 @@ namespace yml {
 
 static bool _is_scalar_next__runk(csubstr s)
 {
-    if(s.begins_with(": ") || s.begins_with_any("#,:{}[]-%") || s.begins_with("? "))
+    if(s.begins_with(": ") || s.begins_with_any("#,:{}[]-%&") || s.begins_with("? "))
     {
         return false;
     }
@@ -341,6 +341,10 @@ bool Parser::_handle_unk()
         return true;
     }
     else if(_handle_types())
+    {
+        return true;
+    }
+    else if(!rem.begins_with('*') && _handle_key_anchors_and_refs())
     {
         return true;
     }
