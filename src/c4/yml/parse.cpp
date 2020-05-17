@@ -257,7 +257,14 @@ bool Parser::_handle_unk()
             _line_progressed(rem.len);
             return true;
         }
-        _c4err("unexpected token: outside of document");
+        else
+        {
+            _c4dbgpf("starting implicit doc to accomodate unexpected tokens: '%.*s'", _c4prsp(rem));
+            size_t indref = m_state->indref;
+            _push_level();
+            _start_doc();
+            _set_indentation(indref);
+        }
     }
 
     RYML_ASSERT(has_none(RNXT|RSEQ|RMAP));
