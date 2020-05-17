@@ -41,8 +41,9 @@ typedef enum {
     CPART_ALL = CPART_IN_YAML|CPART_IN_JSON|CPART_OUT_YAML|CPART_EVENTS,
     CPART_ANY = CPART_ALL,
 } CasePart_e;
+constexpr CasePart_e operator| (CasePart_e lhs, CasePart_e rhs) noexcept { return (CasePart_e)((int)lhs|(int)rhs); }
 
-c4::csubstr to_csubstr(CasePart_e cp)
+c4::csubstr to_csubstr(CasePart_e cp) noexcept
 {
     if(cp == CPART_NONE) return "NONE";
     else if(cp == CPART_IN_YAML) return "IN_YAML";
@@ -80,7 +81,8 @@ struct AllowedFailure
 constexpr const AllowedFailure g_allowed_failures[] = {
     {"3UYS", CPART_IN_YAML, "no need to escape the slash in \"a\\/b\""},
     {"7Z25", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"35KP", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"35KP", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents/[IN_YAML not implemented because of \"d e\" plain scalar continuing on the next line with the same indentation]"},
+    {"9KAX", CPART_IN_JSON, "malformed JSON from multiple documents"},
     {"4FJ6", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
     {"KK5P", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
 };

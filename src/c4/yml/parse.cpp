@@ -451,6 +451,13 @@ bool Parser::_handle_unk()
         {
             // nothing to do
         }
+        else if(rem.begins_with("---"))
+        {
+            _c4dbgp("caught ---: starting doc");
+            _start_new_doc(rem);
+            _save_indentation();
+            return true;
+        }
         else
         {
             _c4err("parse error");
@@ -1396,7 +1403,7 @@ bool Parser::_handle_key_anchors_and_refs()
     if(rem.begins_with('&'))
     {
         _c4dbgp("found a key anchor!!!");
-        RYML_ASSERT(m_key_anchor.empty());
+        //RYML_ASSERT(m_key_anchor.empty());
         csubstr anchor = rem.left_of(rem.first_of(' '));
         _line_progressed(anchor.len);
         anchor = anchor.sub(1); // skip the first character
@@ -1485,7 +1492,7 @@ bool Parser::_handle_types()
     }
 
     _c4dbgpf("there was a tag: '%.*s'", _c4prsp(t));
-    _line_progressed(t.len);
+    _line_progressed(t.end() - m_state->line_contents.rem.begin());
 
     if(has_all(RMAP|RKEY))
     {
@@ -1837,7 +1844,7 @@ csubstr Parser::_scan_to_next_nonempty_line(size_t indentation)
     csubstr next_peeked;
     while(true)
     {
-        _c4dbgpf("rscalar: ... curr offset: %zu", m_state->pos.offset);
+        _c4dbgpf("rscalar: ... curr offset: %zu indentation=%zu", m_state->pos.offset, indentation);
         next_peeked = _peek_next_line(m_state->pos.offset);
         _c4dbgpf("rscalar: ... next peeked line='%.*s'", _c4prsp(next_peeked.trimr("\r\n")));
         if(next_peeked.triml(' ').begins_with('#'))
@@ -2152,26 +2159,28 @@ void Parser::_stop_doc()
 
 void Parser::_end_stream()
 {
+    _c4dbgpf("end_stream, level=%zu node_id=%zu", m_state->level, m_state->node_id);
     RYML_ASSERT( ! m_stack.empty());
+    NodeData *added = nullptr;
     if(has_any(SSCL))
     {
         if(m_tree->is_seq(m_state->node_id))
         {
-            _append_val(_consume_scalar());
+            added = _append_val(_consume_scalar());
         }
         else if(m_tree->is_map(m_state->node_id))
         {
-            _append_key_val("~");
+            added = _append_key_val("~");
         }
         else if(m_tree->type(m_state->node_id) == NOTYPE)
         {
             m_tree->to_seq(m_state->node_id);
-            _append_val(_consume_scalar());
+            added = _append_val(_consume_scalar());
         }
         else if(m_tree->is_doc(m_state->node_id))
         {
             m_tree->to_doc(m_state->node_id, SEQ);
-            _append_val(_consume_scalar());
+            added = _append_val(_consume_scalar());
         }
         else
         {
@@ -2180,7 +2189,35 @@ void Parser::_end_stream()
     }
     else if(has_all(RSEQ|RVAL) && has_none(EXPL))
     {
-        _append_val("~");
+        added = _append_val("~");
+    }
+
+    if(added)
+    {
+        if(!m_key_anchor.empty())
+        {
+            _c4dbgpf("node[%zu]: set key anchor='%.*s'", m_tree->id(added), _c4prsp(m_key_anchor));
+            added->m_key.anchor = m_key_anchor;
+            m_key_anchor = "";
+        }
+        if(!m_val_anchor.empty())
+        {
+            _c4dbgpf("node[%zu]: set val anchor='%.*s'", m_tree->id(added), _c4prsp(m_key_anchor));
+            added->m_val.anchor = m_val_anchor;
+            m_val_anchor = "";
+        }
+        if(!m_key_tag.empty())
+        {
+            _c4dbgpf("node[%zu]: set key tag='%.*s'", m_tree->id(added), _c4prsp(m_key_tag));
+            added->m_key.tag = m_key_tag;
+            m_key_tag = "";
+        }
+        if(!m_val_tag.empty())
+        {
+            _c4dbgpf("node[%zu]: set val tag='%.*s'", m_tree->id(added), _c4prsp(m_key_tag));
+            added->m_val.tag = m_val_tag;
+            m_val_tag = "";
+        }
     }
 
     while(m_stack.size() > 1)
@@ -2206,14 +2243,6 @@ void Parser::_start_new_doc(csubstr rem)
     _push_level();
     _start_doc();
     _set_indentation(indref);
-
-    // skip spaces after the tag
-    rem = rem.sub(3);
-    if(rem.begins_with(' '))
-    {
-        rem = rem.left_of(rem.first_not_of(' '));
-        _line_progressed(rem.len);
-    }
 }
 
 //-----------------------------------------------------------------------------

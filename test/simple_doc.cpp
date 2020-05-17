@@ -9,7 +9,7 @@ namespace yml {
     "simple doc, empty docs, indented",                                 \
     "simple doc, empty docs, term",                                     \
     "simple doc, empty docs, term, indented",                           \
-    "simple doc, plain scalar, multiple docs, err",                     \
+    "simple doc, plain scalar, multiple docs, implicit 2nd doc",        \
     "simple doc, single scalar, implicit doc",                          \
     "simple doc, single scalar, implicit doc, indented",                \
     "simple doc, multi scalar, implicit doc",                           \
@@ -89,7 +89,7 @@ R"(
     N(STREAM, L{N(DOC), N(DOC), N(DOC), N(DOC)})
 ),
 
-C("simple doc, plain scalar, multiple docs, err", HAS_PARSE_ERROR,
+C("simple doc, plain scalar, multiple docs, implicit 2nd doc",
 R"(---
 - a plain scalar
     with several lines
@@ -97,8 +97,10 @@ R"(---
 - a second plain scalar
     with several lines
 )",
-  LineCol(5, 1)
-),
+N(STREAM, L{
+   N(DOCSEQ, L{N("a plain scalar with several lines")}),
+   N(DOCSEQ, L{N("a second plain scalar with several lines")}),
+})),
 
 C("simple doc, single scalar, implicit doc",
 R"(a scalar with some spaces inside
