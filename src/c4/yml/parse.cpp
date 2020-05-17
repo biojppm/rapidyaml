@@ -913,6 +913,11 @@ bool Parser::_handle_map_expl()
             _c4dbgp("wait for val");
             addrem_flags(RVAL, RKEY|CPLX);
             _line_progressed(2);
+            if(!has_all(SSCL))
+            {
+                _c4dbgp("no key was found, defaulting to empty key ''");
+                _store_scalar("");
+            }
             return true;
         }
         else if(rem == ':')
@@ -920,6 +925,11 @@ bool Parser::_handle_map_expl()
             _c4dbgp("wait for val");
             addrem_flags(RVAL, RKEY|CPLX);
             _line_progressed(1);
+            if(!has_all(SSCL))
+            {
+                _c4dbgp("no key was found, defaulting to empty key ''");
+                _store_scalar("");
+            }
             return true;
         }
         else if(rem.begins_with('?'))

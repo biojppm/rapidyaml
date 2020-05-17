@@ -34,7 +34,9 @@ namespace yml {
 "simple map, spaces before semicolon, issue65, v2",             \
 "simple map, spaces before semicolon, issue65, v3",             \
 "simple map, empty keys 2JQS, v1",                              \
-"simple map, empty keys 2JQS, v2"
+"simple map, empty keys 2JQS, v2",                              \
+"simple map, empty keys 4ABK, v1",                              \
+"simple map, empty keys 4ABK, v2"
 
 
 CASE_GROUP(SIMPLE_MAP)
@@ -553,6 +555,28 @@ R"(
 :
   b
 )",
+N(MAP, L{
+    N("", "a"),
+    N("", "b"),
+})),
+
+C("simple map, empty keys 4ABK, v1",
+R"({
+: a,
+: b,
+})",
+N(MAP, L{
+    N("", "a"),
+    N("", "b"),
+})),
+
+C("simple map, empty keys 4ABK, v2",
+R"({
+:
+  a,
+:
+  b,
+})",
 N(MAP, L{
     N("", "a"),
     N("", "b"),
