@@ -574,7 +574,7 @@ struct SuiteCase
 //-----------------------------------------------------------------------------
 
 // a global holding the test case data
-SuiteCase g_suite_case;
+SuiteCase* g_suite_case = nullptr;
 
 
 #define DECLARE_TEST_CLASS(cls, pfx)                            \
@@ -584,22 +584,22 @@ class cls##_##pfx : public ::testing::TestWithParam<size_t> {}; \
 TEST_P(cls##_##pfx, parse)                                      \
 {                                                               \
     RYML_CHECK(GetParam() < NLEVELS);                           \
-    g_suite_case.cls.pfx.parse(1 + GetParam(), false);          \
+    g_suite_case->cls.pfx.parse(1 + GetParam(), false);         \
 }                                                               \
 TEST_P(cls##_##pfx, compare_trees)                              \
 {                                                               \
     RYML_CHECK(GetParam() < NLEVELS);                           \
-    g_suite_case.cls.pfx.compare_trees(1 + GetParam());         \
+    g_suite_case->cls.pfx.compare_trees(1 + GetParam());        \
 }                                                               \
 TEST_P(cls##_##pfx, emit)                                       \
 {                                                               \
     RYML_CHECK(GetParam() < NLEVELS);                           \
-    g_suite_case.cls.pfx.parse(1 + GetParam(), true);           \
+    g_suite_case->cls.pfx.parse(1 + GetParam(), true);          \
 }                                                               \
 TEST_P(cls##_##pfx, compare_emitted)                            \
 {                                                               \
     RYML_CHECK(GetParam() < NLEVELS);                           \
-    g_suite_case.cls.pfx.compare_emitted(1 + GetParam());       \
+    g_suite_case->cls.pfx.compare_emitted(1 + GetParam());      \
 }                                                               \
 /**/                                                            \
 /**/                                                            \
@@ -669,7 +669,8 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    if( ! g_suite_case.load(path.str, allowed_to_fail))
+    SuiteCase suite_case;
+    if( ! suite_case.load(path.str, allowed_to_fail))
     {
         // if an error occurs during loading, the test intentionally crashes,
         // so the load() above never returns. This is NOT the same as
@@ -677,19 +678,20 @@ int main(int argc, char* argv[])
         // and for now we skip those, and return success.
         return 0;
     }
-    c4::print(g_suite_case.file_contents);
-    g_suite_case.print();
+    c4::print(suite_case.file_contents);
+    suite_case.print();
+    g_suite_case = &suite_case;
 
     // run all tests!
     int status = RUN_ALL_TESTS();
 
     // a terminating message
-    if(g_suite_case.filename.not_empty())
+    if(suite_case.filename.not_empty())
     {
         c4::log("\n{}: TESTS {}: {}\n",
-            g_suite_case.filename.basename(),
+            suite_case.filename.basename(),
             status == 0 ? "SUCCEEDED" : "FAILED",
-            g_suite_case.filename);
+            suite_case.filename);
     }
 
     return status;
