@@ -139,6 +139,7 @@ if(RYML_TEST_SUITE)
         SOURCES suite.cpp
         LIBS ryml-_testlib c4log
         FOLDER test)
+    add_dependencies(ryml-test-build ryml-test-suite)
 
     set(tgt $<TARGET_FILE:ryml-test-suite>)
     function(ryml_add_test_from_suite tml_file)
