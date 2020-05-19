@@ -2514,15 +2514,53 @@ bool Parser::_handle_indentation()
                 _append_val("~");
             }
         }
+        // search the stack frame to jump to based on its indentation
         State const* popto = nullptr;
         RYML_ASSERT(m_stack.is_contiguous()); // this search relies on the stack being contiguous
         for(State const* s = m_state-1; s >= m_stack.begin(); --s)
         {
-            _c4dbgpf("searching for state with indentation %zd. curr=%zd (curr level=%zd)", ind, s->indref, s->level);
-            if((size_t)s->indref == ind)
+            _c4dbgpf("searching for state with indentation %zu. curr=%zu (level=%zu,node=%zu)", ind, s->indref, s->level, s->node_id);
+            if(s->indref == ind)
             {
-                _c4dbgpf("gotit!!! at level %zd", s->level);
+                _c4dbgpf("gotit!!! level=%zu node=%zu", s->level, s->node_id);
                 popto = s;
+                // while it may be tempting to think we're done, we must
+                // still determine whether we're jumping to a parent with the
+                // same indentation. Consider this case with an indentless
+                // sequence:
+                //
+                // product:
+                // - sku: BL394D
+                //   quantity: 4
+                //   description: Basketball
+                //   price: 450.00
+                // - sku: BL4438H
+                //   quantity: 1
+                //   description: Super Hoop
+                //   price: 2392.00  # jumping one level here would be wrong.
+                // tax: 1234.5       # we must jump two levels
+                if(popto > m_stack.begin())
+                {
+                    auto parent = popto - 1;
+                    if(parent->indref == popto->indref)
+                    {
+                        _c4dbgpf("the parent (level=%zu,node=%zu) has the same indentation (%zu). is this in an indentless sequence?",
+                                 parent->level, parent->node_id, popto->indref);
+                        _c4dbgpf("isseq(popto)=%d ismap(parent)=%d", m_tree->is_seq(popto->node_id), m_tree->is_map(parent->node_id));
+                        if(m_tree->is_seq(popto->node_id) && m_tree->is_map(parent->node_id))
+                        {
+                            if(remt.begins_with('-'))
+                            {
+                                _c4dbgp("not an indentless sequence");
+                            }
+                            else
+                            {
+                                _c4dbgp("this is an indentless sequence");
+                                popto = parent;
+                            }
+                        }
+                    }
+                }
                 break;
             }
         }

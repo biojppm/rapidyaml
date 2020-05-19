@@ -118,7 +118,6 @@ constexpr const AllowedFailure g_allowed_failures[] = {
     {"K858", CPART_OUT_YAML|CPART_IN_JSON, "TODO[next]: emitting block scalars is not idempotent"},
     {"NAT4", CPART_IN_YAML|CPART_IN_JSON, "TODO[next]: emitting block scalars is not idempotent"},
 
-    {"UGM3", CPART_OUT_YAML, "temporarily disabled pending further investigation"},
     {"X38W", CPART_OUT_YAML, "temporarily disabled pending further investigation"},
     {"JHB9", CPART_IN_JSON , "temporarily disabled pending further investigation"},
     {"KSS4", CPART_IN_JSON , "temporarily disabled pending further investigation"},
