@@ -83,12 +83,16 @@ struct AllowedFailure
 constexpr const AllowedFailure g_allowed_failures[] = {
     {"3UYS", CPART_IN_YAML, "no need to escape the slash in \"a\\/b\""},
     // malformed json
-    {"7Z25", CPART_IN_JSON, "malformed JSON from multiple documents"},
     {"35KP", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents|TODO[hard]: \"d e\" plain scalar continuing on the next line with the same indentation]"},
     {"6XDY", CPART_IN_JSON, "malformed JSON from multiple documents"},
     {"6ZKB", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents|TODO[next]: document handling"},
-    {"9KAX", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"7Z25", CPART_IN_JSON, "malformed JSON from multiple documents"},
     {"9DXL", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents|TODO[next]: document handling"},
+    {"9KAX", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"JHB9", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"KSS4", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"RZT7", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"U9NS", CPART_IN_JSON, "malformed JSON from multiple documents"},
     {"W4TN", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents|TODO[next]: document handling"},
     // we do not accept complex keys
     {"4FJ6", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
@@ -119,10 +123,6 @@ constexpr const AllowedFailure g_allowed_failures[] = {
     {"NAT4", CPART_IN_YAML|CPART_IN_JSON, "TODO[next]: emitting block scalars is not idempotent"},
 
     {"X38W", CPART_OUT_YAML, "temporarily disabled pending further investigation"},
-    {"JHB9", CPART_IN_JSON , "temporarily disabled pending further investigation"},
-    {"KSS4", CPART_IN_JSON , "temporarily disabled pending further investigation"},
-    {"RZT7", CPART_IN_JSON , "temporarily disabled pending further investigation"},
-    {"U9NS", CPART_IN_JSON , "temporarily disabled pending further investigation"},
     {"82AN", CPART_IN_YAML , "temporarily disabled pending further investigation"},
     {"87E4", CPART_IN_YAML , "temporarily disabled pending further investigation"},
     {"8UDB", CPART_IN_YAML , "temporarily disabled pending further investigation"},
