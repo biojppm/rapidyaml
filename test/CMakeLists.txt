@@ -10,6 +10,9 @@ c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${ryml_yaml_cpp_inc}
     LIBS ryml c4fs yaml yaml-cpp gtest gtest_main
     FOLDER test)
+if(RYML_DBG)
+    target_compile_definitions(ryml-_testlib PUBLIC RYML_DBG)
+endif()
 
 function(ryml_add_test test_name)
     # NOTE: the library order here is fragile because the c4proj sanitization
@@ -123,34 +126,28 @@ if(RYML_TEST_SUITE)
         GIT_REPOSITORY https://github.com/biojppm/c4log
         GIT_TAG master)
 
-    c4_download_remote_proj(yaml-test-suite ${ed}/yaml-test-suite
+    set(tsdir ${ed}/yaml-test-suite)
+    c4_download_remote_proj(yaml-test-suite tsdir
         GIT_REPOSITORY https://github.com/yaml/yaml-test-suite
         GIT_TAG master)
-
-    set(suite_dir ${ed}/yaml-test-suite/src/test)
+    set(suite_dir ${tsdir}/test)
     if(NOT EXISTS ${suite_dir})
-        c4_err("cannot find yaml-test-suite -- was there an error downloading the project?")
+        c4_err("cannot find yaml-test-suite at ${suite_dir} -- was there an error downloading the project?")
     endif()
 
     c4_add_executable(ryml-test-suite
         SOURCES suite.cpp
-        LIBS ryml c4fs c4log gtest
+        LIBS ryml-_testlib c4log
         FOLDER test)
-    if(RYML_DBG)
-        target_compile_definitions(ryml-test-suite PRIVATE RYML_DBG)
-    endif()
+    add_dependencies(ryml-test-build ryml-test-suite)
 
     set(tgt $<TARGET_FILE:ryml-test-suite>)
     function(ryml_add_test_from_suite tml_file)
         get_filename_component(name ${tml_file} NAME_WE)
-        add_test(NAME ryml-test-suite-${name}-in_yaml
-            COMMAND ${tgt} --gtest_filter="*/in_yaml*" ${suite_dir}/${tml_file})
-        add_test(NAME ryml-test-suite-${name}-out_yaml
-            COMMAND ${tgt} --gtest_filter="*/out_yaml*" ${suite_dir}/${tml_file})
-        add_test(NAME ryml-test-suite-${name}-events
-            COMMAND ${tgt} --gtest_filter="*/events*" ${suite_dir}/${tml_file})
-        add_test(NAME ryml-test-suite-${name}-in_json
-            COMMAND ${tgt} --gtest_filter="*/in_json*" ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-in_yaml  COMMAND ${tgt} --gtest_filter=*/in_yaml*  ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-out_yaml COMMAND ${tgt} --gtest_filter=*/out_yaml* ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-events   COMMAND ${tgt} --gtest_filter=*/events*   ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-in_json  COMMAND ${tgt} --gtest_filter=*/in_json*  ${suite_dir}/${tml_file})
     endfunction()
 
     file(GLOB suite_cases RELATIVE "${suite_dir}" "${suite_dir}/*.tml")

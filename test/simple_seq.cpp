@@ -3,33 +3,38 @@
 namespace c4 {
 namespace yml {
 
-#define SIMPLE_SEQ_CASES                                \
-"simple seq",                                           \
-"simple seq, explicit, single line",                    \
-"simple seq, explicit, single line, trailcomma",        \
-"simple seq, explicit, multiline, unindented",          \
-"simple seq, explicit, multiline, unindented, trailcomma", \
-"simple seq, explicit, multiline, comments inline",     \
-"simple seq, explicit, multiline, comments prev line",  \
-"simple seq, explicit, multiline, indented",            \
-"simple seq, comments inline",                          \
-"simple seq, comments prev line",                       \
-"simple seq, scalars with special chars, comma",            \
-"simple seq, scalars with special chars, semicolon",        \
-"simple seq, scalars with special chars, cardinal",         \
-"simple seq, scalars with special chars, dash",             \
-"simple seq, scalars with special chars, left-bracket",     \
-"simple seq, scalars with special chars, right-bracket",  \
-"simple seq, scalars with special chars, left-curly",       \
-"simple seq, scalars with special chars, right-curly",      \
-"simple seq expl, scalars with special chars, comma",            \
-"simple seq expl, scalars with special chars, semicolon",            \
-"simple seq expl, scalars with special chars, cardinal",            \
+#define SIMPLE_SEQ_CASES                                        \
+"simple seq",                                                   \
+"simple seq, explicit, single line",                            \
+"simple seq, explicit, single line, trailcomma",                \
+"simple seq, explicit, multiline, unindented",                  \
+"simple seq, explicit, multiline, unindented, trailcomma",      \
+"simple seq, explicit, multiline, comments inline",             \
+"simple seq, explicit, multiline, comments prev line",          \
+"simple seq, explicit, multiline, indented",                    \
+"simple seq, comments inline",                                  \
+"simple seq, comments prev line",                               \
+"simple seq, scalars with special chars, comma",                \
+"simple seq, scalars with special chars, semicolon",            \
+"simple seq, scalars with special chars, cardinal",             \
+"simple seq, scalars with special chars, dash",                 \
+"simple seq, scalars with special chars, left-bracket",         \
+"simple seq, scalars with special chars, right-bracket",        \
+"simple seq, scalars with special chars, left-curly",           \
+"simple seq, scalars with special chars, right-curly",          \
+"simple seq expl, scalars with special chars, comma",           \
+"simple seq expl, scalars with special chars, semicolon",       \
+"simple seq expl, scalars with special chars, cardinal",        \
 "simple seq expl, scalars with special chars, dash",            \
-"simple seq expl, scalars with special chars, left-bracket",            \
-"simple seq expl, scalars with special chars, right-bracket",            \
-"simple seq expl, scalars with special chars, left-curly",            \
-"simple seq expl, scalars with special chars, right-curly"            \
+"simple seq expl, scalars with special chars, left-bracket",    \
+"simple seq expl, scalars with special chars, right-bracket",   \
+"simple seq expl, scalars with special chars, left-curly",      \
+"simple seq expl, scalars with special chars, right-curly",     \
+"simple seq, issue 28",                                         \
+"simple seq, invalid character 1",                              \
+"simple seq, invalid character 2",                              \
+"simple seq, invalid character 3",                              \
+"simple seq, invalid character 4"
 
 
 CASE_GROUP(SIMPLE_SEQ)
@@ -457,6 +462,76 @@ L{
   /*N{"a }b"}, */N("c }d"), N("e }f"),
     }
 ),
+
+C("simple seq, issue 28",
+R"(# was failing on https://github.com/biojppm/rapidyaml/issues/28
+enemy:
+- actors:
+  - {name: Enemy_Bokoblin_Junior, value: 4.0}
+  - {name: Enemy_Bokoblin_Middle, value: 16.0}
+  - {name: Enemy_Bokoblin_Senior, value: 32.0}
+  - {name: Enemy_Bokoblin_Dark, value: 48.0}
+  species: BokoblinSeries
+enemy2:
+- actors:
+    - {name: Enemy_Bokoblin_Junior, value: 4.0}
+    - {name: Enemy_Bokoblin_Middle, value: 16.0}
+    - {name: Enemy_Bokoblin_Senior, value: 32.0}
+    - {name: Enemy_Bokoblin_Dark, value: 48.0}
+  species: BokoblinSeries
+)",
+L{
+   N("enemy", L{N(L{
+     N("actors", L{
+       N(L{N("name", "Enemy_Bokoblin_Junior"), N("value", "4.0"),}),
+       N(L{N("name", "Enemy_Bokoblin_Middle"), N("value", "16.0"),}),
+       N(L{N("name", "Enemy_Bokoblin_Senior"), N("value", "32.0"),}),
+       N(L{N("name", "Enemy_Bokoblin_Dark"), N("value", "48.0"),}),
+     }),
+     N("species", "BokoblinSeries"),
+     })
+   }),
+   N("enemy2", L{N(L{
+     N("actors", L{
+       N(L{N("name", "Enemy_Bokoblin_Junior"), N("value", "4.0"),}),
+       N(L{N("name", "Enemy_Bokoblin_Middle"), N("value", "16.0"),}),
+       N(L{N("name", "Enemy_Bokoblin_Senior"), N("value", "32.0"),}),
+       N(L{N("name", "Enemy_Bokoblin_Dark"), N("value", "48.0"),}),
+     }),
+     N("species", "BokoblinSeries"),
+     })
+   }),
+}),
+
+C("simple seq, invalid character 1", HAS_PARSE_ERROR,
+R"(- 0   # this is a foo
+}
+)",
+  LineCol(2, 1)
+),
+
+C("simple seq, invalid character 2", HAS_PARSE_ERROR,
+R"(- 0   # this is a foo
+]
+)",
+  LineCol(2, 1)
+),
+
+C("simple seq, invalid character 3", HAS_PARSE_ERROR,
+R"(- 0   # this is a foo
+:
+)",
+  LineCol(2, 1)
+),
+
+C("simple seq, invalid character 4", HAS_PARSE_ERROR,
+R"(- 0   # this is a foo
+abcdef!
+)",
+  LineCol(2, 1)
+),
+
+
     )
 }
 

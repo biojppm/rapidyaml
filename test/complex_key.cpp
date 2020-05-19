@@ -4,18 +4,22 @@ namespace c4 {
 namespace yml {
 
 #define COMPLEX_KEY_CASES                       \
+"complex key, ambiguity 2EBW",                  \
+"complex key, ambiguity 2EBW, expl",            \
+"complex key, ambiguity 2EBW, impl seq",        \
+"complex key, ambiguity 2EBW, expl seq",        \
 "complex key with line break in between",       \
 "complex key 2nd, inside explicit map",         \
 "complex key 1st, inside explicit map",         \
 "complex key 2nd",                              \
 "complex key 1st",                              \
 "complex key nested in a map, 1st",             \
-"complex key nested in a seq, 1st",\
-"complex block key, literal, clip",\
-"complex block key, literal, keep",\
-"complex block key, literal, strip",\
-"complex block key, folded, clip",\
-"complex block key, folded, keep",\
+"complex key nested in a seq, 1st",             \
+"complex block key, literal, clip",             \
+"complex block key, literal, keep",             \
+"complex block key, literal, strip",            \
+"complex block key, folded, clip",              \
+"complex block key, folded, keep",              \
 "complex block key, folded, strip"
 
 
@@ -23,6 +27,69 @@ CASE_GROUP(COMPLEX_KEY)
 {
     APPEND_CASES(
 
+C("complex key, ambiguity 2EBW",
+R"(
+a!"#$%&'()*+,-./09:;<=>?@AZ[\]^_`az{|}~: safe
+?foo: safe question mark
+:foo: safe colon
+-foo: safe dash
+this is#not: a comment
+)",
+L{
+  N("a!\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~", "safe"),
+  N("?foo", "safe question mark"),
+  N(":foo", "safe colon"),
+  N("-foo", "safe dash"),
+  N("this is#not", "a comment"),
+}),
+
+C("complex key, ambiguity 2EBW, expl",
+R"({
+  a!"#$%&'()*+-./09:;<=>?@AZ[\]^_`az{|~: safe,
+  ?foo: safe question mark,
+  :foo: safe colon,
+  -foo: safe dash,
+  this is#not: a comment,
+})",
+L{
+  N("a!\"#$%&'()*+-./09:;<=>?@AZ[\\]^_`az{|~", "safe"),
+  N("?foo", "safe question mark"),
+  N(":foo", "safe colon"),
+  N("-foo", "safe dash"),
+  N("this is#not", "a comment"),
+}),
+
+C("complex key, ambiguity 2EBW, impl seq",
+R"(
+- a!"#$%&'()*+,-./09:;<=>?@AZ[\]^_`az{|}~
+- ?foo
+- :foo
+- -foo
+- this is#not:a comment
+)",
+L{
+  N("a!\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~"),
+  N("?foo"),
+  N(":foo"),
+  N("-foo"),
+  N("this is#not:a comment"),
+}),
+
+C("complex key, ambiguity 2EBW, expl seq",
+R"([
+  a!"#$%&'()*+-./09:;<=>?@AZ[\^_`az{|}~,
+  ?foo,
+  :foo,
+  -foo,
+  this is#not:a comment,
+])",
+L{
+  N("a!\"#$%&'()*+-./09:;<=>?@AZ[\\^_`az{|}~"),
+  N("?foo"),
+  N(":foo"),
+  N("-foo"),
+  N("this is#not:a comment"),
+}),
 
 C("complex key with line break in between",
 R"(
@@ -182,6 +249,7 @@ R"(? >-
       N("This is a key that has multiple lines", "and this is its value")
    }
 ),
+
     )
 }
 

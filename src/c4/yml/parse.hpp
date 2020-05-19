@@ -33,11 +33,11 @@ public:
     //! create a new YAML tree and parse into its root
     //! @note aliases and anchors are not resolved. You
     //! can resolve by calling Tree::resolve() after parsing.
-    Tree parse(csubstr filename, csubstr src) { Tree t; t.reserve(_estimate_capacity(src)); parse(filename, t.copy_to_arena(src), &t); return t; }
+    Tree parse(csubstr filename, csubstr src) { Tree t; t.reserve(_estimate_capacity(src)); parse(filename, t.copy_to_arena(src), &t, t.root_id()); return t; }
     //! create a new YAML tree and parse into its root
     //! @note aliases and anchors are not resolved. You
     //! can resolve by calling Tree::resolve() after parsing.
-    Tree parse(csubstr filename,  substr src) { Tree t; t.reserve(_estimate_capacity(src)); parse(filename, src, &t); return t; }
+    Tree parse(csubstr filename,  substr src) { Tree t; t.reserve(_estimate_capacity(src)); parse(filename, src, &t, t.root_id()); return t; }
 
 
     //! parse with reuse of a YAML tree

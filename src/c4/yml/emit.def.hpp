@@ -240,7 +240,7 @@ void Emitter<Writer>::_write(NodeScalar const& sc, NodeType flags, size_t ilevel
     }
 
     const bool has_newlines = sc.scalar.first_of('\n') != npos;
-    if(!has_newlines)
+    if(!has_newlines || (sc.scalar.triml(" \t") != sc.scalar))
     {
         _write_scalar(sc.scalar);
     }
@@ -327,7 +327,7 @@ void Emitter<Writer>::_write_scalar(csubstr s)
         (
             (s != s.trim(" \t\n\r")) // has leading or trailing whitespace
             ||
-            s.first_of("#:-,\n{}[]'\"") != npos // has special chars
+            s.first_of("#:-?,\n{}[]'\"") != npos // has special chars
         )
     );
 
@@ -364,8 +364,7 @@ void Emitter<Writer>::_write_scalar(csubstr s)
             this->Writer::_do_write('\'');
             for(size_t i = 0; i < s.len; ++i)
             {
-                RYML_ASSERT(s[i] != '\n');
-                if(s[i] == '\'')
+                if(s[i] == '\'' || s[i] == '\n')
                 {
                     csubstr sub = s.range(pos, i);
                     pos = i;

@@ -16,7 +16,7 @@ namespace yml {
 
 static bool _is_scalar_next__runk(csubstr s)
 {
-    if(s.begins_with(": ") || s.begins_with_any("#,:?{[-"))
+    if(s.begins_with(": ") || s.begins_with_any("#,:{}[]-%&") || s.begins_with("? "))
     {
         return false;
     }
@@ -25,7 +25,7 @@ static bool _is_scalar_next__runk(csubstr s)
 
 static bool _is_scalar_next__rseq_rval(csubstr s)
 {
-    if(s.begins_with_any("[{!?&"))
+    if(s.begins_with_any("[{!&") || s.begins_with("? "))
     {
         return false;
     }
@@ -52,7 +52,7 @@ static bool _is_scalar_next__rseq_rnxt(csubstr s)
 
 static bool _is_scalar_next__rmap(csubstr s)
 {
-    if(s.begins_with(": ") || s.begins_with_any("#,!?&"))
+    if(s.begins_with(": ") || s.begins_with_any("#,!&") || s.begins_with("? "))
     {
         return false;
     }
@@ -243,7 +243,28 @@ bool Parser::_handle_unk()
             _start_new_doc(rem);
             return true;
         }
-        _c4err("unexpected token: outside of document");
+        auto trimmed = rem.triml(' ');
+        if(trimmed.begins_with("---"))
+        {
+            RYML_ASSERT(rem.len >= trimmed.len);
+            _line_progressed(rem.len - trimmed.len);
+            _start_new_doc(trimmed);
+            _save_indentation();
+            return true;
+        }
+        else if(trimmed.empty())
+        {
+            _line_progressed(rem.len);
+            return true;
+        }
+        else
+        {
+            _c4dbgpf("starting implicit doc to accomodate unexpected tokens: '%.*s'", _c4prsp(rem));
+            size_t indref = m_state->indref;
+            _push_level();
+            _start_doc();
+            _set_indentation(indref);
+        }
     }
 
     RYML_ASSERT(has_none(RNXT|RSEQ|RMAP));
@@ -304,7 +325,33 @@ bool Parser::_handle_unk()
         _line_progressed(2);
         return true;
     }
+    else if(rem.begins_with(": ") && !has_all(SSCL))
+    {
+        _c4dbgp("it's a map with an empty key");
+        _push_level();
+        _start_map(start_as_child);
+        _store_scalar("");
+        addrem_flags(RVAL, RKEY);
+        _save_indentation();
+        _line_progressed(2);
+        return true;
+    }
+    else if(rem == ':' && !has_all(SSCL))
+    {
+        _c4dbgp("it's a map with an empty key");
+        _push_level();
+        _start_map(start_as_child);
+        _store_scalar("");
+        addrem_flags(RVAL, RKEY);
+        _save_indentation();
+        _line_progressed(1);
+        return true;
+    }
     else if(_handle_types())
+    {
+        return true;
+    }
+    else if(!rem.begins_with('*') && _handle_key_anchors_and_refs())
     {
         return true;
     }
@@ -363,6 +410,20 @@ bool Parser::_handle_unk()
             //_c4dbgp("map key opened a new line -- starting val scope as unknown");
             //_start_unk();
         }
+        else if(rem.begins_with('}'))
+        {
+            if(!has_all(RMAP|EXPL))
+            {
+                _c4err("invalid token: not reading a map");
+            }
+            if(!has_all(SSCL))
+            {
+                _c4err("no scalar stored");
+            }
+            _append_key_val(saved_scalar);
+            _stop_map();
+            _line_progressed(1);
+        }
         else if(rem.begins_with("..."))
         {
             _c4dbgp("got stream end '...'");
@@ -389,6 +450,13 @@ bool Parser::_handle_unk()
         else if(rem.empty())
         {
             // nothing to do
+        }
+        else if(rem.begins_with("---"))
+        {
+            _c4dbgp("caught ---: starting doc");
+            _start_new_doc(rem);
+            _save_indentation();
+            return true;
         }
         else
         {
@@ -463,7 +531,7 @@ bool Parser::_handle_seq_expl()
     csubstr rem = m_state->line_contents.rem;
 
     RYML_ASSERT(has_none(RKEY));
-    RYML_ASSERT(has_all(EXPL));
+    RYML_ASSERT(has_all(RSEQ|EXPL));
 
     if(rem.begins_with(' '))
     {
@@ -569,6 +637,7 @@ bool Parser::_handle_seq_impl()
     _c4dbgpf("handle_seq_impl: node_id=%zd level=%zd", m_state->node_id, m_state->level);
     csubstr rem = m_state->line_contents.rem;
 
+    RYML_ASSERT(has_all(RSEQ));
     RYML_ASSERT(has_none(RKEY));
     RYML_ASSERT(has_none(EXPL));
 
@@ -625,12 +694,7 @@ bool Parser::_handle_seq_impl()
         }
         else
         {
-            //_c4err("parse error");
-            // thanks @leoetlino
-            // https://github.com/biojppm/rapidyaml/issues/28#issuecomment-578505724
-            _c4dbgp("end the indentless sequence");
-            _pop_level();
-            return true;
+            _c4err("parse error");
         }
     }
     else if(has_any(RVAL))
@@ -779,207 +843,213 @@ bool Parser::_rval_dash_start_or_continue_seq()
 //-----------------------------------------------------------------------------
 bool Parser::_handle_map_expl()
 {
+    // explicit flow, ie, inside {}, separated by commas
     _c4dbgpf("handle_map_expl: node_id=%zd  level=%zd", m_state->node_id, m_state->level);
     csubstr rem = m_state->line_contents.rem;
 
-    RYML_ASSERT(has_all(EXPL));
+    RYML_ASSERT(has_all(RMAP|EXPL));
 
-    if(has_any(EXPL)) // explicit flow, ie, inside {}, separated by commas
+    if(rem.begins_with(' '))
     {
-        if(rem.begins_with(' '))
+        // with explicit flow, indentation does not matter
+        _c4dbgp("starts with spaces");
+        rem = rem.left_of(rem.first_not_of(' '));
+        _c4dbgpf("skip %zd spaces", rem.len);
+        _line_progressed(rem.len);
+        return true;
+    }
+    else if(rem.begins_with('#'))
+    {
+        _c4dbgp("it's a comment");
+        rem = _scan_comment(); // also progresses the line
+        return true;
+    }
+    else if(rem.begins_with('}'))
+    {
+        _c4dbgp("end the map");
+        if(has_all(SSCL))
         {
-            // with explicit flow, indentation does not matter
-            _c4dbgp("starts with spaces");
-            rem = rem.left_of(rem.first_not_of(' '));
-            _c4dbgpf("skip %zd spaces", rem.len);
-            _line_progressed(rem.len);
+            _c4dbgp("the last val was null");
+            _append_key_val("~");
+            rem_flags(RVAL);
+        }
+        _pop_level();
+        _line_progressed(1);
+        return true;
+    }
+
+    if(has_any(RNXT))
+    {
+        RYML_ASSERT(has_none(RKEY|RVAL));
+        if(rem.begins_with(", "))
+        {
+            _c4dbgp("seq: expect next keyval");
+            addrem_flags(RKEY, RNXT);
+            _line_progressed(2);
             return true;
         }
-        else if(rem.begins_with('#'))
+        else if(rem.begins_with(','))
         {
-            _c4dbgp("it's a comment");
-            rem = _scan_comment(); // also progresses the line
+            _c4dbgp("seq: expect next keyval");
+            addrem_flags(RKEY, RNXT);
+            _line_progressed(1);
+            return true;
+        }
+        else
+        {
+            _c4err("parse error");
+        }
+    }
+    else if(has_any(RKEY))
+    {
+        RYML_ASSERT(has_none(RNXT));
+        RYML_ASSERT(has_none(RVAL));
+
+        if(has_none(SSCL) && _scan_scalar(&rem))
+        {
+            _c4dbgp("it's a scalar");
+            _store_scalar(rem);
+            rem = m_state->line_contents.rem;
+            csubstr trimmed = rem.triml(" \t");
+            if(trimmed.len && (trimmed.begins_with(": ") || trimmed.begins_with_any(":,}")))
+            {
+                RYML_ASSERT(trimmed.str >= rem.str);
+                size_t num = trimmed.str - rem.str;
+                _c4dbgpf("trimming %zu whitespace after the scalar: '%.*s' --> '%.*s'", num, _c4prsp(rem), _c4prsp(rem.sub(num)));
+                rem = rem.sub(num);
+                _line_progressed(num);
+            }
+        }
+
+        if(rem.begins_with(": "))
+        {
+            _c4dbgp("wait for val");
+            addrem_flags(RVAL, RKEY|CPLX);
+            _line_progressed(2);
+            if(!has_all(SSCL))
+            {
+                _c4dbgp("no key was found, defaulting to empty key ''");
+                _store_scalar("");
+            }
+            return true;
+        }
+        else if(rem == ':')
+        {
+            _c4dbgp("wait for val");
+            addrem_flags(RVAL, RKEY|CPLX);
+            _line_progressed(1);
+            if(!has_all(SSCL))
+            {
+                _c4dbgp("no key was found, defaulting to empty key ''");
+                _store_scalar("");
+            }
+            return true;
+        }
+        else if(rem.begins_with('?'))
+        {
+            _c4dbgp("complex key");
+            add_flags(CPLX);
+            _line_progressed(1);
+            return true;
+        }
+        else if(rem.begins_with(','))
+        {
+            _c4dbgp("prev scalar was a key with null value");
+            _append_key_val("~");
+            _line_progressed(1);
             return true;
         }
         else if(rem.begins_with('}'))
         {
-            _c4dbgp("end the map");
-            if(has_all(SSCL))
-            {
-                _c4dbgp("the last val was null");
-                _append_key_val("~");
-                rem_flags(RVAL);
-            }
+            _c4dbgp("map terminates after a key...");
+            RYML_ASSERT(has_all(SSCL));
+            _c4dbgp("the last val was null");
+            _append_key_val("~");
+            rem_flags(RVAL);
             _pop_level();
             _line_progressed(1);
             return true;
         }
-
-        if(has_any(RNXT))
+        else if(_handle_types())
         {
-            RYML_ASSERT(has_none(RKEY|RVAL));
-            if(rem.begins_with(", "))
-            {
-                _c4dbgp("seq: expect next keyval");
-                addrem_flags(RKEY, RNXT);
-                _line_progressed(2);
-                return true;
-            }
-            else if(rem.begins_with(','))
-            {
-                _c4dbgp("seq: expect next keyval");
-                addrem_flags(RKEY, RNXT);
-                _line_progressed(1);
-                return true;
-            }
-            else
-            {
-                _c4err("parse error");
-            }
+            return true;
         }
-        else if(has_any(RKEY))
+        else if(_handle_key_anchors_and_refs())
         {
-            RYML_ASSERT(has_none(RNXT));
-            RYML_ASSERT(has_none(RVAL));
-            RYML_ASSERT(has_none(SSCL));
-
-            if(_scan_scalar(&rem))
-            {
-                _c4dbgp("it's a scalar");
-                _store_scalar(rem);
-                rem = m_state->line_contents.rem;
-                csubstr trimmed = rem.triml(" \t");
-                if(trimmed.len && (trimmed.begins_with(": ") || trimmed.begins_with_any(":,}")))
-                {
-                    RYML_ASSERT(trimmed.str >= rem.str);
-                    size_t num = trimmed.str - rem.str;
-                    _c4dbgpf("trimming %zu whitespace after the scalar: '%.*s' --> '%.*s'", num, _c4prsp(rem), _c4prsp(rem.sub(num)));
-                    rem = rem.sub(num);
-                    _line_progressed(num);
-                }
-            }
-
-            if(rem.begins_with(": "))
-            {
-                _c4dbgp("wait for val");
-                addrem_flags(RVAL, RKEY|CPLX);
-                _line_progressed(2);
-                return true;
-            }
-            else if(rem == ':')
-            {
-                _c4dbgp("start unknown");
-                addrem_flags(RVAL, RKEY|CPLX);
-                _start_unk();
-                _line_progressed(1);
-                return true;
-            }
-            else if(rem.begins_with('?'))
-            {
-                _c4dbgp("complex key");
-                add_flags(CPLX);
-                _line_progressed(1);
-                return true;
-            }
-            else if(rem.begins_with(','))
-            {
-                _c4dbgp("prev scalar was a key with null value");
-                _append_key_val("~");
-                _line_progressed(1);
-                return true;
-            }
-            else if(rem.begins_with('}'))
-            {
-                _c4dbgp("map terminates after a key...");
-                RYML_ASSERT(has_all(SSCL));
-                _c4dbgp("the last val was null");
-                _append_key_val("~");
-                rem_flags(RVAL);
-                _pop_level();
-                _line_progressed(1);
-                return true;
-            }
-            else if(_handle_types())
-            {
-                return true;
-            }
-            else if(_handle_key_anchors_and_refs())
-            {
-                return true;
-            }
-            else if(rem == "")
-            {
-                return true;
-            }
-            else if(rem.begins_with('}'))
-            {
-                _append_key_val("~");
-                _line_progressed(1);
-                return true;
-            }
-            else
-            {
-                _c4err("parse error");
-            }
+            return true;
         }
-        else if(has_any(RVAL))
+        else if(rem == "")
         {
-            RYML_ASSERT(has_none(RNXT|RKEY));
-            RYML_ASSERT(has_all(SSCL));
-            if(_scan_scalar(&rem))
-            {
-                _c4dbgp("it's a scalar");
-                addrem_flags(RNXT, RVAL|RKEY);
-                _append_key_val(rem);
-                return true;
-            }
-            else if(rem.begins_with('['))
-            {
-                _c4dbgp("val is a child seq");
-                addrem_flags(RNXT, RVAL|RKEY); // before _push_level!
-                _push_level(/*explicit flow*/true);
-                _move_scalar_from_top();
-                _start_seq();
-                add_flags(EXPL);
-                _line_progressed(1);
-                return true;
-            }
-            else if(rem.begins_with('{'))
-            {
-                _c4dbgp("val is a child map");
-                addrem_flags(RNXT, RVAL|RKEY); // before _push_level!
-                _push_level(/*explicit flow*/true);
-                _move_scalar_from_top();
-                _start_map();
-                addrem_flags(EXPL|RKEY, RNXT|RVAL);
-                _line_progressed(1);
-                return true;
-            }
-            else if(_handle_types())
-            {
-                return true;
-            }
-            else if(_handle_val_anchors_and_refs())
-            {
-                return true;
-            }
-            else if(rem.begins_with(','))
-            {
-                _c4dbgp("appending empty val");
-                _append_key_val("~");
-                addrem_flags(RKEY, RVAL);
-                _line_progressed(1);
-                return true;
-            }
-            else
-            {
-                _c4err("parse error");
-            }
+            return true;
+        }
+        else if(rem.begins_with('}'))
+        {
+            _append_key_val("~");
+            _line_progressed(1);
+            return true;
         }
         else
         {
-            _c4err("internal error");
+            _c4err("parse error");
         }
+    }
+    else if(has_any(RVAL))
+    {
+        RYML_ASSERT(has_none(RNXT|RKEY));
+        RYML_ASSERT(has_all(SSCL));
+        if(_scan_scalar(&rem))
+        {
+            _c4dbgp("it's a scalar");
+            addrem_flags(RNXT, RVAL|RKEY);
+            _append_key_val(rem);
+            return true;
+        }
+        else if(rem.begins_with('['))
+        {
+            _c4dbgp("val is a child seq");
+            addrem_flags(RNXT, RVAL|RKEY); // before _push_level!
+            _push_level(/*explicit flow*/true);
+            _move_scalar_from_top();
+            _start_seq();
+            add_flags(EXPL);
+            _line_progressed(1);
+            return true;
+        }
+        else if(rem.begins_with('{'))
+        {
+            _c4dbgp("val is a child map");
+            addrem_flags(RNXT, RVAL|RKEY); // before _push_level!
+            _push_level(/*explicit flow*/true);
+            _move_scalar_from_top();
+            _start_map();
+            addrem_flags(EXPL|RKEY, RNXT|RVAL);
+            _line_progressed(1);
+            return true;
+        }
+        else if(_handle_types())
+        {
+            return true;
+        }
+        else if(_handle_val_anchors_and_refs())
+        {
+            return true;
+        }
+        else if(rem.begins_with(','))
+        {
+            _c4dbgp("appending empty val");
+            _append_key_val("~");
+            addrem_flags(RKEY, RVAL);
+            _line_progressed(1);
+            return true;
+        }
+        else
+        {
+            _c4err("parse error");
+        }
+    }
+    else
+    {
+        _c4err("internal error");
     }
 
     return false;
@@ -991,6 +1061,7 @@ bool Parser::_handle_map_impl()
     _c4dbgpf("handle_map_impl: node_id=%zd  level=%zd", m_state->node_id, m_state->level);
     csubstr rem = m_state->line_contents.rem;
 
+    RYML_ASSERT(has_all(RMAP));
     RYML_ASSERT(has_none(EXPL));
 
     if(rem.begins_with('#'))
@@ -1004,7 +1075,6 @@ bool Parser::_handle_map_impl()
     {
         RYML_ASSERT(has_none(RKEY));
         RYML_ASSERT(has_none(RVAL));
-
         // actually, we don't need RNXT in indent-based maps.
         addrem_flags(RKEY, RNXT);
     }
@@ -1020,6 +1090,7 @@ bool Parser::_handle_map_impl()
         RYML_ASSERT(has_none(RNXT));
         RYML_ASSERT(has_none(RVAL));
 
+        _c4dbgp("read scalar?");
         if(_scan_scalar(&rem)) // this also progresses the line
         {
             _c4dbgp("it's a scalar");
@@ -1055,11 +1126,15 @@ bool Parser::_handle_map_impl()
             _line_progressed(rem.len);
             return true;
         }
-        else if(rem.begins_with('?'))
+        else if(rem.begins_with("? "))
         {
             _c4dbgp("it's a complex key");
             add_flags(CPLX);
-            _line_progressed(1);
+            _line_progressed(2);
+            if(has_all(SSCL))
+            {
+                _append_key_val("~");
+            }
             return true;
         }
         else if(has_all(CPLX) && rem.begins_with(':'))
@@ -1080,6 +1155,11 @@ bool Parser::_handle_map_impl()
         else if(rem.begins_with(": "))
         {
             _c4dbgp("key finished");
+            if(!has_all(SSCL))
+            {
+                _c4dbgp("key was empty...");
+                _store_scalar("");
+            }
             addrem_flags(RVAL, RKEY);
             _line_progressed(2);
             return true;
@@ -1087,6 +1167,11 @@ bool Parser::_handle_map_impl()
         else if(rem == ':')
         {
             _c4dbgp("key finished");
+            if(!has_all(SSCL))
+            {
+                _c4dbgp("key was empty...");
+                _store_scalar("");
+            }
             addrem_flags(RVAL, RKEY);
             _line_progressed(1);
             return true;
@@ -1250,42 +1335,32 @@ bool Parser::_handle_top()
         return true;
     }
 
-    // use the full line, as the following tokens can appear only at top level
-    RYML_ASSERT(rem == m_state->line_contents.stripped
-              ||
-              (m_state->indref > 0 && (rem.begin() > m_state->line_contents.stripped.begin() &&
-              m_state->indref + m_state->line_contents.stripped.begin() == rem.begin())));
-    if(m_state->indref == 0)
-    {
-        rem = m_state->line_contents.stripped;
-    }
+    csubstr trimmed = rem.triml(' ');
 
-    if(rem.begins_with('%'))
+    if(trimmed.begins_with('%'))
     {
-        _c4dbgp("%% directive!");
-        if(rem.begins_with("%YAML"))
-        {
-            _c4err("not implemented");
-        }
-        else if(rem.begins_with("%TAG"))
-        {
-            _c4err("not implemented");
-        }
-        else
-        {
-            _c4err("unknown directive starting with %%");
-        }
+        _c4dbgpf("%% directive! ignoring...: '%.*s'", _c4prsp(rem));
+        _line_progressed(rem.len);
         return true;
     }
-    else if(rem.begins_with("---"))
+    else if(trimmed.begins_with("---"))
     {
         _start_new_doc(rem);
+        if(trimmed.len < rem.len)
+        {
+            _line_progressed(rem.len - trimmed.len);
+            _save_indentation();
+        }
         return true;
     }
-    else if(rem.begins_with("..."))
+    else if(trimmed.begins_with("..."))
     {
         _c4dbgp("end current document");
         _end_stream();
+        if(trimmed.len < rem.len)
+        {
+            _line_progressed(rem.len - trimmed.len);
+        }
         _line_progressed(3);
         return true;
     }
@@ -1328,7 +1403,7 @@ bool Parser::_handle_key_anchors_and_refs()
     if(rem.begins_with('&'))
     {
         _c4dbgp("found a key anchor!!!");
-        RYML_ASSERT(m_key_anchor.empty());
+        //RYML_ASSERT(m_key_anchor.empty());
         csubstr anchor = rem.left_of(rem.first_of(' '));
         _line_progressed(anchor.len);
         anchor = anchor.sub(1); // skip the first character
@@ -1407,18 +1482,17 @@ bool Parser::_handle_types()
     {
         _c4dbgp("begins with '!'");
         t = rem.left_of(rem.first_of(' '));
-        RYML_ASSERT(t.len > 1);
+        RYML_ASSERT(t.len >= 1);
         //t = t.sub(1);
     }
 
     if(t.empty())
     {
-        _c4dbgp(".... tag was empty");
         return false;
     }
 
     _c4dbgpf("there was a tag: '%.*s'", _c4prsp(t));
-    _line_progressed(t.len);
+    _line_progressed(t.end() - m_state->line_contents.rem.begin());
 
     if(has_all(RMAP|RKEY))
     {
@@ -1661,6 +1735,16 @@ substr Parser::_scan_plain_scalar_expl(csubstr currscalar, csubstr peeked_line)
     bool first = true;
     while(pos != 0)
     {
+        if(has_any(RMAP|RUNK))
+        {
+            csubstr tpkl = peeked_line.triml(' ').trimr("\r\n");
+            if(tpkl.begins_with(": ") || tpkl == ':')
+            {
+                _c4dbgpf("rscalar[EXPL]: map value starts on the peeked line: '%.*s'", _c4prsp(peeked_line));
+                peeked_line = peeked_line.first(0);
+                break;
+            }
+        }
         if(pos != npos)
         {
             _c4dbgpf("rscalar[EXPL]: found special character '%c' at %zu, stopping: '%.*s'", peeked_line[pos], pos, _c4prsp(peeked_line.left_of(pos).trimr("\r\n")));
@@ -1760,7 +1844,7 @@ csubstr Parser::_scan_to_next_nonempty_line(size_t indentation)
     csubstr next_peeked;
     while(true)
     {
-        _c4dbgpf("rscalar: ... curr offset: %zu", m_state->pos.offset);
+        _c4dbgpf("rscalar: ... curr offset: %zu indentation=%zu", m_state->pos.offset, indentation);
         next_peeked = _peek_next_line(m_state->pos.offset);
         _c4dbgpf("rscalar: ... next peeked line='%.*s'", _c4prsp(next_peeked.trimr("\r\n")));
         if(next_peeked.triml(' ').begins_with('#'))
@@ -2075,26 +2159,28 @@ void Parser::_stop_doc()
 
 void Parser::_end_stream()
 {
+    _c4dbgpf("end_stream, level=%zu node_id=%zu", m_state->level, m_state->node_id);
     RYML_ASSERT( ! m_stack.empty());
+    NodeData *added = nullptr;
     if(has_any(SSCL))
     {
-        if(m_tree->type(m_state->node_id) == NOTYPE)
+        if(m_tree->is_seq(m_state->node_id))
+        {
+            added = _append_val(_consume_scalar());
+        }
+        else if(m_tree->is_map(m_state->node_id))
+        {
+            added = _append_key_val("~");
+        }
+        else if(m_tree->type(m_state->node_id) == NOTYPE)
         {
             m_tree->to_seq(m_state->node_id);
-            _append_val(_consume_scalar());
+            added = _append_val(_consume_scalar());
         }
         else if(m_tree->is_doc(m_state->node_id))
         {
             m_tree->to_doc(m_state->node_id, SEQ);
-            _append_val(_consume_scalar());
-        }
-        else if(m_tree->is_seq(m_state->node_id))
-        {
-            _append_val(_consume_scalar());
-        }
-        else if(m_tree->is_map(m_state->node_id))
-        {
-            _append_key_val("~");
+            added = _append_val(_consume_scalar());
         }
         else
         {
@@ -2103,7 +2189,35 @@ void Parser::_end_stream()
     }
     else if(has_all(RSEQ|RVAL) && has_none(EXPL))
     {
-        _append_val("~");
+        added = _append_val("~");
+    }
+
+    if(added)
+    {
+        if(!m_key_anchor.empty())
+        {
+            _c4dbgpf("node[%zu]: set key anchor='%.*s'", m_tree->id(added), _c4prsp(m_key_anchor));
+            added->m_key.anchor = m_key_anchor;
+            m_key_anchor = "";
+        }
+        if(!m_val_anchor.empty())
+        {
+            _c4dbgpf("node[%zu]: set val anchor='%.*s'", m_tree->id(added), _c4prsp(m_key_anchor));
+            added->m_val.anchor = m_val_anchor;
+            m_val_anchor = "";
+        }
+        if(!m_key_tag.empty())
+        {
+            _c4dbgpf("node[%zu]: set key tag='%.*s'", m_tree->id(added), _c4prsp(m_key_tag));
+            added->m_key.tag = m_key_tag;
+            m_key_tag = "";
+        }
+        if(!m_val_tag.empty())
+        {
+            _c4dbgpf("node[%zu]: set val tag='%.*s'", m_tree->id(added), _c4prsp(m_key_tag));
+            added->m_val.tag = m_val_tag;
+            m_val_tag = "";
+        }
     }
 
     while(m_stack.size() > 1)
@@ -2119,6 +2233,7 @@ void Parser::_start_new_doc(csubstr rem)
 {
     _c4dbgp("_start_new_doc");
     RYML_ASSERT(rem.begins_with("---"));
+    C4_UNUSED(rem);
 
     _end_stream();
 
@@ -2129,14 +2244,6 @@ void Parser::_start_new_doc(csubstr rem)
     _push_level();
     _start_doc();
     _set_indentation(indref);
-
-    // skip spaces after the tag
-    rem = rem.sub(3);
-    if(rem.begins_with(' '))
-    {
-        rem = rem.left_of(rem.first_not_of(' '));
-        _line_progressed(rem.len);
-    }
 }
 
 //-----------------------------------------------------------------------------
@@ -2167,7 +2274,10 @@ void Parser::_start_map(bool as_child)
     }
     else
     {
-        RYML_ASSERT(m_tree->is_map(parent_id) || m_tree->empty(parent_id));
+        if(!(m_tree->is_map(parent_id) || m_tree->empty(parent_id)))
+        {
+            _c4err("parse error");
+        }
         m_state->node_id = parent_id;
         _c4dbgpf("start_map: id=%zd", m_state->node_id);
         int as_doc = 0;
@@ -2352,7 +2462,7 @@ bool Parser::_handle_indentation()
         return true;
     }
 
-    if(ind == (size_t)m_state->indref)
+    if(ind == m_state->indref)
     {
         if(has_all(SSCL|RVAL) && ! rem.sub(ind).begins_with('-'))
         {
@@ -2371,6 +2481,15 @@ bool Parser::_handle_indentation()
                 _c4err("internal error");
             }
         }
+        else if(has_all(RSEQ|RNXT) && ! rem.sub(ind).begins_with('-'))
+        {
+            if(m_stack.size() > 2) // do not pop to root level
+            {
+                _c4dbgp("end the indentless seq");
+                _pop_level();
+                return true;
+            }
+        }
         else
         {
             _c4dbgpf("same indentation (%zd) -- nothing to see here", ind);
@@ -2378,7 +2497,7 @@ bool Parser::_handle_indentation()
         _line_progressed(ind);
         return ind > 0;
     }
-    else if(ind < (size_t)m_state->indref)
+    else if(ind < m_state->indref)
     {
         _c4dbgpf("smaller indentation (%zd < %zd)!!!", ind, m_state->indref);
         if(has_all(RVAL))
@@ -2417,18 +2536,17 @@ bool Parser::_handle_indentation()
             _c4dbgpf("popping level %zd (indentation=%zd)", m_state->level, m_state->indref);
             _pop_level();
         }
-        RYML_ASSERT(m_state->indref == ind);
+        RYML_ASSERT(ind == m_state->indref);
         _line_progressed(ind);
         return true;
     }
-    else // ind > indref
+    else
     {
         _c4dbgpf("larger indentation (%zd > %zd)!!!", ind, m_state->indref);
+        RYML_ASSERT(ind > m_state->indref);
         if(has_all(RMAP|RVAL))
         {
-            if(/*ind == m_state->indref + 2 && */_is_scalar_next__rmap_val(remt)
-               && remt.find(":") == npos
-               && remt.find("?") == npos)
+            if(_is_scalar_next__rmap_val(remt) && remt.first_of(":?") == npos)
             {
                 _c4dbgpf("actually it seems a value: '%.*s'", _c4prsp(remt));
             }
@@ -2607,7 +2725,7 @@ csubstr Parser::_scan_quoted_scalar(const char q)
         {
             ret = _filter_dquot_scalar(s);
         }
-        RYML_ASSERT(ret.len < s.len || s.empty() || s.trim(' ').empty());
+        RYML_ASSERT(ret.len <= s.len || s.empty() || s.trim(' ').empty());
         _c4dbgpf("final scalar: \"%.*s\"", _c4prsp(ret));
         return ret;
     }
@@ -2943,15 +3061,15 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
 {
     _c4dbgpf("filtering block: '%.*s'", _c4prsp(s));
 
-    RYML_ASSERT(s.ends_with('\n') || s.ends_with('\r'));
-
     substr r = s;
 
     if(indentation > 0)
     {
         r = _filter_whitespace(s, indentation, /*leading whitespace*/false);
-        RYML_ASSERT(r.begins_with(' ', indentation));
-        r = r.erase(0, indentation);
+        if(r.begins_with(' ', indentation))
+        {
+            r = r.erase(0, indentation);
+        }
     }
 
     _c4dbgpf("filtering block: after whitespace='%.*s'", _c4prsp(r));
@@ -2963,22 +3081,26 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
     case CHOMP_STRIP: // strip everything
     {
         auto pos = r.last_not_of("\r\n");
-        RYML_ASSERT(pos != npos);
-        r = r.left_of(pos, /*include_pos*/true);
+        if(pos != npos)
+        {
+            r = r.left_of(pos, /*include_pos*/true);
+        }
         break;
     }
     case CHOMP_CLIP: // clip to a single newline
     {
         auto pos = r.last_not_of("\r\n");
-        RYML_ASSERT(pos != npos && pos+1 < r.len);
-        ++pos;
-        if(r[pos] == '\r') // deal with \r\n sequences
+        if(pos != npos && pos+1 < r.len)
         {
-            RYML_ASSERT(pos+1 < s.len);
             ++pos;
-            RYML_ASSERT(r[pos] == '\n');
+            if(r[pos] == '\r') // deal with \r\n sequences
+            {
+                RYML_ASSERT(pos+1 < s.len);
+                ++pos;
+                RYML_ASSERT(r[pos] == '\n');
+            }
+            r = r.left_of(pos, /*include_pos*/true);
         }
-        r = r.left_of(pos, /*include_pos*/true);
         break;
     }
     //default:
@@ -2994,36 +3116,37 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
     case BLOCK_FOLD:
         {
             auto pos = r.last_not_of("\r\n"); // do not fold trailing newlines
-            RYML_ASSERT(pos != npos);
-            RYML_ASSERT(pos < r.len);
-            ++pos; // point pos at the first newline char
-            substr t = r.sub(0, pos);
-            for(size_t i = 0; i < t.len; ++i)
+            if((pos != npos) && (pos < r.len))
             {
-                const char curr = t[i];
-                //const char prev = i   > 0     ? t[i-1] : '\0';
-                const char next = i+1 < t.len ? t[i+1] : '\0';
-                if(curr == '\n')
+                ++pos; // point pos at the first newline char
+                substr t = r.sub(0, pos);
+                for(size_t i = 0; i < t.len; ++i)
                 {
-                    if(next != '\n')
+                    const char curr = t[i];
+                    //const char prev = i   > 0     ? t[i-1] : '\0';
+                    const char next = i+1 < t.len ? t[i+1] : '\0';
+                    if(curr == '\n')
                     {
-                        t[i] = ' '; // a single unix newline: turn it into a space
-                    }
-                    else if(curr == '\n' && next == '\n')
-                    {
-                        t = t.erase(i+1, 1); // keep only one of consecutive newlines
+                        if(next != '\n')
+                        {
+                            t[i] = ' '; // a single unix newline: turn it into a space
+                        }
+                        else if(curr == '\n' && next == '\n')
+                        {
+                            t = t.erase(i+1, 1); // keep only one of consecutive newlines
+                        }
                     }
                 }
+                // copy over the trailing newlines
+                substr nl = r.sub(pos);
+                RYML_ASSERT(t.len + nl.len <= r.len);
+                for(size_t i = 0; i < nl.len; ++i)
+                {
+                    r[t.len + i] = nl[i];
+                }
+                // now trim r
+                r = r.sub(0, t.len + nl.len);
             }
-            // copy over the trailing newlines
-            substr nl = r.sub(pos);
-            RYML_ASSERT(t.len + nl.len <= r.len);
-            for(size_t i = 0; i < nl.len; ++i)
-            {
-                r[t.len + i] = nl[i];
-            }
-            // now trim r
-            r = r.sub(0, t.len + nl.len);
         }
         break;
     default:
