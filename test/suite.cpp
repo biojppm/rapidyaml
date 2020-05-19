@@ -103,6 +103,7 @@ constexpr const AllowedFailure g_allowed_failures[] = {
     {"M5DY", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
     {"Q9WF", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
     {"SBG9", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
+    {"X38W", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
     {"XW4D", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
 
     // TODO
@@ -122,7 +123,6 @@ constexpr const AllowedFailure g_allowed_failures[] = {
     {"K858", CPART_OUT_YAML|CPART_IN_JSON, "TODO[next]: emitting block scalars is not idempotent"},
     {"NAT4", CPART_IN_YAML|CPART_IN_JSON, "TODO[next]: emitting block scalars is not idempotent"},
 
-    {"X38W", CPART_OUT_YAML, "temporarily disabled pending further investigation"},
     {"82AN", CPART_IN_YAML , "temporarily disabled pending further investigation"},
     {"87E4", CPART_IN_YAML , "temporarily disabled pending further investigation"},
     {"8UDB", CPART_IN_YAML , "temporarily disabled pending further investigation"},
