@@ -90,7 +90,7 @@ constexpr const AllowedFailure g_allowed_failures[] = {
     {"9KAX", CPART_IN_JSON, "malformed JSON from multiple documents"},
     {"9DXL", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents|TODO[next]: document handling"},
     {"W4TN", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents|TODO[next]: document handling"},
-    // complex keys
+    // we do not accept complex keys
     {"4FJ6", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
     {"6BFJ", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
     {"6PBE", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
@@ -98,6 +98,7 @@ constexpr const AllowedFailure g_allowed_failures[] = {
     {"LX3P", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
     {"M5DY", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
     {"Q9WF", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
+    {"SBG9", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
     {"XW4D", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
 
     // TODO
@@ -117,7 +118,6 @@ constexpr const AllowedFailure g_allowed_failures[] = {
     {"K858", CPART_OUT_YAML|CPART_IN_JSON, "TODO[next]: emitting block scalars is not idempotent"},
     {"NAT4", CPART_IN_YAML|CPART_IN_JSON, "TODO[next]: emitting block scalars is not idempotent"},
 
-    {"SBG9", CPART_OUT_YAML, "temporarily disabled pending further investigation"},
     {"UGM3", CPART_OUT_YAML, "temporarily disabled pending further investigation"},
     {"X38W", CPART_OUT_YAML, "temporarily disabled pending further investigation"},
     {"JHB9", CPART_IN_JSON , "temporarily disabled pending further investigation"},
