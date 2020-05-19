@@ -311,9 +311,11 @@ struct ProcLevel
 struct Approach
 {
     ProcLevel levels[NLEVELS];
+    bool enabled = false;
 
     void init(c4::csubstr filename, c4::csubstr src, bool immutable_, bool reuse_, CasePart_e case_part, AllowedFailure af)
     {
+        enabled = true;
         for(auto &l : levels)
         {
             l.init(filename, src, immutable_, reuse_, case_part, af);
@@ -586,22 +588,54 @@ class cls##_##pfx : public ::testing::TestWithParam<size_t> {}; \
 TEST_P(cls##_##pfx, parse)                                      \
 {                                                               \
     RYML_CHECK(GetParam() < NLEVELS);                           \
-    g_suite_case->cls.pfx.parse(1 + GetParam(), false);         \
+    auto &test_case = g_suite_case->cls.pfx;                    \
+    if(test_case.enabled)                                       \
+    {                                                           \
+        test_case.parse(1 + GetParam(), false);                 \
+    }                                                           \
+    else                                                        \
+    {                                                           \
+        c4::dump(#cls "." #pfx ": no input for this case\n");   \
+    }                                                           \
 }                                                               \
 TEST_P(cls##_##pfx, compare_trees)                              \
 {                                                               \
     RYML_CHECK(GetParam() < NLEVELS);                           \
-    g_suite_case->cls.pfx.compare_trees(1 + GetParam());        \
+    auto &test_case = g_suite_case->cls.pfx;                    \
+    if(test_case.enabled)                                       \
+    {                                                           \
+        test_case.compare_trees(1 + GetParam());                \
+    }                                                           \
+    else                                                        \
+    {                                                           \
+        c4::dump(#cls "." #pfx ": no input for this case\n");   \
+    }                                                           \
 }                                                               \
 TEST_P(cls##_##pfx, emit)                                       \
 {                                                               \
     RYML_CHECK(GetParam() < NLEVELS);                           \
-    g_suite_case->cls.pfx.parse(1 + GetParam(), true);          \
+    auto &test_case = g_suite_case->cls.pfx;                    \
+    if(test_case.enabled)                                       \
+    {                                                           \
+        test_case.parse(1 + GetParam(), true);                  \
+    }                                                           \
+    else                                                        \
+    {                                                           \
+        c4::dump(#cls "." #pfx ": no input for this case\n");   \
+    }                                                           \
 }                                                               \
 TEST_P(cls##_##pfx, compare_emitted)                            \
 {                                                               \
     RYML_CHECK(GetParam() < NLEVELS);                           \
-    g_suite_case->cls.pfx.compare_emitted(1 + GetParam());      \
+    auto &test_case = g_suite_case->cls.pfx;                    \
+    if(test_case.enabled)                                       \
+    {                                                           \
+        test_case.compare_emitted(1 + GetParam());              \
+    }                                                           \
+    else                                                        \
+    {                                                           \
+        c4::dump(#cls "." #pfx ": no input for this case\n");   \
+    }                                                           \
 }                                                               \
 /**/                                                            \
 /**/                                                            \
@@ -625,18 +659,6 @@ DECLARE_TESTS(out_yaml)
 //DECLARE_TESTS(events); // TODO
 DECLARE_TESTS(in_json)
 DECLARE_TESTS(in_yaml)
-
-
-//-------------------------------------------
-// this is needed to use the test case library
-namespace c4 {
-namespace yml {
-Case const* get_case(csubstr /*name*/)
-{
-    return nullptr;
-}
-} // namespace yml
-} // namespace c4
 
 
 //-----------------------------------------------------------------------------
@@ -677,7 +699,9 @@ int main(int argc, char* argv[])
         // if an error occurs during loading, the test intentionally crashes,
         // so the load() above never returns. This is NOT the same as
         // a return of false. That means the test was tagged as error,
+        // ie, that an error is expected while parsing the code in it,
         // and for now we skip those, and return success.
+        c4::log("\n{}: this case is tagged as error, skipping\n", path);
         return 0;
     }
     c4::print(suite_case.file_contents);
@@ -698,3 +722,15 @@ int main(int argc, char* argv[])
 
     return status;
 }
+
+
+//-------------------------------------------
+// this is needed to use the test case library
+namespace c4 {
+namespace yml {
+Case const* get_case(csubstr /*name*/)
+{
+    return nullptr;
+}
+} // namespace yml
+} // namespace c4
