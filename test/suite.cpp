@@ -17,6 +17,48 @@
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+// some utility functions, used below
+
+enum : size_t { npos = c4::csubstr::npos };
+
+
+size_t find_first_after(size_t pos, std::initializer_list<size_t> candidates)
+{
+    size_t ret = npos;
+    for(size_t s : candidates)
+    {
+        if(s > pos && s < ret) ret = s;
+    }
+    return ret;
+}
+
+
+c4::csubstr replace_all(c4::csubstr pattern, c4::csubstr repl, c4::csubstr subject, std::string *dst)
+{
+    size_t ret = subject.replace_all(c4::to_substr(*dst), pattern, repl);
+    if(ret != dst->size())
+    {
+        dst->resize(ret);
+        ret = subject.replace_all(c4::to_substr(*dst), pattern, repl);
+    }
+    return c4::to_csubstr(*dst);
+}
+
+
+c4::csubstr filter_out_indentation(c4::csubstr src, std::string *dst)
+{
+    if( ! src.begins_with("    "))
+    {
+        dst->assign(src.begin(), src.end());
+        return c4::to_csubstr(*dst);
+    }
+    return replace_all("\n    ", "\n", src.sub(4), dst);
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 /* Each case from the test suite contains:
  *
@@ -32,6 +74,10 @@
  * is named a processing level in this test. */
 
 
+// this is the number of processing levels
+#define NLEVELS 4
+
+
 typedef enum {
     CPART_NONE = 0,
     CPART_IN_YAML = 1 << 0,
@@ -42,6 +88,7 @@ typedef enum {
     CPART_ANY = CPART_ALL,
 } CasePart_e;
 constexpr CasePart_e operator| (CasePart_e lhs, CasePart_e rhs) noexcept { return (CasePart_e)((int)lhs|(int)rhs); }
+
 
 c4::csubstr to_csubstr(CasePart_e cp) noexcept
 {
@@ -123,29 +170,29 @@ constexpr const AllowedFailure g_allowed_failures[] = {
     {"K858", CPART_OUT_YAML|CPART_IN_JSON, "TODO[next]: emitting block scalars is not idempotent"},
     {"NAT4", CPART_IN_YAML|CPART_IN_JSON, "TODO[next]: emitting block scalars is not idempotent"},
 
-    {"82AN", CPART_IN_YAML , "temporarily disabled pending further investigation"},
-    {"87E4", CPART_IN_YAML , "temporarily disabled pending further investigation"},
-    {"8UDB", CPART_IN_YAML , "temporarily disabled pending further investigation"},
-    {"9MMW", CPART_IN_YAML , "temporarily disabled pending further investigation"},
-    {"9YRD", CPART_IN_YAML , "temporarily disabled pending further investigation"},
-    {"C2DT", CPART_IN_YAML , "temporarily disabled pending further investigation"},
-    {"CT4Q", CPART_IN_YAML , "temporarily disabled pending further investigation"},
-    {"DC7X", CPART_IN_YAML , "temporarily disabled pending further investigation"},
-    {"EX5H", CPART_IN_YAML , "temporarily disabled pending further investigation"},
-    {"EXG3", CPART_IN_YAML , "temporarily disabled pending further investigation"},
-    {"F6MC", CPART_IN_YAML , "temporarily disabled pending further investigation"},
-    {"F8F9", CPART_IN_YAML , "temporarily disabled pending further investigation"},
-    {"HS5T", CPART_IN_YAML , "temporarily disabled pending further investigation"},
-    {"K3WX", CPART_IN_YAML , "temporarily disabled pending further investigation"},
-    {"KZN9", CPART_IN_YAML , "temporarily disabled pending further investigation"},
-    {"L94M", CPART_IN_YAML , "temporarily disabled pending further investigation"},
-    {"L9U5", CPART_IN_YAML , "temporarily disabled pending further investigation"},
-    {"LQZ7", CPART_IN_YAML , "temporarily disabled pending further investigation"},
-    {"QF4Y", CPART_IN_YAML , "temporarily disabled pending further investigation"},
-    {"TS54", CPART_IN_YAML , "temporarily disabled pending further investigation"},
-    {"WZ62", CPART_IN_YAML , "temporarily disabled pending further investigation"},
-    {"XLQ9", CPART_IN_YAML , "temporarily disabled pending further investigation"},
-    {"ZWK4", CPART_IN_YAML , "temporarily disabled pending further investigation"},
+    {"82AN", CPART_IN_YAML, "temporarily disabled pending further investigation"},
+    {"87E4", CPART_IN_YAML, "temporarily disabled pending further investigation"},
+    {"8UDB", CPART_IN_YAML, "temporarily disabled pending further investigation"},
+    {"9MMW", CPART_IN_YAML, "temporarily disabled pending further investigation"},
+    {"9YRD", CPART_IN_YAML, "temporarily disabled pending further investigation"},
+    {"C2DT", CPART_IN_YAML, "temporarily disabled pending further investigation"},
+    {"CT4Q", CPART_IN_YAML, "temporarily disabled pending further investigation"},
+    {"DC7X", CPART_IN_YAML, "temporarily disabled pending further investigation"},
+    {"EX5H", CPART_IN_YAML, "temporarily disabled pending further investigation"},
+    {"EXG3", CPART_IN_YAML, "temporarily disabled pending further investigation"},
+    {"F6MC", CPART_IN_YAML, "temporarily disabled pending further investigation"},
+    {"F8F9", CPART_IN_YAML, "temporarily disabled pending further investigation"},
+    {"HS5T", CPART_IN_YAML, "temporarily disabled pending further investigation"},
+    {"K3WX", CPART_IN_YAML, "temporarily disabled pending further investigation"},
+    {"KZN9", CPART_IN_YAML, "temporarily disabled pending further investigation"},
+    {"L94M", CPART_IN_YAML, "temporarily disabled pending further investigation"},
+    {"L9U5", CPART_IN_YAML, "temporarily disabled pending further investigation"},
+    {"LQZ7", CPART_IN_YAML, "temporarily disabled pending further investigation"},
+    {"QF4Y", CPART_IN_YAML, "temporarily disabled pending further investigation"},
+    {"TS54", CPART_IN_YAML, "temporarily disabled pending further investigation"},
+    {"WZ62", CPART_IN_YAML, "temporarily disabled pending further investigation"},
+    {"XLQ9", CPART_IN_YAML, "temporarily disabled pending further investigation"},
+    {"ZWK4", CPART_IN_YAML, "temporarily disabled pending further investigation"},
 };
 
 
@@ -163,16 +210,6 @@ AllowedFailure is_failure_expected(c4::csubstr filename)
     }
     return {};
 }
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-#define NLEVELS 4   // this is the number of processing levels
-
-enum : size_t { npos = c4::csubstr::npos };
-
 
 
 //-----------------------------------------------------------------------------
@@ -395,44 +432,6 @@ struct Subject
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-// some utility functions, used below
-
-c4::csubstr replace_all(c4::csubstr pattern, c4::csubstr repl, c4::csubstr subject, std::string *dst)
-{
-    dst->clear();
-    size_t b = 0;
-    do {
-        RYML_CHECK(b <= subject.len);
-        size_t e = subject.find(pattern, b);
-        RYML_CHECK(e < subject.len || e == npos);
-        if(e == npos && b < subject.len)
-        {
-            dst->append(&subject[b], subject.end());
-            break;
-        }
-        dst->append(&subject[b], &subject[e]);
-        dst->append(repl.begin(), repl.end());
-        b = e + pattern.size();
-    } while(b != npos && b < subject.len);
-
-    return c4::to_csubstr(*dst);
-}
-
-
-size_t find_first_after(size_t pos, std::initializer_list<size_t> candidates)
-{
-    size_t ret = npos;
-    for(size_t s : candidates)
-    {
-        if(s > pos && s < ret) ret = s;
-    }
-    return ret;
-}
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
 
 /** now finally all the ways that a test case can be processed are
  * available through this class. Tests are defined below and use only
@@ -446,7 +445,6 @@ struct SuiteCase
     c4::csubstr from;
     c4::csubstr tags;
 
-    std::string in_yaml_filtered;
     Subject     in_yaml;
     Subject     in_json;
     Subject     out_yaml;
@@ -508,7 +506,18 @@ struct SuiteCase
         size_t begin_out_yaml  = contents.find("--- out-yaml"  , end_tags);
         size_t begin_emit_yaml = contents.find("--- emit-yaml" , end_tags);
         size_t begin_events    = contents.find("--- test-event", end_tags);
-        std::initializer_list<size_t> all = {begin_in_yaml, begin_in_json, begin_out_yaml, begin_emit_yaml, begin_events, contents.size()};
+        std::initializer_list<size_t> all = {
+            begin_in_yaml,
+            begin_in_json,
+            begin_out_yaml,
+            begin_emit_yaml,
+            begin_events,
+            contents.size()
+        };
+
+        // some of the examples have their code indented
+        std::string tmpa;
+        std::string tmpb;
 
         // in_yaml
         RYML_CHECK(begin_in_yaml != npos);
@@ -516,6 +525,12 @@ struct SuiteCase
         begin_in_yaml = 1 + contents.find('\n', begin_in_yaml); // skip this line
         txt = contents.range(begin_in_yaml, first_after_in_yaml);
         RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
+        txt = filter_out_indentation(txt, &tmpa);
+        if(tags.find("whitespace") != npos)
+        {
+            txt = replace_all("<SPC>", " ", txt, &tmpb);
+            txt = replace_all("<TAB>", "\t", txt, &tmpa);
+        }
         in_yaml.init(filename, txt, CPART_IN_YAML, allowed_failure);
 
         // in_json
@@ -536,6 +551,7 @@ struct SuiteCase
             begin_out_yaml = 1 + contents.find('\n', begin_out_yaml); // skip this line
             txt = contents.range(begin_out_yaml, first_after_out_yaml);
             RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
+            txt = filter_out_indentation(txt, &tmpa);
             out_yaml.init(filename, txt, CPART_OUT_YAML, allowed_failure);
         }
 
@@ -546,13 +562,6 @@ struct SuiteCase
         c4::csubstr src_events = contents.sub(begin_events);
         RYML_CHECK( ! src_events.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
         events.init(filename, src_events, CPART_EVENTS, allowed_failure);
-
-        // filter
-        if(tags.find("whitespace") != npos)
-        {
-            c4::csubstr filtered = replace_all("<SPC>", " ", src(in_yaml), &in_yaml_filtered);
-            in_yaml.init(filename, filtered, CPART_IN_YAML, allowed_failure);
-        }
 
         return true;
     }
