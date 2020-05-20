@@ -158,6 +158,7 @@ constexpr const AllowedFailure g_allowed_failures[] = {
     {"9WXW", CPART_ALL, "TODO[next]: document handling"},
     {"M7A3", CPART_ALL, "TODO[next]: document handling/special tags in .tml file with test specs"},
     {"735Y", CPART_IN_YAML, "TODO[next]: plain scalar parsing"},
+    {"82AN", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
     {"7T8X", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: scalar block parsing"},
     {"RZP5", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: plain scalar block parsing, anchors"},
     {"FH7J", CPART_ALL, "TODO[next]: implicit keys"},
@@ -170,7 +171,6 @@ constexpr const AllowedFailure g_allowed_failures[] = {
     {"K858", CPART_OUT_YAML|CPART_IN_JSON, "TODO[next]: emitting block scalars is not idempotent"},
     {"NAT4", CPART_IN_YAML|CPART_IN_JSON, "TODO[next]: emitting block scalars is not idempotent"},
 
-    {"82AN", CPART_IN_YAML, "temporarily disabled pending further investigation"},
     {"87E4", CPART_IN_YAML, "temporarily disabled pending further investigation"},
     {"8UDB", CPART_IN_YAML, "temporarily disabled pending further investigation"},
     {"9MMW", CPART_IN_YAML, "temporarily disabled pending further investigation"},

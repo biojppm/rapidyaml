@@ -16,7 +16,7 @@ namespace yml {
 
 static bool _is_scalar_next__runk(csubstr s)
 {
-    if(s.begins_with(": ") || s.begins_with_any("#,:{}[]-%&") || s.begins_with("? "))
+    if(s.begins_with(": ") || s.begins_with_any("#,:{}[]%&") || s.begins_with("? ") || s == "-" || s.begins_with("- "))
     {
         return false;
     }
@@ -1343,7 +1343,7 @@ bool Parser::_handle_top()
         _line_progressed(rem.len);
         return true;
     }
-    else if(trimmed.begins_with("---"))
+    else if(trimmed.begins_with("--- ") || trimmed == "---" || trimmed.begins_with("---\t"))
     {
         _start_new_doc(rem);
         if(trimmed.len < rem.len)
