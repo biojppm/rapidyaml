@@ -553,6 +553,11 @@ bool Parser::_handle_seq_expl()
         _c4dbgp("end the sequence");
         _pop_level();
         _line_progressed(1);
+        if(has_all(RSEQIMAP))
+        {
+            _stop_seqimap();
+            _pop_level();
+        }
         return true;
     }
 
@@ -586,6 +591,20 @@ bool Parser::_handle_seq_expl()
             _line_progressed(1);
             return true;
         }
+        else if(rem == ':')
+        {
+            _c4dbgpf("found ':' -- there's an implicit map in the seq node[%zu]", m_state->node_id);
+            _start_seqimap();
+            _line_progressed(1);
+            return true;
+        }
+        else if(rem.begins_with(": "))
+        {
+            _c4dbgpf("found ': ' -- there's an implicit map in the seq node[%zu]", m_state->node_id);
+            _start_seqimap();
+            _line_progressed(2);
+            return true;
+        }
         else if(_handle_types())
         {
             return true;
@@ -616,6 +635,20 @@ bool Parser::_handle_seq_expl()
             _c4dbgp("seq: expect next val");
             addrem_flags(RVAL, RNXT);
             _line_progressed(1);
+            return true;
+        }
+        else if(rem == ':')
+        {
+            _c4dbgpf("found ':' -- there's an implicit map in the seq node[%zu]", m_state->node_id);
+            _start_seqimap();
+            _line_progressed(1);
+            return true;
+        }
+        else if(rem.begins_with(": "))
+        {
+            _c4dbgpf("found ': ' -- there's an implicit map in the seq node[%zu]", m_state->node_id);
+            _start_seqimap();
+            _line_progressed(2);
             return true;
         }
         else
@@ -875,12 +908,21 @@ bool Parser::_handle_map_expl()
         }
         _pop_level();
         _line_progressed(1);
+        if(has_all(RSEQIMAP))
+        {
+            _c4dbgp("stopping implicitly nested 1x map");
+            _stop_seqimap();
+            _pop_level();
+        }
         return true;
     }
 
     if(has_any(RNXT))
     {
-        RYML_ASSERT(has_none(RKEY|RVAL));
+        RYML_ASSERT(has_none(RKEY));
+        RYML_ASSERT(has_none(RVAL));
+        RYML_ASSERT(has_none(RSEQIMAP));
+
         if(rem.begins_with(", "))
         {
             _c4dbgp("seq: expect next keyval");
@@ -904,6 +946,7 @@ bool Parser::_handle_map_expl()
     {
         RYML_ASSERT(has_none(RNXT));
         RYML_ASSERT(has_none(RVAL));
+        RYML_ASSERT(has_none(RSEQIMAP));
 
         if(has_none(SSCL) && _scan_scalar(&rem))
         {
@@ -966,6 +1009,12 @@ bool Parser::_handle_map_expl()
             _c4dbgp("the last val was null");
             _append_key_val("~");
             rem_flags(RVAL);
+            if(has_all(RSEQIMAP))
+            {
+                _c4dbgp("stopping implicitly nested 1x map");
+                _stop_seqimap();
+                _pop_level();
+            }
             _pop_level();
             _line_progressed(1);
             return true;
@@ -995,13 +1044,20 @@ bool Parser::_handle_map_expl()
     }
     else if(has_any(RVAL))
     {
-        RYML_ASSERT(has_none(RNXT|RKEY));
+        RYML_ASSERT(has_none(RNXT));
+        RYML_ASSERT(has_none(RKEY));
         RYML_ASSERT(has_all(SSCL));
         if(_scan_scalar(&rem))
         {
             _c4dbgp("it's a scalar");
             addrem_flags(RNXT, RVAL|RKEY);
             _append_key_val(rem);
+            if(has_all(RSEQIMAP))
+            {
+                _c4dbgp("stopping implicitly nested 1x map");
+                _stop_seqimap();
+                _pop_level();
+            }
             return true;
         }
         else if(rem.begins_with('['))
@@ -1040,6 +1096,23 @@ bool Parser::_handle_map_expl()
             _append_key_val("~");
             addrem_flags(RKEY, RVAL);
             _line_progressed(1);
+            if(has_any(RSEQIMAP))
+            {
+                _c4dbgp("stopping implicitly nested 1x map");
+                _stop_seqimap();
+                _pop_level();
+            }
+            return true;
+        }
+        else if(has_any(RSEQIMAP) && rem.begins_with(']'))
+        {
+            _c4dbgp("stopping implicitly nested 1x map");
+            if(has_any(SSCL))
+            {
+                _append_key_val("~");
+            }
+            _stop_seqimap();
+            _pop_level();
             return true;
         }
         else
@@ -1643,7 +1716,7 @@ bool Parser::_scan_scalar(csubstr *scalar)
             if(has_any(EXPL))
             {
                 _c4dbgp("RMAP|RVAL|EXPL");
-                s = s.left_of(s.first_of(",}"));
+                s = s.left_of(s.first_of(has_any(RSEQIMAP) ? ",]" : ",}"));
             }
             s = s.trim(' ');
         }
@@ -2171,6 +2244,11 @@ void Parser::_end_stream()
         else if(m_tree->is_map(m_state->node_id))
         {
             added = _append_key_val("~");
+            if(has_any(RSEQIMAP))
+            {
+                _stop_seqimap();
+                _pop_level();
+            }
         }
         else if(m_tree->type(m_state->node_id) == NOTYPE)
         {
@@ -2366,6 +2444,43 @@ void Parser::_stop_seq()
 }
 
 //-----------------------------------------------------------------------------
+void Parser::_start_seqimap()
+{
+    _c4dbgpf("start_seqimap at node=%zu. has_children=%d", m_state->node_id, m_tree->has_children(m_state->node_id));
+    RYML_ASSERT(has_all(RSEQ|EXPL));
+    // create a map, and turn the last scalar of this sequence
+    // into the key of the map's first child.
+    //
+    // Yep, YAML is crazy.
+    if(m_tree->has_children(m_state->node_id) && m_tree->has_val(m_tree->last_child(m_state->node_id)))
+    {
+        auto prev = m_tree->last_child(m_state->node_id);
+        _c4dbgpf("has children and last child=%zu has val. saving the scalars, val='%.*s', val='%.*s'", prev, _c4prsp(m_tree->val(prev)), _c4prsp(m_tree->valsc(prev).scalar));
+        NodeScalar tmp = m_tree->valsc(prev);
+        m_tree->remove(prev);
+        _push_level();
+        _start_map();
+        _store_scalar(tmp.scalar);
+        m_key_anchor = tmp.anchor;
+        m_key_tag = tmp.tag;
+    }
+    else
+    {
+        _c4dbgpf("node %zu has no children yet, using empty key", m_state->node_id);
+        _push_level();
+        _start_map();
+        _store_scalar("");
+    }
+    add_flags(RSEQIMAP|EXPL);
+}
+
+void Parser::_stop_seqimap()
+{
+    _c4dbgp("stop_seqimap");
+    RYML_ASSERT(has_all(RSEQIMAP));
+}
+
+//-----------------------------------------------------------------------------
 NodeData* Parser::_append_val(csubstr const& val)
 {
     RYML_ASSERT( ! has_all(SSCL));
@@ -2374,7 +2489,7 @@ NodeData* Parser::_append_val(csubstr const& val)
     _c4dbgpf("append val: '%.*s' to parent id=%zd (level=%zd)", _c4prsp(val), m_state->node_id, m_state->level);
     size_t nid = m_tree->append_child(m_state->node_id);
     m_tree->to_val(nid, val);
-    _c4dbgpf("append val: id=%zd name='%.*s' val='%.*s'", nid, _c4prsp(m_tree->get(nid)->m_key.scalar), _c4prsp(m_tree->get(nid)->m_val.scalar));
+    _c4dbgpf("append val: id=%zd key='%.*s' val='%.*s'", nid, _c4prsp(m_tree->get(nid)->m_key.scalar), _c4prsp(m_tree->get(nid)->m_val.scalar));
     if( ! m_val_tag.empty())
     {
         _c4dbgpf("append val: set tag to '%.*s'", _c4prsp(m_val_tag));
@@ -2524,10 +2639,10 @@ bool Parser::_handle_indentation()
             {
                 _c4dbgpf("gotit!!! level=%zu node=%zu", s->level, s->node_id);
                 popto = s;
-                // while it may be tempting to think we're done, we must
-                // still determine whether we're jumping to a parent with the
-                // same indentation. Consider this case with an indentless
-                // sequence:
+                // while it may be tempting to think we're done at this
+                // point, we must still determine whether we're jumping to a
+                // parent with the same indentation. Consider this case with
+                // an indentless sequence:
                 //
                 // product:
                 // - sku: BL394D
@@ -2549,14 +2664,14 @@ bool Parser::_handle_indentation()
                         _c4dbgpf("isseq(popto)=%d ismap(parent)=%d", m_tree->is_seq(popto->node_id), m_tree->is_map(parent->node_id));
                         if(m_tree->is_seq(popto->node_id) && m_tree->is_map(parent->node_id))
                         {
-                            if(remt.begins_with('-'))
-                            {
-                                _c4dbgp("not an indentless sequence");
-                            }
-                            else
+                            if( ! remt.begins_with('-'))
                             {
                                 _c4dbgp("this is an indentless sequence");
                                 popto = parent;
+                            }
+                            else
+                            {
+                                _c4dbgp("not an indentless sequence");
                             }
                         }
                     }
@@ -3413,6 +3528,7 @@ int Parser::_prfl(char *buf, int buflen, size_t v)
     _prflag(SSCL);
     _prflag(RSET);
     _prflag(NDOC);
+    _prflag(RSEQIMAP);
 #undef _prflag
 
     return pos;

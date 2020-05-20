@@ -138,6 +138,9 @@ private:
     void  _start_seq(bool as_child=true);
     void  _stop_seq();
 
+    void  _start_seqimap();
+    void  _stop_seqimap();
+
     void  _start_doc(bool as_child=true);
     void  _stop_doc();
     void  _start_new_doc(csubstr rem);
@@ -178,6 +181,10 @@ private:
         SSCL = 0x01 <<  9,   ///< there's a scalar stored
         RSET = 0x01 << 10,   ///< the (implicit) map being read is a !!set. @see https://yaml.org/type/set.html
         NDOC = 0x01 << 11,   ///< no document mode. a document has ended and another has not started yet.
+        //! reading an implicit map nested in an explicit seq.
+        //! eg, {key: [key2: value2, key3: value3]}
+        //! is parsed as {key: [{key2: value2}, {key3: value3}]}
+        RSEQIMAP = 0x01 << 12,
     } State_e;
 
     struct LineContents
