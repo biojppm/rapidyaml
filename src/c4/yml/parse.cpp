@@ -1749,7 +1749,14 @@ bool Parser::_scan_scalar(csubstr *scalar)
             if(has_any(EXPL))
             {
                 _c4dbgp("RMAP|RVAL|EXPL");
-                s = s.left_of(s.first_of(has_any(RSEQIMAP) ? ",]" : ",}"));
+                if(has_none(RSEQIMAP))
+                {
+                    s = s.left_of(s.first_of(",}"));
+                }
+                else
+                {
+                    s = s.left_of(s.first_of(",]"));
+                }
             }
             s = s.trim(' ');
         }

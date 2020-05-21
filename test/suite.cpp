@@ -146,6 +146,7 @@ constexpr const AllowedFailure g_allowed_failures[] = {
     {"6BFJ", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
     {"6PBE", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
     {"KK5P", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
+    {"KZN9", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
     {"LX3P", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
     {"M5DY", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
     {"Q9WF", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
@@ -157,6 +158,7 @@ constexpr const AllowedFailure g_allowed_failures[] = {
     {"5MUD", CPART_IN_YAML, "TODO[hard]"},
     {"9WXW", CPART_ALL, "TODO[next]: document handling"},
     {"EXG3", CPART_ALL, "TODO[next]: document handling"},
+    {"XLQ9", CPART_IN_YAML, "TODO[next]: document handling"},
     {"M7A3", CPART_ALL, "TODO[next]: document handling/special tags in .tml file with test specs"},
     {"735Y", CPART_IN_YAML, "TODO[next]: plain scalar parsing"},
     {"82AN", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
@@ -164,6 +166,7 @@ constexpr const AllowedFailure g_allowed_failures[] = {
     {"EX5H", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
     {"HS5T", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
     {"7T8X", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: scalar block parsing"},
+    {"TS54", CPART_IN_YAML, "TODO[next]: scalar block parsing"},
     {"F8F9", CPART_IN_YAML, "TODO[next]: scalar block parsing"},
     {"RZP5", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: plain scalar block parsing, anchors"},
     {"FH7J", CPART_ALL, "TODO[next]: implicit keys"},
@@ -178,16 +181,8 @@ constexpr const AllowedFailure g_allowed_failures[] = {
     {"9MMW", CPART_IN_YAML, "TODO[next]: re the json/yaml incompatibility where a space is required after :"},
     {"C2DT", CPART_IN_YAML, "TODO[next]: re the json/yaml incompatibility where a space is required after :"},
     {"DC7X", CPART_IN_YAML, "TODO[next]: improve handling of tab characters"},
-
-    {"KZN9", CPART_IN_YAML, "temporarily disabled pending further investigation"},
-    {"L94M", CPART_IN_YAML, "temporarily disabled pending further investigation"},
-    {"L9U5", CPART_IN_YAML, "temporarily disabled pending further investigation"},
-    {"LQZ7", CPART_IN_YAML, "temporarily disabled pending further investigation"},
-    {"QF4Y", CPART_IN_YAML, "temporarily disabled pending further investigation"},
-    {"TS54", CPART_IN_YAML, "temporarily disabled pending further investigation"},
-    {"WZ62", CPART_IN_YAML, "temporarily disabled pending further investigation"},
-    {"XLQ9", CPART_IN_YAML, "temporarily disabled pending further investigation"},
-    {"ZWK4", CPART_IN_YAML, "temporarily disabled pending further investigation"},
+    {"L94M", CPART_IN_YAML, "TODO[next]: bad emitting of tags"},
+    {"WZ62", CPART_IN_YAML, "TODO[next]: bad emitting of tags"},
 };
 
 
