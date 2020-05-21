@@ -1047,7 +1047,32 @@ bool Parser::_handle_map_expl()
         }
         else
         {
-            _c4err("parse error");
+            size_t pos = rem.first_not_of(" \t");
+            if(pos == csubstr::npos) pos = 0;
+            rem = rem.sub(pos);
+            if(rem.begins_with(':'))
+            {
+                _c4dbgp("wait for val");
+                addrem_flags(RVAL, RKEY|CPLX);
+                _line_progressed(pos + 1);
+                if(!has_all(SSCL))
+                {
+                    _c4dbgp("no key was found, defaulting to empty key ''");
+                    _store_scalar("");
+                }
+                return true;
+            }
+            else if(rem.begins_with('#'))
+            {
+                _c4dbgp("it's a comment");
+                _line_progressed(pos);
+                rem = _scan_comment(); // also progresses the line
+                return true;
+            }
+            else
+            {
+                _c4err("parse error");
+            }
         }
     }
     else if(has_any(RVAL))
