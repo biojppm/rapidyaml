@@ -605,6 +605,15 @@ bool Parser::_handle_seq_expl()
             _line_progressed(2);
             return true;
         }
+        else if(rem.begins_with("? "))
+        {
+            _c4dbgpf("found '? ' -- there's an implicit map in the seq node[%zu]", m_state->node_id);
+            _start_seqimap();
+            _line_progressed(2);
+            RYML_ASSERT(has_any(SSCL) && m_state->scalar == "");
+            addrem_flags(CPLX|RKEY, RVAL|SSCL);
+            return true;
+        }
         else if(_handle_types())
         {
             return true;
@@ -946,7 +955,6 @@ bool Parser::_handle_map_expl()
     {
         RYML_ASSERT(has_none(RNXT));
         RYML_ASSERT(has_none(RVAL));
-        RYML_ASSERT(has_none(RSEQIMAP));
 
         if(has_none(SSCL) && _scan_scalar(&rem))
         {
@@ -1760,34 +1768,53 @@ bool Parser::_scan_scalar(csubstr *scalar)
     m_state->scalar_col = m_state->line_contents.current_col(s);
     _line_progressed(s.str - m_state->line_contents.rem.str + s.len);
 
-    // deal with plain (unquoted) scalars that continue to the next line
-    if(_at_line_end() && !s.begins_with_any("*")) // cannot be a plain scalar if it starts with * (that's an anchor reference)
+    if(_at_line_end())
     {
-        _c4dbgpf("reading plain scalar: line ended, scalar='%.*s'", _c4prsp(s));
-        if(has_none(EXPL))
+        _c4dbgpf("at line end. curr='%.*s'", _c4prsp(s));
+
+        if(has_all(RMAP|RKEY|CPLX))
         {
-            size_t scalar_indentation = m_state->indref + 1;
+            size_t scalar_indentation = has_any(EXPL) ? 0 : m_state->indref;
+            _c4dbgp("complex key!");
             csubstr n = _scan_to_next_nonempty_line(scalar_indentation);
             if(!n.empty())
             {
-                RYML_ASSERT(m_state->line_contents.full.contains(n));
-                _c4dbgpf("rscalar[IMPL]: state_indref=%zu state_indentation=%zu scalar_indentation=%zu", m_state->indref, m_state->line_contents.indentation, scalar_indentation);
-                substr full = _scan_plain_scalar_impl(s, n, scalar_indentation);
+                substr full = _scan_complex_key(s, n).trimr(" \t\r\n");
                 if(full != s)
                 {
                     s = _filter_plain_scalar(full, scalar_indentation);
                 }
             }
         }
-        else
+        // deal with plain (unquoted) scalars that continue to the next line
+        else if(!s.begins_with_any("*")) // cannot be a plain scalar if it starts with * (that's an anchor reference)
         {
-            RYML_ASSERT(has_all(EXPL));
-            csubstr n = _scan_to_next_nonempty_line(/*indentation*/0);
-            if(!n.empty())
+            _c4dbgpf("reading plain scalar: line ended, scalar='%.*s'", _c4prsp(s));
+            if(has_none(EXPL))
             {
-                _c4dbgp("rscalar[EXPL]");
-                substr full = _scan_plain_scalar_expl(s, n);
-                s = _filter_plain_scalar(full, /*indentation*/0);
+                size_t scalar_indentation = m_state->indref + 1;
+                csubstr n = _scan_to_next_nonempty_line(scalar_indentation);
+                if(!n.empty())
+                {
+                    RYML_ASSERT(m_state->line_contents.full.contains(n));
+                    _c4dbgpf("rscalar[IMPL]: state_indref=%zu state_indentation=%zu scalar_indentation=%zu", m_state->indref, m_state->line_contents.indentation, scalar_indentation);
+                    substr full = _scan_plain_scalar_impl(s, n, scalar_indentation);
+                    if(full != s)
+                    {
+                        s = _filter_plain_scalar(full, scalar_indentation);
+                    }
+                }
+            }
+            else
+            {
+                RYML_ASSERT(has_all(EXPL));
+                csubstr n = _scan_to_next_nonempty_line(/*indentation*/0);
+                if(!n.empty())
+                {
+                    _c4dbgp("rscalar[EXPL]");
+                    substr full = _scan_plain_scalar_expl(s, n);
+                    s = _filter_plain_scalar(full, /*indentation*/0);
+                }
             }
         }
     }
@@ -1901,6 +1928,73 @@ substr Parser::_scan_plain_scalar_impl(csubstr currscalar, csubstr peeked_line, 
         if(!_advance_to_peeked())
         {
             _c4dbgp("rscalar[IMPL]: file finishes after the scalar");
+            break;
+        }
+        peeked_line = m_state->line_contents.rem;
+    }
+    RYML_ASSERT(m_state->pos.offset >= offs);
+    substr full(m_buf.str + (currscalar.str - m_buf.str),
+                currscalar.len + (m_state->pos.offset - offs));
+    return full;
+}
+
+substr Parser::_scan_complex_key(csubstr currscalar, csubstr peeked_line)
+{
+    RYML_ASSERT(m_buf.contains(currscalar));
+    // NOTE. there's a problem with _scan_to_next_nonempty_line(), as it counts newlines twice
+    // size_t offs = m_state->pos.offset;   // so we workaround by directly counting from the end of the given scalar
+    size_t offs = currscalar.end() - m_buf.begin();
+    while(true)
+    {
+        _c4dbgp("rcplxkey: continuing...");
+        if(peeked_line.begins_with("...") || peeked_line.begins_with("---"))
+        {
+            _c4dbgpf("rcplxkey: document termination next -- bail now '%.*s'", _c4prsp(peeked_line.trimr("\r\n")));
+            break;
+        }
+        else
+        {
+            size_t pos = peeked_line.first_of("?:[]{}");
+            if(pos == csubstr::npos)
+            {
+                pos = peeked_line.find("- ");
+            }
+            if(pos != csubstr::npos)
+            {
+                _c4dbgpf("rcplxkey: found special characters at pos=%zu: '%.*s'", pos, _c4prsp(peeked_line.trimr("\r\n")));
+                _line_progressed(pos);
+                break;
+            }
+        }
+
+        _c4dbgpf("rcplxkey: no special chars found '%.*s'", _c4prsp(peeked_line.trimr("\r\n")));
+        csubstr next_peeked = _scan_to_next_nonempty_line(0);
+        if(next_peeked.empty())
+        {
+            _c4dbgp("rcplxkey: empty ... finished.");
+            break;
+        }
+        _c4dbgp("rcplxkey: ... continuing.");
+        peeked_line = next_peeked;
+
+        _c4dbgpf("rcplxkey: line contents: '%.*s'", _c4prsp(peeked_line.trimr("\r\n")));
+        if(peeked_line.find(": ") != npos)
+        {
+            _c4dbgp("rcplxkey: found ': ', stopping.");
+            _line_progressed(peeked_line.find(": "));
+            break;
+        }
+        else if(peeked_line.ends_with(':'))
+        {
+            _c4dbgp("rcplxkey: ends with ':', stopping.");
+            _line_progressed(peeked_line.find(':'));
+            break;
+        }
+
+        _c4dbgpf("rcplxkey: append another line: (len=%zu)'%.*s'", peeked_line.len, _c4prsp(peeked_line.trimr("\r\n")));
+        if(!_advance_to_peeked())
+        {
+            _c4dbgp("rcplxkey: file finishes after the scalar");
             break;
         }
         peeked_line = m_state->line_contents.rem;
