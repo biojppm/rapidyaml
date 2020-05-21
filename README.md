@@ -53,6 +53,9 @@ include analysing ryml with:
 ryml is also partially available in Python, with more languages to follow (see
 below).
 
+See also [the changelog](./CHANGELOG.md) and [the roadmap](./ROADMAP.md).
+
+
 ------
 
 ## Table of contents
@@ -1133,24 +1136,35 @@ The following core features are tested:
 
 Integration of the ~300 cases in the
 [YAML test suite](https://github.com/yaml/yaml-test-suite) is ongoing
-work.
+work. See also [the roadmap](./ROADMAP.md) for a list of future work.
 
 Of course, there are *many* dark corners in YAML, and there certainly can
-appear some cases which ryml fails to parse. So we welcome your
+appear cases which ryml fails to parse. So we welcome your
 [bug reports or pull requests!](https://github.com/biojppm/rapidyaml/issues).
 
 ### Known limitations
 
 ryml does not follow the standard in the following situations:
 
-* complex elements as mapping keys: keys must be simple
-  values and cannot themselves be mappings or sequences. Yaml test suite
-  cases:
-    * [KK5P](https://github.com/yaml/yaml-test-suite/tree/master/test/KK5P.tml)
 * these directives have no effect and are ignored:
     * `%YAML`
     * `%TAG`
     * any other directives found at document level which start with the `%` character
+* ryml does not accept container elements as mapping keys. keys must be simple
+  strings and cannot themselves be mappings or sequences. But mapping
+  values can be any of the above. Yaml test suite cases:
+  [4FJ6](https://github.com/yaml/yaml-test-suite/tree/master/test/4FJ6.tml),
+  [6BFJ](https://github.com/yaml/yaml-test-suite/tree/master/test/6BFJ.tml),
+  [6PBE](https://github.com/yaml/yaml-test-suite/tree/master/test/6PBE.tml),
+  [6PBE](https://github.com/yaml/yaml-test-suite/tree/master/test/6PBE.tml),
+  [KK5P](https://github.com/yaml/yaml-test-suite/tree/master/test/KK5P.tml),
+  [KZN9](https://github.com/yaml/yaml-test-suite/tree/master/test/KZN9.tml),
+  [LX3P](https://github.com/yaml/yaml-test-suite/tree/master/test/LX3P.tml),
+  [M5DY](https://github.com/yaml/yaml-test-suite/tree/master/test/M5DY.tml),
+  [Q9WF](https://github.com/yaml/yaml-test-suite/tree/master/test/Q9WF.tml),
+  [SBG9](https://github.com/yaml/yaml-test-suite/tree/master/test/SBG9.tml),
+  [X38W](https://github.com/yaml/yaml-test-suite/tree/master/test/X38W.tml),
+  [XW4D](https://github.com/yaml/yaml-test-suite/tree/master/test/XW4D.tml).
 
 
 ------
