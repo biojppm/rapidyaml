@@ -13,13 +13,14 @@
 
 #include "test_case.hpp"
 
+namespace c4 {
+namespace yml {
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 // some utility functions, used below
-
-enum : size_t { npos = c4::csubstr::npos };
 
 
 size_t find_first_after(size_t pos, std::initializer_list<size_t> candidates)
@@ -30,18 +31,6 @@ size_t find_first_after(size_t pos, std::initializer_list<size_t> candidates)
         if(s > pos && s < ret) ret = s;
     }
     return ret;
-}
-
-
-c4::csubstr replace_all(c4::csubstr pattern, c4::csubstr repl, c4::csubstr subject, std::string *dst)
-{
-    size_t ret = subject.replace_all(c4::to_substr(*dst), pattern, repl);
-    if(ret != dst->size())
-    {
-        dst->resize(ret);
-        ret = subject.replace_all(c4::to_substr(*dst), pattern, repl);
-    }
-    return c4::to_csubstr(*dst);
 }
 
 
@@ -489,6 +478,7 @@ struct SuiteCase
             c4::log("{}: test case tagged with error: {}:\n{}\n", filename, tags, contents);
             return false; // tagged with error. skip this test.
         }
+        bool has_whitespace = tags.find("whitespace");
 
         size_t end_tags        = e;
         size_t begin_in_yaml   = contents.find("--- in-yaml"   , end_tags);
@@ -516,7 +506,7 @@ struct SuiteCase
         txt = contents.range(begin_in_yaml, first_after_in_yaml);
         RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
         txt = filter_out_indentation(txt, &tmpa);
-        if(tags.find("whitespace") != npos)
+        if(has_whitespace)
         {
             txt = replace_all("<SPC>", " ", txt, &tmpb);
             txt = replace_all("<TAB>", "\t", txt, &tmpa);
@@ -549,9 +539,9 @@ struct SuiteCase
         RYML_CHECK(begin_events != npos);
         //size_t first_after_events = find_first_after(begin_events, all);
         begin_events = 1 + contents.find('\n', begin_events); // skip this line
-        c4::csubstr src_events = contents.sub(begin_events);
-        RYML_CHECK( ! src_events.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
-        events.init(filename, src_events, CPART_EVENTS, allowed_failure);
+        txt = contents.sub(begin_events);
+        RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
+        events.init(filename, txt, CPART_EVENTS, allowed_failure);
 
         return true;
     }
@@ -575,16 +565,22 @@ struct SuiteCase
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+
 // a global holding the test case data
 SuiteCase* g_suite_case = nullptr;
 
 
 #define DECLARE_TEST_CLASS(cls, pfx)                            \
                                                                 \
-class cls##_##pfx : public ::testing::TestWithParam<size_t> {}; \
+                                                                \
+class cls##_##pfx : public ::testing::TestWithParam<size_t>     \
+{                                                               \
+};                                                              \
+                                                                \
                                                                 \
 TEST_P(cls##_##pfx, parse)                                      \
 {                                                               \
+    RYML_CHECK(g_suite_case != nullptr);                        \
     RYML_CHECK(GetParam() < NLEVELS);                           \
     auto &test_case = g_suite_case->cls.pfx;                    \
     if(test_case.enabled)                                       \
@@ -596,8 +592,11 @@ TEST_P(cls##_##pfx, parse)                                      \
         c4::dump(#cls "." #pfx ": no input for this case\n");   \
     }                                                           \
 }                                                               \
+                                                                \
+                                                                \
 TEST_P(cls##_##pfx, compare_trees)                              \
 {                                                               \
+    RYML_CHECK(g_suite_case != nullptr);                        \
     RYML_CHECK(GetParam() < NLEVELS);                           \
     auto &test_case = g_suite_case->cls.pfx;                    \
     if(test_case.enabled)                                       \
@@ -609,8 +608,11 @@ TEST_P(cls##_##pfx, compare_trees)                              \
         c4::dump(#cls "." #pfx ": no input for this case\n");   \
     }                                                           \
 }                                                               \
+                                                                \
+                                                                \
 TEST_P(cls##_##pfx, emit)                                       \
 {                                                               \
+    RYML_CHECK(g_suite_case != nullptr);                        \
     RYML_CHECK(GetParam() < NLEVELS);                           \
     auto &test_case = g_suite_case->cls.pfx;                    \
     if(test_case.enabled)                                       \
@@ -622,8 +624,11 @@ TEST_P(cls##_##pfx, emit)                                       \
         c4::dump(#cls "." #pfx ": no input for this case\n");   \
     }                                                           \
 }                                                               \
+                                                                \
+                                                                \
 TEST_P(cls##_##pfx, compare_emitted)                            \
 {                                                               \
+    RYML_CHECK(g_suite_case != nullptr);                        \
     RYML_CHECK(GetParam() < NLEVELS);                           \
     auto &test_case = g_suite_case->cls.pfx;                    \
     if(test_case.enabled)                                       \
@@ -658,6 +663,18 @@ DECLARE_TESTS(out_yaml)
 DECLARE_TESTS(in_json)
 DECLARE_TESTS(in_yaml)
 
+//-------------------------------------------
+// this is needed to use the test case library
+Case const* get_case(csubstr /*name*/)
+{
+    return nullptr;
+}
+
+} // namespace yml
+} // namespace c4
+
+
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -665,6 +682,8 @@ DECLARE_TESTS(in_yaml)
 
 int main(int argc, char* argv[])
 {
+    using namespace c4::yml;
+
     // make gtest parse its args
     ::testing::InitGoogleTest(&argc, argv);
 
@@ -720,15 +739,3 @@ int main(int argc, char* argv[])
 
     return status;
 }
-
-
-//-------------------------------------------
-// this is needed to use the test case library
-namespace c4 {
-namespace yml {
-Case const* get_case(csubstr /*name*/)
-{
-    return nullptr;
-}
-} // namespace yml
-} // namespace c4

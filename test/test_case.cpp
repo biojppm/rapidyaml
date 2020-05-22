@@ -830,8 +830,19 @@ CaseData* get_data(csubstr name)
     {
         cd = &m[name];
         Case const* c = get_case(name);
-        cd->src_buf.assign(c->src.begin(), c->src.end());
-        cd->src.assign(cd->src_buf.data(), cd->src_buf.size());
+        RYML_CHECK(c->src.find("\n\r") == csubstr::npos);
+        {
+            std::string tmp;
+            replace_all("\r", "", c->src, &tmp);
+            cd->unix_style.src_buf.assign(tmp.begin(), tmp.end());
+            cd->unix_style.src = to_substr(cd->unix_style.src_buf);
+        }
+        {
+            std::string tmp;
+            replace_all("\n", "\r\n", cd->unix_style.src, &tmp);
+            cd->windows_style.src_buf.assign(tmp.begin(), tmp.end());
+            cd->windows_style.src = to_substr(cd->windows_style.src_buf);
+        }
     }
     else
     {

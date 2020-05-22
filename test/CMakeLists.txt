@@ -8,7 +8,7 @@ c4_add_executable(ryml-parse-emit
 c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
     SOURCES test_case.hpp test_case.cpp libyaml.hpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${ryml_yaml_cpp_inc}
-    LIBS ryml c4fs yaml yaml-cpp gtest gtest_main
+    LIBS ryml c4fs yaml yaml-cpp gtest
     FOLDER test)
 if(RYML_DBG)
     target_compile_definitions(ryml-_testlib PUBLIC RYML_DBG)
@@ -28,7 +28,7 @@ function(ryml_add_test test_name)
     set(t ryml-test-${test_name})
     c4_add_executable(${t}
         SOURCES ${test_name}.cpp
-        LIBS ${ARGN} ryml yaml-cpp ryml-_testlib yaml-cpp ryml # FRAGILE! see the NOTE above
+        LIBS ${ARGN} ryml yaml-cpp ryml-_testlib yaml-cpp ryml gtest_main # FRAGILE! see the NOTE above
         FOLDER test)
     if(RYML_DBG)
         target_compile_definitions(${t} PRIVATE RYML_DBG)
