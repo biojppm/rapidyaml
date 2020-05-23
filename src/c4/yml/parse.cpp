@@ -2886,6 +2886,8 @@ csubstr Parser::_scan_quoted_scalar(const char q)
     if(s.begins_with(' '))
     {
         s = s.triml(' ');
+        RYML_ASSERT(m_buf.sub(b).contains(s));
+        RYML_ASSERT(s.begin() >= m_buf.sub(b).begin());
         _line_progressed((size_t)(s.begin() - m_buf.sub(b).begin()));
     }
     b = m_state->pos.offset; // take this into account
@@ -2908,9 +2910,9 @@ csubstr Parser::_scan_quoted_scalar(const char q)
             for(size_t i = 0; i < line.len; ++i)
             {
                 const char curr = line.str[i];
-                const char next = i+1 < line.len ? line.str[i+1] : '~';
                 if(curr == '\'') // single quotes are escaped with two single quotes
                 {
+                    const char next = i+1 < line.len ? line.str[i+1] : '~';
                     if(next != '\'') // so just look for the first quote
                     {                // without another after it
                         pos = i;
@@ -2934,7 +2936,7 @@ csubstr Parser::_scan_quoted_scalar(const char q)
             for(size_t i = 0; i < line.len; ++i)
             {
                 const char curr = line.str[i];
-                const char next = i+1 < line.len ? line.str[i+1] : '~';
+                _c4dbgpf("sdqs: i=%zu curr=%c so far=~~%.*s~~", i, curr, _c4prsp(line.first(i)));
                 if(curr != ' ')
                 {
                     line_is_blank = false;
@@ -2942,6 +2944,7 @@ csubstr Parser::_scan_quoted_scalar(const char q)
                 // every \ is an escape
                 if(curr == '\\')
                 {
+                    const char next = i+1 < line.len ? line.str[i+1] : '~';
                     needs_filter = true;
                     if(next == '"' || next == '\\')
                     {
@@ -2957,7 +2960,10 @@ csubstr Parser::_scan_quoted_scalar(const char q)
         }
 
         // leading whitespace also needs filtering
-        needs_filter = needs_filter || line_is_blank || (_at_line_begin() && line.begins_with(' '));
+        needs_filter = needs_filter
+            || line_is_blank
+            || (_at_line_begin() && line.begins_with(' '))
+            || (m_state->line_contents.full.last_of('\r') != csubstr::npos);
 
         if(pos == npos)
         {
@@ -3339,13 +3345,10 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
 
     substr r = s;
 
-    if(indentation > 0)
+    r = _filter_whitespace(s, indentation, /*leading whitespace*/false);
+    if(r.begins_with(' ', indentation))
     {
-        r = _filter_whitespace(s, indentation, /*leading whitespace*/false);
-        if(r.begins_with(' ', indentation))
-        {
-            r = r.erase(0, indentation);
-        }
+        r = r.erase(0, indentation);
     }
 
     _c4dbgpf("filtering block: after whitespace='%.*s'", _c4prsp(r));
