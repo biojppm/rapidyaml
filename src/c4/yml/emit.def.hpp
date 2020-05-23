@@ -4,6 +4,7 @@
 #ifndef _C4_YML_EMIT_HPP_
 #include "./emit.hpp"
 #endif
+#include "./detail/parser_dbg.hpp"
 
 namespace c4 {
 namespace yml {
@@ -273,8 +274,11 @@ void Emitter<Writer>::_write_scalar_block(csubstr s, size_t ilevel, bool as_key)
     {
         this->Writer::_do_write("? ");
     }
-    csubstr trimmed = s.trimr("\r\n");
-    size_t numnewlines_at_end = s.sub(trimmed.len).count('\n');
+    RYML_ASSERT(s.find("\r") == csubstr::npos);
+    csubstr trimmed = s.trimr(" \t\n");
+    RYML_ASSERT(trimmed.len <= s.len);
+    size_t numnewlines_at_end = s.len - trimmed.len;
+    _c4dbgpf("numnl=%zu s=[%zu]'%.*s' trimmed=[%zu]'%.*s'", numnewlines_at_end, s.len, _c4prsp(s), trimmed.len, _c4prsp(trimmed));
     if(numnewlines_at_end == 0)
     {
         this->Writer::_do_write("|-\n");
@@ -288,6 +292,7 @@ void Emitter<Writer>::_write_scalar_block(csubstr s, size_t ilevel, bool as_key)
         this->Writer::_do_write("|+\n");
         if(!as_key)
         {
+            RYML_ASSERT(s.back() == '\n');
             s = s.offs(0, 1); // do not write the last newline
         }
     }
@@ -307,7 +312,6 @@ void Emitter<Writer>::_write_scalar_block(csubstr s, size_t ilevel, bool as_key)
     }
     if(pos < s.len)
     {
-        RYML_ASSERT(numnewlines_at_end == 0);
         csubstr sub = s.sub(pos);
         this->Writer::_do_write(sub);
     }

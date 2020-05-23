@@ -3117,9 +3117,9 @@ csubstr Parser::_scan_block()
 //-----------------------------------------------------------------------------
 csubstr Parser::_filter_plain_scalar(substr s, size_t indentation)
 {
-    _c4dbgpf("filtering plain scalar: before='%.*s'", _c4prsp(s));
+    _c4dbgpf("filtering plain scalar: indentation=%zu before='%.*s'", indentation, _c4prsp(s));
 
-    // do a first sweep to clean leading whitespace
+    // do a first sweep to clean leading whitespace from the indentation
     substr r = _filter_whitespace(s, indentation);
 
     // now another sweep for newlines
@@ -3127,13 +3127,13 @@ csubstr Parser::_filter_plain_scalar(substr s, size_t indentation)
     {
         const char curr = r[i];
         const char next = i+1 < r.len ? r[i+1] : '\0';
+        RYML_ASSERT(curr != '\r' && next != '\r');
         if(curr == '\n')
         {
-            _c4dbgpf("looked at: '%.*s'", _c4prsp(r.first(i)));
+            _c4dbgpf("filtering plain scalar: i=%zu: looked at: '%.*s'", i, _c4prsp(r.first(i)));
             if(next != '\n')
             {
                 _c4dbgpf("filtering plain scalar: filter single newline at %zu", i);
-                RYML_ASSERT(next != '\r');
                 if(i + 1 < r.len)
                 {
                     r[i] = ' '; // a single unix newline: turn it into a space
@@ -3159,6 +3159,11 @@ csubstr Parser::_filter_plain_scalar(substr s, size_t indentation)
                 RYML_ASSERT(nl > 0);
                 i += nl; // and skip the rest
             }
+        }
+        else if(curr == '\r')
+        {
+            _c4dbgpf("filtering plain scalar: i=%zu: removing carriage return \\r", i);
+            r = r.erase(i, 1);
         }
     }
 
@@ -3282,51 +3287,43 @@ csubstr Parser::_filter_dquot_scalar(substr s)
 }
 
 //-----------------------------------------------------------------------------
+/** @p leading_whitespace when true, remove every leading spaces from the
+ * beginning of each line */
 substr Parser::_filter_whitespace(substr r, size_t indentation, bool leading_whitespace)
 {
-    _c4dbgpf("filtering whitespace: before=\"%.*s\"", _c4prsp(r));
+    _c4dbgpf("filtering whitespace: indentation=%zu leading=%d before=\"%.*s\"", indentation, leading_whitespace, _c4prsp(r));
 
     for(size_t i = 0; i < r.len; ++i)
     {
         const char curr = r[i];
         const char prev = i   > 0     ? r[i-1] : '\0';
-        const char next = i+1 < r.len ? r[i+1] : '\0';
         if(curr == ' ' && prev == '\n')
         {
-            if(next == ' ')
+            _c4dbgpf("filtering whitespace: removing indentation i=%zu len=%zu. curr=~%.*s~", i, r.len, _c4prsp(r.first(i)));
+            csubstr ss = r.sub(i);
+            ss = ss.left_of(ss.first_not_of(' '));
+            RYML_ASSERT(ss.len >= 1);
+            size_t num = ss.len;
+            // RYML_ASSERT(num >= indentation); // empty lines are allowed
+            _c4dbgpf("                    : line has %zu spaces", num);
+            if(leading_whitespace)
             {
-                csubstr ss = r.sub(i);
-                ss = ss.left_of(ss.first_not_of(' '));
-                RYML_ASSERT(ss.len > 1);
-                size_t num = ss.len;
-                // RYML_ASSERT(num >= indentation); // empty lines are allowed
-                if(indentation)
-                {
-                    num = num < indentation ? num : indentation;
-                }
-                if(leading_whitespace)
-                {
-                    num = ss.len;
-                }
-                r = r.erase(i, num);
+                num = ss.len;
             }
-            else
+            else if(indentation != csubstr::npos)
             {
-                r = r.erase(i, 1);
+                num = num < indentation ? num : indentation;
             }
+            _c4dbgpf("                    : removing %zu spaces", num);
+            r = r.erase(i, num);
+            if(i < r.len && r[i] != ' ') --i; // i is incremented on the next iteration
         }
         // erase \r --- https://stackoverflow.com/questions/1885900
-        else if(curr == '\r' && next == '\n') // this is the right order
-        {
-            r = r.erase(i, 1);
-        }
-        else if(curr == '\n' && next == '\r') // this is the wrong order
-        {
-            r = r.erase(i+1, 1);
-        }
         else if(curr == '\r')
         {
-            r[i] = '\n'; // use only \n
+            _c4dbgpf("filtering whitespace: remove \\r: i=%zu len=%zu. curr=~%.*s~", i, r.len, _c4prsp(r.first(i)));
+            r = r.erase(i, 1);
+            --i; // i is incremented on the next iteration
         }
     }
 
@@ -3353,13 +3350,17 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
 
     _c4dbgpf("filtering block: after whitespace='%.*s'", _c4prsp(r));
 
+    RYML_ASSERT(r.find('\r') == csubstr::npos); // filter whitespace must remove this
+
     switch(chomp)
     {
-    case CHOMP_KEEP: // nothing to do
+    case CHOMP_KEEP: // nothing to do, keep everything
+        _c4dbgpf("filtering block: chomp=KEEP (+)");
         break;
-    case CHOMP_STRIP: // strip everything
+    case CHOMP_STRIP: // strip all newlines from the end
     {
-        auto pos = r.last_not_of("\r\n");
+        _c4dbgpf("filtering block: chomp=STRIP (-)");
+        auto pos = r.last_not_of("\n");
         if(pos != npos)
         {
             r = r.left_of(pos, /*include_pos*/true);
@@ -3368,22 +3369,17 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
     }
     case CHOMP_CLIP: // clip to a single newline
     {
-        auto pos = r.last_not_of("\r\n");
+        _c4dbgpf("filtering block: chomp=CLIP");
+        auto pos = r.last_not_of("\n");
         if(pos != npos && pos+1 < r.len)
         {
             ++pos;
-            if(r[pos] == '\r') // deal with \r\n sequences
-            {
-                RYML_ASSERT(pos+1 < s.len);
-                ++pos;
-                RYML_ASSERT(r[pos] == '\n');
-            }
             r = r.left_of(pos, /*include_pos*/true);
         }
         break;
     }
-    //default:
-    //    _c4err("unknown chomp style");
+    default:
+        _c4err("unknown chomp style");
     }
 
     _c4dbgpf("filtering block: after chomp='%.*s'", _c4prsp(r));
@@ -3394,7 +3390,7 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
         break;
     case BLOCK_FOLD:
         {
-            auto pos = r.last_not_of("\r\n"); // do not fold trailing newlines
+            auto pos = r.last_not_of('\n'); // do not fold trailing newlines
             if((pos != npos) && (pos < r.len))
             {
                 ++pos; // point pos at the first newline char
@@ -3402,18 +3398,25 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
                 for(size_t i = 0; i < t.len; ++i)
                 {
                     const char curr = t[i];
-                    //const char prev = i   > 0     ? t[i-1] : '\0';
-                    const char next = i+1 < t.len ? t[i+1] : '\0';
-                    if(curr == '\n')
+                    if(curr != '\n') continue;
+                    size_t nextl = t.first_not_of('\n', i+1);
+                    if(nextl == i+1)
                     {
-                        if(next != '\n')
-                        {
-                            t[i] = ' '; // a single unix newline: turn it into a space
-                        }
-                        else if(curr == '\n' && next == '\n')
-                        {
-                            t = t.erase(i+1, 1); // keep only one of consecutive newlines
-                        }
+                        _c4dbgpf("filtering block[fold]: %zu: single newline, replace with space. curr=~%.*s~", i, _c4prsp(r.first(i)));
+                        t[i] = ' ';
+                    }
+                    else if(nextl != csubstr::npos)
+                    {
+                        _c4dbgpf("filtering block[fold]: %zu: %zu newlines, remove first. curr=~%.*s~", i, nextl-1, _c4prsp(r.first(i)));
+                        RYML_ASSERT(nextl >= 1);
+                        t = t.erase(i, 1);
+                        i = nextl-1;
+                        if(i) --i;
+                    }
+                    else
+                    {
+                        _c4err("crl");
+                        break;
                     }
                 }
                 // copy over the trailing newlines
