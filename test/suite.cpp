@@ -387,17 +387,34 @@ struct Approach
  * with/without reuse. */
 struct Subject
 {
-    Approach ro;
-    Approach ro_reuse;
-    Approach rw;
-    Approach rw_reuse;
+    Approach unix_ro;
+    Approach unix_ro_reuse;
+    Approach unix_rw;
+    Approach unix_rw_reuse;
+
+    Approach windows_ro;
+    Approach windows_ro_reuse;
+    Approach windows_rw;
+    Approach windows_rw_reuse;
+
+    std::string unix_src;
+    std::string windows_src;
 
     void init(c4::csubstr filename, c4::csubstr src, CasePart_e case_part, AllowedFailure af)
     {
-        ro      .init(filename, src, /*immutable*/true , /*reuse*/false, case_part, af);
-        ro_reuse.init(filename, src, /*immutable*/true , /*reuse*/true , case_part, af);
-        rw      .init(filename, src, /*immutable*/false, /*reuse*/false, case_part, af);
-        rw_reuse.init(filename, src, /*immutable*/false, /*reuse*/true , case_part, af);
+        src = replace_all("\r", "", src, &unix_src);
+
+        unix_ro      .init(filename, src, /*immutable*/true , /*reuse*/false, case_part, af);
+        unix_ro_reuse.init(filename, src, /*immutable*/true , /*reuse*/true , case_part, af);
+        unix_rw      .init(filename, src, /*immutable*/false, /*reuse*/false, case_part, af);
+        unix_rw_reuse.init(filename, src, /*immutable*/false, /*reuse*/true , case_part, af);
+
+        src = replace_all("\n", "\r\n", src, &windows_src);
+
+        windows_ro      .init(filename, src, /*immutable*/true , /*reuse*/false, case_part, af);
+        windows_ro_reuse.init(filename, src, /*immutable*/true , /*reuse*/true , case_part, af);
+        windows_rw      .init(filename, src, /*immutable*/false, /*reuse*/false, case_part, af);
+        windows_rw_reuse.init(filename, src, /*immutable*/false, /*reuse*/true , case_part, af);
     }
 };
 
@@ -425,7 +442,7 @@ struct SuiteCase
 
     static c4::csubstr src(Subject const& s)
     {
-        return c4::to_csubstr(s.ro.levels[0].src);
+        return c4::to_csubstr(s.unix_ro.levels[0].src);
     }
 
     /** loads the several types of tests from an input test suite
@@ -639,17 +656,25 @@ TEST_P(cls##_##pfx, compare_emitted)                            \
 /**/
 
 
-#define DECLARE_TESTS(cls) \
-\
-DECLARE_TEST_CLASS(cls, ro)\
-DECLARE_TEST_CLASS(cls, rw)\
-DECLARE_TEST_CLASS(cls, ro_reuse)\
-DECLARE_TEST_CLASS(cls, rw_reuse)\
-\
-INSTANTIATE_TEST_SUITE_P(_, cls##_ro      , testing::Range<size_t>(0, NLEVELS));\
-INSTANTIATE_TEST_SUITE_P(_, cls##_rw      , testing::Range<size_t>(0, NLEVELS));\
-INSTANTIATE_TEST_SUITE_P(_, cls##_ro_reuse, testing::Range<size_t>(0, NLEVELS));\
-INSTANTIATE_TEST_SUITE_P(_, cls##_rw_reuse, testing::Range<size_t>(0, NLEVELS));
+#define DECLARE_TESTS(cls)                                              \
+                                                                        \
+DECLARE_TEST_CLASS(cls, unix_ro)                                        \
+DECLARE_TEST_CLASS(cls, unix_rw)                                        \
+DECLARE_TEST_CLASS(cls, unix_ro_reuse)                                  \
+DECLARE_TEST_CLASS(cls, unix_rw_reuse)                                  \
+DECLARE_TEST_CLASS(cls, windows_ro)                                     \
+DECLARE_TEST_CLASS(cls, windows_rw)                                     \
+DECLARE_TEST_CLASS(cls, windows_ro_reuse)                               \
+DECLARE_TEST_CLASS(cls, windows_rw_reuse)                               \
+                                                                        \
+INSTANTIATE_TEST_SUITE_P(_, cls##_unix_ro      , testing::Range<size_t>(0, NLEVELS)); \
+INSTANTIATE_TEST_SUITE_P(_, cls##_unix_rw      , testing::Range<size_t>(0, NLEVELS)); \
+INSTANTIATE_TEST_SUITE_P(_, cls##_unix_ro_reuse, testing::Range<size_t>(0, NLEVELS)); \
+INSTANTIATE_TEST_SUITE_P(_, cls##_unix_rw_reuse, testing::Range<size_t>(0, NLEVELS)); \
+INSTANTIATE_TEST_SUITE_P(_, cls##_windows_ro      , testing::Range<size_t>(0, NLEVELS)); \
+INSTANTIATE_TEST_SUITE_P(_, cls##_windows_rw      , testing::Range<size_t>(0, NLEVELS)); \
+INSTANTIATE_TEST_SUITE_P(_, cls##_windows_ro_reuse, testing::Range<size_t>(0, NLEVELS)); \
+INSTANTIATE_TEST_SUITE_P(_, cls##_windows_rw_reuse, testing::Range<size_t>(0, NLEVELS));
 
 
 DECLARE_TESTS(out_yaml)
@@ -657,6 +682,8 @@ DECLARE_TESTS(out_yaml)
 DECLARE_TESTS(in_json)
 DECLARE_TESTS(in_yaml)
 
+
+//-------------------------------------------
 //-------------------------------------------
 // this is needed to use the test case library
 Case const* get_case(csubstr /*name*/)
