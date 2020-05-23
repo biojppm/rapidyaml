@@ -87,18 +87,22 @@ install:
   - cmake --version
 
 build_script:
-  - md _build -Force
-  - cd _build
-
-test_script:
+  - md _build_static
+  - md _build_shared
+  - md _extern
   - echo %generator%
   - echo %genarch%
   - echo %configuration%
-  - cmake -DRYML_DEV=ON -G "%generator%" %genarch% "-DCMAKE_BUILD_TYPE=%configuration%" "-DCMAKE_INSTALL_PREFIX=../_install" ..
-  - dir
-  - dir test
-  - cmake --build . --config %configuration% --target test
-  #- ctest -c %configuration% --timeout 300 --output-on-failure
+  - set C4_EXTERN_DIR=_extern
+  - set NUM_JOBS=3
+  - cmake -S .. -B _build_static -DRYML_DEV=ON -DRYML_TEST_SUITE=ON -G "%generator%" %genarch% "-DCMAKE_BUILD_TYPE=%configuration%" "-DCMAKE_INSTALL_PREFIX=../_install_static" -DBUILD_SHARED_LIBS=OFF
+  - cmake -S .. -B _build_shared -DRYML_DEV=ON -DRYML_TEST_SUITE=ON -G "%generator%" %genarch% "-DCMAKE_BUILD_TYPE=%configuration%" "-DCMAKE_INSTALL_PREFIX=../_install_shared" -DBUILD_SHARED_LIBS=ON
+  - cmake --build _build_static --config %configuration% --target test-build --parallel %NUM_JOBS%
+  - cmake --build _build_static --config %configuration% --target test-build --parallel %NUM_JOBS%
+
+test_script:
+  - cmake --build _build_shared --config %configuration% --target test
+  - cmake --build _build_shared --config %configuration% --target test
 
 artifacts:
   - path: '_build/CMakeFiles/*.log'
