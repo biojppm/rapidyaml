@@ -3358,11 +3358,11 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
     switch(chomp)
     {
     case CHOMP_KEEP: // nothing to do, keep everything
-        _c4dbgpf("filtering block: chomp=KEEP (+)");
+        _c4dbgp("filtering block: chomp=KEEP (+)");
         break;
     case CHOMP_STRIP: // strip all newlines from the end
     {
-        _c4dbgpf("filtering block: chomp=STRIP (-)");
+        _c4dbgp("filtering block: chomp=STRIP (-)");
         auto pos = r.last_not_of("\n");
         if(pos != npos)
         {
@@ -3372,7 +3372,7 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
     }
     case CHOMP_CLIP: // clip to a single newline
     {
-        _c4dbgpf("filtering block: chomp=CLIP");
+        _c4dbgp("filtering block: chomp=CLIP");
         auto pos = r.last_not_of("\n");
         if(pos != npos && pos+1 < r.len)
         {
