@@ -129,7 +129,7 @@ if(RYML_TEST_SUITE)
     set(tsdir ${ed}/yaml-test-suite)
     c4_download_remote_proj(yaml-test-suite tsdir
         GIT_REPOSITORY https://github.com/yaml/yaml-test-suite
-        GIT_TAG master)
+        GIT_TAG ed99dd31187f00d729fe160a7658f6f29c08f80b) #master)
     set(suite_dir ${tsdir}/test)
     if(NOT EXISTS ${suite_dir})
         c4_err("cannot find yaml-test-suite at ${suite_dir} -- was there an error downloading the project?")
