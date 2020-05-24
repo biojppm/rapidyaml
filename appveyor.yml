@@ -87,24 +87,30 @@ install:
   - cmake --version
 
 build_script:
-  - md _build -Force
-  - cd _build
-
-test_script:
   - echo %generator%
   - echo %genarch%
   - echo %configuration%
-  - cmake -DRYML_DEV=ON -G "%generator%" %genarch% "-DCMAKE_BUILD_TYPE=%configuration%" "-DCMAKE_INSTALL_PREFIX=../_install" ..
-  - dir
-  - dir test
-  - cmake --build . --config %configuration% --target test
-  #- ctest -c %configuration% --timeout 300 --output-on-failure
+  - set NUM_JOBS=3
+  - set PROJ_DIR=%cd%
+  - set BUILD_DIR=%PROJ_DIR%\build
+  - set INSTALL_DIR=%PROJ_DIR%\install
+  - set C4_EXTERN_DIR=%BUILD_DIR%\extern
+  - md %BUILD_DIR%
+  - md %BUILD_DIR%\static %BUILD_DIR%\shared %BUILD_DIR%\extern
+  - cmake -S %PROJ_DIR% -B %BUILD_DIR%/static -DRYML_DEV=ON -DRYML_TEST_SUITE=ON -G "%generator%" %genarch% "-DCMAKE_BUILD_TYPE=%configuration%" "-DCMAKE_INSTALL_PREFIX=%INSTALL_DIR%/static" -DBUILD_SHARED_LIBS=OFF
+  #- cmake -S %PROJ_DIR% -B %BUILD_DIR%/shared -DRYML_DEV=ON -DRYML_TEST_SUITE=ON -G "%generator%" %genarch% "-DCMAKE_BUILD_TYPE=%configuration%" "-DCMAKE_INSTALL_PREFIX=%INSTALL_DIR%/shared" -DBUILD_SHARED_LIBS=ON
+  - cmake --build %BUILD_DIR%/static --config %configuration% --target test-build --parallel %NUM_JOBS%
+  #- cmake --build %BUILD_DIR%/shared --config %configuration% --target test-build --parallel %NUM_JOBS%
+
+test_script:
+  - cmake --build %BUILD_DIR%\static --config %configuration% --target test
+  #- cmake --build %BUILD_DIR%\shared --config %configuration% --target test
 
 artifacts:
-  - path: '_build/CMakeFiles/*.log'
-    name: logs
-  - path: '_build/Testing/**/*.xml'
-    name: test_results
+  #- path: '%BUILD_DIR%/static/CMakeFiles/*.log'
+  #  name: logs
+  #- path: '%BUILD_DIR%/static/Testing/**/*.xml'
+  #  name: test_results
 
 skip_commits:
   files:

@@ -1238,7 +1238,7 @@ void Tree::to_val(size_t node, csubstr const& val, type_bits more_flags)
 void Tree::to_keyval(size_t node, csubstr const& key, csubstr const& val, type_bits more_flags)
 {
     RYML_ASSERT( ! has_children(node));
-    //RYML_ASSERT( ! key.empty());
+    //RYML_ASSERT( ! key.empty());  // this is valid
     RYML_ASSERT(parent(node) == NONE || parent_is_map(node));
     _set_flags(node, KEYVAL|more_flags);
     _p(node)->m_key = key;
@@ -1257,7 +1257,7 @@ void Tree::to_map(size_t node, type_bits more_flags)
 void Tree::to_map(size_t node, csubstr const& key, type_bits more_flags)
 {
     RYML_ASSERT( ! has_children(node));
-    RYML_ASSERT( ! key.empty());
+    //RYML_ASSERT( ! key.empty());  // this is valid
     RYML_ASSERT(parent(node) == NONE || parent_is_map(node));
     _set_flags(node, KEY|MAP|more_flags);
     _p(node)->m_key = key;

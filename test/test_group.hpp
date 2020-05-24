@@ -45,6 +45,17 @@ struct YmlTestCase : public ::testing::TestWithParam<const char*>
         std::cout << "running test case '" << name << "'\n";
         std::cout << "-------------------------------------------\n";
     }
+
+    void _test_parse_using_ryml(CaseDataLineEndings *cd);
+    void _test_emit_yml_stdout(CaseDataLineEndings *cd);
+    void _test_emit_yml_cout(CaseDataLineEndings *cd);
+    void _test_emit_yml_stringstream(CaseDataLineEndings *cd);
+    void _test_emit_yml_ofstream(CaseDataLineEndings *cd);
+    void _test_emit_yml_string(CaseDataLineEndings *cd);
+    void _test_emitrs(CaseDataLineEndings *cd);
+    void _test_emitrs_cfile(CaseDataLineEndings *cd);
+    void _test_complete_round_trip(CaseDataLineEndings *cd);
+    void _test_recreate_from_ref(CaseDataLineEndings *cd);
 };
 
 

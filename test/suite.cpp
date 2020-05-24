@@ -13,6 +13,37 @@
 
 #include "test_case.hpp"
 
+namespace c4 {
+namespace yml {
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+// some utility functions, used below
+
+
+size_t find_first_after(size_t pos, std::initializer_list<size_t> candidates)
+{
+    size_t ret = npos;
+    for(size_t s : candidates)
+    {
+        if(s > pos && s < ret) ret = s;
+    }
+    return ret;
+}
+
+
+c4::csubstr filter_out_indentation(c4::csubstr src, std::string *dst)
+{
+    if( ! src.begins_with("    "))
+    {
+        dst->assign(src.begin(), src.end());
+        return c4::to_csubstr(*dst);
+    }
+    return replace_all("\n    ", "\n", src.sub(4), dst);
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -32,6 +63,10 @@
  * is named a processing level in this test. */
 
 
+// this is the number of processing levels
+#define NLEVELS 4
+
+
 typedef enum {
     CPART_NONE = 0,
     CPART_IN_YAML = 1 << 0,
@@ -42,6 +77,7 @@ typedef enum {
     CPART_ANY = CPART_ALL,
 } CasePart_e;
 constexpr CasePart_e operator| (CasePart_e lhs, CasePart_e rhs) noexcept { return (CasePart_e)((int)lhs|(int)rhs); }
+
 
 c4::csubstr to_csubstr(CasePart_e cp) noexcept
 {
@@ -60,6 +96,8 @@ struct AllowedFailure
     c4::csubstr test_code;
     CasePart_e contexts;
     c4::csubstr reason;
+    constexpr AllowedFailure() : test_code(), contexts(), reason() {}
+    constexpr AllowedFailure(c4::csubstr tc, CasePart_e ctx, c4::csubstr r) : test_code(tc), contexts(ctx), reason(r) {}
     bool skip() const { return skip(CPART_ALL); }
     bool skip(CasePart_e case_part) const
     {
@@ -79,75 +117,55 @@ struct AllowedFailure
 // don't forget to list these allowed failures in the repo's README.md,
 // under the section "Known limitations"
 constexpr const AllowedFailure g_allowed_failures[] = {
-    // g++5 refuses to construct csubstr from const char[], picks const char*
-    #define _(code, part_spec, desc) {{code}, part_spec, {desc}} // undefined below
-    _("3UYS", CPART_IN_YAML, "no need to escape the slash in \"a\\/b\""),
+    {"3UYS", CPART_IN_YAML, "no need to escape the slash in \"a\\/b\""},
     // malformed json
-    _("7Z25", CPART_IN_JSON, "malformed JSON from multiple documents"),
-    _("35KP", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents|TODO[hard]: \"d e\" plain scalar continuing on the next line with the same indentation]"),
-    _("6XDY", CPART_IN_JSON, "malformed JSON from multiple documents"),
-    _("6ZKB", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents|TODO[next]: document handling"),
-    _("9KAX", CPART_IN_JSON, "malformed JSON from multiple documents"),
-    _("9DXL", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents|TODO[next]: document handling"),
-    _("W4TN", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents|TODO[next]: document handling"),
-    // complex keys
-    _("4FJ6", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"),
-    _("6BFJ", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"),
-    _("6PBE", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"),
-    _("KK5P", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"),
-    _("LX3P", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"),
-    _("M5DY", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"),
-    _("Q9WF", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"),
-    _("XW4D", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"),
+    {"35KP", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents|TODO[hard]: \"d e\" plain scalar continuing on the next line with the same indentation]"},
+    {"6XDY", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"6ZKB", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents|TODO[next]: document handling"},
+    {"7Z25", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"9DXL", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents|TODO[next]: document handling"},
+    {"9KAX", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"JHB9", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"KSS4", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"RZT7", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"U9NS", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"W4TN", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    // we do not accept container keys
+    {"4FJ6", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
+    {"6BFJ", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
+    {"6PBE", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
+    {"KK5P", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
+    {"KZN9", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
+    {"LX3P", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
+    {"M5DY", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
+    {"Q9WF", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
+    {"SBG9", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
+    {"X38W", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
+    {"XW4D", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
 
     // TODO
-    _("5MUD", CPART_IN_YAML, "TODO[hard]"),
-    _("9WXW", CPART_ALL, "TODO[next]: document handling"),
-    _("M7A3", CPART_ALL, "TODO[next]: document handling/special tags in .tml file with test specs"),
-    _("735Y", CPART_IN_YAML, "TODO[next]: plain scalar parsing"),
-    _("7T8X", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: scalar block parsing"),
-    _("RZP5", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: plain scalar block parsing, anchors"),
-    _("FH7J", CPART_ALL, "TODO[next]: implicit keys"),
-    _("7W2P", CPART_IN_YAML, "TODO[next]: implicit key/explicit key"),
-    _("PW8X", CPART_ALL, "TODO[next]: anchors with implicit key"),
-    _("CN3R", CPART_ALL, "TODO[next]: anchors + maps nested in seqs"),
-    _("6BCT", CPART_IN_YAML, "TODO[hard]: allow tabs after - or :"),
-    _("7ZZ5", CPART_ALL, "TODO[next]: nested sequences"),
-    _("G5U8", CPART_ALL, "TODO[next]: sequences with -"),
-    _("K858", CPART_OUT_YAML|CPART_IN_JSON, "TODO[next]: emitting block scalars is not idempotent"),
-    _("NAT4", CPART_IN_YAML|CPART_IN_JSON, "TODO[next]: emitting block scalars is not idempotent"),
-
-    _("82AN", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("87E4", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("8UDB", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("9MMW", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("9YRD", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("C2DT", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("CT4Q", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("DC7X", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("EX5H", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("EXG3", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("F6MC", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("F8F9", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("HS5T", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("JHB9", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("K3WX", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("KSS4", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("KZN9", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("L94M", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("L9U5", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("LQZ7", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("QF4Y", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("RZT7", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("SBG9", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("TS54", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("U9NS", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("UGM3", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("WZ62", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("X38W", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("XLQ9", CPART_ALL, "temporarily disabled pending further investigation"),
-    _("ZWK4", CPART_ALL, "temporarily disabled pending further investigation"),
-    #undef _
+    {"9WXW", CPART_ALL, "TODO[next]: document handling"},
+    {"EXG3", CPART_ALL, "TODO[next]: document handling"},
+    {"XLQ9", CPART_IN_YAML, "TODO[next]: document handling"},
+    {"M7A3", CPART_ALL, "TODO[next]: document handling/special tags in .tml file with test specs"},
+    {"735Y", CPART_IN_YAML, "TODO[next]: plain scalar parsing"},
+    {"82AN", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
+    {"9YRD", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
+    {"EX5H", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
+    {"HS5T", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
+    {"7T8X", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: scalar block parsing"},
+    {"RZP5", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: plain scalar block parsing, anchors"},
+    {"FH7J", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: implicit keys"},
+    {"PW8X", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: anchors with implicit key"},
+    {"CN3R", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: anchors + maps nested in seqs"},
+    {"6BCT", CPART_IN_YAML, "TODO[hard]: allow tabs after - or :"},
+    {"G5U8", CPART_ALL, "TODO[next]: sequences with -"},
+    {"K858", CPART_OUT_YAML|CPART_IN_JSON, "TODO[next]: emitting block scalars is not idempotent"},
+    {"NAT4", CPART_IN_YAML|CPART_IN_JSON, "TODO[next]: emitting block scalars is not idempotent"},
+    {"9MMW", CPART_IN_YAML, "TODO[next]: re the json/yaml incompatibility where a space is required after :"},
+    {"DC7X", CPART_IN_YAML, "TODO[next]: improve handling of tab characters"},
+    {"L94M", CPART_IN_YAML, "TODO[next]: bad emitting of tags"},
+    {"WZ62", CPART_IN_YAML, "TODO[next]: bad emitting of tags"},
 };
 
 
@@ -165,16 +183,6 @@ AllowedFailure is_failure_expected(c4::csubstr filename)
     }
     return {};
 }
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-#define NLEVELS 4   // this is the number of processing levels
-
-enum : size_t { npos = c4::csubstr::npos };
-
 
 
 //-----------------------------------------------------------------------------
@@ -312,9 +320,11 @@ struct ProcLevel
 struct Approach
 {
     ProcLevel levels[NLEVELS];
+    bool enabled = false;
 
     void init(c4::csubstr filename, c4::csubstr src, bool immutable_, bool reuse_, CasePart_e case_part, AllowedFailure af)
     {
+        enabled = true;
         for(auto &l : levels)
         {
             l.init(filename, src, immutable_, reuse_, case_part, af);
@@ -377,57 +387,36 @@ struct Approach
  * with/without reuse. */
 struct Subject
 {
-    Approach ro;
-    Approach ro_reuse;
-    Approach rw;
-    Approach rw_reuse;
+    Approach unix_ro;
+    Approach unix_ro_reuse;
+    Approach unix_rw;
+    Approach unix_rw_reuse;
+
+    Approach windows_ro;
+    Approach windows_ro_reuse;
+    Approach windows_rw;
+    Approach windows_rw_reuse;
+
+    std::string unix_src;
+    std::string windows_src;
 
     void init(c4::csubstr filename, c4::csubstr src, CasePart_e case_part, AllowedFailure af)
     {
-        ro      .init(filename, src, /*immutable*/true , /*reuse*/false, case_part, af);
-        ro_reuse.init(filename, src, /*immutable*/true , /*reuse*/true , case_part, af);
-        rw      .init(filename, src, /*immutable*/false, /*reuse*/false, case_part, af);
-        rw_reuse.init(filename, src, /*immutable*/false, /*reuse*/true , case_part, af);
+        src = replace_all("\r", "", src, &unix_src);
+
+        unix_ro      .init(filename, src, /*immutable*/true , /*reuse*/false, case_part, af);
+        unix_ro_reuse.init(filename, src, /*immutable*/true , /*reuse*/true , case_part, af);
+        unix_rw      .init(filename, src, /*immutable*/false, /*reuse*/false, case_part, af);
+        unix_rw_reuse.init(filename, src, /*immutable*/false, /*reuse*/true , case_part, af);
+
+        src = replace_all("\n", "\r\n", src, &windows_src);
+
+        windows_ro      .init(filename, src, /*immutable*/true , /*reuse*/false, case_part, af);
+        windows_ro_reuse.init(filename, src, /*immutable*/true , /*reuse*/true , case_part, af);
+        windows_rw      .init(filename, src, /*immutable*/false, /*reuse*/false, case_part, af);
+        windows_rw_reuse.init(filename, src, /*immutable*/false, /*reuse*/true , case_part, af);
     }
 };
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-// some utility functions, used below
-
-c4::csubstr replace_all(c4::csubstr pattern, c4::csubstr repl, c4::csubstr subject, std::string *dst)
-{
-    dst->clear();
-    size_t b = 0;
-    do {
-        RYML_CHECK(b <= subject.len);
-        size_t e = subject.find(pattern, b);
-        RYML_CHECK(e < subject.len || e == npos);
-        if(e == npos && b < subject.len)
-        {
-            dst->append(&subject[b], subject.end());
-            break;
-        }
-        dst->append(&subject[b], &subject[e]);
-        dst->append(repl.begin(), repl.end());
-        b = e + pattern.size();
-    } while(b != npos && b < subject.len);
-
-    return c4::to_csubstr(*dst);
-}
-
-
-size_t find_first_after(size_t pos, std::initializer_list<size_t> candidates)
-{
-    size_t ret = npos;
-    for(size_t s : candidates)
-    {
-        if(s > pos && s < ret) ret = s;
-    }
-    return ret;
-}
 
 
 //-----------------------------------------------------------------------------
@@ -446,7 +435,6 @@ struct SuiteCase
     c4::csubstr from;
     c4::csubstr tags;
 
-    std::string in_yaml_filtered;
     Subject     in_yaml;
     Subject     in_json;
     Subject     out_yaml;
@@ -454,7 +442,7 @@ struct SuiteCase
 
     static c4::csubstr src(Subject const& s)
     {
-        return c4::to_csubstr(s.ro.levels[0].src);
+        return c4::to_csubstr(s.unix_ro.levels[0].src);
     }
 
     /** loads the several types of tests from an input test suite
@@ -501,6 +489,7 @@ struct SuiteCase
             c4::log("{}: test case tagged with error: {}:\n{}\n", filename, tags, contents);
             return false; // tagged with error. skip this test.
         }
+        bool has_whitespace = tags.find("whitespace");
 
         size_t end_tags        = e;
         size_t begin_in_yaml   = contents.find("--- in-yaml"   , end_tags);
@@ -508,7 +497,18 @@ struct SuiteCase
         size_t begin_out_yaml  = contents.find("--- out-yaml"  , end_tags);
         size_t begin_emit_yaml = contents.find("--- emit-yaml" , end_tags);
         size_t begin_events    = contents.find("--- test-event", end_tags);
-        std::initializer_list<size_t> all = {begin_in_yaml, begin_in_json, begin_out_yaml, begin_emit_yaml, begin_events, contents.size()};
+        std::initializer_list<size_t> all = {
+            begin_in_yaml,
+            begin_in_json,
+            begin_out_yaml,
+            begin_emit_yaml,
+            begin_events,
+            contents.size()
+        };
+
+        // some of the examples have their code indented
+        std::string tmpa;
+        std::string tmpb;
 
         // in_yaml
         RYML_CHECK(begin_in_yaml != npos);
@@ -516,6 +516,12 @@ struct SuiteCase
         begin_in_yaml = 1 + contents.find('\n', begin_in_yaml); // skip this line
         txt = contents.range(begin_in_yaml, first_after_in_yaml);
         RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
+        txt = filter_out_indentation(txt, &tmpa);
+        if(has_whitespace)
+        {
+            txt = replace_all("<SPC>", " ", txt, &tmpb);
+            txt = replace_all("<TAB>", "\t", txt, &tmpa);
+        }
         in_yaml.init(filename, txt, CPART_IN_YAML, allowed_failure);
 
         // in_json
@@ -536,6 +542,7 @@ struct SuiteCase
             begin_out_yaml = 1 + contents.find('\n', begin_out_yaml); // skip this line
             txt = contents.range(begin_out_yaml, first_after_out_yaml);
             RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
+            txt = filter_out_indentation(txt, &tmpa);
             out_yaml.init(filename, txt, CPART_OUT_YAML, allowed_failure);
         }
 
@@ -543,16 +550,9 @@ struct SuiteCase
         RYML_CHECK(begin_events != npos);
         //size_t first_after_events = find_first_after(begin_events, all);
         begin_events = 1 + contents.find('\n', begin_events); // skip this line
-        c4::csubstr src_events = contents.sub(begin_events);
-        RYML_CHECK( ! src_events.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
-        events.init(filename, src_events, CPART_EVENTS, allowed_failure);
-
-        // filter
-        if(tags.find("whitespace") != npos)
-        {
-            c4::csubstr filtered = replace_all("<SPC>", " ", src(in_yaml), &in_yaml_filtered);
-            in_yaml.init(filename, filtered, CPART_IN_YAML, allowed_failure);
-        }
+        txt = contents.sub(begin_events);
+        RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
+        events.init(filename, txt, CPART_EVENTS, allowed_failure);
 
         return true;
     }
@@ -576,50 +576,105 @@ struct SuiteCase
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+
 // a global holding the test case data
 SuiteCase* g_suite_case = nullptr;
 
 
 #define DECLARE_TEST_CLASS(cls, pfx)                            \
                                                                 \
-class cls##_##pfx : public ::testing::TestWithParam<size_t> {}; \
+                                                                \
+class cls##_##pfx : public ::testing::TestWithParam<size_t>     \
+{                                                               \
+};                                                              \
+                                                                \
                                                                 \
 TEST_P(cls##_##pfx, parse)                                      \
 {                                                               \
+    RYML_CHECK(g_suite_case != nullptr);                        \
     RYML_CHECK(GetParam() < NLEVELS);                           \
-    g_suite_case->cls.pfx.parse(1 + GetParam(), false);         \
+    auto &test_case = g_suite_case->cls.pfx;                    \
+    if(test_case.enabled)                                       \
+    {                                                           \
+        test_case.parse(1 + GetParam(), false);                 \
+    }                                                           \
+    else                                                        \
+    {                                                           \
+        c4::dump(#cls "." #pfx ": no input for this case\n");   \
+    }                                                           \
 }                                                               \
+                                                                \
+                                                                \
 TEST_P(cls##_##pfx, compare_trees)                              \
 {                                                               \
+    RYML_CHECK(g_suite_case != nullptr);                        \
     RYML_CHECK(GetParam() < NLEVELS);                           \
-    g_suite_case->cls.pfx.compare_trees(1 + GetParam());        \
+    auto &test_case = g_suite_case->cls.pfx;                    \
+    if(test_case.enabled)                                       \
+    {                                                           \
+        test_case.compare_trees(1 + GetParam());                \
+    }                                                           \
+    else                                                        \
+    {                                                           \
+        c4::dump(#cls "." #pfx ": no input for this case\n");   \
+    }                                                           \
 }                                                               \
+                                                                \
+                                                                \
 TEST_P(cls##_##pfx, emit)                                       \
 {                                                               \
+    RYML_CHECK(g_suite_case != nullptr);                        \
     RYML_CHECK(GetParam() < NLEVELS);                           \
-    g_suite_case->cls.pfx.parse(1 + GetParam(), true);          \
+    auto &test_case = g_suite_case->cls.pfx;                    \
+    if(test_case.enabled)                                       \
+    {                                                           \
+        test_case.parse(1 + GetParam(), true);                  \
+    }                                                           \
+    else                                                        \
+    {                                                           \
+        c4::dump(#cls "." #pfx ": no input for this case\n");   \
+    }                                                           \
 }                                                               \
+                                                                \
+                                                                \
 TEST_P(cls##_##pfx, compare_emitted)                            \
 {                                                               \
+    RYML_CHECK(g_suite_case != nullptr);                        \
     RYML_CHECK(GetParam() < NLEVELS);                           \
-    g_suite_case->cls.pfx.compare_emitted(1 + GetParam());      \
+    auto &test_case = g_suite_case->cls.pfx;                    \
+    if(test_case.enabled)                                       \
+    {                                                           \
+        test_case.compare_emitted(1 + GetParam());              \
+    }                                                           \
+    else                                                        \
+    {                                                           \
+        c4::dump(#cls "." #pfx ": no input for this case\n");   \
+    }                                                           \
 }                                                               \
 /**/                                                            \
 /**/                                                            \
 /**/
 
 
-#define DECLARE_TESTS(cls) \
-\
-DECLARE_TEST_CLASS(cls, ro)\
-DECLARE_TEST_CLASS(cls, rw)\
-DECLARE_TEST_CLASS(cls, ro_reuse)\
-DECLARE_TEST_CLASS(cls, rw_reuse)\
-\
-INSTANTIATE_TEST_SUITE_P(_, cls##_ro      , testing::Range<size_t>(0, NLEVELS));\
-INSTANTIATE_TEST_SUITE_P(_, cls##_rw      , testing::Range<size_t>(0, NLEVELS));\
-INSTANTIATE_TEST_SUITE_P(_, cls##_ro_reuse, testing::Range<size_t>(0, NLEVELS));\
-INSTANTIATE_TEST_SUITE_P(_, cls##_rw_reuse, testing::Range<size_t>(0, NLEVELS));
+#define DECLARE_TESTS(cls)                                              \
+                                                                        \
+DECLARE_TEST_CLASS(cls, unix_ro)                                        \
+DECLARE_TEST_CLASS(cls, unix_rw)                                        \
+DECLARE_TEST_CLASS(cls, unix_ro_reuse)                                  \
+DECLARE_TEST_CLASS(cls, unix_rw_reuse)                                  \
+DECLARE_TEST_CLASS(cls, windows_ro)                                     \
+DECLARE_TEST_CLASS(cls, windows_rw)                                     \
+DECLARE_TEST_CLASS(cls, windows_ro_reuse)                               \
+DECLARE_TEST_CLASS(cls, windows_rw_reuse)                               \
+                                                                        \
+INSTANTIATE_TEST_SUITE_P(_, cls##_unix_ro      , testing::Range<size_t>(0, NLEVELS)); \
+INSTANTIATE_TEST_SUITE_P(_, cls##_unix_rw      , testing::Range<size_t>(0, NLEVELS)); \
+INSTANTIATE_TEST_SUITE_P(_, cls##_unix_ro_reuse, testing::Range<size_t>(0, NLEVELS)); \
+INSTANTIATE_TEST_SUITE_P(_, cls##_unix_rw_reuse, testing::Range<size_t>(0, NLEVELS)); \
+INSTANTIATE_TEST_SUITE_P(_, cls##_windows_ro      , testing::Range<size_t>(0, NLEVELS)); \
+INSTANTIATE_TEST_SUITE_P(_, cls##_windows_rw      , testing::Range<size_t>(0, NLEVELS)); \
+INSTANTIATE_TEST_SUITE_P(_, cls##_windows_ro_reuse, testing::Range<size_t>(0, NLEVELS)); \
+INSTANTIATE_TEST_SUITE_P(_, cls##_windows_rw_reuse, testing::Range<size_t>(0, NLEVELS));
 
 
 DECLARE_TESTS(out_yaml)
@@ -629,15 +684,17 @@ DECLARE_TESTS(in_yaml)
 
 
 //-------------------------------------------
+//-------------------------------------------
 // this is needed to use the test case library
-namespace c4 {
-namespace yml {
 Case const* get_case(csubstr /*name*/)
 {
     return nullptr;
 }
+
 } // namespace yml
 } // namespace c4
+
+
 
 
 //-----------------------------------------------------------------------------
@@ -646,6 +703,8 @@ Case const* get_case(csubstr /*name*/)
 
 int main(int argc, char* argv[])
 {
+    using namespace c4::yml;
+
     // make gtest parse its args
     ::testing::InitGoogleTest(&argc, argv);
 
@@ -678,7 +737,9 @@ int main(int argc, char* argv[])
         // if an error occurs during loading, the test intentionally crashes,
         // so the load() above never returns. This is NOT the same as
         // a return of false. That means the test was tagged as error,
+        // ie, that an error is expected while parsing the code in it,
         // and for now we skip those, and return success.
+        c4::log("\n{}: this case is tagged as error, skipping\n", path);
         return 0;
     }
     c4::print(suite_case.file_contents);

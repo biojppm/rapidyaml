@@ -55,6 +55,24 @@ void print_path(NodeRef const& p);
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+
+inline c4::substr replace_all(c4::csubstr pattern, c4::csubstr repl, c4::csubstr subject, std::string *dst)
+{
+    size_t ret = subject.replace_all(c4::to_substr(*dst), pattern, repl);
+    if(ret != dst->size())
+    {
+        dst->resize(ret);
+        ret = subject.replace_all(c4::to_substr(*dst), pattern, repl);
+    }
+    RYML_CHECK(ret == dst->size());
+    return c4::to_substr(*dst);
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 struct ExpectError
 {
     bool m_got_an_error;
@@ -421,7 +439,7 @@ struct Case
 //-----------------------------------------------------------------------------
 
 // a persistent data store to avoid repeating operations on every test
-struct CaseData
+struct CaseDataLineEndings
 {
     std::vector<char> src_buf;
     substr src;
@@ -437,6 +455,13 @@ struct CaseData
     Tree emitted_tree;
 
     Tree recreated;
+};
+
+
+struct CaseData
+{
+    CaseDataLineEndings unix_style;
+    CaseDataLineEndings windows_style;
 };
 
 
