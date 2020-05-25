@@ -6,12 +6,16 @@
 #include "c4/yml/common.hpp"
 #endif
 
-#include <c4/substr.hpp>
 #include <c4/charconv.hpp>
 
 #ifdef __GNUC__
 #   pragma GCC diagnostic push
 #   pragma GCC diagnostic ignored "-Wtype-limits"
+#endif
+
+#if defined(_MSC_VER)
+#   pragma warning(push)
+#   pragma warning(disable: 4251/*needs to have dll-interface to be used by clients of struct*/)
 #endif
 
 namespace c4 {
@@ -297,7 +301,7 @@ public:
 
     NodeType_e type() const { return (NodeType_e)(m_type & _TYMASK); }
     const char* type_str() const { return type_str(m_type); }
-    static const char* type_str(NodeType_e ty);
+    RYML_EXPORT static const char* type_str(NodeType_e ty);
 
     csubstr const& key() const { RYML_ASSERT(has_key()); return m_key.scalar; }
     csubstr const& key_tag() const { RYML_ASSERT(has_key_tag()); return m_key.tag; }
@@ -336,7 +340,7 @@ public:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-class Tree
+class RYML_EXPORT Tree
 {
 public:
 
@@ -1055,6 +1059,9 @@ public:
 } // namespace yml
 } // namespace c4
 
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#endif
 
 #ifdef __GNUC__
 #  pragma GCC diagnostic pop

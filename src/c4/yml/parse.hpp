@@ -15,6 +15,11 @@
 
 #include <stdarg.h>
 
+#if defined(_MSC_VER)
+#   pragma warning(push)
+#   pragma warning(disable: 4251/*needs to have dll-interface to be used by clients of struct*/)
+#endif
+
 namespace c4 {
 namespace yml {
 
@@ -22,7 +27,7 @@ namespace yml {
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-class Parser
+class RYML_EXPORT Parser
 {
 public:
 
@@ -363,5 +368,9 @@ inline void parse(csubstr filename, csubstr buf, NodeRef node) { Parser np; np.p
 
 } // namespace yml
 } // namespace c4
+
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#endif
 
 #endif /* _C4_YML_PARSE_HPP_ */
