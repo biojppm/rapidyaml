@@ -11,6 +11,11 @@
 #   pragma GCC diagnostic ignored "-Wtype-limits"
 #endif
 
+#if defined(_MSC_VER)
+#   pragma warning(push)
+#   pragma warning(disable: 4251/*needs to have dll-interface to be used by clients of struct*/)
+#endif
+
 namespace c4 {
 namespace yml {
 
@@ -35,7 +40,7 @@ inline Key<K> key(K & k)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-class NodeRef
+class RYML_EXPORT NodeRef
 {
 private:
 
@@ -839,6 +844,10 @@ bool NodeRef::visit_stacked(Visitor fn, size_t indentation_level, bool skip_root
 } // namespace yml
 } // namespace c4
 
+
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#endif
 
 #ifdef __GNUC__
 #   pragma GCC diagnostic pop

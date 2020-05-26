@@ -95,8 +95,11 @@ script:
   - ryml_run_test 64 dynamic
 
   - echo "Running tests again, with the test suite enabled (~1300 tests)"
-  - addcmflags TEST_SUITE=ON ; ryml_cfg_test 64 static ; ryml_run_test 64 static
-  - addcmflags TEST_SUITE=ON ; ryml_cfg_test 32 static ; ryml_run_test 32 static
+  - addprojflags TEST_SUITE=ON
+  - ryml_cfg_test 64 static
+  - ryml_cfg_test 32 static
+  - ryml_run_test 64 static
+  - ryml_run_test 32 static
 
   - echo "Success!"
 

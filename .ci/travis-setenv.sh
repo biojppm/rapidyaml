@@ -13,62 +13,66 @@ $CXX_ --version
 $CC_ --version
 cmake --version
 
-# add cmake flags, with prefix
-function addcmflags()
+# add cmake flags, without project prefix
+function addcmkflags()
+{
+    for f in $* ; do
+        CMFLAGS="$CMFLAGS ${f}"
+    done
+}
+# add cmake flags, with project prefix
+function addprojflags()
 {
     for f in $* ; do
         CMFLAGS="$CMFLAGS -D${PROJ_PFX}${f}"
     done
 }
-function addc4flags()
-{
-    CMFLAGS="$CMFLAGS $*"
-}
 
-addcmflags DEV=ON
+addcmkflags -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+addprojflags DEV=ON
 
 case "$LINT" in
-    all       ) addcmflags LINT=ON LINT_TESTS=ON LINT_CLANG_TIDY=ON  LINT_PVS_STUDIO=ON ;;
-    clang-tidy) addcmflags LINT=ON LINT_TESTS=ON LINT_CLANG_TIDY=ON  LINT_PVS_STUDIO=OFF ;;
-    pvs-studio) addcmflags LINT=ON LINT_TESTS=ON LINT_CLANG_TIDY=OFF LINT_PVS_STUDIO=ON ;;
-    *         ) addcmflags LINT=OFF ;;
+    all       ) addprojflags LINT=ON LINT_TESTS=ON LINT_CLANG_TIDY=ON  LINT_PVS_STUDIO=ON ;;
+    clang-tidy) addprojflags LINT=ON LINT_TESTS=ON LINT_CLANG_TIDY=ON  LINT_PVS_STUDIO=OFF ;;
+    pvs-studio) addprojflags LINT=ON LINT_TESTS=ON LINT_CLANG_TIDY=OFF LINT_PVS_STUDIO=ON ;;
+    *         ) addprojflags LINT=OFF ;;
 esac
 
 case "$SAN" in
-    ALL) addcmflags SANITIZE=ON ;;
-    A  ) addcmflags SANITIZE=ON ASAN=ON  TSAN=OFF MSAN=OFF UBSAN=OFF ;;
-    T  ) addcmflags SANITIZE=ON ASAN=OFF TSAN=ON  MSAN=OFF UBSAN=OFF ;;
-    M  ) addcmflags SANITIZE=ON ASAN=OFF TSAN=OFF MSAN=ON  UBSAN=OFF ;;
-    UB ) addcmflags SANITIZE=ON ASAN=OFF TSAN=OFF MSAN=OFF UBSAN=ON ;;
-    *  ) addcmflags SANITIZE=OFF ;;
+    ALL) addprojflags SANITIZE=ON ;;
+    A  ) addprojflags SANITIZE=ON ASAN=ON  TSAN=OFF MSAN=OFF UBSAN=OFF ;;
+    T  ) addprojflags SANITIZE=ON ASAN=OFF TSAN=ON  MSAN=OFF UBSAN=OFF ;;
+    M  ) addprojflags SANITIZE=ON ASAN=OFF TSAN=OFF MSAN=ON  UBSAN=OFF ;;
+    UB ) addprojflags SANITIZE=ON ASAN=OFF TSAN=OFF MSAN=OFF UBSAN=ON ;;
+    *  ) addprojflags SANITIZE=OFF ;;
 esac
 
 case "$SAN_ONLY" in
-    ON) addcmflags SANITIZE_ONLY=ON ;;
-    * ) addcmflags SANITIZE_ONLY=OFF ;;
+    ON) addprojflags SANITIZE_ONLY=ON ;;
+    * ) addprojflags SANITIZE_ONLY=OFF ;;
 esac
 
 case "$VG" in
-    ON) addcmflags VALGRIND=ON VALGRIND_SGCHECK=OFF ;; # FIXME SGCHECK should be ON
-    * ) addcmflags VALGRIND=OFF VALGRIND_SGCHECK=OFF ;;
+    ON) addprojflags VALGRIND=ON VALGRIND_SGCHECK=OFF ;; # FIXME SGCHECK should be ON
+    * ) addprojflags VALGRIND=OFF VALGRIND_SGCHECK=OFF ;;
 esac
 
 case "$BM" in
-    ON) addcmflags BUILD_BENCHMARKS=ON ;;
-    * ) addcmflags BUILD_BENCHMARKS=OFF ;;
+    ON) addprojflags BUILD_BENCHMARKS=ON ;;
+    * ) addprojflags BUILD_BENCHMARKS=OFF ;;
 esac
 
 if [ "$STD" != "" ] ; then
-    addc4flags -DC4_CXX_STANDARD=$STD
-    addcmflags CXX_STANDARD=$STD
+    addcmkflags -DC4_CXX_STANDARD=$STD
+    addprojflags CXX_STANDARD=$STD
 fi
 
 if [ "$BT" == "Coverage" ] ; then
     # the coverage repo tokens can be set in the travis environment:
     # export CODECOV_TOKEN=.......
     # export COVERALLS_REPO_TOKEN=.......
-    addcmflags COVERAGE_CODECOV=ON COVERAGE_CODECOV_SILENT=ON
-    addcmflags COVERAGE_COVERALLS=ON COVERAGE_COVERALLS_SILENT=ON
+    addprojflags COVERAGE_CODECOV=ON COVERAGE_CODECOV_SILENT=ON
+    addprojflags COVERAGE_COVERALLS=ON COVERAGE_COVERALLS_SILENT=ON
 fi
 
 echo "building with additional cmake flags: $CMFLAGS"

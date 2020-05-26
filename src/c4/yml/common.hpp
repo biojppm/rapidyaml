@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <c4/substr.hpp>
+#include <c4/yml/export.hpp>
 
 #define RYML_INLINE inline
 
@@ -63,6 +64,8 @@
 
 #if defined(_MSC_VER)
 #   pragma warning(pop)
+#   pragma warning(push)
+#   pragma warning(disable: 4251/*needs to have dll-interface to be used by clients of struct*/)
 #endif
 
 
@@ -202,9 +205,9 @@ struct Callbacks
 };
 
 /// get the global callbacks
-Callbacks const& get_callbacks();
+RYML_EXPORT Callbacks const& get_callbacks();
 /// set the global callbacks
-void set_callbacks(Callbacks const& c);
+RYML_EXPORT void set_callbacks(Callbacks const& c);
 #ifdef RYML_NO_DEFAULT_CALLBACKS
 /// set the global callbacks to their defaults
 void reset_callbacks();
@@ -213,7 +216,7 @@ void reset_callbacks();
 
 //-----------------------------------------------------------------------------
 
-class MemoryResource
+class RYML_EXPORT MemoryResource
 {
 public:
 
@@ -224,14 +227,14 @@ public:
 };
 
 /// set the global memory resource
-void set_memory_resource(MemoryResource *r);
+RYML_EXPORT void set_memory_resource(MemoryResource *r);
 /// get the global memory resource
-MemoryResource *get_memory_resource();
+RYML_EXPORT MemoryResource *get_memory_resource();
 
 //-----------------------------------------------------------------------------
 
 // a memory resource adapter to the c-style allocator
-class MemoryResourceCallbacks : public MemoryResource
+class RYML_EXPORT MemoryResourceCallbacks : public MemoryResource
 {
 public:
 
@@ -254,7 +257,7 @@ public:
 //-----------------------------------------------------------------------------
 
 /** an allocator is a lightweight non-owning handle to a memory resource */
-struct Allocator
+struct RYML_EXPORT Allocator
 {
     MemoryResource *r;
 
@@ -281,5 +284,9 @@ struct Allocator
 
 } // namespace yml
 } // namespace c4
+
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#endif
 
 #endif /* _C4_YML_COMMON_HPP_ */
