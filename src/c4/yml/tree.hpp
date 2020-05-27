@@ -29,8 +29,50 @@ class Tree;
 
 
 /** the integral type necessary to cover all the bits marking node types */
+using tag_bits = uint16_t;
+
+/** the integral type necessary to cover all the bits marking node types */
 using type_bits = uint64_t;
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+/** a bit mask for marking tags for types */
+typedef enum : tag_bits {
+    // a convenience define, undefined below
+    #define c4bit(shift) tag_bits(tag_bits(1) << shift)
+    // container types
+    TAG_NONE      = 0,
+    TAG_MAP       = c4bit( 0), /**< !!map   Unordered set of key: value pairs without duplicates. @see https://yaml.org/type/map.html */
+    TAG_OMAP      = c4bit( 1), /**< !!omap  Ordered sequence of key: value pairs without duplicates. @see https://yaml.org/type/omap.html */
+    TAG_PAIRS     = c4bit( 2), /**< !!pairs Ordered sequence of key: value pairs allowing duplicates. @see https://yaml.org/type/pairs.html */
+    TAG_SET       = c4bit( 3), /**< !!set   Unordered set of non-equal values. @see https://yaml.org/type/set.html */
+    TAG_SEQ       = c4bit( 4), /**< !!seq   Sequence of arbitrary values. @see https://yaml.org/type/seq.html */
+    // scalar types
+    TAG_BINARY    = c4bit( 5), /**< !!binary A sequence of zero or more octets (8 bit values). @see https://yaml.org/type/binary.html */
+    TAG_BOOL      = c4bit( 6), /**< !!bool   Mathematical Booleans. @see https://yaml.org/type/bool.html */
+    TAG_FLOAT     = c4bit( 7), /**< !!float  Floating-point approximation to real numbers. https://yaml.org/type/float.html */
+    TAG_INT       = c4bit( 8), /**< !!float  Mathematical integers. https://yaml.org/type/int.html */
+    TAG_MERGE     = c4bit( 9), /**< !!merge  Specify one or more mapping to be merged with the current one. https://yaml.org/type/merge.html */
+    TAG_NULL      = c4bit(10), /**< !!null   Devoid of value. https://yaml.org/type/null.html */
+    TAG_STR       = c4bit(11), /**< !!str    A sequence of zero or more Unicode characters. https://yaml.org/type/str.html */
+    TAG_TIMESTAMP = c4bit(12), /**< !!timestamp A point in time https://yaml.org/type/timestamp.html */
+    TAG_VALUE     = c4bit(13), /**< !!value  Specify the default value of a mapping https://yaml.org/type/value.html */
+    TAG_YAML      = c4bit(14), /**< !!yaml   Specify the default value of a mapping https://yaml.org/type/yaml.html */
+    // user-defined tag
+    TAG_USER      = c4bit(15),
+    #undef c4bit
+} TagType_e;
+
+
+TagType_e to_tag(csubstr tag);
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 /** a bit mask for marking node types */
 typedef enum : type_bits {

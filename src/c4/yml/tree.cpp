@@ -10,6 +10,83 @@
 namespace c4 {
 namespace yml {
 
+
+TagType_e to_tag(csubstr tag)
+{
+
+    if(tag.begins_with("!!"))
+    {
+        tag = tag.sub(2);
+    }
+    else if(tag.begins_with('!'))
+    {
+        return TAG_USER;
+    }
+    else if(tag.begins_with("tag:yaml.org,2002:"))
+    {
+        tag = tag.sub(csubstr("tag:yaml.org,2002:").len);
+    }
+
+    if(tag == "map")
+    {
+        return TAG_MAP;
+    }
+    else if(tag == "omap")
+    {
+        return TAG_OMAP;
+    }
+    else if(tag == "pairs")
+    {
+        return TAG_PAIRS;
+    }
+    else if(tag == "set")
+    {
+        return TAG_SET;
+    }
+    else if(tag == "seq")
+    {
+        return TAG_SEQ;
+    }
+    else if(tag == "binary")
+    {
+        return TAG_BINARY;
+    }
+    else if(tag == "bool")
+    {
+        return TAG_BOOL;
+    }
+    else if(tag == "float")
+    {
+        return TAG_FLOAT;
+    }
+    else if(tag == "int")
+    {
+        return TAG_INT;
+    }
+    else if(tag == "merge")
+    {
+        return TAG_MERGE;
+    }
+    else if(tag == "null")
+    {
+        return TAG_NULL;
+    }
+    else if(tag == "str")
+    {
+        return TAG_STR;
+    }
+    else if(tag == "timestamp")
+    {
+        return TAG_TIMESTAMP;
+    }
+    else if(tag == "value")
+    {
+        return TAG_VALUE;
+    }
+    return TAG_NONE;
+}
+
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
