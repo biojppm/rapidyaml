@@ -86,7 +86,7 @@ See also [the changelog](./CHANGELOG.md) and [the roadmap](./ROADMAP.md).
       * [Other languages](#other-languages)
          * [Python](#python)
       * [YAML standard conformance](#yaml-standard-conformance)
-         * [Known limitations](#known-limitations)
+      * [Known limitations](#known-limitations)
       * [Alternative libraries](#alternative-libraries)
       * [License](#license)
 
@@ -1122,10 +1122,8 @@ the source buffer.)
 
 ## YAML standard conformance
 
-ryml is under active development, but is close to feature complete. (With the
-notable exception of UTF8 support, which we haven't had the chance to verify.)
-
-The following core features are tested:
+ryml is under active development, but is close to feature complete. The
+following YAML core features are well covered in the unit tests:
 * mappings
 * sequences
 * complex keys
@@ -1133,26 +1131,81 @@ The following core features are tested:
 * quoted scalars
 * tags
 * anchors and references
-
-Integration of the ~300 cases in the
-[YAML test suite](https://github.com/yaml/yaml-test-suite) is ongoing
-work. See also [the roadmap](./ROADMAP.md) for a list of future work.
-
+* UTF8 is expected to mostly work
+  
 Of course, there are *many* dark corners in YAML, and there certainly can
-appear cases which ryml fails to parse. So we welcome your
-[bug reports or pull requests!](https://github.com/biojppm/rapidyaml/issues).
+appear cases which ryml fails to parse. Your [bug reports or pull
+requests!](https://github.com/biojppm/rapidyaml/issues) are very welcome.
 
-### Known limitations
+See also [the roadmap](./ROADMAP.md) for a list of future work.
 
-ryml does not follow the standard in the following situations:
 
-* these directives have no effect and are ignored:
-    * `%YAML`
-    * `%TAG`
-    * any other directives found at document level which start with the `%` character
-* ryml does not accept container elements as mapping keys. keys must be simple
-  strings and cannot themselves be mappings or sequences. But mapping
-  values can be any of the above. Yaml test suite cases:
+### Test suite status
+
+Integration of the >300 cases in the [YAML test
+suite](https://github.com/yaml/yaml-test-suite) is ongoing work. Each of
+these tests have several subparts:
+ * in-yaml: mildly, plainly or extremely difficult-to-parse yaml
+ * in-json: equivalent json (where possible/meaningful)
+ * out-yaml: equivalent standard yaml
+ * events: equivalent libyaml events allowing to establish correctness of
+   the parsed results
+
+When testing, ryml tries to parse each of the 3 yaml/json parts. If the
+parsing suceeds, then the ryml test will emit the parsed tree, then parse the
+emitted result and verify that emission is idempotent, ie that the emitted
+result is the same as its input without any loss of information. To ensure
+correctness, this happens over four levels of parse/emission pairs, resulting
+on ~200 checks per test case.
+
+As of May 2020, ryml fails to parse only ~30 out of the ~1000=~3x300 cases
+from the test suite. Out of all other cases, all the ~200 checks are 100%
+successful for consistency over parse/emit pairs --- but please note that the
+events part is not yet read in and used to check for correctness, and
+therefore that **even though ryml may suceed in parsing, there still exists a
+minority of cases which may not be correct**. Again, as of May 2020, I would
+estimate this fraction at less that 5%. Currently, these are the suite cases
+from which ryml fails to parse any of its subparts:
+[9WXW](https://github.com/yaml/yaml-test-suite/tree/master/test/9WXW.tml),
+[EXG3](https://github.com/yaml/yaml-test-suite/tree/master/test/EXG3.tml),
+[XLQ9](https://github.com/yaml/yaml-test-suite/tree/master/test/XLQ9.tml),
+[M7A3](https://github.com/yaml/yaml-test-suite/tree/master/test/M7A3.tml),
+[735Y](https://github.com/yaml/yaml-test-suite/tree/master/test/735Y.tml),
+[82AN](https://github.com/yaml/yaml-test-suite/tree/master/test/82AN.tml),
+[9YRD](https://github.com/yaml/yaml-test-suite/tree/master/test/9YRD.tml),
+[EX5H](https://github.com/yaml/yaml-test-suite/tree/master/test/EX5H.tml),
+[HS5T](https://github.com/yaml/yaml-test-suite/tree/master/test/HS5T.tml),
+[7T8X](https://github.com/yaml/yaml-test-suite/tree/master/test/7T8X.tml),
+[RZP5](https://github.com/yaml/yaml-test-suite/tree/master/test/RZP5.tml),
+[FH7J](https://github.com/yaml/yaml-test-suite/tree/master/test/FH7J.tml).
+[PW8X](https://github.com/yaml/yaml-test-suite/tree/master/test/PW8X.tml),
+[CN3R](https://github.com/yaml/yaml-test-suite/tree/master/test/CN3R.tml),
+[6BCT](https://github.com/yaml/yaml-test-suite/tree/master/test/6BCT.tml),
+[G5U8](https://github.com/yaml/yaml-test-suite/tree/master/test/G5U8.tml),
+[K858](https://github.com/yaml/yaml-test-suite/tree/master/test/K858.tml),
+[NAT4](https://github.com/yaml/yaml-test-suite/tree/master/test/NAT4.tml),
+[9MMW](https://github.com/yaml/yaml-test-suite/tree/master/test/9MMW.tml),
+[DC7X](https://github.com/yaml/yaml-test-suite/tree/master/test/DC7X.tml),
+[L94M](https://github.com/yaml/yaml-test-suite/tree/master/test/L94M.tml),
+[WZ62](https://github.com/yaml/yaml-test-suite/tree/master/test/WZ62.tml).
+
+Except for the known limitations listed next, all other suite cases are
+expected to work.
+
+
+--------- 
+
+## Known limitations
+
+ryml makes no effort to follow the standard in the following situations:
+
+* `%YAML` directives have no effect and are ignored.
+* `%TAG` directives have no effect and are ignored. All schemas are assumed
+  to be the default YAML 2002 schema.
+* container elements are not accepted as mapping keys. keys must be
+  simple strings and cannot themselves be mappings or sequences. But mapping
+  values can be any of the above. [YAML test
+  suite](https://github.com/yaml/yaml-test-suite) cases:
   [4FJ6](https://github.com/yaml/yaml-test-suite/tree/master/test/4FJ6.tml),
   [6BFJ](https://github.com/yaml/yaml-test-suite/tree/master/test/6BFJ.tml),
   [6PBE](https://github.com/yaml/yaml-test-suite/tree/master/test/6PBE.tml),
