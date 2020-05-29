@@ -17,7 +17,7 @@ namespace detail {
 
 /** A lightweight contiguous stack with SSO. This avoids a dependency on std. */
 template<class T, size_t N=16>
-class RYML_EXPORT stack
+class stack
 {
     static_assert(std::is_trivially_copyable<T>::value, "T must be trivially copyable");
     static_assert(std::is_trivially_destructible<T>::value, "T must be trivially destructible");
