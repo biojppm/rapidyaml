@@ -174,7 +174,7 @@ Tree::~Tree()
 }
 
 
-Tree::Tree(Tree const& that) noexcept : Tree()
+Tree::Tree(Tree const& that) noexcept : Tree(that.m_alloc)
 {
     _copy(that);
 }
@@ -186,7 +186,7 @@ Tree& Tree::operator= (Tree const& that) noexcept
     return *this;
 }
 
-Tree::Tree(Tree && that) noexcept : Tree()
+Tree::Tree(Tree && that) noexcept : Tree(that.m_alloc)
 {
     _move(that);
 }
