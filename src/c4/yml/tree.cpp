@@ -11,7 +11,7 @@ namespace c4 {
 namespace yml {
 
 
-TagType_e to_tag(csubstr tag)
+YamlTag_e to_tag(csubstr tag)
 {
 
     if(tag.begins_with("!!"))
@@ -20,7 +20,7 @@ TagType_e to_tag(csubstr tag)
     }
     else if(tag.begins_with('!'))
     {
-        return TAG_USER;
+        return TAG_NONE;
     }
     else if(tag.begins_with("tag:yaml.org,2002:"))
     {
@@ -99,6 +99,7 @@ const char* NodeType::type_str(NodeType_e ty)
     case VAL     : return "VAL";
     case DOCSEQ  : return "DOCSEQ";
     case DOCMAP  : return "DOCMAP";
+    case DOCVAL  : return "DOCVAL";
     case MAP     : return "MAP";
     case SEQ     : return "SEQ";
     case KEYMAP  : return "KEYMAP";
