@@ -143,14 +143,14 @@ C("simple doc, single scalar, explicit doc, implicit termination",
 R"(---
 a scalar with some spaces inside
 )",
-    N(STREAM, L{N(DOCSEQ, L{N("a scalar with some spaces inside")})})
+    N(STREAM, L{N(DOCVAL, "a scalar with some spaces inside")})
 ),
 
 C("simple doc, single scalar, explicit doc, implicit termination, indented",
 R"(    ---
     a scalar with some spaces inside
 )",
-    N(STREAM, L{N(DOCSEQ, L{N("a scalar with some spaces inside")})})
+    N(STREAM, L{N(DOCVAL, "a scalar with some spaces inside")})
 ),
 
 C("simple doc, single scalar, explicit doc, explicit termination",
@@ -158,7 +158,7 @@ R"(---
 a scalar with some spaces inside
 ...
 )",
-    N(STREAM, L{N(DOCSEQ, L{N("a scalar with some spaces inside")})})
+    N(STREAM, L{N(DOCVAL, "a scalar with some spaces inside")})
 ),
 
 C("simple doc, single scalar, explicit doc, explicit termination, indented",
@@ -166,7 +166,7 @@ R"(    ---
     a scalar with some spaces inside
     ...
 )",
-    N(STREAM, L{N(DOCSEQ, L{N("a scalar with some spaces inside")})})
+    N(STREAM, L{N(DOCVAL, "a scalar with some spaces inside")})
 ),
 
 C("simple doc, multi doc, seq-map",
