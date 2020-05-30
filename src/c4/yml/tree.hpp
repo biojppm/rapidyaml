@@ -24,7 +24,7 @@ namespace yml {
 
 struct NodeScalar;
 struct NodeInit;
-class NodeData;
+struct NodeData;
 class NodeRef;
 class Tree;
 
@@ -258,7 +258,6 @@ C4_MUST_BE_TRIVIAL_COPY(NodeScalar);
 /** convenience class to initialize nodes */
 struct NodeInit
 {
-public:
 
     NodeType   type;
     NodeScalar key;
@@ -317,18 +316,8 @@ public:
 //-----------------------------------------------------------------------------
 
 /** contains the data for each YAML node. */
-class NodeData
+struct NodeData
 {
-private:
-
-    NodeData() = default;
-
-    NodeData(NodeData const&) = delete;
-    NodeData(NodeData     &&) = delete;
-    NodeData& operator= (NodeData const&) = delete;
-    NodeData& operator= (NodeData     &&) = delete;
-
-public:
 
     NodeType   m_type;
 
