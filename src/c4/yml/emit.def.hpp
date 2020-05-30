@@ -39,7 +39,6 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, size_t 
     if(t.is_doc(id))
     {
         this->Writer::_do_write("---");
-        bool nl = false;
         if(t.has_val(id))
         {
             RYML_ASSERT(!t.has_key(id));
@@ -52,11 +51,10 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, size_t 
             {
                 this->Writer::_do_write(' ');
                 this->Writer::_do_write(t.val_tag(id));
-                nl = true;
             }
             if(t.has_val_anchor(id))
             {
-                if( ! nl) this->Writer::_do_write(' ');
+                this->Writer::_do_write(' ');
                 this->Writer::_do_write('&');
                 this->Writer::_do_write(t.val_anchor(id));
             }
