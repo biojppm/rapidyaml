@@ -563,6 +563,11 @@ scalar1
 --- &a1 !!str scalar1
 ---
 !!str
+&a1
+scalar1
+--- !!str &a1 scalar1
+---
+!!str
 &a2
 scalar2
 --- &a2 !!str scalar2
@@ -594,6 +599,8 @@ value11
 --- &a11 !!str value11
 )",
 N(STREAM, L{
+    N(DOCVAL, TS("!!str", "scalar1"), AR(VALANCH, "a1")),
+    N(DOCVAL, TS("!!str", "scalar1"), AR(VALANCH, "a1")),
     N(DOCVAL, TS("!!str", "scalar1"), AR(VALANCH, "a1")),
     N(DOCVAL, TS("!!str", "scalar1"), AR(VALANCH, "a1")),
     N(DOCVAL, TS("!!str", "scalar2"), AR(VALANCH, "a2")),

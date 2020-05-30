@@ -1692,6 +1692,12 @@ bool Parser::_handle_types()
                 m_tree->to_val(m_state->node_id, scalar, DOC);
                 m_tree->set_val_tag(m_state->node_id, m_val_tag);
                 m_val_tag.clear();
+                if(!m_val_anchor.empty())
+                {
+                    _c4dbgpf("setting val anchor[%zu]='%.*s'", m_state->node_id, _c4prsp(m_val_anchor));
+                    m_tree->set_val_anchor(m_state->node_id, m_val_anchor);
+                    m_val_anchor.clear();
+                }
                 _end_stream();
             }
         }
@@ -1713,8 +1719,31 @@ csubstr Parser::_slurp_doc_scalar()
         s = m_state->line_contents.rem;
         pos = m_state->pos.offset;
     }
-    s = s.triml(" \t");
+
+    size_t skipws = s.first_not_of(" \t");
     _c4dbgpf("CRL 1 '%.*s'. REM='%.*s'", _c4prsp(s), _c4prsp(m_buf.sub(m_state->pos.offset)));
+    if(skipws != npos)
+    {
+        _line_progressed(skipws);
+        s = m_state->line_contents.rem;
+        pos = m_state->pos.offset;
+        _c4dbgpf("CRL 2 '%.*s'. REM='%.*s'", _c4prsp(s), _c4prsp(m_buf.sub(m_state->pos.offset)));
+    }
+
+    RYML_ASSERT(m_val_anchor.empty());
+    _handle_val_anchors_and_refs();
+    if(!m_val_anchor.empty())
+    {
+        s = m_state->line_contents.rem;
+        skipws = s.first_not_of(" \t");
+        if(skipws != npos)
+        {
+            _line_progressed(skipws);
+        }
+        s = m_state->line_contents.rem;
+        pos = m_state->pos.offset;
+        _c4dbgpf("CRL 3 '%.*s'. REM='%.*s'", _c4prsp(s), _c4prsp(m_buf.sub(m_state->pos.offset)));
+    }
 
     if(s.begins_with('\''))
     {
@@ -1731,11 +1760,13 @@ csubstr Parser::_slurp_doc_scalar()
         return _scan_block();
     }
 
-    _c4dbgpf("CRL 2 '%.*s'. REM='%.*s'", _c4prsp(s), _c4prsp(m_buf.sub(m_state->pos.offset)));
+    _c4dbgpf("CRL 4 '%.*s'. REM='%.*s'", _c4prsp(s), _c4prsp(m_buf.sub(m_state->pos.offset)));
 
     m_state->scalar_col = m_state->line_contents.current_col(s);
     RYML_ASSERT(s.end() >= m_buf.begin() + pos);
     _line_progressed(s.end() - (m_buf.begin() + pos));
+
+    _c4dbgpf("CRL 5 '%.*s'. REM='%.*s'", _c4prsp(s), _c4prsp(m_buf.sub(m_state->pos.offset)));
 
     if(_at_line_end())
     {
