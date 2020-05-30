@@ -31,7 +31,7 @@ TEST(CaseNode, anchors)
         EXPECT_EQ(n.key_anchor.str, "");
         EXPECT_EQ(n.val_anchor.str, "base");
     }
-    
+
     {
         L l{N("<<", "*base", AR(VALREF, "base"))};
         CaseNode const& base = *l.begin();
@@ -106,7 +106,9 @@ TEST(CaseNode, anchors)
     "anchor example 3, unresolved",\
     "anchor example 3, resolved",\
     "merge example, unresolved",\
-    "merge example, resolved"
+    "merge example, resolved",\
+    "tagged doc with anchors 9KAX"
+
 
 CASE_GROUP(SIMPLE_ANCHOR)
 {
@@ -550,6 +552,71 @@ N{"step", L{
         }},
     }),
     }
+),
+
+C("tagged doc with anchors 9KAX",
+R"(
+---
+&a1
+!!str
+scalar1
+--- &a1 !!str scalar1
+---
+!!str
+&a1
+scalar1
+--- !!str &a1 scalar1
+---
+!!str
+&a2
+scalar2
+--- &a2 !!str scalar2
+---
+&a3
+!!str scalar3
+--- &a3 !!str scalar3
+---
+&a4 !!map
+&a5 !!str key5: value4
+--- &a4 !!map
+&a5 !!str key5: value4
+---
+a6: 1
+&anchor6 b6: 2
+---
+!!map
+&a8 !!str key8: value7
+--- !!map
+&a8 !!str key8: value7
+---
+!!map
+!!str &a10 key10: value9
+--- !!map
+&a10 !!str key10: value9
+---
+!!str &a11
+value11
+--- &a11 !!str value11
+)",
+N(STREAM, L{
+    N(DOCVAL, TS("!!str", "scalar1"), AR(VALANCH, "a1")),
+    N(DOCVAL, TS("!!str", "scalar1"), AR(VALANCH, "a1")),
+    N(DOCVAL, TS("!!str", "scalar1"), AR(VALANCH, "a1")),
+    N(DOCVAL, TS("!!str", "scalar1"), AR(VALANCH, "a1")),
+    N(DOCVAL, TS("!!str", "scalar2"), AR(VALANCH, "a2")),
+    N(DOCVAL, TS("!!str", "scalar2"), AR(VALANCH, "a2")),
+    N(DOCVAL, TS("!!str", "scalar3"), AR(VALANCH, "a3")),
+    N(DOCVAL, TS("!!str", "scalar3"), AR(VALANCH, "a3")),
+    N(DOCMAP, TL("!!map", L{N(TS("!!str", "key5"), AR(KEYANCH, "a5"), "value4")}), AR(VALANCH, "a4")),
+    N(DOCMAP, TL("!!map", L{N(TS("!!str", "key5"), AR(KEYANCH, "a5"), "value4")}), AR(VALANCH, "a4")),
+    N(DOCMAP, L{N("a6", "1"), N("b6", AR(KEYANCH, "anchor6"), "2")}),
+    N(DOCMAP, TL("!!map", L{N(TS("!!str", "key8"), AR(KEYANCH, "a8"), "value7")})),
+    N(DOCMAP, TL("!!map", L{N(TS("!!str", "key8"), AR(KEYANCH, "a8"), "value7")})),
+    N(DOCMAP, TL("!!map", L{N(TS("!!str", "key10"), AR(KEYANCH, "a10"), "value9")})),
+    N(DOCMAP, TL("!!map", L{N(TS("!!str", "key10"), AR(KEYANCH, "a10"), "value9")})),
+    N(DOCVAL, TS("!!str", "value11"), AR(VALANCH, "a11")),
+    N(DOCVAL, TS("!!str", "value11"), AR(VALANCH, "a11")),
+})
 ),
 
     )

@@ -38,45 +38,45 @@ void test_compare(Tree const& a, size_t node_a,
     ASSERT_LT(node_a, a.capacity());
     ASSERT_LT(node_b, b.capacity());
 
-    EXPECT_EQ(a.type(node_a), b.type(node_b));
+    EXPECT_EQ(a.type(node_a), b.type(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
 
-    EXPECT_EQ(a.has_key(node_a), b.has_key(node_b));
+    EXPECT_EQ(a.has_key(node_a), b.has_key(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
     if(a.has_key(node_a) && b.has_key(node_b))
     {
-        EXPECT_EQ(a.key(node_a), b.key(node_b));
+        EXPECT_EQ(a.key(node_a), b.key(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
     }
 
-    EXPECT_EQ(a.has_val(node_a), b.has_val(node_b));
+    EXPECT_EQ(a.has_val(node_a), b.has_val(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
     if(a.has_val(node_a) && b.has_val(node_b))
     {
-        EXPECT_EQ(a.val(node_a), b.val(node_b));
+        EXPECT_EQ(a.val(node_a), b.val(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
     }
 
-    EXPECT_EQ(a.has_key_tag(node_a), b.has_key_tag(node_b));
+    EXPECT_EQ(a.has_key_tag(node_a), b.has_key_tag(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
     if(a.has_key_tag(node_a) && b.has_key_tag(node_b))
     {
-        EXPECT_EQ(a.key_tag(node_a), b.key_tag(node_b));
+        EXPECT_EQ(a.key_tag(node_a), b.key_tag(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
     }
 
-    EXPECT_EQ(a.has_val_tag(node_a), b.has_val_tag(node_b));
+    EXPECT_EQ(a.has_val_tag(node_a), b.has_val_tag(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
     if(a.has_val_tag(node_a) && b.has_val_tag(node_b))
     {
-        EXPECT_EQ(a.val_tag(node_a), b.val_tag(node_b));
+        EXPECT_EQ(a.val_tag(node_a), b.val_tag(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
     }
 
-    EXPECT_EQ(a.has_key_anchor(node_a), b.has_key_anchor(node_b));
+    EXPECT_EQ(a.has_key_anchor(node_a), b.has_key_anchor(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
     if(a.has_key_anchor(node_a) && b.has_key_anchor(node_b))
     {
-        EXPECT_EQ(a.key_anchor(node_a), b.key_anchor(node_b));
+        EXPECT_EQ(a.key_anchor(node_a), b.key_anchor(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
     }
 
-    EXPECT_EQ(a.has_val_anchor(node_a), b.has_val_anchor(node_b));
+    EXPECT_EQ(a.has_val_anchor(node_a), b.has_val_anchor(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
     if(a.has_val_anchor(node_a) && b.has_val_anchor(node_b))
     {
-        EXPECT_EQ(a.val_anchor(node_a), b.val_anchor(node_b));
+        EXPECT_EQ(a.val_anchor(node_a), b.val_anchor(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
     }
 
-    EXPECT_EQ(a.num_children(node_a), b.num_children(node_b));
+    EXPECT_EQ(a.num_children(node_a), b.num_children(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
     for(size_t ia = a.first_child(node_a), ib = b.first_child(node_b);
         ia != NONE && ib != NONE;
         ia = a.next_sibling(ia), ib = b.next_sibling(ib))
@@ -271,48 +271,60 @@ void CaseNode::compare_child(yml::NodeRef const& n, size_t pos) const
     if(ch.type & KEY)
     {
         auto fch = n[pos];
-        EXPECT_TRUE(fch.has_key());
-        EXPECT_EQ(fch.key(), ch.key);
+        EXPECT_TRUE(fch.has_key()) << "id=" << fch.id();
+        if(fch.has_key())
+        {
+            EXPECT_EQ(fch.key(), ch.key) << "id=" << fch.id();
+        }
 
         if( ! ch.key_tag.empty())
         {
-            EXPECT_TRUE(fch.has_key_tag());
-            EXPECT_EQ(fch.key_tag(), ch.key_tag);
+            EXPECT_TRUE(fch.has_key_tag()) << "id=" << fch.id();
+            if(fch.has_key_tag())
+            {
+                EXPECT_EQ(fch.key_tag(), ch.key_tag) << "id=" << fch.id();
+            }
         }
     }
 
     if(ch.type & VAL)
     {
         auto fch = n[pos];
-        EXPECT_TRUE(fch.has_val());
-        EXPECT_EQ(fch.val(), ch.val);
+        EXPECT_TRUE(fch.has_val()) << "id=" << fch.id();
+        if(fch.has_val())
+        {
+            EXPECT_EQ(fch.val(), ch.val) << "id=" << fch.id();
+        }
 
         if( ! ch.val_tag.empty())
         {
-            EXPECT_TRUE(fch.has_val_tag());
-            EXPECT_EQ(fch.val_tag(), ch.val_tag);
+            EXPECT_TRUE(fch.has_val_tag()) << "id=" << fch.id();
+            if(fch.has_val_tag())
+            {
+                EXPECT_EQ(fch.val_tag(), ch.val_tag) << "id=" << fch.id();
+            }
         }
     }
 }
 
 void CaseNode::compare(yml::NodeRef const& n) const
 {
-    EXPECT_EQ(n.get()->m_type, type); // the type() method masks the type, and thus tag flags are omitted on its return value
-    EXPECT_EQ(n.num_children(), children.size());
+    EXPECT_EQ(n.get()->m_type, type) << "id=" << n.id(); // the type() method masks the type, and thus tag flags are omitted on its return value
+    EXPECT_EQ(n.num_children(), children.size()) << "id=" << n.id();
 
     if(n.has_key())
     {
-        EXPECT_EQ(n.key(), key);
+        EXPECT_EQ(n.key(), key) << "id=" << n.id();
     }
 
     if(n.has_val())
     {
-        EXPECT_EQ(n.val(), val);
+        EXPECT_EQ(n.val(), val) << "id=" << n.id();
     }
 
     // check that the children are in the same order
     {
-        EXPECT_EQ(children.size(), n.num_children());
+        EXPECT_EQ(children.size(), n.num_children()) << "id=" << n.id();
 
         size_t ic = 0;
         for(auto const &ch : children)
@@ -515,7 +527,7 @@ void test_invariants(NodeRef const n)
         EXPECT_FALSE(n.is_root());
     }
     // vals cannot be containers
-    if( ! n.empty())
+    if( ! n.empty() && ! n.is_doc())
     {
         EXPECT_NE(n.has_val(), n.is_container());
     }

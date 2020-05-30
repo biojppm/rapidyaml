@@ -42,7 +42,6 @@ TEST(simple_set, emit_doc)
 aa: ~
 bb: ~
 cc: ~
-...
 )";
     Tree t = parse(yaml);
     auto s = emitrs<std::string>(t);

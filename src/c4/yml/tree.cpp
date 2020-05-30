@@ -1,4 +1,5 @@
 #include "c4/yml/tree.hpp"
+#include "c4/yml/detail/parser_dbg.hpp"
 #include "c4/yml/node.hpp"
 #include "c4/yml/detail/stack.hpp"
 
@@ -9,6 +10,83 @@
 
 namespace c4 {
 namespace yml {
+
+
+YamlTag_e to_tag(csubstr tag)
+{
+
+    if(tag.begins_with("!!"))
+    {
+        tag = tag.sub(2);
+    }
+    else if(tag.begins_with('!'))
+    {
+        return TAG_NONE;
+    }
+    else if(tag.begins_with("tag:yaml.org,2002:"))
+    {
+        tag = tag.sub(csubstr("tag:yaml.org,2002:").len);
+    }
+
+    if(tag == "map")
+    {
+        return TAG_MAP;
+    }
+    else if(tag == "omap")
+    {
+        return TAG_OMAP;
+    }
+    else if(tag == "pairs")
+    {
+        return TAG_PAIRS;
+    }
+    else if(tag == "set")
+    {
+        return TAG_SET;
+    }
+    else if(tag == "seq")
+    {
+        return TAG_SEQ;
+    }
+    else if(tag == "binary")
+    {
+        return TAG_BINARY;
+    }
+    else if(tag == "bool")
+    {
+        return TAG_BOOL;
+    }
+    else if(tag == "float")
+    {
+        return TAG_FLOAT;
+    }
+    else if(tag == "int")
+    {
+        return TAG_INT;
+    }
+    else if(tag == "merge")
+    {
+        return TAG_MERGE;
+    }
+    else if(tag == "null")
+    {
+        return TAG_NULL;
+    }
+    else if(tag == "str")
+    {
+        return TAG_STR;
+    }
+    else if(tag == "timestamp")
+    {
+        return TAG_TIMESTAMP;
+    }
+    else if(tag == "value")
+    {
+        return TAG_VALUE;
+    }
+    return TAG_NONE;
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -22,6 +100,7 @@ const char* NodeType::type_str(NodeType_e ty)
     case VAL     : return "VAL";
     case DOCSEQ  : return "DOCSEQ";
     case DOCMAP  : return "DOCMAP";
+    case DOCVAL  : return "DOCVAL";
     case MAP     : return "MAP";
     case SEQ     : return "SEQ";
     case KEYMAP  : return "KEYMAP";
@@ -97,7 +176,7 @@ Tree::~Tree()
 }
 
 
-Tree::Tree(Tree const& that) noexcept : Tree()
+Tree::Tree(Tree const& that) noexcept : Tree(that.m_alloc)
 {
     _copy(that);
 }
@@ -109,7 +188,7 @@ Tree& Tree::operator= (Tree const& that) noexcept
     return *this;
 }
 
-Tree::Tree(Tree && that) noexcept : Tree()
+Tree::Tree(Tree && that) noexcept : Tree(that.m_alloc)
 {
     _move(that);
 }
@@ -125,10 +204,12 @@ void Tree::_free()
 {
     if(m_buf)
     {
+        RYML_ASSERT(m_cap > 0);
         m_alloc.free(m_buf, m_cap * sizeof(NodeData));
     }
     if(m_arena.str)
     {
+        RYML_ASSERT(m_arena.len > 0);
         m_alloc.free(m_arena.str, m_arena.len);
     }
     _clear();
@@ -147,34 +228,60 @@ void Tree::_free()
 
 void Tree::_clear()
 {
-    memset(this, 0, sizeof(*this));
+    m_buf = nullptr;
+    m_cap = 0;
+    m_size = 0;
+    m_free_head = 0;
+    m_free_tail = 0;
+    m_arena = {};
+    m_arena_pos = 0;
 }
 
 void Tree::_copy(Tree const& that)
 {
-    memcpy(this, &that, sizeof(Tree));
-    m_buf = (NodeData*) m_alloc.allocate(m_cap * sizeof(NodeData), that.m_buf);
-    memcpy(m_buf, that.m_buf, m_cap * sizeof(NodeData));
-    if(m_arena.len)
+    RYML_ASSERT(m_buf == nullptr);
+    RYML_ASSERT(m_arena.str == nullptr);
+    RYML_ASSERT(m_arena.len == 0);
+    m_buf = (NodeData*) m_alloc.allocate(that.m_cap * sizeof(NodeData), that.m_buf);
+    memcpy(m_buf, that.m_buf, that.m_cap * sizeof(NodeData));
+    m_cap = that.m_cap;
+    m_size = that.m_size;
+    m_free_head = that.m_free_head;
+    m_free_tail = that.m_free_tail;
+    m_arena_pos = that.m_arena_pos;
+    m_arena = that.m_arena;
+    if(that.m_arena.str)
     {
-        substr arena((char*) m_alloc.allocate(m_arena.len, m_arena.str), m_arena.len);
-        _relocate(arena); // does a memcpy and updates nodes with spans using the old arena
+        RYML_ASSERT(that.m_arena.len > 0);
+        substr arena;
+        arena.str = (char*) m_alloc.allocate(that.m_arena.len, that.m_arena.str);
+        arena.len = that.m_arena.len;
+        _relocate(arena); // does a memcpy of the arena and updates nodes using the old arena
         m_arena = arena;
     }
 }
 
 void Tree::_move(Tree & that)
 {
-    memcpy(this, &that, sizeof(Tree));
+    RYML_ASSERT(m_buf == nullptr);
+    RYML_ASSERT(m_arena.str == nullptr);
+    RYML_ASSERT(m_arena.len == 0);
+    m_buf = that.m_buf;
+    m_cap = that.m_cap;
+    m_size = that.m_size;
+    m_free_head = that.m_free_head;
+    m_free_tail = that.m_free_tail;
+    m_arena = that.m_arena;
+    m_arena_pos = that.m_arena_pos;
     that._clear();
 }
 
-void Tree::_relocate(substr const& next_arena)
+void Tree::_relocate(substr next_arena)
 {
     RYML_ASSERT(next_arena.not_empty());
     RYML_ASSERT(next_arena.len >= m_arena.len);
     memcpy(next_arena.str, m_arena.str, m_arena_pos);
-    for(NodeData *n = m_buf, *e = m_buf + m_cap; n != e; ++n)
+    for(NodeData *C4_RESTRICT n = m_buf, *e = m_buf + m_cap; n != e; ++n)
     {
         if(in_arena(n->m_key.scalar)) n->m_key.scalar = _relocated(n->m_key.scalar, next_arena);
         if(in_arena(n->m_key.tag   )) n->m_key.tag    = _relocated(n->m_key.tag   , next_arena);

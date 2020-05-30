@@ -87,6 +87,86 @@ v4: '(1000,1001,1002,1003)'
 
 namespace c4 { namespace yml {
 
+TEST(to_tag, user)
+{
+    EXPECT_EQ(to_tag("!"), TAG_NONE);
+    EXPECT_EQ(to_tag("!."), TAG_NONE);
+    EXPECT_EQ(to_tag("!good_type"), TAG_NONE);
+}
+
+TEST(to_tag, double_exc_mark)
+{
+    EXPECT_EQ(to_tag("!!"          ), TAG_NONE);
+    EXPECT_EQ(to_tag("!!."         ), TAG_NONE);
+
+    EXPECT_EQ(to_tag("!!map"       ), TAG_MAP);
+    EXPECT_EQ(to_tag("!!omap"      ), TAG_OMAP);
+    EXPECT_EQ(to_tag("!!pairs"     ), TAG_PAIRS);
+    EXPECT_EQ(to_tag("!!set"       ), TAG_SET);
+    EXPECT_EQ(to_tag("!!seq"       ), TAG_SEQ);
+    EXPECT_EQ(to_tag("!!binary"    ), TAG_BINARY);
+    EXPECT_EQ(to_tag("!!bool"      ), TAG_BOOL);
+    EXPECT_EQ(to_tag("!!float"     ), TAG_FLOAT);
+    EXPECT_EQ(to_tag("!!int"       ), TAG_INT);
+    EXPECT_EQ(to_tag("!!merge"     ), TAG_MERGE);
+    EXPECT_EQ(to_tag("!!null"      ), TAG_NULL);
+    EXPECT_EQ(to_tag("!!str"       ), TAG_STR);
+    EXPECT_EQ(to_tag("!!timestamp" ), TAG_TIMESTAMP);
+    EXPECT_EQ(to_tag("!!value"     ), TAG_VALUE);
+
+    EXPECT_EQ(to_tag("!!map."      ), TAG_NONE);
+    EXPECT_EQ(to_tag("!!omap."     ), TAG_NONE);
+    EXPECT_EQ(to_tag("!!pairs."    ), TAG_NONE);
+    EXPECT_EQ(to_tag("!!set."      ), TAG_NONE);
+    EXPECT_EQ(to_tag("!!seq."      ), TAG_NONE);
+    EXPECT_EQ(to_tag("!!binary."   ), TAG_NONE);
+    EXPECT_EQ(to_tag("!!bool."     ), TAG_NONE);
+    EXPECT_EQ(to_tag("!!float."    ), TAG_NONE);
+    EXPECT_EQ(to_tag("!!int."      ), TAG_NONE);
+    EXPECT_EQ(to_tag("!!merge."    ), TAG_NONE);
+    EXPECT_EQ(to_tag("!!null."     ), TAG_NONE);
+    EXPECT_EQ(to_tag("!!str."      ), TAG_NONE);
+    EXPECT_EQ(to_tag("!!timestamp."), TAG_NONE);
+    EXPECT_EQ(to_tag("!!value."    ), TAG_NONE);
+}
+
+TEST(to_tag, with_namespace)
+{
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:"          ), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:."         ), TAG_NONE);
+
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:map"       ), TAG_MAP);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:omap"      ), TAG_OMAP);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:pairs"     ), TAG_PAIRS);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:set"       ), TAG_SET);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:seq"       ), TAG_SEQ);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:binary"    ), TAG_BINARY);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:bool"      ), TAG_BOOL);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:float"     ), TAG_FLOAT);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:int"       ), TAG_INT);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:merge"     ), TAG_MERGE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:null"      ), TAG_NULL);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:str"       ), TAG_STR);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:timestamp" ), TAG_TIMESTAMP);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:value"     ), TAG_VALUE);
+
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:map."      ), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:omap."     ), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:pairs."    ), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:set."      ), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:seq."      ), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:binary."   ), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:bool."     ), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:float."    ), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:int."      ), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:merge."    ), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:null."     ), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:str."      ), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:timestamp."), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:value."    ), TAG_NONE);
+}
+
+
 //-------------------------------------------
 Tree get_test_tree()
 {
@@ -743,7 +823,7 @@ TEST(NodeInit, ctor__val_only)
         {
             SCOPED_TRACE("here 0");
             {
-                NodeInit s{sarr};
+                NodeInit s(sarr);
                 node_scalar_test_foo(s.val);
                 node_scalar_test_empty(s.key);
                 s.clear();

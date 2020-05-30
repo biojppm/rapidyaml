@@ -2,6 +2,7 @@
 #define _C4_YML_TREE_HPP_
 
 
+#include "c4/types.hpp"
 #ifndef _C4_YML_COMMON_HPP_
 #include "c4/yml/common.hpp"
 #endif
@@ -23,9 +24,52 @@ namespace yml {
 
 struct NodeScalar;
 struct NodeInit;
-class NodeData;
+struct NodeData;
 class NodeRef;
 class Tree;
+
+
+/** the integral type necessary to cover all the bits marking node types */
+using tag_bits = uint16_t;
+
+/** the integral type necessary to cover all the bits marking node types */
+using type_bits = uint64_t;
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+/** a bit mask for marking tags for types */
+typedef enum : uint8_t {
+    // container types
+    TAG_NONE      =  0,
+    TAG_MAP       =  1, /**< !!map   Unordered set of key: value pairs without duplicates. @see https://yaml.org/type/map.html */
+    TAG_OMAP      =  2, /**< !!omap  Ordered sequence of key: value pairs without duplicates. @see https://yaml.org/type/omap.html */
+    TAG_PAIRS     =  3, /**< !!pairs Ordered sequence of key: value pairs allowing duplicates. @see https://yaml.org/type/pairs.html */
+    TAG_SET       =  4, /**< !!set   Unordered set of non-equal values. @see https://yaml.org/type/set.html */
+    TAG_SEQ       =  5, /**< !!seq   Sequence of arbitrary values. @see https://yaml.org/type/seq.html */
+    // scalar types
+    TAG_BINARY    =  6, /**< !!binary A sequence of zero or more octets (8 bit values). @see https://yaml.org/type/binary.html */
+    TAG_BOOL      =  7, /**< !!bool   Mathematical Booleans. @see https://yaml.org/type/bool.html */
+    TAG_FLOAT     =  8, /**< !!float  Floating-point approximation to real numbers. https://yaml.org/type/float.html */
+    TAG_INT       =  9, /**< !!float  Mathematical integers. https://yaml.org/type/int.html */
+    TAG_MERGE     = 10, /**< !!merge  Specify one or more mapping to be merged with the current one. https://yaml.org/type/merge.html */
+    TAG_NULL      = 11, /**< !!null   Devoid of value. https://yaml.org/type/null.html */
+    TAG_STR       = 12, /**< !!str    A sequence of zero or more Unicode characters. https://yaml.org/type/str.html */
+    TAG_TIMESTAMP = 13, /**< !!timestamp A point in time https://yaml.org/type/timestamp.html */
+    TAG_VALUE     = 14, /**< !!value  Specify the default value of a mapping https://yaml.org/type/value.html */
+    TAG_YAML      = 15, /**< !!yaml   Specify the default value of a mapping https://yaml.org/type/yaml.html */
+} YamlTag_e;
+
+
+YamlTag_e to_tag(csubstr tag);
+
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 
 /** the integral type necessary to cover all the bits marking node types */
@@ -34,10 +78,8 @@ using type_bits = uint64_t;
 
 /** a bit mask for marking node types */
 typedef enum : type_bits {
-
-// a convenience define, undefined below
-#define c4bit(v) type_bits(type_bits(1) << v)
-
+    // a convenience define, undefined below
+    #define c4bit(v) type_bits(type_bits(1) << v)
     NOTYPE  = 0,            ///< no node type is set
     VAL     = c4bit(0),     ///< a leaf node, has a (possibly empty) value
     KEY     = c4bit(1),     ///< is member of a map, must have non-empty key
@@ -57,6 +99,7 @@ typedef enum : type_bits {
     KEYMAP  = KEY|MAP,
     DOCMAP  = DOC|MAP,
     DOCSEQ  = DOC|SEQ,
+    DOCVAL  = DOC|VAL,
 
 #ifdef C4_WORK_IN_PROGRESS_
     // https://yaml.org/type/
@@ -205,6 +248,7 @@ public:
     void clear() noexcept { tag.clear(); scalar.clear(); anchor.clear(); }
 
 };
+C4_MUST_BE_TRIVIAL_COPY(NodeScalar);
 
 
 //-----------------------------------------------------------------------------
@@ -214,7 +258,6 @@ public:
 /** convenience class to initialize nodes */
 struct NodeInit
 {
-public:
 
     NodeType   type;
     NodeScalar key;
@@ -273,18 +316,8 @@ public:
 //-----------------------------------------------------------------------------
 
 /** contains the data for each YAML node. */
-class NodeData
+struct NodeData
 {
-private:
-
-    NodeData() = default;
-
-    NodeData(NodeData const&) = delete;
-    NodeData(NodeData     &&) = delete;
-    NodeData& operator= (NodeData const&) = delete;
-    NodeData& operator= (NodeData     &&) = delete;
-
-public:
 
     NodeType   m_type;
 
@@ -334,13 +367,14 @@ public:
     bool   is_val_ref() const { return m_type.is_val_ref(); }
 
 };
+C4_MUST_BE_TRIVIAL_COPY(NodeData);
 
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-class RYML_EXPORT Tree
+class Tree
 {
 public:
 
@@ -568,8 +602,8 @@ public:
     void set_key(size_t node, csubstr key) { RYML_ASSERT(has_key(node)); _p(node)->m_key.scalar = key; }
     void set_val(size_t node, csubstr val) { RYML_ASSERT(has_val(node)); _p(node)->m_val.scalar = val; }
 
-    void set_key_tag(size_t node, csubstr const& tag) { RYML_ASSERT(has_key(node)); _p(node)->m_key.tag = tag; _add_flags(node, KEYTAG); }
-    void set_val_tag(size_t node, csubstr const& tag) { RYML_ASSERT(has_val(node) || is_container(node)); _p(node)->m_val.tag = tag; _add_flags(node, VALTAG); }
+    void set_key_tag(size_t node, csubstr tag) { RYML_ASSERT(has_key(node)); _p(node)->m_key.tag = tag; _add_flags(node, KEYTAG); }
+    void set_val_tag(size_t node, csubstr tag) { RYML_ASSERT(has_val(node) || is_container(node)); _p(node)->m_val.tag = tag; _add_flags(node, VALTAG); }
 
     void set_key_anchor(size_t node, csubstr anchor) { RYML_ASSERT( ! is_key_ref(node)); _p(node)->m_key.anchor = anchor; _add_flags(node, KEYANCH); }
     void set_val_anchor(size_t node, csubstr anchor) { RYML_ASSERT( ! is_val_ref(node)); _p(node)->m_val.anchor = anchor; _add_flags(node, VALANCH); }
@@ -824,7 +858,7 @@ private:
     void _copy(Tree const& that);
     void _move(Tree      & that);
 
-    void _relocate(substr const& next_arena);
+    void _relocate(substr next_arena);
 
 public:
 

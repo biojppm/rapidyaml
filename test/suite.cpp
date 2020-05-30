@@ -119,7 +119,7 @@ struct AllowedFailure
 constexpr const AllowedFailure g_allowed_failures[] = {
     {"3UYS", CPART_IN_YAML, "no need to escape the slash in \"a\\/b\""},
     // malformed json
-    {"35KP", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents|TODO[hard]: \"d e\" plain scalar continuing on the next line with the same indentation]"},
+    {"35KP", CPART_IN_JSON, "malformed JSON from multiple documents"},
     {"6XDY", CPART_IN_JSON, "malformed JSON from multiple documents"},
     {"6ZKB", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents|TODO[next]: document handling"},
     {"7Z25", CPART_IN_JSON, "malformed JSON from multiple documents"},
@@ -144,10 +144,10 @@ constexpr const AllowedFailure g_allowed_failures[] = {
     {"XW4D", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
 
     // TODO
-    {"9WXW", CPART_ALL, "TODO[next]: document handling"},
-    {"EXG3", CPART_ALL, "TODO[next]: document handling"},
+    {"9WXW", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: document handling"},
+    {"EXG3", CPART_IN_YAML, "TODO[next]: document handling"},
     {"XLQ9", CPART_IN_YAML, "TODO[next]: document handling"},
-    {"M7A3", CPART_ALL, "TODO[next]: document handling/special tags in .tml file with test specs"},
+    {"M7A3", CPART_IN_YAML|CPART_IN_JSON, "TODO[next]: document handling/special tags in .tml file with test specs"},
     {"735Y", CPART_IN_YAML, "TODO[next]: plain scalar parsing"},
     {"82AN", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
     {"9YRD", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
@@ -164,7 +164,6 @@ constexpr const AllowedFailure g_allowed_failures[] = {
     {"NAT4", CPART_IN_YAML|CPART_IN_JSON, "TODO[next]: emitting block scalars is not idempotent"},
     {"9MMW", CPART_IN_YAML, "TODO[next]: re the json/yaml incompatibility where a space is required after :"},
     {"DC7X", CPART_IN_YAML, "TODO[next]: improve handling of tab characters"},
-    {"L94M", CPART_IN_YAML, "TODO[next]: bad emitting of tags"},
     {"WZ62", CPART_IN_YAML, "TODO[next]: bad emitting of tags"},
 };
 
@@ -295,12 +294,19 @@ struct ProcLevel
         }
         log("emitted YAML", emitted);
         was_emitted = true;
+        #ifdef RYML_DBG
+        c4::log("EMITTED:\n{}", emitted);
+        #endif
     }
 
     void compare_trees(ProcLevel const& prev)
     {
         if(allowed_failure.skip(case_part)) return;
         if(!was_parsed) parse();
+        #ifdef RYML_DBG
+        c4::print("PREV:"); print_tree(prev.tree);
+        c4::print("CURR:"); print_tree(tree);
+        #endif
         test_compare(tree, prev.tree);
     }
 
@@ -308,6 +314,10 @@ struct ProcLevel
     {
         if(allowed_failure.skip(case_part)) return;
         if(!was_emitted) emit();
+        #ifdef RYML_DBG
+        c4::log("PREV:\n{}", prev.emitted);
+        c4::log("CURR:\n{}", emitted);
+        #endif
         EXPECT_EQ(emitted, prev.emitted);
     }
 };

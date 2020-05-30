@@ -101,6 +101,7 @@ private:
     bool    _advance_to_peeked();
     void    _scan_line();
 
+    csubstr _slurp_doc_scalar();
     bool    _scan_scalar(csubstr *scalar);
     csubstr _scan_comment();
     csubstr _scan_quoted_scalar(const char q);
@@ -110,6 +111,7 @@ private:
     substr  _scan_plain_scalar_expl(csubstr currscalar, csubstr peeked_line);
     substr  _scan_complex_key(csubstr currscalar, csubstr peeked_line);
     csubstr _scan_to_next_nonempty_line(size_t indentation);
+    csubstr _extend_scanned_scalar(csubstr currscalar);
 
     csubstr _filter_squot_scalar(substr s);
     csubstr _filter_dquot_scalar(substr s);
