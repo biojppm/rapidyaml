@@ -87,17 +87,16 @@ static bool _is_doc_sep(csubstr s)
 
 //-----------------------------------------------------------------------------
 Parser::Parser(Allocator const& a)
-    :
-    m_file(),
-    m_buf(),
-    m_root_id(NONE),
-    m_tree(),
-    m_stack(a),
-    m_state(),
-    m_key_tag(),
-    m_val_tag(),
-    m_key_anchor(),
-    m_val_anchor()
+    : m_file()
+    , m_buf()
+    , m_root_id(NONE)
+    , m_tree()
+    , m_stack(a)
+    , m_state()
+    , m_key_tag()
+    , m_val_tag()
+    , m_key_anchor()
+    , m_val_anchor()
 {
     State st{};
     m_stack.push(st);
@@ -1513,10 +1512,18 @@ bool Parser::_handle_key_anchors_and_refs()
     if(rem.begins_with('&'))
     {
         _c4dbgp("found a key anchor!!!");
-        //RYML_ASSERT(m_key_anchor.empty());
         csubstr anchor = rem.left_of(rem.first_of(' '));
         _line_progressed(anchor.len);
         anchor = anchor.sub(1); // skip the first character
+        if(!m_key_anchor.empty())
+        {
+            _c4dbgpf("move current key anchor to val slot: '%.*s'", _c4prsp(m_key_anchor));
+            if(!m_val_anchor.empty())
+            {
+                _c4err("triple-pending anchor");
+            }
+            m_val_anchor = m_key_anchor;
+        }
         _c4dbgpf("key anchor value: '%.*s'", _c4prsp(anchor));
         m_key_anchor = anchor;
         return true;
@@ -1539,7 +1546,11 @@ bool Parser::_handle_val_anchors_and_refs()
     if(rem.begins_with('&'))
     {
         _c4dbgp("found a val anchor!!!");
-        RYML_ASSERT(m_val_anchor.empty());
+        if(!m_val_anchor.empty())
+        {
+            _c4dbgpf("anchor value: '%.*s' empty=%d", _c4prsp(m_val_anchor), m_val_anchor.empty());
+            _c4err("there's a pending anchor");
+        }
         csubstr anchor = rem.left_of(rem.first_of(' '));
         _line_progressed(anchor.len);
         anchor = anchor.sub(1); // skip the first character

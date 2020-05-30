@@ -31,7 +31,7 @@ TEST(CaseNode, anchors)
         EXPECT_EQ(n.key_anchor.str, "");
         EXPECT_EQ(n.val_anchor.str, "base");
     }
-    
+
     {
         L l{N("<<", "*base", AR(VALREF, "base"))};
         CaseNode const& base = *l.begin();
