@@ -89,9 +89,9 @@ namespace c4 { namespace yml {
 
 TEST(to_tag, user)
 {
-    EXPECT_EQ(to_tag("!"), TAG_USER);
-    EXPECT_EQ(to_tag("!."), TAG_USER);
-    EXPECT_EQ(to_tag("!good_type"), TAG_USER);
+    EXPECT_EQ(to_tag("!"), TAG_NONE);
+    EXPECT_EQ(to_tag("!."), TAG_NONE);
+    EXPECT_EQ(to_tag("!good_type"), TAG_NONE);
 }
 
 TEST(to_tag, double_exc_mark)
@@ -823,7 +823,7 @@ TEST(NodeInit, ctor__val_only)
         {
             SCOPED_TRACE("here 0");
             {
-                NodeInit s{sarr};
+                NodeInit s(sarr);
                 node_scalar_test_foo(s.val);
                 node_scalar_test_empty(s.key);
                 s.clear();

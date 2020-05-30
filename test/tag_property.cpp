@@ -9,7 +9,8 @@ namespace yml {
     "tag property in explicit map",\
     "tag property in implicit seq",\
     "tag property in explicit seq",\
-    "tagged explicit sequence in map"
+    "tagged explicit sequence in map",\
+    "tagged doc"
 
 
 CASE_GROUP(TAG_PROPERTY)
@@ -20,8 +21,8 @@ C("tag property in implicit map",
 R"(ivar: !!int 0
 svar: !!str 0
 fvar: !!float 0.1
-!!int 2: !!int 3
-!!float 3: !!float 3.4
+!!int 2: !!float 3
+!!float 3: !!int 3.4
 !!str key: !!int val
 myObject: !myClass { name: Joe, age: 15 }
 picture: !!binary >-
@@ -34,8 +35,8 @@ picture: !!binary >-
       N("ivar", TS("!!int", "0")),
       N("svar", TS("!!str", "0")),
       N("fvar", TS("!!float", "0.1")),
-      N(TS("!!int", "2"), TS("!!int", "3")),
-      N(TS("!!float", "3"), TS("!!float", "3.4")),
+      N(TS("!!int", "2"), TS("!!float", "3")),
+      N(TS("!!float", "3"), TS("!!int", "3.4")),
       N(TS("!!str", "key"), TS("!!int", "val")),
       N("myObject", TL("!myClass", L{N("name", "Joe"), N("age", "15")})),
       N("picture", TS("!!binary", R"(R0lGODdhDQAIAIAAAAAAANn Z2SwAAAAADQAIAAACF4SDGQ ar3xxbJ9p0qa7R0YxwzaFME 1IAADs=)")),
@@ -90,6 +91,57 @@ R"(some_seq: !its_type [
                   }))
           }
 ),
+
+C("tagged doc",
+R"(
+--- !!map
+a: 0
+b: 1
+--- !map
+? a
+: b
+--- !!seq
+- a
+- b
+--- !!str
+a
+ b
+...
+--- !!str a b
+...
+--- !!str a b
+--- !!str
+a: b
+--- !!str a: b
+---
+!!str a: b
+---
+!!str a
+ b
+---
+!!set
+? a
+? b
+--- !!set
+? a
+? b
+)",
+N(STREAM, L{
+    N(DOCMAP, TL("!!map", L{N("a", "0"), N("b", "1")})),
+    N(DOCMAP, TL("!map", L{N("a", "b")})),
+    N(DOCSEQ, TL("!!seq", L{N("a"), N("b")})),
+    N(DOCVAL, TS("!!str", "a b")),
+    N(DOCVAL, TS("!!str", "a b")),
+    N(DOCVAL, TS("!!str", "a b")),
+    N(DOCVAL, TS("!!str", "a: b")),
+    N(DOCVAL, TS("!!str", "a: b")),
+    N(DOCMAP, L{N(TS("!!str", "a"), "b")}),
+    N(DOCSEQ, L{N(TS("!!str", "a b"))}),
+    N(DOCMAP, TL("!!set", L{N("a", "~"), N("b", "~")})),
+    N(DOCMAP, TL("!!set", L{N("a", "~"), N("b", "~")})),
+})
+),
+
     )
 }
 

@@ -119,7 +119,7 @@ struct AllowedFailure
 constexpr const AllowedFailure g_allowed_failures[] = {
     {"3UYS", CPART_IN_YAML, "no need to escape the slash in \"a\\/b\""},
     // malformed json
-    {"35KP", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents|TODO[hard]: \"d e\" plain scalar continuing on the next line with the same indentation]"},
+    {"35KP", CPART_IN_JSON, "malformed JSON from multiple documents|TODO[hard]: \"d e\" plain scalar continuing on the next line with the same indentation]"},
     {"6XDY", CPART_IN_JSON, "malformed JSON from multiple documents"},
     {"6ZKB", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents|TODO[next]: document handling"},
     {"7Z25", CPART_IN_JSON, "malformed JSON from multiple documents"},
@@ -295,12 +295,19 @@ struct ProcLevel
         }
         log("emitted YAML", emitted);
         was_emitted = true;
+        #ifdef RYML_DBG
+        c4::log("EMITTED:\n{}", emitted);
+        #endif
     }
 
     void compare_trees(ProcLevel const& prev)
     {
         if(allowed_failure.skip(case_part)) return;
         if(!was_parsed) parse();
+        #ifdef RYML_DBG
+        c4::print("PREV:"); print_tree(prev.tree);
+        c4::print("CURR:"); print_tree(tree);
+        #endif
         test_compare(tree, prev.tree);
     }
 
@@ -308,6 +315,10 @@ struct ProcLevel
     {
         if(allowed_failure.skip(case_part)) return;
         if(!was_emitted) emit();
+        #ifdef RYML_DBG
+        c4::log("PREV:\n{}", prev.emitted);
+        c4::log("CURR:\n{}", emitted);
+        #endif
         EXPECT_EQ(emitted, prev.emitted);
     }
 };

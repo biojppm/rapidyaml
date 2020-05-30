@@ -10,19 +10,11 @@ namespace c4 {
 namespace yml {
 
 template<class Writer>
-substr Emitter<Writer>::emit(EmitType_e type,Tree const& t, size_t id, bool error_on_excess)
+substr Emitter<Writer>::emit(EmitType_e type, Tree const& t, size_t id, bool error_on_excess)
 {
     if(type == YAML)
     {
-        if(t.is_stream(id))
-        {
-            ;
-        }
         _do_visit(t, id, 0);
-        if(t.is_stream(id))
-        {
-            this->Writer::_do_write("...\n");
-        }
     }
     else if(type == JSON)
     {
@@ -48,17 +40,26 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, size_t 
     {
         this->Writer::_do_write("---");
         bool nl = false;
-        if(t.has_val_tag(id))
+        if(t.has_val(id))
         {
+            RYML_ASSERT(!t.has_key(id));
             this->Writer::_do_write(' ');
-            this->Writer::_do_write(t.val_tag(id));
-            nl = true;
+            _writev(t, id, ilevel);
         }
-        if(t.has_val_anchor(id))
+        else
         {
-            if( ! nl) this->Writer::_do_write(' ');
-            this->Writer::_do_write('&');
-            this->Writer::_do_write(t.val_anchor(id));
+            if(t.has_val_tag(id))
+            {
+                this->Writer::_do_write(' ');
+                this->Writer::_do_write(t.val_tag(id));
+                nl = true;
+            }
+            if(t.has_val_anchor(id))
+            {
+                if( ! nl) this->Writer::_do_write(' ');
+                this->Writer::_do_write('&');
+                this->Writer::_do_write(t.val_anchor(id));
+            }
         }
         this->Writer::_do_write('\n');
     }
