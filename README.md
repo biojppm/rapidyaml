@@ -1160,17 +1160,16 @@ on ~200 checks per test case.
 
 Please note that in [their own words](http://matrix.yaml.io/), the tests from
 the YAML test suite *contain a lot of edge cases that don't play such an
-important role in real world examples*. Despite the extreme focus, of this
-test suite, as of May 2020, ryml only fails to parse ~30 out of the
-~1000=~3x300 cases from the test suite. Out of all other cases, all the ~200
-checks are 100% successful for consistency over parse/emit pairs --- but
-please note that the events part is not yet read in and used to check for
+important role in real world examples*. Despite the extreme focus of the test
+suite, as of May 2020, ryml only fails to parse ~30 out of the ~1000=~3x300
+cases from the test suite. Out of all other cases, all the ~200 checks per
+part are 100% successful for consistency over parse/emit pairs --- but please
+note that the events part is not yet read in and used to check for
 correctness, and therefore that **even though ryml may suceed in parsing,
 there still exists a minority of cases which may not be correct**. Currently,
-I would estimate this fraction at less somewhere around 5%. Currently, these
-are the suite cases from which ryml fails to parse any of its subparts:
+I would estimate this fraction at somewhere around 5%. Currently, these are
+the suite cases where ryml fails to parse any of its subparts:
 [EXG3](https://github.com/yaml/yaml-test-suite/tree/master/test/EXG3.tml),
-[XLQ9](https://github.com/yaml/yaml-test-suite/tree/master/test/XLQ9.tml),
 [M7A3](https://github.com/yaml/yaml-test-suite/tree/master/test/M7A3.tml),
 [735Y](https://github.com/yaml/yaml-test-suite/tree/master/test/735Y.tml),
 [82AN](https://github.com/yaml/yaml-test-suite/tree/master/test/82AN.tml),
@@ -1179,7 +1178,7 @@ are the suite cases from which ryml fails to parse any of its subparts:
 [HS5T](https://github.com/yaml/yaml-test-suite/tree/master/test/HS5T.tml),
 [7T8X](https://github.com/yaml/yaml-test-suite/tree/master/test/7T8X.tml),
 [RZP5](https://github.com/yaml/yaml-test-suite/tree/master/test/RZP5.tml),
-[FH7J](https://github.com/yaml/yaml-test-suite/tree/master/test/FH7J.tml).
+[FH7J](https://github.com/yaml/yaml-test-suite/tree/master/test/FH7J.tml),
 [PW8X](https://github.com/yaml/yaml-test-suite/tree/master/test/PW8X.tml),
 [CN3R](https://github.com/yaml/yaml-test-suite/tree/master/test/CN3R.tml),
 [6BCT](https://github.com/yaml/yaml-test-suite/tree/master/test/6BCT.tml),
@@ -1189,7 +1188,6 @@ are the suite cases from which ryml fails to parse any of its subparts:
 [9MMW](https://github.com/yaml/yaml-test-suite/tree/master/test/9MMW.tml),
 [DC7X](https://github.com/yaml/yaml-test-suite/tree/master/test/DC7X.tml),
 [L94M](https://github.com/yaml/yaml-test-suite/tree/master/test/L94M.tml),
-[WZ62](https://github.com/yaml/yaml-test-suite/tree/master/test/WZ62.tml).
 
 Except for the known limitations listed next, all other suite cases are
 expected to work.

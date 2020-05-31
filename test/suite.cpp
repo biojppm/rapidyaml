@@ -72,8 +72,9 @@ typedef enum {
     CPART_IN_YAML = 1 << 0,
     CPART_IN_JSON = 1 << 1,
     CPART_OUT_YAML = 1 << 2,
-    CPART_EVENTS = 1 << 3,
-    CPART_ALL = CPART_IN_YAML|CPART_IN_JSON|CPART_OUT_YAML|CPART_EVENTS,
+    CPART_EMIT_YAML = 1 << 3,
+    CPART_EVENTS = 1 << 4,
+    CPART_ALL = CPART_IN_YAML|CPART_IN_JSON|CPART_OUT_YAML|CPART_EMIT_YAML|CPART_EVENTS,
     CPART_ANY = CPART_ALL,
 } CasePart_e;
 constexpr CasePart_e operator| (CasePart_e lhs, CasePart_e rhs) noexcept { return (CasePart_e)((int)lhs|(int)rhs); }
@@ -127,6 +128,7 @@ constexpr const AllowedFailure g_allowed_failures[] = {
     {"9KAX", CPART_IN_JSON, "malformed JSON from multiple documents"},
     {"JHB9", CPART_IN_JSON, "malformed JSON from multiple documents"},
     {"KSS4", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"M7A3", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents|TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
     {"RZT7", CPART_IN_JSON, "malformed JSON from multiple documents"},
     {"U9NS", CPART_IN_JSON, "malformed JSON from multiple documents"},
     {"W4TN", CPART_IN_JSON, "malformed JSON from multiple documents"},
@@ -144,10 +146,8 @@ constexpr const AllowedFailure g_allowed_failures[] = {
     {"XW4D", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
 
     // TODO
-    {"EXG3", CPART_IN_YAML, "TODO[next]: document handling"},
-    {"XLQ9", CPART_IN_YAML, "TODO[next]: document handling"},
-    {"M7A3", CPART_IN_YAML|CPART_IN_JSON, "TODO[next]: document handling/special tags in .tml file with test specs"},
     {"735Y", CPART_IN_YAML, "TODO[next]: plain scalar parsing"},
+    {"EXG3", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
     {"82AN", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
     {"9YRD", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
     {"EX5H", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
@@ -158,12 +158,11 @@ constexpr const AllowedFailure g_allowed_failures[] = {
     {"PW8X", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: anchors with implicit key"},
     {"CN3R", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: anchors + maps nested in seqs"},
     {"6BCT", CPART_IN_YAML, "TODO[hard]: allow tabs after - or :"},
+    {"DC7X", CPART_IN_YAML, "TODO[next]: improve handling of tab characters"},
     {"G5U8", CPART_ALL, "TODO[next]: sequences with -"},
     {"K858", CPART_OUT_YAML|CPART_IN_JSON, "TODO[next]: emitting block scalars is not idempotent"},
     {"NAT4", CPART_IN_YAML|CPART_IN_JSON, "TODO[next]: emitting block scalars is not idempotent"},
     {"9MMW", CPART_IN_YAML, "TODO[next]: re the json/yaml incompatibility where a space is required after :"},
-    {"DC7X", CPART_IN_YAML, "TODO[next]: improve handling of tab characters"},
-    {"WZ62", CPART_IN_YAML, "TODO[next]: bad emitting of tags"},
 };
 
 
@@ -447,6 +446,7 @@ struct SuiteCase
     Subject     in_yaml;
     Subject     in_json;
     Subject     out_yaml;
+    Subject     emit_yaml;
     Subject     events;
 
     static c4::csubstr src(Subject const& s)
@@ -536,9 +536,9 @@ struct SuiteCase
         // in_json
         if(begin_in_json != npos)
         {
-            size_t first_after_in_json = find_first_after(begin_in_json, all);
+            size_t first_after = find_first_after(begin_in_json, all);
             begin_in_json = 1 + contents.find('\n', begin_in_json); // skip this line
-            txt = contents.range(begin_in_json, first_after_in_json);
+            txt = contents.range(begin_in_json, first_after);
             RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
             in_json.init(filename, txt, CPART_IN_JSON, allowed_failure);
         }
@@ -546,13 +546,23 @@ struct SuiteCase
         // out_yaml
         if(begin_out_yaml != npos)
         {
-            if(begin_in_json == npos) begin_in_json = begin_in_yaml;
-            size_t first_after_out_yaml = find_first_after(begin_out_yaml, all);
+            size_t first_after = find_first_after(begin_out_yaml, all);
             begin_out_yaml = 1 + contents.find('\n', begin_out_yaml); // skip this line
-            txt = contents.range(begin_out_yaml, first_after_out_yaml);
+            txt = contents.range(begin_out_yaml, first_after);
             RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
             txt = filter_out_indentation(txt, &tmpa);
             out_yaml.init(filename, txt, CPART_OUT_YAML, allowed_failure);
+        }
+
+        // emit_yaml
+        if(begin_emit_yaml != npos)
+        {
+            size_t first_after = find_first_after(begin_emit_yaml, all);
+            begin_emit_yaml = 1 + contents.find('\n', begin_emit_yaml); // skip this line
+            txt = contents.range(begin_emit_yaml, first_after);
+            RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
+            txt = filter_out_indentation(txt, &tmpa);
+            emit_yaml.init(filename, txt, CPART_EMIT_YAML, allowed_failure);
         }
 
         // events
@@ -568,14 +578,15 @@ struct SuiteCase
 
     void print() const
     {
-        c4::dump("~~~ file   : "  , filename     , "~~~\n",
-                 "~~~ desc   : "  , desc         , "~~~\n",
-                 "~~~ from   : "  , from         , "~~~\n",
-                 "~~~ tags   : "  , tags         , "~~~\n",
-                 "~~~ in-yaml:\n" , src(in_yaml ), "~~~\n",
-                 "~~~ in-json:\n" , src(in_json ), "~~~\n",
-                 "~~~ out-yaml:\n", src(out_yaml), "~~~\n",
-                 "~~~ events :\n" , src(events  ), "~~~\n");
+        c4::dump("~~~ file   : "   , filename      , "~~~\n",
+                 "~~~ desc   : "   , desc          , "~~~\n",
+                 "~~~ from   : "   , from          , "~~~\n",
+                 "~~~ tags   : "   , tags          , "~~~\n",
+                 "~~~ in-yaml:\n"  , src(in_yaml  ), "~~~\n",
+                 "~~~ in-json:\n"  , src(in_json  ), "~~~\n",
+                 "~~~ out-yaml:\n" , src(out_yaml ), "~~~\n",
+                 "~~~ emit-yaml:\n", src(emit_yaml), "~~~\n",
+                 "~~~ events :\n"  , src(events   ), "~~~\n");
     }
 
 };
@@ -687,6 +698,7 @@ INSTANTIATE_TEST_SUITE_P(_, cls##_windows_rw_reuse, testing::Range<size_t>(0, NL
 
 
 DECLARE_TESTS(out_yaml)
+DECLARE_TESTS(emit_yaml)
 //DECLARE_TESTS(events); // TODO
 DECLARE_TESTS(in_json)
 DECLARE_TESTS(in_yaml)
