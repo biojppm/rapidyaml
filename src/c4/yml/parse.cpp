@@ -241,13 +241,13 @@ bool Parser::_handle_unk()
 
     if(C4_UNLIKELY(has_any(NDOC)))
     {
-        if(rem.begins_with("---"))
+        if(rem == "---" || rem.begins_with("--- "))
         {
             _start_new_doc(rem);
             return true;
         }
         auto trimmed = rem.triml(' ');
-        if(trimmed.begins_with("---"))
+        if(trimmed == "---" || trimmed.begins_with("--- "))
         {
             RYML_ASSERT(rem.len >= trimmed.len);
             _line_progressed(rem.len - trimmed.len);
@@ -458,11 +458,17 @@ bool Parser::_handle_unk()
         {
             // nothing to do
         }
-        else if(rem.begins_with("---"))
+        else if(rem == "---" || rem.begins_with("--- "))
         {
             _c4dbgp("caught ---: starting doc");
             _start_new_doc(rem);
             _save_indentation();
+            return true;
+        }
+        else if(rem.begins_with('%'))
+        {
+            _c4dbgp("caught a directive: ignoring...");
+            _line_progressed(rem.len);
             return true;
         }
         else
