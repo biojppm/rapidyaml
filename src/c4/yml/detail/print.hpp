@@ -28,7 +28,7 @@ inline size_t print_node(Tree const& p, size_t node, int level, size_t count, bo
         {
             csubstr kt = p.key_tag(node);
             csubstr k  = p.key(node);
-            printf(" '%.*s %.*s'", (int)kt.len, kt.str, (int)k.len, k.str);
+            printf(" %.*s '%.*s'", (int)kt.len, kt.str, (int)k.len, k.str);
         }
         else
         {
@@ -46,7 +46,7 @@ inline size_t print_node(Tree const& p, size_t node, int level, size_t count, bo
         {
             csubstr vt = p.val_tag(node);
             csubstr v  = p.val(node);
-            printf(" '%.*s %.*s'", (int)vt.len, vt.str, (int)v.len, v.str);
+            printf(" %.*s '%.*s'", (int)vt.len, vt.str, (int)v.len, v.str);
         }
         else
         {
@@ -113,7 +113,7 @@ inline size_t print_tree(Tree const& p, size_t node=NONE)
     }
     printf("--------------------------------------\n");
     size_t ret = print_node(p, node, 0, 0, true);
-    printf("#nodes: %zd vs %zd\n", p.size(), ret);
+    printf("#nodes=%zd vs #printed=%zd\n", p.size(), ret);
     printf("--------------------------------------\n");
     return ret;
 }

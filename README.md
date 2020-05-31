@@ -138,7 +138,7 @@ Summarizing:
 | json   / clang++ / Debug    |  61.9  | 1.63    |  38x / 3%  |
 | json   /     g++ / Debug    |  72.6  | 1.53    |  47x / 2%  |
 | travis / clang++ / Release  | 131.6  | 8.08    |  16x / 6%  |
-| travis /      g++ / Release  | 176.4  | 8.23    |  21x / 5%  |
+| travis /     g++ / Release  | 176.4  | 8.23    |  21x / 5%  |
 | travis / clang++ / Debug    |  10.2  | 1.08    |   9x / 1%  |
 | travis /     g++ / Debug    |  12.5  | 1.01    |  12x / 8%  |
 
@@ -1158,15 +1158,17 @@ result is the same as its input without any loss of information. To ensure
 correctness, this happens over four levels of parse/emission pairs, resulting
 on ~200 checks per test case.
 
-As of May 2020, ryml fails to parse only ~30 out of the ~1000=~3x300 cases
-from the test suite. Out of all other cases, all the ~200 checks are 100%
-successful for consistency over parse/emit pairs --- but please note that the
-events part is not yet read in and used to check for correctness, and
-therefore that **even though ryml may suceed in parsing, there still exists a
-minority of cases which may not be correct**. Again, as of May 2020, I would
-estimate this fraction at less that 5%. Currently, these are the suite cases
-from which ryml fails to parse any of its subparts:
-[9WXW](https://github.com/yaml/yaml-test-suite/tree/master/test/9WXW.tml),
+Please note that in [their own words](http://matrix.yaml.io/), the tests from
+the YAML test suite *contain a lot of edge cases that don't play such an
+important role in real world examples*. Despite the extreme focus, of this
+test suite, as of May 2020, ryml only fails to parse ~30 out of the
+~1000=~3x300 cases from the test suite. Out of all other cases, all the ~200
+checks are 100% successful for consistency over parse/emit pairs --- but
+please note that the events part is not yet read in and used to check for
+correctness, and therefore that **even though ryml may suceed in parsing,
+there still exists a minority of cases which may not be correct**. Currently,
+I would estimate this fraction at less somewhere around 5%. Currently, these
+are the suite cases from which ryml fails to parse any of its subparts:
 [EXG3](https://github.com/yaml/yaml-test-suite/tree/master/test/EXG3.tml),
 [XLQ9](https://github.com/yaml/yaml-test-suite/tree/master/test/XLQ9.tml),
 [M7A3](https://github.com/yaml/yaml-test-suite/tree/master/test/M7A3.tml),

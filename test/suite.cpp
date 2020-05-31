@@ -144,7 +144,6 @@ constexpr const AllowedFailure g_allowed_failures[] = {
     {"XW4D", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
 
     // TODO
-    {"9WXW", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: document handling"},
     {"EXG3", CPART_IN_YAML, "TODO[next]: document handling"},
     {"XLQ9", CPART_IN_YAML, "TODO[next]: document handling"},
     {"M7A3", CPART_IN_YAML|CPART_IN_JSON, "TODO[next]: document handling/special tags in .tml file with test specs"},

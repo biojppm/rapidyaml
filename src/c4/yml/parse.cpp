@@ -1,10 +1,14 @@
 #include "c4/yml/parse.hpp"
 #include "c4/error.hpp"
-#include "c4/yml/detail/parser_dbg.hpp"
 
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
+
+#ifdef RYML_DBG
+#include "c4/yml/detail/print.hpp"
+#include "c4/yml/detail/parser_dbg.hpp"
+#endif
 
 #ifdef __GNUC__
 #   pragma GCC diagnostic push
@@ -2495,9 +2499,15 @@ void Parser::_start_doc(bool as_child)
     RYML_ASSERT(node(m_state) == nullptr || node(m_state) == node(m_root_id));
     if(as_child)
     {
+        _c4dbgpf("start_doc: parent=%zu", parent_id);
         if( ! m_tree->is_stream(parent_id))
         {
-            m_tree->to_stream(parent_id);
+            for(size_t ch = m_tree->first_child(parent_id); ch != NONE; ch = m_tree->next_sibling(ch))
+            {
+                _c4dbgpf("start_doc: setting %zu->DOC", ch);
+                m_tree->_add_flags(ch, DOC);
+            }
+            m_tree->_add_flags(parent_id, STREAM);
         }
         m_state->node_id = m_tree->append_child(parent_id);
         m_tree->to_doc(m_state->node_id);
@@ -3129,7 +3139,6 @@ csubstr Parser::_scan_quoted_scalar(const char q)
             for(size_t i = 0; i < line.len; ++i)
             {
                 const char curr = line.str[i];
-                _c4dbgpf("sdqs: i=%zu curr=%c so far=~~%.*s~~", i, curr, _c4prsp(line.first(i)));
                 if(curr != ' ')
                 {
                     line_is_blank = false;
