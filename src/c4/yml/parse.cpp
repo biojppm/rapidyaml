@@ -5,9 +5,9 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#include "c4/yml/detail/parser_dbg.hpp"
 #ifdef RYML_DBG
 #include "c4/yml/detail/print.hpp"
-#include "c4/yml/detail/parser_dbg.hpp"
 #endif
 
 #ifdef __GNUC__
