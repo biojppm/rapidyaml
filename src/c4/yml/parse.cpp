@@ -1633,7 +1633,22 @@ bool Parser::_handle_types()
     }
     else if(has_all(RMAP|RVAL))
     {
-        _c4dbgpf("saving map val tag '%.*s'", _c4prsp(t));
+        /* foo: !!str
+         * !!str : bar  */
+        rem = m_state->line_contents.rem;
+        rem = rem.left_of(rem.find("#"));
+        rem = rem.trim(" \t");
+        _c4dbgpf("rem='%.*s'", _c4prsp(rem));
+        if(rem == ':' || rem.begins_with(": "))
+        {
+            _c4dbgp("the last val was null, and this is a tag from a null key");
+            _append_key_val("~");
+            _store_scalar("~");
+            // do not change the flag to key, it is ~
+            RYML_ASSERT(rem.begin() > m_state->line_contents.rem.begin());
+            size_t token_len = rem == ':' ? 1 : 2;
+            _line_progressed(token_len + rem.begin() - m_state->line_contents.rem.begin());
+        }
         RYML_ASSERT(m_val_tag.empty());
         m_val_tag = t;
     }

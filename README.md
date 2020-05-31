@@ -1163,12 +1163,12 @@ the YAML test suite *contain a lot of edge cases that don't play such an
 important role in real world examples*. Despite the extreme focus of the test
 suite, as of May 2020, ryml only fails to parse ~30 out of the ~1000=~3x300
 cases from the test suite. Out of all other cases, all the ~200 checks per
-part are 100% successful for consistency over parse/emit pairs --- but please
+case are 100% successful for consistency over parse/emit pairs --- but please
 note that the events part is not yet read in and used to check for
 correctness, and therefore that **even though ryml may suceed in parsing,
 there still exists a minority of cases which may not be correct**. Currently,
-I would estimate this fraction at somewhere around 5%. Currently, these are
-the suite cases where ryml fails to parse any of its subparts:
+I would estimate this fraction at somewhere around 5%. These are the suite
+cases where ryml fails to parse any of its subparts:
 [EXG3](https://github.com/yaml/yaml-test-suite/tree/master/test/EXG3.tml),
 [M7A3](https://github.com/yaml/yaml-test-suite/tree/master/test/M7A3.tml),
 [735Y](https://github.com/yaml/yaml-test-suite/tree/master/test/735Y.tml),
