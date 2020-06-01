@@ -17,7 +17,7 @@ endif()
 function(ryml_add_test test_name)
     set(t ryml-test-${test_name})
     c4_add_executable(${t}
-        SOURCES ${test_name}.cpp
+        SOURCES test_${test_name}.cpp
         LIBS ${ARGN} ryml-_testlib gtest_main
         FOLDER test)
     if(RYML_DBG)
@@ -126,7 +126,7 @@ if(RYML_TEST_SUITE)
     endif()
 
     c4_add_executable(ryml-test-suite
-        SOURCES suite.cpp
+        SOURCES test_suite.cpp
         LIBS ryml-_testlib c4log
         FOLDER test)
     add_dependencies(ryml-test-build ryml-test-suite)
