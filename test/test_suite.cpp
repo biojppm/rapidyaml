@@ -604,76 +604,49 @@ SuiteCase* g_suite_case = nullptr;
 #define DECLARE_TEST_CLASS(cls, pfx)                            \
                                                                 \
                                                                 \
-class cls##_##pfx : public ::testing::TestWithParam<size_t>     \
+struct cls##_##pfx : public ::testing::TestWithParam<size_t>    \
 {                                                               \
+    Approach* get_test_case() const                             \
+    {                                                           \
+        RYML_CHECK(g_suite_case != nullptr);                    \
+        RYML_CHECK(GetParam() < NLEVELS);                       \
+        if(g_suite_case->cls.pfx.enabled)                       \
+        {                                                       \
+            return &g_suite_case->cls.pfx;                      \
+        }                                                       \
+        c4::dump(#cls "." #pfx ": no input for this case\n");   \
+        return nullptr;                                         \
+    }                                                           \
 };                                                              \
                                                                 \
                                                                 \
 TEST_P(cls##_##pfx, parse)                                      \
 {                                                               \
-    RYML_CHECK(g_suite_case != nullptr);                        \
-    RYML_CHECK(GetParam() < NLEVELS);                           \
-    auto &test_case = g_suite_case->cls.pfx;                    \
-    if(test_case.enabled)                                       \
-    {                                                           \
-        test_case.parse(1 + GetParam(), false);                 \
-    }                                                           \
-    else                                                        \
-    {                                                           \
-        c4::dump(#cls "." #pfx ": no input for this case\n");   \
-    }                                                           \
+    if(!get_test_case()) return;                                \
+    get_test_case()->parse(1 + GetParam(), false);              \
 }                                                               \
                                                                 \
                                                                 \
 TEST_P(cls##_##pfx, compare_trees)                              \
 {                                                               \
-    RYML_CHECK(g_suite_case != nullptr);                        \
-    RYML_CHECK(GetParam() < NLEVELS);                           \
-    auto &test_case = g_suite_case->cls.pfx;                    \
-    if(test_case.enabled)                                       \
-    {                                                           \
-        test_case.compare_trees(1 + GetParam());                \
-    }                                                           \
-    else                                                        \
-    {                                                           \
-        c4::dump(#cls "." #pfx ": no input for this case\n");   \
-    }                                                           \
+    if(!get_test_case()) return;                                \
+    get_test_case()->compare_trees(1 + GetParam());             \
 }                                                               \
                                                                 \
                                                                 \
 TEST_P(cls##_##pfx, emit)                                       \
 {                                                               \
-    RYML_CHECK(g_suite_case != nullptr);                        \
-    RYML_CHECK(GetParam() < NLEVELS);                           \
-    auto &test_case = g_suite_case->cls.pfx;                    \
-    if(test_case.enabled)                                       \
-    {                                                           \
-        test_case.parse(1 + GetParam(), true);                  \
-    }                                                           \
-    else                                                        \
-    {                                                           \
-        c4::dump(#cls "." #pfx ": no input for this case\n");   \
-    }                                                           \
+    if(!get_test_case()) return;                                \
+    get_test_case()->parse(1 + GetParam(), true);               \
 }                                                               \
                                                                 \
                                                                 \
 TEST_P(cls##_##pfx, compare_emitted)                            \
 {                                                               \
-    RYML_CHECK(g_suite_case != nullptr);                        \
-    RYML_CHECK(GetParam() < NLEVELS);                           \
-    auto &test_case = g_suite_case->cls.pfx;                    \
-    if(test_case.enabled)                                       \
-    {                                                           \
-        test_case.compare_emitted(1 + GetParam());              \
-    }                                                           \
-    else                                                        \
-    {                                                           \
-        c4::dump(#cls "." #pfx ": no input for this case\n");   \
-    }                                                           \
+    if(!get_test_case()) return;                                \
+    get_test_case()->compare_emitted(1 + GetParam());           \
 }                                                               \
-/**/                                                            \
-/**/                                                            \
-/**/
+
 
 
 #define DECLARE_TESTS(cls)                                              \
@@ -698,8 +671,7 @@ INSTANTIATE_TEST_SUITE_P(_, cls##_windows_rw_reuse, testing::Range<size_t>(0, NL
 
 
 DECLARE_TESTS(out_yaml)
-DECLARE_TESTS(emit_yaml)
-//DECLARE_TESTS(events); // TODO
+//DECLARE_TESTS(emit_yaml)
 DECLARE_TESTS(in_json)
 DECLARE_TESTS(in_yaml)
 
