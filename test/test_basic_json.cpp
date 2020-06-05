@@ -217,6 +217,25 @@ TEST(general, json_stream_operator)
     EXPECT_EQ(out["00000000000000000000000000000000000000000000000000000000000000"], 1);
 }
 
+TEST(emit_json, issue72)
+{
+    Tree t;
+    NodeRef r = t.rootref();
+
+    r |= MAP;
+    r["1"] = "null";
+    r["2"] = "true";
+    r["3"] = "false";
+    r["null"] = "1";
+    r["true"] = "2";
+    r["false"] = "3";
+
+    std::string out;
+    emitrs_json(t, &out);
+
+    EXPECT_EQ(out, R"({"1": null,"2": true,"3": false,"null": 1,"true": 2,"false": 3})");
+}
+
 //-------------------------------------------
 // this is needed to use the test case library
 Case const* get_case(csubstr /*name*/)

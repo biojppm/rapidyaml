@@ -555,9 +555,9 @@ public:
 
     bool has_sibling(size_t node, size_t sib) const { return is_root(node) ? sib==node : child_pos(_p(node)->m_parent, sib) != npos; }
     bool has_sibling(size_t node, csubstr key) const { return find_sibling(node, key) != npos; }
-    /** counts with this */
+    /** counts with *this */
     bool has_siblings(size_t /*node*/) const { return true; }
-    /** does not count with this */
+    /** does not count with *this */
     bool has_other_siblings(size_t node) const { return is_root(node) ? false : (_p(_p(node)->m_parent)->m_first_child != _p(_p(node)->m_parent)->m_last_child); }
 
 public:
@@ -594,10 +594,10 @@ public:
     void to_map(size_t node, csubstr const& key, type_bits more_flags=0);
     void to_seq(size_t node, csubstr const& key, type_bits more_flags=0);
     void to_val(size_t node, csubstr const& val, type_bits more_flags=0);
-    void to_stream(size_t node, type_bits more_flags=0);
     void to_map(size_t node, type_bits more_flags=0);
     void to_seq(size_t node, type_bits more_flags=0);
     void to_doc(size_t node, type_bits more_flags=0);
+    void to_stream(size_t node, type_bits more_flags=0);
 
     void set_key(size_t node, csubstr key) { RYML_ASSERT(has_key(node)); _p(node)->m_key.scalar = key; }
     void set_val(size_t node, csubstr val) { RYML_ASSERT(has_val(node)); _p(node)->m_val.scalar = val; }

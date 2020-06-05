@@ -254,15 +254,13 @@ void Emitter<Writer>::_write_json(NodeScalar const& sc, NodeType flags)
 {
     if( ! sc.tag.empty())
     {
-        this->Writer::_do_write(sc.tag);
-        this->Writer::_do_write(' ');
+        c4::yml::error("no tag processing for JSON");
     }
     if(flags.has_anchor())
     {
         c4::yml::error("no anchor processing for JSON");
     }
-
-    _write_scalar_json(sc.scalar);
+    _write_scalar_json(sc.scalar, flags.has_key());
 }
 
 template<class Writer>
@@ -385,9 +383,13 @@ void Emitter<Writer>::_write_scalar(csubstr s)
     }
 }
 template<class Writer>
-void Emitter<Writer>::_write_scalar_json(csubstr s)
+void Emitter<Writer>::_write_scalar_json(csubstr s, bool as_key)
 {
-    if(s.is_number())
+    if(!as_key && s.is_number())
+    {
+        this->Writer::_do_write(s);
+    }
+    else if(!as_key && (s == "true" || s == "null" || s == "false"))
     {
         this->Writer::_do_write(s);
     }

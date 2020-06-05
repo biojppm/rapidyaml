@@ -63,7 +63,7 @@ function(ryml_add_bm_case target case_file)
 endfunction()
 
 c4_add_executable(ryml-bm-parse
-    SOURCES parse.cpp
+    SOURCES bm_parse.cpp
     LIBS ryml yaml yaml-cpp benchmark jsoncpp_lib nlohmann_json c4fs
     INC_DIRS ${RYML_RAPIDJSON_INC_DIR} ${RYML_SAJSON_INC_DIR}
     FOLDER bm)

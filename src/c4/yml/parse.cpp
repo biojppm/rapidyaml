@@ -1,10 +1,14 @@
 #include "c4/yml/parse.hpp"
 #include "c4/error.hpp"
-#include "c4/yml/detail/parser_dbg.hpp"
 
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
+
+#include "c4/yml/detail/parser_dbg.hpp"
+#ifdef RYML_DBG
+#include "c4/yml/detail/print.hpp"
+#endif
 
 #ifdef __GNUC__
 #   pragma GCC diagnostic push
@@ -237,13 +241,13 @@ bool Parser::_handle_unk()
 
     if(C4_UNLIKELY(has_any(NDOC)))
     {
-        if(rem.begins_with("---"))
+        if(rem == "---" || rem.begins_with("--- "))
         {
             _start_new_doc(rem);
             return true;
         }
         auto trimmed = rem.triml(' ');
-        if(trimmed.begins_with("---"))
+        if(trimmed == "---" || trimmed.begins_with("--- "))
         {
             RYML_ASSERT(rem.len >= trimmed.len);
             _line_progressed(rem.len - trimmed.len);
@@ -454,11 +458,17 @@ bool Parser::_handle_unk()
         {
             // nothing to do
         }
-        else if(rem.begins_with("---"))
+        else if(rem == "---" || rem.begins_with("--- "))
         {
             _c4dbgp("caught ---: starting doc");
             _start_new_doc(rem);
             _save_indentation();
+            return true;
+        }
+        else if(rem.begins_with('%'))
+        {
+            _c4dbgp("caught a directive: ignoring...");
+            _line_progressed(rem.len);
             return true;
         }
         else
@@ -1623,7 +1633,22 @@ bool Parser::_handle_types()
     }
     else if(has_all(RMAP|RVAL))
     {
-        _c4dbgpf("saving map val tag '%.*s'", _c4prsp(t));
+        /* foo: !!str
+         * !!str : bar  */
+        rem = m_state->line_contents.rem;
+        rem = rem.left_of(rem.find("#"));
+        rem = rem.trim(" \t");
+        _c4dbgpf("rem='%.*s'", _c4prsp(rem));
+        if(rem == ':' || rem.begins_with(": "))
+        {
+            _c4dbgp("the last val was null, and this is a tag from a null key");
+            _append_key_val("~");
+            _store_scalar("~");
+            // do not change the flag to key, it is ~
+            RYML_ASSERT(rem.begin() > m_state->line_contents.rem.begin());
+            size_t token_len = rem == ':' ? 1 : 2;
+            _line_progressed(token_len + rem.begin() - m_state->line_contents.rem.begin());
+        }
         RYML_ASSERT(m_val_tag.empty());
         m_val_tag = t;
     }
@@ -2495,9 +2520,15 @@ void Parser::_start_doc(bool as_child)
     RYML_ASSERT(node(m_state) == nullptr || node(m_state) == node(m_root_id));
     if(as_child)
     {
+        _c4dbgpf("start_doc: parent=%zu", parent_id);
         if( ! m_tree->is_stream(parent_id))
         {
-            m_tree->to_stream(parent_id);
+            for(size_t ch = m_tree->first_child(parent_id); ch != NONE; ch = m_tree->next_sibling(ch))
+            {
+                _c4dbgpf("start_doc: setting %zu->DOC", ch);
+                m_tree->_add_flags(ch, DOC);
+            }
+            m_tree->_add_flags(parent_id, STREAM);
         }
         m_state->node_id = m_tree->append_child(parent_id);
         m_tree->to_doc(m_state->node_id);
@@ -3129,7 +3160,6 @@ csubstr Parser::_scan_quoted_scalar(const char q)
             for(size_t i = 0; i < line.len; ++i)
             {
                 const char curr = line.str[i];
-                _c4dbgpf("sdqs: i=%zu curr=%c so far=~~%.*s~~", i, curr, _c4prsp(line.first(i)));
                 if(curr != ' ')
                 {
                     line_is_blank = false;
