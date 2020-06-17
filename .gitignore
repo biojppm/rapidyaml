@@ -19,6 +19,8 @@ CMakeLists.txt.user*
 .project
 .cproject
 /.settings/
+# KDevelop files
+*.kdev4
 
 # build files
 build/

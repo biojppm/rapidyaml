@@ -3330,8 +3330,8 @@ csubstr Parser::_scan_block()
         ++num_lines;
     }
     RYML_ASSERT(m_state->pos.line == (first + num_lines));
-    (void)num_lines; // prevent warning
-    (void)first;
+    C4_UNUSED(num_lines);
+    C4_UNUSED(first);
 
     _c4dbgpf("scanning block: raw='%.*s'", _c4prsp(raw_block));
 
