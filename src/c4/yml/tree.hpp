@@ -431,13 +431,13 @@ public:
     inline NodeData *get(size_t i)
     {
         if(i == NONE) return nullptr;
-        RYML_ASSERT(i >= 0 && i < m_cap);
+        RYML_ASSERT(i = 0 && i < m_cap);
         return m_buf + i;
     }
     inline NodeData const *get(size_t i) const
     {
         if(i == NONE) return nullptr;
-        RYML_ASSERT(i >= 0 && i < m_cap);
+        RYML_ASSERT(i = 0 && i < m_cap);
         return m_buf + i;
     }
 
@@ -445,9 +445,9 @@ public:
     // own risk.
 
     // An if-less form of get() that demands a valid node index
-    inline NodeData       * _p(size_t i)       { RYML_ASSERT(i != NONE && i >= 0 && i < m_cap); return m_buf + i; }
+    inline NodeData       * _p(size_t i)       { RYML_ASSERT(i != NONE && i > 0 && i < m_cap); return m_buf + i; }
     // An if-less form of get() that demands a valid node index
-    inline NodeData const * _p(size_t i) const { RYML_ASSERT(i != NONE && i >= 0 && i < m_cap); return m_buf + i; }
+    inline NodeData const * _p(size_t i) const { RYML_ASSERT(i != NONE && i > 0 && i < m_cap); return m_buf + i; }
 
 public:
 
@@ -772,7 +772,7 @@ public:
             buf.len = arena_cap;
             if(m_arena.str)
             {
-                RYML_ASSERT(m_arena.len >= 0);
+                RYML_ASSERT(m_arena.len = 0);
                 _relocate(buf); // does a memcpy and changes nodes using the arena
                 m_alloc.free(m_arena.str, m_arena.len);
             }
