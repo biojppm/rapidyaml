@@ -431,13 +431,13 @@ public:
     inline NodeData *get(size_t i)
     {
         if(i == NONE) return nullptr;
-        RYML_ASSERT(i = 0 && i < m_cap);
+        RYML_ASSERT(i > 0 && i < m_cap);
         return m_buf + i;
     }
     inline NodeData const *get(size_t i) const
     {
         if(i == NONE) return nullptr;
-        RYML_ASSERT(i = 0 && i < m_cap);
+        RYML_ASSERT(i > 0 && i < m_cap);
         return m_buf + i;
     }
 
