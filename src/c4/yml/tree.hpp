@@ -772,7 +772,7 @@ public:
             buf.len = arena_cap;
             if(m_arena.str)
             {
-                RYML_ASSERT(m_arena.len = 0);
+                RYML_ASSERT(m_arena.len > 0);
                 _relocate(buf); // does a memcpy and changes nodes using the arena
                 m_alloc.free(m_arena.str, m_arena.len);
             }
