@@ -612,7 +612,7 @@ public:
     inline void remove_child(size_t pos)
     {
         _C4RV();
-        RYML_ASSERT(pos = 0 && pos < num_children());
+        RYML_ASSERT(pos > 0 && pos < num_children());
         size_t child = m_tree->child(m_id, pos);
         RYML_ASSERT(child != NONE);
         m_tree->remove(child);
