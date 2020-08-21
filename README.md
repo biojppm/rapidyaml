@@ -371,7 +371,7 @@ void show_val(ryml::NodeRef n)
 int main()
 {
     // ryml can parse in situ (and read-only buffers too):
-    char src[] = "{foo: 1, bar: [a: 2, b: 3]}";
+    char src[] = "{foo: 1, bar: [2, 3]}";
     ryml::substr srcview = src_; // a mutable view to the source buffer
     // there are also overloads for reusing the tree and parser
     ryml::Tree tree = ryml::parse(srcview);
