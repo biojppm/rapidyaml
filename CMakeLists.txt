@@ -96,7 +96,9 @@ if(RYML_BUILD_TESTS OR RYML_BUILD_BENCHMARKS)
     c4_override(YAML_CPP_BUILD_INSTALL OFF)
     c4_import_remote_proj(yaml-cpp ${ed}/yaml-cpp
         GIT_REPOSITORY https://github.com/jbeder/yaml-cpp
-        GIT_TAG master)
+        # the master branch regularly screws up on windows builds.
+        # so use fixed pre-validated commit hashes
+        GIT_TAG 587b24e2eedea1afa21d79419008ca5f7bda3bf4)
     c4_set_folder_remote_project_targets(ext/yaml-cpp yaml-cpp format)
     set(ryml_yaml_cpp_inc ${ed}/yaml-cpp/src/include)
 endif()
