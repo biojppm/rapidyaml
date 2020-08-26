@@ -26,8 +26,9 @@ c4_add_library(ryml
     SOURCES
         ryml.hpp
         ryml_std.hpp
-        c4/yml/detail/stack.hpp
+        c4/yml/detail/checks.hpp
         c4/yml/detail/parser_dbg.hpp
+        c4/yml/detail/stack.hpp
         c4/yml/common.hpp
         c4/yml/common.cpp
         c4/yml/emit.def.hpp

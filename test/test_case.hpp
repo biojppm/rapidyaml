@@ -16,6 +16,7 @@
 
 #if defined(_MSC_VER)
 #   pragma warning(push)
+#   pragma warning(disable: 4296/*expression is always 'boolean_value'*/)
 #   pragma warning(disable: 4389/*'==': signed/unsigned mismatch*/)
 #   pragma warning(disable: 4800/*'int': forcing value to bool 'true' or 'false' (performance warning)*/)
 #endif

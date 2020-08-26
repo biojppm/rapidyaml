@@ -62,7 +62,8 @@ int main(int argc, const char *argv[])
             size_t nlines;
             {
                 TS(count_lines);
-                nlines = std::count(contents.begin(), contents.end(), '\n');
+                C4_CHECK(contents.begin() <= contents.end());
+                nlines = static_cast<size_t>(std::count(contents.begin(), contents.end(), '\n'));
             }
             fprintf(stderr, "reserving #lines=%zu\n", nlines);
             tree.reserve(nlines);

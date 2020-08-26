@@ -7,6 +7,18 @@
 
 #include <gtest/gtest.h>
 
+#if defined(_MSC_VER)
+#   pragma warning(push)
+#elif defined(__clang__)
+#   pragma clang diagnostic push
+#elif defined(__GNUC__)
+#   pragma GCC diagnostic push
+#   pragma GCC diagnostic ignored "-Wuseless-cast"
+#   if __GNUC__ >= 6
+#       pragma GCC diagnostic ignored "-Wnull-dereference"
+#   endif
+#endif
+
 namespace c4 {
 namespace yml {
 
@@ -397,7 +409,9 @@ void print_path(NodeRef const& n)
         }
         else
         {
-            len += snprintf(buf, sizeof(buf), "/%zd", p.has_parent() ? p.parent().child_pos(p) : 0);
+            int ret = snprintf(buf, sizeof(buf), "/%zd", p.has_parent() ? p.parent().child_pos(p) : 0);
+            RYML_ASSERT(ret >= 0);
+            len += static_cast<size_t>(ret);
         }
         p = p.parent();
     };
@@ -409,13 +423,20 @@ void print_path(NodeRef const& n)
         if(p.has_key())
         {
             size_t tl = p.key().len;
-            pos -= snprintf(buf + pos - tl, tl, "%.*s", (int)tl, p.key().str);
+            int ret = snprintf(buf + pos - tl, tl, "%.*s", (int)tl, p.key().str);
+            RYML_ASSERT(ret >= 0);
+            pos -= static_cast<size_t>(ret);
         }
         else
         {
             pos = p.parent().child_pos(p);
-            size_t tl = snprintf(buf, 0, "/%zd", pos);
-            pos -= snprintf(buf + pos - tl, tl, "/%zd", pos);
+            int ret = snprintf(buf, 0, "/%zd", pos);
+            RYML_ASSERT(ret >= 0);
+            size_t tl = static_cast<size_t>(ret);
+            RYML_ASSERT(pos >= tl);
+            ret = snprintf(buf + static_cast<size_t>(pos - tl), tl, "/%zd", pos);
+            RYML_ASSERT(ret >= 0);
+            pos -= static_cast<size_t>(ret);
         }
         p = p.parent();
     };
@@ -865,3 +886,11 @@ CaseData* get_data(csubstr name)
 
 } // namespace yml
 } // namespace c4
+
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#elif defined(__clang__)
+#   pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#   pragma GCC diagnostic pop
+#endif

@@ -9,15 +9,17 @@
 
 #include <c4/charconv.hpp>
 
-#ifdef __GNUC__
+#if defined(_MSC_VER)
+#   pragma warning(push)
+#   pragma warning(disable: 4251/*needs to have dll-interface to be used by clients of struct*/)
+#   pragma warning(disable: 4296/*expression is always 'boolean_value'*/)
+#elif defined(__clang__)
+#   pragma clang diagnostic push
+#elif defined(__GNUC__)
 #   pragma GCC diagnostic push
 #   pragma GCC diagnostic ignored "-Wtype-limits"
 #endif
 
-#if defined(_MSC_VER)
-#   pragma warning(push)
-#   pragma warning(disable: 4251/*needs to have dll-interface to be used by clients of struct*/)
-#endif
 
 namespace c4 {
 namespace yml {
@@ -79,7 +81,7 @@ using type_bits = uint64_t;
 /** a bit mask for marking node types */
 typedef enum : type_bits {
     // a convenience define, undefined below
-    #define c4bit(v) type_bits(type_bits(1) << v)
+    #define c4bit(v) (type_bits(1) << v)
     NOTYPE  = 0,            ///< no node type is set
     VAL     = c4bit(0),     ///< a leaf node, has a (possibly empty) value
     KEY     = c4bit(1),     ///< is member of a map, must have non-empty key
@@ -186,6 +188,16 @@ public:
 
 public:
 
+    #if defined(__clang__)
+    #   pragma clang diagnostic push
+    #   pragma clang diagnostic ignored "-Wnull-dereference"
+    #elif defined(__GNUC__)
+    #   pragma GCC diagnostic push
+    #   if __GNUC__ >= 6
+    #       pragma GCC diagnostic ignored "-Wnull-dereference"
+    #   endif
+    #endif
+
     bool is_stream() const { return ((type & STREAM) == STREAM) != 0; }
     bool is_doc() const { return (type & DOC) != 0; }
     bool is_container() const { return (type & (MAP|SEQ|STREAM|DOC)) != 0; }
@@ -203,6 +215,12 @@ public:
     bool is_key_ref() const { return (type & KEYREF) != 0; }
     bool is_val_ref() const { return (type & VALREF) != 0; }
     bool is_ref() const { return (type & (KEYREF|VALREF)) != 0; }
+
+    #if defined(__clang__)
+    #   pragma clang diagnostic pop
+    #elif defined(__GNUC__)
+    #   pragma GCC diagnostic pop
+    #endif
 
 };
 
@@ -348,6 +366,16 @@ public:
 
 public:
 
+#if defined(__clang__)
+#   pragma clang diagnostic push
+#   pragma clang diagnostic ignored "-Wnull-dereference"
+#elif defined(__GNUC__)
+#   pragma GCC diagnostic push
+#   if __GNUC__ >= 6
+#       pragma GCC diagnostic ignored "-Wnull-dereference"
+#   endif
+#endif
+
     bool   is_root() const { return m_parent == NONE; }
 
     bool   is_stream() const { return m_type.is_stream(); }
@@ -365,6 +393,12 @@ public:
     bool   has_val_anchor() const { return ! m_type.has_val_anchor(); }
     bool   is_key_ref() const { return m_type.is_key_ref(); }
     bool   is_val_ref() const { return m_type.is_val_ref(); }
+
+#if defined(__clang__)
+#   pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#   pragma GCC diagnostic pop
+#endif
 
 };
 C4_MUST_BE_TRIVIAL_COPY(NodeData);
@@ -418,13 +452,13 @@ public:
     {
         if( ! n) return NONE;
         RYML_ASSERT(n >= m_buf && n < m_buf + m_cap);
-        return n - m_buf;
+        return static_cast<size_t>(n - m_buf);
     }
     size_t id(NodeData const* n) const
     {
         if( ! n) return NONE;
         RYML_ASSERT(n >= m_buf && n < m_buf + m_cap);
-        return n - m_buf;
+        return static_cast<size_t>(n - m_buf);
     }
 
     // with the get() method, i can be NONE, in which case a nullptr is returned
@@ -635,6 +669,16 @@ public:
 
 public:
 
+    #if defined(__clang__)
+    #   pragma clang diagnostic push
+    #   pragma clang diagnostic ignored "-Wnull-dereference"
+    #elif defined(__GNUC__)
+    #   pragma GCC diagnostic push
+    #   if __GNUC__ >= 6
+    #       pragma GCC diagnostic ignored "-Wnull-dereference"
+    #   endif
+    #endif
+
     //! create and insert a new sibling of n. insert after "after"
     inline size_t insert_sibling(size_t node, size_t after)
     {
@@ -642,6 +686,7 @@ public:
         RYML_ASSERT( ! is_root(node));
         RYML_ASSERT(parent(node) != NONE);
         RYML_ASSERT(after == NONE || (has_sibling(node, after) && has_sibling(after, node)));
+        RYML_ASSERT(get(node) != nullptr);
         return insert_child(get(node)->m_parent, after);
     }
     inline size_t prepend_sibling(size_t node) { return insert_sibling(node, NONE); }
@@ -659,16 +704,24 @@ public:
     //! remove all the node's children, but keep the node itself
     void remove_children(size_t node)
     {
+        RYML_ASSERT(get(node) != nullptr);
         size_t ich = get(node)->m_first_child;
         while(ich != NONE)
         {
             remove_children(ich);
+            RYML_ASSERT(get(ich) != nullptr);
             size_t next = get(ich)->m_next_sibling;
             _release(ich);
             if(ich == get(node)->m_last_child) break;
             ich = next;
         }
     }
+    
+    #if defined(__clang__)
+    #   pragma clang diagnostic pop
+    #elif defined(__GNUC__)
+    #   pragma GCC diagnostic pop
+    #endif
 
 public:
 
@@ -1095,10 +1148,11 @@ public:
 
 #if defined(_MSC_VER)
 #   pragma warning(pop)
+#elif defined(__clang__)
+#   pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#   pragma GCC diagnostic pop
 #endif
 
-#ifdef __GNUC__
-#  pragma GCC diagnostic pop
-#endif
 
 #endif /* _C4_YML_TREE_HPP_ */

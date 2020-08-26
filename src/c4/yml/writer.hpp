@@ -54,9 +54,21 @@ struct WriterFile
 
     inline void _do_write(csubstr sp)
     {
+        #if defined(__clang__)
+        #   pragma clang diagnostic push
+        #   pragma GCC diagnostic ignored "-Wsign-conversion"
+        #elif defined(__GNUC__)
+        #   pragma GCC diagnostic push
+        #   pragma GCC diagnostic ignored "-Wsign-conversion"
+        #endif
         if(sp.empty()) return;
         fwrite(sp.str, sizeof(csubstr::char_type), sp.len, m_file);
         m_pos += sp.len;
+        #if defined(__clang__)
+        #   pragma clang diagnostic pop
+        #elif defined(__GNUC__)
+        #   pragma GCC diagnostic pop
+        #endif
     }
 
     inline void _do_write(const char c)
@@ -105,9 +117,21 @@ struct WriterOStream
 
     inline void _do_write(csubstr sp)
     {
+        #if defined(__clang__)
+        #   pragma clang diagnostic push
+        #   pragma GCC diagnostic ignored "-Wsign-conversion"
+        #elif defined(__GNUC__)
+        #   pragma GCC diagnostic push
+        #   pragma GCC diagnostic ignored "-Wsign-conversion"
+        #endif
         if(sp.empty()) return;
         m_stream.write(sp.str, sp.len);
         m_pos += sp.len;
+        #if defined(__clang__)
+        #   pragma clang diagnostic pop
+        #elif defined(__GNUC__)
+        #   pragma GCC diagnostic pop
+        #endif
     }
 
     inline void _do_write(const char c)

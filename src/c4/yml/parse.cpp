@@ -10,9 +10,21 @@
 #include "c4/yml/detail/print.hpp"
 #endif
 
-#ifdef __GNUC__
+
+#if defined(_MSC_VER)
+#   pragma warning(push)
+#   pragma warning(disable: 4296/*expression is always 'boolean_value'*/)
+#elif defined(__clang__)
+#   pragma clang diagnostic push
+#   pragma clang diagnostic ignored "-Wtype-limits" // to remove a warning on an assertion that a size_t >= 0. Later on, this size_t will turn into a template argument, and then it can become < 0.
+#   pragma clang diagnostic ignored "-Wformat-nonliteral"
+#elif defined(__GNUC__)
 #   pragma GCC diagnostic push
 #   pragma GCC diagnostic ignored "-Wtype-limits" // to remove a warning on an assertion that a size_t >= 0. Later on, this size_t will turn into a template argument, and then it can become < 0.
+#   pragma GCC diagnostic ignored "-Wformat-nonliteral"
+#   if __GNUC__ >= 7
+#       pragma GCC diagnostic ignored "-Wduplicated-branches"
+#   endif
 #endif
 
 namespace c4 {
@@ -978,7 +990,7 @@ bool Parser::_handle_map_expl()
             if(trimmed.len && (trimmed.begins_with(": ") || trimmed.begins_with_any(":,}")))
             {
                 RYML_ASSERT(trimmed.str >= rem.str);
-                size_t num = trimmed.str - rem.str;
+                size_t num = static_cast<size_t>(trimmed.str - rem.str);
                 _c4dbgpf("trimming %zu whitespace after the scalar: '%.*s' --> '%.*s'", num, _c4prsp(rem), _c4prsp(rem.sub(num)));
                 rem = rem.sub(num);
                 _line_progressed(num);
@@ -1623,7 +1635,8 @@ bool Parser::_handle_types()
     }
 
     _c4dbgpf("there was a tag: '%.*s'", _c4prsp(t));
-    _line_progressed(t.end() - m_state->line_contents.rem.begin());
+    RYML_ASSERT(t.end() > m_state->line_contents.rem.begin());
+    _line_progressed(static_cast<size_t>(t.end() - m_state->line_contents.rem.begin()));
 
     if(has_all(RMAP|RKEY))
     {
@@ -1647,7 +1660,7 @@ bool Parser::_handle_types()
             // do not change the flag to key, it is ~
             RYML_ASSERT(rem.begin() > m_state->line_contents.rem.begin());
             size_t token_len = rem == ':' ? 1 : 2;
-            _line_progressed(token_len + rem.begin() - m_state->line_contents.rem.begin());
+            _line_progressed(static_cast<size_t>(token_len + rem.begin() - m_state->line_contents.rem.begin()));
         }
         RYML_ASSERT(m_val_tag.empty());
         m_val_tag = t;
@@ -1789,7 +1802,7 @@ csubstr Parser::_slurp_doc_scalar()
 
     m_state->scalar_col = m_state->line_contents.current_col(s);
     RYML_ASSERT(s.end() >= m_buf.begin() + pos);
-    _line_progressed(s.end() - (m_buf.begin() + pos));
+    _line_progressed(static_cast<size_t>(s.end() - (m_buf.begin() + pos)));
 
     _c4dbgpf("CRL 5 '%.*s'. REM='%.*s'", _c4prsp(s), _c4prsp(m_buf.sub(m_state->pos.offset)));
 
@@ -1981,7 +1994,8 @@ bool Parser::_scan_scalar(csubstr *scalar)
     if(s.empty()) return false;
 
     m_state->scalar_col = m_state->line_contents.current_col(s);
-    _line_progressed(s.str - m_state->line_contents.rem.str + s.len);
+    RYML_ASSERT(s.str >= m_state->line_contents.rem.str);
+    _line_progressed(static_cast<size_t>(s.str - m_state->line_contents.rem.str) + s.len);
 
     if(_at_line_end())
     {
@@ -2072,7 +2086,8 @@ substr Parser::_scan_plain_scalar_expl(csubstr currscalar, csubstr peeked_line)
         {
             _c4dbgpf("rscalar[EXPL]: found special character '%c' at %zu, stopping: '%.*s'", peeked_line[pos], pos, _c4prsp(peeked_line.left_of(pos).trimr("\r\n")));
             peeked_line = peeked_line.left_of(pos);
-            _line_progressed(peeked_line.end() - m_state->line_contents.rem.begin());
+            RYML_ASSERT(peeked_line.end() >= m_state->line_contents.rem.begin());
+            _line_progressed(static_cast<size_t>(peeked_line.end() - m_state->line_contents.rem.begin()));
             break;
         }
         _c4dbgpf("rscalar[EXPL]: append another line, full: '%.*s'", _c4prsp(peeked_line.trimr("\r\n")));
@@ -2101,7 +2116,8 @@ substr Parser::_scan_plain_scalar_impl(csubstr currscalar, csubstr peeked_line, 
     RYML_ASSERT(m_buf.contains(currscalar));
     // NOTE. there's a problem with _scan_to_next_nonempty_line(), as it counts newlines twice
     // size_t offs = m_state->pos.offset;   // so we workaround by directly counting from the end of the given scalar
-    size_t offs = currscalar.end() - m_buf.begin();
+    RYML_ASSERT(currscalar.end() >= m_buf.begin());
+    size_t offs = static_cast<size_t>(currscalar.end() - m_buf.begin());
     RYML_ASSERT(peeked_line.begins_with(' ', indentation));
     while(true)
     {
@@ -2166,7 +2182,8 @@ substr Parser::_scan_complex_key(csubstr currscalar, csubstr peeked_line)
     RYML_ASSERT(m_buf.contains(currscalar));
     // NOTE. there's a problem with _scan_to_next_nonempty_line(), as it counts newlines twice
     // size_t offs = m_state->pos.offset;   // so we workaround by directly counting from the end of the given scalar
-    size_t offs = currscalar.end() - m_buf.begin();
+    RYML_ASSERT(currscalar.end() >= m_buf.begin());
+    size_t offs = static_cast<size_t>(currscalar.end() - m_buf.begin());
     while(true)
     {
         _c4dbgp("rcplxkey: continuing...");
@@ -2343,12 +2360,14 @@ void Parser::_scan_line()
     {
         ++e;
     }
-    csubstr stripped = m_buf.sub(m_state->pos.offset, e - b);
+    RYML_ASSERT(e >= b);
+    csubstr stripped = m_buf.sub(m_state->pos.offset, static_cast<size_t>(e - b));
 
     // advance pos to include the first line ending
     if(e != m_buf.end() && *e == '\r') ++e;
     if(e != m_buf.end() && *e == '\n') ++e;
-    csubstr full = m_buf.sub(m_state->pos.offset, e - b);
+    RYML_ASSERT(e >= b);
+    csubstr full = m_buf.sub(m_state->pos.offset, static_cast<size_t>(e - b));
 
     m_state->line_contents.reset(full, stripped);
 }
@@ -2381,7 +2400,7 @@ void Parser::_set_indentation(size_t indentation)
 void Parser::_save_indentation(size_t behind)
 {
     RYML_ASSERT(m_state->line_contents.rem.begin() >= m_state->line_contents.full.begin());
-    m_state->indref = m_state->line_contents.rem.begin() - m_state->line_contents.full.begin();
+    m_state->indref = static_cast<size_t>(m_state->line_contents.rem.begin() - m_state->line_contents.full.begin());
     RYML_ASSERT(behind <= m_state->indref);
     m_state->indref -= behind;
     _c4dbgpf("state[%zd]: saving indentation: %zd", m_state-m_stack.begin(), m_state->indref);
@@ -2761,7 +2780,7 @@ void Parser::_start_seq(bool as_child)
         }
         else
         {
-            int as_doc = 0;
+            std::underlying_type<NodeType_e>::type as_doc = 0;
             if(node(m_state)->is_doc()) as_doc |= DOC;
             m_tree->to_seq(m_state->node_id, as_doc);
             _c4dbgpf("start_seq: id=%zd%s", m_state->node_id, as_doc ? " as doc" : "");
@@ -2772,7 +2791,7 @@ void Parser::_start_seq(bool as_child)
     {
         RYML_ASSERT(m_tree->is_seq(parent_id) || m_tree->empty(parent_id));
         m_state->node_id = parent_id;
-        int as_doc = 0;
+        std::underlying_type<NodeType_e>::type as_doc = 0;
         if(node(m_state)->is_doc()) as_doc |= DOC;
         m_tree->to_seq(parent_id, as_doc);
         _move_scalar_from_top();
@@ -3252,7 +3271,8 @@ csubstr Parser::_scan_block()
     if(trimmed.str > s.str)
     {
         _c4dbgp("skipping whitespace");
-        _line_progressed(trimmed.str - s.str);
+        RYML_ASSERT(trimmed.str >= s.str);
+        _line_progressed(static_cast<size_t>(trimmed.str - s.str));
         s = trimmed;
     }
     RYML_ASSERT(s.begins_with('|') || s.begins_with('>'));
@@ -3763,7 +3783,7 @@ void Parser::_err(const char *fmt, ...) const
     va_start(args, fmt);
     len = _fmt_msg(errmsg, len, fmt, args);
     va_end(args);
-    c4::yml::error(errmsg, len, m_state->pos);
+    c4::yml::error(errmsg, static_cast<size_t>(len), m_state->pos);
 }
 
 //-----------------------------------------------------------------------------
@@ -3792,56 +3812,56 @@ int Parser::_fmt_msg(char *buf, int buflen, const char *fmt, va_list args) const
 
 
     // first line: print the message
-    int del = vsnprintf(buf + pos, len, fmt, args);
+    int del = vsnprintf(buf + pos, static_cast<size_t>(len), fmt, args);
     _wrapbuf();
-    del = snprintf(buf + pos, len, "\n");
+    del = snprintf(buf + pos, static_cast<size_t>(len), "\n");
     _wrapbuf();
 
     // next line: print the yaml src line
     if( ! m_file.empty())
     {
-        del = snprintf(buf + pos, len, "%.*s:%zd: '", (int)m_file.len, m_file.str, m_state->pos.line);
+        del = snprintf(buf + pos, static_cast<size_t>(len), "%.*s:%zd: '", (int)m_file.len, m_file.str, m_state->pos.line);
     }
     else
     {
-        del = snprintf(buf + pos, len, "line %zd: '", m_state->pos.line);
+        del = snprintf(buf + pos, static_cast<size_t>(len), "line %zd: '", m_state->pos.line);
     }
     int offs = del;
     _wrapbuf();
-    del = snprintf(buf + pos, len, "%.*s' (sz=%zd)\n",
+    del = snprintf(buf + pos, static_cast<size_t>(len), "%.*s' (sz=%zd)\n",
                    (int)lc.stripped.len, lc.stripped.str, lc.stripped.len);
     _wrapbuf();
 
     // next line: highlight the remaining portion of the previous line
     if(lc.rem.len)
     {
-        size_t firstcol = lc.rem.begin() - lc.full.begin();
+        size_t firstcol = static_cast<size_t>(lc.rem.begin() - lc.full.begin());
         size_t lastcol = firstcol + lc.rem.len;
-        del = snprintf(buf + pos, len, "%*s", (int)(offs+firstcol), ""); // this works only for spaces....
+        del = snprintf(buf + pos, static_cast<size_t>(len), "%*s", (offs+(int)firstcol), ""); // this works only for spaces....
         _wrapbuf();
         // the %*s technique works only for spaces, so put the characters directly
         del = (int)lc.rem.len;
         for(int i = 0; i < del && i < len; ++i) { buf[pos + i] = (i ? '~' : '^'); }
         _wrapbuf();
-        del = snprintf(buf + pos, len, "  (cols %zd-%zd)\n", firstcol+1, lastcol+1);
+        del = snprintf(buf + pos, static_cast<size_t>(len), "  (cols %zd-%zd)\n", firstcol+1, lastcol+1);
         _wrapbuf();
     }
     else
     {
-        del = snprintf(buf + pos, len, "\n");
+        del = snprintf(buf + pos, static_cast<size_t>(len), "\n");
         _wrapbuf();
     }
 
 #ifdef RYML_DBG
     // next line: print the state flags
     {
-        del = snprintf(buf + pos, len, "top state: ");
+        del = snprintf(buf + pos, static_cast<size_t>(len), "top state: ");
         _wrapbuf();
 
         del = _prfl(buf + pos, len, m_state->flags);
         _wrapbuf();
 
-        del = snprintf(buf + pos, len, "\n");
+        del = snprintf(buf + len, static_cast<size_t>(len), "\n");
         _wrapbuf();
     }
 #endif
@@ -3864,10 +3884,10 @@ int Parser::_prfl(char *buf, int buflen, size_t v)
         }                                           \
         else                                        \
         {                                           \
-            del = snprintf(buf + pos, len, "|");    \
+            del = snprintf(buf + pos, static_cast<size_t>(len), "|");    \
             _wrapbuf();                             \
         }                                           \
-        del = snprintf(buf + pos, len, #fl);        \
+        del = snprintf(buf + pos, static_cast<size_t>(len), #fl);        \
         _wrapbuf();                                 \
     }
 
@@ -3894,6 +3914,11 @@ int Parser::_prfl(char *buf, int buflen, size_t v)
 } // namespace yml
 } // namespace c4
 
-#ifdef __GNUC__
+
+#if defined(_MSC_VER)
+#   pragma warning(pop)
+#elif defined(__clang__)
+#   pragma clang diagnostic pop
+#elif defined(__GNUC__)
 #   pragma GCC diagnostic pop
 #endif

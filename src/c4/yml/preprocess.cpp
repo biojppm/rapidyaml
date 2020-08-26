@@ -6,6 +6,14 @@
 namespace c4 {
 namespace yml {
 
+#ifdef _MSC_VER
+#   pragma warning(push)
+#elif defined(__clang__)
+#   pragma clang diagnostic push
+#elif defined(__GNUC__)
+#   pragma GCC diagnostic push
+#   pragma GCC diagnostic ignored "-Wuseless-cast"
+#endif
 
 namespace {
 struct _SubstrWriter
@@ -40,6 +48,15 @@ struct _SubstrWriter
     size_t advance(size_t more) { pos += more; return pos; }
 };
 } // empty namespace
+
+#ifdef _MSC_VER
+#   pragma warning(pop)
+#elif defined(__clang__)
+#   pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#   pragma GCC diagnostic pop
+#   pragma GCC diagnostic ignored "-Wuseless-cast"
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -171,7 +188,7 @@ size_t preprocess_rxmap(csubstr s, substr buf)
         if(curr == '\'' || curr == '"')
         {
             csubstr ss = s.sub(i).pair_range_esc(curr, '\\');
-            i += ss.end() - (s.str + i);
+            i += static_cast<size_t>(ss.end() - (s.str + i));
             state = _next(state);
         }
         else if(state == kReadPending && _is_idchar(curr))
@@ -200,7 +217,7 @@ size_t preprocess_rxmap(csubstr s, substr buf)
             if(curr == '[' || curr == '{' || curr == '(')
             {
                 csubstr ss = s.sub(i).pair_range_nested(curr, '\\');
-                i += ss.end() - (s.str + i);
+                i += static_cast<size_t>(ss.end() - (s.str + i));
                 state = _next(state);
             }
             else if(curr == ',' && next == ' ')

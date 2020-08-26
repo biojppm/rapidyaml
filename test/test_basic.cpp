@@ -1466,7 +1466,7 @@ TEST(general, newlines_on_maps_nested_in_seqs)
 )";
     Tree t = parse(yaml);
     auto s = emitrs<std::string>(t);
-    EXPECT_EQ(std::string(expected), s);
+    EXPECT_EQ(expected, s);
 }
 
 TEST(general, lookup_path)
