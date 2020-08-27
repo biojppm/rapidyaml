@@ -1,6 +1,9 @@
 #ifndef _C4_YML_NODE_HPP_
 #define _C4_YML_NODE_HPP_
 
+/** @file node.hpp
+ * @see NodeRef */
+
 #include <cstddef>
 
 #include "c4/yml/tree.hpp"
@@ -41,6 +44,8 @@ inline Key<K> key(K & k)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+/** a reference to a node in an existing yaml tree, offering a more
+ * convenient API than the index-based API used in the tree. */
 class RYML_EXPORT NodeRef
 {
 private:

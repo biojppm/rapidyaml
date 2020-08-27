@@ -30,16 +30,16 @@ void test_stack_small_vs_large()
     EXPECT_EQ(s.m_stack, s.m_buf);
     for(size_t i = 0; i < N; ++i)
     {
-        EXPECT_EQ(s.top(N-1-i), i);
+        EXPECT_EQ(s.top(N-1-i), static_cast<int>(i));
     }
     s.push(N);
     EXPECT_NE(s.m_stack, s.m_buf);
-    EXPECT_EQ(s.top(), N);
-    EXPECT_EQ(s.pop(), N);
+    EXPECT_EQ(s.top(), static_cast<int>(N));
+    EXPECT_EQ(s.pop(), static_cast<int>(N));
     EXPECT_NE(s.m_stack, s.m_buf);
     for(size_t i = 0; i < N; ++i)
     {
-        EXPECT_EQ(s.top(N-1-i), i);
+        EXPECT_EQ(s.top(N-1-i), static_cast<int>(i));
     }
 }
 
