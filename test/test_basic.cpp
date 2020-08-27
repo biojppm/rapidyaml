@@ -643,7 +643,7 @@ TEST(NodeScalar, ctor__tagged)
         const char *tptr = "!!str";
         csubstr ssp = "foo", tsp = "!!str";
 
-        for(auto s : ilist{
+        ilist li = {
                 {tsp, ssp},
                     {tsp, to_csubstr(sptr)},
                     {tsp, sarr},
@@ -653,7 +653,8 @@ TEST(NodeScalar, ctor__tagged)
                 {tarr, ssp},
                     {tarr, to_csubstr(sptr)},
                     {tarr, sarr},
-                    })
+        };
+        for(NodeScalar s : li)
         {
             node_scalar_test_foo(s, true);
         }
@@ -716,7 +717,10 @@ TEST(NodeScalar, ctor__tagged)
         const char *tptr = "!!str+++";
         csubstr ssp = "foo3", tsp = "!!str+++";
 
-        for(auto s : ilist{
+        NodeScalar wtf = {tsp, ssp};
+        EXPECT_EQ(wtf.tag, tsp);
+        EXPECT_EQ(wtf.scalar, ssp);
+        auto li = ilist{
                 {tsp, ssp},
                     {tsp, to_csubstr(sptr)},
                     {tsp, sarr},
@@ -726,7 +730,8 @@ TEST(NodeScalar, ctor__tagged)
                 {tarr, ssp},
                     {tarr, to_csubstr(sptr)},
                     {tarr, sarr},
-                    })
+        };
+        for(auto s : li)
         {
             node_scalar_test_foo3(s, true);
         }
@@ -885,7 +890,8 @@ TEST(NodeInit, ctor__val_only)
             s.clear();
         }
 
-        for(auto s : ilist{{sarr}, {to_csubstr(sptr)}, {csubstr{sptr, sptrlen}}, {ssp}})
+        auto li = ilist{{sarr}, {to_csubstr(sptr)}, {csubstr{sptr, sptrlen}}, {ssp}};
+        for(auto s : li)
         {
             SCOPED_TRACE("here LOOP");
             node_scalar_test_foo(s.val);
@@ -923,7 +929,8 @@ TEST(NodeInit, ctor__val_only)
             node_scalar_test_empty(s.key);
         }
 
-        for(auto s : ilist{{sarr}, {to_csubstr(sptr)}, {csubstr{sptr, sptrlen}}, {ssp}})
+        auto li = ilist{{sarr}, {to_csubstr(sptr)}, {csubstr{sptr, sptrlen}}, {ssp}};
+        for(auto s : li)
         {
             SCOPED_TRACE("here LOOP");
             node_scalar_test_foo3(s.val);
