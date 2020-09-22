@@ -782,6 +782,7 @@ bool Parser::_handle_seq_impl()
             {
                 _c4dbgp("skipping whitespace...");
                 size_t skip = rem.first_not_of(' ');
+                if(skip == csubstr::npos) skip = rem.len; // maybe the line is just whitespace
                 _line_progressed(skip);
                 rem = rem.sub(skip);
             }

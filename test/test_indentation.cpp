@@ -13,7 +13,8 @@ namespace yml {
     "unnecessary indentation",\
     "blank lines indented, 1 - at same scope",\
     "indentation at start",\
-    "unaligned comments"
+    "unaligned comments",\
+    "issue83"
 
 CASE_GROUP(INDENTATION)
 {
@@ -330,6 +331,23 @@ L{
     N("dat", L{N("a"), N("b"), N("b1"), N("b2"), N("b3"), N("b4"), N("b5"), N("b6"), N("b61"), N("b62"), N("b63"), N("b64"), N("b65"), N("b66"), N("b7"), N("b8"), N("b9"), N("b10"), N("e"), N("f"), N("g")}),
   }),
 }),
+
+C("issue83",
+R"(
+e:
+  - f
+g: h
+a:
+  - b
+  
+c: d
+)",
+L{
+N("e", L{N("f")}),
+N("g", "h"),
+N("a", L{N("b")}),
+N("c", "d"),
+})
 
   )
 }
