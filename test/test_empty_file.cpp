@@ -3,7 +3,11 @@
 namespace c4 {
 namespace yml {
 
-#define EMPTY_FILE_CASES "empty0-nochars", "empty0-multiline", "empty0-multiline-with-comments"
+#define EMPTY_FILE_CASES \
+    "empty0-nochars", \
+    "empty0-multiline", \
+    "empty0-multiline-with-comments"
+
 
 CASE_GROUP(EMPTY_FILE)
 {
