@@ -635,26 +635,23 @@ TEST(NodeScalar, ctor__untagged)
 
 TEST(NodeScalar, ctor__tagged)
 {
-    using ilist = std::initializer_list< NodeScalar >;
-
     {
         const char sarr[] = "foo", tarr[] = "!!str";
         const char *sptr = "foo";
         const char *tptr = "!!str";
         csubstr ssp = "foo", tsp = "!!str";
 
-        ilist li = {
-                {tsp, ssp},
-                    {tsp, to_csubstr(sptr)},
-                    {tsp, sarr},
-                {to_csubstr(tptr), ssp},
-                    {to_csubstr(tptr), to_csubstr(sptr)},
-                    {to_csubstr(tptr), sarr},
-                {tarr, ssp},
-                    {tarr, to_csubstr(sptr)},
-                    {tarr, sarr},
-        };
-        for(NodeScalar s : li)
+        for(NodeScalar s : {
+                NodeScalar(tsp, ssp),
+                    NodeScalar(tsp, to_csubstr(sptr)),
+                    NodeScalar(tsp, sarr),
+                NodeScalar(to_csubstr(tptr), ssp),
+                    NodeScalar(to_csubstr(tptr), to_csubstr(sptr)),
+                    NodeScalar(to_csubstr(tptr), sarr),
+                NodeScalar(tarr, ssp),
+                    NodeScalar(tarr, to_csubstr(sptr)),
+                    NodeScalar(tarr, sarr),
+        })
         {
             node_scalar_test_foo(s, true);
         }
@@ -720,18 +717,17 @@ TEST(NodeScalar, ctor__tagged)
         NodeScalar wtf = {tsp, ssp};
         EXPECT_EQ(wtf.tag, tsp);
         EXPECT_EQ(wtf.scalar, ssp);
-        auto li = ilist{
-                {tsp, ssp},
-                    {tsp, to_csubstr(sptr)},
-                    {tsp, sarr},
-                {to_csubstr(tptr), ssp},
-                    {to_csubstr(tptr), to_csubstr(sptr)},
-                    {to_csubstr(tptr), sarr},
-                {tarr, ssp},
-                    {tarr, to_csubstr(sptr)},
-                    {tarr, sarr},
-        };
-        for(auto s : li)
+        for(auto s : {
+                NodeScalar(tsp, ssp),
+                    NodeScalar(tsp, to_csubstr(sptr)),
+                    NodeScalar(tsp, sarr),
+                NodeScalar(to_csubstr(tptr), ssp),
+                    NodeScalar(to_csubstr(tptr), to_csubstr(sptr)),
+                    NodeScalar(to_csubstr(tptr), sarr),
+                NodeScalar(tarr, ssp),
+                    NodeScalar(tarr, to_csubstr(sptr)),
+                    NodeScalar(tarr, sarr),
+        })
         {
             node_scalar_test_foo3(s, true);
         }
