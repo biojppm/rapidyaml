@@ -1153,7 +1153,7 @@ TEST(NodeRef, 4_remove_child)
     root.insert_child({"1"}, root[0]);
     root.insert_child({"2"}, root[1]);
 
-    std::vector< int > vec({10, 20, 30, 40, 50, 60, 70, 80, 90});
+    std::vector<int> vec({10, 20, 30, 40, 50, 60, 70, 80, 90});
     root.insert_child(root[0]) << vec; // 1
     root.insert_child(root[2]) << vec; // 3
     root.insert_child(root[4]) << vec; // 5
@@ -1170,7 +1170,7 @@ TEST(NodeRef, 4_remove_child)
 
     noderef_check_tree(root);
 
-    std::vector< std::vector<int> > vec2({{100, 200}, {300, 400}, {500, 600}, {700, 800, 900}});
+    std::vector<std::vector<int>> vec2({{100, 200}, {300, 400}, {500, 600}, {700, 800, 900}});
     root.prepend_child() << vec2; // 0
     root.insert_child(root[1]) << vec2; // 2
     root.insert_child(root[3]) << vec2; // 4
@@ -1195,8 +1195,8 @@ TEST(NodeRef, 5_move_in_same_parent)
     Tree t;
     NodeRef r = t;
 
-    std::vector< std::vector<int> > vec2({{100, 200}, {300, 400}, {500, 600}, {700, 800, 900}});
-    std::map< std::string, int > map2({{"foo", 100}, {"bar", 200}, {"baz", 300}});
+    std::vector<std::vector<int>> vec2({{100, 200}, {300, 400}, {500, 600}, {700, 800, 900}});
+    std::map<std::string, int> map2({{"foo", 100}, {"bar", 200}, {"baz", 300}});
 
     r |= SEQ;
     r.append_child() << vec2;
@@ -1224,8 +1224,8 @@ TEST(NodeRef, 6_move_to_other_parent)
     Tree t;
     NodeRef r = t;
 
-    std::vector< std::vector<int> > vec2({{100, 200}, {300, 400}, {500, 600}, {700, 800, 900}});
-    std::map< std::string, int > map2({{"foo", 100}, {"bar", 200}, {"baz", 300}});
+    std::vector<std::vector<int>> vec2({{100, 200}, {300, 400}, {500, 600}, {700, 800, 900}});
+    std::map<std::string, int> map2({{"foo", 100}, {"bar", 200}, {"baz", 300}});
 
     r |= SEQ;
     r.append_child() << vec2;
@@ -1247,8 +1247,8 @@ TEST(NodeRef, 7_duplicate)
     Tree t;
     NodeRef r = t;
 
-    std::vector< std::vector<int> > vec2({{100, 200}, {300, 400}, {500, 600}, {700, 800, 900}});
-    std::map< std::string, int > map2({{"bar", 200}, {"baz", 300}, {"foo", 100}});
+    std::vector<std::vector<int>> vec2({{100, 200}, {300, 400}, {500, 600}, {700, 800, 900}});
+    std::map<std::string, int> map2({{"bar", 200}, {"baz", 300}, {"foo", 100}});
 
     r |= SEQ;
     r.append_child() << vec2;
