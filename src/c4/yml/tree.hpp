@@ -812,7 +812,20 @@ public:
     {
         substr cp = alloc_arena(s.len);
         RYML_ASSERT(cp.len == s.len);
+        RYML_ASSERT(!s.overlaps(cp));
+        #if defined(__clang__)
+        #elif defined(__GNUC__)
+        #   pragma GCC diagnostic push
+        #   if __GNUC__ >= 10
+        #       pragma GCC diagnostic ignored "-Wstringop-overflow=" // no need for terminating \0
+        #       pragma GCC diagnostic ignored "-Wrestrict" // there's an assert above covering violation of restrict behavior
+        #   endif
+        #endif
         memcpy(cp.str, s.str, s.len);
+        #if defined(__clang__)
+        #elif defined(__GNUC__)
+        #   pragma GCC diagnostic pop
+        #endif
         return cp;
     }
 
