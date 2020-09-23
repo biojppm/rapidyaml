@@ -76,6 +76,7 @@ environment:
     #  externconfig: Debug
     #  cmkargs: "-DC4STL_PEDANTIC=ON -DC4STL_WERROR=ON"
 
+
 matrix:
   fast_finish: true
 
@@ -97,8 +98,8 @@ build_script:
   - set C4_EXTERN_DIR=%BUILD_DIR%\extern
   - md %BUILD_DIR%
   - md %BUILD_DIR%\static %BUILD_DIR%\shared %BUILD_DIR%\extern
-  - cmake -S %PROJ_DIR% -B %BUILD_DIR%/static -DRYML_DEV=ON -DRYML_TEST_SUITE=ON -G "%generator%" %genarch% "-DCMAKE_BUILD_TYPE=%configuration%" "-DCMAKE_INSTALL_PREFIX=%INSTALL_DIR%/static" -DBUILD_SHARED_LIBS=OFF
-  - cmake -S %PROJ_DIR% -B %BUILD_DIR%/shared -DRYML_DEV=ON -DRYML_TEST_SUITE=ON -G "%generator%" %genarch% "-DCMAKE_BUILD_TYPE=%configuration%" "-DCMAKE_INSTALL_PREFIX=%INSTALL_DIR%/shared" -DBUILD_SHARED_LIBS=ON
+  - cmake -S %PROJ_DIR% -B %BUILD_DIR%/static -DRYML_DEV=ON -DRYML_TEST_SUITE=ON -DRYML_BUILD_BENCHMARKS=OFF -G "%generator%" %genarch% "-DCMAKE_BUILD_TYPE=%configuration%" "-DCMAKE_INSTALL_PREFIX=%INSTALL_DIR%/static" -DBUILD_SHARED_LIBS=OFF
+  - cmake -S %PROJ_DIR% -B %BUILD_DIR%/shared -DRYML_DEV=ON -DRYML_TEST_SUITE=ON -DRYML_BUILD_BENCHMARKS=OFF -G "%generator%" %genarch% "-DCMAKE_BUILD_TYPE=%configuration%" "-DCMAKE_INSTALL_PREFIX=%INSTALL_DIR%/shared" -DBUILD_SHARED_LIBS=ON
   - cmake --build %BUILD_DIR%/static --config %configuration% --target test-build --parallel %NUM_JOBS%
   - cmake --build %BUILD_DIR%/shared --config %configuration% --target test-build --parallel %NUM_JOBS%
 
@@ -123,5 +124,9 @@ skip_commits:
     - .ci/Vagrant*
     - bm/html/*
     - doc/*
+    - img/*
+    - CHANGELOG.md
+    - CONTRIBUTING.md
     - LICENSE.txt
     - README.*
+    - ROADMAP.*
