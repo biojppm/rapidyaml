@@ -42,7 +42,7 @@ set(RYML_RAPIDJSON_INC_DIR ${rapidjson_dir}/include)
 set(sajson_dir ${_ed}/sajson)
 c4_download_remote_proj(sajson sajson_dir
     GIT_REPOSITORY https://github.com/chadaustin/sajson
-    GIT_TAG master)
+    GIT_TAG 2dcfd350586375f9910f74821d4f07d67ae455ba)
 set(RYML_SAJSON_INC_DIR ${sajson_dir}/include)
 
 
