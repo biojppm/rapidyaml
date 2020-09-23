@@ -815,7 +815,6 @@ TEST(NodeInit, ctor__type_only)
 
 TEST(NodeInit, ctor__val_only)
 {
-    using ilist = std::initializer_list< NodeInit >;
     {
         const char sarr[] = "foo";
         const char *sptr = "foo"; size_t sptrlen = 3;
@@ -886,8 +885,11 @@ TEST(NodeInit, ctor__val_only)
             s.clear();
         }
 
-        auto li = ilist{{sarr}, {to_csubstr(sptr)}, {csubstr{sptr, sptrlen}}, {ssp}};
-        for(auto s : li)
+        for(auto s : {
+            NodeInit(sarr),
+            NodeInit(to_csubstr(sptr)),
+            NodeInit(csubstr{sptr, sptrlen}),
+            NodeInit(ssp)})
         {
             SCOPED_TRACE("here LOOP");
             node_scalar_test_foo(s.val);
@@ -925,8 +927,11 @@ TEST(NodeInit, ctor__val_only)
             node_scalar_test_empty(s.key);
         }
 
-        auto li = ilist{{sarr}, {to_csubstr(sptr)}, {csubstr{sptr, sptrlen}}, {ssp}};
-        for(auto s : li)
+        for(auto s : {
+            NodeInit(sarr),
+            NodeInit(to_csubstr(sptr)),
+            NodeInit(csubstr{sptr, sptrlen}),
+            NodeInit(ssp)})
         {
             SCOPED_TRACE("here LOOP");
             node_scalar_test_foo3(s.val);
