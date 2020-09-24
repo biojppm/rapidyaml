@@ -5,76 +5,71 @@ image: Visual Studio 2019
 environment:
   matrix:
 
-    - compiler: msvc-16-seh
-      generator: "Visual Studio 16 2019"
-      genarch: -A Win32
-      configuration: Debug
+    - GEN: Visual Studio 16 2019
+      ARCH: -A Win32
+      CFG: Debug
+      compiler: msvc-16-seh
 
-    - compiler: msvc-16-seh
-      generator: "Visual Studio 16 2019"
-      genarch: -A x64
-      configuration: Debug
+    - GEN: Visual Studio 16 2019
+      ARCH: -A x64
+      CFG: Debug
+      compiler: msvc-16-seh
 
-    - compiler: msvc-16-seh
-      generator: "Visual Studio 16 2019"
-      genarch: -A Win32
-      configuration: Release
+    - GEN: Visual Studio 16 2019
+      ARCH: -A Win32
+      CFG: Release
+      compiler: msvc-16-seh
 
-    - compiler: msvc-16-seh
-      generator: "Visual Studio 16 2019"
-      genarch: -A x64
-      configuration: Release
+    - GEN: Visual Studio 16 2019
+      ARCH: -A x64
+      CFG: Release
+      compiler: msvc-16-seh
 
 
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    - GEN: Visual Studio 15 2017
+      CFG: Debug
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       compiler: msvc-15-seh
-      generator: "Visual Studio 15 2017"
-      configuration: Debug
 
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    - GEN: Visual Studio 15 2017 Win64
+      CFG: Debug
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       compiler: msvc-15-seh
-      generator: "Visual Studio 15 2017 Win64"
-      configuration: Debug
 
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    - GEN: Visual Studio 15 2017
+      CFG: Release
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       compiler: msvc-15-seh
-      generator: "Visual Studio 15 2017"
-      configuration: Release
 
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    - GEN: Visual Studio 15 2017 Win64
+      CFG: Release
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       compiler: msvc-15-seh
-      generator: "Visual Studio 15 2017 Win64"
-      configuration: Release
 
 
-    #- APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-    #  compiler: msvc-14-seh
-    #  generator: "Visual Studio 14 2015"
-    #  configuration: Debug
+    #- GEN: Visual Studio 14 2015
+    #  CFG: Debug
+    #  APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
 
-    #- APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-    #  compiler: msvc-14-seh
-    #  generator: "Visual Studio 14 2015 Win64"
-    #  configuration: Debug
+    #- GEN: Visual Studio 14 2015 Win64
+    #  CFG: Debug
+    #  APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
 
-    #- APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-    #  compiler: msvc-14-seh
-    #  generator: "Visual Studio 14 2015"
-    #  configuration: Release
+    #- GEN: Visual Studio 14 2015
+    #  CFG: Release
+    #  APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
 
-    #- APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-    #  compiler: msvc-14-seh
-    #  generator: "Visual Studio 14 2015 Win64"
-    #  configuration: Release
+    #- GEN: Visual Studio 14 2015 Win64
+    #  CFG: Release
+    #  APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
 
 
     #- compiler: gcc-5.3.0-posix
-    #  generator: "MinGW Makefiles"
+    #  GEN: "MinGW Makefiles"
     #  cxx_path: 'C:\mingw-w64\i686-5.3.0-posix-dwarf-rt_v4-rev0\mingw32\bin'
     #  APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
-    #  configuration: Quicktest
+    #  CFG: Quicktest
     #  externconfig: Debug
-    #  cmkargs: "-DC4STL_PEDANTIC=ON -DC4STL_WERROR=ON"
 
 
 matrix:
@@ -88,9 +83,9 @@ install:
   - cmake --version
 
 build_script:
-  - echo %generator%
-  - echo %genarch%
-  - echo %configuration%
+  - echo %GEN%
+  - echo %ARCH%
+  - echo %CFG%
   - set NUM_JOBS=3
   - set PROJ_DIR=%cd%
   - set BUILD_DIR=%PROJ_DIR%\build
@@ -98,14 +93,14 @@ build_script:
   - set C4_EXTERN_DIR=%BUILD_DIR%\extern
   - md %BUILD_DIR%
   - md %BUILD_DIR%\static %BUILD_DIR%\shared %BUILD_DIR%\extern
-  - cmake -S %PROJ_DIR% -B %BUILD_DIR%/static -DRYML_DEV=ON -DRYML_TEST_SUITE=ON -DRYML_BUILD_BENCHMARKS=OFF -G "%generator%" %genarch% "-DCMAKE_BUILD_TYPE=%configuration%" "-DCMAKE_INSTALL_PREFIX=%INSTALL_DIR%/static" -DBUILD_SHARED_LIBS=OFF
-  - cmake -S %PROJ_DIR% -B %BUILD_DIR%/shared -DRYML_DEV=ON -DRYML_TEST_SUITE=ON -DRYML_BUILD_BENCHMARKS=OFF -G "%generator%" %genarch% "-DCMAKE_BUILD_TYPE=%configuration%" "-DCMAKE_INSTALL_PREFIX=%INSTALL_DIR%/shared" -DBUILD_SHARED_LIBS=ON
-  - cmake --build %BUILD_DIR%/static --config %configuration% --target test-build --parallel %NUM_JOBS%
-  - cmake --build %BUILD_DIR%/shared --config %configuration% --target test-build --parallel %NUM_JOBS%
+  - cmake -S %PROJ_DIR% -B %BUILD_DIR%/static -DRYML_DEV=ON -DRYML_TEST_SUITE=ON -DRYML_BUILD_BENCHMARKS=OFF -G "%GEN%" %ARCH% "-DCMAKE_BUILD_TYPE=%CFG%" "-DCMAKE_INSTALL_PREFIX=%INSTALL_DIR%/static" -DBUILD_SHARED_LIBS=OFF
+  - cmake -S %PROJ_DIR% -B %BUILD_DIR%/shared -DRYML_DEV=ON -DRYML_TEST_SUITE=ON -DRYML_BUILD_BENCHMARKS=OFF -G "%GEN%" %ARCH% "-DCMAKE_BUILD_TYPE=%CFG%" "-DCMAKE_INSTALL_PREFIX=%INSTALL_DIR%/shared" -DBUILD_SHARED_LIBS=ON
+  - cmake --build %BUILD_DIR%/static --config %CFG% --target test-build --parallel %NUM_JOBS%
+  - cmake --build %BUILD_DIR%/shared --config %CFG% --target test-build --parallel %NUM_JOBS%
 
 test_script:
-  - cmake --build %BUILD_DIR%\static --config %configuration% --target test
-  - cmake --build %BUILD_DIR%\shared --config %configuration% --target test
+  - cmake --build %BUILD_DIR%\static --config %CFG% --target test
+  - cmake --build %BUILD_DIR%\shared --config %CFG% --target test
 
 #artifacts:
 #  - path: '%BUILD_DIR%/static/CMakeFiles/*.log'
