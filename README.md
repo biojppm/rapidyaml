@@ -148,7 +148,7 @@ readers
 ([data from here](https://lemire.me/blog/2018/05/03/how-fast-can-you-parse-json/)).
 Even parsing full YAML is at ~150MB/s, which is still in that performance
 ballpark, albeit at its lower end. This is something to be proud of, as the
-YAML specification is much more complex than JSON.
+YAML specification is much more complex than JSON: [23449 vs 1969 words](https://www.arp242.net/yaml-config.html#its-pretty-complex).
 
 
 ### Performance reading JSON
