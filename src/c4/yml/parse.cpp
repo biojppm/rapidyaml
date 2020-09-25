@@ -1601,7 +1601,7 @@ bool Parser::_handle_types()
     if(rem.begins_with("!!"))
     {
         _c4dbgp("begins with '!!'");
-        t = rem.left_of(rem.first_of(' '));
+        t = rem.left_of(rem.first_of(" ,"));
         RYML_ASSERT(t.len >= 2);
         //t = t.sub(2);
         if(t == "!!set")
