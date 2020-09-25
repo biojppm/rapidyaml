@@ -13,6 +13,7 @@
 #   pragma warning(disable : 4100) // sajson.h(1313,41): warning C4100: 'input_document_size_in_bytes': unreferenced formal parameter
 #   pragma warning(disable : 4127) // conditional expression is constant
 #   pragma warning(disable : 4200) // sajson.h(209,28): warning C4200: nonstandard extension used: zero-sized array in struct/union
+#   pragma warning(disable : 4242) // sajson.h(2295,1): warning C4242: '=': conversion from 'unsigned int' to 'char', possible loss of data
 #   pragma warning(disable : 4244) // sajson.h(2295,26): warning C4244: '=': conversion from 'unsigned int' to 'char', possible loss of data
 #   pragma warning(disable : 4389) // '==': signed/unsigned mismatch
 #   pragma warning(disable : 4996) // warning C4996: 'Json::Reader': Use CharReader and CharReaderBuilder instead.
@@ -22,6 +23,11 @@
 #   pragma clang diagnostic ignored "-Wc99-extensions"
 #   pragma clang diagnostic ignored "-Wfloat-equal"
 #   pragma clang diagnostic ignored "-Wshadow"
+#   pragma clang diagnostic ignored "-Wsign-conversion"
+#   pragma clang diagnostic ignored "-Wconversion"
+#   if __clang_major__ >= 8
+#       pragma clang diagnostic ignored "-Wimplicit-int-conversion"
+#   endif
 #elif defined(__GNUC__)
 #   pragma GCC diagnostic push
 #   pragma GCC diagnostic ignored "-Wshadow"
@@ -29,6 +35,9 @@
 #   pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #   pragma GCC diagnostic ignored "-Wfloat-equal"
 #   pragma GCC diagnostic ignored "-Wpedantic"
+#   pragma GCC diagnostic ignored "-Wuseless-cast"
+#   pragma GCC diagnostic ignored "-Wconversion"
+#   pragma GCC diagnostic ignored "-Wsign-conversion"
 #   if __GNUC__ >= 8
 #       pragma GCC diagnostic ignored "-Wclass-memaccess" // rapidjson/document.h:1952:24
 #   endif
@@ -58,10 +67,12 @@ namespace bm = benchmark;
 #   pragma clang diagnostic push
 #   pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #   pragma clang diagnostic ignored "-Wunused-variable"
+#   pragma clang diagnostic ignored "-Wsign-conversion"
 #elif defined(__GNUC__)
 #   pragma GCC diagnostic push
 #   pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #   pragma GCC diagnostic ignored "-Wunused-variable"
+#   pragma GCC diagnostic ignored "-Wsign-conversion"
 #endif
 
 //-----------------------------------------------------------------------------
@@ -146,8 +157,9 @@ struct BmCase
 
 /** this is used by the benchmarks.
  *
- * don't declare the case as static as there's no guarantee the allocator's
- * lifetime starts before and ends after the case's lifetime */
+ * @note We cannot declare the case as value-static as there is no guarantee
+ * that the allocator's lifetime starts before and ends after the case's
+ * lifetime. So use a pointer to control the lifetime. */
 static BmCase * C4_RESTRICT s_bm_case = nullptr;
 
 

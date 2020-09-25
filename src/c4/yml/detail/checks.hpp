@@ -4,10 +4,13 @@
 #include "c4/yml/tree.hpp"
 
 #ifdef __clang__
-#    pragma clang diagnostic push
+#   pragma clang diagnostic push
 #elif defined(__GNUC__)
-#    pragma GCC diagnostic push
-#    pragma GCC diagnostic ignored "-Wtype-limits" // error: comparison of unsigned expression >= 0 is always true
+#   pragma GCC diagnostic push
+#   pragma GCC diagnostic ignored "-Wtype-limits" // error: comparison of unsigned expression >= 0 is always true
+#elif defined(_MSC_VER)
+#   pragma warning(push)
+#   pragma warning(disable: 4296/*expression is always 'boolean_value'*/)
 #endif
 
 namespace c4 {
@@ -187,9 +190,11 @@ inline void check_arena(Tree const& t)
 } /* namespace c4 */
 
 #ifdef __clang__
-#    pragma clang diagnostic pop
+#   pragma clang diagnostic pop
 #elif defined(__GNUC__)
-#    pragma GCC diagnostic pop
+#   pragma GCC diagnostic pop
+#elif defined(_MSC_VER)
+#   pragma warning(pop)
 #endif
 
 #endif /* C4_YML_DETAIL_CHECKS_HPP_ */

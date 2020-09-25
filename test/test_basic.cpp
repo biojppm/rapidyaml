@@ -635,25 +635,23 @@ TEST(NodeScalar, ctor__untagged)
 
 TEST(NodeScalar, ctor__tagged)
 {
-    using ilist = std::initializer_list< NodeScalar >;
-
     {
         const char sarr[] = "foo", tarr[] = "!!str";
         const char *sptr = "foo";
         const char *tptr = "!!str";
         csubstr ssp = "foo", tsp = "!!str";
 
-        for(auto s : ilist{
-                {tsp, ssp},
-                    {tsp, to_csubstr(sptr)},
-                    {tsp, sarr},
-                {to_csubstr(tptr), ssp},
-                    {to_csubstr(tptr), to_csubstr(sptr)},
-                    {to_csubstr(tptr), sarr},
-                {tarr, ssp},
-                    {tarr, to_csubstr(sptr)},
-                    {tarr, sarr},
-                    })
+        for(NodeScalar s : {
+                NodeScalar(tsp, ssp),
+                    NodeScalar(tsp, to_csubstr(sptr)),
+                    NodeScalar(tsp, sarr),
+                NodeScalar(to_csubstr(tptr), ssp),
+                    NodeScalar(to_csubstr(tptr), to_csubstr(sptr)),
+                    NodeScalar(to_csubstr(tptr), sarr),
+                NodeScalar(tarr, ssp),
+                    NodeScalar(tarr, to_csubstr(sptr)),
+                    NodeScalar(tarr, sarr),
+        })
         {
             node_scalar_test_foo(s, true);
         }
@@ -716,17 +714,20 @@ TEST(NodeScalar, ctor__tagged)
         const char *tptr = "!!str+++";
         csubstr ssp = "foo3", tsp = "!!str+++";
 
-        for(auto s : ilist{
-                {tsp, ssp},
-                    {tsp, to_csubstr(sptr)},
-                    {tsp, sarr},
-                {to_csubstr(tptr), ssp},
-                    {to_csubstr(tptr), to_csubstr(sptr)},
-                    {to_csubstr(tptr), sarr},
-                {tarr, ssp},
-                    {tarr, to_csubstr(sptr)},
-                    {tarr, sarr},
-                    })
+        NodeScalar wtf = {tsp, ssp};
+        EXPECT_EQ(wtf.tag, tsp);
+        EXPECT_EQ(wtf.scalar, ssp);
+        for(auto s : {
+                NodeScalar(tsp, ssp),
+                    NodeScalar(tsp, to_csubstr(sptr)),
+                    NodeScalar(tsp, sarr),
+                NodeScalar(to_csubstr(tptr), ssp),
+                    NodeScalar(to_csubstr(tptr), to_csubstr(sptr)),
+                    NodeScalar(to_csubstr(tptr), sarr),
+                NodeScalar(tarr, ssp),
+                    NodeScalar(tarr, to_csubstr(sptr)),
+                    NodeScalar(tarr, sarr),
+        })
         {
             node_scalar_test_foo3(s, true);
         }
@@ -814,7 +815,6 @@ TEST(NodeInit, ctor__type_only)
 
 TEST(NodeInit, ctor__val_only)
 {
-    using ilist = std::initializer_list< NodeInit >;
     {
         const char sarr[] = "foo";
         const char *sptr = "foo"; size_t sptrlen = 3;
@@ -885,7 +885,11 @@ TEST(NodeInit, ctor__val_only)
             s.clear();
         }
 
-        for(auto s : ilist{{sarr}, {to_csubstr(sptr)}, {csubstr{sptr, sptrlen}}, {ssp}})
+        for(auto s : {
+            NodeInit(sarr),
+            NodeInit(to_csubstr(sptr)),
+            NodeInit(csubstr{sptr, sptrlen}),
+            NodeInit(ssp)})
         {
             SCOPED_TRACE("here LOOP");
             node_scalar_test_foo(s.val);
@@ -923,7 +927,11 @@ TEST(NodeInit, ctor__val_only)
             node_scalar_test_empty(s.key);
         }
 
-        for(auto s : ilist{{sarr}, {to_csubstr(sptr)}, {csubstr{sptr, sptrlen}}, {ssp}})
+        for(auto s : {
+            NodeInit(sarr),
+            NodeInit(to_csubstr(sptr)),
+            NodeInit(csubstr{sptr, sptrlen}),
+            NodeInit(ssp)})
         {
             SCOPED_TRACE("here LOOP");
             node_scalar_test_foo3(s.val);
@@ -1150,7 +1158,7 @@ TEST(NodeRef, 4_remove_child)
     root.insert_child({"1"}, root[0]);
     root.insert_child({"2"}, root[1]);
 
-    std::vector< int > vec({10, 20, 30, 40, 50, 60, 70, 80, 90});
+    std::vector<int> vec({10, 20, 30, 40, 50, 60, 70, 80, 90});
     root.insert_child(root[0]) << vec; // 1
     root.insert_child(root[2]) << vec; // 3
     root.insert_child(root[4]) << vec; // 5
@@ -1167,7 +1175,7 @@ TEST(NodeRef, 4_remove_child)
 
     noderef_check_tree(root);
 
-    std::vector< std::vector<int> > vec2({{100, 200}, {300, 400}, {500, 600}, {700, 800, 900}});
+    std::vector<std::vector<int>> vec2({{100, 200}, {300, 400}, {500, 600}, {700, 800, 900}});
     root.prepend_child() << vec2; // 0
     root.insert_child(root[1]) << vec2; // 2
     root.insert_child(root[3]) << vec2; // 4
@@ -1192,8 +1200,8 @@ TEST(NodeRef, 5_move_in_same_parent)
     Tree t;
     NodeRef r = t;
 
-    std::vector< std::vector<int> > vec2({{100, 200}, {300, 400}, {500, 600}, {700, 800, 900}});
-    std::map< std::string, int > map2({{"foo", 100}, {"bar", 200}, {"baz", 300}});
+    std::vector<std::vector<int>> vec2({{100, 200}, {300, 400}, {500, 600}, {700, 800, 900}});
+    std::map<std::string, int> map2({{"foo", 100}, {"bar", 200}, {"baz", 300}});
 
     r |= SEQ;
     r.append_child() << vec2;
@@ -1221,8 +1229,8 @@ TEST(NodeRef, 6_move_to_other_parent)
     Tree t;
     NodeRef r = t;
 
-    std::vector< std::vector<int> > vec2({{100, 200}, {300, 400}, {500, 600}, {700, 800, 900}});
-    std::map< std::string, int > map2({{"foo", 100}, {"bar", 200}, {"baz", 300}});
+    std::vector<std::vector<int>> vec2({{100, 200}, {300, 400}, {500, 600}, {700, 800, 900}});
+    std::map<std::string, int> map2({{"foo", 100}, {"bar", 200}, {"baz", 300}});
 
     r |= SEQ;
     r.append_child() << vec2;
@@ -1244,8 +1252,8 @@ TEST(NodeRef, 7_duplicate)
     Tree t;
     NodeRef r = t;
 
-    std::vector< std::vector<int> > vec2({{100, 200}, {300, 400}, {500, 600}, {700, 800, 900}});
-    std::map< std::string, int > map2({{"bar", 200}, {"baz", 300}, {"foo", 100}});
+    std::vector<std::vector<int>> vec2({{100, 200}, {300, 400}, {500, 600}, {700, 800, 900}});
+    std::map<std::string, int> map2({{"bar", 200}, {"baz", 300}, {"foo", 100}});
 
     r |= SEQ;
     r.append_child() << vec2;
@@ -1466,7 +1474,7 @@ TEST(general, newlines_on_maps_nested_in_seqs)
 )";
     Tree t = parse(yaml);
     auto s = emitrs<std::string>(t);
-    EXPECT_EQ(std::string(expected), s);
+    EXPECT_EQ(expected, s);
 }
 
 TEST(general, lookup_path)

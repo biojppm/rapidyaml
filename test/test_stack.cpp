@@ -17,29 +17,29 @@ using ip = int const*;
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-template<int N>
+template<size_t N>
 void test_stack_small_vs_large()
 {
     istack<N> s;
-    for(int i = 0; i < N; ++i)
+    for(size_t i = 0; i < N; ++i)
     {
-        s.push(i);
-        EXPECT_EQ(s.size(), (size_t)i+1);
+        s.push(static_cast<int>(i));
+        EXPECT_EQ(s.size(), i+1);
     }
-    EXPECT_EQ(s.size(), (size_t)N);
+    EXPECT_EQ(s.size(), N);
     EXPECT_EQ(s.m_stack, s.m_buf);
-    for(int i = 0; i < N; ++i)
+    for(size_t i = 0; i < N; ++i)
     {
-        EXPECT_EQ(s.top(N-1-i), i);
+        EXPECT_EQ(s.top(N-1-i), static_cast<int>(i));
     }
     s.push(N);
     EXPECT_NE(s.m_stack, s.m_buf);
-    EXPECT_EQ(s.top(), N);
-    EXPECT_EQ(s.pop(), N);
+    EXPECT_EQ(s.top(), static_cast<int>(N));
+    EXPECT_EQ(s.pop(), static_cast<int>(N));
     EXPECT_NE(s.m_stack, s.m_buf);
-    for(int i = 0; i < N; ++i)
+    for(size_t i = 0; i < N; ++i)
     {
-        EXPECT_EQ(s.top(N-1-i), i);
+        EXPECT_EQ(s.top(N-1-i), static_cast<int>(i));
     }
 }
 

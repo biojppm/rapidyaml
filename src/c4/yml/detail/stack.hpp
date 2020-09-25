@@ -105,6 +105,17 @@ public:
         return m_stack[m_size];
     }
 
+    #if defined(_MSC_VER)
+    #   pragma warning(push)
+    #   pragma warning(disable: 4296/*expression is always 'boolean_value'*/)
+    #elif defined(__clang__)
+    #   pragma clang diagnostic push
+    #   pragma clang diagnostic ignored "-Wtype-limits"
+    #elif defined(__GNUC__)
+    #   pragma GCC diagnostic push
+    #   pragma GCC diagnostic ignored "-Wtype-limits"
+    #endif
+
     C4_ALWAYS_INLINE T const& C4_RESTRICT top() const { RYML_ASSERT(m_size > 0); return m_stack[m_size - 1]; }
     C4_ALWAYS_INLINE T      & C4_RESTRICT top()       { RYML_ASSERT(m_size > 0); return m_stack[m_size - 1]; }
 
@@ -119,6 +130,14 @@ public:
 
     C4_ALWAYS_INLINE T const& C4_RESTRICT operator[](size_t i) const { RYML_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
     C4_ALWAYS_INLINE T      & C4_RESTRICT operator[](size_t i)       { RYML_ASSERT(i >= 0 && i < m_size); return m_stack[i]; }
+
+    #if defined(_MSC_VER)
+    #   pragma warning(pop)
+    #elif defined(__clang__)
+    #   pragma clang diagnostic pop
+    #elif defined(__GNUC__)
+    #   pragma GCC diagnostic pop
+    #endif
 
 public:
 

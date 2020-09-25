@@ -20,6 +20,7 @@
 #   pragma GCC diagnostic ignored "-Wshadow"
 #   pragma GCC diagnostic ignored "-Wfloat-equal"
 #   pragma GCC diagnostic ignored "-Wunused-parameter"
+#   pragma GCC diagnostic ignored "-Wconversion"
 #endif
 #include <yaml-cpp/yaml.h>
 #if defined(_MSC_VER)

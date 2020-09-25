@@ -8,6 +8,11 @@
 #   pragma GCC diagnostic ignored "-Wtype-limits"
 #endif
 
+#if defined(_MSC_VER)
+#   pragma warning(push)
+#   pragma warning(disable: 4296/*expression is always 'boolean_value'*/)
+#endif
+
 namespace c4 {
 namespace yml {
 
@@ -457,6 +462,16 @@ size_t Tree::_claim()
 }
 
 //-----------------------------------------------------------------------------
+#if defined(__clang__)
+#   pragma clang diagnostic push
+#   pragma GCC diagnostic ignored "-Wnull-dereference"
+#elif defined(__GNUC__)
+#   pragma GCC diagnostic push
+#   if __GNUC__ >= 6
+#       pragma GCC diagnostic ignored "-Wnull-dereference"
+#   endif
+#endif
+
 void Tree::_set_hierarchy(size_t ichild, size_t iparent, size_t iprev_sibling)
 {
     RYML_ASSERT(iparent == NONE || (iparent >= 0 && iparent < m_cap));
@@ -515,6 +530,13 @@ void Tree::_set_hierarchy(size_t ichild, size_t iparent, size_t iprev_sibling)
         }
     }
 }
+
+#if defined(__clang__)
+#   pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#   pragma GCC diagnostic pop
+#endif
+
 
 //-----------------------------------------------------------------------------
 void Tree::_rem_hierarchy(size_t i)
@@ -1306,6 +1328,16 @@ size_t Tree::child_pos(size_t node, size_t ch) const
     return npos;
 }
 
+#if defined(__clang__)
+#   pragma clang diagnostic push
+#   pragma GCC diagnostic ignored "-Wnull-dereference"
+#elif defined(__GNUC__)
+#   pragma GCC diagnostic push
+#   if __GNUC__ >= 6
+#       pragma GCC diagnostic ignored "-Wnull-dereference"
+#   endif
+#endif
+
 size_t Tree::find_child(size_t node, csubstr const& name) const
 {
     RYML_ASSERT(node != NONE);
@@ -1329,6 +1361,12 @@ size_t Tree::find_child(size_t node, csubstr const& name) const
     }
     return NONE;
 }
+
+#if defined(__clang__)
+#   pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#   pragma GCC diagnostic pop
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -1679,4 +1717,8 @@ Tree::_lookup_path_token Tree::_next_token(lookup_result *r, _lookup_path_token 
 
 #ifdef __GNUC__
 #   pragma GCC diagnostic pop
+#endif
+
+#if defined(_MSC_VER)
+#   pragma warning(pop)
 #endif

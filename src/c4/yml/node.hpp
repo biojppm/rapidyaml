@@ -1,6 +1,9 @@
 #ifndef _C4_YML_NODE_HPP_
 #define _C4_YML_NODE_HPP_
 
+/** @file node.hpp
+ * @see NodeRef */
+
 #include <cstddef>
 
 #include "c4/yml/tree.hpp"
@@ -14,6 +17,7 @@
 #if defined(_MSC_VER)
 #   pragma warning(push)
 #   pragma warning(disable: 4251/*needs to have dll-interface to be used by clients of struct*/)
+#   pragma warning(disable: 4296/*expression is always 'boolean_value'*/)
 #endif
 
 namespace c4 {
@@ -40,6 +44,8 @@ inline Key<K> key(K & k)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+/** a reference to a node in an existing yaml tree, offering a more
+ * convenient API than the index-based API used in the tree. */
 class RYML_EXPORT NodeRef
 {
 private:
@@ -742,8 +748,24 @@ public:
           children_view children()       { return       children_view(begin(), end()); }
     const_children_view children() const { return const_children_view(begin(), end()); }
 
+    #if defined(__clang__)
+    #   pragma clang diagnostic push
+    #   pragma clang diagnostic ignored "-Wnull-dereference"
+    #elif defined(__GNUC__)
+    #   pragma GCC diagnostic push
+    #   if __GNUC__ >= 6
+    #       pragma GCC diagnostic ignored "-Wnull-dereference"
+    #   endif
+    #endif
+
           children_view siblings()       { if(is_root()) { return       children_view(end(), end()); } else { size_t p = get()->m_parent; return       children_view(iterator(m_tree, m_tree->get(p)->m_first_child), iterator(m_tree, NONE)); } }
     const_children_view siblings() const { if(is_root()) { return const_children_view(end(), end()); } else { size_t p = get()->m_parent; return const_children_view(const_iterator(m_tree, m_tree->get(p)->m_first_child), const_iterator(m_tree, NONE)); } }
+
+    #if defined(__clang__)
+    #   pragma clang diagnostic pop
+    #elif defined(__GNUC__)
+    #   pragma GCC diagnostic pop
+    #endif
 
 public:
 

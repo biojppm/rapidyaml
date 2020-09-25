@@ -197,10 +197,12 @@ private:
 
     struct LineContents
     {
-        csubstr  full;           ///< the full line, including newlines on the right
-        csubstr  stripped;       ///< the stripped line, excluding newlines on the right
-        csubstr  rem;            ///< the stripped line remainder; initially starts at the first non-space character
-        size_t   indentation{0}; ///< the number of spaces on the beginning of the line
+        csubstr  full;        ///< the full line, including newlines on the right
+        csubstr  stripped;    ///< the stripped line, excluding newlines on the right
+        csubstr  rem;         ///< the stripped line remainder; initially starts at the first non-space character
+        size_t   indentation; ///< the number of spaces on the beginning of the line
+
+        LineContents() : full(), stripped(), rem(), indentation() {}
 
         void reset(csubstr full_, csubstr stripped_)
         {
@@ -220,7 +222,7 @@ private:
         {
             RYML_ASSERT(s.str >= full.str);
             RYML_ASSERT(full.contains(s));
-            size_t col = s.str - full.str;
+            size_t col = static_cast<size_t>(s.str - full.str);
             return col;
         }
     };
@@ -237,24 +239,8 @@ private:
         LineContents line_contents;
         size_t       indref;
 
-        State()
-        {
-            #ifdef __clang__
-            #    pragma clang diagnostic push
-            //#    pragma clang diagnostic ignored "-Wgnu-inline-cpp-without-extern" // debugbreak/debugbreak.h:50:16: error: 'gnu_inline' attribute without 'extern' in C++ treated as externally available, this changed in Clang 10 [-Werror,-Wgnu-inline-cpp-without-extern]
-            #elif defined(__GNUC__)
-            #    pragma GCC diagnostic push
-            #    if __GNUC__>= 8
-            #        pragma GCC diagnostic ignored "-Wclass-memaccess" // error: ‘void* memset(void*, int, size_t)’ clearing an object of type ‘class c4::yml::Tree’ with no trivial copy-assignment; use assignment or value-initialization instead
-            #    endif
-            #endif
-            memset(this, 0, sizeof(*this));
-            #ifdef __clang__
-            #    pragma clang diagnostic pop
-            #elif defined(__GNUC__)
-            #    pragma GCC diagnostic pop
-            #endif
-        }
+        State() : flags(), level(), node_id(), scalar(), scalar_col(), pos(), line_contents(), indref() {}
+        
         void reset(const char *file, size_t node_id_)
         {
             flags = RUNK|RTOP;

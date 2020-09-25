@@ -312,7 +312,8 @@ private:
             {
                 char buf[32];
                 int ret = snprintf(buf, sizeof(buf), "Reader error: #%X", m_parser.problem_value);
-                error(buf, ret, &problem_loc);
+                C4_CHECK(ret >= 0);
+                error(buf, static_cast<size_t>(ret), &problem_loc);
             }
             else
             {
