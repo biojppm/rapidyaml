@@ -340,7 +340,14 @@ void Emitter<Writer>::_write_scalar(csubstr s)
         }
         else
         {
-            this->Writer::_do_write("''");
+            if(s.str != nullptr)
+            {
+                this->Writer::_do_write("''");
+            }
+            else
+            {
+                this->Writer::_do_write('~');
+            }
         }
     }
     else

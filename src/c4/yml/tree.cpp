@@ -1628,11 +1628,11 @@ size_t Tree::_next_node(lookup_result * r, bool modify, _lookup_path_token *pare
                     {
                         if(is_map(r->closest))
                         {
-                            to_keyval(node, "~", "~");
+                            to_keyval(node, /*"~"*/{}, /*"~"*/{});
                         }
                         else if(is_seq(r->closest))
                         {
-                            to_val(node, "~");
+                            to_val(node, /*"~"*/{});
                         }
                     }
                 }
