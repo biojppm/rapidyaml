@@ -239,6 +239,58 @@ TEST(CaseNode, setting_up)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+NodeType_e CaseNode::_guess() const
+{
+    NodeType t;
+    C4_ASSERT(!val.empty() != !children.empty() || (val.empty() && children.empty()));
+    if(children.empty())
+    {
+        C4_ASSERT(parent);
+        if(key.empty())
+        {
+            t = VAL;
+        }
+        else
+        {
+            t = KEYVAL;
+        }
+    }
+    else
+    {
+        NodeType_e has_key = key.empty() ? NOTYPE : KEY;
+        auto const& ch = children.front();
+        if(ch.key.empty())
+        {
+            t = (has_key|SEQ);
+        }
+        else
+        {
+            t = (has_key|MAP);
+        }
+    }
+    if( ! key_tag.empty())
+    {
+        C4_ASSERT( ! key.empty());
+        t.add(KEYTAG);
+    }
+    if( ! val_tag.empty())
+    {
+        C4_ASSERT( ! val.empty() || ! children.empty());
+        t.add(VALTAG);
+    }
+    if( ! key_anchor.str.empty())
+    {
+        t.add(key_anchor.type);
+    }
+    if( ! val_anchor.str.empty())
+    {
+        t.add(val_anchor.type);
+    }
+    return t;
+}
+
+
+//-----------------------------------------------------------------------------
 void CaseNode::compare_child(yml::NodeRef const& n, size_t pos) const
 {
     EXPECT_TRUE(pos < n.num_children());
