@@ -322,6 +322,22 @@ void Emitter<Writer>::_write_scalar_block(csubstr s, size_t ilevel, bool as_key)
 template<class Writer>
 void Emitter<Writer>::_write_scalar(csubstr s)
 {
+    // this block of code needed to be moved to before the needs_quotes
+    // assignment to workaround a g++ optimizer bug where (s.str != nullptr)
+    // was evaluated as true even if s.str was actually a nullptr (!!!)
+    if(s.len == 0)
+    {
+        if(s.str != nullptr)
+        {
+            this->Writer::_do_write("''");
+        }
+        else
+        {
+            this->Writer::_do_write('~');
+        }
+        return;
+    }
+
     const bool needs_quotes = (
         !s.is_number() // is not a number
         &&
@@ -329,26 +345,12 @@ void Emitter<Writer>::_write_scalar(csubstr s)
             (s != s.trim(" \t\n\r")) // has leading or trailing whitespace
             ||
             s.first_of("#:-?,\n{}[]'\"") != npos // has special chars
-        )
-    );
+            )
+        );
 
     if(!needs_quotes)
     {
-        if( ! s.empty())
-        {
-            this->Writer::_do_write(s);
-        }
-        else
-        {
-            if(s.str != nullptr)
-            {
-                this->Writer::_do_write("''");
-            }
-            else
-            {
-                this->Writer::_do_write('~');
-            }
-        }
+        this->Writer::_do_write(s);
     }
     else
     {
