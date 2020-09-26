@@ -58,7 +58,7 @@ R"(!!set
 ? a
 ? b
 )",
-N(TL("!!set", L{N("a", "~"), N("b", "~")}))
+N(TL("!!set", L{N(KEYVAL, "a", /*"~"*/{}), N(KEYVAL, "b", /*"~"*/{})}))
 ),
 
 C("doc as set",
@@ -67,7 +67,7 @@ R"(--- !!set
 ? bb
 ? cc
 )",
-N(STREAM, L{N(DOCMAP, TL("!!set", L{N("aa", "~"), N("bb", "~"), N("cc", "~")}))})
+N(STREAM, L{N(DOCMAP, TL("!!set", L{N(KEYVAL, "aa", /*"~"*/{}), N(KEYVAL, "bb", /*"~"*/{}), N(KEYVAL, "cc", /*"~"*/{})}))})
 ),
 
 C("sets 2XXW",
@@ -78,9 +78,9 @@ R"(
 ? Ken Griff
 )",
 N(STREAM, L{N(DOCMAP, TL("!!set", L{
-  N("Mark McGwire", "~"),
-  N("Sammy Sosa", "~"),
-  N("Ken Griff", "~"),})
+  N(KEYVAL, "Mark McGwire", /*"~"*/{}),
+  N(KEYVAL, "Sammy Sosa", /*"~"*/{}),
+  N(KEYVAL, "Ken Griff", /*"~"*/{}),})
 )})),
 
 C("sets 2XXW, indented",
@@ -91,9 +91,9 @@ R"(
     ? Ken Griff
 )",
 N(STREAM, L{N(DOCMAP, TL("!!set", L{
-  N("Mark McGwire", "~"),
-  N("Sammy Sosa", "~"),
-  N("Ken Griff", "~"),})
+  N(KEYVAL, "Mark McGwire", /*"~"*/{}),
+  N(KEYVAL, "Sammy Sosa", /*"~"*/{}),
+  N(KEYVAL, "Ken Griff", /*"~"*/{}),})
 )})),
 
 C("sets 2XXW, no set",
@@ -104,9 +104,9 @@ R"(
 ? Ken Griff
 )",
 N(STREAM, L{N(DOCMAP, L{
-  N("Mark McGwire", "~"),
-  N("Sammy Sosa", "~"),
-  N("Ken Griff", "~"),}
+  N(KEYVAL, "Mark McGwire", /*"~"*/{}),
+  N(KEYVAL, "Sammy Sosa", /*"~"*/{}),
+  N(KEYVAL, "Ken Griff", /*"~"*/{}),}
 )})),
 
 C("sets 2XXW, no doc",
@@ -116,9 +116,9 @@ R"(!!set
 ? Ken Griff
 )",
 TL("!!set", L{
-  N("Mark McGwire", "~"),
-  N("Sammy Sosa", "~"),
-  N("Ken Griff", "~"),
+  N(KEYVAL, "Mark McGwire", /*"~"*/{}),
+  N(KEYVAL, "Sammy Sosa", /*"~"*/{}),
+  N(KEYVAL, "Ken Griff", /*"~"*/{}),
 })),
 
 C("sets 2XXW, no doc, no set",
@@ -128,9 +128,9 @@ R"(
 ? Ken Griff
 )",
 L{
-  N("Mark McGwire", "~"),
-  N("Sammy Sosa", "~"),
-  N("Ken Griff", "~"),
+  N(KEYVAL, "Mark McGwire", /*"~"*/{}),
+  N(KEYVAL, "Sammy Sosa", /*"~"*/{}),
+  N(KEYVAL, "Ken Griff", /*"~"*/{}),
 }),
 
     )

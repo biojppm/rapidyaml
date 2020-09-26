@@ -151,7 +151,7 @@ c : [
 L{
   N("a", L{N(MAP, L{N("", "foo")}),}),
   N("b", L{N(MAP, L{N("", "foo")}),}),
-  N("c", L{N(MAP, L{N("", "~")}), N(MAP, L{N("", "~")}),}),
+  N("c", L{N(MAP, L{N(KEYVAL, "", /*"~"*/{})}), N(MAP, L{N(KEYVAL, "", /*"~"*/{})}),}),
 }
 ),
 

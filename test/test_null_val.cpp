@@ -17,6 +17,47 @@ namespace yml {
     "issue84.3"
 
 
+TEST(null_val, simple)
+{
+    auto tree = parse("{foo: , bar: '', baz: [,,,], bat: [ , , , ], two: [,,], one: [,], empty: []}");
+
+    EXPECT_EQ(tree["foo"].val(), nullptr);
+    EXPECT_EQ(tree["bar"].val(), "");
+    ASSERT_EQ(tree["baz"].num_children(), 3u);
+    EXPECT_EQ(tree["baz"][0].val(), nullptr);
+    EXPECT_EQ(tree["baz"][1].val(), nullptr);
+    EXPECT_EQ(tree["baz"][2].val(), nullptr);
+    ASSERT_EQ(tree["bat"].num_children(), 3u);
+    EXPECT_EQ(tree["bat"][0].val(), nullptr);
+    EXPECT_EQ(tree["bat"][1].val(), nullptr);
+    EXPECT_EQ(tree["bat"][2].val(), nullptr);
+    ASSERT_EQ(tree["two"].num_children(), 2u);
+    EXPECT_EQ(tree["two"][0].val(), nullptr);
+    EXPECT_EQ(tree["two"][1].val(), nullptr);
+    ASSERT_EQ(tree["one"].num_children(), 1u);
+    EXPECT_EQ(tree["one"][0].val(), nullptr);
+    EXPECT_EQ(tree["empty"].num_children(), 0u);
+
+    tree = parse(R"(
+# these have no space after the dash
+-
+-
+-
+# these have ONE space after the dash
+- 
+- 
+- 
+)");
+    ASSERT_EQ(tree.rootref().num_children(), 6u);
+    EXPECT_EQ(tree[0].val(), nullptr);
+    EXPECT_EQ(tree[1].val(), nullptr);
+    EXPECT_EQ(tree[2].val(), nullptr);
+    EXPECT_EQ(tree[3].val(), nullptr);
+    EXPECT_EQ(tree[4].val(), nullptr);
+    EXPECT_EQ(tree[5].val(), nullptr);
+}
+
+
 CASE_GROUP(NULL_VAL)
 {
     APPEND_CASES(
@@ -24,7 +65,7 @@ CASE_GROUP(NULL_VAL)
 C("null map vals, expl",
 R"({foo: , bar: , baz: }
 )",
-L{N("foo", "~"), N("bar", "~"), N("baz", "~")}
+L{N(KEYVAL, "foo", /*"~"*/{}), N(KEYVAL, "bar", /*"~"*/{}), N(KEYVAL, "baz", /*"~"*/{})}
 ),
 
 C("null map vals, impl",
@@ -33,7 +74,7 @@ foo:
 bar: 
 baz: 
 )",
-L{N("foo", "~"), N("bar", "~"), N("baz", "~")}
+L{N(KEYVAL, "foo", /*"~"*/{}), N(KEYVAL, "bar", /*"~"*/{}), N(KEYVAL, "baz", /*"~"*/{})}
 ),
 
 C("null seq vals, impl",
@@ -41,7 +82,7 @@ R"(-
 - 
 - 
 )",
-L{N("~"), N("~"), N("~")}
+L{N(VAL, /*"~"*/{}), N(VAL, /*"~"*/{}), N(VAL, /*"~"*/{})}
 ),
 
 C("null seq vals in map, impl, mixed 1",
@@ -53,7 +94,7 @@ foo:
 bar: 
 baz: 
 )",
-L{N("foo", L{N("~"), N("~"), N("~")}), N("bar", "~"), N("baz", "~")}
+L{N("foo", L{N(VAL, /*"~"*/{}), N(VAL, /*"~"*/{}), N(VAL, /*"~"*/{})}), N(KEYVAL, "bar", /*"~"*/{}), N(KEYVAL, "baz", /*"~"*/{})}
 ),
 
 C("null seq vals in map, impl, mixed 2",
@@ -65,7 +106,7 @@ bar:
   - 
 baz: 
 )",
-L{N("foo", "~"), N("bar", L{N("~"), N("~"), N("~")}), N("baz", "~")}
+L{N(KEYVAL, "foo", /*"~"*/{}), N("bar", L{N(VAL, /*"~"*/{}), N(VAL, /*"~"*/{}), N(VAL, /*"~"*/{})}), N(KEYVAL, "baz", /*"~"*/{})}
 ),
 
 C("null seq vals in map, impl, mixed 3",
@@ -77,7 +118,7 @@ baz:
   - 
   - 
 )",
-L{N("foo", "~"), N("bar", "~"), N("baz", L{N("~"), N("~"), N("~")})}
+L{N(KEYVAL, "foo", /*"~"*/{}), N(KEYVAL, "bar", /*"~"*/{}), N("baz", L{N(VAL, /*"~"*/{}), N(VAL, /*"~"*/{}), N(VAL, /*"~"*/{})})}
 ),
 
 C("null map vals in seq, impl, mixed 1",
@@ -88,7 +129,7 @@ R"(
 - 
 - 
 )",
-L{N(L{N("foo", "~"), N("bar", "~"), N("baz", "~")}), N("~"), N("~")}
+L{N(L{N(KEYVAL, "foo", /*"~"*/{}), N(KEYVAL, "bar", /*"~"*/{}), N(KEYVAL, "baz", /*"~"*/{})}), N(VAL, /*"~"*/{}), N(VAL, /*"~"*/{})}
 ),
 
 C("null map vals in seq, impl, mixed 2",
@@ -99,7 +140,7 @@ R"(
   baz: 
 - 
 )",
-L{N("~"), N(L{N("foo", "~"), N("bar", "~"), N("baz", "~")}), N("~")}
+L{N(VAL, /*"~"*/{}), N(L{N(KEYVAL, "foo", /*"~"*/{}), N(KEYVAL, "bar", /*"~"*/{}), N(KEYVAL, "baz", /*"~"*/{})}), N(VAL, /*"~"*/{})}
 ),
 
 C("null map vals in seq, impl, mixed 3",
@@ -110,7 +151,7 @@ R"(
   bar: 
   baz: 
 )",
-L{N("~"), N("~"), N(L{N("foo", "~"), N("bar", "~"), N("baz", "~")})}
+L{N(VAL, /*"~"*/{}), N(VAL, /*"~"*/{}), N(L{N(KEYVAL, "foo", /*"~"*/{}), N(KEYVAL, "bar", /*"~"*/{}), N(KEYVAL, "baz", /*"~"*/{})})}
 ),
 
 C("issue84.1",
@@ -124,7 +165,7 @@ your case:
 whatever: baz
 )",
 L{
-N("fixed case", L{N("foo", "a"), N("bar", "~")}),
+N("fixed case", L{N("foo", "a"), N(KEYVAL, "bar", /*"~"*/{})}),
 N("your case", L{N("foo", "a"), N("bar", "")}),
 N("whatever", "baz"),
 }),
@@ -161,7 +202,7 @@ N("param_root", L{
             N("IsLifeInfinite", "false"),
             N("ElectricalDischarge", "1.0"),
             N("IsBurnOutBorn", "false"),
-            N("BurnOutBornName", "~"),
+            N(KEYVAL, "BurnOutBornName", /*"~"*/{}),
             N("IsBurnOutBornIdent", "false"),
             N("ChangeDropTableName", ""),
         }),
@@ -188,7 +229,7 @@ N("param_root", L{
     N("objects", L{
         N("TestContent", L{
             N("Str64_empty", ""),
-            N("Str64_empty2", "~"),
+            N(KEYVAL, "Str64_empty2", /*"~"*/{}),
             N("Str64_empty3", ""),
         }),
     }),

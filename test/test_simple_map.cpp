@@ -180,12 +180,12 @@ f:
 g:
 foo: bar
 )",
-L{N("key", "val"), N("a", "~"), N("b", "~"), N("c", "~"), N("d", "~"), N("e", "~"), N("f", "~"), N("g", "~"), N("foo", "bar"),}
+L{N("key", "val"), N(KEYVAL, "a", /*"~"*/{}), N(KEYVAL, "b", /*"~"*/{}), N(KEYVAL, "c", /*"~"*/{}), N(KEYVAL, "d", /*"~"*/{}), N(KEYVAL, "e", /*"~"*/{}), N(KEYVAL, "f", /*"~"*/{}), N(KEYVAL, "g", /*"~"*/{}), N("foo", "bar"),}
 ),
 
 C("simple map expl, null values 1",
 R"({key: val, a, b, c, d, e: , f: , g: , foo: bar})",
-L{N("key", "val"), N("a", "~"), N("b", "~"), N("c", "~"), N("d", "~"), N("e", "~"), N("f", "~"), N("g", "~"), N("foo", "bar"),}
+L{N("key", "val"), N(KEYVAL, "a", /*"~"*/{}), N(KEYVAL, "b", /*"~"*/{}), N(KEYVAL, "c", /*"~"*/{}), N(KEYVAL, "d", /*"~"*/{}), N(KEYVAL, "e", /*"~"*/{}), N(KEYVAL, "f", /*"~"*/{}), N(KEYVAL, "g", /*"~"*/{}), N("foo", "bar"),}
 ),
 
 C("simple map expl, null values 2",
@@ -197,11 +197,11 @@ R"(
 - {a, b: 1, c: 2}
 )",
 L{
-   N(L{N("a", "~")}),
-   N(L{N("a", "~"), N("b", "~"), N("c", "~")}),
-   N(L{N("a", "1"), N("b", "2"), N("c", "~")}),
-   N(L{N("a", "1"), N("b", "~"), N("c", "2")}),
-   N(L{N("a", "~"), N("b", "1"), N("c", "2")}),
+   N(L{N(KEYVAL, "a", /*"~"*/{})}),
+   N(L{N(KEYVAL, "a", /*"~"*/{}), N(KEYVAL, "b", /*"~"*/{}), N(KEYVAL, "c", /*"~"*/{})}),
+   N(L{N("a", "1"), N("b", "2"), N(KEYVAL, "c", /*"~"*/{})}),
+   N(L{N("a", "1"), N(KEYVAL, "b", /*"~"*/{}), N("c", "2")}),
+   N(L{N(KEYVAL, "a", /*"~"*/{}), N("b", "1"), N("c", "2")}),
  }
 ),
 
@@ -441,22 +441,22 @@ e ,f: val , 000
 h ,i: val ,000
 })",
     L{ // this is crazy...
-        N{"a", "~"}, N{"b", "val"}, N{"000 c", "~"},
-                     N{"d", "val"}, N{"000 e", "~"},
-                     N{"f", "val"}, N{"000 h", "~"},
-                     N{"i", "val"}, N{"000 a", "~"},
-                     N{"b", "val"}, N{"000 c", "~"},
-                     N{"d", "val"}, N{"000 e", "~"},
-                     N{"f", "val"}, N{"000 h", "~"},
-                     N{"i", "val"}, N{"000 a", "~"},
-                     N{"b", "val"}, N{"000 c", "~"},
-                     N{"d", "val"}, N{"000 e", "~"},
-                     N{"f", "val"}, N{"000 h", "~"},
-                     N{"i", "val"}, N{"000 a", "~"},
-                     N{"b", "val"}, N{"000 c", "~"},
-                     N{"d", "val"}, N{"000 e", "~"},
-                     N{"f", "val"}, N{"000 h", "~"},
-                     N{"i", "val"}, N{"000", "~"},
+        N(KEYVAL, "a", /*"~"*/{}), N("b", "val"), N(KEYVAL, "000 c", /*"~"*/{}),
+        N("d", "val"), N(KEYVAL, "000 e", /*"~"*/{}),
+        N("f", "val"), N(KEYVAL, "000 h", /*"~"*/{}),
+        N("i", "val"), N(KEYVAL, "000 a", /*"~"*/{}),
+        N("b", "val"), N(KEYVAL, "000 c", /*"~"*/{}),
+        N("d", "val"), N(KEYVAL, "000 e", /*"~"*/{}),
+        N("f", "val"), N(KEYVAL, "000 h", /*"~"*/{}),
+        N("i", "val"), N(KEYVAL, "000 a", /*"~"*/{}),
+        N("b", "val"), N(KEYVAL, "000 c", /*"~"*/{}),
+        N("d", "val"), N(KEYVAL, "000 e", /*"~"*/{}),
+        N("f", "val"), N(KEYVAL, "000 h", /*"~"*/{}),
+        N("i", "val"), N(KEYVAL, "000 a", /*"~"*/{}),
+        N("b", "val"), N(KEYVAL, "000 c", /*"~"*/{}),
+        N("d", "val"), N(KEYVAL, "000 e", /*"~"*/{}),
+        N("f", "val"), N(KEYVAL, "000 h", /*"~"*/{}),
+        N("i", "val"), N(KEYVAL, "000", /*"~"*/{}),
 }
 ),
 

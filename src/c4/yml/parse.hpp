@@ -154,11 +154,14 @@ private:
     void  _start_new_doc(csubstr rem);
     void  _end_stream();
 
-    NodeData* _append_val(csubstr const& val);
-    NodeData* _append_key_val(csubstr const& val);
+    NodeData* _append_val(csubstr val);
+    NodeData* _append_key_val(csubstr val);
+    inline NodeData* _append_val_null() { return _append_val({}/*"~"*/); }
+    inline NodeData* _append_key_val_null() { return _append_key_val({}/*"~"*/); }
     bool  _rval_dash_start_or_continue_seq();
 
     void  _store_scalar(csubstr const& s);
+    void  _store_scalar_null() { _store_scalar({}/*"~"*/); }
     csubstr _consume_scalar();
     void  _move_scalar_from_top();
 

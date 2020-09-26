@@ -647,6 +647,20 @@ bool Parser::_handle_seq_expl()
         {
             return true;
         }
+        else if(rem.begins_with(", "))
+        {
+            _c4dbgp("found ',' -- the value was null");
+            _append_val_null();
+            _line_progressed(2);
+            return true;
+        }
+        else if(rem.begins_with(','))
+        {
+            _c4dbgp("found ',' -- the value was null");
+            _append_val_null();
+            _line_progressed(1);
+            return true;
+        }
         else
         {
             _c4err("parse error");
@@ -897,7 +911,7 @@ bool Parser::_rval_dash_start_or_continue_seq()
     {
         _c4dbgp("prev val was empty");
         addrem_flags(RNXT, RVAL);
-        _append_val("~");
+        _append_val_null();
         return false;
     }
     _c4dbgp("val is a nested seq, indented");
@@ -938,7 +952,7 @@ bool Parser::_handle_map_expl()
         if(has_all(SSCL))
         {
             _c4dbgp("the last val was null");
-            _append_key_val("~");
+            _append_key_val_null();
             rem_flags(RVAL);
         }
         _pop_level();
@@ -1032,7 +1046,7 @@ bool Parser::_handle_map_expl()
         else if(rem.begins_with(','))
         {
             _c4dbgp("prev scalar was a key with null value");
-            _append_key_val("~");
+            _append_key_val_null();
             _line_progressed(1);
             return true;
         }
@@ -1041,7 +1055,7 @@ bool Parser::_handle_map_expl()
             _c4dbgp("map terminates after a key...");
             RYML_ASSERT(has_all(SSCL));
             _c4dbgp("the last val was null");
-            _append_key_val("~");
+            _append_key_val_null();
             rem_flags(RVAL);
             if(has_all(RSEQIMAP))
             {
@@ -1067,7 +1081,8 @@ bool Parser::_handle_map_expl()
         }
         else if(rem.begins_with('}'))
         {
-            _append_key_val("~");
+            _c4dbgp("the last val was null");
+            _append_key_val_null();
             _line_progressed(1);
             return true;
         }
@@ -1152,7 +1167,7 @@ bool Parser::_handle_map_expl()
         else if(rem.begins_with(','))
         {
             _c4dbgp("appending empty val");
-            _append_key_val("~");
+            _append_key_val_null();
             addrem_flags(RKEY, RVAL);
             _line_progressed(1);
             if(has_any(RSEQIMAP))
@@ -1168,7 +1183,7 @@ bool Parser::_handle_map_expl()
             _c4dbgp("stopping implicitly nested 1x map");
             if(has_any(SSCL))
             {
-                _append_key_val("~");
+                _append_key_val_null();
             }
             _stop_seqimap();
             _pop_level();
@@ -1230,7 +1245,7 @@ bool Parser::_handle_map_impl()
             if(has_all(CPLX|RSET))
             {
                 _c4dbgp("it's a complex key, so use null value '~'");
-                _append_key_val("~");
+                _append_key_val_null();
             }
             rem = m_state->line_contents.rem;
 
@@ -1265,7 +1280,7 @@ bool Parser::_handle_map_impl()
             _line_progressed(2);
             if(has_all(SSCL))
             {
-                _append_key_val("~");
+                _append_key_val_null();
             }
             return true;
         }
@@ -1600,7 +1615,7 @@ bool Parser::_handle_types()
     if(rem.begins_with("!!"))
     {
         _c4dbgp("begins with '!!'");
-        t = rem.left_of(rem.first_of(' '));
+        t = rem.left_of(rem.first_of(" ,"));
         RYML_ASSERT(t.len >= 2);
         //t = t.sub(2);
         if(t == "!!set")
@@ -1656,8 +1671,8 @@ bool Parser::_handle_types()
         if(rem == ':' || rem.begins_with(": "))
         {
             _c4dbgp("the last val was null, and this is a tag from a null key");
-            _append_key_val("~");
-            _store_scalar("~");
+            _append_key_val_null();
+            _store_scalar_null();
             // do not change the flag to key, it is ~
             RYML_ASSERT(rem.begin() > m_state->line_contents.rem.begin());
             size_t token_len = rem == ':' ? 1 : 2;
@@ -2588,8 +2603,8 @@ void Parser::_end_stream()
         }
         else if(m_tree->is_map(m_state->node_id))
         {
-            _c4dbgp("append key val...");
-            added = _append_key_val("~");
+            _c4dbgp("append null key val...");
+            added = _append_key_val_null();
             if(has_any(RSEQIMAP))
             {
                 _stop_seqimap();
@@ -2615,7 +2630,7 @@ void Parser::_end_stream()
     }
     else if(has_all(RSEQ|RVAL) && has_none(EXPL))
     {
-        added = _append_val("~");
+        added = _append_val_null();
     }
 
     if(added)
@@ -2851,12 +2866,17 @@ void Parser::_stop_seqimap()
 }
 
 //-----------------------------------------------------------------------------
-NodeData* Parser::_append_val(csubstr const& val)
+NodeData* Parser::_append_val(csubstr val)
 {
     RYML_ASSERT( ! has_all(SSCL));
     RYML_ASSERT(node(m_state) != nullptr);
     RYML_ASSERT(node(m_state)->is_seq());
     _c4dbgpf("append val: '%.*s' to parent id=%zd (level=%zd)", _c4prsp(val), m_state->node_id, m_state->level);
+    if(val == '~')
+    {
+        _c4dbgp("val was '~', so use null");
+        val = {};
+    }
     size_t nid = m_tree->append_child(m_state->node_id);
     m_tree->to_val(nid, val);
     _c4dbgpf("append val: id=%zd key='%.*s' val='%.*s'", nid, _c4prsp(m_tree->get(nid)->m_key.scalar), _c4prsp(m_tree->get(nid)->m_val.scalar));
@@ -2870,11 +2890,16 @@ NodeData* Parser::_append_val(csubstr const& val)
     return m_tree->get(nid);
 }
 
-NodeData* Parser::_append_key_val(csubstr const& val)
+NodeData* Parser::_append_key_val(csubstr val)
 {
     RYML_ASSERT(node(m_state)->is_map());
     csubstr key = _consume_scalar();
     _c4dbgpf("append keyval: '%.*s' '%.*s' to parent id=%zd (level=%zd)", _c4prsp(key), _c4prsp(val), m_state->node_id, m_state->level);
+    if(val == '~')
+    {
+        _c4dbgp("val was '~', so use null");
+        val = {};
+    }
     size_t nid = m_tree->append_child(m_state->node_id);
     m_tree->to_keyval(nid, key, val);
     _c4dbgpf("append keyval: id=%zd key='%.*s' val='%.*s'", nid, _c4prsp(m_tree->get(nid)->key()), _c4prsp(m_tree->get(nid)->val()));
@@ -2953,7 +2978,7 @@ bool Parser::_handle_indentation()
         {
             if(has_all(RMAP))
             {
-                _append_key_val("~");
+                _append_key_val_null();
                 addrem_flags(RKEY, RVAL);
             }
             else if(has_all(RSEQ))
@@ -2991,12 +3016,12 @@ bool Parser::_handle_indentation()
             if(has_all(RMAP))
             {
                 RYML_ASSERT(has_all(SSCL));
-                _append_key_val("~");
+                _append_key_val_null();
             }
             else if(has_all(RSEQ))
             {
                 RYML_ASSERT(has_none(SSCL));
-                _append_val("~");
+                _append_val_null();
             }
         }
         // search the stack frame to jump to based on its indentation

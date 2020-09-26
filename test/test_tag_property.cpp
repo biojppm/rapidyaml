@@ -137,8 +137,8 @@ N(STREAM, L{
     N(DOCVAL, TS("!!str", "a: b")),
     N(DOCMAP, L{N(TS("!!str", "a"), "b")}),
     N(DOCVAL, TS("!!str", "a b")),
-    N(DOCMAP, TL("!!set", L{N("a", "~"), N("b", "~")})),
-    N(DOCMAP, TL("!!set", L{N("a", "~"), N("b", "~")})),
+    N(DOCMAP, TL("!!set", L{N(KEYVAL, "a", /*"~"*/{}), N(KEYVAL, "b", /*"~"*/{})})),
+    N(DOCMAP, TL("!!set", L{N(KEYVAL, "a", /*"~"*/{}), N(KEYVAL, "b", /*"~"*/{})})),
 })
 ),
 
