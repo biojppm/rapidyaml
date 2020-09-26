@@ -576,11 +576,6 @@ bool Parser::_handle_seq_expl()
     else if(rem.begins_with(']'))
     {
         _c4dbgp("end the sequence");
-        if(has_all(RVAL))
-        {
-            _c4dbgp("there is a value pending - using null");
-            _append_val_null();
-        }
         _pop_level();
         _line_progressed(1);
         if(has_all(RSEQIMAP))
