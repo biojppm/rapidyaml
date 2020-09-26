@@ -17,6 +17,43 @@ namespace yml {
     "issue84.3"
 
 
+TEST(null_val, simple)
+{
+    auto tree = parse("{foo: , bar: '', baz: [,,,], bat: [ , , , ]}");
+
+    EXPECT_EQ(tree["foo"].val(), nullptr);
+    EXPECT_EQ(tree["bar"].val(), "");
+    EXPECT_EQ(tree["baz"].num_children(), 4);
+    EXPECT_EQ(tree["baz"][0].val(), nullptr);
+    EXPECT_EQ(tree["baz"][1].val(), nullptr);
+    EXPECT_EQ(tree["baz"][2].val(), nullptr);
+    EXPECT_EQ(tree["baz"][3].val(), nullptr);
+    EXPECT_EQ(tree["bat"].num_children(), 4);
+    EXPECT_EQ(tree["bat"][0].val(), nullptr);
+    EXPECT_EQ(tree["bat"][1].val(), nullptr);
+    EXPECT_EQ(tree["bat"][2].val(), nullptr);
+    EXPECT_EQ(tree["bat"][3].val(), nullptr);
+
+    tree = parse(R"(
+# these have no space after the dash
+-
+-
+-
+# these have ONE space after the dash
+- 
+- 
+- 
+)");
+    EXPECT_EQ(tree.rootref().num_children(), 6);
+    EXPECT_EQ(tree[0].val(), nullptr);
+    EXPECT_EQ(tree[1].val(), nullptr);
+    EXPECT_EQ(tree[2].val(), nullptr);
+    EXPECT_EQ(tree[3].val(), nullptr);
+    EXPECT_EQ(tree[4].val(), nullptr);
+    EXPECT_EQ(tree[5].val(), nullptr);
+}
+
+
 CASE_GROUP(NULL_VAL)
 {
     APPEND_CASES(

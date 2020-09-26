@@ -576,6 +576,11 @@ bool Parser::_handle_seq_expl()
     else if(rem.begins_with(']'))
     {
         _c4dbgp("end the sequence");
+        if(has_all(RVAL))
+        {
+            _c4dbgp("there is a value pending - using null");
+            _append_val_null();
+        }
         _pop_level();
         _line_progressed(1);
         if(has_all(RSEQIMAP))
@@ -645,6 +650,20 @@ bool Parser::_handle_seq_expl()
         }
         else if(_handle_val_anchors_and_refs())
         {
+            return true;
+        }
+        else if(rem.begins_with(", "))
+        {
+            _c4dbgp("found ',' -- the value was null");
+            _append_val_null();
+            _line_progressed(2);
+            return true;
+        }
+        else if(rem.begins_with(','))
+        {
+            _c4dbgp("found ',' -- the value was null");
+            _append_val_null();
+            _line_progressed(1);
             return true;
         }
         else
