@@ -23,12 +23,12 @@ TEST(null_val, simple)
 
     EXPECT_EQ(tree["foo"].val(), nullptr);
     EXPECT_EQ(tree["bar"].val(), "");
-    EXPECT_EQ(tree["baz"].num_children(), 4);
+    EXPECT_EQ(tree["baz"].num_children(), 4u);
     EXPECT_EQ(tree["baz"][0].val(), nullptr);
     EXPECT_EQ(tree["baz"][1].val(), nullptr);
     EXPECT_EQ(tree["baz"][2].val(), nullptr);
     EXPECT_EQ(tree["baz"][3].val(), nullptr);
-    EXPECT_EQ(tree["bat"].num_children(), 4);
+    EXPECT_EQ(tree["bat"].num_children(), 4u);
     EXPECT_EQ(tree["bat"][0].val(), nullptr);
     EXPECT_EQ(tree["bat"][1].val(), nullptr);
     EXPECT_EQ(tree["bat"][2].val(), nullptr);
@@ -44,7 +44,7 @@ TEST(null_val, simple)
 - 
 - 
 )");
-    EXPECT_EQ(tree.rootref().num_children(), 6);
+    EXPECT_EQ(tree.rootref().num_children(), 6u);
     EXPECT_EQ(tree[0].val(), nullptr);
     EXPECT_EQ(tree[1].val(), nullptr);
     EXPECT_EQ(tree[2].val(), nullptr);
