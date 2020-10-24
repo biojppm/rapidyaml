@@ -39,13 +39,14 @@ struct timed_section
 
 int main(int argc, const char *argv[])
 {
-    TS(TOTAL);
-
     if(argc != 2)
     {
         printf("usage: %s <path/to/file.yaml>\n", argv[0]);
         return 1;
     }
+
+    TS(TOTAL);
+
     csubstr file = to_csubstr(argv[1]);
     C4_CHECK_MSG(fs::path_exists(file.str), "cannot find file: %s (cwd=%s)", file.str, fs::cwd<std::string>().c_str());
 

@@ -516,6 +516,50 @@ TEST(serialize, std_vector__map_string_int)
     });
 }
 
+
+TEST(serialize, bool)
+{
+    Tree t = parse("{a: 0, b: false, c: 1, d: true}");
+    bool v, w;
+    t["a"] >> v;
+    EXPECT_EQ(v, false);
+    t["b"] >> v;
+    EXPECT_EQ(v, false);
+    t["c"] >> v;
+    EXPECT_EQ(v, true);
+    t["d"] >> v;
+    EXPECT_EQ(v, true);
+
+    t["e"] << true;
+    EXPECT_EQ(t["e"].val(), "1");
+    t["e"] >> w;
+    EXPECT_EQ(w, true);
+
+    t["e"] << false;
+    EXPECT_EQ(t["e"].val(), "0");
+    t["e"] >> w;
+    EXPECT_EQ(w, false);
+
+    t["e"] << fmt::boolalpha(true);
+    EXPECT_EQ(t["e"].val(), "true");
+    t["e"] >> w;
+    EXPECT_EQ(w, true);
+
+    t["e"] << fmt::boolalpha(false);
+    EXPECT_EQ(t["e"].val(), "false");
+    t["e"] >> w;
+    EXPECT_EQ(w, false);
+}
+
+TEST(serialize, std_string)
+{
+    auto t = parse("{foo: bar}");
+    std::string s;
+    EXPECT_NE(s, "bar");
+    t["foo"] >> s;
+    EXPECT_EQ(s, "bar");
+}
+
 } /*namespace yml*/
 } /*namespace c4*/
 
