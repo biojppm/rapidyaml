@@ -1,13 +1,11 @@
-cmake_minimum_required(VERSION 3.9)
-project(ryml)
-
+cmake_minimum_required(VERSION 3.12)
 include(./ext/c4core/cmake/c4Project.cmake)
-
-c4_declare_project(ryml
-    STANDALONE
-    DESC "Rapid YAML parsing and emitting"
-    AUTHOR "Joao Paulo Magalhaes <dev@jpmag.me>"
-    MAJOR 0 MINOR 1 RELEASE 0)
+project(ryml
+    DESCRIPTION "Rapid YAML parsing and emitting"
+    HOMEPAGE_URL "https://github.com/biojppm/rapidyaml"
+    LANGUAGES CXX)
+c4_project(VERSION 0.0.1 STANDALONE
+    AUTHOR "Joao Paulo Magalhaes <dev@jpmag.me>")
 
 
 #-------------------------------------------------------
@@ -69,6 +67,7 @@ endif()
 
 c4_install_target(ryml)
 c4_install_exports(DEPENDENCIES c4core)
+c4_pack_project()
 
 
 #-------------------------------------------------------
@@ -77,30 +76,22 @@ c4_install_exports(DEPENDENCIES c4core)
 # extern libraries, used only for testing/benchmarking
 if(RYML_BUILD_TESTS OR RYML_BUILD_BENCHMARKS)
     set(ed ${CMAKE_CURRENT_BINARY_DIR}/subprojects) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)
-    #
     # these are used both for testing and benchmarking
-    #
-    c4_require_subproject(c4fs
-        REMOTE
+    c4_require_subproject(c4fs REMOTE
         GIT_REPOSITORY https://github.com/biojppm/c4fs
         GIT_TAG master)
-    #
-    c4_override(BUILD_TESTING OFF)
     c4_require_subproject(libyaml REMOTE
         GIT_REPOSITORY https://github.com/yaml/libyaml
-        GIT_TAG master)
-    c4_set_folder_remote_project_targets(ext yaml)
-    #
-    c4_override(YAML_CPP_BUILD_TESTS OFF)
-    c4_override(YAML_CPP_BUILD_TOOLS OFF)
-    c4_override(YAML_CPP_BUILD_CONTRIB OFF)
-    c4_override(YAML_CPP_BUILD_INSTALL OFF)
-    c4_import_remote_proj(yaml-cpp ${ed}/yaml-cpp
+        GIT_TAG master
+      OVERRIDE BUILD_TESTING OFF
+      SET_FOLDER_TARGETS ext yaml)
+    c4_import_remote_proj(yaml-cpp ${ed}/yaml-cpp REMOTE
         GIT_REPOSITORY https://github.com/jbeder/yaml-cpp
         # the master branch regularly screws up on windows builds.
         # so use fixed pre-validated commit hashes
-        GIT_TAG 587b24e2eedea1afa21d79419008ca5f7bda3bf4)
-    c4_set_folder_remote_project_targets(ext/yaml-cpp yaml-cpp format)
+        GIT_TAG 587b24e2eedea1afa21d79419008ca5f7bda3bf4
+      OVERRIDE YAML_CPP_BUILD_TESTS OFF YAML_CPP_BUILD_TOOLS OFF YAML_CPP_BUILD_CONTRIB OFF YAML_CPP_BUILD_INSTALL OFF
+      SET_FOLDER_TARGETS ext yaml-cpp format)
     set(ryml_yaml_cpp_inc ${ed}/yaml-cpp/src/include)
 endif()
 

@@ -106,7 +106,10 @@ The first benchmarks results are extremely satisfying. On a i7-6800K CPU @
    try yet on Windows).
  * compared against the other existing YAML libraries for C/C++:
    * ryml is in general between 2 and 3 times faster than [libyaml](https://github.com/yaml/libyaml)
-   * ryml is in general between 20 and 70 times faster than [yaml-cpp](https://github.com/jbeder/yaml-cpp)
+   * ryml is in general between 20 and 70 times faster than
+     [yaml-cpp](https://github.com/jbeder/yaml-cpp), and in some cases as
+     much as 100x and [even
+     200x](https://github.com/biojppm/c4core/pull/16#issuecomment-700972614) faster.
 
 [Here's the benchmark](./bm/parse.cpp). Using different
 approaches within ryml (in-situ/read-only vs. with/without reuse), a YAML /
