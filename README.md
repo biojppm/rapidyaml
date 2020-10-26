@@ -1,8 +1,7 @@
 # Rapid YAML
 [![Gitter](https://badges.gitter.im/rapidyaml/community.svg)](https://gitter.im/rapidyaml/community)
 [![MIT Licensed](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/biojppm/rapidyaml/blob/master/LICENSE.txt)
-[![Build Status](https://travis-ci.org/biojppm/rapidyaml.svg?branch=master)](https://travis-ci.org/biojppm/rapidyaml)
-[![Build status](https://ci.appveyor.com/api/projects/status/github/biojppm/rapidyaml?branch=master&svg=true)](https://ci.appveyor.com/project/biojppm/rapidyaml)
+[![run_tests](https://github.com/biojppm/rapidyaml/workflows/run_tests/badge.svg)](https://github.com/biojppm/rapidyaml/actions?query=workflow%3Arun_tests)
 [![Coverage: coveralls](https://coveralls.io/repos/github/biojppm/rapidyaml/badge.svg)](https://coveralls.io/github/biojppm/rapidyaml)
 [![Coverage: codecov](https://codecov.io/gh/biojppm/rapidyaml/branch/master/graph/badge.svg)](https://codecov.io/gh/biojppm/rapidyaml)
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/biojppm/rapidyaml.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/biojppm/rapidyaml/alerts/)
@@ -22,7 +21,7 @@ through the data tree.
 
 ryml can use custom per-tree memory allocators, and is
 exception-agnostic. Errors are reported via a custom error handler callback.
-A default error handler implementation using `std::abort` is provided, but
+A default error handler implementation using `std::abort()` is provided, but
 you can opt out, or provide your exception-throwing callback.
 
 ryml has respect for your compilation times and therefore it is NOT
@@ -38,10 +37,9 @@ ryml is written in C++11, and is known to compile with:
 * clang++ 3.9 and later
 * g++ 5 and later
 
-ryml is extensively unit-tested in [Linux](https://travis-ci.org/biojppm/rapidyaml)
-and [Windows](https://ci.appveyor.com/project/biojppm/rapidyaml). The tests
-include analysing ryml with:
-  * [LGTM.com](https://lgtm.com/projects/g/biojppm/rapidyaml)
+ryml is [extensively unit-tested in Linux, Windows and
+MacOS](https://github.com/biojppm/rapidyaml/actions?query=workflow%3Arun_tests). The
+tests include analysing ryml with:
   * valgrind
   * clang-tidy
   * clang sanitizers:
@@ -49,6 +47,7 @@ include analysing ryml with:
     * address
     * undefined behavior
     * thread
+  * [LGTM.com](https://lgtm.com/projects/g/biojppm/rapidyaml)
 
 ryml is also partially available in Python, with more languages to follow (see
 below).
@@ -60,35 +59,33 @@ See also [the changelog](./CHANGELOG.md) and [the roadmap](./ROADMAP.md).
 
 ## Table of contents
 
-   * [Rapid YAML](#rapid-yaml)
-      * [Table of contents](#table-of-contents)
-      * [Is it rapid?](#is-it-rapid)
-         * [Comparison with yaml-cpp](#comparison-with-yaml-cpp)
-         * [Performance reading JSON](#performance-reading-json)
-         * [Performance emitting](#performance-emitting)
-      * [Installing and using](#installing-and-using)
-         * [Using ryml as cmake subproject](#using-ryml-as-cmake-subproject)
-         * [The traditional way: using an installed version](#the-traditional-way-using-an-installed-version)
-         * [cmake build settings for ryml](#cmake-build-settings-for-ryml)
-      * [Quick start](#quick-start)
-         * [Parsing](#parsing)
-         * [References: anchors and aliases](#references-anchors-and-aliases)
-         * [Traversing the tree](#traversing-the-tree)
-         * [Creating a tree](#creating-a-tree)
-         * [Low-level API](#low-level-api)
-         * [Custom types](#custom-types)
-            * [Leaf types](#leaf-types)
-            * [Container types](#container-types)
-         * [STL interoperation](#stl-interoperation)
-         * [Custom formatting for intrinsic types](#custom-formatting-for-intrinsic-types)
-         * [Custom allocators and error handlers](#custom-allocators-and-error-handlers)
-         * [Using ryml to parse JSON, and preprocessing functions](#using-ryml-to-parse-json-and-preprocessing-functions)
-      * [Other languages](#other-languages)
-         * [Python](#python)
-      * [YAML standard conformance](#yaml-standard-conformance)
-      * [Known limitations](#known-limitations)
-      * [Alternative libraries](#alternative-libraries)
-      * [License](#license)
+* [Is it rapid?](#is-it-rapid)
+   * [Comparison with yaml-cpp](#comparison-with-yaml-cpp)
+   * [Performance reading JSON](#performance-reading-json)
+   * [Performance emitting](#performance-emitting)
+* [Installing and using](#installing-and-using)
+   * [Using ryml as cmake subproject](#using-ryml-as-cmake-subproject)
+   * [The traditional way: using an installed version](#the-traditional-way-using-an-installed-version)
+   * [cmake build settings for ryml](#cmake-build-settings-for-ryml)
+* [Quick start](#quick-start)
+   * [Parsing](#parsing)
+   * [References: anchors and aliases](#references-anchors-and-aliases)
+   * [Traversing the tree](#traversing-the-tree)
+   * [Creating a tree](#creating-a-tree)
+   * [Low-level API](#low-level-api)
+   * [Custom types](#custom-types)
+      * [Leaf types](#leaf-types)
+      * [Container types](#container-types)
+   * [STL interoperation](#stl-interoperation)
+   * [Custom formatting for intrinsic types](#custom-formatting-for-intrinsic-types)
+   * [Custom allocators and error handlers](#custom-allocators-and-error-handlers)
+   * [Using ryml to parse JSON, and preprocessing functions](#using-ryml-to-parse-json-and-preprocessing-functions)
+* [Other languages](#other-languages)
+   * [Python](#python)
+* [YAML standard conformance](#yaml-standard-conformance)
+* [Known limitations](#known-limitations)
+* [Alternative libraries](#alternative-libraries)
+* [License](#license)
 
 ------
 
@@ -97,10 +94,7 @@ See also [the changelog](./CHANGELOG.md) and [the roadmap](./ROADMAP.md).
 You bet!
 
 (The results presented below are a bit scattered; and they need to be
-sistematized.) 
-
-The first benchmarks results are extremely satisfying. On a i7-6800K CPU @
-3.40GHz:
+sistematized.) On a i7-6800K CPU @3.40GHz:
  * ryml parses YAML at about ~150MB/s on Linux and ~100MB/s on Windows (vs2017). 
  * **ryml parses JSON at about ~450MB/s on Linux**, faster than sajson (didn't
    try yet on Windows).

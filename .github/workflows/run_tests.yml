@@ -1,0 +1,590 @@
+# this is a work in progress
+name: run_tests
+
+defaults:
+  run:
+    # Use a bash shell so we can use the same syntax for environment variable
+    # access regardless of the host operating system
+    shell: bash -e -x {0} 
+
+on:
+  - push
+  - workflow_dispatch
+
+env:
+  PROJ_PFX_TARGET: ryml-
+  PROJ_PFX_CMAKE: RYML_
+  NUM_JOBS_BUILD: # 4
+  CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
+
+
+# ubuntu-20.04:
+#   # https://github.com/actions/virtual-environments/blob/main/images/linux/Ubuntu2004-README.md
+#   gcc: 7.5.0, 8.4.0, 9.3.0, 10.2.0
+#   clang: 8.0.1, 9.0.1, 10.0.0
+# ubuntu-18.04:
+#   # https://github.com/actions/virtual-environments/blob/main/images/linux/Ubuntu1804-README.md
+#   gcc: 7.5.0, 8.4.0, 9.3.0, 10.1.0
+#   clang: 6.0.0, 8.0.0, 9.0.0
+# ubuntu-16.04:
+#   # https://github.com/actions/virtual-environments/blob/main/images/linux/Ubuntu1604-README.md
+#   gcc: 5.5.0, 7.5.0, 8.4.0, 9.3.0
+#   clang: 6.0.0, 8.0.0, 9.0.1
+# macos-11.0: macOS Big Sur 11.0
+#   # https://github.com/actions/virtual-environments/blob/main/images/macos/macos-11.0-Readme.md
+#   Xcode 12.1 11.7
+#   clang/LLVM 10.0.1
+#   gcc-8 gcc-9
+# macos-10.15: macOS Catalina 10.15
+#   # https://github.com/actions/virtual-environments/blob/main/images/macos/macos-10.15-Readme.md
+#   Xcode 12.1 11.7
+#   clang/LLVM 11.0.0
+#   gcc-8 gcc-9
+# windows-2019:
+#   # https://github.com/actions/virtual-environments/blob/main/images/win/Windows2019-Readme.md
+#   vs2019
+# windows-2016:
+#   # https://github.com/actions/virtual-environments/blob/main/images/win/Windows2019-Readme.md
+#   vs2017
+jobs:
+
+  #----------------------------------------------------------------------------
+  coverage:
+    continue-on-error: true
+    runs-on: ${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {std: 11, cxx: g++-7, bt: Coverage, os: ubuntu-18.04, bitlinks: shared64 static64}
+          - {std: 11, cxx: g++-7, bt: Coverage, os: ubuntu-18.04, bitlinks: shared32 static32}
+          - {std: 17, cxx: g++-7, bt: Coverage, os: ubuntu-18.04, bitlinks: shared64 static64}
+          - {std: 17, cxx: g++-7, bt: Coverage, os: ubuntu-18.04, bitlinks: shared32 static32}
+    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}", CODECOV_TOKEN: "${{secrets.CODECOV_TOKEN}}", COVERALLS_REPO_TOKEN: "${{secrets.COVERALLS_REPO_TOKEN}}"}
+    steps:
+      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+      - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
+      - {name: show info, run: source .github/setenv.sh && c4_show_info}
+      - name: shared64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared64
+      - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
+      - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
+      - name: shared64-submit
+        run: |
+          source .github/setenv.sh
+          c4_submit_coverage shared64 codecov
+          #c4_submit_coverage shared64 coveralls  # only accepts one submission per job
+      - name: static64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static64
+      - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
+      - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
+      - name: static64-submit
+        run: |
+          source .github/setenv.sh
+          c4_submit_coverage static64 codecov
+          c4_submit_coverage static64 coveralls
+      - name: static32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static32
+      - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
+      - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
+      - name: static32-submit
+        run: |
+          source .github/setenv.sh
+          c4_submit_coverage static32 codecov
+          #c4_submit_coverage static32 coveralls  # only accepts one submission per job
+      - name: shared32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared32
+      - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
+      - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
+      - name: shared32-submit
+        run: |
+          source .github/setenv.sh
+          c4_submit_coverage shared32 codecov
+          #c4_submit_coverage shared32 coveralls  # only accepts one submission per job
+      - name: static32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static32
+      - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
+      - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
+      - name: static32-submit
+        run: |
+          source .github/setenv.sh
+          c4_submit_coverage static32 codecov
+          #c4_submit_coverage static32 coveralls  # only accepts one submission per job
+
+  #----------------------------------------------------------------------------
+  windows:
+    continue-on-error: true
+    runs-on: ${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {std: 11, cxx: vs2017, bt: Debug  , os: windows-2016, bitlinks: shared64 static32}
+          - {std: 11, cxx: vs2017, bt: Release, os: windows-2016, bitlinks: shared64 static32}
+          - {std: 14, cxx: vs2017, bt: Debug  , os: windows-2016, bitlinks: shared64 static32}
+          - {std: 14, cxx: vs2017, bt: Release, os: windows-2016, bitlinks: shared64 static32}
+          - {std: 11, cxx: vs2019, bt: Debug  , os: windows-2019, bitlinks: shared64 static32}
+          - {std: 11, cxx: vs2019, bt: Release, os: windows-2019, bitlinks: shared64 static32}
+          - {std: 17, cxx: vs2019, bt: Debug  , os: windows-2019, bitlinks: shared64 static32}
+          - {std: 17, cxx: vs2019, bt: Release, os: windows-2019, bitlinks: shared64 static32}
+          - {std: 20, cxx: vs2019, bt: Debug  , os: windows-2019, bitlinks: shared64 static32}
+          - {std: 20, cxx: vs2019, bt: Release, os: windows-2019, bitlinks: shared64 static32}
+    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
+    steps:
+      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+      - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
+      - {name: show info, run: source .github/setenv.sh && c4_show_info}
+      - name: shared64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared64
+      - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
+      - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
+      - {name: shared64-pack, run: source .github/setenv.sh && c4_pack shared64}
+      - name: static64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static64
+      - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
+      - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
+      - {name: static64-pack, run: source .github/setenv.sh && c4_pack static64}
+      - name: shared32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared32
+      - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
+      - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
+      - {name: shared32-pack, run: source .github/setenv.sh && c4_pack shared32}
+      - name: static32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static32
+      - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
+      - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
+      - {name: static32-pack, run: source .github/setenv.sh && c4_pack static32}
+
+  #----------------------------------------------------------------------------
+  macosx:
+    continue-on-error: true
+    runs-on: ${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {std: 11, cxx: xcode, bt: Debug  , os: macos-11.0, bitlinks: shared64 static64}
+          - {std: 11, cxx: xcode, bt: Release, os: macos-11.0, bitlinks: shared64 static64}
+          - {std: 17, cxx: xcode, bt: Debug  , os: macos-11.0, bitlinks: shared64 static64}
+          - {std: 17, cxx: xcode, bt: Release, os: macos-11.0, bitlinks: shared64 static64}
+    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
+    steps:
+      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+      - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
+      - {name: show info, run: source .github/setenv.sh && c4_show_info}
+      - name: shared64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared64
+      - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
+      - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
+      - {name: shared64-pack, run: source .github/setenv.sh && c4_pack shared64}
+      - name: static64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static64
+      - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
+      - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
+      - {name: static64-pack, run: source .github/setenv.sh && c4_pack static64}
+      - name: shared32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared32
+      - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
+      - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
+      - {name: shared32-pack, run: source .github/setenv.sh && c4_pack shared32}
+      - name: static32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static32
+      - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
+      - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
+      - {name: static32-pack, run: source .github/setenv.sh && c4_pack static32}
+
+  #----------------------------------------------------------------------------
+  gcc_canary:
+    continue-on-error: true
+    runs-on: ${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {std: 11, cxx: g++-7      , bt: Debug  , os: ubuntu-18.04, bitlinks: shared64 static32}
+          - {std: 11, cxx: g++-7      , bt: Release, os: ubuntu-18.04, bitlinks: shared64 static32}
+          - {std: 20, cxx: g++-10     , bt: Debug  , os: ubuntu-18.04, bitlinks: shared64 static32}
+          - {std: 20, cxx: g++-10     , bt: Release, os: ubuntu-18.04, bitlinks: shared64 static32}
+          - {std: 11, cxx: g++-5      , bt: Debug  , os: ubuntu-16.04, bitlinks: shared64 static32}
+          - {std: 11, cxx: g++-5      , bt: Release, os: ubuntu-16.04, bitlinks: shared64 static32}
+    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
+    steps:
+      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+      - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
+      - {name: show info, run: source .github/setenv.sh && c4_show_info}
+      - name: shared64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared64
+      - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
+      - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
+      - {name: shared64-pack, run: source .github/setenv.sh && c4_pack shared64}
+      - name: static64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static64
+      - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
+      - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
+      - {name: static64-pack, run: source .github/setenv.sh && c4_pack static64}
+      - name: static32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static32
+      - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
+      - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
+      - {name: static32-pack, run: source .github/setenv.sh && c4_pack static32}
+      - name: shared32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared32
+      - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
+      - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
+      - {name: shared32-pack, run: source .github/setenv.sh && c4_pack shared32}
+
+  #----------------------------------------------------------------------------
+  clang_canary:
+    continue-on-error: true
+    runs-on: ${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {std: 17, cxx: clang++-10 , bt: Debug  , os: ubuntu-18.04, bitlinks: shared64 static32}
+          - {std: 17, cxx: clang++-10 , bt: Release, os: ubuntu-18.04, bitlinks: shared64 static32}
+          - {std: 11, cxx: clang++-6.0, bt: Debug  , os: ubuntu-16.04, bitlinks: shared64 static32}
+          - {std: 11, cxx: clang++-6.0, bt: Release, os: ubuntu-16.04, bitlinks: shared64 static32}
+    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
+    steps:
+      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+      - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
+      - {name: show info, run: source .github/setenv.sh && c4_show_info}
+      - name: shared64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared64
+      - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
+      - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
+      - {name: shared64-pack, run: source .github/setenv.sh && c4_pack shared64}
+      - name: static64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static64
+      - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
+      - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
+      - {name: static64-pack, run: source .github/setenv.sh && c4_pack static64}
+      - name: static32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static32
+      - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
+      - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
+      - {name: static32-pack, run: source .github/setenv.sh && c4_pack static32}
+      - name: shared32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared32
+      - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
+      - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
+      - {name: shared32-pack, run: source .github/setenv.sh && c4_pack shared32}
+
+  #----------------------------------------------------------------------------
+  clang_tidy:
+    continue-on-error: true
+    runs-on: ${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # clang tidy takes a long time, so don't do multiple bits/linktypes
+          - {std: 11, cxx: clang++-9, bt: Debug             , lint: clang-tidy, bitlinks: shared64 static64, os: ubuntu-18.04}
+          - {std: 11, cxx: clang++-9, bt: Debug             , lint: clang-tidy, bitlinks: shared32 static32, os: ubuntu-18.04}
+          - {std: 11, cxx: clang++-9, bt: ReleaseWithDebInfo, lint: clang-tidy, bitlinks: shared64 static64, os: ubuntu-18.04}
+          - {std: 11, cxx: clang++-9, bt: ReleaseWithDebInfo, lint: clang-tidy, bitlinks: shared32 static32, os: ubuntu-18.04}
+    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
+    steps:
+      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+      - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
+      - {name: show info, run: source .github/setenv.sh && c4_show_info}
+      - name: shared64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared64
+      - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
+      - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
+      - {name: shared64-pack, run: source .github/setenv.sh && c4_pack shared64}
+      - name: static64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static64
+      - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
+      - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
+      - {name: static64-pack, run: source .github/setenv.sh && c4_pack static64}
+      - name: static32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static32
+      - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
+      - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
+      - {name: static32-pack, run: source .github/setenv.sh && c4_pack static32}
+      - name: shared32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared32
+      - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
+      - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
+      - {name: shared32-pack, run: source .github/setenv.sh && c4_pack shared32}
+
+  #----------------------------------------------------------------------------
+  gcc_extended:
+    continue-on-error: true
+    runs-on: ${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          #                                     VALGRIND
+          - {std: 11, cxx: g++-10, bt: Debug  , vg: ON, os: ubuntu-18.04}
+          - {std: 11, cxx: g++-10, bt: Release, vg: ON, os: ubuntu-18.04}
+          - {std: 14, cxx: g++-10, bt: Debug  , vg: ON, os: ubuntu-18.04}
+          - {std: 14, cxx: g++-10, bt: Release, vg: ON, os: ubuntu-18.04}
+          - {std: 17, cxx: g++-10, bt: Debug  , vg: ON, os: ubuntu-18.04}
+          - {std: 17, cxx: g++-10, bt: Release, vg: ON, os: ubuntu-18.04}
+          - {std: 20, cxx: g++-10, bt: Debug  , vg: ON, os: ubuntu-18.04}
+          - {std: 20, cxx: g++-10, bt: Release, vg: ON, os: ubuntu-18.04}
+          #
+          - {std: 11, cxx: g++-9, bt: Debug  , os: ubuntu-18.04}
+          - {std: 11, cxx: g++-9, bt: Release, os: ubuntu-18.04}
+          - {std: 11, cxx: g++-8, bt: Debug  , os: ubuntu-18.04}
+          - {std: 11, cxx: g++-8, bt: Release, os: ubuntu-18.04}
+          - {std: 11, cxx: g++-7, bt: Debug  , os: ubuntu-18.04}
+          - {std: 11, cxx: g++-7, bt: Release, os: ubuntu-18.04}
+          - {std: 11, cxx: g++-6, bt: Debug  , os: ubuntu-18.04}
+          - {std: 11, cxx: g++-6, bt: Release, os: ubuntu-18.04}
+          - {std: 11, cxx: g++-5, bt: Debug  , os: ubuntu-18.04}
+          - {std: 11, cxx: g++-5, bt: Release, os: ubuntu-18.04}
+    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
+    steps:
+      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+      - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
+      - {name: show info, run: source .github/setenv.sh && c4_show_info}
+      - name: shared64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared64
+      - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
+      - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
+      - {name: shared64-pack, run: source .github/setenv.sh && c4_pack shared64}
+      - name: static64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static64
+      - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
+      - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
+      - {name: static64-pack, run: source .github/setenv.sh && c4_pack static64}
+      - name: static32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static32
+      - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
+      - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
+      - {name: static32-pack, run: source .github/setenv.sh && c4_pack static32}
+      - name: shared32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared32
+      - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
+      - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
+      - {name: shared32-pack, run: source .github/setenv.sh && c4_pack shared32}
+
+  #----------------------------------------------------------------------------
+  clang_extended:
+    continue-on-error: true
+    runs-on: ${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {std: 11, cxx: clang++-9  , bt: Debug  , vg: on, os: ubuntu-18.04}
+          - {std: 11, cxx: clang++-9  , bt: Release, vg: on, os: ubuntu-18.04}
+          - {std: 11, cxx: clang++-8  , bt: Debug  , vg: on, os: ubuntu-18.04}
+          - {std: 11, cxx: clang++-8  , bt: Release, vg: on, os: ubuntu-18.04}
+          - {std: 11, cxx: clang++-7  , bt: Debug  , vg: on, os: ubuntu-18.04}
+          - {std: 11, cxx: clang++-7  , bt: Release, vg: on, os: ubuntu-18.04}
+          - {std: 11, cxx: clang++-6.0, bt: Debug  , vg: on, os: ubuntu-18.04}
+          - {std: 11, cxx: clang++-6.0, bt: Release, vg: on, os: ubuntu-18.04}
+          - {std: 11, cxx: clang++-5.0, bt: Debug  , vg: on, os: ubuntu-18.04}
+          - {std: 11, cxx: clang++-5.0, bt: Release, vg: on, os: ubuntu-18.04}
+          - {std: 11, cxx: clang++-4.0, bt: Debug  , vg: on, os: ubuntu-18.04}
+          - {std: 11, cxx: clang++-4.0, bt: Release, vg: on, os: ubuntu-18.04}
+          - {std: 11, cxx: clang++-3.9, bt: Debug  , vg: on, os: ubuntu-18.04}
+          - {std: 11, cxx: clang++-3.9, bt: Release, vg: on, os: ubuntu-18.04}
+    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
+    steps:
+      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+      - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
+      - {name: show info, run: source .github/setenv.sh && c4_show_info}
+      - name: shared64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared64
+      - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
+      - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
+      - {name: shared64-pack, run: source .github/setenv.sh && c4_pack shared64}
+      - name: static64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static64
+      - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
+      - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
+      - {name: static64-pack, run: source .github/setenv.sh && c4_pack static64}
+      - name: static32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static32
+      - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
+      - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
+      - {name: static32-pack, run: source .github/setenv.sh && c4_pack static32}
+      - name: shared32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared32
+      - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
+      - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
+      - {name: shared32-pack, run: source .github/setenv.sh && c4_pack shared32}
+
+  #----------------------------------------------------------------------------
+  clang_sanitize:
+    continue-on-error: true
+    runs-on: ${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # these jobs take much longer, so run only one bitlink pair per job to profit from parallelism
+          - {std: 11, cxx: clang++-10, bt: Debug  , vg: ON, san: ALL, bitlinks: shared64, os: ubuntu-18.04}
+          - {std: 11, cxx: clang++-10, bt: Debug  , vg: ON, san: ALL, bitlinks: static64, os: ubuntu-18.04}
+          - {std: 11, cxx: clang++-10, bt: Debug  , vg: ON, san: ALL, bitlinks: shared32, os: ubuntu-18.04}
+          - {std: 11, cxx: clang++-10, bt: Debug  , vg: ON, san: ALL, bitlinks: static32, os: ubuntu-18.04}
+          - {std: 11, cxx: clang++-10, bt: Release, vg: ON, san: ALL, bitlinks: shared64, os: ubuntu-18.04}
+          - {std: 11, cxx: clang++-10, bt: Release, vg: ON, san: ALL, bitlinks: static64, os: ubuntu-18.04}
+          - {std: 11, cxx: clang++-10, bt: Release, vg: ON, san: ALL, bitlinks: shared32, os: ubuntu-18.04}
+          - {std: 11, cxx: clang++-10, bt: Release, vg: ON, san: ALL, bitlinks: static32, os: ubuntu-18.04}
+          - {std: 17, cxx: clang++-10, bt: Debug  , vg: ON, san: ALL, bitlinks: shared64, os: ubuntu-18.04}
+          - {std: 17, cxx: clang++-10, bt: Debug  , vg: ON, san: ALL, bitlinks: static64, os: ubuntu-18.04}
+          - {std: 17, cxx: clang++-10, bt: Debug  , vg: ON, san: ALL, bitlinks: shared32, os: ubuntu-18.04}
+          - {std: 17, cxx: clang++-10, bt: Debug  , vg: ON, san: ALL, bitlinks: static32, os: ubuntu-18.04}
+          - {std: 17, cxx: clang++-10, bt: Release, vg: ON, san: ALL, bitlinks: shared64, os: ubuntu-18.04}
+          - {std: 17, cxx: clang++-10, bt: Release, vg: ON, san: ALL, bitlinks: static64, os: ubuntu-18.04}
+          - {std: 17, cxx: clang++-10, bt: Release, vg: ON, san: ALL, bitlinks: shared32, os: ubuntu-18.04}
+          - {std: 17, cxx: clang++-10, bt: Release, vg: ON, san: ALL, bitlinks: static32, os: ubuntu-18.04}
+          - {std: 20, cxx: clang++-10, bt: Debug  , vg: ON, san: ALL, bitlinks: shared64, os: ubuntu-18.04}
+          - {std: 20, cxx: clang++-10, bt: Debug  , vg: ON, san: ALL, bitlinks: static64, os: ubuntu-18.04}
+          - {std: 20, cxx: clang++-10, bt: Debug  , vg: ON, san: ALL, bitlinks: shared32, os: ubuntu-18.04}
+          - {std: 20, cxx: clang++-10, bt: Debug  , vg: ON, san: ALL, bitlinks: static32, os: ubuntu-18.04}
+          - {std: 20, cxx: clang++-10, bt: Release, vg: ON, san: ALL, bitlinks: shared64, os: ubuntu-18.04}
+          - {std: 20, cxx: clang++-10, bt: Release, vg: ON, san: ALL, bitlinks: static64, os: ubuntu-18.04}
+          - {std: 20, cxx: clang++-10, bt: Release, vg: ON, san: ALL, bitlinks: shared32, os: ubuntu-18.04}
+          - {std: 20, cxx: clang++-10, bt: Release, vg: ON, san: ALL, bitlinks: static32, os: ubuntu-18.04}
+    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
+    steps:
+      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+      - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
+      - {name: show info, run: source .github/setenv.sh && c4_show_info}
+      - name: shared64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared64
+      - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
+      - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
+      - {name: shared64-pack, run: source .github/setenv.sh && c4_pack shared64}
+      - name: static64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static64
+      - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
+      - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
+      - {name: static64-pack, run: source .github/setenv.sh && c4_pack static64}
+      - name: static32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static32
+      - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
+      - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
+      - {name: static32-pack, run: source .github/setenv.sh && c4_pack static32}
+      - name: shared32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared32
+      - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
+      - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
+      - {name: shared32-pack, run: source .github/setenv.sh && c4_pack shared32}
+
+#  #----------------------------------------------------------------------------
+#  static_analysis:
+#    continue-on-error: true
+#    runs-on: ${{matrix.os}}
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        include:
+#          # these jobs take much longer, so run only one bitlink pair per job to profit from parallelism
+#          - {std: 11, cxx: clang++-10, bt: Debug  , bitlinks: shared64, os: ubuntu-18.04}
+#          - {std: 11, cxx: clang++-10, bt: Release, bitlinks: shared64, os: ubuntu-18.04}
+#          - {std: 14, cxx: clang++-10, bt: Debug  , bitlinks: shared64, os: ubuntu-18.04}
+#          - {std: 14, cxx: clang++-10, bt: Release, bitlinks: shared64, os: ubuntu-18.04}
+#          - {std: 17, cxx: clang++-10, bt: Debug  , bitlinks: shared64, os: ubuntu-18.04}
+#          - {std: 17, cxx: clang++-10, bt: Release, bitlinks: shared64, os: ubuntu-18.04}
+#          - {std: 20, cxx: clang++-10, bt: Debug  , bitlinks: shared64, os: ubuntu-18.04}
+#          - {std: 20, cxx: clang++-10, bt: Release, bitlinks: shared64, os: ubuntu-18.04}
+#    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
+#    steps:
+#      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+#      - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
+#      - {name: show info, run: source .github/setenv.sh && c4_show_info}
+#      - name: shared64-configure---------------------------------------------------
+#        run: source .github/setenv.sh && c4_cfg_test shared64
+#      - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
+#      - {name: clang-tidy, run: cmake "-DCMAKE_CXX_CLANG_TIDY=/usr/bin/clang-tidy-3.9;-checks=*" ../path/to/source}
+#      - {name: cppcheck, run: cmake "-DCMAKE_CXX_CPPCHECK=/usr/bin/cppcheck;--std=c++11" ../path/to/source}
+#      - {name: cpplint, run: cmake "-DCMAKE_CXX_CPPLINT=/usr/local/bin/cpplint;--linelength=179" ..}
+#      - {name: include-what-you-use, run: cmake "-DCMAKE_CXX_INCLUDE_WHAT_YOU_USE=/usr/bin/iwyu;--transitive_includes_only" ..}
+#      - {name: link-what-you-use, run: cmake -DCMAKE_LINK_WHAT_YOU_USE=TRUE ..}
+
+#  test:
+#    needs: canary
+#    #if: "!contains(github.event.head_commit.message, 'skip ci')"
+#    runs-on: ${{matrix.os}}
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        include:
+#          - {os: macos-latest, env: {}}
+#          - {os: ubuntu-latest, env: {}}
+#
+#          # windows: vs2019
+#          - {bt: Release, std: 11, os: windows-2019}
+#          # windows: vs2017
+#          - {os: windows-2016, env: {bt: Debug  , std: 11}}
+#          - {os: windows-2016, env: {bt: Debug  , std: 14}}
+#          - {os: windows-2016, env: {bt: Release, std: 11}}
+#          - {os: windows-2016, env: {bt: Release, std: 14}}
+#
+#    steps:
+#      # Get latest CMake and ninja
+#      # https://github.com/marketplace/actions/get-cmake
+#      - name: Get cmake+ninja
+#        uses: lukka/get-cmake@latest
+#
+#      - name: checkout
+#        uses: actions/checkout@v2
+#        with: {submodules: recursive}
+#
+#      - name: show versions
+#        # Use a bash shell so we can use the same syntax for environment variable
+#        # access regardless of the host operating system
+#        shell: bash
+#        run: |
+#          which cmake
+#          cmake --version
+#          echo "SRC_DIR=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+#          echo "TEST_DIR=${{runner.workspace}}/build/test" >> $GITHUB_ENV
+#          echo "PACK_DIR=${{runner.workspace}}/build/pack" >> $GITHUB_ENV
+#          cmake -E echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+#          cmake -E echo "runner.workspace=${{runner.workspace}}"
+#          cmake -E echo "SRC_DIR=$SRC_DIR"
+#          cmake -E echo "TEST_DIR=$TEST_DIR"
+#          cmake -E echo "PACK_DIR=$PACK_DIR"
+#
+#      - name: create build dirs
+#        shell: bash
+#        run: |
+#          cmake -E echo "SRC_DIR=$SRC_DIR"
+#          cmake -E echo "TEST_DIR=$TEST_DIR"
+#          cmake -E echo "PACK_DIR=$PACK_DIR"
+#          cmake -E make_directory $PACK_DIR
+#          cmake -E make_directory $TEST_DIR
+#
+#
+#      # run the tests first
+#      - name: configure_test
+#        shell: bash
+#        run: cmake -S $SRC_DIR -B $TEST_DIR -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DC4CORE_BUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX=$TEST_DIR/../install_test
+#
+#      - name: build_test
+#        shell: bash
+#        run: cmake --build $TEST_DIR --config $BUILD_TYPE --parallel --target test-build
+#
+#      - name: run_test
+#        shell: bash
+#        run: cmake --build $TEST_DIR --config $BUILD_TYPE --target test
+#
+#
+#      # if the tests succeed, build and create the pack.
+#      # We do not pack the test directory because it brings
+#      # third party projects (eg gtest) into cmake.
+#      - name: configure_pack
+#        shell: bash
+#        run: cmake -S $SRC_DIR -B $PACK_DIR -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+#
+#      - name: build_pack
+#        shell: bash
+#        run: cmake --build $PACK_DIR --config $BUILD_TYPE --parallel
+#
+#      - name: create_pack
+#        shell: bash
+#        run: |
+#          cd $PACK_DIR
+#          cpack -C $BUILD_TYPE --verbose
+#
