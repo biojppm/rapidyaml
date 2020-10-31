@@ -1,11 +1,11 @@
 # Rapid YAML
-[![Gitter](https://badges.gitter.im/rapidyaml/community.svg)](https://gitter.im/rapidyaml/community)
 [![MIT Licensed](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/biojppm/rapidyaml/blob/master/LICENSE.txt)
-[![run_tests](https://github.com/biojppm/rapidyaml/workflows/run_tests/badge.svg)](https://github.com/biojppm/rapidyaml/actions?query=workflow%3Arun_tests)
-[![Coverage: coveralls](https://coveralls.io/repos/github/biojppm/rapidyaml/badge.svg)](https://coveralls.io/github/biojppm/rapidyaml)
-[![Coverage: codecov](https://codecov.io/gh/biojppm/rapidyaml/branch/master/graph/badge.svg)](https://codecov.io/gh/biojppm/rapidyaml)
+[![run_tests](https://github.com/biojppm/rapidyaml/workflows/run_tests/badge.svg?branch=master)](https://github.com/biojppm/rapidyaml/actions?query=workflow%3Arun_tests)
+[![Coverage: coveralls](https://coveralls.io/repos/github/biojppm/rapidyaml/badge.svg?branch=master)](https://coveralls.io/github/biojppm/rapidyaml)
+[![Coverage: codecov](https://codecov.io/gh/biojppm/rapidyaml/branch/master/graph/badge.svg?branch=master)](https://codecov.io/gh/biojppm/rapidyaml)
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/biojppm/rapidyaml.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/biojppm/rapidyaml/alerts/)
 [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/biojppm/rapidyaml.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/biojppm/rapidyaml/context:cpp)
+[![Gitter](https://badges.gitter.im/rapidyaml/community.svg)](https://gitter.im/rapidyaml/community)
 
 
 Or ryml, for short. ryml is a library to parse and emit YAML, and do it fast.
@@ -105,7 +105,7 @@ sistematized.) On a i7-6800K CPU @3.40GHz:
      much as 100x and [even
      200x](https://github.com/biojppm/c4core/pull/16#issuecomment-700972614) faster.
 
-[Here's the benchmark](./bm/parse.cpp). Using different
+[Here's the benchmark](./bm/bm_parse.cpp). Using different
 approaches within ryml (in-situ/read-only vs. with/without reuse), a YAML /
 JSON buffer is repeatedly parsed, and compared against other libraries.
 
@@ -1130,7 +1130,7 @@ following YAML core features are well covered in the unit tests:
 * anchors and references
 * UTF8 is expected to mostly work
   
-Of course, there are *many* dark corners in YAML, and there certainly can
+Of course, there are many dark corners in YAML, and there certainly can
 appear cases which ryml fails to parse. Your [bug reports or pull
 requests!](https://github.com/biojppm/rapidyaml/issues) are very welcome.
 

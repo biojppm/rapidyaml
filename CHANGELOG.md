@@ -4,6 +4,26 @@ Currently there are no ryml releases. However, the master branch is always
 stable; it is validated by requiring all tests to succeed before merging to it.
 So for now, only major changes to master are listed.
 
+* 2020/October
+  * [MR#88](https://github.com/biojppm/rapidyaml/pull/88): [fix MacOS
+    compilation and
+    installs](https://github.com/biojppm/rapidyaml/issues/75). This is a fix
+     from [c4core](https://github.com/biojppm/cmake/issues/1).
+  * [MR#88](https://github.com/biojppm/rapidyaml/pull/88): [fix boolean
+     handling](https://github.com/biojppm/rapidyaml/issues/74). This is a fix
+     from [c4core](https://github.com/biojppm/c4core/pull/18/).  `true` and
+     `false` are now parsed correctly into `bool` variables:
+    ```c++
+    auto tree = parse("{foo: true, bar: false}");
+    ```
+     Emitting `bool`
+     variables still defaults to `0`/`1`, like the default behaviour in the
+     STL. To explicitly request `true`/`false` use `c4::fmt::boolalpha()`:
+    ```c++
+    node << var;                     // "1"    or "0"
+    node << c4::fmt::boolalpha(var); // "true" or "false"
+    ```
+
 * 2020/September
   * [***Breaking change***] [MR#85](https://github.com/biojppm/rapidyaml/pull/85)
     null values in YAML are now parsed to null

@@ -1,11 +1,13 @@
-# this is a work in progress
-name: run_tests
+name: ci
 
 defaults:
   run:
     # Use a bash shell so we can use the same syntax for environment variable
     # access regardless of the host operating system
-    shell: bash -e -x {0} 
+    shell: bash -e -x {0}
+
+if: "!contains(github.event.head_commit.message, 'skip ci')"
+# if: github.ref == 'refs/heads/master'
 
 on:
   - push
@@ -49,7 +51,7 @@ env:
 jobs:
 
   #----------------------------------------------------------------------------
-  coverage:
+  test_coverage:
     continue-on-error: true
     runs-on: ${{matrix.os}}
     strategy:
@@ -112,7 +114,7 @@ jobs:
           #c4_submit_coverage static32 coveralls  # only accepts one submission per job
 
   #----------------------------------------------------------------------------
-  windows:
+  test_windows:
     continue-on-error: true
     runs-on: ${{matrix.os}}
     strategy:
@@ -156,7 +158,7 @@ jobs:
       - {name: static32-pack, run: source .github/setenv.sh && c4_pack static32}
 
   #----------------------------------------------------------------------------
-  macosx:
+  test_macosx:
     continue-on-error: true
     runs-on: ${{matrix.os}}
     strategy:
@@ -194,7 +196,7 @@ jobs:
       - {name: static32-pack, run: source .github/setenv.sh && c4_pack static32}
 
   #----------------------------------------------------------------------------
-  gcc_canary:
+  test_gcc_canary:
     continue-on-error: true
     runs-on: ${{matrix.os}}
     strategy:
@@ -234,7 +236,7 @@ jobs:
       - {name: shared32-pack, run: source .github/setenv.sh && c4_pack shared32}
 
   #----------------------------------------------------------------------------
-  clang_canary:
+  test_clang_canary:
     continue-on-error: true
     runs-on: ${{matrix.os}}
     strategy:
@@ -272,7 +274,7 @@ jobs:
       - {name: shared32-pack, run: source .github/setenv.sh && c4_pack shared32}
 
   #----------------------------------------------------------------------------
-  clang_tidy:
+  test_clang_tidy:
     continue-on-error: true
     runs-on: ${{matrix.os}}
     strategy:
@@ -311,7 +313,7 @@ jobs:
       - {name: shared32-pack, run: source .github/setenv.sh && c4_pack shared32}
 
   #----------------------------------------------------------------------------
-  gcc_extended:
+  test_gcc_extended:
     continue-on-error: true
     runs-on: ${{matrix.os}}
     strategy:
@@ -365,7 +367,7 @@ jobs:
       - {name: shared32-pack, run: source .github/setenv.sh && c4_pack shared32}
 
   #----------------------------------------------------------------------------
-  clang_extended:
+  test_clang_extended:
     continue-on-error: true
     runs-on: ${{matrix.os}}
     strategy:
@@ -413,7 +415,7 @@ jobs:
       - {name: shared32-pack, run: source .github/setenv.sh && c4_pack shared32}
 
   #----------------------------------------------------------------------------
-  clang_sanitize:
+  test_clang_sanitize:
     continue-on-error: true
     runs-on: ${{matrix.os}}
     strategy:
@@ -472,6 +474,7 @@ jobs:
       - {name: shared32-pack, run: source .github/setenv.sh && c4_pack shared32}
 
 #  #----------------------------------------------------------------------------
+#  # https://blog.kitware.com/static-checks-with-cmake-cdash-iwyu-clang-tidy-lwyu-cpplint-and-cppcheck/
 #  static_analysis:
 #    continue-on-error: true
 #    runs-on: ${{matrix.os}}
@@ -502,89 +505,242 @@ jobs:
 #      - {name: include-what-you-use, run: cmake "-DCMAKE_CXX_INCLUDE_WHAT_YOU_USE=/usr/bin/iwyu;--transitive_includes_only" ..}
 #      - {name: link-what-you-use, run: cmake -DCMAKE_LINK_WHAT_YOU_USE=TRUE ..}
 
-#  test:
-#    needs: canary
-#    #if: "!contains(github.event.head_commit.message, 'skip ci')"
-#    runs-on: ${{matrix.os}}
+  #----------------------------------------------------------------------------
+  test_api:
+    continue-on-error: true
+    runs-on: ${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {bt: Release, os: ubuntu-18.04}
+          - {bt: Release, os: windows-2019}
+    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}",
+          CMAKE_FLAGS: "-DRYML_DEV=OFF -DRYML_BUILD_API=ON -DRYML_API_TESTS=ON -DRYML_API_BENCHMARKS=OFF"}
+    steps:
+      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+      - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
+      - {name: show info, run: source .github/setenv.sh && c4_show_info && which swig }
+      - name: api-shared64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared64
+      - {name: api-shared64-python-build, run: source .github/setenv.sh && c4_build_target shared64 ryml-api-python3}
+      - {name: api-shared64-python-test, run: source .github/setenv.sh && c4_build_target shared64 ryml-api-test-python3}
+
+
+#--------------------------------------------------------------------------------------
+# https://cristianadam.eu/20191222/using-github-actions-with-c-plus-plus-and-cmake/
+#name: CMake Build Matrix
+#on: [push]
+#jobs:
+#
+#  build:
+#    name: ${{ matrix.config.name }}
+#    runs-on: ${{ matrix.config.os }}
 #    strategy:
 #      fail-fast: false
 #      matrix:
-#        include:
-#          - {os: macos-latest, env: {}}
-#          - {os: ubuntu-latest, env: {}}
-#
-#          # windows: vs2019
-#          - {bt: Release, std: 11, os: windows-2019}
-#          # windows: vs2017
-#          - {os: windows-2016, env: {bt: Debug  , std: 11}}
-#          - {os: windows-2016, env: {bt: Debug  , std: 14}}
-#          - {os: windows-2016, env: {bt: Release, std: 11}}
-#          - {os: windows-2016, env: {bt: Release, std: 14}}
-#
+#        config:
+#        - {
+#            name: "Windows Latest MSVC", artifact: "Windows-MSVC.tar.xz",
+#            os: windows-latest,
+#            build_type: "Release", cc: "cl", cxx: "cl",
+#            environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
+#          }
+#        - {
+#            name: "Windows Latest MinGW", artifact: "Windows-MinGW.tar.xz",
+#            os: windows-latest,
+#            build_type: "Release", cc: "gcc", cxx: "g++"
+#          }
+#        - {
+#            name: "Ubuntu Latest GCC", artifact: "Linux.tar.xz",
+#            os: ubuntu-latest,
+#            build_type: "Release", cc: "gcc", cxx: "g++"
+#          }
+#        - {
+#            name: "macOS Latest Clang", artifact: "macOS.tar.xz",
+#            os: macos-latest,
+#            build_type: "Release", cc: "clang", cxx: "clang++"
+#          }
 #    steps:
-#      # Get latest CMake and ninja
-#      # https://github.com/marketplace/actions/get-cmake
-#      - name: Get cmake+ninja
-#        uses: lukka/get-cmake@latest
+#    - uses: actions/checkout@v1
+#    - name: Download Ninja and CMake
+#      id: cmake_and_ninja
+#      shell: cmake -P {0}
+#      run: |
+#        set(ninja_version "1.9.0")
+#        set(cmake_version "3.16.2")
+#        message(STATUS "Using host CMake version: ${CMAKE_VERSION}")
+#        if ("${{ runner.os }}" STREQUAL "Windows")
+#          set(ninja_suffix "win.zip")
+#          set(cmake_suffix "win64-x64.zip")
+#          set(cmake_dir "cmake-${cmake_version}-win64-x64/bin")
+#        elseif ("${{ runner.os }}" STREQUAL "Linux")
+#          set(ninja_suffix "linux.zip")
+#          set(cmake_suffix "Linux-x86_64.tar.gz")
+#          set(cmake_dir "cmake-${cmake_version}-Linux-x86_64/bin")
+#        elseif ("${{ runner.os }}" STREQUAL "macOS")
+#          set(ninja_suffix "mac.zip")
+#          set(cmake_suffix "Darwin-x86_64.tar.gz")
+#          set(cmake_dir "cmake-${cmake_version}-Darwin-x86_64/CMake.app/Contents/bin")
+#        endif()
+#        set(ninja_url "https://github.com/ninja-build/ninja/releases/download/v${ninja_version}/ninja-${ninja_suffix}")
+#        file(DOWNLOAD "${ninja_url}" ./ninja.zip SHOW_PROGRESS)
+#        execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf ./ninja.zip)
+#        set(cmake_url "https://github.com/Kitware/CMake/releases/download/v${cmake_version}/cmake-${cmake_version}-${cmake_suffix}")
+#        file(DOWNLOAD "${cmake_url}" ./cmake.zip SHOW_PROGRESS)
+#        execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf ./cmake.zip)
+#        # Save the path for other steps
+#        file(TO_CMAKE_PATH "$ENV{GITHUB_WORKSPACE}/${cmake_dir}" cmake_dir)
+#        message("::set-output name=cmake_dir::${cmake_dir}")
+#        if (NOT "${{ runner.os }}" STREQUAL "Windows")
+#          execute_process(
+#            COMMAND chmod +x ninja
+#            COMMAND chmod +x ${cmake_dir}/cmake
+#          )
+#        endif()
+#    - name: Configure
+#      shell: cmake -P {0}
+#      run: |
+#        set(ENV{CC} ${{ matrix.config.cc }})
+#        set(ENV{CXX} ${{ matrix.config.cxx }})
+#        if ("${{ runner.os }}" STREQUAL "Windows" AND NOT "x${{ matrix.config.environment_script }}" STREQUAL "x")
+#          execute_process(
+#            COMMAND "${{ matrix.config.environment_script }}" && set
+#            OUTPUT_FILE environment_script_output.txt
+#          )
+#          file(STRINGS environment_script_output.txt output_lines)
+#          foreach(line IN LISTS output_lines)
+#            if (line MATCHES "^([a-zA-Z0-9_-]+)=(.*)$")
+#              set(ENV{${CMAKE_MATCH_1}} "${CMAKE_MATCH_2}")
+#            endif()
+#          endforeach()
+#        endif()
+#        file(TO_CMAKE_PATH "$ENV{GITHUB_WORKSPACE}/ninja" ninja_program)
+#        execute_process(
+#          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake
+#            -S .
+#            -B build
+#            -D CMAKE_BUILD_TYPE=${{ matrix.config.build_type }}
+#            -G Ninja
+#            -D CMAKE_MAKE_PROGRAM=${ninja_program}
+#          RESULT_VARIABLE result
+#        )
+#        if (NOT result EQUAL 0)
+#          message(FATAL_ERROR "Bad exit status")
+#        endif()
+#    - name: Build
+#      shell: cmake -P {0}
+#      run: |
+#        set(ENV{NINJA_STATUS} "[%f/%t %o/sec] ")
+#        if ("${{ runner.os }}" STREQUAL "Windows" AND NOT "x${{ matrix.config.environment_script }}" STREQUAL "x")
+#          file(STRINGS environment_script_output.txt output_lines)
+#          foreach(line IN LISTS output_lines)
+#            if (line MATCHES "^([a-zA-Z0-9_-]+)=(.*)$")
+#              set(ENV{${CMAKE_MATCH_1}} "${CMAKE_MATCH_2}")
+#            endif()
+#          endforeach()
+#        endif()
+#        execute_process(
+#          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build build
+#          RESULT_VARIABLE result
+#        )
+#        if (NOT result EQUAL 0)
+#          message(FATAL_ERROR "Bad exit status")
+#        endif()
+#    - name: Run tests
+#      shell: cmake -P {0}
+#      run: |
+#        include(ProcessorCount)
+#        ProcessorCount(N)
+#        execute_process(
+#          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/ctest -j ${N}
+#          WORKING_DIRECTORY build
+#          RESULT_VARIABLE result
+#        )
+#        if (NOT result EQUAL 0)
+#          message(FATAL_ERROR "Running tests failed!")
+#        endif()
+#    - name: Install Strip
+#      run: ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --install build --prefix instdir --strip
+#    - name: Pack
+#      working-directory: instdir
+#      run: ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake -E tar cJfv ../${{ matrix.config.artifact }} .
+#    - name: Upload
+#      uses: actions/upload-artifact@v1
+#      with:
+#        path: ./${{ matrix.config.artifact }}
+#        name: ${{ matrix.config.artifact }}
 #
-#      - name: checkout
-#        uses: actions/checkout@v2
-#        with: {submodules: recursive}
+#  release:
+#    if: contains(github.ref, 'tags/v')
+#    runs-on: ubuntu-latest
+#    needs: build
+#    steps:
+#    - name: Create Release
+#      id: create_release
+#      uses: actions/create-release@v1.0.0
+#      env:
+#        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#      with:
+#        tag_name: ${{ github.ref }}
+#        release_name: Release ${{ github.ref }}
+#        draft: false
+#        prerelease: false
+#    - name: Store Release url
+#      run: |
+#        echo "${{ steps.create_release.outputs.upload_url }}" > ./upload_url
+#    - uses: actions/upload-artifact@v1
+#      with:
+#        path: ./upload_url
+#        name: upload_url
 #
-#      - name: show versions
-#        # Use a bash shell so we can use the same syntax for environment variable
-#        # access regardless of the host operating system
-#        shell: bash
-#        run: |
-#          which cmake
-#          cmake --version
-#          echo "SRC_DIR=$GITHUB_WORKSPACE" >> $GITHUB_ENV
-#          echo "TEST_DIR=${{runner.workspace}}/build/test" >> $GITHUB_ENV
-#          echo "PACK_DIR=${{runner.workspace}}/build/pack" >> $GITHUB_ENV
-#          cmake -E echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
-#          cmake -E echo "runner.workspace=${{runner.workspace}}"
-#          cmake -E echo "SRC_DIR=$SRC_DIR"
-#          cmake -E echo "TEST_DIR=$TEST_DIR"
-#          cmake -E echo "PACK_DIR=$PACK_DIR"
-#
-#      - name: create build dirs
-#        shell: bash
-#        run: |
-#          cmake -E echo "SRC_DIR=$SRC_DIR"
-#          cmake -E echo "TEST_DIR=$TEST_DIR"
-#          cmake -E echo "PACK_DIR=$PACK_DIR"
-#          cmake -E make_directory $PACK_DIR
-#          cmake -E make_directory $TEST_DIR
-#
-#
-#      # run the tests first
-#      - name: configure_test
-#        shell: bash
-#        run: cmake -S $SRC_DIR -B $TEST_DIR -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DC4CORE_BUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX=$TEST_DIR/../install_test
-#
-#      - name: build_test
-#        shell: bash
-#        run: cmake --build $TEST_DIR --config $BUILD_TYPE --parallel --target test-build
-#
-#      - name: run_test
-#        shell: bash
-#        run: cmake --build $TEST_DIR --config $BUILD_TYPE --target test
-#
-#
-#      # if the tests succeed, build and create the pack.
-#      # We do not pack the test directory because it brings
-#      # third party projects (eg gtest) into cmake.
-#      - name: configure_pack
-#        shell: bash
-#        run: cmake -S $SRC_DIR -B $PACK_DIR -DCMAKE_BUILD_TYPE=$BUILD_TYPE
-#
-#      - name: build_pack
-#        shell: bash
-#        run: cmake --build $PACK_DIR --config $BUILD_TYPE --parallel
-#
-#      - name: create_pack
-#        shell: bash
-#        run: |
-#          cd $PACK_DIR
-#          cpack -C $BUILD_TYPE --verbose
-#
+#  publish:
+#    if: contains(github.ref, 'tags/v')
+#    name: ${{ matrix.config.name }}
+#    runs-on: ${{ matrix.config.os }}
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        config:
+#        - {
+#            name: "Windows Latest MSVC", artifact: "Windows-MSVC.tar.xz",
+#            os: ubuntu-latest
+#          }
+#        - {
+#            name: "Windows Latest MinGW", artifact: "Windows-MinGW.tar.xz",
+#            os: ubuntu-latest
+#          }
+#        - {
+#            name: "Ubuntu Latest GCC", artifact: "Linux.tar.xz",
+#            os: ubuntu-latest
+#          }
+#        - {
+#            name: "macOS Latest Clang", artifact: "macOS.tar.xz",
+#            os: ubuntu-latest
+#          }
+#    needs: release
+#    steps:
+#    - name: Download artifact
+#      uses: actions/download-artifact@v1
+#      with:
+#        name: ${{ matrix.config.artifact }}
+#        path: ./
+#    - name: Download URL
+#      uses: actions/download-artifact@v1
+#      with:
+#        name: upload_url
+#        path: ./
+#    - id: set_upload_url
+#      run: |
+#        upload_url=`cat ./upload_url`
+#        echo ::set-output name=upload_url::$upload_url
+#    - name: Upload to Release
+#      id: upload_to_release
+#      uses: actions/upload-release-asset@v1.0.1
+#      env:
+#        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#      with:
+#        upload_url: ${{ steps.set_upload_url.outputs.upload_url }}
+#        asset_path: ./${{ matrix.config.artifact }}
+#        asset_name: ${{ matrix.config.artifact }}
+#        asset_content_type: application/x-gtar

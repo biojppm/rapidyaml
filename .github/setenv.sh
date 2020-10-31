@@ -8,6 +8,7 @@ PROJ_DIR=$(pwd)
 function c4_show_info()
 {
     set +x
+    env | sort
     echo "PROJ_DIR=$PROJ_DIR"
     echo "PROJ_PFX_TARGET=$PROJ_PFX_TARGET"
     echo "PROJ_PFX_CMAKE=$PROJ_PFX_CMAKE"
@@ -83,25 +84,37 @@ function _c4skipbitlink()
 
 function c4_build_test()
 {
+    c4_build_target $* test-build
+}
+
+function c4_run_test()
+{
+    c4_run_target $* test
+}
+
+function c4_build_target()  # runs in parallel
+{
     if _c4skipbitlink "$1" ; then return 0 ; fi
     bits=$(_c4bits $1)
     linktype=$(_c4linktype $1)
+    target=$2
     build_dir=`pwd`/build/$bits-$linktype   # see c4_cfg_test()
     export CTEST_OUTPUT_ON_FAILURE=1
     # watchout: the `--parallel` flag to `cmake --build` is broken:
     # https://discourse.cmake.org/t/parallel-does-not-really-enable-parallel-compiles-with-msbuild/964/10
     # https://gitlab.kitware.com/cmake/cmake/-/issues/20564
-    cmake --build $build_dir --target test-build -- $(_c4_parallel_build_flags)
+    cmake --build $build_dir --config $BT --target $target -- $(_c4_parallel_build_flags)
 }
 
-function c4_run_test()
+function c4_run_target()  # does not run in parallel
 {
     if _c4skipbitlink "$1" ; then return 0 ; fi
     bits=$(_c4bits $1)
     linktype=$(_c4linktype $1)
+    target=$2
     build_dir=`pwd`/build/$bits-$linktype   # see c4_cfg_test()
     export CTEST_OUTPUT_ON_FAILURE=1
-    cmake --build $build_dir --target test
+    cmake --build $build_dir --config $BT --target $target
 }
 
 function c4_pack()
@@ -110,7 +123,7 @@ function c4_pack()
     bits=$(_c4bits $1)
     linktype=$(_c4linktype $1)
     build_dir=`pwd`/build/$bits-$linktype   # see c4_cfg_test()
-    cmake --build $build_dir --target package
+    cmake --build $build_dir --config $BT --target package
 }
 
 function c4_submit_coverage()
@@ -126,9 +139,10 @@ function c4_submit_coverage()
     build_dir=`pwd`/build/$bits-$linktype   # see c4_cfg_test()
     if [ "$CXX_" == "xcode" ] && [ "$bits" == "32" ] ; then return 0 ; fi
     echo "Submitting coverage data: $build_dir --> $coverage_service"
-    cmake --build $build_dir --target ${PROJ_PFX_TARGET}coverage-submit-$coverage_service
+    cmake --build $build_dir --config $BT --target ${PROJ_PFX_TARGET}coverage-submit-$coverage_service
 }
 
+# WIP
 function c4_run_static_analysis()
 {
     if _c4skipbitlink "$1" ; then return 0 ; fi
@@ -164,9 +178,6 @@ function c4_cfg_test()
     fi
     #
     _addprojflags DEV=ON
-    if [ ! -z "$CMAKE_FLAGS" ] ; then
-        _addcmkflags $CMAKE_FLAGS
-    fi
     case "$LINT" in
         all       ) _addprojflags LINT=ON LINT_TESTS=ON LINT_CLANG_TIDY=ON  LINT_PVS_STUDIO=ON ;;
         clang-tidy) _addprojflags LINT=ON LINT_TESTS=ON LINT_CLANG_TIDY=ON  LINT_PVS_STUDIO=OFF ;;
@@ -201,6 +212,9 @@ function c4_cfg_test()
         _addprojflags COVERAGE_COVERALLS=ON COVERAGE_COVERALLS_SILENT=ON
     fi
     _addcmkflags -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+    if [ ! -z "$CMAKE_FLAGS" ] ; then
+        _addcmkflags $CMAKE_FLAGS
+    fi
 
     echo "building with additional cmake flags: $CMFLAGS"
 
@@ -250,15 +264,17 @@ function c4_cfg_test()
                   -DCMAKE_BUILD_TYPE=$BT $CMFLAGS \
                   -DCMAKE_C_COMPILER=$CC_ -DCMAKE_CXX_COMPILER=$CXX_ \
                   -DCMAKE_C_FLAGS="-std=c99 -m$bits" -DCMAKE_CXX_FLAGS="-m$bits"
+            cmake --build $build_dir --target help | sed 1d | sort
             ;;
         "") # allow empty compiler
+            cmake -S $PROJ_DIR -B $build_dir -DCMAKE_INSTALL_PREFIX="$install_dir" \
+                  -DCMAKE_BUILD_TYPE=$BT $CMFLAGS
             ;;
         *)
             echo "unknown compiler"
             exit 1
             ;;
     esac
-    cmake --build $build_dir --target help | sed 1d | sort
 }
 
 function _c4_choose_clang_tidy()

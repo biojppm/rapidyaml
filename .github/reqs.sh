@@ -19,7 +19,14 @@ function c4_install_test_requirements()
     os=$1
     case "$os" in
         ubuntu*) ;;
-        *) return 0 ;;
+        win*)
+            choco install swig
+            which swig
+            return 0
+            ;;
+        *)
+            return 0
+            ;;
     esac
 
     # gather all the requirements ------------------
@@ -113,6 +120,9 @@ function _c4_gather_compilers()
             for cxx in $all ; do
                 _c4_gather_compilers $cxx
             done
+            ;;
+        "")
+            # use default compiler
             ;;
         *)
             echo "unknown compiler: $cxx"
