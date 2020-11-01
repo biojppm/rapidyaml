@@ -1,13 +1,11 @@
 name: ci
 
 defaults:
+  #if: "!contains(github.event.head_commit.message, 'skip ci')"  # SKIP
   run:
     # Use a bash shell so we can use the same syntax for environment variable
     # access regardless of the host operating system
     shell: bash -e -x {0}
-
-if: "!contains(github.event.head_commit.message, 'skip ci')"
-# if: github.ref == 'refs/heads/master'
 
 on:
   - push
@@ -16,8 +14,8 @@ on:
 env:
   PROJ_PFX_TARGET: ryml-
   PROJ_PFX_CMAKE: RYML_
-  NUM_JOBS_BUILD: # 4
   CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
+  NUM_JOBS_BUILD: # 4
 
 
 # ubuntu-20.04:
@@ -52,6 +50,7 @@ jobs:
 
   #----------------------------------------------------------------------------
   test_coverage:
+    # if: github.ref == 'refs/heads/master'
     continue-on-error: true
     runs-on: ${{matrix.os}}
     strategy:
@@ -140,22 +139,22 @@ jobs:
         run: source .github/setenv.sh && c4_cfg_test shared64
       - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
       - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
-      - {name: shared64-pack, run: source .github/setenv.sh && c4_pack shared64}
+      - {name: shared64-pack, run: source .github/setenv.sh && c4_package shared64}
       - name: static64-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test static64
       - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
       - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
-      - {name: static64-pack, run: source .github/setenv.sh && c4_pack static64}
+      - {name: static64-pack, run: source .github/setenv.sh && c4_package static64}
       - name: shared32-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test shared32
       - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
       - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
-      - {name: shared32-pack, run: source .github/setenv.sh && c4_pack shared32}
+      - {name: shared32-pack, run: source .github/setenv.sh && c4_package shared32}
       - name: static32-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test static32
       - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
       - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
-      - {name: static32-pack, run: source .github/setenv.sh && c4_pack static32}
+      - {name: static32-pack, run: source .github/setenv.sh && c4_package static32}
 
   #----------------------------------------------------------------------------
   test_macosx:
@@ -178,22 +177,22 @@ jobs:
         run: source .github/setenv.sh && c4_cfg_test shared64
       - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
       - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
-      - {name: shared64-pack, run: source .github/setenv.sh && c4_pack shared64}
+      - {name: shared64-pack, run: source .github/setenv.sh && c4_package shared64}
       - name: static64-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test static64
       - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
       - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
-      - {name: static64-pack, run: source .github/setenv.sh && c4_pack static64}
+      - {name: static64-pack, run: source .github/setenv.sh && c4_package static64}
       - name: shared32-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test shared32
       - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
       - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
-      - {name: shared32-pack, run: source .github/setenv.sh && c4_pack shared32}
+      - {name: shared32-pack, run: source .github/setenv.sh && c4_package shared32}
       - name: static32-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test static32
       - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
       - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
-      - {name: static32-pack, run: source .github/setenv.sh && c4_pack static32}
+      - {name: static32-pack, run: source .github/setenv.sh && c4_package static32}
 
   #----------------------------------------------------------------------------
   test_gcc_canary:
@@ -218,22 +217,22 @@ jobs:
         run: source .github/setenv.sh && c4_cfg_test shared64
       - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
       - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
-      - {name: shared64-pack, run: source .github/setenv.sh && c4_pack shared64}
+      - {name: shared64-pack, run: source .github/setenv.sh && c4_package shared64}
       - name: static64-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test static64
       - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
       - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
-      - {name: static64-pack, run: source .github/setenv.sh && c4_pack static64}
+      - {name: static64-pack, run: source .github/setenv.sh && c4_package static64}
       - name: static32-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test static32
       - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
       - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
-      - {name: static32-pack, run: source .github/setenv.sh && c4_pack static32}
+      - {name: static32-pack, run: source .github/setenv.sh && c4_package static32}
       - name: shared32-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test shared32
       - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
       - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
-      - {name: shared32-pack, run: source .github/setenv.sh && c4_pack shared32}
+      - {name: shared32-pack, run: source .github/setenv.sh && c4_package shared32}
 
   #----------------------------------------------------------------------------
   test_clang_canary:
@@ -256,22 +255,22 @@ jobs:
         run: source .github/setenv.sh && c4_cfg_test shared64
       - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
       - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
-      - {name: shared64-pack, run: source .github/setenv.sh && c4_pack shared64}
+      - {name: shared64-pack, run: source .github/setenv.sh && c4_package shared64}
       - name: static64-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test static64
       - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
       - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
-      - {name: static64-pack, run: source .github/setenv.sh && c4_pack static64}
+      - {name: static64-pack, run: source .github/setenv.sh && c4_package static64}
       - name: static32-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test static32
       - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
       - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
-      - {name: static32-pack, run: source .github/setenv.sh && c4_pack static32}
+      - {name: static32-pack, run: source .github/setenv.sh && c4_package static32}
       - name: shared32-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test shared32
       - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
       - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
-      - {name: shared32-pack, run: source .github/setenv.sh && c4_pack shared32}
+      - {name: shared32-pack, run: source .github/setenv.sh && c4_package shared32}
 
   #----------------------------------------------------------------------------
   test_clang_tidy:
@@ -295,22 +294,22 @@ jobs:
         run: source .github/setenv.sh && c4_cfg_test shared64
       - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
       - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
-      - {name: shared64-pack, run: source .github/setenv.sh && c4_pack shared64}
+      - {name: shared64-pack, run: source .github/setenv.sh && c4_package shared64}
       - name: static64-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test static64
       - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
       - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
-      - {name: static64-pack, run: source .github/setenv.sh && c4_pack static64}
+      - {name: static64-pack, run: source .github/setenv.sh && c4_package static64}
       - name: static32-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test static32
       - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
       - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
-      - {name: static32-pack, run: source .github/setenv.sh && c4_pack static32}
+      - {name: static32-pack, run: source .github/setenv.sh && c4_package static32}
       - name: shared32-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test shared32
       - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
       - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
-      - {name: shared32-pack, run: source .github/setenv.sh && c4_pack shared32}
+      - {name: shared32-pack, run: source .github/setenv.sh && c4_package shared32}
 
   #----------------------------------------------------------------------------
   test_gcc_extended:
@@ -349,22 +348,22 @@ jobs:
         run: source .github/setenv.sh && c4_cfg_test shared64
       - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
       - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
-      - {name: shared64-pack, run: source .github/setenv.sh && c4_pack shared64}
+      - {name: shared64-pack, run: source .github/setenv.sh && c4_package shared64}
       - name: static64-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test static64
       - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
       - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
-      - {name: static64-pack, run: source .github/setenv.sh && c4_pack static64}
+      - {name: static64-pack, run: source .github/setenv.sh && c4_package static64}
       - name: static32-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test static32
       - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
       - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
-      - {name: static32-pack, run: source .github/setenv.sh && c4_pack static32}
+      - {name: static32-pack, run: source .github/setenv.sh && c4_package static32}
       - name: shared32-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test shared32
       - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
       - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
-      - {name: shared32-pack, run: source .github/setenv.sh && c4_pack shared32}
+      - {name: shared32-pack, run: source .github/setenv.sh && c4_package shared32}
 
   #----------------------------------------------------------------------------
   test_clang_extended:
@@ -397,22 +396,22 @@ jobs:
         run: source .github/setenv.sh && c4_cfg_test shared64
       - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
       - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
-      - {name: shared64-pack, run: source .github/setenv.sh && c4_pack shared64}
+      - {name: shared64-pack, run: source .github/setenv.sh && c4_package shared64}
       - name: static64-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test static64
       - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
       - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
-      - {name: static64-pack, run: source .github/setenv.sh && c4_pack static64}
+      - {name: static64-pack, run: source .github/setenv.sh && c4_package static64}
       - name: static32-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test static32
       - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
       - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
-      - {name: static32-pack, run: source .github/setenv.sh && c4_pack static32}
+      - {name: static32-pack, run: source .github/setenv.sh && c4_package static32}
       - name: shared32-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test shared32
       - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
       - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
-      - {name: shared32-pack, run: source .github/setenv.sh && c4_pack shared32}
+      - {name: shared32-pack, run: source .github/setenv.sh && c4_package shared32}
 
   #----------------------------------------------------------------------------
   test_clang_sanitize:
@@ -456,22 +455,22 @@ jobs:
         run: source .github/setenv.sh && c4_cfg_test shared64
       - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
       - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
-      - {name: shared64-pack, run: source .github/setenv.sh && c4_pack shared64}
+      - {name: shared64-pack, run: source .github/setenv.sh && c4_package shared64}
       - name: static64-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test static64
       - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
       - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
-      - {name: static64-pack, run: source .github/setenv.sh && c4_pack static64}
+      - {name: static64-pack, run: source .github/setenv.sh && c4_package static64}
       - name: static32-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test static32
       - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
       - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
-      - {name: static32-pack, run: source .github/setenv.sh && c4_pack static32}
+      - {name: static32-pack, run: source .github/setenv.sh && c4_package static32}
       - name: shared32-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test shared32
       - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
       - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
-      - {name: shared32-pack, run: source .github/setenv.sh && c4_pack shared32}
+      - {name: shared32-pack, run: source .github/setenv.sh && c4_package shared32}
 
 #  #----------------------------------------------------------------------------
 #  # https://blog.kitware.com/static-checks-with-cmake-cdash-iwyu-clang-tidy-lwyu-cpplint-and-cppcheck/
@@ -516,7 +515,7 @@ jobs:
           - {bt: Release, os: ubuntu-18.04}
           - {bt: Release, os: windows-2019}
     env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}",
-          CMAKE_FLAGS: "-DRYML_DEV=OFF -DRYML_BUILD_API=ON -DRYML_API_TESTS=ON -DRYML_API_BENCHMARKS=OFF"}
+          API: ON, CMAKE_FLAGS: "-DRYML_DEV=OFF -DRYML_BUILD_API=ON -DRYML_API_TESTS=ON -DRYML_API_BENCHMARKS=OFF"}
     steps:
       - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
       - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
@@ -526,221 +525,119 @@ jobs:
       - {name: api-shared64-python-build, run: source .github/setenv.sh && c4_build_target shared64 ryml-api-python3}
       - {name: api-shared64-python-test, run: source .github/setenv.sh && c4_build_target shared64 ryml-api-test-python3}
 
+  #----------------------------------------------------------------------------
+  # useful to iterate when fixing the release
+  # ver=0.0.0-rc1 ; ( set -x ; git tag -d v$ver ; git push origin :v$ver ) ; (set -x ; set -e ; git add -u ; git commit --amend --no-edit ; git tag --annotate --message "v$ver" "v$ver" ; git push -f --tags origin gh_actions )
 
-#--------------------------------------------------------------------------------------
-# https://cristianadam.eu/20191222/using-github-actions-with-c-plus-plus-and-cmake/
-#name: CMake Build Matrix
-#on: [push]
-#jobs:
-#
-#  build:
-#    name: ${{ matrix.config.name }}
-#    runs-on: ${{ matrix.config.os }}
-#    strategy:
-#      fail-fast: false
-#      matrix:
-#        config:
-#        - {
-#            name: "Windows Latest MSVC", artifact: "Windows-MSVC.tar.xz",
-#            os: windows-latest,
-#            build_type: "Release", cc: "cl", cxx: "cl",
-#            environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
-#          }
-#        - {
-#            name: "Windows Latest MinGW", artifact: "Windows-MinGW.tar.xz",
-#            os: windows-latest,
-#            build_type: "Release", cc: "gcc", cxx: "g++"
-#          }
-#        - {
-#            name: "Ubuntu Latest GCC", artifact: "Linux.tar.xz",
-#            os: ubuntu-latest,
-#            build_type: "Release", cc: "gcc", cxx: "g++"
-#          }
-#        - {
-#            name: "macOS Latest Clang", artifact: "macOS.tar.xz",
-#            os: macos-latest,
-#            build_type: "Release", cc: "clang", cxx: "clang++"
-#          }
-#    steps:
-#    - uses: actions/checkout@v1
-#    - name: Download Ninja and CMake
-#      id: cmake_and_ninja
-#      shell: cmake -P {0}
-#      run: |
-#        set(ninja_version "1.9.0")
-#        set(cmake_version "3.16.2")
-#        message(STATUS "Using host CMake version: ${CMAKE_VERSION}")
-#        if ("${{ runner.os }}" STREQUAL "Windows")
-#          set(ninja_suffix "win.zip")
-#          set(cmake_suffix "win64-x64.zip")
-#          set(cmake_dir "cmake-${cmake_version}-win64-x64/bin")
-#        elseif ("${{ runner.os }}" STREQUAL "Linux")
-#          set(ninja_suffix "linux.zip")
-#          set(cmake_suffix "Linux-x86_64.tar.gz")
-#          set(cmake_dir "cmake-${cmake_version}-Linux-x86_64/bin")
-#        elseif ("${{ runner.os }}" STREQUAL "macOS")
-#          set(ninja_suffix "mac.zip")
-#          set(cmake_suffix "Darwin-x86_64.tar.gz")
-#          set(cmake_dir "cmake-${cmake_version}-Darwin-x86_64/CMake.app/Contents/bin")
-#        endif()
-#        set(ninja_url "https://github.com/ninja-build/ninja/releases/download/v${ninja_version}/ninja-${ninja_suffix}")
-#        file(DOWNLOAD "${ninja_url}" ./ninja.zip SHOW_PROGRESS)
-#        execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf ./ninja.zip)
-#        set(cmake_url "https://github.com/Kitware/CMake/releases/download/v${cmake_version}/cmake-${cmake_version}-${cmake_suffix}")
-#        file(DOWNLOAD "${cmake_url}" ./cmake.zip SHOW_PROGRESS)
-#        execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf ./cmake.zip)
-#        # Save the path for other steps
-#        file(TO_CMAKE_PATH "$ENV{GITHUB_WORKSPACE}/${cmake_dir}" cmake_dir)
-#        message("::set-output name=cmake_dir::${cmake_dir}")
-#        if (NOT "${{ runner.os }}" STREQUAL "Windows")
-#          execute_process(
-#            COMMAND chmod +x ninja
-#            COMMAND chmod +x ${cmake_dir}/cmake
-#          )
-#        endif()
-#    - name: Configure
-#      shell: cmake -P {0}
-#      run: |
-#        set(ENV{CC} ${{ matrix.config.cc }})
-#        set(ENV{CXX} ${{ matrix.config.cxx }})
-#        if ("${{ runner.os }}" STREQUAL "Windows" AND NOT "x${{ matrix.config.environment_script }}" STREQUAL "x")
-#          execute_process(
-#            COMMAND "${{ matrix.config.environment_script }}" && set
-#            OUTPUT_FILE environment_script_output.txt
-#          )
-#          file(STRINGS environment_script_output.txt output_lines)
-#          foreach(line IN LISTS output_lines)
-#            if (line MATCHES "^([a-zA-Z0-9_-]+)=(.*)$")
-#              set(ENV{${CMAKE_MATCH_1}} "${CMAKE_MATCH_2}")
-#            endif()
-#          endforeach()
-#        endif()
-#        file(TO_CMAKE_PATH "$ENV{GITHUB_WORKSPACE}/ninja" ninja_program)
-#        execute_process(
-#          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake
-#            -S .
-#            -B build
-#            -D CMAKE_BUILD_TYPE=${{ matrix.config.build_type }}
-#            -G Ninja
-#            -D CMAKE_MAKE_PROGRAM=${ninja_program}
-#          RESULT_VARIABLE result
-#        )
-#        if (NOT result EQUAL 0)
-#          message(FATAL_ERROR "Bad exit status")
-#        endif()
-#    - name: Build
-#      shell: cmake -P {0}
-#      run: |
-#        set(ENV{NINJA_STATUS} "[%f/%t %o/sec] ")
-#        if ("${{ runner.os }}" STREQUAL "Windows" AND NOT "x${{ matrix.config.environment_script }}" STREQUAL "x")
-#          file(STRINGS environment_script_output.txt output_lines)
-#          foreach(line IN LISTS output_lines)
-#            if (line MATCHES "^([a-zA-Z0-9_-]+)=(.*)$")
-#              set(ENV{${CMAKE_MATCH_1}} "${CMAKE_MATCH_2}")
-#            endif()
-#          endforeach()
-#        endif()
-#        execute_process(
-#          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build build
-#          RESULT_VARIABLE result
-#        )
-#        if (NOT result EQUAL 0)
-#          message(FATAL_ERROR "Bad exit status")
-#        endif()
-#    - name: Run tests
-#      shell: cmake -P {0}
-#      run: |
-#        include(ProcessorCount)
-#        ProcessorCount(N)
-#        execute_process(
-#          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/ctest -j ${N}
-#          WORKING_DIRECTORY build
-#          RESULT_VARIABLE result
-#        )
-#        if (NOT result EQUAL 0)
-#          message(FATAL_ERROR "Running tests failed!")
-#        endif()
-#    - name: Install Strip
-#      run: ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --install build --prefix instdir --strip
-#    - name: Pack
-#      working-directory: instdir
-#      run: ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake -E tar cJfv ../${{ matrix.config.artifact }} .
-#    - name: Upload
-#      uses: actions/upload-artifact@v1
-#      with:
-#        path: ./${{ matrix.config.artifact }}
-#        name: ${{ matrix.config.artifact }}
-#
-#  release:
-#    if: contains(github.ref, 'tags/v')
-#    runs-on: ubuntu-latest
-#    needs: build
-#    steps:
-#    - name: Create Release
-#      id: create_release
-#      uses: actions/create-release@v1.0.0
-#      env:
-#        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#      with:
-#        tag_name: ${{ github.ref }}
-#        release_name: Release ${{ github.ref }}
-#        draft: false
-#        prerelease: false
-#    - name: Store Release url
-#      run: |
-#        echo "${{ steps.create_release.outputs.upload_url }}" > ./upload_url
-#    - uses: actions/upload-artifact@v1
-#      with:
-#        path: ./upload_url
-#        name: upload_url
-#
-#  publish:
-#    if: contains(github.ref, 'tags/v')
-#    name: ${{ matrix.config.name }}
-#    runs-on: ${{ matrix.config.os }}
-#    strategy:
-#      fail-fast: false
-#      matrix:
-#        config:
-#        - {
-#            name: "Windows Latest MSVC", artifact: "Windows-MSVC.tar.xz",
-#            os: ubuntu-latest
-#          }
-#        - {
-#            name: "Windows Latest MinGW", artifact: "Windows-MinGW.tar.xz",
-#            os: ubuntu-latest
-#          }
-#        - {
-#            name: "Ubuntu Latest GCC", artifact: "Linux.tar.xz",
-#            os: ubuntu-latest
-#          }
-#        - {
-#            name: "macOS Latest Clang", artifact: "macOS.tar.xz",
-#            os: ubuntu-latest
-#          }
-#    needs: release
-#    steps:
-#    - name: Download artifact
-#      uses: actions/download-artifact@v1
-#      with:
-#        name: ${{ matrix.config.artifact }}
-#        path: ./
-#    - name: Download URL
-#      uses: actions/download-artifact@v1
-#      with:
-#        name: upload_url
-#        path: ./
-#    - id: set_upload_url
-#      run: |
-#        upload_url=`cat ./upload_url`
-#        echo ::set-output name=upload_url::$upload_url
-#    - name: Upload to Release
-#      id: upload_to_release
-#      uses: actions/upload-release-asset@v1.0.1
-#      env:
-#        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#      with:
-#        upload_url: ${{ steps.set_upload_url.outputs.upload_url }}
-#        asset_path: ./${{ matrix.config.artifact }}
-#        asset_name: ${{ matrix.config.artifact }}
-#        asset_content_type: application/x-gtar
+  release:
+    if: contains(github.ref, 'tags/v')
+    runs-on: ubuntu-latest
+    #needs: [test_coverage, test_windows, test_macosx, test_gcc_canary, test_clang_canary, test_clang_tidy, test_gcc_extended, test_clang_extended, test_clang_sanitize, test_api]
+    steps:
+      - name: Get version
+        id: get_version
+        # https://github.community/t/how-to-get-just-the-tag-name/16241/11
+        run: |
+          echo ::set-output name=SRC_TAG::${GITHUB_REF#refs/tags/}
+          echo ::set-output name=SRC_VERSION::${GITHUB_REF#refs/tags/v}
+          echo SRC_TAG=${GITHUB_REF#refs/tags/}
+          echo SRC_VERSION=${GITHUB_REF#refs/tags/v}
+      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1 # https://github.com/marketplace/actions/create-a-release
+        env:
+          GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}"
+          SRC_TAG: "${{steps.get_version.outputs.SRC_TAG}}"
+          SRC_VERSION: "${{steps.get_version.outputs.SRC_VERSION}}"
+        with:
+          tag_name: ${{github.ref}}
+          release_name: Release ${{steps.get_version.outputs.SRC_VERSION}}
+          draft: true  # to create a draft (unpublished) release, false to create a published one. Default: false
+          prerelease: ${{contains(github.ref, '-rc')}}
+          body_path: ${{github.workspace}}/changelog/${{steps.get_version.outputs.SRC_VERSION}}.md
+      - name: Store Release URL
+        run: |
+          echo "UPLOAD_URL: ${{steps.create_release.outputs.upload_url}}"
+          echo "${{steps.create_release.outputs.upload_url}}" > ./upload_url
+      - name: Upload Release URL
+        uses: actions/upload-artifact@v1
+        with:
+          path: ./upload_url
+          name: upload_url
+
+  #----------------------------------------------------------------------------
+  publish:
+    needs: release
+    name: publish/${{matrix.config.os}}/${{matrix.config.gen}}
+    runs-on: ${{matrix.config.os}}
+    env: {DEV: OFF, BT: Release, OS: "${{matrix.config.os}}", CXX_: "${{matrix.config.cxx}}", GEN: "${{matrix.config.gen}}"}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          #  name of the artifact     | suffix         | cpack gen | mime type                      | os              | cxx
+          - {name: Ubuntu 20.04 deb  , sfx: unix64.deb, gen: DEB  , mime: vnd.debian.binary-package, os: ubuntu-20.04             }
+          - {name: Ubuntu 20.04 sh   , sfx: unix64.sh , gen: STGZ , mime: x-sh                     , os: ubuntu-20.04             }
+          - {name: Ubuntu 18.04 deb  , sfx: unix64.deb, gen: DEB  , mime: vnd.debian.binary-package, os: ubuntu-18.04             }
+          - {name: Ubuntu 18.04 sh   , sfx: unix64.sh , gen: STGZ , mime: x-sh                     , os: ubuntu-18.04             }
+          - {name: Ubuntu 16.04 deb  , sfx: unix64.deb, gen: DEB  , mime: vnd.debian.binary-package, os: ubuntu-16.04             }
+          - {name: Ubuntu 16.04 sh   , sfx: unix64.sh , gen: STGZ , mime: x-sh                     , os: ubuntu-16.04             }
+          - {name: Windows VS2017 zip, sfx: win64.zip , gen: ZIP  , mime: zip                      , os: windows-2016, cxx: vs2017}
+          - {name: Windows VS2019 zip, sfx: win64.zip , gen: ZIP  , mime: zip                      , os: windows-2019, cxx: vs2019}
+          - {name: MacOSX sh         , sfx: apple64.sh, gen: STGZ , mime: x-sh                     , os: macos-11.0  , cxx: xcode }
+    steps:
+      - name: Get version
+        id: get_version
+        # https://github.community/t/how-to-get-just-the-tag-name/16241/11
+        run: |
+          echo ::set-output name=SRC_VERSION::${GITHUB_REF#refs/tags/v}
+          echo SRC_VERSION=${GITHUB_REF#refs/tags/v}
+          echo GEN=$GEN
+      - name: Download upload URL
+        uses: actions/download-artifact@v1
+        with: {name: upload_url, path: ./}
+      - name: Preprocess
+        id: preprocess
+        run: |
+          upload_url=`cat ./upload_url`
+          echo ::set-output name=upload_url::$upload_url
+          # the package has the same name in multiple same-platform+same-sfx
+          # instances, but the uploaded asset needs to have different names:
+          sfx=${{matrix.config.sfx}}
+          case "${{matrix.config.os}}" in
+            ubuntu*)
+              sfx=$(echo $sfx | sed "s:unix64:${{matrix.config.os}}:")
+              ;;
+            windows*)
+              sfx=$(echo $sfx | sed "s:win64:win64-${{matrix.config.cxx}}:")
+              ;;
+            macos*)
+              sfx=$(echo $sfx | sed "s:apple64:macosx-${{matrix.config.cxx}}:")
+              ;;
+          esac
+          asset_name=ryml-${{steps.get_version.outputs.SRC_VERSION}}-$sfx
+          echo ::set-output name=asset_name::$asset_name
+      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+      - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
+      - {name: show info, run: source .github/setenv.sh && c4_show_info }
+      - name: shared64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared64
+      - {name: shared64-build, run: source .github/setenv.sh && c4_build_target shared64}
+      - name: shared64-pack
+        run: |
+          source .github/setenv.sh && c4_package shared64 $GEN
+          src=./build/shared64/ryml-${{steps.get_version.outputs.SRC_VERSION}}-${{matrix.config.sfx}}
+          dst=${{steps.preprocess.outputs.asset_name}}
+          cp -fav $src $dst
+      - name: Upload artifact
+        id: upload_to_release
+        uses: actions/upload-release-asset@v1.0.1
+        env: {GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}"}
+        with:
+          upload_url: ${{steps.preprocess.outputs.upload_url}}
+          asset_path: ${{steps.preprocess.outputs.asset_name}}
+          asset_name: ${{steps.preprocess.outputs.asset_name}}
+          asset_content_type: application/${{matrix.config.mime}}
+      #- name: Report artifact URL
+      #  run: echo "artifact uploaded successfully: ${{steps.upload_to_release.outputs.browser_download_url}}"

@@ -1,8 +1,8 @@
-# Uncomment this if your project is hosted on GitHub:
-github_url = "https://github.com/biojppm/rapidyaml/"
-
 # https://github.com/TankerHQ/tbump
 # https://hackernoon.com/lets-automate-version-number-updates-not-a91q3x7n
+
+# Uncomment this if your project is hosted on GitHub:
+github_url = "https://github.com/biojppm/rapidyaml/"
 
 [version]
 current = "0.0.0-rc0"
@@ -20,7 +20,7 @@ regex = '''
   '''
 
 [git]
-message_template = "Bump to {new_version}"
+message_template = "[chore] version {new_version}"
 tag_template = "v{new_version}"
 
 # For each file to patch, add a [[file]] config section containing
@@ -36,6 +36,12 @@ search = "c4_project\\(VERSION {current_version}"
 #  [[before_commit]]
 #  name = "check changelog"
 #  cmd = "grep -q {new_version} Changelog.rst"
+
+# TODO: add version header, containing commit hash
+# TODO: consolidate changelog from the git logs:
+# https://pypi.org/project/gitchangelog/
+# https://blogs.sap.com/2018/06/22/generating-release-notes-from-git-commit-messages-using-basic-shell-commands-gitgrep/
+# https://medium.com/better-programming/create-your-own-changelog-generator-with-git-aefda291ea93
 
 # Or run some commands after the git tag and the branch
 # have been pushed:

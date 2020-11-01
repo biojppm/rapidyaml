@@ -48,6 +48,10 @@ function c4_show_info()
             ;;
     esac
     set -x
+    git branch
+    git rev-parse HEAD
+    git tag || echo
+    git log -1 --format='%H'
 }
 
 function _c4bits()
@@ -95,10 +99,9 @@ function c4_run_test()
 function c4_build_target()  # runs in parallel
 {
     if _c4skipbitlink "$1" ; then return 0 ; fi
-    bits=$(_c4bits $1)
-    linktype=$(_c4linktype $1)
+    id=$1
     target=$2
-    build_dir=`pwd`/build/$bits-$linktype   # see c4_cfg_test()
+    build_dir=`pwd`/build/$id
     export CTEST_OUTPUT_ON_FAILURE=1
     # watchout: the `--parallel` flag to `cmake --build` is broken:
     # https://discourse.cmake.org/t/parallel-does-not-really-enable-parallel-compiles-with-msbuild/964/10
@@ -109,21 +112,24 @@ function c4_build_target()  # runs in parallel
 function c4_run_target()  # does not run in parallel
 {
     if _c4skipbitlink "$1" ; then return 0 ; fi
-    bits=$(_c4bits $1)
-    linktype=$(_c4linktype $1)
+    id=$1
     target=$2
-    build_dir=`pwd`/build/$bits-$linktype   # see c4_cfg_test()
+    build_dir=`pwd`/build/$id
     export CTEST_OUTPUT_ON_FAILURE=1
     cmake --build $build_dir --config $BT --target $target
 }
 
-function c4_pack()
+function c4_package()
 {
     if _c4skipbitlink "$1" ; then return 0 ; fi
-    bits=$(_c4bits $1)
-    linktype=$(_c4linktype $1)
-    build_dir=`pwd`/build/$bits-$linktype   # see c4_cfg_test()
-    cmake --build $build_dir --config $BT --target package
+    id=$1
+    generator=$2
+    build_dir=`pwd`/build/$id
+    if [ -z "$generator" ] ; then
+        c4_run_target $id package
+    else
+        ( cd $build_dir ; cpack -G $generator )
+    fi
 }
 
 function c4_submit_coverage()
@@ -133,11 +139,9 @@ function c4_submit_coverage()
         return 0
     fi
     if _c4skipbitlink "$1" ; then return 0 ; fi
-    bits=$(_c4bits $1)
-    linktype=$(_c4linktype $1)
+    id=$1
     coverage_service=$2
-    build_dir=`pwd`/build/$bits-$linktype   # see c4_cfg_test()
-    if [ "$CXX_" == "xcode" ] && [ "$bits" == "32" ] ; then return 0 ; fi
+    build_dir=`pwd`/build/$id
     echo "Submitting coverage data: $build_dir --> $coverage_service"
     cmake --build $build_dir --config $BT --target ${PROJ_PFX_TARGET}coverage-submit-$coverage_service
 }
@@ -146,9 +150,9 @@ function c4_submit_coverage()
 function c4_run_static_analysis()
 {
     if _c4skipbitlink "$1" ; then return 0 ; fi
-    bits=$(_c4bits $1)
-    linktype=$(_c4linktype $1)
-    build_dir=`pwd`/build/$bits-$linktype   # see c4_cfg_test()
+    id=$1
+    linktype=$(_c4linktype $id)
+    build_dir=`pwd`/build/$id
     # https://blog.kitware.com/static-checks-with-cmake-cdash-iwyu-clang-tidy-lwyu-cpplint-and-cppcheck/
     pushd $PROJ_DIR
 }
@@ -156,11 +160,12 @@ function c4_run_static_analysis()
 function c4_cfg_test()
 {
     if _c4skipbitlink "$1" ; then return 0 ; fi
-    bits=$(_c4bits $1)
-    linktype=$(_c4linktype $1)
+    id=$1
+    bits=$(_c4bits $id)
+    linktype=$(_c4linktype $id)
     #
-    build_dir=`pwd`/build/$bits-$linktype
-    install_dir=`pwd`/install/$bits-$linktype
+    build_dir=`pwd`/build/$id
+    install_dir=`pwd`/install/$id
     mkdir -p $build_dir
     mkdir -p $install_dir
     #
@@ -177,7 +182,9 @@ function c4_cfg_test()
         _addprojflags CXX_STANDARD=$STD
     fi
     #
-    _addprojflags DEV=ON
+    if [ "$DEV" != "OFF" ] ; then
+        _addprojflags DEV=ON
+    fi
     case "$LINT" in
         all       ) _addprojflags LINT=ON LINT_TESTS=ON LINT_CLANG_TIDY=ON  LINT_PVS_STUDIO=ON ;;
         clang-tidy) _addprojflags LINT=ON LINT_TESTS=ON LINT_CLANG_TIDY=ON  LINT_PVS_STUDIO=OFF ;;

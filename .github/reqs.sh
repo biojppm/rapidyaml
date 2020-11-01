@@ -20,8 +20,10 @@ function c4_install_test_requirements()
     case "$os" in
         ubuntu*) ;;
         win*)
-            choco install swig
-            which swig
+            if [ "$API" == "ON" ] ; then
+                choco install swig
+                which swig
+            fi
             return 0
             ;;
         *)
