@@ -4,7 +4,7 @@ project(ryml
     DESCRIPTION "Rapid YAML parsing and emitting"
     HOMEPAGE_URL "https://github.com/biojppm/rapidyaml"
     LANGUAGES CXX)
-c4_project(VERSION 0.0.1 STANDALONE
+c4_project(VERSION 0.0.0-rc0 STANDALONE
     AUTHOR "Joao Paulo Magalhaes <dev@jpmag.me>")
 
 
@@ -93,6 +93,9 @@ if(RYML_BUILD_TESTS OR RYML_BUILD_BENCHMARKS)
       OVERRIDE YAML_CPP_BUILD_TESTS OFF YAML_CPP_BUILD_TOOLS OFF YAML_CPP_BUILD_CONTRIB OFF YAML_CPP_BUILD_INSTALL OFF
       SET_FOLDER_TARGETS ext yaml-cpp format)
     set(ryml_yaml_cpp_inc ${ed}/yaml-cpp/src/include)
+    if(MSVC)
+        target_compile_definitions(yaml-cpp PUBLIC -D_SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING)
+    endif()
 endif()
 
 c4_add_dev_targets()
