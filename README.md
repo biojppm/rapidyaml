@@ -1,6 +1,6 @@
 # Rapid YAML
 [![MIT Licensed](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/biojppm/rapidyaml/blob/master/LICENSE.txt)
-[![run_tests](https://github.com/biojppm/rapidyaml/workflows/run_tests/badge.svg?branch=master)](https://github.com/biojppm/rapidyaml/actions?query=workflow%3Arun_tests)
+[![run_tests](https://github.com/biojppm/rapidyaml/workflows/run_tests/badge.svg?branch=master)](https://github.com/biojppm/rapidyaml/actions?query=workflow%3Aci)
 [![Coverage: coveralls](https://coveralls.io/repos/github/biojppm/rapidyaml/badge.svg?branch=master)](https://coveralls.io/github/biojppm/rapidyaml)
 [![Coverage: codecov](https://codecov.io/gh/biojppm/rapidyaml/branch/master/graph/badge.svg?branch=master)](https://codecov.io/gh/biojppm/rapidyaml)
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/biojppm/rapidyaml.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/biojppm/rapidyaml/alerts/)
