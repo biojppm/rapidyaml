@@ -3,13 +3,13 @@
 #include <c4/format.hpp>
 #include <stdexcept>
 
-#if C4_CPP < 11
+#if C4_CPP < 17
 #error "must be C++17"
 #endif
 
 
 template <class... Args>
-void err(c4::csubstr fmt, Args &&...args)
+void err(c4::csubstr fmt, Args const& ...args)
 {
     throw std::runtime_error(c4::formatrs<std::string>(fmt, args...));
 }

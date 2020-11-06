@@ -9,6 +9,8 @@ set -x
 # BT: the build type
 # VG: whether to install valgrind
 # GITHUB_WORKFLOW: when run from github
+# API: whether to install swig
+# CMANY: whether to install cmany
 
 
 #-------------------------------------------------------------------------------
@@ -19,7 +21,16 @@ function c4_install_test_requirements()
     os=$1
     case "$os" in
         ubuntu*) ;;
+        macos*)
+            if [ "$CMANY" == "ON" ] ; then
+                sudo pip3 install cmany
+            fi
+            return 0
+            ;;
         win*)
+            if [ "$CMANY" == "ON" ] ; then
+                pip install cmany
+            fi
             if [ "$API" == "ON" ] ; then
                 choco install swig
                 which swig
@@ -57,6 +68,7 @@ function c4_install_test_requirements()
     #_add_apt iwyu
     #_add_apt cppcheck
     #_add_pip cpplint
+    # oclint?
     if [ "$VG" == "ON" ] ; then
         _add_apt valgrind
     fi
@@ -70,6 +82,10 @@ function c4_install_test_requirements()
         _add_pip ndg-httpsclient
         _add_pip pyasn1
         _add_pip cpp-coveralls
+    fi
+
+    if [ "$CMANY" != "" ] ; then
+        _add_pip cmany
     fi
 
     wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | sudo apt-key add -
