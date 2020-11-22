@@ -1,4 +1,4 @@
-c4_setup_testing()
+c4_setup_testing(GTEST)
 
 c4_add_executable(ryml-parse-emit
     SOURCES parse_emit.cpp
