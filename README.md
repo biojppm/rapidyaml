@@ -1,6 +1,7 @@
 # Rapid YAML
 [![MIT Licensed](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/biojppm/rapidyaml/blob/master/LICENSE.txt)
 [![release](https://img.shields.io/github/v/release/biojppm/rapidyaml?color=g&include_prereleases&label=release%20&sort=semver)](https://github.com/biojppm/rapidyaml/releases)
+[![API Docs](https://img.shields.io/badge/docs-docsforge-blue)](https://rapidyaml.docsforge.com/)
 [![Gitter](https://badges.gitter.im/rapidyaml/community.svg)](https://gitter.im/rapidyaml/community)
 
 [![ci](https://github.com/biojppm/rapidyaml/workflows/ci/badge.svg?branch=master)](https://github.com/biojppm/rapidyaml/actions?query=workflow%3Aci)

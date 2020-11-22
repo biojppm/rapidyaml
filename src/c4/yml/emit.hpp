@@ -29,6 +29,17 @@ typedef enum {
 } EmitType_e;
 
 
+/** mark a tree or node to be emitted as json */
+struct as_json
+{
+    Tree const* tree;
+    size_t node;
+    as_json(Tree const& t) : tree(&t), node(t.root_id()) {}
+    as_json(Tree const& t, size_t id) : tree(&t), node(id) {}
+    as_json(NodeRef const& n) : tree(n.tree()), node(n.id()) {}
+};
+
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -162,17 +173,12 @@ inline OStream& operator<< (OStream& s, NodeRef const& n)
     return s;
 }
 
-struct as_json
-{
-    NodeRef node;
-    as_json(NodeRef const& n) : node(n) {}
-    as_json(Tree const& t) : node(t.rootref()) {}
-};
+/** emit json to the stream */
 template<class OStream>
 inline OStream& operator<< (OStream& s, as_json const& js)
 {
     EmitterOStream<OStream> em(s);
-    em.emit(JSON, js.node);
+    em.emit(JSON, *js.tree, js.node);
     return s;
 }
 
@@ -180,7 +186,7 @@ inline OStream& operator<< (OStream& s, as_json const& js)
 //-----------------------------------------------------------------------------
 
 /** emit YAML to the given buffer. Return a substr trimmed to the emitted YAML.
- * Raise an error if the space in the buffer is insufficient.
+ * @param error_on_excess Raise an error if the space in the buffer is insufficient.
  * @overload */
 inline substr emit(Tree const& t, size_t id, substr buf, bool error_on_excess=true)
 {
@@ -189,7 +195,7 @@ inline substr emit(Tree const& t, size_t id, substr buf, bool error_on_excess=tr
     return result;
 }
 /** emit JSON to the given buffer. Return a substr trimmed to the emitted JSON.
- * Raise an error if the space in the buffer is insufficient.
+ * @param error_on_excess Raise an error if the space in the buffer is insufficient.
  * @overload */
 inline substr emit_json(Tree const& t, size_t id, substr buf, bool error_on_excess=true)
 {
@@ -199,14 +205,14 @@ inline substr emit_json(Tree const& t, size_t id, substr buf, bool error_on_exce
 }
 
 /** emit YAML to the given buffer. Return a substr trimmed to the emitted YAML.
- * Raise an error if the space in the buffer is insufficient.
+ * @param error_on_excess Raise an error if the space in the buffer is insufficient.
  * @overload */
 inline substr emit(Tree const& t, substr buf, bool error_on_excess=true)
 {
     return emit(t, t.root_id(), buf, error_on_excess);
 }
 /** emit JSON to the given buffer. Return a substr trimmed to the emitted JSON.
- * Raise an error if the space in the buffer is insufficient.
+ * @param error_on_excess Raise an error if the space in the buffer is insufficient.
  * @overload */
 inline substr emit_json(Tree const& t, substr buf, bool error_on_excess=true)
 {
@@ -214,7 +220,7 @@ inline substr emit_json(Tree const& t, substr buf, bool error_on_excess=true)
 }
 
 /** emit YAML to the given buffer. Return a substr trimmed to the emitted YAML.
- * Raise an error if the space in the buffer is insufficient.
+ * @param error_on_excess Raise an error if the space in the buffer is insufficient.
  * @overload
  */
 inline substr emit(NodeRef const& r, substr buf, bool error_on_excess=true)
@@ -222,7 +228,7 @@ inline substr emit(NodeRef const& r, substr buf, bool error_on_excess=true)
     return emit(*r.tree(), r.id(), buf, error_on_excess);
 }
 /** emit JSON to the given buffer. Return a substr trimmed to the emitted JSON.
- * Raise an error if the space in the buffer is insufficient.
+ * @param error_on_excess Raise an error if the space in the buffer is insufficient.
  * @overload
  */
 inline substr emit_json(NodeRef const& r, substr buf, bool error_on_excess=true)
