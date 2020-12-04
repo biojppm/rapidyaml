@@ -2,16 +2,12 @@
 
 Roughly in order of priority:
 
-  * Improve float parsing to not use `sscanf()`, which [can cause quadratic
-    complexity with non-terminated
-    strings](https://github.com/biojppm/rapidyaml/issues/40).
   * Conformance of the parser to the YAML standard:
     * Increase success rate of YAML test suite parsing (as of May 2020,
       ~30/1300 tests are failing)
     * Cross-check the suite test correctness with the events specified in
       each test. (Currently the tests are only checking for successful
       parsing and idempotent emitting).
-    * Run the suite tests also on the Windows CI (Appveyor).
   * Cleanup:
     * Review & cleanup API surface.
     * turn calls to `C4_ASSERT()` into calls to `RYML_ASSERT()`
