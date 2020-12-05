@@ -33,6 +33,7 @@ function c4_show_info()
     echo "VG=$VG"
     echo "BM=$BM"
     echo "STD=$STD"
+    echo "ARM=$ARM"
     which cmake
     cmake --version
     case "$CXX_" in
@@ -57,8 +58,8 @@ function c4_show_info()
 function _c4bits()
 {
     case "$1" in
-        shared64|static64) echo 64 ;;
-        shared32|static32) echo 32 ;;
+        shared64|static64|arm64) echo 64 ;;
+        shared32|static32|arm32|arm) echo 32 ;;
         *) exit 1 ;;
     esac
 }
@@ -161,22 +162,31 @@ function c4_cfg_test()
 {
     if _c4skipbitlink "$1" ; then return 0 ; fi
     id=$1
-    bits=$(_c4bits $id)
-    linktype=$(_c4linktype $id)
     #
     build_dir=`pwd`/build/$id
     install_dir=`pwd`/install/$id
     mkdir -p $build_dir
     mkdir -p $install_dir
     #
-    case "$linktype" in
-        static) _addcmkflags -DBUILD_SHARED_LIBS=OFF ;;
-        shared) _addcmkflags -DBUILD_SHARED_LIBS=ON ;;
-        *)
-            echo "ERROR: unknown linktype: $linktype"
+    if [ "$TOOLCHAIN" != "" ] ; then
+        toolchain_file=`pwd`/$TOOLCHAIN
+        if [ ! -f "$toolchain_file" ] ; then
+            echo "ERROR: toolchain not found: $toolchain_file"
             exit 1
-            ;;
-    esac
+        fi
+        _addcmkflags -DCMAKE_TOOLCHAIN_FILE=$toolchain_file
+    else
+        bits=$(_c4bits $id)
+        linktype=$(_c4linktype $id)
+        case "$linktype" in
+            static) _addcmkflags -DBUILD_SHARED_LIBS=OFF ;;
+            shared) _addcmkflags -DBUILD_SHARED_LIBS=ON ;;
+            *)
+                echo "ERROR: unknown linktype: $linktype"
+                exit 1
+                ;;
+        esac
+    fi
     if [ "$STD" != "" ] ; then
         _addcmkflags -DC4_CXX_STANDARD=$STD
         _addprojflags CXX_STANDARD=$STD
@@ -273,7 +283,9 @@ function c4_cfg_test()
                   -DCMAKE_C_FLAGS="-std=c99 -m$bits" -DCMAKE_CXX_FLAGS="-m$bits"
             cmake --build $build_dir --target help | sed 1d | sort
             ;;
-        "") # allow empty compiler
+        arm*|"")
+            # for empty compiler
+            # or arm-*
             cmake -S $PROJ_DIR -B $build_dir -DCMAKE_INSTALL_PREFIX="$install_dir" \
                   -DCMAKE_BUILD_TYPE=$BT $CMFLAGS
             ;;
