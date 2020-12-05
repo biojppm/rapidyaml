@@ -5,6 +5,7 @@
 .cquery_cached_index/
 .clangd/
 .ccls-cache/
+.cache/
 
 # gdb files
 .gdbinit

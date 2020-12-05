@@ -224,7 +224,7 @@ private:
         size_t current_col(csubstr s) const
         {
             RYML_ASSERT(s.str >= full.str);
-            RYML_ASSERT(full.contains(s));
+            RYML_ASSERT(full.is_super(s));
             size_t col = static_cast<size_t>(s.str - full.str);
             return col;
         }

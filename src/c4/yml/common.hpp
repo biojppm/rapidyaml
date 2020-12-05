@@ -124,7 +124,7 @@ struct Location : public LineCol
 
 /** the type of the function used to report errors. This function must
  * interrupt execution, either by raising an exception or calling
- * std::terminate()/std::abort(). */
+ * std::abort(). */
 using pfn_error = void (*)(const char* msg, size_t msg_len, Location location, void *user_data);
 
 /** trigger an error: call the current error callback. */
