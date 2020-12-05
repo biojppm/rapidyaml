@@ -505,7 +505,7 @@ jobs:
 #      - {name: link-what-you-use, run: cmake -DCMAKE_LINK_WHAT_YOU_USE=TRUE ..}
 
   #----------------------------------------------------------------------------
-  examples_subdir:
+  examples:
     continue-on-error: true
     runs-on: ${{matrix.os}}
     strategy:
@@ -522,6 +522,7 @@ jobs:
           CMANY: ON}
     steps:
       - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+      - {name: python3, uses: actions/setup-python@v2, with: {python-version: 3.7}}
       - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
       - {name: show info, run: source .github/setenv.sh && c4_show_info }
       - {name: add_subdirectory, run: cmany b -t $BT examples/add_subdirectory }
