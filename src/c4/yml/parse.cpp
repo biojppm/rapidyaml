@@ -2326,10 +2326,16 @@ C4_ALWAYS_INLINE size_t _extend_from_combined_newline(char nl, char following)
 csubstr from_next_line(csubstr rem)
 {
     size_t nlpos = rem.first_of("\r\n");
-    if(nlpos == csubstr::npos) return {};
+    if(nlpos == csubstr::npos)
+    {
+        return {};
+    }
     const char nl = rem[nlpos];
     rem = rem.right_of(nlpos);
-    if(rem.empty()) return {};
+    if(rem.empty())
+    {
+        return {};
+    }
     if(_extend_from_combined_newline(nl, rem.front()))
     {
         rem = rem.sub(1);
@@ -2342,11 +2348,17 @@ csubstr Parser::_peek_next_line(size_t pos) const
     csubstr rem{}; // declare here because of the goto
     size_t nlpos{}; // declare here because of the goto
     pos = pos == npos ? m_state->pos.offset : pos;
-    if(pos >= m_buf.len) goto next_is_empty;
+    if(pos >= m_buf.len)
+    {
+        goto next_is_empty;
+    }
 
     // look for the next newline chars, and jump to the right of those
     rem = from_next_line(m_buf.sub(pos));
-    if(rem.empty()) goto next_is_empty;
+    if(rem.empty())
+    {
+        goto next_is_empty;
+    }
 
     // now get everything up to and including the following newline chars
     nlpos = rem.first_of("\r\n");
