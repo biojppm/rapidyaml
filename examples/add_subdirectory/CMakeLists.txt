@@ -11,4 +11,4 @@ add_executable(ryml-consumer main.cpp)
 target_link_libraries(ryml-consumer ryml)
 add_custom_command(TARGET ryml-consumer POST_BUILD
     COMMAND $<TARGET_FILE:ryml-consumer>
-    COMMENT "running test: $<TARGET_FILE>:ryml-consumer")
+    COMMENT "running test: $<TARGET_FILE:ryml-consumer>")

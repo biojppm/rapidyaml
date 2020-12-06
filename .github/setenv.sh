@@ -33,6 +33,7 @@ function c4_show_info()
     echo "VG=$VG"
     echo "BM=$BM"
     echo "STD=$STD"
+    echo "ARM=$ARM"
     which cmake
     cmake --version
     case "$CXX_" in
@@ -57,8 +58,8 @@ function c4_show_info()
 function _c4bits()
 {
     case "$1" in
-        shared64|static64) echo 64 ;;
-        shared32|static32) echo 32 ;;
+        shared64|static64|arm64) echo 64 ;;
+        shared32|static32|arm32|arm) echo 32 ;;
         *) exit 1 ;;
     esac
 }
@@ -106,7 +107,7 @@ function c4_build_target()  # runs in parallel
     # watchout: the `--parallel` flag to `cmake --build` is broken:
     # https://discourse.cmake.org/t/parallel-does-not-really-enable-parallel-compiles-with-msbuild/964/10
     # https://gitlab.kitware.com/cmake/cmake/-/issues/20564
-    cmake --build $build_dir --config $BT --target $target -- $(_c4_parallel_build_flags)
+    cmake --build $build_dir --config $BT --target $target -- $(_c4_generator_build_flags) $(_c4_parallel_build_flags)
 }
 
 function c4_run_target()  # does not run in parallel
@@ -116,7 +117,7 @@ function c4_run_target()  # does not run in parallel
     target=$2
     build_dir=`pwd`/build/$id
     export CTEST_OUTPUT_ON_FAILURE=1
-    cmake --build $build_dir --config $BT --target $target
+    cmake --build $build_dir --config $BT --target $target -- $(_c4_generator_build_flags)
 }
 
 function c4_package()
@@ -161,22 +162,31 @@ function c4_cfg_test()
 {
     if _c4skipbitlink "$1" ; then return 0 ; fi
     id=$1
-    bits=$(_c4bits $id)
-    linktype=$(_c4linktype $id)
     #
     build_dir=`pwd`/build/$id
     install_dir=`pwd`/install/$id
     mkdir -p $build_dir
     mkdir -p $install_dir
     #
-    case "$linktype" in
-        static) _addcmkflags -DBUILD_SHARED_LIBS=OFF ;;
-        shared) _addcmkflags -DBUILD_SHARED_LIBS=ON ;;
-        *)
-            echo "ERROR: unknown linktype: $linktype"
+    if [ "$TOOLCHAIN" != "" ] ; then
+        toolchain_file=`pwd`/$TOOLCHAIN
+        if [ ! -f "$toolchain_file" ] ; then
+            echo "ERROR: toolchain not found: $toolchain_file"
             exit 1
-            ;;
-    esac
+        fi
+        _addcmkflags -DCMAKE_TOOLCHAIN_FILE=$toolchain_file
+    else
+        bits=$(_c4bits $id)
+        linktype=$(_c4linktype $id)
+        case "$linktype" in
+            static) _addcmkflags -DBUILD_SHARED_LIBS=OFF ;;
+            shared) _addcmkflags -DBUILD_SHARED_LIBS=ON ;;
+            *)
+                echo "ERROR: unknown linktype: $linktype"
+                exit 1
+                ;;
+        esac
+    fi
     if [ "$STD" != "" ] ; then
         _addcmkflags -DC4_CXX_STANDARD=$STD
         _addprojflags CXX_STANDARD=$STD
@@ -273,7 +283,9 @@ function c4_cfg_test()
                   -DCMAKE_C_FLAGS="-std=c99 -m$bits" -DCMAKE_CXX_FLAGS="-m$bits"
             cmake --build $build_dir --target help | sed 1d | sort
             ;;
-        "") # allow empty compiler
+        arm*|"")
+            # for empty compiler
+            # or arm-*
             cmake -S $PROJ_DIR -B $build_dir -DCMAKE_INSTALL_PREFIX="$install_dir" \
                   -DCMAKE_BUILD_TYPE=$BT $CMFLAGS
             ;;
@@ -352,6 +364,28 @@ function _c4_parallel_build_flags()
             else
                 echo "-j $NUM_JOBS_BUILD"
             fi
+            ;;
+        "") # allow empty compiler
+            ;;
+        *)
+            echo "unknown compiler"
+            exit 1
+            ;;
+    esac
+}
+
+function _c4_generator_build_flags()
+{
+    case "$CXX_" in
+        vs2019|vs2017|vs2015)
+            ;;
+        xcode)
+            # WTF???
+            # https://github.com/biojppm/rapidyaml/pull/97/checks?check_run_id=1504677928#step:7:964
+            # https://stackoverflow.com/questions/51153525/xcode-10-unable-to-attach-db-error
+            echo "-UseModernBuildSystem=NO"
+            ;;
+        *g++*|*gcc*|*clang*)
             ;;
         "") # allow empty compiler
             ;;

@@ -2053,7 +2053,7 @@ csubstr Parser::_extend_scanned_scalar(csubstr s)
             csubstr n = _scan_to_next_nonempty_line(scalar_indentation);
             if(!n.empty())
             {
-                RYML_ASSERT(m_state->line_contents.full.contains(n));
+                RYML_ASSERT(m_state->line_contents.full.is_super(n));
                 _c4dbgpf("rscalar[IMPL]: state_indref=%zu state_indentation=%zu scalar_indentation=%zu", m_state->indref, m_state->line_contents.indentation, scalar_indentation);
                 substr full = _scan_plain_scalar_impl(s, n, scalar_indentation);
                 if(full != s)
@@ -2129,7 +2129,7 @@ substr Parser::_scan_plain_scalar_expl(csubstr currscalar, csubstr peeked_line)
 
 substr Parser::_scan_plain_scalar_impl(csubstr currscalar, csubstr peeked_line, size_t indentation)
 {
-    RYML_ASSERT(m_buf.contains(currscalar));
+    RYML_ASSERT(m_buf.is_super(currscalar));
     // NOTE. there's a problem with _scan_to_next_nonempty_line(), as it counts newlines twice
     // size_t offs = m_state->pos.offset;   // so we workaround by directly counting from the end of the given scalar
     RYML_ASSERT(currscalar.end() >= m_buf.begin());
@@ -2195,7 +2195,7 @@ substr Parser::_scan_plain_scalar_impl(csubstr currscalar, csubstr peeked_line, 
 
 substr Parser::_scan_complex_key(csubstr currscalar, csubstr peeked_line)
 {
-    RYML_ASSERT(m_buf.contains(currscalar));
+    RYML_ASSERT(m_buf.is_super(currscalar));
     // NOTE. there's a problem with _scan_to_next_nonempty_line(), as it counts newlines twice
     // size_t offs = m_state->pos.offset;   // so we workaround by directly counting from the end of the given scalar
     RYML_ASSERT(currscalar.end() >= m_buf.begin());
@@ -2326,10 +2326,16 @@ C4_ALWAYS_INLINE size_t _extend_from_combined_newline(char nl, char following)
 csubstr from_next_line(csubstr rem)
 {
     size_t nlpos = rem.first_of("\r\n");
-    if(nlpos == csubstr::npos) return {};
+    if(nlpos == csubstr::npos)
+    {
+        return {};
+    }
     const char nl = rem[nlpos];
     rem = rem.right_of(nlpos);
-    if(rem.empty()) return {};
+    if(rem.empty())
+    {
+        return {};
+    }
     if(_extend_from_combined_newline(nl, rem.front()))
     {
         rem = rem.sub(1);
@@ -2342,11 +2348,17 @@ csubstr Parser::_peek_next_line(size_t pos) const
     csubstr rem{}; // declare here because of the goto
     size_t nlpos{}; // declare here because of the goto
     pos = pos == npos ? m_state->pos.offset : pos;
-    if(pos >= m_buf.len) goto next_is_empty;
+    if(pos >= m_buf.len)
+    {
+        goto next_is_empty;
+    }
 
     // look for the next newline chars, and jump to the right of those
     rem = from_next_line(m_buf.sub(pos));
-    if(rem.empty()) goto next_is_empty;
+    if(rem.empty())
+    {
+        goto next_is_empty;
+    }
 
     // now get everything up to and including the following newline chars
     nlpos = rem.first_of("\r\n");
@@ -3155,7 +3167,7 @@ csubstr Parser::_scan_quoted_scalar(const char q)
     if(s.begins_with(' '))
     {
         s = s.triml(' ');
-        RYML_ASSERT(m_buf.sub(b).contains(s));
+        RYML_ASSERT(m_buf.sub(b).is_super(s));
         RYML_ASSERT(s.begin() >= m_buf.sub(b).begin());
         _line_progressed((size_t)(s.begin() - m_buf.sub(b).begin()));
     }

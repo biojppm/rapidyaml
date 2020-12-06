@@ -795,7 +795,7 @@ public:
 
     bool in_arena(csubstr s) const
     {
-        return m_arena.contains(s);
+        return m_arena.is_super(s);
     }
 
     substr alloc_arena(size_t sz)
@@ -910,12 +910,12 @@ private:
 
     substr _relocated(csubstr s, substr next_arena) const
     {
-        RYML_ASSERT(m_arena.contains(s));
-        RYML_ASSERT(m_arena.sub(0, m_arena_pos).contains(s));
+        RYML_ASSERT(m_arena.is_super(s));
+        RYML_ASSERT(m_arena.sub(0, m_arena_pos).is_super(s));
         auto pos = (s.str - m_arena.str);
         substr r(next_arena.str + pos, s.len);
         RYML_ASSERT(r.str - next_arena.str == pos);
-        RYML_ASSERT(next_arena.sub(0, m_arena_pos).contains(r));
+        RYML_ASSERT(next_arena.sub(0, m_arena_pos).is_super(r));
         return r;
     }
 
