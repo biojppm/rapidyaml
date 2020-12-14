@@ -557,6 +557,9 @@ jobs:
     runs-on: ubuntu-latest
     #needs: [test_coverage, test_windows, test_macosx, test_gcc_canary, test_clang_canary, test_clang_tidy, test_gcc_extended, test_clang_extended, test_clang_sanitize, test_api]
     steps:
+      - name: Install requirements
+        run: |
+          sudo -E pip install git-archive-all
       - name: Get version
         id: get_version
         # https://github.community/t/how-to-get-just-the-tag-name/16241/11
@@ -579,7 +582,34 @@ jobs:
           draft: true  # to create a draft (unpublished) release, false to create a published one. Default: false
           prerelease: ${{contains(github.ref, '-rc')}}
           body_path: ${{github.workspace}}/changelog/${{steps.get_version.outputs.SRC_VERSION}}.md
-      - name: Store Release URL
+      - name: Create source packs
+        id: src_pack
+        run: |
+          version=${{steps.get_version.outputs.SRC_VERSION}}
+          name=ryml-$version
+          git-archive-all --prefix $name $name.tgz
+          git-archive-all --prefix $name $name.zip
+          echo ::set-output name=TGZ::$name.tgz
+          echo ::set-output name=ZIP::$name.zip
+      - name: Upload source pack: tgz
+        id: upload_src_tgz_to_release
+        uses: actions/upload-release-asset@v1.0.1
+        env: {GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}"}
+        with:
+          upload_url: ${{steps.create_release.outputs.upload_url}}
+          asset_path: ${{steps.src_pack.outputs.TGZ}}
+          asset_name: ${{steps.src_pack.outputs.TGZ}}
+          asset_content_type: application/gzip
+      - name: Upload source pack: zip
+        id: upload_src_zip_to_release
+        uses: actions/upload-release-asset@v1.0.1
+        env: {GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}"}
+        with:
+          upload_url: ${{steps.create_release.outputs.upload_url}}
+          asset_path: ${{steps.src_pack.outputs.ZIP}}
+          asset_name: ${{steps.src_pack.outputs.ZIP}}
+          asset_content_type: application/zip
+      - name: Save Release URL for uploading binary artifacts
         run: |
           echo "UPLOAD_URL: ${{steps.create_release.outputs.upload_url}}"
           echo "${{steps.create_release.outputs.upload_url}}" > ./upload_url
