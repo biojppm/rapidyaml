@@ -1,17 +1,24 @@
 #!/usr/bin/env python
-from distutils.core import setup, Extension
+from pathlib import Path
+from setuptools import setup
+from cmake_build_extension import BuildExtension, CMakeExtension
 
-_ext = Extension(
-    '_' + '@_NAME@',
-    sources=[@_SRC@],
-    include_dirs=[@_INC_DIRS@],
-)
+# define a CMake package
+ext = CMakeExtension('ryml.ryml',
+                     install_prefix='',
+                     source_dir=str(Path("../../").absolute()),
+                     cmake_component='python',
+                     cmake_configure_options=[
+                        "-DRYML_BUILD_API:BOOL=ON",
+                        ])
 
-setup(
-    name        = '@_NAME@',
-    version     = '@_VERSION@',
-    author      = "@_AUTHOR@",
-    description = """@_DESC@""",
-    ext_modules = [_ext],
-    py_modules  = ["@_NAME@"],
-)
+setup(name='rapidyaml',
+    version='1.0',
+    packages=['ryml'],
+    ext_modules=[ext],
+    cmdclass=dict(build_ext=BuildExtension),
+    author='Joao Paulo Magalhaes',
+    url='https://github.com/biojppm/rapidyaml',
+    description='This is a test',
+    license='MIT',
+    )

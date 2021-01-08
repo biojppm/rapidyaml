@@ -1,6 +1,6 @@
 option(RYML_BUILD_API_PYTHON "Enable Python API" ON)
 option(RYML_API_TESTS "Enable API tests" ${RYML_BUILD_TESTS})
-option(RYML_API_BENCHMARK "Enable API tests" ${RYML_BUILD_BENCHMARKS})
+option(RYML_API_BENCHMARKS "Enable API tests" ${RYML_BUILD_BENCHMARKS})
 
 c4_log("enabling API")
 
@@ -76,50 +76,24 @@ if(RYML_BUILD_API_PYTHON)
     if(WIN32)
         target_compile_definitions(${t} PUBLIC __WIN32__)
     endif()
-    #target_link_libraries(${t} PUBLIC ryml) #"${RYML_SRC_DIR};${PROJECT_SOURCE_DIR}/ext/c4core/src")
-    #target_include_directories(${t} PUBLIC "${RYML_SRC_DIR};${PROJECT_SOURCE_DIR}/ext/c4core/src")
-    #
-    # alternative 2: use distutils to create the extension
-    #
-    # get the list of generated files and format it as a python string list
-    #c4_get_transitive_property(ryml SOURCES ryml_srcs)
-    #c4_get_transitive_property(ryml INCLUDE_DIRS ryml_incs)
-    #pylist("${ryml_srcs};rymlPYTHON_wrap.cxx" ryml_srcs)
-    #pylist("${ryml_incs}" ryml_incs)
-    #function(pylist li out)
-    #    print_var(li)
-    #    set(l)
-    #    foreach(f ${li})
-    #        set(l "${l}'${f}', ")
-    #    endforeach()
-    #    set(${out} ${l} PARENT_SCOPE)
-    #endfunction()
-    #function(create_setup_py src dst)
-    #    set(opt0arg
-    #        )
-    #    set(opt1arg
-    #        NAME
-    #        VERSION
-    #        AUTHOR
-    #        DESC
-    #        SRC
-    #        )
-    #    set(optnarg
-    #        PYMODS
-    #        )
-    #    cmake_parse_arguments("" "${opt0arg}" "${opt1arg}" "${optnarg}" "${ARGN}")
-    #    configure_file("${src}" "${dst}" @ONLY)
-    #endfunction()
-    #create_setup_py(${RYML_API_DIR}/python/setup.py ${g}/setup.py
-    #    NAME ryml
-    #    VERSION ${RYML_VERSION}
-    #    AUTHOR "${RYML_AUTHOR}"
-    #    DESC "${RYML_DESC}"
-    #    SRC "${genfiles_str}"
-    #    )
-    #add_custom_target(${t}-distutils
-    #    COMMAND ${Python3_EXECUTABLE} setup.py build_ext --inplace
-    #    WORKING_DIRECTORY ${g})
+
+    # Install the SWIG .so/.dll file
+    install(
+        TARGETS ${t}
+        COMPONENT python
+        LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX})
+
+    get_property(WRAPPER_PY_FILE
+        TARGET ${t}
+        PROPERTY SWIG_SUPPORT_FILES)
+
+    # Install the .py file
+    install(
+        FILES ${WRAPPER_PY_FILE}
+        COMPONENT python
+        DESTINATION ${CMAKE_INSTALL_PREFIX})
 
     set(pydir ${CMAKE_CURRENT_LIST_DIR}/python)
     if(RYML_API_TESTS)
@@ -152,12 +126,14 @@ if(RYML_BUILD_API_PYTHON)
         add_dependencies(ryml-api-bm ryml-api-bm-python3)
         c4_set_folder_remote_project_targets("bm" ryml-api-bm-python3)
         set(script ${pydir}/parse_bm.py)
+        c4_add_benchmark_cmd(ryml-api-bm-python3-fpga-device
+            COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${r} ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/python/parse_bm.py ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/fpga_device.yml ryml)
         c4_add_benchmark_cmd(ryml-api-bm-python3-travis
-            COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${r} ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/travis.yml ryml)
+            COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${r} ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/python/parse_bm.py ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/travis.yml ryml)
         c4_add_benchmark_cmd(ryml-api-bm-python3-appveyor
-            COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${r} ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/appveyor.yml ryml)
+            COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${r} ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/python/parse_bm.py ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/appveyor.yml ryml)
         c4_add_benchmark_cmd(ryml-api-bm-python3-compile_commands
-            COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${r} ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/compile_commands.json ryml)
+            COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${r} ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/python/parse_bm.py ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/compile_commands.json ryml)
         c4_set_folder_remote_project_targets("bm" ryml-bm-api-python3-travis)
         c4_set_folder_remote_project_targets("bm" ryml-bm-api-python3-appveyor)
         c4_set_folder_remote_project_targets("bm" ryml-bm-api-python3-compile_commands)
