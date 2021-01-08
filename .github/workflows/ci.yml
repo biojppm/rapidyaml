@@ -539,15 +539,32 @@ jobs:
           - {bt: Release, os: ubuntu-18.04}
           - {bt: Release, os: windows-2019}
     env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}",
-          API: ON, CMAKE_FLAGS: "-DRYML_DEV=OFF -DRYML_BUILD_API=ON -DRYML_API_TESTS=ON -DRYML_API_BENCHMARKS=OFF"}
+          API: ON, CMAKE_FLAGS: "-DRYML_DEV=OFF -DRYML_BUILD_API=ON -DRYML_API_TESTS=ON -DRYML_API_BENCHMARKS=ON"}
     steps:
       - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
       - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
       - {name: show info, run: source .github/setenv.sh && c4_show_info && which swig }
       - name: api-shared64-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test shared64
-      - {name: api-shared64-python-build, run: source .github/setenv.sh && c4_build_target shared64 ryml-api-python3}
-      - {name: api-shared64-python-test, run: source .github/setenv.sh && c4_build_target shared64 ryml-api-test-python3}
+      - name: api-shared64-python-build
+        run: |
+            python3 -mvenv env
+            source .github/setenv.sh
+            source env/bin/activate
+            cd api/python
+            pip install -r requirements_dev.txt
+            python3 setup.py bdist_wheel
+            pip install dist/*.whl
+      - name: api-shared64-python-test
+        run: |
+            source .github/setenv.sh
+            source env/bin/activate
+            c4_build_target shared64 ryml-api-test-python3
+      - name: api-shared64-python-benchmark
+        run: |
+            source .github/setenv.sh
+            source env/bin/activate
+            c4_build_target shared64 ryml-api-bm-python3
 
   #----------------------------------------------------------------------------
   # useful to iterate when fixing the release
@@ -592,7 +609,7 @@ jobs:
           git-archive-all --prefix $name $name.zip
           echo ::set-output name=TGZ::$name.tgz
           echo ::set-output name=ZIP::$name.zip
-      - name: Upload source pack: tgz
+      - name: "Upload source pack: tgz"
         id: upload_src_tgz_to_release
         uses: actions/upload-release-asset@v1.0.1
         env: {GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}"}
@@ -601,7 +618,7 @@ jobs:
           asset_path: ${{steps.src_pack.outputs.TGZ}}
           asset_name: ${{steps.src_pack.outputs.TGZ}}
           asset_content_type: application/gzip
-      - name: Upload source pack: zip
+      - name: "Upload source pack: zip"
         id: upload_src_zip_to_release
         uses: actions/upload-release-asset@v1.0.1
         env: {GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}"}
