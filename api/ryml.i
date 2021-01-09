@@ -10,7 +10,8 @@
 // extension, inserting the module init code
 #define SWIG_FILE_WITH_INIT
 
-#include "ryml.hpp"
+#include <c4/yml/std/std.hpp>
+#include <c4/yml/yml.hpp>
 
 namespace c4 {
 namespace yml {
@@ -117,6 +118,11 @@ void parse_substr(c4::substr s, c4::yml::Tree *t)
     c4::yml::parse(s, t);
 }
 
+std::string emit_std_string(const c4::yml::Tree &t)
+{
+    return c4::yml::emitrs<std::string>(t);
+}
+
 
 // force a roundtrip to C++, which triggers a conversion to csubstr and returns it as a memoryview
 c4::csubstr _get_as_csubstr(c4::csubstr s)
@@ -198,6 +204,11 @@ def parse_in_situ(buf, **kwargs):
 
 def parse(buf, **kwargs):
     return _call_parse(parse_csubstr, buf, **kwargs)
+
+
+def emit(**kwargs):
+    tree = kwargs.get("tree", Tree())
+    return emit_std_string(tree)
 
 
 def _call_parse(parse_fn, buf, **kwargs):
