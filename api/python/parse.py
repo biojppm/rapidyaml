@@ -27,7 +27,7 @@ class TestSubstrInterop(unittest.TestCase):
     def test12_str2substr(self):
         s = ""
         with self.assertRaises(TypeError) as context:
-            c = ryml.as_substr(s)
+            _ = ryml.as_substr(s)
         self.assertTrue(type(context.exception), TypeError)
 
     # ------------------------------------------------
@@ -50,7 +50,7 @@ class TestSubstrInterop(unittest.TestCase):
     def test22_bytes2substr(self):
         s = b"foo22"
         with self.assertRaises(TypeError) as context:
-            c = ryml.as_substr(s)
+            _ = ryml.as_substr(s)
         self.assertTrue(type(context.exception), TypeError)
 
     # ------------------------------------------------
