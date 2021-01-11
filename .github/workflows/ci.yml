@@ -542,18 +542,20 @@ jobs:
           API: ON, CMAKE_FLAGS: "-DRYML_DEV=OFF -DRYML_BUILD_API=ON -DRYML_API_TESTS=ON -DRYML_API_BENCHMARKS=OFF"}
     steps:
       - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+      - {name: python3, uses: actions/setup-python@v2, with: {python-version: 3.7}}
       - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
       - {name: show info, run: source .github/setenv.sh && c4_show_info && which swig }
       - name: api-shared64-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test shared64
       - name: api-shared64-python-build
         run: |
-            python3 -mvenv env
+            python --version
+            python -mvenv env
             source .github/setenv.sh
             source env/bin/activate
             cd api/python
             pip install -r requirements_dev.txt
-            python3 setup.py bdist_wheel
+            python setup.py bdist_wheel
             pip install dist/*.whl
       - name: api-shared64-python-test
         run: |
