@@ -106,17 +106,15 @@ if(RYML_BUILD_API_PYTHON)
         c4_set_folder_remote_project_targets("test" ryml-api-test-python3)
         function(add_python_test script)
             get_filename_component(script_name ${script} NAME_WE)
-            set(script ${pydir}/${script})
+            set(script ${pydir}/test/${script})
             set(tn ryml-api-test-python3-${script_name})
             set(cmd ${CMAKE_COMMAND} -E env ${Python3_EXECUTABLE} ${script})
             add_custom_target(${tn}
                 COMMAND ${cmd}
-                DEPENDS ${t}
-                WORKING_DIRECTORY ${pydir})
+                DEPENDS ${t})
             c4_set_folder_remote_project_targets("test" ${tn})
             add_test(NAME ${tn}-run
-                COMMAND ${cmd}
-                WORKING_DIRECTORY ${pydir})
+                COMMAND ${cmd})
         endfunction()
         add_python_test(parse.py)
     endif()
@@ -125,15 +123,13 @@ if(RYML_BUILD_API_PYTHON)
         add_custom_target(ryml-api-bm-python3)
         add_dependencies(ryml-api-bm ryml-api-bm-python3)
         c4_set_folder_remote_project_targets("bm" ryml-api-bm-python3)
-        set(script ${pydir}/parse_bm.py)
-        c4_add_benchmark_cmd(ryml-api-bm-python3-fpga-device
-            COMMAND ${CMAKE_COMMAND} -E env ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/python/parse_bm.py ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/fpga_device.yml ryml)
+        set(script ${pydir}/test/parse_bm.py)
         c4_add_benchmark_cmd(ryml-api-bm-python3-travis
-            COMMAND ${CMAKE_COMMAND} -E env ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/python/parse_bm.py ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/travis.yml ryml)
+            COMMAND ${CMAKE_COMMAND} -E env ${Python3_EXECUTABLE} ${script} ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/travis.yml ryml)
         c4_add_benchmark_cmd(ryml-api-bm-python3-appveyor
-            COMMAND ${CMAKE_COMMAND} -E env ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/python/parse_bm.py ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/appveyor.yml ryml)
+            COMMAND ${CMAKE_COMMAND} -E env ${Python3_EXECUTABLE} ${script} ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/appveyor.yml ryml)
         c4_add_benchmark_cmd(ryml-api-bm-python3-compile_commands
-            COMMAND ${CMAKE_COMMAND} -E env ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/python/parse_bm.py ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/compile_commands.json ryml)
+            COMMAND ${CMAKE_COMMAND} -E env ${Python3_EXECUTABLE} ${script} ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/compile_commands.json ryml)
         c4_set_folder_remote_project_targets("bm" ryml-bm-api-python3-travis)
         c4_set_folder_remote_project_targets("bm" ryml-bm-api-python3-appveyor)
         c4_set_folder_remote_project_targets("bm" ryml-bm-api-python3-compile_commands)
