@@ -1,6 +1,5 @@
 
 %module ryml
-%include "std_string.i"
 
 
 //-----------------------------------------------------------------------------
@@ -11,7 +10,6 @@
 // extension, inserting the module init code
 #define SWIG_FILE_WITH_INIT
 
-#include <c4/yml/std/std.hpp>
 #include <c4/yml/yml.hpp>
 
 namespace c4 {
@@ -30,6 +28,7 @@ using csubstr = c4::csubstr;
 
 %apply (const char *STRING, size_t LENGTH) { (const char *str, size_t len) };
 %apply (char *STRING, size_t LENGTH) { (char *str, size_t len) };
+%newobject emit_malloc;
 
 %typemap(in) c4::substr {
 #if defined(SWIGPYTHON)
@@ -119,9 +118,18 @@ void parse_substr(c4::substr s, c4::yml::Tree *t)
     c4::yml::parse(s, t);
 }
 
-std::string emit_std_string(const c4::yml::Tree &t)
+char * emit_malloc(const c4::yml::Tree &t, size_t id)
 {
-    return c4::yml::emitrs<std::string>(t);
+    c4::substr buf;
+    c4::substr ret = c4::yml::emit(t, id, buf, /*error_on_excess*/false);
+    if(ret.str == nullptr && ret.len > 0)
+    {
+        char * alloc = static_cast<char*>(malloc(ret.len));
+        c4::substr alloced_buf(alloc, ret.len);
+        ret = c4::yml::emit(t, id, alloced_buf, /*error_on_excess*/true);
+        ret.str[ret.len] = 0;
+    }
+    return ret.str;
 }
 
 
@@ -207,8 +215,11 @@ def parse(buf, **kwargs):
     return _call_parse(parse_csubstr, buf, **kwargs)
 
 
-def emit(tree):
-    return emit_std_string(tree)
+def emit(tree, id=None):
+    if id is None:
+        id = tree.root_id()
+
+    return emit_malloc(tree, id)
 
 
 def _call_parse(parse_fn, buf, **kwargs):
