@@ -560,6 +560,64 @@ TEST(serialize, std_string)
     EXPECT_EQ(s, "bar");
 }
 
+TEST(serialize, anchor_and_ref_round_tree)
+{
+    const char yaml[] = R"(anchor_objects:
+  - &id001
+    name: id001
+  - &id002
+    name: id002
+  - name: id003
+  - &id004
+    name: id004
+references:
+  reference_key: *id001
+  reference_list:
+    - *id002
+    - *id004
+)";
+
+    Tree t = parse(yaml);
+    std::string cmpbuf;
+    emitrs(t, &cmpbuf);
+    EXPECT_EQ(cmpbuf, yaml);
+}
+
+TEST(serialize, create_anchor_ref_tree)
+{
+    const char expected_yaml[] = R"(anchor_objects:
+  - &id001
+    name: a_name
+reference_list:
+  - *id001
+)";
+
+    Tree tree;
+    auto root_id = tree.root_id();
+    tree.to_map(root_id);
+
+    auto anchor_list_id = tree.append_child(root_id);
+    tree.to_seq(anchor_list_id, "anchor_objects");
+
+    auto anchor_map0 = tree.append_child(anchor_list_id);
+    tree.to_map(anchor_map0);
+    tree.set_val_anchor(anchor_map0, "id001");
+
+    auto anchor_elem0 = tree.append_child(anchor_map0);
+    tree.to_keyval(anchor_elem0, "name", "a_name");
+
+    auto ref_list_id = tree.append_child(root_id);
+    tree.to_seq(ref_list_id, "reference_list");
+
+    auto elem0_id = tree.append_child(ref_list_id);
+    tree.to_val(elem0_id, "*id001"); // FIXME: This line should not be required
+    tree.set_val_ref(elem0_id, "id001");
+
+    std::string cmpbuf;
+    emitrs(tree, &cmpbuf);
+    EXPECT_EQ(cmpbuf, expected_yaml);
+}
+
 } /*namespace yml*/
 } /*namespace c4*/
 
