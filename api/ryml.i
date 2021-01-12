@@ -132,6 +132,20 @@ char * emit_malloc(const c4::yml::Tree &t, size_t id)
     return ret.str;
 }
 
+size_t emit_length(const c4::yml::Tree &t, size_t id)
+{
+    c4::substr buf;
+    c4::substr ret = c4::yml::emit(t, id, buf, /*error_on_excess*/false);
+    return ret.len;
+}
+
+bool emit_to_substr(const c4::yml::Tree &t, size_t id, c4::substr s, size_t *OUTPUT)
+{
+    c4::substr result = c4::yml::emit(t, id, s, /*error_on_excess*/false);
+    *OUTPUT = result.len;
+    return result.str == nullptr;
+}
+
 
 // force a roundtrip to C++, which triggers a conversion to csubstr and returns it as a memoryview
 c4::csubstr _get_as_csubstr(c4::csubstr s)
@@ -221,6 +235,22 @@ def emit(tree, id=None):
 
     return emit_malloc(tree, id)
 
+def compute_emit_length(tree, id=None):
+    if id is None:
+        id = tree.root_id()
+
+    return emit_length(tree, id)
+
+def emit_in_place(tree, buf, id=None):
+    if id is None:
+        id = tree.root_id()
+
+    (failed, expected_size) = emit_to_substr(tree, id, buf)
+    if failed:
+        raise IndexError("Output buffer has {} bytes, but emit required {} bytes".format(
+            len(buf), expected_size))
+
+    return memoryview(buf)[:expected_size]
 
 def _call_parse(parse_fn, buf, **kwargs):
     tree = kwargs.get("tree", Tree())
