@@ -1,5 +1,6 @@
 
 %module ryml
+%include "std_string.i"
 
 
 //-----------------------------------------------------------------------------
@@ -206,8 +207,7 @@ def parse(buf, **kwargs):
     return _call_parse(parse_csubstr, buf, **kwargs)
 
 
-def emit(**kwargs):
-    tree = kwargs.get("tree", Tree())
+def emit(tree):
     return emit_std_string(tree)
 
 
@@ -401,6 +401,9 @@ public:
     void set_key_ref   (size_t node, c4::csubstr ref   );
     void set_val_ref   (size_t node, c4::csubstr ref   );
 
+    void _set_key(size_t node, c4::csubstr key, int more_flags=0);
+    void _set_val(size_t node, c4::csubstr val, int more_flags=0);
+
     void set_val_tag(size_t node, c4::csubstr tag);
     void rem_key_anchor(size_t node);
     void rem_val_anchor(size_t node);
@@ -433,6 +436,8 @@ public:
     void remove_children(size_t node);
 
 public:
+
+    void reorder();
 
     /** change the node's position in the parent */
     void move(size_t node, size_t after);
