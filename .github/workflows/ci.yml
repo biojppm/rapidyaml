@@ -592,7 +592,7 @@ jobs:
           git-archive-all --prefix $name $name.zip
           echo ::set-output name=TGZ::$name.tgz
           echo ::set-output name=ZIP::$name.zip
-      - name: Upload source pack: tgz
+      - name: "Upload source pack: tgz"
         id: upload_src_tgz_to_release
         uses: actions/upload-release-asset@v1.0.1
         env: {GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}"}
@@ -601,7 +601,7 @@ jobs:
           asset_path: ${{steps.src_pack.outputs.TGZ}}
           asset_name: ${{steps.src_pack.outputs.TGZ}}
           asset_content_type: application/gzip
-      - name: Upload source pack: zip
+      - name: "Upload source pack: zip"
         id: upload_src_zip_to_release
         uses: actions/upload-release-asset@v1.0.1
         env: {GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}"}
