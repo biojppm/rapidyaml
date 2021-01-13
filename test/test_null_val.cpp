@@ -2,19 +2,6 @@
 
 namespace c4 {
 namespace yml {
-#define NULL_VAL_CASES \
-    "null map vals, expl",\
-    "null map vals, impl",\
-    "null seq vals, impl",\
-    "null seq vals in map, impl, mixed 1",\
-    "null seq vals in map, impl, mixed 2",\
-    "null seq vals in map, impl, mixed 3",\
-    "null map vals in seq, impl, mixed 1",\
-    "null map vals in seq, impl, mixed 2",\
-    "null map vals in seq, impl, mixed 3",\
-    "issue84.1",\
-    "issue84.2",\
-    "issue84.3"
 
 
 TEST(null_val, simple)
@@ -37,8 +24,12 @@ TEST(null_val, simple)
     ASSERT_EQ(tree["one"].num_children(), 1u);
     EXPECT_EQ(tree["one"][0].val(), nullptr);
     EXPECT_EQ(tree["empty"].num_children(), 0u);
+}
 
-    tree = parse(R"(
+
+TEST(null_val, simple_seq)
+{
+    auto tree = parse(R"(
 # these have no space after the dash
 -
 -
@@ -57,6 +48,60 @@ TEST(null_val, simple)
     EXPECT_EQ(tree[5].val(), nullptr);
 }
 
+
+TEST(null_val, issue103)
+{
+    auto tree = parse(R"({test: null})");
+    ASSERT_EQ(tree.size(), 2u);
+    EXPECT_EQ(tree.root_id(), 0u);
+    EXPECT_EQ(tree.first_child(0), 1u);
+    EXPECT_EQ(tree.type(1), KEY|VAL);
+    EXPECT_EQ(tree.key(1), "test");
+    EXPECT_EQ(tree.val(1), nullptr); // this is failing
+
+    tree = parse(R"({test: })");
+    ASSERT_EQ(tree.size(), 2u);
+    EXPECT_EQ(tree.root_id(), 0u);
+    EXPECT_EQ(tree.first_child(0), 1u);
+    EXPECT_EQ(tree.type(1), KEY|VAL);
+    EXPECT_EQ(tree.key(1), "test");
+    EXPECT_EQ(tree.val(1), nullptr);
+
+    tree = parse(R"({test: ~})");
+    ASSERT_EQ(tree.size(), 2u);
+    EXPECT_EQ(tree.root_id(), 0u);
+    EXPECT_EQ(tree.first_child(0), 1u);
+    EXPECT_EQ(tree.type(1), KEY|VAL);
+    EXPECT_EQ(tree.key(1), "test");
+    EXPECT_EQ(tree.val(1), nullptr);
+
+    tree = parse(R"({test: "null"})");
+    ASSERT_EQ(tree.size(), 2u);
+    EXPECT_EQ(tree.root_id(), 0u);
+    EXPECT_EQ(tree.first_child(0), 1u);
+    EXPECT_EQ(tree.type(1), KEY|VAL);
+    EXPECT_EQ(tree.key(1), "test");
+    EXPECT_EQ(tree.val(1), "null");
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+#define NULL_VAL_CASES \
+    "null map vals, expl",\
+    "null map vals, impl",\
+    "null seq vals, impl",\
+    "null seq vals in map, impl, mixed 1",\
+    "null seq vals in map, impl, mixed 2",\
+    "null seq vals in map, impl, mixed 3",\
+    "null map vals in seq, impl, mixed 1",\
+    "null map vals in seq, impl, mixed 2",\
+    "null map vals in seq, impl, mixed 3",\
+    "issue84.1",\
+    "issue84.2",\
+    "issue84.3"
 
 CASE_GROUP(NULL_VAL)
 {
