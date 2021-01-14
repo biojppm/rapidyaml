@@ -93,13 +93,17 @@ using csubstr = c4::csubstr;
 
 %typemap(out) c4::csubstr {
 #if defined(SWIGPYTHON)
-  PyObject *obj = PyMemoryView_FromMemory((char*)$1.str, $1.len, PyBUF_READ);
-  if( ! obj)
-  {
-      PyErr_SetString(PyExc_TypeError, "could not get readonly memory from c4::csubstr - have you passed a str?");
-      SWIG_fail;
+  if($1.str == nullptr) {
+    $result = Py_None;
+  } else {
+    PyObject *obj = PyMemoryView_FromMemory((char*)$1.str, $1.len, PyBUF_READ);
+    if( ! obj)
+    {
+        PyErr_SetString(PyExc_TypeError, "could not get readonly memory from c4::csubstr - have you passed a str?");
+        SWIG_fail;
+    }
+    $result = obj;
   }
-  $result = obj;
 #else
 #error no "out" typemap defined for this export language
 #endif
