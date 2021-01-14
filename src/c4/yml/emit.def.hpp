@@ -71,12 +71,33 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, size_t 
         this->Writer::_do_write('\n');
         return;
     }
+    else if(t.has_key(id) && t.is_val_ref(id))
+    {
+        RYML_ASSERT(t.has_parent(id));
+        this->Writer::_do_write(ind);
+        _writek(t, id, ilevel);
+        this->Writer::_do_write(": ");
+        this->Writer::_do_write('*');
+        this->Writer::_do_write(t.val_ref(id));
+        this->Writer::_do_write('\n');
+        return;
+    }
     else if(t.is_val(id))
     {
         RYML_ASSERT(t.has_parent(id));
         this->Writer::_do_write(ind);
         this->Writer::_do_write("- ");
         _writev(t, id, ilevel);
+        this->Writer::_do_write('\n');
+        return;
+    }
+    else if(t.is_val_ref(id))
+    {
+        RYML_ASSERT(t.has_parent(id));
+        this->Writer::_do_write(ind);
+        this->Writer::_do_write("- ");
+        this->Writer::_do_write('*');
+        this->Writer::_do_write(t.val_ref(id));
         this->Writer::_do_write('\n');
         return;
     }
