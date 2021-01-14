@@ -610,7 +610,6 @@ reference_list:
     tree.to_seq(ref_list_id, "reference_list");
 
     auto elem0_id = tree.append_child(ref_list_id);
-    tree.to_val(elem0_id, "*id001"); // FIXME: This line should not be required
     tree.set_val_ref(elem0_id, "id001");
 
     std::string cmpbuf;
