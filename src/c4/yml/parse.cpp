@@ -2021,6 +2021,17 @@ bool Parser::_scan_scalar(csubstr *scalar)
 
     _c4dbgpf("scalar was '%.*s'", _c4prsp(s));
 
+    if(s == '~')
+    {
+        _c4dbgp("scalar was '~', so use null");
+        s = {};
+    }
+    else if(s == "null")
+    {
+        _c4dbgp("scalar was null");
+        s = {};
+    }
+
     *scalar = s;
     return true;
 }
@@ -2884,11 +2895,6 @@ NodeData* Parser::_append_val(csubstr val)
     RYML_ASSERT(node(m_state) != nullptr);
     RYML_ASSERT(node(m_state)->is_seq());
     _c4dbgpf("append val: '%.*s' to parent id=%zd (level=%zd)", _c4prsp(val), m_state->node_id, m_state->level);
-    if(val == '~')
-    {
-        _c4dbgp("val was '~', so use null");
-        val = {};
-    }
     size_t nid = m_tree->append_child(m_state->node_id);
     m_tree->to_val(nid, val);
     _c4dbgpf("append val: id=%zd key='%.*s' val='%.*s'", nid, _c4prsp(m_tree->get(nid)->m_key.scalar), _c4prsp(m_tree->get(nid)->m_val.scalar));
@@ -2907,11 +2913,6 @@ NodeData* Parser::_append_key_val(csubstr val)
     RYML_ASSERT(node(m_state)->is_map());
     csubstr key = _consume_scalar();
     _c4dbgpf("append keyval: '%.*s' '%.*s' to parent id=%zd (level=%zd)", _c4prsp(key), _c4prsp(val), m_state->node_id, m_state->level);
-    if(val == '~')
-    {
-        _c4dbgp("val was '~', so use null");
-        val = {};
-    }
     size_t nid = m_tree->append_child(m_state->node_id);
     m_tree->to_keyval(nid, key, val);
     _c4dbgpf("append keyval: id=%zd key='%.*s' val='%.*s'", nid, _c4prsp(m_tree->get(nid)->key()), _c4prsp(m_tree->get(nid)->val()));

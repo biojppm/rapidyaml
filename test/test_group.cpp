@@ -50,7 +50,7 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
             parse(cd->src, &cd->parsed_tree);
             #ifdef RYML_DBG
             // if this point was reached, then it means that the expected
-            // error failed to materialize. So print debugging info.
+            // error failed to occur. So print debugging info.
             std::cout << "failed to catch expected error while parsing.\nPARSED TREE:\n";
             print_tree(cd->parsed_tree);
             #endif

@@ -100,6 +100,8 @@ struct TaggedScalar
     csubstr scalar;
     template<size_t N, size_t M>
     TaggedScalar(const char (&t)[N], const char (&s)[M]) : tag(t), scalar(s) {}
+    template<size_t N>
+    TaggedScalar(const char (&t)[N], std::nullptr_t) : tag(t), scalar() {}
 };
 
 struct AnchorRef
@@ -158,24 +160,33 @@ public:
     // val
     template<size_t N> explicit CaseNode(const char (&v)[N]   ) : type((VAL       )), key(), key_tag(), key_anchor(), val(v       ), val_tag(     ), val_anchor(), children(), parent(nullptr) { _set_parent(); }
                        explicit CaseNode(TaggedScalar const& v) : type((VAL|VALTAG)), key(), key_tag(), key_anchor(), val(v.scalar), val_tag(v.tag), val_anchor(), children(), parent(nullptr) { _set_parent(); }
+                       explicit CaseNode(std::nullptr_t       ) : type((VAL       )), key(), key_tag(), key_anchor(), val(        ), val_tag(     ), val_anchor(), children(), parent(nullptr) { _set_parent(); }
     // val, with anchor/ref
     template<size_t N> explicit CaseNode(const char (&v)[N]   , AnchorRef const& arv) : type((arv.type|VAL       )), key(), key_tag(), key_anchor(), val(v       ), val_tag(     ), val_anchor(arv), children(), parent(nullptr) { _set_parent(); }
                        explicit CaseNode(TaggedScalar const& v, AnchorRef const& arv) : type((arv.type|VAL|VALTAG)), key(), key_tag(), key_anchor(), val(v.scalar), val_tag(v.tag), val_anchor(arv), children(), parent(nullptr) { _set_parent(); }
+                       explicit CaseNode(std::nullptr_t       , AnchorRef const& arv) : type((arv.type|VAL       )), key(), key_tag(), key_anchor(), val(        ), val_tag(     ), val_anchor(arv), children(), parent(nullptr) { _set_parent(); }
 
 
     // val, explicit type
     template<size_t N> explicit CaseNode(NodeType t, const char (&v)[N]   ) : type((VAL|t       )), key(), key_tag(), key_anchor(), val(v       ), val_tag(     ), val_anchor(), children(), parent(nullptr) { _set_parent(); }
                        explicit CaseNode(NodeType t, TaggedScalar const& v) : type((VAL|VALTAG|t)), key(), key_tag(), key_anchor(), val(v.scalar), val_tag(v.tag), val_anchor(), children(), parent(nullptr) { _set_parent(); }
+                       explicit CaseNode(NodeType t, std::nullptr_t       ) : type((VAL       |t)), key(), key_tag(), key_anchor(), val(        ), val_tag(     ), val_anchor(), children(), parent(nullptr) { _set_parent(); }
     // val, explicit type, with val anchor/ref
     template<size_t N> explicit CaseNode(NodeType t, const char (&v)[N]   , AnchorRef const& arv) : type((arv.type|VAL|t       )), key(), key_tag(), key_anchor(), val(v       ), val_tag(     ), val_anchor(arv), children(), parent(nullptr) { _set_parent(); }
                        explicit CaseNode(NodeType t, TaggedScalar const& v, AnchorRef const& arv) : type((arv.type|VAL|VALTAG|t)), key(), key_tag(), key_anchor(), val(v.scalar), val_tag(v.tag), val_anchor(arv), children(), parent(nullptr) { _set_parent(); }
+                       explicit CaseNode(NodeType t, std::nullptr_t       , AnchorRef const& arv) : type((arv.type|VAL       |t)), key(), key_tag(), key_anchor(), val(        ), val_tag(     ), val_anchor(arv), children(), parent(nullptr) { _set_parent(); }
 
 
     // keyval
     template<size_t N, size_t M> explicit CaseNode(const char (&k)[N]   , const char (&v)[M]   ) : type((KEYVAL              )), key(k       ), key_tag(     ), key_anchor(), val(v       ), val_tag(     ), val_anchor(), children(), parent(nullptr) { _set_parent(); }
+    template<size_t M>           explicit CaseNode(std::nullptr_t       , const char (&v)[M]   ) : type((KEYVAL              )), key(        ), key_tag(     ), key_anchor(), val(v       ), val_tag(     ), val_anchor(), children(), parent(nullptr) { _set_parent(); }
+    template<size_t N>           explicit CaseNode(const char (&k)[N]   , std::nullptr_t       ) : type((KEYVAL              )), key(k       ), key_tag(     ), key_anchor(), val(        ), val_tag(     ), val_anchor(), children(), parent(nullptr) { _set_parent(); }
     template<size_t N>           explicit CaseNode(const char (&k)[N]   , TaggedScalar const& v) : type((KEYVAL|VALTAG       )), key(k       ), key_tag(     ), key_anchor(), val(v.scalar), val_tag(v.tag), val_anchor(), children(), parent(nullptr) { _set_parent(); }
     template<size_t M>           explicit CaseNode(TaggedScalar const& k, const char (&v)[M]   ) : type((KEYVAL|KEYTAG       )), key(k.scalar), key_tag(k.tag), key_anchor(), val(v       ), val_tag(     ), val_anchor(), children(), parent(nullptr) { _set_parent(); }
                                  explicit CaseNode(TaggedScalar const& k, TaggedScalar const& v) : type((KEYVAL|KEYTAG|VALTAG)), key(k.scalar), key_tag(k.tag), key_anchor(), val(v.scalar), val_tag(v.tag), val_anchor(), children(), parent(nullptr) { _set_parent(); }
+                                 explicit CaseNode(std::nullptr_t       , TaggedScalar const& v) : type((KEYVAL       |VALTAG)), key(        ), key_tag(     ), key_anchor(), val(v.scalar), val_tag(v.tag), val_anchor(), children(), parent(nullptr) { _set_parent(); }
+                                 explicit CaseNode(TaggedScalar const& k, std::nullptr_t       ) : type((KEYVAL|KEYTAG       )), key(k.scalar), key_tag(k.tag), key_anchor(), val(        ), val_tag(     ), val_anchor(), children(), parent(nullptr) { _set_parent(); }
+                                 explicit CaseNode(std::nullptr_t       , std::nullptr_t       ) : type((KEYVAL              )), key(        ), key_tag(     ), key_anchor(), val(        ), val_tag(     ), val_anchor(), children(), parent(nullptr) { _set_parent(); }
     // keyval, with val anchor/ref
     template<size_t N, size_t M> explicit CaseNode(const char (&k)[N]   , const char (&v)[M]   , AnchorRef const& arv) : type((arv.type|KEYVAL              )), key(k       ), key_tag(     ), key_anchor(), val(v       ), val_tag(     ), val_anchor(arv), children(), parent(nullptr) { _set_parent(); }
     template<size_t N>           explicit CaseNode(const char (&k)[N]   , TaggedScalar const& v, AnchorRef const& arv) : type((arv.type|KEYVAL|VALTAG       )), key(k       ), key_tag(     ), key_anchor(), val(v.scalar), val_tag(v.tag), val_anchor(arv), children(), parent(nullptr) { _set_parent(); }
@@ -195,9 +206,14 @@ public:
 
     // keyval, explicit type
     template<size_t N, size_t M> explicit CaseNode(NodeType t, const char (&k)[N]   , const char (&v)[M]   ) : type((KEYVAL|t              )), key(k       ), key_tag(     ), key_anchor(), val(v       ), val_tag(     ), val_anchor(), children(), parent(nullptr) { _set_parent(); }
+    template<size_t N>           explicit CaseNode(NodeType t, const char (&k)[N]   , std::nullptr_t       ) : type((KEYVAL|t              )), key(k       ), key_tag(     ), key_anchor(), val(        ), val_tag(     ), val_anchor(), children(), parent(nullptr) { _set_parent(); }
+    template<size_t M>           explicit CaseNode(NodeType t, std::nullptr_t       , const char (&v)[M]   ) : type((KEYVAL|t              )), key(        ), key_tag(     ), key_anchor(), val(v       ), val_tag(     ), val_anchor(), children(), parent(nullptr) { _set_parent(); }
     template<size_t N>           explicit CaseNode(NodeType t, const char (&k)[N]   , TaggedScalar const& v) : type((KEYVAL|VALTAG|t       )), key(k       ), key_tag(     ), key_anchor(), val(v.scalar), val_tag(v.tag), val_anchor(), children(), parent(nullptr) { _set_parent(); }
     template<size_t M>           explicit CaseNode(NodeType t, TaggedScalar const& k, const char (&v)[M]   ) : type((KEYVAL|KEYTAG|t       )), key(k.scalar), key_tag(k.tag), key_anchor(), val(v       ), val_tag(     ), val_anchor(), children(), parent(nullptr) { _set_parent(); }
                                  explicit CaseNode(NodeType t, TaggedScalar const& k, TaggedScalar const& v) : type((KEYVAL|KEYTAG|VALTAG|t)), key(k.scalar), key_tag(k.tag), key_anchor(), val(v.scalar), val_tag(v.tag), val_anchor(), children(), parent(nullptr) { _set_parent(); }
+                                 explicit CaseNode(NodeType t, TaggedScalar const& k, std::nullptr_t       ) : type((KEYVAL|KEYTAG       |t)), key(k.scalar), key_tag(k.tag), key_anchor(), val(        ), val_tag(     ), val_anchor(), children(), parent(nullptr) { _set_parent(); }
+                                 explicit CaseNode(NodeType t, std::nullptr_t       , TaggedScalar const& v) : type((KEYVAL       |VALTAG|t)), key(        ), key_tag(     ), key_anchor(), val(v.scalar), val_tag(v.tag), val_anchor(), children(), parent(nullptr) { _set_parent(); }
+                                 explicit CaseNode(NodeType t, std::nullptr_t       , std::nullptr_t       ) : type((KEYVAL              |t)), key(        ), key_tag(     ), key_anchor(), val(        ), val_tag(     ), val_anchor(), children(), parent(nullptr) { _set_parent(); }
     // keyval, explicit type, with val anchor/ref
     template<size_t N, size_t M> explicit CaseNode(NodeType t, const char (&k)[N]   , const char (&v)[M]   , AnchorRef const& arv) : type((arv.type|KEYVAL|t              )), key(k       ), key_tag(     ), key_anchor(), val(v       ), val_tag(     ), val_anchor(arv), children(), parent(nullptr) { _set_parent(); }
     template<size_t N>           explicit CaseNode(NodeType t, const char (&k)[N]   , TaggedScalar const& v, AnchorRef const& arv) : type((arv.type|KEYVAL|VALTAG|t       )), key(k       ), key_tag(     ), key_anchor(), val(v.scalar), val_tag(v.tag), val_anchor(arv), children(), parent(nullptr) { _set_parent(); }
