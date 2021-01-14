@@ -552,7 +552,7 @@ jobs:
             python --version
             python -mvenv env
             source .github/setenv.sh
-            case "${{matrix.config.os}}" in
+            case "${{matrix.os}}" in
               ubuntu*)
                 source env/bin/activate
                 ;;
@@ -567,7 +567,7 @@ jobs:
       - name: api-shared64-python-test
         run: |
             source .github/setenv.sh
-            case "${{matrix.config.os}}" in
+            case "${{matrix.os}}" in
               ubuntu*)
                 source env/bin/activate
                 ;;
