@@ -95,6 +95,7 @@ using csubstr = c4::csubstr;
 #if defined(SWIGPYTHON)
   if($1.str == nullptr) {
     $result = Py_None;
+    Py_INCREF($result);
   } else {
     PyObject *obj = PyMemoryView_FromMemory((char*)$1.str, $1.len, PyBUF_READ);
     if( ! obj)
