@@ -557,7 +557,7 @@ jobs:
                 source env/bin/activate
                 ;;
               windows*)
-                Scripts\activate.bat
+                Scripts/activate.bat
                 ;;
             esac
             cd api/python
@@ -572,7 +572,7 @@ jobs:
                 source env/bin/activate
                 ;;
               windows*)
-                Scripts\activate.bat
+                Scripts/activate.bat
                 ;;
             esac
             c4_build_target shared64 ryml-api-test-python3
