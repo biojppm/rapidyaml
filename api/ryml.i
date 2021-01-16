@@ -129,7 +129,8 @@ char * emit_malloc(const c4::yml::Tree &t, size_t id)
     c4::substr ret = c4::yml::emit(t, id, buf, /*error_on_excess*/false);
     if(ret.str == nullptr && ret.len > 0)
     {
-        char * alloc = static_cast<char*>(malloc(ret.len));
+        // Use new[] to parse with delete[] in SWIG.
+        char * alloc = new char[ret.len+1];
         c4::substr alloced_buf(alloc, ret.len);
         ret = c4::yml::emit(t, id, alloced_buf, /*error_on_excess*/true);
         ret.str[ret.len] = 0;
