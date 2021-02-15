@@ -205,6 +205,7 @@ public:
     bool is_seq() const { return (type & SEQ) != 0; }
     bool has_val() const { return (type & VAL) != 0; }
     bool has_key() const { return (type & KEY) != 0; }
+    bool has_keyval() const { return (type & KEY) != 0 && (type & VAL) != 0; }
     bool is_val() const { return (type & KEYVAL) == VAL; }
     bool is_keyval() const { return (type & KEYVAL) == KEYVAL; }
     bool has_key_tag() const { return (type & (KEY|KEYTAG)) == (KEY|KEYTAG); }
@@ -412,6 +413,9 @@ class Tree
 {
 public:
 
+    /** @name construction and assignment */
+    /** @{ */
+
     Tree(Allocator const& cb);
     Tree() : Tree(Allocator()) {}
     Tree(size_t node_capacity, size_t arena_capacity=0, Allocator const& cb={});
@@ -423,8 +427,13 @@ public:
 
     Tree& operator= (Tree const& that) noexcept;
     Tree& operator= (Tree     && that) noexcept;
+    
+    /** @} */
 
 public:
+
+    /** @name memory and sizing */
+    /** @{ */
 
     void reserve(size_t node_capacity);
 
@@ -446,17 +455,19 @@ public:
 
     Allocator const& allocator() const { return m_alloc; }
 
+    /** @} */
+
 public:
 
-    size_t id(NodeData const* n)
-    {
-        if( ! n) return NONE;
-        RYML_ASSERT(n >= m_buf && n < m_buf + m_cap);
-        return static_cast<size_t>(n - m_buf);
-    }
+    /** @name node getters */
+    /** @{ */
+
     size_t id(NodeData const* n) const
     {
-        if( ! n) return NONE;
+        if( ! n)
+        {
+            return NONE;
+        }
         RYML_ASSERT(n >= m_buf && n < m_buf + m_cap);
         return static_cast<size_t>(n - m_buf);
     }
@@ -464,13 +475,19 @@ public:
     // with the get() method, i can be NONE, in which case a nullptr is returned
     inline NodeData *get(size_t i)
     {
-        if(i == NONE) return nullptr;
+        if(i == NONE)
+        {
+            return nullptr;
+        }
         RYML_ASSERT(i >= 0 && i < m_cap);
         return m_buf + i;
     }
     inline NodeData const *get(size_t i) const
     {
-        if(i == NONE) return nullptr;
+        if(i == NONE)
+        {
+            return nullptr;
+        }
         RYML_ASSERT(i >= 0 && i < m_cap);
         return m_buf + i;
     }
@@ -482,8 +499,6 @@ public:
     inline NodeData       * _p(size_t i)       { RYML_ASSERT(i != NONE && i >= 0 && i < m_cap); return m_buf + i; }
     // An if-less form of get() that demands a valid node index
     inline NodeData const * _p(size_t i) const { RYML_ASSERT(i != NONE && i >= 0 && i < m_cap); return m_buf + i; }
-
-public:
 
     //! Get the id of the root node
     size_t root_id()       { if(m_cap == 0) { reserve(16); } RYML_ASSERT(m_cap > 0 && m_size > 0); return 0; }
@@ -509,7 +524,12 @@ public:
     //! @note @i is NOT the node id, but the child's position
     NodeRef const operator[] (size_t i) const;
 
+    /** @} */
+
 public:
+    
+    /** @name node property getters */
+    /** @{ */
 
     NodeType_e  type(size_t node) const { return (NodeType_e)(_p(node)->m_type & _TYMASK); }
     const char* type_str(size_t node) const { return NodeType::type_str(_p(node)->m_type); }
@@ -526,29 +546,12 @@ public:
     csubstr    const& val_anchor(size_t node) const { RYML_ASSERT( ! is_val_ref(node) && has_val_anchor(node)); return _p(node)->m_val.anchor; }
     NodeScalar const& valsc     (size_t node) const { RYML_ASSERT(has_val(node)); return _p(node)->m_val; }
 
-    /** Resolve references (aliases <- anchors) in the tree.
-     *
-     * Dereferencing is opt-in; after parsing, you have to call
-     * Tree::resolve() explicitly if you want resolved references in the
-     * tree. This method will resolve all references and substitute the
-     * anchored values in place of the reference.
-     *
-     * This method first does a full traversal of the tree to gather all
-     * anchors and references in a separate collection, then it goes through
-     * that collection to locate the names, which it does by obeying the YAML
-     * standard diktat that "an alias node refers to the most recent node in
-     * the serialization having the specified anchor"
-     *
-     * So, depending on the number of anchor/alias nodes, this is a
-     * potentially expensive operation, with a best-case linear complexity
-     * (from the initial traversal). This potential cost is the reason for
-     * requiring an explicit call.
-     */
-    void resolve();
+    /** @} */
 
 public:
-
-    // node predicates
+    
+    /** @name node predicates */
+    /** @{ */
 
     bool is_root(size_t node) const { RYML_ASSERT(_p(node)->m_parent != NONE || node == 0); return _p(node)->m_parent == NONE; }
     bool is_stream(size_t node) const { return (_p(node)->m_type & STREAM) == STREAM; }
@@ -577,9 +580,12 @@ public:
     /** true when the node has an anchor named a */
     bool has_anchor(size_t node, csubstr a) const { return _p(node)->m_key.anchor == a || _p(node)->m_val.anchor == a; }
 
+    /** @} */
+
 public:
 
-    // hierarchy predicates
+    /** @name hierarchy predicates */
+    /** @{ */
 
     bool has_parent(size_t node) const { return _p(node)->m_parent != NONE; }
 
@@ -594,9 +600,12 @@ public:
     /** does not count with *this */
     bool has_other_siblings(size_t node) const { return is_root(node) ? false : (_p(_p(node)->m_parent)->m_first_child != _p(_p(node)->m_parent)->m_last_child); }
 
+    /** @} */
+
 public:
 
-    // hierarchy getters
+    /** @name hierarchy getters */
+    /** @{ */
 
     size_t parent(size_t node) const { return _p(node)->m_parent; }
 
@@ -622,7 +631,12 @@ public:
     size_t sibling(size_t node, size_t pos) const { return child(_p(node)->m_parent, pos); }
     size_t find_sibling(size_t node, csubstr const& key) const { return find_child(_p(node)->m_parent, key); }
 
+    /** @} */
+
 public:
+
+    /** @name node modifiers */
+    /** @{ */
 
     void to_keyval(size_t node, csubstr const& key, csubstr const& val, type_bits more_flags=0);
     void to_map(size_t node, csubstr const& key, type_bits more_flags=0);
@@ -650,7 +664,45 @@ public:
     void rem_val_ref   (size_t node) { _p(node)->m_val.anchor.clear(); _rem_flags(node, VALREF); }
     void rem_anchor_ref(size_t node) { _p(node)->m_key.anchor.clear(); _p(node)->m_val.anchor.clear(); _rem_flags(node, KEYANCH|VALANCH|KEYREF|VALREF); }
 
+    /** @} */
+
 public:
+
+    /** @name tree modifiers */
+    /** @{ */
+    
+    /** reorder the tree in memory so that all the nodes are stored
+     * in a linear sequence when visited in depth-first order.
+     * This will invalidate existing ids, since the node id is its
+     * position in the node array. */
+    void reorder();
+
+    /** Resolve references (aliases <- anchors) in the tree.
+     *
+     * Dereferencing is opt-in; after parsing, Tree::resolve()
+     * has to be called explicitly for obtaining resolved references in the
+     * tree. This method will resolve all references and substitute the
+     * anchored values in place of the reference.
+     *
+     * This method first does a full traversal of the tree to gather all
+     * anchors and references in a separate collection, then it goes through
+     * that collection to locate the names, which it does by obeying the YAML
+     * standard diktat that "an alias node refers to the most recent node in
+     * the serialization having the specified anchor"
+     *
+     * So, depending on the number of anchor/alias nodes, this is a
+     * potentially expensive operation, with a best-case linear complexity
+     * (from the initial traversal). This potential cost is the reason for
+     * requiring an explicit call.
+     */
+    void resolve();
+
+    /** @} */
+
+public:
+
+    /** @name modifying hierarchy */
+    /** @{ */
 
     /** create and insert a new child of "parent". insert after the (to-be)
      * sibling "after", which must be a child of "parent". To insert as the
@@ -725,10 +777,6 @@ public:
 
 public:
 
-    /** reorder the tree in memory so that all the nodes are stored
-     * in a linear sequence when visited in depth-first order */
-    void reorder();
-
     /** change the node's position in the parent */
     void move(size_t node, size_t after);
 
@@ -773,11 +821,30 @@ public:
 
     void merge_with(Tree const* src, size_t src_node=NONE, size_t dst_root=NONE);
 
+    /** @} */
+
 public:
 
-    substr arena() const { return m_arena.range(0, m_arena_pos); }
+    /** @name internal string arena */
+    /** @{ */
+
+    /** get the current size of the tree's internal arena */
     size_t arena_pos() const { return m_arena_pos; }
 
+    /** get the current arena */
+    substr arena() const { return m_arena.first(m_arena_pos); }
+
+    /** return true if the given substring is part of the tree's string arena */
+    bool in_arena(csubstr s) const
+    {
+        return m_arena.is_super(s);
+    }
+
+    /** serialize the given variable to the tree's arena, growing it as
+     * needed to accomodate the serialization to fit.
+     * @note Growing the arena may cause relocation of the entire
+     * existing arena, and thus change the contents of individual nodes.
+     * @see alloc_arena() */
     template<class T>
     csubstr to_arena(T const& a)
     {
@@ -793,21 +860,10 @@ public:
         return rem;
     }
 
-    bool in_arena(csubstr s) const
-    {
-        return m_arena.is_super(s);
-    }
-
-    substr alloc_arena(size_t sz)
-    {
-        if(sz >= arena_slack())
-        {
-            _grow_arena(sz - arena_slack());
-        }
-        substr s = _request_span(sz);
-        return s;
-    }
-
+    /** copy the given substr to the tree's arena, growing it by the required size
+     * @note Growing the arena may cause relocation of the entire
+     * existing arena, and thus change the contents of individual nodes.
+     * @see alloc_arena() */
     substr copy_to_arena(csubstr s)
     {
         substr cp = alloc_arena(s.len);
@@ -829,6 +885,23 @@ public:
         return cp;
     }
 
+    /** grow the tree's string arena by the given size and return a substr
+     * of the added portion
+     * @note Growing the arena may cause relocation of the entire
+     * existing arena, and thus change the contents of individual nodes. */
+    substr alloc_arena(size_t sz)
+    {
+        if(sz >= arena_slack())
+        {
+            _grow_arena(sz - arena_slack());
+        }
+        substr s = _request_span(sz);
+        return s;
+    }
+    
+    /** ensure the tree's internal string arena is at least the given capacity
+     * @note Growing the arena may cause relocation of the entire
+     * existing arena, and thus change the contents of individual nodes. */
     void reserve_arena(size_t arena_cap)
     {
         if(arena_cap > m_arena.len)
@@ -846,48 +919,7 @@ public:
         }
     }
 
-public:
-
-    struct lookup_result
-    {
-        size_t  target;
-        size_t  closest;
-        size_t  path_pos;
-        csubstr path;
-
-        inline operator bool() const { return target != NONE; }
-
-        lookup_result() : target(NONE), closest(NONE), path_pos(0), path() {}
-        lookup_result(csubstr path_, size_t start) : target(NONE), closest(start), path_pos(0), path(path_) {}
-
-        csubstr resolved() const;
-        csubstr unresolved() const;
-    };
-
-    /** for example foo.bar[0].baz */
-    lookup_result lookup_path(csubstr path, size_t start=NONE) const;
-
-    /** defaulted lookup: lookup path; if the lookup fails, recursively modify
-     * the tree so that the corresponding lookup_path() would return the 
-     * default value */
-    size_t lookup_path_or_modify(csubstr default_value, csubstr path, size_t start=NONE);
-
-private:
-
-    struct _lookup_path_token
-    {
-        csubstr value;
-        NodeType type;
-        _lookup_path_token() : value(), type() {}
-        _lookup_path_token(csubstr v, NodeType t) : value(v), type(t) {}
-        inline operator bool() const { return type != NOTYPE; }
-        bool is_index() const { return value.begins_with('[') && value.ends_with(']'); }
-    };
-
-    void _lookup_path(lookup_result *r, bool modify);
-    size_t _next_node(lookup_result *r, bool modify, _lookup_path_token *parent);
-    _lookup_path_token _next_token(lookup_result *r, _lookup_path_token const& parent);
-    void _advance(lookup_result *r, size_t more);
+    /** @} */
 
 private:
 
@@ -918,6 +950,56 @@ private:
         RYML_ASSERT(next_arena.sub(0, m_arena_pos).is_super(r));
         return r;
     }
+
+public:
+
+    /** @name lookup */
+    /** @{ */
+
+    struct lookup_result
+    {
+        size_t  target;
+        size_t  closest;
+        size_t  path_pos;
+        csubstr path;
+
+        inline operator bool() const { return target != NONE; }
+
+        lookup_result() : target(NONE), closest(NONE), path_pos(0), path() {}
+        lookup_result(csubstr path_, size_t start) : target(NONE), closest(start), path_pos(0), path(path_) {}
+
+        csubstr resolved() const;
+        csubstr unresolved() const;
+    };
+
+    /** for example foo.bar[0].baz */
+    lookup_result lookup_path(csubstr path, size_t start=NONE) const;
+
+    /** defaulted lookup: lookup path; if the lookup fails, recursively modify
+     * the tree so that the corresponding lookup_path() would return the 
+     * default value */
+    size_t lookup_path_or_modify(csubstr default_value, csubstr path, size_t start=NONE);
+
+    /** @} */
+
+private:
+
+    struct _lookup_path_token
+    {
+        csubstr value;
+        NodeType type;
+        _lookup_path_token() : value(), type() {}
+        _lookup_path_token(csubstr v, NodeType t) : value(v), type(t) {}
+        inline operator bool() const { return type != NOTYPE; }
+        bool is_index() const { return value.begins_with('[') && value.ends_with(']'); }
+    };
+
+    void _lookup_path(lookup_result *r, bool modify);
+    size_t _next_node(lookup_result *r, bool modify, _lookup_path_token *parent);
+    _lookup_path_token _next_token(lookup_result *r, _lookup_path_token const& parent);
+    void _advance(lookup_result *r, size_t more);
+
+private:
 
     void _clear();
     void _free();
@@ -968,8 +1050,8 @@ public:
     inline void _set_flags(size_t node, NodeType_e f) { _check_next_flags(node, f); _p(node)->m_type = f; }
     inline void _set_flags(size_t node, type_bits  f) { _check_next_flags(node, f); _p(node)->m_type = f; }
 
-    inline void _add_flags(size_t node, NodeType_e f) { NodeData *d = _p(node); type_bits fb = f | d->m_type; _check_next_flags(node, fb); d->m_type = (NodeType_e) fb; }
-    inline void _add_flags(size_t node, type_bits  f) { NodeData *d = _p(node);               f |= d->m_type; _check_next_flags(node,  f); d->m_type = f; }
+    inline void _add_flags(size_t node, NodeType_e f) { NodeData *d = _p(node); type_bits fb = f |  d->m_type; _check_next_flags(node, fb); d->m_type = (NodeType_e) fb; }
+    inline void _add_flags(size_t node, type_bits  f) { NodeData *d = _p(node);                f |= d->m_type; _check_next_flags(node,  f); d->m_type = f; }
 
     inline void _rem_flags(size_t node, NodeType_e f) { NodeData *d = _p(node); type_bits fb = d->m_type & ~f; _check_next_flags(node, fb); d->m_type = (NodeType_e) fb; }
     inline void _rem_flags(size_t node, type_bits  f) { NodeData *d = _p(node);            f = d->m_type & ~f; _check_next_flags(node,  f); d->m_type = f; }
