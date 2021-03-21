@@ -551,9 +551,8 @@ jobs:
         run: |
             source .github/setenv.sh
             cd api/python
-            pip install -r requirements_dev.txt
-            python setup.py bdist_wheel
-            pip install dist/*.whl
+            pip install -v -r requirements.txt
+            find
       - name: api-shared64-python-test
         run: |
             source .github/setenv.sh
