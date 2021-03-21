@@ -21,7 +21,7 @@ except TypeError:
     ext = CMakeExtension(**cmake_args)
 
 setup(name='rapidyaml',
-    version='1.0',
+    version='0.1.0',
     packages=['ryml'],
     ext_modules=[ext],
     cmdclass=dict(build_ext=BuildExtension),
