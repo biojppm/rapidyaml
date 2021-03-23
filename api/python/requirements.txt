@@ -2,6 +2,6 @@ ruamel.yaml
 ninja
 pyyaml
 prettytable
-git+https://github.com/litghost/cmake-build-extension.git@add_support_for_components#egg=cmake-build-extension
+cmake-build-extension
 wheel
 -e ../..
