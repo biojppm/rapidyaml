@@ -553,6 +553,7 @@ jobs:
             cd api/python
             pip install -v -r requirements.txt
             find
+            python -c "from ryml.version import version as v; print('Installed version:', v)"
       - name: api-shared64-python-test
         run: |
             source .github/setenv.sh
