@@ -549,17 +549,7 @@ jobs:
         run: source .github/setenv.sh && c4_cfg_test shared64
       - name: api-shared64-python-build
         run: |
-            python --version
-            python -mvenv env
             source .github/setenv.sh
-            case "${{matrix.os}}" in
-              ubuntu*)
-                source env/bin/activate
-                ;;
-              windows*)
-                . env/Scripts/activate
-                ;;
-            esac
             cd api/python
             pip install -r requirements_dev.txt
             python setup.py bdist_wheel
@@ -567,14 +557,6 @@ jobs:
       - name: api-shared64-python-test
         run: |
             source .github/setenv.sh
-            case "${{matrix.os}}" in
-              ubuntu*)
-                source env/bin/activate
-                ;;
-              windows*)
-                . env/Scripts/activate
-                ;;
-            esac
             c4_build_target shared64 ryml-api-test-python3
 
   #----------------------------------------------------------------------------
