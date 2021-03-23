@@ -538,6 +538,7 @@ jobs:
         include:
           - {bt: Release, os: ubuntu-18.04}
           - {bt: Release, os: windows-2019}
+          - {bt: Release, os: macos-11.0}
     env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}",
           API: ON, CMAKE_FLAGS: "-DRYML_DEV=ON -DRYML_BUILD_API=ON -DRYML_API_TESTS=ON -DRYML_API_BENCHMARKS=OFF"}
     steps:
