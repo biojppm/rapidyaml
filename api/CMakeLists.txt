@@ -7,6 +7,7 @@ c4_log("enabling API")
 cmake_policy(PUSH)
 cmake_policy(SET CMP0078 NEW) # https://cmake.org/cmake/help/v3.14/policy/CMP0078.html
 cmake_policy(SET CMP0086 NEW) # https://cmake.org/cmake/help/v3.14/policy/CMP0086.html
+cmake_policy(SET CMP0094 NEW) # https://cmake.org/cmake/help/v3.14/policy/CMP0094.html
 
 find_package(SWIG REQUIRED)
 c4_log("found swig ${SWIG_VERSION}: ${SWIG_EXECUTABLE}")
@@ -47,6 +48,7 @@ endif()
 
 if(RYML_BUILD_API_PYTHON)
     c4_log("enabling python3 API")
+    set(Python3_FIND_VIRTUALENV "FIRST")
     find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
     c4_log("found python ${Python3_VERSION}: ${Python3_EXECUTABLE}")
     #
@@ -106,7 +108,7 @@ if(RYML_BUILD_API_PYTHON)
         c4_set_folder_remote_project_targets("test" ryml-api-test-python3)
         function(add_python_test script)
             get_filename_component(script_name ${script} NAME_WE)
-            set(script ${pydir}/test/${script})
+            set(script ${pydir}/ryml/tests/${script})
             set(tn ryml-api-test-python3-${script_name})
             set(cmd python ${script})
             add_custom_target(${tn}
@@ -123,7 +125,7 @@ if(RYML_BUILD_API_PYTHON)
         add_custom_target(ryml-api-bm-python3)
         add_dependencies(ryml-api-bm ryml-api-bm-python3)
         c4_set_folder_remote_project_targets("bm" ryml-api-bm-python3)
-        set(script ${pydir}/test/parse_bm.py)
+        set(script ${pydir}/ryml/tests/parse_bm.py)
         c4_add_benchmark_cmd(ryml-api-bm-python3-travis
             COMMAND python ${script} ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/travis.yml ryml)
         c4_add_benchmark_cmd(ryml-api-bm-python3-appveyor

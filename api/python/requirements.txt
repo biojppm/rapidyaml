@@ -1,0 +1,7 @@
+ruamel.yaml
+ninja
+pyyaml
+prettytable
+cmake-build-extension
+wheel
+-e ../..
