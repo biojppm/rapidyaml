@@ -541,7 +541,7 @@ jobs:
     env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}",
           API: ON, CMAKE_FLAGS: "-DRYML_DEV=ON -DRYML_BUILD_API=ON -DRYML_API_TESTS=ON -DRYML_API_BENCHMARKS=OFF"}
     steps:
-      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive, fetch-depth: 0}}
       - {name: python3, uses: actions/setup-python@v2, with: {python-version: 3.7}}
       - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
       - {name: show info, run: source .github/setenv.sh && c4_show_info && which swig }
