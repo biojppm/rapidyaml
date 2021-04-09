@@ -1701,6 +1701,33 @@ a:
     print_tree(t);
 }
 
+TEST(general, github_issue_124)
+{
+    // All these inputs are basically the same.
+    // However, the comment was found to confuse the parser in #124.
+    const std::string yaml[] =
+        {
+            "a:\n  - b\nc: d",
+            "a:\n  - b\n\n# ignore me:\nc: d",
+            "a:\n  - b\n\n  # ignore me:\nc: d",
+            "a:\n  - b\n\n    # ignore me:\nc: d",
+            "a:\n  - b\n\n#:\nc: d", // also try with just a ':' in the comment
+            "a:\n  - b\n\n# :\nc: d",
+            "a:\n  - b\n\n#\nc: d",  // also try with empty comment
+        };
+
+    for(const auto &inp : yaml)
+    {
+        Tree t = parse(c4::to_csubstr(inp));
+        auto s = emitrs<std::string>(t);
+
+        // The re-emitted output should not contain the comment.
+        const char expected[] = "a:\n  - b\nc: d\n";
+        EXPECT_EQ(s, std::string(expected));
+    }
+}
+
+
 //-------------------------------------------
 // this is needed to use the test case library
 Case const* get_case(csubstr /*name*/)
