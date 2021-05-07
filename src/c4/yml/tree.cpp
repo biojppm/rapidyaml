@@ -1206,7 +1206,14 @@ struct ReferenceResolver
                 return ra->node;
             }
         }
-        C4_NEVER_REACH();
+
+#ifndef RYML_ERRMSG_SIZE
+    #define RYML_ERRMSG_SIZE 1024
+#endif
+        char errmsg[RYML_ERRMSG_SIZE];
+        snprintf(errmsg, RYML_ERRMSG_SIZE, "anchor %.*s does not exist",
+                 static_cast<int>(refname.size()), refname.data());
+        c4::yml::error(errmsg);
         return NONE;
     }
 
