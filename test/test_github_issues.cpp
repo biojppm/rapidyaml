@@ -184,7 +184,9 @@ TEST(github, 31)
         "github35/expected_error11",\
         "github35/expected_error12",\
         "github35/expected_error21",\
-        "github35/expected_error22"
+        "github35/expected_error22",\
+        "github128/1",\
+        "github128/2"
 
 
 CASE_GROUP(GITHUB_ISSUES)
@@ -522,6 +524,8 @@ R"(
   LineCol(4, 15)
 ),
 
+C("github128/1", RESOLVE_REFS | HAS_PARSE_ERROR, "a: *invalid"),
+C("github128/2", RESOLVE_REFS | HAS_PARSE_ERROR, "*"),
     )
 }
 
