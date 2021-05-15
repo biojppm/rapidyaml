@@ -102,7 +102,14 @@ private:
     void    _scan_line();
 
     csubstr _slurp_doc_scalar();
-    bool    _scan_scalar(csubstr *scalar, bool *quoted=nullptr);
+
+    /**
+     * @param [out] quoted
+     * Will only be written to if this method returns true.
+     * Will be set to true if the scanned scalar was quoted, by '', "", > or |.
+     */
+    bool    _scan_scalar(csubstr *scalar, bool &quoted);
+
     csubstr _scan_comment();
     csubstr _scan_quoted_scalar(const char q);
     csubstr _scan_block();
@@ -160,8 +167,8 @@ private:
     inline NodeData* _append_key_val_null() { return _append_key_val({}/*"~"*/); }
     bool  _rval_dash_start_or_continue_seq();
 
-    void  _store_scalar(csubstr const& s);
-    void  _store_scalar_null() { _store_scalar({}/*"~"*/); }
+    void  _store_scalar(csubstr const& s, bool is_quoted);
+    void  _store_scalar_null() { _store_scalar({}/*"~"*/, false); }
     csubstr _consume_scalar();
     void  _move_scalar_from_top();
 

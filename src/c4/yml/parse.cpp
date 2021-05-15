@@ -349,7 +349,7 @@ bool Parser::_handle_unk()
         _c4dbgp("it's a map with an empty key");
         _push_level();
         _start_map(start_as_child);
-        _store_scalar("");
+        _store_scalar("", false);
         addrem_flags(RVAL, RKEY);
         _save_indentation();
         _line_progressed(2);
@@ -360,7 +360,7 @@ bool Parser::_handle_unk()
         _c4dbgp("it's a map with an empty key");
         _push_level();
         _start_map(start_as_child);
-        _store_scalar("");
+        _store_scalar("", false);
         addrem_flags(RVAL, RKEY);
         _save_indentation();
         _line_progressed(1);
@@ -380,7 +380,7 @@ bool Parser::_handle_unk()
 
         csubstr saved_scalar;
         bool is_quoted;
-        if(_scan_scalar(&saved_scalar, &is_quoted))
+        if(_scan_scalar(&saved_scalar, is_quoted))
         {
             rem = m_state->line_contents.rem;
             _c4dbgpf("... and there's also a scalar next! '%.*s'", _c4prsp(saved_scalar));
@@ -491,8 +491,7 @@ bool Parser::_handle_unk()
 
         if( ! saved_scalar.empty())
         {
-            _store_scalar(saved_scalar);
-            if(is_quoted) add_flags(SSCL_QUO); // TODO: Add to _store_scalar
+            _store_scalar(saved_scalar, is_quoted);
         }
 
         return true;
@@ -503,12 +502,11 @@ bool Parser::_handle_unk()
         csubstr scalar;
         size_t indentation = m_state->line_contents.indentation; // save
         bool is_quoted;
-        if(_scan_scalar(&scalar, &is_quoted))
+        if(_scan_scalar(&scalar, is_quoted))
         {
             _c4dbgpf("got a %s scalar", is_quoted ? "quoted" : "");
             rem = m_state->line_contents.rem;
-            _store_scalar(scalar);
-            if(is_quoted) add_flags(SSCL_QUO);
+            _store_scalar(scalar, is_quoted);
             if(rem.begins_with(": "))
             {
                 _c4dbgpf("got a ': ' next -- it's a map (as_child=%d)", start_as_child);
@@ -594,7 +592,7 @@ bool Parser::_handle_seq_expl()
     {
         RYML_ASSERT(has_none(RNXT));
         bool is_quoted;
-        if(_scan_scalar(&rem, &is_quoted))
+        if(_scan_scalar(&rem, is_quoted))
         {
             _c4dbgp("it's a scalar");
             addrem_flags(RNXT, RVAL);
@@ -792,8 +790,8 @@ bool Parser::_handle_seq_impl()
         }
 
         csubstr s;
-        bool isQuoted;
-        if(_scan_scalar(&s, &isQuoted)) // this also progresses the line
+        bool is_quoted;
+        if(_scan_scalar(&s, is_quoted)) // this also progresses the line
         {
             _c4dbgpf("it's a%s scalar", isQuoted ? " quoted" : "");
 
@@ -813,16 +811,15 @@ bool Parser::_handle_seq_impl()
                 addrem_flags(RNXT, RVAL); // before _push_level! This prepares the current level for popping by setting it to RNXT
                 _push_level();
                 _start_map();
-                _store_scalar(s);
+                _store_scalar(s, is_quoted);
                 _set_indentation(m_state->scalar_col); // this is the column where the scalar starts
                 addrem_flags(RVAL, RKEY);
-                if(isQuoted) add_flags(SSCL_QUO);
                 _line_progressed(1);
             }
             else
             {
                 _c4dbgp("appending val to current seq");
-                _append_val(s, isQuoted);
+                _append_val(s, is_quoted);
                 addrem_flags(RNXT, RVAL);
             }
             return true;
@@ -1004,11 +1001,10 @@ bool Parser::_handle_map_expl()
         RYML_ASSERT(has_none(RVAL));
 
         bool is_quoted;
-        if(has_none(SSCL) && _scan_scalar(&rem, &is_quoted))
+        if(has_none(SSCL) && _scan_scalar(&rem, is_quoted))
         {
             _c4dbgp("it's a scalar");
-            _store_scalar(rem);
-            if(is_quoted) add_flags(SSCL_QUO);  // todo: move to _store_scalar
+            _store_scalar(rem, is_quoted);
             rem = m_state->line_contents.rem;
             csubstr trimmed = rem.triml(" \t");
             if(trimmed.len && (trimmed.begins_with(": ") || trimmed.begins_with_any(":,}")))
@@ -1029,7 +1025,7 @@ bool Parser::_handle_map_expl()
             if(!has_all(SSCL))
             {
                 _c4dbgp("no key was found, defaulting to empty key ''");
-                _store_scalar("");
+                _store_scalar("", false);
             }
             return true;
         }
@@ -1041,7 +1037,7 @@ bool Parser::_handle_map_expl()
             if(!has_all(SSCL))
             {
                 _c4dbgp("no key was found, defaulting to empty key ''");
-                _store_scalar("");
+                _store_scalar("", false);
             }
             return true;
         }
@@ -1108,7 +1104,7 @@ bool Parser::_handle_map_expl()
                 if(!has_all(SSCL))
                 {
                     _c4dbgp("no key was found, defaulting to empty key ''");
-                    _store_scalar("");
+                    _store_scalar("", false);
                 }
                 return true;
             }
@@ -1131,7 +1127,7 @@ bool Parser::_handle_map_expl()
         RYML_ASSERT(has_none(RKEY));
         RYML_ASSERT(has_all(SSCL));
         bool is_quoted;
-        if(_scan_scalar(&rem, &is_quoted))
+        if(_scan_scalar(&rem, is_quoted))
         {
             _c4dbgp("it's a scalar");
             addrem_flags(RNXT, RVAL|RKEY);
@@ -1249,11 +1245,10 @@ bool Parser::_handle_map_impl()
 
         _c4dbgp("read scalar?");
         bool is_quoted;
-        if(_scan_scalar(&rem, &is_quoted)) // this also progresses the line
+        if(_scan_scalar(&rem, is_quoted)) // this also progresses the line
         {
             _c4dbgpf("it's a%s scalar", is_quoted ? " quoted" : "");
-            _store_scalar(rem);
-            if(is_quoted) add_flags(SSCL_QUO);  // TODO: move to _store_scalar
+            _store_scalar(rem, is_quoted);
             if(has_all(CPLX|RSET))
             {
                 _c4dbgp("it's a complex key, so use null value '~'");
@@ -1317,7 +1312,7 @@ bool Parser::_handle_map_impl()
             if(!has_all(SSCL))
             {
                 _c4dbgp("key was empty...");
-                _store_scalar("");
+                _store_scalar("", false);
             }
             addrem_flags(RVAL, RKEY);
             _line_progressed(2);
@@ -1329,7 +1324,7 @@ bool Parser::_handle_map_impl()
             if(!has_all(SSCL))
             {
                 _c4dbgp("key was empty...");
-                _store_scalar("");
+                _store_scalar("", false);
             }
             addrem_flags(RVAL, RKEY);
             _line_progressed(1);
@@ -1368,7 +1363,7 @@ bool Parser::_handle_map_impl()
 
         csubstr s;
         bool is_quoted;
-        if(_scan_scalar(&s, &is_quoted)) // this also progresses the line
+        if(_scan_scalar(&s, is_quoted)) // this also progresses the line
         {
             _c4dbgpf("it's a%s scalar", is_quoted ? " quoted" : "");
 
@@ -1847,7 +1842,7 @@ csubstr Parser::_slurp_doc_scalar()
 }
 
 //-----------------------------------------------------------------------------
-bool Parser::_scan_scalar(csubstr *scalar, bool *quoted)
+bool Parser::_scan_scalar(csubstr *scalar, bool &quoted)
 {
     csubstr s = m_state->line_contents.rem;
     if(s.len == 0) return false;
@@ -1858,20 +1853,20 @@ bool Parser::_scan_scalar(csubstr *scalar, bool *quoted)
     {
         m_state->scalar_col = m_state->line_contents.current_col(s);
         *scalar = _scan_quoted_scalar('\'');
-        if(quoted) *quoted = true;
+        quoted = true;
         return true;
     }
     else if(s.begins_with('"'))
     {
         m_state->scalar_col = m_state->line_contents.current_col(s);
         *scalar = _scan_quoted_scalar('"');
-        if(quoted) *quoted = true;
+        quoted = true;
         return true;
     }
     else if(s.begins_with('|') || s.begins_with('>'))
     {
         *scalar = _scan_block();
-        if(quoted) *quoted = true;
+        quoted = true;
         return true;
     }
     else if(has_any(RTOP) && _is_doc_sep(s))
@@ -2049,7 +2044,7 @@ bool Parser::_scan_scalar(csubstr *scalar, bool *quoted)
     }
 
     *scalar = s;
-    if(quoted) *quoted = false;
+    quoted = false;
     return true;
 }
 
@@ -2885,7 +2880,7 @@ void Parser::_start_seqimap()
         m_tree->remove(prev);
         _push_level();
         _start_map();
-        _store_scalar(tmp.scalar);
+        _store_scalar(tmp.scalar, m_tree->is_val_quoted(prev));
         m_key_anchor = tmp.anchor;
         m_key_tag = tmp.tag;
     }
@@ -2894,7 +2889,7 @@ void Parser::_start_seqimap()
         _c4dbgpf("node %zu has no children yet, using empty key", m_state->node_id);
         _push_level();
         _start_map();
-        _store_scalar("");
+        _store_scalar("", false);
     }
     add_flags(RSEQIMAP|EXPL);
 }
@@ -2957,11 +2952,11 @@ NodeData* Parser::_append_key_val(csubstr val, bool val_quoted)
 }
 
 //-----------------------------------------------------------------------------
-void Parser::_store_scalar(csubstr const& s)
+void Parser::_store_scalar(csubstr const& s, bool is_quoted)
 {
     _c4dbgpf("state[%zd]: storing scalar '%.*s' (flag: %zd) (old scalar='%.*s')", m_state-m_stack.begin(), _c4prsp(s), m_state->flags & SSCL, _c4prsp(m_state->scalar));
     RYML_ASSERT(has_none(SSCL));
-    add_flags(SSCL);
+    add_flags(SSCL | (is_quoted ? SSCL_QUO : 0));
     m_state->scalar = s;
 }
 
