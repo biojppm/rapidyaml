@@ -2753,7 +2753,7 @@ void Parser::_start_map(bool as_child)
         if(has_all(SSCL))
         {
             csubstr key = _consume_scalar();
-            m_tree->to_map(m_state->node_id, key, has_all(SSCL_QUO) ? KEYQUO : 0);
+            m_tree->to_map(m_state->node_id, key, has_all(SSCL_QUO) ? KEYQUO : NOTYPE);
             _c4dbgpf("start_map: id=%zd key='%.*s'", m_state->node_id, _c4prsp(node(m_state)->key()));
             _write_key_anchor(m_state->node_id);
         }
@@ -2906,7 +2906,7 @@ NodeData* Parser::_append_val(csubstr val, bool quoted)
     RYML_ASSERT( ! has_all(SSCL));
     RYML_ASSERT(node(m_state) != nullptr);
     RYML_ASSERT(node(m_state)->is_seq());
-    type_bits additional_flags = quoted ? VALQUO : 0;
+    type_bits additional_flags = quoted ? VALQUO : NOTYPE;
     _c4dbgpf("append val: '%.*s' to parent id=%zd (level=%zd) flgs=%x", _c4prsp(val), m_state->node_id, m_state->level, additional_flags);
     size_t nid = m_tree->append_child(m_state->node_id);
     m_tree->to_val(nid, val, additional_flags);
