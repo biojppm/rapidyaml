@@ -379,7 +379,8 @@ bool Parser::_handle_unk()
         _c4dbgpf("there's a stored scalar: '%.*s'", _c4prsp(m_state->scalar));
 
         csubstr saved_scalar;
-        if(_scan_scalar(&saved_scalar))
+        bool is_quoted;
+        if(_scan_scalar(&saved_scalar, &is_quoted))
         {
             rem = m_state->line_contents.rem;
             _c4dbgpf("... and there's also a scalar next! '%.*s'", _c4prsp(saved_scalar));
@@ -491,6 +492,7 @@ bool Parser::_handle_unk()
         if( ! saved_scalar.empty())
         {
             _store_scalar(saved_scalar);
+            if(is_quoted) add_flags(SSCL_QUO); // TODO: Add to _store_scalar
         }
 
         return true;
@@ -500,11 +502,13 @@ bool Parser::_handle_unk()
         RYML_ASSERT( ! has_any(SSCL));
         csubstr scalar;
         size_t indentation = m_state->line_contents.indentation; // save
-        if(_scan_scalar(&scalar))
+        bool is_quoted;
+        if(_scan_scalar(&scalar, &is_quoted))
         {
-            _c4dbgp("got a scalar");
+            _c4dbgpf("got a %s scalar", is_quoted ? "quoted" : "");
             rem = m_state->line_contents.rem;
             _store_scalar(scalar);
+            if(is_quoted) add_flags(SSCL_QUO);
             if(rem.begins_with(": "))
             {
                 _c4dbgpf("got a ': ' next -- it's a map (as_child=%d)", start_as_child);
@@ -589,11 +593,12 @@ bool Parser::_handle_seq_expl()
     if(has_any(RVAL))
     {
         RYML_ASSERT(has_none(RNXT));
-        if(_scan_scalar(&rem))
+        bool is_quoted;
+        if(_scan_scalar(&rem, &is_quoted))
         {
             _c4dbgp("it's a scalar");
             addrem_flags(RNXT, RVAL);
-            _append_val(rem);
+            _append_val(rem, is_quoted);
             return true;
         }
         else if(rem.begins_with('['))
@@ -787,9 +792,10 @@ bool Parser::_handle_seq_impl()
         }
 
         csubstr s;
-        if(_scan_scalar(&s)) // this also progresses the line
+        bool isQuoted;
+        if(_scan_scalar(&s, &isQuoted)) // this also progresses the line
         {
-            _c4dbgp("it's a scalar");
+            _c4dbgpf("it's a%s scalar", isQuoted ? " quoted" : "");
 
             rem = m_state->line_contents.rem;
             if(rem.begins_with(' '))
@@ -810,12 +816,13 @@ bool Parser::_handle_seq_impl()
                 _store_scalar(s);
                 _set_indentation(m_state->scalar_col); // this is the column where the scalar starts
                 addrem_flags(RVAL, RKEY);
+                if(isQuoted) add_flags(SSCL_QUO);
                 _line_progressed(1);
             }
             else
             {
                 _c4dbgp("appending val to current seq");
-                _append_val(s);
+                _append_val(s, isQuoted);
                 addrem_flags(RNXT, RVAL);
             }
             return true;
@@ -996,10 +1003,12 @@ bool Parser::_handle_map_expl()
         RYML_ASSERT(has_none(RNXT));
         RYML_ASSERT(has_none(RVAL));
 
-        if(has_none(SSCL) && _scan_scalar(&rem))
+        bool is_quoted;
+        if(has_none(SSCL) && _scan_scalar(&rem, &is_quoted))
         {
             _c4dbgp("it's a scalar");
             _store_scalar(rem);
+            if(is_quoted) add_flags(SSCL_QUO);  // todo: move to _store_scalar
             rem = m_state->line_contents.rem;
             csubstr trimmed = rem.triml(" \t");
             if(trimmed.len && (trimmed.begins_with(": ") || trimmed.begins_with_any(":,}")))
@@ -1121,11 +1130,12 @@ bool Parser::_handle_map_expl()
         RYML_ASSERT(has_none(RNXT));
         RYML_ASSERT(has_none(RKEY));
         RYML_ASSERT(has_all(SSCL));
-        if(_scan_scalar(&rem))
+        bool is_quoted;
+        if(_scan_scalar(&rem, &is_quoted))
         {
             _c4dbgp("it's a scalar");
             addrem_flags(RNXT, RVAL|RKEY);
-            _append_key_val(rem);
+            _append_key_val(rem, is_quoted);
             if(has_all(RSEQIMAP))
             {
                 _c4dbgp("stopping implicitly nested 1x map");
@@ -1238,10 +1248,12 @@ bool Parser::_handle_map_impl()
         RYML_ASSERT(has_none(RVAL));
 
         _c4dbgp("read scalar?");
-        if(_scan_scalar(&rem)) // this also progresses the line
+        bool is_quoted;
+        if(_scan_scalar(&rem, &is_quoted)) // this also progresses the line
         {
-            _c4dbgp("it's a scalar");
+            _c4dbgpf("it's a%s scalar", is_quoted ? " quoted" : "");
             _store_scalar(rem);
+            if(is_quoted) add_flags(SSCL_QUO);  // TODO: move to _store_scalar
             if(has_all(CPLX|RSET))
             {
                 _c4dbgp("it's a complex key, so use null value '~'");
@@ -1355,9 +1367,10 @@ bool Parser::_handle_map_impl()
         RYML_ASSERT(has_none(RKEY));
 
         csubstr s;
-        if(_scan_scalar(&s)) // this also progresses the line
+        bool is_quoted;
+        if(_scan_scalar(&s, &is_quoted)) // this also progresses the line
         {
-            _c4dbgp("it's a scalar");
+            _c4dbgpf("it's a%s scalar", is_quoted ? " quoted" : "");
 
             rem = m_state->line_contents.rem;
 
@@ -1386,7 +1399,7 @@ bool Parser::_handle_map_impl()
             else
             {
                 _c4dbgp("appending keyval to current map");
-                _append_key_val(s);
+                _append_key_val(s, is_quoted);
                 addrem_flags(RKEY, RVAL);
             }
             return true;
@@ -1834,7 +1847,7 @@ csubstr Parser::_slurp_doc_scalar()
 }
 
 //-----------------------------------------------------------------------------
-bool Parser::_scan_scalar(csubstr *scalar)
+bool Parser::_scan_scalar(csubstr *scalar, bool *quoted)
 {
     csubstr s = m_state->line_contents.rem;
     if(s.len == 0) return false;
@@ -1845,17 +1858,20 @@ bool Parser::_scan_scalar(csubstr *scalar)
     {
         m_state->scalar_col = m_state->line_contents.current_col(s);
         *scalar = _scan_quoted_scalar('\'');
+        if(quoted) *quoted = true;
         return true;
     }
     else if(s.begins_with('"'))
     {
         m_state->scalar_col = m_state->line_contents.current_col(s);
         *scalar = _scan_quoted_scalar('"');
+        if(quoted) *quoted = true;
         return true;
     }
     else if(s.begins_with('|') || s.begins_with('>'))
     {
         *scalar = _scan_block();
+        if(quoted) *quoted = true;
         return true;
     }
     else if(has_any(RTOP) && _is_doc_sep(s))
@@ -2033,6 +2049,7 @@ bool Parser::_scan_scalar(csubstr *scalar)
     }
 
     *scalar = s;
+    if(quoted) *quoted = false;
     return true;
 }
 
@@ -2455,7 +2472,7 @@ void Parser::_write_key_anchor(size_t node_id)
         m_tree->set_key_anchor(node_id, m_key_anchor);
         m_key_anchor.clear();
     }
-    else
+    else if(!m_tree->is_key_quoted(node_id))
     {
         csubstr r = m_tree->key(node_id);
         if(r.begins_with('*'))
@@ -2496,7 +2513,7 @@ void Parser::_write_val_anchor(size_t node_id)
         m_val_anchor.clear();
     }
     csubstr r = m_tree->has_val(node_id) ? m_tree->val(node_id) : "";
-    if(r.begins_with('*'))
+    if(!m_tree->is_val_quoted(node_id) && r.begins_with('*'))
     {
         _c4dbgpf("node=%zd: set val reference: '%.*s'", node_id, _c4prsp(r));
         m_tree->set_val_ref(node_id, r.sub(1));
@@ -2741,7 +2758,7 @@ void Parser::_start_map(bool as_child)
         if(has_all(SSCL))
         {
             csubstr key = _consume_scalar();
-            m_tree->to_map(m_state->node_id, key);
+            m_tree->to_map(m_state->node_id, key, has_all(SSCL_QUO) ? KEYQUO : 0);
             _c4dbgpf("start_map: id=%zd key='%.*s'", m_state->node_id, _c4prsp(node(m_state)->key()));
             _write_key_anchor(m_state->node_id);
         }
@@ -2889,14 +2906,16 @@ void Parser::_stop_seqimap()
 }
 
 //-----------------------------------------------------------------------------
-NodeData* Parser::_append_val(csubstr val)
+NodeData* Parser::_append_val(csubstr val, bool quoted)
 {
     RYML_ASSERT( ! has_all(SSCL));
     RYML_ASSERT(node(m_state) != nullptr);
     RYML_ASSERT(node(m_state)->is_seq());
-    _c4dbgpf("append val: '%.*s' to parent id=%zd (level=%zd)", _c4prsp(val), m_state->node_id, m_state->level);
+    type_bits additional_flags = quoted ? VALQUO : 0;
+    _c4dbgpf("append val: '%.*s' to parent id=%zd (level=%zd) flgs=%x", _c4prsp(val), m_state->node_id, m_state->level, additional_flags);
     size_t nid = m_tree->append_child(m_state->node_id);
-    m_tree->to_val(nid, val);
+    m_tree->to_val(nid, val, additional_flags);
+
     _c4dbgpf("append val: id=%zd key='%.*s' val='%.*s'", nid, _c4prsp(m_tree->get(nid)->m_key.scalar), _c4prsp(m_tree->get(nid)->m_val.scalar));
     if( ! m_val_tag.empty())
     {
@@ -2908,13 +2927,17 @@ NodeData* Parser::_append_val(csubstr val)
     return m_tree->get(nid);
 }
 
-NodeData* Parser::_append_key_val(csubstr val)
+NodeData* Parser::_append_key_val(csubstr val, bool val_quoted)
 {
     RYML_ASSERT(node(m_state)->is_map());
+    type_bits additional_flags = 0;
+    if((m_state->flags & SSCL_QUO) != 0) additional_flags |= KEYQUO;
+    if(val_quoted)                       additional_flags |= VALQUO;
+
     csubstr key = _consume_scalar();
-    _c4dbgpf("append keyval: '%.*s' '%.*s' to parent id=%zd (level=%zd)", _c4prsp(key), _c4prsp(val), m_state->node_id, m_state->level);
+    _c4dbgpf("append keyval: '%.*s' '%.*s' to parent id=%zd (level=%zd) flgs=%x", _c4prsp(key), _c4prsp(val), m_state->node_id, m_state->level, additional_flags);
     size_t nid = m_tree->append_child(m_state->node_id);
-    m_tree->to_keyval(nid, key, val);
+    m_tree->to_keyval(nid, key, val, additional_flags);
     _c4dbgpf("append keyval: id=%zd key='%.*s' val='%.*s'", nid, _c4prsp(m_tree->get(nid)->key()), _c4prsp(m_tree->get(nid)->val()));
     if( ! m_key_tag.empty())
     {
@@ -2947,7 +2970,7 @@ csubstr Parser::_consume_scalar()
     _c4dbgpf("state[%zd]: consuming scalar '%.*s' (flag: %zd))", m_state-m_stack.begin(), _c4prsp(m_state->scalar), m_state->flags & SSCL);
     RYML_ASSERT(m_state->flags & SSCL);
     csubstr s = m_state->scalar;
-    rem_flags(SSCL);
+    rem_flags(SSCL | SSCL_QUO);
     m_state->scalar.clear();
     return s;
 }
@@ -2961,9 +2984,9 @@ void Parser::_move_scalar_from_top()
     if(prev.flags & SSCL)
     {
         _c4dbgpf("moving scalar '%.*s' from state[%zd] to state[%zd] (overwriting '%.*s')", _c4prsp(prev.scalar), &prev-m_stack.begin(), m_state-m_stack.begin(), _c4prsp(m_state->scalar));
-        add_flags(prev.flags & SSCL);
+        add_flags(prev.flags & (SSCL | SSCL_QUO));
         m_state->scalar = prev.scalar;
-        rem_flags(SSCL, &prev);
+        rem_flags(SSCL | SSCL_QUO, &prev);
         prev.scalar.clear();
     }
 }
@@ -3900,7 +3923,7 @@ int Parser::_fmt_msg(char *buf, int buflen, const char *fmt, va_list args) const
         del = _prfl(buf + pos, len, m_state->flags);
         _wrapbuf();
 
-        del = snprintf(buf + len, static_cast<size_t>(len), "\n");
+        del = snprintf(buf + pos, static_cast<size_t>(len), "\n");
         _wrapbuf();
     }
 #endif
@@ -3940,6 +3963,7 @@ int Parser::_prfl(char *buf, int buflen, size_t v)
     _prflag(RVAL);
     _prflag(RNXT);
     _prflag(SSCL);
+    _prflag(SSCL_QUO);
     _prflag(RSET);
     _prflag(NDOC);
     _prflag(RSEQIMAP);

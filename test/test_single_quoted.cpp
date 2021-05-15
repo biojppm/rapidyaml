@@ -75,7 +75,7 @@ R"(
 - '   '
 - '    '
 )",
-  L{N(""), N(" "), N("  "), N("   "), N("    ")}
+  L{N(QV, ""), N(QV, " "), N(QV, "  "), N(QV, "   "), N(QV, "    ")}
 ),
 
 C("squoted, numbers", // these should not be quoted when emitting

@@ -364,11 +364,11 @@ L{
         N{"price",     "133.7"},
         N{"quantity",  "1"},}}}},
    N{"bill-to", L{
-        N{"street", "123 Tornado Alley\nSuite 16\n"},
+        N{QV, "street", "123 Tornado Alley\nSuite 16\n"},
         N{"city", "East Centerville"},
         N{"state", "KS"},}, AR(VALANCH, "id001")},
    N{"ship-to", "*id001", AR(VALREF, "id001")},
-   N{"specialDelivery", "Follow the Yellow Brick Road to the Emerald City. Pay no attention to the man behind the curtain.\n"}
+   N{QV, "specialDelivery", "Follow the Yellow Brick Road to the Emerald City. Pay no attention to the man behind the curtain.\n"}
   }
 ),
 
@@ -418,14 +418,14 @@ L{
         N{"price",     "133.7"},
         N{"quantity",  "1"},}}}},
    N{"bill-to", L{
-        N{"street", "123 Tornado Alley\nSuite 16\n"},
+        N{QV, "street", "123 Tornado Alley\nSuite 16\n"},
         N{"city", "East Centerville"},
         N{"state", "KS"},}},
    N{"ship-to", L{
-        N{"street", "123 Tornado Alley\nSuite 16\n"},
+        N{QV, "street", "123 Tornado Alley\nSuite 16\n"},
         N{"city", "East Centerville"},
         N{"state", "KS"},}},
-   N{"specialDelivery", "Follow the Yellow Brick Road to the Emerald City. Pay no attention to the man behind the curtain.\n"}
+   N{QV, "specialDelivery", "Follow the Yellow Brick Road to the Emerald City. Pay no attention to the man behind the curtain.\n"}
   }
 ),
 

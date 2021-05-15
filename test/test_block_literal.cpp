@@ -43,7 +43,7 @@ R"(
 - another val
 )",
   L{
-    N("Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
+    N(QV, "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
     N("another val")
   }
 ),
@@ -61,7 +61,7 @@ R"(
 - another val
 )",
   L{
-    N("Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n\n\n"),
+    N(QV, "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n\n\n"),
     N("another val")
   }
 ),
@@ -79,7 +79,7 @@ R"(
 - another val
 )",
   L{
-    N("Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end."),
+    N(QV, "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end."),
     N("another val")
   }
 ),
@@ -96,7 +96,7 @@ R"(
   
 )",
   L{
-    N("Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
+    N(QV, "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
   }
 ),
 
@@ -112,7 +112,7 @@ R"(
     
 )",
   L{
-    N("Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
+    N(QV, "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
   }
 ),
 
@@ -129,7 +129,7 @@ example: |
 another: val
 )",
   L{
-    N("example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
+    N(QV, "example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
     N("another", "val")
   }
 ),
@@ -147,7 +147,7 @@ example: |2
 another: val
 )",
   L{
-    N("example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
+    N(QV, "example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
     N("another", "val")
   }
 ),
@@ -165,7 +165,7 @@ example: |+2
 another: val
 )",
   L{
-    N("example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n\n\n"),
+    N(QV, "example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n\n\n"),
     N("another", "val")
   }
 ),
@@ -183,7 +183,7 @@ example: |-2
 another: val
 )",
   L{
-    N("example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end."),
+    N(QV, "example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end."),
     N("another", "val")
   }
 ),
@@ -201,7 +201,7 @@ example: |
 another: val
 )",
   L{
-    N("example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
+    N(QV, "example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
     N("another", "val")
   }
 ),
@@ -219,7 +219,7 @@ example: |3
 another: val
 )",
   L{
-    N("example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
+    N(QV, "example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
     N("another", "val")
   }
 ),
@@ -237,7 +237,7 @@ example: |
 another: val
 )",
   L{
-    N("example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
+    N(QV, "example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
     N("another", "val")
   }
 ),
@@ -255,7 +255,7 @@ example: |4
 another: val
 )",
   L{
-    N("example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
+    N(QV, "example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
     N("another", "val")
   }
 ),
@@ -272,7 +272,7 @@ example: |
   
 )",
   L{
-    N("example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
+    N(QV, "example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
   }
 ),
 
@@ -288,7 +288,7 @@ example: |
     
 )",
   L{
-    N("example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
+    N(QV, "example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
   }
 ),
 
@@ -305,7 +305,7 @@ example: |
 another: val
 )",
   L{
-    N("example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
+    N(QV, "example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
     N("another", "val")
   }
 ),
@@ -323,7 +323,7 @@ example: |9
 another: val
 )",
   L{
-    N("example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
+    N(QV, "example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
     N("another", "val")
   }
 ),
@@ -336,7 +336,7 @@ C("block literal with empty unindented lines, without quotes",
     {{src.gencode}}
 )",
   L{
-    N("tpl", L{N("src", "#include <{{hdr.filename}}>\n\n{{src.gencode}}\n")})
+    N("tpl", L{N(QV, "src", "#include <{{hdr.filename}}>\n\n{{src.gencode}}\n")})
   }
 ),
 
@@ -348,7 +348,7 @@ C("block literal with empty unindented lines, with double quotes",
     {{src.gencode}}
 )",
   L{
-    N("tpl", L{N("src", "#include \"{{hdr.filename}}\"\n\n{{src.gencode}}\n")})
+    N("tpl", L{N(QV, "src", "#include \"{{hdr.filename}}\"\n\n{{src.gencode}}\n")})
   }
 ),
 
@@ -360,7 +360,7 @@ C("block literal with empty unindented lines, with single quotes",
     {{src.gencode}}
 )",
   L{
-    N("tpl", L{N("src", "#include '{{hdr.filename}}'\n\n{{src.gencode}}\n")})
+    N("tpl", L{N(QV, "src", "#include '{{hdr.filename}}'\n\n{{src.gencode}}\n")})
   }
 ),
     )

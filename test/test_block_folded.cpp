@@ -36,7 +36,7 @@ R"(
 - another val
 )",
   L{
-    N("Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+    N(QV, "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
     N("another val")
   }
 ),
@@ -54,7 +54,7 @@ example: >
 another: val
 )",
   L{
-    N("example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+    N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
     N("another", "val")
   }
 ),
@@ -72,7 +72,7 @@ example: >+
 another: val
 )",
   L{
-    N("example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n\n\n"),
+    N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n\n\n"),
     N("another", "val")
   }
 ),
@@ -90,7 +90,7 @@ example: >-
 another: val
 )",
   L{
-    N("example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end."),
+    N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end."),
     N("another", "val")
   }
 ),
@@ -108,7 +108,7 @@ example: >2
 another: val
 )",
   L{
-    N("example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+    N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
     N("another", "val")
   }
 ),
@@ -126,7 +126,7 @@ example: >+2
 another: val
 )",
   L{
-    N("example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n\n\n"),
+    N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n\n\n"),
     N("another", "val")
   }
 ),
@@ -144,7 +144,7 @@ example: >-2
 another: val
 )",
   L{
-    N("example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end."),
+    N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end."),
     N("another", "val")
   }
 ),
@@ -162,7 +162,7 @@ example: >
 another: val
 )",
   L{
-    N("example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+    N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
     N("another", "val")
   }
 ),
@@ -180,7 +180,7 @@ example: >3
 another: val
 )",
   L{
-    N("example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+    N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
     N("another", "val")
   }
 ),
@@ -198,7 +198,7 @@ example: >
 another: val
 )",
   L{
-    N("example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+    N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
     N("another", "val")
   }
 ),
@@ -216,7 +216,7 @@ example: >4
 another: val
 )",
   L{
-    N("example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+    N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
     N("another", "val")
   }
 ),
@@ -234,7 +234,7 @@ example: >
 another: val
 )",
   L{
-    N("example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+    N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
     N("another", "val")
   }
 ),
@@ -252,7 +252,7 @@ example: >9
 another: val
 )",
   L{
-    N("example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+    N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
     N("another", "val")
   }
 ),

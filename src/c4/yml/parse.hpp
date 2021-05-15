@@ -102,7 +102,7 @@ private:
     void    _scan_line();
 
     csubstr _slurp_doc_scalar();
-    bool    _scan_scalar(csubstr *scalar);
+    bool    _scan_scalar(csubstr *scalar, bool *quoted=nullptr);
     csubstr _scan_comment();
     csubstr _scan_quoted_scalar(const char q);
     csubstr _scan_block();
@@ -154,8 +154,8 @@ private:
     void  _start_new_doc(csubstr rem);
     void  _end_stream();
 
-    NodeData* _append_val(csubstr val);
-    NodeData* _append_key_val(csubstr val);
+    NodeData* _append_val(csubstr val, bool quoted=false);
+    NodeData* _append_key_val(csubstr val, bool val_quoted=false);
     inline NodeData* _append_val_null() { return _append_val({}/*"~"*/); }
     inline NodeData* _append_key_val_null() { return _append_key_val({}/*"~"*/); }
     bool  _rval_dash_start_or_continue_seq();
@@ -196,6 +196,7 @@ private:
         //! eg, {key: [key2: value2, key3: value3]}
         //! is parsed as {key: [{key2: value2}, {key3: value3}]}
         RSEQIMAP = 0x01 << 12,
+        SSCL_QUO = 0x01 << 13, ///< stored scalar was quoted
     } State_e;
 
     struct LineContents

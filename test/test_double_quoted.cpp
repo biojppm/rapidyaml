@@ -85,7 +85,7 @@ R"(
 - "   "
 - "    "
 )",
-  L{N(""), N(" "), N("  "), N("   "), N("    ")}
+  L{N(QV, ""), N(QV, " "), N(QV, "  "), N(QV, "   "), N(QV, "    ")}
 ),
 
 C("dquoted, numbers", // these should not be quoted when emitting
@@ -142,7 +142,7 @@ R"("\"\"\"\"\"")",
 C("dquoted, example 2",
 R"("This is a key\nthat has multiple lines\n": and this is its value
 )",
-  L{N("This is a key\nthat has multiple lines\n", "and this is its value")}
+  L{N(QK, "This is a key\nthat has multiple lines\n", "and this is its value")}
 ),
 
 C("dquoted, example 2.1", IGNORE_LIBYAML_PARSE_FAIL|IGNORE_YAMLCPP_PARSE_FAIL,
@@ -152,7 +152,7 @@ that has multiple lines
 
 ": and this is its value
 )",
-  L{N("This is a key\nthat has multiple lines\n", "and this is its value")}
+  L{N(QK, "This is a key\nthat has multiple lines\n", "and this is its value")}
 ),
     )
 }

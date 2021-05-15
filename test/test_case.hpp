@@ -358,7 +358,7 @@ public:
 
 public:
 
-    void compare(yml::NodeRef const& n) const;
+    void compare(yml::NodeRef const& n, bool ignoreQuote=false) const;
     void compare_child(yml::NodeRef const& n, size_t pos) const;
 
     size_t reccount() const

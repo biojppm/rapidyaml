@@ -69,6 +69,9 @@ using L = CaseNode::iseqmap;
 using TS = TaggedScalar;
 using TL = CaseNode::TaggedList;
 using AR = AnchorRef;
+static const NodeType QK {VAL | KEYQUO};
+static const NodeType QV {VAL | VALQUO};
+static const NodeType QKV {VAL | KEYQUO | VALQUO};
 using PT = std::pair<const csubstr, Case>;
 #define C(name, ...)                                        \
     PT                                                      \
