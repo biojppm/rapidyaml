@@ -793,7 +793,7 @@ bool Parser::_handle_seq_impl()
         bool is_quoted;
         if(_scan_scalar(&s, is_quoted)) // this also progresses the line
         {
-            _c4dbgpf("it's a%s scalar", isQuoted ? " quoted" : "");
+            _c4dbgpf("it's a%s scalar", is_quoted ? " quoted" : "");
 
             rem = m_state->line_contents.rem;
             if(rem.begins_with(' '))
