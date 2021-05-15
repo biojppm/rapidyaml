@@ -184,7 +184,8 @@ TEST(github, 31)
         "github35/expected_error11",\
         "github35/expected_error12",\
         "github35/expected_error21",\
-        "github35/expected_error22"
+        "github35/expected_error22",\
+        "github129"
 
 
 CASE_GROUP(GITHUB_ISSUES)
@@ -520,6 +521,38 @@ R"(
     MessageID2:          "MapRegion_HyrulePrairie2 "
 )",
   LineCol(4, 15)
+),
+
+C(
+    "github129", RESOLVE_REFS, R"(
+ref: &ref ref_val
+a: *ref   # resolve the reference
+b: '*ref' # don't resolve, it's just a string
+c: "*ref" # don't resolve, it's just a string
+d: >      # don't resolve, it's just a string
+  *ref
+e: >-     # don't resolve, it's just a string
+  *ref
+f: >+     # don't resolve, it's just a string
+  *ref
+g: |      # don't resolve, it's just a string
+  *ref
+h: |-     # don't resolve, it's just a string
+  *ref
+i: |+     # don't resolve, it's just a string
+  *ref
+)", L{
+        N("ref", "ref_val"),
+        N("a", "ref_val"),    // this should be resolved
+        N(QV, "b", "*ref"),   // this should not be resolved (just a string)
+        N(QV, "c", "*ref"),   // this should not be resolved (just a string)
+        N(QV, "d", "*ref\n"), // this should not be resolved (just a string)
+        N(QV, "e", "*ref"),   // this should not be resolved (just a string)
+        N(QV, "f", "*ref\n"), // this should not be resolved (just a string)
+        N(QV, "g", "*ref\n"), // this should not be resolved (just a string)
+        N(QV, "h", "*ref"),   // this should not be resolved (just a string)
+        N(QV, "i", "*ref\n"),   // this should not be resolved (just a string)
+    }
 ),
 
     )
