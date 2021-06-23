@@ -427,7 +427,7 @@ public:
 
     Tree& operator= (Tree const& that) noexcept;
     Tree& operator= (Tree     && that) noexcept;
-    
+
     /** @} */
 
 public:
@@ -527,7 +527,7 @@ public:
     /** @} */
 
 public:
-    
+
     /** @name node property getters */
     /** @{ */
 
@@ -549,7 +549,7 @@ public:
     /** @} */
 
 public:
-    
+
     /** @name node predicates */
     /** @{ */
 
@@ -670,7 +670,7 @@ public:
 
     /** @name tree modifiers */
     /** @{ */
-    
+
     /** reorder the tree in memory so that all the nodes are stored
      * in a linear sequence when visited in depth-first order.
      * This will invalidate existing ids, since the node id is its
@@ -768,7 +768,7 @@ public:
             ich = next;
         }
     }
-    
+
     #if defined(__clang__)
     #   pragma clang diagnostic pop
     #elif defined(__GNUC__)
@@ -968,7 +968,9 @@ public:
         lookup_result() : target(NONE), closest(NONE), path_pos(0), path() {}
         lookup_result(csubstr path_, size_t start) : target(NONE), closest(start), path_pos(0), path(path_) {}
 
+        /** get the part ot the input path that was resolved */
         csubstr resolved() const;
+        /** get the part ot the input path that was unresolved */
         csubstr unresolved() const;
     };
 
