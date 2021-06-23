@@ -54,6 +54,61 @@ void test_merge(std::initializer_list<csubstr> li, csubstr expected)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+TEST(merge, basic)
+{
+    test_merge(
+        {
+            "{a: 0, b: 1}",
+            "{a: 1, c: 20}"
+        },
+        "{a: 1, b: 1, c: 20}"
+    );
+}
+
+TEST(merge, val_to_seq)
+{
+    test_merge(
+        {
+            "{a: 0, b: 1}",
+            "{a: [1, 2]}"
+        },
+        "{a: [1, 2], b: 1}"
+    );
+}
+
+TEST(merge, seq_to_val)
+{
+    test_merge(
+        {
+            "{a: [1, 2]}",
+            "{a: 0, b: 1}",
+        },
+        "{a: 0, b: 1}"
+    );
+}
+
+TEST(merge, val_to_map)
+{
+    test_merge(
+        {
+            "{a: 0, b: 1}",
+            "{a: {c: 10, d: 20}}"
+        },
+        "{a: {c: 10, d: 20}, b: 1}"
+    );
+}
+
+TEST(merge, map_to_val)
+{
+    test_merge(
+        {
+            "{a: {c: 10, d: 20}}",
+            "{a: 0, b: 1}",
+        },
+        "{a: 0, b: 1}"
+    );
+}
+
 TEST(merge, seq_no_overlap_explicit)
 {
     test_merge(
@@ -166,7 +221,6 @@ TEST(merge, seq_nested_in_map_override_with_keyval)
         "{a: 1, ovr: foo, d: 3, c: 3}"
     );
 }
-
 
 } // namespace yml
 } // namespace c4
