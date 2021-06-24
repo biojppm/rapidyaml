@@ -14,9 +14,9 @@ c4_override(JSONCPP_WITH_PKGCONFIG_SUPPORT OFF)
 c4_override(JSONCPP_WITH_CMAKE_PACKAGE OFF)
 c4_require_subproject(jsoncpp REMOTE
     GIT_REPOSITORY https://github.com/open-source-parsers/jsoncpp
-    GIT_TAG master)
+    GIT_TAG 65bb1b1c1d8019dc72279c12bb74df92925dfd5e)
 c4_set_folder_remote_project_targets(ext/jsoncpp
-    jsoncpp_lib
+    jsoncpp
     examples
     readFromStream
     readFromString
@@ -64,7 +64,7 @@ endfunction()
 
 c4_add_executable(ryml-bm-parse
     SOURCES bm_parse.cpp
-    LIBS ryml yaml yaml-cpp benchmark jsoncpp_lib nlohmann_json c4fs
+    LIBS ryml yaml yaml-cpp benchmark jsoncpp nlohmann_json c4fs
     INC_DIRS ${RYML_RAPIDJSON_INC_DIR} ${RYML_SAJSON_INC_DIR}
     FOLDER bm)
 if(RYML_DBG)
