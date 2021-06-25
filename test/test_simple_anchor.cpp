@@ -5,6 +5,8 @@ namespace yml {
 
 //     SIMPLE_ANCHOR/YmlTestCase.parse_using_ryml/0
 
+C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
+
 /** verify that the reference class is working correctly (meta testing, yay) */
 TEST(CaseNode, anchors)
 {
@@ -623,6 +625,8 @@ N(STREAM, L{
 }
 
 INSTANTIATE_GROUP(SIMPLE_ANCHOR)
+
+C4_SUPPRESS_WARNING_GCC_POP
 
 } // namespace yml
 } // namespace c4
