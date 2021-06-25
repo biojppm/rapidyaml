@@ -46,8 +46,10 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
 
     if(c->flags & EXPECT_PARSE_ERROR)
     {
-        ExpectError::do_check([cd](){
+        auto flags = c->flags;
+        ExpectError::do_check([cd, flags](){
             parse(cd->src, &cd->parsed_tree);
+            if(flags & RESOLVE_REFS) cd->parsed_tree.resolve();
             #ifdef RYML_DBG
             // if this point was reached, then it means that the expected
             // error failed to occur. So print debugging info.

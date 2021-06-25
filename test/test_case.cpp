@@ -198,7 +198,8 @@ void ExpectError::do_check(std::function<void()> fn, Location expected_location)
         #endif
         if(context.expected_location)
         {
-            EXPECT_TRUE(e.error_location);
+            EXPECT_EQ(static_cast<bool>(context.expected_location),
+                      static_cast<bool>(e.error_location));
             EXPECT_EQ(e.error_location.line, context.expected_location.line);
             EXPECT_EQ(e.error_location.col, context.expected_location.col);
             if(context.expected_location.offset)
