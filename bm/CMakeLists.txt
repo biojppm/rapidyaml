@@ -6,17 +6,21 @@ c4_setup_benchmarking()
 set(_ed ${CMAKE_CURRENT_BINARY_DIR}/ext) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)
 
 # jsoncpp needs to be compiled
-c4_override(JSONCPP_WITH_TESTS OFF)
-c4_override(JSONCPP_WITH_POST_BUILD_UNITTEST OFF)
-c4_override(JSONCPP_WITH_WARNING_AS_ERROR OFF)
-c4_override(JSONCPP_WITH_STRICT_ISO OFF)
-c4_override(JSONCPP_WITH_PKGCONFIG_SUPPORT OFF)
-c4_override(JSONCPP_WITH_CMAKE_PACKAGE OFF)
 c4_require_subproject(jsoncpp REMOTE
     GIT_REPOSITORY https://github.com/open-source-parsers/jsoncpp
-    GIT_TAG 65bb1b1c1d8019dc72279c12bb74df92925dfd5e)
+    GIT_TAG 65bb1b1c1d8019dc72279c12bb74df92925dfd5e
+    OVERRIDE
+        JSONCPP_WITH_TESTS OFF
+        JSONCPP_WITH_POST_BUILD_UNITTEST OFF
+        JSONCPP_WITH_WARNING_AS_ERROR OFF
+        JSONCPP_WITH_STRICT_ISO OFF
+        JSONCPP_WITH_PKGCONFIG_SUPPORT OFF
+        JSONCPP_WITH_CMAKE_PACKAGE OFF
+	)
 c4_set_folder_remote_project_targets(ext/jsoncpp
     jsoncpp
+    jsoncpp_object
+    jsoncpp_static
     examples
     readFromStream
     readFromString
@@ -24,12 +28,14 @@ c4_set_folder_remote_project_targets(ext/jsoncpp
     stringWrite)
 
 # nlohmannjson needs to be compiled
-c4_override(JSON_BuildTests OFF)
-c4_override(JSON_Install OFF)
-c4_override(JSON_MultipleHeaders OFF)
 c4_require_subproject(nlohmann_json REMOTE
     GIT_REPOSITORY https://github.com/nlohmann/json
-    GIT_TAG master)
+    GIT_TAG master
+    OVERRIDE
+        JSON_BuildTests OFF
+        JSON_Install OFF
+        JSON_MultipleHeaders OFF
+    )
 
 # rapidjson is header only
 set(rapidjson_dir ${_ed}/rapidjson)
@@ -64,7 +70,7 @@ endfunction()
 
 c4_add_executable(ryml-bm-parse
     SOURCES bm_parse.cpp
-    LIBS ryml yaml yaml-cpp benchmark jsoncpp nlohmann_json c4fs
+    LIBS ryml yaml yaml-cpp benchmark jsoncpp_static nlohmann_json c4fs
     INC_DIRS ${RYML_RAPIDJSON_INC_DIR} ${RYML_SAJSON_INC_DIR}
     FOLDER bm)
 if(RYML_DBG)
