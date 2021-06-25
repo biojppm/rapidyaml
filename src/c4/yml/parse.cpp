@@ -801,7 +801,7 @@ bool Parser::_handle_seq_impl()
                 rem = rem.sub(skip);
             }
 
-            if(rem.begins_with(": ") || rem.ends_with(':'))
+            if(!rem.begins_with('#') && (rem.begins_with(": ") || rem.ends_with(':')))
             {
                 _c4dbgp("actually, the scalar is the first key of a map, and it opens a new scope");
                 addrem_flags(RNXT, RVAL); // before _push_level! This prepares the current level for popping by setting it to RNXT
