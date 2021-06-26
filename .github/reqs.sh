@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-set -e
 set -x
 
 # input environment variables:
@@ -8,49 +7,88 @@ set -x
 # CXX_: the compiler version. eg, g++-9 or clang++-6.0
 # BT: the build type
 # VG: whether to install valgrind
+# ARM: whether to arm cross-compiler and emulator
 # GITHUB_WORKFLOW: when run from github
 # API: whether to install swig
 # CMANY: whether to install cmany
+
 
 
 #-------------------------------------------------------------------------------
 
 function c4_install_test_requirements()
 {
-    # this is only for ubuntu ------------------
     os=$1
     case "$os" in
-        ubuntu*) ;;
+        ubuntu*)
+            c4_install_test_requirements_ubuntu
+            return 0
+            ;;
         macos*)
-            if [ "$CMANY" == "ON" ] ; then
-                sudo pip3 install cmany
-            fi
+            c4_install_test_requirements_macos
             return 0
             ;;
         win*)
-            if [ "$CMANY" == "ON" ] ; then
-                pip install cmany
-            fi
-            if [ "$API" == "ON" ] ; then
-                choco install swig
-                which swig
-            fi
+            c4_install_test_requirements_windows
             return 0
             ;;
         *)
             return 0
             ;;
     esac
+}
 
-    # gather all the requirements ------------------
+function c4_install_test_requirements_windows()
+{
+    if [ "$CMANY" == "ON" ] ; then
+        pip install cmany
+    fi
+    if [ "$API" == "ON" ] ; then
+        choco install swig
+        which swig
+    fi
+}
 
-    APT_PKG=""
+function c4_install_test_requirements_macos()
+{
+    if [ "$CMANY" == "ON" ] ; then
+        sudo pip3 install cmany
+    fi
+}
+
+function c4_install_test_requirements_ubuntu()
+{
+    APT_PKG=""  # all
     PIP_PKG=""
+    c4_gather_test_requirements_ubuntu
+    echo "apt packages: $APT_PKG"
+    echo "pip packages: $PIP_PKG"
+    c4_install_test_requirements_ubuntu_impl
+    echo 'INSTALL COMPLETE!'
+}
 
+
+function c4_install_all_possible_requirements_ubuntu()
+{
+    export CXX_=all
+    export BT=Coverage
+    APT_PKG=""  # all
+    PIP_PKG=""
+    sudo dpkg --add-architecture i386
+    c4_gather_test_requirements_ubuntu
+    _c4_add_arm_compilers
+    echo "apt packages: $APT_PKG"
+    echo "pip packages: $PIP_PKG"
+    c4_install_test_requirements_ubuntu_impl
+    echo 'INSTALL COMPLETE!'
+}
+
+
+function c4_gather_test_requirements_ubuntu()
+{
     if [ "$GITHUB_WORKFLOW" != "" ] ; then
         sudo dpkg --add-architecture i386
     else
-        # travis requires build-essential + cmake
         _add_apt build-essential
         _add_apt cmake
     fi
@@ -88,14 +126,23 @@ function c4_install_test_requirements()
         _add_pip cmany
     fi
 
+    case "$CXX_" in
+        arm*)
+            _c4_add_arm_compilers
+            ;;
+    esac
+}
+
+
+function c4_install_test_requirements_ubuntu_impl()
+{
+    wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key 2>/dev/null | sudo apt-key add -
     wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | sudo apt-key add -
     sudo -E apt-add-repository --yes 'deb https://apt.kitware.com/ubuntu/ bionic main'
     sudo -E add-apt-repository --yes ppa:ubuntu-toolchain-r/test
-
-    echo "apt packages: $APT_PKG"
-    echo "pip packages: $PIP_PKG"
-
-    # now install the requirements ------------------
+    # this is going to be deprecated:
+    # https://askubuntu.com/questions/1243252/how-to-install-arm-none-eabi-gdb-on-ubuntu-20-04-lts-focal-fossa
+    sudo -E add-apt-repository --yes ppa:team-gcc-arm-embedded/ppa
 
     if [ "$APT_PKG" != "" ] ; then
         #sudo -E apt-get clean
@@ -106,24 +153,34 @@ function c4_install_test_requirements()
     if [ "$PIP_PKG" != "" ]; then
         sudo pip3 install $PIP_PKG
     fi
-
-    echo 'INSTALL COMPLETE!'
 }
 
 
 #-------------------------------------------------------------------------------
 
+function _c4_add_arm_compilers()
+{
+    _add_apt gcc-arm-embedded
+    _add_apt g++-arm-linux-gnueabihf
+    _add_apt g++-multilib-arm-linux-gnueabihf
+    _add_apt qemu
+}
+
+
 function _c4_gather_compilers()
 {
     cxx=$1
     case $cxx in
+        g++-11     ) _c4_addgcc 11 ;;
         g++-10     ) _c4_addgcc 10 ;;
         g++-9      ) _c4_addgcc 9  ;;
         g++-8      ) _c4_addgcc 8  ;;
         g++-7      ) _c4_addgcc 7  ;;
         g++-6      ) _c4_addgcc 6  ;;
         g++-5      ) _c4_addgcc 5  ;;
-        g++-4.9    ) _c4_addgcc 4.9 ;;
+        #g++-4.9    ) _c4_addgcc 4.9 ;;  # https://askubuntu.com/questions/1036108/install-gcc-4-9-at-ubuntu-18-04
+        clang++-12 ) _c4_addclang 12  ;;
+        clang++-11 ) _c4_addclang 11  ;;
         clang++-10 ) _c4_addclang 10  ;;
         clang++-9  ) _c4_addclang 9   ;;
         clang++-8  ) _c4_addclang 8   ;;
@@ -133,7 +190,7 @@ function _c4_gather_compilers()
         clang++-4.0) _c4_addclang 4.0 ;;
         clang++-3.9) _c4_addclang 3.9 ;;
         all)
-            all="g++-10 g++-9 g++-8 g++-7 g++-6 g++-5 g++-4.9 clang++-10 clang++-9 clang++-8 clang++-7 clang++-6.0 clang++-5.0 clang++-4.0 clang++-3.9"
+            all="g++-11 g++-10 g++-9 g++-8 g++-7 g++-6 g++-5 clang++-12 clang++-11 clang++-10 clang++-9 clang++-8 clang++-7 clang++-6.0 clang++-5.0 clang++-4.0 clang++-3.9"
             echo "installing all compilers: $all"
             for cxx in $all ; do
                 _c4_gather_compilers $cxx
@@ -141,6 +198,8 @@ function _c4_gather_compilers()
             ;;
         "")
             # use default compiler
+            ;;
+        arm*)
             ;;
         *)
             echo "unknown compiler: $cxx"
@@ -152,23 +211,32 @@ function _c4_gather_compilers()
 # add a gcc compiler
 function _c4_addgcc()
 {
-    version=$1
-    _add_apt g++-$version
-    _add_apt g++-$version-multilib
+    gccversion=$1
+    _add_apt g++-$gccversion
+    _add_apt g++-$gccversion-multilib
+    _add_apt libstdc++-$gccversion-dev
+    _add_apt lib32stdc++-$gccversion-dev
 }
 
 # add a clang compiler
 function _c4_addclang()
 {
-    version=$1
-    case $version in
+    clversion=$1
+    case $clversion in
         # in 18.04, clang9 and later require PPAs
-        9 | 10 ) _add_apt clang-$version "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-$version main" ;;
-        *      ) _add_apt clang-$version ;;
+        9 | 10 | 11 | 12 )
+            _add_apt clang-$clversion "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-$clversion main"
+            # libstdc++ is required
+            _c4_addgcc 11
+            _c4_addgcc 10
+            _c4_addgcc 9
+            ;;
+        *)
+            _add_apt clang-$clversion
+            ;;
     esac
     _add_apt g++-multilib  # this is required for 32 bit https://askubuntu.com/questions/1057341/unable-to-find-stl-headers-in-ubuntu-18-04
-    _add_apt clang-tidy-$version
-    wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key 2>/dev/null | sudo apt-key add -
+    _add_apt clang-tidy-$clversion
 }
 
 
@@ -189,7 +257,6 @@ function _add_apt()
     sourceslist=$2
     APT_PKG="$APT_PKG $pkgs"
     echo "adding to apt packages: $pkgs"
-    #echo "APT_PKG=$APT_PKG"
     _add_src "$sourceslist" "# for packages: $pkgs"
 }
 

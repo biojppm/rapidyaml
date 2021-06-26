@@ -51,11 +51,12 @@ TEST(null_val, simple_seq)
 
 TEST(null_val, issue103)
 {
+    C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
     auto tree = parse(R"({test: null})");
     ASSERT_EQ(tree.size(), 2u);
     EXPECT_EQ(tree.root_id(), 0u);
     EXPECT_EQ(tree.first_child(0), 1u);
-    EXPECT_EQ(tree.type(1), KEY|VAL);
+    EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
     EXPECT_EQ(tree.key(1), "test");
     EXPECT_EQ(tree.val(1), nullptr);
 
@@ -63,7 +64,7 @@ TEST(null_val, issue103)
     ASSERT_EQ(tree.size(), 2u);
     EXPECT_EQ(tree.root_id(), 0u);
     EXPECT_EQ(tree.first_child(0), 1u);
-    EXPECT_EQ(tree.type(1), KEY|VAL);
+    EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
     EXPECT_EQ(tree.key(1), "test");
     EXPECT_EQ(tree.val(1), nullptr);
 
@@ -71,7 +72,7 @@ TEST(null_val, issue103)
     ASSERT_EQ(tree.size(), 2u);
     EXPECT_EQ(tree.root_id(), 0u);
     EXPECT_EQ(tree.first_child(0), 1u);
-    EXPECT_EQ(tree.type(1), KEY|VAL);
+    EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
     EXPECT_EQ(tree.key(1), "test");
     EXPECT_EQ(tree.val(1), nullptr);
 
@@ -79,9 +80,10 @@ TEST(null_val, issue103)
     ASSERT_EQ(tree.size(), 2u);
     EXPECT_EQ(tree.root_id(), 0u);
     EXPECT_EQ(tree.first_child(0), 1u);
-    EXPECT_EQ(tree.type(1), KEY|VAL);
+    EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
     EXPECT_EQ(tree.key(1), "test");
     EXPECT_EQ(tree.val(1), "null");
+    C4_SUPPRESS_WARNING_GCC_POP
 }
 
 

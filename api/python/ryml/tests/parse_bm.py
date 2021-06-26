@@ -54,7 +54,7 @@ class BmCase:
 class RymlRo:
 
     def parse(self, case):
-        r = ryml.parse(case.src_as_bytearray)
+        _ = ryml.parse(case.src_as_bytearray)
 
 
 class RymlRoReuse:
@@ -70,7 +70,7 @@ class RymlRoReuse:
 class RymlInSitu:
 
     def parse(self, case):
-        r = ryml.parse_in_situ(case.src_as_bytearray)
+        _ = ryml.parse_in_situ(case.src_as_bytearray)
 
 
 class RymlInSituReuse:
@@ -87,13 +87,13 @@ class RymlInSituReuse:
 class RuamelYaml:
 
     def parse(self, case):
-        r = ruamel.yaml.load(case.src_as_str, Loader=ruamel.yaml.Loader)
+        _ = ruamel.yaml.load(case.src_as_str, Loader=ruamel.yaml.Loader)
 
 
 class PyYaml:
 
     def parse(self, case):
-        r = yaml.safe_load(case.src_as_str)
+        _ = yaml.safe_load(case.src_as_str)
 
 
 def run(filename):

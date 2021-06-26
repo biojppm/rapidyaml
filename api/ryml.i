@@ -10,7 +10,7 @@
 // extension, inserting the module init code
 #define SWIG_FILE_WITH_INIT
 
-#include "ryml.hpp"
+#include <c4/yml/yml.hpp>
 
 namespace c4 {
 namespace yml {
@@ -28,6 +28,7 @@ using csubstr = c4::csubstr;
 
 %apply (const char *STRING, size_t LENGTH) { (const char *str, size_t len) };
 %apply (char *STRING, size_t LENGTH) { (char *str, size_t len) };
+%newobject emit_malloc;
 
 %typemap(in) c4::substr {
 #if defined(SWIGPYTHON)
@@ -92,13 +93,18 @@ using csubstr = c4::csubstr;
 
 %typemap(out) c4::csubstr {
 #if defined(SWIGPYTHON)
-  PyObject *obj = PyMemoryView_FromMemory((char*)$1.str, $1.len, PyBUF_READ);
-  if( ! obj)
-  {
-      PyErr_SetString(PyExc_TypeError, "could not get readonly memory from c4::csubstr - have you passed a str?");
-      SWIG_fail;
+  if($1.str == nullptr) {
+    $result = Py_None;
+    Py_INCREF($result);
+  } else {
+    PyObject *obj = PyMemoryView_FromMemory((char*)$1.str, $1.len, PyBUF_READ);
+    if( ! obj)
+    {
+        PyErr_SetString(PyExc_TypeError, "could not get readonly memory from c4::csubstr - have you passed a str?");
+        SWIG_fail;
+    }
+    $result = obj;
   }
-  $result = obj;
 #else
 #error no "out" typemap defined for this export language
 #endif
@@ -115,6 +121,35 @@ void parse_csubstr(c4::csubstr s, c4::yml::Tree *t)
 void parse_substr(c4::substr s, c4::yml::Tree *t)
 {
     c4::yml::parse(s, t);
+}
+
+char * emit_malloc(const c4::yml::Tree &t, size_t id)
+{
+    c4::substr buf;
+    c4::substr ret = c4::yml::emit(t, id, buf, /*error_on_excess*/false);
+    if(ret.str == nullptr && ret.len > 0)
+    {
+        // Use new[] to parse with delete[] in SWIG.
+        char * alloc = new char[ret.len+1];
+        c4::substr alloced_buf(alloc, ret.len);
+        ret = c4::yml::emit(t, id, alloced_buf, /*error_on_excess*/true);
+        ret.str[ret.len] = 0;
+    }
+    return ret.str;
+}
+
+size_t emit_length(const c4::yml::Tree &t, size_t id)
+{
+    c4::substr buf;
+    c4::substr ret = c4::yml::emit(t, id, buf, /*error_on_excess*/false);
+    return ret.len;
+}
+
+bool emit_to_substr(const c4::yml::Tree &t, size_t id, c4::substr s, size_t *OUTPUT)
+{
+    c4::substr result = c4::yml::emit(t, id, s, /*error_on_excess*/false);
+    *OUTPUT = result.len;
+    return result.str == nullptr;
 }
 
 
@@ -199,6 +234,29 @@ def parse_in_situ(buf, **kwargs):
 def parse(buf, **kwargs):
     return _call_parse(parse_csubstr, buf, **kwargs)
 
+
+def emit(tree, id=None):
+    if id is None:
+        id = tree.root_id()
+
+    return emit_malloc(tree, id)
+
+def compute_emit_length(tree, id=None):
+    if id is None:
+        id = tree.root_id()
+
+    return emit_length(tree, id)
+
+def emit_in_place(tree, buf, id=None):
+    if id is None:
+        id = tree.root_id()
+
+    (failed, expected_size) = emit_to_substr(tree, id, buf)
+    if failed:
+        raise IndexError("Output buffer has {} bytes, but emit required {} bytes".format(
+            len(buf), expected_size))
+
+    return memoryview(buf)[:expected_size]
 
 def _call_parse(parse_fn, buf, **kwargs):
     tree = kwargs.get("tree", Tree())
@@ -390,6 +448,9 @@ public:
     void set_key_ref   (size_t node, c4::csubstr ref   );
     void set_val_ref   (size_t node, c4::csubstr ref   );
 
+    void _set_key(size_t node, c4::csubstr key, int more_flags=0);
+    void _set_val(size_t node, c4::csubstr val, int more_flags=0);
+
     void set_val_tag(size_t node, c4::csubstr tag);
     void rem_key_anchor(size_t node);
     void rem_val_anchor(size_t node);
@@ -422,6 +483,8 @@ public:
     void remove_children(size_t node);
 
 public:
+
+    void reorder();
 
     /** change the node's position in the parent */
     void move(size_t node, size_t after);

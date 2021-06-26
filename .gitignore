@@ -6,6 +6,7 @@
 .clangd/
 .ccls-cache/
 .cache/
+__pycache__/
 
 # gdb files
 .gdbinit

@@ -99,3 +99,7 @@ if(RYML_BUILD_TESTS OR RYML_BUILD_BENCHMARKS)
 endif()
 
 c4_add_dev_targets()
+
+add_custom_target(uninstall
+    "${CMAKE_COMMAND}" -P "${PROJECT_SOURCE_DIR}/cmake/uninstall.cmake"
+)

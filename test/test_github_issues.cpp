@@ -185,6 +185,8 @@ TEST(github, 31)
         "github35/expected_error12",\
         "github35/expected_error21",\
         "github35/expected_error22",\
+        "github128/1",\
+        "github128/2",\
         "github129"
 
 
@@ -523,8 +525,10 @@ R"(
   LineCol(4, 15)
 ),
 
-C(
-    "github129", RESOLVE_REFS, R"(
+C("github128/1", RESOLVE_REFS | HAS_PARSE_ERROR, "a: *invalid"),
+C("github128/2", RESOLVE_REFS | HAS_PARSE_ERROR, "*"),
+
+C("github129", RESOLVE_REFS, R"(
 ref: &ref ref_val
 a: *ref   # resolve the reference
 b: '*ref' # don't resolve, it's just a string
@@ -553,7 +557,7 @@ i: |+     # don't resolve, it's just a string
         N(QV, "h", "*ref"),   // this should not be resolved (just a string)
         N(QV, "i", "*ref\n"),   // this should not be resolved (just a string)
     }
-),
+)
 
     )
 }

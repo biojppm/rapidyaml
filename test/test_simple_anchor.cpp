@@ -5,6 +5,8 @@ namespace yml {
 
 //     SIMPLE_ANCHOR/YmlTestCase.parse_using_ryml/0
 
+C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
+
 /** verify that the reference class is working correctly (meta testing, yay) */
 TEST(CaseNode, anchors)
 {
@@ -13,9 +15,9 @@ TEST(CaseNode, anchors)
         CaseNode n("<<", "*base", AR(VALANCH, "base"));
         EXPECT_EQ(n.key, "<<");
         EXPECT_EQ(n.val, "*base");
-        EXPECT_EQ(n.type & mask, VALANCH);
-        EXPECT_EQ(n.key_anchor.type, NOTYPE);
-        EXPECT_EQ(n.val_anchor.type, VALANCH);
+        EXPECT_EQ((type_bits)(n.type & mask), (type_bits)VALANCH);
+        EXPECT_EQ((type_bits)n.key_anchor.type, (type_bits)NOTYPE);
+        EXPECT_EQ((type_bits)n.val_anchor.type, (type_bits)VALANCH);
         EXPECT_EQ(n.key_anchor.str, "");
         EXPECT_EQ(n.val_anchor.str, "base");
     }
@@ -25,9 +27,9 @@ TEST(CaseNode, anchors)
         EXPECT_EQ(n.key, "base");
         EXPECT_EQ(n.val, "");
         EXPECT_NE(n.type.is_seq(), true);
-        EXPECT_EQ(n.type & mask, VALANCH);
-        EXPECT_EQ(n.key_anchor.type, NOTYPE);
-        EXPECT_EQ(n.val_anchor.type, VALANCH);
+        EXPECT_EQ((type_bits)(n.type & mask), (type_bits)VALANCH);
+        EXPECT_EQ((type_bits)n.key_anchor.type, (type_bits)NOTYPE);
+        EXPECT_EQ((type_bits)n.val_anchor.type, (type_bits)VALANCH);
         EXPECT_EQ(n.key_anchor.str, "");
         EXPECT_EQ(n.val_anchor.str, "base");
     }
@@ -38,9 +40,9 @@ TEST(CaseNode, anchors)
         EXPECT_EQ(base.key, "<<");
         EXPECT_EQ(base.val, "*base");
         EXPECT_EQ(base.type.is_keyval(), true);
-        EXPECT_EQ(base.type & mask, VALREF);
-        EXPECT_EQ(base.key_anchor.type, NOTYPE);
-        EXPECT_EQ(base.val_anchor.type, VALREF);
+        EXPECT_EQ((type_bits)(base.type & mask), (type_bits)VALREF);
+        EXPECT_EQ((type_bits)base.key_anchor.type, (type_bits)NOTYPE);
+        EXPECT_EQ((type_bits)base.val_anchor.type, (type_bits)VALREF);
         EXPECT_EQ(base.key_anchor.str, "");
         EXPECT_EQ(base.val_anchor.str, "base");
     }
@@ -52,18 +54,18 @@ TEST(CaseNode, anchors)
         EXPECT_EQ(base.key, "<<");
         EXPECT_EQ(base.val, "*base");
         EXPECT_EQ(base.type.is_keyval(), true);
-        EXPECT_EQ(base.type & mask, VALREF);
-        EXPECT_EQ(base.key_anchor.type, NOTYPE);
-        EXPECT_EQ(base.val_anchor.type, VALREF);
+        EXPECT_EQ((type_bits)(base.type & mask), (type_bits)VALREF);
+        EXPECT_EQ((type_bits)base.key_anchor.type, (type_bits)NOTYPE);
+        EXPECT_EQ((type_bits)base.val_anchor.type, (type_bits)VALREF);
         EXPECT_EQ(base.key_anchor.str, "");
         EXPECT_EQ(base.val_anchor.str, "base");
 
         EXPECT_EQ(age.key, "age");
         EXPECT_EQ(age.val, "10");
         EXPECT_EQ(age.type.is_keyval(), true);
-        EXPECT_EQ(age.type & mask, 0);
-        EXPECT_EQ(age.key_anchor.type, NOTYPE);
-        EXPECT_EQ(age.val_anchor.type, NOTYPE);
+        EXPECT_EQ((type_bits)(age.type & mask), (type_bits)0);
+        EXPECT_EQ((type_bits)age.key_anchor.type, (type_bits)NOTYPE);
+        EXPECT_EQ((type_bits)age.val_anchor.type, (type_bits)NOTYPE);
         EXPECT_EQ(age.key_anchor.str, "");
         EXPECT_EQ(age.val_anchor.str, "");
     }
@@ -74,9 +76,9 @@ TEST(CaseNode, anchors)
         EXPECT_EQ(n.val, "");
         EXPECT_EQ(n.type.has_key(), true);
         EXPECT_EQ(n.type.is_map(), true);
-        EXPECT_EQ(n.type & mask, VALANCH);
-        EXPECT_EQ(n.key_anchor.type, NOTYPE);
-        EXPECT_EQ(n.val_anchor.type, VALANCH);
+        EXPECT_EQ((type_bits)(n.type & mask), (type_bits)VALANCH);
+        EXPECT_EQ((type_bits)n.key_anchor.type, (type_bits)NOTYPE);
+        EXPECT_EQ((type_bits)n.val_anchor.type, (type_bits)VALANCH);
         EXPECT_EQ(n.key_anchor.str, "");
         EXPECT_EQ(n.val_anchor.str, "foo");
 
@@ -84,9 +86,9 @@ TEST(CaseNode, anchors)
         EXPECT_EQ(base.key, "<<");
         EXPECT_EQ(base.val, "*base");
         EXPECT_EQ(base.type.has_key() && base.type.has_val(), true);
-        EXPECT_EQ(base.type & mask, VALREF);
-        EXPECT_EQ(base.key_anchor.type, NOTYPE);
-        EXPECT_EQ(base.val_anchor.type, VALREF);
+        EXPECT_EQ((type_bits)(base.type & mask), (type_bits)VALREF);
+        EXPECT_EQ((type_bits)base.key_anchor.type, (type_bits)NOTYPE);
+        EXPECT_EQ((type_bits)base.val_anchor.type, (type_bits)VALREF);
         EXPECT_EQ(base.key_anchor.str, "");
         EXPECT_EQ(base.val_anchor.str, "base");
     }
@@ -623,6 +625,8 @@ N(STREAM, L{
 }
 
 INSTANTIATE_GROUP(SIMPLE_ANCHOR)
+
+C4_SUPPRESS_WARNING_GCC_POP
 
 } // namespace yml
 } // namespace c4

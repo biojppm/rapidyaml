@@ -102,6 +102,7 @@ using PT = std::pair<const csubstr, Case>;
 #define INSTANTIATE_GROUP(group_name)                                   \
                                                                         \
 INSTANTIATE_TEST_SUITE_P(group_name, YmlTestCase, ::testing::Values(group_name##_CASES)); \
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(YmlTestCase);             \
                                                                         \
 Case const* get_case(csubstr name)                                      \
 {                                                                       \

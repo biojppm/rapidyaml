@@ -1,4 +1,5 @@
 import ryml
+from ryml.ryml import _same_ptr, _same_mem
 import unittest
 
 
@@ -14,20 +15,20 @@ class TestSubstrInterop(unittest.TestCase):
     def test11_str2csubstr(self):
         s = "asdasd"
         m = ryml.as_csubstr(s)
-        self.assertTrue(ryml._same_ptr(s, m))
-        self.assertTrue(ryml._same_mem(s, m))
+        self.assertTrue(_same_ptr(s, m))
+        self.assertTrue(_same_mem(s, m))
         self.assertEqual(s, ryml.u(m))
         #
         m = ryml.as_csubstr(m)
-        self.assertTrue(ryml._same_ptr(s, m))
-        self.assertTrue(ryml._same_mem(s, m))
+        self.assertTrue(_same_ptr(s, m))
+        self.assertTrue(_same_mem(s, m))
         self.assertEqual(s, ryml.u(m))
 
     # CANNOT create c4::substr from string object
     def test12_str2substr(self):
         s = ""
         with self.assertRaises(TypeError) as context:
-            c = ryml.as_substr(s)
+            _ = ryml.as_substr(s)
         self.assertTrue(type(context.exception), TypeError)
 
     # ------------------------------------------------
@@ -37,20 +38,20 @@ class TestSubstrInterop(unittest.TestCase):
     def test21_bytes2csubstr(self):
         s = b"foo21"
         m = ryml.as_csubstr(s)
-        self.assertTrue(ryml._same_ptr(s, m))
-        self.assertTrue(ryml._same_mem(s, m))
+        self.assertTrue(_same_ptr(s, m))
+        self.assertTrue(_same_mem(s, m))
         self.assertEqual(s, m)
         #
         m = ryml.as_csubstr(m)
-        self.assertTrue(ryml._same_ptr(s, m))
-        self.assertTrue(ryml._same_mem(s, m))
+        self.assertTrue(_same_ptr(s, m))
+        self.assertTrue(_same_mem(s, m))
         self.assertEqual(s, m)
 
     # CANNOT create c4::csubstr from string object
     def test22_bytes2substr(self):
         s = b"foo22"
         with self.assertRaises(TypeError) as context:
-            c = ryml.as_substr(s)
+            _ = ryml.as_substr(s)
         self.assertTrue(type(context.exception), TypeError)
 
     # ------------------------------------------------
@@ -60,26 +61,26 @@ class TestSubstrInterop(unittest.TestCase):
     def test31_bytes2csubstr(self):
         s = bytearray("foo31", "utf8")
         m = ryml.as_csubstr(s)
-        self.assertTrue(ryml._same_ptr(s, m))
-        self.assertTrue(ryml._same_mem(s, m))
+        self.assertTrue(_same_ptr(s, m))
+        self.assertTrue(_same_mem(s, m))
         self.assertEqual(s, m)
         #
         m = ryml.as_csubstr(m)
-        self.assertTrue(ryml._same_ptr(s, m))
-        self.assertTrue(ryml._same_mem(s, m))
+        self.assertTrue(_same_ptr(s, m))
+        self.assertTrue(_same_mem(s, m))
         self.assertEqual(s, m)
 
     # CANNOT create c4::csubstr from string object
     def test32_bytes2substr(self):
         s = bytearray("foo31", "utf8")
         m = ryml.as_csubstr(s)
-        self.assertTrue(ryml._same_ptr(s, m))
-        self.assertTrue(ryml._same_mem(s, m))
+        self.assertTrue(_same_ptr(s, m))
+        self.assertTrue(_same_mem(s, m))
         self.assertEqual(s, m)
         #
         m = ryml.as_csubstr(m)
-        self.assertTrue(ryml._same_ptr(s, m))
-        self.assertTrue(ryml._same_mem(s, m))
+        self.assertTrue(_same_ptr(s, m))
+        self.assertTrue(_same_mem(s, m))
         self.assertEqual(s, m)
 
 
@@ -364,6 +365,42 @@ class _TestBase(unittest.TestCase):
         self.assertTrue(r is t)
         self.case.check(self, t)
 
+    # ----------------------------------------------------------
+    def _test41_emit(self):
+        tree = ryml.parse(self.src_as_bytearray)
+        yaml = ryml.emit(tree)
+
+        output_tree = ryml.parse(yaml)
+        self.case.check(self, output_tree)
+
+    def _test42_compute_emit_length(self):
+        tree = ryml.parse(self.src_as_bytearray)
+        yaml = ryml.emit(tree)
+        length = ryml.compute_emit_length(tree)
+        self.assertEqual(len(yaml), length)
+
+    def _test43_emit_in_place(self):
+        tree = ryml.parse(self.src_as_bytearray)
+        yaml = ryml.emit(tree)
+        length = ryml.compute_emit_length(tree)
+
+        self.assertEqual(len(yaml), length)
+
+        buf = bytearray(length)
+        s = ryml.emit_in_place(tree, buf)
+
+        self.assertEqual(len(s), length)
+        self.assertTrue(s.tobytes().decode('utf-8') == yaml)
+        self.assertTrue(buf.decode('utf-8') == yaml)
+
+    def _test44_short_buf(self):
+        tree = ryml.parse(self.src_as_bytearray)
+        length = ryml.compute_emit_length(tree)
+
+        buf = bytearray(length-1)
+        with self.assertRaises(IndexError):
+            ryml.emit_in_place(tree, buf)
+
 
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
@@ -405,6 +442,18 @@ class TestSimpleHardCoded(_TestBase):
 
     def test34_bytearray__rw__reuse_tree(self):
         self._test34_bytearray__rw__reuse_tree()
+
+    def test41_emit(self):
+        self._test41_emit()
+
+    def test42_compute_emit_length(self):
+        self._test42_compute_emit_length()
+
+    def test43_emit_in_place(self):
+        self._test43_emit_in_place()
+
+    def test44_short_buf(self):
+        self._test44_short_buf()
 
 
 # -----------------------------------------------------------------------------
