@@ -145,6 +145,13 @@ constexpr const AllowedFailure g_allowed_failures[] = {
     {"X38W", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
     {"XW4D", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
 
+    {"2SXE", CPART_OUT_YAML, "Scalar starting with * (reference) and containing : is emitted with quotes, re-parsed as scalar without reference. "
+                             "The test failure is a side-effect of the documented limitation that references are only handled correctly when calling tree::resolve(). "
+                             "It works correctly when calling tree::resolve()."},
+    {"W5VH", CPART_IN_YAML,  "Scalar starting with * (reference) and containing : is emitted with quotes, re-parsed as scalar without reference. "
+                             "The test failure is a side-effect of the documented limitation that references are only handled correctly when calling tree::resolve(). "
+                             "It works correctly when calling tree::resolve()."},
+
     // TODO
     {"735Y", CPART_IN_YAML, "TODO[next]: plain scalar parsing"},
     {"EXG3", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},

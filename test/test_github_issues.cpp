@@ -186,7 +186,8 @@ TEST(github, 31)
         "github35/expected_error21",\
         "github35/expected_error22",\
         "github128/1",\
-        "github128/2"
+        "github128/2",\
+        "github129"
 
 
 CASE_GROUP(GITHUB_ISSUES)
@@ -398,16 +399,16 @@ MessageID9:          'MapRegion_HyrulePrairie'
 MessageID0:          "MapRegion_HyrulePrairie"
 )",
 L{
-  N("MessageID1", "MapRegion_HyrulePrairie"),
-  N("MessageID2", "MapRegion_HyrulePrairie"),
-  N("MessageID3", "MapRegion_HyrulePrairie"),
-  N("MessageID4", "MapRegion_HyrulePrairie"),
-  N("MessageID5", "MapRegion_HyrulePrairie"),
-  N("MessageID6", "MapRegion_HyrulePrairie"),
-  N("MessageID7", "MapRegion_HyrulePrairie"),
-  N("MessageID8", "MapRegion_HyrulePrairie"),
-  N("MessageID9", "MapRegion_HyrulePrairie"),
-  N("MessageID0", "MapRegion_HyrulePrairie"),
+  N(QV, "MessageID1", "MapRegion_HyrulePrairie"),
+  N(QV, "MessageID2", "MapRegion_HyrulePrairie"),
+  N(QV, "MessageID3", "MapRegion_HyrulePrairie"),
+  N(QV, "MessageID4", "MapRegion_HyrulePrairie"),
+  N(QV, "MessageID5", "MapRegion_HyrulePrairie"),
+  N(QV, "MessageID6", "MapRegion_HyrulePrairie"),
+  N(QV, "MessageID7", "MapRegion_HyrulePrairie"),
+  N(QV, "MessageID8", "MapRegion_HyrulePrairie"),
+  N(QV, "MessageID9", "MapRegion_HyrulePrairie"),
+  N(QV, "MessageID0", "MapRegion_HyrulePrairie"),
 }
 ),
 
@@ -427,16 +428,16 @@ R"(
 -  MessageID0:          "MapRegion_HyrulePrairie"
 )",
 L{
-  N(L{N("MessageID1", "MapRegion_HyrulePrairie")}),
-  N(L{N("MessageID2", "MapRegion_HyrulePrairie")}),
-  N(L{N("MessageID3", "MapRegion_HyrulePrairie")}),
-  N(L{N("MessageID4", "MapRegion_HyrulePrairie")}),
-  N(L{N("MessageID5", "MapRegion_HyrulePrairie")}),
-  N(L{N("MessageID6", "MapRegion_HyrulePrairie")}),
-  N(L{N("MessageID7", "MapRegion_HyrulePrairie")}),
-  N(L{N("MessageID8", "MapRegion_HyrulePrairie")}),
-  N(L{N("MessageID9", "MapRegion_HyrulePrairie")}),
-  N(L{N("MessageID0", "MapRegion_HyrulePrairie")}),
+  N(L{N(QV, "MessageID1", "MapRegion_HyrulePrairie")}),
+  N(L{N(QV, "MessageID2", "MapRegion_HyrulePrairie")}),
+  N(L{N(QV, "MessageID3", "MapRegion_HyrulePrairie")}),
+  N(L{N(QV, "MessageID4", "MapRegion_HyrulePrairie")}),
+  N(L{N(QV, "MessageID5", "MapRegion_HyrulePrairie")}),
+  N(L{N(QV, "MessageID6", "MapRegion_HyrulePrairie")}),
+  N(L{N(QV, "MessageID7", "MapRegion_HyrulePrairie")}),
+  N(L{N(QV, "MessageID8", "MapRegion_HyrulePrairie")}),
+  N(L{N(QV, "MessageID9", "MapRegion_HyrulePrairie")}),
+  N(L{N(QV, "MessageID0", "MapRegion_HyrulePrairie")}),
 }
 ),
 
@@ -471,20 +472,20 @@ R"(
   MessageID2:          "MapRegion_HyrulePrairie2 "
 )",
 L{
-  N(L{N("MessageID1",  "MapRegion_HyrulePrairie")}),
-  N(L{N("MessageID2",  "MapRegion_HyrulePrairie")}),
-  N(L{N("MessageID3",  "MapRegion_HyrulePrairie ")}),
-  N(L{N("MessageID4",  "MapRegion_HyrulePrairie ")}),
-  N(L{N("MessageID5",  "MapRegion_HyrulePrairie ")}),
-  N(L{N("MessageID6",  "MapRegion_HyrulePrairie ")}),
-  N(L{N("MessageID7",  "MapRegion_HyrulePrairie ")}),
-  N(L{N("MessageID8",  "MapRegion_HyrulePrairie ")}),
-  N(L{N("MessageID9",  "MapRegion_HyrulePrairie ")}),
-  N(L{N("MessageID10", "MapRegion_HyrulePrairie ")}),
-  N(L{N("MessageID11", "MapRegion_HyrulePrairie")}),
-  N(L{N("MessageID12", "MapRegion_HyrulePrairie")}),
-  N(L{N("key1", "true1"), N("MessageID1", "MapRegion_HyrulePrairie1 ")}),
-  N(L{N("key2", "true2"), N("MessageID2", "MapRegion_HyrulePrairie2 ")}),
+  N(L{N(QV, "MessageID1",  "MapRegion_HyrulePrairie")}),
+  N(L{N(QV, "MessageID2",  "MapRegion_HyrulePrairie")}),
+  N(L{N(QV, "MessageID3",  "MapRegion_HyrulePrairie ")}),
+  N(L{N(QV, "MessageID4",  "MapRegion_HyrulePrairie ")}),
+  N(L{N(QV, "MessageID5",  "MapRegion_HyrulePrairie ")}),
+  N(L{N(QV, "MessageID6",  "MapRegion_HyrulePrairie ")}),
+  N(L{N(QV, "MessageID7",  "MapRegion_HyrulePrairie ")}),
+  N(L{N(QV, "MessageID8",  "MapRegion_HyrulePrairie ")}),
+  N(L{N(QV, "MessageID9",  "MapRegion_HyrulePrairie ")}),
+  N(L{N(QV, "MessageID10", "MapRegion_HyrulePrairie ")}),
+  N(L{N(QV, "MessageID11", "MapRegion_HyrulePrairie")}),
+  N(L{N(QV, "MessageID12", "MapRegion_HyrulePrairie")}),
+  N(L{N("key1", "true1"), N(QV, "MessageID1", "MapRegion_HyrulePrairie1 ")}),
+  N(L{N("key2", "true2"), N(QV, "MessageID2", "MapRegion_HyrulePrairie2 ")}),
 }
 ),
 
@@ -526,6 +527,38 @@ R"(
 
 C("github128/1", RESOLVE_REFS | HAS_PARSE_ERROR, "a: *invalid"),
 C("github128/2", RESOLVE_REFS | HAS_PARSE_ERROR, "*"),
+
+C("github129", RESOLVE_REFS, R"(
+ref: &ref ref_val
+a: *ref   # resolve the reference
+b: '*ref' # don't resolve, it's just a string
+c: "*ref" # don't resolve, it's just a string
+d: >      # don't resolve, it's just a string
+  *ref
+e: >-     # don't resolve, it's just a string
+  *ref
+f: >+     # don't resolve, it's just a string
+  *ref
+g: |      # don't resolve, it's just a string
+  *ref
+h: |-     # don't resolve, it's just a string
+  *ref
+i: |+     # don't resolve, it's just a string
+  *ref
+)", L{
+        N("ref", "ref_val"),
+        N("a", "ref_val"),    // this should be resolved
+        N(QV, "b", "*ref"),   // this should not be resolved (just a string)
+        N(QV, "c", "*ref"),   // this should not be resolved (just a string)
+        N(QV, "d", "*ref\n"), // this should not be resolved (just a string)
+        N(QV, "e", "*ref"),   // this should not be resolved (just a string)
+        N(QV, "f", "*ref\n"), // this should not be resolved (just a string)
+        N(QV, "g", "*ref\n"), // this should not be resolved (just a string)
+        N(QV, "h", "*ref"),   // this should not be resolved (just a string)
+        N(QV, "i", "*ref\n"),   // this should not be resolved (just a string)
+    }
+)
+
     )
 }
 

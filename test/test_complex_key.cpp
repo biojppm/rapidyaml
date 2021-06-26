@@ -186,7 +186,7 @@ R"(? |
 : and this is its value
 )",
   L{
-      N("This is a key\nthat has multiple lines\n", "and this is its value")
+      N(QK, "This is a key\nthat has multiple lines\n", "and this is its value")
    }
 ),
 
@@ -198,7 +198,7 @@ R"(? |+
 : and this is its value
 )",
   L{
-      N("This is a key\nthat has multiple lines\n\n", "and this is its value")
+      N(QK, "This is a key\nthat has multiple lines\n\n", "and this is its value")
    }
 ),
 
@@ -210,7 +210,7 @@ R"(? |-
 : and this is its value
 )",
   L{
-      N("This is a key\nthat has multiple lines", "and this is its value")
+      N(QK, "This is a key\nthat has multiple lines", "and this is its value")
    }
 ),
 
@@ -222,7 +222,7 @@ R"(? >
 : and this is its value
 )",
   L{
-      N("This is a key that has multiple lines\n", "and this is its value")
+      N(QK, "This is a key that has multiple lines\n", "and this is its value")
    }
 ),
 
@@ -234,7 +234,7 @@ R"(? >+
 : and this is its value
 )",
   L{
-      N("This is a key that has multiple lines\n\n", "and this is its value")
+      N(QK, "This is a key that has multiple lines\n\n", "and this is its value")
    }
 ),
 
@@ -246,7 +246,7 @@ R"(? >-
 : and this is its value
 )",
   L{
-      N("This is a key that has multiple lines", "and this is its value")
+      N(QK, "This is a key that has multiple lines", "and this is its value")
    }
 ),
 

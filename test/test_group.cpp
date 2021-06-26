@@ -295,7 +295,11 @@ void YmlTestCase::_test_complete_round_trip(CaseDataLineEndings *cd)
         SCOPED_TRACE("comparing parsed tree to ref tree");
         EXPECT_GE(cd->emitted_tree.capacity(), c->root.reccount());
         EXPECT_EQ(cd->emitted_tree.size(), c->root.reccount());
-        c->root.compare(cd->emitted_tree.rootref());
+
+        // in this case, we can ignore whether scalars are quoted.
+        // Because it can happen, that a scalar was quoted in the original
+        // file, but the re-emitted data does not quote the scalars.
+        c->root.compare(cd->emitted_tree.rootref(), true);
     }
 }
 

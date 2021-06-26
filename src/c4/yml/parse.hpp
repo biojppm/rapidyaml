@@ -102,7 +102,14 @@ private:
     void    _scan_line();
 
     csubstr _slurp_doc_scalar();
-    bool    _scan_scalar(csubstr *scalar);
+
+    /**
+     * @param [out] quoted
+     * Will only be written to if this method returns true.
+     * Will be set to true if the scanned scalar was quoted, by '', "", > or |.
+     */
+    bool    _scan_scalar(csubstr *scalar, bool &quoted);
+
     csubstr _scan_comment();
     csubstr _scan_quoted_scalar(const char q);
     csubstr _scan_block();
@@ -154,14 +161,14 @@ private:
     void  _start_new_doc(csubstr rem);
     void  _end_stream();
 
-    NodeData* _append_val(csubstr val);
-    NodeData* _append_key_val(csubstr val);
+    NodeData* _append_val(csubstr val, bool quoted=false);
+    NodeData* _append_key_val(csubstr val, bool val_quoted=false);
     inline NodeData* _append_val_null() { return _append_val({}/*"~"*/); }
     inline NodeData* _append_key_val_null() { return _append_key_val({}/*"~"*/); }
     bool  _rval_dash_start_or_continue_seq();
 
-    void  _store_scalar(csubstr const& s);
-    void  _store_scalar_null() { _store_scalar({}/*"~"*/); }
+    void  _store_scalar(csubstr const& s, bool is_quoted);
+    void  _store_scalar_null() { _store_scalar({}/*"~"*/, false); }
     csubstr _consume_scalar();
     void  _move_scalar_from_top();
 
@@ -196,6 +203,7 @@ private:
         //! eg, {key: [key2: value2, key3: value3]}
         //! is parsed as {key: [{key2: value2}, {key3: value3}]}
         RSEQIMAP = 0x01 << 12,
+        SSCL_QUO = 0x01 << 13, ///< stored scalar was quoted
     } State_e;
 
     struct LineContents

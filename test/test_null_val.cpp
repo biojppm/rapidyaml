@@ -246,7 +246,7 @@ whatever: baz
 )",
 L{
 N("fixed case", L{N("foo", "a"), N(KEYVAL, "bar", nullptr)}),
-N("your case", L{N("foo", "a"), N("bar", "")}),
+N("your case", L{N("foo", "a"), N(QV, "bar", "")}),
 N("whatever", "baz"),
 }),
 
@@ -273,7 +273,7 @@ N("type", "xml"),
 N("param_root", L{
     N("objects", L{
         N("System", L{
-            N("SameGroupActorName", ""),
+            N(QV, "SameGroupActorName", ""),
             N("IsGetItemSelf", "false")
         }),
         N("General", L{
@@ -284,7 +284,7 @@ N("param_root", L{
             N("IsBurnOutBorn", "false"),
             N(KEYVAL, "BurnOutBornName", nullptr),
             N("IsBurnOutBornIdent", "false"),
-            N("ChangeDropTableName", ""),
+            N(QV, "ChangeDropTableName", ""),
         }),
     })
 }),
@@ -308,9 +308,9 @@ N("type", "test"),
 N("param_root", L{
     N("objects", L{
         N("TestContent", L{
-            N("Str64_empty", ""),
+            N(QV, "Str64_empty", ""),
             N(KEYVAL, "Str64_empty2", nullptr),
-            N("Str64_empty3", ""),
+            N(QV, "Str64_empty3", ""),
         }),
     }),
     N(KEYMAP, "lists", L{})

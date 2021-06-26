@@ -252,10 +252,10 @@ e :f: "val : 000"
 h :i: val :000
 )",
     L{
-  N{"a:b", "val:000"}, N{"c:d", "val: 000"}, N{"e:f", "val : 000"}, N{"h:i", "val :000"},
-  N{"a: b", "val:000"}, N{"c: d", "val: 000"}, N{"e: f", "val : 000"}, N{"h: i", "val :000"},
-  N{"a : b", "val:000"}, N{"c : d", "val: 000"}, N{"e : f", "val : 000"}, N{"h : i", "val :000"},
-  N{"a :b", "val:000"}, N{"c :d", "val: 000"}, N{"e :f", "val : 000"}, N{"h :i", "val :000"},
+  N{    "a:b", "val:000"},  N{QV,  "c:d", "val: 000"},  N{QV,  "e:f", "val : 000"},  N{    "h:i", "val :000"},
+  N{QK, "a: b", "val:000"}, N{QKV, "c: d", "val: 000"}, N{QKV, "e: f", "val : 000"},N{QK, "h: i", "val :000"},
+  N{QK, "a : b", "val:000"},N{QKV, "c : d", "val: 000"},N{QKV, "e : f", "val : 000"},N{QK, "h : i", "val :000"},
+  N{    "a :b", "val:000"}, N{QV,  "c :d", "val: 000"}, N{QV,  "e :f", "val : 000"}, N{    "h :i", "val :000"},
 }
 ),
 
@@ -279,10 +279,10 @@ h# i: "val #000"
 "h #i": "val #000"
 )",
     L{
-  N{"a#b", "val#000"}, N{"c#d", "val# 000"}, N{"e#f", "val # 000"}, N{"h#i", "val #000"},
-  N{"a# b", "val#000"}, N{"c# d", "val# 000"}, N{"e# f", "val # 000"}, N{"h# i", "val #000"},
-  N{"a # b", "val#000"}, N{"c # d", "val# 000"}, N{"e # f", "val # 000"}, N{"h # i", "val #000"},
-  N{"a #b", "val#000"}, N{"c #d", "val# 000"}, N{"e #f", "val # 000"}, N{"h #i", "val #000"},
+   N{    "a#b",   "val#000"}, N{    "c#d",   "val# 000"}, N{QV,  "e#f",   "val # 000"}, N{QV,  "h#i",   "val #000"},
+   N{    "a# b",  "val#000"}, N{    "c# d",  "val# 000"}, N{QV,  "e# f",  "val # 000"}, N{QV,  "h# i",  "val #000"},
+   N{QK, "a # b", "val#000"}, N{QK, "c # d", "val# 000"}, N{QKV, "e # f", "val # 000"}, N{QKV, "h # i", "val #000"},
+   N{QK, "a #b",  "val#000"}, N{QK, "c #d",  "val# 000"}, N{QKV, "e #f",  "val # 000"}, N{QKV, "h #i",  "val #000"},
 }
 ),
 
@@ -484,11 +484,11 @@ elm4     :
 L{
     N("foo", "crl"),
     N("keyA", L{N("keyA.B", "test value")}),
-    N("key C", "val C"),
-    N("key D", "val D"),
-    N("elm2", L{N("key C", "val C"), N("key D", "val D"), N("key E", "val E"),}),
-    N("elm3", L{N("key D", "val D"), N("key C", "val C"), N("key E", "val E"),}),
-    N("elm4", L{N("key E", "val E"), N("key D", "val D"), N("key C", "val C"),}),
+    N(QK, "key C", "val C"),
+    N(QK, "key D", "val D"),
+    N("elm2", L{N(QK, "key C", "val C"), N(QK, "key D", "val D"), N("key E", "val E"),}),
+    N("elm3", L{N(QK, "key D", "val D"), N(QK, "key C", "val C"), N("key E", "val E"),}),
+    N("elm4", L{N("key E", "val E"), N(QK, "key D", "val D"), N(QK, "key C", "val C"),}),
 }
 ),
 

@@ -372,9 +372,20 @@ void CaseNode::compare_child(yml::NodeRef const& n, size_t pos) const
     }
 }
 
-void CaseNode::compare(yml::NodeRef const& n) const
+void CaseNode::compare(yml::NodeRef const& n, bool ignoreQuote) const
 {
-    EXPECT_EQ((int)n.get()->m_type, (int)type) << "id=" << n.id(); // the type() method masks the type, and thus tag flags are omitted on its return value
+    if(ignoreQuote)
+    {
+        const auto actualType   = n.get()->m_type & ~(VALQUO | KEYQUO);
+        const auto expectedType = type & ~(VALQUO | KEYQUO);
+        EXPECT_EQ(expectedType, actualType) << "id=" << n.id();
+    }
+    else
+    {
+        EXPECT_EQ((int)n.get()->m_type, (int)type) << "id=" << n.id(); // the type() method masks the type, and thus tag flags are omitted on its return value
+        EXPECT_EQ(n.get()->m_type, type) << "id=" << n.id(); // the type() method masks the type, and thus tag flags are omitted on its return value
+    }
+
     EXPECT_EQ(n.num_children(), children.size()) << "id=" << n.id();
 
     if(n.has_key())
@@ -421,7 +432,7 @@ void CaseNode::compare(yml::NodeRef const& n) const
 
     for(size_t i = 0, ei = n.num_children(), j = 0, ej = children.size(); i < ei && j < ej; ++i, ++j)
     {
-        children[j].compare(n[i]);
+        children[j].compare(n[i], ignoreQuote);
     }
 }
 

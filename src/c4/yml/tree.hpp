@@ -96,6 +96,8 @@ typedef enum : type_bits {
     _TYMASK = c4bit(10)-1,
     KEYTAG  = c4bit(10),    ///< the key has an explicit tag/type
     VALTAG  = c4bit(11),    ///< the val has an explicit tag/type
+    VALQUO  = c4bit(12),    ///< the val is quoted by '', "", > or |
+    KEYQUO  = c4bit(13),    ///< the key is quoted by '', "", > or |
     KEYVAL  = KEY|VAL,
     KEYSEQ  = KEY|SEQ,
     KEYMAP  = KEY|MAP,
@@ -571,6 +573,8 @@ public:
     bool is_val_ref(size_t node) const { return (_p(node)->m_type & VALREF) != 0; }
     bool is_ref(size_t node) const { return (_p(node)->m_type & (KEYREF|VALREF)) != 0; }
     bool is_anchor(size_t node) const { return (_p(node)->m_type & (KEYANCH|VALANCH)) != 0; }
+    bool is_key_quoted(size_t node) const { return (_p(node)->m_type & (KEYQUO)) != 0; }
+    bool is_val_quoted(size_t node) const { return (_p(node)->m_type & (VALQUO)) != 0; }
 
     bool parent_is_seq(size_t node) const { RYML_ASSERT(has_parent(node)); return is_seq(_p(node)->m_parent); }
     bool parent_is_map(size_t node) const { RYML_ASSERT(has_parent(node)); return is_map(_p(node)->m_parent); }

@@ -39,7 +39,7 @@ picture: !!binary >-
       N(TS("!!float", "3"), TS("!!int", "3.4")),
       N(TS("!!str", "key"), TS("!!int", "val")),
       N("myObject", TL("!myClass", L{N("name", "Joe"), N("age", "15")})),
-      N("picture", TS("!!binary", R"(R0lGODdhDQAIAIAAAAAAANn Z2SwAAAAADQAIAAACF4SDGQ ar3xxbJ9p0qa7R0YxwzaFME 1IAADs=)")),
+      N(QV, "picture", TS("!!binary", R"(R0lGODdhDQAIAIAAAAAAANn Z2SwAAAAADQAIAAACF4SDGQ ar3xxbJ9p0qa7R0YxwzaFME 1IAADs=)")),
     }
 ),
 

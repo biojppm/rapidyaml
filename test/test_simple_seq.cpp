@@ -177,10 +177,10 @@ R"(
 - 'e: f'
 )",
 L{
-  N("a:b"), N("c:d"), N("e:f"),
-  N("a :b"), N("c :d"), N("e :f"),
-  N(L{N("a", "b")}), N("c : d"), N("e : f"),
-  N(L{N("a", "b")}), N("c: d"), N("e: f"),
+  N("a:b"), N(QV, "c:d"), N(QV, "e:f"),
+  N("a :b"), N(QV, "c :d"), N(QV, "e :f"),
+  N(L{N("a", "b")}), N(QV, "c : d"), N(QV, "e : f"),
+  N(L{N("a", "b")}), N(QV, "c: d"), N(QV, "e: f"),
     }
 ),
 
@@ -200,10 +200,10 @@ R"(
 - 'a #b'
 )",
 L{
-  N{"a#b"}, N{"a#b"}, N{"a#b"},
-  N{"a# b"}, N{"a# b"}, N{"a# b"},
-  N{"a"}, N{"a # b"}, N{"a # b"},
-  N{"a"}, N{"a #b"}, N{"a #b"},
+  N{"a#b"}, N{QV, "a#b"}, N{QV, "a#b"},
+  N{"a# b"}, N{QV, "a# b"}, N{QV, "a# b"},
+  N{"a"}, N{QV, "a # b"}, N{QV, "a # b"},
+  N{"a"}, N{QV, "a #b"}, N{QV, "a #b"},
     }
 ),
 
@@ -223,10 +223,10 @@ R"(
 - 'a -b'
 )",
 L{
-  N{"a-b"}, N{"a-b"}, N{"a-b"},
-  N{"a- b"}, N{"a- b"}, N{"a- b"},
-  N{"a - b"}, N{"a - b"}, N{"a - b"},
-  N{"a -b"}, N{"a -b"}, N{"a -b"},
+ N{"a-b"},   N{QV, "a-b"},   N{QV, "a-b"},
+ N{"a- b"},  N{QV, "a- b"},  N{QV, "a- b"},
+ N{"a - b"}, N{QV, "a - b"}, N{QV, "a - b"},
+ N{"a -b"},  N{QV, "a -b"},  N{QV, "a -b"},
     }
 ),
 
@@ -246,10 +246,10 @@ R"(
 - 'a {b'
 )",
 L{
-  N{"a{b"}, N{"a{b"}, N{"a{b"},
-  N{"a{ b"}, N{"a{ b"}, N{"a{ b"},
-  N{"a { b"}, N{"a { b"}, N{"a { b"},
-  N{"a {b"}, N{"a {b"}, N{"a {b"},
+  N{"a{b"},   N{QV, "a{b"},   N{QV, "a{b"},
+  N{"a{ b"},  N{QV, "a{ b"},  N{QV, "a{ b"},
+  N{"a { b"}, N{QV, "a { b"}, N{QV, "a { b"},
+  N{"a {b"},  N{QV, "a {b"},  N{QV, "a {b"},
     }
 ),
 
@@ -269,10 +269,10 @@ R"(
 - 'a }b'
 )",
 L{
-  N{"a}b"}, N{"a}b"}, N{"a}b"},
-  N{"a} b"}, N{"a} b"}, N{"a} b"},
-  N{"a } b"}, N{"a } b"}, N{"a } b"},
-  N{"a }b"}, N{"a }b"}, N{"a }b"},
+  N{"a}b"},   N{QV, "a}b"},   N{QV, "a}b"},
+  N{"a} b"},  N{QV, "a} b"},  N{QV, "a} b"},
+  N{"a } b"}, N{QV, "a } b"}, N{QV, "a } b"},
+  N{"a }b"},  N{QV, "a }b"},  N{QV, "a }b"},
     }
 ),
 
@@ -292,10 +292,10 @@ R"(
 - 'a [b'
 )",
 L{
-  N{"a[b"}, N{"a[b"}, N{"a[b"},
-  N{"a[ b"}, N{"a[ b"}, N{"a[ b"},
-  N{"a [ b"}, N{"a [ b"}, N{"a [ b"},
-  N{"a [b"}, N{"a [b"}, N{"a [b"},
+  N{"a[b"},   N{QV, "a[b"},   N{QV, "a[b"},
+  N{"a[ b"},  N{QV, "a[ b"},  N{QV, "a[ b"},
+  N{"a [ b"}, N{QV, "a [ b"}, N{QV, "a [ b"},
+  N{"a [b"},  N{QV, "a [b"},  N{QV, "a [b"},
     }
 ),
 
@@ -315,10 +315,10 @@ R"(
 - 'a ]b'
 )",
 L{
-  N{"a]b"}, N{"a]b"}, N{"a]b"},
-  N{"a] b"}, N{"a] b"}, N{"a] b"},
-  N{"a ] b"}, N{"a ] b"}, N{"a ] b"},
-  N{"a ]b"}, N{"a ]b"}, N{"a ]b"},
+  N{"a]b"},   N{QV, "a]b"},   N{QV, "a]b"},
+  N{"a] b"},  N{QV, "a] b"},  N{QV, "a] b"},
+  N{"a ] b"}, N{QV, "a ] b"}, N{QV, "a ] b"},
+  N{"a ]b"},  N{QV, "a ]b"},  N{QV, "a ]b"},
     }
 ),
 
@@ -330,10 +330,10 @@ R"([
  a ,b,  "c ,d",   'e ,f',
 ])",
 L{
-  N{"a"}, N("b"), N("c,d"), N("e,f"),
-  N{"a"}, N("b"), N("c, d"), N("e, f"),
-  N{"a"}, N("b"), N("c , d"), N("e , f"),
-  N{"a"}, N("b"), N("c ,d"), N("e ,f"),
+  N{"a"}, N("b"), N(QV, "c,d"),   N(QV, "e,f"),
+  N{"a"}, N("b"), N(QV, "c, d"),  N(QV, "e, f"),
+  N{"a"}, N("b"), N(QV, "c , d"), N(QV, "e , f"),
+  N{"a"}, N("b"), N(QV, "c ,d"),  N(QV, "e ,f"),
     }
 ),
 
@@ -349,10 +349,10 @@ R"([
   "c :d",   'e :f',
 ])",
 L{/*...not legal...*/
-  /*N{"a"}, N("b"),*/ N("c:d"), N("e:f"),
-  /*N{"a"}, N("b"),*/ N("c: d"), N("e: f"),
-  /*N{"a"}, N("b"),*/ N("c : d"), N("e : f"),
-  /*N{"a"}, N("b"),*/ N("c :d"), N("e :f"),
+  /*N{"a"}, N("b"),*/ N(QV, "c:d"),   N(QV, "e:f"),
+  /*N{"a"}, N("b"),*/ N(QV, "c: d"),  N(QV, "e: f"),
+  /*N{"a"}, N("b"),*/ N(QV, "c : d"), N(QV, "e : f"),
+  /*N{"a"}, N("b"),*/ N(QV, "c :d"),  N(QV, "e :f"),
     }
 ),
 
@@ -365,8 +365,8 @@ R"([
  a #b, "c #d",   'e #f',
 ])",
 L{
-  N{"a#b"}, N("c#d"), N("e#f"),
-  N{"a# b"}, N("c# d"), N("e# f"),
+  N{"a#b"}, N(QV, "c#d"), N(QV, "e#f"),
+  N{"a# b"}, N(QV, "c# d"), N(QV, "e# f"),
   N{"a"},
   N{"a"},
     }
@@ -380,10 +380,10 @@ R"([
  a -b, "c -d",   'e -f',
 ])",
 L{
-  N{"a-b"}, N("c-d"), N("e-f"),
-  N{"a- b"}, N("c- d"), N("e- f"),
-  N{"a - b"}, N("c - d"), N("e - f"),
-  N{"a -b"}, N("c -d"), N("e -f"),
+  N{"a-b"},   N(QV, "c-d"),   N(QV, "e-f"),
+  N{"a- b"},  N(QV, "c- d"),  N(QV, "e- f"),
+  N{"a - b"}, N(QV, "c - d"), N(QV, "e - f"),
+  N{"a -b"},  N(QV, "c -d"),  N(QV, "e -f"),
     }
 ),
 
@@ -399,10 +399,10 @@ R"([
    "c [d",   'e [f',
 ])",
 L{
-  /*N{"a[b"}, */N("c[d"), N("e[f"),
-  /*N{"a[ b"}, */N("c[ d"), N("e[ f"),
-  /*N{"a [ b"},*/ N("c [ d"), N("e [ f"),
-  /*N{"a [b"}, */N("c [d"), N("e [f"),
+  /*N{"a[b"}, */  N(QV, "c[d"),   N(QV, "e[f"),
+  /*N{"a[ b"}, */ N(QV, "c[ d"),  N(QV, "e[ f"),
+  /*N{"a [ b"},*/ N(QV, "c [ d"), N(QV, "e [ f"),
+  /*N{"a [b"}, */ N(QV, "c [d"),  N(QV, "e [f"),
     }
 ),
 
@@ -418,10 +418,10 @@ R"([
    "c ]d",   'e ]f',
 ])",
 L{
-  /*N{"a]b"}, */N("c]d"), N("e]f"),
-  /*N{"a] b"}, */N("c] d"), N("e] f"),
-  /*N{"a ] b"},*/ N("c ] d"), N("e ] f"),
-  /*N{"a ]b"}, */N("c ]d"), N("e ]f"),
+  /*N{"a]b"}, */  N(QV, "c]d"),   N(QV, "e]f"),
+  /*N{"a] b"}, */ N(QV, "c] d"),  N(QV, "e] f"),
+  /*N{"a ] b"},*/ N(QV, "c ] d"), N(QV, "e ] f"),
+  /*N{"a ]b"}, */ N(QV, "c ]d"),  N(QV, "e ]f"),
     }
 ),
 
@@ -437,10 +437,10 @@ R"([
    "c {d",   'e {f',
 ])",
 L{
-  /*N{"a{b"}, */N("c{d"), N("e{f"),
-  /*N{"a{ b"}, */N("c{ d"), N("e{ f"),
-  /*N{"a { b"},*/ N("c { d"), N("e { f"),
-  /*N{"a {b"}, */N("c {d"), N("e {f"),
+  /*N{"a{b"}, */  N(QV, "c{d"),   N(QV, "e{f"),
+  /*N{"a{ b"}, */ N(QV, "c{ d"),  N(QV, "e{ f"),
+  /*N{"a { b"},*/ N(QV, "c { d"), N(QV, "e { f"),
+  /*N{"a {b"}, */ N(QV, "c {d"),  N(QV, "e {f"),
     }
 ),
 
@@ -456,10 +456,10 @@ R"([
    "c }d",   'e }f',
 ])",
 L{
-  /*N{"a}b"}, */N("c}d"), N("e}f"),
-  /*N{"a} b"}, */N("c} d"), N("e} f"),
-  /*N{"a } b"},*/ N("c } d"), N("e } f"),
-  /*N{"a }b"}, */N("c }d"), N("e }f"),
+  /*N{"a}b"}, */  N(QV, "c}d"),   N(QV, "e}f"),
+  /*N{"a} b"}, */ N(QV, "c} d"),  N(QV, "e} f"),
+  /*N{"a } b"},*/ N(QV, "c } d"), N(QV, "e } f"),
+  /*N{"a }b"}, */ N(QV, "c }d"),  N(QV, "e }f"),
     }
 ),
 

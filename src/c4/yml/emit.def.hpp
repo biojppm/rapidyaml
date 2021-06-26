@@ -263,7 +263,11 @@ void Emitter<Writer>::_write(NodeScalar const& sc, NodeType flags, size_t ilevel
     const bool has_newlines = sc.scalar.first_of('\n') != npos;
     if(!has_newlines || (sc.scalar.triml(" \t") != sc.scalar))
     {
-        _write_scalar(sc.scalar);
+        bool was_quoted =
+            ((flags & KEY) && (flags & KEYQUO)) ||
+            ((flags & VAL) && (flags & VALQUO));
+
+        _write_scalar(sc.scalar, was_quoted);
     }
     else
     {
@@ -341,7 +345,7 @@ void Emitter<Writer>::_write_scalar_block(csubstr s, size_t ilevel, bool as_key)
 }
 
 template<class Writer>
-void Emitter<Writer>::_write_scalar(csubstr s)
+void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
 {
     // this block of code needed to be moved to before the needs_quotes
     // assignment to workaround a g++ optimizer bug where (s.str != nullptr)
@@ -366,6 +370,8 @@ void Emitter<Writer>::_write_scalar(csubstr s)
             (s != s.trim(" \t\n\r")) // has leading or trailing whitespace
             ||
             s.first_of("#:-?,\n{}[]'\"") != npos // has special chars
+            ||
+            (was_quoted && s[0] == '*')  // starts with * but is not a reference (empty string checked above)
             )
         );
 
