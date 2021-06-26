@@ -893,7 +893,7 @@ TEST(NodeScalar, ctor__tagged)
 TEST(NodeInit, ctor__empty)
 {
     NodeInit n;
-    EXPECT_EQ(n.type, NOTYPE);
+    EXPECT_EQ((type_bits)n.type, (type_bits)NOTYPE);
     EXPECT_EQ(n.key.scalar, "");
     EXPECT_EQ(n.key.tag, "");
     EXPECT_EQ(n.val.scalar, "");
@@ -906,7 +906,7 @@ TEST(NodeInit, ctor__type_only)
     {
         SCOPED_TRACE(NodeType::type_str(k));
         NodeInit n(k);
-        EXPECT_EQ(n.type, k);
+        EXPECT_EQ((type_bits)n.type, (type_bits)k);
         EXPECT_EQ(n.key.scalar, "");
         EXPECT_EQ(n.key.tag, "");
         EXPECT_EQ(n.val.scalar, "");
@@ -1067,10 +1067,10 @@ TEST(NodeRef, 0_general)
     auto ch4 = root["b"]["seq"][3].append_sibling({"4"});
     EXPECT_EQ(ch4.id(), root["b"]["seq"][4].id());
     EXPECT_EQ(ch4.get(), root["b"]["seq"][4].get());
-    EXPECT_EQ(root["b"]["seq"][4].type(), VAL);
+    EXPECT_EQ((type_bits)root["b"]["seq"][4].type(), (type_bits)VAL);
     EXPECT_EQ(root["b"]["seq"][4].val(), "4");
     root["b"]["seq"].append_sibling({NodeScalar{"!!str", "aaa"}, NodeScalar{"!!int", "0"}});
-    EXPECT_EQ(root["b"]["seq"][4].type(), VAL);
+    EXPECT_EQ((type_bits)root["b"]["seq"][4].type(), (type_bits)VAL);
     EXPECT_EQ(root["b"]["seq"][4].val(), "4");
 
     root["b"]["key"] = "val";
@@ -1121,26 +1121,26 @@ TEST(NodeRef, 0_general)
 
     emit(t);
 
-    EXPECT_EQ(root.type(), MAP);
-    EXPECT_EQ(root["a"].type(), KEYVAL);
+    EXPECT_EQ((type_bits)root.type(), (type_bits)MAP);
+    EXPECT_EQ((type_bits)root["a"].type(), (type_bits)KEYVAL);
     EXPECT_EQ(root["a"].key(), "a");
     EXPECT_EQ(root["a"].val(), "0");
 
-    EXPECT_EQ(root["b"].type(), KEYMAP);
+    EXPECT_EQ((type_bits)root["b"].type(), (type_bits)KEYMAP);
 
-    EXPECT_EQ(root["b"]["seq"].type(), KEYSEQ);
-    EXPECT_EQ(root["b"]["seq"].key(), "seq");
-    EXPECT_EQ(root["b"]["seq"][0].type(), VAL);
-    EXPECT_EQ(root["b"]["seq"][0].val(), "0");
-    EXPECT_EQ(root["b"]["seq"][1].type(), VAL);
-    EXPECT_EQ(root["b"]["seq"][1].val(), "1");
-    EXPECT_EQ(root["b"]["seq"][2].type(), VAL);
-    EXPECT_EQ(root["b"]["seq"][2].val(), "2");
-    EXPECT_EQ(root["b"]["seq"][3].type(), VAL);
-    EXPECT_EQ(root["b"]["seq"][3].val(), "3");
-    EXPECT_EQ(root["b"]["seq"][3].val_tag(), "!!str");
-    EXPECT_EQ(root["b"]["seq"][4].type(), VAL);
-    EXPECT_EQ(root["b"]["seq"][4].val(), "4");
+    EXPECT_EQ((type_bits)root["b"]["seq"].type(), (type_bits)KEYSEQ);
+    EXPECT_EQ(           root["b"]["seq"].key(), "seq");
+    EXPECT_EQ((type_bits)root["b"]["seq"][0].type(), (type_bits)VAL);
+    EXPECT_EQ(           root["b"]["seq"][0].val(), "0");
+    EXPECT_EQ((type_bits)root["b"]["seq"][1].type(), (type_bits)VAL);
+    EXPECT_EQ(           root["b"]["seq"][1].val(), "1");
+    EXPECT_EQ((type_bits)root["b"]["seq"][2].type(), (type_bits)VAL);
+    EXPECT_EQ(           root["b"]["seq"][2].val(), "2");
+    EXPECT_EQ((type_bits)root["b"]["seq"][3].type(), (type_bits)VAL);
+    EXPECT_EQ(           root["b"]["seq"][3].val(), "3");
+    EXPECT_EQ(           root["b"]["seq"][3].val_tag(), "!!str");
+    EXPECT_EQ((type_bits)root["b"]["seq"][4].type(), (type_bits)VAL);
+    EXPECT_EQ(           root["b"]["seq"][4].val(), "4");
 
     int tv;
     EXPECT_EQ(root["b"]["key"].key(), "key");
@@ -1158,7 +1158,7 @@ TEST(NodeRef, 0_general)
 
     emit(t);
 
-    EXPECT_EQ(root["b"]["aaa"].type(), KEYVAL);
+    EXPECT_EQ((type_bits)root["b"]["aaa"].type(), (type_bits)KEYVAL);
     EXPECT_EQ(root["b"]["aaa"].key_tag(), "!!str");
     EXPECT_EQ(root["b"]["aaa"].key(), "aaa");
     EXPECT_EQ(root["b"]["aaa"].val_tag(), "!!int");
@@ -1178,18 +1178,18 @@ void noderef_check_tree(NodeRef const& root)
     EXPECT_EQ(root.is_container(), true);
     EXPECT_EQ(root.is_seq(), true);
 
-    EXPECT_EQ(root[0].type(), VAL);
-    EXPECT_EQ(root[0].val(), "0");
-    EXPECT_EQ(root[1].type(), VAL);
-    EXPECT_EQ(root[1].val(), "1");
-    EXPECT_EQ(root[2].type(), VAL);
-    EXPECT_EQ(root[2].val(), "2");
-    EXPECT_EQ(root[3].type(), VAL);
-    EXPECT_EQ(root[3].val(), "3");
-    EXPECT_EQ(root[4].type(), VAL);
-    EXPECT_EQ(root[4].val(), "4");
-    EXPECT_EQ(root[5].type(), VAL);
-    EXPECT_EQ(root[5].val(), "5");
+    EXPECT_EQ((type_bits)root[0].type(), (type_bits)VAL);
+    EXPECT_EQ(           root[0].val(), "0");
+    EXPECT_EQ((type_bits)root[1].type(), (type_bits)VAL);
+    EXPECT_EQ(           root[1].val(), "1");
+    EXPECT_EQ((type_bits)root[2].type(), (type_bits)VAL);
+    EXPECT_EQ(           root[2].val(), "2");
+    EXPECT_EQ((type_bits)root[3].type(), (type_bits)VAL);
+    EXPECT_EQ(           root[3].val(), "3");
+    EXPECT_EQ((type_bits)root[4].type(), (type_bits)VAL);
+    EXPECT_EQ(           root[4].val(), "4");
+    EXPECT_EQ((type_bits)root[5].type(), (type_bits)VAL);
+    EXPECT_EQ(           root[5].val(), "5");
 }
 
 TEST(NodeRef, 1_append_child)
@@ -1632,31 +1632,31 @@ a:
 
     auto lp = t.lookup_path("x");
     EXPECT_FALSE(lp);
-    EXPECT_EQ(lp.target, NONE);
-    EXPECT_EQ(lp.closest, NONE);
+    EXPECT_EQ(lp.target, (size_t)NONE);
+    EXPECT_EQ(lp.closest, (size_t)NONE);
     EXPECT_EQ(lp.resolved(), "");
     EXPECT_EQ(lp.unresolved(), "x");
     lp = t.lookup_path("a.x");
     EXPECT_FALSE(lp);
-    EXPECT_EQ(lp.target, NONE);
+    EXPECT_EQ(lp.target, (size_t)NONE);
     EXPECT_EQ(lp.closest, 1);
     EXPECT_EQ(lp.resolved(), "a");
     EXPECT_EQ(lp.unresolved(), "x");
     lp = t.lookup_path("a.b.x");
     EXPECT_FALSE(lp);
-    EXPECT_EQ(lp.target, NONE);
+    EXPECT_EQ(lp.target, (size_t)NONE);
     EXPECT_EQ(lp.closest, 2);
     EXPECT_EQ(lp.resolved(), "a.b");
     EXPECT_EQ(lp.unresolved(), "x");
     lp = t.lookup_path("a.c.x");
     EXPECT_FALSE(lp);
-    EXPECT_EQ(lp.target, NONE);
+    EXPECT_EQ(lp.target, (size_t)NONE);
     EXPECT_EQ(lp.closest, 3);
     EXPECT_EQ(lp.resolved(), "a.c");
     EXPECT_EQ(lp.unresolved(), "x");
 
     size_t sz = t.size();
-    EXPECT_EQ(t.lookup_path("x").target, NONE);
+    EXPECT_EQ(t.lookup_path("x").target, (size_t)NONE);
     EXPECT_EQ(t.lookup_path_or_modify("x", "x"), sz);
     EXPECT_EQ(t.lookup_path("x").target, sz);
     EXPECT_EQ(t.val(sz), "x");
@@ -1666,7 +1666,7 @@ a:
     EXPECT_EQ(t.val(sz), "x");
     
     sz = t.size();
-    EXPECT_EQ(t.lookup_path("a.x").target, NONE);
+    EXPECT_EQ(t.lookup_path("a.x").target, (size_t)NONE);
     EXPECT_EQ(t.lookup_path_or_modify("x", "a.x"), sz);
     EXPECT_EQ(t.lookup_path("a.x").target, sz);
     EXPECT_EQ(t.val(sz), "x");
@@ -1676,7 +1676,7 @@ a:
     EXPECT_EQ(t.val(sz), "x");
  
     sz = t.size();
-    EXPECT_EQ(t.lookup_path("a.c.x").target, NONE);
+    EXPECT_EQ(t.lookup_path("a.c.x").target, (size_t)NONE);
     EXPECT_EQ(t.lookup_path_or_modify("x", "a.c.x"), sz);
     EXPECT_EQ(t.lookup_path("a.c.x").target, sz);
     EXPECT_EQ(t.val(sz), "x");
@@ -1686,8 +1686,8 @@ a:
     EXPECT_EQ(t.val(sz), "x");
 
     csubstr bigpath = "newmap.newseq[0].newmap.newseq[0].first";
-    EXPECT_EQ(t.lookup_path(bigpath).target, NONE);
-    EXPECT_EQ(t.lookup_path(bigpath).closest, NONE);
+    EXPECT_EQ(t.lookup_path(bigpath).target, (size_t)NONE);
+    EXPECT_EQ(t.lookup_path(bigpath).closest, (size_t)NONE);
     EXPECT_EQ(t.lookup_path(bigpath).resolved(), "");
     EXPECT_EQ(t.lookup_path(bigpath).unresolved(), bigpath);
     sz = t.lookup_path_or_modify("x", bigpath);

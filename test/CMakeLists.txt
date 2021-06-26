@@ -5,6 +5,11 @@ c4_add_executable(ryml-parse-emit
     LIBS ryml c4fs
     FOLDER test)
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL GNU)
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 7.0.0)
+        set_property(SOURCE test_case.cpp APPEND PROPERTY COMPILE_OPTIONS -Wno-stringop-overflow)
+    endif()
+endif()
 c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
     SOURCES test_case.hpp test_case.cpp libyaml.hpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${ryml_yaml_cpp_inc}

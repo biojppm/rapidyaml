@@ -45,12 +45,12 @@ void test_compare(Tree const& a, size_t node_a,
      Tree const& b, size_t node_b,
      size_t level)
 {
-    ASSERT_NE(node_a, NONE);
-    ASSERT_NE(node_b, NONE);
+    ASSERT_NE(node_a, (size_t)NONE);
+    ASSERT_NE(node_b, (size_t)NONE);
     ASSERT_LT(node_a, a.capacity());
     ASSERT_LT(node_b, b.capacity());
 
-    EXPECT_EQ(a.type(node_a), b.type(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
+    EXPECT_EQ((type_bits)a.type(node_a), (type_bits)b.type(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
 
     EXPECT_EQ(a.has_key(node_a), b.has_key(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
     if(a.has_key(node_a) && b.has_key(node_b))
@@ -228,8 +228,8 @@ TEST(CaseNode, setting_up)
     N const& d1 = *tl1.begin();
     N const& d2 = *(tl1.begin() + 1);
     ASSERT_EQ(d1.reccount(), d2.reccount());
-    ASSERT_EQ(d1.type, DOC);
-    ASSERT_EQ(d2.type, DOC);
+    ASSERT_EQ((type_bits)d1.type, (type_bits)DOC);
+    ASSERT_EQ((type_bits)d2.type, (type_bits)DOC);
 
     N n1(tl1);
     N n2(tl2);
@@ -374,7 +374,7 @@ void CaseNode::compare_child(yml::NodeRef const& n, size_t pos) const
 
 void CaseNode::compare(yml::NodeRef const& n) const
 {
-    EXPECT_EQ(n.get()->m_type, type) << "id=" << n.id(); // the type() method masks the type, and thus tag flags are omitted on its return value
+    EXPECT_EQ((int)n.get()->m_type, (int)type) << "id=" << n.id(); // the type() method masks the type, and thus tag flags are omitted on its return value
     EXPECT_EQ(n.num_children(), children.size()) << "id=" << n.id();
 
     if(n.has_key())
