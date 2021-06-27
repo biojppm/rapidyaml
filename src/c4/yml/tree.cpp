@@ -1211,7 +1211,7 @@ struct ReferenceResolver
     #define RYML_ERRMSG_SIZE 1024
 #endif
         char errmsg[RYML_ERRMSG_SIZE];
-        snprintf(errmsg, RYML_ERRMSG_SIZE, "anchor %.*s does not exist",
+        snprintf(errmsg, RYML_ERRMSG_SIZE, "anchor does not exist: '%.*s'",
                  static_cast<int>(refname.size()), refname.data());
         c4::yml::error(errmsg);
         return NONE;
