@@ -236,6 +236,29 @@ TEST(emit_json, issue72)
     EXPECT_EQ(out, R"({"1": null,"2": true,"3": false,"null": 1,"true": 2,"false": 3})");
 }
 
+
+TEST(emit_json, issue121)
+{
+    Tree t = parse(R"(
+string_value: "string"
+number_value: "9001"
+broken_value: "0.30.2"
+)");
+    EXPECT_TRUE(t["string_value"].get()->m_type.type & VALQUO);
+    EXPECT_TRUE(t["number_value"].get()->m_type.type & VALQUO);
+    EXPECT_TRUE(t["broken_value"].get()->m_type.type & VALQUO);
+    std::string out;
+    emitrs_json(t, &out);
+    EXPECT_EQ(out, R"({"string_value": "string","number_value": "9001","broken_value": "0.30.2"})");
+    out.clear();
+    emitrs(t, &out);
+    EXPECT_EQ(out, R"(string_value: 'string'
+number_value: '9001'
+broken_value: '0.30.2'
+)");
+}
+
+
 //-------------------------------------------
 // this is needed to use the test case library
 Case const* get_case(csubstr /*name*/)
