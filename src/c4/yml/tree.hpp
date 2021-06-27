@@ -218,6 +218,9 @@ public:
     bool is_key_ref() const { return (type & KEYREF) != 0; }
     bool is_val_ref() const { return (type & VALREF) != 0; }
     bool is_ref() const { return (type & (KEYREF|VALREF)) != 0; }
+    bool is_key_quoted() const { return (type & (KEY|KEYQUO)) == (KEY|KEYQUO); }
+    bool is_val_quoted() const { return (type & (VAL|VALQUO)) == (VAL|VALQUO); }
+    bool is_quoted() const { return (type & (KEY|KEYQUO)) == (KEY|KEYQUO) || (type & (VAL|VALQUO)) == (VAL|VALQUO); }
 
     #if defined(__clang__)
     #   pragma clang diagnostic pop

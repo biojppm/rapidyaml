@@ -383,7 +383,6 @@ void CaseNode::compare(yml::NodeRef const& n, bool ignoreQuote) const
     else
     {
         EXPECT_EQ((int)n.get()->m_type, (int)type) << "id=" << n.id(); // the type() method masks the type, and thus tag flags are omitted on its return value
-        EXPECT_EQ(n.get()->m_type, type) << "id=" << n.id(); // the type() method masks the type, and thus tag flags are omitted on its return value
     }
 
     EXPECT_EQ(n.num_children(), children.size()) << "id=" << n.id();
