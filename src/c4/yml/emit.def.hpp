@@ -194,7 +194,7 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, size_t 
 template<class Writer>
 void Emitter<Writer>::_do_visit_json(Tree const& t, size_t id)
 {
-    if(t.is_doc(id))
+    if(C4_UNLIKELY(t.is_doc(id)))
     {
         c4::yml::error("no doc processing for JSON");
     }
@@ -227,7 +227,8 @@ void Emitter<Writer>::_do_visit_json(Tree const& t, size_t id)
     } // container
     for(size_t ich = t.first_child(id); ich != NONE; ich = t.next_sibling(ich))
     {
-        if(ich != t.first_child(id)) this->Writer::_do_write(',');
+        if(ich != t.first_child(id))
+            this->Writer::_do_write(',');
         _do_visit_json(t, ich);
     }
     if(t.is_container(id))
@@ -273,15 +274,15 @@ void Emitter<Writer>::_write(NodeScalar const& sc, NodeType flags, size_t ilevel
 template<class Writer>
 void Emitter<Writer>::_write_json(NodeScalar const& sc, NodeType flags)
 {
-    if( ! sc.tag.empty())
+    if(C4_UNLIKELY( ! sc.tag.empty()))
     {
         c4::yml::error("no tag processing for JSON");
     }
-    if(flags.has_anchor())
+    if(C4_UNLIKELY(flags.has_anchor()))
     {
         c4::yml::error("no anchor processing for JSON");
     }
-    _write_scalar_json(sc.scalar, flags.has_key());
+    _write_scalar_json(sc.scalar, flags.has_key(), flags.is_quoted());
 }
 
 template<class Writer>
@@ -360,7 +361,9 @@ void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
     }
 
     const bool needs_quotes = (
-        !s.is_number() // is not a number
+        was_quoted
+        ||
+        ((!s.is_number()) // is not a number
         &&
         (
             (s != s.trim(" \t\n\r")) // has leading or trailing whitespace
@@ -369,7 +372,7 @@ void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
             ||
             (was_quoted && s[0] == '*')  // starts with * but is not a reference (empty string checked above)
             )
-        );
+        ));
 
     if(!needs_quotes)
     {
@@ -415,9 +418,15 @@ void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
     }
 }
 template<class Writer>
-void Emitter<Writer>::_write_scalar_json(csubstr s, bool as_key)
+void Emitter<Writer>::_write_scalar_json(csubstr s, bool as_key, bool was_quoted)
 {
-    if(!as_key && s.is_number())
+    if(was_quoted)
+    {
+        this->Writer::_do_write('"');
+        this->Writer::_do_write(s);
+        this->Writer::_do_write('"');
+    }
+    else if(!as_key && s.is_number()) // json only allows strings as keys
     {
         this->Writer::_do_write(s);
     }

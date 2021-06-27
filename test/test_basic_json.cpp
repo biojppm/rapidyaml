@@ -68,12 +68,7 @@ TEST(serialize, type_as_str)
 
     char buf[256];
     c4::csubstr interm = c4::yml::emit_json(t, buf);
-    c4::yml::Tree res = c4::yml::parse(interm);
-    c4::substr ret = c4::yml::emit(res, buf);
-    EXPECT_EQ(ret, R"(v2: '(10,11)'
-v3: '(100,101,102)'
-v4: '(1000,1001,1002,1003)'
-)");
+    EXPECT_EQ(interm, R"_({"v2": "(10,11)","v3": "(100,101,102)","v4": "(1000,1001,1002,1003)"})_");
 }
 } // namespace foo
 
@@ -110,16 +105,7 @@ TEST(general, emitting)
 
     // emit to stdout (can also emit to FILE* or ryml::span)
     emitrs_json(tree, &cmpbuf);
-    c4::substr c4cmp(to_substr(cmpbuf));
-    c4::yml::Tree res = c4::yml::parse(c4cmp);
-    emitrs(res, &cmpbuf2);
-    const char* exp = R"(foo: 1
-seq:
-  - bar0
-  - bar1
-  - bar2
-)";
-    EXPECT_EQ(cmpbuf2, exp);
+    EXPECT_EQ(cmpbuf, R"({"foo": 1,"seq": ["bar0","bar1","bar2"]})");
 
     // serializing: using operator<< instead of operator=
     // will make the tree serialize the value into a char
@@ -136,39 +122,13 @@ seq:
     }
 
     emitrs_json(tree, &cmpbuf);
-    c4cmp = to_substr(cmpbuf);
-    res = c4::yml::parse(c4cmp);
-    emitrs(res, &cmpbuf2);
-    exp = R"(foo: 1
-seq:
-  - bar0
-  - bar1
-  - bar2
-  - 33
-  - 44
-  - child5
-)";
-    EXPECT_EQ(cmpbuf2, exp);
+    EXPECT_EQ(cmpbuf, R"({"foo": 1,"seq": ["bar0","bar1","bar2",33,44,"child5"]})");
 
     // to serialize keys:
     int k = 66;
     r.append_child() << key(k) << 7;
-
     emitrs_json(tree, &cmpbuf);
-    c4cmp = to_substr(cmpbuf);    
-    res = c4::yml::parse(c4cmp);
-    emitrs(res, &cmpbuf2);
-    exp = R"(foo: 1
-seq:
-  - bar0
-  - bar1
-  - bar2
-  - 33
-  - 44
-  - child5
-66: 7
-)";
-    EXPECT_EQ(cmpbuf2, exp);
+    EXPECT_EQ(cmpbuf, R"({"foo": 1,"seq": ["bar0","bar1","bar2",33,44,"child5"],"66": 7})");
 }
 
 TEST(general, map_to_root)
@@ -235,6 +195,29 @@ TEST(emit_json, issue72)
 
     EXPECT_EQ(out, R"({"1": null,"2": true,"3": false,"null": 1,"true": 2,"false": 3})");
 }
+
+
+TEST(emit_json, issue121)
+{
+    Tree t = parse(R"(
+string_value: "string"
+number_value: "9001"
+broken_value: "0.30.2"
+)");
+    EXPECT_TRUE(t["string_value"].get()->m_type.type & VALQUO);
+    EXPECT_TRUE(t["number_value"].get()->m_type.type & VALQUO);
+    EXPECT_TRUE(t["broken_value"].get()->m_type.type & VALQUO);
+    std::string out;
+    emitrs_json(t, &out);
+    EXPECT_EQ(out, R"({"string_value": "string","number_value": "9001","broken_value": "0.30.2"})");
+    out.clear();
+    emitrs(t, &out);
+    EXPECT_EQ(out, R"(string_value: 'string'
+number_value: '9001'
+broken_value: '0.30.2'
+)");
+}
+
 
 //-------------------------------------------
 // this is needed to use the test case library

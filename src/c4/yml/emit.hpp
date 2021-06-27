@@ -77,7 +77,7 @@ private:
     void _write_json(NodeScalar const& sc, NodeType flags);
 
     void _write_scalar(csubstr s, bool was_quoted);
-    void _write_scalar_json(csubstr s, bool as_key);
+    void _write_scalar_json(csubstr s, bool as_key, bool was_quoted);
     void _write_scalar_block(csubstr s, size_t level, bool as_key);
 
     void _indent(size_t ilevel)
