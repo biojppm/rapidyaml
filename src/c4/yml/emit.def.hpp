@@ -426,7 +426,7 @@ void Emitter<Writer>::_write_scalar_json(csubstr s, bool as_key, bool was_quoted
         this->Writer::_do_write(s);
         this->Writer::_do_write('"');
     }
-    else if(!as_key && s.is_number())
+    else if(!as_key && s.is_number()) // json only allows strings as keys
     {
         this->Writer::_do_write(s);
     }
