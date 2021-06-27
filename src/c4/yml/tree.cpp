@@ -1257,7 +1257,8 @@ struct ReferenceResolver
 
 void Tree::resolve()
 {
-    if(m_size == 0) return;
+    if(m_size == 0)
+        return;
 
     detail::ReferenceResolver rr(this);
 

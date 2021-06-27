@@ -111,6 +111,26 @@ TEST(CaseNode, anchors)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+
+TEST(simple_anchor, resolve_works_on_an_empty_tree)
+{
+    Tree t;
+    t.resolve();
+    EXPECT_TRUE(t.empty());
+}
+
+TEST(simple_anchor, resolve_works_on_a_tree_without_refs)
+{
+    auto t = parse("[a, b, c, d, e, f]");
+    auto size_before = t.size();
+    t.resolve();
+    EXPECT_EQ(t.size(), size_before);
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 #define SIMPLE_ANCHOR_CASES                            \
     "simple anchor 1, implicit, unresolved",\
     "simple anchor 1, implicit, resolved",\
