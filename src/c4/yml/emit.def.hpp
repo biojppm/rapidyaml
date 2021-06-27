@@ -363,7 +363,7 @@ void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
     const bool needs_quotes = (
         was_quoted
         ||
-        !s.is_number() // is not a number
+        ((!s.is_number()) // is not a number
         &&
         (
             (s != s.trim(" \t\n\r")) // has leading or trailing whitespace
@@ -372,7 +372,7 @@ void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
             ||
             (was_quoted && s[0] == '*')  // starts with * but is not a reference (empty string checked above)
             )
-        );
+        ));
 
     if(!needs_quotes)
     {
