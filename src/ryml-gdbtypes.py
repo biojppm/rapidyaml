@@ -77,9 +77,9 @@ def qdump__c4__yml__NodeScalar(d, value):
     if alen == 0 and tlen == 0:
         d.putValue(f'\'{m_str}\'')
     elif alen == 0 and tlen > 0:
-        d.putValue(f'\'{m_str}\' [T-]')
+        d.putValue(f'\'{m_str}\' [Ta]')
     elif alen > 0 and tlen == 0:
-        d.putValue(f'\'{m_str}\' [-A]')
+        d.putValue(f'\'{m_str}\' [tA]')
     elif alen > 0 and tlen > 0:
         d.putValue(f'\'{m_str}\' [TA]')
     d.putExpandable()
@@ -89,13 +89,36 @@ def qdump__c4__yml__NodeScalar(d, value):
             if tlen > 0:
                 d.putSubItem("[tag]", value["tag"])
             if alen > 0:
-                d.putSubItem("[anchor]", value["anchor"])
+                d.putSubItem("[anchor or ref]", value["anchor"])
 
 
 def _format_enum_value(int_value, enum_map):
     str_value = enum_map.get(int_value, None)
     display = f'{int_value}' if str_value is None else f'{str_value} ({int_value})'
     return display
+
+
+def _format_bitmask_value(int_value, enum_map):
+    str_value = enum_map.get(int_value, None)
+    if str_value:
+        return f'{str_value} ({int_value})'
+    else:
+        out = ""
+        orig = int_value
+        # do in reverse to get compound flags first
+        for k, v in reversed(enum_map.items()):
+            if (k != 0):
+                if (int_value & k) == k:
+                    if len(out) > 0:
+                        out += '|'
+                    out += v
+                    int_value &= ~k
+            else:
+                if len(out) == 0 and int_value == 0:
+                    return v
+        if out == "":
+            return f'{int_value}'
+        return f"{out} ({orig})"
 
 
 def _c4bit(*ints):
@@ -119,6 +142,8 @@ node_types = {
     _c4bit(9): "VALANCH" ,
     _c4bit(10): "KEYTAG" ,
     _c4bit(11): "VALTAG" ,
+    _c4bit(12): "VALQUO" ,
+    _c4bit(13): "KEYQUO" ,
     _c4bit(1,0): "KEYVAL",
     _c4bit(1,3): "KEYSEQ",
     _c4bit(1,2): "KEYMAP",
@@ -140,7 +165,7 @@ def _node_type_has_any(node_type_value, type_name):
 
 
 def qdump__c4__yml__NodeType_e(d, value):
-    v = _format_enum_value(value.integer(), node_types)
+    v = _format_bitmask_value(value.integer(), node_types)
     d.putValue(v)
 
 
@@ -149,28 +174,47 @@ def qdump__c4__yml__NodeType(d, value):
 
 
 def qdump__c4__yml__NodeData(d, value):
-    ty = _format_enum_value(value.integer(), node_types)
+    ty = _format_bitmask_value(value.integer(), node_types)
     t = value["m_type"]["type"].integer()
     k = value["m_key"]["scalar"]
     v = value["m_val"]["scalar"]
     sk, lk = get_str_value(d, k)
     sv, lv = get_str_value(d, v)
     if _node_type_has_all(t, "KEYVAL"):
-        d.putValue(f"'{sk}': '{sv}' | {ty}")
+        d.putValue(f"'{sk}': '{sv}'    {ty}")
     elif _node_type_has_any(t, "KEY"):
-        d.putValue(f"'{sk}': | {ty}")
+        d.putValue(f"'{sk}':    {ty}")
     elif _node_type_has_any(t, "VAL"):
-        d.putValue(f"'{sv}' | {ty}")
+        d.putValue(f"'{sv}'    {ty}")
     else:
         d.putValue(f"{ty}")
     d.putExpandable()
     if d.isExpanded():
         with Children(d):
             d.putSubItem("m_type", value["m_type"])
+            # key
             if _node_type_has_any(t, "KEY"):
                 d.putSubItem("m_key", value["m_key"])
+            if _node_type_has_any(t, "KEYREF"):
+                with SubItem(d, "m_key is ref!"):
+                    s_, _ = get_str_value(d, value["m_key"]["anchor"])
+                    d.putValue(f"'{s_}'")
+            if _node_type_has_any(t, "KEYANCH"):
+                with SubItem(d, "m_key is anchor!"):
+                    s_, _ = get_str_value(d, value["m_key"]["anchor"])
+                    d.putValue(f"'{s_}'")
+            # val
             if _node_type_has_any(t, "VAL"):
                 d.putSubItem("m_val", value["m_val"])
+            if _node_type_has_any(t, "VALREF"):
+                with SubItem(d, "m_val is ref!"):
+                    s_, _ = get_str_value(d, value["m_val"]["anchor"])
+                    d.putValue(f"'{s_}'")
+            if _node_type_has_any(t, "VALANCH"):
+                with SubItem(d, "m_val is anchor!"):
+                    s_, _ = get_str_value(d, value["m_val"]["anchor"])
+                    d.putValue(f"'{s_}'")
+            # hierarchy
             _dump_node_index(d, "m_parent", value)
             _dump_node_index(d, "m_first_child", value)
             _dump_node_index(d, "m_last_child", value)
@@ -205,3 +249,37 @@ def qdump__c4__yml__Tree(d, value):
             d.putIntItem("[slack]", m_cap - m_size)
             d.putIntItem("m_free_head", value["m_free_head"])
             d.putIntItem("m_free_tail", value["m_free_tail"])
+
+
+def qdump__c4__yml__detail__stack(d, value):
+    T = value.type[0]
+    N = value.type[0]
+    m_size = value["m_size"].integer()
+    m_capacity = value["m_capacity"].integer()
+    d.putItemCount(m_size)
+    if d.isExpanded():
+        with Children(d):
+            with SubItem(d, f"[nodes]"):
+                d.putItemCount(m_size)
+                d.putArrayData(value["m_stack"].pointer(), m_size, T)
+            d.putIntItem("m_size", value["m_size"])
+            d.putIntItem("m_capacity", value["m_capacity"])
+            #d.putIntItem("[small capacity]", N)
+            d.putIntItem("[is large]", value["m_buf"].address() == value["m_stack"].pointer())
+            d.putPtrItem("m_stack", value["m_stack"].pointer())
+            d.putPtrItem("m_buf", value["m_buf"].address())
+
+
+def qdump__c4__yml__detail__ReferenceResolver__refdata(d, value):
+    node = value["node"].integer()
+    ty = _format_bitmask_value(value["type"].integer(), node_types)
+    d.putValue(f'{node}   {ty}')
+    d.putExpandable()
+    if d.isExpanded():
+        with Children(d):
+            d.putSubItem("type", value["type"])
+            d.putSubItem("node", value["node"])
+            _dump_node_index(d, "prev_anchor", value)
+            _dump_node_index(d, "target", value)
+            _dump_node_index(d, "parent_ref", value)
+            _dump_node_index(d, "parent_ref_sibling", value)
