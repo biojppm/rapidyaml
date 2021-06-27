@@ -263,11 +263,7 @@ void Emitter<Writer>::_write(NodeScalar const& sc, NodeType flags, size_t ilevel
     const bool has_newlines = sc.scalar.first_of('\n') != npos;
     if(!has_newlines || (sc.scalar.triml(" \t") != sc.scalar))
     {
-        bool was_quoted =
-            ((flags & KEY) && (flags & KEYQUO)) ||
-            ((flags & VAL) && (flags & VALQUO));
-
-        _write_scalar(sc.scalar, was_quoted);
+        _write_scalar(sc.scalar, flags.is_quoted());
     }
     else
     {

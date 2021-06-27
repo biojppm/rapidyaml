@@ -108,7 +108,7 @@ private:
      * Will only be written to if this method returns true.
      * Will be set to true if the scanned scalar was quoted, by '', "", > or |.
      */
-    bool    _scan_scalar(csubstr *scalar, bool &quoted);
+    bool    _scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted);
 
     csubstr _scan_comment();
     csubstr _scan_quoted_scalar(const char q);
