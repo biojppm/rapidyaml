@@ -154,6 +154,8 @@ public:
 
 public:
 
+    // brace yourself: what you are about to see is crazy.
+
     CaseNode() : CaseNode(NOTYPE) {}
     CaseNode(NodeType_e t) : type(t), key(), key_tag(), key_anchor(), val(), val_tag(), val_anchor(), children(), parent(nullptr) { _set_parent(); }
 

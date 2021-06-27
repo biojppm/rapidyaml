@@ -964,11 +964,11 @@ size_t Tree::duplicate_children_no_rep(Tree const *src, size_t node, size_t pare
                     break;
                 }
             }
-            if(rep == NONE) // there's no repetition; just duplicate
+            if(rep == NONE) // there is no repetition; just duplicate
             {
                 prev = duplicate(src, i, parent, prev);
             }
-            else  // yes, there's a repetition
+            else  // yes, there is a repetition
             {
                 if(after_pos != NONE && rep_pos < after_pos)
                 {
@@ -1093,13 +1093,14 @@ void Tree::merge_with(Tree const *src, size_t src_node, size_t dst_node)
 //-----------------------------------------------------------------------------
 
 namespace detail {
-/** @todo make this part of the public API, refactoring as appropriate to be
- * able multiple trees (one at a time) */
+/** @todo make this part of the public API, refactoring as appropriate
+ * to be able to use the same resolver to handle multiple trees (one
+ * at a time) */
 struct ReferenceResolver
 {
     struct refdata
     {
-        bool   is_ref;
+        NodeType type;
         size_t node;
         size_t prev_anchor;
         size_t target;
@@ -1120,27 +1121,13 @@ struct ReferenceResolver
         resolve();
     }
 
-    size_t count(size_t n)
-    {
-        size_t c = 0;
-        if(t->is_key_ref(n) || t->is_val_ref(n) || t->has_key_anchor(n) || t->has_val_anchor(n))
-        {
-            ++c;
-        }
-        for(size_t ch = t->first_child(n); ch != NONE; ch = t->next_sibling(ch))
-        {
-            c += count(ch);
-        }
-        return c;
-    }
-
-    void store()
+    void store_anchors_and_refs()
     {
         // minimize (re-)allocations by counting first
-        size_t nrefs = 0;
-        nrefs = count(t->root_id());
-        if(nrefs == 0) return;
-        refs.reserve(nrefs);
+        size_t num_anchors_and_refs = count_anchors_and_refs(t->root_id());
+        if(!num_anchors_and_refs)
+            return;
+        refs.reserve(num_anchors_and_refs);
 
         // now descend through the hierarchy
         _store_anchors_and_refs(t->root_id());
@@ -1151,12 +1138,18 @@ struct ReferenceResolver
         for(auto &rd : refs)
         {
             rd.prev_anchor = prev_anchor;
-            if( ! rd.is_ref)
-            {
+            if(rd.type.is_anchor())
                 prev_anchor = count;
-            }
             ++count;
         }
+    }
+
+    size_t count_anchors_and_refs(size_t n)
+    {
+        size_t c = t->is_anchor_or_ref(n);
+        for(size_t ch = t->first_child(n); ch != NONE; ch = t->next_sibling(ch))
+            c += count_anchors_and_refs(ch);
+        return c;
     }
 
     void _store_anchors_and_refs(size_t n)
@@ -1165,26 +1158,39 @@ struct ReferenceResolver
         {
             if(t->is_seq(n))
             {
-                for(size_t i = t->first_child(n); i != NONE; i = t->next_sibling(i))
+                // for merging multiple:
+                //   << : [ *CENTER, *BIG ]
+                for(size_t ich = t->first_child(n); ich != NONE; ich = t->next_sibling(ich))
                 {
-                    RYML_ASSERT(t->num_children(i) == 0);
-                    refs.push({true, i, npos, npos, n, t->next_sibling(n)});
+                    RYML_ASSERT(t->num_children(ich) == 0);
+                    refs.push({VALREF, ich, npos, npos, n, t->next_sibling(n)});
                 }
                 return;
             }
-            else if(t->has_val(n))
+            else if(t->is_val_ref(n))
             {
                 C4_CHECK(t->has_val(n));
-                refs.push({true, n, npos, npos, NONE, NONE});
+                refs.push({VALREF, n, npos, npos, NONE, NONE});
+            }
+            else if(t->is_key_ref(n))
+            {
+                C4_CHECK(t->has_key(n));
+                refs.push({KEYREF, n, npos, npos, NONE, NONE});
             }
             else
             {
                 C4_NEVER_REACH();
             }
         }
-        if(t->has_key_anchor(n) || t->has_val_anchor(n))
+        if(t->has_key_anchor(n))
         {
-            refs.push({false, n, npos, npos, NONE, NONE});
+            C4_CHECK(t->has_key(n));
+            refs.push({KEYANCH, n, npos, npos, NONE, NONE});
+        }
+        else if(t->has_val_anchor(n))
+        {
+            C4_CHECK(t->has_val(n) || t->is_container(n));
+            refs.push({VALANCH, n, npos, npos, NONE, NONE});
         }
         for(size_t ch = t->first_child(n); ch != NONE; ch = t->next_sibling(ch))
         {
@@ -1192,19 +1198,28 @@ struct ReferenceResolver
         }
     }
 
-    size_t lookup_(size_t refnode, refdata *C4_RESTRICT ra)
+    size_t lookup_(refdata *C4_RESTRICT ra)
     {
-        RYML_ASSERT(t->has_val(refnode));
-        csubstr refname = t->val(refnode);
+        RYML_ASSERT(ra->type.is_key_ref() || ra->type.is_val_ref());
+        RYML_ASSERT(ra->type.is_key_ref() != ra->type.is_val_ref());
+        csubstr refname;
+        if(ra->type.is_val_ref())
+        {
+            RYML_ASSERT(t->has_val(ra->node));
+            refname = t->val(ra->node);
+        }
+        else
+        {
+            RYML_ASSERT(t->has_key(ra->node));
+            refname = t->key(ra->node);
+        }
         RYML_ASSERT(refname.begins_with('*'));
         refname = refname.sub(1);
         while(ra->prev_anchor != npos)
         {
             ra = &refs[ra->prev_anchor];
             if(t->has_anchor(ra->node, refname))
-            {
                 return ra->node;
-            }
         }
 
 #ifndef RYML_ERRMSG_SIZE
@@ -1219,19 +1234,21 @@ struct ReferenceResolver
 
     void resolve()
     {
-        store();
-        if(refs.empty()) return;
+        store_anchors_and_refs();
+        if(refs.empty())
+            return;
 
-        /** from the specs: "an alias node refers to the most recent
+        /* from the specs: "an alias node refers to the most recent
          * node in the serialization having the specified anchor". So
          * we need to start looking upward from ref nodes.
          *
          * @see http://yaml.org/spec/1.2/spec.html#id2765878 */
         for(size_t i = 0, e = refs.size(); i < e; ++i)
         {
-            auto & rd = refs.top(i);
-            if( ! rd.is_ref) continue;
-            rd.target = lookup_(rd.node, &rd);
+            auto &C4_RESTRICT rd = refs.top(i);
+            if( ! rd.type.is_ref())
+                continue;
+            rd.target = lookup_(&rd);
         }
     }
 
@@ -1249,7 +1266,8 @@ void Tree::resolve()
     size_t prev_parent_ref_after = NONE;
     for(auto const& C4_RESTRICT rd : rr.refs)
     {
-        if( ! rd.is_ref) continue;
+        if( ! rd.type.is_ref())
+            continue;
         if(rd.parent_ref != NONE)
         {
             RYML_ASSERT(is_seq(rd.parent_ref));
@@ -1276,6 +1294,22 @@ void Tree::resolve()
                 size_t after = prev_sibling(rd.node);
                 duplicate_children_no_rep(rd.target, p, after);
                 remove(rd.node);
+            }
+            else if(rd.type.is_key_ref())
+            {
+                RYML_ASSERT(has_key(rd.node));
+                RYML_ASSERT(has_key_anchor(rd.target) || has_val_anchor(rd.target));
+                if(has_val_anchor(rd.target) && val_anchor(rd.target) == key_ref(rd.node))
+                {
+                    RYML_CHECK(!is_container(rd.target));
+                    RYML_CHECK(has_val(rd.target));
+                    _p(rd.node)->m_key.scalar = val(rd.target);
+                }
+                else
+                {
+                    RYML_CHECK(key_anchor(rd.target) == key_ref(rd.node));
+                    _p(rd.node)->m_key.scalar = key(rd.target);
+                }
             }
             else
             {
