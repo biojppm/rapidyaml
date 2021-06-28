@@ -3,12 +3,17 @@ project(ryml-consumer LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_subdirectory(../../ foobar-ryml)
+add_subdirectory(../../ ryml-add_subdirectory)
 
-include(./check.cmake)  # run some checks (used in CI tests)
+# run some checks (used in CI tests) to ensure
+# using ryml as a subdirectory does not interfere
+# with the existing settings
+include(./check.cmake)
 
-add_executable(ryml-consumer main.cpp)
-target_link_libraries(ryml-consumer ryml)
-add_custom_command(TARGET ryml-consumer POST_BUILD
-    COMMAND $<TARGET_FILE:ryml-consumer>
-    COMMENT "running test: $<TARGET_FILE:ryml-consumer>")
+set(exe ryml-consumer-add_subdirectory)
+
+add_executable(${exe} main.cpp)
+target_link_libraries(${exe} ryml)
+add_custom_command(TARGET ${exe} POST_BUILD
+    COMMAND $<TARGET_FILE:${exe}>
+    COMMENT "running test: $<TARGET_FILE:${exe}>")
