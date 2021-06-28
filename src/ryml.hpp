@@ -3,6 +3,9 @@
 
 #include "./c4/yml/yml.hpp"
 
-namespace ryml = c4::yml;
+namespace ryml {
+using namespace c4::yml;
+using namespace c4;
+}
 
 #endif /* _RYML_HPP_ */
