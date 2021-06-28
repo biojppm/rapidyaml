@@ -218,6 +218,9 @@ public:
     bool is_key_ref() const { return (type & KEYREF) != 0; }
     bool is_val_ref() const { return (type & VALREF) != 0; }
     bool is_ref() const { return (type & (KEYREF|VALREF)) != 0; }
+    bool is_key_anchor() const { return (type & KEYANCH) != 0; }
+    bool is_val_anchor() const { return (type & KEYANCH) != 0; }
+    bool is_anchor() const { return (type & (KEYANCH|VALANCH)) != 0; }
     bool is_key_quoted() const { return (type & (KEY|KEYQUO)) == (KEY|KEYQUO); }
     bool is_val_quoted() const { return (type & (VAL|VALQUO)) == (VAL|VALQUO); }
     bool is_quoted() const { return (type & (KEY|KEYQUO)) == (KEY|KEYQUO) || (type & (VAL|VALQUO)) == (VAL|VALQUO); }
@@ -576,6 +579,7 @@ public:
     bool is_val_ref(size_t node) const { return (_p(node)->m_type & VALREF) != 0; }
     bool is_ref(size_t node) const { return (_p(node)->m_type & (KEYREF|VALREF)) != 0; }
     bool is_anchor(size_t node) const { return (_p(node)->m_type & (KEYANCH|VALANCH)) != 0; }
+    bool is_anchor_or_ref(size_t node) const { return (_p(node)->m_type & (KEYANCH|VALANCH|KEYREF|VALREF)) != 0; }
     bool is_key_quoted(size_t node) const { return (_p(node)->m_type & (KEYQUO)) != 0; }
     bool is_val_quoted(size_t node) const { return (_p(node)->m_type & (VALQUO)) != 0; }
 

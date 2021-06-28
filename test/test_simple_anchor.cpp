@@ -7,10 +7,22 @@ namespace yml {
 
 C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
 
-/** verify that the reference class is working correctly (meta testing, yay) */
+/** verify that the reference class is working correctly (yay, testing the tests) */
 TEST(CaseNode, anchors)
 {
     const NodeType mask = KEYREF|KEYANCH|VALREF|VALANCH;
+
+    {
+        auto n = N("*vref", AR(KEYREF, "vref"), "c");
+        EXPECT_EQ(n.key, "*vref");
+        EXPECT_EQ(n.val, "c");
+        EXPECT_EQ((type_bits)(n.type & mask), (type_bits)KEYREF);
+        EXPECT_EQ((type_bits)n.key_anchor.type, (type_bits)KEYREF);
+        EXPECT_EQ((type_bits)n.val_anchor.type, (type_bits)NOTYPE);
+        EXPECT_EQ(n.key_anchor.str, "vref");
+        EXPECT_EQ(n.val_anchor.str, "");
+    }
+
     {
         CaseNode n("<<", "*base", AR(VALANCH, "base"));
         EXPECT_EQ(n.key, "<<");
@@ -95,6 +107,27 @@ TEST(CaseNode, anchors)
 
 }
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+TEST(simple_anchor, resolve_works_on_an_empty_tree)
+{
+    Tree t;
+    t.resolve();
+    EXPECT_TRUE(t.empty());
+}
+
+TEST(simple_anchor, resolve_works_on_a_tree_without_refs)
+{
+    auto t = parse("[a, b, c, d, e, f]");
+    auto size_before = t.size();
+    t.resolve();
+    EXPECT_EQ(t.size(), size_before);
+}
+
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -109,7 +142,9 @@ TEST(CaseNode, anchors)
     "anchor example 3, resolved",\
     "merge example, unresolved",\
     "merge example, resolved",\
-    "tagged doc with anchors 9KAX"
+    "tagged doc with anchors 9KAX",\
+    "github131 1, unresolved",\
+    "github131 1, resolved"
 
 
 CASE_GROUP(SIMPLE_ANCHOR)
@@ -619,6 +654,47 @@ N(STREAM, L{
     N(DOCVAL, TS("!!str", "value11"), AR(VALANCH, "a11")),
     N(DOCVAL, TS("!!str", "value11"), AR(VALANCH, "a11")),
 })
+),
+
+C("github131 1, unresolved",
+R"(
+a: &vref b
+*vref: c
+&kref aa: bb
+aaa: &kvref bbb
+foo:
+  *kref: cc
+  *kvref: cc
+)",
+L{
+    N("a", "b", AR(VALANCH, "vref")),
+    N("*vref", AR(KEYREF, "vref"), "c"),
+    N("aa", AR(KEYANCH, "kref"), "bb"),
+    N("aaa", "bbb", AR(VALANCH, "kvref")),
+    N("foo", L{
+         N("*kref", AR(KEYREF, "kref"), "cc"),
+         N("*kvref", AR(KEYREF, "kvref"), "cc"),
+    })
+}
+),
+
+C("github131 1, resolved", RESOLVE_REFS,
+R"(
+a: &vref b
+*vref: c
+&kref aa: bb
+aaa: &kvref bbb
+foo:
+  *kref: cc
+  *kvref: cc
+)",
+L{
+    N("a", "b"),
+    N("b", "c"),
+    N("aa", "bb"),
+    N("aaa", "bbb"),
+    N("foo", L{N("aa", "cc"), N("bbb", "cc")})
+}
 ),
 
     )
