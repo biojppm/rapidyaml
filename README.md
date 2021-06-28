@@ -787,8 +787,8 @@ struct MyStruct; // a container-type struct
 };
   
 // ... will need these functions to convert to YAML:
+bool read(c4::yml::NodeRef const& n, MyStruct *v);
 void write(c4::yml::NodeRef *n, MyStruct const& v);
-void  read(c4::yml::NodeRef const& n, MyStruct *v);
 } // namespace foo
 ```
 which could be implemented as:
@@ -797,10 +797,11 @@ which could be implemented as:
 #include <c4/yml/std/map.hpp>
 #include <c4/yml/std/string.hpp>
   
-void foo::read(c4::yml::NodeRef const& n, MyStruct *v)
+bool foo::read(c4::yml::NodeRef const& n, MyStruct *v)
 {
     n["subject"] >> v->subject;
     n["counts"] >> v->counts;
+    return true; // do error checking
 }
   
 void foo::write(c4::yml::NodeRef *n, MyStruct const& v)
