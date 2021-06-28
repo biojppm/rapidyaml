@@ -527,6 +527,7 @@ jobs:
       - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
       - {name: show info, run: source .github/setenv.sh && c4_show_info }
       - {name: add_subdirectory, run: cmany b -t $BT samples/add_subdirectory }
+      - {name: fetch_content, run: cmany b -t $BT samples/fetch_content }
 
   #----------------------------------------------------------------------------
   test_api:
