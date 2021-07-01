@@ -411,7 +411,7 @@ public:
 
 };
 C4_MUST_BE_TRIVIAL_COPY(NodeData);
-
+&
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -880,18 +880,14 @@ public:
         substr cp = alloc_arena(s.len);
         RYML_ASSERT(cp.len == s.len);
         RYML_ASSERT(!s.overlaps(cp));
-        #if defined(__clang__)
-        #elif defined(__GNUC__)
-        #   pragma GCC diagnostic push
-        #   if __GNUC__ >= 10
-        #       pragma GCC diagnostic ignored "-Wstringop-overflow=" // no need for terminating \0
-        #       pragma GCC diagnostic ignored "-Wrestrict" // there's an assert above covering violation of restrict behavior
-        #   endif
+        #if (!defined(__clang__)) || (defined(__GNUC__) && __GNUC__ >= 10)
+        C4_SUPPRESS_WARNING_GCC_PUSH
+        C4_SUPPRESS_WARNING_GCC("-Wstringop-overflow=") // no need for terminating \0
+        C4_SUPPRESS_WARNING_GCC( "-Wrestrict") // there's an assert to ensure no violation of restrict behavior
         #endif
         memcpy(cp.str, s.str, s.len);
-        #if defined(__clang__)
-        #elif defined(__GNUC__)
-        #   pragma GCC diagnostic pop
+        #if (!defined(__clang__)) || (defined(__GNUC__) && __GNUC__ >= 10)
+        C4_SUPPRESS_WARNING_GCC_POP
         #endif
         return cp;
     }
@@ -909,7 +905,7 @@ public:
         substr s = _request_span(sz);
         return s;
     }
-    
+
     /** ensure the tree's internal string arena is at least the given capacity
      * @note Growing the arena may cause relocation of the entire
      * existing arena, and thus change the contents of individual nodes. */
