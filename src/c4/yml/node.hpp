@@ -7,7 +7,7 @@
 #include <cstddef>
 
 #include "c4/yml/tree.hpp"
-
+#include "c4/base64.hpp"
 
 #ifdef __GNUC__
 #   pragma GCC diagnostic push
@@ -21,31 +21,18 @@
 #endif
 
 namespace c4 {
-
-// FWD declarations for base64
-namespace fmt {
-template<typename CharOrConstChar> struct base64_wrapper_;
-using const_base64_wrapper = base64_wrapper_<c4::cbyte>;
-using base64_wrapper = base64_wrapper_<c4::byte>;
-} // namespace fmt;
-
 namespace yml {
+
+template<class K> struct Key { K & k; };
+template<> struct Key<fmt::const_base64_wrapper> { fmt::const_base64_wrapper wrapper; };
+template<> struct Key<fmt::base64_wrapper> { fmt::base64_wrapper wrapper; };
+
+template<class K> C4_ALWAYS_INLINE Key<K> key(K & k) { return Key<K>{k}; }
+C4_ALWAYS_INLINE Key<fmt::const_base64_wrapper> key(fmt::const_base64_wrapper w) { return {w}; }
+C4_ALWAYS_INLINE Key<fmt::base64_wrapper> key(fmt::base64_wrapper w) { return {w}; }
 
 template<class T> void write(NodeRef *n, T const& v);
 template<class T> bool read(NodeRef const& n, T *v);
-
-template<class K>
-struct Key
-{
-    K & k;
-    inline Key(K & k_) : k(k_) {}
-};
-
-template<class K>
-inline Key<K> key(K & k)
-{
-    return Key<K>{k};
-}
 
 
 //-----------------------------------------------------------------------------
@@ -58,7 +45,7 @@ class RYML_EXPORT NodeRef
 {
 private:
 
-    Tree * m_tree;
+    Tree *C4_RESTRICT m_tree;
     size_t m_id;
 
     /** This member is used to enable lazy operator[] writing. When a child
@@ -235,20 +222,6 @@ public:
         m_tree->_set_key(m_id, key);
     }
 
-    template<class T>
-    inline void set_key_serialized(T const& k)
-    {
-        _C4RV();
-        csubstr s = m_tree->to_arena(k);
-        m_tree->_set_key(m_id, s);
-    }
-
-    inline void set_key_tag(csubstr const& key_tag)
-    {
-        _C4RV();
-        m_tree->set_key_tag(m_id, key_tag);
-    }
-
     inline void set_val(csubstr const& val)
     {
         _C4RV();
@@ -256,11 +229,27 @@ public:
     }
 
     template<class T>
-    inline void set_val_serialized(T const& v)
+    inline size_t set_key_serialized(T const& k)
     {
         _C4RV();
-        auto sp = m_tree->to_arena(v);
-        m_tree->_set_val(m_id, sp);
+        csubstr s = m_tree->to_arena(k);
+        m_tree->_set_key(m_id, s);
+        return s.len;
+    }
+
+    template<class T>
+    inline size_t set_val_serialized(T const& v)
+    {
+        _C4RV();
+        csubstr s = m_tree->to_arena(v);
+        m_tree->_set_val(m_id, s);
+        return s.len;
+    }
+
+    inline void set_key_tag(csubstr const& key_tag)
+    {
+        _C4RV();
+        m_tree->set_key_tag(m_id, key_tag);
     }
 
     inline void set_val_tag(csubstr const& val_tag) const
@@ -275,6 +264,24 @@ public:
         _C4RV();
         return m_tree->to_arena(s);
     }
+
+public:
+
+    /** encode a blob as base64, then assign the result to the node's key
+     * @return the size of base64-encoded blob */
+    size_t set_key_serialized(fmt::const_base64_wrapper w);
+    /** encode a blob as base64, then assign the result to the node's val
+     * @return the size of base64-encoded blob */
+    size_t set_val_serialized(fmt::const_base64_wrapper w);
+
+    /** decode the base64-encoded key deserialize and assign the
+     * decoded blob to the given buffer/
+     * @return the size of base64-decoded blob */
+    size_t deserialize_key(fmt::base64_wrapper v) const;
+    /** decode the base64-encoded key deserialize and assign the
+     * decoded blob to the given buffer/
+     * @return the size of base64-decoded blob */
+    size_t deserialize_val(fmt::base64_wrapper v) const;
 
 public:
 
@@ -392,8 +399,11 @@ public:
 
 public:
 
-    inline NodeRef& operator<< (csubstr const& s) // this overload is needed to prevent ambiguity (there's also << for writing a span to a stream)
+    /** serialize a variable, then assign the result to the node's key */
+    inline NodeRef& operator<< (csubstr const& s)
     {
+        // this overload is needed to prevent ambiguity (there's also
+        // operator<< for writing a substr to a stream)
         _apply_seed();
         write(this, s);
         RYML_ASSERT(get()->val() == s);
@@ -423,7 +433,7 @@ public:
 
 public:
 
-    /** serialize a variable to the node's key */
+    /** serialize a variable, then assign the result to the node's key */
     template<class T>
     inline NodeRef& operator<< (Key<const T> const& v)
     {
@@ -432,7 +442,7 @@ public:
         return *this;
     }
 
-    /** serialize a variable to the node's key */
+    /** serialize a variable, then assign the result to the node's key */
     template<class T>
     inline NodeRef& operator<< (Key<T> const& v)
     {
@@ -441,7 +451,7 @@ public:
         return *this;
     }
 
-    /** deserialize a variable to the node's key */
+    /** deserialize the node's key to the given variable */
     template<class T>
     inline NodeRef const& operator>> (Key<T> v) const
     {
@@ -454,10 +464,29 @@ public:
 
 public:
 
-    /** serialize a variable as base64 */
-    NodeRef& operator<< (c4::fmt::const_base64_wrapper w);
-    /** deserialize a variable as base64 */
-    NodeRef const& operator>> (c4::fmt::base64_wrapper w) const;
+    NodeRef& operator<< (Key<fmt::const_base64_wrapper> w)
+    {
+        set_key_serialized(w.wrapper);
+        return *this;
+    }
+
+    NodeRef& operator<< (fmt::const_base64_wrapper w)
+    {
+        set_val_serialized(w);
+        return *this;
+    }
+
+    NodeRef const& operator>> (Key<fmt::base64_wrapper> w) const
+    {
+        deserialize_key(w.wrapper);
+        return *this;
+    }
+
+    NodeRef const& operator>> (fmt::base64_wrapper w) const
+    {
+        deserialize_val(w);
+        return *this;
+    }
 
 public:
 

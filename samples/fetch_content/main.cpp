@@ -23,15 +23,13 @@
 
 // tbese are only needed for the examples below
 #include <c4/format.hpp>
-#include <c4/base64.hpp>
 #include <iostream>
 #include <sstream>
 #include <vector>
 #include <array>
 #include <map>
 
-
-static int num_failed_checks = 0;
+// a quick'n'dirty assertion
 #define CHECK(predicate)                                                \
     do                                                                  \
     {                                                                   \
@@ -42,6 +40,7 @@ static int num_failed_checks = 0;
         if(!result##__LINE__)                                           \
             ++num_failed_checks;                                        \
     } while(0)
+static int num_failed_checks = 0;
 
 
 //-----------------------------------------------------------------------------
@@ -274,34 +273,48 @@ void sample_quick_overview()
 
     // adding a keyval node to a map:
     CHECK(root.num_children() == 3);
-    root["newkeyval"] = "shiny and new";
-    CHECK(root.num_children() == 4);
+    root["newkeyval"] = "shiny and new"; // using these strings
+    root.append_child() << ryml::key("newkeyval (serialized)") << "shiny and new (serialized)"; // serializes and assigns the serialization
+    CHECK(root.num_children() == 5);
+    CHECK(root["newkeyval"].key() == "newkeyval");
     CHECK(root["newkeyval"].val() == "shiny and new");
+    CHECK(root["newkeyval (serialized)"].key() == "newkeyval (serialized)");
+    CHECK(root["newkeyval (serialized)"].val() == "shiny and new (serialized)");
+    CHECK( ! root["newkeyval"].key().is_sub(tree.arena())); // it's using directly the static string above
+    CHECK( ! root["newkeyval"].val().is_sub(tree.arena())); // it's using directly the static string above
+    CHECK(   root["newkeyval (serialized)"].key().is_sub(tree.arena())); // it's using a serialization of the string above
+    CHECK(   root["newkeyval (serialized)"].val().is_sub(tree.arena())); // it's using a serialization of the string above
     // adding a val node to a seq:
     CHECK(root["bar"].num_children() == 2);
     root["bar"][2] = "oh so nice";
-    CHECK(root["bar"].num_children() == 3);
+    root["bar"][3] << "oh so nice (serialized)";
+    CHECK(root["bar"].num_children() == 4);
     CHECK(root["bar"][2].val() == "oh so nice");
+    CHECK(root["bar"][3].val() == "oh so nice (serialized)");
     // adding a seq node:
-    CHECK(root.num_children() == 4);
+    CHECK(root.num_children() == 5);
     root["newseq"] |= ryml::SEQ;
-    CHECK(root.num_children() == 5);
+    root.append_child() << ryml::key("newseq (serialized)") |= ryml::SEQ;
+    CHECK(root.num_children() == 7);
     CHECK(root["newseq"].num_children() == 0);
+    CHECK(root["newseq (serialized)"].num_children() == 0);
     // adding a map node:
-    CHECK(root.num_children() == 5);
+    CHECK(root.num_children() == 7);
     root["newmap"] |= ryml::MAP;
-    CHECK(root.num_children() == 6);
+    root.append_child() << ryml::key("newmap (serialized)") |= ryml::SEQ;
+    CHECK(root.num_children() == 9);
     CHECK(root["newmap"].num_children() == 0);
+    CHECK(root["newmap (serialized)"].num_children() == 0);
     // operator[] does not mutate the tree until the returned node is
     // written to.
     //
     // Until such time, the NodeRef object keeps in itself the required
     // information to write to the proper place in the tree. This is
-    // called being in a seed state.
+    // called being in a "seed" state.
     //
     // This means that passing a key/index which does not exist will
-    // not mutate the tree, but will instead store the proper place
-    // to do so if and when it is required.
+    // not mutate the tree, but will instead store (in the node) the
+    // proper place of the tree to do so if and when it is required.
     //
     // This is a significant difference from eg, the behavior of
     // std::map, which mutates the map immediately within the call to
@@ -342,10 +355,14 @@ bar:
   - 20
   - 30
   - oh so nice
+  - oh so nice (serialized)
 john: in_scope
 newkeyval: shiny and new
+newkeyval (serialized): shiny and new (serialized)
 newseq: []
+newseq (serialized): []
 newmap: {}
+newmap (serialized): []
 I am somebody: indeed
 )";
     CHECK(buf_result == expected_result);
@@ -1349,51 +1366,82 @@ void sample_formatting()
 //-----------------------------------------------------------------------------
 
 /** demonstrates how to read and write base64-encoded blobs.
- * requires include of <c4/base64.hpp>
  @see https://c4core.docsforge.com/master/base64/
  */
 void sample_base64()
 {
     ryml::Tree tree;
     tree.rootref() |= ryml::MAP;
-    // from the wikipedia example
-    ryml::csubstr keys[] = {
-        "any carnal pleasure.",
-        "any carnal pleasure",
-        "any carnal pleasur",
-        "any carnal pleasu",
-        "any carnal pleas",
-                   "pleasure.",
-                    "leasure.",
-                     "easure.",
-                      "asure.",
-                       "sure.",
+    struct text_and_base64 { ryml::csubstr text, base64; };
+    text_and_base64 cases[] = {
+        {"Love all, trust a few, do wrong to none.", "TG92ZSBhbGwsIHRydXN0IGEgZmV3LCBkbyB3cm9uZyB0byBub25lLg=="},
+        {"The fool doth think he is wise, but the wise man knows himself to be a fool.", "VGhlIGZvb2wgZG90aCB0aGluayBoZSBpcyB3aXNlLCBidXQgdGhlIHdpc2UgbWFuIGtub3dzIGhpbXNlbGYgdG8gYmUgYSBmb29sLg=="},
+        {"Brevity is the soul of wit.", "QnJldml0eSBpcyB0aGUgc291bCBvZiB3aXQu"},
+        {"All that glitters is not gold.", "QWxsIHRoYXQgZ2xpdHRlcnMgaXMgbm90IGdvbGQu"},
+        {"These violent delights have violent ends...", "VGhlc2UgdmlvbGVudCBkZWxpZ2h0cyBoYXZlIHZpb2xlbnQgZW5kcy4uLg=="},
+        {"How now, my love?", "SG93IG5vdywgbXkgbG92ZT8="},
+        {"Why is your cheek so pale?", "V2h5IGlzIHlvdXIgY2hlZWsgc28gcGFsZT8="},
+        {"How chance the roses there do fade so fast?", "SG93IGNoYW5jZSB0aGUgcm9zZXMgdGhlcmUgZG8gZmFkZSBzbyBmYXN0Pw=="},
+        {"Belike for want of rain, which I could well beteem them from the tempest of my eyes.", "QmVsaWtlIGZvciB3YW50IG9mIHJhaW4sIHdoaWNoIEkgY291bGQgd2VsbCBiZXRlZW0gdGhlbSBmcm9tIHRoZSB0ZW1wZXN0IG9mIG15IGV5ZXMu"},
     };
-    for(ryml::csubstr key : keys)
-        tree[key] << ryml::fmt::base64(key);
-    CHECK(tree.rootref().num_children() == C4_COUNTOF(keys));
-    CHECK(tree["any carnal pleasure."].val() == "YW55IGNhcm5hbCBwbGVhc3VyZS4=");
-    CHECK(tree["any carnal pleasure" ].val() == "YW55IGNhcm5hbCBwbGVhc3VyZQ==");
-    CHECK(tree["any carnal pleasur"  ].val() == "YW55IGNhcm5hbCBwbGVhc3Vy");
-    CHECK(tree["any carnal pleasu"   ].val() == "YW55IGNhcm5hbCBwbGVhc3U=");
-    CHECK(tree["any carnal pleas"    ].val() == "YW55IGNhcm5hbCBwbGVhcw==");
-    CHECK(tree[           "pleasure."].val() == "cGxlYXN1cmUu");
-    CHECK(tree[            "leasure."].val() == "bGVhc3VyZS4=");
-    CHECK(tree[             "easure."].val() == "ZWFzdXJlLg==");
-    CHECK(tree[              "asure."].val() == "YXN1cmUu");
-    CHECK(tree[               "sure."].val() == "c3VyZS4=");
-    char buf_[128];
-    ryml::substr buf = buf_;
-    tree["any carnal pleasure."] >> ryml::fmt::base64(buf); CHECK(buf == "any carnal pleasure.");
-    tree["any carnal pleasure" ] >> ryml::fmt::base64(buf); CHECK(buf == "any carnal pleasure" );
-    tree["any carnal pleasur"  ] >> ryml::fmt::base64(buf); CHECK(buf == "any carnal pleasur"  );
-    tree["any carnal pleasu"   ] >> ryml::fmt::base64(buf); CHECK(buf == "any carnal pleasu"   );
-    tree["any carnal pleas"    ] >> ryml::fmt::base64(buf); CHECK(buf == "any carnal pleas"    );
-    tree[           "pleasure."] >> ryml::fmt::base64(buf); CHECK(buf ==            "pleasure.");
-    tree[            "leasure."] >> ryml::fmt::base64(buf); CHECK(buf ==             "leasure.");
-    tree[             "easure."] >> ryml::fmt::base64(buf); CHECK(buf ==              "easure.");
-    tree[              "asure."] >> ryml::fmt::base64(buf); CHECK(buf ==               "asure.");
-    tree[               "sure."] >> ryml::fmt::base64(buf); CHECK(buf ==                "sure.");
+    // to encode base64 and write the result to val:
+    for(auto c : cases)
+    {
+        tree[c.text] << ryml::fmt::base64(c.text);
+        CHECK(tree[c.text].val() == c.base64);
+    }
+    // to encode base64 and write the result to key:
+    for(auto c : cases)
+    {
+        tree.rootref().append_child() << ryml::key(ryml::fmt::base64(c.text)) << c.text;
+        CHECK(tree[c.base64].val() == c.text);
+    }
+    C4_CHECK(ryml::emitrs<std::string>(tree) == R"('Love all, trust a few, do wrong to none.': TG92ZSBhbGwsIHRydXN0IGEgZmV3LCBkbyB3cm9uZyB0byBub25lLg==
+'The fool doth think he is wise, but the wise man knows himself to be a fool.': VGhlIGZvb2wgZG90aCB0aGluayBoZSBpcyB3aXNlLCBidXQgdGhlIHdpc2UgbWFuIGtub3dzIGhpbXNlbGYgdG8gYmUgYSBmb29sLg==
+Brevity is the soul of wit.: QnJldml0eSBpcyB0aGUgc291bCBvZiB3aXQu
+All that glitters is not gold.: QWxsIHRoYXQgZ2xpdHRlcnMgaXMgbm90IGdvbGQu
+These violent delights have violent ends...: VGhlc2UgdmlvbGVudCBkZWxpZ2h0cyBoYXZlIHZpb2xlbnQgZW5kcy4uLg==
+'How now, my love?': SG93IG5vdywgbXkgbG92ZT8=
+'Why is your cheek so pale?': V2h5IGlzIHlvdXIgY2hlZWsgc28gcGFsZT8=
+'How chance the roses there do fade so fast?': SG93IGNoYW5jZSB0aGUgcm9zZXMgdGhlcmUgZG8gZmFkZSBzbyBmYXN0Pw==
+'Belike for want of rain, which I could well beteem them from the tempest of my eyes.': QmVsaWtlIGZvciB3YW50IG9mIHJhaW4sIHdoaWNoIEkgY291bGQgd2VsbCBiZXRlZW0gdGhlbSBmcm9tIHRoZSB0ZW1wZXN0IG9mIG15IGV5ZXMu
+TG92ZSBhbGwsIHRydXN0IGEgZmV3LCBkbyB3cm9uZyB0byBub25lLg==: 'Love all, trust a few, do wrong to none.'
+VGhlIGZvb2wgZG90aCB0aGluayBoZSBpcyB3aXNlLCBidXQgdGhlIHdpc2UgbWFuIGtub3dzIGhpbXNlbGYgdG8gYmUgYSBmb29sLg==: 'The fool doth think he is wise, but the wise man knows himself to be a fool.'
+QnJldml0eSBpcyB0aGUgc291bCBvZiB3aXQu: Brevity is the soul of wit.
+QWxsIHRoYXQgZ2xpdHRlcnMgaXMgbm90IGdvbGQu: All that glitters is not gold.
+VGhlc2UgdmlvbGVudCBkZWxpZ2h0cyBoYXZlIHZpb2xlbnQgZW5kcy4uLg==: These violent delights have violent ends...
+SG93IG5vdywgbXkgbG92ZT8=: 'How now, my love?'
+V2h5IGlzIHlvdXIgY2hlZWsgc28gcGFsZT8=: 'Why is your cheek so pale?'
+SG93IGNoYW5jZSB0aGUgcm9zZXMgdGhlcmUgZG8gZmFkZSBzbyBmYXN0Pw==: 'How chance the roses there do fade so fast?'
+QmVsaWtlIGZvciB3YW50IG9mIHJhaW4sIHdoaWNoIEkgY291bGQgd2VsbCBiZXRlZW0gdGhlbSBmcm9tIHRoZSB0ZW1wZXN0IG9mIG15IGV5ZXMu: 'Belike for want of rain, which I could well beteem them from the tempest of my eyes.'
+)");
+    // to decode the val base64 and write the result to buf:
+    char buf1_[128], buf2_[128];
+    ryml::substr buf1 = buf1_;  // this is where we will write the result
+    ryml::substr buf2 = buf2_;  // this is where we will write the result
+    for(auto c : cases)
+    {
+        // write the decoded result into the given buffer
+        tree[c.text] >> ryml::fmt::base64(buf1); // cannot know the needed size
+        size_t len = tree[c.text].deserialize_val(ryml::fmt::base64(buf2)); // returns the needed size
+        CHECK(len <= buf1.len);
+        CHECK(len <= buf2.len);
+        CHECK(c.text.len == len);
+        CHECK(buf1.first(len) == c.text);
+        CHECK(buf2.first(len) == c.text);
+    }
+    // to decode the val base64 and write the result to buf:
+    for(auto c : cases)
+    {
+        // write the decoded result into the given buffer
+        tree[c.base64] >> ryml::key(ryml::fmt::base64(buf1)); // cannot know the needed size
+        size_t len = tree[c.base64].deserialize_key(ryml::fmt::base64(buf2)); // returns the needed size
+        CHECK(len <= buf1.len);
+        CHECK(len <= buf2.len);
+        CHECK(c.text.len == len);
+        CHECK(buf1.first(len) == c.text);
+        CHECK(buf2.first(len) == c.text);
+    }
 }
 
 

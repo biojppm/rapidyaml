@@ -1,18 +1,38 @@
 #include "c4/yml/node.hpp"
-#include "c4/base64.hpp"
-#include "c4/format.hpp"
 
 namespace c4 {
 namespace yml {
 
-NodeRef& NodeRef::operator<< (c4::fmt::const_base64_wrapper w)
+size_t NodeRef::set_key_serialized(c4::fmt::const_base64_wrapper w)
 {
-    return *this;
+    _apply_seed();
+    csubstr encoded = this->to_arena(w);
+    this->set_key(encoded);
+    return encoded.len;
 }
 
-NodeRef const& NodeRef::operator>> (c4::fmt::base64_wrapper w) const
+size_t NodeRef::set_val_serialized(c4::fmt::const_base64_wrapper w)
 {
-    return *this;
+    _apply_seed();
+    csubstr encoded = this->to_arena(w);
+    this->set_val(encoded);
+    return encoded.len;
+}
+
+size_t NodeRef::deserialize_key(c4::fmt::base64_wrapper w) const
+{
+    RYML_ASSERT( ! is_seed());
+    RYML_ASSERT(valid());
+    RYML_ASSERT(get() != nullptr);
+    return from_chars(key(), &w);
+}
+
+size_t NodeRef::deserialize_val(c4::fmt::base64_wrapper w) const
+{
+    RYML_ASSERT( ! is_seed());
+    RYML_ASSERT(valid());
+    RYML_ASSERT(get() != nullptr);
+    return from_chars(val(), &w);
 }
 
 } // namespace yml
