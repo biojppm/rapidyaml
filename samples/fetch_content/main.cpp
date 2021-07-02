@@ -23,6 +23,7 @@
 
 // tbese are only needed for the examples below
 #include <c4/format.hpp>
+#include <c4/base64.hpp>
 #include <iostream>
 #include <sstream>
 #include <vector>
@@ -333,7 +334,7 @@ void sample_quick_overview()
     // emit to a buffer:
     std::string str_result = ryml::emitrs<std::string>(tree);
     // can emit to any given buffer:
-    char buf[2048];
+    char buf[1024];
     ryml::csubstr buf_result = ryml::emit(tree, buf);
     // now check
     ryml::csubstr expected_result = R"(foo: says who
@@ -1347,11 +1348,52 @@ void sample_formatting()
 
 //-----------------------------------------------------------------------------
 
-/** demonstrates how to read and write base64-encoded blobs
+/** demonstrates how to read and write base64-encoded blobs.
+ * requires include of <c4/base64.hpp>
  @see https://c4core.docsforge.com/master/base64/
  */
 void sample_base64()
 {
+    ryml::Tree tree;
+    tree.rootref() |= ryml::MAP;
+    // from the wikipedia example
+    ryml::csubstr keys[] = {
+        "any carnal pleasure.",
+        "any carnal pleasure",
+        "any carnal pleasur",
+        "any carnal pleasu",
+        "any carnal pleas",
+                   "pleasure.",
+                    "leasure.",
+                     "easure.",
+                      "asure.",
+                       "sure.",
+    };
+    for(ryml::csubstr key : keys)
+        tree[key] << ryml::fmt::base64(key);
+    CHECK(tree.rootref().num_children() == C4_COUNTOF(keys));
+    CHECK(tree["any carnal pleasure."].val() == "YW55IGNhcm5hbCBwbGVhc3VyZS4=");
+    CHECK(tree["any carnal pleasure" ].val() == "YW55IGNhcm5hbCBwbGVhc3VyZQ==");
+    CHECK(tree["any carnal pleasur"  ].val() == "YW55IGNhcm5hbCBwbGVhc3Vy");
+    CHECK(tree["any carnal pleasu"   ].val() == "YW55IGNhcm5hbCBwbGVhc3U=");
+    CHECK(tree["any carnal pleas"    ].val() == "YW55IGNhcm5hbCBwbGVhcw==");
+    CHECK(tree[           "pleasure."].val() == "cGxlYXN1cmUu");
+    CHECK(tree[            "leasure."].val() == "bGVhc3VyZS4=");
+    CHECK(tree[             "easure."].val() == "ZWFzdXJlLg==");
+    CHECK(tree[              "asure."].val() == "YXN1cmUu");
+    CHECK(tree[               "sure."].val() == "c3VyZS4=");
+    char buf_[128];
+    ryml::substr buf = buf_;
+    tree["any carnal pleasure."] >> ryml::fmt::base64(buf); CHECK(buf == "any carnal pleasure.");
+    tree["any carnal pleasure" ] >> ryml::fmt::base64(buf); CHECK(buf == "any carnal pleasure" );
+    tree["any carnal pleasur"  ] >> ryml::fmt::base64(buf); CHECK(buf == "any carnal pleasur"  );
+    tree["any carnal pleasu"   ] >> ryml::fmt::base64(buf); CHECK(buf == "any carnal pleasu"   );
+    tree["any carnal pleas"    ] >> ryml::fmt::base64(buf); CHECK(buf == "any carnal pleas"    );
+    tree[           "pleasure."] >> ryml::fmt::base64(buf); CHECK(buf ==            "pleasure.");
+    tree[            "leasure."] >> ryml::fmt::base64(buf); CHECK(buf ==             "leasure.");
+    tree[             "easure."] >> ryml::fmt::base64(buf); CHECK(buf ==              "easure.");
+    tree[              "asure."] >> ryml::fmt::base64(buf); CHECK(buf ==               "asure.");
+    tree[               "sure."] >> ryml::fmt::base64(buf); CHECK(buf ==                "sure.");
 }
 
 

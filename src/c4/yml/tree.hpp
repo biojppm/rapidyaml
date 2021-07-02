@@ -989,7 +989,7 @@ public:
     lookup_result lookup_path(csubstr path, size_t start=NONE) const;
 
     /** defaulted lookup: lookup path; if the lookup fails, recursively modify
-     * the tree so that the corresponding lookup_path() would return the 
+     * the tree so that the corresponding lookup_path() would return the
      * default value */
     size_t lookup_path_or_modify(csubstr default_value, csubstr path, size_t start=NONE);
 

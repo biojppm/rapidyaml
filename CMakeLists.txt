@@ -33,6 +33,7 @@ c4_add_library(ryml
         c4/yml/emit.hpp
         c4/yml/export.hpp
         c4/yml/node.hpp
+        c4/yml/node.cpp
         c4/yml/parse.hpp
         c4/yml/parse.cpp
         c4/yml/preprocess.hpp

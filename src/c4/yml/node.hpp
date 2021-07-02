@@ -21,6 +21,14 @@
 #endif
 
 namespace c4 {
+
+// FWD declarations for base64
+namespace fmt {
+template<typename CharOrConstChar> struct base64_wrapper_;
+using const_base64_wrapper = base64_wrapper_<c4::cbyte>;
+using base64_wrapper = base64_wrapper_<c4::byte>;
+} // namespace fmt;
+
 namespace yml {
 
 template<class T> void write(NodeRef *n, T const& v);
@@ -401,6 +409,22 @@ public:
     }
 
     template<class T>
+    inline NodeRef const& operator>> (T &v) const
+    {
+        RYML_ASSERT( ! is_seed());
+        RYML_ASSERT(valid());
+        RYML_ASSERT(get() != nullptr);
+        if( ! read(*this, &v))
+        {
+            c4::yml::error("could not deserialize value");
+        }
+        return *this;
+    }
+
+public:
+
+    /** serialize a variable to the node's key */
+    template<class T>
     inline NodeRef& operator<< (Key<const T> const& v)
     {
         _apply_seed();
@@ -408,6 +432,7 @@ public:
         return *this;
     }
 
+    /** serialize a variable to the node's key */
     template<class T>
     inline NodeRef& operator<< (Key<T> const& v)
     {
@@ -416,19 +441,7 @@ public:
         return *this;
     }
 
-    template<class T>
-    inline NodeRef const& operator>> (T &v) const
-    {
-        RYML_ASSERT( ! is_seed());
-        RYML_ASSERT(valid());
-        RYML_ASSERT(get() != nullptr);
-        if( ! read(*this, &v))
-        {
-            c4::yml::error("could not parse value");
-        }
-        return *this;
-    }
-
+    /** deserialize a variable to the node's key */
     template<class T>
     inline NodeRef const& operator>> (Key<T> v) const
     {
@@ -438,6 +451,13 @@ public:
         from_chars(key(), &v.k);
         return *this;
     }
+
+public:
+
+    /** serialize a variable as base64 */
+    NodeRef& operator<< (c4::fmt::const_base64_wrapper w);
+    /** deserialize a variable as base64 */
+    NodeRef const& operator>> (c4::fmt::base64_wrapper w) const;
 
 public:
 
