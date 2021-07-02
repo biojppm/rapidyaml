@@ -1,19 +1,17 @@
 // This file has multiple self-contained samples that illustrate how
-// to use ryml, and how it works.
-
-// Although this file is not a unit test, the samples are written as a
-// sequence of instructions and predicate checks to better show what
-// the expected result of any operation is.
-
+// to use ryml, and how it works. Although this file is not a unit
+// test, the samples are written as a sequence of instructions and
+// predicate checks to better convey what is the expected result at
+// any stage.
+//
 // If something is unclear, please open an issue or send a pull
 // request at https://github.com/biojppm/rapidyaml
-
+//
 // If you have an issue while using ryml, it is also encouraged to try
 // to reproduce the issue here, or look first through the relevant
 // section.
-
+//
 // Happy ryml'ing!
-// <jpmag>
 
 
 //-----------------------------------------------------------------------------
@@ -25,7 +23,6 @@
 
 // tbese are only needed for the examples below
 #include <c4/format.hpp>
-
 #include <iostream>
 #include <sstream>
 #include <vector>
@@ -33,8 +30,22 @@
 #include <map>
 
 
+static int num_failed_checks = 0;
+#define CHECK(predicate)                                                \
+    do                                                                  \
+    {                                                                   \
+        const char *result##__LINE__ = nullptr;                         \
+        printf("%s:%d: %s " #predicate "\n", __FILE__, __LINE__,        \
+               (predicate) ? (result##__LINE__="OK!") : "ERR:");        \
+        fflush(stdout);                                                 \
+        if(!result##__LINE__)                                           \
+            ++num_failed_checks;                                        \
+    } while(0)
+
+
 //-----------------------------------------------------------------------------
 
+void sample_quick_overview();
 void sample_substr();
 void sample_parse_read_only();
 void sample_parse_in_situ();
@@ -61,6 +72,7 @@ void sample_docs();
 
 int main()
 {
+    sample_quick_overview();
     sample_substr();
     sample_parse_read_only();
     sample_parse_in_situ();
@@ -83,6 +95,7 @@ int main()
     sample_anchors_and_aliases();
     sample_tags();
     sample_docs();
+    return num_failed_checks;
 }
 
 
@@ -90,17 +103,256 @@ int main()
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-#define CHECK(predicate)                                                \
-    do                                                                  \
-    {                                                                   \
-        const char *result##__LINE__ = nullptr;                         \
-        printf("%s:%d: %s " #predicate "\n", __FILE__, __LINE__,        \
-               (predicate) ? (result##__LINE__="OK!") : "ERR:");        \
-        fflush(stdout);                                                 \
-        if(!result##__LINE__)                                           \
-            std::abort();                                               \
-    } while(0)
+void sample_quick_overview()
+{
+    // parse YAML code:
+    char yml_buf[] = "{foo: 1, bar: [2, 3], john: doe}";
+    // This parses in place. It is also possible to:
+    //   - parse a read-only buffer
+    //   - reuse an existing tree
+    //   - reuse an existing parser.
+    ryml::Tree tree = ryml::parse(ryml::substr(yml_buf));
 
+
+    //------------------------------------------------------------------
+    // To read the parsed tree.
+    // Node::operator[] does a lookup, is O(num_children[node]).
+    // maps use string keys, seqs use integral keys.
+    CHECK(tree["foo"].is_keyval());
+    CHECK(tree["foo"].key() == "foo");
+    CHECK(tree["foo"].val() == "1");
+    CHECK(tree["bar"].is_seq());
+    CHECK(tree["bar"].has_key());
+    CHECK(tree["bar"].key() == "bar");
+    CHECK(tree["bar"][0].val() == "2");
+    CHECK(tree["bar"][1].val() == "3");
+    CHECK(tree["john"].val() == "doe");
+    // An integral key is the position of the child within its parent,
+    // so even maps can also use int keys, if the key position is
+    // known.
+    CHECK(tree[0].id() == tree["foo"].id()); // same node
+    CHECK(tree[1].id() == tree["bar"].id()); // same node
+    CHECK(tree[2].id() == tree["john"].id()); // same node
+    // Tree::operator[](int) searches a root child by its position.
+    CHECK(tree[0].id() == tree["foo"].id());  // 0: first child of root
+    CHECK(tree[1].id() == tree["bar"].id());  // 1: first child of root
+    CHECK(tree[2].id() == tree["john"].id()); // 2: first child of root
+    // NodeRef::operator[](int) searches a node child by its position
+    // on __the node__'s children list:
+    ryml::NodeRef bar = tree["bar"];
+    CHECK(bar[0].val() == "2"); // 0 means first child of bar
+    CHECK(bar[1].val() == "3"); // 1 means second child of bar
+    // NodeRef::operator[](string):
+    // A string key is the key of the node: lookup is by name. So it
+    // is only available for maps, and it is NOT available for seqs,
+    // since seq members do not have keys.
+    CHECK(tree["foo"].key() == "foo");
+    CHECK(tree["bar"].key() == "bar");
+    CHECK(tree["john"].key() == "john");
+    CHECK(bar.is_seq());
+    // CHECK(bar["BOOM!"]); // ERROR seqs do not have key lookup
+
+
+    //------------------------------------------------------------------
+    // Hierarchy:
+    ryml::NodeRef root = tree.rootref();
+    {
+        ryml::NodeRef foo = root.first_child();
+        ryml::NodeRef john = root.last_child();
+        CHECK(tree.size() == 6); // O(1) number of nodes in the tree
+        CHECK(root.num_children() == 3); // O(num_children[root])
+        CHECK(foo.num_siblings() == 3); // O(num_children[parent(foo)])
+        CHECK(root.first_child().id() == root["foo"].id()); // first_child() is O(1)
+        CHECK(root.last_child().id() == root["john"].id()); // last_child() is O(1)
+        CHECK(john.first_sibling().id() == foo.id());
+        CHECK(foo.last_sibling().id() == john.id());
+        // prev_sibling(), next_sibling():
+        CHECK(foo.num_siblings() == root.num_children());
+        CHECK(foo.prev_sibling().id() == ryml::NONE); // foo is the first_child()
+        CHECK(foo.next_sibling().key() == "bar");
+        CHECK(foo.next_sibling().next_sibling().key() == "john");
+        CHECK(foo.next_sibling().next_sibling().key() == "john");
+        CHECK(foo.next_sibling().next_sibling().next_sibling().id() == ryml::NONE); // john is the last_child()
+    }
+
+
+    //------------------------------------------------------------------
+    // Iterating:
+    {
+        ryml::csubstr expected_keys[] = {"foo", "bar", "john"};
+        // iterate children:
+        {
+            size_t count = 0;
+            for(ryml::NodeRef child : root.children())
+                CHECK(child.key() == expected_keys[count++]);
+        }
+        // iterate siblings:
+        {
+            size_t count = 0;
+            for(ryml::NodeRef child : root["foo"].siblings())
+                CHECK(child.key() == expected_keys[count++]);
+        }
+    }
+
+
+    //------------------------------------------------------------------
+    // Gotchas:
+    CHECK(!tree["bar"].has_val());          // seq is a container, so no val
+    CHECK(!tree["bar"][0].has_key());       // belongs to a seq, so no key
+    CHECK(!tree["bar"][1].has_key());       // belongs to a seq, so no key
+    //CHECK(tree["bar"].val() == BOOM!);    // ... so attempting to get a val is undefined behavior
+    //CHECK(tree["bar"][0].key() == BOOM!); // ... so attempting to get a key is undefined behavior
+    //CHECK(tree["bar"][1].key() == BOOM!); // ... so attempting to get a key is undefined behavior
+
+
+    //------------------------------------------------------------------
+    // Deserializing: use operator>>
+    {
+        int foo = 0, bar0 = 0, bar1 = 0;
+        std::string john;
+        root["foo"] >> foo;
+        root["bar"][0] >> bar0;
+        root["bar"][1] >> bar1;
+        root["john"] >> john; // requires from_chars(std::string). see samples below.
+        CHECK(foo == 1);
+        CHECK(bar0 == 2);
+        CHECK(bar1 == 3);
+        CHECK(john == "doe");
+    }
+
+
+    //------------------------------------------------------------------
+    // modifying existing nodes: operator<< vs operator=
+
+    // operator= assigns an existing string to the receiving node.
+    // This pointer will be in effect until the tree goes out of scope
+    // so beware to only assign from strings outliving the tree.
+    root["foo"] = "says you";
+    root["bar"][0] = "-2";
+    root["bar"][1] = "-3";
+    root["john"] = "ron";
+    // Now the tree is _pointing_ at the memory of the strings above.
+    // That is OK because those are static strings and will outlive
+    // the tree.
+    CHECK(root["foo"].val() == "says you");
+    CHECK(root["bar"][0].val() == "-2");
+    CHECK(root["bar"][1].val() == "-3");
+    CHECK(root["john"].val() == "ron");
+    // WATCHOUT: do not assign from temporary objects:
+    // {
+    //     std::string crash("dangling");
+    //     root["john"] == ryml::to_csubstr(crash);
+    // }
+    // CHECK(root["john"] == "dangling"); // CRASH! the string was deallocated
+
+    // operator<< first serializes the input to the tree's arena, then
+    // assigns the serialized string to the receiving node. This avoids
+    // constraints with the lifetime, since the arena lives with the tree.
+    CHECK(tree.arena().empty());
+    root["foo"] << "says who";
+    root["bar"][0] << 20;
+    root["bar"][1] << 30;
+    root["john"] << "deere";
+    CHECK(root["foo"].val() == "says who");
+    CHECK(root["bar"][0].val() == "20");
+    CHECK(root["bar"][1].val() == "30");
+    CHECK(root["john"].val() == "deere");
+    CHECK(tree.arena() == "says who2030deere"); // serializations to the tree arena
+    // using operator<< instead of operator= the crash above is avoided:
+    {
+        std::string ok("in_scope");
+        // root["john"] == ryml::to_csubstr(ok); // don't, will dangle
+        root["john"] << ryml::to_csubstr(ok); // OK, copy to the tree's arena
+    }
+    CHECK(root["john"] == "in_scope"); // OK!
+    CHECK(tree.arena() == "says who2030deerein_scope"); // serializations to the tree arena
+
+
+    //------------------------------------------------------------------
+    // adding new nodes:
+
+    // adding a keyval node to a map:
+    CHECK(root.num_children() == 3);
+    root["newkeyval"] = "shiny and new";
+    CHECK(root.num_children() == 4);
+    CHECK(root["newkeyval"].val() == "shiny and new");
+    // adding a val node to a seq:
+    CHECK(root["bar"].num_children() == 2);
+    root["bar"][2] = "oh so nice";
+    CHECK(root["bar"].num_children() == 3);
+    CHECK(root["bar"][2].val() == "oh so nice");
+    // adding a seq node:
+    CHECK(root.num_children() == 4);
+    root["newseq"] |= ryml::SEQ;
+    CHECK(root.num_children() == 5);
+    CHECK(root["newseq"].num_children() == 0);
+    // adding a map node:
+    CHECK(root.num_children() == 5);
+    root["newmap"] |= ryml::MAP;
+    CHECK(root.num_children() == 6);
+    CHECK(root["newmap"].num_children() == 0);
+    // operator[] does not mutate the tree until the returned node is
+    // written to.
+    //
+    // Until such time, the NodeRef object keeps in itself the required
+    // information to write to the proper place in the tree. This is
+    // called being in a seed state.
+    //
+    // This means that passing a key/index which does not exist will
+    // not mutate the tree, but will instead store the proper place
+    // to do so if and when it is required.
+    //
+    // This is a significant difference from eg, the behavior of
+    // std::map, which mutates the map immediately within the call to
+    // operator[].
+    CHECK(!root.has_child("I am nobody"));
+    ryml::NodeRef nobody = root["I am nobody"];
+    CHECK(nobody.valid());   // points at the tree, and a specific place in the tree
+    CHECK(nobody.is_seed()); // ... but nothing is there yet.
+    CHECK(!root.has_child("I am nobody")); // same as above
+    ryml::NodeRef somebody = root["I am somebody"];
+    CHECK(!root.has_child("I am somebody")); // same as above
+    CHECK(somebody.valid());
+    CHECK(somebody.is_seed()); // same as above
+    somebody = "indeed";  // this will commit to the tree, mutating at the proper place
+    CHECK(somebody.valid());
+    CHECK(!somebody.is_seed()); // now the tree has this node, and it is no longer a seed
+    CHECK(root.has_child("I am somebody"));
+    CHECK(root["I am somebody"].val() == "indeed");
+
+
+    //------------------------------------------------------------------
+    // emitting:
+
+    // emit to a FILE*
+    ryml::emit(tree, stdout);
+    // emit to a stream
+    std::stringstream ss;
+    ss << tree;
+    std::string stream_result = ss.str();
+    // emit to a buffer:
+    std::string str_result = ryml::emitrs<std::string>(tree);
+    // can emit to any given buffer:
+    char buf[2048];
+    ryml::csubstr buf_result = ryml::emit(tree, buf);
+    // now check
+    ryml::csubstr expected_result = R"(foo: says who
+bar:
+  - 20
+  - 30
+  - oh so nice
+john: in_scope
+newkeyval: shiny and new
+newseq: []
+newmap: {}
+I am somebody: indeed
+)";
+    CHECK(buf_result == expected_result);
+    CHECK(str_result == expected_result);
+    CHECK(stream_result == expected_result);
+    // There are many possibilities to emit to buffer;
+    // please look at the emit sample functions below.
+}
 
 
 //-----------------------------------------------------------------------------
@@ -395,7 +647,7 @@ void sample_substr()
 
 //-----------------------------------------------------------------------------
 
-/** demonstrate parsing of read-only memory */
+/** demonstrate parsing of a read-only YAML source buffer */
 void sample_parse_read_only()
 {
     // to parse read-only memory, ryml will copy first to the tree's arena.
@@ -639,7 +891,8 @@ void sample_parse_reuse_parser()
 
 //-----------------------------------------------------------------------------
 
-/** for ultimate speed when parsing multiple times, reuse both the tree and parser */
+/** for ultimate speed when parsing multiple times, reuse both the
+    tree and parser */
 void sample_parse_reuse_tree_and_parser()
 {
     ryml::Tree tree;
@@ -1825,23 +2078,40 @@ d: 3
 ---
 e: 4
 f: 5
+---
+- 6
+- 7
+- 8
+- 9
 )";
     auto tree = ryml::parse(ryml::to_csubstr(yml));
     CHECK(ryml::emitrs<std::string>(tree) == yml);
     auto stream = tree.rootref();
+    CHECK(stream.num_children() == 4);
     CHECK(stream.is_stream());
-    CHECK(stream.num_children() == 3);
+    CHECK(!stream.is_doc());
     for(auto node : stream.children())
-    {
         CHECK(node.is_doc());
-    }
+
     CHECK(stream[0].is_doc());
+    CHECK(stream[0].is_map());
     CHECK(stream[0]["a"].val() == "0");
     CHECK(stream[0]["b"].val() == "1");
+
     CHECK(stream[1].is_doc());
+    CHECK(stream[1].is_map());
     CHECK(stream[1]["c"].val() == "2");
     CHECK(stream[1]["d"].val() == "3");
+
     CHECK(stream[2].is_doc());
+    CHECK(stream[2].is_map());
     CHECK(stream[2]["e"].val() == "4");
     CHECK(stream[2]["f"].val() == "5");
+
+    CHECK(stream[3].is_doc());
+    CHECK(stream[3].is_seq());
+    CHECK(stream[3][0].val() == "6");
+    CHECK(stream[3][1].val() == "7");
+    CHECK(stream[3][2].val() == "8");
+    CHECK(stream[3][3].val() == "9");
 }

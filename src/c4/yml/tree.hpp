@@ -470,6 +470,8 @@ public:
     /** @name node getters */
     /** @{ */
 
+    //! get the index of a node belonging to this tree.
+    //! @p n can be nullptr, in which case a
     size_t id(NodeData const* n) const
     {
         if( ! n)
@@ -480,7 +482,8 @@ public:
         return static_cast<size_t>(n - m_buf);
     }
 
-    // with the get() method, i can be NONE, in which case a nullptr is returned
+    //! get a pointer to a node's NodeData.
+    //! i can be NONE, in which case a nullptr is returned
     inline NodeData *get(size_t i)
     {
         if(i == NONE)
@@ -490,6 +493,8 @@ public:
         RYML_ASSERT(i >= 0 && i < m_cap);
         return m_buf + i;
     }
+    //! get a pointer to a node's NodeData.
+    //! i can be NONE, in which case a nullptr is returned.
     inline NodeData const *get(size_t i) const
     {
         if(i == NONE)
@@ -500,12 +505,11 @@ public:
         return m_buf + i;
     }
 
-    // these next two functions are implementation only; use at your
-    // own risk.
-
-    // An if-less form of get() that demands a valid node index
+    // An if-less form of get() that demands a valid node index.
+    // This function is implementation only; use at your own risk.
     inline NodeData       * _p(size_t i)       { RYML_ASSERT(i != NONE && i >= 0 && i < m_cap); return m_buf + i; }
-    // An if-less form of get() that demands a valid node index
+    // An if-less form of get() that demands a valid node index.
+    // This function is implementation only; use at your own risk.
     inline NodeData const * _p(size_t i) const { RYML_ASSERT(i != NONE && i >= 0 && i < m_cap); return m_buf + i; }
 
     //! Get the id of the root node
