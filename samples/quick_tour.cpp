@@ -1,8 +1,9 @@
-// This file has multiple self-contained samples that illustrate how
-// to use ryml, and how it works. Although this file is not a unit
-// test, the samples are written as a sequence of instructions and
-// predicate checks to better convey what is the expected result at
-// any stage.
+// This file does a quick tour of ryml. It has multiple self-contained
+// samples that illustrate how to use ryml, and how it works. Although
+// this is not a unit test, the samples are written as a sequence of
+// instructions and predicate checks to better convey what is the
+// expected result at any stage. And to ensure the code here is
+// correct and up to date, it also run in as part of the CI tests.
 //
 // If something is unclear, please open an issue or send a pull
 // request at https://github.com/biojppm/rapidyaml
@@ -29,7 +30,7 @@
 #include <array>
 #include <map>
 
-// a quick'n'dirty assertion
+// a quick'n'dirty assertion to verify a predicate
 #define CHECK(predicate)                                                \
     do                                                                  \
     {                                                                   \
@@ -105,12 +106,12 @@ int main()
 
 void sample_quick_overview()
 {
-    // parse YAML code:
-    char yml_buf[] = "{foo: 1, bar: [2, 3], john: doe}";
-    // This parses in place. It is also possible to:
+    // Parse YAML code in place, potentially mutating the buffer.
+    // It is also possible to:
     //   - parse a read-only buffer
     //   - reuse an existing tree
     //   - reuse an existing parser.
+    char yml_buf[] = "{foo: 1, bar: [2, 3], john: doe}";
     ryml::Tree tree = ryml::parse(ryml::substr(yml_buf));
 
 
@@ -130,9 +131,9 @@ void sample_quick_overview()
     // An integral key is the position of the child within its parent,
     // so even maps can also use int keys, if the key position is
     // known.
-    CHECK(tree[0].id() == tree["foo"].id()); // same node
-    CHECK(tree[1].id() == tree["bar"].id()); // same node
-    CHECK(tree[2].id() == tree["john"].id()); // same node
+    CHECK(tree[0].id() == tree["foo"].id());
+    CHECK(tree[1].id() == tree["bar"].id());
+    CHECK(tree[2].id() == tree["john"].id());
     // Tree::operator[](int) searches a root child by its position.
     CHECK(tree[0].id() == tree["foo"].id());  // 0: first child of root
     CHECK(tree[1].id() == tree["bar"].id());  // 1: first child of root
@@ -150,7 +151,7 @@ void sample_quick_overview()
     CHECK(tree["bar"].key() == "bar");
     CHECK(tree["john"].key() == "john");
     CHECK(bar.is_seq());
-    // CHECK(bar["BOOM!"]); // ERROR seqs do not have key lookup
+    // CHECK(bar["BOOM!"].is_seed()); // error, seqs do not have key lookup
 
 
     //------------------------------------------------------------------
@@ -222,7 +223,7 @@ void sample_quick_overview()
 
 
     //------------------------------------------------------------------
-    // modifying existing nodes: operator<< vs operator=
+    // Modifying existing nodes: operator<< vs operator=
 
     // operator= assigns an existing string to the receiving node.
     // This pointer will be in effect until the tree goes out of scope
@@ -257,19 +258,19 @@ void sample_quick_overview()
     CHECK(root["bar"][0].val() == "20");
     CHECK(root["bar"][1].val() == "30");
     CHECK(root["john"].val() == "deere");
-    CHECK(tree.arena() == "says who2030deere"); // serializations to the tree arena
-    // using operator<< instead of operator= the crash above is avoided:
+    CHECK(tree.arena() == "says who2030deere"); // the result of serializations to the tree arena
+    // using operator<< instead of operator=, the crash above is avoided:
     {
         std::string ok("in_scope");
         // root["john"] == ryml::to_csubstr(ok); // don't, will dangle
         root["john"] << ryml::to_csubstr(ok); // OK, copy to the tree's arena
     }
     CHECK(root["john"] == "in_scope"); // OK!
-    CHECK(tree.arena() == "says who2030deerein_scope"); // serializations to the tree arena
+    CHECK(tree.arena() == "says who2030deerein_scope"); // the result of serializations to the tree arena
 
 
     //------------------------------------------------------------------
-    // adding new nodes:
+    // Adding new nodes:
 
     // adding a keyval node to a map:
     CHECK(root.num_children() == 3);
@@ -336,7 +337,7 @@ void sample_quick_overview()
 
 
     //------------------------------------------------------------------
-    // emitting:
+    // Emitting:
 
     // emit to a FILE*
     ryml::emit(tree, stdout);
