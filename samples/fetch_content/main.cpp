@@ -1442,6 +1442,25 @@ QmVsaWtlIGZvciB3YW50IG9mIHJhaW4sIHdoaWNoIEkgY291bGQgd2VsbCBiZXRlZW0gdGhlbSBmcm9t
         CHECK(buf1.first(len) == c.text);
         CHECK(buf2.first(len) == c.text);
     }
+    // directly encode variables
+    {
+        const uint64_t valin = UINT64_C(0xdeadbeef);
+        uint64_t valout = 0;
+        tree["deadbeef"] << c4::fmt::base64(valin); // sometimes cbase64() is needed to avoid ambiguity
+        size_t len = tree["deadbeef"].deserialize_val(ryml::fmt::base64(valout));
+        CHECK(len <= sizeof(valout));
+        CHECK(valout == UINT64_C(0xdeadbeef)); // base64 roundtrip is bit-accurate
+    }
+    // directly encode memory ranges
+    {
+        const uint32_t data_in[11] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xdeadbeef};
+        uint32_t data_out[11] = {};
+        CHECK(memcmp(data_in, data_out, sizeof(data_in)) != 0); // before the roundtrip
+        tree["int_data"] << c4::fmt::base64(data_in);
+        size_t len = tree["int_data"].deserialize_val(ryml::fmt::base64(data_out));
+        CHECK(len <= sizeof(data_out));
+        CHECK(memcmp(data_in, data_out, sizeof(data_in)) == 0); // after the roundtrip
+    }
 }
 
 
