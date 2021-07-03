@@ -1,16 +1,12 @@
 cmake_minimum_required(VERSION 3.12)
-project(ryml-sample-quick_tour-add_subdirectory LANGUAGES CXX)
+project(ryml-quickstart LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 11)
+add_subdirectory(../../ ryml)
 
-add_subdirectory(../../ ryml-add_subdirectory)
+add_executable(ryml-quickstart ../quickstart.cpp)
+target_link_libraries(ryml-quickstart ryml)
 
-set(exe ryml-sample-quick_tour-add_subdirectory)
-
-add_executable(${exe} ../quick_tour.cpp)
-target_link_libraries(${exe} ryml)
-
-add_custom_target(run ${exe}
-    COMMAND $<TARGET_FILE:${exe}>
-    DEPENDS ${exe}
-    COMMENT "running: $<TARGET_FILE:${exe}>")
+add_custom_target(run ryml-quickstart
+    COMMAND $<TARGET_FILE:ryml-quickstart>
+    DEPENDS ryml-quickstart
+    COMMENT "running: $<TARGET_FILE:ryml-quickstart>")

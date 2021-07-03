@@ -1,9 +1,22 @@
 c4_setup_testing(GTEST)
 
+
 c4_add_executable(ryml-parse-emit
     SOURCES parse_emit.cpp
     LIBS ryml c4fs
     FOLDER test)
+
+
+c4_add_executable(ryml-test-quickstart
+    SOURCES ../samples/quickstart.cpp
+    LIBS ryml
+    FOLDER test)
+if(RYML_DBG)
+    target_compile_definitions(ryml-test-quickstart PRIVATE RYML_DBG)
+endif()
+c4_target_compile_flags(ryml-test-quickstart PUBLIC GCC -Wno-useless-cast)
+c4_add_test(ryml-test-quickstart)
+
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL GNU)
     if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 7.0.0)
@@ -19,6 +32,7 @@ if(RYML_DBG)
     target_compile_definitions(ryml-_testlib PUBLIC RYML_DBG)
 endif()
 
+
 function(ryml_add_test test_name)
     set(t ryml-test-${test_name})
     c4_add_executable(${t}
@@ -31,14 +45,15 @@ function(ryml_add_test test_name)
     c4_add_test(${t})
 endfunction()
 
+
 c4_add_library(ryml-_testgroup LIBRARY_TYPE OBJECT
     SOURCES test_group.cpp test_group.hpp
     LIBS ryml ryml-_testlib c4fs
     FOLDER test)
-
 function(ryml_add_test_case_group name)
     ryml_add_test(${name} ryml-_testgroup)
 endfunction()
+
 
 ryml_add_test(basic)
 ryml_add_test(stack)
