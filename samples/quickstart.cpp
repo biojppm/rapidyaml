@@ -977,7 +977,7 @@ cars: GTO
 )");
     ryml::NodeRef root = tree.rootref();
 
-    // iterate through children
+    // iterate children
     {
         std::vector<ryml::csubstr> keys, vals; // to store all the root-level keys, vals
         for(auto const& n : root.children())
@@ -1002,7 +1002,7 @@ cars: GTO
         CHECK(vals[5] == "");
     }
 
-    // iterate through siblings
+    // iterate siblings
     {
     }
 }
@@ -1213,32 +1213,104 @@ void sample_fundamental_types()
 
 //-----------------------------------------------------------------------------
 
-/** ryml provides facilities for formatting (imported from c4core into the ryml namespace)
- @see https://c4core.docsforge.com/master/formatting-arguments/
- @see https://c4core.docsforge.com/master/formatting-strings/
+/** ryml provides facilities for formatting (imported from c4core into
+ * the ryml namespace)
+ *
+ * @see https://c4core.docsforge.com/master/formatting-arguments/
+ * @see https://c4core.docsforge.com/master/formatting-strings/
  */
 void sample_formatting()
 {
-    // ryml::fmt::real
-    // ryml::fmt::boolalpha
-    // ryml::fmt::hex
-    // ryml::fmt::bin
-    // ryml::fmt::oct
-    // ryml::fmt::zpad
-    // ryml::fmt::left
-    // ryml::fmt::right
+    // format(), format_sub(), formatrs(): format arguments
+    {
+        char buf_[256] = {};
+        ryml::substr buf = buf_;
+        size_t size = ryml::format(buf, "a={} foo {} {} bar {}", 0.1, 10, 11, 12);
+        CHECK(size == strlen("a=0.1 foo 10 11 bar 12"));
+        CHECK(buf.first(size) == "a=0.1 foo 10 11 bar 12");
+        // it is safe to call on an empty buffer:
+        // returns the size needed for the result, and no overflow occurs:
+        size = ryml::format({} , "a={} foo {} {} bar {}", "this_is_a", 10, 11, 12);
+        CHECK(size == ryml::format(buf, "a={} foo {} {} bar {}", "this_is_a", 10, 11, 12));
+        CHECK(size == strlen("a=this_is_a foo 10 11 bar 12"));
+        // it is also safe to call on an insufficient buffer:
+        char smallbuf[8] = {};
+        size = ryml::format(smallbuf, "{} is too large {}", "this", "for the buffer");
+        CHECK(size == strlen("this is too large for the buffer"));
+        // ... and the result is truncated at the buffer size:
+        CHECK(ryml::substr(smallbuf, sizeof(smallbuf)) == "this is\0");
+
+        // format_sub() directly returns the written string:
+        ryml::csubstr result = ryml::format_sub(buf, "b={}, damn it.", 1);
+        CHECK(result == "b=1, damn it.");
+        CHECK(result.is_sub(buf));
+
+        // formatrs() means FORMAT & ReSize:
+        //
+        // Instead of a substr, it receives any owning linear char container
+        // for which to_substr() is defined (using ADL).
+        // <ryml_std.hpp> has to_substr() definitions for std::string and
+        // std::vector<char>.
+        //
+        // formatrs() starts by calling format(), and if needed, resizes the container
+        // and calls format() again.
+        //
+        // Note that unless the container is previously sized, this
+        // may cause an allocation, which will make your code slower.
+        // Make sure to call .reserve() on the container for real
+        // production code.
+        std::string sbuf;
+        ryml::formatrs(&sbuf, "and c={} seems about right", 2);
+        CHECK(sbuf == "and c=2 seems about right");
+        std::vector<char> vbuf; // works with any linear char container
+        ryml::formatrs(&vbuf, "and c={} seems about right", 2);
+        CHECK(sbuf == "and c=2 seems about right");
+        // with formatrs() it is also possible to append:
+        ryml::formatrs(ryml::append, &sbuf, ", and finally d={} - done", 3);
+        CHECK(sbuf == "and c=2 seems about right, and finally d=3 - done");
+    }
+
+    // unformat(): read arguments - opposite of format()
+    {
+        char buf_[256];
+
+        int a = 0, b = 1, c = 2;
+        ryml::csubstr result = ryml::format_sub(buf_, "{} and {} and {}", a, b, c);
+        CHECK(result == "0 and 1 and 2");
+        int aa = -1, bb = -2, cc = -3;
+        size_t num_characters = ryml::unformat(result, "{} and {} and {}", aa, bb, cc);
+        CHECK(num_characters != ryml::csubstr::npos); // if a conversion fails, returns ryml::csubstr::npos
+        CHECK(num_characters == result.size());
+        CHECK(aa == a);
+        CHECK(bb == b);
+        CHECK(cc == c);
+
+        result = ryml::format_sub(buf_, "{} and {} and {}", 10, 20, 30);
+        CHECK(result == "10 and 20 and 30");
+        num_characters = ryml::unformat(result, "{} and {} and {}", aa, bb, cc);
+        CHECK(num_characters != ryml::csubstr::npos); // if a conversion fails, returns ryml::csubstr::npos
+        CHECK(num_characters == result.size());
+        CHECK(aa == 10);
+        CHECK(bb == 20);
+        CHECK(cc == 30);
+    }
 
     // cat(), cat_sub(), catrs(): concatenate arguments
     {
         char buf_[256] = {};
         ryml::substr buf = buf_;
-        size_t size = ryml::cat(buf, "a=", 0);
-        CHECK(size == 3);
-        CHECK(buf.first(size) == "a=0");
-
+        size_t size = ryml::cat(buf, "a=", 0.1, "foo", 10, 11, "bar", 12);
+        CHECK(size == strlen("a=0.1foo1011bar12"));
+        CHECK(buf.first(size) == "a=0.1foo1011bar12");
         // it is safe to call on an empty buffer:
         // returns the size needed for the result, and no overflow occurs:
-        CHECK(ryml::cat({}, "a=", 0) == size);
+        CHECK(ryml::cat({}, "a=", 0) == 3);
+        // it is also safe to call on an insufficient buffer:
+        char smallbuf[8] = {};
+        size = ryml::cat(smallbuf, "this", " is too large ", "for the buffer");
+        CHECK(size == strlen("this is too large for the buffer"));
+        // ... and the result is truncated at the buffer size:
+        CHECK(ryml::substr(smallbuf, sizeof(smallbuf)) == "this is\0");
 
         // cat_sub() directly returns the written string:
         ryml::csubstr result = ryml::cat_sub(buf, "b=", 1, ", damn it.");
@@ -1247,19 +1319,24 @@ void sample_formatting()
 
         // catrs() means CAT & ReSize:
         //
-        // instead of a buffer, it receives any owning linear char container
-        // for which to_substr() is defined (using ADL),
-        // like std::string or std::vector<char> (definitions in <ryml_std.hpp>).
+        // Instead of a substr, it receives any owning linear char container
+        // for which to_substr() is defined (using ADL).
+        // <ryml_std.hpp> has to_substr() definitions for std::string and
+        // std::vector<char>.
         //
-        // catrs() starts by calling cat(), and if needed, resizes the buffer
+        // catrs() starts by calling cat(), and if needed, resizes the container
         // and calls cat() again.
+        //
+        // Note that unless the container is previously sized, this
+        // may cause an allocation, which will make your code slower.
+        // Make sure to call .reserve() on the container for real
+        // production code.
         std::string sbuf;
         ryml::catrs(&sbuf, "and c=", 2, " seems about right");
         CHECK(sbuf == "and c=2 seems about right");
         std::vector<char> vbuf; // works with any linear char container
         ryml::catrs(&vbuf, "and c=", 2, " seems about right");
         CHECK(sbuf == "and c=2 seems about right");
-
         // with catrs() it is also possible to append:
         ryml::catrs(ryml::append, &sbuf, ", and finally d=", 3, " - done");
         CHECK(sbuf == "and c=2 seems about right, and finally d=3 - done");
@@ -1297,18 +1374,32 @@ void sample_formatting()
     {
         char buf_[256] = {};
         ryml::substr buf = buf_;
-        size_t size = ryml::catsep(buf, ' ', "a=0", "b=1", "c=2", 45, 67);
-        CHECK(buf.first(size) == "a=0 b=1 c=2 45 67");
+        // use ' ' as a separator
+        size_t size = ryml::catsep(buf, ' ', "a=", 0, "b=", 1, "c=", 2, 45, 67);
+        CHECK(buf.first(size) == "a= 0 b= 1 c= 2 45 67");
+        // any separator may be used
+        // use " and " as a separator
         size = ryml::catsep(buf, " and ", "a=0", "b=1", "c=2", 45, 67);
         CHECK(buf.first(size) == "a=0 and b=1 and c=2 and 45 and 67");
+        // use " ... " as a separator
         size = ryml::catsep(buf, " ... ", "a=0", "b=1", "c=2", 45, 67);
         CHECK(buf.first(size) == "a=0 ... b=1 ... c=2 ... 45 ... 67");
+        // use '/' as a separator
+        size = ryml::catsep(buf, '/', "a=", 0, "b=", 1, "c=", 2, 45, 67);
+        CHECK(buf.first(size) == "a=/0/b=/1/c=/2/45/67");
+        // use 888 as a separator
         size = ryml::catsep(buf, 888, "a=0", "b=1", "c=2", 45, 67);
         CHECK(buf.first(size) == "a=0888b=1888c=28884588867");
 
         // it is safe to call on an empty buffer:
         // returns the size needed for the result, and no overflow occurs:
         CHECK(size == ryml::catsep({}, 888, "a=0", "b=1", "c=2", 45, 67));
+        // it is also safe to call on an insufficient buffer:
+        char smallbuf[8] = {};
+        CHECK(size == ryml::catsep(smallbuf, 888, "a=0", "b=1", "c=2", 45, 67));
+        CHECK(size == strlen("a=0888b=1888c=28884588867"));
+        // ... and the result is truncated:
+        CHECK(ryml::substr(smallbuf, sizeof(smallbuf)) == "a=0888b\0");
 
         // catsep_sub() directly returns the written substr:
         ryml::csubstr result = ryml::catsep_sub(buf, " and ", "a=0", "b=1", "c=2", 45, 67);
@@ -1317,12 +1408,18 @@ void sample_formatting()
 
         // catseprs() means CATSEP & ReSize:
         //
-        // instead of a buffer, it receives any owning linear char container
-        // for which to_substr() is defined (using ADL),
-        // like std::string or std::vector<char> (definitions in <ryml_std.hpp>).
+        // Instead of a substr, it receives any owning linear char container
+        // for which to_substr() is defined (using ADL).
+        // <ryml_std.hpp> has to_substr() definitions for std::string and
+        // std::vector<char>.
         //
-        // catseprs() starts by calling catsep(), and if needed, resizes the buffer
+        // catseprs() starts by calling catsep(), and if needed, resizes the container
         // and calls catsep() again.
+        //
+        // Note that unless the container is previously sized, this
+        // may cause an allocation, which will make your code slower.
+        // Make sure to call .reserve() on the container for real
+        // production code.
         std::string sbuf;
         ryml::catseprs(&sbuf, " and ", "a=0", "b=1", "c=2", 45, 67);
         CHECK(sbuf == "a=0 and b=1 and c=2 and 45 and 67");
@@ -1337,7 +1434,7 @@ void sample_formatting()
 
     // uncatsep(): read arguments with a separator - opposite of catsep()
     {
-        char buf_[256];
+        char buf_[256] = {};
 
         int a = 0, b = 1, c = 2;
         ryml::csubstr result = ryml::catsep_sub(buf_, ' ', a, b, c);
@@ -1360,6 +1457,206 @@ void sample_formatting()
         CHECK(bb == 20);
         CHECK(cc == 30);
         CHECK(sep == ' ');
+    }
+
+    // formatting individual arguments
+    {
+        char buf_[256] = {};
+        ryml::substr buf = buf_;
+        using namespace ryml;  // all the symbols below are in the ryml namespace.
+        // --------------------------------------
+        // fmt::boolalpha(): format as true/false
+        // --------------------------------------
+        // just as with std streams, printing a bool will output the integer value:
+        CHECK("0" == cat_sub(buf, false));
+        CHECK("1" == cat_sub(buf, true));
+        // to force a "true"/"false", use fmt::boolalpha:
+        CHECK("false" == cat_sub(buf, fmt::boolalpha(false)));
+        CHECK("true" == cat_sub(buf, fmt::boolalpha(true)));
+
+        // ---------------------------------
+        // fmt::hex(): format as hexadecimal
+        // ---------------------------------
+        CHECK("0xff"  == cat_sub(buf, fmt::hex(255)));
+        CHECK("0x100" == cat_sub(buf, fmt::hex(256)));
+        CHECK("-0xff"  == cat_sub(buf, fmt::hex(-255)));
+        CHECK("-0x100" == cat_sub(buf, fmt::hex(-256)));
+        CHECK("3735928559" == cat_sub(buf,          UINT32_C(0xdeadbeef)));
+        CHECK("0xdeadbeef" == cat_sub(buf, fmt::hex(UINT32_C(0xdeadbeef))));
+        // ----------------------------
+        // fmt::bin(): format as binary
+        // ----------------------------
+        CHECK("0b1000" == cat_sub(buf, fmt::bin(8)));
+        CHECK("0b1001" == cat_sub(buf, fmt::bin(9)));
+        CHECK("0b10001" == cat_sub(buf, fmt::bin(17)));
+        CHECK("0b11001" == cat_sub(buf, fmt::bin(25)));
+        CHECK("-0b1000" == cat_sub(buf, fmt::bin(-8)));
+        CHECK("-0b1001" == cat_sub(buf, fmt::bin(-9)));
+        CHECK("-0b10001" == cat_sub(buf, fmt::bin(-17)));
+        CHECK("-0b11001" == cat_sub(buf, fmt::bin(-25)));
+        // ---------------------------
+        // fmt::bin(): format as octal
+        // ---------------------------
+        CHECK("0o77"    == cat_sub(buf, fmt::oct(63)));
+        CHECK("0o100"   == cat_sub(buf, fmt::oct(64)));
+        CHECK("0o377"   == cat_sub(buf, fmt::oct(255)));
+        CHECK("0o400"   == cat_sub(buf, fmt::oct(256)));
+        CHECK("0o1000"  == cat_sub(buf, fmt::oct(512)));
+        CHECK("-0o77"   == cat_sub(buf, fmt::oct(-63)));
+        CHECK("-0o100"  == cat_sub(buf, fmt::oct(-64)));
+        CHECK("-0o377"  == cat_sub(buf, fmt::oct(-255)));
+        CHECK("-0o400"  == cat_sub(buf, fmt::oct(-256)));
+        CHECK("-0o1000" == cat_sub(buf, fmt::oct(-512)));
+        // ---------------------------
+        // fmt::zpad(): pad with zeros
+        // ---------------------------
+        CHECK("000063" == cat_sub(buf, fmt::zpad(63, 6)));
+        CHECK( "00063" == cat_sub(buf, fmt::zpad(63, 5)));
+        CHECK(  "0063" == cat_sub(buf, fmt::zpad(63, 4)));
+        CHECK(   "063" == cat_sub(buf, fmt::zpad(63, 3)));
+        CHECK(    "63" == cat_sub(buf, fmt::zpad(63, 2)));
+        CHECK(    "63" == cat_sub(buf, fmt::zpad(63, 1))); // will never trim the result
+        CHECK(    "63" == cat_sub(buf, fmt::zpad(63, 0))); // will never trim the result
+        CHECK("0x00003f" == cat_sub(buf, fmt::zpad(fmt::hex(63), 6)));
+        CHECK("0o000077" == cat_sub(buf, fmt::zpad(fmt::oct(63), 6)));
+        CHECK("0b00011001" == cat_sub(buf, fmt::zpad(fmt::bin(25), 8)));
+        // ------------------------------------------------
+        // fmt::left(): align left with a given field width
+        // ------------------------------------------------
+        CHECK("63    " == cat_sub(buf, fmt::left(63, 6)));
+        CHECK("63   "  == cat_sub(buf, fmt::left(63, 5)));
+        CHECK("63  "   == cat_sub(buf, fmt::left(63, 4)));
+        CHECK("63 "    == cat_sub(buf, fmt::left(63, 3)));
+        CHECK("63"     == cat_sub(buf, fmt::left(63, 2)));
+        CHECK("63"     == cat_sub(buf, fmt::left(63, 1))); // will never trim the result
+        CHECK("63"     == cat_sub(buf, fmt::left(63, 0))); // will never trim the result
+        // the fill character can be specified (defaults to ' '):
+        CHECK("63----" == cat_sub(buf, fmt::left(63, 6, '-')));
+        CHECK("63++++" == cat_sub(buf, fmt::left(63, 6, '+')));
+        CHECK("63////" == cat_sub(buf, fmt::left(63, 6, '/')));
+        CHECK("630000" == cat_sub(buf, fmt::left(63, 6, '0')));
+        CHECK("63@@@@" == cat_sub(buf, fmt::left(63, 6, '@')));
+        CHECK("0x003f    " == cat_sub(buf, fmt::left(fmt::zpad(fmt::hex(63), 4), 10)));
+        // --------------------------------------------------
+        // fmt::right(): align right with a given field width
+        // --------------------------------------------------
+        CHECK("    63" == cat_sub(buf, fmt::right(63, 6)));
+        CHECK("   63"  == cat_sub(buf, fmt::right(63, 5)));
+        CHECK("  63"   == cat_sub(buf, fmt::right(63, 4)));
+        CHECK(" 63"    == cat_sub(buf, fmt::right(63, 3)));
+        CHECK("63"     == cat_sub(buf, fmt::right(63, 2)));
+        CHECK("63"     == cat_sub(buf, fmt::right(63, 1))); // will never trim the result
+        CHECK("63"     == cat_sub(buf, fmt::right(63, 0))); // will never trim the result
+        // the fill character can be specified (defaults to ' '):
+        CHECK("----63" == cat_sub(buf, fmt::right(63, 6, '-')));
+        CHECK("++++63" == cat_sub(buf, fmt::right(63, 6, '+')));
+        CHECK("////63" == cat_sub(buf, fmt::right(63, 6, '/')));
+        CHECK("000063" == cat_sub(buf, fmt::right(63, 6, '0')));
+        CHECK("@@@@63" == cat_sub(buf, fmt::right(63, 6, '@')));
+        CHECK("    0x003f" == cat_sub(buf, fmt::right(fmt::zpad(fmt::hex(63), 4), 10)));
+
+        // ------------------------------------------
+        // fmt::real(): format floating point numbers
+        // ------------------------------------------
+        CHECK("0"       == cat_sub(buf, fmt::real(0.01f, 0)));
+        CHECK("0.0"     == cat_sub(buf, fmt::real(0.01f, 1)));
+        CHECK("0.01"    == cat_sub(buf, fmt::real(0.01f, 2)));
+        CHECK("0.010"   == cat_sub(buf, fmt::real(0.01f, 3)));
+        CHECK("0.0100"  == cat_sub(buf, fmt::real(0.01f, 4)));
+        CHECK("0.01000" == cat_sub(buf, fmt::real(0.01f, 5)));
+        CHECK("1"       == cat_sub(buf, fmt::real(1.01f, 0)));
+        CHECK("1.0"     == cat_sub(buf, fmt::real(1.01f, 1)));
+        CHECK("1.01"    == cat_sub(buf, fmt::real(1.01f, 2)));
+        CHECK("1.010"   == cat_sub(buf, fmt::real(1.01f, 3)));
+        CHECK("1.0100"  == cat_sub(buf, fmt::real(1.01f, 4)));
+        CHECK("1.01000" == cat_sub(buf, fmt::real(1.01f, 5)));
+        CHECK("1"       == cat_sub(buf, fmt::real(1.234234234, 0)));
+        CHECK("1.2"     == cat_sub(buf, fmt::real(1.234234234, 1)));
+        CHECK("1.23"    == cat_sub(buf, fmt::real(1.234234234, 2)));
+        CHECK("1.234"   == cat_sub(buf, fmt::real(1.234234234, 3)));
+        CHECK("1.2342"  == cat_sub(buf, fmt::real(1.234234234, 4)));
+        CHECK("1.23423" == cat_sub(buf, fmt::real(1.234234234, 5)));
+        CHECK("1000000.00000" == cat_sub(buf, fmt::real(1000000.000000000, 5)));
+        CHECK("1234234.23423" == cat_sub(buf, fmt::real(1234234.234234234, 5)));
+        // AKA %f
+        CHECK("1000000.00000" == cat_sub(buf, fmt::real(1000000.000000000, 5, FTOA_FLOAT)));  // AKA %f, same as above
+        CHECK("1234234.23423" == cat_sub(buf, fmt::real(1234234.234234234, 5, FTOA_FLOAT)));  // AKA %f
+        CHECK("1234234.2342"  == cat_sub(buf, fmt::real(1234234.234234234, 4, FTOA_FLOAT)));  // AKA %f
+        CHECK("1234234.234"   == cat_sub(buf, fmt::real(1234234.234234234, 3, FTOA_FLOAT)));  // AKA %f
+        CHECK("1234234.23"    == cat_sub(buf, fmt::real(1234234.234234234, 2, FTOA_FLOAT)));  // AKA %f
+        // AKA %e
+        CHECK("1.00000e+06"   == cat_sub(buf, fmt::real(1000000.000000000, 5, FTOA_SCIENT))); // AKA %e
+        CHECK("1.23423e+06"   == cat_sub(buf, fmt::real(1234234.234234234, 5, FTOA_SCIENT))); // AKA %e
+        CHECK("1.2342e+06"    == cat_sub(buf, fmt::real(1234234.234234234, 4, FTOA_SCIENT))); // AKA %e
+        CHECK("1.234e+06"     == cat_sub(buf, fmt::real(1234234.234234234, 3, FTOA_SCIENT))); // AKA %e
+        CHECK("1.23e+06"      == cat_sub(buf, fmt::real(1234234.234234234, 2, FTOA_SCIENT))); // AKA %e
+        // AKA %g
+        CHECK("1e+06"         == cat_sub(buf, fmt::real(1000000.000000000, 5, FTOA_FLEX)));   // AKA %g
+        CHECK("1.2342e+06"    == cat_sub(buf, fmt::real(1234234.234234234, 5, FTOA_FLEX)));   // AKA %g
+        CHECK("1.234e+06"     == cat_sub(buf, fmt::real(1234234.234234234, 4, FTOA_FLEX)));   // AKA %g
+        CHECK("1.23e+06"      == cat_sub(buf, fmt::real(1234234.234234234, 3, FTOA_FLEX)));   // AKA %g
+        CHECK("1.2e+06"       == cat_sub(buf, fmt::real(1234234.234234234, 2, FTOA_FLEX)));   // AKA %g
+        // AKA %a (hexadecimal formatting of floats)
+        CHECK("0x1.e8480p+19" == cat_sub(buf, fmt::real(1000000.000000000, 5, FTOA_HEXA)));   // AKA %a
+        CHECK("0x1.2d53ap+20" == cat_sub(buf, fmt::real(1234234.234234234, 5, FTOA_HEXA)));   // AKA %a
+        CHECK("0x1.2d54p+20"  == cat_sub(buf, fmt::real(1234234.234234234, 4, FTOA_HEXA)));   // AKA %a
+        CHECK("0x1.2d5p+20"   == cat_sub(buf, fmt::real(1234234.234234234, 3, FTOA_HEXA)));   // AKA %a
+        CHECK("0x1.2dp+20"    == cat_sub(buf, fmt::real(1234234.234234234, 2, FTOA_HEXA)));   // AKA %a
+
+        // --------------------------------------------------------------
+        // fmt::raw(): dump data in machine format (respecting alignment)
+        // --------------------------------------------------------------
+        {
+            const uint32_t payload[] = {10, 20, 30, 40, UINT32_C(0xdeadbeef)};
+            // (package payload as a substr, for comparison only)
+            csubstr expected = csubstr((const char *)payload, sizeof(payload));
+            csubstr actual = cat_sub(buf, fmt::raw(payload));
+            CHECK(!actual.overlaps(expected));
+            CHECK(0 == memcmp(expected.str, actual.str, expected.len));
+            // also possible with variables:
+            for(const uint32_t pl : payload)
+            {
+                // (package payload as a substr, for comparison only)
+                expected = csubstr((const char *)&pl, sizeof(pl));
+                actual = cat_sub(buf, fmt::raw(pl));
+                CHECK(actual.size() == sizeof(uint32_t));
+                CHECK(!actual.overlaps(expected));
+                CHECK(0 == memcmp(expected.str, actual.str, expected.len));
+                // read back:
+                uint32_t result = pl + 10000; // anything different.
+                auto reader = fmt::raw(result); // keeps a reference to result
+                uncat(actual, reader);
+                CHECK(result == pl); // roundtrip completed successfully
+            }
+        }
+        // with non-const data, fmt::craw() may be needed for disambiguation:
+        {
+            uint32_t payload[] = {10, 20, 30, 40, UINT32_C(0xdeadbeef)};
+            // (package payload as a substr, for comparison only)
+            csubstr expected = csubstr((const char *)payload, sizeof(payload));
+            csubstr actual = cat_sub(buf, fmt::craw(payload));
+            CHECK(!actual.overlaps(expected));
+            CHECK(0 == memcmp(expected.str, actual.str, expected.len));
+            // also possible with variables:
+            for(uint32_t pl : payload)
+            {
+                // (package payload as a substr, for comparison only)
+                expected = csubstr((const char *)&pl, sizeof(pl));
+                actual = cat_sub(buf, fmt::craw(pl));
+                CHECK(actual.size() == sizeof(uint32_t));
+                CHECK(!actual.overlaps(expected));
+                CHECK(0 == memcmp(expected.str, actual.str, expected.len));
+                // read back:
+                uint32_t result = pl + 10000; // anything different.
+                auto reader = fmt::raw(result); // keeps a reference to result
+                uncat(actual, reader);
+                CHECK(result == pl); // roundtrip completed successfully
+            }
+        }
+
+        // -------------------------
+        // fmt::base64(): see below!
+        // -------------------------
     }
 }
 
