@@ -1,16 +1,21 @@
 // This file does a quick tour of ryml. It has multiple self-contained
-// samples that illustrate how to use ryml, and how it works. Although
-// this is not a unit test, the samples are written as a sequence of
-// instructions and predicate checks to better convey what is the
-// expected result at any stage. And to ensure the code here is
-// correct and up to date, it also run in as part of the CI tests.
+// and commented samples that illustrate how to use ryml, and how it
+// works. Although this is not a unit test, the samples are written as
+// a sequence of instructions and predicate checks to better convey
+// what is the expected result at any stage. And to ensure the code
+// here is correct and up to date, it's also run as part of the CI
+// tests.
+//
+// The directories that exist side-by-side with the file contain
+// several examples on how to build this with cmake, such that you can
+// hit the ground running. I suggest starting first with the
+// add_subdirectory example, treating it just like any other
+// self-contained cmake project.
 //
 // If something is unclear, please open an issue or send a pull
-// request at https://github.com/biojppm/rapidyaml
-//
-// If you have an issue while using ryml, it is also encouraged to try
-// to reproduce the issue here, or look first through the relevant
-// section.
+// request at https://github.com/biojppm/rapidyaml . If you have an
+// issue while using ryml, it is also encouraged to try to reproduce
+// the issue here, or look first through the relevant section.
 //
 // Happy ryml'ing!
 
