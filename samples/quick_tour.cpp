@@ -162,15 +162,15 @@ void sample_quick_overview()
         CHECK(tree.size() == 6); // O(1) number of nodes in the tree
         CHECK(root.num_children() == 3); // O(num_children[root])
         CHECK(foo.num_siblings() == 3); // O(num_children[parent(foo)])
+        CHECK(foo.parent().id() == root.id()); // parent() is O(1)
         CHECK(root.first_child().id() == root["foo"].id()); // first_child() is O(1)
         CHECK(root.last_child().id() == root["john"].id()); // last_child() is O(1)
         CHECK(john.first_sibling().id() == foo.id());
         CHECK(foo.last_sibling().id() == john.id());
-        // prev_sibling(), next_sibling():
+        // prev_sibling(), next_sibling(): (both are O(1))
         CHECK(foo.num_siblings() == root.num_children());
         CHECK(foo.prev_sibling().id() == ryml::NONE); // foo is the first_child()
         CHECK(foo.next_sibling().key() == "bar");
-        CHECK(foo.next_sibling().next_sibling().key() == "john");
         CHECK(foo.next_sibling().next_sibling().key() == "john");
         CHECK(foo.next_sibling().next_sibling().next_sibling().id() == ryml::NONE); // john is the last_child()
     }

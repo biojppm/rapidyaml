@@ -1,19 +1,16 @@
 cmake_minimum_required(VERSION 3.12)
-project(ryml-consumer LANGUAGES CXX)
+project(ryml-sample-quick_tour-add_subdirectory LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 11)
 
 add_subdirectory(../../ ryml-add_subdirectory)
 
-# run some checks (used in CI tests) to ensure
-# using ryml as a subdirectory does not interfere
-# with the existing settings
-include(./check.cmake)
+set(exe ryml-sample-quick_tour-add_subdirectory)
 
-set(exe ryml-consumer-add_subdirectory)
-
-add_executable(${exe} main.cpp)
+add_executable(${exe} ../quick_tour.cpp)
 target_link_libraries(${exe} ryml)
-add_custom_command(TARGET ${exe} POST_BUILD
+
+add_custom_target(run ${exe}
     COMMAND $<TARGET_FILE:${exe}>
-    COMMENT "running test: $<TARGET_FILE:${exe}>")
+    DEPENDS ${exe}
+    COMMENT "running: $<TARGET_FILE:${exe}>")

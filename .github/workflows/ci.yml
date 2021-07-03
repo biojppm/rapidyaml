@@ -526,8 +526,8 @@ jobs:
       - {name: python3, uses: actions/setup-python@v2, with: {python-version: 3.7}}
       - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
       - {name: show info, run: source .github/setenv.sh && c4_show_info }
-      - {name: add_subdirectory, run: cmany b -t $BT samples/add_subdirectory }
-      - {name: fetch_content, run: cmany b -t $BT samples/fetch_content }
+      - {name: add_subdirectory, run: cmany b -t $BT samples/add_subdirectory -- run }
+      - {name: fetch_content, run: cmany b -t $BT samples/fetch_content -- run }
 
   #----------------------------------------------------------------------------
   test_api:
