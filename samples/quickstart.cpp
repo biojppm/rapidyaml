@@ -1375,15 +1375,15 @@ void sample_base64()
     tree.rootref() |= ryml::MAP;
     struct text_and_base64 { ryml::csubstr text, base64; };
     text_and_base64 cases[] = {
-        {"Love all, trust a few, do wrong to none.", "TG92ZSBhbGwsIHRydXN0IGEgZmV3LCBkbyB3cm9uZyB0byBub25lLg=="},
-        {"The fool doth think he is wise, but the wise man knows himself to be a fool.", "VGhlIGZvb2wgZG90aCB0aGluayBoZSBpcyB3aXNlLCBidXQgdGhlIHdpc2UgbWFuIGtub3dzIGhpbXNlbGYgdG8gYmUgYSBmb29sLg=="},
-        {"Brevity is the soul of wit.", "QnJldml0eSBpcyB0aGUgc291bCBvZiB3aXQu"},
-        {"All that glitters is not gold.", "QWxsIHRoYXQgZ2xpdHRlcnMgaXMgbm90IGdvbGQu"},
-        {"These violent delights have violent ends...", "VGhlc2UgdmlvbGVudCBkZWxpZ2h0cyBoYXZlIHZpb2xlbnQgZW5kcy4uLg=="},
-        {"How now, my love?", "SG93IG5vdywgbXkgbG92ZT8="},
-        {"Why is your cheek so pale?", "V2h5IGlzIHlvdXIgY2hlZWsgc28gcGFsZT8="},
-        {"How chance the roses there do fade so fast?", "SG93IGNoYW5jZSB0aGUgcm9zZXMgdGhlcmUgZG8gZmFkZSBzbyBmYXN0Pw=="},
-        {"Belike for want of rain, which I could well beteem them from the tempest of my eyes.", "QmVsaWtlIGZvciB3YW50IG9mIHJhaW4sIHdoaWNoIEkgY291bGQgd2VsbCBiZXRlZW0gdGhlbSBmcm9tIHRoZSB0ZW1wZXN0IG9mIG15IGV5ZXMu"},
+        {{"Love all, trust a few, do wrong to none."}, {"TG92ZSBhbGwsIHRydXN0IGEgZmV3LCBkbyB3cm9uZyB0byBub25lLg=="}},
+        {{"The fool doth think he is wise, but the wise man knows himself to be a fool."}, {"VGhlIGZvb2wgZG90aCB0aGluayBoZSBpcyB3aXNlLCBidXQgdGhlIHdpc2UgbWFuIGtub3dzIGhpbXNlbGYgdG8gYmUgYSBmb29sLg=="}},
+        {{"Brevity is the soul of wit."}, {"QnJldml0eSBpcyB0aGUgc291bCBvZiB3aXQu"}},
+        {{"All that glitters is not gold."}, {"QWxsIHRoYXQgZ2xpdHRlcnMgaXMgbm90IGdvbGQu"}},
+        {{"These violent delights have violent ends..."}, {"VGhlc2UgdmlvbGVudCBkZWxpZ2h0cyBoYXZlIHZpb2xlbnQgZW5kcy4uLg=="}},
+        {{"How now, my love?"}, {"SG93IG5vdywgbXkgbG92ZT8="}},
+        {{"Why is your cheek so pale?"}, {"V2h5IGlzIHlvdXIgY2hlZWsgc28gcGFsZT8="}},
+        {{"How chance the roses there do fade so fast?"}, {"SG93IGNoYW5jZSB0aGUgcm9zZXMgdGhlcmUgZG8gZmFkZSBzbyBmYXN0Pw=="}},
+        {{"Belike for want of rain, which I could well beteem them from the tempest of my eyes."}, {"QmVsaWtlIGZvciB3YW50IG9mIHJhaW4sIHdoaWNoIEkgY291bGQgd2VsbCBiZXRlZW0gdGhlbSBmcm9tIHRoZSB0ZW1wZXN0IG9mIG15IGV5ZXMu"}},
     };
     // to encode base64 and write the result to val:
     for(auto c : cases)
