@@ -884,13 +884,13 @@ public:
         substr cp = alloc_arena(s.len);
         RYML_ASSERT(cp.len == s.len);
         RYML_ASSERT(!s.overlaps(cp));
-        #if (!defined(__clang__)) || (defined(__GNUC__) && __GNUC__ >= 10)
+        #if (!defined(__clang__)) && (defined(__GNUC__) && __GNUC__ >= 10)
         C4_SUPPRESS_WARNING_GCC_PUSH
         C4_SUPPRESS_WARNING_GCC("-Wstringop-overflow=") // no need for terminating \0
         C4_SUPPRESS_WARNING_GCC( "-Wrestrict") // there's an assert to ensure no violation of restrict behavior
         #endif
         memcpy(cp.str, s.str, s.len);
-        #if (!defined(__clang__)) || (defined(__GNUC__) && __GNUC__ >= 10)
+        #if (!defined(__clang__)) && (defined(__GNUC__) && __GNUC__ >= 10)
         C4_SUPPRESS_WARNING_GCC_POP
         #endif
         return cp;
