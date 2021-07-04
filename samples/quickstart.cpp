@@ -36,15 +36,18 @@
 #include <map>
 
 // a quick'n'dirty assertion to verify a predicate
-#define CHECK(predicate)                                                \
-    do                                                                  \
-    {                                                                   \
-        const char *result##__LINE__ = nullptr;                         \
-        printf("%s:%d: %s " #predicate "\n", __FILE__, __LINE__,        \
-               (predicate) ? (result##__LINE__="OK!") : "ERR:");        \
-        fflush(stdout);                                                 \
-        if(!result##__LINE__)                                           \
-            ++num_failed_checks;                                        \
+#define CHECK(predicate)                                      \
+    do                                                        \
+    {                                                         \
+        const char *C4_XCAT(__result, __LINE__) = "OK! ";     \
+        if(!(predicate)) /* eval only once */                 \
+        {                                                     \
+            C4_XCAT(__result, __LINE__) = "ERROR: ";          \
+            ++num_failed_checks;                              \
+        }                                                     \
+        std::cout << __FILE__ << ':' << __LINE__ <<  ": "     \
+                  <<  C4_XCAT(__result, __LINE__)             \
+                  <<  #predicate << std::endl;                \
     } while(0)
 static int num_failed_checks = 0;
 
@@ -1616,6 +1619,7 @@ void sample_formatting()
         // fmt::raw(): dump data in machine format (respecting alignment)
         // --------------------------------------------------------------
         {
+            C4_SUPPRESS_WARNING_CLANG_WITH_PUSH("-Wcast-align")  // we're casting the values directly, so alignment is strictly respected.
             const uint32_t payload[] = {10, 20, 30, 40, UINT32_C(0xdeadbeef)};
             // (package payload as a substr, for comparison only)
             csubstr expected = csubstr((const char *)payload, sizeof(payload));
@@ -1623,44 +1627,32 @@ void sample_formatting()
             CHECK(!actual.overlaps(expected));
             CHECK(0 == memcmp(expected.str, actual.str, expected.len));
             // also possible with variables:
-            for(const uint32_t pl : payload)
+            for(const uint32_t value : payload)
             {
                 // (package payload as a substr, for comparison only)
-                expected = csubstr((const char *)&pl, sizeof(pl));
-                actual = cat_sub(buf, fmt::raw(pl));
+                expected = csubstr((const char *)&value, sizeof(value));
+                actual = cat_sub(buf, fmt::raw(value));
                 CHECK(actual.size() == sizeof(uint32_t));
                 CHECK(!actual.overlaps(expected));
                 CHECK(0 == memcmp(expected.str, actual.str, expected.len));
-                // read back:
-                uint32_t result = pl + 10000; // anything different.
-                auto reader = fmt::raw(result); // keeps a reference to result
-                uncat(actual, reader);
-                CHECK(result == pl); // roundtrip completed successfully
-            }
-        }
-        // with non-const data, fmt::craw() may be needed for disambiguation:
-        {
-            uint32_t payload[] = {10, 20, 30, 40, UINT32_C(0xdeadbeef)};
-            // (package payload as a substr, for comparison only)
-            csubstr expected = csubstr((const char *)payload, sizeof(payload));
-            csubstr actual = cat_sub(buf, fmt::craw(payload));
-            CHECK(!actual.overlaps(expected));
-            CHECK(0 == memcmp(expected.str, actual.str, expected.len));
-            // also possible with variables:
-            for(uint32_t pl : payload)
-            {
-                // (package payload as a substr, for comparison only)
-                expected = csubstr((const char *)&pl, sizeof(pl));
-                actual = cat_sub(buf, fmt::craw(pl));
+                // with non-const data, fmt::craw() may be needed for disambiguation:
+                actual = cat_sub(buf, fmt::craw(value));
                 CHECK(actual.size() == sizeof(uint32_t));
                 CHECK(!actual.overlaps(expected));
                 CHECK(0 == memcmp(expected.str, actual.str, expected.len));
+                //
                 // read back:
-                uint32_t result = pl + 10000; // anything different.
+                uint32_t result;
                 auto reader = fmt::raw(result); // keeps a reference to result
+                CHECK(&result == (uint32_t*)reader.buf);
+                CHECK(reader.len == sizeof(uint32_t));
                 uncat(actual, reader);
-                CHECK(result == pl); // roundtrip completed successfully
+                // and compare:
+                // (vs2017/release/32bit does not reload result from cache, so force it)
+                result = *(uint32_t*)reader.buf;
+                CHECK(result == value); // roundtrip completed successfully
             }
+            C4_SUPPRESS_WARNING_CLANG_POP
         }
 
         // -------------------------
@@ -2560,20 +2552,19 @@ d: 3
         CHECK(tree.val(tree.child(doc2_id, 3)) == "7");
     }
 
-    // emitting streams as json is not possible, but...
-    {
-        //CHECK(ryml::emitrs_json<std::string>(tree) == yml); // RUNTIME ERROR!
-        // ... since json does not have streams, you cannot emit the above
-        // tree as json when you start from the root.
+    // Note: since json does not have streams, you cannot emit the above
+    // tree as json when you start from the root:
+    //CHECK(ryml::emitrs_json<std::string>(tree) == yml); // RUNTIME ERROR!
 
-        // but you can iterate through individual documents and emit
-        // them separately:
+    // emitting streams as json is not possible, but
+    // you can iterate through individual documents and emit
+    // them separately:
+    {
         const std::string expected_json[] = {
             R"({"a": 0,"b": 1})",
             R"({"c": 2,"d": 3})",
             R"([4,5,6,7])",
         };
-
         // using the node API
         {
             size_t count = 0;
