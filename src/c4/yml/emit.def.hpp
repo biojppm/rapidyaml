@@ -194,9 +194,9 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, size_t 
 template<class Writer>
 void Emitter<Writer>::_do_visit_json(Tree const& t, size_t id)
 {
-    if(C4_UNLIKELY(t.is_doc(id)))
+    if(C4_UNLIKELY(t.is_stream(id)))
     {
-        c4::yml::error("no doc processing for JSON");
+        c4::yml::error("JSON does not have streams");
     }
     else if(t.is_keyval(id))
     {

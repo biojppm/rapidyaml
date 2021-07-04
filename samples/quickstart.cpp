@@ -2488,42 +2488,103 @@ b: 1
 c: 2
 d: 3
 ---
-e: 4
-f: 5
----
+- 4
+- 5
 - 6
 - 7
-- 8
-- 9
 )";
-    auto tree = ryml::parse(ryml::to_csubstr(yml));
+    ryml::Tree tree = ryml::parse(ryml::to_substr(yml));
     CHECK(ryml::emitrs<std::string>(tree) == yml);
-    auto stream = tree.rootref();
-    CHECK(stream.num_children() == 4);
-    CHECK(stream.is_stream());
-    CHECK(!stream.is_doc());
-    for(auto node : stream.children())
-        CHECK(node.is_doc());
 
-    CHECK(stream[0].is_doc());
-    CHECK(stream[0].is_map());
-    CHECK(stream[0]["a"].val() == "0");
-    CHECK(stream[0]["b"].val() == "1");
+    // iteration through docs
+    {
+        // using the node API
+        const ryml::NodeRef stream = tree.rootref();
+        CHECK(stream.is_root());
+        CHECK(stream.is_stream());
+        CHECK(!stream.is_doc());
+        CHECK(stream.num_children() == 3);
+        for(const ryml::NodeRef doc : stream.children())
+            CHECK(doc.is_doc());
+        // equivalent: using the lower level index API
+        const size_t stream_id = tree.root_id();
+        CHECK(tree.is_root(stream_id));
+        CHECK(tree.is_stream(stream_id));
+        CHECK(!tree.is_doc(stream_id));
+        CHECK(tree.num_children(stream_id) == 3);
+        for(size_t doc_id = tree.first_child(stream_id); doc_id != ryml::NONE; doc_id = tree.next_sibling(stream_id))
+            CHECK(tree.is_doc(doc_id));
 
-    CHECK(stream[1].is_doc());
-    CHECK(stream[1].is_map());
-    CHECK(stream[1]["c"].val() == "2");
-    CHECK(stream[1]["d"].val() == "3");
+        // using the node API
+        CHECK(stream[0].is_doc());
+        CHECK(stream[0].is_map());
+        CHECK(stream[0]["a"].val() == "0");
+        CHECK(stream[0]["b"].val() == "1");
+        // equivalent: using the index API
+        const size_t doc0_id = tree.first_child(stream_id);
+        CHECK(tree.is_doc(doc0_id));
+        CHECK(tree.is_map(doc0_id));
+        CHECK(tree.val(tree.find_child(doc0_id, "a")) == "0");
+        CHECK(tree.val(tree.find_child(doc0_id, "b")) == "1");
 
-    CHECK(stream[2].is_doc());
-    CHECK(stream[2].is_map());
-    CHECK(stream[2]["e"].val() == "4");
-    CHECK(stream[2]["f"].val() == "5");
+        // using the node API
+        CHECK(stream[1].is_doc());
+        CHECK(stream[1].is_map());
+        CHECK(stream[1]["c"].val() == "2");
+        CHECK(stream[1]["d"].val() == "3");
+        // equivalent: using the index API
+        const size_t doc1_id = tree.next_sibling(doc0_id);
+        CHECK(tree.is_doc(doc1_id));
+        CHECK(tree.is_map(doc1_id));
+        CHECK(tree.val(tree.find_child(doc1_id, "c")) == "2");
+        CHECK(tree.val(tree.find_child(doc1_id, "d")) == "3");
 
-    CHECK(stream[3].is_doc());
-    CHECK(stream[3].is_seq());
-    CHECK(stream[3][0].val() == "6");
-    CHECK(stream[3][1].val() == "7");
-    CHECK(stream[3][2].val() == "8");
-    CHECK(stream[3][3].val() == "9");
+        // using the node API
+        CHECK(stream[2].is_doc());
+        CHECK(stream[2].is_seq());
+        CHECK(stream[2][0].val() == "4");
+        CHECK(stream[2][1].val() == "5");
+        CHECK(stream[2][2].val() == "6");
+        CHECK(stream[2][3].val() == "7");
+        // equivalent: using the index API
+        const size_t doc2_id = tree.next_sibling(doc1_id);
+        CHECK(tree.is_doc(doc2_id));
+        CHECK(tree.is_seq(doc2_id));
+        CHECK(tree.val(tree.child(doc2_id, 0)) == "4");
+        CHECK(tree.val(tree.child(doc2_id, 1)) == "5");
+        CHECK(tree.val(tree.child(doc2_id, 2)) == "6");
+        CHECK(tree.val(tree.child(doc2_id, 3)) == "7");
+    }
+
+    // emitting streams as json is not possible, but...
+    {
+        //CHECK(ryml::emitrs_json<std::string>(tree) == yml); // RUNTIME ERROR!
+        // ... since json does not have streams, you cannot emit the above
+        // tree as json when you start from the root.
+
+        // but you can iterate through individual documents and emit
+        // them separately:
+        const std::string expected_json[] = {
+            R"({"a": 0,"b": 1})",
+            R"({"c": 2,"d": 3})",
+            R"([4,5,6,7])",
+        };
+
+        // using the node API
+        {
+            size_t count = 0;
+            const ryml::NodeRef stream = tree.rootref();
+            CHECK(stream.num_children() == C4_COUNTOF(expected_json));
+            for(const ryml::NodeRef doc : stream.children())
+                CHECK(ryml::emitrs_json<std::string>(doc) == expected_json[count++]);
+        }
+        // equivalent: using the index API
+        {
+            size_t count = 0;
+            const size_t stream_id = tree.root_id();
+            CHECK(tree.num_children(stream_id) == C4_COUNTOF(expected_json));
+            for(size_t doc_id = tree.first_child(stream_id); doc_id != ryml::NONE; doc_id = tree.next_sibling(doc_id))
+                CHECK(ryml::emitrs_json<std::string>(tree, doc_id) == expected_json[count++]);
+        }
+    }
 }
