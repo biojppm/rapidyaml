@@ -6,7 +6,7 @@
 // here is correct and up to date, it's also run as part of the CI
 // tests.
 //
-// The directories that exist side-by-side with the file contain
+// The directories that exist side-by-side with this file contain
 // several examples on how to build this with cmake, such that you can
 // hit the ground running. I suggest starting first with the
 // add_subdirectory example, treating it just like any other
@@ -985,7 +985,7 @@ cars: GTO
     // iterate children
     {
         std::vector<ryml::csubstr> keys, vals; // to store all the root-level keys, vals
-        for(auto const& n : root.children())
+        for(ryml::NodeRef n : root.children())
         {
             keys.emplace_back(n.key());
             vals.emplace_back(n.has_val() ? n.val() : ryml::csubstr{});
@@ -998,17 +998,21 @@ cars: GTO
         CHECK(vals[2] == "3.14159");
         CHECK(keys[3] == "xmas");
         CHECK(vals[3] == "true");
-        // etc.
         CHECK(root[5].has_key());
-        CHECK(!root[5].has_val()); // it is a map so not a val
+        CHECK(root[5].is_seq());
         CHECK(root[5].key() == "calling-birds");
-        //CHECK(root[5].val() == ""); // RUNTIME ERROR! node does not have a val.
+        CHECK(!root[5].has_val()); // it is a map, so not a val
+        //CHECK(root[5].val() == ""); // ERROR! node does not have a val.
         CHECK(keys[5] == "calling-birds");
         CHECK(vals[5] == "");
     }
 
     // iterate siblings
     {
+        size_t count = 0;
+        ryml::csubstr calling_birds[] = {"huey", "dewey", "louie", "fred"};
+        for(ryml::NodeRef n : root["calling-birds"][2].siblings())
+            CHECK(n.val() == calling_birds[count++]);
     }
 }
 
@@ -1466,9 +1470,9 @@ void sample_formatting()
 
     // formatting individual arguments
     {
-        char buf_[256] = {};
-        ryml::substr buf = buf_;
         using namespace ryml;  // all the symbols below are in the ryml namespace.
+        char buf_[256] = {};   // all the results below are written in this buffer
+        substr buf = buf_;
         // --------------------------------------
         // fmt::boolalpha(): format as true/false
         // --------------------------------------
@@ -2292,7 +2296,7 @@ void sample_emit_to_file()
 
 //-----------------------------------------------------------------------------
 
-/** just like you can parse into a nested node, you can also emit from a nested node. */
+/** just like parsing into a nested node, you can also emit from a nested node. */
 void sample_emit_nested_node()
 {
     auto tree = ryml::parse(R"(- a
