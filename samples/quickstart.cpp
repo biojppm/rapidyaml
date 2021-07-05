@@ -35,6 +35,9 @@
 #include <array>
 #include <map>
 
+
+//-----------------------------------------------------------------------------
+
 // a quick'n'dirty assertion to verify a predicate
 #define CHECK(predicate)                                      \
     do                                                        \
@@ -77,6 +80,9 @@ void sample_emit_nested_node();
 void sample_anchors_and_aliases();
 void sample_tags();
 void sample_docs();
+void sample_error_handler();
+void sample_global_allocator();
+void sample_per_tree_allocator();
 
 
 int main()
@@ -104,6 +110,9 @@ int main()
     sample_anchors_and_aliases();
     sample_tags();
     sample_docs();
+    sample_error_handler();
+    sample_global_allocator();
+    sample_per_tree_allocator();
     return num_failed_checks;
 }
 
@@ -122,6 +131,12 @@ void sample_quick_overview()
     char yml_buf[] = "{foo: 1, bar: [2, 3], john: doe}";
     ryml::Tree tree = ryml::parse(ryml::substr(yml_buf));
 
+    // Note: it will always be significantly faster to use mutable
+    // buffers and reuse tree+parser, albeit (just a little) less practical.
+    //
+    // Below you will find samples that show how to achieve reuse;
+    // but please note that for brevity and clarity, most of the examples
+    // here are not doing this.
 
     //------------------------------------------------------------------
     // To read the parsed tree.
@@ -705,7 +720,7 @@ void sample_parse_read_only()
 
 //-----------------------------------------------------------------------------
 
-/** demonstrate in-place parsing of a YAML source buffer */
+/** demonstrate in-place parsing of a mutable YAML source buffer */
 void sample_parse_in_situ()
 {
     char src[] = "{foo: 1, bar: [2, 3]}"; // ryml can parse in situ
@@ -754,9 +769,17 @@ void sample_parse_in_situ()
 void sample_parse_reuse_tree()
 {
     ryml::Tree tree;
-    ryml::parse("{foo: 1, bar: [2, 3]}", &tree);
-    auto root = tree.rootref();
 
+    // it will always be faster if the tree's size is conveniently reserved:
+    tree.reserve(30); // reserve 30 nodes (good enough for this sample)
+    // if you are using the tree's arena to serialize data,
+    // then reserve also the arena's size:
+    tree.reserve(256); // reserve 256 characters (good enough for this sample)
+
+    // now parse into the tree:
+    ryml::parse("{foo: 1, bar: [2, 3]}", &tree);
+
+    ryml::NodeRef root = tree.rootref();
     CHECK(root.num_children() == 2);
     CHECK(root.is_map());
     CHECK(root["foo"].is_keyval());
@@ -899,6 +922,13 @@ void sample_parse_reuse_parser()
 {
     ryml::Parser parser;
 
+    // it is also advised to reserve the parser depth
+    // to the expected depth of the data tree:
+    parser.reserve_stack(10); // uses small storage optimization defaulting to 16 depth,
+                              // so this instruction is a no-op, and the stack will located
+                              // in the parser object.
+    parser.reserve_stack(20); // But this will cause an allocation because it is above 16.
+
     auto champagnes = parser.parse("champagnes.yml", "[Dom Perignon, Gosset Grande Reserve, Ruinart Blanc de Blancs, Jacquesson 742]");
     CHECK(ryml::emitrs<std::string>(champagnes) == R"(- Dom Perignon
 - Gosset Grande Reserve
@@ -924,6 +954,18 @@ void sample_parse_reuse_tree_and_parser()
 {
     ryml::Tree tree;
     ryml::Parser parser;
+
+    // it will always be faster if the tree's size is conveniently reserved:
+    tree.reserve(30); // reserve 30 nodes (good enough for this sample)
+    // if you are using the tree's arena to serialize data,
+    // then reserve also the arena's size:
+    tree.reserve(256); // reserve 256 characters (good enough for this sample)
+    // it is also advised to reserve the parser depth
+    // to the expected depth of the data tree:
+    parser.reserve_stack(10); // uses small storage optimization defaulting to 16 depth,
+                              // so this instruction is a no-op, and the stack will located
+                              // in the parser object.
+    parser.reserve_stack(20); // But this will cause an allocation because it is above 16.
 
     ryml::csubstr champagnes = "[Dom Perignon, Gosset Grande Reserve, Ruinart Blanc de Blancs, Jacquesson 742]";
     ryml::csubstr beers = "[Rochefort 10, Busch, Leffe Rituel, Kasteel Donker]";
@@ -2582,4 +2624,201 @@ d: 3
                 CHECK(ryml::emitrs_json<std::string>(tree, doc_id) == expected_json[count++]);
         }
     }
+}
+
+
+//-----------------------------------------------------------------------------
+
+struct ErrorHandlerExample
+{
+    // this will be called on error
+    void on_error(const char* msg, size_t len, ryml::Location loc)
+    {
+        throw std::runtime_error(ryml::formatrs<std::string>("{}:{}:{} ({}B): ERROR: {}",
+            loc.name, loc.line, loc.col, loc.offset, ryml::csubstr(msg, len)));
+    }
+
+    // bridge
+    ryml::Callbacks callbacks()
+    {
+        return ryml::Callbacks(this, nullptr, nullptr, ErrorHandlerExample::s_error);
+    }
+    static void s_error(const char* msg, size_t len, ryml::Location loc, void *this_)
+    {
+        return ((ErrorHandlerExample*)this_)->on_error(msg, len, loc);
+    }
+
+    // checking
+    template<class Fn>
+    void check_error_occurs(Fn &&fn) const
+    {
+        bool expected_error_occurred = false;
+        try { fn(); }
+        catch(std::runtime_error const&) { expected_error_occurred = true; }
+        CHECK(expected_error_occurred);
+    }
+    void check_effect(bool committed) const
+    {
+        ryml::Callbacks const& current = ryml::get_callbacks();
+        ryml::MemoryResourceCallbacks const& mres = *(ryml::MemoryResourceCallbacks*) ryml::get_memory_resource();
+        if(committed)
+        {
+            CHECK(current.m_error == &s_error);
+            CHECK(mres.m_callbacks.m_error == &s_error);
+        }
+        else
+        {
+            CHECK(current.m_error != &s_error);
+            CHECK(mres.m_callbacks.m_error != &s_error);
+        }
+        CHECK(current.m_allocate == defaults.m_allocate);
+        CHECK(current.m_free == defaults.m_free);
+        CHECK(mres.m_callbacks.m_allocate == defaults.m_allocate);
+        CHECK(mres.m_callbacks.m_free == defaults.m_free);
+    }
+    // save the default callbacks for checking
+    ErrorHandlerExample() : defaults(ryml::get_callbacks()) {}
+    ryml::Callbacks defaults;
+};
+
+/** demonstrates how to set a custom error handler for ryml */
+void sample_error_handler()
+{
+    ErrorHandlerExample errh;
+
+    ryml::set_callbacks(errh.callbacks());
+    errh.check_effect(/*committed*/true);
+    errh.check_error_occurs([]{
+        ryml::Tree tree = ryml::parse("errorhandler.yml", "[a: b\n}");
+        std::cout << tree;
+    });
+
+    ryml::set_callbacks(errh.defaults); // restore defaults.
+    errh.check_effect(/*committed*/false);
+}
+
+
+//-----------------------------------------------------------------------------
+
+struct GlobalAllocatorExample
+{
+    std::vector<char> memory_pool = std::vector<char>(10u * 1024u); // 10KB
+    size_t num_allocs = 0, alloc_size = 0;
+    size_t num_deallocs = 0, dealloc_size = 0;
+
+    void *allocate(size_t len)
+    {
+        void *ptr = &memory_pool[alloc_size];
+        alloc_size += len;
+        ++num_allocs;
+        if(C4_UNLIKELY(alloc_size > memory_pool.size()))
+        {
+            std::cerr << "out of memory! requested=" << alloc_size << " vs " << memory_pool.size() << " available" << std::endl;
+            std::abort();
+        }
+        return ptr;
+    }
+
+    void free(void *mem, size_t len)
+    {
+        CHECK((char*)mem     >= &memory_pool.front() && (char*)mem     <  &memory_pool.back());
+        CHECK((char*)mem+len >= &memory_pool.front() && (char*)mem+len <= &memory_pool.back());
+        dealloc_size += len;
+        ++num_deallocs;
+        // no need to free here
+    }
+
+    // bridge
+    ryml::Callbacks callbacks()
+    {
+        return ryml::Callbacks(this, &GlobalAllocatorExample::s_allocate, &GlobalAllocatorExample::s_free, nullptr);
+    }
+    static void* s_allocate(size_t len, void* /*hint*/, void *this_)
+    {
+        return ((GlobalAllocatorExample*)this_)->allocate(len);
+    }
+    static void s_free(void *mem, size_t len, void *this_)
+    {
+        return ((GlobalAllocatorExample*)this_)->free(mem, len);
+    }
+
+    // checking
+    ~GlobalAllocatorExample()
+    {
+        check_and_reset();
+    }
+    void check_and_reset()
+    {
+        std::cout << "size: alloc=" << alloc_size << " dealloc=" << dealloc_size << std::endl;
+        std::cout << "count: #allocs=" << num_allocs << " #deallocs=" << num_deallocs << std::endl;
+        CHECK(num_allocs == num_deallocs);
+        CHECK(alloc_size >= dealloc_size); // this is a double free
+        CHECK(alloc_size == dealloc_size); // this is a leak
+        num_allocs = 0;
+        num_deallocs = 0;
+        alloc_size = 0;
+        dealloc_size = 0;
+    }
+};
+
+
+/** demonstrates how to set the global allocator for ryml */
+void sample_global_allocator()
+{
+    GlobalAllocatorExample mem;
+
+    // save the existing callbacks for restoring
+    ryml::Callbacks defaults = ryml::get_callbacks();
+
+    // set to our callbacks
+    ryml::set_callbacks(mem.callbacks());
+
+    // verify that the allocator is in effect
+    ryml::Callbacks const& current = ryml::get_callbacks();
+    CHECK(current.m_allocate == &mem.s_allocate);
+    CHECK(current.m_free == &mem.s_free);
+
+    // so far nothing was allocated
+    CHECK(mem.alloc_size == 0);
+
+    // parse one tree and check
+    (void)ryml::parse(R"({foo: bar})");
+    mem.check_and_reset();
+
+    // parse another tree and check
+    (void)ryml::parse(R"([a, b, c, d, {foo: bar, money: pennys}])");
+    mem.check_and_reset();
+
+    // verify that by reserving we save allocations
+    {
+        ryml::Parser parser;      // reuse a parser
+        ryml::Tree tree;          // reuse a tree
+
+        tree.reserve(10);         // reserve the number of nodes
+        tree.reserve_arena(100);  // reserve the arena size
+        parser.reserve_stack(10); // reserve the parser depth.
+
+        // since the parser stack uses Small Storage Optimization,
+        // allocations will only happen with capacities higher than 16.
+        CHECK(mem.num_allocs == 2); // tree, tree_arena and NOT the parser
+
+        parser.reserve_stack(20); // reserve the parser depth.
+        CHECK(mem.num_allocs == 3); // tree, tree_arena and now the parser as well
+
+        // verify that no other allocations occur when parsing
+        size_t size_before = mem.alloc_size;
+        parser.parse("", R"([a, b, c, d, {foo: bar, money: pennys}])", &tree);
+        CHECK(mem.alloc_size == size_before);
+        CHECK(mem.num_allocs == 3);
+    }
+    mem.check_and_reset();
+
+    // restore defaults.
+    ryml::set_callbacks(defaults);
+}
+
+
+void sample_per_tree_allocator()
+{
+    // TODO
 }
