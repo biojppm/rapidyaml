@@ -113,6 +113,7 @@ MemoryResource* s_memory_resource = &s_default_memory_resource;
 void set_callbacks(Callbacks const& c)
 {
     s_default_callbacks = c;
+    s_default_memory_resource = MemoryResourceCallbacks(c);
 }
 
 Callbacks const& get_callbacks()
