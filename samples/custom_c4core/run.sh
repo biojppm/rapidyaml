@@ -12,4 +12,4 @@ mkdir -p $BUILD_DIR
 # configure the sample
 cmake -S "$THIS_DIR" -B "$BUILD_DIR"
 # build and run the sample
-cmake --build "$BUILD_DIR" --config $BUILD_TYPE --target run
+cmake --build "$BUILD_DIR" --config $BUILD_TYPE --target run -DCMAKE_BUILD_TYPE=$BUILD_TYPE
