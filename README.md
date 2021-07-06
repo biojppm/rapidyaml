@@ -41,7 +41,7 @@ ryml is written in C++11, and is known to compile with:
 * g++ 5 and later
 
 ryml is [extensively unit-tested in Linux, Windows and
-MacOS](https://github.com/biojppm/rapidyaml/actions?query=workflow%3Aci). The
+MacOS](https://github.com/biojppm/rapidyaml/actions). The
 tests include analysing ryml with:
   * valgrind
   * clang-tidy
@@ -743,6 +743,15 @@ following variables can be helpful:
   * `RYML_DBG=ON/OFF`: a bool variable which enables verbose prints from
     parsing code; can be useful to figure out parsing problems. Defaults to
     `OFF`.
+
+#### Forcing ryml to use a different c4core version
+
+ryml is strongly coupled to c4core, and this is reinforced by the fact
+that c4core is a submodule of the current repo. However, it is still
+possible to use a c4core version different from the one in the repo
+(of course, only if there are no incompatibilities between the
+versions). You can find out how to achieve this by looking at the [`custom_c4core` sample](samples/custom_c4core).
+
 
 ------
 
