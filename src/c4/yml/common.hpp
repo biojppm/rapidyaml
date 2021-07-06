@@ -255,6 +255,7 @@ public:
     }
 };
 
+
 //-----------------------------------------------------------------------------
 
 /** an allocator is a lightweight non-owning handle to a memory resource */

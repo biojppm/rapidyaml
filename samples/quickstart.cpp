@@ -2838,7 +2838,77 @@ void sample_global_allocator()
 }
 
 
+//-----------------------------------------------------------------------------
+
+struct PerTreeMemoryExample : public ryml::MemoryResource
+{
+    std::vector<char> memory_pool = std::vector<char>(10u * 1024u); // 10KB
+    size_t num_allocs = 0, alloc_size = 0;
+    size_t num_deallocs = 0, dealloc_size = 0;
+
+    void *allocate(size_t len, void * /*hint*/) override
+    {
+        void *ptr = &memory_pool[alloc_size];
+        alloc_size += len;
+        ++num_allocs;
+        if(C4_UNLIKELY(alloc_size > memory_pool.size()))
+        {
+            std::cerr << "out of memory! requested=" << alloc_size << " vs " << memory_pool.size() << " available" << std::endl;
+            std::abort();
+        }
+        return ptr;
+    }
+
+    void free(void *mem, size_t len) override
+    {
+        CHECK((char*)mem     >= &memory_pool.front() && (char*)mem     <  &memory_pool.back());
+        CHECK((char*)mem+len >= &memory_pool.front() && (char*)mem+len <= &memory_pool.back());
+        dealloc_size += len;
+        ++num_deallocs;
+        // no need to free here
+    }
+
+    // checking
+    ~PerTreeMemoryExample()
+    {
+        check_and_reset();
+    }
+    void check_and_reset()
+    {
+        std::cout << "size: alloc=" << alloc_size << " dealloc=" << dealloc_size << std::endl;
+        std::cout << "count: #allocs=" << num_allocs << " #deallocs=" << num_deallocs << std::endl;
+        CHECK(num_allocs == num_deallocs);
+        CHECK(alloc_size >= dealloc_size); // failure here means a double free
+        CHECK(alloc_size == dealloc_size); // failure here means a leak
+        num_allocs = 0;
+        num_deallocs = 0;
+        alloc_size = 0;
+        dealloc_size = 0;
+    }
+};
+
 void sample_per_tree_allocator()
 {
-    // TODO
+    PerTreeMemoryExample mrp;
+    PerTreeMemoryExample mr1;
+    PerTreeMemoryExample mr2;
+
+    // the trees will use the memory in the resources above,
+    // with each tree using a separate resource
+    {
+        // Watchout: ensure that the lifetime of the memory resource
+        // exceeds the lifetime of the tree.
+        ryml::Parser parser = {ryml::Allocator(&mrp)};
+        ryml::Tree   tree1  = {ryml::Allocator(&mr1)};
+        ryml::Tree   tree2  = {ryml::Allocator(&mr2)};
+
+        ryml::csubstr yml1 = "{a: b}";
+        ryml::csubstr yml2 = "{c: d, e: f, g: [h, i, 0, 1, 2, 3]}";
+
+        parser.parse("file1.yml", yml1, &tree1);
+        parser.parse("file2.yml", yml2, &tree2);
+    }
+
+    CHECK(mrp.num_allocs == 0); // YAML depth not large enough to warrant a parser allocation
+    CHECK(mr1.alloc_size <= mr2.alloc_size); // because yml2 has more nodes
 }
