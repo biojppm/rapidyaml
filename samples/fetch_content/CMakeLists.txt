@@ -4,7 +4,7 @@ project(ryml-quickstart LANGUAGES CXX)
 include(FetchContent)
 FetchContent_Declare(ryml
     GIT_REPOSITORY https://github.com/biojppm/rapidyaml.git
-    GIT_TAG samples    # or a particular branch, tag or commit
+    GIT_TAG master     # or a particular branch, tag or commit
     GIT_SHALLOW FALSE  # ensure submodules are checked out
 )
 FetchContent_MakeAvailable(ryml)
