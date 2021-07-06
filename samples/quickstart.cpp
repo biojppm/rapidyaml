@@ -70,8 +70,7 @@ void sample_docs();                 ///< deal with YAML docs
 void sample_error_handler();        ///< set a custom error handler
 void sample_global_allocator();     ///< set a global allocator for ryml
 void sample_per_tree_allocator();   ///< set per-tree allocators
-
-int report_checks();
+int  report_checks();
 
 int main()
 {
