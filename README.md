@@ -66,29 +66,19 @@ See also [the changelog](./changelog) and [the roadmap](./ROADMAP.md).
    * [Comparison with yaml-cpp](#comparison-with-yaml-cpp)
    * [Performance reading JSON](#performance-reading-json)
    * [Performance emitting](#performance-emitting)
-* [Installing and using](#installing-and-using)
-   * [Using ryml as cmake subproject](#using-ryml-as-cmake-subproject)
-   * [The traditional way: using an installed version](#the-traditional-way-using-an-installed-version)
-   * [cmake build settings for ryml](#cmake-build-settings-for-ryml)
 * [Quick start](#quick-start)
-   * [Parsing](#parsing)
-   * [References: anchors and aliases](#references-anchors-and-aliases)
-   * [Traversing the tree](#traversing-the-tree)
-   * [Creating a tree](#creating-a-tree)
-   * [Low-level API](#low-level-api)
-   * [Custom types](#custom-types)
-      * [Leaf types](#leaf-types)
-      * [Container types](#container-types)
-   * [STL interoperation](#stl-interoperation)
-   * [Custom formatting for intrinsic types](#custom-formatting-for-intrinsic-types)
-   * [Custom allocators and error handlers](#custom-allocators-and-error-handlers)
-   * [Using ryml to parse JSON, and preprocessing functions](#using-ryml-to-parse-json-and-preprocessing-functions)
+* [Using ryml in your project](#using-ryml-in-your-project)
+   * [Building ryml as part of your project](#building-ryml-as-part-of-your-project)
+   * [Install ryml first](#install-ryml-first)
+   * [cmake build settings for ryml](#cmake-build-settings-for-ryml)
 * [Other languages](#other-languages)
    * [Python](#python)
 * [YAML standard conformance](#yaml-standard-conformance)
+   * [Test suite status](#test-suite-status)
 * [Known limitations](#known-limitations)
 * [Alternative libraries](#alternative-libraries)
 * [License](#license)
+
 
 ------
 
@@ -206,10 +196,10 @@ rapid is definitely NOT the same as being unpractical, so ryml was
 written with easy AND efficient usage in mind, and comes with a two
 level API for accessing and traversing the data tree.
 
-Now follows a quick overview [taken from the quickstart
-sample](samples/quickstart.cpp). After cloning, you can quickly build
-and run this quickstart executable using any of the samples above, eg
-[the `add_subdirectory()` sample](samples/add_subdirectory/).
+The following snippet is a quick overview taken from [the quickstart
+sample](samples/quickstart.cpp). After cloning ryml, you can very
+easily build and run this executable using any of the build samples,
+eg the [`add_subdirectory()` sample](samples/add_subdirectory/).
 
 ```c++
 // Parse YAML code in place, potentially mutating the buffer.
@@ -595,12 +585,12 @@ sample_per_tree_allocator();   ///< set per-tree allocators
 
 ------
 
-## Using ryml in your project.
+## Using ryml in your project
 
-As with any library, you have the option to integrate ryml into your
-project's build setup, thereby building it with you project, or
-alternatively you can have ryml installed either manually or through
-package managers prior to configuring your project. Currently
+As with any other library, you have the option to integrate ryml into
+your project's build setup, thereby building ryml together with your
+project, or -- prior to configuring your project -- you can have ryml
+installed either manually or through package managers. Currently
 [cmake](https://cmake.org/) is required; we recommend a recent cmake
 version, at least 3.13.
 
@@ -620,9 +610,9 @@ more about each sample:
 
 | Sample name        | ryml is part of build?   | cmake file   | commands     |
 |:-------------------|--------------------------|:-------------|:-------------|
-| `add_subdirectory` | yes                      | [`CMakeLists.txt`](./samples/add_subdirectory/CMakeListst.txt) | [`run.sh`](./samples/add_subdirectory/run.sh) |
-| `fetch_content`    | yes                      | [`CMakeLists.txt`](./samples/fetch_content/CMakeListst.txt) | [`run.sh`](./samples/fetch_content/run.sh) |
-| `find_package`     | no, needs prior install  | [`CMakeLists.txt`](./samples/find_package/CMakeListst.txt) | [`run.sh`](./samples/find_package/run.sh) |
+| [`add_subdirectory`](./samples/add_subdirectory) | yes                      | [`CMakeLists.txt`](./samples/add_subdirectory/CMakeLists.txt) | [`run.sh`](./samples/add_subdirectory/run.sh) |
+| [`fetch_content`](./samples/fetch_content)      | yes                      | [`CMakeLists.txt`](./samples/fetch_content/CMakeLists.txt) | [`run.sh`](./samples/fetch_content/run.sh) |
+| [`find_package`](./samples/find_package)        | no, needs prior install  | [`CMakeLists.txt`](./samples/find_package/CMakeLists.txt) | [`run.sh`](./samples/find_package/run.sh) |
 
 
 ### Building ryml as part of your project
@@ -636,7 +626,7 @@ git clone --recursive https://github.com/biojppm/rapidyaml
 ```
 Take care to use the `--recursive` flag to force git to clone the 
 submodules as well. If you omit `--recursive`, after cloning you
-will have to do `git submodule init` and ` submodule update` 
+will have to do `git submodule init` and `git submodule update` 
 to ensure the submodules are checked out.
 
 Now that you have ryml available, you can add it in cmake either from cmake's `add_subdirectory()`
@@ -668,7 +658,7 @@ FetchContent_MakeAvailable(ryml)
 add_executable(quickstart quickstart.cpp)
 target_link_libraries(quickstart ryml)
 ```
-You can [try this yourself here](samples/fetch_content).
+You can [try this sample yourself here](samples/fetch_content).
 
 
 ### Install ryml first
