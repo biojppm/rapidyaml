@@ -64,6 +64,7 @@ void sample_emit_to_container();    ///< emit to memory, eg a string or vector-l
 void sample_emit_to_stream();       ///< emit to a stream, eg std::ostream
 void sample_emit_to_file();         ///< emit to a FILE*
 void sample_emit_nested_node();     ///< pick a nested node as the root when emitting
+void sample_json();                 ///< notes and constraints: JSON parsing and emitting
 void sample_anchors_and_aliases();  ///< deal with YAML anchors and aliases
 void sample_tags();                 ///< deal with YAML type tags
 void sample_docs();                 ///< deal with YAML docs
@@ -94,6 +95,7 @@ int main()
     sample_emit_to_stream();
     sample_emit_to_file();
     sample_emit_nested_node();
+    sample_json();
     sample_anchors_and_aliases();
     sample_tags();
     sample_docs();
@@ -235,6 +237,22 @@ void sample_quick_overview()
     CHECK(root["bar"].id() == root[1].id());
     CHECK(root["john"].id() == root[2].id());
 
+    // Please note that since a ryml tree uses indexed linked lists for storing
+    // children, the complexity of `Tree::operator[csubstr]` and
+    // `Tree::operator[size_t]` is linear on the number of root children. If you use
+    // it with a large tree where the root has many children, you may get a
+    // performance hit. To avoid this hit, you can create your own accelerator
+    // structure. For example, before doing a lookup, do a single traverse at the
+    // root level to fill an `std::map<csubstr,size_t>` mapping key names to node
+    // indices; with a node index, a lookup (via `Tree::get()`) is O(1), so this way
+    // you can get O(log n) lookup from a key.
+    //
+    // As for `NodeRef`, the difference from `NodeRef::operator[]`
+    // to `Tree::operator[]` is that the latter refers to the root node, whereas
+    // the former can be invoked on any node. But the lookup process is the same for
+    // both and their algorithmic complexity is the same: they are both linear in
+    // the number of direct children; but depending on the data, that number may
+    // be very different from one to another.
 
     //------------------------------------------------------------------
     // Hierarchy:
@@ -475,8 +493,18 @@ I am somebody: indeed
 
 /** demonstrate usage of ryml::substr/ryml::csubstr
  *
- * These types are imported from the
- * c4core library into the ryml namespace
+ * These types are imported from the c4core library into the ryml
+ * namespace You may have noticed above the use of a `csubstr`
+ * class. This class is defined in another library,
+ * [c4core](https://github.com/biojppm/c4core), which is imported by
+ * ryml. This is a library I use with my projects consisting of
+ * multiplatform low-level utilities. One of these is `c4::csubstr`
+ * (the name comes from "constant substring") which is a non-owning
+ * read-only string view, with many methods that make it practical to
+ * use (I would certainly argue more practical than `std::string`). In
+ * fact, `c4::csubstr` and its writeable counterpart `c4::substr` are
+ * the workhorses of the ryml parsing and serialization code.
+ *
  * @see https://c4core.docsforge.com/master/api/c4/basic_substring/
  * @see https://c4core.docsforge.com/master/api/c4/#substr
  * @see https://c4core.docsforge.com/master/api/c4/#csubstr
@@ -1953,6 +1981,19 @@ QmVsaWtlIGZvciB3YW50IG9mIHJhaW4sIHdoaWNoIEkgY291bGQgd2VsbCBiZXRlZW0gdGhlbSBmcm9t
 
 // user scalar types: implemented in ryml through to_chars() + from_chars()
 
+// To harness [C++'s ADL rules](http://en.cppreference.com/w/cpp/language/adl),
+// it is important to overload these functions in the namespace of the type
+// you're serializing (or in the c4::yml namespace).
+//
+// Please take note of the following pitfall when using serialization
+// functions: you have to include the header with the serialization
+// before any other headers that use functions from it. see the
+// include order at the top of this file.
+//
+// This constraint also applies to the conversion functions for your
+// types; just like with the STL's headers, they should be included
+// prior to ryml's headers.
+
 template<class T> struct vec2 { T x, y; };
 template<class T> struct vec3 { T x, y, z; };
 template<class T> struct vec4 { T x, y, z, w; };
@@ -1964,7 +2005,6 @@ template<class T> struct parse_only_vec4 { T x, y, z, w; };
 template<class T> struct emit_only_vec2 { T x, y; };
 template<class T> struct emit_only_vec3 { T x, y, z; };
 template<class T> struct emit_only_vec4 { T x, y, z, w; };
-
 
 // to_chars(): only needed for emitting
 //
@@ -1996,7 +2036,7 @@ template<class T> bool from_chars(ryml::csubstr buf, parse_only_vec4<T> *v) { si
 
 
 /** to add scalar types (ie leaf types converting to/from string),
-    define the functions above for those types */
+    define the functions above for those types. */
 void sample_user_scalar_types()
 {
     ryml::Tree t;
@@ -2063,6 +2103,15 @@ v4: '(40,41,42,43)'
 //-----------------------------------------------------------------------------
 
 // user container types: implemented in ryml through write() + read()
+//
+// Please take note of the following pitfall when using serialization
+// functions: you have to include the header with the serialization
+// before any other headers that use functions from it. see the
+// include order at the top of this file.
+//
+// This constraint also applies to the conversion functions for your
+// types; just like with the STL's headers, they should be included
+// prior to ryml's headers.
 
 // user container type: seq-like
 template<class T> struct my_seq_type { std::vector<T> seq_member; };
@@ -2193,6 +2242,15 @@ map:
 
 
 //-----------------------------------------------------------------------------
+//
+// Please take note of the following pitfall when using serialization
+// functions: you have to include the header with the serialization
+// before any other headers that use functions from it. see the
+// include order at the top of this file.
+//
+// This constraint also applies to the conversion functions for your
+// types; just like with the STL's headers, they should be included
+// prior to ryml's headers.
 
 /** demonstrates usage with the std implementations provided by ryml in the ryml_std.hpp header */
 void sample_std_types()
@@ -2506,7 +2564,103 @@ void sample_emit_nested_node()
 
 //-----------------------------------------------------------------------------
 
-/** demonstrates usage with anchors and alias references */
+#include <c4/yml/preprocess.hpp> // needed only for the following sample
+
+/** shows how to parse and emit JSON. */
+void sample_json()
+{
+    {
+        // Since JSON is a subset of YAML, parsing JSON is just the
+        // same as YAML:
+        ryml::Tree tree = ryml::parse(R"({
+"doe": "a deer, a female deer",
+"ray": "a drop of golden sun",
+"me": "a name, I call myself",
+"far": "a long long way to go"
+})");
+        // However, emitting still defaults to YAML
+        CHECK(ryml::emitrs<std::string>(tree) == R"('doe': 'a deer, a female deer'
+'ray': 'a drop of golden sun'
+'me': 'a name, I call myself'
+'far': 'a long long way to go'
+)");
+        // to emit JSON, use the proper overload:
+        CHECK(ryml::emitrs_json<std::string>(tree) == R"({"doe": "a deer, a female deer","ray": "a drop of golden sun","me": "a name, I call myself","far": "a long long way to go"})");
+        // to emit JSON to a stream:
+        std::stringstream ss;
+        ss << ryml::as_json(tree);  // <- mark it like this
+        CHECK(ss.str() == R"({"doe": "a deer, a female deer","ray": "a drop of golden sun","me": "a name, I call myself","far": "a long long way to go"})");
+        // Note the following limitations:
+        //
+        // - streams cannot be emitted as json, and are not
+        //   allowed. But you can work around this by emitting the
+        //   individual documents separately; see the sample_docs()
+        //   below for such an example.
+        //
+        // - tags cannot be emitted as json, and are not allowed.
+        //
+        // - anchors and aliases cannot be emitted as json and are not allowed.
+    }
+
+    // IMPORTANT NOTE.
+    //
+    // Although JSON is generally a subset of YAML, [there is an
+    // exception that is valid JSON, but not valid
+    // YAML](https://stackoverflow.com/questions/42124227/why-does-the-yaml-spec-mandate-a-space-after-the-colon):
+    //
+    // ryml::Tree tree = ryml::parse(R"({"a":"b"})"); // ERROR: missing space after the semicolon
+    //
+    // This above is deliberate, and is meant to save added complexity
+    // in the parser code. However, you can still parse this with
+    // ryml if prior to parsing you preprocess the JSON into valid
+    // YAML, adding the missing spaces after the semicolons. ryml
+    // provides a freestanding function to do this:
+    // `ryml::preprocess_json()`:
+    {
+        // there are also in-place overloads, which generally should be preferred:
+        std::string yaml = ryml::preprocess_json<std::string>(R"({"a":"b"})");
+        // now you have a buffer with valid yaml - note the space:
+        CHECK(yaml == R"({"a": "b"})");
+        // ... which you can parse:
+        ryml::Tree tree = ryml::parse(ryml::to_substr(yaml));
+        CHECK(tree["a"] == "b");
+    }
+
+    // There is also `ryml::preprocess_rxmap()`, a function to convert
+    // non-standard relaxed maps (ie, keys with implicit true values)
+    // into standard YAML maps.
+    {
+        // you can also use in-place overloads
+        std::string yaml = ryml::preprocess_rxmap<std::string>("{a, b, c, d: [e, f, g]}");
+        CHECK(yaml == R"({a: 1, b: 1, c: 1, d: [e, f, g]})");
+        ryml::Tree tree = ryml::parse(ryml::to_substr(yaml));
+        CHECK(tree["a"] == "1");
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+
+/** demonstrates usage with anchors and alias references.
+
+Note that dereferencing is opt-in; after parsing, you have to call
+`Tree::resolve()` explicitly if you want resolved references in the
+tree. This method will resolve all references and substitute the anchored
+values in place of the reference.
+
+The `Tree::resolve()` method first does a full traversal of the tree to
+gather all anchors and references in a separate collection, then it goes
+through that collection to locate the names, which it does by obeying the
+YAML standard diktat that
+
+    an alias node refers to the most recent node in
+    the serialization having the specified anchor
+
+So, depending on the number of anchor/alias nodes, this is a potentially
+expensive operation, with a best-case linear complexity (from the initial
+traversal) and a worst-case quadratic complexity (if every node has an
+alias/anchor). This potential cost is the reason for requiring an explicit
+call to `Tree::resolve()`. */
 void sample_anchors_and_aliases()
 {
     std::string unresolved = R"(base: &base
@@ -2843,6 +2997,21 @@ void sample_error_handler()
 
 
 //-----------------------------------------------------------------------------
+
+// Please note the following about the use of custom allocators with
+// ryml. Due to [the static initialization order
+// fiasco](https://en.cppreference.com/w/cpp/language/siof), if you
+// use static ryml trees or parsers, you need to make sure that their
+// allocator has the same lifetime. So you can't use ryml's default
+// allocator, as it is declared in a ryml file, and the standard
+// provides no guarantee on the relative initialization order, such
+// that the allocator is constructed before and destroyed after your
+// variables (in fact you are pretty much guaranteed to see this
+// fail). So please carefully consider your choices, and ponder
+// whether you really need to use ryml static trees and parsers. If
+// you do need this, then you will need to declare and use an
+// allocator from a ryml memory resource that outlives the tree and/or
+// parser.
 
 struct GlobalAllocatorExample
 {

@@ -276,11 +276,11 @@ void Emitter<Writer>::_write_json(NodeScalar const& sc, NodeType flags)
 {
     if(C4_UNLIKELY( ! sc.tag.empty()))
     {
-        c4::yml::error("no tag processing for JSON");
+        c4::yml::error("JSON does not have tags");
     }
     if(C4_UNLIKELY(flags.has_anchor()))
     {
-        c4::yml::error("no anchor processing for JSON");
+        c4::yml::error("JSON does not have anchors");
     }
     _write_scalar_json(sc.scalar, flags.has_key(), flags.is_quoted());
 }
