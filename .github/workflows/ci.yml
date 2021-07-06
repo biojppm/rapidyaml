@@ -528,6 +528,7 @@ jobs:
       - {name: show info, run: source .github/setenv.sh && c4_show_info }
       - {name: add_subdirectory, run: cd samples/add_subdirectory && cmany b -t $BT . -- run }
       - {name: fetch_content, run: cd samples/fetch_content && cmany b -t $BT . -- run }
+      - {name: find_package, run: cd samples/find_package && ./run.sh $BT }
 
   #----------------------------------------------------------------------------
   test_api:
