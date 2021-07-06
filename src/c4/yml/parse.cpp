@@ -2766,15 +2766,15 @@ void Parser::_start_map(bool as_child)
     }
     else
     {
-        if(!(m_tree->is_map(parent_id) || m_tree->empty(parent_id)))
-        {
-            _c4err("parse error");
-        }
         m_state->node_id = parent_id;
         _c4dbgpf("start_map: id=%zd", m_state->node_id);
         std::underlying_type<NodeType_e>::type as_doc = 0;
-        if(node(m_state)->is_doc()) as_doc |= DOC;
-        m_tree->to_map(parent_id, as_doc);
+        if(node(m_state)->is_doc())
+            as_doc |= DOC;
+        if(!m_tree->is_map(parent_id))
+            m_tree->to_map(parent_id, as_doc);
+        else
+            m_tree->_add_flags(parent_id, as_doc);
         _move_scalar_from_top();
         _write_val_anchor(parent_id);
         if(parent_id != NONE)
@@ -2783,9 +2783,7 @@ void Parser::_start_map(bool as_child)
             {
                 State const& parent_state = m_stack.top(1);
                 if(parent_state.flags & RSET)
-                {
                     add_flags(RSET);
-                }
             }
         }
     }
@@ -2840,11 +2838,14 @@ void Parser::_start_seq(bool as_child)
     }
     else
     {
-        RYML_ASSERT(m_tree->is_seq(parent_id) || m_tree->empty(parent_id));
         m_state->node_id = parent_id;
         std::underlying_type<NodeType_e>::type as_doc = 0;
-        if(node(m_state)->is_doc()) as_doc |= DOC;
-        m_tree->to_seq(parent_id, as_doc);
+        if(node(m_state)->is_doc())
+            as_doc |= DOC;
+        if(!m_tree->is_seq(parent_id))
+            m_tree->to_seq(parent_id, as_doc);
+        else
+            m_tree->_add_flags(parent_id, as_doc);
         _move_scalar_from_top();
         _c4dbgpf("start_seq: id=%zd%s", m_state->node_id, as_doc ? " as_doc" : "");
         _write_val_anchor(parent_id);

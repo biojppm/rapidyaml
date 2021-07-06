@@ -41,7 +41,7 @@ ryml is written in C++11, and is known to compile with:
 * g++ 5 and later
 
 ryml is [extensively unit-tested in Linux, Windows and
-MacOS](https://github.com/biojppm/rapidyaml/actions?query=workflow%3Arun_tests). The
+MacOS](https://github.com/biojppm/rapidyaml/actions?query=workflow%3Aci). The
 tests include analysing ryml with:
   * valgrind
   * clang-tidy
@@ -66,38 +66,25 @@ See also [the changelog](./changelog) and [the roadmap](./ROADMAP.md).
    * [Comparison with yaml-cpp](#comparison-with-yaml-cpp)
    * [Performance reading JSON](#performance-reading-json)
    * [Performance emitting](#performance-emitting)
-* [Installing and using](#installing-and-using)
-   * [Using ryml as cmake subproject](#using-ryml-as-cmake-subproject)
-   * [The traditional way: using an installed version](#the-traditional-way-using-an-installed-version)
-   * [cmake build settings for ryml](#cmake-build-settings-for-ryml)
 * [Quick start](#quick-start)
-   * [Parsing](#parsing)
-   * [References: anchors and aliases](#references-anchors-and-aliases)
-   * [Traversing the tree](#traversing-the-tree)
-   * [Creating a tree](#creating-a-tree)
-   * [Low-level API](#low-level-api)
-   * [Custom types](#custom-types)
-      * [Leaf types](#leaf-types)
-      * [Container types](#container-types)
-   * [STL interoperation](#stl-interoperation)
-   * [Custom formatting for intrinsic types](#custom-formatting-for-intrinsic-types)
-   * [Custom allocators and error handlers](#custom-allocators-and-error-handlers)
-   * [Using ryml to parse JSON, and preprocessing functions](#using-ryml-to-parse-json-and-preprocessing-functions)
+* [Using ryml in your project](#using-ryml-in-your-project)
+   * [Building ryml as part of your project](#building-ryml-as-part-of-your-project)
+   * [Install ryml first](#install-ryml-first)
+   * [cmake build settings for ryml](#cmake-build-settings-for-ryml)
 * [Other languages](#other-languages)
    * [Python](#python)
 * [YAML standard conformance](#yaml-standard-conformance)
+   * [Test suite status](#test-suite-status)
 * [Known limitations](#known-limitations)
 * [Alternative libraries](#alternative-libraries)
 * [License](#license)
+
 
 ------
 
 ## Is it rapid?
 
-You bet!
-
-(The results presented below are a bit scattered; and they need to be
-sistematized.) On a i7-6800K CPU @3.40GHz:
+You bet! On a i7-6800K CPU @3.40GHz:
  * ryml parses YAML at about ~150MB/s on Linux and ~100MB/s on Windows (vs2017). 
  * **ryml parses JSON at about ~450MB/s on Linux**, faster than sajson (didn't
    try yet on Windows).
@@ -165,37 +152,28 @@ benchmark repeat.
 
 Here's what we get with g++ 8.2:
 
-```
-|------------------|-------------------------------|-------------------------------
-|                  |           Release             |           Debug               
-| Benchmark        |  Iterations    Bytes/sec      |  Iterations    Bytes/sec      
-|------------------|-------------------------------|-------------------------------
-| rapidjson_ro     |        7941    509.855M/s     |         633    43.3632M/s     
-| rapidjson_rw     |       21400    1.32937G/s     |        1067    68.171M/s     
-| sajson_rw        |        6808    434.245M/s     |        2770    176.478M/s     
-| sajson_ro        |        6726    430.723M/s     |        2748    175.613M/s     
-| jsoncpp_ro       |        2871    183.616M/s     |        2941    187.937M/s     
-| nlohmann_json_ro |        1807    115.801M/s     |         337    21.5237M/s     
-| yamlcpp_ro       |         261    16.6322M/s     |          25    1.58178M/s     
-| libyaml_ro       |        1786    113.909M/s     |         560    35.6599M/s     
-| libyaml_ro_reuse |        1797    114.594M/s     |         561    35.8531M/s     
-| ryml_ro          |        6088    388.585M/s     |         576    36.8634M/s     
-| ryml_rw          |        6179    393.658M/s     |         577    36.8474M/s     
-| ryml_ro_reuse    |        6986    446.248M/s     |        1164    74.636M/s      
-| ryml_rw_reuse    |        7157    457.076M/s     |        1175    74.8721M/s     
-|------------------|-------------------------------|-------------------------------
-```
+| Benchmark        | Release,MB/s | Debug,MB/s  |
+|:-----------------|-------------:|------------:|
+| rapidjson_ro     |       509.9  |       43.4  |
+| rapidjson_rw     |      1329.4  |       68.2  |
+| sajson_rw        |       434.2  |      176.5  |
+| sajson_ro        |       430.7  |      175.6  |
+| jsoncpp_ro       |       183.6  |      187.9  |
+| nlohmann_json_ro |       115.8  |       21.5  |
+| yamlcpp_ro       |        16.6  |        1.6  |
+| libyaml_ro       |       113.9  |       35.7  |
+| libyaml_ro_reuse |       114.6  |       35.9  |
+| ryml_ro          |       388.6  |       36.9  |
+| ryml_rw          |       393.7  |       36.9  |
+| ryml_ro_reuse    |       446.2  |       74.6  |
+| ryml_rw_reuse    |       457.1  |       74.9  |
 
-You can verify that (at least for this test) ryml beats most json parsers at
-their own game, with the notable exception
-of [rapidjson](https://github.com/Tencent/rapidjson) --- *but this occurs
-only in Release mode*. When in Debug
-mode, [rapidjson](https://github.com/Tencent/rapidjson) is actually slower
-than ryml, and only [sajson](https://github.com/chadaustin/sajson) manages to
-be faster.
-
-More json comparison benchmarks will be added, but seem unlikely to
-significantly alter these results.
+You can verify that (at least for this test) ryml beats most json
+parsers at their own game, with the only exception of
+[rapidjson](https://github.com/Tencent/rapidjson). And actually, in
+Debug, [rapidjson](https://github.com/Tencent/rapidjson) is slower
+than ryml, and only [sajson](https://github.com/chadaustin/sajson)
+manages to be faster.
 
 
 ### Performance emitting
@@ -204,59 +182,501 @@ Emitting benchmarks were not created yet, but feedback from some users
 reports as much as 25x speedup from yaml-cpp [(eg,
 here)](https://github.com/biojppm/rapidyaml/issues/28#issue-553855608).
 
-If you have data or YAML code for this, please submit a merge request, or
+If you have data or YAML code for this, please submit a pull request, or
 just send us the files!
 
 
 ------
 
-## Installing and using
+## Quick start
 
-First, clone the repo:
+If you're wondering whether ryml's speed comes at a usage cost, you
+need not. With ryml, you can have your cake and eat it too: being
+rapid is definitely NOT the same as being unpractical, so ryml was
+written with easy AND efficient usage in mind, and comes with a two
+level API for accessing and traversing the data tree.
+
+The following snippet is a quick overview taken from [the quickstart
+sample](samples/quickstart.cpp). After cloning ryml, you can very
+easily build and run this executable using any of the build samples,
+eg the [`add_subdirectory()` sample](samples/add_subdirectory/).
+
+```c++
+// Parse YAML code in place, potentially mutating the buffer.
+// It is also possible to:
+//   - parse a read-only buffer
+//   - reuse an existing tree (advised)
+//   - reuse an existing parser (advised)
+char yml_buf[] = "{foo: 1, bar: [2, 3], john: doe}";
+ryml::Tree tree = ryml::parse(ryml::substr(yml_buf));
+
+// Note: it will always be significantly faster to use mutable
+// buffers and reuse tree+parser.
+//
+// Below you will find samples that show how to achieve reuse; but
+// please note that for brevity and clarity, many of the examples
+// here are parsing immutable buffers, and not reusing tree or
+// parser.
+
+
+//------------------------------------------------------------------
+// API overview
+
+// ryml has a two-level API:
+//
+// The lower level index API is based on the indices of nodes,
+// where the node's id is the node's position in the tree's data
+// array. This API is very efficient, but somewhat difficult to use:
+size_t root_id = tree.root_id();
+size_t bar_id = tree.find_child(root_id, "bar"); // need to get the index right
+CHECK(tree.is_map(root_id)); // all of the index methods are in the tree
+CHECK(tree.is_seq(bar_id));  // ... and receive the subject index
+
+// The node API is a lightweight abstraction sitting on top of the
+// index API, but offering a much more convenient interaction:
+ryml::NodeRef root = tree.rootref();
+ryml::NodeRef bar = tree["bar"];
+CHECK(root.is_map());
+CHECK(bar.is_seq());
+// NodeRef is a lightweight handle to the tree and associated id:
+CHECK(root.tree() == &tree); // NodeRef points at its tree, WITHOUT refcount
+CHECK(root.id() == root_id); // NodeRef's id is the index of the node
+CHECK(bar.id() == bar_id);   // NodeRef's id is the index of the node
+
+// The node API translates very cleanly to the index API, so most
+// of the code examples below are using the node API.
+
+// One significant point of the node API is that it holds a raw
+// pointer to the tree. Care must be taken to ensure the lifetimes
+// match, so that a node will never access the tree after the tree
+// went out of scope.
+
+
+//------------------------------------------------------------------
+// To read the parsed tree
+
+// Node::operator[] does a lookup, is O(num_children[node]).
+// maps use string keys, seqs use integral keys.
+CHECK(tree["foo"].is_keyval());
+CHECK(tree["foo"].key() == "foo");
+CHECK(tree["foo"].val() == "1");
+CHECK(tree["bar"].is_seq());
+CHECK(tree["bar"].has_key());
+CHECK(tree["bar"].key() == "bar");
+CHECK(tree["bar"][0].val() == "2");
+CHECK(tree["bar"][1].val() == "3");
+CHECK(tree["john"].val() == "doe");
+// An integral key is the position of the child within its parent,
+// so even maps can also use int keys, if the key position is
+// known.
+CHECK(tree[0].id() == tree["foo"].id());
+CHECK(tree[1].id() == tree["bar"].id());
+CHECK(tree[2].id() == tree["john"].id());
+// Tree::operator[](int) searches a root child by its position.
+CHECK(tree[0].id() == tree["foo"].id());  // 0: first child of root
+CHECK(tree[1].id() == tree["bar"].id());  // 1: first child of root
+CHECK(tree[2].id() == tree["john"].id()); // 2: first child of root
+// NodeRef::operator[](int) searches a node child by its position
+// on __the node__'s children list:
+CHECK(bar[0].val() == "2"); // 0 means first child of bar
+CHECK(bar[1].val() == "3"); // 1 means second child of bar
+// NodeRef::operator[](string):
+// A string key is the key of the node: lookup is by name. So it
+// is only available for maps, and it is NOT available for seqs,
+// since seq members do not have keys.
+CHECK(tree["foo"].key() == "foo");
+CHECK(tree["bar"].key() == "bar");
+CHECK(tree["john"].key() == "john");
+CHECK(bar.is_seq());
+// CHECK(bar["BOOM!"].is_seed()); // error, seqs do not have key lookup
+
+// Note that maps can also use index keys as well as string keys:
+CHECK(root["foo"].id() == root[0].id());
+CHECK(root["bar"].id() == root[1].id());
+CHECK(root["john"].id() == root[2].id());
+
+// Please note that since a ryml tree uses indexed linked lists for storing
+// children, the complexity of `Tree::operator[csubstr]` and
+// `Tree::operator[size_t]` is linear on the number of root children. If you use
+// it with a large tree where the root has many children, you may get a
+// performance hit. To avoid this hit, you can create your own accelerator
+// structure. For example, before doing a lookup, do a single traverse at the
+// root level to fill an `std::map<csubstr,size_t>` mapping key names to node
+// indices; with a node index, a lookup (via `Tree::get()`) is O(1), so this way
+// you can get O(log n) lookup from a key.
+// 
+// As for `NodeRef`, the difference from `NodeRef::operator[]`
+// to `Tree::operator[]` is that the latter refers to the root node, whereas
+// the former can be invoked on any node. But the lookup process is the same for
+// both and their algorithmic complexity is the same: they are both linear in
+// the number of direct children; but depending on the data, that number may
+// be very different from one to another.
+
+
+//------------------------------------------------------------------
+// Hierarchy:
+
+{
+    ryml::NodeRef foo = root.first_child();
+    ryml::NodeRef john = root.last_child();
+    CHECK(tree.size() == 6); // O(1) number of nodes in the tree
+    CHECK(root.num_children() == 3); // O(num_children[root])
+    CHECK(foo.num_siblings() == 3); // O(num_children[parent(foo)])
+    CHECK(foo.parent().id() == root.id()); // parent() is O(1)
+    CHECK(root.first_child().id() == root["foo"].id()); // first_child() is O(1)
+    CHECK(root.last_child().id() == root["john"].id()); // last_child() is O(1)
+    CHECK(john.first_sibling().id() == foo.id());
+    CHECK(foo.last_sibling().id() == john.id());
+    // prev_sibling(), next_sibling(): (both are O(1))
+    CHECK(foo.num_siblings() == root.num_children());
+    CHECK(foo.prev_sibling().id() == ryml::NONE); // foo is the first_child()
+    CHECK(foo.next_sibling().key() == "bar");
+    CHECK(foo.next_sibling().next_sibling().key() == "john");
+    CHECK(foo.next_sibling().next_sibling().next_sibling().id() == ryml::NONE); // john is the last_child()
+}
+
+
+//------------------------------------------------------------------
+// Iterating:
+{
+    ryml::csubstr expected_keys[] = {"foo", "bar", "john"};
+    // iterate children using the high-level node API:
+    {
+        size_t count = 0;
+        for(ryml::NodeRef const& child : root.children())
+            CHECK(child.key() == expected_keys[count++]);
+    }
+    // iterate siblings using the high-level node API:
+    {
+        size_t count = 0;
+        for(ryml::NodeRef const& child : root["foo"].siblings())
+            CHECK(child.key() == expected_keys[count++]);
+    }
+    // iterate children using the lower-level tree index API:
+    {
+        size_t count = 0;
+        for(size_t child_id = tree.first_child(root_id); child_id != ryml::NONE; child_id = tree.next_sibling(child_id))
+            CHECK(tree.key(child_id) == expected_keys[count++]);
+    }
+    // iterate siblings using the lower-level tree index API:
+    // (notice the only difference from above is in the loop
+    // preamble, which calls tree.first_sibling(bar_id) instead of
+    // tree.first_child(root_id))
+    {
+        size_t count = 0;
+        for(size_t child_id = tree.first_sibling(bar_id); child_id != ryml::NONE; child_id = tree.next_sibling(child_id))
+            CHECK(tree.key(child_id) == expected_keys[count++]);
+    }
+}
+
+
+//------------------------------------------------------------------
+// Gotchas:
+CHECK(!tree["bar"].has_val());          // seq is a container, so no val
+CHECK(!tree["bar"][0].has_key());       // belongs to a seq, so no key
+CHECK(!tree["bar"][1].has_key());       // belongs to a seq, so no key
+//CHECK(tree["bar"].val() == BOOM!);    // ... so attempting to get a val is undefined behavior
+//CHECK(tree["bar"][0].key() == BOOM!); // ... so attempting to get a key is undefined behavior
+//CHECK(tree["bar"][1].key() == BOOM!); // ... so attempting to get a key is undefined behavior
+
+
+//------------------------------------------------------------------
+// Deserializing: use operator>>
+{
+    int foo = 0, bar0 = 0, bar1 = 0;
+    std::string john;
+    root["foo"] >> foo;
+    root["bar"][0] >> bar0;
+    root["bar"][1] >> bar1;
+    root["john"] >> john; // requires from_chars(std::string). see serialization samples below.
+    CHECK(foo == 1);
+    CHECK(bar0 == 2);
+    CHECK(bar1 == 3);
+    CHECK(john == "doe");
+}
+
+
+//------------------------------------------------------------------
+// Modifying existing nodes: operator<< vs operator=
+
+// operator= assigns an existing string to the receiving node.
+// This pointer will be in effect until the tree goes out of scope
+// so beware to only assign from strings outliving the tree.
+root["foo"] = "says you";
+root["bar"][0] = "-2";
+root["bar"][1] = "-3";
+root["john"] = "ron";
+// Now the tree is _pointing_ at the memory of the strings above.
+// That is OK because those are static strings and will outlive
+// the tree.
+CHECK(root["foo"].val() == "says you");
+CHECK(root["bar"][0].val() == "-2");
+CHECK(root["bar"][1].val() == "-3");
+CHECK(root["john"].val() == "ron");
+// WATCHOUT: do not assign from temporary objects:
+// {
+//     std::string crash("will dangle");
+//     root["john"] == ryml::to_csubstr(crash);
+// }
+// CHECK(root["john"] == "dangling"); // CRASH! the string was deallocated
+
+// operator<< first serializes the input to the tree's arena, then
+// assigns the serialized string to the receiving node. This avoids
+// constraints with the lifetime, since the arena lives with the tree.
+CHECK(tree.arena().empty());
+root["foo"] << "says who";  // requires to_chars(). see serialization samples below.
+root["bar"][0] << 20;
+root["bar"][1] << 30;
+root["john"] << "deere";
+CHECK(root["foo"].val() == "says who");
+CHECK(root["bar"][0].val() == "20");
+CHECK(root["bar"][1].val() == "30");
+CHECK(root["john"].val() == "deere");
+CHECK(tree.arena() == "says who2030deere"); // the result of serializations to the tree arena
+// using operator<< instead of operator=, the crash above is avoided:
+{
+    std::string ok("in_scope");
+    // root["john"] == ryml::to_csubstr(ok); // don't, will dangle
+    root["john"] << ryml::to_csubstr(ok); // OK, copy to the tree's arena
+}
+CHECK(root["john"] == "in_scope"); // OK!
+CHECK(tree.arena() == "says who2030deerein_scope"); // the result of serializations to the tree arena
+
+
+//------------------------------------------------------------------
+// Adding new nodes:
+
+// adding a keyval node to a map:
+CHECK(root.num_children() == 3);
+root["newkeyval"] = "shiny and new"; // using these strings
+root.append_child() << ryml::key("newkeyval (serialized)") << "shiny and new (serialized)"; // serializes and assigns the serialization
+CHECK(root.num_children() == 5);
+CHECK(root["newkeyval"].key() == "newkeyval");
+CHECK(root["newkeyval"].val() == "shiny and new");
+CHECK(root["newkeyval (serialized)"].key() == "newkeyval (serialized)");
+CHECK(root["newkeyval (serialized)"].val() == "shiny and new (serialized)");
+CHECK( ! root["newkeyval"].key().is_sub(tree.arena())); // it's using directly the static string above
+CHECK( ! root["newkeyval"].val().is_sub(tree.arena())); // it's using directly the static string above
+CHECK(   root["newkeyval (serialized)"].key().is_sub(tree.arena())); // it's using a serialization of the string above
+CHECK(   root["newkeyval (serialized)"].val().is_sub(tree.arena())); // it's using a serialization of the string above
+// adding a val node to a seq:
+CHECK(root["bar"].num_children() == 2);
+root["bar"][2] = "oh so nice";
+root["bar"][3] << "oh so nice (serialized)";
+CHECK(root["bar"].num_children() == 4);
+CHECK(root["bar"][2].val() == "oh so nice");
+CHECK(root["bar"][3].val() == "oh so nice (serialized)");
+// adding a seq node:
+CHECK(root.num_children() == 5);
+root["newseq"] |= ryml::SEQ;
+root.append_child() << ryml::key("newseq (serialized)") |= ryml::SEQ;
+CHECK(root.num_children() == 7);
+CHECK(root["newseq"].num_children() == 0);
+CHECK(root["newseq (serialized)"].num_children() == 0);
+// adding a map node:
+CHECK(root.num_children() == 7);
+root["newmap"] |= ryml::MAP;
+root.append_child() << ryml::key("newmap (serialized)") |= ryml::SEQ;
+CHECK(root.num_children() == 9);
+CHECK(root["newmap"].num_children() == 0);
+CHECK(root["newmap (serialized)"].num_children() == 0);
+// operator[] does not mutate the tree until the returned node is
+// written to.
+//
+// Until such time, the NodeRef object keeps in itself the required
+// information to write to the proper place in the tree. This is
+// called being in a "seed" state.
+//
+// This means that passing a key/index which does not exist will
+// not mutate the tree, but will instead store (in the node) the
+// proper place of the tree to do so if and when it is required.
+//
+// This is a significant difference from eg, the behavior of
+// std::map, which mutates the map immediately within the call to
+// operator[].
+CHECK(!root.has_child("I am nobody"));
+ryml::NodeRef nobody = root["I am nobody"];
+CHECK(nobody.valid());   // points at the tree, and a specific place in the tree
+CHECK(nobody.is_seed()); // ... but nothing is there yet.
+CHECK(!root.has_child("I am nobody")); // same as above
+ryml::NodeRef somebody = root["I am somebody"];
+CHECK(!root.has_child("I am somebody")); // same as above
+CHECK(somebody.valid());
+CHECK(somebody.is_seed()); // same as above
+somebody = "indeed";  // this will commit to the tree, mutating at the proper place
+CHECK(somebody.valid());
+CHECK(!somebody.is_seed()); // now the tree has this node, and it is no longer a seed
+CHECK(root.has_child("I am somebody"));
+CHECK(root["I am somebody"].val() == "indeed");
+
+
+//------------------------------------------------------------------
+// Emitting:
+
+// emit to a FILE*
+ryml::emit(tree, stdout);
+// emit to a stream
+std::stringstream ss;
+ss << tree;
+std::string stream_result = ss.str();
+// emit to a buffer:
+std::string str_result = ryml::emitrs<std::string>(tree);
+// can emit to any given buffer:
+char buf[1024];
+ryml::csubstr buf_result = ryml::emit(tree, buf);
+// now check
+ryml::csubstr expected_result = R"(foo: says who
+bar:
+- 20
+- 30
+- oh so nice
+- oh so nice (serialized)
+john: in_scope
+newkeyval: shiny and new
+newkeyval (serialized): shiny and new (serialized)
+newseq: []
+newseq (serialized): []
+newmap: {}
+newmap (serialized): []
+I am somebody: indeed
+)";
+CHECK(buf_result == expected_result);
+CHECK(str_result == expected_result);
+CHECK(stream_result == expected_result);
+// There are many possibilities to emit to buffer;
+// please look at the quickstart sample functions below.
+```
+
+The [quickstart.cpp sample](./samples/quickstart.cpp) (from which the
+above overview was taken) has many more detailed examples, and should
+be your first port of call to find out any particular point about
+ryml's API. It is tested in the CI, and thus has the correct behavior.
+There you can find the following subjects being addressed:
+
+```c++
+sample_substr();               ///< about ryml's string views (from c4core)
+sample_parse_read_only();      ///< parse a read-only YAML source buffer
+sample_parse_in_situ();        ///< parse an immutable YAML source buffer
+sample_parse_reuse_tree();     ///< parse into an existing tree, maybe into a node
+sample_parse_reuse_parser();   ///< reuse an existing parser
+sample_parse_reuse_tree_and_parser(); ///< how to reuse existing trees and parsers
+sample_iterate_trees();        ///< visit individual nodes and iterate through trees
+sample_create_trees();         ///< programatically create trees
+sample_tree_arena();           ///< interact with the tree's serialization arena
+sample_fundamental_types();    ///< serialize/deserialize fundamental types
+sample_formatting();           ///< control formatting when serializing/deserializing
+sample_base64();               ///< encode/decode base64
+sample_user_scalar_types();    ///< serialize/deserialize scalar (leaf/string) types
+sample_user_container_types(); ///< serialize/deserialize container (map or seq) types
+sample_std_types();            ///< serialize/deserialize STL containers
+sample_emit_to_container();    ///< emit to memory, eg a string or vector-like container
+sample_emit_to_stream();       ///< emit to a stream, eg std::ostream
+sample_emit_to_file();         ///< emit to a FILE*
+sample_emit_nested_node();     ///< pick a nested node as the root when emitting
+sample_json();                 ///< notes and constraints: JSON parsing and emitting
+sample_anchors_and_aliases();  ///< deal with YAML anchors and aliases
+sample_tags();                 ///< deal with YAML type tags
+sample_docs();                 ///< deal with YAML docs
+sample_error_handler();        ///< set a custom error handler
+sample_global_allocator();     ///< set a global allocator for ryml
+sample_per_tree_allocator();   ///< set per-tree allocators
+```
+
+
+------
+
+## Using ryml in your project
+
+As with any other library, you have the option to integrate ryml into
+your project's build setup, thereby building ryml together with your
+project, or -- prior to configuring your project -- you can have ryml
+installed either manually or through package managers. Currently
+[cmake](https://cmake.org/) is required; we recommend a recent cmake
+version, at least 3.13.
+
+These samples show how to build an application using ryml. All the
+samples use [the same quickstart executable
+source](./samples/quickstart.cpp), but are built in different ways,
+and this shows multiple ways to integrate ryml into your project. We
+also encourage you to refer to the quickstart source itself, which
+extensively covers most of the functionality that you may want out of
+ryml.
+
+Each sample brings a `run.sh` script with the sequence of commands
+required to successfully build and run the application (this is a bash
+script and runs in Linux and MacOS, but it is also possible to run in
+Windows via Git Bash or the WSL). Click on the links below to find out
+more about each sample:
+
+| Sample name        | ryml is part of build?   | cmake file   | commands     |
+|:-------------------|--------------------------|:-------------|:-------------|
+| [`add_subdirectory`](./samples/add_subdirectory) | yes                      | [`CMakeLists.txt`](./samples/add_subdirectory/CMakeLists.txt) | [`run.sh`](./samples/add_subdirectory/run.sh) |
+| [`fetch_content`](./samples/fetch_content)      | yes                      | [`CMakeLists.txt`](./samples/fetch_content/CMakeLists.txt) | [`run.sh`](./samples/fetch_content/run.sh) |
+| [`find_package`](./samples/find_package)        | no, needs prior install  | [`CMakeLists.txt`](./samples/find_package/CMakeLists.txt) | [`run.sh`](./samples/find_package/run.sh) |
+
+
+### Building ryml as part of your project
+
+ryml is a small library, so this is the advised way.
+If you're using git, we suggest adding ryml as git submodule of
+your repo. This makes it easy to track any upstream changes in ryml.
+Otherwise, you will have to start by cloning the repo:
 ```bash
 git clone --recursive https://github.com/biojppm/rapidyaml
 ```
 Take care to use the `--recursive` flag to force git to clone the 
 submodules as well. If you omit `--recursive`, after cloning you
-will have to do `git submodule init` and ` submodule update` 
+will have to do `git submodule init` and `git submodule update` 
 to ensure the submodules are checked out.
 
-Next, you can either use ryml as a cmake subdirectory or build and install to
-a directory of your choice. Currently [cmake](https://cmake.org/) is required
-for using ryml; we recommend a recent cmake version, at least 3.13.
-
-### Using ryml as cmake subproject
-
-ryml is a small library, so this is the advised way.
+Now that you have ryml available, you can add it in cmake either from cmake's `add_subdirectory()`
+subdirectory, or through cmake's `FetchContent`. Let's start first by
+`add_subdirectory()`; here's a self-contained example that adds ryml as a cmake subdirectory:
 ```cmake
-# somewhere in your CMakeLists.txt
-
-# this is the target you wish to link with ryml
-add_library(foolib a.cpp b.cpp)
-
-# make ryml a subproject of your project
-add_subdirectory(path/to/rapidyaml ryml)
-target_link_libraries(foolib PUBLIC ryml)  # that's it!
-
-add_executable(fooexe main.cpp)
-target_link_libraries(fooexe foolib) # brings in ryml
+cmake_minimum_required(VERSION 3.13)
+project(quickstart LANGUAGES CXX)
+add_subdirectory(${PATH_TO_RYML} ryml)
+add_executable(quickstart quickstart.cpp)
+target_link_libraries(quickstart ryml)
 ```
-If you're using git, we also suggest you add ryml as git submodule of
-your repo. This makes it easy to track any upstream changes in ryml.
+This will build ryml as part of your project, and is the easiest way
+to integrate, particularly if you add ryml as a submodule of your project.
+You can find [a fully working `add_subdirectory()` example here](samples/add_subdirectory).
 
-### The traditional way: using an installed version
+Alternatively, if you prefer to use cmake's `FetchContent`, here's a
+self-contained example:
+```cmake
+cmake_minimum_required(VERSION 3.13)
+project(quickstart LANGUAGES CXX)
+include(FetchContent)
+FetchContent_Declare(ryml
+    GIT_REPOSITORY https://github.com/biojppm/rapidyaml.git
+    GIT_TAG master     # or the desired branch or tag or commit
+    GIT_SHALLOW false  # ensure ryml's submodules are checked out
+)
+FetchContent_MakeAvailable(ryml)
+add_executable(quickstart quickstart.cpp)
+target_link_libraries(quickstart ryml)
+```
+You can [try this sample yourself here](samples/fetch_content).
 
-You can also use ryml in the customary cmake way, by first building and
-installing it, and then consuming it in your project via `find_package()`.
 
-First, build ryml. For Visual Studio & multi-configuration CMake generators,
+### Install ryml first
+
+You can also build and install ryml in the customary cmake way prior
+to consuming it in your project via `find_package()`. This is the
+traditional way, and a little less practical than above. But first
+note ryml is now available in some package managers such as
+[vcpkg](https://vcpkg.io).
+
+We have to start by building ryml. For Visual Studio & multi-configuration CMake generators,
 this would be:
 ```bash
 cmake -S path/to/rapidyaml -B path/to/ryml/build/dir \
       -DCMAKE_INSTALL_PREFIX=path/to/ryml/install/dir
 cmake --build path/to/ryml/build/dir --parallel --config Release
 ```
-whereas for single configuration CMake generators (Unix Makefiles, etc), this
+whereas for single configuration CMake generators (Ninja, Unix Makefiles, etc), this
 would be:
 ```bash
 cmake -S path/to/rapidyaml -B path/to/ryml/build/dir \
@@ -272,7 +692,8 @@ cmake --build path/to/ryml/build/dir --target install
 
 This will get ryml installed into the directory
 `path/to/ryml/install/dir`, together with cmake export files for ryml,
-which `find_package()` will need to successfully import ryml to your project.
+which `find_package()` will need to successfully import ryml to your
+project.
 
 Now to consume this installed ryml version, do the following:
 ```cmake
@@ -323,711 +744,15 @@ following variables can be helpful:
     parsing code; can be useful to figure out parsing problems. Defaults to
     `OFF`.
 
-
-------
-
-## Quick start
-
-If you're wondering whether ryml's speed comes at a usage cost, you need
-not. With ryml, you can have your cake and eat it too: being rapid is
-definitely NOT the same as being unpractical! ryml was written with easy AND
-efficient usage in mind, and comes with a two level API for accessing and
-traversing the data tree.
-
-The low-level interface is an index-based API available through
-the [`ryml::Tree`](src/c4/yml/tree.hpp) class (see examples below). This
-class is essentially a contiguous array of `NodeData` elements; these are
-linked to parent, children and siblings via indices.
-
-On top of this index-based API, there is a thin
-abstraction [`ryml::NodeRef`](src/c4/yml/node.hpp) which is essentially a
-non-owning pointer to a `NodeData` element. It provides convenient methods
-for accessing the `NodeData` properties wrapping it via a class allowing for
-a more object-oriented use.
-
-
-### Parsing
-
-A parser takes a source buffer and fills
-a [`ryml::Tree`](src/c4/yml/tree.hpp) object:
-
-```c++
-#include <ryml.hpp>
-// not needed by ryml, just for these examples (and below)
-#include <iostream>
-
-// convenience functions to print a node
-void show_keyval(ryml::NodeRef n)
-{
-    assert(n.has_keyval());
-    std::cout << n.key() << ": " << n.val() << "\n";
-}
-void show_val(ryml::NodeRef n)
-{
-    assert(n.has_val());
-    std::cout << n.val() << "\n";
-}
-    
-int main()
-{
-    // ryml can parse in situ (and read-only buffers too):
-    char src[] = "{foo: 1, bar: [2, 3]}";
-    ryml::substr srcview = src; // a mutable view to the source buffer
-    // there are also overloads for reusing the tree and parser
-    ryml::Tree tree = ryml::parse(srcview);
-
-    // get a reference to the "foo" node
-    ryml::NodeRef node = tree["foo"];
-    show_keyval(node);  // "foo: 1"
-    show_val(tree["bar"][0]);  // "2"
-    show_val(tree["bar"][1]);  // "3"
-
-    // deserializing:
-    int foo;
-    node >> foo; // now foo == 1
-}
-```
-
-It is also possible to parse read-only buffers, but note these will be copied
-over to an arena buffer in the tree object, and that buffer copy will be the
-one to be parsed:
-
-```c++
-// "{foo: 1}" is a const char[], so a read-only buffer; it will be
-// copied to the tree's arena before parsing
-ryml::Tree tree = ryml::parse("{foo: 1}");
-```
-
-When parsing, you can reuse the existing trees and parsers. You can also
-parse into particular tree nodes, so that you can parse an entire file into a
-node which is deep in the hierarchy of an existing tree. To see the various
-parse overloads, consult the [c4/yml/parse.hpp header](src/c4/yml/parse.hpp).
-The free-standing `parse()` functions (towards the end of the file) are just
-convenience wrappers for calling the several `Parser::parse()` overloads.
-
-
-### References: anchors and aliases
-
-Note that dereferencing is opt-in; after parsing, you have to call
-`Tree::resolve()` explicitly if you want resolved references in the
-tree. This method will resolve all references and substitute the anchored
-values in place of the reference.
-
-The `Tree::resolve()` method first does a full traversal of the tree to
-gather all anchors and references in a separate collection, then it goes
-through that collection to locate the names, which it does by obeying the
-YAML standard diktat that
-
-    an alias node refers to the most recent node in the serialization having the specified anchor
-
-So, depending on the number of anchor/alias nodes, this is a potentially
-expensive operation, with a best-case linear complexity (from the initial
-traversal) and a worst-case quadratic complexity (if every node has an
-alias/anchor). This potential cost is the reason for requiring an explicit
-call to `Tree::resolve()`.
-
-
-### Traversing the tree
-
-The data tree is an index-linked array of `NodeData` elements. These are
-defined roughly as (browse the [c4/yml/tree.hpp header](src/c4/yml/tree.hpp)):
-
-```c++
-// (inside namespace c4::yml)
-
-typedef enum : int // bitflags for marking node features
-{
-   KEY=1<<0,
-   VAL=1<<1,
-   MAP=1<<2,
-   SEQ=1<<4,
-   DOC=1<<5,
-   TAG=...,
-   REF=...,
-   ANCHOR=..., // etc 
-} NodeType_e;
-struct NodeType
-{
-   NodeType_e m_flags;
-   // ... predicate methods such as
-   // has_key(), is_map(), is_seq(), etc
-};
-struct NodeScalar // this is both for keys and vals
-{
-    csubstr tag;
-    csubstr scalar;
-    csubstr anchor;
-    // csubstr is a constant substring:
-    // a non-owning read-only string view
-    // consisting of a pointer and a length
-}
-constexpr const size_t NONE = (size_t)-1;
-struct NodeData
-{
-    NodeType   type;
-    NodeScalar key; // data for the key (if applicable)
-    NodeScalar val; // data for the value
-    
-    size_t     parent;      // NONE when this is the root node
-    size_t     first_child; // NONE if this is a leaf node
-    size_t     last_child;  // etc
-    size_t     next_sibling;
-    size_t     prev_sibling;
-}
-```
-
-Please note that you should not rely on this particular structure; the above
-definitions are given only to provide an idea on how the tree is organized.
-To access and modify node properties, please use the APIs provided through
-the `Tree` (low-level) or the `NodeRef` (high-level) classes.
-
-You may have noticed above the use of a `csubstr` class. This class is
-defined in another library, [c4core](https://github.com/biojppm/c4core),
-which is imported by ryml (so technically it's not a dependency, is
-it?). This is a library I use with my projects consisting of multiplatform
-low-level utilities. One of these is `c4::csubstr` (the name comes from
-"constant substring") which is a non-owning read-only string view, with many
-methods that make it practical to use (I would certainly argue more practical
-than `std::string`). In fact, `c4::csubstr` and its writeable counterpart
-`c4::substr` are the workhorses of the ryml parsing and serialization code;
-you can browse these classes here:
-[c4/substr.hpp](https://github.com/biojppm/c4core/blob/master/src/c4/substr.hpp).
-
-Now, let's parse and traverse a tree. To obtain a `NodeRef` from the tree,
-you only need to invoke `operator[]`. This operator can take indices (when
-invoked on sequence and map nodes) and also strings (only when invoked on map
-nodes):
-
-```c++
-ryml::Tree tree = ryml::parse("[a, b, {c: 0, d: 1}]");
-
-// note: show_val() was defined above
-
-show_val(tree[0]); // "a"
-show_val(tree[1]); // "b"
-show_val(tree[2][ 0 ]); // "0" // index-based
-show_val(tree[2][ 1 ]); // "1" // index-based
-show_val(tree[2]["c"]); // "0" // string-based
-show_val(tree[2]["d"]); // "1" // string-based
-
-// note that trying to obtain the value on a non-value
-// node such as a container will fail an assert:
-// ERROR, assertion triggered: a container has no value
-show_val(tree[2]);
-// ERROR: the same
-show_val(tree.rootref());
-
-// the same for keys:
-show_keyval(tree[0]); // ERROR: sequence element has no key
-show_keyval(tree[2][0]); // ok
-```
-The square bracket operators `Tree::operator[csubstr]` and
-`Tree::operator[size_t]` do a lookup on the root node and return a
-`NodeRef`. The first overload (valid only for map nodes) looks for a child having the given key, and the
-second overload looks for the i-th root's child. If you prefer to stick to
-the low level API, you can use `Tree::find_child()` which takes a node on
-which the child should be looked for and also that child's key or position
-within the parent.
-
-Please note that since a ryml tree uses indexed linked lists for storing
-children, the complexity of `Tree::operator[csubstr]` and
-`Tree::operator[size_t]` is linear on the number of root children. If you use
-it with a large tree where the root has many children, you may get a
-performance hit. To avoid this hit, you can create your own accelerator
-structure. For example, before doing a lookup, do a single traverse at the
-root level to fill an `std::map<csubstr,size_t>` mapping key names to node
-indices; with a node index, a lookup (via `Tree::get()`) is O(1), so this way
-you can get O(log n) lookup from a key.
-
-As for `NodeRef`, the difference from `NodeRef::operator[]`
-to `Tree::operator[]` is that the latter refers to the root node, whereas
-the former can be invoked on any node. But the lookup process is the same for
-both and their algorithmic complexity is the same: they are both linear in
-the number of direct children; but depending on the data, that number may
-be very different from one to another.
-
-Now, let's address how to mutate the tree via `operator[]`. We should stress
-that there is an important difference to the mutability behavior of the STL's
-`std::map::operator[]`. Consider when a non-existing key or index is
-requested via `operator[]`. Unlike with `std::map`, **this operator does not
-modify the tree**. Instead you get a seed-state `NodeRef`, and the tree will
-be modified only when this seed-state reference is written to. Thus `NodeRef`
-can either point to a valid tree node, or if no such node exists it will be
-in seed-state by holding the index or name passed to `operator[]`. To allow
-for this, `NodeRef` is a simple structure with a declaration like:
-
-```c++
-class NodeRef
-{
-    // a pointer to the tree
-    Tree * m_tree; 
-    // either the (tree-scoped) index of an existing node or the (node-scoped) index of a seed state
-    size_t m_node_or_seed_id;
-    // the key name of a seed state. null when valid
-    const char* m_seed_name;
-
-public:
-
-    // this can be used to query whether a node is in seed state
-    bool valid()
-    {
-        return m_node_or_seed_id != NONE
-               &&
-               m_seed_name == nullptr;
-    }
-
-    // forward all calls to m_tree. For example:
-    csubstr val() const { assert(valid()); return m_tree->val(m_node_or_seed_id); }
-    void set_val(csubstr v) { if(!valid()) {/*create node in tree*/;} m_tree->set_val(m_node_or_seed_id, v); }
-
-    // etc...
-};
-```
-
-To iterate over children:
-```c++
-for(NodeRef c : node.children())
-{
-    std::cout << c.key() << "---" << c.val() << "\n";
-}
-```
-
-To iterate over siblings:
-```c++
-for(NodeRef c : node.siblings())
-{
-    std::cout << c.key() << "---" << c.val() << "\n";
-}
-```
-
-
-### Creating a tree
-
-To create a tree programatically:
-```c++
-ryml::Tree tree;
-NodeRef r = tree.rootref();
-
-// Each container node must be explicitly set (either MAP or SEQ):
-r |= ryml::MAP;
-
-r["foo"] = "1"; // ryml works only with strings.
-// Note that the tree will be __pointing__ at the
-// strings "foo" and "1" used here. You need
-// to make sure they have at least the same
-// lifetime as the tree.
-
-// does not change the tree until s is written to.
-ryml::NodeRef s = r["seq"]; // here, s is not valid()
-s |= ryml::SEQ; // now s is valid()
-
-s.append_child() = "bar0"; // this child is now __pointing__ at "bar0"
-s.append_child() = "bar1";
-s.append_child() = "bar2";
-
-// emit to stdout (can also emit to FILE* or ryml::span)
-emit(tree); // prints the following:
-            // foo: 1
-            // seq:
-            //  - bar0
-            //  - bar1
-            //  - bar2
-
-// serializing: using operator<< instead of operator=
-// will make the tree serialize the value into a char
-// arena inside the tree. This arena can be reserved at will.
-int ch3 = 33, ch4 = 44;
-s.append_child() << ch3;
-s.append_child() << ch4;
-
-{
-    std::string tmp = "child5";
-    s.append_child() << tmp;   // requires #include <c4/yml/std/string.hpp>
-    // now tmp can go safely out of scope, as it was
-    // serialized to the tree's internal string arena
-    // Note the include highlighted above is required so that ryml
-    // knows how to turn an std::string into a c4::csubstr/c4::substr.
-}
-
-emit(tree); // now prints the following:
-            // foo: 1
-            // seq:
-            //  - bar0
-            //  - bar1
-            //  - bar2
-            //  - 33
-            //  - 44
-            //  - child5
-
-// to serialize keys:
-r.append_child() << ryml::key(66) << 7;
-
-emit(tree); // now prints the following:
-            // foo: 1
-            // seq:
-            //  - bar0
-            //  - bar1
-            //  - bar2
-            //  - 33
-            //  - 44
-            //  - child5
-            // 66: 7
-}
-```
-
-
-
-
-### Low-level API
-
-The low-level api is an index-based API accessible from
-the [`ryml::Tree`](src/c4/yml/tree.hpp) object. Here are some examples:
-
-```c++
-void print_keyval(Tree const& t, size_t elm_id)
-{
-    std::cout << t.get_key(elm_id)
-              << ": "
-              << t.get_val(elm_id) << "\n";
-}
-
-ryml::Tree t = parse("{foo: 1, bar: 2, baz: 3}")
-
-size_t root_id = t.root_id();
-size_t foo_id  = t.first_child(root_id);
-size_t bar_id  = t.next_sibling(foo_id);
-size_t baz_id  = t.last_child(root_id);
-
-assert(baz == t.next_sibling(bar_id));
-assert(bar == t.prev_sibling(baz_id));
-
-print_keyval(t, foo_id); // "foo: 1"
-print_keyval(t, bar_id); // "bar: 2"
-print_keyval(t, baz_id); // "baz: 3"
-
-// to iterate over the children of a node:
-for(size_t i  = t.first_child(root_id);
-           i != ryml::NONE;
-           i  = t.next_sibling(i))
-{
-    // ...
-}
-
-// to iterate over the siblings of a node:
-for(size_t i  = t.first_sibling(foo_id);
-           i != ryml::NONE;
-           i  = t.next_sibling(i))
-{
-    // ...
-}
-```
-
-
-### Custom types
-
-ryml provides code to serialize the basic intrinsic types (integers, floating
-points and strings): you can see it in the [the `c4/charconv.hpp`
-header](https://github.com/biojppm/c4core/blob/master/src/c4/charconv.hpp). For
-types other than these, you need to instruct ryml how to serialize your
-type, and here we explain how to do this.
-
-There are two distinct type categories when serializing to a YAML tree:
-leaf types (value or key-value) and container types (sequences or maps).
-
-
-#### Leaf types
-
-These are types which should serialize to a string, resulting in a leaf node
-in the YAML tree.
-
-For these, overload the `to_chars(c4::substr, T)/from_chars(c4::csubstr, *T)`
-functions.
-
-Here's an example for a 3D vector type:
-```c++
-struct vec3 { float x, y, z; };
-
-// format v to the given string view + return the number of
-// characters written into it. The view size (buf.len) must
-// be strictly respected. Return the number of characters
-// that need to be written. So if the return value
-// is larger than buf.len, ryml will resize the buffer and
-// call this again with a larger buffer of the correct sizeXS.
-size_t to_chars(c4::substr buf, vec3 v)
-{
-    // this call to c4::format() is the type-safe equivalent
-    // of snprintf(buf.str, buf.len, "(%f,%f,%f)", v.x, v.y, v.z)
-    return c4::format(buf, "({},{},{})", v.x, v.y, v.z);
-}
-
-bool from_chars(c4::csubstr buf, vec3 *v)
-{
-    // equivalent to sscanf(buf.str, "(%f,%f,%f)", &v->x, &v->y, &v->z)
-    // --- actually snscanf(buf.str, buf.len, ...) but there's
-    // no such function in the standard.
-    size_t ret = c4::unformat(buf, "({},{},{})", v->x, v->y, v->z);
-    return ret != c4::csubstr::npos;
-}
-```
-Now you can provide your formats with
-For a live example you can look at [the `std::string` serialization code](https://github.com/biojppm/c4core/blob/master/src/c4/std/string.hpp).
-
-
-#### Container types
-
-These are types requiring child nodes (ie, either sequences or maps).
-
-For these, overload the `write()/read()` functions. For example,
-```c++
-namespace foo {
-struct MyStruct; // a container-type struct
-{
-    int subject;
-    std::map<std::string, int> counts;
-};
-  
-// ... will need these functions to convert to YAML:
-bool read(c4::yml::NodeRef const& n, MyStruct *v);
-void write(c4::yml::NodeRef *n, MyStruct const& v);
-} // namespace foo
-```
-which could be implemented as:
-```c++
-// include the functions for std::string and std::map (not included by default)
-#include <c4/yml/std/map.hpp>
-#include <c4/yml/std/string.hpp>
-  
-bool foo::read(c4::yml::NodeRef const& n, MyStruct *v)
-{
-    n["subject"] >> v->subject;
-    n["counts"] >> v->counts;
-    return true; // do error checking
-}
-  
-void foo::write(c4::yml::NodeRef *n, MyStruct const& v)
-{
-    *n |= c4::yml::MAP;
-
-    NodeRef ch = n->append_child();
-    ch.set_key("subject");
-    ch.set_val_serialized(v.subject);
-
-    ch = n->append_child();
-    ch.set_key("counts");
-    write(&ch, v.counts);
-}
-```
-To harness [C++'s ADL rules](http://en.cppreference.com/w/cpp/language/adl),
-it is important to overload these functions in the namespace of the type
-you're serializing (or in the c4::yml namespace). Generic
-examples can be seen in the (optional) implementations of `std::vector`
-or `std::map`, at their respective headers
-[`c4/yml/std/vector.hpp`](src/c4/yml/std/vector.hpp) and
-[`c4/yml/std/map.hpp`](src/c4/yml/std/map.hpp).
-
-
-
-### STL interoperation
-
-ryml does not use the STL internally, but you can use ryml to serialize and
-deserialize STL containers. That is, the use of STL is opt-in: you need to
-`#include` the proper ryml header for the container you want to serialize, or
-provide an implementation of your own, as above. Having done that, you can
-serialize / deserialize your containers with a single step. For example:
-
-```c++
-#include <ryml_std.hpp> // include this before any other ryml header
-#include <ryml.hpp>
-int main()
-{
-    std::map<std::string, int> m({{"foo", 1}, {"bar", 2}});
-    ryml::Tree t;
-    t.rootref() << m; // serialization of the map happens here
-    
-    emit(t);
-    // foo: 1
-    // bar: 2
-    
-    t["foo"] << 1111;  // serialize an integer into
-                       // the tree's arena, and make
-                       // foo's value point at it
-    t["bar"] << 2222;  // the same, but for bar
-    
-    emit(t);
-    // foo: 1111
-    // bar: 2222
-    
-    m.clear();
-    t.rootref() >> m; // deserialization of the map happens here
-
-    assert(m["foo"] == 1111); // ok
-    assert(m["bar"] == 2222); // ok
-}
-```
-The [`<ryml_std.hpp>`](src/ryml_std.hpp) header includes every std type
-implementation available in ryml. But you can include just a specific header
-if you are interested only in a particular container; these headers are
-located under a specific directory in the ryml source
-folder: [c4/yml/std](src/c4/yml/std). You can browse them to learn how to
-implement your custom type: for containers, see for example
-[the `std::vector` implementation](src/c4/yml/std/vector.hpp),
-or [the `std::map` implementation](src/c4/yml/std/map.hpp); for an example
-of value nodes, see
-[the `std::string` implementation](https://github.com/biojppm/c4core/src/c4/std/string.hpp).
-If you'd like to see a particular STL container implemented, feel free to
-[submit a pull request or open an issue](https://github.com/biojppm/rapidyaml/issues).
-
-The need for separate inclusion of ryml's std interoperation headers is dictated
-by ryml's design requirement of not forcing clients to use the STL. 
-
-Please take note of the following pitfall when using the std headers: you have to include
-the std header before any other headers that use functions from it. For example:
-```c++
-// the to_csubstr(std::string const&) overload is not found in the resolution set
-#include <ryml.hpp>
-#include <ryml_std.hpp>
-int main()
-{
-    std::string in = R"({"a":"b","c":null,"d":"e"})";
-    // COMPILE ERROR: to_csubstr() not found for std::string
-    std::string yaml = ryml::preprocess_json<std::string>(c4::to_csubstr(in));
-}
-```
-But this works:
-```c++
-#include <ryml_std.hpp> // note the inclusion order changed
-#include <ryml.hpp>
-int main()
-{
-    std::string in = R"({"a":"b","c":null,"d":"e"})";
-    // OK:
-    std::string yaml = ryml::preprocess_json<std::string>(c4::to_csubstr(in));
-}
-```
-This constraint also applies to the conversion functions for your types;
-just like with the STL's headers, they should be included prior to
-ryml's headers.
-
-
-### Custom formatting for intrinsic types
-
-Sometimes the general formatting from ryml may not be what is required.
-
-Consider the following:
-```c++
-NodeRef r = tree.rootref();
-
-bool t = true;
-float a = 24.0f;
-float b = 2.41f;
-
-r["t"] << t;
-r["a"] << a;
-r["b"] << b;
-print_keyval(r["t"]); // "t=1" -- true was formatted as an int
-print_keyval(r["a"]); // "a=24" -- the decimal was lost with general formatting
-print_keyval(r["b"]); // "b=2.41" -- as expected
-```
-The behavior above may not be ideal in some cases. There are alternatives for
-this situation:
-```c++
-// if you want the decimal to remain, you can provide the string yourself:
-r["t"] << (t ? "true" : "false");
-std::string sa = ...; // something resulting in "24.0"
-r["a"] << c4::to_csubstr(sa);
-
-print_keyval(r["t"]); // "t=true" -- as expected
-print_keyval(r["a"]); // "a=24.0" -- as expected
-print_keyval(r["b"]); // "b=2.41" -- as expected
-```
-If, understandably, you want to avoid the likely allocation caused
-by the `std::to_string()` antipattern (or even worse, the `std::stringstream::str()`
-allocation cookie monster), [ryml has you covered](https://github.com/biojppm/c4core/tree/master/src/c4/format.hpp):
-```c++
-#include <c4/format.hpp> // look for the appropriate formatting functions in this header
-//...
-
-int precision = 2; // print floats with two digits.
-r["a"] << c4::fmt::real(val, precision); // OK, result: "24.00"
-
-// c4::fmt::real() is a lazy marker which will be used by ryml to format the
-// float directly in the arena without any extra allocation (other than
-// possible arena growth, which would happen just the same for the approach
-// above). It calls ftoa() on the arena range.
-```
-Again, note that you don't have to use the tree's arena. If you use
-`operator=`, the `csubstr` you provide will be directly used instead.
-
-
-### Custom allocators and error handlers
-
-ryml accepts your own allocators and error handlers. Read through [this
-header file](src/c4/yml/common.hpp) to set it up.
-
-Please note the following about the use of custom allocators with ryml. If
-you use static ryml trees or parsers, you need to make sure that their
-allocator has the same lifetime. So you can't use ryml's default allocator,
-as it is declared in a ryml file, and the standard provides no guarantee on
-the relative initialization order, such that the allocator is constructed
-before and destroyed after your variables (in fact you are pretty much
-guaranteed to see this fail). So please carefully consider your choices, and
-ponder whether you really need to use ryml static trees and parsers. If you
-do need this, then you will need to declare and use an allocator from a ryml
-memory resource that outlives the tree and/or parser.
-
-
-### Using ryml to parse JSON, and preprocessing functions
-
-Although JSON is generally a subset of YAML, [there is an exception that is
-valid JSON, but not valid YAML](https://stackoverflow.com/questions/42124227/why-does-the-yaml-spec-mandate-a-space-after-the-colon):
-```yaml
-{"a":"b"}  # note the missing space after the semicolon
-```
-As a result, you will get a parse error if you try to do this:
-```c++
-auto tree = ryml::parse("{\"a\":\"b\"}");
-```
-This behavior is intended, and this was chosen to save added complexity in
-the parser code.
-
-However, you can still parse this with ryml if (prior to parsing) you
-preprocess the JSON into valid YAML, adding the missing spaces after the
-semicolons. ryml provides a freestanding function to do this:
-`ryml::preprocess_json()`:
-
-```c++
-#include <c4/yml/preprocess.hpp>
-// you can also use in-place overloads
-auto yaml = ryml::preprocess_json<std::string>("{\"a\":\"b\"}");
-// now you have a buffer with valid yaml - note the space:
-std::cout << yaml << "\n"; // {"a": "b"}
-// ... which you can parse:
-ryml::Tree t = ryml::parse(to_substr(yaml));
-std::cout << t["a"] << "\n"; // b
-```
-
-There is also `ryml::preprocess_rxmap()`, a function to convert non-standard
-relaxed maps (ie, keys with implicit true values) into standard YAML maps.
-
-```c++
-#include <c4/yml/preprocess.hpp>
-// you can also use in-place overloads
-auto yaml = ryml::preprocess_rxmap<std::string>("{a, b, c, d: [e, f, g]}");
-std::cout << yaml << "\n"; // {a: 1, b: 1, c: 1, d: [e, f, g]}
-ryml::Tree t = ryml::parse(to_substr(yaml));
-std::cout << t["a"] << "\n"; // 1
-```
-
-
 ------
 
 ## Other languages
 
 One of the aims of ryml is to provide an efficient YAML API for other
-languages. There's already a cursory implementation for Python (using only
-the low-level API). After ironing out the general approach, other languages
-are likely to follow: probably (in order) JavaScript, C#, Java, Ruby, PHP,
-Octave and R (all of this is possible because we're
+languages. There's already a cursory implementation for Python (using
+only the low-level API). After ironing out the general approach, other
+languages are likely to follow: probably (in order) JavaScript, C#,
+Java, Ruby, PHP, Octave and R (all of this is possible because we're
 using [SWIG](http://www.swig.org/), which makes it easy to do so).
 
 ### Python

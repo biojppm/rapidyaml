@@ -178,7 +178,7 @@ template<class OStream>
 inline OStream& operator<< (OStream& s, as_json const& js)
 {
     EmitterOStream<OStream> em(s);
-    em.emit(JSON, *js.tree, js.node);
+    em.emit(JSON, *js.tree, js.node, true);
     return s;
 }
 

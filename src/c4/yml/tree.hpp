@@ -470,6 +470,8 @@ public:
     /** @name node getters */
     /** @{ */
 
+    //! get the index of a node belonging to this tree.
+    //! @p n can be nullptr, in which case a
     size_t id(NodeData const* n) const
     {
         if( ! n)
@@ -480,7 +482,8 @@ public:
         return static_cast<size_t>(n - m_buf);
     }
 
-    // with the get() method, i can be NONE, in which case a nullptr is returned
+    //! get a pointer to a node's NodeData.
+    //! i can be NONE, in which case a nullptr is returned
     inline NodeData *get(size_t i)
     {
         if(i == NONE)
@@ -490,6 +493,8 @@ public:
         RYML_ASSERT(i >= 0 && i < m_cap);
         return m_buf + i;
     }
+    //! get a pointer to a node's NodeData.
+    //! i can be NONE, in which case a nullptr is returned.
     inline NodeData const *get(size_t i) const
     {
         if(i == NONE)
@@ -500,12 +505,11 @@ public:
         return m_buf + i;
     }
 
-    // these next two functions are implementation only; use at your
-    // own risk.
-
-    // An if-less form of get() that demands a valid node index
+    // An if-less form of get() that demands a valid node index.
+    // This function is implementation only; use at your own risk.
     inline NodeData       * _p(size_t i)       { RYML_ASSERT(i != NONE && i >= 0 && i < m_cap); return m_buf + i; }
-    // An if-less form of get() that demands a valid node index
+    // An if-less form of get() that demands a valid node index.
+    // This function is implementation only; use at your own risk.
     inline NodeData const * _p(size_t i) const { RYML_ASSERT(i != NONE && i >= 0 && i < m_cap); return m_buf + i; }
 
     //! Get the id of the root node
@@ -880,18 +884,14 @@ public:
         substr cp = alloc_arena(s.len);
         RYML_ASSERT(cp.len == s.len);
         RYML_ASSERT(!s.overlaps(cp));
-        #if defined(__clang__)
-        #elif defined(__GNUC__)
-        #   pragma GCC diagnostic push
-        #   if __GNUC__ >= 10
-        #       pragma GCC diagnostic ignored "-Wstringop-overflow=" // no need for terminating \0
-        #       pragma GCC diagnostic ignored "-Wrestrict" // there's an assert above covering violation of restrict behavior
-        #   endif
+        #if (!defined(__clang__)) && (defined(__GNUC__) && __GNUC__ >= 10)
+        C4_SUPPRESS_WARNING_GCC_PUSH
+        C4_SUPPRESS_WARNING_GCC("-Wstringop-overflow=") // no need for terminating \0
+        C4_SUPPRESS_WARNING_GCC( "-Wrestrict") // there's an assert to ensure no violation of restrict behavior
         #endif
         memcpy(cp.str, s.str, s.len);
-        #if defined(__clang__)
-        #elif defined(__GNUC__)
-        #   pragma GCC diagnostic pop
+        #if (!defined(__clang__)) && (defined(__GNUC__) && __GNUC__ >= 10)
+        C4_SUPPRESS_WARNING_GCC_POP
         #endif
         return cp;
     }
@@ -909,7 +909,7 @@ public:
         substr s = _request_span(sz);
         return s;
     }
-    
+
     /** ensure the tree's internal string arena is at least the given capacity
      * @note Growing the arena may cause relocation of the entire
      * existing arena, and thus change the contents of individual nodes. */
@@ -989,7 +989,7 @@ public:
     lookup_result lookup_path(csubstr path, size_t start=NONE) const;
 
     /** defaulted lookup: lookup path; if the lookup fails, recursively modify
-     * the tree so that the corresponding lookup_path() would return the 
+     * the tree so that the corresponding lookup_path() would return the
      * default value */
     size_t lookup_path_or_modify(csubstr default_value, csubstr path, size_t start=NONE);
 

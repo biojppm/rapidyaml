@@ -75,6 +75,20 @@ public:
     void parse(csubstr filename, csubstr src, NodeRef node) { parse(filename, node.tree()->copy_to_arena(src), node.tree(), node.id()); }
 
 
+    //! reserve a certain capacity for the parsing stack.
+    //! This should be at least the expected depth of the parsed YAML tree.
+    //! The parsing stack is the only (potential) heap memory used by the parser.
+    //! If the requested capacity is below the default stack size of 16,
+    //! the memory is used directly in the parser object; otherwise
+    //! it will be allocated from the heap.
+    //! @note this reserves memory only for the parser itself; all the allocations
+    //! for the parsed tree will go through the tree's allocator.
+    //! @note the tree and the arena can (and should) also be reserved.
+    void reserve_stack(size_t capacity)
+    {
+        m_stack.reserve(capacity);
+    }
+
 private:
 
     typedef enum {
@@ -141,7 +155,6 @@ private:
     bool  _handle_val_anchors_and_refs();
     bool  _handle_types();
 
-
     void  _push_level(bool explicit_flow_chars = false);
     void  _pop_level();
 
@@ -177,7 +190,6 @@ private:
 
     void  _write_key_anchor(size_t node_id);
     void  _write_val_anchor(size_t node_id);
-
 
 private:
 

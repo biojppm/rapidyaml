@@ -226,33 +226,35 @@ public:
     virtual void   free(void *mem, size_t num_bytes) = 0;
 };
 
-/// set the global memory resource
+/** set the global memory resource */
 RYML_EXPORT void set_memory_resource(MemoryResource *r);
-/// get the global memory resource
+/** get the global memory resource */
 RYML_EXPORT MemoryResource *get_memory_resource();
+
 
 //-----------------------------------------------------------------------------
 
-// a memory resource adapter to the c-style allocator
+/** a memory resource adapter to the c-style allocator */
 class RYML_EXPORT MemoryResourceCallbacks : public MemoryResource
 {
 public:
 
-    Callbacks cb;
+    Callbacks m_callbacks;
 
-    MemoryResourceCallbacks() : cb(get_callbacks()) {}
-    MemoryResourceCallbacks(Callbacks const& c) : cb(c) {}
+    MemoryResourceCallbacks() : m_callbacks(get_callbacks()) {}
+    MemoryResourceCallbacks(Callbacks const& c) : m_callbacks(c) {}
 
     void* allocate(size_t len, void* hint) override final
     {
-        return cb.allocate(len, hint);
+        return m_callbacks.allocate(len, hint);
     }
 
     void free(void *mem, size_t len) override final
     {
-        return cb.free(mem, len);
+        return m_callbacks.free(mem, len);
     }
 };
+
 
 //-----------------------------------------------------------------------------
 

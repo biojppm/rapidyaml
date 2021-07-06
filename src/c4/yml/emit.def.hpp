@@ -194,9 +194,9 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, size_t 
 template<class Writer>
 void Emitter<Writer>::_do_visit_json(Tree const& t, size_t id)
 {
-    if(C4_UNLIKELY(t.is_doc(id)))
+    if(C4_UNLIKELY(t.is_stream(id)))
     {
-        c4::yml::error("no doc processing for JSON");
+        c4::yml::error("JSON does not have streams");
     }
     else if(t.is_keyval(id))
     {
@@ -276,11 +276,11 @@ void Emitter<Writer>::_write_json(NodeScalar const& sc, NodeType flags)
 {
     if(C4_UNLIKELY( ! sc.tag.empty()))
     {
-        c4::yml::error("no tag processing for JSON");
+        c4::yml::error("JSON does not have tags");
     }
     if(C4_UNLIKELY(flags.has_anchor()))
     {
-        c4::yml::error("no anchor processing for JSON");
+        c4::yml::error("JSON does not have anchors");
     }
     _write_scalar_json(sc.scalar, flags.has_key(), flags.is_quoted());
 }

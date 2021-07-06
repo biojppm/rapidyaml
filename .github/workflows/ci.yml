@@ -506,7 +506,7 @@ jobs:
 #      - {name: link-what-you-use, run: cmake -DCMAKE_LINK_WHAT_YOU_USE=TRUE ..}
 
   #----------------------------------------------------------------------------
-  examples:
+  samples:
     continue-on-error: true
     runs-on: ${{matrix.os}}
     strategy:
@@ -526,7 +526,8 @@ jobs:
       - {name: python3, uses: actions/setup-python@v2, with: {python-version: 3.7}}
       - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
       - {name: show info, run: source .github/setenv.sh && c4_show_info }
-      - {name: add_subdirectory, run: cmany b -t $BT examples/add_subdirectory }
+      - {name: add_subdirectory, run: cd samples/add_subdirectory && cmany b -t $BT . -- run }
+      - {name: fetch_content, run: cd samples/fetch_content && cmany b -t $BT . -- run }
 
   #----------------------------------------------------------------------------
   test_api:
@@ -641,7 +642,7 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          #  name of the artifact     | suffix         | cpack gen | mime type                      | os              | cxx
+          #  name of the artifact    | suffix         | cpack gen | mime type                      | os              | cxx
           - {name: Ubuntu 20.04 deb  , sfx: unix64.deb, gen: DEB  , mime: vnd.debian.binary-package, os: ubuntu-20.04             }
           - {name: Ubuntu 20.04 sh   , sfx: unix64.sh , gen: STGZ , mime: x-sh                     , os: ubuntu-20.04             }
           - {name: Ubuntu 18.04 deb  , sfx: unix64.deb, gen: DEB  , mime: vnd.debian.binary-package, os: ubuntu-18.04             }
