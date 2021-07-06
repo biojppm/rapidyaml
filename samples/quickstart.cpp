@@ -146,20 +146,56 @@ void sample_quick_overview()
     // Parse YAML code in place, potentially mutating the buffer.
     // It is also possible to:
     //   - parse a read-only buffer
-    //   - reuse an existing tree
-    //   - reuse an existing parser.
+    //   - reuse an existing tree (advised)
+    //   - reuse an existing parser (advised)
     char yml_buf[] = "{foo: 1, bar: [2, 3], john: doe}";
     ryml::Tree tree = ryml::parse(ryml::substr(yml_buf));
 
     // Note: it will always be significantly faster to use mutable
-    // buffers and reuse tree+parser, albeit (just a little) less practical.
+    // buffers and reuse tree+parser.
     //
-    // Below you will find samples that show how to achieve reuse;
-    // but please note that for brevity and clarity, many of the examples
-    // here are parsing immutable buffers.
+    // Below you will find samples that show how to achieve reuse; but
+    // please note that for brevity and clarity, many of the examples
+    // here are parsing immutable buffers, and not reusing tree or
+    // parser.
+
 
     //------------------------------------------------------------------
-    // To read the parsed tree.
+    // API overview
+
+    // ryml has a two-level API:
+    //
+    // The lower level index API is based on the indices of nodes,
+    // where the node's id is the node's position in the tree's data
+    // array. This API is very efficient, but somewhat difficult to use:
+    size_t root_id = tree.root_id();
+    size_t bar_id = tree.find_child(root_id, "bar"); // need to get the index right
+    CHECK(tree.is_map(root_id)); // all of the index methods are in the tree
+    CHECK(tree.is_seq(bar_id));  // ... and receive the subject index
+
+    // The node API is a lightweight abstraction sitting on top of the
+    // index API, but offering a much more convenient interaction:
+    ryml::NodeRef root = tree.rootref();
+    ryml::NodeRef bar = tree["bar"];
+    CHECK(root.is_map());
+    CHECK(bar.is_seq());
+    // NodeRef is a lightweight handle to the tree and associated id:
+    CHECK(root.tree() == &tree); // NodeRef points at its tree, WITHOUT refcount
+    CHECK(root.id() == root_id); // NodeRef's id is the index of the node
+    CHECK(bar.id() == bar_id);   // NodeRef's id is the index of the node
+
+    // The node API translates very cleanly to the index API, so most
+    // of the code examples below are using the node API.
+
+    // One significant point of the node API is that it holds a raw
+    // pointer to the tree. Care must be taken to ensure the lifetimes
+    // match, so that a node will never access the tree after the tree
+    // went out of scope.
+
+
+    //------------------------------------------------------------------
+    // To read the parsed tree
+
     // Node::operator[] does a lookup, is O(num_children[node]).
     // maps use string keys, seqs use integral keys.
     CHECK(tree["foo"].is_keyval());
@@ -183,7 +219,6 @@ void sample_quick_overview()
     CHECK(tree[2].id() == tree["john"].id()); // 2: first child of root
     // NodeRef::operator[](int) searches a node child by its position
     // on __the node__'s children list:
-    ryml::NodeRef bar = tree["bar"];
     CHECK(bar[0].val() == "2"); // 0 means first child of bar
     CHECK(bar[1].val() == "3"); // 1 means second child of bar
     // NodeRef::operator[](string):
@@ -196,10 +231,15 @@ void sample_quick_overview()
     CHECK(bar.is_seq());
     // CHECK(bar["BOOM!"].is_seed()); // error, seqs do not have key lookup
 
+    // Note that maps can also use index keys as well as string keys:
+    CHECK(root["foo"].id() == root[0].id());
+    CHECK(root["bar"].id() == root[1].id());
+    CHECK(root["john"].id() == root[2].id());
+
 
     //------------------------------------------------------------------
     // Hierarchy:
-    ryml::NodeRef root = tree.rootref();
+
     {
         ryml::NodeRef foo = root.first_child();
         ryml::NodeRef john = root.last_child();
@@ -224,17 +264,32 @@ void sample_quick_overview()
     // Iterating:
     {
         ryml::csubstr expected_keys[] = {"foo", "bar", "john"};
-        // iterate children:
+        // iterate children using the high-level node API:
         {
             size_t count = 0;
-            for(ryml::NodeRef child : root.children())
+            for(ryml::NodeRef const& child : root.children())
                 CHECK(child.key() == expected_keys[count++]);
         }
-        // iterate siblings:
+        // iterate siblings using the high-level node API:
         {
             size_t count = 0;
-            for(ryml::NodeRef child : root["foo"].siblings())
+            for(ryml::NodeRef const& child : root["foo"].siblings())
                 CHECK(child.key() == expected_keys[count++]);
+        }
+        // iterate children using the lower-level tree index API:
+        {
+            size_t count = 0;
+            for(size_t child_id = tree.first_child(root_id); child_id != ryml::NONE; child_id = tree.next_sibling(child_id))
+                CHECK(tree.key(child_id) == expected_keys[count++]);
+        }
+        // iterate siblings using the lower-level tree index API:
+        // (notice the only difference from above is in the loop
+        // preamble, which calls tree.first_sibling(bar_id) instead of
+        // tree.first_child(root_id))
+        {
+            size_t count = 0;
+            for(size_t child_id = tree.first_sibling(bar_id); child_id != ryml::NONE; child_id = tree.next_sibling(child_id))
+                CHECK(tree.key(child_id) == expected_keys[count++]);
         }
     }
 
@@ -257,7 +312,7 @@ void sample_quick_overview()
         root["foo"] >> foo;
         root["bar"][0] >> bar0;
         root["bar"][1] >> bar1;
-        root["john"] >> john; // requires from_chars(std::string). see samples below.
+        root["john"] >> john; // requires from_chars(std::string). see serialization samples below.
         CHECK(foo == 1);
         CHECK(bar0 == 2);
         CHECK(bar1 == 3);
@@ -293,7 +348,7 @@ void sample_quick_overview()
     // assigns the serialized string to the receiving node. This avoids
     // constraints with the lifetime, since the arena lives with the tree.
     CHECK(tree.arena().empty());
-    root["foo"] << "says who";
+    root["foo"] << "says who";  // requires to_chars(). see serialization samples below.
     root["bar"][0] << 20;
     root["bar"][1] << 30;
     root["john"] << "deere";
@@ -1087,7 +1142,79 @@ cars: GTO
 /** shows how to programatically create trees */
 void sample_create_trees()
 {
-    // TODO
+    ryml::NodeRef doe;
+    CHECK(!doe.valid()); // it's pointing at nowhere
+
+    ryml::Tree tree;
+    ryml::NodeRef root = tree.rootref();
+    root |= ryml::MAP; // mark root as a map
+    doe = root["doe"];
+    CHECK(doe.valid()); // it's now pointing at the tree
+    CHECK(doe.is_seed()); // but the tree has nothing there, so this is only a seed
+
+    // set the value of the node
+    const char a_deer[] = "a deer, a female deer";
+    doe = a_deer;
+    // now the node really exists in the tree, and this ref is no
+    // longer a seed:
+    CHECK(!doe.is_seed());
+    // WATCHOUT for lifetimes:
+    CHECK(doe.val().str == a_deer); // it is pointing at the initial string
+    // If you need to avoid lifetime dependency, serialize the data:
+    {
+        std::string a_drop = "a drop of golden sun";
+        // this will copy the string to the tree's arena:
+        // (see the serialization samples below)
+        root["ray"] << "a drop of golden sun";
+        // and now you can modify the original string without changing
+        // the tree:
+        a_drop[0] = 'Z';
+        a_drop[1] = 'Z';
+    }
+    CHECK(root["ray"].val() == "a drop of golden sun");
+
+    // etc.
+    root["pi"] << ryml::fmt::real(3.141592654, 5);
+    root["xmas"] << ryml::fmt::boolalpha(true);
+    root["french-hens"] << 3;
+    ryml::NodeRef calling_birds = root["calling-birds"];
+    calling_birds |= ryml::SEQ;
+    calling_birds.append_child() = "huey";
+    calling_birds.append_child() = "dewey";
+    calling_birds.append_child() = "louie";
+    calling_birds.append_child() = "fred";
+    ryml::NodeRef xmas5 = root["xmas-fifth-day"];
+    xmas5 |= ryml::MAP;
+    xmas5["calling-birds"] = "four";
+    xmas5["french-hens"] << 3;
+    xmas5["golden-rings"] << 5;
+    xmas5["partridges"] |= ryml::MAP;
+    xmas5["partridges"]["count"] << 1;
+    xmas5["partridges"]["location"] = "a pear tree";
+    xmas5["turtle-doves"] = "two";
+    root["cars"] = "GTO";
+
+    std::cout << tree;
+    CHECK(ryml::emitrs<std::string>(tree) == R"(doe: 'a deer, a female deer'
+ray: a drop of golden sun
+pi: 3.14159
+xmas: true
+'french-hens': 3
+'calling-birds':
+  - huey
+  - dewey
+  - louie
+  - fred
+'xmas-fifth-day':
+  'calling-birds': four
+  'french-hens': 3
+  'golden-rings': 5
+  partridges:
+    count: 1
+    location: a pear tree
+  'turtle-doves': two
+cars: GTO
+)");
 }
 
 
@@ -1280,8 +1407,6 @@ void sample_fundamental_types()
     CHECK(tree.to_arena(double(0.248)) == "0.248"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.248");
     CHECK(tree.to_arena(bool(true)) == "1");        CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.2481");
     CHECK(tree.to_arena(bool(false)) == "0");       CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.24810");
-    CHECK(tree.to_arena(ryml::fmt::boolalpha(bool(true))) == "true");   CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.24810true");
-    CHECK(tree.to_arena(ryml::fmt::boolalpha(bool(false))) == "false"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.24810truefalse");
 }
 
 
