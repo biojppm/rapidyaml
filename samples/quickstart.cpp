@@ -1,10 +1,11 @@
+// ryml: quickstart
+//
 // This file does a quick tour of ryml. It has multiple self-contained
 // and commented samples that illustrate how to use ryml, and how it
 // works. Although this is not a unit test, the samples are written as
-// a sequence of instructions and predicate checks to better convey
-// what is the expected result at any stage. And to ensure the code
-// here is correct and up to date, it's also run as part of the CI
-// tests.
+// a sequence of actions and predicate checks to better convey what is
+// the expected result at any stage. And to ensure the code here is
+// correct and up to date, it's also run as part of the CI tests.
 //
 // The directories that exist side-by-side with this file contain
 // several examples on how to build this with cmake, such that you can
@@ -38,52 +39,39 @@
 
 //-----------------------------------------------------------------------------
 
-// a quick'n'dirty assertion to verify a predicate
-#define CHECK(predicate)                                      \
-    do                                                        \
-    {                                                         \
-        const char *C4_XCAT(__result, __LINE__) = "OK! ";     \
-        if(!(predicate)) /* eval only once */                 \
-        {                                                     \
-            C4_XCAT(__result, __LINE__) = "ERROR: ";          \
-            ++num_failed_checks;                              \
-        }                                                     \
-        std::cout << __FILE__ << ':' << __LINE__ <<  ": "     \
-                  <<  C4_XCAT(__result, __LINE__)             \
-                  <<  #predicate << std::endl;                \
-    } while(0)
-static int num_failed_checks = 0;
+// CONTENTS:
+//
+// (Each function addresses a topic and is fully self-contained. Jump
+// to the function to find out about its topic.)
 
+void sample_quick_overview();       ///< briefly skim over most of the features
+void sample_substr();               ///< about ryml's string views (from c4core)
+void sample_parse_read_only();      ///< parse a read-only YAML source buffer
+void sample_parse_in_situ();        ///< parse an immutable YAML source buffer
+void sample_parse_reuse_tree();     ///< parse into an existing tree, maybe into a node
+void sample_parse_reuse_parser();   ///< reuse an existing parser
+void sample_parse_reuse_tree_and_parser(); ///< how to reuse existing trees and parsers
+void sample_iterate_trees();        ///< visit individual nodes and iterate through trees
+void sample_create_trees();         ///< programatically create trees
+void sample_tree_arena();           ///< interact with the tree's serialization arena
+void sample_fundamental_types();    ///< serialize/deserialize fundamental types
+void sample_formatting();           ///< control formatting when serializing/deserializing
+void sample_base64();               ///< encode/decode base64
+void sample_user_scalar_types();    ///< serialize/deserialize scalar (leaf/string) types
+void sample_user_container_types(); ///< serialize/deserialize container (map or seq) types
+void sample_std_types();            ///< serialize/deserialize STL containers
+void sample_emit_to_container();    ///< emit to memory, eg a string or vector-like container
+void sample_emit_to_stream();       ///< emit to a stream, eg std::ostream
+void sample_emit_to_file();         ///< emit to a FILE*
+void sample_emit_nested_node();     ///< pick a nested node as the root when emitting
+void sample_anchors_and_aliases();  ///< deal with YAML anchors and aliases
+void sample_tags();                 ///< deal with YAML type tags
+void sample_docs();                 ///< deal with YAML docs
+void sample_error_handler();        ///< set a custom error handler
+void sample_global_allocator();     ///< set a global allocator for ryml
+void sample_per_tree_allocator();   ///< set per-tree allocators
 
-//-----------------------------------------------------------------------------
-
-void sample_quick_overview();
-void sample_substr();
-void sample_parse_read_only();
-void sample_parse_in_situ();
-void sample_parse_reuse_tree();
-void sample_parse_reuse_parser();
-void sample_parse_reuse_tree_and_parser();
-void sample_iterate_trees();
-void sample_create_trees();
-void sample_tree_arena();
-void sample_fundamental_types();
-void sample_formatting();
-void sample_base64();
-void sample_user_scalar_types();
-void sample_user_container_types();
-void sample_std_types();
-void sample_emit_to_container();
-void sample_emit_to_stream();
-void sample_emit_to_file();
-void sample_emit_nested_node();
-void sample_anchors_and_aliases();
-void sample_tags();
-void sample_docs();
-void sample_error_handler();
-void sample_global_allocator();
-void sample_per_tree_allocator();
-
+int report_checks();
 
 int main()
 {
@@ -113,6 +101,38 @@ int main()
     sample_error_handler();
     sample_global_allocator();
     sample_per_tree_allocator();
+    return report_checks();
+}
+
+
+//-----------------------------------------------------------------------------
+
+static int num_checks = 0;
+static int num_failed_checks = 0;
+
+// a quick'n'dirty assertion to verify a predicate
+#define CHECK(predicate)                                  \
+    do                                                    \
+    {                                                     \
+        ++num_checks;                                     \
+        const char *C4_XCAT(__result, __LINE__) = "OK! "; \
+        if(!(predicate)) /* eval only once */             \
+        {                                                 \
+            C4_XCAT(__result, __LINE__) = "ERROR: ";      \
+            ++num_failed_checks;                          \
+        }                                                 \
+        std::cout << __FILE__ << ':' << __LINE__ <<  ": " \
+                  <<  C4_XCAT(__result, __LINE__)         \
+                  <<  #predicate << std::endl;            \
+    } while(0)
+
+int report_checks()
+{
+    std::cout << "Completed " << num_checks << " checks." << std::endl;
+    if(num_failed_checks)
+        std::cerr << "ERROR: " << num_failed_checks << '/' << num_checks << " checks failed." << std::endl;
+    else
+        std::cout << "SUCCESS!" << std::endl;
     return num_failed_checks;
 }
 
@@ -135,8 +155,8 @@ void sample_quick_overview()
     // buffers and reuse tree+parser, albeit (just a little) less practical.
     //
     // Below you will find samples that show how to achieve reuse;
-    // but please note that for brevity and clarity, most of the examples
-    // here are not doing this.
+    // but please note that for brevity and clarity, many of the examples
+    // here are parsing immutable buffers.
 
     //------------------------------------------------------------------
     // To read the parsed tree.
@@ -264,7 +284,7 @@ void sample_quick_overview()
     CHECK(root["john"].val() == "ron");
     // WATCHOUT: do not assign from temporary objects:
     // {
-    //     std::string crash("dangling");
+    //     std::string crash("will dangle");
     //     root["john"] == ryml::to_csubstr(crash);
     // }
     // CHECK(root["john"] == "dangling"); // CRASH! the string was deallocated
@@ -1726,13 +1746,13 @@ void sample_base64()
         {{"Belike for want of rain, which I could well beteem them from the tempest of my eyes."}, {"QmVsaWtlIGZvciB3YW50IG9mIHJhaW4sIHdoaWNoIEkgY291bGQgd2VsbCBiZXRlZW0gdGhlbSBmcm9tIHRoZSB0ZW1wZXN0IG9mIG15IGV5ZXMu"}},
     };
     // to encode base64 and write the result to val:
-    for(auto c : cases)
+    for(text_and_base64 c : cases)
     {
         tree[c.text] << ryml::fmt::base64(c.text);
         CHECK(tree[c.text].val() == c.base64);
     }
     // to encode base64 and write the result to key:
-    for(auto c : cases)
+    for(text_and_base64 c : cases)
     {
         tree.rootref().append_child() << ryml::key(ryml::fmt::base64(c.text)) << c.text;
         CHECK(tree[c.base64].val() == c.text);
@@ -1772,7 +1792,7 @@ QmVsaWtlIGZvciB3YW50IG9mIHJhaW4sIHdoaWNoIEkgY291bGQgd2VsbCBiZXRlZW0gdGhlbSBmcm9t
         CHECK(buf2.first(len) == c.text);
     }
     // to decode the val base64 and write the result to buf:
-    for(auto c : cases)
+    for(text_and_base64 c : cases)
     {
         // write the decoded result into the given buffer
         tree[c.base64] >> ryml::key(ryml::fmt::base64(buf1)); // cannot know the needed size
@@ -2752,8 +2772,8 @@ struct GlobalAllocatorExample
         std::cout << "size: alloc=" << alloc_size << " dealloc=" << dealloc_size << std::endl;
         std::cout << "count: #allocs=" << num_allocs << " #deallocs=" << num_deallocs << std::endl;
         CHECK(num_allocs == num_deallocs);
-        CHECK(alloc_size >= dealloc_size); // this is a double free
-        CHECK(alloc_size == dealloc_size); // this is a leak
+        CHECK(alloc_size >= dealloc_size); // failure here means a double free
+        CHECK(alloc_size == dealloc_size); // failure here means a leak
         num_allocs = 0;
         num_deallocs = 0;
         alloc_size = 0;
