@@ -659,25 +659,28 @@ void sample_substr()
         }
     }
 
-    // substr is mutable:
+    // substr is mutable, without changing the size:
     {
         char buf[] = "foobar";
         ryml::substr foobar = buf;
         CHECK(foobar == "foobar");
-        foobar[0] = 'F';
-        CHECK(foobar == "Foobar");
-        foobar.back() = 'R';
-        CHECK(foobar == "FoobaR");
-        foobar.reverse();
-        CHECK(foobar == "RabooF");
-        foobar.reverse();
-        CHECK(foobar == "FoobaR");
-        foobar.replace('o', '0');
-        CHECK(foobar == "F00baR");
-        foobar.replace('a', '_');
-        CHECK(foobar == "F00b_R");
-        foobar.replace("_0b", 'a');
-        CHECK(foobar == "FaaaaR");
+        foobar[0] = 'F';            CHECK(foobar == "Foobar");
+        foobar.back() = 'R';        CHECK(foobar == "FoobaR");
+        foobar.reverse();           CHECK(foobar == "RabooF");
+        foobar.reverse();           CHECK(foobar == "FoobaR");
+        foobar.reverse_sub(1, 4);   CHECK(foobar == "FabooR");
+        foobar.reverse_sub(1, 4);   CHECK(foobar == "FoobaR");
+        foobar.reverse_range(2, 5); CHECK(foobar == "FoaboR");
+        foobar.reverse_range(2, 5); CHECK(foobar == "FoobaR");
+        foobar.replace('o', '0');   CHECK(foobar == "F00baR");
+        foobar.replace('a', '_');   CHECK(foobar == "F00b_R");
+        foobar.replace("_0b", 'a'); CHECK(foobar == "FaaaaR");
+        foobar.toupper();           CHECK(foobar == "FAAAAR");
+        foobar.tolower();           CHECK(foobar == "faaaar");
+        foobar.fill('.');           CHECK(foobar == "......");
+        // see also:
+        // - erase()
+        // - replace_all()
     }
 
     // sub-views
@@ -771,21 +774,448 @@ void sample_substr()
         CHECK(!abc.overlaps(foo));
     }
 
+    // triml(): trim characters from the left
+    // trimr(): trim characters from the right
+    // trim(): trim characters from left AND right
+    {
+        CHECK(ryml::csubstr(" \t\n\rcontents without whitespace\t \n\r").trim("\t \n\r") == "contents without whitespace");
+        ryml::csubstr aaabbb = "aaabbb";
+        ryml::csubstr aaa___bbb = "aaa___bbb";
+        // trim a character:
+        CHECK(aaabbb.triml('a') == aaabbb.last(3)); // bbb
+        CHECK(aaabbb.trimr('a') == aaabbb);
+        CHECK(aaabbb.trim ('a') == aaabbb.last(3)); // bbb
+        CHECK(aaabbb.triml('b') == aaabbb);
+        CHECK(aaabbb.trimr('b') == aaabbb.first(3)); // aaa
+        CHECK(aaabbb.trim ('b') == aaabbb.first(3)); // aaa
+        CHECK(aaabbb.triml('c') == aaabbb);
+        CHECK(aaabbb.trimr('c') == aaabbb);
+        CHECK(aaabbb.trim ('c') == aaabbb);
+        CHECK(aaa___bbb.triml('a') == aaa___bbb.last(6)); // ___bbb
+        CHECK(aaa___bbb.trimr('a') == aaa___bbb);
+        CHECK(aaa___bbb.trim ('a') == aaa___bbb.last(6)); // ___bbb
+        CHECK(aaa___bbb.triml('b') == aaa___bbb);
+        CHECK(aaa___bbb.trimr('b') == aaa___bbb.first(6)); // aaa___
+        CHECK(aaa___bbb.trim ('b') == aaa___bbb.first(6)); // aaa___
+        CHECK(aaa___bbb.triml('c') == aaa___bbb);
+        CHECK(aaa___bbb.trimr('c') == aaa___bbb);
+        CHECK(aaa___bbb.trim ('c') == aaa___bbb);
+        // trim ANY of the characters:
+        CHECK(aaabbb.triml("ab") == "");
+        CHECK(aaabbb.trimr("ab") == "");
+        CHECK(aaabbb.trim ("ab") == "");
+        CHECK(aaabbb.triml("ba") == "");
+        CHECK(aaabbb.trimr("ba") == "");
+        CHECK(aaabbb.trim ("ba") == "");
+        CHECK(aaabbb.triml("cd") == aaabbb);
+        CHECK(aaabbb.trimr("cd") == aaabbb);
+        CHECK(aaabbb.trim ("cd") == aaabbb);
+        CHECK(aaa___bbb.triml("ab") == aaa___bbb.last(6)); // ___bbb
+        CHECK(aaa___bbb.triml("ba") == aaa___bbb.last(6)); // ___bbb
+        CHECK(aaa___bbb.triml("cd") == aaa___bbb);
+        CHECK(aaa___bbb.trimr("ab") == aaa___bbb.first(6)); // aaa___
+        CHECK(aaa___bbb.trimr("ba") == aaa___bbb.first(6)); // aaa___
+        CHECK(aaa___bbb.trimr("cd") == aaa___bbb);
+        CHECK(aaa___bbb.trim ("ab") == aaa___bbb.range(3, 6)); // ___
+        CHECK(aaa___bbb.trim ("ba") == aaa___bbb.range(3, 6)); // ___
+        CHECK(aaa___bbb.trim ("cd") == aaa___bbb);
+    }
+
+    // unquoted():
+    {
+        CHECK(ryml::csubstr(R"('this is is single quoted')").unquoted() == "this is is single quoted");
+        CHECK(ryml::csubstr(R"("this is is double quoted")").unquoted() == "this is is double quoted");
+    }
+
+    // stripl(): remove pattern from the left
+    // stripr(): remove pattern from the right
+    {
+        ryml::csubstr abc___cba = "abc___cba";
+        ryml::csubstr abc___abc = "abc___abc";
+        CHECK(abc___cba.stripl("abc") == abc___cba.last(6)); // ___cba
+        CHECK(abc___cba.stripr("abc") == abc___cba);
+        CHECK(abc___cba.stripl("ab") == abc___cba.last(7)); // c___cba
+        CHECK(abc___cba.stripr("ab") == abc___cba);
+        CHECK(abc___cba.stripl("a") == abc___cba.last(8)); // bc___cba, same as triml('a')
+        CHECK(abc___cba.stripr("a") == abc___cba.first(8));
+        CHECK(abc___abc.stripl("abc") == abc___abc.last(6)); // ___abc
+        CHECK(abc___abc.stripr("abc") == abc___abc.first(6)); // abc___
+        CHECK(abc___abc.stripl("ab") == abc___abc.last(7)); // c___cba
+        CHECK(abc___abc.stripr("ab") == abc___abc);
+        CHECK(abc___abc.stripl("a") == abc___abc.last(8)); // bc___cba, same as triml('a')
+        CHECK(abc___abc.stripr("a") == abc___abc);
+    }
+
     // begins_with()/ends_with()
+    // begins_with_any()/ends_with_any()
     {
         ryml::csubstr s = "foobar123";
-        // char* overloads
-        CHECK(s.begins_with("foobar"));
-        CHECK(s.ends_with("123"));
         // char overloads
         CHECK(s.begins_with('f'));
         CHECK(s.ends_with('3'));
+        CHECK(!s.ends_with('2'));
+        CHECK(!s.ends_with('o'));
+        // char[] overloads
+        CHECK(s.begins_with("foobar"));
+        CHECK(s.begins_with("foo"));
+        CHECK(s.begins_with_any("foo"));
+        CHECK(!s.begins_with("oof"));
+        CHECK(s.begins_with_any("oof"));
+        CHECK(s.ends_with("23"));
+        CHECK(s.ends_with("123"));
+        CHECK(s.ends_with_any("123"));
+        CHECK(!s.ends_with("321"));
+        CHECK(s.ends_with_any("231"));
     }
 
-    // ...
+    // select()
+    {
+        ryml::csubstr s = "0123456789";
+        CHECK(s.select('0') == s.sub(0, 1));
+        CHECK(s.select('1') == s.sub(1, 1));
+        CHECK(s.select('2') == s.sub(2, 1));
+        CHECK(s.select('8') == s.sub(8, 1));
+        CHECK(s.select('9') == s.sub(9, 1));
+        CHECK(s.select("0123") == s.range(0, 4));
+        CHECK(s.select("012" ) == s.range(0, 3));
+        CHECK(s.select("01"  ) == s.range(0, 2));
+        CHECK(s.select("0"   ) == s.range(0, 1));
+        CHECK(s.select( "123") == s.range(1, 4));
+        CHECK(s.select(  "23") == s.range(2, 4));
+        CHECK(s.select(   "3") == s.range(3, 4));
+    }
 
-    // many more facilities:
-    // see https://c4core.docsforge.com/master/api/c4/basic_substring/
+    // find()
+    {
+        ryml::csubstr s012345 = "012345";
+        // find single characters:
+        CHECK(s012345.find('a') == ryml::npos);
+        CHECK(s012345.find('0'    ) == 0u);
+        CHECK(s012345.find('0', 1u) == ryml::npos);
+        CHECK(s012345.find('1'    ) == 1u);
+        CHECK(s012345.find('1', 2u) == ryml::npos);
+        CHECK(s012345.find('2'    ) == 2u);
+        CHECK(s012345.find('2', 3u) == ryml::npos);
+        CHECK(s012345.find('3'    ) == 3u);
+        CHECK(s012345.find('3', 4u) == ryml::npos);
+        // find patterns
+        CHECK(s012345.find("ab"    ) == ryml::npos);
+        CHECK(s012345.find("01"    ) == 0u);
+        CHECK(s012345.find("01", 1u) == ryml::npos);
+        CHECK(s012345.find("12"    ) == 1u);
+        CHECK(s012345.find("12", 2u) == ryml::npos);
+        CHECK(s012345.find("23"    ) == 2u);
+        CHECK(s012345.find("23", 3u) == ryml::npos);
+    }
+
+    // count(): count the number of occurrences of a character
+    {
+        ryml::csubstr buf = "00110022003300440055";
+        CHECK(buf.count('1'     ) ==  2u);
+        CHECK(buf.count('1',  0u) ==  2u);
+        CHECK(buf.count('1',  1u) ==  2u);
+        CHECK(buf.count('1',  2u) ==  2u);
+        CHECK(buf.count('1',  3u) ==  1u);
+        CHECK(buf.count('1',  4u) ==  0u);
+        CHECK(buf.count('1',  5u) ==  0u);
+        CHECK(buf.count('0'     ) == 10u);
+        CHECK(buf.count('0',  0u) == 10u);
+        CHECK(buf.count('0',  1u) ==  9u);
+        CHECK(buf.count('0',  2u) ==  8u);
+        CHECK(buf.count('0',  3u) ==  8u);
+        CHECK(buf.count('0',  4u) ==  8u);
+        CHECK(buf.count('0',  5u) ==  7u);
+        CHECK(buf.count('0',  6u) ==  6u);
+        CHECK(buf.count('0',  7u) ==  6u);
+        CHECK(buf.count('0',  8u) ==  6u);
+        CHECK(buf.count('0',  9u) ==  5u);
+        CHECK(buf.count('0', 10u) ==  4u);
+        CHECK(buf.count('0', 11u) ==  4u);
+        CHECK(buf.count('0', 12u) ==  4u);
+        CHECK(buf.count('0', 13u) ==  3u);
+        CHECK(buf.count('0', 14u) ==  2u);
+        CHECK(buf.count('0', 15u) ==  2u);
+        CHECK(buf.count('0', 16u) ==  2u);
+        CHECK(buf.count('0', 17u) ==  1u);
+        CHECK(buf.count('0', 18u) ==  0u);
+        CHECK(buf.count('0', 19u) ==  0u);
+        CHECK(buf.count('0', 20u) ==  0u);
+    }
+
+    // first_of(),last_of()
+    {
+        ryml::csubstr s012345 = "012345";
+        CHECK(s012345.first_of('a') == ryml::npos);
+        CHECK(s012345.first_of("ab") == ryml::npos);
+        CHECK(s012345.first_of('0') == 0u);
+        CHECK(s012345.first_of("0") == 0u);
+        CHECK(s012345.first_of("01") == 0u);
+        CHECK(s012345.first_of("10") == 0u);
+        CHECK(s012345.first_of("012") == 0u);
+        CHECK(s012345.first_of("210") == 0u);
+        CHECK(s012345.first_of("0123") == 0u);
+        CHECK(s012345.first_of("3210") == 0u);
+        CHECK(s012345.first_of("01234") == 0u);
+        CHECK(s012345.first_of("43210") == 0u);
+        CHECK(s012345.first_of("012345") == 0u);
+        CHECK(s012345.first_of("543210") == 0u);
+        CHECK(s012345.first_of('5') == 5u);
+        CHECK(s012345.first_of("5") == 5u);
+        CHECK(s012345.first_of("45") == 4u);
+        CHECK(s012345.first_of("54") == 4u);
+        CHECK(s012345.first_of("345") == 3u);
+        CHECK(s012345.first_of("543") == 3u);
+        CHECK(s012345.first_of("2345") == 2u);
+        CHECK(s012345.first_of("5432") == 2u);
+        CHECK(s012345.first_of("12345") == 1u);
+        CHECK(s012345.first_of("54321") == 1u);
+        CHECK(s012345.first_of("012345") == 0u);
+        CHECK(s012345.first_of("543210") == 0u);
+        CHECK(s012345.first_of('0', 6u) == ryml::npos);
+        CHECK(s012345.first_of('5', 6u) == ryml::npos);
+        CHECK(s012345.first_of("012345", 6u) == ryml::npos);
+        //
+        CHECK(s012345.last_of('a') == ryml::npos);
+        CHECK(s012345.last_of("ab") == ryml::npos);
+        CHECK(s012345.last_of('0') == 0u);
+        CHECK(s012345.last_of("0") == 0u);
+        CHECK(s012345.last_of("01") == 1u);
+        CHECK(s012345.last_of("10") == 1u);
+        CHECK(s012345.last_of("012") == 2u);
+        CHECK(s012345.last_of("210") == 2u);
+        CHECK(s012345.last_of("0123") == 3u);
+        CHECK(s012345.last_of("3210") == 3u);
+        CHECK(s012345.last_of("01234") == 4u);
+        CHECK(s012345.last_of("43210") == 4u);
+        CHECK(s012345.last_of("012345") == 5u);
+        CHECK(s012345.last_of("543210") == 5u);
+        CHECK(s012345.last_of('5') == 5u);
+        CHECK(s012345.last_of("5") == 5u);
+        CHECK(s012345.last_of("45") == 5u);
+        CHECK(s012345.last_of("54") == 5u);
+        CHECK(s012345.last_of("345") == 5u);
+        CHECK(s012345.last_of("543") == 5u);
+        CHECK(s012345.last_of("2345") == 5u);
+        CHECK(s012345.last_of("5432") == 5u);
+        CHECK(s012345.last_of("12345") == 5u);
+        CHECK(s012345.last_of("54321") == 5u);
+        CHECK(s012345.last_of("012345") == 5u);
+        CHECK(s012345.last_of("543210") == 5u);
+        CHECK(s012345.last_of('0', 6u) == 0u);
+        CHECK(s012345.last_of('5', 6u) == 5u);
+        CHECK(s012345.last_of("012345", 6u) == 5u);
+    }
+
+    // first_not_of(), last_not_of()
+    {
+        ryml::csubstr s012345 = "012345";
+        CHECK(s012345.first_not_of('a') == 0u);
+        CHECK(s012345.first_not_of("ab") == 0u);
+        CHECK(s012345.first_not_of('0') == 1u);
+        CHECK(s012345.first_not_of("0") == 1u);
+        CHECK(s012345.first_not_of("01") == 2u);
+        CHECK(s012345.first_not_of("10") == 2u);
+        CHECK(s012345.first_not_of("012") == 3u);
+        CHECK(s012345.first_not_of("210") == 3u);
+        CHECK(s012345.first_not_of("0123") == 4u);
+        CHECK(s012345.first_not_of("3210") == 4u);
+        CHECK(s012345.first_not_of("01234") == 5u);
+        CHECK(s012345.first_not_of("43210") == 5u);
+        CHECK(s012345.first_not_of("012345") == ryml::npos);
+        CHECK(s012345.first_not_of("543210") == ryml::npos);
+        CHECK(s012345.first_not_of('5') == 0u);
+        CHECK(s012345.first_not_of("5") == 0u);
+        CHECK(s012345.first_not_of("45") == 0u);
+        CHECK(s012345.first_not_of("54") == 0u);
+        CHECK(s012345.first_not_of("345") == 0u);
+        CHECK(s012345.first_not_of("543") == 0u);
+        CHECK(s012345.first_not_of("2345") == 0u);
+        CHECK(s012345.first_not_of("5432") == 0u);
+        CHECK(s012345.first_not_of("12345") == 0u);
+        CHECK(s012345.first_not_of("54321") == 0u);
+        CHECK(s012345.first_not_of("012345") == ryml::npos);
+        CHECK(s012345.first_not_of("543210") == ryml::npos);
+        CHECK(s012345.last_not_of('a') == 5u);
+        CHECK(s012345.last_not_of("ab") == 5u);
+        CHECK(s012345.last_not_of('5') == 4u);
+        CHECK(s012345.last_not_of("5") == 4u);
+        CHECK(s012345.last_not_of("45") == 3u);
+        CHECK(s012345.last_not_of("54") == 3u);
+        CHECK(s012345.last_not_of("345") == 2u);
+        CHECK(s012345.last_not_of("543") == 2u);
+        CHECK(s012345.last_not_of("2345") == 1u);
+        CHECK(s012345.last_not_of("5432") == 1u);
+        CHECK(s012345.last_not_of("12345") == 0u);
+        CHECK(s012345.last_not_of("54321") == 0u);
+        CHECK(s012345.last_not_of("012345") == ryml::npos);
+        CHECK(s012345.last_not_of("543210") == ryml::npos);
+        CHECK(s012345.last_not_of('0') == 5u);
+        CHECK(s012345.last_not_of("0") == 5u);
+        CHECK(s012345.last_not_of("01") == 5u);
+        CHECK(s012345.last_not_of("10") == 5u);
+        CHECK(s012345.last_not_of("012") == 5u);
+        CHECK(s012345.last_not_of("210") == 5u);
+        CHECK(s012345.last_not_of("0123") == 5u);
+        CHECK(s012345.last_not_of("3210") == 5u);
+        CHECK(s012345.last_not_of("01234") == 5u);
+        CHECK(s012345.last_not_of("43210") == 5u);
+        CHECK(s012345.last_not_of("012345") == ryml::npos);
+        CHECK(s012345.last_not_of("543210") == ryml::npos);
+    }
+
+    // first_non_empty_span()
+    {
+        CHECK(ryml::csubstr("foo bar").first_non_empty_span() == "foo");
+        CHECK(ryml::csubstr("       foo bar").first_non_empty_span() == "foo");
+        CHECK(ryml::csubstr("\n   \r  \t  foo bar").first_non_empty_span() == "foo");
+        CHECK(ryml::csubstr("\n   \r  \t  foo\n\r\t bar").first_non_empty_span() == "foo");
+        CHECK(ryml::csubstr("\n   \r  \t  foo\n\r\t bar").first_non_empty_span() == "foo");
+        CHECK(ryml::csubstr(",\n   \r  \t  foo\n\r\t bar").first_non_empty_span() == ",");
+    }
+    // first_uint_span()
+    {
+        CHECK(ryml::csubstr("1234 asdkjh").first_uint_span() == "1234");
+        CHECK(ryml::csubstr("1234\rasdkjh").first_uint_span() == "1234");
+        CHECK(ryml::csubstr("1234\tasdkjh").first_uint_span() == "1234");
+        CHECK(ryml::csubstr("1234\nasdkjh").first_uint_span() == "1234");
+        CHECK(ryml::csubstr("1234]asdkjh").first_uint_span() == "1234");
+        CHECK(ryml::csubstr("1234)asdkjh").first_uint_span() == "1234");
+        CHECK(ryml::csubstr("1234gasdkjh").first_uint_span() == "");
+    }
+    // first_int_span()
+    {
+        CHECK(ryml::csubstr("-1234 asdkjh").first_int_span() == "-1234");
+        CHECK(ryml::csubstr("-1234\rasdkjh").first_int_span() == "-1234");
+        CHECK(ryml::csubstr("-1234\tasdkjh").first_int_span() == "-1234");
+        CHECK(ryml::csubstr("-1234\nasdkjh").first_int_span() == "-1234");
+        CHECK(ryml::csubstr("-1234]asdkjh").first_int_span() == "-1234");
+        CHECK(ryml::csubstr("-1234)asdkjh").first_int_span() == "-1234");
+        CHECK(ryml::csubstr("-1234gasdkjh").first_int_span() == "");
+    }
+    // first_real_span()
+    {
+        CHECK(ryml::csubstr("-1234 asdkjh").first_real_span() == "-1234");
+        CHECK(ryml::csubstr("-1234\rasdkjh").first_real_span() == "-1234");
+        CHECK(ryml::csubstr("-1234\tasdkjh").first_real_span() == "-1234");
+        CHECK(ryml::csubstr("-1234\nasdkjh").first_real_span() == "-1234");
+        CHECK(ryml::csubstr("-1234]asdkjh").first_real_span() == "-1234");
+        CHECK(ryml::csubstr("-1234)asdkjh").first_real_span() == "-1234");
+        CHECK(ryml::csubstr("-1234gasdkjh").first_real_span() == "");
+        CHECK(ryml::csubstr("1.234 asdkjh").first_real_span() == "1.234");
+        CHECK(ryml::csubstr("1.234e5 asdkjh").first_real_span() == "1.234e5");
+        CHECK(ryml::csubstr("1.234e+5 asdkjh").first_real_span() == "1.234e+5");
+        CHECK(ryml::csubstr("1.234e-5 asdkjh").first_real_span() == "1.234e-5");
+        CHECK(ryml::csubstr("1.234 asdkjh").first_real_span() == "1.234");
+        CHECK(ryml::csubstr("1.234e5 asdkjh").first_real_span() == "1.234e5");
+        CHECK(ryml::csubstr("1.234e+5 asdkjh").first_real_span() == "1.234e+5");
+        CHECK(ryml::csubstr("1.234e-5 asdkjh").first_real_span() == "1.234e-5");
+        CHECK(ryml::csubstr("-1.234 asdkjh").first_real_span() == "-1.234");
+        CHECK(ryml::csubstr("-1.234e5 asdkjh").first_real_span() == "-1.234e5");
+        CHECK(ryml::csubstr("-1.234e+5 asdkjh").first_real_span() == "-1.234e+5");
+        CHECK(ryml::csubstr("-1.234e-5 asdkjh").first_real_span() == "-1.234e-5");
+        CHECK(ryml::csubstr("0x1.e8480p+19 asdkjh").first_real_span() == "0x1.e8480p+19");
+        CHECK(ryml::csubstr("0x1.e8480p-19 asdkjh").first_real_span() == "0x1.e8480p-19");
+        CHECK(ryml::csubstr("-0x1.e8480p+19 asdkjh").first_real_span() == "-0x1.e8480p+19");
+        CHECK(ryml::csubstr("-0x1.e8480p-19 asdkjh").first_real_span() == "-0x1.e8480p-19");
+        CHECK(ryml::csubstr("+0x1.e8480p+19 asdkjh").first_real_span() == "+0x1.e8480p+19");
+        CHECK(ryml::csubstr("+0x1.e8480p-19 asdkjh").first_real_span() == "+0x1.e8480p-19");
+    }
+    // see also is_number()
+
+    // basename(), dirname(), extshort(), extlong()
+    {
+        CHECK(ryml::csubstr("/path/to/file.tar.gz").basename() == "file.tar.gz");
+        CHECK(ryml::csubstr("/path/to/file.tar.gz").dirname() == "/path/to/");
+        CHECK(ryml::csubstr("C:\\path\\to\\file.tar.gz").basename('\\') == "file.tar.gz");
+        CHECK(ryml::csubstr("C:\\path\\to\\file.tar.gz").dirname('\\') == "C:\\path\\to\\");
+        CHECK(ryml::csubstr("/path/to/file.tar.gz").extshort() == "gz");
+        CHECK(ryml::csubstr("/path/to/file.tar.gz").extlong() == "tar.gz");
+        CHECK(ryml::csubstr("/path/to/file.tar.gz").name_wo_extshort() == "/path/to/file.tar");
+        CHECK(ryml::csubstr("/path/to/file.tar.gz").name_wo_extlong() == "/path/to/file");
+    }
+
+    // split()
+    {
+        using namespace ryml;
+        csubstr parts[] = {"aa", "bb", "cc", "dd", "ee", "ff"};
+        {
+            size_t count = 0;
+            for(csubstr part : csubstr("aa/bb/cc/dd/ee/ff").split('/'))
+                CHECK(part == parts[count++]);
+        }
+        {
+            size_t count = 0;
+            for(csubstr part : csubstr("aa.bb.cc.dd.ee.ff").split('.'))
+                CHECK(part == parts[count++]);
+        }
+        {
+            size_t count = 0;
+            for(csubstr part : csubstr("aa-bb-cc-dd-ee-ff").split('-'))
+                CHECK(part == parts[count++]);
+        }
+        // see also next_split()
+    }
+
+    //  pop_left(),  pop_right() --- non-greedy version
+    // gpop_left(), gpop_right() --- greedy version
+    {
+        const bool skip_empty = true;
+        // pop_left(): pop the last element from the left
+        CHECK(ryml::csubstr(  "0/1/2"   ). pop_left('/'            ) ==   "0"    );
+        CHECK(ryml::csubstr( "/0/1/2"   ). pop_left('/'            ) == ""       );
+        CHECK(ryml::csubstr("//0/1/2"   ). pop_left('/'            ) == ""       );
+        CHECK(ryml::csubstr(  "0/1/2"   ). pop_left('/', skip_empty) ==   "0"    );
+        CHECK(ryml::csubstr( "/0/1/2"   ). pop_left('/', skip_empty) ==  "/0"    );
+        CHECK(ryml::csubstr("//0/1/2"   ). pop_left('/', skip_empty) == "//0"    );
+        // gpop_left(): pop all but the first element (greedy pop)
+        CHECK(ryml::csubstr(  "0/1/2"   ).gpop_left('/'            ) ==   "0/1"  );
+        CHECK(ryml::csubstr( "/0/1/2"   ).gpop_left('/'            ) ==  "/0/1"  );
+        CHECK(ryml::csubstr("//0/1/2"   ).gpop_left('/'            ) == "//0/1"  );
+        CHECK(ryml::csubstr(  "0/1/2/"  ).gpop_left('/'            ) ==   "0/1/2");
+        CHECK(ryml::csubstr( "/0/1/2/"  ).gpop_left('/'            ) ==  "/0/1/2");
+        CHECK(ryml::csubstr("//0/1/2/"  ).gpop_left('/'            ) == "//0/1/2");
+        CHECK(ryml::csubstr(  "0/1/2//" ).gpop_left('/'            ) ==   "0/1/2/");
+        CHECK(ryml::csubstr( "/0/1/2//" ).gpop_left('/'            ) ==  "/0/1/2/");
+        CHECK(ryml::csubstr("//0/1/2//" ).gpop_left('/'            ) == "//0/1/2/");
+        CHECK(ryml::csubstr(  "0/1/2"   ).gpop_left('/', skip_empty) ==   "0/1"  );
+        CHECK(ryml::csubstr( "/0/1/2"   ).gpop_left('/', skip_empty) ==  "/0/1"  );
+        CHECK(ryml::csubstr("//0/1/2"   ).gpop_left('/', skip_empty) == "//0/1"  );
+        CHECK(ryml::csubstr(  "0/1/2/"  ).gpop_left('/', skip_empty) ==   "0/1"  );
+        CHECK(ryml::csubstr( "/0/1/2/"  ).gpop_left('/', skip_empty) ==  "/0/1"  );
+        CHECK(ryml::csubstr("//0/1/2/"  ).gpop_left('/', skip_empty) == "//0/1"  );
+        CHECK(ryml::csubstr(  "0/1/2//" ).gpop_left('/', skip_empty) ==   "0/1"  );
+        CHECK(ryml::csubstr( "/0/1/2//" ).gpop_left('/', skip_empty) ==  "/0/1"  );
+        CHECK(ryml::csubstr("//0/1/2//" ).gpop_left('/', skip_empty) == "//0/1"  );
+        // pop_right(): pop the last element from the right
+        CHECK(ryml::csubstr(  "0/1/2"   ). pop_right('/'            ) ==   "2"    );
+        CHECK(ryml::csubstr(  "0/1/2/"  ). pop_right('/'            ) == ""       );
+        CHECK(ryml::csubstr(  "0/1/2//" ). pop_right('/'            ) == ""       );
+        CHECK(ryml::csubstr(  "0/1/2"   ). pop_right('/', skip_empty) ==   "2"    );
+        CHECK(ryml::csubstr(  "0/1/2/"  ). pop_right('/', skip_empty) ==   "2/"   );
+        CHECK(ryml::csubstr(  "0/1/2//" ). pop_right('/', skip_empty) ==   "2//"  );
+        // gpop_right(): pop all but the first element (greedy pop)
+        CHECK(ryml::csubstr(  "0/1/2"   ).gpop_right('/'            ) ==     "1/2");
+        CHECK(ryml::csubstr(  "0/1/2/"  ).gpop_right('/'            ) ==     "1/2/"  );
+        CHECK(ryml::csubstr(  "0/1/2//" ).gpop_right('/'            ) ==     "1/2//"  );
+        CHECK(ryml::csubstr( "/0/1/2"   ).gpop_right('/'            ) ==   "0/1/2");
+        CHECK(ryml::csubstr( "/0/1/2/"  ).gpop_right('/'            ) ==   "0/1/2/"  );
+        CHECK(ryml::csubstr( "/0/1/2//" ).gpop_right('/'            ) ==   "0/1/2//"  );
+        CHECK(ryml::csubstr("//0/1/2"   ).gpop_right('/'            ) ==  "/0/1/2");
+        CHECK(ryml::csubstr("//0/1/2/"  ).gpop_right('/'            ) ==  "/0/1/2/"  );
+        CHECK(ryml::csubstr("//0/1/2//" ).gpop_right('/'            ) ==  "/0/1/2//"  );
+        CHECK(ryml::csubstr(  "0/1/2"   ).gpop_right('/', skip_empty) ==     "1/2");
+        CHECK(ryml::csubstr(  "0/1/2/"  ).gpop_right('/', skip_empty) ==     "1/2/"  );
+        CHECK(ryml::csubstr(  "0/1/2//" ).gpop_right('/', skip_empty) ==     "1/2//"  );
+        CHECK(ryml::csubstr( "/0/1/2"   ).gpop_right('/', skip_empty) ==     "1/2");
+        CHECK(ryml::csubstr( "/0/1/2/"  ).gpop_right('/', skip_empty) ==     "1/2/"  );
+        CHECK(ryml::csubstr( "/0/1/2//" ).gpop_right('/', skip_empty) ==     "1/2//"  );
+        CHECK(ryml::csubstr("//0/1/2"   ).gpop_right('/', skip_empty) ==     "1/2");
+        CHECK(ryml::csubstr("//0/1/2/"  ).gpop_right('/', skip_empty) ==     "1/2/"  );
+        CHECK(ryml::csubstr("//0/1/2//" ).gpop_right('/', skip_empty) ==     "1/2//"  );
+    }
+
+    // see the docs:
+    // https://c4core.docsforge.com/master/api/c4/basic_substring/
 }
 
 
