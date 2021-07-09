@@ -600,7 +600,7 @@ jobs:
         id: src_pack
         run: |
           version=${{steps.get_version.outputs.SRC_VERSION}}
-          name=ryml-$version
+          name=${PROJ_PFX_TARGET}src-$version
           git-archive-all --prefix $name $name.tgz
           git-archive-all --prefix $name $name.zip
           echo ::set-output name=TGZ::$name.tgz
@@ -633,78 +633,79 @@ jobs:
           path: ./upload_url
           name: upload_url
 
-  #----------------------------------------------------------------------------
-  publish:
-    needs: release
-    name: publish/${{matrix.config.os}}/${{matrix.config.gen}}
-    runs-on: ${{matrix.config.os}}
-    env: {DEV: OFF, BT: Release, OS: "${{matrix.config.os}}", CXX_: "${{matrix.config.cxx}}", GEN: "${{matrix.config.gen}}"}
-    strategy:
-      fail-fast: false
-      matrix:
-        config:
-          #  name of the artifact    | suffix         | cpack gen | mime type                      | os              | cxx
-          - {name: Ubuntu 20.04 deb  , sfx: unix64.deb, gen: DEB  , mime: vnd.debian.binary-package, os: ubuntu-20.04             }
-          - {name: Ubuntu 20.04 sh   , sfx: unix64.sh , gen: STGZ , mime: x-sh                     , os: ubuntu-20.04             }
-          - {name: Ubuntu 18.04 deb  , sfx: unix64.deb, gen: DEB  , mime: vnd.debian.binary-package, os: ubuntu-18.04             }
-          - {name: Ubuntu 18.04 sh   , sfx: unix64.sh , gen: STGZ , mime: x-sh                     , os: ubuntu-18.04             }
-          - {name: Ubuntu 16.04 deb  , sfx: unix64.deb, gen: DEB  , mime: vnd.debian.binary-package, os: ubuntu-16.04             }
-          - {name: Ubuntu 16.04 sh   , sfx: unix64.sh , gen: STGZ , mime: x-sh                     , os: ubuntu-16.04             }
-          - {name: Windows VS2017 zip, sfx: win64.zip , gen: ZIP  , mime: zip                      , os: windows-2016, cxx: vs2017}
-          - {name: Windows VS2019 zip, sfx: win64.zip , gen: ZIP  , mime: zip                      , os: windows-2019, cxx: vs2019}
-          - {name: MacOSX sh         , sfx: apple64.sh, gen: STGZ , mime: x-sh                     , os: macos-11.0  , cxx: xcode }
-    steps:
-      - name: Get version
-        id: get_version
-        # https://github.community/t/how-to-get-just-the-tag-name/16241/11
-        run: |
-          echo ::set-output name=SRC_VERSION::${GITHUB_REF#refs/tags/v}
-          echo SRC_VERSION=${GITHUB_REF#refs/tags/v}
-          echo GEN=$GEN
-      - name: Download upload URL
-        uses: actions/download-artifact@v1
-        with: {name: upload_url, path: ./}
-      - name: Preprocess
-        id: preprocess
-        run: |
-          upload_url=`cat ./upload_url`
-          echo ::set-output name=upload_url::$upload_url
-          # the package has the same name in multiple same-platform+same-sfx
-          # instances, but the uploaded asset needs to have different names:
-          sfx=${{matrix.config.sfx}}
-          case "${{matrix.config.os}}" in
-            ubuntu*)
-              sfx=$(echo $sfx | sed "s:unix64:${{matrix.config.os}}:")
-              ;;
-            windows*)
-              sfx=$(echo $sfx | sed "s:win64:win64-${{matrix.config.cxx}}:")
-              ;;
-            macos*)
-              sfx=$(echo $sfx | sed "s:apple64:macosx-${{matrix.config.cxx}}:")
-              ;;
-          esac
-          asset_name=ryml-${{steps.get_version.outputs.SRC_VERSION}}-$sfx
-          echo ::set-output name=asset_name::$asset_name
-      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
-      - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
-      - {name: show info, run: source .github/setenv.sh && c4_show_info }
-      - name: shared64-configure---------------------------------------------------
-        run: source .github/setenv.sh && c4_cfg_test shared64
-      - {name: shared64-build, run: source .github/setenv.sh && c4_build_target shared64}
-      - name: shared64-pack
-        run: |
-          source .github/setenv.sh && c4_package shared64 $GEN
-          src=./build/shared64/ryml-${{steps.get_version.outputs.SRC_VERSION}}-${{matrix.config.sfx}}
-          dst=${{steps.preprocess.outputs.asset_name}}
-          cp -fav $src $dst
-      - name: Upload artifact
-        id: upload_to_release
-        uses: actions/upload-release-asset@v1.0.1
-        env: {GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}"}
-        with:
-          upload_url: ${{steps.preprocess.outputs.upload_url}}
-          asset_path: ${{steps.preprocess.outputs.asset_name}}
-          asset_name: ${{steps.preprocess.outputs.asset_name}}
-          asset_content_type: application/${{matrix.config.mime}}
-      #- name: Report artifact URL
-      #  run: echo "artifact uploaded successfully: ${{steps.upload_to_release.outputs.browser_download_url}}"
+# this is a library, the src is enough
+#  #----------------------------------------------------------------------------
+#  publish:
+#    needs: release
+#    name: publish/${{matrix.config.os}}/${{matrix.config.gen}}
+#    runs-on: ${{matrix.config.os}}
+#    env: {DEV: OFF, BT: Release, OS: "${{matrix.config.os}}", CXX_: "${{matrix.config.cxx}}", GEN: "${{matrix.config.gen}}"}
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        config:
+#          #  name of the artifact    | suffix         | cpack gen | mime type                      | os              | cxx
+#          - {name: Ubuntu 20.04 deb  , sfx: unix64.deb, gen: DEB  , mime: vnd.debian.binary-package, os: ubuntu-20.04             }
+#          - {name: Ubuntu 20.04 sh   , sfx: unix64.sh , gen: STGZ , mime: x-sh                     , os: ubuntu-20.04             }
+#          - {name: Ubuntu 18.04 deb  , sfx: unix64.deb, gen: DEB  , mime: vnd.debian.binary-package, os: ubuntu-18.04             }
+#          - {name: Ubuntu 18.04 sh   , sfx: unix64.sh , gen: STGZ , mime: x-sh                     , os: ubuntu-18.04             }
+#          - {name: Ubuntu 16.04 deb  , sfx: unix64.deb, gen: DEB  , mime: vnd.debian.binary-package, os: ubuntu-16.04             }
+#          - {name: Ubuntu 16.04 sh   , sfx: unix64.sh , gen: STGZ , mime: x-sh                     , os: ubuntu-16.04             }
+#          - {name: Windows VS2017 zip, sfx: win64.zip , gen: ZIP  , mime: zip                      , os: windows-2016, cxx: vs2017}
+#          - {name: Windows VS2019 zip, sfx: win64.zip , gen: ZIP  , mime: zip                      , os: windows-2019, cxx: vs2019}
+#          - {name: MacOSX sh         , sfx: apple64.sh, gen: STGZ , mime: x-sh                     , os: macos-11.0  , cxx: xcode }
+#    steps:
+#      - name: Get version
+#        id: get_version
+#        # https://github.community/t/how-to-get-just-the-tag-name/16241/11
+#        run: |
+#          echo ::set-output name=SRC_VERSION::${GITHUB_REF#refs/tags/v}
+#          echo SRC_VERSION=${GITHUB_REF#refs/tags/v}
+#          echo GEN=$GEN
+#      - name: Download upload URL
+#        uses: actions/download-artifact@v1
+#        with: {name: upload_url, path: ./}
+#      - name: Preprocess
+#        id: preprocess
+#        run: |
+#          upload_url=`cat ./upload_url`
+#          echo ::set-output name=upload_url::$upload_url
+#          # the package has the same name in multiple same-platform+same-sfx
+#          # instances, but the uploaded asset needs to have different names:
+#          sfx=${{matrix.config.sfx}}
+#          case "${{matrix.config.os}}" in
+#            ubuntu*)
+#              sfx=$(echo $sfx | sed "s:unix64:${{matrix.config.os}}:")
+#              ;;
+#            windows*)
+#              sfx=$(echo $sfx | sed "s:win64:win64-${{matrix.config.cxx}}:")
+#              ;;
+#            macos*)
+#              sfx=$(echo $sfx | sed "s:apple64:macosx-${{matrix.config.cxx}}:")
+#              ;;
+#          esac
+#          asset_name=${PROJ_PFX_TARGET}${{steps.get_version.outputs.SRC_VERSION}}-$sfx
+#          echo ::set-output name=asset_name::$asset_name
+#      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+#      - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
+#      - {name: show info, run: source .github/setenv.sh && c4_show_info }
+#      - name: shared64-configure---------------------------------------------------
+#        run: source .github/setenv.sh && c4_cfg_test shared64
+#      - {name: shared64-build, run: source .github/setenv.sh && c4_build_target shared64 all}
+#      - name: shared64-pack
+#        run: |
+#          source .github/setenv.sh && c4_package shared64 $GEN
+#          src=./build/shared64/${PROJ_PFX_TARGET}${{steps.get_version.outputs.SRC_VERSION}}-${{matrix.config.sfx}}
+#          dst=${{steps.preprocess.outputs.asset_name}}
+#          cp -fav $src $dst
+#      - name: Upload artifact
+#        id: upload_to_release
+#        uses: actions/upload-release-asset@v1.0.1
+#        env: {GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}"}
+#        with:
+#          upload_url: ${{steps.preprocess.outputs.upload_url}}
+#          asset_path: ${{steps.preprocess.outputs.asset_name}}
+#          asset_name: ${{steps.preprocess.outputs.asset_name}}
+#          asset_content_type: application/${{matrix.config.mime}}
+#      #- name: Report artifact URL
+#      #  run: echo "artifact uploaded successfully: ${{steps.upload_to_release.outputs.browser_download_url}}"
