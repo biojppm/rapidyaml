@@ -35,27 +35,41 @@
 
 
 #ifndef RYML_DBG
-#   define RYML_CHECK(cond) if(!(cond)) { ::c4::yml::error("expected true: " #cond); }
-#   define RYML_CHECK_MSG(cond, msg) if(!(cond)) { ::c4::yml::error(msg ": expected true: " #cond); }
+#   define RYML_CHECK(cond)                                             \
+    do {                                                                \
+        if(!(cond))                                                     \
+        {                                                               \
+            C4_DEBUG_BREAK();                                           \
+            c4::yml::error("expected true: " #cond);                    \
+        }                                                               \
+    } while(0)
+#   define RYML_CHECK_MSG(cond, msg)                                    \
+    do                                                                  \
+    {                                                                   \
+        if(!(cond))                                                     \
+        {                                                               \
+            C4_DEBUG_BREAK();                                           \
+            c4::yml::error(msg ": expected true: " #cond);              \
+        }                                                               \
+    } while(0)
 #else
-#   define RYML_CHECK(cond)                             \
-        if(!(cond))                                     \
-        {                                               \
-            if(c4::is_debugger_attached())              \
-            {                                           \
-                C4_DEBUG_BREAK();                       \
-            }                                           \
-            ::c4::yml::error(__FILE__ ":" C4_XQUOTE(__LINE__) ": expected true: " #cond);  \
-        }
-#   define RYML_CHECK_MSG(cond, msg)                          \
-        if(!(cond))                                           \
-        {                                                     \
-            if(c4::is_debugger_attached())                    \
-            {                                                 \
-                C4_DEBUG_BREAK();                             \
-            }                                                 \
-            ::c4::yml::error(__FILE__ ":" C4_XQUOTE(__LINE__) ": expected true: " #cond "\n" msg);  \
-        }
+#   define RYML_CHECK(cond)                                             \
+    do {                                                                \
+        if(!(cond))                                                     \
+        {                                                               \
+            C4_DEBUG_BREAK();                                           \
+            c4::yml::error(__FILE__ ":" C4_XQUOTE(__LINE__) ": expected true: " #cond); \
+        }                                                               \
+    } while(0)
+
+#   define RYML_CHECK_MSG(cond, msg)                                    \
+    do {                                                                \
+        if(!(cond))                                                     \
+        {                                                               \
+            C4_DEBUG_BREAK();                                           \
+            c4::yml::error(__FILE__ ":" C4_XQUOTE(__LINE__) ": expected true: " #cond "\n" msg); \
+        }                                                               \
+    } while(0)
 #endif
 
 
@@ -76,11 +90,13 @@
 namespace c4 {
 namespace yml {
 
-/** a null position */
-enum : size_t { npos = size_t(-1) };
+enum : size_t {
+    /** a null position */
+    npos = size_t(-1),
+    /** an index to none */
+    NONE = size_t(-1)
+};
 
-/** an index to none */
-enum : size_t { NONE = size_t(-1) };
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
