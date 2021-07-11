@@ -62,18 +62,30 @@ const char* NodeType::type_str(NodeType_e ty)
 {
     switch(ty & _TYMASK)
     {
-    case KEYVAL  : return "KEYVAL";
-    case VAL     : return "VAL";
-    case DOCSEQ  : return "DOCSEQ";
-    case DOCMAP  : return "DOCMAP";
-    case DOCVAL  : return "DOCVAL";
-    case MAP     : return "MAP";
-    case SEQ     : return "SEQ";
-    case KEYMAP  : return "KEYMAP";
-    case KEYSEQ  : return "KEYSEQ";
-    case DOC     : return "DOC";
-    case STREAM  : return "STREAM";
-    case NOTYPE  : return "NOTYPE";
+    case KEYVAL:
+        return "KEYVAL";
+    case VAL:
+        return "VAL";
+    case DOCSEQ:
+        return "DOCSEQ";
+    case DOCMAP:
+        return "DOCMAP";
+    case DOCVAL:
+        return "DOCVAL";
+    case MAP:
+        return "MAP";
+    case SEQ:
+        return "SEQ";
+    case KEYMAP:
+        return "KEYMAP";
+    case KEYSEQ:
+        return "KEYSEQ";
+    case DOC:
+        return "DOC";
+    case STREAM:
+        return "STREAM";
+    case NOTYPE:
+        return "NOTYPE";
     default:
         if(ty & (KEYREF|VALREF))
             return "REF";
@@ -243,12 +255,18 @@ void Tree::_relocate(substr next_arena)
     memcpy(next_arena.str, m_arena.str, m_arena_pos);
     for(NodeData *C4_RESTRICT n = m_buf, *e = m_buf + m_cap; n != e; ++n)
     {
-        if(in_arena(n->m_key.scalar)) n->m_key.scalar = _relocated(n->m_key.scalar, next_arena);
-        if(in_arena(n->m_key.tag   )) n->m_key.tag    = _relocated(n->m_key.tag   , next_arena);
-        if(in_arena(n->m_key.anchor)) n->m_key.anchor = _relocated(n->m_key.anchor, next_arena);
-        if(in_arena(n->m_val.scalar)) n->m_val.scalar = _relocated(n->m_val.scalar, next_arena);
-        if(in_arena(n->m_val.tag   )) n->m_val.tag    = _relocated(n->m_val.tag   , next_arena);
-        if(in_arena(n->m_val.anchor)) n->m_val.anchor = _relocated(n->m_val.anchor, next_arena);
+        if(in_arena(n->m_key.scalar))
+            n->m_key.scalar = _relocated(n->m_key.scalar, next_arena);
+        if(in_arena(n->m_key.tag   ))
+            n->m_key.tag    = _relocated(n->m_key.tag   , next_arena);
+        if(in_arena(n->m_key.anchor))
+            n->m_key.anchor = _relocated(n->m_key.anchor, next_arena);
+        if(in_arena(n->m_val.scalar))
+            n->m_val.scalar = _relocated(n->m_val.scalar, next_arena);
+        if(in_arena(n->m_val.tag   ))
+            n->m_val.tag    = _relocated(n->m_val.tag   , next_arena);
+        if(in_arena(n->m_val.anchor))
+            n->m_val.anchor = _relocated(n->m_val.anchor, next_arena);
     }
 }
 
@@ -430,7 +448,8 @@ void Tree::_set_hierarchy(size_t ichild, size_t iparent, size_t iprev_sibling)
         RYML_ASSERT(iprev_sibling == NONE);
     }
 
-    if(iparent == NONE) return;
+    if(iparent == NONE)
+        return;
 
     size_t inext_sibling = iprev_sibling != NONE ? next_sibling(iprev_sibling) : first_child(iparent);
     NodeData *C4_RESTRICT parent = get(iparent);
@@ -935,8 +954,10 @@ size_t Tree::duplicate_children_no_rep(Tree const *src, size_t node, size_t pare
 void Tree::merge_with(Tree const *src, size_t src_node, size_t dst_node)
 {
     RYML_ASSERT(src != nullptr);
-    if(src_node == NONE) src_node = src->root_id();
-    if(dst_node == NONE) dst_node = root_id();
+    if(src_node == NONE)
+        src_node = src->root_id();
+    if(dst_node == NONE)
+        dst_node = root_id();
     RYML_ASSERT(src->has_val(src_node) || src->is_seq(src_node) || src->is_map(src_node));
 
     if(src->has_val(src_node))
@@ -1434,10 +1455,12 @@ Tree::lookup_result Tree::lookup_path(csubstr path, size_t start) const
 
 size_t Tree::lookup_path_or_modify(csubstr default_value, csubstr path, size_t start)
 {
-    if(start == NONE) start = root_id();
+    if(start == NONE)
+        start = root_id();
     lookup_result r(path, start);
     _lookup_path(&r, /*modify*/false);
-    if(r.target != NONE) return r.target;
+    if(r.target != NONE)
+        return r.target;
     _lookup_path(&r, /*modify*/true);
     C4_CHECK(r.target != NONE);
     if(parent_is_map(r.target))
@@ -1475,7 +1498,8 @@ size_t Tree::_next_node(lookup_result * r, bool modify, _lookup_path_token *pare
 {
     _lookup_path_token token = _next_token(r, *parent);
 
-    if( ! token) return NONE;
+    if( ! token)
+        return NONE;
 
     size_t node = NONE;
     csubstr tk = token.value;
@@ -1489,7 +1513,8 @@ size_t Tree::_next_node(lookup_result * r, bool modify, _lookup_path_token *pare
         {
             RYML_ASSERT(is_map(r->closest));
             node = find_child(r->closest, tk);
-            if(node == NONE) goto failure;
+            if(node == NONE)
+                goto failure;
         }
         else
         {
@@ -1516,12 +1541,11 @@ size_t Tree::_next_node(lookup_result * r, bool modify, _lookup_path_token *pare
     {
         RYML_ASSERT(r->unresolved().empty());
         if(is_map(r->closest))
-        {
             node = find_child(r->closest, tk);
-        }
         if( ! modify)
         {
-            if(node == NONE) goto failure;
+            if(node == NONE)
+                goto failure;
         }
         else
         {
@@ -1548,7 +1572,8 @@ size_t Tree::_next_node(lookup_result * r, bool modify, _lookup_path_token *pare
         if( ! modify)
         {
             node = child(r->closest, idx);
-            if(node == NONE) goto failure;
+            if(node == NONE)
+                goto failure;
         }
         else
         {
@@ -1614,7 +1639,8 @@ Tree::_lookup_path_token Tree::_next_token(lookup_result *r, _lookup_path_token 
     if(unres.begins_with('['))
     {
         size_t pos = unres.find(']');
-        if(pos == csubstr::npos) return {};
+        if(pos == csubstr::npos)
+            return {};
         csubstr idx = unres.first(pos + 1);
         _advance(r, pos + 1);
         return {idx, KEY};
