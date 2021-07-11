@@ -988,10 +988,17 @@ public:
     /** for example foo.bar[0].baz */
     lookup_result lookup_path(csubstr path, size_t start=NONE) const;
 
-    /** defaulted lookup: lookup path; if the lookup fails, recursively modify
+    /** defaulted lookup: lookup @p path; if the lookup fails, recursively modify
      * the tree so that the corresponding lookup_path() would return the
-     * default value */
+     * default value.
+     * @see lookup_path() */
     size_t lookup_path_or_modify(csubstr default_value, csubstr path, size_t start=NONE);
+
+    /** defaulted lookup: lookup @p path; if the lookup fails, recursively modify
+     * the tree so that the corresponding lookup_path() would return the
+     * branch @p src_node (from the tree @p src).
+     * @see lookup_path() */
+    size_t lookup_path_or_modify(Tree const *src, size_t src_node, csubstr path, size_t start=NONE);
 
     /** @} */
 
