@@ -1475,6 +1475,20 @@ size_t Tree::lookup_path_or_modify(csubstr default_value, csubstr path, size_t s
     return r.target;
 }
 
+size_t Tree::lookup_path_or_modify(Tree const *src, size_t src_node, csubstr path, size_t start)
+{
+    if(start == NONE)
+        start = root_id();
+    lookup_result r(path, start);
+    _lookup_path(&r, /*modify*/false);
+    if(r.target != NONE)
+        return r.target;
+    _lookup_path(&r, /*modify*/true);
+    C4_CHECK(r.target != NONE);
+    merge_with(src, src_node, r.target);
+    return r.target;
+}
+
 void Tree::_lookup_path(lookup_result *r, bool modify)
 {
     _lookup_path_token parent{"", type(r->closest)};
