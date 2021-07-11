@@ -3,15 +3,10 @@
 #include "c4/yml/node.hpp"
 #include "c4/yml/detail/stack.hpp"
 
-#ifdef __GNUC__
-#   pragma GCC diagnostic push
-#   pragma GCC diagnostic ignored "-Wtype-limits"
-#endif
 
-#if defined(_MSC_VER)
-#   pragma warning(push)
-#   pragma warning(disable: 4296/*expression is always 'boolean_value'*/)
-#endif
+C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wtype-limits")
+C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4296/*expression is always 'boolean_value'*/)
+
 
 namespace c4 {
 namespace yml {
@@ -155,6 +150,7 @@ NodeRef const Tree::operator[] (size_t i) const
     return rootref()[i];
 }
 
+
 //-----------------------------------------------------------------------------
 Tree::Tree(Allocator const& cb)
 :
@@ -221,14 +217,9 @@ void Tree::_free()
 }
 
 
-#ifdef __clang__
-#    pragma clang diagnostic push
-//#    pragma clang diagnostic ignored "-Wgnu-inline-cpp-without-extern" // debugbreak/debugbreak.h:50:16: error: 'gnu_inline' attribute without 'extern' in C++ treated as externally available, this changed in Clang 10 [-Werror,-Wgnu-inline-cpp-without-extern]
-#elif defined(__GNUC__)
-#    pragma GCC diagnostic push
-#    if __GNUC__>= 8
-#        pragma GCC diagnostic ignored "-Wclass-memaccess" // error: ‘void* memset(void*, int, size_t)’ clearing an object of type ‘class c4::yml::Tree’ with no trivial copy-assignment; use assignment or value-initialization instead
-#    endif
+C4_SUPPRESS_WARNING_GCC_PUSH
+#if defined(__GNUC__) && __GNUC__>= 8
+    C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wclass-memaccess") // error: ‘void* memset(void*, int, size_t)’ clearing an object of type ‘class c4::yml::Tree’ with no trivial copy-assignment; use assignment or value-initialization instead
 #endif
 
 void Tree::_clear()
@@ -382,11 +373,7 @@ void Tree::_clear_range(size_t first, size_t num)
     m_buf[first + num - 1].m_next_sibling = NONE;
 }
 
-#ifdef __clang__
-#    pragma clang diagnostic pop
-#elif defined(__GNUC__)
-#    pragma GCC diagnostic pop
-#endif
+C4_SUPPRESS_WARNING_GCC_POP
 
 
 //-----------------------------------------------------------------------------
@@ -462,14 +449,12 @@ size_t Tree::_claim()
 }
 
 //-----------------------------------------------------------------------------
-#if defined(__clang__)
-#   pragma clang diagnostic push
-#   pragma GCC diagnostic ignored "-Wnull-dereference"
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic push
-#   if __GNUC__ >= 6
-#       pragma GCC diagnostic ignored "-Wnull-dereference"
-#   endif
+
+C4_SUPPRESS_WARNING_GCC_PUSH
+C4_SUPPRESS_WARNING_CLANG_PUSH
+C4_SUPPRESS_WARNING_CLANG("-Wnull-dereference")
+#if defined(__GNUC_) && (__GNUC__ >= 6)
+C4_SUPPRESS_WARNING_GCC("-Wnull-dereference")
 #endif
 
 void Tree::_set_hierarchy(size_t ichild, size_t iparent, size_t iprev_sibling)
@@ -531,11 +516,8 @@ void Tree::_set_hierarchy(size_t ichild, size_t iparent, size_t iprev_sibling)
     }
 }
 
-#if defined(__clang__)
-#   pragma clang diagnostic pop
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic pop
-#endif
+C4_SUPPRESS_WARNING_GCC_POP
+C4_SUPPRESS_WARNING_CLANG_POP
 
 
 //-----------------------------------------------------------------------------
@@ -1756,10 +1738,6 @@ Tree::_lookup_path_token Tree::_next_token(lookup_result *r, _lookup_path_token 
 } // namespace ryml
 } // namespace c4
 
-#ifdef __GNUC__
-#   pragma GCC diagnostic pop
-#endif
 
-#if defined(_MSC_VER)
-#   pragma warning(pop)
-#endif
+C4_SUPPRESS_WARNING_GCC_POP
+C4_SUPPRESS_WARNING_MSVC_POP
