@@ -1287,7 +1287,8 @@ size_t Tree::child(size_t node, size_t pos) const
     size_t count = 0;
     for(size_t i = first_child(node); i != NONE; i = next_sibling(i))
     {
-        if(count++ == pos) return i;
+        if(count++ == pos)
+            return i;
     }
     return NONE;
 }
@@ -1297,7 +1298,8 @@ size_t Tree::child_pos(size_t node, size_t ch) const
     size_t count = 0;
     for(size_t i = first_child(node); i != NONE; i = next_sibling(i))
     {
-        if(i == ch) return count;
+        if(i == ch)
+            return count;
         ++count;
     }
     return npos;
@@ -1421,8 +1423,9 @@ void Tree::to_stream(size_t node, type_bits more_flags)
 
 csubstr Tree::lookup_result::resolved() const
 {
-    auto p = path.first(path_pos);
-    if(p.ends_with('.')) p = p.first(p.len-1);
+    csubstr p = path.first(path_pos);
+    if(p.ends_with('.'))
+        p = p.first(p.len-1);
     return p;
 }
 
@@ -1431,75 +1434,68 @@ csubstr Tree::lookup_result::unresolved() const
     return path.sub(path_pos);
 }
 
-inline void Tree::_advance(lookup_result *r, size_t more)
+void Tree::_advance(lookup_result *r, size_t more) const
 {
     r->path_pos += more;
     if(r->path.sub(r->path_pos).begins_with('.'))
-    {
         ++r->path_pos;
-    }
 }
 
 Tree::lookup_result Tree::lookup_path(csubstr path, size_t start) const
 {
-    if(start == NONE) start = root_id();
+    if(start == NONE)
+        start = root_id();
     lookup_result r(path, start);
-    if(path.empty()) return r;
-    const_cast<Tree*>(this)->_lookup_path(&r, /*modify*/false); // no writes will occur
+    if(path.empty())
+        return r;
+    _lookup_path(&r);
     if(r.target == NONE && r.closest == start)
-    {
         r.closest = NONE;
-    }
     return r;
 }
 
 size_t Tree::lookup_path_or_modify(csubstr default_value, csubstr path, size_t start)
 {
-    if(start == NONE)
-        start = root_id();
-    lookup_result r(path, start);
-    _lookup_path(&r, /*modify*/false);
-    if(r.target != NONE)
-        return r.target;
-    _lookup_path(&r, /*modify*/true);
-    C4_CHECK(r.target != NONE);
-    if(parent_is_map(r.target))
-    {
-        to_keyval(r.target, key(r.target), default_value);
-    }
+    size_t target = _lookup_path_or_create(path, start);
+    if(parent_is_map(target))
+        to_keyval(target, key(target), default_value);
     else
-    {
-        RYML_ASSERT(parent_is_map(r.target));
-        to_val(r.target, default_value);
-    }
-    return r.target;
+        to_val(target, default_value);
+    return target;
 }
 
 size_t Tree::lookup_path_or_modify(Tree const *src, size_t src_node, csubstr path, size_t start)
 {
+    size_t target = _lookup_path_or_create(path, start);
+    merge_with(src, src_node, target);
+    return target;
+}
+
+size_t Tree::_lookup_path_or_create(csubstr path, size_t start)
+{
     if(start == NONE)
         start = root_id();
     lookup_result r(path, start);
-    _lookup_path(&r, /*modify*/false);
+    _lookup_path(&r);
     if(r.target != NONE)
+    {
+        C4_ASSERT(r.unresolved().empty());
         return r.target;
-    _lookup_path(&r, /*modify*/true);
-    C4_CHECK(r.target != NONE);
-    merge_with(src, src_node, r.target);
+    }
+    _lookup_path_modify(&r);
     return r.target;
 }
 
-void Tree::_lookup_path(lookup_result *r, bool modify)
+void Tree::_lookup_path(lookup_result *r) const
 {
+    C4_ASSERT( ! r->unresolved().empty());
     _lookup_path_token parent{"", type(r->closest)};
     size_t node;
     do
     {
-        node = _next_node(r, modify, &parent);
+        node = _next_node(r, &parent);
         if(node != NONE)
-        {
             r->closest = node;
-        }
         if(r->unresolved().empty())
         {
             r->target = node;
@@ -1508,111 +1504,167 @@ void Tree::_lookup_path(lookup_result *r, bool modify)
     } while(node != NONE);
 }
 
-size_t Tree::_next_node(lookup_result * r, bool modify, _lookup_path_token *parent)
+void Tree::_lookup_path_modify(lookup_result *r)
+{
+    C4_ASSERT( ! r->unresolved().empty());
+    _lookup_path_token parent{"", type(r->closest)};
+    size_t node;
+    do
+    {
+        node = _next_node_modify(r, &parent);
+        if(node != NONE)
+            r->closest = node;
+        if(r->unresolved().empty())
+        {
+            r->target = node;
+            return;
+        }
+    } while(node != NONE);
+}
+
+size_t Tree::_next_node(lookup_result * r, _lookup_path_token *parent) const
 {
     _lookup_path_token token = _next_token(r, *parent);
-
     if( ! token)
         return NONE;
 
     size_t node = NONE;
-    csubstr tk = token.value;
-    auto type = token.type;
-
-    if(type == MAP || type == SEQ)
+    csubstr prev = token.value;
+    if(token.type == MAP || token.type == SEQ)
     {
-        RYML_ASSERT(!tk.begins_with('['));
+        RYML_ASSERT(!token.value.begins_with('['));
         //RYML_ASSERT(is_container(r->closest) || r->closest == NONE);
-        if( ! modify)
-        {
-            RYML_ASSERT(is_map(r->closest));
-            node = find_child(r->closest, tk);
-            if(node == NONE)
-                goto failure;
-        }
-        else
-        {
-            if( ! is_container(r->closest))
-            {
-                if(has_key(r->closest))
-                    to_map(r->closest, key(r->closest));
-                else
-                    to_map(r->closest);
-            }
-            RYML_ASSERT(is_map(r->closest));
-            node = find_child(r->closest, tk);
-            if(node == NONE)
-            {
-                RYML_ASSERT(is_map(r->closest));
-                node = append_child(r->closest);
-                NodeData *n = _p(node);
-                n->m_key.scalar = tk;
-                n->m_type.add(KEY);
-            }
-        }
+        RYML_ASSERT(is_map(r->closest));
+        node = find_child(r->closest, token.value);
     }
-    else if(type == KEYVAL)
+    else if(token.type == KEYVAL)
     {
         RYML_ASSERT(r->unresolved().empty());
         if(is_map(r->closest))
-            node = find_child(r->closest, tk);
-        if( ! modify)
+            node = find_child(r->closest, token.value);
+    }
+    else if(token.type == KEY)
+    {
+        RYML_ASSERT(token.value.begins_with('[') && token.value.ends_with(']'));
+        token.value = token.value.offs(1, 1).trim(' ');
+        size_t idx = 0;
+        RYML_CHECK(from_chars(token.value, &idx));
+        node = child(r->closest, idx);
+    }
+    else
+    {
+        C4_NEVER_REACH();
+    }
+
+    if(node != NONE)
+    {
+        *parent = token;
+    }
+    else
+    {
+        csubstr p = r->path.sub(r->path_pos > 0 ? r->path_pos - 1 : r->path_pos);
+        r->path_pos -= prev.len;
+        if(p.begins_with('.'))
+            r->path_pos -= 1u;
+    }
+
+    return node;
+}
+
+size_t Tree::_next_node_modify(lookup_result * r, _lookup_path_token *parent)
+{
+    _lookup_path_token token = _next_token(r, *parent);
+    if( ! token)
+        return NONE;
+
+    size_t node = NONE;
+    if(token.type == MAP || token.type == SEQ)
+    {
+        RYML_ASSERT(!token.value.begins_with('['));
+        //RYML_ASSERT(is_container(r->closest) || r->closest == NONE);
+        if( ! is_container(r->closest))
         {
-            if(node == NONE)
-                goto failure;
+            if(has_key(r->closest))
+                to_map(r->closest, key(r->closest));
+            else
+                to_map(r->closest);
         }
         else
         {
-            if(this->type(r->closest) == NOTYPE)
+            if(is_map(r->closest))
+                node = find_child(r->closest, token.value);
+            else
             {
-                NodeData *c = _p(r->closest);
-                c->m_type.add(MAP);
+                size_t pos = NONE;
+                RYML_CHECK(c4::atox(token.value, &pos));
+                RYML_ASSERT(pos != NONE);
+                node = child(r->closest, pos);
             }
+        }
+        if(node == NONE)
+        {
             RYML_ASSERT(is_map(r->closest));
             node = append_child(r->closest);
             NodeData *n = _p(node);
-            n->m_key.scalar = tk;
-            n->m_val.scalar = "";
-            n->m_type.add(KEYVAL);
+            n->m_key.scalar = token.value;
+            n->m_type.add(KEY);
         }
     }
-    else if(type == KEY)
+    else if(token.type == KEYVAL)
     {
-        RYML_ASSERT(tk.begins_with('[') && tk.ends_with(']'));
-        tk = tk.offs(1, 1).trim(' ');
-        size_t idx;
-        if( ! from_chars(tk, &idx))
-             goto failure;
-        if( ! modify)
+        RYML_ASSERT(r->unresolved().empty());
+        if(is_map(r->closest))
         {
-            node = child(r->closest, idx);
+            node = find_child(r->closest, token.value);
             if(node == NONE)
-                goto failure;
+                node = append_child(r->closest);
         }
         else
         {
-            if( ! is_container(r->closest))
+            RYML_ASSERT(!is_seq(r->closest));
+            _add_flags(r->closest, MAP);
+            node = append_child(r->closest);
+        }
+        NodeData *n = _p(node);
+        n->m_key.scalar = token.value;
+        n->m_val.scalar = "";
+        n->m_type.add(KEYVAL);
+    }
+    else if(token.type == KEY)
+    {
+        RYML_ASSERT(token.value.begins_with('[') && token.value.ends_with(']'));
+        token.value = token.value.offs(1, 1).trim(' ');
+        size_t idx;
+        if( ! from_chars(token.value, &idx))
+             return NONE;
+        if( ! is_container(r->closest))
+        {
+            if(has_key(r->closest))
             {
-                if(has_key(r->closest))
-                    to_seq(r->closest, key(r->closest));
-                else
-                    to_seq(r->closest);
+                csubstr k = key(r->closest);
+                _clear_type(r->closest);
+                to_seq(r->closest, k);
             }
-            RYML_ASSERT(is_container(r->closest));
-            node = child(r->closest, idx);
-            if(node == NONE)
+            else
             {
-                RYML_ASSERT(num_children(r->closest) <= idx);
-                for(size_t i = num_children(r->closest); i <= idx; ++i)
+                _clear_type(r->closest);
+                to_seq(r->closest);
+            }
+        }
+        RYML_ASSERT(is_container(r->closest));
+        node = child(r->closest, idx);
+        if(node == NONE)
+        {
+            RYML_ASSERT(num_children(r->closest) <= idx);
+            for(size_t i = num_children(r->closest); i <= idx; ++i)
+            {
+                node = append_child(r->closest);
+                if(i < idx)
                 {
-                    node = append_child(r->closest);
-                    if(i < idx)
-                    {
-                        if(is_map(r->closest))
-                            to_keyval(node, /*"~"*/{}, /*"~"*/{});
-                        else if(is_seq(r->closest))
-                            to_val(node, /*"~"*/{});
-                    }
+                    if(is_map(r->closest))
+                        to_keyval(node, /*"~"*/{}, /*"~"*/{});
+                    else if(is_seq(r->closest))
+                        to_val(node, /*"~"*/{});
                 }
             }
         }
@@ -1622,19 +1674,9 @@ size_t Tree::_next_node(lookup_result * r, bool modify, _lookup_path_token *pare
         C4_NEVER_REACH();
     }
 
+    RYML_ASSERT(node != NONE);
     *parent = token;
     return node;
-
-failure:
-    RYML_ASSERT(node == NONE);
-    if( ! modify) // rollback
-    {
-        csubstr p = r->path.sub(r->path_pos);
-        csubstr pb = r->path.sub(r->path_pos > 0 ? r->path_pos - 1 : r->path_pos);
-        size_t adj = (p.begins_with_any(".]") || pb.begins_with_any(".]")) ? 1 : 0;
-        r->path_pos -= token.value.len + adj;
-    }
-    return NONE;
 }
 
 /** types of tokens:
@@ -1643,7 +1685,7 @@ failure:
  * - seeing "seq[n]" ---> "seq"/SEQ (--> "[n]"/KEY)
  * - seeing "[n]" ---> "[n]"/KEY
  */
-Tree::_lookup_path_token Tree::_next_token(lookup_result *r, _lookup_path_token const& parent)
+Tree::_lookup_path_token Tree::_next_token(lookup_result *r, _lookup_path_token const& parent) const
 {
     csubstr unres = r->unresolved();
     if(unres.empty())

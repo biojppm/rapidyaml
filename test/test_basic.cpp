@@ -1662,69 +1662,174 @@ a:
     EXPECT_EQ(t.lookup_path("x").target, sz);
     EXPECT_EQ(t.val(sz), "x");
     EXPECT_EQ(t.lookup_path_or_modify("y", "x"), sz);
-    EXPECT_EQ(t.val(sz), "x");
+    EXPECT_EQ(t.val(sz), "y");
     EXPECT_EQ(t.lookup_path_or_modify("z", "x"), sz);
-    EXPECT_EQ(t.val(sz), "x");
-    
+    EXPECT_EQ(t.val(sz), "z");
+
     sz = t.size();
     EXPECT_EQ(t.lookup_path("a.x").target, (size_t)NONE);
     EXPECT_EQ(t.lookup_path_or_modify("x", "a.x"), sz);
     EXPECT_EQ(t.lookup_path("a.x").target, sz);
     EXPECT_EQ(t.val(sz), "x");
     EXPECT_EQ(t.lookup_path_or_modify("y", "a.x"), sz);
-    EXPECT_EQ(t.val(sz), "x");
+    EXPECT_EQ(t.val(sz), "y");
     EXPECT_EQ(t.lookup_path_or_modify("z", "a.x"), sz);
-    EXPECT_EQ(t.val(sz), "x");
- 
+    EXPECT_EQ(t.val(sz), "z");
+
     sz = t.size();
     EXPECT_EQ(t.lookup_path("a.c.x").target, (size_t)NONE);
     EXPECT_EQ(t.lookup_path_or_modify("x", "a.c.x"), sz);
     EXPECT_EQ(t.lookup_path("a.c.x").target, sz);
     EXPECT_EQ(t.val(sz), "x");
     EXPECT_EQ(t.lookup_path_or_modify("y", "a.c.x"), sz);
-    EXPECT_EQ(t.val(sz), "x");
+    EXPECT_EQ(t.val(sz), "y");
     EXPECT_EQ(t.lookup_path_or_modify("z", "a.c.x"), sz);
-    EXPECT_EQ(t.val(sz), "x");
-
-    csubstr bigpath = "newmap.newseq[0].newmap.newseq[0].first";
-    EXPECT_EQ(t.lookup_path(bigpath).target, (size_t)NONE);
-    EXPECT_EQ(t.lookup_path(bigpath).closest, (size_t)NONE);
-    EXPECT_EQ(t.lookup_path(bigpath).resolved(), "");
-    EXPECT_EQ(t.lookup_path(bigpath).unresolved(), bigpath);
-    sz = t.lookup_path_or_modify("x", bigpath);
-    EXPECT_EQ(t.lookup_path(bigpath).target, sz);
-    EXPECT_EQ(t.val(sz), "x");
-
-    bigpath = "newmap2.newseq2[2].newmap2.newseq2[2].first2";
-    sz = t.lookup_path_or_modify("x", bigpath);
-    EXPECT_EQ(t.lookup_path(bigpath).target, sz);
-    EXPECT_EQ(t.val(sz), "x");
-    print_tree(t);
+    EXPECT_EQ(t.val(sz), "z");
 }
+
+TEST(general, lookup_path_or_modify)
+{
+    {
+        Tree dst = parse("{}");
+        Tree const src = parse("{d: [x, y, z]}");
+        dst.lookup_path_or_modify("ok", "a.b.c");
+        EXPECT_EQ(dst["a"]["b"]["c"].val(), "ok");
+        dst.lookup_path_or_modify(&src, src["d"].id(), "a.b.d");
+        EXPECT_EQ(dst["a"]["b"]["d"][0].val(), "x");
+        EXPECT_EQ(dst["a"]["b"]["d"][1].val(), "y");
+        EXPECT_EQ(dst["a"]["b"]["d"][2].val(), "z");
+    }
+
+    {
+        Tree t = parse("{}");
+        csubstr bigpath = "newmap.newseq[0].newmap.newseq[0].first";
+        auto result = t.lookup_path(bigpath);
+        EXPECT_EQ(result.target, (size_t)NONE);
+        EXPECT_EQ(result.closest, (size_t)NONE);
+        EXPECT_EQ(result.resolved(), "");
+        EXPECT_EQ(result.unresolved(), bigpath);
+        size_t sz = t.lookup_path_or_modify("x", bigpath);
+        EXPECT_EQ(t.lookup_path(bigpath).target, sz);
+        EXPECT_EQ(t.val(sz), "x");
+        EXPECT_EQ(t["newmap"]["newseq"].num_children(), 1u);
+        EXPECT_EQ(t["newmap"]["newseq"][0].is_map(), true);
+        EXPECT_EQ(t["newmap"]["newseq"][0]["newmap"].is_map(), true);
+        EXPECT_EQ(t["newmap"]["newseq"][0]["newmap"]["newseq"].is_seq(), true);
+        EXPECT_EQ(t["newmap"]["newseq"][0]["newmap"]["newseq"].num_children(), 1u);
+        EXPECT_EQ(t["newmap"]["newseq"][0]["newmap"]["newseq"][0].is_map(), true);
+        EXPECT_EQ(t["newmap"]["newseq"][0]["newmap"]["newseq"][0]["first"].val(), "x");
+        size_t sz2 = t.lookup_path_or_modify("y", bigpath);
+        EXPECT_EQ(t["newmap"]["newseq"][0]["newmap"]["newseq"][0]["first"].val(), "y");
+        EXPECT_EQ(sz2, sz);
+        EXPECT_EQ(t.lookup_path(bigpath).target, sz);
+        EXPECT_EQ(t.val(sz2), "y");
+
+        sz2 = t.lookup_path_or_modify("y", "newmap2.newseq2[2].newmap2.newseq2[3].first2");
+        EXPECT_EQ(t.lookup_path("newmap2.newseq2[2].newmap2.newseq2[3].first2").target, sz2);
+        EXPECT_EQ(t.val(sz2), "y");
+        EXPECT_EQ(t["newmap2"]["newseq2"].num_children(), 3u);
+        EXPECT_EQ(t["newmap2"]["newseq2"][0].val(), nullptr);
+        EXPECT_EQ(t["newmap2"]["newseq2"][1].val(), nullptr);
+        EXPECT_EQ(t["newmap2"]["newseq2"][2].is_map(), true);
+        EXPECT_EQ(t["newmap2"]["newseq2"][2]["newmap2"].is_map(), true);
+        EXPECT_EQ(t["newmap2"]["newseq2"][2]["newmap2"]["newseq2"].is_seq(), true);
+        EXPECT_EQ(t["newmap2"]["newseq2"][2]["newmap2"]["newseq2"].num_children(), 4u);
+        EXPECT_EQ(t["newmap2"]["newseq2"][2]["newmap2"]["newseq2"][0].val(), nullptr);
+        EXPECT_EQ(t["newmap2"]["newseq2"][2]["newmap2"]["newseq2"][1].val(), nullptr);
+        EXPECT_EQ(t["newmap2"]["newseq2"][2]["newmap2"]["newseq2"][2].val(), nullptr);
+        EXPECT_EQ(t["newmap2"]["newseq2"][2]["newmap2"]["newseq2"][3].is_map(), true);
+        EXPECT_EQ(t["newmap2"]["newseq2"][2]["newmap2"]["newseq2"][3]["first2"].val(), "y");
+        sz2 = t.lookup_path_or_modify("z", "newmap2.newseq2[2].newmap2.newseq2[3].second2");
+        EXPECT_EQ  (t["newmap2"]["newseq2"][2]["newmap2"]["newseq2"][3]["second2"].val(), "z");
+        
+        sz = t.lookup_path_or_modify("foo", "newmap.newseq1[1]");
+        EXPECT_EQ(t["newmap"].is_map(), true);
+        EXPECT_EQ(t["newmap"]["newseq1"].is_seq(), true);
+        EXPECT_EQ(t["newmap"]["newseq1"].num_children(), 2u);
+        EXPECT_EQ(t["newmap"]["newseq1"][0].val(), nullptr);
+        EXPECT_EQ(t["newmap"]["newseq1"][1].val(), "foo");
+        sz = t.lookup_path_or_modify("bar", "newmap.newseq1[2][1]");
+        EXPECT_EQ(t["newmap"]["newseq1"].is_seq(), true);
+        EXPECT_EQ(t["newmap"]["newseq1"].num_children(), 3u);
+        EXPECT_EQ(t["newmap"]["newseq1"][0].val(), nullptr);
+        EXPECT_EQ(t["newmap"]["newseq1"][1].val(), "foo");
+        EXPECT_EQ(t["newmap"]["newseq1"][2].is_seq(), true);
+        EXPECT_EQ(t["newmap"]["newseq1"][2].num_children(), 2u);
+        EXPECT_EQ(t["newmap"]["newseq1"][2][0].val(), nullptr);
+        EXPECT_EQ(t["newmap"]["newseq1"][2][1].val(), "bar");
+        sz = t.lookup_path_or_modify("Foo?"   , "newmap.newseq1[0]");
+        sz = t.lookup_path_or_modify("Bar?"   , "newmap.newseq1[2][0]");
+        sz = t.lookup_path_or_modify("happy"  , "newmap.newseq1[2][2][3]");
+        sz = t.lookup_path_or_modify("trigger", "newmap.newseq1[2][2][2]");
+        sz = t.lookup_path_or_modify("Arnold" , "newmap.newseq1[2][2][0]");
+        sz = t.lookup_path_or_modify("is"     , "newmap.newseq1[2][2][1]");
+        EXPECT_EQ(t["newmap"]["newseq1"].is_seq(), true);
+        EXPECT_EQ(t["newmap"]["newseq1"].num_children(), 3u);
+        EXPECT_EQ(t["newmap"]["newseq1"][0].val(), "Foo?");
+        EXPECT_EQ(t["newmap"]["newseq1"][1].val(), "foo");
+        EXPECT_EQ(t["newmap"]["newseq1"][2].is_seq(), true);
+        EXPECT_EQ(t["newmap"]["newseq1"][2].num_children(), 3u);
+        EXPECT_EQ(t["newmap"]["newseq1"][2][0].val(), "Bar?");
+        EXPECT_EQ(t["newmap"]["newseq1"][2][1].val(), "bar");
+        EXPECT_EQ(t["newmap"]["newseq1"][2][2].is_seq(), true);
+        EXPECT_EQ(t["newmap"]["newseq1"][2][2].num_children(), 4u);
+        EXPECT_EQ(t["newmap"]["newseq1"][2][2][0].val(), "Arnold");
+        EXPECT_EQ(t["newmap"]["newseq1"][2][2][1].val(), "is");
+        EXPECT_EQ(t["newmap"]["newseq1"][2][2][2].val(), "trigger");
+        EXPECT_EQ(t["newmap"]["newseq1"][2][2][3].val(), "happy");
+
+        EXPECT_EQ(emitrs<std::string>(t), R"(newmap:
+  newseq:
+    - newmap:
+        newseq:
+          - first: y
+  newseq1:
+    - 'Foo?'
+    - foo
+    - - 'Bar?'
+      - bar
+      - - Arnold
+        - is
+        - trigger
+        - happy
+newmap2:
+  newseq2:
+    - ~
+    - ~
+    - newmap2:
+        newseq2:
+          - ~
+          - ~
+          - ~
+          - first2: y
+            second2: z
+)");
+    }
+}
+
+
+//-------------------------------------------
 
 TEST(general, github_issue_124)
 {
     // All these inputs are basically the same.
     // However, the comment was found to confuse the parser in #124.
-    const std::string yaml[] =
-        {
-            "a:\n  - b\nc: d",
-            "a:\n  - b\n\n# ignore me:\nc: d",
-            "a:\n  - b\n\n  # ignore me:\nc: d",
-            "a:\n  - b\n\n    # ignore me:\nc: d",
-            "a:\n  - b\n\n#:\nc: d", // also try with just a ':' in the comment
-            "a:\n  - b\n\n# :\nc: d",
-            "a:\n  - b\n\n#\nc: d",  // also try with empty comment
-        };
-
-    for(const auto &inp : yaml)
+    csubstr yaml[] = {
+        "a:\n  - b\nc: d",
+        "a:\n  - b\n\n# ignore me:\nc: d",
+        "a:\n  - b\n\n  # ignore me:\nc: d",
+        "a:\n  - b\n\n    # ignore me:\nc: d",
+        "a:\n  - b\n\n#:\nc: d", // also try with just a ':' in the comment
+        "a:\n  - b\n\n# :\nc: d",
+        "a:\n  - b\n\n#\nc: d",  // also try with empty comment
+    };
+    for(csubstr inp : yaml)
     {
-        Tree t = parse(c4::to_csubstr(inp));
-        auto s = emitrs<std::string>(t);
-
+        SCOPED_TRACE(inp);
+        Tree t = parse(inp);
+        std::string s = emitrs<std::string>(t);
         // The re-emitted output should not contain the comment.
-        const char expected[] = "a:\n  - b\nc: d\n";
-        EXPECT_EQ(s, std::string(expected));
+        EXPECT_EQ(c4::to_csubstr(s), "a:\n  - b\nc: d\n");
     }
 }
 

@@ -1014,10 +1014,17 @@ private:
         bool is_index() const { return value.begins_with('[') && value.ends_with(']'); }
     };
 
-    void _lookup_path(lookup_result *r, bool modify);
-    size_t _next_node(lookup_result *r, bool modify, _lookup_path_token *parent);
-    _lookup_path_token _next_token(lookup_result *r, _lookup_path_token const& parent);
-    void _advance(lookup_result *r, size_t more);
+    size_t _lookup_path_or_create(csubstr path, size_t start);
+
+    void   _lookup_path       (lookup_result *r) const;
+    void   _lookup_path_modify(lookup_result *r);
+
+    size_t _next_node       (lookup_result *r, _lookup_path_token *parent) const;
+    size_t _next_node_modify(lookup_result *r, _lookup_path_token *parent);
+
+    void   _advance(lookup_result *r, size_t more) const;
+
+    _lookup_path_token _next_token(lookup_result *r, _lookup_path_token const& parent) const;
 
 private:
 

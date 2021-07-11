@@ -97,6 +97,30 @@ See also:
     </Expand>
   </Type>
 
+  <Type Name="c4::yml::Tree::_lookup_path_token">
+    <DisplayString>{value} ({type})</DisplayString>
+    <Expand>
+      <Item Name="value">value</Item>
+      <Item Name="type">type</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="c4::yml::Tree::lookup_result">
+    <DisplayString>{path} -- target={target} closest={closest}</DisplayString>
+    <Expand>
+      <Item Name="target">target</Item>
+      <Item Name="closest">closest</Item>
+      <Item Name="path_pos">path_pos</Item>
+      <Item Name="path">path</Item>
+      <Synthetic Name="[resolved]">
+        <DisplayString>{path.str,[path_pos]}</DisplayString>
+      </Synthetic>
+      <Synthetic Name="[unresolved]">
+        <DisplayString>{path.str+path_pos,[path.len-path_pos]}</DisplayString>
+      </Synthetic>
+    </Expand>
+  </Type>
+
   <Type Name="c4::yml::NodeRef">
     <DisplayString Condition="(m_id == c4::yml::NONE)">(void)</DisplayString>
     <DisplayString Condition="(m_seed.len != c4::yml::NONE) &amp;&amp; (m_seed.str == nullptr)">[INDEX SEED for] {*(m_tree->m_buf + m_id)}</DisplayString>
