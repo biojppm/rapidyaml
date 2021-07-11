@@ -14,76 +14,42 @@ namespace yml {
 
 YamlTag_e to_tag(csubstr tag)
 {
-
     if(tag.begins_with("!!"))
-    {
         tag = tag.sub(2);
-    }
     else if(tag.begins_with('!'))
-    {
         return TAG_NONE;
-    }
     else if(tag.begins_with("tag:yaml.org,2002:"))
-    {
         tag = tag.sub(csubstr("tag:yaml.org,2002:").len);
-    }
 
     if(tag == "map")
-    {
         return TAG_MAP;
-    }
     else if(tag == "omap")
-    {
         return TAG_OMAP;
-    }
     else if(tag == "pairs")
-    {
         return TAG_PAIRS;
-    }
     else if(tag == "set")
-    {
         return TAG_SET;
-    }
     else if(tag == "seq")
-    {
         return TAG_SEQ;
-    }
     else if(tag == "binary")
-    {
         return TAG_BINARY;
-    }
     else if(tag == "bool")
-    {
         return TAG_BOOL;
-    }
     else if(tag == "float")
-    {
         return TAG_FLOAT;
-    }
     else if(tag == "int")
-    {
         return TAG_INT;
-    }
     else if(tag == "merge")
-    {
         return TAG_MERGE;
-    }
     else if(tag == "null")
-    {
         return TAG_NULL;
-    }
     else if(tag == "str")
-    {
         return TAG_STR;
-    }
     else if(tag == "timestamp")
-    {
         return TAG_TIMESTAMP;
-    }
     else if(tag == "value")
-    {
         return TAG_VALUE;
-    }
+
     return TAG_NONE;
 }
 
@@ -110,9 +76,7 @@ const char* NodeType::type_str(NodeType_e ty)
     case NOTYPE  : return "NOTYPE";
     default:
         if(ty & (KEYREF|VALREF))
-        {
             return "REF";
-        }
         return "(unknown?)";
     }
 }
@@ -129,7 +93,7 @@ NodeRef Tree::rootref()
 
 NodeRef const Tree::rootref() const
 {
-    return NodeRef(const_cast< Tree* >(this), root_id());
+    return NodeRef(const_cast<Tree*>(this), root_id());
 }
 
 NodeRef Tree::operator[] (csubstr key)
@@ -323,9 +287,7 @@ void Tree::reserve(size_t cap)
         RYML_ASSERT(m_free_tail == NONE || (m_free_tail >= 0 && m_free_tail < cap));
 
         if( ! m_size)
-        {
             _claim_root();
-        }
     }
 }
 
@@ -399,22 +361,16 @@ void Tree::_free_list_add(size_t i)
     w.m_next_sibling = m_free_head;
     w.m_prev_sibling = NONE;
     if(m_free_head != NONE)
-    {
         m_buf[m_free_head].m_prev_sibling = i;
-    }
     m_free_head = i;
     if(m_free_tail == NONE)
-    {
         m_free_tail = m_free_head;
-    }
 }
 
 void Tree::_free_list_rem(size_t i)
 {
     if(m_free_head == i)
-    {
         m_free_head = _p(i)->m_next_sibling;
-    }
     _rem_hierarchy(i);
 }
 
@@ -506,13 +462,10 @@ void Tree::_set_hierarchy(size_t ichild, size_t iparent, size_t iprev_sibling)
     else
     {
         if(child->m_next_sibling == parent->m_first_child)
-        {
             parent->m_first_child = id(child);
-        }
+
         if(child->m_prev_sibling == parent->m_last_child)
-        {
             parent->m_last_child = id(child);
-        }
     }
 }
 
@@ -986,47 +939,31 @@ void Tree::merge_with(Tree const *src, size_t src_node, size_t dst_node)
     if(dst_node == NONE) dst_node = root_id();
     RYML_ASSERT(src->has_val(src_node) || src->is_seq(src_node) || src->is_map(src_node));
 
-    // CASE 1: (KEY)VALUE NODES
     if(src->has_val(src_node))
     {
         if( ! has_val(dst_node))
         {
             if(has_children(dst_node))
-            {
                 remove_children(dst_node);
-            }
         }
         if(src->is_keyval(src_node))
-        {
             _copy_props(dst_node, src, src_node);
-        }
         else if(src->is_val(src_node))
-        {
             _copy_props_wo_key(dst_node, src, src_node);
-        }
         else
-        {
             C4_NEVER_REACH();
-        }
     }
-    // CASE 2: SEQ NODES
     else if(src->is_seq(src_node))
     {
         if( ! is_seq(dst_node))
         {
             if(has_children(dst_node))
-            {
                 remove_children(dst_node);
-            }
             _clear_type(dst_node);
             if(src->has_key(src_node))
-            {
                 to_seq(dst_node, src->key(src_node));
-            }
             else
-            {
                 to_seq(dst_node);
-            }
         }
         for(size_t sch = src->first_child(src_node); sch != NONE; sch = src->next_sibling(sch))
         {
@@ -1035,24 +972,17 @@ void Tree::merge_with(Tree const *src, size_t src_node, size_t dst_node)
             merge_with(src, sch, dch);
         }
     }
-    // CASE 3: MAP NODES
     else if(src->is_map(src_node))
     {
         if( ! is_map(dst_node))
         {
             if(has_children(dst_node))
-            {
                 remove_children(dst_node);
-            }
             _clear_type(dst_node);
             if(src->has_key(src_node))
-            {
                 to_map(dst_node, src->key(src_node));
-            }
             else
-            {
                 to_map(dst_node);
-            }
         }
         for(size_t sch = src->first_child(src_node); sch != NONE; sch = src->next_sibling(sch))
         {
@@ -1566,13 +1496,9 @@ size_t Tree::_next_node(lookup_result * r, bool modify, _lookup_path_token *pare
             if( ! is_container(r->closest))
             {
                 if(has_key(r->closest))
-                {
                     to_map(r->closest, key(r->closest));
-                }
                 else
-                {
                     to_map(r->closest);
-                }
             }
             RYML_ASSERT(is_map(r->closest));
             node = find_child(r->closest, tk);
@@ -1618,9 +1544,7 @@ size_t Tree::_next_node(lookup_result * r, bool modify, _lookup_path_token *pare
         tk = tk.offs(1, 1).trim(' ');
         size_t idx;
         if( ! from_chars(tk, &idx))
-        {
              goto failure;
-        }
         if( ! modify)
         {
             node = child(r->closest, idx);
@@ -1631,13 +1555,9 @@ size_t Tree::_next_node(lookup_result * r, bool modify, _lookup_path_token *pare
             if( ! is_container(r->closest))
             {
                 if(has_key(r->closest))
-                {
                     to_seq(r->closest, key(r->closest));
-                }
                 else
-                {
                     to_seq(r->closest);
-                }
             }
             RYML_ASSERT(is_container(r->closest));
             node = child(r->closest, idx);
@@ -1650,18 +1570,13 @@ size_t Tree::_next_node(lookup_result * r, bool modify, _lookup_path_token *pare
                     if(i < idx)
                     {
                         if(is_map(r->closest))
-                        {
                             to_keyval(node, /*"~"*/{}, /*"~"*/{});
-                        }
                         else if(is_seq(r->closest))
-                        {
                             to_val(node, /*"~"*/{});
-                        }
                     }
                 }
             }
         }
-
     }
     else
     {
@@ -1693,9 +1608,7 @@ Tree::_lookup_path_token Tree::_next_token(lookup_result *r, _lookup_path_token 
 {
     csubstr unres = r->unresolved();
     if(unres.empty())
-    {
         return {};
-    }
 
     // is it an indexation like [0], [1], etc?
     if(unres.begins_with('['))
@@ -1709,15 +1622,12 @@ Tree::_lookup_path_token Tree::_next_token(lookup_result *r, _lookup_path_token 
 
     // no. so it must be a name
     size_t pos = unres.first_of(".[");
-
     if(pos == csubstr::npos)
     {
         _advance(r, unres.len);
         NodeType t;
         if(( ! parent) || parent.type.is_seq())
-        {
             return {unres, VAL};
-        }
         return {unres, KEYVAL};
     }
 
