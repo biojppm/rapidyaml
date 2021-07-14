@@ -166,7 +166,7 @@ Here's what we get with g++ 8.2:
 | rapidjson_rw     |      1329.4  |       68.2  |
 | sajson_rw        |       434.2  |      176.5  |
 | sajson_ro        |       430.7  |      175.6  |
-| jsoncpp_ro       |       183.6  |      187.9  |
+| jsoncpp_ro       |       183.6  |    ? 187.9  |
 | nlohmann_json_ro |       115.8  |       21.5  |
 | yamlcpp_ro       |        16.6  |        1.6  |
 | libyaml_ro       |       113.9  |       35.7  |
@@ -180,8 +180,9 @@ You can verify that (at least for this test) ryml beats most json
 parsers at their own game, with the only exception of
 [rapidjson](https://github.com/Tencent/rapidjson). And actually, in
 Debug, [rapidjson](https://github.com/Tencent/rapidjson) is slower
-than ryml, and only [sajson](https://github.com/chadaustin/sajson)
-manages to be faster.
+than ryml, and [sajson](https://github.com/chadaustin/sajson)
+manages to be faster (but not sure about jsoncpp; need to scrutinize there
+the suspicious fact that the Debug result is faster than the Release result).
 
 
 ### Performance emitting
@@ -780,7 +781,7 @@ following YAML core features are well covered in the unit tests:
   
 Of course, there are many dark corners in YAML, and there certainly can
 appear cases which ryml fails to parse. Your [bug reports or pull
-requests!](https://github.com/biojppm/rapidyaml/issues) are very welcome.
+requests](https://github.com/biojppm/rapidyaml/issues) are very welcome.
 
 See also [the roadmap](./ROADMAP.md) for a list of future work.
 
