@@ -68,8 +68,7 @@ See also [the changelog](./changelog) and [the roadmap](./ROADMAP.md).
    * [Performance emitting](#performance-emitting)
 * [Quick start](#quick-start)
 * [Using ryml in your project](#using-ryml-in-your-project)
-   * [Building ryml as part of your project](#building-ryml-as-part-of-your-project)
-   * [Install ryml first](#install-ryml-first)
+   * [Usage samples](#usage-samples)
    * [cmake build settings for ryml](#cmake-build-settings-for-ryml)
 * [Other languages](#other-languages)
    * [Python](#python)
@@ -191,7 +190,7 @@ just send us the files!
 ## Quick start
 
 If you're wondering whether ryml's speed comes at a usage cost, you
-need not. With ryml, you can have your cake and eat it too: being
+need not: with ryml, you can have your cake and eat it too. Being
 rapid is definitely NOT the same as being unpractical, so ryml was
 written with easy AND efficient usage in mind, and comes with a two
 level API for accessing and traversing the data tree.
@@ -211,12 +210,8 @@ char yml_buf[] = "{foo: 1, bar: [2, 3], john: doe}";
 ryml::Tree tree = ryml::parse(ryml::substr(yml_buf));
 
 // Note: it will always be significantly faster to use mutable
-// buffers and reuse tree+parser.
-//
-// Below you will find samples that show how to achieve reuse; but
-// please note that for brevity and clarity, many of the examples
-// here are parsing immutable buffers, and not reusing tree or
-// parser.
+// buffers and reuse tree+parser; in the quickstart sample you
+// will find examples for this.
 
 
 //------------------------------------------------------------------
@@ -527,10 +522,10 @@ ryml::csubstr buf_result = ryml::emit(tree, buf);
 // now check
 ryml::csubstr expected_result = R"(foo: says who
 bar:
-- 20
-- 30
-- oh so nice
-- oh so nice (serialized)
+  - 20
+  - 30
+  - oh so nice
+  - oh so nice (serialized)
 john: in_scope
 newkeyval: shiny and new
 newkeyval (serialized): shiny and new (serialized)
@@ -573,7 +568,7 @@ sample_emit_to_container();    ///< emit to memory, eg a string or vector-like c
 sample_emit_to_stream();       ///< emit to a stream, eg std::ostream
 sample_emit_to_file();         ///< emit to a FILE*
 sample_emit_nested_node();     ///< pick a nested node as the root when emitting
-sample_json();                 ///< notes and constraints: JSON parsing and emitting
+sample_json();                 ///< JSON parsing and emitting: notes and constraints
 sample_anchors_and_aliases();  ///< deal with YAML anchors and aliases
 sample_tags();                 ///< deal with YAML type tags
 sample_docs();                 ///< deal with YAML docs
@@ -590,15 +585,40 @@ sample_per_tree_allocator();   ///< set per-tree allocators
 As with any other library, you have the option to integrate ryml into
 your project's build setup, thereby building ryml together with your
 project, or -- prior to configuring your project -- you can have ryml
-installed either manually or through package managers. Currently
-[cmake](https://cmake.org/) is required; we recommend a recent cmake
-version, at least 3.13.
+installed either manually or through package managers.
+
+If you opt for package managers, here's where ryml is available so far (thanks to all the contributors!):
+  * [vcpkg](https://vcpkg.io/en/packages.html): `vcpkg install ryml`
+  * Arch Linux/Manjaro:
+    * [rapidyaml-git (AUR)](https://aur.archlinux.org/packages/rapidyaml-git/)
+    * [python-rapidyaml-git (AUR)](https://aur.archlinux.org/packages/python-rapidyaml-git/)
+  * [PyPI](https://pypi.org/project/rapidyaml/)
+
+Although package managers are very useful for quickly getting up to speed,
+the advised way is still to bring ryml as a submodule of your project,
+building both together. This makes it easy to track any upstream changes in ryml.
+Also, ryml is fairly small, and is quick to build,
+so there's not much of a cost for building it with your project.
+
+Currently [cmake](https://cmake.org/) is required to build ryml; we
+recommend a recent cmake version, at least 3.13.
+
+Note that ryml uses submodules. Take care to use the `--recursive` flag
+when cloning the repo, to ensure ryml's submodules are checked out as well:
+```bash
+git clone --recursive https://github.com/biojppm/rapidyaml
+```
+If you omit `--recursive`, after cloning you
+will have to do `git submodule init` and `git submodule update` 
+to ensure ryml's submodules are checked out.
+
+### Usage samples
 
 These samples show how to build an application using ryml. All the
 samples use [the same quickstart executable
 source](./samples/quickstart.cpp), but are built in different ways,
-and this shows multiple ways to integrate ryml into your project. We
-also encourage you to refer to the quickstart source itself, which
+showing several alternatives to integrate ryml into your project. We
+also encourage you to refer to the [quickstart source]((./samples/quickstart.cpp) itself, which
 extensively covers most of the functionality that you may want out of
 ryml.
 
@@ -610,120 +630,9 @@ more about each sample:
 
 | Sample name        | ryml is part of build?   | cmake file   | commands     |
 |:-------------------|--------------------------|:-------------|:-------------|
-| [`add_subdirectory`](./samples/add_subdirectory) | yes                      | [`CMakeLists.txt`](./samples/add_subdirectory/CMakeLists.txt) | [`run.sh`](./samples/add_subdirectory/run.sh) |
-| [`fetch_content`](./samples/fetch_content)      | yes                      | [`CMakeLists.txt`](./samples/fetch_content/CMakeLists.txt) | [`run.sh`](./samples/fetch_content/run.sh) |
-| [`find_package`](./samples/find_package)        | no, needs prior install  | [`CMakeLists.txt`](./samples/find_package/CMakeLists.txt) | [`run.sh`](./samples/find_package/run.sh) |
-
-
-### Building ryml as part of your project
-
-ryml is a small library, so this is the advised way.
-If you're using git, we suggest adding ryml as git submodule of
-your repo. This makes it easy to track any upstream changes in ryml.
-Otherwise, you will have to start by cloning the repo:
-```bash
-git clone --recursive https://github.com/biojppm/rapidyaml
-```
-Take care to use the `--recursive` flag to force git to clone the 
-submodules as well. If you omit `--recursive`, after cloning you
-will have to do `git submodule init` and `git submodule update` 
-to ensure the submodules are checked out.
-
-Now that you have ryml available, you can add it in cmake either from cmake's `add_subdirectory()`
-subdirectory, or through cmake's `FetchContent`. Let's start first by
-`add_subdirectory()`; here's a self-contained example that adds ryml as a cmake subdirectory:
-```cmake
-cmake_minimum_required(VERSION 3.13)
-project(quickstart LANGUAGES CXX)
-add_subdirectory(${PATH_TO_RYML} ryml)
-add_executable(quickstart quickstart.cpp)
-target_link_libraries(quickstart ryml)
-```
-This will build ryml as part of your project, and is the easiest way
-to integrate, particularly if you add ryml as a submodule of your project.
-You can find [a fully working `add_subdirectory()` example here](samples/add_subdirectory).
-
-Alternatively, if you prefer to use cmake's `FetchContent`, here's a
-self-contained example:
-```cmake
-cmake_minimum_required(VERSION 3.13)
-project(quickstart LANGUAGES CXX)
-include(FetchContent)
-FetchContent_Declare(ryml
-    GIT_REPOSITORY https://github.com/biojppm/rapidyaml.git
-    GIT_TAG master     # or the desired branch or tag or commit
-    GIT_SHALLOW false  # ensure ryml's submodules are checked out
-)
-FetchContent_MakeAvailable(ryml)
-add_executable(quickstart quickstart.cpp)
-target_link_libraries(quickstart ryml)
-```
-You can [try this sample yourself here](samples/fetch_content).
-
-
-### Install ryml first
-
-You can also build and install ryml in the customary cmake way prior
-to consuming it in your project via `find_package()`. This is the
-traditional way, and a little less practical than above. But first
-note ryml is now available in some package managers such as
-[vcpkg](https://vcpkg.io).
-
-We have to start by building ryml. For Visual Studio & multi-configuration CMake generators,
-this would be:
-```bash
-cmake -S path/to/rapidyaml -B path/to/ryml/build/dir \
-      -DCMAKE_INSTALL_PREFIX=path/to/ryml/install/dir
-cmake --build path/to/ryml/build/dir --parallel --config Release
-```
-whereas for single configuration CMake generators (Ninja, Unix Makefiles, etc), this
-would be:
-```bash
-cmake -S path/to/rapidyaml -B path/to/ryml/build/dir \
-      -DCMAKE_INSTALL_PREFIX=path/to/ryml/install/dir \
-      -DCMAKE_BUILD_TYPE=Release
-cmake --build path/to/ryml/build/dir --parallel
-```
-(Note the `-S` and `-B` options first appeared in cmake 3.13 and are not
-available in earlier cmake versions). Now you can install ryml:
-```bash
-cmake --build path/to/ryml/build/dir --target install
-```
-
-This will get ryml installed into the directory
-`path/to/ryml/install/dir`, together with cmake export files for ryml,
-which `find_package()` will need to successfully import ryml to your
-project.
-
-Now to consume this installed ryml version, do the following:
-```cmake
-# somewhere in your CMakeLists.txt
-
-# this is the target you wish to link with ryml
-add_library(foolib a.cpp b.cpp)
-
-# instruct cmake to search for ryml
-find_package(ryml REQUIRED)
-target_link_libraries(foolib PUBLIC ryml::ryml)  # NOTE namespace ryml::
-
-add_executable(fooexe main.cpp)
-target_link_libraries(fooexe foolib) # brings in ryml
-```
-Note a significant difference to the subdirectory approach from the previous
-section: the installed ryml cmake exports file places the ryml library target in the
-`ryml::` namespace.
-
-Now when building your project, you will need to point cmake to the installed ryml.
-To do this, simply add the ryml install directory to your project's `CMAKE_PREFIX_PATH` by doing eg
-`-DCMAKE_PREFIX_PATH=path/to/ryml/install/dir` when configuring your project,
-or by setting this variable in the cmake GUI if that's what you prefer to use.
-
-You can also set (via command line or GUI) the variable `ryml_DIR` to the
-directory where the exports file `rymlConfig.cmake` was installed (which is
-different across platforms); search for this file in the ryml install tree,
-and provide the directory where it is located. For example, in Windows with
-the example above, this would be `-Dryml_DIR=path/to/ryml/install/dir/cmake`.
-
+| [`add_subdirectory`](./samples/add_subdirectory) | **yes**                      | [`CMakeLists.txt`](./samples/add_subdirectory/CMakeLists.txt) | [`run.sh`](./samples/add_subdirectory/run.sh) |
+| [`fetch_content`](./samples/fetch_content)      | **yes**                      | [`CMakeLists.txt`](./samples/fetch_content/CMakeLists.txt) | [`run.sh`](./samples/fetch_content/run.sh) |
+| [`find_package`](./samples/find_package)        | **no**<br>needs prior install or package  | [`CMakeLists.txt`](./samples/find_package/CMakeLists.txt) | [`run.sh`](./samples/find_package/run.sh) |
 
 ### cmake build settings for ryml
 The following cmake variables can be used to control the build behavior of
