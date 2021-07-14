@@ -22,7 +22,7 @@ data tree representation has no knowledge of types (but of course, every node
 can have a YAML type tag). It is easy and fast to read, write and iterate
 through the data tree.
 
-ryml can use custom per-tree memory allocators, and is
+ryml can use custom global and per-tree memory allocators, and is
 exception-agnostic. Errors are reported via a custom error handler callback.
 A default error handler implementation using `std::abort()` is provided, but
 you can opt out, or provide your exception-throwing callback.
@@ -42,7 +42,8 @@ ryml is written in C++11, and is known to compile with:
 
 ryml is [extensively unit-tested in Linux, Windows and
 MacOS](https://github.com/biojppm/rapidyaml/actions). The
-tests include analysing ryml with:
+tests run in the standard x64, x86 and arm architectures,
+and include analysing ryml with:
   * valgrind
   * clang-tidy
   * clang sanitizers:
@@ -57,6 +58,14 @@ below).
 
 See also [the changelog](./changelog) and [the roadmap](./ROADMAP.md).
 
+Note that ryml uses submodules. Take care to use the `--recursive` flag
+when cloning the repo, to ensure ryml's submodules are checked out as well:
+```bash
+git clone --recursive https://github.com/biojppm/rapidyaml
+```
+If you omit `--recursive`, after cloning you
+will have to do `git submodule init` and `git submodule update` 
+to ensure ryml's submodules are checked out.
 
 ------
 
@@ -196,7 +205,8 @@ written with easy AND efficient usage in mind, and comes with a two
 level API for accessing and traversing the data tree.
 
 The following snippet is a quick overview taken from [the quickstart
-sample](samples/quickstart.cpp). After cloning ryml, you can very
+sample](samples/quickstart.cpp). After cloning ryml (don't forget the
+`--recursive` flag for git), you can very
 easily build and run this executable using any of the build samples,
 eg the [`add_subdirectory()` sample](samples/add_subdirectory/).
 
@@ -603,14 +613,6 @@ so there's not much of a cost for building it with your project.
 Currently [cmake](https://cmake.org/) is required to build ryml; we
 recommend a recent cmake version, at least 3.13.
 
-Note that ryml uses submodules. Take care to use the `--recursive` flag
-when cloning the repo, to ensure ryml's submodules are checked out as well:
-```bash
-git clone --recursive https://github.com/biojppm/rapidyaml
-```
-If you omit `--recursive`, after cloning you
-will have to do `git submodule init` and `git submodule update` 
-to ensure ryml's submodules are checked out.
 
 ### Usage samples
 
@@ -618,7 +620,7 @@ These samples show how to build an application using ryml. All the
 samples use [the same quickstart executable
 source](./samples/quickstart.cpp), but are built in different ways,
 showing several alternatives to integrate ryml into your project. We
-also encourage you to refer to the [quickstart source]((./samples/quickstart.cpp) itself, which
+also encourage you to refer to the [quickstart source](./samples/quickstart.cpp) itself, which
 extensively covers most of the functionality that you may want out of
 ryml.
 
@@ -799,7 +801,7 @@ parsing suceeds, then the ryml test will emit the parsed tree, then parse the
 emitted result and verify that emission is idempotent, ie that the emitted
 result is the same as its input without any loss of information. To ensure
 correctness, this happens over four levels of parse/emission pairs, resulting
-on ~200 checks per test case.
+in ~200 checks per test case.
 
 Please note that in [their own words](http://matrix.yaml.io/), the tests from
 the YAML test suite *contain a lot of edge cases that don't play such an
