@@ -6,14 +6,7 @@
 namespace c4 {
 namespace yml {
 
-#ifdef _MSC_VER
-#   pragma warning(push)
-#elif defined(__clang__)
-#   pragma clang diagnostic push
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic push
-#   pragma GCC diagnostic ignored "-Wuseless-cast"
-#endif
+C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
 
 namespace {
 struct _SubstrWriter
@@ -21,21 +14,17 @@ struct _SubstrWriter
     substr buf;
     size_t pos;
     _SubstrWriter(substr buf_, size_t pos_=0) : buf(buf_), pos(pos_) {}
-    void operator()(csubstr s)
+    void append(csubstr s)
     {
         C4_ASSERT(!s.overlaps(buf));
         if(pos + s.len <= buf.len)
-        {
             memcpy(buf.str + pos, s.str, s.len);
-        }
         pos += s.len;
     }
-    void operator()(char c)
+    void append(char c)
     {
         if(pos < buf.len)
-        {
             buf.str[pos] = c;
-        }
         ++pos;
     }
     size_t slack() const { return pos <= buf.len ? buf.len - pos : 0; }
@@ -47,16 +36,38 @@ struct _SubstrWriter
 
     size_t advance(size_t more) { pos += more; return pos; }
 };
+
+// adapted from csubstr::pair_range_nested()
+csubstr extract_json_container_range(csubstr s, char open, char close)
+{
+    RYML_ASSERT(s.begins_with(open));
+    for(size_t curr = 1, count = 0; curr < s.len; ++curr)
+    {
+        char c = s[curr];
+        if(c == open)
+        {
+            ++count;
+        }
+        else if(c == close)
+        {
+            if(count == 0)
+                return s.first(curr+1);
+            --count;
+        }
+        else if(c == '\'' || c == '"')  // consume quoted strings at once
+        {
+            csubstr ss = s.sub(curr).pair_range_esc(c, '\\');
+            RYML_CHECK(ss.len > 0);
+            curr += ss.len - 1;
+        }
+    }
+    c4::yml::error("container range was opened but not closed");
+    return {};
+}
+
 } // empty namespace
 
-#ifdef _MSC_VER
-#   pragma warning(pop)
-#elif defined(__clang__)
-#   pragma clang diagnostic pop
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic pop
-#   pragma GCC diagnostic ignored "-Wuseless-cast"
-#endif
+C4_SUPPRESS_WARNING_GCC_POP
 
 
 //-----------------------------------------------------------------------------
@@ -65,17 +76,16 @@ struct _SubstrWriter
 
 size_t preprocess_json(csubstr s, substr buf)
 {
-    _SubstrWriter _append(buf);
+    _SubstrWriter writer(buf);
     size_t last = 0; // the index of the last character in s that was copied to buf
-
-    // append everything that was not written yet
-    #define _apfromlast() { csubstr _s_ = s.range(last, i); _append(_s_); last += _s_.len; }
-    // append element from the buffer
-    #define _apelm(c) { _append(c); ++last; }
-    #define _adv(nsrc, ndst) { _append.advance(ndst); i += nsrc; last += nsrc; }
 
     for(size_t i = 0; i < s.len; ++i)
     {
+        // append everything that was not written yet
+        #define _apfromlast() { csubstr _s_ = s.range(last, i); writer.append(_s_); last += _s_.len; }
+        // append element from the buffer
+        #define _apelm(c) { writer.append(c); ++last; }
+        #define _adv(nsrc, ndst) { writer.advance(ndst); i += nsrc; last += nsrc; }
         const char curr = s[i];
         const char next = i+1 < s.len ? s[i+1] : '\0';
         if(curr == ':')  // if a space is missing after a semicolon, add it
@@ -89,24 +99,24 @@ size_t preprocess_json(csubstr s, substr buf)
             {
                 csubstr rem = s.sub(i+1);
                 if(rem.begins_with("true") || rem.begins_with("false") || rem.begins_with("null"))
-                {
                     insert = true;
-                }
             }
             if(insert)
             {
                 _apfromlast();
                 _apelm(curr);
-                _append(' ');
+                writer.append(' ');
             }
         }
         else if((curr == '{' || curr == '[') && next != '\0') // recurse into substructures
         {
-            // get the close-character maching the open-character.
-            // In ascii: {=123,}=125 and [=91,]=93. So just add 2!
+            // get the close-character matching the open-character.
+            // In ascii: '{'=123,'}'=125 and '['=91,']'=93.
+            // So just add 2!
             const char close = static_cast<char>(curr + 2);
+            RYML_ASSERT((curr == '{' && close == '}') || (curr == '[' && close == ']'));
             // get the contents inside the brackets
-            csubstr ss = s.sub(i).pair_range_nested(curr, close);
+            csubstr ss = extract_json_container_range(s.sub(i), curr, close);
             RYML_ASSERT(ss.size() >= 2);
             RYML_ASSERT(ss.ends_with(close));
             ss = ss.offs(1, 1); // skip the open-close bracket characters
@@ -114,7 +124,7 @@ size_t preprocess_json(csubstr s, substr buf)
             _apelm(curr);
             if(!ss.empty())  // recurse into the substring
             {
-                size_t ret = preprocess_json(ss, _append.rem());
+                size_t ret = preprocess_json(ss, writer.rem());
                 _adv(ss.len, ret);
             }
             _apelm(close);
@@ -127,18 +137,15 @@ size_t preprocess_json(csubstr s, substr buf)
             _apfromlast();
             --i;
         }
+        #undef _apfromlast
+        #undef _apelm
+        #undef _adv
     }
 
     if(last + 1 < s.len)
-    {
-        _append(s.sub(last));
-    }
+        writer.append(s.sub(last));
 
-    #undef _apfromlast
-    #undef _apelm
-    #undef _adv
-
-    return _append.pos;
+    return writer.pos;
 }
 
 
@@ -168,7 +175,7 @@ _ppstate _next(_ppstate s)
 
 size_t preprocess_rxmap(csubstr s, substr buf)
 {
-    _SubstrWriter _append(buf);
+    _SubstrWriter writer(buf);
     _ppstate state = kReadPending;
     size_t last = 0;
 
@@ -178,7 +185,7 @@ size_t preprocess_rxmap(csubstr s, substr buf)
         s = s.offs(1, 1);
     }
 
-    _append('{');
+    writer.append('{');
 
     for(size_t i = 0; i < s.len; ++i)
     {
@@ -206,8 +213,8 @@ size_t preprocess_rxmap(csubstr s, substr buf)
             }
             else if(curr == ',' && next == ' ')
             {
-                _append(s.range(last, i));
-                _append(": 1, ");
+                writer.append(s.range(last, i));
+                writer.append(": 1, ");
                 last = i + 2;
             }
             break;
@@ -232,11 +239,12 @@ size_t preprocess_rxmap(csubstr s, substr buf)
         }
     }
 
-    _append(s.sub(last));
-    if(state == kKeyPending) _append(": 1");
-    _append('}');
+    writer.append(s.sub(last));
+    if(state == kKeyPending)
+        writer.append(": 1");
+    writer.append('}');
 
-    return _append.pos;
+    return writer.pos;
 }
 
 
