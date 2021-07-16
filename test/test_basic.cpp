@@ -444,6 +444,49 @@ TEST(tree, operator_square_brackets)
     }
 }
 
+TEST(tree, relocate)
+{
+    // create a tree with anchors and refs, and copy it to ensure the
+    // relocation also applies to the anchors and refs. Ensure to put
+    // the source in the arena so that it gets relocated.
+    Tree tree = parse(R"(&keyanchor key: val
+key2: &valanchor val2
+keyref: *keyanchor
+*valanchor: was val anchor
+!!int 0: !!str foo
+!!str doe: !!str a deer a female deer
+ray: a drop of golden sun
+me: a name I call myself
+far: a long long way to run
+)");
+    Tree copy = tree;
+    EXPECT_EQ(copy.size(), tree.size());
+    EXPECT_EQ(emitrs<std::string>(copy), R"(&keyanchor key: val
+key2: &valanchor val2
+keyref: *keyanchor
+*valanchor: was val anchor
+!!int 0: !!str foo
+!!str doe: !!str a deer a female deer
+ray: a drop of golden sun
+me: a name I call myself
+far: a long long way to run
+)");
+    //
+    Tree copy2 = copy;
+    EXPECT_EQ(copy.size(), tree.size());
+    copy2.resolve();
+    EXPECT_EQ(emitrs<std::string>(copy2), R"(key: val
+key2: val2
+keyref: val
+val2: was val anchor
+!!int 0: !!str foo
+!!str doe: !!str a deer a female deer
+ray: a drop of golden sun
+me: a name I call myself
+far: a long long way to run
+)");
+}
+
 
 //-------------------------------------------
 template<class Container, class... Args>
@@ -886,6 +929,27 @@ TEST(NodeScalar, ctor__tagged)
     }
 
 }
+
+
+TEST(NodeType, type_str)
+{
+    // avoid coverage misses
+    EXPECT_EQ(to_csubstr(NodeType(KEYVAL).type_str()), "KEYVAL");
+    EXPECT_EQ(to_csubstr(NodeType(VAL).type_str()), "VAL");
+    EXPECT_EQ(to_csubstr(NodeType(DOC).type_str()), "DOC");
+    EXPECT_EQ(to_csubstr(NodeType(DOCSEQ).type_str()), "DOCSEQ");
+    EXPECT_EQ(to_csubstr(NodeType(DOCMAP).type_str()), "DOCMAP");
+    EXPECT_EQ(to_csubstr(NodeType(DOCVAL).type_str()), "DOCVAL");
+    EXPECT_EQ(to_csubstr(NodeType(MAP).type_str()), "MAP");
+    EXPECT_EQ(to_csubstr(NodeType(SEQ).type_str()), "SEQ");
+    EXPECT_EQ(to_csubstr(NodeType(KEYMAP).type_str()), "KEYMAP");
+    EXPECT_EQ(to_csubstr(NodeType(KEYSEQ).type_str()), "KEYSEQ");
+    EXPECT_EQ(to_csubstr(NodeType(STREAM).type_str()), "STREAM");
+    EXPECT_EQ(to_csubstr(NodeType(NOTYPE).type_str()), "NOTYPE");
+    EXPECT_EQ(to_csubstr(NodeType(KEYREF).type_str()), "REF");
+    EXPECT_EQ(to_csubstr(NodeType(VALREF).type_str()), "REF");
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
