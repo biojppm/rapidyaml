@@ -3,15 +3,10 @@
 #include "c4/yml/node.hpp"
 #include "c4/yml/detail/stack.hpp"
 
-#ifdef __GNUC__
-#   pragma GCC diagnostic push
-#   pragma GCC diagnostic ignored "-Wtype-limits"
-#endif
 
-#if defined(_MSC_VER)
-#   pragma warning(push)
-#   pragma warning(disable: 4296/*expression is always 'boolean_value'*/)
-#endif
+C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wtype-limits")
+C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4296/*expression is always 'boolean_value'*/)
+
 
 namespace c4 {
 namespace yml {
@@ -19,76 +14,42 @@ namespace yml {
 
 YamlTag_e to_tag(csubstr tag)
 {
-
     if(tag.begins_with("!!"))
-    {
         tag = tag.sub(2);
-    }
     else if(tag.begins_with('!'))
-    {
         return TAG_NONE;
-    }
     else if(tag.begins_with("tag:yaml.org,2002:"))
-    {
         tag = tag.sub(csubstr("tag:yaml.org,2002:").len);
-    }
 
     if(tag == "map")
-    {
         return TAG_MAP;
-    }
     else if(tag == "omap")
-    {
         return TAG_OMAP;
-    }
     else if(tag == "pairs")
-    {
         return TAG_PAIRS;
-    }
     else if(tag == "set")
-    {
         return TAG_SET;
-    }
     else if(tag == "seq")
-    {
         return TAG_SEQ;
-    }
     else if(tag == "binary")
-    {
         return TAG_BINARY;
-    }
     else if(tag == "bool")
-    {
         return TAG_BOOL;
-    }
     else if(tag == "float")
-    {
         return TAG_FLOAT;
-    }
     else if(tag == "int")
-    {
         return TAG_INT;
-    }
     else if(tag == "merge")
-    {
         return TAG_MERGE;
-    }
     else if(tag == "null")
-    {
         return TAG_NULL;
-    }
     else if(tag == "str")
-    {
         return TAG_STR;
-    }
     else if(tag == "timestamp")
-    {
         return TAG_TIMESTAMP;
-    }
     else if(tag == "value")
-    {
         return TAG_VALUE;
-    }
+
     return TAG_NONE;
 }
 
@@ -101,23 +62,33 @@ const char* NodeType::type_str(NodeType_e ty)
 {
     switch(ty & _TYMASK)
     {
-    case KEYVAL  : return "KEYVAL";
-    case VAL     : return "VAL";
-    case DOCSEQ  : return "DOCSEQ";
-    case DOCMAP  : return "DOCMAP";
-    case DOCVAL  : return "DOCVAL";
-    case MAP     : return "MAP";
-    case SEQ     : return "SEQ";
-    case KEYMAP  : return "KEYMAP";
-    case KEYSEQ  : return "KEYSEQ";
-    case DOC     : return "DOC";
-    case STREAM  : return "STREAM";
-    case NOTYPE  : return "NOTYPE";
+    case KEYVAL:
+        return "KEYVAL";
+    case VAL:
+        return "VAL";
+    case DOCSEQ:
+        return "DOCSEQ";
+    case DOCMAP:
+        return "DOCMAP";
+    case DOCVAL:
+        return "DOCVAL";
+    case MAP:
+        return "MAP";
+    case SEQ:
+        return "SEQ";
+    case KEYMAP:
+        return "KEYMAP";
+    case KEYSEQ:
+        return "KEYSEQ";
+    case DOC:
+        return "DOC";
+    case STREAM:
+        return "STREAM";
+    case NOTYPE:
+        return "NOTYPE";
     default:
         if(ty & (KEYREF|VALREF))
-        {
             return "REF";
-        }
         return "(unknown?)";
     }
 }
@@ -134,7 +105,7 @@ NodeRef Tree::rootref()
 
 NodeRef const Tree::rootref() const
 {
-    return NodeRef(const_cast< Tree* >(this), root_id());
+    return NodeRef(const_cast<Tree*>(this), root_id());
 }
 
 NodeRef Tree::operator[] (csubstr key)
@@ -154,6 +125,7 @@ NodeRef const Tree::operator[] (size_t i) const
 {
     return rootref()[i];
 }
+
 
 //-----------------------------------------------------------------------------
 Tree::Tree(Allocator const& cb)
@@ -221,14 +193,9 @@ void Tree::_free()
 }
 
 
-#ifdef __clang__
-#    pragma clang diagnostic push
-//#    pragma clang diagnostic ignored "-Wgnu-inline-cpp-without-extern" // debugbreak/debugbreak.h:50:16: error: 'gnu_inline' attribute without 'extern' in C++ treated as externally available, this changed in Clang 10 [-Werror,-Wgnu-inline-cpp-without-extern]
-#elif defined(__GNUC__)
-#    pragma GCC diagnostic push
-#    if __GNUC__>= 8
-#        pragma GCC diagnostic ignored "-Wclass-memaccess" // error: ‘void* memset(void*, int, size_t)’ clearing an object of type ‘class c4::yml::Tree’ with no trivial copy-assignment; use assignment or value-initialization instead
-#    endif
+C4_SUPPRESS_WARNING_GCC_PUSH
+#if defined(__GNUC__) && __GNUC__>= 8
+    C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wclass-memaccess") // error: ‘void* memset(void*, int, size_t)’ clearing an object of type ‘class c4::yml::Tree’ with no trivial copy-assignment; use assignment or value-initialization instead
 #endif
 
 void Tree::_clear()
@@ -288,12 +255,18 @@ void Tree::_relocate(substr next_arena)
     memcpy(next_arena.str, m_arena.str, m_arena_pos);
     for(NodeData *C4_RESTRICT n = m_buf, *e = m_buf + m_cap; n != e; ++n)
     {
-        if(in_arena(n->m_key.scalar)) n->m_key.scalar = _relocated(n->m_key.scalar, next_arena);
-        if(in_arena(n->m_key.tag   )) n->m_key.tag    = _relocated(n->m_key.tag   , next_arena);
-        if(in_arena(n->m_key.anchor)) n->m_key.anchor = _relocated(n->m_key.anchor, next_arena);
-        if(in_arena(n->m_val.scalar)) n->m_val.scalar = _relocated(n->m_val.scalar, next_arena);
-        if(in_arena(n->m_val.tag   )) n->m_val.tag    = _relocated(n->m_val.tag   , next_arena);
-        if(in_arena(n->m_val.anchor)) n->m_val.anchor = _relocated(n->m_val.anchor, next_arena);
+        if(in_arena(n->m_key.scalar))
+            n->m_key.scalar = _relocated(n->m_key.scalar, next_arena);
+        if(in_arena(n->m_key.tag   ))
+            n->m_key.tag    = _relocated(n->m_key.tag   , next_arena);
+        if(in_arena(n->m_key.anchor))
+            n->m_key.anchor = _relocated(n->m_key.anchor, next_arena);
+        if(in_arena(n->m_val.scalar))
+            n->m_val.scalar = _relocated(n->m_val.scalar, next_arena);
+        if(in_arena(n->m_val.tag   ))
+            n->m_val.tag    = _relocated(n->m_val.tag   , next_arena);
+        if(in_arena(n->m_val.anchor))
+            n->m_val.anchor = _relocated(n->m_val.anchor, next_arena);
     }
 }
 
@@ -332,9 +305,7 @@ void Tree::reserve(size_t cap)
         RYML_ASSERT(m_free_tail == NONE || (m_free_tail >= 0 && m_free_tail < cap));
 
         if( ! m_size)
-        {
             _claim_root();
-        }
     }
 }
 
@@ -382,11 +353,7 @@ void Tree::_clear_range(size_t first, size_t num)
     m_buf[first + num - 1].m_next_sibling = NONE;
 }
 
-#ifdef __clang__
-#    pragma clang diagnostic pop
-#elif defined(__GNUC__)
-#    pragma GCC diagnostic pop
-#endif
+C4_SUPPRESS_WARNING_GCC_POP
 
 
 //-----------------------------------------------------------------------------
@@ -412,22 +379,16 @@ void Tree::_free_list_add(size_t i)
     w.m_next_sibling = m_free_head;
     w.m_prev_sibling = NONE;
     if(m_free_head != NONE)
-    {
         m_buf[m_free_head].m_prev_sibling = i;
-    }
     m_free_head = i;
     if(m_free_tail == NONE)
-    {
         m_free_tail = m_free_head;
-    }
 }
 
 void Tree::_free_list_rem(size_t i)
 {
     if(m_free_head == i)
-    {
         m_free_head = _p(i)->m_next_sibling;
-    }
     _rem_hierarchy(i);
 }
 
@@ -462,14 +423,12 @@ size_t Tree::_claim()
 }
 
 //-----------------------------------------------------------------------------
-#if defined(__clang__)
-#   pragma clang diagnostic push
-#   pragma GCC diagnostic ignored "-Wnull-dereference"
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic push
-#   if __GNUC__ >= 6
-#       pragma GCC diagnostic ignored "-Wnull-dereference"
-#   endif
+
+C4_SUPPRESS_WARNING_GCC_PUSH
+C4_SUPPRESS_WARNING_CLANG_PUSH
+C4_SUPPRESS_WARNING_CLANG("-Wnull-dereference")
+#if defined(__GNUC_) && (__GNUC__ >= 6)
+C4_SUPPRESS_WARNING_GCC("-Wnull-dereference")
 #endif
 
 void Tree::_set_hierarchy(size_t ichild, size_t iparent, size_t iprev_sibling)
@@ -489,7 +448,8 @@ void Tree::_set_hierarchy(size_t ichild, size_t iparent, size_t iprev_sibling)
         RYML_ASSERT(iprev_sibling == NONE);
     }
 
-    if(iparent == NONE) return;
+    if(iparent == NONE)
+        return;
 
     size_t inext_sibling = iprev_sibling != NONE ? next_sibling(iprev_sibling) : first_child(iparent);
     NodeData *C4_RESTRICT parent = get(iparent);
@@ -521,21 +481,15 @@ void Tree::_set_hierarchy(size_t ichild, size_t iparent, size_t iprev_sibling)
     else
     {
         if(child->m_next_sibling == parent->m_first_child)
-        {
             parent->m_first_child = id(child);
-        }
+
         if(child->m_prev_sibling == parent->m_last_child)
-        {
             parent->m_last_child = id(child);
-        }
     }
 }
 
-#if defined(__clang__)
-#   pragma clang diagnostic pop
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic pop
-#endif
+C4_SUPPRESS_WARNING_GCC_POP
+C4_SUPPRESS_WARNING_CLANG_POP
 
 
 //-----------------------------------------------------------------------------
@@ -1000,51 +954,37 @@ size_t Tree::duplicate_children_no_rep(Tree const *src, size_t node, size_t pare
 void Tree::merge_with(Tree const *src, size_t src_node, size_t dst_node)
 {
     RYML_ASSERT(src != nullptr);
-    if(src_node == NONE) src_node = src->root_id();
-    if(dst_node == NONE) dst_node = root_id();
+    if(src_node == NONE)
+        src_node = src->root_id();
+    if(dst_node == NONE)
+        dst_node = root_id();
     RYML_ASSERT(src->has_val(src_node) || src->is_seq(src_node) || src->is_map(src_node));
 
-    // CASE 1: (KEY)VALUE NODES
     if(src->has_val(src_node))
     {
         if( ! has_val(dst_node))
         {
             if(has_children(dst_node))
-            {
                 remove_children(dst_node);
-            }
         }
         if(src->is_keyval(src_node))
-        {
             _copy_props(dst_node, src, src_node);
-        }
         else if(src->is_val(src_node))
-        {
             _copy_props_wo_key(dst_node, src, src_node);
-        }
         else
-        {
             C4_NEVER_REACH();
-        }
     }
-    // CASE 2: SEQ NODES
     else if(src->is_seq(src_node))
     {
         if( ! is_seq(dst_node))
         {
             if(has_children(dst_node))
-            {
                 remove_children(dst_node);
-            }
             _clear_type(dst_node);
             if(src->has_key(src_node))
-            {
                 to_seq(dst_node, src->key(src_node));
-            }
             else
-            {
                 to_seq(dst_node);
-            }
         }
         for(size_t sch = src->first_child(src_node); sch != NONE; sch = src->next_sibling(sch))
         {
@@ -1053,24 +993,17 @@ void Tree::merge_with(Tree const *src, size_t src_node, size_t dst_node)
             merge_with(src, sch, dch);
         }
     }
-    // CASE 3: MAP NODES
     else if(src->is_map(src_node))
     {
         if( ! is_map(dst_node))
         {
             if(has_children(dst_node))
-            {
                 remove_children(dst_node);
-            }
             _clear_type(dst_node);
             if(src->has_key(src_node))
-            {
                 to_map(dst_node, src->key(src_node));
-            }
             else
-            {
                 to_map(dst_node);
-            }
         }
         for(size_t sch = src->first_child(src_node); sch != NONE; sch = src->next_sibling(sch))
         {
@@ -1354,7 +1287,8 @@ size_t Tree::child(size_t node, size_t pos) const
     size_t count = 0;
     for(size_t i = first_child(node); i != NONE; i = next_sibling(i))
     {
-        if(count++ == pos) return i;
+        if(count++ == pos)
+            return i;
     }
     return NONE;
 }
@@ -1364,7 +1298,8 @@ size_t Tree::child_pos(size_t node, size_t ch) const
     size_t count = 0;
     for(size_t i = first_child(node); i != NONE; i = next_sibling(i))
     {
-        if(i == ch) return count;
+        if(i == ch)
+            return count;
         ++count;
     }
     return npos;
@@ -1488,8 +1423,9 @@ void Tree::to_stream(size_t node, type_bits more_flags)
 
 csubstr Tree::lookup_result::resolved() const
 {
-    auto p = path.first(path_pos);
-    if(p.ends_with('.')) p = p.first(p.len-1);
+    csubstr p = path.first(path_pos);
+    if(p.ends_with('.'))
+        p = p.first(p.len-1);
     return p;
 }
 
@@ -1498,59 +1434,68 @@ csubstr Tree::lookup_result::unresolved() const
     return path.sub(path_pos);
 }
 
-inline void Tree::_advance(lookup_result *r, size_t more)
+void Tree::_advance(lookup_result *r, size_t more) const
 {
     r->path_pos += more;
     if(r->path.sub(r->path_pos).begins_with('.'))
-    {
         ++r->path_pos;
-    }
 }
 
 Tree::lookup_result Tree::lookup_path(csubstr path, size_t start) const
 {
-    if(start == NONE) start = root_id();
+    if(start == NONE)
+        start = root_id();
     lookup_result r(path, start);
-    if(path.empty()) return r;
-    const_cast<Tree*>(this)->_lookup_path(&r, /*modify*/false); // no writes will occur
+    if(path.empty())
+        return r;
+    _lookup_path(&r);
     if(r.target == NONE && r.closest == start)
-    {
         r.closest = NONE;
-    }
     return r;
 }
 
 size_t Tree::lookup_path_or_modify(csubstr default_value, csubstr path, size_t start)
 {
-    if(start == NONE) start = root_id();
-    lookup_result r(path, start);
-    _lookup_path(&r, /*modify*/false);
-    if(r.target != NONE) return r.target;
-    _lookup_path(&r, /*modify*/true);
-    C4_CHECK(r.target != NONE);
-    if(parent_is_map(r.target))
-    {
-        to_keyval(r.target, key(r.target), default_value);
-    }
+    size_t target = _lookup_path_or_create(path, start);
+    if(parent_is_map(target))
+        to_keyval(target, key(target), default_value);
     else
+        to_val(target, default_value);
+    return target;
+}
+
+size_t Tree::lookup_path_or_modify(Tree const *src, size_t src_node, csubstr path, size_t start)
+{
+    size_t target = _lookup_path_or_create(path, start);
+    merge_with(src, src_node, target);
+    return target;
+}
+
+size_t Tree::_lookup_path_or_create(csubstr path, size_t start)
+{
+    if(start == NONE)
+        start = root_id();
+    lookup_result r(path, start);
+    _lookup_path(&r);
+    if(r.target != NONE)
     {
-        RYML_ASSERT(parent_is_map(r.target));
-        to_val(r.target, default_value);
+        C4_ASSERT(r.unresolved().empty());
+        return r.target;
     }
+    _lookup_path_modify(&r);
     return r.target;
 }
 
-void Tree::_lookup_path(lookup_result *r, bool modify)
+void Tree::_lookup_path(lookup_result *r) const
 {
+    C4_ASSERT( ! r->unresolved().empty());
     _lookup_path_token parent{"", type(r->closest)};
     size_t node;
     do
     {
-        node = _next_node(r, modify, &parent);
+        node = _next_node(r, &parent);
         if(node != NONE)
-        {
             r->closest = node;
-        }
         if(r->unresolved().empty())
         {
             r->target = node;
@@ -1559,146 +1504,179 @@ void Tree::_lookup_path(lookup_result *r, bool modify)
     } while(node != NONE);
 }
 
-size_t Tree::_next_node(lookup_result * r, bool modify, _lookup_path_token *parent)
+void Tree::_lookup_path_modify(lookup_result *r)
+{
+    C4_ASSERT( ! r->unresolved().empty());
+    _lookup_path_token parent{"", type(r->closest)};
+    size_t node;
+    do
+    {
+        node = _next_node_modify(r, &parent);
+        if(node != NONE)
+            r->closest = node;
+        if(r->unresolved().empty())
+        {
+            r->target = node;
+            return;
+        }
+    } while(node != NONE);
+}
+
+size_t Tree::_next_node(lookup_result * r, _lookup_path_token *parent) const
 {
     _lookup_path_token token = _next_token(r, *parent);
-
-    if( ! token) return NONE;
+    if( ! token)
+        return NONE;
 
     size_t node = NONE;
-    csubstr tk = token.value;
-    auto type = token.type;
-
-    if(type == MAP || type == SEQ)
+    csubstr prev = token.value;
+    if(token.type == MAP || token.type == SEQ)
     {
-        RYML_ASSERT(!tk.begins_with('['));
+        RYML_ASSERT(!token.value.begins_with('['));
         //RYML_ASSERT(is_container(r->closest) || r->closest == NONE);
-        if( ! modify)
-        {
-            RYML_ASSERT(is_map(r->closest));
-            node = find_child(r->closest, tk);
-            if(node == NONE) goto failure;
-        }
-        else
-        {
-            if( ! is_container(r->closest))
-            {
-                if(has_key(r->closest))
-                {
-                    to_map(r->closest, key(r->closest));
-                }
-                else
-                {
-                    to_map(r->closest);
-                }
-            }
-            RYML_ASSERT(is_map(r->closest));
-            node = find_child(r->closest, tk);
-            if(node == NONE)
-            {
-                RYML_ASSERT(is_map(r->closest));
-                node = append_child(r->closest);
-                NodeData *n = _p(node);
-                n->m_key.scalar = tk;
-                n->m_type.add(KEY);
-            }
-        }
+        RYML_ASSERT(is_map(r->closest));
+        node = find_child(r->closest, token.value);
     }
-    else if(type == KEYVAL)
+    else if(token.type == KEYVAL)
     {
         RYML_ASSERT(r->unresolved().empty());
         if(is_map(r->closest))
-        {
-            node = find_child(r->closest, tk);
-        }
-        if( ! modify)
-        {
-            if(node == NONE) goto failure;
-        }
-        else
-        {
-            if(this->type(r->closest) == NOTYPE)
-            {
-                NodeData *c = _p(r->closest);
-                c->m_type.add(MAP);
-            }
-            RYML_ASSERT(is_map(r->closest));
-            node = append_child(r->closest);
-            NodeData *n = _p(node);
-            n->m_key.scalar = tk;
-            n->m_val.scalar = "";
-            n->m_type.add(KEYVAL);
-        }
+            node = find_child(r->closest, token.value);
     }
-    else if(type == KEY)
+    else if(token.type == KEY)
     {
-        RYML_ASSERT(tk.begins_with('[') && tk.ends_with(']'));
-        tk = tk.offs(1, 1).trim(' ');
-        size_t idx;
-        if( ! from_chars(tk, &idx))
-        {
-             goto failure;
-        }
-        if( ! modify)
-        {
-            node = child(r->closest, idx);
-            if(node == NONE) goto failure;
-        }
-        else
-        {
-            if( ! is_container(r->closest))
-            {
-                if(has_key(r->closest))
-                {
-                    to_seq(r->closest, key(r->closest));
-                }
-                else
-                {
-                    to_seq(r->closest);
-                }
-            }
-            RYML_ASSERT(is_container(r->closest));
-            node = child(r->closest, idx);
-            if(node == NONE)
-            {
-                RYML_ASSERT(num_children(r->closest) <= idx);
-                for(size_t i = num_children(r->closest); i <= idx; ++i)
-                {
-                    node = append_child(r->closest);
-                    if(i < idx)
-                    {
-                        if(is_map(r->closest))
-                        {
-                            to_keyval(node, /*"~"*/{}, /*"~"*/{});
-                        }
-                        else if(is_seq(r->closest))
-                        {
-                            to_val(node, /*"~"*/{});
-                        }
-                    }
-                }
-            }
-        }
-
+        RYML_ASSERT(token.value.begins_with('[') && token.value.ends_with(']'));
+        token.value = token.value.offs(1, 1).trim(' ');
+        size_t idx = 0;
+        RYML_CHECK(from_chars(token.value, &idx));
+        node = child(r->closest, idx);
     }
     else
     {
         C4_NEVER_REACH();
     }
 
+    if(node != NONE)
+    {
+        *parent = token;
+    }
+    else
+    {
+        csubstr p = r->path.sub(r->path_pos > 0 ? r->path_pos - 1 : r->path_pos);
+        r->path_pos -= prev.len;
+        if(p.begins_with('.'))
+            r->path_pos -= 1u;
+    }
+
+    return node;
+}
+
+size_t Tree::_next_node_modify(lookup_result * r, _lookup_path_token *parent)
+{
+    _lookup_path_token token = _next_token(r, *parent);
+    if( ! token)
+        return NONE;
+
+    size_t node = NONE;
+    if(token.type == MAP || token.type == SEQ)
+    {
+        RYML_ASSERT(!token.value.begins_with('['));
+        //RYML_ASSERT(is_container(r->closest) || r->closest == NONE);
+        if( ! is_container(r->closest))
+        {
+            if(has_key(r->closest))
+                to_map(r->closest, key(r->closest));
+            else
+                to_map(r->closest);
+        }
+        else
+        {
+            if(is_map(r->closest))
+                node = find_child(r->closest, token.value);
+            else
+            {
+                size_t pos = NONE;
+                RYML_CHECK(c4::atox(token.value, &pos));
+                RYML_ASSERT(pos != NONE);
+                node = child(r->closest, pos);
+            }
+        }
+        if(node == NONE)
+        {
+            RYML_ASSERT(is_map(r->closest));
+            node = append_child(r->closest);
+            NodeData *n = _p(node);
+            n->m_key.scalar = token.value;
+            n->m_type.add(KEY);
+        }
+    }
+    else if(token.type == KEYVAL)
+    {
+        RYML_ASSERT(r->unresolved().empty());
+        if(is_map(r->closest))
+        {
+            node = find_child(r->closest, token.value);
+            if(node == NONE)
+                node = append_child(r->closest);
+        }
+        else
+        {
+            RYML_ASSERT(!is_seq(r->closest));
+            _add_flags(r->closest, MAP);
+            node = append_child(r->closest);
+        }
+        NodeData *n = _p(node);
+        n->m_key.scalar = token.value;
+        n->m_val.scalar = "";
+        n->m_type.add(KEYVAL);
+    }
+    else if(token.type == KEY)
+    {
+        RYML_ASSERT(token.value.begins_with('[') && token.value.ends_with(']'));
+        token.value = token.value.offs(1, 1).trim(' ');
+        size_t idx;
+        if( ! from_chars(token.value, &idx))
+             return NONE;
+        if( ! is_container(r->closest))
+        {
+            if(has_key(r->closest))
+            {
+                csubstr k = key(r->closest);
+                _clear_type(r->closest);
+                to_seq(r->closest, k);
+            }
+            else
+            {
+                _clear_type(r->closest);
+                to_seq(r->closest);
+            }
+        }
+        RYML_ASSERT(is_container(r->closest));
+        node = child(r->closest, idx);
+        if(node == NONE)
+        {
+            RYML_ASSERT(num_children(r->closest) <= idx);
+            for(size_t i = num_children(r->closest); i <= idx; ++i)
+            {
+                node = append_child(r->closest);
+                if(i < idx)
+                {
+                    if(is_map(r->closest))
+                        to_keyval(node, /*"~"*/{}, /*"~"*/{});
+                    else if(is_seq(r->closest))
+                        to_val(node, /*"~"*/{});
+                }
+            }
+        }
+    }
+    else
+    {
+        C4_NEVER_REACH();
+    }
+
+    RYML_ASSERT(node != NONE);
     *parent = token;
     return node;
-
-failure:
-    RYML_ASSERT(node == NONE);
-    if( ! modify) // rollback
-    {
-        csubstr p = r->path.sub(r->path_pos);
-        csubstr pb = r->path.sub(r->path_pos > 0 ? r->path_pos - 1 : r->path_pos);
-        size_t adj = (p.begins_with_any(".]") || pb.begins_with_any(".]")) ? 1 : 0;
-        r->path_pos -= token.value.len + adj;
-    }
-    return NONE;
 }
 
 /** types of tokens:
@@ -1707,19 +1685,18 @@ failure:
  * - seeing "seq[n]" ---> "seq"/SEQ (--> "[n]"/KEY)
  * - seeing "[n]" ---> "[n]"/KEY
  */
-Tree::_lookup_path_token Tree::_next_token(lookup_result *r, _lookup_path_token const& parent)
+Tree::_lookup_path_token Tree::_next_token(lookup_result *r, _lookup_path_token const& parent) const
 {
     csubstr unres = r->unresolved();
     if(unres.empty())
-    {
         return {};
-    }
 
     // is it an indexation like [0], [1], etc?
     if(unres.begins_with('['))
     {
         size_t pos = unres.find(']');
-        if(pos == csubstr::npos) return {};
+        if(pos == csubstr::npos)
+            return {};
         csubstr idx = unres.first(pos + 1);
         _advance(r, pos + 1);
         return {idx, KEY};
@@ -1727,15 +1704,12 @@ Tree::_lookup_path_token Tree::_next_token(lookup_result *r, _lookup_path_token 
 
     // no. so it must be a name
     size_t pos = unres.first_of(".[");
-
     if(pos == csubstr::npos)
     {
         _advance(r, unres.len);
         NodeType t;
         if(( ! parent) || parent.type.is_seq())
-        {
             return {unres, VAL};
-        }
         return {unres, KEYVAL};
     }
 
@@ -1756,10 +1730,6 @@ Tree::_lookup_path_token Tree::_next_token(lookup_result *r, _lookup_path_token 
 } // namespace ryml
 } // namespace c4
 
-#ifdef __GNUC__
-#   pragma GCC diagnostic pop
-#endif
 
-#if defined(_MSC_VER)
-#   pragma warning(pop)
-#endif
+C4_SUPPRESS_WARNING_GCC_POP
+C4_SUPPRESS_WARNING_MSVC_POP
