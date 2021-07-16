@@ -5,6 +5,8 @@
 #include <c4/substr.hpp>
 #include <c4/yml/export.hpp>
 
+#include <iostream>
+
 #define RYML_INLINE inline
 
 #if defined(_MSC_VER)
@@ -39,8 +41,11 @@
     do {                                                                \
         if(!(cond))                                                     \
         {                                                               \
+        std::cout << "aqui 0.0.1 " << (void*)c4::yml::get_callbacks().m_error << std::endl;\
             C4_DEBUG_BREAK();                                           \
+        std::cout << "aqui 0.0.2 " << (void*)c4::yml::get_callbacks().m_error << std::endl;\
             c4::yml::error("expected true: " #cond);                    \
+        std::cout << "aqui 0.0.3 " << (void*)c4::yml::get_callbacks().m_error << std::endl;\
         }                                                               \
     } while(0)
 #   define RYML_CHECK_MSG(cond, msg)                                    \
@@ -57,8 +62,11 @@
     do {                                                                \
         if(!(cond))                                                     \
         {                                                               \
+        std::cout << "aqui 0.0.1 " << (void*)c4::yml::get_callbacks().m_error << std::endl;\
             C4_DEBUG_BREAK();                                           \
+        std::cout << "aqui 0.0.2 " << (void*)c4::yml::get_callbacks().m_error << std::endl;\
             c4::yml::error(__FILE__ ":" C4_XQUOTE(__LINE__) ": expected true: " #cond); \
+        std::cout << "aqui 0.0.3 " << (void*)c4::yml::get_callbacks().m_error << std::endl;\
         }                                                               \
     } while(0)
 
@@ -128,9 +136,9 @@ struct Location : public LineCol
     operator bool () const { return !name.empty() || line != 0 || offset != 0; }
 
     Location() : LineCol(), name() {}
-    Location(                     size_t l, size_t c) : LineCol{   l, c}, name( ) {}
-    Location(csubstr n,           size_t l, size_t c) : LineCol{   l, c}, name(n) {}
-    Location(csubstr n, size_t b, size_t l, size_t c) : LineCol{b, l, c}, name(n) {}
+    Location(                         size_t l, size_t c) : LineCol{   l, c}, name( ) {}
+    Location(    csubstr n,           size_t l, size_t c) : LineCol{   l, c}, name(n) {}
+    Location(    csubstr n, size_t b, size_t l, size_t c) : LineCol{b, l, c}, name(n) {}
     Location(const char *n,           size_t l, size_t c) : LineCol{   l, c}, name(to_csubstr(n)) {}
     Location(const char *n, size_t b, size_t l, size_t c) : LineCol{b, l, c}, name(to_csubstr(n)) {}
 };
@@ -226,7 +234,7 @@ RYML_EXPORT Callbacks const& get_callbacks();
 RYML_EXPORT void set_callbacks(Callbacks const& c);
 #ifdef RYML_NO_DEFAULT_CALLBACKS
 /// set the global callbacks to their defaults
-void reset_callbacks();
+RYML_EXPORT void reset_callbacks();
 #endif
 
 
@@ -286,9 +294,7 @@ struct RYML_EXPORT Allocator
     {
         void *mem = r->allocate(num_bytes, hint);
         if(mem == nullptr)
-        {
             error("out of memory");
-        }
         return mem;
     }
 

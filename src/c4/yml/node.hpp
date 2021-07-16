@@ -5,6 +5,7 @@
  * @see NodeRef */
 
 #include <cstddef>
+#include <iostream> // TMP!!!! REMOVE
 
 #include "c4/yml/tree.hpp"
 #include "c4/base64.hpp"
@@ -366,8 +367,11 @@ public:
 
     inline void operator|= (NodeType_e t)
     {
+        std::cout << "aqui 1.3.1" << std::endl;
         _apply_seed();
+        std::cout << "aqui 1.3.2" << std::endl;
         m_tree->_add_flags(m_id, t);
+        std::cout << "aqui 1.3.3" << std::endl;
     }
 
     inline void operator= (NodeInit const& v)
@@ -520,18 +524,28 @@ private:
     {
         if(m_seed.str) // we have a seed key: use it to create the new child
         {
+            std::cout << "aqui 1.3.1.1" << std::endl;
             //RYML_ASSERT(i.key.scalar.empty() || m_key == i.key.scalar || m_key.empty());
             m_id = m_tree->append_child(m_id);
+            std::cout << "aqui 1.3.1.2" << std::endl;
             m_tree->_set_key(m_id, m_seed);
+            std::cout << "aqui 1.3.1.3" << std::endl;
             m_seed.str = nullptr;
+            std::cout << "aqui 1.3.1.4" << std::endl;
             m_seed.len = NONE;
+            std::cout << "aqui 1.3.1.5" << std::endl;
         }
         else if(m_seed.len != NONE) // we have a seed index: create a child at that position
         {
+            std::cout << "aqui 1.3.1.6" << std::endl;
             RYML_ASSERT(m_tree->num_children(m_id) == m_seed.len);
+            std::cout << "aqui 1.3.1.7" << std::endl;
             m_id = m_tree->append_child(m_id);
+            std::cout << "aqui 1.3.1.8" << std::endl;
             m_seed.str = nullptr;
+            std::cout << "aqui 1.3.1.9" << std::endl;
             m_seed.len = NONE;
+            std::cout << "aqui 1.3.1.10" << std::endl;
         }
         else
         {

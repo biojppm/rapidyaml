@@ -1805,7 +1805,7 @@ TEST(general, lookup_path_or_modify)
         EXPECT_EQ(t["newmap2"]["newseq2"][2]["newmap2"]["newseq2"][3]["first2"].val(), "y");
         sz2 = t.lookup_path_or_modify("z", "newmap2.newseq2[2].newmap2.newseq2[3].second2");
         EXPECT_EQ  (t["newmap2"]["newseq2"][2]["newmap2"]["newseq2"][3]["second2"].val(), "z");
-        
+
         sz = t.lookup_path_or_modify("foo", "newmap.newseq1[1]");
         EXPECT_EQ(t["newmap"].is_map(), true);
         EXPECT_EQ(t["newmap"]["newseq1"].is_seq(), true);

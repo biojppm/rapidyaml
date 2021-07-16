@@ -135,12 +135,37 @@ TEST(github, 31)
     }
 
     {
+        std::cout << "aqui 0.0" << std::endl;
+        ExpectError::do_check([&](){
+            RYML_CHECK(false);
+        });
+        std::cout << "aqui 0.1" << std::endl;
+    }
+    {
+        std::cout << "aqui 0.2" << std::endl;
         #if RYML_USE_ASSERT
         ExpectError::do_check([&](){
-            auto lumi = plist.append_child();
-            lumi << "Lumi";
-            lumi |= MAP;
+            RYML_ASSERT(false);
         });
+        #endif
+        std::cout << "aqui 0.3" << std::endl;
+    }
+
+    {
+        #if RYML_USE_ASSERT
+        std::cout << "aqui 1" << std::endl;
+        ExpectError::do_check([&](){
+            std::cout << "aqui 1.1" << std::endl;
+            auto lumi = plist.append_child();
+            std::cout << "aqui 1.2" << std::endl;
+            lumi << "Lumi";
+            std::cout << "aqui 1.3" << std::endl;
+            lumi |= MAP;
+            std::cout << "aqui 1.4" << std::endl;
+        });
+        std::cout << "aqui 2" << std::endl;
+        #else
+        std::cout << "aqui 0" << std::endl;
         #endif // RYML_USE_ASSERT
     }
 

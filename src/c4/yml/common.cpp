@@ -1,12 +1,20 @@
 #include "c4/yml/common.hpp"
 
+#include <type_traits>
 #ifndef RYML_NO_DEFAULT_CALLBACKS
 #   include <stdlib.h>
 #   include <stdio.h>
 #endif // RYML_NO_DEFAULT_CALLBACKS
 
+
 namespace c4 {
 namespace yml {
+
+static_assert(std::is_same<std::underlying_type<decltype(npos)>::type, size_t>::value, "invalid type");
+static_assert(std::is_same<std::underlying_type<decltype(NONE)>::type, size_t>::value, "invalid type");
+static_assert(size_t(npos) == ((size_t)-1), "invalid value"); // some debuggers show the wrong value...
+static_assert(size_t(NONE) == ((size_t)-1), "invalid value"); // some debuggers show the wrong value...
+
 
 #ifndef RYML_NO_DEFAULT_CALLBACKS
 
@@ -36,8 +44,13 @@ namespace {
 
 void error_impl(const char* msg, size_t length, Location loc, void * /*user_data*/)
 {
+    std::cout << "aqui 0.0.2.1" << std::endl;
+    printf("calling error!\n");fflush(stdout);
     report_error_impl(msg, length, loc, nullptr);
+    std::cout << "aqui 0.0.2.2" << std::endl;
+    printf("calling error done!\n");fflush(stdout);
     ::abort();
+    std::cout << "aqui 0.0.2.3" << std::endl;
 }
 
 void* allocate_impl(size_t length, void * /*hint*/, void * /*user_data*/)
