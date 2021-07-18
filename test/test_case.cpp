@@ -177,7 +177,7 @@ ExpectError::~ExpectError()
 
 void ExpectError::error(const char* msg, size_t len, Location loc, void *user_data)
 {
-    ExpectError *this_ = reinterpret_cast<ExpectError*>(user_data);
+    ExpectError *this_ = (ExpectError*) user_data;
     this_->m_got_an_error = true;
     throw ExpectedError(msg, len, loc);
 }

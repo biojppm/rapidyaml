@@ -1,38 +1,40 @@
 #include "c4/yml/common.hpp"
 
+#include <type_traits>
 #ifndef RYML_NO_DEFAULT_CALLBACKS
 #   include <stdlib.h>
 #   include <stdio.h>
 #endif // RYML_NO_DEFAULT_CALLBACKS
 
+
 namespace c4 {
 namespace yml {
+
+static_assert(std::is_same<std::underlying_type<decltype(npos)>::type, size_t>::value, "invalid type");
+static_assert(std::is_same<std::underlying_type<decltype(NONE)>::type, size_t>::value, "invalid type");
+static_assert(size_t(npos) == ((size_t)-1), "invalid value"); // some debuggers show the wrong value...
+static_assert(size_t(NONE) == ((size_t)-1), "invalid value"); // some debuggers show the wrong value...
+
 
 #ifndef RYML_NO_DEFAULT_CALLBACKS
 
 void report_error_impl(const char* msg, size_t length, Location loc, FILE *f)
 {
     if(!f)
-    {
         f = stderr;
-    }
     if(loc)
     {
         if(!loc.name.empty())
-        {
             fprintf(f, "%.*s:", (int)loc.name.len, loc.name.str);
-        }
-        fprintf(f, "%zu:%zu:", loc.line, loc.col);
+        fprintf(f, "%zu:", loc.line);
+        if(loc.col)
+            fprintf(f, "%zu:", loc.col);
         if(loc.offset)
-        {
             fprintf(f, " (%zuB):", loc.offset);
-        }
     }
     fprintf(f, "ERROR: %.*s\n", (int)length, msg);
     fflush(f);
 }
-
-namespace {
 
 void error_impl(const char* msg, size_t length, Location loc, void * /*user_data*/)
 {
@@ -55,7 +57,6 @@ void free_impl(void *mem, size_t /*length*/, void * /*user_data*/)
 {
     ::free(mem);
 }
-} // empty namespace
 
 
 Callbacks::Callbacks()
@@ -93,9 +94,9 @@ Callbacks::Callbacks()
 Callbacks::Callbacks(void *user_data, pfn_allocate alloc_, pfn_free free_, pfn_error error_)
     :
     m_user_data(user_data),
-    m_allocate(alloc_ ? alloc_ : allocate_impl),
-    m_free(free_ ? free_ : free_impl),
-    m_error(error_ ? error_ : error_impl)
+    m_allocate(alloc_),
+    m_free(free_),
+    m_error(error_)
 {
     C4_CHECK(m_allocate);
     C4_CHECK(m_free);
@@ -119,6 +120,11 @@ void set_callbacks(Callbacks const& c)
 Callbacks const& get_callbacks()
 {
     return s_default_callbacks;
+}
+
+void reset_callbacks()
+{
+    set_callbacks(Callbacks());
 }
 
 MemoryResource* get_memory_resource()
