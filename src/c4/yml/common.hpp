@@ -5,19 +5,8 @@
 #include <c4/substr.hpp>
 #include <c4/yml/export.hpp>
 
+
 #define RYML_INLINE inline
-
-#if defined(_MSC_VER)
-#   pragma warning(push)
-#   pragma warning(disable: 4068/*unknown pragma*/)
-#endif
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunknown-pragmas"
-#pragma GCC system_header
-
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 
 
 #ifndef RYML_USE_ASSERT
@@ -27,46 +16,31 @@
 
 #if RYML_USE_ASSERT
 #   define RYML_ASSERT(cond) RYML_CHECK(cond)
-#   define RYML_ASSERT_MSG(cond, /*msg, */...) RYML_CHECK_MSG(cond, __VA_ARGS__)
+#   define RYML_ASSERT_MSG(cond, msg) RYML_CHECK_MSG(cond, msg)
 #else
 #   define RYML_ASSERT(cond)
-#   define RYML_ASSERT_MSG(cond, /*msg, */...)
+#   define RYML_ASSERT_MSG(cond, msg)
 #endif
 
 
-#ifndef RYML_DBG
-#   define RYML_CHECK(cond) if(!(cond)) { ::c4::yml::error("expected true: " #cond); }
-#   define RYML_CHECK_MSG(cond, msg) if(!(cond)) { ::c4::yml::error(msg ": expected true: " #cond); }
-#else
-#   define RYML_CHECK(cond)                             \
-        if(!(cond))                                     \
-        {                                               \
-            if(c4::is_debugger_attached())              \
-            {                                           \
-                C4_DEBUG_BREAK();                       \
-            }                                           \
-            ::c4::yml::error(__FILE__ ":" C4_XQUOTE(__LINE__) ": expected true: " #cond);  \
-        }
-#   define RYML_CHECK_MSG(cond, msg)                          \
-        if(!(cond))                                           \
-        {                                                     \
-            if(c4::is_debugger_attached())                    \
-            {                                                 \
-                C4_DEBUG_BREAK();                             \
-            }                                                 \
-            ::c4::yml::error(__FILE__ ":" C4_XQUOTE(__LINE__) ": expected true: " #cond "\n" msg);  \
-        }
-#endif
+#define RYML_CHECK(cond)                                                \
+    do {                                                                \
+        if(!(cond))                                                     \
+        {                                                               \
+            C4_DEBUG_BREAK();                                           \
+            c4::yml::error("check failed: " #cond, c4::yml::Location(__FILE__, __LINE__, 0)); \
+        }                                                               \
+    } while(0)
 
-
-#pragma clang diagnostic pop
-#pragma GCC diagnostic pop
-
-#if defined(_MSC_VER)
-#   pragma warning(pop)
-#   pragma warning(push)
-#   pragma warning(disable: 4251/*needs to have dll-interface to be used by clients of struct*/)
-#endif
+#define RYML_CHECK_MSG(cond, msg)                                       \
+    do                                                                  \
+    {                                                                   \
+        if(!(cond))                                                     \
+        {                                                               \
+            C4_DEBUG_BREAK();                                           \
+            c4::yml::error(msg ": check failed: " #cond, c4::yml::Location(__FILE__, __LINE__, 0)); \
+        }                                                               \
+    } while(0)
 
 
 //-----------------------------------------------------------------------------
@@ -76,18 +50,20 @@
 namespace c4 {
 namespace yml {
 
-/** a null position */
-enum : size_t { npos = size_t(-1) };
+enum : size_t {
+    /** a null position */
+    npos = size_t(-1),
+    /** an index to none */
+    NONE = size_t(-1)
+};
 
-/** an index to none */
-enum : size_t { NONE = size_t(-1) };
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
 //! holds a position into a source buffer
-struct LineCol
+struct RYML_EXPORT LineCol
 {
     //!< number of bytes from the beginning of the source buffer
     size_t offset;
@@ -105,16 +81,16 @@ struct LineCol
 
 
 //! a source file position
-struct Location : public LineCol
+struct RYML_EXPORT Location : public LineCol
 {
     csubstr name;
 
     operator bool () const { return !name.empty() || line != 0 || offset != 0; }
 
     Location() : LineCol(), name() {}
-    Location(                     size_t l, size_t c) : LineCol{   l, c}, name( ) {}
-    Location(csubstr n,           size_t l, size_t c) : LineCol{   l, c}, name(n) {}
-    Location(csubstr n, size_t b, size_t l, size_t c) : LineCol{b, l, c}, name(n) {}
+    Location(                         size_t l, size_t c) : LineCol{   l, c}, name( ) {}
+    Location(    csubstr n,           size_t l, size_t c) : LineCol{   l, c}, name(n) {}
+    Location(    csubstr n, size_t b, size_t l, size_t c) : LineCol{b, l, c}, name(n) {}
     Location(const char *n,           size_t l, size_t c) : LineCol{   l, c}, name(to_csubstr(n)) {}
     Location(const char *n, size_t b, size_t l, size_t c) : LineCol{b, l, c}, name(to_csubstr(n)) {}
 };
@@ -128,7 +104,7 @@ struct Location : public LineCol
 using pfn_error = void (*)(const char* msg, size_t msg_len, Location location, void *user_data);
 
 /** trigger an error: call the current error callback. */
-void error(const char *msg, size_t msg_len, Location loc);
+RYML_EXPORT void error(const char *msg, size_t msg_len, Location loc);
 /** @overload error */
 inline void error(const char *msg, size_t msg_len)
 {
@@ -155,7 +131,7 @@ using pfn_allocate = void* (*)(size_t len, void* hint, void *user_data);
 using pfn_free = void (*)(void* mem, size_t size, void *user_data);
 
 /// a c-style callbacks class
-struct Callbacks
+struct RYML_EXPORT Callbacks
 {
     void *       m_user_data;
     pfn_allocate m_allocate;
@@ -208,10 +184,8 @@ struct Callbacks
 RYML_EXPORT Callbacks const& get_callbacks();
 /// set the global callbacks
 RYML_EXPORT void set_callbacks(Callbacks const& c);
-#ifdef RYML_NO_DEFAULT_CALLBACKS
 /// set the global callbacks to their defaults
-void reset_callbacks();
-#endif
+RYML_EXPORT void reset_callbacks();
 
 
 //-----------------------------------------------------------------------------
@@ -270,9 +244,7 @@ struct RYML_EXPORT Allocator
     {
         void *mem = r->allocate(num_bytes, hint);
         if(mem == nullptr)
-        {
             error("out of memory");
-        }
         return mem;
     }
 
@@ -286,9 +258,5 @@ struct RYML_EXPORT Allocator
 
 } // namespace yml
 } // namespace c4
-
-#if defined(_MSC_VER)
-#   pragma warning(pop)
-#endif
 
 #endif /* _C4_YML_COMMON_HPP_ */

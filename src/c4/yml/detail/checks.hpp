@@ -150,8 +150,8 @@ inline void check_free_list(Tree const& t)
         return;
     }
 
-    C4_CHECK(t.m_free_head >= 0 && t.m_free_head < t.m_cap)
-    C4_CHECK(t.m_free_tail >= 0 && t.m_free_tail < t.m_cap)
+    C4_CHECK(t.m_free_head >= 0 && t.m_free_head < t.m_cap);
+    C4_CHECK(t.m_free_tail >= 0 && t.m_free_tail < t.m_cap);
 
     auto const& head = *t._p(t.m_free_head);
     //auto const& tail = *t._p(t.m_free_tail);

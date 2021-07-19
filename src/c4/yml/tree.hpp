@@ -988,10 +988,17 @@ public:
     /** for example foo.bar[0].baz */
     lookup_result lookup_path(csubstr path, size_t start=NONE) const;
 
-    /** defaulted lookup: lookup path; if the lookup fails, recursively modify
+    /** defaulted lookup: lookup @p path; if the lookup fails, recursively modify
      * the tree so that the corresponding lookup_path() would return the
-     * default value */
+     * default value.
+     * @see lookup_path() */
     size_t lookup_path_or_modify(csubstr default_value, csubstr path, size_t start=NONE);
+
+    /** defaulted lookup: lookup @p path; if the lookup fails, recursively modify
+     * the tree so that the corresponding lookup_path() would return the
+     * branch @p src_node (from the tree @p src).
+     * @see lookup_path() */
+    size_t lookup_path_or_modify(Tree const *src, size_t src_node, csubstr path, size_t start=NONE);
 
     /** @} */
 
@@ -1007,10 +1014,17 @@ private:
         bool is_index() const { return value.begins_with('[') && value.ends_with(']'); }
     };
 
-    void _lookup_path(lookup_result *r, bool modify);
-    size_t _next_node(lookup_result *r, bool modify, _lookup_path_token *parent);
-    _lookup_path_token _next_token(lookup_result *r, _lookup_path_token const& parent);
-    void _advance(lookup_result *r, size_t more);
+    size_t _lookup_path_or_create(csubstr path, size_t start);
+
+    void   _lookup_path       (lookup_result *r) const;
+    void   _lookup_path_modify(lookup_result *r);
+
+    size_t _next_node       (lookup_result *r, _lookup_path_token *parent) const;
+    size_t _next_node_modify(lookup_result *r, _lookup_path_token *parent);
+
+    void   _advance(lookup_result *r, size_t more) const;
+
+    _lookup_path_token _next_token(lookup_result *r, _lookup_path_token const& parent) const;
 
 private:
 

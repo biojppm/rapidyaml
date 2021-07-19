@@ -56,6 +56,7 @@ endfunction()
 
 
 ryml_add_test(basic)
+ryml_add_test(callbacks)
 ryml_add_test(stack)
 ryml_add_test(basic_json)
 ryml_add_test(preprocess)
