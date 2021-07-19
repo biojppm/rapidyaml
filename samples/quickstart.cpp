@@ -3085,8 +3085,7 @@ bill_to: &id001
   state: KS
 ship_to: *id001
 &keyref key: &valref val
-*valref: key
-val is from: *keyref
+*valref: *keyref
 )";
 
     std::string resolved = R"(base:
@@ -3111,7 +3110,6 @@ ship_to:
   state: KS
 key: val
 val: key
-val is from: val
 )";
 
     ryml::Tree tree = ryml::parse(ryml::to_csubstr(unresolved));
@@ -3122,10 +3120,10 @@ val is from: val
     CHECK(   tree["base"].val_anchor() == "base");
     CHECK(   tree["key"].key_anchor() == "keyref");
     CHECK(   tree["key"].val_anchor() == "valref");
+    CHECK(   tree["*valref"].is_key_ref());
+    CHECK(   tree["*valref"].is_val_ref());
     CHECK(   tree["*valref"].key_ref() == "valref");
-    CHECK( ! tree["*valref"].is_val_ref());
-    CHECK( ! tree["val is from"].is_key_ref());
-    CHECK(   tree["val is from"].is_val_ref());
+    CHECK(   tree["*valref"].val_ref() == "keyref");
 
     // to resolve references, simply call tree.resolve(),
     // which will perform the reference instantiations:
@@ -3139,8 +3137,6 @@ val is from: val
     CHECK( ! tree["key"].has_val_anchor());
     CHECK( ! tree["val"].is_key_ref()); // notice *valref is now turned to val
     CHECK( ! tree["val"].is_val_ref()); // notice *valref is now turned to val
-    CHECK( ! tree["val is from"].is_key_ref());
-    CHECK( ! tree["val is from"].is_val_ref());
 }
 
 

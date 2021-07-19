@@ -127,6 +127,28 @@ TEST(simple_anchor, resolve_works_on_a_tree_without_refs)
     EXPECT_EQ(t.size(), size_before);
 }
 
+TEST(simple_anchor, resolve_works_on_keyrefvalref)
+{
+    auto t = parse("{&a a: &b b, *b: *a}");
+    EXPECT_EQ(t["a"].has_key_anchor(), true);
+    EXPECT_EQ(t["a"].has_val_anchor(), true);
+    EXPECT_EQ(t["a"].key_anchor(), "a");
+    EXPECT_EQ(t["a"].val_anchor(), "b");
+    EXPECT_EQ(t["*b"].is_key_ref(), true);
+    EXPECT_EQ(t["*b"].is_val_ref(), true);
+    EXPECT_EQ(t["*b"].key_ref(), "b");
+    EXPECT_EQ(t["*b"].val_ref(), "a");
+    EXPECT_EQ(emitrs<std::string>(t), R"(&a a: &b b
+*b: *a
+)");
+    t.resolve();
+    EXPECT_EQ(t["a"].val(), "b");
+    EXPECT_EQ(t["b"].val(), "a");
+    EXPECT_EQ(emitrs<std::string>(t), R"(a: b
+b: a
+)");
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

@@ -13,6 +13,8 @@
 
 #include "test_case.hpp"
 
+#define RYML_NFO (0 || defined(RYML_DBG))
+
 namespace c4 {
 namespace yml {
 
@@ -27,9 +29,8 @@ size_t find_first_after(size_t pos, std::initializer_list<size_t> candidates)
 {
     size_t ret = npos;
     for(size_t s : candidates)
-    {
-        if(s > pos && s < ret) ret = s;
-    }
+        if(s > pos && s < ret)
+            ret = s;
     return ret;
 }
 
@@ -145,46 +146,35 @@ constexpr const AllowedFailure g_allowed_failures[] = {
     {"X38W", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
     {"XW4D", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
 
-    {"2SXE", CPART_OUT_YAML, "Scalar starting with * (reference) and containing : is emitted with quotes, re-parsed as scalar without reference. "
-                             "The test failure is a side-effect of the documented limitation that references are only handled correctly when calling tree::resolve(). "
-                             "It works correctly when calling tree::resolve()."},
-    {"W5VH", CPART_IN_YAML,  "Scalar starting with * (reference) and containing : is emitted with quotes, re-parsed as scalar without reference. "
-                             "The test failure is a side-effect of the documented limitation that references are only handled correctly when calling tree::resolve(). "
-                             "It works correctly when calling tree::resolve()."},
-
     // TODO
-    {"735Y", CPART_IN_YAML, "TODO[next]: plain scalar parsing"},
-    {"EXG3", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
-    {"82AN", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
-    {"9YRD", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
-    {"EX5H", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
-    {"HS5T", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
-    {"7T8X", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: scalar block parsing"},
-    {"RZP5", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: plain scalar block parsing, anchors"},
-    {"FH7J", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: implicit keys"},
-    {"PW8X", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: anchors with implicit key"},
-    {"CN3R", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: anchors + maps nested in seqs"},
     {"6BCT", CPART_IN_YAML, "TODO[hard]: allow tabs after - or :"},
+    {"735Y", CPART_IN_YAML, "TODO[next]: plain scalar parsing"},
+    {"7T8X", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: scalar block parsing"},
+    {"82AN", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
+    {"9MMW", CPART_IN_YAML, "TODO[next]: re the json/yaml incompatibility where a space is required after :"},
+    {"9YRD", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
+    {"CN3R", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: anchors + maps nested in seqs"},
     {"DC7X", CPART_IN_YAML, "TODO[next]: improve handling of tab characters"},
+    {"EXG3", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
+    {"EX5H", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
+    {"FH7J", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: implicit keys"},
     {"G5U8", CPART_ALL, "TODO[next]: sequences with -"},
+    {"HS5T", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
     {"K858", CPART_OUT_YAML|CPART_IN_JSON, "TODO[next]: emitting block scalars is not idempotent"},
     {"NAT4", CPART_IN_YAML|CPART_IN_JSON, "TODO[next]: emitting block scalars is not idempotent"},
-    {"9MMW", CPART_IN_YAML, "TODO[next]: re the json/yaml incompatibility where a space is required after :"},
+    {"PW8X", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: anchors with implicit key"},
+    {"RZP5", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: plain scalar block parsing, anchors"},
 };
 
 
 AllowedFailure is_failure_expected(c4::csubstr filename)
 {
     RYML_CHECK(filename.ends_with(".tml"));
-    auto test_code = filename.basename();
+    csubstr test_code = filename.basename();
     test_code = test_code.offs(0, 4);
-    for(auto af : g_allowed_failures)
-    {
+    for(AllowedFailure af : g_allowed_failures)
         if(af.test_code == test_code)
-        {
             return af;
-        }
-    }
     return {};
 }
 
@@ -223,9 +213,7 @@ struct ProcLevel
     void receive_src(ProcLevel & prev)
     {
         if(!prev.was_emitted)
-        {
             prev.emit();
-        }
         if(src != prev.emitted)
         {
             was_parsed = false;
@@ -239,7 +227,7 @@ struct ProcLevel
     {
         C4_UNUSED(context);
         C4_UNUSED(v);
-#ifdef RYML_DBG
+#if RYML_NFO
         constexpr const char sep[] = "+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+\n";
         c4::log("{}:\n{}{}{}", context, sep, v, sep);
 #endif
@@ -247,8 +235,10 @@ struct ProcLevel
 
     void parse()
     {
-        if(allowed_failure.skip(case_part)) return;
-        if(was_parsed) return;
+        if(allowed_failure.skip(case_part))
+            return;
+        if(was_parsed)
+            return;
         log("parsing source", src);
         if(case_part == CPART_EVENTS)
         {
@@ -260,55 +250,66 @@ struct ProcLevel
             {
                 tree.clear();
                 if(immutable)
-                {
                     parser.parse(filename, c4::to_csubstr(src), &tree);
-                }
                 else
-                {
                     parser.parse(filename, c4::to_substr(src), &tree);
-                }
             }
             else
             {
                 if(immutable)
-                {
                     tree = c4::yml::parse(filename, c4::to_csubstr(src));
-                }
                 else
-                {
                     tree = c4::yml::parse(filename, c4::to_substr(src));
-                }
             }
         }
         was_parsed = true;
-#ifdef RYML_DBG
+        #if RYML_NFO
         c4::yml::print_tree(tree);
-#endif
+        #endif
+        _resolve_if_needed();
+    }
+
+    void _resolve_if_needed()
+    {
+        const NodeRef root = tree.rootref();
+        bool has_anchors_or_refs = root.visit([](NodeRef const* node, size_t /*level*/){
+            return (node->is_anchor() || node->is_ref());
+        });
+        if(has_anchors_or_refs)
+        {
+            tree.resolve();
+            #if RYML_NFO
+            c4::yml::print_tree(tree);
+            #endif
+        }
     }
 
     void emit()
     {
-        if(allowed_failure.skip(case_part)) return;
-        if(was_emitted) return;
-        if(!was_parsed) parse();
+        if(allowed_failure.skip(case_part))
+            return;
+        if(was_emitted)
+            return;
+        if(!was_parsed)
+            parse();
         emitrs(tree, &emitted);
         auto ss = c4::to_csubstr(emitted);
         if(ss.ends_with("\n...\n"))
-        {
             emitted.resize(emitted.size() - 4);
-        }
         log("emitted YAML", emitted);
         was_emitted = true;
-        #ifdef RYML_DBG
+        #if RYML_NFO
         c4::log("EMITTED:\n{}", emitted);
         #endif
     }
 
     void compare_trees(ProcLevel const& prev)
     {
-        if(allowed_failure.skip(case_part)) return;
-        if(!was_parsed) parse();
-        #ifdef RYML_DBG
+        if(allowed_failure.skip(case_part))
+            return;
+        if(!was_parsed)
+            parse();
+        #if RYML_NFO
         c4::print("PREV:"); print_tree(prev.tree);
         c4::print("CURR:"); print_tree(tree);
         #endif
@@ -317,9 +318,11 @@ struct ProcLevel
 
     void compare_emitted(ProcLevel const& prev)
     {
-        if(allowed_failure.skip(case_part)) return;
-        if(!was_emitted) emit();
-        #ifdef RYML_DBG
+        if(allowed_failure.skip(case_part))
+            return;
+        if(!was_emitted)
+            emit();
+        #if RYML_NFO
         c4::log("PREV:\n{}", prev.emitted);
         c4::log("CURR:\n{}", emitted);
         #endif
@@ -344,9 +347,7 @@ struct Approach
         {
             l.init(filename, src, immutable_, reuse_, case_part, af);
             if(case_part == CPART_EVENTS)
-            {
                 case_part = CPART_IN_YAML; // only the first one
-            }
         }
     }
 
@@ -355,42 +356,33 @@ struct Approach
         for(size_t i = 0; i < num; ++i)
         {
             levels[i].parse();
-            if(emit) levels[i].emit();
+            if(emit)
+                levels[i].emit();
             if(i + 1 < num)
-            {
                 levels[i+1].receive_src(levels[i]);
-            }
         }
     }
 
     void compare_trees(size_t num)
     {
         for(size_t i = 1; i < num; ++i)
-        {
             levels[i].compare_trees(levels[i-1]);
-        }
     }
     void compare_trees(size_t num, Approach const& other)
     {
         for(size_t i = 0; i < num; ++i)
-        {
             levels[i].compare_trees(other.levels[i]);
-        }
     }
 
     void compare_emitted(size_t num)
     {
         for(size_t i = 1; i < num; ++i)
-        {
             levels[i].compare_emitted(levels[i-1]);
-        }
     }
     void compare_emitted(size_t num, Approach const& other)
     {
         for(size_t i = 0; i < num; ++i)
-        {
             levels[i].compare_emitted(other.levels[i]);
-        }
     }
 };
 
@@ -629,28 +621,32 @@ struct cls##_##pfx : public ::testing::TestWithParam<size_t>    \
                                                                 \
 TEST_P(cls##_##pfx, parse)                                      \
 {                                                               \
-    if(!get_test_case()) return;                                \
+    if(!get_test_case())                                        \
+        return;                                                 \
     get_test_case()->parse(1 + GetParam(), false);              \
 }                                                               \
                                                                 \
                                                                 \
 TEST_P(cls##_##pfx, compare_trees)                              \
 {                                                               \
-    if(!get_test_case()) return;                                \
+    if(!get_test_case())                                        \
+        return;                                                 \
     get_test_case()->compare_trees(1 + GetParam());             \
 }                                                               \
                                                                 \
                                                                 \
 TEST_P(cls##_##pfx, emit)                                       \
 {                                                               \
-    if(!get_test_case()) return;                                \
+    if(!get_test_case())                                        \
+        return;                                                 \
     get_test_case()->parse(1 + GetParam(), true);               \
 }                                                               \
                                                                 \
                                                                 \
 TEST_P(cls##_##pfx, compare_emitted)                            \
 {                                                               \
-    if(!get_test_case()) return;                                \
+    if(!get_test_case())                                        \
+        return;                                                 \
     get_test_case()->compare_emitted(1 + GetParam());           \
 }                                                               \
 
@@ -667,10 +663,10 @@ DECLARE_TEST_CLASS(cls, windows_rw)                                     \
 DECLARE_TEST_CLASS(cls, windows_ro_reuse)                               \
 DECLARE_TEST_CLASS(cls, windows_rw_reuse)                               \
                                                                         \
-INSTANTIATE_TEST_SUITE_P(_, cls##_unix_ro      , testing::Range<size_t>(0, NLEVELS)); \
-INSTANTIATE_TEST_SUITE_P(_, cls##_unix_rw      , testing::Range<size_t>(0, NLEVELS)); \
-INSTANTIATE_TEST_SUITE_P(_, cls##_unix_ro_reuse, testing::Range<size_t>(0, NLEVELS)); \
-INSTANTIATE_TEST_SUITE_P(_, cls##_unix_rw_reuse, testing::Range<size_t>(0, NLEVELS)); \
+INSTANTIATE_TEST_SUITE_P(_, cls##_unix_ro         , testing::Range<size_t>(0, NLEVELS)); \
+INSTANTIATE_TEST_SUITE_P(_, cls##_unix_rw         , testing::Range<size_t>(0, NLEVELS)); \
+INSTANTIATE_TEST_SUITE_P(_, cls##_unix_ro_reuse   , testing::Range<size_t>(0, NLEVELS)); \
+INSTANTIATE_TEST_SUITE_P(_, cls##_unix_rw_reuse   , testing::Range<size_t>(0, NLEVELS)); \
 INSTANTIATE_TEST_SUITE_P(_, cls##_windows_ro      , testing::Range<size_t>(0, NLEVELS)); \
 INSTANTIATE_TEST_SUITE_P(_, cls##_windows_rw      , testing::Range<size_t>(0, NLEVELS)); \
 INSTANTIATE_TEST_SUITE_P(_, cls##_windows_ro_reuse, testing::Range<size_t>(0, NLEVELS)); \

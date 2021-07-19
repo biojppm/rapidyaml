@@ -477,7 +477,7 @@ far: a long long way to run
     copy2.resolve();
     EXPECT_EQ(emitrs<std::string>(copy2), R"(key: val
 key2: val2
-keyref: val
+keyref: key
 val2: was val anchor
 !!int 0: !!str foo
 !!str doe: !!str a deer a female deer

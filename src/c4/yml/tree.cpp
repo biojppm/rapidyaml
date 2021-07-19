@@ -1079,7 +1079,11 @@ struct ReferenceResolver
 
     size_t count_anchors_and_refs(size_t n)
     {
-        size_t c = t->is_anchor_or_ref(n);
+        size_t c = 0;
+        c += t->has_key_anchor(n);
+        c += t->has_val_anchor(n);
+        c += t->is_key_ref(n);
+        c += t->is_val_ref(n);
         for(size_t ch = t->first_child(n); ch != NONE; ch = t->next_sibling(ch))
             c += count_anchors_and_refs(ch);
         return c;
@@ -1100,29 +1104,25 @@ struct ReferenceResolver
                 }
                 return;
             }
-            else if(t->is_val_ref(n))
+            if(t->is_key_ref(n)) // insert key refs BEFORE inserting val refs
             {
-                C4_CHECK(t->has_val(n));
-                refs.push({VALREF, n, npos, npos, NONE, NONE});
-            }
-            else if(t->is_key_ref(n))
-            {
-                C4_CHECK(t->has_key(n));
+                RYML_CHECK(t->has_key(n));
                 refs.push({KEYREF, n, npos, npos, NONE, NONE});
             }
-            else
+            if(t->is_val_ref(n))
             {
-                C4_NEVER_REACH();
+                RYML_CHECK(t->has_val(n));
+                refs.push({VALREF, n, npos, npos, NONE, NONE});
             }
         }
         if(t->has_key_anchor(n))
         {
-            C4_CHECK(t->has_key(n));
+            RYML_CHECK(t->has_key(n));
             refs.push({KEYANCH, n, npos, npos, NONE, NONE});
         }
-        else if(t->has_val_anchor(n))
+        if(t->has_val_anchor(n))
         {
-            C4_CHECK(t->has_val(n) || t->is_container(n));
+            RYML_CHECK(t->has_val(n) || t->is_container(n));
             refs.push({VALANCH, n, npos, npos, NONE, NONE});
         }
         for(size_t ch = t->first_child(n); ch != NONE; ch = t->next_sibling(ch))
@@ -1141,7 +1141,7 @@ struct ReferenceResolver
             RYML_ASSERT(t->has_val(ra->node));
             refname = t->val(ra->node);
         }
-        else
+        else // if(ra->type.is_key_ref())
         {
             RYML_ASSERT(t->has_key(ra->node));
             refname = t->key(ra->node);
@@ -1247,7 +1247,17 @@ void Tree::resolve()
             }
             else
             {
-                duplicate_contents(rd.target, rd.node);
+                RYML_ASSERT(rd.type.is_val_ref());
+                if(has_key_anchor(rd.target) && key_anchor(rd.target) == val_ref(rd.node))
+                {
+                    RYML_CHECK(!is_container(rd.target));
+                    RYML_CHECK(has_val(rd.target));
+                    _p(rd.node)->m_val.scalar = key(rd.target);
+                }
+                else
+                {
+                    duplicate_contents(rd.target, rd.node);
+                }
             }
         }
     }
@@ -1257,12 +1267,8 @@ void Tree::resolve()
     {
         rem_anchor_ref(ar.node);
         if(ar.parent_ref != NONE)
-        {
             if(type(ar.parent_ref) != NOTYPE)
-            {
                 remove(ar.parent_ref);
-            }
-        }
     }
 
 }
