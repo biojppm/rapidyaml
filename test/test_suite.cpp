@@ -13,7 +13,7 @@
 
 #include "test_case.hpp"
 
-#define RYML_NFO (0 || defined(RYML_DBG))
+#define RYML_NFO (1 || defined(RYML_DBG))
 
 namespace c4 {
 namespace yml {
@@ -35,7 +35,7 @@ size_t find_first_after(size_t pos, std::initializer_list<size_t> candidates)
 }
 
 
-c4::csubstr filter_out_indentation(c4::csubstr src, std::string *dst)
+csubstr filter_out_indentation(csubstr src, std::string *dst)
 {
     if( ! src.begins_with("    "))
     {
@@ -44,6 +44,363 @@ c4::csubstr filter_out_indentation(c4::csubstr src, std::string *dst)
     }
     return replace_all("\n    ", "\n", src.sub(4), dst);
 }
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+struct Events
+{
+    csubstr filename;
+    csubstr src;
+    Tree    tree;
+    bool    was_parsed = false;
+
+    void init(csubstr filename_, csubstr src_)
+    {
+        filename = filename_;
+        src = src_;
+        tree.clear();
+        tree.clear_arena();
+        was_parsed = false;
+    }
+
+    void compare_trees(Tree const& actual) const
+    {
+        #if RYML_NFO
+        c4::print("EXPECTED:"); print_tree(tree);
+        c4::print("ACTUAL:"); print_tree(actual);
+        #endif
+        test_compare(tree, actual);
+    }
+
+    void parse_events()
+    {
+        if(was_parsed)
+            return;
+        _parse_events();
+        #if RYML_NFO
+        c4::print("EXPECTED:"); print_tree(tree);
+        #endif
+        was_parsed = true;
+    }
+
+    void _parse_events()
+    {
+        struct ParseLevel { NodeType type; size_t tree_node; };
+        detail::stack<ParseLevel> m_stack;
+        csubstr key, key_anchor, key_ref;
+        bool key_quoted = false;
+        for(csubstr line : src.split('\n'))
+        {
+            line = line.trimr('\r');
+            if(line.begins_with("=VAL "))
+            {
+                line = line.stripl("=VAL ");
+                ASSERT_GE(m_stack.size(), 0);
+                csubstr anchor, val;
+                bool quoted = false;
+                if(line.begins_with('&'))
+                {
+                    size_t pos = line.first_of(' ');
+                    ASSERT_NE(pos, csubstr::npos);
+                    anchor = line.first(pos).sub(1);
+                    line = line.right_of(pos);
+                }
+                if(line.begins_with('"'))
+                {
+                    val = line.sub(1);
+                    quoted = true;
+                }
+                else if(line.begins_with('\''))
+                {
+                    val = line.sub(1);
+                    quoted = true;
+                }
+                else if(line.begins_with('|'))
+                {
+                    val = line.sub(1);
+                }
+                else if(line.begins_with('>'))
+                {
+                    val = line.sub(1);
+                }
+                else if(line.begins_with('<'))
+                {
+                    C4_NOT_IMPLEMENTED();
+                }
+                else
+                {
+                    ASSERT_EQ(line.begins_with(':'), true);
+                    val = line.sub(1);
+                }
+                ParseLevel top = m_stack.top();
+                if(top.type == SEQ)
+                {
+                    ASSERT_EQ(key.empty(), true);
+                    ASSERT_EQ(key_ref.empty(), true);
+                    ASSERT_EQ(key_anchor.empty(), true);
+                    size_t node = tree.append_child(top.tree_node);
+                    tree.to_val(node, val);
+                    if(anchor.not_empty())
+                        tree.set_val_anchor(node, anchor);
+                    if(quoted)
+                        tree._add_flags(node, VALQUO);
+                }
+                else if(top.type == MAP)
+                {
+                    if(key.empty())
+                    {
+                        key = val;
+                        key_anchor = anchor;
+                        key_quoted = quoted;
+                    }
+                    else
+                    {
+                        size_t node = tree.append_child(top.tree_node);
+                        tree.to_keyval(node, key, val);
+                        if(key_ref.not_empty())
+                            tree.set_key_ref(node, key_ref);
+                        if(key_anchor.not_empty())
+                            tree.set_key_anchor(node, key_anchor);
+                        if(anchor.not_empty())
+                            tree.set_val_anchor(node, anchor);
+                        if(key_quoted)
+                            tree._add_flags(node, KEYQUO);
+                        if(quoted)
+                            tree._add_flags(node, VALQUO);
+                        key = {};
+                        key_ref = {};
+                        key_anchor = {};
+                        key_quoted = false;
+                    }
+                }
+                else
+                {
+                    C4_ERROR("VAL event requires map or seq");
+                }
+            }
+            else if(line.begins_with("=ALI "))
+            {
+                csubstr alias = line.stripl("=ALI ");
+                ParseLevel top = m_stack.top();
+                if(top.type == SEQ)
+                {
+                    ASSERT_EQ(key.empty(), true);
+                    ASSERT_EQ(key_anchor.empty(), true);
+                    size_t node = tree.append_child(top.tree_node);
+                    tree.to_val(node, alias);
+                    tree.set_val_ref(node, alias);
+                }
+                else if(top.type == MAP)
+                {
+                    if(key.empty())
+                    {
+                        key = alias;
+                        key_ref = alias;
+                    }
+                    else
+                    {
+                        size_t node = tree.append_child(top.tree_node);
+                        tree.to_keyval(node, key, alias);
+                        if(key_anchor.not_empty())
+                            tree.set_key_anchor(node, key_anchor);
+                        if(key_ref.not_empty())
+                            tree.set_key_ref(node, key_ref);
+                        tree.set_val_ref(node, alias);
+                        key = {};
+                        key_ref = {};
+                        key_anchor = {};
+                        key_quoted = false;
+                    }
+                }
+                else
+                {
+                    C4_ERROR("ALI event requires map or seq");
+                }
+            }
+            else if(line.begins_with("+SEQ"))
+            {
+                csubstr rem = line.stripl("+SEQ").triml(' ');
+                csubstr tag, anchor;
+                if(rem.begins_with('&'))
+                    anchor = rem.sub(1);
+                else if(rem.begins_with('<'))
+                    tag = rem;
+                size_t node = tree.root_id();
+                if(m_stack.empty())
+                {
+                    tree._add_flags(node, SEQ);
+                    ASSERT_EQ(key.empty(), true); // for the key to exist, the parent must exist and be a map
+                }
+                else
+                {
+                    size_t parent = m_stack.top().tree_node;
+                    ASSERT_NE(parent, NONE);
+                    node = tree.append_child(parent);
+                    if(key.empty())
+                    {
+                        tree.to_seq(node);
+                    }
+                    else
+                    {
+                        ASSERT_EQ(tree.is_map(parent), true);
+                        tree.to_seq(node, key);
+                        if(key_ref.not_empty())
+                            tree.set_key_ref(node, key_ref);
+                        if(key_anchor.not_empty())
+                            tree.set_key_anchor(node, key_anchor);
+                        if(key_quoted)
+                            tree._add_flags(node, KEYQUO);
+                        key = {};
+                        key_ref = {};
+                        key_anchor = {};
+                        key_quoted = false;
+                    }
+                }
+                m_stack.push({SEQ, node});
+                if(tag.not_empty())
+                {
+                    C4_ASSERT(tag.begins_with('<'));
+                    tree.set_val_tag(node, from_tag(to_tag(tag)));
+                }
+                if(anchor.not_empty())
+                {
+                    tree.set_val_anchor(node, anchor);
+                }
+            }
+            else if(line.begins_with("+MAP"))
+            {
+                csubstr rem = line.stripl("+MAP").triml(' ');
+                csubstr tag, anchor;
+                if(rem.begins_with('&'))
+                    anchor = rem.sub(1);
+                else if(rem.begins_with('<'))
+                    tag = rem;
+                size_t node = tree.root_id();
+                if(m_stack.empty())
+                {
+                    tree._add_flags(node, MAP);
+                    ASSERT_EQ(key.empty(), true); // for the key to exist, the parent must exist and be a map
+                }
+                else
+                {
+                    size_t parent = m_stack.top().tree_node;
+                    ASSERT_NE(parent, NONE);
+                    node = tree.append_child(parent);
+                    if(key.empty())
+                    {
+                        tree.to_map(node);
+                    }
+                    else
+                    {
+                        ASSERT_EQ(tree.is_map(parent), true);
+                        tree.to_map(node, key);
+                        if(key_ref.not_empty())
+                            tree.set_key_ref(node, key_ref);
+                        if(key_anchor.not_empty())
+                            tree.set_key_anchor(node, key_anchor);
+                        if(key_quoted)
+                            tree._add_flags(node, KEYQUO);
+                        key = {};
+                        key_ref = {};
+                        key_anchor = {};
+                        key_quoted = false;
+                    }
+                }
+                m_stack.push({MAP, node});
+                if(tag.not_empty())
+                {
+                    C4_ASSERT(tag.begins_with('<'));
+                    tree.set_val_tag(node, from_tag(to_tag(tag)));
+                }
+                if(anchor.not_empty())
+                {
+                    tree.set_val_anchor(node, anchor);
+                }
+            }
+            else if(line.begins_with("+DOC"))
+            {
+                csubstr tag = line.stripl("+DOC").triml(' ');
+                size_t node = tree.root_id();
+                if(m_stack.empty())
+                {
+                    tree._add_flags(node, DOC);
+                    ASSERT_EQ(key.empty(), true); // for the key to exist, the parent must exist and be a map
+                }
+                else
+                {
+                    size_t parent = m_stack.top().tree_node;
+                    ASSERT_NE(parent, NONE);
+                    node = tree.append_child(parent);
+                    tree.to_doc(node);
+                    m_stack.push({DOC, node});
+                }
+                if(!tag.empty())
+                {
+                    C4_ASSERT(tag.begins_with('<'));
+                    tree.set_val_tag(node, from_tag(to_tag(tag)));
+                }
+            }
+            else if(line.begins_with("-SEQ"))
+            {
+                if(m_stack.empty())
+                {
+                    ASSERT_EQ(tree.is_seq(tree.root_id()), true);
+                }
+                else
+                {
+                    ParseLevel top = m_stack.pop();
+                    ASSERT_EQ(top.type, SEQ);
+                    ASSERT_EQ(tree.is_seq(top.tree_node), true);
+                }
+            }
+            else if(line.begins_with("-MAP"))
+            {
+                if(m_stack.empty())
+                {
+                    ASSERT_EQ(tree.is_map(tree.root_id()), true);
+                }
+                else
+                {
+                    ParseLevel top = m_stack.pop();
+                    ASSERT_EQ(top.type, MAP);
+                    ASSERT_EQ(tree.is_map(top.tree_node), true);
+                }
+            }
+            else if(line.begins_with("-DOC"))
+            {
+                if(m_stack.empty())
+                {
+                    ASSERT_EQ(tree.is_doc(tree.root_id()), true);
+                }
+                else
+                {
+                    ParseLevel top = m_stack.pop();
+                    ASSERT_EQ(top.type, DOC);
+                    ASSERT_EQ(tree.is_doc(top.tree_node), true);
+                }
+            }
+            else if(line.begins_with("+STR"))
+            {
+                ASSERT_EQ(m_stack.size(), 0);
+            }
+            else if(line.begins_with("-STR"))
+            {
+                ASSERT_EQ(m_stack.size(), 0);
+            }
+            else if(line.empty())
+            {
+            }
+            else
+            {
+                C4_ERROR("unknown event: '%.*s'", (int)line.len, line.str);
+            }
+        }
+    }
+
+};
 
 
 //-----------------------------------------------------------------------------
@@ -81,7 +438,7 @@ typedef enum {
 constexpr CasePart_e operator| (CasePart_e lhs, CasePart_e rhs) noexcept { return (CasePart_e)((int)lhs|(int)rhs); }
 
 
-c4::csubstr to_csubstr(CasePart_e cp) noexcept
+csubstr to_csubstr(CasePart_e cp) noexcept
 {
     if(cp == CPART_NONE) return {"NONE"};
     else if(cp == CPART_IN_YAML) return {"IN_YAML"};
@@ -95,11 +452,11 @@ c4::csubstr to_csubstr(CasePart_e cp) noexcept
 
 struct AllowedFailure
 {
-    c4::csubstr test_code;
+    csubstr test_code;
     CasePart_e contexts;
-    c4::csubstr reason;
+    csubstr reason;
     constexpr AllowedFailure() : test_code(), contexts(), reason() {}
-    constexpr AllowedFailure(c4::csubstr tc, CasePart_e ctx, c4::csubstr r) : test_code(tc), contexts(ctx), reason(r) {}
+    constexpr AllowedFailure(csubstr tc, CasePart_e ctx, csubstr r) : test_code(tc), contexts(ctx), reason(r) {}
     bool skip() const { return skip(CPART_ALL); }
     bool skip(CasePart_e case_part) const
     {
@@ -167,7 +524,7 @@ constexpr const AllowedFailure g_allowed_failures[] = {
 };
 
 
-AllowedFailure is_failure_expected(c4::csubstr filename)
+AllowedFailure is_failure_expected(csubstr filename)
 {
     RYML_CHECK(filename.ends_with(".tml"));
     csubstr test_code = filename.basename();
@@ -185,7 +542,7 @@ AllowedFailure is_failure_expected(c4::csubstr filename)
 /** a processing level */
 struct ProcLevel
 {
-    c4::csubstr     filename;
+    csubstr         filename;
     std::string     src;
     c4::yml::Parser parser;
     c4::yml::Tree   tree;
@@ -198,7 +555,7 @@ struct ProcLevel
     bool            was_parsed = false;
     bool            was_emitted = false;
 
-    void init(c4::csubstr filename_, c4::csubstr src_, bool immutable_, bool reuse_, CasePart_e case_part_, AllowedFailure af)
+    void init(csubstr filename_, csubstr src_, bool immutable_, bool reuse_, CasePart_e case_part_, AllowedFailure af)
     {
         filename = filename_;
         src.assign(src_.begin(), src_.end());
@@ -236,37 +593,31 @@ struct ProcLevel
     void parse()
     {
         if(allowed_failure.skip(case_part))
-            return;
+            GTEST_SKIP();
         if(was_parsed)
             return;
+        RYML_ASSERT(case_part != CPART_EVENTS);
         log("parsing source", src);
-        if(case_part == CPART_EVENTS)
+        if(reuse)
         {
-            C4_NOT_IMPLEMENTED();
+            tree.clear();
+            if(immutable)
+                parser.parse(filename, c4::to_csubstr(src), &tree);
+            else
+                parser.parse(filename, c4::to_substr(src), &tree);
         }
         else
         {
-            if(reuse)
-            {
-                tree.clear();
-                if(immutable)
-                    parser.parse(filename, c4::to_csubstr(src), &tree);
-                else
-                    parser.parse(filename, c4::to_substr(src), &tree);
-            }
+            if(immutable)
+                tree = c4::yml::parse(filename, c4::to_csubstr(src));
             else
-            {
-                if(immutable)
-                    tree = c4::yml::parse(filename, c4::to_csubstr(src));
-                else
-                    tree = c4::yml::parse(filename, c4::to_substr(src));
-            }
+                tree = c4::yml::parse(filename, c4::to_substr(src));
         }
         was_parsed = true;
         #if RYML_NFO
         c4::yml::print_tree(tree);
         #endif
-        _resolve_if_needed();
+        //_resolve_if_needed();
     }
 
     void _resolve_if_needed()
@@ -340,14 +691,13 @@ struct Approach
     ProcLevel levels[NLEVELS];
     bool enabled = false;
 
-    void init(c4::csubstr filename, c4::csubstr src, bool immutable_, bool reuse_, CasePart_e case_part, AllowedFailure af)
+    void init(csubstr filename, csubstr src, bool immutable_, bool reuse_, CasePart_e case_part, AllowedFailure af)
     {
         enabled = true;
         for(auto &l : levels)
         {
             l.init(filename, src, immutable_, reuse_, case_part, af);
-            if(case_part == CPART_EVENTS)
-                case_part = CPART_IN_YAML; // only the first one
+            RYML_ASSERT(case_part != CPART_EVENTS);
         }
     }
 
@@ -407,7 +757,7 @@ struct Subject
     std::string unix_src;
     std::string windows_src;
 
-    void init(c4::csubstr filename, c4::csubstr src, CasePart_e case_part, AllowedFailure af)
+    void init(csubstr filename, csubstr src, CasePart_e case_part, AllowedFailure af)
     {
         src = replace_all("\r", "", src, &unix_src);
 
@@ -435,20 +785,21 @@ struct Subject
  * one of these. */
 struct SuiteCase
 {
-    c4::csubstr filename;
+    csubstr     filename;
     std::string file_contents;
 
-    c4::csubstr desc;
-    c4::csubstr from;
-    c4::csubstr tags;
+    csubstr desc;
+    csubstr from;
+    csubstr tags;
 
-    Subject     in_yaml;
-    Subject     in_json;
-    Subject     out_yaml;
-    Subject     emit_yaml;
-    Subject     events;
+    Subject in_yaml;
+    Subject in_json;
+    Subject out_yaml;
+    Subject emit_yaml;
 
-    static c4::csubstr src(Subject const& s)
+    Events  events;
+
+    static csubstr src(Subject const& s)
     {
         return c4::to_csubstr(s.unix_ro.levels[0].src);
     }
@@ -461,11 +812,11 @@ struct SuiteCase
 
         // read the file
         c4::fs::file_get_contents(filename_, &file_contents);
-        c4::csubstr contents = c4::to_csubstr(file_contents);
+        csubstr contents = c4::to_csubstr(file_contents);
 
         // now parse the file
-        c4::csubstr ws = " \t\r\n";
-        c4::csubstr txt;
+        csubstr ws = " \t\r\n";
+        csubstr txt;
         size_t b, e;
 
         // desc
@@ -570,9 +921,21 @@ struct SuiteCase
         begin_events = 1 + contents.find('\n', begin_events); // skip this line
         txt = contents.sub(begin_events);
         RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
-        events.init(filename, txt, CPART_EVENTS, allowed_failure);
+        events.init(filename, txt);
 
         return true;
+    }
+
+    void parse_events()
+    {
+        events.parse_events();
+    }
+
+    void compare_events(Approach *appr)
+    {
+        events.parse_events();
+        appr->parse(1, false);
+        events.compare_trees(appr->levels[0].tree);
     }
 
     void print() const
@@ -585,7 +948,7 @@ struct SuiteCase
                  "~~~ in-json:\n"  , src(in_json  ), "~~~\n",
                  "~~~ out-yaml:\n" , src(out_yaml ), "~~~\n",
                  "~~~ emit-yaml:\n", src(emit_yaml), "~~~\n",
-                 "~~~ events :\n"  , src(events   ), "~~~\n");
+                 "~~~ events :\n"  , events.src    , "~~~\n");
     }
 
 };
@@ -600,6 +963,27 @@ struct SuiteCase
 SuiteCase* g_suite_case = nullptr;
 
 
+
+#define DEFINE_EVENT_TESTS(pfx)                                 \
+                                                                \
+                                                                \
+struct in_yaml##_##pfx##_##events : public ::testing::Test      \
+{                                                               \
+};                                                              \
+                                                                \
+TEST_F(in_yaml##_##pfx##_##events, parse_events)                \
+{                                                               \
+    RYML_CHECK(g_suite_case != nullptr);                        \
+    g_suite_case->parse_events();                               \
+}                                                               \
+                                                                \
+TEST_F(in_yaml##_##pfx##_##events, compare_events)              \
+{                                                               \
+    RYML_CHECK(g_suite_case != nullptr);                        \
+    g_suite_case->compare_events(&g_suite_case->in_yaml.pfx);   \
+}
+
+
 #define DECLARE_TEST_CLASS(cls, pfx)                            \
                                                                 \
                                                                 \
@@ -610,9 +994,7 @@ struct cls##_##pfx : public ::testing::TestWithParam<size_t>    \
         RYML_CHECK(g_suite_case != nullptr);                    \
         RYML_CHECK(GetParam() < NLEVELS);                       \
         if(g_suite_case->cls.pfx.enabled)                       \
-        {                                                       \
             return &g_suite_case->cls.pfx;                      \
-        }                                                       \
         c4::dump(#cls "." #pfx ": no input for this case\n");   \
         return nullptr;                                         \
     }                                                           \
@@ -621,35 +1003,40 @@ struct cls##_##pfx : public ::testing::TestWithParam<size_t>    \
                                                                 \
 TEST_P(cls##_##pfx, parse)                                      \
 {                                                               \
-    if(!get_test_case())                                        \
-        return;                                                 \
+    if(!get_test_case()) GTEST_SKIP();                          \
     get_test_case()->parse(1 + GetParam(), false);              \
 }                                                               \
                                                                 \
                                                                 \
 TEST_P(cls##_##pfx, compare_trees)                              \
 {                                                               \
-    if(!get_test_case())                                        \
-        return;                                                 \
+    if(!get_test_case()) GTEST_SKIP();                          \
     get_test_case()->compare_trees(1 + GetParam());             \
 }                                                               \
                                                                 \
                                                                 \
 TEST_P(cls##_##pfx, emit)                                       \
 {                                                               \
-    if(!get_test_case())                                        \
-        return;                                                 \
+    if(!get_test_case()) GTEST_SKIP();                          \
     get_test_case()->parse(1 + GetParam(), true);               \
 }                                                               \
                                                                 \
                                                                 \
 TEST_P(cls##_##pfx, compare_emitted)                            \
 {                                                               \
-    if(!get_test_case())                                        \
-        return;                                                 \
+    if(!get_test_case()) GTEST_SKIP();                          \
     get_test_case()->compare_emitted(1 + GetParam());           \
 }                                                               \
 
+
+DEFINE_EVENT_TESTS(unix_ro)
+DEFINE_EVENT_TESTS(unix_rw)
+DEFINE_EVENT_TESTS(unix_ro_reuse)
+DEFINE_EVENT_TESTS(unix_rw_reuse)
+DEFINE_EVENT_TESTS(windows_ro)
+DEFINE_EVENT_TESTS(windows_rw)
+DEFINE_EVENT_TESTS(windows_ro_reuse)
+DEFINE_EVENT_TESTS(windows_rw_reuse)
 
 
 #define DECLARE_TESTS(cls)                                              \
@@ -674,9 +1061,10 @@ INSTANTIATE_TEST_SUITE_P(_, cls##_windows_rw_reuse, testing::Range<size_t>(0, NL
 
 
 DECLARE_TESTS(out_yaml)
-//DECLARE_TESTS(emit_yaml)
+DECLARE_TESTS(emit_yaml)
 DECLARE_TESTS(in_json)
-DECLARE_TESTS(in_yaml)
+DECLARE_TESTS(in_yaml) // this is the hardest one
+
 
 
 //-------------------------------------------
