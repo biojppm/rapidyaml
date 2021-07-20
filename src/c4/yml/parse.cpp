@@ -111,6 +111,7 @@ Parser::Parser(Allocator const& a)
     , m_state()
     , m_key_tag()
     , m_val_tag()
+    , m_key_anchor_was_before(false)
     , m_key_anchor()
     , m_val_anchor()
 {
@@ -134,6 +135,7 @@ void Parser::_reset()
 
     m_key_tag.clear();
     m_val_tag.clear();
+    m_key_anchor_was_before = false;
     m_key_anchor.clear();
     m_val_anchor.clear();
 }
@@ -413,8 +415,8 @@ bool Parser::_handle_unk()
         }
         else if(rem.begins_with(": "))
         {
-            _c4dbgpf("got a \": \" -- it's a map (as_child=%d)", start_as_child);
-            _start_map(start_as_child); // wait for the val scalar to append the key-val pair
+            _c4dbgpf("got a ': ' -- it's a map (as_child=%d)", start_as_child);
+            _start_map_unk(start_as_child); // wait for the val scalar to append the key-val pair
             _line_progressed(2);
             /*if(rem == ": ")
             {
@@ -425,7 +427,7 @@ bool Parser::_handle_unk()
         else if(rem == ":")
         {
             _c4dbgpf("got a ':' -- it's a map (as_child=%d)", start_as_child);
-            _start_map(start_as_child); // wait for the val scalar to append the key-val pair
+            _start_map_unk(start_as_child); // wait for the val scalar to append the key-val pair
             _line_progressed(1);
             //_c4dbgp("map key opened a new line -- starting val scope as unknown");
             //_start_unk();
@@ -812,6 +814,7 @@ bool Parser::_handle_seq_impl()
                 _push_level();
                 _start_map();
                 _store_scalar(s, is_quoted);
+                _move_val_anchor_to_key_anchor();
                 _set_indentation(m_state->scalar_col); // this is the column where the scalar starts
                 addrem_flags(RVAL, RKEY);
                 _line_progressed(1);
@@ -1375,6 +1378,7 @@ bool Parser::_handle_map_impl()
                 addrem_flags(RKEY, RVAL); // before _push_level! This prepares the current level for popping by setting it to RNXT
                 _push_level();
                 _move_scalar_from_top();
+                _move_val_anchor_to_key_anchor();
                 _start_map();
                 _save_indentation(m_state->scalar_col);
                 addrem_flags(RVAL, RKEY);
@@ -1386,6 +1390,7 @@ bool Parser::_handle_map_impl()
                 addrem_flags(RKEY, RVAL); // before _push_level! This prepares the current level for popping by setting it to RNXT
                 _push_level();
                 _move_scalar_from_top();
+                _move_val_anchor_to_key_anchor();
                 _start_map();
                 _save_indentation(/*behind*/s.len);
                 addrem_flags(RVAL, RKEY);
@@ -1550,7 +1555,9 @@ csubstr Parser::_scan_ref()
     return ref;
 }
 
+
 //-----------------------------------------------------------------------------
+
 bool Parser::_handle_key_anchors_and_refs()
 {
     RYML_ASSERT(!has_any(RVAL));
@@ -1561,15 +1568,7 @@ bool Parser::_handle_key_anchors_and_refs()
         csubstr anchor = rem.left_of(rem.first_of(' '));
         _line_progressed(anchor.len);
         anchor = anchor.sub(1); // skip the first character
-        if(!m_key_anchor.empty())
-        {
-            _c4dbgpf("move current key anchor to val slot: '%.*s'", _c4prsp(m_key_anchor));
-            if(!m_val_anchor.empty())
-            {
-                _c4err("triple-pending anchor");
-            }
-            m_val_anchor = m_key_anchor;
-        }
+        _move_key_anchor_to_val_anchor();
         _c4dbgpf("key anchor value: '%.*s'", _c4prsp(anchor));
         m_key_anchor = anchor;
         return true;
@@ -1580,11 +1579,9 @@ bool Parser::_handle_key_anchors_and_refs()
         C4_NEVER_REACH();
         return false;
     }
-
     return false;
 }
 
-//-----------------------------------------------------------------------------
 bool Parser::_handle_val_anchors_and_refs()
 {
     RYML_ASSERT(!has_any(RKEY));
@@ -1610,11 +1607,32 @@ bool Parser::_handle_val_anchors_and_refs()
         C4_NEVER_REACH();
         return false;
     }
-
     return false;
 }
 
+void Parser::_move_key_anchor_to_val_anchor()
+{
+    if(m_key_anchor.empty())
+        return;
+    _c4dbgpf("move current key anchor to val slot: key='%.*s' -> val='%.*s'", _c4prsp(m_key_anchor), _c4prsp(m_val_anchor));
+    if(!m_val_anchor.empty())
+        _c4err("triple-pending anchor");
+    m_val_anchor = m_key_anchor;
+}
+
+void Parser::_move_val_anchor_to_key_anchor()
+{
+    if(m_val_anchor.empty())
+        return;
+    _c4dbgpf("move current val anchor to key slot: key='%.*s' <- val='%.*s'", _c4prsp(m_key_anchor), _c4prsp(m_val_anchor));
+    if(!m_key_anchor.empty())
+        _c4err("triple-pending anchor");
+    m_key_anchor = m_val_anchor;
+}
+
+
 //-----------------------------------------------------------------------------
+
 bool Parser::_handle_types()
 {
     csubstr rem = m_state->line_contents.rem.triml(' ');
@@ -2466,6 +2484,7 @@ void Parser::_write_key_anchor(size_t node_id)
         _c4dbgpf("node=%zd: set key anchor to '%.*s'", node_id, _c4prsp(m_key_anchor));
         m_tree->set_key_anchor(node_id, m_key_anchor);
         m_key_anchor.clear();
+        m_key_anchor_was_before = false;
     }
     else if(!m_tree->is_key_quoted(node_id))
     {
@@ -2489,7 +2508,7 @@ void Parser::_write_key_anchor(size_t node_id)
                     }
                 }
             }
-            else if( ! (m_tree->val(node_id).begins_with('*') ))
+            else if( ! m_tree->val(node_id).begins_with('*'))
             {
                  _c4err("malformed reference: '%.*s'", _c4prsp(m_tree->val(node_id)));
             }
@@ -2677,38 +2696,38 @@ void Parser::_end_stream()
             {
                 _c4dbgpf("node[%zu]: move key to val anchor: '%.*s'", added_id, _c4prsp(m_key_anchor));
                 m_val_anchor = m_key_anchor;
-                m_key_anchor = "";
+                m_key_anchor = {};
             }
             if(!m_key_tag.empty())
             {
                 _c4dbgpf("node[%zu]: move key to val tag: '%.*s'", added_id, _c4prsp(m_key_tag));
                 m_val_tag = m_key_tag;
-                m_key_tag = "";
+                m_key_tag = {};
             }
         }
         if(!m_key_anchor.empty())
         {
             _c4dbgpf("node[%zu]: set key anchor='%.*s'", m_tree->id(added), _c4prsp(m_key_anchor));
             m_tree->set_key_anchor(added_id, m_key_anchor);
-            m_key_anchor = "";
+            m_key_anchor = {};
         }
         if(!m_val_anchor.empty())
         {
             _c4dbgpf("node[%zu]: set val anchor='%.*s'", m_tree->id(added), _c4prsp(m_val_anchor));
             m_tree->set_val_anchor(added_id, m_val_anchor);
-            m_val_anchor = "";
+            m_val_anchor = {};
         }
         if(!m_key_tag.empty())
         {
             _c4dbgpf("node[%zu]: set key tag='%.*s'", m_tree->id(added), _c4prsp(m_key_tag));
             m_tree->set_key_tag(added_id, m_key_tag);
-            m_key_tag = "";
+            m_key_tag = {};
         }
         if(!m_val_tag.empty())
         {
             _c4dbgpf("node[%zu]: set val tag='%.*s'", m_tree->id(added), _c4prsp(m_val_tag));
             m_tree->set_val_tag(added_id, m_val_tag);
-            m_val_tag = "";
+            m_val_tag = {};
         }
     }
 
@@ -2729,7 +2748,6 @@ void Parser::_start_new_doc(csubstr rem)
 
     _end_stream();
 
-    // start a document
     _c4dbgp("start a document");
     size_t indref = m_state->indref;
     _line_progressed(3);
@@ -2768,7 +2786,7 @@ void Parser::_start_map(bool as_child)
     {
         m_state->node_id = parent_id;
         _c4dbgpf("start_map: id=%zd", m_state->node_id);
-        std::underlying_type<NodeType_e>::type as_doc = 0;
+        type_bits as_doc = 0;
         if(node(m_state)->is_doc())
             as_doc |= DOC;
         if(!m_tree->is_map(parent_id))
@@ -2776,6 +2794,8 @@ void Parser::_start_map(bool as_child)
         else
             m_tree->_add_flags(parent_id, as_doc);
         _move_scalar_from_top();
+        if(m_key_anchor.not_empty())
+            m_key_anchor_was_before = true;
         _write_val_anchor(parent_id);
         if(parent_id != NONE)
         {
@@ -2795,11 +2815,29 @@ void Parser::_start_map(bool as_child)
     }
 }
 
+void Parser::_start_map_unk(bool as_child)
+{
+    if(!m_key_anchor_was_before)
+    {
+        _c4dbgpf("moving key anchor before starting map... '%.*s'", _c4prsp(m_key_anchor));
+        csubstr ka = m_key_anchor;
+        m_key_anchor = {};
+        _start_map(as_child);
+        m_key_anchor = ka;
+    }
+    else
+    {
+        _start_map(as_child);
+        m_key_anchor_was_before = false;
+    }
+}
+
 void Parser::_stop_map()
 {
     _c4dbgp("stop_map");
     RYML_ASSERT(node(m_state)->is_map());
 }
+
 
 //-----------------------------------------------------------------------------
 void Parser::_start_seq(bool as_child)
@@ -2829,7 +2867,7 @@ void Parser::_start_seq(bool as_child)
         }
         else
         {
-            std::underlying_type<NodeType_e>::type as_doc = 0;
+            type_bits as_doc = 0;
             if(node(m_state)->is_doc()) as_doc |= DOC;
             m_tree->to_seq(m_state->node_id, as_doc);
             _c4dbgpf("start_seq: id=%zd%s", m_state->node_id, as_doc ? " as doc" : "");
@@ -2839,7 +2877,7 @@ void Parser::_start_seq(bool as_child)
     else
     {
         m_state->node_id = parent_id;
-        std::underlying_type<NodeType_e>::type as_doc = 0;
+        type_bits as_doc = 0;
         if(node(m_state)->is_doc())
             as_doc |= DOC;
         if(!m_tree->is_seq(parent_id))

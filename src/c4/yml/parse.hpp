@@ -151,9 +151,11 @@ private:
     bool  _handle_seq_expl();
     bool  _handle_seq_impl();
     bool  _handle_top();
+    bool  _handle_types();
     bool  _handle_key_anchors_and_refs();
     bool  _handle_val_anchors_and_refs();
-    bool  _handle_types();
+    void  _move_val_anchor_to_key_anchor();
+    void  _move_key_anchor_to_val_anchor();
 
     void  _push_level(bool explicit_flow_chars = false);
     void  _pop_level();
@@ -161,6 +163,7 @@ private:
     void  _start_unk(bool as_child=true);
 
     void  _start_map(bool as_child=true);
+    void  _start_map_unk(bool as_child);
     void  _stop_map();
 
     void  _start_seq(bool as_child=true);
@@ -208,7 +211,7 @@ private:
         RKEY = 0x01 <<  6,   ///< reading a scalar as key
         RVAL = 0x01 <<  7,   ///< reading a scalar as val
         RNXT = 0x01 <<  8,   ///< read next val or keyval
-        SSCL = 0x01 <<  9,   ///< there's a scalar stored
+        SSCL = 0x01 <<  9,   ///< there's a stored scalar
         RSET = 0x01 << 10,   ///< the (implicit) map being read is a !!set. @see https://yaml.org/type/set.html
         NDOC = 0x01 << 11,   ///< no document mode. a document has ended and another has not started yet.
         //! reading an implicit map nested in an explicit seq.
@@ -347,6 +350,7 @@ private:
     csubstr m_key_tag;
     csubstr m_val_tag;
 
+    bool    m_key_anchor_was_before;
     csubstr m_key_anchor;
     csubstr m_val_anchor;
 
