@@ -31,6 +31,7 @@
 #   pragma GCC diagnostic pop
 #endif
 
+#define RYML_NFO (1 || RYML_DBG)
 
 //-----------------------------------------------------------------------------
 namespace c4 {
@@ -38,11 +39,11 @@ namespace yml {
 
 void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
 {
-#ifdef RYML_DBG
+    #ifdef RYML_NFO
     std::cout << "---------------\n";
     std::cout << c->src;
     std::cout << "---------------\n";
-#endif
+    #endif
 
     if(c->flags & EXPECT_PARSE_ERROR)
     {
@@ -65,12 +66,12 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
         SCOPED_TRACE("checking tree invariants of unresolved parsed tree");
         test_invariants(cd->parsed_tree);
     }
-#ifdef RYML_DBG
+    #ifdef RYML_NFO
     std::cout << "REF TREE:\n";
     print_tree(c->root);
     std::cout << "PARSED TREE:\n";
     print_tree(cd->parsed_tree);
-#endif
+    #endif
     {
         SCOPED_TRACE("checking node invariants of unresolved parsed tree");
         test_invariants(cd->parsed_tree.rootref());
@@ -79,10 +80,10 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
     if(c->flags & RESOLVE_REFS)
     {
         cd->parsed_tree.resolve();
-#ifdef RYML_DBG
+        #ifdef RYML_NFO
         std::cout << "resolved tree!!!\n";
         print_tree(cd->parsed_tree);
-#endif
+        #endif
         {
             SCOPED_TRACE("checking tree invariants of resolved parsed tree");
             test_invariants(cd->parsed_tree);
@@ -103,10 +104,10 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
     if(c->flags & RESOLVE_REFS)
     {
         cd->parsed_tree.reorder();
-#ifdef RYML_DBG
+        #ifdef RYML_NFO
         std::cout << "reordered tree!!!\n";
         print_tree(cd->parsed_tree);
-#endif
+        #endif
         {
             SCOPED_TRACE("checking tree invariants of reordered parsed tree after resolving");
             test_invariants(cd->parsed_tree);
@@ -216,9 +217,9 @@ void YmlTestCase::_test_emit_yml_string(CaseDataLineEndings *cd)
     EXPECT_EQ(em.len, cd->numbytes_stdout);
     cd->emitted_yml = em;
 
-#ifdef RYML_DBG
+    #ifdef RYML_NFO
     std::cout << em;
-#endif
+    #endif
 }
 
 //-----------------------------------------------------------------------------
@@ -266,19 +267,19 @@ void YmlTestCase::_test_complete_round_trip(CaseDataLineEndings *cd)
         cd->emitted_yml = emitrs(cd->parsed_tree, &cd->emit_buf);
     }
 
-#ifdef RYML_DBG
+    #ifdef RYML_NFO
     print_tree(cd->parsed_tree);
     std::cout << cd->emitted_yml;
-#endif
+    #endif
 
     {
         SCOPED_TRACE("parsing emitted yml");
         cd->parse_buf = cd->emit_buf;
         cd->parsed_yml.assign(cd->parse_buf.data(), cd->parse_buf.size());
         parse(cd->parsed_yml, &cd->emitted_tree);
-#ifdef RYML_DBG
+        #ifdef RYML_NFO
         print_tree(cd->emitted_tree);
-#endif
+        #endif
     }
 
     {
