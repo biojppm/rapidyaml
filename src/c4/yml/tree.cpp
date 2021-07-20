@@ -20,6 +20,13 @@ YamlTag_e to_tag(csubstr tag)
         return TAG_NONE;
     else if(tag.begins_with("tag:yaml.org,2002:"))
         tag = tag.sub(csubstr("tag:yaml.org,2002:").len);
+    else if(tag.begins_with("<tag:yaml.org,2002:"))
+    {
+        tag = tag.sub(csubstr("<tag:yaml.org,2002:").len);
+        if(!tag.len)
+            return TAG_NONE;
+        tag = tag.offs(0, 1);
+    }
 
     if(tag == "map")
         return TAG_MAP;
@@ -53,6 +60,45 @@ YamlTag_e to_tag(csubstr tag)
     return TAG_NONE;
 }
 
+csubstr from_tag(YamlTag_e tag)
+{
+    switch(tag)
+    {
+    case TAG_MAP:
+        return "!!map";
+    case TAG_OMAP:
+        return "!!omap";
+    case TAG_PAIRS:
+        return "!!pairs";
+    case TAG_SET:
+        return "!!set";
+    case TAG_SEQ:
+        return "!!seq";
+    case TAG_BINARY:
+        return "!!binary";
+    case TAG_BOOL:
+        return "!!bool";
+    case TAG_FLOAT:
+        return "!!float";
+    case TAG_INT:
+        return "!!int";
+    case TAG_MERGE:
+        return "!!merge";
+    case TAG_NULL:
+        return "!!null";
+    case TAG_STR:
+        return "!!str";
+    case TAG_TIMESTAMP:
+        return "!!timestamp";
+    case TAG_VALUE:
+        return "!!value";
+    case TAG_YAML:
+        return "!!yaml";
+    case TAG_NONE:
+        return "";
+    }
+    return "";
+}
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
