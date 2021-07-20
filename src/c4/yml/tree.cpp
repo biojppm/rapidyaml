@@ -112,12 +112,6 @@ const char* NodeType::type_str(NodeType_e ty)
         return "KEYVAL";
     case VAL:
         return "VAL";
-    case DOCSEQ:
-        return "DOCSEQ";
-    case DOCMAP:
-        return "DOCMAP";
-    case DOCVAL:
-        return "DOCVAL";
     case MAP:
         return "MAP";
     case SEQ:
@@ -126,6 +120,12 @@ const char* NodeType::type_str(NodeType_e ty)
         return "KEYMAP";
     case KEYSEQ:
         return "KEYSEQ";
+    case DOCSEQ:
+        return "DOCSEQ";
+    case DOCMAP:
+        return "DOCMAP";
+    case DOCVAL:
+        return "DOCVAL";
     case DOC:
         return "DOC";
     case STREAM:
@@ -133,9 +133,29 @@ const char* NodeType::type_str(NodeType_e ty)
     case NOTYPE:
         return "NOTYPE";
     default:
-        if(ty & (KEYREF|VALREF))
-            return "REF";
-        return "(unknown?)";
+        if((ty & KEYVAL) == KEYVAL)
+            return "KEYVAL***";
+        if((ty & KEYMAP) == KEYMAP)
+            return "KEYMAP***";
+        if((ty & KEYSEQ) == KEYSEQ)
+            return "KEYSEQ***";
+        if((ty & DOCSEQ) == DOCSEQ)
+            return "DOCSEQ***";
+        if((ty & DOCMAP) == DOCMAP)
+            return "DOCMAP***";
+        if((ty & DOCVAL) == DOCVAL)
+            return "DOCVAL***";
+        if(ty & KEY)
+            return "KEY***";
+        if(ty & VAL)
+            return "VAL***";
+        if(ty & MAP)
+            return "MAP***";
+        if(ty & SEQ)
+            return "SEQ***";
+        if(ty & DOC)
+            return "DOC***";
+        return "(unk)";
     }
 }
 

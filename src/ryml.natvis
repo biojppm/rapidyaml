@@ -49,11 +49,11 @@ See also:
   </Type>
 
   <Type Name="c4::yml::NodeData">
-    <DisplayString Condition="((m_type.type &amp; c4::yml::KEY   ) == c4::yml::KEY) &amp;&amp; ((m_type.type &amp; c4::yml::VAL) == c4::yml::VAL)">[KEYVAL] {m_key.scalar.str,[m_key.scalar.len]}: {m_val.scalar.str,[m_val.scalar.len]}</DisplayString>
-    <DisplayString Condition="((m_type.type &amp; c4::yml::KEY   ) == c4::yml::KEY) &amp;&amp; ((m_type.type &amp; c4::yml::SEQ) == c4::yml::SEQ)">[KEYSEQ] {m_key.scalar.str,[m_key.scalar.len]}</DisplayString>
-    <DisplayString Condition="((m_type.type &amp; c4::yml::KEY   ) == c4::yml::KEY) &amp;&amp; ((m_type.type &amp; c4::yml::MAP) == c4::yml::MAP)">[KEYMAP] {m_key.scalar.str,[m_key.scalar.len]}</DisplayString>
-    <DisplayString Condition="((m_type.type &amp; c4::yml::DOC   ) == c4::yml::DOC) &amp;&amp; ((m_type.type &amp; c4::yml::SEQ) == c4::yml::SEQ)">[DOCSEQ]</DisplayString>
-    <DisplayString Condition="((m_type.type &amp; c4::yml::DOC   ) == c4::yml::DOC) &amp;&amp; ((m_type.type &amp; c4::yml::MAP) == c4::yml::MAP)">[DOCMAP]</DisplayString>
+    <DisplayString Condition="((m_type.type &amp; c4::yml::KEY  ) == c4::yml::KEY) &amp;&amp; ((m_type.type &amp; c4::yml::VAL) == c4::yml::VAL)">[KEYVAL] {m_key.scalar.str,[m_key.scalar.len]}: {m_val.scalar.str,[m_val.scalar.len]}</DisplayString>
+    <DisplayString Condition="((m_type.type &amp; c4::yml::KEY  ) == c4::yml::KEY) &amp;&amp; ((m_type.type &amp; c4::yml::SEQ) == c4::yml::SEQ)">[KEYSEQ] {m_key.scalar.str,[m_key.scalar.len]}</DisplayString>
+    <DisplayString Condition="((m_type.type &amp; c4::yml::KEY  ) == c4::yml::KEY) &amp;&amp; ((m_type.type &amp; c4::yml::MAP) == c4::yml::MAP)">[KEYMAP] {m_key.scalar.str,[m_key.scalar.len]}</DisplayString>
+    <DisplayString Condition="((m_type.type &amp; c4::yml::DOC  ) == c4::yml::DOC) &amp;&amp; ((m_type.type &amp; c4::yml::SEQ) == c4::yml::SEQ)">[DOCSEQ]</DisplayString>
+    <DisplayString Condition="((m_type.type &amp; c4::yml::DOC  ) == c4::yml::DOC) &amp;&amp; ((m_type.type &amp; c4::yml::MAP) == c4::yml::MAP)">[DOCMAP]</DisplayString>
     <DisplayString Condition="(m_type.type &amp; c4::yml::VAL   ) == c4::yml::VAL"   >[VAL] {m_val.scalar.str,[m_val.scalar.len]}</DisplayString>
     <DisplayString Condition="(m_type.type &amp; c4::yml::KEY   ) == c4::yml::KEY"   >[KEY] {m_key.scalar.str,[m_key.scalar.len]}</DisplayString>
     <DisplayString Condition="(m_type.type &amp; c4::yml::SEQ   ) == c4::yml::SEQ"   >[SEQ]</DisplayString>

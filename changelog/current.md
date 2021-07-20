@@ -8,6 +8,7 @@
 ### Fixes
 
 - Fix [#142](https://github.com/biojppm/rapidyaml/issues/142): `preprocess_json()`: ensure quoted ranges are skipped when slurping containers
+- Fix resolving of nodes with keyref+keyval: `{&a a: &b b, *b: *a}`
 - Ensure error macros expand to a single statement ([PR #141](https://github.com/biojppm/rapidyaml/pull/141))
 
 
