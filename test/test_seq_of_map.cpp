@@ -3,6 +3,54 @@
 
 namespace c4 {
 namespace yml {
+TEST(seq_of_map, with_anchors)
+{
+    Tree t = parse(R"(
+- &a1 a1: v1
+  &a2 a2: v2
+  &a3 a3: v3
+- *a1: w1
+  *a2: w2
+  *a3: w3
+)");
+    EXPECT_EQ(emitrs<std::string>(t), R"(- &a1 a1: v1
+  &a2 a2: v2
+  &a3 a3: v3
+- *a1: w1
+  *a2: w2
+  *a3: w3
+)");
+}
+
+TEST(seq_of_map, with_tags)
+{
+    Tree t = parse(R"(
+- !!str a1: v1
+  !!str a2: v2
+  !!str a3: v3
+- a1: !!str w1
+  a2: !!str w2
+  a3: !!str w3
+- !foo a1: v1
+  !foo a2: v2
+  !foo a3: v3
+)");
+    EXPECT_EQ(emitrs<std::string>(t), R"(- !!str a1: v1
+  !!str a2: v2
+  !!str a3: v3
+- a1: !!str w1
+  a2: !!str w2
+  a3: !!str w3
+- !foo a1: v1
+  !foo a2: v2
+  !foo a3: v3
+)");
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 #define SEQ_OF_MAP_CASES                                \
     "seq of empty maps, one line",                      \
@@ -14,7 +62,10 @@ namespace yml {
     "seq of maps, bug #32 ex2",                         \
     "seq of maps, bug #32 ex3",                         \
     "seq of maps, implicit map in seq",                 \
-    "seq of maps, implicit map in seq, missing scalar"
+    "seq of maps, implicit map in seq, missing scalar", \
+    "seq of maps, implicit with anchors, unresolved",   \
+    "seq of maps, implicit with anchors, resolved",     \
+    "seq of maps, implicit with tags"
 
 
 CASE_GROUP(SEQ_OF_MAP)
@@ -113,10 +164,10 @@ b: 2
 b: 2
 'a': 1
 )",
-  L{
-      N(QK, "a", "1"), N("b", "2"), N("b", "2"), N(QK, "a", "1"),
-  }
-),
+L{
+    N(QK, "a", "1"), N("b", "2"), N("b", "2"), N(QK, "a", "1"),
+}),
+
 
 C("seq of maps, implicit map in seq",
 R"('implicit block key' : [
@@ -132,8 +183,7 @@ L{N("implicit block key", L{
   N(L{N("implicit flow key 3", "value3")}),
   N(L{N("implicit flow key m", L{N("key1", "val1"), N("key2", "val2")})}),
   N(L{N("implicit flow key s", L{N("val1"), N("val2")})}),
-})}
-),
+})}),
 
 C("seq of maps, implicit map in seq, missing scalar",
 R"({a : [
@@ -152,8 +202,56 @@ L{
   N("a", L{N(MAP, L{N("", "foo")}),}),
   N("b", L{N(MAP, L{N("", "foo")}),}),
   N("c", L{N(MAP, L{N(KEYVAL, "", /*"~"*/{})}), N(MAP, L{N(KEYVAL, "", /*"~"*/{})}),}),
-}
-),
+}),
+
+
+C("seq of maps, implicit with anchors, unresolved",
+R"(
+- &a1 a1: v1
+  &a2 a2: v2
+  &a3 a3: v3
+- *a1: w1
+  *a2: w2
+  *a3: w3
+)",
+L{
+  N(L{N( "a1", "v1", AR(KEYANCH, "a1")), N( "a2", "v2", AR(KEYANCH, "a2")), N( "a3", "v3", AR(KEYANCH, "a3"))}),
+  N(L{N("*a1", "w1", AR(KEYREF, "*a1")), N("*a2", "w2", AR(KEYREF, "*a2")), N("*a3", "w3", AR(KEYREF, "*a3"))}),
+}),
+
+C("seq of maps, implicit with anchors, resolved", RESOLVE_REFS,
+R"(
+- &a1 a1: v1
+  &a2 a2: v2
+  &a3 a3: v3
+- *a1: w1
+  *a2: w2
+  *a3: w3
+)",
+L{
+  N(L{N("a1", "v1"), N("a2", "v2"), N("a3", "v3")}),
+  N(L{N("a1", "w1"), N("a2", "w2"), N("a3", "w3")}),
+}),
+
+
+C("seq of maps, implicit with tags",
+R"(
+- !!str a1: v1
+  !!str a2: v2
+  !!str a3: v3
+- a1: !!str w1
+  a2: !!str w2
+  a3: !!str w3
+- !foo a1: v1
+  !foo a2: v2
+  !foo a3: v3
+)",
+L{
+  N(L{N(TS("!!str", "a1"), "v1"), N(TS("!!str", "a2"), "v2"), N(TS("!!str", "a3"), "v3")}),
+  N(L{N("a1", TS("!!str", "w1")), N("a2", TS("!!str", "w2")), N("a3", TS("!!str", "w3"))}),
+  N(L{N(TS("!foo", "a1"), "v1"), N(TS("!foo", "a2"), "v2"), N(TS("!foo", "a3"), "v3")}),
+}),
+
 
     )
 }
