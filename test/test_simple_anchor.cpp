@@ -149,6 +149,42 @@ b: a
 )");
 }
 
+TEST(simple_anchor, anchors_of_first_child_key_implicit)
+{
+    // https://github.com/yaml/yaml-test-suite/blob/master/test/26DV.tml
+    auto t = parse(R"(
+top5: &anchor5
+  key5: scalar5
+top6:
+  &anchor6 'key6': scalar6
+top61: &anchor61
+  &anchor61 'key61': scalar61
+top7:
+  &anchor7 key7: scalar7
+)");
+    EXPECT_EQ(t["top5"].has_key_anchor(), false);
+    EXPECT_EQ(t["top5"].has_val_anchor(), true);
+    EXPECT_EQ(t["top5"].val_anchor(), "anchor5");
+    EXPECT_EQ(t["top5"]["key5"].val(), "scalar5");
+    EXPECT_EQ(t["top5"]["key5"].has_key_anchor(), false);
+    EXPECT_EQ(t["top6"].has_key_anchor(), false);
+    EXPECT_EQ(t["top6"].has_val_anchor(), false);
+    EXPECT_EQ(t["top6"]["key6"].val(), "scalar6");
+    ASSERT_EQ(t["top6"]["key6"].has_key_anchor(), true);
+    EXPECT_EQ(t["top6"]["key6"].key_anchor(), "anchor6");
+    EXPECT_EQ(t["top61"].has_key_anchor(), false);
+    EXPECT_EQ(t["top61"].has_val_anchor(), true);
+    EXPECT_EQ(t["top61"].val_anchor(), "anchor61");
+    EXPECT_EQ(t["top61"]["key61"].val(), "scalar61");
+    ASSERT_EQ(t["top61"]["key61"].has_key_anchor(), true);
+    EXPECT_EQ(t["top61"]["key61"].key_anchor(), "anchor61");
+    EXPECT_EQ(t["top7"].has_key_anchor(), false);
+    EXPECT_EQ(t["top7"].has_val_anchor(), false);
+    EXPECT_EQ(t["top7"]["key7"].val(), "scalar7");
+    ASSERT_EQ(t["top7"]["key7"].has_key_anchor(), true);
+    EXPECT_EQ(t["top7"]["key7"].key_anchor(), "anchor7");
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
