@@ -32,56 +32,27 @@ namespace yml {
 
 static bool _is_scalar_next__runk(csubstr s)
 {
-    if(s.begins_with(": ") || s.begins_with_any("#,:{}[]%&") || s.begins_with("? ") || s == "-" || s.begins_with("- "))
-    {
-        return false;
-    }
-    return true;
+    return !(s.begins_with(": ") || s.begins_with_any("#,:{}[]%&") || s.begins_with("? ") || s == "-" || s.begins_with("- "));
 }
 
 static bool _is_scalar_next__rseq_rval(csubstr s)
 {
-    if(s.begins_with_any("[{!&") || s.begins_with("? "))
-    {
-        return false;
-    }
-    else if(s.begins_with("- ") || s == "-")
-    {
-        return false;
-    }
-    return true;
+    return !(s.begins_with_any("[{!&") || s.begins_with("? ") || s.begins_with("- ") || s == "-");
 }
 
 static bool _is_scalar_next__rseq_rnxt(csubstr s)
 {
-    if(s.begins_with("- "))
-    {
-        return false;
-    }
-    else if(s == "-")
-    {
-        return false;
-    }
-
-    return true;
+    return !(s.begins_with("- ") || s == "-");
 }
 
 static bool _is_scalar_next__rmap(csubstr s)
 {
-    if(s.begins_with(": ") || s.begins_with_any("#,!&") || s.begins_with("? "))
-    {
-        return false;
-    }
-    return true;
+    return !(s.begins_with(": ") || s.begins_with_any("#,!&") || s.begins_with("? "));
 }
 
 static bool _is_scalar_next__rmap_val(csubstr s)
 {
-    if(s.begins_with("- ") || s.begins_with_any("{[") || s == "-")
-    {
-        return false;
-    }
-    return true;
+    return !(s.begins_with("- ") || s.begins_with_any("{[") || s == "-");
 }
 
 static bool _is_doc_sep(csubstr s)
@@ -90,13 +61,9 @@ static bool _is_doc_sep(csubstr s)
     constexpr const csubstr ellipsis = "...";
     constexpr const csubstr whitesp = " \t";
     if(s.begins_with(dashes))
-    {
         return s == dashes || s.sub(3).begins_with_any(whitesp);
-    }
     else if(s.begins_with(ellipsis))
-    {
         return s == ellipsis || s.sub(3).begins_with_any(whitesp);
-    }
     return false;
 }
 
@@ -124,9 +91,8 @@ Parser::Parser(Allocator const& a)
 void Parser::_reset()
 {
     while(m_stack.size() > 1)
-    {
         m_stack.pop();
-    }
+
     RYML_ASSERT(m_stack.size() == 1);
     m_stack.clear();
     m_stack.push({});
@@ -201,16 +167,12 @@ void Parser::_handle_line()
         if(has_any(EXPL))
         {
             if(_handle_seq_expl())
-            {
                 return;
-            }
         }
         else
         {
             if(_handle_seq_impl())
-            {
                 return;
-            }
         }
     }
     else if(has_any(RMAP))
@@ -218,30 +180,22 @@ void Parser::_handle_line()
         if(has_any(EXPL))
         {
             if(_handle_map_expl())
-            {
                 return;
-            }
         }
         else
         {
             if(_handle_map_impl())
-            {
                 return;
-            }
         }
     }
     else if(has_any(RUNK))
     {
         if(_handle_unk())
-        {
             return;
-        }
     }
 
     if(_handle_top())
-    {
         return;
-    }
 }
 
 
@@ -787,9 +741,7 @@ bool Parser::_handle_seq_impl()
     {
         // there can be empty values
         if(_handle_indentation())
-        {
             return true;
-        }
 
         csubstr s;
         bool is_quoted;
@@ -830,17 +782,13 @@ bool Parser::_handle_seq_impl()
         else if(rem.begins_with("- "))
         {
             if(_rval_dash_start_or_continue_seq())
-            {
                 _line_progressed(2);
-            }
             return true;
         }
         else if(rem == '-')
         {
             if(_rval_dash_start_or_continue_seq())
-            {
                 _line_progressed(1);
-            }
             return true;
         }
         else if(rem.begins_with('['))
@@ -1653,9 +1601,7 @@ bool Parser::_handle_types()
         RYML_ASSERT(t.len >= 2);
         //t = t.sub(2);
         if(t == "!!set")
-        {
             add_flags(RSET);
-        }
     }
     else if(rem.begins_with("!<"))
     {
@@ -3792,9 +3738,7 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
 
 #ifdef RYML_DBG
     for(size_t i = r.len; i < s.len; ++i)
-    {
         s[i] = '~';
-    }
 #endif
 
     return r;
@@ -3804,27 +3748,13 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
 bool Parser::_read_decimal(csubstr const& str, size_t *decimal)
 {
     RYML_ASSERT(str.len >= 1);
-    size_t n = 0;
-    for(size_t i = 0; i < str.len; ++i)
-    {
-        char c = str.str[i];
-        if(c < '0' || c > '9') return false;
-        n = n*10 + size_t(c-'0');
-    }
-    *decimal = n;
-    return true;
+    return c4::atou(str, decimal);
 }
 
 //-----------------------------------------------------------------------------
 size_t Parser::_count_nlines(csubstr src)
 {
-    size_t n = (src.len > 0);
-    while(src.len > 0)
-    {
-        n += (src.begins_with('\n') || src.begins_with('\r'));
-        src = src.sub(1);
-    }
-    return n;
+    return 1 + src.count('\n');
 }
 
 //-----------------------------------------------------------------------------
@@ -3916,7 +3846,6 @@ int Parser::_fmt_msg(char *buf, int buflen, const char *fmt, va_list args) const
     int len = buflen;
     int pos = 0;
     auto const& lc = m_state->line_contents;
-
 
     // first line: print the message
     int del = vsnprintf(buf + pos, static_cast<size_t>(len), fmt, args);
