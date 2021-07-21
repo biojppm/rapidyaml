@@ -25,8 +25,8 @@
 
 namespace c4 {
 
-inline void PrintTo(substr  s, ::std::ostream* os) { *os << s; }
-inline void PrintTo(csubstr s, ::std::ostream* os) { *os << s; }
+inline void PrintTo(substr  s, ::std::ostream* os) { os->write(s.str, (std::streamsize)s.len); }
+inline void PrintTo(csubstr s, ::std::ostream* os) { os->write(s.str, (std::streamsize)s.len); }
 
 namespace yml {
 
