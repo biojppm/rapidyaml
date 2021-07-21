@@ -46,7 +46,7 @@ def get_str_value(d, value, limit=0):
 
 def __display_csubstr(d, value, limit=0):
     m_str, m_len = get_str_value(d, value)
-    d.putValue(f'\'{m_str}\'  [len={m_len}]')
+    d.putValue(f'[{m_len}] \'{m_str}\'')
     return m_str, m_len
 
 
@@ -90,8 +90,6 @@ def qdump__c4__yml__NodeScalar(d, value):
                 d.putSubItem("[tag]", value["tag"])
             if alen > 0:
                 d.putSubItem("[anchor or ref]", value["anchor"])
-def qdump__ryml__NodeScalar(d, value):
-    return qdump__c4__yml__NodeScalar(d, value)
 
 
 def _format_enum_value(int_value, enum_map):
@@ -169,14 +167,10 @@ def _node_type_has_any(node_type_value, type_name):
 def qdump__c4__yml__NodeType_e(d, value):
     v = _format_bitmask_value(value.integer(), node_types)
     d.putValue(v)
-def qdump__ryml__NodeType_e(d, value):
-    return qdump__c4__yml__NodeType_e(d, value)
 
 
 def qdump__c4__yml__NodeType(d, value):
     qdump__c4__yml__NodeType_e(d, value["type"])
-def qdump__ryml__NodeType(d, value):
-    return qdump__c4__yml__NodeType(d, value)
 
 
 def qdump__c4__yml__NodeData(d, value):
@@ -226,8 +220,6 @@ def qdump__c4__yml__NodeData(d, value):
             _dump_node_index(d, "m_last_child", value)
             _dump_node_index(d, "m_next_sibling", value)
             _dump_node_index(d, "m_prev_sibling", value)
-def qdump__ryml__NodeData(d, value):
-    return qdump__c4__yml__NodeData(d, value)
 
 
 def _dump_node_index(d, name, value):
@@ -258,8 +250,6 @@ def qdump__c4__yml__Tree(d, value):
             d.putIntItem("m_free_head", value["m_free_head"])
             d.putIntItem("m_free_tail", value["m_free_tail"])
             d.putSubItem("m_arena", value["m_arena"])
-def qdump__ryml__Tree(d, value):
-    return qdump__c4__yml__Tree(d, value)
 
 
 def qdump__c4__yml__detail__stack(d, value):
@@ -279,8 +269,6 @@ def qdump__c4__yml__detail__stack(d, value):
             d.putIntItem("[is large]", value["m_buf"].address() == value["m_stack"].pointer())
             d.putPtrItem("m_stack", value["m_stack"].pointer())
             d.putPtrItem("m_buf", value["m_buf"].address())
-def qdump__ryml__detail__stack(d, value):
-    return qdump__c4__yml__detail__stack(d, value)
 
 
 def qdump__c4__yml__detail__ReferenceResolver__refdata(d, value):
@@ -296,5 +284,3 @@ def qdump__c4__yml__detail__ReferenceResolver__refdata(d, value):
             _dump_node_index(d, "target", value)
             _dump_node_index(d, "parent_ref", value)
             _dump_node_index(d, "parent_ref_sibling", value)
-def qdump__ryml__detail__ReferenceResolver__refdata(d, value):
-    return qdump__c4__yml__detail__ReferenceResolver__refdata(d, value)

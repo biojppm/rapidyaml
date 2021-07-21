@@ -3,6 +3,7 @@
 
 namespace c4 {
 namespace yml {
+
 TEST(seq_of_map, with_anchors)
 {
     Tree t = parse(R"(
