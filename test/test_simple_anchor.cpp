@@ -217,7 +217,9 @@ top62:
     "anchors+refs on key+val, unresolved",\
     "anchors+refs on key+val, resolved",\
     "ambiguous anchor, unresolved",\
-    "ambiguous anchor, resolved"
+    "ambiguous anchor, resolved",\
+    "ambiguous anchor in seq, unresolved",\
+    "ambiguous anchor in seq, resolved"
 
 
 CASE_GROUP(SIMPLE_ANCHOR)
@@ -852,6 +854,22 @@ L{
     N("map4", "a0"),
     N("map5", L{N("a5", "b5"), N("b5", "a5"),}),
     N("map6", L{N("a6", "b6"), N("b6", "b6"),}),
+}),
+
+
+C("ambiguous anchor in seq, unresolved",
+R"(
+- &a0
+  &a1 a1: v1
+  &a2 a2: v2
+  &a3 a3: v3
+- &a4 a4: v4
+  &a5 a5: v5
+  &a6 a6: v6
+)",
+L{
+  N(L{N("a1", AR(KEYANCH, "a1")), N("a2", AR(KEYANCH, "a2")), N("a3", AR(KEYANCH, "a3"))}, AR(VALANCH, "a0")),
+  N(L{N("a4", AR(KEYANCH, "a4")), N("a5", AR(KEYANCH, "a5")), N("a6", AR(KEYANCH, "a6"))}),
 }),
 
     )

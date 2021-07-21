@@ -1591,8 +1591,16 @@ bool Parser::_handle_val_anchors_and_refs()
         _c4dbgp("found a val anchor!!!");
         if(!m_val_anchor.empty())
         {
-            _c4dbgpf("anchor value: '%.*s' empty=%d", _c4prsp(m_val_anchor), m_val_anchor.empty());
-            _c4err("there's a pending anchor");
+            if(m_tree->is_seq(m_state->node_id) && !m_tree->has_children(m_state->node_id))
+            {
+                m_tree->set_val_anchor(m_state->node_id, m_val_anchor);
+                m_val_anchor = {};
+            }
+            else
+            {
+                _c4dbgpf("anchor value: '%.*s' empty=%d", _c4prsp(m_val_anchor), m_val_anchor.empty());
+                _c4err("there's a pending anchor");
+            }
         }
         csubstr anchor = rem.left_of(rem.first_of(' '));
         _line_progressed(anchor.len);
@@ -3031,7 +3039,8 @@ void Parser::_move_scalar_from_top()
 bool Parser::_handle_indentation()
 {
     RYML_ASSERT(has_none(EXPL));
-    if( ! _at_line_begin()) return false;
+    if( ! _at_line_begin())
+        return false;
 
     size_t ind = m_state->line_contents.indentation;
     csubstr rem = m_state->line_contents.rem;
