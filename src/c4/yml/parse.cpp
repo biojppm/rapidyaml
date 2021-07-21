@@ -76,10 +76,14 @@ Parser::Parser(Allocator const& a)
     , m_tree()
     , m_stack(a)
     , m_state()
+    , m_key_tag_indentation(0)
     , m_key_tag()
+    , m_val_tag_indentation(0)
     , m_val_tag()
     , m_key_anchor_was_before(false)
+    , m_key_anchor_indentation(0)
     , m_key_anchor()
+    , m_val_anchor_indentation(0)
     , m_val_anchor()
 {
     State st{};
@@ -99,10 +103,14 @@ void Parser::_reset()
     m_state = &m_stack.top();
     m_state->reset(m_file.str, m_root_id);
 
+    m_key_tag_indentation = 0;
     m_key_tag.clear();
+    m_val_tag_indentation = 0;
     m_val_tag.clear();
     m_key_anchor_was_before = false;
+    m_key_anchor_indentation = 0;
     m_key_anchor.clear();
+    m_val_anchor_indentation = 0;
     m_val_anchor.clear();
 }
 
@@ -138,10 +146,9 @@ void Parser::parse(csubstr file, substr buf, Tree *t, size_t node_id)
     {
         _scan_line();
         while( ! _finished_line())
-        {
             _handle_line();
-        }
-        if(_finished_file()) break; // it may have finished because of multiline blocks
+        if(_finished_file())
+            break; // it may have finished because of multiline blocks
         _line_ended();
     }
 
@@ -257,6 +264,7 @@ bool Parser::_handle_unk()
     if(rem.begins_with("- "))
     {
         _c4dbgpf("it's a seq (as_child=%d)", start_as_child);
+        _move_key_anchor_to_val_anchor();
         _push_level();
         _start_seq(start_as_child);
         _save_indentation();
@@ -266,6 +274,7 @@ bool Parser::_handle_unk()
     else if(rem == '-')
     {
         _c4dbgpf("it's a seq (as_child=%d)", start_as_child);
+        _move_key_anchor_to_val_anchor();
         _push_level();
         _start_seq(start_as_child);
         _save_indentation();
@@ -754,7 +763,8 @@ bool Parser::_handle_seq_impl()
             {
                 _c4dbgp("skipping whitespace...");
                 size_t skip = rem.first_not_of(' ');
-                if(skip == csubstr::npos) skip = rem.len; // maybe the line is just whitespace
+                if(skip == csubstr::npos)
+                    skip = rem.len; // maybe the line is just whitespace
                 _line_progressed(skip);
                 rem = rem.sub(skip);
             }
@@ -762,12 +772,16 @@ bool Parser::_handle_seq_impl()
             if(!rem.begins_with('#') && (rem.begins_with(": ") || rem.ends_with(':')))
             {
                 _c4dbgp("actually, the scalar is the first key of a map, and it opens a new scope");
+                if(m_key_anchor.empty())
+                    _move_val_anchor_to_key_anchor();
                 addrem_flags(RNXT, RVAL); // before _push_level! This prepares the current level for popping by setting it to RNXT
                 _push_level();
                 _start_map();
                 _store_scalar(s, is_quoted);
-                _move_val_anchor_to_key_anchor();
-                _set_indentation(m_state->scalar_col); // this is the column where the scalar starts
+                if(m_key_anchor.not_empty())
+                    _set_indentation(m_key_anchor_indentation); // this is the column where the anchor starts
+                else
+                    _set_indentation(m_state->scalar_col); // this is the column where the scalar starts
                 addrem_flags(RVAL, RKEY);
                 _line_progressed(1);
             }
@@ -1509,7 +1523,7 @@ csubstr Parser::_scan_ref()
 bool Parser::_handle_key_anchors_and_refs()
 {
     RYML_ASSERT(!has_any(RVAL));
-    csubstr rem = m_state->line_contents.rem;
+    const csubstr rem = m_state->line_contents.rem;
     if(rem.begins_with('&'))
     {
         _c4dbgp("found a key anchor!!!");
@@ -1519,9 +1533,10 @@ bool Parser::_handle_key_anchors_and_refs()
         _move_key_anchor_to_val_anchor();
         _c4dbgpf("key anchor value: '%.*s'", _c4prsp(anchor));
         m_key_anchor = anchor;
+        m_key_anchor_indentation = m_state->line_contents.current_col(rem);
         return true;
     }
-    else if(rem.begins_with('*'))
+    else if(C4_UNLIKELY(rem.begins_with('*')))
     {
         _c4err("not implemented - this should have been catched elsewhere");
         C4_NEVER_REACH();
@@ -1533,31 +1548,54 @@ bool Parser::_handle_key_anchors_and_refs()
 bool Parser::_handle_val_anchors_and_refs()
 {
     RYML_ASSERT(!has_any(RKEY));
-    csubstr rem = m_state->line_contents.rem;
+    const csubstr rem = m_state->line_contents.rem;
     if(rem.begins_with('&'))
     {
-        _c4dbgp("found a val anchor!!!");
-        if(!m_val_anchor.empty())
-        {
-            if(m_tree->is_seq(m_state->node_id) && !m_tree->has_children(m_state->node_id))
-            {
-                m_tree->set_val_anchor(m_state->node_id, m_val_anchor);
-                m_val_anchor = {};
-            }
-            else
-            {
-                _c4dbgpf("anchor value: '%.*s' empty=%d", _c4prsp(m_val_anchor), m_val_anchor.empty());
-                _c4err("there's a pending anchor");
-            }
-        }
         csubstr anchor = rem.left_of(rem.first_of(' '));
         _line_progressed(anchor.len);
         anchor = anchor.sub(1); // skip the first character
-        _c4dbgpf("val anchor value: '%.*s'", _c4prsp(anchor));
-        m_val_anchor = anchor;
+        _c4dbgpf("val: found an anchor: '%.*s'!!!", _c4prsp(anchor));
+        if(m_val_anchor.empty())
+        {
+            _c4dbgpf("save val anchor: '%.*s'", _c4prsp(anchor));
+            m_val_anchor = anchor;
+            m_val_anchor_indentation = m_state->line_contents.current_col(rem);
+        }
+        else
+        {
+            _c4dbgpf("there is a pending val anchor '%.*s'", _c4prsp(m_val_anchor));
+            if(m_tree->is_seq(m_state->node_id))
+            {
+                if(m_tree->has_children(m_state->node_id))
+                {
+                    _c4dbgpf("current node=%zu is a seq, has %zu children", m_state->node_id, m_tree->num_children(m_state->node_id));
+                    _c4dbgpf("... so take the new one as a key anchor '%.*s'", _c4prsp(anchor));
+                    m_key_anchor = anchor;
+                    m_key_anchor_indentation = m_state->line_contents.current_col(rem);
+                }
+                else
+                {
+                    _c4dbgpf("current node=%zu is a seq, has no children", m_state->node_id);
+                    if(m_tree->has_val_anchor(m_state->node_id))
+                    {
+                        _c4dbgpf("... node=%zu already has val anchor: '%.*s'", m_state->node_id, _c4prsp(m_tree->val_anchor(m_state->node_id)));
+                        _c4dbgpf("... so take the new one as a key anchor '%.*s'", _c4prsp(anchor));
+                        m_key_anchor = anchor;
+                        m_key_anchor_indentation = m_state->line_contents.current_col(rem);
+                    }
+                    else
+                    {
+                        _c4dbgpf("... so set pending val anchor: '%.*s' on current node %zu", _c4prsp(m_val_anchor), m_state->node_id);
+                        m_tree->set_val_anchor(m_state->node_id, m_val_anchor);
+                        m_val_anchor = anchor;
+                        m_val_anchor_indentation = m_state->line_contents.current_col(rem);
+                    }
+                }
+            }
+        }
         return true;
     }
-    else if(rem.begins_with('*'))
+    else if(C4_UNLIKELY(rem.begins_with('*')))
     {
         _c4err("not implemented - this should have been catched elsewhere");
         C4_NEVER_REACH();
@@ -1574,16 +1612,24 @@ void Parser::_move_key_anchor_to_val_anchor()
     if(!m_val_anchor.empty())
         _c4err("triple-pending anchor");
     m_val_anchor = m_key_anchor;
+    m_val_anchor_indentation = m_key_anchor_indentation;
+    m_key_anchor = {};
+    m_key_anchor_indentation = {};
 }
 
 void Parser::_move_val_anchor_to_key_anchor()
 {
     if(m_val_anchor.empty())
         return;
+    if(!_token_is_from_this_line(m_val_anchor))
+        return;
     _c4dbgpf("move current val anchor to key slot: key='%.*s' <- val='%.*s'", _c4prsp(m_key_anchor), _c4prsp(m_val_anchor));
     if(!m_key_anchor.empty())
         _c4err("triple-pending anchor");
     m_key_anchor = m_val_anchor;
+    m_key_anchor_indentation = m_val_anchor_indentation;
+    m_val_anchor = {};
+    m_val_anchor_indentation = {};
 }
 
 
@@ -2439,6 +2485,7 @@ void Parser::_write_key_anchor(size_t node_id)
         m_tree->set_key_anchor(node_id, m_key_anchor);
         m_key_anchor.clear();
         m_key_anchor_was_before = false;
+        m_key_anchor_indentation = 0;
     }
     else if(!m_tree->is_key_quoted(node_id))
     {
@@ -2457,9 +2504,7 @@ void Parser::_write_key_anchor(size_t node_id)
                 for(size_t i = m_tree->first_child(node_id); i != NONE; i = m_tree->next_sibling(i))
                 {
                     if( ! (m_tree->val(i).begins_with('*')))
-                    {
                         _c4err("malformed reference: '%.*s'", _c4prsp(m_tree->val(i)));
-                    }
                 }
             }
             else if( ! m_tree->val(node_id).begins_with('*'))
@@ -2773,7 +2818,7 @@ void Parser::_start_map_unk(bool as_child)
 {
     if(!m_key_anchor_was_before)
     {
-        _c4dbgpf("moving key anchor before starting map... '%.*s'", _c4prsp(m_key_anchor));
+        _c4dbgpf("stash key anchor before starting map... '%.*s'", _c4prsp(m_key_anchor));
         csubstr ka = m_key_anchor;
         m_key_anchor = {};
         _start_map(as_child);

@@ -859,17 +859,90 @@ L{
 
 C("ambiguous anchor in seq, unresolved",
 R"(
+&seq
 - &a0
-  &a1 a1: v1
-  &a2 a2: v2
-  &a3 a3: v3
-- &a4 a4: v4
-  &a5 a5: v5
-  &a6 a6: v6
+  &a1 k1: v1
+  &a2 k2: v2
+  &a3 k3: v3
+- &a4 k4: v4
+  &a5 k5: v5
+  &a6 k6: v6
+- &a7
+  &a8 k8: v8
+- &a9
+  k10: v10
+- *a1: w1
+  *a2: w2
+  *a3: w3
+  *a4: w4
+  *a5: w5
+  *a6: w6
+  *a8: w8
+- *a0
+- *a7
+- *a9
+)",
+N(L{
+  N(L{N("k1", AR(KEYANCH, "a1"), "v1"), N("k2", AR(KEYANCH, "a2"), "v2"), N("k3", AR(KEYANCH, "a3"), "v3")}, AR(VALANCH, "a0")),
+  N(L{N("k4", AR(KEYANCH, "a4"), "v4"), N("k5", AR(KEYANCH, "a5"), "v5"), N("k6", AR(KEYANCH, "a6"), "v6")}),
+  N(L{N("k8", AR(KEYANCH, "a8"), "v8")}, AR(VALANCH, "a7")),
+  N(L{N("k10", "v10")}, AR(VALANCH, "a9")),
+  N(L{
+      N("*a1", AR(KEYREF, "*a1"), "w1"),
+      N("*a2", AR(KEYREF, "*a2"), "w2"),
+      N("*a3", AR(KEYREF, "*a3"), "w3"),
+      N("*a4", AR(KEYREF, "*a4"), "w4"),
+      N("*a5", AR(KEYREF, "*a5"), "w5"),
+      N("*a6", AR(KEYREF, "*a6"), "w6"),
+      N("*a8", AR(KEYREF, "*a8"), "w8"),
+  }),
+  N("*a0", AR(VALREF, "*a0")),
+  N("*a7", AR(VALREF, "*a7")),
+  N("*a9", AR(VALREF, "*a9")),
+}, AR(VALANCH, "seq"))),
+
+C("ambiguous anchor in seq, resolved", RESOLVE_REFS,
+R"(
+&seq
+- &a0
+  &a1 k1: v1
+  &a2 k2: v2
+  &a3 k3: v3
+- &a4 k4: v4
+  &a5 k5: v5
+  &a6 k6: v6
+- &a7
+  &a8 k8: v8
+- &a9
+  k10: v10
+- *a1: w1
+  *a2: w2
+  *a3: w3
+  *a4: w4
+  *a5: w5
+  *a6: w6
+  *a8: w8
+- *a0
+- *a7
+- *a9
 )",
 L{
-  N(L{N("a1", AR(KEYANCH, "a1")), N("a2", AR(KEYANCH, "a2")), N("a3", AR(KEYANCH, "a3"))}, AR(VALANCH, "a0")),
-  N(L{N("a4", AR(KEYANCH, "a4")), N("a5", AR(KEYANCH, "a5")), N("a6", AR(KEYANCH, "a6"))}),
+  N(L{N("k1", "v1"), N("k2", "v2"), N("k3", "v3")}),
+  N(L{N("k4", "v4"), N("k5", "v5"), N("k6", "v6")}),
+  N(L{N("k8", "v8")}),
+  N(L{N("k10", "v10")}),
+  N(L{
+      N("k1", "w1"),
+      N("k2", "w2"),
+      N("k3", "w3"),
+      N("k4", "w4"),
+      N("k5", "w5"),
+      N("k6", "w6"),
+      N("k8", "w8"),
+  }),
+  N(L{N("k1", AR(KEYANCH, "a1"), "v1"), N("k2", AR(KEYANCH, "a2"), "v2"), N("k3", AR(KEYANCH, "a3"), "v3")}),
+  N(L{N("k8", AR(KEYANCH, "a8"), "v8")}),
+  N(L{N("k10", "v10")}),
 }),
 
     )

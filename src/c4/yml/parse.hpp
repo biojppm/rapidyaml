@@ -304,6 +304,10 @@ private:
         csubstr r = m_state->line_contents.rem;
         return r.empty() || r.begins_with(' ', r.len);
     }
+    inline bool _token_is_from_this_line(csubstr token) const
+    {
+        return token.is_sub(m_state->line_contents.full);
+    }
 
     inline NodeData * node(State const* s) const { return m_tree->get(s->node_id); }
     inline NodeData * node(State const& s) const { return m_tree->get(s .node_id); }
@@ -347,11 +351,15 @@ private:
     detail::stack<State> m_stack;
     State * m_state;
 
+    size_t  m_key_tag_indentation;
     csubstr m_key_tag;
+    size_t  m_val_tag_indentation;
     csubstr m_val_tag;
 
     bool    m_key_anchor_was_before;
+    size_t  m_key_anchor_indentation;
     csubstr m_key_anchor;
+    size_t  m_val_anchor_indentation;
     csubstr m_val_anchor;
 
 };

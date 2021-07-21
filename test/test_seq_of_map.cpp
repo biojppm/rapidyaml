@@ -6,26 +6,64 @@ namespace yml {
 
 TEST(seq_of_map, with_anchors)
 {
-    Tree t = parse(R"(
-- &a1 a1: v1
+    {
+        // this case is vanilla:
+        csubstr yaml = R"(- a0: v0
+  &a1 a1: v1
+  &a2 a2: v2
+  &a3 a3: v3
+- a0: w0
+  *a1: w1
+  *a2: w2
+  *a3: w3
+- &seq
+  a4: v4
+)";
+        Tree t = parse(yaml);
+        EXPECT_EQ(emitrs<std::string>(t), yaml);
+        ASSERT_EQ(t.rootref().num_children(), 3u);
+        ASSERT_EQ(t[2].has_val_anchor(), true);
+        ASSERT_EQ(t[2].val_anchor(), "seq");
+    }
+    {
+        // but this case may fail because the indentation
+        // may be set from the scalar instead of the tag:
+        csubstr yaml = R"(- &a1 a1: v1
   &a2 a2: v2
   &a3 a3: v3
 - *a1: w1
   *a2: w2
   *a3: w3
-)");
-    EXPECT_EQ(emitrs<std::string>(t), R"(- &a1 a1: v1
-  &a2 a2: v2
-  &a3 a3: v3
-- *a1: w1
-  *a2: w2
-  *a3: w3
-)");
+)";
+        Tree t = parse(yaml);
+        EXPECT_EQ(emitrs<std::string>(t), yaml);
+    }
 }
 
 TEST(seq_of_map, with_tags)
 {
-    Tree t = parse(R"(
+    {
+        // this case is vanilla:
+        csubstr yaml = R"(- a0: v0
+  !!str a1: v1
+  !!str a2: v2
+  !!str a3: v3
+- a0: w0
+  a1: !!str w1
+  a2: !!str w2
+  a3: !!str w3
+- a0: v1
+  !foo a1: v1
+  !foo a2: v2
+  !foo a3: v3
+)";
+        Tree t = parse(yaml);
+        EXPECT_EQ(emitrs<std::string>(t), yaml);
+    }
+    {
+        // but this case may fail because the indentation
+        // may be set from the scalar instead of the tag:
+        csubstr yaml = R"(
 - !!str a1: v1
   !!str a2: v2
   !!str a3: v3
@@ -35,17 +73,10 @@ TEST(seq_of_map, with_tags)
 - !foo a1: v1
   !foo a2: v2
   !foo a3: v3
-)");
-    EXPECT_EQ(emitrs<std::string>(t), R"(- !!str a1: v1
-  !!str a2: v2
-  !!str a3: v3
-- a1: !!str w1
-  a2: !!str w2
-  a3: !!str w3
-- !foo a1: v1
-  !foo a2: v2
-  !foo a3: v3
-)");
+)";
+        Tree t = parse(yaml);
+        EXPECT_EQ(emitrs<std::string>(t), yaml);
+    }
 }
 
 
