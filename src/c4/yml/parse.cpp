@@ -778,19 +778,28 @@ bool Parser::_handle_seq_impl()
                 _c4dbgp("actually, the scalar is the first key of a map, and it opens a new scope");
                 if(m_key_anchor.empty())
                     _move_val_anchor_to_key_anchor();
+                if(m_key_tag.empty())
+                    _move_val_tag_to_key_tag();
                 addrem_flags(RNXT, RVAL); // before _push_level! This prepares the current level for popping by setting it to RNXT
                 _push_level();
                 _start_map();
                 _store_scalar(s, is_quoted);
                 if(m_key_anchor.not_empty())
-                    _set_indentation(m_key_anchor_indentation); // this is the column where the anchor starts
-                else
-                    _set_indentation(m_state->scalar_col); // this is the column where the scalar starts
-                if(m_key_tag2.not_empty())
                 {
-                    m_key_tag = m_key_tag2;
-                    m_key_tag2.clear();
+                    _c4dbgpf("set indentation from anchor: %zu", m_key_anchor_indentation);
+                    _set_indentation(m_key_anchor_indentation); // this is the column where the anchor starts
                 }
+                else if(m_key_tag.not_empty())
+                {
+                    _c4dbgpf("set indentation from key tag: %zu", m_key_tag_indentation);
+                    _set_indentation(m_key_tag_indentation); // this is the column where the tag starts
+                }
+                else
+                {
+                    _c4dbgpf("set indentation from scalar: %zu", m_state->scalar_col);
+                    _set_indentation(m_state->scalar_col); // this is the column where the scalar starts
+                }
+                _move_key_tag2_to_key_tag();
                 addrem_flags(RVAL, RKEY);
                 _line_progressed(1);
             }
@@ -1641,6 +1650,30 @@ void Parser::_move_val_anchor_to_key_anchor()
     m_val_anchor_indentation = {};
 }
 
+void Parser::_move_val_tag_to_key_tag()
+{
+    if(m_val_tag.empty())
+        return;
+    if(!_token_is_from_this_line(m_val_tag))
+        return;
+    _c4dbgpf("move val tag to key tag: key='%.*s' <- val='%.*s'", _c4prsp(m_key_tag), _c4prsp(m_val_tag));
+    m_key_tag = m_val_tag;
+    m_key_tag_indentation = m_val_tag_indentation;
+    m_val_tag.clear();
+    m_val_tag_indentation = 0;
+}
+
+void Parser::_move_key_tag2_to_key_tag()
+{
+    if(m_key_tag2.empty())
+        return;
+    _c4dbgpf("move key tag2 to key tag: key='%.*s' <- key2='%.*s'", _c4prsp(m_key_tag), _c4prsp(m_key_tag2));
+    m_key_tag = m_key_tag2;
+    m_key_tag_indentation = m_key_tag2_indentation;
+    m_key_tag2.clear();
+    m_key_tag2_indentation = 0;
+}
+
 
 //-----------------------------------------------------------------------------
 
@@ -1683,7 +1716,8 @@ bool Parser::_handle_types()
     if(t.empty())
         return false;
 
-    _c4dbgpf("there was a tag: '%.*s'", _c4prsp(t));
+    size_t tag_indentation = m_state->line_contents.current_col(t);
+    _c4dbgpf("there was a tag: '%.*s', indentation=%zu", _c4prsp(t), tag_indentation);
     RYML_ASSERT(t.end() > m_state->line_contents.rem.begin());
     _line_progressed(static_cast<size_t>(t.end() - m_state->line_contents.rem.begin()));
 
@@ -1692,6 +1726,7 @@ bool Parser::_handle_types()
         _c4dbgpf("saving map key tag '%.*s'", _c4prsp(t));
         RYML_ASSERT(m_key_tag.empty());
         m_key_tag = t;
+        m_key_tag_indentation = tag_indentation;
     }
     else if(has_all(RMAP|RVAL))
     {
@@ -1714,18 +1749,22 @@ bool Parser::_handle_types()
         _c4dbgpf("saving map val tag '%.*s'", _c4prsp(t));
         RYML_ASSERT(m_val_tag.empty());
         m_val_tag = t;
+        m_val_tag_indentation = tag_indentation;
     }
-    else if(has_all(RSEQ|RVAL))
+    else if(has_all(RSEQ|RVAL) || has_all(RTOP|RUNK|NDOC))
     {
-        _c4dbgpf("saving seq val tag '%.*s'", _c4prsp(t));
-        RYML_ASSERT(m_val_tag.empty());
-        m_val_tag = t;
-    }
-    else if(has_all(RTOP|RUNK|NDOC))
-    {
-        _c4dbgpf("saving doc tag '%.*s'", _c4prsp(t));
-        RYML_ASSERT(m_val_tag.empty());
-        m_val_tag = t;
+        if(m_val_tag.empty())
+        {
+            _c4dbgpf("saving seq/doc val tag '%.*s'", _c4prsp(t));
+            m_val_tag = t;
+            m_val_tag_indentation = tag_indentation;
+        }
+        else
+        {
+            _c4dbgpf("saving seq/doc key tag '%.*s'", _c4prsp(t));
+            m_key_tag = t;
+            m_key_tag_indentation = tag_indentation;
+        }
     }
     else if(has_all(RTOP|RUNK) || has_any(RUNK))
     {
@@ -1737,6 +1776,7 @@ bool Parser::_handle_types()
             _c4dbgpf("saving val tag '%.*s'", _c4prsp(t));
             RYML_ASSERT(m_val_tag.empty());
             m_val_tag = t;
+            m_val_tag_indentation = tag_indentation;
         }
         else
         {
@@ -1744,6 +1784,7 @@ bool Parser::_handle_types()
             if(m_key_tag.empty())
             {
                 m_key_tag = t;
+                m_key_tag_indentation = tag_indentation;
             }
             else
             {
@@ -1755,6 +1796,7 @@ bool Parser::_handle_types()
                  * (m_key_tag would be !!str and m_key_tag2 would be !!int)
                  */
                 m_key_tag2 = t;
+                m_key_tag2_indentation = tag_indentation;
             }
         }
     }
@@ -1763,26 +1805,10 @@ bool Parser::_handle_types()
         _c4err("internal error");
     }
 
-    if(!m_val_tag.empty())
+    if(m_val_tag.not_empty())
     {
         YamlTag_e tag = to_tag(t);
-        if(tag == TAG_MAP || tag == TAG_OMAP || tag == TAG_PAIRS || tag == TAG_SET)
-        {
-            _c4dbgpf("tag '%.*s' is a map-type tag", _c4prsp(t));
-            //_push_level();
-            //_start_map(/*as_child*/false);
-            //_save_indentation(m_state->line_contents.indentation);
-            //addrem_flags(RKEY, RVAL);
-        }
-        else if(tag == TAG_SEQ)
-        {
-            _c4dbgpf("tag '%.*s' is a seq-type tag", _c4prsp(t));
-            //_push_level();
-            //_start_seq(/*as_child*/false);
-            //_save_indentation(0);
-            //addrem_flags(RNXT, RVAL);
-        }
-        else if(tag == TAG_STR)
+        if(tag == TAG_STR)
         {
             _c4dbgpf("tag '%.*s' is a str-type tag", _c4prsp(t));
             if(has_all(RTOP|RUNK|NDOC))
@@ -2859,7 +2885,9 @@ void Parser::_start_map_unk(bool as_child)
     if(m_key_tag2.not_empty())
     {
         m_key_tag = m_key_tag2;
+        m_key_tag_indentation = m_key_tag2_indentation;
         m_key_tag2.clear();
+        m_key_tag2_indentation = 0;
     }
 }
 
@@ -3994,6 +4022,7 @@ int Parser::_prfl(char *buf, int buflen, size_t v)
     int pos = 0, del = 0;
 
     bool gotone = false;
+
 #define _prflag(fl)                                 \
     if((v & (fl)) == (fl))                          \
     {                                               \
