@@ -15,35 +15,25 @@
 
 #define RYML_NFO (1 || RYML_DBG)
 
+#if RYML_NFO
+#define _nfo_print_tree(title, tree) do { c4::log("{}:{}: " title ":", __FILE__, __LINE__); print_tree(tree); c4::yml::emit(tree, stdout); fflush(stdout); } while(0)
+#define _nfo_logf(fmt, ...)          do { c4::log("{}:{}: " fmt      , __FILE__, __LINE__, __VA_ARGS__);                                   fflush(stdout); } while(0)
+#define _nfo_log(fmt)                do { c4::log("{}:{}: " fmt      , __FILE__, __LINE__);                                                fflush(stdout); } while(0)
+#define _nfo_printf(...) printf(__VA_ARGS__)
+#else
+#define _nfo_print_tree(title, tree)
+#define _nfo_logf(fmt, ...)
+#define _nfo_log(fmt)
+#define _nfo_printf(...)
+#endif
+#define _nfo_llogf(fmt, ...) _nfo_logf("line[{}]: '{}': " fmt, linenum, line, __VA_ARGS__)
+#define _nfo_llog(fmt)       _nfo_logf("line[{}]: '{}': " fmt, linenum, line)
+
+C4_SUPPRESS_WARNING_MSVC_PUSH
+C4_SUPPRESS_WARNING_MSVC(4702) // unreachable code
+
 namespace c4 {
 namespace yml {
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-// some utility functions, used below
-
-
-size_t find_first_after(size_t pos, std::initializer_list<size_t> candidates)
-{
-    size_t ret = npos;
-    for(size_t s : candidates)
-        if(s > pos && s < ret)
-            ret = s;
-    return ret;
-}
-
-
-csubstr filter_out_indentation(csubstr src, std::string *dst)
-{
-    if( ! src.begins_with("    "))
-    {
-        dst->assign(src.begin(), src.end());
-        return c4::to_csubstr(*dst);
-    }
-    return replace_all("\n    ", "\n", src.sub(4), dst);
-}
 
 
 //-----------------------------------------------------------------------------
@@ -68,10 +58,8 @@ struct Events
 
     void compare_trees(Tree const& actual) const
     {
-        #if RYML_NFO
-        c4::print("EXPECTED:"); print_tree(tree);
-        c4::print("ACTUAL:"); print_tree(actual);
-        #endif
+        _nfo_print_tree("EXPECTED", tree);
+        _nfo_print_tree("ACTUAL", actual);
         test_compare(tree, actual);
     }
 
@@ -80,26 +68,32 @@ struct Events
         if(was_parsed)
             return;
         _parse_events();
-        #if RYML_NFO
-        c4::print("EXPECTED:"); print_tree(tree);
-        #endif
+        _nfo_print_tree("EXPECTED", tree);
         was_parsed = true;
     }
 
     void _parse_events()
     {
-        struct ParseLevel { NodeType type; size_t tree_node; };
+        struct ParseLevel { size_t tree_node; };
         detail::stack<ParseLevel> m_stack;
         csubstr key, key_anchor, key_ref;
-        bool key_quoted = false;
+        bool key_was_set = false, key_quoted = false;
+        size_t linenum = 0;
+        _nfo_logf("parsing events! src:\n{}", src);
         for(csubstr line : src.split('\n'))
         {
             line = line.trimr('\r');
+            _nfo_printf("\n\n-----------------------\n");
+            {
+                size_t curr = m_stack.empty() ? tree.root_id() : m_stack.top().tree_node;
+                _nfo_llog("");
+                _nfo_logf("line[{}]: top={} type={}", linenum, curr, NodeType::type_str(tree.type(curr)));
+            }
             if(line.begins_with("=VAL "))
             {
                 line = line.stripl("=VAL ");
-                ASSERT_GE(m_stack.size(), 0);
-                csubstr anchor, val;
+                ASSERT_GE(m_stack.size(), 0u);
+                csubstr anchor, tag, val;
                 bool quoted = false;
                 if(line.begins_with('&'))
                 {
@@ -107,6 +101,15 @@ struct Events
                     ASSERT_NE(pos, (size_t)csubstr::npos);
                     anchor = line.first(pos).sub(1);
                     line = line.right_of(pos);
+                    _nfo_llogf("anchor: {}", anchor);
+                }
+                if(line.begins_with('<'))
+                {
+                    size_t pos = line.find('>');
+                    ASSERT_NE(pos, (size_t)csubstr::npos);
+                    tag = line.first(pos + 1);
+                    line = line.right_of(pos).triml(' ');
+                    _nfo_llogf("tag: {}", tag);
                 }
                 if(line.begins_with('"'))
                 {
@@ -126,39 +129,56 @@ struct Events
                 {
                     val = line.sub(1);
                 }
-                else if(line.begins_with('<'))
-                {
-                    C4_NOT_IMPLEMENTED();
-                }
                 else
                 {
                     ASSERT_EQ(line.begins_with(':'), true);
                     val = line.sub(1);
                 }
-                ParseLevel top = m_stack.top();
-                if(top.type == SEQ)
+                _nfo_logf("parsed val: '{}'", val);
+                if(m_stack.empty())
                 {
+                    _nfo_log("stack was empty, setting root to SEQ...");
+                    tree.to_seq(tree.root_id(), DOC);
+                    m_stack.push({tree.root_id()});
+                }
+                ParseLevel &top = m_stack.top();
+                if(tree.is_doc(top.tree_node) && !tree.is_map(top.tree_node) && !tree.is_seq(top.tree_node))
+                {
+                    _nfo_logf("stack is not empty, setting tree_node={} to SEQ...", top.tree_node);
+                    tree._add_flags(top.tree_node, SEQ);
+                }
+                if(tree.is_seq(top.tree_node))
+                {
+                    _nfo_logf("is seq! seq_id={}", top.tree_node);
                     ASSERT_EQ(key.empty(), true);
                     ASSERT_EQ(key_ref.empty(), true);
                     ASSERT_EQ(key_anchor.empty(), true);
+                    _nfo_logf("seq[{}]: adding child", top.tree_node);
                     size_t node = tree.append_child(top.tree_node);
+                    _nfo_logf("seq[{}]: child={} val='{}'", top.tree_node, node, val);
                     tree.to_val(node, val);
                     if(anchor.not_empty())
                         tree.set_val_anchor(node, anchor);
                     if(quoted)
                         tree._add_flags(node, VALQUO);
                 }
-                else if(top.type == MAP)
+                else if(tree.is_map(top.tree_node))
                 {
-                    if(key.empty())
+                    _nfo_logf("is map! map_id={}", top.tree_node);
+                    if(!key_was_set)
                     {
+                        _nfo_logf("store key='{}' anchor='{}' quoted={}", val, anchor, quoted);
                         key = val;
                         key_anchor = anchor;
                         key_quoted = quoted;
+                        key_was_set = true;
+                        _nfo_logf("saved key='{}'", key);
                     }
                     else
                     {
+                        _nfo_logf("map[{}]: adding child", top.tree_node);
                         size_t node = tree.append_child(top.tree_node);
+                        _nfo_logf("map[{}]: child={} key='{}' val='{}'", top.tree_node, node, key, val);
                         tree.to_keyval(node, key, val);
                         if(key_ref.not_empty())
                             tree.set_key_ref(node, key_ref);
@@ -170,12 +190,22 @@ struct Events
                             tree._add_flags(node, KEYQUO);
                         if(quoted)
                             tree._add_flags(node, VALQUO);
+                        _nfo_logf("clear key='{}'", key);
                         key = {};
                         key_ref = {};
                         key_anchor = {};
                         key_quoted = false;
+                        key_was_set = false;
                     }
                 }
+                //else if(top.type == VAL)
+                //{
+                //    tree.to_val(top.tree_node, val);
+                //    if(anchor.not_empty())
+                //        tree.set_val_anchor(top.tree_node, anchor);
+                //    if(quoted)
+                //        tree._add_flags(top.tree_node, VALQUO);
+                //}
                 else
                 {
                     C4_ERROR("VAL event requires map or seq");
@@ -185,7 +215,7 @@ struct Events
             {
                 csubstr alias = line.stripl("=ALI ");
                 ParseLevel top = m_stack.top();
-                if(top.type == SEQ)
+                if(tree.is_seq(top.tree_node))
                 {
                     ASSERT_EQ(key.empty(), true);
                     ASSERT_EQ(key_anchor.empty(), true);
@@ -193,12 +223,14 @@ struct Events
                     tree.to_val(node, alias);
                     tree.set_val_ref(node, alias);
                 }
-                else if(top.type == MAP)
+                else if(tree.is_map(top.tree_node))
                 {
-                    if(key.empty())
+                    if(!key_was_set)
                     {
                         key = alias;
                         key_ref = alias;
+                        key_was_set = true;
+                        _nfo_logf("save key='{}'", key);
                     }
                     else
                     {
@@ -209,10 +241,12 @@ struct Events
                         if(key_ref.not_empty())
                             tree.set_key_ref(node, key_ref);
                         tree.set_val_ref(node, alias);
+                        _nfo_logf("clear key='{}'", key);
                         key = {};
                         key_ref = {};
                         key_anchor = {};
                         key_quoted = false;
+                        key_was_set = false;
                     }
                 }
                 else
@@ -222,6 +256,7 @@ struct Events
             }
             else if(line.begins_with("+SEQ"))
             {
+                _nfo_log("pushing SEQ");
                 csubstr rem = line.stripl("+SEQ").triml(' ');
                 csubstr tag, anchor;
                 if(rem.begins_with('&'))
@@ -231,35 +266,55 @@ struct Events
                 size_t node = tree.root_id();
                 if(m_stack.empty())
                 {
+                    _nfo_log("stack was empty, set root to SEQ");
                     tree._add_flags(node, SEQ);
+                    m_stack.push({node});
                     ASSERT_EQ(key.empty(), true); // for the key to exist, the parent must exist and be a map
                 }
                 else
                 {
                     size_t parent = m_stack.top().tree_node;
+                    _nfo_logf("stack was not empty. parent={}", parent);
                     ASSERT_NE(parent, (size_t)NONE);
-                    node = tree.append_child(parent);
-                    if(key.empty())
+                    NodeType more_flags = NOTYPE;
+                    if(tree.is_doc(parent) && !(tree.is_seq(parent) || tree.is_map(parent)))
                     {
-                        tree.to_seq(node);
+                        _nfo_logf("set node to parent={}, add DOC", parent);
+                        node = parent;
+                        more_flags.add(DOC);
                     }
                     else
                     {
-                        ASSERT_EQ(tree.is_map(parent), true);
-                        tree.to_seq(node, key);
+                        _nfo_logf("add child to parent={}", parent);
+                        node = tree.append_child(parent);
+                        m_stack.push({node});
+                        _nfo_logf("add child to parent={}: child={}", parent, node);
+                    }
+                    if(!key_was_set && !tree.is_map(parent))
+                    {
+                        _nfo_logf("no key, set to seq: parent={} child={}", parent, node);
+                        ASSERT_EQ(key.empty(), true);
+                        tree.to_seq(node, more_flags);
+                    }
+                    else
+                    {
+                        _nfo_logf("has key, set to keyseq: parent={} child={} key='{}'", parent, node, key);
+                        ASSERT_EQ(tree.is_map(parent) || node == parent, true);
+                        tree.to_seq(node, key, more_flags);
                         if(key_ref.not_empty())
                             tree.set_key_ref(node, key_ref);
                         if(key_anchor.not_empty())
                             tree.set_key_anchor(node, key_anchor);
                         if(key_quoted)
                             tree._add_flags(node, KEYQUO);
+                        _nfo_logf("clear key='{}'", key);
                         key = {};
                         key_ref = {};
                         key_anchor = {};
                         key_quoted = false;
+                        key_was_set = false;
                     }
                 }
-                m_stack.push({SEQ, node});
                 if(tag.not_empty())
                 {
                     C4_ASSERT(tag.begins_with('<'));
@@ -272,6 +327,7 @@ struct Events
             }
             else if(line.begins_with("+MAP"))
             {
+                _nfo_log("pushing MAP");
                 csubstr rem = line.stripl("+MAP").triml(' ');
                 csubstr tag, anchor;
                 if(rem.begins_with('&'))
@@ -281,22 +337,41 @@ struct Events
                 size_t node = tree.root_id();
                 if(m_stack.empty())
                 {
+                    _nfo_log("stack was empty, set root to MAP");
                     tree._add_flags(node, MAP);
+                    m_stack.push({node});
                     ASSERT_EQ(key.empty(), true); // for the key to exist, the parent must exist and be a map
                 }
                 else
                 {
                     size_t parent = m_stack.top().tree_node;
+                    _nfo_logf("stack was not empty. parent={}", parent);
                     ASSERT_NE(parent, (size_t)NONE);
-                    node = tree.append_child(parent);
-                    if(key.empty())
+                    NodeType more_flags = NOTYPE;
+                    if(tree.is_doc(parent) && !(tree.is_seq(parent) || tree.is_map(parent)))
                     {
-                        tree.to_map(node);
+                        _nfo_logf("set node to parent={}, add DOC", parent);
+                        node = parent;
+                        more_flags.add(DOC);
                     }
                     else
                     {
-                        ASSERT_EQ(tree.is_map(parent), true);
-                        tree.to_map(node, key);
+                        _nfo_logf("add child to parent={}", parent);
+                        node = tree.append_child(parent);
+                        m_stack.push({node});
+                        _nfo_logf("add child to parent={}: child={}", parent, node);
+                    }
+                    if(!key_was_set && !tree.is_map(parent))
+                    {
+                        _nfo_logf("no key, set to map: parent={} child={}", parent, node);
+                        ASSERT_EQ(key.empty(), true);
+                        tree.to_map(node, more_flags);
+                    }
+                    else
+                    {
+                        _nfo_logf("has key, set to keymap: parent={} child={} key='{}'", parent, node, key);
+                        ASSERT_EQ(tree.is_map(parent) || node == parent, true);
+                        tree.to_map(node, key, more_flags);
                         if(key_ref.not_empty())
                             tree.set_key_ref(node, key_ref);
                         if(key_anchor.not_empty())
@@ -307,9 +382,9 @@ struct Events
                         key_ref = {};
                         key_anchor = {};
                         key_quoted = false;
+                        key_was_set = false;
                     }
                 }
-                m_stack.push({MAP, node});
                 if(tag.not_empty())
                 {
                     C4_ASSERT(tag.begins_with('<'));
@@ -322,73 +397,106 @@ struct Events
             }
             else if(line.begins_with("+DOC"))
             {
-                csubstr tag = line.stripl("+DOC").triml(' ');
+                _nfo_log("pushing DOC");
+                csubstr rem = line.stripl("+DOC").triml(' ');
                 size_t node = tree.root_id();
+                bool is_sep = rem.find("---") != csubstr::npos;
+                _nfo_log("add DOC");
                 if(m_stack.empty())
                 {
-                    tree._add_flags(node, DOC);
+                    _nfo_log("stack was empty");
                     ASSERT_EQ(key.empty(), true); // for the key to exist, the parent must exist and be a map
+                    if(tree.is_stream(node))
+                    {
+                        node = tree.append_child(node);
+                        tree.to_doc(node);
+                        m_stack.push({node});
+                    }
+                    else if(!is_sep)
+                    {
+                        if(!tree.is_doc(node))
+                        {
+                            _nfo_logf("set root to DOC: {}", node);
+                            tree._add_flags(node, DOC);
+                        }
+                        else
+                        {
+                            ASSERT_EQ(node, tree.root_id());
+                            tree.set_root_as_stream();
+                            m_stack.push({node});
+                        }
+                    }
+                    else if(is_sep)
+                    {
+                        if(!tree.is_doc(node))
+                        {
+                            tree._add_flags(node, STREAM);
+                            node = tree.append_child(node);
+                            _nfo_logf("create STREAM at {} and add DOC child={}", tree.root_id(), node);
+                            tree.to_doc(node);
+                            m_stack.push({node});
+                        }
+                        else
+                        {
+                            ASSERT_EQ(node, tree.root_id());
+                            tree.set_root_as_stream();
+                            m_stack.push({node});
+                        }
+                    }
                 }
                 else
                 {
                     size_t parent = m_stack.top().tree_node;
+                    _nfo_logf("add DOC to parent={}", parent);
                     ASSERT_NE(parent, (size_t)NONE);
                     node = tree.append_child(parent);
+                    _nfo_logf("child DOC={}", node);
                     tree.to_doc(node);
-                    m_stack.push({DOC, node});
+                    m_stack.push({node});
                 }
-                if(!tag.empty())
+                if(!rem.empty())
                 {
-                    if(tag.begins_with('<'))
-                        tree.set_val_tag(node, from_tag(to_tag(tag)));
+                    if(rem.begins_with('<'))
+                        tree.set_val_tag(node, from_tag(to_tag(rem)));
                 }
             }
             else if(line.begins_with("-SEQ"))
             {
+                _nfo_logf("popping SEQ, empty={}", m_stack.empty());
+                size_t node;
                 if(m_stack.empty())
-                {
-                    ASSERT_EQ(tree.is_seq(tree.root_id()), true);
-                }
+                    node = tree.root_id();
                 else
-                {
-                    ParseLevel top = m_stack.pop();
-                    ASSERT_EQ(top.type, SEQ);
-                    ASSERT_EQ(tree.is_seq(top.tree_node), true);
-                }
+                    node = m_stack.pop().tree_node;
+                ASSERT_EQ(tree.is_seq(node), true) << "node=" << node;
             }
             else if(line.begins_with("-MAP"))
             {
+                _nfo_logf("popping MAP, empty={}", m_stack.empty());
+                size_t node;
                 if(m_stack.empty())
-                {
-                    ASSERT_EQ(tree.is_map(tree.root_id()), true);
-                }
+                    node = tree.root_id();
                 else
-                {
-                    ParseLevel top = m_stack.pop();
-                    ASSERT_EQ(top.type, MAP);
-                    ASSERT_EQ(tree.is_map(top.tree_node), true);
-                }
+                    node = m_stack.pop().tree_node;
+                ASSERT_EQ(tree.is_map(node), true) << "node=" << node;
             }
             else if(line.begins_with("-DOC"))
             {
-                if(m_stack.empty())
-                {
-                    ASSERT_EQ(tree.is_doc(tree.root_id()), true);
-                }
-                else
-                {
-                    ParseLevel top = m_stack.pop();
-                    ASSERT_EQ(top.type, DOC);
-                    ASSERT_EQ(tree.is_doc(top.tree_node), true);
-                }
+                _nfo_log("popping DOC");
+                size_t node = m_stack.empty() ? tree.root_id() : m_stack.top().tree_node;
+                ASSERT_EQ(tree.is_doc(node) || tree.is_stream(node), true) << "node=" << node;
+                if(!m_stack.empty())
+                    m_stack.pop();
             }
             else if(line.begins_with("+STR"))
             {
-                ASSERT_EQ(m_stack.size(), 0);
+                ASSERT_EQ(m_stack.size(), 0u);
             }
             else if(line.begins_with("-STR"))
             {
-                ASSERT_EQ(m_stack.size(), 0);
+                ASSERT_LE(m_stack.size(), 1u);
+                if(!m_stack.empty())
+                    m_stack.pop();
             }
             else if(line.empty())
             {
@@ -397,6 +505,7 @@ struct Events
             {
                 C4_ERROR("unknown event: '%.*s'", (int)line.len, line.str);
             }
+            linenum++;
         }
     }
 
@@ -784,6 +893,29 @@ struct Subject
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+// some utility functions, used below
+
+size_t find_first_after(size_t pos, std::initializer_list<size_t> candidates)
+{
+    size_t ret = npos;
+    for(size_t s : candidates)
+        if(s > pos && s < ret)
+            ret = s;
+    return ret;
+}
+
+
+csubstr filter_out_indentation(csubstr src, std::string *dst)
+{
+    if( ! src.begins_with("    "))
+    {
+        dst->assign(src.begin(), src.end());
+        return c4::to_csubstr(*dst);
+    }
+    return replace_all("\n    ", "\n", src.sub(4), dst);
+}
+
+
 /** now finally all the ways that a test case can be processed are
  * available through this class. Tests are defined below and use only
  * one of these. */
@@ -860,12 +992,14 @@ struct SuiteCase
         size_t begin_out_yaml  = contents.find("--- out-yaml"  , end_tags);
         size_t begin_emit_yaml = contents.find("--- emit-yaml" , end_tags);
         size_t begin_events    = contents.find("--- test-event", end_tags);
+        size_t lex_token       = contents.find("--- lex-token" , end_tags);
         std::initializer_list<size_t> all = {
             begin_in_yaml,
             begin_in_json,
             begin_out_yaml,
             begin_emit_yaml,
             begin_events,
+            lex_token,
             contents.size()
         };
 
@@ -920,12 +1054,19 @@ struct SuiteCase
         }
 
         // events
-        RYML_CHECK(begin_events != npos);
-        //size_t first_after_events = find_first_after(begin_events, all);
-        begin_events = 1 + contents.find('\n', begin_events); // skip this line
-        txt = contents.sub(begin_events);
-        RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
-        events.init(filename, txt);
+        {
+            RYML_CHECK(begin_events != npos);
+            size_t first_after = find_first_after(begin_events, all);
+            begin_events = 1 + contents.find('\n', begin_events); // skip this line
+            txt = contents.range(begin_events, first_after);
+            RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
+            events.init(filename, txt);
+        }
+
+        // lex-token
+        {
+            // don't really care
+        }
 
         return true;
     }
@@ -937,7 +1078,7 @@ struct SuiteCase
 
     void compare_events(Approach *appr)
     {
-return; // THIS IS A WIP
+GTEST_SKIP(); // this is a work in progress
         events.parse_events();
         appr->parse(1, false);
         events.compare_trees(appr->levels[0].tree);
@@ -1149,3 +1290,5 @@ int main(int argc, char* argv[])
 
     return status;
 }
+
+C4_SUPPRESS_WARNING_MSVC_PUSH
