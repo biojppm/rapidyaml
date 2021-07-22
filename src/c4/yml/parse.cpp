@@ -1910,9 +1910,11 @@ csubstr Parser::_slurp_doc_scalar()
 bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
 {
     csubstr s = m_state->line_contents.rem;
-    if(s.len == 0) return false;
+    if(s.len == 0)
+        return false;
     s = s.trim(' ');
-    if(s.len == 0) return false;
+    if(s.len == 0)
+        return false;
 
     if(s.begins_with('\''))
     {
@@ -1961,9 +1963,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
         else if(has_all(RNXT))
         {
             if( ! _is_scalar_next__rseq_rnxt(s))
-            {
                 return false;
-            }
             _c4err("internal error");
         }
         else
@@ -1974,9 +1974,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
     else if(has_any(RMAP))
     {
         if( ! _is_scalar_next__rmap(s))
-        {
             return false;
-        }
         size_t colon_space = s.find(": ");
         if(colon_space == npos)
         {
@@ -1996,13 +1994,9 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
                 RYML_ASSERT(has_any(RMAP));
                 s = s.left_of(colon_space);
                 if(s.begins_with("---"))
-                {
                     return false;
-                }
                 else if(s.begins_with("..."))
-                {
                     return false;
-                }
             }
             else
             {
@@ -2038,13 +2032,9 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
             {
                 _c4dbgp("RMAP|RVAL|EXPL");
                 if(has_none(RSEQIMAP))
-                {
                     s = s.left_of(s.first_of(",}"));
-                }
                 else
-                {
                     s = s.left_of(s.first_of(",]"));
-                }
             }
             s = s.trim(' ');
         }
@@ -2064,17 +2054,11 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
         s = s.left_of(s.find(" #"));
         size_t pos = s.find(": ");
         if(pos != npos)
-        {
             s = s.left_of(pos);
-        }
         else if(s.ends_with(':'))
-        {
             s = s.left_of(s.len-1);
-        }
         else
-        {
             s = s.left_of(s.first_of(','));
-        }
         s = s.trim(' ');
         _c4dbgpf("RUNK: scalar='%.*s'", _c4prsp(s));
     }
@@ -2083,7 +2067,8 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
         _c4err("not implemented");
     }
 
-    if(s.empty()) return false;
+    if(s.empty())
+        return false;
 
     m_state->scalar_col = m_state->line_contents.current_col(s);
     RYML_ASSERT(s.str >= m_state->line_contents.rem.str);

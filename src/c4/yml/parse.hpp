@@ -268,7 +268,7 @@ private:
         size_t       indref;
 
         State() : flags(), level(), node_id(), scalar(), scalar_col(), pos(), line_contents(), indref() {}
-        
+
         void reset(const char *file, size_t node_id_)
         {
             flags = RUNK|RTOP;

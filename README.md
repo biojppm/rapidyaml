@@ -833,7 +833,7 @@ cases where ryml fails to parse any of its subparts:
 [M7A3](https://github.com/yaml/yaml-test-suite/tree/master/test/M7A3.tml),
 [NAT4](https://github.com/yaml/yaml-test-suite/tree/master/test/NAT4.tml),
 [PW8X](https://github.com/yaml/yaml-test-suite/tree/master/test/PW8X.tml),
-[RZP5](https://github.com/yaml/yaml-test-suite/tree/master/test/RZP5.tml),
+[RZP5](https://github.com/yaml/yaml-test-suite/tree/master/test/RZP5.tml).
 
 Except for the known limitations listed next, all other suite cases are
 expected to work.
@@ -863,6 +863,10 @@ ryml makes no effort to follow the standard in the following situations:
   [SBG9](https://github.com/yaml/yaml-test-suite/tree/master/test/SBG9.tml),
   [X38W](https://github.com/yaml/yaml-test-suite/tree/master/test/X38W.tml),
   [XW4D](https://github.com/yaml/yaml-test-suite/tree/master/test/XW4D.tml).
+* anchor names must not end with a terminating colon. [YAML test
+  suite](https://github.com/yaml/yaml-test-suite) cases:
+  [2SXE](https://github.com/yaml/yaml-test-suite/tree/master/test/2SXE.tml),
+  [W5VH](https://github.com/yaml/yaml-test-suite/tree/master/test/W5VH.tml).
 
 
 ------

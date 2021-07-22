@@ -3,6 +3,30 @@
 namespace c4 {
 namespace yml {
 
+TEST(weird_anchor_cases_from_suite, 2SXE)
+{
+    Tree t = parse(R"(&a: key: &a value
+foo:
+  *a:
+)");
+    t.resolve();
+    #ifdef THIS_IS_A_KNOWN_LIMITATION // since we do not allow colon in anchors, this would fail:
+    EXPECT_EQ(emitrs<std::string>(t), R"(key: value
+foo: key
+)");
+    #endif
+    // so we get this instead:
+    EXPECT_EQ(emitrs<std::string>(t), R"(key: value
+foo:
+  value: ~
+)");
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 //     SIMPLE_ANCHOR/YmlTestCase.parse_using_ryml/0
 
 C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
