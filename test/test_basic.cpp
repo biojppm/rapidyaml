@@ -1991,6 +1991,226 @@ TEST(general, github_issue_124)
 }
 
 
+//-----------------------------------------------------------------------------
+
+TEST(set_root_as_stream, empty_tree)
+{
+    Tree t;
+    NodeRef r = t.rootref();
+    EXPECT_EQ(r.is_stream(), false);
+    EXPECT_EQ(r.num_children(), 0u);
+    t.set_root_as_stream();
+    EXPECT_EQ(r.is_stream(), true);
+    EXPECT_EQ(r.num_children(), 0u);
+}
+
+TEST(set_root_as_stream, already_with_stream)
+{
+    Tree t;
+    t.to_stream(t.root_id());
+    NodeRef r = t.rootref();
+    EXPECT_EQ(r.is_stream(), true);
+    EXPECT_EQ(r.num_children(), 0u);
+    t.set_root_as_stream();
+    EXPECT_EQ(r.is_stream(), true);
+    EXPECT_EQ(r.num_children(), 0u);
+}
+
+
+TEST(set_root_as_stream, root_is_map)
+{
+    Tree t = parse(R"({a: b, c: d})");
+    NodeRef r = t.rootref();
+    EXPECT_EQ(r.is_stream(), false);
+    EXPECT_EQ(r.is_doc(), false);
+    EXPECT_EQ(r.is_map(), true);
+    EXPECT_EQ(r.is_seq(), false);
+    EXPECT_EQ(r.num_children(), 2u);
+    print_tree(t);
+    std::cout << t;
+    t.set_root_as_stream();
+    print_tree(t);
+    std::cout << t;
+    EXPECT_EQ(r.is_stream(), true);
+    EXPECT_EQ(r.is_doc(), false);
+    EXPECT_EQ(r.is_map(), false);
+    EXPECT_EQ(r.is_seq(), true);
+    EXPECT_EQ(r.num_children(), 1u);
+    EXPECT_EQ(r[0].is_doc(), true);
+    EXPECT_EQ(r[0].is_map(), true);
+    EXPECT_EQ(r[0].is_seq(), false);
+    EXPECT_EQ(r[0].num_children(), 2u);
+    EXPECT_EQ(r[0]["a"].is_keyval(), true);
+    EXPECT_EQ(r[0]["c"].is_keyval(), true);
+    EXPECT_EQ(r[0]["a"].val(), "b");
+    EXPECT_EQ(r[0]["c"].val(), "d");
+}
+
+TEST(set_root_as_stream, root_is_docmap)
+{
+    Tree t = parse(R"({a: b, c: d})");
+    t._p(t.root_id())->m_type.add(DOC);
+    NodeRef r = t.rootref();
+    EXPECT_EQ(r.is_stream(), false);
+    EXPECT_EQ(r.is_doc(), true);
+    EXPECT_EQ(r.is_map(), true);
+    EXPECT_EQ(r.is_seq(), false);
+    EXPECT_EQ(r.num_children(), 2u);
+    print_tree(t);
+    std::cout << t;
+    t.set_root_as_stream();
+    print_tree(t);
+    std::cout << t;
+    EXPECT_EQ(r.is_stream(), true);
+    EXPECT_EQ(r.is_doc(), false);
+    EXPECT_EQ(r.is_map(), false);
+    EXPECT_EQ(r.is_seq(), true);
+    EXPECT_EQ(r.num_children(), 1u);
+    EXPECT_EQ(r[0].is_doc(), true);
+    EXPECT_EQ(r[0].is_map(), true);
+    EXPECT_EQ(r[0].is_seq(), false);
+    EXPECT_EQ(r[0].num_children(), 2u);
+    EXPECT_EQ(r[0]["a"].is_keyval(), true);
+    EXPECT_EQ(r[0]["c"].is_keyval(), true);
+    EXPECT_EQ(r[0]["a"].val(), "b");
+    EXPECT_EQ(r[0]["c"].val(), "d");
+}
+
+
+TEST(set_root_as_stream, root_is_seq)
+{
+    Tree t = parse(R"([a, b, c, d])");
+    NodeRef r = t.rootref();
+    EXPECT_EQ(r.is_stream(), false);
+    EXPECT_EQ(r.is_doc(), false);
+    EXPECT_EQ(r.is_map(), false);
+    EXPECT_EQ(r.is_seq(), true);
+    EXPECT_EQ(r.num_children(), 4u);
+    print_tree(t);
+    std::cout << t;
+    t.set_root_as_stream();
+    print_tree(t);
+    std::cout << t;
+    EXPECT_EQ(r.is_stream(), true);
+    EXPECT_EQ(r.is_doc(), false);
+    EXPECT_EQ(r.is_map(), false);
+    EXPECT_EQ(r.is_seq(), true);
+    EXPECT_EQ(r.num_children(), 1u);
+    EXPECT_EQ(r[0].is_doc(), true);
+    EXPECT_EQ(r[0].is_map(), false);
+    EXPECT_EQ(r[0].is_seq(), true);
+    EXPECT_EQ(r[0].num_children(), 4u);
+    EXPECT_EQ(r[0][0].val(), "a");
+    EXPECT_EQ(r[0][1].val(), "b");
+    EXPECT_EQ(r[0][2].val(), "c");
+    EXPECT_EQ(r[0][3].val(), "d");
+}
+
+TEST(set_root_as_stream, root_is_docseq)
+{
+    Tree t = parse(R"([a, b, c, d])");
+    t._p(t.root_id())->m_type.add(DOC);
+    NodeRef r = t.rootref();
+    EXPECT_EQ(r.is_stream(), false);
+    EXPECT_EQ(r.is_doc(), true);
+    EXPECT_EQ(r.is_map(), false);
+    EXPECT_EQ(r.is_seq(), true);
+    EXPECT_EQ(r.num_children(), 4u);
+    print_tree(t);
+    std::cout << t;
+    t.set_root_as_stream();
+    print_tree(t);
+    std::cout << t;
+    EXPECT_EQ(r.is_stream(), true);
+    EXPECT_EQ(r.is_doc(), false);
+    EXPECT_EQ(r.is_map(), false);
+    EXPECT_EQ(r.is_seq(), true);
+    EXPECT_EQ(r.num_children(), 1u);
+    EXPECT_EQ(r[0].is_doc(), true);
+    EXPECT_EQ(r[0].is_map(), false);
+    EXPECT_EQ(r[0].is_seq(), true);
+    EXPECT_EQ(r[0].num_children(), 4u);
+    EXPECT_EQ(r[0][0].val(), "a");
+    EXPECT_EQ(r[0][1].val(), "b");
+    EXPECT_EQ(r[0][2].val(), "c");
+    EXPECT_EQ(r[0][3].val(), "d");
+}
+
+TEST(set_root_as_stream, root_is_seqmap)
+{
+    Tree t = parse(R"([{a: b, c: d}, {e: e, f: f}, {g: g, h: h}, {i: i, j: j}])");
+    NodeRef r = t.rootref();
+    EXPECT_EQ(r.is_stream(), false);
+    EXPECT_EQ(r.is_doc(), false);
+    EXPECT_EQ(r.is_map(), false);
+    EXPECT_EQ(r.is_seq(), true);
+    EXPECT_EQ(r.num_children(), 4u);
+    print_tree(t);
+    std::cout << t;
+    t.set_root_as_stream();
+    print_tree(t);
+    std::cout << t;
+    EXPECT_EQ(r.is_stream(), true);
+    EXPECT_EQ(r.is_doc(), false);
+    EXPECT_EQ(r.is_map(), false);
+    EXPECT_EQ(r.is_seq(), true);
+    EXPECT_EQ(r.num_children(), 1u);
+    EXPECT_EQ(r[0].is_doc(), true);
+    EXPECT_EQ(r[0].is_map(), false);
+    EXPECT_EQ(r[0].is_seq(), true);
+    EXPECT_EQ(r[0].num_children(), 4u);
+    EXPECT_EQ(r[0][0].is_map(), true);
+    EXPECT_EQ(r[0][1].is_map(), true);
+    EXPECT_EQ(r[0][2].is_map(), true);
+    EXPECT_EQ(r[0][3].is_map(), true);
+    EXPECT_EQ(r[0][0]["a"].val(), "b");
+    EXPECT_EQ(r[0][0]["c"].val(), "d");
+    EXPECT_EQ(r[0][1]["e"].val(), "e");
+    EXPECT_EQ(r[0][1]["f"].val(), "f");
+    EXPECT_EQ(r[0][2]["g"].val(), "g");
+    EXPECT_EQ(r[0][2]["h"].val(), "h");
+    EXPECT_EQ(r[0][3]["i"].val(), "i");
+    EXPECT_EQ(r[0][3]["j"].val(), "j");
+}
+
+TEST(set_root_as_stream, root_is_mapseq)
+{
+    Tree t = parse(R"({a: [0, 1, 2], b: [3, 4, 5], c: [6, 7, 8]})");
+    NodeRef r = t.rootref();
+    EXPECT_EQ(r.is_stream(), false);
+    EXPECT_EQ(r.is_doc(), false);
+    EXPECT_EQ(r.is_map(), true);
+    EXPECT_EQ(r.is_seq(), false);
+    EXPECT_EQ(r.num_children(), 3u);
+    print_tree(t);
+    std::cout << t;
+    t.set_root_as_stream();
+    print_tree(t);
+    std::cout << t;
+    EXPECT_EQ(r.is_stream(), true);
+    EXPECT_EQ(r.is_doc(), false);
+    EXPECT_EQ(r.is_map(), false);
+    EXPECT_EQ(r.is_seq(), true);
+    EXPECT_EQ(r.num_children(), 1u);
+    EXPECT_EQ(r[0].is_doc(), true);
+    EXPECT_EQ(r[0].is_map(), true);
+    EXPECT_EQ(r[0].is_seq(), false);
+    EXPECT_EQ(r[0].num_children(), 3u);
+    EXPECT_EQ(r[0]["a"].is_seq(), true);
+    EXPECT_EQ(r[0]["b"].is_seq(), true);
+    EXPECT_EQ(r[0]["c"].is_seq(), true);
+    EXPECT_EQ(r[0]["a"][0].val(), "0");
+    EXPECT_EQ(r[0]["a"][1].val(), "1");
+    EXPECT_EQ(r[0]["a"][2].val(), "2");
+    EXPECT_EQ(r[0]["b"][0].val(), "3");
+    EXPECT_EQ(r[0]["b"][1].val(), "4");
+    EXPECT_EQ(r[0]["b"][2].val(), "5");
+    EXPECT_EQ(r[0]["c"][0].val(), "6");
+    EXPECT_EQ(r[0]["c"][1].val(), "7");
+    EXPECT_EQ(r[0]["c"][2].val(), "8");
+}
+
+
 //-------------------------------------------
 // this is needed to use the test case library
 Case const* get_case(csubstr /*name*/)

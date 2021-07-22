@@ -875,6 +875,33 @@ size_t Tree::move(Tree *src, size_t node, size_t new_parent, size_t after)
     return dup;
 }
 
+void Tree::set_root_as_stream()
+{
+    size_t root = root_id();
+    if(is_stream(root))
+        return;
+    if(!has_children(root))
+    {
+        _add_flags(root, STREAM);
+        return;
+    }
+    RYML_ASSERT(!has_key(root));
+    size_t next_doc = append_child(root);
+    _copy_props_wo_key(next_doc, root);
+    _add_flags(next_doc, DOC);
+    for(size_t prev = NONE, ch = first_child(root), next = next_sibling(ch); ch != NONE; )
+    {
+        if(ch == next_doc)
+            break;
+        move(ch, next_doc, prev);
+        prev = ch;
+        ch = next;
+        next = next_sibling(next);
+    }
+    _p(root)->m_type = STREAM; // don't use _add_flags() because it's checked and will fail
+}
+
+
 //-----------------------------------------------------------------------------
 size_t Tree::duplicate(size_t node, size_t parent, size_t after)
 {

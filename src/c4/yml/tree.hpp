@@ -803,6 +803,29 @@ public:
      * @return the index of the new node in the destination tree */
     size_t move(Tree * src, size_t node, size_t new_parent, size_t after);
 
+    /** ensure the first node is a stream. Eg, change this tree
+     *
+     *  DOCMAP
+     *    MAP
+     *      KEYVAL
+     *      KEYVAL
+     *    SEQ
+     *      VAL
+     *
+     * to
+     *
+     *  STREAM
+     *    DOCMAP
+     *      MAP
+     *        KEYVAL
+     *        KEYVAL
+     *      SEQ
+     *        VAL
+     *
+     * If the root is already a stream, this is a no-op.
+     */
+    void set_root_as_stream();
+
 public:
 
     /** recursively duplicate a node from this tree into a new parent,
@@ -904,9 +927,7 @@ public:
     substr alloc_arena(size_t sz)
     {
         if(sz >= arena_slack())
-        {
             _grow_arena(sz - arena_slack());
-        }
         substr s = _request_span(sz);
         return s;
     }
@@ -1068,7 +1089,7 @@ public:
         }
         if(f & VAL)
         {
-            RYML_ASSERT(!is_root(node));
+            RYML_ASSERT(!is_root(node)); // need to revise this
             auto pid = parent(node); C4_UNUSED(pid);
             RYML_ASSERT(is_map(pid) || is_seq(pid));
         }
