@@ -810,7 +810,7 @@ important role in real world examples*. Despite the extreme focus of the test
 suite, as of May 2020, ryml only fails to parse ~30 out of the ~1000=~3x300
 cases from the test suite. Out of all other cases, all the ~200 checks per
 case are 100% successful for consistency over parse/emit pairs --- but please
-note that the events part is not yet read in and used to check for
+note that the events part is not yet used to check for
 correctness, and therefore that **even though ryml may suceed in parsing,
 there still exists a minority of cases which may not be correct**. Currently,
 I would estimate this fraction at somewhere around 5%. These are the suite

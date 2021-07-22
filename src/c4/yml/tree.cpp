@@ -65,40 +65,41 @@ csubstr from_tag(YamlTag_e tag)
     switch(tag)
     {
     case TAG_MAP:
-        return "!!map";
+        return {"!!map"};
     case TAG_OMAP:
-        return "!!omap";
+        return {"!!omap"};
     case TAG_PAIRS:
-        return "!!pairs";
+        return {"!!pairs"};
     case TAG_SET:
-        return "!!set";
+        return {"!!set"};
     case TAG_SEQ:
-        return "!!seq";
+        return {"!!seq"};
     case TAG_BINARY:
-        return "!!binary";
+        return {"!!binary"};
     case TAG_BOOL:
-        return "!!bool";
+        return {"!!bool"};
     case TAG_FLOAT:
-        return "!!float";
+        return {"!!float"};
     case TAG_INT:
-        return "!!int";
+        return {"!!int"};
     case TAG_MERGE:
-        return "!!merge";
+        return {"!!merge"};
     case TAG_NULL:
-        return "!!null";
+        return {"!!null"};
     case TAG_STR:
-        return "!!str";
+        return {"!!str"};
     case TAG_TIMESTAMP:
-        return "!!timestamp";
+        return {"!!timestamp"};
     case TAG_VALUE:
-        return "!!value";
+        return {"!!value"};
     case TAG_YAML:
-        return "!!yaml";
+        return {"!!yaml"};
     case TAG_NONE:
-        return "";
+        return {""};
     }
-    return "";
+    return {""};
 }
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

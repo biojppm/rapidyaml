@@ -104,7 +104,7 @@ struct Events
                 if(line.begins_with('&'))
                 {
                     size_t pos = line.first_of(' ');
-                    ASSERT_NE(pos, csubstr::npos);
+                    ASSERT_NE(pos, (size_t)csubstr::npos);
                     anchor = line.first(pos).sub(1);
                     line = line.right_of(pos);
                 }
@@ -237,7 +237,7 @@ struct Events
                 else
                 {
                     size_t parent = m_stack.top().tree_node;
-                    ASSERT_NE(parent, NONE);
+                    ASSERT_NE(parent, (size_t)NONE);
                     node = tree.append_child(parent);
                     if(key.empty())
                     {
@@ -287,7 +287,7 @@ struct Events
                 else
                 {
                     size_t parent = m_stack.top().tree_node;
-                    ASSERT_NE(parent, NONE);
+                    ASSERT_NE(parent, (size_t)NONE);
                     node = tree.append_child(parent);
                     if(key.empty())
                     {
@@ -332,7 +332,7 @@ struct Events
                 else
                 {
                     size_t parent = m_stack.top().tree_node;
-                    ASSERT_NE(parent, NONE);
+                    ASSERT_NE(parent, (size_t)NONE);
                     node = tree.append_child(parent);
                     tree.to_doc(node);
                     m_stack.push({DOC, node});

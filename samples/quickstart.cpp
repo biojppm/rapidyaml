@@ -3619,7 +3619,7 @@ int report_checks()
 {
     std::cout << "Completed " << num_checks << " checks." << std::endl;
     if(num_failed_checks)
-        std::cerr << "ERROR: " << num_failed_checks << '/' << num_checks << " checks failed." << std::endl;
+        std::cout << "ERROR: " << num_failed_checks << '/' << num_checks << " checks failed." << std::endl;
     else
         std::cout << "SUCCESS!" << std::endl;
     return num_failed_checks;
