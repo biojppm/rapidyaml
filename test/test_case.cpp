@@ -22,13 +22,12 @@
 namespace c4 {
 namespace yml {
 
+
 size_t _num_leaves(Tree const& t, size_t node)
 {
     size_t count = 0;
-    for(size_t i = t.first_child(node); i != NONE; i = t.next_sibling(i))
-    {
-        count += _num_leaves(t, i);
-    }
+    for(size_t ch = t.first_child(node); ch != NONE; ch = t.next_sibling(ch))
+        count += _num_leaves(t, ch);
     return count;
 }
 
