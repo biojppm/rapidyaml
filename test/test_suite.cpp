@@ -1179,24 +1179,25 @@ SuiteCase* g_suite_case = nullptr;
 
 
 
-#define DEFINE_EVENT_TESTS(pfx)                                 \
+#define DEFINE_EVENT_TESTS(cls, pfx)                            \
                                                                 \
                                                                 \
-struct in_yaml##_##pfx##_##events : public ::testing::Test      \
+struct cls##_##pfx##_##events : public ::testing::Test          \
 {                                                               \
 };                                                              \
                                                                 \
-TEST_F(in_yaml##_##pfx##_##events, parse_events)                \
+TEST_F(cls##_##pfx##_##events, parse_events)                    \
 {                                                               \
     RYML_CHECK(g_suite_case != nullptr);                        \
     g_suite_case->parse_events();                               \
 }                                                               \
                                                                 \
-TEST_F(in_yaml##_##pfx##_##events, compare_events)              \
+TEST_F(cls##_##pfx##_##events, compare_events)                  \
 {                                                               \
     RYML_CHECK(g_suite_case != nullptr);                        \
-    g_suite_case->compare_events(&g_suite_case->in_yaml.pfx);   \
+    g_suite_case->compare_events(&g_suite_case->cls.pfx);       \
 }
+
 
 
 #define DECLARE_TEST_CLASS(cls, pfx)                            \
@@ -1244,16 +1245,6 @@ TEST_P(cls##_##pfx, compare_emitted)                            \
 }                                                               \
 
 
-DEFINE_EVENT_TESTS(unix_ro)
-DEFINE_EVENT_TESTS(unix_rw)
-DEFINE_EVENT_TESTS(unix_ro_reuse)
-DEFINE_EVENT_TESTS(unix_rw_reuse)
-DEFINE_EVENT_TESTS(windows_ro)
-DEFINE_EVENT_TESTS(windows_rw)
-DEFINE_EVENT_TESTS(windows_ro_reuse)
-DEFINE_EVENT_TESTS(windows_rw_reuse)
-
-
 #define DECLARE_TESTS(cls)                                              \
                                                                         \
 DECLARE_TEST_CLASS(cls, unix_ro)                                        \
@@ -1282,7 +1273,34 @@ DECLARE_TESTS(in_yaml) // this is the hardest one
 
 
 
-//-------------------------------------------
+DEFINE_EVENT_TESTS(out_yaml, unix_ro)
+DEFINE_EVENT_TESTS(out_yaml, unix_rw)
+DEFINE_EVENT_TESTS(out_yaml, unix_ro_reuse)
+DEFINE_EVENT_TESTS(out_yaml, unix_rw_reuse)
+DEFINE_EVENT_TESTS(out_yaml, windows_ro)
+DEFINE_EVENT_TESTS(out_yaml, windows_rw)
+DEFINE_EVENT_TESTS(out_yaml, windows_ro_reuse)
+DEFINE_EVENT_TESTS(out_yaml, windows_rw_reuse)
+
+DEFINE_EVENT_TESTS(emit_yaml, unix_ro)
+DEFINE_EVENT_TESTS(emit_yaml, unix_rw)
+DEFINE_EVENT_TESTS(emit_yaml, unix_ro_reuse)
+DEFINE_EVENT_TESTS(emit_yaml, unix_rw_reuse)
+DEFINE_EVENT_TESTS(emit_yaml, windows_ro)
+DEFINE_EVENT_TESTS(emit_yaml, windows_rw)
+DEFINE_EVENT_TESTS(emit_yaml, windows_ro_reuse)
+DEFINE_EVENT_TESTS(emit_yaml, windows_rw_reuse)
+
+DEFINE_EVENT_TESTS(in_yaml, unix_ro)
+DEFINE_EVENT_TESTS(in_yaml, unix_rw)
+DEFINE_EVENT_TESTS(in_yaml, unix_ro_reuse)
+DEFINE_EVENT_TESTS(in_yaml, unix_rw_reuse)
+DEFINE_EVENT_TESTS(in_yaml, windows_ro)
+DEFINE_EVENT_TESTS(in_yaml, windows_rw)
+DEFINE_EVENT_TESTS(in_yaml, windows_ro_reuse)
+DEFINE_EVENT_TESTS(in_yaml, windows_rw_reuse)
+
+
 //-------------------------------------------
 // this is needed to use the test case library
 Case const* get_case(csubstr /*name*/)
