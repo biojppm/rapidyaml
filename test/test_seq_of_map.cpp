@@ -63,8 +63,7 @@ TEST(seq_of_map, with_tags)
     {
         // but this case may fail because the indentation
         // may be set from the scalar instead of the tag:
-        csubstr yaml = R"(
-- !!str a1: v1
+        csubstr yaml = R"(- !!str a1: v1
   !!str a2: v2
   !!str a3: v3
 - !!int a1: !!str w1
@@ -247,8 +246,8 @@ R"(
   *a3: w3
 )",
 L{
-  N(L{N( "a1", "v1", AR(KEYANCH, "a1")), N( "a2", "v2", AR(KEYANCH, "a2")), N( "a3", "v3", AR(KEYANCH, "a3"))}),
-  N(L{N("*a1", "w1", AR(KEYREF, "*a1")), N("*a2", "w2", AR(KEYREF, "*a2")), N("*a3", "w3", AR(KEYREF, "*a3"))}),
+  N(L{N( "a1", AR(KEYANCH, "a1"), "v1"), N( "a2", AR(KEYANCH, "a2"), "v2"), N( "a3", AR(KEYANCH, "a3"), "v3")}),
+  N(L{N("*a1", AR(KEYREF, "*a1"), "w1"), N("*a2", AR(KEYREF, "*a2"), "w2"), N("*a3", AR(KEYREF, "*a3"), "w3")}),
 }),
 
 C("seq of maps, implicit with anchors, resolved", RESOLVE_REFS,

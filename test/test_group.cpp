@@ -201,10 +201,9 @@ void YmlTestCase::_test_emit_yml_ofstream(CaseDataLineEndings *cd)
     // using ofstream will use \r\n. So delete it.
     std::string filtered;
     filtered.reserve(r.size());
-    for(auto c_ : r)
-    {
-        if(c_ != '\r') filtered += c_;
-    }
+    for(char c_ : r)
+        if(c_ != '\r')
+            filtered += c_;
     EXPECT_EQ(s, filtered);
 }
 
@@ -324,6 +323,13 @@ void YmlTestCase::_test_recreate_from_ref(CaseDataLineEndings *cd)
         NodeRef r = cd->recreated.rootref();
         c->root.recreate(&r);
     }
+
+    #ifdef RYML_NFO
+    std::cout << "REF TREE:\n";
+    print_tree(c->root);
+    std::cout << "RECREATED TREE:\n";
+    print_tree(cd->recreated);
+    #endif
 
     {
         SCOPED_TRACE("checking node invariants of recreated tree");
