@@ -49,9 +49,9 @@ TEST(seq_of_map, with_tags)
   !!str a2: v2
   !!str a3: v3
 - a0: w0
-  a1: !!str w1
-  a2: !!str w2
-  a3: !!str w3
+  !!int a1: !!str w1
+  !!int a2: !!str w2
+  !!int a3: !!str w3
 - a0: v1
   !foo a1: v1
   !foo a2: v2
@@ -67,9 +67,9 @@ TEST(seq_of_map, with_tags)
 - !!str a1: v1
   !!str a2: v2
   !!str a3: v3
-- a1: !!str w1
-  a2: !!str w2
-  a3: !!str w3
+- !!int a1: !!str w1
+  !!int a2: !!str w2
+  !!int a3: !!str w3
 - !foo a1: v1
   !foo a2: v2
   !foo a3: v3

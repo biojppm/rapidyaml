@@ -750,8 +750,7 @@ L{
          N("*kref", AR(KEYREF, "kref"), "cc"),
          N("*kvref", AR(KEYREF, "kvref"), "cc"),
     })
-}
-),
+}),
 
 C("github131 1, resolved", RESOLVE_REFS,
 R"(

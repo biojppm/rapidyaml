@@ -196,23 +196,31 @@ def qdump__c4__yml__NodeData(d, value):
             if _node_type_has_any(t, "KEY"):
                 d.putSubItem("m_key", value["m_key"])
             if _node_type_has_any(t, "KEYREF"):
-                with SubItem(d, "m_key is ref!"):
+                with SubItem(d, "m_key.ref"):
                     s_, _ = get_str_value(d, value["m_key"]["anchor"])
                     d.putValue(f"'{s_}'")
             if _node_type_has_any(t, "KEYANCH"):
-                with SubItem(d, "m_key is anchor!"):
+                with SubItem(d, "m_key.anchor"):
                     s_, _ = get_str_value(d, value["m_key"]["anchor"])
+                    d.putValue(f"'{s_}'")
+            if _node_type_has_any(t, "KEYTAG"):
+                with SubItem(d, "m_key.tag"):
+                    s_, _ = get_str_value(d, value["m_key"]["tag"])
                     d.putValue(f"'{s_}'")
             # val
             if _node_type_has_any(t, "VAL"):
                 d.putSubItem("m_val", value["m_val"])
             if _node_type_has_any(t, "VALREF"):
-                with SubItem(d, "m_val is ref!"):
+                with SubItem(d, "m_val.ref"):
                     s_, _ = get_str_value(d, value["m_val"]["anchor"])
                     d.putValue(f"'{s_}'")
             if _node_type_has_any(t, "VALANCH"):
-                with SubItem(d, "m_val is anchor!"):
+                with SubItem(d, "m_val.anchor"):
                     s_, _ = get_str_value(d, value["m_val"]["anchor"])
+                    d.putValue(f"'{s_}'")
+            if _node_type_has_any(t, "VALTAG"):
+                with SubItem(d, "m_val.tag"):
+                    s_, _ = get_str_value(d, value["m_val"]["tag"])
                     d.putValue(f"'{s_}'")
             # hierarchy
             _dump_node_index(d, "m_parent", value)

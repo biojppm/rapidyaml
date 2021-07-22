@@ -77,7 +77,9 @@ Parser::Parser(Allocator const& a)
     , m_stack(a)
     , m_state()
     , m_key_tag_indentation(0)
+    , m_key_tag2_indentation(0)
     , m_key_tag()
+    , m_key_tag2()
     , m_val_tag_indentation(0)
     , m_val_tag()
     , m_key_anchor_was_before(false)
@@ -104,7 +106,9 @@ void Parser::_reset()
     m_state->reset(m_file.str, m_root_id);
 
     m_key_tag_indentation = 0;
+    m_key_tag2_indentation = 0;
     m_key_tag.clear();
+    m_key_tag2.clear();
     m_val_tag_indentation = 0;
     m_val_tag.clear();
     m_key_anchor_was_before = false;
@@ -782,6 +786,11 @@ bool Parser::_handle_seq_impl()
                     _set_indentation(m_key_anchor_indentation); // this is the column where the anchor starts
                 else
                     _set_indentation(m_state->scalar_col); // this is the column where the scalar starts
+                if(m_key_tag2.not_empty())
+                {
+                    m_key_tag = m_key_tag2;
+                    m_key_tag2.clear();
+                }
                 addrem_flags(RVAL, RKEY);
                 _line_progressed(1);
             }
@@ -1672,9 +1681,7 @@ bool Parser::_handle_types()
     }
 
     if(t.empty())
-    {
         return false;
-    }
 
     _c4dbgpf("there was a tag: '%.*s'", _c4prsp(t));
     RYML_ASSERT(t.end() > m_state->line_contents.rem.begin());
@@ -1704,6 +1711,7 @@ bool Parser::_handle_types()
             size_t token_len = rem == ':' ? 1 : 2;
             _line_progressed(static_cast<size_t>(token_len + rem.begin() - m_state->line_contents.rem.begin()));
         }
+        _c4dbgpf("saving map val tag '%.*s'", _c4prsp(t));
         RYML_ASSERT(m_val_tag.empty());
         m_val_tag = t;
     }
@@ -1719,7 +1727,7 @@ bool Parser::_handle_types()
         RYML_ASSERT(m_val_tag.empty());
         m_val_tag = t;
     }
-    else if(has_all(RTOP|RUNK))
+    else if(has_all(RTOP|RUNK) || has_any(RUNK))
     {
         rem = m_state->line_contents.rem;
         rem = rem.left_of(rem.find("#"));
@@ -1733,8 +1741,21 @@ bool Parser::_handle_types()
         else
         {
             _c4dbgpf("saving key tag '%.*s'", _c4prsp(t));
-            RYML_ASSERT(m_key_tag.empty());
-            m_key_tag = t;
+            if(m_key_tag.empty())
+            {
+                m_key_tag = t;
+            }
+            else
+            {
+                /* handle this case:
+                 * !!str foo: !!map
+                 *   !!int 1: !!float 20.0
+                 *   !!int 3: !!float 40.0
+                 *
+                 * (m_key_tag would be !!str and m_key_tag2 would be !!int)
+                 */
+                m_key_tag2 = t;
+            }
         }
     }
     else
@@ -2773,6 +2794,12 @@ void Parser::_start_map(bool as_child)
             m_tree->to_map(m_state->node_id, key, has_all(SSCL_QUO) ? KEYQUO : NOTYPE);
             _c4dbgpf("start_map: id=%zd key='%.*s'", m_state->node_id, _c4prsp(node(m_state)->key()));
             _write_key_anchor(m_state->node_id);
+            if( ! m_key_tag.empty())
+            {
+                _c4dbgpf("start_map[%zu]: set key tag to '%.*s'", m_state->node_id, _c4prsp(m_key_tag));
+                m_tree->set_key_tag(m_state->node_id, m_key_tag);
+                m_key_tag.clear();
+            }
         }
         else
         {
@@ -2829,6 +2856,11 @@ void Parser::_start_map_unk(bool as_child)
         _start_map(as_child);
         m_key_anchor_was_before = false;
     }
+    if(m_key_tag2.not_empty())
+    {
+        m_key_tag = m_key_tag2;
+        m_key_tag2.clear();
+    }
 }
 
 void Parser::_stop_map()
@@ -2863,6 +2895,12 @@ void Parser::_start_seq(bool as_child)
             m_tree->to_seq(m_state->node_id, name);
             _c4dbgpf("start_seq: id=%zd name='%.*s'", m_state->node_id, _c4prsp(node(m_state)->key()));
             _write_key_anchor(m_state->node_id);
+            if( ! m_key_tag.empty())
+            {
+                _c4dbgpf("start_seq[%zu]: set key tag to '%.*s'", m_state->node_id, _c4prsp(m_key_tag));
+                m_tree->set_key_tag(m_state->node_id, m_key_tag);
+                m_key_tag.clear();
+            }
         }
         else
         {
@@ -2889,7 +2927,7 @@ void Parser::_start_seq(bool as_child)
     }
     if( ! m_val_tag.empty())
     {
-        _c4dbgpf("start_seq: set val tag to '%.*s'", _c4prsp(m_val_tag));
+        _c4dbgpf("start_seq[%zu]: set val tag to '%.*s'", m_state->node_id, _c4prsp(m_val_tag));
         m_tree->set_val_tag(m_state->node_id, m_val_tag);
         m_val_tag.clear();
     }

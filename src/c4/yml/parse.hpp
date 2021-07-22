@@ -352,7 +352,9 @@ private:
     State * m_state;
 
     size_t  m_key_tag_indentation;
+    size_t  m_key_tag2_indentation;
     csubstr m_key_tag;
+    csubstr m_key_tag2;
     size_t  m_val_tag_indentation;
     csubstr m_val_tag;
 

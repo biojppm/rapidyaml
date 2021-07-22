@@ -10,7 +10,11 @@ namespace yml {
     "tag property in implicit seq",\
     "tag property in explicit seq",\
     "tagged explicit sequence in map",\
-    "tagged doc"
+    "tagged doc",\
+    "ambiguous tag in map, std tag",\
+    "ambiguous tag in map, usr tag",\
+    "ambiguous tag in seq, std tag",\
+    "ambiguous tag in seq, usr tag"
 
 
 CASE_GROUP(TAG_PROPERTY)
@@ -139,8 +143,125 @@ N(STREAM, L{
     N(DOCVAL, TS("!!str", "a b")),
     N(DOCMAP, TL("!!set", L{N(KEYVAL, "a", /*"~"*/{}), N(KEYVAL, "b", /*"~"*/{})})),
     N(DOCMAP, TL("!!set", L{N(KEYVAL, "a", /*"~"*/{}), N(KEYVAL, "b", /*"~"*/{})})),
-})
-),
+})),
+
+
+C("ambiguous tag in map, std tag",
+R"(!!map
+!!str a0: !!xxx b0
+!!str fooz: !!map
+  k1: !!float 1.0
+  k3: !!float 2.0
+!!str foo: !!map
+  !!int 1: !!float 20.0
+  !!int 3: !!float 40.0
+bar: !!map
+  10: !!str 2
+  30: !!str 4
+!!str baz:
+  !!int 10: !!float 20
+  !!int 30: !!float 40
+)",
+TL("!!map", L{
+  N(TS("!!str", "a0"), TS("!!xxx", "b0")),
+  N(TS("!!str", "fooz"), TL("!!map", L{N("k1", TS("!!float", "1.0")), N("k3", TS("!!float", "2.0"))})),
+  N(TS("!!str", "foo"), TL("!!map", L{N(TS("!!int", "1"), TS("!!float", "20.0")), N(TS("!!int", "3"), TS("!!float", "40.0"))})),
+  N("bar", TL("!!map", L{N("10", TS("!!str", "2")), N("30", TS("!!str", "4"))})),
+  N(TS("!!str", "baz"), L{N(TS("!!int", "10"), TS("!!float", "20")), N(TS("!!int", "30"), TS("!!float", "40"))}),
+})),
+
+C("ambiguous tag in map, usr tag",
+R"(!map
+!str a0: !xxx b0
+!str fooz: !map
+  k1: !float 1.0
+  k3: !float 2.0
+!str foo: !map
+  !int 1: !float 20.0
+  !int 3: !float 40.0
+bar: !map
+  10: !str 2
+  30: !str 4
+!str baz:
+  !int 10: !float 20
+  !int 30: !float 40
+)",
+TL("!map", L{
+  N(TS("!str", "a0"), TS("!xxx", "b0")),
+  N(TS("!str", "fooz"), TL("!map", L{N("k1", TS("!float", "1.0")), N("k3", TS("!float", "2.0"))})),
+  N(TS("!str", "foo"), TL("!map", L{N(TS("!int", "1"), TS("!float", "20.0")), N(TS("!int", "3"), TS("!float", "40.0"))})),
+  N("bar", TL("!map", L{N("10", TS("!str", "2")), N("30", TS("!str", "4"))})),
+  N(TS("!str", "baz"), L{N(TS("!int", "10"), TS("!float", "20")), N(TS("!int", "30"), TS("!float", "40"))}),
+})),
+
+
+C("ambiguous tag in seq, std tag",
+R"(!!seq
+- !!str k1: v1
+  !!str k2: v2
+  !!str k3: v3
+- !!map
+  !!str k4: v4
+  !!str k5: v5
+  !!str k6: v6
+- !!map
+  k7: v7
+  k8: v8
+  k9: v9
+- - !!str v10
+  - !!str v20
+  - !!str v30
+- !!seq
+  - !!str v40
+  - !!str v50
+  - !!str v60
+- !!seq
+  - v70
+  - v80
+  - v90
+)",
+TL("!!seq", L{
+  N(L{N(TS("!!str", "k1"), "v1"), N(TS("!!str", "k2"), "v2"), N(TS("!!str", "k3"), "v3"), }),
+  N(TL("!!map", L{N(TS("!!str", "k4"), "v4"), N(TS("!!str", "k5"), "v5"), N(TS("!!str", "k6"), "v6"), })),
+  N(TL("!!map", L{N("k7", "v7"), N("k8", "v8"), N("k9", "v9"), })),
+  N(L{N(TS("!!str", "v10")), N(TS("!!str", "v20")), N(TS("!!str", "v30"))}),
+  N(TL("!!seq", L{N(TS("!!str", "v40")), N(TS("!!str", "v50")), N(TS("!!str", "v60"))})),
+  N(TL("!!seq", L{N("v70"), N("v80"), N("v90")})),
+})),
+
+C("ambiguous tag in seq, usr tag",
+R"(!seq
+- !str k1: v1
+  !str k2: v2
+  !str k3: v3
+- !map
+  !str k4: v4
+  !str k5: v5
+  !str k6: v6
+- !map
+  k7: v7
+  k8: v8
+  k9: v9
+- - !str v10
+  - !str v20
+  - !str v30
+- !seq
+  - !str v40
+  - !str v50
+  - !str v60
+- !seq
+  - v70
+  - v80
+  - v90
+)",
+TL("!seq", L{
+  N(L{N(TS("!str", "k1"), "v1"), N(TS("!str", "k2"), "v2"), N(TS("!str", "k3"), "v3"), }),
+  N(TL("!map", L{N(TS("!str", "k4"), "v4"), N(TS("!str", "k5"), "v5"), N(TS("!str", "k6"), "v6"), })),
+  N(TL("!map", L{N("k7", "v7"), N("k8", "v8"), N("k9", "v9"), })),
+  N(L{N(TS("!str", "v10")), N(TS("!str", "v20")), N(TS("!str", "v30"))}),
+  N(TL("!seq", L{N(TS("!str", "v40")), N(TS("!str", "v50")), N(TS("!str", "v60"))})),
+  N(TL("!seq", L{N("v70"), N("v80"), N("v90")})),
+})),
 
     )
 }
