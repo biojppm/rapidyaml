@@ -105,7 +105,7 @@ struct Scalar
         if(tag)
         {
             _nfo_logf("node[{}]: set val tag: {}", node, anchor);
-            tree->set_val_tag(node, tag);
+            tree->set_val_tag(node, normalize_tag(tag));
         }
         if(quoted)
         {
@@ -115,9 +115,9 @@ struct Scalar
     }
 };
 
+
 struct EventsParser
 {
-
     void parse(csubstr src, Tree *C4_RESTRICT tree_)
     {
         struct ParseLevel { size_t tree_node; };

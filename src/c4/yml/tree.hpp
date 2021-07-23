@@ -67,6 +67,7 @@ typedef enum : uint8_t {
 
 YamlTag_e to_tag(csubstr tag);
 csubstr from_tag(YamlTag_e tag);
+csubstr normalize_tag(csubstr tag);
 
 
 

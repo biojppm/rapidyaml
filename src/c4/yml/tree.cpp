@@ -11,6 +11,13 @@ C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4296/*expression is always 'boolean_value'*/)
 namespace c4 {
 namespace yml {
 
+csubstr normalize_tag(csubstr tag)
+{
+    YamlTag_e t = to_tag(tag);
+    if(t != TAG_NONE)
+        return from_tag(t);
+    return tag;
+}
 
 YamlTag_e to_tag(csubstr tag)
 {

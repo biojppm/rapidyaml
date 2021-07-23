@@ -3,6 +3,181 @@
 namespace c4 {
 namespace yml {
 
+TEST(to_tag, user)
+{
+    EXPECT_EQ(to_tag("!"), TAG_NONE);
+    EXPECT_EQ(to_tag("!."), TAG_NONE);
+    EXPECT_EQ(to_tag("!good_type"), TAG_NONE);
+}
+
+TEST(to_tag, double_exc_mark)
+{
+    EXPECT_EQ(to_tag("!!"          ), TAG_NONE);
+    EXPECT_EQ(to_tag("!!."         ), TAG_NONE);
+
+    EXPECT_EQ(to_tag("!!map"       ), TAG_MAP);
+    EXPECT_EQ(to_tag("!!omap"      ), TAG_OMAP);
+    EXPECT_EQ(to_tag("!!pairs"     ), TAG_PAIRS);
+    EXPECT_EQ(to_tag("!!set"       ), TAG_SET);
+    EXPECT_EQ(to_tag("!!seq"       ), TAG_SEQ);
+    EXPECT_EQ(to_tag("!!binary"    ), TAG_BINARY);
+    EXPECT_EQ(to_tag("!!bool"      ), TAG_BOOL);
+    EXPECT_EQ(to_tag("!!float"     ), TAG_FLOAT);
+    EXPECT_EQ(to_tag("!!int"       ), TAG_INT);
+    EXPECT_EQ(to_tag("!!merge"     ), TAG_MERGE);
+    EXPECT_EQ(to_tag("!!null"      ), TAG_NULL);
+    EXPECT_EQ(to_tag("!!str"       ), TAG_STR);
+    EXPECT_EQ(to_tag("!!timestamp" ), TAG_TIMESTAMP);
+    EXPECT_EQ(to_tag("!!value"     ), TAG_VALUE);
+
+    EXPECT_EQ(to_tag("!!map."      ), TAG_NONE);
+    EXPECT_EQ(to_tag("!!omap."     ), TAG_NONE);
+    EXPECT_EQ(to_tag("!!pairs."    ), TAG_NONE);
+    EXPECT_EQ(to_tag("!!set."      ), TAG_NONE);
+    EXPECT_EQ(to_tag("!!seq."      ), TAG_NONE);
+    EXPECT_EQ(to_tag("!!binary."   ), TAG_NONE);
+    EXPECT_EQ(to_tag("!!bool."     ), TAG_NONE);
+    EXPECT_EQ(to_tag("!!float."    ), TAG_NONE);
+    EXPECT_EQ(to_tag("!!int."      ), TAG_NONE);
+    EXPECT_EQ(to_tag("!!merge."    ), TAG_NONE);
+    EXPECT_EQ(to_tag("!!null."     ), TAG_NONE);
+    EXPECT_EQ(to_tag("!!str."      ), TAG_NONE);
+    EXPECT_EQ(to_tag("!!timestamp."), TAG_NONE);
+    EXPECT_EQ(to_tag("!!value."    ), TAG_NONE);
+}
+
+TEST(to_tag, with_namespace)
+{
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:"          ), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:."         ), TAG_NONE);
+
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:map"       ), TAG_MAP);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:omap"      ), TAG_OMAP);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:pairs"     ), TAG_PAIRS);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:set"       ), TAG_SET);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:seq"       ), TAG_SEQ);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:binary"    ), TAG_BINARY);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:bool"      ), TAG_BOOL);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:float"     ), TAG_FLOAT);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:int"       ), TAG_INT);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:merge"     ), TAG_MERGE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:null"      ), TAG_NULL);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:str"       ), TAG_STR);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:timestamp" ), TAG_TIMESTAMP);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:value"     ), TAG_VALUE);
+
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:map."      ), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:omap."     ), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:pairs."    ), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:set."      ), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:seq."      ), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:binary."   ), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:bool."     ), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:float."    ), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:int."      ), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:merge."    ), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:null."     ), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:str."      ), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:timestamp."), TAG_NONE);
+    EXPECT_EQ(to_tag("tag:yaml.org,2002:value."    ), TAG_NONE);
+}
+
+TEST(to_tag, with_namespace_bracket)
+{
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:"          ), TAG_NONE);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:."         ), TAG_NONE);
+
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:map>"       ), TAG_MAP);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:omap>"      ), TAG_OMAP);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:pairs>"     ), TAG_PAIRS);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:set>"       ), TAG_SET);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:seq>"       ), TAG_SEQ);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:binary>"    ), TAG_BINARY);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:bool>"      ), TAG_BOOL);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:float>"     ), TAG_FLOAT);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:int>"       ), TAG_INT);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:merge>"     ), TAG_MERGE);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:null>"      ), TAG_NULL);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:str>"       ), TAG_STR);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:timestamp>" ), TAG_TIMESTAMP);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:value>"     ), TAG_VALUE);
+
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:map.>"      ), TAG_NONE);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:omap.>"     ), TAG_NONE);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:pairs.>"    ), TAG_NONE);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:set.>"      ), TAG_NONE);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:seq.>"      ), TAG_NONE);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:binary.>"   ), TAG_NONE);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:bool.>"     ), TAG_NONE);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:float.>"    ), TAG_NONE);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:int.>"      ), TAG_NONE);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:merge.>"    ), TAG_NONE);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:null.>"     ), TAG_NONE);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:str.>"      ), TAG_NONE);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:timestamp.>"), TAG_NONE);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:value.>"    ), TAG_NONE);
+}
+
+TEST(from_tag, basic)
+{
+    EXPECT_EQ("", from_tag(TAG_NONE));
+
+    EXPECT_EQ("!!map"       , from_tag(TAG_MAP));
+    EXPECT_EQ("!!omap"      , from_tag(TAG_OMAP));
+    EXPECT_EQ("!!pairs"     , from_tag(TAG_PAIRS));
+    EXPECT_EQ("!!set"       , from_tag(TAG_SET));
+    EXPECT_EQ("!!seq"       , from_tag(TAG_SEQ));
+    EXPECT_EQ("!!binary"    , from_tag(TAG_BINARY));
+    EXPECT_EQ("!!bool"      , from_tag(TAG_BOOL));
+    EXPECT_EQ("!!float"     , from_tag(TAG_FLOAT));
+    EXPECT_EQ("!!int"       , from_tag(TAG_INT));
+    EXPECT_EQ("!!merge"     , from_tag(TAG_MERGE));
+    EXPECT_EQ("!!null"      , from_tag(TAG_NULL));
+    EXPECT_EQ("!!str"       , from_tag(TAG_STR));
+    EXPECT_EQ("!!timestamp" , from_tag(TAG_TIMESTAMP));
+    EXPECT_EQ("!!value"     , from_tag(TAG_VALUE));
+}
+
+TEST(normalize_tag, basic)
+{
+    EXPECT_EQ(normalize_tag("<tag:yaml.org,2002:"          ), "<tag:yaml.org,2002:");
+    EXPECT_EQ(normalize_tag("<tag:yaml.org,2002:."         ), "<tag:yaml.org,2002:.");
+
+    EXPECT_EQ(normalize_tag("<tag:yaml.org,2002:map>"       ), "!!map");
+    EXPECT_EQ(normalize_tag("<tag:yaml.org,2002:omap>"      ), "!!omap");
+    EXPECT_EQ(normalize_tag("<tag:yaml.org,2002:pairs>"     ), "!!pairs");
+    EXPECT_EQ(normalize_tag("<tag:yaml.org,2002:set>"       ), "!!set");
+    EXPECT_EQ(normalize_tag("<tag:yaml.org,2002:seq>"       ), "!!seq");
+    EXPECT_EQ(normalize_tag("<tag:yaml.org,2002:binary>"    ), "!!binary");
+    EXPECT_EQ(normalize_tag("<tag:yaml.org,2002:bool>"      ), "!!bool");
+    EXPECT_EQ(normalize_tag("<tag:yaml.org,2002:float>"     ), "!!float");
+    EXPECT_EQ(normalize_tag("<tag:yaml.org,2002:int>"       ), "!!int");
+    EXPECT_EQ(normalize_tag("<tag:yaml.org,2002:merge>"     ), "!!merge");
+    EXPECT_EQ(normalize_tag("<tag:yaml.org,2002:null>"      ), "!!null");
+    EXPECT_EQ(normalize_tag("<tag:yaml.org,2002:str>"       ), "!!str");
+    EXPECT_EQ(normalize_tag("<tag:yaml.org,2002:timestamp>" ), "!!timestamp");
+    EXPECT_EQ(normalize_tag("<tag:yaml.org,2002:value>"     ), "!!value");
+
+    EXPECT_EQ(normalize_tag("!!map"      ), "!!map");
+    EXPECT_EQ(normalize_tag("!!omap"     ), "!!omap");
+    EXPECT_EQ(normalize_tag("!!pairs"    ), "!!pairs");
+    EXPECT_EQ(normalize_tag("!!set"      ), "!!set");
+    EXPECT_EQ(normalize_tag("!!seq"      ), "!!seq");
+    EXPECT_EQ(normalize_tag("!!binary"   ), "!!binary");
+    EXPECT_EQ(normalize_tag("!!bool"     ), "!!bool");
+    EXPECT_EQ(normalize_tag("!!float"    ), "!!float");
+    EXPECT_EQ(normalize_tag("!!int"      ), "!!int");
+    EXPECT_EQ(normalize_tag("!!merge"    ), "!!merge");
+    EXPECT_EQ(normalize_tag("!!null"     ), "!!null");
+    EXPECT_EQ(normalize_tag("!!str"      ), "!!str");
+    EXPECT_EQ(normalize_tag("!!timestamp"), "!!timestamp");
+    EXPECT_EQ(normalize_tag("!!value"    ), "!!value");
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 #define TAG_PROPERTY_CASES \
     "tag property in implicit map",\
