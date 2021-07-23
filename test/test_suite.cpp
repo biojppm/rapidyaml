@@ -49,7 +49,7 @@ struct OptionalScalar
     csubstr get() const { RYML_ASSERT(was_set); return val; }
 };
 
-size_t to_chars(c4::substr& buf, OptionalScalar const& s)
+size_t to_chars(c4::substr buf, OptionalScalar const& s)
 {
     if(!s)
         return 0u;
@@ -71,18 +71,19 @@ struct Scalar
     {
         if(ref)
         {
-            _nfo_logf("node[{}]: set key ref: {}", node, ref);
+            _nfo_logf("node[{}]: set key ref: '{}'", node, ref);
             tree->set_key_ref(node, ref);
         }
         if(anchor)
         {
-            _nfo_logf("node[{}]: set key anchor: {}", node, anchor);
+            _nfo_logf("node[{}]: set key anchor: '{}'", node, anchor);
             tree->set_key_anchor(node, anchor);
         }
         if(tag)
         {
-            _nfo_logf("node[{}]: set key tag: {}", node, anchor);
-            tree->set_key_tag(node, tag);
+            csubstr ntag = normalize_tag(tag);
+            _nfo_logf("node[{}]: set key tag: '{}' -> '{}'", node, tag, ntag);
+            tree->set_key_tag(node, ntag);
         }
         if(quoted)
         {
@@ -94,18 +95,19 @@ struct Scalar
     {
         if(ref)
         {
-            _nfo_logf("node[{}]: set val ref: {}", node, ref);
+            _nfo_logf("node[{}]: set val ref: '{}'", node, ref);
             tree->set_val_ref(node, ref);
         }
         if(anchor)
         {
-            _nfo_logf("node[{}]: set val anchor: {}", node, anchor);
+            _nfo_logf("node[{}]: set val anchor: '{}'", node, anchor);
             tree->set_val_anchor(node, anchor);
         }
         if(tag)
         {
-            _nfo_logf("node[{}]: set val tag: {}", node, anchor);
-            tree->set_val_tag(node, normalize_tag(tag));
+            csubstr ntag = normalize_tag(tag);
+            _nfo_logf("node[{}]: set val tag: '{}' -> '{}'", node, tag, ntag);
+            tree->set_val_tag(node, ntag);
         }
         if(quoted)
         {
@@ -114,6 +116,36 @@ struct Scalar
         }
     }
 };
+
+csubstr parse_anchor_and_tag(csubstr tokens, OptionalScalar *anchor, OptionalScalar *tag)
+{
+    *anchor = OptionalScalar{};
+    *tag = OptionalScalar{};
+    if(tokens.begins_with('&'))
+    {
+        size_t pos = tokens.first_of(' ');
+        if(pos == (size_t)csubstr::npos)
+        {
+            *anchor = tokens.sub(1);
+            tokens = {};
+        }
+        else
+        {
+            *anchor = tokens.first(pos).sub(1);
+            tokens = tokens.right_of(pos);
+        }
+        _nfo_logf("anchor: {}", *anchor);
+    }
+    if(tokens.begins_with('<'))
+    {
+        size_t pos = tokens.find('>');
+        RYML_ASSERT(pos != (size_t)csubstr::npos);
+        *tag = tokens.first(pos + 1);
+        tokens = tokens.right_of(pos).triml(' ');
+        _nfo_logf("tag: {}", *tag);
+    }
+    return tokens;
+}
 
 
 struct EventsParser
@@ -140,22 +172,7 @@ struct EventsParser
                 line = line.stripl("=VAL ");
                 ASSERT_GE(m_stack.size(), 0u);
                 Scalar curr = {};
-                if(line.begins_with('&'))
-                {
-                    size_t pos = line.first_of(' ');
-                    ASSERT_NE(pos, (size_t)csubstr::npos);
-                    curr.anchor = line.first(pos).sub(1);
-                    line = line.right_of(pos);
-                    _nfo_llogf("anchor: {}", curr.anchor);
-                }
-                if(line.begins_with('<'))
-                {
-                    size_t pos = line.find('>');
-                    ASSERT_NE(pos, (size_t)csubstr::npos);
-                    curr.tag = line.first(pos + 1);
-                    line = line.right_of(pos).triml(' ');
-                    _nfo_llogf("tag: {}", curr.tag);
-                }
+                line = parse_anchor_and_tag(line, &curr.anchor, &curr.tag);
                 if(line.begins_with('"') || line.begins_with('\''))
                 {
                     _nfo_llog("quoted scalar!");
@@ -184,6 +201,7 @@ struct EventsParser
                 {
                     _nfo_logf("stack is not empty, setting tree_node={} to DOCVAL...", top.tree_node);
                     tree.to_val(top.tree_node, curr.scalar, DOC);
+                    curr.add_val_props(&tree, top.tree_node);
                 }
                 else if(tree.is_seq(top.tree_node))
                 {
@@ -262,13 +280,9 @@ struct EventsParser
             else if(line.begins_with("+SEQ"))
             {
                 _nfo_log("pushing SEQ");
-                csubstr rem = line.stripl("+SEQ").triml(' ');
                 OptionalScalar anchor = {};
                 OptionalScalar tag = {};
-                if(rem.begins_with('&'))
-                    anchor = rem.sub(1);
-                else if(rem.begins_with('<'))
-                    tag = rem;
+                parse_anchor_and_tag(line.stripl("+SEQ").triml(' '), &anchor, &tag);
                 size_t node = tree.root_id();
                 if(m_stack.empty())
                 {
@@ -321,25 +335,16 @@ struct EventsParser
                     }
                 }
                 if(tag)
-                {
-                    C4_ASSERT(tag.val.begins_with('<'));
-                    tree.set_val_tag(node, from_tag(to_tag(tag)));
-                }
+                    tree.set_val_tag(node, normalize_tag(tag));
                 if(anchor)
-                {
                     tree.set_val_anchor(node, anchor);
-                }
             }
             else if(line.begins_with("+MAP"))
             {
                 _nfo_log("pushing MAP");
-                csubstr rem = line.stripl("+MAP").triml(' ');
                 OptionalScalar anchor = {};
                 OptionalScalar tag = {};
-                if(rem.begins_with('&'))
-                    anchor = rem.sub(1);
-                else if(rem.begins_with('<'))
-                    tag = rem;
+                parse_anchor_and_tag(line.stripl("+MAP").triml(' '), &anchor, &tag);
                 size_t node = tree.root_id();
                 if(m_stack.empty())
                 {
@@ -392,14 +397,9 @@ struct EventsParser
                     }
                 }
                 if(tag)
-                {
-                    C4_ASSERT(tag.val.begins_with('<'));
-                    tree.set_val_tag(node, from_tag(to_tag(tag)));
-                }
+                    tree.set_val_tag(node, normalize_tag(tag));
                 if(anchor)
-                {
                     tree.set_val_anchor(node, anchor);
-                }
             }
             else if(line.begins_with("-SEQ"))
             {
@@ -427,11 +427,11 @@ struct EventsParser
                 csubstr rem = line.stripl("+DOC").triml(' ');
                 size_t node = tree.root_id();
                 bool is_sep = rem.find("---") != csubstr::npos;
+                ASSERT_EQ(key, false); // for the key to exist, the parent must exist and be a map
                 if(m_stack.empty())
                 {
                     _nfo_log("stack was empty");
                     ASSERT_EQ(node, tree.root_id());
-                    ASSERT_EQ(key, false); // for the key to exist, the parent must exist and be a map
                     if(tree.is_stream(node))
                     {
                         _nfo_log("there is already a stream, append a DOC");
