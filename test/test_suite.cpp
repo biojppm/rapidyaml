@@ -401,6 +401,26 @@ struct EventsParser
                     tree.set_val_anchor(node, anchor);
                 }
             }
+            else if(line.begins_with("-SEQ"))
+            {
+                _nfo_logf("popping SEQ, empty={}", m_stack.empty());
+                size_t node;
+                if(m_stack.empty())
+                    node = tree.root_id();
+                else
+                    node = m_stack.pop().tree_node;
+                ASSERT_EQ(tree.is_seq(node), true) << "node=" << node;
+            }
+            else if(line.begins_with("-MAP"))
+            {
+                _nfo_logf("popping MAP, empty={}", m_stack.empty());
+                size_t node;
+                if(m_stack.empty())
+                    node = tree.root_id();
+                else
+                    node = m_stack.pop().tree_node;
+                ASSERT_EQ(tree.is_map(node), true) << "node=" << node;
+            }
             else if(line.begins_with("+DOC"))
             {
                 _nfo_log("pushing DOC");
@@ -422,7 +442,7 @@ struct EventsParser
                     else if(is_sep)
                     {
                         _nfo_logf("separator was specified: {}", rem);
-                        if(!tree.is_doc(node))
+                        if(!tree.is_container(node))
                         {
                             tree._add_flags(node, STREAM);
                             node = tree.append_child(node);
@@ -439,14 +459,11 @@ struct EventsParser
                     }
                     else
                     {
-                        if(!tree.is_doc(node))
+                        if(tree.is_doc(node))
                         {
-                            //_nfo_logf("set root to DOC: {}", node);
-                            //tree._add_flags(node, DOC);
-                        }
-                        else
-                        {
-                            GTEST_FAIL();
+                            _nfo_log("rearrange root as STREAM");
+                            tree.set_root_as_stream();
+                            m_stack.push({node});
                         }
                     }
                 }
@@ -466,33 +483,17 @@ struct EventsParser
                         tree.set_val_tag(node, from_tag(to_tag(rem)));
                 }
             }
-            else if(line.begins_with("-SEQ"))
-            {
-                _nfo_logf("popping SEQ, empty={}", m_stack.empty());
-                size_t node;
-                if(m_stack.empty())
-                    node = tree.root_id();
-                else
-                    node = m_stack.pop().tree_node;
-                ASSERT_EQ(tree.is_seq(node), true) << "node=" << node;
-            }
-            else if(line.begins_with("-MAP"))
-            {
-                _nfo_logf("popping MAP, empty={}", m_stack.empty());
-                size_t node;
-                if(m_stack.empty())
-                    node = tree.root_id();
-                else
-                    node = m_stack.pop().tree_node;
-                ASSERT_EQ(tree.is_map(node), true) << "node=" << node;
-            }
             else if(line.begins_with("-DOC"))
             {
                 _nfo_log("popping DOC");
-                //size_t node = m_stack.empty() ? tree.root_id() : m_stack.top().tree_node;
-                //ASSERT_EQ(tree.is_doc(node) || tree.is_stream(node), true) << "node=" << node;
-                if(!m_stack.empty())
-                    m_stack.pop();
+                csubstr rem = line.stripl("+DOC").triml(' ');
+                bool is_sep = rem.find("...") != csubstr::npos;
+                size_t node = m_stack.empty() ? tree.root_id() : m_stack.pop().tree_node;
+                if(is_sep && !tree.is_doc(node))
+                {
+                    _nfo_logf("got a sep '{}' and node[{}] is not a doc - adding DOC", rem, node);
+                    tree._add_flags(node, DOC);
+                }
             }
             else if(line.begins_with("+STR"))
             {
