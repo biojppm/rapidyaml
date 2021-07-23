@@ -192,18 +192,12 @@ struct EventsParser
                 _nfo_logf("parsed scalar: '{}'", curr.scalar);
                 if(m_stack.empty())
                 {
-                    _nfo_log("stack was empty, setting root to SEQ...");
-                    tree.to_seq(tree.root_id());
+                    _nfo_log("stack was empty, pushing root as DOC...");
+                    //tree._p(tree.root_id())->m_type.add(DOC);
                     m_stack.push({tree.root_id()});
                 }
                 ParseLevel &top = m_stack.top();
-                if(tree.is_doc(top.tree_node) && !tree.is_map(top.tree_node) && !tree.is_seq(top.tree_node))
-                {
-                    _nfo_logf("stack is not empty, setting tree_node={} to DOCVAL...", top.tree_node);
-                    tree.to_val(top.tree_node, curr.scalar, DOC);
-                    curr.add_val_props(&tree, top.tree_node);
-                }
-                else if(tree.is_seq(top.tree_node))
+                if(tree.is_seq(top.tree_node))
                 {
                     _nfo_logf("is seq! seq_id={}", top.tree_node);
                     ASSERT_EQ(key, false);
@@ -221,7 +215,6 @@ struct EventsParser
                     {
                         _nfo_logf("store key='{}' anchor='{}' tag='{}' quoted={}", curr.scalar, curr.anchor, curr.tag, curr.quoted);
                         key = curr;
-                        _nfo_logf("saved key='{}'", key.scalar);
                     }
                     else
                     {
@@ -237,7 +230,9 @@ struct EventsParser
                 }
                 else
                 {
-                    C4_ERROR("VAL event requires map or seq");
+                    _nfo_logf("setting tree_node={} to DOCVAL...", top.tree_node);
+                    tree.to_val(top.tree_node, curr.scalar, DOC);
+                    curr.add_val_props(&tree, top.tree_node);
                 }
             }
             else if(line.begins_with("=ALI "))
@@ -452,8 +447,15 @@ struct EventsParser
                         }
                         else
                         {
+                            print_tree(tree);
+                            std::cout << tree;
                             _nfo_log("rearrange root as STREAM");
                             tree.set_root_as_stream();
+                            print_tree(tree);
+                            std::cout << tree;
+                            node = tree.append_child(tree.root_id());
+                            _nfo_logf("added doc as STREAM child: {}", node);
+                            tree.to_doc(node);
                             m_stack.push({node});
                         }
                     }
@@ -480,7 +482,10 @@ struct EventsParser
                 if(!rem.empty())
                 {
                     if(rem.begins_with('<'))
-                        tree.set_val_tag(node, from_tag(to_tag(rem)));
+                    {
+GTEST_FAIL();
+                        tree.set_val_tag(node, normalize_tag(rem));
+                    }
                 }
             }
             else if(line.begins_with("-DOC"))
@@ -546,33 +551,17 @@ struct Events
         if(actual_src.empty())
             GTEST_SKIP();
         _nfo_logf("SRC:\n{}", actual_src);
-        Tree const& which_tree = _adjust_tree_to_remove_doc_inconsistency(actual_src, actual_tree);
-        _nfo_print_tree("EXPECTED", which_tree);
+        _nfo_print_tree("EXPECTED", tree);
         _nfo_print_tree("ACTUAL", actual_tree);
-        test_compare(which_tree, actual_tree);
-    }
-
-    Tree const& _adjust_tree_to_remove_doc_inconsistency(csubstr actual_src, Tree const& actual_tree) const
-    {
-        C4_UNUSED(actual_tree);
-        Tree const* which_tree = &tree;
-        if(!actual_src.first_of_any("---", "..."))
-        {
-            adjusted_tree = tree;
-            which_tree = &adjusted_tree;
-            NodeRef root = which_tree->rootref();
-            if(root.is_doc())
-                adjusted_tree.get(root.id())->m_type.rem(DOC);
-        }
-        return *which_tree;
+        test_compare(tree, actual_tree);
     }
 
     EventsParser parser;
-    void parse_events()
+    void parse_events(csubstr actual_src)
     {
         if(was_parsed)
             return;
-        if(src.empty())
+        if(actual_src.empty())
             GTEST_SKIP();
         parser.parse(c4::to_csubstr(src), &tree);
         _nfo_print_tree("EXPECTED", tree);
@@ -1167,20 +1156,25 @@ struct SuiteCase
         return true;
     }
 
-    void parse_events()
+    void parse_events(Approach *appr)
     {
-        events.parse_events();
+        auto const& lev = appr->levels[0];
+        csubstr levsrc = c4::to_csubstr(lev.src);
+        if(levsrc.empty() || lev.allowed_failure.skip(lev.case_part) || lev.allowed_failure.skip(CPART_EVENTS))
+            GTEST_SKIP();
+        events.parse_events(levsrc);
     }
 
     void compare_events(Approach *appr)
     {
-GTEST_SKIP(); // this is a work in progress
+//GTEST_SKIP(); // this is a work in progress
         auto const& lev = appr->levels[0];
-        if(lev.allowed_failure.skip(lev.case_part) || lev.allowed_failure.skip(CPART_EVENTS))
+        csubstr levsrc = c4::to_csubstr(lev.src);
+        if(levsrc.empty() || lev.allowed_failure.skip(lev.case_part) || lev.allowed_failure.skip(CPART_EVENTS))
             GTEST_SKIP();
-        events.parse_events();
+        events.parse_events(levsrc);
         appr->parse(1, false);
-        events.compare_trees(c4::to_csubstr(lev.src), lev.tree);
+        events.compare_trees(levsrc, lev.tree);
     }
 
     void print() const
@@ -1219,7 +1213,7 @@ struct cls##_##pfx##_##events : public ::testing::Test          \
 TEST_F(cls##_##pfx##_##events, parse_events)                    \
 {                                                               \
     RYML_CHECK(g_suite_case != nullptr);                        \
-    g_suite_case->parse_events();                               \
+    g_suite_case->parse_events(&g_suite_case->cls.pfx);         \
 }                                                               \
                                                                 \
 TEST_F(cls##_##pfx##_##events, compare_events)                  \

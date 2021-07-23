@@ -605,9 +605,7 @@ void test_invariants(NodeRef const n)
     // keys or vals cannot be root
     if(n.has_key() || n.is_val() || n.is_keyval())
     {
-        EXPECT_FALSE(n.is_root());
-        EXPECT_FALSE(n.is_root());
-        EXPECT_FALSE(n.is_root());
+        EXPECT_TRUE(!n.is_root() || (n.is_doc() && !n.has_key()));
     }
     // vals cannot be containers
     if( ! n.empty() && ! n.is_doc())

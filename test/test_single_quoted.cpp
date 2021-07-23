@@ -29,27 +29,27 @@ CASE_GROUP(SINGLE_QUOTED)
 C("squoted, only text",
 R"('Some text without any quotes.'
 )",
-  L{N("Some text without any quotes.")}
+  N(DOCVAL, "Some text without any quotes.")
 ),
 
 C("squoted, with double quotes",
 R"('Some "text" "with double quotes"')",
-  L{N("Some \"text\" \"with double quotes\"")}
+  N(DOCVAL, "Some \"text\" \"with double quotes\"")
 ),
 
 C("squoted, with single quotes",
 R"('Some text ''with single quotes''')",
-  L{N("Some text 'with single quotes'")}
+  N(DOCVAL, "Some text 'with single quotes'")
 ),
 
 C("squoted, with single and double quotes",
 R"('Some text ''with single quotes'' "and double quotes".')",
-  L{N("Some text 'with single quotes' \"and double quotes\".")}
+  N(DOCVAL, "Some text 'with single quotes' \"and double quotes\".")
 ),
 
 C("squoted, with escapes",
 R"('Some text with escapes \n \r \t')",
-  L{N("Some text with escapes \\n \\r \\t")}
+  N(DOCVAL, "Some text with escapes \\n \\r \\t")
 ),
 
 C("squoted, all",
@@ -59,12 +59,12 @@ containing ''single quotes'' and "double quotes". Escapes (like \n) don''t do an
 Newlines can be added by leaving a blank line.
             Leading whitespace on lines is ignored.'
 )",
-  L{N("Several lines of text, containing 'single quotes' and \"double quotes\". Escapes (like \\n) don't do anything.\nNewlines can be added by leaving a blank line. Leading whitespace on lines is ignored.")}
+  N(DOCVAL, "Several lines of text, containing 'single quotes' and \"double quotes\". Escapes (like \\n) don't do anything.\nNewlines can be added by leaving a blank line. Leading whitespace on lines is ignored.")
 ),
 
 C("squoted, empty",
 R"('')",
-  L{N("")}
+  N(DOCVAL, "")
 ),
 
 C("squoted, blank",
@@ -91,42 +91,42 @@ R"(
 
 C("squoted, trailing space",
 R"('a aaaa  ')",
-  L{N("a aaaa  ")}
+  N(DOCVAL, "a aaaa  ")
 ),
 
 C("squoted, leading space",
 R"('  a aaaa')",
-  L{N("  a aaaa")}
+  N(DOCVAL, "  a aaaa")
 ),
 
 C("squoted, trailing and leading space",
 R"('  012345  ')",
-  L{N("  012345  ")}
+  N(DOCVAL, "  012345  ")
 ),
 
 C("squoted, 1 squote",
 R"('''')",
-  L{N("'")}
+  N(DOCVAL, "'")
 ),
 
 C("squoted, 2 squotes",
 R"('''''')",
-  L{N("''")}
+  N(DOCVAL, "''")
 ),
 
 C("squoted, 3 squotes",
 R"('''''''')",
-  L{N("'''")}
+  N(DOCVAL, "'''")
 ),
 
 C("squoted, 4 squotes",
 R"('''''''''')",
-  L{N("''''")}
+  N(DOCVAL, "''''")
 ),
 
 C("squoted, 5 squotes",
 R"('''''''''''')",
-  L{N("'''''")}
+  N(DOCVAL, "'''''")
 ),
 
 /*

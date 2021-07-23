@@ -5,6 +5,8 @@ namespace yml {
 
 
 #define SIMPLE_DOC_CASES                                                \
+    "doc with single scalar",                                           \
+    "doc with single scalar, explicit",                                 \
     "simple doc, empty docs",                                           \
     "simple doc, empty docs, indented",                                 \
     "simple doc, empty docs, term",                                     \
@@ -39,6 +41,18 @@ namespace yml {
 CASE_GROUP(SIMPLE_DOC)
 {
     APPEND_CASES(
+
+C("doc with single scalar",
+R"(a scalar
+)",
+N(DOCVAL, "a scalar")
+),
+
+C("doc with single scalar, explicit",
+R"(--- a scalar
+)",
+N(STREAM, L{N(DOCVAL, "a scalar")})
+),
 
 C("simple doc, empty docs",
 R"(---
@@ -98,20 +112,20 @@ R"(---
     with several lines
 )",
 N(STREAM, L{
-   N(DOCSEQ, L{N("a plain scalar with several lines")}),
-   N(DOCSEQ, L{N("a second plain scalar with several lines")}),
+  N(DOCSEQ, L{N("a plain scalar with several lines")}),
+  N(DOCSEQ, L{N("a second plain scalar with several lines")}),
 })),
 
 C("simple doc, single scalar, implicit doc",
 R"(a scalar with some spaces inside
 )",
-    N(L{N("a scalar with some spaces inside")})
+  N(DOCVAL, "a scalar with some spaces inside")
 ),
 
 C("simple doc, single scalar, implicit doc, indented",
 R"(    a scalar with some spaces inside
 )",
-    N(L{N("a scalar with some spaces inside")})
+  N(DOCVAL,"a scalar with some spaces inside")
 ),
 
 C("simple doc, multi scalar, implicit doc",

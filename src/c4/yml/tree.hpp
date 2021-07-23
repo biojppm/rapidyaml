@@ -1088,9 +1088,8 @@ public:
             auto pid = parent(node); C4_UNUSED(pid);
             RYML_ASSERT(is_map(pid));
         }
-        if(f & VAL)
+        if((f & VAL) && !is_root(node))
         {
-            RYML_ASSERT(!is_root(node)); // need to revise this
             auto pid = parent(node); C4_UNUSED(pid);
             RYML_ASSERT(is_map(pid) || is_seq(pid));
         }
@@ -1120,7 +1119,7 @@ public:
     void _set_val(size_t node, csubstr const& val, type_bits more_flags=0)
     {
         RYML_ASSERT(num_children(node) == 0);
-        RYML_ASSERT( ! is_container(node));
+        RYML_ASSERT(!is_seq(node) && !is_map(node));
         _p(node)->m_val.scalar = val;
         _add_flags(node, VAL|more_flags);
     }

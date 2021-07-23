@@ -2643,12 +2643,8 @@ void Parser::_start_doc(bool as_child)
         _c4dbgpf("start_doc: parent=%zu", parent_id);
         if( ! m_tree->is_stream(parent_id))
         {
-            for(size_t ch = m_tree->first_child(parent_id); ch != NONE; ch = m_tree->next_sibling(ch))
-            {
-                _c4dbgpf("start_doc: setting %zu->DOC", ch);
-                m_tree->_add_flags(ch, DOC);
-            }
-            m_tree->_add_flags(parent_id, STREAM);
+            _c4dbgp("start_doc: rearranging with root as STREAM");
+            m_tree->set_root_as_stream();
         }
         m_state->node_id = m_tree->append_child(parent_id);
         m_tree->to_doc(m_state->node_id);
@@ -2696,13 +2692,7 @@ void Parser::_end_stream()
                 _pop_level();
             }
         }
-        else if(m_tree->type(m_state->node_id) == NOTYPE)
-        {
-            _c4dbgp("to seq...");
-            m_tree->to_seq(m_state->node_id);
-            added = _append_val(_consume_scalar());
-        }
-        else if(m_tree->is_doc(m_state->node_id))
+        else if(m_tree->is_doc(m_state->node_id) || m_tree->type(m_state->node_id) == NOTYPE)
         {
             _c4dbgp("to docval...");
             m_tree->to_val(m_state->node_id, _consume_scalar(), DOC);
