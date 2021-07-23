@@ -87,86 +87,6 @@ v4: '(1000,1001,1002,1003)'
 
 namespace c4 { namespace yml {
 
-TEST(to_tag, user)
-{
-    EXPECT_EQ(to_tag("!"), TAG_NONE);
-    EXPECT_EQ(to_tag("!."), TAG_NONE);
-    EXPECT_EQ(to_tag("!good_type"), TAG_NONE);
-}
-
-TEST(to_tag, double_exc_mark)
-{
-    EXPECT_EQ(to_tag("!!"          ), TAG_NONE);
-    EXPECT_EQ(to_tag("!!."         ), TAG_NONE);
-
-    EXPECT_EQ(to_tag("!!map"       ), TAG_MAP);
-    EXPECT_EQ(to_tag("!!omap"      ), TAG_OMAP);
-    EXPECT_EQ(to_tag("!!pairs"     ), TAG_PAIRS);
-    EXPECT_EQ(to_tag("!!set"       ), TAG_SET);
-    EXPECT_EQ(to_tag("!!seq"       ), TAG_SEQ);
-    EXPECT_EQ(to_tag("!!binary"    ), TAG_BINARY);
-    EXPECT_EQ(to_tag("!!bool"      ), TAG_BOOL);
-    EXPECT_EQ(to_tag("!!float"     ), TAG_FLOAT);
-    EXPECT_EQ(to_tag("!!int"       ), TAG_INT);
-    EXPECT_EQ(to_tag("!!merge"     ), TAG_MERGE);
-    EXPECT_EQ(to_tag("!!null"      ), TAG_NULL);
-    EXPECT_EQ(to_tag("!!str"       ), TAG_STR);
-    EXPECT_EQ(to_tag("!!timestamp" ), TAG_TIMESTAMP);
-    EXPECT_EQ(to_tag("!!value"     ), TAG_VALUE);
-
-    EXPECT_EQ(to_tag("!!map."      ), TAG_NONE);
-    EXPECT_EQ(to_tag("!!omap."     ), TAG_NONE);
-    EXPECT_EQ(to_tag("!!pairs."    ), TAG_NONE);
-    EXPECT_EQ(to_tag("!!set."      ), TAG_NONE);
-    EXPECT_EQ(to_tag("!!seq."      ), TAG_NONE);
-    EXPECT_EQ(to_tag("!!binary."   ), TAG_NONE);
-    EXPECT_EQ(to_tag("!!bool."     ), TAG_NONE);
-    EXPECT_EQ(to_tag("!!float."    ), TAG_NONE);
-    EXPECT_EQ(to_tag("!!int."      ), TAG_NONE);
-    EXPECT_EQ(to_tag("!!merge."    ), TAG_NONE);
-    EXPECT_EQ(to_tag("!!null."     ), TAG_NONE);
-    EXPECT_EQ(to_tag("!!str."      ), TAG_NONE);
-    EXPECT_EQ(to_tag("!!timestamp."), TAG_NONE);
-    EXPECT_EQ(to_tag("!!value."    ), TAG_NONE);
-}
-
-TEST(to_tag, with_namespace)
-{
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:"          ), TAG_NONE);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:."         ), TAG_NONE);
-
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:map"       ), TAG_MAP);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:omap"      ), TAG_OMAP);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:pairs"     ), TAG_PAIRS);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:set"       ), TAG_SET);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:seq"       ), TAG_SEQ);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:binary"    ), TAG_BINARY);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:bool"      ), TAG_BOOL);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:float"     ), TAG_FLOAT);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:int"       ), TAG_INT);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:merge"     ), TAG_MERGE);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:null"      ), TAG_NULL);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:str"       ), TAG_STR);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:timestamp" ), TAG_TIMESTAMP);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:value"     ), TAG_VALUE);
-
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:map."      ), TAG_NONE);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:omap."     ), TAG_NONE);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:pairs."    ), TAG_NONE);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:set."      ), TAG_NONE);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:seq."      ), TAG_NONE);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:binary."   ), TAG_NONE);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:bool."     ), TAG_NONE);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:float."    ), TAG_NONE);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:int."      ), TAG_NONE);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:merge."    ), TAG_NONE);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:null."     ), TAG_NONE);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:str."      ), TAG_NONE);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:timestamp."), TAG_NONE);
-    EXPECT_EQ(to_tag("tag:yaml.org,2002:value."    ), TAG_NONE);
-}
-
-
 //-------------------------------------------
 Tree get_test_tree()
 {
@@ -477,7 +397,7 @@ far: a long long way to run
     copy2.resolve();
     EXPECT_EQ(emitrs<std::string>(copy2), R"(key: val
 key2: val2
-keyref: val
+keyref: key
 val2: was val anchor
 !!int 0: !!str foo
 !!str doe: !!str a deer a female deer
@@ -936,18 +856,54 @@ TEST(NodeType, type_str)
     // avoid coverage misses
     EXPECT_EQ(to_csubstr(NodeType(KEYVAL).type_str()), "KEYVAL");
     EXPECT_EQ(to_csubstr(NodeType(VAL).type_str()), "VAL");
-    EXPECT_EQ(to_csubstr(NodeType(DOC).type_str()), "DOC");
-    EXPECT_EQ(to_csubstr(NodeType(DOCSEQ).type_str()), "DOCSEQ");
-    EXPECT_EQ(to_csubstr(NodeType(DOCMAP).type_str()), "DOCMAP");
-    EXPECT_EQ(to_csubstr(NodeType(DOCVAL).type_str()), "DOCVAL");
     EXPECT_EQ(to_csubstr(NodeType(MAP).type_str()), "MAP");
     EXPECT_EQ(to_csubstr(NodeType(SEQ).type_str()), "SEQ");
     EXPECT_EQ(to_csubstr(NodeType(KEYMAP).type_str()), "KEYMAP");
     EXPECT_EQ(to_csubstr(NodeType(KEYSEQ).type_str()), "KEYSEQ");
+    EXPECT_EQ(to_csubstr(NodeType(DOCSEQ).type_str()), "DOCSEQ");
+    EXPECT_EQ(to_csubstr(NodeType(DOCMAP).type_str()), "DOCMAP");
+    EXPECT_EQ(to_csubstr(NodeType(DOCVAL).type_str()), "DOCVAL");
+    EXPECT_EQ(to_csubstr(NodeType(DOC).type_str()), "DOC");
     EXPECT_EQ(to_csubstr(NodeType(STREAM).type_str()), "STREAM");
     EXPECT_EQ(to_csubstr(NodeType(NOTYPE).type_str()), "NOTYPE");
-    EXPECT_EQ(to_csubstr(NodeType(KEYREF).type_str()), "REF");
-    EXPECT_EQ(to_csubstr(NodeType(VALREF).type_str()), "REF");
+    EXPECT_EQ(to_csubstr(NodeType(KEYVAL|KEYREF).type_str()), "KEYVAL***");
+    EXPECT_EQ(to_csubstr(NodeType(KEYVAL|VALREF).type_str()), "KEYVAL***");
+    EXPECT_EQ(to_csubstr(NodeType(KEYVAL|KEYANCH).type_str()), "KEYVAL***");
+    EXPECT_EQ(to_csubstr(NodeType(KEYVAL|VALANCH).type_str()), "KEYVAL***");
+    EXPECT_EQ(to_csubstr(NodeType(KEYVAL|KEYREF|VALANCH).type_str()), "KEYVAL***");
+    EXPECT_EQ(to_csubstr(NodeType(KEYVAL|KEYANCH|VALREF).type_str()), "KEYVAL***");
+    EXPECT_EQ(to_csubstr(NodeType(KEYMAP|KEYREF).type_str()), "KEYMAP***");
+    EXPECT_EQ(to_csubstr(NodeType(KEYMAP|VALREF).type_str()), "KEYMAP***");
+    EXPECT_EQ(to_csubstr(NodeType(KEYMAP|KEYANCH).type_str()), "KEYMAP***");
+    EXPECT_EQ(to_csubstr(NodeType(KEYMAP|VALANCH).type_str()), "KEYMAP***");
+    EXPECT_EQ(to_csubstr(NodeType(KEYMAP|KEYREF|VALANCH).type_str()), "KEYMAP***");
+    EXPECT_EQ(to_csubstr(NodeType(KEYMAP|KEYANCH|VALREF).type_str()), "KEYMAP***");
+    EXPECT_EQ(to_csubstr(NodeType(KEYSEQ|KEYREF).type_str()), "KEYSEQ***");
+    EXPECT_EQ(to_csubstr(NodeType(KEYSEQ|VALREF).type_str()), "KEYSEQ***");
+    EXPECT_EQ(to_csubstr(NodeType(KEYSEQ|KEYANCH).type_str()), "KEYSEQ***");
+    EXPECT_EQ(to_csubstr(NodeType(KEYSEQ|VALANCH).type_str()), "KEYSEQ***");
+    EXPECT_EQ(to_csubstr(NodeType(KEYSEQ|KEYREF|VALANCH).type_str()), "KEYSEQ***");
+    EXPECT_EQ(to_csubstr(NodeType(KEYSEQ|KEYANCH|VALREF).type_str()), "KEYSEQ***");
+    EXPECT_EQ(to_csubstr(NodeType(DOCSEQ|VALANCH).type_str()), "DOCSEQ***");
+    EXPECT_EQ(to_csubstr(NodeType(DOCSEQ|VALREF).type_str()), "DOCSEQ***");
+    EXPECT_EQ(to_csubstr(NodeType(DOCMAP|VALANCH).type_str()), "DOCMAP***");
+    EXPECT_EQ(to_csubstr(NodeType(DOCMAP|VALREF).type_str()), "DOCMAP***");
+    EXPECT_EQ(to_csubstr(NodeType(DOCVAL|VALANCH).type_str()), "DOCVAL***");
+    EXPECT_EQ(to_csubstr(NodeType(DOCVAL|VALREF).type_str()), "DOCVAL***");
+    EXPECT_EQ(to_csubstr(NodeType(KEY|KEYREF).type_str()), "KEY***");
+    EXPECT_EQ(to_csubstr(NodeType(KEY|KEYANCH).type_str()), "KEY***");
+    EXPECT_EQ(to_csubstr(NodeType(VAL|VALREF).type_str()), "VAL***");
+    EXPECT_EQ(to_csubstr(NodeType(VAL|VALANCH).type_str()), "VAL***");
+    EXPECT_EQ(to_csubstr(NodeType(MAP|VALREF).type_str()), "MAP***");
+    EXPECT_EQ(to_csubstr(NodeType(MAP|VALANCH).type_str()), "MAP***");
+    EXPECT_EQ(to_csubstr(NodeType(SEQ|VALREF).type_str()), "SEQ***");
+    EXPECT_EQ(to_csubstr(NodeType(SEQ|VALANCH).type_str()), "SEQ***");
+    EXPECT_EQ(to_csubstr(NodeType(DOC|VALREF).type_str()), "DOC***");
+    EXPECT_EQ(to_csubstr(NodeType(DOC|VALANCH).type_str()), "DOC***");
+    EXPECT_EQ(to_csubstr(NodeType(KEYREF).type_str()), "(unk)");
+    EXPECT_EQ(to_csubstr(NodeType(VALREF).type_str()), "(unk)");
+    EXPECT_EQ(to_csubstr(NodeType(KEYANCH).type_str()), "(unk)");
+    EXPECT_EQ(to_csubstr(NodeType(VALANCH).type_str()), "(unk)");
 }
 
 
@@ -1895,6 +1851,262 @@ TEST(general, github_issue_124)
         // The re-emitted output should not contain the comment.
         EXPECT_EQ(c4::to_csubstr(s), "a:\n  - b\nc: d\n");
     }
+}
+
+
+//-----------------------------------------------------------------------------
+
+TEST(set_root_as_stream, empty_tree)
+{
+    Tree t;
+    NodeRef r = t.rootref();
+    EXPECT_EQ(r.is_stream(), false);
+    EXPECT_EQ(r.num_children(), 0u);
+    t.set_root_as_stream();
+    EXPECT_EQ(r.is_stream(), true);
+    EXPECT_EQ(r.num_children(), 0u);
+}
+
+TEST(set_root_as_stream, already_with_stream)
+{
+    Tree t;
+    t.to_stream(t.root_id());
+    NodeRef r = t.rootref();
+    EXPECT_EQ(r.is_stream(), true);
+    EXPECT_EQ(r.num_children(), 0u);
+    t.set_root_as_stream();
+    EXPECT_EQ(r.is_stream(), true);
+    EXPECT_EQ(r.num_children(), 0u);
+}
+
+
+TEST(set_root_as_stream, root_is_map)
+{
+    Tree t = parse(R"({a: b, c: d})");
+    NodeRef r = t.rootref();
+    EXPECT_EQ(r.is_stream(), false);
+    EXPECT_EQ(r.is_doc(), false);
+    EXPECT_EQ(r.is_map(), true);
+    EXPECT_EQ(r.is_seq(), false);
+    EXPECT_EQ(r.num_children(), 2u);
+    print_tree(t);
+    std::cout << t;
+    t.set_root_as_stream();
+    print_tree(t);
+    std::cout << t;
+    EXPECT_EQ(r.is_stream(), true);
+    EXPECT_EQ(r.is_doc(), false);
+    EXPECT_EQ(r.is_map(), false);
+    EXPECT_EQ(r.is_seq(), true);
+    EXPECT_EQ(r.num_children(), 1u);
+    EXPECT_EQ(r[0].is_doc(), true);
+    EXPECT_EQ(r[0].is_map(), true);
+    EXPECT_EQ(r[0].is_seq(), false);
+    EXPECT_EQ(r[0].num_children(), 2u);
+    EXPECT_EQ(r[0]["a"].is_keyval(), true);
+    EXPECT_EQ(r[0]["c"].is_keyval(), true);
+    EXPECT_EQ(r[0]["a"].val(), "b");
+    EXPECT_EQ(r[0]["c"].val(), "d");
+}
+
+TEST(set_root_as_stream, root_is_docmap)
+{
+    Tree t = parse(R"({a: b, c: d})");
+    t._p(t.root_id())->m_type.add(DOC);
+    NodeRef r = t.rootref();
+    EXPECT_EQ(r.is_stream(), false);
+    EXPECT_EQ(r.is_doc(), true);
+    EXPECT_EQ(r.is_map(), true);
+    EXPECT_EQ(r.is_seq(), false);
+    EXPECT_EQ(r.num_children(), 2u);
+    print_tree(t);
+    std::cout << t;
+    t.set_root_as_stream();
+    print_tree(t);
+    std::cout << t;
+    EXPECT_EQ(r.is_stream(), true);
+    EXPECT_EQ(r.is_doc(), false);
+    EXPECT_EQ(r.is_map(), false);
+    EXPECT_EQ(r.is_seq(), true);
+    EXPECT_EQ(r.num_children(), 1u);
+    EXPECT_EQ(r[0].is_doc(), true);
+    EXPECT_EQ(r[0].is_map(), true);
+    EXPECT_EQ(r[0].is_seq(), false);
+    EXPECT_EQ(r[0].num_children(), 2u);
+    EXPECT_EQ(r[0]["a"].is_keyval(), true);
+    EXPECT_EQ(r[0]["c"].is_keyval(), true);
+    EXPECT_EQ(r[0]["a"].val(), "b");
+    EXPECT_EQ(r[0]["c"].val(), "d");
+}
+
+
+TEST(set_root_as_stream, root_is_seq)
+{
+    Tree t = parse(R"([a, b, c, d])");
+    NodeRef r = t.rootref();
+    EXPECT_EQ(r.is_stream(), false);
+    EXPECT_EQ(r.is_doc(), false);
+    EXPECT_EQ(r.is_map(), false);
+    EXPECT_EQ(r.is_seq(), true);
+    EXPECT_EQ(r.num_children(), 4u);
+    print_tree(t);
+    std::cout << t;
+    t.set_root_as_stream();
+    print_tree(t);
+    std::cout << t;
+    EXPECT_EQ(r.is_stream(), true);
+    EXPECT_EQ(r.is_doc(), false);
+    EXPECT_EQ(r.is_map(), false);
+    EXPECT_EQ(r.is_seq(), true);
+    EXPECT_EQ(r.num_children(), 1u);
+    EXPECT_EQ(r[0].is_doc(), true);
+    EXPECT_EQ(r[0].is_map(), false);
+    EXPECT_EQ(r[0].is_seq(), true);
+    EXPECT_EQ(r[0].num_children(), 4u);
+    EXPECT_EQ(r[0][0].val(), "a");
+    EXPECT_EQ(r[0][1].val(), "b");
+    EXPECT_EQ(r[0][2].val(), "c");
+    EXPECT_EQ(r[0][3].val(), "d");
+}
+
+TEST(set_root_as_stream, root_is_docseq)
+{
+    Tree t = parse(R"([a, b, c, d])");
+    t._p(t.root_id())->m_type.add(DOC);
+    NodeRef r = t.rootref();
+    EXPECT_EQ(r.is_stream(), false);
+    EXPECT_EQ(r.is_doc(), true);
+    EXPECT_EQ(r.is_map(), false);
+    EXPECT_EQ(r.is_seq(), true);
+    EXPECT_EQ(r.num_children(), 4u);
+    print_tree(t);
+    std::cout << t;
+    t.set_root_as_stream();
+    print_tree(t);
+    std::cout << t;
+    EXPECT_EQ(r.is_stream(), true);
+    EXPECT_EQ(r.is_doc(), false);
+    EXPECT_EQ(r.is_map(), false);
+    EXPECT_EQ(r.is_seq(), true);
+    EXPECT_EQ(r.num_children(), 1u);
+    EXPECT_EQ(r[0].is_doc(), true);
+    EXPECT_EQ(r[0].is_map(), false);
+    EXPECT_EQ(r[0].is_seq(), true);
+    EXPECT_EQ(r[0].num_children(), 4u);
+    EXPECT_EQ(r[0][0].val(), "a");
+    EXPECT_EQ(r[0][1].val(), "b");
+    EXPECT_EQ(r[0][2].val(), "c");
+    EXPECT_EQ(r[0][3].val(), "d");
+}
+
+TEST(set_root_as_stream, root_is_seqmap)
+{
+    Tree t = parse(R"([{a: b, c: d}, {e: e, f: f}, {g: g, h: h}, {i: i, j: j}])");
+    NodeRef r = t.rootref();
+    EXPECT_EQ(r.is_stream(), false);
+    EXPECT_EQ(r.is_doc(), false);
+    EXPECT_EQ(r.is_map(), false);
+    EXPECT_EQ(r.is_seq(), true);
+    EXPECT_EQ(r.num_children(), 4u);
+    print_tree(t);
+    std::cout << t;
+    t.set_root_as_stream();
+    print_tree(t);
+    std::cout << t;
+    EXPECT_EQ(r.is_stream(), true);
+    EXPECT_EQ(r.is_doc(), false);
+    EXPECT_EQ(r.is_map(), false);
+    EXPECT_EQ(r.is_seq(), true);
+    EXPECT_EQ(r.num_children(), 1u);
+    EXPECT_EQ(r[0].is_doc(), true);
+    EXPECT_EQ(r[0].is_map(), false);
+    EXPECT_EQ(r[0].is_seq(), true);
+    EXPECT_EQ(r[0].num_children(), 4u);
+    EXPECT_EQ(r[0][0].is_map(), true);
+    EXPECT_EQ(r[0][1].is_map(), true);
+    EXPECT_EQ(r[0][2].is_map(), true);
+    EXPECT_EQ(r[0][3].is_map(), true);
+    EXPECT_EQ(r[0][0]["a"].val(), "b");
+    EXPECT_EQ(r[0][0]["c"].val(), "d");
+    EXPECT_EQ(r[0][1]["e"].val(), "e");
+    EXPECT_EQ(r[0][1]["f"].val(), "f");
+    EXPECT_EQ(r[0][2]["g"].val(), "g");
+    EXPECT_EQ(r[0][2]["h"].val(), "h");
+    EXPECT_EQ(r[0][3]["i"].val(), "i");
+    EXPECT_EQ(r[0][3]["j"].val(), "j");
+}
+
+TEST(set_root_as_stream, root_is_mapseq)
+{
+    Tree t = parse(R"({a: [0, 1, 2], b: [3, 4, 5], c: [6, 7, 8]})");
+    NodeRef r = t.rootref();
+    EXPECT_EQ(r.is_stream(), false);
+    EXPECT_EQ(r.is_doc(), false);
+    EXPECT_EQ(r.is_map(), true);
+    EXPECT_EQ(r.is_seq(), false);
+    EXPECT_EQ(r.num_children(), 3u);
+    print_tree(t);
+    std::cout << t;
+    t.set_root_as_stream();
+    print_tree(t);
+    std::cout << t;
+    EXPECT_EQ(r.is_stream(), true);
+    EXPECT_EQ(r.is_doc(), false);
+    EXPECT_EQ(r.is_map(), false);
+    EXPECT_EQ(r.is_seq(), true);
+    EXPECT_EQ(r.num_children(), 1u);
+    EXPECT_EQ(r[0].is_doc(), true);
+    EXPECT_EQ(r[0].is_map(), true);
+    EXPECT_EQ(r[0].is_seq(), false);
+    EXPECT_EQ(r[0].num_children(), 3u);
+    EXPECT_EQ(r[0]["a"].is_seq(), true);
+    EXPECT_EQ(r[0]["b"].is_seq(), true);
+    EXPECT_EQ(r[0]["c"].is_seq(), true);
+    EXPECT_EQ(r[0]["a"][0].val(), "0");
+    EXPECT_EQ(r[0]["a"][1].val(), "1");
+    EXPECT_EQ(r[0]["a"][2].val(), "2");
+    EXPECT_EQ(r[0]["b"][0].val(), "3");
+    EXPECT_EQ(r[0]["b"][1].val(), "4");
+    EXPECT_EQ(r[0]["b"][2].val(), "5");
+    EXPECT_EQ(r[0]["c"][0].val(), "6");
+    EXPECT_EQ(r[0]["c"][1].val(), "7");
+    EXPECT_EQ(r[0]["c"][2].val(), "8");
+}
+
+TEST(set_root_as_stream, root_is_docval)
+{
+    Tree t;
+    NodeRef r = t.rootref();
+    r.set_type(DOCVAL);
+    r.set_val("bar");
+    r.set_val_tag("<!foo>");
+    EXPECT_EQ(r.is_stream(), false);
+    EXPECT_EQ(r.is_doc(), true);
+    EXPECT_EQ(r.is_map(), false);
+    EXPECT_EQ(r.is_seq(), false);
+    EXPECT_EQ(r.is_val(), true);
+    EXPECT_EQ(r.has_val_tag(), true);
+    EXPECT_EQ(r.val_tag(), "<!foo>");
+    EXPECT_EQ(r.num_children(), 0u);
+    print_tree(t);
+    std::cout << t;
+    t.set_root_as_stream();
+    print_tree(t);
+    std::cout << t;
+    EXPECT_EQ(r.is_stream(), true);
+    EXPECT_EQ(r.is_doc(), false);
+    EXPECT_EQ(r.is_map(), false);
+    EXPECT_EQ(r.is_seq(), true);
+    EXPECT_EQ(r.is_val(), false);
+    ASSERT_EQ(r.num_children(), 1u);
+    EXPECT_EQ(r[0].is_stream(), false);
+    EXPECT_EQ(r[0].is_doc(), true);
+    EXPECT_EQ(r[0].is_map(), false);
+    EXPECT_EQ(r[0].is_seq(), false);
+    EXPECT_EQ(r[0].is_val(), true);
+    EXPECT_EQ(r[0].has_val_tag(), true);
+    EXPECT_EQ(r[0].val_tag(), "<!foo>");
+    EXPECT_EQ(r[0].num_children(), 0u);
 }
 
 

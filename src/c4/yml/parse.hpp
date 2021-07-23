@@ -151,9 +151,13 @@ private:
     bool  _handle_seq_expl();
     bool  _handle_seq_impl();
     bool  _handle_top();
+    bool  _handle_types();
     bool  _handle_key_anchors_and_refs();
     bool  _handle_val_anchors_and_refs();
-    bool  _handle_types();
+    void  _move_val_tag_to_key_tag();
+    void  _move_key_tag2_to_key_tag();
+    void  _move_val_anchor_to_key_anchor();
+    void  _move_key_anchor_to_val_anchor();
 
     void  _push_level(bool explicit_flow_chars = false);
     void  _pop_level();
@@ -161,6 +165,7 @@ private:
     void  _start_unk(bool as_child=true);
 
     void  _start_map(bool as_child=true);
+    void  _start_map_unk(bool as_child);
     void  _stop_map();
 
     void  _start_seq(bool as_child=true);
@@ -208,7 +213,7 @@ private:
         RKEY = 0x01 <<  6,   ///< reading a scalar as key
         RVAL = 0x01 <<  7,   ///< reading a scalar as val
         RNXT = 0x01 <<  8,   ///< read next val or keyval
-        SSCL = 0x01 <<  9,   ///< there's a scalar stored
+        SSCL = 0x01 <<  9,   ///< there's a stored scalar
         RSET = 0x01 << 10,   ///< the (implicit) map being read is a !!set. @see https://yaml.org/type/set.html
         NDOC = 0x01 << 11,   ///< no document mode. a document has ended and another has not started yet.
         //! reading an implicit map nested in an explicit seq.
@@ -263,7 +268,7 @@ private:
         size_t       indref;
 
         State() : flags(), level(), node_id(), scalar(), scalar_col(), pos(), line_contents(), indref() {}
-        
+
         void reset(const char *file, size_t node_id_)
         {
             flags = RUNK|RTOP;
@@ -300,6 +305,10 @@ private:
     {
         csubstr r = m_state->line_contents.rem;
         return r.empty() || r.begins_with(' ', r.len);
+    }
+    inline bool _token_is_from_this_line(csubstr token) const
+    {
+        return token.is_sub(m_state->line_contents.full);
     }
 
     inline NodeData * node(State const* s) const { return m_tree->get(s->node_id); }
@@ -344,10 +353,17 @@ private:
     detail::stack<State> m_stack;
     State * m_state;
 
+    size_t  m_key_tag_indentation;
+    size_t  m_key_tag2_indentation;
     csubstr m_key_tag;
+    csubstr m_key_tag2;
+    size_t  m_val_tag_indentation;
     csubstr m_val_tag;
 
+    bool    m_key_anchor_was_before;
+    size_t  m_key_anchor_indentation;
     csubstr m_key_anchor;
+    size_t  m_val_anchor_indentation;
     csubstr m_val_anchor;
 
 };

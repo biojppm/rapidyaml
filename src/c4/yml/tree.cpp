@@ -11,6 +11,13 @@ C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4296/*expression is always 'boolean_value'*/)
 namespace c4 {
 namespace yml {
 
+csubstr normalize_tag(csubstr tag)
+{
+    YamlTag_e t = to_tag(tag);
+    if(t != TAG_NONE)
+        return from_tag(t);
+    return tag;
+}
 
 YamlTag_e to_tag(csubstr tag)
 {
@@ -20,6 +27,13 @@ YamlTag_e to_tag(csubstr tag)
         return TAG_NONE;
     else if(tag.begins_with("tag:yaml.org,2002:"))
         tag = tag.sub(csubstr("tag:yaml.org,2002:").len);
+    else if(tag.begins_with("<tag:yaml.org,2002:"))
+    {
+        tag = tag.sub(csubstr("<tag:yaml.org,2002:").len);
+        if(!tag.len)
+            return TAG_NONE;
+        tag = tag.offs(0, 1);
+    }
 
     if(tag == "map")
         return TAG_MAP;
@@ -53,6 +67,46 @@ YamlTag_e to_tag(csubstr tag)
     return TAG_NONE;
 }
 
+csubstr from_tag(YamlTag_e tag)
+{
+    switch(tag)
+    {
+    case TAG_MAP:
+        return {"!!map"};
+    case TAG_OMAP:
+        return {"!!omap"};
+    case TAG_PAIRS:
+        return {"!!pairs"};
+    case TAG_SET:
+        return {"!!set"};
+    case TAG_SEQ:
+        return {"!!seq"};
+    case TAG_BINARY:
+        return {"!!binary"};
+    case TAG_BOOL:
+        return {"!!bool"};
+    case TAG_FLOAT:
+        return {"!!float"};
+    case TAG_INT:
+        return {"!!int"};
+    case TAG_MERGE:
+        return {"!!merge"};
+    case TAG_NULL:
+        return {"!!null"};
+    case TAG_STR:
+        return {"!!str"};
+    case TAG_TIMESTAMP:
+        return {"!!timestamp"};
+    case TAG_VALUE:
+        return {"!!value"};
+    case TAG_YAML:
+        return {"!!yaml"};
+    case TAG_NONE:
+        return {""};
+    }
+    return {""};
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -66,12 +120,6 @@ const char* NodeType::type_str(NodeType_e ty)
         return "KEYVAL";
     case VAL:
         return "VAL";
-    case DOCSEQ:
-        return "DOCSEQ";
-    case DOCMAP:
-        return "DOCMAP";
-    case DOCVAL:
-        return "DOCVAL";
     case MAP:
         return "MAP";
     case SEQ:
@@ -80,6 +128,12 @@ const char* NodeType::type_str(NodeType_e ty)
         return "KEYMAP";
     case KEYSEQ:
         return "KEYSEQ";
+    case DOCSEQ:
+        return "DOCSEQ";
+    case DOCMAP:
+        return "DOCMAP";
+    case DOCVAL:
+        return "DOCVAL";
     case DOC:
         return "DOC";
     case STREAM:
@@ -87,9 +141,29 @@ const char* NodeType::type_str(NodeType_e ty)
     case NOTYPE:
         return "NOTYPE";
     default:
-        if(ty & (KEYREF|VALREF))
-            return "REF";
-        return "(unknown?)";
+        if((ty & KEYVAL) == KEYVAL)
+            return "KEYVAL***";
+        if((ty & KEYMAP) == KEYMAP)
+            return "KEYMAP***";
+        if((ty & KEYSEQ) == KEYSEQ)
+            return "KEYSEQ***";
+        if((ty & DOCSEQ) == DOCSEQ)
+            return "DOCSEQ***";
+        if((ty & DOCMAP) == DOCMAP)
+            return "DOCMAP***";
+        if((ty & DOCVAL) == DOCVAL)
+            return "DOCVAL***";
+        if(ty & KEY)
+            return "KEY***";
+        if(ty & VAL)
+            return "VAL***";
+        if(ty & MAP)
+            return "MAP***";
+        if(ty & SEQ)
+            return "SEQ***";
+        if(ty & DOC)
+            return "DOC***";
+        return "(unk)";
     }
 }
 
@@ -808,6 +882,42 @@ size_t Tree::move(Tree *src, size_t node, size_t new_parent, size_t after)
     return dup;
 }
 
+void Tree::set_root_as_stream()
+{
+    size_t root = root_id();
+    if(is_stream(root))
+        return;
+    // don't use _add_flags() because it's checked and will fail
+    if(!has_children(root))
+    {
+        if(is_val(root))
+        {
+            _p(root)->m_type.add(SEQ);
+            size_t next_doc = append_child(root);
+            _copy_props_wo_key(next_doc, root);
+            _p(next_doc)->m_type.add(DOC);
+            _p(next_doc)->m_type.rem(SEQ);
+        }
+        _p(root)->m_type = STREAM;
+        return;
+    }
+    RYML_ASSERT(!has_key(root));
+    size_t next_doc = append_child(root);
+    _copy_props_wo_key(next_doc, root);
+    _add_flags(next_doc, DOC);
+    for(size_t prev = NONE, ch = first_child(root), next = next_sibling(ch); ch != NONE; )
+    {
+        if(ch == next_doc)
+            break;
+        move(ch, next_doc, prev);
+        prev = ch;
+        ch = next;
+        next = next_sibling(next);
+    }
+    _p(root)->m_type = STREAM;
+}
+
+
 //-----------------------------------------------------------------------------
 size_t Tree::duplicate(size_t node, size_t parent, size_t after)
 {
@@ -1079,7 +1189,11 @@ struct ReferenceResolver
 
     size_t count_anchors_and_refs(size_t n)
     {
-        size_t c = t->is_anchor_or_ref(n);
+        size_t c = 0;
+        c += t->has_key_anchor(n);
+        c += t->has_val_anchor(n);
+        c += t->is_key_ref(n);
+        c += t->is_val_ref(n);
         for(size_t ch = t->first_child(n); ch != NONE; ch = t->next_sibling(ch))
             c += count_anchors_and_refs(ch);
         return c;
@@ -1100,29 +1214,25 @@ struct ReferenceResolver
                 }
                 return;
             }
-            else if(t->is_val_ref(n))
+            if(t->is_key_ref(n)) // insert key refs BEFORE inserting val refs
             {
-                C4_CHECK(t->has_val(n));
-                refs.push({VALREF, n, npos, npos, NONE, NONE});
-            }
-            else if(t->is_key_ref(n))
-            {
-                C4_CHECK(t->has_key(n));
+                RYML_CHECK(t->has_key(n));
                 refs.push({KEYREF, n, npos, npos, NONE, NONE});
             }
-            else
+            if(t->is_val_ref(n))
             {
-                C4_NEVER_REACH();
+                RYML_CHECK(t->has_val(n));
+                refs.push({VALREF, n, npos, npos, NONE, NONE});
             }
         }
         if(t->has_key_anchor(n))
         {
-            C4_CHECK(t->has_key(n));
+            RYML_CHECK(t->has_key(n));
             refs.push({KEYANCH, n, npos, npos, NONE, NONE});
         }
-        else if(t->has_val_anchor(n))
+        if(t->has_val_anchor(n))
         {
-            C4_CHECK(t->has_val(n) || t->is_container(n));
+            RYML_CHECK(t->has_val(n) || t->is_container(n));
             refs.push({VALANCH, n, npos, npos, NONE, NONE});
         }
         for(size_t ch = t->first_child(n); ch != NONE; ch = t->next_sibling(ch))
@@ -1141,7 +1251,7 @@ struct ReferenceResolver
             RYML_ASSERT(t->has_val(ra->node));
             refname = t->val(ra->node);
         }
-        else
+        else // if(ra->type.is_key_ref())
         {
             RYML_ASSERT(t->has_key(ra->node));
             refname = t->key(ra->node);
@@ -1247,7 +1357,17 @@ void Tree::resolve()
             }
             else
             {
-                duplicate_contents(rd.target, rd.node);
+                RYML_ASSERT(rd.type.is_val_ref());
+                if(has_key_anchor(rd.target) && key_anchor(rd.target) == val_ref(rd.node))
+                {
+                    RYML_CHECK(!is_container(rd.target));
+                    RYML_CHECK(has_val(rd.target));
+                    _p(rd.node)->m_val.scalar = key(rd.target);
+                }
+                else
+                {
+                    duplicate_contents(rd.target, rd.node);
+                }
             }
         }
     }
@@ -1257,12 +1377,8 @@ void Tree::resolve()
     {
         rem_anchor_ref(ar.node);
         if(ar.parent_ref != NONE)
-        {
             if(type(ar.parent_ref) != NOTYPE)
-            {
                 remove(ar.parent_ref);
-            }
-        }
     }
 
 }

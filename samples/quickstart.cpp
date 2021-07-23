@@ -71,6 +71,7 @@ void sample_docs();                 ///< deal with YAML docs
 void sample_error_handler();        ///< set a custom error handler
 void sample_global_allocator();     ///< set a global allocator for ryml
 void sample_per_tree_allocator();   ///< set per-tree allocators
+bool report_check(const char *file, int line, const char *predicate, bool result);
 int  report_checks();
 
 int main()
@@ -108,34 +109,9 @@ int main()
 
 //-----------------------------------------------------------------------------
 
-static int num_checks = 0;
-static int num_failed_checks = 0;
-
 // a quick'n'dirty assertion to verify a predicate
 #define CHECK(predicate)                                  \
-    do                                                    \
-    {                                                     \
-        ++num_checks;                                     \
-        const char *C4_XCAT(__result, __LINE__) = "OK! "; \
-        if(!(predicate)) /* eval only once */             \
-        {                                                 \
-            C4_XCAT(__result, __LINE__) = "ERROR: ";      \
-            ++num_failed_checks;                          \
-        }                                                 \
-        std::cout << __FILE__ << ':' << __LINE__ <<  ": " \
-                  <<  C4_XCAT(__result, __LINE__)         \
-                  <<  #predicate << std::endl;            \
-    } while(0)
-
-int report_checks()
-{
-    std::cout << "Completed " << num_checks << " checks." << std::endl;
-    if(num_failed_checks)
-        std::cerr << "ERROR: " << num_failed_checks << '/' << num_checks << " checks failed." << std::endl;
-    else
-        std::cout << "SUCCESS!" << std::endl;
-    return num_failed_checks;
-}
+    if(!report_check(__FILE__, __LINE__, #predicate, (predicate))) { C4_DEBUG_BREAK(); }
 
 
 //-----------------------------------------------------------------------------
@@ -3109,8 +3085,7 @@ bill_to: &id001
   state: KS
 ship_to: *id001
 &keyref key: &valref val
-*valref: key
-val is from: *keyref
+*valref: *keyref
 )";
 
     std::string resolved = R"(base:
@@ -3135,7 +3110,6 @@ ship_to:
   state: KS
 key: val
 val: key
-val is from: val
 )";
 
     ryml::Tree tree = ryml::parse(ryml::to_csubstr(unresolved));
@@ -3146,10 +3120,10 @@ val is from: val
     CHECK(   tree["base"].val_anchor() == "base");
     CHECK(   tree["key"].key_anchor() == "keyref");
     CHECK(   tree["key"].val_anchor() == "valref");
+    CHECK(   tree["*valref"].is_key_ref());
+    CHECK(   tree["*valref"].is_val_ref());
     CHECK(   tree["*valref"].key_ref() == "valref");
-    CHECK( ! tree["*valref"].is_val_ref());
-    CHECK( ! tree["val is from"].is_key_ref());
-    CHECK(   tree["val is from"].is_val_ref());
+    CHECK(   tree["*valref"].val_ref() == "keyref");
 
     // to resolve references, simply call tree.resolve(),
     // which will perform the reference instantiations:
@@ -3163,8 +3137,6 @@ val is from: val
     CHECK( ! tree["key"].has_val_anchor());
     CHECK( ! tree["val"].is_key_ref()); // notice *valref is now turned to val
     CHECK( ! tree["val"].is_val_ref()); // notice *valref is now turned to val
-    CHECK( ! tree["val is from"].is_key_ref());
-    CHECK( ! tree["val is from"].is_val_ref());
 }
 
 
@@ -3634,4 +3606,35 @@ void sample_per_tree_allocator()
 
     CHECK(mrp.num_allocs == 0); // YAML depth not large enough to warrant a parser allocation
     CHECK(mr1.alloc_size <= mr2.alloc_size); // because yml2 has more nodes
+}
+
+
+//-----------------------------------------------------------------------------
+
+static int num_checks = 0;
+static int num_failed_checks = 0;
+
+
+int report_checks()
+{
+    std::cout << "Completed " << num_checks << " checks." << std::endl;
+    if(num_failed_checks)
+        std::cout << "ERROR: " << num_failed_checks << '/' << num_checks << " checks failed." << std::endl;
+    else
+        std::cout << "SUCCESS!" << std::endl;
+    return num_failed_checks;
+}
+
+
+bool report_check(const char *file, int line, const char *predicate, bool result)
+{
+    ++num_checks;
+    const char *msg = "OK! ";
+    if(!result)
+    {
+        ++num_failed_checks;
+        msg = "ERROR: ";
+    }
+    std::cout << file << ':' << line << ": " << msg << predicate << std::endl;
+    return result;
 }

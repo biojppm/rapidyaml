@@ -66,6 +66,8 @@ typedef enum : uint8_t {
 
 
 YamlTag_e to_tag(csubstr tag);
+csubstr from_tag(YamlTag_e tag);
+csubstr normalize_tag(csubstr tag);
 
 
 
@@ -802,6 +804,29 @@ public:
      * @return the index of the new node in the destination tree */
     size_t move(Tree * src, size_t node, size_t new_parent, size_t after);
 
+    /** ensure the first node is a stream. Eg, change this tree
+     *
+     *  DOCMAP
+     *    MAP
+     *      KEYVAL
+     *      KEYVAL
+     *    SEQ
+     *      VAL
+     *
+     * to
+     *
+     *  STREAM
+     *    DOCMAP
+     *      MAP
+     *        KEYVAL
+     *        KEYVAL
+     *      SEQ
+     *        VAL
+     *
+     * If the root is already a stream, this is a no-op.
+     */
+    void set_root_as_stream();
+
 public:
 
     /** recursively duplicate a node from this tree into a new parent,
@@ -903,9 +928,7 @@ public:
     substr alloc_arena(size_t sz)
     {
         if(sz >= arena_slack())
-        {
             _grow_arena(sz - arena_slack());
-        }
         substr s = _request_span(sz);
         return s;
     }
@@ -1065,9 +1088,8 @@ public:
             auto pid = parent(node); C4_UNUSED(pid);
             RYML_ASSERT(is_map(pid));
         }
-        if(f & VAL)
+        if((f & VAL) && !is_root(node))
         {
-            RYML_ASSERT(!is_root(node));
             auto pid = parent(node); C4_UNUSED(pid);
             RYML_ASSERT(is_map(pid) || is_seq(pid));
         }
@@ -1097,7 +1119,7 @@ public:
     void _set_val(size_t node, csubstr const& val, type_bits more_flags=0)
     {
         RYML_ASSERT(num_children(node) == 0);
-        RYML_ASSERT( ! is_container(node));
+        RYML_ASSERT(!is_seq(node) && !is_map(node));
         _p(node)->m_val.scalar = val;
         _add_flags(node, VAL|more_flags);
     }

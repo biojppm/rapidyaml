@@ -3,6 +3,30 @@
 namespace c4 {
 namespace yml {
 
+TEST(weird_anchor_cases_from_suite, 2SXE)
+{
+    Tree t = parse(R"(&a: key: &a value
+foo:
+  *a:
+)");
+    t.resolve();
+    #ifdef THIS_IS_A_KNOWN_LIMITATION // since we do not allow colon in anchors, this would fail:
+    EXPECT_EQ(emitrs<std::string>(t), R"(key: value
+foo: key
+)");
+    #endif
+    // so we get this instead:
+    EXPECT_EQ(emitrs<std::string>(t), R"(key: value
+foo:
+  value: ~
+)");
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 //     SIMPLE_ANCHOR/YmlTestCase.parse_using_ryml/0
 
 C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
@@ -121,10 +145,79 @@ TEST(simple_anchor, resolve_works_on_an_empty_tree)
 
 TEST(simple_anchor, resolve_works_on_a_tree_without_refs)
 {
-    auto t = parse("[a, b, c, d, e, f]");
-    auto size_before = t.size();
+    Tree t = parse("[a, b, c, d, e, f]");
+    size_t size_before = t.size();
     t.resolve();
     EXPECT_EQ(t.size(), size_before);
+}
+
+TEST(simple_anchor, resolve_works_on_keyrefvalref)
+{
+    Tree t = parse("{&a a: &b b, *b: *a}");
+    EXPECT_EQ(t["a"].has_key_anchor(), true);
+    EXPECT_EQ(t["a"].has_val_anchor(), true);
+    EXPECT_EQ(t["a"].key_anchor(), "a");
+    EXPECT_EQ(t["a"].val_anchor(), "b");
+    EXPECT_EQ(t["*b"].is_key_ref(), true);
+    EXPECT_EQ(t["*b"].is_val_ref(), true);
+    EXPECT_EQ(t["*b"].key_ref(), "b");
+    EXPECT_EQ(t["*b"].val_ref(), "a");
+    EXPECT_EQ(emitrs<std::string>(t), R"(&a a: &b b
+*b: *a
+)");
+    t.resolve();
+    EXPECT_EQ(t["a"].val(), "b");
+    EXPECT_EQ(t["b"].val(), "a");
+    EXPECT_EQ(emitrs<std::string>(t), R"(a: b
+b: a
+)");
+}
+
+TEST(simple_anchor, anchors_of_first_child_key_implicit)
+{
+    csubstr yaml = R"(&anchor0
+&anchor4 top4:
+  key4: scalar4
+top5: &anchor5
+  key5: scalar5
+top6:
+  &anchor6 key6: scalar6
+top61:
+  &anchor61 key61:
+      scalar61
+top62:
+  &anchor62
+  key62:
+      scalar62
+)";
+    Tree t = parse(yaml);
+    EXPECT_EQ(t.rootref().has_val_anchor(), true);
+    EXPECT_EQ(t.rootref().val_anchor(), "anchor0");
+    EXPECT_EQ(t["top4"].has_key_anchor(), true);
+    EXPECT_EQ(t["top4"].has_val_anchor(), false);
+    EXPECT_EQ(t["top4"].key_anchor(), "anchor4");
+    EXPECT_EQ(t["top4"]["key4"].val(), "scalar4");
+    EXPECT_EQ(t["top4"]["key4"].has_key_anchor(), false);
+    EXPECT_EQ(t["top5"].has_key_anchor(), false);
+    EXPECT_EQ(t["top5"].has_val_anchor(), true);
+    EXPECT_EQ(t["top5"].val_anchor(), "anchor5");
+    EXPECT_EQ(t["top5"]["key5"].val(), "scalar5");
+    EXPECT_EQ(t["top5"]["key5"].has_key_anchor(), false);
+    EXPECT_EQ(t["top6"].has_key_anchor(), false);
+    EXPECT_EQ(t["top6"].has_val_anchor(), false);
+    EXPECT_EQ(t["top6"]["key6"].val(), "scalar6");
+    ASSERT_EQ(t["top6"]["key6"].has_key_anchor(), true);
+    EXPECT_EQ(t["top6"]["key6"].key_anchor(), "anchor6");
+    EXPECT_EQ(t["top61"].has_key_anchor(), false);
+    EXPECT_EQ(t["top61"].has_val_anchor(), false);
+    EXPECT_EQ(t["top61"]["key61"].val(), "scalar61");
+    ASSERT_EQ(t["top61"]["key61"].has_key_anchor(), true);
+    EXPECT_EQ(t["top61"]["key61"].key_anchor(), "anchor61");
+    EXPECT_EQ(t["top62"].has_key_anchor(), false);
+    EXPECT_EQ(t["top62"].has_val_anchor(), true);
+    EXPECT_EQ(t["top62"].val_anchor(), "anchor62");
+    EXPECT_EQ(t["top62"]["key62"].val(), "scalar62");
+    ASSERT_EQ(t["top62"]["key62"].has_key_anchor(), false);
 }
 
 
@@ -144,7 +237,13 @@ TEST(simple_anchor, resolve_works_on_a_tree_without_refs)
     "merge example, resolved",\
     "tagged doc with anchors 9KAX",\
     "github131 1, unresolved",\
-    "github131 1, resolved"
+    "github131 1, resolved",\
+    "anchors+refs on key+val, unresolved",\
+    "anchors+refs on key+val, resolved",\
+    "ambiguous anchor, unresolved",\
+    "ambiguous anchor, resolved",\
+    "ambiguous anchor in seq, unresolved",\
+    "ambiguous anchor in seq, resolved"
 
 
 CASE_GROUP(SIMPLE_ANCHOR)
@@ -675,8 +774,7 @@ L{
          N("*kref", AR(KEYREF, "kref"), "cc"),
          N("*kvref", AR(KEYREF, "kvref"), "cc"),
     })
-}
-),
+}),
 
 C("github131 1, resolved", RESOLVE_REFS,
 R"(
@@ -694,8 +792,181 @@ L{
     N("aa", "bb"),
     N("aaa", "bbb"),
     N("foo", L{N("aa", "cc"), N("bbb", "cc")})
-}
-),
+}),
+
+
+C("anchors+refs on key+val, unresolved",
+R"({&a0 a0: &b0 b0, *b0: *a0})",
+L{
+    N("a0", AR(KEYANCH, "a0"), "b0", AR(VALANCH, "b0")),
+    N(AR(KEYREF, "*b0"), AR(VALREF, "*a0")),
+}),
+
+C("anchors+refs on key+val, resolved", RESOLVE_REFS,
+R"({&a0 a0: &b0 b0, *b0: *a0})",
+L{
+    N("a0", "b0"),
+    N("b0", "a0"),
+}),
+
+
+C("ambiguous anchor, unresolved",
+R"(&rootanchor
+&a0 a0: &b0 b0
+*b0: *a0
+map1:
+  &a1 a1: &b1 b1  # &a1 must be a KEY anchor on a1, not a VAL anchor on map1
+  *b1: *a1
+map2:
+  *b0: *a0  # ensure the anchor is enough to establish the indentation
+  &a2 a2: &b2 b2
+  *b2: *a2
+map3: &a3   # &a3 must be a VAL anchor on map3, not a KEY anchor on a3
+  a3: &b3 b3
+  *b3: *b0
+map4: *a0
+map5:
+  &map5
+  &a5 a5: &b5 b5
+  *b5: *a5
+map6:
+  &map6
+  a6: &b6 b6
+  *b6: *b6
+)",
+N(L{
+    N("a0", AR(KEYANCH, "a0"), "b0", AR(VALANCH, "b0")),
+    N(AR(KEYREF, "*b0"), AR(VALREF, "*a0")),
+    N("map1", L{N("a1", AR(KEYANCH, "a1"), "b1", AR(VALANCH, "b1")), N(AR(KEYREF, "*b1"), AR(VALREF, "*a1")),}),
+    N("map2", L{N(AR(KEYREF, "*b0"), AR(VALREF, "*a0")), N("a2", AR(KEYANCH, "a2"), "b2", AR(VALANCH, "b2")), N(AR(KEYREF, "*b2"), AR(VALREF, "*a2")),}),
+    N("map3", L{N("a3", "b3", AR(VALANCH, "b3")), N(AR(KEYREF, "*b3"), AR(VALREF, "*b0")),}, AR(VALANCH, "a3")),
+    N("map4", "*a0", AR(VALREF, "a0")),
+    N("map5", L{N("a5", AR(KEYANCH, "a5"), "b5", AR(VALANCH, "b5")), N(AR(KEYREF, "*b5"), AR(VALREF, "*a5")),}, AR(VALANCH, "map5")),
+    N("map6", L{N("a6", "b6", AR(VALANCH, "b6")), N(AR(KEYREF, "*b6"), AR(VALREF, "*b6")),}, AR(VALANCH, "map6")),
+}, AR(VALANCH, "rootanchor"))),
+
+C("ambiguous anchor, resolved", RESOLVE_REFS,
+R"(
+&a0 a0: &b0 b0
+*b0: *a0
+map1:
+  &a1 a1: &b1 b1  # &a1 must be a KEY anchor on a1, not a VAL anchor on map1
+  *b1: *a1
+map2:
+  *b0: *a0  # ensure the anchor is enough to establish the indentation
+  &a2 a2: &b2 b2
+  *b2: *a2
+map3: &a3   # &a3 must be a VAL anchor on map3, not a KEY anchor on a3
+  a3: &b3 b3
+  *b3: *b0
+map4: *a0
+map5:
+  &map5
+  &a5 a5: &b5 b5
+  *b5: *a5
+map6:
+  &map6
+  a6: &b6 b6
+  *b6: *b6
+)",
+L{
+    N("a0", "b0"), N("b0", "a0"),
+    N("map1", L{N("a1", "b1"), N("b1", "a1"),}),
+    N("map2", L{N("b0", "a0"), N("a2", "b2"), N("b2", "a2"),}),
+    N("map3", L{N("a3", "b3"), N("b3", "b0"),}),
+    N("map4", "a0"),
+    N("map5", L{N("a5", "b5"), N("b5", "a5"),}),
+    N("map6", L{N("a6", "b6"), N("b6", "b6"),}),
+}),
+
+
+C("ambiguous anchor in seq, unresolved",
+R"(
+&seq
+- &a0
+  &a1 k1: v1
+  &a2 k2: v2
+  &a3 k3: v3
+- &a4 k4: v4
+  &a5 k5: v5
+  &a6 k6: v6
+- &a7
+  &a8 k8: v8
+- &a9
+  k10: v10
+- *a1: w1
+  *a2: w2
+  *a3: w3
+  *a4: w4
+  *a5: w5
+  *a6: w6
+  *a8: w8
+- *a0
+- *a7
+- *a9
+)",
+N(L{
+  N(L{N("k1", AR(KEYANCH, "a1"), "v1"), N("k2", AR(KEYANCH, "a2"), "v2"), N("k3", AR(KEYANCH, "a3"), "v3")}, AR(VALANCH, "a0")),
+  N(L{N("k4", AR(KEYANCH, "a4"), "v4"), N("k5", AR(KEYANCH, "a5"), "v5"), N("k6", AR(KEYANCH, "a6"), "v6")}),
+  N(L{N("k8", AR(KEYANCH, "a8"), "v8")}, AR(VALANCH, "a7")),
+  N(L{N("k10", "v10")}, AR(VALANCH, "a9")),
+  N(L{
+      N("*a1", AR(KEYREF, "*a1"), "w1"),
+      N("*a2", AR(KEYREF, "*a2"), "w2"),
+      N("*a3", AR(KEYREF, "*a3"), "w3"),
+      N("*a4", AR(KEYREF, "*a4"), "w4"),
+      N("*a5", AR(KEYREF, "*a5"), "w5"),
+      N("*a6", AR(KEYREF, "*a6"), "w6"),
+      N("*a8", AR(KEYREF, "*a8"), "w8"),
+  }),
+  N("*a0", AR(VALREF, "*a0")),
+  N("*a7", AR(VALREF, "*a7")),
+  N("*a9", AR(VALREF, "*a9")),
+}, AR(VALANCH, "seq"))),
+
+C("ambiguous anchor in seq, resolved", RESOLVE_REFS,
+R"(
+&seq
+- &a0
+  &a1 k1: v1
+  &a2 k2: v2
+  &a3 k3: v3
+- &a4 k4: v4
+  &a5 k5: v5
+  &a6 k6: v6
+- &a7
+  &a8 k8: v8
+- &a9
+  k10: v10
+- *a1: w1
+  *a2: w2
+  *a3: w3
+  *a4: w4
+  *a5: w5
+  *a6: w6
+  *a8: w8
+- *a0
+- *a7
+- *a9
+)",
+L{
+  N(L{N("k1", "v1"), N("k2", "v2"), N("k3", "v3")}),
+  N(L{N("k4", "v4"), N("k5", "v5"), N("k6", "v6")}),
+  N(L{N("k8", "v8")}),
+  N(L{N("k10", "v10")}),
+  N(L{
+      N("k1", "w1"),
+      N("k2", "w2"),
+      N("k3", "w3"),
+      N("k4", "w4"),
+      N("k5", "w5"),
+      N("k6", "w6"),
+      N("k8", "w8"),
+  }),
+  N(L{N("k1", AR(KEYANCH, "a1"), "v1"), N("k2", AR(KEYANCH, "a2"), "v2"), N("k3", AR(KEYANCH, "a3"), "v3")}),
+  N(L{N("k8", AR(KEYANCH, "a8"), "v8")}),
+  N(L{N("k10", "v10")}),
+}),
 
     )
 }

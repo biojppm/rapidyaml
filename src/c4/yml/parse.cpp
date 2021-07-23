@@ -32,56 +32,27 @@ namespace yml {
 
 static bool _is_scalar_next__runk(csubstr s)
 {
-    if(s.begins_with(": ") || s.begins_with_any("#,:{}[]%&") || s.begins_with("? ") || s == "-" || s.begins_with("- "))
-    {
-        return false;
-    }
-    return true;
+    return !(s.begins_with(": ") || s.begins_with_any("#,:{}[]%&") || s.begins_with("? ") || s == "-" || s.begins_with("- "));
 }
 
 static bool _is_scalar_next__rseq_rval(csubstr s)
 {
-    if(s.begins_with_any("[{!&") || s.begins_with("? "))
-    {
-        return false;
-    }
-    else if(s.begins_with("- ") || s == "-")
-    {
-        return false;
-    }
-    return true;
+    return !(s.begins_with_any("[{!&") || s.begins_with("? ") || s.begins_with("- ") || s == "-");
 }
 
 static bool _is_scalar_next__rseq_rnxt(csubstr s)
 {
-    if(s.begins_with("- "))
-    {
-        return false;
-    }
-    else if(s == "-")
-    {
-        return false;
-    }
-
-    return true;
+    return !(s.begins_with("- ") || s == "-");
 }
 
 static bool _is_scalar_next__rmap(csubstr s)
 {
-    if(s.begins_with(": ") || s.begins_with_any("#,!&") || s.begins_with("? "))
-    {
-        return false;
-    }
-    return true;
+    return !(s.begins_with(": ") || s.begins_with_any("#,!&") || s.begins_with("? "));
 }
 
 static bool _is_scalar_next__rmap_val(csubstr s)
 {
-    if(s.begins_with("- ") || s.begins_with_any("{[") || s == "-")
-    {
-        return false;
-    }
-    return true;
+    return !(s.begins_with("- ") || s.begins_with_any("{[") || s == "-");
 }
 
 static bool _is_doc_sep(csubstr s)
@@ -90,13 +61,9 @@ static bool _is_doc_sep(csubstr s)
     constexpr const csubstr ellipsis = "...";
     constexpr const csubstr whitesp = " \t";
     if(s.begins_with(dashes))
-    {
         return s == dashes || s.sub(3).begins_with_any(whitesp);
-    }
     else if(s.begins_with(ellipsis))
-    {
         return s == ellipsis || s.sub(3).begins_with_any(whitesp);
-    }
     return false;
 }
 
@@ -109,9 +76,16 @@ Parser::Parser(Allocator const& a)
     , m_tree()
     , m_stack(a)
     , m_state()
+    , m_key_tag_indentation(0)
+    , m_key_tag2_indentation(0)
     , m_key_tag()
+    , m_key_tag2()
+    , m_val_tag_indentation(0)
     , m_val_tag()
+    , m_key_anchor_was_before(false)
+    , m_key_anchor_indentation(0)
     , m_key_anchor()
+    , m_val_anchor_indentation(0)
     , m_val_anchor()
 {
     State st{};
@@ -123,18 +97,24 @@ Parser::Parser(Allocator const& a)
 void Parser::_reset()
 {
     while(m_stack.size() > 1)
-    {
         m_stack.pop();
-    }
+
     RYML_ASSERT(m_stack.size() == 1);
     m_stack.clear();
     m_stack.push({});
     m_state = &m_stack.top();
     m_state->reset(m_file.str, m_root_id);
 
+    m_key_tag_indentation = 0;
+    m_key_tag2_indentation = 0;
     m_key_tag.clear();
+    m_key_tag2.clear();
+    m_val_tag_indentation = 0;
     m_val_tag.clear();
+    m_key_anchor_was_before = false;
+    m_key_anchor_indentation = 0;
     m_key_anchor.clear();
+    m_val_anchor_indentation = 0;
     m_val_anchor.clear();
 }
 
@@ -170,10 +150,9 @@ void Parser::parse(csubstr file, substr buf, Tree *t, size_t node_id)
     {
         _scan_line();
         while( ! _finished_line())
-        {
             _handle_line();
-        }
-        if(_finished_file()) break; // it may have finished because of multiline blocks
+        if(_finished_file())
+            break; // it may have finished because of multiline blocks
         _line_ended();
     }
 
@@ -199,16 +178,12 @@ void Parser::_handle_line()
         if(has_any(EXPL))
         {
             if(_handle_seq_expl())
-            {
                 return;
-            }
         }
         else
         {
             if(_handle_seq_impl())
-            {
                 return;
-            }
         }
     }
     else if(has_any(RMAP))
@@ -216,30 +191,22 @@ void Parser::_handle_line()
         if(has_any(EXPL))
         {
             if(_handle_map_expl())
-            {
                 return;
-            }
         }
         else
         {
             if(_handle_map_impl())
-            {
                 return;
-            }
         }
     }
     else if(has_any(RUNK))
     {
         if(_handle_unk())
-        {
             return;
-        }
     }
 
     if(_handle_top())
-    {
         return;
-    }
 }
 
 
@@ -301,6 +268,7 @@ bool Parser::_handle_unk()
     if(rem.begins_with("- "))
     {
         _c4dbgpf("it's a seq (as_child=%d)", start_as_child);
+        _move_key_anchor_to_val_anchor();
         _push_level();
         _start_seq(start_as_child);
         _save_indentation();
@@ -310,6 +278,7 @@ bool Parser::_handle_unk()
     else if(rem == '-')
     {
         _c4dbgpf("it's a seq (as_child=%d)", start_as_child);
+        _move_key_anchor_to_val_anchor();
         _push_level();
         _start_seq(start_as_child);
         _save_indentation();
@@ -413,8 +382,8 @@ bool Parser::_handle_unk()
         }
         else if(rem.begins_with(": "))
         {
-            _c4dbgpf("got a \": \" -- it's a map (as_child=%d)", start_as_child);
-            _start_map(start_as_child); // wait for the val scalar to append the key-val pair
+            _c4dbgpf("got a ': ' -- it's a map (as_child=%d)", start_as_child);
+            _start_map_unk(start_as_child); // wait for the val scalar to append the key-val pair
             _line_progressed(2);
             /*if(rem == ": ")
             {
@@ -425,7 +394,7 @@ bool Parser::_handle_unk()
         else if(rem == ":")
         {
             _c4dbgpf("got a ':' -- it's a map (as_child=%d)", start_as_child);
-            _start_map(start_as_child); // wait for the val scalar to append the key-val pair
+            _start_map_unk(start_as_child); // wait for the val scalar to append the key-val pair
             _line_progressed(1);
             //_c4dbgp("map key opened a new line -- starting val scope as unknown");
             //_start_unk();
@@ -785,9 +754,7 @@ bool Parser::_handle_seq_impl()
     {
         // there can be empty values
         if(_handle_indentation())
-        {
             return true;
-        }
 
         csubstr s;
         bool is_quoted;
@@ -800,7 +767,8 @@ bool Parser::_handle_seq_impl()
             {
                 _c4dbgp("skipping whitespace...");
                 size_t skip = rem.first_not_of(' ');
-                if(skip == csubstr::npos) skip = rem.len; // maybe the line is just whitespace
+                if(skip == csubstr::npos)
+                    skip = rem.len; // maybe the line is just whitespace
                 _line_progressed(skip);
                 rem = rem.sub(skip);
             }
@@ -808,11 +776,30 @@ bool Parser::_handle_seq_impl()
             if(!rem.begins_with('#') && (rem.begins_with(": ") || rem.ends_with(':')))
             {
                 _c4dbgp("actually, the scalar is the first key of a map, and it opens a new scope");
+                if(m_key_anchor.empty())
+                    _move_val_anchor_to_key_anchor();
+                if(m_key_tag.empty())
+                    _move_val_tag_to_key_tag();
                 addrem_flags(RNXT, RVAL); // before _push_level! This prepares the current level for popping by setting it to RNXT
                 _push_level();
                 _start_map();
                 _store_scalar(s, is_quoted);
-                _set_indentation(m_state->scalar_col); // this is the column where the scalar starts
+                if(m_key_anchor.not_empty())
+                {
+                    _c4dbgpf("set indentation from anchor: %zu", m_key_anchor_indentation);
+                    _set_indentation(m_key_anchor_indentation); // this is the column where the anchor starts
+                }
+                else if(m_key_tag.not_empty())
+                {
+                    _c4dbgpf("set indentation from key tag: %zu", m_key_tag_indentation);
+                    _set_indentation(m_key_tag_indentation); // this is the column where the tag starts
+                }
+                else
+                {
+                    _c4dbgpf("set indentation from scalar: %zu", m_state->scalar_col);
+                    _set_indentation(m_state->scalar_col); // this is the column where the scalar starts
+                }
+                _move_key_tag2_to_key_tag();
                 addrem_flags(RVAL, RKEY);
                 _line_progressed(1);
             }
@@ -827,17 +814,13 @@ bool Parser::_handle_seq_impl()
         else if(rem.begins_with("- "))
         {
             if(_rval_dash_start_or_continue_seq())
-            {
                 _line_progressed(2);
-            }
             return true;
         }
         else if(rem == '-')
         {
             if(_rval_dash_start_or_continue_seq())
-            {
                 _line_progressed(1);
-            }
             return true;
         }
         else if(rem.begins_with('['))
@@ -1375,6 +1358,7 @@ bool Parser::_handle_map_impl()
                 addrem_flags(RKEY, RVAL); // before _push_level! This prepares the current level for popping by setting it to RNXT
                 _push_level();
                 _move_scalar_from_top();
+                _move_val_anchor_to_key_anchor();
                 _start_map();
                 _save_indentation(m_state->scalar_col);
                 addrem_flags(RVAL, RKEY);
@@ -1386,6 +1370,7 @@ bool Parser::_handle_map_impl()
                 addrem_flags(RKEY, RVAL); // before _push_level! This prepares the current level for popping by setting it to RNXT
                 _push_level();
                 _move_scalar_from_top();
+                _move_val_anchor_to_key_anchor();
                 _start_map();
                 _save_indentation(/*behind*/s.len);
                 addrem_flags(RVAL, RKEY);
@@ -1550,71 +1535,148 @@ csubstr Parser::_scan_ref()
     return ref;
 }
 
+
 //-----------------------------------------------------------------------------
+
 bool Parser::_handle_key_anchors_and_refs()
 {
     RYML_ASSERT(!has_any(RVAL));
-    csubstr rem = m_state->line_contents.rem;
+    const csubstr rem = m_state->line_contents.rem;
     if(rem.begins_with('&'))
     {
         _c4dbgp("found a key anchor!!!");
         csubstr anchor = rem.left_of(rem.first_of(' '));
         _line_progressed(anchor.len);
         anchor = anchor.sub(1); // skip the first character
-        if(!m_key_anchor.empty())
-        {
-            _c4dbgpf("move current key anchor to val slot: '%.*s'", _c4prsp(m_key_anchor));
-            if(!m_val_anchor.empty())
-            {
-                _c4err("triple-pending anchor");
-            }
-            m_val_anchor = m_key_anchor;
-        }
+        _move_key_anchor_to_val_anchor();
         _c4dbgpf("key anchor value: '%.*s'", _c4prsp(anchor));
         m_key_anchor = anchor;
+        m_key_anchor_indentation = m_state->line_contents.current_col(rem);
         return true;
     }
-    else if(rem.begins_with('*'))
+    else if(C4_UNLIKELY(rem.begins_with('*')))
     {
         _c4err("not implemented - this should have been catched elsewhere");
         C4_NEVER_REACH();
         return false;
     }
-
     return false;
 }
 
-//-----------------------------------------------------------------------------
 bool Parser::_handle_val_anchors_and_refs()
 {
     RYML_ASSERT(!has_any(RKEY));
-    csubstr rem = m_state->line_contents.rem;
+    const csubstr rem = m_state->line_contents.rem;
     if(rem.begins_with('&'))
     {
-        _c4dbgp("found a val anchor!!!");
-        if(!m_val_anchor.empty())
-        {
-            _c4dbgpf("anchor value: '%.*s' empty=%d", _c4prsp(m_val_anchor), m_val_anchor.empty());
-            _c4err("there's a pending anchor");
-        }
         csubstr anchor = rem.left_of(rem.first_of(' '));
         _line_progressed(anchor.len);
         anchor = anchor.sub(1); // skip the first character
-        _c4dbgpf("val anchor value: '%.*s'", _c4prsp(anchor));
-        m_val_anchor = anchor;
+        _c4dbgpf("val: found an anchor: '%.*s'!!!", _c4prsp(anchor));
+        if(m_val_anchor.empty())
+        {
+            _c4dbgpf("save val anchor: '%.*s'", _c4prsp(anchor));
+            m_val_anchor = anchor;
+            m_val_anchor_indentation = m_state->line_contents.current_col(rem);
+        }
+        else
+        {
+            _c4dbgpf("there is a pending val anchor '%.*s'", _c4prsp(m_val_anchor));
+            if(m_tree->is_seq(m_state->node_id))
+            {
+                if(m_tree->has_children(m_state->node_id))
+                {
+                    _c4dbgpf("current node=%zu is a seq, has %zu children", m_state->node_id, m_tree->num_children(m_state->node_id));
+                    _c4dbgpf("... so take the new one as a key anchor '%.*s'", _c4prsp(anchor));
+                    m_key_anchor = anchor;
+                    m_key_anchor_indentation = m_state->line_contents.current_col(rem);
+                }
+                else
+                {
+                    _c4dbgpf("current node=%zu is a seq, has no children", m_state->node_id);
+                    if(m_tree->has_val_anchor(m_state->node_id))
+                    {
+                        _c4dbgpf("... node=%zu already has val anchor: '%.*s'", m_state->node_id, _c4prsp(m_tree->val_anchor(m_state->node_id)));
+                        _c4dbgpf("... so take the new one as a key anchor '%.*s'", _c4prsp(anchor));
+                        m_key_anchor = anchor;
+                        m_key_anchor_indentation = m_state->line_contents.current_col(rem);
+                    }
+                    else
+                    {
+                        _c4dbgpf("... so set pending val anchor: '%.*s' on current node %zu", _c4prsp(m_val_anchor), m_state->node_id);
+                        m_tree->set_val_anchor(m_state->node_id, m_val_anchor);
+                        m_val_anchor = anchor;
+                        m_val_anchor_indentation = m_state->line_contents.current_col(rem);
+                    }
+                }
+            }
+        }
         return true;
     }
-    else if(rem.begins_with('*'))
+    else if(C4_UNLIKELY(rem.begins_with('*')))
     {
         _c4err("not implemented - this should have been catched elsewhere");
         C4_NEVER_REACH();
         return false;
     }
-
     return false;
 }
 
+void Parser::_move_key_anchor_to_val_anchor()
+{
+    if(m_key_anchor.empty())
+        return;
+    _c4dbgpf("move current key anchor to val slot: key='%.*s' -> val='%.*s'", _c4prsp(m_key_anchor), _c4prsp(m_val_anchor));
+    if(!m_val_anchor.empty())
+        _c4err("triple-pending anchor");
+    m_val_anchor = m_key_anchor;
+    m_val_anchor_indentation = m_key_anchor_indentation;
+    m_key_anchor = {};
+    m_key_anchor_indentation = {};
+}
+
+void Parser::_move_val_anchor_to_key_anchor()
+{
+    if(m_val_anchor.empty())
+        return;
+    if(!_token_is_from_this_line(m_val_anchor))
+        return;
+    _c4dbgpf("move current val anchor to key slot: key='%.*s' <- val='%.*s'", _c4prsp(m_key_anchor), _c4prsp(m_val_anchor));
+    if(!m_key_anchor.empty())
+        _c4err("triple-pending anchor");
+    m_key_anchor = m_val_anchor;
+    m_key_anchor_indentation = m_val_anchor_indentation;
+    m_val_anchor = {};
+    m_val_anchor_indentation = {};
+}
+
+void Parser::_move_val_tag_to_key_tag()
+{
+    if(m_val_tag.empty())
+        return;
+    if(!_token_is_from_this_line(m_val_tag))
+        return;
+    _c4dbgpf("move val tag to key tag: key='%.*s' <- val='%.*s'", _c4prsp(m_key_tag), _c4prsp(m_val_tag));
+    m_key_tag = m_val_tag;
+    m_key_tag_indentation = m_val_tag_indentation;
+    m_val_tag.clear();
+    m_val_tag_indentation = 0;
+}
+
+void Parser::_move_key_tag2_to_key_tag()
+{
+    if(m_key_tag2.empty())
+        return;
+    _c4dbgpf("move key tag2 to key tag: key='%.*s' <- key2='%.*s'", _c4prsp(m_key_tag), _c4prsp(m_key_tag2));
+    m_key_tag = m_key_tag2;
+    m_key_tag_indentation = m_key_tag2_indentation;
+    m_key_tag2.clear();
+    m_key_tag2_indentation = 0;
+}
+
+
 //-----------------------------------------------------------------------------
+
 bool Parser::_handle_types()
 {
     csubstr rem = m_state->line_contents.rem.triml(' ');
@@ -1627,9 +1689,7 @@ bool Parser::_handle_types()
         RYML_ASSERT(t.len >= 2);
         //t = t.sub(2);
         if(t == "!!set")
-        {
             add_flags(RSET);
-        }
     }
     else if(rem.begins_with("!<"))
     {
@@ -1654,11 +1714,10 @@ bool Parser::_handle_types()
     }
 
     if(t.empty())
-    {
         return false;
-    }
 
-    _c4dbgpf("there was a tag: '%.*s'", _c4prsp(t));
+    size_t tag_indentation = m_state->line_contents.current_col(t);
+    _c4dbgpf("there was a tag: '%.*s', indentation=%zu", _c4prsp(t), tag_indentation);
     RYML_ASSERT(t.end() > m_state->line_contents.rem.begin());
     _line_progressed(static_cast<size_t>(t.end() - m_state->line_contents.rem.begin()));
 
@@ -1667,6 +1726,7 @@ bool Parser::_handle_types()
         _c4dbgpf("saving map key tag '%.*s'", _c4prsp(t));
         RYML_ASSERT(m_key_tag.empty());
         m_key_tag = t;
+        m_key_tag_indentation = tag_indentation;
     }
     else if(has_all(RMAP|RVAL))
     {
@@ -1686,22 +1746,27 @@ bool Parser::_handle_types()
             size_t token_len = rem == ':' ? 1 : 2;
             _line_progressed(static_cast<size_t>(token_len + rem.begin() - m_state->line_contents.rem.begin()));
         }
+        _c4dbgpf("saving map val tag '%.*s'", _c4prsp(t));
         RYML_ASSERT(m_val_tag.empty());
         m_val_tag = t;
+        m_val_tag_indentation = tag_indentation;
     }
-    else if(has_all(RSEQ|RVAL))
+    else if(has_all(RSEQ|RVAL) || has_all(RTOP|RUNK|NDOC))
     {
-        _c4dbgpf("saving seq val tag '%.*s'", _c4prsp(t));
-        RYML_ASSERT(m_val_tag.empty());
-        m_val_tag = t;
+        if(m_val_tag.empty())
+        {
+            _c4dbgpf("saving seq/doc val tag '%.*s'", _c4prsp(t));
+            m_val_tag = t;
+            m_val_tag_indentation = tag_indentation;
+        }
+        else
+        {
+            _c4dbgpf("saving seq/doc key tag '%.*s'", _c4prsp(t));
+            m_key_tag = t;
+            m_key_tag_indentation = tag_indentation;
+        }
     }
-    else if(has_all(RTOP|RUNK|NDOC))
-    {
-        _c4dbgpf("saving doc tag '%.*s'", _c4prsp(t));
-        RYML_ASSERT(m_val_tag.empty());
-        m_val_tag = t;
-    }
-    else if(has_all(RTOP|RUNK))
+    else if(has_all(RTOP|RUNK) || has_any(RUNK))
     {
         rem = m_state->line_contents.rem;
         rem = rem.left_of(rem.find("#"));
@@ -1711,12 +1776,28 @@ bool Parser::_handle_types()
             _c4dbgpf("saving val tag '%.*s'", _c4prsp(t));
             RYML_ASSERT(m_val_tag.empty());
             m_val_tag = t;
+            m_val_tag_indentation = tag_indentation;
         }
         else
         {
             _c4dbgpf("saving key tag '%.*s'", _c4prsp(t));
-            RYML_ASSERT(m_key_tag.empty());
-            m_key_tag = t;
+            if(m_key_tag.empty())
+            {
+                m_key_tag = t;
+                m_key_tag_indentation = tag_indentation;
+            }
+            else
+            {
+                /* handle this case:
+                 * !!str foo: !!map
+                 *   !!int 1: !!float 20.0
+                 *   !!int 3: !!float 40.0
+                 *
+                 * (m_key_tag would be !!str and m_key_tag2 would be !!int)
+                 */
+                m_key_tag2 = t;
+                m_key_tag2_indentation = tag_indentation;
+            }
         }
     }
     else
@@ -1724,26 +1805,10 @@ bool Parser::_handle_types()
         _c4err("internal error");
     }
 
-    if(!m_val_tag.empty())
+    if(m_val_tag.not_empty())
     {
         YamlTag_e tag = to_tag(t);
-        if(tag == TAG_MAP || tag == TAG_OMAP || tag == TAG_PAIRS || tag == TAG_SET)
-        {
-            _c4dbgpf("tag '%.*s' is a map-type tag", _c4prsp(t));
-            //_push_level();
-            //_start_map(/*as_child*/false);
-            //_save_indentation(m_state->line_contents.indentation);
-            //addrem_flags(RKEY, RVAL);
-        }
-        else if(tag == TAG_SEQ)
-        {
-            _c4dbgpf("tag '%.*s' is a seq-type tag", _c4prsp(t));
-            //_push_level();
-            //_start_seq(/*as_child*/false);
-            //_save_indentation(0);
-            //addrem_flags(RNXT, RVAL);
-        }
-        else if(tag == TAG_STR)
+        if(tag == TAG_STR)
         {
             _c4dbgpf("tag '%.*s' is a str-type tag", _c4prsp(t));
             if(has_all(RTOP|RUNK|NDOC))
@@ -1845,9 +1910,11 @@ csubstr Parser::_slurp_doc_scalar()
 bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
 {
     csubstr s = m_state->line_contents.rem;
-    if(s.len == 0) return false;
+    if(s.len == 0)
+        return false;
     s = s.trim(' ');
-    if(s.len == 0) return false;
+    if(s.len == 0)
+        return false;
 
     if(s.begins_with('\''))
     {
@@ -1896,9 +1963,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
         else if(has_all(RNXT))
         {
             if( ! _is_scalar_next__rseq_rnxt(s))
-            {
                 return false;
-            }
             _c4err("internal error");
         }
         else
@@ -1909,9 +1974,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
     else if(has_any(RMAP))
     {
         if( ! _is_scalar_next__rmap(s))
-        {
             return false;
-        }
         size_t colon_space = s.find(": ");
         if(colon_space == npos)
         {
@@ -1931,13 +1994,9 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
                 RYML_ASSERT(has_any(RMAP));
                 s = s.left_of(colon_space);
                 if(s.begins_with("---"))
-                {
                     return false;
-                }
                 else if(s.begins_with("..."))
-                {
                     return false;
-                }
             }
             else
             {
@@ -1973,13 +2032,9 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
             {
                 _c4dbgp("RMAP|RVAL|EXPL");
                 if(has_none(RSEQIMAP))
-                {
                     s = s.left_of(s.first_of(",}"));
-                }
                 else
-                {
                     s = s.left_of(s.first_of(",]"));
-                }
             }
             s = s.trim(' ');
         }
@@ -1999,17 +2054,11 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
         s = s.left_of(s.find(" #"));
         size_t pos = s.find(": ");
         if(pos != npos)
-        {
             s = s.left_of(pos);
-        }
         else if(s.ends_with(':'))
-        {
             s = s.left_of(s.len-1);
-        }
         else
-        {
             s = s.left_of(s.first_of(','));
-        }
         s = s.trim(' ');
         _c4dbgpf("RUNK: scalar='%.*s'", _c4prsp(s));
     }
@@ -2018,7 +2067,8 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
         _c4err("not implemented");
     }
 
-    if(s.empty()) return false;
+    if(s.empty())
+        return false;
 
     m_state->scalar_col = m_state->line_contents.current_col(s);
     RYML_ASSERT(s.str >= m_state->line_contents.rem.str);
@@ -2466,6 +2516,8 @@ void Parser::_write_key_anchor(size_t node_id)
         _c4dbgpf("node=%zd: set key anchor to '%.*s'", node_id, _c4prsp(m_key_anchor));
         m_tree->set_key_anchor(node_id, m_key_anchor);
         m_key_anchor.clear();
+        m_key_anchor_was_before = false;
+        m_key_anchor_indentation = 0;
     }
     else if(!m_tree->is_key_quoted(node_id))
     {
@@ -2484,12 +2536,10 @@ void Parser::_write_key_anchor(size_t node_id)
                 for(size_t i = m_tree->first_child(node_id); i != NONE; i = m_tree->next_sibling(i))
                 {
                     if( ! (m_tree->val(i).begins_with('*')))
-                    {
                         _c4err("malformed reference: '%.*s'", _c4prsp(m_tree->val(i)));
-                    }
                 }
             }
-            else if( ! (m_tree->val(node_id).begins_with('*') ))
+            else if( ! m_tree->val(node_id).begins_with('*'))
             {
                  _c4err("malformed reference: '%.*s'", _c4prsp(m_tree->val(node_id)));
             }
@@ -2593,12 +2643,8 @@ void Parser::_start_doc(bool as_child)
         _c4dbgpf("start_doc: parent=%zu", parent_id);
         if( ! m_tree->is_stream(parent_id))
         {
-            for(size_t ch = m_tree->first_child(parent_id); ch != NONE; ch = m_tree->next_sibling(ch))
-            {
-                _c4dbgpf("start_doc: setting %zu->DOC", ch);
-                m_tree->_add_flags(ch, DOC);
-            }
-            m_tree->_add_flags(parent_id, STREAM);
+            _c4dbgp("start_doc: rearranging with root as STREAM");
+            m_tree->set_root_as_stream();
         }
         m_state->node_id = m_tree->append_child(parent_id);
         m_tree->to_doc(m_state->node_id);
@@ -2646,13 +2692,7 @@ void Parser::_end_stream()
                 _pop_level();
             }
         }
-        else if(m_tree->type(m_state->node_id) == NOTYPE)
-        {
-            _c4dbgp("to seq...");
-            m_tree->to_seq(m_state->node_id);
-            added = _append_val(_consume_scalar());
-        }
-        else if(m_tree->is_doc(m_state->node_id))
+        else if(m_tree->is_doc(m_state->node_id) || m_tree->type(m_state->node_id) == NOTYPE)
         {
             _c4dbgp("to docval...");
             m_tree->to_val(m_state->node_id, _consume_scalar(), DOC);
@@ -2677,38 +2717,38 @@ void Parser::_end_stream()
             {
                 _c4dbgpf("node[%zu]: move key to val anchor: '%.*s'", added_id, _c4prsp(m_key_anchor));
                 m_val_anchor = m_key_anchor;
-                m_key_anchor = "";
+                m_key_anchor = {};
             }
             if(!m_key_tag.empty())
             {
                 _c4dbgpf("node[%zu]: move key to val tag: '%.*s'", added_id, _c4prsp(m_key_tag));
                 m_val_tag = m_key_tag;
-                m_key_tag = "";
+                m_key_tag = {};
             }
         }
         if(!m_key_anchor.empty())
         {
             _c4dbgpf("node[%zu]: set key anchor='%.*s'", m_tree->id(added), _c4prsp(m_key_anchor));
             m_tree->set_key_anchor(added_id, m_key_anchor);
-            m_key_anchor = "";
+            m_key_anchor = {};
         }
         if(!m_val_anchor.empty())
         {
             _c4dbgpf("node[%zu]: set val anchor='%.*s'", m_tree->id(added), _c4prsp(m_val_anchor));
             m_tree->set_val_anchor(added_id, m_val_anchor);
-            m_val_anchor = "";
+            m_val_anchor = {};
         }
         if(!m_key_tag.empty())
         {
             _c4dbgpf("node[%zu]: set key tag='%.*s'", m_tree->id(added), _c4prsp(m_key_tag));
             m_tree->set_key_tag(added_id, m_key_tag);
-            m_key_tag = "";
+            m_key_tag = {};
         }
         if(!m_val_tag.empty())
         {
             _c4dbgpf("node[%zu]: set val tag='%.*s'", m_tree->id(added), _c4prsp(m_val_tag));
             m_tree->set_val_tag(added_id, m_val_tag);
-            m_val_tag = "";
+            m_val_tag = {};
         }
     }
 
@@ -2729,7 +2769,6 @@ void Parser::_start_new_doc(csubstr rem)
 
     _end_stream();
 
-    // start a document
     _c4dbgp("start a document");
     size_t indref = m_state->indref;
     _line_progressed(3);
@@ -2756,6 +2795,12 @@ void Parser::_start_map(bool as_child)
             m_tree->to_map(m_state->node_id, key, has_all(SSCL_QUO) ? KEYQUO : NOTYPE);
             _c4dbgpf("start_map: id=%zd key='%.*s'", m_state->node_id, _c4prsp(node(m_state)->key()));
             _write_key_anchor(m_state->node_id);
+            if( ! m_key_tag.empty())
+            {
+                _c4dbgpf("start_map[%zu]: set key tag to '%.*s'", m_state->node_id, _c4prsp(m_key_tag));
+                m_tree->set_key_tag(m_state->node_id, m_key_tag);
+                m_key_tag.clear();
+            }
         }
         else
         {
@@ -2768,7 +2813,7 @@ void Parser::_start_map(bool as_child)
     {
         m_state->node_id = parent_id;
         _c4dbgpf("start_map: id=%zd", m_state->node_id);
-        std::underlying_type<NodeType_e>::type as_doc = 0;
+        type_bits as_doc = 0;
         if(node(m_state)->is_doc())
             as_doc |= DOC;
         if(!m_tree->is_map(parent_id))
@@ -2776,6 +2821,8 @@ void Parser::_start_map(bool as_child)
         else
             m_tree->_add_flags(parent_id, as_doc);
         _move_scalar_from_top();
+        if(m_key_anchor.not_empty())
+            m_key_anchor_was_before = true;
         _write_val_anchor(parent_id);
         if(parent_id != NONE)
         {
@@ -2795,11 +2842,36 @@ void Parser::_start_map(bool as_child)
     }
 }
 
+void Parser::_start_map_unk(bool as_child)
+{
+    if(!m_key_anchor_was_before)
+    {
+        _c4dbgpf("stash key anchor before starting map... '%.*s'", _c4prsp(m_key_anchor));
+        csubstr ka = m_key_anchor;
+        m_key_anchor = {};
+        _start_map(as_child);
+        m_key_anchor = ka;
+    }
+    else
+    {
+        _start_map(as_child);
+        m_key_anchor_was_before = false;
+    }
+    if(m_key_tag2.not_empty())
+    {
+        m_key_tag = m_key_tag2;
+        m_key_tag_indentation = m_key_tag2_indentation;
+        m_key_tag2.clear();
+        m_key_tag2_indentation = 0;
+    }
+}
+
 void Parser::_stop_map()
 {
     _c4dbgp("stop_map");
     RYML_ASSERT(node(m_state)->is_map());
 }
+
 
 //-----------------------------------------------------------------------------
 void Parser::_start_seq(bool as_child)
@@ -2826,10 +2898,16 @@ void Parser::_start_seq(bool as_child)
             m_tree->to_seq(m_state->node_id, name);
             _c4dbgpf("start_seq: id=%zd name='%.*s'", m_state->node_id, _c4prsp(node(m_state)->key()));
             _write_key_anchor(m_state->node_id);
+            if( ! m_key_tag.empty())
+            {
+                _c4dbgpf("start_seq[%zu]: set key tag to '%.*s'", m_state->node_id, _c4prsp(m_key_tag));
+                m_tree->set_key_tag(m_state->node_id, m_key_tag);
+                m_key_tag.clear();
+            }
         }
         else
         {
-            std::underlying_type<NodeType_e>::type as_doc = 0;
+            type_bits as_doc = 0;
             if(node(m_state)->is_doc()) as_doc |= DOC;
             m_tree->to_seq(m_state->node_id, as_doc);
             _c4dbgpf("start_seq: id=%zd%s", m_state->node_id, as_doc ? " as doc" : "");
@@ -2839,7 +2917,7 @@ void Parser::_start_seq(bool as_child)
     else
     {
         m_state->node_id = parent_id;
-        std::underlying_type<NodeType_e>::type as_doc = 0;
+        type_bits as_doc = 0;
         if(node(m_state)->is_doc())
             as_doc |= DOC;
         if(!m_tree->is_seq(parent_id))
@@ -2852,7 +2930,7 @@ void Parser::_start_seq(bool as_child)
     }
     if( ! m_val_tag.empty())
     {
-        _c4dbgpf("start_seq: set val tag to '%.*s'", _c4prsp(m_val_tag));
+        _c4dbgpf("start_seq[%zu]: set val tag to '%.*s'", m_state->node_id, _c4prsp(m_val_tag));
         m_tree->set_val_tag(m_state->node_id, m_val_tag);
         m_val_tag.clear();
     }
@@ -2993,7 +3071,8 @@ void Parser::_move_scalar_from_top()
 bool Parser::_handle_indentation()
 {
     RYML_ASSERT(has_none(EXPL));
-    if( ! _at_line_begin()) return false;
+    if( ! _at_line_begin())
+        return false;
 
     size_t ind = m_state->line_contents.indentation;
     csubstr rem = m_state->line_contents.rem;
@@ -3745,9 +3824,7 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
 
 #ifdef RYML_DBG
     for(size_t i = r.len; i < s.len; ++i)
-    {
         s[i] = '~';
-    }
 #endif
 
     return r;
@@ -3757,27 +3834,13 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
 bool Parser::_read_decimal(csubstr const& str, size_t *decimal)
 {
     RYML_ASSERT(str.len >= 1);
-    size_t n = 0;
-    for(size_t i = 0; i < str.len; ++i)
-    {
-        char c = str.str[i];
-        if(c < '0' || c > '9') return false;
-        n = n*10 + size_t(c-'0');
-    }
-    *decimal = n;
-    return true;
+    return c4::atou(str, decimal);
 }
 
 //-----------------------------------------------------------------------------
 size_t Parser::_count_nlines(csubstr src)
 {
-    size_t n = (src.len > 0);
-    while(src.len > 0)
-    {
-        n += (src.begins_with('\n') || src.begins_with('\r'));
-        src = src.sub(1);
-    }
-    return n;
+    return 1 + src.count('\n');
 }
 
 //-----------------------------------------------------------------------------
@@ -3870,7 +3933,6 @@ int Parser::_fmt_msg(char *buf, int buflen, const char *fmt, va_list args) const
     int pos = 0;
     auto const& lc = m_state->line_contents;
 
-
     // first line: print the message
     int del = vsnprintf(buf + pos, static_cast<size_t>(len), fmt, args);
     _wrapbuf();
@@ -3935,6 +3997,7 @@ int Parser::_prfl(char *buf, int buflen, size_t v)
     int pos = 0, del = 0;
 
     bool gotone = false;
+
 #define _prflag(fl)                                 \
     if((v & (fl)) == (fl))                          \
     {                                               \

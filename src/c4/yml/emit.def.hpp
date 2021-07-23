@@ -38,26 +38,33 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, size_t 
 
     if(t.is_doc(id))
     {
-        this->Writer::_do_write("---");
-        if(t.has_val(id))
+        if(!t.is_root(id))
         {
-            RYML_ASSERT(!t.has_key(id));
-            this->Writer::_do_write(' ');
-            _writev(t, id, ilevel);
+            RYML_ASSERT(t.is_stream(t.parent(id)));
+            this->Writer::_do_write("---");
         }
-        else
+        if(!t.has_val(id))
         {
             if(t.has_val_tag(id))
             {
-                this->Writer::_do_write(' ');
+                if(!t.is_root(id))
+                    this->Writer::_do_write(' ');
                 this->Writer::_do_write(t.val_tag(id));
             }
             if(t.has_val_anchor(id))
             {
-                this->Writer::_do_write(' ');
+                if(!t.is_root(id))
+                    this->Writer::_do_write(' ');
                 this->Writer::_do_write('&');
                 this->Writer::_do_write(t.val_anchor(id));
             }
+        }
+        else
+        {
+            RYML_ASSERT(!t.has_key(id));
+            if(!t.is_root(id))
+                this->Writer::_do_write(' ');
+            _writev(t, id, ilevel);
         }
         this->Writer::_do_write('\n');
     }
@@ -84,7 +91,7 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, size_t 
     }
     else if(t.is_val(id))
     {
-        RYML_ASSERT(t.has_parent(id));
+        RYML_ASSERT(t.has_parent(id) || t.is_doc(id));
         this->Writer::_do_write(ind);
         this->Writer::_do_write("- ");
         _writev(t, id, ilevel);

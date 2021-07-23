@@ -31,32 +31,32 @@ CASE_GROUP(DOUBLE_QUOTED)
 C("dquoted, only text",
 R"("Some text without any quotes."
 )",
-  L{N("Some text without any quotes.")}
+  N(DOCVAL, "Some text without any quotes.")
 ),
 
 C("dquoted, with single quotes",
 R"("Some text 'with single quotes'")",
-  L{N("Some text 'with single quotes'")}
+  N(DOCVAL, "Some text 'with single quotes'")
 ),
 
 C("dquoted, with double quotes",
 R"("Some \"text\" \"with double quotes\"")",
-  L{N("Some \"text\" \"with double quotes\"")}
+  N(DOCVAL, "Some \"text\" \"with double quotes\"")
 ),
 
 C("dquoted, with single and double quotes",
 R"("Some text 'with single quotes' \"and double quotes\".")",
-  L{N("Some text 'with single quotes' \"and double quotes\".")}
+  N(DOCVAL, "Some text 'with single quotes' \"and double quotes\".")
 ),
 
 C("dquoted, with escapes",
 R"("Some text with escapes \\n \\r \\t")",
-  L{N("Some text with escapes \\n \\r \\t")}
+  N(DOCVAL, "Some text with escapes \\n \\r \\t")
 ),
 
 C("dquoted, with newline",
 R"("Some text with\nnewline")",
-  L{N("Some text with\nnewline")}
+  N(DOCVAL, "Some text with\nnewline")
 ),
 
 C("dquoted, all",
@@ -69,12 +69,12 @@ aped to prevent them from being converted to a space.
 Newlines can also be added by leaving a blank line.
     Leading whitespace on lines is ignored."
 )",
-  L{N("Several lines of text, containing 'single quotes' and \"double quotes\". Escapes (like \\n) work.\nIn addition, newlines can be escaped to prevent them from being converted to a space.\nNewlines can also be added by leaving a blank line. Leading whitespace on lines is ignored.")}
+  N(DOCVAL, "Several lines of text, containing 'single quotes' and \"double quotes\". Escapes (like \\n) work.\nIn addition, newlines can be escaped to prevent them from being converted to a space.\nNewlines can also be added by leaving a blank line. Leading whitespace on lines is ignored.")
 ),
 
 C("dquoted, empty",
 R"("")",
-  L{N("")}
+  N(DOCVAL, "")
 ),
 
 C("dquoted, blank",
@@ -101,42 +101,42 @@ R"(
 
 C("dquoted, trailing space",
 R"('a aaaa  ')",
-  L{N("a aaaa  ")}
+  N(DOCVAL, "a aaaa  ")
 ),
 
 C("dquoted, leading space",
 R"('  a aaaa')",
-  L{N("  a aaaa")}
+  N(DOCVAL, "  a aaaa")
 ),
 
 C("dquoted, trailing and leading space",
 R"('  012345  ')",
-  L{N("  012345  ")}
+  N(DOCVAL, "  012345  ")
 ),
 
 C("dquoted, 1 dquote",
 R"("\"")",
-  L{N("\"")}
+  N(DOCVAL, "\"")
 ),
 
 C("dquoted, 2 dquotes",
 R"("\"\"")",
-  L{N("\"\"")}
+  N(DOCVAL, "\"\"")
 ),
 
 C("dquoted, 3 dquotes",
 R"("\"\"\"")",
-  L{N("\"\"\"")}
+  N(DOCVAL, "\"\"\"")
 ),
 
 C("dquoted, 4 dquotes",
 R"("\"\"\"\"")",
-  L{N("\"\"\"\"")}
+  N(DOCVAL, "\"\"\"\"")
 ),
 
 C("dquoted, 5 dquotes",
 R"("\"\"\"\"\"")",
-  L{N("\"\"\"\"\"")}
+  N(DOCVAL, "\"\"\"\"\"")
 ),
 
 C("dquoted, example 2",

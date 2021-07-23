@@ -22,13 +22,12 @@
 namespace c4 {
 namespace yml {
 
+
 size_t _num_leaves(Tree const& t, size_t node)
 {
     size_t count = 0;
-    for(size_t i = t.first_child(node); i != NONE; i = t.next_sibling(i))
-    {
-        count += _num_leaves(t, i);
-    }
+    for(size_t ch = t.first_child(node); ch != NONE; ch = t.next_sibling(ch))
+        count += _num_leaves(t, ch);
     return count;
 }
 
@@ -304,13 +303,12 @@ void CaseNode::compare_child(yml::NodeRef const& n, size_t pos) const
 
     if(type & MAP)
     {
-        ASSERT_TRUE(n.find_child(ch.key).valid());
-        EXPECT_NE(n.find_child(ch.key).get(), nullptr);
         auto fch = n.find_child(ch.key);
         if(fch != nullptr)
         {
             // there may be duplicate keys.
-            if(fch.id() != n[pos].id()) fch = n[pos];
+            if(fch.id() != n[pos].id())
+                fch = n[pos];
             //EXPECT_EQ(fch, n[ch.key]);
             EXPECT_EQ(fch.get(), n[pos].get());
             //EXPECT_EQ(n[pos], n[ch.key]);
@@ -322,6 +320,7 @@ void CaseNode::compare_child(yml::NodeRef const& n, size_t pos) const
             print_path(n);
             printf("\n");
             print_node(n);
+            GTEST_FAIL();
         }
     }
 
@@ -481,7 +480,7 @@ void print_path(NodeRef const& n)
     C4_ASSERT(len < sizeof(buf));
     size_t pos = len;
     p = n;
-    while(p != nullptr)
+    while(p.valid() && p != nullptr)
     {
         if(p.has_key())
         {
@@ -490,7 +489,7 @@ void print_path(NodeRef const& n)
             RYML_ASSERT(ret >= 0);
             pos -= static_cast<size_t>(ret);
         }
-        else
+        else if(p.has_parent())
         {
             pos = p.parent().child_pos(p);
             int ret = snprintf(buf, 0, "/%zd", pos);
@@ -606,9 +605,7 @@ void test_invariants(NodeRef const n)
     // keys or vals cannot be root
     if(n.has_key() || n.is_val() || n.is_keyval())
     {
-        EXPECT_FALSE(n.is_root());
-        EXPECT_FALSE(n.is_root());
-        EXPECT_FALSE(n.is_root());
+        EXPECT_TRUE(!n.is_root() || (n.is_doc() && !n.has_key()));
     }
     // vals cannot be containers
     if( ! n.empty() && ! n.is_doc())

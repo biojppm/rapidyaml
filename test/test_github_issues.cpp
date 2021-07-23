@@ -526,7 +526,7 @@ R"(
 ),
 
 C("github128/1", RESOLVE_REFS | HAS_PARSE_ERROR, "a: *invalid"),
-C("github128/2", RESOLVE_REFS | HAS_PARSE_ERROR, "*"),
+C("github128/2", RESOLVE_REFS/* | HAS_PARSE_ERROR*/, "*", N(DOCVAL, "*")),
 
 C("github129", RESOLVE_REFS, R"(
 ref: &ref ref_val
