@@ -182,10 +182,10 @@ struct EventsParser
                 ParseLevel &top = m_stack.top();
                 if(tree.is_doc(top.tree_node) && !tree.is_map(top.tree_node) && !tree.is_seq(top.tree_node))
                 {
-                    _nfo_logf("stack is not empty, setting tree_node={} to SEQ...", top.tree_node);
-                    tree._add_flags(top.tree_node, SEQ);
+                    _nfo_logf("stack is not empty, setting tree_node={} to DOCVAL...", top.tree_node);
+                    tree.to_val(top.tree_node, curr.scalar, DOC);
                 }
-                if(tree.is_seq(top.tree_node))
+                else if(tree.is_seq(top.tree_node))
                 {
                     _nfo_logf("is seq! seq_id={}", top.tree_node);
                     ASSERT_EQ(key, false);
@@ -411,29 +411,18 @@ struct EventsParser
                 if(m_stack.empty())
                 {
                     _nfo_log("stack was empty");
+                    ASSERT_EQ(node, tree.root_id());
                     ASSERT_EQ(key, false); // for the key to exist, the parent must exist and be a map
                     if(tree.is_stream(node))
                     {
+                        _nfo_log("there is already a stream, append a DOC");
                         node = tree.append_child(node);
                         tree.to_doc(node);
                         m_stack.push({node});
                     }
-                    else if(!is_sep)
-                    {
-                        if(!tree.is_doc(node))
-                        {
-                            _nfo_logf("set root to DOC: {}", node);
-                            tree._add_flags(node, DOC);
-                        }
-                        else
-                        {
-                            ASSERT_EQ(node, tree.root_id());
-                            tree.set_root_as_stream();
-                            m_stack.push({node});
-                        }
-                    }
                     else if(is_sep)
                     {
+                        _nfo_logf("separator was specified: {}", rem);
                         if(!tree.is_doc(node))
                         {
                             tree._add_flags(node, STREAM);
@@ -444,9 +433,21 @@ struct EventsParser
                         }
                         else
                         {
-                            ASSERT_EQ(node, tree.root_id());
+                            _nfo_log("rearrange root as STREAM");
                             tree.set_root_as_stream();
                             m_stack.push({node});
+                        }
+                    }
+                    else
+                    {
+                        if(!tree.is_doc(node))
+                        {
+                            _nfo_logf("set root to DOC: {}", node);
+                            tree._add_flags(node, DOC);
+                        }
+                        else
+                        {
+                            GTEST_FAIL();
                         }
                     }
                 }
