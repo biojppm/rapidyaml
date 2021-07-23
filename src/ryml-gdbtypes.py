@@ -31,6 +31,35 @@ import dumper
 #from dumper import Dumper, Value, Children, SubItem
 #from dumper import SubItem, Children
 from dumper import *
+import functools
+
+
+def dbglog(func):
+    pass
+    if not DBG:
+        return func
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        _dbg(func.__name__, " - begin")
+        ret = func(*args, **kwargs)
+        _dbg(func.__name__, " - end")
+        return ret
+    return wrapper
+
+
+DBG = True
+_dbg_log = None
+def _dbg(*args, **kwargs):
+    pass
+    global _dbg_log
+    if not _DBG:
+        return
+    if _dbg_log is None:
+        import os.path
+        filename = os.path.join(os.path.dirname(__FILE__), "dbg.log")
+        _dbg_log = open(filename, "w")
+    kwargs['file'] = _dbg_log
+    print(*args, **kwargs)
 
 
 # adapted from dumper.py::Dumper::putCharArrayValue()

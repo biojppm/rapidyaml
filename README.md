@@ -788,55 +788,44 @@ See also [the roadmap](./ROADMAP.md) for a list of future work.
 
 ### Test suite status
 
-Integration of the >300 cases in the [YAML test
+Ensure ryml's compliance with the >300 cases in the [YAML test
 suite](https://github.com/yaml/yaml-test-suite) is ongoing work. Each of
 these tests have several subparts:
  * in-yaml: mildly, plainly or extremely difficult-to-parse yaml
  * in-json: equivalent json (where possible/meaningful)
  * out-yaml: equivalent standard yaml
- * events: equivalent libyaml events allowing to establish correctness of
-   the parsed results
+ * events: equivalent libyaml events, allowing to prove
+   correctness of the parsed results
 
 When testing, ryml tries to parse each of the 3 yaml/json parts. If the
 parsing suceeds, then the ryml test will emit the parsed tree, then parse the
 emitted result and verify that emission is idempotent, ie that the emitted
 result is the same as its input without any loss of information. To ensure
 correctness, this happens over four levels of parse/emission pairs, resulting
-in ~200 checks per test case.
+in over 200 checks per test case.
 
-Please note that in [their own words](http://matrix.yaml.io/), the tests from
-the YAML test suite *contain a lot of edge cases that don't play such an
-important role in real world examples*. Despite the extreme focus of the test
-suite, as of May 2020, ryml only fails to parse ~30 out of the ~1000=~3x300
-cases from the test suite. Out of all other cases, all the ~200 checks per
-case are 100% successful for consistency over parse/emit pairs --- but please
-note that the events part is not yet used to check for
-correctness, and therefore that **even though ryml may suceed in parsing,
-there still exists a minority of cases which may not be correct**. Currently,
-I would estimate this fraction at somewhere around 5%. These are the suite
-cases where ryml fails to parse any of its subparts:
-[6BCT](https://github.com/yaml/yaml-test-suite/tree/master/test/6BCT.tml),
-[735Y](https://github.com/yaml/yaml-test-suite/tree/master/test/735Y.tml),
-[7T8X](https://github.com/yaml/yaml-test-suite/tree/master/test/7T8X.tml),
-[82AN](https://github.com/yaml/yaml-test-suite/tree/master/test/82AN.tml),
-[9MMW](https://github.com/yaml/yaml-test-suite/tree/master/test/9MMW.tml),
-[9YRD](https://github.com/yaml/yaml-test-suite/tree/master/test/9YRD.tml),
-[CN3R](https://github.com/yaml/yaml-test-suite/tree/master/test/CN3R.tml),
-[DC7X](https://github.com/yaml/yaml-test-suite/tree/master/test/DC7X.tml),
-[EX5H](https://github.com/yaml/yaml-test-suite/tree/master/test/EX5H.tml),
-[EXG3](https://github.com/yaml/yaml-test-suite/tree/master/test/EXG3.tml),
-[FH7J](https://github.com/yaml/yaml-test-suite/tree/master/test/FH7J.tml),
-[G5U8](https://github.com/yaml/yaml-test-suite/tree/master/test/G5U8.tml),
-[HS5T](https://github.com/yaml/yaml-test-suite/tree/master/test/HS5T.tml),
-[K858](https://github.com/yaml/yaml-test-suite/tree/master/test/K858.tml),
-[L94M](https://github.com/yaml/yaml-test-suite/tree/master/test/L94M.tml),
-[M7A3](https://github.com/yaml/yaml-test-suite/tree/master/test/M7A3.tml),
-[NAT4](https://github.com/yaml/yaml-test-suite/tree/master/test/NAT4.tml),
-[PW8X](https://github.com/yaml/yaml-test-suite/tree/master/test/PW8X.tml),
-[RZP5](https://github.com/yaml/yaml-test-suite/tree/master/test/RZP5.tml).
+Please note that in [their own words](http://matrix.yaml.io/), the
+tests from the YAML test suite *contain a lot of edge cases that don't
+play such an important role in real world examples*. Despite the
+extreme focus of the test suite, currently ryml only fails to parse a
+very small amount (<2%) of the >2000 cases from the test suite. And
+unless noted in the [list of current known
+failures](test/test_suite.cpp) which is the subject of ongoing work,
+out of all the cases which are successfully parsed, all the checks per
+case are 100% successful for consistency over parse/emit pairs. This
+is enforced also in the CI.
 
-Except for the known limitations listed next, all other suite cases are
-expected to work.
+The main problems under work are these::
+  * user tags (with single `!`) are inconsistently treated
+  * some multiline scalars are sometimes not idempotent
+  * implicit null keys are sometimes not idempotent
+
+Please refer to the [list of current known
+failures](test/test_suite.cpp) to see the full list. Although there
+are several other problems listed there, they have low expression in
+terms of volume, and are mostly dark-corner cases. This is not to say
+that they do not merit attention, but just that it is not likely that
+you will catch these.
 
 
 --------- 
