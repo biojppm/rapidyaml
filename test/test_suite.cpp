@@ -176,7 +176,7 @@ struct EventsParser
                 if(m_stack.empty())
                 {
                     _nfo_log("stack was empty, setting root to SEQ...");
-                    tree.to_seq(tree.root_id(), DOC);
+                    tree.to_seq(tree.root_id());
                     m_stack.push({tree.root_id()});
                 }
                 ParseLevel &top = m_stack.top();
@@ -407,7 +407,6 @@ struct EventsParser
                 csubstr rem = line.stripl("+DOC").triml(' ');
                 size_t node = tree.root_id();
                 bool is_sep = rem.find("---") != csubstr::npos;
-                _nfo_log("add DOC");
                 if(m_stack.empty())
                 {
                     _nfo_log("stack was empty");
@@ -442,8 +441,8 @@ struct EventsParser
                     {
                         if(!tree.is_doc(node))
                         {
-                            _nfo_logf("set root to DOC: {}", node);
-                            tree._add_flags(node, DOC);
+                            //_nfo_logf("set root to DOC: {}", node);
+                            //tree._add_flags(node, DOC);
                         }
                         else
                         {
@@ -490,8 +489,8 @@ struct EventsParser
             else if(line.begins_with("-DOC"))
             {
                 _nfo_log("popping DOC");
-                size_t node = m_stack.empty() ? tree.root_id() : m_stack.top().tree_node;
-                ASSERT_EQ(tree.is_doc(node) || tree.is_stream(node), true) << "node=" << node;
+                //size_t node = m_stack.empty() ? tree.root_id() : m_stack.top().tree_node;
+                //ASSERT_EQ(tree.is_doc(node) || tree.is_stream(node), true) << "node=" << node;
                 if(!m_stack.empty())
                     m_stack.pop();
             }
@@ -527,7 +526,7 @@ struct EventsParser
 struct Events
 {
     csubstr filename;
-    csubstr src;
+    std::string src;
     Tree    tree;
     mutable Tree adjusted_tree;
     bool    was_parsed = false;
@@ -535,7 +534,7 @@ struct Events
     void init(csubstr filename_, csubstr src_)
     {
         filename = filename_;
-        src = src_;
+        src.assign(src_.begin(), src_.end());
         tree.clear();
         tree.clear_arena();
         was_parsed = false;
@@ -574,7 +573,7 @@ struct Events
             return;
         if(src.empty())
             GTEST_SKIP();
-        parser.parse(src, &tree);
+        parser.parse(c4::to_csubstr(src), &tree);
         _nfo_print_tree("EXPECTED", tree);
         was_parsed = true;
     }
@@ -654,9 +653,8 @@ struct AllowedFailure
 // don't forget to list these allowed failures in the repo's README.md,
 // under the section "Known limitations"
 constexpr const AllowedFailure g_allowed_failures[] = {
-    {"3UYS", CPART_IN_YAML, "no need to escape the slash in \"a\\/b\""},
     // malformed json
-    {"35KP", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"35KP", CPART_IN_JSON|CPART_EVENTS, "malformed JSON from multiple documents,scalar 'd e' is wrongly parsed with trailing newline"},
     {"6XDY", CPART_IN_JSON, "malformed JSON from multiple documents"},
     {"6ZKB", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents|TODO[next]: document handling"},
     {"7Z25", CPART_IN_JSON, "malformed JSON from multiple documents"},
@@ -681,28 +679,48 @@ constexpr const AllowedFailure g_allowed_failures[] = {
     {"X38W", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
     {"XW4D", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
     // we do not accept anchors with :
-    {"2SXE", CPART_IN_YAML|CPART_OUT_YAML, "weird characters in anchors, anchors must not end with :"},
+    {"2SXE", CPART_IN_YAML|CPART_OUT_YAML|CPART_EVENTS, "weird characters in anchors, anchors must not end with :"},
     {"W5VH", CPART_IN_YAML, "TODO[next]: weird characters in anchors"},
 
     // TODO
-    {"6BCT", CPART_IN_YAML, "TODO[hard]: allow tabs after - or :"},
-    {"6FWR", CPART_EMIT_YAML, "TODO[hard]: fail to parse"},
-    {"735Y", CPART_IN_YAML, "TODO[next]: plain scalar parsing"},
-    {"7T8X", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: scalar block parsing"},
-    {"82AN", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
-    {"9MMW", CPART_IN_YAML, "TODO[next]: re the json/yaml incompatibility where a space is required after :"},
-    {"9YRD", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
-    {"CN3R", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: anchors + maps nested in seqs"},
-    {"DC7X", CPART_IN_YAML, "TODO[next]: improve handling of tab characters"},
-    {"EXG3", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
-    {"EX5H", CPART_IN_YAML|CPART_EMIT_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
-    {"FH7J", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: implicit keys"},
-    {"G5U8", CPART_ALL, "TODO[next]: sequences with -"},
-    {"HS5T", CPART_IN_YAML, "TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
-    {"K858", CPART_OUT_YAML|CPART_IN_JSON, "TODO[next]: emitting block scalars is not idempotent"},
-    {"NAT4", CPART_IN_YAML|CPART_EMIT_YAML|CPART_IN_JSON, "TODO[next]: emitting block scalars is not idempotent"},
-    {"PW8X", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: anchors with implicit key"},
-    {"RZP5", CPART_IN_YAML|CPART_OUT_YAML, "TODO[next]: plain scalar block parsing, anchors"},
+    {"36F6", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"3MYT", CPART_EVENTS, "block scalars: newline problems"},
+    {"3UYS", CPART_IN_YAML, "no need to escape the slash in \"a\\/b\""},
+    {"4ABK", CPART_EVENTS, "key is wrongly serialized: 'omitted value:'"},
+    {"4CQQ", CPART_EVENTS, "block scalars: newline problems"},
+    {"4Q9F", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"4QFQ", CPART_EVENTS, "block scalars: newline problems"},
+    {"4ZYM", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"52DL", CPART_EVENTS, "single ! is parsed as a tag"},
+    {"565N", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"5BVJ", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"5GBF", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"5TYM", CPART_EVENTS, "wrong parse result from tags"},
+    {"5WE3", CPART_EVENTS, "block scalars: newline problems"},
+    {"6BCT", CPART_IN_YAML, "allow tabs after - or :"},
+    {"6CK3", CPART_EVENTS, "wrong parse result from tags"},
+    {"6FWR", CPART_EMIT_YAML|CPART_EVENTS, "fail to parse"},
+    {"6HB6", CPART_EVENTS, "block scalars: newline problems"},
+    {"6JQW", CPART_EVENTS, "block scalars: newline problems"},
+    {"6SLA", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"6VJK", CPART_EVENTS, "block scalars: newline problems"},
+    {"6WLZ", CPART_EVENTS, "single ! is parsed as a tag"},
+    {"735Y", CPART_IN_YAML, "plain scalar parsing"},
+    {"7T8X", CPART_IN_YAML|CPART_OUT_YAML, "scalar block parsing"},
+    {"82AN", CPART_IN_YAML, "plain scalar parsing, same indentation on next line is problematic"},
+    {"9MMW", CPART_IN_YAML, "re the json/yaml incompatibility where a space is required after :"},
+    {"9YRD", CPART_IN_YAML, "plain scalar parsing, same indentation on next line is problematic"},
+    {"CN3R", CPART_IN_YAML|CPART_OUT_YAML, "anchors + maps nested in seqs"},
+    {"DC7X", CPART_IN_YAML, "improve handling of tab characters"},
+    {"EXG3", CPART_IN_YAML, "plain scalar parsing, same indentation on next line is problematic"},
+    {"EX5H", CPART_IN_YAML|CPART_EMIT_YAML, "plain scalar parsing, same indentation on next line is problematic"},
+    {"FH7J", CPART_IN_YAML|CPART_OUT_YAML, "implicit keys"},
+    {"G5U8", CPART_ALL, "sequences with -"},
+    {"HS5T", CPART_IN_YAML, "plain scalar parsing, same indentation on next line is problematic"},
+    {"K858", CPART_OUT_YAML|CPART_IN_JSON, "emitting block scalars is not idempotent"},
+    {"NAT4", CPART_IN_YAML|CPART_EMIT_YAML|CPART_IN_JSON, "emitting block scalars is not idempotent"},
+    {"PW8X", CPART_IN_YAML|CPART_OUT_YAML, "anchors with implicit key"},
+    {"RZP5", CPART_IN_YAML|CPART_OUT_YAML, "plain scalar block parsing, anchors"},
 };
 
 
@@ -820,7 +838,7 @@ struct ProcLevel
     void emit()
     {
         if(allowed_failure.skip(case_part))
-            return;
+            GTEST_SKIP();
         if(was_emitted)
             return;
         if(!was_parsed)
@@ -839,7 +857,7 @@ struct ProcLevel
     void compare_trees(ProcLevel const& prev)
     {
         if(allowed_failure.skip(case_part))
-            return;
+            GTEST_SKIP();
         if(!was_parsed)
             parse();
         #if RYML_NFO
@@ -852,7 +870,7 @@ struct ProcLevel
     void compare_emitted(ProcLevel const& prev)
     {
         if(allowed_failure.skip(case_part))
-            return;
+            GTEST_SKIP();
         if(!was_emitted)
             emit();
         #if RYML_NFO
@@ -984,6 +1002,11 @@ csubstr filter_out_indentation(csubstr src, std::string *dst)
     return replace_all("\n    ", "\n", src.sub(4), dst);
 }
 
+csubstr filter_out_double_backslash(csubstr src, std::string *dst)
+{
+    return replace_all(R"(\\)", R"(\)", src, dst);
+}
+
 
 /** now finally all the ways that a test case can be processed are
  * available through this class. Tests are defined below and use only
@@ -1072,7 +1095,8 @@ struct SuiteCase
             contents.size()
         };
 
-        // some of the examples have their code indented
+        // some of the examples have their code indented,
+        // so we need these workspaces for deindenting
         std::string tmpa;
         std::string tmpb;
 
@@ -1096,6 +1120,7 @@ struct SuiteCase
             size_t first_after = find_first_after(begin_in_json, all);
             begin_in_json = 1 + contents.find('\n', begin_in_json); // skip this line
             txt = contents.range(begin_in_json, first_after);
+            txt = filter_out_double_backslash(txt, &tmpa);
             RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
             in_json.init(filename, txt, CPART_IN_JSON, allowed_failure);
         }
@@ -1128,6 +1153,7 @@ struct SuiteCase
             size_t first_after = find_first_after(begin_events, all);
             begin_events = 1 + contents.find('\n', begin_events); // skip this line
             txt = contents.range(begin_events, first_after);
+            txt = filter_out_double_backslash(txt, &tmpa);
             RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
             events.init(filename, txt);
         }
@@ -1148,9 +1174,11 @@ struct SuiteCase
     void compare_events(Approach *appr)
     {
 GTEST_SKIP(); // this is a work in progress
+        auto const& lev = appr->levels[0];
+        if(lev.allowed_failure.skip(lev.case_part) || lev.allowed_failure.skip(CPART_EVENTS))
+            GTEST_SKIP();
         events.parse_events();
         appr->parse(1, false);
-        auto const& lev = appr->levels[0];
         events.compare_trees(c4::to_csubstr(lev.src), lev.tree);
     }
 
