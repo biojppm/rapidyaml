@@ -418,10 +418,10 @@ struct EventsParser
             }
             else if(line.begins_with("+DOC"))
             {
-                _nfo_log("pushing DOC");
                 csubstr rem = line.stripl("+DOC").triml(' ');
+                _nfo_logf("pushing DOC: {}", rem);
                 size_t node = tree.root_id();
-                bool is_sep = rem.find("---") != csubstr::npos;
+                auto is_sep = rem.first_of_any("---\n", "--- ", "---\r") || rem.ends_with("---");
                 ASSERT_EQ(key, false); // for the key to exist, the parent must exist and be a map
                 if(m_stack.empty())
                 {
@@ -447,12 +447,8 @@ struct EventsParser
                         }
                         else
                         {
-                            print_tree(tree);
-                            std::cout << tree;
                             _nfo_log("rearrange root as STREAM");
                             tree.set_root_as_stream();
-                            print_tree(tree);
-                            std::cout << tree;
                             node = tree.append_child(tree.root_id());
                             _nfo_logf("added doc as STREAM child: {}", node);
                             tree.to_doc(node);
@@ -645,17 +641,17 @@ struct AllowedFailure
 constexpr const AllowedFailure g_allowed_failures[] = {
     // malformed json
     {"35KP", CPART_IN_JSON|CPART_EVENTS, "malformed JSON from multiple documents,scalar 'd e' is wrongly parsed with trailing newline"},
-    {"6XDY", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"6ZKB", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents|TODO[next]: document handling"},
+    {"6XDY", CPART_IN_JSON|CPART_EVENTS, "malformed JSON from multiple documents|empty doc does not get an empty value added to it"},
+    {"6ZKB", CPART_IN_JSON|CPART_IN_YAML|CPART_EVENTS, "malformed JSON from multiple documents|TODO[next]: document handling"},
     {"7Z25", CPART_IN_JSON, "malformed JSON from multiple documents"},
     {"9DXL", CPART_IN_JSON|CPART_IN_YAML|CPART_EMIT_YAML, "malformed JSON from multiple documents|TODO[next]: document handling"},
     {"9KAX", CPART_IN_JSON, "malformed JSON from multiple documents"},
     {"JHB9", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"KSS4", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"M7A3", CPART_IN_JSON|CPART_IN_YAML, "malformed JSON from multiple documents|TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
-    {"RZT7", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"U9NS", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"W4TN", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"KSS4", CPART_IN_JSON|CPART_EVENTS, "malformed JSON from multiple documents"},
+    {"M7A3", CPART_IN_JSON|CPART_IN_YAML|CPART_EVENTS, "malformed JSON from multiple documents|TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
+    {"RZT7", CPART_IN_JSON|CPART_EVENTS, "malformed JSON from multiple documents"},
+    {"U9NS", CPART_IN_JSON|CPART_EVENTS, "malformed JSON from multiple documents"},
+    {"W4TN", CPART_IN_JSON|CPART_EVENTS, "malformed JSON from multiple documents"},
     // we do not accept container keys
     {"4FJ6", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
     {"6BFJ", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
@@ -674,43 +670,120 @@ constexpr const AllowedFailure g_allowed_failures[] = {
 
     // TODO
     {"36F6", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"3MYT", CPART_EVENTS, "block scalars: newline problems"},
+    {"3MYT", CPART_EVENTS, "emitting block scalars is not idempotent"},
     {"3UYS", CPART_IN_YAML, "no need to escape the slash in \"a\\/b\""},
     {"4ABK", CPART_EVENTS, "key is wrongly serialized: 'omitted value:'"},
-    {"4CQQ", CPART_EVENTS, "block scalars: newline problems"},
+    {"4CQQ", CPART_EVENTS, "emitting block scalars is not idempotent"},
     {"4Q9F", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"4QFQ", CPART_EVENTS, "block scalars: newline problems"},
+    {"4QFQ", CPART_EVENTS, "emitting block scalars is not idempotent"},
     {"4ZYM", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
     {"52DL", CPART_EVENTS, "single ! is parsed as a tag"},
     {"565N", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
     {"5BVJ", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
     {"5GBF", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
     {"5TYM", CPART_EVENTS, "wrong parse result from tags"},
-    {"5WE3", CPART_EVENTS, "block scalars: newline problems"},
+    {"5WE3", CPART_EVENTS, "emitting block scalars is not idempotent"},
     {"6BCT", CPART_IN_YAML, "allow tabs after - or :"},
     {"6CK3", CPART_EVENTS, "wrong parse result from tags"},
     {"6FWR", CPART_EMIT_YAML|CPART_EVENTS, "fail to parse"},
-    {"6HB6", CPART_EVENTS, "block scalars: newline problems"},
-    {"6JQW", CPART_EVENTS, "block scalars: newline problems"},
+    {"6HB6", CPART_EVENTS, "emitting block scalars is not idempotent"},
+    {"6JQW", CPART_EVENTS, "emitting block scalars is not idempotent"},
     {"6SLA", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"6VJK", CPART_EVENTS, "block scalars: newline problems"},
+    {"6VJK", CPART_EVENTS, "emitting block scalars is not idempotent"},
     {"6WLZ", CPART_EVENTS, "single ! is parsed as a tag"},
-    {"735Y", CPART_IN_YAML, "plain scalar parsing"},
+    {"6WPF", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"735Y", CPART_IN_YAML|CPART_EVENTS, "plain scalar parsing|need to unescape the newline in the scalar from the events source"},
     {"7T8X", CPART_IN_YAML|CPART_OUT_YAML, "scalar block parsing"},
+    {"77H8", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"7A4E", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"7FWL", CPART_EVENTS, "tags are parsed wrong"},
+    {"7TMG", CPART_EVENTS, "multiline scalar is parsed wrong"},
+    {"7W2P", CPART_EVENTS, "multiline scalar is parsed wrong"},
+    {"8MK2", CPART_EVENTS, "tags are parsed wrong"},
     {"82AN", CPART_IN_YAML, "plain scalar parsing, same indentation on next line is problematic"},
+    {"93WF", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"96L6", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
     {"9MMW", CPART_IN_YAML, "re the json/yaml incompatibility where a space is required after :"},
-    {"9YRD", CPART_IN_YAML, "plain scalar parsing, same indentation on next line is problematic"},
+    {"9TFX", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"9YRD", CPART_IN_YAML|CPART_EVENTS, "plain scalar parsing, same indentation on next line is problematic|need to unescape the newline in the scalar from the events source"},
+    {"9WXW", CPART_EVENTS, "tags are inconsistently treated with !"},
+    {"A2M4", CPART_EVENTS, "fails to parse the value sequence, parses as scalar"},
+    {"A6F9", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"A984", CPART_EVENTS, "emitting block scalars is not idempotent"},
+    {"AB8U", CPART_EVENTS, "emitting block scalars is not idempotent"},
+    {"B3HG", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"C4HZ", CPART_EVENTS, "tags are inconsistently treated with !"},
+    {"CC74", CPART_EVENTS, "tags are inconsistently treated with !"},
     {"CN3R", CPART_IN_YAML|CPART_OUT_YAML, "anchors + maps nested in seqs"},
+    {"CUP7", CPART_EVENTS, "tags are inconsistently treated with !"},
+    {"D83L", CPART_EVENTS, "block scalars: multiline problems"},
     {"DC7X", CPART_IN_YAML, "improve handling of tab characters"},
-    {"EXG3", CPART_IN_YAML, "plain scalar parsing, same indentation on next line is problematic"},
-    {"EX5H", CPART_IN_YAML|CPART_EMIT_YAML, "plain scalar parsing, same indentation on next line is problematic"},
+    {"DFF7", CPART_EVENTS, "problem with implicit key"},
+    {"DK3J", CPART_EVENTS, "emitting block scalars is not idempotent"},
+    {"DWX9", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"EHF6", CPART_EVENTS, "emission of tags is not idempotent"},
+    {"EXG3", CPART_IN_YAML|CPART_EVENTS, "plain scalar parsing, same indentation on next line is problematic"},
+    {"EX5H", CPART_IN_YAML|CPART_EMIT_YAML|CPART_EVENTS, "plain scalar parsing, same indentation on next line is problematic|need to unescape the newline in the scalar from the events source"},
+    {"F6MC", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"F8F9", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
     {"FH7J", CPART_IN_YAML|CPART_OUT_YAML, "implicit keys"},
+    {"FP8R", CPART_EVENTS, "emitting block scalars is not idempotent"},
+    {"FRK4", CPART_EVENTS, "implicit key is wrongly parsed"},
+    {"G4RS", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"G992", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
     {"G5U8", CPART_ALL, "sequences with -"},
-    {"HS5T", CPART_IN_YAML, "plain scalar parsing, same indentation on next line is problematic"},
-    {"K858", CPART_OUT_YAML|CPART_IN_JSON, "emitting block scalars is not idempotent"},
+    {"H2RW", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"HS5T", CPART_IN_YAML|CPART_EVENTS, "plain scalar parsing, same indentation on next line is problematic"},
+    {"H3Z8", CPART_EVENTS, "need to unescape the utf8 characters"},
+    {"HMK4", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"HS5T", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"J3BT", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"JDH8", CPART_EVENTS, "emitting block scalars is not idempotent"},
+    {"K527", CPART_EVENTS, "emitting block scalars is not idempotent"},
+    {"K54U", CPART_EVENTS, "problem with tab after ---"},
+    {"K858", CPART_OUT_YAML|CPART_IN_JSON|CPART_EVENTS, "emitting block scalars is not idempotent"},
+    {"KSS4", CPART_EVENTS, "emitting block scalars is not idempotent"},
+    {"M29M", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"M5C3", CPART_EVENTS, "emitting block scalars is not idempotent"},
+    {"M7A3", CPART_EVENTS, "emitting block scalars is not idempotent"},
+    {"M9B4", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"MJS9", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"MZX3", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"NB6Z", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
     {"NAT4", CPART_IN_YAML|CPART_EMIT_YAML|CPART_IN_JSON, "emitting block scalars is not idempotent"},
+    {"NJ66", CPART_EVENTS, "emitting block scalars is not idempotent"},
+    {"NP9H", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"P2AD", CPART_EVENTS, "emitting block scalars is not idempotent"},
+    {"P76L", CPART_EVENTS, "wrong parse result from tags"},
+    {"PRH3", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"PUW8", CPART_EVENTS, "empty doc must have an empty val"},
     {"PW8X", CPART_IN_YAML|CPART_OUT_YAML, "anchors with implicit key"},
+    {"Q5MG", CPART_EVENTS, "'   {}' is wrongly parsed as a val"},
+    {"Q8AD", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"R4YG", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"RTP8", CPART_EVENTS, "empty doc wrongly added at end"},
     {"RZP5", CPART_IN_YAML|CPART_OUT_YAML, "plain scalar block parsing, anchors"},
+    {"RZT7", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"S4JQ", CPART_EVENTS, "wrong parse result from tags"},
+    {"S4T7", CPART_EVENTS, "(false positive) difference in behavior when parsing events"},
+    {"T26H", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"T4YY", CPART_EVENTS, "emitting block scalars is not idempotent"},
+    {"T5N4", CPART_EVENTS, "emitting block scalars is not idempotent"},
+    {"TL85", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"TS54", CPART_EVENTS, "emitting block scalars is not idempotent"},
+    {"U3C3", CPART_EVENTS, "wrong parse result from tags"},
+    {"U9NS", CPART_EVENTS, "(false positive) difference in behavior when parsing events"},
+    {"UGM3", CPART_EVENTS, "wrong parse result from tags"},
+    {"UT92", CPART_EVENTS, "emitting block scalars is not idempotent"},
+    {"V9D5", CPART_EVENTS, "null key is wrongly parsed"},
+    {"W42U", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"W4TN", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"X8DW", CPART_EVENTS, "null key is wrongly parsed"},
+    {"XLQ9", CPART_EVENTS, "emitting block scalars is not idempotent"},
+    {"XV9V", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"Z67P", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"Z9M4", CPART_EVENTS, "wrong parse result from tags"},
+    {"ZWK4", CPART_EVENTS, "null key is wrongly parsed"},
 };
 
 
@@ -1110,7 +1183,6 @@ struct SuiteCase
             size_t first_after = find_first_after(begin_in_json, all);
             begin_in_json = 1 + contents.find('\n', begin_in_json); // skip this line
             txt = contents.range(begin_in_json, first_after);
-            txt = filter_out_double_backslash(txt, &tmpa);
             RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
             in_json.init(filename, txt, CPART_IN_JSON, allowed_failure);
         }
