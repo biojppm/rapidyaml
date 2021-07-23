@@ -887,9 +887,18 @@ void Tree::set_root_as_stream()
     size_t root = root_id();
     if(is_stream(root))
         return;
+    // don't use _add_flags() because it's checked and will fail
     if(!has_children(root))
     {
-        _add_flags(root, STREAM);
+        if(is_val(root))
+        {
+            _p(root)->m_type.add(SEQ);
+            size_t next_doc = append_child(root);
+            _copy_props_wo_key(next_doc, root);
+            _p(next_doc)->m_type.add(DOC);
+            _p(next_doc)->m_type.rem(SEQ);
+        }
+        _p(root)->m_type = STREAM;
         return;
     }
     RYML_ASSERT(!has_key(root));
@@ -905,7 +914,7 @@ void Tree::set_root_as_stream()
         ch = next;
         next = next_sibling(next);
     }
-    _p(root)->m_type = STREAM; // don't use _add_flags() because it's checked and will fail
+    _p(root)->m_type = STREAM;
 }
 
 

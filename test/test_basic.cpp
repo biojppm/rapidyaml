@@ -2073,6 +2073,42 @@ TEST(set_root_as_stream, root_is_mapseq)
     EXPECT_EQ(r[0]["c"][2].val(), "8");
 }
 
+TEST(set_root_as_stream, root_is_docval)
+{
+    Tree t;
+    NodeRef r = t.rootref();
+    r.set_type(DOCVAL);
+    r.set_val("bar");
+    r.set_val_tag("<!foo>");
+    EXPECT_EQ(r.is_stream(), false);
+    EXPECT_EQ(r.is_doc(), true);
+    EXPECT_EQ(r.is_map(), false);
+    EXPECT_EQ(r.is_seq(), false);
+    EXPECT_EQ(r.is_val(), true);
+    EXPECT_EQ(r.has_val_tag(), true);
+    EXPECT_EQ(r.val_tag(), "<!foo>");
+    EXPECT_EQ(r.num_children(), 0u);
+    print_tree(t);
+    std::cout << t;
+    t.set_root_as_stream();
+    print_tree(t);
+    std::cout << t;
+    EXPECT_EQ(r.is_stream(), true);
+    EXPECT_EQ(r.is_doc(), false);
+    EXPECT_EQ(r.is_map(), false);
+    EXPECT_EQ(r.is_seq(), true);
+    EXPECT_EQ(r.is_val(), false);
+    ASSERT_EQ(r.num_children(), 1u);
+    EXPECT_EQ(r[0].is_stream(), false);
+    EXPECT_EQ(r[0].is_doc(), true);
+    EXPECT_EQ(r[0].is_map(), false);
+    EXPECT_EQ(r[0].is_seq(), false);
+    EXPECT_EQ(r[0].is_val(), true);
+    EXPECT_EQ(r[0].has_val_tag(), true);
+    EXPECT_EQ(r[0].val_tag(), "<!foo>");
+    EXPECT_EQ(r[0].num_children(), 0u);
+}
+
 
 //-------------------------------------------
 // this is needed to use the test case library
