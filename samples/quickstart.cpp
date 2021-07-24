@@ -35,6 +35,7 @@
 #include <vector>
 #include <array>
 #include <map>
+#include <c4/yml/preprocess.hpp> // needed only for the json sample
 
 
 //-----------------------------------------------------------------------------
@@ -43,7 +44,7 @@
 //
 // (Each function addresses a topic and is fully self-contained. Jump
 // to the function to find out about its topic.)
-
+namespace sample {
 void sample_quick_overview();       ///< briefly skim over most of the features
 void sample_substr();               ///< about ryml's string views (from c4core)
 void sample_parse_read_only();      ///< parse a read-only YAML source buffer
@@ -64,18 +65,19 @@ void sample_emit_to_container();    ///< emit to memory, eg a string or vector-l
 void sample_emit_to_stream();       ///< emit to a stream, eg std::ostream
 void sample_emit_to_file();         ///< emit to a FILE*
 void sample_emit_nested_node();     ///< pick a nested node as the root when emitting
-void sample_json();                 ///< notes and constraints: JSON parsing and emitting
+void sample_json();                 ///< JSON parsing and emitting
 void sample_anchors_and_aliases();  ///< deal with YAML anchors and aliases
 void sample_tags();                 ///< deal with YAML type tags
 void sample_docs();                 ///< deal with YAML docs
 void sample_error_handler();        ///< set a custom error handler
 void sample_global_allocator();     ///< set a global allocator for ryml
 void sample_per_tree_allocator();   ///< set per-tree allocators
-bool report_check(const char *file, int line, const char *predicate, bool result);
 int  report_checks();
+} // namespace sample
 
 int main()
 {
+    using namespace sample;
     sample_quick_overview();
     sample_substr();
     sample_parse_read_only();
@@ -108,16 +110,22 @@ int main()
 
 
 //-----------------------------------------------------------------------------
-
-// a quick'n'dirty assertion to verify a predicate
-#define CHECK(predicate)                                  \
-    if(!report_check(__FILE__, __LINE__, #predicate, (predicate))) { C4_DEBUG_BREAK(); }
-
-
-//-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+namespace sample {
+
+/// a quick'n'dirty assertion to verify a predicate
+#define CHECK(predicate) do { if(!::sample::detail::report_check(__FILE__, __LINE__, #predicate, (predicate))) { C4_DEBUG_BREAK(); } } while(0)
+
+namespace detail {
+bool report_check(const char *file, int line, const char *predicate, bool result);
+} // namespace detail
+
+
+//-----------------------------------------------------------------------------
+
+/** a brief tour over most features */
 void sample_quick_overview()
 {
     // Parse YAML code in place, potentially mutating the buffer.
@@ -2722,6 +2730,7 @@ void sample_std_types()
 
 //-----------------------------------------------------------------------------
 
+/** demonstrates how to emit to a linear container of char */
 void sample_emit_to_container()
 {
     // it is possible to emit to any linear container of char.
@@ -2842,6 +2851,7 @@ void sample_emit_to_container()
 
 //-----------------------------------------------------------------------------
 
+/** demonstrates how to emit to a stream-like structure */
 void sample_emit_to_stream()
 {
     ryml::csubstr ymlb = R"(- a
@@ -2970,7 +2980,6 @@ void sample_emit_nested_node()
 
 //-----------------------------------------------------------------------------
 
-#include <c4/yml/preprocess.hpp> // needed only for the following sample
 
 /** shows how to parse and emit JSON. */
 void sample_json()
@@ -3610,22 +3619,9 @@ void sample_per_tree_allocator()
 
 
 //-----------------------------------------------------------------------------
-
+namespace detail {
 static int num_checks = 0;
 static int num_failed_checks = 0;
-
-
-int report_checks()
-{
-    std::cout << "Completed " << num_checks << " checks." << std::endl;
-    if(num_failed_checks)
-        std::cout << "ERROR: " << num_failed_checks << '/' << num_checks << " checks failed." << std::endl;
-    else
-        std::cout << "SUCCESS!" << std::endl;
-    return num_failed_checks;
-}
-
-
 bool report_check(const char *file, int line, const char *predicate, bool result)
 {
     ++num_checks;
@@ -3638,3 +3634,18 @@ bool report_check(const char *file, int line, const char *predicate, bool result
     std::cout << file << ':' << line << ": " << msg << predicate << std::endl;
     return result;
 }
+} // namespace detail
+
+
+int report_checks()
+{
+    using namespace sample::detail;
+    std::cout << "Completed " << num_checks << " checks." << std::endl;
+    if(num_failed_checks)
+        std::cout << "ERROR: " << num_failed_checks << '/' << num_checks << " checks failed." << std::endl;
+    else
+        std::cout << "SUCCESS!" << std::endl;
+    return num_failed_checks;
+}
+
+} // namespace sample
