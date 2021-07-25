@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include <c4/substr.hpp>
-#include <c4/std/string.hpp>
+#include <c4/yml/std/std.hpp>
+
 #include <c4/fs/fs.hpp>
 #include <c4/log/log.hpp>
 
@@ -12,260 +12,13 @@
 #include <c4/yml/detail/checks.hpp>
 
 #include "test_case.hpp"
+#include "test_suite_parts.hpp"
 
 #define RYML_NFO (1 || RYML_DBG)
 
 
 C4_SUPPRESS_WARNING_MSVC_PUSH
 C4_SUPPRESS_WARNING_MSVC(4702) // unreachable code
-
-namespace c4 {
-namespace yml {
-
-/* Each case from the test suite contains:
- *
- *  - (awkward) input yaml (in_yaml)
- *  - (somewhat standard) output equivalent (out_yaml)
- *  - (when meaningful/possible) json equivalent (in_json)
- *  - yaml parsing events (events)
- *
- * Running a test consists of parsing the contents above into a data
- * structure, and then repeatedly parsing and emitting yaml in a sort
- * of pipe. Ie, (eg for in_yaml) parse in_yaml, emit corresponding
- * yaml, then parse this emitted yaml, and so on. Each parse/emit pair
- * is named a processing level in this test. */
-
-
-// this is the number of processing levels
-#define NLEVELS 4
-
-
-typedef enum {
-    CPART_NONE = 0,
-    CPART_IN_YAML = 1 << 0,
-    CPART_IN_JSON = 1 << 1,
-    CPART_OUT_YAML = 1 << 2,
-    CPART_EMIT_YAML = 1 << 3,
-    CPART_EVENTS = 1 << 4,
-    CPART_ALL = CPART_IN_YAML|CPART_IN_JSON|CPART_OUT_YAML|CPART_EMIT_YAML|CPART_EVENTS,
-    CPART_ANY = CPART_ALL,
-} CasePart_e;
-constexpr CasePart_e operator| (CasePart_e lhs, CasePart_e rhs) noexcept { return (CasePart_e)((int)lhs|(int)rhs); }
-
-
-csubstr to_csubstr(CasePart_e cp) noexcept
-{
-    if(cp == CPART_NONE) return {"NONE"};
-    else if(cp == CPART_IN_YAML) return {"IN_YAML"};
-    else if(cp == CPART_IN_JSON) return {"IN_JSON"};
-    else if(cp == CPART_OUT_YAML) return {"OUT_YAML"};
-    else if(cp == CPART_EVENTS) return {"EVENTS"};
-    else if(cp == CPART_ALL) return {"ALL"};
-    return {"<unknown>"};
-}
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-
-struct AllowedFailure
-{
-    csubstr test_code;
-    CasePart_e contexts;
-    csubstr reason;
-    constexpr AllowedFailure() : test_code(), contexts(), reason() {}
-    constexpr AllowedFailure(csubstr tc, CasePart_e ctx, csubstr r) : test_code(tc), contexts(ctx), reason(r) {}
-    operator bool() const { return test_code.not_empty(); }
-    bool skip() const { return skip(CPART_ALL); }
-    bool skip(CasePart_e case_part) const
-    {
-        if((case_part != CPART_ALL && (contexts & case_part))
-           ||
-           (case_part == CPART_ALL && (contexts == CPART_ALL)))
-        {
-            c4::log("skipping test {} in {}: matches {}. Reason: {}", test_code, to_csubstr(case_part), to_csubstr(contexts), reason);
-            return true;
-        }
-        return false;
-    }
-};
-
-
-// To see the test case contents, refer to this URL:
-// https://github.com/yaml/yaml-test-suite/tree/master/test/
-constexpr const AllowedFailure g_allowed_failures[] = {
-    // we do not accept container keys
-    {"4FJ6", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"6BFJ", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"6PBE", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"KK5P", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"KZN9", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"LX3P", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"M5DY", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"Q9WF", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"SBG9", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"X38W", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"XW4D", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    // we do not accept anchors with :
-    {"2SXE", CPART_IN_YAML|CPART_OUT_YAML|CPART_EVENTS, "weird characters in anchors, anchors must not end with :"},
-    {"W5VH", CPART_IN_YAML, "weird characters in anchors"},
-
-    // malformed json
-    {"35KP", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"6XDY", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"6ZKB", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"7Z25", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"9DXL", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"9KAX", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"JHB9", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"KSS4", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"M7A3", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"RZT7", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"U9NS", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"W4TN", CPART_IN_JSON, "malformed JSON from multiple documents"},
-
-    {"35KP", CPART_EVENTS, "scalar 'd e' is wrongly parsed with trailing newline"},
-    {"6XDY", CPART_EVENTS, "empty doc does not get an empty value added to it"},
-    {"6ZKB", CPART_EVENTS, "document handling"},
-    {"9DXL", CPART_EVENTS, "document handling"},
-    {"M7A3", CPART_IN_YAML, "plain scalar parsing, same indentation on next line is problematic"},
-
-    // TODO
-    {"S4T7", CPART_EVENTS, "(false positive) difference in behavior when parsing events"},
-    {"U9NS", CPART_EVENTS, "(false positive) difference in behavior when parsing events"},
-    {"36F6", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"4Q9F", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"4ZYM", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"565N", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"5BVJ", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"5GBF", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"6SLA", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"6WPF", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"77H8", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"7A4E", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"93WF", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"96L6", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"9TFX", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"A6F9", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"B3HG", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"DWX9", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"F6MC", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"F8F9", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"G4RS", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"G992", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"H2RW", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"HMK4", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"HS5T", CPART_EVENTS|CPART_IN_YAML, "need to unescape the newline in the scalar from the events source"},
-    {"J3BT", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"M29M", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"M9B4", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"MJS9", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"MZX3", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"NB6Z", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"NP9H", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"PRH3", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"Q8AD", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"R4YG", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"RZT7", CPART_EVENTS, "need to unescape the newline in the scalar the events source"},
-    {"T26H", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"TL85", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"W42U", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"W4TN", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"XV9V", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"Z67P", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"RZP5", CPART_IN_YAML|CPART_OUT_YAML, "plain scalar block parsing, anchors"},
-    {"735Y", CPART_IN_YAML|CPART_EVENTS, "plain scalar parsing|need to unescape the newline in the scalar from the events source"},
-    {"7T8X", CPART_IN_YAML|CPART_OUT_YAML, "scalar block parsing"},
-    {"82AN", CPART_IN_YAML, "plain scalar parsing, same indentation on next line is problematic"},
-    {"9YRD", CPART_IN_YAML|CPART_EVENTS, "plain scalar parsing, same indentation on next line is problematic|need to unescape the newline in the scalar from the events source"},
-    {"EXG3", CPART_IN_YAML|CPART_EVENTS, "plain scalar parsing, same indentation on next line is problematic"},
-    {"EX5H", CPART_IN_YAML|CPART_EMIT_YAML|CPART_EVENTS, "plain scalar parsing, same indentation on next line is problematic|need to unescape the newline in the scalar from the events source"},
-    {"HS5T", CPART_IN_YAML|CPART_EVENTS, "plain scalar parsing, same indentation on next line is problematic"},
-    {"3MYT", CPART_EVENTS, "emitting block scalars is not idempotent"},
-    {"4CQQ", CPART_EVENTS, "emitting block scalars is not idempotent"},
-    {"4QFQ", CPART_EVENTS, "emitting block scalars is not idempotent"},
-    {"5WE3", CPART_EVENTS, "emitting block scalars is not idempotent"},
-    {"6HB6", CPART_EVENTS, "emitting block scalars is not idempotent"},
-    {"6JQW", CPART_EVENTS, "emitting block scalars is not idempotent"},
-    {"6VJK", CPART_EVENTS, "emitting block scalars is not idempotent"},
-    {"7TMG", CPART_EVENTS, "multiline scalar is parsed wrong"},
-    {"7W2P", CPART_EVENTS, "multiline scalar is parsed wrong"},
-    {"A984", CPART_EVENTS, "emitting block scalars is not idempotent"},
-    {"AB8U", CPART_EVENTS, "emitting block scalars is not idempotent"},
-    {"D83L", CPART_EVENTS, "block scalars: multiline problems"},
-    {"DK3J", CPART_EVENTS, "emitting block scalars is not idempotent"},
-    {"FP8R", CPART_EVENTS, "emitting block scalars is not idempotent"},
-    {"JDH8", CPART_EVENTS, "emitting block scalars is not idempotent"},
-    {"K527", CPART_EVENTS, "emitting block scalars is not idempotent"},
-    {"KSS4", CPART_EVENTS, "emitting block scalars is not idempotent"},
-    {"M5C3", CPART_EVENTS, "emitting block scalars is not idempotent"},
-    {"M7A3", CPART_EVENTS, "emitting block scalars is not idempotent"},
-    {"K858", CPART_OUT_YAML|CPART_IN_JSON|CPART_EVENTS, "emitting block scalars is not idempotent"},
-    {"NAT4", CPART_IN_YAML|CPART_EMIT_YAML|CPART_IN_JSON, "emitting block scalars is not idempotent"},
-    {"NJ66", CPART_EVENTS, "emitting block scalars is not idempotent"},
-    {"P2AD", CPART_EVENTS, "emitting block scalars is not idempotent"},
-    {"T4YY", CPART_EVENTS, "emitting block scalars is not idempotent"},
-    {"T5N4", CPART_EVENTS, "emitting block scalars is not idempotent"},
-    {"TS54", CPART_EVENTS, "emitting block scalars is not idempotent"},
-    {"UT92", CPART_EVENTS, "emitting block scalars is not idempotent"},
-    {"XLQ9", CPART_EVENTS, "emitting block scalars is not idempotent"},
-    {"52DL", CPART_EVENTS, "single ! is parsed as a tag"},
-    {"5TYM", CPART_EVENTS, "wrong parse result from tags"},
-    {"6CK3", CPART_EVENTS, "wrong parse result from tags"},
-    {"6WLZ", CPART_EVENTS, "single ! is parsed as a tag"},
-    {"7FWL", CPART_EVENTS, "tags are parsed wrong"},
-    {"8MK2", CPART_EVENTS, "tags are parsed wrong"},
-    {"9WXW", CPART_EVENTS, "tags are inconsistently treated with !"},
-    {"C4HZ", CPART_EVENTS, "tags are inconsistently treated with !"},
-    {"CC74", CPART_EVENTS, "tags are inconsistently treated with !"},
-    {"CUP7", CPART_EVENTS, "tags are inconsistently treated with !"},
-    {"EHF6", CPART_EVENTS, "emission of tags is not idempotent"},
-    {"P76L", CPART_EVENTS, "wrong parse result from tags"},
-    {"S4JQ", CPART_EVENTS, "wrong parse result from tags"},
-    {"U3C3", CPART_EVENTS, "wrong parse result from tags"},
-    {"UGM3", CPART_EVENTS, "wrong parse result from tags"},
-    {"Z9M4", CPART_EVENTS, "wrong parse result from tags"},
-    {"DFF7", CPART_EVENTS, "problem with implicit key"},
-    {"FH7J", CPART_IN_YAML|CPART_OUT_YAML, "implicit keys"},
-    {"FRK4", CPART_EVENTS, "implicit key is wrongly parsed"},
-    {"V9D5", CPART_EVENTS, "null key is wrongly parsed"},
-    {"X8DW", CPART_EVENTS, "null key is wrongly parsed"},
-    {"ZWK4", CPART_EVENTS, "null key is wrongly parsed"},
-    {"3UYS", CPART_IN_YAML, "no need to escape the slash in \"a\\/b\""},
-    {"4ABK", CPART_EVENTS, "key is wrongly serialized: 'omitted value:'"},
-    {"PW8X", CPART_IN_YAML|CPART_OUT_YAML, "anchors with implicit key"},
-    {"6BCT", CPART_IN_YAML, "allow tabs after - or :"},
-    {"K54U", CPART_EVENTS, "problem with tab after ---"},
-    {"DC7X", CPART_IN_YAML, "improve handling of tab characters"},
-    {"6FWR", CPART_EMIT_YAML|CPART_EVENTS, "fail to parse"},
-    {"9MMW", CPART_IN_YAML, "re the json/yaml incompatibility where a space is required after :"},
-    {"A2M4", CPART_EVENTS, "fails to parse the value sequence, parses as scalar"},
-    {"CN3R", CPART_IN_YAML|CPART_OUT_YAML, "anchors + maps nested in seqs"},
-    {"G5U8", CPART_ALL, "sequences with -"},
-    {"H3Z8", CPART_EVENTS, "need to unescape the utf8 characters"},
-    {"PUW8", CPART_EVENTS, "empty doc must have an empty val"},
-    {"RTP8", CPART_EVENTS, "empty doc wrongly added at end"},
-    {"Q5MG", CPART_EVENTS, "'   {}' is wrongly parsed as a val"},
-};
-
-
-AllowedFailure is_failure_expected(csubstr filename, CasePart_e parts)
-{
-    csubstr test_code = filename.basename().name_wo_extshort();
-    RYML_ASSERT(test_code.not_empty());
-    for(AllowedFailure const& af : g_allowed_failures)
-        if(af.test_code == test_code)
-            if(af.skip(parts))
-                return af;
-    return {};
-}
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
 
 #if RYML_NFO
 #define _nfo_print_tree(title, tree) do { c4::log("{}:{}: " title ":", __FILE__, __LINE__); print_tree(tree); c4::yml::emit(tree, stdout); fflush(stdout); } while(0)
@@ -280,6 +33,9 @@ AllowedFailure is_failure_expected(csubstr filename, CasePart_e parts)
 #endif
 #define _nfo_llogf(fmt, ...) _nfo_logf("line[{}]: '{}': " fmt, linenum, line, __VA_ARGS__)
 #define _nfo_llog(fmt)       _nfo_logf("line[{}]: '{}': " fmt, linenum, line)
+
+namespace c4 {
+namespace yml {
 
 
 //-----------------------------------------------------------------------------
@@ -952,16 +708,9 @@ struct Approach
     void init(csubstr filename, csubstr src_, bool immutable_, bool reuse_, CasePart_e case_part_)
     {
         RYML_ASSERT((case_part & CPART_EVENTS) == 0u);
-        EXPECT_TRUE(is_failure_expected ("/35KP.tml", CPART_IN_JSON));
-        EXPECT_TRUE(is_failure_expected ("/35KP.tml", CPART_EVENTS));
-        EXPECT_TRUE(is_failure_expected ("/35KP.tml", CPART_IN_JSON|CPART_EVENTS));
-        EXPECT_FALSE(is_failure_expected("/35KP.tml", CPART_IN_YAML));
-        EXPECT_FALSE(is_failure_expected("/35KP.tml", CPART_OUT_YAML));
-        EXPECT_FALSE(is_failure_expected("/35KP.tml", CPART_EMIT_YAML));
-        EXPECT_FALSE(is_failure_expected("/35KP.tml", CPART_IN_YAML|CPART_OUT_YAML|CPART_EMIT_YAML));
         case_part = case_part_;
         allowed_failure = is_failure_expected(filename, case_part);
-        allowed_failure_events = is_failure_expected(filename, CPART_EVENTS);
+        allowed_failure_events = is_failure_expected(filename, events_part(case_part));
         enabled = !allowed_failure.skip(case_part);
         for(ProcLevel &l : levels)
             l.init(filename, src_, immutable_, reuse_);
@@ -972,7 +721,10 @@ struct Approach
     bool skip_events() const
     {
         // use bit-or to ensure calling both, so that both report a skip
-        return skip_part() | allowed_failure_events.skip(CPART_EVENTS);
+        RYML_ASSERT(events_part(CPART_IN_YAML) == CPART_IN_YAML_EVENTS);
+        RYML_ASSERT(events_part(CPART_OUT_YAML) == CPART_OUT_YAML_EVENTS);
+        RYML_ASSERT(events_part(CPART_EMIT_YAML) == CPART_EMIT_YAML_EVENTS);
+        return skip_part() | allowed_failure_events.skip(events_part(case_part));
     }
 
     void parse(size_t num, bool emit)
@@ -1017,11 +769,6 @@ struct Approach
             GTEST_SKIP();
         for(size_t i = 0; i < num; ++i)
             levels[i].compare_emitted(other.levels[i]);
-    }
-
-    void parse_events(Events *events)
-    {
-        events->parse_events(src());
     }
 
     void compare_events(Events *events)
@@ -1291,15 +1038,7 @@ SuiteCase* g_suite_case = nullptr;
 
 #define DEFINE_EVENT_TESTS(cls, pfx)                                \
                                                                     \
-TEST(cls##_##pfx##_##events, parse_events)                          \
-{                                                                   \
-    RYML_CHECK(g_suite_case != nullptr);                            \
-    if(!g_suite_case->cls.pfx.enabled)                              \
-        return;                                                     \
-    g_suite_case->cls.pfx.parse_events(&g_suite_case->events);      \
-}                                                                   \
-                                                                    \
-TEST(cls##_##pfx##_##events, compare_events)                        \
+TEST(cls##_##pfx##_events, compare)                                 \
 {                                                                   \
     RYML_CHECK(g_suite_case != nullptr);                            \
     if(!g_suite_case->cls.pfx.enabled)                              \
