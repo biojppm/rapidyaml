@@ -77,6 +77,7 @@ struct AllowedFailure
     csubstr reason;
     constexpr AllowedFailure() : test_code(), contexts(), reason() {}
     constexpr AllowedFailure(csubstr tc, CasePart_e ctx, csubstr r) : test_code(tc), contexts(ctx), reason(r) {}
+    operator bool() const { return test_code.not_empty(); }
     bool skip() const { return skip(CPART_ALL); }
     bool skip(CasePart_e case_part) const
     {
@@ -84,8 +85,7 @@ struct AllowedFailure
            ||
            (case_part == CPART_ALL && (contexts == CPART_ALL)))
         {
-            c4::log("skipping test {} in {}: matches {}. Reason: {}",
-                    test_code, to_csubstr(case_part), to_csubstr(contexts), reason);
+            c4::log("skipping test {} in {}: matches {}. Reason: {}", test_code, to_csubstr(case_part), to_csubstr(contexts), reason);
             return true;
         }
         return false;
@@ -97,34 +97,40 @@ struct AllowedFailure
 // https://github.com/yaml/yaml-test-suite/tree/master/test/
 constexpr const AllowedFailure g_allowed_failures[] = {
     // we do not accept container keys
-    {"4FJ6", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
-    {"6BFJ", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
-    {"6PBE", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
-    {"KK5P", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
-    {"KZN9", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
-    {"LX3P", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
-    {"M5DY", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
-    {"Q9WF", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
-    {"SBG9", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
-    {"X38W", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
-    {"XW4D", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs}"},
+    {"4FJ6", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"6BFJ", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"6PBE", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"KK5P", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"KZN9", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"LX3P", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"M5DY", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"Q9WF", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"SBG9", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"X38W", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"XW4D", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
     // we do not accept anchors with :
     {"2SXE", CPART_IN_YAML|CPART_OUT_YAML|CPART_EVENTS, "weird characters in anchors, anchors must not end with :"},
-    {"W5VH", CPART_IN_YAML, "TODO[next]: weird characters in anchors"},
+    {"W5VH", CPART_IN_YAML, "weird characters in anchors"},
 
     // malformed json
-    {"35KP", CPART_IN_JSON|CPART_EVENTS, "malformed JSON from multiple documents,scalar 'd e' is wrongly parsed with trailing newline"},
-    {"6XDY", CPART_IN_JSON|CPART_EVENTS, "malformed JSON from multiple documents|empty doc does not get an empty value added to it"},
-    {"6ZKB", CPART_IN_JSON|CPART_IN_YAML|CPART_EVENTS, "malformed JSON from multiple documents|TODO[next]: document handling"},
+    {"35KP", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"6XDY", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"6ZKB", CPART_IN_JSON, "malformed JSON from multiple documents"},
     {"7Z25", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"9DXL", CPART_IN_JSON|CPART_IN_YAML|CPART_EMIT_YAML, "malformed JSON from multiple documents|TODO[next]: document handling"},
+    {"9DXL", CPART_IN_JSON, "malformed JSON from multiple documents"},
     {"9KAX", CPART_IN_JSON, "malformed JSON from multiple documents"},
     {"JHB9", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"KSS4", CPART_IN_JSON|CPART_EVENTS, "malformed JSON from multiple documents"},
-    {"M7A3", CPART_IN_JSON|CPART_IN_YAML|CPART_EVENTS, "malformed JSON from multiple documents|TODO[next]: plain scalar parsing, same indentation on next line is problematic"},
-    {"RZT7", CPART_IN_JSON|CPART_EVENTS, "malformed JSON from multiple documents"},
-    {"U9NS", CPART_IN_JSON|CPART_EVENTS, "malformed JSON from multiple documents"},
-    {"W4TN", CPART_IN_JSON|CPART_EVENTS, "malformed JSON from multiple documents"},
+    {"KSS4", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"M7A3", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"RZT7", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"U9NS", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"W4TN", CPART_IN_JSON, "malformed JSON from multiple documents"},
+
+    {"35KP", CPART_EVENTS, "scalar 'd e' is wrongly parsed with trailing newline"},
+    {"6XDY", CPART_EVENTS, "empty doc does not get an empty value added to it"},
+    {"6ZKB", CPART_EVENTS, "document handling"},
+    {"9DXL", CPART_EVENTS, "document handling"},
+    {"M7A3", CPART_IN_YAML, "plain scalar parsing, same indentation on next line is problematic"},
 
     // TODO
     {"S4T7", CPART_EVENTS, "(false positive) difference in behavior when parsing events"},
@@ -162,7 +168,7 @@ constexpr const AllowedFailure g_allowed_failures[] = {
     {"PRH3", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
     {"Q8AD", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
     {"R4YG", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
-    {"RZT7", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
+    {"RZT7", CPART_EVENTS, "need to unescape the newline in the scalar the events source"},
     {"T26H", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
     {"TL85", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
     {"W42U", CPART_EVENTS, "need to unescape the newline in the scalar from the events source"},
@@ -245,14 +251,14 @@ constexpr const AllowedFailure g_allowed_failures[] = {
 };
 
 
-AllowedFailure is_failure_expected(csubstr filename)
+AllowedFailure is_failure_expected(csubstr filename, CasePart_e parts)
 {
-    RYML_CHECK(filename.ends_with(".tml"));
-    csubstr test_code = filename.basename();
-    test_code = test_code.offs(0, 4);
-    for(AllowedFailure af : g_allowed_failures)
+    csubstr test_code = filename.basename().name_wo_extshort();
+    RYML_ASSERT(test_code.not_empty());
+    for(AllowedFailure const& af : g_allowed_failures)
         if(af.test_code == test_code)
-            return af;
+            if(af.skip(parts))
+                return af;
     return {};
 }
 
@@ -274,6 +280,7 @@ AllowedFailure is_failure_expected(csubstr filename)
 #endif
 #define _nfo_llogf(fmt, ...) _nfo_logf("line[{}]: '{}': " fmt, linenum, line, __VA_ARGS__)
 #define _nfo_llog(fmt)       _nfo_logf("line[{}]: '{}': " fmt, linenum, line)
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -425,7 +432,7 @@ struct EventsParser
                 }
                 else
                 {
-                    ASSERT_EQ(line.begins_with(':'), true);
+                    ASSERT_TRUE(line.begins_with(':'));
                     curr.scalar = line.sub(1);
                 }
                 _nfo_logf("parsed scalar: '{}'", curr.scalar);
@@ -439,8 +446,8 @@ struct EventsParser
                 if(tree.is_seq(top.tree_node))
                 {
                     _nfo_logf("is seq! seq_id={}", top.tree_node);
-                    ASSERT_EQ(key, false);
-                    ASSERT_EQ(curr, true);
+                    ASSERT_FALSE(key);
+                    ASSERT_TRUE(curr);
                     _nfo_logf("seq[{}]: adding child", top.tree_node);
                     size_t node = tree.append_child(top.tree_node);
                     _nfo_logf("seq[{}]: child={} val='{}'", top.tree_node, node, curr.scalar);
@@ -482,7 +489,7 @@ struct EventsParser
                 if(tree.is_seq(top.tree_node))
                 {
                     _nfo_logf("node[{}] is seq: set {} as val ref", top.tree_node, alias);
-                    ASSERT_EQ(key, false);
+                    ASSERT_FALSE(key);
                     size_t node = tree.append_child(top.tree_node);
                     tree.to_val(node, alias);
                     tree.set_val_ref(node, alias);
@@ -523,7 +530,7 @@ struct EventsParser
                     _nfo_log("stack was empty, set root to SEQ");
                     tree._add_flags(node, SEQ);
                     m_stack.push({node});
-                    ASSERT_EQ(key, false); // for the key to exist, the parent must exist and be a map
+                    ASSERT_FALSE(key); // for the key to exist, the parent must exist and be a map
                 }
                 else
                 {
@@ -585,7 +592,7 @@ struct EventsParser
                     _nfo_log("stack was empty, set root to MAP");
                     tree._add_flags(node, MAP);
                     m_stack.push({node});
-                    ASSERT_EQ(key, false); // for the key to exist, the parent must exist and be a map
+                    ASSERT_FALSE(key); // for the key to exist, the parent must exist and be a map
                 }
                 else
                 {
@@ -643,7 +650,7 @@ struct EventsParser
                     node = tree.root_id();
                 else
                     node = m_stack.pop().tree_node;
-                ASSERT_EQ(tree.is_seq(node), true) << "node=" << node;
+                ASSERT_TRUE(tree.is_seq(node)) << "node=" << node;
             }
             else if(line.begins_with("-MAP"))
             {
@@ -653,7 +660,7 @@ struct EventsParser
                     node = tree.root_id();
                 else
                     node = m_stack.pop().tree_node;
-                ASSERT_EQ(tree.is_map(node), true) << "node=" << node;
+                ASSERT_TRUE(tree.is_map(node)) << "node=" << node;
             }
             else if(line.begins_with("+DOC"))
             {
@@ -713,14 +720,6 @@ struct EventsParser
                     _nfo_logf("child DOC={}", node);
                     tree.to_doc(node);
                     m_stack.push({node});
-                }
-                if(!rem.empty())
-                {
-                    if(rem.begins_with('<'))
-                    {
-GTEST_FAIL();
-                        tree.set_val_tag(node, normalize_tag(rem));
-                    }
                 }
             }
             else if(line.begins_with("-DOC"))
@@ -817,19 +816,15 @@ struct ProcLevel
     c4::yml::Tree   tree;
     std::string     emitted;
 
-    AllowedFailure  allowed_failure;
-    CasePart_e      case_part;
     bool            immutable = false;
     bool            reuse = false;
     bool            was_parsed = false;
     bool            was_emitted = false;
 
-    void init(csubstr filename_, csubstr src_, bool immutable_, bool reuse_, CasePart_e case_part_, AllowedFailure af)
+    void init(csubstr filename_, csubstr src_, bool immutable_, bool reuse_)
     {
         filename = filename_;
         src.assign(src_.begin(), src_.end());
-        allowed_failure = af;
-        case_part = case_part_;
         immutable = immutable_;
         reuse = reuse_;
         was_parsed = false;
@@ -861,11 +856,8 @@ struct ProcLevel
 
     void parse()
     {
-        if(allowed_failure.skip(case_part))
-            GTEST_SKIP();
         if(was_parsed)
             return;
-        RYML_ASSERT(case_part != CPART_EVENTS);
         log("parsing source", src);
         if(reuse)
         {
@@ -906,8 +898,6 @@ struct ProcLevel
 
     void emit()
     {
-        if(allowed_failure.skip(case_part))
-            GTEST_SKIP();
         if(was_emitted)
             return;
         if(!was_parsed)
@@ -925,8 +915,6 @@ struct ProcLevel
 
     void compare_trees(ProcLevel const& prev)
     {
-        if(allowed_failure.skip(case_part))
-            GTEST_SKIP();
         if(!was_parsed)
             parse();
         #if RYML_NFO
@@ -938,8 +926,6 @@ struct ProcLevel
 
     void compare_emitted(ProcLevel const& prev)
     {
-        if(allowed_failure.skip(case_part))
-            GTEST_SKIP();
         if(!was_emitted)
             emit();
         #if RYML_NFO
@@ -957,21 +943,42 @@ struct ProcLevel
 /** holds data for one particular test suite approach. */
 struct Approach
 {
-    ProcLevel levels[NLEVELS];
+    ProcLevel levels[NLEVELS] = {};
+    CasePart_e case_part = CPART_NONE;
+    AllowedFailure allowed_failure = {};
+    AllowedFailure allowed_failure_events = {};
     bool enabled = false;
 
-    void init(csubstr filename, csubstr src, bool immutable_, bool reuse_, CasePart_e case_part, AllowedFailure af)
+    void init(csubstr filename, csubstr src_, bool immutable_, bool reuse_, CasePart_e case_part_)
     {
-        enabled = true;
-        for(auto &l : levels)
-        {
-            l.init(filename, src, immutable_, reuse_, case_part, af);
-            RYML_ASSERT(case_part != CPART_EVENTS);
-        }
+        RYML_ASSERT((case_part & CPART_EVENTS) == 0u);
+        EXPECT_TRUE(is_failure_expected ("/35KP.tml", CPART_IN_JSON));
+        EXPECT_TRUE(is_failure_expected ("/35KP.tml", CPART_EVENTS));
+        EXPECT_TRUE(is_failure_expected ("/35KP.tml", CPART_IN_JSON|CPART_EVENTS));
+        EXPECT_FALSE(is_failure_expected("/35KP.tml", CPART_IN_YAML));
+        EXPECT_FALSE(is_failure_expected("/35KP.tml", CPART_OUT_YAML));
+        EXPECT_FALSE(is_failure_expected("/35KP.tml", CPART_EMIT_YAML));
+        EXPECT_FALSE(is_failure_expected("/35KP.tml", CPART_IN_YAML|CPART_OUT_YAML|CPART_EMIT_YAML));
+        case_part = case_part_;
+        allowed_failure = is_failure_expected(filename, case_part);
+        allowed_failure_events = is_failure_expected(filename, CPART_EVENTS);
+        enabled = !allowed_failure.skip(case_part);
+        for(ProcLevel &l : levels)
+            l.init(filename, src_, immutable_, reuse_);
+    }
+
+    csubstr src() const { return c4::to_csubstr(levels[0].src); }
+    bool skip_part() const { return src().empty() || allowed_failure.skip(case_part); }
+    bool skip_events() const
+    {
+        // use bit-or to ensure calling both, so that both report a skip
+        return skip_part() | allowed_failure_events.skip(CPART_EVENTS);
     }
 
     void parse(size_t num, bool emit)
     {
+        if(skip_part())
+            GTEST_SKIP();
         for(size_t i = 0; i < num; ++i)
         {
             levels[i].parse();
@@ -984,25 +991,48 @@ struct Approach
 
     void compare_trees(size_t num)
     {
+        if(skip_part())
+            GTEST_SKIP();
         for(size_t i = 1; i < num; ++i)
             levels[i].compare_trees(levels[i-1]);
     }
     void compare_trees(size_t num, Approach const& other)
     {
+        if(skip_part())
+            GTEST_SKIP();
         for(size_t i = 0; i < num; ++i)
             levels[i].compare_trees(other.levels[i]);
     }
 
     void compare_emitted(size_t num)
     {
+        if(skip_part())
+            GTEST_SKIP();
         for(size_t i = 1; i < num; ++i)
             levels[i].compare_emitted(levels[i-1]);
     }
     void compare_emitted(size_t num, Approach const& other)
     {
+        if(skip_part())
+            GTEST_SKIP();
         for(size_t i = 0; i < num; ++i)
             levels[i].compare_emitted(other.levels[i]);
     }
+
+    void parse_events(Events *events)
+    {
+        events->parse_events(src());
+    }
+
+    void compare_events(Events *events)
+    {
+        if(skip_events())
+            GTEST_SKIP();
+        events->parse_events(src());
+        parse(1, /*emit*/false);
+        events->compare_trees(src(), levels[0].tree);
+    }
+
 };
 
 
@@ -1026,21 +1056,21 @@ struct Subject
     std::string unix_src;
     std::string windows_src;
 
-    void init(csubstr filename, csubstr src, CasePart_e case_part, AllowedFailure af)
+    void init(csubstr filename, csubstr src, CasePart_e case_part)
     {
         src = replace_all("\r", "", src, &unix_src);
 
-        unix_ro      .init(filename, src, /*immutable*/true , /*reuse*/false, case_part, af);
-        unix_ro_reuse.init(filename, src, /*immutable*/true , /*reuse*/true , case_part, af);
-        unix_rw      .init(filename, src, /*immutable*/false, /*reuse*/false, case_part, af);
-        unix_rw_reuse.init(filename, src, /*immutable*/false, /*reuse*/true , case_part, af);
+        unix_ro      .init(filename, src, /*immutable*/true , /*reuse*/false, case_part);
+        unix_ro_reuse.init(filename, src, /*immutable*/true , /*reuse*/true , case_part);
+        unix_rw      .init(filename, src, /*immutable*/false, /*reuse*/false, case_part);
+        unix_rw_reuse.init(filename, src, /*immutable*/false, /*reuse*/true , case_part);
 
         src = replace_all("\n", "\r\n", src, &windows_src);
 
-        windows_ro      .init(filename, src, /*immutable*/true , /*reuse*/false, case_part, af);
-        windows_ro_reuse.init(filename, src, /*immutable*/true , /*reuse*/true , case_part, af);
-        windows_rw      .init(filename, src, /*immutable*/false, /*reuse*/false, case_part, af);
-        windows_rw_reuse.init(filename, src, /*immutable*/false, /*reuse*/true , case_part, af);
+        windows_ro      .init(filename, src, /*immutable*/true , /*reuse*/false, case_part);
+        windows_ro_reuse.init(filename, src, /*immutable*/true , /*reuse*/true , case_part);
+        windows_rw      .init(filename, src, /*immutable*/false, /*reuse*/false, case_part);
+        windows_rw_reuse.init(filename, src, /*immutable*/false, /*reuse*/true , case_part);
     }
 };
 
@@ -1060,7 +1090,6 @@ size_t find_first_after(size_t pos, std::initializer_list<size_t> candidates)
     return ret;
 }
 
-
 csubstr filter_out_indentation(csubstr src, std::string *dst)
 {
     if( ! src.begins_with("    "))
@@ -1077,7 +1106,7 @@ csubstr filter_out_double_backslash(csubstr src, std::string *dst)
 }
 
 
-/** now finally all the ways that a test case can be processed are
+/** all the ways that a test case can be processed are
  * available through this class. Tests are defined below and use only
  * one of these. */
 struct SuiteCase
@@ -1103,7 +1132,7 @@ struct SuiteCase
 
     /** loads the several types of tests from an input test suite
      * template file (tml)*/
-    bool load(const char* filename_, AllowedFailure allowed_failure)
+    bool load(const char* filename_)
     {
         filename = c4::to_csubstr(filename_);
 
@@ -1181,7 +1210,7 @@ struct SuiteCase
             txt = replace_all("<SPC>", " ", txt, &tmpb);
             txt = replace_all("<TAB>", "\t", txt, &tmpa);
         }
-        in_yaml.init(filename, txt, CPART_IN_YAML, allowed_failure);
+        in_yaml.init(filename, txt, CPART_IN_YAML);
 
         // in_json
         if(begin_in_json != npos)
@@ -1190,7 +1219,7 @@ struct SuiteCase
             begin_in_json = 1 + contents.find('\n', begin_in_json); // skip this line
             txt = contents.range(begin_in_json, first_after);
             RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
-            in_json.init(filename, txt, CPART_IN_JSON, allowed_failure);
+            in_json.init(filename, txt, CPART_IN_JSON);
         }
 
         // out_yaml
@@ -1201,7 +1230,7 @@ struct SuiteCase
             txt = contents.range(begin_out_yaml, first_after);
             RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
             txt = filter_out_indentation(txt, &tmpa);
-            out_yaml.init(filename, txt, CPART_OUT_YAML, allowed_failure);
+            out_yaml.init(filename, txt, CPART_OUT_YAML);
         }
 
         // emit_yaml
@@ -1212,7 +1241,7 @@ struct SuiteCase
             txt = contents.range(begin_emit_yaml, first_after);
             RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
             txt = filter_out_indentation(txt, &tmpa);
-            emit_yaml.init(filename, txt, CPART_EMIT_YAML, allowed_failure);
+            emit_yaml.init(filename, txt, CPART_EMIT_YAML);
         }
 
         // events
@@ -1232,27 +1261,6 @@ struct SuiteCase
         }
 
         return true;
-    }
-
-    void parse_events(Approach *appr)
-    {
-        auto const& lev = appr->levels[0];
-        csubstr levsrc = c4::to_csubstr(lev.src);
-        if(levsrc.empty() || lev.allowed_failure.skip(lev.case_part) || lev.allowed_failure.skip(CPART_EVENTS))
-            GTEST_SKIP();
-        events.parse_events(levsrc);
-    }
-
-    void compare_events(Approach *appr)
-    {
-//GTEST_SKIP(); // this is a work in progress
-        auto const& lev = appr->levels[0];
-        csubstr levsrc = c4::to_csubstr(lev.src);
-        if(levsrc.empty() || lev.allowed_failure.skip(lev.case_part) || lev.allowed_failure.skip(CPART_EVENTS))
-            GTEST_SKIP();
-        events.parse_events(levsrc);
-        appr->parse(1, false);
-        events.compare_trees(levsrc, lev.tree);
     }
 
     void print() const
@@ -1281,23 +1289,22 @@ SuiteCase* g_suite_case = nullptr;
 
 
 
-#define DEFINE_EVENT_TESTS(cls, pfx)                            \
-                                                                \
-                                                                \
-struct cls##_##pfx##_##events : public ::testing::Test          \
-{                                                               \
-};                                                              \
-                                                                \
-TEST_F(cls##_##pfx##_##events, parse_events)                    \
-{                                                               \
-    RYML_CHECK(g_suite_case != nullptr);                        \
-    g_suite_case->parse_events(&g_suite_case->cls.pfx);         \
-}                                                               \
-                                                                \
-TEST_F(cls##_##pfx##_##events, compare_events)                  \
-{                                                               \
-    RYML_CHECK(g_suite_case != nullptr);                        \
-    g_suite_case->compare_events(&g_suite_case->cls.pfx);       \
+#define DEFINE_EVENT_TESTS(cls, pfx)                                \
+                                                                    \
+TEST(cls##_##pfx##_##events, parse_events)                          \
+{                                                                   \
+    RYML_CHECK(g_suite_case != nullptr);                            \
+    if(!g_suite_case->cls.pfx.enabled)                              \
+        return;                                                     \
+    g_suite_case->cls.pfx.parse_events(&g_suite_case->events);      \
+}                                                                   \
+                                                                    \
+TEST(cls##_##pfx##_##events, compare_events)                        \
+{                                                                   \
+    RYML_CHECK(g_suite_case != nullptr);                            \
+    if(!g_suite_case->cls.pfx.enabled)                              \
+        return;                                                     \
+    g_suite_case->cls.pfx.compare_events(&g_suite_case->events);    \
 }
 
 
@@ -1370,6 +1377,7 @@ INSTANTIATE_TEST_SUITE_P(_, cls##_windows_rw_reuse, testing::Range<size_t>(0, NL
 
 DECLARE_TESTS(out_yaml)
 DECLARE_TESTS(emit_yaml)
+
 DECLARE_TESTS(in_json)
 DECLARE_TESTS(in_yaml) // this is the hardest one
 
@@ -1442,16 +1450,8 @@ int main(int argc, char* argv[])
     RYML_CHECK(c4::fs::path_exists(path.str));
     c4::log("testing suite case: {} ({})", path.basename(), path);
 
-    AllowedFailure allowed_to_fail = is_failure_expected(path);
-    if(allowed_to_fail.skip())
-    {
-        c4::log("\n{}: this case is deliberately not implemented in rapidyaml: {}\n",
-                allowed_to_fail.test_code, allowed_to_fail.reason);
-        return 0;
-    }
-
     SuiteCase suite_case;
-    if( ! suite_case.load(path.str, allowed_to_fail))
+    if( ! suite_case.load(path.str))
     {
         // if an error occurs during loading, the test intentionally crashes,
         // so the load() above never returns. This is NOT the same as
