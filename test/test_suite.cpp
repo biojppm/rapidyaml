@@ -60,6 +60,70 @@ size_t to_chars(c4::substr buf, OptionalScalar const& s)
     return s.val.len;
 }
 
+csubstr filtered_scalar(csubstr orig, Tree *tree)
+{
+    csubstr str = orig;
+    csubstr tokens[] = {"\\n", "\\t", "\\\n", "\\\t"};
+    csubstr::first_of_any_result result = str.first_of_any_iter(std::begin(tokens), std::end(tokens));
+    if(!result)
+        return str;
+    substr buf = tree->alloc_arena(str.len);
+    size_t bufpos = 0;
+    size_t strpos = 0;
+    do
+    {
+        // copy up to result
+        _nfo_logf("result.pos={}  strpos={}", result.pos, strpos);
+        RYML_CHECK(bufpos + result.pos <= buf.len);
+        RYML_CHECK(result.pos >= strpos);
+        memcpy(buf.str + bufpos, str.str + strpos, result.pos - strpos);
+        bufpos += result.pos - strpos;
+        strpos += result.pos - strpos;
+        // now transform or copy the token
+        switch(result.which)
+        {
+        case 0u:
+            RYML_ASSERT(str.sub(result.pos).begins_with("\\n"));
+            memcpy(buf.str + bufpos, "\n", 1u);
+            bufpos += 1u;
+            strpos += 2u;
+            break;
+        case 1u:
+            RYML_ASSERT(str.sub(result.pos).begins_with("\\t"));
+            memcpy(buf.str + bufpos, "\t", 1u);
+            bufpos += 1u;
+            strpos += 2u;
+            break;
+        case 2u:
+            RYML_ASSERT(str.sub(result.pos).begins_with("\\\n"));
+            memcpy(buf.str + bufpos, "\\n", 2u);
+            bufpos += 2u;
+            strpos += 3u;
+            break;
+        case 3u:
+            RYML_ASSERT(str.sub(result.pos).begins_with("\\\t"));
+            memcpy(buf.str + bufpos, "\\t", 2u);
+            bufpos += 2u;
+            strpos += 3u;
+            break;
+        default:
+            C4_ERROR("never reach this");
+            break;
+        }
+        str = str.sub(strpos);
+        strpos = 0u;
+        result = str.first_of_any_iter(std::begin(tokens), std::end(tokens));
+    } while(result);
+    // and finally copy the remaining tail portion
+    memcpy(buf.str + bufpos, str.str + strpos, str.len - strpos);
+    bufpos += str.len - strpos;
+    strpos += str.len - strpos;
+    RYML_CHECK(bufpos <= buf.len);
+    RYML_CHECK(strpos == str.len);
+    _nfo_logf("filtered scalar '{}' ---> '{}'", orig, buf.first(bufpos));
+    return buf.first(bufpos);
+}
+
 
 struct Scalar
 {
@@ -116,6 +180,10 @@ struct Scalar
             _nfo_logf("node[{}]: set val as quoted", node);
             tree->_add_flags(node, VALQUO);
         }
+    }
+    csubstr filtered_scalar(Tree *tree) const
+    {
+        return ::c4::yml::filtered_scalar(scalar, tree);
     }
 };
 
@@ -207,7 +275,7 @@ struct EventsParser
                     _nfo_logf("seq[{}]: adding child", top.tree_node);
                     size_t node = tree.append_child(top.tree_node);
                     _nfo_logf("seq[{}]: child={} val='{}'", top.tree_node, node, curr.scalar);
-                    tree.to_val(node, curr.scalar);
+                    tree.to_val(node, curr.filtered_scalar(&tree));
                     curr.add_val_props(&tree, node);
                 }
                 else if(tree.is_map(top.tree_node))
@@ -223,7 +291,7 @@ struct EventsParser
                         _nfo_logf("map[{}]: adding child", top.tree_node);
                         size_t node = tree.append_child(top.tree_node);
                         _nfo_logf("map[{}]: child={} key='{}' val='{}'", top.tree_node, node, key.scalar, curr.scalar);
-                        tree.to_keyval(node, key.scalar, curr.scalar);
+                        tree.to_keyval(node, key.filtered_scalar(&tree), curr.filtered_scalar(&tree));
                         key.add_key_props(&tree, node);
                         curr.add_val_props(&tree, node);
                         _nfo_logf("clear key='{}'", key.scalar);
@@ -233,7 +301,7 @@ struct EventsParser
                 else
                 {
                     _nfo_logf("setting tree_node={} to DOCVAL...", top.tree_node);
-                    tree.to_val(top.tree_node, curr.scalar, DOC);
+                    tree.to_val(top.tree_node, curr.filtered_scalar(&tree), DOC);
                     curr.add_val_props(&tree, top.tree_node);
                 }
             }
@@ -256,7 +324,7 @@ struct EventsParser
                     {
                         _nfo_logf("node[{}] is map and key '{}' is pending: set {} as val ref", top.tree_node, key.scalar, alias);
                         size_t node = tree.append_child(top.tree_node);
-                        tree.to_keyval(node, key.scalar, alias);
+                        tree.to_keyval(node, key.filtered_scalar(&tree), alias);
                         key.add_key_props(&tree, node);
                         tree.set_val_ref(node, alias);
                         _nfo_logf("clear key='{}'", key);
@@ -311,7 +379,7 @@ struct EventsParser
                     {
                         _nfo_logf("has key, set to keyseq: parent={} child={} key='{}'", parent, node, key);
                         ASSERT_EQ(tree.is_map(parent) || node == parent, true);
-                        tree.to_seq(node, key.scalar, more_flags);
+                        tree.to_seq(node, key.filtered_scalar(&tree), more_flags);
                         key.add_key_props(&tree, node);
                         _nfo_logf("clear key='{}'", key.scalar);
                         key = {};
@@ -373,7 +441,7 @@ struct EventsParser
                     {
                         _nfo_logf("has key, set to keymap: parent={} child={} key='{}'", parent, node, key);
                         ASSERT_EQ(tree.is_map(parent) || node == parent, true);
-                        tree.to_map(node, key.scalar, more_flags);
+                        tree.to_map(node, key.filtered_scalar(&tree), more_flags);
                         key.add_key_props(&tree, node);
                         _nfo_logf("clear key='{}'", key.scalar);
                         key = {};
@@ -852,6 +920,11 @@ csubstr filter_out_double_backslash(csubstr src, std::string *dst)
     return replace_all(R"(\\)", R"(\)", src, dst);
 }
 
+csubstr filter_out_newlines(csubstr src, std::string *dst)
+{
+    return replace_all("\\n", "\n", src, dst);
+}
+
 
 /** all the ways that a test case can be processed are
  * available through this class. Tests are defined below and use only
@@ -977,6 +1050,11 @@ struct SuiteCase
             txt = contents.range(begin_out_yaml, first_after);
             RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
             txt = filter_out_indentation(txt, &tmpa);
+            if(has_whitespace)
+            {
+                txt = replace_all("<SPC>", " ", txt, &tmpb);
+                txt = replace_all("<TAB>", "\t", txt, &tmpa);
+            }
             out_yaml.init(filename, txt, CPART_OUT_YAML);
         }
 
@@ -997,8 +1075,13 @@ struct SuiteCase
             size_t first_after = find_first_after(begin_events, all);
             begin_events = 1 + contents.find('\n', begin_events); // skip this line
             txt = contents.range(begin_events, first_after);
-            txt = filter_out_double_backslash(txt, &tmpa);
             RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
+            txt = filter_out_double_backslash(txt, &tmpa);
+            if(has_whitespace)
+            {
+                txt = replace_all("<SPC>", " ", txt, &tmpb);
+                txt = replace_all("<TAB>", "\t", txt, &tmpa);
+            }
             events.init(filename, txt);
         }
 
