@@ -31,6 +31,8 @@ constexpr const AllowedFailure allowed_failures[] = {
     // we do not accept anchors with :
     {"2SXE", CPART_IN_YAML|CPART_OUT_YAML, "weird characters in anchors, anchors must not end with :"},
     {"W5VH", CPART_IN_YAML, "weird characters in anchors"},
+    // tags are parsed as-is
+    {"9WXW", eIN_OUT_____, "we do not do tag lookup"},
 
     // malformed json
     {"35KP", CPART_IN_JSON, "malformed JSON from multiple documents"},
@@ -78,7 +80,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"JDH8", eIN_________, "emitting block scalars is not idempotent"},
     {"K527", eIN_OUT_____, "emitting block scalars is not idempotent"},
     {"KSS4", eIN_________, "emitting block scalars is not idempotent"},
-    {"M5C3", eIN_OUT_____, "emitting block scalars is not idempotent"},
     {"M7A3", CPART_IN_YAML|e_______EMIT, "emitting block scalars is not idempotent"},
     {"MJS9", eIN_OUT_____, "emitting block scalars is not idempotent"},
     {"K858", CPART_OUT_YAML|CPART_IN_JSON|eIN_________, "emitting block scalars is not idempotent"},
@@ -115,21 +116,14 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"Q8AD", eIN_OUT_EMIT, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"TL85", eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
     // tags
-    //{"52DL", eIN_OUT_____, "single ! is parsed as a tag"},
     {"5TYM", eIN_________, "wrong parse result from tags"},
     {"6CK3", eIN_________, "wrong parse result from tags"},
     {"6WLZ", eIN_OUT_EMIT, "single ! is parsed as a tag"},
     {"7FWL", eIN_OUT_____, "tags are parsed wrong"},
-    {"8MK2", eIN_________, "tags are parsed wrong"},
-    {"77H8", eIN_OUT_____, "tags are inconsistently treated with !"},
-    {"9WXW", eIN_OUT_____, "tags are inconsistently treated with !"},
     {"C4HZ", eIN_OUT_____, "tags are inconsistently treated with !"},
     {"CC74", eIN_OUT_____, "tags are inconsistently treated with !"},
-    {"CUP7", eIN_OUT_____, "tags are inconsistently treated with !"},
-    {"Z67P", eIN_OUT_____, "tags are inconsistently treated with !"},
     {"EHF6", eIN_________, "emission of tags is not idempotent"},
     {"P76L", eIN_OUT_____, "wrong parse result from tags"},
-    //{"S4JQ", eIN_OUT_____, "wrong parse result from tags"},
     {"U3C3", eIN_________, "wrong parse result from tags"},
     {"UGM3", eIN_OUT_____, "wrong parse result from tags"},
     {"Z9M4", eIN_OUT_____, "wrong parse result from tags"},

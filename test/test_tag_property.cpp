@@ -172,6 +172,9 @@ TEST(normalize_tag, basic)
     EXPECT_EQ(normalize_tag("!!str"      ), "!!str");
     EXPECT_EQ(normalize_tag("!!timestamp"), "!!timestamp");
     EXPECT_EQ(normalize_tag("!!value"    ), "!!value");
+
+    EXPECT_EQ(normalize_tag("<!foo>"), "!foo");
+    EXPECT_EQ(normalize_tag("<!>"), "!");
 }
 
 
