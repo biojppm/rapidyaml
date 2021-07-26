@@ -16,6 +16,8 @@ csubstr normalize_tag(csubstr tag)
     YamlTag_e t = to_tag(tag);
     if(t != TAG_NONE)
         return from_tag(t);
+    if(tag.begins_with("!<"))
+        tag = tag.sub(1);
     if(tag.begins_with("<!"))
     {
         size_t pos = tag.find('>');
@@ -28,6 +30,8 @@ csubstr normalize_tag(csubstr tag)
 
 YamlTag_e to_tag(csubstr tag)
 {
+    if(tag.begins_with("!<"))
+        tag = tag.sub(1);
     if(tag.begins_with("!!"))
         tag = tag.sub(2);
     else if(tag.begins_with('!'))

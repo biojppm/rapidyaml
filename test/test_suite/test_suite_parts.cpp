@@ -32,7 +32,15 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"2SXE", CPART_IN_YAML|CPART_OUT_YAML, "weird characters in anchors, anchors must not end with :"},
     {"W5VH", CPART_IN_YAML, "weird characters in anchors"},
     // tags are parsed as-is
-    {"9WXW", eIN_OUT_____, "we do not do tag lookup"},
+    {"5TYM", eIN_________, "we do not do tag lookup"},
+    {"6CK3", eIN_________, "we do not do tag lookup"},
+    {"6WLZ", eIN_________, "we do not do tag lookup"},
+    {"9WXW", eIN_________, "we do not do tag lookup"},
+    {"C4HZ", eIN_________, "we do not do tag lookup"},
+    {"CC74", eIN_________, "we do not do tag lookup"},
+    {"P76L", eIN_________, "we do not do tag lookup"},
+    {"U3C3", eIN_________, "we do not do tag lookup"},
+    {"Z9M4", eIN_________, "we do not do tag lookup"},
 
     // malformed json
     {"35KP", CPART_IN_JSON, "malformed JSON from multiple documents"},
@@ -105,6 +113,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"36F6", eIN_OUT_____, "plain scalar is wrongly parsed with trailing newline"},
     {"4ZYM", eIN_OUT_EMIT, "plain scalar is wrongly parsed with trailing newline"},
     {"H2RW", eIN_____EMIT, "plain scalar is wrongly parsed with trailing newline"},
+    {"UGM3", eIN_________, "plain scalar is wrongly parsed with trailing newline"},
     // quoted scalars
     {"6SLA", eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"6WPF", eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
@@ -115,18 +124,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"PRH3", eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"Q8AD", eIN_OUT_EMIT, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"TL85", eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
-    // tags
-    {"5TYM", eIN_________, "wrong parse result from tags"},
-    {"6CK3", eIN_________, "wrong parse result from tags"},
-    {"6WLZ", eIN_OUT_EMIT, "single ! is parsed as a tag"},
-    {"7FWL", eIN_OUT_____, "tags are parsed wrong"},
-    {"C4HZ", eIN_OUT_____, "tags are inconsistently treated with !"},
-    {"CC74", eIN_OUT_____, "tags are inconsistently treated with !"},
-    {"EHF6", eIN_________, "emission of tags is not idempotent"},
-    {"P76L", eIN_OUT_____, "wrong parse result from tags"},
-    {"U3C3", eIN_________, "wrong parse result from tags"},
-    {"UGM3", eIN_OUT_____, "wrong parse result from tags"},
-    {"Z9M4", eIN_OUT_____, "wrong parse result from tags"},
     // implicit keys
     {"DFF7", eIN_________, "problem with implicit key"},
     {"FH7J", CPART_IN_YAML|CPART_OUT_YAML, "implicit keys"},
@@ -156,6 +153,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"6ZKB", eIN_____EMIT, "document handling"},
     {"9DXL", eIN_____EMIT, "document handling"},
     {"B3HG", e___OUT_____, "document handling with folded scalar"},
+    {"EHF6", eIN_________, "tag is incorrectly assigned to the child node"},
 };
 
 

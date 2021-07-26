@@ -49,7 +49,7 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, size_t 
             {
                 if(!t.is_root(id))
                     this->Writer::_do_write(' ');
-                this->Writer::_do_write(t.val_tag(id));
+                _write_tag(t.val_tag(id));
             }
             if(t.has_val_anchor(id))
             {
@@ -83,8 +83,7 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, size_t 
         RYML_ASSERT(t.has_parent(id));
         this->Writer::_do_write(ind);
         _writek(t, id, ilevel);
-        this->Writer::_do_write(": ");
-        this->Writer::_do_write('*');
+        this->Writer::_do_write(": *");
         this->Writer::_do_write(t.val_ref(id));
         this->Writer::_do_write('\n');
         return;
@@ -102,8 +101,7 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, size_t 
     {
         RYML_ASSERT(t.has_parent(id));
         this->Writer::_do_write(ind);
-        this->Writer::_do_write("- ");
-        this->Writer::_do_write('*');
+        this->Writer::_do_write("- *");
         this->Writer::_do_write(t.val_ref(id));
         this->Writer::_do_write('\n');
         return;
@@ -131,15 +129,17 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, size_t 
 
         if(t.has_val_tag(id))
         {
-            if(spc) this->Writer::_do_write(' ');
-            this->Writer::_do_write(t.val_tag(id));
+            if(spc)
+                this->Writer::_do_write(' ');
+            _write_tag(t.val_tag(id));
             spc = true;
             nl = true;
         }
 
         if(t.has_val_anchor(id))
         {
-            if(spc) this->Writer::_do_write(' ');
+            if(spc)
+                this->Writer::_do_write(' ');
             this->Writer::_do_write('&');
             this->Writer::_do_write(t.val_anchor(id));
             spc = true;
@@ -256,7 +256,7 @@ void Emitter<Writer>::_write(NodeScalar const& sc, NodeType flags, size_t ilevel
 {
     if( ! sc.tag.empty())
     {
-        this->Writer::_do_write(sc.tag);
+        _write_tag(sc.tag);
         this->Writer::_do_write(' ');
     }
     if(flags.has_anchor())

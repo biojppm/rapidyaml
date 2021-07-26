@@ -1817,7 +1817,7 @@ bool Parser::_handle_types()
                 csubstr scalar = _slurp_doc_scalar();
                 _c4dbgpf("docval. after slurp: %zu, at node %zu: '%.*s'", m_state->pos.offset, m_state->node_id, _c4prsp(scalar));
                 m_tree->to_val(m_state->node_id, scalar, DOC);
-                m_tree->set_val_tag(m_state->node_id, m_val_tag);
+                m_tree->set_val_tag(m_state->node_id, normalize_tag(m_val_tag));
                 m_val_tag.clear();
                 if(!m_val_anchor.empty())
                 {
@@ -2728,26 +2728,26 @@ void Parser::_end_stream()
         }
         if(!m_key_anchor.empty())
         {
-            _c4dbgpf("node[%zu]: set key anchor='%.*s'", m_tree->id(added), _c4prsp(m_key_anchor));
+            _c4dbgpf("node[%zu]: set key anchor='%.*s'", added_id, _c4prsp(m_key_anchor));
             m_tree->set_key_anchor(added_id, m_key_anchor);
             m_key_anchor = {};
         }
         if(!m_val_anchor.empty())
         {
-            _c4dbgpf("node[%zu]: set val anchor='%.*s'", m_tree->id(added), _c4prsp(m_val_anchor));
+            _c4dbgpf("node[%zu]: set val anchor='%.*s'", added_id, _c4prsp(m_val_anchor));
             m_tree->set_val_anchor(added_id, m_val_anchor);
             m_val_anchor = {};
         }
         if(!m_key_tag.empty())
         {
-            _c4dbgpf("node[%zu]: set key tag='%.*s'", m_tree->id(added), _c4prsp(m_key_tag));
-            m_tree->set_key_tag(added_id, m_key_tag);
+            _c4dbgpf("node[%zu]: set key tag='%.*s' -> '%.*s'", added_id, _c4prsp(m_key_tag), _c4prsp(normalize_tag(m_key_tag)));
+            m_tree->set_key_tag(added_id, normalize_tag(m_key_tag));
             m_key_tag = {};
         }
         if(!m_val_tag.empty())
         {
-            _c4dbgpf("node[%zu]: set val tag='%.*s'", m_tree->id(added), _c4prsp(m_val_tag));
-            m_tree->set_val_tag(added_id, m_val_tag);
+            _c4dbgpf("node[%zu]: set val tag='%.*s' -> '%.*s'", added_id, _c4prsp(m_val_tag), _c4prsp(normalize_tag(m_val_tag)));
+            m_tree->set_val_tag(added_id, normalize_tag(m_val_tag));
             m_val_tag = {};
         }
     }
@@ -2797,8 +2797,8 @@ void Parser::_start_map(bool as_child)
             _write_key_anchor(m_state->node_id);
             if( ! m_key_tag.empty())
             {
-                _c4dbgpf("start_map[%zu]: set key tag to '%.*s'", m_state->node_id, _c4prsp(m_key_tag));
-                m_tree->set_key_tag(m_state->node_id, m_key_tag);
+                _c4dbgpf("node[%zu]: set key tag='%.*s' -> '%.*s'", m_state->node_id, _c4prsp(m_key_tag), _c4prsp(normalize_tag(m_key_tag)));
+                m_tree->set_key_tag(m_state->node_id, normalize_tag(m_key_tag));
                 m_key_tag.clear();
             }
         }
@@ -2836,8 +2836,8 @@ void Parser::_start_map(bool as_child)
     }
     if( ! m_val_tag.empty())
     {
-        _c4dbgpf("start_map[%zu]: set val tag to '%.*s'", m_state->node_id, _c4prsp(m_val_tag));
-        m_tree->set_val_tag(m_state->node_id, m_val_tag);
+        _c4dbgpf("node[%zu]: set val tag='%.*s' -> '%.*s'", m_state->node_id, _c4prsp(m_val_tag), _c4prsp(normalize_tag(m_val_tag)));
+        m_tree->set_val_tag(m_state->node_id, normalize_tag(m_val_tag));
         m_val_tag.clear();
     }
 }
@@ -2900,8 +2900,8 @@ void Parser::_start_seq(bool as_child)
             _write_key_anchor(m_state->node_id);
             if( ! m_key_tag.empty())
             {
-                _c4dbgpf("start_seq[%zu]: set key tag to '%.*s'", m_state->node_id, _c4prsp(m_key_tag));
-                m_tree->set_key_tag(m_state->node_id, m_key_tag);
+                _c4dbgpf("start_seq[%zu]: set key tag='%.*s' -> '%.*s'", m_state->node_id, _c4prsp(m_key_tag), _c4prsp(normalize_tag(m_key_tag)));
+                m_tree->set_key_tag(m_state->node_id, normalize_tag(m_key_tag));
                 m_key_tag.clear();
             }
         }
@@ -2930,8 +2930,8 @@ void Parser::_start_seq(bool as_child)
     }
     if( ! m_val_tag.empty())
     {
-        _c4dbgpf("start_seq[%zu]: set val tag to '%.*s'", m_state->node_id, _c4prsp(m_val_tag));
-        m_tree->set_val_tag(m_state->node_id, m_val_tag);
+        _c4dbgpf("start_seq[%zu]: set val tag='%.*s' -> '%.*s'", m_state->node_id, _c4prsp(m_val_tag), _c4prsp(normalize_tag(m_val_tag)));
+        m_tree->set_val_tag(m_state->node_id, normalize_tag(m_val_tag));
         m_val_tag.clear();
     }
 }
@@ -2941,6 +2941,7 @@ void Parser::_stop_seq()
     _c4dbgp("stop_seq");
     RYML_ASSERT(node(m_state)->is_seq());
 }
+
 
 //-----------------------------------------------------------------------------
 void Parser::_start_seqimap()
@@ -2979,6 +2980,7 @@ void Parser::_stop_seqimap()
     RYML_ASSERT(has_all(RSEQIMAP));
 }
 
+
 //-----------------------------------------------------------------------------
 NodeData* Parser::_append_val(csubstr val, bool quoted)
 {
@@ -2993,8 +2995,8 @@ NodeData* Parser::_append_val(csubstr val, bool quoted)
     _c4dbgpf("append val: id=%zd key='%.*s' val='%.*s'", nid, _c4prsp(m_tree->get(nid)->m_key.scalar), _c4prsp(m_tree->get(nid)->m_val.scalar));
     if( ! m_val_tag.empty())
     {
-        _c4dbgpf("append val: set tag to '%.*s'", _c4prsp(m_val_tag));
-        m_tree->set_val_tag(nid, m_val_tag);
+        _c4dbgpf("append val[%zu]: set val tag='%.*s' -> '%.*s'", nid, _c4prsp(m_val_tag), _c4prsp(normalize_tag(m_val_tag)));
+        m_tree->set_val_tag(nid, normalize_tag(m_val_tag));
         m_val_tag.clear();
     }
     _write_val_anchor(nid);
@@ -3017,14 +3019,14 @@ NodeData* Parser::_append_key_val(csubstr val, bool val_quoted)
     _c4dbgpf("append keyval: id=%zd key='%.*s' val='%.*s'", nid, _c4prsp(m_tree->get(nid)->key()), _c4prsp(m_tree->get(nid)->val()));
     if( ! m_key_tag.empty())
     {
-        _c4dbgpf("append keyval: set key tag to '%.*s'", _c4prsp(m_key_tag));
-        m_tree->set_key_tag(nid, m_key_tag);
+        _c4dbgpf("append keyval[%zu]: set key tag='%.*s' -> '%.*s'", nid, _c4prsp(m_key_tag), _c4prsp(normalize_tag(m_key_tag)));
+        m_tree->set_key_tag(nid, normalize_tag(m_key_tag));
         m_key_tag.clear();
     }
     if( ! m_val_tag.empty())
     {
-        _c4dbgpf("append keyval: set val tag to '%.*s'", _c4prsp(m_val_tag));
-        m_tree->set_val_tag(nid, m_val_tag);
+        _c4dbgpf("append keyval[%zu]: set val tag='%.*s' -> '%.*s'", nid, _c4prsp(m_val_tag), _c4prsp(normalize_tag(m_val_tag)));
+        m_tree->set_val_tag(nid, normalize_tag(m_val_tag));
         m_val_tag.clear();
     }
     _write_key_anchor(nid);

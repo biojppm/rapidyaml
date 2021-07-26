@@ -158,6 +158,21 @@ TEST(normalize_tag, basic)
     EXPECT_EQ(normalize_tag("<tag:yaml.org,2002:timestamp>" ), "!!timestamp");
     EXPECT_EQ(normalize_tag("<tag:yaml.org,2002:value>"     ), "!!value");
 
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:map>"       ), "!!map");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:omap>"      ), "!!omap");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:pairs>"     ), "!!pairs");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:set>"       ), "!!set");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:seq>"       ), "!!seq");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:binary>"    ), "!!binary");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:bool>"      ), "!!bool");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:float>"     ), "!!float");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:int>"       ), "!!int");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:merge>"     ), "!!merge");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:null>"      ), "!!null");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:str>"       ), "!!str");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:timestamp>" ), "!!timestamp");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:value>"     ), "!!value");
+
     EXPECT_EQ(normalize_tag("!!map"      ), "!!map");
     EXPECT_EQ(normalize_tag("!!omap"     ), "!!omap");
     EXPECT_EQ(normalize_tag("!!pairs"    ), "!!pairs");
@@ -175,6 +190,9 @@ TEST(normalize_tag, basic)
 
     EXPECT_EQ(normalize_tag("<!foo>"), "!foo");
     EXPECT_EQ(normalize_tag("<!>"), "!");
+
+    EXPECT_EQ(normalize_tag("!<!foo>"), "!foo");
+    EXPECT_EQ(normalize_tag("!<!>"), "!");
 }
 
 
