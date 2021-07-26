@@ -1,4 +1,8 @@
-#include <c4/yml/tree.hpp>
+#ifndef C4_YML_TEST_SUITE_PARTS_HPP_
+#define C4_YML_TEST_SUITE_PARTS_HPP_
+
+
+#include <c4/yml/common.hpp>
 #include <c4/span.hpp>
 #include <c4/log/log.hpp>
 
@@ -18,10 +22,6 @@ namespace yml {
  * of pipe. Ie, (eg for in_yaml) parse in_yaml, emit corresponding
  * yaml, then parse this emitted yaml, and so on. Each parse/emit pair
  * is named a processing level in this test. */
-
-
-// this is the number of processing levels
-#define NLEVELS 4
 
 
 typedef enum {
@@ -105,3 +105,6 @@ inline AllowedFailure is_failure_expected(csubstr filename, CasePart_e parts)
 
 } // namespace c4
 } // namespace yml
+
+
+#endif /* C4_YML_TEST_SUITE_PARTS_HPP_ */

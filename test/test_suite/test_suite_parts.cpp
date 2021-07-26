@@ -115,7 +115,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"Q8AD", eIN_OUT_EMIT, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"TL85", eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
     // tags
-    {"52DL", eIN_OUT_____, "single ! is parsed as a tag"},
+    //{"52DL", eIN_OUT_____, "single ! is parsed as a tag"},
     {"5TYM", eIN_________, "wrong parse result from tags"},
     {"6CK3", eIN_________, "wrong parse result from tags"},
     {"6WLZ", eIN_OUT_EMIT, "single ! is parsed as a tag"},
@@ -129,7 +129,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"Z67P", eIN_OUT_____, "tags are inconsistently treated with !"},
     {"EHF6", eIN_________, "emission of tags is not idempotent"},
     {"P76L", eIN_OUT_____, "wrong parse result from tags"},
-    {"S4JQ", eIN_OUT_____, "wrong parse result from tags"},
+    //{"S4JQ", eIN_OUT_____, "wrong parse result from tags"},
     {"U3C3", eIN_________, "wrong parse result from tags"},
     {"UGM3", eIN_OUT_____, "wrong parse result from tags"},
     {"Z9M4", eIN_OUT_____, "wrong parse result from tags"},

@@ -815,17 +815,17 @@ out of all the cases which are successfully parsed, all the checks per
 case are 100% successful for consistency over parse/emit pairs. This
 is enforced also in the CI.
 
-The main problems under work are these::
-  * user tags (with single `!`) are inconsistently treated
-  * some multiline scalars are sometimes not idempotent
+The main problems under work are these:
+  * multiline scalars are sometimes not idempotent, or incorrectly
+    parsed with whitespace inconsistencies
   * implicit null keys are sometimes not idempotent
 
 Please refer to the [list of current known
-failures](test/test_suite.cpp) to see the full list. Although there
-are several other problems listed there, they have low expression in
-terms of volume, and are mostly dark-corner cases. This is not to say
-that they do not merit attention, but just that it is not likely that
-you will catch these.
+failures](test/test_suite/test_suite_parts.cpp) to see the full
+list. Although there are several other problems listed there, they
+have low expression in terms of volume, and are mostly dark-corner
+cases. This is not to say that they do not merit attention, but just
+that it is not likely that you will catch these.
 
 
 --------- 

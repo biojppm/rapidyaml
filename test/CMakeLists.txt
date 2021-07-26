@@ -147,7 +147,13 @@ if(RYML_TEST_SUITE)
     endif()
 
     c4_add_executable(ryml-test-suite
-        SOURCES test_suite.cpp test_suite_parts.cpp test_suite_parts.hpp
+        SOURCES
+            test_suite.cpp
+            test_suite/test_suite_common.hpp
+            test_suite/test_suite_events.cpp
+            test_suite/test_suite_events.hpp
+            test_suite/test_suite_parts.cpp
+            test_suite/test_suite_parts.hpp
         LIBS ryml-_testlib c4log
         FOLDER test)
     add_dependencies(ryml-test-build ryml-test-suite)

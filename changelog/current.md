@@ -17,7 +17,7 @@ into a DOCVAL, not SEQ->VAL ([5ba0d56](https://github.com/biojppm/rapidyaml/pull
 - Callbacks: improve test coverage ([PR #141](https://github.com/biojppm/rapidyaml/pull/141))
 - [YAML test suite](https://github.com/yaml/yaml-test-suite)
 ([PR #144](https://github.com/biojppm/rapidyaml/pull/144)): implemented event parsing and comparison with the reference tree. Results are satisfactory, but it did reveal a number of existing problems, which are the subject of ongoing work. See the [list of current known
-failures](test/test_suite.cpp) in the test suite file.
+failures](../test/test_suite/test_suite_parts.cpp) in the test suite file.
 
 
 ### Fixes

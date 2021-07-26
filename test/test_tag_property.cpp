@@ -180,6 +180,7 @@ TEST(normalize_tag, basic)
 //-----------------------------------------------------------------------------
 
 #define TAG_PROPERTY_CASES \
+    "user tag, empty, test suite 52DL",                \
     "tag property in implicit map",\
     "tag property in explicit map",\
     "tag property in implicit seq",\
@@ -195,6 +196,11 @@ TEST(normalize_tag, basic)
 CASE_GROUP(TAG_PROPERTY)
 {
     APPEND_CASES(
+
+C("user tag, empty, test suite 52DL",
+R"(! a)",
+N(DOCVAL, TS("!", "a"))
+),
 
 C("tag property in implicit map",
 R"(ivar: !!int 0
