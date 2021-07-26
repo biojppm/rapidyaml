@@ -35,7 +35,8 @@ namespace yml {
     "simple doc, multi doc, impl map-seq, indented",                    \
     "simple doc, multi doc, impl map-seq, no term",                     \
     "simple doc, multi doc, impl map-seq, no term, indented",           \
-    "simple doc, indented with empty lines"
+    "simple doc, indented with empty lines",\
+    "simple doc, tags at global scope, 9WXW"
 
 
 CASE_GROUP(SIMPLE_DOC)
@@ -460,6 +461,25 @@ R"(
         N(DOCMAP, L{N("a", "0"), N("b", "1"), N("c", "2"), N("d", "some scalar")}),
         N(DOCMAP, L{N("a", "0"), N("b", "1"), N("c", "2"), N("d", "some scalar")}),
     })
+),
+
+
+C("simple doc, tags at global scope, 9WXW",
+R"(# Private
+!foo "bar"
+...
+# Global
+%TAG ! tag:example.com,2000:app/
+---
+!foo "bar"
+)",
+N(STREAM, L{
+  N(DOCVAL, TS("!foo", "bar")),
+  // strict YAML should result in this for the second doc:
+  //N(DOCVAL, TS("<tag:example.com,2000:app/foo>", "bar")),
+  // but since we don't do lookup, it should result in:
+  N(DOCVAL, TS("!foo", "bar")),
+})
 ),
 
     );

@@ -38,6 +38,32 @@ failures](../test/test_suite/test_suite_parts.cpp) in the test suite file.
 ```
 - Fix [#142](https://github.com/biojppm/rapidyaml/issues/142): `preprocess_json()`: ensure quoted ranges are skipped when slurping containers
 - Ensure error macros expand to a single statement ([PR #141](https://github.com/biojppm/rapidyaml/pull/141))
+- Prevent creation of DOC nodes from stream-level comments or tags ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
+```yaml
+!foo "bar"
+...
+# Global
+%TAG ! tag:example.com,2000:app/
+---
+!foo "bar"
+```
+was parsed as
+```yaml
+---
+!foo "bar"
+---
+# notice the empty doc in here
+---
+!foo "bar"
+```
+and it is now correctly parsed as
+```yaml
+---
+!foo "bar"
+---
+!foo "bar"
+```
+(other than the known limitation that ryml does not do tag lookup).
 
 
 ### Special thanks

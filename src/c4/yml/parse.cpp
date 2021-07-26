@@ -243,7 +243,7 @@ bool Parser::_handle_unk()
         {
             _end_stream();
         }
-        else
+        else if(trimmed.first_of("#%") == csubstr::npos) // neither a doc nor a tag
         {
             _c4dbgpf("starting implicit doc to accomodate unexpected tokens: '%.*s'", _c4prsp(rem));
             size_t indref = m_state->indref;
