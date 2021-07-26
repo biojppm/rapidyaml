@@ -16,52 +16,12 @@ constexpr const CasePart_e eIN_OUT_EMIT = CPART_IN_YAML_EVENTS|CPART_OUT_YAML_EV
 // To see the test case contents, refer to this URL:
 // https://github.com/yaml/yaml-test-suite/tree/master/test/
 constexpr const AllowedFailure allowed_failures[] = {
-    // we do not accept container keys
-    {"4FJ6", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"6BFJ", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"6PBE", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"KK5P", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"KZN9", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"LX3P", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"M5DY", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"Q9WF", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"SBG9", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"X38W", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"XW4D", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    // we do not accept anchors with :
-    {"2SXE", CPART_IN_YAML|CPART_OUT_YAML, "weird characters in anchors, anchors must not end with :"},
-    {"W5VH", CPART_IN_YAML, "weird characters in anchors"},
-    // tags are parsed as-is
-    {"5TYM", eIN_________, "we do not do tag lookup"},
-    {"6CK3", eIN_________, "we do not do tag lookup"},
-    {"6WLZ", eIN_________, "we do not do tag lookup"},
-    {"9WXW", eIN_________, "we do not do tag lookup"},
-    {"C4HZ", eIN_________, "we do not do tag lookup"},
-    {"CC74", eIN_________, "we do not do tag lookup"},
-    {"P76L", eIN_________, "we do not do tag lookup"},
-    {"U3C3", eIN_________, "we do not do tag lookup"},
-    {"Z9M4", eIN_________, "we do not do tag lookup"},
 
-    // malformed json
-    {"35KP", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"6XDY", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"6ZKB", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"7Z25", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"9DXL", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"9KAX", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"JHB9", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"KSS4", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"M7A3", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"RZT7", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"U9NS", CPART_IN_JSON, "malformed JSON from multiple documents"},
-    {"W4TN", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    //-------------------------------------------------------------------------
+    // SECTION 1. Known issues, TODO
+    //
+    // These tests are temporarily skipped, and cover issues that must be fixed.
 
-    // TODO
-    {"M29M", eIN_OUT_____, "(false positive) difference in behavior when parsing events (docs)"},
-    {"EX5H", eIN_OUT_____, "(false positive) difference in behavior when parsing events (docs)"},
-    {"EXG3", eIN_OUT_____, "(false positive) difference in behavior when parsing events (docs)"},
-    {"S4T7", eIN_________, "(false positive) difference in behavior when parsing events"},
-    {"U9NS", eIN_________, "(false positive) difference in behavior when parsing events"},
     // block scalars
     {"3MYT", eIN_________, "emitting block scalars is not idempotent"},
     {"4CQQ", eIN_OUT_____, "emitting block scalars is not idempotent"},
@@ -154,6 +114,56 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"9DXL", eIN_____EMIT, "document handling"},
     {"B3HG", e___OUT_____, "document handling with folded scalar"},
     {"EHF6", eIN_________, "tag is incorrectly assigned to the child node"},
+
+
+    //-------------------------------------------------------------------------
+    // SECTION 2. Known ryml limitations.
+    //
+    // These tests are skipped as they cover parts of YAML that are deliberately
+    // not implemented by ryml.
+
+    // we do not accept container keys
+    {"4FJ6", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"6BFJ", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"6PBE", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"KK5P", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"KZN9", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"LX3P", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"M5DY", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"Q9WF", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"SBG9", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"X38W", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"XW4D", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    // we do not accept anchors with :
+    {"2SXE", CPART_IN_YAML|CPART_OUT_YAML, "weird characters in anchors, anchors must not end with :"},
+    {"W5VH", CPART_IN_YAML, "weird characters in anchors"},
+    // tags are parsed as-is
+    {"5TYM", eIN_________, "we do not do tag lookup"},
+    {"6CK3", eIN_________, "we do not do tag lookup"},
+    {"6WLZ", eIN_________, "we do not do tag lookup"},
+    {"9WXW", eIN_________, "we do not do tag lookup"},
+    {"C4HZ", eIN_________, "we do not do tag lookup"},
+    {"CC74", eIN_________, "we do not do tag lookup"},
+    {"P76L", eIN_________, "we do not do tag lookup"},
+    {"U3C3", eIN_________, "we do not do tag lookup"},
+    {"Z9M4", eIN_________, "we do not do tag lookup"},
+    // malformed json
+    {"35KP", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"6XDY", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"6ZKB", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"7Z25", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"9DXL", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"9KAX", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"JHB9", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"KSS4", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"M7A3", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"RZT7", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"U9NS", CPART_IN_JSON, "malformed JSON from multiple documents"},
+    {"W4TN", CPART_IN_JSON, "malformed JSON from multiple documents"},
+
+    // malformed test spec?
+    {"EX5H", e___OUT_____, "out-yaml is missing the --- document token, which is required in the events"},
+    {"EXG3", e___OUT_____, "out-yaml is missing the --- document token, which is required in the events"},
 };
 
 

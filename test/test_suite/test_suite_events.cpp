@@ -516,14 +516,8 @@ void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
         else if(line.begins_with("-DOC"))
         {
             _nfo_log("popping DOC");
-            csubstr rem = line.stripl("+DOC").triml(' ');
-            bool is_sep = rem.find("...") != csubstr::npos;
-            size_t node = m_stack.empty() ? tree.root_id() : m_stack.pop().tree_node;
-            if(is_sep && !tree.is_doc(node))
-            {
-                _nfo_logf("got a sep '{}' and node[{}] is not a doc - adding DOC", rem, node);
-                tree._add_flags(node, DOC);
-            }
+            if(!m_stack.empty())
+                m_stack.pop();
         }
         else if(line.begins_with("+STR"))
         {
