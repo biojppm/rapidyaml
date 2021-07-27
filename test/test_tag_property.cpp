@@ -65,7 +65,7 @@ TEST(tags, api)
     }
 }
 
-TEST(tags, api_errors)
+TEST(tags, errors)
 {
     Tree t = parse("{key: val, keymap: {}, keyseq: [val]}");
     size_t keyval = t["keyval"].id();
@@ -142,7 +142,7 @@ TEST(tags, api_errors)
 }
 
 
-TEST(tags, user_tags_do_not_require_leading_mark)
+TEST(tags, setting_user_tags_do_not_require_leading_mark)
 {
     Tree t = parse("{key: val, keymap: {}, keyseq: [val]}");
     size_t keyval = t["keyval"].id();
@@ -181,6 +181,22 @@ keymap: {}
 !keytag keyseq: !valtag
   - !valtag2 val
 )");
+}
+
+
+TEST(tags, valid_chars)
+{
+    Tree t = parse(R"(
+- !<foo bar> val
+- !<foo> bar> val
+- !<foo> <bar> val
+)");
+    EXPECT_EQ(t[0].val_tag(), "<foo bar>");
+    EXPECT_EQ(t[0].val(), "val");
+    EXPECT_EQ(t[1].val_tag(), "<foo>");
+    EXPECT_EQ(t[1].val(), "bar> val");
+    EXPECT_EQ(t[2].val_tag(), "<foo>");
+    EXPECT_EQ(t[2].val(), "<bar> val");
 }
 
 
@@ -372,9 +388,11 @@ TEST(normalize_tag, basic)
     EXPECT_EQ(normalize_tag("!!value"    ), "!!value");
 
     EXPECT_EQ(normalize_tag("<!foo>"), "!foo");
+    EXPECT_EQ(normalize_tag("<foo>"), "<foo>");
     EXPECT_EQ(normalize_tag("<!>"), "!");
 
     EXPECT_EQ(normalize_tag("!<!foo>"), "!foo");
+    EXPECT_EQ(normalize_tag("!<foo>"), "<foo>");
     EXPECT_EQ(normalize_tag("!<!>"), "!");
 }
 

@@ -1694,7 +1694,7 @@ bool Parser::_handle_types()
     else if(rem.begins_with("!<"))
     {
         _c4dbgp("begins with '!<'");
-        t = rem.left_of(rem.first_of(' '));
+        t = rem.left_of(rem.first_of('>'), true);
         RYML_ASSERT(t.len >= 2);
         //t = t.sub(2, t.len-1);
     }
