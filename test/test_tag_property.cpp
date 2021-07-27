@@ -1,9 +1,64 @@
 #include "./test_group.hpp"
+#include "test_case.hpp"
 
 namespace c4 {
 namespace yml {
 
-TEST(tags, api)
+TEST(tags, parsing)
+{
+    Tree t = parse(R"(
+!!seq
+- !!map
+  !key key1: !val val1
+  !<!key> key2: !<!val> val2
+  !<key> key3: !<val> val3
+  <!key> key4: <!val> val4  # there are NOT parsed as tags
+- !<tag:yaml.org,2002:map>
+  !key key1: !val val1
+- !<tag:yaml.org,2002:seq>
+  - !val val
+  - !str val
+  - <!str> val
+  - !<!str> val
+  - !<!!str> val
+  - !<tag:yaml.org,2002:str> val
+)");
+    EXPECT_EQ(t.rootref().val_tag(), "!!seq");
+    EXPECT_EQ(t[0].val_tag(), "!!map");
+    EXPECT_EQ(t[1].val_tag(), "!!map");
+    EXPECT_EQ(t[2].val_tag(), "!!seq");
+    EXPECT_EQ(t[0]["key1"].key_tag(), "!key");
+    EXPECT_EQ(t[0]["key1"].val_tag(), "!val");
+    EXPECT_EQ(t[0]["key2"].key_tag(), "!key");
+    EXPECT_EQ(t[0]["key2"].val_tag(), "!val");
+    EXPECT_EQ(t[0]["key3"].key_tag(), "<key>");
+    EXPECT_EQ(t[0]["key3"].val_tag(), "<val>");
+    EXPECT_EQ(t[0]["<!key> key4"].has_key_tag(), false);
+    EXPECT_EQ(t[0]["<!key> key4"].has_val_tag(), false);
+    EXPECT_EQ(t[0]["<!key> key4"].key(), "<!key> key4");
+    EXPECT_EQ(t[0]["<!key> key4"].val(), "<!val> val4");
+    EXPECT_EQ(t[2][5].val_tag(), "!!str");
+
+    EXPECT_EQ(emitrs<std::string>(t), R"(!!seq
+- !!map
+  !key key1: !val val1
+  !key key2: !val val2
+  !<key> key3: !<val> val3
+  <!key> key4: <!val> val4
+- !!map
+  !key key1: !val val1
+- !!seq
+  - !val val
+  - !str val
+  - <!str> val
+  - !str val
+  - !!str val
+  - !!str val
+)");
+}
+
+
+TEST(tags, setting)
 {
     Tree t;
     size_t rid = t.root_id();
