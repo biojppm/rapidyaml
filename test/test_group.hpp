@@ -112,7 +112,7 @@ Case const* get_case(csubstr name)                                      \
         ADD_CASE_GROUP(group_name);                                     \
     }                                                                   \
     auto it = cases.find(name);                                         \
-    C4_ASSERT(it != cases.end());                                       \
+    C4_ASSERT_MSG(it != cases.end(), "name='%.*s'", _c4prsp(name));     \
     return &it->second;                                                 \
 }
 
