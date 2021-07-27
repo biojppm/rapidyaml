@@ -26,6 +26,17 @@ failures](../test/test_suite/test_suite_parts.cpp) in the test suite file.
 - Fix resolving of nodes with keyref+valref ([PR #144](https://github.com/biojppm/rapidyaml/pull/144)): `{&a a: &b b, *b: *a}`
 - Fix parsing of tag dense maps and seqs ([PR #144](https://github.com/biojppm/rapidyaml/pull/144)):
 ```yaml
+--- !!map {
+  k: !!seq [ a, !!str b],
+  j: !!seq
+     [ a, !!str b]
+--- !!seq [
+  !!map { !!str k: v},
+  !!map { !!str ? k: v}
+]
+```
+- Fix parsing of tags for explicit flow maps and seqs ([PR #144](https://github.com/biojppm/rapidyaml/pull/144)):
+```yaml
 --- !!map
 !!str foo: !!map  # there was a parse error with the multiple tags
   !!int 1: !!float 20.0

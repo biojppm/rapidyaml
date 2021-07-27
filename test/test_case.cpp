@@ -162,9 +162,9 @@ ExpectError::ExpectError(Location loc)
     , expected_location(loc)
 {
     #ifdef RYML_NO_DEFAULT_CALLBACKS
-    c4::yml::Callbacks cb((void*)this, m_prev.m_allocate, m_prev.m_free, &ExpectError::error);
-    #else
     c4::yml::Callbacks cb((void*)this, nullptr,           nullptr,       &ExpectError::error);
+    #else
+    c4::yml::Callbacks cb((void*)this, m_prev.m_allocate, m_prev.m_free, &ExpectError::error);
     #endif
     c4::yml::set_callbacks(cb);
 }

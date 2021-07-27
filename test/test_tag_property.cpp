@@ -4,6 +4,7 @@
 namespace c4 {
 namespace yml {
 
+
 TEST(tags, parsing)
 {
     Tree t = parse(R"(
@@ -130,10 +131,10 @@ TEST(tags, errors)
     size_t empty_keyval = t.append_child(keymap);
     size_t empty_val = t.append_child(keyseq);
 
-    ASSERT_NE(keyval, npos);
-    ASSERT_NE(keymap, npos);
-    ASSERT_NE(keyseq, npos);
-    ASSERT_NE(val, npos);
+    ASSERT_NE(keyval, (size_t)npos);
+    ASSERT_NE(keymap, (size_t)npos);
+    ASSERT_NE(keyseq, (size_t)npos);
+    ASSERT_NE(val, (size_t)npos);
 
     // cannot get key tag in a node that does not have a key tag
     EXPECT_FALSE(t.has_key_tag(empty_keyval));
@@ -204,10 +205,10 @@ TEST(tags, setting_user_tags_do_not_require_leading_mark)
     size_t keymap = t["keymap"].id();
     size_t keyseq = t["keyseq"].id();
     size_t val = t["keyseq"][0].id();
-    ASSERT_NE(keyval, npos);
-    ASSERT_NE(keymap, npos);
-    ASSERT_NE(keyseq, npos);
-    ASSERT_NE(val, npos);
+    ASSERT_NE(keyval, (size_t)npos);
+    ASSERT_NE(keymap, (size_t)npos);
+    ASSERT_NE(keyseq, (size_t)npos);
+    ASSERT_NE(val, (size_t)npos);
 
     // without leading mark
     t.set_key_tag(keyseq, "keytag");
@@ -252,6 +253,40 @@ TEST(tags, valid_chars)
     EXPECT_EQ(t[1].val(), "bar> val");
     EXPECT_EQ(t[2].val_tag(), "<foo>");
     EXPECT_EQ(t[2].val(), "<bar> val");
+}
+
+
+TEST(tags, EHF6)
+{
+    {
+        Tree t = parse(R"(!!map {
+  k: !!seq [ a, !!str b],
+  j: !!seq
+     [ a, !!str b]
+})");
+        ASSERT_TRUE(t.rootref().has_val_tag());
+        EXPECT_EQ(t.rootref().val_tag(), "!!map");
+        ASSERT_TRUE(t["k"].has_val_tag());
+        ASSERT_TRUE(t["j"].has_val_tag());
+        EXPECT_EQ(t["k"].val_tag(), "!!seq");
+        EXPECT_EQ(t["j"].val_tag(), "!!seq");
+    }
+    {
+        Tree t = parse(R"(!!seq [
+  !!map { !!str k: v},
+  !!map { !!str ? k: v}
+])");
+        ASSERT_TRUE(t.rootref().has_val_tag());
+        EXPECT_EQ(t.rootref().val_tag(), "!!seq");
+        ASSERT_TRUE(t[0].has_val_tag());
+        ASSERT_TRUE(t[1].has_val_tag());
+        EXPECT_EQ(t[0].val_tag(), "!!map");
+        EXPECT_EQ(t[1].val_tag(), "!!map");
+        ASSERT_TRUE(t[0]["k"].has_key_tag());
+        ASSERT_TRUE(t[1]["k"].has_key_tag());
+        EXPECT_EQ(t[0]["k"].key_tag(), "!!str");
+        EXPECT_EQ(t[1]["k"].key_tag(), "!!str");
+    }
 }
 
 

@@ -155,6 +155,7 @@ private:
     bool  _handle_key_anchors_and_refs();
     bool  _handle_val_anchors_and_refs();
     void  _move_val_tag_to_key_tag();
+    void  _move_key_tag_to_val_tag();
     void  _move_key_tag2_to_key_tag();
     void  _move_val_anchor_to_key_anchor();
     void  _move_key_anchor_to_val_anchor();

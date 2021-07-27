@@ -269,6 +269,7 @@ bool Parser::_handle_unk()
     {
         _c4dbgpf("it's a seq (as_child=%d)", start_as_child);
         _move_key_anchor_to_val_anchor();
+        _move_key_tag_to_val_tag();
         _push_level();
         _start_seq(start_as_child);
         _save_indentation();
@@ -279,6 +280,7 @@ bool Parser::_handle_unk()
     {
         _c4dbgpf("it's a seq (as_child=%d)", start_as_child);
         _move_key_anchor_to_val_anchor();
+        _move_key_tag_to_val_tag();
         _push_level();
         _start_seq(start_as_child);
         _save_indentation();
@@ -288,6 +290,8 @@ bool Parser::_handle_unk()
     else if(rem.begins_with('['))
     {
         _c4dbgpf("it's a seq, explicit (as_child=%d)", start_as_child);
+        _move_key_anchor_to_val_anchor();
+        _move_key_tag_to_val_tag();
         _push_level(/*explicit flow*/true);
         _start_seq(start_as_child);
         add_flags(EXPL);
@@ -297,6 +301,8 @@ bool Parser::_handle_unk()
     else if(rem.begins_with('{'))
     {
         _c4dbgpf("it's a map, explicit (as_child=%d)", start_as_child);
+        _move_key_anchor_to_val_anchor();
+        _move_key_tag_to_val_tag();
         _push_level(/*explicit flow*/true);
         _start_map(start_as_child);
         addrem_flags(EXPL|RKEY, RVAL);
@@ -306,6 +312,8 @@ bool Parser::_handle_unk()
     else if(rem.begins_with("? "))
     {
         _c4dbgpf("it's a map (as_child=%d) + this key is complex", start_as_child);
+        _move_key_anchor_to_val_anchor();
+        _move_key_tag_to_val_tag();
         _push_level();
         _start_map(start_as_child);
         addrem_flags(RKEY|CPLX, RVAL);
@@ -316,6 +324,8 @@ bool Parser::_handle_unk()
     else if(rem.begins_with(": ") && !has_all(SSCL))
     {
         _c4dbgp("it's a map with an empty key");
+        _move_key_anchor_to_val_anchor();
+        _move_key_tag_to_val_tag();
         _push_level();
         _start_map(start_as_child);
         _store_scalar("", false);
@@ -327,6 +337,8 @@ bool Parser::_handle_unk()
     else if(rem == ':' && !has_all(SSCL))
     {
         _c4dbgp("it's a map with an empty key");
+        _move_key_anchor_to_val_anchor();
+        _move_key_tag_to_val_tag();
         _push_level();
         _start_map(start_as_child);
         _store_scalar("", false);
@@ -1650,6 +1662,17 @@ void Parser::_move_val_anchor_to_key_anchor()
     m_val_anchor_indentation = {};
 }
 
+void Parser::_move_key_tag_to_val_tag()
+{
+    if(m_key_tag.empty())
+        return;
+    _c4dbgpf("move key tag to val tag: key='%.*s' -> val='%.*s'", _c4prsp(m_key_tag), _c4prsp(m_val_tag));
+    m_val_tag = m_key_tag;
+    m_val_tag_indentation = m_key_tag_indentation;
+    m_key_tag.clear();
+    m_key_tag_indentation = 0;
+}
+
 void Parser::_move_val_tag_to_key_tag()
 {
     if(m_val_tag.empty())
@@ -1838,7 +1861,7 @@ csubstr Parser::_slurp_doc_scalar()
     csubstr s = m_state->line_contents.rem;
     size_t pos = m_state->pos.offset;
     RYML_ASSERT(m_state->line_contents.full.find("---") != csubstr::npos);
-    _c4dbgpf("CRL 0 '%.*s'. REM='%.*s'", _c4prsp(s), _c4prsp(m_buf.sub(m_state->pos.offset)));
+    _c4dbgpf("slurp 0 '%.*s'. REM='%.*s'", _c4prsp(s), _c4prsp(m_buf.sub(m_state->pos.offset)));
     if(s.len == 0)
     {
         _line_ended();
@@ -1848,13 +1871,13 @@ csubstr Parser::_slurp_doc_scalar()
     }
 
     size_t skipws = s.first_not_of(" \t");
-    _c4dbgpf("CRL 1 '%.*s'. REM='%.*s'", _c4prsp(s), _c4prsp(m_buf.sub(m_state->pos.offset)));
+    _c4dbgpf("slurp 1 '%.*s'. REM='%.*s'", _c4prsp(s), _c4prsp(m_buf.sub(m_state->pos.offset)));
     if(skipws != npos)
     {
         _line_progressed(skipws);
         s = m_state->line_contents.rem;
         pos = m_state->pos.offset;
-        _c4dbgpf("CRL 2 '%.*s'. REM='%.*s'", _c4prsp(s), _c4prsp(m_buf.sub(m_state->pos.offset)));
+        _c4dbgpf("slurp 2 '%.*s'. REM='%.*s'", _c4prsp(s), _c4prsp(m_buf.sub(m_state->pos.offset)));
     }
 
     RYML_ASSERT(m_val_anchor.empty());
@@ -1869,7 +1892,7 @@ csubstr Parser::_slurp_doc_scalar()
         }
         s = m_state->line_contents.rem;
         pos = m_state->pos.offset;
-        _c4dbgpf("CRL 3 '%.*s'. REM='%.*s'", _c4prsp(s), _c4prsp(m_buf.sub(m_state->pos.offset)));
+        _c4dbgpf("slurp 3 '%.*s'. REM='%.*s'", _c4prsp(s), _c4prsp(m_buf.sub(m_state->pos.offset)));
     }
 
     if(s.begins_with('\''))
@@ -1887,13 +1910,13 @@ csubstr Parser::_slurp_doc_scalar()
         return _scan_block();
     }
 
-    _c4dbgpf("CRL 4 '%.*s'. REM='%.*s'", _c4prsp(s), _c4prsp(m_buf.sub(m_state->pos.offset)));
+    _c4dbgpf("slurp 4 '%.*s'. REM='%.*s'", _c4prsp(s), _c4prsp(m_buf.sub(m_state->pos.offset)));
 
     m_state->scalar_col = m_state->line_contents.current_col(s);
     RYML_ASSERT(s.end() >= m_buf.begin() + pos);
     _line_progressed(static_cast<size_t>(s.end() - (m_buf.begin() + pos)));
 
-    _c4dbgpf("CRL 5 '%.*s'. REM='%.*s'", _c4prsp(s), _c4prsp(m_buf.sub(m_state->pos.offset)));
+    _c4dbgpf("slurp 5 '%.*s'. REM='%.*s'", _c4prsp(s), _c4prsp(m_buf.sub(m_state->pos.offset)));
 
     if(_at_line_end())
     {
