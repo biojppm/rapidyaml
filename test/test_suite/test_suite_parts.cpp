@@ -88,14 +88,13 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"TL85",                  eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
     // implicit keys
     {"DFF7",                  eIN_________, "problem with implicit key"},
-    {"FH7J",                  CPART_IN_YAML|CPART_OUT_YAML, "implicit keys"},
+    {"FH7J", IN_OUT__________             , "implicit keys"},
     {"FRK4",                  eIN_________, "implicit key is wrongly parsed"},
     {"V9D5",                  eIN_________, "null key is wrongly parsed"},
     {"X8DW",                  eIN_________, "null key is wrongly parsed"},
     {"ZWK4",                  eIN_________, "null key is wrongly parsed"},
     {"4ABK",                  eIN_________, "key is wrongly serialized: 'omitted value:'"},
     {"PW8X", IN_OUT__________             , "anchors with implicit key"},
-    {"DC7X", IN______________             , "improve handling of tab characters"},
     // document handling
     {"6ZKB",                  eIN_____EMIT, "document handling"},
     {"9DXL",                  eIN_____EMIT, "document handling"},
@@ -106,16 +105,11 @@ constexpr const AllowedFailure allowed_failures[] = {
     // other
     {"9MMW", IN______________             , "re the json/yaml incompatibility where a space is required after :"},
     {"A2M4",                  eIN_________, "fails to parse the value sequence, parses as scalar"},
-    {"CN3R", IN_OUT__________             , "anchors + maps nested in seqs"},
-    {"G5U8", CPART_ALL                    , "sequences with -"},
     {"G4RS",                  eIN_OUT_____, "need to unescape the utf8 characters"},
     {"H3Z8",                  e___OUT_____, "need to unescape the utf8 characters"},
-    {"Q5MG",                  eIN_________, "'   {}' is wrongly parsed as a val"},
     // tabs
     {"6BCT", IN______________             , "tabs after - or :"},
     {"J3BT",                  eIN_OUT_____, "tabs after - or :"},
-    {"K54U",                  eIN_________, "tab after ---"},
-    {"K54U",                  eIN_________, "tab after ---"},
 
 
     //-------------------------------------------------------------------------

@@ -511,19 +511,16 @@ bool Parser::_handle_unk()
             }
             return true;
         }
-        else if(rem.begins_with(' '))
+        else if(rem.begins_with_any(" \t"))
         {
-            csubstr ws = rem.left_of(rem.first_not_of(' '));
+            csubstr ws = rem.left_of(rem.first_not_of(" \t"));
             rem = rem.right_of(ws);
             if(has_all(RTOP) && rem.begins_with("---"))
             {
                 _c4dbgp("there's a doc starting, and it's indented");
                 _set_indentation(ws.len);
             }
-            else
-            {
-                _c4dbgpf("skipping %zd spaces", ws.len);
-            }
+            _c4dbgpf("skipping %zd spaces/tabs", ws.len);
             _line_progressed(ws.len);
             return true;
         }
@@ -736,11 +733,11 @@ bool Parser::_handle_seq_impl()
             _line_progressed(1);
             return true;
         }
-        else if(rem.begins_with(' '))
+        else if(rem.begins_with_any(" \t"))
         {
             RYML_ASSERT( ! _at_line_begin());
-            rem = rem.left_of(rem.first_not_of(' '));
-            _c4dbgpf("skipping %zd spaces", rem.len);
+            rem = rem.left_of(rem.first_not_of(" \t"));
+            _c4dbgpf("skipping %zd spaces/tabs", rem.len);
             _line_progressed(rem.len);
             return true;
         }
@@ -1257,21 +1254,21 @@ bool Parser::_handle_map_impl()
                 addrem_flags(RVAL, RKEY|CPLX);
                 _line_progressed(1);
                 rem = m_state->line_contents.rem;
-                if(rem.begins_with(' '))
+                if(rem.begins_with_any(" \t"))
                 {
                     RYML_ASSERT( ! _at_line_begin());
-                    rem = rem.left_of(rem.first_not_of(' '));
-                    _c4dbgpf("skip %zd spaces", rem.len);
+                    rem = rem.left_of(rem.first_not_of(" \t"));
+                    _c4dbgpf("skip %zd spaces/tabs", rem.len);
                     _line_progressed(rem.len);
                 }
             }
             return true;
         }
-        else if(rem.begins_with(' '))
+        else if(rem.begins_with_any(" \t"))
         {
             //RYML_ASSERT( ! _at_line_begin());
-            rem = rem.left_of(rem.first_not_of(' '));
-            _c4dbgpf("skip %zd spaces", rem.len);
+            rem = rem.left_of(rem.first_not_of(" \t"));
+            _c4dbgpf("skip %zd spaces/tabs", rem.len);
             _line_progressed(rem.len);
             return true;
         }
@@ -1935,7 +1932,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
     csubstr s = m_state->line_contents.rem;
     if(s.len == 0)
         return false;
-    s = s.trim(' ');
+    s = s.trim(" \t");
     if(s.len == 0)
         return false;
 
@@ -2051,6 +2048,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
                 return false;
             }
             s = s.left_of(s.find(" #")); // is there a comment?
+            s = s.left_of(s.find("\t#")); // is there a comment?
             if(has_any(EXPL))
             {
                 _c4dbgp("RMAP|RVAL|EXPL");
@@ -2082,7 +2080,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
             s = s.left_of(s.len-1);
         else
             s = s.left_of(s.first_of(','));
-        s = s.trim(' ');
+        s = s.trim(" \t");
         _c4dbgpf("RUNK: scalar='%.*s'", _c4prsp(s));
     }
     else

@@ -4,10 +4,9 @@
 - Change parsing behavior of root-level scalars: now these are parsed
 into a DOCVAL, not SEQ->VAL ([5ba0d56](https://github.com/biojppm/rapidyaml/pull/144/commits/5ba0d56904daef1509f0073695145c4835ab1b30), from [PR #144](https://github.com/biojppm/rapidyaml/pull/144)). Eg,
   ```yaml
+  ---
   this is a scalar
-  ```
-  is now emitted as was, instead of the previous
-  ```yaml
+  --- # previously this was parsed as
   - this is a scalar
   ```
 
@@ -15,9 +14,14 @@ into a DOCVAL, not SEQ->VAL ([5ba0d56](https://github.com/biojppm/rapidyaml/pull
 
 - `Tree::lookup_path_or_modify()`: add overload to graft existing branches ([PR #141](https://github.com/biojppm/rapidyaml/pull/141))
 - Callbacks: improve test coverage ([PR #141](https://github.com/biojppm/rapidyaml/pull/141))
-- [YAML test suite](https://github.com/yaml/yaml-test-suite)
-([PR #144](https://github.com/biojppm/rapidyaml/pull/144)): implemented event parsing and comparison with the reference tree. Results are satisfactory, but it did reveal a number of existing problems, which are the subject of ongoing work. See the [list of current known
-failures](../test/test_suite/test_suite_parts.cpp) in the test suite file.
+- [YAML test suite](https://github.com/yaml/yaml-test-suite) ([PR
+#144](https://github.com/biojppm/rapidyaml/pull/144), [PR
+#145](https://github.com/biojppm/rapidyaml/pull/145)): big progress
+towards compliance with the suite. There are still a number of
+existing problems, which are the subject of ongoing work. See the
+[list of current known
+failures](../test/test_suite/test_suite_parts.cpp) in the test suite
+file.
 
 
 ### Fixes
@@ -54,7 +58,25 @@ failures](../test/test_suite/test_suite_parts.cpp) in the test suite file.
 - Fix parsing of double-quoted scalars with tabs ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
   ```yaml
   "This has a\ttab"
-  # is now correctly parsed as "This has a	tab" 
+  # is now correctly parsed as "This has a<TAB>tab"
+  ```
+- Fix parsing of tabs within YAML tokens:
+  ```yaml
+  ---<TAB>scalar   # test case K54U
+  ---<TAB>{}       # test case Q5MG
+  ---              # test case DC7X
+  a: b<TAB>
+  seq:<TAB>
+   - a<TAB>
+  c: d<TAB>#X
+  ```
+  
+#### Scalars
+- Unescape forward slashes in double quoted string ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
+  ```yaml
+  --- escaped slash: "a\/b"   # test case 3UYS
+  # is now parsed as:
+  --- escaped slash: "a/b"
   ```
 
 #### Document structure
