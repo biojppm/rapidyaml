@@ -93,7 +93,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"V9D5",                  eIN_________, "null key is wrongly parsed"},
     {"X8DW",                  eIN_________, "null key is wrongly parsed"},
     {"ZWK4",                  eIN_________, "null key is wrongly parsed"},
-    {"3UYS", IN______________             , "no need to escape the slash in \"a\\/b\""},
     {"4ABK",                  eIN_________, "key is wrongly serialized: 'omitted value:'"},
     {"PW8X", IN_OUT__________             , "anchors with implicit key"},
     {"DC7X", IN______________             , "improve handling of tab characters"},

@@ -3677,6 +3677,10 @@ csubstr Parser::_filter_dquot_scalar(substr s)
             {
                 r = r.erase(i, 1);  // fix escaped double quotes
             }
+            else if(next == '/')
+            {
+                r = r.erase(i, 1);  // fix escaped /
+            }
             else if(next == 'n')
             {
                 r = r.erase(i+1, 1);
