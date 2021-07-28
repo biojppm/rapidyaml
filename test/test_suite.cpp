@@ -214,27 +214,32 @@ struct Approach
     CasePart_e case_part = CPART_NONE;
     AllowedFailure allowed_failure = {};
     AllowedFailure allowed_failure_events = {};
+    AllowedFailure allowed_failure_errors = {};
     bool enabled = false;
+    bool expect_error = false;
 
-    void init(csubstr filename, csubstr src_, bool immutable_, bool reuse_, CasePart_e case_part_)
+    void init(csubstr filename, csubstr src_, bool immutable_, bool reuse_, CasePart_e case_part_, bool expect_error_)
     {
         RYML_ASSERT((case_part & CPART_EVENTS) == 0u);
         case_part = case_part_;
         allowed_failure = is_failure_expected(filename, case_part);
         allowed_failure_events = is_failure_expected(filename, events_part(case_part));
+        allowed_failure_errors = is_failure_expected(filename, CPART_IN_YAML_ERRORS);
         enabled = !allowed_failure.skip(case_part);
         for(ProcLevel &l : levels)
             l.init(filename, src_, immutable_, reuse_);
+        expect_error = expect_error_;
     }
 
     csubstr src() const { return c4::to_csubstr(levels[0].src); }
-    bool skip_part() const { return src().empty() || allowed_failure.skip(case_part); }
+    bool skip_part() const { return expect_error || src().empty() || allowed_failure.skip(case_part); }
+    bool skip_error() const { return !expect_error || allowed_failure_errors.skip(CPART_IN_YAML_ERRORS); }
     bool skip_events() const
     {
-        // use bit-or to ensure calling both, so that both report a skip
         RYML_ASSERT(events_part(CPART_IN_YAML) == CPART_IN_YAML_EVENTS);
         RYML_ASSERT(events_part(CPART_OUT_YAML) == CPART_OUT_YAML_EVENTS);
         RYML_ASSERT(events_part(CPART_EMIT_YAML) == CPART_EMIT_YAML_EVENTS);
+        // use bit-or to ensure calling both, so that both report a skip
         return skip_part() | allowed_failure_events.skip(events_part(case_part));
     }
 
@@ -291,6 +296,15 @@ struct Approach
         events->compare_trees(src(), levels[0].tree);
     }
 
+    void check_expected_error()
+    {
+        if(skip_error())
+            GTEST_SKIP();
+        ExpectError::do_check([this]{
+            levels[0].parse();
+        });
+    }
+
 };
 
 
@@ -314,21 +328,21 @@ struct Subject
     std::string unix_src;
     std::string windows_src;
 
-    void init(csubstr filename, csubstr src, CasePart_e case_part)
+    void init(csubstr filename, csubstr src, CasePart_e case_part, bool expect_error)
     {
         src = replace_all("\r", "", src, &unix_src);
 
-        unix_ro      .init(filename, src, /*immutable*/true , /*reuse*/false, case_part);
-        unix_ro_reuse.init(filename, src, /*immutable*/true , /*reuse*/true , case_part);
-        unix_rw      .init(filename, src, /*immutable*/false, /*reuse*/false, case_part);
-        unix_rw_reuse.init(filename, src, /*immutable*/false, /*reuse*/true , case_part);
+        unix_ro      .init(filename, src, /*immutable*/true , /*reuse*/false, case_part, expect_error);
+        unix_ro_reuse.init(filename, src, /*immutable*/true , /*reuse*/true , case_part, expect_error);
+        unix_rw      .init(filename, src, /*immutable*/false, /*reuse*/false, case_part, expect_error);
+        unix_rw_reuse.init(filename, src, /*immutable*/false, /*reuse*/true , case_part, expect_error);
 
         src = replace_all("\n", "\r\n", src, &windows_src);
 
-        windows_ro      .init(filename, src, /*immutable*/true , /*reuse*/false, case_part);
-        windows_ro_reuse.init(filename, src, /*immutable*/true , /*reuse*/true , case_part);
-        windows_rw      .init(filename, src, /*immutable*/false, /*reuse*/false, case_part);
-        windows_rw_reuse.init(filename, src, /*immutable*/false, /*reuse*/true , case_part);
+        windows_ro      .init(filename, src, /*immutable*/true , /*reuse*/false, case_part, expect_error);
+        windows_ro_reuse.init(filename, src, /*immutable*/true , /*reuse*/true , case_part, expect_error);
+        windows_rw      .init(filename, src, /*immutable*/false, /*reuse*/false, case_part, expect_error);
+        windows_rw_reuse.init(filename, src, /*immutable*/false, /*reuse*/true , case_part, expect_error);
     }
 };
 
@@ -363,11 +377,6 @@ csubstr filter_out_double_backslash(csubstr src, std::string *dst)
     return replace_all(R"(\\)", R"(\)", src, dst);
 }
 
-csubstr filter_out_newlines(csubstr src, std::string *dst)
-{
-    return replace_all("\\n", "\n", src, dst);
-}
-
 
 /** all the ways that a test case can be processed are
  * available through this class. Tests are defined below and use only
@@ -380,6 +389,7 @@ struct SuiteCase
     csubstr desc;
     csubstr from;
     csubstr tags;
+    bool    expect_error;
 
     Subject in_yaml;
     Subject in_json;
@@ -395,7 +405,7 @@ struct SuiteCase
 
     /** loads the several types of tests from an input test suite
      * template file (tml)*/
-    bool load(const char* filename_)
+    SuiteCase(const char* filename_)
     {
         filename = c4::to_csubstr(filename_);
 
@@ -432,22 +442,25 @@ struct SuiteCase
         RYML_CHECK(tags.size() >= 6);
         tags = tags.sub(6).trimr(ws);
 
-        if(tags.find("error") != npos)
-        {
-            c4::log("{}: test case tagged with error: {}:\n{}\n", filename, tags, contents);
-            return false; // tagged with error. skip this test.
-        }
+        expect_error = (tags.find("error") != npos);
+
         bool has_whitespace = tags.find("whitespace");
 
         size_t end_tags        = e;
         size_t begin_in_yaml   = contents.find("--- in-yaml"   , end_tags);
+        size_t begin_error     = contents.find("--- error"     , end_tags);
         size_t begin_in_json   = contents.find("--- in-json"   , end_tags);
         size_t begin_out_yaml  = contents.find("--- out-yaml"  , end_tags);
         size_t begin_emit_yaml = contents.find("--- emit-yaml" , end_tags);
         size_t begin_events    = contents.find("--- test-event", end_tags);
         size_t lex_token       = contents.find("--- lex-token" , end_tags);
+        auto check_ok = [](csubstr part){
+            csubstr tokens[] = {"--- in-yaml", "--- error", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event", "--- lex-token"};
+            return ! part.first_of_any_iter(std::begin(tokens), std::end(tokens));
+        };
         std::initializer_list<size_t> all = {
             begin_in_yaml,
+            begin_error,
             begin_in_json,
             begin_out_yaml,
             begin_emit_yaml,
@@ -466,14 +479,24 @@ struct SuiteCase
         size_t first_after_in_yaml = find_first_after(begin_in_yaml, all);
         begin_in_yaml = 1 + contents.find('\n', begin_in_yaml); // skip this line
         txt = contents.range(begin_in_yaml, first_after_in_yaml);
-        RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
+        RYML_CHECK(check_ok(txt));
         txt = filter_out_indentation(txt, &tmpa);
         if(has_whitespace)
         {
             txt = replace_all("<SPC>", " ", txt, &tmpb);
             txt = replace_all("<TAB>", "\t", txt, &tmpa);
         }
-        in_yaml.init(filename, txt, CPART_IN_YAML);
+        in_yaml.init(filename, txt, CPART_IN_YAML, expect_error);
+
+        // error
+        if(begin_error != npos)
+        {
+            size_t first_after = find_first_after(begin_error, all);
+            begin_error = 1 + contents.find('\n', begin_error); // skip this line
+            txt = contents.range(begin_error, first_after);
+            RYML_CHECK(check_ok(txt));
+            txt = filter_out_indentation(txt, &tmpa);
+        }
 
         // in_json
         if(begin_in_json != npos)
@@ -481,8 +504,8 @@ struct SuiteCase
             size_t first_after = find_first_after(begin_in_json, all);
             begin_in_json = 1 + contents.find('\n', begin_in_json); // skip this line
             txt = contents.range(begin_in_json, first_after);
-            RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
-            in_json.init(filename, txt, CPART_IN_JSON);
+            RYML_CHECK(check_ok(txt));
+            in_json.init(filename, txt, CPART_IN_JSON, expect_error);
         }
 
         // out_yaml
@@ -491,14 +514,14 @@ struct SuiteCase
             size_t first_after = find_first_after(begin_out_yaml, all);
             begin_out_yaml = 1 + contents.find('\n', begin_out_yaml); // skip this line
             txt = contents.range(begin_out_yaml, first_after);
-            RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
+            RYML_CHECK(check_ok(txt));
             txt = filter_out_indentation(txt, &tmpa);
             if(has_whitespace)
             {
                 txt = replace_all("<SPC>", " ", txt, &tmpb);
                 txt = replace_all("<TAB>", "\t", txt, &tmpa);
             }
-            out_yaml.init(filename, txt, CPART_OUT_YAML);
+            out_yaml.init(filename, txt, CPART_OUT_YAML, expect_error);
         }
 
         // emit_yaml
@@ -507,9 +530,9 @@ struct SuiteCase
             size_t first_after = find_first_after(begin_emit_yaml, all);
             begin_emit_yaml = 1 + contents.find('\n', begin_emit_yaml); // skip this line
             txt = contents.range(begin_emit_yaml, first_after);
-            RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
+            RYML_CHECK(check_ok(txt));
             txt = filter_out_indentation(txt, &tmpa);
-            emit_yaml.init(filename, txt, CPART_EMIT_YAML);
+            emit_yaml.init(filename, txt, CPART_EMIT_YAML, expect_error);
         }
 
         // events
@@ -518,7 +541,7 @@ struct SuiteCase
             size_t first_after = find_first_after(begin_events, all);
             begin_events = 1 + contents.find('\n', begin_events); // skip this line
             txt = contents.range(begin_events, first_after);
-            RYML_CHECK( ! txt.first_of_any("--- in-yaml", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event"));
+            RYML_CHECK(check_ok(txt));
             txt = filter_out_double_backslash(txt, &tmpa);
             if(has_whitespace)
             {
@@ -532,8 +555,6 @@ struct SuiteCase
         {
             // don't really care
         }
-
-        return true;
     }
 
     void print() const
@@ -542,6 +563,7 @@ struct SuiteCase
                  "~~~ desc   : "   , desc          , "~~~\n",
                  "~~~ from   : "   , from          , "~~~\n",
                  "~~~ tags   : "   , tags          , "~~~\n",
+                 "~~~ in-yaml:\n"  , src(in_yaml  ), "~~~\n",
                  "~~~ in-yaml:\n"  , src(in_yaml  ), "~~~\n",
                  "~~~ in-json:\n"  , src(in_json  ), "~~~\n",
                  "~~~ out-yaml:\n" , src(out_yaml ), "~~~\n",
@@ -566,24 +588,35 @@ SuiteCase* g_suite_case = nullptr;
                                                                     \
 TEST(cls##_##pfx##_events, compare)                                 \
 {                                                                   \
-    RYML_CHECK(g_suite_case != nullptr);                            \
-    if(!g_suite_case->cls.pfx.enabled)                              \
-        return;                                                     \
+    if(!g_suite_case || !g_suite_case->cls.pfx.enabled)             \
+        GTEST_SKIP();                                               \
+    if(g_suite_case->expect_error)                                  \
+        GTEST_SKIP();                                               \
     g_suite_case->cls.pfx.compare_events(&g_suite_case->events);    \
 }
 
 
 
-#define DECLARE_TEST_CLASS(cls, pfx)                            \
+#define DEFINE_ERROR_TESTS(pfx)                         \
+                                                        \
+TEST(in_yaml_##pfx##_errors, check_expected_error)      \
+{                                                       \
+    if(!g_suite_case->expect_error)                     \
+        GTEST_SKIP();                                   \
+    g_suite_case->in_yaml.pfx.check_expected_error();   \
+}
+
+
+
+#define DEFINE_TEST_CLASS(cls, pfx)                             \
                                                                 \
                                                                 \
 struct cls##_##pfx : public ::testing::TestWithParam<size_t>    \
 {                                                               \
     Approach* get_test_case() const                             \
     {                                                           \
-        RYML_CHECK(g_suite_case != nullptr);                    \
         RYML_CHECK(GetParam() < NLEVELS);                       \
-        if(g_suite_case->cls.pfx.enabled)                       \
+        if(g_suite_case && g_suite_case->cls.pfx.enabled)       \
             return &g_suite_case->cls.pfx;                      \
         c4::dump(#cls "." #pfx ": no input for this case\n");   \
         return nullptr;                                         \
@@ -593,69 +626,86 @@ struct cls##_##pfx : public ::testing::TestWithParam<size_t>    \
                                                                 \
 TEST_P(cls##_##pfx, parse)                                      \
 {                                                               \
-    if(!get_test_case()) GTEST_SKIP();                          \
+    if(!get_test_case())                                        \
+        GTEST_SKIP();                                           \
+    if(g_suite_case->expect_error)                              \
+        GTEST_SKIP();                                           \
     get_test_case()->parse(1 + GetParam(), false);              \
 }                                                               \
                                                                 \
                                                                 \
 TEST_P(cls##_##pfx, compare_trees)                              \
 {                                                               \
-    if(!get_test_case()) GTEST_SKIP();                          \
+    if(!get_test_case())                                        \
+        GTEST_SKIP();                                           \
+    if(g_suite_case->expect_error)                              \
+        GTEST_SKIP();                                           \
     get_test_case()->compare_trees(1 + GetParam());             \
 }                                                               \
                                                                 \
                                                                 \
 TEST_P(cls##_##pfx, emit)                                       \
 {                                                               \
-    if(!get_test_case()) GTEST_SKIP();                          \
+    if(!get_test_case())                                        \
+        GTEST_SKIP();                                           \
+    if(g_suite_case->expect_error)                              \
+        GTEST_SKIP();                                           \
     get_test_case()->parse(1 + GetParam(), true);               \
 }                                                               \
                                                                 \
                                                                 \
 TEST_P(cls##_##pfx, compare_emitted)                            \
 {                                                               \
-    if(!get_test_case()) GTEST_SKIP();                          \
+    if(!get_test_case())                                        \
+        GTEST_SKIP();                                           \
+    if(g_suite_case->expect_error)                              \
+        GTEST_SKIP();                                           \
     get_test_case()->compare_emitted(1 + GetParam());           \
 }                                                               \
+\
+INSTANTIATE_TEST_SUITE_P(_, cls##_##pfx, testing::Range<size_t>(0, NLEVELS))
 
 
-#define DECLARE_TESTS(cls)                                              \
-                                                                        \
-DECLARE_TEST_CLASS(cls, unix_ro)                                        \
-DECLARE_TEST_CLASS(cls, unix_rw)                                        \
-DECLARE_TEST_CLASS(cls, unix_ro_reuse)                                  \
-DECLARE_TEST_CLASS(cls, unix_rw_reuse)                                  \
-DECLARE_TEST_CLASS(cls, windows_ro)                                     \
-DECLARE_TEST_CLASS(cls, windows_rw)                                     \
-DECLARE_TEST_CLASS(cls, windows_ro_reuse)                               \
-DECLARE_TEST_CLASS(cls, windows_rw_reuse)                               \
-                                                                        \
-INSTANTIATE_TEST_SUITE_P(_, cls##_unix_ro         , testing::Range<size_t>(0, NLEVELS)); \
-INSTANTIATE_TEST_SUITE_P(_, cls##_unix_rw         , testing::Range<size_t>(0, NLEVELS)); \
-INSTANTIATE_TEST_SUITE_P(_, cls##_unix_ro_reuse   , testing::Range<size_t>(0, NLEVELS)); \
-INSTANTIATE_TEST_SUITE_P(_, cls##_unix_rw_reuse   , testing::Range<size_t>(0, NLEVELS)); \
-INSTANTIATE_TEST_SUITE_P(_, cls##_windows_ro      , testing::Range<size_t>(0, NLEVELS)); \
-INSTANTIATE_TEST_SUITE_P(_, cls##_windows_rw      , testing::Range<size_t>(0, NLEVELS)); \
-INSTANTIATE_TEST_SUITE_P(_, cls##_windows_ro_reuse, testing::Range<size_t>(0, NLEVELS)); \
-INSTANTIATE_TEST_SUITE_P(_, cls##_windows_rw_reuse, testing::Range<size_t>(0, NLEVELS));
+// in-json
+DEFINE_TEST_CLASS(in_json, unix_ro);
+DEFINE_TEST_CLASS(in_json, unix_rw);
+DEFINE_TEST_CLASS(in_json, unix_ro_reuse);
+DEFINE_TEST_CLASS(in_json, unix_rw_reuse);
+DEFINE_TEST_CLASS(in_json, windows_ro);
+DEFINE_TEST_CLASS(in_json, windows_rw);
+DEFINE_TEST_CLASS(in_json, windows_ro_reuse);
+DEFINE_TEST_CLASS(in_json, windows_rw_reuse);
 
 
-DECLARE_TESTS(out_yaml)
-DECLARE_TESTS(emit_yaml)
+// out-yaml
+DEFINE_TEST_CLASS(out_yaml, unix_ro);
+DEFINE_TEST_CLASS(out_yaml, unix_rw);
+DEFINE_TEST_CLASS(out_yaml, unix_ro_reuse);
+DEFINE_TEST_CLASS(out_yaml, unix_rw_reuse);
+DEFINE_TEST_CLASS(out_yaml, windows_ro);
+DEFINE_TEST_CLASS(out_yaml, windows_rw);
+DEFINE_TEST_CLASS(out_yaml, windows_ro_reuse);
+DEFINE_TEST_CLASS(out_yaml, windows_rw_reuse);
 
-DECLARE_TESTS(in_json)
-DECLARE_TESTS(in_yaml) // this is the hardest one
+DEFINE_EVENT_TESTS(out_yaml, unix_ro);
+DEFINE_EVENT_TESTS(out_yaml, unix_rw);
+DEFINE_EVENT_TESTS(out_yaml, unix_ro_reuse);
+DEFINE_EVENT_TESTS(out_yaml, unix_rw_reuse);
+DEFINE_EVENT_TESTS(out_yaml, windows_ro);
+DEFINE_EVENT_TESTS(out_yaml, windows_rw);
+DEFINE_EVENT_TESTS(out_yaml, windows_ro_reuse);
+DEFINE_EVENT_TESTS(out_yaml, windows_rw_reuse);
 
 
-
-DEFINE_EVENT_TESTS(out_yaml, unix_ro)
-DEFINE_EVENT_TESTS(out_yaml, unix_rw)
-DEFINE_EVENT_TESTS(out_yaml, unix_ro_reuse)
-DEFINE_EVENT_TESTS(out_yaml, unix_rw_reuse)
-DEFINE_EVENT_TESTS(out_yaml, windows_ro)
-DEFINE_EVENT_TESTS(out_yaml, windows_rw)
-DEFINE_EVENT_TESTS(out_yaml, windows_ro_reuse)
-DEFINE_EVENT_TESTS(out_yaml, windows_rw_reuse)
+// emit-yaml
+DEFINE_TEST_CLASS(emit_yaml, unix_ro);
+DEFINE_TEST_CLASS(emit_yaml, unix_rw);
+DEFINE_TEST_CLASS(emit_yaml, unix_ro_reuse);
+DEFINE_TEST_CLASS(emit_yaml, unix_rw_reuse);
+DEFINE_TEST_CLASS(emit_yaml, windows_ro);
+DEFINE_TEST_CLASS(emit_yaml, windows_rw);
+DEFINE_TEST_CLASS(emit_yaml, windows_ro_reuse);
+DEFINE_TEST_CLASS(emit_yaml, windows_rw_reuse);
 
 DEFINE_EVENT_TESTS(emit_yaml, unix_ro)
 DEFINE_EVENT_TESTS(emit_yaml, unix_rw)
@@ -666,6 +716,17 @@ DEFINE_EVENT_TESTS(emit_yaml, windows_rw)
 DEFINE_EVENT_TESTS(emit_yaml, windows_ro_reuse)
 DEFINE_EVENT_TESTS(emit_yaml, windows_rw_reuse)
 
+
+// in-yaml: this is the hardest one
+DEFINE_TEST_CLASS(in_yaml, unix_ro);
+DEFINE_TEST_CLASS(in_yaml, unix_rw);
+DEFINE_TEST_CLASS(in_yaml, unix_ro_reuse);
+DEFINE_TEST_CLASS(in_yaml, unix_rw_reuse);
+DEFINE_TEST_CLASS(in_yaml, windows_ro);
+DEFINE_TEST_CLASS(in_yaml, windows_rw);
+DEFINE_TEST_CLASS(in_yaml, windows_ro_reuse);
+DEFINE_TEST_CLASS(in_yaml, windows_rw_reuse);
+
 DEFINE_EVENT_TESTS(in_yaml, unix_ro)
 DEFINE_EVENT_TESTS(in_yaml, unix_rw)
 DEFINE_EVENT_TESTS(in_yaml, unix_ro_reuse)
@@ -674,6 +735,16 @@ DEFINE_EVENT_TESTS(in_yaml, windows_ro)
 DEFINE_EVENT_TESTS(in_yaml, windows_rw)
 DEFINE_EVENT_TESTS(in_yaml, windows_ro_reuse)
 DEFINE_EVENT_TESTS(in_yaml, windows_rw_reuse)
+
+DEFINE_ERROR_TESTS(unix_ro)
+DEFINE_ERROR_TESTS(unix_rw)
+DEFINE_ERROR_TESTS(unix_ro_reuse)
+DEFINE_ERROR_TESTS(unix_rw_reuse)
+DEFINE_ERROR_TESTS(windows_ro)
+DEFINE_ERROR_TESTS(windows_rw)
+DEFINE_ERROR_TESTS(windows_ro_reuse)
+DEFINE_ERROR_TESTS(windows_rw_reuse)
+
 
 
 //-------------------------------------------
@@ -688,15 +759,12 @@ Case const* get_case(csubstr /*name*/)
 
 
 
-
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
 {
-    using namespace c4::yml;
-
     // make gtest parse its args
     ::testing::InitGoogleTest(&argc, argv);
 
@@ -704,7 +772,7 @@ int main(int argc, char* argv[])
     if(argc != 2)
     {
         c4::log("usage:\n{} <test-suite-file>", argv[0]);
-        return 1;
+        return RUN_ALL_TESTS();
     }
 
     // load the test case from the suite file
@@ -715,32 +783,19 @@ int main(int argc, char* argv[])
     RYML_CHECK(c4::fs::path_exists(path.str));
     c4::log("testing suite case: {} ({})", path.basename(), path);
 
-    SuiteCase suite_case;
-    if( ! suite_case.load(path.str))
-    {
-        // if an error occurs during loading, the test intentionally crashes,
-        // so the load() above never returns. This is NOT the same as
-        // a return of false. That means the test was tagged as error,
-        // ie, that an error is expected while parsing the code in it,
-        // and for now we skip those, and return success.
-        c4::log("\n{}: this case is tagged as error, skipping\n", path);
-        return 0;
-    }
+    c4::yml::SuiteCase suite_case(path.str);
     c4::print(suite_case.file_contents);
     suite_case.print();
-    g_suite_case = &suite_case;
+    c4::yml::g_suite_case = &suite_case;
 
     // run all tests!
     int status = RUN_ALL_TESTS();
 
     // a terminating message
-    if(suite_case.filename.not_empty())
-    {
-        c4::log("\n{}: TESTS {}: {}\n",
+    c4::log("\n{}: TESTS {}: {}\n",
             suite_case.filename.basename(),
             status == 0 ? "SUCCEEDED" : "FAILED",
             suite_case.filename);
-    }
 
     return status;
 }

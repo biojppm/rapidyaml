@@ -114,9 +114,61 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"6BCT", CPART_IN_YAML, "tabs after - or :"},
     {"J3BT", eIN_OUT_____, "tabs after - or :"},
     {"K54U", eIN_________, "tab after ---"},
+    {"K54U", eIN_________, "tab after ---"},
 
     //-------------------------------------------------------------------------
-    // SECTION 2. Known ryml limitations.
+    // SECTION 2. Expected errors that fail to materialize.
+    //
+    {"236B", CPART_IN_YAML_ERRORS, "wrongly accepts final scalar in a map"},
+    {"3HFZ", CPART_IN_YAML_ERRORS, "wrongly accepts scalar after ..."},
+    {"4EJS", CPART_IN_YAML_ERRORS, "wrongly accepts double anchor for scalar"},
+    {"4JVG", CPART_IN_YAML_ERRORS, "wrongly accepts double anchor for scalar"},
+    {"55WF", CPART_IN_YAML_ERRORS, "wrongly accepts invalid escape in double quoted string"},
+    {"5LLU", CPART_IN_YAML_ERRORS, "wrongly accepts folded scalar with wrong indented line after spaces only"},
+    {"5TRB", CPART_IN_YAML_ERRORS, "wrongly accepts document-end marker in double quoted string"},
+    {"5U3A", CPART_IN_YAML_ERRORS, "wrongly accepts opening a sequence on same line as map key"},
+    {"62EZ", CPART_IN_YAML_ERRORS, "wrongly accepts invalid block mapping key on same line as previous key"},
+    {"6JTT", CPART_IN_YAML_ERRORS, "wrongly accepts flow sequence without terminating ]"},
+    {"7LBH", CPART_IN_YAML_ERRORS, "wrongly accepts multiline double quoted implicit keys"},
+    {"7MNF", CPART_IN_YAML_ERRORS, "wrongly accepts final scalar in a map"},
+    {"8XDJ", CPART_IN_YAML_ERRORS, "wrongly accepts comment in multiline scalar"},
+    {"9C9N", CPART_IN_YAML_ERRORS, "wrongly accepts non-indented flow sequence"},
+    {"9CWY", CPART_IN_YAML_ERRORS, "wrongly accepts final scalar in a map"},
+    {"9HCY", CPART_IN_YAML_ERRORS, "wrongly accepts tag directive in non-doc scope"},
+    {"9JBA", CPART_IN_YAML_ERRORS, "wrongly accepts comment after flow seq terminating ]"},
+    {"9MAG", CPART_IN_YAML_ERRORS, "wrongly accepts flow sequence with invalid comma at the beginning"},
+    {"B63P", CPART_IN_YAML_ERRORS, "wrongly accepts directive without doc"},
+    {"BU8L", CPART_IN_YAML_ERRORS, "wrongly accepts node properties spread over multiple lines"},
+    {"CML9", CPART_IN_YAML_ERRORS, "wrongly accepts comment inside flow scalar"},
+    {"CTN5", CPART_IN_YAML_ERRORS, "wrongly accepts flow sequence with missing elements"},
+    {"CVW2", CPART_IN_YAML_ERRORS, "wrongly accepts flow sequence with comment after ,"},
+    {"CXX2", CPART_IN_YAML_ERRORS, "wrongly accepts mapping with anchor on document start line"},
+    {"D49Q", CPART_IN_YAML_ERRORS, "wrongly accepts multiline single quoted implicit keys"},
+    {"DK4H", CPART_IN_YAML_ERRORS, "wrongly accepts implicit key followed by newline"},
+    {"EB22", CPART_IN_YAML_ERRORS, "wrongly accepts missing document-end marker before directive"},
+    {"GDY7", CPART_IN_YAML_ERRORS, "wrongly accepts comment that looks like a mapping key"},
+    {"HRE5", CPART_IN_YAML_ERRORS, "wrongly accepts double quoted scalar with escaped single quote"},
+    {"JY7Z", CPART_IN_YAML_ERRORS, "wrongly accepts trailing content that looks like a mapping"},
+    {"KS4U", CPART_IN_YAML_ERRORS, "wrongly accepts item after end of flow sequence"},
+    {"LHL4", CPART_IN_YAML_ERRORS, "wrongly accepts tag"},
+    {"N782", CPART_IN_YAML_ERRORS, "wrongly accepts document markers in flow style"},
+    {"P2EQ", CPART_IN_YAML_ERRORS, "wrongly accepts sequence item on same line as previous item"},
+    {"QB6E", CPART_IN_YAML_ERRORS, "wrongly accepts indented multiline quoted scalar"},
+    {"RHX7", CPART_IN_YAML_ERRORS, "wrongly accepts directive without document end marker"},
+    {"RXY3", CPART_IN_YAML_ERRORS, "wrongly accepts document-end marker in single quoted string"},
+    {"S4GJ", CPART_IN_YAML_ERRORS, "wrongly accepts text after block scalar indicator"},
+    {"S98Z", CPART_IN_YAML_ERRORS, "wrongly accepts block scalar with more spaces than first content line"},
+    {"SF5V", CPART_IN_YAML_ERRORS, "wrongly accepts duplicate YAML directive"},
+    {"SU5Z", CPART_IN_YAML_ERRORS, "wrongly accepts comment without whitespace after double quoted scalar"},
+    {"SU74", CPART_IN_YAML_ERRORS, "wrongly accepts anchor and alias as mapping key"},
+    {"SY6V", CPART_IN_YAML_ERRORS, "wrongly accepts anchor before sequence entry on same line"},
+    {"T833", CPART_IN_YAML_ERRORS, "wrongly accepts flow mapping missing a separating comma"},
+    {"X4QW", CPART_IN_YAML_ERRORS, "wrongly accepts comment without whitespace after block scalar indicator"},
+    {"ZCZ6", CPART_IN_YAML_ERRORS, "wrongly accepts invalid mapping in plain single line value"},
+
+
+    //-------------------------------------------------------------------------
+    // SECTION 3. Known ryml limitations.
     //
     // These tests are skipped as they cover parts of YAML that are deliberately
     // not implemented by ryml.
@@ -143,6 +195,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"C4HZ", eIN_________, "we do not do tag lookup"},
     {"CC74", eIN_________, "we do not do tag lookup"},
     {"P76L", eIN_________, "we do not do tag lookup"},
+    {"QLJ7", CPART_IN_YAML_ERRORS, "we do not do tag lookup"},
     {"U3C3", eIN_________, "we do not do tag lookup"},
     {"Z9M4", eIN_________, "we do not do tag lookup"},
     // malformed json

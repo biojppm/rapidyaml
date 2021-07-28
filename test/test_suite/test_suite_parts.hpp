@@ -28,11 +28,12 @@ typedef enum {
     CPART_NONE             = 0,
     CPART_IN_YAML          = 1 << 0,
     CPART_IN_YAML_EVENTS   = 1 << 1,
-    CPART_OUT_YAML         = 1 << 2,
-    CPART_OUT_YAML_EVENTS  = 1 << 3,
-    CPART_EMIT_YAML        = 1 << 4,
-    CPART_EMIT_YAML_EVENTS = 1 << 5,
-    CPART_IN_JSON          = 1 << 6,
+    CPART_IN_YAML_ERRORS   = 1 << 2,
+    CPART_OUT_YAML         = 1 << 3,
+    CPART_OUT_YAML_EVENTS  = 1 << 4,
+    CPART_EMIT_YAML        = 1 << 5,
+    CPART_EMIT_YAML_EVENTS = 1 << 6,
+    CPART_IN_JSON          = 1 << 7,
     CPART_EVENTS           = CPART_IN_YAML_EVENTS|CPART_OUT_YAML_EVENTS|CPART_EMIT_YAML_EVENTS,
     CPART_ALL              = CPART_IN_YAML|CPART_IN_YAML_EVENTS|CPART_OUT_YAML|CPART_OUT_YAML_EVENTS|CPART_EMIT_YAML|CPART_EMIT_YAML_EVENTS|CPART_IN_JSON,
     CPART_ANY              = CPART_ALL,
@@ -52,6 +53,7 @@ inline csubstr to_csubstr(CasePart_e cp) noexcept
     if(cp == CPART_NONE) return {"NONE"};
     else if(cp == CPART_IN_YAML) return {"IN_YAML"};
     else if(cp == CPART_IN_YAML_EVENTS) return {"IN_YAML_EVENTS"};
+    else if(cp == CPART_IN_YAML_ERRORS) return {"IN_YAML_ERRORS"};
     else if(cp == CPART_OUT_YAML) return {"OUT_YAML"};
     else if(cp == CPART_OUT_YAML_EVENTS) return {"OUT_YAML_EVENTS"};
     else if(cp == CPART_EMIT_YAML) return {"EMIT_YAML"};
