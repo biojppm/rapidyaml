@@ -2584,6 +2584,7 @@ void Parser::_write_val_anchor(size_t node_id)
     if(!m_tree->is_val_quoted(node_id) && r.begins_with('*'))
     {
         _c4dbgpf("node=%zd: set val reference: '%.*s'", node_id, _c4prsp(r));
+        RYML_CHECK(!m_tree->has_val_anchor(node_id));
         m_tree->set_val_ref(node_id, r.sub(1));
     }
 }
@@ -2840,9 +2841,14 @@ void Parser::_start_map(bool as_child)
         if(node(m_state)->is_doc())
             as_doc |= DOC;
         if(!m_tree->is_map(parent_id))
+        {
+            RYML_CHECK(!m_tree->has_children(parent_id));
             m_tree->to_map(parent_id, as_doc);
+        }
         else
+        {
             m_tree->_add_flags(parent_id, as_doc);
+        }
         _move_scalar_from_top();
         if(m_key_anchor.not_empty())
             m_key_anchor_was_before = true;
@@ -2944,9 +2950,14 @@ void Parser::_start_seq(bool as_child)
         if(node(m_state)->is_doc())
             as_doc |= DOC;
         if(!m_tree->is_seq(parent_id))
+        {
+            RYML_CHECK(!m_tree->has_children(parent_id));
             m_tree->to_seq(parent_id, as_doc);
+        }
         else
+        {
             m_tree->_add_flags(parent_id, as_doc);
+        }
         _move_scalar_from_top();
         _c4dbgpf("start_seq: id=%zd%s", m_state->node_id, as_doc ? " as_doc" : "");
         _write_val_anchor(parent_id);
@@ -3061,7 +3072,7 @@ NodeData* Parser::_append_key_val(csubstr val, bool val_quoted)
 void Parser::_store_scalar(csubstr const& s, bool is_quoted)
 {
     _c4dbgpf("state[%zd]: storing scalar '%.*s' (flag: %zd) (old scalar='%.*s')", m_state-m_stack.begin(), _c4prsp(s), m_state->flags & SSCL, _c4prsp(m_state->scalar));
-    RYML_ASSERT(has_none(SSCL));
+    RYML_CHECK(has_none(SSCL));
     add_flags(SSCL | (is_quoted ? SSCL_QUO : 0));
     m_state->scalar = s;
 }
@@ -3069,7 +3080,7 @@ void Parser::_store_scalar(csubstr const& s, bool is_quoted)
 csubstr Parser::_consume_scalar()
 {
     _c4dbgpf("state[%zd]: consuming scalar '%.*s' (flag: %zd))", m_state-m_stack.begin(), _c4prsp(m_state->scalar), m_state->flags & SSCL);
-    RYML_ASSERT(m_state->flags & SSCL);
+    RYML_CHECK(m_state->flags & SSCL);
     csubstr s = m_state->scalar;
     rem_flags(SSCL | SSCL_QUO);
     m_state->scalar.clear();

@@ -138,60 +138,60 @@ TEST(tags, errors)
 
     // cannot get key tag in a node that does not have a key tag
     EXPECT_FALSE(t.has_key_tag(empty_keyval));
-    ExpectError::do_check([&](){
+    ExpectError::check_assertion([&](){
         EXPECT_EQ(t.key_tag(empty_keyval), "");
     });
-    ExpectError::do_check([&](){
+    ExpectError::check_assertion([&](){
         EXPECT_EQ(t.key_tag(keyval), "");
     });
-    ExpectError::do_check([&](){
+    ExpectError::check_assertion([&](){
         EXPECT_EQ(t.key_tag(keymap), "");
     });
-    ExpectError::do_check([&](){
+    ExpectError::check_assertion([&](){
         EXPECT_EQ(t.key_tag(keyseq), "");
     });
-    ExpectError::do_check([&](){
+    ExpectError::check_assertion([&](){
         EXPECT_EQ(t.key_tag(val), "");
     });
     // cannot get val tag in a node that does not have a val tag
     EXPECT_FALSE(t.has_val_tag(empty_val));
-    ExpectError::do_check([&](){
+    ExpectError::check_assertion([&](){
         EXPECT_EQ(t.val_tag(empty_val), "");
     });
     EXPECT_FALSE(t.has_val_tag(empty_keyval));
-    ExpectError::do_check([&](){
+    ExpectError::check_assertion([&](){
         EXPECT_EQ(t.val_tag(empty_keyval), "");
     });
-    ExpectError::do_check([&](){
+    ExpectError::check_assertion([&](){
         EXPECT_EQ(t.val_tag(keyval), "");
     });
-    ExpectError::do_check([&](){
+    ExpectError::check_assertion([&](){
         EXPECT_EQ(t.val_tag(keymap), "");
     });
-    ExpectError::do_check([&](){
+    ExpectError::check_assertion([&](){
         EXPECT_EQ(t.val_tag(keyseq), "");
     });
-    ExpectError::do_check([&](){
+    ExpectError::check_assertion([&](){
         EXPECT_EQ(t.val_tag(val), "");
     });
     // cannot set key tag in a node that does not have a key
     EXPECT_FALSE(t.has_key(empty_keyval));
-    ExpectError::do_check([&](){
+    ExpectError::check_assertion([&](){
         t.set_key_tag(empty_keyval, "!keytag");
     });
     EXPECT_FALSE(t.has_key_tag(val)); // must stay the same
-    ExpectError::do_check([&](){
+    ExpectError::check_assertion([&](){
         t.set_key_tag(val, "!valtag");
     });
     EXPECT_FALSE(t.has_key_tag(val)); // must stay the same
     // cannot set val tag in a node that does not have a val
     EXPECT_FALSE(t.has_val(empty_val));
-    ExpectError::do_check([&](){
+    ExpectError::check_assertion([&](){
         t.set_val_tag(empty_val, "!valtag");
     });
     EXPECT_FALSE(t.has_val_tag(empty_val)); // must stay the same
     EXPECT_FALSE(t.has_val(empty_keyval));
-    ExpectError::do_check([&](){
+    ExpectError::check_assertion([&](){
         t.set_val_tag(empty_keyval, "!valtag");
     });
     EXPECT_FALSE(t.has_val_tag(empty_keyval)); // must stay the same

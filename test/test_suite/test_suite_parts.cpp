@@ -6,7 +6,7 @@ namespace yml {
 
 constexpr const CasePart_e eIN_________ = CPART_IN_YAML_EVENTS;
 constexpr const CasePart_e e___OUT_____ =                      CPART_OUT_YAML_EVENTS;
-constexpr const CasePart_e e_______EMIT =                                            CPART_EMIT_YAML_EVENTS;
+//constexpr const CasePart_e e_______EMIT =                                            CPART_EMIT_YAML_EVENTS;
 constexpr const CasePart_e eIN_OUT_____ = CPART_IN_YAML_EVENTS|CPART_OUT_YAML_EVENTS;
 constexpr const CasePart_e eIN_____EMIT = CPART_IN_YAML_EVENTS|                      CPART_EMIT_YAML_EVENTS;
 constexpr const CasePart_e eIN_OUT_EMIT = CPART_IN_YAML_EVENTS|CPART_OUT_YAML_EVENTS|CPART_EMIT_YAML_EVENTS;

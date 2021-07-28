@@ -87,6 +87,7 @@ struct ExpectError
 
     static void error(const char* msg, size_t len, Location loc, void *user_data);
     static void do_check(std::function<void()> fn, Location expected={});
+    static void check_assertion(std::function<void()> fn, Location expected={});
 };
 
 

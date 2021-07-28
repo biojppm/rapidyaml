@@ -710,14 +710,14 @@ DEFINE_TEST_CLASS(out_yaml, windows_rw);
 DEFINE_TEST_CLASS(out_yaml, windows_ro_reuse);
 DEFINE_TEST_CLASS(out_yaml, windows_rw_reuse);
 
-DEFINE_EVENT_TESTS(out_yaml, unix_ro);
-DEFINE_EVENT_TESTS(out_yaml, unix_rw);
-DEFINE_EVENT_TESTS(out_yaml, unix_ro_reuse);
-DEFINE_EVENT_TESTS(out_yaml, unix_rw_reuse);
-DEFINE_EVENT_TESTS(out_yaml, windows_ro);
-DEFINE_EVENT_TESTS(out_yaml, windows_rw);
-DEFINE_EVENT_TESTS(out_yaml, windows_ro_reuse);
-DEFINE_EVENT_TESTS(out_yaml, windows_rw_reuse);
+DEFINE_EVENT_TESTS(out_yaml, unix_ro)
+DEFINE_EVENT_TESTS(out_yaml, unix_rw)
+DEFINE_EVENT_TESTS(out_yaml, unix_ro_reuse)
+DEFINE_EVENT_TESTS(out_yaml, unix_rw_reuse)
+DEFINE_EVENT_TESTS(out_yaml, windows_ro)
+DEFINE_EVENT_TESTS(out_yaml, windows_rw)
+DEFINE_EVENT_TESTS(out_yaml, windows_ro_reuse)
+DEFINE_EVENT_TESTS(out_yaml, windows_rw_reuse)
 
 
 // emit-yaml
