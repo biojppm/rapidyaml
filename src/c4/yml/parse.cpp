@@ -3671,6 +3671,11 @@ csubstr Parser::_filter_dquot_scalar(substr s)
                 r = r.erase(i+1, 1);
                 r[i] = '\n';
             }
+            else if(next == 't')
+            {
+                r = r.erase(i+1, 1);
+                r[i] = '\t';
+            }
         }
         else if(curr == '\n')
         {

@@ -10,6 +10,7 @@ namespace yml {
             "dquoted, with single and double quotes",   \
             "dquoted, with escapes",                    \
             "dquoted, with newline",                    \
+            "dquoted, with tabs",                       \
             "dquoted, all",                             \
             "dquoted, empty",                           \
             "dquoted, blank",                           \
@@ -57,6 +58,11 @@ R"("Some text with escapes \\n \\r \\t")",
 C("dquoted, with newline",
 R"("Some text with\nnewline")",
   N(DOCVAL, "Some text with\nnewline")
+),
+
+C("dquoted, with tabs",
+R"("\tSome\ttext\twith\ttabs\t")",
+  N(DOCVAL, "\tSome\ttext\twith\ttabs\t")
 ),
 
 C("dquoted, all",
