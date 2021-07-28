@@ -21,11 +21,24 @@ constexpr const AllowedFailure allowed_failures[] = {
     //
     // These tests are temporarily skipped, and cover issues that must be fixed.
 
+    // plain scalars (ie, not quoted, not folded)
+    {"RZP5", CPART_IN_YAML|eIN_OUT_____, "plain scalar block parsing, anchors"},
+    {"735Y", CPART_IN_YAML, "plain scalar parsing"},
+    {"7T8X", CPART_IN_YAML|CPART_OUT_YAML, "scalar block parsing"},
+    {"82AN", CPART_IN_YAML, "plain scalar parsing, same indentation on next line is problematic"},
+    {"9YRD", CPART_IN_YAML, "plain scalar parsing, same indentation on next line is problematic"},
+    {"M7A3", CPART_IN_YAML, "plain scalar parsing, same indentation on next line is problematic"},
+    {"EXG3", CPART_IN_YAML, "plain scalar parsing, same indentation on next line is problematic"},
+    {"EX5H", CPART_IN_YAML|CPART_EMIT_YAML, "plain scalar parsing, same indentation on next line is problematic"},
+    {"NB6Z", eIN_________, "plain scalar parsing, same indentation on next line is problematic"},
+    {"HS5T", CPART_IN_YAML, "plain scalar parsing, same indentation on next line is problematic"},
+    {"35KP", eIN_OUT_____, "plain scalar is wrongly parsed with trailing newline"},
+    {"36F6", eIN_OUT_____, "plain scalar is wrongly parsed with trailing newline"},
+    {"H2RW", eIN_____EMIT, "plain scalar is wrongly parsed with trailing newline"},
+    {"UGM3", eIN_________, "plain scalar is wrongly parsed with trailing newline"},
     // folded scalars
     {"3MYT", eIN_________, "emitting folded scalars is not idempotent"},
-    {"4CQQ", eIN_OUT_____, "emitting folded scalars is not idempotent"},
     {"4QFQ", eIN_____EMIT, "folded scalars: multiline problems"},
-    {"4ZYM", eIN_________, "folded scalars: tab problems"},
     {"5WE3", eIN_OUT_____, "emitting folded scalars is not idempotent"},
     {"6HB6", eIN_OUT_____, "emitting folded scalars is not idempotent"},
     {"6JQW", eIN_OUT_____, "emitting folded scalars is not idempotent"},
@@ -58,22 +71,8 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"TS54", eIN_OUT_____, "emitting folded scalars is not idempotent"},
     {"UT92", eIN_OUT_____, "emitting folded scalars is not idempotent"},
     {"XLQ9", eIN_________, "emitting folded scalars is not idempotent"},
-    // plain scalars
-    {"RZP5", CPART_IN_YAML|eIN_OUT_____, "plain scalar block parsing, anchors"},
-    {"735Y", CPART_IN_YAML, "plain scalar parsing"},
-    {"7T8X", CPART_IN_YAML|CPART_OUT_YAML, "scalar block parsing"},
-    {"82AN", CPART_IN_YAML, "plain scalar parsing, same indentation on next line is problematic"},
-    {"9YRD", CPART_IN_YAML, "plain scalar parsing, same indentation on next line is problematic"},
-    {"M7A3", CPART_IN_YAML, "plain scalar parsing, same indentation on next line is problematic"},
-    {"EXG3", CPART_IN_YAML, "plain scalar parsing, same indentation on next line is problematic"},
-    {"EX5H", CPART_IN_YAML|CPART_EMIT_YAML, "plain scalar parsing, same indentation on next line is problematic"},
-    {"NB6Z", eIN_________, "plain scalar parsing, same indentation on next line is problematic"},
-    {"HS5T", CPART_IN_YAML, "plain scalar parsing, same indentation on next line is problematic"},
-    {"35KP", eIN_OUT_____, "plain scalar is wrongly parsed with trailing newline"},
-    {"36F6", eIN_OUT_____, "plain scalar is wrongly parsed with trailing newline"},
-    {"H2RW", eIN_____EMIT, "plain scalar is wrongly parsed with trailing newline"},
-    {"UGM3", eIN_________, "plain scalar is wrongly parsed with trailing newline"},
     // quoted scalars
+    {"4ZYM", eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"6SLA", eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"6WPF", eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"7A4E", eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
@@ -113,6 +112,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"J3BT", eIN_OUT_____, "tabs after - or :"},
     {"K54U", eIN_________, "tab after ---"},
     {"K54U", eIN_________, "tab after ---"},
+
 
     //-------------------------------------------------------------------------
     // SECTION 2. Expected errors that fail to materialize.
@@ -166,7 +166,7 @@ constexpr const AllowedFailure allowed_failures[] = {
 
 
     //-------------------------------------------------------------------------
-    // SECTION 3. Known ryml limitations.
+    // SECTION 3. Known, deliberate ryml limitations.
     //
     // These tests are skipped as they cover parts of YAML that are deliberately
     // not implemented by ryml.
