@@ -241,8 +241,9 @@ void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
                 ASSERT_TRUE(curr);
                 _nfo_logf("seq[{}]: adding child", top.tree_node);
                 size_t node = tree.append_child(top.tree_node);
-                _nfo_logf("seq[{}]: child={} val='{}'", top.tree_node, node, curr.scalar);
-                tree.to_val(node, curr.filtered_scalar(&tree));
+                NodeType_e as_doc = tree.is_stream(top.tree_node) ? DOC : NOTYPE;
+                _nfo_logf("seq[{}]: child={} val='{}' as_doc=", top.tree_node, node, curr.scalar, NodeType::type_str(as_doc));
+                tree.to_val(node, curr.filtered_scalar(&tree), as_doc);
                 curr.add_val_props(&tree, node);
             }
             else if(tree.is_map(top.tree_node))
@@ -257,8 +258,9 @@ void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
                 {
                     _nfo_logf("map[{}]: adding child", top.tree_node);
                     size_t node = tree.append_child(top.tree_node);
-                    _nfo_logf("map[{}]: child={} key='{}' val='{}'", top.tree_node, node, key.scalar, curr.scalar);
-                    tree.to_keyval(node, key.filtered_scalar(&tree), curr.filtered_scalar(&tree));
+                    NodeType_e as_doc = tree.is_stream(top.tree_node) ? DOC : NOTYPE;
+                    _nfo_logf("map[{}]: child={} key='{}' val='{}' as_doc={}", top.tree_node, node, key.scalar, curr.scalar, NodeType::type_str(as_doc));
+                    tree.to_keyval(node, key.filtered_scalar(&tree), curr.filtered_scalar(&tree), as_doc);
                     key.add_key_props(&tree, node);
                     curr.add_val_props(&tree, node);
                     _nfo_logf("clear key='{}'", key.scalar);

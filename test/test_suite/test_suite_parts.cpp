@@ -24,7 +24,8 @@ constexpr const AllowedFailure allowed_failures[] = {
     // folded scalars
     {"3MYT", eIN_________, "emitting folded scalars is not idempotent"},
     {"4CQQ", eIN_OUT_____, "emitting folded scalars is not idempotent"},
-    {"4QFQ", eIN_OUT_EMIT, "emitting folded scalars is not idempotent"},
+    {"4QFQ", eIN_____EMIT, "folded scalars: multiline problems"},
+    {"4ZYM", eIN_________, "folded scalars: tab problems"},
     {"5WE3", eIN_OUT_____, "emitting folded scalars is not idempotent"},
     {"6HB6", eIN_OUT_____, "emitting folded scalars is not idempotent"},
     {"6JQW", eIN_OUT_____, "emitting folded scalars is not idempotent"},
@@ -47,7 +48,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"JDH8", eIN_________, "emitting folded scalars is not idempotent"},
     {"K527", eIN_OUT_____, "emitting folded scalars is not idempotent"},
     {"KSS4", eIN_________, "emitting folded scalars is not idempotent"},
-    {"M7A3", CPART_IN_YAML|e_______EMIT, "emitting folded scalars is not idempotent"},
     {"MJS9", eIN_OUT_____, "emitting folded scalars is not idempotent"},
     {"K858", CPART_OUT_YAML|CPART_IN_JSON|eIN_________, "emitting folded scalars is not idempotent"},
     {"NAT4", CPART_IN_YAML|CPART_EMIT_YAML|CPART_IN_JSON, "emitting folded scalars is not idempotent"},
@@ -64,13 +64,13 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"7T8X", CPART_IN_YAML|CPART_OUT_YAML, "scalar block parsing"},
     {"82AN", CPART_IN_YAML, "plain scalar parsing, same indentation on next line is problematic"},
     {"9YRD", CPART_IN_YAML, "plain scalar parsing, same indentation on next line is problematic"},
+    {"M7A3", CPART_IN_YAML, "plain scalar parsing, same indentation on next line is problematic"},
     {"EXG3", CPART_IN_YAML, "plain scalar parsing, same indentation on next line is problematic"},
     {"EX5H", CPART_IN_YAML|CPART_EMIT_YAML, "plain scalar parsing, same indentation on next line is problematic"},
     {"NB6Z", eIN_________, "plain scalar parsing, same indentation on next line is problematic"},
     {"HS5T", CPART_IN_YAML, "plain scalar parsing, same indentation on next line is problematic"},
     {"35KP", eIN_OUT_____, "plain scalar is wrongly parsed with trailing newline"},
     {"36F6", eIN_OUT_____, "plain scalar is wrongly parsed with trailing newline"},
-    {"4ZYM", eIN_OUT_EMIT, "plain scalar is wrongly parsed with trailing newline"},
     {"H2RW", eIN_____EMIT, "plain scalar is wrongly parsed with trailing newline"},
     {"UGM3", eIN_________, "plain scalar is wrongly parsed with trailing newline"},
     // quoted scalars
@@ -78,10 +78,9 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"6WPF", eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"7A4E", eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"9TFX", eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
-    {"CPZ3", eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
-    {"NP9H", eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
-    {"PRH3", eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
-    {"Q8AD", eIN_OUT_EMIT, "quoted scalars: differences with \n,\t in single,double quotes"},
+    {"NP9H", eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
+    {"PRH3", eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
+    {"Q8AD", eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"TL85", eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
     // implicit keys
     {"DFF7", eIN_________, "problem with implicit key"},
@@ -102,7 +101,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"RTP8", eIN_________, "empty doc wrongly added at end"},
     {"6XDY", eIN_OUT_____, "empty doc does not get an empty value added to it"},
     // other
-    {"6FWR", CPART_EMIT_YAML|eIN_OUT_____, "fail to parse"},
     {"9MMW", CPART_IN_YAML, "re the json/yaml incompatibility where a space is required after :"},
     {"A2M4", eIN_________, "fails to parse the value sequence, parses as scalar"},
     {"CN3R", CPART_IN_YAML|CPART_OUT_YAML, "anchors + maps nested in seqs"},
@@ -212,6 +210,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"U9NS", CPART_IN_JSON, "malformed JSON from multiple documents"},
     {"W4TN", CPART_IN_JSON, "malformed JSON from multiple documents"},
     // malformed test spec?
+    {"6FWR", e___OUT_____, "out-yaml is missing the --- document token, which is required in the events"},
     {"EX5H", e___OUT_____, "out-yaml is missing the --- document token, which is required in the events"},
     {"EXG3", e___OUT_____, "out-yaml is missing the --- document token, which is required in the events"},
 };

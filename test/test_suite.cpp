@@ -369,6 +369,25 @@ csubstr filter_out_indentation(csubstr src, std::string *dst)
         dst->assign(src.begin(), src.end());
         return c4::to_csubstr(*dst);
     }
+    auto has_meta_comments = [](csubstr s) {
+        for(csubstr line : s.split('\n'))
+            if(line.begins_with('#'))
+                return true;
+        return false;
+    };
+    std::string tmp;
+    if(has_meta_comments(src))
+    {
+        tmp.reserve(src.size());
+        for(csubstr line : src.split('\n'))
+        {
+            if(line.begins_with('#'))
+                continue;
+            tmp.append(line.begin(), line.end());
+            tmp += '\n';
+        }
+        src = c4::to_csubstr(tmp);
+    }
     return replace_all("\n    ", "\n", src.sub(4), dst);
 }
 
@@ -454,7 +473,7 @@ struct SuiteCase
         size_t begin_emit_yaml = contents.find("--- emit-yaml" , end_tags);
         size_t begin_events    = contents.find("--- test-event", end_tags);
         size_t lex_token       = contents.find("--- lex-token" , end_tags);
-        auto check_ok = [](csubstr part){
+        auto did_not_slurp_other_tml_tokens = [](csubstr part){
             csubstr tokens[] = {"--- in-yaml", "--- error", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event", "--- lex-token"};
             return ! part.first_of_any_iter(std::begin(tokens), std::end(tokens));
         };
@@ -479,7 +498,7 @@ struct SuiteCase
         size_t first_after_in_yaml = find_first_after(begin_in_yaml, all);
         begin_in_yaml = 1 + contents.find('\n', begin_in_yaml); // skip this line
         txt = contents.range(begin_in_yaml, first_after_in_yaml);
-        RYML_CHECK(check_ok(txt));
+        RYML_CHECK(did_not_slurp_other_tml_tokens(txt));
         txt = filter_out_indentation(txt, &tmpa);
         if(has_whitespace)
         {
@@ -494,7 +513,7 @@ struct SuiteCase
             size_t first_after = find_first_after(begin_error, all);
             begin_error = 1 + contents.find('\n', begin_error); // skip this line
             txt = contents.range(begin_error, first_after);
-            RYML_CHECK(check_ok(txt));
+            RYML_CHECK(did_not_slurp_other_tml_tokens(txt));
             txt = filter_out_indentation(txt, &tmpa);
         }
 
@@ -504,7 +523,7 @@ struct SuiteCase
             size_t first_after = find_first_after(begin_in_json, all);
             begin_in_json = 1 + contents.find('\n', begin_in_json); // skip this line
             txt = contents.range(begin_in_json, first_after);
-            RYML_CHECK(check_ok(txt));
+            RYML_CHECK(did_not_slurp_other_tml_tokens(txt));
             in_json.init(filename, txt, CPART_IN_JSON, expect_error);
         }
 
@@ -514,7 +533,7 @@ struct SuiteCase
             size_t first_after = find_first_after(begin_out_yaml, all);
             begin_out_yaml = 1 + contents.find('\n', begin_out_yaml); // skip this line
             txt = contents.range(begin_out_yaml, first_after);
-            RYML_CHECK(check_ok(txt));
+            RYML_CHECK(did_not_slurp_other_tml_tokens(txt));
             txt = filter_out_indentation(txt, &tmpa);
             if(has_whitespace)
             {
@@ -530,8 +549,13 @@ struct SuiteCase
             size_t first_after = find_first_after(begin_emit_yaml, all);
             begin_emit_yaml = 1 + contents.find('\n', begin_emit_yaml); // skip this line
             txt = contents.range(begin_emit_yaml, first_after);
-            RYML_CHECK(check_ok(txt));
+            RYML_CHECK(did_not_slurp_other_tml_tokens(txt));
             txt = filter_out_indentation(txt, &tmpa);
+            if(has_whitespace)
+            {
+                txt = replace_all("<SPC>", " ", txt, &tmpb);
+                txt = replace_all("<TAB>", "\t", txt, &tmpa);
+            }
             emit_yaml.init(filename, txt, CPART_EMIT_YAML, expect_error);
         }
 
@@ -541,7 +565,7 @@ struct SuiteCase
             size_t first_after = find_first_after(begin_events, all);
             begin_events = 1 + contents.find('\n', begin_events); // skip this line
             txt = contents.range(begin_events, first_after);
-            RYML_CHECK(check_ok(txt));
+            RYML_CHECK(did_not_slurp_other_tml_tokens(txt));
             txt = filter_out_double_backslash(txt, &tmpa);
             if(has_whitespace)
             {
@@ -559,16 +583,15 @@ struct SuiteCase
 
     void print() const
     {
-        c4::dump("~~~ file   : "   , filename      , "~~~\n",
-                 "~~~ desc   : "   , desc          , "~~~\n",
-                 "~~~ from   : "   , from          , "~~~\n",
-                 "~~~ tags   : "   , tags          , "~~~\n",
-                 "~~~ in-yaml:\n"  , src(in_yaml  ), "~~~\n",
+        c4::dump("~~~ file: "      , filename      , "~~~\n",
+                 "~~~ desc: "      , desc          , "~~~\n",
+                 "~~~ from: "      , from          , "~~~\n",
+                 "~~~ tags: "      , tags          , "~~~\n",
                  "~~~ in-yaml:\n"  , src(in_yaml  ), "~~~\n",
                  "~~~ in-json:\n"  , src(in_json  ), "~~~\n",
                  "~~~ out-yaml:\n" , src(out_yaml ), "~~~\n",
                  "~~~ emit-yaml:\n", src(emit_yaml), "~~~\n",
-                 "~~~ events :\n"  , events.src    , "~~~\n");
+                 "~~~ events:\n"   , events.src    , "~~~\n");
     }
 
 };
