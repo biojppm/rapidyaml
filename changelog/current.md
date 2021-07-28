@@ -28,6 +28,17 @@ file.
 
 #### Anchors
 - Fix resolving of nodes with keyref+valref ([PR #144](https://github.com/biojppm/rapidyaml/pull/144)): `{&a a: &b b, *b: *a}`
+- Fix parsing of implicit scalars when tags are present ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
+  ```yaml
+  - &a  # test case PW8X
+  - a
+  - &a : a
+    b: &b
+  - &c : &a
+  - ? &d
+  - ? &e
+    : &a
+  ```
 
 #### Tags
 - Fix parsing of tag dense maps and seqs ([PR #144](https://github.com/biojppm/rapidyaml/pull/144)):
@@ -40,9 +51,6 @@ file.
     !!map { !!str k: v},
     !!map { !!str ? k: v}
   ]
-  ```
-- Fix parsing of tags for explicit flow maps and seqs ([PR #144](https://github.com/biojppm/rapidyaml/pull/144)):
-  ```yaml
   --- !!map
   !!str foo: !!map  # there was a parse error with the multiple tags
     !!int 1: !!float 20.0

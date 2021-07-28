@@ -193,6 +193,7 @@ private:
 
     void  _set_indentation(size_t behind);
     void  _save_indentation(size_t behind=0);
+    bool  _maybe_set_indentation_from_anchor_or_tag();
 
     void  _write_key_anchor(size_t node_id);
     void  _write_val_anchor(size_t node_id);

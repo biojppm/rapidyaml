@@ -94,7 +94,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"X8DW",                  eIN_________, "null key is wrongly parsed"},
     {"ZWK4",                  eIN_________, "null key is wrongly parsed"},
     {"4ABK",                  eIN_________, "key is wrongly serialized: 'omitted value:'"},
-    {"PW8X", IN_OUT__________             , "anchors with implicit key"},
     // document handling
     {"6ZKB",                  eIN_____EMIT, "document handling"},
     {"9DXL",                  eIN_____EMIT, "document handling"},
@@ -166,9 +165,10 @@ constexpr const AllowedFailure allowed_failures[] = {
     //-------------------------------------------------------------------------
     // SECTION 3. Known, deliberate ryml limitations.
     //
-    // These tests are skipped as they cover parts of YAML that are deliberately
-    // not implemented by ryml.
-    // we do not accept container keys
+    // These tests are skipped because they cover parts of YAML that
+    // are deliberately not implemented by ryml.
+
+    // container keys are not supportted
     {"4FJ6", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
     {"6BFJ", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
     {"6PBE", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
@@ -180,10 +180,10 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"SBG9", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
     {"X38W", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
     {"XW4D", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    // we do not accept anchors with :
+    // anchors with : are not supported
     {"2SXE", CPART_IN_YAML|CPART_OUT_YAML, "weird characters in anchors, anchors must not end with :"},
     {"W5VH", CPART_IN_YAML, "weird characters in anchors"},
-    // tags are parsed as-is
+    // tags are parsed as-is; tag lookup is not supported
     {"5TYM", eIN_________, "we do not do tag lookup"},
     {"6CK3", eIN_________, "we do not do tag lookup"},
     {"6WLZ", eIN_________, "we do not do tag lookup"},
@@ -194,7 +194,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"QLJ7", CPART_IN_YAML_ERRORS, "we do not do tag lookup"},
     {"U3C3", eIN_________, "we do not do tag lookup"},
     {"Z9M4", eIN_________, "we do not do tag lookup"},
-    // malformed json
+    // malformed json in the test spec
     {"35KP", CPART_IN_JSON, "malformed JSON from multiple documents"},
     {"6XDY", CPART_IN_JSON, "malformed JSON from multiple documents"},
     {"6ZKB", CPART_IN_JSON, "malformed JSON from multiple documents"},

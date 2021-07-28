@@ -793,17 +793,7 @@ bool Parser::_handle_seq_impl()
                 _push_level();
                 _start_map();
                 _store_scalar(s, is_quoted);
-                if(m_key_anchor.not_empty())
-                {
-                    _c4dbgpf("set indentation from anchor: %zu", m_key_anchor_indentation);
-                    _set_indentation(m_key_anchor_indentation); // this is the column where the anchor starts
-                }
-                else if(m_key_tag.not_empty())
-                {
-                    _c4dbgpf("set indentation from key tag: %zu", m_key_tag_indentation);
-                    _set_indentation(m_key_tag_indentation); // this is the column where the tag starts
-                }
-                else
+                if( ! _maybe_set_indentation_from_anchor_or_tag())
                 {
                     _c4dbgpf("set indentation from scalar: %zu", m_state->scalar_col);
                     _set_indentation(m_state->scalar_col); // this is the column where the scalar starts
@@ -885,6 +875,26 @@ bool Parser::_handle_seq_impl()
         }
         else if(_handle_val_anchors_and_refs())
         {
+            return true;
+        }
+        /* pathological case:
+         * - &key : val
+         * - &key :
+         */
+        else if((!has_all(SSCL)) &&
+                (!m_val_anchor.empty() || !m_val_tag.empty()) &&
+                (rem.begins_with(": ") || rem.left_of(rem.find("#")).trimr("\t") == ":"))
+        {
+            _c4dbgp("val is a child map + this key is empty");
+            addrem_flags(RNXT, RVAL); // before _push_level!
+            _move_val_tag_to_key_tag();
+            _move_val_anchor_to_key_anchor();
+            _push_level();
+            _start_map();
+            _store_scalar({}, /*is_quoted*/false);
+            addrem_flags(RVAL, RKEY);
+            RYML_CHECK(_maybe_set_indentation_from_anchor_or_tag()); // one of them must exist
+            _line_progressed(rem.begins_with(": ") ? 2u : 1u);
             return true;
         }
         else
@@ -1277,10 +1287,8 @@ bool Parser::_handle_map_impl()
             _c4dbgp("it's a complex key");
             add_flags(CPLX);
             _line_progressed(2);
-            if(has_all(SSCL))
-            {
+            if(has_any(SSCL))
                 _append_key_val_null();
-            }
             return true;
         }
         else if(has_all(CPLX) && rem.begins_with(':'))
@@ -1581,7 +1589,7 @@ bool Parser::_handle_val_anchors_and_refs()
         csubstr anchor = rem.left_of(rem.first_of(' '));
         _line_progressed(anchor.len);
         anchor = anchor.sub(1); // skip the first character
-        _c4dbgpf("val: found an anchor: '%.*s'!!!", _c4prsp(anchor));
+        _c4dbgpf("val: found an anchor: '%.*s', indentation=%zu!!!", _c4prsp(anchor), m_state->line_contents.current_col(rem));
         if(m_val_anchor.empty())
         {
             _c4dbgpf("save val anchor: '%.*s'", _c4prsp(anchor));
@@ -2519,6 +2527,7 @@ void Parser::_set_indentation(size_t indentation)
     m_state->indref = indentation;
     _c4dbgpf("state[%zd]: saving indentation: %zd", m_state-m_stack.begin(), m_state->indref);
 }
+
 void Parser::_save_indentation(size_t behind)
 {
     RYML_ASSERT(m_state->line_contents.rem.begin() >= m_state->line_contents.full.begin());
@@ -2527,6 +2536,24 @@ void Parser::_save_indentation(size_t behind)
     m_state->indref -= behind;
     _c4dbgpf("state[%zd]: saving indentation: %zd", m_state-m_stack.begin(), m_state->indref);
 }
+
+bool Parser::_maybe_set_indentation_from_anchor_or_tag()
+{
+    if(m_key_anchor.not_empty())
+    {
+        _c4dbgpf("set indentation from key anchor: %zu", m_key_anchor_indentation);
+        _set_indentation(m_key_anchor_indentation); // this is the column where the anchor starts
+        return true;
+    }
+    else if(m_key_tag.not_empty())
+    {
+        _c4dbgpf("set indentation from key tag: %zu", m_key_tag_indentation);
+        _set_indentation(m_key_tag_indentation); // this is the column where the tag starts
+        return true;
+    }
+    return false;
+}
+
 
 //-----------------------------------------------------------------------------
 void Parser::_write_key_anchor(size_t node_id)
@@ -2895,8 +2922,25 @@ void Parser::_start_map_unk(bool as_child)
 
 void Parser::_stop_map()
 {
-    _c4dbgp("stop_map");
+    _c4dbgpf("stop_map[%zu]", m_state->node_id);
     RYML_ASSERT(node(m_state)->is_map());
+    bool key_empty = (m_key_tag.empty() && m_key_anchor.empty());
+    bool val_empty = (m_val_tag.empty() && m_val_anchor.empty());
+    if(has_none(RMAP) || (key_empty && val_empty))
+        return;
+    _c4dbgpf("stop_map[%zu]: RMAP, and tags or anchors pending", m_state->node_id);
+    if(has_all(RVAL))
+    {
+        _c4dbgpf("stop_map[%zu]: RVAL", m_state->node_id);
+        if(!has_all(SSCL))
+            _store_scalar({}, /*is_quoted*/false);
+        _append_key_val_null();
+    }
+    else if(has_all(CPLX|RKEY))
+    {
+        _store_scalar({}, /*is_quoted*/false);
+        _append_key_val_null();
+    }
 }
 
 
@@ -3675,10 +3719,6 @@ csubstr Parser::_filter_dquot_scalar(substr s)
             {
                 r = r.erase(i, 1);  // fix escaped double quotes
             }
-            else if(next == '/')
-            {
-                r = r.erase(i, 1);  // fix escaped /
-            }
             else if(next == 'n')
             {
                 r = r.erase(i+1, 1);
@@ -3688,6 +3728,10 @@ csubstr Parser::_filter_dquot_scalar(substr s)
             {
                 r = r.erase(i+1, 1);
                 r[i] = '\t';
+            }
+            else if(next == '/')
+            {
+                r = r.erase(i, 1);  // fix escaped /
             }
         }
         else if(curr == '\n')
