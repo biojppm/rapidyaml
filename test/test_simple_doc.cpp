@@ -5,6 +5,10 @@ namespace yml {
 
 
 #define SIMPLE_DOC_CASES                                                \
+    "one empty doc",                                                    \
+    "one empty doc, explicit termination",                              \
+    "two empty docs",                                                   \
+    "two empty docs, with termination",                                 \
     "doc with single scalar",                                           \
     "doc with single scalar, explicit",                                 \
     "simple doc, empty docs",                                           \
@@ -35,13 +39,41 @@ namespace yml {
     "simple doc, multi doc, impl map-seq, indented",                    \
     "simple doc, multi doc, impl map-seq, no term",                     \
     "simple doc, multi doc, impl map-seq, no term, indented",           \
-    "simple doc, indented with empty lines",\
+    "simple doc, indented with empty lines",                            \
     "simple doc, tags at global scope, 9WXW"
 
 
 CASE_GROUP(SIMPLE_DOC)
 {
     APPEND_CASES(
+
+C("one empty doc",
+R"(---
+)",
+    N(STREAM, L{DOCVAL})
+),
+
+C("one empty doc, explicit termination",
+R"(---
+...
+)",
+    N(STREAM, L{DOCVAL})
+),
+
+C("two empty docs",
+R"(---
+---
+)",
+    N(STREAM, L{DOCVAL, DOCVAL})
+),
+
+C("two empty docs, with termination",
+R"(---
+...
+---
+)",
+    N(STREAM, L{DOCVAL, DOCVAL})
+),
 
 C("doc with single scalar",
 R"(a scalar
@@ -61,7 +93,7 @@ R"(---
 ---
 ---
 )",
-    N(STREAM, L{N(DOC), N(DOC), N(DOC), N(DOC)})
+    N(STREAM, L{DOCVAL, DOCVAL, DOCVAL, DOCVAL})
 ),
 
 C("simple doc, empty docs, indented",
@@ -70,7 +102,7 @@ R"(    ---
     ---
     ---
 )",
-    N(STREAM, L{N(DOC), N(DOC), N(DOC), N(DOC)})
+    N(STREAM, L{DOCVAL, DOCVAL, DOCVAL, DOCVAL})
 ),
 
 C("simple doc, empty docs, term",
@@ -85,15 +117,15 @@ R"(---
 ---
 ...
 )",
-    N(STREAM, L{N(DOC), N(DOC), N(DOC), N(DOC)})
+    N(STREAM, L{DOCVAL, DOCVAL, DOCVAL, DOCVAL})
 ),
 
 C("simple doc, empty docs, term, indented",
 R"(
     ---
     ...
-    
-    
+
+
     ---
     ...
     ---
@@ -101,7 +133,7 @@ R"(
     ---
     ...
 )",
-    N(STREAM, L{N(DOC), N(DOC), N(DOC), N(DOC)})
+    N(STREAM, L{DOCVAL, DOCVAL, DOCVAL, DOCVAL})
 ),
 
 C("simple doc, plain scalar, multiple docs, implicit 2nd doc",

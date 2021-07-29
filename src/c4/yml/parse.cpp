@@ -2717,8 +2717,15 @@ void Parser::_start_doc(bool as_child)
 
 void Parser::_stop_doc()
 {
-    _c4dbgp("stop_doc");
-    RYML_ASSERT(node(m_state)->is_doc());
+    size_t doc_node = m_state->node_id;
+    _c4dbgpf("stop_doc[%zu]", doc_node);
+    RYML_ASSERT(m_tree->is_doc(doc_node));
+    if(!m_tree->is_seq(doc_node) && !m_tree->is_map(doc_node) && !m_tree->is_val(doc_node))
+    {
+        RYML_ASSERT(has_none(SSCL));
+        _c4dbgpf("stop_doc[%zu]: there was nothing; adding null val", doc_node);
+        m_tree->to_val(doc_node, {}, DOC);
+    }
 }
 
 void Parser::_end_stream()

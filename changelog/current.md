@@ -106,6 +106,18 @@ file.
   is now correctly parsed as `\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n`.
 
 #### Document structure
+- Empty docs are now parsed as a docval with a null node:
+  ```yaml
+  ---   # test cases 6XDY, 6ZKB, 9BXL, PUW8
+  ---
+  ---
+  ```
+  is now parsed as
+  ```yaml
+  --- ~
+  --- ~
+  --- ~
+  ```
 - Prevent creation of DOC nodes from stream-level comments or tags ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
   ```yaml
   !foo "bar"
