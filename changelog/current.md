@@ -78,7 +78,7 @@ file.
    - a<TAB>
   c: d<TAB>#X
   ```
-  
+
 #### Scalars
 - Unescape forward slashes in double quoted string ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
   ```yaml
@@ -86,6 +86,24 @@ file.
   # is now parsed as:
   --- escaped slash: "a/b"
   ```
+- Fix filtering of indented regions in folded scalars ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
+  ```yaml
+  - >   # test case 7T8X
+    
+    folded
+    line
+    
+    next
+    line
+      * bullet
+    
+      * list
+      * lines
+    
+    last
+    line
+  ```
+  is now correctly parsed as `\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n`.
 
 #### Document structure
 - Prevent creation of DOC nodes from stream-level comments or tags ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):

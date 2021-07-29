@@ -4,8 +4,7 @@ namespace c4 {
 namespace yml {
 
 constexpr const CasePart_e IN______________ = CPART_IN_YAML;
-constexpr const CasePart_e IN_OUT__________ = CPART_IN_YAML|CPART_OUT_YAML;
-constexpr const CasePart_e IN_OUT______JSON = CPART_IN_YAML|CPART_OUT_YAML                |CPART_IN_JSON;
+constexpr const CasePart_e ___OUT______JSON =               CPART_OUT_YAML                |CPART_IN_JSON;
 constexpr const CasePart_e IN_____EMIT_____ = CPART_IN_YAML               |CPART_EMIT_YAML;
 constexpr const CasePart_e IN_____EMIT_JSON = CPART_IN_YAML               |CPART_EMIT_YAML|CPART_IN_JSON;
 
@@ -27,9 +26,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     // These tests are temporarily skipped, and cover issues that must be fixed.
 
     // plain scalars (ie, not quoted, not folded)
-    {"RZP5", IN______________|eIN_OUT_____, "plain scalar block parsing, anchors"},
     {"735Y", IN______________             , "plain scalar parsing"},
-    {"7T8X", IN_OUT__________             , "scalar block parsing"},
     {"82AN", IN______________             , "plain scalar parsing, same indentation on next line is problematic"},
     {"9YRD", IN______________             , "plain scalar parsing, same indentation on next line is problematic"},
     {"M7A3", IN______________             , "plain scalar parsing, same indentation on next line is problematic"},
@@ -38,16 +35,16 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"HS5T", IN______________             , "plain scalar parsing, same indentation on next line is problematic"},
     {"NB6Z",                  eIN_________, "plain scalar parsing, same indentation on next line is problematic"},
     {"35KP",                  eIN_OUT_____, "plain scalar is wrongly parsed with trailing newline"},
-    {"36F6",                  eIN_OUT_____, "plain scalar is wrongly parsed with trailing newline"},
+    {"36F6",                  eIN_________, "plain scalar is wrongly parsed with trailing newline"},
     {"H2RW",                  eIN_____EMIT, "plain scalar is wrongly parsed with trailing newline"},
     {"UGM3",                  eIN_________, "plain scalar is wrongly parsed with trailing newline"},
     // folded scalars
     {"3MYT",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"4QFQ",                  eIN_____EMIT, "folded scalars: multiline problems"},
-    {"5WE3",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
-    {"6HB6",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
-    {"6JQW",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
+    {"5GBF",                  eIN_________, "folded scalars: multiline problems"},
+    {"5WE3",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"6VJK",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
+    {"7T8X",                  eIN_OUT_____, "folded scalars: multiline problems"},
     {"7TMG",                  eIN_________, "multiline scalar is parsed wrong"},
     {"7W2P",                  eIN_________, "multiline scalar is parsed wrong"},
     {"A6F9",                  eIN_________, "emitting folded scalars is not idempotent"},
@@ -55,26 +52,21 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"AB8U",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"D83L",                  eIN_________, "folded scalars: multiline problems"},
     {"DWX9",                  eIN_____EMIT, "folded scalars: multiline problems"},
-    {"5GBF",                  eIN_________, "folded scalars: multiline problems"},
-    {"R4YG",                  eIN_OUT_____, "folded scalars: multiline problems"},
-    {"RZT7",                  eIN_OUT_____, "folded scalars: multiline problems"},
-    {"T26H",                  eIN_OUT_EMIT, "folded scalars: multiline problems"},
-    {"W4TN",                  eIN_OUT_____, "folded scalars: multiline problems"},
-    {"DK3J",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
     {"F6MC",                  eIN_____EMIT, "emitting folded scalars is not idempotent"},
-    {"FP8R",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
     {"JDH8",                  eIN_________, "emitting folded scalars is not idempotent"},
-    {"K527",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
+    {"K858", ___OUT______JSON|eIN_________, "emitting folded scalars is not idempotent"},
     {"KSS4",                  eIN_________, "emitting folded scalars is not idempotent"},
-    {"MJS9",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
-    {"K858", IN_OUT______JSON|eIN_________, "emitting folded scalars is not idempotent"},
+    {"MJS9",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"NAT4", IN_____EMIT_JSON             , "emitting folded scalars is not idempotent"},
     {"NJ66",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"P2AD",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
-    {"T4YY",                  eIN_OUT_EMIT, "emitting folded scalars is not idempotent"},
-    {"T5N4",                  eIN_OUT_EMIT, "emitting folded scalars is not idempotent"},
-    {"TS54",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
+    {"R4YG",                  eIN_OUT_____, "folded scalars: multiline problems"},
+    {"RZT7",                  eIN_OUT_____, "folded scalars: multiline problems"},
+    {"T26H",                  eIN_OUT_EMIT, "folded scalars: multiline problems"},
+    {"T4YY",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
+    {"T5N4",                  e___OUT_____, "emitting folded scalars is not idempotent"},
     {"UT92",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
+    {"W4TN",                  eIN_OUT_____, "folded scalars: multiline problems"},
     {"XLQ9",                  eIN_________, "emitting folded scalars is not idempotent"},
     // quoted scalars
     {"4ZYM",                  eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
@@ -88,19 +80,17 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"TL85",                  eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
     // implicit keys
     {"DFF7",                  eIN_________, "problem with implicit key"},
-    {"FH7J", IN_OUT__________             , "implicit keys"},
     {"FRK4",                  eIN_________, "implicit key is wrongly parsed"},
     {"V9D5",                  eIN_________, "null key is wrongly parsed"},
     {"X8DW",                  eIN_________, "null key is wrongly parsed"},
     {"ZWK4",                  eIN_________, "null key is wrongly parsed"},
     {"4ABK",                  eIN_________, "key is wrongly serialized: 'omitted value:'"},
     // document handling
+    {"6XDY",                  eIN_OUT_____, "empty doc does not get an empty value added to it"},
     {"6ZKB",                  eIN_____EMIT, "document handling"},
     {"9DXL",                  eIN_____EMIT, "document handling"},
     {"B3HG",                  e___OUT_____, "document handling with folded scalar"},
     {"PUW8",                  eIN_OUT_____, "empty doc must have an empty val"},
-    {"RTP8",                  eIN_________, "empty doc wrongly added at end"},
-    {"6XDY",                  eIN_OUT_____, "empty doc does not get an empty value added to it"},
     // other
     {"9MMW", IN______________             , "re the json/yaml incompatibility where a space is required after :"},
     {"A2M4",                  eIN_________, "fails to parse the value sequence, parses as scalar"},
@@ -113,7 +103,7 @@ constexpr const AllowedFailure allowed_failures[] = {
 
     //-------------------------------------------------------------------------
     // SECTION 2. Expected errors that fail to materialize.
-    //
+
     {"236B", CPART_IN_YAML_ERRORS, "wrongly accepts final scalar in a map"},
     {"3HFZ", CPART_IN_YAML_ERRORS, "wrongly accepts scalar after ..."},
     {"4EJS", CPART_IN_YAML_ERRORS, "wrongly accepts double anchor for scalar"},
@@ -177,6 +167,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"LX3P", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
     {"M5DY", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
     {"Q9WF", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"RZP5", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
     {"SBG9", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
     {"X38W", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
     {"XW4D", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},

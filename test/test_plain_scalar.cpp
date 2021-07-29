@@ -24,9 +24,9 @@ namespace yml {
     "plain scalar, do not accept ': ' start line",                  \
     "plain scalar, do not accept ': ' at line end",                 \
     "plain scalar, do not accept ':' at line end",                  \
-    "plain scalar, do not accept ' #', at line start",              \
-    "plain scalar, do not accept ' #', at line start, but accept on first line", \
-    "plain scalar, do not accept ' #', at line end",                \
+    "plain scalar, accept ' #' at line start",                      \
+    "plain scalar, accept ' #' on first line",                      \
+    "plain scalar, accept ' #' at line end",                        \
     "plain scalar, accept '#'",                                     \
     "plain scalar, explicit",                                       \
     "plain scalar, explicit, early end, seq",                       \
@@ -382,26 +382,26 @@ R"(- Several lines of text,
   LineCol(4, 36)
 ),
 
-C("plain scalar, do not accept ' #', at line start", HAS_PARSE_ERROR,
+C("plain scalar, accept ' #' at line start",
 R"(- Several lines of text,
-  and this is NOT valid -
+  and this is valid -
   #with special:characters, like:this-or-this -
 )",
-  LineCol(3, 2)
+  L{N("Several lines of text, and this is valid -"),}
 ),
 
-C("plain scalar, do not accept ' #', at line start, but accept on first line",
+C("plain scalar, accept ' #' on first line",
 R"(- Several lines of text, and this is valid -
   #with special:characters, like:this-or-this -
 )",
   L{N("Several lines of text, and this is valid -")}
 ),
 
-C("plain scalar, do not accept ' #', at line end", HAS_PARSE_ERROR,
+C("plain scalar, accept ' #' at line end",
 R"(- Several lines of text,
   with special:characters, #comment at the end
 )",
-  LineCol(2, 27)
+  L{N("Several lines of text, with special:characters,")}
 ),
 
 C("plain scalar, accept '#'",

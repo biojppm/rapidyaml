@@ -4,6 +4,7 @@ namespace c4 {
 namespace yml {
 
 #define BLOCK_FOLDED_CASES \
+    "7T8X",                                            \
     "block folded as seq val, implicit indentation 2", \
     "block folded as map val, implicit indentation 2",\
     "block folded as map val, implicit indentation 2, chomp=keep",\
@@ -23,16 +24,60 @@ CASE_GROUP(BLOCK_FOLDED)
 {
     APPEND_CASES(
 
+C("7T8X",
+R"(- >
+    
+    folded
+    line
+    
+    next
+    line
+      * bullet
+    
+      * list
+      * lines
+    
+    last
+    line
+
+# Comment
+
+##### this is the original scalar:
+##- >
+##
+## folded
+## line
+##
+## next
+## line
+##   * bullet
+##
+##   * list
+##   * lines
+##
+## last
+## line
+##
+### Comment
+##
+)",
+  L{
+    N(QV, "\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n"),
+    //N(QV, "\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n"),
+  }
+),
+
+
 C("block folded as seq val, implicit indentation 2",
 R"(
 - >
   Several lines of text,
   with some "quotes" of various 'types',
   and also a blank line:
-  
+
   plus another line at the end.
-  
-  
+
+
 - another val
 )",
   L{
