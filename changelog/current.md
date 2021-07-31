@@ -1,7 +1,8 @@
+This release is mostly focused on compliance with the [YAML test suite](https://github.com/yaml/yaml-test-suite).
 
 ### Breaking changes
 
-- Change parsing behavior of root-level scalars: now these are parsed
+- Fix parsing behavior of root-level scalars: now these are parsed
 into a DOCVAL, not SEQ->VAL ([5ba0d56](https://github.com/biojppm/rapidyaml/pull/144/commits/5ba0d56904daef1509f0073695145c4835ab1b30), from [PR #144](https://github.com/biojppm/rapidyaml/pull/144)). Eg,
   ```yaml
   ---
@@ -16,12 +17,8 @@ into a DOCVAL, not SEQ->VAL ([5ba0d56](https://github.com/biojppm/rapidyaml/pull
 - Callbacks: improve test coverage ([PR #141](https://github.com/biojppm/rapidyaml/pull/141))
 - [YAML test suite](https://github.com/yaml/yaml-test-suite) ([PR
 #144](https://github.com/biojppm/rapidyaml/pull/144), [PR
-#145](https://github.com/biojppm/rapidyaml/pull/145)): big progress
-towards compliance with the suite. There are still a number of
-existing problems, which are the subject of ongoing work. See the
-[list of current known
-failures](../test/test_suite/test_suite_parts.cpp) in the test suite
-file.
+#145](https://github.com/biojppm/rapidyaml/pull/145)): big progress towards compliance with the suite. There are still a number of existing problems, which are the subject of ongoing work. See the
+[list of current known failures](../test/test_suite/test_suite_parts.cpp) in the test suite file.
 
 
 ### Fixes
@@ -68,6 +65,17 @@ file.
   "This has a\ttab"
   # is now correctly parsed as "This has a<TAB>tab"
   ```
+- Fix filtering of leading and trailing whitespace within double-quoted scalars ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
+  ```yaml
+  # test case 4ZYM, 7A4E, TL85
+  "
+  <SPC><SPC>foo<SPC>
+  <SPC> 
+  <SPC><TAB><SPC>bar
+  <SPC><SPC>baz
+  "
+  # is now correctly parsed as " foo\nbar\nbaz "
+```
 - Fix parsing of tabs within YAML tokens:
   ```yaml
   ---<TAB>scalar   # test case K54U

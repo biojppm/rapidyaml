@@ -443,7 +443,9 @@ bool Parser::_handle_unk()
         }
         else if(rem.begins_with(" ") || rem.begins_with("\t"))
         {
-            auto n = rem.first_not_of(" \t");
+            size_t n = rem.first_not_of(" \t");
+            if(n == npos)
+                n = rem.len;
             _c4dbgpf("has %zu spaces/tabs, skip...", n);
             _line_progressed(n);
             return true;
@@ -3712,8 +3714,7 @@ csubstr Parser::_filter_dquot_scalar(substr s)
     for(size_t i = 0; i < r.len; ++i)
     {
         const char curr = r[i];
-        //const char prev = i   > 0     ? r[i-1] : '\0';
-        const char next = i+1 < r.len ? r[i+1] : '\0';
+        char next = i+1 < r.len ? r[i+1] : '\0';
         if(curr == '\\')
         {
             if(next == curr)
@@ -3745,13 +3746,54 @@ csubstr Parser::_filter_dquot_scalar(substr s)
         }
         else if(curr == '\n')
         {
-            if(next != '\n')
+            // from the YAML spec for double-quoted scalars:
+            // https://yaml.org/spec/1.2/spec.html#id2787109
+            //
+            // All leading and trailing white space characters are
+            // excluded from the content. Each continuation line must
+            // therefore contain at least one non-space character.
+            // Empty lines, if any, are consumed as part of the line
+            // folding.
+            //
+            // ... so - erase trailing whitespace (ie whitespace before
+            // the newline):
+            if(i > 0)
+            {
+                size_t numws = 0;
+                char prev = r[i-1]; // safe because we know that i>0
+                while(prev == ' ' || prev == '\t')
+                {
+                    ++numws;
+                    if(i < 1+numws) // ie, i-1-numws < 0
+                        break;
+                    prev = r[i-1-numws];
+                }
+                if(numws)
+                {
+                    r = r.erase(i-numws, numws);
+                    i -= numws;
+                }
+            }
+            if(next == '\n')
+            {
+                r = r.erase(i+1, 1); // keep only one of consecutive newlines
+            }
+            else
             {
                 r[i] = ' '; // a single unix newline: turn it into a space
             }
-            else if(curr == '\n' && next == '\n')
+            // erase leading whitespace (ie whitespace after the newline)
+            if(i < r.len)
             {
-                r = r.erase(i+1, 1); // keep only one of consecutive newlines
+                size_t numws = 0;
+                for(char c : r.sub(i + 1))
+                {
+                    if(c != ' ' && c != '\t')
+                        break;
+                    ++numws;
+                }
+                if(numws)
+                    r = r.erase(i + 1, numws);
             }
         }
     }

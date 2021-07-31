@@ -70,15 +70,12 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"W4TN",                  eIN_OUT_____, "folded scalars: multiline problems"},
     {"XLQ9",                  eIN_________, "emitting folded scalars is not idempotent"},
     // quoted scalars
-    {"4ZYM",                  eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"6SLA",                  eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
-    {"6WPF",                  eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
-    {"7A4E",                  eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
-    {"9TFX",                  eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
+    {"6WPF",                  e___OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
+    {"9TFX",                  e___OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"NP9H",                  eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"PRH3",                  eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"Q8AD",                  eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
-    {"TL85",                  eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
     // implicit keys
     {"DFF7",                  eIN_________, "problem with implicit key"},
     {"FRK4",                  eIN_________, "implicit key is wrongly parsed"},
