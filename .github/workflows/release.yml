@@ -1,0 +1,219 @@
+name: release
+
+defaults:
+  #if: "!contains(github.event.head_commit.message, 'skip ci')"  # SKIP
+  run:
+    # Use a bash shell so we can use the same syntax for environment variable
+    # access regardless of the host operating system
+    shell: bash -e -x {0}
+
+on:
+  - push
+  #- pull_request
+  - workflow_dispatch
+
+env:
+  PROJ_PFX_TARGET: ryml-
+  PROJ_PFX_CMAKE: RYML_
+  CMAKE_FLAGS: -DRYML_TEST_SUITE=OFF
+  NUM_JOBS_BUILD: # 4
+
+
+# useful to iterate when fixing the release:
+# ver=0.2.1 ; ( set -x ; git tag -d v$ver ; git push origin :v$ver ) ; (set -x ; set -e ; tbump --only-patch --non-interactive $ver ; git add -u ; git commit --amend --no-edit ; git tag --annotate --message "v$ver" "v$ver" ; git push -f --tags origin )
+
+jobs:
+
+  release:
+    if: contains(github.ref, 'tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install requirements
+        run: |
+          sudo -E pip install git-archive-all
+      - name: Get version
+        id: get_version
+        # https://github.community/t/how-to-get-just-the-tag-name/16241/11
+        run: |
+          echo ::set-output name=SRC_TAG::${GITHUB_REF#refs/tags/}
+          echo ::set-output name=SRC_VERSION::${GITHUB_REF#refs/tags/v}
+          echo SRC_TAG=${GITHUB_REF#refs/tags/}
+          echo SRC_VERSION=${GITHUB_REF#refs/tags/v}
+      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1 # https://github.com/marketplace/actions/create-a-release
+        env:
+          GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}"
+          SRC_TAG: "${{steps.get_version.outputs.SRC_TAG}}"
+          SRC_VERSION: "${{steps.get_version.outputs.SRC_VERSION}}"
+        with:
+          tag_name: ${{github.ref}}
+          release_name: Release ${{steps.get_version.outputs.SRC_VERSION}}
+          draft: true  # to create a draft (unpublished) release, false to create a published one. Default: false
+          prerelease: ${{contains(github.ref, '-rc')}}
+          body_path: ${{github.workspace}}/changelog/${{steps.get_version.outputs.SRC_VERSION}}.md
+      - name: Create source packs
+        id: src_pack
+        run: |
+          version=${{steps.get_version.outputs.SRC_VERSION}}
+          name=${PROJ_PFX_TARGET}src-$version
+          git-archive-all --prefix $name $name.tgz
+          git-archive-all --prefix $name $name.zip
+          echo ::set-output name=TGZ::$name.tgz
+          echo ::set-output name=ZIP::$name.zip
+      - name: Upload tgz source pack
+        id: upload_src_tgz_to_release
+        uses: actions/upload-release-asset@v1.0.1
+        env: {GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}"}
+        with:
+          upload_url: ${{steps.create_release.outputs.upload_url}}
+          asset_path: ${{steps.src_pack.outputs.TGZ}}
+          asset_name: ${{steps.src_pack.outputs.TGZ}}
+          asset_content_type: application/gzip
+      - name: Upload zip source pack
+        id: upload_src_zip_to_release
+        uses: actions/upload-release-asset@v1.0.1
+        env: {GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}"}
+        with:
+          upload_url: ${{steps.create_release.outputs.upload_url}}
+          asset_path: ${{steps.src_pack.outputs.ZIP}}
+          asset_name: ${{steps.src_pack.outputs.ZIP}}
+          asset_content_type: application/zip
+      - name: Save Release URL for uploading binary artifacts
+        run: |
+          echo "UPLOAD_URL: ${{steps.create_release.outputs.upload_url}}"
+          echo "${{steps.create_release.outputs.upload_url}}" > ./upload_url
+      - name: Upload Release URL
+        uses: actions/upload-artifact@v1
+        with:
+          path: ./upload_url
+          name: upload_url
+
+  #----------------------------------------------------------------------------
+  publish:
+    needs: release
+    name: publish/${{matrix.config.os}}/${{matrix.config.gen}}
+    runs-on: ${{matrix.config.os}}
+    env: {DEV: OFF, BT: Release, OS: "${{matrix.config.os}}", CXX_: "${{matrix.config.cxx}}", GEN: "${{matrix.config.gen}}"}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          #  name of the artifact    | suffix (gen)    | suffix (package)         | cpack gen | mime type                      | os              | cxx
+          - {name: Ubuntu 20.04 deb  , sfxg: unix64.deb, sfxp: ubuntu-20.04.deb   , gen: DEB  , mime: vnd.debian.binary-package, os: ubuntu-20.04             }
+          - {name: Ubuntu 18.04 deb  , sfxg: unix64.deb, sfxp: ubuntu-18.04.deb   , gen: DEB  , mime: vnd.debian.binary-package, os: ubuntu-18.04             }
+          - {name: Windows VS2019 zip, sfxg: win64.zip , sfxp: windows-vs2019.zip , gen: ZIP  , mime: zip                      , os: windows-2019, cxx: vs2019}
+          - {name: MacOSX sh         , sfxg: apple64.sh, sfxp: macosx-xcode.sh    , gen: STGZ , mime: x-sh                     , os: macos-11.0  , cxx: xcode }
+    steps:
+      - name: Download upload URL
+        uses: actions/download-artifact@v1
+        with: {name: upload_url, path: ./}
+      - name: Preprocess
+        id: preprocess
+        # https://github.community/t/how-to-get-just-the-tag-name/16241/11
+        run: |
+          upload_url=`cat ./upload_url`
+          src_version=${GITHUB_REF#refs/tags/v}
+          asset_src=./build/shared64/${PROJ_PFX_TARGET}${src_version}-${{matrix.config.sfxg}}
+          asset_dst=${PROJ_PFX_TARGET}${src_version}-${{matrix.config.sfxp}}
+          echo ::set-output name=src_version::$src_version
+          echo ::set-output name=upload_url::$upload_url
+          echo ::set-output name=asset_src::$asset_src
+          echo ::set-output name=asset_dst::$asset_dst
+      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+      - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
+      - {name: show info, run: source .github/setenv.sh && c4_show_info }
+      - name: shared64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared64
+      - {name: shared64-build, run: source .github/setenv.sh && c4_build_target shared64}
+      - name: shared64-pack
+        run: |
+          source .github/setenv.sh && c4_package shared64 $GEN
+          cp -fav ${{steps.preprocess.outputs.asset_src}} ${{steps.preprocess.outputs.asset_dst}}
+      - name: Upload artifact
+        id: upload_to_release
+        uses: actions/upload-release-asset@v1.0.1
+        env: {GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}"}
+        with:
+          upload_url: ${{steps.preprocess.outputs.upload_url}}
+          asset_path: ${{steps.preprocess.outputs.asset_dst}}
+          asset_name: ${{steps.preprocess.outputs.asset_dst}}
+          asset_content_type: application/${{matrix.config.mime}}
+      - name: Report artifact URL
+        run: |
+          echo "artifact uploaded successfully: ${{steps.upload_to_release.outputs.browser_download_url}}"
+
+  #----------------------------------------------------------------------------
+  publish_python:
+    needs: release
+    name: publish_python/${{matrix.config.pythonv}}/${{matrix.config.os}}
+    runs-on: ${{matrix.config.os}}
+    env: {DEV: OFF,
+          BT: Release,
+          OS: "${{matrix.config.os}}",
+          CXX_: "${{matrix.config.cxx}}",
+          PYTHONV: "${{matrix.config.pythonv}}",
+          API: ON,
+          CMAKE_FLAGS: "-DRYML_DEV=OFF -DRYML_BUILD_API=ON -DRYML_API_TESTS=OFF -DRYML_API_BENCHMARKS=OFF"}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {name: Python 3.9 Unix, pythonv: 3.9, os: ubuntu-20.04             }
+          - {name: Python 3.8 Unix, pythonv: 3.8, os: ubuntu-20.04             }
+          - {name: Python 3.7 Unix, pythonv: 3.7, os: ubuntu-20.04             }
+          - {name: Python 3.9 Win , pythonv: 3.9, os: windows-2019, cxx: vs2019}
+          - {name: Python 3.8 Win , pythonv: 3.8, os: windows-2019, cxx: vs2019}
+          - {name: Python 3.7 Win , pythonv: 3.7, os: windows-2019, cxx: vs2019}
+    steps:
+      - name: Download upload URL
+        uses: actions/download-artifact@v1
+        with: {name: upload_url, path: ./}
+      - name: Preprocess
+        id: preprocess
+        run: |
+          upload_url=`cat ./upload_url`
+          echo ::set-output name=upload_url::$upload_url
+      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+      - name: python ${{matrix.config.pythonv}}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{matrix.config.pythonv}}
+      - name: install requirements
+        run: |
+          echo "expecting python ${{matrix.config.pythonv}}..."
+          python --version
+          source .github/reqs.sh && c4_install_test_requirements $OS
+          pip install -v -r requirements.txt
+      - {name: show info, run: source .github/setenv.sh && c4_show_info }
+      - name: package ${{matrix.config.pythonv}} wheel file
+        id: package
+        run: |
+          python --version
+          pip wheel .
+          ls *.whl
+      - name: rename wheel file
+        id: rename
+        run: |
+          ls *.whl
+          WHLF=`ls -1 *.whl`
+          if [ -z "$WHLF" ] ; then
+             echo "could not find any .whl file"
+          fi
+          DSTF=`echo $WHLF | sed 's:rapidyaml:ryml-python:'`
+          mv -fv $WHLF $DSTF
+          echo ::set-output name=whl_file::$DSTF
+      - name: Upload artifact
+        id: upload_api_to_release
+        uses: actions/upload-release-asset@v1.0.1
+        env: {GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}"}
+        with:
+          upload_url: ${{steps.preprocess.outputs.upload_url}}
+          asset_path: ${{steps.rename.outputs.whl_file}}
+          asset_name: ${{steps.rename.outputs.whl_file}}
+          asset_content_type: application/x-pywheel-zip
+      - name: Report artifact URL
+        run: |
+          echo "artifact file: ${{steps.rename.outputs.whl_file}}"
+          echo "artifact uploaded successfully: ${{steps.upload_api_to_release.outputs.browser_download_url}}"

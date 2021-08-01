@@ -140,9 +140,6 @@ function c4_install_test_requirements_ubuntu_impl()
     wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | sudo apt-key add -
     sudo -E apt-add-repository --yes 'deb https://apt.kitware.com/ubuntu/ bionic main'
     sudo -E add-apt-repository --yes ppa:ubuntu-toolchain-r/test
-    # this is going to be deprecated:
-    # https://askubuntu.com/questions/1243252/how-to-install-arm-none-eabi-gdb-on-ubuntu-20-04-lts-focal-fossa
-    sudo -E add-apt-repository --yes ppa:team-gcc-arm-embedded/ppa
 
     if [ "$APT_PKG" != "" ] ; then
         #sudo -E apt-get clean
@@ -160,6 +157,10 @@ function c4_install_test_requirements_ubuntu_impl()
 
 function _c4_add_arm_compilers()
 {
+    # this is going to be deprecated:
+    # https://askubuntu.com/questions/1243252/how-to-install-arm-none-eabi-gdb-on-ubuntu-20-04-lts-focal-fossa
+    sudo -E add-apt-repository --yes ppa:team-gcc-arm-embedded/ppa
+
     _add_apt gcc-arm-embedded
     _add_apt g++-arm-linux-gnueabihf
     _add_apt g++-multilib-arm-linux-gnueabihf

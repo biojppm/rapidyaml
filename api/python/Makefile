@@ -31,9 +31,10 @@ $(ACTIVATE_SCRIPT): requirements.txt Makefile
 venv:
 	virtualenv --python=python3 --always-copy venv
 	# Packaging tooling.
-	${ACTIVATE} pip install -U pip twine build
+	${ACTIVATE} pip install -U pip
 	# Setup requirements.
 	${ACTIVATE} pip install -v -r requirements.txt
+	${ACTIVATE} pip install -v -e ../..
 	@${ACTIVATE} python -c "from ryml.version import version as v; print('Installed version:', v)"
 
 .PHONY: venv

@@ -25,7 +25,7 @@ if not (TOP_DIR / '.git').exists() and os.path.exists(VERSION_FILE):
     exec(open(VERSION_FILE).read())
     setup_kw['version'] = version
 else:
-    setup_kw['use_scm_version']= {
+    setup_kw['use_scm_version'] = {
         "version_scheme": "post-release",
         "local_scheme": "no-local-version",
         "write_to": VERSION_FILE,
@@ -46,21 +46,22 @@ cmake_args = dict(
     cmake_component='python',
     cmake_configure_options=[
         "-DRYML_BUILD_API:BOOL=ON",
-        # Force cmake to use the Python interpreter we are currently using to
-        # run setup.py
+        # Force cmake to use the Python interpreter we are currently
+        # using to run setup.py
         "-DPython3_EXECUTABLE:FILEPATH="+sys.executable,
     ],
 )
 
 try:
     ext = CMakeExtension(**cmake_args)
+    log.info("Using standard CMakeExtension")
 except TypeError:
     del cmake_args['cmake_component']
     ext = CMakeExtension(**cmake_args)
-
-    # If the CMakeExtension doesn't support `cmake_component` then we have to
-    # do some manual cleanup.
-    _BuildExtension=BuildExtension
+    log.info("Using custom CMakeExtension")
+    # If the CMakeExtension doesn't support `cmake_component` then we
+    # have to do some manual cleanup.
+    _BuildExtension = BuildExtension
     class BuildExtension(_BuildExtension):
         def build_extension(self, ext):
             _BuildExtension.build_extension(self, ext)
