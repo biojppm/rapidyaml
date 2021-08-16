@@ -32,7 +32,14 @@ C4_ALWAYS_INLINE Key<fmt::const_base64_wrapper> key(fmt::const_base64_wrapper w)
 C4_ALWAYS_INLINE Key<fmt::base64_wrapper> key(fmt::base64_wrapper w) { return {w}; }
 
 template<class T> void write(NodeRef *n, T const& v);
-template<class T> bool read(NodeRef const& n, T *v);
+
+template<class T>
+typename std::enable_if< ! std::is_floating_point<T>::value, bool>::type
+read(NodeRef const& n, T *v);
+
+template<class T>
+typename std::enable_if<   std::is_floating_point<T>::value, bool>::type
+read(NodeRef const& n, T *v);
 
 
 //-----------------------------------------------------------------------------
@@ -839,9 +846,17 @@ inline void write(NodeRef *n, T const& v)
 }
 
 template<class T>
-inline bool read(NodeRef const& n, T *v)
+typename std::enable_if< ! std::is_floating_point<T>::value, bool>::type
+inline read(NodeRef const& n, T *v)
 {
     return from_chars(n.val(), v);
+}
+
+template<class T>
+typename std::enable_if< std::is_floating_point<T>::value, bool>::type
+inline read(NodeRef const& n, T *v)
+{
+    return from_chars_float(n.val(), v);
 }
 
 
