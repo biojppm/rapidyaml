@@ -8,6 +8,7 @@
 #endif
 
 #include <c4/charconv.hpp>
+#include <limits>
 
 #if defined(_MSC_VER)
 #   pragma warning(push)
@@ -36,6 +37,46 @@ using tag_bits = uint16_t;
 
 /** the integral type necessary to cover all the bits marking node types */
 using type_bits = uint64_t;
+
+
+template<class T>
+size_t to_chars_float(substr buf, T val)
+{
+    C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wfloat-equal");
+    static_assert(std::is_floating_point<T>::value, "must be floating point");
+    if(C4_UNLIKELY(std::isnan(val)))
+        return to_chars(buf, csubstr(".nan"));
+    else if(C4_UNLIKELY(val == std::numeric_limits<T>::infinity()))
+        return to_chars(buf, csubstr(".inf"));
+    else if(C4_UNLIKELY(val == -std::numeric_limits<T>::infinity()))
+        return to_chars(buf, csubstr("-.inf"));
+    return to_chars(buf, val);
+    C4_SUPPRESS_WARNING_GCC_CLANG_POP
+}
+
+
+template<class T>
+bool from_chars_float(csubstr buf, T *C4_RESTRICT val)
+{
+    static_assert(std::is_floating_point<T>::value, "must be floating point");
+    if(C4_UNLIKELY(buf == ".nan"))
+    {
+        *val = std::numeric_limits<T>::quiet_NaN();
+        return true;
+    }
+    else if(C4_UNLIKELY(buf == ".inf"))
+    {
+        *val = std::numeric_limits<T>::infinity();
+        return true;
+    }
+    else if(C4_UNLIKELY(buf == "-.inf"))
+    {
+        *val = -std::numeric_limits<T>::infinity();
+        return true;
+    }
+    return from_chars(buf, val);
+
+}
 
 
 //-----------------------------------------------------------------------------
@@ -880,13 +921,14 @@ public:
         return m_arena.is_super(s);
     }
 
-    /** serialize the given variable to the tree's arena, growing it as
-     * needed to accomodate the serialization to fit.
+    /** serialize the given non-floating-point variable to the tree's arena, growing it as
+     * needed to accomodate the serialization.
      * @note Growing the arena may cause relocation of the entire
      * existing arena, and thus change the contents of individual nodes.
      * @see alloc_arena() */
     template<class T>
-    csubstr to_arena(T const& a)
+    typename std::enable_if<!std::is_floating_point<T>::value, csubstr>::type
+    to_arena(T const& C4_RESTRICT a)
     {
         substr rem(m_arena.sub(m_arena_pos));
         size_t num = to_chars(rem, a);
@@ -894,6 +936,27 @@ public:
         {
             rem = _grow_arena(num);
             num = to_chars(rem, a);
+            RYML_ASSERT(num <= rem.len);
+        }
+        rem = _request_span(num);
+        return rem;
+    }
+
+    /** serialize the given floating-point variable to the tree's arena, growing it as
+     * needed to accomodate the serialization.
+     * @note Growing the arena may cause relocation of the entire
+     * existing arena, and thus change the contents of individual nodes.
+     * @see alloc_arena() */
+    template<class T>
+    typename std::enable_if<std::is_floating_point<T>::value, csubstr>::type
+    to_arena(T const& C4_RESTRICT a)
+    {
+        substr rem(m_arena.sub(m_arena_pos));
+        size_t num = to_chars_float(rem, a);
+        if(num > rem.len)
+        {
+            rem = _grow_arena(num);
+            num = to_chars_float(rem, a);
             RYML_ASSERT(num <= rem.len);
         }
         rem = _request_span(num);

@@ -514,6 +514,128 @@ TEST(serialize, bool)
     EXPECT_EQ(w, false);
 }
 
+TEST(serialize, nan)
+{
+    Tree t = parse(R"(
+good:
+  - .nan
+  -   .nan
+  -
+   .nan
+set:
+  - nothing
+  - nothing
+})");
+    t["set"][0] << std::numeric_limits<float>::quiet_NaN();
+    t["set"][1] << std::numeric_limits<double>::quiet_NaN();
+    EXPECT_EQ(t["set"][0].val(), ".nan");
+    EXPECT_EQ(t["set"][1].val(), ".nan");
+    EXPECT_EQ(t["good"][0].val(), ".nan");
+    EXPECT_EQ(t["good"][1].val(), ".nan");
+    EXPECT_EQ(t["good"][2].val(), ".nan");
+    float f;
+    double d;
+    f = 0.f;
+    d = 0.;
+    t["good"][0] >> f;
+    t["good"][0] >> d;
+    EXPECT_TRUE(std::isnan(f));
+    EXPECT_TRUE(std::isnan(d));
+    f = 0.f;
+    d = 0.;
+    t["good"][1] >> f;
+    t["good"][1] >> d;
+    EXPECT_TRUE(std::isnan(f));
+    EXPECT_TRUE(std::isnan(d));
+    f = 0.f;
+    d = 0.;
+    t["good"][2] >> f;
+    t["good"][2] >> d;
+    EXPECT_TRUE(std::isnan(f));
+    EXPECT_TRUE(std::isnan(d));
+}
+
+TEST(serialize, inf)
+{
+    C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wfloat-equal");
+    Tree t = parse(R"(
+good:
+  - .inf
+  -   .inf
+  -
+   .inf
+set:
+  - nothing
+  - nothing
+})");
+    float finf = std::numeric_limits<float>::infinity();
+    double dinf = std::numeric_limits<double>::infinity();
+    t["set"][0] << finf;
+    t["set"][1] << dinf;
+    EXPECT_EQ(t["set"][0].val(), ".inf");
+    EXPECT_EQ(t["set"][1].val(), ".inf");
+    EXPECT_EQ(t["good"][0].val(), ".inf");
+    EXPECT_EQ(t["good"][1].val(), ".inf");
+    EXPECT_EQ(t["good"][2].val(), ".inf");
+    float f;
+    double d;
+    f = 0.f;
+    d = 0.;
+    t["good"][0] >> f;
+    t["good"][0] >> d;
+    EXPECT_TRUE(f == finf);
+    EXPECT_TRUE(d == dinf);
+    f = 0.f;
+    d = 0.;
+    t["good"][1] >> f;
+    t["good"][1] >> d;
+    EXPECT_TRUE(f == finf);
+    EXPECT_TRUE(d == dinf);
+    f = 0.f;
+    d = 0.;
+    t["good"][2] >> f;
+    t["good"][2] >> d;
+    EXPECT_TRUE(f == finf);
+    EXPECT_TRUE(d == dinf);
+
+    t = parse(R"(
+good:
+  - -.inf
+  -   -.inf
+  -
+   -.inf
+set:
+  - nothing
+  - nothing
+})");
+    t["set"][0] << -finf;
+    t["set"][1] << -dinf;
+    EXPECT_EQ(t["set"][0].val(), "-.inf");
+    EXPECT_EQ(t["set"][1].val(), "-.inf");
+    EXPECT_EQ(t["good"][0].val(), "-.inf");
+    EXPECT_EQ(t["good"][1].val(), "-.inf");
+    EXPECT_EQ(t["good"][2].val(), "-.inf");
+    f = 0.f;
+    d = 0.;
+    t["good"][0] >> f;
+    t["good"][0] >> d;
+    EXPECT_TRUE(f == -finf);
+    EXPECT_TRUE(d == -dinf);
+    f = 0.f;
+    d = 0.;
+    t["good"][1] >> f;
+    t["good"][1] >> d;
+    EXPECT_TRUE(f == -finf);
+    EXPECT_TRUE(d == -dinf);
+    f = 0.f;
+    d = 0.;
+    t["good"][2] >> f;
+    t["good"][2] >> d;
+    EXPECT_TRUE(f == -finf);
+    EXPECT_TRUE(d == -dinf);
+    C4_SUPPRESS_WARNING_GCC_CLANG_POP
+}
+
 TEST(serialize, std_string)
 {
     auto t = parse("{foo: bar}");

@@ -1832,22 +1832,48 @@ void sample_fundamental_types()
     CHECK(tree.to_arena(unsigned(0)) == "0");       CHECK(tree.arena() == "abcde0");
     CHECK(tree.to_arena(int(1)) == "1");            CHECK(tree.arena() == "abcde01");
     CHECK(tree.to_arena(uint8_t(0)) == "0");        CHECK(tree.arena() == "abcde010");
-    CHECK(tree.to_arena(uint16_t(1)) == "1");       CHECK(tree.arena() == "abcde0101");
-    CHECK(tree.to_arena(uint32_t(2)) == "2");       CHECK(tree.arena() == "abcde01012");
-    CHECK(tree.to_arena(uint64_t(3)) == "3");       CHECK(tree.arena() == "abcde010123");
-    CHECK(tree.to_arena(int8_t(4)) == "4");         CHECK(tree.arena() == "abcde0101234");
-    CHECK(tree.to_arena(int8_t(-4)) == "-4");       CHECK(tree.arena() == "abcde0101234-4");
-    CHECK(tree.to_arena(int16_t(5)) == "5");        CHECK(tree.arena() == "abcde0101234-45");
+    CHECK(tree.to_arena(uint16_t(1)) ==  "1");      CHECK(tree.arena() == "abcde0101");
+    CHECK(tree.to_arena(uint32_t(2)) ==  "2");      CHECK(tree.arena() == "abcde01012");
+    CHECK(tree.to_arena(uint64_t(3)) ==  "3");      CHECK(tree.arena() == "abcde010123");
+    CHECK(tree.to_arena(int8_t( 4))  ==  "4");      CHECK(tree.arena() == "abcde0101234");
+    CHECK(tree.to_arena(int8_t(-4))  == "-4");      CHECK(tree.arena() == "abcde0101234-4");
+    CHECK(tree.to_arena(int16_t( 5)) ==  "5");      CHECK(tree.arena() == "abcde0101234-45");
     CHECK(tree.to_arena(int16_t(-5)) == "-5");      CHECK(tree.arena() == "abcde0101234-45-5");
-    CHECK(tree.to_arena(int32_t(6)) == "6");        CHECK(tree.arena() == "abcde0101234-45-56");
+    CHECK(tree.to_arena(int32_t( 6)) ==  "6");      CHECK(tree.arena() == "abcde0101234-45-56");
     CHECK(tree.to_arena(int32_t(-6)) == "-6");      CHECK(tree.arena() == "abcde0101234-45-56-6");
-    CHECK(tree.to_arena(int8_t(7)) == "7");         CHECK(tree.arena() == "abcde0101234-45-56-67");
-    CHECK(tree.to_arena(int8_t(-7)) == "-7");       CHECK(tree.arena() == "abcde0101234-45-56-67-7");
+    CHECK(tree.to_arena(int64_t( 7)) ==  "7");      CHECK(tree.arena() == "abcde0101234-45-56-67");
+    CHECK(tree.to_arena(int64_t(-7)) == "-7");      CHECK(tree.arena() == "abcde0101234-45-56-67-7");
     CHECK(tree.to_arena((void*)1) == "0x1");        CHECK(tree.arena() == "abcde0101234-45-56-67-70x1");
     CHECK(tree.to_arena(float(0.124)) == "0.124");  CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.124");
-    CHECK(tree.to_arena(double(0.248)) == "0.248"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.248");
-    CHECK(tree.to_arena(bool(true)) == "1");        CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.2481");
-    CHECK(tree.to_arena(bool(false)) == "0");       CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.24810");
+    CHECK(tree.to_arena(double(0.234)) == "0.234"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.234");
+    CHECK(tree.to_arena(bool(true)) == "1");        CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.2341");
+    CHECK(tree.to_arena(bool(false)) == "0");       CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410");
+
+    // write special float values
+    const float  fnan = std::numeric_limits<float >::quiet_NaN();
+    const double dnan = std::numeric_limits<double>::quiet_NaN();
+    const float  finf = std::numeric_limits<float >::infinity();
+    const double dinf = std::numeric_limits<double>::infinity();
+    CHECK(tree.to_arena( finf) ==  ".inf"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410.inf");
+    CHECK(tree.to_arena( dinf) ==  ".inf"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410.inf.inf");
+    CHECK(tree.to_arena(-finf) == "-.inf"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410.inf.inf-.inf");
+    CHECK(tree.to_arena(-dinf) == "-.inf"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410.inf.inf-.inf-.inf");
+    CHECK(tree.to_arena( fnan) ==  ".nan"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410.inf.inf-.inf-.inf.nan");
+    CHECK(tree.to_arena( dnan) ==  ".nan"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410.inf.inf-.inf-.inf.nan.nan");
+    // read special float values
+    tree = ryml::parse(R"({ninf: -.inf, pinf: .inf, nan: .nan})");
+    C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wfloat-equal");
+    float f = 0.f;
+    double d = 0.;
+    CHECK(f == 0.f);
+    CHECK(d == 0.);
+    tree["ninf"] >> f; CHECK(f == -finf);
+    tree["ninf"] >> d; CHECK(d == -dinf);
+    tree["pinf"] >> f; CHECK(f ==  finf);
+    tree["pinf"] >> d; CHECK(d ==  dinf);
+    tree["nan" ] >> f; CHECK(std::isnan(f));
+    tree["nan" ] >> d; CHECK(std::isnan(d));
+    C4_SUPPRESS_WARNING_GCC_CLANG_POP
 }
 
 

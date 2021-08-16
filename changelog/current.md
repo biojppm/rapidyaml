@@ -22,6 +22,7 @@ failures](test/test_suite.cpp) in the test suite file.
 
 ### Fixes
 
+- Fix [#147](https://github.com/biojppm/rapidyaml/issues/147): serialize/deserialize special float values `.nan`, `.inf`, `-.inf` ([PR #149](https://github.com/biojppm/rapidyaml/pull/149))
 - Fix resolving of nodes with keyref+valref ([PR #144](https://github.com/biojppm/rapidyaml/pull/144)): `{&a a: &b b, *b: *a}`
 - Fix parsing of tag dense maps and seqs ([PR #144](https://github.com/biojppm/rapidyaml/pull/144)):
 ```yaml
