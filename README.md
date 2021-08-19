@@ -1,10 +1,11 @@
 # Rapid YAML
 [![MIT Licensed](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/biojppm/rapidyaml/blob/master/LICENSE.txt)
 [![release](https://img.shields.io/github/v/release/biojppm/rapidyaml?color=g&include_prereleases&label=release%20&sort=semver)](https://github.com/biojppm/rapidyaml/releases)
+[![PyPI](https://img.shields.io/pypi/v/rapidyaml?color=g)](https://pypi.org/project/rapidyaml/)
 [![Docs](https://img.shields.io/badge/docs-docsforge-blue)](https://rapidyaml.docsforge.com/)
 [![Gitter](https://badges.gitter.im/rapidyaml/community.svg)](https://gitter.im/rapidyaml/community)
 
-[![ci](https://github.com/biojppm/rapidyaml/workflows/ci/badge.svg?branch=master)](https://github.com/biojppm/rapidyaml/actions=workflow%3Aci)
+[![test](https://github.com/biojppm/rapidyaml/workflows/test/badge.svg?branch=master)](https://github.com/biojppm/rapidyaml/actions=workflow%3Atest)
 [![Coveralls](https://coveralls.io/repos/github/biojppm/rapidyaml/badge.svg?branch=master)](https://coveralls.io/github/biojppm/rapidyaml)
 [![Codecov](https://codecov.io/gh/biojppm/rapidyaml/branch/master/graph/badge.svg?branch=master)](https://codecov.io/gh/biojppm/rapidyaml)
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/biojppm/rapidyaml.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/biojppm/rapidyaml/alerts/)
@@ -53,8 +54,9 @@ and include analysing ryml with:
     * thread
   * [LGTM.com](https://lgtm.com/projects/g/biojppm/rapidyaml)
 
-ryml is also partially available in Python, with more languages to follow (see
-below).
+ryml is also [available in
+Python](https://pypi.org/project/rapidyaml/), with more languages to
+follow (see below).
 
 See also [the changelog](./changelog) and [the roadmap](./ROADMAP.md).
 

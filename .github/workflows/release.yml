@@ -24,6 +24,7 @@ env:
 
 jobs:
 
+  # action to create a github release
   release:
     if: contains(github.ref, 'tags/v')
     runs-on: ubuntu-latest
@@ -91,9 +92,10 @@ jobs:
           name: upload_url
 
   #----------------------------------------------------------------------------
-  publish:
+  # action to create c++ binaries and upload to the github release
+  publish_cpp:
     needs: release
-    name: publish/${{matrix.config.os}}/${{matrix.config.gen}}
+    name: cpp/${{matrix.config.os}}/${{matrix.config.gen}}
     runs-on: ${{matrix.config.os}}
     env: {DEV: OFF, BT: Release, OS: "${{matrix.config.os}}", CXX_: "${{matrix.config.cxx}}", GEN: "${{matrix.config.gen}}"}
     strategy:
@@ -145,9 +147,10 @@ jobs:
           echo "artifact uploaded successfully: ${{steps.upload_to_release.outputs.browser_download_url}}"
 
   #----------------------------------------------------------------------------
+  # action to create python binaries and uploading to the github release
   publish_python:
     needs: release
-    name: publish_python/${{matrix.config.pythonv}}/${{matrix.config.os}}
+    name: python/${{matrix.config.pythonv}}/${{matrix.config.os}}
     runs-on: ${{matrix.config.os}}
     env: {DEV: OFF,
           BT: Release,
@@ -163,9 +166,9 @@ jobs:
           - {name: Python 3.9 Unix, pythonv: 3.9, os: ubuntu-20.04             }
           - {name: Python 3.8 Unix, pythonv: 3.8, os: ubuntu-20.04             }
           - {name: Python 3.7 Unix, pythonv: 3.7, os: ubuntu-20.04             }
-          - {name: Python 3.9 Win , pythonv: 3.9, os: windows-2019, cxx: vs2019}
-          - {name: Python 3.8 Win , pythonv: 3.8, os: windows-2019, cxx: vs2019}
-          - {name: Python 3.7 Win , pythonv: 3.7, os: windows-2019, cxx: vs2019}
+          #- {name: Python 3.9 Win , pythonv: 3.9, os: windows-2019, cxx: vs2019}
+          #- {name: Python 3.8 Win , pythonv: 3.8, os: windows-2019, cxx: vs2019}
+          #- {name: Python 3.7 Win , pythonv: 3.7, os: windows-2019, cxx: vs2019}
     steps:
       - name: Download upload URL
         uses: actions/download-artifact@v1
@@ -202,18 +205,93 @@ jobs:
              echo "could not find any .whl file"
           fi
           DSTF=`echo $WHLF | sed 's:rapidyaml:ryml-python:'`
-          mv -fv $WHLF $DSTF
+          mkdir -p dist
+          mv -fv $WHLF dist/$DSTF
           echo ::set-output name=whl_file::$DSTF
-      - name: Upload artifact
+      - name: Upload artifact to Github
         id: upload_api_to_release
         uses: actions/upload-release-asset@v1.0.1
         env: {GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}"}
         with:
           upload_url: ${{steps.preprocess.outputs.upload_url}}
-          asset_path: ${{steps.rename.outputs.whl_file}}
+          asset_path: dist/${{steps.rename.outputs.whl_file}}
           asset_name: ${{steps.rename.outputs.whl_file}}
           asset_content_type: application/x-pywheel-zip
-      - name: Report artifact URL
+      - name: Report artifact Github URL
         run: |
           echo "artifact file: ${{steps.rename.outputs.whl_file}}"
-          echo "artifact uploaded successfully: ${{steps.upload_api_to_release.outputs.browser_download_url}}"
+          echo "artifact uploaded successfully to github: ${{steps.upload_api_to_release.outputs.browser_download_url}}"
+      - name: Save artifact for publishing to pypi
+        uses: actions/upload-artifact@v1
+        with: {name: dist, path: ./dist/}
+
+  # action to upload python binaries and upload to the PyPI release
+  publish_python_pypi:
+    needs: publish_python
+    name: python/pypi
+    runs-on: ubuntu-20.04
+    env: {GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}", PYPI_TOKEN: "${{secrets.PYPI_TOKEN}}", PYPI_TOKEN_TEST: "${{secrets.PYPI_TOKEN_TEST}}"}
+    steps:
+      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+      - name: Download github release URL
+        uses: actions/download-artifact@v1
+        with: {name: upload_url, path: ./}
+      - name: package python src package
+        id: package
+        run: |
+          python --version
+          pip install -v -r requirements.txt
+          python setup.py sdist --formats=gztar,zip
+          sdist_tgz_orig=`find dist -type f -name 'rapidyaml-*.tar.gz'`
+          sdist_zip_orig=`find dist -type f -name 'rapidyaml-*.zip'`
+          sdist_zip=`echo $sdist_zip_orig | sed 's:rapidyaml-:ryml-python-:'`
+          sdist_tgz=`echo $sdist_tgz_orig | sed 's:rapidyaml-:ryml-python-:'`
+          sdist_zip_base=`basename $sdist_zip`
+          sdist_tgz_base=`basename $sdist_tgz`
+          mv -fv $sdist_zip_orig $sdist_zip
+          mv -fv $sdist_tgz_orig $sdist_tgz
+          echo ::set-output name=sdist_zip::$sdist_zip
+          echo ::set-output name=sdist_tgz::$sdist_tgz
+          echo ::set-output name=sdist_zip_base::$sdist_zip_base
+          echo ::set-output name=sdist_tgz_base::$sdist_tgz_base
+      - name: Resume python artifacts
+        uses: actions/download-artifact@v1
+        with: {name: dist, path: ./dist/}
+      - name: get github release url
+        id: preprocess
+        run: |
+          upload_url=`cat ./upload_url`
+          echo ::set-output name=upload_url::$upload_url
+      - name: upload python src zip package to github release
+        uses: actions/upload-release-asset@v1.0.1
+        with:
+          upload_url: ${{steps.preprocess.outputs.upload_url}}
+          asset_path: ${{steps.package.outputs.sdist_zip}}
+          asset_name: ${{steps.package.outputs.sdist_zip_base}}
+          asset_content_type: application/zip
+      - name: upload python src tgz package to github release
+        uses: actions/upload-release-asset@v1.0.1
+        with:
+          upload_url: ${{steps.preprocess.outputs.upload_url}}
+          asset_path: ${{steps.package.outputs.sdist_tgz}}
+          asset_name: ${{steps.package.outputs.sdist_tgz_base}}
+          asset_content_type: application/gzip
+      - name: normalize package names for PyPI
+        run: |
+          for fn in dist/ryml* ; do
+            fnn=`echo $fn | sed 's:ryml-:rapidyaml-:g'`
+            mv -fv $fn $fnn
+          done
+      - name: Publish python packages to test PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{secrets.PYPI_TOKEN_TEST}}
+          repository_url: https://test.pypi.org/legacy/
+          verbose: true
+      #- name: Publish python packages to production PyPI
+      #  uses: pypa/gh-action-pypi-publish@release/v1
+      #  with:
+      #    user: __token__
+      #    password: "$PYPI_TOKEN"
+      #    verbose: true
