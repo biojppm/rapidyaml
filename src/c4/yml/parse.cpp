@@ -2036,8 +2036,10 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
                 s = s.trimr(' ');
                 if(has_any(EXPL))
                 {
-                    _c4dbgp("RMAP|RVAL|EXPL");
+                    _c4dbgpf("RMAP|RVAL|EXPL: '%.*s'", _c4prsp(s));
                     s = s.left_of(s.first_of(",}"));
+                    if(s.ends_with(':'))
+                        s = s.offs(0, 1);
                 }
                 else if(s.begins_with("---"))
                 {

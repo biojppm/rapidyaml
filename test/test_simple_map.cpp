@@ -27,6 +27,7 @@ namespace yml {
 "simple map, null values",                                      \
 "simple map expl, null values 1",                               \
 "simple map expl, null values 2",                               \
+"simple map expl, null values 3, 4ABK",                         \
 "simple map expl, scalars with special chars, comma",           \
 "simple map, spaces before semicolon, issue54",                 \
 "simple map, spaces before semicolon, issue65, v0",             \
@@ -204,6 +205,20 @@ L{
    N(L{N(KEYVAL, "a", /*"~"*/{}), N("b", "1"), N("c", "2")}),
  }
 ),
+
+C("simple map expl, null values 3, 4ABK",
+R"(
+- {foo: , bar: , baz: }
+- {foo:, bar:, baz:}
+- {foo:foo: , bar:bar: , baz:baz: }
+- {foo:foo:, bar:bar:, baz:baz:}
+)",
+L{
+  N(L{N(KEYVAL, "foo", {}), N(KEYVAL, "bar", {}), N(KEYVAL, "baz", {})}),
+  N(L{N(KEYVAL, "foo", {}), N(KEYVAL, "bar", {}), N(KEYVAL, "baz", {})}),
+  N(L{N(KEYVAL, "foo:foo", {}), N(KEYVAL, "bar:bar", {}), N(KEYVAL, "baz:baz", {})}),
+  N(L{N(KEYVAL, "foo:foo", {}), N(KEYVAL, "bar:bar", {}), N(KEYVAL, "baz:baz", {})}),
+}),
 
 C("simple map, scalars with special chars, comma",
 R"(

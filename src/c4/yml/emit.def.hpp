@@ -373,7 +373,7 @@ void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
         ((!s.is_number()) // is not a number
         &&
         (
-            (s != s.trim(" \t\n\r")) // has leading or trailing whitespace
+            (s.len != s.trim(" \t\n\r").len) // has leading or trailing whitespace
             ||
             s.first_of("#:-?,\n{}[]'\"") != npos // has special chars
             ||

@@ -82,7 +82,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"V9D5",                  eIN_________, "null key is wrongly parsed"},
     {"X8DW",                  eIN_________, "null key is wrongly parsed"},
     {"ZWK4",                  eIN_________, "null key is wrongly parsed"},
-    {"4ABK",                  eIN_________, "key is wrongly serialized: 'omitted value:'"},
     // other
     {"9MMW", IN______________             , "re the json/yaml incompatibility where a space is required after :"},
     {"A2M4",                  eIN_________, "fails to parse the value sequence, parses as scalar"},

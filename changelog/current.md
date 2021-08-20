@@ -76,7 +76,7 @@ into a DOCVAL, not SEQ->VAL ([5ba0d56](https://github.com/biojppm/rapidyaml/pull
   "
   # is now correctly parsed as " foo\nbar\nbaz "
 ```
-- Fix parsing of tabs within YAML tokens:
+- Fix parsing of tabs within YAML tokens ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
   ```yaml
   ---<TAB>scalar   # test case K54U
   ---<TAB>{}       # test case Q5MG
@@ -85,6 +85,12 @@ into a DOCVAL, not SEQ->VAL ([5ba0d56](https://github.com/biojppm/rapidyaml/pull
   seq:<TAB>
    - a<TAB>
   c: d<TAB>#X
+  ```
+- Fix parsing of flow-style maps with ommitted values without any space ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
+  ```yaml
+  # test case 4ABK
+  - {foo: , bar: , baz: }  # this was parsed correctly as {foo: ~, bar: ~, baz: ~}
+  - {foo:, bar:, baz:}     # ... but this was parsed as {'foo:': , 'bar:': ~, 'baz:': ~}
   ```
 
 #### Scalars
