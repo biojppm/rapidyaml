@@ -79,8 +79,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     // implicit keys
     {"DFF7",                  eIN_________, "problem with implicit key"},
     {"FRK4",                  eIN_________, "implicit key is wrongly parsed"},
-    {"V9D5",                  eIN_________, "null key is wrongly parsed"},
-    {"X8DW",                  eIN_________, "null key is wrongly parsed"},
     {"ZWK4",                  eIN_________, "null key is wrongly parsed"},
     // other
     {"9MMW", IN______________             , "re the json/yaml incompatibility where a space is required after :"},
@@ -150,18 +148,19 @@ constexpr const AllowedFailure allowed_failures[] = {
     // are deliberately not implemented by ryml.
 
     // container keys are not supportted
-    {"4FJ6", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"6BFJ", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"6PBE", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"KK5P", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"KZN9", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"LX3P", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"M5DY", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"Q9WF", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"RZP5", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"SBG9", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"X38W", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
-    {"XW4D", CPART_ALL, "only string keys allowed (keys cannot be maps or seqs)"},
+    {"4FJ6", CPART_ALL, "only scalar keys allowed (keys cannot be maps or seqs)"},
+    {"6BFJ", CPART_ALL, "only scalar keys allowed (keys cannot be maps or seqs)"},
+    {"6PBE", CPART_ALL, "only scalar keys allowed (keys cannot be maps or seqs)"},
+    {"KK5P", CPART_ALL, "only scalar keys allowed (keys cannot be maps or seqs)"},
+    {"KZN9", CPART_ALL, "only scalar keys allowed (keys cannot be maps or seqs)"},
+    {"LX3P", CPART_ALL, "only scalar keys allowed (keys cannot be maps or seqs)"},
+    {"M5DY", CPART_ALL, "only scalar keys allowed (keys cannot be maps or seqs)"},
+    {"Q9WF", CPART_ALL, "only scalar keys allowed (keys cannot be maps or seqs)"},
+    {"RZP5", CPART_ALL, "only scalar keys allowed (keys cannot be maps or seqs)"},
+    {"SBG9", CPART_ALL, "only scalar keys allowed (keys cannot be maps or seqs)"},
+    {"V9D5", CPART_ALL, "only scalar keys allowed (keys cannot be maps or seqs)"},
+    {"X38W", CPART_ALL, "only scalar keys allowed (keys cannot be maps or seqs)"},
+    {"XW4D", CPART_ALL, "only scalar keys allowed (keys cannot be maps or seqs)"},
     // anchors with : are not supported
     {"2SXE", CPART_IN_YAML|CPART_OUT_YAML, "weird characters in anchors, anchors must not end with :"},
     {"W5VH", CPART_IN_YAML, "weird characters in anchors"},

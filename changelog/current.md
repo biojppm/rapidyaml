@@ -102,7 +102,8 @@ into a DOCVAL, not SEQ->VAL ([5ba0d56](https://github.com/biojppm/rapidyaml/pull
   ```
 - Fix filtering of indented regions in folded scalars ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
   ```yaml
-  - >   # test case 7T8X
+  # test case 7T8X
+  - >
     
     folded
     line
@@ -118,6 +119,14 @@ into a DOCVAL, not SEQ->VAL ([5ba0d56](https://github.com/biojppm/rapidyaml/pull
     line
   ```
   is now correctly parsed as `\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n`.
+- Fix parsing of comments within implicit keys ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
+  ```yaml
+  # test case X8DW
+  ? key
+  # comment 
+  : value
+  # now correctly parsed as {key: value}
+  ```
 
 #### Document structure
 - Empty docs are now parsed as a docval with a null node:

@@ -2380,7 +2380,8 @@ csubstr Parser::_scan_to_next_nonempty_line(size_t indentation)
         _c4dbgpf("rscalar: ... next peeked line='%.*s'", _c4prsp(next_peeked.trimr("\r\n")));
         if(next_peeked.triml(' ').begins_with('#'))
         {
-            ; // nothing to do
+            if(has_all(CPLX))
+                return {};
         }
         else if(next_peeked.begins_with(' ', indentation))
         {

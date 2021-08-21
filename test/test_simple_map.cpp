@@ -14,6 +14,7 @@ namespace yml {
 "simple map, values on next line",                              \
 "simple map, with comments",                                    \
 "simple map, with comments interspersed",                       \
+"simple map, with comments interspersed implicit key X8DW",     \
 "simple map, with indented comments interspersed, before",      \
 "simple map, with indented comments interspersed, after",       \
 "simple map, scalars with special chars, comma",                \
@@ -139,6 +140,15 @@ baz: 2
 bat: 3
 )",
     L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+),
+
+C("simple map, with comments interspersed implicit key X8DW",
+R"(
+? key
+# comment
+: value
+)",
+    L{N("key", "value")}
 ),
 
 C("simple map, with indented comments interspersed, before",
