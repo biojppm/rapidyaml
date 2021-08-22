@@ -67,17 +67,14 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"NP9H",                  eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"PRH3",                  eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"Q8AD",                  eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
-    // implicit keys
-    {"DFF7",                  eIN_________, "problem with implicit key"},
+    // complex keys
+    {"DFF7",                  eIN_________, "problem with missing complex key"},
     {"FRK4",                  eIN_________, "implicit key is wrongly parsed"},
     // other
     {"9MMW", IN______________             , "re the json/yaml incompatibility where a space is required after :"},
     {"A2M4",                  eIN_________, "fails to parse the value sequence, parses as scalar"},
     {"G4RS",                  eIN_OUT_____, "need to unescape the utf8 characters"},
     {"H3Z8",                  e___OUT_____, "need to unescape the utf8 characters"},
-    // tabs
-    {"6BCT", IN______________             , "tabs after - or :"},
-    {"J3BT",                  eIN_OUT_____, "tabs after - or :"},
 
 
     //-------------------------------------------------------------------------
@@ -151,6 +148,9 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"V9D5", CPART_ALL, "only scalar keys allowed (keys cannot be maps or seqs)"},
     {"X38W", CPART_ALL, "only scalar keys allowed (keys cannot be maps or seqs)"},
     {"XW4D", CPART_ALL, "only scalar keys allowed (keys cannot be maps or seqs)"},
+    // tabs after - or : are not supported
+    {"6BCT", IN______________             , "tabs after - or :"},
+    {"J3BT",                  eIN_OUT_____, "tabs after - or :"},
     // anchors with : are not supported
     {"2SXE", CPART_IN_YAML|CPART_OUT_YAML, "weird characters in anchors, anchors must not end with :"},
     {"W5VH", CPART_IN_YAML, "weird characters in anchors"},

@@ -788,44 +788,51 @@ See also [the roadmap](./ROADMAP.md) for a list of future work.
 
 ### Test suite status
 
-Ensure ryml's compliance with the >300 cases in the [YAML test
-suite](https://github.com/yaml/yaml-test-suite) is ongoing work. Each of
-these tests have several subparts:
- * in-yaml: mildly, plainly or extremely difficult-to-parse yaml
- * in-json: equivalent json (where possible/meaningful)
- * out-yaml: equivalent standard yaml
- * events: equivalent libyaml events, allowing to prove
+ryml is tested in the CI with the [YAML test
+suite](https://github.com/yaml/yaml-test-suite). This is a reference
+set of cases covering the full YAML spec. Each of
+these cases have several subparts:
+ * `in-yaml`: mildly, plainly or extremely difficult-to-parse YAML
+ * `in-json`: equivalent JSON (where possible/meaningful)
+ * `out-yaml`: equivalent standard YAML
+ * `emit-yaml`: equivalent standard YAML
+ * `events`: equivalent libyaml events, allowing to prove
    correctness of the parsed results
 
-When testing, ryml tries to parse each of the 3 yaml/json parts. If the
-parsing suceeds, then the ryml test will emit the parsed tree, then parse the
-emitted result and verify that emission is idempotent, ie that the emitted
-result is the same as its input without any loss of information. To ensure
-correctness, this happens over four levels of parse/emission pairs, resulting
-in over 200 checks per test case.
+When testing, ryml parses each of the 4 yaml/json parts, then emit the
+parsed tree, then parse the emitted result and verify that emission is
+idempotent, ie that the emitted result is the same as its input
+without any loss of information. To ensure consistency, this happens
+over four levels of parse/emission pairs. And to ensure correctness,
+the parsed result is compared against the `events` spec, which
+constitute the reference. This is then combined with several
+variations: unix vs windows line endings, emitting to string, file or
+streams, which results in ~250 tests per case part. With 3 parts per
+case and ~300 cases, this makes over 200'000 individual tests.
 
-Please note that in [their own words](http://matrix.yaml.io/), the
+Also, note that in [their own words](http://matrix.yaml.io/), the
 tests from the YAML test suite *contain a lot of edge cases that don't
-play such an important role in real world examples*. Despite the
-extreme focus of the test suite, currently ryml only fails to parse a
-very small amount (<2%) of the >2000 cases from the test suite. And
-unless noted in the [list of current known
-failures](test/test_suite.cpp) which is the subject of ongoing work,
-out of all the cases which are successfully parsed, all the checks per
-case are 100% successful for consistency over parse/emit pairs. This
-is enforced also in the CI.
+play such an important role in real world examples*. And yet, despite
+the extreme focus of the test suite, currently ryml only fails to
+parse 15 out of ~900-1200 subparts from the test suite, and when
+compared against the reference results from `events` part, only 30
+subparts fail.
 
-The main problems under work are these:
-  * multiline scalars are sometimes not idempotent, or incorrectly
-    parsed with whitespace inconsistencies
-  * implicit null keys are sometimes not idempotent
+On a high-level, these are the main issues found:
+  * ryml fails to parse plain scalars (ie unquoted and unfolded
+    scalars) when they have the same indentation in the following lines
+  * folded scalars are sometimes not idempotent over emit/parse
+    pairs, or incorrectly parsed with whitespace inconsistencies
+  * quoted scalars: in some cases, they end up with differences to the
+    reference when newlines or tabs are present
+  * complex keys
+    * problem parsing when the scalar is missing after `? `
+    * not supported in flow style
+  * some expected parse errors fail to materialize
 
-Please refer to the [list of current known
-failures](test/test_suite/test_suite_parts.cpp) to see the full
-list. Although there are several other problems listed there, they
-have low expression in terms of volume, and are mostly dark-corner
-cases. This is not to say that they do not merit attention, but just
-that it is not likely that you will catch these.
+Refer the [list of current known
+failures](test/test_suite/test_suite_parts.cpp) for the current
+status, as this is subject to ongoing work.
 
 
 --------- 
@@ -837,10 +844,26 @@ ryml makes no effort to follow the standard in the following situations:
 * `%YAML` directives have no effect and are ignored.
 * `%TAG` directives have no effect and are ignored. All schemas are assumed
   to be the default YAML 2002 schema.
-* container elements are not accepted as mapping keys. keys must be
-  simple strings and cannot themselves be mappings or sequences. But mapping
-  values can be any of the above. [YAML test
-  suite](https://github.com/yaml/yaml-test-suite) cases:
+* Tags are parsed as-is; tag lookup is not supported. YAML test suite cases:
+  [5TYM](https://github.com/yaml/yaml-test-suite/tree/master/test/5TYM.tml),
+  [6CK3](https://github.com/yaml/yaml-test-suite/tree/master/test/6CK3.tml),
+  [6WLZ](https://github.com/yaml/yaml-test-suite/tree/master/test/6WLZ.tml),
+  [9WXW](https://github.com/yaml/yaml-test-suite/tree/master/test/9WXW.tml),
+  [C4HZ](https://github.com/yaml/yaml-test-suite/tree/master/test/C4HZ.tml),
+  [CC74](https://github.com/yaml/yaml-test-suite/tree/master/test/CC74.tml),
+  [P76L](https://github.com/yaml/yaml-test-suite/tree/master/test/P76L.tml),
+  [QLJ7](https://github.com/yaml/yaml-test-suite/tree/master/test/QLJ7.tml),
+  [U3C3](https://github.com/yaml/yaml-test-suite/tree/master/test/U3C3.tml),
+  [Z9M4](https://github.com/yaml/yaml-test-suite/tree/master/test/Z9M4.tml),
+* Anchor names must not end with a terminating colon. YAML test suite cases:
+  [2SXE](https://github.com/yaml/yaml-test-suite/tree/master/test/2SXE.tml),
+  [W5VH](https://github.com/yaml/yaml-test-suite/tree/master/test/W5VH.tml).
+* Tabs after `:` or `-` are not supported. YAML test suite cases:
+  [6BCT](https://github.com/yaml/yaml-test-suite/tree/master/test/6BCT.tml),
+  [J3BT](https://github.com/yaml/yaml-test-suite/tree/master/test/J3BT.tml).
+* Containers are not accepted as mapping keys. Keys must be
+  scalar strings and cannot be mappings or sequences. But mapping
+  values can be any of the above. YAML test suite cases:
   [4FJ6](https://github.com/yaml/yaml-test-suite/tree/master/test/4FJ6.tml),
   [6BFJ](https://github.com/yaml/yaml-test-suite/tree/master/test/6BFJ.tml),
   [6PBE](https://github.com/yaml/yaml-test-suite/tree/master/test/6PBE.tml),
@@ -850,12 +873,9 @@ ryml makes no effort to follow the standard in the following situations:
   [M5DY](https://github.com/yaml/yaml-test-suite/tree/master/test/M5DY.tml),
   [Q9WF](https://github.com/yaml/yaml-test-suite/tree/master/test/Q9WF.tml),
   [SBG9](https://github.com/yaml/yaml-test-suite/tree/master/test/SBG9.tml),
+  [V9D5](https://github.com/yaml/yaml-test-suite/tree/master/test/V9D5.tml),
   [X38W](https://github.com/yaml/yaml-test-suite/tree/master/test/X38W.tml),
   [XW4D](https://github.com/yaml/yaml-test-suite/tree/master/test/XW4D.tml).
-* anchor names must not end with a terminating colon. [YAML test
-  suite](https://github.com/yaml/yaml-test-suite) cases:
-  [2SXE](https://github.com/yaml/yaml-test-suite/tree/master/test/2SXE.tml),
-  [W5VH](https://github.com/yaml/yaml-test-suite/tree/master/test/W5VH.tml).
 
 
 ------
