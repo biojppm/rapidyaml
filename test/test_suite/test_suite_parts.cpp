@@ -46,7 +46,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"6VJK",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
     {"7T8X",                  eIN_OUT_____, "folded scalars: multiline problems"},
     {"7TMG",                  eIN_________, "multiline scalar is parsed wrong"},
-    {"7W2P",                  eIN_________, "multiline scalar is parsed wrong"},
     {"A6F9",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"A984",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"AB8U",                  eIN_________, "emitting folded scalars is not idempotent"},
@@ -79,7 +78,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     // implicit keys
     {"DFF7",                  eIN_________, "problem with implicit key"},
     {"FRK4",                  eIN_________, "implicit key is wrongly parsed"},
-    {"ZWK4",                  eIN_________, "null key is wrongly parsed"},
     // other
     {"9MMW", IN______________             , "re the json/yaml incompatibility where a space is required after :"},
     {"A2M4",                  eIN_________, "fails to parse the value sequence, parses as scalar"},

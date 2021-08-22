@@ -458,7 +458,6 @@ bool Parser::_handle_unk()
         {
             _c4dbgp("caught ---: starting doc");
             _start_new_doc(rem);
-            _save_indentation();
             return true;
         }
         else if(rem.begins_with('%'))
@@ -1252,6 +1251,8 @@ bool Parser::_handle_map_impl()
         if(_scan_scalar(&rem, &is_quoted)) // this also progresses the line
         {
             _c4dbgpf("it's a%s scalar", is_quoted ? " quoted" : "");
+            if(has_all(CPLX|SSCL))
+                _append_key_val_null();
             _store_scalar(rem, is_quoted);
             if(has_all(CPLX|RSET))
             {
@@ -1468,6 +1469,11 @@ bool Parser::_handle_map_impl()
         {
             return true;
         }
+        else if(rem.begins_with("--- ") || rem == "---" || rem.begins_with("---\t"))
+        {
+            _start_new_doc(rem);
+            return true;
+        }
         else
         {
             _c4err("parse error");
@@ -1564,6 +1570,14 @@ bool Parser::_handle_key_anchors_and_refs()
     if(rem.begins_with('&'))
     {
         _c4dbgp("found a key anchor!!!");
+        if(has_all(CPLX|SSCL))
+        {
+            RYML_ASSERT(has_any(RKEY));
+            _c4dbgpf("there is a stored key, so this anchor is for the next element");
+            _append_key_val_null();
+            rem_flags(CPLX);
+            return true;
+        }
         csubstr anchor = rem.left_of(rem.first_of(' '));
         _line_progressed(anchor.len);
         anchor = anchor.sub(1); // skip the first character
@@ -1745,6 +1759,14 @@ bool Parser::_handle_types()
 
     if(t.empty())
         return false;
+
+    if(has_all(CPLX|SSCL))
+    {
+        RYML_ASSERT(has_any(RKEY));
+        _c4dbgpf("there is a stored key, so this tag is for the next element");
+        _append_key_val_null();
+        rem_flags(CPLX);
+    }
 
     size_t tag_indentation = m_state->line_contents.current_col(t);
     _c4dbgpf("there was a tag: '%.*s', indentation=%zu", _c4prsp(t), tag_indentation);
@@ -2070,6 +2092,10 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
                     s = s.left_of(s.first_of(",]"));
             }
             s = s.trim(' ');
+            if(s.begins_with("---"))
+                return false;
+            else if(s.begins_with("..."))
+                return false;
         }
         else
         {
@@ -2107,7 +2133,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
     RYML_ASSERT(s.str >= m_state->line_contents.rem.str);
     _line_progressed(static_cast<size_t>(s.str - m_state->line_contents.rem.str) + s.len);
 
-    if(_at_line_end())
+    if(_at_line_end() && s != '~')
     {
         _c4dbgpf("at line end. curr='%.*s'", _c4prsp(s));
         s = _extend_scanned_scalar(s);
@@ -2115,14 +2141,9 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
 
     _c4dbgpf("scalar was '%.*s'", _c4prsp(s));
 
-    if(s == '~')
+    if(s == '~' || s == "null")
     {
-        _c4dbgp("scalar was '~', so use null");
-        s = {};
-    }
-    else if(s == "null")
-    {
-        _c4dbgp("scalar was null");
+        _c4dbgpf("scalar was '%.*s', so use {}", _c4prsp(s));
         s = {};
     }
 
@@ -2137,8 +2158,8 @@ csubstr Parser::_extend_scanned_scalar(csubstr s)
 {
     if(has_all(RMAP|RKEY|CPLX))
     {
-        size_t scalar_indentation = has_any(EXPL) ? 0 : m_state->indref;
-        _c4dbgp("complex key!");
+        size_t scalar_indentation = has_any(EXPL) ? 0 : m_state->scalar_col;
+        _c4dbgpf("complex key! indref=%zu scalar_indentation=%zu scalar_col=%zu", m_state->indref, scalar_indentation, m_state->scalar_col);
         csubstr n = _scan_to_next_nonempty_line(scalar_indentation);
         if(!n.empty())
         {
@@ -2377,21 +2398,26 @@ csubstr Parser::_scan_to_next_nonempty_line(size_t indentation)
     {
         _c4dbgpf("rscalar: ... curr offset: %zu indentation=%zu", m_state->pos.offset, indentation);
         next_peeked = _peek_next_line(m_state->pos.offset);
+        csubstr next_peeked_triml = next_peeked.triml(' ');
         _c4dbgpf("rscalar: ... next peeked line='%.*s'", _c4prsp(next_peeked.trimr("\r\n")));
-        if(next_peeked.triml(' ').begins_with('#'))
+        if(next_peeked_triml.begins_with('#'))
         {
-            if(has_all(CPLX))
+            if(has_any(CPLX))
                 return {};
         }
         else if(next_peeked.begins_with(' ', indentation))
         {
+            //if(next_peeked_triml.begins_with('&'))
+            //{
+            //    return {};
+            //}
             _c4dbgpf("rscalar: ... begins at same indentation %zu, assuming continuation", indentation);
             _advance_to_peeked();
             return next_peeked;
         }
         else   // check for de-indentation
         {
-            csubstr trimmed = next_peeked.triml(' ').trimr("\t\r\n");
+            csubstr trimmed = next_peeked_triml.trimr("\t\r\n");
             _c4dbgpf("rscalar: ... deindented! trimmed='%.*s'", _c4prsp(trimmed));
             if(!trimmed.empty())
             {
@@ -2832,8 +2858,8 @@ void Parser::_start_new_doc(csubstr rem)
 
     _end_stream();
 
-    _c4dbgp("start a document");
     size_t indref = m_state->indref;
+    _c4dbgpf("start a document, indentation=%zu", indref);
     _line_progressed(3);
     _push_level();
     _start_doc();

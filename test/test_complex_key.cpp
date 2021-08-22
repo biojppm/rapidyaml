@@ -20,7 +20,8 @@ namespace yml {
 "complex block key, literal, strip",            \
 "complex block key, folded, clip",              \
 "complex block key, folded, keep",              \
-"complex block key, folded, strip"
+"complex block key, folded, strip",             \
+"complex key, missing val 7W2P ZWK4"            \
 
 
 CASE_GROUP(COMPLEX_KEY)
@@ -249,6 +250,40 @@ R"(? >-
       N(QK, "This is a key that has multiple lines", "and this is its value")
    }
 ),
+
+C("complex key, missing val 7W2P ZWK4",
+R"(--- # 7W2P
+? a
+? b
+c:
+? d
+e:
+--- # ZWK4
+a: 1
+? b
+&anchor c: 3
+? d
+!!str e: 4
+? f
+)",
+  N(STREAM, L{
+      N(DOCMAP, L{
+              N(KEYVAL, "a", {}),
+              N(KEYVAL, "b", {}),
+              N(KEYVAL, "c", {}),
+              N(KEYVAL, "d", {}),
+              N(KEYVAL, "e", {}),
+          }),
+      N(DOCMAP, L{
+              N("a", "1"),
+              N(KEYVAL, "b", {}),
+              N("c", AR(KEYANCH, "anchor"), "3"),
+              N(KEYVAL, "d", {}),
+              N(TS("!!str", "e"), "4"),
+              N(KEYVAL, "f", {}),
+          }),
+  })
+    )
 
     )
 }

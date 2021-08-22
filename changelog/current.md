@@ -119,13 +119,31 @@ into a DOCVAL, not SEQ->VAL ([5ba0d56](https://github.com/biojppm/rapidyaml/pull
     line
   ```
   is now correctly parsed as `\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n`.
-- Fix parsing of comments within implicit keys ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
+- Fix parsing of special characters within plain scalars ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
+  ```yaml
+  # test case 3MYT
+  k:#foo
+    &a !t s
+    !t s
+  # now correctly parsed as "k:#foo &a !t s !t s"
+  ```
+- Fix parsing of comments after complex keys ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
   ```yaml
   # test case X8DW
   ? key
   # comment 
   : value
   # now correctly parsed as {key: value}
+  ```
+- Fix parsing of consecutive complex keys within maps ([PR #145](https://github.com/biojppm/rapidyaml/pull/145))
+  ```yaml
+  # test case 7W2P, ZWK4
+  ? a
+  ? b
+  c:
+  ? d
+  e:
+  # now correctly parsed as {a: ~, b: ~, c: ~, d: ~}
   ```
 
 #### Document structure

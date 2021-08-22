@@ -17,6 +17,7 @@ namespace yml {
     "plain scalar, seq example 1"/*,                                \
     "plain scalar, seq example 2"*/,                                \
     "plain scalar, special characters 1",                           \
+    "plain scalar, special characters 3MYT",                        \
     "plain scalar, sequence ambiguity",                             \
     "plain scalar, empty lines at the beginning",                   \
     "plain scalar, empty continuation lines",                       \
@@ -239,6 +240,73 @@ R"(
       "and another four at the end -\n\n\n\n"
     )}
 ),
+
+C("plain scalar, special characters 3MYT",
+R"(---  # ZWK4
+a: 1
+? b
+&anchor c: 3  # the anchor is for the scalar 'c'
+? d
+!!str e: 4
+? f
+---
+k:#foo &a !t s
+---
+"k:#foo &a !t s"
+---
+'k:#foo &a !t s'
+
+---  # 3MYT
+k:#foo
+ &a !t s
+---
+k:#foo
+  &a !t s
+---
+k:#foo
+   &a !t s
+---
+k:#foo
+     &a !t s
+
+---  # 3MYT
+k:#foo
+ !t s
+---
+k:#foo
+  !t s
+---
+k:#foo
+   !t s
+---
+k:#foo
+     !t s
+)",
+  N(STREAM, L{
+      N(DOCMAP, L{
+              N("a", "1"),
+              N(KEYVAL, "b", {}),
+              N("c", AR(KEYANCH, "anchor"), "3"),
+              N(KEYVAL, "d", {}),
+              N(TS("!!str", "e"), "4"),
+              N(KEYVAL, "f", {}),
+          }),
+
+      N(DOCVAL, "k:#foo &a !t s"),
+      N(DOCVAL, "k:#foo &a !t s"),
+      N(DOCVAL, "k:#foo &a !t s"),
+
+      N(DOCVAL, "k:#foo &a !t s"),
+      N(DOCVAL, "k:#foo &a !t s"),
+      N(DOCVAL, "k:#foo &a !t s"),
+      N(DOCVAL, "k:#foo &a !t s"),
+
+      N(DOCVAL, "k:#foo !t s"),
+      N(DOCVAL, "k:#foo !t s"),
+      N(DOCVAL, "k:#foo !t s"),
+      N(DOCVAL, "k:#foo !t s"),
+  })
+    ),
 
 // make sure there is no ambiguity with this case
 C("plain scalar, sequence ambiguity",
