@@ -285,7 +285,7 @@ a: 1
   })
     )
 
-    )
+  )
 }
 
 INSTANTIATE_GROUP(COMPLEX_KEY)

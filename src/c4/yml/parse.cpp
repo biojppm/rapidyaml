@@ -1573,7 +1573,7 @@ bool Parser::_handle_key_anchors_and_refs()
         if(has_all(CPLX|SSCL))
         {
             RYML_ASSERT(has_any(RKEY));
-            _c4dbgpf("there is a stored key, so this anchor is for the next element");
+            _c4dbgp("there is a stored key, so this anchor is for the next element");
             _append_key_val_null();
             rem_flags(CPLX);
             return true;
@@ -1763,7 +1763,7 @@ bool Parser::_handle_types()
     if(has_all(CPLX|SSCL))
     {
         RYML_ASSERT(has_any(RKEY));
-        _c4dbgpf("there is a stored key, so this tag is for the next element");
+        _c4dbgp("there is a stored key, so this tag is for the next element");
         _append_key_val_null();
         rem_flags(CPLX);
     }
@@ -2319,6 +2319,7 @@ substr Parser::_scan_plain_scalar_impl(csubstr currscalar, csubstr peeked_line, 
     RYML_ASSERT(m_state->pos.offset >= offs);
     substr full(m_buf.str + (currscalar.str - m_buf.str),
                 currscalar.len + (m_state->pos.offset - offs));
+    full = full.trimr("\r\n ");
     return full;
 }
 

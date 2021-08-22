@@ -33,7 +33,8 @@ namespace yml {
     "plain scalar, explicit, early end, seq",                       \
     "plain scalar, explicit, early end, map",                       \
     "plain scalar, multiple docs",                                  \
-    "plain scalar, multiple docs, termination"
+    "plain scalar, multiple docs, termination",                     \
+    "plain scalar, trailing whitespace"
 
 
 CASE_GROUP(PLAIN_SCALAR)
@@ -98,7 +99,7 @@ A scalar with several lines in it and also 'single quotes'.
   A blank line follows after this one.
   
   )",
-  N(DOCVAL, "A scalar with several lines in it and also 'single quotes'. And \"double quotes\" and assorted escapes such as \\r or \\n. A blank line follows after this one.\n")
+  N(DOCVAL, "A scalar with several lines in it and also 'single quotes'. And \"double quotes\" and assorted escapes such as \\r or \\n. A blank line follows after this one.")
 ),
 
 C("plain scalar, example",
@@ -237,7 +238,7 @@ R"(
       "and now three empty lines -\n\n\n"
       "and an empty line, unindented -\n"
       "followed by more text "
-      "and another four at the end -\n\n\n\n"
+      "and another four at the end -"
     )}
 ),
 
@@ -561,6 +562,24 @@ R"(---
   })
 ),
 
+C("plain scalar, trailing whitespace",
+  R"(---
+foo  
+---
+foo  
+
+---
+foo  
+
+
+
+)",
+  N(STREAM, L{
+          N(DOCVAL, "foo"),
+          N(DOCVAL, "foo"),
+          N(DOCVAL, "foo"),
+      })
+    )
     )
 
 }
