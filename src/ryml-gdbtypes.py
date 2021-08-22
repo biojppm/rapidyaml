@@ -26,56 +26,108 @@
 # for more details or look at qttypes.py, stdtypes.py, boosttypes.py
 # for more complex examples.
 
+# to try parsing:
+# env PYTHONPATH=/usr/share/qtcreator/debugger/ python src/ryml-gdbtypes.py
+
 
 import dumper
 #from dumper import Dumper, Value, Children, SubItem
 #from dumper import SubItem, Children
 from dumper import *
-import functools
+
+import sys
+import os
 
 
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+
+# QtCreator makes it really hard to figure out problems in this code.
+# So here are some debugging utilities.
+
+
+# FIXME. this decorator is not working; find out why.
 def dbglog(func):
-    pass
-    if not DBG:
+    """a decorator that logs entry and exit of functions"""
+    if not _DBG:
         return func
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        _dbg(func.__name__, " - begin")
+    def func_wrapper(*args, **kwargs):
+        _dbg_enter(func.__name__)
         ret = func(*args, **kwargs)
-        _dbg(func.__name__, " - end")
+        _dbg_exit(func.__name__)
         return ret
-    return wrapper
+    return func_wrapper
 
 
-DBG = True
+_DBG = False
 _dbg_log = None
+_dbg_stack = 0
 def _dbg(*args, **kwargs):
-    pass
-    global _dbg_log
+    global _dbg_log, _dbg_stack
     if not _DBG:
         return
     if _dbg_log is None:
-        import os.path
-        filename = os.path.join(os.path.dirname(__FILE__), "dbg.log")
+        filename = os.path.join(os.path.dirname(__file__), "dbg.txt")
         _dbg_log = open(filename, "w")
     kwargs['file'] = _dbg_log
-    print(*args, **kwargs)
+    kwargs['flush'] = True
+    print("  " * _dbg_stack, *args, **kwargs)
 
 
-# adapted from dumper.py::Dumper::putCharArrayValue()
+def _dbg_enter(name):
+    global _dbg_stack
+    _dbg(name, "- enter")
+    _dbg_stack += 1
+
+
+def _dbg_exit(name):
+    global _dbg_stack
+    _dbg_stack -= 1
+    _dbg(name, "- exit!")
+
+
+
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+
+
+NPOS = 18446744073709551615
+MAX_SUBSTR_LEN_DISPLAY = 80
+MAX_SUBSTR_LEN_EXPAND = 1000
+
+
 def get_str_value(d, value, limit=0):
+    # adapted from dumper.py::Dumper::putCharArrayValue()
     m_str = value["str"].pointer()
     m_len = value["len"].integer()
+    if m_len == NPOS:
+        _dbg("getstr... 1", m_len)
+        m_str = "!!!!!<npos>!!!!!"
+        m_len = len(m_str)
+        return m_str, m_len
     if limit == 0:
         limit = d.displayStringLimit
     elided, shown = d.computeLimit(m_len, limit)
     mem = bytes(d.readRawMemory(m_str, shown))
-    return mem.decode('utf8'), m_len
+    mem = mem.decode('utf8')
+    return mem, m_len
 
 
 def __display_csubstr(d, value, limit=0):
     m_str, m_len = get_str_value(d, value)
-    d.putValue(f'[{m_len}] \'{m_str}\'')
+    safe_len = min(m_len, MAX_SUBSTR_LEN_DISPLAY)
+    disp = m_str[0:safe_len]
+    # ensure the string escapes characters like \n\r\t etc
+    disp = disp.encode('unicode_escape').decode('utf8')
+    # WATCHOUT. quotes in the string will make qtcreator hang!!!
+    disp = disp.replace('"', '\\"')
+    disp = disp.replace('\'', '\\')
+    if m_len <= MAX_SUBSTR_LEN_DISPLAY:
+        d.putValue(f"[{m_len}] '{disp}'")
+    else:
+        d.putValue(f"[{m_len}] '{disp}'...")
     return m_str, m_len
 
 
@@ -84,9 +136,10 @@ def qdump__c4__csubstr(d, value):
     d.putExpandable()
     if d.isExpanded():
         with Children(d):
-            ct = d.createType('char')
-            for i in range(m_len):
-                d.putSubItem(m_len, d.createValue(value["str"].pointer() + i, ct))
+            safe_len = min(m_len, MAX_SUBSTR_LEN_EXPAND)
+            for i in range(safe_len):
+                ct = d.createType('char')
+                d.putSubItem(safe_len, d.createValue(value["str"].pointer() + i, ct))
             d.putSubItem("len", value["len"])
             d.putPtrItem("str", value["str"].pointer())
 
@@ -203,6 +256,7 @@ def qdump__c4__yml__NodeType(d, value):
 
 
 def qdump__c4__yml__NodeData(d, value):
+    d.putValue("wtf")
     ty = _format_bitmask_value(value.integer(), node_types)
     t = value["m_type"]["type"].integer()
     k = value["m_key"]["scalar"]
@@ -260,13 +314,12 @@ def qdump__c4__yml__NodeData(d, value):
 
 
 def _dump_node_index(d, name, value):
-    if int(value[name].integer()) == 18446744073709551615:
+    if int(value[name].integer()) == NPOS:
         pass
         #with SubItem(d, name):
         #    d.putValue("-")
     else:
         d.putSubItem(name, value[name])
-
 
 
 # c4::yml::Tree

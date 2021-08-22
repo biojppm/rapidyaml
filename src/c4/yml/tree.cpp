@@ -16,20 +16,35 @@ csubstr normalize_tag(csubstr tag)
     YamlTag_e t = to_tag(tag);
     if(t != TAG_NONE)
         return from_tag(t);
+    if(tag.begins_with("!<"))
+        tag = tag.sub(1);
+    if(tag.begins_with("<!"))
+    {
+        size_t pos = tag.find('>');
+        if(pos == csubstr::npos)
+            return tag;
+        return tag.range(1, pos);
+    }
     return tag;
 }
 
 YamlTag_e to_tag(csubstr tag)
 {
+    if(tag.begins_with("!<"))
+        tag = tag.sub(1);
     if(tag.begins_with("!!"))
         tag = tag.sub(2);
     else if(tag.begins_with('!'))
         return TAG_NONE;
     else if(tag.begins_with("tag:yaml.org,2002:"))
-        tag = tag.sub(csubstr("tag:yaml.org,2002:").len);
+    {
+        RYML_ASSERT(csubstr("tag:yaml.org,2002:").len == 18);
+        tag = tag.sub(18);
+    }
     else if(tag.begins_with("<tag:yaml.org,2002:"))
     {
-        tag = tag.sub(csubstr("<tag:yaml.org,2002:").len);
+        RYML_ASSERT(csubstr("<tag:yaml.org,2002:").len == 19);
+        tag = tag.sub(19);
         if(!tag.len)
             return TAG_NONE;
         tag = tag.offs(0, 1);

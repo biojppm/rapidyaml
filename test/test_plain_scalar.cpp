@@ -17,6 +17,7 @@ namespace yml {
     "plain scalar, seq example 1"/*,                                \
     "plain scalar, seq example 2"*/,                                \
     "plain scalar, special characters 1",                           \
+    "plain scalar, special characters 3MYT",                        \
     "plain scalar, sequence ambiguity",                             \
     "plain scalar, empty lines at the beginning",                   \
     "plain scalar, empty continuation lines",                       \
@@ -24,15 +25,16 @@ namespace yml {
     "plain scalar, do not accept ': ' start line",                  \
     "plain scalar, do not accept ': ' at line end",                 \
     "plain scalar, do not accept ':' at line end",                  \
-    "plain scalar, do not accept ' #', at line start",              \
-    "plain scalar, do not accept ' #', at line start, but accept on first line", \
-    "plain scalar, do not accept ' #', at line end",                \
+    "plain scalar, accept ' #' at line start",                      \
+    "plain scalar, accept ' #' on first line",                      \
+    "plain scalar, accept ' #' at line end",                        \
     "plain scalar, accept '#'",                                     \
     "plain scalar, explicit",                                       \
     "plain scalar, explicit, early end, seq",                       \
     "plain scalar, explicit, early end, map",                       \
     "plain scalar, multiple docs",                                  \
-    "plain scalar, multiple docs, termination"
+    "plain scalar, multiple docs, termination",                     \
+    "plain scalar, trailing whitespace"
 
 
 CASE_GROUP(PLAIN_SCALAR)
@@ -97,7 +99,7 @@ A scalar with several lines in it and also 'single quotes'.
   A blank line follows after this one.
   
   )",
-  N(DOCVAL, "A scalar with several lines in it and also 'single quotes'. And \"double quotes\" and assorted escapes such as \\r or \\n. A blank line follows after this one.\n")
+  N(DOCVAL, "A scalar with several lines in it and also 'single quotes'. And \"double quotes\" and assorted escapes such as \\r or \\n. A blank line follows after this one.")
 ),
 
 C("plain scalar, example",
@@ -236,9 +238,76 @@ R"(
       "and now three empty lines -\n\n\n"
       "and an empty line, unindented -\n"
       "followed by more text "
-      "and another four at the end -\n\n\n\n"
+      "and another four at the end -"
     )}
 ),
+
+C("plain scalar, special characters 3MYT",
+R"(---  # ZWK4
+a: 1
+? b
+&anchor c: 3  # the anchor is for the scalar 'c'
+? d
+!!str e: 4
+? f
+---
+k:#foo &a !t s
+---
+"k:#foo &a !t s"
+---
+'k:#foo &a !t s'
+
+---  # 3MYT
+k:#foo
+ &a !t s
+---
+k:#foo
+  &a !t s
+---
+k:#foo
+   &a !t s
+---
+k:#foo
+     &a !t s
+
+---  # 3MYT
+k:#foo
+ !t s
+---
+k:#foo
+  !t s
+---
+k:#foo
+   !t s
+---
+k:#foo
+     !t s
+)",
+  N(STREAM, L{
+      N(DOCMAP, L{
+              N("a", "1"),
+              N(KEYVAL, "b", {}),
+              N("c", AR(KEYANCH, "anchor"), "3"),
+              N(KEYVAL, "d", {}),
+              N(TS("!!str", "e"), "4"),
+              N(KEYVAL, "f", {}),
+          }),
+
+      N(DOCVAL, "k:#foo &a !t s"),
+      N(DOCVAL, "k:#foo &a !t s"),
+      N(DOCVAL, "k:#foo &a !t s"),
+
+      N(DOCVAL, "k:#foo &a !t s"),
+      N(DOCVAL, "k:#foo &a !t s"),
+      N(DOCVAL, "k:#foo &a !t s"),
+      N(DOCVAL, "k:#foo &a !t s"),
+
+      N(DOCVAL, "k:#foo !t s"),
+      N(DOCVAL, "k:#foo !t s"),
+      N(DOCVAL, "k:#foo !t s"),
+      N(DOCVAL, "k:#foo !t s"),
+  })
+    ),
 
 // make sure there is no ambiguity with this case
 C("plain scalar, sequence ambiguity",
@@ -382,26 +451,26 @@ R"(- Several lines of text,
   LineCol(4, 36)
 ),
 
-C("plain scalar, do not accept ' #', at line start", HAS_PARSE_ERROR,
+C("plain scalar, accept ' #' at line start",
 R"(- Several lines of text,
-  and this is NOT valid -
+  and this is valid -
   #with special:characters, like:this-or-this -
 )",
-  LineCol(3, 2)
+  L{N("Several lines of text, and this is valid -"),}
 ),
 
-C("plain scalar, do not accept ' #', at line start, but accept on first line",
+C("plain scalar, accept ' #' on first line",
 R"(- Several lines of text, and this is valid -
   #with special:characters, like:this-or-this -
 )",
   L{N("Several lines of text, and this is valid -")}
 ),
 
-C("plain scalar, do not accept ' #', at line end", HAS_PARSE_ERROR,
+C("plain scalar, accept ' #' at line end",
 R"(- Several lines of text,
   with special:characters, #comment at the end
 )",
-  LineCol(2, 27)
+  L{N("Several lines of text, with special:characters,")}
 ),
 
 C("plain scalar, accept '#'",
@@ -493,6 +562,24 @@ R"(---
   })
 ),
 
+C("plain scalar, trailing whitespace",
+  R"(---
+foo  
+---
+foo  
+
+---
+foo  
+
+
+
+)",
+  N(STREAM, L{
+          N(DOCVAL, "foo"),
+          N(DOCVAL, "foo"),
+          N(DOCVAL, "foo"),
+      })
+    )
     )
 
 }

@@ -80,6 +80,13 @@ private:
     void _write_scalar_json(csubstr s, bool as_key, bool was_quoted);
     void _write_scalar_block(csubstr s, size_t level, bool as_key);
 
+    void _write_tag(csubstr tag)
+    {
+        if(!tag.begins_with('!'))
+            this->Writer::_do_write('!');
+        this->Writer::_do_write(tag);
+    }
+
     void _indent(size_t ilevel)
     {
         this->Writer::_do_write(indent_to(ilevel));
@@ -97,6 +104,7 @@ private:
 
     C4_ALWAYS_INLINE void _writek_json(Tree const& t, size_t id) { _write_json(t.keysc(id), t._p(id)->m_type.type & ~(VAL)); }
     C4_ALWAYS_INLINE void _writev_json(Tree const& t, size_t id) { _write_json(t.valsc(id), t._p(id)->m_type.type & ~(KEY)); }
+
 };
 
 

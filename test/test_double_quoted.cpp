@@ -10,6 +10,10 @@ namespace yml {
             "dquoted, with single and double quotes",   \
             "dquoted, with escapes",                    \
             "dquoted, with newline",                    \
+            "dquoted, with tabs",                       \
+            "dquoted, with tabs 4ZYM",                  \
+            "dquoted, with tabs 7A4E",                  \
+            "dquoted, with tabs TL85",                  \
             "dquoted, all",                             \
             "dquoted, empty",                           \
             "dquoted, blank",                           \
@@ -58,6 +62,40 @@ C("dquoted, with newline",
 R"("Some text with\nnewline")",
   N(DOCVAL, "Some text with\nnewline")
 ),
+
+C("dquoted, with tabs",
+R"("\tSome\ttext\twith\ttabs\t")",
+  N(DOCVAL, "\tSome\ttext\twith\ttabs\t")
+),
+
+C("dquoted, with tabs 4ZYM",
+R"(plain: text
+  lines
+quoted: "text
+  	lines"
+block: |
+  text
+   	lines
+)",
+  L{N("plain", "text lines"), N(KEYVAL|VALQUO, "quoted", "text lines"), N(KEYVAL|VALQUO,"block", "text\n \tlines\n")}
+),
+
+C("dquoted, with tabs 7A4E",
+R"(" 1st non-empty
+
+ 2nd non-empty 
+	3rd non-empty ")",
+  N(DOCVAL, " 1st non-empty\n2nd non-empty 3rd non-empty ")
+),
+
+C("dquoted, with tabs TL85",
+R"("
+  foo 
+ 
+  	 bar
+
+  baz
+")", N(DOCVAL, " foo\nbar\nbaz ")),
 
 C("dquoted, all",
 R"("Several lines of text,

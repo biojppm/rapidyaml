@@ -14,6 +14,7 @@ namespace yml {
 "simple map, values on next line",                              \
 "simple map, with comments",                                    \
 "simple map, with comments interspersed",                       \
+"simple map, with comments interspersed implicit key X8DW",     \
 "simple map, with indented comments interspersed, before",      \
 "simple map, with indented comments interspersed, after",       \
 "simple map, scalars with special chars, comma",                \
@@ -27,6 +28,7 @@ namespace yml {
 "simple map, null values",                                      \
 "simple map expl, null values 1",                               \
 "simple map expl, null values 2",                               \
+"simple map expl, null values 3, 4ABK",                         \
 "simple map expl, scalars with special chars, comma",           \
 "simple map, spaces before semicolon, issue54",                 \
 "simple map, spaces before semicolon, issue65, v0",             \
@@ -140,6 +142,15 @@ bat: 3
     L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
 ),
 
+C("simple map, with comments interspersed implicit key X8DW",
+R"(
+? key
+# comment
+: value
+)",
+    L{N("key", "value")}
+),
+
 C("simple map, with indented comments interspersed, before",
 R"(
   # this is a foo
@@ -204,6 +215,20 @@ L{
    N(L{N(KEYVAL, "a", /*"~"*/{}), N("b", "1"), N("c", "2")}),
  }
 ),
+
+C("simple map expl, null values 3, 4ABK",
+R"(
+- {foo: , bar: , baz: }
+- {foo:, bar:, baz:}
+- {foo:foo: , bar:bar: , baz:baz: }
+- {foo:foo:, bar:bar:, baz:baz:}
+)",
+L{
+  N(L{N(KEYVAL, "foo", {}), N(KEYVAL, "bar", {}), N(KEYVAL, "baz", {})}),
+  N(L{N(KEYVAL, "foo", {}), N(KEYVAL, "bar", {}), N(KEYVAL, "baz", {})}),
+  N(L{N(KEYVAL, "foo:foo", {}), N(KEYVAL, "bar:bar", {}), N(KEYVAL, "baz:baz", {})}),
+  N(L{N(KEYVAL, "foo:foo", {}), N(KEYVAL, "bar:bar", {}), N(KEYVAL, "baz:baz", {})}),
+}),
 
 C("simple map, scalars with special chars, comma",
 R"(

@@ -243,7 +243,10 @@ top62:
     "ambiguous anchor, unresolved",\
     "ambiguous anchor, resolved",\
     "ambiguous anchor in seq, unresolved",\
-    "ambiguous anchor in seq, resolved"
+    "ambiguous anchor in seq, resolved",\
+    "anchor after complex key without value ZWK4",\
+    "anchor mixed with tag HMQ5, unresolved",\
+    "anchor mixed with tag HMQ5, resolved"
 
 
 CASE_GROUP(SIMPLE_ANCHOR)
@@ -967,6 +970,41 @@ L{
   N(L{N("k8", AR(KEYANCH, "a8"), "v8")}),
   N(L{N("k10", "v10")}),
 }),
+
+C("anchor after complex key without value ZWK4",
+R"(
+a: 1
+? b
+&anchor c: 3
+)",
+  L{
+    N("a", "1"), N(KEYVAL, "b", {}), N("c", AR(KEYANCH, "anchor"), "3")
+  }
+),
+
+C("anchor mixed with tag HMQ5, unresolved",
+R"(
+!!str &a1 "foo":
+  !!str bar
+&a2 baz : *a1
+)",
+  L{
+      N(KEYVAL|KEYQUO, TS("!!str", "foo"), AR(KEYANCH, "a1"), TS("!!str", "bar")),
+      N("baz", AR(KEYANCH, "a2"), "*a1", AR(VALREF, "*a1")),
+  }
+),
+
+C("anchor mixed with tag HMQ5, resolved", RESOLVE_REFS,
+R"(
+!!str &a1 "foo":
+  !!str bar
+&a2 baz : *a1
+)",
+  L{
+      N(KEYVAL|KEYQUO, TS("!!str", "foo"), TS("!!str", "bar")),
+      N("baz", "foo"),
+  }
+)
 
     )
 }

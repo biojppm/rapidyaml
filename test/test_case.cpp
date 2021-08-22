@@ -162,9 +162,9 @@ ExpectError::ExpectError(Location loc)
     , expected_location(loc)
 {
     #ifdef RYML_NO_DEFAULT_CALLBACKS
-    c4::yml::Callbacks cb((void*)this, m_prev.m_allocate, m_prev.m_free, &ExpectError::error);
-    #else
     c4::yml::Callbacks cb((void*)this, nullptr,           nullptr,       &ExpectError::error);
+    #else
+    c4::yml::Callbacks cb((void*)this, m_prev.m_allocate, m_prev.m_free, &ExpectError::error);
     #endif
     c4::yml::set_callbacks(cb);
 }
@@ -208,6 +208,16 @@ void ExpectError::do_check(std::function<void()> fn, Location expected_location)
         }
     };
     EXPECT_TRUE(context.m_got_an_error);
+}
+
+void ExpectError::check_assertion(std::function<void()> fn, Location expected_location)
+{
+    #if RYML_USE_ASSERT
+    ExpectError::do_check(fn, expected_location);
+    #else
+    C4_UNUSED(fn);
+    C4_UNUSED(expected_location);
+    #endif
 }
 
 
