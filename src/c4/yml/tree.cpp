@@ -1232,8 +1232,8 @@ struct ReferenceResolver
         {
             if(t->is_seq(n))
             {
-                // for merging multiple:
-                //   << : [ *CENTER, *BIG ]
+                // for merging multiple inheritance targets
+                //   <<: [ *CENTER, *BIG ]
                 for(size_t ich = t->first_child(n); ich != NONE; ich = t->next_sibling(ich))
                 {
                     RYML_ASSERT(t->num_children(ich) == 0);
@@ -1241,14 +1241,14 @@ struct ReferenceResolver
                 }
                 return;
             }
-            if(t->is_key_ref(n)) // insert key refs BEFORE inserting val refs
+            if(t->is_key_ref(n) && t->key(n) != "<<") // insert key refs BEFORE inserting val refs
             {
-                RYML_CHECK(t->has_key(n));
+                RYML_CHECK((!t->has_key(n)) || t->key(n).ends_with(t->key_ref(n)));
                 refs.push({KEYREF, n, npos, npos, NONE, NONE});
             }
             if(t->is_val_ref(n))
             {
-                RYML_CHECK(t->has_val(n));
+                RYML_CHECK((!t->has_val(n)) || t->val(n).ends_with(t->val_ref(n)));
                 refs.push({VALREF, n, npos, npos, NONE, NONE});
             }
         }
@@ -1275,16 +1275,13 @@ struct ReferenceResolver
         csubstr refname;
         if(ra->type.is_val_ref())
         {
-            RYML_ASSERT(t->has_val(ra->node));
-            refname = t->val(ra->node);
+            refname = t->val_ref(ra->node);
         }
-        else // if(ra->type.is_key_ref())
+        else
         {
-            RYML_ASSERT(t->has_key(ra->node));
-            refname = t->key(ra->node);
+            RYML_ASSERT(ra->type.is_key_ref());
+            refname = t->key_ref(ra->node);
         }
-        RYML_ASSERT(refname.begins_with('*'));
-        refname = refname.sub(1);
         while(ra->prev_anchor != npos)
         {
             ra = &refs[ra->prev_anchor];
@@ -1368,18 +1365,20 @@ void Tree::resolve()
             }
             else if(rd.type.is_key_ref())
             {
-                RYML_ASSERT(has_key(rd.node));
+                RYML_ASSERT(is_key_ref(rd.node));
                 RYML_ASSERT(has_key_anchor(rd.target) || has_val_anchor(rd.target));
                 if(has_val_anchor(rd.target) && val_anchor(rd.target) == key_ref(rd.node))
                 {
                     RYML_CHECK(!is_container(rd.target));
                     RYML_CHECK(has_val(rd.target));
                     _p(rd.node)->m_key.scalar = val(rd.target);
+                    _add_flags(rd.node, KEY);
                 }
                 else
                 {
                     RYML_CHECK(key_anchor(rd.target) == key_ref(rd.node));
                     _p(rd.node)->m_key.scalar = key(rd.target);
+                    _add_flags(rd.node, VAL);
                 }
             }
             else
@@ -1390,6 +1389,7 @@ void Tree::resolve()
                     RYML_CHECK(!is_container(rd.target));
                     RYML_CHECK(has_val(rd.target));
                     _p(rd.node)->m_val.scalar = key(rd.target);
+                    _add_flags(rd.node, VAL);
                 }
                 else
                 {

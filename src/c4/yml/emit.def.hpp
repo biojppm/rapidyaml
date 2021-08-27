@@ -78,31 +78,12 @@ void Emitter<Writer>::_do_visit(Tree const& t, size_t id, size_t ilevel, size_t 
         this->Writer::_do_write('\n');
         return;
     }
-    else if(t.has_key(id) && t.is_val_ref(id))
-    {
-        RYML_ASSERT(t.has_parent(id));
-        this->Writer::_do_write(ind);
-        _writek(t, id, ilevel);
-        this->Writer::_do_write(": *");
-        this->Writer::_do_write(t.val_ref(id));
-        this->Writer::_do_write('\n');
-        return;
-    }
     else if(t.is_val(id))
     {
         RYML_ASSERT(t.has_parent(id) || t.is_doc(id));
         this->Writer::_do_write(ind);
         this->Writer::_do_write("- ");
         _writev(t, id, ilevel);
-        this->Writer::_do_write('\n');
-        return;
-    }
-    else if(t.is_val_ref(id))
-    {
-        RYML_ASSERT(t.has_parent(id));
-        this->Writer::_do_write(ind);
-        this->Writer::_do_write("- *");
-        this->Writer::_do_write(t.val_ref(id));
         this->Writer::_do_write('\n');
         return;
     }
@@ -267,6 +248,13 @@ void Emitter<Writer>::_write(NodeScalar const& sc, NodeType flags, size_t ilevel
         this->Writer::_do_write(sc.anchor);
         this->Writer::_do_write(' ');
     }
+    else if(flags.is_ref())
+    {
+        if(sc.anchor != "<<")
+            this->Writer::_do_write('*');
+        this->Writer::_do_write(sc.anchor);
+        return;
+    }
 
     const bool has_newlines = sc.scalar.first_of('\n') != npos;
     if(!has_newlines || (sc.scalar.triml(" \t") != sc.scalar))
@@ -370,18 +358,28 @@ void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
     const bool needs_quotes = (
         was_quoted
         ||
-        ((!s.is_number()) // is not a number
-        &&
         (
-            (s.len != s.trim(" \t\n\r").len) // has leading or trailing whitespace
-            ||
-            s.first_of("#:-?,\n{}[]'\"") != npos // has special chars
-            ||
-            (was_quoted && s[0] == '*')  // starts with * but is not a reference (empty string checked above)
+            ( ! s.is_number())
+            &&
+            (
+                // has leading whitespace
+                s.begins_with(" \n\r\t")
+                ||
+                // looks like reference or anchor
+                s.begins_with_any("*&")
+                ||
+                s.begins_with("<<")
+                ||
+                // has trailing whitespace
+                s.ends_with(" \n\r\t")
+                ||
+                // has special chars
+                (s.first_of("#:-?,\n{}[]'\"") != npos)
             )
-        ));
+        )
+    );
 
-    if(!needs_quotes)
+    if( ! needs_quotes)
     {
         this->Writer::_do_write(s);
     }

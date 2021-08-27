@@ -3,6 +3,130 @@
 namespace c4 {
 namespace yml {
 
+TEST(anchors, no_ambiguity_when_key_scalars_begin_with_star)
+{
+    Tree t = parse("{foo: &foo 1, *foo: 2, '*foo': 3}");
+
+    EXPECT_TRUE(t[1].is_key_ref());
+    EXPECT_FALSE(t[2].is_key_ref());
+
+    EXPECT_FALSE(t[1].is_key_quoted());
+    EXPECT_TRUE(t[2].is_key_quoted());
+
+    EXPECT_EQ(t[1].key(), "*foo");
+    EXPECT_EQ(t[1].key_ref(), "foo");
+    EXPECT_EQ(t[2].key(), "*foo");
+}
+
+TEST(anchors, no_ambiguity_when_val_scalars_begin_with_star)
+{
+    Tree t = parse("{foo: &foo 1, ref: *foo, quo: '*foo'}");
+
+    EXPECT_TRUE(t["ref"].is_val_ref());
+    EXPECT_FALSE(t["quo"].is_val_ref());
+
+    EXPECT_FALSE(t["ref"].is_val_quoted());
+    EXPECT_TRUE(t["quo"].is_val_quoted());
+
+    EXPECT_EQ(t["ref"].val_ref(), "foo");
+    EXPECT_EQ(t["ref"].val(), "*foo");
+    EXPECT_EQ(t["quo"].val(), "*foo");
+}
+
+TEST(anchors, no_ambiguity_with_inheritance)
+{
+    Tree t = parse("{foo: &foo {a: 1, b: 2}, bar: {<<: *foo}, sq: {'<<': haha}, dq: {\"<<\": hehe}}");
+
+    EXPECT_TRUE(t["bar"].has_child("<<"));
+    EXPECT_TRUE(t["bar"]["<<"].is_key_ref());
+    EXPECT_TRUE(t["bar"]["<<"].is_val_ref());
+    EXPECT_TRUE(t["sq"]["<<"].is_key_quoted());
+    EXPECT_TRUE(t["dq"]["<<"].is_key_quoted());
+    EXPECT_FALSE(t["sq"]["<<"].is_key_ref());
+    EXPECT_FALSE(t["dq"]["<<"].is_key_ref());
+    EXPECT_EQ(t["sq"]["<<"].key(), "<<");
+    EXPECT_EQ(t["dq"]["<<"].key(), "<<");
+    EXPECT_EQ(t["bar"]["<<"].key(), "<<");
+    EXPECT_EQ(t["bar"]["<<"].val(), "*foo");
+    EXPECT_EQ(t["bar"]["<<"].key_ref(), "<<");
+    EXPECT_EQ(t["bar"]["<<"].val_ref(), "foo");
+
+    EXPECT_EQ(emitrs<std::string>(t), R"(foo: &foo
+  a: 1
+  b: 2
+bar:
+  <<: *foo
+sq:
+  '<<': haha
+dq:
+  '<<': hehe
+)");
+}
+
+TEST(anchors, programatic_key_ref)
+{
+    Tree t = parse("{}");
+    NodeRef r = t.rootref();
+    r["kanchor"] = "2";
+    r["kanchor"].set_key_anchor("kanchor");
+    r["vanchor"] = "3";
+    r["vanchor"].set_val_anchor("vanchor");
+    r["*kanchor"] = "4";
+    r["*vanchor"] = "5";
+    NodeRef ch = r.append_child();
+    ch.set_key_ref("kanchor");
+    ch.set_val("6");
+    ch = r.append_child();
+    ch.set_key_ref("vanchor");
+    ch.set_val("7");
+    EXPECT_EQ(emitrs<std::string>(t), R"(&kanchor kanchor: 2
+vanchor: &vanchor 3
+'*kanchor': 4
+'*vanchor': 5
+*kanchor: 6
+*vanchor: 7
+)");
+    t.resolve();
+    EXPECT_EQ(emitrs<std::string>(t), R"(kanchor: 2
+vanchor: 3
+'*kanchor': 4
+'*vanchor': 5
+kanchor: 6
+3: 7
+)");
+}
+
+TEST(anchors, programatic_val_ref)
+{
+    Tree t = parse("{}");
+    t["kanchor"] = "2";
+    t["kanchor"].set_key_anchor("kanchor");
+    t["vanchor"] = "3";
+    t["vanchor"].set_val_anchor("vanchor");
+
+    t["kref"].create();
+    t["vref"].create();
+    t["kref"].set_val_ref("kanchor");
+    t["vref"].set_val_ref("vanchor");
+
+    EXPECT_EQ(emitrs<std::string>(t), R"(&kanchor kanchor: 2
+vanchor: &vanchor 3
+kref: *kanchor
+vref: *vanchor
+)");
+    t.resolve();
+    EXPECT_EQ(emitrs<std::string>(t), R"(kanchor: 2
+vanchor: 3
+kref: kanchor
+vref: 3
+)");
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 TEST(weird_anchor_cases_from_suite, 2SXE)
 {
     Tree t = parse(R"(&a: key: &a value
@@ -288,9 +412,9 @@ L{
     N(L{N("r", "10")             }, AR(VALANCH, "BIG"   )),
     N(L{N("r", "1" )             }, AR(VALANCH, "SMALL" )),
     N(L{N("x", "1" ), N("y", "2"), N("r", "10"), N("label", "center/big")}),
-    N(L{N("<<", "*CENTER", AR(VALREF, "*CENTER")), N("r", "10"), N("label", "center/big")}),
-    N(L{N("<<", L{N("*CENTER", AR(VALREF, "*CENTER")), N("*BIG", AR(VALREF, "*BIG"))}), N("label", "center/big")}),
-    N(L{N("<<", L{N("*BIG", AR(VALREF, "*BIG")), N("*LEFT", AR(VALREF, "*LEFT")), N("*SMALL", AR(VALREF, "*SMALL"))}), N("x", "1"), N("label", "center/big")}),
+    N(L{N("<<", AR(KEYREF, "<<"), "*CENTER", AR(VALREF, "*CENTER")), N("r", "10"), N("label", "center/big")}),
+    N(L{N("<<", AR(KEYREF, "<<"), L{N("*CENTER", AR(VALREF, "*CENTER")), N("*BIG", AR(VALREF, "*BIG"))}), N("label", "center/big")}),
+    N(L{N("<<", AR(KEYREF, "<<"), L{N("*BIG", AR(VALREF, "*BIG")), N("*LEFT", AR(VALREF, "*LEFT")), N("*SMALL", AR(VALREF, "*SMALL"))}), N("x", "1"), N("label", "center/big")}),
 }),
 
 C("merge example, resolved", RESOLVE_REFS,
@@ -357,8 +481,8 @@ bar: &bar
               N("*anchor_in_seq", AR(VALREF, "anchor_in_seq")),
           }),
       N("base", L{N("name", "Everyone has same name")}, AR(VALANCH, "base")),
-      N("foo", L{N("<<", "*base", AR(VALREF, "base")), N("age", "10")}, AR(VALANCH, "foo")),
-      N("bar", L{N("<<", "*base", AR(VALREF, "base")), N("age", "20")}, AR(VALANCH, "bar")),
+      N("foo", L{N("<<", AR(KEYREF, "<<"), "*base", AR(VALREF, "base")), N("age", "10")}, AR(VALANCH, "foo")),
+      N("bar", L{N("<<", AR(KEYREF, "<<"), "*base", AR(VALREF, "base")), N("age", "20")}, AR(VALANCH, "bar")),
   }
 ),
 
@@ -390,8 +514,8 @@ bar: &bar {
               N("*anchor_in_seq", AR(VALREF, "anchor_in_seq")),
           }),
       N("base", L{N("name", "Everyone has same name")}, AR(VALANCH, "base")),
-      N("foo", L{N("<<", "*base", AR(VALREF, "base")), N("age", "10")}, AR(VALANCH, "foo")),
-      N("bar", L{N("<<", "*base", AR(VALREF, "base")), N("age", "20")}, AR(VALANCH, "bar")),
+      N("foo", L{N("<<", AR(KEYREF, "<<"), "*base", AR(VALREF, "base")), N("age", "10")}, AR(VALANCH, "foo")),
+      N("bar", L{N("<<", AR(KEYREF, "<<"), "*base", AR(VALREF, "base")), N("age", "20")}, AR(VALANCH, "bar")),
   }
 ),
 
@@ -611,7 +735,7 @@ N{"step", "*id001", AR(VALREF, "id001")},
 N{"step", "*id002", AR(VALREF, "id002")},
     }), N(L{
 N{"step", L{
-    N{"<<", "*id001", AR(VALREF, "id002")},
+    N{"<<", AR(KEYREF, "<<"), "*id001", AR(VALREF, "id002")},
     N{"spotSize",        "2mm"},
         }},
     }), N(L{

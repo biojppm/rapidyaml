@@ -1970,6 +1970,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
 
     if(s.begins_with('\''))
     {
+        _c4dbgp("got a ': scanning single-quoted scalar");
         m_state->scalar_col = m_state->line_contents.current_col(s);
         *scalar = _scan_quoted_scalar('\'');
         *quoted = true;
@@ -1977,6 +1978,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
     }
     else if(s.begins_with('"'))
     {
+        _c4dbgp("got a \": scanning double-quoted scalar");
         m_state->scalar_col = m_state->line_contents.current_col(s);
         *scalar = _scan_quoted_scalar('"');
         *quoted = true;
@@ -2603,7 +2605,7 @@ void Parser::_write_key_anchor(size_t node_id)
         m_key_anchor_was_before = false;
         m_key_anchor_indentation = 0;
     }
-    else if(!m_tree->is_key_quoted(node_id))
+    else if( ! m_tree->is_key_quoted(node_id))
     {
         csubstr r = m_tree->key(node_id);
         if(r.begins_with('*'))
@@ -2613,6 +2615,7 @@ void Parser::_write_key_anchor(size_t node_id)
         }
         else if(r == "<<")
         {
+            m_tree->set_key_ref(node_id, r);
             _c4dbgpf("node=%zd: it's an inheriting reference", node_id);
             if(m_tree->is_seq(node_id))
             {
@@ -2885,7 +2888,7 @@ void Parser::_start_map(bool as_child)
         {
             csubstr key = _consume_scalar();
             m_tree->to_map(m_state->node_id, key, has_all(SSCL_QUO) ? KEYQUO : NOTYPE);
-            _c4dbgpf("start_map: id=%zd key='%.*s'", m_state->node_id, _c4prsp(node(m_state)->key()));
+            _c4dbgpf("start_map: id=%zd key='%.*s'", m_state->node_id, _c4prsp(m_tree->key(m_state->node_id)));
             _write_key_anchor(m_state->node_id);
             if( ! m_key_tag.empty())
             {
@@ -3010,7 +3013,7 @@ void Parser::_start_seq(bool as_child)
             RYML_ASSERT(m_tree->is_map(parent_id));
             csubstr name = _consume_scalar();
             m_tree->to_seq(m_state->node_id, name);
-            _c4dbgpf("start_seq: id=%zd name='%.*s'", m_state->node_id, _c4prsp(node(m_state)->key()));
+            _c4dbgpf("start_seq: id=%zd name='%.*s'", m_state->node_id, _c4prsp(m_tree->key(m_state->node_id)));
             _write_key_anchor(m_state->node_id);
             if( ! m_key_tag.empty())
             {
@@ -3136,7 +3139,7 @@ NodeData* Parser::_append_key_val(csubstr val, bool val_quoted)
     _c4dbgpf("append keyval: '%.*s' '%.*s' to parent id=%zd (level=%zd)%s%s", _c4prsp(key), _c4prsp(val), m_state->node_id, m_state->level, (additional_flags & KEYQUO) ? " KEYQUO!" : "", (additional_flags & VALQUO) ? " VALQUO!" : "");
     size_t nid = m_tree->append_child(m_state->node_id);
     m_tree->to_keyval(nid, key, val, additional_flags);
-    _c4dbgpf("append keyval: id=%zd key='%.*s' val='%.*s'", nid, _c4prsp(m_tree->get(nid)->key()), _c4prsp(m_tree->get(nid)->val()));
+    _c4dbgpf("append keyval: id=%zd key='%.*s' val='%.*s'", nid, _c4prsp(m_tree->key(nid)), _c4prsp(m_tree->val(nid)));
     if( ! m_key_tag.empty())
     {
         _c4dbgpf("append keyval[%zu]: set key tag='%.*s' -> '%.*s'", nid, _c4prsp(m_key_tag), _c4prsp(normalize_tag(m_key_tag)));

@@ -36,7 +36,7 @@ into a DOCVAL, not SEQ->VAL ([5ba0d56](https://github.com/biojppm/rapidyaml/pull
 
 ### Fixes
 
-#### Anchors
+#### Anchors and references
 - Fix resolving of nodes with keyref+valref ([PR #144](https://github.com/biojppm/rapidyaml/pull/144)): `{&a a: &b b, *b: *a}`
 - Fix parsing of implicit scalars when tags are present ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
   ```yaml
@@ -49,6 +49,8 @@ into a DOCVAL, not SEQ->VAL ([5ba0d56](https://github.com/biojppm/rapidyaml/pull
   - ? &e
     : &a
   ```
+- Fix [#151](https://github.com/biojppm/rapidyaml/issues/151): scalars beginning with `*` are now correctly quoted when emitting ([PR #156](https://github.com/biojppm/rapidyaml/pull/156))
+-
 
 #### Tags
 - Fix parsing of tag dense maps and seqs ([PR #144](https://github.com/biojppm/rapidyaml/pull/144)):
@@ -158,6 +160,23 @@ into a DOCVAL, not SEQ->VAL ([5ba0d56](https://github.com/biojppm/rapidyaml/pull
   e:
   # now correctly parsed as {a: ~, b: ~, c: ~, d: ~}
   ```
+- Fix [#152](https://github.com/biojppm/rapidyaml/issues/152):  parse error with folded scalars that are the last in a container ([PR #157](https://github.com/biojppm/rapidyaml/pull/157)):
+  ```yaml
+  exec:
+    command:
+      # before the fix, this folded scalar failed to parse
+      - |
+        exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
+    parses: no
+  ```
+- Fix: documents consisting of a quoted scalar now retain the VALQUO flag ([PR #156](https://github.com/biojppm/rapidyaml/pull/156))
+  ```c++
+  Tree tree = parse("'this is a quoted scalar'");
+  assert(tree.rootref().is_doc());
+  assert(tree.rootref().is_val());
+  assert(tree.rootref().is_val_quoted());
+  ```
+
 
 #### Document structure
 - Empty docs are now parsed as a docval with a null node:
