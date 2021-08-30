@@ -341,7 +341,7 @@ void sample_quick_overview()
     // WATCHOUT: do not assign from temporary objects:
     // {
     //     std::string crash("will dangle");
-    //     root["john"] == ryml::to_csubstr(crash);
+    //     root["john"] = ryml::to_csubstr(crash);
     // }
     // CHECK(root["john"] == "dangling"); // CRASH! the string was deallocated
 
@@ -361,7 +361,7 @@ void sample_quick_overview()
     // using operator<< instead of operator=, the crash above is avoided:
     {
         std::string ok("in_scope");
-        // root["john"] == ryml::to_csubstr(ok); // don't, will dangle
+        // root["john"] = ryml::to_csubstr(ok); // don't, will dangle
         root["john"] << ryml::to_csubstr(ok); // OK, copy to the tree's arena
     }
     CHECK(root["john"] == "in_scope"); // OK!
