@@ -3,6 +3,30 @@
 namespace c4 {
 namespace yml {
 
+TEST(block_scalars, issue152)
+{
+    Tree t = parse(R"(
+exec:
+  cmd_succeeds:
+    - |
+      exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
+    - parses - yes
+  cmd_fails:
+    - |
+      exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
+  parses: no
+  cmd_fails2:
+    - >
+      exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
+  parses2: no
+  cmd_fails3:
+    - >-
+      exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
+  parses3: no
+periodSeconds: 10)");
+}
+
+
 #define BLOCK_FOLDED_CASES \
     "7T8X",                                            \
     "block folded as seq val, implicit indentation 2", \
