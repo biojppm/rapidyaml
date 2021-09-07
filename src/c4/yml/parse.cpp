@@ -2676,15 +2676,15 @@ void Parser::_push_level(bool explicit_flow_chars)
 void Parser::_pop_level()
 {
     _c4dbgpf("popping level! currnode=%zd currlevel=%zd", m_state->node_id, m_state->level);
-    if(has_any(RMAP) || node(m_state)->is_map())
+    if(has_any(RMAP) || m_tree->is_map(m_state->node_id))
     {
         _stop_map();
     }
-    if(has_any(RSEQ) || node(m_state)->is_seq())
+    if(has_any(RSEQ) || m_tree->is_seq(m_state->node_id))
     {
         _stop_seq();
     }
-    if(node(m_state)->is_doc())
+    if(m_tree->is_doc(m_state->node_id))
     {
         _stop_doc();
     }
@@ -2904,7 +2904,7 @@ void Parser::_start_map(bool as_child)
         m_state->node_id = parent_id;
         _c4dbgpf("start_map: id=%zd", m_state->node_id);
         type_bits as_doc = 0;
-        if(node(m_state)->is_doc())
+        if(m_tree->is_doc(m_state->node_id))
             as_doc |= DOC;
         if(!m_tree->is_map(parent_id))
         {
@@ -2964,7 +2964,7 @@ void Parser::_start_map_unk(bool as_child)
 void Parser::_stop_map()
 {
     _c4dbgpf("stop_map[%zu]", m_state->node_id);
-    RYML_ASSERT(node(m_state)->is_map());
+    RYML_ASSERT(m_tree->is_map(m_state->node_id));
     bool key_empty = (m_key_tag.empty() && m_key_anchor.empty());
     bool val_empty = (m_val_tag.empty() && m_val_anchor.empty());
     if(has_none(RMAP) || (key_empty && val_empty))
@@ -3005,7 +3005,7 @@ void Parser::_start_seq(bool as_child)
         m_state->node_id = m_tree->append_child(parent_id);
         if(has_all(SSCL))
         {
-            RYML_ASSERT(node(parent_id)->is_map());
+            RYML_ASSERT(m_tree->is_map(parent_id));
             csubstr name = _consume_scalar();
             m_tree->to_seq(m_state->node_id, name);
             _c4dbgpf("start_seq: id=%zd name='%.*s'", m_state->node_id, _c4prsp(node(m_state)->key()));
@@ -3020,7 +3020,8 @@ void Parser::_start_seq(bool as_child)
         else
         {
             type_bits as_doc = 0;
-            if(node(m_state)->is_doc()) as_doc |= DOC;
+            if(m_tree->is_doc(m_state->node_id))
+                as_doc |= DOC;
             m_tree->to_seq(m_state->node_id, as_doc);
             _c4dbgpf("start_seq: id=%zd%s", m_state->node_id, as_doc ? " as doc" : "");
         }
@@ -3030,7 +3031,7 @@ void Parser::_start_seq(bool as_child)
     {
         m_state->node_id = parent_id;
         type_bits as_doc = 0;
-        if(node(m_state)->is_doc())
+        if(m_tree->is_doc(m_state->node_id))
             as_doc |= DOC;
         if(!m_tree->is_seq(parent_id))
         {
@@ -3056,7 +3057,7 @@ void Parser::_start_seq(bool as_child)
 void Parser::_stop_seq()
 {
     _c4dbgp("stop_seq");
-    RYML_ASSERT(node(m_state)->is_seq());
+    RYML_ASSERT(m_tree->is_seq(m_state->node_id));
 }
 
 
@@ -3103,7 +3104,7 @@ NodeData* Parser::_append_val(csubstr val, bool quoted)
 {
     RYML_ASSERT( ! has_all(SSCL));
     RYML_ASSERT(node(m_state) != nullptr);
-    RYML_ASSERT(node(m_state)->is_seq());
+    RYML_ASSERT(m_tree->is_seq(m_state->node_id));
     type_bits additional_flags = quoted ? VALQUO : NOTYPE;
     _c4dbgpf("append val: '%.*s' to parent id=%zd (level=%zd)%s", _c4prsp(val), m_state->node_id, m_state->level, quoted ? " VALQUO!" : "");
     size_t nid = m_tree->append_child(m_state->node_id);
@@ -3122,7 +3123,7 @@ NodeData* Parser::_append_val(csubstr val, bool quoted)
 
 NodeData* Parser::_append_key_val(csubstr val, bool val_quoted)
 {
-    RYML_ASSERT(node(m_state)->is_map());
+    RYML_ASSERT(m_tree->is_map(m_state->node_id));
     type_bits additional_flags = 0;
     if(m_state->flags & SSCL_QUO)
         additional_flags |= KEYQUO;

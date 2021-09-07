@@ -245,25 +245,25 @@ public:
 
     bool is_stream() const { return ((type & STREAM) == STREAM) != 0; }
     bool is_doc() const { return (type & DOC) != 0; }
-    bool is_container() const { return (type & (MAP|SEQ|STREAM|DOC)) != 0; }
+    bool is_container() const { return (type & (MAP|SEQ|STREAM)) != 0; }
     bool is_map() const { return (type & MAP) != 0; }
     bool is_seq() const { return (type & SEQ) != 0; }
     bool has_val() const { return (type & VAL) != 0; }
     bool has_key() const { return (type & KEY) != 0; }
-    bool has_keyval() const { return (type & KEY) != 0 && (type & VAL) != 0; }
-    bool is_val() const { return (type & KEYVAL) == VAL; }
+    bool is_val() const { return (type & (KEYVAL)) == VAL; }
     bool is_keyval() const { return (type & KEYVAL) == KEYVAL; }
     bool has_key_tag() const { return (type & (KEY|KEYTAG)) == (KEY|KEYTAG); }
     bool has_val_tag() const { return ((type & (VALTAG)) && (type & (VAL|MAP|SEQ))); }
-    bool has_key_anchor() const { return (type & KEYANCH) != 0; }
-    bool has_val_anchor() const { return (type & VALANCH) != 0; }
+    bool has_key_anchor() const { return (type & (KEY|KEYANCH)) == (KEY|KEYANCH); }
+    bool has_val_anchor() const { return (type & VALANCH) != 0 && (type & (VAL|SEQ|MAP)) != 0; }
     bool has_anchor() const { return (type & (KEYANCH|VALANCH)) != 0; }
     bool is_key_ref() const { return (type & KEYREF) != 0; }
     bool is_val_ref() const { return (type & VALREF) != 0; }
     bool is_ref() const { return (type & (KEYREF|VALREF)) != 0; }
-    bool is_key_anchor() const { return (type & KEYANCH) != 0; }
-    bool is_val_anchor() const { return (type & KEYANCH) != 0; }
+    bool is_key_anchor() const { return (type & (KEY|KEYANCH)) == (KEY|KEYANCH); }
+    bool is_val_anchor() const { return (type & (VAL|VALANCH)) == (VAL|VALANCH); }
     bool is_anchor() const { return (type & (KEYANCH|VALANCH)) != 0; }
+    bool is_anchor_or_ref() const { return (type & (KEYANCH|VALANCH|KEYREF|VALREF)) != 0; }
     bool is_key_quoted() const { return (type & (KEY|KEYQUO)) == (KEY|KEYQUO); }
     bool is_val_quoted() const { return (type & (VAL|VALQUO)) == (VAL|VALQUO); }
     bool is_quoted() const { return (type & (KEY|KEYQUO)) == (KEY|KEYQUO) || (type & (VAL|VALQUO)) == (VAL|VALQUO); }
@@ -388,7 +388,6 @@ public:
 /** contains the data for each YAML node. */
 struct NodeData
 {
-
     NodeType   m_type;
 
     NodeScalar m_key;
@@ -399,59 +398,6 @@ struct NodeData
     size_t     m_last_child;
     size_t     m_next_sibling;
     size_t     m_prev_sibling;
-
-public:
-
-    NodeType_e type() const { return (NodeType_e)(m_type & _TYMASK); }
-    const char* type_str() const { return type_str(m_type); }
-    RYML_EXPORT static const char* type_str(NodeType_e ty);
-
-    csubstr const& key() const { RYML_ASSERT(has_key()); return m_key.scalar; }
-    csubstr const& key_tag() const { RYML_ASSERT(has_key_tag()); return m_key.tag; }
-    csubstr const& key_anchor() const { return m_key.anchor; }
-    NodeScalar const& keysc() const { RYML_ASSERT(has_key()); return m_key; }
-
-    csubstr const& val() const { RYML_ASSERT(has_val()); return m_val.scalar; }
-    csubstr const& val_tag() const { RYML_ASSERT(has_val_tag()); return m_val.tag; }
-    csubstr const& val_anchor() const { RYML_ASSERT(has_val_tag()); return m_val.anchor; }
-    NodeScalar const& valsc() const { RYML_ASSERT(has_val()); return m_val; }
-
-public:
-
-#if defined(__clang__)
-#   pragma clang diagnostic push
-#   pragma clang diagnostic ignored "-Wnull-dereference"
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic push
-#   if __GNUC__ >= 6
-#       pragma GCC diagnostic ignored "-Wnull-dereference"
-#   endif
-#endif
-
-    bool   is_root() const { return m_parent == NONE; }
-
-    bool   is_stream() const { return m_type.is_stream(); }
-    bool   is_doc() const { return m_type.is_doc(); }
-    bool   is_container() const { return m_type.is_container(); }
-    bool   is_map() const { return m_type.is_map(); }
-    bool   is_seq() const { return m_type.is_seq(); }
-    bool   has_val() const { return m_type.has_val(); }
-    bool   has_key() const { return m_type.has_key(); }
-    bool   is_val() const { return m_type.is_val(); }
-    bool   is_keyval() const { return m_type.is_keyval(); }
-    bool   has_key_tag() const { return m_type.has_key_tag(); }
-    bool   has_val_tag() const { return m_type.has_val_tag(); }
-    bool   has_key_anchor() const { return ! m_type.has_key_anchor(); }
-    bool   has_val_anchor() const { return ! m_type.has_val_anchor(); }
-    bool   is_key_ref() const { return m_type.is_key_ref(); }
-    bool   is_val_ref() const { return m_type.is_val_ref(); }
-
-#if defined(__clang__)
-#   pragma clang diagnostic pop
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic pop
-#endif
-
 };
 C4_MUST_BE_TRIVIAL_COPY(NodeData);
 
@@ -608,32 +554,34 @@ public:
     /** @name node predicates */
     /** @{ */
 
-    bool is_root(size_t node) const { RYML_ASSERT(_p(node)->m_parent != NONE || node == 0); return _p(node)->m_parent == NONE; }
-    bool is_stream(size_t node) const { return (_p(node)->m_type & STREAM) == STREAM; }
-    bool is_doc(size_t node) const { return (_p(node)->m_type & DOC) != 0; }
-    bool is_container(size_t node) const { return (_p(node)->m_type & (MAP|SEQ|STREAM|DOC)) != 0; }
-    bool is_map(size_t node) const { return (_p(node)->m_type & MAP) != 0; }
-    bool is_seq(size_t node) const { return (_p(node)->m_type & SEQ) != 0; }
-    bool has_val(size_t node) const { return (_p(node)->m_type & VAL) != 0; }
-    bool has_key(size_t node) const { return (_p(node)->m_type & KEY) != 0; }
-    bool is_val(size_t node) const { return (_p(node)->m_type & KEYVAL) == VAL; }
-    bool is_keyval(size_t node) const { return (_p(node)->m_type & KEYVAL) == KEYVAL; }
-    bool has_key_tag(size_t node) const { return (_p(node)->m_type & (KEY|KEYTAG)) == (KEY|KEYTAG); }
-    bool has_val_tag(size_t node) const { return ((_p(node)->m_type & (VALTAG)) && (_p(node)->m_type & (VAL|MAP|SEQ))); }
-    bool has_key_anchor(size_t node) const { return (_p(node)->m_type & KEYANCH) != 0; }
-    bool has_val_anchor(size_t node) const { return (_p(node)->m_type & VALANCH) != 0; }
-    bool is_key_ref(size_t node) const { return (_p(node)->m_type & KEYREF) != 0; }
-    bool is_val_ref(size_t node) const { return (_p(node)->m_type & VALREF) != 0; }
-    bool is_ref(size_t node) const { return (_p(node)->m_type & (KEYREF|VALREF)) != 0; }
-    bool is_anchor(size_t node) const { return (_p(node)->m_type & (KEYANCH|VALANCH)) != 0; }
-    bool is_anchor_or_ref(size_t node) const { return (_p(node)->m_type & (KEYANCH|VALANCH|KEYREF|VALREF)) != 0; }
-    bool is_key_quoted(size_t node) const { return (_p(node)->m_type & (KEYQUO)) != 0; }
-    bool is_val_quoted(size_t node) const { return (_p(node)->m_type & (VALQUO)) != 0; }
+    C4_ALWAYS_INLINE bool is_root(size_t node) const { RYML_ASSERT(_p(node)->m_parent != NONE || node == 0); return _p(node)->m_parent == NONE; }
+    C4_ALWAYS_INLINE bool is_stream(size_t node) const { return _p(node)->m_type.is_stream(); }
+    C4_ALWAYS_INLINE bool is_doc(size_t node) const { return _p(node)->m_type.is_doc(); }
+    C4_ALWAYS_INLINE bool is_container(size_t node) const { return _p(node)->m_type.is_container(); }
+    C4_ALWAYS_INLINE bool is_map(size_t node) const { return _p(node)->m_type.is_map(); }
+    C4_ALWAYS_INLINE bool is_seq(size_t node) const { return _p(node)->m_type.is_seq(); }
+    C4_ALWAYS_INLINE bool has_val(size_t node) const { return _p(node)->m_type.has_val(); }
+    C4_ALWAYS_INLINE bool has_key(size_t node) const { return _p(node)->m_type.has_key(); }
+    C4_ALWAYS_INLINE bool is_val(size_t node) const { return _p(node)->m_type.is_val(); }
+    C4_ALWAYS_INLINE bool is_keyval(size_t node) const { return _p(node)->m_type.is_keyval(); }
+    C4_ALWAYS_INLINE bool has_key_tag(size_t node) const { return _p(node)->m_type.has_key_tag(); }
+    C4_ALWAYS_INLINE bool has_val_tag(size_t node) const { return _p(node)->m_type.has_val_tag(); }
+    C4_ALWAYS_INLINE bool has_key_anchor(size_t node) const { return _p(node)->m_type.has_key_anchor(); }
+    C4_ALWAYS_INLINE bool has_val_anchor(size_t node) const { return _p(node)->m_type.has_val_anchor(); }
+    C4_ALWAYS_INLINE bool has_anchor(size_t node) const { return _p(node)->m_type.has_anchor(); }
+    C4_ALWAYS_INLINE bool is_key_ref(size_t node) const { return _p(node)->m_type.is_key_ref(); }
+    C4_ALWAYS_INLINE bool is_val_ref(size_t node) const { return _p(node)->m_type.is_val_ref(); }
+    C4_ALWAYS_INLINE bool is_ref(size_t node) const { return _p(node)->m_type.is_ref(); }
+    C4_ALWAYS_INLINE bool is_anchor(size_t node) const { return _p(node)->m_type.is_anchor(); }
+    C4_ALWAYS_INLINE bool is_anchor_or_ref(size_t node) const { return _p(node)->m_type.is_anchor_or_ref(); }
+    C4_ALWAYS_INLINE bool is_key_quoted(size_t node) const { return _p(node)->m_type.is_key_quoted(); }
+    C4_ALWAYS_INLINE bool is_val_quoted(size_t node) const { return _p(node)->m_type.is_val_quoted(); }
+    C4_ALWAYS_INLINE bool is_quoted(size_t node) const { return _p(node)->m_type.is_quoted(); }
 
-    bool parent_is_seq(size_t node) const { RYML_ASSERT(has_parent(node)); return is_seq(_p(node)->m_parent); }
-    bool parent_is_map(size_t node) const { RYML_ASSERT(has_parent(node)); return is_map(_p(node)->m_parent); }
+    C4_ALWAYS_INLINE bool parent_is_seq(size_t node) const { RYML_ASSERT(has_parent(node)); return is_seq(_p(node)->m_parent); }
+    C4_ALWAYS_INLINE bool parent_is_map(size_t node) const { RYML_ASSERT(has_parent(node)); return is_map(_p(node)->m_parent); }
 
-    /** true when name and value are empty, and has no children */
+    /** true when key and val are empty, and has no children */
     bool empty(size_t node) const { return ! has_children(node) && _p(node)->m_key.empty() && (( ! (_p(node)->m_type & VAL)) || _p(node)->m_val.empty()); }
     /** true when the node has an anchor named a */
     bool has_anchor(size_t node, csubstr a) const { return _p(node)->m_key.anchor == a || _p(node)->m_val.anchor == a; }
@@ -1124,7 +1072,7 @@ private:
 public:
 
     #if ! RYML_USE_ASSERT
-    #define _check_next_flags(node, f)
+    C4_ALWAYS_INLINE void _check_next_flags(size_t, type_bits) {}
     #else
     inline void _check_next_flags(size_t node, type_bits f)
     {
@@ -1221,7 +1169,7 @@ public:
             {
                 if((in == first_child(ip)) && (in == last_child(ip)))
                 {
-                    if( ! n->m_key.empty() || n->has_key())
+                    if( ! n->m_key.empty() || has_key(in))
                     {
                         _add_flags(ip, MAP);
                     }

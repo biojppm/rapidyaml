@@ -476,7 +476,7 @@ void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
                 else if(is_sep)
                 {
                     _nfo_logf("separator was specified: {}", rem);
-                    if(!tree.is_container(node))
+                    if((!tree.is_container(node)) && (!tree.is_doc(node)))
                     {
                         tree._add_flags(node, STREAM);
                         node = tree.append_child(node);

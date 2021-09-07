@@ -413,7 +413,7 @@ public:
         // operator<< for writing a substr to a stream)
         _apply_seed();
         write(this, s);
-        RYML_ASSERT(get()->val() == s);
+        RYML_ASSERT(val() == s);
         return *this;
     }
 

@@ -133,6 +133,8 @@ const char* NodeType::type_str(NodeType_e ty)
     {
     case KEYVAL:
         return "KEYVAL";
+    case KEY:
+        return "KEY";
     case VAL:
         return "VAL";
     case MAP:
@@ -1402,7 +1404,8 @@ void Tree::resolve()
 
 size_t Tree::num_children(size_t node) const
 {
-    if(_p(node)->is_val()) return 0;
+    if(is_val(node))
+        return 0;
     size_t count = 0;
     for(size_t i = first_child(node); i != NONE; i = next_sibling(i))
     {
@@ -1414,7 +1417,8 @@ size_t Tree::num_children(size_t node) const
 size_t Tree::child(size_t node, size_t pos) const
 {
     RYML_ASSERT(node != NONE);
-    if(_p(node)->is_val()) return NONE;
+    if(is_val(node))
+        return NONE;
     size_t count = 0;
     for(size_t i = first_child(node); i != NONE; i = next_sibling(i))
     {
@@ -1449,8 +1453,9 @@ size_t Tree::child_pos(size_t node, size_t ch) const
 size_t Tree::find_child(size_t node, csubstr const& name) const
 {
     RYML_ASSERT(node != NONE);
-    if(_p(node)->is_val()) return NONE;
-    RYML_ASSERT(_p(node)->is_map());
+    if(is_val(node))
+        return NONE;
+    RYML_ASSERT(is_map(node));
     if(get(node)->m_first_child == NONE)
     {
         RYML_ASSERT(_p(node)->m_last_child == NONE);
