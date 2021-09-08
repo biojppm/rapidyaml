@@ -193,10 +193,20 @@ NodeRef Tree::rootref()
 {
     return NodeRef(this, root_id());
 }
-
 NodeRef const Tree::rootref() const
 {
     return NodeRef(const_cast<Tree*>(this), root_id());
+}
+
+NodeRef Tree::ref(size_t id)
+{
+    RYML_ASSERT(id != NONE && id >= 0 && id < m_size);
+    return NodeRef(this, id);
+}
+NodeRef const Tree::ref(size_t id) const
+{
+    RYML_ASSERT(id != NONE && id >= 0 && id < m_size);
+    return NodeRef(const_cast<Tree*>(this), id);
 }
 
 NodeRef Tree::operator[] (csubstr key)

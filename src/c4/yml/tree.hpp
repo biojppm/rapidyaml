@@ -255,14 +255,14 @@ public:
     bool has_key_tag() const { return (type & (KEY|KEYTAG)) == (KEY|KEYTAG); }
     bool has_val_tag() const { return ((type & (VALTAG)) && (type & (VAL|MAP|SEQ))); }
     bool has_key_anchor() const { return (type & (KEY|KEYANCH)) == (KEY|KEYANCH); }
+    bool is_key_anchor() const { return (type & (KEY|KEYANCH)) == (KEY|KEYANCH); }
     bool has_val_anchor() const { return (type & VALANCH) != 0 && (type & (VAL|SEQ|MAP)) != 0; }
+    bool is_val_anchor() const { return (type & VALANCH) != 0 && (type & (VAL|SEQ|MAP)) != 0; }
     bool has_anchor() const { return (type & (KEYANCH|VALANCH)) != 0; }
+    bool is_anchor() const { return (type & (KEYANCH|VALANCH)) != 0; }
     bool is_key_ref() const { return (type & KEYREF) != 0; }
     bool is_val_ref() const { return (type & VALREF) != 0; }
     bool is_ref() const { return (type & (KEYREF|VALREF)) != 0; }
-    bool is_key_anchor() const { return (type & (KEY|KEYANCH)) == (KEY|KEYANCH); }
-    bool is_val_anchor() const { return (type & (VAL|VALANCH)) == (VAL|VALANCH); }
-    bool is_anchor() const { return (type & (KEYANCH|VALANCH)) != 0; }
     bool is_anchor_or_ref() const { return (type & (KEYANCH|VALANCH|KEYREF|VALREF)) != 0; }
     bool is_key_quoted() const { return (type & (KEY|KEYQUO)) == (KEY|KEYQUO); }
     bool is_val_quoted() const { return (type & (VAL|VALQUO)) == (VAL|VALQUO); }
@@ -506,6 +506,11 @@ public:
     //! Get the id of the root node
     size_t root_id() const {                                 RYML_ASSERT(m_cap > 0 && m_size > 0); return 0; }
 
+    //! Get a NodeRef of a node by id
+    NodeRef       ref(size_t id);
+    //! Get a NodeRef of a node by id
+    NodeRef const ref(size_t id) const;
+
     //! Get the root as a NodeRef
     NodeRef       rootref();
     //! Get the root as a NodeRef
@@ -551,28 +556,29 @@ public:
 
 public:
 
-    /** @name node predicates */
+    /** @name node type predicates */
     /** @{ */
 
-    C4_ALWAYS_INLINE bool is_root(size_t node) const { RYML_ASSERT(_p(node)->m_parent != NONE || node == 0); return _p(node)->m_parent == NONE; }
     C4_ALWAYS_INLINE bool is_stream(size_t node) const { return _p(node)->m_type.is_stream(); }
     C4_ALWAYS_INLINE bool is_doc(size_t node) const { return _p(node)->m_type.is_doc(); }
     C4_ALWAYS_INLINE bool is_container(size_t node) const { return _p(node)->m_type.is_container(); }
     C4_ALWAYS_INLINE bool is_map(size_t node) const { return _p(node)->m_type.is_map(); }
     C4_ALWAYS_INLINE bool is_seq(size_t node) const { return _p(node)->m_type.is_seq(); }
-    C4_ALWAYS_INLINE bool has_val(size_t node) const { return _p(node)->m_type.has_val(); }
     C4_ALWAYS_INLINE bool has_key(size_t node) const { return _p(node)->m_type.has_key(); }
+    C4_ALWAYS_INLINE bool has_val(size_t node) const { return _p(node)->m_type.has_val(); }
     C4_ALWAYS_INLINE bool is_val(size_t node) const { return _p(node)->m_type.is_val(); }
     C4_ALWAYS_INLINE bool is_keyval(size_t node) const { return _p(node)->m_type.is_keyval(); }
     C4_ALWAYS_INLINE bool has_key_tag(size_t node) const { return _p(node)->m_type.has_key_tag(); }
     C4_ALWAYS_INLINE bool has_val_tag(size_t node) const { return _p(node)->m_type.has_val_tag(); }
     C4_ALWAYS_INLINE bool has_key_anchor(size_t node) const { return _p(node)->m_type.has_key_anchor(); }
+    C4_ALWAYS_INLINE bool is_key_anchor(size_t node) const { return _p(node)->m_type.is_key_anchor(); }
     C4_ALWAYS_INLINE bool has_val_anchor(size_t node) const { return _p(node)->m_type.has_val_anchor(); }
+    C4_ALWAYS_INLINE bool is_val_anchor(size_t node) const { return _p(node)->m_type.is_val_anchor(); }
     C4_ALWAYS_INLINE bool has_anchor(size_t node) const { return _p(node)->m_type.has_anchor(); }
+    C4_ALWAYS_INLINE bool is_anchor(size_t node) const { return _p(node)->m_type.is_anchor(); }
     C4_ALWAYS_INLINE bool is_key_ref(size_t node) const { return _p(node)->m_type.is_key_ref(); }
     C4_ALWAYS_INLINE bool is_val_ref(size_t node) const { return _p(node)->m_type.is_val_ref(); }
     C4_ALWAYS_INLINE bool is_ref(size_t node) const { return _p(node)->m_type.is_ref(); }
-    C4_ALWAYS_INLINE bool is_anchor(size_t node) const { return _p(node)->m_type.is_anchor(); }
     C4_ALWAYS_INLINE bool is_anchor_or_ref(size_t node) const { return _p(node)->m_type.is_anchor_or_ref(); }
     C4_ALWAYS_INLINE bool is_key_quoted(size_t node) const { return _p(node)->m_type.is_key_quoted(); }
     C4_ALWAYS_INLINE bool is_val_quoted(size_t node) const { return _p(node)->m_type.is_val_quoted(); }
@@ -592,6 +598,8 @@ public:
 
     /** @name hierarchy predicates */
     /** @{ */
+
+    bool is_root(size_t node) const { RYML_ASSERT(_p(node)->m_parent != NONE || node == 0); return _p(node)->m_parent == NONE; }
 
     bool has_parent(size_t node) const { return _p(node)->m_parent != NONE; }
 

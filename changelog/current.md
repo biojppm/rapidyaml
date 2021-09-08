@@ -10,6 +10,19 @@ into a DOCVAL, not SEQ->VAL ([5ba0d56](https://github.com/biojppm/rapidyaml/pull
   --- # previously this was parsed as
   - this is a scalar
   ```
+- Cleanup type predicate API ([PR #155](https://github.com/biojppm/rapidyaml/pull/155))):
+  - ensure all type predicates from `Tree` and `NodeRef` forward to the corresponding predicate in `NodeType`
+  - remove all type predicates and methods from `NodeData`; use the equivalent call from `Tree` or `NodeRef`. For example, for `is_map()`:
+    ```c++
+    Tree t = parse("{foo: bar}");
+    size_t map_id = t.root_id();
+    NodeRef map = t.rootref();
+    t.get(map_id)->is_map(); // compile error: no longer exists
+    assert(t.is_map(map_id)); // OK
+    assert(map.is_map()); // OK
+    ```
+  - Further cleanup to the type predicate API will be done in the future, especially around the `.has_*()` vs corresponding `.is_*()` naming scheme.
+
 
 ### New features & improvements
 

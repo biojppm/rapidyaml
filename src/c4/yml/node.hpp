@@ -135,35 +135,42 @@ public:
 
     // node predicates
 
-    inline bool is_root()        const { _C4RV(); return m_tree->is_root(m_id); }
-    inline bool is_stream()      const { _C4RV(); return m_tree->is_stream(m_id); }
-    inline bool is_doc()         const { _C4RV(); return m_tree->is_doc(m_id); }
-    inline bool is_container()   const { _C4RV(); return m_tree->is_container(m_id); }
-    inline bool is_map()         const { _C4RV(); return m_tree->is_map(m_id); }
-    inline bool is_seq()         const { _C4RV(); return m_tree->is_seq(m_id); }
-    inline bool has_val()        const { _C4RV(); return m_tree->has_val(m_id); }
-    inline bool has_key()        const { _C4RV(); return m_tree->has_key(m_id); }
-    inline bool is_val()         const { _C4RV(); return m_tree->is_val(m_id); }
-    inline bool is_keyval()      const { _C4RV(); return m_tree->is_keyval(m_id); }
-    inline bool has_key_tag()    const { _C4RV(); return m_tree->has_key_tag(m_id); }
-    inline bool has_val_tag()    const { _C4RV(); return m_tree->has_val_tag(m_id); }
-    inline bool is_key_ref()     const { _C4RV(); return m_tree->is_key_ref(m_id); }
-    inline bool is_val_ref()     const { _C4RV(); return m_tree->is_val_ref(m_id); }
-    inline bool is_ref()         const { _C4RV(); return m_tree->is_ref(m_id); }
-    inline bool is_anchor()      const { _C4RV(); return m_tree->is_anchor(m_id); }
-    inline bool has_key_anchor() const { _C4RV(); return m_tree->has_key_anchor(m_id); }
-    inline bool has_val_anchor() const { _C4RV(); return m_tree->has_val_anchor(m_id); }
+    C4_ALWAYS_INLINE bool is_stream()        const { _C4RV(); return m_tree->is_stream(m_id); }
+    C4_ALWAYS_INLINE bool is_doc()           const { _C4RV(); return m_tree->is_doc(m_id); }
+    C4_ALWAYS_INLINE bool is_container()     const { _C4RV(); return m_tree->is_container(m_id); }
+    C4_ALWAYS_INLINE bool is_map()           const { _C4RV(); return m_tree->is_map(m_id); }
+    C4_ALWAYS_INLINE bool is_seq()           const { _C4RV(); return m_tree->is_seq(m_id); }
+    C4_ALWAYS_INLINE bool has_val()          const { _C4RV(); return m_tree->has_val(m_id); }
+    C4_ALWAYS_INLINE bool has_key()          const { _C4RV(); return m_tree->has_key(m_id); }
+    C4_ALWAYS_INLINE bool is_val()           const { _C4RV(); return m_tree->is_val(m_id); }
+    C4_ALWAYS_INLINE bool is_keyval()        const { _C4RV(); return m_tree->is_keyval(m_id); }
+    C4_ALWAYS_INLINE bool has_key_tag()      const { _C4RV(); return m_tree->has_key_tag(m_id); }
+    C4_ALWAYS_INLINE bool has_val_tag()      const { _C4RV(); return m_tree->has_val_tag(m_id); }
+    C4_ALWAYS_INLINE bool has_key_anchor()   const { _C4RV(); return m_tree->has_key_anchor(m_id); }
+    C4_ALWAYS_INLINE bool is_key_anchor()    const { _C4RV(); return m_tree->is_key_anchor(m_id); }
+    C4_ALWAYS_INLINE bool has_val_anchor()   const { _C4RV(); return m_tree->has_val_anchor(m_id); }
+    C4_ALWAYS_INLINE bool is_val_anchor()    const { _C4RV(); return m_tree->is_val_anchor(m_id); }
+    C4_ALWAYS_INLINE bool has_anchor()       const { _C4RV(); return m_tree->has_anchor(m_id); }
+    C4_ALWAYS_INLINE bool is_anchor()        const { _C4RV(); return m_tree->is_anchor(m_id); }
+    C4_ALWAYS_INLINE bool is_key_ref()       const { _C4RV(); return m_tree->is_key_ref(m_id); }
+    C4_ALWAYS_INLINE bool is_val_ref()       const { _C4RV(); return m_tree->is_val_ref(m_id); }
+    C4_ALWAYS_INLINE bool is_ref()           const { _C4RV(); return m_tree->is_ref(m_id); }
+    C4_ALWAYS_INLINE bool is_anchor_or_ref() const { _C4RV(); return m_tree->is_anchor_or_ref(m_id); }
+    C4_ALWAYS_INLINE bool is_key_quoted()    const { _C4RV(); return m_tree->is_key_quoted(m_id); }
+    C4_ALWAYS_INLINE bool is_val_quoted()    const { _C4RV(); return m_tree->is_val_quoted(m_id); }
+    C4_ALWAYS_INLINE bool is_quoted()        const { _C4RV(); return m_tree->is_quoted(m_id); }
 
-    inline bool parent_is_seq() const { _C4RV(); return m_tree->parent_is_seq(m_id); }
-    inline bool parent_is_map() const { _C4RV(); return m_tree->parent_is_map(m_id); }
+    C4_ALWAYS_INLINE bool parent_is_seq()    const { _C4RV(); return m_tree->parent_is_seq(m_id); }
+    C4_ALWAYS_INLINE bool parent_is_map()    const { _C4RV(); return m_tree->parent_is_map(m_id); }
 
     /** true when name and value are empty, and has no children */
-    inline bool empty() const { _C4RV(); return m_tree->empty(m_id); }
+    C4_ALWAYS_INLINE bool empty() const { _C4RV(); return m_tree->empty(m_id); }
 
 public:
 
     // hierarchy predicates
-
+    
+    inline bool is_root()    const { _C4RV(); return m_tree->is_root(m_id); }
     inline bool has_parent() const { _C4RV(); return m_tree->has_parent(m_id); }
 
     inline bool has_child(NodeRef const& ch) const { _C4RV(); return m_tree->has_child(m_id, ch.m_id); }
