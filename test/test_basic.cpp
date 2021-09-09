@@ -100,7 +100,7 @@ Tree get_test_tree()
 }
 
 //-------------------------------------------
-TEST(tree, copy_ctor)
+TEST(Tree, copy_ctor)
 {
     Tree t = get_test_tree();
     {
@@ -113,7 +113,7 @@ TEST(tree, copy_ctor)
 }
 
 //-------------------------------------------
-TEST(tree, move_ctor)
+TEST(Tree, move_ctor)
 {
     Tree t = get_test_tree();
     Tree save(t);
@@ -133,7 +133,7 @@ TEST(tree, move_ctor)
 }
 
 //-------------------------------------------
-TEST(tree, copy_assign)
+TEST(Tree, copy_assign)
 {
     Tree t = get_test_tree();
     Tree cp;
@@ -146,7 +146,7 @@ TEST(tree, copy_assign)
 }
 
 //-------------------------------------------
-TEST(tree, move_assign)
+TEST(Tree, move_assign)
 {
     Tree t = get_test_tree();
     Tree cp;
@@ -164,7 +164,7 @@ TEST(tree, move_assign)
 }
 
 //-------------------------------------------
-TEST(tree, reserve)
+TEST(Tree, reserve)
 {
     Tree t(16, 64);
     EXPECT_EQ(t.capacity(), 16);
@@ -219,7 +219,7 @@ TEST(tree, reserve)
     test_invariants(t);
 }
 
-TEST(tree, clear)
+TEST(Tree, clear)
 {
     Tree t(16, 64);
     EXPECT_EQ(t.capacity(), 16);
@@ -286,7 +286,39 @@ TEST(tree, clear)
 
 
 //-------------------------------------------
-TEST(tree, operator_square_brackets)
+
+TEST(Tree, ref)
+{
+    Tree t = parse("[0, 1, 2, 3]");
+    EXPECT_EQ(t.ref(0).id(), 0);
+    EXPECT_EQ(t.ref(1).id(), 1);
+    EXPECT_EQ(t.ref(2).id(), 2);
+    EXPECT_EQ(t.ref(3).id(), 3);
+    EXPECT_EQ(t.ref(4).id(), 4);
+    EXPECT_TRUE(t.ref(0).is_seq());
+    EXPECT_TRUE(t.ref(1).is_val());
+    EXPECT_TRUE(t.ref(2).is_val());
+    EXPECT_TRUE(t.ref(3).is_val());
+    EXPECT_TRUE(t.ref(4).is_val());
+}
+
+TEST(Tree, ref_const)
+{
+    const Tree t = parse("[0, 1, 2, 3]");
+    EXPECT_EQ(t.ref(0).id(), 0);
+    EXPECT_EQ(t.ref(1).id(), 1);
+    EXPECT_EQ(t.ref(2).id(), 2);
+    EXPECT_EQ(t.ref(3).id(), 3);
+    EXPECT_EQ(t.ref(4).id(), 4);
+    EXPECT_TRUE(t.ref(0).is_seq());
+    EXPECT_TRUE(t.ref(1).is_val());
+    EXPECT_TRUE(t.ref(2).is_val());
+    EXPECT_TRUE(t.ref(3).is_val());
+    EXPECT_TRUE(t.ref(4).is_val());
+}
+
+
+TEST(Tree, operator_square_brackets)
 {
     {
         Tree t = parse("[0, 1, 2, 3, 4]");
@@ -364,7 +396,7 @@ TEST(tree, operator_square_brackets)
     }
 }
 
-TEST(tree, relocate)
+TEST(Tree, relocate)
 {
     // create a tree with anchors and refs, and copy it to ensure the
     // relocation also applies to the anchors and refs. Ensure to put
@@ -1940,6 +1972,142 @@ seq: &seqanchor [&valanchor foo, bar]
     EXPECT_EQ(valnoanchor.is_val_anchor(), valnoanchor.get()->m_type.is_val_anchor());
 }
 
+TEST(NodeType, has_anchor)
+{
+    EXPECT_FALSE(NodeType().has_anchor());
+    EXPECT_TRUE(NodeType(VALANCH).has_anchor());
+    EXPECT_TRUE(NodeType(KEYANCH).has_anchor());
+    EXPECT_TRUE(NodeType(KEYANCH|VALANCH).has_anchor());
+    EXPECT_TRUE(NodeType(KEY|VALANCH).has_anchor());
+    EXPECT_TRUE(NodeType(VAL|KEYANCH).has_anchor());
+    EXPECT_TRUE(NodeType(KEY|KEYANCH).has_anchor());
+    EXPECT_TRUE(NodeType(VAL|VALANCH).has_anchor());
+}
+
+TEST(Tree, has_anchor)
+{
+    Tree t = parse(R"(--- &docanchor
+map: &mapanchor {foo: &keyvalanchor bar, anchor: none}
+&seqanchor seq: [&valanchor foo, bar]
+...)");
+    const size_t stream_id = t.root_id();
+    const size_t doc_id = t.first_child(stream_id);
+    const size_t map_id = t.first_child(doc_id);
+    const size_t keyval_id = t.first_child(map_id);
+    const size_t keyvalnoanchor_id = t.last_child(map_id);
+    const size_t seq_id = t.last_child(doc_id);
+    const size_t val_id = t.first_child(seq_id);
+    const size_t valnoanchor_id = t.last_child(seq_id);
+    const NodeRef stream = t.ref(stream_id);
+    const NodeRef doc = t.ref(doc_id);
+    const NodeRef map = t.ref(map_id);
+    const NodeRef keyval = t.ref(keyval_id);
+    const NodeRef keyvalnoanchor = t.ref(keyvalnoanchor_id);
+    const NodeRef seq = t.ref(seq_id);
+    const NodeRef val = t.ref(val_id);
+    const NodeRef valnoanchor = t.ref(valnoanchor_id);
+    EXPECT_FALSE(t.has_anchor(stream_id));
+    EXPECT_FALSE(t.has_anchor(doc_id));
+    EXPECT_TRUE(t.has_anchor(map_id));
+    EXPECT_TRUE(t.has_anchor(keyval_id));
+    EXPECT_FALSE(t.has_anchor(keyvalnoanchor_id));
+    EXPECT_TRUE(t.has_anchor(seq_id));
+    EXPECT_TRUE(t.has_anchor(val_id));
+    EXPECT_FALSE(t.has_anchor(valnoanchor_id));
+    EXPECT_FALSE(stream.has_anchor());
+    EXPECT_FALSE(doc.has_anchor());
+    EXPECT_TRUE(map.has_anchor());
+    EXPECT_TRUE(keyval.has_anchor());
+    EXPECT_FALSE(keyvalnoanchor.has_anchor());
+    EXPECT_TRUE(seq.has_anchor());
+    EXPECT_TRUE(val.has_anchor());
+    EXPECT_FALSE(valnoanchor.has_anchor());
+    EXPECT_EQ(t.has_anchor(stream_id), t._p(stream_id)->m_type.has_anchor());
+    EXPECT_EQ(t.has_anchor(doc_id), t._p(doc_id)->m_type.has_anchor());
+    EXPECT_EQ(t.has_anchor(map_id), t._p(map_id)->m_type.has_anchor());
+    EXPECT_EQ(t.has_anchor(keyval_id), t._p(keyval_id)->m_type.has_anchor());
+    EXPECT_EQ(t.has_anchor(keyvalnoanchor_id), t._p(keyvalnoanchor_id)->m_type.has_anchor());
+    EXPECT_EQ(t.has_anchor(seq_id), t._p(seq_id)->m_type.has_anchor());
+    EXPECT_EQ(t.has_anchor(val_id), t._p(val_id)->m_type.has_anchor());
+    EXPECT_EQ(t.has_anchor(valnoanchor_id), t._p(valnoanchor_id)->m_type.has_anchor());
+    EXPECT_EQ(stream.has_anchor(), stream.get()->m_type.has_anchor());
+    EXPECT_EQ(doc.has_anchor(), doc.get()->m_type.has_anchor());
+    EXPECT_EQ(map.has_anchor(), map.get()->m_type.has_anchor());
+    EXPECT_EQ(keyval.has_anchor(), keyval.get()->m_type.has_anchor());
+    EXPECT_EQ(keyvalnoanchor.has_anchor(), keyvalnoanchor.get()->m_type.has_anchor());
+    EXPECT_EQ(seq.has_anchor(), seq.get()->m_type.has_anchor());
+    EXPECT_EQ(val.has_anchor(), val.get()->m_type.has_anchor());
+    EXPECT_EQ(valnoanchor.has_anchor(), valnoanchor.get()->m_type.has_anchor());
+}
+
+TEST(NodeType, is_anchor)
+{
+    EXPECT_FALSE(NodeType().is_anchor());
+    EXPECT_TRUE(NodeType(VALANCH).is_anchor());
+    EXPECT_TRUE(NodeType(KEYANCH).is_anchor());
+    EXPECT_TRUE(NodeType(KEYANCH|VALANCH).is_anchor());
+    EXPECT_TRUE(NodeType(KEY|VALANCH).is_anchor());
+    EXPECT_TRUE(NodeType(VAL|KEYANCH).is_anchor());
+    EXPECT_TRUE(NodeType(KEY|KEYANCH).is_anchor());
+    EXPECT_TRUE(NodeType(VAL|VALANCH).is_anchor());
+}
+
+TEST(Tree, is_anchor)
+{
+    Tree t = parse(R"(--- &docanchor
+map: &mapanchor {foo: &keyvalanchor bar, anchor: none}
+&seqanchor seq: [&valanchor foo, bar]
+...)");
+    const size_t stream_id = t.root_id();
+    const size_t doc_id = t.first_child(stream_id);
+    const size_t map_id = t.first_child(doc_id);
+    const size_t keyval_id = t.first_child(map_id);
+    const size_t keyvalnoanchor_id = t.last_child(map_id);
+    const size_t seq_id = t.last_child(doc_id);
+    const size_t val_id = t.first_child(seq_id);
+    const size_t valnoanchor_id = t.last_child(seq_id);
+    const NodeRef stream = t.ref(stream_id);
+    const NodeRef doc = t.ref(doc_id);
+    const NodeRef map = t.ref(map_id);
+    const NodeRef keyval = t.ref(keyval_id);
+    const NodeRef keyvalnoanchor = t.ref(keyvalnoanchor_id);
+    const NodeRef seq = t.ref(seq_id);
+    const NodeRef val = t.ref(val_id);
+    const NodeRef valnoanchor = t.ref(valnoanchor_id);
+    EXPECT_FALSE(t.is_anchor(stream_id));
+    EXPECT_FALSE(t.is_anchor(doc_id));
+    EXPECT_TRUE(t.is_anchor(map_id));
+    EXPECT_TRUE(t.is_anchor(keyval_id));
+    EXPECT_FALSE(t.is_anchor(keyvalnoanchor_id));
+    EXPECT_TRUE(t.is_anchor(seq_id));
+    EXPECT_TRUE(t.is_anchor(val_id));
+    EXPECT_FALSE(t.is_anchor(valnoanchor_id));
+    EXPECT_FALSE(stream.is_anchor());
+    EXPECT_FALSE(doc.is_anchor());
+    EXPECT_TRUE(map.is_anchor());
+    EXPECT_TRUE(keyval.is_anchor());
+    EXPECT_FALSE(keyvalnoanchor.is_anchor());
+    EXPECT_TRUE(seq.is_anchor());
+    EXPECT_TRUE(val.is_anchor());
+    EXPECT_FALSE(valnoanchor.is_anchor());
+    EXPECT_EQ(t.is_anchor(stream_id), t._p(stream_id)->m_type.is_anchor());
+    EXPECT_EQ(t.is_anchor(doc_id), t._p(doc_id)->m_type.is_anchor());
+    EXPECT_EQ(t.is_anchor(map_id), t._p(map_id)->m_type.is_anchor());
+    EXPECT_EQ(t.is_anchor(keyval_id), t._p(keyval_id)->m_type.is_anchor());
+    EXPECT_EQ(t.is_anchor(keyvalnoanchor_id), t._p(keyvalnoanchor_id)->m_type.is_anchor());
+    EXPECT_EQ(t.is_anchor(seq_id), t._p(seq_id)->m_type.is_anchor());
+    EXPECT_EQ(t.is_anchor(val_id), t._p(val_id)->m_type.is_anchor());
+    EXPECT_EQ(t.is_anchor(valnoanchor_id), t._p(valnoanchor_id)->m_type.is_anchor());
+    EXPECT_EQ(stream.is_anchor(), stream.get()->m_type.is_anchor());
+    EXPECT_EQ(doc.is_anchor(), doc.get()->m_type.is_anchor());
+    EXPECT_EQ(map.is_anchor(), map.get()->m_type.is_anchor());
+    EXPECT_EQ(keyval.is_anchor(), keyval.get()->m_type.is_anchor());
+    EXPECT_EQ(keyvalnoanchor.is_anchor(), keyvalnoanchor.get()->m_type.is_anchor());
+    EXPECT_EQ(seq.is_anchor(), seq.get()->m_type.is_anchor());
+    EXPECT_EQ(val.is_anchor(), val.get()->m_type.is_anchor());
+    EXPECT_EQ(valnoanchor.is_anchor(), valnoanchor.get()->m_type.is_anchor());
+}
+
 TEST(NodeType, is_key_ref)
 {
     EXPECT_FALSE(NodeType().is_key_ref());
@@ -2040,6 +2208,122 @@ seq: [*valref, bar]
     EXPECT_EQ(keyval.is_val_ref(), keyval.get()->m_type.is_val_ref());
     EXPECT_EQ(seq.is_val_ref(), seq.get()->m_type.is_val_ref());
     EXPECT_EQ(val.is_val_ref(), val.get()->m_type.is_val_ref());
+}
+
+TEST(NodeType, is_ref)
+{
+    EXPECT_FALSE(NodeType().is_ref());
+    EXPECT_FALSE(NodeType(KEYVAL).is_ref());
+    EXPECT_TRUE(NodeType(KEYREF).is_ref());
+    EXPECT_TRUE(NodeType(VALREF).is_ref());
+    EXPECT_TRUE(NodeType(KEY|VALREF).is_ref());
+    EXPECT_TRUE(NodeType(VAL|KEYREF).is_ref());
+    EXPECT_TRUE(NodeType(KEYREF|VALREF).is_ref());
+}
+
+TEST(Tree, is_ref)
+{
+    Tree t = parse(R"(---
+map: {foo: *keyvalref, notag: none}
+seq: [*valref, bar]
+...)");
+    const size_t stream_id = t.root_id();
+    const size_t doc_id = t.first_child(stream_id);
+    const size_t map_id = t.first_child(doc_id);
+    const size_t keyval_id = t.first_child(map_id);
+    const size_t seq_id = t.last_child(doc_id);
+    const size_t val_id = t.first_child(seq_id);
+    const NodeRef stream = t.ref(stream_id);
+    const NodeRef doc = t.ref(doc_id);
+    const NodeRef map = t.ref(map_id);
+    const NodeRef keyval = t.ref(keyval_id);
+    const NodeRef seq = t.ref(seq_id);
+    const NodeRef val = t.ref(val_id);
+    EXPECT_FALSE(t.is_ref(stream_id));
+    EXPECT_FALSE(t.is_ref(doc_id));
+    EXPECT_FALSE(t.is_ref(map_id));
+    EXPECT_TRUE(t.is_ref(keyval_id));
+    EXPECT_FALSE(t.is_ref(seq_id));
+    EXPECT_TRUE(t.is_ref(val_id));
+    EXPECT_FALSE(stream.is_ref());
+    EXPECT_FALSE(doc.is_ref());
+    EXPECT_FALSE(map.is_ref());
+    EXPECT_TRUE(keyval.is_ref());
+    EXPECT_FALSE(seq.is_ref());
+    EXPECT_TRUE(val.is_ref());
+    EXPECT_EQ(t.is_ref(stream_id), t._p(stream_id)->m_type.is_ref());
+    EXPECT_EQ(t.is_ref(doc_id), t._p(doc_id)->m_type.is_ref());
+    EXPECT_EQ(t.is_ref(map_id), t._p(map_id)->m_type.is_ref());
+    EXPECT_EQ(t.is_ref(keyval_id), t._p(keyval_id)->m_type.is_ref());
+    EXPECT_EQ(t.is_ref(seq_id), t._p(seq_id)->m_type.is_ref());
+    EXPECT_EQ(t.is_ref(val_id), t._p(val_id)->m_type.is_ref());
+    EXPECT_EQ(stream.is_ref(), stream.get()->m_type.is_ref());
+    EXPECT_EQ(doc.is_ref(), doc.get()->m_type.is_ref());
+    EXPECT_EQ(map.is_ref(), map.get()->m_type.is_ref());
+    EXPECT_EQ(keyval.is_ref(), keyval.get()->m_type.is_ref());
+    EXPECT_EQ(seq.is_ref(), seq.get()->m_type.is_ref());
+    EXPECT_EQ(val.is_ref(), val.get()->m_type.is_ref());
+}
+
+TEST(NodeType, is_anchor_or_ref)
+{
+    EXPECT_FALSE(NodeType().is_anchor_or_ref());
+    EXPECT_FALSE(NodeType(KEYVAL).is_anchor_or_ref());
+    EXPECT_TRUE(NodeType(KEYREF).is_anchor_or_ref());
+    EXPECT_TRUE(NodeType(KEYANCH).is_anchor_or_ref());
+    EXPECT_TRUE(NodeType(VALREF).is_anchor_or_ref());
+    EXPECT_TRUE(NodeType(VALANCH).is_anchor_or_ref());
+    EXPECT_TRUE(NodeType(KEY|VALREF).is_anchor_or_ref());
+    EXPECT_TRUE(NodeType(KEY|VALANCH).is_anchor_or_ref());
+    EXPECT_TRUE(NodeType(VAL|KEYREF).is_anchor_or_ref());
+    EXPECT_TRUE(NodeType(VAL|VALANCH).is_anchor_or_ref());
+    EXPECT_TRUE(NodeType(KEY|VALANCH).is_anchor_or_ref());
+    EXPECT_TRUE(NodeType(KEYREF|VALREF).is_anchor_or_ref());
+    EXPECT_TRUE(NodeType(KEYANCH|VALANCH).is_anchor_or_ref());
+}
+
+TEST(Tree, is_anchor_or_ref)
+{
+    Tree t = parse(R"(---
+&map map: {foo: *keyvalref, notag: none}
+seq: &seq [*valref, bar]
+...)");
+    const size_t stream_id = t.root_id();
+    const size_t doc_id = t.first_child(stream_id);
+    const size_t map_id = t.first_child(doc_id);
+    const size_t keyval_id = t.first_child(map_id);
+    const size_t seq_id = t.last_child(doc_id);
+    const size_t val_id = t.first_child(seq_id);
+    const NodeRef stream = t.ref(stream_id);
+    const NodeRef doc = t.ref(doc_id);
+    const NodeRef map = t.ref(map_id);
+    const NodeRef keyval = t.ref(keyval_id);
+    const NodeRef seq = t.ref(seq_id);
+    const NodeRef val = t.ref(val_id);
+    EXPECT_FALSE(t.is_anchor_or_ref(stream_id));
+    EXPECT_FALSE(t.is_anchor_or_ref(doc_id));
+    EXPECT_TRUE(t.is_anchor_or_ref(map_id));
+    EXPECT_TRUE(t.is_anchor_or_ref(keyval_id));
+    EXPECT_TRUE(t.is_anchor_or_ref(seq_id));
+    EXPECT_TRUE(t.is_anchor_or_ref(val_id));
+    EXPECT_FALSE(stream.is_anchor_or_ref());
+    EXPECT_FALSE(doc.is_anchor_or_ref());
+    EXPECT_TRUE(map.is_anchor_or_ref());
+    EXPECT_TRUE(keyval.is_anchor_or_ref());
+    EXPECT_TRUE(seq.is_anchor_or_ref());
+    EXPECT_TRUE(val.is_anchor_or_ref());
+    EXPECT_EQ(t.is_anchor_or_ref(stream_id), t._p(stream_id)->m_type.is_anchor_or_ref());
+    EXPECT_EQ(t.is_anchor_or_ref(doc_id), t._p(doc_id)->m_type.is_anchor_or_ref());
+    EXPECT_EQ(t.is_anchor_or_ref(map_id), t._p(map_id)->m_type.is_anchor_or_ref());
+    EXPECT_EQ(t.is_anchor_or_ref(keyval_id), t._p(keyval_id)->m_type.is_anchor_or_ref());
+    EXPECT_EQ(t.is_anchor_or_ref(seq_id), t._p(seq_id)->m_type.is_anchor_or_ref());
+    EXPECT_EQ(t.is_anchor_or_ref(val_id), t._p(val_id)->m_type.is_anchor_or_ref());
+    EXPECT_EQ(stream.is_anchor_or_ref(), stream.get()->m_type.is_anchor_or_ref());
+    EXPECT_EQ(doc.is_anchor_or_ref(), doc.get()->m_type.is_anchor_or_ref());
+    EXPECT_EQ(map.is_anchor_or_ref(), map.get()->m_type.is_anchor_or_ref());
+    EXPECT_EQ(keyval.is_anchor_or_ref(), keyval.get()->m_type.is_anchor_or_ref());
+    EXPECT_EQ(seq.is_anchor_or_ref(), seq.get()->m_type.is_anchor_or_ref());
+    EXPECT_EQ(val.is_anchor_or_ref(), val.get()->m_type.is_anchor_or_ref());
 }
 
 TEST(NodeType, is_key_quoted)
@@ -2179,6 +2463,212 @@ notquoted: bar
     EXPECT_EQ(quoted5.is_quoted(), quoted5.get()->m_type.is_quoted());
     EXPECT_EQ(quoted6.is_quoted(), quoted6.get()->m_type.is_quoted());
     EXPECT_EQ(notquoted.is_quoted(), notquoted.get()->m_type.is_quoted());
+}
+
+
+TEST(Tree, parent_is_seq)
+{
+    Tree t = parse(R"(---
+map: {foo: *keyvalref, notag: none}
+seq: &seq [*valref, bar]
+...)");
+    const size_t stream_id = t.root_id();
+    const size_t doc_id = t.first_child(stream_id);
+    const size_t map_id = t.first_child(doc_id);
+    const size_t keyval_id = t.first_child(map_id);
+    const size_t seq_id = t.last_child(doc_id);
+    const size_t val_id = t.first_child(seq_id);
+    const NodeRef doc = t.ref(doc_id);
+    const NodeRef map = t.ref(map_id);
+    const NodeRef keyval = t.ref(keyval_id);
+    const NodeRef seq = t.ref(seq_id);
+    const NodeRef val = t.ref(val_id);
+    //EXPECT_FALSE(t.parent_is_seq(stream_id));
+    EXPECT_TRUE(t.parent_is_seq(doc_id));
+    EXPECT_FALSE(t.parent_is_seq(map_id));
+    EXPECT_FALSE(t.parent_is_seq(keyval_id));
+    EXPECT_FALSE(t.parent_is_seq(seq_id));
+    EXPECT_TRUE(t.parent_is_seq(val_id));
+    //EXPECT_FALSE(stream.parent_is_seq());
+    EXPECT_TRUE(doc.parent_is_seq());
+    EXPECT_FALSE(map.parent_is_seq());
+    EXPECT_FALSE(keyval.parent_is_seq());
+    EXPECT_FALSE(seq.parent_is_seq());
+    EXPECT_TRUE(val.parent_is_seq());
+    //EXPECT_EQ(t.parent_is_seq(stream_id), stream.parent_is_seq());
+    EXPECT_EQ(t.parent_is_seq(doc_id), doc.parent_is_seq());
+    EXPECT_EQ(t.parent_is_seq(map_id), map.parent_is_seq());
+    EXPECT_EQ(t.parent_is_seq(keyval_id), keyval.parent_is_seq());
+    EXPECT_EQ(t.parent_is_seq(seq_id), seq.parent_is_seq());
+    EXPECT_EQ(t.parent_is_seq(val_id), val.parent_is_seq());
+}
+
+TEST(Tree, parent_is_map)
+{
+    Tree t = parse(R"(---
+map: {foo: *keyvalref, notag: none}
+seq: &seq [*valref, bar]
+...)");
+    const size_t stream_id = t.root_id();
+    const size_t doc_id = t.first_child(stream_id);
+    const size_t map_id = t.first_child(doc_id);
+    const size_t keyval_id = t.first_child(map_id);
+    const size_t seq_id = t.last_child(doc_id);
+    const size_t val_id = t.first_child(seq_id);
+    const NodeRef doc = t.ref(doc_id);
+    const NodeRef map = t.ref(map_id);
+    const NodeRef keyval = t.ref(keyval_id);
+    const NodeRef seq = t.ref(seq_id);
+    const NodeRef val = t.ref(val_id);
+    //EXPECT_FALSE(t.parent_is_map(stream_id));
+    EXPECT_FALSE(t.parent_is_map(doc_id));
+    EXPECT_TRUE(t.parent_is_map(map_id));
+    EXPECT_TRUE(t.parent_is_map(keyval_id));
+    EXPECT_TRUE(t.parent_is_map(seq_id));
+    EXPECT_FALSE(t.parent_is_map(val_id));
+    //EXPECT_FALSE(stream.parent_is_map());
+    EXPECT_FALSE(doc.parent_is_map());
+    EXPECT_TRUE(map.parent_is_map());
+    EXPECT_TRUE(keyval.parent_is_map());
+    EXPECT_TRUE(seq.parent_is_map());
+    EXPECT_FALSE(val.parent_is_map());
+    //EXPECT_EQ(t.parent_is_map(stream_id), stream.parent_is_map());
+    EXPECT_EQ(t.parent_is_map(doc_id), doc.parent_is_map());
+    EXPECT_EQ(t.parent_is_map(map_id), map.parent_is_map());
+    EXPECT_EQ(t.parent_is_map(keyval_id), keyval.parent_is_map());
+    EXPECT_EQ(t.parent_is_map(seq_id), seq.parent_is_map());
+    EXPECT_EQ(t.parent_is_map(val_id), val.parent_is_map());
+}
+
+TEST(Tree, has_parent)
+{
+    Tree t = parse(R"(---
+map: {foo: *keyvalref, notag: none}
+seq: &seq [*valref, bar]
+...)");
+    const size_t stream_id = t.root_id();
+    const size_t doc_id = t.first_child(stream_id);
+    const size_t map_id = t.first_child(doc_id);
+    const size_t keyval_id = t.first_child(map_id);
+    const size_t seq_id = t.last_child(doc_id);
+    const size_t val_id = t.first_child(seq_id);
+    const NodeRef stream = t.ref(stream_id);
+    const NodeRef doc = t.ref(doc_id);
+    const NodeRef map = t.ref(map_id);
+    const NodeRef keyval = t.ref(keyval_id);
+    const NodeRef seq = t.ref(seq_id);
+    const NodeRef val = t.ref(val_id);
+    EXPECT_FALSE(t.has_parent(stream_id));
+    EXPECT_TRUE(t.has_parent(doc_id));
+    EXPECT_TRUE(t.has_parent(map_id));
+    EXPECT_TRUE(t.has_parent(keyval_id));
+    EXPECT_TRUE(t.has_parent(seq_id));
+    EXPECT_TRUE(t.has_parent(val_id));
+    EXPECT_FALSE(stream.has_parent());
+    EXPECT_TRUE(doc.has_parent());
+    EXPECT_TRUE(map.has_parent());
+    EXPECT_TRUE(keyval.has_parent());
+    EXPECT_TRUE(seq.has_parent());
+    EXPECT_TRUE(val.has_parent());
+    EXPECT_EQ(t.has_parent(stream_id), stream.has_parent());
+    EXPECT_EQ(t.has_parent(doc_id), doc.has_parent());
+    EXPECT_EQ(t.has_parent(map_id), map.has_parent());
+    EXPECT_EQ(t.has_parent(keyval_id), keyval.has_parent());
+    EXPECT_EQ(t.has_parent(seq_id), seq.has_parent());
+    EXPECT_EQ(t.has_parent(val_id), val.has_parent());
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+TEST(Tree, num_children)
+{
+    Tree t = parse(R"(---
+map: {foo: *keyvalref, notag: none}
+seq: &seq [*valref, bar]
+...)");
+    const size_t stream_id = t.root_id();
+    const size_t doc_id = t.first_child(stream_id);
+    const size_t map_id = t.first_child(doc_id);
+    const size_t keyval_id = t.first_child(map_id);
+    const size_t seq_id = t.last_child(doc_id);
+    const size_t val_id = t.first_child(seq_id);
+    const NodeRef stream = t.ref(stream_id);
+    const NodeRef doc = t.ref(doc_id);
+    const NodeRef map = t.ref(map_id);
+    const NodeRef keyval = t.ref(keyval_id);
+    const NodeRef seq = t.ref(seq_id);
+    const NodeRef val = t.ref(val_id);
+    EXPECT_EQ(t.num_children(stream_id), 1u);
+    EXPECT_EQ(t.num_children(doc_id), 2u);
+    EXPECT_EQ(t.num_children(map_id), 2u);
+    EXPECT_EQ(t.num_children(keyval_id), 0u);
+    EXPECT_EQ(t.num_children(seq_id), 2u);
+    EXPECT_EQ(t.num_children(val_id), 0u);
+    EXPECT_EQ(stream.num_children(), t.num_children(stream_id));
+    EXPECT_EQ(doc.num_children(), t.num_children(doc_id));
+    EXPECT_EQ(map.num_children(), t.num_children(map_id));
+    EXPECT_EQ(keyval.num_children(), t.num_children(keyval_id));
+    EXPECT_EQ(seq.num_children(), t.num_children(seq_id));
+    EXPECT_EQ(val.num_children(), t.num_children(val_id));
+}
+
+TEST(Tree, child)
+{
+    Tree t = parse(R"(---
+map: {foo: *keyvalref, notag: none}
+seq: &seq [*valref, bar]
+...)");
+    const size_t stream_id = t.root_id();
+    const size_t doc_id = t.first_child(stream_id);
+    const size_t map_id = t.first_child(doc_id);
+    const size_t keyval_id = t.first_child(map_id);
+    const size_t seq_id = t.last_child(doc_id);
+    const size_t val_id = t.first_child(seq_id);
+    const NodeRef stream = t.ref(stream_id);
+    const NodeRef doc = t.ref(doc_id);
+    const NodeRef map = t.ref(map_id);
+    const NodeRef keyval = t.ref(keyval_id);
+    const NodeRef seq = t.ref(seq_id);
+    const NodeRef val = t.ref(val_id);
+    EXPECT_EQ(t.child(stream_id, 0), doc_id);
+    EXPECT_EQ(t.child(doc_id, 0), map_id);
+    EXPECT_EQ(t.child(map_id, 0), keyval_id);
+    EXPECT_EQ(t.child(keyval_id, 0), (size_t)NONE);
+    EXPECT_EQ(t.child(seq_id, 0), val_id);
+    EXPECT_EQ(t.child(val_id, 0), (size_t)NONE);
+    EXPECT_EQ(stream.child(0).id(), t.child(stream_id, 0));
+    EXPECT_EQ(doc.child(0).id(), t.child(doc_id, 0));
+    EXPECT_EQ(map.child(0).id(), t.child(map_id, 0));
+    EXPECT_EQ(keyval.child(0).id(), t.child(keyval_id, 0));
+    EXPECT_EQ(seq.child(0).id(), t.child(seq_id, 0));
+    EXPECT_EQ(val.child(0).id(), t.child(val_id, 0));
+}
+
+TEST(Tree, find_child_by_name)
+{
+    Tree t = parse(R"(---
+map: {foo: *keyvalref, notag: none}
+seq: &seq [*valref, bar]
+...)");
+    const size_t stream_id = t.root_id();
+    const size_t doc_id = t.first_child(stream_id);
+    const size_t map_id = t.first_child(doc_id);
+    const size_t keyval_id = t.first_child(map_id);
+    const size_t seq_id = t.last_child(doc_id);
+    const NodeRef doc = t.ref(doc_id);
+    const NodeRef map = t.ref(map_id);
+    EXPECT_EQ(t.find_child(doc_id, "map"), map_id);
+    EXPECT_EQ(t.find_child(doc_id, "seq"), seq_id);
+    EXPECT_EQ(t.find_child(doc_id, "..."), (size_t)NONE);
+    EXPECT_EQ(t.find_child(map_id, "foo"), keyval_id);
+    EXPECT_EQ(t.find_child(map_id, "bar"), (size_t)NONE);
+    EXPECT_EQ(doc.find_child("map").id(), t.find_child(doc_id, "map"));
+    EXPECT_EQ(doc.find_child("seq").id(), t.find_child(doc_id, "seq"));
+    EXPECT_EQ(doc.find_child("...").id(), t.find_child(doc_id, "..."));
+    EXPECT_EQ(map.find_child("foo").id(), t.find_child(map_id, "foo"));
+    EXPECT_EQ(map.find_child("bar").id(), t.find_child(map_id, "bar"));
 }
 
 
