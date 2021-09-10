@@ -133,6 +133,8 @@ const char* NodeType::type_str(NodeType_e ty)
     {
     case KEYVAL:
         return "KEYVAL";
+    case KEY:
+        return "KEY";
     case VAL:
         return "VAL";
     case MAP:
@@ -191,10 +193,20 @@ NodeRef Tree::rootref()
 {
     return NodeRef(this, root_id());
 }
-
 NodeRef const Tree::rootref() const
 {
     return NodeRef(const_cast<Tree*>(this), root_id());
+}
+
+NodeRef Tree::ref(size_t id)
+{
+    RYML_ASSERT(id != NONE && id >= 0 && id < m_size);
+    return NodeRef(this, id);
+}
+NodeRef const Tree::ref(size_t id) const
+{
+    RYML_ASSERT(id != NONE && id >= 0 && id < m_size);
+    return NodeRef(const_cast<Tree*>(this), id);
 }
 
 NodeRef Tree::operator[] (csubstr key)
@@ -1402,7 +1414,6 @@ void Tree::resolve()
 
 size_t Tree::num_children(size_t node) const
 {
-    if(_p(node)->is_val()) return 0;
     size_t count = 0;
     for(size_t i = first_child(node); i != NONE; i = next_sibling(i))
     {
@@ -1414,7 +1425,6 @@ size_t Tree::num_children(size_t node) const
 size_t Tree::child(size_t node, size_t pos) const
 {
     RYML_ASSERT(node != NONE);
-    if(_p(node)->is_val()) return NONE;
     size_t count = 0;
     for(size_t i = first_child(node); i != NONE; i = next_sibling(i))
     {
@@ -1449,8 +1459,7 @@ size_t Tree::child_pos(size_t node, size_t ch) const
 size_t Tree::find_child(size_t node, csubstr const& name) const
 {
     RYML_ASSERT(node != NONE);
-    if(_p(node)->is_val()) return NONE;
-    RYML_ASSERT(_p(node)->is_map());
+    RYML_ASSERT(is_map(node));
     if(get(node)->m_first_child == NONE)
     {
         RYML_ASSERT(_p(node)->m_last_child == NONE);
