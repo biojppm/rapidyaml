@@ -1999,12 +1999,11 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
         {
             _c4dbgp("RSEQ|RVAL");
             if( ! _is_scalar_next__rseq_rval(s))
-            {
                 return false;
-            }
             s = s.left_of(s.find(" #")); // is there a comment?
             s = s.left_of(s.find(": ")); // is there a key-value?
-            if(s.ends_with(':')) s = s.left_of(s.len-1);
+            if(s.ends_with(':'))
+                s = s.left_of(s.len-1);
             if(has_all(EXPL))
             {
                 _c4dbgp("RSEQ|RVAL|EXPL");
@@ -2033,9 +2032,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
             colon_space = s.find(":");
             RYML_ASSERT(s.len > 0);
             if(colon_space != s.len-1)
-            {
                 colon_space = npos;
-            }
         }
 
         if(has_all(RKEY))
@@ -2463,19 +2460,13 @@ csubstr from_next_line(csubstr rem)
 {
     size_t nlpos = rem.first_of("\r\n");
     if(nlpos == csubstr::npos)
-    {
         return {};
-    }
     const char nl = rem[nlpos];
     rem = rem.right_of(nlpos);
     if(rem.empty())
-    {
         return {};
-    }
     if(_extend_from_combined_newline(nl, rem.front()))
-    {
         rem = rem.sub(1);
-    }
     return rem;
 }
 
@@ -2485,27 +2476,22 @@ csubstr Parser::_peek_next_line(size_t pos) const
     size_t nlpos{}; // declare here because of the goto
     pos = pos == npos ? m_state->pos.offset : pos;
     if(pos >= m_buf.len)
-    {
         goto next_is_empty;
-    }
 
     // look for the next newline chars, and jump to the right of those
     rem = from_next_line(m_buf.sub(pos));
     if(rem.empty())
-    {
         goto next_is_empty;
-    }
 
     // now get everything up to and including the following newline chars
     nlpos = rem.first_of("\r\n");
     if((nlpos != csubstr::npos) && (nlpos + 1 < rem.len))
-    {
         nlpos += _extend_from_combined_newline(rem[nlpos], rem[nlpos+1]);
-    }
     rem = rem.left_of(nlpos, /*include_pos*/true);
 
     _c4dbgpf("peek next line @ %zu: (len=%zu)'%.*s'", pos, rem.len, _c4prsp(rem.trimr("\r\n")));
     return rem;
+
 next_is_empty:
     _c4dbgpf("peek next line @ %zu: (len=0)''", pos);
     return {};
@@ -3575,9 +3561,7 @@ csubstr Parser::_scan_block()
     _scan_line();
 
     if(indentation == npos)
-    {
         indentation = m_state->line_contents.indentation;
-    }
 
     _c4dbgpf("scanning block:  style=%s", newline==BLOCK_FOLD ? "fold" : "literal");
     _c4dbgpf("scanning block:  chomp=%s", chomp==CHOMP_CLIP ? "clip" : (chomp==CHOMP_STRIP ? "strip" : "keep"));

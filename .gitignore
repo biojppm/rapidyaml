@@ -12,6 +12,10 @@ __pycache__/
 .gdbinit
 setup.gdb
 
+# valgrind files
+callgrind*
+vgcore*
+
 # Visual Studio files
 .vs/
 .vscode/
@@ -32,6 +36,7 @@ compile_commands.json
 
 # test files
 /Testing/
+
 
 # continuous integration files
 .ci/.vagrant
