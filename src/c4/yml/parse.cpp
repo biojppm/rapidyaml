@@ -2497,35 +2497,40 @@ next_is_empty:
     return {};
 }
 
+
 //-----------------------------------------------------------------------------
+void Parser::LineContents::reset_with_next_line(csubstr buf, size_t offset)
+{
+    RYML_ASSERT(offset <= buf.len);
+    char const* C4_RESTRICT b = &buf[offset];
+    char const* C4_RESTRICT e = b;
+    // get the current line stripped of newline chars
+    while(e < buf.end() && (*e != '\n' && *e != '\r'))
+        ++e;
+    RYML_ASSERT(e >= b);
+    const csubstr stripped_ = buf.sub(offset, static_cast<size_t>(e - b));
+    // advance pos to include the first line ending
+    if(e != buf.end() && *e == '\r')
+        ++e;
+    if(e != buf.end() && *e == '\n')
+        ++e;
+    RYML_ASSERT(e >= b);
+    const csubstr full_ = buf.sub(offset, static_cast<size_t>(e - b));
+    reset(full_, stripped_);
+}
+
 void Parser::_scan_line()
 {
-    if(m_state->pos.offset >= m_buf.len) return;
-
-    char const* b = &m_buf[m_state->pos.offset];
-    char const* e = b;
-
-    // get the line stripped of newline chars
-    while(e < m_buf.end() && (*e != '\n' && *e != '\r'))
-    {
-        ++e;
-    }
-    RYML_ASSERT(e >= b);
-    csubstr stripped = m_buf.sub(m_state->pos.offset, static_cast<size_t>(e - b));
-
-    // advance pos to include the first line ending
-    if(e != m_buf.end() && *e == '\r') ++e;
-    if(e != m_buf.end() && *e == '\n') ++e;
-    RYML_ASSERT(e >= b);
-    csubstr full = m_buf.sub(m_state->pos.offset, static_cast<size_t>(e - b));
-
-    m_state->line_contents.reset(full, stripped);
+    if(m_state->pos.offset >= m_buf.len)
+        return;
+    m_state->line_contents.reset_with_next_line(m_buf, m_state->pos.offset);
 }
+
 
 //-----------------------------------------------------------------------------
 void Parser::_line_progressed(size_t ahead)
 {
-    _c4dbgpf("line[%zu] (%zu cols) progressed by %zu:  col %zu --> %zu   offset %zu --> %zu", m_state->pos.line, m_state->line_contents.full.len, ahead, m_state->pos.col, m_state->pos.col+ahead, m_state->pos.offset, m_state->pos.offset+ahead);
+    _c4dbgpf("line[%zu] (%zu cols) progressed by %zu:  col %zu-->%zu   offset %zu-->%zu", m_state->pos.line, m_state->line_contents.full.len, ahead, m_state->pos.col, m_state->pos.col+ahead, m_state->pos.offset, m_state->pos.offset+ahead);
     m_state->pos.offset += ahead;
     m_state->pos.col += ahead;
     RYML_ASSERT(m_state->pos.col <= m_state->line_contents.stripped.len+1);
@@ -2534,11 +2539,22 @@ void Parser::_line_progressed(size_t ahead)
 
 void Parser::_line_ended()
 {
-    _c4dbgpf("line[%zu] (%zu cols) ended! offset %zu --> %zu", m_state->pos.line, m_state->line_contents.full.len, m_state->pos.offset, m_state->pos.offset+m_state->line_contents.full.len - m_state->line_contents.stripped.len);
+    _c4dbgpf("line[%zu] (%zu cols) ended! offset %zu-->%zu", m_state->pos.line, m_state->line_contents.full.len, m_state->pos.offset, m_state->pos.offset+m_state->line_contents.full.len - m_state->line_contents.stripped.len);
     RYML_ASSERT(m_state->pos.col == m_state->line_contents.stripped.len+1);
     m_state->pos.offset += m_state->line_contents.full.len - m_state->line_contents.stripped.len;
     ++m_state->pos.line;
     m_state->pos.col = 1;
+}
+
+void Parser::_line_ended_undo()
+{
+    RYML_ASSERT(m_state->pos.col == 1u);
+    RYML_ASSERT(m_state->pos.line > 0u);
+    RYML_ASSERT(m_state->pos.offset >= m_state->line_contents.full.len - m_state->line_contents.stripped.len);
+    _c4dbgpf("line[%zu] undo ended! line %zu-->%zu, offset %zu-->%zu", m_state->pos.line, m_state->pos.line, m_state->pos.line - 1, m_state->pos.offset, m_state->pos.offset - (m_state->line_contents.full.len - m_state->line_contents.stripped.len));
+    m_state->pos.offset -= m_state->line_contents.full.len - m_state->line_contents.stripped.len;
+    --m_state->pos.line;
+    m_state->pos.col = m_state->line_contents.stripped.len + 1u;
 }
 
 //-----------------------------------------------------------------------------
@@ -3096,7 +3112,7 @@ NodeData* Parser::_append_val(csubstr val, bool quoted)
     size_t nid = m_tree->append_child(m_state->node_id);
     m_tree->to_val(nid, val, additional_flags);
 
-    _c4dbgpf("append val: id=%zd key='%.*s' val='%.*s'", nid, _c4prsp(m_tree->get(nid)->m_key.scalar), _c4prsp(m_tree->get(nid)->m_val.scalar));
+    _c4dbgpf("append val: id=%zd val='%.*s'", nid, _c4prsp(m_tree->get(nid)->m_val.scalar));
     if( ! m_val_tag.empty())
     {
         _c4dbgpf("append val[%zu]: set val tag='%.*s' -> '%.*s'", nid, _c4prsp(m_val_tag), _c4prsp(normalize_tag(m_val_tag)));
@@ -3560,6 +3576,7 @@ csubstr Parser::_scan_block()
     _line_ended();
     _scan_line();
 
+    // if no explicit indentation was given, pick it from the current line
     if(indentation == npos)
         indentation = m_state->line_contents.indentation;
 
@@ -3574,20 +3591,18 @@ csubstr Parser::_scan_block()
     // read every full line into a raw block,
     // from which newlines are to be stripped as needed
     size_t num_lines = 0, first = m_state->pos.line;
-    auto &lc = m_state->line_contents;
+    LineContents lc;
     while(( ! _finished_file()))
     {
-        _scan_line();
-        if(lc.indentation < indentation)
-        {
-            // stop when the line is deindented and not empty
-            if( ! lc.rem.trim(" \t\r\n").empty())
-            {
-                break;
-            }
-        }
-        raw_block.len += m_state->line_contents.full.len;
+        // peek next line, but do not advance immediately
+        lc.reset_with_next_line(m_buf, m_state->pos.offset);
+        // stop when the line is deindented and not empty
+        if(lc.indentation < indentation && ( ! lc.rem.trim(" \t\r\n").empty()))
+            break;
+        // advance now that we know the folded scalar continues
+        m_state->line_contents = lc;
         _c4dbgpf("scanning block: append '%.*s'", _c4prsp(m_state->line_contents.rem));
+        raw_block.len += m_state->line_contents.full.len;
         _line_progressed(m_state->line_contents.rem.len);
         _line_ended();
         ++num_lines;
@@ -3595,6 +3610,9 @@ csubstr Parser::_scan_block()
     RYML_ASSERT(m_state->pos.line == (first + num_lines));
     C4_UNUSED(num_lines);
     C4_UNUSED(first);
+
+    if(num_lines)
+        _line_ended_undo();
 
     _c4dbgpf("scanning block: raw='%.*s'", _c4prsp(raw_block));
 
