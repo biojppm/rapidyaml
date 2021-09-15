@@ -234,6 +234,8 @@ private:
 
         LineContents() : full(), stripped(), rem(), indentation() {}
 
+        void reset_with_next_line(csubstr buf, size_t pos);
+
         void reset(csubstr full_, csubstr stripped_)
         {
             full = full_;
@@ -288,6 +290,7 @@ private:
 
     void _line_progressed(size_t ahead);
     void _line_ended();
+    void _line_ended_undo();
 
     void _prepare_pop()
     {

@@ -3,6 +3,128 @@
 namespace c4 {
 namespace yml {
 
+TEST(block_folded, issue152_not_indented)
+{
+    const Tree t = parse(R"(
+ok:
+  - |
+    exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
+  - parses - yes
+ok_parses: yes
+err:
+  - |
+    exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
+err_parses: no
+err2:
+  - >
+    exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
+err2_parses: no
+err3:
+  - >-
+    exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
+err3_parses: no
+)");
+    EXPECT_EQ(t["ok"  ][0].val(), csubstr("exec pg_isready -U \"dog\" -d \"dbname=dog\" -h 127.0.0.1 -p 5432\n"));
+    EXPECT_EQ(t["err" ][0].val(), csubstr("exec pg_isready -U \"dog\" -d \"dbname=dog\" -h 127.0.0.1 -p 5432\n"));
+    EXPECT_EQ(t["err2"][0].val(), csubstr("exec pg_isready -U \"dog\" -d \"dbname=dog\" -h 127.0.0.1 -p 5432\n"));
+    EXPECT_EQ(t["err3"][0].val(), csubstr("exec pg_isready -U \"dog\" -d \"dbname=dog\" -h 127.0.0.1 -p 5432"));
+}
+
+TEST(block_folded, issue152_indented_once)
+{
+    const Tree t = parse(R"(
+indented_once:
+  ok:
+    - |
+      exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
+    - parses - yes
+  ok_parses: yes
+  err:
+    - |
+      exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
+  err_parses: no
+  err2:
+    - >
+      exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
+  err2_parses: no
+  err3:
+    - >-
+      exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
+  err3_parses: no
+)");
+    const NodeRef n = t["indented_once"];
+    EXPECT_EQ(n["ok"  ][0].val(), csubstr("exec pg_isready -U \"dog\" -d \"dbname=dog\" -h 127.0.0.1 -p 5432\n"));
+    EXPECT_EQ(n["err" ][0].val(), csubstr("exec pg_isready -U \"dog\" -d \"dbname=dog\" -h 127.0.0.1 -p 5432\n"));
+    EXPECT_EQ(n["err2"][0].val(), csubstr("exec pg_isready -U \"dog\" -d \"dbname=dog\" -h 127.0.0.1 -p 5432\n"));
+    EXPECT_EQ(n["err3"][0].val(), csubstr("exec pg_isready -U \"dog\" -d \"dbname=dog\" -h 127.0.0.1 -p 5432"));
+}
+
+TEST(block_folded, issue152_indented_twice)
+{
+    const Tree t = parse(R"(
+indented_once:
+  indented_twice:
+    ok:
+      - |
+        exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
+      - parses - yes
+    ok_parses: yes
+    err:
+      - |
+        exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
+    err_parses: no
+    err2:
+      - >
+        exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
+    err2_parses: no
+    err3:
+      - >-
+        exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
+    err3_parses: no
+)");
+    const NodeRef n = t["indented_once"]["indented_twice"];
+    EXPECT_EQ(n["ok"  ][0].val(), csubstr("exec pg_isready -U \"dog\" -d \"dbname=dog\" -h 127.0.0.1 -p 5432\n"));
+    EXPECT_EQ(n["err" ][0].val(), csubstr("exec pg_isready -U \"dog\" -d \"dbname=dog\" -h 127.0.0.1 -p 5432\n"));
+    EXPECT_EQ(n["err2"][0].val(), csubstr("exec pg_isready -U \"dog\" -d \"dbname=dog\" -h 127.0.0.1 -p 5432\n"));
+    EXPECT_EQ(n["err3"][0].val(), csubstr("exec pg_isready -U \"dog\" -d \"dbname=dog\" -h 127.0.0.1 -p 5432"));
+}
+
+TEST(block_folded, issue152_indented_thrice)
+{
+    const Tree t = parse(R"(
+indented_once:
+  indented_twice:
+    indented_thrice:
+      ok:
+        - |
+          exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
+        - parses - yes
+      ok_parses: yes
+      err:
+        - |
+          exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
+      err_parses: no
+      err2:
+        - >
+          exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
+      err2_parses: no
+      err3:
+        - >-
+          exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
+      err3_parses: no
+)");
+    const NodeRef n = t["indented_once"]["indented_twice"]["indented_thrice"];
+    EXPECT_EQ(n["ok"  ][0].val(), csubstr("exec pg_isready -U \"dog\" -d \"dbname=dog\" -h 127.0.0.1 -p 5432\n"));
+    EXPECT_EQ(n["err" ][0].val(), csubstr("exec pg_isready -U \"dog\" -d \"dbname=dog\" -h 127.0.0.1 -p 5432\n"));
+    EXPECT_EQ(n["err2"][0].val(), csubstr("exec pg_isready -U \"dog\" -d \"dbname=dog\" -h 127.0.0.1 -p 5432\n"));
+    EXPECT_EQ(n["err3"][0].val(), csubstr("exec pg_isready -U \"dog\" -d \"dbname=dog\" -h 127.0.0.1 -p 5432"));
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 #define BLOCK_FOLDED_CASES \
     "7T8X",                                            \
     "block folded as seq val, implicit indentation 2", \
