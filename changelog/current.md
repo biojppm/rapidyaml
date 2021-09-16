@@ -1,4 +1,4 @@
-This release is mostly focused on compliance with the [YAML test suite](https://github.com/yaml/yaml-test-suite).
+This release is focused on bug fixes and compliance with the [YAML test suite](https://github.com/yaml/yaml-test-suite).
 
 ### Breaking changes
 
@@ -49,8 +49,13 @@ into a DOCVAL, not SEQ->VAL ([5ba0d56](https://github.com/biojppm/rapidyaml/pull
   - ? &e
     : &a
   ```
-- Fix [#151](https://github.com/biojppm/rapidyaml/issues/151): scalars beginning with `*` are now correctly quoted when emitting ([PR #156](https://github.com/biojppm/rapidyaml/pull/156))
--
+- Fix [#151](https://github.com/biojppm/rapidyaml/issues/151): scalars beginning with `*` or `&` or `<<` are now correctly quoted when emitting ([PR #156](https://github.com/biojppm/rapidyaml/pull/156)).
+- Also from [PR #156](https://github.com/biojppm/rapidyaml/pull/156), map inheritance nodes like `<<: *anchor` or `<<: [*anchor1, *anchor2]` now have a `KEYREF` flag in their type (until a call to `Tree::resolve()`):
+  ```c++
+  Tree tree = parse("{map: &anchor {foo: bar}, copy: {<<: *anchor}}");
+  assert(tree["copy"]["<<"].is_key_ref()); // previously this did not hold
+  assert(tree["copy"]["<<"].is_val_ref()); // ... but this did
+  ```
 
 #### Tags
 - Fix parsing of tag dense maps and seqs ([PR #144](https://github.com/biojppm/rapidyaml/pull/144)):
