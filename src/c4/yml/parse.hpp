@@ -127,7 +127,6 @@ private:
     csubstr _scan_comment();
     csubstr _scan_quoted_scalar(const char q);
     csubstr _scan_block();
-    csubstr _scan_ref();
     substr  _scan_plain_scalar_impl(csubstr currscalar, csubstr peeked_line, size_t indentation);
     substr  _scan_plain_scalar_expl(csubstr currscalar, csubstr peeked_line);
     substr  _scan_complex_key(csubstr currscalar, csubstr peeked_line);

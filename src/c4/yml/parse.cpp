@@ -1537,29 +1537,6 @@ bool Parser::_handle_top()
     return false;
 }
 
-//-----------------------------------------------------------------------------
-csubstr Parser::_scan_ref()
-{
-    csubstr rem = m_state->line_contents.rem;
-    RYML_ASSERT(rem.begins_with("<<"));
-
-    size_t pos = rem.find(": ");
-    // for now we require the target anchor to be in the same line
-    RYML_ASSERT(pos != npos);
-    _line_progressed(pos + 2);
-
-    csubstr ref = rem.right_of(pos);
-    pos = ref.first_of('*');
-    RYML_ASSERT(pos != npos);
-    ref = ref.right_of(pos);
-    _line_progressed(pos);
-    ref = ref.left_of(ref.first_of(' '));
-    _line_progressed(ref.len);
-
-    _c4dbgpf("scanned ref value: '%.*s'", _c4prsp(ref));
-    return ref;
-}
-
 
 //-----------------------------------------------------------------------------
 
