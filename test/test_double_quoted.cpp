@@ -35,37 +35,37 @@ CASE_GROUP(DOUBLE_QUOTED)
 C("dquoted, only text",
 R"("Some text without any quotes."
 )",
-  N(DOCVAL, "Some text without any quotes.")
+  N(DOCVAL | VALQUO, "Some text without any quotes.")
 ),
 
 C("dquoted, with single quotes",
 R"("Some text 'with single quotes'")",
-  N(DOCVAL, "Some text 'with single quotes'")
+  N(DOCVAL|VALQUO, "Some text 'with single quotes'")
 ),
 
 C("dquoted, with double quotes",
 R"("Some \"text\" \"with double quotes\"")",
-  N(DOCVAL, "Some \"text\" \"with double quotes\"")
+  N(DOCVAL|VALQUO, "Some \"text\" \"with double quotes\"")
 ),
 
 C("dquoted, with single and double quotes",
 R"("Some text 'with single quotes' \"and double quotes\".")",
-  N(DOCVAL, "Some text 'with single quotes' \"and double quotes\".")
+  N(DOCVAL|VALQUO, "Some text 'with single quotes' \"and double quotes\".")
 ),
 
 C("dquoted, with escapes",
 R"("Some text with escapes \\n \\r \\t")",
-  N(DOCVAL, "Some text with escapes \\n \\r \\t")
+  N(DOCVAL|VALQUO, "Some text with escapes \\n \\r \\t")
 ),
 
 C("dquoted, with newline",
 R"("Some text with\nnewline")",
-  N(DOCVAL, "Some text with\nnewline")
+  N(DOCVAL|VALQUO, "Some text with\nnewline")
 ),
 
 C("dquoted, with tabs",
 R"("\tSome\ttext\twith\ttabs\t")",
-  N(DOCVAL, "\tSome\ttext\twith\ttabs\t")
+  N(DOCVAL|VALQUO, "\tSome\ttext\twith\ttabs\t")
 ),
 
 C("dquoted, with tabs 4ZYM",
@@ -85,7 +85,7 @@ R"(" 1st non-empty
 
  2nd non-empty 
 	3rd non-empty ")",
-  N(DOCVAL, " 1st non-empty\n2nd non-empty 3rd non-empty ")
+  N(DOCVAL|VALQUO, " 1st non-empty\n2nd non-empty 3rd non-empty ")
 ),
 
 C("dquoted, with tabs TL85",
@@ -95,7 +95,7 @@ R"("
   	 bar
 
   baz
-")", N(DOCVAL, " foo\nbar\nbaz ")),
+")", N(DOCVAL|VALQUO, " foo\nbar\nbaz ")),
 
 C("dquoted, all",
 R"("Several lines of text,
@@ -107,12 +107,12 @@ aped to prevent them from being converted to a space.
 Newlines can also be added by leaving a blank line.
     Leading whitespace on lines is ignored."
 )",
-  N(DOCVAL, "Several lines of text, containing 'single quotes' and \"double quotes\". Escapes (like \\n) work.\nIn addition, newlines can be escaped to prevent them from being converted to a space.\nNewlines can also be added by leaving a blank line. Leading whitespace on lines is ignored.")
+  N(DOCVAL|VALQUO, "Several lines of text, containing 'single quotes' and \"double quotes\". Escapes (like \\n) work.\nIn addition, newlines can be escaped to prevent them from being converted to a space.\nNewlines can also be added by leaving a blank line. Leading whitespace on lines is ignored.")
 ),
 
 C("dquoted, empty",
 R"("")",
-  N(DOCVAL, "")
+  N(DOCVAL|VALQUO, "")
 ),
 
 C("dquoted, blank",
@@ -139,42 +139,42 @@ R"(
 
 C("dquoted, trailing space",
 R"('a aaaa  ')",
-  N(DOCVAL, "a aaaa  ")
+  N(DOCVAL|VALQUO, "a aaaa  ")
 ),
 
 C("dquoted, leading space",
 R"('  a aaaa')",
-  N(DOCVAL, "  a aaaa")
+  N(DOCVAL|VALQUO, "  a aaaa")
 ),
 
 C("dquoted, trailing and leading space",
 R"('  012345  ')",
-  N(DOCVAL, "  012345  ")
+  N(DOCVAL|VALQUO, "  012345  ")
 ),
 
 C("dquoted, 1 dquote",
 R"("\"")",
-  N(DOCVAL, "\"")
+  N(DOCVAL|VALQUO, "\"")
 ),
 
 C("dquoted, 2 dquotes",
 R"("\"\"")",
-  N(DOCVAL, "\"\"")
+  N(DOCVAL|VALQUO, "\"\"")
 ),
 
 C("dquoted, 3 dquotes",
 R"("\"\"\"")",
-  N(DOCVAL, "\"\"\"")
+  N(DOCVAL|VALQUO, "\"\"\"")
 ),
 
 C("dquoted, 4 dquotes",
 R"("\"\"\"\"")",
-  N(DOCVAL, "\"\"\"\"")
+  N(DOCVAL|VALQUO, "\"\"\"\"")
 ),
 
 C("dquoted, 5 dquotes",
 R"("\"\"\"\"\"")",
-  N(DOCVAL, "\"\"\"\"\"")
+  N(DOCVAL|VALQUO, "\"\"\"\"\"")
 ),
 
 C("dquoted, example 2",

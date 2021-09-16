@@ -2790,7 +2790,8 @@ void Parser::_end_stream()
         else if(m_tree->is_doc(m_state->node_id) || m_tree->type(m_state->node_id) == NOTYPE)
         {
             _c4dbgp("to docval...");
-            m_tree->to_val(m_state->node_id, _consume_scalar(), DOC);
+            NodeType_e quoted = has_any(SSCL_QUO) ? VALQUO : NOTYPE; // do this before consuming the scalar
+            m_tree->to_val(m_state->node_id, _consume_scalar(), DOC|quoted);
             added = m_tree->get(m_state->node_id);
         }
         else
