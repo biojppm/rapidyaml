@@ -360,10 +360,14 @@ public:
     void _add_flags(type_bits more_flags=0)
     {
         type = (type|more_flags);
-        if( ! key.tag.empty()) type = (type|KEYTAG);
-        if( ! val.tag.empty()) type = (type|VALTAG);
-        if( ! key.anchor.empty()) type = (type|KEYANCH);
-        if( ! val.anchor.empty()) type = (type|VALANCH);
+        if( ! key.tag.empty())
+            type = (type|KEYTAG);
+        if( ! val.tag.empty())
+            type = (type|VALTAG);
+        if( ! key.anchor.empty())
+            type = (type|KEYANCH);
+        if( ! val.anchor.empty())
+            type = (type|VALANCH);
     }
 
     bool _check() const
