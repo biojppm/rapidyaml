@@ -2,6 +2,20 @@
 
 namespace c4 {
 namespace yml {
+
+TEST(plain_scalar, issue153_seq)
+{
+    Tree t = parse("- A\n \n");
+    EXPECT_EQ(t[0].val(), "A");
+}
+
+TEST(plain_scalar, issue153_map)
+{
+    Tree t = parse("foo: A\n \n");
+    EXPECT_EQ(t["foo"].val(), "A");
+}
+
+
 #define PLAIN_SCALAR_CASES                                          \
     "plain scalar, 1 word only",                                    \
     "plain scalar, 1 line with spaces",                             \
