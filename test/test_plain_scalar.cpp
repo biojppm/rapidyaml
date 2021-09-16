@@ -294,8 +294,8 @@ k:#foo
           }),
 
       N(DOCVAL, "k:#foo &a !t s"),
-      N(DOCVAL, "k:#foo &a !t s"),
-      N(DOCVAL, "k:#foo &a !t s"),
+      N(DOCVAL|VALQUO, "k:#foo &a !t s"),
+      N(DOCVAL|VALQUO, "k:#foo &a !t s"),
 
       N(DOCVAL, "k:#foo &a !t s"),
       N(DOCVAL, "k:#foo &a !t s"),

@@ -506,11 +506,11 @@ R"(# Private
 !foo "bar"
 )",
 N(STREAM, L{
-  N(DOCVAL, TS("!foo", "bar")),
+  N(DOCVAL|VALQUO, TS("!foo", "bar")),
   // strict YAML should result in this for the second doc:
-  //N(DOCVAL, TS("<tag:example.com,2000:app/foo>", "bar")),
+  //N(DOCVAL|VALQUO, TS("<tag:example.com,2000:app/foo>", "bar")),
   // but since we don't do lookup, it should result in:
-  N(DOCVAL, TS("!foo", "bar")),
+  N(DOCVAL|VALQUO, TS("!foo", "bar")),
 })
 ),
 

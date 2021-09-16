@@ -93,14 +93,14 @@ private:
     }
 
     enum {
-        _keysc =  (KEY|KEYREF|KEYANCH|KEYQUO)  | ~(VAL|VALREF|VALANCH|VALQUO),
-        _valsc = ~(KEY|KEYREF|KEYANCH|KEYQUO)  |  (VAL|VALREF|VALANCH|VALQUO),
+        _keysc =  (KEY|KEYREF|KEYANCH|KEYQUO) | ~(VAL|VALREF|VALANCH|VALQUO),
+        _valsc = ~(KEY|KEYREF|KEYANCH|KEYQUO) |  (VAL|VALREF|VALANCH|VALQUO),
         _keysc_json =  (KEY)  | ~(VAL),
         _valsc_json = ~(KEY)  |  (VAL),
     };
 
-    C4_ALWAYS_INLINE void _writek(Tree const& t, size_t id, size_t level) { _write(t.keysc(id), t._p(id)->m_type.type & ~(VAL|VALREF|VALANCH|VALQUO), level); }
-    C4_ALWAYS_INLINE void _writev(Tree const& t, size_t id, size_t level) { _write(t.valsc(id), t._p(id)->m_type.type & ~(KEY|KEYREF|KEYANCH|KEYQUO), level); }
+    C4_ALWAYS_INLINE void _writek(Tree const& t, size_t id, size_t level) { _write(t.keysc(id), t._p(id)->m_type.type & ~_valsc, level); }
+    C4_ALWAYS_INLINE void _writev(Tree const& t, size_t id, size_t level) { _write(t.valsc(id), t._p(id)->m_type.type & ~_keysc, level); }
 
     C4_ALWAYS_INLINE void _writek_json(Tree const& t, size_t id) { _write_json(t.keysc(id), t._p(id)->m_type.type & ~(VAL)); }
     C4_ALWAYS_INLINE void _writev_json(Tree const& t, size_t id) { _write_json(t.valsc(id), t._p(id)->m_type.type & ~(KEY)); }

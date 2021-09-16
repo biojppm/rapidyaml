@@ -1,4 +1,4 @@
-This release is mostly focused on compliance with the [YAML test suite](https://github.com/yaml/yaml-test-suite).
+This release is focused on bug fixes and compliance with the [YAML test suite](https://github.com/yaml/yaml-test-suite).
 
 ### Breaking changes
 
@@ -36,7 +36,7 @@ into a DOCVAL, not SEQ->VAL ([5ba0d56](https://github.com/biojppm/rapidyaml/pull
 
 ### Fixes
 
-#### Anchors
+#### Anchors and references
 - Fix resolving of nodes with keyref+valref ([PR #144](https://github.com/biojppm/rapidyaml/pull/144)): `{&a a: &b b, *b: *a}`
 - Fix parsing of implicit scalars when tags are present ([PR #145](https://github.com/biojppm/rapidyaml/pull/145)):
   ```yaml
@@ -48,6 +48,13 @@ into a DOCVAL, not SEQ->VAL ([5ba0d56](https://github.com/biojppm/rapidyaml/pull
   - ? &d
   - ? &e
     : &a
+  ```
+- Fix [#151](https://github.com/biojppm/rapidyaml/issues/151): scalars beginning with `*` or `&` or `<<` are now correctly quoted when emitting ([PR #156](https://github.com/biojppm/rapidyaml/pull/156)).
+- Also from [PR #156](https://github.com/biojppm/rapidyaml/pull/156), map inheritance nodes like `<<: *anchor` or `<<: [*anchor1, *anchor2]` now have a `KEYREF` flag in their type (until a call to `Tree::resolve()`):
+  ```c++
+  Tree tree = parse("{map: &anchor {foo: bar}, copy: {<<: *anchor}}");
+  assert(tree["copy"]["<<"].is_key_ref()); // previously this did not hold
+  assert(tree["copy"]["<<"].is_val_ref()); // ... but this did
   ```
 
 #### Tags
@@ -158,6 +165,23 @@ into a DOCVAL, not SEQ->VAL ([5ba0d56](https://github.com/biojppm/rapidyaml/pull
   e:
   # now correctly parsed as {a: ~, b: ~, c: ~, d: ~}
   ```
+- Fix [#152](https://github.com/biojppm/rapidyaml/issues/152):  parse error with folded scalars that are the last in a container ([PR #157](https://github.com/biojppm/rapidyaml/pull/157)):
+  ```yaml
+  exec:
+    command:
+      # before the fix, this folded scalar failed to parse
+      - |
+        exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
+    parses: no
+  ```
+- Fix: documents consisting of a quoted scalar now retain the VALQUO flag ([PR #156](https://github.com/biojppm/rapidyaml/pull/156))
+  ```c++
+  Tree tree = parse("'this is a quoted scalar'");
+  assert(tree.rootref().is_doc());
+  assert(tree.rootref().is_val());
+  assert(tree.rootref().is_val_quoted());
+  ```
+
 
 #### Document structure
 - Empty docs are now parsed as a docval with a null node:

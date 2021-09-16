@@ -317,6 +317,13 @@ public:
 
     void clear() noexcept { tag.clear(); scalar.clear(); anchor.clear(); }
 
+    void set_ref_maybe_replacing_scalar(csubstr ref, bool has_scalar) noexcept
+    {
+        csubstr trimmed = ref.begins_with('*') ? ref.sub(1) : ref;
+        anchor = trimmed;
+        if((!has_scalar) || !scalar.ends_with(trimmed))
+            scalar = ref;
+    }
 };
 C4_MUST_BE_TRIVIAL_COPY(NodeScalar);
 
@@ -360,10 +367,14 @@ public:
     void _add_flags(type_bits more_flags=0)
     {
         type = (type|more_flags);
-        if( ! key.tag.empty()) type = (type|KEYTAG);
-        if( ! val.tag.empty()) type = (type|VALTAG);
-        if( ! key.anchor.empty()) type = (type|KEYANCH);
-        if( ! val.anchor.empty()) type = (type|VALANCH);
+        if( ! key.tag.empty())
+            type = (type|KEYTAG);
+        if( ! val.tag.empty())
+            type = (type|VALTAG);
+        if( ! key.anchor.empty())
+            type = (type|KEYANCH);
+        if( ! val.anchor.empty())
+            type = (type|VALANCH);
     }
 
     bool _check() const
@@ -667,10 +678,10 @@ public:
     void set_key_tag(size_t node, csubstr tag) { RYML_ASSERT(has_key(node)); _p(node)->m_key.tag = tag; _add_flags(node, KEYTAG); }
     void set_val_tag(size_t node, csubstr tag) { RYML_ASSERT(has_val(node) || is_container(node)); _p(node)->m_val.tag = tag; _add_flags(node, VALTAG); }
 
-    void set_key_anchor(size_t node, csubstr anchor) { RYML_ASSERT( ! is_key_ref(node)); _p(node)->m_key.anchor = anchor; _add_flags(node, KEYANCH); }
-    void set_val_anchor(size_t node, csubstr anchor) { RYML_ASSERT( ! is_val_ref(node)); _p(node)->m_val.anchor = anchor; _add_flags(node, VALANCH); }
-    void set_key_ref   (size_t node, csubstr ref   ) { RYML_ASSERT( ! has_key_anchor(node)); _p(node)->m_key.anchor = ref; _add_flags(node, KEYREF); }
-    void set_val_ref   (size_t node, csubstr ref   ) { RYML_ASSERT( ! has_val_anchor(node)); _p(node)->m_val.anchor = ref; _add_flags(node, VALREF); }
+    void set_key_anchor(size_t node, csubstr anchor) { RYML_ASSERT( ! is_key_ref(node)); _p(node)->m_key.anchor = anchor.triml('&'); _add_flags(node, KEYANCH); }
+    void set_val_anchor(size_t node, csubstr anchor) { RYML_ASSERT( ! is_val_ref(node)); _p(node)->m_val.anchor = anchor.triml('&'); _add_flags(node, VALANCH); }
+    void set_key_ref   (size_t node, csubstr ref   ) { RYML_ASSERT( ! has_key_anchor(node)); NodeData* C4_RESTRICT n = _p(node); n->m_key.set_ref_maybe_replacing_scalar(ref, n->m_type.has_key()); _add_flags(node, KEY|KEYREF); }
+    void set_val_ref   (size_t node, csubstr ref   ) { RYML_ASSERT( ! has_val_anchor(node)); NodeData* C4_RESTRICT n = _p(node); n->m_val.set_ref_maybe_replacing_scalar(ref, n->m_type.has_val()); _add_flags(node, VAL|VALREF); }
 
     void rem_key_anchor(size_t node) { _p(node)->m_key.anchor.clear(); _rem_flags(node, KEYANCH); }
     void rem_val_anchor(size_t node) { _p(node)->m_val.anchor.clear(); _rem_flags(node, VALANCH); }
