@@ -1355,7 +1355,7 @@ void Tree::resolve()
         }
         else
         {
-            if(has_key(rd.node) && key(rd.node) == "<<")
+            if(has_key(rd.node) && is_key_ref(rd.node) && key(rd.node) == "<<")
             {
                 RYML_ASSERT(is_keyval(rd.node));
                 size_t p = parent(rd.node);

@@ -16,6 +16,18 @@ TEST(anchors, no_ambiguity_when_key_scalars_begin_with_star)
     EXPECT_EQ(t[1].key(), "*foo");
     EXPECT_EQ(t[1].key_ref(), "foo");
     EXPECT_EQ(t[2].key(), "*foo");
+
+    EXPECT_EQ(emitrs<std::string>(t), R"(foo: &foo 1
+*foo: 2
+'*foo': 3
+)");
+
+    t.resolve();
+
+    EXPECT_EQ(emitrs<std::string>(t), R"(foo: 1
+1: 2
+'*foo': 3
+)");
 }
 
 TEST(anchors, no_ambiguity_when_val_scalars_begin_with_star)
@@ -31,6 +43,18 @@ TEST(anchors, no_ambiguity_when_val_scalars_begin_with_star)
     EXPECT_EQ(t["ref"].val_ref(), "foo");
     EXPECT_EQ(t["ref"].val(), "*foo");
     EXPECT_EQ(t["quo"].val(), "*foo");
+
+    EXPECT_EQ(emitrs<std::string>(t), R"(foo: &foo 1
+ref: *foo
+quo: '*foo'
+)");
+
+    t.resolve();
+
+    EXPECT_EQ(emitrs<std::string>(t), R"(foo: 1
+ref: 1
+quo: '*foo'
+)");
 }
 
 TEST(anchors, no_ambiguity_with_inheritance)
@@ -56,6 +80,18 @@ TEST(anchors, no_ambiguity_with_inheritance)
   b: 2
 bar:
   <<: *foo
+sq:
+  '<<': haha
+dq:
+  '<<': hehe
+)");
+    t.resolve();
+    EXPECT_EQ(emitrs<std::string>(t), R"(foo:
+  a: 1
+  b: 2
+bar:
+  a: 1
+  b: 2
 sq:
   '<<': haha
 dq:
@@ -119,6 +155,93 @@ vref: *vanchor
 vanchor: 3
 kref: kanchor
 vref: 3
+)");
+}
+
+TEST(anchors, programatic_inheritance)
+{
+    Tree t = parse("{orig: &orig {foo: bar, baz: bat}, copy: {}, notcopy: {}, notref: {}}");
+
+    t["copy"]["<<"] = "*orig";
+    t["copy"]["<<"].set_key_ref("<<");
+    t["copy"]["<<"].set_val_ref("orig");
+
+    t["notcopy"]["test"] = "*orig";
+    t["notcopy"]["test"].set_val_ref("orig");
+    t["notcopy"]["<<"] = "*orig";
+    t["notcopy"]["<<"].set_val_ref("orig");
+
+    t["notref"]["<<"] = "*orig";
+
+    EXPECT_EQ(emitrs<std::string>(t), R"(orig: &orig
+  foo: bar
+  baz: bat
+copy:
+  <<: *orig
+notcopy:
+  test: *orig
+  '<<': *orig
+notref:
+  '<<': '*orig'
+)");
+    t.resolve();
+    EXPECT_EQ(emitrs<std::string>(t), R"(orig:
+  foo: bar
+  baz: bat
+copy:
+  foo: bar
+  baz: bat
+notcopy:
+  test:
+    foo: bar
+    baz: bat
+  '<<':
+    foo: bar
+    baz: bat
+notref:
+  '<<': '*orig'
+)");
+}
+
+TEST(anchors, programatic_multiple_inheritance)
+{
+    Tree t = parse("{orig1: &orig1 {foo: bar}, orig2: &orig2 {baz: bat}, orig3: &orig3 {and: more}, copy: {}}");
+
+    t["copy"]["<<"] |= SEQ;
+    t["copy"]["<<"].set_key_ref("<<");
+    NodeRef ref1 = t["copy"]["<<"].append_child();
+    NodeRef ref2 = t["copy"]["<<"].append_child();
+    NodeRef ref3 = t["copy"]["<<"].append_child();
+    ref1 = "*orig1";
+    ref2 = "*orig2";
+    ref3 = "*orig3";
+    ref1.set_val_ref("orig1");
+    ref2.set_val_ref("orig2");
+    ref3.set_val_ref("orig3");
+
+    EXPECT_EQ(emitrs<std::string>(t), R"(orig1: &orig1
+  foo: bar
+orig2: &orig2
+  baz: bat
+orig3: &orig3
+  and: more
+copy:
+  <<:
+    - *orig1
+    - *orig2
+    - *orig3
+)");
+    t.resolve();
+    EXPECT_EQ(emitrs<std::string>(t), R"(orig1:
+  foo: bar
+orig2:
+  baz: bat
+orig3:
+  and: more
+copy:
+  foo: bar
+  baz: bat
+  and: more
 )");
 }
 
