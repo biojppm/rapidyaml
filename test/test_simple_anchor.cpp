@@ -3,6 +3,46 @@
 namespace c4 {
 namespace yml {
 
+TEST(anchors, node_scalar_set_ref_when_empty)
+{
+    {
+        NodeScalar ns;
+        ns.set_ref_maybe_replacing_scalar("foo", /*has_scalar*/false);
+        EXPECT_EQ(ns.scalar, "foo");
+        EXPECT_EQ(ns.anchor, "foo");
+    }
+    {
+        NodeScalar ns;
+        ns.set_ref_maybe_replacing_scalar("*foo", /*has_scalar*/false);
+        EXPECT_EQ(ns.scalar, "*foo");
+        EXPECT_EQ(ns.anchor, "foo");
+    }
+}
+
+TEST(anchors, node_scalar_set_ref_when_non_empty)
+{
+    {
+        NodeScalar ns;
+        ns.scalar = "whatever";
+        ns.set_ref_maybe_replacing_scalar("foo", /*has_scalar*/true);
+        EXPECT_EQ(ns.scalar, "foo");
+        EXPECT_EQ(ns.anchor, "foo");
+    }
+    {
+        NodeScalar ns;
+        ns.scalar = "whatever";
+        ns.set_ref_maybe_replacing_scalar("*foo", /*has_scalar*/true);
+        EXPECT_EQ(ns.scalar, "*foo");
+        EXPECT_EQ(ns.anchor, "foo");
+        ns.set_ref_maybe_replacing_scalar("foo", /*has_scalar*/true);
+        EXPECT_EQ(ns.scalar, "*foo"); // keep the previous as it is well formed
+        EXPECT_EQ(ns.anchor, "foo");
+        ns.set_ref_maybe_replacing_scalar("bar", /*has_scalar*/true);
+        EXPECT_EQ(ns.scalar, "bar"); // replace previous as it is not well formed
+        EXPECT_EQ(ns.anchor, "bar");
+    }
+}
+
 TEST(anchors, no_ambiguity_when_key_scalars_begin_with_star)
 {
     Tree t = parse("{foo: &foo 1, *foo: 2, '*foo': 3}");
@@ -243,6 +283,123 @@ copy:
   baz: bat
   and: more
 )");
+}
+
+TEST(anchors, set_anchor_leading_ampersand_is_optional)
+{
+    Tree t = parse("{without: 0, with: 1}");
+
+    t["without"].set_key_anchor("without");
+    t["with"].set_key_anchor("&with");
+    EXPECT_EQ(t["without"].key_anchor(), "without");
+    EXPECT_EQ(t["with"].key_anchor(), "with");
+    EXPECT_EQ(emitrs<std::string>(t), R"(&without without: 0
+&with with: 1
+)");
+
+    t["without"].set_val_anchor("without");
+    t["with"].set_val_anchor("&with");
+    EXPECT_EQ(t["without"].val_anchor(), "without");
+    EXPECT_EQ(t["with"].val_anchor(), "with");
+    EXPECT_EQ(emitrs<std::string>(t), R"(&without without: &without 0
+&with with: &with 1
+)");
+}
+
+TEST(anchors, set_ref_leading_star_is_optional)
+{
+    Tree t = parse("{}");
+
+    t["*without"] = "0";
+    t["*with"] = "1";
+    EXPECT_EQ(emitrs<std::string>(t), R"('*without': 0
+'*with': 1
+)");
+
+    t["*without"].set_key_ref("without");
+    t["*with"].set_key_ref("*with");
+    EXPECT_EQ(t["*without"].key_ref(), "without");
+    EXPECT_EQ(t["*with"].key_ref(), "with");
+    EXPECT_EQ(emitrs<std::string>(t), R"(*without: 0
+*with: 1
+)");
+
+    t["*without"].set_val_ref("without");
+    t["*with"].set_val_ref("*with");
+    EXPECT_EQ(t["*without"].val_ref(), "without");
+    EXPECT_EQ(t["*with"].val_ref(), "with");
+    EXPECT_EQ(emitrs<std::string>(t), R"(*without: *without
+*with: *with
+)");
+}
+
+TEST(anchors, set_key_ref_also_sets_the_key_when_none_exists)
+{
+    Tree t = parse("{}");
+    NodeRef root = t.rootref();
+    NodeRef without = root.append_child();
+    NodeRef with = root.append_child();
+    ASSERT_FALSE(without.has_key());
+    ASSERT_FALSE(with.has_key());
+    without.set_key_ref("without");
+    with.set_key_ref("*with");
+    without.set_val("0");
+    with.set_val("1");
+    ASSERT_TRUE(without.has_key());
+    ASSERT_TRUE(with.has_key());
+    EXPECT_EQ(without.key(), "without");
+    EXPECT_EQ(with.key(), "*with");
+    EXPECT_EQ(without.key_ref(), "without");
+    EXPECT_EQ(with.key_ref(), "with");
+    EXPECT_EQ(emitrs<std::string>(t), R"(*without: 0
+*with: 1
+)");
+}
+
+TEST(anchors, set_val_ref_also_sets_the_val_when_none_exists)
+{
+    Tree t = parse("{}");
+    NodeRef root = t.rootref();
+    NodeRef without = root.append_child();
+    NodeRef with = root.append_child();
+    without.set_key("without");
+    with.set_key("with");
+    ASSERT_FALSE(without.has_val());
+    ASSERT_FALSE(with.has_val());
+    without.set_val_ref("without");
+    with.set_val_ref("*with");
+    ASSERT_TRUE(without.has_val());
+    ASSERT_TRUE(with.has_val());
+    EXPECT_EQ(without.val(), "without");
+    EXPECT_EQ(with.val(), "*with");
+    EXPECT_EQ(without.val_ref(), "without");
+    EXPECT_EQ(with.val_ref(), "with");
+    EXPECT_EQ(emitrs<std::string>(t), R"(without: *without
+with: *with
+)");
+}
+
+TEST(anchors, set_key_ref_replaces_existing_key)
+{
+    Tree t = parse("{*foo: bar}");
+    NodeRef root = t.rootref();
+    EXPECT_TRUE(root.has_child("*foo"));
+    root["*foo"].set_key_ref("notfoo");
+    EXPECT_FALSE(root.has_child("*foo"));
+    EXPECT_FALSE(root.has_child("*notfoo"));
+    EXPECT_TRUE(root.has_child("notfoo"));
+    EXPECT_EQ(emitrs<std::string>(t), "*notfoo: bar\n");
+}
+
+TEST(anchors, set_val_ref_replaces_existing_key)
+{
+    Tree t = parse("{foo: *bar}");
+    NodeRef root = t.rootref();
+    root["foo"].set_val_ref("notbar");
+    EXPECT_EQ(root["foo"].val(), "notbar");
+    root["foo"].set_val_ref("*notfoo");
+    EXPECT_EQ(root["foo"].val(), "*notfoo");
+    EXPECT_EQ(emitrs<std::string>(t), "foo: *notfoo\n");
 }
 
 
