@@ -45,7 +45,7 @@ env:
 #   # https://github.com/actions/virtual-environments/blob/main/images/win/Windows2019-Readme.md
 #   vs2019
 # windows-2016:
-#   # https://github.com/actions/virtual-environments/blob/main/images/win/Windows2019-Readme.md
+#   # https://github.com/actions/virtual-environments/blob/main/images/win/Windows2016-Readme.md
 #   vs2017
 jobs:
 
