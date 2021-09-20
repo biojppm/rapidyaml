@@ -60,14 +60,8 @@ follow (see below).
 
 See also [the changelog](./changelog) and [the roadmap](./ROADMAP.md).
 
-Note that ryml uses submodules. Take care to use the `--recursive` flag
-when cloning the repo, to ensure ryml's submodules are checked out as well:
-```bash
-git clone --recursive https://github.com/biojppm/rapidyaml
-```
-If you omit `--recursive`, after cloning you
-will have to do `git submodule init` and `git submodule update` 
-to ensure ryml's submodules are checked out.
+<!-- endpythonreadme -->
+
 
 ------
 
@@ -615,6 +609,15 @@ so there's not much of a cost for building it with your project.
 
 Currently [cmake](https://cmake.org/) is required to build ryml; we
 recommend a recent cmake version, at least 3.13.
+
+Note that ryml uses submodules. Take care to use the `--recursive` flag
+when cloning the repo, to ensure ryml's submodules are checked out as well:
+```bash
+git clone --recursive https://github.com/biojppm/rapidyaml
+```
+If you omit `--recursive`, after cloning you
+will have to do `git submodule init` and `git submodule update` 
+to ensure ryml's submodules are checked out.
 
 
 ### Usage samples

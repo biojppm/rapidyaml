@@ -213,6 +213,14 @@ function _c4_gather_compilers()
 function _c4_addgcc()
 {
     gccversion=$1
+    case $gccversion in
+        5 )
+            _add_apt gcc-5 "deb http://dk.archive.ubuntu.com/ubuntu/ xenial main"
+            _add_apt gcc-5 "deb http://dk.archive.ubuntu.com/ubuntu/ xenial universe"
+            ;;
+        *)
+            ;;
+    esac
     _add_apt g++-$gccversion
     _add_apt g++-$gccversion-multilib
     _add_apt libstdc++-$gccversion-dev

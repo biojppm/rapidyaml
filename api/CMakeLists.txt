@@ -49,7 +49,9 @@ endif()
 if(RYML_BUILD_API_PYTHON)
     c4_log("enabling python3 API")
     set(Python3_FIND_VIRTUALENV "FIRST")
-    find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+    # use Development.Module to ensure this works with cibuildwheel:
+    # https://github.com/pypa/cibuildwheel/issues/639
+    find_package(Python3 COMPONENTS Interpreter Development.Module REQUIRED)
     c4_log("found python ${Python3_VERSION}: ${Python3_EXECUTABLE}")
     #
     set(t ryml-api-python3) # the target name

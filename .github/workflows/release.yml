@@ -8,11 +8,17 @@ defaults:
     shell: bash -e -x {0}
 
 on:
-  - push
-  #- pull_request
-  - workflow_dispatch
+  # https://github.community/t/how-to-trigger-an-action-on-push-or-pull-request-but-not-both/16662
+  workflow_dispatch:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
 
 env:
+  PROJ_PKG_NAME: rapidyaml-
   PROJ_PFX_TARGET: ryml-
   PROJ_PFX_CMAKE: RYML_
   CMAKE_FLAGS: -DRYML_TEST_SUITE=OFF
@@ -24,78 +30,76 @@ env:
 
 jobs:
 
-  # action to create a github release
-  release:
-    if: contains(github.ref, 'tags/v')
+  gettag:
     runs-on: ubuntu-latest
     steps:
+      # use fetch-depth to ensure all tags are fetched
+      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive, fetch-depth: 0}}
+      - name: Variables (from tag)
+        if: contains(github.ref, 'tags/v')
+        run: |
+          # https://github.community/t/how-to-get-just-the-tag-name/16241/11
+          SRC_TAG=${GITHUB_REF#refs/tags/}
+          SRC_VERSION=${GITHUB_REF#refs/tags/v}
+          cat <<EOF > vars.sh
+          export SRC_TAG=$SRC_TAG
+          export SRC_VERSION=$SRC_VERSION
+          EOF
+      - name: Variables (from commit, no tag)
+        if: ${{ !contains(github.ref, 'tags/v') }}
+        run: |
+          set -x
+          branch_name=${GITHUB_REF#refs/heads/}
+          # builds triggered from PRs have the branch_name like this: refs/pull/150/merge
+          # so filter to eg pr0150_merge
+          branch_name=`echo $branch_name | sed "s:refs/pull/\([0-9]*\)/\(.*\):pr0\1_\2:"`
+          # sanitize the branch name; eg merge/foo-bar -> merge_foo_bar
+          branch_name=`echo $branch_name | sed 's:[/.-]:_:g'`
+          SRC_TAG=$(git describe)  # eg v0.2.0-110-gda837e0
+          SRC_VERSION="${branch_name}-${SRC_TAG}"
+          cat <<EOF > vars.sh
+          export SRC_TAG=$SRC_TAG
+          export SRC_VERSION=$SRC_VERSION
+          EOF
+      - name: Verify vars.sh
+        run: cat vars.sh ; source vars.sh ; echo $SRC_TAG ; echo $SRC_VERSION
+      - name: Save vars.sh
+        uses: actions/upload-artifact@v1
+        with: {name: vars.sh, path: ./vars.sh}
+
+  #----------------------------------------------------------------------------
+  # create source packages
+  src:
+    needs: gettag
+    runs-on: ubuntu-latest
+    steps:
+      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+      - name: Download vars.sh
+        uses: actions/download-artifact@v1
+        with: {name: vars.sh, path: ./}
       - name: Install requirements
         run: |
           sudo -E pip install git-archive-all
-      - name: Get version
-        id: get_version
-        # https://github.community/t/how-to-get-just-the-tag-name/16241/11
+      - name: Create source packages
         run: |
-          echo ::set-output name=SRC_TAG::${GITHUB_REF#refs/tags/}
-          echo ::set-output name=SRC_VERSION::${GITHUB_REF#refs/tags/v}
-          echo SRC_TAG=${GITHUB_REF#refs/tags/}
-          echo SRC_VERSION=${GITHUB_REF#refs/tags/v}
-      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1 # https://github.com/marketplace/actions/create-a-release
-        env:
-          GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}"
-          SRC_TAG: "${{steps.get_version.outputs.SRC_TAG}}"
-          SRC_VERSION: "${{steps.get_version.outputs.SRC_VERSION}}"
-        with:
-          tag_name: ${{github.ref}}
-          release_name: Release ${{steps.get_version.outputs.SRC_VERSION}}
-          draft: true  # to create a draft (unpublished) release, false to create a published one. Default: false
-          prerelease: ${{contains(github.ref, '-rc')}}
-          body_path: ${{github.workspace}}/changelog/${{steps.get_version.outputs.SRC_VERSION}}.md
-      - name: Create source packs
-        id: src_pack
-        run: |
-          version=${{steps.get_version.outputs.SRC_VERSION}}
-          name=${PROJ_PFX_TARGET}src-$version
-          git-archive-all --prefix $name $name.tgz
-          git-archive-all --prefix $name $name.zip
-          echo ::set-output name=TGZ::$name.tgz
-          echo ::set-output name=ZIP::$name.zip
-      - name: Upload tgz source pack
-        id: upload_src_tgz_to_release
-        uses: actions/upload-release-asset@v1.0.1
-        env: {GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}"}
-        with:
-          upload_url: ${{steps.create_release.outputs.upload_url}}
-          asset_path: ${{steps.src_pack.outputs.TGZ}}
-          asset_name: ${{steps.src_pack.outputs.TGZ}}
-          asset_content_type: application/gzip
-      - name: Upload zip source pack
-        id: upload_src_zip_to_release
-        uses: actions/upload-release-asset@v1.0.1
-        env: {GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}"}
-        with:
-          upload_url: ${{steps.create_release.outputs.upload_url}}
-          asset_path: ${{steps.src_pack.outputs.ZIP}}
-          asset_name: ${{steps.src_pack.outputs.ZIP}}
-          asset_content_type: application/zip
-      - name: Save Release URL for uploading binary artifacts
-        run: |
-          echo "UPLOAD_URL: ${{steps.create_release.outputs.upload_url}}"
-          echo "${{steps.create_release.outputs.upload_url}}" > ./upload_url
-      - name: Upload Release URL
+          pwd
+          ls -lFhp
+          source vars.sh
+          echo SRC_TAG=$SRC_TAG
+          echo SRC_VERSION=$SRC_VERSION
+          mkdir -p assets
+          name=${PROJ_PKG_NAME}${SRC_VERSION}-src
+          git-archive-all --prefix $name assets/$name.tgz
+          git-archive-all --prefix $name assets/$name.zip
+      - name: Save source artifacts
         uses: actions/upload-artifact@v1
-        with:
-          path: ./upload_url
-          name: upload_url
+        with: {name: assets, path: assets}
 
   #----------------------------------------------------------------------------
-  # action to create c++ binaries and upload to the github release
-  publish_cpp:
-    needs: release
+  # create c++ packages
+  cpp:
     name: cpp/${{matrix.config.os}}/${{matrix.config.gen}}
+    needs: gettag
     runs-on: ${{matrix.config.os}}
     env: {DEV: OFF, BT: Release, OS: "${{matrix.config.os}}", CXX_: "${{matrix.config.cxx}}", GEN: "${{matrix.config.gen}}"}
     strategy:
@@ -108,190 +112,200 @@ jobs:
           - {name: Windows VS2019 zip, sfxg: win64.zip , sfxp: windows-vs2019.zip , gen: ZIP  , mime: zip                      , os: windows-2019, cxx: vs2019}
           - {name: MacOSX sh         , sfxg: apple64.sh, sfxp: macosx-xcode.sh    , gen: STGZ , mime: x-sh                     , os: macos-11.0  , cxx: xcode }
     steps:
-      - name: Download upload URL
-        uses: actions/download-artifact@v1
-        with: {name: upload_url, path: ./}
-      - name: Preprocess
-        id: preprocess
-        # https://github.community/t/how-to-get-just-the-tag-name/16241/11
-        run: |
-          upload_url=`cat ./upload_url`
-          src_version=${GITHUB_REF#refs/tags/v}
-          asset_src=./build/shared64/${PROJ_PFX_TARGET}${src_version}-${{matrix.config.sfxg}}
-          asset_dst=${PROJ_PFX_TARGET}${src_version}-${{matrix.config.sfxp}}
-          echo ::set-output name=src_version::$src_version
-          echo ::set-output name=upload_url::$upload_url
-          echo ::set-output name=asset_src::$asset_src
-          echo ::set-output name=asset_dst::$asset_dst
       - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+      - name: Download vars.sh
+        uses: actions/download-artifact@v1
+        with: {name: vars.sh, path: ./}
       - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
       - {name: show info, run: source .github/setenv.sh && c4_show_info }
       - name: shared64-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test shared64
       - {name: shared64-build, run: source .github/setenv.sh && c4_build_target shared64}
       - name: shared64-pack
+        run: source .github/setenv.sh && c4_package shared64 $GEN
+      - name: shared64-normalize
         run: |
-          source .github/setenv.sh && c4_package shared64 $GEN
-          cp -fav ${{steps.preprocess.outputs.asset_src}} ${{steps.preprocess.outputs.asset_dst}}
-      - name: Upload artifact
-        id: upload_to_release
-        uses: actions/upload-release-asset@v1.0.1
-        env: {GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}"}
-        with:
-          upload_url: ${{steps.preprocess.outputs.upload_url}}
-          asset_path: ${{steps.preprocess.outputs.asset_dst}}
-          asset_name: ${{steps.preprocess.outputs.asset_dst}}
-          asset_content_type: application/${{matrix.config.mime}}
-      - name: Report artifact URL
-        run: |
-          echo "artifact uploaded successfully: ${{steps.upload_to_release.outputs.browser_download_url}}"
+          set -x
+          source vars.sh
+          mkdir -p assets
+          asset_src=`ls -1 ./build/shared64/${PROJ_PFX_TARGET}*-${{matrix.config.sfxg}}`
+          asset_dst=./assets/${PROJ_PKG_NAME}${SRC_VERSION}-${{matrix.config.sfxp}}
+          [ ! -f $asset_src ] && exit 1
+          cp -fav $asset_src $asset_dst
+      - name: Save artifacts
+        uses: actions/upload-artifact@v1
+        with: {name: assets, path: assets}
 
   #----------------------------------------------------------------------------
-  # action to create python binaries and uploading to the github release
-  publish_python:
-    needs: release
-    name: python/${{matrix.config.pythonv}}/${{matrix.config.os}}
+  # create python packages
+  # adapted from https://github.com/pikepdf/pikepdf/blob/master/.github/workflows/build_wheels.yml
+
+  python_src:
+    name: python/src
+    runs-on: ubuntu-latest
+    steps:
+      # use fetch-depth to ensure all tags are fetched
+      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive, fetch-depth: 0}}
+      - name: install python 3.9
+        uses: actions/setup-python@v2
+        with: { python-version: 3.9 }
+      - name: package python src packages
+        run: |
+          python --version
+          pip install -v -r requirements.txt
+          python setup.py sdist --formats=zip
+      - name: normalize src package names
+        run: |
+          sdist_orig=`find dist -type f -name 'rapidyaml-*.zip'`
+          [ ! -f $sdist_orig ] && exit 1
+          sdist=`echo $sdist_orig | sed 's:\.zip:-python_src.zip:'`
+          mv -fv $sdist_orig $sdist
+      - name: Save artifacts
+        uses: actions/upload-artifact@v1
+        with: {name: dist, path: dist}
+
+  python_wheels:
+    name: python/${{matrix.config.cibw_pyv}}/${{matrix.config.osname}}/${{matrix.config.cibw_arch}}
     runs-on: ${{matrix.config.os}}
-    env: {DEV: OFF,
-          BT: Release,
-          OS: "${{matrix.config.os}}",
-          CXX_: "${{matrix.config.cxx}}",
-          PYTHONV: "${{matrix.config.pythonv}}",
-          API: ON,
-          CMAKE_FLAGS: "-DRYML_DEV=OFF -DRYML_BUILD_API=ON -DRYML_API_TESTS=OFF -DRYML_API_BENCHMARKS=OFF"}
+    env:
+      CMAKE_FLAGS: "${{matrix.config.cmakeflags}} -DRYML_DEV=OFF -DRYML_BUILD_API=ON -DRYML_API_TESTS=OFF -DRYML_API_BENCHMARKS=OFF"
+      CIBW_BUILD: "cp${{matrix.config.cibw_pyv}}*-${{matrix.config.cibw_platform}}"
+      CIBW_ARCHS: "${{matrix.config.cibw_arch}}"
     strategy:
       fail-fast: false
       matrix:
         config:
-          - {name: Python 3.9 Unix, pythonv: 3.9, os: ubuntu-20.04             }
-          - {name: Python 3.8 Unix, pythonv: 3.8, os: ubuntu-20.04             }
-          - {name: Python 3.7 Unix, pythonv: 3.7, os: ubuntu-20.04             }
-          #- {name: Python 3.9 Win , pythonv: 3.9, os: windows-2019, cxx: vs2019}
-          #- {name: Python 3.8 Win , pythonv: 3.8, os: windows-2019, cxx: vs2019}
-          #- {name: Python 3.7 Win , pythonv: 3.7, os: windows-2019, cxx: vs2019}
+          - {pythonv: 3.9, cibw_pyv: 39 , cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
+          - {pythonv: 3.9, cibw_pyv: 39 , cibw_arch: i686  , cibw_platform: manylinux_i686  , osname: linux, os: ubuntu-20.04}
+          - {pythonv: 3.9, cibw_pyv: 39 , cibw_arch: AMD64 , cibw_platform: win_amd64       , osname: win  , os: windows-2019, cxx: vs2019, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
+          - {pythonv: 3.9, cibw_pyv: 39 , cibw_arch: x86   , cibw_platform: win32           , osname: win  , os: windows-2019, cxx: vs2019, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
+          - {pythonv: 3.8, cibw_pyv: 38 , cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
+          - {pythonv: 3.8, cibw_pyv: 38 , cibw_arch: i686  , cibw_platform: manylinux_i686  , osname: linux, os: ubuntu-20.04}
+          - {pythonv: 3.8, cibw_pyv: 38 , cibw_arch: AMD64 , cibw_platform: win_amd64       , osname: win  , os: windows-2019, cxx: vs2019, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
+          - {pythonv: 3.8, cibw_pyv: 38 , cibw_arch: x86   , cibw_platform: win32           , osname: win  , os: windows-2019, cxx: vs2019, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
+          - {pythonv: 3.7, cibw_pyv: 37 , cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
+          - {pythonv: 3.7, cibw_pyv: 37 , cibw_arch: i686  , cibw_platform: manylinux_i686  , osname: linux, os: ubuntu-20.04}
+          - {pythonv: 3.7, cibw_pyv: 37 , cibw_arch: AMD64 , cibw_platform: win_amd64       , osname: win  , os: windows-2019, cxx: vs2019, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
+          - {pythonv: 3.7, cibw_pyv: 37 , cibw_arch: x86   , cibw_platform: win32           , osname: win  , os: windows-2019, cxx: vs2019, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
+          #- {pythonv: 3.9 , cxx: xcode, os: macos-10.15}
+          #- {pythonv: 3.9 , cxx: xcode, os: macos-10.15}
+          #- {pythonv: 3.8 , cxx: xcode, os: macos-10.15}
+          #- {pythonv: 3.8 , cxx: xcode, os: macos-10.15}
+          #- {pythonv: 3.7 , cxx: xcode, os: macos-10.15}
+          #- {pythonv: 3.7 , cxx: xcode, os: macos-10.15}
     steps:
-      - name: Download upload URL
-        uses: actions/download-artifact@v1
-        with: {name: upload_url, path: ./}
-      - name: Preprocess
-        id: preprocess
+      # use fetch-depth to ensure all tags are fetched
+      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive, fetch-depth: 0}}
+      - name: create wheel
+        uses: joerick/cibuildwheel@v2.1.1
+      - name: rename wheelhouse -> dist
         run: |
-          upload_url=`cat ./upload_url`
-          echo ::set-output name=upload_url::$upload_url
-      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
-      - name: python ${{matrix.config.pythonv}}
+          mv -fv wheelhouse dist
+          ls -lFhp dist/
+      - name: Save artifacts for publishing to PyPI
+        uses: actions/upload-artifact@v1
+        with: {name: dist, path: dist}
+      # run the tests
+      - name: install python ${{matrix.config.pythonv}}
         uses: actions/setup-python@v2
         with:
           python-version: ${{matrix.config.pythonv}}
-      - name: install requirements
+      - name: test with python ${{matrix.config.pythonv}}
         run: |
-          echo "expecting python ${{matrix.config.pythonv}}..."
-          python --version
-          source .github/reqs.sh && c4_install_test_requirements $OS
-          pip install -v -r requirements.txt
-      - {name: show info, run: source .github/setenv.sh && c4_show_info }
-      - name: package ${{matrix.config.pythonv}} wheel file
-        id: package
-        run: |
-          python --version
-          pip wheel .
-          ls *.whl
-      - name: rename wheel file
-        id: rename
-        run: |
-          ls *.whl
-          WHLF=`ls -1 *.whl`
-          if [ -z "$WHLF" ] ; then
-             echo "could not find any .whl file"
+          set -x
+          # do not run the tests in 32 bit
+          arch=${{matrix.config.cibw_arch}}
+          if [ "$arch" == "i686" ] || [ "$arch" == "x86" ] ; then
+            exit 0
           fi
-          DSTF=`echo $WHLF | sed 's:rapidyaml:ryml-python:'`
-          mkdir -p dist
-          mv -fv $WHLF dist/$DSTF
-          echo ::set-output name=whl_file::$DSTF
-      - name: Upload artifact to Github
-        id: upload_api_to_release
-        uses: actions/upload-release-asset@v1.0.1
-        env: {GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}"}
-        with:
-          upload_url: ${{steps.preprocess.outputs.upload_url}}
-          asset_path: dist/${{steps.rename.outputs.whl_file}}
-          asset_name: ${{steps.rename.outputs.whl_file}}
-          asset_content_type: application/x-pywheel-zip
-      - name: Report artifact Github URL
-        run: |
-          echo "artifact file: ${{steps.rename.outputs.whl_file}}"
-          echo "artifact uploaded successfully to github: ${{steps.upload_api_to_release.outputs.browser_download_url}}"
-      - name: Save artifact for publishing to pypi
-        uses: actions/upload-artifact@v1
-        with: {name: dist, path: ./dist/}
+          python --version
+          pip --version
+          pip install -v -r requirements.txt
+          pip install -v -r api/python/requirements.txt
+          for whl in dist/* ; do
+            pip install -v $whl
+            pip show -f rapidyaml
+            python -c 'import ryml ; dir(ryml) ; tree = ryml.parse(b"{foo: bar}") ; assert tree.key(1) == b"foo" ; assert tree.val(1) == b"bar"'
+            python -m nose -v api/python/ryml/tests
+            pip uninstall -y -v rapidyaml
+          done
 
-  # action to upload python binaries and upload to the PyPI release
-  publish_python_pypi:
-    needs: publish_python
-    name: python/pypi
-    runs-on: ubuntu-20.04
-    env: {GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}", PYPI_TOKEN: "${{secrets.PYPI_TOKEN}}", PYPI_TOKEN_TEST: "${{secrets.PYPI_TOKEN_TEST}}"}
+
+  #----------------------------------------------------------------------------
+  release:
+    runs-on: ubuntu-latest
+    needs:
+      - src
+      - cpp
+      - python_src
+      - python_wheels
     steps:
       - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
-      - name: Download github release URL
-        uses: actions/download-artifact@v1
-        with: {name: upload_url, path: ./}
-      - name: package python src package
-        id: package
+      - name: Gather artifacts - ./assets
+        uses: actions/download-artifact@v2
+        with: {name: assets, path: assets}
+      - name: Gather artifacts - ./dist
+        uses: actions/download-artifact@v2
+        with: {name: dist, path: dist}
+      - name: Verify existing artifacts
         run: |
-          python --version
-          pip install -v -r requirements.txt
-          python setup.py sdist --formats=gztar,zip
-          sdist_tgz_orig=`find dist -type f -name 'rapidyaml-*.tar.gz'`
-          sdist_zip_orig=`find dist -type f -name 'rapidyaml-*.zip'`
-          sdist_zip=`echo $sdist_zip_orig | sed 's:rapidyaml-:ryml-python-:'`
-          sdist_tgz=`echo $sdist_tgz_orig | sed 's:rapidyaml-:ryml-python-:'`
-          sdist_zip_base=`basename $sdist_zip`
-          sdist_tgz_base=`basename $sdist_tgz`
-          mv -fv $sdist_zip_orig $sdist_zip
-          mv -fv $sdist_tgz_orig $sdist_tgz
-          echo ::set-output name=sdist_zip::$sdist_zip
-          echo ::set-output name=sdist_tgz::$sdist_tgz
-          echo ::set-output name=sdist_zip_base::$sdist_zip_base
-          echo ::set-output name=sdist_tgz_base::$sdist_tgz_base
-      - name: Resume python artifacts
-        uses: actions/download-artifact@v1
-        with: {name: dist, path: ./dist/}
-      - name: get github release url
-        id: preprocess
-        run: |
-          upload_url=`cat ./upload_url`
-          echo ::set-output name=upload_url::$upload_url
-      - name: upload python src zip package to github release
-        uses: actions/upload-release-asset@v1.0.1
-        with:
-          upload_url: ${{steps.preprocess.outputs.upload_url}}
-          asset_path: ${{steps.package.outputs.sdist_zip}}
-          asset_name: ${{steps.package.outputs.sdist_zip_base}}
-          asset_content_type: application/zip
-      - name: upload python src tgz package to github release
-        uses: actions/upload-release-asset@v1.0.1
-        with:
-          upload_url: ${{steps.preprocess.outputs.upload_url}}
-          asset_path: ${{steps.package.outputs.sdist_tgz}}
-          asset_name: ${{steps.package.outputs.sdist_tgz_base}}
-          asset_content_type: application/gzip
-      - name: normalize package names for PyPI
-        run: |
-          for fn in dist/ryml* ; do
-            fnn=`echo $fn | sed 's:ryml-:rapidyaml-:g'`
-            mv -fv $fn $fnn
-          done
+          ls -lFhp assets/
+          ls -lFhp dist/
+      #
+      # PyPI (test)
       - name: Publish python packages to test PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@v1.4.2
         with:
+          repository_url: https://test.pypi.org/legacy/
           user: __token__
           password: ${{secrets.PYPI_TOKEN_TEST}}
-          repository_url: https://test.pypi.org/legacy/
           verbose: true
-      #- name: Publish python packages to production PyPI
-      #  uses: pypa/gh-action-pypi-publish@release/v1
-      #  with:
-      #    user: __token__
-      #    password: "$PYPI_TOKEN"
-      #    verbose: true
+          skip_existing: true
+      #
+      # Github
+      - name: Restore vars.sh
+        if: contains(github.ref, 'tags/v')
+        uses: actions/download-artifact@v1
+        with: {name: vars.sh, path: ./}
+      - name: Save vars for following steps
+        if: contains(github.ref, 'tags/v')
+        id: vars
+        run: |
+          source vars.sh
+          version_body=${{github.workspace}}/changelog/$SRC_VERSION.md
+          if [ ! -f $version_body ] ; then
+            echo "version body file was not found: $version_body"
+            exit 1
+          fi
+          echo "::set-output name=VERSION::$SRC_VERSION"
+          echo "::set-output name=VERSION_BODY::$version_body"
+      - name: Move Python packages to assets folder
+        if: contains(github.ref, 'tags/v')
+        run: mv -fv dist/*src.zip assets/.
+      - name: Create Github Release
+        if: contains(github.ref, 'tags/v')
+        id: create_release
+        uses: actions/create-release@v1
+        env: { GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}" }
+        with:
+          tag_name: ${{github.ref}}
+          release_name: Release ${{steps.vars.outputs.VERSION}}
+          body_path: ${{steps.vars.outputs.VERSION_BODY}}
+          draft: true
+          prerelease: ${{contains(github.ref, 'rc')}}
+      - name: Upload assets to Github Release
+        if: contains(github.ref, 'tags/v')
+        uses: dwenegar/upload-release-assets@v1
+        env: { GITHUB_TOKEN: "${{secrets.GITHUB_TOKEN}}" }
+        with:
+          release_id: ${{steps.create_release.outputs.id}}
+          assets_path: ./assets/
+      #
+      # PyPI (production)
+      - name: Publish python packages to production PyPI
+        if: contains(github.ref, 'tags/v')
+        uses: pypa/gh-action-pypi-publish@v1.4.2
+        with:
+          user: __token__
+          password: ${{secrets.PYPI_TOKEN}}
+          verbose: true
