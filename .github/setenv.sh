@@ -102,12 +102,15 @@ function c4_build_target()  # runs in parallel
     if _c4skipbitlink "$1" ; then return 0 ; fi
     id=$1
     target=$2
+    if [ ! -z "$target" ] ; then
+        target="--target $target"
+    fi
     build_dir=`pwd`/build/$id
     export CTEST_OUTPUT_ON_FAILURE=1
     # watchout: the `--parallel` flag to `cmake --build` is broken:
     # https://discourse.cmake.org/t/parallel-does-not-really-enable-parallel-compiles-with-msbuild/964/10
     # https://gitlab.kitware.com/cmake/cmake/-/issues/20564
-    cmake --build $build_dir --config $BT --target $target -- $(_c4_generator_build_flags) $(_c4_parallel_build_flags)
+    cmake --build $build_dir --config $BT $target -- $(_c4_generator_build_flags) $(_c4_parallel_build_flags)
 }
 
 function c4_run_target()  # does not run in parallel

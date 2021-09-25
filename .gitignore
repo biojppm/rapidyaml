@@ -37,6 +37,10 @@ compile_commands.json
 # test files
 /Testing/
 
+# python packaging
+.eggs/
+dist/
+rapidyaml.egg-info/
 
 # continuous integration files
 .ci/.vagrant
