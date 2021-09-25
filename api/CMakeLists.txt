@@ -18,6 +18,10 @@ include(UseSWIG)
 set(RYML_API_DIR ${CMAKE_CURRENT_LIST_DIR})
 set(RYML_SWIG_SRC ${RYML_API_DIR}/ryml.i)
 
+include(../ext/c4core/cmake/TargetArchitecture.cmake)
+c4_get_architecture_defines(RYML_SWIG_ARCH_DEFINES)
+c4_log("add CPU architecture defines ${RYML_SWIG_ARCH_DEFINES}")
+
 foreach(f ${RYML_SWIG_SRC})
     set_source_files_properties(${f} PROPERTIES
         CPLUSPLUS ON
@@ -80,6 +84,7 @@ if(RYML_BUILD_API_PYTHON)
     if(WIN32)
         target_compile_definitions(${t} PUBLIC __WIN32__)
     endif()
+    target_compile_definitions(${t} PUBLIC ${RYML_SWIG_ARCH_DEFINES})
 
     # Install the SWIG .so/.dll file
     install(

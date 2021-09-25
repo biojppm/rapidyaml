@@ -11,11 +11,15 @@ on:
   # https://github.community/t/how-to-trigger-an-action-on-push-or-pull-request-but-not-both/16662
   workflow_dispatch:
   push:
+    tags:
+      - v0.*
+      - v1.*
+      - v2.*
     branches:
-    - master
+      - master
   pull_request:
     branches:
-    - master
+      - master
 
 env:
   PROJ_PKG_NAME: rapidyaml-
