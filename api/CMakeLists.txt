@@ -120,7 +120,7 @@ if(RYML_BUILD_API_PYTHON)
             add_test(NAME ${tn}-run
                 COMMAND ${cmd})
         endfunction()
-        add_python_test(parse.py)
+        add_python_test(test_parse.py)
     endif()
 
     if(RYML_API_BENCHMARKS)
