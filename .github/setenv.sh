@@ -277,6 +277,10 @@ function c4_cfg_test()
             cmake -S $PROJ_DIR -B $build_dir -DCMAKE_INSTALL_PREFIX="$install_dir" \
                   -DCMAKE_BUILD_TYPE=$BT -G "$g" -DCMAKE_OSX_ARCHITECTURES=$a $CMFLAGS
             ;;
+        arm*|"") # make sure arm* comes before *g++ or *gcc*
+            cmake -S $PROJ_DIR -B $build_dir -DCMAKE_INSTALL_PREFIX="$install_dir" \
+                  -DCMAKE_BUILD_TYPE=$BT $CMFLAGS
+            ;;
         *g++*|*gcc*|*clang*)
             export CC_=$(echo "$CXX_" | sed 's:clang++:clang:g' | sed 's:g++:gcc:g')
             _c4_choose_clang_tidy $CXX_
@@ -285,12 +289,6 @@ function c4_cfg_test()
                   -DCMAKE_C_COMPILER=$CC_ -DCMAKE_CXX_COMPILER=$CXX_ \
                   -DCMAKE_C_FLAGS="-std=c99 -m$bits" -DCMAKE_CXX_FLAGS="-m$bits"
             cmake --build $build_dir --target help | sed 1d | sort
-            ;;
-        arm*|"")
-            # for empty compiler
-            # or arm-*
-            cmake -S $PROJ_DIR -B $build_dir -DCMAKE_INSTALL_PREFIX="$install_dir" \
-                  -DCMAKE_BUILD_TYPE=$BT $CMFLAGS
             ;;
         *)
             echo "unknown compiler"
