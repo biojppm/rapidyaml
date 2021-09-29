@@ -3727,7 +3727,10 @@ int report_checks()
     return num_failed_checks;
 }
 
+
 // helper functions for sample_parse_file()
+
+C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4996) // fopen: this function or variable may be unsafe
 /** load a file from disk and return a newly created CharContainer */
 template<class CharContainer>
 size_t file_get_contents(const char *filename, CharContainer *v)
@@ -3771,3 +3774,4 @@ void file_put_contents(const char *filename, const char *buf, size_t sz, const c
     ::fwrite(buf, 1, sz, fp);
     ::fclose(fp);
 }
+C4_SUPPRESS_WARNING_MSVC_POP
