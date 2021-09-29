@@ -44,7 +44,6 @@
 //
 // (Each function addresses a topic and is fully self-contained. Jump
 // to the function to find out about its topic.)
-namespace sample {
 void sample_quick_overview();       ///< briefly skim over most of the features
 void sample_substr();               ///< about ryml's string views (from c4core)
 void sample_parse_read_only();      ///< parse a read-only YAML source buffer
@@ -73,11 +72,9 @@ void sample_error_handler();        ///< set a custom error handler
 void sample_global_allocator();     ///< set a global allocator for ryml
 void sample_per_tree_allocator();   ///< set per-tree allocators
 int  report_checks();
-} // namespace sample
 
 int main()
 {
-    using namespace sample;
     sample_quick_overview();
     sample_substr();
     sample_parse_read_only();
@@ -113,14 +110,10 @@ int main()
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-namespace sample {
-
 /// a quick'n'dirty assertion to verify a predicate
-#define CHECK(predicate) do { if(!::sample::detail::report_check(__FILE__, __LINE__, #predicate, (predicate))) { C4_DEBUG_BREAK(); } } while(0)
+#define CHECK(predicate) do { if(!report_check(__FILE__, __LINE__, #predicate, (predicate))) { C4_DEBUG_BREAK(); } } while(0)
 
-namespace detail {
 bool report_check(const char *file, int line, const char *predicate, bool result);
-} // namespace detail
 
 
 //-----------------------------------------------------------------------------
@@ -3645,9 +3638,13 @@ void sample_per_tree_allocator()
 
 
 //-----------------------------------------------------------------------------
-namespace detail {
+
+namespace /*anon*/ {
 static int num_checks = 0;
 static int num_failed_checks = 0;
+} // namespace /*anon*/
+
+
 bool report_check(const char *file, int line, const char *predicate, bool result)
 {
     ++num_checks;
@@ -3660,12 +3657,10 @@ bool report_check(const char *file, int line, const char *predicate, bool result
     std::cout << file << ':' << line << ": " << msg << predicate << std::endl;
     return result;
 }
-} // namespace detail
 
 
 int report_checks()
 {
-    using namespace sample::detail;
     std::cout << "Completed " << num_checks << " checks." << std::endl;
     if(num_failed_checks)
         std::cout << "ERROR: " << num_failed_checks << '/' << num_checks << " checks failed." << std::endl;
@@ -3674,4 +3669,3 @@ int report_checks()
     return num_failed_checks;
 }
 
-} // namespace sample
