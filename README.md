@@ -557,6 +557,7 @@ There you can find the following subjects being addressed:
 
 ```c++
 sample_substr();               ///< about ryml's string views (from c4core)
+sample_parse_file();           ///< ready-to-go example of parsing a file from disk
 sample_parse_read_only();      ///< parse a read-only YAML source buffer
 sample_parse_in_situ();        ///< parse an immutable YAML source buffer
 sample_parse_reuse_tree();     ///< parse into an existing tree, maybe into a node

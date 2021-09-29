@@ -46,6 +46,7 @@
 // to the function to find out about its topic.)
 void sample_quick_overview();       ///< briefly skim over most of the features
 void sample_substr();               ///< about ryml's string views (from c4core)
+void sample_parse_file();           ///< ready-to-go example of parsing a file from disk
 void sample_parse_read_only();      ///< parse a read-only YAML source buffer
 void sample_parse_in_situ();        ///< parse an immutable YAML source buffer
 void sample_parse_reuse_tree();     ///< parse into an existing tree, maybe into a node
@@ -77,6 +78,7 @@ int main()
 {
     sample_quick_overview();
     sample_substr();
+    sample_parse_file();
     sample_parse_read_only();
     sample_parse_in_situ();
     sample_parse_reuse_tree();
@@ -1193,6 +1195,62 @@ void sample_substr()
 
     // see the docs:
     // https://c4core.docsforge.com/master/api/c4/basic_substring/
+}
+
+
+//-----------------------------------------------------------------------------
+
+// helper functions for sample_parse_file()
+template<class CharContainer> CharContainer file_get_contents(const char *filename);
+template<class CharContainer> size_t        file_get_contents(const char *filename, CharContainer *v);
+template<class CharContainer> void          file_put_contents(const char *filename, CharContainer const& v, const char* access="wb");
+void                                        file_put_contents(const char *filename, const char *buf, size_t sz, const char* access);
+
+
+/** demonstrate how to load a YAML file from disk to parse with ryml.
+ *
+ *  ryml offers no overload to directly parse files from disk; it only
+ *  parses source buffers (which may be mutable or immutable). It is
+ *  up to the caller to load the file contents into a buffer before
+ *  parsing with ryml.
+ *
+ *  But that does not mean that loading a file is unimportant. There
+ *  are many ways to achieve this in C++, but for convenience and to
+ *  enable you to quickly get up to speed, here is an example
+ *  implementation loading a file from disk and then parsing the
+ *  resulting buffer with ryml. */
+void sample_parse_file()
+{
+    const char filename[] = "ryml_example.yml";
+
+    // because this is a minimal sample, it assumes nothing on the
+    // environment/OS (other than that it can read/write files). So we
+    // create the file on the fly:
+    file_put_contents(filename, ryml::csubstr("foo: 1\nbar:\n  - 2\n  - 3\n"));
+
+    // now we can load it into a std::string (for example):
+    {
+        std::string contents = file_get_contents<std::string>(filename);
+        ryml::Tree tree = ryml::parse(ryml::to_csubstr(contents)); // immutable (csubstr) overload
+        CHECK(tree["foo"].val() == "1");
+        CHECK(tree["bar"][0].val() == "2");
+        CHECK(tree["bar"][1].val() == "3");
+    }
+
+    // or we can use a vector<char> instead:
+    {
+        std::vector<char> contents = file_get_contents<std::vector<char>>(filename);
+        ryml::Tree tree = ryml::parse(ryml::to_substr(contents)); // mutable (csubstr) overload
+        CHECK(tree["foo"].val() == "1");
+        CHECK(tree["bar"][0].val() == "2");
+        CHECK(tree["bar"][1].val() == "3");
+    }
+
+    // generally, any contiguous char container can be used with ryml,
+    // provided that the ryml::csubstr view can be created out of it.
+    // ryml provides the overloads above for these two containers,
+    // but if you have a different container it should be very easy
+    // (only requires pointer and length).
 }
 
 
@@ -3669,3 +3727,47 @@ int report_checks()
     return num_failed_checks;
 }
 
+// helper functions for sample_parse_file()
+/** load a file from disk and return a newly created CharContainer */
+template<class CharContainer>
+size_t file_get_contents(const char *filename, CharContainer *v)
+{
+    ::FILE *fp = ::fopen(filename, "rb");
+    C4_CHECK_MSG(fp != nullptr, "could not open file");
+    ::fseek(fp, 0, SEEK_END);
+    long sz = ::ftell(fp);
+    v->resize(static_cast<typename CharContainer::size_type>(sz));
+    if(sz)
+    {
+        ::rewind(fp);
+        size_t ret = ::fread(&(*v)[0], 1, v->size(), fp);
+        C4_CHECK(ret == (size_t)sz);
+    }
+    ::fclose(fp);
+    return v->size();
+}
+
+/** load a file from disk into an existing CharContainer */
+template<class CharContainer>
+CharContainer file_get_contents(const char *filename)
+{
+    CharContainer cc;
+    file_get_contents(filename, &cc);
+    return cc;
+}
+
+/** save a buffer into a file */
+template<class CharContainer>
+void file_put_contents(const char *filename, CharContainer const& v, const char* access)
+{
+    file_put_contents(filename, v.empty() ? "" : &v[0], v.size(), access);
+}
+
+/** save a buffer into a file */
+void file_put_contents(const char *filename, const char *buf, size_t sz, const char* access)
+{
+    ::FILE *fp = ::fopen(filename, access);
+    C4_CHECK_MSG(fp != nullptr, "could not open file");
+    ::fwrite(buf, 1, sz, fp);
+    ::fclose(fp);
+}
