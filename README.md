@@ -5,7 +5,7 @@
 [![Docs](https://img.shields.io/badge/docs-docsforge-blue)](https://rapidyaml.docsforge.com/)
 [![Gitter](https://badges.gitter.im/rapidyaml/community.svg)](https://gitter.im/rapidyaml/community)
 
-[![test](https://github.com/biojppm/rapidyaml/workflows/test/badge.svg?branch=master)](https://github.com/biojppm/rapidyaml/actions=workflow%3Atest)
+[![test](https://github.com/biojppm/rapidyaml/workflows/test/badge.svg?branch=master)](https://github.com/biojppm/rapidyaml/actions)
 [![Coveralls](https://coveralls.io/repos/github/biojppm/rapidyaml/badge.svg?branch=master)](https://coveralls.io/github/biojppm/rapidyaml)
 [![Codecov](https://codecov.io/gh/biojppm/rapidyaml/branch/master/graph/badge.svg?branch=master)](https://codecov.io/gh/biojppm/rapidyaml)
 [![Total alerts](https://img.shields.io/lgtm/alerts/g/biojppm/rapidyaml.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/biojppm/rapidyaml/alerts/)
@@ -36,14 +36,15 @@ ryml has no dependencies, not even on the STL (although it does use the
 libc). It provides optional headers that let you serialize/deserialize
 STL strings and containers (or show you how to do it).
 
-ryml is written in C++11, and is known to compile with:
+ryml is written in C++11, and compiles cleanly with:
 * Visual Studio 2015 and later
 * clang++ 3.9 and later
 * g++ 5 and later
+* Intel Compiler
 
 ryml is [extensively unit-tested in Linux, Windows and
 MacOS](https://github.com/biojppm/rapidyaml/actions). The
-tests run in the standard x64, x86 and arm architectures,
+tests cover x64, x86, arm, aarch64, ppc64le and s390x architectures,
 and include analysing ryml with:
   * valgrind
   * clang-tidy
