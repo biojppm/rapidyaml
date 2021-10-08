@@ -197,7 +197,7 @@ void YmlTestCase::_test_emit_yml_ofstream(CaseDataLineEndings *cd)
         f << cd->parsed_tree;
     }
     auto r = c4::fs::file_get_contents<std::string>(fn.c_str());
-    c4::fs::delete_file(fn.c_str());
+    c4::fs::rmfile(fn.c_str());
     // using ofstream will use \r\n. So delete it.
     std::string filtered;
     filtered.reserve(r.size());
