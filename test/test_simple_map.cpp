@@ -3,6 +3,35 @@
 namespace c4 {
 namespace yml {
 
+#ifdef TEST_SUITE_WIP
+TEST(simple_map, test_suite_UT92)
+{
+    csubstr yaml = R"(
+---
+{ matches
+% : 20 }
+...
+---
+# Empty
+...
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_stream());
+        ASSERT_EQ(t.rootref().num_children(), 2u);
+        ASSERT_TRUE(t.rootref().first_child().is_doc());
+        ASSERT_TRUE(t.rootref().first_child().has_child("matches %"));
+        EXPECT_EQ(t.rootref().first_child()["matches %"].val(), "20");
+        ASSERT_TRUE(t.rootref().last_child().is_doc());
+        ASSERT_TRUE(t.rootref().last_child().empty());
+    });
+}
+#endif
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 #define SIMPLE_MAP_CASES                                        \
 "empty map",                                                    \
 "empty map, multiline",                                         \

@@ -3,6 +3,167 @@
 namespace c4 {
 namespace yml {
 
+#ifdef TEST_SUITE_WIP
+TEST(double_quoted, test_suite_5GBF)
+{
+    csubstr yaml = R"(
+Folding:
+  "Empty line
+   	
+  as a line feed"
+Chomping: |
+  Clipped empty lines
+ 
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_map());
+        EXPECT_EQ(t["Folding"].val(), csubstr("Empty line\nas a line feed"));
+        EXPECT_EQ(t["Chomping"].val(), csubstr("Clipped empty lines\n"));
+    });
+}
+
+// works ok, it's the test spec where we are incorrectly handling
+// the escaped characters
+TEST(double_quoted, test_suite_6SLA)
+{
+    csubstr yaml = R"(
+"foo\nbar:baz\tx \\$%^&*()x": 23
+'x\ny:z\tx $%^&*()x': 24
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_map());
+        ASSERT_TRUE(t.rootref().has_child("foo\nbar:baz\tx \\$%^&*()x"));
+        ASSERT_TRUE(t.rootref().has_child("x\\ny:z\\tx $%^&*()x"));
+        ASSERT_EQ(t["foo\nbar:baz\tx \\$%^&*()x"].val(), csubstr("23"));
+        ASSERT_EQ(t["x\\ny:z\\tx $%^&*()x"].val(), csubstr("24"));
+    });
+}
+
+// works ok, it's the test spec where we are incorrectly handling
+// the escaped characters
+TEST(double_quoted, test_suite_6WPF)
+{
+    csubstr yaml = R"(
+"
+  foo 
+ 
+    bar
+
+  baz
+"
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_val());
+        EXPECT_EQ(t.rootref().val(), csubstr(" foo\nbar\nbaz "));
+    });
+}
+
+// works ok, it's the test spec where we are incorrectly handling
+// the escaped characters
+TEST(double_quoted, test_suite_9TFX)
+{
+    csubstr yaml = R"(
+" 1st non-empty
+
+ 2nd non-empty 
+ 3rd non-empty "
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_val());
+        EXPECT_EQ(t.rootref().val(), csubstr(" 1st non-empty\n2nd non-empty 3rd non-empty "));
+    });
+}
+
+TEST(double_quoted, test_suite_KSS4)
+{
+    csubstr yaml = R"(
+--- "quoted
+string"
+--- &node foo
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        const NodeRef doc0 = t.rootref().first_child();
+        const NodeRef doc1 = t.rootref().last_child();
+        EXPECT_EQ(doc0.val(), "quoted string"); // "quoted\nstring"
+        EXPECT_EQ(doc1.val(), "foo");
+        EXPECT_EQ(doc1.val_anchor(), "node");
+    });
+}
+
+TEST(double_quoted, test_suite_NAT4) // crash!
+{
+    csubstr yaml = R"(
+a: '
+  '
+b: '  
+  '
+c: "
+  "
+d: "  
+  "
+e: '
+
+  '
+f: "
+
+  "
+g: '
+
+
+  '
+h: "
+
+
+  "
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_EQ(t["a"].val(), csubstr(" "));
+        EXPECT_EQ(t["b"].val(), csubstr(" "));
+        EXPECT_EQ(t["c"].val(), csubstr(" "));
+        EXPECT_EQ(t["d"].val(), csubstr(" "));
+        EXPECT_EQ(t["e"].val(), csubstr("\n"));
+        EXPECT_EQ(t["f"].val(), csubstr("\n"));
+        EXPECT_EQ(t["g"].val(), csubstr("\n\n"));
+        EXPECT_EQ(t["h"].val(), csubstr("\n\n"));
+    });
+}
+
+TEST(double_quoted, test_suite_NP9H)
+{
+    csubstr yaml = R"(
+"folded 
+to a space,	
+ 
+to a line feed, or 	\
+ \ 	non-content"
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_val());
+        EXPECT_EQ(t.rootref().val(), csubstr("folded to a space,\nto a line feed, or \t \tnon-content"));
+    });
+}
+
+TEST(double_quoted, test_suite_Q8AD)
+{
+    csubstr yaml = R"(
+"folded 
+to a space,
+ 
+to a line feed, or 	\
+ \ 	non-content"
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_val());
+        EXPECT_EQ(t.rootref().val(), csubstr("folded to a space,\nto a line feed, or \t \tnon-content"));
+    });
+}
+#endif
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 #define DOUBLE_QUOTED_CASES                             \
             "dquoted, only text",                       \
             "dquoted, with single quotes",              \

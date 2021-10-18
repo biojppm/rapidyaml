@@ -3,6 +3,45 @@
 namespace c4 {
 namespace yml {
 
+#ifdef TEST_SUITE_WIP
+TEST(single_quoted, test_suite_PRH3)
+{
+    csubstr yaml = R"(
+' 1st non-empty
+
+ 2nd non-empty 
+	3rd non-empty '
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_val());
+        EXPECT_EQ(t.rootref().val(), csubstr(" 1st non-empty\n2nd non-empty 3rd non-empty "));
+    });
+}
+
+
+
+TEST(single_quoted, test_suite_T4YY)
+{
+    csubstr yaml = R"(
+---
+' 1st non-empty
+
+ 2nd non-empty 
+ 3rd non-empty '
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_stream());
+        ASSERT_TRUE(t.rootref().first_child().is_doc());
+        EXPECT_EQ(t.rootref().first_child().val(), csubstr(" 1st non-empty\n2nd non-empty 3rd non-empty "));
+    });
+}
+#endif
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 #define SINGLE_QUOTED_CASES                             \
             "squoted, only text",                       \
             "squoted, with double quotes",              \

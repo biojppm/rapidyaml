@@ -3593,6 +3593,62 @@ newmap2:
 }
 
 
+#ifdef TEST_SUITE_WIP
+TEST(general, test_suite_RZT7)
+{
+    csubstr yaml = R"(
+---
+Time: 2001-11-23 15:01:42 -5
+User: ed
+Warning:
+  This is an error message
+  for the log file
+---
+Time: 2001-11-23 15:02:31 -5
+User: ed
+Warning:
+  A slightly different error
+  message.
+---
+Date: 2001-11-23 15:03:17 -5
+User: ed
+Fatal:
+  Unknown variable "bar"
+Stack:
+  - file: TopClass.py
+    line: 23
+    code: |
+      x = MoreObject("345\n")
+  - file: MoreClass.py
+    line: 58
+    code: |-
+      foo = bar
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_stream());
+        const NodeRef doc0 = t.rootref()[0];
+        EXPECT_EQ(doc0["Time"].val(), csubstr("2001-11-23 15:01:42 -5"));
+        EXPECT_EQ(doc0["User"].val(), csubstr("ed"));
+        EXPECT_EQ(doc0["Warning"].val(), csubstr("This is an error message for the log file"));
+        const NodeRef doc1 = t.rootref()[1];
+        EXPECT_EQ(doc1["Time"].val(), csubstr("2001-11-23 15:02:31 -5"));
+        EXPECT_EQ(doc1["User"].val(), csubstr("ed"));
+        EXPECT_EQ(doc1["Warning"].val(), csubstr("A slightly different error message."));
+        const NodeRef doc2 = t.rootref()[2];
+        EXPECT_EQ(doc2["Date"].val(), csubstr("2001-11-23 15:03:17 -5"));
+        EXPECT_EQ(doc2["User"].val(), csubstr("ed"));
+        EXPECT_EQ(doc2["Fatal"].val(), csubstr("Unknown variable \"bar\""));
+        EXPECT_EQ(doc2["Stack"][0]["file"].val(), csubstr("TopClass.py"));
+        EXPECT_EQ(doc2["Stack"][0]["line"].val(), csubstr("23"));
+        EXPECT_EQ(doc2["Stack"][0]["code"].val(), csubstr("x = MoreObject(\"345\\n\")\n"));
+        EXPECT_EQ(doc2["Stack"][1]["file"].val(), csubstr("MoreClass.py"));
+        EXPECT_EQ(doc2["Stack"][1]["line"].val(), csubstr("58"));
+        EXPECT_EQ(doc2["Stack"][1]["code"].val(), csubstr("foo = bar"));
+    });
+}
+#endif
+
+
 //-------------------------------------------
 
 TEST(general, github_issue_124)

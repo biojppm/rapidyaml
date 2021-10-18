@@ -794,8 +794,12 @@ int main(int argc, char* argv[])
     // now we have only our args to consider
     if(argc != 2)
     {
-        c4::log("usage:\n{} <test-suite-file>", argv[0]);
-        return RUN_ALL_TESTS();
+        c4::log("usage:\n{} <test-suite-file>", c4::to_csubstr(argv[0]));
+        return 1;
+    }
+    else if(c4::to_csubstr(argv[1]) == "-h" || c4::to_csubstr(argv[1]) == "--help")
+    {
+        return 0;
     }
 
     // load the test case from the suite file
@@ -803,7 +807,7 @@ int main(int argc, char* argv[])
     path.replace('\\', '/');
     RYML_CHECK(path.len > 0);
     RYML_CHECK(path[0] != '-');
-    RYML_CHECK(c4::fs::path_exists(path.str));
+    C4_CHECK_MSG(c4::fs::file_exists(path.str), "file not found: '%.*s'", (int)path.len, path.str);
     c4::log("testing suite case: {} ({})", path.basename(), path);
 
     c4::yml::SuiteCase suite_case(path.str);

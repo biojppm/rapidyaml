@@ -36,7 +36,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"NB6Z",                  eIN_________, "plain scalar parsing, same indentation on next line is problematic"},
     // folded scalars
     {"4QFQ",                  eIN_____EMIT, "folded scalars: multiline problems"},
-    {"5GBF",                  eIN_________, "folded scalars: multiline problems"},
     {"5WE3",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"6VJK",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
     {"7T8X",                  eIN_OUT_____, "folded scalars: multiline problems"},
@@ -53,7 +52,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"NJ66",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"P2AD",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
     {"R4YG",                  eIN_OUT_____, "folded scalars: multiline problems"},
-    {"RZT7",                  eIN_OUT_____, "folded scalars: multiline problems"},
     {"T26H",                  eIN_OUT_EMIT, "folded scalars: multiline problems"},
     {"T4YY",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
     {"T5N4",                  e___OUT_____, "emitting folded scalars is not idempotent"},
@@ -61,20 +59,23 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"W4TN",                  eIN_OUT_____, "folded scalars: multiline problems"},
     {"XLQ9",                  eIN_________, "emitting folded scalars is not idempotent"},
     // quoted scalars
-    {"6SLA",                  eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
-    {"6WPF",                  e___OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
-    {"9TFX",                  e___OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
+    {"5GBF",                  eIN_________, "quoted scalars: multiline problems"},
     {"NP9H",                  eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"PRH3",                  eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"Q8AD",                  eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
-    // complex keys
+    // explicit keys
     {"DFF7",                  eIN_________, "problem with missing complex key"},
-    {"FRK4",                  eIN_________, "implicit key is wrongly parsed"},
+    {"FRK4",                  eIN_________, "explicit key is wrongly parsed"},
     // other
     {"9MMW", IN______________             , "re the json/yaml incompatibility where a space is required after :"},
     {"A2M4",                  eIN_________, "fails to parse the value sequence, parses as scalar"},
+    // problems reading the test spec
     {"G4RS",                  eIN_OUT_____, "need to unescape the utf8 characters"},
     {"H3Z8",                  e___OUT_____, "need to unescape the utf8 characters"},
+    {"6SLA",                  eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
+    {"6WPF",                  e___OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
+    {"RZT7",                  eIN_OUT_____, "folded scalars: multiline problems"},
+    {"9TFX",                  e___OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
 
 
     //-------------------------------------------------------------------------

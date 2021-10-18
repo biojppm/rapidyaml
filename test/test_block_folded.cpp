@@ -125,6 +125,330 @@ indented_once:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+#ifdef TEST_SUITE_WIP
+TEST(block_folded, test_suite_4QFQ)
+{
+    csubstr yaml = R"(
+- |
+ child0
+- >
+ 
+  
+  # child1
+- |1
+  child2
+- >
+ child3
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_seq());
+        ASSERT_EQ(t.rootref().num_children(), 4);
+        EXPECT_EQ(t[0].val(), csubstr("child0\n"));
+        EXPECT_EQ(t[1].val(), csubstr("\n\n# child1\n"));
+        EXPECT_EQ(t[2].val(), csubstr(" child2\n"));
+        EXPECT_EQ(t[3].val(), csubstr("child3\n"));
+    });
+}
+
+TEST(block_folded, test_suite_5WE3)
+{
+    csubstr yaml = R"(
+? explicit key # Empty value
+? |
+  block key
+: - one # Explicit compact
+  - two # block value
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_map());
+        ASSERT_NE(t.find_child(t.root_id(), "explicit key"), NONE);
+        ASSERT_NE(t.find_child(t.root_id(), "block key\n"), NONE);
+        EXPECT_EQ(t["explicit key"].val(), csubstr{});
+        EXPECT_TRUE(t["block key\n"].is_seq());
+        EXPECT_EQ(t["block key\n"][0], "one");
+        EXPECT_EQ(t["block key\n"][1], "two");
+    });
+}
+
+TEST(block_folded, test_suite_6VJK)
+{
+    csubstr yaml = R"(>
+ Sammy Sosa completed another
+ fine season with great stats.
+
+   63 Home Runs
+   0.288 Batting Average
+
+ What a year!
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_EQ(t.rootref().val(), "Sammy Sosa completed another fine season with great stats.\n\n  63 Home Runs\n  0.288 Batting Average\n\nWhat a year!\n");
+    });
+}
+
+TEST(block_folded, test_suite_7T8X)
+{
+    csubstr yaml = R"(>
+
+ folded
+ line
+
+ next
+ line
+   * bullet
+
+   * list
+   * lines
+
+ last
+ line
+
+# Comment
+)";
+    Tree t = parse(yaml);
+    EXPECT_EQ(t.rootref().val(), "\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n");
+}
+
+TEST(block_folded, test_suite_A6F9)
+{
+    csubstr yaml = R"(
+strip: |-
+  text
+clip: |
+  text
+keep: |+
+  text
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_EQ(t["strip"].val(), "text");
+        EXPECT_EQ(t["clip"].val(), "text\n");
+        EXPECT_EQ(t["keep"].val(), "text\n");
+    });
+}
+
+TEST(block_folded, test_suite_B3HG)
+{
+    csubstr yaml = R"(
+--- >
+ folded
+ text
+
+
+--- >
+  folded text
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_TRUE(t.rootref().is_stream());
+        const NodeRef doc = t.rootref().first_child();
+        ASSERT_TRUE(doc.is_doc());
+        ASSERT_TRUE(doc.is_val());
+        EXPECT_EQ(doc.val(), "folded text\n");
+        const NodeRef doc2 = t.rootref().last_child();
+        ASSERT_TRUE(doc2.is_doc());
+        ASSERT_TRUE(doc2.is_val());
+        EXPECT_EQ(doc2.val(), "folded text\n");
+    });
+}
+
+TEST(block_folded, test_suite_D83L)
+{
+    csubstr yaml = R"(
+- |2-
+  explicit indent and chomp
+- |-2
+  chomp and explicit indent
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_TRUE(t.rootref().is_seq());
+        EXPECT_EQ(t[0].val(), "explicit indent and chomp");
+        EXPECT_EQ(t[1].val(), "chomp and explicit indent");
+    });
+}
+
+TEST(block_folded, test_suite_DWX9)
+{
+    csubstr yaml = R"(
+|
+ 
+  
+  literal
+   
+  
+  text
+
+ # Comment
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_EQ(t.rootref().val(), "\n\nliteral\n \n\ntext\n");
+    });
+}
+
+TEST(block_folded, test_suite_F6MC)
+{
+    csubstr yaml = R"(---
+a: >2
+   more indented
+  regular
+b: >2
+
+
+   more indented
+  regular
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        const NodeRef doc = t.rootref().first_child();
+        EXPECT_EQ(doc["a"].val(), "more indented\nregular\n");
+        EXPECT_EQ(doc["b"].val(), "\n\n more indented\nregular\n");
+    });
+}
+
+TEST(block_folded, test_suite_K858)
+{
+    csubstr yaml = R"(
+strip: >-
+
+clip: >
+
+keep: |+
+
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().has_child("strip"));
+        ASSERT_TRUE(t.rootref().has_child("keep"));
+        ASSERT_TRUE(t.rootref().has_child("clip"));
+        EXPECT_EQ(t["strip"].val(), csubstr{});
+        EXPECT_EQ(t["clip"].val(), csubstr{});
+        EXPECT_EQ(t["keep"].val(), "\n");
+    });
+}
+
+TEST(block_folded, test_suite_MJS9)
+{
+    csubstr yaml = R"(
+>
+  foo 
+ 
+  	 bar
+
+  baz
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_EQ(t.rootref().val(), "foo \n\n\t bar\n\nbaz\n"); // "foo \n\n \t bar\n\nbaz\n"
+    });
+}
+
+
+TEST(block_folded, test_suite_NJ66)
+{
+    csubstr yaml = R"(
+- { single line: value}
+- { multi
+  line: value}
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_seq());
+        ASSERT_EQ(t.rootref().num_children(), 2);
+        ASSERT_TRUE(t[0].has_child("single line"));
+        EXPECT_EQ(t[0]["single line"].val(), csubstr("value"));
+        ASSERT_TRUE(t[1].has_child("multi line"));
+        EXPECT_EQ(t[1]["multi line"].val(), csubstr("value"));
+    });
+}
+
+
+TEST(block_folded, test_suite_P2AD)
+{
+    csubstr yaml = R"(
+- | # Empty header↓
+ literal
+- >1 # Indentation indicator↓
+  folded
+- |+ # Chomping indicator↓
+ keep
+
+- >1- # Both indicators↓
+  strip
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_seq());
+        ASSERT_EQ(t.rootref().num_children(), 4);
+        EXPECT_EQ(t[0].val(), csubstr("literal\n"));
+        EXPECT_EQ(t[1].val(), csubstr(" folded\n"));
+        EXPECT_EQ(t[2].val(), csubstr("keep\n\n"));
+        EXPECT_EQ(t[3].val(), csubstr(" strip"));
+    });
+}
+
+
+TEST(block_folded, test_suite_R4YG)
+{
+    csubstr yaml = R"(
+- |
+ detected
+- >
+ 
+  
+  # detected
+- |1
+  explicit
+- >
+ 	
+ detected
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_seq());
+        ASSERT_EQ(t.rootref().num_children(), 4);
+        EXPECT_EQ(t[0].val(), csubstr("detected\n"));
+        EXPECT_EQ(t[1].val(), csubstr("\n\n# detected\n"));
+        EXPECT_EQ(t[2].val(), csubstr(" explicit\n"));
+        EXPECT_EQ(t[3].val(), csubstr("\t\ndetected\n"));
+    });
+}
+
+
+TEST(block_folded, test_suite_T26H)
+{
+    csubstr yaml = R"(
+--- |
+ 
+  
+  literal
+   
+  
+  text
+
+ # Comment
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_stream());
+        ASSERT_TRUE(t.rootref().first_child().is_doc());
+        EXPECT_EQ(t.rootref().first_child().val(), csubstr("\n\nliteral\n \n\ntext\n"));
+    });
+}
+
+
+TEST(block_folded, test_suite_T5N4)
+{
+    csubstr yaml = R"(
+--- |
+ literal
+ 	text
+
+
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_stream());
+        ASSERT_TRUE(t.rootref().first_child().is_doc());
+        EXPECT_EQ(t.rootref().first_child().val(), csubstr("literal\n\ttext\n"));
+    });
+}
+#endif
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 #define BLOCK_FOLDED_CASES \
     "7T8X",                                            \
     "block folded as seq val, implicit indentation 2", \

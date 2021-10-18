@@ -3,6 +3,52 @@
 namespace c4 {
 namespace yml {
 
+
+#ifdef TEST_SUITE_WIP
+TEST(complex_key, test_suite_DFF7)
+{
+    csubstr yaml = R"(
+{
+? explicit: entry,
+implicit: entry,
+?
+}
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_map());
+        ASSERT_TRUE(t.rootref().has_child("explicit"));
+        EXPECT_EQ(t["explicit"].val(), csubstr("empty"));
+        ASSERT_TRUE(t.rootref().has_child("implicit"));
+        EXPECT_EQ(t["explicit"].val(), csubstr("empty"));
+        ASSERT_TRUE(t.rootref().has_child(csubstr{}));
+        EXPECT_EQ(t[csubstr{}].val(), csubstr{});
+    });
+}
+
+
+TEST(complex_key, test_suite_FRK4)
+{
+    csubstr yaml = R"(
+{
+  ? foo :,
+  : bar,
+}
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_map());
+        ASSERT_TRUE(t.rootref().has_child("foo"));
+        EXPECT_EQ(t["foo"].val(), csubstr{});
+        ASSERT_TRUE(t.rootref().has_child(csubstr{}));
+        EXPECT_EQ(t[csubstr{}].val(), csubstr("bar"));
+    });
+}
+#endif
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 #define COMPLEX_KEY_CASES                       \
 "complex key, ambiguity 2EBW",                  \
 "complex key, ambiguity 2EBW, expl",            \

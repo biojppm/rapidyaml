@@ -4,6 +4,53 @@ namespace c4 {
 namespace yml {
 
 
+#ifdef TEST_SUITE_WIP
+TEST(simple_doc, test_suite_XLQ9)
+{
+    csubstr yaml = R"(
+---
+scalar
+%YAML 1.2
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_stream());
+        ASSERT_EQ(t.rootref().num_children(), 1u);
+        ASSERT_TRUE(t.rootref().first_child().is_doc());
+        ASSERT_TRUE(t.rootref().first_child().is_val());
+        EXPECT_EQ(t.rootref().first_child().val(), csubstr("scalar %YAML 1.2"));
+    });
+}
+
+
+TEST(simple_doc, test_suite_W4TN)
+{
+    csubstr yaml = R"(
+%YAML 1.2
+--- |
+%!PS-Adobe-2.0
+...
+%YAML 1.2
+---
+# Empty
+...
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_stream());
+        ASSERT_EQ(t.rootref().num_children(), 2u);
+        ASSERT_TRUE(t.rootref().first_child().is_doc());
+        ASSERT_TRUE(t.rootref().first_child().is_val());
+        EXPECT_EQ(t.rootref().first_child().val(), csubstr("%!PS-Adobe-2.0\n"));
+        ASSERT_TRUE(t.rootref().last_child().is_doc());
+        ASSERT_TRUE(t.rootref().last_child().empty());
+    });
+}
+#endif
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 #define SIMPLE_DOC_CASES                                                \
     "one empty doc",                                                    \
     "one empty doc, explicit termination",                              \
