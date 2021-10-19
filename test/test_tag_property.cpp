@@ -30,7 +30,7 @@ foo : bar
 )";
     test_check_emit_check(yaml, [](Tree const &t){
         ASSERT_TRUE(t.rootref().is_seq());
-        ASSERT_EQ(t.rootref().num_children(), 5);
+        ASSERT_EQ(t.rootref().num_children(), 5u);
         //
         EXPECT_TRUE(t[0].is_map());
         EXPECT_TRUE(!t[0].has_val_tag());

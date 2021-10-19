@@ -1749,6 +1749,11 @@ bool Parser::_handle_types()
     _c4dbgpf("there was a tag: '%.*s', indentation=%zu", _c4prsp(t), tag_indentation);
     RYML_ASSERT(t.end() > m_state->line_contents.rem.begin());
     _line_progressed(static_cast<size_t>(t.end() - m_state->line_contents.rem.begin()));
+    {
+        size_t pos = m_state->line_contents.rem.first_not_of(" \t");
+        if(pos != csubstr::npos)
+            _line_progressed(pos);
+    }
 
     if(has_all(RMAP|RKEY))
     {
@@ -1763,7 +1768,7 @@ bool Parser::_handle_types()
          * !!str : bar  */
         rem = m_state->line_contents.rem;
         rem = rem.left_of(rem.find("#"));
-        rem = rem.trim(" \t");
+        rem = rem.trimr(" \t");
         _c4dbgpf("rem='%.*s'", _c4prsp(rem));
         if(rem == ':' || rem.begins_with(": "))
         {
@@ -1799,7 +1804,7 @@ bool Parser::_handle_types()
     {
         rem = m_state->line_contents.rem;
         rem = rem.left_of(rem.find("#"));
-        rem = rem.trim(" \t");
+        rem = rem.trimr(" \t");
         if(rem.empty())
         {
             _c4dbgpf("saving val tag '%.*s'", _c4prsp(t));

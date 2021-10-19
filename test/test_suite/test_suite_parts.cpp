@@ -26,7 +26,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     // These tests are temporarily skipped, and cover issues that must be fixed.
 
     // plain scalars (ie, not quoted, not folded)
-    {"735Y", IN______________             , "plain scalar parsing"},
     {"82AN", IN______________             , "plain scalar parsing, same indentation on next line is problematic"},
     {"9YRD", IN______________             , "plain scalar parsing, same indentation on next line is problematic"},
     {"EX5H", IN_____EMIT_____             , "plain scalar parsing, same indentation on next line is problematic"},
