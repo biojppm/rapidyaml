@@ -528,7 +528,7 @@ size_t Tree::_claim()
 C4_SUPPRESS_WARNING_GCC_PUSH
 C4_SUPPRESS_WARNING_CLANG_PUSH
 C4_SUPPRESS_WARNING_CLANG("-Wnull-dereference")
-#if defined(__GNUC_) && (__GNUC__ >= 6)
+#if defined(__GNUC__) && (__GNUC__ >= 6)
 C4_SUPPRESS_WARNING_GCC("-Wnull-dereference")
 #endif
 
