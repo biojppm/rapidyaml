@@ -8,6 +8,7 @@
 #endif
 
 #include <c4/charconv.hpp>
+#include <cmath>
 #include <limits>
 
 #if defined(_MSC_VER)
