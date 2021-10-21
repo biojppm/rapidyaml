@@ -3629,19 +3629,41 @@ csubstr Parser::_filter_plain_scalar(substr s, size_t indentation)
             _c4dbgpf("filtering plain scalar: i=%zu: looked at: '%.*s'", i, _c4prsp(r.first(i)));
             if(next != '\n')
             {
-                _c4dbgpf("filtering plain scalar: filter single newline at %zu", i);
-                if(i + 1 < r.len)
+                if(next == ' ' || next == '\t')
                 {
+                    _c4dbgp("filtering plain scalar: next is whitespace");
+                    size_t e = r.first_not_of(" \t", i+1); // we are sure i+1
+                    if(e == csubstr::npos)
+                    {
+                        _c4dbgpf("filtering plain scalar: whitespace all the way to the end. stop at %zu", i+1);
+                        r.len = i;
+                    }
+                    else if(r[e] == '\n' || r[e] == '\r')
+                    {
+                        RYML_ASSERT(e > i);
+                        _c4dbgpf("filtering plain scalar: whitespace-only line, len=%zu. keep newline.", e-i);
+                        r = r.erase_range(i+1, e+1);
+                    }
+                    else
+                    {
+                        _c4dbgpf("filtering plain scalar: standard line, remove prev newline and leading whitespace.", e-i);
+                        r = r.erase_range(i, e);
+                    }
+                }
+                else if(i + 1 < r.len)
+                {
+                    _c4dbgpf("filtering plain scalar: filter single newline at %zu", i);
                     r[i] = ' '; // a single unix newline: turn it into a space
                 }
                 else
                 {
-                    --r.len;
+                    _c4dbgpf("filtering plain scalar: trim terminating newline at %zu", r.len);
+                    --r.len; // trim terminating newline
                 }
             }
             else
             {
-                 // multiple new lines
+                _c4dbgp("filtering plain scalar: multiple newlines");
                 RYML_ASSERT(next == '\n');
                 r = r.erase(i, 1);  // erase one
                 RYML_ASSERT(r[i] == '\n');

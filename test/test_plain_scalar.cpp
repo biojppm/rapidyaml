@@ -16,24 +16,6 @@ TEST(plain_scalar, issue153_map)
 }
 
 #ifdef TEST_SUITE_WIP
-TEST(plain_scalar, test_suite_735Y)
-{
-    csubstr yaml = R"(
--
-  "flow in block"
-- >
- Block scalar
-
-# the rest is tested in tag_property
-)";
-    test_check_emit_check(yaml, [](Tree const &t){
-        ASSERT_TRUE(t.rootref().is_seq());
-        ASSERT_EQ(t.rootref().num_children(), 2);
-        EXPECT_EQ(t[0].val(), csubstr("flow in block"));
-        EXPECT_EQ(t[1].val(), csubstr("Block scalar"));
-    });
-}
-
 TEST(plain_scalar, test_suite_82AN)
 {
     csubstr yaml = R"(
@@ -131,6 +113,7 @@ document
         EXPECT_EQ(t.rootref().child(1).val(), csubstr("%!PS-Adobe-2.0 # Not the first line"));
     });
 }
+#endif
 
 TEST(plain_scalar, test_suite_NB6Z)
 {
@@ -140,14 +123,22 @@ key:
   with
    	
   tabs
+  tabs
+   	
+    foo
+   	
+      bar
+        baz
+   	
+key2: something
 )";
     test_check_emit_check(yaml, [](Tree const &t){
         ASSERT_TRUE(t.rootref().is_map());
         ASSERT_TRUE(t.rootref().has_child("key"));
-        ASSERT_EQ(t.rootref()["key"].val(), csubstr("value with\ntabs"));
+        ASSERT_EQ(t.rootref()["key"].val(), csubstr("value with\ntabs tabs\nfoo\nbar baz"));
+        ASSERT_EQ(t.rootref()["key2"].val(), csubstr("something"));
     });
 }
-#endif
 
 
 //-----------------------------------------------------------------------------

@@ -32,7 +32,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"EXG3", IN______________             , "plain scalar parsing, same indentation on next line is problematic"},
     {"HS5T", IN______________             , "plain scalar parsing, same indentation on next line is problematic"},
     {"M7A3", IN______________             , "plain scalar parsing, same indentation on next line is problematic"},
-    {"NB6Z",                  eIN_________, "plain scalar parsing, same indentation on next line is problematic"},
     // folded scalars
     {"4QFQ",                  eIN_____EMIT, "folded scalars: multiline problems"},
     {"5WE3",                  eIN_________, "emitting folded scalars is not idempotent"},
