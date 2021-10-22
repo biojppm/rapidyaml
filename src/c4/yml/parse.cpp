@@ -2140,7 +2140,7 @@ csubstr Parser::_extend_scanned_scalar(csubstr s)
     if(has_all(RMAP|RKEY|CPLX))
     {
         size_t scalar_indentation = has_any(EXPL) ? 0 : m_state->scalar_col;
-        _c4dbgpf("complex key! indref=%zu scalar_indentation=%zu scalar_col=%zu", m_state->indref, scalar_indentation, m_state->scalar_col);
+        _c4dbgpf("extend_scalar: complex key! indref=%zu scalar_indentation=%zu scalar_col=%zu", m_state->indref, scalar_indentation, m_state->scalar_col);
         csubstr n = _scan_to_next_nonempty_line(scalar_indentation);
         if(!n.empty())
         {
@@ -2154,17 +2154,19 @@ csubstr Parser::_extend_scanned_scalar(csubstr s)
     // deal with plain (unquoted) scalars that continue to the next line
     else if(!s.begins_with_any("*")) // cannot be a plain scalar if it starts with * (that's an anchor reference)
     {
-        _c4dbgpf("reading plain scalar: line ended, scalar='%.*s'", _c4prsp(s));
+        _c4dbgpf("extend_scalar: line ended, scalar='%.*s'", _c4prsp(s));
         if(has_none(EXPL))
         {
             size_t scalar_indentation = m_state->indref + 1;
+            if(has_all(RUNK) && scalar_indentation == 1)
+                scalar_indentation = 0;
             csubstr n = _scan_to_next_nonempty_line(scalar_indentation);
             if(!n.empty())
             {
-                RYML_ASSERT(m_state->line_contents.full.is_super(n));
                 _c4dbgpf("rscalar[IMPL]: state_indref=%zu state_indentation=%zu scalar_indentation=%zu", m_state->indref, m_state->line_contents.indentation, scalar_indentation);
+                RYML_ASSERT(m_state->line_contents.full.is_super(n));
                 substr full = _scan_plain_scalar_impl(s, n, scalar_indentation);
-                if(full != s)
+                if(full.len >= s.len)
                 {
                     s = _filter_plain_scalar(full, scalar_indentation);
                 }

@@ -69,9 +69,9 @@ TEST(simple_map, test_suite_UT92)
 "simple map, empty keys 4ABK, v1",                              \
 "simple map, empty keys 4ABK, v2",                              \
 "simple map, values on next line 4MUZ, v1",                     \
-"simple map, values on next line 4MUZ, v2",                     \
+"simple map, values on next line 4MUZ, v2"/*                    \
 "simple map, values on next line 4MUZ, v3",                     \
-"simple map, values on next line 4MUZ, v4"
+"simple map, values on next line 4MUZ, v4"*/
 
 
 CASE_GROUP(SIMPLE_MAP)
@@ -664,6 +664,7 @@ N(MAP, L{
     N("baz", "bat"),
 })),
 
+/* this is not valid YAML: plain scalars can't have ':' as a token
 C("simple map, values on next line 4MUZ, v3",
 R"(foo
 : bar
@@ -687,6 +688,7 @@ N(MAP, L{
     N("foo", "bar"),
     N("baz", "bat"),
 })),
+*/
 
     )
 }

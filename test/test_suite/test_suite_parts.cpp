@@ -26,12 +26,8 @@ constexpr const AllowedFailure allowed_failures[] = {
     // These tests are temporarily skipped, and cover issues that must be fixed.
 
     // plain scalars (ie, not quoted, not folded)
-    {"82AN", IN______________             , "plain scalar parsing, same indentation on next line is problematic"},
-    {"9YRD", IN______________             , "plain scalar parsing, same indentation on next line is problematic"},
-    {"EX5H", IN_____EMIT_____             , "plain scalar parsing, same indentation on next line is problematic"},
-    {"EXG3", IN______________             , "plain scalar parsing, same indentation on next line is problematic"},
-    {"HS5T", IN______________             , "plain scalar parsing, same indentation on next line is problematic"},
-    {"M7A3", IN______________             , "plain scalar parsing, same indentation on next line is problematic"},
+    {"9YRD", IN______________             , "plain scalar parsing, problem with trailing whitespace"},
+    {"EX5H", IN_____EMIT_____             , "plain scalar parsing, problem with trailing whitespace"},
     // folded scalars
     {"4QFQ",                  eIN_____EMIT, "folded scalars: multiline problems"},
     {"5WE3",                  eIN_________, "emitting folded scalars is not idempotent"},

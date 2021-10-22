@@ -9,7 +9,7 @@
 
 #### Tags
 
-- Fix parsing of tags followed by comments in sequences:
+- Fix parsing of tags followed by comments in sequences ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
 ```yaml
 # test case 735Y
 - !!map # Block collection
@@ -17,7 +17,7 @@
 ```
 
 #### Plain scalars
-- Fix parsing whitespace within plain scalars:
+- Fix parsing whitespace within plain scalars ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
 ```yaml
 # test case NB6Z
 key:
@@ -34,6 +34,38 @@ key:
    	
 # now correctly parsed as "value with\ntabs tabs\nfoo\nbar baz"
 ```
+- Fix parsing of unindented plain scalars at the root level scope ([PR #161](https://github.com/biojppm/rapidyaml/pull/161))
+```yaml
+--- # this parsed
+Bare
+ scalar
+ is indented
+# was correctly parsed as "Bare scalar is indented"
+--- # but this failed to parse successfully:
+Bare
+scalar
+is not indented
+# is now correctly parsed as "Bare scalar is not indented"
+--- # test case NB6Z
+value
+with
+ 	
+tabs
+tabs
+ 	
+  foo
+ 	
+    bar
+      baz
+  	
+# now correctly parsed as "value with\ntabs tabs\nfoo\nbar baz"
+---
+--- # test cases EXG3, 82AN
+---word1
+word2
+# now correctly parsed as "---word1 word2"
+```
+
 
 ### Thanks
 
