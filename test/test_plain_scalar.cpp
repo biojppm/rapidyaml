@@ -40,12 +40,11 @@ word2
         ASSERT_TRUE(t.rootref().is_stream());
         ASSERT_TRUE(t.rootref().first_child().is_doc());
         ASSERT_TRUE(t.rootref().first_child().is_val());
-        const NodeRef doc = t.rootref().first_child();
-        EXPECT_EQ(doc.val(), csubstr("---word1 word2"));
+        EXPECT_EQ(t.rootref().first_child().val(), csubstr("---word1 word2"));
     });
 }
 
-#ifdef TEST_SUITE_WIP
+
 TEST(plain_scalar, test_suite_9YRD)
 {
     csubstr yaml = R"(
@@ -81,7 +80,7 @@ e
         EXPECT_EQ(t.rootref().child(0).val(), csubstr("a b c d\ne"));
     });
 }
-#endif
+
 
 TEST(plain_scalar, test_suite_M7A3)
 {

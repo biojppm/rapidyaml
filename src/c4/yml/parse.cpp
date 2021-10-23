@@ -3628,7 +3628,7 @@ csubstr Parser::_filter_plain_scalar(substr s, size_t indentation)
         RYML_ASSERT(curr != '\r' && next != '\r');
         if(curr == '\n')
         {
-            _c4dbgpf("filtering plain scalar: i=%zu: looked at: '%.*s'", i, _c4prsp(r.first(i)));
+            _c4dbgpf("filtering plain scalar: i=%zu: current='%.*s'", i, _c4prsp(r.first(i)));
             if(next != '\n')
             {
                 if(next == ' ' || next == '\t')
@@ -3654,6 +3654,13 @@ csubstr Parser::_filter_plain_scalar(substr s, size_t indentation)
                 }
                 else if(i + 1 < r.len)
                 {
+                    size_t lastnws = r.first(i).last_not_of(" \t");
+                    if(lastnws != csubstr::npos && lastnws+1 < i)
+                    {
+                        _c4dbgpf("filtering plain scalar: remove %zu whitespace characters at line end (%zu,%zu)", i - lastnws, lastnws+1, i);
+                        r = r.erase_range(lastnws+1, i);
+                        i = lastnws+1;
+                    }
                     _c4dbgpf("filtering plain scalar: filter single newline at %zu", i);
                     r[i] = ' '; // a single unix newline: turn it into a space
                 }

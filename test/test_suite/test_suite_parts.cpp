@@ -25,9 +25,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     //
     // These tests are temporarily skipped, and cover issues that must be fixed.
 
-    // plain scalars (ie, not quoted, not folded)
-    {"9YRD", IN______________             , "plain scalar parsing, problem with trailing whitespace"},
-    {"EX5H", IN_____EMIT_____             , "plain scalar parsing, problem with trailing whitespace"},
     // folded scalars
     {"4QFQ",                  eIN_____EMIT, "folded scalars: multiline problems"},
     {"5WE3",                  eIN_________, "emitting folded scalars is not idempotent"},

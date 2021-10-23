@@ -19,6 +19,7 @@
 #### Plain scalars
 - Fix parsing whitespace within plain scalars ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
 ```yaml
+---
 # test case NB6Z
 key:
   value
@@ -32,7 +33,16 @@ key:
       bar
         baz
    	
-# now correctly parsed as "value with\ntabs tabs\nfoo\nbar baz"
+# is now correctly parsed as "value with\ntabs tabs\nfoo\nbar baz"
+---
+# test case 9YRD, EX5H (trailing whitespace)
+a
+b  
+  c
+d
+
+e
+# is now correctly parsed as "a b c d\ne"
 ```
 - Fix parsing of unindented plain scalars at the root level scope ([PR #161](https://github.com/biojppm/rapidyaml/pull/161))
 ```yaml
