@@ -5,7 +5,7 @@ namespace yml {
 
 constexpr const CasePart_e IN______________ = CPART_IN_YAML;
 constexpr const CasePart_e ___OUT______JSON =               CPART_OUT_YAML                |CPART_IN_JSON;
-constexpr const CasePart_e IN_____EMIT_____ = CPART_IN_YAML               |CPART_EMIT_YAML;
+//constexpr const CasePart_e IN_____EMIT_____ = CPART_IN_YAML               |CPART_EMIT_YAML;
 constexpr const CasePart_e IN_____EMIT_JSON = CPART_IN_YAML               |CPART_EMIT_YAML|CPART_IN_JSON;
 
 constexpr const CasePart_e eIN_________ = CPART_IN_YAML_EVENTS;
@@ -30,7 +30,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"5WE3",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"6VJK",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
     {"7T8X",                  eIN_OUT_____, "folded scalars: multiline problems"},
-    {"7TMG",                  eIN_________, "multiline scalar is parsed wrong"},
     {"A6F9",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"B3HG",                  e___OUT_____, "folded scalars: multiline problems"},
     {"D83L",                  eIN_________, "folded scalars: multiline problems"},

@@ -16,6 +16,32 @@ TEST(plain_scalar, issue153_map)
 }
 
 
+TEST(plain_scalar, test_suite_7TMG)
+{
+    csubstr yaml = R"(---
+word1
+# comment
+---
+# first value is NOT a multiline plain scalar
+[ word1
+# comment
+, word2]
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_TRUE(t.rootref().is_stream());
+        NodeRef doc = t.rootref().first_child();
+        ASSERT_TRUE(doc.is_doc());
+        ASSERT_TRUE(doc.is_val());
+        EXPECT_EQ(doc.val(), "word1");
+        doc = t.rootref().child(1);
+        ASSERT_TRUE(doc.is_doc());
+        ASSERT_TRUE(doc.is_seq());
+        EXPECT_EQ(doc[0].val(), "word1");
+        EXPECT_EQ(doc[1].val(), "word2");
+    });
+}
+
+
 TEST(plain_scalar, test_suite_82AN)
 {
     csubstr yaml = R"(

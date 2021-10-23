@@ -2386,15 +2386,11 @@ csubstr Parser::_scan_to_next_nonempty_line(size_t indentation)
         _c4dbgpf("rscalar: ... next peeked line='%.*s'", _c4prsp(next_peeked.trimr("\r\n")));
         if(next_peeked_triml.begins_with('#'))
         {
-            if(has_any(CPLX))
-                return {};
+            _c4dbgpf("rscalar: ... first non-space character is #", _c4prsp(next_peeked_triml));
+            return {};
         }
         else if(next_peeked.begins_with(' ', indentation))
         {
-            //if(next_peeked_triml.begins_with('&'))
-            //{
-            //    return {};
-            //}
             _c4dbgpf("rscalar: ... begins at same indentation %zu, assuming continuation", indentation);
             _advance_to_peeked();
             return next_peeked;
