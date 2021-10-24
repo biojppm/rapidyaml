@@ -3560,29 +3560,82 @@ csubstr Parser::_scan_block()
     _line_ended();
     _scan_line();
 
-    // if no explicit indentation was given, pick it from the current line
-    if(indentation == npos)
-        indentation = m_state->line_contents.indentation;
-
-    _c4dbgpf("scanning block:  style=%s", newline==BLOCK_FOLD ? "fold" : "literal");
-    _c4dbgpf("scanning block:  chomp=%s", chomp==CHOMP_CLIP ? "clip" : (chomp==CHOMP_STRIP ? "strip" : "keep"));
-    _c4dbgpf("scanning block: indent=%zd (digits='%.*s')", indentation, _c4prsp(digits));
+    _c4dbgpf("scanning block:  style=%s  chomp=%s  indentation=%zu", newline==BLOCK_FOLD ? "fold" : "literal",
+        chomp==CHOMP_CLIP ? "clip" : (chomp==CHOMP_STRIP ? "strip" : "keep"), indentation);
 
     // start with a zero-length block, already pointing at the right place
     substr raw_block(m_buf.data() + m_state->pos.offset, size_t(0));// m_state->line_contents.full.sub(0, 0);
     RYML_ASSERT(raw_block.begin() == m_state->line_contents.full.begin());
 
     // read every full line into a raw block,
-    // from which newlines are to be stripped as needed
-    size_t num_lines = 0, first = m_state->pos.line;
+    // from which newlines are to be stripped as needed.
+    //
+    // If no explicit indentation was given, pick it from the first
+    // non-empty line. See
+    // https://yaml.org/spec/1.2.2/#8111-block-indentation-indicator
+    size_t num_lines = 0, first = m_state->pos.line, provisional_indentation = npos;
     LineContents lc;
     while(( ! _finished_file()))
     {
         // peek next line, but do not advance immediately
         lc.reset_with_next_line(m_buf, m_state->pos.offset);
-        // stop when the line is deindented and not empty
-        if(lc.indentation < indentation && ( ! lc.rem.trim(" \t\r\n").empty()))
-            break;
+        // evaluate termination conditions
+        if(indentation != npos)
+        {
+            // stop when the line is deindented and not empty
+            if(lc.indentation < indentation && ( ! lc.rem.trim(" \t\r\n").empty()))
+            {
+                _c4dbgpf("scanning block: indentation decreased ref=%zu thisline=%zu", indentation, lc.indentation);
+                break;
+            }
+        }
+        else
+        {
+            _c4dbgpf("scanning block: indentation ref not set. curr='%.*s' firstnonws=%zu", _c4prsp(lc.stripped), lc.stripped.first_not_of(' '));
+            if(lc.stripped.first_not_of(' ') != npos) // non-empty line
+            {
+                _c4dbgp("scanning block: line not empty");
+                if(provisional_indentation == npos)
+                {
+                    _c4dbgpf("scanning block: set indentation ref from this line: ref=%zu", lc.indentation);
+                    indentation = lc.indentation;
+                }
+                else
+                {
+                    if(lc.indentation >= provisional_indentation)
+                    {
+                        _c4dbgpf("scanning block: set indentation ref from provisional indentation: provisional_ref=%zu, thisline=%zu", provisional_indentation, lc.indentation);
+                        indentation = provisional_indentation;
+                    }
+                    else
+                    {
+                        _c4err("parse error: first non-empty block line should have at least the could not read decimal");
+                    }
+                }
+            }
+            else // empty line
+            {
+                _c4dbgp("scanning block: line empty");
+                if(provisional_indentation != npos)
+                {
+                    if(lc.indentation < provisional_indentation)
+                    {
+                        _c4dbgpf("scanning block: stop; indentation=%zu < provisional_ref=%zu", lc.indentation, provisional_indentation);
+                        break;
+                    }
+                    else
+                    {
+                        _c4dbgpf("scanning block: increase provisional_ref %zu -> %zu", provisional_indentation, lc.indentation);
+                        provisional_indentation = lc.indentation;
+                    }
+                }
+                else
+                {
+                    _c4dbgpf("scanning block: initialize provisional_ref=%zu", lc.indentation);
+                    provisional_indentation = lc.indentation;
+                }
+            }
+        }
         // advance now that we know the folded scalar continues
         m_state->line_contents = lc;
         _c4dbgpf("scanning block: append '%.*s'", _c4prsp(m_state->line_contents.rem));
@@ -3879,16 +3932,13 @@ substr Parser::_filter_whitespace(substr r, size_t indentation, bool leading_whi
             // RYML_ASSERT(num >= indentation); // empty lines are allowed
             _c4dbgpf("                    : line has %zu spaces", num);
             if(leading_whitespace)
-            {
                 num = ss.len;
-            }
             else if(indentation != csubstr::npos)
-            {
                 num = num < indentation ? num : indentation;
-            }
             _c4dbgpf("                    : removing %zu spaces", num);
             r = r.erase(i, num);
-            if(i < r.len && r[i] != ' ') --i; // i is incremented on the next iteration
+            if(i < r.len && r[i] != ' ')
+                --i; // i is incremented on the next iteration
         }
         // erase \r --- https://stackoverflow.com/questions/1885900
         else if(curr == '\r')
@@ -3912,9 +3962,12 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
     substr r = s;
 
     r = _filter_whitespace(s, indentation, /*leading whitespace*/false);
-    if(r.begins_with(' ', indentation))
     {
-        r = r.erase(0, indentation);
+        size_t numws_at_begin = r.first_not_of(' ');
+        if(numws_at_begin > indentation)
+            r = r.erase(0, indentation);
+        else
+            r = r.erase(0, numws_at_begin);
     }
 
     _c4dbgpf("filtering block: after whitespace=~~~%.*s~~~", _c4prsp(r));
@@ -3960,6 +4013,7 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
             auto pos = r.last_not_of('\n'); // do not fold trailing newlines
             if((pos != npos) && (pos < r.len))
             {
+                bool found_non_space_so_far = false;
                 bool is_indented = false;
                 ++pos; // point pos at the first newline char
                 substr t = r.sub(0, pos);
@@ -3967,9 +4021,13 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
                 {
                     const char curr = t[i];
                     if(curr != '\n')
+                    {
+                        if(curr != ' ')
+                            found_non_space_so_far = true;
                         continue;
+                    }
                     size_t nextl = t.first_not_of('\n', i+1);
-                    if(!is_indented)
+                    if((!is_indented) && found_non_space_so_far)
                     {
                         if(nextl == i+1)
                         {
@@ -4001,7 +4059,7 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
                     }
                     else
                     {
-                        RYML_ASSERT(is_indented);
+                        RYML_ASSERT(is_indented || !found_non_space_so_far);
                         if(t[nextl] != ' ' && t[nextl] != '\t')
                         {
                             _c4dbgpf("filtering block[fold]: i=%zu nextl=%zu leaving indented mode. curr=~~~%.*s~~~", i, nextl, _c4prsp(r.first(i)));

@@ -125,10 +125,9 @@ indented_once:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-#ifdef TEST_SUITE_WIP
 TEST(block_folded, test_suite_4QFQ)
 {
-    csubstr yaml = R"(
+    csubstr yaml = R"(---
 - |
  child0
 - >
@@ -139,17 +138,39 @@ TEST(block_folded, test_suite_4QFQ)
   child2
 - >
  child3
+---
+foo:
+  - |
+   child0
+  - >
+   
+    
+    # child1
+  - |3
+    child2
+  - >
+   child3
 )";
     test_check_emit_check(yaml, [](Tree const &t){
-        ASSERT_TRUE(t.rootref().is_seq());
-        ASSERT_EQ(t.rootref().num_children(), 4);
-        EXPECT_EQ(t[0].val(), csubstr("child0\n"));
-        EXPECT_EQ(t[1].val(), csubstr("\n\n# child1\n"));
-        EXPECT_EQ(t[2].val(), csubstr(" child2\n"));
-        EXPECT_EQ(t[3].val(), csubstr("child3\n"));
+        ASSERT_TRUE(t.rootref().is_stream());
+        NodeRef doc = t.rootref().child(0);
+        ASSERT_TRUE(doc.is_seq());
+        ASSERT_EQ(doc.num_children(), 4);
+        EXPECT_EQ(doc[0].val(), csubstr("child0\n"));
+        EXPECT_EQ(doc[1].val(), csubstr("\n\n# child1\n"));
+        EXPECT_EQ(doc[2].val(), csubstr(" child2\n"));
+        EXPECT_EQ(doc[3].val(), csubstr("child3\n"));
+        doc = t.rootref().child(1);
+        ASSERT_TRUE(doc.is_map());
+        ASSERT_EQ(doc["foo"].num_children(), 4);
+        EXPECT_EQ(doc["foo"][0].val(), csubstr("child0\n"));
+        EXPECT_EQ(doc["foo"][1].val(), csubstr("\n\n# child1\n"));
+        EXPECT_EQ(doc["foo"][2].val(), csubstr(" child2\n"));
+        EXPECT_EQ(doc["foo"][3].val(), csubstr("child3\n"));
     });
 }
 
+#ifdef TEST_SUITE_WIP
 TEST(block_folded, test_suite_5WE3)
 {
     csubstr yaml = R"(
@@ -208,6 +229,7 @@ TEST(block_folded, test_suite_7T8X)
     Tree t = parse(yaml);
     EXPECT_EQ(t.rootref().val(), "\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n");
 }
+#endif
 
 TEST(block_folded, test_suite_A6F9)
 {
@@ -250,6 +272,7 @@ TEST(block_folded, test_suite_B3HG)
     });
 }
 
+#ifdef TEST_SUITE_WIP
 TEST(block_folded, test_suite_D83L)
 {
     csubstr yaml = R"(
@@ -264,6 +287,7 @@ TEST(block_folded, test_suite_D83L)
         EXPECT_EQ(t[1].val(), "chomp and explicit indent");
     });
 }
+#endif
 
 TEST(block_folded, test_suite_DWX9)
 {
@@ -283,6 +307,7 @@ TEST(block_folded, test_suite_DWX9)
     });
 }
 
+#ifdef TEST_SUITE_WIP
 TEST(block_folded, test_suite_F6MC)
 {
     csubstr yaml = R"(---
@@ -378,6 +403,7 @@ TEST(block_folded, test_suite_P2AD)
         EXPECT_EQ(t[3].val(), csubstr(" strip"));
     });
 }
+#endif
 
 
 TEST(block_folded, test_suite_R4YG)
@@ -442,7 +468,6 @@ TEST(block_folded, test_suite_T5N4)
         EXPECT_EQ(t.rootref().first_child().val(), csubstr("literal\n\ttext\n"));
     });
 }
-#endif
 
 
 //-----------------------------------------------------------------------------

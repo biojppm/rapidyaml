@@ -26,7 +26,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     // These tests are temporarily skipped, and cover issues that must be fixed.
 
     // folded scalars
-    {"4QFQ",                  eIN_____EMIT, "folded scalars: multiline problems"},
     {"5WE3",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"6VJK",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
     {"7T8X",                  eIN_OUT_____, "folded scalars: multiline problems"},
@@ -36,12 +35,10 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"DWX9",                  eIN_____EMIT, "folded scalars: multiline problems"},
     {"F6MC",                  eIN_____EMIT, "emitting folded scalars is not idempotent"},
     {"K858", ___OUT______JSON|eIN_________, "emitting folded scalars is not idempotent"},
-    {"KSS4",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"MJS9",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"NAT4", IN_____EMIT_JSON             , "emitting folded scalars is not idempotent"},
     {"NJ66",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"P2AD",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
-    {"R4YG",                  eIN_OUT_____, "folded scalars: multiline problems"},
     {"T26H",                  eIN_OUT_EMIT, "folded scalars: multiline problems"},
     {"T4YY",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
     {"T5N4",                  e___OUT_____, "emitting folded scalars is not idempotent"},
@@ -50,6 +47,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"XLQ9",                  eIN_________, "emitting folded scalars is not idempotent"},
     // quoted scalars
     {"5GBF",                  eIN_________, "quoted scalars: multiline problems"},
+    {"KSS4",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"NP9H",                  eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"PRH3",                  eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"Q8AD",                  eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
