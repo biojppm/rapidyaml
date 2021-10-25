@@ -171,26 +171,6 @@ foo:
 }
 
 #ifdef TEST_SUITE_WIP
-TEST(block_folded, test_suite_5WE3)
-{
-    csubstr yaml = R"(
-? explicit key # Empty value
-? |
-  block key
-: - one # Explicit compact
-  - two # block value
-)";
-    test_check_emit_check(yaml, [](Tree const &t){
-        ASSERT_TRUE(t.rootref().is_map());
-        ASSERT_NE(t.find_child(t.root_id(), "explicit key"), NONE);
-        ASSERT_NE(t.find_child(t.root_id(), "block key\n"), NONE);
-        EXPECT_EQ(t["explicit key"].val(), csubstr{});
-        EXPECT_TRUE(t["block key\n"].is_seq());
-        EXPECT_EQ(t["block key\n"][0], csubstr("one"));
-        EXPECT_EQ(t["block key\n"][1], csubstr("two"));
-    });
-}
-
 TEST(block_folded, test_suite_6VJK)
 {
     csubstr yaml = R"(>
@@ -324,7 +304,9 @@ b: >2
         EXPECT_EQ(doc["b"].val(), csubstr("\n\n more indented\nregular\n"));
     });
 }
+#endif
 
+#ifdef TEST_SUITE_WIP
 TEST(block_folded, test_suite_K858)
 {
     csubstr yaml = R"(
@@ -356,25 +338,7 @@ TEST(block_folded, test_suite_MJS9)
   baz
 )";
     test_check_emit_check(yaml, [](Tree const &t){
-        EXPECT_EQ(t.rootref().val(), "foo \n\n\t bar\n\nbaz\n"); // "foo \n\n \t bar\n\nbaz\n"
-    });
-}
-
-
-TEST(block_folded, test_suite_NJ66)
-{
-    csubstr yaml = R"(
-- { single line: value}
-- { multi
-  line: value}
-)";
-    test_check_emit_check(yaml, [](Tree const &t){
-        ASSERT_TRUE(t.rootref().is_seq());
-        ASSERT_EQ(t.rootref().num_children(), 2);
-        ASSERT_TRUE(t[0].has_child("single line"));
-        EXPECT_EQ(t[0]["single line"].val(), csubstr("value"));
-        ASSERT_TRUE(t[1].has_child("multi line"));
-        EXPECT_EQ(t[1]["multi line"].val(), csubstr("value"));
+        EXPECT_EQ(t.rootref().val(), csubstr("foo \n\n\t bar\n\nbaz\n")); // "foo \n\n \t bar\n\nbaz\n"
     });
 }
 #endif

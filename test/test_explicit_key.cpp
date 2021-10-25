@@ -5,7 +5,27 @@ namespace yml {
 
 
 #ifdef TEST_SUITE_WIP
-TEST(complex_key, test_suite_DFF7)
+TEST(explicit_key, test_suite_5WE3)
+{
+    csubstr yaml = R"(
+? explicit key # Empty value
+? |
+  block key
+: - one # Explicit compact
+  - two # block value
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_map());
+        ASSERT_NE(t.find_child(t.root_id(), "explicit key"), NONE);
+        ASSERT_NE(t.find_child(t.root_id(), "block key\n"), NONE);
+        EXPECT_EQ(t["explicit key"].val(), csubstr{});
+        EXPECT_TRUE(t["block key\n"].is_seq());
+        EXPECT_EQ(t["block key\n"][0], csubstr("one"));
+        EXPECT_EQ(t["block key\n"][1], csubstr("two"));
+    });
+}
+
+TEST(explicit_key, test_suite_DFF7)
 {
     csubstr yaml = R"(
 {
@@ -26,7 +46,7 @@ implicit: entry,
 }
 
 
-TEST(complex_key, test_suite_FRK4)
+TEST(explicit_key, test_suite_FRK4)
 {
     csubstr yaml = R"(
 {
@@ -42,6 +62,23 @@ TEST(complex_key, test_suite_FRK4)
         EXPECT_EQ(t[csubstr{}].val(), csubstr("bar"));
     });
 }
+
+TEST(explicit_key, test_suite_NJ66)
+{
+    csubstr yaml = R"(
+- { single line: value}
+- { multi
+  line: value}
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_seq());
+        ASSERT_EQ(t.rootref().num_children(), 2);
+        ASSERT_TRUE(t[0].has_child("single line"));
+        EXPECT_EQ(t[0]["single line"].val(), csubstr("value"));
+        ASSERT_TRUE(t[1].has_child("multi line"));
+        EXPECT_EQ(t[1]["multi line"].val(), csubstr("value"));
+    });
+}
 #endif
 
 
@@ -49,32 +86,32 @@ TEST(complex_key, test_suite_FRK4)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-#define COMPLEX_KEY_CASES                       \
-"complex key, ambiguity 2EBW",                  \
-"complex key, ambiguity 2EBW, expl",            \
-"complex key, ambiguity 2EBW, impl seq",        \
-"complex key, ambiguity 2EBW, expl seq",        \
-"complex key with line break in between",       \
-"complex key 2nd, inside explicit map",         \
-"complex key 1st, inside explicit map",         \
-"complex key 2nd",                              \
-"complex key 1st",                              \
-"complex key nested in a map, 1st",             \
-"complex key nested in a seq, 1st",             \
-"complex block key, literal, clip",             \
-"complex block key, literal, keep",             \
-"complex block key, literal, strip",            \
-"complex block key, folded, clip",              \
-"complex block key, folded, keep",              \
-"complex block key, folded, strip",             \
-"complex key, missing val 7W2P ZWK4"            \
+#define EXPLICIT_KEY_CASES                       \
+"explicit key, ambiguity 2EBW",                  \
+"explicit key, ambiguity 2EBW, expl",            \
+"explicit key, ambiguity 2EBW, impl seq",        \
+"explicit key, ambiguity 2EBW, expl seq",        \
+"explicit key with line break in between",       \
+"explicit key 2nd, inside explicit map",         \
+"explicit key 1st, inside explicit map",         \
+"explicit key 2nd",                              \
+"explicit key 1st",                              \
+"explicit key nested in a map, 1st",             \
+"explicit key nested in a seq, 1st",             \
+"explicit block key, literal, clip",             \
+"explicit block key, literal, keep",             \
+"explicit block key, literal, strip",            \
+"explicit block key, folded, clip",              \
+"explicit block key, folded, keep",              \
+"explicit block key, folded, strip",             \
+"explicit key, missing val 7W2P ZWK4"            \
 
 
-CASE_GROUP(COMPLEX_KEY)
+CASE_GROUP(EXPLICIT_KEY)
 {
     APPEND_CASES(
 
-C("complex key, ambiguity 2EBW",
+C("explicit key, ambiguity 2EBW",
 R"(
 a!"#$%&'()*+,-./09:;<=>?@AZ[\]^_`az{|}~: safe
 ?foo: safe question mark
@@ -90,7 +127,7 @@ L{
   N("this is#not", "a comment"),
 }),
 
-C("complex key, ambiguity 2EBW, expl",
+C("explicit key, ambiguity 2EBW, expl",
 R"({
   a!"#$%&'()*+-./09:;<=>?@AZ[\]^_`az{|~: safe,
   ?foo: safe question mark,
@@ -106,7 +143,7 @@ L{
   N("this is#not", "a comment"),
 }),
 
-C("complex key, ambiguity 2EBW, impl seq",
+C("explicit key, ambiguity 2EBW, impl seq",
 R"(
 - a!"#$%&'()*+,-./09:;<=>?@AZ[\]^_`az{|}~
 - ?foo
@@ -122,7 +159,7 @@ L{
   N("this is#not:a comment"),
 }),
 
-C("complex key, ambiguity 2EBW, expl seq",
+C("explicit key, ambiguity 2EBW, expl seq",
 R"([
   a!"#$%&'()*+-./09:;<=>?@AZ[\^_`az{|}~,
   ?foo,
@@ -138,94 +175,94 @@ L{
   N("this is#not:a comment"),
 }),
 
-C("complex key with line break in between",
+C("explicit key with line break in between",
 R"(
-? a complex key
+? an explicit key
 : its value
 )",
-  L{N("a complex key", "its value")}
+  L{N("an explicit key", "its value")}
 ),
 
-C("complex key 2nd, inside explicit map",
+C("explicit key 2nd, inside explicit map",
 R"(
 {
     a simple key: a value,
-    ? a complex key: another value,
+    ? an explicit key: another value,
 }
 )",
   L{
       N("a simple key", "a value"),
-      N("a complex key", "another value"),
+      N("an explicit key", "another value"),
   }
 ),
 
-C("complex key 1st, inside explicit map",
+C("explicit key 1st, inside explicit map",
 R"(
 {
-    ? a complex key: another value,
+    ? an explicit key: another value,
     a simple key: a value,
 }
 )",
   L{
-      N("a complex key", "another value"),
+      N("an explicit key", "another value"),
       N("a simple key", "a value"),
   }
 ),
 
-C("complex key 2nd",
+C("explicit key 2nd",
 R"(
 a simple key: a value
-? a complex key: another value
+? an explicit key: another value
 )",
   L{
       N("a simple key", "a value"),
-      N("a complex key", "another value"),
+      N("an explicit key", "another value"),
   }
 ),
 
-C("complex key 1st",
+C("explicit key 1st",
 R"(
-? a complex key: another value
+? an explicit key: another value
 a simple key: a value
 )",
   L{
-      N("a complex key", "another value"),
+      N("an explicit key", "another value"),
       N("a simple key", "a value"),
   }
 ),
 
-C("complex key nested in a map, 1st",
+C("explicit key nested in a map, 1st",
 R"(
 map:
-  ? a complex key: another value
+  ? an explicit key: another value
   a simple key: a value
-? a complex key deindented: its value
+? an explicit key deindented: its value
 )",
   L{
       N("map", L{
-          N("a complex key", "another value"),
+          N("an explicit key", "another value"),
           N("a simple key", "a value"),
       }),
-      N("a complex key deindented", "its value")
+      N("an explicit key deindented", "its value")
    }
 ),
 
-C("complex key nested in a seq, 1st",
+C("explicit key nested in a seq, 1st",
 R"(
-- ? a complex key: another value
+- ? an explicit key: another value
   a simple key: a value
-- ? another complex key: its value
+- ? another explicit key: its value
 )",
   L{
       N(L{
-          N("a complex key", "another value"),
+          N("an explicit key", "another value"),
           N("a simple key", "a value"),
       }),
-      N(L{N("another complex key", "its value")})
+      N(L{N("another explicit key", "its value")})
    }
 ),
 
-C("complex block key, literal, clip",
+C("explicit block key, literal, clip",
 R"(? |
     This is a key
     that has multiple lines
@@ -237,7 +274,7 @@ R"(? |
    }
 ),
 
-C("complex block key, literal, keep",
+C("explicit block key, literal, keep",
 R"(? |+
     This is a key
     that has multiple lines
@@ -249,7 +286,7 @@ R"(? |+
    }
 ),
 
-C("complex block key, literal, strip",
+C("explicit block key, literal, strip",
 R"(? |-
     This is a key
     that has multiple lines
@@ -261,7 +298,7 @@ R"(? |-
    }
 ),
 
-C("complex block key, folded, clip",
+C("explicit block key, folded, clip",
 R"(? >
     This is a key
     that has multiple lines
@@ -273,7 +310,7 @@ R"(? >
    }
 ),
 
-C("complex block key, folded, keep",
+C("explicit block key, folded, keep",
 R"(? >+
     This is a key
     that has multiple lines
@@ -285,7 +322,7 @@ R"(? >+
    }
 ),
 
-C("complex block key, folded, strip",
+C("explicit block key, folded, strip",
 R"(? >-
     This is a key
     that has multiple lines
@@ -297,7 +334,7 @@ R"(? >-
    }
 ),
 
-C("complex key, missing val 7W2P ZWK4",
+C("explicit key, missing val 7W2P ZWK4",
 R"(--- # 7W2P
 ? a
 ? b
@@ -334,7 +371,7 @@ a: 1
   )
 }
 
-INSTANTIATE_GROUP(COMPLEX_KEY)
+INSTANTIATE_GROUP(EXPLICIT_KEY)
 
 } // namespace yml
 } // namespace c4

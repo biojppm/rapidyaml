@@ -26,13 +26,11 @@ constexpr const AllowedFailure allowed_failures[] = {
     // These tests are temporarily skipped, and cover issues that must be fixed.
 
     // folded scalars
-    {"5WE3",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"6VJK",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
     {"F6MC",                  eIN_____EMIT, "emitting folded scalars is not idempotent"},
     {"K858", ___OUT______JSON|eIN_________, "emitting folded scalars is not idempotent"},
     {"MJS9",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"NAT4", IN_____EMIT_JSON             , "emitting folded scalars is not idempotent"},
-    {"NJ66",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"T4YY",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
     {"UT92",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
     {"W4TN",                  eIN_OUT_____, "folded scalars: multiline problems"},
@@ -44,8 +42,10 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"PRH3",                  eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"Q8AD",                  eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
     // explicit keys
+    {"5WE3",                  eIN_________, "explicit key is wrongly parsed"},
     {"DFF7",                  eIN_________, "problem with missing complex key"},
     {"FRK4",                  eIN_________, "explicit key is wrongly parsed"},
+    {"NJ66",                  eIN_________, "explicit key is wrongly parsed"},
     // other
     {"9MMW", IN______________             , "re the json/yaml incompatibility where a space is required after :"},
     {"A2M4",                  eIN_________, "fails to parse the value sequence, parses as scalar"},
