@@ -186,8 +186,8 @@ TEST(block_folded, test_suite_5WE3)
         ASSERT_NE(t.find_child(t.root_id(), "block key\n"), NONE);
         EXPECT_EQ(t["explicit key"].val(), csubstr{});
         EXPECT_TRUE(t["block key\n"].is_seq());
-        EXPECT_EQ(t["block key\n"][0], "one");
-        EXPECT_EQ(t["block key\n"][1], "two");
+        EXPECT_EQ(t["block key\n"][0], csubstr("one"));
+        EXPECT_EQ(t["block key\n"][1], csubstr("two"));
     });
 }
 
@@ -203,9 +203,10 @@ TEST(block_folded, test_suite_6VJK)
  What a year!
 )";
     test_check_emit_check(yaml, [](Tree const &t){
-        EXPECT_EQ(t.rootref().val(), "Sammy Sosa completed another fine season with great stats.\n\n  63 Home Runs\n  0.288 Batting Average\n\nWhat a year!\n");
+        EXPECT_EQ(t.rootref().val(), csubstr("Sammy Sosa completed another fine season with great stats.\n\n  63 Home Runs\n  0.288 Batting Average\n\nWhat a year!\n"));
     });
 }
+#endif
 
 TEST(block_folded, test_suite_7T8X)
 {
@@ -229,7 +230,6 @@ TEST(block_folded, test_suite_7T8X)
     Tree t = parse(yaml);
     EXPECT_EQ(t.rootref().val(), "\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n");
 }
-#endif
 
 TEST(block_folded, test_suite_A6F9)
 {
@@ -264,11 +264,11 @@ TEST(block_folded, test_suite_B3HG)
         const NodeRef doc = t.rootref().first_child();
         ASSERT_TRUE(doc.is_doc());
         ASSERT_TRUE(doc.is_val());
-        EXPECT_EQ(doc.val(), "folded text\n");
+        EXPECT_EQ(doc.val(), csubstr("folded text\n"));
         const NodeRef doc2 = t.rootref().last_child();
         ASSERT_TRUE(doc2.is_doc());
         ASSERT_TRUE(doc2.is_val());
-        EXPECT_EQ(doc2.val(), "folded text\n");
+        EXPECT_EQ(doc2.val(), csubstr("folded text\n"));
     });
 }
 
@@ -282,8 +282,8 @@ TEST(block_folded, test_suite_D83L)
 )";
     test_check_emit_check(yaml, [](Tree const &t){
         EXPECT_TRUE(t.rootref().is_seq());
-        EXPECT_EQ(t[0].val(), "explicit indent and chomp");
-        EXPECT_EQ(t[1].val(), "chomp and explicit indent");
+        EXPECT_EQ(t[0].val(), csubstr("explicit indent and chomp"));
+        EXPECT_EQ(t[1].val(), csubstr("chomp and explicit indent"));
     });
 }
 
@@ -301,7 +301,7 @@ TEST(block_folded, test_suite_DWX9)
  # Comment
 )";
     test_check_emit_check(yaml, [](Tree const &t){
-        EXPECT_EQ(t.rootref().val(), "\n\nliteral\n \n\ntext\n");
+        EXPECT_EQ(t.rootref().val(), csubstr("\n\nliteral\n \n\ntext\n"));
     });
 }
 
@@ -320,8 +320,8 @@ b: >2
 )";
     test_check_emit_check(yaml, [](Tree const &t){
         const NodeRef doc = t.rootref().first_child();
-        EXPECT_EQ(doc["a"].val(), "more indented\nregular\n");
-        EXPECT_EQ(doc["b"].val(), "\n\n more indented\nregular\n");
+        EXPECT_EQ(doc["a"].val(), csubstr("more indented\nregular\n"));
+        EXPECT_EQ(doc["b"].val(), csubstr("\n\n more indented\nregular\n"));
     });
 }
 
@@ -341,7 +341,7 @@ keep: |+
         ASSERT_TRUE(t.rootref().has_child("clip"));
         EXPECT_EQ(t["strip"].val(), csubstr{});
         EXPECT_EQ(t["clip"].val(), csubstr{});
-        EXPECT_EQ(t["keep"].val(), "\n");
+        EXPECT_EQ(t["keep"].val(), csubstr("\n"));
     });
 }
 
@@ -377,6 +377,7 @@ TEST(block_folded, test_suite_NJ66)
         EXPECT_EQ(t[1]["multi line"].val(), csubstr("value"));
     });
 }
+#endif
 
 
 TEST(block_folded, test_suite_P2AD)
@@ -514,27 +515,27 @@ R"(- >
 # Comment
 
 ##### this is the original scalar:
-##- >
-##
-## folded
-## line
-##
-## next
-## line
-##   * bullet
-##
-##   * list
-##   * lines
-##
-## last
-## line
-##
-### Comment
-##
+- >
+
+ folded
+ line
+
+ next
+ line
+   * bullet
+
+   * list
+   * lines
+
+ last
+ line
+
+# Comment
+
 )",
   L{
     N(QV, "\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n"),
-    //N(QV, "\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n"),
+    N(QV, "\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n"),
   }
 ),
 

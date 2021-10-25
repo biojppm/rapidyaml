@@ -26,6 +26,26 @@
   - |-2
     chomp and explicit indent
   ```
+- Fix [inference of block indentation]((https://yaml.org/spec/1.2.2/#8111-block-indentation-indicator) with leading blank lines ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
+  ```yaml
+  # test cases: 4QFQ, 7T8X
+  - >
+   
+    
+    # child1
+  # parsed as "\n\n child1"
+  --- # test case DWX9
+  |
+   
+    
+    literal
+     
+    
+    text
+  
+   # Comment
+  # parsed as "\n\nliteral\n \n\ntext\n"
+  ```
 
 #### Plain scalars
 - Fix parsing of whitespace within plain scalars ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):

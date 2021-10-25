@@ -28,10 +28,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     // folded scalars
     {"5WE3",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"6VJK",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
-    {"7T8X",                  eIN_OUT_____, "folded scalars: multiline problems"},
-    {"A6F9",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"B3HG",                  e___OUT_____, "folded scalars: multiline problems"},
-    {"DWX9",                  eIN_____EMIT, "folded scalars: multiline problems"},
     {"F6MC",                  eIN_____EMIT, "emitting folded scalars is not idempotent"},
     {"K858", ___OUT______JSON|eIN_________, "emitting folded scalars is not idempotent"},
     {"MJS9",                  eIN_________, "emitting folded scalars is not idempotent"},

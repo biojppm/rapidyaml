@@ -3610,7 +3610,7 @@ csubstr Parser::_scan_block()
                     if(lc.indentation >= provisional_indentation)
                     {
                         _c4dbgpf("scanning block: set indentation ref from provisional indentation: provisional_ref=%zu, thisline=%zu", provisional_indentation, lc.indentation);
-                        indentation = provisional_indentation;
+                        indentation = provisional_indentation ? provisional_indentation : lc.indentation;
                     }
                     else
                     {
