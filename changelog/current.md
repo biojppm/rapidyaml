@@ -1,11 +1,11 @@
 
 ### New features
 - Add support for CPU architectures aarch64, ppc64le, s390x.
-- Fix compilation with `C4CORE_NO_FAST_FLOAT` ([PR #163](https://github.com/biojppm/rapidyaml/pulls/163))
 - Update c4core to [0.1.6](https://github.com/biojppm/c4core/releases/tag/v0.1.6)
-- Add sample showing how to load a file and parse with ryml.
 
 ### Fixes
+
+- Fix compilation with `C4CORE_NO_FAST_FLOAT` ([PR #163](https://github.com/biojppm/rapidyaml/pulls/163))
 
 #### Tags
 
@@ -26,7 +26,7 @@
   - |-2
     chomp and explicit indent
   ```
-- Fix [inference of block indentation]((https://yaml.org/spec/1.2.2/#8111-block-indentation-indicator) with leading blank lines ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
+- Fix [inference of block indentation](https://yaml.org/spec/1.2.2/#8111-block-indentation-indicator) with leading blank lines ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
   ```yaml
   # test cases: 4QFQ, 7T8X
   - >

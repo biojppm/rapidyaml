@@ -330,6 +330,11 @@ struct Subject
 
     void init(csubstr filename, csubstr src, CasePart_e case_part, bool expect_error)
     {
+        if(src.ends_with("\r\n"))
+            src = src.offs(0, 2);
+        else if(src.ends_with('\n'))
+            src = src.offs(0, 1);
+
         src = replace_all("\r", "", src, &unix_src);
 
         unix_ro      .init(filename, src, /*immutable*/true , /*reuse*/false, case_part, expect_error);
