@@ -28,15 +28,12 @@ constexpr const AllowedFailure allowed_failures[] = {
     // folded scalars
     {"5WE3",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"6VJK",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
-    {"B3HG",                  e___OUT_____, "folded scalars: multiline problems"},
     {"F6MC",                  eIN_____EMIT, "emitting folded scalars is not idempotent"},
     {"K858", ___OUT______JSON|eIN_________, "emitting folded scalars is not idempotent"},
     {"MJS9",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"NAT4", IN_____EMIT_JSON             , "emitting folded scalars is not idempotent"},
     {"NJ66",                  eIN_________, "emitting folded scalars is not idempotent"},
-    {"T26H",                  eIN_OUT_EMIT, "folded scalars: multiline problems"},
     {"T4YY",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
-    {"T5N4",                  e___OUT_____, "emitting folded scalars is not idempotent"},
     {"UT92",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
     {"W4TN",                  eIN_OUT_____, "folded scalars: multiline problems"},
     {"XLQ9",                  eIN_________, "emitting folded scalars is not idempotent"},
@@ -59,6 +56,9 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"6WPF",                  e___OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"RZT7",                  eIN_OUT_____, "folded scalars: multiline problems"},
     {"9TFX",                  e___OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
+    {"B3HG",                  e___OUT_____, "out-yaml spec is missing a document token"},
+    {"T26H",                  e___OUT_____, "out-yaml spec is missing a document token"},
+    {"T5N4",                  e___OUT_____, "out-yaml spec is missing a document token"},
 
 
     //-------------------------------------------------------------------------
