@@ -3531,17 +3531,22 @@ csubstr Parser::_scan_block()
     csubstr digits;
     if(s.len > 1)
     {
+        RYML_ASSERT(s.begins_with_any("|>"));
         csubstr t = s.sub(1);
+        _c4dbgpf("scanning block: spec is multichar: '%.*s'", _c4prsp(t));
         RYML_ASSERT(t.len >= 1);
-        if(t[0] == '-')
+        size_t pos = t.first_of("-+");
+        _c4dbgpf("scanning block: spec chomp char at %zu", pos);
+        if(pos != npos)
         {
-            chomp = CHOMP_STRIP;
-            t = t.sub(1);
-        }
-        else if(t[0] == '+')
-        {
-            chomp = CHOMP_KEEP;
-            t = t.sub(1);
+            if(t[pos] == '-')
+                chomp = CHOMP_STRIP;
+            else if(t[pos] == '+')
+                chomp = CHOMP_KEEP;
+            if(pos == 0)
+                t = t.sub(1);
+            else
+                t = t.first(pos);
         }
 
         // from here to the end, only digits are considered
@@ -3982,9 +3987,7 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
     case CHOMP_STRIP: // strip all newlines from the end
     {
         _c4dbgp("filtering block: chomp=STRIP (-)");
-        auto pos = r.last_not_of("\n");
-        if(pos != npos)
-            r = r.left_of(pos, /*include_pos*/true);
+        r = r.trimr('\n');
         break;
     }
     case CHOMP_CLIP: // clip to a single newline

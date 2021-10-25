@@ -272,7 +272,6 @@ TEST(block_folded, test_suite_B3HG)
     });
 }
 
-#ifdef TEST_SUITE_WIP
 TEST(block_folded, test_suite_D83L)
 {
     csubstr yaml = R"(
@@ -287,7 +286,6 @@ TEST(block_folded, test_suite_D83L)
         EXPECT_EQ(t[1].val(), "chomp and explicit indent");
     });
 }
-#endif
 
 TEST(block_folded, test_suite_DWX9)
 {
@@ -393,17 +391,19 @@ TEST(block_folded, test_suite_P2AD)
 
 - >1- # Both indicators↓
   strip
+- >-1 # Both indicators↓
+  strip
 )";
     test_check_emit_check(yaml, [](Tree const &t){
         ASSERT_TRUE(t.rootref().is_seq());
-        ASSERT_EQ(t.rootref().num_children(), 4);
+        ASSERT_EQ(t.rootref().num_children(), 5);
         EXPECT_EQ(t[0].val(), csubstr("literal\n"));
         EXPECT_EQ(t[1].val(), csubstr(" folded\n"));
         EXPECT_EQ(t[2].val(), csubstr("keep\n\n"));
         EXPECT_EQ(t[3].val(), csubstr(" strip"));
+        EXPECT_EQ(t[4].val(), csubstr(" strip"));
     });
 }
-#endif
 
 
 TEST(block_folded, test_suite_R4YG)
@@ -639,11 +639,18 @@ example: >+2
   plus another line at the end.
   
   
-another: val
+example2: >2+
+  Several lines of text,
+  with some "quotes" of various 'types',
+  and also a blank line:
+  
+  plus another line at the end.
+  
+  
 )",
   L{
     N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n\n\n"),
-    N("another", "val")
+    N(QV, "example2", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n\n\n"),
   }
 ),
 
@@ -657,11 +664,18 @@ example: >-2
   plus another line at the end.
   
   
-another: val
+example2: >2-
+  Several lines of text,
+  with some "quotes" of various 'types',
+  and also a blank line:
+  
+  plus another line at the end.
+  
+  
 )",
   L{
     N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end."),
-    N("another", "val")
+    N(QV, "example2", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end."),
   }
 ),
 

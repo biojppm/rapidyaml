@@ -314,7 +314,8 @@ void Emitter<Writer>::_write_scalar_block(csubstr s, size_t ilevel, bool as_key)
     size_t pos = 0; // tracks the last character that was already written
     for(size_t i = 0; i < s.len; ++i)
     {
-        if(s[i] != '\n') continue;
+        if(s[i] != '\n')
+            continue;
         // write everything up to this point
         csubstr sub = s.range(pos, i+1); // include the newline
         pos = i+1; // because of the newline

@@ -16,6 +16,17 @@
     foo : bar
   ```
 
+#### Block scalars
+- Fix parsing of block spec with both chomping and indentation: chomping may come before or after the indentation:
+  ```yaml
+  # the block scalar specs below now have the same effect.
+  # test cases: D83L, P2AD
+  - |2-
+    explicit indent and chomp
+  - |-2
+    chomp and explicit indent
+  ```
+
 #### Plain scalars
 - Fix parsing of whitespace within plain scalars ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
   ```yaml
