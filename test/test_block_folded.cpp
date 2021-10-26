@@ -304,9 +304,7 @@ b: >2
         EXPECT_EQ(doc["b"].val(), csubstr("\n\n more indented\nregular\n"));
     });
 }
-#endif
 
-#ifdef TEST_SUITE_WIP
 TEST(block_folded, test_suite_K858)
 {
     csubstr yaml = R"(
@@ -433,6 +431,31 @@ TEST(block_folded, test_suite_T5N4)
         EXPECT_EQ(t.rootref().first_child().val(), csubstr("literal\n\ttext\n"));
     });
 }
+
+#ifdef TEST_SUITE_WIP
+TEST(block_folded, test_suite_W4TN)
+{
+    csubstr yaml = R"(
+%YAML 1.2
+--- |
+%!PS-Adobe-2.0
+...
+%YAML 1.2
+---
+# Empty
+...
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_stream());
+        ASSERT_EQ(t.rootref().num_children(), 2u);
+        ASSERT_TRUE(t.rootref().first_child().is_doc());
+        ASSERT_TRUE(t.rootref().first_child().is_val());
+        EXPECT_EQ(t.rootref().first_child().val(), csubstr("%!PS-Adobe-2.0\n"));
+        ASSERT_TRUE(t.rootref().last_child().is_doc());
+        ASSERT_TRUE(t.rootref().last_child().empty());
+    });
+}
+#endif
 
 
 //-----------------------------------------------------------------------------

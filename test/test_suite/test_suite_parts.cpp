@@ -13,7 +13,7 @@ constexpr const CasePart_e e___OUT_____ =                      CPART_OUT_YAML_EV
 //constexpr const CasePart_e e_______EMIT =                                            CPART_EMIT_YAML_EVENTS;
 constexpr const CasePart_e eIN_OUT_____ = CPART_IN_YAML_EVENTS|CPART_OUT_YAML_EVENTS;
 constexpr const CasePart_e eIN_____EMIT = CPART_IN_YAML_EVENTS|                      CPART_EMIT_YAML_EVENTS;
-constexpr const CasePart_e eIN_OUT_EMIT = CPART_IN_YAML_EVENTS|CPART_OUT_YAML_EVENTS|CPART_EMIT_YAML_EVENTS;
+//constexpr const CasePart_e eIN_OUT_EMIT = CPART_IN_YAML_EVENTS|CPART_OUT_YAML_EVENTS|CPART_EMIT_YAML_EVENTS;
 
 
 // To see the test case contents, refer to this URL:
@@ -31,16 +31,15 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"K858", ___OUT______JSON|eIN_________, "emitting folded scalars is not idempotent"},
     {"MJS9",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"NAT4", IN_____EMIT_JSON             , "emitting folded scalars is not idempotent"},
-    {"T4YY",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
     {"UT92",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
     {"W4TN",                  eIN_OUT_____, "folded scalars: multiline problems"},
-    {"XLQ9",                  eIN_________, "emitting folded scalars is not idempotent"},
     // quoted scalars
     {"5GBF",                  eIN_________, "quoted scalars: multiline problems"},
-    {"KSS4",                  eIN_________, "emitting folded scalars is not idempotent"},
+    {"KSS4",                  eIN_________, "quoted scalars: multiline problems"},
     {"NP9H",                  eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"PRH3",                  eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"Q8AD",                  eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
+    {"T4YY",                  eIN_OUT_____, "quoted scalars: multiline problems"},
     // explicit keys
     {"5WE3",                  eIN_________, "explicit key is wrongly parsed"},
     {"DFF7",                  eIN_________, "problem with missing complex key"},
