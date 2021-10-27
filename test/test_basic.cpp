@@ -3931,6 +3931,74 @@ TEST(set_root_as_stream, root_is_docval)
 }
 
 
+
+//-------------------------------------------
+//-------------------------------------------
+//-------------------------------------------
+
+TEST(basic, doc)
+{
+    Tree t = parse(R"(---
+doc0
+---
+doc1
+---
+doc2
+---
+doc3
+---
+doc4
+)");
+    size_t ir = t.root_id();
+    ASSERT_EQ(t.num_children(ir), 5u);
+    ASSERT_TRUE(t.is_stream(ir));
+    EXPECT_EQ(t.child(ir, 0), t.doc(0));
+    EXPECT_EQ(t.child(ir, 1), t.doc(1));
+    EXPECT_EQ(t.child(ir, 2), t.doc(2));
+    EXPECT_EQ(t.child(ir, 3), t.doc(3));
+    EXPECT_EQ(t.child(ir, 4), t.doc(4));
+    {
+        NodeRef r = t.rootref();
+        EXPECT_EQ(r.id(), ir);
+        EXPECT_EQ(r.child(0), r.doc(0));
+        EXPECT_EQ(r.child(1), r.doc(1));
+        EXPECT_EQ(r.child(2), r.doc(2));
+        EXPECT_EQ(r.child(3), r.doc(3));
+        EXPECT_EQ(r.child(4), r.doc(4));
+        EXPECT_EQ(r.child(0).id(), t.doc(0));
+        EXPECT_EQ(r.child(1).id(), t.doc(1));
+        EXPECT_EQ(r.child(2).id(), t.doc(2));
+        EXPECT_EQ(r.child(3).id(), t.doc(3));
+        EXPECT_EQ(r.child(4).id(), t.doc(4));
+        EXPECT_EQ(r.child(0).id(), t.docref(0).id());
+        EXPECT_EQ(r.child(1).id(), t.docref(1).id());
+        EXPECT_EQ(r.child(2).id(), t.docref(2).id());
+        EXPECT_EQ(r.child(3).id(), t.docref(3).id());
+        EXPECT_EQ(r.child(4).id(), t.docref(4).id());
+    }
+    {
+        const Tree &ct = t;
+        const NodeRef r = ct.rootref();
+        EXPECT_EQ(r.id(), ir);
+        EXPECT_EQ(r.child(0), r.doc(0));
+        EXPECT_EQ(r.child(1), r.doc(1));
+        EXPECT_EQ(r.child(2), r.doc(2));
+        EXPECT_EQ(r.child(3), r.doc(3));
+        EXPECT_EQ(r.child(4), r.doc(4));
+        EXPECT_EQ(r.child(0).id(), t.doc(0));
+        EXPECT_EQ(r.child(1).id(), t.doc(1));
+        EXPECT_EQ(r.child(2).id(), t.doc(2));
+        EXPECT_EQ(r.child(3).id(), t.doc(3));
+        EXPECT_EQ(r.child(4).id(), t.doc(4));
+        EXPECT_EQ(r.child(0).id(), t.docref(0).id());
+        EXPECT_EQ(r.child(1).id(), t.docref(1).id());
+        EXPECT_EQ(r.child(2).id(), t.docref(2).id());
+        EXPECT_EQ(r.child(3).id(), t.docref(3).id());
+        EXPECT_EQ(r.child(4).id(), t.docref(4).id());
+    }
+}
+
+
 //-------------------------------------------
 // this is needed to use the test case library
 Case const* get_case(csubstr /*name*/)

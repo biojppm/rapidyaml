@@ -2,6 +2,26 @@
 ### New features
 - Add support for CPU architectures aarch64, ppc64le, s390x.
 - Update c4core to [0.1.6](https://github.com/biojppm/c4core/releases/tag/v0.1.6)
+- `Tree` and `NodeRef`: add document getter `doc()` and `docref()`
+  ```c++
+  Tree tree = parse(R"(---
+  doc0
+  ---
+  doc1
+  )");
+  NodeRef stream = t.rootref();
+  assert(stream.is_stream());
+  // tree.doc(i): get the index of the i-th doc node.
+  // Equivalent to tree.child(tree.root_id(), i)
+  assert(tree.doc(0) == 1u);
+  assert(tree.doc(1) == 2u);
+  // tree.docref(i), same as above, return NodeRef
+  assert(tree.docref(0).val() == "doc0");
+  assert(tree.docref(1).val() == "doc1");
+  // stream.doc(i), same as above, given NodeRef
+  assert(stream.doc(0).val() == "doc0");
+  assert(stream.doc(1).val() == "doc1");
+  ```
 
 ### Fixes
 

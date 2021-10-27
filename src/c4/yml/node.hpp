@@ -233,6 +233,9 @@ public:
     NodeRef       find_sibling(csubstr name)       { _C4RV(); return {m_tree, m_tree->find_sibling(m_id, name)}; }
     NodeRef const find_sibling(csubstr name) const { _C4RV(); return {m_tree, m_tree->find_sibling(m_id, name)}; }
 
+    NodeRef       doc(size_t num)       { _C4RV(); return {m_tree, m_tree->doc(num)}; }
+    NodeRef const doc(size_t num) const { _C4RV(); return {m_tree, m_tree->doc(num)}; }
+
     /** @} */
 
 public:
