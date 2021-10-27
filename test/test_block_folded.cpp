@@ -432,30 +432,72 @@ TEST(block_folded, test_suite_T5N4)
     });
 }
 
-#ifdef TEST_SUITE_WIP
+
 TEST(block_folded, test_suite_W4TN)
 {
     csubstr yaml = R"(
-%YAML 1.2
+--- |
+ %!PS-Adobe-2.0
+...
+--- >
+ %!PS-Adobe-2.0
+...
 --- |
 %!PS-Adobe-2.0
 ...
-%YAML 1.2
+--- >
+%!PS-Adobe-2.0
+...
 ---
 # Empty
 ...
+--- |
+ %!PS-Adobe-2.0
+--- >
+ %!PS-Adobe-2.0
+--- |
+%!PS-Adobe-2.0
+--- >
+%!PS-Adobe-2.0
+---
+# empty
 )";
     test_check_emit_check(yaml, [](Tree const &t){
-        ASSERT_TRUE(t.rootref().is_stream());
-        ASSERT_EQ(t.rootref().num_children(), 2u);
-        ASSERT_TRUE(t.rootref().first_child().is_doc());
-        ASSERT_TRUE(t.rootref().first_child().is_val());
-        EXPECT_EQ(t.rootref().first_child().val(), csubstr("%!PS-Adobe-2.0\n"));
-        ASSERT_TRUE(t.rootref().last_child().is_doc());
-        ASSERT_TRUE(t.rootref().last_child().empty());
+        NodeRef const r = t.rootref();
+        ASSERT_TRUE(r.is_stream());
+        ASSERT_EQ(r.num_children(), 10u);
+        ASSERT_TRUE(r.doc(0).is_doc());
+        ASSERT_TRUE(r.doc(0).is_val());
+        EXPECT_EQ(r.doc(0).val(), csubstr("%!PS-Adobe-2.0\n"));
+        ASSERT_TRUE(r.doc(1).is_doc());
+        ASSERT_TRUE(r.doc(1).is_val());
+        EXPECT_EQ(r.doc(1).val(), csubstr("%!PS-Adobe-2.0\n"));
+        ASSERT_TRUE(r.doc(2).is_doc());
+        ASSERT_TRUE(r.doc(2).is_val());
+        EXPECT_EQ(r.doc(2).val(), csubstr("%!PS-Adobe-2.0\n"));
+        ASSERT_TRUE(r.doc(3).is_doc());
+        ASSERT_TRUE(r.doc(3).is_val());
+        EXPECT_EQ(r.doc(3).val(), csubstr("%!PS-Adobe-2.0\n"));
+        ASSERT_TRUE(r.doc(4).is_doc());
+        ASSERT_TRUE(r.doc(4).is_val());
+        EXPECT_EQ(r.doc(4).val(), csubstr{});
+        ASSERT_TRUE(r.doc(5).is_doc());
+        ASSERT_TRUE(r.doc(5).is_val());
+        EXPECT_EQ(r.doc(5).val(), csubstr("%!PS-Adobe-2.0\n"));
+        ASSERT_TRUE(r.doc(6).is_doc());
+        ASSERT_TRUE(r.doc(6).is_val());
+        EXPECT_EQ(r.doc(6).val(), csubstr("%!PS-Adobe-2.0\n"));
+        ASSERT_TRUE(r.doc(7).is_doc());
+        ASSERT_TRUE(r.doc(7).is_val());
+        EXPECT_EQ(r.doc(7).val(), csubstr("%!PS-Adobe-2.0\n"));
+        ASSERT_TRUE(r.doc(8).is_doc());
+        ASSERT_TRUE(r.doc(8).is_val());
+        EXPECT_EQ(r.doc(8).val(), csubstr("%!PS-Adobe-2.0\n"));
+        ASSERT_TRUE(r.doc(4).is_doc());
+        ASSERT_TRUE(r.doc(4).is_val());
+        EXPECT_EQ(r.doc(4).val(), csubstr{});
     });
 }
-#endif
 
 
 //-----------------------------------------------------------------------------

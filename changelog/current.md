@@ -66,6 +66,31 @@
    # Comment
   # parsed as "\n\nliteral\n \n\ntext\n"
   ```
+- Fix parsing of same-indentation block scalars ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
+  ```yaml
+  # test case W4TN
+  # all docs have the same value: "%!PS-Adobe-2.0"
+  --- |
+   %!PS-Adobe-2.0
+  ...
+  --- >
+   %!PS-Adobe-2.0
+  ...
+  --- |
+  %!PS-Adobe-2.0
+  ...
+  --- >
+  %!PS-Adobe-2.0
+  ...
+  --- |
+   %!PS-Adobe-2.0
+  --- >
+   %!PS-Adobe-2.0
+  --- |
+  %!PS-Adobe-2.0
+  --- >
+  %!PS-Adobe-2.0
+  ```
 
 #### Plain scalars
 - Fix parsing of whitespace within plain scalars ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):

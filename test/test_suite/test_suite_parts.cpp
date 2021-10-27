@@ -32,7 +32,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"MJS9",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"NAT4", IN_____EMIT_JSON             , "emitting folded scalars is not idempotent"},
     {"UT92",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
-    {"W4TN",                  eIN_OUT_____, "folded scalars: multiline problems"},
     // quoted scalars
     {"5GBF",                  eIN_________, "quoted scalars: multiline problems"},
     {"KSS4",                  eIN_________, "quoted scalars: multiline problems"},

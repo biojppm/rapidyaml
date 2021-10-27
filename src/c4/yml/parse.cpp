@@ -3593,6 +3593,16 @@ csubstr Parser::_scan_block()
                 _c4dbgpf("scanning block: indentation decreased ref=%zu thisline=%zu", indentation, lc.indentation);
                 break;
             }
+            else if(indentation == 0)
+            {
+                if((lc.rem == "..." || lc.rem.begins_with("... "))
+                    ||
+                   (lc.rem == "---" || lc.rem.begins_with("--- ")))
+                {
+                    _c4dbgpf("scanning block: stop. indentation=0 and stream ended");
+                    break;
+                }
+            }
         }
         else
         {
