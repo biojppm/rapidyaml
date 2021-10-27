@@ -155,14 +155,14 @@ foo:
         ASSERT_TRUE(t.rootref().is_stream());
         NodeRef doc = t.rootref().child(0);
         ASSERT_TRUE(doc.is_seq());
-        ASSERT_EQ(doc.num_children(), 4);
+        ASSERT_EQ(doc.num_children(), 4u);
         EXPECT_EQ(doc[0].val(), csubstr("child0\n"));
         EXPECT_EQ(doc[1].val(), csubstr("\n\n# child1\n"));
         EXPECT_EQ(doc[2].val(), csubstr(" child2\n"));
         EXPECT_EQ(doc[3].val(), csubstr("child3\n"));
         doc = t.rootref().child(1);
         ASSERT_TRUE(doc.is_map());
-        ASSERT_EQ(doc["foo"].num_children(), 4);
+        ASSERT_EQ(doc["foo"].num_children(), 4u);
         EXPECT_EQ(doc["foo"][0].val(), csubstr("child0\n"));
         EXPECT_EQ(doc["foo"][1].val(), csubstr("\n\n# child1\n"));
         EXPECT_EQ(doc["foo"][2].val(), csubstr(" child2\n"));
@@ -359,7 +359,7 @@ TEST(block_folded, test_suite_P2AD)
 )";
     test_check_emit_check(yaml, [](Tree const &t){
         ASSERT_TRUE(t.rootref().is_seq());
-        ASSERT_EQ(t.rootref().num_children(), 5);
+        ASSERT_EQ(t.rootref().num_children(), 5u);
         EXPECT_EQ(t[0].val(), csubstr("literal\n"));
         EXPECT_EQ(t[1].val(), csubstr(" folded\n"));
         EXPECT_EQ(t[2].val(), csubstr("keep\n\n"));
@@ -386,7 +386,7 @@ TEST(block_folded, test_suite_R4YG)
 )";
     test_check_emit_check(yaml, [](Tree const &t){
         ASSERT_TRUE(t.rootref().is_seq());
-        ASSERT_EQ(t.rootref().num_children(), 4);
+        ASSERT_EQ(t.rootref().num_children(), 4u);
         EXPECT_EQ(t[0].val(), csubstr("detected\n"));
         EXPECT_EQ(t[1].val(), csubstr("\n\n# detected\n"));
         EXPECT_EQ(t[2].val(), csubstr(" explicit\n"));
