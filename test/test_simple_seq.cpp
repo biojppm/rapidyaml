@@ -21,7 +21,7 @@ namespace yml {
 "simple seq, comments inline",                                  \
 "simple seq, comments prev line",                               \
 "simple seq, scalars with special chars, comma",                \
-"simple seq, scalars with special chars, semicolon",            \
+"simple seq, scalars with special chars, colon",                \
 "simple seq, scalars with special chars, cardinal",             \
 "simple seq, scalars with special chars, dash",                 \
 "simple seq, scalars with special chars, left-bracket",         \
@@ -29,7 +29,8 @@ namespace yml {
 "simple seq, scalars with special chars, left-curly",           \
 "simple seq, scalars with special chars, right-curly",          \
 "simple seq expl, scalars with special chars, comma",           \
-"simple seq expl, scalars with special chars, semicolon",       \
+"simple seq expl, scalars with special chars, colon",           \
+"simple seq expl, scalars with special chars, colon 2",         \
 "simple seq expl, scalars with special chars, cardinal",        \
 "simple seq expl, scalars with special chars, dash",            \
 "simple seq expl, scalars with special chars, left-bracket",    \
@@ -167,7 +168,7 @@ L{N{"a,b"}, N{"c,d"}, N{"e,f"},
     }
 ),
 
-C("simple seq, scalars with special chars, semicolon",
+C("simple seq, scalars with special chars, colon",
 R"(
 - a:b
 - "c:d"
@@ -343,7 +344,28 @@ L{
     }
 ),
 
-C("simple seq expl, scalars with special chars, semicolon",
+C("simple seq expl, scalars with special chars, colon",
+R"(
+- [[], :@]
+- [[], :%]
+- [[], :^]
+- [[], :$]
+- [[], ::]
+- [[], :	]
+- [[], :`]
+)",
+L{
+   N(L{N(SEQ), N(":@")}),
+   N(L{N(SEQ), N(":%")}),
+   N(L{N(SEQ), N(":^")}),
+   N(L{N(SEQ), N(":$")}),
+   N(L{N(SEQ), N("::")}),
+   N(L{N(SEQ), N(":	")}),
+   N(L{N(SEQ), N(":`")}),
+}
+),
+
+C("simple seq expl, scalars with special chars, colon 2",
 R"([
 # a:b,  # not legal
   "c:d",   'e:f',
