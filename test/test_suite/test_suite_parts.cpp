@@ -4,7 +4,7 @@ namespace c4 {
 namespace yml {
 
 constexpr const CasePart_e IN______________ = CPART_IN_YAML;
-constexpr const CasePart_e ___OUT______JSON =               CPART_OUT_YAML                |CPART_IN_JSON;
+//constexpr const CasePart_e ___OUT______JSON =               CPART_OUT_YAML                |CPART_IN_JSON;
 //constexpr const CasePart_e IN_____EMIT_____ = CPART_IN_YAML               |CPART_EMIT_YAML;
 constexpr const CasePart_e IN_____EMIT_JSON = CPART_IN_YAML               |CPART_EMIT_YAML|CPART_IN_JSON;
 
@@ -28,10 +28,10 @@ constexpr const AllowedFailure allowed_failures[] = {
     // folded scalars
     {"6VJK",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
     {"F6MC",                  eIN_____EMIT, "emitting folded scalars is not idempotent"},
-    {"K858", ___OUT______JSON|eIN_________, "emitting folded scalars is not idempotent"},
+    {"K858",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"MJS9",                  eIN_________, "emitting folded scalars is not idempotent"},
-    {"NAT4", IN_____EMIT_JSON             , "emitting folded scalars is not idempotent"},
-    {"UT92",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
+    {"NAT4", IN_____EMIT_JSON|eIN_____EMIT, "emitting folded scalars is not idempotent"},
+    {"UT92",                  eIN_________, "emitting folded scalars is not idempotent"},
     // quoted scalars
     {"5GBF",                  eIN_________, "quoted scalars: multiline problems"},
     {"KSS4",                  eIN_________, "quoted scalars: multiline problems"},
@@ -45,7 +45,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"FRK4",                  eIN_________, "explicit key is wrongly parsed"},
     {"NJ66",                  eIN_________, "explicit key is wrongly parsed"},
     // other
-    {"9MMW", IN______________             , "re the json/yaml incompatibility where a space is required after :"},
+    {"9MMW", IN______________|eIN_________, "re the json/yaml incompatibility where a space is required after :"},
     {"A2M4",                  eIN_________, "fails to parse the value sequence, parses as scalar"},
     // problems reading the test spec
     {"G4RS",                  eIN_OUT_____, "need to unescape the utf8 characters"},
