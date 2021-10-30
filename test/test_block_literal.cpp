@@ -3,6 +3,108 @@
 namespace c4 {
 namespace yml {
 
+
+TEST(block_literal, emit_does_not_add_lines_to_multi_at_end)
+{
+    Tree t = parse("[]");
+    NodeRef r = t.rootref();
+    r.append_child() = "\n\n";
+    r.append_child() = "\n\n";
+    r.append_child() = "last";
+    std::string out = emitrs<std::string>(t);
+    std::string expected = R"(- |+
+  
+  
+- |+
+  
+  
+- last
+)";
+    EXPECT_EQ(out, expected);
+    t = parse(to_csubstr(out));
+    EXPECT_EQ(t[0].val(), csubstr("\n\n"));
+    EXPECT_EQ(t[1].val(), csubstr("\n\n"));
+    EXPECT_EQ(t[2].val(), csubstr("last"));
+
+    ASSERT_EQ(csubstr("ab\n\n \n").trimr(" \t\n"), csubstr("ab"));
+
+    t = parse(R"(--- |+
+ ab
+ 
+  
+)");
+    EXPECT_EQ(t.docref(0).val(), csubstr("ab\n\n \n"));
+    expected = R"(--- |
+  ab
+  
+   
+
+)";
+    out = emitrs<std::string>(t);
+    EXPECT_EQ(out, expected);
+    t = parse(to_csubstr(out));
+    EXPECT_EQ(t.docref(0).val(), csubstr("ab\n\n \n"));
+    out = emitrs<std::string>(t);
+    EXPECT_EQ(out, expected);
+    t = parse(to_csubstr(out));
+    EXPECT_EQ(t.docref(0).val(), csubstr("ab\n\n \n"));
+    out = emitrs<std::string>(t);
+    EXPECT_EQ(out, expected);
+    t = parse(to_csubstr(out));
+    EXPECT_EQ(t.docref(0).val(), csubstr("ab\n\n \n"));
+
+    std::string yaml = R"(
+- |
+  Several lines of text,
+  with some "quotes" of various 'types',
+  and also a blank line:
+
+  plus another line at the end.
+
+
+
+- |+
+  Several lines of text,
+  with some "quotes" of various 'types',
+  and also a blank line:
+
+  plus another line at the end.
+
+- last
+)";
+    expected = R"(- |
+  Several lines of text,
+  with some "quotes" of various 'types',
+  and also a blank line:
+  
+  plus another line at the end.
+
+- |+
+  Several lines of text,
+  with some "quotes" of various 'types',
+  and also a blank line:
+  
+  plus another line at the end.
+  
+- last
+)";
+    t = parse(to_csubstr(yaml));
+    EXPECT_EQ(t[0].val(), "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n");
+    EXPECT_EQ(t[1].val(), "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n\n");
+    out = emitrs<std::string>(t);
+    EXPECT_EQ(out, expected);
+    t = parse(to_csubstr(out));
+    EXPECT_EQ(t[0].val(), "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n");
+    EXPECT_EQ(t[1].val(), "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n\n");
+    out = emitrs<std::string>(t);
+    EXPECT_EQ(out, expected);
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 #define BLOCK_LITERAL_CASES \
     "block literal as seq val, implicit indentation 2",\
     "block literal as seq val, implicit indentation 2, chomp=keep",\

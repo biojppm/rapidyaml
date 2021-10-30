@@ -25,6 +25,7 @@ TEST(explicit_key, test_suite_5WE3)
     });
 }
 
+
 TEST(explicit_key, test_suite_DFF7)
 {
     csubstr yaml = R"(
@@ -62,6 +63,7 @@ TEST(explicit_key, test_suite_FRK4)
         EXPECT_EQ(t[csubstr{}].val(), csubstr("bar"));
     });
 }
+
 
 TEST(explicit_key, test_suite_NJ66)
 {

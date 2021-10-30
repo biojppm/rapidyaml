@@ -89,8 +89,9 @@ string"
         EXPECT_EQ(doc1.val_anchor(), "node");
     });
 }
+#endif
 
-TEST(double_quoted, test_suite_NAT4) // crash!
+TEST(double_quoted, test_suite_NAT4)
 {
     csubstr yaml = R"(
 a: '
@@ -128,6 +129,7 @@ h: "
     });
 }
 
+#ifdef TEST_SUITE_WIP
 TEST(double_quoted, test_suite_NP9H)
 {
     csubstr yaml = R"(

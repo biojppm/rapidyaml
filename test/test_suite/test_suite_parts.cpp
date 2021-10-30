@@ -6,7 +6,7 @@ namespace yml {
 constexpr const CasePart_e IN______________ = CPART_IN_YAML;
 //constexpr const CasePart_e ___OUT______JSON =               CPART_OUT_YAML                |CPART_IN_JSON;
 //constexpr const CasePart_e IN_____EMIT_____ = CPART_IN_YAML               |CPART_EMIT_YAML;
-constexpr const CasePart_e IN_____EMIT_JSON = CPART_IN_YAML               |CPART_EMIT_YAML|CPART_IN_JSON;
+//constexpr const CasePart_e IN_____EMIT_JSON = CPART_IN_YAML               |CPART_EMIT_YAML|CPART_IN_JSON;
 
 constexpr const CasePart_e eIN_________ = CPART_IN_YAML_EVENTS;
 constexpr const CasePart_e e___OUT_____ =                      CPART_OUT_YAML_EVENTS;
@@ -30,11 +30,11 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"F6MC",                  eIN_____EMIT, "emitting folded scalars is not idempotent"},
     {"K858",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"MJS9",                  eIN_________, "emitting folded scalars is not idempotent"},
-    {"NAT4", IN_____EMIT_JSON|eIN_____EMIT, "emitting folded scalars is not idempotent"},
     {"UT92",                  eIN_________, "emitting folded scalars is not idempotent"},
     // quoted scalars
     {"5GBF",                  eIN_________, "quoted scalars: multiline problems"},
     {"KSS4",                  eIN_________, "quoted scalars: multiline problems"},
+    {"NAT4",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"NP9H",                  eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"PRH3",                  eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"Q8AD",                  eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
@@ -48,13 +48,13 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"9MMW", IN______________|eIN_________, "re the json/yaml incompatibility where a space is required after :"},
     {"A2M4",                  eIN_________, "fails to parse the value sequence, parses as scalar"},
     // problems reading the test spec
-    {"G4RS",                  eIN_OUT_____, "need to unescape the utf8 characters"},
-    {"H3Z8",                  e___OUT_____, "need to unescape the utf8 characters"},
     {"6SLA",                  eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"6WPF",                  e___OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
-    {"RZT7",                  eIN_OUT_____, "folded scalars: multiline problems"},
     {"9TFX",                  e___OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"B3HG",                  e___OUT_____, "out-yaml spec is missing a document token"},
+    {"G4RS",                  eIN_OUT_____, "need to unescape the utf8 characters"},
+    {"H3Z8",                  e___OUT_____, "need to unescape the utf8 characters"},
+    {"RZT7",                  eIN_OUT_____, "folded scalars: multiline problems"},
     {"T26H",                  e___OUT_____, "out-yaml spec is missing a document token"},
     {"T5N4",                  e___OUT_____, "out-yaml spec is missing a document token"},
 

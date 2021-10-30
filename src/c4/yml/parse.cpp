@@ -3624,7 +3624,8 @@ csubstr Parser::_scan_block()
                     }
                     else
                     {
-                        _c4err("parse error: first non-empty block line should have at least the could not read decimal");
+                        break;
+                        //_c4err("parse error: first non-empty block line should have at least the original indentation");
                     }
                 }
             }
@@ -3775,7 +3776,7 @@ csubstr Parser::_filter_plain_scalar(substr s, size_t indentation)
 //-----------------------------------------------------------------------------
 csubstr Parser::_filter_squot_scalar(substr s)
 {
-    _c4dbgpf("filtering single-quoted scalar: before=\"%.*s\"", _c4prsp(s));
+    _c4dbgpf("filtering single-quoted scalar: before=~~~%.*s~~~", _c4prsp(s));
 
     // do a first sweep to clean leading whitespace
     substr r = _filter_whitespace(s);
@@ -3788,24 +3789,28 @@ csubstr Parser::_filter_squot_scalar(substr s)
         const char next = i+1 < r.len ? r[i+1] : '\0';
         if(curr == '\'' && (curr == next))
         {
-            r = r.erase(i+1, 1); // turn two consecutive single quotes into one
+            _c4dbgpf("filtering single-quoted scalar: i=%zu: turn two consecutive single quotes into one. curr=~~~%.*s~~~", i, _c4prsp(r.first(i)));
+            r = r.erase(i+1, 1);
         }
         else if(curr == '\n')
         {
             if(next != '\n')
             {
-                r[i] = ' '; // a single unix newline: turn it into a space
+                _c4dbgpf("filtering single-quoted scalar: i=%zu: single unix newline: turn it into a space. curr=~~~%.*s~~~", i, _c4prsp(r.first(i)));
+                r[i] = ' '; // a
             }
             else if(curr == '\n' && next == '\n')
             {
-                r = r.erase(i+1, 1); // keep only one of consecutive newlines
+                _c4dbgpf("filtering single-quoted scalar: i=%zu: keep only first of consecutive newlines. curr=~~~%.*s~~~", i, _c4prsp(r.first(i)));
+                r = r.erase(i+1, 1);
+                while(i+1 < r.len && r[i+1] == '\n')
+                    ++i;
             }
         }
     }
 
     RYML_ASSERT(s.len >= r.len);
-    _c4dbgpf("filtering single-quoted scalar: num filtered chars=%zd", s.len - r.len);
-    _c4dbgpf("filtering single-quoted scalar: after=\"%.*s\"", _c4prsp(r));
+    _c4dbgpf("filtering single-quoted scalar: #filteredchars=%zd after=~~~%.*s~~~", s.len - r.len, _c4prsp(r));
 
 #ifdef RYML_DBG
     for(size_t i = r.len; i < s.len; ++i)
@@ -3820,7 +3825,7 @@ csubstr Parser::_filter_squot_scalar(substr s)
 //-----------------------------------------------------------------------------
 csubstr Parser::_filter_dquot_scalar(substr s)
 {
-    _c4dbgpf("filtering double-quoted scalar: before='%.*s'", _c4prsp(s));
+    _c4dbgpf("filtering double-quoted scalar: before=~~~%.*s~~~", _c4prsp(s));
 
     // do a first sweep to clean leading whitespace
     substr r = _filter_whitespace(s);
@@ -3890,7 +3895,9 @@ csubstr Parser::_filter_dquot_scalar(substr s)
             }
             if(next == '\n')
             {
-                r = r.erase(i+1, 1); // keep only one of consecutive newlines
+                r = r.erase(i+1, 1); // keep only first of consecutive newlines
+                while(i+1 < r.len && r[i+1] == '\n')
+                    ++i;
             }
             else
             {
@@ -3913,8 +3920,7 @@ csubstr Parser::_filter_dquot_scalar(substr s)
     }
 
     RYML_ASSERT(s.len >= r.len);
-    _c4dbgpf("filtering double-quoted scalar: num filtered chars=%zd", s.len - r.len);
-    _c4dbgpf("filtering double-quoted scalar: after='%.*s'", _c4prsp(r));
+    _c4dbgpf("filtering double-quoted scalar: #filteredchars=%zd after=~~~%.*s~~~", s.len - r.len, _c4prsp(r));
 
 #ifdef RYML_DBG
     for(size_t i = r.len; i < s.len; ++i)
@@ -3937,23 +3943,38 @@ substr Parser::_filter_whitespace(substr r, size_t indentation, bool leading_whi
     {
         const char curr = r[i];
         const char prev = i > 0 ? r[i-1] : '\0';
-        if(curr == ' ' && prev == '\n')
+        if(curr == ' ')
         {
-            _c4dbgpf("filtering whitespace: removing indentation i=%zu len=%zu. curr=~~~%.*s~~~", i, r.len, _c4prsp(r.first(i)));
-            csubstr ss = r.sub(i);
-            ss = ss.left_of(ss.first_not_of(' '));
-            RYML_ASSERT(ss.len >= 1);
-            size_t num = ss.len;
-            // RYML_ASSERT(num >= indentation); // empty lines are allowed
-            _c4dbgpf("                    : line has %zu spaces", num);
-            if(leading_whitespace)
-                num = ss.len;
-            else if(indentation != csubstr::npos)
-                num = num < indentation ? num : indentation;
-            _c4dbgpf("                    : removing %zu spaces", num);
-            r = r.erase(i, num);
-            if(i < r.len && r[i] != ' ')
-                --i; // i is incremented on the next iteration
+            _c4dbgpf("filtering whitespace: i=%zu removing ' ' len=%zu. sofar=~~~%.*s~~~", i, r.len, _c4prsp(r.first(i)));
+            if(prev == '\n')
+            {
+                csubstr ss = r.sub(i);
+                ss = ss.left_of(ss.first_not_of(' '));
+                RYML_ASSERT(ss.len >= 1);
+                size_t num = ss.len;
+                // RYML_ASSERT(num >= indentation); // empty lines are allowed
+                _c4dbgpf("filtering whitespace: line has %zu leading spaces", num);
+                if(leading_whitespace)
+                    num = ss.len;
+                else if(indentation != csubstr::npos)
+                    num = num < indentation ? num : indentation;
+                _c4dbgpf("filtering whitespace: r.erase(start=%zu,num=%zu), len=%zu", i, num, r.len);
+                r = r.erase(i, num);
+                if(i < r.len && r[i] != ' ')
+                    --i; // i is incremented on the next iteration
+            }
+            else if(leading_whitespace && i == 0)
+            {
+                size_t len = r.first_not_of(' ');
+                _c4dbgpf("filtering whitespace: remove %zu leading spaces", len);
+                RYML_ASSERT(len > 0 || len == npos);
+                if(len != npos && r[len] == '\n')
+                {
+                    r = r.erase(0, len);
+                    if(i < r.len && r[i] != ' ')
+                        --i; // i is incremented on the next iteration
+                }
+            }
         }
         // erase \r --- https://stackoverflow.com/questions/1885900
         else if(curr == '\r')
@@ -3964,7 +3985,7 @@ substr Parser::_filter_whitespace(substr r, size_t indentation, bool leading_whi
         }
     }
 
-    _c4dbgpf("filtering whitespace: after=\"%.*s\"", _c4prsp(r));
+    _c4dbgpf("filtering whitespace: after=~~~%.*s~~~", _c4prsp(r));
 
     return r;
 }

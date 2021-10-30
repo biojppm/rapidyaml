@@ -127,7 +127,21 @@ indented_once:
 
 TEST(block_folded, test_suite_4QFQ)
 {
-    csubstr yaml = R"(---
+    csubstr yaml = R"(
+- |1
+  child2
+- |3
+    child2
+- ' child2
+
+'
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_EQ(t[0].val(), csubstr(" child2\n"));
+        EXPECT_EQ(t[1].val(), csubstr(" child2\n"));
+        EXPECT_EQ(t[2].val(), csubstr(" child2\n"));
+    });
+    yaml = R"(---
 - |
  child0
 - >

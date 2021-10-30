@@ -268,7 +268,9 @@ void YmlTestCase::_test_complete_round_trip(CaseDataLineEndings *cd)
 
     #ifdef RYML_NFO
     print_tree(cd->parsed_tree);
+    std::cout << "~~~~~~~~~~~~~~ emitted yml:" << std::endl;
     std::cout << cd->emitted_yml;
+    std::cout << "~~~~~~~~~~~~~~" << std::endl;
     #endif
 
     {
