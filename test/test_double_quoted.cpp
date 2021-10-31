@@ -21,9 +21,8 @@ Chomping: |
         EXPECT_EQ(t["Chomping"].val(), csubstr("Clipped empty lines\n"));
     });
 }
+#endif
 
-// works ok, it's the test spec where we are incorrectly handling
-// the escaped characters
 TEST(double_quoted, test_suite_6SLA)
 {
     csubstr yaml = R"(
@@ -39,8 +38,6 @@ TEST(double_quoted, test_suite_6SLA)
     });
 }
 
-// works ok, it's the test spec where we are incorrectly handling
-// the escaped characters
 TEST(double_quoted, test_suite_6WPF)
 {
     csubstr yaml = R"(
@@ -58,8 +55,6 @@ TEST(double_quoted, test_suite_6WPF)
     });
 }
 
-// works ok, it's the test spec where we are incorrectly handling
-// the escaped characters
 TEST(double_quoted, test_suite_9TFX)
 {
     csubstr yaml = R"(
@@ -74,6 +69,7 @@ TEST(double_quoted, test_suite_9TFX)
     });
 }
 
+#ifdef TEST_SUITE_WIP
 TEST(double_quoted, test_suite_KSS4)
 {
     csubstr yaml = R"(

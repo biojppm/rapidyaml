@@ -396,11 +396,6 @@ csubstr filter_out_indentation(csubstr src, std::string *dst)
     return replace_all("\n    ", "\n", src.sub(4), dst);
 }
 
-csubstr filter_out_double_backslash(csubstr src, std::string *dst)
-{
-    return replace_all(R"(\\)", R"(\)", src, dst);
-}
-
 
 /** all the ways that a test case can be processed are
  * available through this class. Tests are defined below and use only
@@ -571,7 +566,6 @@ struct SuiteCase
             begin_events = 1 + contents.find('\n', begin_events); // skip this line
             txt = contents.range(begin_events, first_after);
             RYML_CHECK(did_not_slurp_other_tml_tokens(txt));
-            txt = filter_out_double_backslash(txt, &tmpa);
             if(has_whitespace)
             {
                 txt = replace_all("<SPC>", " ", txt, &tmpb);

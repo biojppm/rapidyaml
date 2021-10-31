@@ -9,6 +9,39 @@ namespace yml {
 
 namespace /*anon*/ {
 
+struct ScalarType
+{
+    typedef enum {
+        PLAIN = 0,
+        SQUOTED,
+        DQUOTED,
+        LITERAL,
+        FOLDED
+    } ScalarType_e;
+
+    ScalarType_e val = PLAIN;
+    bool operator== (ScalarType_e v) const { return val == v; }
+    bool operator!= (ScalarType_e v) const { return val != v; }
+    ScalarType& operator= (ScalarType_e v) { val = v; return *this; }
+
+    csubstr to_str() const
+    {
+        switch(val)
+        {
+        case ScalarType::PLAIN: return "PLAIN";
+        case ScalarType::SQUOTED: return "SQUOTED";
+        case ScalarType::DQUOTED: return "DQUOTED";
+        case ScalarType::LITERAL: return "LITERAL";
+        case ScalarType::FOLDED: return "FOLDED";
+        }
+        C4_ERROR("");
+        return "";
+    }
+
+    bool is_quoted() const { return val == ScalarType::SQUOTED || val == ScalarType::DQUOTED; }
+};
+
+
 struct OptionalScalar
 {
     csubstr val = {};
@@ -28,68 +61,69 @@ size_t to_chars(c4::substr buf, OptionalScalar const& s)
     return s.val.len;
 }
 
-csubstr filtered_scalar(csubstr orig, Tree *tree)
+csubstr filtered_scalar(csubstr str, ScalarType scalar_type, Tree *tree)
 {
-    csubstr str = orig;
-    csubstr tokens[] = {"\\n", "\\t", "\\\n", "\\\t"};
-    csubstr::first_of_any_result result = str.first_of_any_iter(std::begin(tokens), std::end(tokens));
-    if(!result)
+    (void)scalar_type;
+    csubstr tokens[] = {R"(\n)", R"(\t)", R"(\\)"};
+    if(!str.first_of_any_iter(std::begin(tokens), std::end(tokens)))
         return str;
-    substr buf = tree->alloc_arena(str.len);
-    size_t bufpos = 0;
+    substr buf = tree->alloc_arena(str.len); // we are going to always replace with less characters
     size_t strpos = 0;
-    do
+    size_t bufpos = 0;
+    auto append_str = [&](size_t pos){
+        csubstr rng = str.range(strpos, pos);
+        memcpy(buf.str + bufpos, rng.str, rng.len);
+        bufpos += rng.len;
+        strpos = pos;
+    };
+    size_t i;
+    auto append_chars = [&](csubstr s, size_t skipstr){
+        memcpy(buf.str + bufpos, s.str, s.len);
+        bufpos += s.len;
+        i += skipstr - 1; // incremented at the loop
+        strpos += skipstr;
+    };
+    for(i = 0; i < str.len; ++i)
     {
-        // copy up to result
-        _nfo_logf("result.pos={}  strpos={}", result.pos, strpos);
-        RYML_CHECK(bufpos + result.pos <= buf.len);
-        RYML_CHECK(result.pos >= strpos);
-        memcpy(buf.str + bufpos, str.str + strpos, result.pos - strpos);
-        bufpos += result.pos - strpos;
-        strpos += result.pos - strpos;
-        // now transform or copy the token
-        switch(result.which)
+        char curr = str[i];
+        char next1 = i+1 < str.len ? str[i+1] : '\0';
+        if(curr == '\\')
         {
-        case 0u:
-            RYML_ASSERT(str.sub(result.pos).begins_with("\\n"));
-            memcpy(buf.str + bufpos, "\n", 1u);
-            bufpos += 1u;
-            strpos += 2u;
-            break;
-        case 1u:
-            RYML_ASSERT(str.sub(result.pos).begins_with("\\t"));
-            memcpy(buf.str + bufpos, "\t", 1u);
-            bufpos += 1u;
-            strpos += 2u;
-            break;
-        case 2u:
-            RYML_ASSERT(str.sub(result.pos).begins_with("\\\n"));
-            memcpy(buf.str + bufpos, "\\n", 2u);
-            bufpos += 2u;
-            strpos += 3u;
-            break;
-        case 3u:
-            RYML_ASSERT(str.sub(result.pos).begins_with("\\\t"));
-            memcpy(buf.str + bufpos, "\\t", 2u);
-            bufpos += 2u;
-            strpos += 3u;
-            break;
-        default:
-            C4_ERROR("never reach this");
-            break;
+            if(next1 == '\\')
+            {
+                char next2 = i+2 < str.len ? str[i+2] : '\0';
+                if(next2 == 'n')
+                {
+                    append_str(i);
+                    append_chars(R"(\n)", 3u); // '\\n' -> '\n'
+                }
+                else if(next2 == 't')
+                {
+                    append_str(i);
+                    append_chars(R"(\t)", 3u); // '\\t' -> '\t'
+                }
+                else
+                {
+                    append_str(i);
+                    append_chars(R"(\)", 2u); // '\\' -> '\'
+                }
+            }
+            else if(next1 == 'n')
+            {
+                append_str(i);
+                append_chars("\n", 2u);
+            }
+            else if(next1 == 't')
+            {
+                append_str(i);
+                append_chars("\t", 2u);
+            }
         }
-        str = str.sub(strpos);
-        strpos = 0u;
-        result = str.first_of_any_iter(std::begin(tokens), std::end(tokens));
-    } while(result);
-    // and finally copy the remaining tail portion
-    memcpy(buf.str + bufpos, str.str + strpos, str.len - strpos);
-    bufpos += str.len - strpos;
-    strpos += str.len - strpos;
-    RYML_CHECK(bufpos <= buf.len);
-    RYML_CHECK(strpos == str.len);
-    _nfo_logf("filtered scalar '{}' ---> '{}'", orig, buf.first(bufpos));
-    return buf.first(bufpos);
+    }
+    append_str(str.len);
+    buf = buf.first(bufpos);
+    _nfo_logf("filtering: result=~~~{}~~~", buf);
+    return buf;
 }
 
 
@@ -99,7 +133,7 @@ struct Scalar
     OptionalScalar anchor = {};
     OptionalScalar ref    = {};
     OptionalScalar tag    = {};
-    bool           quoted = false;
+    ScalarType     type   = {};
     inline operator bool() const { if(anchor || tag) { RYML_ASSERT(scalar); } return scalar.was_set; }
     void add_key_props(Tree *tree, size_t node) const
     {
@@ -119,7 +153,7 @@ struct Scalar
             _nfo_logf("node[{}]: set key tag: '{}' -> '{}'", node, tag, ntag);
             tree->set_key_tag(node, ntag);
         }
-        if(quoted)
+        if(type.is_quoted())
         {
             _nfo_logf("node[{}]: set key as quoted", node);
             tree->_add_flags(node, KEYQUO);
@@ -143,7 +177,7 @@ struct Scalar
             _nfo_logf("node[{}]: set val tag: '{}' -> '{}'", node, tag, ntag);
             tree->set_val_tag(node, ntag);
         }
-        if(quoted)
+        if(type.is_quoted())
         {
             _nfo_logf("node[{}]: set val as quoted", node);
             tree->_add_flags(node, VALQUO);
@@ -151,7 +185,7 @@ struct Scalar
     }
     csubstr filtered_scalar(Tree *tree) const
     {
-        return ::c4::yml::filtered_scalar(scalar, tree);
+        return ::c4::yml::filtered_scalar(scalar, type, tree);
     }
 };
 
@@ -210,19 +244,33 @@ void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
             ASSERT_GE(m_stack.size(), 0u);
             Scalar curr = {};
             line = parse_anchor_and_tag(line, &curr.anchor, &curr.tag);
-            if(line.begins_with('"') || line.begins_with('\''))
+            if(line.begins_with('"'))
             {
-                _nfo_llog("quoted scalar!");
+                _nfo_llog("double-quoted scalar!");
                 curr.scalar = line.sub(1);
-                curr.quoted = true;
+                curr.type = ScalarType::DQUOTED;
             }
-            else if(line.begins_with('|') || line.begins_with('>'))
+            else if(line.begins_with('\''))
             {
+                _nfo_llog("single-quoted scalar!");
                 curr.scalar = line.sub(1);
-                _nfo_llog("block scalar!");
+                curr.type = ScalarType::SQUOTED;
+            }
+            else if(line.begins_with('|'))
+            {
+                _nfo_llog("block literal scalar!");
+                curr.scalar = line.sub(1);
+                curr.type = ScalarType::LITERAL;
+            }
+            else if(line.begins_with('>'))
+            {
+                _nfo_llog("block folded scalar!");
+                curr.scalar = line.sub(1);
+                curr.type = ScalarType::FOLDED;
             }
             else
             {
+                _nfo_llog("plain scalar");
                 ASSERT_TRUE(line.begins_with(':'));
                 curr.scalar = line.sub(1);
             }
@@ -251,7 +299,7 @@ void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
                 _nfo_logf("is map! map_id={}", top.tree_node);
                 if(!key)
                 {
-                    _nfo_logf("store key='{}' anchor='{}' tag='{}' quoted={}", curr.scalar, curr.anchor, curr.tag, curr.quoted);
+                    _nfo_logf("store key='{}' anchor='{}' tag='{}' type={}", curr.scalar, curr.anchor, curr.tag, curr.type.to_str());
                     key = curr;
                 }
                 else

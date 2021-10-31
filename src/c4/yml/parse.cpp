@@ -3599,7 +3599,7 @@ csubstr Parser::_scan_block()
                     ||
                    (lc.rem == "---" || lc.rem.begins_with("--- ")))
                 {
-                    _c4dbgpf("scanning block: stop. indentation=0 and stream ended");
+                    _c4dbgp("scanning block: stop. indentation=0 and stream ended");
                     break;
                 }
             }
@@ -3961,18 +3961,18 @@ substr Parser::_filter_whitespace(substr r, size_t indentation, bool leading_whi
                 _c4dbgpf("filtering whitespace: r.erase(start=%zu,num=%zu), len=%zu", i, num, r.len);
                 r = r.erase(i, num);
                 if(i < r.len && r[i] != ' ')
-                    --i; // i is incremented on the next iteration
+                    --i; // i is incremented next
             }
             else if(leading_whitespace && i == 0)
             {
                 size_t len = r.first_not_of(' ');
                 _c4dbgpf("filtering whitespace: remove %zu leading spaces", len);
                 RYML_ASSERT(len > 0 || len == npos);
-                if(len != npos && r[len] == '\n')
+                if(len != npos && (r[len] == '\n' || r[len] == '\r'))
                 {
                     r = r.erase(0, len);
                     if(i < r.len && r[i] != ' ')
-                        --i; // i is incremented on the next iteration
+                        --i; // i is incremented next
                 }
             }
         }
@@ -3981,7 +3981,7 @@ substr Parser::_filter_whitespace(substr r, size_t indentation, bool leading_whi
         {
             _c4dbgpf("filtering whitespace: remove \\r: i=%zu len=%zu. curr=~~~%.*s~~~", i, r.len, _c4prsp(r.first(i)));
             r = r.erase(i, 1);
-            --i; // i is incremented on the next iteration
+            --i; // i is incremented next
         }
     }
 

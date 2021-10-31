@@ -25,38 +25,31 @@ constexpr const AllowedFailure allowed_failures[] = {
     //
     // These tests are temporarily skipped, and cover issues that must be fixed.
 
-    // folded scalars
-    {"6VJK",                  eIN_OUT_____, "emitting folded scalars is not idempotent"},
-    {"F6MC",                  eIN_____EMIT, "emitting folded scalars is not idempotent"},
-    {"K858",                  eIN_________, "emitting folded scalars is not idempotent"},
-    {"MJS9",                  eIN_________, "emitting folded scalars is not idempotent"},
-    {"UT92",                  eIN_________, "emitting folded scalars is not idempotent"},
-    // quoted scalars
+    // block scalars
+    {"6VJK",                  eIN_OUT_____, "emitting block scalars is not idempotent"},
+    {"F6MC",                  eIN_____EMIT, "emitting block scalars is not idempotent"},
+    {"K858",                  eIN_________, "emitting block scalars is not idempotent"},
+    {"MJS9",                  eIN_________, "emitting block scalars is not idempotent"},
+    {"UT92",                  eIN_________, "emitting block scalars is not idempotent"},
+    // single-quoted scalars
+    {"PRH3",                  eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
+    {"T4YY",                  eIN_OUT_____, "quoted scalars: multiline problems"},
+    // double-quoted scalars
     {"5GBF",                  eIN_________, "quoted scalars: multiline problems"},
     {"KSS4",                  eIN_________, "quoted scalars: multiline problems"},
-    {"NAT4",                  eIN_________, "emitting folded scalars is not idempotent"},
     {"NP9H",                  eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
-    {"PRH3",                  eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"Q8AD",                  eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
-    {"T4YY",                  eIN_OUT_____, "quoted scalars: multiline problems"},
     // explicit keys
     {"5WE3",                  eIN_________, "explicit key is wrongly parsed"},
-    {"DFF7",                  eIN_________, "problem with missing complex key"},
+    {"DFF7",                  eIN_________, "problem with missing explicit key"},
     {"FRK4",                  eIN_________, "explicit key is wrongly parsed"},
     {"NJ66",                  eIN_________, "explicit key is wrongly parsed"},
     // other
     {"9MMW", IN______________|eIN_________, "re the json/yaml incompatibility where a space is required after :"},
     {"A2M4",                  eIN_________, "fails to parse the value sequence, parses as scalar"},
     // problems reading the test spec
-    {"6SLA",                  eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
-    {"6WPF",                  e___OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
-    {"9TFX",                  e___OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
-    {"B3HG",                  e___OUT_____, "out-yaml spec is missing a document token"},
     {"G4RS",                  eIN_OUT_____, "need to unescape the utf8 characters"},
     {"H3Z8",                  e___OUT_____, "need to unescape the utf8 characters"},
-    {"RZT7",                  eIN_OUT_____, "folded scalars: multiline problems"},
-    {"T26H",                  e___OUT_____, "out-yaml spec is missing a document token"},
-    {"T5N4",                  e___OUT_____, "out-yaml spec is missing a document token"},
 
 
     //-------------------------------------------------------------------------
@@ -161,9 +154,14 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"U9NS", CPART_IN_JSON, "malformed JSON from multiple documents"},
     {"W4TN", CPART_IN_JSON, "malformed JSON from multiple documents"},
     // malformed test spec?
-    {"6FWR", e___OUT_____, "out-yaml is missing the --- document token, which is required in the events"},
-    {"EX5H", e___OUT_____, "out-yaml is missing the --- document token, which is required in the events"},
-    {"EXG3", e___OUT_____, "out-yaml is missing the --- document token, which is required in the events"},
+    {"6FWR", e___OUT_____, "out-yaml test spec is missing a --- document token, which is required in the events"},
+    {"6WPF", e___OUT_____, "out-yaml test spec is missing a --- document token, which is required in the events"},
+    {"9TFX", e___OUT_____, "out-yaml test spec is missing a --- document token, which is required in the events"},
+    {"B3HG", e___OUT_____, "out-yaml test spec is missing a --- document token, which is required in the events"},
+    {"EX5H", e___OUT_____, "out-yaml test spec is missing a --- document token, which is required in the events"},
+    {"EXG3", e___OUT_____, "out-yaml test spec is missing a --- document token, which is required in the events"},
+    {"T26H", e___OUT_____, "out-yaml test spec is missing a --- document token, which is required in the events"},
+    {"T5N4", e___OUT_____, "out-yaml test spec is missing a --- document token, which is required in the events"},
 };
 
 
