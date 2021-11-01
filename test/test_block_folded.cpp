@@ -184,10 +184,9 @@ foo:
     });
 }
 
-#ifdef TEST_SUITE_WIP
 TEST(block_folded, test_suite_6VJK)
 {
-    csubstr yaml = R"(>
+    csubstr yaml = R"(- >
  Sammy Sosa completed another
  fine season with great stats.
 
@@ -195,12 +194,35 @@ TEST(block_folded, test_suite_6VJK)
    0.288 Batting Average
 
  What a year!
+- >
+ Sammy Sosa completed another
+ fine season with great stats.
+
+
+   63 Home Runs
+   0.288 Batting Average
+
+
+ What a year!
+- >
+ Sammy Sosa completed another
+ fine season with great stats.
+
+
+
+   63 Home Runs
+   0.288 Batting Average
+
+
+
+ What a year!
 )";
     test_check_emit_check(yaml, [](Tree const &t){
-        EXPECT_EQ(t.rootref().val(), csubstr("Sammy Sosa completed another fine season with great stats.\n\n  63 Home Runs\n  0.288 Batting Average\n\nWhat a year!\n"));
+        EXPECT_EQ(t[0].val(), csubstr("Sammy Sosa completed another fine season with great stats.\n\n  63 Home Runs\n  0.288 Batting Average\n\nWhat a year!\n"));
+        EXPECT_EQ(t[1].val(), csubstr("Sammy Sosa completed another fine season with great stats.\n\n\n  63 Home Runs\n  0.288 Batting Average\n\n\nWhat a year!\n"));
+        EXPECT_EQ(t[2].val(), csubstr("Sammy Sosa completed another fine season with great stats.\n\n\n\n  63 Home Runs\n  0.288 Batting Average\n\n\n\nWhat a year!\n"));
     });
 }
-#endif
 
 TEST(block_folded, test_suite_7T8X)
 {
@@ -338,11 +360,13 @@ keep: |+
         EXPECT_EQ(t["keep"].val(), csubstr("\n"));
     });
 }
+#endif
+
 
 TEST(block_folded, test_suite_MJS9)
 {
     csubstr yaml = R"(
->
+- >
   foo 
  
   	 bar
@@ -350,11 +374,9 @@ TEST(block_folded, test_suite_MJS9)
   baz
 )";
     test_check_emit_check(yaml, [](Tree const &t){
-        EXPECT_EQ(t.rootref().val(), csubstr("foo \n\n\t bar\n\nbaz\n")); // "foo \n\n \t bar\n\nbaz\n"
+        EXPECT_EQ(t[0].val(), csubstr("foo \n\n\t bar\n\nbaz\n")); // "foo \n\n \t bar\n\nbaz\n"
     });
 }
-#endif
-
 
 TEST(block_folded, test_suite_P2AD)
 {

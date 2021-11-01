@@ -4066,6 +4066,7 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
                         continue;
                     }
                     size_t nextl = t.first_not_of('\n', i+1);
+                    _c4dbgpf("filtering block[fold]: i=%zu nextl=%zu. curr=~~~%.*s~~~", i, nextl, _c4prsp(r.first(i)));
                     if((!is_indented) && found_non_space_so_far)
                     {
                         if(nextl == i+1)
@@ -4081,19 +4082,15 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
                                 is_indented = true;
                             }
                         }
-                        else if(nextl != csubstr::npos)
+                        else if(nextl != csubstr::npos && t[nextl] != ' ' && t[nextl] != '\t')
                         {
-                            _c4dbgpf("filtering block[fold]: i=%zu nextl=%zu: %zu newlines, remove first. curr=~~~%.*s~~~", i, nextl, nextl-1, _c4prsp(r.first(i)));
+                            _c4dbgpf("filtering block[fold]: i=%zu nextl=%zu: remove 1 newline. curr=~~~%.*s~~~",
+                                     i, nextl, _c4prsp(r.first(i)));
                             RYML_ASSERT(nextl >= 1);
                             t = t.erase(i, 1);
                             i = nextl-1;
                             if(i)
                                 --i;
-                        }
-                        else
-                        {
-                            _c4err("internal error");
-                            break;
                         }
                     }
                     else
@@ -4123,7 +4120,7 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
         _c4err("unknown block style");
     }
 
-    _c4dbgpf("filtering block: final='%.*s'", _c4prsp(r));
+    _c4dbgpf("filtering block: final=~~~%.*s~~~", _c4prsp(r));
 
 #ifdef RYML_DBG
     for(size_t i = r.len; i < s.len; ++i)

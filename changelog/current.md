@@ -145,6 +145,28 @@
   --- >
   %!PS-Adobe-2.0
   ```
+- Folded block scalars: fix folding of newlines at the border of indented parts ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
+  ```yaml
+  # test case 6VJK
+  # now correctly parsed as "Sammy Sosa completed another fine season with great stats.\n\n  63 Home Runs\n  0.288 Batting Average\n\nWhat a year!\n"
+  >
+    Sammy Sosa completed another
+    fine season with great stats.
+   
+      63 Home Runs
+      0.288 Batting Average
+   
+    What a year!
+  ---
+  # test case MJS9
+  # now correctly parsed as "foo \n\n \t bar\n\nbaz\n"
+  >
+    foo<SPC>
+  <SPC>
+    <SPC><TAB><SPC>bar
+  
+    baz
+  ```
 
 #### Plain scalars
 - Fix parsing of whitespace within plain scalars ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
