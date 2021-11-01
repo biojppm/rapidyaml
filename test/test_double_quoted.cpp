@@ -174,6 +174,21 @@ to a line feed, or 	\
     });
 }
 
+TEST(double_quoted, test_suite_R4YG)
+{
+    csubstr yaml = R"(
+- "	
+
+detected
+
+"
+
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_EQ(t[0].val(), csubstr("\t\ndetected\n"));
+    });
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

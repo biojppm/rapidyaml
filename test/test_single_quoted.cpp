@@ -37,20 +37,45 @@ string'
     });
 }
 
-TEST(single_quoted, test_suite_PRH3)
+
+TEST(single_quoted, test_suite_R4YG)
 {
     csubstr yaml = R"(
-' 1st non-empty
+- '	
 
- 2nd non-empty 
-	3rd non-empty '
+detected
+
+'
+
 )";
     test_check_emit_check(yaml, [](Tree const &t){
-        ASSERT_TRUE(t.rootref().is_val());
-        EXPECT_EQ(t.rootref().val(), csubstr(" 1st non-empty\n2nd non-empty 3rd non-empty "));
+        EXPECT_EQ(t[0].val(), csubstr("\t\ndetected\n"));
     });
 }
 
+
+TEST(single_quoted, test_suite_PRH3)
+{
+    csubstr yaml = R"(
+- ' 1st non-empty
+
+ 2nd non-empty 
+	3rd non-empty '
+- ' 1st non-empty
+
+ 2nd non-empty 	
+ 	3rd non-empty '
+- ' 1st non-empty
+
+ 2nd non-empty	 
+	3rd non-empty '
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_EQ(t[0].val(), csubstr(" 1st non-empty\n2nd non-empty 3rd non-empty "));
+        EXPECT_EQ(t[1].val(), csubstr(" 1st non-empty\n2nd non-empty 3rd non-empty "));
+        EXPECT_EQ(t[2].val(), csubstr(" 1st non-empty\n2nd non-empty 3rd non-empty "));
+    });
+}
 
 
 TEST(single_quoted, test_suite_T4YY)
@@ -61,6 +86,13 @@ TEST(single_quoted, test_suite_T4YY)
 
  2nd non-empty 
  3rd non-empty '
+---
+'	
+
+detected
+
+'
+
 )";
     test_check_emit_check(yaml, [](Tree const &t){
         ASSERT_TRUE(t.rootref().is_stream());

@@ -3781,7 +3781,7 @@ csubstr Parser::_filter_squot_scalar(substr s)
     _c4dbgpf("filtering single-quoted scalar: before=~~~%.*s~~~", _c4prsp(s));
 
     // do a first sweep to clean leading whitespace
-    substr r = _filter_whitespace(s, 0, true, true);
+    substr r = _filter_whitespace(s);
 
     // now another sweep for quotes and newlines
     for(size_t i = 0; i < r.len; ++i)
@@ -3796,18 +3796,7 @@ csubstr Parser::_filter_squot_scalar(substr s)
         }
         else if(curr == '\n')
         {
-            if(next != '\n')
-            {
-                _c4dbgpf("filtering single-quoted scalar: i=%zu: single unix newline: turn it into a space. curr=~~~%.*s~~~", i, _c4prsp(r.first(i)));
-                r[i] = ' '; // a
-            }
-            else if(curr == '\n' && next == '\n')
-            {
-                _c4dbgpf("filtering single-quoted scalar: i=%zu: keep only first of consecutive newlines. curr=~~~%.*s~~~", i, _c4prsp(r.first(i)));
-                r = r.erase(i+1, 1);
-                while(i+1 < r.len && r[i+1] == '\n')
-                    ++i;
-            }
+            r = _filter_leading_and_trailing_whitespace_at_newline(r, &i, next);
         }
     }
 
@@ -3872,57 +3861,7 @@ csubstr Parser::_filter_dquot_scalar(substr s)
         }
         else if(curr == '\n')
         {
-            // from the YAML spec for double-quoted scalars:
-            // https://yaml.org/spec/1.2/spec.html#id2787109
-            //
-            // All leading and trailing white space characters are
-            // excluded from the content. Each continuation line must
-            // therefore contain at least one non-space character.
-            // Empty lines, if any, are consumed as part of the line
-            // folding.
-            //
-            // ... so - erase trailing whitespace (ie whitespace before
-            // the newline):
-            if(i > 0)
-            {
-                size_t numws = 0;
-                char prev = r[i-1]; // safe because we know that i>0
-                while(prev == ' ' || prev == '\t')
-                {
-                    ++numws;
-                    if(i < 1+numws) // ie, i-1-numws < 0
-                        break;
-                    prev = r[i-1-numws];
-                }
-                if(numws)
-                {
-                    r = r.erase(i-numws, numws);
-                    i -= numws;
-                }
-            }
-            if(next == '\n')
-            {
-                r = r.erase(i+1, 1); // keep only first of consecutive newlines
-                while(i+1 < r.len && r[i+1] == '\n')
-                    ++i;
-            }
-            else
-            {
-                r[i] = ' '; // a single unix newline: turn it into a space
-            }
-            // erase leading whitespace (ie whitespace after the newline)
-            if(i < r.len)
-            {
-                size_t numws = 0;
-                for(char c : r.sub(i + 1))
-                {
-                    if(c != ' ' && c != '\t')
-                        break;
-                    ++numws;
-                }
-                if(numws)
-                    r = r.erase(i + 1, numws);
-            }
+            r = _filter_leading_and_trailing_whitespace_at_newline(r, &i, next);
         }
     }
 
@@ -3974,8 +3913,7 @@ substr Parser::_filter_whitespace(substr r, size_t indentation, bool leading_whi
             {
                 size_t len = r.first_not_of(' ');
                 _c4dbgpf("filtering whitespace: remove %zu leading spaces", len);
-                RYML_ASSERT(len > 0 || len == npos);
-                if(len != npos && (r[len] == '\n' || r[len] == '\r'))
+                if(len && len != npos && (r[len] == '\n' || r[len] == '\r'))
                 {
                     r = r.erase(0, len);
                     if(i < r.len && r[i] != ' ')
@@ -3993,6 +3931,66 @@ substr Parser::_filter_whitespace(substr r, size_t indentation, bool leading_whi
     }
 
     _c4dbgpf("filtering whitespace: after=~~~%.*s~~~", _c4prsp(r));
+
+    return r;
+}
+
+//-----------------------------------------------------------------------------
+substr Parser::_filter_leading_and_trailing_whitespace_at_newline(substr r, size_t *C4_RESTRICT i, char next)
+{
+    RYML_ASSERT(r[*i] == '\n');
+
+    // from the YAML spec for double-quoted scalars:
+    // https://yaml.org/spec/1.2/spec.html#id2787109
+    //
+    // All leading and trailing white space characters are
+    // excluded from the content. Each continuation line must
+    // therefore contain at least one non-space character.
+    // Empty lines, if any, are consumed as part of the line
+    // folding.
+    //
+    // ... so - erase trailing whitespace (ie whitespace before
+    // the newline):
+    if(*i > 0)
+    {
+        size_t numws = 0;
+        char prev = r[*i-1]; // safe because we know that i>0
+        while(prev == ' ' || prev == '\t')
+        {
+            ++numws;
+            if(*i < 1+numws) // ie, i-1-numws < 0
+                break;
+            prev = r[*i-1-numws];
+        }
+        if(numws && numws < *i)
+        {
+            r = r.erase(*i-numws, numws);
+            *i -= numws;
+        }
+    }
+    if(next == '\n')
+    {
+        r = r.erase(*i+1, 1); // keep only first of consecutive newlines
+        while(*i+1 < r.len && r[*i+1] == '\n')
+            ++(*i);
+    }
+    else
+    {
+        r[*i] = ' '; // a single unix newline: turn it into a space
+    }
+    // erase leading whitespace (ie whitespace after the newline)
+    if(*i < r.len)
+    {
+        size_t numws = 0;
+        for(char c : r.sub(*i + 1))
+        {
+            if(c != ' ' && c != '\t')
+                break;
+            ++numws;
+        }
+        if(numws)
+            r = r.erase(*i + 1, numws);
+    }
 
     return r;
 }

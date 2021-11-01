@@ -154,6 +154,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"EXG3", e___OUT_____, "out-yaml test spec is missing a --- document token, which is required in the events"},
     {"Q8AD", e___OUT_____, "out-yaml test spec is missing a --- document token, which is required in the events"},
     {"T26H", e___OUT_____, "out-yaml test spec is missing a --- document token, which is required in the events"},
+    {"T4YY", e___OUT_____, "out-yaml test spec is missing a --- document token, which is required in the events"},
     {"T5N4", e___OUT_____, "out-yaml test spec is missing a --- document token, which is required in the events"},
 };
 
