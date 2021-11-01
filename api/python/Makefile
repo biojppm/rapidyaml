@@ -89,7 +89,7 @@ install: | $(ACTIVATE_SCRIPT)
 .PHONY: install
 
 test: | $(ACTIVATE_SCRIPT)
-	${ACTIVATE} pytest
+	${ACTIVATE} python -m nose ryml/tests
 
 .PHONY: test
 
