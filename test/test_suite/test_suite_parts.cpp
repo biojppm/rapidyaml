@@ -31,9 +31,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"K858",                  eIN_________, "emitting block scalars is not idempotent"},
     {"MJS9",                  eIN_________, "emitting block scalars is not idempotent"},
     {"UT92",                  eIN_________, "emitting block scalars is not idempotent"},
-    // single-quoted scalars
-    {"PRH3",                  eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
-    {"T4YY",                  eIN_OUT_____, "quoted scalars: multiline problems"},
     // explicit keys
     {"5WE3",                  eIN_________, "explicit key is wrongly parsed"},
     {"DFF7",                  eIN_________, "problem with missing explicit key"},

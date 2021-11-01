@@ -25,7 +25,7 @@
 
 ### Fixes
 
-- Fix compilation with `C4CORE_NO_FAST_FLOAT` ([PR #163](https://github.com/biojppm/rapidyaml/pulls/163))
+- Fix compilation with `C4CORE_NO_FAST_FLOAT` ([PR #163](https://github.com/biojppm/rapidyaml/pull/163))
 
 #### Tags
 
@@ -37,13 +37,21 @@
   ```
 
 #### Quoted scalars
-- Fix filtering of tab characters in double-quoted scalars ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
+- Fix filtering of tab characters in quoted scalars ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
   ```yaml
-  # test cases 5GBF
+  ---
+  # test case 5GBF
   "Empty line
    <TAB>
   as a line feed"
   # now correctly parsed as "Empty line\nas a line feed"
+  ---
+  # test case PRH3
+  ' 1st non-empty
+  
+  <SPC>2nd non-empty<SPC>
+  <TAB>3rd non-empty '
+  # now correctly parsed as " 1st non-empty\n2nd non-empty 3rd non-empty "
   ```
 - Fix filtering of backslash characters in double-quoted scalars ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
   ```yaml
@@ -82,7 +90,8 @@
 
 
 #### Block scalars
-- Fix parsing of block spec with both chomping and indentation: chomping may come before or after the indentation:
+- Ensure no newlines are added when emitting block scalars ([PR #161](https://github.com/biojppm/rapidyaml/pull/161))
+- Fix parsing of block spec with both chomping and indentation: chomping may come before or after the indentation ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
   ```yaml
   # the block scalar specs below now have the same effect.
   # test cases: D83L, P2AD

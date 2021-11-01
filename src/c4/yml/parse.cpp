@@ -3781,7 +3781,7 @@ csubstr Parser::_filter_squot_scalar(substr s)
     _c4dbgpf("filtering single-quoted scalar: before=~~~%.*s~~~", _c4prsp(s));
 
     // do a first sweep to clean leading whitespace
-    substr r = _filter_whitespace(s);
+    substr r = _filter_whitespace(s, 0, true, true);
 
     // now another sweep for quotes and newlines
     for(size_t i = 0; i < r.len; ++i)

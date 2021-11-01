@@ -37,7 +37,6 @@ string'
     });
 }
 
-#ifdef TEST_SUITE_WIP
 TEST(single_quoted, test_suite_PRH3)
 {
     csubstr yaml = R"(
@@ -69,7 +68,6 @@ TEST(single_quoted, test_suite_T4YY)
         EXPECT_EQ(t.rootref().first_child().val(), csubstr(" 1st non-empty\n2nd non-empty 3rd non-empty "));
     });
 }
-#endif
 
 
 //-----------------------------------------------------------------------------
