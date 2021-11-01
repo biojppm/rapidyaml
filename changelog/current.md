@@ -27,6 +27,22 @@
 
 - Fix compilation with `C4CORE_NO_FAST_FLOAT` ([PR #163](https://github.com/biojppm/rapidyaml/pull/163))
 
+#### Flow maps
+
+- Fix parse of multiline plain scalars inside flow maps ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
+  ```yaml
+  # test case UT92
+  # all parsed as "matches %": 20
+  - { matches
+  % : 20 }
+  - { matches
+  %: 20 }
+  - { matches
+  %:
+   20 }
+  ```
+
+
 #### Tags
 
 - Fix parsing of tags followed by comments in sequences ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):

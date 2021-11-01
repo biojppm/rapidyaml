@@ -2039,7 +2039,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
                 s = s.trimr(' ');
                 if(has_any(EXPL))
                 {
-                    _c4dbgpf("RMAP|RVAL|EXPL: '%.*s'", _c4prsp(s));
+                    _c4dbgpf("RMAP|RKEY|EXPL: '%.*s'", _c4prsp(s));
                     s = s.left_of(s.first_of(",}"));
                     if(s.ends_with(':'))
                         s = s.offs(0, 1);
@@ -2198,7 +2198,7 @@ substr Parser::_scan_plain_scalar_expl(csubstr currscalar, csubstr peeked_line)
     bool first = true;
     while(pos != 0)
     {
-        if(has_any(RMAP|RUNK))
+        if(has_all(RMAP|RKEY) || has_any(RUNK))
         {
             csubstr tpkl = peeked_line.triml(' ').trimr("\r\n");
             if(tpkl.begins_with(": ") || tpkl == ':')
@@ -2206,6 +2206,18 @@ substr Parser::_scan_plain_scalar_expl(csubstr currscalar, csubstr peeked_line)
                 _c4dbgpf("rscalar[EXPL]: map value starts on the peeked line: '%.*s'", _c4prsp(peeked_line));
                 peeked_line = peeked_line.first(0);
                 break;
+            }
+            else
+            {
+                auto colon_pos = peeked_line.first_of_any(": ", ":");
+                if(colon_pos && colon_pos.pos < pos)
+                {
+                    peeked_line = peeked_line.first(colon_pos.pos);
+                    _c4dbgpf("rscalar[EXPL]: found colon at %zu. peeked='%.*s'", colon_pos.pos, _c4prsp(peeked_line));
+                    RYML_ASSERT(peeked_line.end() >= m_state->line_contents.rem.begin());
+                    _line_progressed(static_cast<size_t>(peeked_line.end() - m_state->line_contents.rem.begin()));
+                    break;
+                }
             }
         }
         if(pos != npos)
@@ -2230,7 +2242,7 @@ substr Parser::_scan_plain_scalar_expl(csubstr currscalar, csubstr peeked_line)
         first = false;
     }
     substr full(m_buf.str + (currscalar.str - m_buf.str), m_buf.begin() + m_state->pos.offset);
-    full = full.trimr("\r\n ");
+    full = full.trimr("\n\r ");
     return full;
 }
 
