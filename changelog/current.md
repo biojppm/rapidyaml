@@ -167,6 +167,20 @@
   
     baz
   ```
+- Folded block scalars: fix folding of newlines when the indented part is at the begining of the scalar ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
+  ```yaml
+  # test case F6MC
+  a: >2
+     more indented
+    regular
+  # parsed as a: " more indented\nregular\n"
+  b: >2
+  
+  
+     more indented
+    regular
+  # parsed as b: "\n\n more indented\nregular\n"
+  ```
 
 #### Plain scalars
 - Fix parsing of whitespace within plain scalars ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):

@@ -321,10 +321,9 @@ TEST(block_folded, test_suite_DWX9)
     });
 }
 
-#ifdef TEST_SUITE_WIP
 TEST(block_folded, test_suite_F6MC)
 {
-    csubstr yaml = R"(---
+    csubstr yaml = R"(
 a: >2
    more indented
   regular
@@ -335,12 +334,12 @@ b: >2
   regular
 )";
     test_check_emit_check(yaml, [](Tree const &t){
-        const NodeRef doc = t.rootref().first_child();
-        EXPECT_EQ(doc["a"].val(), csubstr("more indented\nregular\n"));
-        EXPECT_EQ(doc["b"].val(), csubstr("\n\n more indented\nregular\n"));
+        EXPECT_EQ(t["a"].val(), csubstr(" more indented\nregular\n"));
+        EXPECT_EQ(t["b"].val(), csubstr("\n\n more indented\nregular\n"));
     });
 }
 
+#ifdef TEST_SUITE_WIP
 TEST(block_folded, test_suite_K858)
 {
     csubstr yaml = R"(

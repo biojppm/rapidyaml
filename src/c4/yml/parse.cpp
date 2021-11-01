@@ -3891,7 +3891,7 @@ substr Parser::_filter_whitespace(substr r, size_t indentation, bool leading_whi
         const char prev = i > 0 ? r[i-1] : '\0';
         if(curr == ' ' || (filter_tabs && curr == '\t'))
         {
-            _c4dbgpf("filtering whitespace: i=%zu removing ' ' len=%zu. sofar=~~~%.*s~~~", i, r.len, _c4prsp(r.first(i)));
+            _c4dbgpf("filtering whitespace: found space at i=%zu. len=%zu. sofar=~~~%.*s~~~", i, r.len, _c4prsp(r.first(i)));
             if(prev == '\n')
             {
                 csubstr ss = r.sub(i);
@@ -4052,10 +4052,10 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
             auto pos = r.last_not_of('\n'); // do not fold trailing newlines
             if((pos != npos) && (pos < r.len))
             {
-                bool found_non_space_so_far = false;
-                bool is_indented = false;
                 ++pos; // point pos at the first newline char
                 substr t = r.sub(0, pos);
+                bool found_non_space_so_far = false;
+                bool is_indented = t.triml('\n').begins_with_any(" \t");
                 for(size_t i = 1; i < t.len; ++i)
                 {
                     const char curr = t[i];

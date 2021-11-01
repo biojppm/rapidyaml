@@ -12,7 +12,7 @@ constexpr const CasePart_e eIN_________ = CPART_IN_YAML_EVENTS;
 constexpr const CasePart_e e___OUT_____ =                      CPART_OUT_YAML_EVENTS;
 //constexpr const CasePart_e e_______EMIT =                                            CPART_EMIT_YAML_EVENTS;
 constexpr const CasePart_e eIN_OUT_____ = CPART_IN_YAML_EVENTS|CPART_OUT_YAML_EVENTS;
-constexpr const CasePart_e eIN_____EMIT = CPART_IN_YAML_EVENTS|                      CPART_EMIT_YAML_EVENTS;
+//constexpr const CasePart_e eIN_____EMIT = CPART_IN_YAML_EVENTS|                      CPART_EMIT_YAML_EVENTS;
 //constexpr const CasePart_e eIN_OUT_EMIT = CPART_IN_YAML_EVENTS|CPART_OUT_YAML_EVENTS|CPART_EMIT_YAML_EVENTS;
 
 
@@ -26,7 +26,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     // These tests are temporarily skipped, and cover issues that must be fixed.
 
     // block scalars
-    {"F6MC",                  eIN_____EMIT, "emitting block scalars is not idempotent"},
     {"K858",                  eIN_________, "emitting block scalars is not idempotent"},
     {"UT92",                  eIN_________, "emitting block scalars is not idempotent"},
     // explicit keys
