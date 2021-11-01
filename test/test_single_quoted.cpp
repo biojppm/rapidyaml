@@ -3,6 +3,40 @@
 namespace c4 {
 namespace yml {
 
+
+TEST(double_quoted, test_suite_KSS4)
+{
+    csubstr yaml = R"(
+---
+'quoted
+string'
+--- 'quoted
+string'
+---
+- 'quoted
+  string'
+---
+- 'quoted
+string'
+---
+'quoted
+  string': 'quoted
+  string'
+---
+'quoted
+string': 'quoted
+string'
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_EQ(t.docref(0).val(), "quoted string");
+        EXPECT_EQ(t.docref(1).val(), "quoted string");
+        EXPECT_EQ(t.docref(2)[0].val(), "quoted string");
+        EXPECT_EQ(t.docref(3)[0].val(), "quoted string");
+        EXPECT_EQ(t.docref(4)["quoted string"].val(), "quoted string");
+        EXPECT_EQ(t.docref(5)["quoted string"].val(), "quoted string");
+    });
+}
+
 #ifdef TEST_SUITE_WIP
 TEST(single_quoted, test_suite_PRH3)
 {

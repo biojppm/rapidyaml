@@ -3385,8 +3385,8 @@ csubstr Parser::_scan_quoted_scalar(const char q)
     _line_progressed(1);
     s = s.sub(1);
 
-    // find the pos of the matching quote
-    size_t pos = npos;
+    size_t numlines = 1; // we already have one line
+    size_t pos = npos; // find the pos of the matching quote
     while( ! _finished_file())
     {
         const csubstr line = m_state->line_contents.rem;
@@ -3448,6 +3448,7 @@ csubstr Parser::_scan_quoted_scalar(const char q)
 
         // leading whitespace also needs filtering
         needs_filter = needs_filter
+            || numlines > 1
             || line_is_blank
             || (_at_line_begin() && line.begins_with(' '))
             || (m_state->line_contents.full.last_of('\r') != csubstr::npos);
@@ -3455,6 +3456,7 @@ csubstr Parser::_scan_quoted_scalar(const char q)
         if(pos == npos)
         {
             _line_progressed(line.len);
+            ++numlines;
             _c4dbgpf("scanning scalar @ line[%zd]: sofar=\"%.*s\"", m_state->pos.line, _c4prsp(s.sub(0, m_state->pos.offset-b)));
         }
         else

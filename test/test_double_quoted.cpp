@@ -73,23 +73,38 @@ TEST(double_quoted, test_suite_9TFX)
     });
 }
 
-#ifdef TEST_SUITE_WIP
 TEST(double_quoted, test_suite_KSS4)
 {
     csubstr yaml = R"(
+---
+"quoted
+string"
 --- "quoted
 string"
---- &node foo
+---
+- "quoted
+  string"
+---
+- "quoted
+string"
+---
+"quoted
+  string": "quoted
+  string"
+---
+"quoted
+string": "quoted
+string"
 )";
     test_check_emit_check(yaml, [](Tree const &t){
-        const NodeRef doc0 = t.rootref().first_child();
-        const NodeRef doc1 = t.rootref().last_child();
-        EXPECT_EQ(doc0.val(), "quoted string"); // "quoted\nstring"
-        EXPECT_EQ(doc1.val(), "foo");
-        EXPECT_EQ(doc1.val_anchor(), "node");
+        EXPECT_EQ(t.docref(0).val(), "quoted string");
+        EXPECT_EQ(t.docref(1).val(), "quoted string");
+        EXPECT_EQ(t.docref(2)[0].val(), "quoted string");
+        EXPECT_EQ(t.docref(3)[0].val(), "quoted string");
+        EXPECT_EQ(t.docref(4)["quoted string"].val(), "quoted string");
+        EXPECT_EQ(t.docref(5)["quoted string"].val(), "quoted string");
     });
 }
-#endif
 
 TEST(double_quoted, test_suite_NAT4)
 {

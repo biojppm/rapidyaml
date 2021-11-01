@@ -34,8 +34,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     // single-quoted scalars
     {"PRH3",                  eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"T4YY",                  eIN_OUT_____, "quoted scalars: multiline problems"},
-    // double-quoted scalars
-    {"KSS4",                  eIN_________, "quoted scalars: multiline problems"},
     // explicit keys
     {"5WE3",                  eIN_________, "explicit key is wrongly parsed"},
     {"DFF7",                  eIN_________, "problem with missing explicit key"},
