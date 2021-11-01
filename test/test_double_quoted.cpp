@@ -3,7 +3,6 @@
 namespace c4 {
 namespace yml {
 
-#ifdef TEST_SUITE_WIP
 TEST(double_quoted, test_suite_5GBF)
 {
     csubstr yaml = R"(
@@ -11,17 +10,22 @@ Folding:
   "Empty line
    	
   as a line feed"
-Chomping: |
-  Clipped empty lines
- 
+Folding2:
+  "Empty line
+   
+  as a line feed"
+Folding3:
+  "Empty line
+    
+  as a line feed"
 )";
     test_check_emit_check(yaml, [](Tree const &t){
         ASSERT_TRUE(t.rootref().is_map());
         EXPECT_EQ(t["Folding"].val(), csubstr("Empty line\nas a line feed"));
-        EXPECT_EQ(t["Chomping"].val(), csubstr("Clipped empty lines\n"));
+        EXPECT_EQ(t["Folding2"].val(), csubstr("Empty line\nas a line feed"));
+        EXPECT_EQ(t["Folding3"].val(), csubstr("Empty line\nas a line feed"));
     });
 }
-#endif
 
 TEST(double_quoted, test_suite_6SLA)
 {
@@ -125,7 +129,6 @@ h: "
     });
 }
 
-#ifdef TEST_SUITE_WIP
 TEST(double_quoted, test_suite_NP9H)
 {
     csubstr yaml = R"(
@@ -155,7 +158,6 @@ to a line feed, or 	\
         EXPECT_EQ(t.rootref().val(), csubstr("folded to a space,\nto a line feed, or \t \tnon-content"));
     });
 }
-#endif
 
 
 //-----------------------------------------------------------------------------

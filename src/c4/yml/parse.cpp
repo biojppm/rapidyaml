@@ -3828,7 +3828,7 @@ csubstr Parser::_filter_dquot_scalar(substr s)
     _c4dbgpf("filtering double-quoted scalar: before=~~~%.*s~~~", _c4prsp(s));
 
     // do a first sweep to clean leading whitespace
-    substr r = _filter_whitespace(s);
+    substr r = _filter_whitespace(s, 0, true, true);
 
     for(size_t i = 0; i < r.len; ++i)
     {
@@ -3843,6 +3843,7 @@ csubstr Parser::_filter_dquot_scalar(substr s)
             else if(next == '\n')
             {
                 r = r.erase(i, 2);  // newlines are escaped with \ -- delete both
+                i = i > 0 ? i - 1 : 0;
             }
             else if(next == '"')
             {
@@ -3861,6 +3862,10 @@ csubstr Parser::_filter_dquot_scalar(substr s)
             else if(next == '/')
             {
                 r = r.erase(i, 1);  // fix escaped /
+            }
+            else if(next == ' ')
+            {
+                r = r.erase(i, 1);
             }
         }
         else if(curr == '\n')
@@ -3935,7 +3940,7 @@ csubstr Parser::_filter_dquot_scalar(substr s)
 //-----------------------------------------------------------------------------
 /** @p leading_whitespace when true, remove every leading spaces from the
  * beginning of each line */
-substr Parser::_filter_whitespace(substr r, size_t indentation, bool leading_whitespace)
+substr Parser::_filter_whitespace(substr r, size_t indentation, bool leading_whitespace, bool filter_tabs)
 {
     _c4dbgpf("filtering whitespace: indentation=%zu leading=%d before=~~~%.*s~~~", indentation, leading_whitespace, _c4prsp(r));
 
@@ -3943,13 +3948,13 @@ substr Parser::_filter_whitespace(substr r, size_t indentation, bool leading_whi
     {
         const char curr = r[i];
         const char prev = i > 0 ? r[i-1] : '\0';
-        if(curr == ' ')
+        if(curr == ' ' || (filter_tabs && curr == '\t'))
         {
             _c4dbgpf("filtering whitespace: i=%zu removing ' ' len=%zu. sofar=~~~%.*s~~~", i, r.len, _c4prsp(r.first(i)));
             if(prev == '\n')
             {
                 csubstr ss = r.sub(i);
-                ss = ss.left_of(ss.first_not_of(' '));
+                ss = ss.left_of(!filter_tabs ? ss.first_not_of(' ') : ss.first_not_of(" \t"));
                 RYML_ASSERT(ss.len >= 1);
                 size_t num = ss.len;
                 // RYML_ASSERT(num >= indentation); // empty lines are allowed

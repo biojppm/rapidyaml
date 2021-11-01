@@ -35,10 +35,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"PRH3",                  eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
     {"T4YY",                  eIN_OUT_____, "quoted scalars: multiline problems"},
     // double-quoted scalars
-    {"5GBF",                  eIN_________, "quoted scalars: multiline problems"},
     {"KSS4",                  eIN_________, "quoted scalars: multiline problems"},
-    {"NP9H",                  eIN_________, "quoted scalars: differences with \n,\t in single,double quotes"},
-    {"Q8AD",                  eIN_OUT_____, "quoted scalars: differences with \n,\t in single,double quotes"},
     // explicit keys
     {"5WE3",                  eIN_________, "explicit key is wrongly parsed"},
     {"DFF7",                  eIN_________, "problem with missing explicit key"},
@@ -160,6 +157,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"B3HG", e___OUT_____, "out-yaml test spec is missing a --- document token, which is required in the events"},
     {"EX5H", e___OUT_____, "out-yaml test spec is missing a --- document token, which is required in the events"},
     {"EXG3", e___OUT_____, "out-yaml test spec is missing a --- document token, which is required in the events"},
+    {"Q8AD", e___OUT_____, "out-yaml test spec is missing a --- document token, which is required in the events"},
     {"T26H", e___OUT_____, "out-yaml test spec is missing a --- document token, which is required in the events"},
     {"T5N4", e___OUT_____, "out-yaml test spec is missing a --- document token, which is required in the events"},
 };

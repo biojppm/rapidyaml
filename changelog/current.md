@@ -36,6 +36,26 @@
     foo : bar
   ```
 
+#### Double-quoted scalars
+- Fix filtering of tab characters ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)):
+  ```yaml
+  # test cases 5GBF
+  "Empty line
+   <TAB>
+  as a line feed"
+  # now correctly parsed as "Empty line\nas a line feed"
+  ```
+- Fix filtering of backslash characters ([PR #161](https://github.com/biojppm/rapidyaml/pull/161)): 
+  ```yaml
+  # test cases NP9H, Q8AD
+  "folded<SPC>
+  to a space,<TAB>
+  <SPC>
+  to a line feed, or <TAB>\
+   \ <TAB>non-content"
+  # now correctly parsed as "folded to a space,\nto a line feed, or \t \tnon-content"
+  ```
+
 #### Block scalars
 - Fix parsing of block spec with both chomping and indentation: chomping may come before or after the indentation:
   ```yaml
