@@ -28,14 +28,14 @@ struct ScalarType
     {
         switch(val)
         {
-        case ScalarType::PLAIN: return "PLAIN";
-        case ScalarType::SQUOTED: return "SQUOTED";
-        case ScalarType::DQUOTED: return "DQUOTED";
-        case ScalarType::LITERAL: return "LITERAL";
-        case ScalarType::FOLDED: return "FOLDED";
+        case ScalarType::PLAIN: return csubstr("PLAIN");
+        case ScalarType::SQUOTED: return csubstr("SQUOTED");
+        case ScalarType::DQUOTED: return csubstr("DQUOTED");
+        case ScalarType::LITERAL: return csubstr("LITERAL");
+        case ScalarType::FOLDED: return csubstr("FOLDED");
         }
         C4_ERROR("");
-        return "";
+        return csubstr("");
     }
 
     bool is_quoted() const { return val == ScalarType::SQUOTED || val == ScalarType::DQUOTED; }
