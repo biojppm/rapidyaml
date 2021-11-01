@@ -326,6 +326,10 @@ struct NodeType
     bool is_key_ref() const;
     bool is_val_ref() const;
     bool is_ref() const;
+    bool is_anchor_or_ref() const;
+    bool is_key_quoted() const;
+    bool is_val_quoted() const;
+    bool is_quoted() const;
 };
 
 
@@ -389,6 +393,10 @@ public:
     bool is_key_ref(size_t node) const;
     bool is_val_ref(size_t node) const;
     bool is_ref(size_t node) const;
+    bool is_anchor_or_ref(size_t node) const;
+    bool is_key_quoted(size_t node) const;
+    bool is_val_quoted(size_t node) const;
+    bool is_quoted(size_t node) const;
     bool is_anchor(size_t node) const;
     bool parent_is_seq(size_t node) const;
     bool parent_is_map(size_t node) const;
