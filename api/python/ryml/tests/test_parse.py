@@ -156,7 +156,7 @@ def check_tree_mod(ut, t):
 # -----------------------------------------------------------------------------
 class SimpleHardcoded:
 
-    yaml = "{HELLO: a, foo: b, bar: c, baz: d, seq: [0, 1, 2, 3]}"
+    yaml = "{'HELLO': a, foo: \"b\", bar: c, baz: d, seq: [0, 1, 2, 3]}"
 
     def check(self, ut, t):
         # some convenient shorthands
@@ -209,6 +209,29 @@ class SimpleHardcoded:
         eq(t.val(7), b"1")
         eq(t.val(8), b"2")
         eq(t.val(9), b"3")
+        tr(t.is_key_quoted(1))
+        fs(t.is_key_quoted(2))
+        fs(t.is_key_quoted(3))
+        fs(t.is_key_quoted(4))
+        fs(t.is_key_quoted(5))
+        fs(t.is_val_quoted(1))
+        tr(t.is_val_quoted(2))
+        fs(t.is_val_quoted(3))
+        fs(t.is_val_quoted(4))
+        fs(t.is_val_quoted(5))
+        fs(t.is_val_quoted(6))
+        fs(t.is_val_quoted(7))
+        fs(t.is_val_quoted(8))
+        fs(t.is_val_quoted(9))
+        tr(t.is_quoted(1))
+        tr(t.is_quoted(2))
+        fs(t.is_quoted(3))
+        fs(t.is_quoted(4))
+        fs(t.is_quoted(5))
+        fs(t.is_quoted(6))
+        fs(t.is_quoted(7))
+        fs(t.is_quoted(8))
+        fs(t.is_quoted(9))
         tr(t.has_sibling(1, b"bar"))
         tr(t.has_sibling(1, b"baz"))
         tr(t.has_sibling(2, b"foo"))
