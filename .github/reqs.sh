@@ -47,6 +47,14 @@ function c4_install_test_requirements_windows()
         choco install swig
         which swig
     fi
+    # ensure chocolatey does not override cmake's cpack
+    which cpack
+    choco_cpack="/c/ProgramData/Chocolatey/bin/cpack.exe"
+    if [ -f $choco_cpack ] ; then
+        newname=$(echo $choco_cpack | sed 's:cpack:choco-cpack:')
+        mv -vf $choco_cpack $newname
+    fi
+    which cpack
 }
 
 function c4_install_test_requirements_macos()
