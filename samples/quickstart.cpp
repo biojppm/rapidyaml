@@ -3308,6 +3308,9 @@ d: 3
         CHECK(stream.num_children() == 3);
         for(const ryml::NodeRef doc : stream.children())
             CHECK(doc.is_doc());
+        CHECK(tree.docref(0).id() == stream.child(0).id());
+        CHECK(tree.docref(1).id() == stream.child(1).id());
+        CHECK(tree.docref(2).id() == stream.child(2).id());
         // equivalent: using the lower level index API
         const size_t stream_id = tree.root_id();
         CHECK(tree.is_root(stream_id));
@@ -3316,6 +3319,9 @@ d: 3
         CHECK(tree.num_children(stream_id) == 3);
         for(size_t doc_id = tree.first_child(stream_id); doc_id != ryml::NONE; doc_id = tree.next_sibling(stream_id))
             CHECK(tree.is_doc(doc_id));
+        CHECK(tree.doc(0) == tree.child(stream_id, 0));
+        CHECK(tree.doc(1) == tree.child(stream_id, 1));
+        CHECK(tree.doc(2) == tree.child(stream_id, 2));
 
         // using the node API
         CHECK(stream[0].is_doc());
