@@ -1,7 +1,8 @@
+This release is focused on bug fixes and compliance with the [YAML test suite](https://github.com/yaml/yaml-test-suite).
 
 ### New features
 - Add support for CPU architectures aarch64, ppc64le, s390x.
-- Update c4core to [0.1.6](https://github.com/biojppm/c4core/releases/tag/v0.1.6)
+- Update c4core to [0.1.7](https://github.com/biojppm/c4core/releases/tag/v0.1.7)
 - `Tree` and `NodeRef`: add document getter `doc()` and `docref()`
   ```c++
   Tree tree = parse(R"(---

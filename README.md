@@ -846,7 +846,7 @@ ryml makes no effort to follow the standard in the following situations:
   [P76L](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/P76L.tml),
   [QLJ7](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/QLJ7.tml),
   [U3C3](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/U3C3.tml),
-  [Z9M4](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/Z9M4.tml),
+  [Z9M4](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/Z9M4.tml).
 * Anchor names must not end with a terminating colon. YAML test suite cases:
   [2SXE](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/2SXE.tml),
   [W5VH](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/W5VH.tml).
