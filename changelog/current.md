@@ -269,6 +269,16 @@
   , word2]
   ```
 
+#### Python API
+- Add missing node predicates in SWIG API definition ([PR #166](https://github.com/biojppm/rapidyaml/pull/166)):
+  - `is_anchor_or_ref()`
+  - `is_key_quoted()`
+  - `is_val_quoted()`
+  - `is_quoted()`
+
+
 ### Thanks
 
 --- @mbs-c
+--- @simu
+--- @QuellaZhang

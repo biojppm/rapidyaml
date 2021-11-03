@@ -803,8 +803,7 @@ these cases have several subparts:
  * `in-json`: equivalent JSON (where possible/meaningful)
  * `out-yaml`: equivalent standard YAML
  * `emit-yaml`: equivalent standard YAML
- * `events`: equivalent libyaml events, allowing to prove
-   correctness of the parsed results
+ * `events`: reference results (ie, expected tree)
 
 When testing, ryml parses each of the 4 yaml/json parts, then emit the
 parsed tree, then parse the emitted result and verify that emission is
@@ -823,21 +822,13 @@ play such an important role in real world examples*. And yet, despite
 the extreme focus of the test suite, currently ryml only fails to
 parse 15 out of ~900-1200 subparts from the test suite, and when
 compared against the reference results from `events` part, only 30
-subparts fail.
-
-On a high-level, these are the main issues found:
-  * ryml fails to parse plain scalars (ie unquoted and unfolded
-    scalars) when they have the same indentation in the following lines
-  * folded scalars are sometimes not idempotent over emit/parse
-    pairs, or incorrectly parsed with whitespace inconsistencies
-  * quoted scalars: in some cases, they end up with differences to the
-    reference when newlines or tabs are present
-  * complex keys
+subparts fail. These are the current issues:
+  * explicit keys (starting with `?`)
     * problem parsing when the scalar is missing after `? `
     * not supported in flow style
-  * some expected parse errors fail to materialize
+  * several expected parse errors do not materialize
 
-Refer the [list of current known
+Refer to the [list of current known
 failures](test/test_suite/test_suite_parts.cpp) for the current
 status, as this is subject to ongoing work.
 
@@ -852,37 +843,37 @@ ryml makes no effort to follow the standard in the following situations:
 * `%TAG` directives have no effect and are ignored. All schemas are assumed
   to be the default YAML 2002 schema.
 * Tags are parsed as-is; tag lookup is not supported. YAML test suite cases:
-  [5TYM](https://github.com/yaml/yaml-test-suite/tree/master/test/5TYM.tml),
-  [6CK3](https://github.com/yaml/yaml-test-suite/tree/master/test/6CK3.tml),
-  [6WLZ](https://github.com/yaml/yaml-test-suite/tree/master/test/6WLZ.tml),
-  [9WXW](https://github.com/yaml/yaml-test-suite/tree/master/test/9WXW.tml),
-  [C4HZ](https://github.com/yaml/yaml-test-suite/tree/master/test/C4HZ.tml),
-  [CC74](https://github.com/yaml/yaml-test-suite/tree/master/test/CC74.tml),
-  [P76L](https://github.com/yaml/yaml-test-suite/tree/master/test/P76L.tml),
-  [QLJ7](https://github.com/yaml/yaml-test-suite/tree/master/test/QLJ7.tml),
-  [U3C3](https://github.com/yaml/yaml-test-suite/tree/master/test/U3C3.tml),
-  [Z9M4](https://github.com/yaml/yaml-test-suite/tree/master/test/Z9M4.tml),
+  [5TYM](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/5TYM.tml),
+  [6CK3](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/6CK3.tml),
+  [6WLZ](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/6WLZ.tml),
+  [9WXW](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/9WXW.tml),
+  [C4HZ](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/C4HZ.tml),
+  [CC74](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/CC74.tml),
+  [P76L](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/P76L.tml),
+  [QLJ7](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/QLJ7.tml),
+  [U3C3](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/U3C3.tml),
+  [Z9M4](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/Z9M4.tml),
 * Anchor names must not end with a terminating colon. YAML test suite cases:
-  [2SXE](https://github.com/yaml/yaml-test-suite/tree/master/test/2SXE.tml),
-  [W5VH](https://github.com/yaml/yaml-test-suite/tree/master/test/W5VH.tml).
+  [2SXE](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/2SXE.tml),
+  [W5VH](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/W5VH.tml).
 * Tabs after `:` or `-` are not supported. YAML test suite cases:
-  [6BCT](https://github.com/yaml/yaml-test-suite/tree/master/test/6BCT.tml),
-  [J3BT](https://github.com/yaml/yaml-test-suite/tree/master/test/J3BT.tml).
+  [6BCT](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/6BCT.tml),
+  [J3BT](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/J3BT.tml).
 * Containers are not accepted as mapping keys. Keys must be
   scalar strings and cannot be mappings or sequences. But mapping
   values can be any of the above. YAML test suite cases:
-  [4FJ6](https://github.com/yaml/yaml-test-suite/tree/master/test/4FJ6.tml),
-  [6BFJ](https://github.com/yaml/yaml-test-suite/tree/master/test/6BFJ.tml),
-  [6PBE](https://github.com/yaml/yaml-test-suite/tree/master/test/6PBE.tml),
-  [KK5P](https://github.com/yaml/yaml-test-suite/tree/master/test/KK5P.tml),
-  [KZN9](https://github.com/yaml/yaml-test-suite/tree/master/test/KZN9.tml),
-  [LX3P](https://github.com/yaml/yaml-test-suite/tree/master/test/LX3P.tml),
-  [M5DY](https://github.com/yaml/yaml-test-suite/tree/master/test/M5DY.tml),
-  [Q9WF](https://github.com/yaml/yaml-test-suite/tree/master/test/Q9WF.tml),
-  [SBG9](https://github.com/yaml/yaml-test-suite/tree/master/test/SBG9.tml),
-  [V9D5](https://github.com/yaml/yaml-test-suite/tree/master/test/V9D5.tml),
-  [X38W](https://github.com/yaml/yaml-test-suite/tree/master/test/X38W.tml),
-  [XW4D](https://github.com/yaml/yaml-test-suite/tree/master/test/XW4D.tml).
+  [4FJ6](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/4FJ6.tml),
+  [6BFJ](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/6BFJ.tml),
+  [6PBE](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/6PBE.tml),
+  [KK5P](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/KK5P.tml),
+  [KZN9](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/KZN9.tml),
+  [LX3P](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/LX3P.tml),
+  [M5DY](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/M5DY.tml),
+  [Q9WF](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/Q9WF.tml),
+  [SBG9](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/SBG9.tml),
+  [V9D5](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/V9D5.tml),
+  [X38W](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/X38W.tml),
+  [XW4D](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/XW4D.tml).
 
 
 ------
