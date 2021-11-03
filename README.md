@@ -775,20 +775,14 @@ the source buffer.)
 
 ## YAML standard conformance
 
-ryml is under active development, but is close to feature complete. The
-following YAML core features are well covered in the unit tests:
-* mappings
-* sequences
-* complex keys
-* literal blocks
-* quoted scalars
-* tags
-* anchors and references
-* UTF8 is expected to mostly work
-  
-Of course, there are many dark corners in YAML, and there certainly can
-appear cases which ryml fails to parse. Your [bug reports or pull
-requests](https://github.com/biojppm/rapidyaml/issues) are very welcome.
+ryml is close to feature complete. Most of the YAML features are
+well covered in the unit tests, and expected to work, unless in the exceptions
+noted in the following sections.
+
+Of course, there are many dark corners in YAML, and there certainly
+can appear cases which ryml fails to parse. Your [bug reports or pull
+requests](https://github.com/biojppm/rapidyaml/issues) are very
+welcome.
 
 See also [the roadmap](./ROADMAP.md) for a list of future work.
 
@@ -828,7 +822,7 @@ subparts fail. These are the current issues:
     * not supported in flow style
   * several expected parse errors do not materialize
 
-Refer to the [list of current known
+Refer to the [list of known
 failures](test/test_suite/test_suite_parts.cpp) for the current
 status, as this is subject to ongoing work.
 
