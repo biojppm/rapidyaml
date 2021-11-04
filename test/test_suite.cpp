@@ -330,6 +330,11 @@ struct Subject
 
     void init(csubstr filename, csubstr src, CasePart_e case_part, bool expect_error)
     {
+        if(src.ends_with("\r\n"))
+            src = src.offs(0, 2);
+        else if(src.ends_with('\n'))
+            src = src.offs(0, 1);
+
         src = replace_all("\r", "", src, &unix_src);
 
         unix_ro      .init(filename, src, /*immutable*/true , /*reuse*/false, case_part, expect_error);
@@ -389,11 +394,6 @@ csubstr filter_out_indentation(csubstr src, std::string *dst)
         src = c4::to_csubstr(tmp);
     }
     return replace_all("\n    ", "\n", src.sub(4), dst);
-}
-
-csubstr filter_out_double_backslash(csubstr src, std::string *dst)
-{
-    return replace_all(R"(\\)", R"(\)", src, dst);
 }
 
 
@@ -566,7 +566,6 @@ struct SuiteCase
             begin_events = 1 + contents.find('\n', begin_events); // skip this line
             txt = contents.range(begin_events, first_after);
             RYML_CHECK(did_not_slurp_other_tml_tokens(txt));
-            txt = filter_out_double_backslash(txt, &tmpa);
             if(has_whitespace)
             {
                 txt = replace_all("<SPC>", " ", txt, &tmpb);
@@ -794,8 +793,12 @@ int main(int argc, char* argv[])
     // now we have only our args to consider
     if(argc != 2)
     {
-        c4::log("usage:\n{} <test-suite-file>", argv[0]);
-        return RUN_ALL_TESTS();
+        c4::log("usage:\n{} <test-suite-file>", c4::to_csubstr(argv[0]));
+        return 1;
+    }
+    else if(c4::to_csubstr(argv[1]) == "-h" || c4::to_csubstr(argv[1]) == "--help")
+    {
+        return 0;
     }
 
     // load the test case from the suite file
@@ -803,7 +806,7 @@ int main(int argc, char* argv[])
     path.replace('\\', '/');
     RYML_CHECK(path.len > 0);
     RYML_CHECK(path[0] != '-');
-    RYML_CHECK(c4::fs::path_exists(path.str));
+    C4_CHECK_MSG(c4::fs::file_exists(path.str), "file not found: '%.*s'", (int)path.len, path.str);
     c4::log("testing suite case: {} ({})", path.basename(), path);
 
     c4::yml::SuiteCase suite_case(path.str);

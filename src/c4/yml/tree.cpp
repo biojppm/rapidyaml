@@ -227,6 +227,15 @@ NodeRef const Tree::operator[] (size_t i) const
     return rootref()[i];
 }
 
+NodeRef Tree::docref(size_t i)
+{
+    return ref(doc(i));
+}
+NodeRef const Tree::docref(size_t i) const
+{
+    return ref(doc(i));
+}
+
 
 //-----------------------------------------------------------------------------
 Tree::Tree(Allocator const& cb)

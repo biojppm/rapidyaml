@@ -4,6 +4,27 @@ namespace c4 {
 namespace yml {
 
 
+TEST(simple_doc, test_suite_XLQ9)
+{
+    csubstr yaml = R"(
+---
+scalar
+%YAML 1.2
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_stream());
+        ASSERT_EQ(t.rootref().num_children(), 1u);
+        ASSERT_TRUE(t.rootref().first_child().is_doc());
+        ASSERT_TRUE(t.rootref().first_child().is_val());
+        EXPECT_EQ(t.rootref().first_child().val(), csubstr("scalar %YAML 1.2"));
+    });
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 #define SIMPLE_DOC_CASES                                                \
     "one empty doc",                                                    \
     "one empty doc, explicit termination",                              \

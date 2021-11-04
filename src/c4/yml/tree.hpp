@@ -542,6 +542,13 @@ public:
     //! @note @i is NOT the node id, but the child's position
     NodeRef const operator[] (size_t i) const;
 
+    //! get the i-th document of the stream
+    //! @note @i is NOT the node id, but the doc position within the stream
+    NodeRef       docref(size_t i);
+    //! get the i-th document of the stream
+    //! @note @i is NOT the node id, but the doc position within the stream
+    NodeRef const docref(size_t i) const;
+
     /** @} */
 
 public:
@@ -656,6 +663,8 @@ public:
     size_t last_sibling(size_t node) const { return is_root(node) ? node : _p(_p(node)->m_parent)->m_last_child; }
     size_t sibling(size_t node, size_t pos) const { return child(_p(node)->m_parent, pos); }
     size_t find_sibling(size_t node, csubstr const& key) const { return find_child(_p(node)->m_parent, key); }
+
+    size_t doc(size_t i) const { size_t rid = root_id(); RYML_ASSERT(is_stream(rid)); return child(rid, i); } //!< gets the @p i document node index. requires that the root node is a stream.
 
     /** @} */
 

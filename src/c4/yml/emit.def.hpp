@@ -256,8 +256,7 @@ void Emitter<Writer>::_write(NodeScalar const& sc, NodeType flags, size_t ilevel
         return;
     }
 
-    const bool has_newlines = sc.scalar.first_of('\n') != npos;
-    if(!has_newlines || (sc.scalar.triml(" \t") != sc.scalar))
+    if(sc.scalar.begins_with_any(" \t") || (sc.scalar.first_of('\n') == npos))
     {
         _write_scalar(sc.scalar, flags.is_quoted());
     }
@@ -281,18 +280,17 @@ void Emitter<Writer>::_write_json(NodeScalar const& sc, NodeType flags)
 }
 
 template<class Writer>
-void Emitter<Writer>::_write_scalar_block(csubstr s, size_t ilevel, bool as_key)
+void Emitter<Writer>::_write_scalar_block(csubstr s, size_t ilevel, bool explicit_key)
 {
     #define _rymlindent_nextline() for(size_t lv = 0; lv < ilevel+1; ++lv) { this->Writer::_do_write("  "); }
-    if(as_key)
+    if(explicit_key)
     {
         this->Writer::_do_write("? ");
     }
     RYML_ASSERT(s.find("\r") == csubstr::npos);
-    csubstr trimmed = s.trimr(" \t\n");
-    RYML_ASSERT(trimmed.len <= s.len);
+    csubstr trimmed = s.trimr('\n');
     size_t numnewlines_at_end = s.len - trimmed.len;
-    _c4dbgpf("numnl=%zu s=[%zu]'%.*s' trimmed=[%zu]'%.*s'", numnewlines_at_end, s.len, _c4prsp(s), trimmed.len, _c4prsp(trimmed));
+    _c4dbgpf("numnl=%zu s=[%zu]~~~%.*s~~~ trimmed=[%zu]~~~%.*s~~~", numnewlines_at_end, s.len, _c4prsp(s), trimmed.len, _c4prsp(trimmed));
     if(numnewlines_at_end == 0)
     {
         this->Writer::_do_write("|-\n");
@@ -304,35 +302,39 @@ void Emitter<Writer>::_write_scalar_block(csubstr s, size_t ilevel, bool as_key)
     else if(numnewlines_at_end > 1)
     {
         this->Writer::_do_write("|+\n");
-        if(!as_key)
+    }
+    if(trimmed.len)
+    {
+        size_t pos = 0; // tracks the last character that was already written
+        for(size_t i = 0; i < trimmed.len; ++i)
         {
-            RYML_ASSERT(s.back() == '\n');
-            s = s.offs(0, 1); // do not write the last newline
+            if(trimmed[i] != '\n')
+                continue;
+            // write everything up to this point
+            csubstr since_pos = trimmed.range(pos, i+1); // include the newline
+            pos = i+1; // because of the newline
+            _rymlindent_nextline()
+            this->Writer::_do_write(since_pos);
+        }
+        if(pos < trimmed.len)
+        {
+            _rymlindent_nextline()
+            this->Writer::_do_write(trimmed.sub(pos));
+        }
+        if(numnewlines_at_end)
+        {
+            this->Writer::_do_write('\n');
+            --numnewlines_at_end;
         }
     }
-    _rymlindent_nextline()
-    size_t pos = 0; // tracks the last character that was already written
-    for(size_t i = 0; i < s.len; ++i)
+    for(size_t i = 0; i < numnewlines_at_end; ++i)
     {
-        if(s[i] != '\n') continue;
-        // write everything up to this point
-        csubstr sub = s.range(pos, i+1); // include the newline
-        pos = i+1; // because of the newline
-        this->Writer::_do_write(sub);
-        if(i+1 != s.len)
-        {
-            _rymlindent_nextline();
-        }
+        _rymlindent_nextline()
+        if(i+1 < numnewlines_at_end || explicit_key)
+            this->Writer::_do_write('\n');
     }
-    if(pos < s.len)
-    {
-        csubstr sub = s.sub(pos);
-        this->Writer::_do_write(sub);
-    }
-    if(as_key && numnewlines_at_end == 0)
-    {
+    if(explicit_key && !numnewlines_at_end)
         this->Writer::_do_write('\n');
-    }
     #undef _rymlindent_nextline
 }
 
@@ -431,11 +433,8 @@ void Emitter<Writer>::_write_scalar_json(csubstr s, bool as_key, bool was_quoted
         this->Writer::_do_write(s);
         this->Writer::_do_write('"');
     }
-    else if(!as_key && s.is_number()) // json only allows strings as keys
-    {
-        this->Writer::_do_write(s);
-    }
-    else if(!as_key && (s == "true" || s == "null" || s == "false"))
+    // json only allows strings as keys
+    else if(!as_key && (s.is_number() || s == "true" || s == "null" || s == "false"))
     {
         this->Writer::_do_write(s);
     }

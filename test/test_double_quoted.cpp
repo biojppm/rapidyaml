@@ -3,6 +3,197 @@
 namespace c4 {
 namespace yml {
 
+TEST(double_quoted, test_suite_5GBF)
+{
+    csubstr yaml = R"(
+Folding:
+  "Empty line
+   	
+  as a line feed"
+Folding2:
+  "Empty line
+   
+  as a line feed"
+Folding3:
+  "Empty line
+    
+  as a line feed"
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_map());
+        EXPECT_EQ(t["Folding"].val(), csubstr("Empty line\nas a line feed"));
+        EXPECT_EQ(t["Folding2"].val(), csubstr("Empty line\nas a line feed"));
+        EXPECT_EQ(t["Folding3"].val(), csubstr("Empty line\nas a line feed"));
+    });
+}
+
+TEST(double_quoted, test_suite_6SLA)
+{
+    csubstr yaml = R"(
+"foo\nbar:baz\tx \\$%^&*()x": 23
+'x\ny:z\tx $%^&*()x': 24
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_map());
+        ASSERT_TRUE(t.rootref().has_child("foo\nbar:baz\tx \\$%^&*()x"));
+        ASSERT_TRUE(t.rootref().has_child("x\\ny:z\\tx $%^&*()x"));
+        ASSERT_EQ(t["foo\nbar:baz\tx \\$%^&*()x"].val(), csubstr("23"));
+        ASSERT_EQ(t["x\\ny:z\\tx $%^&*()x"].val(), csubstr("24"));
+    });
+}
+
+TEST(double_quoted, test_suite_6WPF)
+{
+    csubstr yaml = R"(
+"
+  foo 
+ 
+    bar
+
+  baz
+"
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_val());
+        EXPECT_EQ(t.rootref().val(), csubstr(" foo\nbar\nbaz "));
+    });
+}
+
+TEST(double_quoted, test_suite_9TFX)
+{
+    csubstr yaml = R"(
+" 1st non-empty
+
+ 2nd non-empty 
+ 3rd non-empty "
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_val());
+        EXPECT_EQ(t.rootref().val(), csubstr(" 1st non-empty\n2nd non-empty 3rd non-empty "));
+    });
+}
+
+TEST(double_quoted, test_suite_KSS4)
+{
+    csubstr yaml = R"(
+---
+"quoted
+string"
+--- "quoted
+string"
+---
+- "quoted
+  string"
+---
+- "quoted
+string"
+---
+"quoted
+  string": "quoted
+  string"
+---
+"quoted
+string": "quoted
+string"
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_EQ(t.docref(0).val(), "quoted string");
+        EXPECT_EQ(t.docref(1).val(), "quoted string");
+        EXPECT_EQ(t.docref(2)[0].val(), "quoted string");
+        EXPECT_EQ(t.docref(3)[0].val(), "quoted string");
+        EXPECT_EQ(t.docref(4)["quoted string"].val(), "quoted string");
+        EXPECT_EQ(t.docref(5)["quoted string"].val(), "quoted string");
+    });
+}
+
+TEST(double_quoted, test_suite_NAT4)
+{
+    csubstr yaml = R"(
+a: '
+  '
+b: '  
+  '
+c: "
+  "
+d: "  
+  "
+e: '
+
+  '
+f: "
+
+  "
+g: '
+
+
+  '
+h: "
+
+
+  "
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_EQ(t["a"].val(), csubstr(" "));
+        EXPECT_EQ(t["b"].val(), csubstr(" "));
+        EXPECT_EQ(t["c"].val(), csubstr(" "));
+        EXPECT_EQ(t["d"].val(), csubstr(" "));
+        EXPECT_EQ(t["e"].val(), csubstr("\n"));
+        EXPECT_EQ(t["f"].val(), csubstr("\n"));
+        EXPECT_EQ(t["g"].val(), csubstr("\n\n"));
+        EXPECT_EQ(t["h"].val(), csubstr("\n\n"));
+    });
+}
+
+TEST(double_quoted, test_suite_NP9H)
+{
+    csubstr yaml = R"(
+"folded 
+to a space,	
+ 
+to a line feed, or 	\
+ \ 	non-content"
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_val());
+        EXPECT_EQ(t.rootref().val(), csubstr("folded to a space,\nto a line feed, or \t \tnon-content"));
+    });
+}
+
+TEST(double_quoted, test_suite_Q8AD)
+{
+    csubstr yaml = R"(
+"folded 
+to a space,
+ 
+to a line feed, or 	\
+ \ 	non-content"
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_val());
+        EXPECT_EQ(t.rootref().val(), csubstr("folded to a space,\nto a line feed, or \t \tnon-content"));
+    });
+}
+
+TEST(double_quoted, test_suite_R4YG)
+{
+    csubstr yaml = R"(
+- "	
+
+detected
+
+"
+
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_EQ(t[0].val(), csubstr("\t\ndetected\n"));
+    });
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 #define DOUBLE_QUOTED_CASES                             \
             "dquoted, only text",                       \
             "dquoted, with single quotes",              \

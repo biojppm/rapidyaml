@@ -23,6 +23,10 @@
 #   endif
 #endif
 
+#ifdef RYML_DBG
+#   include <c4/yml/detail/print.hpp>
+#endif
+
 namespace c4 {
 
 inline void PrintTo(substr  s, ::std::ostream* os) { os->write(s.str, (std::streamsize)s.len); }
@@ -49,9 +53,37 @@ void test_invariants(NodeRef const n);
 
 void print_node(CaseNode const& t, int level=0);
 void print_tree(CaseNode const& p, int level=0);
-
-
 void print_path(NodeRef const& p);
+
+
+
+template<class CheckFn>
+void test_check_emit_check(csubstr yaml, CheckFn check_fn)
+{
+    Tree t = parse(yaml);
+    #ifdef RYML_DBG
+    print_tree(t);
+    #endif
+    {
+        SCOPED_TRACE("original yaml");
+        check_fn(t);
+    }
+    auto emit_and_parse = [&](const char* identifier){
+        SCOPED_TRACE(identifier);
+        std::string emitted = emitrs<std::string>(t);
+        #ifdef RYML_DBG
+        printf("~~~%s~~~\n%.*s", identifier, (int)emitted.size(), emitted.data());
+        #endif
+        t = parse(to_csubstr(emitted));
+        #ifdef RYML_DBG
+        print_tree(t);
+        #endif
+        check_fn(t);
+    };
+    emit_and_parse("emitted 1");
+    emit_and_parse("emitted 2");
+    emit_and_parse("emitted 3");
+}
 
 
 //-----------------------------------------------------------------------------

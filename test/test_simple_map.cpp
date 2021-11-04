@@ -3,6 +3,34 @@
 namespace c4 {
 namespace yml {
 
+TEST(simple_map, test_suite_UT92)
+{
+    csubstr yaml = R"(
+- { matches
+% : 20 }
+- { matches
+%: 20 }
+- { matches
+%:
+ 20 }
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t[0].has_child("matches %"));
+        EXPECT_EQ(t[0]["matches %"].val(), "20");
+        ASSERT_TRUE(t[0].has_child("matches %"));
+        ASSERT_TRUE(t[1].has_child("matches %"));
+        EXPECT_EQ(t[1]["matches %"].val(), "20");
+        ASSERT_TRUE(t[1].has_child("matches %"));
+        ASSERT_TRUE(t[2].has_child("matches %"));
+        EXPECT_EQ(t[2]["matches %"].val(), "20");
+        ASSERT_TRUE(t[2].has_child("matches %"));
+    });
+}
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 #define SIMPLE_MAP_CASES                                        \
 "empty map",                                                    \
 "empty map, multiline",                                         \
@@ -40,9 +68,9 @@ namespace yml {
 "simple map, empty keys 4ABK, v1",                              \
 "simple map, empty keys 4ABK, v2",                              \
 "simple map, values on next line 4MUZ, v1",                     \
-"simple map, values on next line 4MUZ, v2",                     \
+"simple map, values on next line 4MUZ, v2"/*                    \
 "simple map, values on next line 4MUZ, v3",                     \
-"simple map, values on next line 4MUZ, v4"
+"simple map, values on next line 4MUZ, v4"*/
 
 
 CASE_GROUP(SIMPLE_MAP)
@@ -448,40 +476,42 @@ h }i: val }000
 
 C("simple map expl, scalars with special chars, comma", IGNORE_YAMLCPP_PARSE_FAIL,
 R"({
-a,b: val,000
-c,d: val, 000
-e,f: val , 000
-h,i: val ,000
-a, b: val,000
-c, d: val, 000
-e, f: val , 000
-h, i: val ,000
-a , b: val,000
-c , d: val, 000
-e , f: val , 000
-h , i: val ,000
-a ,b: val,000
-c ,d: val, 000
-e ,f: val , 000
-h ,i: val ,000
+a0,b0: val0,0000
+c0,d0: val0, 0000
+e0,f0: val0 , 0000
+h0,i0: val0 ,0000
+a1, b1: val1,0001
+c1, d1: val1, 0001
+e1, f1: val1 , 0001
+h1, i1: val1 ,0001
+a2 , b2: val2,0002
+c2 , d2: val2, 0002
+e2 , f2: val2 , 0002
+h2 , i2: val2 ,0002
+a3 ,b3: val3,0003
+c3 ,d3: val3, 0003
+e3 ,f3: val3 , 0003
+h3 ,i3: val3 ,0003
 })",
     L{ // this is crazy...
-        N(KEYVAL, "a", /*"~"*/{}), N("b", "val"), N(KEYVAL, "000 c", /*"~"*/{}),
-        N("d", "val"), N(KEYVAL, "000 e", /*"~"*/{}),
-        N("f", "val"), N(KEYVAL, "000 h", /*"~"*/{}),
-        N("i", "val"), N(KEYVAL, "000 a", /*"~"*/{}),
-        N("b", "val"), N(KEYVAL, "000 c", /*"~"*/{}),
-        N("d", "val"), N(KEYVAL, "000 e", /*"~"*/{}),
-        N("f", "val"), N(KEYVAL, "000 h", /*"~"*/{}),
-        N("i", "val"), N(KEYVAL, "000 a", /*"~"*/{}),
-        N("b", "val"), N(KEYVAL, "000 c", /*"~"*/{}),
-        N("d", "val"), N(KEYVAL, "000 e", /*"~"*/{}),
-        N("f", "val"), N(KEYVAL, "000 h", /*"~"*/{}),
-        N("i", "val"), N(KEYVAL, "000 a", /*"~"*/{}),
-        N("b", "val"), N(KEYVAL, "000 c", /*"~"*/{}),
-        N("d", "val"), N(KEYVAL, "000 e", /*"~"*/{}),
-        N("f", "val"), N(KEYVAL, "000 h", /*"~"*/{}),
-        N("i", "val"), N(KEYVAL, "000", /*"~"*/{}),
+        N(KEYVAL, "a0", /*"~"*/{}),
+        N("b0", "val0"),
+        N(KEYVAL, "0000 c0", /*"~"*/{}),
+        N("d0", "val0"), N(KEYVAL, "0000 e0", /*"~"*/{}),
+        N("f0", "val0"), N(KEYVAL, "0000 h0", /*"~"*/{}),
+        N("i0", "val0"), N(KEYVAL, "0000 a1", /*"~"*/{}),
+        N("b1", "val1"), N(KEYVAL, "0001 c1", /*"~"*/{}),
+        N("d1", "val1"), N(KEYVAL, "0001 e1", /*"~"*/{}),
+        N("f1", "val1"), N(KEYVAL, "0001 h1", /*"~"*/{}),
+        N("i1", "val1"), N(KEYVAL, "0001 a2", /*"~"*/{}),
+        N("b2", "val2"), N(KEYVAL, "0002 c2", /*"~"*/{}),
+        N("d2", "val2"), N(KEYVAL, "0002 e2", /*"~"*/{}),
+        N("f2", "val2"), N(KEYVAL, "0002 h2", /*"~"*/{}),
+        N("i2", "val2"), N(KEYVAL, "0002 a3", /*"~"*/{}),
+        N("b3", "val3"), N(KEYVAL, "0003 c3", /*"~"*/{}),
+        N("d3", "val3"), N(KEYVAL, "0003 e3", /*"~"*/{}),
+        N("f3", "val3"), N(KEYVAL, "0003 h3", /*"~"*/{}),
+        N("i3", "val3"), N(KEYVAL, "0003", /*"~"*/{}),
 }
 ),
 
@@ -635,6 +665,7 @@ N(MAP, L{
     N("baz", "bat"),
 })),
 
+/* this is not valid YAML: plain scalars can't have ':' as a token
 C("simple map, values on next line 4MUZ, v3",
 R"(foo
 : bar
@@ -658,6 +689,7 @@ N(MAP, L{
     N("foo", "bar"),
     N("baz", "bat"),
 })),
+*/
 
     )
 }

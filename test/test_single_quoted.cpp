@@ -3,6 +3,109 @@
 namespace c4 {
 namespace yml {
 
+
+TEST(double_quoted, test_suite_KSS4)
+{
+    csubstr yaml = R"(
+---
+'quoted
+string'
+--- 'quoted
+string'
+---
+- 'quoted
+  string'
+---
+- 'quoted
+string'
+---
+'quoted
+  string': 'quoted
+  string'
+---
+'quoted
+string': 'quoted
+string'
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_EQ(t.docref(0).val(), "quoted string");
+        EXPECT_EQ(t.docref(1).val(), "quoted string");
+        EXPECT_EQ(t.docref(2)[0].val(), "quoted string");
+        EXPECT_EQ(t.docref(3)[0].val(), "quoted string");
+        EXPECT_EQ(t.docref(4)["quoted string"].val(), "quoted string");
+        EXPECT_EQ(t.docref(5)["quoted string"].val(), "quoted string");
+    });
+}
+
+
+TEST(single_quoted, test_suite_R4YG)
+{
+    csubstr yaml = R"(
+- '	
+
+detected
+
+'
+
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_EQ(t[0].val(), csubstr("\t\ndetected\n"));
+    });
+}
+
+
+TEST(single_quoted, test_suite_PRH3)
+{
+    csubstr yaml = R"(
+- ' 1st non-empty
+
+ 2nd non-empty 
+	3rd non-empty '
+- ' 1st non-empty
+
+ 2nd non-empty 	
+ 	3rd non-empty '
+- ' 1st non-empty
+
+ 2nd non-empty	 
+	3rd non-empty '
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_EQ(t[0].val(), csubstr(" 1st non-empty\n2nd non-empty 3rd non-empty "));
+        EXPECT_EQ(t[1].val(), csubstr(" 1st non-empty\n2nd non-empty 3rd non-empty "));
+        EXPECT_EQ(t[2].val(), csubstr(" 1st non-empty\n2nd non-empty 3rd non-empty "));
+    });
+}
+
+
+TEST(single_quoted, test_suite_T4YY)
+{
+    csubstr yaml = R"(
+---
+' 1st non-empty
+
+ 2nd non-empty 
+ 3rd non-empty '
+---
+'	
+
+detected
+
+'
+
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_stream());
+        ASSERT_TRUE(t.rootref().first_child().is_doc());
+        EXPECT_EQ(t.rootref().first_child().val(), csubstr(" 1st non-empty\n2nd non-empty 3rd non-empty "));
+    });
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 #define SINGLE_QUOTED_CASES                             \
             "squoted, only text",                       \
             "squoted, with double quotes",              \

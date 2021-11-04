@@ -4,6 +4,58 @@
 namespace c4 {
 namespace yml {
 
+TEST(tags, test_suite_735Y)
+{
+    csubstr yaml_without_seq = R"(
+!!map # Block collection
+foo : bar
+)";
+    test_check_emit_check(yaml_without_seq, [](Tree const &t){
+        EXPECT_TRUE(t.rootref().is_map());
+        EXPECT_TRUE(t.rootref().has_val_tag());
+        EXPECT_EQ(t.rootref()["foo"].val(), csubstr("bar"));
+    });
+
+    csubstr yaml = R"(
+-
+  foo : bar
+- #!!map
+  foo : bar
+- #!!map # Block collection
+  foo : bar
+- !!map
+  foo : bar
+- !!map # Block collection
+  foo : bar
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_seq());
+        ASSERT_EQ(t.rootref().num_children(), 5u);
+        //
+        EXPECT_TRUE(t[0].is_map());
+        EXPECT_TRUE(!t[0].has_val_tag());
+        EXPECT_EQ(t[0]["foo"].val(), csubstr("bar"));
+        //
+        EXPECT_TRUE(t[1].is_map());
+        EXPECT_TRUE(!t[1].has_val_tag());
+        EXPECT_EQ(t[1]["foo"].val(), csubstr("bar"));
+        //
+        EXPECT_TRUE(t[2].is_map());
+        EXPECT_TRUE(!t[2].has_val_tag());
+        EXPECT_EQ(t[2]["foo"].val(), csubstr("bar"));
+        //
+        EXPECT_TRUE(t[3].is_map());
+        ASSERT_TRUE(t[3].has_val_tag());
+        EXPECT_EQ(t[3].val_tag(), csubstr("!!map"));
+        EXPECT_EQ(t[3]["foo"].val(), csubstr("bar"));
+        //
+        EXPECT_TRUE(t[4].is_map());
+        ASSERT_TRUE(t[4].has_val_tag());
+        EXPECT_EQ(t[4].val_tag(), csubstr("!!map"));
+        EXPECT_EQ(t[4]["foo"].val(), csubstr("bar"));
+    });
+}
+
 
 TEST(tags, parsing)
 {

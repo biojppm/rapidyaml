@@ -3174,33 +3174,8 @@ ship_to: *id001
 *valref: *keyref
 )";
 
-    std::string resolved = R"(base:
-  name: Everyone has same name
-foo:
-  name: Everyone has same name
-  age: 10
-bar:
-  name: Everyone has same name
-  age: 20
-bill_to:
-  street: |-
-    123 Tornado Alley
-    Suite 16
-  city: East Centerville
-  state: KS
-ship_to:
-  street: |-
-    123 Tornado Alley
-    Suite 16
-  city: East Centerville
-  state: KS
-key: val
-val: key
-)";
-
     ryml::Tree tree = ryml::parse(ryml::to_csubstr(unresolved));
     // by default, references are not resolved when parsing:
-    CHECK(ryml::emitrs<std::string>(tree) == unresolved);
     CHECK( ! tree["base"].has_key_anchor());
     CHECK(   tree["base"].has_val_anchor());
     CHECK(   tree["base"].val_anchor() == "base");
@@ -3214,7 +3189,7 @@ val: key
     // to resolve references, simply call tree.resolve(),
     // which will perform the reference instantiations:
     tree.resolve();
-    CHECK(ryml::emitrs<std::string>(tree) == resolved);
+
     // all the anchors and references are substistuted and then removed:
     CHECK( ! tree["base"].has_key_anchor());
     CHECK( ! tree["base"].has_val_anchor());
@@ -3223,6 +3198,9 @@ val: key
     CHECK( ! tree["key"].has_val_anchor());
     CHECK( ! tree["val"].is_key_ref()); // notice *valref is now turned to val
     CHECK( ! tree["val"].is_val_ref()); // notice *valref is now turned to val
+
+    CHECK(tree["ship_to"]["city"] == "East Centerville");
+    CHECK(tree["ship_to"]["state"] == "KS");
 }
 
 
@@ -3330,6 +3308,9 @@ d: 3
         CHECK(stream.num_children() == 3);
         for(const ryml::NodeRef doc : stream.children())
             CHECK(doc.is_doc());
+        CHECK(tree.docref(0).id() == stream.child(0).id());
+        CHECK(tree.docref(1).id() == stream.child(1).id());
+        CHECK(tree.docref(2).id() == stream.child(2).id());
         // equivalent: using the lower level index API
         const size_t stream_id = tree.root_id();
         CHECK(tree.is_root(stream_id));
@@ -3338,6 +3319,9 @@ d: 3
         CHECK(tree.num_children(stream_id) == 3);
         for(size_t doc_id = tree.first_child(stream_id); doc_id != ryml::NONE; doc_id = tree.next_sibling(stream_id))
             CHECK(tree.is_doc(doc_id));
+        CHECK(tree.doc(0) == tree.child(stream_id, 0));
+        CHECK(tree.doc(1) == tree.child(stream_id, 1));
+        CHECK(tree.doc(2) == tree.child(stream_id, 2));
 
         // using the node API
         CHECK(stream[0].is_doc());

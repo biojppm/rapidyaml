@@ -16,6 +16,242 @@ TEST(plain_scalar, issue153_map)
 }
 
 
+TEST(plain_scalar, test_suite_7TMG)
+{
+    csubstr yaml = R"(---
+word1
+# comment
+---
+# first value is NOT a multiline plain scalar
+[ word1
+# comment
+, word2]
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_TRUE(t.rootref().is_stream());
+        NodeRef doc = t.rootref().first_child();
+        ASSERT_TRUE(doc.is_doc());
+        ASSERT_TRUE(doc.is_val());
+        EXPECT_EQ(doc.val(), "word1");
+        doc = t.rootref().child(1);
+        ASSERT_TRUE(doc.is_doc());
+        ASSERT_TRUE(doc.is_seq());
+        EXPECT_EQ(doc[0].val(), "word1");
+        EXPECT_EQ(doc[1].val(), "word2");
+    });
+}
+
+
+TEST(plain_scalar, test_suite_82AN)
+{
+    csubstr yaml = R"(
+---word1
+word2
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_doc());
+        ASSERT_TRUE(t.rootref().is_val());
+        EXPECT_EQ(t.rootref().val(), csubstr("---word1 word2"));
+    });
+}
+
+TEST(plain_scalar, test_suite_EXG3)
+{
+    csubstr yaml = R"(
+---
+---word1
+word2
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_stream());
+        ASSERT_TRUE(t.rootref().first_child().is_doc());
+        ASSERT_TRUE(t.rootref().first_child().is_val());
+        EXPECT_EQ(t.rootref().first_child().val(), csubstr("---word1 word2"));
+    });
+}
+
+
+TEST(plain_scalar, test_suite_9YRD)
+{
+    csubstr yaml = R"(
+a
+b  
+  c
+d
+
+e
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_doc());
+        ASSERT_TRUE(t.rootref().is_val());
+        EXPECT_EQ(t.rootref().val(), csubstr("a b c d\ne"));
+    });
+}
+
+TEST(plain_scalar, test_suite_EX5H)
+{
+    csubstr yaml = R"(
+---
+a
+b  
+  c
+d
+
+e
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_stream());
+        ASSERT_TRUE(t.rootref().child(0).is_doc());
+        ASSERT_TRUE(t.rootref().child(0).is_val());
+        EXPECT_EQ(t.rootref().child(0).val(), csubstr("a b c d\ne"));
+    });
+}
+
+
+TEST(plain_scalar, test_suite_M7A3)
+{
+    csubstr yaml = R"(
+Bare
+document
+...
+# No document
+...
+|
+%!PS-Adobe-2.0 # Not the first line
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_stream());
+        ASSERT_EQ(t.rootref().num_children(), 2u);
+        EXPECT_EQ(t.rootref().child(0).val(), csubstr("Bare document"));
+        EXPECT_EQ(t.rootref().child(1).val(), csubstr("%!PS-Adobe-2.0 # Not the first line\n"));
+    });
+}
+
+
+TEST(plain_scalar, test_suite_HS5T)
+{
+    csubstr yaml = R"(
+1st non-empty
+
+ 2nd non-empty 
+   	3rd non-empty
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_doc());
+        ASSERT_TRUE(t.rootref().is_val());
+        EXPECT_EQ(t.rootref().val(), csubstr("1st non-empty\n2nd non-empty 3rd non-empty"));
+    });
+}
+
+TEST(plain_scalar, test_suite_NB6Z)
+{
+    csubstr yaml = R"(
+key:
+  value
+  with
+   	
+  tabs
+  tabs
+   	
+    foo
+   	
+      bar
+        baz
+   	
+key1:
+  value
+  with
+
+  tabs
+  tabs
+
+    foo
+
+      bar
+        baz
+
+key2: something
+      else
+key3: something
+  else
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_map());
+        ASSERT_TRUE(t.rootref().has_child("key"));
+        ASSERT_TRUE(t.rootref().has_child("key1"));
+        ASSERT_TRUE(t.rootref().has_child("key2"));
+        ASSERT_TRUE(t.rootref().has_child("key3"));
+        EXPECT_EQ(t["key"].val(), csubstr("value with\ntabs tabs\nfoo\nbar baz"));
+        EXPECT_EQ(t["key1"].val(), csubstr("value with\ntabs tabs\nfoo\nbar baz"));
+        EXPECT_EQ(t["key2"].val(), csubstr("something else"));
+        EXPECT_EQ(t["key3"].val(), csubstr("something else"));
+    });
+}
+
+TEST(plain_scalar, test_suite_NB6Z_seq)
+{
+    csubstr yaml = R"(
+- value
+  with
+   	
+  tabs
+  tabs
+   	
+    foo
+   	
+      bar
+        baz
+   	
+- value
+  with
+
+  tabs
+  tabs
+
+    foo
+
+      bar
+        baz
+
+- more
+  value
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_seq());
+        ASSERT_EQ(t.rootref().num_children(), 3u);
+        EXPECT_EQ(t[0].val(), csubstr("value with\ntabs tabs\nfoo\nbar baz"));
+        EXPECT_EQ(t[1].val(), csubstr("value with\ntabs tabs\nfoo\nbar baz"));
+        EXPECT_EQ(t[2].val(), csubstr("more value"));
+    });
+}
+
+TEST(plain_scalar, test_suite_NB6Z_docval)
+{
+    csubstr yaml = R"(
+value
+with
+ 	
+tabs
+tabs
+ 	
+  foo
+ 	
+    bar
+      baz
+ 	
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_doc());
+        ASSERT_TRUE(t.rootref().is_val());
+        EXPECT_EQ(t.rootref().val(), csubstr("value with\ntabs tabs\nfoo\nbar baz"));
+    });
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 #define PLAIN_SCALAR_CASES                                          \
     "plain scalar, 1 word only",                                    \
     "plain scalar, 1 line with spaces",                             \
