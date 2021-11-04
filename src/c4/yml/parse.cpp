@@ -69,7 +69,7 @@ static bool _is_doc_sep(csubstr s)
 
 
 //-----------------------------------------------------------------------------
-Parser::Parser(Callbacks const& a)
+Parser::Parser(ParseOptions opts, Callbacks const& cb)
     : m_file()
     , m_buf()
     , m_root_id(NONE)
@@ -87,11 +87,25 @@ Parser::Parser(Callbacks const& a)
     , m_key_anchor()
     , m_val_anchor_indentation(0)
     , m_val_anchor()
+    , m_parse_options(opts)
+    , m_newline_offsets()
+    , m_newline_offsets_size(0)
 {
     State st{};
     m_stack.push(st);
     m_state = &m_stack.top();
 }
+
+Parser::~Parser()
+{
+    // everything else is RAII
+    if(m_newline_offsets)
+    {
+        auto cb = m_tree->callbacks();
+        cb.m_free(m_newline_offsets, m_newline_offsets_size * sizeof(size_t), cb.m_user_data);
+    }
+}
+
 
 //-----------------------------------------------------------------------------
 void Parser::_reset()
@@ -116,6 +130,8 @@ void Parser::_reset()
     m_key_anchor.clear();
     m_val_anchor_indentation = 0;
     m_val_anchor.clear();
+
+    // keep the location buffer
 }
 
 //-----------------------------------------------------------------------------
@@ -145,6 +161,9 @@ void Parser::parse(csubstr file, substr buf, Tree *t, size_t node_id)
     m_tree = t;
 
     _reset();
+
+    if(m_parse_options.flags & ParseOptions::TRACK_LOCATION)
+        _prepare_locations();
 
     while( ! _finished_file())
     {
@@ -2881,6 +2900,7 @@ void Parser::_start_new_doc(csubstr rem)
     _set_indentation(indref);
 }
 
+
 //-----------------------------------------------------------------------------
 void Parser::_start_map(bool as_child)
 {
@@ -3165,6 +3185,7 @@ NodeData* Parser::_append_key_val(csubstr val, bool val_quoted)
     _write_val_anchor(nid);
     return m_tree->get(nid);
 }
+
 
 //-----------------------------------------------------------------------------
 void Parser::_store_scalar(csubstr const& s, bool is_quoted)
@@ -4354,6 +4375,148 @@ int Parser::_prfl(char *buf, int buflen, size_t v)
 }
 
 #undef _wrapbuf
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+Location Parser::location(NodeRef node) const
+{
+    RYML_ASSERT(node.valid());
+    RYML_ASSERT(node.tree() == m_tree);
+    return location(node.id());
+}
+
+Location Parser::location(size_t node) const
+{
+    csubstr src = m_buf;
+    RYML_ASSERT(m_newline_offsets != nullptr);
+    if(m_tree->has_key(node))
+    {
+        csubstr k = m_tree->key(node);
+        if(k.str)
+        {
+            RYML_ASSERT(k.is_sub(src));
+            RYML_ASSERT(src.is_super(k));
+            return val_location(k.str);
+        }
+        else
+        {
+            c4::yml::error("not implemented");
+        }
+    }
+    else if(m_tree->has_val(node))
+    {
+        csubstr v = m_tree->val(node);
+        if(v.str)
+        {
+            RYML_ASSERT(v.is_sub(src));
+            RYML_ASSERT(src.is_super(v));
+            return val_location(v.str);
+        }
+        else
+        {
+            c4::yml::error("not implemented");
+        }
+    }
+    else if(m_tree->is_seq(node) || m_tree->is_map(node))
+    {
+        RYML_ASSERT(!m_tree->has_key(node));
+        if(m_tree->has_children(node))
+        {
+            return location(m_tree->first_child(node));
+        }
+        else
+        {
+            c4::yml::error("not implemented");
+        }
+    }
+    c4::yml::error("unknown node type");
+    return {};
+}
+
+Location Parser::val_location(const char *val) const
+{
+    csubstr src = m_buf;
+    RYML_ASSERT(m_newline_offsets != nullptr);
+    RYML_ASSERT(m_newline_offsets_size > 0);
+    RYML_ASSERT(val >= src.begin() && val <= src.end());
+    using linetype = size_t const* C4_RESTRICT;
+    linetype line = nullptr;
+    size_t offset = (size_t)(val - src.begin());
+    if(m_newline_offsets_size < 30)
+    {
+        // do a linear search if the size is small.
+        for(linetype curr = m_newline_offsets; curr < m_newline_offsets + m_newline_offsets_size; ++curr)
+        {
+            if(*curr > offset)
+            {
+                line = curr;
+                break;
+            }
+        }
+    }
+    else
+    {
+        // Do a bisection search if the size is not small.
+        //
+        // We could use std::lower_bound but this is simple enough and
+        // spares the include of <algorithm>.
+        size_t count = m_newline_offsets_size;
+        size_t step;
+        linetype it;
+        line = m_newline_offsets;
+        while(count)
+        {
+            step = count / 2;
+            it = line + step;
+            if(*it < offset)
+            {
+                line = ++it;
+                count -= step + 1;
+            }
+            else
+            {
+                count = step;
+            }
+        }
+    }
+    RYML_ASSERT(line != nullptr);
+    RYML_ASSERT(line >= m_newline_offsets && line < m_newline_offsets + m_newline_offsets_size);;
+    RYML_ASSERT(*line > offset);
+    Location loc = {};
+    loc.name = m_file;
+    loc.offset = offset;
+    loc.line = (size_t)(line - m_newline_offsets);
+    if(line > m_newline_offsets)
+        loc.col = (offset - *(line-1) - 1u);
+    else
+        loc.col = offset;
+    return loc;
+}
+
+void Parser::_prepare_locations()
+{
+    RYML_ASSERT(!m_file.empty());
+    RYML_ASSERT(!m_buf.empty());
+    size_t numnewlines = 1 + m_buf.count('\n');
+    if(numnewlines > m_newline_offsets_size)
+    {
+        auto cb = m_tree->callbacks();
+        if(m_newline_offsets)
+            cb.m_free(m_newline_offsets, numnewlines * sizeof(size_t), cb.m_user_data);
+        m_newline_offsets = (size_t*) cb.m_allocate(numnewlines * sizeof(size_t), m_newline_offsets, cb.m_user_data);
+        m_newline_offsets_size = numnewlines;
+    }
+    size_t pos = 0;
+    for(size_t i = 0; i < m_buf.len; i++)
+    {
+        if(m_buf[i] == '\n')
+            m_newline_offsets[pos++] = i;
+    }
+    m_newline_offsets[pos++] = m_buf.len;
+}
 
 } // namespace yml
 } // namespace c4

@@ -11,6 +11,7 @@ namespace c4 {
 namespace yml {
 
 
+// helper macro, undefined at the end
 #define _RYML_TREE_ERR(msg_literal)                                     \
 do                                                                      \
 {                                                                       \
@@ -19,6 +20,7 @@ do                                                                      \
     this->m_callbacks.m_error(msg, sizeof(msg), c4::yml::Location(__FILE__, 0, __LINE__, 0), m_callbacks.m_user_data); \
 } while(0)
 
+// helper macro, undefined at the end
 #define _RYML_TREE_CHECK(cond)                                          \
     do                                                                  \
     {                                                                   \
@@ -31,8 +33,10 @@ do                                                                      \
     } while(0)
 
 #ifdef NDEBUG
+// helper macro, undefined at the end
 #define _RYML_TREE_ASSERT(cond) do {} while(0)
 #else
+// helper macro, undefined at the end
 #define _RYML_TREE_ASSERT(cond) _RYML_TREE_CHECK(cond)
 #endif
 
@@ -265,19 +269,19 @@ NodeRef const Tree::docref(size_t i) const
 
 //-----------------------------------------------------------------------------
 Tree::Tree(Callbacks const& cb)
-:
-    m_buf(nullptr),
-    m_cap(0),
-    m_size(0),
-    m_free_head(NONE),
-    m_free_tail(NONE),
-    m_arena(),
-    m_arena_pos(0),
-    m_callbacks(cb)
+    : m_buf(nullptr)
+    , m_cap(0)
+    , m_size(0)
+    , m_free_head(NONE)
+    , m_free_tail(NONE)
+    , m_arena()
+    , m_arena_pos(0)
+    , m_callbacks(cb)
 {
 }
 
-Tree::Tree(size_t node_capacity, size_t arena_capacity, Callbacks const& cb) : Tree(cb)
+Tree::Tree(size_t node_capacity, size_t arena_capacity, Callbacks const& cb)
+    : Tree(cb)
 {
     reserve(node_capacity);
     reserve_arena(arena_capacity);
@@ -371,9 +375,9 @@ void Tree::_copy(Tree const& that)
 
 void Tree::_move(Tree & that)
 {
-    RYML_ASSERT(m_buf == nullptr);
-    RYML_ASSERT(m_arena.str == nullptr);
-    RYML_ASSERT(m_arena.len == 0);
+    _RYML_TREE_ASSERT(m_buf == nullptr);
+    _RYML_TREE_ASSERT(m_arena.str == nullptr);
+    _RYML_TREE_ASSERT(m_arena.len == 0);
     m_buf = that.m_buf;
     m_cap = that.m_cap;
     m_size = that.m_size;
@@ -393,14 +397,14 @@ void Tree::_relocate(substr next_arena)
     {
         if(in_arena(n->m_key.scalar))
             n->m_key.scalar = _relocated(n->m_key.scalar, next_arena);
-        if(in_arena(n->m_key.tag   ))
-            n->m_key.tag    = _relocated(n->m_key.tag   , next_arena);
+        if(in_arena(n->m_key.tag))
+            n->m_key.tag = _relocated(n->m_key.tag, next_arena);
         if(in_arena(n->m_key.anchor))
             n->m_key.anchor = _relocated(n->m_key.anchor, next_arena);
         if(in_arena(n->m_val.scalar))
             n->m_val.scalar = _relocated(n->m_val.scalar, next_arena);
-        if(in_arena(n->m_val.tag   ))
-            n->m_val.tag    = _relocated(n->m_val.tag   , next_arena);
+        if(in_arena(n->m_val.tag))
+            n->m_val.tag = _relocated(n->m_val.tag, next_arena);
         if(in_arena(n->m_val.anchor))
             n->m_val.anchor = _relocated(n->m_val.anchor, next_arena);
     }
@@ -422,7 +426,6 @@ void Tree::reserve(size_t cap)
         m_cap = cap;
         m_buf = buf;
         _clear_range(first, del);
-
         if(m_free_head != NONE)
         {
             _RYML_TREE_ASSERT(m_buf != nullptr);
@@ -732,13 +735,15 @@ void Tree::_swap_hierarchy(size_t ia, size_t ib)
 
     for(size_t i = first_child(ia); i != NONE; i = next_sibling(i))
     {
-        if(i == ib || i == ia) continue;
+        if(i == ib || i == ia)
+            continue;
         _p(i)->m_parent = ib;
     }
 
     for(size_t i = first_child(ib); i != NONE; i = next_sibling(i))
     {
-        if(i == ib || i == ia) continue;
+        if(i == ib || i == ia)
+            continue;
         _p(i)->m_parent = ia;
     }
 
@@ -758,10 +763,24 @@ void Tree::_swap_hierarchy(size_t ia, size_t ib)
         else
         {
             bool changed = false;
-            if(pa.m_first_child == ia) { pa.m_first_child = ib; changed = true; }
-            if(pa.m_last_child  == ia) { pa.m_last_child  = ib; changed = true; }
-            if(pb.m_first_child == ib && !changed) { pb.m_first_child = ia; }
-            if(pb.m_last_child  == ib && !changed) { pb.m_last_child  = ia; }
+            if(pa.m_first_child == ia)
+            {
+                pa.m_first_child = ib;
+                changed = true;
+            }
+            if(pa.m_last_child  == ia)
+            {
+                pa.m_last_child = ib;
+                changed = true;
+            }
+            if(pb.m_first_child == ib && !changed)
+            {
+                pb.m_first_child = ia;
+            }
+            if(pb.m_last_child  == ib && !changed)
+            {
+                pb.m_last_child  = ia;
+            }
         }
     }
     else
@@ -1938,6 +1957,11 @@ Tree::_lookup_path_token Tree::_next_token(lookup_result *r, _lookup_path_token 
     _advance(r, pos);
     return {unres.first(pos), SEQ};
 }
+
+
+#undef _RYML_TREE_ERR
+#undef _RYML_TREE_CHECK
+#undef _RYML_TREE_ASSERT
 
 } // namespace ryml
 } // namespace c4
