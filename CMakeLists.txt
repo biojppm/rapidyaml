@@ -4,7 +4,7 @@ project(ryml
     DESCRIPTION "Rapid YAML parsing and emitting"
     HOMEPAGE_URL "https://github.com/biojppm/rapidyaml"
     LANGUAGES CXX)
-c4_project(VERSION 0.2.2 STANDALONE
+c4_project(VERSION 0.2.3 STANDALONE
     AUTHOR "Joao Paulo Magalhaes <dev@jpmag.me>")
 
 
