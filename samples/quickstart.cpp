@@ -44,6 +44,7 @@
 //
 // (Each function addresses a topic and is fully self-contained. Jump
 // to the function to find out about its topic.)
+namespace sample {
 void sample_quick_overview();       ///< briefly skim over most of the features
 void sample_substr();               ///< about ryml's string views (from c4core)
 void sample_parse_file();           ///< ready-to-go example of parsing a file from disk
@@ -73,44 +74,47 @@ void sample_error_handler();        ///< set a custom error handler
 void sample_global_allocator();     ///< set a global allocator for ryml
 void sample_per_tree_allocator();   ///< set per-tree allocators
 int  report_checks();
+} /* namespace sample */
 
 int main()
 {
-    sample_quick_overview();
-    sample_substr();
-    sample_parse_file();
-    sample_parse_read_only();
-    sample_parse_in_situ();
-    sample_parse_reuse_tree();
-    sample_parse_reuse_parser();
-    sample_parse_reuse_tree_and_parser();
-    sample_iterate_trees();
-    sample_create_trees();
-    sample_tree_arena();
-    sample_fundamental_types();
-    sample_formatting();
-    sample_base64();
-    sample_user_scalar_types();
-    sample_user_container_types();
-    sample_std_types();
-    sample_emit_to_container();
-    sample_emit_to_stream();
-    sample_emit_to_file();
-    sample_emit_nested_node();
-    sample_json();
-    sample_anchors_and_aliases();
-    sample_tags();
-    sample_docs();
-    sample_error_handler();
-    sample_global_allocator();
-    sample_per_tree_allocator();
-    return report_checks();
+    sample::sample_quick_overview();
+    sample::sample_substr();
+    sample::sample_parse_file();
+    sample::sample_parse_read_only();
+    sample::sample_parse_in_situ();
+    sample::sample_parse_reuse_tree();
+    sample::sample_parse_reuse_parser();
+    sample::sample_parse_reuse_tree_and_parser();
+    sample::sample_iterate_trees();
+    sample::sample_create_trees();
+    sample::sample_tree_arena();
+    sample::sample_fundamental_types();
+    sample::sample_formatting();
+    sample::sample_base64();
+    sample::sample_user_scalar_types();
+    sample::sample_user_container_types();
+    sample::sample_std_types();
+    sample::sample_emit_to_container();
+    sample::sample_emit_to_stream();
+    sample::sample_emit_to_file();
+    sample::sample_emit_nested_node();
+    sample::sample_json();
+    sample::sample_anchors_and_aliases();
+    sample::sample_tags();
+    sample::sample_docs();
+    sample::sample_error_handler();
+    sample::sample_global_allocator();
+    sample::sample_per_tree_allocator();
+    return sample::report_checks();
 }
 
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+
+namespace sample {
 
 /// a quick'n'dirty assertion to verify a predicate
 #define CHECK(predicate) do { if(!report_check(__FILE__, __LINE__, #predicate, (predicate))) { C4_DEBUG_BREAK(); } } while(0)
@@ -3759,3 +3763,5 @@ void file_put_contents(const char *filename, const char *buf, size_t sz, const c
     ::fclose(fp);
 }
 C4_SUPPRESS_WARNING_MSVC_POP
+
+} // namespace sample
