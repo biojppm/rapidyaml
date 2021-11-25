@@ -347,6 +347,8 @@ typedef enum {
     VALANCH = (1<<9),     ///< the val has an &anchor
     KEYTAG  = (1<<10),    ///< the key has an explicit tag/type
     VALTAG  = (1<<11),    ///< the val has an explicit tag/type
+    VALQUO  = (1<<12),    ///< the val is quoted by '', "", > or |
+    KEYQUO  = (1<<13),    ///< the key is quoted by '', "", > or |
 } NodeType_e;
 
 
