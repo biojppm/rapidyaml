@@ -955,6 +955,41 @@ void Tree::set_root_as_stream()
 
 
 //-----------------------------------------------------------------------------
+void Tree::remove_children(size_t node)
+{
+    RYML_ASSERT(get(node) != nullptr);
+    size_t ich = get(node)->m_first_child;
+    while(ich != NONE)
+    {
+        remove_children(ich);
+        RYML_ASSERT(get(ich) != nullptr);
+        size_t next = get(ich)->m_next_sibling;
+        _release(ich);
+        if(ich == get(node)->m_last_child)
+            break;
+        ich = next;
+    }
+}
+
+bool Tree::change_type(size_t node, NodeType type)
+{
+    RYML_ASSERT(type.is_val() || type.is_map() || type.is_seq());
+    RYML_ASSERT(type.is_val() + type.is_map() + type.is_seq() == 1);
+    RYML_ASSERT(type.has_key() == has_key(node) || (has_key(node) && !type.has_key()));
+    NodeData *d = _p(node);
+    if(type.is_map() && is_map(node))
+        return false;
+    else if(type.is_seq() && is_seq(node))
+        return false;
+    else if(type.is_val() && is_val(node))
+        return false;
+    d->m_type = (d->m_type & (~(MAP|SEQ|VAL))) | type;
+    remove_children(node);
+    return true;
+}
+
+
+//-----------------------------------------------------------------------------
 size_t Tree::duplicate(size_t node, size_t parent, size_t after)
 {
     return duplicate(this, node, parent, after);

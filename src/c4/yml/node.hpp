@@ -243,6 +243,12 @@ public:
     /** @name node modifiers */
     /** @{ */
 
+    inline void change_type(NodeType t)
+    {
+        _C4RV();
+        m_tree->change_type(m_id, t);
+    }
+
     inline void set_type(NodeType t)
     {
         _C4RV();

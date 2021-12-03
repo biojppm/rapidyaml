@@ -2830,6 +2830,67 @@ TEST(NodeInit, ctor__val_only)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+TEST(change_type, from_val)
+{
+    Tree t = parse("[val0, val1, val2]");
+    t[0].change_type(VAL);
+    t[1].change_type(MAP);
+    t[2].change_type(SEQ);
+    Tree expected = parse("[val0, {}, []]");
+    EXPECT_EQ(emitrs<std::string>(t), emitrs<std::string>(expected));
+}
+TEST(change_type, from_keyval)
+{
+    Tree t = parse("{keyval0: val0, keyval1: val1, keyval2: val2}");
+    t[0].change_type(VAL);
+    t[1].change_type(MAP);
+    t[2].change_type(SEQ);
+    Tree expected = parse("{keyval0: val0, keyval1: {}, keyval2: []}");
+    EXPECT_EQ(emitrs<std::string>(t), emitrs<std::string>(expected));
+}
+
+TEST(change_type, from_map)
+{
+    Tree t = parse("[{map0: val0}, {map1: {map1key0: a, map1key1: b}}, {map2: [map2val0, map2val1]}]");
+    t[0].change_type(VAL);
+    t[1].change_type(MAP);
+    t[2].change_type(SEQ);
+    Tree expected = parse("[~, {map1: {map1key0: a, map1key1: b}}, []]");
+    EXPECT_EQ(emitrs<std::string>(t), emitrs<std::string>(expected));
+}
+TEST(change_type, from_keymap)
+{
+    Tree t = parse("{map0: {map0: val0}, map1: {map1: {map1key0: a, map1key1: b}}, map2: {map2: [map2val0, map2val1]}}");
+    t[0].change_type(VAL);
+    t[1].change_type(MAP);
+    t[2].change_type(SEQ);
+    Tree expected = parse("{map0: ~, map1: {map1: {map1key0: a, map1key1: b}}, map2: []}");
+    EXPECT_EQ(emitrs<std::string>(t), emitrs<std::string>(expected));
+}
+
+TEST(change_type, from_seq)
+{
+    Tree t = parse("[[seq00, seq01], [seq10, seq11], [seq20, seq21]]");
+    t[0].change_type(VAL);
+    t[1].change_type(MAP);
+    t[2].change_type(SEQ);
+    Tree expected = parse("[~, {}, [seq20, seq21]]");
+    EXPECT_EQ(emitrs<std::string>(t), emitrs<std::string>(expected));
+}
+TEST(change_type, from_keyseq)
+{
+    Tree t = parse("{map0: [seq00, seq01], map1: [seq10, seq11], map2: [seq20, seq21]}");
+    t[0].change_type(VAL);
+    t[1].change_type(MAP);
+    t[2].change_type(SEQ);
+    Tree expected = parse("{map0: ~, map1: {}, map2: [seq20, seq21]}");
+    EXPECT_EQ(emitrs<std::string>(t), emitrs<std::string>(expected));
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 TEST(NodeRef, 0_general)
 {
