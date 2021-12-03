@@ -1217,7 +1217,8 @@ public:
         for(size_t i = first_child(node); i != NONE; i = next_sibling(i))
         {
             NodeData *C4_RESTRICT ch = _p(i);
-            if(ch->m_type.is_keyval()) continue;
+            if(ch->m_type.is_keyval())
+                continue;
             ch->m_type.add(KEY);
             ch->m_key = ch->m_val;
         }

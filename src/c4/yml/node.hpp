@@ -344,26 +344,30 @@ public:
 
     inline void clear()
     {
-        if(is_seed()) return;
+        if(is_seed())
+            return;
         m_tree->remove_children(m_id);
         m_tree->_clear(m_id);
     }
 
     inline void clear_key()
     {
-        if(is_seed()) return;
+        if(is_seed())
+            return;
         m_tree->_clear_key(m_id);
     }
 
     inline void clear_val()
     {
-        if(is_seed()) return;
+        if(is_seed())
+            return;
         m_tree->_clear_val(m_id);
     }
 
     inline void clear_children()
     {
-        if(is_seed()) return;
+        if(is_seed())
+            return;
         m_tree->remove_children(m_id);
     }
 
