@@ -249,20 +249,20 @@ public:
         m_tree->_set_flags(m_id, t);
     }
 
-    inline void set_key(csubstr const& key)
+    inline void set_key(csubstr key)
     {
         _C4RV();
         m_tree->_set_key(m_id, key);
     }
 
-    inline void set_val(csubstr const& val)
+    inline void set_val(csubstr val)
     {
         _C4RV();
         m_tree->_set_val(m_id, val);
     }
 
     template<class T>
-    inline size_t set_key_serialized(T const& k)
+    inline size_t set_key_serialized(T const& C4_RESTRICT k)
     {
         _C4RV();
         csubstr s = m_tree->to_arena(k);
@@ -271,7 +271,7 @@ public:
     }
 
     template<class T>
-    inline size_t set_val_serialized(T const& v)
+    inline size_t set_val_serialized(T const& C4_RESTRICT v)
     {
         _C4RV();
         csubstr s = m_tree->to_arena(v);
@@ -295,37 +295,37 @@ public:
      * @return the size of base64-decoded blob */
     size_t deserialize_val(fmt::base64_wrapper v) const;
 
-    inline void set_key_tag(csubstr const& key_tag)
+    inline void set_key_tag(csubstr key_tag)
     {
         _C4RV();
         m_tree->set_key_tag(m_id, key_tag);
     }
 
-    inline void set_val_tag(csubstr const& val_tag) const
+    inline void set_val_tag(csubstr val_tag) const
     {
         _C4RV();
         m_tree->set_val_tag(m_id, val_tag);
     }
 
-    inline void set_key_anchor(csubstr const& key_anchor)
+    inline void set_key_anchor(csubstr key_anchor)
     {
         _C4RV();
         m_tree->set_key_anchor(m_id, key_anchor);
     }
 
-    inline void set_val_anchor(csubstr const& val_anchor) const
+    inline void set_val_anchor(csubstr val_anchor) const
     {
         _C4RV();
         m_tree->set_val_anchor(m_id, val_anchor);
     }
 
-    inline void set_key_ref(csubstr const& key_ref)
+    inline void set_key_ref(csubstr key_ref)
     {
         _C4RV();
         m_tree->set_key_ref(m_id, key_ref);
     }
 
-    inline void set_val_ref(csubstr const& val_ref) const
+    inline void set_val_ref(csubstr val_ref) const
     {
         _C4RV();
         m_tree->set_val_ref(m_id, val_ref);
@@ -334,7 +334,7 @@ public:
 public:
 
     template<class T>
-    inline csubstr to_arena(T const& s) const
+    inline csubstr to_arena(T const& C4_RESTRICT s) const
     {
         _C4RV();
         return m_tree->to_arena(s);
@@ -372,7 +372,7 @@ public:
 public:
 
     /** O(num_children) */
-    NodeRef operator[] (csubstr const& k)
+    NodeRef operator[] (csubstr k)
     {
         RYML_ASSERT( ! is_seed());
         RYML_ASSERT(valid());
@@ -394,7 +394,7 @@ public:
 public:
 
     /** O(num_children) */
-    NodeRef const operator[] (csubstr const& k) const
+    NodeRef const operator[] (csubstr k) const
     {
         RYML_ASSERT( ! is_seed());
         RYML_ASSERT(valid());
@@ -441,7 +441,7 @@ public:
         _apply(v);
     }
 
-    inline void operator= (csubstr const& v)
+    inline void operator= (csubstr v)
     {
         _apply_seed();
         _apply(v);
@@ -459,7 +459,7 @@ public:
 public:
 
     /** serialize a variable, then assign the result to the node's key */
-    inline NodeRef& operator<< (csubstr const& s)
+    inline NodeRef& operator<< (csubstr s)
     {
         // this overload is needed to prevent ambiguity (there's also
         // operator<< for writing a substr to a stream)
@@ -470,7 +470,7 @@ public:
     }
 
     template<class T>
-    inline NodeRef& operator<< (T const& v)
+    inline NodeRef& operator<< (T const& C4_RESTRICT v)
     {
         _apply_seed();
         write(this, v);
@@ -494,7 +494,7 @@ public:
 
     /** serialize a variable, then assign the result to the node's key */
     template<class T>
-    inline NodeRef& operator<< (Key<const T> const& v)
+    inline NodeRef& operator<< (Key<const T> const& C4_RESTRICT v)
     {
         _apply_seed();
         set_key_serialized(v.k);
@@ -503,7 +503,7 @@ public:
 
     /** serialize a variable, then assign the result to the node's key */
     template<class T>
-    inline NodeRef& operator<< (Key<T> const& v)
+    inline NodeRef& operator<< (Key<T> const& C4_RESTRICT v)
     {
         _apply_seed();
         set_key_serialized(v.k);
@@ -550,7 +550,7 @@ public:
 public:
 
     template<class T>
-    void get_if(csubstr const& name, T *var) const
+    void get_if(csubstr name, T *var) const
     {
         auto ch = find_child(name);
         if(ch.valid())
@@ -560,7 +560,7 @@ public:
     }
 
     template<class T>
-    void get_if(csubstr const& name, T *var, T const& fallback) const
+    void get_if(csubstr name, T *var, T fallback) const
     {
         auto ch = find_child(name);
         if(ch.valid())
@@ -600,7 +600,7 @@ private:
         }
     }
 
-    inline void _apply(csubstr const& v)
+    inline void _apply(csubstr v)
     {
         m_tree->_set_val(m_id, v);
     }

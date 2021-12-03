@@ -1497,7 +1497,7 @@ size_t Tree::find_child(size_t node, csubstr const& name) const
 
 //-----------------------------------------------------------------------------
 
-void Tree::to_val(size_t node, csubstr const& val, type_bits more_flags)
+void Tree::to_val(size_t node, csubstr val, type_bits more_flags)
 {
     RYML_ASSERT( ! has_children(node));
     RYML_ASSERT(parent(node) == NONE || ! parent_is_map(node));
@@ -1506,7 +1506,7 @@ void Tree::to_val(size_t node, csubstr const& val, type_bits more_flags)
     _p(node)->m_val = val;
 }
 
-void Tree::to_keyval(size_t node, csubstr const& key, csubstr const& val, type_bits more_flags)
+void Tree::to_keyval(size_t node, csubstr key, csubstr val, type_bits more_flags)
 {
     RYML_ASSERT( ! has_children(node));
     RYML_ASSERT(parent(node) == NONE || parent_is_map(node));
@@ -1524,7 +1524,7 @@ void Tree::to_map(size_t node, type_bits more_flags)
     _p(node)->m_val.clear();
 }
 
-void Tree::to_map(size_t node, csubstr const& key, type_bits more_flags)
+void Tree::to_map(size_t node, csubstr key, type_bits more_flags)
 {
     RYML_ASSERT( ! has_children(node));
     RYML_ASSERT(parent(node) == NONE || parent_is_map(node));
@@ -1542,7 +1542,7 @@ void Tree::to_seq(size_t node, type_bits more_flags)
     _p(node)->m_val.clear();
 }
 
-void Tree::to_seq(size_t node, csubstr const& key, type_bits more_flags)
+void Tree::to_seq(size_t node, csubstr key, type_bits more_flags)
 {
     RYML_ASSERT( ! has_children(node));
     RYML_ASSERT(parent(node) == NONE || parent_is_map(node));

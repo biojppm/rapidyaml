@@ -673,10 +673,10 @@ public:
     /** @name node modifiers */
     /** @{ */
 
-    void to_keyval(size_t node, csubstr const& key, csubstr const& val, type_bits more_flags=0);
-    void to_map(size_t node, csubstr const& key, type_bits more_flags=0);
-    void to_seq(size_t node, csubstr const& key, type_bits more_flags=0);
-    void to_val(size_t node, csubstr const& val, type_bits more_flags=0);
+    void to_keyval(size_t node, csubstr key, csubstr val, type_bits more_flags=0);
+    void to_map(size_t node, csubstr key, type_bits more_flags=0);
+    void to_seq(size_t node, csubstr key, type_bits more_flags=0);
+    void to_val(size_t node, csubstr val, type_bits more_flags=0);
     void to_map(size_t node, type_bits more_flags=0);
     void to_seq(size_t node, type_bits more_flags=0);
     void to_doc(size_t node, type_bits more_flags=0);
@@ -1103,7 +1103,7 @@ public:
     #if ! RYML_USE_ASSERT
     C4_ALWAYS_INLINE void _check_next_flags(size_t, type_bits) {}
     #else
-    inline void _check_next_flags(size_t node, type_bits f)
+    void _check_next_flags(size_t node, type_bits f)
     {
         auto n = _p(node);
         type_bits o = n->m_type; // old
@@ -1145,7 +1145,7 @@ public:
     inline void _rem_flags(size_t node, NodeType_e f) { NodeData *d = _p(node); type_bits fb = d->m_type & ~f; _check_next_flags(node, fb); d->m_type = (NodeType_e) fb; }
     inline void _rem_flags(size_t node, type_bits  f) { NodeData *d = _p(node);            f = d->m_type & ~f; _check_next_flags(node,  f); d->m_type = f; }
 
-    void _set_key(size_t node, csubstr const& key, type_bits more_flags=0)
+    void _set_key(size_t node, csubstr key, type_bits more_flags=0)
     {
         _p(node)->m_key.scalar = key;
         _add_flags(node, KEY|more_flags);
@@ -1156,7 +1156,7 @@ public:
         _add_flags(node, KEY|more_flags);
     }
 
-    void _set_val(size_t node, csubstr const& val, type_bits more_flags=0)
+    void _set_val(size_t node, csubstr val, type_bits more_flags=0)
     {
         RYML_ASSERT(num_children(node) == 0);
         RYML_ASSERT(!is_seq(node) && !is_map(node));
