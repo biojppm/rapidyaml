@@ -673,10 +673,10 @@ public:
     /** @name node modifiers */
     /** @{ */
 
-    void to_keyval(size_t node, csubstr const& key, csubstr const& val, type_bits more_flags=0);
-    void to_map(size_t node, csubstr const& key, type_bits more_flags=0);
-    void to_seq(size_t node, csubstr const& key, type_bits more_flags=0);
-    void to_val(size_t node, csubstr const& val, type_bits more_flags=0);
+    void to_keyval(size_t node, csubstr key, csubstr val, type_bits more_flags=0);
+    void to_map(size_t node, csubstr key, type_bits more_flags=0);
+    void to_seq(size_t node, csubstr key, type_bits more_flags=0);
+    void to_val(size_t node, csubstr val, type_bits more_flags=0);
     void to_map(size_t node, type_bits more_flags=0);
     void to_seq(size_t node, type_bits more_flags=0);
     void to_doc(size_t node, type_bits more_flags=0);
@@ -781,27 +781,30 @@ public:
 
 public:
 
-    //! remove an entire branch at once: ie remove the children and the node itself
+    /** remove an entire branch at once: ie remove the children and the node itself */
     inline void remove(size_t node)
     {
         remove_children(node);
         _release(node);
     }
 
-    //! remove all the node's children, but keep the node itself
-    void remove_children(size_t node)
+    /** remove all the node's children, but keep the node itself */
+    void remove_children(size_t node);
+
+    /** change the @p type of the node to one of MAP, SEQ or VAL.  @p
+     * type must have one and only one of MAP,SEQ,VAL; @p type may
+     * possibly have KEY, but if it does, then the @p node must also
+     * have KEY. Changing to the same type is a no-op. Otherwise,
+     * changing to a different type will initialize the node with an
+     * empty value of the desired type: changing to VAL will
+     * initialize with a null scalar (~), changing to MAP will
+     * initialize with an empty map ({), and changing to SEQ will
+     * initialize with an empty seq ([]). */
+    bool change_type(size_t node, NodeType type);
+
+    bool change_type(size_t node, type_bits type)
     {
-        RYML_ASSERT(get(node) != nullptr);
-        size_t ich = get(node)->m_first_child;
-        while(ich != NONE)
-        {
-            remove_children(ich);
-            RYML_ASSERT(get(ich) != nullptr);
-            size_t next = get(ich)->m_next_sibling;
-            _release(ich);
-            if(ich == get(node)->m_last_child) break;
-            ich = next;
-        }
+        return change_type(node, (NodeType)type);
     }
 
     #if defined(__clang__)
@@ -1103,7 +1106,7 @@ public:
     #if ! RYML_USE_ASSERT
     C4_ALWAYS_INLINE void _check_next_flags(size_t, type_bits) {}
     #else
-    inline void _check_next_flags(size_t node, type_bits f)
+    void _check_next_flags(size_t node, type_bits f)
     {
         auto n = _p(node);
         type_bits o = n->m_type; // old
@@ -1145,7 +1148,7 @@ public:
     inline void _rem_flags(size_t node, NodeType_e f) { NodeData *d = _p(node); type_bits fb = d->m_type & ~f; _check_next_flags(node, fb); d->m_type = (NodeType_e) fb; }
     inline void _rem_flags(size_t node, type_bits  f) { NodeData *d = _p(node);            f = d->m_type & ~f; _check_next_flags(node,  f); d->m_type = f; }
 
-    void _set_key(size_t node, csubstr const& key, type_bits more_flags=0)
+    void _set_key(size_t node, csubstr key, type_bits more_flags=0)
     {
         _p(node)->m_key.scalar = key;
         _add_flags(node, KEY|more_flags);
@@ -1156,7 +1159,7 @@ public:
         _add_flags(node, KEY|more_flags);
     }
 
-    void _set_val(size_t node, csubstr const& val, type_bits more_flags=0)
+    void _set_val(size_t node, csubstr val, type_bits more_flags=0)
     {
         RYML_ASSERT(num_children(node) == 0);
         RYML_ASSERT(!is_seq(node) && !is_map(node));
@@ -1217,7 +1220,8 @@ public:
         for(size_t i = first_child(node); i != NONE; i = next_sibling(i))
         {
             NodeData *C4_RESTRICT ch = _p(i);
-            if(ch->m_type.is_keyval()) continue;
+            if(ch->m_type.is_keyval())
+                continue;
             ch->m_type.add(KEY);
             ch->m_key = ch->m_val;
         }
