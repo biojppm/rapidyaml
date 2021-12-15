@@ -2,9 +2,11 @@
 #define _LIBYAML_HPP_
 
 #include <yaml.h>
+#ifndef RYML_SINGLE_HEADER
 #include <c4/yml/std/std.hpp>
 #include <c4/yml/yml.hpp>
 #include <c4/yml/detail/stack.hpp>
+#endif
 
 #include <stdexcept>
 #include <string>

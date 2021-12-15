@@ -135,33 +135,27 @@ TEST(github, 31)
     }
 
     {
-        #if RYML_USE_ASSERT
-        ExpectError::do_check([&](){
+        ExpectError::check_assertion(&tree, [&](){
             auto lumi = plist.append_child();
             lumi << "Lumi";
             lumi |= MAP;
         });
-        #endif // RYML_USE_ASSERT
     }
 
     {
-        #if RYML_USE_ASSERT
-        ExpectError::do_check([&](){
+        ExpectError::check_assertion(&tree, [&](){
             auto lumi = plist.append_child();
             lumi << "Lumi";
             lumi |= SEQ;
         });
-        #endif // RYML_USE_ASSERT
     }
 
     {
-        #if RYML_USE_ASSERT
-        ExpectError::do_check([&](){
+        ExpectError::check_assertion(&tree, [&](){
             auto lumi = plist.append_child();
             lumi |= MAP;
             lumi << "Lumi";
         });
-        #endif // RYML_USE_ASSERT
     }
 }
 

@@ -1,0 +1,105 @@
+import re
+import os
+from os.path import abspath, dirname
+import sys
+import subprocess
+import argparse
+
+
+projdir = abspath(dirname(dirname(__file__)))
+sys.path.insert(0, f"{projdir}/ext/c4core/cmake")
+import amalgamate_utils as am
+sys.path.insert(0, f"{projdir}/ext/c4core/tools")
+import amalgamate as am_c4core
+
+ryml_defmacro = "RYML_SINGLE_HDR_DEFINE_NOW"
+c4core_defmacro = "C4CORE_SINGLE_HDR_DEFINE_NOW"
+c4core_def = am.injcode(f"""#if defined({ryml_defmacro}) && !defined({c4core_defmacro})
+#define {c4core_defmacro}
+#endif""")
+
+
+def amalgamate_ryml(filename: str,
+                    with_c4core: bool,
+                    with_fastfloat: bool,
+                    with_stl: bool):
+    if with_c4core:
+        c4core_amalgamated = "src/c4/c4core_all.hpp"
+        am_c4core.amalgamate_c4core(f"{projdir}/{c4core_amalgamated}",
+                                    with_fastfloat=with_fastfloat,
+                                    with_stl=with_stl)
+    repo = "https://github.com/biojppm/rapidyaml"
+    defmacro = "RYML_SINGLE_HDR_DEFINE_NOW"
+    srcfiles = [
+        am.cmttext(f"""
+Rapid YAML - a library to parse and emit YAML, and do it fast.
+
+{repo}
+
+DO NOT EDIT. This file is generated automatically.
+This is an amalgamated single-header version of the library.
+
+INSTRUCTIONS:
+  - Include at will in any header of your project
+  - In one (and only one) of your project source files,
+    #define {defmacro} and then include this header.
+    This will enable the function and class definitions in
+    the header file.
+"""),
+        am.cmtfile("LICENSE.txt"),
+        am.onlyif(with_c4core, c4core_def),
+        am.onlyif(with_c4core, c4core_amalgamated),
+        "src/c4/yml/export.hpp",
+        "src/c4/yml/common.hpp",
+        "src/c4/yml/tree.hpp",
+        "src/c4/yml/node.hpp",
+        "src/c4/yml/writer.hpp",
+        "src/c4/yml/detail/parser_dbg.hpp",
+        am.injcode("#define C4_YML_EMIT_DEF_HPP_"),
+        "src/c4/yml/emit.hpp",
+        "src/c4/yml/emit.def.hpp",
+        "src/c4/yml/detail/stack.hpp",
+        "src/c4/yml/parse.hpp",
+        am.onlyif(with_stl, "src/c4/yml/std/map.hpp"),
+        am.onlyif(with_stl, "src/c4/yml/std/string.hpp"),
+        am.onlyif(with_stl, "src/c4/yml/std/vector.hpp"),
+        am.onlyif(with_stl, "src/c4/yml/std/std.hpp"),
+        "src/c4/yml/common.cpp",
+        "src/c4/yml/tree.cpp",
+        "src/c4/yml/parse.cpp",
+        "src/c4/yml/node.cpp",
+        "src/c4/yml/preprocess.hpp",
+        "src/c4/yml/preprocess.cpp",
+        #"src/c4/yml/detail/checks.hpp",
+        #"src/c4/yml/detail/print.hpp",
+        "src/c4/yml/yml.hpp",
+        "src/ryml.hpp",
+    ]
+    result = am.catfiles(srcfiles,
+                         projdir,
+                         # comment out lines with these patterns:
+                         include_regexes=[
+                             re.compile(r'^\s*#\s*include "(c4/yml/.*)".*$'),
+                             re.compile(r'^\s*#\s*include <(c4/yml/.*)>.*$'),
+                             re.compile(r'^\s*#\s*include "(c4/.*)".*$'),
+                             re.compile(r'^\s*#\s*include <(c4/.*)>.*$'),
+                         ],
+                         definition_macro=defmacro,
+                         repo=repo,
+                         result_incguard="_RYML_SINGLE_HEADER_AMALGAMATED_HPP_")
+    result_with_only_first_includes = am.include_only_first(result)
+    am.file_put_contents(filename, result_with_only_first_includes)
+
+
+def mkparser():
+    return am.mkparser(c4core=(True, "amalgamate c4core together with ryml"),
+                       fastfloat=(True, "enable fastfloat library"),
+                       stl=(True, "enable stl interop"))
+
+
+if __name__ == "__main__":
+    args = mkparser().parse_args()
+    amalgamate_ryml(filename=args.output,
+                    with_c4core=args.c4core,
+                    with_fastfloat=args.fastfloat,
+                    with_stl=args.stl)

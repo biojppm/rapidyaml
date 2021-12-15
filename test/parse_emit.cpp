@@ -1,11 +1,14 @@
+#ifdef RYML_SINGLE_HEADER
+#include <ryml_all.hpp>
+#else
 #include <c4/yml/std/std.hpp>
 #include <c4/yml/parse.hpp>
 #include <c4/yml/emit.hpp>
+#endif
 #include <c4/fs/fs.hpp>
 
 #include <cstdio>
 #include <chrono>
-#include <algorithm>
 
 
 using namespace c4;
@@ -63,8 +66,7 @@ int main(int argc, const char *argv[])
             size_t nlines;
             {
                 TS(count_lines);
-                C4_CHECK(contents.begin() <= contents.end());
-                nlines = static_cast<size_t>(std::count(contents.begin(), contents.end(), '\n'));
+                nlines = to_csubstr(contents).count('\n');
             }
             fprintf(stderr, "reserving #lines=%zu\n", nlines);
             tree.reserve(nlines);

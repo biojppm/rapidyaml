@@ -1,9 +1,16 @@
 #ifndef _TEST_CASE_HPP_
 #define _TEST_CASE_HPP_
 
+#include <vector>
+
+#ifdef RYML_SINGLE_HEADER
+#include <ryml_all.hpp>
+#else
 #include "c4/std/vector.hpp"
 #include "c4/std/string.hpp"
 #include <c4/yml/yml.hpp>
+#endif
+
 #include <gtest/gtest.h>
 #include <functional>
 
@@ -109,15 +116,17 @@ inline c4::substr replace_all(c4::csubstr pattern, c4::csubstr repl, c4::csubstr
 struct ExpectError
 {
     bool m_got_an_error;
-    c4::yml::Callbacks m_prev;
+    Tree *m_tree;
+    c4::yml::Callbacks m_glob_prev;
+    c4::yml::Callbacks m_tree_prev;
     Location expected_location;
 
+    ExpectError(Tree *tree, Location loc={});
     ExpectError(Location loc={});
     ~ExpectError();
 
-    static void error(const char* msg, size_t len, Location loc, void *user_data);
-    static void do_check(std::function<void()> fn, Location expected={});
-    static void check_assertion(std::function<void()> fn, Location expected={});
+    static void do_check(Tree *tree, std::function<void()> fn, Location expected={});
+    static void check_assertion(Tree *tree, std::function<void()> fn, Location expected={});
 };
 
 

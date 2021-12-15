@@ -9,11 +9,6 @@ Roughly in order of priority:
       * rename `parse(substr)` to `parse_in_situ(substr)`
       * rename `parse(csubstr)` to `parse_in_arena(csubstr)`
     * turn calls to `C4_ASSERT()` into calls to `RYML_ASSERT()`
-    * use `c4::MemoryResource` in place of `c4::yml::MemoryResource`, and
-      remove `c4::yml::MemoryResource`
-    * same for allocators and error callbacks: Use the facilities from c4core.
-    * use `csubstr` instead of `csubstr const&` in return and parameter types, but
-      quantify the performance effect.
   * Add emit formatting controls:
     * add single-line flow formatter
     * add multi-line flow formatters

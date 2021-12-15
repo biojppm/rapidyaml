@@ -45,6 +45,25 @@ ryml::Tree   tree2  = {mr2.callbacks()};
 
 
 ### New features
+- Add amalgamation into a single header file ([PR #172](https://github.com/biojppm/rapidyaml/pull/172)):
+  - The amalgamated header will be available together with the deliverables from each release.
+  - To generate the amalgamated header:
+    ```console
+    $ python tools/amalgamate.py ryml_all.hpp
+    ```
+  - To use the amalgamated header:
+    - Include at will in any header of your project.
+    - In one - and only one - of your project source files, `#define RYML_SINGLE_HDR_DEFINE_NOW` and then `#include <ryml_all.hpp>`. This will enable the function and class definitions in the header file. For example, here's a sample program:
+      ```c++
+      #include <iostream>
+      #define RYML_SINGLE_HDR_DEFINE_NOW // do this before the include
+      #include <ryml_all.hpp>
+      int main()
+      {
+          auto tree = ryml::parse("{foo: bar}");
+          std::cout << tree["foo"].val() << "\n";
+      }
+      ```
 - Add `Tree::change_type()` and `NodeRef::change_type()` ([PR #171](https://github.com/biojppm/rapidyaml/pull/171)):
   ```c++
   // clears a node and sets its type to a different type (one of `VAL`, `SEQ`, `MAP`):

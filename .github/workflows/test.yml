@@ -527,6 +527,11 @@ jobs:
       - {name: python3, uses: actions/setup-python@v2, with: {python-version: 3.7}}
       - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
       - {name: show info, run: source .github/setenv.sh && c4_show_info }
-      - {name: add_subdirectory, run: cd samples/add_subdirectory && cmany b -t $BT . -- run }
-      - {name: fetch_content, run: cd samples/fetch_content && cmany b -t $BT . -- run }
+      #
+      - {name: singleheader, run: cd samples/singleheader && ./run.sh $BT }
+      - {name: add_subdirectory, run: cd samples/add_subdirectory && ./run.sh $BT }
       - {name: find_package, run: cd samples/find_package && ./run.sh $BT }
+      - {name: custom_c4core, run: cd samples/custom_c4core && ./run.sh $BT }
+      # keep this one for last: it usually fails in PRs because
+      # fetch_content() gets the master branch which may be incompatible
+      - {name: fetch_content, run: cd samples/fetch_content && ./run.sh $BT }

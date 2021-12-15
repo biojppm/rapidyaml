@@ -300,7 +300,7 @@ struct Approach
     {
         if(skip_error())
             GTEST_SKIP();
-        ExpectError::do_check([this]{
+        ExpectError::do_check(&levels[0].tree, [this]{
             levels[0].parse();
         });
     }

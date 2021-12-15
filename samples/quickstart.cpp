@@ -23,19 +23,26 @@
 
 //-----------------------------------------------------------------------------
 
-// <ryml_std.hpp> is only needed if interop with std types is desired.
-// ryml itself does not use any STL container.
-#include <ryml_std.hpp> // optional header. BUT when used, needs to be included BEFORE ryml.hpp
-#include <ryml.hpp>
+// ryml can be used as a single header, or as a simple library:
+#ifdef RYML_SINGLE_HEADER
+    #define RYML_SINGLE_HDR_DEFINE_NOW
+    #include <ryml_all.hpp>
+#else
+    // <ryml_std.hpp> is only needed if interop with std types is
+    // desired; ryml itself does not use any STL container.
+    // For this sample, we will be using std interop, so...
+    #include <ryml_std.hpp> // optional header. BUT when used, needs to be included BEFORE ryml.hpp
+    #include <ryml.hpp>
+    #include <c4/yml/preprocess.hpp> // needed only for the json sample
+    #include <c4/format.hpp> // needed only needed for the examples below
+#endif
 
-// tbese are only needed for the examples below
-#include <c4/format.hpp>
+// these are only needed for the examples below
 #include <iostream>
 #include <sstream>
 #include <vector>
 #include <array>
 #include <map>
-#include <c4/yml/preprocess.hpp> // needed only for the json sample
 
 
 //-----------------------------------------------------------------------------
@@ -662,8 +669,8 @@ void sample_substr()
         foobar.tolower();           CHECK(foobar == "faaaar");
         foobar.fill('.');           CHECK(foobar == "......");
         // see also:
-        // - erase()
-        // - replace_all()
+        // - .erase()
+        // - .replace_all()
     }
 
     // sub-views
@@ -1251,10 +1258,12 @@ void sample_parse_file()
     }
 
     // generally, any contiguous char container can be used with ryml,
-    // provided that the ryml::csubstr view can be created out of it.
-    // ryml provides the overloads above for these two containers,
-    // but if you have a different container it should be very easy
-    // (only requires pointer and length).
+    // provided that the ryml::substr/ryml::csubstr view can be
+    // created out of it.
+    //
+    // ryml provides the overloads above for these two containers, but
+    // if you have a different container it should be very easy (only
+    // requires pointer and length).
 }
 
 
@@ -1495,10 +1504,12 @@ void sample_parse_reuse_parser()
 
     // it is also advised to reserve the parser depth
     // to the expected depth of the data tree:
-    parser.reserve_stack(10); // uses small storage optimization defaulting to 16 depth,
-                              // so this instruction is a no-op, and the stack will located
-                              // in the parser object.
-    parser.reserve_stack(20); // But this will cause an allocation because it is above 16.
+    parser.reserve_stack(10); // uses small storage optimization
+                              // defaulting to 16 depth, so this
+                              // instruction is a no-op, and the stack
+                              // will located in the parser object.
+    parser.reserve_stack(20); // But this will cause an allocation
+                              // because it is above 16.
 
     auto champagnes = parser.parse("champagnes.yml", "[Dom Perignon, Gosset Grande Reserve, Ruinart Blanc de Blancs, Jacquesson 742]");
     CHECK(ryml::emitrs<std::string>(champagnes) == R"(- Dom Perignon
@@ -1533,10 +1544,12 @@ void sample_parse_reuse_tree_and_parser()
     tree.reserve(256); // reserve 256 characters (good enough for this sample)
     // it is also advised to reserve the parser depth
     // to the expected depth of the data tree:
-    parser.reserve_stack(10); // uses small storage optimization defaulting to 16 depth,
-                              // so this instruction is a no-op, and the stack will located
-                              // in the parser object.
-    parser.reserve_stack(20); // But this will cause an allocation because it is above 16.
+    parser.reserve_stack(10); // uses small storage optimization
+                              // defaulting to 16 depth, so this
+                              // instruction is a no-op, and the stack
+                              // will be located in the parser object.
+    parser.reserve_stack(20); // But this will cause an allocation
+                              // because it is above 16.
 
     ryml::csubstr champagnes = "[Dom Perignon, Gosset Grande Reserve, Ruinart Blanc de Blancs, Jacquesson 742]";
     ryml::csubstr beers = "[Rochefort 10, Busch, Leffe Rituel, Kasteel Donker]";
@@ -1717,8 +1730,7 @@ cars: GTO
 //-----------------------------------------------------------------------------
 
 /** demonstrates explicit and implicit interaction with the tree's string arena.
- * Notice that ryml only holds strings in the tree's nodes.
-    */
+ * Notice that ryml only holds strings in the tree's nodes. */
 void sample_tree_arena()
 {
     // mutable buffers are parsed in situ:
@@ -3631,7 +3643,7 @@ struct PerTreeMemoryExample
         // because these are C-style function pointers.
         ryml::Callbacks cb;
         cb.m_user_data = (void*) this;
-        cb.m_allocate = [](size_t len, void */*hint*/, void *data){ return ((PerTreeMemoryExample*) data)->allocate(len); };
+        cb.m_allocate = [](size_t len, void *, void *data){ return ((PerTreeMemoryExample*) data)->allocate(len); };
         cb.m_free = [](void *mem, size_t len, void *data){ return ((PerTreeMemoryExample*) data)->free(mem, len); };
         return cb;
     }
@@ -3686,11 +3698,11 @@ void sample_per_tree_allocator()
     // the trees will use the memory in the resources above,
     // with each tree using a separate resource
     {
-        // Watchout: ensure that the lifetime of the callbacks
+        // Watchout: ensure that the lifetime of the callbacks target
         // exceeds the lifetime of the tree.
-        ryml::Parser parser = {mrp.callbacks()};
-        ryml::Tree   tree1  = {mr1.callbacks()};
-        ryml::Tree   tree2  = {mr2.callbacks()};
+        auto parser = ryml::Parser(mrp.callbacks());
+        auto tree1  = ryml::Tree(mr1.callbacks());
+        auto tree2  = ryml::Tree(mr2.callbacks());
 
         ryml::csubstr yml1 = "{a: b}";
         ryml::csubstr yml2 = "{c: d, e: f, g: [h, i, 0, 1, 2, 3]}";

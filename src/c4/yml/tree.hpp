@@ -414,6 +414,7 @@ public:
     inline size_t arena_slack() const { RYML_ASSERT(m_arena.len >= m_arena_pos); return m_arena.len - m_arena_pos; }
 
     Callbacks const& callbacks() const { return m_callbacks; }
+    void callbacks(Callbacks const& cb) { m_callbacks = cb; }
 
     /** @} */
 
