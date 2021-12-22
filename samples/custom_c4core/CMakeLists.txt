@@ -19,7 +19,7 @@ c4_require_subproject(c4core REMOTE
 c4_require_subproject(ryml SUBDIRECTORY ../..)
 
 add_executable(ryml-quickstart ../quickstart.cpp)
-target_link_libraries(ryml-quickstart ryml)
+target_link_libraries(ryml-quickstart ryml::ryml)
 
 add_custom_target(run ryml-quickstart
     COMMAND $<TARGET_FILE:ryml-quickstart>
