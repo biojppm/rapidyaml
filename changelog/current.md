@@ -13,4 +13,5 @@
 
 ### Fixes
 
-- prefer passing `substr` and `csubstr` by value instead of const reference ([PR #171](https://github.com/biojppm/rapidyaml/pull/171))
+- Prefer passing `substr` and `csubstr` by value instead of const reference ([PR #171](https://github.com/biojppm/rapidyaml/pull/171))
+- Fix [#173](https://github.com/biojppm/rapidyaml/issues/173): add alias target `ryml::ryml` ([PR #174](https://github.com/biojppm/rapidyaml/pull/174))

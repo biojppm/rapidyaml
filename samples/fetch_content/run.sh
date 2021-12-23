@@ -1,11 +1,7 @@
 #!/bin/bash -x
 
-BUILD_TYPE=Release
-if [ "$#" -ge 1 ] ; then
-    BUILD_TYPE=$1
-fi
-
 THIS_DIR=$(pwd)
+BUILD_TYPE=${1:-Release}
 BUILD_DIR=$THIS_DIR/build/$BUILD_TYPE
 mkdir -p $BUILD_DIR
 
