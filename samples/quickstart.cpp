@@ -2318,11 +2318,24 @@ void sample_formatting()
         CHECK("1.23e+06"      == cat_sub(buf, fmt::real(1234234.234234234, 3, FTOA_FLEX)));   // AKA %g
         CHECK("1.2e+06"       == cat_sub(buf, fmt::real(1234234.234234234, 2, FTOA_FLEX)));   // AKA %g
         // AKA %a (hexadecimal formatting of floats)
+        // Earlier versions of emscripten's sprintf() (from MUSL) do not
+        // respect some precision values when printing in hexadecimal
+        // format.
+        //
+        // @see https://github.com/biojppm/c4core/pull/52
+        #if defined(__EMSCRIPTEN__) && __EMSCRIPTEN_major__ < 3
+        #define _c4emscripten_alt(alt1, alt2) alt2
+        #else
+        #define _c4emscripten_alt(alt1, alt2) alt1
+        #endif
         CHECK("0x1.e8480p+19" == cat_sub(buf, fmt::real(1000000.000000000, 5, FTOA_HEXA)));   // AKA %a
         CHECK("0x1.2d53ap+20" == cat_sub(buf, fmt::real(1234234.234234234, 5, FTOA_HEXA)));   // AKA %a
-        CHECK("0x1.2d54p+20"  == cat_sub(buf, fmt::real(1234234.234234234, 4, FTOA_HEXA)));   // AKA %a
+        CHECK(_c4emscripten_alt("0x1.2d54p+20", "0x1.2d538p+20")
+                              == cat_sub(buf, fmt::real(1234234.234234234, 4, FTOA_HEXA)));   // AKA %a
         CHECK("0x1.2d5p+20"   == cat_sub(buf, fmt::real(1234234.234234234, 3, FTOA_HEXA)));   // AKA %a
-        CHECK("0x1.2dp+20"    == cat_sub(buf, fmt::real(1234234.234234234, 2, FTOA_HEXA)));   // AKA %a
+        CHECK(_c4emscripten_alt("0x1.2dp+20", "0x1.2d8p+20")
+                              == cat_sub(buf, fmt::real(1234234.234234234, 2, FTOA_HEXA)));   // AKA %a
+        #undef _c4emscripten_alt
 
         // --------------------------------------------------------------
         // fmt::raw(): dump data in machine format (respecting alignment)
