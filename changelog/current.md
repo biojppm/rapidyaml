@@ -10,6 +10,7 @@
   Tree expected = parse("{keyval0: val0, keyval1: {}, keyval2: []}");
   assert(emitrs<std::string>(t) == emitrs<std::string>(expected));
   ```
+- Add support for compilation with emscripten (WebAssembly+javascript) ([PR #173](https://github.com/biojppm/rapidyaml/pull/173)).
 
 ### Fixes
 

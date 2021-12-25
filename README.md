@@ -43,9 +43,9 @@ ryml is written in C++11, and compiles cleanly with:
 * Intel Compiler
 
 ryml is [extensively unit-tested in Linux, Windows and
-MacOS](https://github.com/biojppm/rapidyaml/actions). The
-tests cover x64, x86, arm, aarch64, ppc64le and s390x architectures,
-and include analysing ryml with:
+MacOS](https://github.com/biojppm/rapidyaml/actions). The tests cover
+x64, x86, arm, wasm (emscripten), aarch64, ppc64le and s390x
+architectures, and include analysing ryml with:
   * valgrind
   * clang-tidy
   * clang sanitizers:
