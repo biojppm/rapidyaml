@@ -662,7 +662,7 @@ R"(
   }
 ),
 
-C("plain scalar, do not accept ': ' mid line", HAS_PARSE_ERROR,
+C("plain scalar, do not accept ': ' mid line", EXPECT_PARSE_ERROR,
 R"(- Several lines of text,
   with special:characters, like:this-or-this -
   - and some "quotes" of various 'types'.
@@ -671,7 +671,7 @@ R"(- Several lines of text,
   LineCol(4, 11)
 ),
 
-C("plain scalar, do not accept ': ' start line", HAS_PARSE_ERROR,
+C("plain scalar, do not accept ': ' start line", EXPECT_PARSE_ERROR,
 R"(
 - Several lines of text,
   with special:characters, like:this-or-this -
@@ -682,7 +682,7 @@ R"(
   LineCol(6, 3)
 ),
 
-C("plain scalar, do not accept ': ' at line end", HAS_PARSE_ERROR,
+C("plain scalar, do not accept ': ' at line end", EXPECT_PARSE_ERROR,
 R"(- Several lines of text,
   with special:characters, like:this-or-this -
   - and some "quotes" of various 'types'.
@@ -691,7 +691,7 @@ R"(- Several lines of text,
   LineCol(4, 36)
 ),
 
-C("plain scalar, do not accept ':' at line end", HAS_PARSE_ERROR,
+C("plain scalar, do not accept ':' at line end", EXPECT_PARSE_ERROR,
 R"(- Several lines of text,
   with special:characters, like:this-or-this -
   - and some "quotes" of various 'types'.
@@ -767,7 +767,7 @@ and yet more, deindented
    }
 ),
 
-C("plain scalar, explicit, early end, seq", HAS_PARSE_ERROR,
+C("plain scalar, explicit, early end, seq", EXPECT_PARSE_ERROR,
 R"([
   a plain scalar
     with several lines
@@ -775,7 +775,7 @@ R"([
   LineCol(4, 1)
 ),
 
-C("plain scalar, explicit, early end, map", HAS_PARSE_ERROR,
+C("plain scalar, explicit, early end, map", EXPECT_PARSE_ERROR,
 R"({foo:
   a plain scalar
     with several lines

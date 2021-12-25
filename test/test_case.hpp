@@ -1,10 +1,8 @@
 #ifndef _TEST_CASE_HPP_
 #define _TEST_CASE_HPP_
 
-#include <vector>
-
-#include "./libyaml.hpp"
-
+#include "c4/std/vector.hpp"
+#include "c4/std/string.hpp"
 #include <c4/yml/yml.hpp>
 #include <gtest/gtest.h>
 #include <functional>
@@ -417,12 +415,8 @@ public:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 typedef enum {
-    IGNORE_LIBYAML_PARSE_FAIL = (1<<0),
-    IGNORE_YAMLCPP_PARSE_FAIL = (1<<1),
-    EXPECT_PARSE_ERROR = (1<<2),
-    RESOLVE_REFS = (1<<3),
-    IGNORE_THIRDPARTY_PARSE_FAIL = IGNORE_LIBYAML_PARSE_FAIL|IGNORE_YAMLCPP_PARSE_FAIL,
-    HAS_PARSE_ERROR = EXPECT_PARSE_ERROR|IGNORE_THIRDPARTY_PARSE_FAIL,
+    EXPECT_PARSE_ERROR = (1<<0),
+    RESOLVE_REFS = (1<<1),
 } TestCaseFlags_e;
 
 

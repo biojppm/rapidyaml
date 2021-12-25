@@ -531,28 +531,28 @@ L{
    }),
 }),
 
-C("simple seq, invalid character 1", HAS_PARSE_ERROR,
+C("simple seq, invalid character 1", EXPECT_PARSE_ERROR,
 R"(- 0   # this is a foo
 }
 )",
   LineCol(2, 1)
 ),
 
-C("simple seq, invalid character 2", HAS_PARSE_ERROR,
+C("simple seq, invalid character 2", EXPECT_PARSE_ERROR,
 R"(- 0   # this is a foo
 ]
 )",
   LineCol(2, 1)
 ),
 
-C("simple seq, invalid character 3", HAS_PARSE_ERROR,
+C("simple seq, invalid character 3", EXPECT_PARSE_ERROR,
 R"(- 0   # this is a foo
 :
 )",
   LineCol(2, 1)
 ),
 
-C("simple seq, invalid character 4", HAS_PARSE_ERROR,
+C("simple seq, invalid character 4", EXPECT_PARSE_ERROR,
 R"(- 0   # this is a foo
 abcdef!
 )",

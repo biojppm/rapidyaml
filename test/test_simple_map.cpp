@@ -474,7 +474,7 @@ h }i: val }000
 }
 ),
 
-C("simple map expl, scalars with special chars, comma", IGNORE_YAMLCPP_PARSE_FAIL,
+C("simple map expl, scalars with special chars, comma",
 R"({
 a0,b0: val0,0000
 c0,d0: val0, 0000
