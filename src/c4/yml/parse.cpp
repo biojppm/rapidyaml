@@ -3562,15 +3562,14 @@ csubstr Parser::_scan_block()
             else
                 t = t.first(pos);
         }
-
         // from here to the end, only digits are considered
         digits = t.left_of(t.first_not_of("0123456789"));
         if( ! digits.empty())
         {
-            if( ! _read_decimal(digits, &indentation))
-            {
+            if( ! c4::atou(digits, &indentation))
                 _c4err("parse error: could not read decimal");
-            }
+            _c4dbgpf("scanning block: indentation specified: %zu. add %zu from curr state -> %zu", indentation, m_state->indref, indentation+m_state->indref);
+            indentation += m_state->indref;
         }
     }
 
@@ -4140,13 +4139,6 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
 #endif
 
     return r;
-}
-
-//-----------------------------------------------------------------------------
-bool Parser::_read_decimal(csubstr const& str, size_t *decimal)
-{
-    RYML_ASSERT(str.len >= 1);
-    return c4::atou(str, decimal);
 }
 
 //-----------------------------------------------------------------------------

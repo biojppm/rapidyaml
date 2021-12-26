@@ -200,7 +200,6 @@ private:
 
 private:
 
-    static bool   _read_decimal(csubstr const& str, size_t *decimal);
     static size_t _count_nlines(csubstr src);
 
 private:

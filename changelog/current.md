@@ -14,6 +14,14 @@
 
 ### Fixes
 
+- Understand block literal indentation as relative to current indentation level, rather than as an absolute indentation level ([PR #176](https://github.com/biojppm/rapidyaml/pull/176)):
+  ```yaml
+  foo:
+  - |
+   child0
+  - |2
+     child2  # indentation is 4, not 2
+  ```
 - Prefer passing `substr` and `csubstr` by value instead of const reference ([PR #171](https://github.com/biojppm/rapidyaml/pull/171))
 - Fix [#173](https://github.com/biojppm/rapidyaml/issues/173): add alias target `ryml::ryml` ([PR #174](https://github.com/biojppm/rapidyaml/pull/174))
 - Speedup compilation of tests by removing linking with yaml-cpp and libyaml. ([PR #177](https://github.com/biojppm/rapidyaml/pull/177))

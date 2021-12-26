@@ -125,7 +125,9 @@ TEST(block_literal, emit_does_not_add_lines_to_multi_at_end)
     "block literal as map val, explicit indentation 9",\
     "block literal with empty unindented lines, without quotes",\
     "block literal with empty unindented lines, with double quotes",\
-    "block literal with empty unindented lines, with single quotes"
+    "block literal with empty unindented lines, with single quotes",\
+    "block literal with same indentation level 0",\
+    "block literal with same indentation level 1"
 
 
 CASE_GROUP(BLOCK_LITERAL)
@@ -465,6 +467,27 @@ C("block literal with empty unindented lines, with single quotes",
     N("tpl", L{N(QV, "src", "#include '{{hdr.filename}}'\n\n{{src.gencode}}\n")})
   }
 ),
+
+C("block literal with same indentation level 0",
+R"(
+aaa: |2
+  xxx
+bbb: |
+  xxx
+)",
+  L{N(QV, "aaa", "xxx\n"), N(QV, "bbb", "xxx\n")}
+    ),
+
+C("block literal with same indentation level 1",
+R"(
+- aaa: |2
+    xxx
+  bbb: |
+    xxx
+)",
+  L{N(L{N(QV, "aaa", "xxx\n"), N(QV, "bbb", "xxx\n")})}
+    ),
+
     )
 }
 
