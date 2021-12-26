@@ -24,9 +24,9 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL GNU)
     endif()
 endif()
 c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
-    SOURCES test_case.hpp test_case.cpp libyaml.hpp
+    SOURCES test_case.hpp test_case.cpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${ryml_yaml_cpp_inc}
-    LIBS ryml c4fs yaml yaml-cpp gtest
+    LIBS ryml c4fs gtest
     FOLDER test)
 if(RYML_DBG)
     target_compile_definitions(ryml-_testlib PUBLIC RYML_DBG)
@@ -127,7 +127,7 @@ c: [4, 5, 6]
 #-------------------------------------------------------------------------
 
 # run every case in the yaml-test-suite
-option(RYML_TEST_SUITE "Enable ~300 extensive test cases from yaml-test-suite, https://github.com/yaml/yaml-test-suite." OFF)
+option(RYML_TEST_SUITE "Enable cases from yaml-test-suite, https://github.com/yaml/yaml-test-suite." ON)
 
 if(RYML_TEST_SUITE)
     set(ed ${CMAKE_CURRENT_BINARY_DIR}/ext) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)

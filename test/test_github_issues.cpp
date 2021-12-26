@@ -489,7 +489,7 @@ L{
 }
 ),
 
-C("github35/expected_error11", HAS_PARSE_ERROR,
+C("github35/expected_error11", EXPECT_PARSE_ERROR,
 R"(
 # *segfault* // not anymore!
 - key1: true1
@@ -498,7 +498,7 @@ R"(
   LineCol(4, 1)
 ),
 
-C("github35/expected_error12", HAS_PARSE_ERROR,
+C("github35/expected_error12", EXPECT_PARSE_ERROR,
 R"(
 # *segfault* // not anymore!
 - key2: true2
@@ -507,7 +507,7 @@ R"(
   LineCol(4, 1)
 ),
 
-C("github35/expected_error21", HAS_PARSE_ERROR,
+C("github35/expected_error21", EXPECT_PARSE_ERROR,
 R"(
 # *segfault* // not anymore!
 - key1: true1
@@ -516,7 +516,7 @@ R"(
   LineCol(4, 15)
 ),
 
-C("github35/expected_error22", HAS_PARSE_ERROR,
+C("github35/expected_error22", EXPECT_PARSE_ERROR,
 R"(
 # *segfault* // not anymore!
 - key2: true2
@@ -525,7 +525,7 @@ R"(
   LineCol(4, 15)
 ),
 
-C("github128/1", RESOLVE_REFS | HAS_PARSE_ERROR, "a: *invalid"),
+C("github128/1", RESOLVE_REFS | EXPECT_PARSE_ERROR, "a: *invalid"),
 C("github128/2", RESOLVE_REFS/* | HAS_PARSE_ERROR*/, "*", N(DOCVAL, "*")),
 
 C("github129", RESOLVE_REFS, R"(

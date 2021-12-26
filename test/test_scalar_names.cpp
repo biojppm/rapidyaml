@@ -59,7 +59,7 @@ L{_(a), _(b:b), _(c{c), _(cc{), _(c}c), _(cc}), _(c!c), _(cc!), _(.foo),  _(.), 
 }
 ),
 
-C("funny names, seq expl", IGNORE_LIBYAML_PARSE_FAIL,
+C("funny names, seq expl",
 R"([a, b, c, .foo, ., -a, +b, /b, :c, $g])",
 L{_(a), _(b), _(c), _(.foo), _(.), _(-a), _(+b), _(/b), _(:c), _($g)}
 ),
@@ -83,7 +83,7 @@ L{__(a), __(b), __(c), __(.foo), __(.), __(-a), __(+b), __(/b), __(:c), __($g),
   N(QKV, "*", "*"), N(QKV, "*a", "*a")}
 ),
 
-C("funny names, map expl", IGNORE_LIBYAML_PARSE_FAIL,
+C("funny names, map expl",
 R"({a: a, b: b, c: c, .foo: .foo, .: ., -a: -a, +b: +b, /b: /b, :c: :c, $g: $g,
     '*': '*', '*a':'*a'})",
 L{__(a), __(b), __(c), __(.foo), __(.), __(-a), __(+b), __(/b), __(:c), __($g),

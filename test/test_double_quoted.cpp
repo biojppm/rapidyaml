@@ -374,7 +374,7 @@ R"("This is a key\nthat has multiple lines\n": and this is its value
   L{N(QK, "This is a key\nthat has multiple lines\n", "and this is its value")}
 ),
 
-C("dquoted, example 2.1", IGNORE_LIBYAML_PARSE_FAIL|IGNORE_YAMLCPP_PARSE_FAIL,
+C("dquoted, example 2.1",
 R"("This is a key
 
 that has multiple lines

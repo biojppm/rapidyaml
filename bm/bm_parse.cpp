@@ -1,7 +1,7 @@
 #include <ryml.hpp>
 #include <ryml_std.hpp>
 #include <c4/fs/fs.hpp>
-#include "../test/libyaml.hpp"
+#include "./libyaml.hpp"
 
 #include <vector>
 #include <iostream>

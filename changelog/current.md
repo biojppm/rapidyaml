@@ -10,9 +10,10 @@
   Tree expected = parse("{keyval0: val0, keyval1: {}, keyval2: []}");
   assert(emitrs<std::string>(t) == emitrs<std::string>(expected));
   ```
-- Add support for compilation with emscripten (WebAssembly+javascript) ([PR #173](https://github.com/biojppm/rapidyaml/pull/173)).
+- Add support for compilation with emscripten (WebAssembly+javascript) ([PR #176](https://github.com/biojppm/rapidyaml/pull/176)).
 
 ### Fixes
 
 - Prefer passing `substr` and `csubstr` by value instead of const reference ([PR #171](https://github.com/biojppm/rapidyaml/pull/171))
 - Fix [#173](https://github.com/biojppm/rapidyaml/issues/173): add alias target `ryml::ryml` ([PR #174](https://github.com/biojppm/rapidyaml/pull/174))
+- Speedup compilation of tests by removing linking with yaml-cpp and libyaml. ([PR #177](https://github.com/biojppm/rapidyaml/pull/177))
