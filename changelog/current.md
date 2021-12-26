@@ -31,3 +31,4 @@
 - Prefer passing `substr` and `csubstr` by value instead of const reference ([PR #171](https://github.com/biojppm/rapidyaml/pull/171))
 - Fix [#173](https://github.com/biojppm/rapidyaml/issues/173): add alias target `ryml::ryml` ([PR #174](https://github.com/biojppm/rapidyaml/pull/174))
 - Speedup compilation of tests by removing linking with yaml-cpp and libyaml. ([PR #177](https://github.com/biojppm/rapidyaml/pull/177))
+- Fix [c4core#53](https://github.com/biojppm/c4core/issues/53): cmake install targets were missing call to `export()` ([PR #179](https://github.com/biojppm/c4core/pull/179)).
