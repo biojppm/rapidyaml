@@ -677,11 +677,16 @@ versions). You can find out how to achieve this by looking at the [`custom_c4cor
 ## Other languages
 
 One of the aims of ryml is to provide an efficient YAML API for other
-languages. There's already a cursory implementation for Python (using
-only the low-level API). After ironing out the general approach, other
-languages are likely to follow: probably (in order) JavaScript, C#,
-Java, Ruby, PHP, Octave and R (all of this is possible because we're
-using [SWIG](http://www.swig.org/), which makes it easy to do so).
+languages. JavaScript is fully available, and there is already a
+cursory implementation for Python using only the low-level API. After
+ironing out the general approach, other languages are likely to
+follow (all of this is possible because we're using
+[SWIG](http://www.swig.org/), which makes it easy to do so).
+
+### JavaScript
+
+A JavaScript+WebAssembly port is available, compiled through [emscripten](https://emscripten.org/).
+
 
 ### Python
 
@@ -837,37 +842,37 @@ ryml makes no effort to follow the standard in the following situations:
 * `%TAG` directives have no effect and are ignored. All schemas are assumed
   to be the default YAML 2002 schema.
 * Tags are parsed as-is; tag lookup is not supported. YAML test suite cases:
-  [5TYM](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/5TYM.tml),
-  [6CK3](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/6CK3.tml),
-  [6WLZ](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/6WLZ.tml),
-  [9WXW](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/9WXW.tml),
-  [C4HZ](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/C4HZ.tml),
-  [CC74](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/CC74.tml),
-  [P76L](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/P76L.tml),
-  [QLJ7](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/QLJ7.tml),
-  [U3C3](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/U3C3.tml),
-  [Z9M4](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/Z9M4.tml).
+  [5TYM](https://github.com/yaml/yaml-test-suite/tree/main/src/5TYM.yaml),
+  [6CK3](https://github.com/yaml/yaml-test-suite/tree/main/src/6CK3.yaml),
+  [6WLZ](https://github.com/yaml/yaml-test-suite/tree/main/src/6WLZ.yaml),
+  [9WXW](https://github.com/yaml/yaml-test-suite/tree/main/src/9WXW.yaml),
+  [C4HZ](https://github.com/yaml/yaml-test-suite/tree/main/src/C4HZ.yaml),
+  [CC74](https://github.com/yaml/yaml-test-suite/tree/main/src/CC74.yaml),
+  [P76L](https://github.com/yaml/yaml-test-suite/tree/main/src/P76L.yaml),
+  [QLJ7](https://github.com/yaml/yaml-test-suite/tree/main/src/QLJ7.yaml),
+  [U3C3](https://github.com/yaml/yaml-test-suite/tree/main/src/U3C3.yaml),
+  [Z9M4](https://github.com/yaml/yaml-test-suite/tree/main/src/Z9M4.yaml).
 * Anchor names must not end with a terminating colon. YAML test suite cases:
-  [2SXE](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/2SXE.tml),
-  [W5VH](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/W5VH.tml).
+  [2SXE](https://github.com/yaml/yaml-test-suite/tree/main/src/2SXE.yaml),
+  [W5VH](https://github.com/yaml/yaml-test-suite/tree/main/src/W5VH.yaml).
 * Tabs after `:` or `-` are not supported. YAML test suite cases:
-  [6BCT](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/6BCT.tml),
-  [J3BT](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/J3BT.tml).
+  [6BCT](https://github.com/yaml/yaml-test-suite/tree/main/src/6BCT.yaml),
+  [J3BT](https://github.com/yaml/yaml-test-suite/tree/main/src/J3BT.yaml).
 * Containers are not accepted as mapping keys. Keys must be
   scalar strings and cannot be mappings or sequences. But mapping
   values can be any of the above. YAML test suite cases:
-  [4FJ6](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/4FJ6.tml),
-  [6BFJ](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/6BFJ.tml),
-  [6PBE](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/6PBE.tml),
-  [KK5P](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/KK5P.tml),
-  [KZN9](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/KZN9.tml),
-  [LX3P](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/LX3P.tml),
-  [M5DY](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/M5DY.tml),
-  [Q9WF](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/Q9WF.tml),
-  [SBG9](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/SBG9.tml),
-  [V9D5](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/V9D5.tml),
-  [X38W](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/X38W.tml),
-  [XW4D](https://github.com/yaml/yaml-test-suite/tree/ed99dd31187f00d729fe160a7658f6f29c08f80b/test/XW4D.tml).
+  [4FJ6](https://github.com/yaml/yaml-test-suite/tree/main/src/4FJ6.yaml),
+  [6BFJ](https://github.com/yaml/yaml-test-suite/tree/main/src/6BFJ.yaml),
+  [6PBE](https://github.com/yaml/yaml-test-suite/tree/main/src/6PBE.yaml),
+  [KK5P](https://github.com/yaml/yaml-test-suite/tree/main/src/KK5P.yaml),
+  [KZN9](https://github.com/yaml/yaml-test-suite/tree/main/src/KZN9.yaml),
+  [LX3P](https://github.com/yaml/yaml-test-suite/tree/main/src/LX3P.yaml),
+  [M5DY](https://github.com/yaml/yaml-test-suite/tree/main/src/M5DY.yaml),
+  [Q9WF](https://github.com/yaml/yaml-test-suite/tree/main/src/Q9WF.yaml),
+  [SBG9](https://github.com/yaml/yaml-test-suite/tree/main/src/SBG9.yaml),
+  [V9D5](https://github.com/yaml/yaml-test-suite/tree/main/src/V9D5.yaml),
+  [X38W](https://github.com/yaml/yaml-test-suite/tree/main/src/X38W.yaml),
+  [XW4D](https://github.com/yaml/yaml-test-suite/tree/main/src/XW4D.yaml).
 
 
 ------
