@@ -881,22 +881,38 @@ bool Parser::_handle_seq_impl()
         /* pathological case:
          * - &key : val
          * - &key :
+         * - : val
          */
         else if((!has_all(SSCL)) &&
-                (!m_val_anchor.empty() || !m_val_tag.empty()) &&
                 (rem.begins_with(": ") || rem.left_of(rem.find("#")).trimr("\t") == ":"))
         {
-            _c4dbgp("val is a child map + this key is empty");
-            addrem_flags(RNXT, RVAL); // before _push_level!
-            _move_val_tag_to_key_tag();
-            _move_val_anchor_to_key_anchor();
-            _push_level();
-            _start_map();
-            _store_scalar({}, /*is_quoted*/false);
-            addrem_flags(RVAL, RKEY);
-            RYML_CHECK(_maybe_set_indentation_from_anchor_or_tag()); // one of them must exist
-            _line_progressed(rem.begins_with(": ") ? 2u : 1u);
-            return true;
+            if(!m_val_anchor.empty() || !m_val_tag.empty())
+            {
+                _c4dbgp("val is a child map + this key is empty, with anchors or tags");
+                addrem_flags(RNXT, RVAL); // before _push_level!
+                _move_val_tag_to_key_tag();
+                _move_val_anchor_to_key_anchor();
+                _push_level();
+                _start_map();
+                _store_scalar({}, /*is_quoted*/false);
+                addrem_flags(RVAL, RKEY);
+                RYML_CHECK(_maybe_set_indentation_from_anchor_or_tag()); // one of them must exist
+                _line_progressed(rem.begins_with(": ") ? 2u : 1u);
+                return true;
+            }
+            else
+            {
+                _c4dbgp("val is a child map + this key is empty, no anchors or tags");
+                addrem_flags(RNXT, RVAL); // before _push_level!
+                _push_level();
+                _start_map();
+                _store_scalar({}, /*is_quoted*/false);
+                addrem_flags(RVAL, RKEY);
+                _c4dbgpf("set indentation from map anchor: %zu", m_state->indref + 2);
+                _set_indentation(m_state->indref + 2); // this is the column where the map starts
+                _line_progressed(rem.begins_with(": ") ? 2u : 1u);
+                return true;
+            }
         }
         else
         {
