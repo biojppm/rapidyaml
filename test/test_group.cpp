@@ -324,13 +324,13 @@ void YmlTestCase::_test_recreate_from_ref(CaseDataLineEndings *cd)
 }
 
 //-----------------------------------------------------------------------------
-TEST_P(YmlTestCase, parse_unix_using_ryml)
+TEST_P(YmlTestCase, parse_unix)
 {
     SCOPED_TRACE("unix style");
     _test_parse_using_ryml(&d->unix_style);
 }
 
-TEST_P(YmlTestCase, parse_windows_using_ryml)
+TEST_P(YmlTestCase, parse_windows)
 {
     SCOPED_TRACE("windows style");
     _test_parse_using_ryml(&d->windows_style);

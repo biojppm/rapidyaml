@@ -232,6 +232,7 @@ void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
     for(csubstr line : src.split('\n'))
     {
         line = line.trimr('\r');
+        line = line.triml(' ');
         _nfo_printf("\n\n-----------------------\n");
         {
             size_t curr = m_stack.empty() ? tree.root_id() : m_stack.top().tree_node;
@@ -364,7 +365,13 @@ void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
             _nfo_log("pushing SEQ");
             OptionalScalar anchor = {};
             OptionalScalar tag = {};
-            parse_anchor_and_tag(line.stripl("+SEQ").triml(' '), &anchor, &tag);
+            csubstr more_tokens = line.stripl("+SEQ").triml(' ');
+            if(more_tokens.begins_with('['))
+            {
+                ASSERT_TRUE(more_tokens.begins_with("[]"));
+                more_tokens = more_tokens.offs(2, 0).triml(' ');
+            }
+            parse_anchor_and_tag(more_tokens, &anchor, &tag);
             size_t node = tree.root_id();
             if(m_stack.empty())
             {
@@ -426,7 +433,13 @@ void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
             _nfo_log("pushing MAP");
             OptionalScalar anchor = {};
             OptionalScalar tag = {};
-            parse_anchor_and_tag(line.stripl("+MAP").triml(' '), &anchor, &tag);
+            csubstr more_tokens = line.stripl("+MAP").triml(' ');
+            if(more_tokens.begins_with('{'))
+            {
+                ASSERT_TRUE(more_tokens.begins_with("{}"));
+                more_tokens = more_tokens.offs(2, 0).triml(' ');
+            }
+            parse_anchor_and_tag(more_tokens, &anchor, &tag);
             size_t node = tree.root_id();
             if(m_stack.empty())
             {

@@ -240,7 +240,7 @@ struct Approach
         RYML_ASSERT(events_part(CPART_OUT_YAML) == CPART_OUT_YAML_EVENTS);
         RYML_ASSERT(events_part(CPART_EMIT_YAML) == CPART_EMIT_YAML_EVENTS);
         // use bit-or to ensure calling both, so that both report a skip
-        return skip_part() | allowed_failure_events.skip(events_part(case_part));
+        return (bool)((int)skip_part() | (int)allowed_failure_events.skip(events_part(case_part)));
     }
 
     void parse(size_t num, bool emit)
@@ -330,11 +330,6 @@ struct Subject
 
     void init(csubstr filename, csubstr src, CasePart_e case_part, bool expect_error)
     {
-        if(src.ends_with("\r\n"))
-            src = src.offs(0, 2);
-        else if(src.ends_with('\n'))
-            src = src.offs(0, 1);
-
         src = replace_all("\r", "", src, &unix_src);
 
         unix_ro      .init(filename, src, /*immutable*/true , /*reuse*/false, case_part, expect_error);
@@ -358,43 +353,76 @@ struct Subject
 
 // some utility functions, used below
 
-size_t find_first_after(size_t pos, std::initializer_list<size_t> candidates)
+void check_known_keys(csubstr filename, NodeRef const spec)
 {
-    size_t ret = npos;
-    for(size_t s : candidates)
-        if(s > pos && s < ret)
-            ret = s;
-    return ret;
+    for(auto node : spec.children())
+    {
+        csubstr k = node.key();
+        if(k == "name")
+            ;
+        else if(k == "from")
+            ;
+        else if(k == "yaml")
+            ;
+        else if(k == "tags")
+            ;
+        else if(k == "tree")
+            ;
+        else if(k == "json")
+            ;
+        else if(k == "dump")
+            ;
+        else if(k == "emit")
+            ;
+        else if(k == "fail")
+            ;
+        else if(k == "toke")
+            ;
+        else if(k == "skip")
+            ;
+        else
+            C4_ERROR("%.*s: unknown tag '%.*s'",
+                     (int)filename.len, filename.str,
+                     (int)k.len, k.str);
+    }
 }
 
-csubstr filter_out_indentation(csubstr src, std::string *dst)
+struct SpecialCharsFilter
 {
-    if( ! src.begins_with("    "))
+    std::string tmpa;
+    std::string tmpb;
+    std::string *current = &tmpa;
+    csubstr _do_replace(csubstr pattern, csubstr repl, csubstr subject)
     {
-        dst->assign(src.begin(), src.end());
-        return c4::to_csubstr(*dst);
+        subject = replace_all(pattern, repl, subject, current);
+        if(current == &tmpa)
+            current = &tmpb;
+        else
+            current = &tmpa;
+        return subject;
     }
-    auto has_meta_comments = [](csubstr s) {
-        for(csubstr line : s.split('\n'))
-            if(line.begins_with('#'))
-                return true;
-        return false;
-    };
-    std::string tmp;
-    if(has_meta_comments(src))
+    // https://github.com/yaml/yaml-test-suite#special-characters
+    csubstr replace_normal(csubstr txt)
     {
-        tmp.reserve(src.size());
-        for(csubstr line : src.split('\n'))
-        {
-            if(line.begins_with('#'))
-                continue;
-            tmp.append(line.begin(), line.end());
-            tmp += '\n';
-        }
-        src = c4::to_csubstr(tmp);
+        txt = _do_replace("␣", " ", txt);
+        txt = _do_replace("———»", "\t", txt);
+        txt = _do_replace("——»", "\t", txt);
+        txt = _do_replace("—»", "\t", txt);
+        txt = _do_replace("»", "\t", txt);
+        txt = _do_replace("↵", "\n", txt);
+        txt = _do_replace("←", "\r", txt);
+        txt = _do_replace("∎", "", txt);
+        txt = _do_replace("⇔", "\xef\xbb\xbf", txt); // byte order mark 0xef 0xbb 0xbf
+        return txt;
     }
-    return replace_all("\n    ", "\n", src.sub(4), dst);
-}
+    csubstr replace_events(csubstr txt)
+    {
+        txt = replace_normal(txt);
+        txt = _do_replace("<SPC>", " ", txt);
+        txt = _do_replace("<TAB>", "\t", txt);
+        return txt;
+    }
+};
 
 
 /** all the ways that a test case can be processed are
@@ -405,10 +433,12 @@ struct SuiteCase
     csubstr     filename;
     std::string file_contents;
 
+    Tree    tree;
     csubstr desc;
     csubstr from;
     csubstr tags;
     bool    expect_error;
+    bool    skip;
 
     Subject in_yaml;
     Subject in_json;
@@ -422,8 +452,7 @@ struct SuiteCase
         return c4::to_csubstr(s.unix_ro.levels[0].src);
     }
 
-    /** loads the several types of tests from an input test suite
-     * template file (tml)*/
+    /** loads the several types of tests from an input test suite file */
     SuiteCase(const char* filename_)
     {
         filename = c4::to_csubstr(filename_);
@@ -431,153 +460,80 @@ struct SuiteCase
         // read the file
         c4::fs::file_get_contents(filename_, &file_contents);
         csubstr contents = c4::to_csubstr(file_contents);
+        #if RYML_NFO
+        _nfo_logf("contents:\n~~~{}~~~", contents);
+        #endif
 
         // now parse the file
-        csubstr ws = " \t\r\n";
-        csubstr txt;
-        size_t b, e;
-
-        // desc
-        RYML_CHECK(contents.begins_with("=== "));
-        e = contents.find("--- from: ", 4);
-        RYML_CHECK(e != npos);
-        desc = contents.range(4, e).trimr(ws);
-
-        // from
-        b = e + 4;
-        e = contents.find("--- tags: ", b);
-        RYML_CHECK(e != npos);
-        from = contents.range(b, e);
-        RYML_CHECK(from.begins_with("from: "));
-        RYML_CHECK(from.size() >= 6);
-        from = from.sub(6).trimr(ws);
-
-        // tags
-        b = e + 4;
-        e = contents.find("--- in-yaml", b);
-        RYML_CHECK(e != npos);
-        tags = contents.range(b, e);
-        RYML_CHECK(tags.begins_with("tags: "));
-        RYML_CHECK(tags.size() >= 6);
-        tags = tags.sub(6).trimr(ws);
-
-        expect_error = (tags.find("error") != npos);
-
+        RYML_CHECK(contents.begins_with("---"));
+        parse(filename, contents, &tree);
+        #if RYML_NFO
+        c4::print("parsed:"); print_tree(tree);
+        #endif
+        NodeRef spec = tree.docref(0)[0];
+        check_known_keys(filename, spec);
+        desc = spec["name"].val();
+        from = spec["from"].val();
+        tags = spec["tags"].val();
         bool has_whitespace = tags.find("whitespace");
+        expect_error = (tags.find("error") != npos);
+        if(spec.has_child("fail"))
+        {
+            if(!expect_error)
+            {
+                spec["fail"] >> expect_error;
+            }
+            else
+            {
+                bool tmp = false;
+                spec["fail"] >> tmp;
+                C4_CHECK(tmp == expect_error);
+            }
+        }
+        skip = false;
+        if(spec.has_child("skip"))
+            spec["skip"] >> skip;
 
-        size_t end_tags        = e;
-        size_t begin_in_yaml   = contents.find("--- in-yaml"   , end_tags);
-        size_t begin_error     = contents.find("--- error"     , end_tags);
-        size_t begin_in_json   = contents.find("--- in-json"   , end_tags);
-        size_t begin_out_yaml  = contents.find("--- out-yaml"  , end_tags);
-        size_t begin_emit_yaml = contents.find("--- emit-yaml" , end_tags);
-        size_t begin_events    = contents.find("--- test-event", end_tags);
-        size_t lex_token       = contents.find("--- lex-token" , end_tags);
-        auto did_not_slurp_other_tml_tokens = [](csubstr part){
-            csubstr tokens[] = {"--- in-yaml", "--- error", "--- in-json", "--- out-yaml", "--- emit-yaml", "---test-event", "--- lex-token"};
-            return ! part.first_of_any_iter(std::begin(tokens), std::end(tokens));
-        };
-        std::initializer_list<size_t> all = {
-            begin_in_yaml,
-            begin_error,
-            begin_in_json,
-            begin_out_yaml,
-            begin_emit_yaml,
-            begin_events,
-            lex_token,
-            contents.size()
-        };
-
-        // some of the examples have their code indented,
-        // so we need these workspaces for deindenting
-        std::string tmpa;
-        std::string tmpb;
+        SpecialCharsFilter filter;
+        csubstr txt;
 
         // in_yaml
-        RYML_CHECK(begin_in_yaml != npos);
-        size_t first_after_in_yaml = find_first_after(begin_in_yaml, all);
-        begin_in_yaml = 1 + contents.find('\n', begin_in_yaml); // skip this line
-        txt = contents.range(begin_in_yaml, first_after_in_yaml);
-        RYML_CHECK(did_not_slurp_other_tml_tokens(txt));
-        txt = filter_out_indentation(txt, &tmpa);
+        txt = spec["yaml"].val();
         if(has_whitespace)
-        {
-            txt = replace_all("<SPC>", " ", txt, &tmpb);
-            txt = replace_all("<TAB>", "\t", txt, &tmpa);
-        }
+            txt = filter.replace_normal(txt);
         in_yaml.init(filename, txt, CPART_IN_YAML, expect_error);
 
-        // error
-        if(begin_error != npos)
-        {
-            size_t first_after = find_first_after(begin_error, all);
-            begin_error = 1 + contents.find('\n', begin_error); // skip this line
-            txt = contents.range(begin_error, first_after);
-            RYML_CHECK(did_not_slurp_other_tml_tokens(txt));
-            txt = filter_out_indentation(txt, &tmpa);
-        }
-
         // in_json
-        if(begin_in_json != npos)
+        if(spec.has_child("json"))
         {
-            size_t first_after = find_first_after(begin_in_json, all);
-            begin_in_json = 1 + contents.find('\n', begin_in_json); // skip this line
-            txt = contents.range(begin_in_json, first_after);
-            RYML_CHECK(did_not_slurp_other_tml_tokens(txt));
+            txt = spec["json"].val();
             in_json.init(filename, txt, CPART_IN_JSON, expect_error);
         }
 
         // out_yaml
-        if(begin_out_yaml != npos)
+        if(spec.has_child("dump"))
         {
-            size_t first_after = find_first_after(begin_out_yaml, all);
-            begin_out_yaml = 1 + contents.find('\n', begin_out_yaml); // skip this line
-            txt = contents.range(begin_out_yaml, first_after);
-            RYML_CHECK(did_not_slurp_other_tml_tokens(txt));
-            txt = filter_out_indentation(txt, &tmpa);
+            txt = spec["dump"].val();
             if(has_whitespace)
-            {
-                txt = replace_all("<SPC>", " ", txt, &tmpb);
-                txt = replace_all("<TAB>", "\t", txt, &tmpa);
-            }
+                txt = filter.replace_normal(txt);
             out_yaml.init(filename, txt, CPART_OUT_YAML, expect_error);
         }
 
         // emit_yaml
-        if(begin_emit_yaml != npos)
+        if(spec.has_child("emit"))
         {
-            size_t first_after = find_first_after(begin_emit_yaml, all);
-            begin_emit_yaml = 1 + contents.find('\n', begin_emit_yaml); // skip this line
-            txt = contents.range(begin_emit_yaml, first_after);
-            RYML_CHECK(did_not_slurp_other_tml_tokens(txt));
-            txt = filter_out_indentation(txt, &tmpa);
+            txt = spec["emit"].val();
             if(has_whitespace)
-            {
-                txt = replace_all("<SPC>", " ", txt, &tmpb);
-                txt = replace_all("<TAB>", "\t", txt, &tmpa);
-            }
+                txt = filter.replace_normal(txt);
             emit_yaml.init(filename, txt, CPART_EMIT_YAML, expect_error);
         }
 
         // events
-        {
-            RYML_CHECK(begin_events != npos);
-            size_t first_after = find_first_after(begin_events, all);
-            begin_events = 1 + contents.find('\n', begin_events); // skip this line
-            txt = contents.range(begin_events, first_after);
-            RYML_CHECK(did_not_slurp_other_tml_tokens(txt));
-            if(has_whitespace)
-            {
-                txt = replace_all("<SPC>", " ", txt, &tmpb);
-                txt = replace_all("<TAB>", "\t", txt, &tmpa);
-            }
-            events.init(filename, txt);
-        }
-
-        // lex-token
-        {
-            // don't really care
-        }
+        C4_CHECK(spec.has_child("tree"));
+        txt = spec["tree"].val();
+        if(has_whitespace)
+            txt = filter.replace_events(txt);
+        events.init(filename, txt);
     }
 
     void print() const
@@ -612,7 +568,7 @@ TEST(cls##_##pfx##_events, compare)                                 \
 {                                                                   \
     if(!g_suite_case || !g_suite_case->cls.pfx.enabled)             \
         GTEST_SKIP();                                               \
-    if(g_suite_case->expect_error)                                  \
+    if(g_suite_case->skip || g_suite_case->expect_error)            \
         GTEST_SKIP();                                               \
     g_suite_case->cls.pfx.compare_events(&g_suite_case->events);    \
 }
@@ -623,7 +579,7 @@ TEST(cls##_##pfx##_events, compare)                                 \
                                                         \
 TEST(in_yaml_##pfx##_errors, check_expected_error)      \
 {                                                       \
-    if(!g_suite_case->expect_error)                     \
+    if(g_suite_case->skip || !g_suite_case->expect_error)   \
         GTEST_SKIP();                                   \
     g_suite_case->in_yaml.pfx.check_expected_error();   \
 }
@@ -650,7 +606,7 @@ TEST_P(cls##_##pfx, parse)                                      \
 {                                                               \
     if(!get_test_case())                                        \
         GTEST_SKIP();                                           \
-    if(g_suite_case->expect_error)                              \
+    if(g_suite_case->skip || g_suite_case->expect_error)        \
         GTEST_SKIP();                                           \
     get_test_case()->parse(1 + GetParam(), false);              \
 }                                                               \
@@ -660,7 +616,7 @@ TEST_P(cls##_##pfx, compare_trees)                              \
 {                                                               \
     if(!get_test_case())                                        \
         GTEST_SKIP();                                           \
-    if(g_suite_case->expect_error)                              \
+    if(g_suite_case->skip || g_suite_case->expect_error)        \
         GTEST_SKIP();                                           \
     get_test_case()->compare_trees(1 + GetParam());             \
 }                                                               \
@@ -670,7 +626,7 @@ TEST_P(cls##_##pfx, emit)                                       \
 {                                                               \
     if(!get_test_case())                                        \
         GTEST_SKIP();                                           \
-    if(g_suite_case->expect_error)                              \
+    if(g_suite_case->skip || g_suite_case->expect_error)        \
         GTEST_SKIP();                                           \
     get_test_case()->parse(1 + GetParam(), true);               \
 }                                                               \
@@ -680,7 +636,7 @@ TEST_P(cls##_##pfx, compare_emitted)                            \
 {                                                               \
     if(!get_test_case())                                        \
         GTEST_SKIP();                                           \
-    if(g_suite_case->expect_error)                              \
+    if(g_suite_case->skip || g_suite_case->expect_error)        \
         GTEST_SKIP();                                           \
     get_test_case()->compare_emitted(1 + GetParam());           \
 }                                                               \
