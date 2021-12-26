@@ -141,7 +141,11 @@ TEST(block_folded, test_suite_4QFQ)
         EXPECT_EQ(t[1].val(), csubstr(" child2\n"));
         EXPECT_EQ(t[2].val(), csubstr(" child2\n"));
     });
-    yaml = R"(---
+}
+
+TEST(block_folded, test_suite_4QFQ_pt2)
+{
+    csubstr yaml = R"(---
 - |
  child0
 - >
@@ -160,8 +164,8 @@ foo:
    
     
     # child1
-  - |3
-    child2
+  - |2
+     child2
   - >
    child3
 )";
