@@ -3447,21 +3447,16 @@ struct ErrorHandlerExample
     void check_effect(bool committed) const
     {
         ryml::Callbacks const& current = ryml::get_callbacks();
-        ryml::MemoryResourceCallbacks const& mres = *(ryml::MemoryResourceCallbacks*) ryml::get_memory_resource();
         if(committed)
         {
             CHECK(current.m_error == &s_error);
-            CHECK(mres.m_callbacks.m_error == &s_error);
         }
         else
         {
             CHECK(current.m_error != &s_error);
-            CHECK(mres.m_callbacks.m_error != &s_error);
         }
         CHECK(current.m_allocate == defaults.m_allocate);
         CHECK(current.m_free == defaults.m_free);
-        CHECK(mres.m_callbacks.m_allocate == defaults.m_allocate);
-        CHECK(mres.m_callbacks.m_free == defaults.m_free);
     }
     // save the default callbacks for checking
     ErrorHandlerExample() : defaults(ryml::get_callbacks()) {}
@@ -3491,16 +3486,15 @@ void sample_error_handler()
 // ryml. Due to [the static initialization order
 // fiasco](https://en.cppreference.com/w/cpp/language/siof), if you
 // use static ryml trees or parsers, you need to make sure that their
-// allocator has the same lifetime. So you can't use ryml's default
-// allocator, as it is declared in a ryml file, and the standard
+// callbacks have the same lifetime. So you can't use ryml's default
+// callbacks structure, as it is declared in a ryml file, and the standard
 // provides no guarantee on the relative initialization order, such
-// that the allocator is constructed before and destroyed after your
+// that it is constructed before and destroyed after your
 // variables (in fact you are pretty much guaranteed to see this
 // fail). So please carefully consider your choices, and ponder
 // whether you really need to use ryml static trees and parsers. If
-// you do need this, then you will need to declare and use an
-// allocator from a ryml memory resource that outlives the tree and/or
-// parser.
+// you do need this, then you will need to declare and use a ryml
+// callbacks structure that outlives the tree and/or parser.
 
 struct GlobalAllocatorExample
 {
@@ -3622,13 +3616,27 @@ void sample_global_allocator()
 
 //-----------------------------------------------------------------------------
 
-struct PerTreeMemoryExample : public ryml::MemoryResource
+/** an example for a per-tree memory allocator */
+struct PerTreeMemoryExample
 {
     std::vector<char> memory_pool = std::vector<char>(10u * 1024u); // 10KB
     size_t num_allocs = 0, alloc_size = 0;
     size_t num_deallocs = 0, dealloc_size = 0;
 
-    void *allocate(size_t len, void * /*hint*/) override
+    ryml::Callbacks callbacks() const
+    {
+        // Above we used static functions to bridge to our methods.
+        // To show a different approach, we employ lambdas here.
+        // Note that there can be no captures in the lambdas
+        // because these are C-style function pointers.
+        ryml::Callbacks cb;
+        cb.m_user_data = (void*) this;
+        cb.m_allocate = [](size_t len, void */*hint*/, void *data){ return ((PerTreeMemoryExample*) data)->allocate(len); };
+        cb.m_free = [](void *mem, size_t len, void *data){ return ((PerTreeMemoryExample*) data)->free(mem, len); };
+        return cb;
+    }
+
+    void *allocate(size_t len)
     {
         void *ptr = &memory_pool[alloc_size];
         alloc_size += len;
@@ -3641,7 +3649,7 @@ struct PerTreeMemoryExample : public ryml::MemoryResource
         return ptr;
     }
 
-    void free(void *mem, size_t len) override
+    void free(void *mem, size_t len)
     {
         CHECK((char*)mem     >= &memory_pool.front() && (char*)mem     <  &memory_pool.back());
         CHECK((char*)mem+len >= &memory_pool.front() && (char*)mem+len <= &memory_pool.back());
@@ -3678,11 +3686,11 @@ void sample_per_tree_allocator()
     // the trees will use the memory in the resources above,
     // with each tree using a separate resource
     {
-        // Watchout: ensure that the lifetime of the memory resource
+        // Watchout: ensure that the lifetime of the callbacks
         // exceeds the lifetime of the tree.
-        ryml::Parser parser = {ryml::Allocator(&mrp)};
-        ryml::Tree   tree1  = {ryml::Allocator(&mr1)};
-        ryml::Tree   tree2  = {ryml::Allocator(&mr2)};
+        ryml::Parser parser = {mrp.callbacks()};
+        ryml::Tree   tree1  = {mr1.callbacks()};
+        ryml::Tree   tree2  = {mr2.callbacks()};
 
         ryml::csubstr yml1 = "{a: b}";
         ryml::csubstr yml2 = "{c: d, e: f, g: [h, i, 0, 1, 2, 3]}";

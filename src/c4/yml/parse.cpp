@@ -69,7 +69,7 @@ static bool _is_doc_sep(csubstr s)
 
 
 //-----------------------------------------------------------------------------
-Parser::Parser(Allocator const& a)
+Parser::Parser(Callbacks const& a)
     : m_file()
     , m_buf()
     , m_root_id(NONE)
@@ -4226,7 +4226,7 @@ void Parser::_err(const char *fmt, ...) const
     va_start(args, fmt);
     len = _fmt_msg(errmsg, len, fmt, args);
     va_end(args);
-    c4::yml::error(errmsg, static_cast<size_t>(len), m_state->pos);
+    m_tree->m_callbacks.m_error(errmsg, static_cast<size_t>(len), m_state->pos, m_tree->m_callbacks.m_user_data);
 }
 
 //-----------------------------------------------------------------------------

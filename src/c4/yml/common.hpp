@@ -6,9 +6,6 @@
 #include <c4/yml/export.hpp>
 
 
-#define RYML_INLINE inline
-
-
 #ifndef RYML_USE_ASSERT
 #   define RYML_USE_ASSERT C4_USE_ASSERT
 #endif
@@ -65,11 +62,11 @@ enum : size_t {
 //! holds a position into a source buffer
 struct RYML_EXPORT LineCol
 {
-    //!< number of bytes from the beginning of the source buffer
+    //! number of bytes from the beginning of the source buffer
     size_t offset;
-    //!< line
+    //! line
     size_t line;
-    //!< column
+    //! column
     size_t col;
 
     LineCol() : offset(), line(), col() {}
@@ -102,6 +99,10 @@ struct RYML_EXPORT Location : public LineCol
  * interrupt execution, either by raising an exception or calling
  * std::abort(). */
 using pfn_error = void (*)(const char* msg, size_t msg_len, Location location, void *user_data);
+/** the type of the function used to allocate memory */
+using pfn_allocate = void* (*)(size_t len, void* hint, void *user_data);
+/** the type of the function used to free memory */
+using pfn_free = void (*)(void* mem, size_t size, void *user_data);
 
 /** trigger an error: call the current error callback. */
 RYML_EXPORT void error(const char *msg, size_t msg_len, Location loc);
@@ -125,11 +126,6 @@ inline void error(const char (&msg)[N])
 
 //-----------------------------------------------------------------------------
 
-/** the type of the function used to allocate memory */
-using pfn_allocate = void* (*)(size_t len, void* hint, void *user_data);
-/** the type of the function used to free memory */
-using pfn_free = void (*)(void* mem, size_t size, void *user_data);
-
 /// a c-style callbacks class
 struct RYML_EXPORT Callbacks
 {
@@ -140,44 +136,6 @@ struct RYML_EXPORT Callbacks
 
     Callbacks();
     Callbacks(void *user_data, pfn_allocate alloc, pfn_free free, pfn_error error_);
-
-    inline void* allocate(size_t len, void* hint) const
-    {
-        void* mem = m_allocate(len, hint, m_user_data);
-        if(mem == nullptr)
-        {
-            this->error("out of memory", {});
-        }
-        return mem;
-    }
-
-    inline void free(void *mem, size_t len) const
-    {
-        m_free(mem, len, m_user_data);
-    }
-
-    void error(const char *msg, size_t msg_len, Location loc) const
-    {
-        m_error(msg, msg_len, loc, m_user_data);
-    }
-
-    void error(const char *msg, size_t msg_len) const
-    {
-        m_error(msg, msg_len, {}, m_user_data);
-    }
-
-    template<size_t N>
-    inline void error(const char (&msg)[N], Location loc) const
-    {
-        error(msg, N-1, loc);
-    }
-
-    template<size_t N>
-    inline void error(const char (&msg)[N]) const
-    {
-        error(msg, N-1, {});
-    }
-
 };
 
 /// get the global callbacks
@@ -186,74 +144,6 @@ RYML_EXPORT Callbacks const& get_callbacks();
 RYML_EXPORT void set_callbacks(Callbacks const& c);
 /// set the global callbacks to their defaults
 RYML_EXPORT void reset_callbacks();
-
-
-//-----------------------------------------------------------------------------
-
-class RYML_EXPORT MemoryResource
-{
-public:
-
-    virtual ~MemoryResource() = default;
-
-    virtual void * allocate(size_t num_bytes, void *hint) = 0;
-    virtual void   free(void *mem, size_t num_bytes) = 0;
-};
-
-/** set the global memory resource */
-RYML_EXPORT void set_memory_resource(MemoryResource *r);
-/** get the global memory resource */
-RYML_EXPORT MemoryResource *get_memory_resource();
-
-
-//-----------------------------------------------------------------------------
-
-/** a memory resource adapter to the c-style allocator */
-class RYML_EXPORT MemoryResourceCallbacks : public MemoryResource
-{
-public:
-
-    Callbacks m_callbacks;
-
-    MemoryResourceCallbacks() : m_callbacks(get_callbacks()) {}
-    MemoryResourceCallbacks(Callbacks const& c) : m_callbacks(c) {}
-
-    void* allocate(size_t len, void* hint) override final
-    {
-        return m_callbacks.allocate(len, hint);
-    }
-
-    void free(void *mem, size_t len) override final
-    {
-        return m_callbacks.free(mem, len);
-    }
-};
-
-
-//-----------------------------------------------------------------------------
-
-/** an allocator is a lightweight non-owning handle to a memory resource */
-struct RYML_EXPORT Allocator
-{
-    MemoryResource *r;
-
-    Allocator() : r(get_memory_resource()) {}
-    Allocator(MemoryResource *m) : r(m) {}
-
-    inline void *allocate(size_t num_bytes, void *hint)
-    {
-        void *mem = r->allocate(num_bytes, hint);
-        if(mem == nullptr)
-            error("out of memory");
-        return mem;
-    }
-
-    inline void free(void *mem, size_t num_bytes)
-    {
-        RYML_ASSERT(r != nullptr);
-        r->free(mem, num_bytes);
-    }
-};
 
 
 } // namespace yml

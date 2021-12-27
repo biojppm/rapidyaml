@@ -1,3 +1,48 @@
+### Breaking changes
+
+Despite ryml being still in a non-stable 0.x.y version, considerable effort goes into trying to avoid breaking changes. However, this release has to collect on the [semantic versioning](https://semver.org/) prerogative for breaking changes. This is a needed improvement, so sorry for any nuisance!
+
+**The allocation and error callback logic was revamped** on the [amalgamation PR](https://github.com/biojppm/rapidyaml/pull/172). Now trees and parsers receive (and store) a full `ryml::Callbacks` object instead of the (now removed) `ryml::Allocator` which had a pointer to a (now removed) `ryml::MemoryResourceCallbacks`, which was a (now removed) `ryml::MemoryResource`. To be clear, the `Callbacks` class is unchanged, other than removing some unneeded helper methods.
+
+These changes were motivated by unfortunate name clashes between `c4::Allocator/ryml::Allocator` and `c4::MemoryResource/ryml::MemoryResource`, occurring if `<c4/allocator.hpp>` or `<c4/memory_resource.hpp>` were included before `<c4/yml/common.hpp>`. They also significantly simplify this part of the API, making it really easier to understand.
+
+As a consequence of the above changes, the global memory resource getters and setters for ryml were also removed: `ryml::get_memory_resource()/ryml::set_memory_resource()`.
+
+Here's an example of the required changes in client code. First the old client code (from the quickstart):
+
+```c++
+struct PerTreeMemoryExample : public ryml::MemoryResource
+{
+    void *allocate(size_t len, void * hint) override;
+    void free(void *mem, size_t len) override;
+};
+
+PerTreeMemoryExample mrp;
+PerTreeMemoryExample mr1;
+PerTreeMemoryExample mr2;
+
+ryml::Parser parser = {ryml::Allocator(&mrp)};
+ryml::Tree   tree1  = {ryml::Allocator(&mr1)};
+ryml::Tree   tree2  = {ryml::Allocator(&mr2)};
+```
+
+Should now be rewritten to:
+
+```c++
+struct PerTreeMemoryExample
+{
+    ryml::Callbacks callbacks() const; // helper to create the callbacks
+};
+
+PerTreeMemoryExample mrp;
+PerTreeMemoryExample mr1;
+PerTreeMemoryExample mr2;
+
+ryml::Parser parser = {mrp.callbacks()};
+ryml::Tree   tree1  = {mr1.callbacks()};
+ryml::Tree   tree2  = {mr2.callbacks()};
+```
+
 
 ### New features
 - Add `Tree::change_type()` and `NodeRef::change_type()` ([PR #171](https://github.com/biojppm/rapidyaml/pull/171)):
@@ -17,10 +62,10 @@
 - Take block literal indentation as relative to current indentation level, rather than as an absolute indentation level ([PR #178](https://github.com/biojppm/rapidyaml/pull/178)):
   ```yaml
   foo:
-  - |
-   child0
-  - |2
-     child2  # indentation is 4, not 2
+    - |
+     child0
+    - |2
+      child2  # indentation is 4, not 2
   ```
 - Fix parsing when seq member maps start without a key ([PR #178](https://github.com/biojppm/rapidyaml/pull/178)):
   ```yaml

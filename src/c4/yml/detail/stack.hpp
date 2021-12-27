@@ -30,14 +30,14 @@ public:
     T *       m_stack;
     size_t    m_size;
     size_t    m_capacity;
-    Allocator m_alloc;
+    Callbacks m_callbacks;
 
 public:
 
     constexpr static bool is_contiguous() { return true; }
 
-    stack() : m_buf(), m_stack(m_buf), m_size(0), m_capacity(N), m_alloc() {}
-    stack(Allocator const& c) : m_buf(), m_stack(m_buf), m_size(0), m_capacity(N), m_alloc(c)
+    stack() : m_buf(), m_stack(m_buf), m_size(0), m_capacity(N), m_callbacks(get_callbacks()) {}
+    stack(Callbacks const& c) : m_buf(), m_stack(m_buf), m_size(0), m_capacity(N), m_callbacks(c)
     {
     }
     ~stack()
@@ -171,11 +171,11 @@ void stack<T, N>::reserve(size_t sz)
         m_capacity = N;
         return;
     }
-    T *buf = (T*) m_alloc.allocate(sz * sizeof(T), m_stack);
+    T *buf = (T*) m_callbacks.m_allocate(sz * sizeof(T), m_stack, m_callbacks.m_user_data);
     memcpy(buf, m_stack, m_size * sizeof(T));
     if(m_stack != m_buf)
     {
-        m_alloc.free(m_stack, m_capacity * sizeof(T));
+        m_callbacks.m_free(m_stack, m_capacity * sizeof(T), m_callbacks.m_user_data);
     }
     m_stack = buf;
     m_capacity = sz;
@@ -190,7 +190,7 @@ void stack<T, N>::_free()
     RYML_ASSERT(m_stack != nullptr); // this structure cannot be memset() to zero
     if(m_stack != m_buf)
     {
-        m_alloc.free(m_stack, m_capacity * sizeof(T));
+        m_callbacks.m_free(m_stack, m_capacity * sizeof(T), m_callbacks.m_user_data);
         m_stack = m_buf;
     }
     else
@@ -220,7 +220,7 @@ void stack<T, N>::_cp(stack const* C4_RESTRICT that)
     memcpy(m_stack, that->m_stack, that->m_size * sizeof(T));
     m_size = that->m_size;
     m_capacity = that->m_size;
-    m_alloc = that->m_alloc;
+    m_callbacks = that->m_callbacks;
 }
 
 
@@ -245,7 +245,7 @@ void stack<T, N>::_mv(stack * that)
     }
     m_size = that->m_size;
     m_capacity = that->m_size;
-    m_alloc = that->m_alloc;
+    m_callbacks = that->m_callbacks;
     // make sure no deallocation happens on destruction
     RYML_ASSERT(that->m_stack != m_buf);
     that->m_stack = that->m_buf;
