@@ -200,12 +200,12 @@ TEST(allocate_and_free, basic)
     EXPECT_NE(get_callbacks().m_error, &test_error_impl);
     Callbacks cb(nullptr, &test_allocate_impl, &test_free_impl, nullptr);
     set_callbacks(cb);
-    void *mem = get_memory_resource()->allocate(32, /*hint*/0);
+    void *mem = get_callbacks().m_allocate(32, /*hint*/0, get_callbacks().m_user_data);
     EXPECT_EQ(stored_mem, mem);
     EXPECT_EQ(stored_length, 32u);
     stored_mem = nullptr;
     stored_length = 0;
-    get_memory_resource()->free(mem, 32u);
+    get_callbacks().m_free(mem, 32u, get_callbacks().m_user_data);
     EXPECT_EQ(stored_mem, mem);
     EXPECT_EQ(stored_length, 32u);
 }

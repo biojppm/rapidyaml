@@ -1,11 +1,10 @@
 #!/bin/bash -x
 
-THIS_DIR=$(pwd)
-BUILD_TYPE=${1:-Release}
-BUILD_DIR=$THIS_DIR/build/$BUILD_TYPE
-mkdir -p $BUILD_DIR
-
+# take the build type from the command line, or default to release
+cfg=${1:-Release}
+# make sure to run from where this file is
+cd $(dirname $0)
 # configure the sample
-cmake -S "$THIS_DIR" -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+cmake -S . -B ./build/$cfg -DCMAKE_BUILD_TYPE=$cfg
 # build and run the sample
-cmake --build "$BUILD_DIR" --config $BUILD_TYPE --target run
+cmake --build ./build/$cfg --config $cfg --target run

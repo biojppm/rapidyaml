@@ -2,6 +2,7 @@
 #define _C4_YML_TREE_HPP_
 
 
+#include "c4/error.hpp"
 #include "c4/types.hpp"
 #ifndef _C4_YML_COMMON_HPP_
 #include "c4/yml/common.hpp"
@@ -11,16 +12,12 @@
 #include <cmath>
 #include <limits>
 
-#if defined(_MSC_VER)
-#   pragma warning(push)
-#   pragma warning(disable: 4251/*needs to have dll-interface to be used by clients of struct*/)
-#   pragma warning(disable: 4296/*expression is always 'boolean_value'*/)
-#elif defined(__clang__)
-#   pragma clang diagnostic push
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic push
-#   pragma GCC diagnostic ignored "-Wtype-limits"
-#endif
+
+C4_SUPPRESS_WARNING_MSVC_PUSH
+C4_SUPPRESS_WARNING_MSVC(4251) // needs to have dll-interface to be used by clients of struct
+C4_SUPPRESS_WARNING_MSVC(4296) // expression is always 'boolean_value'
+C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
+C4_SUPPRESS_WARNING_GCC("-Wtype-limits")
 
 
 namespace c4 {
@@ -148,53 +145,7 @@ typedef enum : type_bits {
     DOCMAP  = DOC|MAP,
     DOCSEQ  = DOC|SEQ,
     DOCVAL  = DOC|VAL,
-
-#ifdef C4_WORK_IN_PROGRESS_
-    // https://yaml.org/type/
-    _NUM_TAG_TYPES = 15,
-    _KTAG_SHIFT = type_bits(12),
-    _VTAG_SHIFT = type_bits(_KTAG_SHIFT + _NUM_TAG_TYPES),
-    _TAG_END_SHIFT = type_bits(_VTAG_SHIFT + _NUM_TAG_TYPES + 1), // the first non-tagtype bit after 
-    _KVTAG_MASK = (~(c4bit(_KTAG_SHIFT)-1))/*zeros to the left of tagtype bits */
-                  & (c4bit(_TAG_END_SHIFT)-1)/*ones until the end of tagtype bits*/,
-    // key: collection types
-    KTAG_MAP    = c4bit( 0+_KTAG_SHIFT), /**< !!map   Unordered set of key: value pairs without duplicates. @see https://yaml.org/type/map.html */
-    KTAG_OMAP   = c4bit( 1+_KTAG_SHIFT), /**< !!omap  Ordered sequence of key: value pairs without duplicates. @see https://yaml.org/type/omap.html */
-    KTAG_PAIRS  = c4bit( 2+_KTAG_SHIFT), /**< !!pairs Ordered sequence of key: value pairs allowing duplicates. @see https://yaml.org/type/pairs.html */
-    KTAG_SET    = c4bit( 3+_KTAG_SHIFT), /**< !!set   Unordered set of non-equal values. @see https://yaml.org/type/set.html */
-    KTAG_SEQ    = c4bit( 4+_KTAG_SHIFT), /**< !!set   Sequence of arbitrary values. @see https://yaml.org/type/seq.html */
-    // key: scalar types
-    KTAG_BINARY = c4bit( 5+_KTAG_SHIFT), /**< !!binary A sequence of zero or more octets (8 bit values). @see https://yaml.org/type/binary.html */
-    KTAG_BOOL   = c4bit( 6+_KTAG_SHIFT), /**< !!bool   Mathematical Booleans. @see https://yaml.org/type/bool.html */
-    KTAG_FLOAT  = c4bit( 7+_KTAG_SHIFT), /**< !!float  Floating-point approximation to real numbers. https://yaml.org/type/float.html */
-    KTAG_INT    = c4bit( 8+_KTAG_SHIFT), /**< !!float  Mathematical integers. https://yaml.org/type/int.html */
-    KTAG_MERGE  = c4bit( 9+_KTAG_SHIFT), /**< !!merge  Specify one or more mapping to be merged with the current one. https://yaml.org/type/merge.html */
-    KTAG_NULL   = c4bit(10+_KTAG_SHIFT), /**< !!null   Devoid of value. https://yaml.org/type/null.html */
-    KTAG_STR    = c4bit(11+_KTAG_SHIFT), /**< !!str    A sequence of zero or more Unicode characters. https://yaml.org/type/str.html */
-    KTAG_TIME   = c4bit(12+_KTAG_SHIFT), /**< !!timestamp A point in time https://yaml.org/type/timestamp.html */
-    KTAG_VALUE  = c4bit(13+_KTAG_SHIFT), /**< !!value  Specify the default value of a mapping https://yaml.org/type/value.html */
-    KTAG_YAML   = c4bit(14+_KTAG_SHIFT), /**< !!yaml   Specify the default value of a mapping https://yaml.org/type/yaml.html */
-    // key: collection types
-    VTAG_MAP    = c4bit( 0+_VTAG_SHIFT), /**< !!map   Unordered set of key: value pairs without duplicates. @see https://yaml.org/type/map.html */
-    VTAG_OMAP   = c4bit( 1+_VTAG_SHIFT), /**< !!omap  Ordered sequence of key: value pairs without duplicates. @see https://yaml.org/type/omap.html */
-    VTAG_PAIRS  = c4bit( 2+_VTAG_SHIFT), /**< !!pairs Ordered sequence of key: value pairs allowing duplicates. @see https://yaml.org/type/pairs.html */
-    VTAG_SET    = c4bit( 3+_VTAG_SHIFT), /**< !!set   Unordered set of non-equal values. @see https://yaml.org/type/set.html */
-    VTAG_SEQ    = c4bit( 4+_VTAG_SHIFT), /**< !!set   Sequence of arbitrary values. @see https://yaml.org/type/seq.html */
-    // key: scalar types
-    VTAG_BINARY = c4bit( 5+_VTAG_SHIFT), /**< !!binary A sequence of zero or more octets (8 bit values). @see https://yaml.org/type/binary.html */
-    VTAG_BOOL   = c4bit( 6+_VTAG_SHIFT), /**< !!bool   Mathematical Booleans. @see https://yaml.org/type/bool.html */
-    VTAG_FLOAT  = c4bit( 7+_VTAG_SHIFT), /**< !!float  Floating-point approximation to real numbers. https://yaml.org/type/float.html */
-    VTAG_INT    = c4bit( 8+_VTAG_SHIFT), /**< !!float  Mathematical integers. https://yaml.org/type/int.html */
-    VTAG_MERGE  = c4bit( 9+_VTAG_SHIFT), /**< !!merge  Specify one or more mapping to be merged with the current one. https://yaml.org/type/merge.html */
-    VTAG_NULL   = c4bit(10+_VTAG_SHIFT), /**< !!null   Devoid of value. https://yaml.org/type/null.html */
-    VTAG_STR    = c4bit(11+_VTAG_SHIFT), /**< !!str    A sequence of zero or more Unicode characters. https://yaml.org/type/str.html */
-    VTAG_TIME   = c4bit(12+_VTAG_SHIFT), /**< !!timestamp A point in time https://yaml.org/type/timestamp.html */
-    VTAG_VALUE  = c4bit(13+_VTAG_SHIFT), /**< !!value  Specify the default value of a mapping https://yaml.org/type/value.html */
-    VTAG_YAML   = c4bit(14+_VTAG_SHIFT), /**< !!yaml   Specify the default value of a mapping https://yaml.org/type/yaml.html */
-#endif // C4_WORK_IN_PROGRESS_
-
-#undef c4bit
-
+    #undef c4bit
 } NodeType_e;
 
 
@@ -425,9 +376,9 @@ public:
     /** @name construction and assignment */
     /** @{ */
 
-    Tree(Allocator const& cb);
-    Tree() : Tree(Allocator()) {}
-    Tree(size_t node_capacity, size_t arena_capacity=0, Allocator const& cb={});
+    Tree(Callbacks const& cb);
+    Tree() : Tree(get_callbacks()) {}
+    Tree(size_t node_capacity, size_t arena_capacity=0, Callbacks const& cb={});
 
     ~Tree();
 
@@ -462,7 +413,8 @@ public:
     inline size_t arena_capacity() const { return m_arena.len; }
     inline size_t arena_slack() const { RYML_ASSERT(m_arena.len >= m_arena_pos); return m_arena.len - m_arena_pos; }
 
-    Allocator const& allocator() const { return m_alloc; }
+    Callbacks const& callbacks() const { return m_callbacks; }
+    void callbacks(Callbacks const& cb) { m_callbacks = cb; }
 
     /** @} */
 
@@ -506,11 +458,11 @@ public:
         return m_buf + i;
     }
 
-    // An if-less form of get() that demands a valid node index.
-    // This function is implementation only; use at your own risk.
+    //! An if-less form of get() that demands a valid node index.
+    //! This function is implementation only; use at your own risk.
     inline NodeData       * _p(size_t i)       { RYML_ASSERT(i != NONE && i >= 0 && i < m_cap); return m_buf + i; }
-    // An if-less form of get() that demands a valid node index.
-    // This function is implementation only; use at your own risk.
+    //! An if-less form of get() that demands a valid node index.
+    //! This function is implementation only; use at your own risk.
     inline NodeData const * _p(size_t i) const { RYML_ASSERT(i != NONE && i >= 0 && i < m_cap); return m_buf + i; }
 
     //! Get the id of the root node
@@ -984,13 +936,13 @@ public:
         if(arena_cap > m_arena.len)
         {
             substr buf;
-            buf.str = (char*) m_alloc.allocate(arena_cap, m_arena.str);
+            buf.str = (char*) m_callbacks.m_allocate(arena_cap, m_arena.str, m_callbacks.m_user_data);
             buf.len = arena_cap;
             if(m_arena.str)
             {
                 RYML_ASSERT(m_arena.len >= 0);
                 _relocate(buf); // does a memcpy and changes nodes using the arena
-                m_alloc.free(m_arena.str, m_arena.len);
+                m_callbacks.m_free(m_arena.str, m_arena.len, m_callbacks.m_user_data);
             }
             m_arena = buf;
         }
@@ -1327,20 +1279,16 @@ public:
     substr m_arena;
     size_t m_arena_pos;
 
-    Allocator m_alloc;
+    Callbacks m_callbacks;
 
 };
 
 } // namespace yml
 } // namespace c4
 
-#if defined(_MSC_VER)
-#   pragma warning(pop)
-#elif defined(__clang__)
-#   pragma clang diagnostic pop
-#elif defined(__GNUC__)
-#   pragma GCC diagnostic pop
-#endif
+
+C4_SUPPRESS_WARNING_MSVC_POP
+C4_SUPPRESS_WARNING_GCC_CLANG_POP
 
 
 #endif /* _C4_YML_TREE_HPP_ */

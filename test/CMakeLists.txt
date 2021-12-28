@@ -92,37 +92,6 @@ ryml_add_test_case_group(number)
 ryml_add_test_case_group(null_val)
 ryml_add_test_case_group(github_issues)
 
-c4_add_install_include_test(ryml "ryml::")
-c4_add_install_link_test(ryml "ryml::" "
-#include <c4/yml/yml.hpp>
-
-int main()
-{
-    auto tree = c4::yml::parse(R\"(
-a: 1
-b: {b0: 2, b1: 3}
-c: [4, 5, 6]
-)\");
-    #define check(cond) if(!(cond)) { return __LINE__; }
-    check(!tree.empty())
-    check(tree.rootref().is_map())
-    check(tree.rootref().num_children() == 3)
-    check(tree[\"a\"].is_keyval())
-    check(tree[\"a\"].num_children() == 0)
-    check(tree[\"a\"].val() == \"1\")
-    check(tree[\"b\"].is_map())
-    check(tree[\"b\"].num_children() == 2)
-    check(tree[\"b\"][\"b0\"].val() == \"2\")
-    check(tree[\"b\"][\"b1\"].val() == \"3\")
-    check(tree[\"c\"].is_seq())
-    check(tree[\"c\"].num_children() == 3)
-    check(tree[\"c\"][0].val() == \"4\")
-    check(tree[\"c\"][1].val() == \"5\")
-    check(tree[\"c\"][2].val() == \"6\")
-    return 0;
-}
-")
-
 
 #-------------------------------------------------------------------------
 
@@ -139,7 +108,7 @@ if(RYML_TEST_SUITE)
     set(tsdir ${ed}/yaml-test-suite)
     c4_download_remote_proj(yaml-test-suite tsdir
         GIT_REPOSITORY https://github.com/yaml/yaml-test-suite
-        GIT_TAG bcd49a2d4919c1b1ac3b9d6e5ebe6b140b5089e3) #master)
+        GIT_TAG bcd49a2d4919c1b1ac3b9d6e5ebe6b140b5089e3)
     set(suite_dir ${tsdir}/src)
     if(NOT EXISTS ${suite_dir})
         c4_err("cannot find yaml-test-suite at ${suite_dir} -- was there an error downloading the project?")

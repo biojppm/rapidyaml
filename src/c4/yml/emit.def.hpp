@@ -2,9 +2,9 @@
 #define _C4_YML_EMIT_DEF_HPP_
 
 #ifndef _C4_YML_EMIT_HPP_
-#include "./emit.hpp"
+#include "c4/yml/emit.hpp"
 #endif
-#include "./detail/parser_dbg.hpp"
+#include "c4/yml/detail/parser_dbg.hpp"
 
 namespace c4 {
 namespace yml {

@@ -12,29 +12,36 @@
 [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/biojppm/rapidyaml.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/biojppm/rapidyaml/context:cpp)
 
 
-Or ryml, for short. ryml is a library to parse and emit YAML, and do it fast.
+Or ryml, for short. ryml is a C++ library to parse and emit YAML, and
+do it fast.
 
-ryml parses both read-only and in-situ source buffers; the resulting data
-nodes hold only views to sub-ranges of the source buffer. No string copies or
-duplications are done, and no virtual functions are used. The data tree is a
-flat index-based structure stored in a single array. Serialization happens
-only at your direct request, after parsing / before emitting. Internally the
-data tree representation has no knowledge of types (but of course, every node
-can have a YAML type tag). It is easy and fast to read, write and iterate
-through the data tree.
+ryml parses both read-only and in-situ source buffers; the resulting
+data nodes hold only views to sub-ranges of the source buffer. No
+string copies or duplications are done, and no virtual functions are
+used. The data tree is a flat index-based structure stored in a single
+array. Serialization happens only at your direct request, after
+parsing / before emitting. Internally, the data tree representation
+stores only strings and has no knowledge of types, but of course,
+every node can have a YAML type tag. ryml makes it easy and fast to
+read and modify the data tree.
 
-ryml can use custom global and per-tree memory allocators, and is
-exception-agnostic. Errors are reported via a custom error handler callback.
-A default error handler implementation using `std::abort()` is provided, but
-you can opt out, or provide your exception-throwing callback.
+ryml is available as a single header file, or it can be used as a
+simple library with cmake -- both separately (ie
+build->install->`find_package()`) or together with your project (ie with
+`add_subdirectory()`). (See below for examples).
 
-ryml has respect for your compilation times and therefore it is NOT
-header-only. It uses standard cmake build files, so it is easy to compile and
-install.
+ryml can use custom global and per-tree memory allocators and error
+handler callbacks, and is exception-agnostic. ryml provides a default
+implementation for the allocator (using `std::malloc()`) and error
+handlers (using using `std::abort()` is provided, but you can opt out
+and provide your own memory allocation and eg, exception-throwing
+callbacks.
 
-ryml has no dependencies, not even on the STL (although it does use the
-libc). It provides optional headers that let you serialize/deserialize
-STL strings and containers (or show you how to do it).
+ryml does not depend on the STL, ie, it does not use any std container
+as part of its data structures), but it can serialize and deserialize
+these containers into the data tree, with the use of optional
+headers. ryml ships with [c4core](https://github.com/biojppm/c4core) a
+small C++ utilities multiplatform library.
 
 ryml is written in C++11, and compiles cleanly with:
 * Visual Studio 2015 and later
@@ -55,11 +62,11 @@ architectures, and include analysing ryml with:
     * thread
   * [LGTM.com](https://lgtm.com/projects/g/biojppm/rapidyaml)
 
-ryml is also [available in
-Python](https://pypi.org/project/rapidyaml/), with more languages to
-follow (see below).
+ryml is [available in Python](https://pypi.org/project/rapidyaml/),
+and can very easily be compiled to JavaScript through emscripten (see
+below).
 
-See also [the changelog](./changelog) and [the roadmap](./ROADMAP.md).
+See also [the changelog](https://github.com/biojppm/rapidyaml/changelog) and [the roadmap](https://github.com/biojppm/rapidyaml/ROADMAP.md).
 
 <!-- endpythonreadme -->
 
@@ -67,19 +74,23 @@ See also [the changelog](./changelog) and [the roadmap](./ROADMAP.md).
 ------
 
 ## Table of contents
-
 * [Is it rapid?](#is-it-rapid)
-   * [Comparison with yaml-cpp](#comparison-with-yaml-cpp)
-   * [Performance reading JSON](#performance-reading-json)
-   * [Performance emitting](#performance-emitting)
+  * [Comparison with yaml-cpp](#comparison-with-yaml-cpp)
+  * [Performance reading JSON](#performance-reading-json)
+  * [Performance emitting](#performance-emitting)
 * [Quick start](#quick-start)
 * [Using ryml in your project](#using-ryml-in-your-project)
-   * [Usage samples](#usage-samples)
-   * [cmake build settings for ryml](#cmake-build-settings-for-ryml)
+  * [Package managers](#package-managers)
+  * [Single header file](#single-header-file)
+  * [As a library](#as-a-library)
+  * [Quickstart samples](#quickstart-samples)
+  * [CMake build settings for ryml](#cmake-build-settings-for-ryml)
+     * [Forcing ryml to use a different c4core version](#forcing-ryml-to-use-a-different-c4core-version)
 * [Other languages](#other-languages)
-   * [Python](#python)
+  * [JavaScript](#javascript)
+  * [Python](#python)
 * [YAML standard conformance](#yaml-standard-conformance)
-   * [Test suite status](#test-suite-status)
+  * [Test suite status](#test-suite-status)
 * [Known limitations](#known-limitations)
 * [Alternative libraries](#alternative-libraries)
 * [License](#license)
@@ -591,10 +602,7 @@ sample_per_tree_allocator();   ///< set per-tree allocators
 
 ## Using ryml in your project
 
-As with any other library, you have the option to integrate ryml into
-your project's build setup, thereby building ryml together with your
-project, or -- prior to configuring your project -- you can have ryml
-installed either manually or through package managers.
+### Package managers
 
 If you opt for package managers, here's where ryml is available so far (thanks to all the contributors!):
   * [vcpkg](https://vcpkg.io/en/packages.html): `vcpkg install ryml`
@@ -603,11 +611,62 @@ If you opt for package managers, here's where ryml is available so far (thanks t
     * [python-rapidyaml-git (AUR)](https://aur.archlinux.org/packages/python-rapidyaml-git/)
   * [PyPI](https://pypi.org/project/rapidyaml/)
 
-Although package managers are very useful for quickly getting up to speed,
-the advised way is still to bring ryml as a submodule of your project,
-building both together. This makes it easy to track any upstream changes in ryml.
-Also, ryml is fairly small, and is quick to build,
-so there's not much of a cost for building it with your project.
+Although package managers are very useful for quickly getting up to
+speed, the advised way is still to bring ryml as a submodule of your
+project, building both together. This makes it easy to track any
+upstream changes in ryml. Also, ryml is small and quick to build, so
+there's not much of a cost for building it with your project.
+
+### Single header file
+ryml is provided chiefly as a cmake library project, but it can also be used as
+a single header file, and there is a [tool to
+amalgamate](./tools/amalgamate.py) the code into a single header
+file. The amalgamated header file is provided with each release, but
+you can also generate a customized file suiting your particular needs
+(or commit):
+
+```console
+[user@host rapidyaml]$ python tools/amalgamate.py -h
+usage: amalgamate.py [-h] [--c4core | --no-c4core] [--fastfloat | --no-fastfloat] [--stl | --no-stl] [output]
+
+positional arguments:
+  output          output file. defaults to stdout
+
+optional arguments:
+  -h, --help      show this help message and exit
+  --c4core        amalgamate c4core together with ryml. this is the default.
+  --no-c4core     amalgamate c4core together with ryml. the default is --c4core.
+  --fastfloat     enable fastfloat library. this is the default.
+  --no-fastfloat  enable fastfloat library. the default is --fastfloat.
+  --stl           enable stl interop. this is the default.
+  --no-stl        enable stl interop. the default is --stl.
+```
+
+The amalgamated header file contains all the function declarations and
+definitions. To use it in the project, `#include` the header at will
+in any header or source file in the project, but in one source file,
+and only in that one source file, `#define` the macro
+`RYML_SINGLE_HDR_DEFINE_NOW` **before including the header**. This
+will enable the function definitions. For example:
+```c++
+// foo.h
+#include <ryml_all.hpp>
+
+// foo.cpp
+// ensure that foo.h is not included before this define!
+#define RYML_SINGLE_HDR_DEFINE_NOW
+#include <ryml_all.hpp>
+```
+
+### As a library
+The single header file is a good approach to quickly try the library,
+but if you wish to make good use of CMake and its tooling ecosystem,
+(and get better compile times), then ryml has you covered.
+
+As with any other cmake library, you have the option to integrate ryml into
+your project's build setup, thereby building ryml together with your
+project, or -- prior to configuring your project -- you can have ryml
+installed either manually or through package managers.
 
 Currently [cmake](https://cmake.org/) is required to build ryml; we
 recommend a recent cmake version, at least 3.13.
@@ -621,10 +680,9 @@ If you omit `--recursive`, after cloning you
 will have to do `git submodule init` and `git submodule update` 
 to ensure ryml's submodules are checked out.
 
+### Quickstart samples
 
-### Usage samples
-
-These samples show how to build an application using ryml. All the
+These samples show different ways of getting ryml into your application. All the
 samples use [the same quickstart executable
 source](./samples/quickstart.cpp), but are built in different ways,
 showing several alternatives to integrate ryml into your project. We
@@ -640,11 +698,12 @@ more about each sample:
 
 | Sample name        | ryml is part of build?   | cmake file   | commands     |
 |:-------------------|--------------------------|:-------------|:-------------|
+| [`singleheader`](./samples/singleheader) | **yes**<br>ryml brought as a single header file,<br>not as a library | [`CMakeLists.txt`](./samples/singleheader/CMakeLists.txt) | [`run.sh`](./samples/singleheader/run.sh) |
 | [`add_subdirectory`](./samples/add_subdirectory) | **yes**                      | [`CMakeLists.txt`](./samples/add_subdirectory/CMakeLists.txt) | [`run.sh`](./samples/add_subdirectory/run.sh) |
 | [`fetch_content`](./samples/fetch_content)      | **yes**                      | [`CMakeLists.txt`](./samples/fetch_content/CMakeLists.txt) | [`run.sh`](./samples/fetch_content/run.sh) |
 | [`find_package`](./samples/find_package)        | **no**<br>needs prior install or package  | [`CMakeLists.txt`](./samples/find_package/CMakeLists.txt) | [`run.sh`](./samples/find_package/run.sh) |
 
-### cmake build settings for ryml
+### CMake build settings for ryml
 The following cmake variables can be used to control the build behavior of
 ryml:
 
@@ -656,7 +715,7 @@ ryml:
     incorporated into ryml as if it is the same library. Defaults to `ON`.
 
 If you're developing ryml or just debugging problems with ryml itself, the
-following variables can be helpful:
+following cmake variables can be helpful:
   * `RYML_DEV=ON/OFF`: a bool variable which enables development targets such as
     unit tests, benchmarks, etc. Defaults to `OFF`.
   * `RYML_DBG=ON/OFF`: a bool variable which enables verbose prints from
@@ -669,7 +728,7 @@ ryml is strongly coupled to c4core, and this is reinforced by the fact
 that c4core is a submodule of the current repo. However, it is still
 possible to use a c4core version different from the one in the repo
 (of course, only if there are no incompatibilities between the
-versions). You can find out how to achieve this by looking at the [`custom_c4core` sample](samples/custom_c4core).
+versions). You can find out how to achieve this by looking at the [`custom_c4core` sample](./samples/custom_c4core/CMakeLists.txt).
 
 
 ------

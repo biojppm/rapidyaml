@@ -31,7 +31,8 @@ class RYML_EXPORT Parser
 {
 public:
 
-    Parser(Allocator const& a={});
+    Parser(Callbacks const& cb);
+    Parser() : Parser(get_callbacks()) {}
 
 public:
 

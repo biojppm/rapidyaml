@@ -1,7 +1,11 @@
 #include "./test_case.hpp"
+#include "c4/yml/common.hpp"
+#ifndef RYML_SINGLE_HEADER
 #include "c4/format.hpp"
 #include "c4/span.hpp"
 #include "c4/yml/std/std.hpp"
+#endif
+// these headers are not amalgamated
 #include "c4/yml/detail/print.hpp"
 #include "c4/yml/detail/checks.hpp"
 
@@ -156,41 +160,44 @@ struct ExpectedError : public std::runtime_error
 
 //-----------------------------------------------------------------------------
 
-ExpectError::ExpectError(Location loc)
+ExpectError::ExpectError(Tree *tree, Location loc)
     : m_got_an_error(false)
-    , m_prev(c4::yml::get_callbacks())
+    , m_tree(tree)
+    , m_glob_prev(get_callbacks())
+    , m_tree_prev(tree->callbacks())
     , expected_location(loc)
 {
+    auto err = [](const char* msg, size_t len, Location errloc, void *this_) {
+        ((ExpectError*)this_)->m_got_an_error = true;
+        throw ExpectedError(msg, len, errloc);
+    };
     #ifdef RYML_NO_DEFAULT_CALLBACKS
-    c4::yml::Callbacks cb((void*)this, nullptr,           nullptr,       &ExpectError::error);
+    c4::yml::Callbacks tcb((void*)this, nullptr, nullptr, err);
+    c4::yml::Callbacks gcb((void*)this, nullptr, nullptr, err);
     #else
-    c4::yml::Callbacks cb((void*)this, m_prev.m_allocate, m_prev.m_free, &ExpectError::error);
+    c4::yml::Callbacks tcb((void*)this, m_tree_prev.m_allocate, m_tree_prev.m_free, err);
+    c4::yml::Callbacks gcb((void*)this, m_glob_prev.m_allocate, m_glob_prev.m_free, err);
     #endif
-    c4::yml::set_callbacks(cb);
+    tree->callbacks(tcb);
+    set_callbacks(gcb);
 }
 
 ExpectError::~ExpectError()
 {
-    c4::yml::set_callbacks(m_prev);
+    m_tree->callbacks(m_tree_prev);
+    set_callbacks(m_tree_prev);
 }
 
-void ExpectError::error(const char* msg, size_t len, Location loc, void *user_data)
+void ExpectError::do_check(Tree *tree, std::function<void()> fn, Location expected_location)
 {
-    ExpectError *this_ = (ExpectError*) user_data;
-    this_->m_got_an_error = true;
-    throw ExpectedError(msg, len, loc);
-}
-
-void ExpectError::do_check(std::function<void()> fn, Location expected_location)
-{
-    auto context = ExpectError(expected_location);
+    auto context = ExpectError(tree, expected_location);
     try
     {
         fn();
     }
     catch(ExpectedError const& e)
     {
-        #ifdef RYML_DBG
+        #if 1 || defined(RYML_DBG )
         std::cout << "---------------\n";
         std::cout << "got an expected error:\n" << e.what() << "\n";
         std::cout << "---------------\n";
@@ -210,11 +217,12 @@ void ExpectError::do_check(std::function<void()> fn, Location expected_location)
     EXPECT_TRUE(context.m_got_an_error);
 }
 
-void ExpectError::check_assertion(std::function<void()> fn, Location expected_location)
+void ExpectError::check_assertion(Tree *tree, std::function<void()> fn, Location expected_location)
 {
     #if RYML_USE_ASSERT
-    ExpectError::do_check(fn, expected_location);
+    ExpectError::do_check(tree, fn, expected_location);
     #else
+    C4_UNUSED(tree);
     C4_UNUSED(fn);
     C4_UNUSED(expected_location);
     #endif

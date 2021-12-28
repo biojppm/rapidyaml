@@ -26,6 +26,7 @@ c4_add_library(ryml
         ryml_std.hpp
         c4/yml/detail/checks.hpp
         c4/yml/detail/parser_dbg.hpp
+        c4/yml/detail/print.hpp
         c4/yml/detail/stack.hpp
         c4/yml/common.hpp
         c4/yml/common.cpp
@@ -76,10 +77,7 @@ c4_pack_project()
 
 # extern libraries, used only for testing/benchmarking
 if(RYML_BUILD_TESTS OR RYML_BUILD_BENCHMARKS)
-    # these are used both for testing and benchmarking
-    c4_require_subproject(c4fs REMOTE
-        GIT_REPOSITORY https://github.com/biojppm/c4fs
-        GIT_TAG master)
+    include(ext/testbm.cmake)
 endif()
 
 c4_add_dev_targets()

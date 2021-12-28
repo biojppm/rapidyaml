@@ -238,7 +238,7 @@ NodeRef const Tree::docref(size_t i) const
 
 
 //-----------------------------------------------------------------------------
-Tree::Tree(Allocator const& cb)
+Tree::Tree(Callbacks const& cb)
 :
     m_buf(nullptr),
     m_cap(0),
@@ -247,11 +247,11 @@ Tree::Tree(Allocator const& cb)
     m_free_tail(NONE),
     m_arena(),
     m_arena_pos(0),
-    m_alloc(cb)
+    m_callbacks(cb)
 {
 }
 
-Tree::Tree(size_t node_capacity, size_t arena_capacity, Allocator const& cb) : Tree(cb)
+Tree::Tree(size_t node_capacity, size_t arena_capacity, Callbacks const& cb) : Tree(cb)
 {
     reserve(node_capacity);
     reserve_arena(arena_capacity);
@@ -263,7 +263,7 @@ Tree::~Tree()
 }
 
 
-Tree::Tree(Tree const& that) noexcept : Tree(that.m_alloc)
+Tree::Tree(Tree const& that) noexcept : Tree(that.m_callbacks)
 {
     _copy(that);
 }
@@ -275,7 +275,7 @@ Tree& Tree::operator= (Tree const& that) noexcept
     return *this;
 }
 
-Tree::Tree(Tree && that) noexcept : Tree(that.m_alloc)
+Tree::Tree(Tree && that) noexcept : Tree(that.m_callbacks)
 {
     _move(that);
 }
@@ -292,12 +292,12 @@ void Tree::_free()
     if(m_buf)
     {
         RYML_ASSERT(m_cap > 0);
-        m_alloc.free(m_buf, m_cap * sizeof(NodeData));
+        m_callbacks.m_free(m_buf, m_cap * sizeof(NodeData), m_callbacks.m_user_data);
     }
     if(m_arena.str)
     {
         RYML_ASSERT(m_arena.len > 0);
-        m_alloc.free(m_arena.str, m_arena.len);
+        m_callbacks.m_free(m_arena.str, m_arena.len, m_callbacks.m_user_data);
     }
     _clear();
 }
@@ -324,7 +324,7 @@ void Tree::_copy(Tree const& that)
     RYML_ASSERT(m_buf == nullptr);
     RYML_ASSERT(m_arena.str == nullptr);
     RYML_ASSERT(m_arena.len == 0);
-    m_buf = (NodeData*) m_alloc.allocate(that.m_cap * sizeof(NodeData), that.m_buf);
+    m_buf = (NodeData*) m_callbacks.m_allocate(that.m_cap * sizeof(NodeData), that.m_buf, m_callbacks.m_user_data);
     memcpy(m_buf, that.m_buf, that.m_cap * sizeof(NodeData));
     m_cap = that.m_cap;
     m_size = that.m_size;
@@ -336,7 +336,7 @@ void Tree::_copy(Tree const& that)
     {
         RYML_ASSERT(that.m_arena.len > 0);
         substr arena;
-        arena.str = (char*) m_alloc.allocate(that.m_arena.len, that.m_arena.str);
+        arena.str = (char*) m_callbacks.m_allocate(that.m_arena.len, that.m_arena.str, m_callbacks.m_user_data);
         arena.len = that.m_arena.len;
         _relocate(arena); // does a memcpy of the arena and updates nodes using the old arena
         m_arena = arena;
@@ -386,11 +386,11 @@ void Tree::reserve(size_t cap)
 {
     if(cap > m_cap)
     {
-        NodeData *buf = (NodeData*) m_alloc.allocate(cap * sizeof(NodeData), m_buf);
+        NodeData *buf = (NodeData*) m_callbacks.m_allocate(cap * sizeof(NodeData), m_buf, m_callbacks.m_user_data);
         if(m_buf)
         {
             memcpy(buf, m_buf, m_cap * sizeof(NodeData));
-            m_alloc.free(m_buf, m_cap * sizeof(NodeData));
+            m_callbacks.m_free(m_buf, m_cap * sizeof(NodeData), m_callbacks.m_user_data);
         }
         size_t first = m_cap, del = cap - m_cap;
         m_cap = cap;
@@ -1230,7 +1230,7 @@ struct ReferenceResolver
      * @see http://yaml.org/spec/1.2/spec.html#id2765878 */
     stack<refdata> refs;
 
-    ReferenceResolver(Tree *t_) : t(t_), refs(t_->allocator())
+    ReferenceResolver(Tree *t_) : t(t_), refs(t_->callbacks())
     {
         resolve();
     }
