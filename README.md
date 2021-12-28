@@ -13,7 +13,10 @@
 
 
 Or ryml, for short. ryml is a C++ library to parse and emit YAML, and
-do it fast.
+do it fast. (If you are looking to use your programs with a YAML tree
+as a configuration tree with override facilities, there is
+[c4conf](https://github.com/biojppm/c4conf), a sister project which
+uses ryml).
 
 ryml parses both read-only and in-situ source buffers; the resulting
 data nodes hold only views to sub-ranges of the source buffer. No
@@ -66,7 +69,8 @@ ryml is [available in Python](https://pypi.org/project/rapidyaml/),
 and can very easily be compiled to JavaScript through emscripten (see
 below).
 
-See also [the changelog](https://github.com/biojppm/rapidyaml/changelog) and [the roadmap](https://github.com/biojppm/rapidyaml/ROADMAP.md).
+See also [the changelog](https://github.com/biojppm/rapidyaml/changelog)
+and [the roadmap](https://github.com/biojppm/rapidyaml/ROADMAP.md).
 
 <!-- endpythonreadme -->
 

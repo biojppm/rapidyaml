@@ -4,7 +4,7 @@ project(ryml
     HOMEPAGE_URL "https://github.com/biojppm/rapidyaml"
     LANGUAGES CXX)
 include(../../ext/c4core/cmake/c4Project.cmake)
-c4_project(VERSION 0.1.7
+c4_project(VERSION 0.3.0
     AUTHOR "Joao Paulo Magalhaes <dev@jpmag.me>")
 
 set(rymldir "${CMAKE_CURRENT_LIST_DIR}/../..")
