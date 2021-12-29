@@ -11,9 +11,15 @@ target_compile_features(ryml PUBLIC cxx_std_11)
 target_include_directories(ryml PUBLIC "${SINGLE_HEADER_DIR}")
 
 # now simply define the executable:
-add_executable(ryml-quickstart ../quickstart.cpp )
+add_executable(ryml-quickstart ../quickstart.cpp)
 target_link_libraries(ryml-quickstart PRIVATE ryml)
 target_compile_definitions(ryml-quickstart PUBLIC -DRYML_SINGLE_HEADER_LIB)
+
+# adjustments for shared library
+if(BUILD_SHARED_LIBS)
+    # RYML_SHARED should be propagated to targets consuming ryml
+    target_compile_definitions(ryml PUBLIC -DRYML_SHARED)
+endif()
 
 add_custom_target(run ryml-quickstart
     COMMAND $<TARGET_FILE:ryml-quickstart>
