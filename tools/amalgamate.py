@@ -14,9 +14,24 @@ import amalgamate as am_c4core
 
 ryml_defmacro = "RYML_SINGLE_HDR_DEFINE_NOW"
 c4core_defmacro = "C4CORE_SINGLE_HDR_DEFINE_NOW"
-c4core_def = am.injcode(f"""#if defined({ryml_defmacro}) && !defined({c4core_defmacro})
+exports_def_code = f""" // shared library: export when defining
+#if defined(RYML_SHARED) && defined({ryml_defmacro}) && !defined(RYML_EXPORTS)
+#define RYML_EXPORTS
+#endif
+"""
+c4core_def_code = f""" // propagate defines to c4core
+#if defined({ryml_defmacro}) && !defined({c4core_defmacro})
 #define {c4core_defmacro}
-#endif""")
+#endif
+
+#if defined(RYML_EXPORTS) && !defined(C4CORE_EXPORTS)
+#define C4CORE_EXPORTS
+#endif
+
+#if defined(RYML_SHARED) && !defined(C4CORE_SHARED)
+#define C4CORE_SHARED
+#endif
+"""
 
 
 def amalgamate_ryml(filename: str,
@@ -29,7 +44,7 @@ def amalgamate_ryml(filename: str,
                                     with_fastfloat=with_fastfloat,
                                     with_stl=with_stl)
     repo = "https://github.com/biojppm/rapidyaml"
-    defmacro = "RYML_SINGLE_HDR_DEFINE_NOW"
+    defmacro = ryml_defmacro
     srcfiles = [
         am.cmttext(f"""
 Rapid YAML - a library to parse and emit YAML, and do it fast.
@@ -45,9 +60,13 @@ INSTRUCTIONS:
     #define {defmacro} and then include this header.
     This will enable the function and class definitions in
     the header file.
+  - To compile into a shared library, just define the
+    preprocessor symbol RYML_SHARED . This will take
+    care of symbol export/import.
 """),
         am.cmtfile("LICENSE.txt"),
-        am.onlyif(with_c4core, c4core_def),
+        am.injcode(exports_def_code),
+        am.onlyif(with_c4core, am.injcode(c4core_def_code)),
         am.onlyif(with_c4core, c4core_amalgamated),
         "src/c4/yml/export.hpp",
         "src/c4/yml/common.hpp",

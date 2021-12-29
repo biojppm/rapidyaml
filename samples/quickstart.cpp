@@ -24,8 +24,10 @@
 //-----------------------------------------------------------------------------
 
 // ryml can be used as a single header, or as a simple library:
-#ifdef RYML_SINGLE_HEADER
+#if defined(RYML_SINGLE_HEADER) // using the single header directly in the executable
     #define RYML_SINGLE_HDR_DEFINE_NOW
+    #include <ryml_all.hpp>
+#elif defined(RYML_SINGLE_HEADER_LIB) // using the single header from a library
     #include <ryml_all.hpp>
 #else
     // <ryml_std.hpp> is only needed if interop with std types is

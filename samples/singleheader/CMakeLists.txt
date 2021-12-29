@@ -7,6 +7,7 @@ amalgamate_ryml(SINGLE_HEADER_DIR SINGLE_HEADER)
 
 # now simply define the executable:
 add_executable(ryml-quickstart ../quickstart.cpp ${SINGLE_HEADER})
+target_compile_features(ryml-quickstart PUBLIC cxx_std_11)
 target_compile_definitions(ryml-quickstart PUBLIC -DRYML_SINGLE_HEADER)
 target_include_directories(ryml-quickstart PUBLIC "${SINGLE_HEADER_DIR}")
 
