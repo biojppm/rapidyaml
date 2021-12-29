@@ -529,6 +529,8 @@ jobs:
       - {name: show info, run: source .github/setenv.sh && c4_show_info }
       #
       - {name: singleheader, run: cd samples/singleheader && ./run.sh $BT }
+      - {name: singleheaderlib-static, run: cd samples/singleheaderlib && ./run_static.sh $BT }
+      - {name: singleheaderlib-shared, run: cd samples/singleheaderlib && ./run_shared.sh $BT }
       - {name: add_subdirectory, run: cd samples/add_subdirectory && ./run.sh $BT }
       - {name: find_package, run: cd samples/find_package && ./run.sh $BT }
       - {name: custom_c4core, run: cd samples/custom_c4core && ./run.sh $BT }
