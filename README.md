@@ -622,8 +622,8 @@ upstream changes in ryml. Also, ryml is small and quick to build, so
 there's not much of a cost for building it with your project.
 
 ### Single header file
-ryml is provided chiefly as a cmake library project, but it can also be used as
-a single header file, and there is a [tool to
+ryml is provided chiefly as a cmake library project, but it can also
+be used as a single header file, and there is a [tool to
 amalgamate](./tools/amalgamate.py) the code into a single header
 file. The amalgamated header file is provided with each release, but
 you can also generate a customized file suiting your particular needs
@@ -661,6 +661,11 @@ will enable the function definitions. For example:
 #define RYML_SINGLE_HDR_DEFINE_NOW
 #include <ryml_all.hpp>
 ```
+
+If you wish to package the single header into a shared library, then
+you will need to define the preprocessor symbol `RYML_SHARED` during
+compilation.
+
 
 ### As a library
 The single header file is a good approach to quickly try the library,
@@ -703,6 +708,7 @@ more about each sample:
 | Sample name        | ryml is part of build?   | cmake file   | commands     |
 |:-------------------|--------------------------|:-------------|:-------------|
 | [`singleheader`](./samples/singleheader) | **yes**<br>ryml brought as a single header file,<br>not as a library | [`CMakeLists.txt`](./samples/singleheader/CMakeLists.txt) | [`run.sh`](./samples/singleheader/run.sh) |
+| [`singleheaderlib`](./samples/singleheaderlib) | **yes**<br>ryml brought as a library<br>but from the single header file | [`CMakeLists.txt`](./samples/singleheaderlib/CMakeLists.txt) | [`run_shared.sh` (shared library)](./samples/singleheaderlib/run_shared.sh)<br> [`run_static.sh` (static library)](./samples/singleheaderlib/run_static.sh) |
 | [`add_subdirectory`](./samples/add_subdirectory) | **yes**                      | [`CMakeLists.txt`](./samples/add_subdirectory/CMakeLists.txt) | [`run.sh`](./samples/add_subdirectory/run.sh) |
 | [`fetch_content`](./samples/fetch_content)      | **yes**                      | [`CMakeLists.txt`](./samples/fetch_content/CMakeLists.txt) | [`run.sh`](./samples/fetch_content/run.sh) |
 | [`find_package`](./samples/find_package)        | **no**<br>needs prior install or package  | [`CMakeLists.txt`](./samples/find_package/CMakeLists.txt) | [`run.sh`](./samples/find_package/run.sh) |
