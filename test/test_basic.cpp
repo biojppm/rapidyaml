@@ -557,6 +557,8 @@ TEST(serialize, nan)
 good:
   - .nan
   -   .nan
+  - .NaN
+  - .NAN
   -
    .nan
 set:
@@ -570,6 +572,8 @@ set:
     EXPECT_EQ(t["good"][0].val(), ".nan");
     EXPECT_EQ(t["good"][1].val(), ".nan");
     EXPECT_EQ(t["good"][2].val(), ".nan");
+    EXPECT_EQ(t["good"][3].val(), ".nan");
+    EXPECT_EQ(t["good"][4].val(), ".nan");
     float f;
     double d;
     f = 0.f;
@@ -590,6 +594,18 @@ set:
     t["good"][2] >> d;
     EXPECT_TRUE(std::isnan(f));
     EXPECT_TRUE(std::isnan(d));
+    f = 0.f;
+    d = 0.;
+    t["good"][3] >> f;
+    t["good"][3] >> d;
+    EXPECT_TRUE(std::isnan(f));
+    EXPECT_TRUE(std::isnan(d));
+    f = 0.f;
+    d = 0.;
+    t["good"][4] >> f;
+    t["good"][4] >> d;
+    EXPECT_TRUE(std::isnan(f));
+    EXPECT_TRUE(std::isnan(d));
 }
 
 TEST(serialize, inf)
@@ -599,6 +615,8 @@ TEST(serialize, inf)
 good:
   - .inf
   -   .inf
+  - .Inf
+  - .INF
   -
    .inf
 set:
@@ -614,6 +632,8 @@ set:
     EXPECT_EQ(t["good"][0].val(), ".inf");
     EXPECT_EQ(t["good"][1].val(), ".inf");
     EXPECT_EQ(t["good"][2].val(), ".inf");
+    EXPECT_EQ(t["good"][3].val(), ".inf");
+    EXPECT_EQ(t["good"][4].val(), ".inf");
     float f;
     double d;
     f = 0.f;
@@ -634,11 +654,25 @@ set:
     t["good"][2] >> d;
     EXPECT_TRUE(f == finf);
     EXPECT_TRUE(d == dinf);
+    f = 0.f;
+    d = 0.;
+    t["good"][3] >> f;
+    t["good"][3] >> d;
+    EXPECT_TRUE(f == finf);
+    EXPECT_TRUE(d == dinf);
+    f = 0.f;
+    d = 0.;
+    t["good"][4] >> f;
+    t["good"][4] >> d;
+    EXPECT_TRUE(f == finf);
+    EXPECT_TRUE(d == dinf);
 
     t = parse(R"(
 good:
   - -.inf
   -   -.inf
+  - -.Inf
+  - -.INF
   -
    -.inf
 set:
@@ -652,6 +686,8 @@ set:
     EXPECT_EQ(t["good"][0].val(), "-.inf");
     EXPECT_EQ(t["good"][1].val(), "-.inf");
     EXPECT_EQ(t["good"][2].val(), "-.inf");
+    EXPECT_EQ(t["good"][3].val(), "-.inf");
+    EXPECT_EQ(t["good"][4].val(), "-.inf");
     f = 0.f;
     d = 0.;
     t["good"][0] >> f;
@@ -668,6 +704,18 @@ set:
     d = 0.;
     t["good"][2] >> f;
     t["good"][2] >> d;
+    EXPECT_TRUE(f == -finf);
+    EXPECT_TRUE(d == -dinf);
+    f = 0.f;
+    d = 0.;
+    t["good"][3] >> f;
+    t["good"][3] >> d;
+    EXPECT_TRUE(f == -finf);
+    EXPECT_TRUE(d == -dinf);
+    f = 0.f;
+    d = 0.;
+    t["good"][4] >> f;
+    t["good"][4] >> d;
     EXPECT_TRUE(f == -finf);
     EXPECT_TRUE(d == -dinf);
     C4_SUPPRESS_WARNING_GCC_CLANG_POP

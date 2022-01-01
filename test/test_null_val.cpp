@@ -60,6 +60,22 @@ TEST(null_val, issue103)
     EXPECT_EQ(tree.key(1), "test");
     EXPECT_EQ(tree.val(1), nullptr);
 
+    tree = parse(R"({test: Null})");
+    ASSERT_EQ(tree.size(), 2u);
+    EXPECT_EQ(tree.root_id(), 0u);
+    EXPECT_EQ(tree.first_child(0), 1u);
+    EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
+    EXPECT_EQ(tree.key(1), "test");
+    EXPECT_EQ(tree.val(1), nullptr);
+
+    tree = parse(R"({test: NULL})");
+    ASSERT_EQ(tree.size(), 2u);
+    EXPECT_EQ(tree.root_id(), 0u);
+    EXPECT_EQ(tree.first_child(0), 1u);
+    EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
+    EXPECT_EQ(tree.key(1), "test");
+    EXPECT_EQ(tree.val(1), nullptr);
+
     tree = parse(R"({test: })");
     ASSERT_EQ(tree.size(), 2u);
     EXPECT_EQ(tree.root_id(), 0u);
@@ -77,6 +93,22 @@ TEST(null_val, issue103)
     EXPECT_EQ(tree.val(1), nullptr);
 
     tree = parse(R"({test: "null"})");
+    ASSERT_EQ(tree.size(), 2u);
+    EXPECT_EQ(tree.root_id(), 0u);
+    EXPECT_EQ(tree.first_child(0), 1u);
+    EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
+    EXPECT_EQ(tree.key(1), "test");
+    EXPECT_EQ(tree.val(1), "null");
+
+    tree = parse(R"({test: "Null"})");
+    ASSERT_EQ(tree.size(), 2u);
+    EXPECT_EQ(tree.root_id(), 0u);
+    EXPECT_EQ(tree.first_child(0), 1u);
+    EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
+    EXPECT_EQ(tree.key(1), "test");
+    EXPECT_EQ(tree.val(1), "null");
+
+    tree = parse(R"({test: "NULL"})");
     ASSERT_EQ(tree.size(), 2u);
     EXPECT_EQ(tree.root_id(), 0u);
     EXPECT_EQ(tree.first_child(0), 1u);
@@ -125,8 +157,12 @@ R"(
 -
 - # with space
 - null
+- Null
+- NULL
 - ~
 - null: null
+- Null: Null
+- NULL: NULL
 - ~: ~
 - ~: null
 - null: ~
@@ -136,6 +172,10 @@ N(VAL, nullptr),
 N(VAL, nullptr),
 N(VAL, nullptr),
 N(VAL, nullptr),
+N(VAL, nullptr),
+N(VAL, nullptr),
+N(MAP, L{N(KEYVAL, nullptr, nullptr)}),
+N(MAP, L{N(KEYVAL, nullptr, nullptr)}),
 N(MAP, L{N(KEYVAL, nullptr, nullptr)}),
 N(MAP, L{N(KEYVAL, nullptr, nullptr)}),
 N(MAP, L{N(KEYVAL, nullptr, nullptr)}),
