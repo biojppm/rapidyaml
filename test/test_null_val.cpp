@@ -106,7 +106,7 @@ TEST(null_val, issue103)
     EXPECT_EQ(tree.first_child(0), 1u);
     EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
     EXPECT_EQ(tree.key(1), "test");
-    EXPECT_EQ(tree.val(1), "null");
+    EXPECT_EQ(tree.val(1), "Null");
 
     tree = parse(R"({test: "NULL"})");
     ASSERT_EQ(tree.size(), 2u);
@@ -114,7 +114,7 @@ TEST(null_val, issue103)
     EXPECT_EQ(tree.first_child(0), 1u);
     EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
     EXPECT_EQ(tree.key(1), "test");
-    EXPECT_EQ(tree.val(1), "null");
+    EXPECT_EQ(tree.val(1), "NULL");
     C4_SUPPRESS_WARNING_GCC_POP
 }
 
