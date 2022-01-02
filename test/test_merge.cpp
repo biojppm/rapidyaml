@@ -1,9 +1,8 @@
-#include <gtest/gtest.h>
+#ifndef RYML_SINGLE_HEADER
 #include <c4/yml/std/std.hpp>
 #include <c4/yml/yml.hpp>
-#include <initializer_list>
-#include <string>
-#include <iostream>
+#endif
+#include <gtest/gtest.h>
 
 #include "./test_case.hpp"
 

@@ -1,9 +1,11 @@
+#ifndef RYML_SINGLE_HEADER
 #include "c4/yml/std/std.hpp"
 #include "c4/yml/parse.hpp"
 #include "c4/yml/emit.hpp"
 #include <c4/format.hpp>
 #include <c4/yml/detail/checks.hpp>
 #include <c4/yml/detail/print.hpp>
+#endif
 
 #include "./test_case.hpp"
 

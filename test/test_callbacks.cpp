@@ -1,5 +1,7 @@
 #include "./test_case.hpp"
+#ifndef RYML_SINGLE_HEADER
 #include "c4/yml/common.hpp"
+#endif
 #include <stdexcept>
 
 

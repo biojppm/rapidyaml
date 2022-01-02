@@ -1,20 +1,20 @@
 #ifndef C4_YML_TEST_SUITE_COMMON_HPP_
 #define C4_YML_TEST_SUITE_COMMON_HPP_
 
-#include <gtest/gtest.h>
-
+#ifndef RYML_SINGLE_HEADER
 #include <c4/yml/std/std.hpp>
-
-#include <c4/fs/fs.hpp>
-#include <c4/log/log.hpp>
-
 #include <c4/yml/tree.hpp>
 #include <c4/yml/parse.hpp>
 #include <c4/yml/emit.hpp>
 #include <c4/yml/detail/print.hpp>
 #include <c4/yml/detail/checks.hpp>
+#endif
+
+#include <c4/fs/fs.hpp>
+#include <c4/log/log.hpp>
 
 #include "test_case.hpp"
+#include <gtest/gtest.h>
 
 #define RYML_NFO (1 || RYML_DBG)
 
