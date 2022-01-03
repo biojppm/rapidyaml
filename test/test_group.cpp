@@ -1,5 +1,7 @@
-#include "./test_group.hpp"
+#ifndef RYML_SINGLE_HEADER
 #include "c4/yml/detail/print.hpp"
+#endif
+#include "test_group.hpp"
 #include "test_case.hpp"
 #include <c4/fs/fs.hpp>
 #include <fstream>

@@ -1,7 +1,9 @@
+#ifndef RYML_SINGLE_HEADER
 #include <c4/yml/std/string.hpp>
 #include <c4/yml/preprocess.hpp>
-#include <gtest/gtest.h>
+#endif
 #include "./test_case.hpp"
+#include <gtest/gtest.h>
 
 namespace c4 {
 namespace yml {

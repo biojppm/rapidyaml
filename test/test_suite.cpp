@@ -1,20 +1,18 @@
-#include <gtest/gtest.h>
-
+#ifndef RYML_SINGLE_HEADER
 #include <c4/yml/std/std.hpp>
-
-#include <c4/fs/fs.hpp>
-#include <c4/log/log.hpp>
-
 #include <c4/yml/tree.hpp>
 #include <c4/yml/parse.hpp>
 #include <c4/yml/emit.hpp>
 #include <c4/yml/detail/print.hpp>
 #include <c4/yml/detail/checks.hpp>
-
+#endif
 #include "test_case.hpp"
 #include "test_suite/test_suite_common.hpp"
 #include "test_suite/test_suite_parts.hpp"
 #include "test_suite/test_suite_events.hpp"
+#include <c4/fs/fs.hpp>
+#include <c4/log/log.hpp>
+#include <gtest/gtest.h>
 
 
 C4_SUPPRESS_WARNING_MSVC_PUSH

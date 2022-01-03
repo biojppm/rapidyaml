@@ -89,8 +89,8 @@ INSTRUCTIONS:
         "src/c4/yml/node.cpp",
         "src/c4/yml/preprocess.hpp",
         "src/c4/yml/preprocess.cpp",
-        #"src/c4/yml/detail/checks.hpp",
-        #"src/c4/yml/detail/print.hpp",
+        "src/c4/yml/detail/checks.hpp",
+        "src/c4/yml/detail/print.hpp",
         "src/c4/yml/yml.hpp",
         "src/ryml.hpp",
     ]

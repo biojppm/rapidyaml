@@ -1,7 +1,8 @@
 #include "test_suite_events.hpp"
-
 #include "test_suite_common.hpp"
+#ifndef RYML_SINGLE_HEADER
 #include <c4/yml/detail/stack.hpp>
+#endif
 #include <gtest/gtest.h>
 
 namespace c4 {

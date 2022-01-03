@@ -37,6 +37,7 @@ using tag_bits = uint16_t;
 using type_bits = uint64_t;
 
 
+/** encode a floating point value to a string. */
 template<class T>
 size_t to_chars_float(substr buf, T val)
 {
@@ -53,27 +54,35 @@ size_t to_chars_float(substr buf, T val)
 }
 
 
+/** decode a floating point from string. Accepts special values: .nan,
+ * .inf, -.inf */
 template<class T>
 bool from_chars_float(csubstr buf, T *C4_RESTRICT val)
 {
     static_assert(std::is_floating_point<T>::value, "must be floating point");
-    if(C4_UNLIKELY(buf == ".nan"))
+    if(C4_LIKELY(from_chars(buf, val)))
+    {
+        return true;
+    }
+    else if(C4_UNLIKELY(buf == ".nan" || buf == ".NaN" || buf == ".NAN"))
     {
         *val = std::numeric_limits<T>::quiet_NaN();
         return true;
     }
-    else if(C4_UNLIKELY(buf == ".inf"))
+    else if(C4_UNLIKELY(buf == ".inf" || buf == ".Inf" || buf == ".INF"))
     {
         *val = std::numeric_limits<T>::infinity();
         return true;
     }
-    else if(C4_UNLIKELY(buf == "-.inf"))
+    else if(C4_UNLIKELY(buf == "-.inf" || buf == "-.Inf" || buf == "-.INF"))
     {
         *val = -std::numeric_limits<T>::infinity();
         return true;
     }
-    return from_chars(buf, val);
-
+    else
+    {
+        return false;
+    }
 }
 
 

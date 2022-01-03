@@ -2138,7 +2138,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
 
     _c4dbgpf("scalar was '%.*s'", _c4prsp(s));
 
-    if(s == '~' || s == "null")
+    if(s == '~' || s == "null" || s == "Null" || s == "NULL")
     {
         _c4dbgpf("scalar was '%.*s', so use {}", _c4prsp(s));
         s = {};

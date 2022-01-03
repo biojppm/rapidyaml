@@ -7,29 +7,31 @@ include(../../ext/c4core/cmake/c4Project.cmake)
 c4_project(VERSION 0.3.0
     AUTHOR "Joao Paulo Magalhaes <dev@jpmag.me>")
 
-set(rymldir "${CMAKE_CURRENT_LIST_DIR}/../..")
-set(singleheaderdir "${rymldir}/src_singleheader")
-set(singleheader "${singleheaderdir}/ryml_all.hpp")
-if(NOT (EXISTS "${singleheader}"))
-    # try generating a header
-    set(cmd python "${rymldir}/tools/amalgamate.py" "${singleheader}")
-    message(STATUS "single header not found, attempting to generate... ${cmd}")
-    execute_process(COMMAND ${cmd}
-        #COMMMAND_ECHO STDOUT
-        RESULT_VARIABLE status)
-    if((NOT (status EQUAL "0")) OR NOT (EXISTS "${singleheader}"))
-        message(FATAL_ERROR "cannot find or generate single header for ryml: ${singleheader}")
-    endif()
-    message(STATUS "single header successfully generated: ${singleheader}")
-endif()
+# amalgamate ryml to get the single header
+function(amalgamate_ryml header_dir header_file)
+    set(rymldir "${CMAKE_CURRENT_LIST_DIR}/../..")
+    set(singleheaderdir "${rymldir}/src_singleheader")
+    set(singleheader "${singleheaderdir}/ryml_all.hpp")
+    set(amscript "${rymldir}/tools/amalgamate.py")
+    file(GLOB_RECURSE srcfiles
+        LIST_DIRECTORIES FALSE
+        CONFIGURE_DEPENDS "${rymldir}/src")
+    add_custom_command(OUTPUT "${singleheader}"
+        COMMAND python "${amscript}" "${singleheader}"
+        COMMENT "python ${amscript} ${singleheader}"
+        DEPENDS ${srcfiles} "${amscript}" "${rymldir}/ext/c4core/cmake/amalgamate_utils.py")
+    set(${header_dir} "${singleheaderdir}" PARENT_SCOPE)
+    set(${header_file} "${singleheader}" PARENT_SCOPE)
+endfunction()
+amalgamate_ryml(header_dir header_file)
 
 c4_add_library(ryml
     INC_DIRS
-        $<BUILD_INTERFACE:${singleheaderdir}> $<INSTALL_INTERFACE:include>
-        $<BUILD_INTERFACE:${rymldir}/src> # because of a couple of detail:: headers which are not amalgamated
-    SOURCE_ROOT ${singleheaderdir}
+        $<BUILD_INTERFACE:${header_dir}>
+        $<INSTALL_INTERFACE:include>
+    SOURCE_ROOT ${header_dir}
     SOURCES
-        ${singleheader}
+        ${header_file}
         ${CMAKE_CURRENT_LIST_DIR}/libryml_singleheader.cpp)
 target_compile_definitions(ryml PUBLIC -DRYML_SINGLE_HEADER) # this is needed only for the tests, not ryml itself
 
