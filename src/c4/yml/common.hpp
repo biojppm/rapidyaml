@@ -136,6 +136,15 @@ struct RYML_EXPORT Callbacks
 
     Callbacks();
     Callbacks(void *user_data, pfn_allocate alloc, pfn_free free, pfn_error error_);
+
+    bool operator!= (Callbacks const& that) const { return !operator==(that); }
+    bool operator== (Callbacks const& that) const
+    {
+        return (m_user_data == that.m_user_data &&
+                m_allocate == that.m_allocate &&
+                m_free == that.m_free &&
+                m_error == that.m_error);
+    }
 };
 
 /// get the global callbacks

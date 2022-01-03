@@ -191,6 +191,69 @@ TEST(Callbacks, reset)
     EXPECT_EQ(before.m_error, after.m_error);
 }
 
+TEST(Callbacks, eq)
+{
+    Callbacks before = get_callbacks();
+    Callbacks bf2 = get_callbacks();
+    Callbacks cb((void*)0xff, &test_allocate_impl, &test_free_impl, &test_error_impl);
+
+    EXPECT_EQ(bf2, before);
+    EXPECT_TRUE(bf2 == before);
+    EXPECT_FALSE(!(bf2 == before));
+    EXPECT_TRUE(!(cb == before));
+}
+
+TEST(Callbacks, ne)
+{
+    Callbacks before = get_callbacks();
+    Callbacks bf2 = get_callbacks();
+    Callbacks cb((void*)0xff, &test_allocate_impl, &test_free_impl, &test_error_impl);
+
+    EXPECT_NE(cb, before);
+    EXPECT_TRUE(cb != before);
+    EXPECT_TRUE(!(bf2 != before));
+    EXPECT_FALSE(!(cb != before));
+}
+
+TEST(Callbacks, cmp_user_data)
+{
+    Callbacks before = get_callbacks();
+    Callbacks cp = before;
+    EXPECT_EQ(cp, before);
+    cp.m_user_data = (void*)(((char*)before.m_user_data) + 100u);
+    EXPECT_NE(cp, before);
+}
+
+TEST(Callbacks, cmp_allocate)
+{
+    Callbacks before = get_callbacks();
+    Callbacks cp = before;
+    EXPECT_NE(cp.m_allocate, nullptr);
+    EXPECT_EQ(cp, before);
+    cp.m_allocate = nullptr;
+    EXPECT_NE(cp, before);
+}
+
+TEST(Callbacks, cmp_free)
+{
+    Callbacks before = get_callbacks();
+    Callbacks cp = before;
+    EXPECT_NE(cp.m_free, nullptr);
+    EXPECT_EQ(cp, before);
+    cp.m_free = nullptr;
+    EXPECT_NE(cp, before);
+}
+
+TEST(Callbacks, cmp_error)
+{
+    Callbacks before = get_callbacks();
+    Callbacks cp = before;
+    EXPECT_NE(cp.m_error, nullptr);
+    EXPECT_EQ(cp, before);
+    cp.m_error = nullptr;
+    EXPECT_NE(cp, before);
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -277,7 +340,6 @@ TEST(RYML_ASSERT, basic)
     reset_callbacks();
     EXPECT_NE(get_callbacks().m_error, &test_error_impl);
 }
-
 
 
 // FIXME this is here merely to avoid a linker error
