@@ -24,7 +24,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL GNU)
     endif()
 endif()
 c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
-    SOURCES test_case.hpp test_case.cpp
+    SOURCES test_case.hpp test_case.cpp callbacks_tester.hpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${ryml_yaml_cpp_inc}
     LIBS ryml c4fs gtest
     FOLDER test)
