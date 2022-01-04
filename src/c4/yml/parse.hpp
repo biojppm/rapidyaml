@@ -25,15 +25,21 @@ namespace yml {
 
 struct ParseOptions
 {
-    typedef enum {
-      TRACK_LOCATION = 0x01 << 0,
-      DEFAULTS = 0,
+    typedef enum : int {
+      NOFLAGS = 0,
+      RESOLVE_REFERENCES = 0x01 << 0,
+      TRACK_LOCATION = 0x01 << 1,
+      DEFAULTS = NOFLAGS,
     } ParseOptionFlags_e;
 
+    ParseOptions(ParseOptionFlags_e f=DEFAULTS) : flags(f) {}
     ParseOptionFlags_e flags;
 
-    ParseOptions(ParseOptionFlags_e f) : flags(f) {}
-    ParseOptions() : ParseOptions(DEFAULTS) {}
+    // to simplify flag specification
+    operator ParseOptionFlags_e () const { return flags; }
+    friend ParseOptionFlags_e operator| (ParseOptionFlags_e lhs, ParseOptionFlags_e rhs) { return (ParseOptionFlags_e)((int)lhs|(int)rhs); }
+    friend ParseOptionFlags_e operator& (ParseOptionFlags_e lhs, ParseOptionFlags_e rhs) { return (ParseOptionFlags_e)((int)lhs&(int)rhs); }
+    friend ParseOptionFlags_e operator~ (ParseOptionFlags_e rhs) { return (ParseOptionFlags_e)(~(int)rhs); }
 };
 
 
@@ -47,25 +53,26 @@ public:
     /** @name construction and assignment */
     /** @{ */
 
-    Parser(ParseOptions opts, Callbacks const& cb);
+    Parser() : Parser(ParseOptions{}, get_callbacks()) {}
     Parser(ParseOptions opts) : Parser(opts, get_callbacks()) {}
     Parser(Callbacks const& cb) : Parser(ParseOptions{}, cb) {}
-    Parser() : Parser(ParseOptions{}, get_callbacks()) {}
+    Parser(ParseOptions opts, Callbacks const& cb);
     ~Parser();
 
-    Parser(Parser const&) = delete;
-    Parser(Parser &&) = delete;
-    Parser& operator=(Parser const&) = delete;
-    Parser& operator=(Parser &&) = delete;
+    Parser(Parser &&);
+    Parser(Parser const&);
+    Parser& operator=(Parser &&);
+    Parser& operator=(Parser const&);
 
     /** @} */
 
 public:
 
-    /** @name modification */
+    /** @name modifiers */
     /** @{ */
 
-    ParseOptions options() const { return m_parse_options; }
+    /** Set the parsing options. These will only have effect for the
+     * next parsing operation. */
     void options(ParseOptions opts) { m_parse_options = opts; }
 
     /** Reserve a certain capacity for the parsing stack.
@@ -89,12 +96,43 @@ public:
         m_stack.reserve(capacity);
     }
 
+    /** Reserve a certain capacity for the array used to track node
+     * locations in the source buffer. */
+    void reserve_locations(size_t num_source_lines)
+    {
+        _resize_locations(num_source_lines);
+    }
+
+    /** @} */
+
+public:
+
+    /** @name getters and modifiers */
+    /** @{ */
+
+    /** get the current parsing options */
+    ParseOptions options() const { return m_parse_options; }
+
     /** Get the current callbacks in the parser. */
     Callbacks callbacks() const
     {
         if(m_tree)
+        {
             RYML_ASSERT(m_stack.m_callbacks == m_tree->callbacks());
+        }
         return m_stack.m_callbacks;
+    }
+
+    /** Get the name of the latest file parsed by this object. */
+    csubstr filename() const
+    {
+        return m_file;
+    }
+
+    /** Get the latest YAML buffer parsed by this object. */
+    csubstr source() const
+    {
+        return m_buf;
     }
 
     /** @} */
@@ -468,8 +506,15 @@ private:
     void rem_flags(size_t off, State * s);
 
     void _prepare_locations();
+    void _resize_locations(size_t sz);
 
 private:
+
+    void _free();
+    void _clr();
+    void _cp(Parser const* that);
+    void _mv(Parser *that);
+    void _cb(Callbacks const& cb);
 
 #ifdef RYML_DBG
     void _dbg(const char *msg, ...) const;
@@ -514,7 +559,16 @@ private:
 //-----------------------------------------------------------------------------
 
 /** @name parse_in_place
- * @desc parse a mutable YAML source buffer. */
+ *
+ * @desc parse a mutable YAML source buffer.
+ *
+ * @note These freestanding functions use a temporary parser object,
+ * and are convenience functions to easily parse YAML without the need
+ * to instantiate a separate parser. Note that some properties
+ * (notably node locations in the original source code) are only
+ * available through the parser object after it has parsed the
+ * code. If you need access to any of these properties, use
+ * Parser::parse_in_place() */
 /** @{ */
 
 inline Tree parse_in_place(                  substr yaml,                          ParseOptions opts={}) { Parser np(opts); return np.parse_in_place({}      , yaml); } //!< parse in-situ a modifiable YAML source buffer.
@@ -534,6 +588,14 @@ inline void parse_in_place(csubstr filename, substr yaml, NodeRef node,         
 /** @name parse_in_arena
  * @desc parse a read-only YAML source buffer, copying it first to the tree's arena.
  *
+ * @note These freestanding functions use a temporary parser object,
+ * and are convenience functions to easily parse YAML without the need
+ * to instantiate a separate parser. Note that some properties
+ * (notably node locations in the original source code) are only
+ * available through the parser object after it has parsed the
+ * code. If you need access to any of these properties, use
+ * Parser::parse_in_arena().
+ *
  * @note overloads receiving a substr YAML buffer are intentionally
  * left undefined, such that calling parse_in_arena() with a substr
  * will cause a linker error. This is to prevent an accidental
@@ -546,14 +608,14 @@ inline void parse_in_place(csubstr filename, substr yaml, NodeRef node,         
 /** @{ */
 
 /* READ THE NOTE ABOVE! */
-/*DISABLED,LinkError!*/ Tree parse_in_arena(                  substr yaml,                          ParseOptions opts={});
-/*DISABLED,LinkError!*/ Tree parse_in_arena(csubstr filename, substr yaml,                          ParseOptions opts={});
-/*DISABLED,LinkError!*/ void parse_in_arena(                  substr yaml, Tree *t,                 ParseOptions opts={});
-/*DISABLED,LinkError!*/ void parse_in_arena(csubstr filename, substr yaml, Tree *t,                 ParseOptions opts={});
-/*DISABLED,LinkError!*/ void parse_in_arena(                  substr yaml, Tree *t, size_t node_id, ParseOptions opts={});
-/*DISABLED,LinkError!*/ void parse_in_arena(csubstr filename, substr yaml, Tree *t, size_t node_id, ParseOptions opts={});
-/*DISABLED,LinkError!*/ void parse_in_arena(                  substr yaml, NodeRef node,            ParseOptions opts={});
-/*DISABLED,LinkError!*/ void parse_in_arena(csubstr filename, substr yaml, NodeRef node,            ParseOptions opts={});
+/*DISABLED! LinkError!*/ Tree parse_in_arena(                  substr yaml,                          ParseOptions opts={});
+/*DISABLED! LinkError!*/ Tree parse_in_arena(csubstr filename, substr yaml,                          ParseOptions opts={});
+/*DISABLED! LinkError!*/ void parse_in_arena(                  substr yaml, Tree *t,                 ParseOptions opts={});
+/*DISABLED! LinkError!*/ void parse_in_arena(csubstr filename, substr yaml, Tree *t,                 ParseOptions opts={});
+/*DISABLED! LinkError!*/ void parse_in_arena(                  substr yaml, Tree *t, size_t node_id, ParseOptions opts={});
+/*DISABLED! LinkError!*/ void parse_in_arena(csubstr filename, substr yaml, Tree *t, size_t node_id, ParseOptions opts={});
+/*DISABLED! LinkError!*/ void parse_in_arena(                  substr yaml, NodeRef node,            ParseOptions opts={});
+/*DISABLED! LinkError!*/ void parse_in_arena(csubstr filename, substr yaml, NodeRef node,            ParseOptions opts={});
 
 inline Tree parse_in_arena(                  csubstr yaml,                          ParseOptions opts={}) { Parser np(opts); return np.parse_in_arena({}      , yaml); } //!< parse a read-only YAML source buffer, copying it first to the tree's source arena.
 inline Tree parse_in_arena(csubstr filename, csubstr yaml,                          ParseOptions opts={}) { Parser np(opts); return np.parse_in_arena(filename, yaml); } //!< parse a read-only YAML source buffer, copying it first to the tree's source arena, providing a filename for error messages.

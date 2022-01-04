@@ -37,7 +37,14 @@
     ```
     This approach is not needed for `parse_in_place()`
     because `csubstr` is not implicitly convertible to `substr`.
-
+- `Callbacks`: changed behavior in `Parser` and `Tree`:
+  - When a parser creates a tree, the tree will now use a copy of the
+    parser's callbacks object.
+  - When an existing tree is given to a parser, the parser's callbacks
+    object will be overwritten by that of the tree. If the parser
+    contains any allocated memory, that memory will be freed before
+    any parsing occurs, and then the parser's callbacks will be
+    changed to those of the tree.
 
 ### Fixes
 

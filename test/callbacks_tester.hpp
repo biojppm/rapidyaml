@@ -3,7 +3,6 @@
 
 #ifndef RYML_SINGLE_HEADER
 #include "c4/yml/common.hpp"
-#include "c4/yml/detail/stack.hpp"
 #endif
 #include <gtest/gtest.h>
 
@@ -14,14 +13,12 @@ struct CallbacksTester
 {
     std::vector<char> memory_pool;
     const char *id;
-    detail::stack<size_t> sizes;
     size_t num_allocs, alloc_size;
     size_t num_deallocs, dealloc_size;
 
     CallbacksTester(const char *id_="notset", size_t sz=10u * 1024u) // 10KB
         : memory_pool(sz)
         , id(id_)
-        , sizes()
         , num_allocs()
         , alloc_size()
         , num_deallocs()
@@ -54,11 +51,11 @@ struct CallbacksTester
 
     void *allocate(size_t len)
     {
+        std::cout << "alloc[" << num_allocs << "]=" << len << "B\n";
         void *ptr = &memory_pool[alloc_size];
         alloc_size += len;
         ++num_allocs;
         RYML_CHECK(alloc_size < memory_pool.size());
-        sizes.push(len);
         return ptr;
     }
 
@@ -66,8 +63,7 @@ struct CallbacksTester
     {
         RYML_CHECK((char*)mem     >= &memory_pool.front() && (char*)mem     <  &memory_pool.back());
         RYML_CHECK((char*)mem+len >= &memory_pool.front() && (char*)mem+len <= &memory_pool.back());
-        size_t expected = sizes.pop();
-        RYML_CHECK(expected == len);
+        std::cout << "free[" << num_deallocs << "]=" << len << "B\n";
         dealloc_size += len;
         ++num_deallocs;
         // no need to free here

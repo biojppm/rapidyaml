@@ -18,6 +18,14 @@ using istack = stack<int, N>;
 using ip = int const*;
 
 template<size_t N>
+void to_large(istack<N> *s)
+{
+    size_t sz = 3u * N;
+    s->reserve(sz);
+    EXPECT_NE(s->m_stack, s->m_buf);
+}
+
+template<size_t N>
 void fill_to_large(istack<N> *s)
 {
     size_t sz = 3u * N;
@@ -355,47 +363,143 @@ TEST(stack, callbacks_ctor)
     test_callbacks_ctor<128>();
 }
 
+
+//-----------------------------------------------------------------------------
+// copy ctor
+
 template<size_t N>
-void test_callbacks_copy_ctor()
+void test_callbacks_copy_ctor_small()
 {
-    CallbacksTester td;
+    CallbacksTester ts("src");
+    CallbacksTester td("dst");
+    {
+        istack<N> src(ts.callbacks());
+        EXPECT_EQ(src.size(), 0u);
+        EXPECT_EQ(src.capacity(), N);
+        ASSERT_EQ(src.m_callbacks, ts.callbacks());
+        EXPECT_EQ(src.m_stack, src.m_buf);
+        EXPECT_EQ(ts.num_allocs, 0u);
+        size_t nbefore = ts.num_allocs;
+        EXPECT_EQ(src.m_stack, src.m_buf);
+        EXPECT_EQ(ts.num_allocs, 0u);
+        istack<N> dst(src);
+        EXPECT_EQ(dst.size(), 0u);
+        EXPECT_EQ(dst.capacity(), N);
+        ASSERT_EQ(src.m_callbacks, ts.callbacks());
+        ASSERT_EQ(dst.m_callbacks, ts.callbacks());
+        EXPECT_EQ(dst.m_stack, dst.m_buf);
+        EXPECT_EQ(src.m_stack, src.m_buf);
+        EXPECT_EQ(ts.num_allocs, nbefore);
+        EXPECT_EQ(td.num_allocs, 0u);
+    }
+}
+
+template<size_t N>
+void test_callbacks_copy_ctor_large_unfilled()
+{
+    CallbacksTester ts("src");
+    CallbacksTester td("dst");
+    {
+        istack<N> src(ts.callbacks());
+        ASSERT_EQ(src.m_callbacks, ts.callbacks());
+        EXPECT_EQ(src.m_stack, src.m_buf);
+        EXPECT_EQ(ts.num_allocs, 0u);
+        to_large(&src);
+        ASSERT_GT(src.capacity(), N);
+        size_t nbefore = ts.num_allocs;
+        EXPECT_NE(src.m_stack, src.m_buf);
+        EXPECT_NE(ts.num_allocs, 0u);
+        istack<N> dst(src);
+        ASSERT_EQ(dst.m_callbacks, ts.callbacks());
+        ASSERT_NE(dst.m_callbacks, td.callbacks());
+        EXPECT_EQ(dst.m_stack, dst.m_buf);
+        EXPECT_NE(src.m_stack, src.m_buf);
+        EXPECT_EQ(ts.num_allocs, nbefore);
+        EXPECT_EQ(td.num_allocs, 0u);
+    }
+}
+
+template<size_t N>
+void test_callbacks_copy_ctor_large_filled()
+{
+    CallbacksTester ts("src");
+    CallbacksTester td("dst");
+    {
+        istack<N> src(ts.callbacks());
+        ASSERT_EQ(src.m_callbacks, ts.callbacks());
+        EXPECT_EQ(src.m_stack, src.m_buf);
+        EXPECT_EQ(ts.num_allocs, 0u);
+        fill_to_large(&src);
+        ASSERT_GT(src.capacity(), N);
+        size_t nbefore = ts.num_allocs;
+        EXPECT_NE(src.m_stack, src.m_buf);
+        EXPECT_NE(ts.num_allocs, 0u);
+        istack<N> dst(src);
+        ASSERT_EQ(dst.m_callbacks, ts.callbacks());
+        ASSERT_NE(dst.m_callbacks, td.callbacks());
+        EXPECT_NE(dst.m_stack, dst.m_buf);
+        EXPECT_NE(src.m_stack, src.m_buf);
+        EXPECT_GT(ts.num_allocs, nbefore);
+        EXPECT_EQ(td.num_allocs, 0u);
+    }
+}
+
+TEST(stack, callbacks_copy_ctor_small)
+{
+    test_callbacks_copy_ctor_small<4>();
+    test_callbacks_copy_ctor_small<8>();
+    test_callbacks_copy_ctor_small<64>();
+    test_callbacks_copy_ctor_small<128>();
+}
+
+TEST(stack, callbacks_copy_ctor_large_unfilled)
+{
+    test_callbacks_copy_ctor_large_unfilled<4>();
+    test_callbacks_copy_ctor_large_unfilled<8>();
+    test_callbacks_copy_ctor_large_unfilled<64>();
+    test_callbacks_copy_ctor_large_unfilled<128>();
+}
+
+TEST(stack, callbacks_copy_ctor_large_filled)
+{
+    test_callbacks_copy_ctor_large_filled<4>();
+    test_callbacks_copy_ctor_large_filled<8>();
+    test_callbacks_copy_ctor_large_filled<64>();
+    test_callbacks_copy_ctor_large_filled<128>();
+}
+
+
+//-----------------------------------------------------------------------------
+// copy ctor
+
+template<size_t N>
+void test_callbacks_move_ctor_small()
+{
     CallbacksTester ts;
     istack<N> src(ts.callbacks());
     ASSERT_EQ(src.m_callbacks, ts.callbacks());
     EXPECT_EQ(src.m_stack, src.m_buf);
     EXPECT_EQ(ts.num_allocs, 0u);
-    fill_to_large(&src);
     size_t nbefore = ts.num_allocs;
-    EXPECT_NE(src.m_stack, src.m_buf);
-    EXPECT_NE(ts.num_allocs, 0u);
-    istack<N> dst(src);
+    EXPECT_EQ(src.m_stack, src.m_buf);
+    EXPECT_EQ(ts.num_allocs, 0u);
+    istack<N> dst(std::move(src));
     ASSERT_EQ(dst.m_callbacks, ts.callbacks());
-    ASSERT_NE(dst.m_callbacks, td.callbacks());
-    EXPECT_NE(dst.m_stack, dst.m_buf);
-    EXPECT_NE(src.m_stack, src.m_buf);
-    EXPECT_GT(ts.num_allocs, nbefore);
-    EXPECT_EQ(td.num_allocs, 0u);
-}
-
-TEST(stack, callbacks_copy_ctor)
-{
-    test_callbacks_copy_ctor<4>();
-    test_callbacks_copy_ctor<8>();
-    test_callbacks_copy_ctor<64>();
-    test_callbacks_copy_ctor<128>();
+    EXPECT_EQ(dst.m_stack, dst.m_buf);
+    EXPECT_EQ(src.m_stack, src.m_buf);
+    EXPECT_EQ(ts.num_allocs, nbefore);
 }
 
 template<size_t N>
-void test_callbacks_move_ctor()
+void test_callbacks_move_ctor_large_unfilled()
 {
     CallbacksTester ts;
     istack<N> src(ts.callbacks());
     ASSERT_EQ(src.m_callbacks, ts.callbacks());
     EXPECT_EQ(src.m_stack, src.m_buf);
     EXPECT_EQ(ts.num_allocs, 0u);
-    fill_to_large(&src);
+    to_large(&src);
     size_t nbefore = ts.num_allocs;
-    auto sbefore = src.m_stack;
     EXPECT_NE(src.m_stack, src.m_buf);
     EXPECT_NE(ts.num_allocs, 0u);
     istack<N> dst(std::move(src));
@@ -405,13 +509,52 @@ void test_callbacks_move_ctor()
     EXPECT_EQ(ts.num_allocs, nbefore);
 }
 
-TEST(stack, callbacks_move_ctor)
+template<size_t N>
+void test_callbacks_move_ctor_large_filled()
 {
-    test_callbacks_move_ctor<4>();
-    test_callbacks_move_ctor<8>();
-    test_callbacks_move_ctor<64>();
-    test_callbacks_move_ctor<128>();
+    CallbacksTester ts;
+    istack<N> src(ts.callbacks());
+    ASSERT_EQ(src.m_callbacks, ts.callbacks());
+    EXPECT_EQ(src.m_stack, src.m_buf);
+    EXPECT_EQ(ts.num_allocs, 0u);
+    fill_to_large(&src);
+    size_t nbefore = ts.num_allocs;
+    EXPECT_NE(src.m_stack, src.m_buf);
+    EXPECT_NE(ts.num_allocs, 0u);
+    istack<N> dst(std::move(src));
+    ASSERT_EQ(dst.m_callbacks, ts.callbacks());
+    EXPECT_NE(dst.m_stack, dst.m_buf);
+    EXPECT_EQ(src.m_stack, src.m_buf);
+    EXPECT_EQ(ts.num_allocs, nbefore);
 }
+
+TEST(stack, callbacks_move_ctor_small)
+{
+    test_callbacks_move_ctor_small<4>();
+    test_callbacks_move_ctor_small<8>();
+    test_callbacks_move_ctor_small<64>();
+    test_callbacks_move_ctor_small<128>();
+}
+
+TEST(stack, callbacks_move_ctor_large_unfilled)
+{
+    test_callbacks_move_ctor_large_unfilled<4>();
+    test_callbacks_move_ctor_large_unfilled<8>();
+    test_callbacks_move_ctor_large_unfilled<64>();
+    test_callbacks_move_ctor_large_unfilled<128>();
+}
+
+TEST(stack, callbacks_move_ctor_large_filled)
+{
+    test_callbacks_move_ctor_large_filled<4>();
+    test_callbacks_move_ctor_large_filled<8>();
+    test_callbacks_move_ctor_large_filled<64>();
+    test_callbacks_move_ctor_large_filled<128>();
+}
+
+
+//-----------------------------------------------------------------------------
+// copy assign
 
 template<size_t N>
 void test_callbacks_copy_assign_to_empty()

@@ -55,9 +55,10 @@ function(ryml_add_test_case_group name)
 endfunction()
 
 
-ryml_add_test(basic)
 ryml_add_test(callbacks)
 ryml_add_test(stack)
+ryml_add_test(parser)
+ryml_add_test(basic)
 ryml_add_test(basic_json)
 ryml_add_test(preprocess)
 ryml_add_test(merge)

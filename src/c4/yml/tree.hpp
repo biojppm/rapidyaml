@@ -385,9 +385,10 @@ public:
     /** @name construction and assignment */
     /** @{ */
 
-    Tree(Callbacks const& cb);
     Tree() : Tree(get_callbacks()) {}
-    Tree(size_t node_capacity, size_t arena_capacity=0, Callbacks const& cb={});
+    Tree(Callbacks const& cb);
+    Tree(size_t node_capacity, size_t arena_capacity=0) : Tree(node_capacity, arena_capacity, get_callbacks()) {}
+    Tree(size_t node_capacity, size_t arena_capacity, Callbacks const& cb);
 
     ~Tree();
 

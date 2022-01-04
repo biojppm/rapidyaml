@@ -182,6 +182,7 @@ void stack<T, N>::_free()
         m_callbacks.m_free(m_stack, m_capacity * sizeof(T), m_callbacks.m_user_data);
         m_stack = m_buf;
         m_size = N;
+        m_capacity = N;
     }
     else
     {
@@ -198,7 +199,6 @@ void stack<T, N>::_cp(stack const* C4_RESTRICT that)
     if(that->m_stack != that->m_buf)
     {
         RYML_ASSERT(that->m_capacity > N);
-        RYML_ASSERT(that->m_size > N);
         RYML_ASSERT(that->m_size <= that->m_capacity);
     }
     else
@@ -208,7 +208,7 @@ void stack<T, N>::_cp(stack const* C4_RESTRICT that)
     }
     memcpy(m_stack, that->m_stack, that->m_size * sizeof(T));
     m_size = that->m_size;
-    m_capacity = that->m_size;
+    m_capacity = that->m_size < N ? N : that->m_size;
     m_callbacks = that->m_callbacks;
 }
 
@@ -221,7 +221,6 @@ void stack<T, N>::_mv(stack * that)
     if(that->m_stack != that->m_buf)
     {
         RYML_ASSERT(that->m_capacity > N);
-        RYML_ASSERT(that->m_size > N);
         RYML_ASSERT(that->m_size <= that->m_capacity);
         m_stack = that->m_stack;
     }
