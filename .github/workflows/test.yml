@@ -496,6 +496,8 @@ jobs:
       - {name: add_subdirectory, run: cd samples/add_subdirectory && ./run.sh $BT }
       - {name: find_package, run: cd samples/find_package && ./run.sh $BT }
       - {name: custom_c4core, run: cd samples/custom_c4core && ./run.sh $BT }
-      # keep this one for last: it usually fails in PRs because
-      # fetch_content() gets the master branch which may be incompatible
-      - {name: fetch_content, run: cd samples/fetch_content && ./run.sh $BT }
+      - name: fetch_content
+        run: |
+          cd samples/fetch_content
+          branchname=${GITHUB_REF#refs/heads/}
+          ./run.sh $BT $branchname
