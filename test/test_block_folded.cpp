@@ -5,7 +5,7 @@ namespace yml {
 
 TEST(block_folded, issue152_not_indented)
 {
-    const Tree t = parse(R"(
+    const Tree t = parse_in_arena(R"(
 ok:
   - |
     exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
@@ -32,7 +32,7 @@ err3_parses: no
 
 TEST(block_folded, issue152_indented_once)
 {
-    const Tree t = parse(R"(
+    const Tree t = parse_in_arena(R"(
 indented_once:
   ok:
     - |
@@ -61,7 +61,7 @@ indented_once:
 
 TEST(block_folded, issue152_indented_twice)
 {
-    const Tree t = parse(R"(
+    const Tree t = parse_in_arena(R"(
 indented_once:
   indented_twice:
     ok:
@@ -91,7 +91,7 @@ indented_once:
 
 TEST(block_folded, issue152_indented_thrice)
 {
-    const Tree t = parse(R"(
+    const Tree t = parse_in_arena(R"(
 indented_once:
   indented_twice:
     indented_thrice:
@@ -247,7 +247,7 @@ TEST(block_folded, test_suite_7T8X)
 
 # Comment
 )";
-    Tree t = parse(yaml);
+    Tree t = parse_in_arena(yaml);
     EXPECT_EQ(t.rootref().val(), "\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n");
 }
 

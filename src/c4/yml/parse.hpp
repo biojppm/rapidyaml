@@ -44,6 +44,9 @@ class RYML_EXPORT Parser
 {
 public:
 
+    /** @name construction and assignment */
+    /** @{ */
+
     Parser(ParseOptions opts, Callbacks const& cb);
     Parser(ParseOptions opts) : Parser(opts, get_callbacks()) {}
     Parser(Callbacks const& cb) : Parser(ParseOptions{}, cb) {}
@@ -55,94 +58,152 @@ public:
     Parser& operator=(Parser const&) = delete;
     Parser& operator=(Parser &&) = delete;
 
+    /** @} */
+
+public:
+
+    /** @name modification */
+    /** @{ */
+
     ParseOptions options() const { return m_parse_options; }
     void options(ParseOptions opts) { m_parse_options = opts; }
 
-    //! reserve a certain capacity for the parsing stack.
-    //! This should be larger than the expected depth of the parsed YAML tree.
-    //! The parsing stack is the only (potential) heap memory used by the parser.
-    //! If the requested capacity is below the default stack size of 16,
-    //! the memory is used directly in the parser object; otherwise
-    //! it will be allocated from the heap.
-    //! @note this reserves memory only for the parser itself; all the allocations
-    //! for the parsed tree will go through the tree's allocator.
-    //! @note the tree and the arena can (and should) also be reserved.
+    /** Reserve a certain capacity for the parsing stack.
+     * This should be larger than the expected depth of the parsed
+     * YAML tree.
+     *
+     * The parsing stack is the only (potential) heap memory used by
+     * the parser.
+     *
+     * If the requested capacity is below the default
+     * stack size of 16, the memory is used directly in the parser
+     * object; otherwise it will be allocated from the heap.
+     *
+     * @note this reserves memory only for the parser itself; all the
+     * allocations for the parsed tree will go through the tree's
+     * allocator.
+     *
+     * @note the tree and the arena can (and should) also be reserved. */
     void reserve_stack(size_t capacity)
     {
         m_stack.reserve(capacity);
     }
 
-public:
-
-    /** @name parse in situ */
-    /** @{ */
-
-    //! create a new tree and parse into its root
-    //! @note aliases and anchors are not resolved. You
-    //! can resolve by calling Tree::resolve() after parsing.
-    Tree parse(csubstr filename, substr src)
+    /** Get the current callbacks in the parser. */
+    Callbacks callbacks() const
     {
-        Tree t;
-        t.reserve(_estimate_capacity(src));
-        parse(filename, src, &t, t.root_id());
-        return t;
-    }
-    //! parse with reuse of a tree
-    //! @note aliases and anchors are not resolved. You
-    //! can resolve by calling Tree::resolve() after parsing.
-    void parse(csubstr filename, substr src, Tree *t)
-    {
-        parse(filename, src, t, t->root_id());
-    }
-    //! parse directly into a node
-    //! @note aliases and anchors are not resolved. You
-    //! can resolve by calling Tree::resolve() after parsing.
-    void parse(csubstr filename, substr src, Tree *t, size_t node_id); // this is the workhorse overload; everything else is syntactic candy
-    //! parse directly into a node ref
-    //! @note aliases and anchors are not resolved. You
-    //! can resolve by calling Tree::resolve() after parsing.
-    void parse(csubstr filename, substr src, NodeRef node)
-    {
-        parse(filename, src, node.tree(), node.id());
+        if(m_tree)
+            RYML_ASSERT(m_stack.m_callbacks == m_tree->callbacks());
+        return m_stack.m_callbacks;
     }
 
     /** @} */
 
 public:
 
-    /** @name copy to arena, then parse the copy */
+    /** @name parse_in_place */
     /** @{ */
 
-    //! create a new tree and parse into its root
-    //! @note aliases and anchors are not resolved. You
-    //! can resolve by calling Tree::resolve() after parsing.
-    Tree parse(csubstr filename, csubstr src)
+    /** Create a new tree and parse into its root.
+     * The tree is created with the callbacks currently in the parser. */
+    Tree parse_in_place(csubstr filename, substr src)
     {
-        Tree t;
+        Tree t(callbacks());
         t.reserve(_estimate_capacity(src));
-        parse(filename, t.copy_to_arena(src), &t, t.root_id());
+        this->parse_in_place(filename, src, &t, t.root_id());
         return t;
     }
-    //! parse with reuse of a tree
-    //! @note aliases and anchors are not resolved. You
-    //! can resolve by calling Tree::resolve() after parsing.
-    void parse(csubstr filename, csubstr src, Tree *t)
+
+    /** Parse into an existing tree, starting at its root node.
+     * Before parsing, the callbacks from the tree overwrite those in
+     * the parser. */
+    void parse_in_place(csubstr filename, substr src, Tree *t)
     {
-        parse(filename, t->copy_to_arena(src), t, t->root_id());
+        this->parse_in_place(filename, src, t, t->root_id());
     }
-    //! parse directly into a node
-    //! @note aliases and anchors are not resolved. You
-    //! can resolve by calling Tree::resolve() after parsing.
-    void parse(csubstr filename, csubstr src, Tree *t, size_t node_id)
+
+    /** Parse into an existing node.
+     * Before parsing, the callbacks from the tree overwrite those in
+     * the parser. */
+    void parse_in_place(csubstr filename, substr src, Tree *t, size_t node_id);
+    //   ^^^^^^^^^^^^^ this is the workhorse overload; everything else is syntactic candy
+
+    /** Parse into an existing node.
+     * Before parsing, the callbacks from the tree overwrite those in
+     * the parser. */
+    void parse_in_place(csubstr filename, substr src, NodeRef node)
     {
-        parse(filename, t->copy_to_arena(src), t, node_id);
+        this->parse_in_place(filename, src, node.tree(), node.id());
     }
-    //! parse directly into a node ref
-    //! @note aliases and anchors are not resolved. You
-    //! can resolve by calling Tree::resolve() after parsing.
-    void parse(csubstr filename, csubstr src, NodeRef node)
+
+    /** @} */
+
+public:
+
+    /** @name parse_in_arena: copy the YAML source buffer to the
+     * tree's arena, then parse the copy in situ
+     *
+     * @note overloads receiving a substr YAML buffer are intentionally
+     * left undefined, such that calling parse_in_arena() with a substr
+     * will cause a linker error. This is to prevent an accidental
+     * copy of the source buffer to the tree's arena, because substr
+     * is implicitly convertible to csubstr. If you really intend to parse
+     * a mutable buffer in the tree's arena, convert it first to immutable
+     * by assigning the substr to a csubstr prior to calling parse_in_arena().
+     * This is not needed for parse_in_place() because csubstr is not
+     * implicitly convertible to substr. */
+    /** @{ */
+
+    // READ THE NOTE ABOVE!
+    /*DISABLED! LinkerError*/Tree parse_in_arena(csubstr filename, substr csrc);
+    /*DISABLED! LinkerError*/void parse_in_arena(csubstr filename, substr csrc, Tree *t);
+    /*DISABLED! LinkerError*/void parse_in_arena(csubstr filename, substr csrc, Tree *t, size_t node_id);
+    /*DISABLED! LinkerError*/void parse_in_arena(csubstr filename, substr csrc, NodeRef node);
+
+    /** Create a new tree and parse into its root.
+     * The tree is created with the callbacks currently in the parser.
+     * The immutable YAML source is first copied to the tree's arena,
+     * and parsed from there. */
+    Tree parse_in_arena(csubstr filename, csubstr csrc)
     {
-        parse(filename, node.tree()->copy_to_arena(src), node.tree(), node.id());
+        Tree t(callbacks());
+        substr src = t.copy_to_arena(csrc);
+        t.reserve(_estimate_capacity(csrc));
+        this->parse_in_place(filename, src, &t, t.root_id());
+        return t;
+    }
+
+    /** Parse into an existing tree, starting at its root node.
+     * Before parsing, the callbacks from the tree overwrite those in
+     * the parser.
+     * The immutable YAML source is first copied to the tree's arena,
+     * and parsed from there.*/
+    void parse_in_arena(csubstr filename, csubstr csrc, Tree *t)
+    {
+        substr src = t->copy_to_arena(csrc);
+        this->parse_in_place(filename, src, t, t->root_id());
+    }
+
+    /** Parse into a specific node in an existing tree.
+     * Before parsing, the callbacks from the tree overwrite those in
+     * the parser.
+     * The immutable YAML source is first copied to the tree's arena,
+     * and parsed from there.*/
+    void parse_in_arena(csubstr filename, csubstr csrc, Tree *t, size_t node_id)
+    {
+        substr src = t->copy_to_arena(csrc);
+        this->parse_in_place(filename, src, t, node_id);
+    }
+
+    /** Parse into a specific node in an existing tree.
+     * Before parsing, the callbacks from the tree overwrite those in
+     * the parser.
+     * The immutable YAML source is first copied to the tree's arena,
+     * and parsed from there.*/
+    void parse_in_arena(csubstr filename, csubstr csrc, NodeRef node)
+    {
+        substr src = node.tree()->copy_to_arena(csrc);
+        this->parse_in_place(filename, src, node.tree(), node.id());
     }
 
     /** @} */
@@ -452,25 +513,58 @@ private:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-inline Tree parse(                   substr buf, ParseOptions opts={}) { Parser np(opts); return np.parse({}      , buf); } //!< parse in-situ a modifiable YAML source buffer.
-inline Tree parse(csubstr filename,  substr buf, ParseOptions opts={}) { Parser np(opts); return np.parse(filename, buf); } //!< parse in-situ a modifiable YAML source buffer, providing a filename for error messages.
-inline Tree parse(                  csubstr buf, ParseOptions opts={}) { Parser np(opts); return np.parse({}      , buf); } //!< parse a read-only YAML source buffer, copying it first to the tree's source arena.
-inline Tree parse(csubstr filename, csubstr buf, ParseOptions opts={}) { Parser np(opts); return np.parse(filename, buf); } //!< parse a read-only YAML source buffer, copying it first to the tree's source arena, providing a filename for error messages.
+/** @name parse_in_place
+ * @desc parse a mutable YAML source buffer. */
+/** @{ */
 
-inline void parse(                   substr buf, Tree *t, ParseOptions opts={}) { Parser np(opts); np.parse({}      , buf, t); } //!< reusing the YAML tree, parse in-situ a modifiable YAML source buffer
-inline void parse(csubstr filename,  substr buf, Tree *t, ParseOptions opts={}) { Parser np(opts); np.parse(filename, buf, t); } //!< reusing the YAML tree, parse in-situ a modifiable YAML source buffer, providing a filename for error messages.
-inline void parse(                  csubstr buf, Tree *t, ParseOptions opts={}) { Parser np(opts); np.parse({}      , buf, t); } //!< reusing the YAML tree, parse a read-only YAML source buffer, copying it first to the tree's source arena.
-inline void parse(csubstr filename, csubstr buf, Tree *t, ParseOptions opts={}) { Parser np(opts); np.parse(filename, buf, t); } //!< reusing the YAML tree, parse a read-only YAML source buffer, copying it first to the tree's source arena, providing a filename for error messages.
+inline Tree parse_in_place(                  substr yaml,                          ParseOptions opts={}) { Parser np(opts); return np.parse_in_place({}      , yaml); } //!< parse in-situ a modifiable YAML source buffer.
+inline Tree parse_in_place(csubstr filename, substr yaml,                          ParseOptions opts={}) { Parser np(opts); return np.parse_in_place(filename, yaml); } //!< parse in-situ a modifiable YAML source buffer, providing a filename for error messages.
+inline void parse_in_place(                  substr yaml, Tree *t,                 ParseOptions opts={}) { Parser np(opts); np.parse_in_place({}      , yaml, t); } //!< reusing the YAML tree, parse in-situ a modifiable YAML source buffer
+inline void parse_in_place(csubstr filename, substr yaml, Tree *t,                 ParseOptions opts={}) { Parser np(opts); np.parse_in_place(filename, yaml, t); } //!< reusing the YAML tree, parse in-situ a modifiable YAML source buffer, providing a filename for error messages.
+inline void parse_in_place(                  substr yaml, Tree *t, size_t node_id, ParseOptions opts={}) { Parser np(opts); np.parse_in_place({}      , yaml, t, node_id); } //!< reusing the YAML tree, parse in-situ a modifiable YAML source buffer
+inline void parse_in_place(csubstr filename, substr yaml, Tree *t, size_t node_id, ParseOptions opts={}) { Parser np(opts); np.parse_in_place(filename, yaml, t, node_id); } //!< reusing the YAML tree, parse in-situ a modifiable YAML source buffer, providing a filename for error messages.
+inline void parse_in_place(                  substr yaml, NodeRef node,            ParseOptions opts={}) { Parser np(opts); np.parse_in_place({}      , yaml, node); } //!< reusing the YAML tree, parse in-situ a modifiable YAML source buffer
+inline void parse_in_place(csubstr filename, substr yaml, NodeRef node,            ParseOptions opts={}) { Parser np(opts); np.parse_in_place(filename, yaml, node); } //!< reusing the YAML tree, parse in-situ a modifiable YAML source buffer, providing a filename for error messages.
 
-inline void parse(                   substr buf, Tree *t, size_t node_id, ParseOptions opts={}) { Parser np(opts); np.parse({}      , buf, t, node_id); } //!< reusing the YAML tree, parse in-situ a modifiable YAML source buffer
-inline void parse(csubstr filename,  substr buf, Tree *t, size_t node_id, ParseOptions opts={}) { Parser np(opts); np.parse(filename, buf, t, node_id); } //!< reusing the YAML tree, parse in-situ a modifiable YAML source buffer, providing a filename for error messages.
-inline void parse(                  csubstr buf, Tree *t, size_t node_id, ParseOptions opts={}) { Parser np(opts); np.parse({}      , buf, t, node_id); } //!< reusing the YAML tree, parse a read-only YAML source buffer, copying it first to the tree's source arena.
-inline void parse(csubstr filename, csubstr buf, Tree *t, size_t node_id, ParseOptions opts={}) { Parser np(opts); np.parse(filename, buf, t, node_id); } //!< reusing the YAML tree, parse a read-only YAML source buffer, copying it first to the tree's source arena, providing a filename for error messages.
+/** @} */
 
-inline void parse(                   substr buf, NodeRef node, ParseOptions opts={}) { Parser np(opts); np.parse({}      , buf, node); } //!< reusing the YAML tree, parse in-situ a modifiable YAML source buffer
-inline void parse(csubstr filename,  substr buf, NodeRef node, ParseOptions opts={}) { Parser np(opts); np.parse(filename, buf, node); } //!< reusing the YAML tree, parse in-situ a modifiable YAML source buffer, providing a filename for error messages.
-inline void parse(                  csubstr buf, NodeRef node, ParseOptions opts={}) { Parser np(opts); np.parse({}      , buf, node); } //!< reusing the YAML tree, parse a read-only YAML source buffer, copying it first to the tree's source arena.
-inline void parse(csubstr filename, csubstr buf, NodeRef node, ParseOptions opts={}) { Parser np(opts); np.parse(filename, buf, node); } //!< reusing the YAML tree, parse a read-only YAML source buffer, copying it first to the tree's source arena, providing a filename for error messages.
+
+//-----------------------------------------------------------------------------
+
+/** @name parse_in_arena
+ * @desc parse a read-only YAML source buffer, copying it first to the tree's arena.
+ *
+ * @note overloads receiving a substr YAML buffer are intentionally
+ * left undefined, such that calling parse_in_arena() with a substr
+ * will cause a linker error. This is to prevent an accidental
+ * copy of the source buffer to the tree's arena, because substr
+ * is implicitly convertible to csubstr. If you really intend to parse
+ * a mutable buffer in the tree's arena, convert it first to immutable
+ * by assigning the substr to a csubstr prior to calling parse_in_arena().
+ * This is not needed for parse_in_place() because csubstr is not
+ * implicitly convertible to substr. */
+/** @{ */
+
+/* READ THE NOTE ABOVE! */
+/*DISABLED,LinkError!*/ Tree parse_in_arena(                  substr yaml,                          ParseOptions opts={});
+/*DISABLED,LinkError!*/ Tree parse_in_arena(csubstr filename, substr yaml,                          ParseOptions opts={});
+/*DISABLED,LinkError!*/ void parse_in_arena(                  substr yaml, Tree *t,                 ParseOptions opts={});
+/*DISABLED,LinkError!*/ void parse_in_arena(csubstr filename, substr yaml, Tree *t,                 ParseOptions opts={});
+/*DISABLED,LinkError!*/ void parse_in_arena(                  substr yaml, Tree *t, size_t node_id, ParseOptions opts={});
+/*DISABLED,LinkError!*/ void parse_in_arena(csubstr filename, substr yaml, Tree *t, size_t node_id, ParseOptions opts={});
+/*DISABLED,LinkError!*/ void parse_in_arena(                  substr yaml, NodeRef node,            ParseOptions opts={});
+/*DISABLED,LinkError!*/ void parse_in_arena(csubstr filename, substr yaml, NodeRef node,            ParseOptions opts={});
+
+inline Tree parse_in_arena(                  csubstr yaml,                          ParseOptions opts={}) { Parser np(opts); return np.parse_in_arena({}      , yaml); } //!< parse a read-only YAML source buffer, copying it first to the tree's source arena.
+inline Tree parse_in_arena(csubstr filename, csubstr yaml,                          ParseOptions opts={}) { Parser np(opts); return np.parse_in_arena(filename, yaml); } //!< parse a read-only YAML source buffer, copying it first to the tree's source arena, providing a filename for error messages.
+inline void parse_in_arena(                  csubstr yaml, Tree *t,                 ParseOptions opts={}) { Parser np(opts); np.parse_in_arena({}      , yaml, t); } //!< reusing the YAML tree, parse a read-only YAML source buffer, copying it first to the tree's source arena.
+inline void parse_in_arena(csubstr filename, csubstr yaml, Tree *t,                 ParseOptions opts={}) { Parser np(opts); np.parse_in_arena(filename, yaml, t); } //!< reusing the YAML tree, parse a read-only YAML source buffer, copying it first to the tree's source arena, providing a filename for error messages.
+inline void parse_in_arena(                  csubstr yaml, Tree *t, size_t node_id, ParseOptions opts={}) { Parser np(opts); np.parse_in_arena({}      , yaml, t, node_id); } //!< reusing the YAML tree, parse a read-only YAML source buffer, copying it first to the tree's source arena.
+inline void parse_in_arena(csubstr filename, csubstr yaml, Tree *t, size_t node_id, ParseOptions opts={}) { Parser np(opts); np.parse_in_arena(filename, yaml, t, node_id); } //!< reusing the YAML tree, parse a read-only YAML source buffer, copying it first to the tree's source arena, providing a filename for error messages.
+inline void parse_in_arena(                  csubstr yaml, NodeRef node,            ParseOptions opts={}) { Parser np(opts); np.parse_in_arena({}      , yaml, node); } //!< reusing the YAML tree, parse a read-only YAML source buffer, copying it first to the tree's source arena.
+inline void parse_in_arena(csubstr filename, csubstr yaml, NodeRef node,            ParseOptions opts={}) { Parser np(opts); np.parse_in_arena(filename, yaml, node); } //!< reusing the YAML tree, parse a read-only YAML source buffer, copying it first to the tree's source arena, providing a filename for error messages.
+
+/** @} */
 
 } // namespace yml
 } // namespace c4

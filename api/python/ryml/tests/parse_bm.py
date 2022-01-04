@@ -54,7 +54,7 @@ class BmCase:
 class RymlRo:
 
     def parse(self, case):
-        _ = ryml.parse(case.src_as_bytearray)
+        _ = ryml.parse_in_arena(case.src_as_bytearray)
 
 
 class RymlRoReuse:
@@ -63,14 +63,14 @@ class RymlRoReuse:
         self.tree = ryml.Tree()
 
     def parse(self, case):
-        ryml.parse(case.src_as_bytearray, tree=ryml.Tree())
+        ryml.parse_in_arena(case.src_as_bytearray, tree=ryml.Tree())
 
 
 
 class RymlInSitu:
 
     def parse(self, case):
-        _ = ryml.parse_in_situ(case.src_as_bytearray)
+        _ = ryml.parse_in_place(case.src_as_bytearray)
 
 
 class RymlInSituReuse:
@@ -81,7 +81,7 @@ class RymlInSituReuse:
     def parse(self, case):
         self.tree.clear()
         self.tree.clear_arena()
-        ryml.parse_in_situ(case.src_as_bytearray, tree=self.tree)
+        ryml.parse_in_place(case.src_as_bytearray, tree=self.tree)
 
 
 class RuamelYaml:

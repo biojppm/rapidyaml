@@ -583,6 +583,53 @@ TEST(stack, callbacks_move_assign_to_nonempty)
     test_callbacks_move_assign_to_nonempty<128>();
 }
 
+
+//-----------------------------------------------------------------------------
+
+template<size_t N>
+void test_reserve()
+{
+    {
+        CallbacksTester ts;
+        {
+            istack<N> s(ts.callbacks());
+            EXPECT_EQ(ts.num_allocs, 0u);
+            EXPECT_EQ(ts.num_deallocs, 0u);
+            EXPECT_EQ(s.capacity(), N);
+            s.reserve(4*N);
+            EXPECT_EQ(ts.num_allocs, 1u);
+            EXPECT_EQ(ts.num_deallocs, 0u);
+            EXPECT_EQ(s.capacity(), 4*N);
+        }
+        EXPECT_EQ(ts.num_allocs, 1u);
+        EXPECT_EQ(ts.num_deallocs, 1u);
+        ts.check();
+    }
+    {
+        CallbacksTester ts;
+        {
+            istack<N> s(ts.callbacks());
+            EXPECT_EQ(ts.num_allocs, 0u);
+            EXPECT_EQ(ts.num_deallocs, 0u);
+            EXPECT_EQ(s.capacity(), N);
+            s.reserve(4*N);
+            EXPECT_EQ(ts.num_allocs, 1u);
+            EXPECT_EQ(ts.num_deallocs, 0u);
+            EXPECT_EQ(s.capacity(), 4*N);
+            s._free();
+        }
+        EXPECT_EQ(ts.num_allocs, 1u);
+        EXPECT_EQ(ts.num_deallocs, 1u);
+        ts.check();
+    }
+}
+
+TEST(stack, reserve_capacity)
+{
+    test_reserve<10>();
+    test_reserve<20>();
+}
+
 } // namespace detail
 } // namespace yml
 } // namespace c4
@@ -596,7 +643,6 @@ TEST(stack, callbacks_move_assign_to_nonempty)
 
 #ifndef RYML_SINGLE_HEADER
 #include "c4/substr.hpp"
-#include "c4/yml/common.hpp"
 #endif
 
 namespace c4 {

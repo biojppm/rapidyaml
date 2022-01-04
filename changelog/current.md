@@ -1,3 +1,44 @@
+### Breaking changes
+
+- Rename `c4::yml::parse()` and `c4::yml::Parser::parse()` overloads
+  to either `parse_in_place()` or `parse_in_arena()`:
+  - `parse_in_place()` receives only `substr` buffers, ie mutable YAML
+    source buffers. Trying to pass a `csubstr` buffer to
+    `parse_in_place()` will cause a compile error:
+    ```c++
+    substr readwrite = /*...*/;
+    Tree tree = parse_in_place(readwrite); // OK
+    
+    csubstr readonly = /*...*/;
+    Tree tree = parse_in_place(readonly); // compile error
+    ```
+  - `parse_in_arena()` receives only `csubstr` buffers, ie immutable
+    YAML source buffers. Prior to parsing, the buffer is copied to
+    the tree's arena, then the copy is parsed in place. Because
+    `parse_in_arena()` is meant for immutable buffers, overloads
+    receiving a `substr` YAML buffer are now declared, and
+    intentionally left undefined, such that calling
+    `parse_in_arena()` with a `substr` will cause a linker
+    error.
+    ```c++
+    substr readwrite = /*...*/;
+    Tree tree = parse_in_arena(readwrite); // linker error
+    ```
+    This is to prevent an accidental copy of the source buffer
+    to the tree's arena, because `substr` is implicitly convertible
+    to `csubstr`. If you really intend to parse an originally mutable
+    buffer in the tree's arena, convert it first to immutable by
+    assigning the `substr` to a `csubstr` prior to calling
+    `parse_in_arena()`:
+    ```c++
+    substr readwrite = /*...*/;
+    csubstr as_readonly = readwrite; // ok
+    Tree tree = parse_in_arena(as_readonly); // ok
+    ```
+    This approach is not needed for `parse_in_place()`
+    because `csubstr` is not implicitly convertible to `substr`.
+
+
 ### Fixes
 
 - Accept `infinity`,`inf` and `nan` as special float values (but not mixed case: eg `INFINITY` or `Inf` or `NaN` are not accepted) ([PR #186](https://github.com/biojppm/rapidyaml/pull/186)).

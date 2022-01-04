@@ -73,7 +73,7 @@ int main(int argc, const char *argv[])
         }
         {
             TS(parse_yml);
-            yml::parse(file, to_substr(contents), &tree);
+            yml::parse_in_place(file, to_substr(contents), &tree);
         }
         {
             TS(emit_to_buffer);

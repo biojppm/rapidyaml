@@ -59,7 +59,7 @@ foo : bar
 
 TEST(tags, parsing)
 {
-    Tree t = parse(R"(
+    Tree t = parse_in_arena(R"(
 !!seq
 - !!map
   !key key1: !val val1
@@ -175,7 +175,7 @@ TEST(tags, setting)
 
 TEST(tags, errors)
 {
-    Tree t = parse("{key: val, keymap: {}, keyseq: [val]}");
+    Tree t = parse_in_arena("{key: val, keymap: {}, keyseq: [val]}");
     size_t keyval = t["keyval"].id();
     size_t keymap = t["keymap"].id();
     size_t keyseq = t["keyseq"].id();
@@ -252,7 +252,7 @@ TEST(tags, errors)
 
 TEST(tags, setting_user_tags_do_not_require_leading_mark)
 {
-    Tree t = parse("{key: val, keymap: {}, keyseq: [val]}");
+    Tree t = parse_in_arena("{key: val, keymap: {}, keyseq: [val]}");
     size_t keyval = t["keyval"].id();
     size_t keymap = t["keymap"].id();
     size_t keyseq = t["keyseq"].id();
@@ -294,7 +294,7 @@ keymap: {}
 
 TEST(tags, valid_chars)
 {
-    Tree t = parse(R"(
+    Tree t = parse_in_arena(R"(
 - !<foo bar> val
 - !<foo> bar> val
 - !<foo> <bar> val
@@ -311,7 +311,7 @@ TEST(tags, valid_chars)
 TEST(tags, EHF6)
 {
     {
-        Tree t = parse(R"(!!map {
+        Tree t = parse_in_arena(R"(!!map {
   k: !!seq [ a, !!str b],
   j: !!seq
      [ a, !!str b]
@@ -324,7 +324,7 @@ TEST(tags, EHF6)
         EXPECT_EQ(t["j"].val_tag(), "!!seq");
     }
     {
-        Tree t = parse(R"(!!seq [
+        Tree t = parse_in_arena(R"(!!seq [
   !!map { !!str k: v},
   !!map { !!str ? k: v}
 ])");

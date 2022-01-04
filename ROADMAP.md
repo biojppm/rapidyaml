@@ -6,7 +6,7 @@ Roughly in order of priority:
     * Review & cleanup API surface.
     * Review `parse()` API: add suffixes `_in_situ` and `_in_arena` to clarify
       intent. Ie:
-      * rename `parse(substr)` to `parse_in_situ(substr)`
+      * rename `parse(substr)` to `parse_in_place(substr)`
       * rename `parse(csubstr)` to `parse_in_arena(csubstr)`
     * turn calls to `C4_ASSERT()` into calls to `RYML_ASSERT()`
   * Add emit formatting controls:

@@ -5,13 +5,13 @@ namespace yml {
 
 TEST(plain_scalar, issue153_seq)
 {
-    Tree t = parse("- A\n \n");
+    Tree t = parse_in_arena("- A\n \n");
     EXPECT_EQ(t[0].val(), "A");
 }
 
 TEST(plain_scalar, issue153_map)
 {
-    Tree t = parse("foo: A\n \n");
+    Tree t = parse_in_arena("foo: A\n \n");
     EXPECT_EQ(t["foo"].val(), "A");
 }
 

@@ -65,7 +65,7 @@ void print_path(NodeRef const& p);
 template<class CheckFn>
 void test_check_emit_check(csubstr yaml, CheckFn check_fn)
 {
-    Tree t = parse(yaml);
+    Tree t = parse_in_arena(yaml);
     #ifdef RYML_DBG
     print_tree(t);
     #endif
@@ -79,7 +79,7 @@ void test_check_emit_check(csubstr yaml, CheckFn check_fn)
         #ifdef RYML_DBG
         printf("~~~%s~~~\n%.*s", identifier, (int)emitted.size(), emitted.data());
         #endif
-        t = parse(to_csubstr(emitted));
+        t = parse_in_arena(to_csubstr(emitted));
         #ifdef RYML_DBG
         print_tree(t);
         #endif

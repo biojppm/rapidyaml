@@ -97,7 +97,7 @@ namespace c4 { namespace yml {
 //-------------------------------------------
 Tree get_test_tree()
 {
-    Tree t = parse("{a: b, c: d, e: [0, 1, 2, 3]}");
+    Tree t = parse_in_arena("{a: b, c: d, e: [0, 1, 2, 3]}");
     // make sure the tree has strings in its arena
     NodeRef n = t.rootref();
     NodeRef ch = n.append_child();
@@ -181,7 +181,7 @@ TEST(Tree, reserve)
     EXPECT_EQ(t.arena_slack(), 64);
     EXPECT_EQ(t.arena_size(), 0);
     test_invariants(t);
-    
+
     auto buf = t.m_buf;
     t.reserve(16);
     t.reserve_arena(64);
@@ -193,7 +193,7 @@ TEST(Tree, reserve)
     EXPECT_EQ(t.arena_slack(), 64);
     EXPECT_EQ(t.arena_size(), 0);
     test_invariants(t);
-    
+
     t.reserve(32);
     t.reserve_arena(128);
     EXPECT_EQ(t.capacity(), 32);
@@ -203,9 +203,9 @@ TEST(Tree, reserve)
     EXPECT_EQ(t.arena_slack(), 128);
     EXPECT_EQ(t.arena_size(), 0);
     test_invariants(t);
-    
+
     buf = t.m_buf;
-    parse("[a, b, c, d, e, f]", &t);
+    parse_in_arena("[a, b, c, d, e, f]", &t);
     EXPECT_EQ(t.m_buf, buf);
     EXPECT_EQ(t.capacity(), 32);
     EXPECT_EQ(t.slack(), 25);
@@ -214,7 +214,7 @@ TEST(Tree, reserve)
     EXPECT_EQ(t.arena_slack(), 110);
     EXPECT_EQ(t.arena_size(), 18);
     test_invariants(t);
-    
+
     t.reserve(64);
     t.reserve_arena(256);
     EXPECT_EQ(t.capacity(), 64);
@@ -246,7 +246,7 @@ TEST(Tree, clear)
     EXPECT_EQ(t.arena_slack(), 64);
     EXPECT_EQ(t.arena_size(), 0);
     test_invariants(t);
-    
+
     auto buf = t.m_buf;
     t.reserve(16);
     t.reserve_arena(64);
@@ -258,7 +258,7 @@ TEST(Tree, clear)
     EXPECT_EQ(t.arena_slack(), 64);
     EXPECT_EQ(t.arena_size(), 0);
     test_invariants(t);
-    
+
     t.reserve(32);
     t.reserve_arena(128);
     EXPECT_EQ(t.capacity(), 32);
@@ -268,9 +268,9 @@ TEST(Tree, clear)
     EXPECT_EQ(t.arena_slack(), 128);
     EXPECT_EQ(t.arena_size(), 0);
     test_invariants(t);
-    
+
     buf = t.m_buf;
-    parse("[a, b, c, d, e, f]", &t);
+    parse_in_arena("[a, b, c, d, e, f]", &t);
     EXPECT_EQ(t.m_buf, buf);
     EXPECT_EQ(t.capacity(), 32);
     EXPECT_EQ(t.slack(), 25);
@@ -296,7 +296,7 @@ TEST(Tree, clear)
 
 TEST(Tree, ref)
 {
-    Tree t = parse("[0, 1, 2, 3]");
+    Tree t = parse_in_arena("[0, 1, 2, 3]");
     EXPECT_EQ(t.ref(0).id(), 0);
     EXPECT_EQ(t.ref(1).id(), 1);
     EXPECT_EQ(t.ref(2).id(), 2);
@@ -311,7 +311,7 @@ TEST(Tree, ref)
 
 TEST(Tree, ref_const)
 {
-    const Tree t = parse("[0, 1, 2, 3]");
+    const Tree t = parse_in_arena("[0, 1, 2, 3]");
     EXPECT_EQ(t.ref(0).id(), 0);
     EXPECT_EQ(t.ref(1).id(), 1);
     EXPECT_EQ(t.ref(2).id(), 2);
@@ -328,7 +328,7 @@ TEST(Tree, ref_const)
 TEST(Tree, operator_square_brackets)
 {
     {
-        Tree t = parse("[0, 1, 2, 3, 4]");
+        Tree t = parse_in_arena("[0, 1, 2, 3, 4]");
         Tree &m = t;
         Tree const& cm = t;
         EXPECT_EQ(m[0].val(), "0");
@@ -365,7 +365,7 @@ TEST(Tree, operator_square_brackets)
         EXPECT_FALSE(cm[4] != "4");
     }
     {
-        Tree t = parse("{a: 0, b: 1, c: 2, d: 3, e: 4}");
+        Tree t = parse_in_arena("{a: 0, b: 1, c: 2, d: 3, e: 4}");
         Tree &m = t;
         Tree const& cm = t;
         EXPECT_EQ(m["a"].val(), "0");
@@ -408,7 +408,7 @@ TEST(Tree, relocate)
     // create a tree with anchors and refs, and copy it to ensure the
     // relocation also applies to the anchors and refs. Ensure to put
     // the source in the arena so that it gets relocated.
-    Tree tree = parse(R"(&keyanchor key: val
+    Tree tree = parse_in_arena(R"(&keyanchor key: val
 key2: &valanchor val2
 keyref: *keyanchor
 *valanchor: was val anchor
@@ -521,7 +521,7 @@ TEST(serialize, std_vector__map_string_int)
 
 TEST(serialize, bool)
 {
-    Tree t = parse("{a: 0, b: false, c: 1, d: true}");
+    Tree t = parse_in_arena("{a: 0, b: false, c: 1, d: true}");
     bool v, w;
     t["a"] >> v;
     EXPECT_EQ(v, false);
@@ -555,7 +555,7 @@ TEST(serialize, bool)
 
 TEST(serialize, nan)
 {
-    Tree t = parse(R"(
+    Tree t = parse_in_arena(R"(
 good:
   - .nan
   -   .nan
@@ -621,7 +621,7 @@ set:
 TEST(serialize, inf)
 {
     C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wfloat-equal");
-    Tree t = parse(R"(
+    Tree t = parse_in_arena(R"(
 good:
   - .inf
   -   .inf
@@ -693,7 +693,7 @@ set:
     EXPECT_TRUE(f == finf);
     EXPECT_TRUE(d == dinf);
 
-    t = parse(R"(
+    t = parse_in_arena(R"(
 good:
   - -.inf
   -   -.inf
@@ -765,7 +765,7 @@ set:
 
 TEST(serialize, std_string)
 {
-    auto t = parse("{foo: bar}");
+    auto t = parse_in_arena("{foo: bar}");
     std::string s;
     EXPECT_NE(s, "bar");
     t["foo"] >> s;
@@ -789,7 +789,7 @@ references:
     - *id004
 )";
 
-    Tree t = parse(yaml);
+    Tree t = parse_in_arena(yaml);
     std::string cmpbuf;
     emitrs(t, &cmpbuf);
     EXPECT_EQ(cmpbuf, yaml);
@@ -1168,7 +1168,7 @@ TEST(NodeType, is_stream)
 
 TEST(Tree, is_stream)
 {
-    Tree t = parse(R"(---
+    Tree t = parse_in_arena(R"(---
 foo: bar
 ...)");
     const size_t stream_id = t.root_id();
@@ -1199,7 +1199,7 @@ TEST(NodeType, is_doc)
 
 TEST(Tree, is_doc)
 {
-    Tree t = parse(R"(---
+    Tree t = parse_in_arena(R"(---
 foo: bar
 ---
 a scalar
@@ -1246,7 +1246,7 @@ TEST(NodeType, is_container)
 
 TEST(Tree, is_container)
 {
-    Tree t = parse(R"(---
+    Tree t = parse_in_arena(R"(---
 map: {foo: bar}
 seq: [foo, bar]
 ---
@@ -1309,7 +1309,7 @@ TEST(NodeType, is_map)
 
 TEST(Tree, is_map)
 {
-    Tree t = parse(R"(---
+    Tree t = parse_in_arena(R"(---
 map: {foo: bar}
 seq: [foo, bar]
 ---
@@ -1372,7 +1372,7 @@ TEST(NodeType, is_seq)
 
 TEST(Tree, is_seq)
 {
-    Tree t = parse(R"(---
+    Tree t = parse_in_arena(R"(---
 map: {foo: bar}
 seq: [foo, bar]
 ---
@@ -1435,7 +1435,7 @@ TEST(NodeType, has_val)
 
 TEST(Tree, has_val)
 {
-    Tree t = parse(R"(---
+    Tree t = parse_in_arena(R"(---
 map: {foo: bar}
 seq: [foo, bar]
 ---
@@ -1498,7 +1498,7 @@ TEST(NodeType, is_val)
 
 TEST(Tree, is_val)
 {
-    Tree t = parse(R"(---
+    Tree t = parse_in_arena(R"(---
 map: {foo: bar}
 seq: [foo, bar]
 ---
@@ -1560,7 +1560,7 @@ TEST(NodeType, has_key)
 
 TEST(Tree, has_key)
 {
-    Tree t = parse(R"(---
+    Tree t = parse_in_arena(R"(---
 map: {foo: bar}
 seq: [foo, bar]
 ---
@@ -1623,7 +1623,7 @@ TEST(NodeType, is_keyval)
 
 TEST(Tree, is_keyval)
 {
-    Tree t = parse(R"(---
+    Tree t = parse_in_arena(R"(---
 map: {foo: bar}
 seq: [foo, bar]
 ---
@@ -1682,7 +1682,7 @@ TEST(NodeType, has_key_tag)
 
 TEST(Tree, has_key_tag)
 {
-    Tree t = parse(R"(--- !docmaptag
+    Tree t = parse_in_arena(R"(--- !docmaptag
 !maptag map: {!footag foo: bar, notag: none}
 !seqtag seq: [!footag foo, bar]
 ---
@@ -1753,7 +1753,7 @@ TEST(NodeType, has_val_tag)
 
 TEST(Tree, has_val_tag)
 {
-    Tree t = parse(R"(--- !docmaptag
+    Tree t = parse_in_arena(R"(--- !docmaptag
 map: !maptag {foo: !bartag bar, notag: none}
 seq: !seqtag [!footag foo, bar]
 ---
@@ -1824,7 +1824,7 @@ TEST(NodeType, has_key_anchor)
 
 TEST(Tree, has_key_anchor)
 {
-    Tree t = parse(R"(--- &docanchor
+    Tree t = parse_in_arena(R"(--- &docanchor
 &mapanchor map: {&keyvalanchor foo: bar, anchor: none}
 &seqanchor seq: [&valanchor foo, bar]
 ...)");
@@ -1887,7 +1887,7 @@ TEST(NodeType, is_key_anchor)
 
 TEST(Tree, is_key_anchor)
 {
-    Tree t = parse(R"(--- &docanchor
+    Tree t = parse_in_arena(R"(--- &docanchor
 &mapanchor map: {&keyvalanchor foo: bar, anchor: none}
 &seqanchor seq: [&valanchor foo, bar]
 ...)");
@@ -1950,7 +1950,7 @@ TEST(NodeType, has_val_anchor)
 
 TEST(Tree, has_val_anchor)
 {
-    Tree t = parse(R"(--- &docanchor
+    Tree t = parse_in_arena(R"(--- &docanchor
 map: &mapanchor {foo: &keyvalanchor bar, anchor: none}
 seq: &seqanchor [&valanchor foo, bar]
 ...)");
@@ -2013,7 +2013,7 @@ TEST(NodeType, is_val_anchor)
 
 TEST(Tree, is_val_anchor)
 {
-    Tree t = parse(R"(--- &docanchor
+    Tree t = parse_in_arena(R"(--- &docanchor
 map: &mapanchor {foo: &keyvalanchor bar, anchor: none}
 seq: &seqanchor [&valanchor foo, bar]
 ...)");
@@ -2081,7 +2081,7 @@ TEST(NodeType, has_anchor)
 
 TEST(Tree, has_anchor)
 {
-    Tree t = parse(R"(--- &docanchor
+    Tree t = parse_in_arena(R"(--- &docanchor
 map: &mapanchor {foo: &keyvalanchor bar, anchor: none}
 &seqanchor seq: [&valanchor foo, bar]
 ...)");
@@ -2149,7 +2149,7 @@ TEST(NodeType, is_anchor)
 
 TEST(Tree, is_anchor)
 {
-    Tree t = parse(R"(--- &docanchor
+    Tree t = parse_in_arena(R"(--- &docanchor
 map: &mapanchor {foo: &keyvalanchor bar, anchor: none}
 &seqanchor seq: [&valanchor foo, bar]
 ...)");
@@ -2212,7 +2212,7 @@ TEST(NodeType, is_key_ref)
 
 TEST(Tree, is_key_ref)
 {
-    Tree t = parse(R"(---
+    Tree t = parse_in_arena(R"(---
 *mapref: {foo: bar, notag: none}
 *seqref: [foo, bar]
 ...)");
@@ -2263,7 +2263,7 @@ TEST(NodeType, is_val_ref)
 
 TEST(Tree, is_val_ref)
 {
-    Tree t = parse(R"(---
+    Tree t = parse_in_arena(R"(---
 map: {foo: *keyvalref, notag: none}
 seq: [*valref, bar]
 ...)");
@@ -2318,7 +2318,7 @@ TEST(NodeType, is_ref)
 
 TEST(Tree, is_ref)
 {
-    Tree t = parse(R"(---
+    Tree t = parse_in_arena(R"(---
 map: {foo: *keyvalref, notag: none}
 seq: [*valref, bar]
 ...)");
@@ -2379,7 +2379,7 @@ TEST(NodeType, is_anchor_or_ref)
 
 TEST(Tree, is_anchor_or_ref)
 {
-    Tree t = parse(R"(---
+    Tree t = parse_in_arena(R"(---
 &map map: {foo: *keyvalref, notag: none}
 seq: &seq [*valref, bar]
 ...)");
@@ -2430,7 +2430,7 @@ TEST(NodeType, is_key_quoted)
 
 TEST(Tree, is_key_quoted)
 {
-    Tree t = parse(R"(---
+    Tree t = parse_in_arena(R"(---
 "quoted": foo
 notquoted: bar
 ...)");
@@ -2463,7 +2463,7 @@ TEST(NodeType, is_val_quoted)
 
 TEST(Tree, is_val_quoted)
 {
-    Tree t = parse(R"(---
+    Tree t = parse_in_arena(R"(---
 "quoted": "foo"
 notquoted: bar
 ...)");
@@ -2501,7 +2501,7 @@ TEST(NodeType, is_quoted)
 
 TEST(Tree, is_quoted)
 {
-    Tree t = parse(R"(---
+    Tree t = parse_in_arena(R"(---
 "quoted1": foo
 quoted2: "foo"
 "quoted3": "foo"
@@ -2563,7 +2563,7 @@ notquoted: bar
 
 TEST(Tree, parent_is_seq)
 {
-    Tree t = parse(R"(---
+    Tree t = parse_in_arena(R"(---
 map: {foo: *keyvalref, notag: none}
 seq: &seq [*valref, bar]
 ...)");
@@ -2600,7 +2600,7 @@ seq: &seq [*valref, bar]
 
 TEST(Tree, parent_is_map)
 {
-    Tree t = parse(R"(---
+    Tree t = parse_in_arena(R"(---
 map: {foo: *keyvalref, notag: none}
 seq: &seq [*valref, bar]
 ...)");
@@ -2637,7 +2637,7 @@ seq: &seq [*valref, bar]
 
 TEST(Tree, has_parent)
 {
-    Tree t = parse(R"(---
+    Tree t = parse_in_arena(R"(---
 map: {foo: *keyvalref, notag: none}
 seq: &seq [*valref, bar]
 ...)");
@@ -2679,7 +2679,7 @@ seq: &seq [*valref, bar]
 //-----------------------------------------------------------------------------
 TEST(Tree, num_children)
 {
-    Tree t = parse(R"(---
+    Tree t = parse_in_arena(R"(---
 map: {foo: *keyvalref, notag: none}
 seq: &seq [*valref, bar]
 ...)");
@@ -2711,7 +2711,7 @@ seq: &seq [*valref, bar]
 
 TEST(Tree, child)
 {
-    Tree t = parse(R"(---
+    Tree t = parse_in_arena(R"(---
 map: {foo: *keyvalref, notag: none}
 seq: &seq [*valref, bar]
 ...)");
@@ -2743,7 +2743,7 @@ seq: &seq [*valref, bar]
 
 TEST(Tree, find_child_by_name)
 {
-    Tree t = parse(R"(---
+    Tree t = parse_in_arena(R"(---
 map: {foo: *keyvalref, notag: none}
 seq: &seq [*valref, bar]
 ...)");
@@ -2927,58 +2927,58 @@ TEST(NodeInit, ctor__val_only)
 //-----------------------------------------------------------------------------
 TEST(change_type, from_val)
 {
-    Tree t = parse("[val0, val1, val2]");
+    Tree t = parse_in_arena("[val0, val1, val2]");
     t[0].change_type(VAL);
     t[1].change_type(MAP);
     t[2].change_type(SEQ);
-    Tree expected = parse("[val0, {}, []]");
+    Tree expected = parse_in_arena("[val0, {}, []]");
     EXPECT_EQ(emitrs<std::string>(t), emitrs<std::string>(expected));
 }
 TEST(change_type, from_keyval)
 {
-    Tree t = parse("{keyval0: val0, keyval1: val1, keyval2: val2}");
+    Tree t = parse_in_arena("{keyval0: val0, keyval1: val1, keyval2: val2}");
     t[0].change_type(VAL);
     t[1].change_type(MAP);
     t[2].change_type(SEQ);
-    Tree expected = parse("{keyval0: val0, keyval1: {}, keyval2: []}");
+    Tree expected = parse_in_arena("{keyval0: val0, keyval1: {}, keyval2: []}");
     EXPECT_EQ(emitrs<std::string>(t), emitrs<std::string>(expected));
 }
 
 TEST(change_type, from_map)
 {
-    Tree t = parse("[{map0: val0}, {map1: {map1key0: a, map1key1: b}}, {map2: [map2val0, map2val1]}]");
+    Tree t = parse_in_arena("[{map0: val0}, {map1: {map1key0: a, map1key1: b}}, {map2: [map2val0, map2val1]}]");
     t[0].change_type(VAL);
     t[1].change_type(MAP);
     t[2].change_type(SEQ);
-    Tree expected = parse("[~, {map1: {map1key0: a, map1key1: b}}, []]");
+    Tree expected = parse_in_arena("[~, {map1: {map1key0: a, map1key1: b}}, []]");
     EXPECT_EQ(emitrs<std::string>(t), emitrs<std::string>(expected));
 }
 TEST(change_type, from_keymap)
 {
-    Tree t = parse("{map0: {map0: val0}, map1: {map1: {map1key0: a, map1key1: b}}, map2: {map2: [map2val0, map2val1]}}");
+    Tree t = parse_in_arena("{map0: {map0: val0}, map1: {map1: {map1key0: a, map1key1: b}}, map2: {map2: [map2val0, map2val1]}}");
     t[0].change_type(VAL);
     t[1].change_type(MAP);
     t[2].change_type(SEQ);
-    Tree expected = parse("{map0: ~, map1: {map1: {map1key0: a, map1key1: b}}, map2: []}");
+    Tree expected = parse_in_arena("{map0: ~, map1: {map1: {map1key0: a, map1key1: b}}, map2: []}");
     EXPECT_EQ(emitrs<std::string>(t), emitrs<std::string>(expected));
 }
 
 TEST(change_type, from_seq)
 {
-    Tree t = parse("[[seq00, seq01], [seq10, seq11], [seq20, seq21]]");
+    Tree t = parse_in_arena("[[seq00, seq01], [seq10, seq11], [seq20, seq21]]");
     t[0].change_type(VAL);
     t[1].change_type(MAP);
     t[2].change_type(SEQ);
-    Tree expected = parse("[~, {}, [seq20, seq21]]");
+    Tree expected = parse_in_arena("[~, {}, [seq20, seq21]]");
     EXPECT_EQ(emitrs<std::string>(t), emitrs<std::string>(expected));
 }
 TEST(change_type, from_keyseq)
 {
-    Tree t = parse("{map0: [seq00, seq01], map1: [seq10, seq11], map2: [seq20, seq21]}");
+    Tree t = parse_in_arena("{map0: [seq00, seq01], map1: [seq10, seq11], map2: [seq20, seq21]}");
     t[0].change_type(VAL);
     t[1].change_type(MAP);
     t[2].change_type(SEQ);
-    Tree expected = parse("{map0: ~, map1: {}, map2: [seq20, seq21]}");
+    Tree expected = parse_in_arena("{map0: ~, map1: {}, map2: [seq20, seq21]}");
     EXPECT_EQ(emitrs<std::string>(t), emitrs<std::string>(expected));
 }
 
@@ -3326,7 +3326,7 @@ TEST(NodeRef, 7_duplicate)
 
 TEST(NodeRef, intseq)
 {
-    Tree t = parse("iseq: [8, 10]");
+    Tree t = parse_in_arena("iseq: [8, 10]");
     NodeRef n = t["iseq"];
     int a, b;
     n[0] >> a;
@@ -3341,7 +3341,7 @@ TEST(NodeRef, intseq)
 //-----------------------------------------------------------------------------
 TEST(general, parsing)
 {
-    auto tree = parse("{foo: 1}");
+    auto tree = parse_in_arena("{foo: 1}");
 
     char cmpbuf[128] = {0};
     substr cmp(cmpbuf);
@@ -3475,7 +3475,7 @@ a:
             z: c
             u:
 )";
-    Tree t = parse(yaml);
+    Tree t = parse_in_arena(yaml);
     print_tree(t); // to make sure this is covered too
 }
 
@@ -3487,7 +3487,7 @@ TEST(general, numbers)
 - 1e-2
 - 1e+2
 )";
-    Tree t = parse(yaml);
+    Tree t = parse_in_arena(yaml);
     auto s = emitrs<std::string>(t);
     EXPECT_EQ(s, std::string(yaml));
 }
@@ -3515,7 +3515,7 @@ TEST(general, newlines_on_maps_nested_in_seqs)
         value: 48.0
     species: BokoblinSeries
 )";
-    Tree t = parse(yaml);
+    Tree t = parse_in_arena(yaml);
     auto s = emitrs<std::string>(t);
     EXPECT_EQ(expected, s);
 }
@@ -3539,7 +3539,7 @@ a:
             z: c
             u:
 )";
-    Tree t = parse(yaml);
+    Tree t = parse_in_arena(yaml);
     print_tree(t);
 
     EXPECT_EQ(t.lookup_path("a").target, 1);
@@ -3631,8 +3631,8 @@ a:
 TEST(general, lookup_path_or_modify)
 {
     {
-        Tree dst = parse("{}");
-        Tree const src = parse("{d: [x, y, z]}");
+        Tree dst = parse_in_arena("{}");
+        Tree const src = parse_in_arena("{d: [x, y, z]}");
         dst.lookup_path_or_modify("ok", "a.b.c");
         EXPECT_EQ(dst["a"]["b"]["c"].val(), "ok");
         dst.lookup_path_or_modify(&src, src["d"].id(), "a.b.d");
@@ -3642,7 +3642,7 @@ TEST(general, lookup_path_or_modify)
     }
 
     {
-        Tree t = parse("{}");
+        Tree t = parse_in_arena("{}");
         csubstr bigpath = "newmap.newseq[0].newmap.newseq[0].first";
         auto result = t.lookup_path(bigpath);
         EXPECT_EQ(result.target, (size_t)NONE);
@@ -3823,7 +3823,7 @@ TEST(general, github_issue_124)
     for(csubstr inp : yaml)
     {
         SCOPED_TRACE(inp);
-        Tree t = parse(inp);
+        Tree t = parse_in_arena(inp);
         std::string s = emitrs<std::string>(t);
         // The re-emitted output should not contain the comment.
         EXPECT_EQ(c4::to_csubstr(s), "a:\n  - b\nc: d\n");
@@ -3859,7 +3859,7 @@ TEST(set_root_as_stream, already_with_stream)
 
 TEST(set_root_as_stream, root_is_map)
 {
-    Tree t = parse(R"({a: b, c: d})");
+    Tree t = parse_in_arena(R"({a: b, c: d})");
     NodeRef r = t.rootref();
     EXPECT_EQ(r.is_stream(), false);
     EXPECT_EQ(r.is_doc(), false);
@@ -3888,7 +3888,7 @@ TEST(set_root_as_stream, root_is_map)
 
 TEST(set_root_as_stream, root_is_docmap)
 {
-    Tree t = parse(R"({a: b, c: d})");
+    Tree t = parse_in_arena(R"({a: b, c: d})");
     t._p(t.root_id())->m_type.add(DOC);
     NodeRef r = t.rootref();
     EXPECT_EQ(r.is_stream(), false);
@@ -3919,7 +3919,7 @@ TEST(set_root_as_stream, root_is_docmap)
 
 TEST(set_root_as_stream, root_is_seq)
 {
-    Tree t = parse(R"([a, b, c, d])");
+    Tree t = parse_in_arena(R"([a, b, c, d])");
     NodeRef r = t.rootref();
     EXPECT_EQ(r.is_stream(), false);
     EXPECT_EQ(r.is_doc(), false);
@@ -3948,7 +3948,7 @@ TEST(set_root_as_stream, root_is_seq)
 
 TEST(set_root_as_stream, root_is_docseq)
 {
-    Tree t = parse(R"([a, b, c, d])");
+    Tree t = parse_in_arena(R"([a, b, c, d])");
     t._p(t.root_id())->m_type.add(DOC);
     NodeRef r = t.rootref();
     EXPECT_EQ(r.is_stream(), false);
@@ -3978,7 +3978,7 @@ TEST(set_root_as_stream, root_is_docseq)
 
 TEST(set_root_as_stream, root_is_seqmap)
 {
-    Tree t = parse(R"([{a: b, c: d}, {e: e, f: f}, {g: g, h: h}, {i: i, j: j}])");
+    Tree t = parse_in_arena(R"([{a: b, c: d}, {e: e, f: f}, {g: g, h: h}, {i: i, j: j}])");
     NodeRef r = t.rootref();
     EXPECT_EQ(r.is_stream(), false);
     EXPECT_EQ(r.is_doc(), false);
@@ -4015,7 +4015,7 @@ TEST(set_root_as_stream, root_is_seqmap)
 
 TEST(set_root_as_stream, root_is_mapseq)
 {
-    Tree t = parse(R"({a: [0, 1, 2], b: [3, 4, 5], c: [6, 7, 8]})");
+    Tree t = parse_in_arena(R"({a: [0, 1, 2], b: [3, 4, 5], c: [6, 7, 8]})");
     NodeRef r = t.rootref();
     EXPECT_EQ(r.is_stream(), false);
     EXPECT_EQ(r.is_doc(), false);
@@ -4094,7 +4094,7 @@ TEST(set_root_as_stream, root_is_docval)
 
 TEST(basic, doc)
 {
-    Tree t = parse(R"(---
+    Tree t = parse_in_arena(R"(---
 doc0
 ---
 doc1

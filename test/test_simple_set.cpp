@@ -25,7 +25,7 @@ aa: ~
 bb: ~
 cc: ~
 )";
-    Tree t = parse(yaml);
+    Tree t = parse_in_arena(yaml);
     auto s = emitrs<std::string>(t);
     EXPECT_EQ(expected, s);
 }
@@ -43,7 +43,7 @@ aa: ~
 bb: ~
 cc: ~
 )";
-    Tree t = parse(yaml);
+    Tree t = parse_in_arena(yaml);
     auto s = emitrs<std::string>(t);
     EXPECT_EQ(expected, s);
 }

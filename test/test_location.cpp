@@ -1,11 +1,10 @@
-#include <gtest/gtest.h>
+#ifndef RYML_SINGLE_HEADER
 #include <c4/yml/std/std.hpp>
 #include <c4/yml/yml.hpp>
-#include <initializer_list>
-#include <string>
-#include <iostream>
-
+#endif
 #include "./test_case.hpp"
+#include <gtest/gtest.h>
+
 
 namespace c4 {
 namespace yml {
@@ -43,7 +42,7 @@ baz:
 )";
     Tree t;
     Parser parser(use_locations);
-    parser.parse("myfile.yml", yaml, &t);
+    parser.parse_in_arena("myfile.yml", yaml, &t);
     #define _checkloc(node, line_, col_, str) \
         {                                                               \
             const Location loc = parser.location(node);                 \

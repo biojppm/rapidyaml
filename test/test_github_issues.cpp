@@ -5,7 +5,7 @@ namespace yml {
 
 TEST(github, 78)
 {
-    Tree t = parse("{foo: 1, bar: [2, 3]}");
+    Tree t = parse_in_arena("{foo: 1, bar: [2, 3]}");
     EXPECT_EQ(t["foo"].val(), "1");
     EXPECT_EQ(t["bar"][0].val(), "2");
     EXPECT_EQ(t["bar"][1].val(), "3");
@@ -17,7 +17,7 @@ TEST(github, 78)
 
 TEST(github, 60)
 {
-    Tree tree = parse(R"(
+    Tree tree = parse_in_arena(R"(
     traits:
         roleBonuses:
         -   bonus: 5
@@ -59,7 +59,7 @@ TEST(github, 60)
     EXPECT_EQ(txt["zh"].val(), "<a href=\"showinfo:22177\">遗迹分析仪</a>和<a href=\"showinfo:22175\">数据分析仪</a>病毒强度加成");
 
 
-    tree = parse(R"(208:
+    tree = parse_in_arena(R"(208:
     basePrice: 3000.0
     description:
         de: Ursprünglich als Rakete für den Fangschuss entworfen, um einem beschädigten

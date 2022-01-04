@@ -128,16 +128,16 @@ struct ProcLevel
         {
             tree.clear();
             if(immutable)
-                parser.parse(filename, c4::to_csubstr(src), &tree);
+                parser.parse_in_arena(filename, c4::to_csubstr(src), &tree);
             else
-                parser.parse(filename, c4::to_substr(src), &tree);
+                parser.parse_in_place(filename, c4::to_substr(src), &tree);
         }
         else
         {
             if(immutable)
-                tree = c4::yml::parse(filename, c4::to_csubstr(src));
+                tree = c4::yml::parse_in_arena(filename, c4::to_csubstr(src));
             else
-                tree = c4::yml::parse(filename, c4::to_substr(src));
+                tree = c4::yml::parse_in_place(filename, c4::to_substr(src));
         }
         was_parsed = true;
         #if RYML_NFO
@@ -464,7 +464,7 @@ struct SuiteCase
 
         // now parse the file
         RYML_CHECK(contents.begins_with("---"));
-        parse(filename, contents, &tree);
+        parse_in_arena(filename, contents, &tree);
         #if RYML_NFO
         c4::print("parsed:"); print_tree(tree);
         #endif

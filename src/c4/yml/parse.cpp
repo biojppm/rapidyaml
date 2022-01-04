@@ -153,7 +153,7 @@ bool Parser::_finished_line() const
 }
 
 //-----------------------------------------------------------------------------
-void Parser::parse(csubstr file, substr buf, Tree *t, size_t node_id)
+void Parser::parse_in_place(csubstr file, substr buf, Tree *t, size_t node_id)
 {
     m_file = file;
     m_buf = buf;

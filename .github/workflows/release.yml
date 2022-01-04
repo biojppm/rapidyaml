@@ -235,7 +235,7 @@ jobs:
           for whl in dist/* ; do
             pip install -v $whl
             pip show -f rapidyaml
-            python -c 'import ryml ; dir(ryml) ; tree = ryml.parse(b"{foo: bar}") ; assert tree.key(1) == b"foo" ; assert tree.val(1) == b"bar"'
+            python -c 'import ryml ; dir(ryml) ; tree = ryml.parse_in_arena(b"{foo: bar}") ; assert tree.key(1) == b"foo" ; assert tree.val(1) == b"bar"'
             python -m nose -v api/python/ryml/tests
             pip uninstall -y -v rapidyaml
           done
