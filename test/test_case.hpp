@@ -1,8 +1,6 @@
 #ifndef _TEST_CASE_HPP_
 #define _TEST_CASE_HPP_
 
-#include <vector>
-
 #ifdef RYML_SINGLE_HEADER
 #include <ryml_all.hpp>
 #else
@@ -38,6 +36,15 @@ inline void PrintTo(substr  s, ::std::ostream* os) { os->write(s.str, (std::stre
 inline void PrintTo(csubstr s, ::std::ostream* os) { os->write(s.str, (std::streamsize)s.len); }
 
 namespace yml {
+
+inline void PrintTo(Callbacks const& cb, ::std::ostream* os)
+{
+    *os << '{'
+        << "userdata." << (void*)cb.m_user_data << ','
+        << "allocate." << (void*)cb.m_allocate << ','
+        << "free." << (void*)cb.m_free << ','
+        << "error." << (void*)cb.m_error << '}';
+}
 
 struct Case;
 struct CaseNode;

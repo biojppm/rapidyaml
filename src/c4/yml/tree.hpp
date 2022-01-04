@@ -760,7 +760,7 @@ public:
      * changing to a different type will initialize the node with an
      * empty value of the desired type: changing to VAL will
      * initialize with a null scalar (~), changing to MAP will
-     * initialize with an empty map ({), and changing to SEQ will
+     * initialize with an empty map ({}), and changing to SEQ will
      * initialize with an empty seq ([]). */
     bool change_type(size_t node, NodeType type);
 
