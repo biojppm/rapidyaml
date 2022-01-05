@@ -4,7 +4,8 @@
 #ifndef RYML_SINGLE_HEADER
 #include "c4/yml/common.hpp"
 #endif
-#include <gtest/gtest.h>
+#include <vector>
+#include <iostream>
 
 namespace c4 {
 namespace yml {

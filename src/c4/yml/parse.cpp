@@ -4545,7 +4545,31 @@ Location Parser::location(size_t node) const
         _RYML_CB_ASSERT(m_stack.m_callbacks, !m_tree->has_key(node));
         if(m_tree->has_children(node))
         {
-            return location(m_tree->first_child(node));
+            Location loc = location(m_tree->first_child(node));
+            if(loc.offset > 0)
+            {
+                size_t offs = m_buf.last_not_of(" \t\r\n", loc.offset);
+                if(offs != npos)
+                {
+                    if(m_tree->is_seq(node))
+                    {
+                        if(m_buf[offs] == '[' || m_buf[offs] == '-')
+                        {
+                            return val_location(&m_buf.str[offs]);
+                        }
+                    }
+                    else
+                    {
+                        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_map(node));
+                        if(m_buf[offs] == '{')
+                        {
+                            return val_location(&m_buf.str[offs]);
+                        }
+                    }
+                }
+            }
+            return loc;
+
         }
         else
         {
@@ -4636,7 +4660,6 @@ void Parser::_resize_locations(size_t numnewlines)
 {
     if(numnewlines > m_newline_offsets_size)
     {
-        auto& cb = m_stack.m_callbacks;
         if(m_newline_offsets)
             _RYML_CB_FREE(m_stack.m_callbacks, m_newline_offsets, size_t, numnewlines);
         m_newline_offsets = _RYML_CB_ALLOC_HINT(m_stack.m_callbacks, size_t, numnewlines, m_newline_offsets);

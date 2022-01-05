@@ -3,6 +3,7 @@
 #else
 #include "c4/yml/parse.hpp"
 #endif
+#include <gtest/gtest.h>
 #include "./callbacks_tester.hpp"
 
 

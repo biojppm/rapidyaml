@@ -1,5 +1,3 @@
-#include "c4/yml/common.hpp"
-#include "callbacks_tester.hpp"
 #ifndef RYML_SINGLE_HEADER
 #include "c4/yml/std/std.hpp"
 #include "c4/yml/parse.hpp"
@@ -8,8 +6,8 @@
 #include <c4/yml/detail/checks.hpp>
 #include <c4/yml/detail/print.hpp>
 #endif
-
 #include "./test_case.hpp"
+#include "./callbacks_tester.hpp"
 
 #include <gtest/gtest.h>
 
