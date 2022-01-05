@@ -3756,77 +3756,153 @@ void sample_per_tree_allocator()
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-/** demonstrates how to obtain the location of a node after
- * successfully parsing */
+/** demonstrates how to obtain the (zero-based) location of a node
+ * from a recently parsed tree */
 void sample_location_tracking()
 {
-    ryml::csubstr yaml = "{c1: contents, c15: [one, [two, three]]}";
-    // Enable the parser to track locations. If this flag is
-    // enabled, then the parser will store a lookup structure
-    // to accelerate tracking the location of a node.
+    // NOTE: locations are zero-based. If you intend to show the
+    // location to a human user, you may want to pre-increment the line
+    // and column by 1.
+    ryml::csubstr yaml = R"({
+aa: contents,
+foo: [one, [two, three]]
+})";
+    // Enable the parser to track locations.
     ryml::Parser parser(ryml::ParseOptions::TRACK_LOCATION);
-    // ... has effect only on the next parse:
+    // On the next parse, the parser will cache a lookup structure to
+    // accelerate tracking the location of a node:
     ryml::Tree tree = parser.parse_in_arena("source.yml", yaml);
     ryml::Location loc = parser.location(tree.rootref());
     CHECK(parser.location_contents(loc).begins_with("{"));
     CHECK(loc.offset == 0u);
     CHECK(loc.line == 0u);
     CHECK(loc.col == 0u);
-    loc = parser.location(tree["c1"]);
-    CHECK(parser.location_contents(loc).begins_with("c1"));
-    CHECK(loc.offset == 1u);
-    CHECK(loc.line == 0u);
-    CHECK(loc.col == 1u);
-    loc = parser.location(tree["c15"]);
-    CHECK(parser.location_contents(loc).begins_with("c15"));
-    CHECK(loc.offset == 15u);
-    CHECK(loc.line == 0u);
-    CHECK(loc.col == 15u);
-    loc = parser.location(tree["c15"][0]);
+    loc = parser.location(tree["aa"]);
+    CHECK(parser.location_contents(loc).begins_with("aa"));
+    CHECK(loc.offset == 2u);
+    CHECK(loc.line == 1u);
+    CHECK(loc.col == 0u);
+    // KEYSEQ in flow style: points at the key
+    loc = parser.location(tree["foo"]);
+    CHECK(parser.location_contents(loc).begins_with("foo"));
+    CHECK(loc.offset == 16u);
+    CHECK(loc.line == 2u);
+    CHECK(loc.col == 0u);
+    loc = parser.location(tree["foo"][0]);
     CHECK(parser.location_contents(loc).begins_with("one"));
-    CHECK(loc.offset == 21u);
-    CHECK(loc.line == 0u);
-    CHECK(loc.col == 21u);
-    loc = parser.location(tree["c15"][1]);
+    CHECK(loc.line == 2u);
+    CHECK(loc.col == 6u);
+    // SEQ in flow style: location points at the opening '[' (there's no key)
+    loc = parser.location(tree["foo"][1]);
     CHECK(parser.location_contents(loc).begins_with("["));
-    CHECK(loc.offset == 26u);
-    CHECK(loc.line == 0u);
-    CHECK(loc.col == 26u);
-    loc = parser.location(tree["c15"][1][0]);
+    CHECK(loc.line == 2u);
+    CHECK(loc.col == 11u);
+    loc = parser.location(tree["foo"][1][0]);
     CHECK(parser.location_contents(loc).begins_with("two"));
-    CHECK(loc.offset == 27u);
-    CHECK(loc.line == 0u);
-    CHECK(loc.col == 27u);
-    loc = parser.location(tree["c15"][1][1]);
+    CHECK(loc.line == 2u);
+    CHECK(loc.col == 12u);
+    loc = parser.location(tree["foo"][1][1]);
     CHECK(parser.location_contents(loc).begins_with("three"));
-    CHECK(loc.offset == 32u);
-    CHECK(loc.line == 0u);
-    CHECK(loc.col == 32u);
-    // NOTE. The parser locations always point at the latest file to
+    CHECK(loc.line == 2u);
+    CHECK(loc.col == 17u);
+    // NOTE. The parser locations always point at the latest buffer to
     // be parsed with the parser object, so they must be queried using
     // the corresponding latest tree to be parsed. This means that if
     // the parser is reused, earlier trees will loose the possibility
-    // of being used to query for location. It is undefined behavior
-    // to query from the parser the location of a node from an earlier
-    // tree:
-    ryml::csubstr latest_yaml = R"(
-a new: buffer
-to: be parsed
-)";
-    ryml::Tree latest_tree = parser.parse_in_arena("another.yaml", latest_yaml);
+    // of querying for location. It is undefined behavior to query the
+    // parser for the location of a node from an earlier tree:
+    ryml::Tree docval = parser.parse_in_arena("docval.yaml", "this is a docval");
     // From now on, none of the locations from the previous tree can
     // be queried:
-    //loc = parser.location(tree["c15"]); // ERROR, Undefined Behavior
-    loc = parser.location(latest_tree["a new"]); // ok, this is the latest tree from this parser
+    //loc = parser.location(tree.rootref()); // ERROR, Undefined Behavior
+    loc = parser.location(docval.rootref()); // OK. this is the latest tree from this parser
+    CHECK(parser.location_contents(loc).begins_with("this is a docval"));
+    CHECK(loc.line == 0u);
+    CHECK(loc.col == 0u);
+
+    // NOTES ABOUT CONTAINER LOCATIONS
+    ryml::Tree tree2 = parser.parse_in_arena("containers.yaml", R"(
+a new: buffer
+to: be parsed
+map with key:
+  first: value
+  second: value
+seq with key:
+  - first value
+  - second value
+  -
+    - nested first value
+    - nested second value
+  -
+    nested first: value
+    nested second: value
+)");
+    // (Likewise, the docval tree can no longer be used to query.)
+    //
+    // For key-less block-style maps, the location of the container
+    // points at the first child's key. For example, in this case
+    // the root does not have a key, so its location is taken
+    // to be at the first child:
+    loc = parser.location(tree2.rootref());
     CHECK(parser.location_contents(loc).begins_with("a new"));
     CHECK(loc.offset == 1u);
     CHECK(loc.line == 1u);
     CHECK(loc.col == 0u);
-    loc = parser.location(latest_tree["to"]);
+    // note the first child points exactly at the same place:
+    loc = parser.location(tree2["a new"]);
+    CHECK(parser.location_contents(loc).begins_with("a new"));
+    CHECK(loc.offset == 1u);
+    CHECK(loc.line == 1u);
+    CHECK(loc.col == 0u);
+    loc = parser.location(tree2["to"]);
     CHECK(parser.location_contents(loc).begins_with("to"));
-    CHECK(loc.offset == 15u);
     CHECK(loc.line == 2u);
     CHECK(loc.col == 0u);
+    // but of course, if the block-style map is a KEYMAP, then the
+    // location is the map's key, and not the first child's key:
+    loc = parser.location(tree2["map with key"]);
+    CHECK(parser.location_contents(loc).begins_with("map with key"));
+    CHECK(loc.line == 3u);
+    CHECK(loc.col == 0u);
+    loc = parser.location(tree2["map with key"]["first"]);
+    CHECK(parser.location_contents(loc).begins_with("first"));
+    CHECK(loc.line == 4u);
+    CHECK(loc.col == 2u);
+    loc = parser.location(tree2["map with key"]["second"]);
+    CHECK(parser.location_contents(loc).begins_with("second"));
+    CHECK(loc.line == 5u);
+    CHECK(loc.col == 2u);
+    // same thing for KEYSEQ:
+    loc = parser.location(tree2["seq with key"]);
+    CHECK(parser.location_contents(loc).begins_with("seq with key"));
+    CHECK(loc.line == 6u);
+    CHECK(loc.col == 0u);
+    loc = parser.location(tree2["seq with key"][0]);
+    CHECK(parser.location_contents(loc).begins_with("first value"));
+    CHECK(loc.line == 7u);
+    CHECK(loc.col == 4u);
+    loc = parser.location(tree2["seq with key"][1]);
+    CHECK(parser.location_contents(loc).begins_with("second value"));
+    CHECK(loc.line == 8u);
+    CHECK(loc.col == 4u);
+    // SEQ nested in SEQ: container location points at the first child's "- " dash
+    loc = parser.location(tree2["seq with key"][2]);
+    CHECK(parser.location_contents(loc).begins_with("- "));
+    CHECK(loc.line == 10u);
+    CHECK(loc.col == 4u);
+    loc = parser.location(tree2["seq with key"][2][0]);
+    CHECK(parser.location_contents(loc).begins_with("nested first value"));
+    CHECK(loc.line == 10u);
+    CHECK(loc.col == 6u);
+    // MAP nested in SEQ: same as above
+    loc = parser.location(tree2["seq with key"][3]);
+    CHECK(parser.location_contents(loc).begins_with("-"));
+    CHECK(loc.line == 12u);
+    CHECK(loc.col == 2u);
+    loc = parser.location(tree2["seq with key"][3][0]);
+    CHECK(parser.location_contents(loc).begins_with("nested first: "));
+    CHECK(loc.line == 13u);
+    CHECK(loc.col == 4u);
 }
 
 

@@ -40,6 +40,16 @@
     } while(0)
 
 
+#if C4_CPP >= 14
+#   define RYML_DEPRECATED(msg) [[deprecated(msg)]]
+#else
+#   if defined(_MSC_VER)
+#       define RYML_DEPRECATED(msg) __declspec(deprecated)
+#   else // defined(__GNUC__) || defined(__clang__)
+#       define RYML_DEPRECATED(msg) __attribute__((deprecated))
+#   endif
+#endif
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

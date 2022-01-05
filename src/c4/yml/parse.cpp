@@ -4554,12 +4554,15 @@ Location Parser::location(Tree const& tree, size_t node) const
             Location loc = location(tree, tree.first_child(node));
             if(loc.offset > 0)
             {
+                // Try finding a token where the container starts.
+                // Search back for the last non-whitespace prior to
+                // the child's offset:
                 size_t offs = m_buf.last_not_of(" \t\r\n", loc.offset);
                 if(offs != npos)
                 {
                     if(tree.is_seq(node))
                     {
-                        if(m_buf[offs] == '[' || m_buf[offs] == '-')
+                        if(m_buf[offs] == '[' || (m_buf[offs] == '-' && !tree.is_doc(node)))
                         {
                             return val_location(&m_buf.str[offs]);
                         }
@@ -4567,7 +4570,7 @@ Location Parser::location(Tree const& tree, size_t node) const
                     else
                     {
                         _RYML_CB_ASSERT(m_stack.m_callbacks, tree.is_map(node));
-                        if(m_buf[offs] == '{')
+                        if(m_buf[offs] == '{' || (m_buf[offs] == '-' && !tree.is_doc(node)))
                         {
                             return val_location(&m_buf.str[offs]);
                         }

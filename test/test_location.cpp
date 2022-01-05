@@ -9,22 +9,6 @@
 namespace c4 {
 namespace yml {
 
-// The other test executables are written to contain the declarative-style
-// YmlTestCases. This executable does not have any but the build setup
-// assumes it does, and links with the test lib, which requires an existing
-// get_case() function. So this is here to act as placeholder until (if?)
-// proper test cases are added here. This was detected in #47 (thanks
-// @cburgard).
-Case const* get_case(csubstr)
-{
-    return nullptr;
-}
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
 const ParseOptions use_locations{ParseOptions::TRACK_LOCATION};
 
 #define _checkloc(node, line_, col_, str)                               \
@@ -36,7 +20,7 @@ const ParseOptions use_locations{ParseOptions::TRACK_LOCATION};
         EXPECT_EQ(t.arena().sub(loc.offset, csubstr(str).len), csubstr(str)); \
     }
 
-TEST(locations, seq_impl)
+TEST(locations, seq_block)
 {
     Tree t;
     Parser parser(use_locations);
@@ -55,7 +39,7 @@ TEST(locations, seq_impl)
     -   and here's another value
     -
       - another val
-      - another val
+      - yet another val
 )";
     parser.parse_in_arena("myfile.yml", yaml, &t);
     const NodeRef seq = t.rootref();
@@ -74,9 +58,12 @@ TEST(locations, seq_impl)
     _checkloc(seq[4][3]   , 11u, 6u, "the scalar value is here"); // different from above! the comment throws this off
     _checkloc(seq[4][3][0], 11u, 6u, "the scalar value is here");
     _checkloc(seq[4][3][1], 12u, 8u, "and here's another value");
+    _checkloc(seq[4][3][2], 14u, 6u, "- ");
+    _checkloc(seq[4][3][2][0], 14u, 8u, "another val");
+    _checkloc(seq[4][3][2][1], 15u, 8u, "yet another val");
 }
 
-TEST(locations, seq_expl)
+TEST(locations, seq_flow)
 {
     Tree t;
     Parser parser(use_locations);
@@ -92,7 +79,7 @@ TEST(locations, seq_expl)
     _checkloc(seq[4],  0u, 20u, "items");
 }
 
-TEST(locations, seq_expl_nested)
+TEST(locations, seq_flow_nested)
 {
     Tree t;
     Parser parser(use_locations);
@@ -148,10 +135,11 @@ baz:
     -     3_
 )";
     parser.parse_in_arena("myfile.yml", yaml, &t);
+    const NodeRef stream = t.rootref();
     const NodeRef map = t.docref(0);
     ASSERT_TRUE(map.is_map());
     ASSERT_TRUE(map.is_doc());
-    _checkloc(t.rootref()  , 0u, 2u, "-");
+    _checkloc(stream       , 0u, 2u, "-");
     _checkloc(map          , 1u, 0u, "foo");
     _checkloc(map["foo"]   , 1u, 0u, "foo");
     _checkloc(map["bar"]   , 2u, 0u, "bar");
@@ -295,6 +283,17 @@ baz6:
     _checkloc(map["baz6"][2],  55u+8u, 10u, "3_");
 }
 
+
+// The other test executables are written to contain the declarative-style
+// YmlTestCases. This executable does not have any but the build setup
+// assumes it does, and links with the test lib, which requires an existing
+// get_case() function. So this is here to act as placeholder until (if?)
+// proper test cases are added here. This was detected in #47 (thanks
+// @cburgard).
+Case const* get_case(csubstr)
+{
+    return nullptr;
+}
 
 } // namespace yml
 } // namespace c4
