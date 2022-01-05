@@ -50,6 +50,58 @@
     callback object.
 
 
+### New features
+
+- Add tracking of source code locations. This is useful for reporting semantic errors (ie where the YAML is syntatically valid but the contents are semantically invalid). It is implemented opt-in when creating the parser:
+  ```c++
+  ryml::csubstr yaml = "{c1: contents, c14: [one, [two, three]]}";
+  // enable the parser to track locations.
+  ryml::Parser parser(ryml::ParseOptions::TRACK_LOCATION);
+  auto is_at = [&parser](ryml::csubstr str, ryml::Location const& loc){
+      return parser.location_contents(loc).begins_with(str);
+  };
+  // ... has effect only on the next parse:
+  ryml::Tree tree = parser.parse_in_arena("source.yml", yaml);
+  ryml::Location loc;
+  loc = parser.location(tree.rootref());
+  CHECK(is_at("{", loc));
+  CHECK(loc.offset == 0u);
+  CHECK(loc.line == 0u);
+  CHECK(loc.col == 0u);
+  loc = parser.location(tree["c1"]);
+  CHECK(is_at("c1", loc));
+  CHECK(loc.offset == 1u);
+  CHECK(loc.line == 0u);
+  CHECK(loc.col == 1u);
+  loc = parser.location(tree["c15"]);
+  CHECK(is_at("c15", loc));
+  CHECK(loc.offset == 15u);
+  CHECK(loc.line == 0u);
+  CHECK(loc.col == 15u);
+  loc = parser.location(tree["c15"][0]);
+  CHECK(is_at("one", loc));
+  CHECK(loc.offset == 21u);
+  CHECK(loc.line == 0u);
+  CHECK(loc.col == 21u);
+  loc = parser.location(tree["c15"][1]);
+  CHECK(is_at("[", loc));
+  CHECK(loc.offset == 26u);
+  CHECK(loc.line == 0u);
+  CHECK(loc.col == 26u);
+  loc = parser.location(tree["c15"][1][0]);
+  CHECK(is_at("two", loc));
+  CHECK(loc.offset == 27u);
+  CHECK(loc.line == 0u);
+  CHECK(loc.col == 27u);
+  loc = parser.location(tree["c15"][1][1]);
+  CHECK(is_at("three", loc));
+  CHECK(loc.offset == 32u);
+  CHECK(loc.line == 0u);
+  CHECK(loc.col == 32u);
+  ```
+  See more details in the [quickstart sample](https://github.com/biojppm/rapidyaml/blob/master/samples/quickstart.cpp).
+
+
 ### Fixes
 
 - Accept `infinity`,`inf` and `nan` as special float values (but not mixed case: eg `INFINITY` or `Inf` or `NaN` are not accepted) ([PR #186](https://github.com/biojppm/rapidyaml/pull/186)).

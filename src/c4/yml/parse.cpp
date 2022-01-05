@@ -4501,24 +4501,30 @@ int Parser::_prfl(char *buf, int buflen, size_t v)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+csubstr Parser::location_contents(Location const& loc) const
+{
+    _RYML_CB_ASSERT(m_stack.m_callbacks, loc.offset < m_buf.len);
+    return m_buf.sub(loc.offset);
+}
+
 Location Parser::location(NodeRef node) const
 {
     _RYML_CB_ASSERT(m_stack.m_callbacks, node.valid());
     _RYML_CB_ASSERT(m_stack.m_callbacks, node.tree() == m_tree);
-    return location(node.id());
+    return location(*node.tree(), node.id());
 }
 
-Location Parser::location(size_t node) const
+Location Parser::location(Tree const& tree, size_t node) const
 {
-    csubstr src = m_buf; (void)src;
+    _RYML_CB_ASSERT(m_stack.m_callbacks, &tree == m_tree);
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_newline_offsets != nullptr);
-    if(m_tree->has_key(node))
+    if(tree.has_key(node))
     {
-        csubstr k = m_tree->key(node);
+        csubstr k = tree.key(node);
         if(k.str)
         {
-            _RYML_CB_ASSERT(m_stack.m_callbacks, k.is_sub(src));
-            _RYML_CB_ASSERT(m_stack.m_callbacks, src.is_super(k));
+            _RYML_CB_ASSERT(m_stack.m_callbacks, k.is_sub(m_buf));
+            _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.is_super(k));
             return val_location(k.str);
         }
         else
@@ -4526,13 +4532,13 @@ Location Parser::location(size_t node) const
             _RYML_CB_ERR(m_stack.m_callbacks, "not implemented");
         }
     }
-    else if(m_tree->has_val(node))
+    else if(tree.has_val(node))
     {
-        csubstr v = m_tree->val(node);
+        csubstr v = tree.val(node);
         if(v.str)
         {
-            _RYML_CB_ASSERT(m_stack.m_callbacks, v.is_sub(src));
-            _RYML_CB_ASSERT(m_stack.m_callbacks, src.is_super(v));
+            _RYML_CB_ASSERT(m_stack.m_callbacks, v.is_sub(m_buf));
+            _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.is_super(v));
             return val_location(v.str);
         }
         else
@@ -4540,18 +4546,18 @@ Location Parser::location(size_t node) const
             _RYML_CB_ERR(m_stack.m_callbacks, "not implemented");
         }
     }
-    else if(m_tree->is_seq(node) || m_tree->is_map(node))
+    else if(tree.is_seq(node) || tree.is_map(node))
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, !m_tree->has_key(node));
-        if(m_tree->has_children(node))
+        _RYML_CB_ASSERT(m_stack.m_callbacks, !tree.has_key(node));
+        if(tree.has_children(node))
         {
-            Location loc = location(m_tree->first_child(node));
+            Location loc = location(tree, tree.first_child(node));
             if(loc.offset > 0)
             {
                 size_t offs = m_buf.last_not_of(" \t\r\n", loc.offset);
                 if(offs != npos)
                 {
-                    if(m_tree->is_seq(node))
+                    if(tree.is_seq(node))
                     {
                         if(m_buf[offs] == '[' || m_buf[offs] == '-')
                         {
@@ -4560,7 +4566,7 @@ Location Parser::location(size_t node) const
                     }
                     else
                     {
-                        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_map(node));
+                        _RYML_CB_ASSERT(m_stack.m_callbacks, tree.is_map(node));
                         if(m_buf[offs] == '{')
                         {
                             return val_location(&m_buf.str[offs]);
@@ -4569,7 +4575,6 @@ Location Parser::location(size_t node) const
                 }
             }
             return loc;
-
         }
         else
         {

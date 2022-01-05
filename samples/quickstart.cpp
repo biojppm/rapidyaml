@@ -82,6 +82,7 @@ void sample_docs();                 ///< deal with YAML docs
 void sample_error_handler();        ///< set a custom error handler
 void sample_global_allocator();     ///< set a global allocator for ryml
 void sample_per_tree_allocator();   ///< set per-tree allocators
+void sample_location_tracking();    ///< track node locations in the parsed source tree
 int  report_checks();
 } /* namespace sample */
 
@@ -115,6 +116,7 @@ int main()
     sample::sample_error_handler();
     sample::sample_global_allocator();
     sample::sample_per_tree_allocator();
+    sample::sample_location_tracking();
     return sample::report_checks();
 }
 
@@ -478,6 +480,17 @@ I am somebody: indeed
     CHECK(stream_result == expected_result);
     // There are many possibilities to emit to buffer;
     // please look at the emit sample functions below.
+
+    //------------------------------------------------------------------
+    // Getting the location of nodes in the source:
+    ryml::Parser parser(ryml::ParseOptions::TRACK_LOCATION);
+    ryml::Tree tree2 = parser.parse_in_arena("expected.yml", expected_result);
+    ryml::Location loc = parser.location(tree2["bar"][1]);
+    CHECK(parser.location_contents(loc).begins_with("30"));
+    CHECK(loc.line == 3u);
+    CHECK(loc.col == 4u);
+    // For further details in location tracking,
+    // refer to the sample function below.
 }
 
 
@@ -3740,6 +3753,85 @@ void sample_per_tree_allocator()
 }
 
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+/** demonstrates how to obtain the location of a node after
+ * successfully parsing */
+void sample_location_tracking()
+{
+    ryml::csubstr yaml = "{c1: contents, c15: [one, [two, three]]}";
+    // Enable the parser to track locations. If this flag is
+    // enabled, then the parser will store a lookup structure
+    // to accelerate tracking the location of a node.
+    ryml::Parser parser(ryml::ParseOptions::TRACK_LOCATION);
+    // ... has effect only on the next parse:
+    ryml::Tree tree = parser.parse_in_arena("source.yml", yaml);
+    ryml::Location loc = parser.location(tree.rootref());
+    CHECK(parser.location_contents(loc).begins_with("{"));
+    CHECK(loc.offset == 0u);
+    CHECK(loc.line == 0u);
+    CHECK(loc.col == 0u);
+    loc = parser.location(tree["c1"]);
+    CHECK(parser.location_contents(loc).begins_with("c1"));
+    CHECK(loc.offset == 1u);
+    CHECK(loc.line == 0u);
+    CHECK(loc.col == 1u);
+    loc = parser.location(tree["c15"]);
+    CHECK(parser.location_contents(loc).begins_with("c15"));
+    CHECK(loc.offset == 15u);
+    CHECK(loc.line == 0u);
+    CHECK(loc.col == 15u);
+    loc = parser.location(tree["c15"][0]);
+    CHECK(parser.location_contents(loc).begins_with("one"));
+    CHECK(loc.offset == 21u);
+    CHECK(loc.line == 0u);
+    CHECK(loc.col == 21u);
+    loc = parser.location(tree["c15"][1]);
+    CHECK(parser.location_contents(loc).begins_with("["));
+    CHECK(loc.offset == 26u);
+    CHECK(loc.line == 0u);
+    CHECK(loc.col == 26u);
+    loc = parser.location(tree["c15"][1][0]);
+    CHECK(parser.location_contents(loc).begins_with("two"));
+    CHECK(loc.offset == 27u);
+    CHECK(loc.line == 0u);
+    CHECK(loc.col == 27u);
+    loc = parser.location(tree["c15"][1][1]);
+    CHECK(parser.location_contents(loc).begins_with("three"));
+    CHECK(loc.offset == 32u);
+    CHECK(loc.line == 0u);
+    CHECK(loc.col == 32u);
+    // NOTE. The parser locations always point at the latest file to
+    // be parsed with the parser object, so they must be queried using
+    // the corresponding latest tree to be parsed. This means that if
+    // the parser is reused, earlier trees will loose the possibility
+    // of being used to query for location. It is undefined behavior
+    // to query from the parser the location of a node from an earlier
+    // tree:
+    ryml::csubstr latest_yaml = R"(
+a new: buffer
+to: be parsed
+)";
+    ryml::Tree latest_tree = parser.parse_in_arena("another.yaml", latest_yaml);
+    // From now on, none of the locations from the previous tree can
+    // be queried:
+    //loc = parser.location(tree["c15"]); // ERROR, Undefined Behavior
+    loc = parser.location(latest_tree["a new"]); // ok, this is the latest tree from this parser
+    CHECK(parser.location_contents(loc).begins_with("a new"));
+    CHECK(loc.offset == 1u);
+    CHECK(loc.line == 1u);
+    CHECK(loc.col == 0u);
+    loc = parser.location(latest_tree["to"]);
+    CHECK(parser.location_contents(loc).begins_with("to"));
+    CHECK(loc.offset == 15u);
+    CHECK(loc.line == 2u);
+    CHECK(loc.col == 0u);
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
 namespace /*anon*/ {

@@ -238,8 +238,16 @@ public:
     /** @name locations */
     /** @{ */
 
-    Location location(size_t node_id) const;
+    /** Get the location of a node of the last tree to be parsed by this parser. */
+    Location location(Tree const& tree, size_t node_id) const;
+    /** Get the location of a node of the last tree to be parsed by this parser. */
     Location location(NodeRef node) const;
+    /** Get the string starting at a particular location, to the end
+     * of the parsed source buffer. */
+    csubstr location_contents(Location const& loc) const;
+    /** Given a pointer to a buffer position, get the location. @p val
+     * must be pointing to somewhere in the source buffer that was
+     * last parsed by this object. */
     Location val_location(const char *val) const;
 
     /** @} */

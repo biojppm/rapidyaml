@@ -565,7 +565,18 @@ CHECK(buf_result == expected_result);
 CHECK(str_result == expected_result);
 CHECK(stream_result == expected_result);
 // There are many possibilities to emit to buffer;
-// please look at the quickstart sample functions below.
+// please look at the emit sample functions below.
+
+//------------------------------------------------------------------
+// Getting the location of nodes in the source:
+ryml::Parser parser(ryml::ParseOptions::TRACK_LOCATION);
+ryml::Tree tree2 = parser.parse_in_arena("expected.yml", expected_result);
+ryml::Location loc = parser.location(tree2["bar"][1]);
+CHECK(parser.location_contents(loc).begins_with("30"));
+CHECK(loc.line == 3u);
+CHECK(loc.col == 4u);
+// For further details in location tracking,
+// refer to the sample function.
 ```
 
 The [quickstart.cpp sample](./samples/quickstart.cpp) (from which the
@@ -602,6 +613,7 @@ sample_docs();                 ///< deal with YAML docs
 sample_error_handler();        ///< set a custom error handler
 sample_global_allocator();     ///< set a global allocator for ryml
 sample_per_tree_allocator();   ///< set per-tree allocators
+sample_location_tracking();    ///< track node locations in the parsed source tree
 ```
 
 
