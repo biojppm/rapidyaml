@@ -353,7 +353,7 @@ TEST(Parser, existing_tree_overwrites_parser_callbacks)
             EXPECT_EQ(parser.callbacks(), cbp.callbacks());
             parser.parse_in_arena("file", csrc, &tree);
             EXPECT_EQ(tree.callbacks(), cbt.callbacks());
-            EXPECT_EQ(parser.callbacks(), cbt.callbacks()); // changed
+            EXPECT_EQ(parser.callbacks(), cbp.callbacks());
         }
         cbp.check();
         cbt.check();
@@ -368,7 +368,7 @@ TEST(Parser, existing_tree_overwrites_parser_callbacks)
             EXPECT_EQ(parser.callbacks(), cbp.callbacks());
             parser.parse_in_place("file", src, &tree);
             EXPECT_EQ(tree.callbacks(), cbt.callbacks());
-            EXPECT_EQ(parser.callbacks(), cbt.callbacks()); // changed
+            EXPECT_EQ(parser.callbacks(), cbp.callbacks());
         }
         cbp.check();
         cbt.check();

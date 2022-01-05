@@ -110,30 +110,17 @@ public:
     /** @name getters and modifiers */
     /** @{ */
 
-    /** get the current parsing options */
+    /** Get the current parsing options */
     ParseOptions options() const { return m_parse_options; }
 
     /** Get the current callbacks in the parser. */
-    Callbacks callbacks() const
-    {
-        if(m_tree)
-        {
-            RYML_ASSERT(m_stack.m_callbacks == m_tree->callbacks());
-        }
-        return m_stack.m_callbacks;
-    }
+    Callbacks callbacks() const { return m_stack.m_callbacks; }
 
     /** Get the name of the latest file parsed by this object. */
-    csubstr filename() const
-    {
-        return m_file;
-    }
+    csubstr filename() const { return m_file; }
 
     /** Get the latest YAML buffer parsed by this object. */
-    csubstr source() const
-    {
-        return m_buf;
-    }
+    csubstr source() const { return m_buf; }
 
     /** @} */
 
