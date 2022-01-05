@@ -9,8 +9,6 @@
 namespace c4 {
 namespace yml {
 
-const ParseOptions use_locations{ParseOptions::TRACK_LOCATION};
-
 #define _checkloc(node, line_, col_, str)                               \
     {                                                                   \
         const Location loc = parser.location(node);                     \
@@ -23,7 +21,7 @@ const ParseOptions use_locations{ParseOptions::TRACK_LOCATION};
 TEST(locations, seq_block)
 {
     Tree t;
-    Parser parser(use_locations);
+    Parser parser;
     csubstr yaml = R"(
 - this
 - is
@@ -66,7 +64,7 @@ TEST(locations, seq_block)
 TEST(locations, seq_flow)
 {
     Tree t;
-    Parser parser(use_locations);
+    Parser parser;
     csubstr yaml = R"([one,two,three,four,items])";
     parser.parse_in_arena("myfile.yml", yaml, &t);
     const NodeRef seq = t.rootref();
@@ -82,7 +80,7 @@ TEST(locations, seq_flow)
 TEST(locations, seq_flow_nested)
 {
     Tree t;
-    Parser parser(use_locations);
+    Parser parser;
     csubstr yaml = R"([
   one,
   two,
@@ -123,7 +121,7 @@ TEST(locations, seq_flow_nested)
 TEST(locations, small)
 {
     Tree t;
-    Parser parser(use_locations);
+    Parser parser;
     csubstr yaml = R"(---
 foo: definitely
 bar:
@@ -156,7 +154,7 @@ baz:
 TEST(locations, large)
 {
     Tree t;
-    Parser parser(use_locations);
+    Parser parser;
     csubstr yaml = R"(---
 foo1: definitely  # 1
 bar1:

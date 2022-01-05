@@ -569,14 +569,13 @@ CHECK(stream_result == expected_result);
 
 //------------------------------------------------------------------
 // Getting the location of nodes in the source:
-ryml::Parser parser(ryml::ParseOptions::TRACK_LOCATION);
+ryml::Parser parser;
 ryml::Tree tree2 = parser.parse_in_arena("expected.yml", expected_result);
 ryml::Location loc = parser.location(tree2["bar"][1]);
 CHECK(parser.location_contents(loc).begins_with("30"));
 CHECK(loc.line == 3u);
 CHECK(loc.col == 4u);
-// For further details in location tracking,
-// refer to the sample function.
+// For further details in location tracking, refer to the sample function.
 ```
 
 The [quickstart.cpp sample](./samples/quickstart.cpp) (from which the

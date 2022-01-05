@@ -1,10 +1,10 @@
 ### Breaking changes
 
-- Rename `c4::yml::parse()` and `c4::yml::Parser::parse()` overloads
-  to either `parse_in_place()` or `parse_in_arena()`:
-  - `parse_in_place()` receives only `substr` buffers, ie mutable YAML
-    source buffers. Trying to pass a `csubstr` buffer to
-    `parse_in_place()` will cause a compile error:
+As part of the [new feature to track source locations](https://github.com/biojppm/rapidyaml/pull/168), opportunity was taken to address a number of pre-existing API issues. These changes consisted of:
+
+- Deprecate `c4::yml::parse()` and `c4::yml::Parser::parse()` overloads; all these functions will be shortly removed. Until removal, any call from client code will trigger a compiler warning.
+- Add `parse()` alternatives, either `parse_in_place()` or `parse_in_arena()`:
+  - `parse_in_place()` receives only `substr` buffers, ie mutable YAML source buffers. Trying to pass a `csubstr` buffer to `parse_in_place()` will cause a compile error:
     ```c++
     substr readwrite = /*...*/;
     Tree tree = parse_in_place(readwrite); // OK
@@ -12,94 +12,84 @@
     csubstr readonly = /*...*/;
     Tree tree = parse_in_place(readonly); // compile error
     ```
-  - `parse_in_arena()` receives only `csubstr` buffers, ie immutable
-    YAML source buffers. Prior to parsing, the buffer is copied to
-    the tree's arena, then the copy is parsed in place. Because
-    `parse_in_arena()` is meant for immutable buffers, overloads
-    receiving a `substr` YAML buffer are now declared, and
-    intentionally left undefined, such that calling
-    `parse_in_arena()` with a `substr` will cause a linker
-    error.
+  - `parse_in_arena()` receives only `csubstr` buffers, ie immutable YAML source buffers. Prior to parsing, the buffer is copied to the tree's arena, then the copy is parsed in place. Because `parse_in_arena()` is meant for immutable buffers, overloads receiving a `substr` YAML buffer are now declared and marked deprecated, and intentionally left undefined, such that calling `parse_in_arena()` with a `substr` will cause a linker error.
     ```c++
     substr readwrite = /*...*/;
-    Tree tree = parse_in_arena(readwrite); // linker error
+    Tree tree = parse_in_arena(readwrite); // compile warning+linker error
     ```
-    This is to prevent an accidental extra copy of the source buffer
-    to the tree's arena, because `substr` is implicitly convertible
-    to `csubstr`. If you really intend to parse an originally mutable
-    buffer in the tree's arena, convert it first to immutable by
-    assigning the `substr` to a `csubstr` prior to calling
-    `parse_in_arena()`:
+    This is to prevent an accidental extra copy of the mutable source buffer to the tree's arena: `substr` is implicitly convertible to `csubstr`. If you really intend to parse an originally mutable buffer in the tree's arena, convert it first to immutable by assigning the `substr` to a `csubstr` prior to calling `parse_in_arena()`:
     ```c++
     substr readwrite = /*...*/;
-    csubstr as_readonly = readwrite; // ok
-    Tree tree = parse_in_arena(as_readonly); // ok
+    csubstr readonly = readwrite; // ok
+    Tree tree = parse_in_arena(readonly); // ok
     ```
-    This approach is not needed for `parse_in_place()`
-    because `csubstr` is not implicitly convertible to `substr`.
+    This problem is not raised by `parse_in_place()` because `csubstr` is not implicitly convertible to `substr`. 
+- In the python API, `ryml.parse()` was removed and not just deprecated; the `parse_in_arena()` and `parse_in_place()` now replace this.
 - `Callbacks`: changed behavior in `Parser` and `Tree`:
-  - When a tree is copy-constructed or move-constructed to another,
-    the receiving tree will start with the callbacks of the original.
-  - When a tree is copy-assigned or move-assigned to another, the
-    receiving tree will now change its callbacks to the original.
-  - When a parser creates a new tree, the tree will now use a copy of
-    the parser's callbacks object.
-  - When an existing tree is given directly to the parser, both the
-    tree and the parser now retain their own callback objects; any
-    allocation or error during parsing will go through the respective
-    callback object.
+  - When a tree is copy-constructed or move-constructed to another, the receiving tree will start with the callbacks of the original.
+  - When a tree is copy-assigned or move-assigned to another, the receiving tree will now change its callbacks to the original.
+  - When a parser creates a new tree, the tree will now use a copy of the parser's callbacks object.
+  - When an existing tree is given directly to the parser, both the tree and the parser now retain their own callback objects; any allocation or error during parsing will go through the respective callback object.
 
 
 ### New features
 
-- Add tracking of source code locations. This is useful for reporting semantic errors (ie where the YAML is syntatically valid but the contents are semantically invalid). It is implemented opt-in when creating the parser:
+- `Parser`:
+  - add `source()` and `filename()` to get the latest buffer and filename to be parsed
+  - add `callbacks()` to get the parser's callbacks
+- Add tracking of source code locations. This is useful for reporting semantic errors (ie where the YAML is syntatically valid but the contents are semantically invalid). The locations can be obtained lazily from the parser when the first location is queried:
   ```c++
-  ryml::csubstr yaml = "{c1: contents, c14: [one, [two, three]]}";
-  // enable the parser to track locations.
-  ryml::Parser parser(ryml::ParseOptions::TRACK_LOCATION);
-  auto is_at = [&parser](ryml::csubstr str, ryml::Location const& loc){
-      return parser.location_contents(loc).begins_with(str);
-  };
-  // ... has effect only on the next parse:
-  ryml::Tree tree = parser.parse_in_arena("source.yml", yaml);
-  ryml::Location loc;
-  loc = parser.location(tree.rootref());
-  CHECK(is_at("{", loc));
-  CHECK(loc.offset == 0u);
-  CHECK(loc.line == 0u);
-  CHECK(loc.col == 0u);
-  loc = parser.location(tree["c1"]);
-  CHECK(is_at("c1", loc));
-  CHECK(loc.offset == 1u);
-  CHECK(loc.line == 0u);
-  CHECK(loc.col == 1u);
-  loc = parser.location(tree["c15"]);
-  CHECK(is_at("c15", loc));
-  CHECK(loc.offset == 15u);
-  CHECK(loc.line == 0u);
-  CHECK(loc.col == 15u);
-  loc = parser.location(tree["c15"][0]);
-  CHECK(is_at("one", loc));
-  CHECK(loc.offset == 21u);
-  CHECK(loc.line == 0u);
-  CHECK(loc.col == 21u);
-  loc = parser.location(tree["c15"][1]);
-  CHECK(is_at("[", loc));
-  CHECK(loc.offset == 26u);
-  CHECK(loc.line == 0u);
-  CHECK(loc.col == 26u);
-  loc = parser.location(tree["c15"][1][0]);
-  CHECK(is_at("two", loc));
-  CHECK(loc.offset == 27u);
-  CHECK(loc.line == 0u);
-  CHECK(loc.col == 27u);
-  loc = parser.location(tree["c15"][1][1]);
-  CHECK(is_at("three", loc));
-  CHECK(loc.offset == 32u);
-  CHECK(loc.line == 0u);
-  CHECK(loc.col == 32u);
+  // To obtain locations, use of the parser is needed:
+  ryml::Parser parser;
+  ryml::Tree tree = parser.parse_in_arena("source.yml", R"({
+  aa: contents,
+  foo: [one, [two, three]]
+  })");
+  // After parsing, on the first call to obtain a location,
+  // the parser will cache a lookup structure to accelerate
+  // tracking the location of a node, with complexity
+  // O(numchars(srcbuffer)). Then it will do the lookup, with
+  // complexity O(log(numlines(srcbuffer))).
+  ryml::Location loc = parser.location(tree.rootref());
+  assert(parser.location_contents(loc).begins_with("{"));
+  // note the location members are zero-based:
+  assert(loc.offset == 0u);
+  assert(loc.line == 0u);
+  assert(loc.col == 0u);
+  // On the next call to location(), the accelerator is reused
+  // and only the lookup is done.
+  loc = parser.location(tree["aa"]);
+  assert(parser.location_contents(loc).begins_with("aa"));
+  assert(loc.offset == 2u);
+  assert(loc.line == 1u);
+  assert(loc.col == 0u);
+  // KEYSEQ in flow style: points at the key
+  loc = parser.location(tree["foo"]);
+  assert(parser.location_contents(loc).begins_with("foo"));
+  assert(loc.offset == 16u);
+  assert(loc.line == 2u);
+  assert(loc.col == 0u);
+  loc = parser.location(tree["foo"][0]);
+  assert(parser.location_contents(loc).begins_with("one"));
+  assert(loc.line == 2u);
+  assert(loc.col == 6u);
+  // SEQ in flow style: location points at the opening '[' (there's no key)
+  loc = parser.location(tree["foo"][1]);
+  assert(parser.location_contents(loc).begins_with("["));
+  assert(loc.line == 2u);
+  assert(loc.col == 11u);
+  loc = parser.location(tree["foo"][1][0]);
+  assert(parser.location_contents(loc).begins_with("two"));
+  assert(loc.line == 2u);
+  assert(loc.col == 12u);
+  loc = parser.location(tree["foo"][1][1]);
+  assert(parser.location_contents(loc).begins_with("three"));
+  assert(loc.line == 2u);
+  assert(loc.col == 17u);
+  // NOTE: reusing the parser with a new YAML source buffer
+  // will invalidate the accelerator.
   ```
-  See more details in the [quickstart sample](https://github.com/biojppm/rapidyaml/blob/master/samples/quickstart.cpp).
+  See more details in the [quickstart sample](https://github.com/biojppm/rapidyaml/blob/bfb073265abf8c58bbeeeed7fb43270e9205c71c/samples/quickstart.cpp#L3759).
 
 
 ### Fixes

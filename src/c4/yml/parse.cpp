@@ -76,7 +76,7 @@ Parser::~Parser()
     _clr();
 }
 
-Parser::Parser(ParseOptions opts, Callbacks const& cb)
+Parser::Parser(Callbacks const& cb)
     : m_file()
     , m_buf()
     , m_root_id(NONE)
@@ -94,9 +94,10 @@ Parser::Parser(ParseOptions opts, Callbacks const& cb)
     , m_key_anchor()
     , m_val_anchor_indentation(0)
     , m_val_anchor()
-    , m_parse_options(opts)
     , m_newline_offsets()
     , m_newline_offsets_size(0)
+    , m_newline_offsets_capacity(0)
+    , m_newline_offsets_buf()
 {
     m_stack.push(State{});
     m_state = &m_stack.top();
@@ -120,9 +121,10 @@ Parser::Parser(Parser &&that)
     , m_key_anchor(that.m_key_anchor)
     , m_val_anchor_indentation(that.m_val_anchor_indentation)
     , m_val_anchor(that.m_val_anchor)
-    , m_parse_options(that.m_parse_options)
     , m_newline_offsets(that.m_newline_offsets)
     , m_newline_offsets_size(that.m_newline_offsets_size)
+    , m_newline_offsets_capacity(that.m_newline_offsets_capacity)
+    , m_newline_offsets_buf(that.m_newline_offsets_buf)
 {
     that._clr();
 }
@@ -145,49 +147,76 @@ Parser::Parser(Parser const& that)
     , m_key_anchor(that.m_key_anchor)
     , m_val_anchor_indentation(that.m_val_anchor_indentation)
     , m_val_anchor(that.m_val_anchor)
-    , m_parse_options(that.m_parse_options)
     , m_newline_offsets()
     , m_newline_offsets_size()
+    , m_newline_offsets_capacity()
+    , m_newline_offsets_buf()
 {
-    if(that.m_newline_offsets_size)
+    if(that.m_newline_offsets_capacity)
     {
-        _resize_locations(that.m_newline_offsets_size);
+        _resize_locations(that.m_newline_offsets_capacity);
+        _RYML_CB_CHECK(m_stack.m_callbacks, m_newline_offsets_capacity == that.m_newline_offsets_capacity);
         memcpy(m_newline_offsets, that.m_newline_offsets, that.m_newline_offsets_size * sizeof(size_t));
+        m_newline_offsets_size = that.m_newline_offsets_size;
     }
 }
 
 Parser& Parser::operator=(Parser &&that)
 {
     _free();
-    _cb(that.m_stack.m_callbacks);
-    _mv(&that);
+    m_file = (that.m_file);
+    m_buf = (that.m_buf);
+    m_root_id = (that.m_root_id);
+    m_tree = (that.m_tree);
+    m_stack = std::move(that.m_stack);
+    m_state = (&m_stack.top());
+    m_key_tag_indentation = (that.m_key_tag_indentation);
+    m_key_tag2_indentation = (that.m_key_tag2_indentation);
+    m_key_tag = (that.m_key_tag);
+    m_key_tag2 = (that.m_key_tag2);
+    m_val_tag_indentation = (that.m_val_tag_indentation);
+    m_val_tag = (that.m_val_tag);
+    m_key_anchor_was_before = (that.m_key_anchor_was_before);
+    m_key_anchor_indentation = (that.m_key_anchor_indentation);
+    m_key_anchor = (that.m_key_anchor);
+    m_val_anchor_indentation = (that.m_val_anchor_indentation);
+    m_val_anchor = (that.m_val_anchor);
+    m_newline_offsets = (that.m_newline_offsets);
+    m_newline_offsets_size = (that.m_newline_offsets_size);
+    m_newline_offsets_capacity = (that.m_newline_offsets_capacity);
+    m_newline_offsets_buf = (that.m_newline_offsets_buf);
+    that._clr();
     return *this;
 }
 
 Parser& Parser::operator=(Parser const& that)
 {
     _free();
-    _cb(that.m_stack.m_callbacks);
-    _cp(&that);
+    m_file = (that.m_file);
+    m_buf = (that.m_buf);
+    m_root_id = (that.m_root_id);
+    m_tree = (that.m_tree);
+    m_stack = that.m_stack;
+    m_state = &m_stack.top();
+    m_key_tag_indentation = (that.m_key_tag_indentation);
+    m_key_tag2_indentation = (that.m_key_tag2_indentation);
+    m_key_tag = (that.m_key_tag);
+    m_key_tag2 = (that.m_key_tag2);
+    m_val_tag_indentation = (that.m_val_tag_indentation);
+    m_val_tag = (that.m_val_tag);
+    m_key_anchor_was_before = (that.m_key_anchor_was_before);
+    m_key_anchor_indentation = (that.m_key_anchor_indentation);
+    m_key_anchor = (that.m_key_anchor);
+    m_val_anchor_indentation = (that.m_val_anchor_indentation);
+    m_val_anchor = (that.m_val_anchor);
+    if(that.m_newline_offsets_capacity > m_newline_offsets_capacity)
+        _resize_locations(that.m_newline_offsets_capacity);
+    _RYML_CB_CHECK(m_stack.m_callbacks, m_newline_offsets_capacity >= that.m_newline_offsets_capacity);
+    _RYML_CB_CHECK(m_stack.m_callbacks, m_newline_offsets_capacity >= that.m_newline_offsets_size);
+    memcpy(m_newline_offsets, that.m_newline_offsets, that.m_newline_offsets_size * sizeof(size_t));
+    m_newline_offsets_size = that.m_newline_offsets_size;
+    m_newline_offsets_buf = that.m_newline_offsets_buf;
     return *this;
-}
-
-void Parser::_cp(Parser const* that)
-{
-    _cb(that->m_stack.m_callbacks);
-    m_stack = that->m_stack;
-    m_state = &m_stack.top();
-    if(that->m_newline_offsets_size > m_newline_offsets_size)
-        _resize_locations(that->m_newline_offsets_size);
-}
-
-void Parser::_mv(Parser * that)
-{
-    _cb(that->m_stack.m_callbacks);
-    m_stack = std::move(that->m_stack);
-    m_state = &m_stack.top();
-    if(that->m_newline_offsets_size > m_newline_offsets_size)
-        _resize_locations(that->m_newline_offsets_size);
 }
 
 void Parser::_clr()
@@ -196,7 +225,7 @@ void Parser::_clr()
     m_buf = {};
     m_root_id = {};
     m_tree = {};
-    m_stack = {};
+    m_stack.clear();
     m_state = {};
     m_key_tag_indentation = {};
     m_key_tag2_indentation = {};
@@ -209,9 +238,10 @@ void Parser::_clr()
     m_key_anchor = {};
     m_val_anchor_indentation = {};
     m_val_anchor = {};
-    m_parse_options = {};
     m_newline_offsets = {};
     m_newline_offsets_size = {};
+    m_newline_offsets_capacity = {};
+    m_newline_offsets_buf = {};
 }
 
 void Parser::_cb(Callbacks const& cb)
@@ -227,9 +257,11 @@ void Parser::_free()
 {
     if(m_newline_offsets)
     {
-        _RYML_CB_FREE(m_stack.m_callbacks, m_newline_offsets, size_t, m_newline_offsets_size);
+        _RYML_CB_FREE(m_stack.m_callbacks, m_newline_offsets, size_t, m_newline_offsets_capacity);
         m_newline_offsets = nullptr;
         m_newline_offsets_size = 0u;
+        m_newline_offsets_capacity = 0u;
+        m_newline_offsets_buf = 0u;
     }
     m_stack._free();
 }
@@ -259,7 +291,7 @@ void Parser::_reset()
     m_val_anchor_indentation = 0;
     m_val_anchor.clear();
 
-    // keep the location buffer
+    _mark_locations_dirty();
 }
 
 //-----------------------------------------------------------------------------
@@ -288,8 +320,6 @@ void Parser::parse_in_place(csubstr file, substr buf, Tree *t, size_t node_id)
     m_root_id = node_id;
     m_tree = t;
     _reset();
-    if(m_parse_options.flags & ParseOptions::TRACK_LOCATION)
-        _prepare_locations();
     while( ! _finished_file())
     {
         _scan_line();
@@ -4516,8 +4546,9 @@ Location Parser::location(NodeRef node) const
 
 Location Parser::location(Tree const& tree, size_t node) const
 {
+    _RYML_CB_CHECK(m_stack.m_callbacks, m_buf.str == m_newline_offsets_buf.str);
+    _RYML_CB_CHECK(m_stack.m_callbacks, m_buf.len == m_newline_offsets_buf.len);
     _RYML_CB_ASSERT(m_stack.m_callbacks, &tree == m_tree);
-    _RYML_CB_ASSERT(m_stack.m_callbacks, m_newline_offsets != nullptr);
     if(tree.has_key(node))
     {
         csubstr k = tree.key(node);
@@ -4554,9 +4585,10 @@ Location Parser::location(Tree const& tree, size_t node) const
             Location loc = location(tree, tree.first_child(node));
             if(loc.offset > 0)
             {
-                // Try finding a token where the container starts.
-                // Search back for the last non-whitespace prior to
-                // the child's offset:
+                // Improve the location for the container by trying to
+                // find a token where the container starts: search
+                // back for the last non-whitespace prior to the
+                // child's offset:
                 size_t offs = m_buf.last_not_of(" \t\r\n", loc.offset);
                 if(offs != npos)
                 {
@@ -4590,10 +4622,14 @@ Location Parser::location(Tree const& tree, size_t node) const
 
 Location Parser::val_location(const char *val) const
 {
+    if(_locations_dirty())
+        _prepare_locations();
     csubstr src = m_buf;
+    _RYML_CB_CHECK(m_stack.m_callbacks, src.str == m_newline_offsets_buf.str);
+    _RYML_CB_CHECK(m_stack.m_callbacks, src.len == m_newline_offsets_buf.len);
+    _RYML_CB_CHECK(m_stack.m_callbacks, val >= src.begin() && val <= src.end());
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_newline_offsets != nullptr);
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_newline_offsets_size > 0);
-    _RYML_CB_ASSERT(m_stack.m_callbacks, val >= src.begin() && val <= src.end());
     using linetype = size_t const* C4_RESTRICT;
     linetype line = nullptr;
     size_t offset = (size_t)(val - src.begin());
@@ -4648,31 +4684,40 @@ Location Parser::val_location(const char *val) const
     return loc;
 }
 
-void Parser::_prepare_locations()
+void Parser::_prepare_locations() const
 {
     _RYML_CB_ASSERT(m_stack.m_callbacks, !m_file.empty());
     _RYML_CB_ASSERT(m_stack.m_callbacks, !m_buf.empty());
-    size_t pos = 0;
     size_t numnewlines = 1u + m_buf.count('\n');
     _resize_locations(numnewlines);
+    m_newline_offsets_size = 0;
     for(size_t i = 0; i < m_buf.len; i++)
-    {
         if(m_buf[i] == '\n')
-            m_newline_offsets[pos++] = i;
-    }
-    m_newline_offsets[pos++] = m_buf.len;
-    _RYML_CB_ASSERT(m_stack.m_callbacks, pos == numnewlines);
+            m_newline_offsets[m_newline_offsets_size++] = i;
+    m_newline_offsets[m_newline_offsets_size++] = m_buf.len;
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_newline_offsets_size == numnewlines);
 }
 
-void Parser::_resize_locations(size_t numnewlines)
+void Parser::_resize_locations(size_t numnewlines) const
 {
-    if(numnewlines > m_newline_offsets_size)
+    if(numnewlines > m_newline_offsets_capacity)
     {
         if(m_newline_offsets)
-            _RYML_CB_FREE(m_stack.m_callbacks, m_newline_offsets, size_t, numnewlines);
+            _RYML_CB_FREE(m_stack.m_callbacks, m_newline_offsets, size_t, m_newline_offsets_capacity);
         m_newline_offsets = _RYML_CB_ALLOC_HINT(m_stack.m_callbacks, size_t, numnewlines, m_newline_offsets);
-        m_newline_offsets_size = numnewlines;
+        m_newline_offsets_capacity = numnewlines;
     }
+}
+
+void Parser::_mark_locations_dirty()
+{
+    m_newline_offsets_size = 0u;
+    m_newline_offsets_buf = m_buf;
+}
+
+bool Parser::_locations_dirty() const
+{
+    return (!m_newline_offsets_buf.empty()) && (!m_newline_offsets_size);
 }
 
 } // namespace yml

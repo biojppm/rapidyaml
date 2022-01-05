@@ -19,48 +19,9 @@ bool is_same(csubstr lhs, csubstr rhs)
 void mklarge(Parser *p, Callbacks const& cb)
 {
     p->~Parser();
-    new ((void*)p) Parser(ParseOptions::TRACK_LOCATION, cb);
+    new ((void*)p) Parser(cb);
     p->reserve_stack(20); // cause an allocation
     p->reserve_locations(128); // cause an allocation
-}
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-TEST(ParseOptions, no_flags)
-{
-    ParseOptions opts = ParseOptions::NOFLAGS;
-    EXPECT_EQ(opts & ParseOptions::TRACK_LOCATION, ParseOptions::NOFLAGS);
-    EXPECT_EQ(opts & ParseOptions::RESOLVE_REFERENCES, ParseOptions::NOFLAGS);
-}
-
-TEST(ParseOptions, one_flag)
-{
-    ParseOptions opts = ParseOptions::TRACK_LOCATION;
-    EXPECT_EQ(opts & ParseOptions::TRACK_LOCATION, ParseOptions::TRACK_LOCATION);
-}
-
-TEST(ParseOptions, two_flags)
-{
-    ParseOptions opts = ParseOptions::RESOLVE_REFERENCES|ParseOptions::TRACK_LOCATION;
-    EXPECT_EQ(opts & ParseOptions::TRACK_LOCATION, ParseOptions::TRACK_LOCATION);
-    EXPECT_EQ(opts & ParseOptions::RESOLVE_REFERENCES, ParseOptions::RESOLVE_REFERENCES);
-}
-
-TEST(ParseOptions, three_flags)
-{
-    ParseOptions opts = ParseOptions::RESOLVE_REFERENCES|ParseOptions::TRACK_LOCATION|ParseOptions::DEFAULTS;
-    EXPECT_EQ(opts & ParseOptions::DEFAULTS, ParseOptions::DEFAULTS);
-    EXPECT_EQ(opts & ParseOptions::TRACK_LOCATION, ParseOptions::TRACK_LOCATION);
-    EXPECT_EQ(opts & ParseOptions::RESOLVE_REFERENCES, ParseOptions::RESOLVE_REFERENCES);
-}
-
-TEST(ParseOptions, and_not)
-{
-    ParseOptions opts = ParseOptions::DEFAULTS & ~ParseOptions::TRACK_LOCATION;
-    EXPECT_EQ(opts & ParseOptions::TRACK_LOCATION, ParseOptions::NOFLAGS);
 }
 
 
@@ -72,14 +33,6 @@ TEST(Parser, empty_ctor)
 {
     Parser parser;
     EXPECT_EQ(parser.callbacks(), get_callbacks());
-    EXPECT_EQ(parser.options().flags, ParseOptions::DEFAULTS);
-}
-
-TEST(Parser, opts_ctor)
-{
-    Parser parser(ParseOptions::TRACK_LOCATION);
-    EXPECT_EQ(parser.callbacks(), get_callbacks());
-    EXPECT_EQ(parser.options().flags, ParseOptions::TRACK_LOCATION);
 }
 
 TEST(Parser, callbacks_ctor)
@@ -88,19 +41,6 @@ TEST(Parser, callbacks_ctor)
     {
         Parser parser(cbt.callbacks());
         EXPECT_EQ(parser.callbacks(), cbt.callbacks());
-        EXPECT_EQ(parser.options().flags, ParseOptions::DEFAULTS);
-    }
-    EXPECT_EQ(cbt.num_allocs, 0u);
-    EXPECT_EQ(cbt.num_deallocs, 0u);
-}
-
-TEST(Parser, opts_callbacks_ctor)
-{
-    CallbacksTester cbt;
-    {
-        Parser parser(ParseOptions::TRACK_LOCATION, cbt.callbacks());
-        EXPECT_EQ(parser.callbacks(), cbt.callbacks());
-        EXPECT_EQ(parser.options().flags, ParseOptions::TRACK_LOCATION);
     }
     EXPECT_EQ(cbt.num_allocs, 0u);
     EXPECT_EQ(cbt.num_deallocs, 0u);
@@ -132,7 +72,7 @@ TEST(Parser, reserve_locations)
 {
     CallbacksTester ts;
     {
-        Parser parser(ParseOptions::TRACK_LOCATION, ts.callbacks());
+        Parser parser(ts.callbacks());
         EXPECT_EQ(parser.callbacks(), ts.callbacks());
         EXPECT_EQ(ts.num_allocs, 0u);
         EXPECT_EQ(ts.num_deallocs, 0u);
@@ -195,7 +135,7 @@ TEST(Parser, move_ctor)
             size_t nbefore = ts.num_allocs;
             EXPECT_GT(ts.num_allocs, 0u);
             Parser dst(std::move(src));
-            ASSERT_EQ(src.callbacks(), get_callbacks());
+            ASSERT_EQ(src.callbacks(), ts.callbacks());
             ASSERT_EQ(dst.callbacks(), ts.callbacks());
             EXPECT_EQ(ts.num_allocs, nbefore);
         }
@@ -268,7 +208,7 @@ TEST(Parser, move_assign_same_callbacks)
         dst = std::move(src);
         ASSERT_EQ(src.callbacks(), ts.callbacks());
         ASSERT_EQ(dst.callbacks(), ts.callbacks());
-        EXPECT_GT(ts.num_allocs, nbefore); // dst frees then allocates
+        EXPECT_EQ(ts.num_allocs, nbefore);
     }
     EXPECT_EQ(ts.num_allocs, ts.num_deallocs);
     EXPECT_EQ(ts.alloc_size, ts.dealloc_size);
@@ -292,7 +232,7 @@ TEST(Parser, move_assign_diff_callbacks)
         ASSERT_EQ(src.callbacks(), ts.callbacks());
         ASSERT_EQ(dst.callbacks(), ts.callbacks());
         EXPECT_EQ(td.num_allocs, nbefore); // dst frees with td
-        EXPECT_GT(ts.num_allocs, nbefore); // dst allocs with ts
+        EXPECT_EQ(ts.num_allocs, nbefore); // dst moves from ts
     }
     EXPECT_EQ(ts.num_allocs, ts.num_deallocs);
     EXPECT_EQ(ts.alloc_size, ts.dealloc_size);
@@ -590,6 +530,5 @@ Case const* get_case(csubstr /*name*/)
 {
     return nullptr;
 }
-
 } // namespace yml
 } // namespace c4

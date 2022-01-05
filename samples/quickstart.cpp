@@ -483,7 +483,7 @@ I am somebody: indeed
 
     //------------------------------------------------------------------
     // Getting the location of nodes in the source:
-    ryml::Parser parser(ryml::ParseOptions::TRACK_LOCATION);
+    ryml::Parser parser;
     ryml::Tree tree2 = parser.parse_in_arena("expected.yml", expected_result);
     ryml::Location loc = parser.location(tree2["bar"][1]);
     CHECK(parser.location_contents(loc).begins_with("30"));
@@ -3767,16 +3767,37 @@ void sample_location_tracking()
 aa: contents,
 foo: [one, [two, three]]
 })";
-    // Enable the parser to track locations.
-    ryml::Parser parser(ryml::ParseOptions::TRACK_LOCATION);
-    // On the next parse, the parser will cache a lookup structure to
-    // accelerate tracking the location of a node:
+    // A parser is needed to track locations. The parser caches a
+    // source-to-node lookup structure using the parsed source buffer
+    // to accelerate tracking the location of a node.
+    ryml::Parser parser;
+    // On each parse, the location structure is marked dirty, but not
+    // rebuilt. This enables having locations and paying for them
+    // only when they are used.
     ryml::Tree tree = parser.parse_in_arena("source.yml", yaml);
+    // Thereafter, on the first location query after parsing, the
+    // parser will (re)build the location accelerator. This may
+    // trigger an allocation, but we can avoid this allocation by
+    // reserving at the beginning:
+    parser.reserve_locations(50u); // reserve for 50 lines
+    // Rebuilding the acceleration structure consists of a single scan
+    // over the source buffer, and is not expensive:
+    // complexity=O(numchars).
+    //
+    // As for the complexity of the query: for large buffers it is
+    // O(log(numlines)). For short source buffers (30 lines and less),
+    // it is O(numlines), as a plain linear search is faster in this
+    // case.
+    //
+    // So the complexity of the first location call after parsing is:
+    // cost(rebuild lookup) + cost(lookup) = O(numchars) + O(log(numlines))
     ryml::Location loc = parser.location(tree.rootref());
     CHECK(parser.location_contents(loc).begins_with("{"));
     CHECK(loc.offset == 0u);
     CHECK(loc.line == 0u);
-    CHECK(loc.col == 0u);
+    CHECK(loc.col == 0u);\
+    // on the next call, we only pay O(log(numlines)) because the
+    // rebuild is already available:
     loc = parser.location(tree["aa"]);
     CHECK(parser.location_contents(loc).begins_with("aa"));
     CHECK(loc.offset == 2u);
