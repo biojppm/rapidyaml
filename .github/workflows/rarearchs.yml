@@ -1,7 +1,6 @@
 name: rarearchs
 
 defaults:
-  #if: "!contains(github.event.head_commit.message, 'skip ci')"  # SKIP
   run:
     # Use a bash shell so we can use the same syntax for environment variable
     # access regardless of the host operating system
@@ -19,9 +18,12 @@ on:
 
 jobs:
   rarearchs:
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip rarearchs')) ||
+      contains(github.event.head_commit.message, 'only rarearchs')
     name: ${{matrix.arch}}/c++${{matrix.std}}/${{matrix.bt}}
     continue-on-error: true
-    if: always()  # https://stackoverflow.com/questions/62045967/github-actions-is-there-a-way-to-continue-on-error-while-still-getting-correct
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false

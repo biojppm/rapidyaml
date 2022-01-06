@@ -37,7 +37,7 @@ As part of the [new feature to track source locations](https://github.com/biojpp
 - `Parser`:
   - add `source()` and `filename()` to get the latest buffer and filename to be parsed
   - add `callbacks()` to get the parser's callbacks
-- Add tracking of source code locations. This is useful for reporting semantic errors (ie where the YAML is syntatically valid but the contents are semantically invalid). The locations can be obtained lazily from the parser when the first location is queried:
+- Add tracking of source code locations. This is useful for reporting semantic errors after the parsing phase (ie where the YAML is syntatically valid and parsing is successful, but the tree contents are semantically invalid). The locations can be obtained lazily from the parser when the first location is queried:
   ```c++
   // To obtain locations, use of the parser is needed:
   ryml::Parser parser;

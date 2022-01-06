@@ -7,6 +7,9 @@ if(RYML_BRANCH_NAME STREQUAL "")
         OUTPUT_VARIABLE RYML_BRANCH_NAME
         OUTPUT_STRIP_TRAILING_WHITESPACE)
 endif()
+if(RYML_BRANCH_NAME STREQUAL HEAD)
+    set(RYML_BRANCH_NAME master)
+endif()
 message(STATUS "FetchContent from branch: ${RYML_BRANCH_NAME}")
 
 include(FetchContent)

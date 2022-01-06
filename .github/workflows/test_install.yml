@@ -1,7 +1,6 @@
 name: test_install
 
 defaults:
-  #if: "!contains(github.event.head_commit.message, 'skip ci')"  # SKIP
   run:
     # Use a bash shell so we can use the same syntax for environment variable
     # access regardless of the host operating system
@@ -27,10 +26,12 @@ jobs:
 
   #----------------------------------------------------------------------------
   install_tests:
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip test_install')) ||
+      contains(github.event.head_commit.message, 'only test_install')
     name: ${{matrix.name}}/${{matrix.bt}}
-    # if: github.ref == 'refs/heads/master'
     continue-on-error: true
-    if: always()  # https://stackoverflow.com/questions/62045967/github-actions-is-there-a-way-to-continue-on-error-while-still-getting-correct
     runs-on: ${{matrix.os}}
     strategy:
       fail-fast: false

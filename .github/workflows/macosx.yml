@@ -1,7 +1,6 @@
 name: macosx
 
 defaults:
-  #if: "!contains(github.event.head_commit.message, 'skip ci')"  # SKIP
   run:
     # Use a bash shell so we can use the same syntax for environment variable
     # access regardless of the host operating system
@@ -52,6 +51,10 @@ jobs:
 
   #----------------------------------------------------------------------------
   macosx:
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip macosx')) ||
+      contains(github.event.head_commit.message, 'only macosx')
     continue-on-error: true
     runs-on: ${{matrix.os}}
     strategy:

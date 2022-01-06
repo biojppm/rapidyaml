@@ -1,7 +1,6 @@
 name: test
 
 defaults:
-  #if: "!contains(github.event.head_commit.message, 'skip ci')"  # SKIP
   run:
     # Use a bash shell so we can use the same syntax for environment variable
     # access regardless of the host operating system
@@ -52,7 +51,10 @@ jobs:
 
   #----------------------------------------------------------------------------
   coverage:
-    # if: github.ref == 'refs/heads/master'
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip test')) ||
+      contains(github.event.head_commit.message, 'only test')
     continue-on-error: true
     runs-on: ${{matrix.os}}
     strategy:
@@ -116,6 +118,10 @@ jobs:
 
   #----------------------------------------------------------------------------
   windows:
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip test')) ||
+      contains(github.event.head_commit.message, 'only test')
     continue-on-error: true
     runs-on: ${{matrix.os}}
     strategy:
@@ -160,6 +166,10 @@ jobs:
 
   #----------------------------------------------------------------------------
   gcc_canary:
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip test')) ||
+      contains(github.event.head_commit.message, 'only test')
     continue-on-error: true
     runs-on: ${{matrix.os}}
     strategy:
@@ -200,6 +210,10 @@ jobs:
 
   #----------------------------------------------------------------------------
   clang_canary:
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip test')) ||
+      contains(github.event.head_commit.message, 'only test')
     continue-on-error: true
     runs-on: ${{matrix.os}}
     strategy:
@@ -238,6 +252,10 @@ jobs:
 
   #----------------------------------------------------------------------------
   clang_tidy:
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip test')) ||
+      contains(github.event.head_commit.message, 'only test')
     continue-on-error: true
     runs-on: ${{matrix.os}}
     strategy:
@@ -277,6 +295,10 @@ jobs:
 
   #----------------------------------------------------------------------------
   gcc_extended:
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip test')) ||
+      contains(github.event.head_commit.message, 'only test')
     continue-on-error: true
     runs-on: ${{matrix.os}}
     strategy:
@@ -331,6 +353,10 @@ jobs:
 
   #----------------------------------------------------------------------------
   clang_extended:
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip test')) ||
+      contains(github.event.head_commit.message, 'only test')
     continue-on-error: true
     runs-on: ${{matrix.os}}
     strategy:
@@ -379,6 +405,10 @@ jobs:
 
   #----------------------------------------------------------------------------
   clang_sanitize:
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip test')) ||
+      contains(github.event.head_commit.message, 'only test')
     continue-on-error: true
     runs-on: ${{matrix.os}}
     strategy:
@@ -439,6 +469,10 @@ jobs:
 #  #----------------------------------------------------------------------------
 #  # https://blog.kitware.com/static-checks-with-cmake-cdash-iwyu-clang-tidy-lwyu-cpplint-and-cppcheck/
 #  static_analysis:
+#    if: |
+#      (!contains(github.event.head_commit.message, 'skip all')) ||
+#      (!contains(github.event.head_commit.message, 'skip test')) ||
+#      contains(github.event.head_commit.message, 'only test')
 #    continue-on-error: true
 #    runs-on: ${{matrix.os}}
 #    strategy:
@@ -467,38 +501,3 @@ jobs:
 #      - {name: cpplint, run: cmake "-DCMAKE_CXX_CPPLINT=/usr/local/bin/cpplint;--linelength=179" ..}
 #      - {name: include-what-you-use, run: cmake "-DCMAKE_CXX_INCLUDE_WHAT_YOU_USE=/usr/bin/iwyu;--transitive_includes_only" ..}
 #      - {name: link-what-you-use, run: cmake -DCMAKE_LINK_WHAT_YOU_USE=TRUE ..}
-
-  #----------------------------------------------------------------------------
-  samples:
-    continue-on-error: true
-    runs-on: ${{matrix.os}}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - {bt: Debug  , os: ubuntu-18.04}
-          - {bt: Release, os: ubuntu-18.04}
-          - {bt: Debug  , os: windows-2019}
-          - {bt: Release, os: windows-2019}
-          - {bt: Debug  , os: macos-latest}
-          - {bt: Release, os: macos-latest}
-    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}",
-          CMANY: ON}
-    steps:
-      # use fetch-depth to ensure all tags are fetched
-      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive, fetch-depth: 0}}
-      - {name: python3, uses: actions/setup-python@v2, with: {python-version: 3.7}}
-      - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
-      - {name: show info, run: source .github/setenv.sh && c4_show_info }
-      #
-      - {name: singleheader, run: cd samples/singleheader && ./run.sh $BT }
-      - {name: singleheaderlib-static, run: cd samples/singleheaderlib && ./run_static.sh $BT }
-      - {name: singleheaderlib-shared, run: cd samples/singleheaderlib && ./run_shared.sh $BT }
-      - {name: add_subdirectory, run: cd samples/add_subdirectory && ./run.sh $BT }
-      - {name: find_package, run: cd samples/find_package && ./run.sh $BT }
-      - {name: custom_c4core, run: cd samples/custom_c4core && ./run.sh $BT }
-      - name: fetch_content
-        run: |
-          cd samples/fetch_content
-          branchname=${GITHUB_REF#refs/heads/}
-          ./run.sh $BT $branchname
