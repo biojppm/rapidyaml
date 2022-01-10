@@ -4,7 +4,7 @@ namespace c4 {
 namespace yml {
 
 
-TEST(block_literal, emit_does_not_add_lines_to_multi_at_end)
+TEST(block_literal, emit_does_not_add_lines_to_multi_at_end_1)
 {
     Tree t = parse_in_arena("[]");
     NodeRef r = t.rootref();
@@ -25,22 +25,24 @@ TEST(block_literal, emit_does_not_add_lines_to_multi_at_end)
     EXPECT_EQ(t[0].val(), csubstr("\n\n"));
     EXPECT_EQ(t[1].val(), csubstr("\n\n"));
     EXPECT_EQ(t[2].val(), csubstr("last"));
+    EXPECT_EQ(csubstr("ab\n\n \n").trimr(" \t\n"), csubstr("ab"));
+}
 
-    ASSERT_EQ(csubstr("ab\n\n \n").trimr(" \t\n"), csubstr("ab"));
-
-    t = parse_in_arena(R"(--- |+
+TEST(block_literal, emit_does_not_add_lines_to_multi_at_end_2)
+{
+    Tree t = parse_in_arena(R"(--- |+
  ab
  
   
 )");
     EXPECT_EQ(t.docref(0).val(), csubstr("ab\n\n \n"));
-    expected = R"(--- |
+    std::string expected = R"(--- |
   ab
   
    
 
 )";
-    out = emitrs<std::string>(t);
+    std::string out = emitrs<std::string>(t);
     EXPECT_EQ(out, expected);
     t = parse_in_arena(to_csubstr(out));
     EXPECT_EQ(t.docref(0).val(), csubstr("ab\n\n \n"));
@@ -52,7 +54,10 @@ TEST(block_literal, emit_does_not_add_lines_to_multi_at_end)
     EXPECT_EQ(out, expected);
     t = parse_in_arena(to_csubstr(out));
     EXPECT_EQ(t.docref(0).val(), csubstr("ab\n\n \n"));
+}
 
+TEST(block_literal, emit_does_not_add_lines_to_multi_at_end_3)
+{
     std::string yaml = R"(
 - |
   Several lines of text,
@@ -72,7 +77,7 @@ TEST(block_literal, emit_does_not_add_lines_to_multi_at_end)
 
 - last
 )";
-    expected = R"(- |
+    std::string expected = R"(- |
   Several lines of text,
   with some "quotes" of various 'types',
   and also a blank line:
@@ -88,10 +93,10 @@ TEST(block_literal, emit_does_not_add_lines_to_multi_at_end)
   
 - last
 )";
-    t = parse_in_arena(to_csubstr(yaml));
+    Tree t = parse_in_arena(to_csubstr(yaml));
     EXPECT_EQ(t[0].val(), "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n");
     EXPECT_EQ(t[1].val(), "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n\n");
-    out = emitrs<std::string>(t);
+    std::string out = emitrs<std::string>(t);
     EXPECT_EQ(out, expected);
     t = parse_in_arena(to_csubstr(out));
     EXPECT_EQ(t[0].val(), "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n");
