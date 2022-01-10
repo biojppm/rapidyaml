@@ -1,7 +1,6 @@
 name: release
 
 defaults:
-  #if: "!contains(github.event.head_commit.message, 'skip ci')"  # SKIP
   run:
     # Use a bash shell so we can use the same syntax for environment variable
     # access regardless of the host operating system
@@ -35,6 +34,10 @@ env:
 jobs:
 
   gettag:
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip release')) ||
+      contains(github.event.head_commit.message, 'only release')
     runs-on: ubuntu-latest
     steps:
       # use fetch-depth to ensure all tags are fetched
@@ -74,6 +77,10 @@ jobs:
   #----------------------------------------------------------------------------
   # create source packages
   src:
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip release')) ||
+      contains(github.event.head_commit.message, 'only release')
     needs: gettag
     runs-on: ubuntu-latest
     steps:
@@ -108,6 +115,10 @@ jobs:
   #----------------------------------------------------------------------------
   # create c++ packages
   cpp:
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip release')) ||
+      contains(github.event.head_commit.message, 'only release')
     name: cpp/${{matrix.config.os}}/${{matrix.config.gen}}
     needs: gettag
     runs-on: ${{matrix.config.os}}
@@ -151,6 +162,10 @@ jobs:
   # adapted from https://github.com/pikepdf/pikepdf/blob/master/.github/workflows/build_wheels.yml
 
   python_src:
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip release')) ||
+      contains(github.event.head_commit.message, 'only release')
     name: python/src
     runs-on: ubuntu-latest
     steps:
@@ -175,6 +190,10 @@ jobs:
         with: {name: dist, path: dist}
 
   python_wheels:
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip release')) ||
+      contains(github.event.head_commit.message, 'only release')
     name: python/${{matrix.config.cibw_pyv}}/${{matrix.config.osname}}/${{matrix.config.cibw_arch}}
     runs-on: ${{matrix.config.os}}
     env:
@@ -235,7 +254,7 @@ jobs:
           for whl in dist/* ; do
             pip install -v $whl
             pip show -f rapidyaml
-            python -c 'import ryml ; dir(ryml) ; tree = ryml.parse(b"{foo: bar}") ; assert tree.key(1) == b"foo" ; assert tree.val(1) == b"bar"'
+            python -c 'import ryml ; dir(ryml) ; tree = ryml.parse_in_arena(b"{foo: bar}") ; assert tree.key(1) == b"foo" ; assert tree.val(1) == b"bar"'
             python -m nose -v api/python/ryml/tests
             pip uninstall -y -v rapidyaml
           done
@@ -243,6 +262,10 @@ jobs:
 
   #----------------------------------------------------------------------------
   release:
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip release')) ||
+      contains(github.event.head_commit.message, 'only release')
     runs-on: ubuntu-latest
     needs:
       - src

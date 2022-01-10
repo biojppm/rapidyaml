@@ -69,12 +69,19 @@ static bool _is_doc_sep(csubstr s)
 
 
 //-----------------------------------------------------------------------------
-Parser::Parser(Callbacks const& a)
+
+Parser::~Parser()
+{
+    _free();
+    _clr();
+}
+
+Parser::Parser(Callbacks const& cb)
     : m_file()
     , m_buf()
     , m_root_id(NONE)
     , m_tree()
-    , m_stack(a)
+    , m_stack(cb)
     , m_state()
     , m_key_tag_indentation(0)
     , m_key_tag2_indentation(0)
@@ -87,11 +94,178 @@ Parser::Parser(Callbacks const& a)
     , m_key_anchor()
     , m_val_anchor_indentation(0)
     , m_val_anchor()
+    , m_newline_offsets()
+    , m_newline_offsets_size(0)
+    , m_newline_offsets_capacity(0)
+    , m_newline_offsets_buf()
 {
-    State st{};
-    m_stack.push(st);
+    m_stack.push(State{});
     m_state = &m_stack.top();
 }
+
+Parser::Parser(Parser &&that)
+    : m_file(that.m_file)
+    , m_buf(that.m_buf)
+    , m_root_id(that.m_root_id)
+    , m_tree(that.m_tree)
+    , m_stack(std::move(that.m_stack))
+    , m_state(&m_stack.top())
+    , m_key_tag_indentation(that.m_key_tag_indentation)
+    , m_key_tag2_indentation(that.m_key_tag2_indentation)
+    , m_key_tag(that.m_key_tag)
+    , m_key_tag2(that.m_key_tag2)
+    , m_val_tag_indentation(that.m_val_tag_indentation)
+    , m_val_tag(that.m_val_tag)
+    , m_key_anchor_was_before(that.m_key_anchor_was_before)
+    , m_key_anchor_indentation(that.m_key_anchor_indentation)
+    , m_key_anchor(that.m_key_anchor)
+    , m_val_anchor_indentation(that.m_val_anchor_indentation)
+    , m_val_anchor(that.m_val_anchor)
+    , m_newline_offsets(that.m_newline_offsets)
+    , m_newline_offsets_size(that.m_newline_offsets_size)
+    , m_newline_offsets_capacity(that.m_newline_offsets_capacity)
+    , m_newline_offsets_buf(that.m_newline_offsets_buf)
+{
+    that._clr();
+}
+
+Parser::Parser(Parser const& that)
+    : m_file(that.m_file)
+    , m_buf(that.m_buf)
+    , m_root_id(that.m_root_id)
+    , m_tree(that.m_tree)
+    , m_stack(that.m_stack)
+    , m_state(&m_stack.top())
+    , m_key_tag_indentation(that.m_key_tag_indentation)
+    , m_key_tag2_indentation(that.m_key_tag2_indentation)
+    , m_key_tag(that.m_key_tag)
+    , m_key_tag2(that.m_key_tag2)
+    , m_val_tag_indentation(that.m_val_tag_indentation)
+    , m_val_tag(that.m_val_tag)
+    , m_key_anchor_was_before(that.m_key_anchor_was_before)
+    , m_key_anchor_indentation(that.m_key_anchor_indentation)
+    , m_key_anchor(that.m_key_anchor)
+    , m_val_anchor_indentation(that.m_val_anchor_indentation)
+    , m_val_anchor(that.m_val_anchor)
+    , m_newline_offsets()
+    , m_newline_offsets_size()
+    , m_newline_offsets_capacity()
+    , m_newline_offsets_buf()
+{
+    if(that.m_newline_offsets_capacity)
+    {
+        _resize_locations(that.m_newline_offsets_capacity);
+        _RYML_CB_CHECK(m_stack.m_callbacks, m_newline_offsets_capacity == that.m_newline_offsets_capacity);
+        memcpy(m_newline_offsets, that.m_newline_offsets, that.m_newline_offsets_size * sizeof(size_t));
+        m_newline_offsets_size = that.m_newline_offsets_size;
+    }
+}
+
+Parser& Parser::operator=(Parser &&that)
+{
+    _free();
+    m_file = (that.m_file);
+    m_buf = (that.m_buf);
+    m_root_id = (that.m_root_id);
+    m_tree = (that.m_tree);
+    m_stack = std::move(that.m_stack);
+    m_state = (&m_stack.top());
+    m_key_tag_indentation = (that.m_key_tag_indentation);
+    m_key_tag2_indentation = (that.m_key_tag2_indentation);
+    m_key_tag = (that.m_key_tag);
+    m_key_tag2 = (that.m_key_tag2);
+    m_val_tag_indentation = (that.m_val_tag_indentation);
+    m_val_tag = (that.m_val_tag);
+    m_key_anchor_was_before = (that.m_key_anchor_was_before);
+    m_key_anchor_indentation = (that.m_key_anchor_indentation);
+    m_key_anchor = (that.m_key_anchor);
+    m_val_anchor_indentation = (that.m_val_anchor_indentation);
+    m_val_anchor = (that.m_val_anchor);
+    m_newline_offsets = (that.m_newline_offsets);
+    m_newline_offsets_size = (that.m_newline_offsets_size);
+    m_newline_offsets_capacity = (that.m_newline_offsets_capacity);
+    m_newline_offsets_buf = (that.m_newline_offsets_buf);
+    that._clr();
+    return *this;
+}
+
+Parser& Parser::operator=(Parser const& that)
+{
+    _free();
+    m_file = (that.m_file);
+    m_buf = (that.m_buf);
+    m_root_id = (that.m_root_id);
+    m_tree = (that.m_tree);
+    m_stack = that.m_stack;
+    m_state = &m_stack.top();
+    m_key_tag_indentation = (that.m_key_tag_indentation);
+    m_key_tag2_indentation = (that.m_key_tag2_indentation);
+    m_key_tag = (that.m_key_tag);
+    m_key_tag2 = (that.m_key_tag2);
+    m_val_tag_indentation = (that.m_val_tag_indentation);
+    m_val_tag = (that.m_val_tag);
+    m_key_anchor_was_before = (that.m_key_anchor_was_before);
+    m_key_anchor_indentation = (that.m_key_anchor_indentation);
+    m_key_anchor = (that.m_key_anchor);
+    m_val_anchor_indentation = (that.m_val_anchor_indentation);
+    m_val_anchor = (that.m_val_anchor);
+    if(that.m_newline_offsets_capacity > m_newline_offsets_capacity)
+        _resize_locations(that.m_newline_offsets_capacity);
+    _RYML_CB_CHECK(m_stack.m_callbacks, m_newline_offsets_capacity >= that.m_newline_offsets_capacity);
+    _RYML_CB_CHECK(m_stack.m_callbacks, m_newline_offsets_capacity >= that.m_newline_offsets_size);
+    memcpy(m_newline_offsets, that.m_newline_offsets, that.m_newline_offsets_size * sizeof(size_t));
+    m_newline_offsets_size = that.m_newline_offsets_size;
+    m_newline_offsets_buf = that.m_newline_offsets_buf;
+    return *this;
+}
+
+void Parser::_clr()
+{
+    m_file = {};
+    m_buf = {};
+    m_root_id = {};
+    m_tree = {};
+    m_stack.clear();
+    m_state = {};
+    m_key_tag_indentation = {};
+    m_key_tag2_indentation = {};
+    m_key_tag = {};
+    m_key_tag2 = {};
+    m_val_tag_indentation = {};
+    m_val_tag = {};
+    m_key_anchor_was_before = {};
+    m_key_anchor_indentation = {};
+    m_key_anchor = {};
+    m_val_anchor_indentation = {};
+    m_val_anchor = {};
+    m_newline_offsets = {};
+    m_newline_offsets_size = {};
+    m_newline_offsets_capacity = {};
+    m_newline_offsets_buf = {};
+}
+
+void Parser::_cb(Callbacks const& cb)
+{
+    if(cb != m_stack.m_callbacks)
+    {
+        _free();
+        m_stack.m_callbacks = cb;
+    }
+}
+
+void Parser::_free()
+{
+    if(m_newline_offsets)
+    {
+        _RYML_CB_FREE(m_stack.m_callbacks, m_newline_offsets, size_t, m_newline_offsets_capacity);
+        m_newline_offsets = nullptr;
+        m_newline_offsets_size = 0u;
+        m_newline_offsets_capacity = 0u;
+        m_newline_offsets_buf = 0u;
+    }
+    m_stack._free();
+}
+
 
 //-----------------------------------------------------------------------------
 void Parser::_reset()
@@ -99,7 +273,7 @@ void Parser::_reset()
     while(m_stack.size() > 1)
         m_stack.pop();
 
-    RYML_ASSERT(m_stack.size() == 1);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_stack.size() == 1);
     m_stack.clear();
     m_stack.push({});
     m_state = &m_stack.top();
@@ -116,6 +290,8 @@ void Parser::_reset()
     m_key_anchor.clear();
     m_val_anchor_indentation = 0;
     m_val_anchor.clear();
+
+    _mark_locations_dirty();
 }
 
 //-----------------------------------------------------------------------------
@@ -137,15 +313,13 @@ bool Parser::_finished_line() const
 }
 
 //-----------------------------------------------------------------------------
-void Parser::parse(csubstr file, substr buf, Tree *t, size_t node_id)
+void Parser::parse_in_place(csubstr file, substr buf, Tree *t, size_t node_id)
 {
     m_file = file;
     m_buf = buf;
     m_root_id = node_id;
     m_tree = t;
-
     _reset();
-
     while( ! _finished_file())
     {
         _scan_line();
@@ -155,7 +329,6 @@ void Parser::parse(csubstr file, substr buf, Tree *t, size_t node_id)
             break; // it may have finished because of multiline blocks
         _line_ended();
     }
-
     _handle_finished_file();
 }
 
@@ -170,9 +343,7 @@ void Parser::_handle_line()
 {
     _c4dbgq("\n-----------");
     _c4dbgt("handling line=%zu, offset=%zuB", m_state->pos.line, m_state->pos.offset);
-
-    RYML_ASSERT( ! m_state->line_contents.rem.empty());
-
+    _RYML_CB_ASSERT(m_stack.m_callbacks,  ! m_state->line_contents.rem.empty());
     if(has_any(RSEQ))
     {
         if(has_any(EXPL))
@@ -228,7 +399,7 @@ bool Parser::_handle_unk()
         auto trimmed = rem.triml(' ');
         if(trimmed == "---" || trimmed.begins_with("--- "))
         {
-            RYML_ASSERT(rem.len >= trimmed.len);
+            _RYML_CB_ASSERT(m_stack.m_callbacks, rem.len >= trimmed.len);
             _line_progressed(rem.len - trimmed.len);
             _start_new_doc(trimmed);
             _save_indentation();
@@ -253,7 +424,7 @@ bool Parser::_handle_unk()
         }
     }
 
-    RYML_ASSERT(has_none(RNXT|RSEQ|RMAP));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RNXT|RSEQ|RMAP));
     if(m_state->indref > 0)
     {
         csubstr ws = rem.left_of(rem.first_not_of(' '));
@@ -480,7 +651,7 @@ bool Parser::_handle_unk()
     }
     else
     {
-        RYML_ASSERT( ! has_any(SSCL));
+        _RYML_CB_ASSERT(m_stack.m_callbacks,  ! has_any(SSCL));
         csubstr scalar;
         size_t indentation = m_state->line_contents.indentation; // save
         bool is_quoted;
@@ -536,8 +707,8 @@ bool Parser::_handle_seq_expl()
     _c4dbgpf("handle_seq_expl: node_id=%zd level=%zd", m_state->node_id, m_state->level);
     csubstr rem = m_state->line_contents.rem;
 
-    RYML_ASSERT(has_none(RKEY));
-    RYML_ASSERT(has_all(RSEQ|EXPL));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RKEY));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, has_all(RSEQ|EXPL));
 
     if(rem.begins_with(' '))
     {
@@ -569,7 +740,7 @@ bool Parser::_handle_seq_expl()
 
     if(has_any(RVAL))
     {
-        RYML_ASSERT(has_none(RNXT));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RNXT));
         bool is_quoted;
         if(_scan_scalar(&rem, &is_quoted))
         {
@@ -617,7 +788,7 @@ bool Parser::_handle_seq_expl()
             _c4dbgpf("found '? ' -- there's an implicit map in the seq node[%zu]", m_state->node_id);
             _start_seqimap();
             _line_progressed(2);
-            RYML_ASSERT(has_any(SSCL) && m_state->scalar == "");
+            _RYML_CB_ASSERT(m_stack.m_callbacks, has_any(SSCL) && m_state->scalar == "");
             addrem_flags(CPLX|RKEY, RVAL|SSCL);
             return true;
         }
@@ -650,10 +821,10 @@ bool Parser::_handle_seq_expl()
     }
     else if(has_any(RNXT))
     {
-        RYML_ASSERT(has_none(RVAL));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RVAL));
         if(rem.begins_with(", "))
         {
-            RYML_ASSERT(has_all(EXPL));
+            _RYML_CB_ASSERT(m_stack.m_callbacks, has_all(EXPL));
             _c4dbgp("seq: expect next val");
             addrem_flags(RVAL, RNXT);
             _line_progressed(2);
@@ -661,7 +832,7 @@ bool Parser::_handle_seq_expl()
         }
         else if(rem.begins_with(','))
         {
-            RYML_ASSERT(has_all(EXPL));
+            _RYML_CB_ASSERT(m_stack.m_callbacks, has_all(EXPL));
             _c4dbgp("seq: expect next val");
             addrem_flags(RVAL, RNXT);
             _line_progressed(1);
@@ -700,9 +871,9 @@ bool Parser::_handle_seq_impl()
     _c4dbgpf("handle_seq_impl: node_id=%zd level=%zd", m_state->node_id, m_state->level);
     csubstr rem = m_state->line_contents.rem;
 
-    RYML_ASSERT(has_all(RSEQ));
-    RYML_ASSERT(has_none(RKEY));
-    RYML_ASSERT(has_none(EXPL));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, has_all(RSEQ));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RKEY));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(EXPL));
 
     if(rem.begins_with('#'))
     {
@@ -713,7 +884,7 @@ bool Parser::_handle_seq_impl()
 
     if(has_any(RNXT))
     {
-        RYML_ASSERT(has_none(RVAL));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RVAL));
 
         if(_handle_indentation())
         {
@@ -736,7 +907,7 @@ bool Parser::_handle_seq_impl()
         }
         else if(rem.begins_with_any(" \t"))
         {
-            RYML_ASSERT( ! _at_line_begin());
+            _RYML_CB_ASSERT(m_stack.m_callbacks,  ! _at_line_begin());
             rem = rem.left_of(rem.first_not_of(" \t"));
             _c4dbgpf("skipping %zd spaces/tabs", rem.len);
             _line_progressed(rem.len);
@@ -928,7 +1099,7 @@ bool Parser::_handle_seq_impl()
 bool Parser::_rval_dash_start_or_continue_seq()
 {
     size_t ind = m_state->line_contents.current_col();
-    RYML_ASSERT(ind >= m_state->indref);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, ind >= m_state->indref);
     size_t delta_ind = ind - m_state->indref;
     if( ! delta_ind)
     {
@@ -952,7 +1123,7 @@ bool Parser::_handle_map_expl()
     _c4dbgpf("handle_map_expl: node_id=%zd  level=%zd", m_state->node_id, m_state->level);
     csubstr rem = m_state->line_contents.rem;
 
-    RYML_ASSERT(has_all(RMAP|EXPL));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, has_all(RMAP|EXPL));
 
     if(rem.begins_with(' '))
     {
@@ -991,9 +1162,9 @@ bool Parser::_handle_map_expl()
 
     if(has_any(RNXT))
     {
-        RYML_ASSERT(has_none(RKEY));
-        RYML_ASSERT(has_none(RVAL));
-        RYML_ASSERT(has_none(RSEQIMAP));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RKEY));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RVAL));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RSEQIMAP));
 
         if(rem.begins_with(", "))
         {
@@ -1016,8 +1187,8 @@ bool Parser::_handle_map_expl()
     }
     else if(has_any(RKEY))
     {
-        RYML_ASSERT(has_none(RNXT));
-        RYML_ASSERT(has_none(RVAL));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RNXT));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RVAL));
 
         bool is_quoted;
         if(has_none(SSCL) && _scan_scalar(&rem, &is_quoted))
@@ -1028,7 +1199,7 @@ bool Parser::_handle_map_expl()
             csubstr trimmed = rem.triml(" \t");
             if(trimmed.len && (trimmed.begins_with(": ") || trimmed.begins_with_any(":,}")))
             {
-                RYML_ASSERT(trimmed.str >= rem.str);
+                _RYML_CB_ASSERT(m_stack.m_callbacks, trimmed.str >= rem.str);
                 size_t num = static_cast<size_t>(trimmed.str - rem.str);
                 _c4dbgpf("trimming %zu whitespace after the scalar: '%.*s' --> '%.*s'", num, _c4prsp(rem), _c4prsp(rem.sub(num)));
                 rem = rem.sub(num);
@@ -1077,7 +1248,7 @@ bool Parser::_handle_map_expl()
         else if(rem.begins_with('}'))
         {
             _c4dbgp("map terminates after a key...");
-            RYML_ASSERT(has_all(SSCL));
+            _RYML_CB_ASSERT(m_stack.m_callbacks, has_all(SSCL));
             _c4dbgp("the last val was null");
             _append_key_val_null();
             rem_flags(RVAL);
@@ -1142,9 +1313,9 @@ bool Parser::_handle_map_expl()
     }
     else if(has_any(RVAL))
     {
-        RYML_ASSERT(has_none(RNXT));
-        RYML_ASSERT(has_none(RKEY));
-        RYML_ASSERT(has_all(SSCL));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RNXT));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RKEY));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, has_all(SSCL));
         bool is_quoted;
         if(_scan_scalar(&rem, &is_quoted))
         {
@@ -1233,8 +1404,8 @@ bool Parser::_handle_map_impl()
     _c4dbgpf("handle_map_impl: node_id=%zd  level=%zd", m_state->node_id, m_state->level);
     csubstr rem = m_state->line_contents.rem;
 
-    RYML_ASSERT(has_all(RMAP));
-    RYML_ASSERT(has_none(EXPL));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, has_all(RMAP));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(EXPL));
 
     if(rem.begins_with('#'))
     {
@@ -1245,8 +1416,8 @@ bool Parser::_handle_map_impl()
 
     if(has_any(RNXT))
     {
-        RYML_ASSERT(has_none(RKEY));
-        RYML_ASSERT(has_none(RVAL));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RKEY));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RVAL));
         // actually, we don't need RNXT in indent-based maps.
         addrem_flags(RKEY, RNXT);
     }
@@ -1259,8 +1430,8 @@ bool Parser::_handle_map_impl()
 
     if(has_any(RKEY))
     {
-        RYML_ASSERT(has_none(RNXT));
-        RYML_ASSERT(has_none(RVAL));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RNXT));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RVAL));
 
         _c4dbgp("read scalar?");
         bool is_quoted;
@@ -1285,7 +1456,7 @@ bool Parser::_handle_map_impl()
                 rem = m_state->line_contents.rem;
                 if(rem.begins_with_any(" \t"))
                 {
-                    RYML_ASSERT( ! _at_line_begin());
+                    _RYML_CB_ASSERT(m_stack.m_callbacks,  ! _at_line_begin());
                     rem = rem.left_of(rem.first_not_of(" \t"));
                     _c4dbgpf("skip %zd spaces/tabs", rem.len);
                     _line_progressed(rem.len);
@@ -1295,7 +1466,7 @@ bool Parser::_handle_map_impl()
         }
         else if(rem.begins_with_any(" \t"))
         {
-            //RYML_ASSERT( ! _at_line_begin());
+            //_RYML_CB_ASSERT(m_stack.m_callbacks,  ! _at_line_begin());
             rem = rem.left_of(rem.first_not_of(" \t"));
             _c4dbgpf("skip %zd spaces/tabs", rem.len);
             _line_progressed(rem.len);
@@ -1318,7 +1489,7 @@ bool Parser::_handle_map_impl()
             rem = m_state->line_contents.rem;
             if(rem.begins_with(' '))
             {
-                RYML_ASSERT( ! _at_line_begin());
+                _RYML_CB_ASSERT(m_stack.m_callbacks,  ! _at_line_begin());
                 rem = rem.left_of(rem.first_not_of(' '));
                 _c4dbgpf("skip %zd spaces", rem.len);
                 _line_progressed(rem.len);
@@ -1377,8 +1548,8 @@ bool Parser::_handle_map_impl()
     }
     else if(has_any(RVAL))
     {
-        RYML_ASSERT(has_none(RNXT));
-        RYML_ASSERT(has_none(RKEY));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RNXT));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RKEY));
 
         csubstr s;
         bool is_quoted;
@@ -1558,14 +1729,14 @@ bool Parser::_handle_top()
 
 bool Parser::_handle_key_anchors_and_refs()
 {
-    RYML_ASSERT(!has_any(RVAL));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, !has_any(RVAL));
     const csubstr rem = m_state->line_contents.rem;
     if(rem.begins_with('&'))
     {
         _c4dbgp("found a key anchor!!!");
         if(has_all(CPLX|SSCL))
         {
-            RYML_ASSERT(has_any(RKEY));
+            _RYML_CB_ASSERT(m_stack.m_callbacks, has_any(RKEY));
             _c4dbgp("there is a stored key, so this anchor is for the next element");
             _append_key_val_null();
             rem_flags(CPLX);
@@ -1591,7 +1762,7 @@ bool Parser::_handle_key_anchors_and_refs()
 
 bool Parser::_handle_val_anchors_and_refs()
 {
-    RYML_ASSERT(!has_any(RKEY));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, !has_any(RKEY));
     const csubstr rem = m_state->line_contents.rem;
     if(rem.begins_with('&'))
     {
@@ -1723,7 +1894,7 @@ bool Parser::_handle_types()
     {
         _c4dbgp("begins with '!!'");
         t = rem.left_of(rem.first_of(" ,"));
-        RYML_ASSERT(t.len >= 2);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, t.len >= 2);
         //t = t.sub(2);
         if(t == "!!set")
             add_flags(RSET);
@@ -1732,21 +1903,21 @@ bool Parser::_handle_types()
     {
         _c4dbgp("begins with '!<'");
         t = rem.left_of(rem.first_of('>'), true);
-        RYML_ASSERT(t.len >= 2);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, t.len >= 2);
         //t = t.sub(2, t.len-1);
     }
     else if(rem.begins_with("!h!"))
     {
         _c4dbgp("begins with '!h!'");
         t = rem.left_of(rem.first_of(' '));
-        RYML_ASSERT(t.len >= 3);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, t.len >= 3);
         //t = t.sub(3);
     }
     else if(rem.begins_with('!'))
     {
         _c4dbgp("begins with '!'");
         t = rem.left_of(rem.first_of(' '));
-        RYML_ASSERT(t.len >= 1);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, t.len >= 1);
         //t = t.sub(1);
     }
 
@@ -1755,7 +1926,7 @@ bool Parser::_handle_types()
 
     if(has_all(CPLX|SSCL))
     {
-        RYML_ASSERT(has_any(RKEY));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, has_any(RKEY));
         _c4dbgp("there is a stored key, so this tag is for the next element");
         _append_key_val_null();
         rem_flags(CPLX);
@@ -1763,7 +1934,7 @@ bool Parser::_handle_types()
 
     size_t tag_indentation = m_state->line_contents.current_col(t);
     _c4dbgpf("there was a tag: '%.*s', indentation=%zu", _c4prsp(t), tag_indentation);
-    RYML_ASSERT(t.end() > m_state->line_contents.rem.begin());
+    _RYML_CB_ASSERT(m_stack.m_callbacks, t.end() > m_state->line_contents.rem.begin());
     _line_progressed(static_cast<size_t>(t.end() - m_state->line_contents.rem.begin()));
     {
         size_t pos = m_state->line_contents.rem.first_not_of(" \t");
@@ -1774,7 +1945,7 @@ bool Parser::_handle_types()
     if(has_all(RMAP|RKEY))
     {
         _c4dbgpf("saving map key tag '%.*s'", _c4prsp(t));
-        RYML_ASSERT(m_key_tag.empty());
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_key_tag.empty());
         m_key_tag = t;
         m_key_tag_indentation = tag_indentation;
     }
@@ -1792,12 +1963,12 @@ bool Parser::_handle_types()
             _append_key_val_null();
             _store_scalar_null();
             // do not change the flag to key, it is ~
-            RYML_ASSERT(rem.begin() > m_state->line_contents.rem.begin());
+            _RYML_CB_ASSERT(m_stack.m_callbacks, rem.begin() > m_state->line_contents.rem.begin());
             size_t token_len = rem == ':' ? 1 : 2;
             _line_progressed(static_cast<size_t>(token_len + rem.begin() - m_state->line_contents.rem.begin()));
         }
         _c4dbgpf("saving map val tag '%.*s'", _c4prsp(t));
-        RYML_ASSERT(m_val_tag.empty());
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_val_tag.empty());
         m_val_tag = t;
         m_val_tag_indentation = tag_indentation;
     }
@@ -1824,7 +1995,7 @@ bool Parser::_handle_types()
         if(rem.empty())
         {
             _c4dbgpf("saving val tag '%.*s'", _c4prsp(t));
-            RYML_ASSERT(m_val_tag.empty());
+            _RYML_CB_ASSERT(m_stack.m_callbacks, m_val_tag.empty());
             m_val_tag = t;
             m_val_tag_indentation = tag_indentation;
         }
@@ -1887,7 +2058,7 @@ csubstr Parser::_slurp_doc_scalar()
 {
     csubstr s = m_state->line_contents.rem;
     size_t pos = m_state->pos.offset;
-    RYML_ASSERT(m_state->line_contents.full.find("---") != csubstr::npos);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->line_contents.full.find("---") != csubstr::npos);
     _c4dbgpf("slurp 0 '%.*s'. REM='%.*s'", _c4prsp(s), _c4prsp(m_buf.sub(m_state->pos.offset)));
     if(s.len == 0)
     {
@@ -1907,7 +2078,7 @@ csubstr Parser::_slurp_doc_scalar()
         _c4dbgpf("slurp 2 '%.*s'. REM='%.*s'", _c4prsp(s), _c4prsp(m_buf.sub(m_state->pos.offset)));
     }
 
-    RYML_ASSERT(m_val_anchor.empty());
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_val_anchor.empty());
     _handle_val_anchors_and_refs();
     if(!m_val_anchor.empty())
     {
@@ -1940,7 +2111,7 @@ csubstr Parser::_slurp_doc_scalar()
     _c4dbgpf("slurp 4 '%.*s'. REM='%.*s'", _c4prsp(s), _c4prsp(m_buf.sub(m_state->pos.offset)));
 
     m_state->scalar_col = m_state->line_contents.current_col(s);
-    RYML_ASSERT(s.end() >= m_buf.begin() + pos);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, s.end() >= m_buf.begin() + pos);
     _line_progressed(static_cast<size_t>(s.end() - (m_buf.begin() + pos)));
 
     _c4dbgpf("slurp 5 '%.*s'. REM='%.*s'", _c4prsp(s), _c4prsp(m_buf.sub(m_state->pos.offset)));
@@ -1994,7 +2165,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
     }
     else if(has_any(RSEQ))
     {
-        RYML_ASSERT( ! has_all(RKEY));
+        _RYML_CB_ASSERT(m_stack.m_callbacks,  ! has_all(RKEY));
         if(has_all(RVAL))
         {
             _c4dbgp("RSEQ|RVAL");
@@ -2030,7 +2201,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
         if(colon_space == npos)
         {
             colon_space = s.find(":");
-            RYML_ASSERT(s.len > 0);
+            _RYML_CB_ASSERT(m_stack.m_callbacks, s.len > 0);
             if(colon_space != s.len-1)
                 colon_space = npos;
         }
@@ -2040,7 +2211,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
             if(has_any(CPLX))
             {
                 _c4dbgp("RMAP|RKEY|CPLX");
-                RYML_ASSERT(has_any(RMAP));
+                _RYML_CB_ASSERT(m_stack.m_callbacks, has_any(RMAP));
                 s = s.left_of(colon_space);
                 if(s.begins_with("---"))
                     return false;
@@ -2073,7 +2244,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
         else if(has_all(RVAL))
         {
             _c4dbgp("RMAP|RVAL");
-            RYML_ASSERT(has_none(CPLX));
+            _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(CPLX));
             if( ! _is_scalar_next__rmap_val(s))
             {
                 return false;
@@ -2127,7 +2298,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
         return false;
 
     m_state->scalar_col = m_state->line_contents.current_col(s);
-    RYML_ASSERT(s.str >= m_state->line_contents.rem.str);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, s.str >= m_state->line_contents.rem.str);
     _line_progressed(static_cast<size_t>(s.str - m_state->line_contents.rem.str) + s.len);
 
     if(_at_line_end() && s != '~')
@@ -2180,7 +2351,7 @@ csubstr Parser::_extend_scanned_scalar(csubstr s)
             if(!n.empty())
             {
                 _c4dbgpf("rscalar[IMPL]: state_indref=%zu state_indentation=%zu scalar_indentation=%zu", m_state->indref, m_state->line_contents.indentation, scalar_indentation);
-                RYML_ASSERT(m_state->line_contents.full.is_super(n));
+                _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->line_contents.full.is_super(n));
                 substr full = _scan_plain_scalar_impl(s, n, scalar_indentation);
                 if(full.len >= s.len)
                 {
@@ -2190,7 +2361,7 @@ csubstr Parser::_extend_scanned_scalar(csubstr s)
         }
         else
         {
-            RYML_ASSERT(has_all(EXPL));
+            _RYML_CB_ASSERT(m_stack.m_callbacks, has_all(EXPL));
             csubstr n = _scan_to_next_nonempty_line(/*indentation*/0);
             if(!n.empty())
             {
@@ -2230,7 +2401,7 @@ substr Parser::_scan_plain_scalar_expl(csubstr currscalar, csubstr peeked_line)
                 {
                     peeked_line = peeked_line.first(colon_pos.pos);
                     _c4dbgpf("rscalar[EXPL]: found colon at %zu. peeked='%.*s'", colon_pos.pos, _c4prsp(peeked_line));
-                    RYML_ASSERT(peeked_line.end() >= m_state->line_contents.rem.begin());
+                    _RYML_CB_ASSERT(m_stack.m_callbacks, peeked_line.end() >= m_state->line_contents.rem.begin());
                     _line_progressed(static_cast<size_t>(peeked_line.end() - m_state->line_contents.rem.begin()));
                     break;
                 }
@@ -2240,7 +2411,7 @@ substr Parser::_scan_plain_scalar_expl(csubstr currscalar, csubstr peeked_line)
         {
             _c4dbgpf("rscalar[EXPL]: found special character '%c' at %zu, stopping: '%.*s'", peeked_line[pos], pos, _c4prsp(peeked_line.left_of(pos).trimr("\r\n")));
             peeked_line = peeked_line.left_of(pos);
-            RYML_ASSERT(peeked_line.end() >= m_state->line_contents.rem.begin());
+            _RYML_CB_ASSERT(m_stack.m_callbacks, peeked_line.end() >= m_state->line_contents.rem.begin());
             _line_progressed(static_cast<size_t>(peeked_line.end() - m_state->line_contents.rem.begin()));
             break;
         }
@@ -2267,12 +2438,12 @@ substr Parser::_scan_plain_scalar_expl(csubstr currscalar, csubstr peeked_line)
 
 substr Parser::_scan_plain_scalar_impl(csubstr currscalar, csubstr peeked_line, size_t indentation)
 {
-    RYML_ASSERT(m_buf.is_super(currscalar));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.is_super(currscalar));
     // NOTE. there's a problem with _scan_to_next_nonempty_line(), as it counts newlines twice
     // size_t offs = m_state->pos.offset;   // so we workaround by directly counting from the end of the given scalar
-    RYML_ASSERT(currscalar.end() >= m_buf.begin());
+    _RYML_CB_ASSERT(m_stack.m_callbacks, currscalar.end() >= m_buf.begin());
     size_t offs = static_cast<size_t>(currscalar.end() - m_buf.begin());
-    RYML_ASSERT(peeked_line.begins_with(' ', indentation));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, peeked_line.begins_with(' ', indentation));
     while(true)
     {
         _c4dbgpf("rscalar[IMPL]: continuing... ref_indentation=%zu", indentation);
@@ -2327,7 +2498,7 @@ substr Parser::_scan_plain_scalar_impl(csubstr currscalar, csubstr peeked_line, 
         }
         peeked_line = m_state->line_contents.rem;
     }
-    RYML_ASSERT(m_state->pos.offset >= offs);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->pos.offset >= offs);
     substr full(m_buf.str + (currscalar.str - m_buf.str),
                 currscalar.len + (m_state->pos.offset - offs));
     full = full.trimr("\r\n ");
@@ -2336,10 +2507,10 @@ substr Parser::_scan_plain_scalar_impl(csubstr currscalar, csubstr peeked_line, 
 
 substr Parser::_scan_complex_key(csubstr currscalar, csubstr peeked_line)
 {
-    RYML_ASSERT(m_buf.is_super(currscalar));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.is_super(currscalar));
     // NOTE. there's a problem with _scan_to_next_nonempty_line(), as it counts newlines twice
     // size_t offs = m_state->pos.offset;   // so we workaround by directly counting from the end of the given scalar
-    RYML_ASSERT(currscalar.end() >= m_buf.begin());
+    _RYML_CB_ASSERT(m_stack.m_callbacks, currscalar.end() >= m_buf.begin());
     size_t offs = static_cast<size_t>(currscalar.end() - m_buf.begin());
     while(true)
     {
@@ -2396,7 +2567,7 @@ substr Parser::_scan_complex_key(csubstr currscalar, csubstr peeked_line)
         }
         peeked_line = m_state->line_contents.rem;
     }
-    RYML_ASSERT(m_state->pos.offset >= offs);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->pos.offset >= offs);
     substr full(m_buf.str + (currscalar.str - m_buf.str),
                 currscalar.len + (m_state->pos.offset - offs));
     return full;
@@ -2447,7 +2618,7 @@ bool Parser::_advance_to_peeked()
 {
     _line_progressed(m_state->line_contents.rem.len);
     _line_ended(); // advances to the peeked-at line, consuming all remaining (probably newline) characters on the current line
-    RYML_ASSERT(m_state->line_contents.rem.first_of("\r\n") == csubstr::npos);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->line_contents.rem.first_of("\r\n") == csubstr::npos);
     _c4dbgpf("advance to peeked: scan more... pos=%zu len=%zu", m_state->pos.offset, m_buf.len);
     _scan_line();  // puts the peeked-at line in the buffer
     if(_finished_file())
@@ -2543,14 +2714,14 @@ void Parser::_line_progressed(size_t ahead)
     _c4dbgpf("line[%zu] (%zu cols) progressed by %zu:  col %zu-->%zu   offset %zu-->%zu", m_state->pos.line, m_state->line_contents.full.len, ahead, m_state->pos.col, m_state->pos.col+ahead, m_state->pos.offset, m_state->pos.offset+ahead);
     m_state->pos.offset += ahead;
     m_state->pos.col += ahead;
-    RYML_ASSERT(m_state->pos.col <= m_state->line_contents.stripped.len+1);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->pos.col <= m_state->line_contents.stripped.len+1);
     m_state->line_contents.rem = m_state->line_contents.rem.sub(ahead);
 }
 
 void Parser::_line_ended()
 {
     _c4dbgpf("line[%zu] (%zu cols) ended! offset %zu-->%zu", m_state->pos.line, m_state->line_contents.full.len, m_state->pos.offset, m_state->pos.offset+m_state->line_contents.full.len - m_state->line_contents.stripped.len);
-    RYML_ASSERT(m_state->pos.col == m_state->line_contents.stripped.len+1);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->pos.col == m_state->line_contents.stripped.len+1);
     m_state->pos.offset += m_state->line_contents.full.len - m_state->line_contents.stripped.len;
     ++m_state->pos.line;
     m_state->pos.col = 1;
@@ -2558,9 +2729,9 @@ void Parser::_line_ended()
 
 void Parser::_line_ended_undo()
 {
-    RYML_ASSERT(m_state->pos.col == 1u);
-    RYML_ASSERT(m_state->pos.line > 0u);
-    RYML_ASSERT(m_state->pos.offset >= m_state->line_contents.full.len - m_state->line_contents.stripped.len);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->pos.col == 1u);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->pos.line > 0u);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->pos.offset >= m_state->line_contents.full.len - m_state->line_contents.stripped.len);
     _c4dbgpf("line[%zu] undo ended! line %zu-->%zu, offset %zu-->%zu", m_state->pos.line, m_state->pos.line, m_state->pos.line - 1, m_state->pos.offset, m_state->pos.offset - (m_state->line_contents.full.len - m_state->line_contents.stripped.len));
     m_state->pos.offset -= m_state->line_contents.full.len - m_state->line_contents.stripped.len;
     --m_state->pos.line;
@@ -2576,9 +2747,9 @@ void Parser::_set_indentation(size_t indentation)
 
 void Parser::_save_indentation(size_t behind)
 {
-    RYML_ASSERT(m_state->line_contents.rem.begin() >= m_state->line_contents.full.begin());
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->line_contents.rem.begin() >= m_state->line_contents.full.begin());
     m_state->indref = static_cast<size_t>(m_state->line_contents.rem.begin() - m_state->line_contents.full.begin());
-    RYML_ASSERT(behind <= m_state->indref);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, behind <= m_state->indref);
     m_state->indref -= behind;
     _c4dbgpf("state[%zd]: saving indentation: %zd", m_state-m_stack.begin(), m_state->indref);
 }
@@ -2604,7 +2775,7 @@ bool Parser::_maybe_set_indentation_from_anchor_or_tag()
 //-----------------------------------------------------------------------------
 void Parser::_write_key_anchor(size_t node_id)
 {
-    RYML_ASSERT(m_tree->has_key(node_id));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->has_key(node_id));
     if( ! m_key_anchor.empty())
     {
         _c4dbgpf("node=%zd: set key anchor to '%.*s'", node_id, _c4prsp(m_key_anchor));
@@ -2665,11 +2836,11 @@ void Parser::_write_val_anchor(size_t node_id)
 void Parser::_push_level(bool explicit_flow_chars)
 {
     _c4dbgpf("pushing level! currnode=%zd  currlevel=%zd", m_state->node_id, m_state->level);
-    RYML_ASSERT(m_state == &m_stack.top());
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_state == &m_stack.top());
     if(node(m_state) == nullptr)
     {
         _c4dbgp("pushing level! actually no, current node is null");
-        //RYML_ASSERT( ! explicit_flow_chars);
+        //_RYML_CB_ASSERT(m_stack.m_callbacks,  ! explicit_flow_chars);
         return;
     }
     size_t st = RUNK;
@@ -2701,7 +2872,7 @@ void Parser::_pop_level()
     {
         _stop_doc();
     }
-    RYML_ASSERT(m_stack.size() > 1);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_stack.size() > 1);
     _prepare_pop();
     m_stack.pop();
     m_state = &m_stack.top();
@@ -2711,7 +2882,7 @@ void Parser::_pop_level()
     }*/
     if(m_state->line_contents.indentation == 0)
     {
-        //RYML_ASSERT(has_none(RTOP));
+        //_RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RTOP));
         add_flags(RTOP);
     }
     _c4dbgpf("popping level: now, currnode=%zd currlevel=%zd", m_state->node_id, m_state->level);
@@ -2729,11 +2900,11 @@ void Parser::_start_unk(bool /*as_child*/)
 void Parser::_start_doc(bool as_child)
 {
     _c4dbgpf("start_doc (as child=%d)", as_child);
-    RYML_ASSERT(node(m_stack.bottom()) == node(m_root_id));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, node(m_stack.bottom()) == node(m_root_id));
     size_t parent_id = m_stack.size() < 2 ? m_root_id : m_stack.top(1).node_id;
-    RYML_ASSERT(parent_id != NONE);
-    RYML_ASSERT(m_tree->is_root(parent_id));
-    RYML_ASSERT(node(m_state) == nullptr || node(m_state) == node(m_root_id));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, parent_id != NONE);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_root(parent_id));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, node(m_state) == nullptr || node(m_state) == node(m_root_id));
     if(as_child)
     {
         _c4dbgpf("start_doc: parent=%zu", parent_id);
@@ -2747,7 +2918,7 @@ void Parser::_start_doc(bool as_child)
     }
     else
     {
-        RYML_ASSERT(m_tree->is_seq(parent_id) || m_tree->empty(parent_id));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_seq(parent_id) || m_tree->empty(parent_id));
         m_state->node_id = parent_id;
         if( ! m_tree->is_doc(parent_id))
         {
@@ -2764,10 +2935,10 @@ void Parser::_stop_doc()
 {
     size_t doc_node = m_state->node_id;
     _c4dbgpf("stop_doc[%zu]", doc_node);
-    RYML_ASSERT(m_tree->is_doc(doc_node));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_doc(doc_node));
     if(!m_tree->is_seq(doc_node) && !m_tree->is_map(doc_node) && !m_tree->is_val(doc_node))
     {
-        RYML_ASSERT(has_none(SSCL));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(SSCL));
         _c4dbgpf("stop_doc[%zu]: there was nothing; adding null val", doc_node);
         m_tree->to_val(doc_node, {}, DOC);
     }
@@ -2776,7 +2947,7 @@ void Parser::_stop_doc()
 void Parser::_end_stream()
 {
     _c4dbgpf("end_stream, level=%zu node_id=%zu", m_state->level, m_state->node_id);
-    RYML_ASSERT( ! m_stack.empty());
+    _RYML_CB_ASSERT(m_stack.m_callbacks,  ! m_stack.empty());
     NodeData *added = nullptr;
     if(has_any(SSCL))
     {
@@ -2859,7 +3030,7 @@ void Parser::_end_stream()
     while(m_stack.size() > 1)
     {
         _c4dbgpf("popping level: %zu (stack sz=%zu)", m_state->level, m_stack.size());
-        RYML_ASSERT( ! has_any(SSCL, &m_stack.top()));
+        _RYML_CB_ASSERT(m_stack.m_callbacks,  ! has_any(SSCL, &m_stack.top()));
         _pop_level();
     }
     add_flags(NDOC);
@@ -2868,7 +3039,7 @@ void Parser::_end_stream()
 void Parser::_start_new_doc(csubstr rem)
 {
     _c4dbgp("_start_new_doc");
-    RYML_ASSERT(rem.begins_with("---"));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, rem.begins_with("---"));
     C4_UNUSED(rem);
 
     _end_stream();
@@ -2881,15 +3052,16 @@ void Parser::_start_new_doc(csubstr rem)
     _set_indentation(indref);
 }
 
+
 //-----------------------------------------------------------------------------
 void Parser::_start_map(bool as_child)
 {
     _c4dbgpf("start_map (as child=%d)", as_child);
     addrem_flags(RMAP|RVAL, RKEY|RUNK);
-    RYML_ASSERT(node(m_stack.bottom()) == node(m_root_id));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, node(m_stack.bottom()) == node(m_root_id));
     size_t parent_id = m_stack.size() < 2 ? m_root_id : m_stack.top(1).node_id;
-    RYML_ASSERT(parent_id != NONE);
-    RYML_ASSERT(node(m_state) == nullptr || node(m_state) == node(m_root_id));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, parent_id != NONE);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, node(m_state) == nullptr || node(m_state) == node(m_root_id));
     if(as_child)
     {
         m_state->node_id = m_tree->append_child(parent_id);
@@ -2978,7 +3150,7 @@ void Parser::_start_map_unk(bool as_child)
 void Parser::_stop_map()
 {
     _c4dbgpf("stop_map[%zu]", m_state->node_id);
-    RYML_ASSERT(m_tree->is_map(m_state->node_id));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_map(m_state->node_id));
     bool key_empty = (m_key_tag.empty() && m_key_anchor.empty());
     bool val_empty = (m_val_tag.empty() && m_val_anchor.empty());
     if(has_none(RMAP) || (key_empty && val_empty))
@@ -3010,16 +3182,16 @@ void Parser::_start_seq(bool as_child)
         m_key_tag.clear();
     }
     addrem_flags(RSEQ|RVAL, RUNK);
-    RYML_ASSERT(node(m_stack.bottom()) == node(m_root_id));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, node(m_stack.bottom()) == node(m_root_id));
     size_t parent_id = m_stack.size() < 2 ? m_root_id : m_stack.top(1).node_id;
-    RYML_ASSERT(parent_id != NONE);
-    RYML_ASSERT(node(m_state) == nullptr || node(m_state) == node(m_root_id));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, parent_id != NONE);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, node(m_state) == nullptr || node(m_state) == node(m_root_id));
     if(as_child)
     {
         m_state->node_id = m_tree->append_child(parent_id);
         if(has_all(SSCL))
         {
-            RYML_ASSERT(m_tree->is_map(parent_id));
+            _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_map(parent_id));
             csubstr name = _consume_scalar();
             m_tree->to_seq(m_state->node_id, name);
             _c4dbgpf("start_seq: id=%zd name='%.*s'", m_state->node_id, _c4prsp(m_tree->key(m_state->node_id)));
@@ -3071,7 +3243,7 @@ void Parser::_start_seq(bool as_child)
 void Parser::_stop_seq()
 {
     _c4dbgp("stop_seq");
-    RYML_ASSERT(m_tree->is_seq(m_state->node_id));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_seq(m_state->node_id));
 }
 
 
@@ -3079,7 +3251,7 @@ void Parser::_stop_seq()
 void Parser::_start_seqimap()
 {
     _c4dbgpf("start_seqimap at node=%zu. has_children=%d", m_state->node_id, m_tree->has_children(m_state->node_id));
-    RYML_ASSERT(has_all(RSEQ|EXPL));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, has_all(RSEQ|EXPL));
     // create a map, and turn the last scalar of this sequence
     // into the key of the map's first child.
     //
@@ -3109,16 +3281,16 @@ void Parser::_start_seqimap()
 void Parser::_stop_seqimap()
 {
     _c4dbgp("stop_seqimap");
-    RYML_ASSERT(has_all(RSEQIMAP));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, has_all(RSEQIMAP));
 }
 
 
 //-----------------------------------------------------------------------------
 NodeData* Parser::_append_val(csubstr val, bool quoted)
 {
-    RYML_ASSERT( ! has_all(SSCL));
-    RYML_ASSERT(node(m_state) != nullptr);
-    RYML_ASSERT(m_tree->is_seq(m_state->node_id));
+    _RYML_CB_ASSERT(m_stack.m_callbacks,  ! has_all(SSCL));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, node(m_state) != nullptr);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_seq(m_state->node_id));
     type_bits additional_flags = quoted ? VALQUO : NOTYPE;
     _c4dbgpf("append val: '%.*s' to parent id=%zd (level=%zd)%s", _c4prsp(val), m_state->node_id, m_state->level, quoted ? " VALQUO!" : "");
     size_t nid = m_tree->append_child(m_state->node_id);
@@ -3137,7 +3309,7 @@ NodeData* Parser::_append_val(csubstr val, bool quoted)
 
 NodeData* Parser::_append_key_val(csubstr val, bool val_quoted)
 {
-    RYML_ASSERT(m_tree->is_map(m_state->node_id));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_map(m_state->node_id));
     type_bits additional_flags = 0;
     if(m_state->flags & SSCL_QUO)
         additional_flags |= KEYQUO;
@@ -3166,6 +3338,7 @@ NodeData* Parser::_append_key_val(csubstr val, bool val_quoted)
     return m_tree->get(nid);
 }
 
+
 //-----------------------------------------------------------------------------
 void Parser::_store_scalar(csubstr const& s, bool is_quoted)
 {
@@ -3189,8 +3362,8 @@ void Parser::_move_scalar_from_top()
 {
     if(m_stack.size() < 2) return;
     State &prev = m_stack.top(1);
-    RYML_ASSERT(m_state == &m_stack.top());
-    RYML_ASSERT(m_state != &prev);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_state == &m_stack.top());
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_state != &prev);
     if(prev.flags & SSCL)
     {
         _c4dbgpf("moving scalar '%.*s' from state[%zd] to state[%zd] (overwriting '%.*s')", _c4prsp(prev.scalar), &prev-m_stack.begin(), m_state-m_stack.begin(), _c4prsp(m_state->scalar));
@@ -3204,7 +3377,7 @@ void Parser::_move_scalar_from_top()
 //-----------------------------------------------------------------------------
 bool Parser::_handle_indentation()
 {
-    RYML_ASSERT(has_none(EXPL));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(EXPL));
     if( ! _at_line_begin())
         return false;
 
@@ -3262,18 +3435,18 @@ bool Parser::_handle_indentation()
             _c4dbgp("there was an empty val -- appending");
             if(has_all(RMAP))
             {
-                RYML_ASSERT(has_all(SSCL));
+                _RYML_CB_ASSERT(m_stack.m_callbacks, has_all(SSCL));
                 _append_key_val_null();
             }
             else if(has_all(RSEQ))
             {
-                RYML_ASSERT(has_none(SSCL));
+                _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(SSCL));
                 _append_val_null();
             }
         }
         // search the stack frame to jump to based on its indentation
         State const* popto = nullptr;
-        RYML_ASSERT(m_stack.is_contiguous()); // this search relies on the stack being contiguous
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_stack.is_contiguous()); // this search relies on the stack being contiguous
         for(State const* s = m_state-1; s >= m_stack.begin(); --s)
         {
             _c4dbgpf("searching for state with indentation %zu. curr=%zu (level=%zu,node=%zu)", ind, s->indref, s->level, s->node_id);
@@ -3331,14 +3504,14 @@ bool Parser::_handle_indentation()
             _c4dbgpf("popping level %zd (indentation=%zd)", m_state->level, m_state->indref);
             _pop_level();
         }
-        RYML_ASSERT(ind == m_state->indref);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, ind == m_state->indref);
         _line_progressed(ind);
         return true;
     }
     else
     {
         _c4dbgpf("larger indentation (%zd > %zd)!!!", ind, m_state->indref);
-        RYML_ASSERT(ind > m_state->indref);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, ind > m_state->indref);
         if(has_all(RMAP|RVAL))
         {
             if(_is_scalar_next__rmap_val(remt) && remt.first_of(":?") == npos)
@@ -3376,7 +3549,7 @@ bool Parser::_handle_indentation()
 csubstr Parser::_scan_comment()
 {
     csubstr s = m_state->line_contents.rem;
-    RYML_ASSERT(s.begins_with('#'));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, s.begins_with('#'));
     _line_progressed(s.len);
     // skip the # character
     s = s.sub(1);
@@ -3389,7 +3562,7 @@ csubstr Parser::_scan_comment()
 //-----------------------------------------------------------------------------
 csubstr Parser::_scan_quoted_scalar(const char q)
 {
-    RYML_ASSERT(q == '\'' || q == '"');
+    _RYML_CB_ASSERT(m_stack.m_callbacks, q == '\'' || q == '"');
 
     // quoted scalars can spread over multiple lines!
     // nice explanation here: http://yaml-multiline.info/
@@ -3402,12 +3575,12 @@ csubstr Parser::_scan_quoted_scalar(const char q)
     if(s.begins_with(' '))
     {
         s = s.triml(' ');
-        RYML_ASSERT(m_buf.sub(b).is_super(s));
-        RYML_ASSERT(s.begin() >= m_buf.sub(b).begin());
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.sub(b).is_super(s));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, s.begin() >= m_buf.sub(b).begin());
         _line_progressed((size_t)(s.begin() - m_buf.sub(b).begin()));
     }
     b = m_state->pos.offset; // take this into account
-    RYML_ASSERT(s.begins_with(q));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, s.begins_with(q));
 
     // skip the opening quote
     _line_progressed(1);
@@ -3489,8 +3662,8 @@ csubstr Parser::_scan_quoted_scalar(const char q)
         }
         else
         {
-            RYML_ASSERT(pos >= 0 && pos < m_buf.len);
-            RYML_ASSERT(m_buf[m_state->pos.offset + pos] == q);
+            _RYML_CB_ASSERT(m_stack.m_callbacks, pos >= 0 && pos < m_buf.len);
+            _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf[m_state->pos.offset + pos] == q);
             _line_progressed(pos + 1); // progress beyond the quote
             pos = m_state->pos.offset - b - 1; // but we stop before it
             break;
@@ -3507,12 +3680,12 @@ csubstr Parser::_scan_quoted_scalar(const char q)
     else if(pos == 0)
     {
         s.clear();
-        RYML_ASSERT( ! needs_filter);
+        _RYML_CB_ASSERT(m_stack.m_callbacks,  ! needs_filter);
     }
     else
     {
-        RYML_ASSERT(s.end() >= m_buf.begin() && s.end() <= m_buf.end());
-        RYML_ASSERT(s.end() == m_buf.end() || *s.end() == q);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, s.end() >= m_buf.begin() && s.end() <= m_buf.end());
+        _RYML_CB_ASSERT(m_stack.m_callbacks, s.end() == m_buf.end() || *s.end() == q);
         s = s.sub(0, pos-1);
     }
 
@@ -3527,7 +3700,7 @@ csubstr Parser::_scan_quoted_scalar(const char q)
         {
             ret = _filter_dquot_scalar(s);
         }
-        RYML_ASSERT(ret.len <= s.len || s.empty() || s.trim(' ').empty());
+        _RYML_CB_ASSERT(m_stack.m_callbacks, ret.len <= s.len || s.empty() || s.trim(' ').empty());
         _c4dbgpf("final scalar: \"%.*s\"", _c4prsp(ret));
         return ret;
     }
@@ -3546,11 +3719,11 @@ csubstr Parser::_scan_block()
     if(trimmed.str > s.str)
     {
         _c4dbgp("skipping whitespace");
-        RYML_ASSERT(trimmed.str >= s.str);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, trimmed.str >= s.str);
         _line_progressed(static_cast<size_t>(trimmed.str - s.str));
         s = trimmed;
     }
-    RYML_ASSERT(s.begins_with('|') || s.begins_with('>'));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, s.begins_with('|') || s.begins_with('>'));
 
     _c4dbgpf("scanning block: specs=\"%.*s\"", _c4prsp(s));
 
@@ -3561,10 +3734,10 @@ csubstr Parser::_scan_block()
     csubstr digits;
     if(s.len > 1)
     {
-        RYML_ASSERT(s.begins_with_any("|>"));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, s.begins_with_any("|>"));
         csubstr t = s.sub(1);
         _c4dbgpf("scanning block: spec is multichar: '%.*s'", _c4prsp(t));
-        RYML_ASSERT(t.len >= 1);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, t.len >= 1);
         size_t pos = t.first_of("-+");
         _c4dbgpf("scanning block: spec chomp char at %zu", pos);
         if(pos != npos)
@@ -3599,7 +3772,7 @@ csubstr Parser::_scan_block()
 
     // start with a zero-length block, already pointing at the right place
     substr raw_block(m_buf.data() + m_state->pos.offset, size_t(0));// m_state->line_contents.full.sub(0, 0);
-    RYML_ASSERT(raw_block.begin() == m_state->line_contents.full.begin());
+    _RYML_CB_ASSERT(m_stack.m_callbacks, raw_block.begin() == m_state->line_contents.full.begin());
 
     // read every full line into a raw block,
     // from which newlines are to be stripped as needed.
@@ -3689,7 +3862,7 @@ csubstr Parser::_scan_block()
         _line_ended();
         ++num_lines;
     }
-    RYML_ASSERT(m_state->pos.line == (first + num_lines));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->pos.line == (first + num_lines));
     C4_UNUSED(num_lines);
     C4_UNUSED(first);
 
@@ -3719,7 +3892,7 @@ csubstr Parser::_filter_plain_scalar(substr s, size_t indentation)
     {
         const char curr = r[i];
         const char next = i+1 < r.len ? r[i+1] : '\0';
-        RYML_ASSERT(curr != '\r' && next != '\r');
+        _RYML_CB_ASSERT(m_stack.m_callbacks, curr != '\r' && next != '\r');
         if(curr == '\n')
         {
             _c4dbgpf("filtering plain scalar: i=%zu: current='%.*s'", i, _c4prsp(r.first(i)));
@@ -3736,7 +3909,7 @@ csubstr Parser::_filter_plain_scalar(substr s, size_t indentation)
                     }
                     else if(r[e] == '\n' || r[e] == '\r')
                     {
-                        RYML_ASSERT(e > i);
+                        _RYML_CB_ASSERT(m_stack.m_callbacks, e > i);
                         _c4dbgpf("filtering plain scalar: whitespace-only line, len=%zu. keep newline.", e-i);
                         r = r.erase_range(i+1, e+1);
                     }
@@ -3767,9 +3940,9 @@ csubstr Parser::_filter_plain_scalar(substr s, size_t indentation)
             else
             {
                 _c4dbgp("filtering plain scalar: multiple newlines");
-                RYML_ASSERT(next == '\n');
+                _RYML_CB_ASSERT(m_stack.m_callbacks, next == '\n');
                 r = r.erase(i, 1);  // erase one
-                RYML_ASSERT(r[i] == '\n');
+                _RYML_CB_ASSERT(m_stack.m_callbacks, r[i] == '\n');
                 size_t nl = r.sub(i).first_not_of('\n');
                 if(nl == csubstr::npos)
                 {
@@ -3777,7 +3950,7 @@ csubstr Parser::_filter_plain_scalar(substr s, size_t indentation)
                     break;
                 }
                 _c4dbgpf("filtering plain scalar: erasing one of %zu newlines found at %zu", nl, i);
-                RYML_ASSERT(nl > 0);
+                _RYML_CB_ASSERT(m_stack.m_callbacks, nl > 0);
                 i += nl; // and skip the rest
             }
         }
@@ -3788,7 +3961,7 @@ csubstr Parser::_filter_plain_scalar(substr s, size_t indentation)
         }
     }
 
-    RYML_ASSERT(s.len >= r.len);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, s.len >= r.len);
     _c4dbgpf("filtering plain scalar: num filtered chars=%zd", s.len - r.len);
     _c4dbgpf("filtering plain scalar: after='%.*s'", _c4prsp(r));
 
@@ -3827,7 +4000,7 @@ csubstr Parser::_filter_squot_scalar(substr s)
         }
     }
 
-    RYML_ASSERT(s.len >= r.len);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, s.len >= r.len);
     _c4dbgpf("filtering single-quoted scalar: #filteredchars=%zd after=~~~%.*s~~~", s.len - r.len, _c4prsp(r));
 
 #ifdef RYML_DBG
@@ -3892,7 +4065,7 @@ csubstr Parser::_filter_dquot_scalar(substr s)
         }
     }
 
-    RYML_ASSERT(s.len >= r.len);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, s.len >= r.len);
     _c4dbgpf("filtering double-quoted scalar: #filteredchars=%zd after=~~~%.*s~~~", s.len - r.len, _c4prsp(r));
 
 #ifdef RYML_DBG
@@ -3923,9 +4096,9 @@ substr Parser::_filter_whitespace(substr r, size_t indentation, bool leading_whi
             {
                 csubstr ss = r.sub(i);
                 ss = ss.left_of(!filter_tabs ? ss.first_not_of(' ') : ss.first_not_of(" \t"));
-                RYML_ASSERT(ss.len >= 1);
+                _RYML_CB_ASSERT(m_stack.m_callbacks, ss.len >= 1);
                 size_t num = ss.len;
-                // RYML_ASSERT(num >= indentation); // empty lines are allowed
+                // _RYML_CB_ASSERT(m_stack.m_callbacks, num >= indentation); // empty lines are allowed
                 _c4dbgpf("filtering whitespace: line has %zu leading spaces", num);
                 if(leading_whitespace)
                     num = ss.len;
@@ -3965,7 +4138,7 @@ substr Parser::_filter_whitespace(substr r, size_t indentation, bool leading_whi
 //-----------------------------------------------------------------------------
 substr Parser::_filter_leading_and_trailing_whitespace_at_newline(substr r, size_t *C4_RESTRICT i, char next)
 {
-    RYML_ASSERT(r[*i] == '\n');
+    _RYML_CB_ASSERT(m_stack.m_callbacks, r[*i] == '\n');
 
     // from the YAML spec for double-quoted scalars:
     // https://yaml.org/spec/1.2/spec.html#id2787109
@@ -4040,7 +4213,7 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
 
     _c4dbgpf("filtering block: after whitespace=~~~%.*s~~~", _c4prsp(r));
 
-    RYML_ASSERT(r.find('\r') == csubstr::npos); // filter whitespace must remove this
+    _RYML_CB_ASSERT(m_stack.m_callbacks, r.find('\r') == csubstr::npos); // filter whitespace must remove this
 
     switch(chomp)
     {
@@ -4113,7 +4286,7 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
                         {
                             _c4dbgpf("filtering block[fold]: i=%zu nextl=%zu: remove 1 newline. curr=~~~%.*s~~~",
                                      i, nextl, _c4prsp(r.first(i)));
-                            RYML_ASSERT(nextl >= 1);
+                            _RYML_CB_ASSERT(m_stack.m_callbacks, nextl >= 1);
                             t = t.erase(i, 1);
                             i = nextl-1;
                             if(i)
@@ -4122,7 +4295,7 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
                     }
                     else
                     {
-                        RYML_ASSERT(is_indented || !found_non_space_so_far);
+                        _RYML_CB_ASSERT(m_stack.m_callbacks, is_indented || !found_non_space_so_far);
                         if(t[nextl] != ' ' && t[nextl] != '\t')
                         {
                             _c4dbgpf("filtering block[fold]: i=%zu nextl=%zu leaving indented mode. curr=~~~%.*s~~~", i, nextl, _c4prsp(r.first(i)));
@@ -4133,7 +4306,7 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
                 }
                 // copy over the trailing newlines
                 substr nl = r.sub(pos);
-                RYML_ASSERT(t.len + nl.len <= r.len);
+                _RYML_CB_ASSERT(m_stack.m_callbacks, t.len + nl.len <= r.len);
                 for(size_t i = 0; i < nl.len; ++i)
                 {
                     r[t.len + i] = nl[i];
@@ -4221,7 +4394,6 @@ void Parser::_err(const char *fmt, ...) const
 #endif
     char errmsg[RYML_ERRMSG_SIZE];
     int len = sizeof(errmsg);
-
     va_list args;
     va_start(args, fmt);
     len = _fmt_msg(errmsg, len, fmt, args);
@@ -4235,7 +4407,6 @@ void Parser::_dbg(const char *fmt, ...) const
 {
     char errmsg[RYML_ERRMSG_SIZE];
     int len = sizeof(errmsg);
-
     va_list args;
     va_start(args, fmt);
     len = _fmt_msg(errmsg, len, fmt, args);
@@ -4354,6 +4525,200 @@ int Parser::_prfl(char *buf, int buflen, size_t v)
 }
 
 #undef _wrapbuf
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+csubstr Parser::location_contents(Location const& loc) const
+{
+    _RYML_CB_ASSERT(m_stack.m_callbacks, loc.offset < m_buf.len);
+    return m_buf.sub(loc.offset);
+}
+
+Location Parser::location(NodeRef node) const
+{
+    _RYML_CB_ASSERT(m_stack.m_callbacks, node.valid());
+    _RYML_CB_ASSERT(m_stack.m_callbacks, node.tree() == m_tree);
+    return location(*node.tree(), node.id());
+}
+
+Location Parser::location(Tree const& tree, size_t node) const
+{
+    _RYML_CB_CHECK(m_stack.m_callbacks, m_buf.str == m_newline_offsets_buf.str);
+    _RYML_CB_CHECK(m_stack.m_callbacks, m_buf.len == m_newline_offsets_buf.len);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, &tree == m_tree);
+    if(tree.has_key(node))
+    {
+        csubstr k = tree.key(node);
+        if(k.str)
+        {
+            _RYML_CB_ASSERT(m_stack.m_callbacks, k.is_sub(m_buf));
+            _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.is_super(k));
+            return val_location(k.str);
+        }
+        else
+        {
+            _RYML_CB_ERR(m_stack.m_callbacks, "not implemented");
+        }
+    }
+    else if(tree.has_val(node))
+    {
+        csubstr v = tree.val(node);
+        if(v.str)
+        {
+            _RYML_CB_ASSERT(m_stack.m_callbacks, v.is_sub(m_buf));
+            _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.is_super(v));
+            return val_location(v.str);
+        }
+        else
+        {
+            _RYML_CB_ERR(m_stack.m_callbacks, "not implemented");
+        }
+    }
+    else if(tree.is_seq(node) || tree.is_map(node))
+    {
+        _RYML_CB_ASSERT(m_stack.m_callbacks, !tree.has_key(node));
+        if(tree.has_children(node))
+        {
+            Location loc = location(tree, tree.first_child(node));
+            if(loc.offset > 0)
+            {
+                // Improve the location for the container by trying to
+                // find a token where the container starts: search
+                // back for the last non-whitespace prior to the
+                // child's offset:
+                size_t offs = m_buf.last_not_of(" \t\r\n", loc.offset);
+                if(offs != npos)
+                {
+                    if(tree.is_seq(node))
+                    {
+                        if(m_buf[offs] == '[' || (m_buf[offs] == '-' && !tree.is_doc(node)))
+                        {
+                            return val_location(&m_buf.str[offs]);
+                        }
+                    }
+                    else
+                    {
+                        _RYML_CB_ASSERT(m_stack.m_callbacks, tree.is_map(node));
+                        if(m_buf[offs] == '{' || (m_buf[offs] == '-' && !tree.is_doc(node)))
+                        {
+                            return val_location(&m_buf.str[offs]);
+                        }
+                    }
+                }
+            }
+            return loc;
+        }
+        else
+        {
+            _RYML_CB_ERR(m_stack.m_callbacks, "not implemented");
+        }
+    }
+    _RYML_CB_ERR(m_stack.m_callbacks, "unknown node type");
+    return {};
+}
+
+Location Parser::val_location(const char *val) const
+{
+    if(_locations_dirty())
+        _prepare_locations();
+    csubstr src = m_buf;
+    _RYML_CB_CHECK(m_stack.m_callbacks, src.str == m_newline_offsets_buf.str);
+    _RYML_CB_CHECK(m_stack.m_callbacks, src.len == m_newline_offsets_buf.len);
+    _RYML_CB_CHECK(m_stack.m_callbacks, val >= src.begin() && val <= src.end());
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_newline_offsets != nullptr);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_newline_offsets_size > 0);
+    using linetype = size_t const* C4_RESTRICT;
+    linetype line = nullptr;
+    size_t offset = (size_t)(val - src.begin());
+    if(m_newline_offsets_size < 30)
+    {
+        // do a linear search if the size is small.
+        for(linetype curr = m_newline_offsets; curr < m_newline_offsets + m_newline_offsets_size; ++curr)
+        {
+            if(*curr > offset)
+            {
+                line = curr;
+                break;
+            }
+        }
+    }
+    else
+    {
+        // Do a bisection search if the size is not small.
+        //
+        // We could use std::lower_bound but this is simple enough and
+        // spares the include of <algorithm>.
+        size_t count = m_newline_offsets_size;
+        size_t step;
+        linetype it;
+        line = m_newline_offsets;
+        while(count)
+        {
+            step = count / 2;
+            it = line + step;
+            if(*it < offset)
+            {
+                line = ++it;
+                count -= step + 1;
+            }
+            else
+            {
+                count = step;
+            }
+        }
+    }
+    _RYML_CB_ASSERT(m_stack.m_callbacks, line != nullptr);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, line >= m_newline_offsets && line < m_newline_offsets + m_newline_offsets_size);;
+    _RYML_CB_ASSERT(m_stack.m_callbacks, *line > offset);
+    Location loc = {};
+    loc.name = m_file;
+    loc.offset = offset;
+    loc.line = (size_t)(line - m_newline_offsets);
+    if(line > m_newline_offsets)
+        loc.col = (offset - *(line-1) - 1u);
+    else
+        loc.col = offset;
+    return loc;
+}
+
+void Parser::_prepare_locations() const
+{
+    _RYML_CB_ASSERT(m_stack.m_callbacks, !m_file.empty());
+    _RYML_CB_ASSERT(m_stack.m_callbacks, !m_buf.empty());
+    size_t numnewlines = 1u + m_buf.count('\n');
+    _resize_locations(numnewlines);
+    m_newline_offsets_size = 0;
+    for(size_t i = 0; i < m_buf.len; i++)
+        if(m_buf[i] == '\n')
+            m_newline_offsets[m_newline_offsets_size++] = i;
+    m_newline_offsets[m_newline_offsets_size++] = m_buf.len;
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_newline_offsets_size == numnewlines);
+}
+
+void Parser::_resize_locations(size_t numnewlines) const
+{
+    if(numnewlines > m_newline_offsets_capacity)
+    {
+        if(m_newline_offsets)
+            _RYML_CB_FREE(m_stack.m_callbacks, m_newline_offsets, size_t, m_newline_offsets_capacity);
+        m_newline_offsets = _RYML_CB_ALLOC_HINT(m_stack.m_callbacks, size_t, numnewlines, m_newline_offsets);
+        m_newline_offsets_capacity = numnewlines;
+    }
+}
+
+void Parser::_mark_locations_dirty()
+{
+    m_newline_offsets_size = 0u;
+    m_newline_offsets_buf = m_buf;
+}
+
+bool Parser::_locations_dirty() const
+{
+    return (!m_newline_offsets_buf.empty()) && (!m_newline_offsets_size);
+}
 
 } // namespace yml
 } // namespace c4

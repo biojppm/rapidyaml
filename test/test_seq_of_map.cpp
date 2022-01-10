@@ -19,7 +19,7 @@ TEST(seq_of_map, with_anchors)
 - &seq
   a4: v4
 )";
-        Tree t = parse(yaml);
+        Tree t = parse_in_arena(yaml);
         EXPECT_EQ(emitrs<std::string>(t), yaml);
         ASSERT_EQ(t.rootref().num_children(), 3u);
         ASSERT_EQ(t[2].has_val_anchor(), true);
@@ -35,7 +35,7 @@ TEST(seq_of_map, with_anchors)
   *a2: w2
   *a3: w3
 )";
-        Tree t = parse(yaml);
+        Tree t = parse_in_arena(yaml);
         EXPECT_EQ(emitrs<std::string>(t), yaml);
     }
 }
@@ -57,7 +57,7 @@ TEST(seq_of_map, with_tags)
   !foo a2: v2
   !foo a3: v3
 )";
-        Tree t = parse(yaml);
+        Tree t = parse_in_arena(yaml);
         EXPECT_EQ(emitrs<std::string>(t), yaml);
     }
     {
@@ -73,7 +73,7 @@ TEST(seq_of_map, with_tags)
   !foo a2: v2
   !foo a3: v3
 )";
-        Tree t = parse(yaml);
+        Tree t = parse_in_arena(yaml);
         EXPECT_EQ(emitrs<std::string>(t), yaml);
     }
 }

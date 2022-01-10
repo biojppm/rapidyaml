@@ -226,15 +226,19 @@ eg the [`add_subdirectory()` sample](samples/add_subdirectory/).
 ```c++
 // Parse YAML code in place, potentially mutating the buffer.
 // It is also possible to:
-//   - parse a read-only buffer
+//   - parse a read-only buffer using parse_in_arena()
 //   - reuse an existing tree (advised)
 //   - reuse an existing parser (advised)
 char yml_buf[] = "{foo: 1, bar: [2, 3], john: doe}";
-ryml::Tree tree = ryml::parse(ryml::substr(yml_buf));
+ryml::Tree tree = ryml::parse_in_place(ryml::substr(yml_buf));
 
 // Note: it will always be significantly faster to use mutable
-// buffers and reuse tree+parser; in the quickstart sample you
-// will find examples for this.
+// buffers and reuse tree+parser.
+//
+// Below you will find samples that show how to achieve reuse; but
+// please note that for brevity and clarity, many of the examples
+// here are parsing immutable buffers, and not reusing tree or
+// parser.
 
 
 //------------------------------------------------------------------
@@ -322,14 +326,13 @@ CHECK(root["john"].id() == root[2].id());
 // root level to fill an `std::map<csubstr,size_t>` mapping key names to node
 // indices; with a node index, a lookup (via `Tree::get()`) is O(1), so this way
 // you can get O(log n) lookup from a key.
-// 
+//
 // As for `NodeRef`, the difference from `NodeRef::operator[]`
 // to `Tree::operator[]` is that the latter refers to the root node, whereas
 // the former can be invoked on any node. But the lookup process is the same for
 // both and their algorithmic complexity is the same: they are both linear in
 // the number of direct children; but depending on the data, that number may
 // be very different from one to another.
-
 
 //------------------------------------------------------------------
 // Hierarchy:
@@ -545,10 +548,10 @@ ryml::csubstr buf_result = ryml::emit(tree, buf);
 // now check
 ryml::csubstr expected_result = R"(foo: says who
 bar:
-  - 20
-  - 30
-  - oh so nice
-  - oh so nice (serialized)
+- 20
+- 30
+- oh so nice
+- oh so nice (serialized)
 john: in_scope
 newkeyval: shiny and new
 newkeyval (serialized): shiny and new (serialized)
@@ -562,7 +565,17 @@ CHECK(buf_result == expected_result);
 CHECK(str_result == expected_result);
 CHECK(stream_result == expected_result);
 // There are many possibilities to emit to buffer;
-// please look at the quickstart sample functions below.
+// please look at the emit sample functions below.
+
+//------------------------------------------------------------------
+// Getting the location of nodes in the source:
+ryml::Parser parser;
+ryml::Tree tree2 = parser.parse_in_arena("expected.yml", expected_result);
+ryml::Location loc = parser.location(tree2["bar"][1]);
+CHECK(parser.location_contents(loc).begins_with("30"));
+CHECK(loc.line == 3u);
+CHECK(loc.col == 4u);
+// For further details in location tracking, refer to the sample function.
 ```
 
 The [quickstart.cpp sample](./samples/quickstart.cpp) (from which the
@@ -574,8 +587,8 @@ There you can find the following subjects being addressed:
 ```c++
 sample_substr();               ///< about ryml's string views (from c4core)
 sample_parse_file();           ///< ready-to-go example of parsing a file from disk
-sample_parse_read_only();      ///< parse a read-only YAML source buffer
-sample_parse_in_situ();        ///< parse an immutable YAML source buffer
+sample_parse_in_place();       ///< parse a mutable YAML source buffer
+sample_parse_in_arena();       ///< parse a read-only YAML source buffer
 sample_parse_reuse_tree();     ///< parse into an existing tree, maybe into a node
 sample_parse_reuse_parser();   ///< reuse an existing parser
 sample_parse_reuse_tree_and_parser(); ///< how to reuse existing trees and parsers
@@ -599,6 +612,7 @@ sample_docs();                 ///< deal with YAML docs
 sample_error_handler();        ///< set a custom error handler
 sample_global_allocator();     ///< set a global allocator for ryml
 sample_per_tree_allocator();   ///< set per-tree allocators
+sample_location_tracking();    ///< track node locations in the parsed source tree
 ```
 
 
@@ -817,7 +831,7 @@ check(tree) # OK
 # also works, but requires bytearrays or
 # objects offering writeable memory
 mutable = bytearray(src)
-tree = ryml.parse_in_situ(mutable)
+tree = ryml.parse_in_place(mutable)
 check(tree) # OK
 ```
 

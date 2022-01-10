@@ -24,7 +24,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL GNU)
     endif()
 endif()
 c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
-    SOURCES test_case.hpp test_case.cpp
+    SOURCES test_case.hpp test_case.cpp callbacks_tester.hpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${ryml_yaml_cpp_inc}
     LIBS ryml c4fs gtest
     FOLDER test)
@@ -55,12 +55,16 @@ function(ryml_add_test_case_group name)
 endfunction()
 
 
-ryml_add_test(basic)
 ryml_add_test(callbacks)
 ryml_add_test(stack)
+ryml_add_test(parser)
+ryml_add_test(tree)
+ryml_add_test(serialize)
+ryml_add_test(basic)
 ryml_add_test(basic_json)
 ryml_add_test(preprocess)
 ryml_add_test(merge)
+ryml_add_test(location)
 ryml_add_test_case_group(empty_file)
 ryml_add_test_case_group(empty_map)
 ryml_add_test_case_group(empty_seq)

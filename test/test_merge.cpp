@@ -25,7 +25,7 @@ void test_merge(std::initializer_list<csubstr> li, csubstr expected)
 {
     Tree loaded, merged, ref;
 
-    parse(expected, &ref);
+    parse_in_arena(expected, &ref);
 
     // make sure the arena in the loaded tree is never resized
     size_t arena_dim = 2;
@@ -38,7 +38,7 @@ void test_merge(std::initializer_list<csubstr> li, csubstr expected)
     for(csubstr src : li)
     {
         loaded.clear(); // do not clear the arena of the loaded tree
-        parse(src, &loaded);
+        parse_in_arena(src, &loaded);
         merged.merge_with(&loaded);
     }
 

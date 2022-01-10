@@ -45,7 +45,7 @@ TEST(anchors, node_scalar_set_ref_when_non_empty)
 
 TEST(anchors, no_ambiguity_when_key_scalars_begin_with_star)
 {
-    Tree t = parse("{foo: &foo 1, *foo: 2, '*foo': 3}");
+    Tree t = parse_in_arena("{foo: &foo 1, *foo: 2, '*foo': 3}");
 
     EXPECT_TRUE(t[1].is_key_ref());
     EXPECT_FALSE(t[2].is_key_ref());
@@ -72,7 +72,7 @@ TEST(anchors, no_ambiguity_when_key_scalars_begin_with_star)
 
 TEST(anchors, no_ambiguity_when_val_scalars_begin_with_star)
 {
-    Tree t = parse("{foo: &foo 1, ref: *foo, quo: '*foo'}");
+    Tree t = parse_in_arena("{foo: &foo 1, ref: *foo, quo: '*foo'}");
 
     EXPECT_TRUE(t["ref"].is_val_ref());
     EXPECT_FALSE(t["quo"].is_val_ref());
@@ -99,7 +99,7 @@ quo: '*foo'
 
 TEST(anchors, no_ambiguity_with_inheritance)
 {
-    Tree t = parse("{foo: &foo {a: 1, b: 2}, bar: {<<: *foo}, sq: {'<<': haha}, dq: {\"<<\": hehe}}");
+    Tree t = parse_in_arena("{foo: &foo {a: 1, b: 2}, bar: {<<: *foo}, sq: {'<<': haha}, dq: {\"<<\": hehe}}");
 
     EXPECT_TRUE(t["bar"].has_child("<<"));
     EXPECT_TRUE(t["bar"]["<<"].is_key_ref());
@@ -141,7 +141,7 @@ dq:
 
 TEST(anchors, programatic_key_ref)
 {
-    Tree t = parse("{}");
+    Tree t = parse_in_arena("{}");
     NodeRef r = t.rootref();
     r["kanchor"] = "2";
     r["kanchor"].set_key_anchor("kanchor");
@@ -174,7 +174,7 @@ kanchor: 6
 
 TEST(anchors, programatic_val_ref)
 {
-    Tree t = parse("{}");
+    Tree t = parse_in_arena("{}");
     t["kanchor"] = "2";
     t["kanchor"].set_key_anchor("kanchor");
     t["vanchor"] = "3";
@@ -200,7 +200,7 @@ vref: 3
 
 TEST(anchors, programatic_inheritance)
 {
-    Tree t = parse("{orig: &orig {foo: bar, baz: bat}, copy: {}, notcopy: {}, notref: {}}");
+    Tree t = parse_in_arena("{orig: &orig {foo: bar, baz: bat}, copy: {}, notcopy: {}, notref: {}}");
 
     t["copy"]["<<"] = "*orig";
     t["copy"]["<<"].set_key_ref("<<");
@@ -245,7 +245,7 @@ notref:
 
 TEST(anchors, programatic_multiple_inheritance)
 {
-    Tree t = parse("{orig1: &orig1 {foo: bar}, orig2: &orig2 {baz: bat}, orig3: &orig3 {and: more}, copy: {}}");
+    Tree t = parse_in_arena("{orig1: &orig1 {foo: bar}, orig2: &orig2 {baz: bat}, orig3: &orig3 {and: more}, copy: {}}");
 
     t["copy"]["<<"] |= SEQ;
     t["copy"]["<<"].set_key_ref("<<");
@@ -287,7 +287,7 @@ copy:
 
 TEST(anchors, set_anchor_leading_ampersand_is_optional)
 {
-    Tree t = parse("{without: 0, with: 1}");
+    Tree t = parse_in_arena("{without: 0, with: 1}");
 
     t["without"].set_key_anchor("without");
     t["with"].set_key_anchor("&with");
@@ -308,7 +308,7 @@ TEST(anchors, set_anchor_leading_ampersand_is_optional)
 
 TEST(anchors, set_ref_leading_star_is_optional)
 {
-    Tree t = parse("{}");
+    Tree t = parse_in_arena("{}");
 
     t["*without"] = "0";
     t["*with"] = "1";
@@ -335,7 +335,7 @@ TEST(anchors, set_ref_leading_star_is_optional)
 
 TEST(anchors, set_key_ref_also_sets_the_key_when_none_exists)
 {
-    Tree t = parse("{}");
+    Tree t = parse_in_arena("{}");
     NodeRef root = t.rootref();
     NodeRef without = root.append_child();
     NodeRef with = root.append_child();
@@ -358,7 +358,7 @@ TEST(anchors, set_key_ref_also_sets_the_key_when_none_exists)
 
 TEST(anchors, set_val_ref_also_sets_the_val_when_none_exists)
 {
-    Tree t = parse("{}");
+    Tree t = parse_in_arena("{}");
     NodeRef root = t.rootref();
     NodeRef without = root.append_child();
     NodeRef with = root.append_child();
@@ -381,7 +381,7 @@ with: *with
 
 TEST(anchors, set_key_ref_replaces_existing_key)
 {
-    Tree t = parse("{*foo: bar}");
+    Tree t = parse_in_arena("{*foo: bar}");
     NodeRef root = t.rootref();
     EXPECT_TRUE(root.has_child("*foo"));
     root["*foo"].set_key_ref("notfoo");
@@ -393,7 +393,7 @@ TEST(anchors, set_key_ref_replaces_existing_key)
 
 TEST(anchors, set_val_ref_replaces_existing_key)
 {
-    Tree t = parse("{foo: *bar}");
+    Tree t = parse_in_arena("{foo: *bar}");
     NodeRef root = t.rootref();
     root["foo"].set_val_ref("notbar");
     EXPECT_EQ(root["foo"].val(), "notbar");
@@ -409,7 +409,7 @@ TEST(anchors, set_val_ref_replaces_existing_key)
 
 TEST(weird_anchor_cases_from_suite, 2SXE)
 {
-    Tree t = parse(R"(&a: key: &a value
+    Tree t = parse_in_arena(R"(&a: key: &a value
 foo:
   *a:
 )");
@@ -549,7 +549,7 @@ TEST(simple_anchor, resolve_works_on_an_empty_tree)
 
 TEST(simple_anchor, resolve_works_on_a_tree_without_refs)
 {
-    Tree t = parse("[a, b, c, d, e, f]");
+    Tree t = parse_in_arena("[a, b, c, d, e, f]");
     size_t size_before = t.size();
     t.resolve();
     EXPECT_EQ(t.size(), size_before);
@@ -557,7 +557,7 @@ TEST(simple_anchor, resolve_works_on_a_tree_without_refs)
 
 TEST(simple_anchor, resolve_works_on_keyrefvalref)
 {
-    Tree t = parse("{&a a: &b b, *b: *a}");
+    Tree t = parse_in_arena("{&a a: &b b, *b: *a}");
     EXPECT_EQ(t["a"].has_key_anchor(), true);
     EXPECT_EQ(t["a"].has_val_anchor(), true);
     EXPECT_EQ(t["a"].key_anchor(), "a");
@@ -594,7 +594,7 @@ top62:
   key62:
       scalar62
 )";
-    Tree t = parse(yaml);
+    Tree t = parse_in_arena(yaml);
     EXPECT_EQ(t.rootref().has_val_anchor(), true);
     EXPECT_EQ(t.rootref().val_anchor(), "anchor0");
     EXPECT_EQ(t["top4"].has_key_anchor(), true);

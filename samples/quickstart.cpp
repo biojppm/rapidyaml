@@ -57,8 +57,8 @@ namespace sample {
 void sample_quick_overview();       ///< briefly skim over most of the features
 void sample_substr();               ///< about ryml's string views (from c4core)
 void sample_parse_file();           ///< ready-to-go example of parsing a file from disk
-void sample_parse_read_only();      ///< parse a read-only YAML source buffer
-void sample_parse_in_situ();        ///< parse an immutable YAML source buffer
+void sample_parse_in_place();       ///< parse a mutable YAML source buffer
+void sample_parse_in_arena();       ///< parse a read-only YAML source buffer
 void sample_parse_reuse_tree();     ///< parse into an existing tree, maybe into a node
 void sample_parse_reuse_parser();   ///< reuse an existing parser
 void sample_parse_reuse_tree_and_parser(); ///< how to reuse existing trees and parsers
@@ -82,6 +82,7 @@ void sample_docs();                 ///< deal with YAML docs
 void sample_error_handler();        ///< set a custom error handler
 void sample_global_allocator();     ///< set a global allocator for ryml
 void sample_per_tree_allocator();   ///< set per-tree allocators
+void sample_location_tracking();    ///< track node locations in the parsed source tree
 int  report_checks();
 } /* namespace sample */
 
@@ -90,8 +91,8 @@ int main()
     sample::sample_quick_overview();
     sample::sample_substr();
     sample::sample_parse_file();
-    sample::sample_parse_read_only();
-    sample::sample_parse_in_situ();
+    sample::sample_parse_in_place();
+    sample::sample_parse_in_arena();
     sample::sample_parse_reuse_tree();
     sample::sample_parse_reuse_parser();
     sample::sample_parse_reuse_tree_and_parser();
@@ -115,6 +116,7 @@ int main()
     sample::sample_error_handler();
     sample::sample_global_allocator();
     sample::sample_per_tree_allocator();
+    sample::sample_location_tracking();
     return sample::report_checks();
 }
 
@@ -138,11 +140,11 @@ void sample_quick_overview()
 {
     // Parse YAML code in place, potentially mutating the buffer.
     // It is also possible to:
-    //   - parse a read-only buffer
+    //   - parse a read-only buffer using parse_in_arena()
     //   - reuse an existing tree (advised)
     //   - reuse an existing parser (advised)
     char yml_buf[] = "{foo: 1, bar: [2, 3], john: doe}";
-    ryml::Tree tree = ryml::parse(ryml::substr(yml_buf));
+    ryml::Tree tree = ryml::parse_in_place(ryml::substr(yml_buf));
 
     // Note: it will always be significantly faster to use mutable
     // buffers and reuse tree+parser.
@@ -478,6 +480,17 @@ I am somebody: indeed
     CHECK(stream_result == expected_result);
     // There are many possibilities to emit to buffer;
     // please look at the emit sample functions below.
+
+    //------------------------------------------------------------------
+    // Getting the location of nodes in the source:
+    ryml::Parser parser;
+    ryml::Tree tree2 = parser.parse_in_arena("expected.yml", expected_result);
+    ryml::Location loc = parser.location(tree2["bar"][1]);
+    CHECK(parser.location_contents(loc).begins_with("30"));
+    CHECK(loc.line == 3u);
+    CHECK(loc.col == 4u);
+    // For further details in location tracking,
+    // refer to the sample function below.
 }
 
 
@@ -556,7 +569,7 @@ void sample_substr()
     // construct from a std::string: same approach as above.
     // requires inclusion of the <ryml/std/string.hpp> header
     // or of the umbrella header <ryml_std.hpp>.
-    // this was a conscious design choice to avoid requiring
+    // this was a deliberate design choice to avoid requiring
     // the heavy std:: allocation machinery
     {
         std::string foobar_str = "foobar";
@@ -1244,7 +1257,7 @@ void sample_parse_file()
     // now we can load it into a std::string (for example):
     {
         std::string contents = file_get_contents<std::string>(filename);
-        ryml::Tree tree = ryml::parse(ryml::to_csubstr(contents)); // immutable (csubstr) overload
+        ryml::Tree tree = ryml::parse_in_arena(ryml::to_csubstr(contents)); // immutable (csubstr) overload
         CHECK(tree["foo"].val() == "1");
         CHECK(tree["bar"][0].val() == "2");
         CHECK(tree["bar"][1].val() == "3");
@@ -1253,7 +1266,7 @@ void sample_parse_file()
     // or we can use a vector<char> instead:
     {
         std::vector<char> contents = file_get_contents<std::vector<char>>(filename);
-        ryml::Tree tree = ryml::parse(ryml::to_substr(contents)); // mutable (csubstr) overload
+        ryml::Tree tree = ryml::parse_in_place(ryml::to_substr(contents)); // mutable (csubstr) overload
         CHECK(tree["foo"].val() == "1");
         CHECK(tree["bar"][0].val() == "2");
         CHECK(tree["bar"][1].val() == "3");
@@ -1264,50 +1277,21 @@ void sample_parse_file()
     // created out of it.
     //
     // ryml provides the overloads above for these two containers, but
-    // if you have a different container it should be very easy (only
+    // if you are using another container it should be very easy (only
     // requires pointer and length).
 }
 
 
 //-----------------------------------------------------------------------------
 
-/** demonstrate parsing of a read-only YAML source buffer */
-void sample_parse_read_only()
+/** demonstrate in-place parsing of a mutable YAML source buffer. */
+void sample_parse_in_place()
 {
-    // to parse read-only memory, ryml will copy first to the tree's arena.
-    // but usage is similar to in-situ
-    ryml::Tree tree = ryml::parse("{foo: 1, bar: [2, 3]}");
-    ryml::NodeRef root = tree.rootref(); // get a reference to the root
-
-    CHECK(root.is_map());
-    CHECK(root["foo"].is_keyval());
-    CHECK(root["foo"].key() == "foo");
-    CHECK(root["foo"].val() == "1");
-    CHECK(root["bar"].is_seq());
-    CHECK(root["bar"].has_key());
-    CHECK(root["bar"].key() == "bar");
-    CHECK(root["bar"][0].val() == "2");
-    CHECK(root["bar"][1].val() == "3");
-
-    // deserializing:
-    int foo = 0, bar0 = 0, bar1 = 0;
-    root["foo"] >> foo;
-    root["bar"][0] >> bar0;
-    root["bar"][1] >> bar1;
-    CHECK(foo == 1);
-    CHECK(bar0 == 2);
-    CHECK(bar1 == 3);
-}
-
-
-//-----------------------------------------------------------------------------
-
-/** demonstrate in-place parsing of a mutable YAML source buffer */
-void sample_parse_in_situ()
-{
+    // Like the name suggests, parse_in_place() directly mutates the
+    // source buffer in place
     char src[] = "{foo: 1, bar: [2, 3]}"; // ryml can parse in situ
     ryml::substr srcview = src; // a mutable view to the source buffer
-    ryml::Tree tree = ryml::parse(srcview); // you can also reuse the tree and/or parser
+    ryml::Tree tree = ryml::parse_in_place(srcview); // you can also reuse the tree and/or parser
     ryml::NodeRef root = tree.rootref(); // get a reference to the root
 
     CHECK(root.is_map());
@@ -1342,6 +1326,57 @@ void sample_parse_in_situ()
     CHECK(root["bar"][1].val().begin() == src + strlen("{foo: 1, bar: [2, "));
     CHECK(root["bar"][1].val().end()   == src + strlen("{foo: 1, bar: [2, 3"));
     CHECK(root["bar"][1].val().is_sub(srcview)); // equivalent to the previous three assertions
+
+    // NOTE. parse_in_place() cannot accept ryml::csubstr
+    // so this will cause a /compile/ error:
+    ryml::csubstr csrcview = srcview; // ok, can assign from mutable to immutable
+    //tree = ryml::parse_in_place(csrcview); // compile error, cannot mutate an immutable view
+    (void)csrcview;
+}
+
+
+//-----------------------------------------------------------------------------
+
+/** demonstrate parsing of a read-only YAML source buffer */
+void sample_parse_in_arena()
+{
+    // to parse read-only memory, ryml will copy first to the tree's
+    // arena, and then parse the copied buffer:
+    ryml::Tree tree = ryml::parse_in_arena("{foo: 1, bar: [2, 3]}");
+    ryml::NodeRef root = tree.rootref(); // get a reference to the root
+
+    CHECK(root.is_map());
+    CHECK(root["foo"].is_keyval());
+    CHECK(root["foo"].key() == "foo");
+    CHECK(root["foo"].val() == "1");
+    CHECK(root["bar"].is_seq());
+    CHECK(root["bar"].has_key());
+    CHECK(root["bar"].key() == "bar");
+    CHECK(root["bar"][0].val() == "2");
+    CHECK(root["bar"][1].val() == "3");
+
+    // deserializing:
+    int foo = 0, bar0 = 0, bar1 = 0;
+    root["foo"] >> foo;
+    root["bar"][0] >> bar0;
+    root["bar"][1] >> bar1;
+    CHECK(foo == 1);
+    CHECK(bar0 == 2);
+    CHECK(bar1 == 3);
+
+    // NOTE. parse_in_arena() cannot accept ryml::substr. Overloads
+    // receiving substr buffers are declared, but intentionally left
+    // undefined, so this will cause a /linker/ error
+    char src[] = "{foo: is it really true}";
+    ryml::substr srcview = src;
+    //tree = ryml::parse_in_place(srcview); // linker error, overload intentionally undefined
+
+    // If you really intend to parse an originally mutable buffer,
+    // then simply convert it to immutable prior to calling
+    // parse_in_arena():
+    ryml::csubstr csrcview = srcview; // assigning from src also works
+    tree = ryml::parse_in_arena(csrcview); // OK! csrcview is immutable
+    CHECK(tree["foo"].val() == "is it really true");
 }
 
 
@@ -1356,10 +1391,10 @@ void sample_parse_reuse_tree()
     tree.reserve(30); // reserve 30 nodes (good enough for this sample)
     // if you are using the tree's arena to serialize data,
     // then reserve also the arena's size:
-    tree.reserve(256); // reserve 256 characters (good enough for this sample)
+    tree.reserve_arena(256); // reserve 256 characters (good enough for this sample)
 
     // now parse into the tree:
-    ryml::parse("{foo: 1, bar: [2, 3]}", &tree);
+    ryml::parse_in_arena("{foo: 1, bar: [2, 3]}", &tree);
 
     ryml::NodeRef root = tree.rootref();
     CHECK(root.num_children() == 2);
@@ -1379,7 +1414,7 @@ bar:
 )");
 
     // WATCHOUT: parsing into an existing tree will APPEND to it:
-    ryml::parse("{foo2: 12, bar2: [22, 32]}", &tree);
+    ryml::parse_in_arena("{foo2: 12, bar2: [22, 32]}", &tree);
     CHECK(ryml::emitrs<std::string>(tree) == R"(foo: 1
 bar:
   - 2
@@ -1401,7 +1436,7 @@ bar2:
 
     // clear first before parsing into an existing tree.
     tree.clear();
-    ryml::parse("[a, b, {x0: 1, x1: 2}]", &tree);
+    ryml::parse_in_arena("[a, b, {x0: 1, x1: 2}]", &tree);
     CHECK(ryml::emitrs<std::string>(tree) == R"(- a
 - b
 - x0: 1
@@ -1415,7 +1450,7 @@ bar2:
     CHECK(root[2]["x1"].val() == "2");
 
     // we can parse directly into a node nested deep in an existing tree:
-    ryml::parse("{champagne: Dom Perignon, coffee: Arabica}", root.append_child());
+    ryml::parse_in_arena("{champagne: Dom Perignon, coffee: Arabica}", root.append_child());
     CHECK(ryml::emitrs<std::string>(tree) == R"(- a
 - b
 - x0: 1
@@ -1436,8 +1471,8 @@ bar2:
     // watchout: to add to an existing node within a map, the node's key must first be set:
     ryml::NodeRef more = root[3].append_child({ryml::KEYMAP, "more"});
     ryml::NodeRef beer = root[3].append_child({ryml::KEYSEQ, "beer"});
-    ryml::parse("{vinho verde: Soalheiro, vinho tinto: Redoma 2017}", more);
-    ryml::parse("[Rochefort 10, Busch, Leffe Rituel]", beer);
+    ryml::parse_in_arena("{vinho verde: Soalheiro, vinho tinto: Redoma 2017}", more);
+    ryml::parse_in_arena("[Rochefort 10, Busch, Leffe Rituel]", beer);
     CHECK(ryml::emitrs<std::string>(tree) == R"(- a
 - b
 - x0: 1
@@ -1453,7 +1488,7 @@ bar2:
     - Leffe Rituel
 )");
 
-    ryml::parse("[foo, bar, baz, bat]", root);
+    ryml::parse_in_arena("[foo, bar, baz, bat]", root);
     CHECK(ryml::emitrs<std::string>(tree) == R"(- a
 - b
 - x0: 1
@@ -1473,7 +1508,7 @@ bar2:
 - bat
 )");
 
-    ryml::parse("[Kasteel Donker]", beer);
+    ryml::parse_in_arena("[Kasteel Donker]", beer);
     CHECK(ryml::emitrs<std::string>(tree) == R"(- a
 - b
 - x0: 1
@@ -1513,14 +1548,14 @@ void sample_parse_reuse_parser()
     parser.reserve_stack(20); // But this will cause an allocation
                               // because it is above 16.
 
-    auto champagnes = parser.parse("champagnes.yml", "[Dom Perignon, Gosset Grande Reserve, Ruinart Blanc de Blancs, Jacquesson 742]");
+    auto champagnes = parser.parse_in_arena("champagnes.yml", "[Dom Perignon, Gosset Grande Reserve, Ruinart Blanc de Blancs, Jacquesson 742]");
     CHECK(ryml::emitrs<std::string>(champagnes) == R"(- Dom Perignon
 - Gosset Grande Reserve
 - Ruinart Blanc de Blancs
 - Jacquesson 742
 )");
 
-    auto beers = parser.parse("beers.yml", "[Rochefort 10, Busch, Leffe Rituel, Kasteel Donker]");
+    auto beers = parser.parse_in_arena("beers.yml", "[Rochefort 10, Busch, Leffe Rituel, Kasteel Donker]");
     CHECK(ryml::emitrs<std::string>(beers) == R"(- Rochefort 10
 - Busch
 - Leffe Rituel
@@ -1557,7 +1592,7 @@ void sample_parse_reuse_tree_and_parser()
     ryml::csubstr beers = "[Rochefort 10, Busch, Leffe Rituel, Kasteel Donker]";
     ryml::csubstr wines = "[Soalheiro, Niepoort Redoma 2017, Vina Esmeralda]";
 
-    parser.parse("champagnes.yml", champagnes, &tree);
+    parser.parse_in_arena("champagnes.yml", champagnes, &tree);
     CHECK(ryml::emitrs<std::string>(tree) == R"(- Dom Perignon
 - Gosset Grande Reserve
 - Ruinart Blanc de Blancs
@@ -1565,7 +1600,7 @@ void sample_parse_reuse_tree_and_parser()
 )");
 
     // watchout: this will APPEND to the given tree:
-    parser.parse("beers.yml", beers, &tree);
+    parser.parse_in_arena("beers.yml", beers, &tree);
     CHECK(ryml::emitrs<std::string>(tree) == R"(- Dom Perignon
 - Gosset Grande Reserve
 - Ruinart Blanc de Blancs
@@ -1578,7 +1613,7 @@ void sample_parse_reuse_tree_and_parser()
 
     // if you don't wish to append, clear the tree first:
     tree.clear();
-    parser.parse("wines.yml", wines, &tree);
+    parser.parse_in_arena("wines.yml", wines, &tree);
     CHECK(ryml::emitrs<std::string>(tree) == R"(- Soalheiro
 - Niepoort Redoma 2017
 - Vina Esmeralda
@@ -1591,7 +1626,7 @@ void sample_parse_reuse_tree_and_parser()
 /** shows how to programatically iterate through trees */
 void sample_iterate_trees()
 {
-    ryml::Tree tree = ryml::parse(R"(doe: "a deer, a female deer"
+    ryml::Tree tree = ryml::parse_in_arena(R"(doe: "a deer, a female deer"
 ray: "a drop of golden sun"
 pi: 3.14159
 xmas: true
@@ -1739,7 +1774,7 @@ void sample_tree_arena()
     {
         char buf[] = "[a, b, c, d]";
         ryml::substr yml = buf;
-        ryml::Tree tree = ryml::parse(yml);
+        ryml::Tree tree = ryml::parse_in_place(yml);
         // notice the arena is empty:
         CHECK(tree.arena().empty());
         // and the tree is pointing at the original buffer:
@@ -1759,7 +1794,7 @@ void sample_tree_arena()
     // actually parsed
     {
         ryml::csubstr yml = "[a, b, c, d]";
-        ryml::Tree tree = ryml::parse(yml);
+        ryml::Tree tree = ryml::parse_in_arena(yml);
         // notice the buffer was copied to the arena:
         CHECK(tree.arena().data() != yml.data());
         CHECK(tree.arena() == yml);
@@ -1782,7 +1817,7 @@ void sample_tree_arena()
     {
         char buf[] = "[a, b, c, d]"; // mutable
         ryml::substr yml = buf;
-        ryml::Tree tree = ryml::parse(yml);
+        ryml::Tree tree = ryml::parse_in_place(yml);
         // notice the arena is empty:
         CHECK(tree.arena().empty());
         ryml::NodeRef root = tree.rootref();
@@ -1809,7 +1844,7 @@ void sample_tree_arena()
     // with NodeRef::operator<<(): immutable buffer
     {
         ryml::csubstr yml = "[a, b, c, d]"; // immutable
-        ryml::Tree tree = ryml::parse(yml);
+        ryml::Tree tree = ryml::parse_in_arena(yml);
         // notice the buffer was copied to the arena:
         CHECK(tree.arena().data() != yml.data());
         CHECK(tree.arena() == yml);
@@ -1837,7 +1872,7 @@ void sample_tree_arena()
 
     // to_arena(): directly serialize values to the arena:
     {
-        ryml::Tree tree = ryml::parse("{a: b}");
+        ryml::Tree tree = ryml::parse_in_arena("{a: b}");
         ryml::csubstr c10 = tree.to_arena(10101010);
         CHECK(c10 == "10101010");
         CHECK(c10.is_sub(tree.arena()));
@@ -1855,7 +1890,7 @@ void sample_tree_arena()
 
     // copy_to_arena(): manually copy a string to the arena:
     {
-        ryml::Tree tree = ryml::parse("{a: b}");
+        ryml::Tree tree = ryml::parse_in_arena("{a: b}");
         ryml::csubstr mystr = "Gosset Grande Reserve";
         ryml::csubstr copied = tree.copy_to_arena(mystr);
         CHECK(!copied.overlaps(mystr));
@@ -1865,7 +1900,7 @@ void sample_tree_arena()
 
     // alloc_arena(): allocate a buffer from the arena:
     {
-        ryml::Tree tree = ryml::parse("{a: b}");
+        ryml::Tree tree = ryml::parse_in_arena("{a: b}");
         ryml::csubstr mystr = "Gosset Grande Reserve";
         ryml::substr copied = tree.alloc_arena(mystr.size());
         CHECK(!copied.overlaps(mystr));
@@ -1876,7 +1911,7 @@ void sample_tree_arena()
 
     // reserve_arena(): ensure the arena has a certain size to avoid reallocations
     {
-        ryml::Tree tree = ryml::parse("{a: b}");
+        ryml::Tree tree = ryml::parse_in_arena("{a: b}");
         CHECK(tree.arena().size() == strlen("{a: b}"));
         tree.reserve_arena(100);
         CHECK(tree.arena_capacity() >= 100);
@@ -1930,7 +1965,7 @@ void sample_fundamental_types()
     CHECK(tree.to_arena( fnan) ==  ".nan"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410.inf.inf-.inf-.inf.nan");
     CHECK(tree.to_arena( dnan) ==  ".nan"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410.inf.inf-.inf-.inf.nan.nan");
     // read special float values
-    tree = ryml::parse(R"({ninf: -.inf, pinf: .inf, nan: .nan})");
+    tree = ryml::parse_in_arena(R"({ninf: -.inf, pinf: .inf, nan: .nan})");
     C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wfloat-equal");
     float f = 0.f;
     double d = 0.;
@@ -2824,7 +2859,7 @@ void sample_std_types()
     21003: 22003
 )";
     // parse in-place using the std::string above
-    auto tree = ryml::parse(ryml::to_substr(yml_std_string));
+    auto tree = ryml::parse_in_place(ryml::to_substr(yml_std_string));
     // my_type is a container-of-containers type. see above its
     // definition implementation for ryml.
     std::vector<my_type> vmt;
@@ -2862,8 +2897,8 @@ void sample_emit_to_container()
 - baz
 - bat
 )";
-    auto treea = ryml::parse(ymla);
-    auto treeb = ryml::parse(ymlb);
+    auto treea = ryml::parse_in_arena(ymla);
+    auto treeb = ryml::parse_in_arena(ymlb);
 
     // eg, std::vector<char>
     {
@@ -2980,7 +3015,7 @@ void sample_emit_to_stream()
 - baz
 - bat
 )";
-    auto tree = ryml::parse(ymlb);
+    auto tree = ryml::parse_in_arena(ymlb);
 
     std::string s;
 
@@ -3044,7 +3079,7 @@ void sample_emit_to_file()
 - baz
 - bat
 )";
-    auto tree = ryml::parse(yml);
+    auto tree = ryml::parse_in_arena(yml);
     // this is emitting to stdout, but of course you can pass in any
     // FILE* obtained from fopen()
     size_t len = ryml::emit(tree, tree.root_id(), stdout);
@@ -3059,7 +3094,7 @@ void sample_emit_to_file()
 /** just like parsing into a nested node, you can also emit from a nested node. */
 void sample_emit_nested_node()
 {
-    auto tree = ryml::parse(R"(- a
+    auto tree = ryml::parse_in_arena(R"(- a
 - b
 - x0: 1
   x1: 2
@@ -3095,7 +3130,7 @@ void sample_json()
     {
         // Since JSON is a subset of YAML, parsing JSON is just the
         // same as YAML:
-        ryml::Tree tree = ryml::parse(R"({
+        ryml::Tree tree = ryml::parse_in_arena(R"({
 "doe": "a deer, a female deer",
 "ray": "a drop of golden sun",
 "me": "a name, I call myself",
@@ -3145,7 +3180,7 @@ void sample_json()
         // now you have a buffer with valid yaml - note the space:
         CHECK(yaml == R"({"a": "b"})");
         // ... which you can parse:
-        ryml::Tree tree = ryml::parse(ryml::to_substr(yaml));
+        ryml::Tree tree = ryml::parse_in_place(ryml::to_substr(yaml));
         CHECK(tree["a"] == "b");
     }
 
@@ -3156,7 +3191,7 @@ void sample_json()
         // you can also use in-place overloads
         std::string yaml = ryml::preprocess_rxmap<std::string>("{a, b, c, d: [e, f, g]}");
         CHECK(yaml == R"({a: 1, b: 1, c: 1, d: [e, f, g]})");
-        ryml::Tree tree = ryml::parse(ryml::to_substr(yaml));
+        ryml::Tree tree = ryml::parse_in_place(ryml::to_substr(yaml));
         CHECK(tree["a"] == "1");
     }
 }
@@ -3205,7 +3240,7 @@ ship_to: *id001
 *valref: *keyref
 )";
 
-    ryml::Tree tree = ryml::parse(ryml::to_csubstr(unresolved));
+    ryml::Tree tree = ryml::parse_in_arena(ryml::to_csubstr(unresolved));
     // by default, references are not resolved when parsing:
     CHECK( ! tree["base"].has_key_anchor());
     CHECK(   tree["base"].has_val_anchor());
@@ -3297,7 +3332,7 @@ a: ~
 - !!int 0
 - !!str 0
 )";
-    auto tree = ryml::parse(ryml::to_csubstr(unresolved));
+    auto tree = ryml::parse_in_arena(ryml::to_csubstr(unresolved));
     CHECK(ryml::emitrs<std::string>(tree) == resolved);
     auto stream = tree.rootref();
     CHECK(stream.is_stream());
@@ -3326,7 +3361,7 @@ d: 3
 - 6
 - 7
 )";
-    ryml::Tree tree = ryml::parse(ryml::to_substr(yml));
+    ryml::Tree tree = ryml::parse_in_place(ryml::to_substr(yml));
     CHECK(ryml::emitrs<std::string>(tree) == yml);
 
     // iteration through docs
@@ -3485,7 +3520,7 @@ void sample_error_handler()
     ryml::set_callbacks(errh.callbacks());
     errh.check_effect(/*committed*/true);
     errh.check_error_occurs([]{
-        ryml::Tree tree = ryml::parse("errorhandler.yml", "[a: b\n}");
+        ryml::Tree tree = ryml::parse_in_arena("errorhandler.yml", "[a: b\n}");
         std::cout << tree;
     });
 
@@ -3592,11 +3627,11 @@ void sample_global_allocator()
     CHECK(mem.alloc_size == 0);
 
     // parse one tree and check
-    (void)ryml::parse(R"({foo: bar})");
+    (void)ryml::parse_in_arena(R"({foo: bar})");
     mem.check_and_reset();
 
     // parse another tree and check
-    (void)ryml::parse(R"([a, b, c, d, {foo: bar, money: pennys}])");
+    (void)ryml::parse_in_arena(R"([a, b, c, d, {foo: bar, money: pennys}])");
     mem.check_and_reset();
 
     // verify that by reserving we save allocations
@@ -3617,7 +3652,7 @@ void sample_global_allocator()
 
         // verify that no other allocations occur when parsing
         size_t size_before = mem.alloc_size;
-        parser.parse("", R"([a, b, c, d, {foo: bar, money: pennys}])", &tree);
+        parser.parse_in_arena("", R"([a, b, c, d, {foo: bar, money: pennys}])", &tree);
         CHECK(mem.alloc_size == size_before);
         CHECK(mem.num_allocs == 3);
     }
@@ -3709,8 +3744,8 @@ void sample_per_tree_allocator()
         ryml::csubstr yml1 = "{a: b}";
         ryml::csubstr yml2 = "{c: d, e: f, g: [h, i, 0, 1, 2, 3]}";
 
-        parser.parse("file1.yml", yml1, &tree1);
-        parser.parse("file2.yml", yml2, &tree2);
+        parser.parse_in_arena("file1.yml", yml1, &tree1);
+        parser.parse_in_arena("file2.yml", yml2, &tree2);
     }
 
     CHECK(mrp.num_allocs == 0); // YAML depth not large enough to warrant a parser allocation
@@ -3718,6 +3753,182 @@ void sample_per_tree_allocator()
 }
 
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+/** demonstrates how to obtain the (zero-based) location of a node
+ * from a recently parsed tree */
+void sample_location_tracking()
+{
+    // NOTE: locations are zero-based. If you intend to show the
+    // location to a human user, you may want to pre-increment the line
+    // and column by 1.
+    ryml::csubstr yaml = R"({
+aa: contents,
+foo: [one, [two, three]]
+})";
+    // A parser is needed to track locations. The parser caches a
+    // source-to-node lookup structure using the parsed source buffer
+    // to accelerate tracking the location of a node.
+    ryml::Parser parser;
+    // On each parse, the location structure is marked dirty, but not
+    // rebuilt. This enables having locations and paying for them
+    // only when they are used.
+    ryml::Tree tree = parser.parse_in_arena("source.yml", yaml);
+    // Thereafter, on the first location query after parsing, the
+    // parser will (re)build the location accelerator. This may
+    // trigger an allocation, but we can avoid this allocation by
+    // reserving at the beginning:
+    parser.reserve_locations(50u); // reserve for 50 lines
+    // Rebuilding the acceleration structure consists of a single scan
+    // over the source buffer, and is not expensive:
+    // complexity=O(numchars).
+    //
+    // As for the complexity of the query: for large buffers it is
+    // O(log(numlines)). For short source buffers (30 lines and less),
+    // it is O(numlines), as a plain linear search is faster in this
+    // case.
+    //
+    // So the complexity of the first location call after parsing is:
+    // cost(rebuild lookup) + cost(lookup) = O(numchars) + O(log(numlines))
+    ryml::Location loc = parser.location(tree.rootref());
+    CHECK(parser.location_contents(loc).begins_with("{"));
+    CHECK(loc.offset == 0u);
+    CHECK(loc.line == 0u);
+    CHECK(loc.col == 0u);\
+    // on the next call, we only pay O(log(numlines)) because the
+    // rebuild is already available:
+    loc = parser.location(tree["aa"]);
+    CHECK(parser.location_contents(loc).begins_with("aa"));
+    CHECK(loc.offset == 2u);
+    CHECK(loc.line == 1u);
+    CHECK(loc.col == 0u);
+    // KEYSEQ in flow style: points at the key
+    loc = parser.location(tree["foo"]);
+    CHECK(parser.location_contents(loc).begins_with("foo"));
+    CHECK(loc.offset == 16u);
+    CHECK(loc.line == 2u);
+    CHECK(loc.col == 0u);
+    loc = parser.location(tree["foo"][0]);
+    CHECK(parser.location_contents(loc).begins_with("one"));
+    CHECK(loc.line == 2u);
+    CHECK(loc.col == 6u);
+    // SEQ in flow style: location points at the opening '[' (there's no key)
+    loc = parser.location(tree["foo"][1]);
+    CHECK(parser.location_contents(loc).begins_with("["));
+    CHECK(loc.line == 2u);
+    CHECK(loc.col == 11u);
+    loc = parser.location(tree["foo"][1][0]);
+    CHECK(parser.location_contents(loc).begins_with("two"));
+    CHECK(loc.line == 2u);
+    CHECK(loc.col == 12u);
+    loc = parser.location(tree["foo"][1][1]);
+    CHECK(parser.location_contents(loc).begins_with("three"));
+    CHECK(loc.line == 2u);
+    CHECK(loc.col == 17u);
+    // NOTE. The parser locations always point at the latest buffer to
+    // be parsed with the parser object, so they must be queried using
+    // the corresponding latest tree to be parsed. This means that if
+    // the parser is reused, earlier trees will loose the possibility
+    // of querying for location. It is undefined behavior to query the
+    // parser for the location of a node from an earlier tree:
+    ryml::Tree docval = parser.parse_in_arena("docval.yaml", "this is a docval");
+    // From now on, none of the locations from the previous tree can
+    // be queried:
+    //loc = parser.location(tree.rootref()); // ERROR, Undefined Behavior
+    loc = parser.location(docval.rootref()); // OK. this is the latest tree from this parser
+    CHECK(parser.location_contents(loc).begins_with("this is a docval"));
+    CHECK(loc.line == 0u);
+    CHECK(loc.col == 0u);
+
+    // NOTES ABOUT CONTAINER LOCATIONS
+    ryml::Tree tree2 = parser.parse_in_arena("containers.yaml", R"(
+a new: buffer
+to: be parsed
+map with key:
+  first: value
+  second: value
+seq with key:
+  - first value
+  - second value
+  -
+    - nested first value
+    - nested second value
+  -
+    nested first: value
+    nested second: value
+)");
+    // (Likewise, the docval tree can no longer be used to query.)
+    //
+    // For key-less block-style maps, the location of the container
+    // points at the first child's key. For example, in this case
+    // the root does not have a key, so its location is taken
+    // to be at the first child:
+    loc = parser.location(tree2.rootref());
+    CHECK(parser.location_contents(loc).begins_with("a new"));
+    CHECK(loc.offset == 1u);
+    CHECK(loc.line == 1u);
+    CHECK(loc.col == 0u);
+    // note the first child points exactly at the same place:
+    loc = parser.location(tree2["a new"]);
+    CHECK(parser.location_contents(loc).begins_with("a new"));
+    CHECK(loc.offset == 1u);
+    CHECK(loc.line == 1u);
+    CHECK(loc.col == 0u);
+    loc = parser.location(tree2["to"]);
+    CHECK(parser.location_contents(loc).begins_with("to"));
+    CHECK(loc.line == 2u);
+    CHECK(loc.col == 0u);
+    // but of course, if the block-style map is a KEYMAP, then the
+    // location is the map's key, and not the first child's key:
+    loc = parser.location(tree2["map with key"]);
+    CHECK(parser.location_contents(loc).begins_with("map with key"));
+    CHECK(loc.line == 3u);
+    CHECK(loc.col == 0u);
+    loc = parser.location(tree2["map with key"]["first"]);
+    CHECK(parser.location_contents(loc).begins_with("first"));
+    CHECK(loc.line == 4u);
+    CHECK(loc.col == 2u);
+    loc = parser.location(tree2["map with key"]["second"]);
+    CHECK(parser.location_contents(loc).begins_with("second"));
+    CHECK(loc.line == 5u);
+    CHECK(loc.col == 2u);
+    // same thing for KEYSEQ:
+    loc = parser.location(tree2["seq with key"]);
+    CHECK(parser.location_contents(loc).begins_with("seq with key"));
+    CHECK(loc.line == 6u);
+    CHECK(loc.col == 0u);
+    loc = parser.location(tree2["seq with key"][0]);
+    CHECK(parser.location_contents(loc).begins_with("first value"));
+    CHECK(loc.line == 7u);
+    CHECK(loc.col == 4u);
+    loc = parser.location(tree2["seq with key"][1]);
+    CHECK(parser.location_contents(loc).begins_with("second value"));
+    CHECK(loc.line == 8u);
+    CHECK(loc.col == 4u);
+    // SEQ nested in SEQ: container location points at the first child's "- " dash
+    loc = parser.location(tree2["seq with key"][2]);
+    CHECK(parser.location_contents(loc).begins_with("- "));
+    CHECK(loc.line == 10u);
+    CHECK(loc.col == 4u);
+    loc = parser.location(tree2["seq with key"][2][0]);
+    CHECK(parser.location_contents(loc).begins_with("nested first value"));
+    CHECK(loc.line == 10u);
+    CHECK(loc.col == 6u);
+    // MAP nested in SEQ: same as above
+    loc = parser.location(tree2["seq with key"][3]);
+    CHECK(parser.location_contents(loc).begins_with("-"));
+    CHECK(loc.line == 12u);
+    CHECK(loc.col == 2u);
+    loc = parser.location(tree2["seq with key"][3][0]);
+    CHECK(parser.location_contents(loc).begins_with("nested first: "));
+    CHECK(loc.line == 13u);
+    CHECK(loc.col == 4u);
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
 namespace /*anon*/ {

@@ -25,8 +25,9 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
     {
         auto flags = c->flags;
         ExpectError::do_check(&cd->parsed_tree, [cd, flags](){
-            parse(cd->src, &cd->parsed_tree);
-            if(flags & RESOLVE_REFS) cd->parsed_tree.resolve();
+            parse_in_place(cd->src, &cd->parsed_tree);
+            if(flags & RESOLVE_REFS)
+                cd->parsed_tree.resolve();
             #ifdef RYML_DBG
             // if this point was reached, then it means that the expected
             // error failed to occur. So print debugging info.
@@ -37,7 +38,7 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
         return;
     }
 
-    parse(cd->src, &cd->parsed_tree);
+    parse_in_place(cd->src, &cd->parsed_tree);
     {
         SCOPED_TRACE("checking tree invariants of unresolved parsed tree");
         test_invariants(cd->parsed_tree);
@@ -106,10 +107,11 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
 //-----------------------------------------------------------------------------
 void YmlTestCase::_test_emit_yml_stdout(CaseDataLineEndings *cd)
 {
-    if(c->flags & EXPECT_PARSE_ERROR) return;
+    if(c->flags & EXPECT_PARSE_ERROR)
+        return;
     if(cd->parsed_tree.empty())
     {
-        parse(cd->src, &cd->parsed_tree);
+        parse_in_place(cd->src, &cd->parsed_tree);
     }
     if(cd->emit_buf.empty())
     {
@@ -122,10 +124,11 @@ void YmlTestCase::_test_emit_yml_stdout(CaseDataLineEndings *cd)
 //-----------------------------------------------------------------------------
 void YmlTestCase::_test_emit_yml_cout(CaseDataLineEndings *cd)
 {
-    if(c->flags & EXPECT_PARSE_ERROR) return;
+    if(c->flags & EXPECT_PARSE_ERROR)
+        return;
     if(cd->parsed_tree.empty())
     {
-        parse(cd->src, &cd->parsed_tree);
+        parse_in_place(cd->src, &cd->parsed_tree);
     }
     if(cd->emit_buf.empty())
     {
@@ -139,7 +142,8 @@ void YmlTestCase::_test_emit_yml_cout(CaseDataLineEndings *cd)
 //-----------------------------------------------------------------------------
 void YmlTestCase::_test_emit_yml_stringstream(CaseDataLineEndings *cd)
 {
-    if(c->flags & EXPECT_PARSE_ERROR) return;
+    if(c->flags & EXPECT_PARSE_ERROR)
+        return;
 
     std::string s;
     std::vector<char> v;
@@ -165,7 +169,8 @@ void YmlTestCase::_test_emit_yml_stringstream(CaseDataLineEndings *cd)
 //-----------------------------------------------------------------------------
 void YmlTestCase::_test_emit_yml_ofstream(CaseDataLineEndings *cd)
 {
-    if(c->flags & EXPECT_PARSE_ERROR) return;
+    if(c->flags & EXPECT_PARSE_ERROR)
+        return;
     auto s = emitrs<std::string>(cd->parsed_tree);
     auto fn = c4::fs::tmpnam<std::string>();
     {
@@ -186,7 +191,8 @@ void YmlTestCase::_test_emit_yml_ofstream(CaseDataLineEndings *cd)
 //-----------------------------------------------------------------------------
 void YmlTestCase::_test_emit_yml_string(CaseDataLineEndings *cd)
 {
-    if(c->flags & EXPECT_PARSE_ERROR) return;
+    if(c->flags & EXPECT_PARSE_ERROR)
+        return;
     auto em = emitrs(cd->parsed_tree, &cd->emit_buf);
     EXPECT_EQ(em.len, cd->emit_buf.size());
     EXPECT_EQ(em.len, cd->numbytes_stdout);
@@ -200,7 +206,8 @@ void YmlTestCase::_test_emit_yml_string(CaseDataLineEndings *cd)
 //-----------------------------------------------------------------------------
 void YmlTestCase::_test_emitrs(CaseDataLineEndings *cd)
 {
-    if(c->flags & EXPECT_PARSE_ERROR) return;
+    if(c->flags & EXPECT_PARSE_ERROR)
+        return;
     using vtype = std::vector<char>;
     using stype = std::string;
 
@@ -216,7 +223,8 @@ void YmlTestCase::_test_emitrs(CaseDataLineEndings *cd)
 //-----------------------------------------------------------------------------
 void YmlTestCase::_test_emitrs_cfile(CaseDataLineEndings *cd)
 {
-    if(c->flags & EXPECT_PARSE_ERROR) return;
+    if(c->flags & EXPECT_PARSE_ERROR)
+        return;
     auto s = emitrs<std::string>(cd->parsed_tree);
     std::string r;
     {
@@ -235,7 +243,7 @@ void YmlTestCase::_test_complete_round_trip(CaseDataLineEndings *cd)
     if(c->flags & EXPECT_PARSE_ERROR) return;
     if(cd->parsed_tree.empty())
     {
-        parse(cd->src, &cd->parsed_tree);
+        parse_in_place(cd->src, &cd->parsed_tree);
     }
     if(cd->emit_buf.empty())
     {
@@ -253,7 +261,7 @@ void YmlTestCase::_test_complete_round_trip(CaseDataLineEndings *cd)
         SCOPED_TRACE("parsing emitted yml");
         cd->parse_buf = cd->emit_buf;
         cd->parsed_yml.assign(cd->parse_buf.data(), cd->parse_buf.size());
-        parse(cd->parsed_yml, &cd->emitted_tree);
+        parse_in_place(cd->parsed_yml, &cd->emitted_tree);
         #ifdef RYML_NFO
         print_tree(cd->emitted_tree);
         #endif
@@ -284,11 +292,12 @@ void YmlTestCase::_test_complete_round_trip(CaseDataLineEndings *cd)
 //-----------------------------------------------------------------------------
 void YmlTestCase::_test_recreate_from_ref(CaseDataLineEndings *cd)
 {
-    if(c->flags & EXPECT_PARSE_ERROR) return;
+    if(c->flags & EXPECT_PARSE_ERROR)
+        return;
 
     if(cd->parsed_tree.empty())
     {
-        parse(cd->src, &cd->parsed_tree);
+        parse_in_place(cd->src, &cd->parsed_tree);
     }
     if(cd->emit_buf.empty())
     {

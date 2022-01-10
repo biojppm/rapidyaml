@@ -271,10 +271,8 @@ class SimpleHardcoded:
         eq(num, 5)
         eq(num, t.num_siblings(t.first_child(t.root_id())))
         #
-
         for i, ch in enumerate(ryml.children(t, 5)):
             eq(t.val(ch), [b"0", b"1", b"2", b"3"][i])
-
         sibs = [b"HELLO", b"foo", b"bar", b"baz", b"seq"]
         sibs_s = ["HELLO", "foo", "bar", "baz", "seq"]
         for i, sib in enumerate(ryml.siblings(t, 5)):
@@ -287,7 +285,6 @@ class SimpleHardcoded:
             k_s = str(k)
             ne(k_s, sibs_s[i])
             ne(k_s, sibs[i])
-
         num = 0
         for id in ryml.siblings(t, 0):
             num += 1
@@ -321,7 +318,6 @@ class SimpleHardcoded:
         for id in ryml.walk(t, 9):
             num += 1
         eq(num, 1)
-
         check_tree_mod(ut, t)
 
 
@@ -338,88 +334,83 @@ class _TestBase(unittest.TestCase):
 
     # ----------------------------------------------------------
     def _test11_str__ro(self):  # cannot read string buffers (or can we?)
-        tree = ryml.parse(self.src_as_str)
+        tree = ryml.parse_in_arena(self.src_as_str)
         self.case.check(self, tree)
 
     def _test12_str__ro__reuse_tree(self):  # cannot read string buffers (or can we?)
         t = ryml.Tree()
-        ryml.parse(self.src_as_str, tree=t)
+        ryml.parse_in_arena(self.src_as_str, tree=t)
         self.case.check(self, t)
 
     def _test13_str__rw(self):  # cannot mutate string buffers (or can we?)
         with self.assertRaises(TypeError) as context:
-            ryml.parse_in_situ(self.src_as_str)
+            ryml.parse_in_place(self.src_as_str)
         self.assertTrue(type(context.exception), TypeError)
 
     # ----------------------------------------------------------
     def _test21_bytes__ro(self):
-        tree = ryml.parse(self.src_as_bytes)
+        tree = ryml.parse_in_arena(self.src_as_bytes)
         self.case.check(self, tree)
 
     def _test22_bytes__ro__reuse_tree(self):
         t = ryml.Tree()
-        r = ryml.parse(self.src_as_bytes, tree=t)
+        r = ryml.parse_in_arena(self.src_as_bytes, tree=t)
         self.assertTrue(r is t)
         self.case.check(self, t)
 
     def _test23_bytes__rw(self):  # cannot mutate bytes buffers
         with self.assertRaises(TypeError) as context:
-            ryml.parse_in_situ(self.src_as_bytes)
+            ryml.parse_in_place(self.src_as_bytes)
         self.assertTrue(type(context.exception), TypeError)
 
     # ----------------------------------------------------------
     def _test31_bytearray__ro(self):
-        tree = ryml.parse(self.src_as_bytearray)
+        tree = ryml.parse_in_arena(self.src_as_bytearray)
         self.case.check(self, tree)
 
     def _test32_bytearray__ro__reuse_tree(self):
         t = ryml.Tree()
-        r = ryml.parse(self.src_as_bytearray, tree=t)
+        r = ryml.parse_in_arena(self.src_as_bytearray, tree=t)
         self.assertTrue(r is t)
         self.case.check(self, t)
 
     def _test33_bytearray__rw(self):  # bytearray buffers are mutable
-        tree = ryml.parse_in_situ(self.src_as_bytearray)
+        tree = ryml.parse_in_place(self.src_as_bytearray)
         self.case.check(self, tree)
 
     def _test34_bytearray__rw__reuse_tree(self):  # bytearray buffers are mutable
         t = ryml.Tree()
-        r = ryml.parse_in_situ(self.src_as_bytearray, tree=t)
+        r = ryml.parse_in_place(self.src_as_bytearray, tree=t)
         self.assertTrue(r is t)
         self.case.check(self, t)
 
     # ----------------------------------------------------------
     def _test41_emit(self):
-        tree = ryml.parse(self.src_as_bytearray)
+        tree = ryml.parse_in_arena(self.src_as_bytearray)
         yaml = ryml.emit(tree)
-
-        output_tree = ryml.parse(yaml)
+        output_tree = ryml.parse_in_arena(yaml)
         self.case.check(self, output_tree)
 
     def _test42_compute_emit_length(self):
-        tree = ryml.parse(self.src_as_bytearray)
+        tree = ryml.parse_in_arena(self.src_as_bytearray)
         yaml = ryml.emit(tree)
         length = ryml.compute_emit_length(tree)
         self.assertEqual(len(yaml), length)
 
     def _test43_emit_in_place(self):
-        tree = ryml.parse(self.src_as_bytearray)
+        tree = ryml.parse_in_arena(self.src_as_bytearray)
         yaml = ryml.emit(tree)
         length = ryml.compute_emit_length(tree)
-
         self.assertEqual(len(yaml), length)
-
         buf = bytearray(length)
         s = ryml.emit_in_place(tree, buf)
-
         self.assertEqual(len(s), length)
         self.assertTrue(s.tobytes().decode('utf-8') == yaml)
         self.assertTrue(buf.decode('utf-8') == yaml)
 
     def _test44_short_buf(self):
-        tree = ryml.parse(self.src_as_bytearray)
+        tree = ryml.parse_in_arena(self.src_as_bytearray)
         length = ryml.compute_emit_length(tree)
-
         buf = bytearray(length-1)
         with self.assertRaises(IndexError):
             ryml.emit_in_place(tree, buf)

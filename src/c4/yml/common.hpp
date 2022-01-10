@@ -40,6 +40,17 @@
     } while(0)
 
 
+#if C4_CPP >= 14
+#   define RYML_DEPRECATED(msg) [[deprecated(msg)]]
+#else
+#   if defined(_MSC_VER)
+#       define RYML_DEPRECATED(msg) __declspec(deprecated)
+#   else // defined(__GNUC__) || defined(__clang__)
+#       define RYML_DEPRECATED(msg) __attribute__((deprecated))
+#   endif
+#endif
+
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -136,6 +147,15 @@ struct RYML_EXPORT Callbacks
 
     Callbacks();
     Callbacks(void *user_data, pfn_allocate alloc, pfn_free free, pfn_error error_);
+
+    bool operator!= (Callbacks const& that) const { return !operator==(that); }
+    bool operator== (Callbacks const& that) const
+    {
+        return (m_user_data == that.m_user_data &&
+                m_allocate == that.m_allocate &&
+                m_free == that.m_free &&
+                m_error == that.m_error);
+    }
 };
 
 /// get the global callbacks
@@ -145,6 +165,37 @@ RYML_EXPORT void set_callbacks(Callbacks const& c);
 /// set the global callbacks to their defaults
 RYML_EXPORT void reset_callbacks();
 
+/// @cond dev
+#define _RYML_CB_ERR(cb, msg_literal)                                   \
+do                                                                      \
+{                                                                       \
+    const char msg[] = msg_literal;                                     \
+    C4_DEBUG_BREAK();                                                   \
+    (cb).m_error(msg, sizeof(msg), c4::yml::Location(__FILE__, 0, __LINE__, 0), (cb).m_user_data); \
+} while(0)
+#define _RYML_CB_CHECK(cb, cond)                                        \
+    do                                                                  \
+    {                                                                   \
+        if(!(cond))                                                     \
+        {                                                               \
+            const char msg[] = "check failed: " #cond;                  \
+            C4_DEBUG_BREAK();                                           \
+            (cb).m_error(msg, sizeof(msg), c4::yml::Location(__FILE__, 0, __LINE__, 0), (cb).m_user_data); \
+        }                                                               \
+    } while(0)
+#ifdef RYML_USE_ASSERT
+#define _RYML_CB_ASSERT(cb, cond) _RYML_CB_CHECK((cb), (cond))
+#else
+#define _RYML_CB_ASSERT(cb, cond) do {} while(0)
+#endif
+#define _RYML_CB_ALLOC_HINT(cb, T, num, hint) (T*) (cb).m_allocate((num) * sizeof(T), (hint), (cb).m_user_data)
+#define _RYML_CB_ALLOC(cb, T, num) _RYML_CB_ALLOC_HINT((cb), (T), (num), nullptr)
+#define _RYML_CB_FREE(cb, buf, T, num)                              \
+    do {                                                            \
+        (cb).m_free((buf), (num) * sizeof(T), (cb).m_user_data);    \
+        (buf) = nullptr;                                            \
+    } while(0)
+/// @endcond
 
 } // namespace yml
 } // namespace c4

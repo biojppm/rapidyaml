@@ -115,12 +115,12 @@ using csubstr = c4::csubstr;
 
 void parse_csubstr(c4::csubstr s, c4::yml::Tree *t)
 {
-    c4::yml::parse(s, t);
+    c4::yml::parse_in_arena(s, t);
 }
 
 void parse_substr(c4::substr s, c4::yml::Tree *t)
 {
-    c4::yml::parse(s, t);
+    c4::yml::parse_in_place(s, t);
 }
 
 char * emit_malloc(const c4::yml::Tree &t, size_t id)
@@ -226,37 +226,36 @@ def walk(tree, node=None, indentation_level=0):
        ch = tree.next_sibling(ch)
 
 
-def parse_in_situ(buf, **kwargs):
+def parse_in_place(buf, **kwargs):
     _check_valid_for_in_situ(buf)
     return _call_parse(parse_substr, buf, **kwargs)
 
 
-def parse(buf, **kwargs):
+def parse_in_arena(buf, **kwargs):
     return _call_parse(parse_csubstr, buf, **kwargs)
 
 
 def emit(tree, id=None):
     if id is None:
         id = tree.root_id()
-
     return emit_malloc(tree, id)
+
 
 def compute_emit_length(tree, id=None):
     if id is None:
         id = tree.root_id()
-
     return emit_length(tree, id)
+
 
 def emit_in_place(tree, buf, id=None):
     if id is None:
         id = tree.root_id()
-
     (failed, expected_size) = emit_to_substr(tree, id, buf)
     if failed:
         raise IndexError("Output buffer has {} bytes, but emit required {} bytes".format(
             len(buf), expected_size))
-
     return memoryview(buf)[:expected_size]
+
 
 def _call_parse(parse_fn, buf, **kwargs):
     tree = kwargs.get("tree", Tree())

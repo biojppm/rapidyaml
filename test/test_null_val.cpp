@@ -6,7 +6,7 @@ namespace yml {
 
 TEST(null_val, simple)
 {
-    auto tree = parse("{foo: , bar: '', baz: [,,,], bat: [ , , , ], two: [,,], one: [,], empty: []}");
+    auto tree = parse_in_arena("{foo: , bar: '', baz: [,,,], bat: [ , , , ], two: [,,], one: [,], empty: []}");
 
     EXPECT_EQ(tree["foo"].val(), nullptr);
     EXPECT_EQ(tree["bar"].val(), "");
@@ -29,7 +29,7 @@ TEST(null_val, simple)
 
 TEST(null_val, simple_seq)
 {
-    auto tree = parse(R"(
+    auto tree = parse_in_arena(R"(
 # these have no space after the dash
 -
 -
@@ -52,7 +52,7 @@ TEST(null_val, simple_seq)
 TEST(null_val, issue103)
 {
     C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
-    auto tree = parse(R"({test: null})");
+    auto tree = parse_in_arena(R"({test: null})");
     ASSERT_EQ(tree.size(), 2u);
     EXPECT_EQ(tree.root_id(), 0u);
     EXPECT_EQ(tree.first_child(0), 1u);
@@ -60,7 +60,7 @@ TEST(null_val, issue103)
     EXPECT_EQ(tree.key(1), "test");
     EXPECT_EQ(tree.val(1), nullptr);
 
-    tree = parse(R"({test: Null})");
+    tree = parse_in_arena(R"({test: Null})");
     ASSERT_EQ(tree.size(), 2u);
     EXPECT_EQ(tree.root_id(), 0u);
     EXPECT_EQ(tree.first_child(0), 1u);
@@ -68,7 +68,7 @@ TEST(null_val, issue103)
     EXPECT_EQ(tree.key(1), "test");
     EXPECT_EQ(tree.val(1), nullptr);
 
-    tree = parse(R"({test: NULL})");
+    tree = parse_in_arena(R"({test: NULL})");
     ASSERT_EQ(tree.size(), 2u);
     EXPECT_EQ(tree.root_id(), 0u);
     EXPECT_EQ(tree.first_child(0), 1u);
@@ -76,7 +76,7 @@ TEST(null_val, issue103)
     EXPECT_EQ(tree.key(1), "test");
     EXPECT_EQ(tree.val(1), nullptr);
 
-    tree = parse(R"({test: })");
+    tree = parse_in_arena(R"({test: })");
     ASSERT_EQ(tree.size(), 2u);
     EXPECT_EQ(tree.root_id(), 0u);
     EXPECT_EQ(tree.first_child(0), 1u);
@@ -84,7 +84,7 @@ TEST(null_val, issue103)
     EXPECT_EQ(tree.key(1), "test");
     EXPECT_EQ(tree.val(1), nullptr);
 
-    tree = parse(R"({test: ~})");
+    tree = parse_in_arena(R"({test: ~})");
     ASSERT_EQ(tree.size(), 2u);
     EXPECT_EQ(tree.root_id(), 0u);
     EXPECT_EQ(tree.first_child(0), 1u);
@@ -92,7 +92,7 @@ TEST(null_val, issue103)
     EXPECT_EQ(tree.key(1), "test");
     EXPECT_EQ(tree.val(1), nullptr);
 
-    tree = parse(R"({test: "null"})");
+    tree = parse_in_arena(R"({test: "null"})");
     ASSERT_EQ(tree.size(), 2u);
     EXPECT_EQ(tree.root_id(), 0u);
     EXPECT_EQ(tree.first_child(0), 1u);
@@ -100,7 +100,7 @@ TEST(null_val, issue103)
     EXPECT_EQ(tree.key(1), "test");
     EXPECT_EQ(tree.val(1), "null");
 
-    tree = parse(R"({test: "Null"})");
+    tree = parse_in_arena(R"({test: "Null"})");
     ASSERT_EQ(tree.size(), 2u);
     EXPECT_EQ(tree.root_id(), 0u);
     EXPECT_EQ(tree.first_child(0), 1u);
@@ -108,7 +108,7 @@ TEST(null_val, issue103)
     EXPECT_EQ(tree.key(1), "test");
     EXPECT_EQ(tree.val(1), "Null");
 
-    tree = parse(R"({test: "NULL"})");
+    tree = parse_in_arena(R"({test: "NULL"})");
     ASSERT_EQ(tree.size(), 2u);
     EXPECT_EQ(tree.root_id(), 0u);
     EXPECT_EQ(tree.first_child(0), 1u);
@@ -121,7 +121,7 @@ TEST(null_val, issue103)
 
 TEST(null_val, null_key)
 {
-    auto tree = parse(R"(null: null)");
+    auto tree = parse_in_arena(R"(null: null)");
 
     ASSERT_EQ(tree.size(), 2u);
     EXPECT_EQ(tree[0].key(), nullptr);

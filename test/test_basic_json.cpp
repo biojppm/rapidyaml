@@ -165,7 +165,7 @@ TEST(general, json_stream_operator)
         ss << as_json(t);
         str = ss.str();
     }
-    Tree res = c4::yml::parse(to_substr(str));
+    Tree res = c4::yml::parse_in_place(to_substr(str));
     EXPECT_EQ(res["foo"].val(), "1");
     EXPECT_EQ(res["bar"].val(), "2");
     EXPECT_EQ(res["foobar_barfoo:barfoo_foobar"].val(), "1001");
@@ -201,7 +201,7 @@ TEST(emit_json, issue72)
 
 TEST(emit_json, issue121)
 {
-    Tree t = parse(R"(
+    Tree t = parse_in_arena(R"(
 string_value: "string"
 number_value: "9001"
 broken_value: "0.30.2"

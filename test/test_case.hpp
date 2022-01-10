@@ -1,8 +1,6 @@
 #ifndef _TEST_CASE_HPP_
 #define _TEST_CASE_HPP_
 
-#include <vector>
-
 #ifdef RYML_SINGLE_HEADER
 #include <ryml_all.hpp>
 #else
@@ -39,6 +37,15 @@ inline void PrintTo(csubstr s, ::std::ostream* os) { os->write(s.str, (std::stre
 
 namespace yml {
 
+inline void PrintTo(Callbacks const& cb, ::std::ostream* os)
+{
+    *os << '{'
+        << "userdata." << (void*)cb.m_user_data << ','
+        << "allocate." << (void*)cb.m_allocate << ','
+        << "free." << (void*)cb.m_free << ','
+        << "error." << (void*)cb.m_error << '}';
+}
+
 struct Case;
 struct CaseNode;
 struct CaseData;
@@ -65,7 +72,7 @@ void print_path(NodeRef const& p);
 template<class CheckFn>
 void test_check_emit_check(csubstr yaml, CheckFn check_fn)
 {
-    Tree t = parse(yaml);
+    Tree t = parse_in_arena(yaml);
     #ifdef RYML_DBG
     print_tree(t);
     #endif
@@ -79,7 +86,7 @@ void test_check_emit_check(csubstr yaml, CheckFn check_fn)
         #ifdef RYML_DBG
         printf("~~~%s~~~\n%.*s", identifier, (int)emitted.size(), emitted.data());
         #endif
-        t = parse(to_csubstr(emitted));
+        t = parse_in_arena(to_csubstr(emitted));
         #ifdef RYML_DBG
         print_tree(t);
         #endif
