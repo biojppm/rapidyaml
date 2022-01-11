@@ -296,7 +296,7 @@ private:
     csubstr _filter_plain_scalar(substr s, size_t indentation);
     csubstr _filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e chomp, size_t indentation);
     substr  _filter_whitespace(substr s, size_t indentation/*=0*/, bool leading_whitespace/*=true*/, bool filter_tabs/*=false*/);
-    substr  _filter_leading_and_trailing_whitespace_at_newline(substr r, size_t *C4_RESTRICT i, char next);
+    bool    _filter_cont_lines(substr scalar, size_t *C4_RESTRICT pos, size_t *C4_RESTRICT filter_arena_pos, bool backslash_is_escape, size_t indentation, bool keep_trailing_whitespace);
 
     void  _handle_finished_file();
     void  _handle_line();
