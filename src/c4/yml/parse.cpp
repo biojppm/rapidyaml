@@ -4540,7 +4540,6 @@ csubstr Parser::location_contents(Location const& loc) const
 Location Parser::location(NodeRef node) const
 {
     _RYML_CB_ASSERT(m_stack.m_callbacks, node.valid());
-    _RYML_CB_ASSERT(m_stack.m_callbacks, node.tree() == m_tree);
     return location(*node.tree(), node.id());
 }
 
@@ -4548,7 +4547,6 @@ Location Parser::location(Tree const& tree, size_t node) const
 {
     _RYML_CB_CHECK(m_stack.m_callbacks, m_buf.str == m_newline_offsets_buf.str);
     _RYML_CB_CHECK(m_stack.m_callbacks, m_buf.len == m_newline_offsets_buf.len);
-    _RYML_CB_ASSERT(m_stack.m_callbacks, &tree == m_tree);
     if(tree.has_key(node))
     {
         csubstr k = tree.key(node);
