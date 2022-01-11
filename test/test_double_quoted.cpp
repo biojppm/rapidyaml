@@ -3,20 +3,51 @@
 namespace c4 {
 namespace yml {
 
+TEST(double_quoted, test_suite_3RLN)
+{
+    csubstr yaml = R"(---
+"1 leading
+   \ttab"
+---
+"2 leading
+    \	tab"
+---
+"3 leading
+    	tab"
+---
+"4 leading
+    \t  tab"
+---
+"5 leading
+    \	  tab"
+---
+"6 leading
+    	  tab"
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_EQ(t.docref(0).val(), "1 leading \ttab");
+        EXPECT_EQ(t.docref(1).val(), "2 leading \ttab");
+        EXPECT_EQ(t.docref(2).val(), "3 leading tab");
+        EXPECT_EQ(t.docref(3).val(), "4 leading \t  tab");
+        EXPECT_EQ(t.docref(4).val(), "5 leading \t  tab");
+        EXPECT_EQ(t.docref(5).val(), "6 leading tab");
+    });
+}
+
 TEST(double_quoted, test_suite_5GBF)
 {
     csubstr yaml = R"(
 Folding:
   "Empty line
-   	
+
   as a line feed"
 Folding2:
   "Empty line
-   
+
   as a line feed"
 Folding3:
   "Empty line
-    
+
   as a line feed"
 )";
     test_check_emit_check(yaml, [](Tree const &t){
@@ -72,6 +103,32 @@ TEST(double_quoted, test_suite_9TFX)
         EXPECT_EQ(t.rootref().val(), csubstr(" 1st non-empty\n2nd non-empty 3rd non-empty "));
     });
 }
+
+#ifdef NOT_YET
+TEST(double_quoted, test_suite_G4RS)
+{
+    csubstr yaml = R"(
+unicode: "Sosa did fine.\u263A"
+control: "\b1998\t1999\t2000\n"
+hex esc: "\x0d\x0a is \r\n"
+
+single: '"Howdy!" he cried.'
+quoted: ' # Not a ''comment''.'
+tie-fighter: '|\-*-/|'
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        //EXPECT_EQ(t["unicode"].val()    , csubstr(R"(Sosa did fine.☺)")); // no conversion yet
+        EXPECT_EQ(t["unicode"].val()    , csubstr(R"(Sosa did fine.\u263A)"));
+        EXPECT_EQ(t["control"].val()    , csubstr("\b1998\t1999\t2000\n"));
+        //EXPECT_EQ(t["hex esc"].val()    , csubstr("\r\n is \r\n"));
+        EXPECT_EQ(t["hex esc"].val().len, csubstr("\\x0d\\x0a is \r\n").len);
+        EXPECT_EQ(t["hex esc"].val()    , csubstr("\\x0d\\x0a is \r\n"));
+        EXPECT_EQ(t["single"].val()     , csubstr(R"("Howdy!" he cried.)"));
+        EXPECT_EQ(t["quoted"].val()     , csubstr(R"( # Not a 'comment'.)"));
+        EXPECT_EQ(t["tie-fighter"].val(), csubstr(R"(|\-*-/|)"));
+    });
+}
+#endif
 
 TEST(double_quoted, test_suite_KSS4)
 {
