@@ -3979,35 +3979,115 @@ csubstr Parser::_filter_plain_scalar(substr s, size_t indentation)
 //-----------------------------------------------------------------------------
 csubstr Parser::_filter_squot_scalar(substr s)
 {
-    _c4dbgpf("filtering single-quoted scalar: before=~~~%.*s~~~", _c4prsp(s));
+    // a debugging scaffold:
+    #if 0 || 1
+    #define _c4dbgfsq _c4dbgpf
+    #else
+    #define _c4dbgfsq(...)
+    #endif
 
     // from the YAML spec for double-quoted scalars:
-    // https://yaml.org/spec/1.2-old/spec.html#style/flow/double-quoted
+    // https://yaml.org/spec/1.2-old/spec.html#style/flow/single-quoted
 
-    // do a first sweep to clean leading whitespace
-    substr r = _filter_whitespace(s, /*indentation*/0, /*leading_whitespace*/true, /*filter_tabs*/false);
+    _c4dbgfsq("filt_squo_scalar: before=~~~%.*s~~~", _c4prsp(s));
 
-    // now another sweep for quotes and newlines
+    _grow_filter_arena(s.len);
+    //substr r = _filter_whitespace(s, /*indentation*/0, /*leading_whitespace*/true, /*filter_tabs*/false);
+    substr r = s;
+    size_t pos = 0; // the filtered size
+    bool filtered_chars = false;
     for(size_t i = 0; i < r.len; ++i)
     {
         const char curr = r[i];
-        //const char prev = i   > 0     ? r[i-1] : '\0';
-        const char next = i+1 < r.len ? r[i+1] : '\0';
-        if(curr == '\'' && (curr == next))
+        _c4dbgfsq("filt_squo_scalar[%zu]: '%.*s'", i, _c4prc(curr));
+        if(curr == ' ' || curr == '\t')
         {
-            _c4dbgpf("filtering single-quoted scalar: i=%zu: turn two consecutive single quotes into one. curr=~~~%.*s~~~", i, _c4prsp(r.first(i)));
-            r = r.erase(i+1, 1);
+            _c4dbgfsq("filt_squo_scalar[%zu]: found whitespace '%.*s'", i, _c4prc(curr));
+            size_t first = i > 0 ? r.first_not_of(" \t", i) : r.first_not_of(' ', i);
+            if(first != npos)
+            {
+                if(r[first] == '\n' || r[first] == '\r') // skip trailing whitespace
+                {
+                    _c4dbgfsq("filt_squo_scalar[%zu]: whitespace is trailing on line. firstnonws='%.*s'@%zu", i, _c4prc(r[first]), first);
+                    i += first - i - 1; // correct for the loop increment
+                }
+                else // a legit whitespace
+                {
+                    m_filter_arena.str[pos++] = curr;
+                    _c4dbgfsq("filt_squo_scalar[%zu]: legit whitespace. sofar=[%zu]~~~%.*s~~~", i, pos, _c4prsp(m_filter_arena.first(pos)));
+                }
+            }
+            else
+            {
+                _c4dbgfsq("filt_squo_scalar[%zu]: ... everything else is trailing whitespace", i);
+                for(size_t j = i; j < r.len; ++j)
+                    m_filter_arena.str[pos++] = r[j];
+            }
         }
         else if(curr == '\n')
         {
-            r = _filter_leading_and_trailing_whitespace_at_newline(r, &i, next);
+            _c4dbgfsq("filt_squo_scalar[%zu]: found newline. sofar=[%zu]~~~%.*s~~~", i, pos, _c4prsp(m_filter_arena.first(pos)));
+            size_t numnl_following = 0;
+            size_t ii = i + 1;
+            for( ; ii < r.len; ++ii)
+            {
+                if(r.str[ii] == '\n')
+                    ++numnl_following;
+                else if(r.str[ii] == ' ' || r.str[ii] == '\t' || r.str[ii] == '\r')  // skip leading whitespace
+                    ;
+                else
+                    break;
+            }
+            if(numnl_following)
+            {
+                if(ii < r.len)
+                {
+                    _c4dbgfsq("filt_squo_scalar[%zu]: %zu consecutive (empty) lines in the middle. totalws=%zu", i, 1+numnl_following, ii - i);
+                    m_filter_arena.str[pos++] = '\n';
+                }
+                else
+                {
+                    _c4dbgfsq("filt_squo_scalar[%zu]: %zu consecutive (empty) lines at the end. totalws=%zu remaining=%zu", i, 1+numnl_following, ii - i, r.len-i);
+                    for(size_t j = 0; j < numnl_following; ++j)
+                        m_filter_arena.str[pos++] = '\n';
+                }
+            }
+            else
+            {
+                _c4dbgfsq("filt_squo_scalar[%zu]: single newline. convert to space", i);
+                m_filter_arena.str[pos++] = ' ';
+                filtered_chars = true;
+            }
+            i += ii - i - 1; // correct for the loop increment
+        }
+        else if(curr == '\r')  // skip \r --- https://stackoverflow.com/questions/1885900
+        {
+            _c4dbgfsq("filt_squo_scalar[%zu]: skip '\\r'. sofar=[%zu]~~~%.*s~~~", i, pos, _c4prsp(m_filter_arena.first(pos)));
+        }
+        else if(curr == '\'')
+        {
+            char next = i+1 < r.len ? r[i+1] : '\0';
+            if(next == '\'')
+            {
+                _c4dbgfsq("filt_squo_scalar[%zu]: two consecutive quotes", i);
+                m_filter_arena.str[pos++] = '\'';
+                ++i;
+            }
+        }
+        else
+        {
+            m_filter_arena.str[pos++] = curr;
         }
     }
 
-    _RYML_CB_ASSERT(m_stack.m_callbacks, s.len >= r.len);
-    _c4dbgpf("filtering single-quoted scalar: %zu<-%zu #filteredchars=%zd after=~~~%.*s~~~", r.len, s.len, s.len - r.len, _c4prsp(r));
-    _RYML_CB_ASSERT(m_stack.m_callbacks, r.is_sub(s));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, pos <= m_filter_arena.len);
+    if(pos < r.len || filtered_chars)
+    {
+        _finish_filter_arena(r, pos);
+        r.len = pos;
+    }
 
+    #undef _c4dbgfsq
     return r;
 }
 
@@ -4016,14 +4096,13 @@ csubstr Parser::_filter_squot_scalar(substr s)
 csubstr Parser::_filter_dquot_scalar(substr s)
 {
     // a debugging scaffold:
-    #define _c4debugthisfn
-    #ifdef _c4debugthisfn
+    #if 0
     #define _c4dbgfdq _c4dbgpf
     #else
     #define _c4dbgfdq(...)
     #endif
 
-    _c4dbgpf("filt-dquot-scalar: before=~~~%.*s~~~", _c4prsp(s));
+    _c4dbgpf("filt_squo_scalar: before=~~~%.*s~~~", _c4prsp(s));
 
     // from the YAML spec for double-quoted scalars:
     // https://yaml.org/spec/1.2-old/spec.html#style/flow/double-quoted
@@ -4045,7 +4124,7 @@ csubstr Parser::_filter_dquot_scalar(substr s)
         if(curr == ' ' || curr == '\t')
         {
             _c4dbgfdq("filt_dquo_scalar[%zu]: found whitespace '%.*s'", i, _c4prc(curr));
-            size_t first = i > 0 ? r.first_not_of(" \t", i) : r.first_not_of(" ", i);
+            size_t first = i > 0 ? r.first_not_of(" \t", i) : r.first_not_of(' ', i);
             if(first != npos)
             {
                 if(r[first] == '\n' || r[first] == '\r') // skip trailing whitespace
