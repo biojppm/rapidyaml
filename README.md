@@ -568,6 +568,27 @@ CHECK(stream_result == expected_result);
 // please look at the emit sample functions below.
 
 //------------------------------------------------------------------
+// Dealing with UTF8
+ryml::Tree langs = ryml::parse_in_arena(R"(
+en: Planet (Gas)
+fr: Planète (Gazeuse)
+ru: Планета (Газ)
+ja: 惑星（ガス）
+zh: 行星（气体）
+# this is the smiley character, twice: ☺ ☺
+no_decoding: \u263A \xE2\x98\xBA
+)");
+// in-place UTF8 just works:
+CHECK(langs["en"].val() == "Planet (Gas)");
+CHECK(langs["fr"].val() == "Planète (Gazeuse)");
+CHECK(langs["ru"].val() == "Планета (Газ)");
+CHECK(langs["ja"].val() == "惑星（ガス）");
+CHECK(langs["zh"].val() == "行星（气体）");
+// but note encoded characters are not decoded while parsing:
+CHECK(langs["no_decoding"].val() == "\\u263A \\xE2\\x98\\xBA");
+CHECK(langs["no_decoding"].val() != "☺ ☺"); // how the string would look like if decoded
+
+//------------------------------------------------------------------
 // Getting the location of nodes in the source:
 ryml::Parser parser;
 ryml::Tree tree2 = parser.parse_in_arena("expected.yml", expected_result);
