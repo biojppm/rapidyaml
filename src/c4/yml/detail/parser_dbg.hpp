@@ -46,7 +46,7 @@ inline const char *__c4prc(const char &c)
     switch(c)
     {
     case '\0': return "\\0";
-    case '\r': return "\\1";
+    case '\r': return "\\r";
     case '\t': return "\\t";
     case '\n': return "\\n";
     default: return nullptr;
