@@ -35,6 +35,7 @@ struct Events
     Tree    tree;
     mutable Tree adjusted_tree;
     bool    was_parsed = false;
+    bool    enabled = false;
 
     void init(csubstr filename_, csubstr src_)
     {
@@ -43,6 +44,7 @@ struct Events
         tree.clear();
         tree.clear_arena();
         was_parsed = false;
+        enabled = true;
     }
 
     void compare_trees(csubstr actual_src, Tree const& actual_tree) const
@@ -403,6 +405,7 @@ struct SpecialCharsFilter
     csubstr replace_normal(csubstr txt)
     {
         txt = _do_replace("␣", " ", txt);
+        txt = _do_replace("————»", "\t", txt);
         txt = _do_replace("———»", "\t", txt);
         txt = _do_replace("——»", "\t", txt);
         txt = _do_replace("—»", "\t", txt);
@@ -431,7 +434,10 @@ struct SuiteCase
     csubstr     filename;
     std::string file_contents;
 
-    Tree    tree;
+    // this is the tree parsed from the test suite file for this case
+    Tree spec_tree;
+
+    // a single case from the test suite may contain several subcases
     csubstr desc;
     csubstr from;
     csubstr tags;
@@ -445,10 +451,52 @@ struct SuiteCase
 
     Events  events;
 
+    struct SubCase
+    {
+        csubstr tags;
+        bool    expect_error;
+        bool    skip;
+        Subject in_yaml;
+        Subject in_json;
+        Subject out_yaml;
+        Subject emit_yaml;
+        Events  events;
+        SubCase() = default;
+    };
+    std::vector<SubCase> extra_subcases;
+
     static csubstr src(Subject const& s)
     {
         return c4::to_csubstr(s.unix_ro.levels[0].src);
     }
+
+    static bool parse_spec_error_directives(const NodeRef spec, bool case_value)
+    {
+        bool expect_error = case_value;
+        if(spec.has_child("tags"))
+            expect_error = (spec["tags"].val().find("error") != npos);
+        if(spec.has_child("fail"))
+        {
+            if(!expect_error)
+            {
+                spec["fail"] >> expect_error;
+            }
+            else
+            {
+                bool tmp = false;
+                spec["fail"] >> tmp;
+                C4_CHECK(tmp == expect_error);
+            }
+        }
+        return expect_error;
+    };
+    static bool parse_spec_skip_directives(const NodeRef spec, bool case_value)
+    {
+        bool skip = case_value;
+        if(spec.has_child("skip"))
+            spec["skip"] >> skip;
+        return skip;
+    };
 
     /** loads the several types of tests from an input test suite file */
     SuiteCase(const char* filename_)
@@ -464,74 +512,119 @@ struct SuiteCase
 
         // now parse the file
         RYML_CHECK(contents.begins_with("---"));
-        parse_in_arena(filename, contents, &tree);
+        parse_in_arena(filename, contents, &spec_tree);
         #if RYML_NFO
-        c4::print("parsed:"); print_tree(tree);
+        c4::print("parsed:"); print_tree(spec_tree);
         #endif
-        NodeRef spec = tree.docref(0)[0];
-        check_known_keys(filename, spec);
-        desc = spec["name"].val();
-        from = spec["from"].val();
-        tags = spec["tags"].val();
-        bool has_whitespace = tags.find("whitespace");
-        expect_error = (tags.find("error") != npos);
-        if(spec.has_child("fail"))
+        RYML_CHECK(spec_tree.rootref().num_children() == 1u);
+        const NodeRef doc = spec_tree.docref(0);
+        RYML_CHECK(doc.num_children() >= 1u);
+        new ((void*)&extra_subcases) std::vector<SubCase>(doc.num_children() - 1u);
+        size_t isubcase = 0;
+        SpecialCharsFilter filter;
+        SubCase *sc = nullptr;
+        for(const NodeRef spec : doc.children())
         {
-            if(!expect_error)
+            check_known_keys(filename, spec);
+            if(isubcase == 0)
             {
-                spec["fail"] >> expect_error;
+                desc = spec["name"].val();
+                from = spec["from"].val();
+                tags = spec["tags"].val();
+                expect_error = parse_spec_error_directives(spec, false);
+                skip = parse_spec_skip_directives(spec, false);
             }
             else
             {
-                bool tmp = false;
-                spec["fail"] >> tmp;
-                C4_CHECK(tmp == expect_error);
+                // not really sure, so check for now
+                RYML_CHECK(!spec.has_child("name"));
+                RYML_CHECK(!spec.has_child("from"));
+                sc = &extra_subcases[isubcase - 1u];
+                sc->expect_error = parse_spec_error_directives(spec, expect_error);
+                sc->skip = parse_spec_skip_directives(spec, skip);
             }
-        }
-        skip = false;
-        if(spec.has_child("skip"))
-            spec["skip"] >> skip;
 
-        SpecialCharsFilter filter;
-        csubstr txt;
-
-        // in_yaml
-        txt = spec["yaml"].val();
-        if(has_whitespace)
-            txt = filter.replace_normal(txt);
-        in_yaml.init(filename, txt, CPART_IN_YAML, expect_error);
-
-        // in_json
-        if(spec.has_child("json"))
-        {
-            txt = spec["json"].val();
-            in_json.init(filename, txt, CPART_IN_JSON, expect_error);
-        }
-
-        // out_yaml
-        if(spec.has_child("dump"))
-        {
-            txt = spec["dump"].val();
-            if(has_whitespace)
+            // in_yaml
+            if(isubcase == 0u)
+            {
+                csubstr txt = spec["yaml"].val();
                 txt = filter.replace_normal(txt);
-            out_yaml.init(filename, txt, CPART_OUT_YAML, expect_error);
-        }
-
-        // emit_yaml
-        if(spec.has_child("emit"))
-        {
-            txt = spec["emit"].val();
-            if(has_whitespace)
+                in_yaml.init(filename, txt, CPART_IN_YAML, expect_error);
+            }
+            else if(spec.has_child("yaml"))
+            {
+                csubstr txt = spec["yaml"].val();
                 txt = filter.replace_normal(txt);
-            emit_yaml.init(filename, txt, CPART_EMIT_YAML, expect_error);
-        }
+                sc->in_yaml.init(filename, txt, CPART_IN_YAML, sc->expect_error);
+            }
 
-        // events
-        C4_CHECK(spec.has_child("tree"));
-        txt = spec["tree"].val();
-        if(has_whitespace)
-            txt = filter.replace_events(txt);
-        events.init(filename, txt);
+            // in_json
+            if(isubcase == 0u)
+            {
+                if(spec.has_child("json"))
+                {
+                    csubstr txt = spec["json"].val();
+                    in_json.init(filename, txt, CPART_IN_JSON, expect_error);
+                }
+            }
+            else if(spec.has_child("json"))
+            {
+                csubstr txt = spec["json"].val();
+                in_json.init(filename, txt, CPART_IN_JSON, expect_error);
+                sc->in_json.init(filename, txt, CPART_IN_YAML, sc->expect_error);
+            }
+
+            // out_yaml
+            if(isubcase == 0u)
+            {
+                if(spec.has_child("dump"))
+                {
+                    csubstr txt = spec["dump"].val();
+                    txt = filter.replace_normal(txt);
+                    out_yaml.init(filename, txt, CPART_OUT_YAML, expect_error);
+                }
+            }
+            else if(spec.has_child("dump"))
+            {
+                csubstr txt = spec["dump"].val();
+                in_json.init(filename, txt, CPART_OUT_YAML, expect_error);
+                sc->out_yaml.init(filename, txt, CPART_OUT_YAML, sc->expect_error);
+            }
+
+            // emit_yaml
+            if(isubcase == 0u)
+            {
+                if(spec.has_child("emit"))
+                {
+                    csubstr txt = spec["emit"].val();
+                    txt = filter.replace_normal(txt);
+                    emit_yaml.init(filename, txt, CPART_EMIT_YAML, expect_error);
+                }
+            }
+            else if(spec.has_child("emit"))
+            {
+                csubstr txt = spec["emit"].val();
+                txt = filter.replace_normal(txt);
+                sc->emit_yaml.init(filename, txt, CPART_EMIT_YAML, sc->expect_error);
+            }
+
+            // events
+            if(isubcase == 0u)
+            {
+                C4_CHECK(spec.has_child("tree"));
+                csubstr txt = spec["tree"].val();
+                txt = filter.replace_events(txt);
+                events.init(filename, txt);
+            }
+            else if(spec.has_child("tree"))
+            {
+                csubstr txt = spec["tree"].val();
+                txt = filter.replace_events(txt);
+                sc->events.init(filename, txt);
+            }
+
+            ++isubcase;
+        }
     }
 
     void print() const
@@ -557,7 +650,13 @@ struct SuiteCase
 
 // a global holding the test case data
 SuiteCase* g_suite_case = nullptr;
+bool g_do_subcases = true;
 
+#define ANNOUNCE_SUBCASE(cls, pfx, i) \
+    c4::dump("~~~~~~~~~~~~~~~~~~~~~~~ "                   \
+             #cls "." #pfx ": SUBCASE ", i,               \
+             " ~~~~~~~~~~~~~~~~~~~~~~~\n");               \
+    SCOPED_TRACE(i)                                       \
 
 
 #define DEFINE_EVENT_TESTS(cls, pfx)                                \
@@ -569,17 +668,35 @@ TEST(cls##_##pfx##_events, compare)                                 \
     if(g_suite_case->skip || g_suite_case->expect_error)            \
         GTEST_SKIP();                                               \
     g_suite_case->cls.pfx.compare_events(&g_suite_case->events);    \
+    size_t i_extra_subcase = 0;                                     \
+    for(auto &sc : g_suite_case->extra_subcases)                    \
+    {                                                               \
+        if(!g_do_subcases || !sc.cls.pfx.enabled || !sc.events.enabled) \
+            continue;                                               \
+        ANNOUNCE_SUBCASE(cls, pfx ## events, i_extra_subcase);      \
+        sc.cls.pfx.compare_events(&sc.events);                      \
+        ++i_extra_subcase;                                          \
+    }                                                               \
 }
 
 
 
-#define DEFINE_ERROR_TESTS(pfx)                         \
-                                                        \
-TEST(in_yaml_##pfx##_errors, check_expected_error)      \
-{                                                       \
-    if(g_suite_case->skip || !g_suite_case->expect_error)   \
-        GTEST_SKIP();                                   \
-    g_suite_case->in_yaml.pfx.check_expected_error();   \
+#define DEFINE_ERROR_TESTS(pfx)                                     \
+                                                                    \
+TEST(in_yaml_##pfx##_errors, check_expected_error)                  \
+{                                                                   \
+    if(g_suite_case->skip || !g_suite_case->expect_error)           \
+        GTEST_SKIP();                                               \
+    g_suite_case->in_yaml.pfx.check_expected_error();               \
+    size_t i_extra_subcase = 0;                                     \
+    for(auto &sc : g_suite_case->extra_subcases)                    \
+    {                                                               \
+        if(!g_do_subcases || !sc.in_yaml.pfx.enabled)               \
+            continue;                                               \
+        ANNOUNCE_SUBCASE(in_yaml, pfx ## errors, i_extra_subcase);  \
+        sc.in_yaml.pfx.check_expected_error();                      \
+        ++i_extra_subcase;                                          \
+    }                                                               \
 }
 
 
@@ -607,6 +724,15 @@ TEST_P(cls##_##pfx, parse)                                      \
     if(g_suite_case->skip || g_suite_case->expect_error)        \
         GTEST_SKIP();                                           \
     get_test_case()->parse(1 + GetParam(), false);              \
+    size_t i_extra_subcase = 0;                                 \
+    for(auto &sc : g_suite_case->extra_subcases)                \
+    {                                                           \
+        if(!g_do_subcases || !sc.cls.pfx.enabled)               \
+            continue;                                           \
+        ANNOUNCE_SUBCASE(cls, pfx, i_extra_subcase);            \
+        sc.cls.pfx.parse(1 + GetParam(), false);                \
+        ++i_extra_subcase;                                      \
+    }                                                           \
 }                                                               \
                                                                 \
                                                                 \
@@ -617,6 +743,15 @@ TEST_P(cls##_##pfx, compare_trees)                              \
     if(g_suite_case->skip || g_suite_case->expect_error)        \
         GTEST_SKIP();                                           \
     get_test_case()->compare_trees(1 + GetParam());             \
+    size_t i_extra_subcase = 0;                                 \
+    for(auto &sc : g_suite_case->extra_subcases)                \
+    {                                                           \
+        if(!g_do_subcases || !sc.cls.pfx.enabled)               \
+            continue;                                           \
+        ANNOUNCE_SUBCASE(cls, pfx, i_extra_subcase);            \
+        sc.cls.pfx.compare_trees(1 + GetParam());               \
+        ++i_extra_subcase;                                      \
+    }                                                           \
 }                                                               \
                                                                 \
                                                                 \
@@ -627,6 +762,15 @@ TEST_P(cls##_##pfx, emit)                                       \
     if(g_suite_case->skip || g_suite_case->expect_error)        \
         GTEST_SKIP();                                           \
     get_test_case()->parse(1 + GetParam(), true);               \
+    size_t i_extra_subcase = 0;                                 \
+    for(auto &sc : g_suite_case->extra_subcases)                \
+    {                                                           \
+        if(!g_do_subcases || !sc.cls.pfx.enabled)               \
+            continue;                                           \
+        ANNOUNCE_SUBCASE(cls, pfx, i_extra_subcase);            \
+        sc.cls.pfx.parse(1 + GetParam(), true);                 \
+        ++i_extra_subcase;                                      \
+    }                                                           \
 }                                                               \
                                                                 \
                                                                 \
@@ -637,6 +781,15 @@ TEST_P(cls##_##pfx, compare_emitted)                            \
     if(g_suite_case->skip || g_suite_case->expect_error)        \
         GTEST_SKIP();                                           \
     get_test_case()->compare_emitted(1 + GetParam());           \
+    size_t i_extra_subcase = 0;                                 \
+    for(auto &sc : g_suite_case->extra_subcases)                \
+    {                                                           \
+        if(!g_do_subcases || !sc.cls.pfx.enabled)               \
+            continue;                                           \
+        ANNOUNCE_SUBCASE(cls, pfx, i_extra_subcase);            \
+        sc.cls.pfx.compare_emitted(1 + GetParam());             \
+        ++i_extra_subcase;                                      \
+    }                                                           \
 }                                                               \
 \
 INSTANTIATE_TEST_SUITE_P(_, cls##_##pfx, testing::Range<size_t>(0, NLEVELS))

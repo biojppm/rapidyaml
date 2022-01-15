@@ -78,6 +78,13 @@ public:
         _resize_locations(num_source_lines);
     }
 
+    /** Reserve a certain capacity for the character arena used to
+     * filter scalars. */
+    void reserve_filter_arena(size_t num_characters)
+    {
+        _resize_filter_arena(num_characters);
+    }
+
     /** @} */
 
 public:
@@ -93,6 +100,10 @@ public:
 
     /** Get the latest YAML buffer parsed by this object. */
     csubstr source() const { return m_buf; }
+
+    size_t stack_capacity() const { return m_stack.capacity(); }
+    size_t locations_capacity() const { return m_newline_offsets_capacity; }
+    size_t filter_arena_capacity() const { return m_filter_arena.len; }
 
     /** @} */
 
@@ -280,12 +291,11 @@ private:
     csubstr _scan_to_next_nonempty_line(size_t indentation);
     csubstr _extend_scanned_scalar(csubstr currscalar);
 
-    csubstr _filter_squot_scalar(substr s);
+    csubstr _filter_squot_scalar(const substr s);
     csubstr _filter_dquot_scalar(substr s);
     csubstr _filter_plain_scalar(substr s, size_t indentation);
     csubstr _filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e chomp, size_t indentation);
-    substr  _filter_whitespace(substr s, size_t indentation=0, bool leading_whitespace=true, bool filter_tabs=false);
-    substr  _filter_leading_and_trailing_whitespace_at_newline(substr r, size_t *C4_RESTRICT i, char next);
+    bool    _filter_cont_lines(substr scalar, size_t *C4_RESTRICT pos, size_t *C4_RESTRICT filter_arena_pos, bool backslash_is_escape, size_t indentation, bool keep_trailing_whitespace);
 
     void  _handle_finished_file();
     void  _handle_line();
@@ -484,6 +494,10 @@ private:
     void addrem_flags(size_t on, size_t off, State * s);
     void rem_flags(size_t off, State * s);
 
+    void _resize_filter_arena(size_t num_characters);
+    void _grow_filter_arena(size_t num_characters);
+    void _finish_filter_arena(substr filtered, size_t pos);
+
     void _prepare_locations() const;         // only changes mutable members
     void _resize_locations(size_t sz) const; // only changes mutable members
     void _mark_locations_dirty();
@@ -527,6 +541,8 @@ private:
     csubstr m_key_anchor;
     size_t  m_val_anchor_indentation;
     csubstr m_val_anchor;
+
+    substr m_filter_arena;
 
     mutable size_t *m_newline_offsets;
     mutable size_t  m_newline_offsets_size;

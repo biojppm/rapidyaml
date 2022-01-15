@@ -670,6 +670,18 @@ TEST(Tree, move_assign_diff_callbacks)
     }
 }
 
+TEST(Tree, std_interop)
+{
+    CallbacksTester cbt;
+    std::vector<Tree> forest;
+    for(size_t i = 0; i < 3; ++i)
+    {
+        forest.emplace_back(cbt.callbacks());
+        parse_in_arena("{foo: bar}", &forest.back());
+    }
+}
+
+
 //-------------------------------------------
 TEST(Tree, reserve)
 {

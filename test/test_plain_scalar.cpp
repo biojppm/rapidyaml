@@ -157,7 +157,7 @@ key:
    	
       bar
         baz
-   	
+   	   
 key1:
   value
   with

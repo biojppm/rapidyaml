@@ -9,7 +9,7 @@
 #ifdef RYML_DBG
 #include "c4/yml/detail/print.hpp"
 #endif
-
+#define RYML_FILTER_ARENA
 
 #if defined(_MSC_VER)
 #   pragma warning(push)
@@ -30,32 +30,28 @@
 namespace c4 {
 namespace yml {
 
-static bool _is_scalar_next__runk(csubstr s)
+namespace {
+bool _is_scalar_next__runk(csubstr s)
 {
     return !(s.begins_with(": ") || s.begins_with_any("#,:{}[]%&") || s.begins_with("? ") || s == "-" || s.begins_with("- "));
 }
 
-static bool _is_scalar_next__rseq_rval(csubstr s)
+bool _is_scalar_next__rseq_rval(csubstr s)
 {
     return !(s.begins_with_any("[{!&") || s.begins_with("? ") || s.begins_with("- ") || s == "-");
 }
 
-static bool _is_scalar_next__rseq_rnxt(csubstr s)
-{
-    return !(s.begins_with("- ") || s == "-");
-}
-
-static bool _is_scalar_next__rmap(csubstr s)
+bool _is_scalar_next__rmap(csubstr s)
 {
     return !(s.begins_with(": ") || s.begins_with_any("#,!&") || s.begins_with("? "));
 }
 
-static bool _is_scalar_next__rmap_val(csubstr s)
+bool _is_scalar_next__rmap_val(csubstr s)
 {
     return !(s.begins_with("- ") || s.begins_with_any("{[") || s == "-");
 }
 
-static bool _is_doc_sep(csubstr s)
+bool _is_doc_sep(csubstr s)
 {
     constexpr const csubstr dashes = "---";
     constexpr const csubstr ellipsis = "...";
@@ -66,6 +62,40 @@ static bool _is_doc_sep(csubstr s)
         return s == ellipsis || s.sub(3).begins_with_any(whitesp);
     return false;
 }
+
+/** @p i is set to the first non whitespace character after the line
+ * @return the number of empty lines after the initial position */
+size_t count_following_newlines(csubstr r, size_t *C4_RESTRICT i, size_t indentation)
+{
+    RYML_ASSERT(r[*i] == '\n');
+    size_t numnl_following = 0;
+    ++(*i);
+    for( ; *i < r.len; ++(*i))
+    {
+        if(r.str[*i] == '\n')
+        {
+            ++numnl_following;
+            if(indentation) // skip the indentation after the newline
+            {
+                size_t stop = *i + indentation;
+                for( ; *i < r.len; ++(*i))
+                {
+                    if(r.str[*i] != ' ' && r.str[*i] != '\r')
+                        break;
+                    if(*i >= stop)
+                        break;
+                }
+            }
+        }
+        else if(r.str[*i] == ' ' || r.str[*i] == '\t' || r.str[*i] == '\r')  // skip leading whitespace
+            ;
+        else
+            break;
+    }
+    return numnl_following;
+}
+
+} // anon namespace
 
 
 //-----------------------------------------------------------------------------
@@ -94,6 +124,7 @@ Parser::Parser(Callbacks const& cb)
     , m_key_anchor()
     , m_val_anchor_indentation(0)
     , m_val_anchor()
+    , m_filter_arena()
     , m_newline_offsets()
     , m_newline_offsets_size(0)
     , m_newline_offsets_capacity(0)
@@ -121,6 +152,7 @@ Parser::Parser(Parser &&that)
     , m_key_anchor(that.m_key_anchor)
     , m_val_anchor_indentation(that.m_val_anchor_indentation)
     , m_val_anchor(that.m_val_anchor)
+    , m_filter_arena(that.m_filter_arena)
     , m_newline_offsets(that.m_newline_offsets)
     , m_newline_offsets_size(that.m_newline_offsets_size)
     , m_newline_offsets_capacity(that.m_newline_offsets_capacity)
@@ -147,6 +179,7 @@ Parser::Parser(Parser const& that)
     , m_key_anchor(that.m_key_anchor)
     , m_val_anchor_indentation(that.m_val_anchor_indentation)
     , m_val_anchor(that.m_val_anchor)
+    , m_filter_arena()
     , m_newline_offsets()
     , m_newline_offsets_size()
     , m_newline_offsets_capacity()
@@ -158,6 +191,10 @@ Parser::Parser(Parser const& that)
         _RYML_CB_CHECK(m_stack.m_callbacks, m_newline_offsets_capacity == that.m_newline_offsets_capacity);
         memcpy(m_newline_offsets, that.m_newline_offsets, that.m_newline_offsets_size * sizeof(size_t));
         m_newline_offsets_size = that.m_newline_offsets_size;
+    }
+    if(that.m_filter_arena.len)
+    {
+        _resize_filter_arena(that.m_filter_arena.len);
     }
 }
 
@@ -181,6 +218,7 @@ Parser& Parser::operator=(Parser &&that)
     m_key_anchor = (that.m_key_anchor);
     m_val_anchor_indentation = (that.m_val_anchor_indentation);
     m_val_anchor = (that.m_val_anchor);
+    m_filter_arena = that.m_filter_arena;
     m_newline_offsets = (that.m_newline_offsets);
     m_newline_offsets_size = (that.m_newline_offsets_size);
     m_newline_offsets_capacity = (that.m_newline_offsets_capacity);
@@ -209,6 +247,8 @@ Parser& Parser::operator=(Parser const& that)
     m_key_anchor = (that.m_key_anchor);
     m_val_anchor_indentation = (that.m_val_anchor_indentation);
     m_val_anchor = (that.m_val_anchor);
+    if(that.m_filter_arena.len > 0)
+        _resize_filter_arena(that.m_filter_arena.len);
     if(that.m_newline_offsets_capacity > m_newline_offsets_capacity)
         _resize_locations(that.m_newline_offsets_capacity);
     _RYML_CB_CHECK(m_stack.m_callbacks, m_newline_offsets_capacity >= that.m_newline_offsets_capacity);
@@ -238,6 +278,7 @@ void Parser::_clr()
     m_key_anchor = {};
     m_val_anchor_indentation = {};
     m_val_anchor = {};
+    m_filter_arena = {};
     m_newline_offsets = {};
     m_newline_offsets_size = {};
     m_newline_offsets_capacity = {};
@@ -262,6 +303,11 @@ void Parser::_free()
         m_newline_offsets_size = 0u;
         m_newline_offsets_capacity = 0u;
         m_newline_offsets_buf = 0u;
+    }
+    if(m_filter_arena.len)
+    {
+        _RYML_CB_FREE(m_stack.m_callbacks, m_filter_arena.str, char, m_filter_arena.len);
+        m_filter_arena = {};
     }
     m_stack._free();
 }
@@ -2182,12 +2228,6 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
             }
             s = s.trimr(' ');
         }
-        else if(has_all(RNXT))
-        {
-            if( ! _is_scalar_next__rseq_rnxt(s))
-                return false;
-            _c4err("internal error");
-        }
         else
         {
             _c4err("internal error");
@@ -3767,7 +3807,7 @@ csubstr Parser::_scan_block()
     _line_ended();
     _scan_line();
 
-    _c4dbgpf("scanning block:  style=%s  chomp=%s  indentation=%zu", newline==BLOCK_FOLD ? "fold" : "literal",
+    _c4dbgpf("scanning block: style=%s  chomp=%s  indentation=%zu", newline==BLOCK_FOLD ? "fold" : "literal",
         chomp==CHOMP_CLIP ? "clip" : (chomp==CHOMP_STRIP ? "strip" : "keep"), indentation);
 
     // start with a zero-length block, already pointing at the right place
@@ -3866,331 +3906,349 @@ csubstr Parser::_scan_block()
     C4_UNUSED(num_lines);
     C4_UNUSED(first);
 
+    if(indentation == npos)
+    {
+        _c4dbgpf("scanning block: set indentation from provisional: %zu", provisional_indentation);
+        indentation = provisional_indentation;
+    }
+
     if(num_lines)
         _line_ended_undo();
 
-    _c4dbgpf("scanning block: raw='%.*s'", _c4prsp(raw_block));
+    _c4dbgpf("scanning block: raw=~~~%.*s~~~", _c4prsp(raw_block));
 
     // ok! now we strip the newlines and spaces according to the specs
     s = _filter_block_scalar(raw_block, newline, chomp, indentation);
 
-    _c4dbgpf("scanning block: final='%.*s'", _c4prsp(s));
+    _c4dbgpf("scanning block: final=~~~%.*s~~~", _c4prsp(s));
 
     return s;
 }
 
+
 //-----------------------------------------------------------------------------
-csubstr Parser::_filter_plain_scalar(substr s, size_t indentation)
+
+bool Parser::_filter_cont_lines(substr r, size_t *C4_RESTRICT i, size_t *C4_RESTRICT pos, bool backslash_is_escape, size_t indentation, bool keep_trailing_whitespace)
 {
-    _c4dbgpf("filtering plain scalar: indentation=%zu before='%.*s'", indentation, _c4prsp(s));
+    // a debugging scaffold:
+    #if 0
+    #define _c4dbgfcl _c4dbgpf
+    #else
+    #define _c4dbgfcl(...)
+    #endif
 
-    // do a first sweep to clean leading whitespace from the indentation
-    substr r = _filter_whitespace(s, indentation);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, indentation != npos);
 
-    // now another sweep for newlines
-    for(size_t i = 0; i < r.len; ++i)
+    const char curr = r[*i];
+    _c4dbgfcl("filt_cont_lines[%zu]: '%.*s'", *i, _c4prc(curr));
+    if(curr == ' ' || curr == '\t')
     {
-        const char curr = r[i];
-        const char next = i+1 < r.len ? r[i+1] : '\0';
-        _RYML_CB_ASSERT(m_stack.m_callbacks, curr != '\r' && next != '\r');
-        if(curr == '\n')
+        _c4dbgfcl("filt_cont_lines[%zu]: found whitespace '%.*s'", *i, _c4prc(curr));
+        size_t first = *i > 0 ? r.first_not_of(" \t", *i) : r.first_not_of(' ', *i);
+        if(first != npos)
         {
-            _c4dbgpf("filtering plain scalar: i=%zu: current='%.*s'", i, _c4prsp(r.first(i)));
-            if(next != '\n')
+            if(r[first] == '\n' || r[first] == '\r') // skip trailing whitespace
             {
-                if(next == ' ' || next == '\t')
-                {
-                    _c4dbgp("filtering plain scalar: next is whitespace");
-                    size_t e = r.first_not_of(" \t", i+1); // we are sure i+1
-                    if(e == csubstr::npos)
-                    {
-                        _c4dbgpf("filtering plain scalar: whitespace all the way to the end. stop at %zu", i+1);
-                        r.len = i;
-                    }
-                    else if(r[e] == '\n' || r[e] == '\r')
-                    {
-                        _RYML_CB_ASSERT(m_stack.m_callbacks, e > i);
-                        _c4dbgpf("filtering plain scalar: whitespace-only line, len=%zu. keep newline.", e-i);
-                        r = r.erase_range(i+1, e+1);
-                    }
-                    else
-                    {
-                        _c4dbgpf("filtering plain scalar: standard line, remove prev newline and leading whitespace.", e-i);
-                        r = r.erase_range(i, e);
-                    }
-                }
-                else if(i + 1 < r.len)
-                {
-                    size_t lastnws = r.first(i).last_not_of(" \t");
-                    if(lastnws != csubstr::npos && lastnws+1 < i)
-                    {
-                        _c4dbgpf("filtering plain scalar: remove %zu whitespace characters at line end (%zu,%zu)", i - lastnws, lastnws+1, i);
-                        r = r.erase_range(lastnws+1, i);
-                        i = lastnws+1;
-                    }
-                    _c4dbgpf("filtering plain scalar: filter single newline at %zu", i);
-                    r[i] = ' '; // a single unix newline: turn it into a space
-                }
-                else
-                {
-                    _c4dbgpf("filtering plain scalar: trim terminating newline at %zu", r.len);
-                    --r.len; // trim terminating newline
-                }
+                _c4dbgfcl("filt_cont_lines[%zu]: whitespace is trailing on line. firstnonws='%.*s'@%zu", *i, _c4prc(r[first]), first);
+                *i += first - *i - 1; // correct for the loop increment
+            }
+            else // a legit whitespace
+            {
+                m_filter_arena.str[(*pos)++] = curr;
+                _c4dbgfcl("filt_cont_lines[%zu]: legit whitespace. sofar=[%zu]~~~%.*s~~~", *i, *pos, _c4prsp(m_filter_arena.first(*pos)));
+            }
+        }
+        else
+        {
+            _c4dbgfcl("filt_cont_lines[%zu]: ... everything else is trailing whitespace", *i);
+            if(keep_trailing_whitespace)
+                for(size_t j = *i; j < r.len; ++j)
+                    m_filter_arena.str[(*pos)++] = r[j];
+            *i = r.len;
+        }
+    }
+    else if(curr == '\n')
+    {
+        _c4dbgfcl("filt_cont_lines[%zu]: found newline. sofar=[%zu]~~~%.*s~~~", *i, *pos, _c4prsp(m_filter_arena.first(*pos)));
+        size_t ii = *i;
+        size_t numnl_following = count_following_newlines(r, &ii, indentation);
+        if(numnl_following)
+        {
+            if(ii < r.len)
+            {
+                _c4dbgfcl("filt_cont_lines[%zu]: %zu consecutive (empty) lines in the middle. totalws=%zd", *i, 1+numnl_following, ii - *i);
+                for(size_t j = 0; j < numnl_following; ++j)
+                    m_filter_arena.str[(*pos)++] = '\n';
             }
             else
             {
-                _c4dbgp("filtering plain scalar: multiple newlines");
-                _RYML_CB_ASSERT(m_stack.m_callbacks, next == '\n');
-                r = r.erase(i, 1);  // erase one
-                _RYML_CB_ASSERT(m_stack.m_callbacks, r[i] == '\n');
-                size_t nl = r.sub(i).first_not_of('\n');
-                if(nl == csubstr::npos)
-                {
-                    _c4dbgpf("filtering plain scalar: newlines starting at %zu go up to the end at %zu", i, r.len);
-                    break;
-                }
-                _c4dbgpf("filtering plain scalar: erasing one of %zu newlines found at %zu", nl, i);
-                _RYML_CB_ASSERT(m_stack.m_callbacks, nl > 0);
-                i += nl; // and skip the rest
+                _c4dbgfcl("filt_cont_lines[%zu]: %zu consecutive (empty) lines at the end. totalws=%zu remaining=%zu", *i, 1+numnl_following, ii - *i, r.len-*i);
+                for(size_t j = 0; j < numnl_following; ++j)
+                    m_filter_arena.str[(*pos)++] = '\n';
             }
         }
-        else if(curr == '\r')
+        else
         {
-            _c4dbgpf("filtering plain scalar: i=%zu: removing carriage return \\r", i);
-            r = r.erase(i, 1);
+            if(keep_trailing_whitespace || (r.first_not_of(" \t", *i+1) != npos))
+            {
+                _c4dbgfcl("filt_cont_lines[%zu]: single newline. convert to space. ii=%zu/%zu", *i, ii, r.len);
+                m_filter_arena.str[(*pos)++] = ' ';
+                //filtered_chars = true;
+            }
+            else
+            {
+                _c4dbgfcl("filt_cont_lines[%zu]: last newline, everything else is whitespace. ii=%zu/%zu", *i, ii, r.len);
+                *i = r.len;
+                return true;
+            }
+            if(backslash_is_escape && (ii < r.len && r.str[ii] == '\\'))
+            {
+                char next = ii+1 < r.len ? r.str[ii+1] : '\0';
+                if(next == ' ' || next == '\t')
+                {
+                    _c4dbgfcl("filt_cont_lines[%zu]: extend skip to backslash", *i);
+                    ++ii;
+                }
+            }
         }
+        *i += ii - *i - 1; // correct for the loop increment
+    }
+    else if(curr == '\r')  // skip \r --- https://stackoverflow.com/questions/1885900
+    {
+        _c4dbgfcl("filt_cont_lines[%zu]: skip '\\r'. sofar=[%zu]~~~%.*s~~~", *i, *pos, _c4prsp(m_filter_arena.first(*pos)));
+    }
+    else
+    {
+        return false;
+    }
+
+    #undef _c4dbgfcl
+
+    return true;
+}
+
+
+//-----------------------------------------------------------------------------
+csubstr Parser::_filter_plain_scalar(substr s, size_t indentation)
+{
+    _c4dbgpf("filt_plain_scalar: before=~~~%.*s~~~", _c4prsp(s));
+
+    substr r = s.triml(" \t");
+    _grow_filter_arena(r.len);
+    size_t pos = 0; // the filtered size
+    bool filtered_chars = false;
+    for(size_t i = 0; i < r.len; ++i)
+    {
+        if(_filter_cont_lines(r, &i, &pos, /*backslash_is_escape*/false, indentation, /*keep_trailing_ws*/false))
+        {
+            filtered_chars = true;
+        }
+        else
+        {
+            m_filter_arena.str[pos++] = r[i];
+        }
+    }
+
+    _RYML_CB_ASSERT(m_stack.m_callbacks, pos <= m_filter_arena.len);
+    if(pos < r.len || filtered_chars)
+    {
+        _finish_filter_arena(r, pos);
+        r.len = pos;
     }
 
     _RYML_CB_ASSERT(m_stack.m_callbacks, s.len >= r.len);
-    _c4dbgpf("filtering plain scalar: num filtered chars=%zd", s.len - r.len);
-    _c4dbgpf("filtering plain scalar: after='%.*s'", _c4prsp(r));
+    _c4dbgpf("filt_plain_scalar: #filteredchars=%zd after=~~~%.*s~~~", s.len - r.len, _c4prsp(r));
 
-#ifdef RYML_DBG
-    for(size_t i = r.len; i < s.len; ++i)
-    {
-        s[i] = '~';
-    }
-#endif
-
+    #undef _c4dbgfsq
     return r;
 }
+
 
 //-----------------------------------------------------------------------------
 csubstr Parser::_filter_squot_scalar(substr s)
 {
-    _c4dbgpf("filtering single-quoted scalar: before=~~~%.*s~~~", _c4prsp(s));
+    // a debugging scaffold:
+    #if 0
+    #define _c4dbgfsq _c4dbgpf
+    #else
+    #define _c4dbgfsq(...)
+    #endif
 
-    // do a first sweep to clean leading whitespace
-    substr r = _filter_whitespace(s);
+    // from the YAML spec for double-quoted scalars:
+    // https://yaml.org/spec/1.2-old/spec.html#style/flow/single-quoted
 
-    // now another sweep for quotes and newlines
+    _c4dbgfsq("filt_squo_scalar: before=~~~%.*s~~~", _c4prsp(s));
+
+    _grow_filter_arena(s.len);
+    substr r = s;
+    size_t pos = 0; // the filtered size
+    bool filtered_chars = false;
     for(size_t i = 0; i < r.len; ++i)
     {
+        if(_filter_cont_lines(r, &i, &pos, /*backslash_is_escape*/false, /*indentation*/0, /*keep_trailing_ws*/true))
+        {
+            filtered_chars = true;
+            continue;
+        }
         const char curr = r[i];
-        //const char prev = i   > 0     ? r[i-1] : '\0';
-        const char next = i+1 < r.len ? r[i+1] : '\0';
-        if(curr == '\'' && (curr == next))
+        _c4dbgfsq("filt_squo_scalar[%zu]: '%.*s'", i, _c4prc(curr));
+        if(curr == '\'')
         {
-            _c4dbgpf("filtering single-quoted scalar: i=%zu: turn two consecutive single quotes into one. curr=~~~%.*s~~~", i, _c4prsp(r.first(i)));
-            r = r.erase(i+1, 1);
+            char next = i+1 < r.len ? r[i+1] : '\0';
+            if(next == '\'')
+            {
+                _c4dbgfsq("filt_squo_scalar[%zu]: two consecutive quotes", i);
+                filtered_chars = true;
+                m_filter_arena.str[pos++] = '\'';
+                ++i;
+            }
         }
-        else if(curr == '\n')
+        else
         {
-            r = _filter_leading_and_trailing_whitespace_at_newline(r, &i, next);
+            m_filter_arena.str[pos++] = curr;
         }
+    }
+
+    _RYML_CB_ASSERT(m_stack.m_callbacks, pos <= m_filter_arena.len);
+    if(pos < r.len || filtered_chars)
+    {
+        _finish_filter_arena(r, pos);
+        r.len = pos;
     }
 
     _RYML_CB_ASSERT(m_stack.m_callbacks, s.len >= r.len);
-    _c4dbgpf("filtering single-quoted scalar: #filteredchars=%zd after=~~~%.*s~~~", s.len - r.len, _c4prsp(r));
+    _c4dbgpf("filt_squo_scalar: #filteredchars=%zd after=~~~%.*s~~~", s.len - r.len, _c4prsp(r));
 
-#ifdef RYML_DBG
-    for(size_t i = r.len; i < s.len; ++i)
-    {
-        s[i] = '~';
-    }
-#endif
-
+    #undef _c4dbgfsq
     return r;
 }
+
 
 //-----------------------------------------------------------------------------
 csubstr Parser::_filter_dquot_scalar(substr s)
 {
-    _c4dbgpf("filtering double-quoted scalar: before=~~~%.*s~~~", _c4prsp(s));
+    // a debugging scaffold:
+    #if 0
+    #define _c4dbgfdq _c4dbgpf
+    #else
+    #define _c4dbgfdq(...)
+    #endif
 
-    // do a first sweep to clean leading whitespace
-    substr r = _filter_whitespace(s, 0, true, true);
+    _c4dbgpf("filt_squo_scalar: before=~~~%.*s~~~", _c4prsp(s));
 
+    // from the YAML spec for double-quoted scalars:
+    // https://yaml.org/spec/1.2-old/spec.html#style/flow/double-quoted
+    //
+    // All leading and trailing white space characters are excluded
+    // from the content. Each continuation line must therefore contain
+    // at least one non-space character. Empty lines, if any, are
+    // consumed as part of the line folding.
+
+    _grow_filter_arena(s.len);
+    substr r = s;
+    size_t pos = 0; // the filtered size
+    bool filtered_chars = false;
     for(size_t i = 0; i < r.len; ++i)
     {
+        if(_filter_cont_lines(r, &i, &pos, /*backslash_is_escape*/true, /*indentation*/0, /*keep_trailing_ws*/true))
+        {
+            filtered_chars = true;
+            continue;
+        }
         const char curr = r[i];
-        char next = i+1 < r.len ? r[i+1] : '\0';
+        _c4dbgfdq("filt_dquo_scalar[%zu]: '%.*s'", i, _c4prc(curr));
         if(curr == '\\')
         {
-            if(next == curr)
+            char next = i+1 < r.len ? r[i+1] : '\0';
+            _c4dbgfdq("filt_dquo_scalar[%zu]: backslash, next='%.*s'", i, _c4prc(next));
+            filtered_chars = true;
+            if(next == '\r')
             {
-                r = r.erase(i+1, 1); // turn two consecutive backslashes into one
+                if(i+2 < r.len && r[i+2] == '\n')
+                {
+                    ++i; // newline escaped with \ -- skip both (add only one as i is loop-incremented)
+                    next = '\n';
+                    _c4dbgfdq("filt_dquo_scalar[%zu]: was \\r\\n, now next='\\n'", i);
+                }
             }
-            else if(next == '\n')
+            // remember the loop will also increment i
+            if(next == '\n')
             {
-                r = r.erase(i, 2);  // newlines are escaped with \ -- delete both
-                i = i > 0 ? i - 1 : 0;
+                size_t ii = i + 2;
+                for( ; ii < r.len; ++ii)
+                {
+                    if(r.str[ii] == ' ' || r.str[ii] == '\t')  // skip leading whitespace
+                        ;
+                    else
+                        break;
+                }
+                i += ii - i - 1;
             }
-            else if(next == '"')
+            else if(next == '\r' || next == ' ' || next == '\t')
             {
-                r = r.erase(i, 1);  // fix escaped double quotes
+                //++i;
             }
             else if(next == 'n')
             {
-                r = r.erase(i+1, 1);
-                r[i] = '\n';
+                m_filter_arena.str[pos++] = '\n';
+                ++i;
+            }
+            else if(next == 'r')
+            {
+                //m_filter_arena.str[pos++] = '\r';
+                ++i;
             }
             else if(next == 't')
             {
-                r = r.erase(i+1, 1);
-                r[i] = '\t';
+                m_filter_arena.str[pos++] = '\t';
+                ++i;
             }
-            else if(next == '/')
+            else if(next == 'b')
             {
-                r = r.erase(i, 1);  // fix escaped /
+                m_filter_arena.str[pos++] = '\b';
+                ++i;
             }
-            else if(next == ' ')
+            else if(next == 'x')
             {
-                r = r.erase(i, 1);
+                m_filter_arena.str[pos++] = '\\';
+                m_filter_arena.str[pos++] = 'x';
+                ++i; // loop will increment next
             }
+            else if(next == 'u')
+            {
+                m_filter_arena.str[pos++] = '\\';
+                m_filter_arena.str[pos++] = 'u';
+                ++i; // loop will increment next
+            }
+            else if(next == '\\')
+            {
+                m_filter_arena.str[pos++] = '\\';
+                ++i;
+            }
+            else if(next == '"' || next == '/')
+            {
+                m_filter_arena.str[pos++] = next;
+                ++i;
+            }
+            _c4dbgfdq("filt_dquo_scalar[%zu]: backslash...sofar=[%zu]~~~%.*s~~~", i, pos, _c4prsp(m_filter_arena.first(pos)));
         }
-        else if(curr == '\n')
+        else
         {
-            r = _filter_leading_and_trailing_whitespace_at_newline(r, &i, next);
+            m_filter_arena.str[pos++] = curr;
         }
+    }
+
+    _RYML_CB_ASSERT(m_stack.m_callbacks, pos <= m_filter_arena.len);
+    if(pos < r.len || filtered_chars)
+    {
+        _finish_filter_arena(r, pos);
+        r.len = pos;
     }
 
     _RYML_CB_ASSERT(m_stack.m_callbacks, s.len >= r.len);
-    _c4dbgpf("filtering double-quoted scalar: #filteredchars=%zd after=~~~%.*s~~~", s.len - r.len, _c4prsp(r));
+    _c4dbgpf("filt_dquo_scalar: #filteredchars=%zd after=~~~%.*s~~~", s.len - r.len, _c4prsp(r));
 
-#ifdef RYML_DBG
-    for(size_t i = r.len; i < s.len; ++i)
-    {
-        s[i] = '~';
-    }
-#endif
-
-    return r;
-}
-
-//-----------------------------------------------------------------------------
-/** @p leading_whitespace when true, remove every leading spaces from the
- * beginning of each line */
-substr Parser::_filter_whitespace(substr r, size_t indentation, bool leading_whitespace, bool filter_tabs)
-{
-    _c4dbgpf("filtering whitespace: indentation=%zu leading=%d before=~~~%.*s~~~", indentation, leading_whitespace, _c4prsp(r));
-
-    for(size_t i = 0; i < r.len; ++i)
-    {
-        const char curr = r[i];
-        const char prev = i > 0 ? r[i-1] : '\0';
-        if(curr == ' ' || (filter_tabs && curr == '\t'))
-        {
-            _c4dbgpf("filtering whitespace: found space at i=%zu. len=%zu. sofar=~~~%.*s~~~", i, r.len, _c4prsp(r.first(i)));
-            if(prev == '\n')
-            {
-                csubstr ss = r.sub(i);
-                ss = ss.left_of(!filter_tabs ? ss.first_not_of(' ') : ss.first_not_of(" \t"));
-                _RYML_CB_ASSERT(m_stack.m_callbacks, ss.len >= 1);
-                size_t num = ss.len;
-                // _RYML_CB_ASSERT(m_stack.m_callbacks, num >= indentation); // empty lines are allowed
-                _c4dbgpf("filtering whitespace: line has %zu leading spaces", num);
-                if(leading_whitespace)
-                    num = ss.len;
-                else if(indentation != csubstr::npos)
-                    num = num < indentation ? num : indentation;
-                _c4dbgpf("filtering whitespace: r.erase(start=%zu,num=%zu), len=%zu", i, num, r.len);
-                r = r.erase(i, num);
-                if(i < r.len && r[i] != ' ')
-                    --i; // i is incremented next
-            }
-            else if(leading_whitespace && i == 0)
-            {
-                size_t len = r.first_not_of(' ');
-                _c4dbgpf("filtering whitespace: remove %zu leading spaces", len);
-                if(len && len != npos && (r[len] == '\n' || r[len] == '\r'))
-                {
-                    r = r.erase(0, len);
-                    if(i < r.len && r[i] != ' ')
-                        --i; // i is incremented next
-                }
-            }
-        }
-        // erase \r --- https://stackoverflow.com/questions/1885900
-        else if(curr == '\r')
-        {
-            _c4dbgpf("filtering whitespace: remove \\r: i=%zu len=%zu. curr=~~~%.*s~~~", i, r.len, _c4prsp(r.first(i)));
-            r = r.erase(i, 1);
-            --i; // i is incremented next
-        }
-    }
-
-    _c4dbgpf("filtering whitespace: after=~~~%.*s~~~", _c4prsp(r));
-
-    return r;
-}
-
-//-----------------------------------------------------------------------------
-substr Parser::_filter_leading_and_trailing_whitespace_at_newline(substr r, size_t *C4_RESTRICT i, char next)
-{
-    _RYML_CB_ASSERT(m_stack.m_callbacks, r[*i] == '\n');
-
-    // from the YAML spec for double-quoted scalars:
-    // https://yaml.org/spec/1.2/spec.html#id2787109
-    //
-    // All leading and trailing white space characters are
-    // excluded from the content. Each continuation line must
-    // therefore contain at least one non-space character.
-    // Empty lines, if any, are consumed as part of the line
-    // folding.
-    //
-    // ... so - erase trailing whitespace (ie whitespace before
-    // the newline):
-    if(*i > 0)
-    {
-        size_t numws = 0;
-        char prev = r[*i-1]; // safe because we know that i>0
-        while(prev == ' ' || prev == '\t')
-        {
-            ++numws;
-            if(*i < 1+numws) // ie, i-1-numws < 0
-                break;
-            prev = r[*i-1-numws];
-        }
-        if(numws && numws < *i)
-        {
-            r = r.erase(*i-numws, numws);
-            *i -= numws;
-        }
-    }
-    if(next == '\n')
-    {
-        r = r.erase(*i+1, 1); // keep only first of consecutive newlines
-        while(*i+1 < r.len && r[*i+1] == '\n')
-            ++(*i);
-    }
-    else
-    {
-        r[*i] = ' '; // a single unix newline: turn it into a space
-    }
-    // erase leading whitespace (ie whitespace after the newline)
-    if(*i < r.len)
-    {
-        size_t numws = 0;
-        for(char c : r.sub(*i + 1))
-        {
-            if(c != ' ' && c != '\t')
-                break;
-            ++numws;
-        }
-        if(numws)
-            r = r.erase(*i + 1, numws);
-    }
+    #undef _c4dbgfdq
 
     return r;
 }
@@ -4198,121 +4256,201 @@ substr Parser::_filter_leading_and_trailing_whitespace_at_newline(substr r, size
 //-----------------------------------------------------------------------------
 csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e chomp, size_t indentation)
 {
-    _c4dbgpf("filtering block: ~~~%.*s~~~", _c4prsp(s));
+    // a debugging scaffold:
+    #if 0
+    #define _c4dbgfbl _c4dbgpf
+    #else
+    #define _c4dbgfbl(...)
+    #endif
+
+    _c4dbgfbl("filt_block: indentation=%zu before=[%zu]~~~%.*s~~~", indentation, s.len, _c4prsp(s));
 
     substr r = s;
-
-    r = _filter_whitespace(s, indentation, /*leading whitespace*/false);
-    {
-        size_t numws_at_begin = r.first_not_of(' ');
-        if(numws_at_begin > indentation)
-            r = r.erase(0, indentation);
-        else
-            r = r.erase(0, numws_at_begin);
-    }
-
-    _c4dbgpf("filtering block: after whitespace=~~~%.*s~~~", _c4prsp(r));
-
-    _RYML_CB_ASSERT(m_stack.m_callbacks, r.find('\r') == csubstr::npos); // filter whitespace must remove this
-
-    switch(chomp)
-    {
-    case CHOMP_KEEP: // nothing to do, keep everything
-        _c4dbgp("filtering block: chomp=KEEP (+)");
-        break;
-    case CHOMP_STRIP: // strip all newlines from the end
-    {
-        _c4dbgp("filtering block: chomp=STRIP (-)");
-        r = r.trimr('\n');
-        break;
-    }
-    case CHOMP_CLIP: // clip to a single newline
-    {
-        _c4dbgp("filtering block: chomp=CLIP");
-        auto pos = r.last_not_of("\n");
-        if(pos != npos && pos+1 < r.len)
-        {
-            ++pos;
-            r = r.left_of(pos, /*include_pos*/true);
-        }
-        break;
-    }
-    default:
-        _c4err("unknown chomp style");
-    }
-
-    _c4dbgpf("filtering block: after chomp=~~~%.*s~~~", _c4prsp(r));
 
     switch(style)
     {
     case BLOCK_LITERAL:
-        break;
+        {
+            _c4dbgp("filt_block: style=literal");
+            // trim leading whitespace up to indentation
+            {
+                size_t numws = r.first_not_of(' ');
+                if(numws != npos)
+                {
+                    if(numws > indentation)
+                        r = r.sub(indentation);
+                    else
+                        r = r.sub(numws);
+                }
+            }
+            _c4dbgfbl("filt_block: after triml=[%zu]~~~%.*s~~~", r.len, _c4prsp(r));
+            _grow_filter_arena(r.len);
+            size_t pos = 0; // the filtered size
+            for(size_t i = 0; i < r.len; ++i)
+            {
+                const char curr = r.str[i];
+                _c4dbgfbl("filt_block[%zu]='%.*s'", i, _c4prc(curr));
+                if(curr == '\r')
+                    continue;
+                m_filter_arena.str[pos++] = curr;
+                if(curr == '\n')
+                {
+                    // skip indentation
+                    size_t first = r.first_not_of(' ', i+1);
+                    if(first != npos)
+                    {
+                        first -= i+1;
+                        if(first > indentation)
+                            first = indentation;
+                        i += first;
+                    }
+                }
+            }
+            _RYML_CB_ASSERT(m_stack.m_callbacks, pos <= m_filter_arena.len);
+            if(pos < r.len)
+            {
+                _finish_filter_arena(r, pos);
+                r.len = pos;
+            }
+            break;
+        }
     case BLOCK_FOLD:
         {
-            auto pos = r.last_not_of('\n'); // do not fold trailing newlines
-            if((pos != npos) && (pos < r.len))
+            _c4dbgp("filt_block: style=fold");
+            size_t lastnonnl = r.last_not_of('\n'); // do not fold trailing newlines
+            if(lastnonnl == npos) // not multiline, no need to filter
             {
-                ++pos; // point pos at the first newline char
-                substr t = r.sub(0, pos);
-                bool found_non_space_so_far = false;
-                bool is_indented = t.triml('\n').begins_with_any(" \t");
-                for(size_t i = 1; i < t.len; ++i)
+                _c4dbgp("filt_block: no folding needed");
+            }
+            else
+            {
+                _c4dbgp("filt_block: needs folding");
+                _grow_filter_arena(r.len);
+                size_t pos = 0; // the filtered size
+                bool filtered_chars = false;
+                bool started = false;
+                bool is_indented = false;
+                substr t = r.first(lastnonnl + 1);  // everything up to the first trailing newline
+                size_t i = r.first_not_of(' ');
+                _c4dbgfbl("filt_block: first non space at %zu", i);
+                _RYML_CB_ASSERT(m_stack.m_callbacks, i != npos);
+                if(i > indentation)
                 {
-                    const char curr = t[i];
-                    if(curr != '\n')
+                    is_indented = true;
+                    i = indentation;
+                }
+                _c4dbgfbl("filt_block: start folding at %zu, is_indented=%d", i, (int)is_indented);
+                auto on_change_indentation = [&](size_t numnl_following, size_t last_newl, size_t first_non_whitespace){
+                    _c4dbgfbl("filt_block[%zu]: add 1+%zu newlines", i, numnl_following);
+                    for(size_t j = 0; j < 1 + numnl_following; ++j)
+                        m_filter_arena.str[pos++] = '\n';
+                    for(i = last_newl + 1 + indentation; i < first_non_whitespace; ++i)
                     {
-                        if(curr != ' ')
-                            found_non_space_so_far = true;
-                        continue;
+                        _c4dbgfbl("filt_block[%zu]: add '%.*s'", i, _c4prc(t.str[i]));
+                        m_filter_arena.str[pos++] = t.str[i];
                     }
-                    size_t nextl = t.first_not_of('\n', i+1);
-                    _c4dbgpf("filtering block[fold]: i=%zu nextl=%zu. curr=~~~%.*s~~~", i, nextl, _c4prsp(r.first(i)));
-                    if((!is_indented) && found_non_space_so_far)
+                    --i;
+                };
+                for( ; i < t.len; ++i)
+                {
+                    const char curr = t.str[i];
+                    _c4dbgfbl("filt_block[%zu]='%.*s'", i, _c4prc(curr));
+                    if(curr == '\n')
                     {
-                        if(nextl == i+1)
+                        filtered_chars = true;
+                        size_t first_non_whitespace = i;
+                        size_t numnl_following = count_following_newlines(t, &first_non_whitespace, indentation);
+                        while(first_non_whitespace < t.len && t[first_non_whitespace] == '\t')
+                            ++first_non_whitespace;
+                        if(first_non_whitespace == t.len)
                         {
-                            if((t[nextl] != ' ') && (t[nextl] != '\t'))
+                            _c4dbgfbl("filt_block[%zu]: #newlines=%zu. no more characters", i, numnl_following);
+                            for(size_t j = 0; j < 1 + numnl_following; ++j)
+                                m_filter_arena.str[pos++] = '\n';
+                            i = t.len - 1;
+                            continue;
+                        }
+                        _c4dbgfbl("filt_block[%zu]: #newlines=%zu firstnonws[%zu]='%.*s'", i, numnl_following, first_non_whitespace, _c4prc(t[first_non_whitespace]));
+                        size_t last_newl = t.last_of('\n', first_non_whitespace);
+                        size_t this_indentation = first_non_whitespace - last_newl - 1;
+                        _c4dbgfbl("filt_block[%zu]: #newlines=%zu firstnonws=%zu lastnewl=%zu this_indentation=%zu vs indentation=%zu", i, numnl_following, first_non_whitespace, last_newl, this_indentation, indentation);
+                        _RYML_CB_ASSERT(m_stack.m_callbacks, first_non_whitespace >= last_newl + 1);
+                        _RYML_CB_ASSERT(m_stack.m_callbacks, this_indentation >= indentation);
+                        if(!started)
+                        {
+                            _c4dbgfbl("filt_block[%zu]: #newlines=%zu. write all leading newlines", i, numnl_following);
+                            for(size_t j = 0; j < 1 + numnl_following; ++j)
+                                m_filter_arena.str[pos++] = '\n';
+                            if(this_indentation > indentation)
                             {
-                                _c4dbgpf("filtering block[fold]: i=%zu nextl=%zu: single newline, replace with space. curr=~~~%.*s~~~", i, nextl, _c4prsp(r.first(i)));
-                                t[i] = ' ';
+                                is_indented = true;
+                                _c4dbgfbl("filt_block[%zu]: advance ->%zu", i, last_newl + indentation);
+                                i = last_newl + indentation;
                             }
                             else
                             {
-                                _c4dbgpf("filtering block[fold]: i=%zu nextl=%zu entering indented mode. curr=~~~%.*s~~~", i, nextl, _c4prsp(r.first(i)));
-                                is_indented = true;
+                                i = first_non_whitespace - 1;
+                                _c4dbgfbl("filt_block[%zu]: advance ->%zu", i, first_non_whitespace);
                             }
                         }
-                        else if(nextl != csubstr::npos && t[nextl] != ' ' && t[nextl] != '\t')
+                        else if(this_indentation == indentation)
                         {
-                            _c4dbgpf("filtering block[fold]: i=%zu nextl=%zu: remove 1 newline. curr=~~~%.*s~~~",
-                                     i, nextl, _c4prsp(r.first(i)));
-                            _RYML_CB_ASSERT(m_stack.m_callbacks, nextl >= 1);
-                            t = t.erase(i, 1);
-                            i = nextl-1;
-                            if(i)
-                                --i;
+                            _c4dbgfbl("filt_block[%zu]: same indentation", i);
+                            if(!is_indented)
+                            {
+                                if(numnl_following == 0)
+                                {
+                                    _c4dbgfbl("filt_block[%zu]: fold!", i);
+                                    m_filter_arena.str[pos++] = ' ';
+                                }
+                                else
+                                {
+                                    _c4dbgfbl("filt_block[%zu]: add %zu newlines", i, numnl_following);
+                                    for(size_t j = 0; j < numnl_following; ++j)
+                                        m_filter_arena.str[pos++] = '\n';
+                                }
+                                i = first_non_whitespace - 1;
+                                _c4dbgfbl("filt_block[%zu]: advance %zu->%zu", i, i, first_non_whitespace);
+                            }
+                            else
+                            {
+                                _c4dbgfbl("filt_block[%zu]: back to ref indentation", i);
+                                is_indented = false;
+                                on_change_indentation(numnl_following, last_newl, first_non_whitespace);
+                                _c4dbgfbl("filt_block[%zu]: advance %zu->%zu", i, i, first_non_whitespace);
+                            }
+                        }
+                        else
+                        {
+                            _c4dbgfbl("filt_block[%zu]: increased indentation.", i);
+                            is_indented = true;
+                            _RYML_CB_ASSERT(m_stack.m_callbacks, this_indentation > indentation);
+                            on_change_indentation(numnl_following, last_newl, first_non_whitespace);
+                            _c4dbgfbl("filt_block[%zu]: advance %zu->%zu", i, i, first_non_whitespace);
                         }
                     }
-                    else
+                    else if(curr != '\r')
                     {
-                        _RYML_CB_ASSERT(m_stack.m_callbacks, is_indented || !found_non_space_so_far);
-                        if(t[nextl] != ' ' && t[nextl] != '\t')
-                        {
-                            _c4dbgpf("filtering block[fold]: i=%zu nextl=%zu leaving indented mode. curr=~~~%.*s~~~", i, nextl, _c4prsp(r.first(i)));
-                            is_indented = false;
-                            i = nextl;
-                        }
+                        if(curr != '\t')
+                            started = true;
+                        m_filter_arena.str[pos++] = curr;
                     }
                 }
                 // copy over the trailing newlines
-                substr nl = r.sub(pos);
-                _RYML_CB_ASSERT(m_stack.m_callbacks, t.len + nl.len <= r.len);
-                for(size_t i = 0; i < nl.len; ++i)
+                csubstr nl = r.sub(lastnonnl + 1);
+                _RYML_CB_ASSERT(m_stack.m_callbacks, pos + nl.len <= r.len);
+                for(const char c : nl)
                 {
-                    r[t.len + i] = nl[i];
+                    if(c == '\r')
+                        continue;
+                    m_filter_arena.str[pos++] = c;
                 }
-                // now trim r
-                r = r.sub(0, t.len + nl.len);
+                _RYML_CB_ASSERT(m_stack.m_callbacks, pos <= m_filter_arena.len);
+                if(pos < r.len || filtered_chars)
+                {
+                    _finish_filter_arena(r, pos);
+                    r.len = pos;
+                }
             }
         }
         break;
@@ -4320,12 +4458,42 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
         _c4err("unknown block style");
     }
 
-    _c4dbgpf("filtering block: final=~~~%.*s~~~", _c4prsp(r));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, s.len >= r.len);
+    _c4dbgfbl("filt_block: #filteredchars=%zd after=~~~%.*s~~~", s.len - r.len, _c4prsp(r));
 
-#ifdef RYML_DBG
-    for(size_t i = r.len; i < s.len; ++i)
-        s[i] = '~';
-#endif
+    switch(chomp)
+    {
+    case CHOMP_KEEP: // nothing to do, keep everything
+        _c4dbgp("filt_block: chomp=KEEP (+)");
+        break;
+    case CHOMP_STRIP: // strip all newlines from the end
+    {
+        _c4dbgp("filt_block: chomp=STRIP (-)");
+        r = r.trimr("\r\n");
+        break;
+    }
+    case CHOMP_CLIP: // clip to a single newline
+    {
+        _c4dbgp("filt_block: chomp=CLIP");
+        size_t i = r.last_not_of("\n\r");
+        if(i != npos)
+        {
+            ++i; // this is the character before \n, so add one to put it at \n
+            if(i < r.len && r[i] == '\r')
+                ++i;
+            if(i < r.len && r[i] == '\n')
+                ++i;
+            r = r.first(i);
+        }
+        break;
+    }
+    default:
+        _c4err("unknown chomp style");
+    }
+
+    _c4dbgfbl("filt_block: final=[%zu]~~~%.*s~~~", r.len, _c4prsp(r));
+
+    #undef _c4dbgfbl
 
     return r;
 }
@@ -4525,6 +4693,48 @@ int Parser::_prfl(char *buf, int buflen, size_t v)
 }
 
 #undef _wrapbuf
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+void Parser::_grow_filter_arena(size_t num_characters_needed)
+{
+    _c4dbgpf("grow: arena=%zu numchars=%zu", m_filter_arena.len, num_characters_needed);
+    if(num_characters_needed <= m_filter_arena.len)
+        return;
+    size_t sz = m_filter_arena.len << 1;
+    _c4dbgpf("grow: sz=%zu", sz);
+    sz = num_characters_needed > sz ? num_characters_needed : sz;
+    _c4dbgpf("grow: sz=%zu", sz);
+    sz = sz < 128u ? 128u : sz;
+    _c4dbgpf("grow: sz=%zu", sz);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, sz >= num_characters_needed);
+    _resize_filter_arena(sz);
+}
+
+void Parser::_resize_filter_arena(size_t num_characters)
+{
+    if(num_characters > m_filter_arena.len)
+    {
+        _c4dbgpf("resize: sz=%zu", num_characters);
+        char *prev = m_filter_arena.str;
+        if(m_filter_arena.str)
+        {
+            _RYML_CB_ASSERT(m_stack.m_callbacks, m_filter_arena.len > 0);
+            _RYML_CB_FREE(m_stack.m_callbacks, m_filter_arena.str, char, m_filter_arena.len);
+        }
+        m_filter_arena.str = _RYML_CB_ALLOC_HINT(m_stack.m_callbacks, char, num_characters, prev);
+        m_filter_arena.len = num_characters;
+    }
+}
+
+void Parser::_finish_filter_arena(substr filtered, size_t pos)
+{
+    _RYML_CB_ASSERT(m_stack.m_callbacks, pos <= filtered.len);
+    memcpy(filtered.str, m_filter_arena.str, pos);
+}
 
 
 //-----------------------------------------------------------------------------

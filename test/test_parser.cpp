@@ -22,6 +22,7 @@ void mklarge(Parser *p, Callbacks const& cb)
     new ((void*)p) Parser(cb);
     p->reserve_stack(20); // cause an allocation
     p->reserve_locations(128); // cause an allocation
+    p->reserve_filter_arena(128); // cause an allocation
 }
 
 
@@ -86,6 +87,28 @@ TEST(Parser, reserve_locations)
     EXPECT_EQ(ts.num_deallocs, 1u);
     EXPECT_EQ(ts.alloc_size, 128u * sizeof(size_t));
     EXPECT_EQ(ts.dealloc_size, 128u * sizeof(size_t));
+}
+
+TEST(Parser, reserve_filter_arena)
+{
+    size_t cap = 256u;
+    CallbacksTester ts;
+    {
+        Parser parser(ts.callbacks());
+        EXPECT_EQ(parser.filter_arena_capacity(), 0u);
+        EXPECT_EQ(parser.callbacks(), ts.callbacks());
+        EXPECT_EQ(ts.num_allocs, 0u);
+        EXPECT_EQ(ts.num_deallocs, 0u);
+        parser.reserve_filter_arena(cap);
+        EXPECT_EQ(ts.num_allocs, 1u);
+        EXPECT_EQ(ts.num_deallocs, 0u);
+        EXPECT_EQ(ts.alloc_size, cap);
+        EXPECT_EQ(ts.dealloc_size, 0u);
+    }
+    EXPECT_EQ(ts.num_allocs, 1u);
+    EXPECT_EQ(ts.num_deallocs, 1u);
+    EXPECT_EQ(ts.alloc_size, cap);
+    EXPECT_EQ(ts.dealloc_size, cap);
 }
 
 TEST(Parser, copy_ctor)

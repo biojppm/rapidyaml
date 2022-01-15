@@ -24,9 +24,6 @@
 #pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 
 // some debugging scaffolds
-
-#define _c4prsp(sp) ((int)(sp).len), (sp).str
-
 #define _c4err(fmt, ...)   \
     do { if(c4::is_debugger_attached()) { C4_DEBUG_BREAK(); } \
          this->_err("\n" "%s:%d: ERROR parsing yml: " fmt     , __FILE__, __LINE__, ## __VA_ARGS__); } while(0)
@@ -41,6 +38,20 @@
 #   define _c4dbgp(msg)
 #   define _c4dbgq(msg)
 #endif
+
+#define _c4prsp(sp) ((int)(sp).len), (sp).str
+#define _c4prc(c) (__c4prc(c) ? 2 : 1), (__c4prc(c) ? __c4prc(c) : &c)
+inline const char *__c4prc(const char &c)
+{
+    switch(c)
+    {
+    case '\0': return "\\0";
+    case '\r': return "\\r";
+    case '\t': return "\\t";
+    case '\n': return "\\n";
+    default: return nullptr;
+    };
+};
 
 #pragma clang diagnostic pop
 #pragma GCC diagnostic pop

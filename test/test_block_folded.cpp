@@ -3,6 +3,31 @@
 namespace c4 {
 namespace yml {
 
+TEST(block_folded, empty_block)
+{
+    const Tree t = parse_in_arena(R"(
+- >-
+  a
+- >-
+  
+- >-
+   
+- >-
+  
+  
+  
+- >-
+  
+   
+  
+)");
+    EXPECT_EQ(t[0].val(), csubstr("a"));
+    EXPECT_EQ(t[1].val(), csubstr(""));
+    EXPECT_EQ(t[2].val(), csubstr(""));
+    EXPECT_EQ(t[3].val(), csubstr(""));
+    EXPECT_EQ(t[4].val(), csubstr(""));
+}
+
 TEST(block_folded, issue152_not_indented)
 {
     const Tree t = parse_in_arena(R"(
@@ -194,6 +219,20 @@ TEST(block_folded, test_suite_6VJK)
  Sammy Sosa completed another
  fine season with great stats.
 
+ 63 Home Runs
+ 0.288 Batting Average
+
+ What a year!
+- >
+ Sammy Sosa completed another
+ fine season with great stats.
+   63 Home Runs
+   0.288 Batting Average
+ What a year!
+- >
+ Sammy Sosa completed another
+ fine season with great stats.
+
    63 Home Runs
    0.288 Batting Average
 
@@ -220,11 +259,18 @@ TEST(block_folded, test_suite_6VJK)
 
 
  What a year!
-)";
+- >-
+ No folding needed
+- >
+ No folding needed)";
     test_check_emit_check(yaml, [](Tree const &t){
-        EXPECT_EQ(t[0].val(), csubstr("Sammy Sosa completed another fine season with great stats.\n\n  63 Home Runs\n  0.288 Batting Average\n\nWhat a year!\n"));
-        EXPECT_EQ(t[1].val(), csubstr("Sammy Sosa completed another fine season with great stats.\n\n\n  63 Home Runs\n  0.288 Batting Average\n\n\nWhat a year!\n"));
-        EXPECT_EQ(t[2].val(), csubstr("Sammy Sosa completed another fine season with great stats.\n\n\n\n  63 Home Runs\n  0.288 Batting Average\n\n\n\nWhat a year!\n"));
+        EXPECT_EQ(t[0].val(), csubstr("Sammy Sosa completed another fine season with great stats.\n63 Home Runs 0.288 Batting Average\nWhat a year!\n"));
+        EXPECT_EQ(t[1].val(), csubstr("Sammy Sosa completed another fine season with great stats.\n  63 Home Runs\n  0.288 Batting Average\nWhat a year!\n"));
+        EXPECT_EQ(t[2].val(), csubstr("Sammy Sosa completed another fine season with great stats.\n\n  63 Home Runs\n  0.288 Batting Average\n\nWhat a year!\n"));
+        EXPECT_EQ(t[3].val(), csubstr("Sammy Sosa completed another fine season with great stats.\n\n\n  63 Home Runs\n  0.288 Batting Average\n\n\nWhat a year!\n"));
+        EXPECT_EQ(t[4].val(), csubstr("Sammy Sosa completed another fine season with great stats.\n\n\n\n  63 Home Runs\n  0.288 Batting Average\n\n\n\nWhat a year!\n"));
+        EXPECT_EQ(t[5].val(), csubstr("No folding needed"));
+        EXPECT_EQ(t[6].val(), csubstr("No folding needed"));
     });
 }
 
@@ -277,18 +323,15 @@ TEST(block_folded, test_suite_B3HG)
 
 
 --- >
+ folded
+ text
+--- >
   folded text
 )";
     test_check_emit_check(yaml, [](Tree const &t){
-        EXPECT_TRUE(t.rootref().is_stream());
-        const NodeRef doc = t.rootref().first_child();
-        ASSERT_TRUE(doc.is_doc());
-        ASSERT_TRUE(doc.is_val());
-        EXPECT_EQ(doc.val(), csubstr("folded text\n"));
-        const NodeRef doc2 = t.rootref().last_child();
-        ASSERT_TRUE(doc2.is_doc());
-        ASSERT_TRUE(doc2.is_val());
-        EXPECT_EQ(doc2.val(), csubstr("folded text\n"));
+        EXPECT_EQ(t.docref(0).val(), csubstr("folded text\n"));
+        EXPECT_EQ(t.docref(1).val(), csubstr("folded text\n"));
+        EXPECT_EQ(t.docref(2).val(), csubstr("folded text\n"));
     });
 }
 
@@ -343,10 +386,20 @@ b: >2
     });
 }
 
-#ifdef TEST_SUITE_WIP
+#ifdef SCANNING_FAILS_IN_THIS_CASE
 TEST(block_folded, test_suite_K858)
 {
-    csubstr yaml = R"(
+    csubstr yaml = R"(---
+# strip
+- >-
+
+# clip
+- >
+
+# keep
+- |+
+
+---
 strip: >-
 
 clip: >
@@ -355,12 +408,16 @@ keep: |+
 
 )";
     test_check_emit_check(yaml, [](Tree const &t){
-        ASSERT_TRUE(t.rootref().has_child("strip"));
-        ASSERT_TRUE(t.rootref().has_child("keep"));
-        ASSERT_TRUE(t.rootref().has_child("clip"));
-        EXPECT_EQ(t["strip"].val(), csubstr{});
-        EXPECT_EQ(t["clip"].val(), csubstr{});
-        EXPECT_EQ(t["keep"].val(), csubstr("\n"));
+        ASSERT_EQ(t.docref(0).num_children(), 3u);
+        EXPECT_EQ(t.docref(0)[0].val(), csubstr{});
+        EXPECT_EQ(t.docref(0)[1].val(), csubstr{});
+        EXPECT_EQ(t.docref(0)[2].val(), csubstr("\n"));
+        ASSERT_TRUE(t.docref(0).has_child("strip"));
+        ASSERT_TRUE(t.docref(0).has_child("keep"));
+        ASSERT_TRUE(t.docref(0).has_child("clip"));
+        EXPECT_EQ(t.docref(0)["strip"].val(), csubstr{});
+        EXPECT_EQ(t.docref(0)["clip"].val(), csubstr{});
+        EXPECT_EQ(t.docref(0)["keep"].val(), csubstr("\n"));
     });
 }
 #endif
@@ -412,24 +469,24 @@ TEST(block_folded, test_suite_R4YG)
 {
     csubstr yaml = R"(
 - |
- detected
+ detected0
 - >
  
   
-  # detected
+  # detected1
 - |1
-  explicit
+  explicit2
 - >
  	
- detected
+ detected3
 )";
     test_check_emit_check(yaml, [](Tree const &t){
         ASSERT_TRUE(t.rootref().is_seq());
         ASSERT_EQ(t.rootref().num_children(), 4u);
-        EXPECT_EQ(t[0].val(), csubstr("detected\n"));
-        EXPECT_EQ(t[1].val(), csubstr("\n\n# detected\n"));
-        EXPECT_EQ(t[2].val(), csubstr(" explicit\n"));
-        EXPECT_EQ(t[3].val(), csubstr("\t\ndetected\n"));
+        EXPECT_EQ(t[0].val(), csubstr("detected0\n"));
+        EXPECT_EQ(t[1].val(), csubstr("\n\n# detected1\n"));
+        EXPECT_EQ(t[2].val(), csubstr(" explicit2\n"));
+        EXPECT_EQ(t[3].val(), csubstr("\t\ndetected3\n"));
     });
 }
 
@@ -600,8 +657,26 @@ R"(- >
 
 # Comment
 
+##### without any indentation
+- >
+
+    folded
+    line
+
+    next
+    line
+      * bullet
+
+      * list
+      * lines
+
+    last
+    line
+
+# Comment
 )",
   L{
+    N(QV, "\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n"),
     N(QV, "\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n"),
     N(QV, "\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n"),
   }

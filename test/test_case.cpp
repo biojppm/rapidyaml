@@ -316,24 +316,24 @@ void CaseNode::compare_child(yml::NodeRef const& n, size_t pos) const
     if(pos >= n.num_children() || pos >= children.size()) return;
 
     ASSERT_GT(n.num_children(), pos);
-    auto const& ch = children[pos];
+    auto const& expectedch = children[pos];
 
     if(type & MAP)
     {
-        auto fch = n.find_child(ch.key);
-        if(fch != nullptr)
+        auto actualch = n.find_child(expectedch.key);
+        if(actualch != nullptr)
         {
             // there may be duplicate keys.
-            if(fch.id() != n[pos].id())
-                fch = n[pos];
+            if(actualch.id() != n[pos].id())
+                actualch = n[pos];
             //EXPECT_EQ(fch, n[ch.key]);
-            EXPECT_EQ(fch.get(), n[pos].get());
+            EXPECT_EQ(actualch.get(), n[pos].get());
             //EXPECT_EQ(n[pos], n[ch.key]);
-            EXPECT_EQ(n[ch.key].key(), ch.key);
+            EXPECT_EQ(n[expectedch.key].key(), expectedch.key);
         }
         else
         {
-            printf("error: node should have child %.*s: ", (int)ch.key.len, ch.key.str);
+            printf("error: node should have child %.*s: ", (int)expectedch.key.len, expectedch.key.str);
             print_path(n);
             printf("\n");
             print_node(n);
@@ -345,109 +345,109 @@ void CaseNode::compare_child(yml::NodeRef const& n, size_t pos) const
     {
         EXPECT_FALSE(n[pos].has_key());
         EXPECT_EQ(n[pos].get()->m_key.scalar, children[pos].key);
-        auto fch = n.child(pos);
-        EXPECT_EQ(fch.get(), n[pos].get());
+        auto actualch = n.child(pos);
+        EXPECT_EQ(actualch.get(), n[pos].get());
     }
 
-    if(ch.type & KEY)
+    if(expectedch.type & KEY)
     {
-        auto fch = n[pos];
-        EXPECT_TRUE(fch.has_key()) << "id=" << fch.id();
-        if(fch.has_key())
+        auto actualfch = n[pos];
+        EXPECT_TRUE(actualfch.has_key()) << "id=" << actualfch.id();
+        if(actualfch.has_key())
         {
-            EXPECT_EQ(fch.key(), ch.key) << "id=" << fch.id();
+            EXPECT_EQ(actualfch.key(), expectedch.key) << "id=" << actualfch.id();
         }
 
-        if( ! ch.key_tag.empty())
+        if( ! expectedch.key_tag.empty())
         {
-            EXPECT_TRUE(fch.has_key_tag()) << "id=" << fch.id();
-            if(fch.has_key_tag())
+            EXPECT_TRUE(actualfch.has_key_tag()) << "id=" << actualfch.id();
+            if(actualfch.has_key_tag())
             {
-                EXPECT_EQ(fch.key_tag(), ch.key_tag) << "id=" << fch.id();
+                EXPECT_EQ(actualfch.key_tag(), expectedch.key_tag) << "id=" << actualfch.id();
             }
         }
     }
 
-    if(ch.type & VAL)
+    if(expectedch.type & VAL)
     {
-        auto fch = n[pos];
-        EXPECT_TRUE(fch.has_val()) << "id=" << fch.id();
-        if(fch.has_val())
+        auto actualch = n[pos];
+        EXPECT_TRUE(actualch.has_val()) << "id=" << actualch.id();
+        if(actualch.has_val())
         {
-            EXPECT_EQ(fch.val(), ch.val) << "id=" << fch.id();
+            EXPECT_EQ(actualch.val(), expectedch.val) << "id=" << actualch.id();
         }
 
-        if( ! ch.val_tag.empty())
+        if( ! expectedch.val_tag.empty())
         {
-            EXPECT_TRUE(fch.has_val_tag()) << "id=" << fch.id();
-            if(fch.has_val_tag())
+            EXPECT_TRUE(actualch.has_val_tag()) << "id=" << actualch.id();
+            if(actualch.has_val_tag())
             {
-                EXPECT_EQ(fch.val_tag(), ch.val_tag) << "id=" << fch.id();
+                EXPECT_EQ(actualch.val_tag(), expectedch.val_tag) << "id=" << actualch.id();
             }
         }
     }
 }
 
-void CaseNode::compare(yml::NodeRef const& n, bool ignoreQuote) const
+void CaseNode::compare(yml::NodeRef const& actual, bool ignore_quote) const
 {
-    if(ignoreQuote)
+    if(ignore_quote)
     {
-        const auto actualType   = n.get()->m_type & ~(VALQUO | KEYQUO);
-        const auto expectedType = type & ~(VALQUO | KEYQUO);
-        EXPECT_EQ(expectedType, actualType) << "id=" << n.id();
+        const auto actual_type   = actual.get()->m_type & ~(VALQUO | KEYQUO);
+        const auto expected_type = type & ~(VALQUO | KEYQUO);
+        EXPECT_EQ(expected_type, actual_type) << "id=" << actual.id();
     }
     else
     {
-        EXPECT_EQ((int)n.get()->m_type, (int)type) << "id=" << n.id(); // the type() method masks the type, and thus tag flags are omitted on its return value
+        EXPECT_EQ((int)actual.get()->m_type, (int)type) << "id=" << actual.id(); // the type() method masks the type, and thus tag flags are omitted on its return value
     }
 
-    EXPECT_EQ(n.num_children(), children.size()) << "id=" << n.id();
+    EXPECT_EQ(actual.num_children(), children.size()) << "id=" << actual.id();
 
-    if(n.has_key())
+    if(actual.has_key())
     {
-        EXPECT_EQ(n.key(), key) << "id=" << n.id();
+        EXPECT_EQ(actual.key(), key) << "id=" << actual.id();
     }
 
-    if(n.has_val())
+    if(actual.has_val())
     {
-        EXPECT_EQ(n.val(), val) << "id=" << n.id();
+        EXPECT_EQ(actual.val(), val) << "id=" << actual.id();
     }
 
     // check that the children are in the same order
     {
-        EXPECT_EQ(children.size(), n.num_children()) << "id=" << n.id();
+        EXPECT_EQ(children.size(), actual.num_children()) << "id=" << actual.id();
 
         size_t ic = 0;
-        for(auto const &ch : children)
+        for(auto const &expectedch : children)
         {
             SCOPED_TRACE("comparing: iteration based on the ref children");
-            (void)ch; // unused
-            compare_child(n, ic++);
+            (void)expectedch; // unused
+            compare_child(actual, ic++);
         }
 
         ic = 0;
-        for(auto const ch : n.children())
+        for(auto const actualch : actual.children())
         {
             SCOPED_TRACE("comparing: iteration based on the yml::Node children");
-            (void)ch; // unused
-            compare_child(n, ic++);
+            (void)actualch; // unused
+            compare_child(actual, ic++);
         }
 
-        if(n.first_child() != nullptr)
+        if(actual.first_child() != nullptr)
         {
             ic = 0;
-            for(auto const ch : n.first_child().siblings())
+            for(auto const ch : actual.first_child().siblings())
             {
                 SCOPED_TRACE("comparing: iteration based on the yml::Node siblings");
                 (void)ch; // unused
-                compare_child(n, ic++);
+                compare_child(actual, ic++);
             }
         }
     }
 
-    for(size_t i = 0, ei = n.num_children(), j = 0, ej = children.size(); i < ei && j < ej; ++i, ++j)
+    for(size_t i = 0, ei = actual.num_children(), j = 0, ej = children.size(); i < ei && j < ej; ++i, ++j)
     {
-        children[j].compare(n[i], ignoreQuote);
+        children[j].compare(actual[i], ignore_quote);
     }
 }
 
