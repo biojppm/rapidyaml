@@ -2142,12 +2142,12 @@ csubstr Parser::_slurp_doc_scalar()
     if(s.begins_with('\''))
     {
         m_state->scalar_col = m_state->line_contents.current_col(s);
-        return _scan_quoted_scalar('\'');
+        return _scan_squot_scalar();
     }
     else if(s.begins_with('"'))
     {
         m_state->scalar_col = m_state->line_contents.current_col(s);
-        return _scan_quoted_scalar('"');
+        return _scan_dquot_scalar();
     }
     else if(s.begins_with('|') || s.begins_with('>'))
     {
@@ -2187,7 +2187,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
     {
         _c4dbgp("got a ': scanning single-quoted scalar");
         m_state->scalar_col = m_state->line_contents.current_col(s);
-        *scalar = _scan_quoted_scalar('\'');
+        *scalar = _scan_squot_scalar();
         *quoted = true;
         return true;
     }
@@ -2195,7 +2195,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
     {
         _c4dbgp("got a \": scanning double-quoted scalar");
         m_state->scalar_col = m_state->line_contents.current_col(s);
-        *scalar = _scan_quoted_scalar('"');
+        *scalar = _scan_dquot_scalar();
         *quoted = true;
         return true;
     }
@@ -3600,14 +3600,10 @@ csubstr Parser::_scan_comment()
 }
 
 //-----------------------------------------------------------------------------
-csubstr Parser::_scan_quoted_scalar(const char q)
+csubstr Parser::_scan_squot_scalar()
 {
-    _RYML_CB_ASSERT(m_stack.m_callbacks, q == '\'' || q == '"');
-
     // quoted scalars can spread over multiple lines!
     // nice explanation here: http://yaml-multiline.info/
-
-    bool needs_filter = false;
 
     // a span to the end of the file
     size_t b = m_state->pos.offset;
@@ -3620,11 +3616,13 @@ csubstr Parser::_scan_quoted_scalar(const char q)
         _line_progressed((size_t)(s.begin() - m_buf.sub(b).begin()));
     }
     b = m_state->pos.offset; // take this into account
-    _RYML_CB_ASSERT(m_stack.m_callbacks, s.begins_with(q));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, s.begins_with('\''));
 
     // skip the opening quote
     _line_progressed(1);
     s = s.sub(1);
+
+    bool needs_filter = false;
 
     size_t numlines = 1; // we already have one line
     size_t pos = npos; // find the pos of the matching quote
@@ -3632,58 +3630,27 @@ csubstr Parser::_scan_quoted_scalar(const char q)
     {
         const csubstr line = m_state->line_contents.rem;
         bool line_is_blank = true;
-
-        if(q == '\'') // scalars with single quotes
+        _c4dbgpf("scanning single quoted scalar @ line[%zd]:  line=\"%.*s\"", m_state->pos.line, _c4prsp(line));
+        for(size_t i = 0; i < line.len; ++i)
         {
-            _c4dbgpf("scanning single quoted scalar @ line[%zd]:  line=\"%.*s\"", m_state->pos.line, _c4prsp(line));
-            for(size_t i = 0; i < line.len; ++i)
+            const char curr = line.str[i];
+            if(curr == '\'') // single quotes are escaped with two single quotes
             {
-                const char curr = line.str[i];
-                if(curr == '\'') // single quotes are escaped with two single quotes
-                {
-                    const char next = i+1 < line.len ? line.str[i+1] : '~';
-                    if(next != '\'') // so just look for the first quote
-                    {                // without another after it
-                        pos = i;
-                        break;
-                    }
-                    else
-                    {
-                        needs_filter = true; // needs filter to remove escaped quotes
-                        ++i; // skip the escaped quote
-                    }
-                }
-                else if(curr != ' ')
-                {
-                    line_is_blank = false;
-                }
-            }
-        }
-        else // scalars with double quotes
-        {
-            _c4dbgpf("scanning double quoted scalar @ line[%zd]:  line='%.*s'", m_state->pos.line, _c4prsp(line));
-            for(size_t i = 0; i < line.len; ++i)
-            {
-                const char curr = line.str[i];
-                if(curr != ' ')
-                {
-                    line_is_blank = false;
-                }
-                // every \ is an escape
-                if(curr == '\\')
-                {
-                    const char next = i+1 < line.len ? line.str[i+1] : '~';
-                    needs_filter = true;
-                    if(next == '"' || next == '\\')
-                    {
-                        ++i;
-                    }
-                }
-                else if(curr == '"')
-                {
+                const char next = i+1 < line.len ? line.str[i+1] : '~';
+                if(next != '\'') // so just look for the first quote
+                {                // without another after it
                     pos = i;
                     break;
                 }
+                else
+                {
+                    needs_filter = true; // needs filter to remove escaped quotes
+                    ++i; // skip the escaped quote
+                }
+            }
+            else if(curr != ' ')
+            {
+                line_is_blank = false;
             }
         }
 
@@ -3703,7 +3670,7 @@ csubstr Parser::_scan_quoted_scalar(const char q)
         else
         {
             _RYML_CB_ASSERT(m_stack.m_callbacks, pos >= 0 && pos < m_buf.len);
-            _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf[m_state->pos.offset + pos] == q);
+            _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf[m_state->pos.offset + pos] == '\'');
             _line_progressed(pos + 1); // progress beyond the quote
             pos = m_state->pos.offset - b - 1; // but we stop before it
             break;
@@ -3725,21 +3692,124 @@ csubstr Parser::_scan_quoted_scalar(const char q)
     else
     {
         _RYML_CB_ASSERT(m_stack.m_callbacks, s.end() >= m_buf.begin() && s.end() <= m_buf.end());
-        _RYML_CB_ASSERT(m_stack.m_callbacks, s.end() == m_buf.end() || *s.end() == q);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, s.end() == m_buf.end() || *s.end() == '\'');
         s = s.sub(0, pos-1);
     }
 
     if(needs_filter)
     {
-        csubstr ret;
-        if(q == '\'')
+        csubstr ret = _filter_squot_scalar(s);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, ret.len <= s.len || s.empty() || s.trim(' ').empty());
+        _c4dbgpf("final scalar: \"%.*s\"", _c4prsp(ret));
+        return ret;
+    }
+
+    _c4dbgpf("final scalar: \"%.*s\"", _c4prsp(s));
+
+    return s;
+}
+
+//-----------------------------------------------------------------------------
+csubstr Parser::_scan_dquot_scalar()
+{
+    // quoted scalars can spread over multiple lines!
+    // nice explanation here: http://yaml-multiline.info/
+
+    // a span to the end of the file
+    size_t b = m_state->pos.offset;
+    substr s = m_buf.sub(b);
+    if(s.begins_with(' '))
+    {
+        s = s.triml(' ');
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.sub(b).is_super(s));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, s.begin() >= m_buf.sub(b).begin());
+        _line_progressed((size_t)(s.begin() - m_buf.sub(b).begin()));
+    }
+    b = m_state->pos.offset; // take this into account
+    _RYML_CB_ASSERT(m_stack.m_callbacks, s.begins_with('"'));
+
+    // skip the opening quote
+    _line_progressed(1);
+    s = s.sub(1);
+
+    bool needs_filter = false;
+
+    size_t numlines = 1; // we already have one line
+    size_t pos = npos; // find the pos of the matching quote
+    while( ! _finished_file())
+    {
+        const csubstr line = m_state->line_contents.rem;
+        bool line_is_blank = true;
+        _c4dbgpf("scanning double quoted scalar @ line[%zd]:  line='%.*s'", m_state->pos.line, _c4prsp(line));
+        for(size_t i = 0; i < line.len; ++i)
         {
-            ret = _filter_squot_scalar(s);
+            const char curr = line.str[i];
+            if(curr != ' ')
+            {
+                line_is_blank = false;
+            }
+            // every \ is an escape
+            if(curr == '\\')
+            {
+                const char next = i+1 < line.len ? line.str[i+1] : '~';
+                needs_filter = true;
+                if(next == '"' || next == '\\')
+                {
+                    ++i;
+                }
+            }
+            else if(curr == '"')
+            {
+                pos = i;
+                break;
+            }
         }
-        else if(q == '"')
+
+        // leading whitespace also needs filtering
+        needs_filter = needs_filter
+            || numlines > 1
+            || line_is_blank
+            || (_at_line_begin() && line.begins_with(' '))
+            || (m_state->line_contents.full.last_of('\r') != csubstr::npos);
+
+        if(pos == npos)
         {
-            ret = _filter_dquot_scalar(s);
+            _line_progressed(line.len);
+            ++numlines;
+            _c4dbgpf("scanning scalar @ line[%zd]: sofar=\"%.*s\"", m_state->pos.line, _c4prsp(s.sub(0, m_state->pos.offset-b)));
         }
+        else
+        {
+            _RYML_CB_ASSERT(m_stack.m_callbacks, pos >= 0 && pos < m_buf.len);
+            _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf[m_state->pos.offset + pos] == '"');
+            _line_progressed(pos + 1); // progress beyond the quote
+            pos = m_state->pos.offset - b - 1; // but we stop before it
+            break;
+        }
+
+        _line_ended();
+        _scan_line();
+    }
+
+    if(pos == npos)
+    {
+        _c4err("reached end of file while looking for closing quote");
+    }
+    else if(pos == 0)
+    {
+        s.clear();
+        _RYML_CB_ASSERT(m_stack.m_callbacks,  ! needs_filter);
+    }
+    else
+    {
+        _RYML_CB_ASSERT(m_stack.m_callbacks, s.end() >= m_buf.begin() && s.end() <= m_buf.end());
+        _RYML_CB_ASSERT(m_stack.m_callbacks, s.end() == m_buf.end() || *s.end() == '"');
+        s = s.sub(0, pos-1);
+    }
+
+    if(needs_filter)
+    {
+        csubstr ret = _filter_dquot_scalar(s);
         _RYML_CB_ASSERT(m_stack.m_callbacks, ret.len <= s.len || s.empty() || s.trim(' ').empty());
         _c4dbgpf("final scalar: \"%.*s\"", _c4prsp(ret));
         return ret;
@@ -3928,110 +3998,137 @@ csubstr Parser::_scan_block()
 
 //-----------------------------------------------------------------------------
 
-bool Parser::_filter_cont_lines(substr r, size_t *C4_RESTRICT i, size_t *C4_RESTRICT pos, bool backslash_is_escape, size_t indentation, bool keep_trailing_whitespace)
+template<bool backslash_is_escape, bool keep_trailing_whitespace>
+bool Parser::_filter_nl(substr r, size_t *C4_RESTRICT i, size_t *C4_RESTRICT pos, size_t indentation)
 {
     // a debugging scaffold:
     #if 0
-    #define _c4dbgfcl _c4dbgpf
+    #define _c4dbgfnl(fmt, ...) _c4dbgpf("filter_nl[%zu]: " fmt, *i, __VA_ARGS__)
     #else
-    #define _c4dbgfcl(...)
+    #define _c4dbgfnl(...)
     #endif
 
-    _RYML_CB_ASSERT(m_stack.m_callbacks, indentation != npos);
-
     const char curr = r[*i];
-    _c4dbgfcl("filt_cont_lines[%zu]: '%.*s'", *i, _c4prc(curr));
-    if(curr == ' ' || curr == '\t')
+    bool replaced = false;
+
+    _RYML_CB_ASSERT(m_stack.m_callbacks, indentation != npos);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, curr == '\n');
+
+    _c4dbgfnl("found newline. sofar=[%zu]~~~%.*s~~~", *pos, _c4prsp(m_filter_arena.first(*pos)));
+    size_t ii = *i;
+    size_t numnl_following = count_following_newlines(r, &ii, indentation);
+    if(numnl_following)
     {
-        _c4dbgfcl("filt_cont_lines[%zu]: found whitespace '%.*s'", *i, _c4prc(curr));
-        size_t first = *i > 0 ? r.first_not_of(" \t", *i) : r.first_not_of(' ', *i);
-        if(first != npos)
+        if(ii < r.len)
         {
-            if(r[first] == '\n' || r[first] == '\r') // skip trailing whitespace
-            {
-                _c4dbgfcl("filt_cont_lines[%zu]: whitespace is trailing on line. firstnonws='%.*s'@%zu", *i, _c4prc(r[first]), first);
-                *i += first - *i - 1; // correct for the loop increment
-            }
-            else // a legit whitespace
-            {
-                m_filter_arena.str[(*pos)++] = curr;
-                _c4dbgfcl("filt_cont_lines[%zu]: legit whitespace. sofar=[%zu]~~~%.*s~~~", *i, *pos, _c4prsp(m_filter_arena.first(*pos)));
-            }
+            _c4dbgfnl("%zu consecutive (empty) lines in the middle. totalws=%zd", 1+numnl_following, ii - *i);
+            for(size_t j = 0; j < numnl_following; ++j)
+                m_filter_arena.str[(*pos)++] = '\n';
         }
         else
         {
-            _c4dbgfcl("filt_cont_lines[%zu]: ... everything else is trailing whitespace", *i);
-            if(keep_trailing_whitespace)
-                for(size_t j = *i; j < r.len; ++j)
-                    m_filter_arena.str[(*pos)++] = r[j];
-            *i = r.len;
+            _c4dbgfnl("%zu consecutive (empty) lines at the end. totalws=%zu remaining=%zu", 1+numnl_following, ii - *i, r.len-*i);
+            for(size_t j = 0; j < numnl_following; ++j)
+                m_filter_arena.str[(*pos)++] = '\n';
         }
     }
-    else if(curr == '\n')
+    else
     {
-        _c4dbgfcl("filt_cont_lines[%zu]: found newline. sofar=[%zu]~~~%.*s~~~", *i, *pos, _c4prsp(m_filter_arena.first(*pos)));
-        size_t ii = *i;
-        size_t numnl_following = count_following_newlines(r, &ii, indentation);
-        if(numnl_following)
+        if(r.first_not_of(" \t", *i+1) != npos)
         {
-            if(ii < r.len)
-            {
-                _c4dbgfcl("filt_cont_lines[%zu]: %zu consecutive (empty) lines in the middle. totalws=%zd", *i, 1+numnl_following, ii - *i);
-                for(size_t j = 0; j < numnl_following; ++j)
-                    m_filter_arena.str[(*pos)++] = '\n';
-            }
-            else
-            {
-                _c4dbgfcl("filt_cont_lines[%zu]: %zu consecutive (empty) lines at the end. totalws=%zu remaining=%zu", *i, 1+numnl_following, ii - *i, r.len-*i);
-                for(size_t j = 0; j < numnl_following; ++j)
-                    m_filter_arena.str[(*pos)++] = '\n';
-            }
+            m_filter_arena.str[(*pos)++] = ' ';
+            _c4dbgfnl("single newline. convert to space. ii=%zu/%zu. sofar=[%zu]~~~%.*s~~~", ii, r.len, *pos, _c4prsp(m_filter_arena.first(*pos)));
+            replaced = true;
         }
         else
         {
-            if(keep_trailing_whitespace || (r.first_not_of(" \t", *i+1) != npos))
+            if C4_IF_CONSTEXPR (keep_trailing_whitespace)
             {
-                _c4dbgfcl("filt_cont_lines[%zu]: single newline. convert to space. ii=%zu/%zu", *i, ii, r.len);
                 m_filter_arena.str[(*pos)++] = ' ';
-                //filtered_chars = true;
+                _c4dbgfnl("single newline. convert to space. ii=%zu/%zu. sofar=[%zu]~~~%.*s~~~", ii, r.len, *pos, _c4prsp(m_filter_arena.first(*pos)));
+                replaced = true;
             }
             else
             {
-                _c4dbgfcl("filt_cont_lines[%zu]: last newline, everything else is whitespace. ii=%zu/%zu", *i, ii, r.len);
+                _c4dbgfnl("last newline, everything else is whitespace. ii=%zu/%zu", ii, r.len);
                 *i = r.len;
-                return true;
             }
-            if(backslash_is_escape && (ii < r.len && r.str[ii] == '\\'))
+        }
+        if C4_IF_CONSTEXPR (backslash_is_escape)
+        {
+            if(ii < r.len && r.str[ii] == '\\')
             {
-                char next = ii+1 < r.len ? r.str[ii+1] : '\0';
+                const char next = ii+1 < r.len ? r.str[ii+1] : '\0';
                 if(next == ' ' || next == '\t')
                 {
-                    _c4dbgfcl("filt_cont_lines[%zu]: extend skip to backslash", *i);
+                    _c4dbgfnl("extend skip to backslash%s", "");
                     ++ii;
                 }
             }
         }
-        *i += ii - *i - 1; // correct for the loop increment
     }
-    else if(curr == '\r')  // skip \r --- https://stackoverflow.com/questions/1885900
+    *i = ii - 1; // correct for the loop increment
+
+    #undef _c4dbgfnl
+
+    return replaced;
+}
+
+
+//-----------------------------------------------------------------------------
+
+template<bool keep_trailing_whitespace>
+void Parser::_filter_ws(substr r, size_t *C4_RESTRICT i, size_t *C4_RESTRICT pos)
+{
+    // a debugging scaffold:
+    #if 0
+    #define _c4dbgfws(fmt, ...) _c4dbgpf("filt_nl[%zu]: " fmt, *i, __VA_ARGS__)
+    #else
+    #define _c4dbgfws(...)
+    #endif
+
+    const char curr = r[*i];
+    _c4dbgfws("found whitespace '%.*s'", _c4prc(curr));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, curr == ' ' || curr == '\t');
+
+    size_t first = *i > 0 ? r.first_not_of(" \t", *i) : r.first_not_of(' ', *i);
+    if(first != npos)
     {
-        _c4dbgfcl("filt_cont_lines[%zu]: skip '\\r'. sofar=[%zu]~~~%.*s~~~", *i, *pos, _c4prsp(m_filter_arena.first(*pos)));
+        if(r[first] == '\n' || r[first] == '\r') // skip trailing whitespace
+        {
+            _c4dbgfws("whitespace is trailing on line. firstnonws='%.*s'@%zu", _c4prc(r[first]), first);
+            *i = first - 1; // correct for the loop increment
+        }
+        else // a legit whitespace
+        {
+            m_filter_arena.str[(*pos)++] = curr;
+            _c4dbgfws("legit whitespace. sofar=[%zu]~~~%.*s~~~", *pos, _c4prsp(m_filter_arena.first(*pos)));
+        }
     }
     else
     {
-        return false;
+        _c4dbgfws("... everything else is trailing whitespace%s", "");
+        if C4_IF_CONSTEXPR (keep_trailing_whitespace)
+            for(size_t j = *i; j < r.len; ++j)
+                m_filter_arena.str[(*pos)++] = r[j];
+        *i = r.len;
     }
 
-    #undef _c4dbgfcl
-
-    return true;
+    #undef _c4dbgfws
 }
 
 
 //-----------------------------------------------------------------------------
 csubstr Parser::_filter_plain_scalar(substr s, size_t indentation)
 {
-    _c4dbgpf("filt_plain_scalar: before=~~~%.*s~~~", _c4prsp(s));
+    // a debugging scaffold:
+    #if 0
+    #define _c4dbgfps(...) _c4dbgpf("filt_plain_scalar" __VA_ARGS__)
+    #else
+    #define _c4dbgfps(...)
+    #endif
+
+    _c4dbgfps("before=~~~%.*s~~~", _c4prsp(s));
 
     substr r = s.triml(" \t");
     _grow_filter_arena(r.len);
@@ -4039,9 +4136,19 @@ csubstr Parser::_filter_plain_scalar(substr s, size_t indentation)
     bool filtered_chars = false;
     for(size_t i = 0; i < r.len; ++i)
     {
-        if(_filter_cont_lines(r, &i, &pos, /*backslash_is_escape*/false, indentation, /*keep_trailing_ws*/false))
+        const char curr = r.str[i];
+        _c4dbgfps("[%zu]: '%.*s'", i, _c4prc(curr));
+        if(curr == ' ' || curr == '\t')
         {
-            filtered_chars = true;
+            _filter_ws</*keep_trailing_ws*/false>(r, &i, &pos);
+        }
+        else if(curr == '\n')
+        {
+            filtered_chars = _filter_nl</*backslash_is_escape*/false, /*keep_trailing_ws*/false>(r, &i, &pos, indentation);
+        }
+        else if(curr == '\r')  // skip \r --- https://stackoverflow.com/questions/1885900
+        {
+            ;
         }
         else
         {
@@ -4057,9 +4164,9 @@ csubstr Parser::_filter_plain_scalar(substr s, size_t indentation)
     }
 
     _RYML_CB_ASSERT(m_stack.m_callbacks, s.len >= r.len);
-    _c4dbgpf("filt_plain_scalar: #filteredchars=%zd after=~~~%.*s~~~", s.len - r.len, _c4prsp(r));
+    _c4dbgfps("#filteredchars=%zd after=~~~%.*s~~~", s.len - r.len, _c4prsp(r));
 
-    #undef _c4dbgfsq
+    #undef _c4dbgfps
     return r;
 }
 
@@ -4069,7 +4176,7 @@ csubstr Parser::_filter_squot_scalar(substr s)
 {
     // a debugging scaffold:
     #if 0
-    #define _c4dbgfsq _c4dbgpf
+    #define _c4dbgfsq(...) _c4dbgpf("filt_squo_scalar")
     #else
     #define _c4dbgfsq(...)
     #endif
@@ -4077,7 +4184,7 @@ csubstr Parser::_filter_squot_scalar(substr s)
     // from the YAML spec for double-quoted scalars:
     // https://yaml.org/spec/1.2-old/spec.html#style/flow/single-quoted
 
-    _c4dbgfsq("filt_squo_scalar: before=~~~%.*s~~~", _c4prsp(s));
+    _c4dbgfsq(": before=~~~%.*s~~~", _c4prsp(s));
 
     _grow_filter_arena(s.len);
     substr r = s;
@@ -4085,19 +4192,26 @@ csubstr Parser::_filter_squot_scalar(substr s)
     bool filtered_chars = false;
     for(size_t i = 0; i < r.len; ++i)
     {
-        if(_filter_cont_lines(r, &i, &pos, /*backslash_is_escape*/false, /*indentation*/0, /*keep_trailing_ws*/true))
-        {
-            filtered_chars = true;
-            continue;
-        }
         const char curr = r[i];
-        _c4dbgfsq("filt_squo_scalar[%zu]: '%.*s'", i, _c4prc(curr));
-        if(curr == '\'')
+        _c4dbgfsq("[%zu]: '%.*s'", i, _c4prc(curr));
+        if(curr == ' ' || curr == '\t')
+        {
+            _filter_ws</*keep_trailing_ws*/true>(r, &i, &pos);
+        }
+        else if(curr == '\n')
+        {
+            filtered_chars = _filter_nl</*backslash_is_escape*/false, /*keep_trailing_ws*/true>(r, &i, &pos, /*indentation*/0);
+        }
+        else if(curr == '\r')  // skip \r --- https://stackoverflow.com/questions/1885900
+        {
+            ;
+        }
+        else if(curr == '\'')
         {
             char next = i+1 < r.len ? r[i+1] : '\0';
             if(next == '\'')
             {
-                _c4dbgfsq("filt_squo_scalar[%zu]: two consecutive quotes", i);
+                _c4dbgfsq("[%zu]: two consecutive quotes", i);
                 filtered_chars = true;
                 m_filter_arena.str[pos++] = '\'';
                 ++i;
@@ -4117,7 +4231,7 @@ csubstr Parser::_filter_squot_scalar(substr s)
     }
 
     _RYML_CB_ASSERT(m_stack.m_callbacks, s.len >= r.len);
-    _c4dbgpf("filt_squo_scalar: #filteredchars=%zd after=~~~%.*s~~~", s.len - r.len, _c4prsp(r));
+    _c4dbgpf(": #filteredchars=%zd after=~~~%.*s~~~", s.len - r.len, _c4prsp(r));
 
     #undef _c4dbgfsq
     return r;
@@ -4129,12 +4243,12 @@ csubstr Parser::_filter_dquot_scalar(substr s)
 {
     // a debugging scaffold:
     #if 0
-    #define _c4dbgfdq _c4dbgpf
+    #define _c4dbgfdq(...) _c4dbgpf("filt_dquo_scalar")
     #else
     #define _c4dbgfdq(...)
     #endif
 
-    _c4dbgpf("filt_squo_scalar: before=~~~%.*s~~~", _c4prsp(s));
+    _c4dbgfdq(": before=~~~%.*s~~~", _c4prsp(s));
 
     // from the YAML spec for double-quoted scalars:
     // https://yaml.org/spec/1.2-old/spec.html#style/flow/double-quoted
@@ -4150,17 +4264,24 @@ csubstr Parser::_filter_dquot_scalar(substr s)
     bool filtered_chars = false;
     for(size_t i = 0; i < r.len; ++i)
     {
-        if(_filter_cont_lines(r, &i, &pos, /*backslash_is_escape*/true, /*indentation*/0, /*keep_trailing_ws*/true))
-        {
-            filtered_chars = true;
-            continue;
-        }
         const char curr = r[i];
-        _c4dbgfdq("filt_dquo_scalar[%zu]: '%.*s'", i, _c4prc(curr));
-        if(curr == '\\')
+        _c4dbgfdq("[%zu]: '%.*s'", i, _c4prc(curr));
+        if(curr == ' ' || curr == '\t')
+        {
+            _filter_ws</*keep_trailing_ws*/true>(r, &i, &pos);
+        }
+        else if(curr == '\n')
+        {
+            filtered_chars = _filter_nl</*backslash_is_escape*/true, /*keep_trailing_ws*/true>(r, &i, &pos, /*indentation*/0);
+        }
+        else if(curr == '\r')  // skip \r --- https://stackoverflow.com/questions/1885900
+        {
+            ;
+        }
+        else if(curr == '\\')
         {
             char next = i+1 < r.len ? r[i+1] : '\0';
-            _c4dbgfdq("filt_dquo_scalar[%zu]: backslash, next='%.*s'", i, _c4prc(next));
+            _c4dbgfdq("[%zu]: backslash, next='%.*s'", i, _c4prc(next));
             filtered_chars = true;
             if(next == '\r')
             {
@@ -4168,7 +4289,7 @@ csubstr Parser::_filter_dquot_scalar(substr s)
                 {
                     ++i; // newline escaped with \ -- skip both (add only one as i is loop-incremented)
                     next = '\n';
-                    _c4dbgfdq("filt_dquo_scalar[%zu]: was \\r\\n, now next='\\n'", i);
+                    _c4dbgfdq("[%zu]: was \\r\\n, now next='\\n'", i);
                 }
             }
             // remember the loop will also increment i
@@ -4230,7 +4351,7 @@ csubstr Parser::_filter_dquot_scalar(substr s)
                 m_filter_arena.str[pos++] = next;
                 ++i;
             }
-            _c4dbgfdq("filt_dquo_scalar[%zu]: backslash...sofar=[%zu]~~~%.*s~~~", i, pos, _c4prsp(m_filter_arena.first(pos)));
+            _c4dbgfdq("[%zu]: backslash...sofar=[%zu]~~~%.*s~~~", i, pos, _c4prsp(m_filter_arena.first(pos)));
         }
         else
         {
@@ -4246,7 +4367,7 @@ csubstr Parser::_filter_dquot_scalar(substr s)
     }
 
     _RYML_CB_ASSERT(m_stack.m_callbacks, s.len >= r.len);
-    _c4dbgpf("filt_dquo_scalar: #filteredchars=%zd after=~~~%.*s~~~", s.len - r.len, _c4prsp(r));
+    _c4dbgpf(": #filteredchars=%zd after=~~~%.*s~~~", s.len - r.len, _c4prsp(r));
 
     #undef _c4dbgfdq
 
