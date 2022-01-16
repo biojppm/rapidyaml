@@ -343,14 +343,15 @@ private:
 
     NodeData* _append_val(csubstr val, bool quoted=false);
     NodeData* _append_key_val(csubstr val, bool val_quoted=false);
-    inline NodeData* _append_val_null() { return _append_val({}/*"~"*/); }
-    inline NodeData* _append_key_val_null() { return _append_key_val({}/*"~"*/); }
     bool  _rval_dash_start_or_continue_seq();
 
     void  _store_scalar(csubstr const& s, bool is_quoted);
-    void  _store_scalar_null() { _store_scalar({}/*"~"*/, false); }
     csubstr _consume_scalar();
     void  _move_scalar_from_top();
+
+    inline NodeData* _append_val_null(const char *str) { _RYML_CB_ASSERT(m_stack.m_callbacks, str >= m_buf.begin() && str <= m_buf.end()); return _append_val({str, size_t(0)}); }
+    inline NodeData* _append_key_val_null(const char *str) { _RYML_CB_ASSERT(m_stack.m_callbacks, str >= m_buf.begin() && str <= m_buf.end()); return _append_key_val({str, size_t(0)}); }
+    inline void      _store_scalar_null(const char *str) {  _RYML_CB_ASSERT(m_stack.m_callbacks, str >= m_buf.begin() && str <= m_buf.end()); _store_scalar({str, size_t(0)}, false); }
 
     void  _set_indentation(size_t behind);
     void  _save_indentation(size_t behind=0);
