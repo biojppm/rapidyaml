@@ -105,7 +105,16 @@ As part of the [new feature to track source locations](https://github.com/biojpp
 
 ### Improvements
 
-- Rewrite filtering of scalars to improve performance by avoiding string moves ([PR #188](https://github.com/biojppm/rapidyaml/pull/188)).
+- Rewrite filtering of scalars to improve parsing performance ([PR #188](https://github.com/biojppm/rapidyaml/pull/188)). Previously the scalar strings were parsed in place, which resulted in quadratic filtering complexity. This did not matter for small scalars fitting the cache (which is the more frequent case), but had a cost as the scalars grew larger. To achieve linearity, the code was changed so that the strings are now filtered to a temporary scratch space in the parser, and copied back to the output buffer after filtering, if any change occurred. The improvements were large for the folded scalars; the table below shows the benchmark results of throughput (MB/s) for several files containing large scalars of a single type:
+  | scalar type	| before |	after |	improvement |
+  |:------------|-------:|-------:|---------:|
+  | block folded   | 276	| 561	| 103% |
+  | block literal  | 331	| 611	| 85% |
+  | single quoted  | 247	| 267	| 8% |
+  | double quoted  | 212	| 230	| 8% |
+  | plain (unquoted) | 173	| 186	| 8% |
+  
+  The cost for small scalars is negligible, with benchmark improvement in the interval of -2% to 5%, so well within the margin of benchmark variability in a regular OS.
 - `Callbacks`: add `operator==()` and `operator!=()` ([PR #168](https://github.com/biojppm/rapidyaml/pull/168)).
 - `Tree`: on error or assert prefer the error callback stored into the tree's current `Callbacks`, rather than the global `Callbacks` ([PR #168](https://github.com/biojppm/rapidyaml/pull/168)).
 - `detail::stack<>`: improve behavior when assigning from objects `Callbacks`, test all rule-of-5 scenarios ([PR #168](https://github.com/biojppm/rapidyaml/pull/168)).

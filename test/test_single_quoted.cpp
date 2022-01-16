@@ -101,6 +101,98 @@ detected
     });
 }
 
+//-----------------------------------------------------------------------------
+
+void verify_error_is_reported(csubstr case_name, csubstr yaml, Location loc={})
+{
+    SCOPED_TRACE(case_name);
+    SCOPED_TRACE(yaml);
+    Tree tree;
+    ExpectError::do_check(&tree, [&](){
+        parse_in_arena(yaml, &tree);
+    }, loc);
+}
+
+TEST(single_quoted, error_on_unmatched_quotes)
+{
+    verify_error_is_reported("map block", R"(foo: '"
+bar: '')");
+    verify_error_is_reported("seq block", R"(- '"
+- '')");
+    verify_error_is_reported("map flow", R"({foo: '", bar: ''})");
+    verify_error_is_reported("seq flow", R"(['", ''])");
+}
+
+TEST(single_quoted, error_on_unmatched_quotes_with_escapes)
+{
+    verify_error_is_reported("map block", R"(foo: '''"
+bar: '')");
+    verify_error_is_reported("seq block", R"(- '''"
+- '')");
+    verify_error_is_reported("map flow", R"({foo: '''", bar: ''})");
+    verify_error_is_reported("seq flow", R"(['''", ''])");
+}
+
+TEST(single_quoted, error_on_unmatched_quotes_at_end)
+{
+    verify_error_is_reported("map block", R"(foo: ''
+bar: '")");
+    verify_error_is_reported("seq block", R"(- ''
+- '")");
+    verify_error_is_reported("map flow", R"({foo: '', bar: '"})");
+    verify_error_is_reported("seq flow", R"(['', '"])");
+}
+
+TEST(single_quoted, error_on_unmatched_quotes_at_end_with_escapes)
+{
+    verify_error_is_reported("map block", R"(foo: ''
+bar: '''")");
+    verify_error_is_reported("seq block", R"(- ''
+- '''")");
+    verify_error_is_reported("map flow", R"({foo: '', bar: '''"})");
+    verify_error_is_reported("seq flow", R"(['', '''"])");
+}
+
+TEST(single_quoted, error_on_unclosed_quotes)
+{
+    verify_error_is_reported("map block", R"(foo: ',
+bar: what)");
+    verify_error_is_reported("seq block", R"(- '
+- what)");
+    verify_error_is_reported("map flow", R"({foo: ', bar: what})");
+    verify_error_is_reported("seq flow", R"([', what])");
+}
+
+TEST(single_quoted, error_on_unclosed_quotes_with_escapes)
+{
+    verify_error_is_reported("map block", R"(foo: ''',
+bar: what)");
+    verify_error_is_reported("seq block", R"(- '''
+- what)");
+    verify_error_is_reported("map flow", R"({foo: ''', bar: what})");
+    verify_error_is_reported("seq flow", R"([''', what])");
+}
+
+TEST(single_quoted, error_on_unclosed_quotes_at_end)
+{
+    verify_error_is_reported("map block", R"(foo: what
+bar: ')");
+    verify_error_is_reported("seq block", R"(- what
+- ')");
+    verify_error_is_reported("map flow", R"({foo: what, bar: '})");
+    verify_error_is_reported("seq flow", R"([what, '])");
+}
+
+TEST(single_quoted, error_on_unclosed_quotes_at_end_with_escapes)
+{
+    verify_error_is_reported("map block", R"(foo: what
+bar: ''')");
+    verify_error_is_reported("seq block", R"(- what
+- ''')");
+    verify_error_is_reported("map flow", R"({foo: what, bar: '''})");
+    verify_error_is_reported("seq flow", R"([what, '''])");
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

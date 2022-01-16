@@ -283,7 +283,8 @@ private:
     bool    _scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted);
 
     csubstr _scan_comment();
-    csubstr _scan_quoted_scalar(const char q);
+    csubstr _scan_squot_scalar();
+    csubstr _scan_dquot_scalar();
     csubstr _scan_block();
     substr  _scan_plain_scalar_impl(csubstr currscalar, csubstr peeked_line, size_t indentation);
     substr  _scan_plain_scalar_expl(csubstr currscalar, csubstr peeked_line);
@@ -295,7 +296,10 @@ private:
     csubstr _filter_dquot_scalar(substr s);
     csubstr _filter_plain_scalar(substr s, size_t indentation);
     csubstr _filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e chomp, size_t indentation);
-    bool    _filter_cont_lines(substr scalar, size_t *C4_RESTRICT pos, size_t *C4_RESTRICT filter_arena_pos, bool backslash_is_escape, size_t indentation, bool keep_trailing_whitespace);
+    template<bool backslash_is_escape, bool keep_trailing_whitespace>
+    bool    _filter_nl(substr scalar, size_t *C4_RESTRICT pos, size_t *C4_RESTRICT filter_arena_pos, size_t indentation);
+    template<bool keep_trailing_whitespace>
+    void    _filter_ws(substr scalar, size_t *C4_RESTRICT pos, size_t *C4_RESTRICT filter_arena_pos);
 
     void  _handle_finished_file();
     void  _handle_line();
@@ -509,7 +513,6 @@ private:
     void _clr();
     void _cp(Parser const* that);
     void _mv(Parser *that);
-    void _cb(Callbacks const& cb);
 
 #ifdef RYML_DBG
     void _dbg(const char *msg, ...) const;

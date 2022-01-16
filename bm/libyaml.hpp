@@ -70,11 +70,30 @@ public:
         m_tree->clear();
         m_stack.clear();
         yaml_parser_set_input_string(&m_parser, (const unsigned char*)m_input.str, m_input.len);
-        _do_parse();
+        try
+        {
+            _do_parse();
+        }
+        catch(std::exception const& exc)
+        {
+            std::cout << m_tree->size();
+            C4_ERROR(exc.what());
+        }
     }
 
     void _do_parse()
     {
+        #if defined(RYML_DBG)
+        #define _c4_handle_case(_ev)                            \
+        case YAML_ ## _ev ## _EVENT:                            \
+            printf(#_ev " val=%.*s\n",                          \
+                   /*(int)prev_scalar.len, prev_scalar.str,*/   \
+                   (int)val.len, val.str);
+        #else
+        #define _c4_handle_case(_ev)                            \
+        case YAML_ ## _ev ## _EVENT:                            \
+            (void)val;
+        #endif
         bool done = false;
         //bool doc_had_scalars = false;
         csubstr prev_scalar;
@@ -83,21 +102,9 @@ public:
             detail::Event ev;
             if( ! yaml_parser_parse(&m_parser, &ev.m_event))
             {
-                _handle_error();
+                _handle_error(ev);
                 break;
             }
-
-#if defined(RYML_DBG)
-#define _c4_handle_case(_ev)                            \
-case YAML_ ## _ev ## _EVENT:                            \
-    printf(#_ev " val=%.*s\n",                          \
-           /*(int)prev_scalar.len, prev_scalar.str,*/   \
-           (int)val.len, val.str);
-#else
-#define _c4_handle_case(_ev)                            \
-case YAML_ ## _ev ## _EVENT:                            \
-    (void)val;
-#endif
 
             csubstr val = get_scalar_val(ev);
             switch(ev.m_event.type)
@@ -181,7 +188,7 @@ case YAML_ ## _ev ## _EVENT:                            \
             }
             _c4_handle_case(ALIAS)
             {
-                C4_NOT_IMPLEMENTED();
+                //C4_NOT_IMPLEMENTED();
                 break;
             }
             _c4_handle_case(NO)
@@ -189,11 +196,11 @@ case YAML_ ## _ev ## _EVENT:                            \
                 break;
             }
 
-#undef _c4_handle_case
             default:
                 break;
             };
         }
+        #undef _c4_handle_case
     }
 
 private:
@@ -209,7 +216,7 @@ private:
         else
         {
             parent = m_tree->root_id();
-            C4_ASSERT(m_tree->is_container(parent));
+            //C4_ASSERT(m_tree->is_container(parent));
             if(type.is_map())
             {
                 m_tree->to_map(parent);
@@ -288,8 +295,9 @@ private:
         return val;
     }
 
-    void _handle_error()
+    void _handle_error(detail::Event const& ev)
     {
+        std::cout << "AQUI crl\n" << ev.m_event.start_mark.line << "--" << ev.m_event.end_mark.line << "\n";
         Location problem_loc, context_loc;
         if(m_parser.problem)
         {
