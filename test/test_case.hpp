@@ -129,7 +129,6 @@ struct ExpectError
     Location expected_location;
 
     ExpectError(Tree *tree, Location loc={});
-    ExpectError(Location loc={});
     ~ExpectError();
 
     static void do_check(Tree *tree, std::function<void()> fn, Location expected={});

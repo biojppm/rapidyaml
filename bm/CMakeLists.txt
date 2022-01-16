@@ -13,12 +13,13 @@ c4_require_subproject(libyaml REMOTE
 
 # libfyaml
 c4_require_subproject(libfyaml REMOTE
-    GIT_REPOSITORY https://github.com/biojppm/libfyaml #https://github.com/pantoniou/libfyaml
-    GIT_TAG patch-1 #v0.7.11
+    GIT_REPOSITORY https://github.com/pantoniou/libfyaml
+    GIT_TAG fd35c3a5fa58ff2effd8207f2185852c3a837d76 #v0.7.11
     SET_FOLDER_TARGETS ext fyaml
   )
 
 # mini-yaml
+# too incomplete ATM
 set(miniyaml_dir ${_ed}/miniyaml)
 c4_download_remote_proj(miniyaml miniyaml_dir
     GIT_REPOSITORY https://github.com/jimmiebergmann/mini-yaml
@@ -95,7 +96,7 @@ set(RYML_SAJSON_INC_DIR ${sajson_dir}/include)
 
 c4_add_executable(ryml-bm-parse
     SOURCES bm_parse.cpp
-    LIBS ryml yaml yaml-cpp fyaml miniyaml benchmark jsoncpp_static nlohmann_json c4fs
+    LIBS ryml yaml yaml-cpp fyaml benchmark jsoncpp_static nlohmann_json c4fs
     INC_DIRS ${RYML_RAPIDJSON_INC_DIR} ${RYML_SAJSON_INC_DIR}
     FOLDER bm)
 if(RYML_DBG)

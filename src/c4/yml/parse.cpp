@@ -285,15 +285,6 @@ void Parser::_clr()
     m_newline_offsets_buf = {};
 }
 
-void Parser::_cb(Callbacks const& cb)
-{
-    if(cb != m_stack.m_callbacks)
-    {
-        _free();
-        m_stack.m_callbacks = cb;
-    }
-}
-
 void Parser::_free()
 {
     if(m_newline_offsets)
@@ -316,9 +307,6 @@ void Parser::_free()
 //-----------------------------------------------------------------------------
 void Parser::_reset()
 {
-    while(m_stack.size() > 1)
-        m_stack.pop();
-
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_stack.size() == 1);
     m_stack.clear();
     m_stack.push({});
@@ -3630,7 +3618,7 @@ csubstr Parser::_scan_squot_scalar()
     {
         const csubstr line = m_state->line_contents.rem;
         bool line_is_blank = true;
-        _c4dbgpf("scanning single quoted scalar @ line[%zd]:  line=\"%.*s\"", m_state->pos.line, _c4prsp(line));
+        _c4dbgpf("scanning single quoted scalar @ line[%zd]: ~~~%.*s~~~", m_state->pos.line, _c4prsp(line));
         for(size_t i = 0; i < line.len; ++i)
         {
             const char curr = line.str[i];
@@ -3684,13 +3672,9 @@ csubstr Parser::_scan_squot_scalar()
     {
         _c4err("reached end of file while looking for closing quote");
     }
-    else if(pos == 0)
-    {
-        s.clear();
-        _RYML_CB_ASSERT(m_stack.m_callbacks,  ! needs_filter);
-    }
     else
     {
+        _RYML_CB_ASSERT(m_stack.m_callbacks, pos > 0);
         _RYML_CB_ASSERT(m_stack.m_callbacks, s.end() >= m_buf.begin() && s.end() <= m_buf.end());
         _RYML_CB_ASSERT(m_stack.m_callbacks, s.end() == m_buf.end() || *s.end() == '\'');
         s = s.sub(0, pos-1);
@@ -3795,15 +3779,11 @@ csubstr Parser::_scan_dquot_scalar()
     {
         _c4err("reached end of file while looking for closing quote");
     }
-    else if(pos == 0)
-    {
-        s.clear();
-        _RYML_CB_ASSERT(m_stack.m_callbacks,  ! needs_filter);
-    }
     else
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, s.end() >= m_buf.begin() && s.end() <= m_buf.end());
+        _RYML_CB_ASSERT(m_stack.m_callbacks, pos > 0);
         _RYML_CB_ASSERT(m_stack.m_callbacks, s.end() == m_buf.end() || *s.end() == '"');
+        _RYML_CB_ASSERT(m_stack.m_callbacks, s.end() >= m_buf.begin() && s.end() <= m_buf.end());
         s = s.sub(0, pos-1);
     }
 
@@ -4722,15 +4702,15 @@ int Parser::_fmt_msg(char *buf, int buflen, const char *fmt, va_list args) const
     // next line: print the yaml src line
     if( ! m_file.empty())
     {
-        del = snprintf(buf + pos, static_cast<size_t>(len), "%.*s:%zd: '", (int)m_file.len, m_file.str, m_state->pos.line);
+        del = snprintf(buf + pos, static_cast<size_t>(len), "%.*s:%zd: ~~~", (int)m_file.len, m_file.str, m_state->pos.line);
     }
     else
     {
-        del = snprintf(buf + pos, static_cast<size_t>(len), "line %zd: '", m_state->pos.line);
+        del = snprintf(buf + pos, static_cast<size_t>(len), "line %zd: ~~~", m_state->pos.line);
     }
     int offs = del;
     _wrapbuf();
-    del = snprintf(buf + pos, static_cast<size_t>(len), "%.*s' (sz=%zd)\n",
+    del = snprintf(buf + pos, static_cast<size_t>(len), "%.*s~~~ (sz=%zd)\n",
                    (int)lc.stripped.len, lc.stripped.str, lc.stripped.len);
     _wrapbuf();
 

@@ -513,7 +513,6 @@ private:
     void _clr();
     void _cp(Parser const* that);
     void _mv(Parser *that);
-    void _cb(Callbacks const& cb);
 
 #ifdef RYML_DBG
     void _dbg(const char *msg, ...) const;
