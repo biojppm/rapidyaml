@@ -20,9 +20,9 @@ csubstr getafter(csubstr yaml, csubstr pattern)
         EXPECT_EQ(expr, nullptr);                                       \
         EXPECT_EQ(expr.len, 0u);                                        \
         EXPECT_NE(expr.str, nullptr);                                   \
-        EXPECT_GE(expr.str, arena.begin());                             \
         EXPECT_LT(expr.str, arena.end());                               \
-        size_t exprpos = (expr.str - arena.begin());                    \
+        ASSERT_GE(expr.str, arena.begin());                             \
+        size_t exprpos = (size_t)(expr.str - arena.begin());            \
         EXPECT_TRUE(arena.sub(exprpos).begins_with(pattern));           \
         ASSERT_GE(arena.sub(exprpos).len, csubstr(pattern).len);        \
         EXPECT_EQ(arena.sub(exprpos).first(csubstr(pattern).len), csubstr(pattern)); \

@@ -342,7 +342,7 @@ void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
     // this block of code needed to be moved to before the needs_quotes
     // assignment to workaround a g++ optimizer bug where (s.str != nullptr)
     // was evaluated as true even if s.str was actually a nullptr (!!!)
-    if(s == nullptr)
+    if(s.len == size_t(0))
     {
         this->Writer::_do_write('~');
         return;

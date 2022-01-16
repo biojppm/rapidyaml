@@ -4863,70 +4863,43 @@ Location Parser::location(Tree const& tree, size_t node) const
     _RYML_CB_CHECK(m_stack.m_callbacks, m_buf.len == m_newline_offsets_buf.len);
     if(tree.has_key(node))
     {
-        csubstr k = tree.key(node);
-        if(k.str)
-        {
-            _RYML_CB_ASSERT(m_stack.m_callbacks, k.is_sub(m_buf));
-            _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.is_super(k));
-            return val_location(k.str);
-        }
-        else
-        {
-            _RYML_CB_ERR(m_stack.m_callbacks, "not implemented");
-        }
+        _RYML_CB_ASSERT(m_stack.m_callbacks, tree.key(node).is_sub(m_buf));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.is_super(tree.key(node)));
+        return val_location(tree.key(node).str);
     }
     else if(tree.has_val(node))
     {
-        csubstr v = tree.val(node);
-        if(v.str)
-        {
-            _RYML_CB_ASSERT(m_stack.m_callbacks, v.is_sub(m_buf));
-            _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.is_super(v));
-            return val_location(v.str);
-        }
-        else
-        {
-            _RYML_CB_ERR(m_stack.m_callbacks, "not implemented");
-        }
+        _RYML_CB_ASSERT(m_stack.m_callbacks, tree.val(node).is_sub(m_buf));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.is_super(tree.val(node)));
+        return val_location(tree.val(node).str);
     }
-    else if(tree.is_seq(node) || tree.is_map(node))
+    else if(tree.is_container(node))
     {
         _RYML_CB_ASSERT(m_stack.m_callbacks, !tree.has_key(node));
-        if(tree.has_children(node))
+        if(!tree.is_stream(node))
         {
-            Location loc = location(tree, tree.first_child(node));
-            if(loc.offset > 0)
+            const char *node_start = tree._p(node)->m_val.scalar.str;  // this was stored in the container
+            if(tree.has_children(node))
             {
-                // Improve the location for the container by trying to
-                // find a token where the container starts: search
-                // back for the last non-whitespace prior to the
-                // child's offset:
-                size_t offs = m_buf.last_not_of(" \t\r\n", loc.offset);
-                if(offs != npos)
+                size_t child = tree.first_child(node);
+                if(tree.has_key(child))
                 {
-                    if(tree.is_seq(node))
-                    {
-                        if(m_buf[offs] == '[' || (m_buf[offs] == '-' && !tree.is_doc(node)))
-                        {
-                            return val_location(&m_buf.str[offs]);
-                        }
-                    }
-                    else
-                    {
-                        _RYML_CB_ASSERT(m_stack.m_callbacks, tree.is_map(node));
-                        if(m_buf[offs] == '{' || (m_buf[offs] == '-' && !tree.is_doc(node)))
-                        {
-                            return val_location(&m_buf.str[offs]);
-                        }
-                    }
+                    // when a map starts, the container was set after the key
+                    csubstr k = tree.key(child);
+                    if(node_start > k.str)
+                        node_start = k.str;
                 }
             }
-            return loc;
+            return val_location(node_start);
         }
-        else
+        else // it's a stream
         {
-            _RYML_CB_ERR(m_stack.m_callbacks, "not implemented");
+            return val_location(m_buf.str); // just return the front of the buffer
         }
+    }
+    else if(tree.type(node) == NOTYPE)
+    {
+        return val_location(m_buf.str);
     }
     _RYML_CB_ERR(m_stack.m_callbacks, "unknown node type");
     return {};
@@ -4969,7 +4942,7 @@ Location Parser::val_location(const char *val) const
         line = m_newline_offsets;
         while(count)
         {
-            step = count / 2;
+            step = count >> 1;
             it = line + step;
             if(*it < offset)
             {
@@ -4982,9 +4955,17 @@ Location Parser::val_location(const char *val) const
             }
         }
     }
-    _RYML_CB_ASSERT(m_stack.m_callbacks, line != nullptr);
+    if(line)
+    {
+        _RYML_CB_ASSERT(m_stack.m_callbacks, *line > offset);
+    }
+    else
+    {
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.empty());
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_newline_offsets_size == 1);
+        line = m_newline_offsets;
+    }
     _RYML_CB_ASSERT(m_stack.m_callbacks, line >= m_newline_offsets && line < m_newline_offsets + m_newline_offsets_size);;
-    _RYML_CB_ASSERT(m_stack.m_callbacks, *line > offset);
     Location loc = {};
     loc.name = m_file;
     loc.offset = offset;
@@ -4999,7 +4980,6 @@ Location Parser::val_location(const char *val) const
 void Parser::_prepare_locations() const
 {
     _RYML_CB_ASSERT(m_stack.m_callbacks, !m_file.empty());
-    _RYML_CB_ASSERT(m_stack.m_callbacks, !m_buf.empty());
     size_t numnewlines = 1u + m_buf.count('\n');
     _resize_locations(numnewlines);
     m_newline_offsets_size = 0;
@@ -5029,7 +5009,7 @@ void Parser::_mark_locations_dirty()
 
 bool Parser::_locations_dirty() const
 {
-    return (!m_newline_offsets_buf.empty()) && (!m_newline_offsets_size);
+    return !m_newline_offsets_size;
 }
 
 } // namespace yml

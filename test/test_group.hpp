@@ -3,7 +3,6 @@
 #define C4_RYML_TEST_GROUP_HPP_
 
 #include "./test_case.hpp"
-#include "c4/yml/detail/parser_dbg.hpp"
 #include "c4/span.hpp"
 
 #if defined(_MSC_VER)
