@@ -977,71 +977,21 @@ ryml deliberatly makes no effort to follow the standard in the following situati
   [X38W](https://github.com/yaml/yaml-test-suite/tree/main/src/X38W.yaml),
   [XW4D](https://github.com/yaml/yaml-test-suite/tree/main/src/XW4D.yaml).
 
-### Known issues
-
-These issues are in need of attention:
-
-* Due to how the parser works with block sequences and mappings, null values from missing entries are pointing at the next value, and even straddle the comment after it:
-  ```c++
-  csubstr yaml = R"(
-seq:
-  - ~
-  - null
-  -
-  -
-  # a comment
-  -
-map:
-  val0: ~
-  val1: null
-  val2:
-  val3:
-  # a comment
-  val4:
-)";
-  Parser p;
-  Tree t = p.parse_in_arena("file.yml", yaml);
-  // as expected: (len is null, str is pointing at the value where the node starts)
-  EXPECT_EQ(t["seq"][0].val(), nullptr);
-  EXPECT_EQ(t["seq"][1].val(), nullptr);
-  EXPECT_EQ(t["seq"][2].val(), nullptr);
-  EXPECT_EQ(t["seq"][3].val(), nullptr);
-  EXPECT_EQ(t["seq"][4].val(), nullptr);
-  EXPECT_EQ(t["map"][0].val(), nullptr);
-  EXPECT_EQ(t["map"][1].val(), nullptr);
-  EXPECT_EQ(t["map"][2].val(), nullptr);
-  EXPECT_EQ(t["map"][3].val(), nullptr);
-  EXPECT_EQ(t["map"][4].val(), nullptr);
-  // standard null values point at the expected location:
-  EXPECT_EQ(csubstr(t["seq"][0].val().str, 1), csubstr("~"));
-  EXPECT_EQ(csubstr(t["seq"][1].val().str, 4), csubstr("null"));
-  EXPECT_EQ(csubstr(t["map"]["val0"].val().str, 1), csubstr("~"));
-  EXPECT_EQ(csubstr(t["map"]["val1"].val().str, 4), csubstr("null"));
-  // but empty null values currently point at the NEXT location:
-  EXPECT_EQ(csubstr(t["seq"][2].val().str, 15), csubstr("-\n  # a comment"));
-  EXPECT_EQ(csubstr(t["seq"][3].val().str, 6), csubstr("-\nmap:"));
-  EXPECT_EQ(csubstr(t["seq"][4].val().str, 5), csubstr("\nmap:"));
-  EXPECT_EQ(csubstr(t["map"]["val2"].val().str, 6), csubstr(" val3:"));
-  EXPECT_EQ(csubstr(t["map"]["val3"].val().str, 6), csubstr(" val4:"));
-  EXPECT_EQ(csubstr(t["map"]["val4"].val().str, 1), csubstr("val4:\n").sub(5));
-  ```
-
 
 ------
 
 ## Alternative libraries
 
 Why this library? Because none of the existing libraries was quite
-what I wanted. When I started this project, I was aware of these two
+what I wanted. When I started this project in 2018, I was aware of these two
 alternative C/C++ libraries:
 
   * [libyaml](https://github.com/yaml/libyaml). This is a bare C library. It does not create a representation of the data tree, so it don't see it as practical. My initial idea was to wrap parsing and emitting around libyaml's convenient event handling, but to my surprise I found out it makes heavy use of allocations and string duplications when parsing. I briefly pondered on sending PRs to reduce these allocation needs, but not having a permanent tree to store the parsed data was too much of a downside.
   * [yaml-cpp](https://github.com/jbeder/yaml-cpp). This library may be full of functionality, but is heavy on the use of node-pointer-based structures like `std::map`, allocations, string copies, polymorphism and slow C++ stream serializations. This is generally a sure way of making your code slower, and strong evidence of this can be seen in the benchmark results above.
 
-When performance and low latency are important, using contiguous structures for better cache behavior and to prevent the library from trampling over the client's caches, parsing in place and using non-owning strings is of central importance. Hence this Rapid YAML library which, with minimal compromise, bridges the gap from efficiency to usability. This library takes inspiration from [RapidJSON](https://github.com/Tencent/rapidjson) and [RapidXML](http://rapidxml.sourceforge.net/).
+Recently [libfyaml](https://github.com/pantoniou/libfyaml) appeared. This is a newer C library, fully conformant to the YAML standard, which does offer the tree as a data structure. As a downside, it still generally parses slower than ryml by a factor somewhere between 2x and 3x, and in some cases even higher than 100x.
 
-Recently [libfyaml](https://github.com/pantoniou/libfyaml) appeared. This is a newer C library which does offer the tree as a data structure, and is still generally than ryml by a factor somewhere between 2x and 3x slower.
-
+When performance and low latency are important, using contiguous structures for better cache behavior and to prevent the library from trampling caches, parsing in place and using non-owning strings is of central importance. Hence this Rapid YAML library which, with minimal compromise, bridges the gap from efficiency to usability. This library takes inspiration from [RapidJSON](https://github.com/Tencent/rapidjson) and [RapidXML](http://rapidxml.sourceforge.net/).
 
 ------
 ## License
