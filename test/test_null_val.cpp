@@ -128,12 +128,13 @@ val9: ~
 TEST(null_val, issue103)
 {
     C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
-    csubstr yaml = R"({null: null})";
-    Tree tree = parse_in_arena(yaml);
+    Tree tree;
+
+    tree = parse_in_arena(R"({null: null})");
     ASSERT_EQ(tree.size(), 2u);
     EXPECT_EQ(tree.root_id(), 0u);
     EXPECT_EQ(tree.first_child(0), 1u);
-    EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
+    EXPECT_TRUE(tree.type(1).is_keyval());
     EXPECT_EQ(tree.key(1), "null");
     EXPECT_EQ(tree.val(1), "null");
     EXPECT_TRUE(tree.key_is_null(1));
@@ -147,7 +148,7 @@ TEST(null_val, issue103)
     ASSERT_EQ(tree.size(), 2u);
     EXPECT_EQ(tree.root_id(), 0u);
     EXPECT_EQ(tree.first_child(0), 1u);
-    EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
+    EXPECT_TRUE(tree.type(1).is_keyval());
     EXPECT_EQ(tree.key(1), "Null");
     EXPECT_EQ(tree.val(1), "Null");
     EXPECT_TRUE(tree.key_is_null(1));
@@ -161,7 +162,7 @@ TEST(null_val, issue103)
     ASSERT_EQ(tree.size(), 2u);
     EXPECT_EQ(tree.root_id(), 0u);
     EXPECT_EQ(tree.first_child(0), 1u);
-    EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
+    EXPECT_TRUE(tree.type(1).is_keyval());
     EXPECT_EQ(tree.key(1), "NULL");
     EXPECT_EQ(tree.val(1), "NULL");
     EXPECT_TRUE(tree.key_is_null(1));
