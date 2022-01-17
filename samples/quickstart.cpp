@@ -3816,7 +3816,7 @@ foo: [one, [two, three]]
     CHECK(parser.location_contents(loc).begins_with("{"));
     CHECK(loc.offset == 0u);
     CHECK(loc.line == 0u);
-    CHECK(loc.col == 0u);\
+    CHECK(loc.col == 0u);
     // on the next call, we only pay O(log(numlines)) because the
     // rebuild is already available:
     loc = parser.location(tree["aa"]);
@@ -3929,18 +3929,18 @@ seq with key:
     CHECK(loc.col == 4u);
     // SEQ nested in SEQ: container location points at the first child's "- " dash
     loc = parser.location(tree2["seq with key"][2]);
-    CHECK(parser.location_contents(loc).begins_with("- "));
+    CHECK(parser.location_contents(loc).begins_with("- nested first value"));
     CHECK(loc.line == 10u);
     CHECK(loc.col == 4u);
     loc = parser.location(tree2["seq with key"][2][0]);
     CHECK(parser.location_contents(loc).begins_with("nested first value"));
     CHECK(loc.line == 10u);
     CHECK(loc.col == 6u);
-    // MAP nested in SEQ: same as above
+    // MAP nested in SEQ: same as above: point to key
     loc = parser.location(tree2["seq with key"][3]);
-    CHECK(parser.location_contents(loc).begins_with("-"));
-    CHECK(loc.line == 12u);
-    CHECK(loc.col == 2u);
+    CHECK(parser.location_contents(loc).begins_with("nested first: "));
+    CHECK(loc.line == 13u);
+    CHECK(loc.col == 4u);
     loc = parser.location(tree2["seq with key"][3][0]);
     CHECK(parser.location_contents(loc).begins_with("nested first: "));
     CHECK(loc.line == 13u);

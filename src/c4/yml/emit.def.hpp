@@ -4,7 +4,6 @@
 #ifndef _C4_YML_EMIT_HPP_
 #include "c4/yml/emit.hpp"
 #endif
-#include "c4/yml/detail/parser_dbg.hpp"
 
 namespace c4 {
 namespace yml {
@@ -290,7 +289,6 @@ void Emitter<Writer>::_write_scalar_block(csubstr s, size_t ilevel, bool explici
     RYML_ASSERT(s.find("\r") == csubstr::npos);
     csubstr trimmed = s.trimr('\n');
     size_t numnewlines_at_end = s.len - trimmed.len;
-    _c4dbgpf("numnl=%zu s=[%zu]~~~%.*s~~~ trimmed=[%zu]~~~%.*s~~~", numnewlines_at_end, s.len, _c4prsp(s), trimmed.len, _c4prsp(trimmed));
     if(numnewlines_at_end == 0)
     {
         this->Writer::_do_write("|-\n");
@@ -344,16 +342,9 @@ void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
     // this block of code needed to be moved to before the needs_quotes
     // assignment to workaround a g++ optimizer bug where (s.str != nullptr)
     // was evaluated as true even if s.str was actually a nullptr (!!!)
-    if(s.len == 0)
+    if(s.len == size_t(0))
     {
-        if(s.str != nullptr)
-        {
-            this->Writer::_do_write("''");
-        }
-        else
-        {
-            this->Writer::_do_write('~');
-        }
+        this->Writer::_do_write('~');
         return;
     }
 

@@ -1,64 +1,137 @@
 #include "./test_group.hpp"
+#include "c4/error.hpp"
 
 namespace c4 {
 namespace yml {
 
+C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
+
+csubstr getafter(csubstr yaml, csubstr pattern)
+{
+    size_t pos = yaml.find(pattern);
+    RYML_ASSERT(pos != npos);
+    RYML_ASSERT(yaml.sub(pos).begins_with(pattern));
+    return yaml.sub(pos + pattern.len);
+}
+
+#define _check_null_pointing_at(expr, pattern, arena)                   \
+    do                                                                  \
+    {                                                                   \
+        EXPECT_EQ(expr, nullptr);                                       \
+        EXPECT_EQ(expr.len, 0u);                                        \
+        EXPECT_NE(expr.str, nullptr);                                   \
+        EXPECT_LT(expr.str, arena.end());                               \
+        ASSERT_GE(expr.str, arena.begin());                             \
+        size_t exprpos = (size_t)(expr.str - arena.begin());            \
+        EXPECT_TRUE(arena.sub(exprpos).begins_with(pattern));           \
+        ASSERT_GE(arena.sub(exprpos).len, csubstr(pattern).len);        \
+        EXPECT_EQ(arena.sub(exprpos).first(csubstr(pattern).len), csubstr(pattern)); \
+    } while(0)
+
 
 TEST(null_val, simple)
 {
-    auto tree = parse_in_arena("{foo: , bar: '', baz: [,,,], bat: [ , , , ], two: [,,], one: [,], empty: []}");
-
-    EXPECT_EQ(tree["foo"].val(), nullptr);
-    EXPECT_EQ(tree["bar"].val(), "");
+    Tree tree = parse_in_arena("{foo: , bar: '', baz: [,,,], bat: [ , , , ], two: [,,], one: [,], empty: []}");
+    _check_null_pointing_at(tree["foo"].val(), " ,", tree.arena());
     ASSERT_EQ(tree["baz"].num_children(), 3u);
-    EXPECT_EQ(tree["baz"][0].val(), nullptr);
-    EXPECT_EQ(tree["baz"][1].val(), nullptr);
-    EXPECT_EQ(tree["baz"][2].val(), nullptr);
+    _check_null_pointing_at(tree["baz"][0].val(), "[,,,]", tree.arena());
+    _check_null_pointing_at(tree["baz"][1].val(), ",,,]", tree.arena());
+    _check_null_pointing_at(tree["baz"][2].val(), ",,]", tree.arena());
     ASSERT_EQ(tree["bat"].num_children(), 3u);
-    EXPECT_EQ(tree["bat"][0].val(), nullptr);
-    EXPECT_EQ(tree["bat"][1].val(), nullptr);
-    EXPECT_EQ(tree["bat"][2].val(), nullptr);
+    _check_null_pointing_at(tree["bat"][0].val(), " , , , ]", tree.arena());
+    _check_null_pointing_at(tree["bat"][1].val(), " , , ]", tree.arena());
+    _check_null_pointing_at(tree["bat"][2].val(), " , ]", tree.arena());
     ASSERT_EQ(tree["two"].num_children(), 2u);
-    EXPECT_EQ(tree["two"][0].val(), nullptr);
-    EXPECT_EQ(tree["two"][1].val(), nullptr);
+    _check_null_pointing_at(tree["two"][0].val(), "[,,]", tree.arena());
+    _check_null_pointing_at(tree["two"][1].val(), ",,]", tree.arena());
     ASSERT_EQ(tree["one"].num_children(), 1u);
-    EXPECT_EQ(tree["one"][0].val(), nullptr);
-    EXPECT_EQ(tree["empty"].num_children(), 0u);
+    _check_null_pointing_at(tree["one"][0].val(), "[,]", tree.arena());
+    ASSERT_EQ(tree["empty"].num_children(), 0u);
 }
 
-
-TEST(null_val, simple_seq)
+TEST(null_val, block_seq)
 {
-    auto tree = parse_in_arena(R"(
-# these have no space after the dash
+    csubstr yaml = R"(
+# nospace
 -
 -
 -
-# these have ONE space after the dash
+# onespace
 - 
 - 
 - 
-)");
-    ASSERT_EQ(tree.rootref().num_children(), 6u);
-    EXPECT_EQ(tree[0].val(), nullptr);
-    EXPECT_EQ(tree[1].val(), nullptr);
-    EXPECT_EQ(tree[2].val(), nullptr);
-    EXPECT_EQ(tree[3].val(), nullptr);
-    EXPECT_EQ(tree[4].val(), nullptr);
-    EXPECT_EQ(tree[5].val(), nullptr);
+# null
+- null
+- null
+- null
+- ~
+)";
+    ASSERT_EQ(yaml.count('\r'), 0u);
+    auto after = [yaml](csubstr pattern){ return getafter(yaml, pattern); };
+    Tree tree = parse_in_arena(yaml);
+    ASSERT_EQ(tree.rootref().num_children(), 10u);
+    // FIXME: empty vals in block seqs are pointing at the next item!
+    _check_null_pointing_at(tree[0].val(), after("nospace\n-\n"), tree.arena());
+    _check_null_pointing_at(tree[1].val(), after("nospace\n-\n-\n"), tree.arena());
+    _check_null_pointing_at(tree[2].val(), after("nospace\n-\n-\n-\n# onespace\n"), tree.arena());
+    _check_null_pointing_at(tree[3].val(), after("onespace\n- \n"), tree.arena());
+    _check_null_pointing_at(tree[4].val(), after("onespace\n- \n- \n"), tree.arena());
+    _check_null_pointing_at(tree[5].val(), after("onespace\n- \n- \n- \n# null\n"), tree.arena());
+    // but explicitly null vals are ok:
+    _check_null_pointing_at(tree[6].val(), "null\n- null\n- null\n- ~\n", tree.arena());
+    _check_null_pointing_at(tree[7].val(), "null\n- null\n- ~", tree.arena());
+    _check_null_pointing_at(tree[8].val(), "null\n- ~\n", tree.arena());
+    _check_null_pointing_at(tree[9].val(), "~\n", tree.arena());
+}
+
+TEST(null_val, block_map)
+{
+    csubstr yaml = R"(
+# nospace
+val0:
+val1:
+val2:
+# onespace
+val3: 
+val4: 
+val5: 
+# null
+val6: null
+val7: null
+val8: null
+val9: ~
+)";
+    ASSERT_EQ(yaml.count('\r'), 0u);
+    auto after = [yaml](csubstr pattern){ return getafter(yaml, pattern); };
+    Tree tree = parse_in_arena(yaml);
+    ASSERT_EQ(tree.rootref().num_children(), 10u);
+    // FIXME: empty vals in block seqs are pointing at the next item!
+    _check_null_pointing_at(tree["val0"].val(), after("val0:"), tree.arena());
+    _check_null_pointing_at(tree["val1"].val(), after("val1:"), tree.arena());
+    _check_null_pointing_at(tree["val2"].val(), after("val2:\n# onespace"), tree.arena());
+    _check_null_pointing_at(tree["val3"].val(), after("val3: "), tree.arena());
+    _check_null_pointing_at(tree["val4"].val(), after("val4: "), tree.arena());
+    _check_null_pointing_at(tree["val5"].val(), after("val5: \n# null"), tree.arena());
+    // but explicitly null vals are ok:
+    _check_null_pointing_at(tree["val6"].val(), "null\nval7:", tree.arena());
+    _check_null_pointing_at(tree["val7"].val(), "null\nval8:", tree.arena());
+    _check_null_pointing_at(tree["val8"].val(), "null\nval9:", tree.arena());
+    _check_null_pointing_at(tree["val9"].val(), "~\n", tree.arena());
 }
 
 
 TEST(null_val, issue103)
 {
     C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
-    auto tree = parse_in_arena(R"({test: null})");
+    csubstr yaml = R"({test: null})";
+    Tree tree = parse_in_arena(yaml);
     ASSERT_EQ(tree.size(), 2u);
     EXPECT_EQ(tree.root_id(), 0u);
     EXPECT_EQ(tree.first_child(0), 1u);
     EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
     EXPECT_EQ(tree.key(1), "test");
     EXPECT_EQ(tree.val(1), nullptr);
+    _check_null_pointing_at(tree.val(1), "null", tree.arena());
 
     tree = parse_in_arena(R"({test: Null})");
     ASSERT_EQ(tree.size(), 2u);
@@ -67,6 +140,7 @@ TEST(null_val, issue103)
     EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
     EXPECT_EQ(tree.key(1), "test");
     EXPECT_EQ(tree.val(1), nullptr);
+    _check_null_pointing_at(tree.val(1), "Null", tree.arena());
 
     tree = parse_in_arena(R"({test: NULL})");
     ASSERT_EQ(tree.size(), 2u);
@@ -75,6 +149,7 @@ TEST(null_val, issue103)
     EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
     EXPECT_EQ(tree.key(1), "test");
     EXPECT_EQ(tree.val(1), nullptr);
+    _check_null_pointing_at(tree.val(1), "NULL", tree.arena());
 
     tree = parse_in_arena(R"({test: })");
     ASSERT_EQ(tree.size(), 2u);
@@ -83,6 +158,7 @@ TEST(null_val, issue103)
     EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
     EXPECT_EQ(tree.key(1), "test");
     EXPECT_EQ(tree.val(1), nullptr);
+    _check_null_pointing_at(tree.val(1), " }", tree.arena());
 
     tree = parse_in_arena(R"({test: ~})");
     ASSERT_EQ(tree.size(), 2u);
@@ -91,6 +167,16 @@ TEST(null_val, issue103)
     EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
     EXPECT_EQ(tree.key(1), "test");
     EXPECT_EQ(tree.val(1), nullptr);
+    _check_null_pointing_at(tree.val(1), "~", tree.arena());
+
+    tree = parse_in_arena(R"({test: "~"})");
+    ASSERT_EQ(tree.size(), 2u);
+    EXPECT_EQ(tree.root_id(), 0u);
+    EXPECT_EQ(tree.first_child(0), 1u);
+    EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
+    EXPECT_EQ(tree.key(1), "test");
+    EXPECT_EQ(tree.val(1), "~");
+    EXPECT_NE(tree.val(1), nullptr);
 
     tree = parse_in_arena(R"({test: "null"})");
     ASSERT_EQ(tree.size(), 2u);
@@ -99,6 +185,7 @@ TEST(null_val, issue103)
     EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
     EXPECT_EQ(tree.key(1), "test");
     EXPECT_EQ(tree.val(1), "null");
+    EXPECT_NE(tree.val(1), nullptr);
 
     tree = parse_in_arena(R"({test: "Null"})");
     ASSERT_EQ(tree.size(), 2u);
@@ -107,6 +194,7 @@ TEST(null_val, issue103)
     EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
     EXPECT_EQ(tree.key(1), "test");
     EXPECT_EQ(tree.val(1), "Null");
+    EXPECT_NE(tree.val(1), nullptr);
 
     tree = parse_in_arena(R"({test: "NULL"})");
     ASSERT_EQ(tree.size(), 2u);
@@ -115,17 +203,64 @@ TEST(null_val, issue103)
     EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
     EXPECT_EQ(tree.key(1), "test");
     EXPECT_EQ(tree.val(1), "NULL");
+    EXPECT_NE(tree.val(1), nullptr);
     C4_SUPPRESS_WARNING_GCC_POP
 }
 
 
 TEST(null_val, null_key)
 {
-    auto tree = parse_in_arena(R"(null: null)");
+    auto tree = parse_in_arena(R"({null: null})");
 
     ASSERT_EQ(tree.size(), 2u);
-    EXPECT_EQ(tree[0].key(), nullptr);
-    EXPECT_EQ(tree[0].val(), nullptr);
+    _check_null_pointing_at(tree[0].key(), "null: ", tree.arena());
+    _check_null_pointing_at(tree[0].val(), "null}", tree.arena());
+}
+
+
+TEST(null_val, readme_example)
+{
+  csubstr yaml = R"(
+seq:
+  - ~
+  - null
+  -
+  -
+  # a comment
+  -
+map:
+  val0: ~
+  val1: null
+  val2:
+  val3:
+  # a comment
+  val4:
+)";
+  Parser p;
+  Tree t = p.parse_in_arena("file.yml", yaml);
+  // as expected: (len is null, str is pointing at the value where the node starts)
+  EXPECT_EQ(t["seq"][0].val(), nullptr);
+  EXPECT_EQ(t["seq"][1].val(), nullptr);
+  EXPECT_EQ(t["seq"][2].val(), nullptr);
+  EXPECT_EQ(t["seq"][3].val(), nullptr);
+  EXPECT_EQ(t["seq"][4].val(), nullptr);
+  EXPECT_EQ(t["map"][0].val(), nullptr);
+  EXPECT_EQ(t["map"][1].val(), nullptr);
+  EXPECT_EQ(t["map"][2].val(), nullptr);
+  EXPECT_EQ(t["map"][3].val(), nullptr);
+  EXPECT_EQ(t["map"][4].val(), nullptr);
+  // standard null values point at the expected location:
+  EXPECT_EQ(csubstr(t["seq"][0].val().str, 1), csubstr("~"));
+  EXPECT_EQ(csubstr(t["seq"][1].val().str, 4), csubstr("null"));
+  EXPECT_EQ(csubstr(t["map"]["val0"].val().str, 1), csubstr("~"));
+  EXPECT_EQ(csubstr(t["map"]["val1"].val().str, 4), csubstr("null"));
+  // but empty null values currently point at the NEXT location:
+  EXPECT_EQ(csubstr(t["seq"][2].val().str, 15), csubstr("-\n  # a comment"));
+  EXPECT_EQ(csubstr(t["seq"][3].val().str, 6), csubstr("-\nmap:"));
+  EXPECT_EQ(csubstr(t["seq"][4].val().str, 5), csubstr("\nmap:"));
+  EXPECT_EQ(csubstr(t["map"]["val2"].val().str, 6), csubstr(" val3:"));
+  EXPECT_EQ(csubstr(t["map"]["val3"].val().str, 6), csubstr(" val4:"));
+  EXPECT_EQ(csubstr(t["map"]["val4"].val().str, 1), csubstr("val4:\n").sub(5));
 }
 
 
@@ -364,3 +499,5 @@ INSTANTIATE_GROUP(NULL_VAL)
 
 } // namespace yml
 } // namespace c4
+
+C4_SUPPRESS_WARNING_GCC_POP

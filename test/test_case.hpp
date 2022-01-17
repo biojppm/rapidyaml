@@ -7,6 +7,7 @@
 #include "c4/std/vector.hpp"
 #include "c4/std/string.hpp"
 #include <c4/yml/yml.hpp>
+#include <c4/yml/detail/parser_dbg.hpp>
 #endif
 
 #include <gtest/gtest.h>

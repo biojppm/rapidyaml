@@ -18,9 +18,35 @@ namespace yml {
         EXPECT_EQ(t.arena().sub(loc.offset, csubstr(str).len), csubstr(str)); \
     }
 
+TEST(locations, docval)
+{
+    Parser parser;
+    Tree t = parser.parse_in_arena("myfile.yml", "docval");
+    _checkloc(t.rootref(), 0u, 0u, "docval");
+    t = parser.parse_in_arena("myfile.yml", "\n docval");
+    _checkloc(t.rootref(), 1u, 1u, "docval");
+    t = parser.parse_in_arena("myfile.yml", "\n\n docval");
+    _checkloc(t.rootref(), 2u, 1u, "docval");
+}
+
+TEST(locations, docval_null)
+{
+    Parser parser;
+    Tree t = parser.parse_in_arena("myfile.yml", "~");
+    _checkloc(t.rootref(), 0u, 0u, "~");
+    t = parser.parse_in_arena("myfile.yml", "");
+    _checkloc(t.rootref(), 0u, 0u, "");
+    t = parser.parse_in_arena("myfile.yml", R"(#
+#
+#
+#
+#
+)");
+    _checkloc(t.rootref(), 0u, 0u, "");
+}
+
 TEST(locations, seq_block)
 {
-    Tree t;
     Parser parser;
     csubstr yaml = R"(
 - this
@@ -31,15 +57,15 @@ TEST(locations, seq_block)
   - this
   - - as
     - well
-  - - # this one is tricky because we have a comment
-      # in between the sequence start and the first scalar
+  - - # this one works as well
+      # even with a comment in between
       the scalar value is here
     -   and here's another value
     -
       - another val
       - yet another val
 )";
-    parser.parse_in_arena("myfile.yml", yaml, &t);
+    Tree t = parser.parse_in_arena("myfile.yml", yaml);
     const NodeRef seq = t.rootref();
     ASSERT_TRUE(seq.is_seq());
     _checkloc(seq         ,  1u, 0u, "- ");
@@ -53,13 +79,202 @@ TEST(locations, seq_block)
     _checkloc(seq[4][2]   ,  7u, 4u, "- ");
     _checkloc(seq[4][2][0],  7u, 6u, "as");
     _checkloc(seq[4][2][1],  8u, 6u, "well");
-    _checkloc(seq[4][3]   , 11u, 6u, "the scalar value is here"); // different from above! the comment throws this off
+    _checkloc(seq[4][3]   ,  9u, 4u, "- # this one works as well");
     _checkloc(seq[4][3][0], 11u, 6u, "the scalar value is here");
     _checkloc(seq[4][3][1], 12u, 8u, "and here's another value");
     _checkloc(seq[4][3][2], 14u, 6u, "- ");
     _checkloc(seq[4][3][2][0], 14u, 8u, "another val");
     _checkloc(seq[4][3][2][1], 15u, 8u, "yet another val");
 }
+
+TEST(locations, map_block)
+{
+    Parser parser;
+    csubstr yaml = R"(
+this: ~
+is: ~
+a: ~
+map: ~
+and:
+  this:
+    as: ~
+    well: ~
+  aswell: # this one works as well
+      # even with a comment in between
+    val: here
+    hah: here
+)";
+    Tree t = parser.parse_in_arena("myfile.yml", yaml);
+    const NodeRef map = t.rootref();
+    ASSERT_TRUE(map.is_map());
+    _checkloc(map                         ,  1u, 0u, "this:");
+    _checkloc(map["this"]                 ,  1u, 0u, "this:");
+    _checkloc(map["is"]                   ,  2u, 0u, "is:");
+    _checkloc(map["a"]                    ,  3u, 0u, "a:");
+    _checkloc(map["map"]                  ,  4u, 0u, "map:");
+    _checkloc(map["and"]                  ,  5u, 0u, "and:");
+    _checkloc(map["and"]["this"]          ,  6u, 2u, "this:");
+    _checkloc(map["and"]["this"]["as"]    ,  7u, 4u, "as:");
+    _checkloc(map["and"]["this"]["well"]  ,  8u, 4u, "well:");
+    _checkloc(map["and"]["aswell"]        ,  9u, 2u, "aswell:");
+    _checkloc(map["and"]["aswell"]["val"] , 11u, 4u, "val:");
+    _checkloc(map["and"]["aswell"]["hah"] , 12u, 4u, "hah:");
+}
+
+TEST(locations, seq_block_null)
+{
+    Parser parser;
+    Tree t = parser.parse_in_arena("myfile.yml", R"(---
+- ~
+- ~
+- notnull
+- ~
+- ~
+---
+- ~
+- - ~
+- - - ~
+- - - - ~
+- - - - - ~
+- - - - ~
+- - - ~
+- - ~
+- ~
+)");
+    _checkloc(t.rootref()   ,               0u, 0u, "---");
+    _checkloc(t.docref(0)   ,               1u, 0u, "- ");
+    _checkloc(t.docref(0)[0],               1u, 2u, "~");
+    _checkloc(t.docref(0)[1],               2u, 2u, "~");
+    _checkloc(t.docref(0)[2],               3u, 2u, "notnull");
+    _checkloc(t.docref(0)[3],               4u, 2u, "~");
+    _checkloc(t.docref(0)[4],               5u, 2u, "~");
+    _checkloc(t.docref(1)   ,               7u, 0u, "- ");
+    _checkloc(t.docref(1)[0],               7u, 2u, "~");
+    _checkloc(t.docref(1)[1],               8u, 2u, "- ");
+    _checkloc(t.docref(1)[1][0],            8u, 4u, "~");
+    _checkloc(t.docref(1)[2],               9u, 2u, "- ");
+    _checkloc(t.docref(1)[2][0],            9u, 4u, "- ");
+    _checkloc(t.docref(1)[2][0][0],         9u, 6u, "~");
+    _checkloc(t.docref(1)[3],              10u, 2u, "- ");
+    _checkloc(t.docref(1)[3][0],           10u, 4u, "- ");
+    _checkloc(t.docref(1)[3][0][0],        10u, 6u, "- ");
+    _checkloc(t.docref(1)[3][0][0][0],     10u, 8u, "~");
+    _checkloc(t.docref(1)[4],              11u, 2u, "- ");
+    _checkloc(t.docref(1)[4][0],           11u, 4u, "- ");
+    _checkloc(t.docref(1)[4][0][0],        11u, 6u, "- ");
+    _checkloc(t.docref(1)[4][0][0][0],     11u, 8u, "- ");
+    _checkloc(t.docref(1)[4][0][0][0][0],  11u, 10u, "~");
+    _checkloc(t.docref(1)[5],              12u, 2u, "- ");
+    _checkloc(t.docref(1)[5][0],           12u, 4u, "- ");
+    _checkloc(t.docref(1)[5][0][0],        12u, 6u, "- ");
+    _checkloc(t.docref(1)[5][0][0][0],     12u, 8u, "~");
+    _checkloc(t.docref(1)[6],              13u, 2u, "- ");
+    _checkloc(t.docref(1)[6][0],           13u, 4u, "- ");
+    _checkloc(t.docref(1)[6][0][0],        13u, 6u, "~");
+    _checkloc(t.docref(1)[7],              14u, 2u, "- ");
+    _checkloc(t.docref(1)[7][0],           14u, 4u, "~");
+    _checkloc(t.docref(1)[8],              15u, 2u, "~");
+}
+
+TEST(locations, map_block_null)
+{
+    Parser parser;
+    Tree t = parser.parse_in_arena("myfile.yml", R"(---
+~: v
+---
+null: v
+---
+ : v
+)");
+    _checkloc(t.rootref()   , 0u, 0u, "---");
+    _checkloc(t.docref(0)   , 1u, 0u, "~");
+    _checkloc(t.docref(0)[0], 1u, 0u, "~");
+    _checkloc(t.docref(1)   , 3u, 0u, "null");
+    _checkloc(t.docref(1)[0], 3u, 0u, "null");
+    _checkloc(t.docref(2)   , 5u, 1u, ": v");
+    _checkloc(t.docref(2)[0], 5u, 1u, ": v");
+}
+
+TEST(locations, empty_seq)
+{
+    Parser parser;
+    Tree t = parser.parse_in_arena("myfile.yml", R"(---
+- []
+- []
+- notnull
+- []
+- []
+---
+- []
+---
+[]
+---
+key0: []
+key1: []
+key2: notnull
+key3: []
+key4: []
+---
+key: []
+)");
+    _checkloc(t.rootref()   ,  0u, 0u, "---");
+    _checkloc(t.docref(0)   ,  1u, 0u, "- ");
+    _checkloc(t.docref(0)[0],  1u, 2u, "[]");
+    _checkloc(t.docref(0)[1],  2u, 2u, "[]");
+    _checkloc(t.docref(0)[2],  3u, 2u, "notnull");
+    _checkloc(t.docref(0)[3],  4u, 2u, "[]");
+    _checkloc(t.docref(0)[4],  5u, 2u, "[]");
+    _checkloc(t.docref(1)   ,  7u, 0u, "- ");
+    _checkloc(t.docref(1)[0],  7u, 2u, "[]");
+    _checkloc(t.docref(2)   ,  9u, 0u, "[]");
+    _checkloc(t.docref(3)   ,  11u, 0u, "key0"); // WTF
+    _checkloc(t.docref(3)["key0"],  11u, 0u, "key0");
+    _checkloc(t.docref(3)["key1"],  12u, 0u, "key1");
+    _checkloc(t.docref(3)["key2"],  13u, 0u, "key2");
+    _checkloc(t.docref(3)["key3"],  14u, 0u, "key3");
+    _checkloc(t.docref(3)["key4"],  15u, 0u, "key4");
+}
+
+TEST(locations, empty_map)
+{
+    Parser parser;
+    Tree t = parser.parse_in_arena("myfile.yml", R"(---
+- {}
+- {}
+- notnull
+- {}
+- {}
+---
+- {}
+---
+{}
+---
+key0: {}
+key1: {}
+key2: notnull
+key3: {}
+key4: {}
+---
+key: {}
+)");
+    _checkloc(t.rootref()   ,  0u, 0u, "---");
+    _checkloc(t.docref(0)   ,  1u, 0u, "- ");
+    _checkloc(t.docref(0)[0],  1u, 2u, "{}");
+    _checkloc(t.docref(0)[1],  2u, 2u, "{}");
+    _checkloc(t.docref(0)[2],  3u, 2u, "notnull");
+    _checkloc(t.docref(0)[3],  4u, 2u, "{}");
+    _checkloc(t.docref(0)[4],  5u, 2u, "{}");
+    _checkloc(t.docref(1)   ,  7u, 0u, "- ");
+    _checkloc(t.docref(1)[0],  7u, 2u, "{}");
+    _checkloc(t.docref(2)   ,  9u, 0u, "{}");
+    _checkloc(t.docref(3)   ,  11u, 0u, "key0"); // WTF
+    _checkloc(t.docref(3)["key0"],  11u, 0u, "key0");
+    _checkloc(t.docref(3)["key1"],  12u, 0u, "key1");
+    _checkloc(t.docref(3)["key2"],  13u, 0u, "key2");
+    _checkloc(t.docref(3)["key3"],  14u, 0u, "key3");
+    _checkloc(t.docref(3)["key4"],  15u, 0u, "key4");
+}
+
 
 TEST(locations, seq_flow)
 {
@@ -75,6 +290,21 @@ TEST(locations, seq_flow)
     _checkloc(seq[2],  0u,  9u, "three");
     _checkloc(seq[3],  0u, 15u, "four");
     _checkloc(seq[4],  0u, 20u, "items");
+}
+
+TEST(locations, map_flow)
+{
+    Tree t;
+    Parser parser;
+    csubstr yaml = R"({one: item,two: items,three: items,four: items})";
+    parser.parse_in_arena("myfile.yml", yaml, &t);
+    const NodeRef map = t.rootref();
+    ASSERT_TRUE(map.is_map());
+    _checkloc(map   ,  0u,  0u, "{");
+    _checkloc(map[0],  0u,  1u, "one:");
+    _checkloc(map[1],  0u, 11u, "two:");
+    _checkloc(map[2],  0u, 22u, "three:");
+    _checkloc(map[3],  0u, 35u, "four:");
 }
 
 TEST(locations, seq_flow_nested)
@@ -118,12 +348,23 @@ TEST(locations, seq_flow_nested)
     _checkloc(seq[7]                   ,  8u,  2u, "was");
 }
 
-TEST(locations, small)
+TEST(locations, grow_array)
+{
+    Parser parser;
+    Tree t = parser.parse_in_arena("myfile.yml", "docval");
+    _checkloc(t.rootref(), 0u, 0u, "docval");
+    t = parser.parse_in_arena("myfile.yml", "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\ndocval");
+    _checkloc(t.rootref(), 47u, 0u, "docval");
+}
+
+// do a test with a buffer size up to 30 lines to ensure hitting
+// the binary search path
+TEST(locations, small_array)
 {
     Tree t;
     Parser parser;
     csubstr yaml = R"(---
-foo: definitely
+foo: yes
 bar:
   - 1
   - 2
@@ -137,7 +378,7 @@ baz:
     const NodeRef map = t.docref(0);
     ASSERT_TRUE(map.is_map());
     ASSERT_TRUE(map.is_doc());
-    _checkloc(stream       , 0u, 2u, "-");
+    _checkloc(stream       , 0u, 0u, "---");
     _checkloc(map          , 1u, 0u, "foo");
     _checkloc(map["foo"]   , 1u, 0u, "foo");
     _checkloc(map["bar"]   , 2u, 0u, "bar");
@@ -151,7 +392,7 @@ baz:
 
 // do a test with a buffer of at least 30 lines to ensure hitting
 // the binary search path
-TEST(locations, large)
+TEST(locations, large_array)
 {
     Tree t;
     Parser parser;
@@ -224,7 +465,7 @@ baz6:
     const NodeRef map = t.docref(0);
     ASSERT_TRUE(map.is_map());
     ASSERT_TRUE(map.is_doc());
-    _checkloc(t.rootref()   ,     0u, 2u, "-");
+    _checkloc(t.rootref()   ,     0u, 0u, "---");
     _checkloc(map           ,     1u, 0u, "foo1");
     _checkloc(map["foo1"]   ,  0u+1u, 0u, "foo1");
     _checkloc(map["bar1"]   ,  0u+2u, 0u, "bar1");
