@@ -1,0 +1,93 @@
+name: coverage
+
+defaults:
+  run:
+    # Use a bash shell so we can use the same syntax for environment variable
+    # access regardless of the host operating system
+    shell: bash -e -x {0}
+
+on:
+  # https://github.community/t/how-to-trigger-an-action-on-push-or-pull-request-but-not-both/16662
+  workflow_dispatch:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+
+env:
+  PROJ_PFX_TARGET: ryml-
+  PROJ_PFX_CMAKE: RYML_
+  CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
+  NUM_JOBS_BUILD: # 4
+
+
+jobs:
+  #----------------------------------------------------------------------------
+  coverage:
+    name: coverage/c++${{matrix.std}}
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip coverage')) ||
+      contains(github.event.head_commit.message, 'only coverage')
+    continue-on-error: true
+    runs-on: ${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {std: 11, cxx: g++-7, bt: Coverage, os: ubuntu-18.04, bitlinks: shared64 static64}
+          - {std: 11, cxx: g++-7, bt: Coverage, os: ubuntu-18.04, bitlinks: shared32 static32}
+          - {std: 17, cxx: g++-7, bt: Coverage, os: ubuntu-18.04, bitlinks: shared64 static64}
+          - {std: 17, cxx: g++-7, bt: Coverage, os: ubuntu-18.04, bitlinks: shared32 static32}
+    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}", CODECOV_TOKEN: "${{secrets.CODECOV_TOKEN}}", COVERALLS_REPO_TOKEN: "${{secrets.COVERALLS_REPO_TOKEN}}"}
+    steps:
+      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+      - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
+      - {name: show info, run: source .github/setenv.sh && c4_show_info}
+      - name: shared64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared64
+      - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
+      - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
+      - name: shared64-submit
+        run: |
+          source .github/setenv.sh
+          c4_submit_coverage shared64 codecov
+          #c4_submit_coverage shared64 coveralls  # only accepts one submission per job
+      - name: static64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static64
+      - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
+      - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
+      - name: static64-submit
+        run: |
+          source .github/setenv.sh
+          c4_submit_coverage static64 codecov
+          c4_submit_coverage static64 coveralls
+      - name: static32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static32
+      - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
+      - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
+      - name: static32-submit
+        run: |
+          source .github/setenv.sh
+          c4_submit_coverage static32 codecov
+          #c4_submit_coverage static32 coveralls  # only accepts one submission per job
+      - name: shared32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared32
+      - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
+      - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
+      - name: shared32-submit
+        run: |
+          source .github/setenv.sh
+          c4_submit_coverage shared32 codecov
+          #c4_submit_coverage shared32 coveralls  # only accepts one submission per job
+      - name: static32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static32
+      - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
+      - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
+      - name: static32-submit
+        run: |
+          source .github/setenv.sh
+          c4_submit_coverage static32 codecov
+          #c4_submit_coverage static32 coveralls  # only accepts one submission per job

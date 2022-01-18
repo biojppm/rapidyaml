@@ -94,6 +94,7 @@ As part of the [new feature to track source locations](https://github.com/biojpp
 
 ### Fixes
 
+- Fix [#193](https://github.com/biojppm/rapidyaml/issues/193): amalgamated header missing `#include <stdarg.h>` which prevented compilation in bare-metal `arm-none-eabi` ([PR #195](https://github.com/biojppm/rapidyaml/pull/195), requiring also [c4core #64](https://github.com/biojppm/c4core/pull/64)).
 - Accept `infinity`,`inf` and `nan` as special float values (but not mixed case: eg `InFiNiTy` or `Inf` or `NaN` are not accepted) ([PR #186](https://github.com/biojppm/rapidyaml/pull/186)).
 - Accept special float values with upper or mixed case: `.Inf`, `.INF`, `.NaN`, `.NAN`. Previously, only low-case `.inf` and `.nan` were accepted ([PR #186](https://github.com/biojppm/rapidyaml/pull/186)).
 - Accept `null` with upper or mixed case: `Null` or `NULL`. Previously, only low-case `null` was accepted ([PR #186](https://github.com/biojppm/rapidyaml/pull/186)).
@@ -105,7 +106,7 @@ As part of the [new feature to track source locations](https://github.com/biojpp
 
 ### Improvements
 
-- Rewrite filtering of scalars to improve parsing performance ([PR #188](https://github.com/biojppm/rapidyaml/pull/188)). Previously the scalar strings were parsed in place, which resulted in quadratic filtering complexity. This did not matter for small scalars fitting the cache (which is the more frequent case), but had a cost as the scalars grew larger. To achieve linearity, the code was changed so that the strings are now filtered to a temporary scratch space in the parser, and copied back to the output buffer after filtering, if any change occurred. The improvements were large for the folded scalars; the table below shows the benchmark results of throughput (MB/s) for several files containing large scalars of a single type:
+- Rewrite filtering of scalars to improve parsing performance ([PR #188](https://github.com/biojppm/rapidyaml/pull/188)). Previously the scalar strings were parsed in place, which resulted in quadratic complexity in terms of scalar length. This did not matter for small scalars fitting the cache (which is the more frequent case), but had a cost as the scalars grew larger. To achieve linearity, the code was changed so that the strings are now filtered to a temporary scratch space in the parser, and copied back to the output buffer after filtering, if any change occurred. The improvements were large for the folded scalars; the table below shows the benchmark results of throughput (MB/s) for several files containing large scalars of a single type:
   | scalar type	| before |	after |	improvement |
   |:------------|-------:|-------:|---------:|
   | block folded   | 276	| 561	| 103% |
