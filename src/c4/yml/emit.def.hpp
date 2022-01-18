@@ -472,15 +472,15 @@ void Emitter<Writer>::_write(NodeScalar const& C4_RESTRICT sc, NodeType flags, s
     }
     else if(style_marks & (_WIP_KEY_SQUO|_WIP_VAL_SQUO))
     {
-        _write_scalar_squo(sc.scalar);
+        _write_scalar_squo(sc.scalar, ilevel);
     }
     else if(style_marks & (_WIP_KEY_DQUO|_WIP_VAL_DQUO))
     {
-        _write_scalar_dquo(sc.scalar);
+        _write_scalar_dquo(sc.scalar, ilevel);
     }
     else if(style_marks & (_WIP_KEY_PLAIN|_WIP_VAL_PLAIN))
     {
-        _write_scalar_plain(sc.scalar);
+        _write_scalar_plain(sc.scalar, ilevel);
     }
     else
     {
@@ -497,10 +497,11 @@ void Emitter<Writer>::_write_json(NodeScalar const& C4_RESTRICT sc, NodeType fla
     _write_scalar_json(sc.scalar, flags.has_key(), flags.is_quoted());
 }
 
+#define _rymlindent_nextline() for(size_t lv = 0; lv < ilevel+1; ++lv) { this->Writer::_do_write("  "); }
+
 template<class Writer>
 void Emitter<Writer>::_write_scalar_literal(csubstr s, size_t ilevel, bool explicit_key)
 {
-    #define _rymlindent_nextline() for(size_t lv = 0; lv < ilevel+1; ++lv) { this->Writer::_do_write("  "); }
     if(explicit_key)
         this->Writer::_do_write("? ");
     csubstr trimmed = s.trimr("\n\r");
@@ -543,13 +544,11 @@ void Emitter<Writer>::_write_scalar_literal(csubstr s, size_t ilevel, bool expli
     }
     if(explicit_key && !numnewlines_at_end)
         this->Writer::_do_write('\n');
-    #undef _rymlindent_nextline
 }
 
 template<class Writer>
 void Emitter<Writer>::_write_scalar_folded(csubstr s, size_t ilevel, bool explicit_key)
 {
-    #define _rymlindent_nextline() for(size_t lv = 0; lv < ilevel+1; ++lv) { this->Writer::_do_write("  "); }
     if(explicit_key)
     {
         this->Writer::_do_write("? ");
@@ -581,6 +580,7 @@ void Emitter<Writer>::_write_scalar_folded(csubstr s, size_t ilevel, bool explic
             pos = i+1; // because of the newline
             _rymlindent_nextline()
             this->Writer::_do_write(since_pos);
+            this->Writer::_do_write('\n'); // write the newline twice
         }
         if(pos < trimmed.len)
         {
@@ -601,17 +601,25 @@ void Emitter<Writer>::_write_scalar_folded(csubstr s, size_t ilevel, bool explic
     }
     if(explicit_key && !numnewlines_at_end)
         this->Writer::_do_write('\n');
-    #undef _rymlindent_nextline
 }
 
 template<class Writer>
-void Emitter<Writer>::_write_scalar_squo(csubstr s)
+void Emitter<Writer>::_write_scalar_squo(csubstr s, size_t ilevel)
 {
     size_t pos = 0; // tracks the last character that was already written
     this->Writer::_do_write('\'');
     for(size_t i = 0; i < s.len; ++i)
     {
-        if(s[i] == '\'' || s[i] == '\n')
+        if(s[i] == '\n')
+        {
+            csubstr sub = s.range(pos, i+1);
+            this->Writer::_do_write(sub);  // write everything up to (including) this char
+            this->Writer::_do_write(s[i]); // write the character again
+            if(i + 1 < s.len)
+                _rymlindent_nextline()     // indent the next line
+            pos = i+1;
+        }
+        else if(s[i] == '\'')
         {
             csubstr sub = s.range(pos, i+1);
             this->Writer::_do_write(sub); // write everything up to (including) this char
@@ -629,7 +637,7 @@ void Emitter<Writer>::_write_scalar_squo(csubstr s)
 }
 
 template<class Writer>
-void Emitter<Writer>::_write_scalar_dquo(csubstr s)
+void Emitter<Writer>::_write_scalar_dquo(csubstr s, size_t ilevel)
 {
     size_t pos = 0; // tracks the last character that was already written
     this->Writer::_do_write('"');
@@ -649,6 +657,8 @@ void Emitter<Writer>::_write_scalar_dquo(csubstr s)
             csubstr sub = s.range(pos, i+1);
             this->Writer::_do_write(sub);  // write everything up to (including) this newline
             this->Writer::_do_write('\n'); // write the newline again
+            if(i + 1 < s.len)
+                _rymlindent_nextline()     // indent the next line
             pos = i+1;
             if(i+1 < s.len) // escape leading whitespace after the newline
             {
@@ -680,7 +690,7 @@ void Emitter<Writer>::_write_scalar_dquo(csubstr s)
 }
 
 template<class Writer>
-void Emitter<Writer>::_write_scalar_plain(csubstr s)
+void Emitter<Writer>::_write_scalar_plain(csubstr s, size_t ilevel)
 {
     size_t pos = 0; // tracks the last character that was already written
     for(size_t i = 0; i < s.len; ++i)
@@ -691,6 +701,8 @@ void Emitter<Writer>::_write_scalar_plain(csubstr s)
             csubstr sub = s.range(pos, i+1);
             this->Writer::_do_write(sub);  // write everything up to (including) this newline
             this->Writer::_do_write('\n'); // write the newline again
+            if(i + 1 < s.len)
+                _rymlindent_nextline()     // indent the next line
             pos = i+1;
         }
     }
@@ -701,6 +713,8 @@ void Emitter<Writer>::_write_scalar_plain(csubstr s)
         this->Writer::_do_write(sub);
     }
 }
+
+#undef _rymlindent_nextline
 
 template<class Writer>
 void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
@@ -762,7 +776,7 @@ void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
         }
         else
         {
-            _write_scalar_squo(s);
+            _write_scalar_squo(s, /*FIXME FIXME FIXME*/0);
         }
     }
 }

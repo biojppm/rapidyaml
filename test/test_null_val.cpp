@@ -176,7 +176,7 @@ TEST(null_val, issue103)
     ASSERT_EQ(tree.size(), 2u);
     EXPECT_EQ(tree.root_id(), 0u);
     EXPECT_EQ(tree.first_child(0), 1u);
-    EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
+    EXPECT_TRUE(tree.type(1).is_keyval());
     EXPECT_EQ(tree.key(1), nullptr);
     EXPECT_EQ(tree.val(1), nullptr);
     EXPECT_TRUE(tree.key_is_null(1));
@@ -190,7 +190,7 @@ TEST(null_val, issue103)
     ASSERT_EQ(tree.size(), 2u);
     EXPECT_EQ(tree.root_id(), 0u);
     EXPECT_EQ(tree.first_child(0), 1u);
-    EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
+    EXPECT_TRUE(tree.type(1).is_keyval());
     EXPECT_EQ(tree.key(1), "~");
     EXPECT_EQ(tree.val(1), "~");
     EXPECT_TRUE(tree.key_is_null(1));
@@ -204,7 +204,7 @@ TEST(null_val, issue103)
     ASSERT_EQ(tree.size(), 2u);
     EXPECT_EQ(tree.root_id(), 0u);
     EXPECT_EQ(tree.first_child(0), 1u);
-    EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
+    EXPECT_TRUE(tree.type(1).is_keyval());
     EXPECT_EQ(tree.key(1), "~");
     EXPECT_EQ(tree.val(1), "~");
     EXPECT_NE(tree.key(1), nullptr);
@@ -218,7 +218,7 @@ TEST(null_val, issue103)
     ASSERT_EQ(tree.size(), 2u);
     EXPECT_EQ(tree.root_id(), 0u);
     EXPECT_EQ(tree.first_child(0), 1u);
-    EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
+    EXPECT_TRUE(tree.type(1).is_keyval());
     EXPECT_EQ(tree.key(1), "null");
     EXPECT_EQ(tree.val(1), "null");
     EXPECT_NE(tree.key(1), nullptr);
@@ -230,7 +230,7 @@ TEST(null_val, issue103)
     ASSERT_EQ(tree.size(), 2u);
     EXPECT_EQ(tree.root_id(), 0u);
     EXPECT_EQ(tree.first_child(0), 1u);
-    EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
+    EXPECT_TRUE(tree.type(1).is_keyval());
     EXPECT_EQ(tree.key(1), "Null");
     EXPECT_EQ(tree.val(1), "Null");
     EXPECT_NE(tree.key(1), nullptr);
@@ -244,7 +244,7 @@ TEST(null_val, issue103)
     ASSERT_EQ(tree.size(), 2u);
     EXPECT_EQ(tree.root_id(), 0u);
     EXPECT_EQ(tree.first_child(0), 1u);
-    EXPECT_EQ((type_bits)tree.type(1), (type_bits)(KEY|VAL));
+    EXPECT_TRUE(tree.type(1).is_keyval());
     EXPECT_EQ(tree.key(1), "NULL");
     EXPECT_EQ(tree.val(1), "NULL");
     EXPECT_NE(tree.key(1), nullptr);

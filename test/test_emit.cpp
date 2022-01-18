@@ -51,106 +51,279 @@ this is the key: >-
   'empty' lines
 )";
 
+void check_same_emit(Tree const& expected)
+{
+    #if 0
+        #define _showtrees(num)                                     \
+            std::cout << "--------\nEMITTED" #num "\n--------\n";   \
+            std::cout << ws ## num;                                 \
+            std::cout << "--------\nACTUAL" #num "\n--------\n";    \
+            print_tree(actual ## num);                              \
+            std::cout << "--------\nEXPECTED" #num "\n--------\n";  \
+            print_tree(expected)
+    #else
+        #define _showtrees(num)
+    #endif
+
+    std::string ws1, ws2, ws3, ws4;
+    emitrs(expected, &ws1);
+    {
+        SCOPED_TRACE("actual1");
+        Tree actual1 = parse_in_arena(to_csubstr(ws1));
+        _showtrees(1);
+        test_compare(actual1, expected);
+        emitrs(actual1, &ws2);
+    }
+    {
+        SCOPED_TRACE("actual2");
+        Tree actual2 = parse_in_arena(to_csubstr(ws2));
+        _showtrees(2);
+        test_compare(actual2, expected);
+        emitrs(actual2, &ws3);
+    }
+    {
+        SCOPED_TRACE("actual3");
+        Tree actual3 = parse_in_arena(to_csubstr(ws3));
+        _showtrees(3);
+        test_compare(actual3, expected);
+        emitrs(actual3, &ws4);
+    }
+    {
+        SCOPED_TRACE("actual4");
+        Tree actual4 = parse_in_arena(to_csubstr(ws4));
+        _showtrees(4);
+        test_compare(actual4, expected);
+    }
+}
+
 TEST(scalar, base)
 {
     Tree tree = parse_in_arena(scalar_yaml);
     EXPECT_EQ(tree[0].key(), csubstr("this is the key"));
     EXPECT_EQ(tree[0].val(), csubstr("this is the multiline \"val\" with\n'empty' lines"));
+    EXPECT_EQ(emit2str(tree), R"(this is the key: |-
+  this is the multiline "val" with
+  'empty' lines
+)");
+    check_same_emit(tree);
 }
 
 TEST(scalar, block_literal)
 {
     Tree tree = parse_in_arena(scalar_yaml);
-    EXPECT_EQ(emit2str(tree), R"(this is the key: |-
+    {
+        SCOPED_TRACE("val only");
+        EXPECT_FALSE(tree[0].type().key_marked_literal());
+        EXPECT_FALSE(tree[0].type().val_marked_literal());
+        tree._add_flags(tree[0].id(), _WIP_VAL_LITERAL);
+        EXPECT_FALSE(tree[0].type().key_marked_literal());
+        EXPECT_TRUE(tree[0].type().val_marked_literal());
+        EXPECT_EQ(emit2str(tree), R"(this is the key: |-
   this is the multiline "val" with
   'empty' lines
 )");
-    tree._add_flags(tree.root_id(), _WIP_VAL_LITERAL);
-    EXPECT_EQ(emit2str(tree), R"(this is the key: |-
-  this is the multiline "val" with
-  'empty' lines
-)");
-}
-
-TEST(scalar, block_folded)
-{
-    Tree tree = parse_in_arena(scalar_yaml);
-    EXPECT_EQ(emit2str(tree), R"(this is the key: |-
-  this is the multiline "val" with
-  'empty' lines
-)");
-    EXPECT_FALSE(tree.type(tree[0].id()).key_marked_folded());
-    EXPECT_FALSE(tree.type(tree[0].id()).val_marked_folded());
-    tree._add_flags(tree[0].id(), _WIP_VAL_FOLDED);
-    EXPECT_FALSE(tree.type(tree[0].id()).key_marked_folded());
-    EXPECT_TRUE(tree.type(tree[0].id()).val_marked_folded());
-    EXPECT_EQ(emit2str(tree), R"(this is the key: >-
-  this is the multiline "val" with
-  'empty' lines
-)");
-    //
-    tree._add_flags(tree[0].id(), _WIP_KEY_FOLDED);
-    EXPECT_TRUE(tree.type(tree[0].id()).key_marked_folded());
-    EXPECT_TRUE(tree.type(tree[0].id()).val_marked_folded());
-    EXPECT_EQ(emit2str(tree), "? >-\n  this is the key\n: >-\n  this is the multiline \"val\" with\n  'empty' lines\n");
-    //
-    tree._rem_flags(tree[0].id(), _WIP_VAL_FOLDED);
-    EXPECT_TRUE(tree.type(tree[0].id()).key_marked_folded());
-    EXPECT_FALSE(tree.type(tree[0].id()).val_marked_folded());
-    EXPECT_EQ(emit2str(tree), R"(? >-
+        check_same_emit(tree);
+    }
+    {
+        SCOPED_TRACE("key+val");
+        tree._add_flags(tree[0].id(), _WIP_KEY_LITERAL);
+        EXPECT_TRUE(tree[0].type().key_marked_literal());
+        EXPECT_TRUE(tree[0].type().val_marked_literal());
+        EXPECT_EQ(emit2str(tree), R"(? |-
   this is the key
 : |-
   this is the multiline "val" with
   'empty' lines
 )");
+        check_same_emit(tree);
+    }
+    {
+        SCOPED_TRACE("key only");
+        tree._rem_flags(tree[0].id(), _WIP_VAL_LITERAL);
+        EXPECT_TRUE(tree[0].type().key_marked_literal());
+        EXPECT_FALSE(tree[0].type().val_marked_literal());
+        EXPECT_EQ(emit2str(tree), R"(? |-
+  this is the key
+: |-
+  this is the multiline "val" with
+  'empty' lines
+)");
+        check_same_emit(tree);
+    }
+}
+
+TEST(scalar, block_folded)
+{
+    Tree tree = parse_in_arena(scalar_yaml);
+    {
+        SCOPED_TRACE("val only");
+        EXPECT_FALSE(tree[0].type().key_marked_folded());
+        EXPECT_FALSE(tree[0].type().val_marked_folded());
+        tree._add_flags(tree[0].id(), _WIP_VAL_FOLDED);
+        EXPECT_FALSE(tree[0].type().key_marked_folded());
+        EXPECT_TRUE(tree[0].type().val_marked_folded());
+        EXPECT_EQ(emit2str(tree), R"(this is the key: >-
+  this is the multiline "val" with
+
+  'empty' lines
+)");
+        check_same_emit(tree);
+    }
+    {
+        SCOPED_TRACE("key+val");
+        tree._add_flags(tree[0].id(), _WIP_KEY_FOLDED);
+        EXPECT_TRUE(tree[0].type().key_marked_folded());
+        EXPECT_TRUE(tree[0].type().val_marked_folded());
+        EXPECT_EQ(emit2str(tree), R"(? >-
+  this is the key
+: >-
+  this is the multiline "val" with
+
+  'empty' lines
+)");
+        check_same_emit(tree);
+    }
+    {
+        SCOPED_TRACE("val only");
+        tree._rem_flags(tree[0].id(), _WIP_VAL_FOLDED);
+        EXPECT_TRUE(tree[0].type().key_marked_folded());
+        EXPECT_FALSE(tree[0].type().val_marked_folded());
+        EXPECT_EQ(emit2str(tree), R"(? >-
+  this is the key
+: |-
+  this is the multiline "val" with
+  'empty' lines
+)");
+        check_same_emit(tree);
+    }
 }
 
 TEST(scalar, squot)
 {
     Tree tree = parse_in_arena(scalar_yaml);
-    EXPECT_EQ(emit2str(tree), R"(this is the key: |-
+    EXPECT_FALSE(tree[0].type().key_marked_squo());
+    EXPECT_FALSE(tree[0].type().val_marked_squo());
+    {
+        SCOPED_TRACE("val only");
+        tree._add_flags(tree[0].id(), _WIP_VAL_SQUO);
+        EXPECT_FALSE(tree[0].type().key_marked_squo());
+        EXPECT_TRUE(tree[0].type().val_marked_squo());
+        EXPECT_EQ(emit2str(tree), R"(this is the key: 'this is the multiline "val" with
+
+  ''empty'' lines'
+)");
+        check_same_emit(tree);
+    }
+    {
+        SCOPED_TRACE("key+val");
+        tree._add_flags(tree[0].id(), _WIP_KEY_SQUO);
+        EXPECT_TRUE(tree[0].type().key_marked_squo());
+        EXPECT_TRUE(tree[0].type().val_marked_squo());
+        EXPECT_EQ(emit2str(tree), R"('this is the key': 'this is the multiline "val" with
+
+  ''empty'' lines'
+)");
+        check_same_emit(tree);
+    }
+    {
+        SCOPED_TRACE("key only");
+        tree._rem_flags(tree[0].id(), _WIP_VAL_SQUO);
+        EXPECT_TRUE(tree[0].type().key_marked_squo());
+        EXPECT_FALSE(tree[0].type().val_marked_squo());
+        EXPECT_EQ(emit2str(tree), R"('this is the key': |-
   this is the multiline "val" with
   'empty' lines
 )");
-    EXPECT_FALSE(tree.type(tree[0].id()).val_marked_squo());
-    tree._add_flags(tree[0].id(), _WIP_VAL_SQUO);
-    EXPECT_TRUE(tree.type(tree[0].id()).val_marked_squo());
-    EXPECT_EQ(emit2str(tree), R"(this is the key: 'this is the multiline "val" with
-
-''empty'' lines'
-)");
+        check_same_emit(tree);
+    }
 }
 
 TEST(scalar, dquot)
 {
     Tree tree = parse_in_arena(scalar_yaml);
-    EXPECT_EQ(emit2str(tree), R"(this is the key: |-
+    EXPECT_FALSE(tree[0].type().key_marked_dquo());
+    EXPECT_FALSE(tree[0].type().val_marked_dquo());
+    {
+        SCOPED_TRACE("val only");
+        tree._add_flags(tree[0].id(), _WIP_VAL_DQUO);
+        EXPECT_FALSE(tree[0].type().key_marked_dquo());
+        EXPECT_TRUE(tree[0].type().val_marked_dquo());
+        // visual studio fails to compile this string when used inside
+        // the EXPECT_EQ() macro below. So we declare it separately
+        // instead:
+        csubstr yaml = R"(this is the key: "this is the multiline \"val\" with
+
+  'empty' lines"
+)";
+        EXPECT_EQ(emit2str(tree), yaml);
+        check_same_emit(tree);
+    }
+    {
+        SCOPED_TRACE("key+val");
+        tree._add_flags(tree[0].id(), _WIP_KEY_DQUO);
+        EXPECT_TRUE(tree[0].type().key_marked_dquo());
+        EXPECT_TRUE(tree[0].type().val_marked_dquo());
+        // visual studio fails to compile this string when used inside
+        // the EXPECT_EQ() macro below. So we declare it separately
+        // instead:
+        csubstr yaml = R"("this is the key": "this is the multiline \"val\" with
+
+  'empty' lines"
+)";
+        EXPECT_EQ(emit2str(tree), yaml);
+        check_same_emit(tree);
+    }
+    {
+        SCOPED_TRACE("key only");
+        tree._rem_flags(tree[0].id(), _WIP_VAL_DQUO);
+        EXPECT_TRUE(tree[0].type().key_marked_dquo());
+        EXPECT_FALSE(tree[0].type().val_marked_dquo());
+        EXPECT_EQ(emit2str(tree), R"("this is the key": |-
   this is the multiline "val" with
   'empty' lines
 )");
-    EXPECT_FALSE(tree.type(tree[0].id()).val_marked_dquo());
-    tree._add_flags(tree[0].id(), _WIP_VAL_DQUO);
-    EXPECT_TRUE(tree.type(tree[0].id()).val_marked_dquo());
-    EXPECT_EQ(emit2str(tree), R"(this is the key: "this is the multiline \"val\" with
-
-'empty' lines"
-)");
+        check_same_emit(tree);
+    }
 }
 
 TEST(scalar, plain)
 {
     Tree tree = parse_in_arena(scalar_yaml);
-    EXPECT_EQ(emit2str(tree), R"(this is the key: |-
+    EXPECT_FALSE(tree[0].type().key_marked_plain());
+    EXPECT_FALSE(tree[0].type().val_marked_plain());
+    {
+        SCOPED_TRACE("val only");
+        tree._add_flags(tree[0].id(), _WIP_VAL_PLAIN);
+        EXPECT_FALSE(tree[0].type().key_marked_plain());
+        EXPECT_TRUE(tree[0].type().val_marked_plain());
+        EXPECT_EQ(emit2str(tree), R"(this is the key: this is the multiline "val" with
+
+  'empty' lines
+)");
+        check_same_emit(tree);
+    }
+    {
+        SCOPED_TRACE("key+val");
+        tree._add_flags(tree[0].id(), _WIP_KEY_PLAIN);
+        EXPECT_TRUE(tree[0].type().key_marked_plain());
+        EXPECT_TRUE(tree[0].type().val_marked_plain());
+        EXPECT_EQ(emit2str(tree), R"(this is the key: this is the multiline "val" with
+
+  'empty' lines
+)");
+        check_same_emit(tree);
+    }
+    {
+        SCOPED_TRACE("key only");
+        tree._rem_flags(tree[0].id(), _WIP_VAL_PLAIN);
+        EXPECT_TRUE(tree[0].type().key_marked_plain());
+        EXPECT_FALSE(tree[0].type().val_marked_plain());
+        EXPECT_EQ(emit2str(tree), R"(this is the key: |-
   this is the multiline "val" with
   'empty' lines
 )");
-    EXPECT_FALSE(tree.type(tree[0].id()).val_marked_plain());
-    tree._add_flags(tree[0].id(), _WIP_VAL_PLAIN);
-    EXPECT_TRUE(tree.type(tree[0].id()).val_marked_plain());
-    EXPECT_EQ(emit2str(tree), R"(this is the key: this is the multiline "val" with
-
-'empty' lines
-)");
+        check_same_emit(tree);
+    }
 }
 
 
