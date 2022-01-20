@@ -11,6 +11,7 @@ c4_project(VERSION 0.3.0 STANDALONE
 #-------------------------------------------------------
 
 option(RYML_DEFAULT_CALLBACKS "Enable ryml's default implementation of callbacks: allocate(), free(), error()" ON)
+option(RYML_BUILD_TOOLS "build tools" OFF)
 option(RYML_BUILD_API "Enable API generation (python, etc)" OFF)
 option(RYML_DBG "Enable (very verbose) ryml debug prints." OFF)
 
@@ -75,9 +76,14 @@ c4_pack_project()
 #-------------------------------------------------------
 # developer targets
 
+
 # extern libraries, used only for testing/benchmarking
 if(RYML_BUILD_TESTS OR RYML_BUILD_BENCHMARKS)
     include(ext/testbm.cmake)
+endif()
+
+if(RYML_BUILD_TOOLS)
+    add_subdirectory(tools)
 endif()
 
 c4_add_dev_targets()

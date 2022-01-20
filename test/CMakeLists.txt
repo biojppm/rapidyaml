@@ -1,12 +1,6 @@
 c4_setup_testing(GTEST)
 
 
-c4_add_executable(ryml-parse-emit
-    SOURCES parse_emit.cpp
-    LIBS ryml c4fs
-    FOLDER test)
-
-
 c4_add_executable(ryml-test-quickstart
     SOURCES ../samples/quickstart.cpp
     LIBS ryml
@@ -25,7 +19,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL GNU)
 endif()
 c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
     SOURCES test_case.hpp test_case.cpp callbacks_tester.hpp
-    INC_DIRS ${CMAKE_CURRENT_LIST_DIR} ${ryml_yaml_cpp_inc}
+    INC_DIRS ${CMAKE_CURRENT_LIST_DIR}
     LIBS ryml c4fs gtest
     FOLDER test)
 if(RYML_DBG)
