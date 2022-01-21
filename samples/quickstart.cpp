@@ -82,6 +82,7 @@ void sample_docs();                 ///< deal with YAML docs
 void sample_error_handler();        ///< set a custom error handler
 void sample_global_allocator();     ///< set a global allocator for ryml
 void sample_per_tree_allocator();   ///< set per-tree allocators
+void sample_static_trees();         ///< how to use static trees in ryml
 void sample_location_tracking();    ///< track node locations in the parsed source tree
 int  report_checks();
 } /* namespace sample */
@@ -116,6 +117,7 @@ int main()
     sample::sample_error_handler();
     sample::sample_global_allocator();
     sample::sample_per_tree_allocator();
+    sample::sample_static_trees();
     sample::sample_location_tracking();
     return sample::report_checks();
 }
@@ -1457,6 +1459,7 @@ bar2:
 
     // clear first before parsing into an existing tree.
     tree.clear();
+    tree.clear_arena();  // you may or may not want to clear the arena
     ryml::parse_in_arena("[a, b, {x0: 1, x1: 2}]", &tree);
     CHECK(ryml::emitrs<std::string>(tree) == R"(- a
 - b
@@ -3771,6 +3774,32 @@ void sample_per_tree_allocator()
 
     CHECK(mrp.num_allocs == 0); // YAML depth not large enough to warrant a parser allocation
     CHECK(mr1.alloc_size <= mr2.alloc_size); // because yml2 has more nodes
+}
+
+
+//-----------------------------------------------------------------------------
+
+
+/** shows how to work around the static initialization order fiasco
+ * when using a static-duration ryml tree
+ * @see https://en.cppreference.com/w/cpp/language/siof */
+void sample_static_trees()
+{
+    // Using static trees incurs may incur a static initialization
+    // order problem. This happens because a default-constructed tree will
+    // obtain the callbacks from the current global setting, which may
+    // not have been initialized due to undefined static initialization
+    // order:
+    //
+    //static ryml::Tree tree;  // ERROR! depends on ryml::get_callbacks() which may not have been initialized.
+    //
+    // To work around the issue, declare static callbacks
+    // to explicitly initialize the static tree:
+    static ryml::Callbacks callbacks = {}; // use default callback members
+    static ryml::Tree tree(callbacks); // OK
+    // now you can use the tree as normal:
+    ryml::parse_in_arena(R"(doe: "a deer, a female deer")", &tree);
+    CHECK(tree["doe"].val() == "a deer, a female deer");
 }
 
 

@@ -49,6 +49,8 @@ function c4_show_info()
             echo "number of cores=$(nproc)"
             $CXX_ --version
             ;;
+        *)
+            ;;
     esac
     set -x
     git branch
@@ -257,6 +259,15 @@ function c4_cfg_test()
     # quoted strings in variables and then expand the variables with correct quotes
     # so we have to do this precious jewell of chicanery:
     case "$CXX_" in
+        vs2022)
+            g='Visual Studio 17 2022'
+            case "$bits" in
+                64) a=x64 ;;
+                32) a=Win32 ;;
+            esac
+            cmake -S $PROJ_DIR -B $build_dir -DCMAKE_INSTALL_PREFIX="$install_dir" \
+                  -DCMAKE_BUILD_TYPE=$BT -G "$g" -A $a $CMFLAGS
+            ;;
         vs2019)
             g='Visual Studio 16 2019'
             case "$bits" in
@@ -289,13 +300,22 @@ function c4_cfg_test()
             cmake -S $PROJ_DIR -B $build_dir -DCMAKE_INSTALL_PREFIX="$install_dir" \
                   -DCMAKE_BUILD_TYPE=$BT $CMFLAGS
             ;;
+        *mingw*)
+            export CC_=$(echo "$CXX_" | sed 's:clang++:clang:g' | sed 's:g++:gcc:g')
+            cmake -S $PROJ_DIR -B $build_dir -DCMAKE_INSTALL_PREFIX="$install_dir" \
+                  -G "MinGW Makefiles" \
+                  -DCMAKE_BUILD_TYPE=$BT $CMFLAGS \
+                  -DCMAKE_C_COMPILER=$CC_ -DCMAKE_CXX_COMPILER=$CXX_ \
+                  -DCMAKE_C_FLAGS="-m$bits" -DCMAKE_CXX_FLAGS="-m$bits"
+            cmake --build $build_dir --target help | sed 1d | sort
+            ;;
         *g++*|*gcc*|*clang*)
             export CC_=$(echo "$CXX_" | sed 's:clang++:clang:g' | sed 's:g++:gcc:g')
             _c4_choose_clang_tidy $CXX_
             cmake -S $PROJ_DIR -B $build_dir -DCMAKE_INSTALL_PREFIX="$install_dir" \
                   -DCMAKE_BUILD_TYPE=$BT $CMFLAGS \
                   -DCMAKE_C_COMPILER=$CC_ -DCMAKE_CXX_COMPILER=$CXX_ \
-                  -DCMAKE_C_FLAGS="-std=c99 -m$bits" -DCMAKE_CXX_FLAGS="-m$bits"
+                  -DCMAKE_C_FLAGS="-m$bits" -DCMAKE_CXX_FLAGS="-m$bits"
             cmake --build $build_dir --target help | sed 1d | sort
             ;;
         em++)
@@ -353,7 +373,7 @@ function _addprojflags()
 function _c4_parallel_build_flags()
 {
     case "$CXX_" in
-        vs2019|vs2017|vs2015)
+        vs2022|vs2019|vs2017|vs2015)
             # https://docs.microsoft.com/en-us/visualstudio/msbuild/msbuild-command-line-reference?view=vs-2019
             # https://stackoverflow.com/questions/2619198/how-to-get-number-of-cores-in-win32
             if [ -z "$NUM_JOBS_BUILD" ] ; then
@@ -390,7 +410,7 @@ function _c4_parallel_build_flags()
 function _c4_generator_build_flags()
 {
     case "$CXX_" in
-        vs2019|vs2017|vs2015)
+        vs2022|vs2019|vs2017|vs2015)
             ;;
         xcode)
             # WTF???
