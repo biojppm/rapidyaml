@@ -31,6 +31,11 @@ c4core_def_code = f""" // propagate defines to c4core
 #if defined(RYML_SHARED) && !defined(C4CORE_SHARED)
 #define C4CORE_SHARED
 #endif
+
+// workaround for include removal while amalgamating
+// resulting in <stdarg.h> missing in arm-none-eabi-g++
+// https://github.com/biojppm/rapidyaml/issues/193
+#include <stdarg.h>
 """
 
 
