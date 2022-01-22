@@ -78,7 +78,7 @@ c4_pack_project()
 
 
 # extern libraries, used only for testing/benchmarking
-if(RYML_BUILD_TESTS OR RYML_BUILD_BENCHMARKS)
+if(RYML_BUILD_TESTS OR RYML_BUILD_BENCHMARKS OR RYML_BUILD_TOOLS)
     include(ext/testbm.cmake)
 endif()
 
