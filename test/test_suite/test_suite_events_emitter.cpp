@@ -7,13 +7,15 @@ struct EventsEmitter
 {
     substr buf;
     size_t pos;
-    EventsEmitter(substr buf_) : buf(buf_), pos() {}
+    Tree const* C4_RESTRICT m_tree;
+    EventsEmitter(Tree const& tree, substr buf_) : buf(buf_), pos(), m_tree(&tree) {}
+    void emit_tag(csubstr tag);
     void emit_scalar(csubstr val, bool quoted);
-    void emit_key_anchor_tag(Tree const& C4_RESTRICT tree, size_t node);
-    void emit_val_anchor_tag(Tree const& C4_RESTRICT tree, size_t node);
-    void emit_events(Tree const& C4_RESTRICT tree, size_t node);
-    void emit_doc(Tree const& C4_RESTRICT tree, size_t node);
-    void emit_events(Tree const& C4_RESTRICT tree);
+    void emit_key_anchor_tag(size_t node);
+    void emit_val_anchor_tag(size_t node);
+    void emit_events(size_t node);
+    void emit_doc(size_t node);
+    void emit_events();
     template<size_t N>
     C4_ALWAYS_INLINE void pr(const char (&s)[N])
     {
@@ -56,134 +58,160 @@ void EventsEmitter::emit_scalar(csubstr val, bool quoted)
             pr('t');
             prev = i+1;
         }
+        else if(val[i] == '\\')
+        {
+            pr(val.range(prev, i));
+            pr('\\');
+            pr('\\');
+            prev = i+1;
+        }
         else if(val[i] == '\r')
             continue;  // not really sure about this
     }
     pr(val.sub(prev)); // print remaining portion
 }
 
-void EventsEmitter::emit_key_anchor_tag(Tree const& C4_RESTRICT tree, size_t node)
+void EventsEmitter::emit_tag(csubstr tag)
 {
-    if(tree.has_key_anchor(node))
+    if(tag.begins_with('<'))
     {
-        pr(" &");
-        pr(tree.key_anchor(node));
+        pr(tag);
     }
-    if(tree.has_key_tag(node))
+    else
     {
-        pr(" <");
-        pr(tree.key_tag(node));
+        pr('<');
+        pr(tag);
         pr('>');
     }
 }
 
-void EventsEmitter::emit_val_anchor_tag(Tree const& C4_RESTRICT tree, size_t node)
+void EventsEmitter::emit_key_anchor_tag(size_t node)
 {
-    if(tree.has_val_anchor(node))
+    if(m_tree->has_key_anchor(node))
     {
         pr(" &");
-        pr(tree.val_anchor(node));
+        pr(m_tree->key_anchor(node));
     }
-    if(tree.has_val_tag(node))
+    if(m_tree->has_key_tag(node))
     {
-        pr(" <");
-        pr(tree.val_tag(node));
-        pr('>');
+        pr(' ');
+        emit_tag(m_tree->key_tag(node));
     }
 }
 
-void EventsEmitter::emit_events(Tree const& C4_RESTRICT tree, size_t node)
+void EventsEmitter::emit_val_anchor_tag(size_t node)
 {
-    // TODO: aliases
-    if(tree.has_key(node))
+    if(m_tree->has_val_anchor(node))
     {
-        if(tree.is_key_ref(node))
+        pr(" &");
+        pr(m_tree->val_anchor(node));
+    }
+    if(m_tree->has_val_tag(node))
+    {
+        pr(' ');
+        emit_tag(m_tree->val_tag(node));
+    }
+}
+
+void EventsEmitter::emit_events(size_t node)
+{
+    if(m_tree->has_key(node))
+    {
+        if(m_tree->is_key_ref(node))
         {
             pr("=ALI ");
-            pr(tree.key(node));
+            pr(m_tree->key(node));
+            pr('\n');
         }
         else
         {
             pr("=VAL");
-            emit_key_anchor_tag(tree, node);
+            emit_key_anchor_tag(node);
             pr(' ');
-            emit_scalar(tree.key(node), tree.is_key_quoted(node));
+            emit_scalar(m_tree->key(node), m_tree->is_key_quoted(node));
+            pr('\n');
         }
-        pr('\n');
     }
-    if(tree.has_val(node))
+    if(m_tree->has_val(node))
     {
-        if(tree.is_val_ref(node))
+        if(m_tree->is_val_ref(node))
         {
             pr("=ALI ");
-            pr(tree.val(node));
+            pr(m_tree->val(node));
+            pr('\n');
         }
         else
         {
             pr("=VAL");
-            emit_val_anchor_tag(tree, node);
+            emit_val_anchor_tag(node);
             pr(' ');
-            emit_scalar(tree.val(node), tree.is_val_quoted(node));
+            emit_scalar(m_tree->val(node), m_tree->is_val_quoted(node));
+            pr('\n');
         }
-        pr('\n');
     }
-    else if(tree.is_map(node))
+    else if(m_tree->is_map(node))
     {
         pr("+MAP");
-        emit_val_anchor_tag(tree, node);
+        emit_val_anchor_tag(node);
         pr('\n');
-        for(size_t child = tree.first_child(node); child != NONE; child = tree.next_sibling(child))
-            emit_events(tree, child);
+        for(size_t child = m_tree->first_child(node); child != NONE; child = m_tree->next_sibling(child))
+            emit_events(child);
         pr("-MAP\n");
     }
-    else if(tree.is_seq(node))
+    else if(m_tree->is_seq(node))
     {
         pr("+SEQ");
-        emit_val_anchor_tag(tree, node);
+        emit_val_anchor_tag(node);
         pr('\n');
-        for(size_t child = tree.first_child(node); child != NONE; child = tree.next_sibling(child))
-            emit_events(tree, child);
+        for(size_t child = m_tree->first_child(node); child != NONE; child = m_tree->next_sibling(child))
+            emit_events(child);
         pr("-SEQ\n");
     }
 }
 
-void EventsEmitter::emit_doc(Tree const& C4_RESTRICT tree, size_t node)
+void EventsEmitter::emit_doc(size_t node)
 {
-    pr("+DOC");
-    if(tree.is_doc(node))
-        pr(" ---");
-    emit_val_anchor_tag(tree, node);
-    if(tree.is_val(node))
+    bool use_triple = !m_tree->is_root(node) && m_tree->is_doc(node);
+    if(use_triple)
+        pr("+DOC ---");
+    else
+        pr("+DOC");
+    if(m_tree->is_val(node))
     {
-        emit_val_anchor_tag(tree, node);
+        pr("\n=VAL");
+        emit_val_anchor_tag(node);
         pr(' ');
-        emit_scalar(tree.val(node), tree.is_val_quoted(node));
+        emit_scalar(m_tree->val(node), m_tree->is_val_quoted(node));
         pr('\n');
     }
     else
     {
+        emit_val_anchor_tag(node);
         pr('\n');
-        emit_events(tree, node);
+        emit_events(node);
     }
-    pr("-DOC\n");
+    if(use_triple)
+        pr("-DOC ...\n");
+    else
+        pr("-DOC\n");
 }
 
-void EventsEmitter::emit_events(Tree const& C4_RESTRICT tree)
+void EventsEmitter::emit_events()
 {
-    size_t root = tree.root_id();
+    size_t root = m_tree->root_id();
     pr("+STR\n");
-    if(tree.is_stream(root))
-        for(size_t node = tree.first_child(root); node != NONE; node = tree.next_sibling(node))
-            emit_doc(tree, node);
+    if(m_tree->is_stream(root))
+        for(size_t node = m_tree->first_child(root); node != NONE; node = m_tree->next_sibling(node))
+            emit_doc(node);
     else
-        emit_doc(tree, root);
+        emit_doc(root);
     pr("-STR\n");
 }
 
 size_t emit_events(substr buf, Tree const& C4_RESTRICT tree)
 {
-    EventsEmitter e(buf);
-    e.emit_events(tree);
+    EventsEmitter e(tree, buf);
+    e.emit_events();
     return e.pos;
 }
 

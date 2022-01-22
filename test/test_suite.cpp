@@ -317,6 +317,8 @@ struct Approach
 
     void compare_emitted_events(Events *events)
     {
+        if(skip_events())
+            GTEST_SKIP();
         events->parse_events(src());
         parse(1, /*emit*/false);
         events->compare_emitted_events(src(), levels[0].tree);
