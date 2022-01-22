@@ -2614,7 +2614,7 @@ csubstr Parser::_scan_to_next_nonempty_line(size_t indentation)
         _c4dbgpf("rscalar: ... next peeked line='%.*s'", _c4prsp(next_peeked.trimr("\r\n")));
         if(next_peeked_triml.begins_with('#'))
         {
-            _c4dbgpf("rscalar: ... first non-space character is #", _c4prsp(next_peeked_triml));
+            _c4dbgp("rscalar: ... first non-space character is #");
             return {};
         }
         else if(next_peeked.begins_with(' ', indentation))

@@ -85,6 +85,8 @@ struct Events
         if(actual_src.empty())
             GTEST_SKIP();
         parser.parse(c4::to_csubstr(src), &tree);
+        if(tree.empty())
+            tree.reserve(10);
         _nfo_print_tree("EXPECTED", tree);
         was_parsed = true;
     }
@@ -344,15 +346,15 @@ struct Approach
  * with/without reuse. */
 struct Subject
 {
-    Approach unix_ro;
-    Approach unix_ro_reuse;
-    Approach unix_rw;
-    Approach unix_rw_reuse;
+    Approach unix_arena;
+    Approach unix_arena_reuse;
+    Approach unix_inplace;
+    Approach unix_inplace_reuse;
 
-    Approach windows_ro;
-    Approach windows_ro_reuse;
-    Approach windows_rw;
-    Approach windows_rw_reuse;
+    Approach windows_arena;
+    Approach windows_arena_reuse;
+    Approach windows_inplace;
+    Approach windows_inplace_reuse;
 
     std::string unix_src;
     std::string windows_src;
@@ -361,17 +363,17 @@ struct Subject
     {
         src = replace_all("\r", "", src, &unix_src);
 
-        unix_ro      .init(filename, src, /*immutable*/true , /*reuse*/false, case_part, expect_error);
-        unix_ro_reuse.init(filename, src, /*immutable*/true , /*reuse*/true , case_part, expect_error);
-        unix_rw      .init(filename, src, /*immutable*/false, /*reuse*/false, case_part, expect_error);
-        unix_rw_reuse.init(filename, src, /*immutable*/false, /*reuse*/true , case_part, expect_error);
+        unix_arena      .init(filename, src, /*immutable*/true , /*reuse*/false, case_part, expect_error);
+        unix_arena_reuse.init(filename, src, /*immutable*/true , /*reuse*/true , case_part, expect_error);
+        unix_inplace      .init(filename, src, /*immutable*/false, /*reuse*/false, case_part, expect_error);
+        unix_inplace_reuse.init(filename, src, /*immutable*/false, /*reuse*/true , case_part, expect_error);
 
         src = replace_all("\n", "\r\n", src, &windows_src);
 
-        windows_ro      .init(filename, src, /*immutable*/true , /*reuse*/false, case_part, expect_error);
-        windows_ro_reuse.init(filename, src, /*immutable*/true , /*reuse*/true , case_part, expect_error);
-        windows_rw      .init(filename, src, /*immutable*/false, /*reuse*/false, case_part, expect_error);
-        windows_rw_reuse.init(filename, src, /*immutable*/false, /*reuse*/true , case_part, expect_error);
+        windows_arena      .init(filename, src, /*immutable*/true , /*reuse*/false, case_part, expect_error);
+        windows_arena_reuse.init(filename, src, /*immutable*/true , /*reuse*/true , case_part, expect_error);
+        windows_inplace      .init(filename, src, /*immutable*/false, /*reuse*/false, case_part, expect_error);
+        windows_inplace_reuse.init(filename, src, /*immutable*/false, /*reuse*/true , case_part, expect_error);
     }
 };
 
@@ -496,7 +498,7 @@ struct SuiteCase
 
     static csubstr src(Subject const& s)
     {
-        return c4::to_csubstr(s.unix_ro.levels[0].src);
+        return c4::to_csubstr(s.unix_arena.levels[0].src);
     }
 
     static bool parse_spec_error_directives(const NodeRef spec, bool case_value)
@@ -845,83 +847,83 @@ INSTANTIATE_TEST_SUITE_P(_, cls##_##pfx, testing::Range<size_t>(0, NLEVELS))
 
 
 // in-json
-DEFINE_TEST_CLASS(in_json, unix_ro);
-DEFINE_TEST_CLASS(in_json, unix_rw);
-DEFINE_TEST_CLASS(in_json, unix_ro_reuse);
-DEFINE_TEST_CLASS(in_json, unix_rw_reuse);
-DEFINE_TEST_CLASS(in_json, windows_ro);
-DEFINE_TEST_CLASS(in_json, windows_rw);
-DEFINE_TEST_CLASS(in_json, windows_ro_reuse);
-DEFINE_TEST_CLASS(in_json, windows_rw_reuse);
+DEFINE_TEST_CLASS(in_json, unix_arena);
+DEFINE_TEST_CLASS(in_json, unix_inplace);
+DEFINE_TEST_CLASS(in_json, unix_arena_reuse);
+DEFINE_TEST_CLASS(in_json, unix_inplace_reuse);
+DEFINE_TEST_CLASS(in_json, windows_arena);
+DEFINE_TEST_CLASS(in_json, windows_inplace);
+DEFINE_TEST_CLASS(in_json, windows_arena_reuse);
+DEFINE_TEST_CLASS(in_json, windows_inplace_reuse);
 
 
 // out-yaml
-DEFINE_TEST_CLASS(out_yaml, unix_ro);
-DEFINE_TEST_CLASS(out_yaml, unix_rw);
-DEFINE_TEST_CLASS(out_yaml, unix_ro_reuse);
-DEFINE_TEST_CLASS(out_yaml, unix_rw_reuse);
-DEFINE_TEST_CLASS(out_yaml, windows_ro);
-DEFINE_TEST_CLASS(out_yaml, windows_rw);
-DEFINE_TEST_CLASS(out_yaml, windows_ro_reuse);
-DEFINE_TEST_CLASS(out_yaml, windows_rw_reuse);
+DEFINE_TEST_CLASS(out_yaml, unix_arena);
+DEFINE_TEST_CLASS(out_yaml, unix_inplace);
+DEFINE_TEST_CLASS(out_yaml, unix_arena_reuse);
+DEFINE_TEST_CLASS(out_yaml, unix_inplace_reuse);
+DEFINE_TEST_CLASS(out_yaml, windows_arena);
+DEFINE_TEST_CLASS(out_yaml, windows_inplace);
+DEFINE_TEST_CLASS(out_yaml, windows_arena_reuse);
+DEFINE_TEST_CLASS(out_yaml, windows_inplace_reuse);
 
-DEFINE_EVENT_TESTS(out_yaml, unix_ro)
-DEFINE_EVENT_TESTS(out_yaml, unix_rw)
-DEFINE_EVENT_TESTS(out_yaml, unix_ro_reuse)
-DEFINE_EVENT_TESTS(out_yaml, unix_rw_reuse)
-DEFINE_EVENT_TESTS(out_yaml, windows_ro)
-DEFINE_EVENT_TESTS(out_yaml, windows_rw)
-DEFINE_EVENT_TESTS(out_yaml, windows_ro_reuse)
-DEFINE_EVENT_TESTS(out_yaml, windows_rw_reuse)
+DEFINE_EVENT_TESTS(out_yaml, unix_arena)
+DEFINE_EVENT_TESTS(out_yaml, unix_inplace)
+DEFINE_EVENT_TESTS(out_yaml, unix_arena_reuse)
+DEFINE_EVENT_TESTS(out_yaml, unix_inplace_reuse)
+DEFINE_EVENT_TESTS(out_yaml, windows_arena)
+DEFINE_EVENT_TESTS(out_yaml, windows_inplace)
+DEFINE_EVENT_TESTS(out_yaml, windows_arena_reuse)
+DEFINE_EVENT_TESTS(out_yaml, windows_inplace_reuse)
 
 
 // emit-yaml
-DEFINE_TEST_CLASS(emit_yaml, unix_ro);
-DEFINE_TEST_CLASS(emit_yaml, unix_rw);
-DEFINE_TEST_CLASS(emit_yaml, unix_ro_reuse);
-DEFINE_TEST_CLASS(emit_yaml, unix_rw_reuse);
-DEFINE_TEST_CLASS(emit_yaml, windows_ro);
-DEFINE_TEST_CLASS(emit_yaml, windows_rw);
-DEFINE_TEST_CLASS(emit_yaml, windows_ro_reuse);
-DEFINE_TEST_CLASS(emit_yaml, windows_rw_reuse);
+DEFINE_TEST_CLASS(emit_yaml, unix_arena);
+DEFINE_TEST_CLASS(emit_yaml, unix_inplace);
+DEFINE_TEST_CLASS(emit_yaml, unix_arena_reuse);
+DEFINE_TEST_CLASS(emit_yaml, unix_inplace_reuse);
+DEFINE_TEST_CLASS(emit_yaml, windows_arena);
+DEFINE_TEST_CLASS(emit_yaml, windows_inplace);
+DEFINE_TEST_CLASS(emit_yaml, windows_arena_reuse);
+DEFINE_TEST_CLASS(emit_yaml, windows_inplace_reuse);
 
-DEFINE_EVENT_TESTS(emit_yaml, unix_ro)
-DEFINE_EVENT_TESTS(emit_yaml, unix_rw)
-DEFINE_EVENT_TESTS(emit_yaml, unix_ro_reuse)
-DEFINE_EVENT_TESTS(emit_yaml, unix_rw_reuse)
-DEFINE_EVENT_TESTS(emit_yaml, windows_ro)
-DEFINE_EVENT_TESTS(emit_yaml, windows_rw)
-DEFINE_EVENT_TESTS(emit_yaml, windows_ro_reuse)
-DEFINE_EVENT_TESTS(emit_yaml, windows_rw_reuse)
+DEFINE_EVENT_TESTS(emit_yaml, unix_arena)
+DEFINE_EVENT_TESTS(emit_yaml, unix_inplace)
+DEFINE_EVENT_TESTS(emit_yaml, unix_arena_reuse)
+DEFINE_EVENT_TESTS(emit_yaml, unix_inplace_reuse)
+DEFINE_EVENT_TESTS(emit_yaml, windows_arena)
+DEFINE_EVENT_TESTS(emit_yaml, windows_inplace)
+DEFINE_EVENT_TESTS(emit_yaml, windows_arena_reuse)
+DEFINE_EVENT_TESTS(emit_yaml, windows_inplace_reuse)
 
 
 // in-yaml: this is the hardest one
-DEFINE_TEST_CLASS(in_yaml, unix_ro);
-DEFINE_TEST_CLASS(in_yaml, unix_rw);
-DEFINE_TEST_CLASS(in_yaml, unix_ro_reuse);
-DEFINE_TEST_CLASS(in_yaml, unix_rw_reuse);
-DEFINE_TEST_CLASS(in_yaml, windows_ro);
-DEFINE_TEST_CLASS(in_yaml, windows_rw);
-DEFINE_TEST_CLASS(in_yaml, windows_ro_reuse);
-DEFINE_TEST_CLASS(in_yaml, windows_rw_reuse);
+DEFINE_TEST_CLASS(in_yaml, unix_arena);
+DEFINE_TEST_CLASS(in_yaml, unix_inplace);
+DEFINE_TEST_CLASS(in_yaml, unix_arena_reuse);
+DEFINE_TEST_CLASS(in_yaml, unix_inplace_reuse);
+DEFINE_TEST_CLASS(in_yaml, windows_arena);
+DEFINE_TEST_CLASS(in_yaml, windows_inplace);
+DEFINE_TEST_CLASS(in_yaml, windows_arena_reuse);
+DEFINE_TEST_CLASS(in_yaml, windows_inplace_reuse);
 
-DEFINE_EVENT_TESTS(in_yaml, unix_ro)
-DEFINE_EVENT_TESTS(in_yaml, unix_rw)
-DEFINE_EVENT_TESTS(in_yaml, unix_ro_reuse)
-DEFINE_EVENT_TESTS(in_yaml, unix_rw_reuse)
-DEFINE_EVENT_TESTS(in_yaml, windows_ro)
-DEFINE_EVENT_TESTS(in_yaml, windows_rw)
-DEFINE_EVENT_TESTS(in_yaml, windows_ro_reuse)
-DEFINE_EVENT_TESTS(in_yaml, windows_rw_reuse)
+DEFINE_EVENT_TESTS(in_yaml, unix_arena)
+DEFINE_EVENT_TESTS(in_yaml, unix_inplace)
+DEFINE_EVENT_TESTS(in_yaml, unix_arena_reuse)
+DEFINE_EVENT_TESTS(in_yaml, unix_inplace_reuse)
+DEFINE_EVENT_TESTS(in_yaml, windows_arena)
+DEFINE_EVENT_TESTS(in_yaml, windows_inplace)
+DEFINE_EVENT_TESTS(in_yaml, windows_arena_reuse)
+DEFINE_EVENT_TESTS(in_yaml, windows_inplace_reuse)
 
-DEFINE_ERROR_TESTS(unix_ro)
-DEFINE_ERROR_TESTS(unix_rw)
-DEFINE_ERROR_TESTS(unix_ro_reuse)
-DEFINE_ERROR_TESTS(unix_rw_reuse)
-DEFINE_ERROR_TESTS(windows_ro)
-DEFINE_ERROR_TESTS(windows_rw)
-DEFINE_ERROR_TESTS(windows_ro_reuse)
-DEFINE_ERROR_TESTS(windows_rw_reuse)
+DEFINE_ERROR_TESTS(unix_arena)
+DEFINE_ERROR_TESTS(unix_inplace)
+DEFINE_ERROR_TESTS(unix_arena_reuse)
+DEFINE_ERROR_TESTS(unix_inplace_reuse)
+DEFINE_ERROR_TESTS(windows_arena)
+DEFINE_ERROR_TESTS(windows_inplace)
+DEFINE_ERROR_TESTS(windows_arena_reuse)
+DEFINE_ERROR_TESTS(windows_inplace_reuse)
 
 
 //-------------------------------------------

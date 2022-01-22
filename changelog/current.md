@@ -106,7 +106,7 @@ As part of the [new feature to track source locations](https://github.com/biojpp
 
 ### Improvements
 
-- Rewrite filtering of scalars to improve parsing performance ([PR #188](https://github.com/biojppm/rapidyaml/pull/188)). Previously the scalar strings were parsed in place, which resulted in quadratic complexity in terms of scalar length. This did not matter for small scalars fitting the cache (which is the more frequent case), but had a cost as the scalars grew larger. To achieve linearity, the code was changed so that the strings are now filtered to a temporary scratch space in the parser, and copied back to the output buffer after filtering, if any change occurred. The improvements were large for the folded scalars; the table below shows the benchmark results of throughput (MB/s) for several files containing large scalars of a single type:
+- Rewrite filtering of scalars to improve parsing performance ([PR #188](https://github.com/biojppm/rapidyaml/pull/188)). Previously the scalar strings were filtered in place, which resulted in quadratic complexity in terms of scalar length. This did not matter for small scalars fitting the cache (which is the more frequent case), but had a cost as the scalars grew larger. To achieve linearity, the code was changed so that the strings are now filtered to a temporary scratch space in the parser, and copied back to the output buffer after filtering, if any change occurred. The improvements were large for the folded scalars; the table below shows the benchmark results of throughput (MB/s) for several files containing large scalars of a single type:
   | scalar type	| before |	after |	improvement |
   |:------------|-------:|-------:|---------:|
   | block folded   | 276	| 561	| 103% |

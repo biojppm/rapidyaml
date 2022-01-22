@@ -52,6 +52,7 @@ struct OptionalScalar
     csubstr get() const { RYML_ASSERT(was_set); return val; }
 };
 
+#if RYML_NFO
 size_t to_chars(c4::substr buf, OptionalScalar const& s)
 {
     if(!s)
@@ -60,10 +61,10 @@ size_t to_chars(c4::substr buf, OptionalScalar const& s)
         memcpy(buf.str, s.val.str, s.val.len);
     return s.val.len;
 }
+#endif
 
 csubstr filtered_scalar(csubstr str, ScalarType scalar_type, Tree *tree)
 {
-    C4_UNUSED(to_chars);
     (void)scalar_type;
     csubstr tokens[] = {R"(\n)", R"(\t)", R"(\\)"};
     if(!str.first_of_any_iter(std::begin(tokens), std::end(tokens)))
@@ -236,7 +237,7 @@ void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
         line = line.triml(' ');
         _nfo_printf("\n\n-----------------------\n");
         _nfo_llog("");
-        _nfo_logf("line[{}]: top={} type={}", linenum, m_stack.empty() ? tree.root_id() : m_stack.top().tree_node, NodeType::type_str(tree.type(curr)));
+        _nfo_logf("line[{}]: top={} type={}", linenum, m_stack.empty() ? tree.root_id() : m_stack.top().tree_node, NodeType::type_str(tree.type(m_stack.empty() ? tree.root_id() : m_stack.top().tree_node)));
         if(line.begins_with("=VAL "))
         {
             line = line.stripl("=VAL ");

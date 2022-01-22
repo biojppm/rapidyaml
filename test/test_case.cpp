@@ -37,6 +37,9 @@ size_t _num_leaves(Tree const& t, size_t node)
 
 void test_compare(Tree const& a, Tree const& b)
 {
+    ASSERT_EQ(a.empty(), b.empty());
+    if(a.empty() || b.empty())
+        return;
     EXPECT_EQ(a.size(), b.size());
     EXPECT_EQ(_num_leaves(a, a.root_id()), _num_leaves(b, b.root_id()));
     test_compare(a, a.root_id(), b, b.root_id(), 0);

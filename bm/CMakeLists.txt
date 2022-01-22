@@ -2,7 +2,7 @@ c4_setup_benchmarking()
 
 # thirdparty libs that will be compared with ryml
 
-set(_ed ${CMAKE_CURRENT_BINARY_DIR}/ext) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)
+set(_ed ${CMAKE_CURRENT_BINARY_DIR}/subprojects) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)
 
 # libyaml
 c4_require_subproject(libyaml REMOTE
@@ -37,7 +37,7 @@ target_include_directories(miniyaml PUBLIC
 # yaml-cpp
 c4_import_remote_proj(yaml-cpp ${_ed}/yaml-cpp REMOTE
     GIT_REPOSITORY https://github.com/jbeder/yaml-cpp
-    # the master branch regularly screws up on windows builds.
+    # the master branch regularly fails on windows builds.
     # so use fixed pre-validated commit hashes
     GIT_TAG 587b24e2eedea1afa21d79419008ca5f7bda3bf4
   OVERRIDE
@@ -114,6 +114,7 @@ function(ryml_add_bm_exe name)
         target_link_libraries(ryml-bm-${name} PRIVATE fyaml)
     endif()
     add_custom_target(ryml-bm-${name}-all) # for aggregating all the cases
+    _c4_set_target_folder(ryml-bm-${name}-all bm/run)
 endfunction()
 
 ryml_add_bm_exe(parse bm_parse.cpp)
