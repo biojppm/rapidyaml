@@ -3,7 +3,6 @@
 #ifndef RYML_SINGLE_HEADER
 #include <c4/yml/detail/stack.hpp>
 #endif
-#include <gtest/gtest.h>
 
 namespace c4 {
 namespace yml {
@@ -64,6 +63,7 @@ size_t to_chars(c4::substr buf, OptionalScalar const& s)
 
 csubstr filtered_scalar(csubstr str, ScalarType scalar_type, Tree *tree)
 {
+    C4_UNUSED(to_chars);
     (void)scalar_type;
     csubstr tokens[] = {R"(\n)", R"(\t)", R"(\\)"};
     if(!str.first_of_any_iter(std::begin(tokens), std::end(tokens)))
@@ -235,11 +235,8 @@ void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
         line = line.trimr('\r');
         line = line.triml(' ');
         _nfo_printf("\n\n-----------------------\n");
-        {
-            size_t curr = m_stack.empty() ? tree.root_id() : m_stack.top().tree_node;
-            _nfo_llog("");
-            _nfo_logf("line[{}]: top={} type={}", linenum, curr, NodeType::type_str(tree.type(curr)));
-        }
+        _nfo_llog("");
+        _nfo_logf("line[{}]: top={} type={}", linenum, m_stack.empty() ? tree.root_id() : m_stack.top().tree_node, NodeType::type_str(tree.type(curr)));
         if(line.begins_with("=VAL "))
         {
             line = line.stripl("=VAL ");
@@ -605,32 +602,6 @@ void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
     }
 }
 
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-TEST(EventsParser, parse_tags)
-{
-    {
-        OptionalScalar anchor = {};
-        OptionalScalar tag = {};
-        csubstr tokens = parse_anchor_and_tag("<tag:yaml.org,2002:int> :2", &anchor, &tag);
-        EXPECT_EQ(tokens, ":2");
-        EXPECT_TRUE(tag);
-        EXPECT_EQ(tag.val, "<tag:yaml.org,2002:int>");
-        EXPECT_FALSE(anchor);
-    }
-    {
-        OptionalScalar anchor = {};
-        OptionalScalar tag = {};
-        csubstr tokens = parse_anchor_and_tag("<!foo> \"bar", &anchor, &tag);
-        EXPECT_EQ(tokens, "\"bar");
-        EXPECT_TRUE(tag);
-        EXPECT_EQ(tag.val, "<!foo>");
-        EXPECT_FALSE(anchor);
-    }
-}
 
 } // namespace yml
 } // namespace c4
