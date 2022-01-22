@@ -15,6 +15,21 @@ struct EventsParser
     void parse(csubstr src, Tree *C4_RESTRICT tree);
 };
 
+size_t emit_events(substr buf, Tree const& C4_RESTRICT tree);
+
+template<class CharContainer>
+void emit_events(CharContainer *container, Tree const& C4_RESTRICT tree)
+{
+    size_t ret = emit_events(to_substr(*container), tree);
+    if(ret > container->size())
+    {
+        container->resize(ret);
+        ret = emit_events(to_substr(*container), tree);
+        C4_CHECK(ret == container->size());
+    }
+    container->resize(ret);
+}
+
 } // namespace yml
 } // namespace c4
 

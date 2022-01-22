@@ -116,6 +116,7 @@ if(RYML_TEST_SUITE)
         SOURCES
             test_suite.cpp
             test_suite/test_suite_common.hpp
+            test_suite/test_suite_events_emitter.cpp
             test_suite/test_suite_events.cpp
             test_suite/test_suite_events.hpp
             test_suite/test_suite_parts.cpp
@@ -131,14 +132,17 @@ if(RYML_TEST_SUITE)
     endif()
     function(ryml_add_test_from_suite tml_file)
         get_filename_component(name ${tml_file} NAME_WE)
-        add_test(NAME ryml-test-suite-${name}-in_yaml          COMMAND ${tgt} --gtest_filter=*/in_yaml*         ${suite_dir}/${tml_file})
-        add_test(NAME ryml-test-suite-${name}-in_yaml-events   COMMAND ${tgt} --gtest_filter=in_yaml*.compare   ${suite_dir}/${tml_file})
-        add_test(NAME ryml-test-suite-${name}-in_yaml-errors   COMMAND ${tgt} --gtest_filter=in_yaml*.*error    ${suite_dir}/${tml_file})
-        add_test(NAME ryml-test-suite-${name}-out_yaml         COMMAND ${tgt} --gtest_filter=*/out_yaml*        ${suite_dir}/${tml_file})
-        add_test(NAME ryml-test-suite-${name}-out_yaml-events  COMMAND ${tgt} --gtest_filter=out_yaml*.compare  ${suite_dir}/${tml_file})
-        add_test(NAME ryml-test-suite-${name}-emit_yaml        COMMAND ${tgt} --gtest_filter=*/emit_yaml*       ${suite_dir}/${tml_file})
-        add_test(NAME ryml-test-suite-${name}-emit_yaml-events COMMAND ${tgt} --gtest_filter=emit_yaml*.compare ${suite_dir}/${tml_file})
-        add_test(NAME ryml-test-suite-${name}-in_json          COMMAND ${tgt} --gtest_filter=*/in_json*         ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-in_yaml               COMMAND ${tgt} --gtest_filter=*/in_yaml*             ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-in_yaml-events        COMMAND ${tgt} --gtest_filter=in_yaml*.compare       ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-in_yaml-emit_events   COMMAND ${tgt} --gtest_filter=in_yaml*.emit_events   ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-in_yaml-errors        COMMAND ${tgt} --gtest_filter=in_yaml*.*error        ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-out_yaml              COMMAND ${tgt} --gtest_filter=*/out_yaml*            ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-out_yaml-events       COMMAND ${tgt} --gtest_filter=out_yaml*.compare      ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-out_yaml-emit_events  COMMAND ${tgt} --gtest_filter=out_yaml*.emit_events  ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-emit_yaml             COMMAND ${tgt} --gtest_filter=*/emit_yaml*           ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-emit_yaml-events      COMMAND ${tgt} --gtest_filter=emit_yaml*.compare     ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-emit_yaml-emit_events COMMAND ${tgt} --gtest_filter=emit_yaml*.emit_events ${suite_dir}/${tml_file})
+        add_test(NAME ryml-test-suite-${name}-in_json               COMMAND ${tgt} --gtest_filter=*/in_json*             ${suite_dir}/${tml_file})
     endfunction()
 
     file(GLOB suite_cases RELATIVE "${suite_dir}" "${suite_dir}/*.yaml")

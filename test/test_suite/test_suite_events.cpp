@@ -3,7 +3,6 @@
 #ifndef RYML_SINGLE_HEADER
 #include <c4/yml/detail/stack.hpp>
 #endif
-#include <gtest/gtest.h>
 
 namespace c4 {
 namespace yml {
@@ -602,33 +601,6 @@ void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
             C4_ERROR("unknown event: '%.*s'", (int)line.len, line.str);
         }
         linenum++;
-    }
-}
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-TEST(EventsParser, parse_tags)
-{
-    {
-        OptionalScalar anchor = {};
-        OptionalScalar tag = {};
-        csubstr tokens = parse_anchor_and_tag("<tag:yaml.org,2002:int> :2", &anchor, &tag);
-        EXPECT_EQ(tokens, ":2");
-        EXPECT_TRUE(tag);
-        EXPECT_EQ(tag.val, "<tag:yaml.org,2002:int>");
-        EXPECT_FALSE(anchor);
-    }
-    {
-        OptionalScalar anchor = {};
-        OptionalScalar tag = {};
-        csubstr tokens = parse_anchor_and_tag("<!foo> \"bar", &anchor, &tag);
-        EXPECT_EQ(tokens, "\"bar");
-        EXPECT_TRUE(tag);
-        EXPECT_EQ(tag.val, "<!foo>");
-        EXPECT_FALSE(anchor);
     }
 }
 

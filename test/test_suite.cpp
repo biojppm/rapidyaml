@@ -30,10 +30,12 @@ namespace yml {
 
 struct Events
 {
-    csubstr filename;
-    std::string src;
-    Tree    tree;
-    mutable Tree adjusted_tree;
+    csubstr filename = {};
+    std::string src = {};
+    std::string emitted_events = {};
+    Tree    tree = {};
+    mutable Tree adjusted_tree = {};
+    mutable Tree tree_from_emitted_events = {};
     bool    was_parsed = false;
     bool    enabled = false;
 
@@ -55,6 +57,23 @@ struct Events
         _nfo_print_tree("EXPECTED", tree);
         _nfo_print_tree("ACTUAL", actual_tree);
         test_compare(tree, actual_tree);
+    }
+
+    void compare_emitted_events(csubstr actual_src, Tree const& tree_from_actual_src)
+    {
+        emit_events(&emitted_events, tree_from_actual_src);
+        _nfo_logf("EXPECTED_EVENTS:\n{}", src);
+        _nfo_logf("ACTUAL_EVENTS:\n{}", emitted_events);
+        // we cannot directly compare the event strings,
+        // so we create a tree from the emitted events,
+        // and then compare the trees:
+        tree_from_emitted_events.clear();
+        parser.parse(c4::to_csubstr(emitted_events), &tree_from_emitted_events);
+        _nfo_logf("SRC:\n{}", actual_src);
+        _nfo_print_tree("ACTUAL_FROM_SOURCE", tree_from_actual_src);
+        _nfo_print_tree("ACTUAL_FROM_EMITTED_EVENTS", tree_from_emitted_events);
+        _nfo_print_tree("EXPECTED_FROM_EVENTS", tree);
+        test_compare(tree_from_emitted_events, tree);
     }
 
     EventsParser parser;
@@ -294,6 +313,13 @@ struct Approach
         events->parse_events(src());
         parse(1, /*emit*/false);
         events->compare_trees(src(), levels[0].tree);
+    }
+
+    void compare_emitted_events(Events *events)
+    {
+        events->parse_events(src());
+        parse(1, /*emit*/false);
+        events->compare_emitted_events(src(), levels[0].tree);
     }
 
     void check_expected_error()
@@ -643,6 +669,7 @@ struct SuiteCase
 };
 
 
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -657,6 +684,7 @@ bool g_do_subcases = true;
              #cls "." #pfx ": SUBCASE ", i,               \
              " ~~~~~~~~~~~~~~~~~~~~~~~\n");               \
     SCOPED_TRACE(i)                                       \
+
 
 
 #define DEFINE_EVENT_TESTS(cls, pfx)                                \
@@ -675,6 +703,24 @@ TEST(cls##_##pfx##_events, compare)                                 \
             continue;                                               \
         ANNOUNCE_SUBCASE(cls, pfx ## events, i_extra_subcase);      \
         sc.cls.pfx.compare_events(&sc.events);                      \
+        ++i_extra_subcase;                                          \
+    }                                                               \
+}                                                                   \
+                                                                    \
+TEST(cls##_##pfx##_events, emit_events)                             \
+{                                                                   \
+    if(!g_suite_case || !g_suite_case->cls.pfx.enabled)             \
+        GTEST_SKIP();                                               \
+    if(g_suite_case->skip || g_suite_case->expect_error)            \
+        GTEST_SKIP();                                               \
+    g_suite_case->cls.pfx.compare_emitted_events(&g_suite_case->events); \
+    size_t i_extra_subcase = 0;                                     \
+    for(auto &sc : g_suite_case->extra_subcases)                    \
+    {                                                               \
+        if(!g_do_subcases || !sc.cls.pfx.enabled || !sc.events.enabled) \
+            continue;                                               \
+        ANNOUNCE_SUBCASE(cls, pfx ## events, i_extra_subcase);      \
+        sc.cls.pfx.compare_emitted_events(&sc.events);              \
         ++i_extra_subcase;                                          \
     }                                                               \
 }
@@ -873,7 +919,6 @@ DEFINE_ERROR_TESTS(windows_ro)
 DEFINE_ERROR_TESTS(windows_rw)
 DEFINE_ERROR_TESTS(windows_ro_reuse)
 DEFINE_ERROR_TESTS(windows_rw_reuse)
-
 
 
 //-------------------------------------------
