@@ -110,7 +110,7 @@ You bet! On a i7-6800K CPU @3.40GHz:
    try yet on Windows).
  * compared against the other existing YAML libraries for C/C++:
    * ryml is in general between 2 and 3 times faster than [libyaml](https://github.com/yaml/libyaml)
-   * ryml is in general between 20 and 70 times faster than
+   * ryml is in general between 10 and 70 times faster than
      [yaml-cpp](https://github.com/jbeder/yaml-cpp), and in some cases as
      much as 100x and [even
      200x](https://github.com/biojppm/c4core/pull/16#issuecomment-700972614) faster.
@@ -164,29 +164,29 @@ So how does ryml compare against other JSON readers? Well, it's one of the
 fastest! 
 
 The benchmark is the [same as above](./bm/parse.cpp), and it is reading
-the [compile_commands.json](./bm/cases/compile_commands.json), The `_ro`
+the [compile_commands.json](./bm/cases/compile_commands.json), The `_arena`
 suffix notes parsing a read-only buffer (so buffer copies are performed),
-while the `_rw` suffix means that the source buffer can be parsed in
-situ. The `_reuse` means the data tree and/or parser are reused on each
+while the `_inplace` suffix means that the source buffer can be parsed in
+place. The `_reuse` means the data tree and/or parser are reused on each
 benchmark repeat.
 
 Here's what we get with g++ 8.2:
 
-| Benchmark        | Release,MB/s | Debug,MB/s  |
-|:-----------------|-------------:|------------:|
-| rapidjson_ro     |       509.9  |       43.4  |
-| rapidjson_rw     |      1329.4  |       68.2  |
-| sajson_rw        |       434.2  |      176.5  |
-| sajson_ro        |       430.7  |      175.6  |
-| jsoncpp_ro       |       183.6  |    ? 187.9  |
-| nlohmann_json_ro |       115.8  |       21.5  |
-| yamlcpp_ro       |        16.6  |        1.6  |
-| libyaml_ro       |       113.9  |       35.7  |
-| libyaml_ro_reuse |       114.6  |       35.9  |
-| ryml_ro          |       388.6  |       36.9  |
-| ryml_rw          |       393.7  |       36.9  |
-| ryml_ro_reuse    |       446.2  |       74.6  |
-| ryml_rw_reuse    |       457.1  |       74.9  |
+| Benchmark             | Release,MB/s | Debug,MB/s  |
+|:----------------------|-------------:|------------:|
+| rapidjson_arena       |       509.9  |       43.4  |
+| rapidjson_inplace     |      1329.4  |       68.2  |
+| sajson_inplace        |       434.2  |      176.5  |
+| sajson_arena          |       430.7  |      175.6  |
+| jsoncpp_arena         |       183.6  |    ? 187.9  |
+| nlohmann_json_arena   |       115.8  |       21.5  |
+| yamlcpp_arena         |        16.6  |        1.6  |
+| libyaml_arena         |       113.9  |       35.7  |
+| libyaml_arena_reuse   |       114.6  |       35.9  |
+| ryml_arena            |       388.6  |       36.9  |
+| ryml_inplace          |       393.7  |       36.9  |
+| ryml_arena_reuse      |       446.2  |       74.6  |
+| ryml_inplace_reuse    |       457.1  |       74.9  |
 
 You can verify that (at least for this test) ryml beats most json
 parsers at their own game, with the only exception of
@@ -199,12 +199,25 @@ the suspicious fact that the Debug result is faster than the Release result).
 
 ### Performance emitting
 
-Emitting benchmarks were not created yet, but feedback from some users
-reports as much as 25x speedup from yaml-cpp [(eg,
-here)](https://github.com/biojppm/rapidyaml/issues/28#issue-553855608).
+[Emitting benchmarks](bm/bm_emit.cpp) also show similar speedups from
+the existing libraries, also anecdotally reported by some users [(eg,
+here's a user reporting 25x speedup from
+yaml-cpp)](https://github.com/biojppm/rapidyaml/issues/28#issue-553855608). Also, in
+some cases (eg, block folded multiline scalars), the speedup is as
+high as 200x (eg, 7.3MB/s -> 1.416MG/s).
 
-If you have data or YAML code for this, please submit a pull request, or
-just send us the files!
+
+### CI results and request for files
+
+While a more effective way of showing the benchmark results is not
+available yet, you can browse through the [runs of the benchmark
+workflow in the
+CI](https://github.com/biojppm/rapidyaml/actions/workflows/benchmarks.yml)
+to scroll through the results for yourself.
+
+Also, if you have a case where ryml behaves very nicely or not as nicely as
+claimed above, we would definitely like to see it! Please submit a pull request
+adding the file to [bm/cases](bm/cases), or just send us the files.
 
 
 ------
@@ -940,7 +953,7 @@ status, as this is subject to ongoing work.
 
 ## Known limitations
 
-ryml deliberatly makes no effort to follow the standard in the following situations:
+ryml deliberately makes no effort to follow the standard in the following situations:
 
 * `%YAML` directives have no effect and are ignored.
 * `%TAG` directives have no effect and are ignored. All schemas are assumed
@@ -1003,11 +1016,12 @@ alternative C/C++ libraries:
 
 Recently [libfyaml](https://github.com/pantoniou/libfyaml)
 appeared. This is a newer C library, fully conformant to the YAML
-standard, which does offer the tree as a data structure. As a
-downside, it does not work in Windows, and it still generally parses
-slower than ryml by a factor generally somewhere between 2x and 3x,
-and in some cases even higher than 100x. To be fair, in some isolated
-cases it has comparable performance.
+standard as shown by 100% success in the test suite, which does offer
+the tree as a data structure. As a downside, it does not work in
+Windows, and it still generally parses slower than ryml by a factor
+generally somewhere between 2x and 3x, and in some isolated cases even
+higher than 100x. It must also be said that, in some isolated cases
+libfyaml has comparable performance.
 
 When performance and low latency are important, using contiguous
 structures for better cache behavior and to prevent the library from

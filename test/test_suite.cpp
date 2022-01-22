@@ -61,6 +61,7 @@ struct Events
 
     void compare_emitted_events(csubstr actual_src, Tree const& tree_from_actual_src)
     {
+        C4_UNUSED(actual_src);
         emit_events(&emitted_events, tree_from_actual_src);
         _nfo_logf("EXPECTED_EVENTS:\n{}", src);
         _nfo_logf("ACTUAL_EVENTS:\n{}", emitted_events);
