@@ -988,7 +988,7 @@ alternative C/C++ libraries:
 
   * [libyaml](https://github.com/yaml/libyaml). This is a bare C
     library. It does not create a representation of the data tree, so
-    it don't see it as practical. My initial idea was to wrap parsing
+    I don't see it as practical. My initial idea was to wrap parsing
     and emitting around libyaml's convenient event handling, but to my
     surprise I found out it makes heavy use of allocations and string
     duplications when parsing. I briefly pondered on sending PRs to
