@@ -2732,7 +2732,10 @@ void Parser::LineContents::reset_with_next_line(csubstr buf, size_t offset)
 void Parser::_scan_line()
 {
     if(m_state->pos.offset >= m_buf.len)
+    {
+        m_state->line_contents.reset(m_buf.last(0), m_buf.last(0));
         return;
+    }
     m_state->line_contents.reset_with_next_line(m_buf, m_state->pos.offset);
 }
 
@@ -3808,7 +3811,7 @@ csubstr Parser::_scan_block()
 {
     // nice explanation here: http://yaml-multiline.info/
     csubstr s = m_state->line_contents.rem;
-    csubstr trimmed = s.triml(" ");
+    csubstr trimmed = s.triml(' ');
     if(trimmed.str > s.str)
     {
         _c4dbgp("skipping whitespace");

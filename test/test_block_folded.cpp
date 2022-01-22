@@ -3,6 +3,19 @@
 namespace c4 {
 namespace yml {
 
+TEST(block_folded, empty_block0)
+{
+    Tree t = parse_in_arena(R"(- >
+)");
+    EXPECT_EQ(t[0].val(), csubstr(""));
+    t = parse_in_arena(R"(- >-
+)");
+    EXPECT_EQ(t[0].val(), csubstr(""));
+    t = parse_in_arena(R"(- >+
+)");
+    EXPECT_EQ(t[0].val(), csubstr(""));
+}
+
 TEST(block_folded, empty_block)
 {
     const Tree t = parse_in_arena(R"(

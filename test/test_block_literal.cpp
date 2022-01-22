@@ -3,6 +3,64 @@
 namespace c4 {
 namespace yml {
 
+TEST(block_literal, empty_block)
+{
+    {
+        Tree t = parse_in_arena(R"(- |
+)");
+        EXPECT_EQ(t[0].val(), csubstr(""));
+    }
+    {
+        Tree t = parse_in_arena(R"(- |-
+)");
+        EXPECT_EQ(t[0].val(), csubstr(""));
+    }
+    {
+        Tree t = parse_in_arena(R"(- |+
+)");
+        EXPECT_EQ(t[0].val(), csubstr(""));
+    }
+    {
+        Tree t = parse_in_arena(R"(# no indentation: fails!
+- |
+
+- |-
+
+- |+
+
+)");
+        EXPECT_FALSE(t.empty());
+        // FAILS! EXPECT_EQ(t[0].val(), csubstr(""));
+        // FAILS! EXPECT_EQ(t[1].val(), csubstr(""));
+        // FAILS! EXPECT_EQ(t[2].val(), csubstr(""));
+    }
+    {
+        Tree t = parse_in_arena(R"(# fails!
+- |
+  
+- |-
+  
+- |+
+  
+)");
+        EXPECT_FALSE(t.empty());
+        // FAILS! EXPECT_EQ(t[0].val(), csubstr(" \n"));
+        // FAILS! EXPECT_EQ(t[1].val(), csubstr(" "));
+        // FAILS! EXPECT_EQ(t[2].val(), csubstr("\n"));
+    }
+    {
+        Tree t = parse_in_arena(R"(# fails!
+- |
+- |-
+- |+
+)");
+        EXPECT_FALSE(t.empty());
+        // FAILS! EXPECT_EQ(t[0].val(), csubstr(""));
+        // FAILS! EXPECT_EQ(t[1].val(), csubstr(""));
+        // FAILS! EXPECT_EQ(t[2].val(), csubstr(""));
+    }
+}
+
 
 TEST(block_literal, emit_does_not_add_lines_to_multi_at_end_1)
 {
