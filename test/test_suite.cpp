@@ -411,6 +411,10 @@ void check_known_keys(csubstr filename, NodeRef const spec)
             ;
         else if(k == "skip")
             ;
+        else if(k == "note")
+            ;
+        else if(k == "also")
+            ;
         else
             C4_ERROR("%.*s: unknown tag '%.*s'",
                      (int)filename.len, filename.str,
@@ -542,13 +546,11 @@ struct SuiteCase
         #endif
 
         // now parse the file
-        RYML_CHECK(contents.begins_with("---"));
         parse_in_arena(filename, contents, &spec_tree);
         #if RYML_NFO
         c4::print("parsed:"); print_tree(spec_tree);
         #endif
-        RYML_CHECK(spec_tree.rootref().num_children() == 1u);
-        const NodeRef doc = spec_tree.docref(0);
+        const NodeRef doc = spec_tree.rootref().is_stream() ? spec_tree.docref(0) : spec_tree.rootref();
         RYML_CHECK(doc.num_children() >= 1u);
         new ((void*)&extra_subcases) std::vector<SubCase>(doc.num_children() - 1u);
         size_t isubcase = 0;

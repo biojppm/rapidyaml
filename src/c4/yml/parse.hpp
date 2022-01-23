@@ -345,7 +345,7 @@ private:
     NodeData* _append_key_val(csubstr val, bool val_quoted=false);
     bool  _rval_dash_start_or_continue_seq();
 
-    void  _store_scalar(csubstr const& s, bool is_quoted);
+    void  _store_scalar(csubstr s, bool is_quoted);
     csubstr _consume_scalar();
     void  _move_scalar_from_top();
 

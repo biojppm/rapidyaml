@@ -4,13 +4,15 @@ namespace c4 {
 namespace yml {
 
 constexpr const CasePart_e IN______________ = CPART_IN_YAML;
-//constexpr const CasePart_e ___OUT______JSON =               CPART_OUT_YAML                |CPART_IN_JSON;
-//constexpr const CasePart_e IN_____EMIT_____ = CPART_IN_YAML               |CPART_EMIT_YAML;
+//connstexpr const CasePart_e ___OUT______JSON =               CPART_OUT_YAML                |CPART_IN_JSON;
+constexpr const CasePart_e IN_OUT__________ = CPART_IN_YAML|CPART_OUT_YAML;
+constexpr const CasePart_e IN_____EMIT_____ = CPART_IN_YAML               |CPART_EMIT_YAML;
+constexpr const CasePart_e _______EMIT_____ =                              CPART_EMIT_YAML;
 //constexpr const CasePart_e IN_____EMIT_JSON = CPART_IN_YAML               |CPART_EMIT_YAML|CPART_IN_JSON;
 
 constexpr const CasePart_e eIN_________ = CPART_IN_YAML_EVENTS;
 constexpr const CasePart_e e___OUT_____ =                      CPART_OUT_YAML_EVENTS;
-//constexpr const CasePart_e e_______EMIT =                                            CPART_EMIT_YAML_EVENTS;
+constexpr const CasePart_e e_______EMIT =                                            CPART_EMIT_YAML_EVENTS;
 constexpr const CasePart_e eIN_OUT_____ = CPART_IN_YAML_EVENTS|CPART_OUT_YAML_EVENTS;
 //constexpr const CasePart_e eIN_____EMIT = CPART_IN_YAML_EVENTS|                      CPART_EMIT_YAML_EVENTS;
 //constexpr const CasePart_e eIN_OUT_EMIT = CPART_IN_YAML_EVENTS|CPART_OUT_YAML_EVENTS|CPART_EMIT_YAML_EVENTS;
@@ -28,17 +30,24 @@ constexpr const AllowedFailure allowed_failures[] = {
     // double quoted scalars
     {"DE56", eIN_________, "Trailing tabs in double quoted"},
     // block scalars
+    {"2G84", CPART_IN_YAML_ERRORS, "throws an error reading the block literal spec"},
     {"K858", eIN_________, "emitting block scalars is not idempotent"},
+    {"JEF9", IN_OUT__________, "trailing newlines in block literal"},
+    {"L24T", e_______EMIT, "trailing newlines in block literal"},
     // explicit keys
     {"5WE3", eIN_________, "explicit key is wrongly parsed"},
     {"DFF7", eIN_________, "problem with missing explicit key"},
     {"FRK4", eIN_________, "explicit key is wrongly parsed"},
     {"NJ66", eIN_________, "explicit key is wrongly parsed"},
-    // other
-    {"A2M4", eIN_________, "fails to parse the value sequence, parses as scalar"},
     // problems reading the test spec
     {"G4RS", eIN_OUT_____, "need to unescape the utf8 characters"},
     {"H3Z8", e___OUT_____, "need to unescape the utf8 characters"},
+    // tabs
+    {"6CA3", IN_____EMIT_____, "indentation with tabs causes problems"},
+    {"DK95", _______EMIT_____, "indentation with tabs causes problems"},
+    // other
+    {"A2M4", eIN_________, "fails to parse the value sequence, parses as scalar"},
+    {"UKK6", IN______________, "fails to parse double :: in UNK state"},
 
 
     //-------------------------------------------------------------------------
@@ -80,6 +89,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"JY7Z", CPART_IN_YAML_ERRORS, "should not accept trailing content that looks like a mapping"},
     {"KS4U", CPART_IN_YAML_ERRORS, "should not accept item after end of flow sequence"},
     {"LHL4", CPART_IN_YAML_ERRORS, "should not accept tag"},
+    {"MUS6", CPART_IN_YAML_ERRORS, "should not accept #... at the end of %YAML directive"},
     {"N782", CPART_IN_YAML_ERRORS, "should not accept document markers in flow style"},
     {"P2EQ", CPART_IN_YAML_ERRORS, "should not accept sequence item on same line as previous item"},
     {"QB6E", CPART_IN_YAML_ERRORS, "should not accept indented multiline quoted scalar"},
@@ -95,6 +105,8 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"U99R", CPART_IN_YAML_ERRORS, "should not accept comma in a tag"},
     {"VJP3", CPART_IN_YAML_ERRORS, "should not accept flow collections over many lines"},
     {"X4QW", CPART_IN_YAML_ERRORS, "should not accept comment without whitespace after block scalar indicator"},
+    {"Y79Y", CPART_IN_YAML_ERRORS, "should not accept tabs in block literal"},
+    {"YJV2", CPART_IN_YAML_ERRORS, "should not accept [-]"},
     {"ZCZ6", CPART_IN_YAML_ERRORS, "should not accept invalid mapping in plain single line value"},
 
 
@@ -104,7 +116,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     // These tests are skipped because they cover parts of YAML that
     // are deliberately not implemented by ryml.
 
-    // container keys are not supportted
+    // container keys are not supported
     {"4FJ6", CPART_ALL, "only scalar keys allowed (keys cannot be maps or seqs)"},
     {"6BFJ", CPART_ALL, "only scalar keys allowed (keys cannot be maps or seqs)"},
     {"6PBE", CPART_ALL, "only scalar keys allowed (keys cannot be maps or seqs)"},
@@ -112,6 +124,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"KK5P", CPART_ALL, "only scalar keys allowed (keys cannot be maps or seqs)"},
     {"KZN9", CPART_ALL, "only scalar keys allowed (keys cannot be maps or seqs)"},
     {"LX3P", CPART_ALL, "only scalar keys allowed (keys cannot be maps or seqs)"},
+    {"M2N8", CPART_ALL, "only scalar keys allowed (keys cannot be maps or seqs)"},// FIXME but only case 1
     {"M5DY", CPART_ALL, "only scalar keys allowed (keys cannot be maps or seqs)"},
     {"Q9WF", CPART_ALL, "only scalar keys allowed (keys cannot be maps or seqs)"},
     {"RZP5", CPART_ALL, "only scalar keys allowed (keys cannot be maps or seqs)"},
