@@ -3,6 +3,17 @@
 namespace c4 {
 namespace yml {
 
+TEST(anchors, circular)
+{
+    Tree t = parse_in_arena(R"(&x
+- *x
+)");
+    ASSERT_TRUE(t.rootref().is_val_anchor());
+    ASSERT_TRUE(t[0].is_val_ref());
+    EXPECT_EQ(t.rootref().val_anchor(), "x");
+    EXPECT_EQ(t[0].val_ref(), "x");
+}
+
 TEST(anchors, node_scalar_set_ref_when_empty)
 {
     {
