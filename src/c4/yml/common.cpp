@@ -20,7 +20,10 @@ void report_error_impl(const char* msg, size_t length, Location loc, FILE *f)
     if(loc)
     {
         if(!loc.name.empty())
-            fprintf(f, "%.*s:", (int)loc.name.len, loc.name.str);
+        {
+            fwrite(loc.name.str, 1, loc.name.len, f);
+            fputc(':', f);
+        }
         fprintf(f, "%zu:", loc.line);
         if(loc.col)
             fprintf(f, "%zu:", loc.col);
