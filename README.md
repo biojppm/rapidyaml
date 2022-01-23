@@ -12,11 +12,11 @@
 [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/biojppm/rapidyaml.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/biojppm/rapidyaml/context:cpp)
 
 
-Or ryml, for short. ryml is a C++ library to parse and emit YAML, and
-do it fast. (If you are looking to use your programs with a YAML tree
-as a configuration tree with override facilities, there is
-[c4conf](https://github.com/biojppm/c4conf), a sister project which
-uses ryml).
+Or ryml, for short. ryml is a C++ library to parse and emit YAML,
+and do it fast, on everything from x64 to bare-metal chips without
+operating system. (If you are looking to use your programs with a YAML tree
+as a configuration tree with override facilities, take a look at
+[c4conf](https://github.com/biojppm/c4conf)).
 
 ryml parses both read-only and in-situ source buffers; the resulting
 data nodes hold only views to sub-ranges of the source buffer. No
@@ -24,7 +24,7 @@ string copies or duplications are done, and no virtual functions are
 used. The data tree is a flat index-based structure stored in a single
 array. Serialization happens only at your direct request, after
 parsing / before emitting. Internally, the data tree representation
-stores only strings and has no knowledge of types, but of course,
+stores only string views and has no knowledge of types, but of course,
 every node can have a YAML type tag. ryml makes it easy and fast to
 read and modify the data tree.
 
@@ -54,7 +54,7 @@ ryml is written in C++11, and compiles cleanly with:
 
 ryml is [extensively unit-tested in Linux, Windows and
 MacOS](https://github.com/biojppm/rapidyaml/actions). The tests cover
-x64, x86, arm, wasm (emscripten), aarch64, ppc64le and s390x
+x64, x86, wasm (emscripten), arm, aarch64, ppc64le and s390x
 architectures, and include analysing ryml with:
   * valgrind
   * clang-tidy
@@ -1018,10 +1018,7 @@ Recently [libfyaml](https://github.com/pantoniou/libfyaml)
 appeared. This is a newer C library, fully conformant to the YAML
 standard as shown by 100% success in the test suite, which does offer
 the tree as a data structure. As a downside, it does not work in
-Windows, and it still generally parses slower than ryml by a factor
-generally somewhere between 2x and 3x, and in some isolated cases even
-higher than 100x. It must also be said that, in some isolated cases
-libfyaml has comparable performance.
+Windows, and it is also multiple times slower parsing and emitting.
 
 When performance and low latency are important, using contiguous
 structures for better cache behavior and to prevent the library from
