@@ -17,7 +17,7 @@ constexpr const CasePart_e eIN_OUT_____ = CPART_IN_YAML_EVENTS|CPART_OUT_YAML_EV
 
 
 // To see the test case contents, refer to this URL:
-// https://github.com/yaml/yaml-test-suite/tree/master/test/
+// https://github.com/yaml/yaml-test-suite/tree/master/src
 constexpr const AllowedFailure allowed_failures[] = {
 
     //-------------------------------------------------------------------------
