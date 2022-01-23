@@ -3374,7 +3374,7 @@ NodeData* Parser::_append_key_val(csubstr val, bool val_quoted)
 
 
 //-----------------------------------------------------------------------------
-void Parser::_store_scalar(csubstr const& s, bool is_quoted)
+void Parser::_store_scalar(csubstr s, bool is_quoted)
 {
     _c4dbgpf("state[%zd]: storing scalar '%.*s' (flag: %zd) (old scalar='%.*s')", m_state-m_stack.begin(), _c4prsp(s), m_state->flags & SSCL, _c4prsp(m_state->scalar));
     RYML_CHECK(has_none(SSCL));
