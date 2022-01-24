@@ -90,16 +90,16 @@ TEST(events, docsep)
 ...
 )",
         R"(+STR
-+DOC
++DOC ---
 =VAL 'quoted val
 -DOC
-+DOC
++DOC ---
 =VAL :another
 -DOC
-+DOC
++DOC ---
 =VAL :and yet another
 -DOC
-+DOC
++DOC ---
 =VAL :
 -DOC
 -STR
@@ -139,13 +139,13 @@ TEST(events, basic_seq)
         );
 }
 
-TEST(events, dquo_chars)
+TEST(events, escapes)
 {
     test_evts(
-        R"("\b\r\n\0\f\/")",
+        R"("\t\	\ \r\n\0\f\/\a\v\e\N\_\L\P  \b")",
         "+STR\n"
         "+DOC\n"
-        "=VAL '\\b\\r\\n\\0\\f/\n"
+        "=VAL '\\t\\t \\r\\n\\0\\f/\\a\\v\\e\\N\\_\\L\\P  \\b" "\n"
         "-DOC\n"
         "-STR\n"
         );
@@ -157,7 +157,7 @@ TEST(events, dquo_bytes)
         R"("\x0a\x0a\u263A\x0a\x55\x56\x57\x0a\u2705\U0001D11E")",
         "+STR\n"
         "+DOC\n"
-        "=VAL '\\n\\n☺\\nUVW\\n✅𝄞\n"
+        "=VAL '\\n\\n☺\\nUVW\\n✅𝄞" "\n"
         "-DOC\n"
         "-STR\n"
         );

@@ -29,6 +29,7 @@ constexpr const AllowedFailure allowed_failures[] = {
 
     // double quoted scalars
     {"DE56", eIN_________, "Trailing tabs in double quoted"},
+    {"G4RS", CPART_ALL, "special characters must be emitted in double quoted style"},
     // block scalars
     {"2G84", CPART_IN_YAML_ERRORS, "throws an error reading the block literal spec"},
     {"K858", eIN_________, "emitting block scalars is not idempotent"},

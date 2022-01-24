@@ -110,14 +110,9 @@ void YmlTestCase::_test_emit_yml_stdout(CaseDataLineEndings *cd)
     if(c->flags & EXPECT_PARSE_ERROR)
         return;
     if(cd->parsed_tree.empty())
-    {
         parse_in_place(cd->src, &cd->parsed_tree);
-    }
     if(cd->emit_buf.empty())
-    {
         cd->emitted_yml = emitrs(cd->parsed_tree, &cd->emit_buf);
-    }
-
     cd->numbytes_stdout = emit(cd->parsed_tree);
 }
 
@@ -127,14 +122,9 @@ void YmlTestCase::_test_emit_yml_cout(CaseDataLineEndings *cd)
     if(c->flags & EXPECT_PARSE_ERROR)
         return;
     if(cd->parsed_tree.empty())
-    {
         parse_in_place(cd->src, &cd->parsed_tree);
-    }
     if(cd->emit_buf.empty())
-    {
         cd->emitted_yml = emitrs(cd->parsed_tree, &cd->emit_buf);
-    }
-
     std::cout << cd->parsed_tree;
 }
 
@@ -144,25 +134,21 @@ void YmlTestCase::_test_emit_yml_stringstream(CaseDataLineEndings *cd)
 {
     if(c->flags & EXPECT_PARSE_ERROR)
         return;
-
-    std::string s;
-    std::vector<char> v;
-    csubstr sv = emitrs(cd->parsed_tree, &v);
-
+    if(cd->parsed_tree.empty())
+        parse_in_place(cd->src, &cd->parsed_tree);
+    if(cd->emit_buf.empty())
+        cd->emitted_yml = emitrs(cd->parsed_tree, &cd->emit_buf);
     {
         std::stringstream ss;
         ss << cd->parsed_tree;
-        s = ss.str();
-        EXPECT_EQ(sv, s);
+        std::string actual = ss.str();
+        EXPECT_EQ(actual, cd->emitted_yml);
     }
-
     {
         std::stringstream ss;
         ss << cd->parsed_tree.rootref();
-        s = ss.str();
-
-        csubstr sv2 = emitrs(cd->parsed_tree, &v);
-        EXPECT_EQ(sv2, s);
+        std::string actual = ss.str();
+        EXPECT_EQ(actual, cd->emitted_yml);
     }
 }
 
@@ -171,21 +157,18 @@ void YmlTestCase::_test_emit_yml_ofstream(CaseDataLineEndings *cd)
 {
     if(c->flags & EXPECT_PARSE_ERROR)
         return;
-    auto s = emitrs<std::string>(cd->parsed_tree);
-    auto fn = c4::fs::tmpnam<std::string>();
+    if(cd->parsed_tree.empty())
+        parse_in_place(cd->src, &cd->parsed_tree);
+    if(cd->emit_buf.empty())
+        cd->emitted_yml = emitrs(cd->parsed_tree, &cd->emit_buf);
+    auto fn = fs::tmpnam<std::string>();
     {
-        std::ofstream f(fn);
+        std::ofstream f(fn, std::ios::binary);
         f << cd->parsed_tree;
     }
-    auto r = c4::fs::file_get_contents<std::string>(fn.c_str());
-    c4::fs::rmfile(fn.c_str());
-    // using ofstream will use \r\n. So delete it.
-    std::string filtered;
-    filtered.reserve(r.size());
-    for(char c_ : r)
-        if(c_ != '\r')
-            filtered += c_;
-    EXPECT_EQ(s, filtered);
+    auto actual = fs::file_get_contents<std::string>(fn.c_str());
+    fs::rmfile(fn.c_str());
+    EXPECT_EQ(actual, cd->emitted_yml);
 }
 
 //-----------------------------------------------------------------------------
@@ -197,7 +180,6 @@ void YmlTestCase::_test_emit_yml_string(CaseDataLineEndings *cd)
     EXPECT_EQ(em.len, cd->emit_buf.size());
     EXPECT_EQ(em.len, cd->numbytes_stdout);
     cd->emitted_yml = em;
-
     #ifdef RYML_NFO
     std::cout << em;
     #endif
@@ -210,11 +192,9 @@ void YmlTestCase::_test_emitrs(CaseDataLineEndings *cd)
         return;
     using vtype = std::vector<char>;
     using stype = std::string;
-
     vtype vv, v = emitrs<vtype>(cd->parsed_tree);
     stype ss, s = emitrs<stype>(cd->parsed_tree);
     EXPECT_EQ(to_csubstr(v), to_csubstr(s));
-
     csubstr svv = emitrs(cd->parsed_tree, &vv);
     csubstr sss = emitrs(cd->parsed_tree, &ss);
     EXPECT_EQ(svv, sss);
@@ -240,51 +220,57 @@ void YmlTestCase::_test_emitrs_cfile(CaseDataLineEndings *cd)
 //-----------------------------------------------------------------------------
 void YmlTestCase::_test_complete_round_trip(CaseDataLineEndings *cd)
 {
-    if(c->flags & EXPECT_PARSE_ERROR) return;
+    if(c->flags & EXPECT_PARSE_ERROR)
+        return;
     if(cd->parsed_tree.empty())
-    {
         parse_in_place(cd->src, &cd->parsed_tree);
-    }
     if(cd->emit_buf.empty())
-    {
         cd->emitted_yml = emitrs(cd->parsed_tree, &cd->emit_buf);
-    }
-
-    #ifdef RYML_NFO
-    print_tree(cd->parsed_tree);
-    std::cout << "~~~~~~~~~~~~~~ emitted yml:" << std::endl;
-    std::cout << cd->emitted_yml;
-    std::cout << "~~~~~~~~~~~~~~" << std::endl;
-    #endif
-
     {
         SCOPED_TRACE("parsing emitted yml");
         cd->parse_buf = cd->emit_buf;
-        cd->parsed_yml.assign(cd->parse_buf.data(), cd->parse_buf.size());
+        cd->parsed_yml = to_substr(cd->parse_buf);
         parse_in_place(cd->parsed_yml, &cd->emitted_tree);
-        #ifdef RYML_NFO
-        print_tree(cd->emitted_tree);
-        #endif
     }
-
+    #ifdef RYML_NFO
+    std::cout << "~~~~~~~~~~~~~~ parsed tree:\n";
+    print_tree(cd->parsed_tree);
+    std::cout << "~~~~~~~~~~~~~~ emitted yml:\n";
+    __c4presc(cd->emitted_yml.str, cd->emitted_yml.len);
+    std::cout << "~~~~~~~~~~~~~~ emitted tree:\n";
+    print_tree(cd->emitted_tree);
+    std::cout << "~~~~~~~~~~~~~~" << std::endl;
+    #endif
     {
-        SCOPED_TRACE("checking node invariants of parsed tree");
+        SCOPED_TRACE("checking node invariants of emitted tree");
+        test_invariants(cd->parsed_tree.rootref());
+    }
+    {
+        SCOPED_TRACE("checking node invariants of emitted tree");
         test_invariants(cd->emitted_tree.rootref());
     }
-
     {
-        SCOPED_TRACE("checking tree invariants of parsed tree");
+        SCOPED_TRACE("comparing emitted and parsed tree");
+        test_compare(cd->emitted_tree, cd->parsed_tree);
+    }
+    {
+        SCOPED_TRACE("checking tree invariants of emitted tree");
         test_invariants(cd->emitted_tree);
     }
-
     {
         SCOPED_TRACE("comparing parsed tree to ref tree");
+        EXPECT_GE(cd->parsed_tree.capacity(), c->root.reccount());
+        EXPECT_EQ(cd->parsed_tree.size(), c->root.reccount());
+        c->root.compare(cd->parsed_tree.rootref());
+    }
+    {
+        SCOPED_TRACE("comparing emitted tree to ref tree");
         EXPECT_GE(cd->emitted_tree.capacity(), c->root.reccount());
         EXPECT_EQ(cd->emitted_tree.size(), c->root.reccount());
-
         // in this case, we can ignore whether scalars are quoted.
-        // Because it can happen, that a scalar was quoted in the original
-        // file, but the re-emitted data does not quote the scalars.
+        // Because it can happen that a scalar was quoted in the
+        // original file, but the re-emitted data does not quote the
+        // scalars.
         c->root.compare(cd->emitted_tree.rootref(), true);
     }
 }
@@ -294,40 +280,30 @@ void YmlTestCase::_test_recreate_from_ref(CaseDataLineEndings *cd)
 {
     if(c->flags & EXPECT_PARSE_ERROR)
         return;
-
     if(cd->parsed_tree.empty())
-    {
         parse_in_place(cd->src, &cd->parsed_tree);
-    }
     if(cd->emit_buf.empty())
-    {
         cd->emitted_yml = emitrs(cd->parsed_tree, &cd->emit_buf);
-    }
-
     {
         SCOPED_TRACE("recreating a new tree from the ref tree");
         cd->recreated.reserve(cd->parsed_tree.size());
         NodeRef r = cd->recreated.rootref();
         c->root.recreate(&r);
     }
-
     #ifdef RYML_NFO
     std::cout << "REF TREE:\n";
     print_tree(c->root);
     std::cout << "RECREATED TREE:\n";
     print_tree(cd->recreated);
     #endif
-
     {
         SCOPED_TRACE("checking node invariants of recreated tree");
         test_invariants(cd->recreated.rootref());
     }
-
     {
         SCOPED_TRACE("checking tree invariants of recreated tree");
         test_invariants(cd->recreated);
     }
-
     {
         SCOPED_TRACE("comparing recreated tree to ref tree");
         c->root.compare(cd->recreated.rootref());

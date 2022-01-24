@@ -69,6 +69,7 @@ ryml_add_test(json)
 ryml_add_test(preprocess)
 ryml_add_test(merge)
 ryml_add_test(location)
+ryml_add_test(yaml_events)
 ryml_add_test_case_group(empty_file)
 ryml_add_test_case_group(empty_map)
 ryml_add_test_case_group(empty_seq)
@@ -104,36 +105,38 @@ ryml_add_test_case_group(github_issues)
 #-------------------------------------------------------------------------
 # test the tools as well
 
-if(NOT RYML_BUILD_TOOLS)
-    add_subdirectory(../tools tools)
-endif()
-add_dependencies(ryml-test-build ryml-parse-emit)
-add_dependencies(ryml-test-build ryml-yaml-events)
-ryml_get_target_exe(ryml-yaml-events RYML_TGT_EVENTS)
-ryml_get_target_exe(ryml-parse-emit RYML_TGT_PARSE_EMIT)
-
-# parse & emit
-if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/appveyor.yml)
-    c4_err("could not find test file")
-endif()
-add_test(NAME ryml-test-tool-parse_emit COMMAND ${RYML_TGT_PARSE_EMIT} ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/appveyor.yml)
-
-# events emitter
-function(ryml_create_file name contents fileout)
-    set(filename ${CMAKE_CURRENT_BINARY_DIR}/${name})
-    file(WRITE "${filename}" "${contents}")
-    set("${fileout}" "${filename}" PARENT_SCOPE)
-endfunction()
-
-function(ryml_add_event_tool_test name expect_success contents)
-    ryml_create_file(${name}.yml "${contents}" file)
-    add_test(NAME ryml-test-tool-events-${name} COMMAND ${RYML_TGT_EVENTS} ${name}.yml)
-    if(NOT expect_success)
-        set_tests_properties(ryml-test-tool-events-${name} PROPERTIES WILL_FAIL TRUE)
+option(RYML_TEST_TOOLS "Enable tests for the tools. Requires file system access." ON)
+if(RYML_TEST_TOOLS)
+    if(NOT RYML_BUILD_TOOLS)
+        add_subdirectory(../tools tools)
     endif()
-endfunction()
-ryml_add_event_tool_test(success TRUE "{foo: bar, baz: [exactly]")
-ryml_add_event_tool_test(failure FALSE "foo: 'bar")
+    add_dependencies(ryml-test-build ryml-parse-emit)
+    add_dependencies(ryml-test-build ryml-yaml-events)
+
+    # parse & emit
+    if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/appveyor.yml)
+        c4_err("could not find test file")
+    endif()
+    ryml_get_target_exe(ryml-parse-emit RYML_TGT_PARSE_EMIT)
+    add_test(NAME ryml-test-tool-parse_emit COMMAND ${RYML_TGT_PARSE_EMIT} ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/appveyor.yml)
+
+    # events emitter
+    function(ryml_create_file name contents fileout)
+        set(filename ${CMAKE_CURRENT_BINARY_DIR}/${name})
+        file(WRITE "${filename}" "${contents}")
+        set("${fileout}" "${filename}" PARENT_SCOPE)
+    endfunction()
+    function(ryml_add_event_tool_test name expect_success contents)
+        ryml_create_file(${name}.yml "${contents}" file)
+        add_test(NAME ryml-test-tool-events-${name} COMMAND ${RYML_TGT_EVENTS} ${name}.yml)
+        if(NOT expect_success)
+            set_tests_properties(ryml-test-tool-events-${name} PROPERTIES WILL_FAIL TRUE)
+        endif()
+    endfunction()
+    ryml_get_target_exe(ryml-yaml-events RYML_TGT_EVENTS)
+    ryml_add_event_tool_test(success TRUE "{foo: bar, baz: [exactly]")
+    ryml_add_event_tool_test(failure FALSE "foo: 'bar")
+endif()
 
 
 #-------------------------------------------------------------------------

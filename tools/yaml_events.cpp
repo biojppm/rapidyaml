@@ -1,5 +1,9 @@
+#ifdef RYML_SINGLE_HEADER
+#include <ryml_all.hpp>
+#else
 #include <c4/yml/std/std.hpp>
 #include <c4/yml/parse.hpp>
+#endif
 #include <test_suite/test_suite_events.hpp>
 #include <c4/fs/fs.hpp>
 #include <cstdio>

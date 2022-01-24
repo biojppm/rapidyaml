@@ -43,23 +43,68 @@
 #endif
 
 #define _c4prsp(sp) ((int)(sp).len), (sp).str
-#define _c4presc(s) __c4presc(s.str, s.len)
 #define _c4prc(c) (__c4prc(c) ? 2 : 1), (__c4prc(c) ? __c4prc(c) : &c)
+#define _c4presc(s) __c4presc(s.str, s.len)
 inline const char *__c4prc(const char &c)
 {
     switch(c)
     {
+    case '\n': return "\\n";
+    case '\t': return "\\t";
     case '\0': return "\\0";
     case '\r': return "\\r";
-    case '\t': return "\\t";
-    case '\n': return "\\n";
+    case '\f': return "\\f";
+    case '\b': return "\\b";
+    case '\v': return "\\v";
+    case '\a': return "\\a";
     default: return nullptr;
-    };
+    }
 }
 inline void __c4presc(const char *s, size_t len)
 {
+    size_t prev = 0;
     for(size_t i = 0; i < len; ++i)
-        printf("%.*s", _c4prc(s[i]));
+    {
+        switch(s[i])
+        {
+        case '\n'  : fwrite(s+prev, 1, i-prev, stdout); putchar('\\'); putchar('n'); putchar('\n'); prev = i+1; break;
+        case '\t'  : fwrite(s+prev, 1, i-prev, stdout); putchar('\\'); putchar('t'); prev = i+1; break;
+        case '\0'  : fwrite(s+prev, 1, i-prev, stdout); putchar('\\'); putchar('0'); prev = i+1; break;
+        case '\r'  : fwrite(s+prev, 1, i-prev, stdout); putchar('\\'); putchar('r'); prev = i+1; break;
+        case '\f'  : fwrite(s+prev, 1, i-prev, stdout); putchar('\\'); putchar('f'); prev = i+1; break;
+        case '\b'  : fwrite(s+prev, 1, i-prev, stdout); putchar('\\'); putchar('b'); prev = i+1; break;
+        case '\v'  : fwrite(s+prev, 1, i-prev, stdout); putchar('\\'); putchar('v'); prev = i+1; break;
+        case '\a'  : fwrite(s+prev, 1, i-prev, stdout); putchar('\\'); putchar('a'); prev = i+1; break;
+        case '\x1b': fwrite(s+prev, 1, i-prev, stdout); putchar('\\'); putchar('e'); prev = i+1; break;
+        case -0x3e/*0xc2u*/:
+            if(i+1 < len)
+            {
+                if(s[i+1] == -0x60/*0xa0u*/)
+                {
+                    fwrite(s+prev, 1, i-prev, stdout); putchar('\\'); putchar('_'); prev = i+2; ++i;
+                }
+                else if(s[i+1] == -0x7b/*0x85u*/)
+                {
+                    fwrite(s+prev, 1, i-prev, stdout); putchar('\\'); putchar('N'); prev = i+2; ++i;
+                }
+                break;
+            }
+        case -0x1e/*0xe2u*/:
+            if(i+2 < len && s[i+1] == -0x80/*0x80u*/)
+            {
+                if(s[i+2] == -0x58/*0xa8u*/)
+                {
+                    fwrite(s+prev, 1, i-prev, stdout); putchar('\\'); putchar('L'); prev = i+3; i += 2;
+                }
+                else if(s[i+2] == -0x57/*0xa9u*/)
+                {
+                    fwrite(s+prev, 1, i-prev, stdout); putchar('\\'); putchar('P'); prev = i+3; i += 2;
+                }
+                break;
+            }
+        }
+    }
+    fwrite(s + prev, 1, len - prev, stdout);
 }
 
 #pragma clang diagnostic pop

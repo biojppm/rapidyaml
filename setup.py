@@ -19,7 +19,7 @@ PYTHON_DIR = "api/python"
 
 
 def get_readme_for_python():
-    with open(TOP_DIR / "README.md", "r") as fh:
+    with open(TOP_DIR / "README.md", "r", encoding="utf8") as fh:
         marker = "<!-- endpythonreadme -->"  # get everything up to this tag
         return fh.read().split(marker)[0]
 

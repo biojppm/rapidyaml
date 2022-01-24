@@ -94,13 +94,13 @@ As part of the [new feature to track source locations](https://github.com/biojpp
 
 ### Fixes
 
-- Fix [#205](https://github.com/biojppm/rapidyaml/issues/205): add missing escape for `\b\f\0` ([PR#206](https://github.com/biojppm/rapidyaml/pulls/206)).
+- Fix [#205](https://github.com/biojppm/rapidyaml/issues/205): fix parsing of escaped characters in double-quoted strings: `"\\\"\n\r\t\<TAB>\/\<SPC>\0\b\f\a\v\e\_\N\L\P"` ([PR#207](https://github.com/biojppm/rapidyaml/pulls/207)).
 - Fix [#204](https://github.com/biojppm/rapidyaml/issues/204): add decoding of unicode codepoints `\x` `\u` `\U` in double-quoted scalars:
   ```c++
   Tree tree = parse_in_arena(R"(["\u263A \xE2\x98\xBA \u2705 \U0001D11E"])");
   assert(tree[0].val() == "☺ ☺ ✅ 𝄞");
   ```
-  This is mandated by the YAML standard and was missing from ryml ([PR#206](https://github.com/biojppm/rapidyaml/pulls/206)).
+  This is mandated by the YAML standard and was missing from ryml ([PR#207](https://github.com/biojppm/rapidyaml/pulls/207)).
 - Fix [#193](https://github.com/biojppm/rapidyaml/issues/193): amalgamated header missing `#include <stdarg.h>` which prevented compilation in bare-metal `arm-none-eabi` ([PR #195](https://github.com/biojppm/rapidyaml/pull/195), requiring also [c4core #64](https://github.com/biojppm/c4core/pull/64)).
 - Accept `infinity`,`inf` and `nan` as special float values (but not mixed case: eg `InFiNiTy` or `Inf` or `NaN` are not accepted) ([PR #186](https://github.com/biojppm/rapidyaml/pull/186)).
 - Accept special float values with upper or mixed case: `.Inf`, `.INF`, `.NaN`, `.NAN`. Previously, only low-case `.inf` and `.nan` were accepted ([PR #186](https://github.com/biojppm/rapidyaml/pull/186)).

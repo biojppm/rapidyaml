@@ -106,11 +106,12 @@ void test_check_emit_check(csubstr yaml, CheckFn check_fn)
 
 inline c4::substr replace_all(c4::csubstr pattern, c4::csubstr repl, c4::csubstr subject, std::string *dst)
 {
-    size_t ret = subject.replace_all(c4::to_substr(*dst), pattern, repl);
+    RYML_CHECK(!subject.overlaps(to_csubstr(*dst)));
+    size_t ret = subject.replace_all(to_substr(*dst), pattern, repl);
     if(ret != dst->size())
     {
         dst->resize(ret);
-        ret = subject.replace_all(c4::to_substr(*dst), pattern, repl);
+        ret = subject.replace_all(to_substr(*dst), pattern, repl);
     }
     RYML_CHECK(ret == dst->size());
     return c4::to_substr(*dst);
@@ -201,7 +202,7 @@ public:
 
 public:
 
-    // brace yourself: what you are about to see is crazy.
+    // brace yourself: what you are about to see is ... crazy.
 
     CaseNode() : CaseNode(NOTYPE) {}
     CaseNode(NodeType_e t) : type(t), key(), key_tag(), key_anchor(), val(), val_tag(), val_anchor(), children(), parent(nullptr) { _set_parent(); }
@@ -398,12 +399,8 @@ public:
     {
         C4_ASSERT( ! children.empty());
         for(auto const& ch : children)
-        {
             if(ch.key == name)
-            {
                 return &ch;
-            }
-        }
         return nullptr;
     }
 
@@ -416,9 +413,7 @@ public:
     {
         size_t c = 1;
         for(auto const& ch : children)
-        {
             c += ch.reccount();
-        }
         return c;
     }
 

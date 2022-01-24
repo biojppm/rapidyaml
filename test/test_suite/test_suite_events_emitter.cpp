@@ -42,31 +42,72 @@ struct EventsEmitter
         pr(c);
         return i+1;
     }
+    C4_ALWAYS_INLINE size_t emit_to_esc(csubstr val, size_t prev, size_t i, csubstr repl)
+    {
+        pr(val.range(prev, i));
+        pr(repl);
+        return i+1;
+    }
 };
 
 void EventsEmitter::emit_scalar(csubstr val, bool quoted)
 {
-    static constexpr const char openscalar[] = {':', '\''};
-    pr(openscalar[quoted]);
+    constexpr const char openchar[] = {':', '\''};
+    pr(openchar[quoted]);
     size_t prev = 0;
+    uint8_t const* C4_RESTRICT s = (uint8_t const* C4_RESTRICT) val.str;
     for(size_t i = 0; i < val.len; ++i)
     {
-        switch(val[i])
+        switch(s[i])
         {
-        case '\n':
+        case UINT8_C(0x0a): // \n
             prev = emit_to_esc(val, prev, i, 'n'); break;
-        case '\t':
-            prev = emit_to_esc(val, prev, i, 't'); break;
-        case '\\':
+        case UINT8_C(0x5c): // '\\'
             prev = emit_to_esc(val, prev, i, '\\'); break;
-        case '\r':
+        case UINT8_C(0x09): // \t
+            prev = emit_to_esc(val, prev, i, 't'); break;
+        case UINT8_C(0x0d): // \r
             prev = emit_to_esc(val, prev, i, 'r'); break;
-        case '\b':
-            prev = emit_to_esc(val, prev, i, 'b'); break;
-        case '\f':
-            prev = emit_to_esc(val, prev, i, 'f'); break;
-        case '\0':
+        case UINT8_C(0x00): // \0
             prev = emit_to_esc(val, prev, i, '0'); break;
+        case UINT8_C(0x0c): // \f (form feed)
+            prev = emit_to_esc(val, prev, i, 'f'); break;
+        case UINT8_C(0x08): // \b (backspace)
+            prev = emit_to_esc(val, prev, i, 'b'); break;
+        case UINT8_C(0x07): // \a (bell)
+            prev = emit_to_esc(val, prev, i, 'a'); break;
+        case UINT8_C(0x0b): // \v (vertical tab)
+            prev = emit_to_esc(val, prev, i, 'v'); break;
+        case UINT8_C(0x1b): // \e (escape)
+            prev = emit_to_esc(val, prev, i, "\\e"); break;
+        case UINT8_C(0xc2):
+            if(i+1 < val.len)
+            {
+                uint8_t np1 = s[i+1];
+                if(np1 == UINT8_C(0xa0))
+                    prev = 1u + emit_to_esc(val, prev, i++, "\\_");
+                else if(np1 == UINT8_C(0x85))
+                    prev = 1u + emit_to_esc(val, prev, i++, "\\N");
+            }
+            break;
+        case UINT8_C(0xe2):
+            if(i + 2 < val.len)
+            {
+                if(s[i+1] == UINT8_C(0x80))
+                {
+                    if(s[i+2] == UINT8_C(0xa8))
+                    {
+                        prev = 2u + emit_to_esc(val, prev, i, "\\L");
+                        i += 2u;
+                    }
+                    else if(s[i+2] == UINT8_C(0xa9))
+                    {
+                        prev = 2u + emit_to_esc(val, prev, i, "\\P");
+                        i += 2u;
+                    }
+                }
+            }
+            break;
         }
     }
     pr(val.sub(prev)); // print remaining portion
@@ -174,7 +215,10 @@ void EventsEmitter::emit_doc(size_t node)
 {
     if(m_tree->type(node) == NOTYPE)
         return;
-    pr("+DOC");
+    if(m_tree->has_parent(node))
+        pr("+DOC ---"); // parent must be a stream
+    else
+        pr("+DOC");
     if(m_tree->is_val(node))
     {
         pr("\n=VAL");

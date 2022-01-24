@@ -30,6 +30,14 @@ void emit_events(CharContainer *container, Tree const& C4_RESTRICT tree)
     container->resize(ret);
 }
 
+template<class CharContainer>
+CharContainer emit_events(Tree const& C4_RESTRICT tree)
+{
+    CharContainer result;
+    emit_events(&result, tree);
+    return result;
+}
+
 } // namespace yml
 } // namespace c4
 

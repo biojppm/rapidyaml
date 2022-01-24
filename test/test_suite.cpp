@@ -69,6 +69,7 @@ struct Events
         // so we create a tree from the emitted events,
         // and then compare the trees:
         tree_from_emitted_events.clear();
+        tree_from_emitted_events.reserve(16);
         parser.parse(c4::to_csubstr(emitted_events), &tree_from_emitted_events);
         _nfo_logf("SRC:\n{}", actual_src);
         _nfo_print_tree("ACTUAL_FROM_SOURCE", tree_from_actual_src);

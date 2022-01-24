@@ -268,13 +268,9 @@ template<class Writer>
 void Emitter<Writer>::_write_json(NodeScalar const& sc, NodeType flags)
 {
     if(C4_UNLIKELY( ! sc.tag.empty()))
-    {
         c4::yml::error("JSON does not have tags");
-    }
     if(C4_UNLIKELY(flags.has_anchor()))
-    {
         c4::yml::error("JSON does not have anchors");
-    }
     _write_scalar_json(sc.scalar, flags.has_key(), flags.is_quoted());
 }
 
@@ -282,12 +278,9 @@ template<class Writer>
 void Emitter<Writer>::_write_scalar_block(csubstr s, size_t ilevel, bool explicit_key)
 {
     #define _rymlindent_nextline() for(size_t lv = 0; lv < ilevel+1; ++lv) { this->Writer::_do_write("  "); }
-    #define _ryml_add_newline() do { while(s[pos] == '\r') { this->Writer::_do_write('\r'); ++pos; RYML_ASSERT(pos <= s.len); } this->Writer::_do_write('\n'); ++pos; RYML_ASSERT(pos <= s.len); } while(0)
-
     if(explicit_key)
         this->Writer::_do_write("? ");
-
-    csubstr trimmed = s.trimr("\r\n");
+    csubstr trimmed = s.trimr("\n\r");
     size_t numnewlines_at_end = s.len - trimmed.len - s.sub(trimmed.len).count('\r');
     if(numnewlines_at_end == 0)
         this->Writer::_do_write("|-\n");
@@ -295,57 +288,38 @@ void Emitter<Writer>::_write_scalar_block(csubstr s, size_t ilevel, bool explici
         this->Writer::_do_write("|\n");
     else if(numnewlines_at_end > 1)
         this->Writer::_do_write("|+\n");
-
-    size_t pos = 0; // tracks the last character that was already written
     if(trimmed.len)
     {
+        size_t pos = 0; // tracks the last character that was already written
         for(size_t i = 0; i < trimmed.len; ++i)
         {
-printf("scalar[%zu]='%.*s'\n", i, _c4prc(trimmed[i]));
-            if(trimmed.str[i] != '\n')
+            if(trimmed[i] != '\n')
                 continue;
             // write everything up to this point
             csubstr since_pos = trimmed.range(pos, i+1); // include the newline
-printf("scalar[%zu]='%.*s' newline! pos=%zu since='", i, _c4prc(trimmed[i]), pos);
-_c4presc(since_pos);
-printf("'\n");
-            pos = i+1; // because of the newline
             _rymlindent_nextline()
             this->Writer::_do_write(since_pos);
+            pos = i+1; // already written
         }
         if(pos < trimmed.len)
         {
             _rymlindent_nextline()
-printf("scalar... pos=%zu rest='", pos);
-_c4presc(trimmed.sub(pos));
-printf("'\n");
             this->Writer::_do_write(trimmed.sub(pos));
         }
-        pos = trimmed.len;
         if(numnewlines_at_end)
         {
-printf("scalar... newline! pos=%zu newlines_at_end=%zu\n", pos, numnewlines_at_end);
-            _ryml_add_newline();
+            this->Writer::_do_write('\n');
             --numnewlines_at_end;
-printf("scalar... newline! ...pos=%zu newlines_at_end=%zu\n", pos, numnewlines_at_end);
         }
     }
     for(size_t i = 0; i < numnewlines_at_end; ++i)
     {
         _rymlindent_nextline()
         if(i+1 < numnewlines_at_end || explicit_key)
-        {
-printf("scalar... newline! pos=%zu newlines_at_end=%zu\n", pos, numnewlines_at_end);
-            _ryml_add_newline();
-printf("scalar... newline! ...pos=%zu newlines_at_end=%zu\n", pos, numnewlines_at_end);
-        }
+            this->Writer::_do_write('\n');
     }
     if(explicit_key && !numnewlines_at_end)
-    {
-printf("scalar... newline! pos=%zu newlines_at_end=%zu\n", pos, numnewlines_at_end);
-        _ryml_add_newline();
-printf("scalar... newline! ...pos=%zu newlines_at_end=%zu\n", pos, numnewlines_at_end);
-    }
+        this->Writer::_do_write('\n');
     #undef _rymlindent_nextline
 }
 
