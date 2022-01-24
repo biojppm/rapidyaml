@@ -21,27 +21,27 @@ int main(int argc, const char *argv[])
     }
 
     // do not abort on error
-    Callbacks callbacks = {};
     int exit_status = 0;
+    Callbacks callbacks = {};
     callbacks.m_user_data = &exit_status;
-    callbacks.m_error = [](const char *msg, size_t msg_len, Location location, void *user_data)
+    callbacks.m_error = [](const char *msg, size_t msg_len, Location location, void *status)
     {
-        report_error_impl(msg, msg_len, location, stderr);
-        *(int*)user_data = 1;
+        report_error(msg, msg_len, location, stderr);
+        *(int*)status = 1;
     };
 
     Tree tree(callbacks);
     csubstr filename = to_csubstr(argv[1]);
-    std::string buf = load_file(filename);
-    std::string events;
-    tree.reserve(to_substr(buf).count('\n'));
-    parse_in_place(filename, to_substr(buf), &tree);
+    std::string evt, src = load_file(filename);
+    tree.reserve(to_substr(src).count('\n'));
+    parse_in_place(filename, to_substr(src), &tree);
     if(exit_status)
         return exit_status;
-    emit_events(&events, tree);
+    emit_events(&evt, tree);
     if(exit_status)
         return exit_status;
-    std::fwrite(events.data(), 1, events.size(), stdout);
+    std::fwrite(evt.data(), 1, evt.size(), stdout);
+
     return 0;
 }
 
@@ -59,25 +59,19 @@ void usage(const char *exename)
 
 std::string load_file(csubstr filename)
 {
-    std::string buf;
     if(filename == "-") // read from stdin
     {
+        std::string buf;
         for(int c = std::getchar(); c != EOF; c = std::getchar())
         {
             buf.push_back((char)c);
             if(buf.size() == buf.capacity())
-            {
-                size_t cap = 2u * (buf.capacity() >= 128u ? buf.capacity() : 128u); // at least 256
-                buf.reserve(cap);
-            }
+                buf.reserve(2u * (buf.capacity() >= 128u ? buf.capacity() : 128u));
         }
+        return buf;
     }
-    else
-    {
-        C4_CHECK_MSG(fs::path_exists(filename.str), "cannot find file: %s (cwd=%s)", filename.str, fs::cwd<std::string>().c_str());
-        fs::file_get_contents(filename.str, &buf);
-    }
-    return buf;
+    C4_CHECK_MSG(fs::path_exists(filename.str), "cannot find file: %s (cwd=%s)", filename.str, fs::cwd<std::string>().c_str());
+    return fs::file_get_contents<std::string>(filename.str);
 }
 
 void report_error(const char* msg, size_t length, Location loc, FILE *f)
