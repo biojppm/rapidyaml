@@ -3783,7 +3783,7 @@ csubstr Parser::_scan_dquot_scalar()
 
     if(pos == npos)
     {
-        _c4err("reached end of file while looking for closing quote");
+        _c4err("reached end of file looking for closing quote");
     }
     else
     {
@@ -4668,10 +4668,9 @@ void Parser::_err(const char *fmt, ...) const
     #define RYML_ERRMSG_SIZE 1024
 #endif
     char errmsg[RYML_ERRMSG_SIZE];
-    int len = sizeof(errmsg);
     va_list args;
     va_start(args, fmt);
-    len = _fmt_msg(errmsg, len, fmt, args);
+    int len = _fmt_msg(errmsg, RYML_ERRMSG_SIZE, fmt, args);
     va_end(args);
     m_tree->m_callbacks.m_error(errmsg, static_cast<size_t>(len), m_state->pos, m_tree->m_callbacks.m_user_data);
 }
@@ -4681,10 +4680,9 @@ void Parser::_err(const char *fmt, ...) const
 void Parser::_dbg(const char *fmt, ...) const
 {
     char errmsg[RYML_ERRMSG_SIZE];
-    int len = sizeof(errmsg);
     va_list args;
     va_start(args, fmt);
-    len = _fmt_msg(errmsg, len, fmt, args);
+    int len = _fmt_msg(errmsg, RYML_ERRMSG_SIZE, fmt, args);
     va_end(args);
     printf("%.*s", len, errmsg);
 }
@@ -4695,61 +4693,61 @@ void Parser::_dbg(const char *fmt, ...) const
 
 int Parser::_fmt_msg(char *buf, int buflen, const char *fmt, va_list args) const
 {
-    int len = buflen;
     int pos = 0;
+    int len = buflen;
+    size_t slen = (size_t)len;
     auto const& lc = m_state->line_contents;
 
     // first line: print the message
-    int del = vsnprintf(buf + pos, static_cast<size_t>(len), fmt, args);
+    int del = vsnprintf(buf + pos, slen, fmt, args);
     _wrapbuf();
-    del = snprintf(buf + pos, static_cast<size_t>(len), "\n");
-    _wrapbuf();
-
-    // next line: print the yaml src line
-    if( ! m_file.empty())
-    {
-        del = snprintf(buf + pos, static_cast<size_t>(len), "%.*s:%zd: ~~~", (int)m_file.len, m_file.str, m_state->pos.line);
-    }
-    else
-    {
-        del = snprintf(buf + pos, static_cast<size_t>(len), "line %zd: ~~~", m_state->pos.line);
-    }
-    int offs = del;
-    _wrapbuf();
-    del = snprintf(buf + pos, static_cast<size_t>(len), "%.*s~~~ (sz=%zd)\n",
-                   (int)lc.stripped.len, lc.stripped.str, lc.stripped.len);
+    del = snprintf(buf + pos, slen, "\n");
     _wrapbuf();
 
-    // next line: highlight the remaining portion of the previous line
-    if(lc.rem.len)
+    csubstr contents = lc.stripped;
+    if(contents.len)
     {
+        // next line: print the yaml src line
+        if( ! m_file.empty())
+            del = snprintf(buf + pos, slen, "%.*s:%zu:%zu: ", (int)m_file.len, m_file.str, m_state->pos.line, m_state->pos.col);
+        else
+            del = snprintf(buf + pos, slen, "%zu:%zu ", m_state->pos.line, m_state->pos.col);
+        int offs = del;
+        _wrapbuf();
+        if( !lc.stripped.empty())
+        {
+            del = snprintf(buf + pos, slen, "%.*s  (size=%zd)\n",
+                           (int)contents.len, contents.str, contents.len);
+            _wrapbuf();
+        }
+        // next line: highlight the remaining portion of the previous line
         size_t firstcol = static_cast<size_t>(lc.rem.begin() - lc.full.begin());
         size_t lastcol = firstcol + lc.rem.len;
-        del = snprintf(buf + pos, static_cast<size_t>(len), "%*s", (offs+(int)firstcol), ""); // this works only for spaces....
+        del = snprintf(buf + pos, slen, "%*s", (offs+(int)firstcol), ""); // this works only for spaces....
         _wrapbuf();
         // the %*s technique works only for spaces, so put the characters directly
         del = (int)lc.rem.len;
         for(int i = 0; i < del && i < len; ++i) { buf[pos + i] = (i ? '~' : '^'); }
         _wrapbuf();
-        del = snprintf(buf + pos, static_cast<size_t>(len), "  (cols %zd-%zd)\n", firstcol+1, lastcol+1);
+        del = snprintf(buf + pos, slen, "  (cols %zd-%zd)\n", firstcol+1, lastcol+1);
         _wrapbuf();
     }
     else
     {
-        del = snprintf(buf + pos, static_cast<size_t>(len), "\n");
+        del = snprintf(buf + pos, slen, "\n");
         _wrapbuf();
     }
 
 #ifdef RYML_DBG
     // next line: print the state flags
     {
-        del = snprintf(buf + pos, static_cast<size_t>(len), "top state: ");
+        del = snprintf(buf + pos, slen, "top state: ");
         _wrapbuf();
 
         del = _prfl(buf + pos, len, m_state->flags);
         _wrapbuf();
 
-        del = snprintf(buf + pos, static_cast<size_t>(len), "\n");
+        del = snprintf(buf + pos, slen, "\n");
         _wrapbuf();
     }
 #endif
@@ -4760,24 +4758,25 @@ int Parser::_fmt_msg(char *buf, int buflen, const char *fmt, va_list args) const
 int Parser::_prfl(char *buf, int buflen, size_t v)
 {
     int len = buflen;
+    size_t slen = (size_t)buflen;
     int pos = 0, del = 0;
 
     bool gotone = false;
 
-#define _prflag(fl)                                 \
-    if((v & (fl)) == (fl))                          \
-    {                                               \
-        if(!gotone)                                 \
-        {                                           \
-            gotone = true;                          \
-        }                                           \
-        else                                        \
-        {                                           \
-            del = snprintf(buf + pos, static_cast<size_t>(len), "|");    \
-            _wrapbuf();                             \
-        }                                           \
-        del = snprintf(buf + pos, static_cast<size_t>(len), #fl);        \
-        _wrapbuf();                                 \
+#define _prflag(fl)                               \
+    if((v & fl) == (fl))                          \
+    {                                             \
+        if(!gotone)                               \
+        {                                         \
+            gotone = true;                        \
+        }                                         \
+        else                                      \
+        {                                         \
+            del = snprintf(buf + pos, slen, "|"); \
+            _wrapbuf();                           \
+        }                                         \
+        del = snprintf(buf + pos, slen, #fl);     \
+        _wrapbuf();                               \
     }
 
     _prflag(RTOP);

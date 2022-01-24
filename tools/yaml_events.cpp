@@ -9,7 +9,7 @@ using namespace c4::yml;
 
 void usage(const char *exename);
 std::string load_file(csubstr filename);
-void report_error_impl(const char* msg, size_t length, Location loc, FILE *f);
+void report_error(const char* msg, size_t length, Location loc, FILE *f);
 
 
 int main(int argc, const char *argv[])
@@ -80,21 +80,19 @@ std::string load_file(csubstr filename)
     return buf;
 }
 
-void report_error_impl(const char* msg, size_t length, Location loc, FILE *f)
+void report_error(const char* msg, size_t length, Location loc, FILE *f)
 {
-    if(loc)
+    if(!loc.name.empty())
     {
-        if(!loc.name.empty())
-        {
-            std::fwrite(loc.name.str, 1, loc.name.len, f);
-            std::fputc(':', f);
-        }
-        std::fprintf(f, "%zu:", loc.line);
-        if(loc.col)
-            std::fprintf(f, "%zu:", loc.col);
-        if(loc.offset)
-            std::fprintf(f, " (%zuB):", loc.offset);
+        fwrite(loc.name.str, 1, loc.name.len, f);
+        fputc(':', f);
     }
-    std::fprintf(f, "ERROR: %.*s\n", (int)length, msg);
-    std::fflush(f);
+    fprintf(f, "%zu:", loc.line);
+    if(loc.col)
+        fprintf(f, "%zu:", loc.col);
+    if(loc.offset)
+        fprintf(f, " (%zuB):", loc.offset);
+    fputc(' ', f);
+    fprintf(f, "%.*s\n", (int)length, msg);
+    fflush(f);
 }

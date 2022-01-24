@@ -31,7 +31,7 @@ struct _SubstrWriter
     size_t excess() const { return pos > buf.len ? pos - buf.len : 0; }
     //! get the part written so far
     csubstr curr() const { return pos <= buf.len ? buf.first(pos) : buf; }
-    //! get the part that is still free to write to
+    //! get the part that is still free to write to (the remainder)
     substr rem() { return pos <= buf.len ? buf.sub(pos) : substr(buf.end(), size_t(0u)); }
 
     size_t advance(size_t more) { pos += more; return pos; }

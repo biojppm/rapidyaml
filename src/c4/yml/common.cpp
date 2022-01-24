@@ -30,7 +30,7 @@ void report_error_impl(const char* msg, size_t length, Location loc, FILE *f)
         if(loc.offset)
             fprintf(f, " (%zuB):", loc.offset);
     }
-    fprintf(f, "ERROR: %.*s\n", (int)length, msg);
+    fprintf(f, "%.*s\n", (int)length, msg);
     fflush(f);
 }
 
