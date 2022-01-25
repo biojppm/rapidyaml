@@ -39,9 +39,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"DFF7", eIN_________, "problem with missing explicit key"},
     {"FRK4", eIN_________, "explicit key is wrongly parsed"},
     {"NJ66", eIN_________, "explicit key is wrongly parsed"},
-    // problems reading the test spec
-    {"G4RS", eIN_OUT_____, "need to unescape the utf8 characters"},
-    {"H3Z8", e___OUT_____, "need to unescape the utf8 characters"},
     // tabs
     {"6CA3", IN_____EMIT_____, "indentation with tabs causes problems"},
     {"DK95", _______EMIT_____, "indentation with tabs causes problems"},

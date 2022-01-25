@@ -34,9 +34,6 @@ As part of the [new feature to track source locations](https://github.com/biojpp
 
 ### New features
 
-- `Parser`:
-  - add `source()` and `filename()` to get the latest buffer and filename to be parsed
-  - add `callbacks()` to get the parser's callbacks
 - Add tracking of source code locations. This is useful for reporting semantic errors after the parsing phase (ie where the YAML is syntatically valid and parsing is successful, but the tree contents are semantically invalid). The locations can be obtained lazily from the parser when the first location is queried:
   ```c++
   // To obtain locations, use of the parser is needed:
@@ -90,10 +87,20 @@ As part of the [new feature to track source locations](https://github.com/biojpp
   // will invalidate the accelerator.
   ```
   See more details in the [quickstart sample](https://github.com/biojppm/rapidyaml/blob/bfb073265abf8c58bbeeeed7fb43270e9205c71c/samples/quickstart.cpp#L3759). Thanks to @cschreib for submitting a working example proving how simple it could be to achieve this.
+- `Parser`:
+  - add `source()` and `filename()` to get the latest buffer and filename to be parsed
+  - add `callbacks()` to get the parser's callbacks
 
 
 ### Fixes
 
+- Fix [#205](https://github.com/biojppm/rapidyaml/issues/205): add missing escape for `\b\f\0` ([PR#206](https://github.com/biojppm/rapidyaml/pulls/206)).
+- Fix [#204](https://github.com/biojppm/rapidyaml/issues/204): add decoding of unicode codepoints `\x` `\u` `\U` in double-quoted scalars:
+  ```c++
+  Tree tree = parse_in_arena(R"(["\u263A \xE2\x98\xBA \u2705 \U0001D11E"])");
+  assert(tree[0].val() == "☺ ☺ ✅ 𝄞");
+  ```
+  This is mandated by the YAML standard and was missing from ryml ([PR#206](https://github.com/biojppm/rapidyaml/pulls/206)).
 - Fix [#193](https://github.com/biojppm/rapidyaml/issues/193): amalgamated header missing `#include <stdarg.h>` which prevented compilation in bare-metal `arm-none-eabi` ([PR #195](https://github.com/biojppm/rapidyaml/pull/195), requiring also [c4core #64](https://github.com/biojppm/c4core/pull/64)).
 - Accept `infinity`,`inf` and `nan` as special float values (but not mixed case: eg `InFiNiTy` or `Inf` or `NaN` are not accepted) ([PR #186](https://github.com/biojppm/rapidyaml/pull/186)).
 - Accept special float values with upper or mixed case: `.Inf`, `.INF`, `.NaN`, `.NAN`. Previously, only low-case `.inf` and `.nan` were accepted ([PR #186](https://github.com/biojppm/rapidyaml/pull/186)).

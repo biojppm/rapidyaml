@@ -239,9 +239,11 @@ void sample_quick_overview()
     // it with a large tree where the root has many children, you may get a
     // performance hit. To avoid this hit, you can create your own accelerator
     // structure. For example, before doing a lookup, do a single traverse at the
-    // root level to fill an `std::map<csubstr,size_t>` mapping key names to node
+    // root level to fill an `map<csubstr,size_t>` mapping key names to node
     // indices; with a node index, a lookup (via `Tree::get()`) is O(1), so this way
-    // you can get O(log n) lookup from a key.
+    // you can get O(log n) lookup from a key. (But please do not use `std::map`
+    // if you care about performance; use something else like a flat map or
+    // sorted vector).
     //
     // As for `NodeRef`, the difference from `NodeRef::operator[]`
     // to `Tree::operator[]` is that the latter refers to the root node, whereas
@@ -491,8 +493,8 @@ fr: Planète (Gazeuse)
 ru: Планета (Газ)
 ja: 惑星（ガス）
 zh: 行星（气体）
-# this is the smiley character, twice: ☺ ☺
-no_decoding: \u263A \xE2\x98\xBA
+decode this: "\u263A \xE2\x98\xBA"
+and this as well: "\u2705 \U0001D11E"
 )");
     // in-place UTF8 just works:
     CHECK(langs["en"].val() == "Planet (Gas)");
@@ -500,9 +502,10 @@ no_decoding: \u263A \xE2\x98\xBA
     CHECK(langs["ru"].val() == "Планета (Газ)");
     CHECK(langs["ja"].val() == "惑星（ガス）");
     CHECK(langs["zh"].val() == "行星（气体）");
-    // but note encoded characters are not decoded while parsing:
-    CHECK(langs["no_decoding"].val() == "\\u263A \\xE2\\x98\\xBA");
-    CHECK(langs["no_decoding"].val() != "☺ ☺"); // how the string would look like if decoded
+    // and \x \u \U codepoints are decoded (but only when
+    // they appear inside double-quoted strings):
+    CHECK(langs["decode this"].val() == "☺ ☺");
+    CHECK(langs["and this as well"].val() == "✅ 𝄞");
 
     //------------------------------------------------------------------
     // Getting the location of nodes in the source:

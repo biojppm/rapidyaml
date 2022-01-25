@@ -43,6 +43,7 @@
 #endif
 
 #define _c4prsp(sp) ((int)(sp).len), (sp).str
+#define _c4presc(s) __c4presc(s.str, s.len)
 #define _c4prc(c) (__c4prc(c) ? 2 : 1), (__c4prc(c) ? __c4prc(c) : &c)
 inline const char *__c4prc(const char &c)
 {
@@ -54,7 +55,12 @@ inline const char *__c4prc(const char &c)
     case '\n': return "\\n";
     default: return nullptr;
     };
-};
+}
+inline void __c4presc(const char *s, size_t len)
+{
+    for(size_t i = 0; i < len; ++i)
+        printf("%.*s", _c4prc(s[i]));
+}
 
 #pragma clang diagnostic pop
 #pragma GCC diagnostic pop

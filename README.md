@@ -588,8 +588,8 @@ fr: Planète (Gazeuse)
 ru: Планета (Газ)
 ja: 惑星（ガス）
 zh: 行星（气体）
-# this is the smiley character, twice: ☺ ☺
-no_decoding: \u263A \xE2\x98\xBA
+decode this: "\u263A \xE2\x98\xBA"
+and this as well: "\u2705 \U0001D11E"
 )");
 // in-place UTF8 just works:
 CHECK(langs["en"].val() == "Planet (Gas)");
@@ -597,9 +597,10 @@ CHECK(langs["fr"].val() == "Planète (Gazeuse)");
 CHECK(langs["ru"].val() == "Планета (Газ)");
 CHECK(langs["ja"].val() == "惑星（ガス）");
 CHECK(langs["zh"].val() == "行星（气体）");
-// but note encoded characters are not decoded while parsing:
-CHECK(langs["no_decoding"].val() == "\\u263A \\xE2\\x98\\xBA");
-CHECK(langs["no_decoding"].val() != "☺ ☺"); // how the string would look like if decoded
+// and \x \u \U codepoints are decoded (but only when
+// they appear inside double-quoted strings):
+CHECK(langs["decode this"].val() == "☺ ☺");
+CHECK(langs["and this as well"].val() == "✅ 𝄞");
 
 //------------------------------------------------------------------
 // Getting the location of nodes in the source:

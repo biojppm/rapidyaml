@@ -101,6 +101,21 @@ detected
     });
 }
 
+TEST(single_quoted, test_suite_G4RS)
+{
+    csubstr yaml = R"(
+single: '"Howdy!" he cried.'
+quoted: ' # Not a ''comment''.'
+tie-fighter: '|\-*-/|'
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_EQ(t["single"].val()     , csubstr(R"("Howdy!" he cried.)"));
+        EXPECT_EQ(t["quoted"].val()     , csubstr(R"( # Not a 'comment'.)"));
+        EXPECT_EQ(t["tie-fighter"].val(), csubstr(R"(|\-*-/|)"));
+    });
+}
+
+
 //-----------------------------------------------------------------------------
 
 void verify_error_is_reported(csubstr case_name, csubstr yaml, Location loc={})

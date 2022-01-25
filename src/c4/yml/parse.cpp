@@ -1,5 +1,6 @@
 #include "c4/yml/parse.hpp"
 #include "c4/error.hpp"
+#include "c4/utf.hpp"
 
 #include <ctype.h>
 #include <stdarg.h>
@@ -3735,18 +3736,14 @@ csubstr Parser::_scan_dquot_scalar()
         {
             const char curr = line.str[i];
             if(curr != ' ')
-            {
                 line_is_blank = false;
-            }
             // every \ is an escape
             if(curr == '\\')
             {
                 const char next = i+1 < line.len ? line.str[i+1] : '~';
                 needs_filter = true;
                 if(next == '"' || next == '\\')
-                {
                     ++i;
-                }
             }
             else if(curr == '"')
             {
@@ -4295,6 +4292,11 @@ csubstr Parser::_filter_dquot_scalar(substr s)
             {
                 //++i;
             }
+            else if(next == '"' || next == '/')
+            {
+                m_filter_arena.str[pos++] = next;
+                ++i;
+            }
             else if(next == 'n')
             {
                 m_filter_arena.str[pos++] = '\n';
@@ -4310,32 +4312,65 @@ csubstr Parser::_filter_dquot_scalar(substr s)
                 m_filter_arena.str[pos++] = '\t';
                 ++i;
             }
-            else if(next == 'b')
-            {
-                m_filter_arena.str[pos++] = '\b';
-                ++i;
-            }
-            else if(next == 'x')
-            {
-                m_filter_arena.str[pos++] = '\\';
-                m_filter_arena.str[pos++] = 'x';
-                ++i; // loop will increment next
-            }
-            else if(next == 'u')
-            {
-                m_filter_arena.str[pos++] = '\\';
-                m_filter_arena.str[pos++] = 'u';
-                ++i; // loop will increment next
-            }
             else if(next == '\\')
             {
                 m_filter_arena.str[pos++] = '\\';
                 ++i;
             }
-            else if(next == '"' || next == '/')
+            else if(next == 'b')
             {
-                m_filter_arena.str[pos++] = next;
+                m_filter_arena.str[pos++] = '\b';
                 ++i;
+            }
+            else if(next == 'f')
+            {
+                m_filter_arena.str[pos++] = '\f';
+                ++i;
+            }
+            else if(next == '0')
+            {
+                m_filter_arena.str[pos++] = '\0';
+                ++i;
+            }
+            else if(next == 'x') // UTF8
+            {
+                if(i + 1u + 2u >= r.len)
+                    _c4err("\\x requires 2 hex digits");
+                uint8_t byteval = {};
+                if(!read_hex(r.sub(i + 2u, 2u), &byteval))
+                    _c4err("failed to read \\x codepoint");
+                m_filter_arena.str[pos++] = *(char*)&byteval;
+                i += 1u + 2u;
+            }
+            else if(next == 'u') // UTF16
+            {
+                if(i + 1u + 4u >= r.len)
+                    _c4err("\\u requires 4 hex digits");
+                char readbuf[8];
+                csubstr codepoint = r.sub(i + 2u, 4u);
+                uint32_t codepoint_val = {};
+                if(!read_hex(codepoint, &codepoint_val))
+                    _c4err("failed to parse \\u codepoint");
+                size_t numbytes = decode_code_point((uint8_t*)readbuf, sizeof(readbuf), codepoint_val);
+                C4_ASSERT(numbytes <= 4);
+                memcpy(m_filter_arena.str + pos, readbuf, numbytes);
+                pos += numbytes;
+                i += 1u + 4u;
+            }
+            else if(next == 'U') // UTF32
+            {
+                if(i + 1u + 8u >= r.len)
+                    _c4err("\\U requires 8 hex digits");
+                char readbuf[8];
+                csubstr codepoint = r.sub(i + 2u, 8u);
+                uint32_t codepoint_val = {};
+                if(!read_hex(codepoint, &codepoint_val))
+                    _c4err("failed to parse \\U codepoint");
+                size_t numbytes = decode_code_point((uint8_t*)readbuf, sizeof(readbuf), codepoint_val);
+                C4_ASSERT(numbytes <= 4);
+                memcpy(m_filter_arena.str + pos, readbuf, numbytes);
+                pos += numbytes;
+                i += 1u + 8u;
             }
             _c4dbgfdq("[%zu]: backslash...sofar=[%zu]~~~%.*s~~~", i, pos, _c4prsp(m_filter_arena.first(pos)));
         }

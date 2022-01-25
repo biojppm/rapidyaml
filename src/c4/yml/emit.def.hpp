@@ -282,34 +282,33 @@ template<class Writer>
 void Emitter<Writer>::_write_scalar_block(csubstr s, size_t ilevel, bool explicit_key)
 {
     #define _rymlindent_nextline() for(size_t lv = 0; lv < ilevel+1; ++lv) { this->Writer::_do_write("  "); }
+    #define _ryml_add_newline() do { while(s[pos] == '\r') { this->Writer::_do_write('\r'); ++pos; RYML_ASSERT(pos <= s.len); } this->Writer::_do_write('\n'); ++pos; RYML_ASSERT(pos <= s.len); } while(0)
+
     if(explicit_key)
-    {
         this->Writer::_do_write("? ");
-    }
-    RYML_ASSERT(s.find("\r") == csubstr::npos);
-    csubstr trimmed = s.trimr('\n');
-    size_t numnewlines_at_end = s.len - trimmed.len;
+
+    csubstr trimmed = s.trimr("\r\n");
+    size_t numnewlines_at_end = s.len - trimmed.len - s.sub(trimmed.len).count('\r');
     if(numnewlines_at_end == 0)
-    {
         this->Writer::_do_write("|-\n");
-    }
     else if(numnewlines_at_end == 1)
-    {
         this->Writer::_do_write("|\n");
-    }
     else if(numnewlines_at_end > 1)
-    {
         this->Writer::_do_write("|+\n");
-    }
+
+    size_t pos = 0; // tracks the last character that was already written
     if(trimmed.len)
     {
-        size_t pos = 0; // tracks the last character that was already written
         for(size_t i = 0; i < trimmed.len; ++i)
         {
-            if(trimmed[i] != '\n')
+printf("scalar[%zu]='%.*s'\n", i, _c4prc(trimmed[i]));
+            if(trimmed.str[i] != '\n')
                 continue;
             // write everything up to this point
             csubstr since_pos = trimmed.range(pos, i+1); // include the newline
+printf("scalar[%zu]='%.*s' newline! pos=%zu since='", i, _c4prc(trimmed[i]), pos);
+_c4presc(since_pos);
+printf("'\n");
             pos = i+1; // because of the newline
             _rymlindent_nextline()
             this->Writer::_do_write(since_pos);
@@ -317,22 +316,36 @@ void Emitter<Writer>::_write_scalar_block(csubstr s, size_t ilevel, bool explici
         if(pos < trimmed.len)
         {
             _rymlindent_nextline()
+printf("scalar... pos=%zu rest='", pos);
+_c4presc(trimmed.sub(pos));
+printf("'\n");
             this->Writer::_do_write(trimmed.sub(pos));
         }
+        pos = trimmed.len;
         if(numnewlines_at_end)
         {
-            this->Writer::_do_write('\n');
+printf("scalar... newline! pos=%zu newlines_at_end=%zu\n", pos, numnewlines_at_end);
+            _ryml_add_newline();
             --numnewlines_at_end;
+printf("scalar... newline! ...pos=%zu newlines_at_end=%zu\n", pos, numnewlines_at_end);
         }
     }
     for(size_t i = 0; i < numnewlines_at_end; ++i)
     {
         _rymlindent_nextline()
         if(i+1 < numnewlines_at_end || explicit_key)
-            this->Writer::_do_write('\n');
+        {
+printf("scalar... newline! pos=%zu newlines_at_end=%zu\n", pos, numnewlines_at_end);
+            _ryml_add_newline();
+printf("scalar... newline! ...pos=%zu newlines_at_end=%zu\n", pos, numnewlines_at_end);
+        }
     }
     if(explicit_key && !numnewlines_at_end)
-        this->Writer::_do_write('\n');
+    {
+printf("scalar... newline! pos=%zu newlines_at_end=%zu\n", pos, numnewlines_at_end);
+        _ryml_add_newline();
+printf("scalar... newline! ...pos=%zu newlines_at_end=%zu\n", pos, numnewlines_at_end);
+    }
     #undef _rymlindent_nextline
 }
 
@@ -356,7 +369,7 @@ void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
             &&
             (
                 // has leading whitespace
-                s.begins_with(" \n\r\t")
+                s.begins_with_any(" \n\t\r")
                 ||
                 // looks like reference or anchor
                 s.begins_with_any("*&")
@@ -364,7 +377,7 @@ void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
                 s.begins_with("<<")
                 ||
                 // has trailing whitespace
-                s.ends_with(" \n\r\t")
+                s.ends_with_any(" \n\t\r")
                 ||
                 // has special chars
                 (s.first_of("#:-?,\n{}[]'\"") != npos)
@@ -388,6 +401,7 @@ void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
         }
         else if(has_squotes && !has_dquotes)
         {
+            RYML_ASSERT(s.count('\n') == 0);
             this->Writer::_do_write('"');
             this->Writer::_do_write(s);
             this->Writer::_do_write('"');
