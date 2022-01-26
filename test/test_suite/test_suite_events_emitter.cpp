@@ -35,6 +35,13 @@ struct EventsEmitter
             buf[pos] = c;
         ++pos;
     }
+    C4_ALWAYS_INLINE size_t emit_to_esc(csubstr val, size_t prev, size_t i, char c)
+    {
+        pr(val.range(prev, i));
+        pr('\\');
+        pr(c);
+        return i+1;
+    }
 };
 
 void EventsEmitter::emit_scalar(csubstr val, bool quoted)
@@ -44,29 +51,23 @@ void EventsEmitter::emit_scalar(csubstr val, bool quoted)
     size_t prev = 0;
     for(size_t i = 0; i < val.len; ++i)
     {
-        if(val[i] == '\n')
+        switch(val[i])
         {
-            pr(val.range(prev, i));
-            pr('\\');
-            pr('n');
-            prev = i+1;
+        case '\n':
+            prev = emit_to_esc(val, prev, i, 'n'); break;
+        case '\t':
+            prev = emit_to_esc(val, prev, i, 't'); break;
+        case '\\':
+            prev = emit_to_esc(val, prev, i, '\\'); break;
+        case '\r':
+            prev = emit_to_esc(val, prev, i, 'r'); break;
+        case '\b':
+            prev = emit_to_esc(val, prev, i, 'b'); break;
+        case '\f':
+            prev = emit_to_esc(val, prev, i, 'f'); break;
+        case '\0':
+            prev = emit_to_esc(val, prev, i, '0'); break;
         }
-        else if(val[i] == '\t')
-        {
-            pr(val.range(prev, i));
-            pr('\\');
-            pr('t');
-            prev = i+1;
-        }
-        else if(val[i] == '\\')
-        {
-            pr(val.range(prev, i));
-            pr('\\');
-            pr('\\');
-            prev = i+1;
-        }
-        else if(val[i] == '\r')
-            continue;  // not really sure about this
     }
     pr(val.sub(prev)); // print remaining portion
 }
@@ -171,11 +172,9 @@ void EventsEmitter::emit_events(size_t node)
 
 void EventsEmitter::emit_doc(size_t node)
 {
-    bool use_triple = !m_tree->is_root(node) && m_tree->is_doc(node);
-    if(use_triple)
-        pr("+DOC ---");
-    else
-        pr("+DOC");
+    if(m_tree->type(node) == NOTYPE)
+        return;
+    pr("+DOC");
     if(m_tree->is_val(node))
     {
         pr("\n=VAL");
@@ -190,21 +189,21 @@ void EventsEmitter::emit_doc(size_t node)
         pr('\n');
         emit_events(node);
     }
-    if(use_triple)
-        pr("-DOC ...\n");
-    else
-        pr("-DOC\n");
+    pr("-DOC\n");
 }
 
 void EventsEmitter::emit_events()
 {
     size_t root = m_tree->root_id();
     pr("+STR\n");
-    if(m_tree->is_stream(root))
-        for(size_t node = m_tree->first_child(root); node != NONE; node = m_tree->next_sibling(node))
-            emit_doc(node);
-    else
-        emit_doc(root);
+    if(!m_tree->empty())
+    {
+        if(m_tree->is_stream(root))
+            for(size_t node = m_tree->first_child(root); node != NONE; node = m_tree->next_sibling(node))
+                emit_doc(node);
+        else
+            emit_doc(root);
+    }
     pr("-STR\n");
 }
 
