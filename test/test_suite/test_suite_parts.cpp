@@ -29,6 +29,7 @@ constexpr const AllowedFailure allowed_failures[] = {
 
     // double quoted scalars
     {"DE56", eIN_________, "Trailing tabs in double quoted"},
+    {"G4RS", CPART_ALL, "special characters must be emitted in double quoted style"},
     // block scalars
     {"2G84", CPART_IN_YAML_ERRORS, "throws an error reading the block literal spec"},
     {"K858", eIN_________, "emitting block scalars is not idempotent"},
@@ -39,9 +40,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"DFF7", eIN_________, "problem with missing explicit key"},
     {"FRK4", eIN_________, "explicit key is wrongly parsed"},
     {"NJ66", eIN_________, "explicit key is wrongly parsed"},
-    // problems reading the test spec
-    {"G4RS", eIN_OUT_____, "need to unescape the utf8 characters"},
-    {"H3Z8", e___OUT_____, "need to unescape the utf8 characters"},
     // tabs
     {"6CA3", IN_____EMIT_____, "indentation with tabs causes problems"},
     {"DK95", _______EMIT_____, "indentation with tabs causes problems"},
@@ -167,6 +165,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"U9NS", CPART_IN_JSON, "malformed JSON from multiple documents"},
     {"W4TN", CPART_IN_JSON, "malformed JSON from multiple documents"},
     // malformed test spec?
+    {"4ABK", e___OUT_____, "out-yaml contains null, while in-yaml and events contain empty scalars"},
     {"4WA9", e___OUT_____, "out-yaml test spec is missing a --- document token, which is required in the events"},
     {"652Z", e___OUT_____, "out-yaml test spec is missing a --- document token, which is required in the events"},
     {"6FWR", e___OUT_____, "out-yaml test spec is missing a --- document token, which is required in the events"},

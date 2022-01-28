@@ -433,7 +433,7 @@ foo: key
     // so we get this instead:
     EXPECT_EQ(emitrs<std::string>(t), R"(key: value
 foo:
-  value: ~
+  value: 
 )");
 }
 

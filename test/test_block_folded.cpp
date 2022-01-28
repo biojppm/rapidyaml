@@ -627,7 +627,17 @@ TEST(block_folded, test_suite_W4TN)
     "block folded as map val, explicit indentation 2, chomp=strip",\
     "block folded as map val, explicit indentation 3",\
     "block folded as map val, explicit indentation 4",\
-    "block folded as map val, explicit indentation 9"
+    "block folded as map val, explicit indentation 9",\
+ /*\
+    "block folded with empty docval 1",\
+    "block folded with empty docval 2",\
+    "block folded with empty docval 3",\
+    "block folded with docval no newlines at end 1",\
+    "block folded with docval no newlines at end 2",\
+    "block folded with docval no newlines at end 3",\
+  */\
+    "block folded as map entry",\
+    "block folded, no chomp, no indentation"
 
 
 CASE_GROUP(BLOCK_FOLDED)
@@ -943,6 +953,80 @@ another: val
     N("another", "val")
   }
 ),
+
+/* TODO next #208 JAVAI
+C("block folded with empty docval 1",
+R"(>)",
+  N(DOCVAL, "")
+    ),
+
+C("block folded with empty docval 2",
+R"(>
+)",
+  N(DOCVAL, "")
+    ),
+
+C("block folded with empty docval 3",
+R"(>
+  
+)",
+  N(DOCVAL, "")
+    ),
+
+C("block folded with docval no newlines at end 1",
+R"(>
+  asd
+)",
+  N(DOCVAL, "asd\n")
+    ),
+
+C("block folded with docval no newlines at end 2",
+R"(|
+  asd
+
+)",
+  N(DOCVAL, "asd\n")
+    ),
+
+C("block folded with docval no newlines at end 3",
+R"(|
+  asd
+  
+)",
+  N(DOCVAL, "asd\n")
+    ),
+*/
+
+C("block folded as map entry",
+R"(
+data: >
+   Wrapped text
+   will be folded
+   into a single
+   paragraph
+
+   Blank lines denote
+   paragraph breaks
+)",
+  N(L{N(KEYVAL|VALQUO, "data", "Wrapped text will be folded into a single paragraph\nBlank lines denote paragraph breaks\n")})
+),
+
+C("block folded, no chomp, no indentation",
+R"(example: >
+  Several lines of text,
+  with some "quotes" of various 'types',
+  and also a blank line:
+
+  plus another line at the end.
+
+another: text
+)",
+  N(L{
+      N(KEYVAL|VALQUO, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+      N("another", "text"),
+      })
+),
+
     )
 }
 

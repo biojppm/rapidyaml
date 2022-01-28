@@ -3,6 +3,47 @@
 namespace c4 {
 namespace yml {
 
+TEST(double_quoted, escaped_chars)
+{
+    csubstr yaml = R"("\\\"\n\r\t\	\/\ \0\b\f\a\v\e\_\N\L\P")";
+    // build the string like this because some of the characters are
+    // filtered out under the double quotes
+    std::string expected;
+    expected += '\\';
+    expected += '"';
+    expected += '\n';
+    expected += '\r';
+    expected += '\t';
+    expected += '\t';
+    expected += '/';
+    expected += ' ';
+    expected += '\0';
+    expected += '\b';
+    expected += '\f';
+    expected += '\a';
+    expected += '\v';
+    expected += INT8_C(0x1b); // \e
+    //
+    // wrap explicitly to avoid overflow
+    expected += INT8_C(-0x3e); // UINT8_C(0xc2) \_ (1)
+    expected += INT8_C(-0x60); // UINT8_C(0xa0) \_ (2)
+    //
+    expected += INT8_C(-0x3e); // UINT8_C(0xc2) \N (1)
+    expected += INT8_C(-0x7b); // UINT8_C(0x85) \N (2)
+    //
+    expected += INT8_C(-0x1e); // UINT8_C(0xe2) \L (1)
+    expected += INT8_C(-0x80); // UINT8_C(0x80) \L (2)
+    expected += INT8_C(-0x58); // UINT8_C(0xa8) \L (3)
+    //
+    expected += INT8_C(-0x1e); // UINT8_C(0xe2) \P (1)
+    expected += INT8_C(-0x80); // UINT8_C(0x80) \P (2)
+    expected += INT8_C(-0x57); // UINT8_C(0xa9) \P (3)
+    Tree t = parse_in_arena(yaml);
+    csubstr v = t.rootref().val();
+    std::string actual = {v.str, v.len};
+    EXPECT_EQ(actual, expected);
+}
+
 TEST(double_quoted, test_suite_3RLN)
 {
     csubstr yaml = R"(---
@@ -104,31 +145,28 @@ TEST(double_quoted, test_suite_9TFX)
     });
 }
 
-#ifdef NOT_YET
 TEST(double_quoted, test_suite_G4RS)
 {
-    csubstr yaml = R"(
-unicode: "Sosa did fine.\u263A"
+    csubstr yaml = R"(---
+unicode: "\u263A\u2705\U0001D11E"
 control: "\b1998\t1999\t2000\n"
-hex esc: "\x0d\x0a is \r\n"
-
-single: '"Howdy!" he cried.'
-quoted: ' # Not a ''comment''.'
-tie-fighter: '|\-*-/|'
+#hex esc: "\x0d\x0a is \r\n"
+#---
+#- "\x0d\x0a is \r\n"
+#---
+#{hex esc: "\x0d\x0a is \r\n"}
+#---
+#["\x0d\x0a is \r\n"]
 )";
     test_check_emit_check(yaml, [](Tree const &t){
-        //EXPECT_EQ(t["unicode"].val()    , csubstr(R"(Sosa did fine.☺)")); // no conversion yet
-        EXPECT_EQ(t["unicode"].val()    , csubstr(R"(Sosa did fine.\u263A)"));
-        EXPECT_EQ(t["control"].val()    , csubstr("\b1998\t1999\t2000\n"));
-        //EXPECT_EQ(t["hex esc"].val()    , csubstr("\r\n is \r\n"));
-        EXPECT_EQ(t["hex esc"].val().len, csubstr("\\x0d\\x0a is \r\n").len);
-        EXPECT_EQ(t["hex esc"].val()    , csubstr("\\x0d\\x0a is \r\n"));
-        EXPECT_EQ(t["single"].val()     , csubstr(R"("Howdy!" he cried.)"));
-        EXPECT_EQ(t["quoted"].val()     , csubstr(R"( # Not a 'comment'.)"));
-        EXPECT_EQ(t["tie-fighter"].val(), csubstr(R"(|\-*-/|)"));
+        EXPECT_EQ(t.docref(0)["unicode"].val(), csubstr(R"(☺✅𝄞)"));
+        EXPECT_EQ(t.docref(0)["control"].val(), csubstr("\b1998\t1999\t2000\n"));
+        //EXPECT_EQ(t.docref(0)["hex esc"].val(), csubstr("\r\n is \r\n")); TODO
+        //EXPECT_EQ(t.docref(1)[0].val(), csubstr("\r\n is \r\n"));
+        //EXPECT_EQ(t.docref(2)[0].val(), csubstr("\r\n is \r\n"));
+        //EXPECT_EQ(t.docref(3)[0].val(), csubstr("\r\n is \r\n"));
     });
 }
-#endif
 
 TEST(double_quoted, test_suite_KSS4)
 {
@@ -339,6 +377,27 @@ bar: "\")");
     verify_error_is_reported("seq flow", R"([what, "\"])");
 }
 
+TEST(double_quoted, error_on_bad_utf_codepoints)
+{
+    verify_error_is_reported("incomplete \\x 0", R"(foo: "\x")");
+    verify_error_is_reported("incomplete \\x 1", R"(foo: "\x1")");
+    verify_error_is_reported("bad value  \\x"  , R"(foo: "\xko")");
+    verify_error_is_reported("incomplete \\u 0", R"(foo: "\u")");
+    verify_error_is_reported("incomplete \\u 1", R"(foo: "\u1")");
+    verify_error_is_reported("incomplete \\u 2", R"(foo: "\u12")");
+    verify_error_is_reported("incomplete \\u 3", R"(foo: "\u123")");
+    verify_error_is_reported("bad value  \\u"  , R"(foo: "\ukoko")");
+    verify_error_is_reported("incomplete \\U 0", R"(foo: "\U")");
+    verify_error_is_reported("incomplete \\U 1", R"(foo: "\U1")");
+    verify_error_is_reported("incomplete \\U 2", R"(foo: "\U12")");
+    verify_error_is_reported("incomplete \\U 3", R"(foo: "\U123")");
+    verify_error_is_reported("incomplete \\U 4", R"(foo: "\U1234")");
+    verify_error_is_reported("incomplete \\U 5", R"(foo: "\U12345")");
+    verify_error_is_reported("incomplete \\U 6", R"(foo: "\U123456")");
+    verify_error_is_reported("incomplete \\U 7", R"(foo: "\U1234567")");
+    verify_error_is_reported("bad value  \\U"  , R"(foo: "\Ukokokoko")");
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -418,7 +477,9 @@ block: |
   text
    	lines
 )",
-  L{N("plain", "text lines"), N(KEYVAL|VALQUO, "quoted", "text lines"), N(KEYVAL|VALQUO,"block", "text\n \tlines\n")}
+  L{N("plain", "text lines"),
+    N(KEYVAL|VALQUO, "quoted", "text lines"),
+    N(KEYVAL|VALQUO,"block", "text\n \tlines\n")}
 ),
 
 C("dquoted, with tabs 7A4E",

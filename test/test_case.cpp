@@ -603,9 +603,7 @@ void print_tree(CaseNode const& p, int level)
 {
     print_node(p, level);
     for(auto const& ch : p.children)
-    {
         print_tree(ch, level+1);
-    }
 }
 
 void print_tree(CaseNode const& t)
@@ -780,15 +778,11 @@ void test_invariants(Tree const& t)
     std::vector<bool> touched(t.capacity());
 
     for(size_t i = t.m_head; i != NONE; i = t.get(i)->m_next_sibling)
-    {
         touched[i] = true;
-    }
 
     size_t size = 0;
-    for(auto v : touched)
-    {
+    for(bool v : touched)
         size += v;
-    }
 
     EXPECT_EQ(size, t.size());
 
@@ -812,121 +806,6 @@ void test_invariants(Tree const& t)
     // there are more checks to be done
 #endif
 }
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-#ifdef JAVAI
-int do_test()
-{
-    using namespace c4::yml;
-
-    using C = Case;
-    using N = CaseNode;
-    using L = CaseNode::iseqmap;
-
-
-
-    CaseContainer tests({
-//-----------------------------------------------------------------------------
-// https://en.wikipedia.org/wiki/YAML
-
-//-----------------------------------------------------------------------------
-C("literal block scalar as map entry",
-R"(
-data: |
-   There once was a short man from Ealing
-   Who got on a bus to Darjeeling
-       It said on the door
-       \"Please don't spit on the floor\"
-   So he carefully spat on the ceiling
-)",
-     N{"data", "There once was a short man from Ealing\nWho got on a bus to Darjeeling\n    It said on the door\n    \"Please don't spit on the floor\"\nSo he carefully spat on the ceiling\n"}
-),
-
-//-----------------------------------------------------------------------------
-C("folded block scalar as map entry",
-R"(
-data: >
-   Wrapped text
-   will be folded
-   into a single
-   paragraph
-
-   Blank lines denote
-   paragraph breaks
-)",
-  N{"data", "Wrapped text will be folded into a single paragraph\nBlank lines denote paragraph breaks\n"}
-),
-
-//-----------------------------------------------------------------------------
-C("two scalars in a block, html example",
-R"(
----
-example: >
-        HTML goes into YAML without modification
-message: |
-        <blockquote style=\"font: italic 12pt Times\">
-        <p>\"Three is always greater than two,
-           even for large values of two\"</p>
-        <p>--Author Unknown</p>
-        </blockquote>
-date: 2007-06-01
-)",
-     N{DOC, L{
-          N{"example", "HTML goes into YAML without modification"},
-          N{"message", R"(<blockquote style=\"font: italic 12pt Times\">
-<p>\"Three is always greater than two,
-   even for large values of two\"</p>
-<p>--Author Unknown</p>
-</blockquote>
-)"},
-          N{"date","2007-06-01"},
-              }}
-),
-
-
-
-//-----------------------------------------------------------------------------
-C("scalar block, literal, no chomp, no indentation",
-R"(example: |
-  Several lines of text,
-  with some \"quotes\" of various 'types',
-  and also a blank line:
-
-  plus another line at the end.
-
-another: text
-)",
-     L{
-      N{"example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"},
-      N{"another", "text"},
-          }
-),
-
-//-----------------------------------------------------------------------------
-C("scalar block, folded, no chomp, no indentation",
-R"(example: >
-  Several lines of text,
-  with some \"quotes\" of various 'types',
-  and also a blank line:
-
-  plus another line at the end.
-
-another: text
-)",
-     L{
-      N{"example", "Several lines of text,  with some \"quotes\" of various 'types',  and also a blank line:\nplus another line at the end.\n"},
-      N{"another", "text"},
-          }
-),
-    }); // end examples
-
-    return tests.run();
-}
-#endif
 
 
 //-----------------------------------------------------------------------------

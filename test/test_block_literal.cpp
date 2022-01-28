@@ -163,6 +163,26 @@ TEST(block_literal, emit_does_not_add_lines_to_multi_at_end_3)
     EXPECT_EQ(out, expected);
 }
 
+TEST(block_literal, carriage_return)
+{
+    std::string yaml = "with: |\r\n"
+"  text\r\n"
+"   	lines\r\n"
+"without: |\n"
+"  text\n"
+"   	lines\n";
+    Tree t = parse_in_arena(to_csubstr(yaml));
+    EXPECT_EQ(t["with"].val(), "text\n \tlines\n");
+    EXPECT_EQ(t["without"].val(), "text\n \tlines\n");
+    auto emitted = emitrs<std::string>(t);
+    #ifdef RYML_DBG
+    __c4presc(emitted.data(), emitted.size());
+    #endif
+    Tree r = parse_in_arena(to_csubstr(emitted));
+    EXPECT_EQ(t["with"].val(), "text\n \tlines\n");
+    EXPECT_EQ(t["without"].val(), "text\n \tlines\n");
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -190,7 +210,18 @@ TEST(block_literal, emit_does_not_add_lines_to_multi_at_end_3)
     "block literal with empty unindented lines, with double quotes",\
     "block literal with empty unindented lines, with single quotes",\
     "block literal with same indentation level 0",\
-    "block literal with same indentation level 1"
+    "block literal with same indentation level 1",\
+  /*\
+    "block literal with empty docval 1",\
+    "block literal with empty docval 2",\
+    "block literal with empty docval 3",\
+    "block literal with docval no newlines at end 1",\
+    "block literal with docval no newlines at end 2",\
+    "block literal with docval no newlines at end 3",\
+  */\
+    "block literal as map entry",\
+    "block literal and two scalars",\
+    "block literal no chomp, no indentation"
 
 
 CASE_GROUP(BLOCK_LITERAL)
@@ -550,6 +581,103 @@ R"(
 )",
   L{N(L{N(QV, "aaa", "xxx\n"), N(QV, "bbb", "xxx\n")})}
     ),
+
+/* TODO NEXT issue #208 JAVAI
+C("block literal with empty docval 1",
+R"(|)",
+  N(DOCVAL, "")
+    ),
+
+C("block literal with empty docval 2",
+R"(|
+)",
+  N(DOCVAL, "")
+    ),
+
+C("block literal with empty docval 3",
+R"(|
+  
+)",
+  N(DOCVAL, "")
+    ),
+
+C("block literal with docval no newlines at end 1",
+R"(|
+  asd
+)",
+  N(DOCVAL, "asd\n")
+    ),
+
+C("block literal with docval no newlines at end 2",
+R"(|
+  asd
+
+)",
+  N(DOCVAL, "asd\n")
+    ),
+
+C("block literal with docval no newlines at end 3",
+R"(|
+  asd
+  
+)",
+  N(DOCVAL, "asd\n")
+    ),
+TODO_NEXT */
+
+C("block literal as map entry",
+R"(
+data: |
+   There once was a short man from Ealing
+   Who got on a bus to Darjeeling
+       It said on the door
+       "Please don't spit on the floor"
+   So he carefully spat on the ceiling
+)",
+  N(MAP, {
+     N(KEYVAL|VALQUO, "data", "There once was a short man from Ealing\nWho got on a bus to Darjeeling\n    It said on the door\n    \"Please don't spit on the floor\"\nSo he carefully spat on the ceiling\n")
+      })
+),
+
+C("block literal and two scalars",
+R"(
+example: >
+        HTML goes into YAML without modification
+message: |
+        <blockquote style=\"font: italic 12pt Times\">
+        <p>\"Three is always greater than two,
+           even for large values of two\"</p>
+        <p>--Author Unknown</p>
+        </blockquote>
+date: 2007-06-01
+)",
+     N(MAP, L{
+          N(KEYVAL|VALQUO, "example", "HTML goes into YAML without modification\n"),
+          N(KEYVAL|VALQUO, "message", R"(<blockquote style=\"font: italic 12pt Times\">
+<p>\"Three is always greater than two,
+   even for large values of two\"</p>
+<p>--Author Unknown</p>
+</blockquote>
+)"),
+          N(KEYVAL, "date","2007-06-01"),
+              })
+),
+
+C("block literal no chomp, no indentation",
+R"(example: |
+  Several lines of text,
+  with some "quotes" of various 'types',
+  and also a blank line:
+
+  plus another line at the end.
+
+another: text
+)",
+     N(MAP, L{
+      N(KEYVAL|VALQUO, "example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
+      N("another", "text"),
+          })
+),
 
     )
 }

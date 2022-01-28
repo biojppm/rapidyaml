@@ -49,16 +49,27 @@ function(ryml_add_test_case_group name)
 endfunction()
 
 
+function(ryml_get_target_exe target_name target_file)
+    if(CMAKE_CROSSCOMPILING)
+        set(tgt ${CMAKE_CROSSCOMPILING_EMULATOR} $<TARGET_FILE:${target_name}>)
+    else()
+        set(tgt $<TARGET_FILE:${target_name}>)
+    endif()
+    set(${target_file} ${tgt} PARENT_SCOPE)
+endfunction()
+
+
 ryml_add_test(callbacks)
 ryml_add_test(stack)
 ryml_add_test(parser)
 ryml_add_test(tree)
 ryml_add_test(serialize)
 ryml_add_test(basic)
-ryml_add_test(basic_json)
+ryml_add_test(json)
 ryml_add_test(preprocess)
 ryml_add_test(merge)
 ryml_add_test(location)
+ryml_add_test(yaml_events)
 ryml_add_test_case_group(empty_file)
 ryml_add_test_case_group(empty_map)
 ryml_add_test_case_group(empty_seq)
@@ -89,6 +100,43 @@ ryml_add_test_case_group(indentation)
 ryml_add_test_case_group(number)
 ryml_add_test_case_group(null_val)
 ryml_add_test_case_group(github_issues)
+
+
+#-------------------------------------------------------------------------
+# test the tools as well
+
+option(RYML_TEST_TOOLS "Enable tests for the tools. Requires file system access." ON)
+if(RYML_TEST_TOOLS)
+    if(NOT RYML_BUILD_TOOLS)
+        add_subdirectory(../tools tools)
+    endif()
+    add_dependencies(ryml-test-build ryml-parse-emit)
+    add_dependencies(ryml-test-build ryml-yaml-events)
+
+    # parse & emit
+    if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/appveyor.yml)
+        c4_err("could not find test file")
+    endif()
+    ryml_get_target_exe(ryml-parse-emit RYML_TGT_PARSE_EMIT)
+    add_test(NAME ryml-test-tool-parse_emit COMMAND ${RYML_TGT_PARSE_EMIT} ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/appveyor.yml)
+
+    # events emitter
+    function(ryml_create_file name contents fileout)
+        set(filename ${CMAKE_CURRENT_BINARY_DIR}/${name})
+        file(WRITE "${filename}" "${contents}")
+        set("${fileout}" "${filename}" PARENT_SCOPE)
+    endfunction()
+    function(ryml_add_event_tool_test name expect_success contents)
+        ryml_create_file(${name}.yml "${contents}" file)
+        add_test(NAME ryml-test-tool-events-${name} COMMAND ${RYML_TGT_EVENTS} ${name}.yml)
+        if(NOT expect_success)
+            set_tests_properties(ryml-test-tool-events-${name} PROPERTIES WILL_FAIL TRUE)
+        endif()
+    endfunction()
+    ryml_get_target_exe(ryml-yaml-events RYML_TGT_EVENTS)
+    ryml_add_event_tool_test(success TRUE "{foo: bar, baz: [exactly]")
+    ryml_add_event_tool_test(failure FALSE "foo: 'bar")
+endif()
 
 
 #-------------------------------------------------------------------------
@@ -125,11 +173,7 @@ if(RYML_TEST_SUITE)
         FOLDER test)
     add_dependencies(ryml-test-build ryml-test-suite)
 
-    if(CMAKE_CROSSCOMPILING)
-        set(tgt ${CMAKE_CROSSCOMPILING_EMULATOR} $<TARGET_FILE:ryml-test-suite>)
-    else()
-        set(tgt $<TARGET_FILE:ryml-test-suite>)
-    endif()
+    ryml_get_target_exe(ryml-test-suite tgt)
     function(ryml_add_test_from_suite tml_file)
         get_filename_component(name ${tml_file} NAME_WE)
         add_test(NAME ryml-test-suite-${name}-in_yaml               COMMAND ${tgt} --gtest_filter=*/in_yaml*             ${suite_dir}/${tml_file})

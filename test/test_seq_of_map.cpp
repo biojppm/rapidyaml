@@ -78,6 +78,62 @@ TEST(seq_of_map, with_tags)
     }
 }
 
+#ifdef JAVAI // #209
+TEST(seq_of_map, missing_scalars_v1)
+{
+    Tree t = parse_in_arena(R"(a:
+  - ~: ~
+  - ~: ~
+)");
+    #ifdef RYML_DBG
+    print_tree(t);
+    #endif
+    ASSERT_EQ(t["a"].num_children(), 2u);
+    ASSERT_EQ(t["a"][0].num_children(), 1u);
+    EXPECT_EQ(t["a"][0].first_child().key(), "~");
+    EXPECT_EQ(t["a"][0].first_child().val(), "~");
+    ASSERT_EQ(t["a"][1].num_children(), 1u);
+    EXPECT_EQ(t["a"][1].first_child().key(), "~");
+    EXPECT_EQ(t["a"][1].first_child().val(), "~");
+}
+
+TEST(seq_of_map, missing_scalars_v2)
+{
+    Tree t = parse_in_arena(R"(a:
+  - : 
+  - : 
+)");
+    #ifdef RYML_DBG
+    print_tree(t);
+    #endif
+    ASSERT_EQ(t["a"].num_children(), 2u);
+    ASSERT_EQ(t["a"][0].num_children(), 1u);
+    EXPECT_EQ(t["a"][0].first_child().key(), nullptr);
+    EXPECT_EQ(t["a"][0].first_child().val(), nullptr);
+    ASSERT_EQ(t["a"][1].num_children(), 1u);
+    EXPECT_EQ(t["a"][1].first_child().key(), nullptr);
+    EXPECT_EQ(t["a"][1].first_child().val(), nullptr);
+}
+
+TEST(seq_of_map, missing_scalars_v3)
+{
+    Tree t = parse_in_arena(R"(a:
+  - :
+  - :
+)");
+    #ifdef RYML_DBG
+    print_tree(t);
+    #endif
+    ASSERT_EQ(t["a"].num_children(), 2u);
+    ASSERT_EQ(t["a"][0].num_children(), 1u);
+    EXPECT_EQ(t["a"][0].first_child().key(), nullptr);
+    EXPECT_EQ(t["a"][0].first_child().val(), nullptr);
+    ASSERT_EQ(t["a"][1].num_children(), 1u);
+    EXPECT_EQ(t["a"][1].first_child().key(), nullptr);
+    EXPECT_EQ(t["a"][1].first_child().val(), nullptr);
+}
+#endif
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -93,7 +149,9 @@ TEST(seq_of_map, with_tags)
     "seq of maps, bug #32 ex2",                         \
     "seq of maps, bug #32 ex3",                         \
     "seq of maps, implicit map in seq",                 \
+  /* JAVAI #209                                         \
     "seq of maps, implicit map in seq, missing scalar", \
+  */                                                    \
     "seq of maps, implicit with anchors, unresolved",   \
     "seq of maps, implicit with anchors, resolved",     \
     "seq of maps, implicit with tags"
@@ -216,6 +274,7 @@ L{N("implicit block key", L{
   N(L{N("implicit flow key s", L{N("val1"), N("val2")})}),
 })}),
 
+/* TODO JAVAI 209
 C("seq of maps, implicit map in seq, missing scalar",
 R"({a : [
   : foo
@@ -232,9 +291,9 @@ c : [
 L{
   N("a", L{N(MAP, L{N("", "foo")}),}),
   N("b", L{N(MAP, L{N("", "foo")}),}),
-  N("c", L{N(MAP, L{N(KEYVAL, "", /*"~"*/{})}), N(MAP, L{N(KEYVAL, "", /*"~"*/{})}),}),
+  N("c", L{N(MAP, L{N(KEYVAL, "", {})}), N(MAP, L{N(KEYVAL, "", {})}),}),
 }),
-
+*/
 
 C("seq of maps, implicit with anchors, unresolved",
 R"(

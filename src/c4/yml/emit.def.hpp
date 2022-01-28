@@ -268,13 +268,9 @@ template<class Writer>
 void Emitter<Writer>::_write_json(NodeScalar const& sc, NodeType flags)
 {
     if(C4_UNLIKELY( ! sc.tag.empty()))
-    {
         c4::yml::error("JSON does not have tags");
-    }
     if(C4_UNLIKELY(flags.has_anchor()))
-    {
         c4::yml::error("JSON does not have anchors");
-    }
     _write_scalar_json(sc.scalar, flags.has_key(), flags.is_quoted());
 }
 
@@ -283,24 +279,15 @@ void Emitter<Writer>::_write_scalar_block(csubstr s, size_t ilevel, bool explici
 {
     #define _rymlindent_nextline() for(size_t lv = 0; lv < ilevel+1; ++lv) { this->Writer::_do_write("  "); }
     if(explicit_key)
-    {
         this->Writer::_do_write("? ");
-    }
-    RYML_ASSERT(s.find("\r") == csubstr::npos);
-    csubstr trimmed = s.trimr('\n');
-    size_t numnewlines_at_end = s.len - trimmed.len;
+    csubstr trimmed = s.trimr("\n\r");
+    size_t numnewlines_at_end = s.len - trimmed.len - s.sub(trimmed.len).count('\r');
     if(numnewlines_at_end == 0)
-    {
         this->Writer::_do_write("|-\n");
-    }
     else if(numnewlines_at_end == 1)
-    {
         this->Writer::_do_write("|\n");
-    }
     else if(numnewlines_at_end > 1)
-    {
         this->Writer::_do_write("|+\n");
-    }
     if(trimmed.len)
     {
         size_t pos = 0; // tracks the last character that was already written
@@ -310,9 +297,9 @@ void Emitter<Writer>::_write_scalar_block(csubstr s, size_t ilevel, bool explici
                 continue;
             // write everything up to this point
             csubstr since_pos = trimmed.range(pos, i+1); // include the newline
-            pos = i+1; // because of the newline
             _rymlindent_nextline()
             this->Writer::_do_write(since_pos);
+            pos = i+1; // already written
         }
         if(pos < trimmed.len)
         {
@@ -344,7 +331,8 @@ void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
     // was evaluated as true even if s.str was actually a nullptr (!!!)
     if(s.len == size_t(0))
     {
-        this->Writer::_do_write('~');
+        if(was_quoted)
+            this->Writer::_do_write("''");
         return;
     }
 
@@ -356,7 +344,7 @@ void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
             &&
             (
                 // has leading whitespace
-                s.begins_with(" \n\r\t")
+                s.begins_with_any(" \n\t\r")
                 ||
                 // looks like reference or anchor
                 s.begins_with_any("*&")
@@ -364,7 +352,7 @@ void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
                 s.begins_with("<<")
                 ||
                 // has trailing whitespace
-                s.ends_with(" \n\r\t")
+                s.ends_with_any(" \n\t\r")
                 ||
                 // has special chars
                 (s.first_of("#:-?,\n{}[]'\"") != npos)
@@ -388,6 +376,7 @@ void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
         }
         else if(has_squotes && !has_dquotes)
         {
+            RYML_ASSERT(s.count('\n') == 0);
             this->Writer::_do_write('"');
             this->Writer::_do_write(s);
             this->Writer::_do_write('"');

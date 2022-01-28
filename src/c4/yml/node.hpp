@@ -139,6 +139,9 @@ public:
     inline csubstr    val_anchor() const { _C4RV(); return m_tree->val_anchor(m_id); }
     inline NodeScalar valsc()      const { _C4RV(); return m_tree->valsc(m_id); }
 
+    inline bool key_is_null() const { _C4RV(); return m_tree->key_is_null(m_id); }
+    inline bool val_is_null() const { _C4RV(); return m_tree->val_is_null(m_id); }
+
     /** decode the base64-encoded key deserialize and assign the
      * decoded blob to the given buffer/
      * @return the size of base64-decoded blob */

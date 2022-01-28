@@ -21,9 +21,9 @@ TEST(simple_set, emit)
 ? cc
 )";
     std::string expected = R"(!!set
-aa: ~
-bb: ~
-cc: ~
+aa: 
+bb: 
+cc: 
 )";
     Tree t = parse_in_arena(yaml);
     auto s = emitrs<std::string>(t);
@@ -39,9 +39,9 @@ TEST(simple_set, emit_doc)
 ? cc
 )";
     std::string expected = R"(--- !!set
-aa: ~
-bb: ~
-cc: ~
+aa: 
+bb: 
+cc: 
 )";
     Tree t = parse_in_arena(yaml);
     auto s = emitrs<std::string>(t);

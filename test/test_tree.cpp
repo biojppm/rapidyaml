@@ -2654,7 +2654,7 @@ TEST(change_type, from_map)
     t[0].change_type(VAL);
     t[1].change_type(MAP);
     t[2].change_type(SEQ);
-    Tree expected = parse_in_arena("[~, {map1: {map1key0: a, map1key1: b}}, []]");
+    Tree expected = parse_in_arena("[ , {map1: {map1key0: a, map1key1: b}}, []]");
     EXPECT_EQ(emitrs<std::string>(t), emitrs<std::string>(expected));
 }
 TEST(change_type, from_keymap)
@@ -2663,7 +2663,7 @@ TEST(change_type, from_keymap)
     t[0].change_type(VAL);
     t[1].change_type(MAP);
     t[2].change_type(SEQ);
-    Tree expected = parse_in_arena("{map0: ~, map1: {map1: {map1key0: a, map1key1: b}}, map2: []}");
+    Tree expected = parse_in_arena("{map0: , map1: {map1: {map1key0: a, map1key1: b}}, map2: []}");
     EXPECT_EQ(emitrs<std::string>(t), emitrs<std::string>(expected));
 }
 
@@ -2673,7 +2673,7 @@ TEST(change_type, from_seq)
     t[0].change_type(VAL);
     t[1].change_type(MAP);
     t[2].change_type(SEQ);
-    Tree expected = parse_in_arena("[~, {}, [seq20, seq21]]");
+    Tree expected = parse_in_arena("[ , {}, [seq20, seq21]]");
     EXPECT_EQ(emitrs<std::string>(t), emitrs<std::string>(expected));
 }
 TEST(change_type, from_keyseq)
@@ -2682,7 +2682,7 @@ TEST(change_type, from_keyseq)
     t[0].change_type(VAL);
     t[1].change_type(MAP);
     t[2].change_type(SEQ);
-    Tree expected = parse_in_arena("{map0: ~, map1: {}, map2: [seq20, seq21]}");
+    Tree expected = parse_in_arena("{map0: , map1: {}, map2: [seq20, seq21]}");
     EXPECT_EQ(emitrs<std::string>(t), emitrs<std::string>(expected));
 }
 
@@ -3255,13 +3255,13 @@ TEST(Tree, lookup_path_or_modify)
         - happy
 newmap2:
   newseq2:
-    - ~
-    - ~
+    - 
+    - 
     - newmap2:
         newseq2:
-          - ~
-          - ~
-          - ~
+          - 
+          - 
+          - 
           - first2: y
             second2: z
 )");

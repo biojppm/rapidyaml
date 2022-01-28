@@ -34,9 +34,6 @@ As part of the [new feature to track source locations](https://github.com/biojpp
 
 ### New features
 
-- `Parser`:
-  - add `source()` and `filename()` to get the latest buffer and filename to be parsed
-  - add `callbacks()` to get the parser's callbacks
 - Add tracking of source code locations. This is useful for reporting semantic errors after the parsing phase (ie where the YAML is syntatically valid and parsing is successful, but the tree contents are semantically invalid). The locations can be obtained lazily from the parser when the first location is queried:
   ```c++
   // To obtain locations, use of the parser is needed:
@@ -90,10 +87,21 @@ As part of the [new feature to track source locations](https://github.com/biojpp
   // will invalidate the accelerator.
   ```
   See more details in the [quickstart sample](https://github.com/biojppm/rapidyaml/blob/bfb073265abf8c58bbeeeed7fb43270e9205c71c/samples/quickstart.cpp#L3759). Thanks to @cschreib for submitting a working example proving how simple it could be to achieve this.
+- `Parser`:
+  - add `source()` and `filename()` to get the latest buffer and filename to be parsed
+  - add `callbacks()` to get the parser's callbacks
 
 
 ### Fixes
 
+- Fix [#203](https://github.com/biojppm/rapidyaml/issues/203): when parsing, do not convert `null` or `~` to null scalar strings. Now the scalar strings contain the verbatim contents of the original scalar; to query whether a scalar value is null, use `Tree::key_is_null()/val_is_null()` and `NodeRef::key_is_null()/val_is_null()` which return true if it is empty or any of the unquoted strings `~`, `null`, `Null`, or `NULL`. ([PR#207](https://github.com/biojppm/rapidyaml/pulls/207)):
+- Fix [#205](https://github.com/biojppm/rapidyaml/issues/205): fix parsing of escaped characters in double-quoted strings: `"\\\"\n\r\t\<TAB>\/\<SPC>\0\b\f\a\v\e\_\N\L\P"` ([PR#207](https://github.com/biojppm/rapidyaml/pulls/207)).
+- Fix [#204](https://github.com/biojppm/rapidyaml/issues/204): add decoding of unicode codepoints `\x` `\u` `\U` in double-quoted scalars:
+  ```c++
+  Tree tree = parse_in_arena(R"(["\u263A \xE2\x98\xBA \u2705 \U0001D11E"])");
+  assert(tree[0].val() == "☺ ☺ ✅ 𝄞");
+  ```
+  This is mandated by the YAML standard and was missing from ryml ([PR#207](https://github.com/biojppm/rapidyaml/pulls/207)).
 - Fix [#193](https://github.com/biojppm/rapidyaml/issues/193): amalgamated header missing `#include <stdarg.h>` which prevented compilation in bare-metal `arm-none-eabi` ([PR #195](https://github.com/biojppm/rapidyaml/pull/195), requiring also [c4core #64](https://github.com/biojppm/c4core/pull/64)).
 - Accept `infinity`,`inf` and `nan` as special float values (but not mixed case: eg `InFiNiTy` or `Inf` or `NaN` are not accepted) ([PR #186](https://github.com/biojppm/rapidyaml/pull/186)).
 - Accept special float values with upper or mixed case: `.Inf`, `.INF`, `.NaN`, `.NAN`. Previously, only low-case `.inf` and `.nan` were accepted ([PR #186](https://github.com/biojppm/rapidyaml/pull/186)).
@@ -119,6 +127,7 @@ As part of the [new feature to track source locations](https://github.com/biojpp
 - `Callbacks`: add `operator==()` and `operator!=()` ([PR #168](https://github.com/biojppm/rapidyaml/pull/168)).
 - `Tree`: on error or assert prefer the error callback stored into the tree's current `Callbacks`, rather than the global `Callbacks` ([PR #168](https://github.com/biojppm/rapidyaml/pull/168)).
 - `detail::stack<>`: improve behavior when assigning from objects `Callbacks`, test all rule-of-5 scenarios ([PR #168](https://github.com/biojppm/rapidyaml/pull/168)).
+- Improve formatting of error messages.
 
 
 ### Thanks
