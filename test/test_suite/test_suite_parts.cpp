@@ -165,6 +165,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     {"U9NS", CPART_IN_JSON, "malformed JSON from multiple documents"},
     {"W4TN", CPART_IN_JSON, "malformed JSON from multiple documents"},
     // malformed test spec?
+    {"4ABK", e___OUT_____, "out-yaml contains null, while in-yaml and events contain empty scalars"},
     {"4WA9", e___OUT_____, "out-yaml test spec is missing a --- document token, which is required in the events"},
     {"652Z", e___OUT_____, "out-yaml test spec is missing a --- document token, which is required in the events"},
     {"6FWR", e___OUT_____, "out-yaml test spec is missing a --- document token, which is required in the events"},

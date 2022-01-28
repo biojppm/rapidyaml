@@ -582,7 +582,7 @@ R"(
   L{N(L{N(QV, "aaa", "xxx\n"), N(QV, "bbb", "xxx\n")})}
     ),
 
-/* TODO NEXT issue #208
+/* TODO NEXT issue #208 JAVAI
 C("block literal with empty docval 1",
 R"(|)",
   N(DOCVAL, "")

@@ -94,6 +94,7 @@ As part of the [new feature to track source locations](https://github.com/biojpp
 
 ### Fixes
 
+- Fix [#203](https://github.com/biojppm/rapidyaml/issues/203): when parsing, do not convert `null` or `~` to null scalar strings. Now the scalar strings contain the verbatim contents of the original scalar; to query whether a scalar value is null, use `Tree::key_is_null()/val_is_null()` and `NodeRef::key_is_null()/val_is_null()` which return true if it is empty or any of the unquoted strings `~`, `null`, `Null`, or `NULL`. ([PR#207](https://github.com/biojppm/rapidyaml/pulls/207)):
 - Fix [#205](https://github.com/biojppm/rapidyaml/issues/205): fix parsing of escaped characters in double-quoted strings: `"\\\"\n\r\t\<TAB>\/\<SPC>\0\b\f\a\v\e\_\N\L\P"` ([PR#207](https://github.com/biojppm/rapidyaml/pulls/207)).
 - Fix [#204](https://github.com/biojppm/rapidyaml/issues/204): add decoding of unicode codepoints `\x` `\u` `\U` in double-quoted scalars:
   ```c++

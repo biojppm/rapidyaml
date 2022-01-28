@@ -3351,10 +3351,10 @@ a: b
 !!str a: b
 --- !!str a b
 --- !!set
-a: ~
-b: ~
+a: 
+b: 
 --- !!set
-a: ~
+a: 
 ---
 - !!int 0
 - !!str 0

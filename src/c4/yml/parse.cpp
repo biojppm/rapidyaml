@@ -2339,12 +2339,6 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
 
     _c4dbgpf("scalar was '%.*s'", _c4prsp(s));
 
-    if(s == '~' || s == "null" || s == "Null" || s == "NULL")
-    {
-        _c4dbgpf("scalar was '%.*s', so use {}", _c4prsp(s));
-        s.len = 0u;
-    }
-
     *scalar = s;
     *quoted = false;
     return true;
@@ -3410,6 +3404,7 @@ void Parser::_move_scalar_from_top()
 }
 
 //-----------------------------------------------------------------------------
+/** @todo this function is a monster and needs love. */
 bool Parser::_handle_indentation()
 {
     _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(EXPL));
@@ -3427,6 +3422,7 @@ bool Parser::_handle_indentation()
         return true;
     }
 
+    _c4dbgpf("indentation? ind=%zu indref=%zu", ind, m_state->indref);
     if(ind == m_state->indref)
     {
         if(has_all(SSCL|RVAL) && ! rem.sub(ind).begins_with('-'))

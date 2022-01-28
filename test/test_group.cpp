@@ -233,13 +233,15 @@ void YmlTestCase::_test_complete_round_trip(CaseDataLineEndings *cd)
         parse_in_place(cd->parsed_yml, &cd->emitted_tree);
     }
     #ifdef RYML_NFO
+    std::cout << "~~~~~~~~~~~~~~ src yml:\n";
+    _c4presc(cd->src);
     std::cout << "~~~~~~~~~~~~~~ parsed tree:\n";
     print_tree(cd->parsed_tree);
     std::cout << "~~~~~~~~~~~~~~ emitted yml:\n";
-    __c4presc(cd->emitted_yml.str, cd->emitted_yml.len);
+    _c4presc(cd->emitted_yml);
     std::cout << "~~~~~~~~~~~~~~ emitted tree:\n";
     print_tree(cd->emitted_tree);
-    std::cout << "~~~~~~~~~~~~~~" << std::endl;
+    std::cout << "~~~~~~~~~~~~~~\n";
     #endif
     {
         SCOPED_TRACE("checking node invariants of emitted tree");
