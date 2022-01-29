@@ -28,6 +28,23 @@ csubstr normalize_tag(csubstr tag)
     return tag;
 }
 
+csubstr normalize_tag_long(csubstr tag)
+{
+    YamlTag_e t = to_tag(tag);
+    if(t != TAG_NONE)
+        return from_tag_long(t);
+    if(tag.begins_with("!<"))
+        tag = tag.sub(1);
+    if(tag.begins_with("<!"))
+    {
+        size_t pos = tag.find('>');
+        if(pos == csubstr::npos)
+            return tag;
+        return tag.range(1, pos);
+    }
+    return tag;
+}
+
 YamlTag_e to_tag(csubstr tag)
 {
     if(tag.begins_with("!<"))
@@ -80,6 +97,46 @@ YamlTag_e to_tag(csubstr tag)
         return TAG_VALUE;
 
     return TAG_NONE;
+}
+
+csubstr from_tag_long(YamlTag_e tag)
+{
+    switch(tag)
+    {
+    case TAG_MAP:
+        return {"<tag:yaml.org,2002:map>"};
+    case TAG_OMAP:
+        return {"<tag:yaml.org,2002:omap>"};
+    case TAG_PAIRS:
+        return {"<tag:yaml.org,2002:pairs>"};
+    case TAG_SET:
+        return {"<tag:yaml.org,2002:set>"};
+    case TAG_SEQ:
+        return {"<tag:yaml.org,2002:seq>"};
+    case TAG_BINARY:
+        return {"<tag:yaml.org,2002:binary>"};
+    case TAG_BOOL:
+        return {"<tag:yaml.org,2002:bool>"};
+    case TAG_FLOAT:
+        return {"<tag:yaml.org,2002:float>"};
+    case TAG_INT:
+        return {"<tag:yaml.org,2002:int>"};
+    case TAG_MERGE:
+        return {"<tag:yaml.org,2002:merge>"};
+    case TAG_NULL:
+        return {"<tag:yaml.org,2002:null>"};
+    case TAG_STR:
+        return {"<tag:yaml.org,2002:str>"};
+    case TAG_TIMESTAMP:
+        return {"<tag:yaml.org,2002:timestamp>"};
+    case TAG_VALUE:
+        return {"<tag:yaml.org,2002:value>"};
+    case TAG_YAML:
+        return {"<tag:yaml.org,2002:yaml>"};
+    case TAG_NONE:
+        return {""};
+    }
+    return {""};
 }
 
 csubstr from_tag(YamlTag_e tag)

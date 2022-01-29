@@ -107,6 +107,31 @@ TEST(events, docsep)
         );
 }
 
+TEST(events, docsep_v2)
+{
+    test_evts(
+        R"(
+doc1
+---
+doc2
+...
+doc3
+)",
+        R"(+STR
++DOC ---
+=VAL :doc1
+-DOC
++DOC ---
+=VAL :doc2
+-DOC
++DOC ---
+=VAL :doc3
+-DOC
+-STR
+)"
+        );
+}
+
 TEST(events, basic_map)
 {
     test_evts(
@@ -161,6 +186,60 @@ TEST(events, dquo_bytes)
         "-DOC\n"
         "-STR\n"
         );
+}
+
+TEST(events, sets)
+{
+    test_evts(
+        R"(--- !!set
+? Mark McGwire
+? Sammy Sosa
+? Ken Griff
+)",
+        R"(+STR
++DOC ---
++MAP <tag:yaml.org,2002:set>
+=VAL :Mark McGwire
+=VAL :
+=VAL :Sammy Sosa
+=VAL :
+=VAL :Ken Griff
+=VAL :
+-MAP
+-DOC
+-STR
+)");
+}
+
+TEST(events, binary)
+{
+    test_evts(
+        R"(canonical: !!binary "\
+ R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5\
+ OTk6enp56enmlpaWNjY6Ojo4SEhP/++f/++f/++f/++f/++f/++f/++f/++f/+\
+ +f/++f/++f/++f/++f/++SH+Dk1hZGUgd2l0aCBHSU1QACwAAAAADAAMAAAFLC\
+ AgjoEwnuNAFOhpEMTRiggcz4BNJHrv/zCFcLiwMWYNG84BwwEeECcgggoBADs="
+generic: !!binary |
+ R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5
+ OTk6enp56enmlpaWNjY6Ojo4SEhP/++f/++f/++f/++f/++f/++f/++f/++f/+
+ +f/++f/++f/++f/++f/++SH+Dk1hZGUgd2l0aCBHSU1QACwAAAAADAAMAAAFLC
+ AgjoEwnuNAFOhpEMTRiggcz4BNJHrv/zCFcLiwMWYNG84BwwEeECcgggoBADs=
+description:
+ The binary value above is a tiny arrow encoded as a gif image.
+)",
+        R"(+STR
++DOC
++MAP
+=VAL :canonical
+=VAL <tag:yaml.org,2002:binary> 'R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5OTk6enp56enmlpaWNjY6Ojo4SEhP/++f/++f/++f/++f/++f/++f/++f/++f/++f/++f/++f/++f/++f/++SH+Dk1hZGUgd2l0aCBHSU1QACwAAAAADAAMAAAFLCAgjoEwnuNAFOhpEMTRiggcz4BNJHrv/zCFcLiwMWYNG84BwwEeECcgggoBADs=
+=VAL :generic
+=VAL <tag:yaml.org,2002:binary> 'R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5\nOTk6enp56enmlpaWNjY6Ojo4SEhP/++f/++f/++f/++f/++f/++f/++f/++f/+\n+f/++f/++f/++f/++f/++SH+Dk1hZGUgd2l0aCBHSU1QACwAAAAADAAMAAAFLC\nAgjoEwnuNAFOhpEMTRiggcz4BNJHrv/zCFcLiwMWYNG84BwwEeECcgggoBADs=\n
+=VAL :description
+=VAL :The binary value above is a tiny arrow encoded as a gif image.
+-MAP
+-DOC
+-STR
+)");
 }
 
 

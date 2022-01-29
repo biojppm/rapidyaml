@@ -1,3 +1,6 @@
+This release improves compliance with the [YAML test suite](https://github.com/yaml/yaml-test-suite/) (thanks @ingydotnet and @perlpunk for extensive and helpful cooperation), and adds node location tracking using the parser.
+
+
 ### Breaking changes
 
 As part of the [new feature to track source locations](https://github.com/biojppm/rapidyaml/pull/168), opportunity was taken to address a number of pre-existing API issues. These changes consisted of:
@@ -90,6 +93,11 @@ As part of the [new feature to track source locations](https://github.com/biojpp
 - `Parser`:
   - add `source()` and `filename()` to get the latest buffer and filename to be parsed
   - add `callbacks()` to get the parser's callbacks
+- Add `from_tag_long()` and `normalize_tag_long()`:
+  ```c++
+  assert(from_tag_long(TAG_MAP) == "<tag:yaml.org,2002:map>");
+  assert(normalize_tag_long("!!map") == "<tag:yaml.org,2002:map>");
+  ```
 
 
 ### Fixes
@@ -134,7 +142,7 @@ As part of the [new feature to track source locations](https://github.com/biojpp
 
 ### Thanks
 
+- @ingydotnet
+- @perlpunk
 - @cschreib
 - @aviktorov
-- @perlpunk
-- @ingydotnet
