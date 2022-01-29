@@ -27,6 +27,30 @@ TEST(simple_map, test_suite_UT92)
     });
 }
 
+TEST(simple_map, two_nested_flow_maps_not_accepted_because_of_container_key)
+{
+    Tree tree;
+    ExpectError::do_check(&tree, [&]{
+        parse_in_arena("{{}}", &tree);
+    });
+}
+
+TEST(simple_map, many_unmatched_brackets)
+{
+    std::string src;
+    src.reserve(10000000u);
+    for(size_t num_brackets : {4u, 8u, 32u, 256u, 4096u, 1024u})
+    {
+        SCOPED_TRACE(num_brackets);
+        for(size_t i = src.size(); i < num_brackets; ++i)
+            src += '{';
+        Tree tree;
+        ExpectError::do_check(&tree, [&]{
+            parse_in_place(to_substr(src), &tree);
+        });
+    }
+}
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

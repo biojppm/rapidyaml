@@ -343,8 +343,7 @@ bool Parser::_finished_file() const
 //-----------------------------------------------------------------------------
 bool Parser::_finished_line() const
 {
-    bool ret = m_state->line_contents.rem.empty();
-    return ret;
+    return m_state->line_contents.rem.empty();
 }
 
 //-----------------------------------------------------------------------------
@@ -1309,17 +1308,11 @@ bool Parser::_handle_map_expl()
         {
             return true;
         }
-        else if(rem.begins_with('}'))
-        {
-            _c4dbgp("the last val was null");
-            _append_key_val_null(rem.str - 1);
-            _line_progressed(1);
-            return true;
-        }
         else
         {
             size_t pos = rem.first_not_of(" \t");
-            if(pos == csubstr::npos) pos = 0;
+            if(pos == csubstr::npos)
+               pos = 0;
             rem = rem.sub(pos);
             if(rem.begins_with(':'))
             {
@@ -2251,6 +2244,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
             else
             {
                 _c4dbgp("RMAP|RKEY");
+                _RYML_CB_CHECK(m_stack.m_callbacks, !s.begins_with('{'));
                 s = s.triml(' ');
                 s = s.left_of(colon_space);
                 s = s.trimr(' ');
@@ -3007,6 +3001,7 @@ void Parser::_end_stream()
     }
     else if(has_all(RSEQ|RVAL) && has_none(EXPL))
     {
+        _c4dbgp("add last...");
         added = _append_val_null(m_state->line_contents.rem.str);
     }
 
@@ -3058,6 +3053,8 @@ void Parser::_end_stream()
     {
         _c4dbgpf("popping level: %zu (stack sz=%zu)", m_state->level, m_stack.size());
         _RYML_CB_ASSERT(m_stack.m_callbacks,  ! has_any(SSCL, &m_stack.top()));
+        if(has_all(RSEQ|EXPL|RVAL))
+            _err("closing ] not found");
         _pop_level();
     }
     add_flags(NDOC);
@@ -4738,6 +4735,7 @@ void Parser::_err(const char *fmt, ...) const
     va_start(args, fmt);
     int len = _fmt_msg(errmsg, RYML_ERRMSG_SIZE, fmt, args);
     va_end(args);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, len <= RYML_ERRMSG_SIZE);
     m_tree->m_callbacks.m_error(errmsg, static_cast<size_t>(len), m_state->pos, m_tree->m_callbacks.m_user_data);
 }
 
@@ -4750,6 +4748,7 @@ void Parser::_dbg(const char *fmt, ...) const
     va_start(args, fmt);
     int len = _fmt_msg(errmsg, RYML_ERRMSG_SIZE, fmt, args);
     va_end(args);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, len <= RYML_ERRMSG_SIZE);
     printf("%.*s", len, errmsg);
 }
 #endif
@@ -4780,10 +4779,12 @@ int Parser::_fmt_msg(char *buf, int buflen, const char *fmt, va_list args) const
             del = snprintf(buf + pos, slen, "%zu:%zu ", m_state->pos.line, m_state->pos.col);
         int offs = del;
         _wrapbuf();
+        const char *maybe_ellipsis = (contents.len > 80u ? "...":"");
         if( !lc.stripped.empty())
         {
-            del = snprintf(buf + pos, slen, "%.*s  (size=%zd)\n",
-                           (int)contents.len, contents.str, contents.len);
+            size_t printed_size = contents.len < 80u ? contents.len : 80u;
+            del = snprintf(buf + pos, slen, "%.*s%s  (size=%zd)\n",
+                           (int)printed_size, contents.str, maybe_ellipsis, contents.len);
             _wrapbuf();
         }
         // next line: highlight the remaining portion of the previous line
@@ -4792,10 +4793,10 @@ int Parser::_fmt_msg(char *buf, int buflen, const char *fmt, va_list args) const
         del = snprintf(buf + pos, slen, "%*s", (offs+(int)firstcol), ""); // this works only for spaces....
         _wrapbuf();
         // the %*s technique works only for spaces, so put the characters directly
-        del = (int)lc.rem.len;
+        del = (int)(lc.rem.len < 80u ? lc.rem.len : 80u);
         for(int i = 0; i < del && i < len; ++i) { buf[pos + i] = (i ? '~' : '^'); }
         _wrapbuf();
-        del = snprintf(buf + pos, slen, "  (cols %zd-%zd)\n", firstcol+1, lastcol+1);
+        del = snprintf(buf + pos, slen, "%s  (cols %zd-%zd)\n", maybe_ellipsis, firstcol+1, lastcol+1);
         _wrapbuf();
     }
     else

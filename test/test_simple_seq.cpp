@@ -3,6 +3,33 @@
 namespace c4 {
 namespace yml {
 
+TEST(simple_seq, two_nested_flow_seqs)
+{
+    Tree tree = parse_in_arena("[[]]");
+    EXPECT_TRUE(tree.rootref().is_seq());
+    ASSERT_TRUE(tree.rootref().has_children());
+    EXPECT_TRUE(tree.rootref().first_child().is_seq());
+    ASSERT_FALSE(tree.rootref().first_child().has_children());
+}
+
+TEST(simple_seq, many_unmatched_brackets)
+{
+    std::string src;
+    src.reserve(10000000u);
+    for(size_t num_brackets : {4u, 8u, 32u})
+    {
+        SCOPED_TRACE(num_brackets);
+        for(size_t i = src.size(); i < num_brackets; ++i)
+            src += '[';
+        Tree tree;
+        Location loc = {};
+        loc.line = 1;
+        loc.col = num_brackets + 1u;
+        ExpectError::do_check(&tree, [&]{
+            parse_in_place(to_substr(src), &tree);
+        }, loc);
+    }
+}
 
 
 //-----------------------------------------------------------------------------
