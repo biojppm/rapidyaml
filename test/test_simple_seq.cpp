@@ -3,13 +3,24 @@
 namespace c4 {
 namespace yml {
 
-TEST(simple_seq, bad_seq)
+TEST(simple_seq, bad_seq1)
 {
     Tree tree;
     ExpectError::do_check(&tree, [&]{
         parse_in_arena(R"(
 ---
 [ a, b, c ] ]
+)", &tree);
+    });
+}
+
+TEST(simple_seq, bad_seq2)
+{
+    Tree tree;
+    ExpectError::do_check(&tree, [&]{
+        parse_in_arena(R"(
+---
+[ [ a, b, c ]
 )", &tree);
     });
 }
