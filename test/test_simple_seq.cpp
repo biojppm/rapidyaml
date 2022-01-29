@@ -3,6 +3,17 @@
 namespace c4 {
 namespace yml {
 
+TEST(simple_seq, bad_seq)
+{
+    Tree tree;
+    ExpectError::do_check(&tree, [&]{
+        parse_in_arena(R"(
+---
+[ a, b, c ] ]
+)", &tree);
+    });
+}
+
 TEST(simple_seq, two_nested_flow_seqs)
 {
     Tree tree = parse_in_arena("[[]]");
