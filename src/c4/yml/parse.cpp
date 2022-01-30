@@ -3091,8 +3091,11 @@ void Parser::_start_map(bool as_child)
         m_state->node_id = m_tree->append_child(parent_id);
         if(has_all(SSCL))
         {
+            type_bits key_quoted = NOTYPE;
+            if(m_state->flags & SSCL_QUO) // before consuming the scalar
+                key_quoted |= KEYQUO;
             csubstr key = _consume_scalar();
-            m_tree->to_map(m_state->node_id, key, has_all(SSCL_QUO) ? KEYQUO : NOTYPE);
+            m_tree->to_map(m_state->node_id, key, key_quoted);
             _c4dbgpf("start_map: id=%zd key='%.*s'", m_state->node_id, _c4prsp(m_tree->key(m_state->node_id)));
             _write_key_anchor(m_state->node_id);
             if( ! m_key_tag.empty())
@@ -3216,8 +3219,11 @@ void Parser::_start_seq(bool as_child)
         if(has_all(SSCL))
         {
             _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_map(parent_id));
-            csubstr name = _consume_scalar();
-            m_tree->to_seq(m_state->node_id, name);
+            type_bits key_quoted = 0;
+            if(m_state->flags & SSCL_QUO) // before consuming the scalar
+                key_quoted |= KEYQUO;
+            csubstr key = _consume_scalar();
+            m_tree->to_seq(m_state->node_id, key, key_quoted);
             _c4dbgpf("start_seq: id=%zd name='%.*s'", m_state->node_id, _c4prsp(m_tree->key(m_state->node_id)));
             _write_key_anchor(m_state->node_id);
             if( ! m_key_tag.empty())
@@ -3279,18 +3285,22 @@ void Parser::_start_seqimap()
     _c4dbgpf("start_seqimap at node=%zu. has_children=%d", m_state->node_id, m_tree->has_children(m_state->node_id));
     _RYML_CB_ASSERT(m_stack.m_callbacks, has_all(RSEQ|EXPL));
     // create a map, and turn the last scalar of this sequence
-    // into the key of the map's first child.
+    // into the key of the map's first child. This scalar was
+    // understood to be a value in the sequence, but it is
+    // actually a key of a map, implicitly opened here.
+    // Eg [val, key: val]
     //
     // Yep, YAML is crazy.
     if(m_tree->has_children(m_state->node_id) && m_tree->has_val(m_tree->last_child(m_state->node_id)))
     {
-        auto prev = m_tree->last_child(m_state->node_id);
-        _c4dbgpf("has children and last child=%zu has val. saving the scalars, val='%.*s', val='%.*s'", prev, _c4prsp(m_tree->val(prev)), _c4prsp(m_tree->valsc(prev).scalar));
+        size_t prev = m_tree->last_child(m_state->node_id);
+        NodeType ty = m_tree->_p(prev)->m_type; // don't use type() because it masks out the quotes
         NodeScalar tmp = m_tree->valsc(prev);
+        _c4dbgpf("has children and last child=%zu has val. saving the scalars, val='%.*s' quoted=%d", prev, _c4prsp(tmp.scalar), ty.is_val_quoted());
         m_tree->remove(prev);
         _push_level();
         _start_map();
-        _store_scalar(tmp.scalar, m_tree->is_val_quoted(prev));
+        _store_scalar(tmp.scalar, ty.is_val_quoted());
         m_key_anchor = tmp.anchor;
         m_key_tag = tmp.tag;
     }

@@ -53,6 +53,39 @@ TEST(simple_seq, many_unmatched_brackets)
     }
 }
 
+TEST(simple_seq, missing_quoted_key)
+{
+    csubstr yaml = R"(
+"top1" :
+  ["0", "1", ]
+'top2' :
+  ["0", "1", ]
+---
+#"top1" :
+#  - "0"
+#  - "1"
+#'top2' :
+#  - "0"
+#  - "1"
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        size_t doc = 0;
+        EXPECT_TRUE(t.docref(doc)["top1"].is_key_quoted());
+        EXPECT_TRUE(t.docref(doc)["top2"].is_key_quoted());
+        EXPECT_TRUE(t.docref(doc)["top1"][0].is_val_quoted());
+        EXPECT_TRUE(t.docref(doc)["top1"][1].is_val_quoted());
+        EXPECT_TRUE(t.docref(doc)["top2"][0].is_val_quoted());
+        EXPECT_TRUE(t.docref(doc)["top2"][1].is_val_quoted());
+        //++doc;
+        //EXPECT_TRUE(t.docref(doc)["top1"].is_key_quoted());
+        //EXPECT_TRUE(t.docref(doc)["top2"].is_key_quoted());
+        //EXPECT_TRUE(t.docref(doc)["top1"][0].is_val_quoted());
+        //EXPECT_TRUE(t.docref(doc)["top1"][1].is_val_quoted());
+        //EXPECT_TRUE(t.docref(doc)["top2"][0].is_val_quoted());
+        //EXPECT_TRUE(t.docref(doc)["top2"][1].is_val_quoted());
+    });
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

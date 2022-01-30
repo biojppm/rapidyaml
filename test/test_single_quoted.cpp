@@ -3,7 +3,6 @@
 namespace c4 {
 namespace yml {
 
-
 TEST(double_quoted, test_suite_KSS4)
 {
     csubstr yaml = R"(

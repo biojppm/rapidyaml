@@ -51,6 +51,128 @@ TEST(simple_map, many_unmatched_brackets)
     }
 }
 
+TEST(simple_map, missing_quoted_key)
+{
+    csubstr yaml = R"(
+"top1" :
+  "key1" : scalar1
+'top2' :
+  'key2' : scalar2
+#---
+#"top1" :
+#  "key1" : scalar1
+#'top2' :
+#  'key2' : scalar2
+---
+'x2': {'y': z}
+---
+'x3':
+  'y': z
+---
+x4:
+  'y': z
+---
+'x5':
+'y': z
+---
+x6:
+'y': z
+#---
+#'x7' : [
+#  'y' : z,
+# ]
+#---
+#"x8" :
+#  "y" : value,
+#  "x" : value
+#"y" :
+#  "y" : value,
+#  "x" : value
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        size_t doc = 0;
+        EXPECT_TRUE(t.docref(doc)["top1"].is_key_quoted());
+        EXPECT_TRUE(t.docref(doc)["top2"].is_key_quoted());
+        EXPECT_TRUE(t.docref(doc)["top1"]["key1"].is_key_quoted());
+        EXPECT_TRUE(t.docref(doc)["top2"]["key2"].is_key_quoted());
+        //++doc;
+        //EXPECT_TRUE(t.docref(doc)["top1"].is_key_quoted());
+        //EXPECT_TRUE(t.docref(doc)["top2"].is_key_quoted());
+        //EXPECT_TRUE(t.docref(doc)["top1"]["key1"].is_key_quoted());
+        //EXPECT_TRUE(t.docref(doc)["top2"]["key2"].is_key_quoted());
+        ++doc;
+        EXPECT_TRUE(t.docref(doc)["x2"].is_key_quoted());
+        EXPECT_TRUE(t.docref(doc)["x2"]["y"].is_key_quoted());
+        ++doc;
+        EXPECT_TRUE(t.docref(doc)["x3"].is_key_quoted());
+        EXPECT_TRUE(t.docref(doc)["x3"]["y"].is_key_quoted());
+        ++doc;
+        EXPECT_FALSE(t.docref(doc)["x4"].is_key_quoted());
+        EXPECT_TRUE(t.docref(doc)["x4"]["y"].is_key_quoted());
+        ++doc;
+        EXPECT_TRUE(t.docref(doc)["x5"].is_key_quoted());
+        EXPECT_TRUE(t.docref(doc)["y"].is_key_quoted());
+        ++doc;
+        EXPECT_FALSE(t.docref(doc)["x6"].is_key_quoted());
+        EXPECT_TRUE(t.docref(doc)["y"].is_key_quoted());
+        //++doc;
+        //EXPECT_TRUE(t.docref(doc)["x7"].is_key_quoted());
+        //EXPECT_TRUE(t.docref(doc)["x7"][0]["y"].is_key_quoted());
+        //++doc;
+        //EXPECT_TRUE(t.docref(doc)["x8"].is_key_quoted());
+        //EXPECT_TRUE(t.docref(doc)["x8"]["y"].is_key_quoted());
+        //EXPECT_TRUE(t.docref(doc)["x8"]["x"].is_key_quoted());
+        //EXPECT_TRUE(t.docref(doc)["y"].is_key_quoted());
+        //EXPECT_TRUE(t.docref(doc)["y"]["y"].is_key_quoted());
+        //EXPECT_TRUE(t.docref(doc)["y"]["x"].is_key_quoted());
+    });
+}
+
+#ifdef JAVAI
+void verify_error_is_reported(csubstr case_name, csubstr yaml, size_t col={})
+{
+    SCOPED_TRACE(case_name);
+    SCOPED_TRACE(yaml);
+    Tree tree;
+    Location loc = {};
+    loc.col = col;
+    ExpectError::do_check(&tree, [&](){
+        parse_in_arena(yaml, &tree);
+    }, loc);
+}
+
+TEST(simple_map, no_map_key_flow)
+{
+    verify_error_is_reported("map key", R"({ first: Sammy, last: Sosa }: foo)", 28u);
+}
+
+TEST(simple_map, no_map_key_block)
+{
+    verify_error_is_reported("map key", R"(?
+  first: Sammy
+  last: Sosa
+:
+  foo
+)");
+}
+
+TEST(simple_map, no_seq_key_flow)
+{
+    verify_error_is_reported("seq key", R"([Sammy, Sosa]: foo)", 28u);
+}
+
+TEST(simple_map, no_seq_key_block)
+{
+    verify_error_is_reported("map key", R"(?
+  - Sammy
+  - Sosa
+:
+  foo
+)");
+}
+#endif
+
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

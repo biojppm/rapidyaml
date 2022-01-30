@@ -39,7 +39,7 @@ int main(int argc, const char *argv[])
         emit_events(&evt, tree);
         std::fwrite(evt.data(), 1, evt.size(), stdout);
     }
-    catch(const std::exception& e)
+    catch(std::exception const&)
     {
         return 1;
     }
