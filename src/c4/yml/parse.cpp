@@ -602,19 +602,12 @@ bool Parser::_handle_unk()
             _c4dbgpf("got a ': ' -- it's a map (as_child=%d)", start_as_child);
             _start_map_unk(start_as_child); // wait for the val scalar to append the key-val pair
             _line_progressed(2);
-            /*if(rem == ": ")
-            {
-                _c4dbgp("map key opened a new line -- starting val scope as unknown");
-                _start_unk();
-            }*/
         }
         else if(rem == ":")
         {
             _c4dbgpf("got a ':' -- it's a map (as_child=%d)", start_as_child);
             _start_map_unk(start_as_child); // wait for the val scalar to append the key-val pair
             _line_progressed(1);
-            //_c4dbgp("map key opened a new line -- starting val scope as unknown");
-            //_start_unk();
         }
         else if(rem.begins_with('}'))
         {
@@ -693,6 +686,15 @@ bool Parser::_handle_unk()
         {
             _c4dbgpf("got a %s scalar", is_quoted ? "quoted" : "");
             rem = m_state->line_contents.rem;
+            {
+                size_t first = rem.first_not_of(" \t");
+                if(first && first != npos)
+                {
+                    _c4dbgpf("skip %zu whitespace characters", first);
+                   _line_progressed(first);
+                   rem = rem.sub(first);
+                }
+            }
             _store_scalar(scalar, is_quoted);
             if(rem.begins_with(": "))
             {

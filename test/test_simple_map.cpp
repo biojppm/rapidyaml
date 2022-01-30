@@ -3,6 +3,41 @@
 namespace c4 {
 namespace yml {
 
+TEST(simple_map, open_on_new_doc_without_space)
+{
+    Tree tree = parse_in_arena(R"(
+foo: bar
+---
+foo: bar
+---
+foo: bar
+)");
+    EXPECT_EQ(tree.docref(0)["foo"].val(), "bar");
+    EXPECT_EQ(tree.docref(1)["foo"].val(), "bar");
+    EXPECT_EQ(tree.docref(2)["foo"].val(), "bar");
+}
+
+TEST(simple_map, open_on_new_doc_with_space_before_colon)
+{
+    Tree tree = parse_in_arena(R"(
+foo0 : bar
+---
+foo1 : bar  # the " :" was causing an assert
+---
+foo2 : bar
+---
+foo3	: bar
+---
+foo4   	  : bar
+)");
+    EXPECT_EQ(tree.docref(0)["foo0"].val(), "bar");
+    EXPECT_EQ(tree.docref(1)["foo1"].val(), "bar");
+    EXPECT_EQ(tree.docref(2)["foo2"].val(), "bar");
+    EXPECT_EQ(tree.docref(3)["foo3"].val(), "bar");
+    EXPECT_EQ(tree.docref(4)["foo4"].val(), "bar");
+}
+
+
 TEST(simple_map, test_suite_UT92)
 {
     csubstr yaml = R"(
