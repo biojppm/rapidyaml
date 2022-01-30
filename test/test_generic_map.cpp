@@ -4,17 +4,10 @@ namespace c4 {
 namespace yml {
 
 
-#define GENERIC_MAP_CASES \
-    "generic map",\
-    "seq nested in map",\
-    "seq nested in map, v2"
-
-
 CASE_GROUP(GENERIC_MAP)
 {
-    APPEND_CASES(
 
-C("generic map",
+ADD_CASE_TO_GROUP("generic map",
 R"(
 a simple key: a value   # The KEY token is produced here.
 ? a complex key
@@ -32,10 +25,10 @@ a sequence:
       N("a mapping", L{N("key 1", "value 1"), N("key 2", "value 2")}),
       N("a sequence", L{N("item 1"), N("item 2")}),
   }
-),
+);
 
 
-C("seq nested in map",
+ADD_CASE_TO_GROUP("seq nested in map",
 R"(
 items:
     - part_no:   A4786
@@ -60,9 +53,9 @@ L{
         N{"price",     "133.7"},
         N{"quantity",  "1"},}}}},
   }
-),
+);
 
-C("seq nested in map, v2",
+ADD_CASE_TO_GROUP("seq nested in map, v2",
 R"(
 items:
     -
@@ -89,12 +82,8 @@ L{
         N{"price",     "133.7"},
         N{"quantity",  "1"},}}}},
   }
-),
-
-    )
+);
 }
-
-INSTANTIATE_GROUP(GENERIC_MAP)
 
 } // namespace yml
 } // namespace c4

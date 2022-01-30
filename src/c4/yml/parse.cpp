@@ -4655,7 +4655,7 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
         r = r.trimr("\n\r");
         break;
     }
-    case CHOMP_CLIP: // clip to a single newline
+    case CHOMP_CLIP: // clip to a single newline (the default)
     {
         _c4dbgp("filt_block: chomp=CLIP");
         size_t i = r.last_not_of("\n\r");

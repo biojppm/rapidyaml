@@ -14,21 +14,13 @@
 namespace c4 {
 namespace yml {
 
-
-#define SCALAR_NAMES_CASES \
-"funny names, seq",\
-"funny names, seq expl",\
-"funny names, map",\
-"funny names, map expl"\
-
 #define _(name) N(#name) // makes it simpler
 #define __(name) N(#name, #name) // makes it simpler
 
 CASE_GROUP(SCALAR_NAMES)
 {
-    APPEND_CASES(
 
-C("funny names, seq",
+ADD_CASE_TO_GROUP("funny names, seq",
 R"(
 - a
 - b:b
@@ -55,16 +47,15 @@ R"(
   *a
 )",
 L{_(a), _(b:b), _(c{c), _(cc{), _(c}c), _(cc}), _(c!c), _(cc!), _(.foo),  _(.),  _(-a), _(+b), _(/b), _(:c), _($g),
-      N(QV, "*"), N(QV, "*"), N(QV, "*"), N(QV, "*a"), N(QV, "*a"), N(QV, "*a")
-}
-),
+      N(QV, "*"), N(QV, "*"), N(QV, "*"), N(QV, "*a"), N(QV, "*a"), N(QV, "*a")}
+);
 
-C("funny names, seq expl",
+ADD_CASE_TO_GROUP("funny names, seq expl",
 R"([a, b, c, .foo, ., -a, +b, /b, :c, $g])",
 L{_(a), _(b), _(c), _(.foo), _(.), _(-a), _(+b), _(/b), _(:c), _($g)}
-),
+);
 
-C("funny names, map",
+ADD_CASE_TO_GROUP("funny names, map",
 R"(
 a: a
 b: b
@@ -81,18 +72,15 @@ $g: $g
 )",
 L{__(a), __(b), __(c), __(.foo), __(.), __(-a), __(+b), __(/b), __(:c), __($g),
   N(QKV, "*", "*"), N(QKV, "*a", "*a")}
-),
+);
 
-C("funny names, map expl",
+ADD_CASE_TO_GROUP("funny names, map expl",
 R"({a: a, b: b, c: c, .foo: .foo, .: ., -a: -a, +b: +b, /b: /b, :c: :c, $g: $g,
     '*': '*', '*a':'*a'})",
 L{__(a), __(b), __(c), __(.foo), __(.), __(-a), __(+b), __(/b), __(:c), __($g),
   N(QKV, "*", "*"), N(QKV, "*a", "*a")}
-),
-    )
+);
 }
-
-INSTANTIATE_GROUP(SCALAR_NAMES)
 
 } // namespace yml
 } // namespace c4

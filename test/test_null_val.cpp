@@ -318,26 +318,10 @@ map:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-#define NULL_VAL_CASES \
-    "null map vals, expl",\
-    "null map vals, impl",\
-    "null seq vals, impl",\
-    "null seq vals in map, impl, mixed 1",\
-    "null seq vals in map, impl, mixed 2",\
-    "null seq vals in map, impl, mixed 3",\
-    "null map vals in seq, impl, mixed 1",\
-    "null map vals in seq, impl, mixed 2",\
-    "null map vals in seq, impl, mixed 3",\
-    "issue84.1",\
-    "issue84.2",\
-    "issue84.3",\
-    "all null"
-
 CASE_GROUP(NULL_VAL)
 {
-    APPEND_CASES(
 
-C("all null",
+ADD_CASE_TO_GROUP("all null",
 R"(
 -
 - # with space
@@ -365,32 +349,32 @@ N(MAP, L{N(KEYVAL, "NULL", "NULL")}),
 N(MAP, L{N(KEYVAL, "~", "~")}),
 N(MAP, L{N(KEYVAL, "~", "null")}),
 N(MAP, L{N(KEYVAL, "null", "~")}),
-}),
+});
 
-C("null map vals, expl",
+ADD_CASE_TO_GROUP("null map vals, expl",
 R"({foo: , bar: , baz: }
 )",
 L{N(KEYVAL, "foo", nullptr), N(KEYVAL, "bar", nullptr), N(KEYVAL, "baz", nullptr)}
-),
+);
 
-C("null map vals, impl",
+ADD_CASE_TO_GROUP("null map vals, impl",
 R"(
 foo: 
 bar: 
 baz: 
 )",
 L{N(KEYVAL, "foo", nullptr), N(KEYVAL, "bar", nullptr), N(KEYVAL, "baz", nullptr)}
-),
+);
 
-C("null seq vals, impl",
+ADD_CASE_TO_GROUP("null seq vals, impl",
 R"(- 
 - 
 - 
 )",
 L{N(VAL, nullptr), N(VAL, nullptr), N(VAL, nullptr)}
-),
+);
 
-C("null seq vals in map, impl, mixed 1",
+ADD_CASE_TO_GROUP("null seq vals in map, impl, mixed 1",
 R"(
 foo:
   - 
@@ -400,9 +384,9 @@ bar:
 baz: 
 )",
 L{N("foo", L{N(VAL, nullptr), N(VAL, nullptr), N(VAL, nullptr)}), N(KEYVAL, "bar", nullptr), N(KEYVAL, "baz", nullptr)}
-),
+);
 
-C("null seq vals in map, impl, mixed 2",
+ADD_CASE_TO_GROUP("null seq vals in map, impl, mixed 2",
 R"(
 foo:
 bar: 
@@ -412,9 +396,9 @@ bar:
 baz: 
 )",
 L{N(KEYVAL, "foo", nullptr), N("bar", L{N(VAL, nullptr), N(VAL, nullptr), N(VAL, nullptr)}), N(KEYVAL, "baz", nullptr)}
-),
+);
 
-C("null seq vals in map, impl, mixed 3",
+ADD_CASE_TO_GROUP("null seq vals in map, impl, mixed 3",
 R"(
 foo:
 bar: 
@@ -424,9 +408,9 @@ baz:
   - 
 )",
 L{N(KEYVAL, "foo", nullptr), N(KEYVAL, "bar", nullptr), N("baz", L{N(VAL, nullptr), N(VAL, nullptr), N(VAL, nullptr)})}
-),
+);
 
-C("null map vals in seq, impl, mixed 1",
+ADD_CASE_TO_GROUP("null map vals in seq, impl, mixed 1",
 R"(
 - foo:
   bar: 
@@ -435,9 +419,9 @@ R"(
 - 
 )",
 L{N(L{N(KEYVAL, "foo", nullptr), N(KEYVAL, "bar", nullptr), N(KEYVAL, "baz", nullptr)}), N(VAL, nullptr), N(VAL, nullptr)}
-),
+);
 
-C("null map vals in seq, impl, mixed 2",
+ADD_CASE_TO_GROUP("null map vals in seq, impl, mixed 2",
 R"(
 - 
 - foo:
@@ -446,9 +430,9 @@ R"(
 - 
 )",
 L{N(VAL, nullptr), N(L{N(KEYVAL, "foo", nullptr), N(KEYVAL, "bar", nullptr), N(KEYVAL, "baz", nullptr)}), N(VAL, nullptr)}
-),
+);
 
-C("null map vals in seq, impl, mixed 3",
+ADD_CASE_TO_GROUP("null map vals in seq, impl, mixed 3",
 R"(
 - 
 - 
@@ -457,9 +441,9 @@ R"(
   baz: 
 )",
 L{N(VAL, nullptr), N(VAL, nullptr), N(L{N(KEYVAL, "foo", nullptr), N(KEYVAL, "bar", nullptr), N(KEYVAL, "baz", nullptr)})}
-),
+);
 
-C("issue84.1",
+ADD_CASE_TO_GROUP("issue84.1",
 R"(
 fixed case:
   foo: a
@@ -473,9 +457,9 @@ L{
 N("fixed case", L{N("foo", "a"), N(KEYVAL, "bar", nullptr)}),
 N("your case", L{N("foo", "a"), N(QV, "bar", "")}),
 N("whatever", "baz"),
-}),
+});
 
-C("issue84.2",
+ADD_CASE_TO_GROUP("issue84.2",
 R"(
 version: 0
 type: xml
@@ -513,9 +497,9 @@ N("param_root", L{
         }),
     })
 }),
-}),
+});
 
-C("issue84.3",
+ADD_CASE_TO_GROUP("issue84.3",
 R"(
 version: 10
 type: test
@@ -540,12 +524,9 @@ N("param_root", L{
     }),
     N(KEYMAP, "lists", L{})
 }),
-})
+});
 
-    )
 }
-
-INSTANTIATE_GROUP(NULL_VAL)
 
 } // namespace yml
 } // namespace c4

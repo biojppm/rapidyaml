@@ -238,10 +238,10 @@ void EventsEmitter::emit_doc(size_t node)
 
 void EventsEmitter::emit_events()
 {
-    size_t root = m_tree->root_id();
     pr("+STR\n");
     if(!m_tree->empty())
     {
+        size_t root = m_tree->root_id();
         if(m_tree->is_stream(root))
             for(size_t node = m_tree->first_child(root); node != NONE; node = m_tree->next_sibling(node))
                 emit_doc(node);

@@ -4,39 +4,27 @@ namespace c4 {
 namespace yml {
 
 
-#define MAP_OF_SEQ_CASES \
-    "map of empty seqs", \
-    "map of seqs, one line", \
-    "map of seqs",           \
-    "map of seqs, not indented", \
-    "map of seqs, not indented, more", \
-    "map of seqs, next line",\
-    "map of seqs, next line without space",\
-    "map of seqs, deal with unk"
-
-
 CASE_GROUP(MAP_OF_SEQ)
 {
-    APPEND_CASES(
 
-C("map of empty seqs",
+ADD_CASE_TO_GROUP("map of empty seqs",
 R"({foo: [], bar: [], baz: []})",
      L{
          N(KEYSEQ, "foo", L()),
          N(KEYSEQ, "bar", L()),
          N(KEYSEQ, "baz", L()),
      }
-),
+);
 
-C("map of seqs, one line",
+ADD_CASE_TO_GROUP("map of seqs, one line",
 R"({men: [John Smith, Bill Jones], women: [Mary Smith, Susan Williams]})",
      L{
          N("men", L{N{"John Smith"}, N{"Bill Jones"}}),
          N("women", L{N{"Mary Smith"}, N{"Susan Williams"}})
      }
-),
+);
 
-C("map of seqs",
+ADD_CASE_TO_GROUP("map of seqs",
 R"(
 men:
   - John Smith
@@ -49,9 +37,9 @@ women:
          N("men", L{N{"John Smith"}, N{"Bill Jones"}}),
          N("women", L{N{"Mary Smith"}, N{"Susan Williams"}})
      }
-),
+);
 
-C("map of seqs, not indented",
+ADD_CASE_TO_GROUP("map of seqs, not indented",
 R"(
 men:
 - John Smith
@@ -64,9 +52,9 @@ women:
          N("men", L{N{"John Smith"}, N{"Bill Jones"}}),
          N("women", L{N{"Mary Smith"}, N{"Susan Williams"}})
      }
-),
+);
 
-C("map of seqs, not indented, more",
+ADD_CASE_TO_GROUP("map of seqs, not indented, more",
 R"(
 product:
 - sku: BL4438H
@@ -151,9 +139,9 @@ L{
       N("tax2", "789.10"),
     }),
     N("tax5", "1234.5"),
-}),
+});
 
-C("map of seqs, next line",
+ADD_CASE_TO_GROUP("map of seqs, next line",
 R"(
 men:
   - 
@@ -170,9 +158,9 @@ women:
          N("men", L{N{"John Smith"}, N{"Bill Jones"}}),
          N("women", L{N{"Mary Smith"}, N{"Susan Williams"}})
      }
-),
+);
 
-C("map of seqs, next line without space",
+ADD_CASE_TO_GROUP("map of seqs, next line without space",
 R"(
 men:
   -
@@ -189,9 +177,9 @@ women:
          N("men", L{N{"John Smith"}, N{"Bill Jones"}}),
          N("women", L{N{"Mary Smith"}, N{"Susan Williams"}})
      }
-),
+);
 
-C("map of seqs, deal with unk",
+ADD_CASE_TO_GROUP("map of seqs, deal with unk",
 R"(
 skip_commits:
   files:
@@ -206,11 +194,8 @@ L{
     L{N("a"), N("b"), N("c"), N("d"), N("e")}
   )}),
 }
-),
-    )
+);
 }
-
-INSTANTIATE_GROUP(MAP_OF_SEQ)
 
 } // namespace yml
 } // namespace c4

@@ -3,33 +3,77 @@
 namespace c4 {
 namespace yml {
 
-#define EMPTY_FILE_CASES \
-    "empty0-nochars", \
-    "empty0-multiline", \
-    "empty0-multiline-with-comments"
-
 
 CASE_GROUP(EMPTY_FILE)
 {
-    APPEND_CASES(
-C("empty0-nochars",
+
+ADD_CASE_TO_GROUP("empty0-nochars",
 "",
-NOTYPE),
-
-C("empty0-multiline", R"(
+NOTYPE);
 
 
-)", NOTYPE),
+ADD_CASE_TO_GROUP("empty0-multiline", R"(
 
-C("empty0-multiline-with-comments", R"(
+
+)", NOTYPE);
+
+
+ADD_CASE_TO_GROUP("empty0-multiline with spaces", R"(
+
+    
+     
+      
+
+
+)", NOTYPE);
+
+
+ADD_CASE_TO_GROUP("empty0-multiline with spaces and tabs", R"(
+
+    
+   		  
+      
+		
+
+
+)", NOTYPE);
+
+
+ADD_CASE_TO_GROUP("empty0-multiline-with-comments 0", R"(
 # well hello sir, I see you are fine
 # very fine thank you
 # send my very best wishes
-)", NOTYPE),
-        );
-}
+)", NOTYPE);
 
-INSTANTIATE_GROUP(EMPTY_FILE)
+ADD_CASE_TO_GROUP("empty0-multiline-with-comments 1", R"(
+
+
+
+# well hello sir, I see you are fine
+# very fine thank you
+# send my very best wishes
+
+
+
+)", NOTYPE);
+
+ADD_CASE_TO_GROUP("empty0-multiline-with-comments 1", R"(
+
+      
+    		
+
+# well hello sir, I see you are fine
+# very fine thank you
+# send my very best wishes
+
+
+    		
+      
+
+
+)", NOTYPE);
+
+}
 
 } // namespace yml
 } // namespace c4

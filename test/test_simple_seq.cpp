@@ -91,66 +91,31 @@ TEST(simple_seq, missing_quoted_key)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-#define SIMPLE_SEQ_CASES                                        \
-"simple seq",                                                   \
-"simple seq, explicit, single line",                            \
-"simple seq, explicit, single line, trailcomma",                \
-"simple seq, explicit, multiline, unindented",                  \
-"simple seq, explicit, multiline, unindented, trailcomma",      \
-"simple seq, explicit, multiline, comments inline",             \
-"simple seq, explicit, multiline, comments prev line",          \
-"simple seq, explicit, multiline, indented",                    \
-"simple seq, comments inline",                                  \
-"simple seq, comments prev line",                               \
-"simple seq, scalars with special chars, comma",                \
-"simple seq, scalars with special chars, colon",                \
-"simple seq, scalars with special chars, cardinal",             \
-"simple seq, scalars with special chars, dash",                 \
-"simple seq, scalars with special chars, left-bracket",         \
-"simple seq, scalars with special chars, right-bracket",        \
-"simple seq, scalars with special chars, left-curly",           \
-"simple seq, scalars with special chars, right-curly",          \
-"simple seq expl, scalars with special chars, comma",           \
-"simple seq expl, scalars with special chars, colon",           \
-"simple seq expl, scalars with special chars, colon 2",         \
-"simple seq expl, scalars with special chars, cardinal",        \
-"simple seq expl, scalars with special chars, dash",            \
-"simple seq expl, scalars with special chars, left-bracket",    \
-"simple seq expl, scalars with special chars, right-bracket",   \
-"simple seq expl, scalars with special chars, left-curly",      \
-"simple seq expl, scalars with special chars, right-curly",     \
-"simple seq, issue 28",                                         \
-"simple seq, invalid character 1",                              \
-"simple seq, invalid character 2",                              \
-"simple seq, invalid character 3",                              \
-"simple seq, invalid character 4"
-
 
 CASE_GROUP(SIMPLE_SEQ)
 {
-    APPEND_CASES(
 
-C("simple seq",
+ADD_CASE_TO_GROUP("simple seq",
 R"(- 0
 - 1
 - 2
 - 3
 )",
 L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
-),
+);
 
 
-C("simple seq, explicit, single line",
+ADD_CASE_TO_GROUP("simple seq, explicit, single line",
 "[0, 1, 2, 3]",
 L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
-),
+);
 
-C("simple seq, explicit, single line, trailcomma",
+ADD_CASE_TO_GROUP("simple seq, explicit, single line, trailcomma",
 "[0, 1, 2, 3,]",
 L{N{"0"}, N{"1"}, N{"2"}, N{"3"},}
-),
+);
 
-C("simple seq, explicit, multiline, unindented",
+ADD_CASE_TO_GROUP("simple seq, explicit, multiline, unindented",
 R"([
 0,
 1,
@@ -158,9 +123,9 @@ R"([
 3
 ])",
     L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
-),
+);
 
-C("simple seq, explicit, multiline, unindented, trailcomma",
+ADD_CASE_TO_GROUP("simple seq, explicit, multiline, unindented, trailcomma",
 R"([
 0,
 1,
@@ -168,9 +133,9 @@ R"([
 3,
 ])",
     L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
-),
+);
 
-C("simple seq, explicit, multiline, comments inline",
+ADD_CASE_TO_GROUP("simple seq, explicit, multiline, comments inline",
 R"([
 0,  # bla0
 1,  # bla1
@@ -178,9 +143,9 @@ R"([
 3   # bla3
 ])",
     L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
-),
+);
 
-C("simple seq, explicit, multiline, comments prev line",
+ADD_CASE_TO_GROUP("simple seq, explicit, multiline, comments prev line",
 R"([
 # bla0
 0,
@@ -192,9 +157,9 @@ R"([
 3
 ])",
     L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
-),
+);
 
-C("simple seq, explicit, multiline, indented",
+ADD_CASE_TO_GROUP("simple seq, explicit, multiline, indented",
 R"([
   0,
   1,
@@ -202,9 +167,9 @@ R"([
   3
 ])",
     L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
-),
+);
 
-C("simple seq, comments inline",
+ADD_CASE_TO_GROUP("simple seq, comments inline",
 R"(
 - 0   # this is a foo
 - 1   # this is a bar
@@ -212,9 +177,9 @@ R"(
 - 3   # this is a bar
 )",
     L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
-),
+);
 
-C("simple seq, comments prev line",
+ADD_CASE_TO_GROUP("simple seq, comments prev line",
 R"(
 # this is a foo
 - 0
@@ -226,9 +191,9 @@ R"(
 - 3
 )",
     L{N{"0"}, N{"1"}, N{"2"}, N{"3"}}
-),
+);
 
-C("simple seq, scalars with special chars, comma",
+ADD_CASE_TO_GROUP("simple seq, scalars with special chars, comma",
 R"(
 - a,b
 - c,d
@@ -248,9 +213,9 @@ L{N{"a,b"}, N{"c,d"}, N{"e,f"},
   N{"a , b"}, N{"c , d"}, N{"e , f"},
   N{"a ,b"}, N{"c ,d"}, N{"e ,f"},
     }
-),
+);
 
-C("simple seq, scalars with special chars, colon",
+ADD_CASE_TO_GROUP("simple seq, scalars with special chars, colon",
 R"(
 - a:b
 - "c:d"
@@ -271,9 +236,9 @@ L{
   N(L{N("a", "b")}), N(QV, "c : d"), N(QV, "e : f"),
   N(L{N("a", "b")}), N(QV, "c: d"), N(QV, "e: f"),
     }
-),
+);
 
-C("simple seq, scalars with special chars, cardinal",
+ADD_CASE_TO_GROUP("simple seq, scalars with special chars, cardinal",
 R"(
 - a#b
 - "a#b"
@@ -294,9 +259,9 @@ L{
   N{"a"}, N{QV, "a # b"}, N{QV, "a # b"},
   N{"a"}, N{QV, "a #b"}, N{QV, "a #b"},
     }
-),
+);
 
-C("simple seq, scalars with special chars, dash",
+ADD_CASE_TO_GROUP("simple seq, scalars with special chars, dash",
 R"(
 - a-b
 - "a-b"
@@ -317,9 +282,9 @@ L{
  N{"a - b"}, N{QV, "a - b"}, N{QV, "a - b"},
  N{"a -b"},  N{QV, "a -b"},  N{QV, "a -b"},
     }
-),
+);
 
-C("simple seq, scalars with special chars, left-curly",
+ADD_CASE_TO_GROUP("simple seq, scalars with special chars, left-curly",
 R"(
 - a{b
 - "a{b"
@@ -340,9 +305,9 @@ L{
   N{"a { b"}, N{QV, "a { b"}, N{QV, "a { b"},
   N{"a {b"},  N{QV, "a {b"},  N{QV, "a {b"},
     }
-),
+);
 
-C("simple seq, scalars with special chars, right-curly",
+ADD_CASE_TO_GROUP("simple seq, scalars with special chars, right-curly",
 R"(
 - a}b
 - "a}b"
@@ -363,9 +328,9 @@ L{
   N{"a } b"}, N{QV, "a } b"}, N{QV, "a } b"},
   N{"a }b"},  N{QV, "a }b"},  N{QV, "a }b"},
     }
-),
+);
 
-C("simple seq, scalars with special chars, left-bracket",
+ADD_CASE_TO_GROUP("simple seq, scalars with special chars, left-bracket",
 R"(
 - a[b
 - "a[b"
@@ -386,9 +351,9 @@ L{
   N{"a [ b"}, N{QV, "a [ b"}, N{QV, "a [ b"},
   N{"a [b"},  N{QV, "a [b"},  N{QV, "a [b"},
     }
-),
+);
 
-C("simple seq, scalars with special chars, right-bracket",
+ADD_CASE_TO_GROUP("simple seq, scalars with special chars, right-bracket",
 R"(
 - a]b
 - "a]b"
@@ -409,9 +374,9 @@ L{
   N{"a ] b"}, N{QV, "a ] b"}, N{QV, "a ] b"},
   N{"a ]b"},  N{QV, "a ]b"},  N{QV, "a ]b"},
     }
-),
+);
 
-C("simple seq expl, scalars with special chars, comma",
+ADD_CASE_TO_GROUP("simple seq expl, scalars with special chars, comma",
 R"([
  a,b,  "c,d",   'e,f',
  a, b,  "c, d",   'e, f',
@@ -424,9 +389,9 @@ L{
   N{"a"}, N("b"), N(QV, "c , d"), N(QV, "e , f"),
   N{"a"}, N("b"), N(QV, "c ,d"),  N(QV, "e ,f"),
     }
-),
+);
 
-C("simple seq expl, scalars with special chars, colon",
+ADD_CASE_TO_GROUP("simple seq expl, scalars with special chars, colon",
 R"(
 - [[], :@]
 - [[], :%]
@@ -445,9 +410,9 @@ L{
    N(L{N(SEQ), N(":	")}),
    N(L{N(SEQ), N(":`")}),
 }
-),
+);
 
-C("simple seq expl, scalars with special chars, colon 2",
+ADD_CASE_TO_GROUP("simple seq expl, scalars with special chars, colon 2",
 R"([
 # a:b,  # not legal
   "c:d",   'e:f',
@@ -464,9 +429,9 @@ L{/*...not legal...*/
   /*N{"a"}, N("b"),*/ N(QV, "c : d"), N(QV, "e : f"),
   /*N{"a"}, N("b"),*/ N(QV, "c :d"),  N(QV, "e :f"),
     }
-),
+);
 
-C("simple seq expl, scalars with special chars, cardinal",
+ADD_CASE_TO_GROUP("simple seq expl, scalars with special chars, cardinal",
 R"([
  a#b, "c#d",   'e#f',
  a# b, "c# d",   'e# f',
@@ -480,9 +445,9 @@ L{
   N{"a"},
   N{"a"},
     }
-),
+);
 
-C("simple seq expl, scalars with special chars, dash",
+ADD_CASE_TO_GROUP("simple seq expl, scalars with special chars, dash",
 R"([
  a-b, "c-d",   'e-f',
  a- b, "c- d",   'e- f',
@@ -495,9 +460,9 @@ L{
   N{"a - b"}, N(QV, "c - d"), N(QV, "e - f"),
   N{"a -b"},  N(QV, "c -d"),  N(QV, "e -f"),
     }
-),
+);
 
-C("simple seq expl, scalars with special chars, left-bracket",
+ADD_CASE_TO_GROUP("simple seq expl, scalars with special chars, left-bracket",
 R"([
 # a[b,
    "c[d",   'e[f',
@@ -514,9 +479,9 @@ L{
   /*N{"a [ b"},*/ N(QV, "c [ d"), N(QV, "e [ f"),
   /*N{"a [b"}, */ N(QV, "c [d"),  N(QV, "e [f"),
     }
-),
+);
 
-C("simple seq expl, scalars with special chars, right-bracket",
+ADD_CASE_TO_GROUP("simple seq expl, scalars with special chars, right-bracket",
 R"([
 # a]b,
    "c]d",   'e]f',
@@ -533,9 +498,9 @@ L{
   /*N{"a ] b"},*/ N(QV, "c ] d"), N(QV, "e ] f"),
   /*N{"a ]b"}, */ N(QV, "c ]d"),  N(QV, "e ]f"),
     }
-),
+);
 
-C("simple seq expl, scalars with special chars, left-curly",
+ADD_CASE_TO_GROUP("simple seq expl, scalars with special chars, left-curly",
 R"([
 # a{b,
    "c{d",   'e{f',
@@ -552,9 +517,9 @@ L{
   /*N{"a { b"},*/ N(QV, "c { d"), N(QV, "e { f"),
   /*N{"a {b"}, */ N(QV, "c {d"),  N(QV, "e {f"),
     }
-),
+);
 
-C("simple seq expl, scalars with special chars, right-curly",
+ADD_CASE_TO_GROUP("simple seq expl, scalars with special chars, right-curly",
 R"([
 # a}b,
    "c}d",   'e}f',
@@ -571,9 +536,9 @@ L{
   /*N{"a } b"},*/ N(QV, "c } d"), N(QV, "e } f"),
   /*N{"a }b"}, */ N(QV, "c }d"),  N(QV, "e }f"),
     }
-),
+);
 
-C("simple seq, issue 28",
+ADD_CASE_TO_GROUP("simple seq, issue 28",
 R"(# was failing on https://github.com/biojppm/rapidyaml/issues/28
 enemy:
 - actors:
@@ -611,41 +576,36 @@ L{
      N("species", "BokoblinSeries"),
      })
    }),
-}),
+});
 
-C("simple seq, invalid character 1", EXPECT_PARSE_ERROR,
+ADD_CASE_TO_GROUP("simple seq, invalid character 1", EXPECT_PARSE_ERROR,
 R"(- 0   # this is a foo
 }
 )",
   LineCol(2, 1)
-),
+);
 
-C("simple seq, invalid character 2", EXPECT_PARSE_ERROR,
+ADD_CASE_TO_GROUP("simple seq, invalid character 2", EXPECT_PARSE_ERROR,
 R"(- 0   # this is a foo
 ]
 )",
   LineCol(2, 1)
-),
+);
 
-C("simple seq, invalid character 3", EXPECT_PARSE_ERROR,
+ADD_CASE_TO_GROUP("simple seq, invalid character 3", EXPECT_PARSE_ERROR,
 R"(- 0   # this is a foo
 :
 )",
   LineCol(2, 1)
-),
+);
 
-C("simple seq, invalid character 4", EXPECT_PARSE_ERROR,
+ADD_CASE_TO_GROUP("simple seq, invalid character 4", EXPECT_PARSE_ERROR,
 R"(- 0   # this is a foo
 abcdef!
 )",
   LineCol(2, 1)
-),
-
-
-    )
+);
 }
-
-INSTANTIATE_GROUP(SIMPLE_SEQ)
 
 } // namespace yml
 } // namespace c4

@@ -88,32 +88,11 @@ TEST(explicit_key, test_suite_NJ66)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-#define EXPLICIT_KEY_CASES                       \
-"explicit key, ambiguity 2EBW",                  \
-"explicit key, ambiguity 2EBW, expl",            \
-"explicit key, ambiguity 2EBW, impl seq",        \
-"explicit key, ambiguity 2EBW, expl seq",        \
-"explicit key with line break in between",       \
-"explicit key 2nd, inside explicit map",         \
-"explicit key 1st, inside explicit map",         \
-"explicit key 2nd",                              \
-"explicit key 1st",                              \
-"explicit key nested in a map, 1st",             \
-"explicit key nested in a seq, 1st",             \
-"explicit block key, literal, clip",             \
-"explicit block key, literal, keep",             \
-"explicit block key, literal, strip",            \
-"explicit block key, folded, clip",              \
-"explicit block key, folded, keep",              \
-"explicit block key, folded, strip",             \
-"explicit key, missing val 7W2P ZWK4"            \
-
 
 CASE_GROUP(EXPLICIT_KEY)
 {
-    APPEND_CASES(
 
-C("explicit key, ambiguity 2EBW",
+ADD_CASE_TO_GROUP("explicit key, ambiguity 2EBW",
 R"(
 a!"#$%&'()*+,-./09:;<=>?@AZ[\]^_`az{|}~: safe
 ?foo: safe question mark
@@ -127,9 +106,9 @@ L{
   N(":foo", "safe colon"),
   N("-foo", "safe dash"),
   N("this is#not", "a comment"),
-}),
+});
 
-C("explicit key, ambiguity 2EBW, expl",
+ADD_CASE_TO_GROUP("explicit key, ambiguity 2EBW, expl",
 R"({
   a!"#$%&'()*+-./09:;<=>?@AZ[\]^_`az{|~: safe,
   ?foo: safe question mark,
@@ -143,9 +122,9 @@ L{
   N(":foo", "safe colon"),
   N("-foo", "safe dash"),
   N("this is#not", "a comment"),
-}),
+});
 
-C("explicit key, ambiguity 2EBW, impl seq",
+ADD_CASE_TO_GROUP("explicit key, ambiguity 2EBW, impl seq",
 R"(
 - a!"#$%&'()*+,-./09:;<=>?@AZ[\]^_`az{|}~
 - ?foo
@@ -159,9 +138,9 @@ L{
   N(":foo"),
   N("-foo"),
   N("this is#not:a comment"),
-}),
+});
 
-C("explicit key, ambiguity 2EBW, expl seq",
+ADD_CASE_TO_GROUP("explicit key, ambiguity 2EBW, expl seq",
 R"([
   a!"#$%&'()*+-./09:;<=>?@AZ[\^_`az{|}~,
   ?foo,
@@ -175,17 +154,17 @@ L{
   N(":foo"),
   N("-foo"),
   N("this is#not:a comment"),
-}),
+});
 
-C("explicit key with line break in between",
+ADD_CASE_TO_GROUP("explicit key with line break in between",
 R"(
 ? an explicit key
 : its value
 )",
   L{N("an explicit key", "its value")}
-),
+);
 
-C("explicit key 2nd, inside explicit map",
+ADD_CASE_TO_GROUP("explicit key 2nd, inside explicit map",
 R"(
 {
     a simple key: a value,
@@ -196,9 +175,9 @@ R"(
       N("a simple key", "a value"),
       N("an explicit key", "another value"),
   }
-),
+);
 
-C("explicit key 1st, inside explicit map",
+ADD_CASE_TO_GROUP("explicit key 1st, inside explicit map",
 R"(
 {
     ? an explicit key: another value,
@@ -209,9 +188,9 @@ R"(
       N("an explicit key", "another value"),
       N("a simple key", "a value"),
   }
-),
+);
 
-C("explicit key 2nd",
+ADD_CASE_TO_GROUP("explicit key 2nd",
 R"(
 a simple key: a value
 ? an explicit key: another value
@@ -220,9 +199,9 @@ a simple key: a value
       N("a simple key", "a value"),
       N("an explicit key", "another value"),
   }
-),
+);
 
-C("explicit key 1st",
+ADD_CASE_TO_GROUP("explicit key 1st",
 R"(
 ? an explicit key: another value
 a simple key: a value
@@ -231,9 +210,9 @@ a simple key: a value
       N("an explicit key", "another value"),
       N("a simple key", "a value"),
   }
-),
+);
 
-C("explicit key nested in a map, 1st",
+ADD_CASE_TO_GROUP("explicit key nested in a map, 1st",
 R"(
 map:
   ? an explicit key: another value
@@ -247,9 +226,9 @@ map:
       }),
       N("an explicit key deindented", "its value")
    }
-),
+);
 
-C("explicit key nested in a seq, 1st",
+ADD_CASE_TO_GROUP("explicit key nested in a seq, 1st",
 R"(
 - ? an explicit key: another value
   a simple key: a value
@@ -262,9 +241,9 @@ R"(
       }),
       N(L{N("another explicit key", "its value")})
    }
-),
+);
 
-C("explicit block key, literal, clip",
+ADD_CASE_TO_GROUP("explicit block key, literal, clip",
 R"(? |
     This is a key
     that has multiple lines
@@ -274,9 +253,9 @@ R"(? |
   L{
       N(QK, "This is a key\nthat has multiple lines\n", "and this is its value")
    }
-),
+);
 
-C("explicit block key, literal, keep",
+ADD_CASE_TO_GROUP("explicit block key, literal, keep",
 R"(? |+
     This is a key
     that has multiple lines
@@ -286,9 +265,9 @@ R"(? |+
   L{
       N(QK, "This is a key\nthat has multiple lines\n\n", "and this is its value")
    }
-),
+);
 
-C("explicit block key, literal, strip",
+ADD_CASE_TO_GROUP("explicit block key, literal, strip",
 R"(? |-
     This is a key
     that has multiple lines
@@ -298,9 +277,9 @@ R"(? |-
   L{
       N(QK, "This is a key\nthat has multiple lines", "and this is its value")
    }
-),
+);
 
-C("explicit block key, folded, clip",
+ADD_CASE_TO_GROUP("explicit block key, folded, clip",
 R"(? >
     This is a key
     that has multiple lines
@@ -310,9 +289,9 @@ R"(? >
   L{
       N(QK, "This is a key that has multiple lines\n", "and this is its value")
    }
-),
+);
 
-C("explicit block key, folded, keep",
+ADD_CASE_TO_GROUP("explicit block key, folded, keep",
 R"(? >+
     This is a key
     that has multiple lines
@@ -322,9 +301,9 @@ R"(? >+
   L{
       N(QK, "This is a key that has multiple lines\n\n", "and this is its value")
    }
-),
+);
 
-C("explicit block key, folded, strip",
+ADD_CASE_TO_GROUP("explicit block key, folded, strip",
 R"(? >-
     This is a key
     that has multiple lines
@@ -334,9 +313,9 @@ R"(? >-
   L{
       N(QK, "This is a key that has multiple lines", "and this is its value")
    }
-),
+);
 
-C("explicit key, missing val 7W2P ZWK4",
+ADD_CASE_TO_GROUP("explicit key, missing val 7W2P ZWK4",
 R"(--- # 7W2P
 ? a
 ? b
@@ -368,12 +347,8 @@ a: 1
               N(KEYVAL, "f", {}),
           }),
   })
-    )
-
-  )
+    );
 }
-
-INSTANTIATE_GROUP(EXPLICIT_KEY)
 
 } // namespace yml
 } // namespace c4

@@ -139,42 +139,24 @@ TEST(seq_of_map, missing_scalars_v3)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-#define SEQ_OF_MAP_CASES                                \
-    "seq of empty maps, one line",                      \
-    "seq of maps, one line",                            \
-    "seq of maps, implicit seq, explicit maps",         \
-    "seq of maps",                                      \
-    "seq of maps, next line",                           \
-    "seq of maps, bug #32 ex1",                         \
-    "seq of maps, bug #32 ex2",                         \
-    "seq of maps, bug #32 ex3",                         \
-    "seq of maps, implicit map in seq",                 \
-  /* JAVAI #209                                         \
-    "seq of maps, implicit map in seq, missing scalar", \
-  */                                                    \
-    "seq of maps, implicit with anchors, unresolved",   \
-    "seq of maps, implicit with anchors, resolved",     \
-    "seq of maps, implicit with tags"
-
 
 CASE_GROUP(SEQ_OF_MAP)
 {
-    APPEND_CASES(
 
-C("seq of empty maps, one line",
+ADD_CASE_TO_GROUP("seq of empty maps, one line",
 R"([{}, {}, {}])",
   L{MAP, MAP, MAP}
-),
+);
 
-C("seq of maps, one line",
+ADD_CASE_TO_GROUP("seq of maps, one line",
 R"([{name: John Smith, age: 33}, {name: Mary Smith, age: 27}])",
   L{
       N{L{N("name", "John Smith"), N("age", "33")}},
       N{L{N("name", "Mary Smith"), N("age", "27")}}
   }
-),
+);
 
-C("seq of maps, implicit seq, explicit maps",
+ADD_CASE_TO_GROUP("seq of maps, implicit seq, explicit maps",
 R"(
 - {name: John Smith, age: 33}
 - {name: Mary Smith, age: 27}
@@ -183,9 +165,9 @@ R"(
       N{L{N("name", "John Smith"), N("age", "33")}},
       N{L{N("name", "Mary Smith"), N("age", "27")}}
   }
-),
+);
 
-C("seq of maps",
+ADD_CASE_TO_GROUP("seq of maps",
 R"(
 - name: John Smith
   age: 33
@@ -196,9 +178,9 @@ R"(
       N{L{N("name", "John Smith"), N("age", "33")}},
       N{L{N("name", "Mary Smith"), N("age", "27")}}
   }
-),
+);
 
-C("seq of maps, next line",
+ADD_CASE_TO_GROUP("seq of maps, next line",
 R"(
 - 
   name:
@@ -215,9 +197,9 @@ R"(
       N{L{N("name", "John Smith"), N("age", "33")}},
       N{L{N("name", "Mary Smith"), N("age", "27")}}
   }
-),
+);
 
-C("seq of maps, bug #32 ex1",
+ADD_CASE_TO_GROUP("seq of maps, bug #32 ex1",
 R"(
 - 'a': 1
   b: 2
@@ -225,9 +207,9 @@ R"(
   L{
       N{L{N(QK, "a", "1"), N("b", "2")}}
   }
-),
+);
 
-C("seq of maps, bug #32 ex2",
+ADD_CASE_TO_GROUP("seq of maps, bug #32 ex2",
 R"(
 - a: 1
   b: 2
@@ -244,9 +226,9 @@ R"(
       N{L{N("b", "2"), N(QK, "a", "1"), N("c", "3")}},
       N{L{N(QK, "a", "1"), N("b", "2")}},
   }
-),
+);
 
-C("seq of maps, bug #32 ex3",
+ADD_CASE_TO_GROUP("seq of maps, bug #32 ex3",
 R"(
 'a': 1
 b: 2
@@ -255,10 +237,10 @@ b: 2
 )",
 L{
     N(QK, "a", "1"), N("b", "2"), N("b", "2"), N(QK, "a", "1"),
-}),
+});
 
 
-C("seq of maps, implicit map in seq",
+ADD_CASE_TO_GROUP("seq of maps, implicit map in seq",
 R"('implicit block key' : [
   'implicit flow key 1' : value1,
   'implicit flow key 2' : value2,
@@ -272,10 +254,10 @@ L{N(KEYSEQ|KEYQUO, "implicit block key", L{
   N(L{N(KEYVAL|KEYQUO, "implicit flow key 3", "value3")}),
   N(L{N(KEYMAP|KEYQUO, "implicit flow key m", L{N("key1", "val1"), N("key2", "val2")})}),
   N(L{N(KEYSEQ|KEYQUO, "implicit flow key s", L{N("val1"), N("val2")})}),
-})}),
+})});
 
 /* TODO JAVAI 209
-C("seq of maps, implicit map in seq, missing scalar",
+ADD_CASE_TO_GROUP("seq of maps, implicit map in seq, missing scalar",
 R"({a : [
   : foo
 ],
@@ -292,10 +274,10 @@ L{
   N("a", L{N(MAP, L{N("", "foo")}),}),
   N("b", L{N(MAP, L{N("", "foo")}),}),
   N("c", L{N(MAP, L{N(KEYVAL, "", {})}), N(MAP, L{N(KEYVAL, "", {})}),}),
-}),
+});
 */
 
-C("seq of maps, implicit with anchors, unresolved",
+ADD_CASE_TO_GROUP("seq of maps, implicit with anchors, unresolved",
 R"(
 - &a1 a1: v1
   &a2 a2: v2
@@ -307,9 +289,9 @@ R"(
 L{
   N(L{N( "a1", AR(KEYANCH, "a1"), "v1"), N( "a2", AR(KEYANCH, "a2"), "v2"), N( "a3", AR(KEYANCH, "a3"), "v3")}),
   N(L{N("*a1", AR(KEYREF, "*a1"), "w1"), N("*a2", AR(KEYREF, "*a2"), "w2"), N("*a3", AR(KEYREF, "*a3"), "w3")}),
-}),
+});
 
-C("seq of maps, implicit with anchors, resolved", RESOLVE_REFS,
+ADD_CASE_TO_GROUP("seq of maps, implicit with anchors, resolved", RESOLVE_REFS,
 R"(
 - &a1 a1: v1
   &a2 a2: v2
@@ -321,10 +303,10 @@ R"(
 L{
   N(L{N("a1", "v1"), N("a2", "v2"), N("a3", "v3")}),
   N(L{N("a1", "w1"), N("a2", "w2"), N("a3", "w3")}),
-}),
+});
 
 
-C("seq of maps, implicit with tags",
+ADD_CASE_TO_GROUP("seq of maps, implicit with tags",
 R"(
 - !!str a1: v1
   !!str a2: v2
@@ -340,13 +322,8 @@ L{
   N(L{N(TS("!!str", "a1"), "v1"), N(TS("!!str", "a2"), "v2"), N(TS("!!str", "a3"), "v3")}),
   N(L{N("a1", TS("!!str", "w1")), N("a2", TS("!!str", "w2")), N("a3", TS("!!str", "w3"))}),
   N(L{N(TS("!foo", "a1"), "v1"), N(TS("!foo", "a2"), "v2"), N(TS("!foo", "a3"), "v3")}),
-}),
-
-
-    )
+});
 }
-
-INSTANTIATE_GROUP(SEQ_OF_MAP)
 
 } // namespace yml
 } // namespace c4

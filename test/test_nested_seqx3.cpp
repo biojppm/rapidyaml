@@ -4,18 +4,10 @@ namespace c4 {
 namespace yml {
 
 
-#define NESTED_SEQX3_CASES \
-"nested seq x3, explicit", \
-"nested seq x3", \
-"nested seq x3, continued on next line", \
-"nested seq x3, all continued on next line"
-
-
 CASE_GROUP(NESTED_SEQX3)
 {
-    APPEND_CASES(
 
-C("nested seq x3, explicit",
+ADD_CASE_TO_GROUP("nested seq x3, explicit",
 R"([
 [[000, 001, 002], [010, 011, 012], [020, 021, 022]],
 [[100, 101, 102], [110, 111, 112], [120, 121, 122]],
@@ -26,9 +18,9 @@ R"([
       N{L{N{L{N{"100"}, N{"101"}, N{"102"}}}, N{L{N{"110"}, N{"111"}, N{"112"}}}, N{L{N{"120"}, N{"121"}, N{"122"}}}}},
       N{L{N{L{N{"200"}, N{"201"}, N{"202"}}}, N{L{N{"210"}, N{"211"}, N{"212"}}}, N{L{N{"220"}, N{"221"}, N{"222"}}}}},
           }
-),
+);
 
-C("nested seq x3",
+ADD_CASE_TO_GROUP("nested seq x3",
 R"(
 - - - 000
     - 001
@@ -63,9 +55,9 @@ R"(
       N{L{N{L{N{"100"}, N{"101"}, N{"102"}}}, N{L{N{"110"}, N{"111"}, N{"112"}}}, N{L{N{"120"}, N{"121"}, N{"122"}}}}},
       N{L{N{L{N{"200"}, N{"201"}, N{"202"}}}, N{L{N{"210"}, N{"211"}, N{"212"}}}, N{L{N{"220"}, N{"221"}, N{"222"}}}}},
           }
-),
+);
 
-C("nested seq x3, continued on next line",
+ADD_CASE_TO_GROUP("nested seq x3, continued on next line",
 R"(
 -
   -
@@ -112,9 +104,9 @@ R"(
       N{L{N{L{N{"100"}, N{"101"}, N{"102"}}}, N{L{N{"110"}, N{"111"}, N{"112"}}}, N{L{N{"120"}, N{"121"}, N{"122"}}}}},
       N{L{N{L{N{"200"}, N{"201"}, N{"202"}}}, N{L{N{"210"}, N{"211"}, N{"212"}}}, N{L{N{"220"}, N{"221"}, N{"222"}}}}},
           }
-),
+);
 
-C("nested seq x3, all continued on next line",
+ADD_CASE_TO_GROUP("nested seq x3, all continued on next line",
 R"(
 -
   -
@@ -188,11 +180,8 @@ R"(
       N{L{N{L{N{"100"}, N{"101"}, N{"102"}}}, N{L{N{"110"}, N{"111"}, N{"112"}}}, N{L{N{"120"}, N{"121"}, N{"122"}}}}},
       N{L{N{L{N{"200"}, N{"201"}, N{"202"}}}, N{L{N{"210"}, N{"211"}, N{"212"}}}, N{L{N{"220"}, N{"221"}, N{"222"}}}}},
           }
-),
-    )
+);
 }
-
-INSTANTIATE_GROUP(NESTED_SEQX3)
 
 } // namespace yml
 } // namespace c4

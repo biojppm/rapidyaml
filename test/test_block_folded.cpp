@@ -613,38 +613,11 @@ TEST(block_folded, test_suite_W4TN)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-#define BLOCK_FOLDED_CASES \
-    "7T8X",                                            \
-    "block folded as seq val, implicit indentation 2", \
-    "block folded as map val, implicit indentation 2",\
-    "block folded as map val, implicit indentation 2, chomp=keep",\
-    "block folded as map val, implicit indentation 2, chomp=strip",\
-    "block folded as map val, implicit indentation 3",\
-    "block folded as map val, implicit indentation 4",\
-    "block folded as map val, implicit indentation 9",\
-    "block folded as map val, explicit indentation 2",\
-    "block folded as map val, explicit indentation 2, chomp=keep",\
-    "block folded as map val, explicit indentation 2, chomp=strip",\
-    "block folded as map val, explicit indentation 3",\
-    "block folded as map val, explicit indentation 4",\
-    "block folded as map val, explicit indentation 9",\
- /*\
-    "block folded with empty docval 1",\
-    "block folded with empty docval 2",\
-    "block folded with empty docval 3",\
-    "block folded with docval no newlines at end 1",\
-    "block folded with docval no newlines at end 2",\
-    "block folded with docval no newlines at end 3",\
-  */\
-    "block folded as map entry",\
-    "block folded, no chomp, no indentation"
-
 
 CASE_GROUP(BLOCK_FOLDED)
 {
-    APPEND_CASES(
 
-C("7T8X",
+ADD_CASE_TO_GROUP("7T8X",
 R"(- >
     
     folded
@@ -703,10 +676,10 @@ R"(- >
     N(QV, "\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n"),
     N(QV, "\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n"),
   }
-),
+);
 
 
-C("block folded as seq val, implicit indentation 2",
+ADD_CASE_TO_GROUP("block folded as seq val, implicit indentation 2",
 R"(
 - >
   Several lines of text,
@@ -722,9 +695,9 @@ R"(
     N(QV, "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
     N("another val")
   }
-),
+);
 
-C("block folded as map val, implicit indentation 2",
+ADD_CASE_TO_GROUP("block folded as map val, implicit indentation 2",
 R"(
 example: >
   Several lines of text,
@@ -740,9 +713,9 @@ another: val
     N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
     N("another", "val")
   }
-),
+);
 
-C("block folded as map val, implicit indentation 2, chomp=keep",
+ADD_CASE_TO_GROUP("block folded as map val, implicit indentation 2, chomp=keep",
 R"(
 example: >+
   Several lines of text,
@@ -758,9 +731,9 @@ another: val
     N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n\n\n"),
     N("another", "val")
   }
-),
+);
 
-C("block folded as map val, implicit indentation 2, chomp=strip",
+ADD_CASE_TO_GROUP("block folded as map val, implicit indentation 2, chomp=strip",
 R"(
 example: >-
   Several lines of text,
@@ -776,9 +749,9 @@ another: val
     N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end."),
     N("another", "val")
   }
-),
+);
 
-C("block folded as map val, explicit indentation 2",
+ADD_CASE_TO_GROUP("block folded as map val, explicit indentation 2",
 R"(
 example: >2
   Several lines of text,
@@ -794,9 +767,9 @@ another: val
     N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
     N("another", "val")
   }
-),
+);
 
-C("block folded as map val, explicit indentation 2, chomp=keep",
+ADD_CASE_TO_GROUP("block folded as map val, explicit indentation 2, chomp=keep",
 R"(
 example: >+2
   Several lines of text,
@@ -819,9 +792,9 @@ example2: >2+
     N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n\n\n"),
     N(QV, "example2", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n\n\n"),
   }
-),
+);
 
-C("block folded as map val, explicit indentation 2, chomp=strip",
+ADD_CASE_TO_GROUP("block folded as map val, explicit indentation 2, chomp=strip",
 R"(
 example: >-2
   Several lines of text,
@@ -844,9 +817,9 @@ example2: >2-
     N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end."),
     N(QV, "example2", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end."),
   }
-),
+);
 
-C("block folded as map val, implicit indentation 3",
+ADD_CASE_TO_GROUP("block folded as map val, implicit indentation 3",
 R"(
 example: >
    Several lines of text,
@@ -862,9 +835,9 @@ another: val
     N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
     N("another", "val")
   }
-),
+);
 
-C("block folded as map val, explicit indentation 3",
+ADD_CASE_TO_GROUP("block folded as map val, explicit indentation 3",
 R"(
 example: >3
    Several lines of text,
@@ -880,9 +853,9 @@ another: val
     N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
     N("another", "val")
   }
-),
+);
 
-C("block folded as map val, implicit indentation 4",
+ADD_CASE_TO_GROUP("block folded as map val, implicit indentation 4",
 R"(
 example: >
     Several lines of text,
@@ -898,9 +871,9 @@ another: val
     N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
     N("another", "val")
   }
-),
+);
 
-C("block folded as map val, explicit indentation 4",
+ADD_CASE_TO_GROUP("block folded as map val, explicit indentation 4",
 R"(
 example: >4
     Several lines of text,
@@ -916,9 +889,9 @@ another: val
     N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
     N("another", "val")
   }
-),
+);
 
-C("block folded as map val, implicit indentation 9",
+ADD_CASE_TO_GROUP("block folded as map val, implicit indentation 9",
 R"(
 example: >
          Several lines of text,
@@ -934,9 +907,9 @@ another: val
     N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
     N("another", "val")
   }
-),
+);
 
-C("block folded as map val, explicit indentation 9",
+ADD_CASE_TO_GROUP("block folded as map val, explicit indentation 9",
 R"(
 example: >9
          Several lines of text,
@@ -952,52 +925,52 @@ another: val
     N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
     N("another", "val")
   }
-),
+);
 
 /* TODO next #208 JAVAI
-C("block folded with empty docval 1",
+ADD_CASE_TO_GROUP("block folded with empty docval 1",
 R"(>)",
   N(DOCVAL, "")
-    ),
+    );
 
-C("block folded with empty docval 2",
+ADD_CASE_TO_GROUP("block folded with empty docval 2",
 R"(>
 )",
   N(DOCVAL, "")
-    ),
+    );
 
-C("block folded with empty docval 3",
+ADD_CASE_TO_GROUP("block folded with empty docval 3",
 R"(>
   
 )",
   N(DOCVAL, "")
-    ),
+    );
 
-C("block folded with docval no newlines at end 1",
+ADD_CASE_TO_GROUP("block folded with docval no newlines at end 1",
 R"(>
   asd
 )",
   N(DOCVAL, "asd\n")
-    ),
+    );
 
-C("block folded with docval no newlines at end 2",
+ADD_CASE_TO_GROUP("block folded with docval no newlines at end 2",
 R"(|
   asd
 
 )",
   N(DOCVAL, "asd\n")
-    ),
+    );
 
-C("block folded with docval no newlines at end 3",
+ADD_CASE_TO_GROUP("block folded with docval no newlines at end 3",
 R"(|
   asd
   
 )",
   N(DOCVAL, "asd\n")
-    ),
+    );
 */
 
-C("block folded as map entry",
+ADD_CASE_TO_GROUP("block folded as map entry",
 R"(
 data: >
    Wrapped text
@@ -1009,9 +982,9 @@ data: >
    paragraph breaks
 )",
   N(L{N(KEYVAL|VALQUO, "data", "Wrapped text will be folded into a single paragraph\nBlank lines denote paragraph breaks\n")})
-),
+);
 
-C("block folded, no chomp, no indentation",
+ADD_CASE_TO_GROUP("block folded, no chomp, no indentation",
 R"(example: >
   Several lines of text,
   with some "quotes" of various 'types',
@@ -1025,12 +998,8 @@ another: text
       N(KEYVAL|VALQUO, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
       N("another", "text"),
       })
-),
-
-    )
+);
 }
-
-INSTANTIATE_GROUP(BLOCK_FOLDED)
 
 } // namespace yml
 } // namespace c4
