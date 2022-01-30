@@ -2864,7 +2864,7 @@ void Parser::_push_level(bool explicit_flow_chars)
         //_RYML_CB_ASSERT(m_stack.m_callbacks,  ! explicit_flow_chars);
         return;
     }
-    size_t st = RUNK;
+    flag_t st = RUNK;
     if(explicit_flow_chars || has_all(EXPL))
     {
         st |= EXPL;
@@ -3312,7 +3312,7 @@ void Parser::_stop_seqimap()
 
 
 //-----------------------------------------------------------------------------
-NodeData* Parser::_append_val(csubstr val, bool quoted)
+NodeData* Parser::_append_val(csubstr val, flag_t quoted)
 {
     _RYML_CB_ASSERT(m_stack.m_callbacks,  ! has_all(SSCL));
     _RYML_CB_ASSERT(m_stack.m_callbacks, node(m_state) != nullptr);
@@ -3333,7 +3333,7 @@ NodeData* Parser::_append_val(csubstr val, bool quoted)
     return m_tree->get(nid);
 }
 
-NodeData* Parser::_append_key_val(csubstr val, bool val_quoted)
+NodeData* Parser::_append_key_val(csubstr val, flag_t val_quoted)
 {
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_map(m_state->node_id));
     type_bits additional_flags = 0;
@@ -3366,17 +3366,18 @@ NodeData* Parser::_append_key_val(csubstr val, bool val_quoted)
 
 
 //-----------------------------------------------------------------------------
-void Parser::_store_scalar(csubstr s, bool is_quoted)
+void Parser::_store_scalar(csubstr s, flag_t is_quoted)
 {
-    _c4dbgpf("state[%zd]: storing scalar '%.*s' (flag: %zd) (old scalar='%.*s')", m_state-m_stack.begin(), _c4prsp(s), m_state->flags & SSCL, _c4prsp(m_state->scalar));
+    _c4dbgpf("state[%zd]: storing scalar '%.*s' (flag: %d) (old scalar='%.*s')",
+             m_state-m_stack.begin(), _c4prsp(s), m_state->flags & SSCL, _c4prsp(m_state->scalar));
     RYML_CHECK(has_none(SSCL));
-    add_flags(SSCL | (is_quoted ? SSCL_QUO : 0));
+    add_flags(SSCL | (is_quoted * SSCL_QUO));
     m_state->scalar = s;
 }
 
 csubstr Parser::_consume_scalar()
 {
-    _c4dbgpf("state[%zd]: consuming scalar '%.*s' (flag: %zd))", m_state-m_stack.begin(), _c4prsp(m_state->scalar), m_state->flags & SSCL);
+    _c4dbgpf("state[%zd]: consuming scalar '%.*s' (flag: %d))", m_state-m_stack.begin(), _c4prsp(m_state->scalar), m_state->flags & SSCL);
     RYML_CHECK(m_state->flags & SSCL);
     csubstr s = m_state->scalar;
     rem_flags(SSCL | SSCL_QUO);
@@ -4675,7 +4676,7 @@ size_t Parser::_count_nlines(csubstr src)
 }
 
 //-----------------------------------------------------------------------------
-void Parser::set_flags(size_t f, State * s)
+void Parser::set_flags(flag_t f, State * s)
 {
 #ifdef RYML_DBG
     char buf1[64], buf2[64];
@@ -4686,7 +4687,7 @@ void Parser::set_flags(size_t f, State * s)
     s->flags = f;
 }
 
-void Parser::add_flags(size_t on, State * s)
+void Parser::add_flags(flag_t on, State * s)
 {
 #ifdef RYML_DBG
     char buf1[64], buf2[64], buf3[64];
@@ -4698,7 +4699,7 @@ void Parser::add_flags(size_t on, State * s)
     s->flags |= on;
 }
 
-void Parser::addrem_flags(size_t on, size_t off, State * s)
+void Parser::addrem_flags(flag_t on, flag_t off, State * s)
 {
 #ifdef RYML_DBG
     char buf1[64], buf2[64], buf3[64], buf4[64];
@@ -4712,7 +4713,7 @@ void Parser::addrem_flags(size_t on, size_t off, State * s)
     s->flags &= ~off;
 }
 
-void Parser::rem_flags(size_t off, State * s)
+void Parser::rem_flags(flag_t off, State * s)
 {
 #ifdef RYML_DBG
     char buf1[64], buf2[64], buf3[64];
@@ -4822,7 +4823,7 @@ int Parser::_fmt_msg(char *buf, int buflen, const char *fmt, va_list args) const
     return pos;
 }
 
-int Parser::_prfl(char *buf, int buflen, size_t v)
+int Parser::_prfl(char *buf, int buflen, flag_t flags)
 {
     int len = buflen;
     size_t slen = (size_t)buflen;
@@ -4831,7 +4832,7 @@ int Parser::_prfl(char *buf, int buflen, size_t v)
     bool gotone = false;
 
 #define _prflag(fl)                               \
-    if((v & fl) == (fl))                          \
+    if((flags & fl) == (fl))                      \
     {                                             \
         if(!gotone)                               \
         {                                         \

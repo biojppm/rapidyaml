@@ -262,6 +262,8 @@ private:
 
 private:
 
+    using flag_t = int;
+
     static size_t _estimate_capacity(csubstr src) { size_t c = _count_nlines(src); c = c >= 16 ? c : 16; return c; }
 
     void  _reset();
@@ -341,11 +343,11 @@ private:
     void  _start_new_doc(csubstr rem);
     void  _end_stream();
 
-    NodeData* _append_val(csubstr val, bool quoted=false);
-    NodeData* _append_key_val(csubstr val, bool val_quoted=false);
+    NodeData* _append_val(csubstr val, flag_t quoted=false);
+    NodeData* _append_key_val(csubstr val, flag_t val_quoted=false);
     bool  _rval_dash_start_or_continue_seq();
 
-    void  _store_scalar(csubstr s, bool is_quoted);
+    void  _store_scalar(csubstr s, flag_t is_quoted);
     csubstr _consume_scalar();
     void  _move_scalar_from_top();
 
@@ -366,7 +368,7 @@ private:
 
 private:
 
-    typedef enum {
+    typedef enum : flag_t {
         RTOP = 0x01 <<  0,   ///< reading at top level
         RUNK = 0x01 <<  1,   ///< reading an unknown: must determine whether scalar, map or seq
         RMAP = 0x01 <<  2,   ///< reading a map
@@ -422,7 +424,7 @@ private:
 
     struct State
     {
-        size_t       flags;
+        flag_t       flags;
         size_t       level;
         size_t       node_id; // don't hold a pointer to the node as it will be relocated during tree resizes
         csubstr      scalar;
@@ -481,23 +483,23 @@ private:
     inline NodeData * node(State const& s) const { return m_tree->get(s .node_id); }
     inline NodeData * node(size_t node_id) const { return m_tree->get(   node_id); }
 
-    inline bool has_all(size_t f) const { return (m_state->flags & f) == f; }
-    inline bool has_any(size_t f) const { return (m_state->flags & f) != 0; }
-    inline bool has_none(size_t f) const { return (m_state->flags & f) == 0; }
+    inline bool has_all(flag_t f) const { return (m_state->flags & f) == f; }
+    inline bool has_any(flag_t f) const { return (m_state->flags & f) != 0; }
+    inline bool has_none(flag_t f) const { return (m_state->flags & f) == 0; }
 
-    static inline bool has_all(size_t f, State const* s) { return (s->flags & f) == f; }
-    static inline bool has_any(size_t f, State const* s) { return (s->flags & f) != 0; }
-    static inline bool has_none(size_t f, State const* s) { return (s->flags & f) == 0; }
+    static inline bool has_all(flag_t f, State const* s) { return (s->flags & f) == f; }
+    static inline bool has_any(flag_t f, State const* s) { return (s->flags & f) != 0; }
+    static inline bool has_none(flag_t f, State const* s) { return (s->flags & f) == 0; }
 
-    inline void set_flags(size_t f) { set_flags(f, m_state); }
-    inline void add_flags(size_t on) { add_flags(on, m_state); }
-    inline void addrem_flags(size_t on, size_t off) { addrem_flags(on, off, m_state); }
-    inline void rem_flags(size_t off) { rem_flags(off, m_state); }
+    inline void set_flags(flag_t f) { set_flags(f, m_state); }
+    inline void add_flags(flag_t on) { add_flags(on, m_state); }
+    inline void addrem_flags(flag_t on, flag_t off) { addrem_flags(on, off, m_state); }
+    inline void rem_flags(flag_t off) { rem_flags(off, m_state); }
 
-    void set_flags(size_t f, State * s);
-    void add_flags(size_t on, State * s);
-    void addrem_flags(size_t on, size_t off, State * s);
-    void rem_flags(size_t off, State * s);
+    void set_flags(flag_t f, State * s);
+    void add_flags(flag_t on, State * s);
+    void addrem_flags(flag_t on, flag_t off, State * s);
+    void rem_flags(flag_t off, State * s);
 
     void _resize_filter_arena(size_t num_characters);
     void _grow_filter_arena(size_t num_characters);
@@ -520,7 +522,7 @@ private:
 #endif
     void _err(const char *msg, ...) const;
     int  _fmt_msg(char *buf, int buflen, const char *msg, va_list args) const;
-    static int  _prfl(char *buf, int buflen, size_t v);
+    static int  _prfl(char *buf, int buflen, flag_t v);
 
 private:
 
