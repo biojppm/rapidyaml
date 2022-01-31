@@ -70,12 +70,14 @@ TEST(block_literal, emit_does_not_add_lines_to_multi_at_end_1)
     r.append_child() = "\n\n";
     r.append_child() = "last";
     std::string out = emitrs<std::string>(t);
-    std::string expected = R"(- |+
-  
-  
-- |+
-  
-  
+    std::string expected = R"(- '
+
+
+'
+- '
+
+
+'
 - last
 )";
     EXPECT_EQ(out, expected);
@@ -183,6 +185,16 @@ TEST(block_literal, carriage_return)
     EXPECT_EQ(t["without"].val(), "text\n \tlines\n");
 }
 
+#ifdef JAVAI
+TEST(block_literal, errors_on_tab_indents)
+{
+    Tree tree;
+    ExpectError::do_check(&tree, [&]{
+        parse_in_arena("foo: |4\n    this is foo\n    now with tab-\n \t \tmust not work\n", &tree);
+    });
+}
+#endif
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -191,6 +203,60 @@ TEST(block_literal, carriage_return)
 
 CASE_GROUP(BLOCK_LITERAL)
 {
+
+ADD_CASE_TO_GROUP("block literal as map entry",
+R"(
+data: |
+   There once was a short man from Ealing
+   Who got on a bus to Darjeeling
+       It said on the door
+       "Please don't spit on the floor"
+   So he carefully spat on the ceiling
+)",
+  N(MAP, {
+     N(KEYVAL|VALQUO, "data", "There once was a short man from Ealing\nWho got on a bus to Darjeeling\n    It said on the door\n    \"Please don't spit on the floor\"\nSo he carefully spat on the ceiling\n")
+      })
+);
+
+ADD_CASE_TO_GROUP("block literal and two scalars",
+R"(
+example: >
+        HTML goes into YAML without modification
+message: |
+        <blockquote style="font: italic 12pt Times">
+        <p>"Three is always greater than two,
+           even for large values of two"</p>
+        <p>--Author Unknown</p>
+        </blockquote>
+date: 2007-06-01
+)",
+     N(MAP, L{
+          N(KEYVAL|VALQUO, "example", "HTML goes into YAML without modification\n"),
+          N(KEYVAL|VALQUO, "message", R"(<blockquote style="font: italic 12pt Times">
+<p>"Three is always greater than two,
+   even for large values of two"</p>
+<p>--Author Unknown</p>
+</blockquote>
+)"),
+          N("date", "2007-06-01"),
+              })
+);
+
+ADD_CASE_TO_GROUP("block literal no chomp, no indentation",
+R"(example: |
+  Several lines of text,
+  with some "quotes" of various 'types',
+  and also a blank line:
+
+  plus another line at the end.
+
+another: text
+)",
+     N(MAP, L{
+      N(KEYVAL|VALQUO, "example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
+      N("another", "text"),
+          })
+);
 
 ADD_CASE_TO_GROUP("block literal as seq val, implicit indentation 2",
 R"(
@@ -617,7 +683,7 @@ R"(|
   N(DOCVAL|VALQUO, "")
     );
 
-ADD_CASE_TO_GROUP("block literal with empty docval 10",
+ADD_CASE_TO_GROUP("block literal with empty docval 11",
 R"(|
  
   
@@ -626,17 +692,22 @@ R"(|
   N(DOCVAL|VALQUO, "")
     );
 
-ADD_CASE_TO_GROUP("block literal with empty docval 11",
+ADD_CASE_TO_GROUP("block literal with empty docval 12",
 R"(|
  
   
    
     
+     
+      
+    
+   
+ 
 )",
   N(DOCVAL|VALQUO, "")
     );
 
-ADD_CASE_TO_GROUP("block literal with empty docval 12",
+ADD_CASE_TO_GROUP("block literal with empty docval 13",
 R"(|
  
   
@@ -693,6 +764,42 @@ R"(|
   N(DOCVAL|VALQUO, "asd\n")
     );
 
+ADD_CASE_TO_GROUP("block literal with docval no newlines at end 5.1",
+R"(|
+       asd
+     
+   
+     
+  
+ 
+  )",
+  N(DOCVAL|VALQUO, "asd\n")
+    );
+
+ADD_CASE_TO_GROUP("block literal with docval no newlines at end 5.2",
+R"(|
+       asd
+     
+   
+       
+  
+ 
+  )",
+  N(DOCVAL|VALQUO, "asd\n")
+    );
+
+ADD_CASE_TO_GROUP("block literal with docval no newlines at end 5.3",
+R"(|
+       asd
+     
+   
+        
+  
+ 
+  )",
+  N(DOCVAL|VALQUO, "asd\n\n\n \n")
+    );
+
 ADD_CASE_TO_GROUP("block literal with docval no newlines at end 6",
 R"(|
      asd
@@ -723,59 +830,36 @@ R"(|
   N(DOCVAL|VALQUO, "asd\n  \n")
     );
 
-ADD_CASE_TO_GROUP("block literal as map entry",
-R"(
-data: |
-   There once was a short man from Ealing
-   Who got on a bus to Darjeeling
-       It said on the door
-       "Please don't spit on the floor"
-   So he carefully spat on the ceiling
+ADD_CASE_TO_GROUP("block literal with docval no newlines at end 10",
+R"(|
+     asd
+     	 )",
+  N(DOCVAL|VALQUO, "asd\n\t \n")
+    );
+
+ADD_CASE_TO_GROUP("block literal with docval no newlines at end 11",
+R"(|
+     asd
+      	 )",
+  N(DOCVAL|VALQUO, "asd\n \t \n")
+    );
+
+ADD_CASE_TO_GROUP("block literal with docval no newlines at end 12",
+R"(|
+     asd
+     	 
 )",
-  N(MAP, {
-     N(KEYVAL|VALQUO, "data", "There once was a short man from Ealing\nWho got on a bus to Darjeeling\n    It said on the door\n    \"Please don't spit on the floor\"\nSo he carefully spat on the ceiling\n")
-      })
-);
+  N(DOCVAL|VALQUO, "asd\n\t \n")
+    );
 
-ADD_CASE_TO_GROUP("block literal and two scalars",
-R"(
-example: >
-        HTML goes into YAML without modification
-message: |
-        <blockquote style="font: italic 12pt Times">
-        <p>"Three is always greater than two,
-           even for large values of two"</p>
-        <p>--Author Unknown</p>
-        </blockquote>
-date: 2007-06-01
+ADD_CASE_TO_GROUP("block literal with docval no newlines at end 13",
+R"(|
+     asd
+      	 
 )",
-     N(MAP, L{
-          N(KEYVAL|VALQUO, "example", "HTML goes into YAML without modification\n"),
-          N(KEYVAL|VALQUO, "message", R"(<blockquote style="font: italic 12pt Times">
-<p>"Three is always greater than two,
-   even for large values of two"</p>
-<p>--Author Unknown</p>
-</blockquote>
-)"),
-          N("date", "2007-06-01"),
-              })
-);
+  N(DOCVAL|VALQUO, "asd\n \t \n")
+    );
 
-ADD_CASE_TO_GROUP("block literal no chomp, no indentation",
-R"(example: |
-  Several lines of text,
-  with some "quotes" of various 'types',
-  and also a blank line:
-
-  plus another line at the end.
-
-another: text
-)",
-     N(MAP, L{
-      N(KEYVAL|VALQUO, "example", "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
-      N("another", "text"),
-          })
-);
 }
 
 

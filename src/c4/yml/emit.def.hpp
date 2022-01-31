@@ -457,7 +457,7 @@ void Emitter<Writer>::_write(NodeScalar const& C4_RESTRICT sc, NodeType flags, s
     auto style_marks = flags & (_WIP_KEY_STYLE|_WIP_VAL_STYLE);
     if(!style_marks)
     {
-        if(sc.scalar.begins_with_any(" \t") || (sc.scalar.first_of('\n') == npos))
+        if(sc.scalar.begins_with_any(" \t") || (sc.scalar.first_of('\n') == npos) || sc.scalar.trim("\n").empty())
             _write_scalar(sc.scalar, flags.is_quoted());
         else
             _write_scalar_literal(sc.scalar, ilevel, flags.has_key());
@@ -614,7 +614,7 @@ void Emitter<Writer>::_write_scalar_squo(csubstr s, size_t ilevel)
         {
             csubstr sub = s.range(pos, i+1);
             this->Writer::_do_write(sub);  // write everything up to (including) this char
-            this->Writer::_do_write(s[i]); // write the character again
+            this->Writer::_do_write('\n'); // write the character again
             if(i + 1 < s.len)
                 _rymlindent_nextline()     // indent the next line
             pos = i+1;
@@ -623,16 +623,13 @@ void Emitter<Writer>::_write_scalar_squo(csubstr s, size_t ilevel)
         {
             csubstr sub = s.range(pos, i+1);
             this->Writer::_do_write(sub); // write everything up to (including) this char
-            this->Writer::_do_write(s[i]); // write the character again
+            this->Writer::_do_write('\''); // write the character again
             pos = i+1;
         }
     }
     // write missing characters at the end of the string
     if(pos < s.len)
-    {
-        csubstr sub = s.sub(pos);
-        this->Writer::_do_write(sub);
-    }
+        this->Writer::_do_write(s.sub(pos));
     this->Writer::_do_write('\'');
 }
 

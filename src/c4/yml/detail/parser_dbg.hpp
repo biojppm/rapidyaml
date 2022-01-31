@@ -45,7 +45,7 @@
 #define _c4prsp(sp) ((int)(sp).len), (sp).str
 #define _c4prc(c) (__c4prc(c) ? 2 : 1), (__c4prc(c) ? __c4prc(c) : &c)
 #define _c4presc(s) __c4presc(s.str, s.len)
-inline const char *__c4prc(const char &c)
+inline const char *__c4prc(const char c)
 {
     switch(c)
     {

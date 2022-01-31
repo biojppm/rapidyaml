@@ -4436,17 +4436,63 @@ csubstr Parser::_filter_dquot_scalar(substr s)
     return r;
 }
 
+
+//-----------------------------------------------------------------------------
+bool Parser::_apply_chomp(substr buf, size_t *C4_RESTRICT pos, BlockChomp_e chomp)
+{
+    substr trimmed = buf.first(*pos).trimr('\n');
+    bool added_newline = false;
+    switch(chomp)
+    {
+    case CHOMP_KEEP:
+        if(trimmed.len == *pos)
+        {
+            _c4dbgpf("chomp=KEEP: add missing newline @%zu", *pos);
+            m_filter_arena.str[(*pos)++] = '\n';
+            added_newline = true;
+        }
+        break;
+    case CHOMP_CLIP:
+        if(trimmed.len == *pos)
+        {
+            _c4dbgpf("chomp=CLIP: add missing newline @%zu", *pos);
+            m_filter_arena.str[(*pos)++] = '\n';
+            added_newline = true;
+        }
+        else
+        {
+            _c4dbgpf("chomp=CLIP: include single trailing newline @%zu", trimmed.len+1);
+            *pos = trimmed.len + 1;
+        }
+        break;
+    case CHOMP_STRIP:
+        _c4dbgpf("chomp=STRIP: strip %zu-%zu-%zu newlines", *pos, trimmed.len, *pos-trimmed.len);
+        *pos = trimmed.len;
+        break;
+    default:
+        _c4err("unknown chomp style");
+    }
+    return added_newline;
+}
+
+
 //-----------------------------------------------------------------------------
 csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e chomp, size_t indentation)
 {
     // a debugging scaffold:
-    #if 0
+    #if 0 || 1
     #define _c4dbgfbl(...) _c4dbgpf("filt_block" __VA_ARGS__)
     #else
     #define _c4dbgfbl(...)
     #endif
 
     _c4dbgfbl(": indentation=%zu before=[%zu]~~~%.*s~~~", indentation, s.len, _c4prsp(s));
+
+    if(s.trim(" \n\r\t").len == 0u)
+    {
+        _c4dbgp("filt_block: empty scalar");
+        return s.first(0);
+    }
 
     substr r = s;
 
@@ -4464,36 +4510,83 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
                         r = r.sub(indentation);
                     else
                         r = r.sub(numws);
+                    _c4dbgfbl(": after triml=[%zu]~~~%.*s~~~", r.len, _c4prsp(r));
+                }
+                else
+                {
+                    _c4dbgfbl(": all spaces %zu, return empty", r.len);
+                    return r.first(0);
                 }
             }
-            _c4dbgfbl(": after triml=[%zu]~~~%.*s~~~", r.len, _c4prsp(r));
-            _grow_filter_arena(r.len);
+            _grow_filter_arena(s.len + 2u);  // use s.len! because we may need to add a newline at the end, so the leading indentation will allow space for that newline
             size_t pos = 0; // the filtered size
             for(size_t i = 0; i < r.len; ++i)
             {
                 const char curr = r.str[i];
-                _c4dbgfbl("[%zu]='%.*s'", i, _c4prc(curr));
+                _c4dbgfbl("[%zu]='%.*s'  pos=%zu", i, _c4prc(curr), pos);
                 if(curr == '\r')
                     continue;
                 m_filter_arena.str[pos++] = curr;
                 if(curr == '\n')
                 {
-                    // skip indentation
-                    size_t first = r.first_not_of(' ', i+1);
+                    _c4dbgfbl("[%zu]: found newline", i);
+                    // skip indentation on the next line
+                    csubstr rem = r.sub(i+1);
+                    size_t first = rem.first_not_of(' ');
                     if(first != npos)
                     {
-                        first -= i+1;
-                        if(first > indentation)
-                            first = indentation;
-                        i += first;
+                        _RYML_CB_ASSERT(m_stack.m_callbacks, first < rem.len);
+                        _RYML_CB_ASSERT(m_stack.m_callbacks, i+1+first < r.len);
+                        _c4dbgfbl("[%zu]: %zu spaces follow before next nonws character @ [%zu]='%c'", i, first, i+1+first, rem.str[first]);
+                        if(first < indentation)
+                        {
+                            _c4dbgfbl("[%zu]: skip %zu<%zu spaces from indentation", i, first, indentation);
+                            i += first;
+                        }
+                        else
+                        {
+                            _c4dbgfbl("[%zu]: skip %zu spaces from indentation", i, indentation);
+                            i += indentation;
+                        }
+                    }
+                    else
+                    {
+                        _RYML_CB_ASSERT(m_stack.m_callbacks, i+1 <= r.len);
+                        first = rem.len;
+                        _c4dbgfbl("[%zu]: %zu spaces to the end", i, first);
+                        if(first)
+                        {
+                            if(first < indentation)
+                            {
+                                _c4dbgfbl("[%zu]: skip everything", i);
+                                --pos;
+                                break;
+                            }
+                            else
+                            {
+                                _c4dbgfbl("[%zu]: skip %zu spaces from indentation", i, indentation);
+                                i += indentation;
+                            }
+                        }
+                        else if(i+1 == r.len)
+                        {
+                            if(chomp == CHOMP_STRIP)
+                                --pos;
+                            break;
+                        }
                     }
                 }
             }
+            _RYML_CB_ASSERT(m_stack.m_callbacks, s.len >= pos);
+            _c4dbgfbl(": #filteredchars=%zd after=~~~%.*s~~~", s.len - r.len, _c4prsp(r));
+            bool changed = _apply_chomp(m_filter_arena, &pos, chomp);
             _RYML_CB_ASSERT(m_stack.m_callbacks, pos <= m_filter_arena.len);
-            if(pos < r.len)
+            _RYML_CB_ASSERT(m_stack.m_callbacks, pos <= s.len);
+            if(pos < r.len || changed)
             {
-                _finish_filter_arena(r, pos);
+                _finish_filter_arena(s, pos); // write into s
                 r.len = pos;
+                r.str = s.str;
             }
             break;
         }
@@ -4634,6 +4727,37 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
                     _finish_filter_arena(r, pos);
                     r.len = pos;
                 }
+                _RYML_CB_ASSERT(m_stack.m_callbacks, s.len >= r.len);
+                _c4dbgfbl(": #filteredchars=%zd after=~~~%.*s~~~", s.len - r.len, _c4prsp(r));
+                switch(chomp)
+                {
+                case CHOMP_KEEP: // nothing to do, keep everything
+                    _c4dbgp("filt_block: chomp=KEEP (+)");
+                    break;
+                case CHOMP_STRIP: // strip all newlines from the end
+                {
+                    _c4dbgp("filt_block: chomp=STRIP (-)");
+                    r = r.trimr("\n\r");
+                    break;
+                }
+                case CHOMP_CLIP: // clip to a single newline (the default)
+                {
+                    _c4dbgp("filt_block: chomp=CLIP");
+                    size_t j = r.last_not_of("\n\r");
+                    if(j != npos)
+                    {
+                        ++j; // this is the character before \n, so add one to put it at \n
+                        if(j < r.len && r[j] == '\r')
+                            ++j;
+                        if(j < r.len && r[j] == '\n')
+                            ++j;
+                        r = r.first(j);
+                    }
+                    break;
+                }
+                default:
+                    _c4err("unknown chomp style");
+                }
             }
         }
         break;
@@ -4641,40 +4765,7 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
         _c4err("unknown block style");
     }
 
-    _RYML_CB_ASSERT(m_stack.m_callbacks, s.len >= r.len);
-    _c4dbgfbl(": #filteredchars=%zd after=~~~%.*s~~~", s.len - r.len, _c4prsp(r));
-
-    switch(chomp)
-    {
-    case CHOMP_KEEP: // nothing to do, keep everything
-        _c4dbgp("filt_block: chomp=KEEP (+)");
-        break;
-    case CHOMP_STRIP: // strip all newlines from the end
-    {
-        _c4dbgp("filt_block: chomp=STRIP (-)");
-        r = r.trimr("\n\r");
-        break;
-    }
-    case CHOMP_CLIP: // clip to a single newline (the default)
-    {
-        _c4dbgp("filt_block: chomp=CLIP");
-        size_t i = r.last_not_of("\n\r");
-        if(i != npos)
-        {
-            ++i; // this is the character before \n, so add one to put it at \n
-            if(i < r.len && r[i] == '\r')
-                ++i;
-            if(i < r.len && r[i] == '\n')
-                ++i;
-            r = r.first(i);
-        }
-        break;
-    }
-    default:
-        _c4err("unknown chomp style");
-    }
-
-    _c4dbgfbl("filt_block: final=[%zu]~~~%.*s~~~", r.len, _c4prsp(r));
+    _c4dbgfbl(": final=[%zu]~~~%.*s~~~", r.len, _c4prsp(r));
 
     #undef _c4dbgfbl
 
@@ -4918,8 +5009,15 @@ void Parser::_resize_filter_arena(size_t num_characters)
 
 void Parser::_finish_filter_arena(substr filtered, size_t pos)
 {
-    _RYML_CB_ASSERT(m_stack.m_callbacks, pos <= filtered.len);
-    memcpy(filtered.str, m_filter_arena.str, pos);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, pos <= m_filter_arena.len);
+    if(pos <= filtered.len)
+    {
+        memcpy(filtered.str, m_filter_arena.str, pos);
+    }
+    else
+    {
+        _RYML_CB_CHECK(m_stack.m_callbacks, false);
+    }
 }
 
 

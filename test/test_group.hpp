@@ -4,6 +4,7 @@
 
 #include "./test_case.hpp"
 #include "c4/span.hpp"
+#include <algorithm>
 
 #if defined(_MSC_VER)
 #   pragma warning(push)
@@ -82,6 +83,7 @@ constexpr const NodeType_e QKV = (NodeType_e)(VAL | KEYQUO | VALQUO);
 
 
 #define CASE_GROUP(group_name)                                          \
+                                                                        \
 /* fwd declaration to fill the container with cases */                  \
 void add_cases_##group_name(std::vector<Case> *group_cases);            \
                                                                         \
@@ -99,8 +101,16 @@ std::vector<csubstr> const& get_case_names_##group_name()               \
 {                                                                       \
     static std::vector<csubstr> case_names_##group_name;                \
     if(case_names_##group_name.empty())                                 \
+    {                                                                   \
         for(auto const& c : get_cases_##group_name())                   \
             case_names_##group_name.emplace_back(c.name);               \
+        /* check repetitions */                                         \
+        std::vector<csubstr> cp = case_names_##group_name;              \
+        std::sort(cp.begin(), cp.end());                                \
+        for(size_t i = 0; i+1 < cp.size(); ++i)                         \
+            if(cp[i] == cp[i+1])                                        \
+                C4_ERROR("duplicate case name: '%.*s'", _c4prsp(cp[i])); \
+    }                                                                   \
     return case_names_##group_name;                                     \
 }                                                                       \
                                                                         \

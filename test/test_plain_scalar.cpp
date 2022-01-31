@@ -254,7 +254,7 @@ tabs
 
 CASE_GROUP(PLAIN_SCALAR)
 {
-
+//
 ADD_CASE_TO_GROUP("plain scalar, 1 word only",
 R"(a_single_word_scalar_to_test)",
   N(DOCVAL, "a_single_word_scalar_to_test")
@@ -605,7 +605,7 @@ R"(
 
 ADD_CASE_TO_GROUP("plain scalar, indented first line",
 R"(
-- Several lines of text, empty next -
+- Several lines of text,
  
   with special:characters, like:this-or-this -
   - and some "quotes" of various 'types'.
@@ -620,7 +620,7 @@ R"(
   - and some "quotes" of various 'types'.
 )",
   L{
-      N("Several lines of text, with special:characters, like:this-or-this - - and some \"quotes\" of various 'types'."),
+      N("Several lines of text,\nwith special:characters, like:this-or-this - - and some \"quotes\" of various 'types'."),
       N("Several lines of text, with special:characters, like:this-or-this - - and some \"quotes\" of various 'types'."),
       N("Several lines of text, with special:characters, like:this-or-this - - and some \"quotes\" of various 'types'."),
   }

@@ -302,6 +302,7 @@ private:
     bool    _filter_nl(substr scalar, size_t *C4_RESTRICT pos, size_t *C4_RESTRICT filter_arena_pos, size_t indentation);
     template<bool keep_trailing_whitespace>
     void    _filter_ws(substr scalar, size_t *C4_RESTRICT pos, size_t *C4_RESTRICT filter_arena_pos);
+    bool    _apply_chomp(substr buf, size_t *C4_RESTRICT pos, BlockChomp_e chomp);
 
     void  _handle_finished_file();
     void  _handle_line();

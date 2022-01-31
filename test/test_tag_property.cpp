@@ -668,36 +668,7 @@ R"({
 ivar: !!int 0,
 svar: !!str 0,
 !!str key: !!int val
-}
-)",
-    L{
-      N("ivar", TS("!!int", "0")),
-      N("svar", TS("!!str", "0")),
-      N(TS("!!str", "key"), TS("!!int", "val"))
-    }
-);
-
-ADD_CASE_TO_GROUP("tag property in explicit map, usr tags",
-R"({
-ivar: !int 0,
-svar: !str 0,
-!str key: !int val
-}
-)",
-    L{
-      N("ivar", TS("!int", "0")),
-      N("svar", TS("!str", "0")),
-      N(TS("!str", "key"), TS("!int", "val"))
-    }
-);
-
-ADD_CASE_TO_GROUP("tag property in explicit map, std tags",
-R"({
-ivar: !!int 0,
-svar: !!str 0,
-!!str key: !!int val
-}
-)",
+})",
     L{
       N("ivar", TS("!!int", "0")),
       N("svar", TS("!!str", "0")),

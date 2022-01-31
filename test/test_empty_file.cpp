@@ -57,7 +57,7 @@ ADD_CASE_TO_GROUP("empty0-multiline-with-comments 1", R"(
 
 )", NOTYPE);
 
-ADD_CASE_TO_GROUP("empty0-multiline-with-comments 1", R"(
+ADD_CASE_TO_GROUP("empty0-multiline-with-comments 2", R"(
 
       
     		

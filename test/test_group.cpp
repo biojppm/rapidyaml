@@ -7,7 +7,7 @@
 #include <fstream>
 #include <stdexcept>
 
-#define RYML_NFO (1 || RYML_DBG)
+#define RYML_NFO (RYML_DBG || 0)
 
 //-----------------------------------------------------------------------------
 namespace c4 {
@@ -38,17 +38,20 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
         return;
     }
 
+    cd->parsed_tree.clear();
     parse_in_place(cd->src, &cd->parsed_tree);
-    {
-        SCOPED_TRACE("checking tree invariants of unresolved parsed tree");
-        test_invariants(cd->parsed_tree);
-    }
+
     #ifdef RYML_NFO
     std::cout << "REF TREE:\n";
     print_tree(c->root);
     std::cout << "PARSED TREE:\n";
     print_tree(cd->parsed_tree);
     #endif
+
+    {
+        SCOPED_TRACE("checking tree invariants of unresolved parsed tree");
+        test_invariants(cd->parsed_tree);
+    }
     {
         SCOPED_TRACE("checking node invariants of unresolved parsed tree");
         test_invariants(cd->parsed_tree.rootref());
