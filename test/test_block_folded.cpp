@@ -2,6 +2,20 @@
 
 namespace c4 {
 namespace yml {
+    
+TEST(block_folded, basic)
+{
+    Tree t = parse_in_arena(R"(- >
+hello
+there
+
+got it
+
+
+really
+)");
+    EXPECT_EQ(t[0].val(), csubstr("hello there\ngot it\n\nreally\n"));
+}
 
 TEST(block_folded, empty_block0)
 {
@@ -13,7 +27,7 @@ TEST(block_folded, empty_block0)
     EXPECT_EQ(t[0].val(), csubstr(""));
     t = parse_in_arena(R"(- >+
 )");
-    EXPECT_EQ(t[0].val(), csubstr(""));
+    EXPECT_EQ(t[0].val(), csubstr("\n"));
 }
 
 TEST(block_folded, empty_block)
@@ -283,7 +297,7 @@ TEST(block_folded, test_suite_6VJK)
         EXPECT_EQ(t[3].val(), csubstr("Sammy Sosa completed another fine season with great stats.\n\n\n  63 Home Runs\n  0.288 Batting Average\n\n\nWhat a year!\n"));
         EXPECT_EQ(t[4].val(), csubstr("Sammy Sosa completed another fine season with great stats.\n\n\n\n  63 Home Runs\n  0.288 Batting Average\n\n\n\nWhat a year!\n"));
         EXPECT_EQ(t[5].val(), csubstr("No folding needed"));
-        EXPECT_EQ(t[6].val(), csubstr("No folding needed"));
+        EXPECT_EQ(t[6].val(), csubstr("No folding needed\n"));
     });
 }
 
@@ -927,48 +941,6 @@ another: val
   }
 );
 
-/* TODO next #208 JAVAI
-ADD_CASE_TO_GROUP("block folded with empty docval 1",
-R"(>)",
-  N(DOCVAL, "")
-    );
-
-ADD_CASE_TO_GROUP("block folded with empty docval 2",
-R"(>
-)",
-  N(DOCVAL, "")
-    );
-
-ADD_CASE_TO_GROUP("block folded with empty docval 3",
-R"(>
-  
-)",
-  N(DOCVAL, "")
-    );
-
-ADD_CASE_TO_GROUP("block folded with docval no newlines at end 1",
-R"(>
-  asd
-)",
-  N(DOCVAL, "asd\n")
-    );
-
-ADD_CASE_TO_GROUP("block folded with docval no newlines at end 2",
-R"(|
-  asd
-
-)",
-  N(DOCVAL, "asd\n")
-    );
-
-ADD_CASE_TO_GROUP("block folded with docval no newlines at end 3",
-R"(|
-  asd
-  
-)",
-  N(DOCVAL, "asd\n")
-    );
-*/
 
 ADD_CASE_TO_GROUP("block folded as map entry",
 R"(
@@ -999,6 +971,314 @@ another: text
       N("another", "text"),
       })
 );
+
+ADD_CASE_TO_GROUP("block folded with empty docval 1",
+R"(>)",
+  N(DOCVAL|VALQUO, "")
+    );
+
+ADD_CASE_TO_GROUP("block folded with empty docval 2",
+R"(>
+)",
+  N(DOCVAL|VALQUO, "")
+    );
+
+ADD_CASE_TO_GROUP("block folded with empty docval 3",
+R"(>
+  )",
+  N(DOCVAL|VALQUO, "")
+    );
+
+ADD_CASE_TO_GROUP("block folded with empty docval 4",
+R"(>
+  
+)",
+  N(DOCVAL|VALQUO, "")
+    );
+
+ADD_CASE_TO_GROUP("block folded with empty docval 5",
+R"(>
+    
+)",
+  N(DOCVAL|VALQUO, "")
+    );
+
+ADD_CASE_TO_GROUP("block folded with empty docval 6",
+R"(>
+       	  )",
+  N(DOCVAL|VALQUO, "")
+    );
+
+ADD_CASE_TO_GROUP("block folded with empty docval 7",
+R"(>
+       	  
+)",
+  N(DOCVAL|VALQUO, "")
+    );
+
+ADD_CASE_TO_GROUP("block folded with empty docval 8",
+R"(>
+
+
+)",
+  N(DOCVAL|VALQUO, "")
+    );
+
+ADD_CASE_TO_GROUP("block folded with empty docval 9",
+R"(>
+
+
+
+)",
+  N(DOCVAL|VALQUO, "")
+    );
+
+ADD_CASE_TO_GROUP("block folded with empty docval 10",
+R"(>
+
+
+
+
+)",
+  N(DOCVAL|VALQUO, "")
+    );
+
+ADD_CASE_TO_GROUP("block folded with empty docval 11",
+R"(>
+ 
+  
+   
+    )",
+  N(DOCVAL|VALQUO, "")
+    );
+
+ADD_CASE_TO_GROUP("block folded with empty docval 12",
+R"(>
+ 
+  
+   
+    
+     
+      
+    
+   
+ 
+)",
+  N(DOCVAL|VALQUO, "")
+    );
+
+ADD_CASE_TO_GROUP("block folded with empty docval 13",
+R"(>
+ 
+  
+
+   
+
+    
+
+)",
+  N(DOCVAL|VALQUO, "")
+    );
+
+ADD_CASE_TO_GROUP("block folded with docval no newlines at end 0",
+R"(>
+  asd)",
+  N(DOCVAL|VALQUO, "asd\n")
+    );
+
+ADD_CASE_TO_GROUP("block folded with docval no newlines at end 1",
+R"(>
+  asd
+)",
+  N(DOCVAL|VALQUO, "asd\n")
+    );
+
+ADD_CASE_TO_GROUP("block folded with docval no newlines at end 2",
+R"(>
+  asd
+
+)",
+  N(DOCVAL|VALQUO, "asd\n")
+    );
+
+ADD_CASE_TO_GROUP("block folded with docval no newlines at end 3",
+R"(>
+  asd
+  )",
+  N(DOCVAL|VALQUO, "asd\n")
+    );
+
+ADD_CASE_TO_GROUP("block folded with docval no newlines at end 4",
+R"(>
+  asd
+  
+  )",
+  N(DOCVAL|VALQUO, "asd\n")
+    );
+
+ADD_CASE_TO_GROUP("block folded with docval no newlines at end 5",
+R"(>
+     asd
+   
+  )",
+  N(DOCVAL|VALQUO, "asd\n")
+    );
+
+ADD_CASE_TO_GROUP("block folded with docval no newlines at end 5.1",
+R"(>
+       asd
+     
+   
+     
+  
+ 
+  )",
+  N(DOCVAL|VALQUO, "asd\n")
+    );
+
+ADD_CASE_TO_GROUP("block folded with docval no newlines at end 5.2",
+R"(>
+       asd
+     
+   
+       
+  
+ 
+  )",
+  N(DOCVAL|VALQUO, "asd\n")
+    );
+
+ADD_CASE_TO_GROUP("block folded with docval no newlines at end 5.3",
+R"(>
+       asd
+     
+   
+        
+  
+ 
+  )",
+  N(DOCVAL|VALQUO, "asd\n\n\n \n")
+    );
+
+ADD_CASE_TO_GROUP("block folded with docval no newlines at end 6",
+R"(>
+     asd
+      )",
+  N(DOCVAL|VALQUO, "asd\n \n")
+    );
+
+ADD_CASE_TO_GROUP("block folded with docval no newlines at end 7",
+R"(>
+     asd
+      
+)",
+  N(DOCVAL|VALQUO, "asd\n \n")
+    );
+
+ADD_CASE_TO_GROUP("block folded with docval no newlines at end 8",
+R"(>
+     asd
+       )",
+  N(DOCVAL|VALQUO, "asd\n  \n")
+    );
+
+ADD_CASE_TO_GROUP("block folded with docval no newlines at end 9",
+R"(>
+     asd
+       
+)",
+  N(DOCVAL|VALQUO, "asd\n  \n")
+    );
+
+ADD_CASE_TO_GROUP("block folded with docval no newlines at end 10",
+R"(>
+     asd
+     	 )",
+  N(DOCVAL|VALQUO, "asd\n\t \n")
+    );
+
+ADD_CASE_TO_GROUP("block folded with docval no newlines at end 11",
+R"(>
+     asd
+      	 )",
+  N(DOCVAL|VALQUO, "asd\n \t \n")
+    );
+
+ADD_CASE_TO_GROUP("block folded with docval no newlines at end 12",
+R"(>
+     asd
+     	 
+)",
+  N(DOCVAL|VALQUO, "asd\n\t \n")
+    );
+
+ADD_CASE_TO_GROUP("block folded with docval no newlines at end 13",
+R"(>
+     asd
+      	 
+)",
+  N(DOCVAL|VALQUO, "asd\n \t \n")
+    );
+
+
+ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 0",
+R"(>+)",
+  N(DOCVAL|VALQUO, "\n")
+    );
+
+ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 1",
+R"(>+
+)",
+  N(DOCVAL|VALQUO, "\n")
+    );
+
+ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 1.1",
+R"(>+
+ )",
+  N(DOCVAL|VALQUO, "\n")
+    );
+
+ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 2",
+R"(>+
+
+)",
+  N(DOCVAL|VALQUO, "\n\n")
+    );
+
+ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 2.1",
+R"(>+
+
+ )",
+  N(DOCVAL|VALQUO, "\n\n")
+    );
+
+ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 3",
+R"(>+
+
+
+)",
+  N(DOCVAL|VALQUO, "\n\n\n")
+    );
+
+ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 4",
+R"(>+
+
+
+
+)",
+  N(DOCVAL|VALQUO, "\n\n\n\n")
+    );
+
+ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 5",
+R"(>+
+
+
+
+
+)",
+  N(DOCVAL|VALQUO, "\n\n\n\n\n")
+    );
+
 }
 
 } // namespace yml

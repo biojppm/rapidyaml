@@ -504,7 +504,7 @@ private:
 
     void _resize_filter_arena(size_t num_characters);
     void _grow_filter_arena(size_t num_characters);
-    void _finish_filter_arena(substr filtered, size_t pos);
+    substr _finish_filter_arena(substr dst, size_t pos);
 
     void _prepare_locations() const;         // only changes mutable members
     void _resize_locations(size_t sz) const; // only changes mutable members
