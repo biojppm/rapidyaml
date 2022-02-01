@@ -86,6 +86,28 @@ TEST(simple_seq, missing_quoted_key)
     });
 }
 
+TEST(simple_seq, deeply_nested_to_cover_parse_stack_resizes)
+{
+    csubstr yaml = R"(
+[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[0, 1, 2, 3, 4, 5, 6, 7]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
+)";
+    Tree t = parse_in_arena(yaml);
+    size_t id = t.root_id();
+    while(t.has_children(id))
+        id = t.first_child(id);
+    ASSERT_TRUE(t.ref(id).has_parent());
+    NodeRef seq = t.ref(id).parent();
+    ASSERT_TRUE(seq.is_seq());
+    EXPECT_EQ(seq[0], "0");
+    EXPECT_EQ(seq[1], "1");
+    EXPECT_EQ(seq[2], "2");
+    EXPECT_EQ(seq[3], "3");
+    EXPECT_EQ(seq[4], "4");
+    EXPECT_EQ(seq[5], "5");
+    EXPECT_EQ(seq[6], "6");
+    EXPECT_EQ(seq[7], "7");
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

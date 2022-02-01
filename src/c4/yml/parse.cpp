@@ -2858,7 +2858,7 @@ void Parser::_write_val_anchor(size_t node_id)
 //-----------------------------------------------------------------------------
 void Parser::_push_level(bool explicit_flow_chars)
 {
-    _c4dbgpf("pushing level! currnode=%zd  currlevel=%zd", m_state->node_id, m_state->level);
+    _c4dbgpf("pushing level! currnode=%zd  currlevel=%zd stacksize=%zu stackcap=%zu", m_state->node_id, m_state->level, m_stack.size(), m_stack.capacity());
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_state == &m_stack.top());
     if(node(m_state) == nullptr)
     {
@@ -2871,7 +2871,7 @@ void Parser::_push_level(bool explicit_flow_chars)
     {
         st |= EXPL;
     }
-    m_stack.push(*m_state);
+    m_stack.push_top();
     m_state = &m_stack.top();
     set_flags(st);
     m_state->node_id = (size_t)NONE;

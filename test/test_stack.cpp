@@ -774,6 +774,62 @@ TEST(stack, reserve_capacity)
     test_reserve<20>();
 }
 
+
+template<size_t N, int NumTimes>
+void grow_to_large__push()
+{
+    istack<N> s;
+    int ni = (int)N;
+    for(int i = 0; i < NumTimes * ni; ++i)
+    {
+        s.push(i);
+        if(i < ni)
+            EXPECT_EQ(s.m_stack, s.m_buf) << i;
+        else
+            EXPECT_NE(s.m_stack, s.m_buf) << i;
+    }
+    for(int i = 0; i < NumTimes * ni; ++i)
+    {
+        EXPECT_EQ(s.bottom((size_t)i), i);
+    }
+}
+
+TEST(stack, push_to_large_twice)
+{
+    grow_to_large__push<10, 8>();
+    grow_to_large__push<20, 8>();
+    grow_to_large__push<32, 8>();
+}
+
+template<size_t N, int NumTimes>
+void grow_to_large__push_top()
+{
+    istack<N> s;
+    int ni = (int)N;
+    s.push(0);
+    for(int i = 1; i < NumTimes * ni; ++i)
+    {
+        s.push_top();
+        EXPECT_EQ(s.top(), i-1) << i;
+        s.top() = i;
+        if(i < ni)
+            EXPECT_EQ(s.m_stack, s.m_buf) << i;
+        else
+            EXPECT_NE(s.m_stack, s.m_buf) << i;
+    }
+    for(int i = 0; i < NumTimes * ni; ++i)
+    {
+        EXPECT_EQ(s.bottom((size_t)i), i);
+    }
+}
+
+TEST(stack, push_top_to_large_twice)
+{
+    grow_to_large__push_top<10, 8>();
+    grow_to_large__push_top<20, 8>();
+    grow_to_large__push_top<32, 8>();
+}
+
 } // namespace detail
 } // namespace yml
 } // namespace c4
