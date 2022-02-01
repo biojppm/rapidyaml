@@ -35,71 +35,75 @@ size_t _num_leaves(Tree const& t, size_t node)
 }
 
 
-void test_compare(Tree const& a, Tree const& b)
+void test_compare(Tree const& actual, Tree const& expected)
 {
-    ASSERT_EQ(a.empty(), b.empty());
-    if(a.empty() || b.empty())
+    ASSERT_EQ(actual.empty(), expected.empty());
+    if(actual.empty() || expected.empty())
         return;
-    EXPECT_EQ(a.size(), b.size());
-    EXPECT_EQ(_num_leaves(a, a.root_id()), _num_leaves(b, b.root_id()));
-    test_compare(a, a.root_id(), b, b.root_id(), 0);
+    EXPECT_EQ(actual.size(), expected.size());
+    EXPECT_EQ(_num_leaves(actual, actual.root_id()), _num_leaves(expected, expected.root_id()));
+    test_compare(actual, actual.root_id(), expected, expected.root_id(), 0);
 }
 
 
-void test_compare(Tree const& a, size_t node_a,
-     Tree const& b, size_t node_b,
+void test_compare(Tree const& actual, size_t node_actual,
+     Tree const& expected, size_t node_expected,
      size_t level)
 {
-    ASSERT_NE(node_a, (size_t)NONE);
-    ASSERT_NE(node_b, (size_t)NONE);
-    ASSERT_LT(node_a, a.capacity());
-    ASSERT_LT(node_b, b.capacity());
+    #define _MORE_INFO "actual=" << node_actual << " vs expected=" << node_expected
 
-    EXPECT_EQ((type_bits)a.type(node_a), (type_bits)b.type(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
+    ASSERT_NE(node_actual, (size_t)NONE);
+    ASSERT_NE(node_expected, (size_t)NONE);
+    ASSERT_LT(node_actual, actual.capacity());
+    ASSERT_LT(node_expected, expected.capacity());
 
-    EXPECT_EQ(a.has_key(node_a), b.has_key(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
-    if(a.has_key(node_a) && b.has_key(node_b))
+    EXPECT_EQ((type_bits)(actual.type(node_actual)&_TYMASK), (type_bits)(expected.type(node_expected)&_TYMASK)) << _MORE_INFO;
+
+    EXPECT_EQ(actual.has_key(node_actual), expected.has_key(node_expected)) << _MORE_INFO;
+    if(actual.has_key(node_actual) && expected.has_key(node_expected))
     {
-        EXPECT_EQ(a.key(node_a), b.key(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
+        EXPECT_EQ(actual.key(node_actual), expected.key(node_expected)) << _MORE_INFO;
     }
 
-    EXPECT_EQ(a.has_val(node_a), b.has_val(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
-    if(a.has_val(node_a) && b.has_val(node_b))
+    EXPECT_EQ(actual.has_val(node_actual), expected.has_val(node_expected)) << _MORE_INFO;
+    if(actual.has_val(node_actual) && expected.has_val(node_expected))
     {
-        EXPECT_EQ(a.val(node_a), b.val(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
+        EXPECT_EQ(actual.val(node_actual), expected.val(node_expected)) << _MORE_INFO;
     }
 
-    EXPECT_EQ(a.has_key_tag(node_a), b.has_key_tag(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
-    if(a.has_key_tag(node_a) && b.has_key_tag(node_b))
+    EXPECT_EQ(actual.has_key_tag(node_actual), expected.has_key_tag(node_expected)) << _MORE_INFO;
+    if(actual.has_key_tag(node_actual) && expected.has_key_tag(node_expected))
     {
-        EXPECT_EQ(a.key_tag(node_a), b.key_tag(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
+        EXPECT_EQ(actual.key_tag(node_actual), expected.key_tag(node_expected)) << _MORE_INFO;
     }
 
-    EXPECT_EQ(a.has_val_tag(node_a), b.has_val_tag(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
-    if(a.has_val_tag(node_a) && b.has_val_tag(node_b))
+    EXPECT_EQ(actual.has_val_tag(node_actual), expected.has_val_tag(node_expected)) << _MORE_INFO;
+    if(actual.has_val_tag(node_actual) && expected.has_val_tag(node_expected))
     {
-        EXPECT_EQ(a.val_tag(node_a), b.val_tag(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
+        EXPECT_EQ(actual.val_tag(node_actual), expected.val_tag(node_expected)) << _MORE_INFO;
     }
 
-    EXPECT_EQ(a.has_key_anchor(node_a), b.has_key_anchor(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
-    if(a.has_key_anchor(node_a) && b.has_key_anchor(node_b))
+    EXPECT_EQ(actual.has_key_anchor(node_actual), expected.has_key_anchor(node_expected)) << _MORE_INFO;
+    if(actual.has_key_anchor(node_actual) && expected.has_key_anchor(node_expected))
     {
-        EXPECT_EQ(a.key_anchor(node_a), b.key_anchor(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
+        EXPECT_EQ(actual.key_anchor(node_actual), expected.key_anchor(node_expected)) << _MORE_INFO;
     }
 
-    EXPECT_EQ(a.has_val_anchor(node_a), b.has_val_anchor(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
-    if(a.has_val_anchor(node_a) && b.has_val_anchor(node_b))
+    EXPECT_EQ(actual.has_val_anchor(node_actual), expected.has_val_anchor(node_expected)) << _MORE_INFO;
+    if(actual.has_val_anchor(node_actual) && expected.has_val_anchor(node_expected))
     {
-        EXPECT_EQ(a.val_anchor(node_a), b.val_anchor(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
+        EXPECT_EQ(actual.val_anchor(node_actual), expected.val_anchor(node_expected)) << _MORE_INFO;
     }
 
-    EXPECT_EQ(a.num_children(node_a), b.num_children(node_b)) << "id_a=" << node_a << " vs id_b=" << node_b;
-    for(size_t ia = a.first_child(node_a), ib = b.first_child(node_b);
+    EXPECT_EQ(actual.num_children(node_actual), expected.num_children(node_expected)) << _MORE_INFO;
+    for(size_t ia = actual.first_child(node_actual), ib = expected.first_child(node_expected);
         ia != NONE && ib != NONE;
-        ia = a.next_sibling(ia), ib = b.next_sibling(ib))
+        ia = actual.next_sibling(ia), ib = expected.next_sibling(ib))
     {
-        test_compare(a, ia, b, ib, level+1);
+        test_compare(actual, ia, expected, ib, level+1);
     }
+
+    #undef _MORE_INFO
 }
 
 void test_arena_not_shared(Tree const& a, Tree const& b)

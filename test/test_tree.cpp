@@ -2766,26 +2766,28 @@ TEST(NodeRef, 0_general)
 
     emit(t);
 
-    EXPECT_EQ((type_bits)root.type(), (type_bits)MAP);
-    EXPECT_EQ((type_bits)root["a"].type(), (type_bits)KEYVAL);
+    EXPECT_TRUE(root.type().is_map());
+    EXPECT_TRUE(root["a"].type().is_keyval());
     EXPECT_EQ(root["a"].key(), "a");
     EXPECT_EQ(root["a"].val(), "0");
 
-    EXPECT_EQ((type_bits)root["b"].type(), (type_bits)KEYMAP);
+    EXPECT_TRUE(root["b"].type().has_key());
+    EXPECT_TRUE(root["b"].type().is_map());
 
-    EXPECT_EQ((type_bits)root["b"]["seq"].type(), (type_bits)KEYSEQ);
-    EXPECT_EQ(           root["b"]["seq"].key(), "seq");
-    EXPECT_EQ((type_bits)root["b"]["seq"][0].type(), (type_bits)VAL);
-    EXPECT_EQ(           root["b"]["seq"][0].val(), "0");
-    EXPECT_EQ((type_bits)root["b"]["seq"][1].type(), (type_bits)VAL);
-    EXPECT_EQ(           root["b"]["seq"][1].val(), "1");
-    EXPECT_EQ((type_bits)root["b"]["seq"][2].type(), (type_bits)VAL);
-    EXPECT_EQ(           root["b"]["seq"][2].val(), "2");
-    EXPECT_EQ((type_bits)root["b"]["seq"][3].type(), (type_bits)VAL);
-    EXPECT_EQ(           root["b"]["seq"][3].val(), "3");
-    EXPECT_EQ(           root["b"]["seq"][3].val_tag(), "!!str");
-    EXPECT_EQ((type_bits)root["b"]["seq"][4].type(), (type_bits)VAL);
-    EXPECT_EQ(           root["b"]["seq"][4].val(), "4");
+    EXPECT_TRUE(root["b"]["seq"].type().has_key());
+    EXPECT_TRUE(root["b"]["seq"].type().is_seq());
+    EXPECT_EQ  (root["b"]["seq"].key(), "seq");
+    EXPECT_TRUE(root["b"]["seq"][0].type().is_val());
+    EXPECT_EQ(  root["b"]["seq"][0].val(), "0");
+    EXPECT_TRUE(root["b"]["seq"][1].type().is_val());
+    EXPECT_EQ(  root["b"]["seq"][1].val(), "1");
+    EXPECT_TRUE(root["b"]["seq"][2].type().is_val());
+    EXPECT_EQ(  root["b"]["seq"][2].val(), "2");
+    EXPECT_TRUE(root["b"]["seq"][3].type().is_val());
+    EXPECT_EQ(  root["b"]["seq"][3].val(), "3");
+    EXPECT_EQ(  root["b"]["seq"][3].val_tag(), "!!str");
+    EXPECT_TRUE(root["b"]["seq"][4].type().is_val());
+    EXPECT_EQ(  root["b"]["seq"][4].val(), "4");
 
     int tv;
     EXPECT_EQ(root["b"]["key"].key(), "key");
@@ -2803,7 +2805,7 @@ TEST(NodeRef, 0_general)
 
     emit(t);
 
-    EXPECT_EQ((type_bits)root["b"]["aaa"].type(), (type_bits)KEYVAL);
+    EXPECT_TRUE(root["b"]["aaa"].type().is_keyval());
     EXPECT_EQ(root["b"]["aaa"].key_tag(), "!!str");
     EXPECT_EQ(root["b"]["aaa"].key(), "aaa");
     EXPECT_EQ(root["b"]["aaa"].val_tag(), "!!int");
@@ -2823,18 +2825,18 @@ void noderef_check_tree(NodeRef const& root)
     EXPECT_EQ(root.is_container(), true);
     EXPECT_EQ(root.is_seq(), true);
 
-    EXPECT_EQ((type_bits)root[0].type(), (type_bits)VAL);
-    EXPECT_EQ(           root[0].val(), "0");
-    EXPECT_EQ((type_bits)root[1].type(), (type_bits)VAL);
-    EXPECT_EQ(           root[1].val(), "1");
-    EXPECT_EQ((type_bits)root[2].type(), (type_bits)VAL);
-    EXPECT_EQ(           root[2].val(), "2");
-    EXPECT_EQ((type_bits)root[3].type(), (type_bits)VAL);
-    EXPECT_EQ(           root[3].val(), "3");
-    EXPECT_EQ((type_bits)root[4].type(), (type_bits)VAL);
-    EXPECT_EQ(           root[4].val(), "4");
-    EXPECT_EQ((type_bits)root[5].type(), (type_bits)VAL);
-    EXPECT_EQ(           root[5].val(), "5");
+    EXPECT_TRUE(root[0].type().is_val());
+    EXPECT_EQ(  root[0].val(), "0");
+    EXPECT_TRUE(root[1].type().is_val());
+    EXPECT_EQ(  root[1].val(), "1");
+    EXPECT_TRUE(root[2].type().is_val());
+    EXPECT_EQ(  root[2].val(), "2");
+    EXPECT_TRUE(root[3].type().is_val());
+    EXPECT_EQ(  root[3].val(), "3");
+    EXPECT_TRUE(root[4].type().is_val());
+    EXPECT_EQ(  root[4].val(), "4");
+    EXPECT_TRUE(root[5].type().is_val());
+    EXPECT_EQ(  root[5].val(), "5");
 }
 
 TEST(NodeRef, 1_append_child)

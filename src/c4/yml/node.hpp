@@ -124,7 +124,7 @@ public:
     /** @name node property getters */
     /** @{ */
 
-    inline NodeType_e   type() const { _C4RV(); return m_tree->type(m_id); }
+    inline NodeType     type() const { _C4RV(); return m_tree->type(m_id); }
     inline const char*  type_str() const { _C4RV(); RYML_ASSERT(valid() && ! is_seed()); return m_tree->type_str(m_id); }
 
     inline csubstr    key()        const { _C4RV(); return m_tree->key(m_id); }

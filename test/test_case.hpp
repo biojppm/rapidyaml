@@ -54,9 +54,9 @@ struct CaseData;
 Case const* get_case(csubstr name);
 CaseData* get_data(csubstr name);
 
-void test_compare(Tree const& a, Tree const& b);
-void test_compare(Tree const& a, size_t node_a,
-     Tree const& b, size_t node_b,
+void test_compare(Tree const& actual, Tree const& expected);
+void test_compare(Tree const& actual, size_t node_actual,
+     Tree const& expected, size_t node_expected,
      size_t level=0);
 
 void test_arena_not_shared(Tree const& a, Tree const& b);
