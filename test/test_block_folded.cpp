@@ -2,10 +2,11 @@
 
 namespace c4 {
 namespace yml {
-    
+
 TEST(block_folded, basic)
 {
-    Tree t = parse_in_arena(R"(- >
+    {
+        Tree t = parse_in_arena(R"(>
 hello
 there
 
@@ -14,7 +15,66 @@ got it
 
 really
 )");
-    EXPECT_EQ(t[0].val(), csubstr("hello there\ngot it\n\nreally\n"));
+        EXPECT_EQ(t[0].val(), csubstr("hello there\ngot it\n\nreally\n"));
+    }
+}
+
+TEST(block_folded, empty_block)
+{
+    {
+        Tree t = parse_in_arena(R"(- >
+)");
+        EXPECT_EQ(t[0].val(), csubstr(""));
+    }
+    {
+        Tree t = parse_in_arena(R"(- >-
+)");
+        EXPECT_EQ(t[0].val(), csubstr(""));
+    }
+    {
+        Tree t = parse_in_arena(R"(- >+
+)");
+        EXPECT_EQ(t[0].val(), csubstr(""));
+    }
+    {
+        Tree t = parse_in_arena(R"(
+- >
+
+- >-
+
+- >+
+
+)");
+        EXPECT_FALSE(t.empty());
+        EXPECT_EQ(t[0].val(), csubstr(""));
+        EXPECT_EQ(t[1].val(), csubstr(""));
+        EXPECT_EQ(t[2].val(), csubstr("\n"));
+    }
+    {
+        Tree t = parse_in_arena(R"(
+- >
+  
+- >-
+  
+- >+
+  
+)");
+        EXPECT_FALSE(t.empty());
+        EXPECT_EQ(t[0].val(), csubstr(""));
+        EXPECT_EQ(t[1].val(), csubstr(""));
+        EXPECT_EQ(t[2].val(), csubstr("\n"));
+    }
+    {
+        Tree t = parse_in_arena(R"(
+- >
+- >-
+- >+
+)");
+        EXPECT_FALSE(t.empty());
+        EXPECT_EQ(t[0].val(), csubstr(""));
+        EXPECT_EQ(t[1].val(), csubstr(""));
+        EXPECT_EQ(t[2].val(), csubstr(""));
+    }
 }
 
 TEST(block_folded, empty_block0)
@@ -27,10 +87,10 @@ TEST(block_folded, empty_block0)
     EXPECT_EQ(t[0].val(), csubstr(""));
     t = parse_in_arena(R"(- >+
 )");
-    EXPECT_EQ(t[0].val(), csubstr("\n"));
+    EXPECT_EQ(t[0].val(), csubstr(""));
 }
 
-TEST(block_folded, empty_block)
+TEST(block_folded, empty_block1)
 {
     const Tree t = parse_in_arena(R"(
 - >-
@@ -413,7 +473,6 @@ b: >2
     });
 }
 
-#ifdef SCANNING_FAILS_IN_THIS_CASE
 TEST(block_folded, test_suite_K858)
 {
     csubstr yaml = R"(---
@@ -439,15 +498,14 @@ keep: |+
         EXPECT_EQ(t.docref(0)[0].val(), csubstr{});
         EXPECT_EQ(t.docref(0)[1].val(), csubstr{});
         EXPECT_EQ(t.docref(0)[2].val(), csubstr("\n"));
-        ASSERT_TRUE(t.docref(0).has_child("strip"));
-        ASSERT_TRUE(t.docref(0).has_child("keep"));
-        ASSERT_TRUE(t.docref(0).has_child("clip"));
-        EXPECT_EQ(t.docref(0)["strip"].val(), csubstr{});
-        EXPECT_EQ(t.docref(0)["clip"].val(), csubstr{});
-        EXPECT_EQ(t.docref(0)["keep"].val(), csubstr("\n"));
+        ASSERT_TRUE(t.docref(1).has_child("strip"));
+        ASSERT_TRUE(t.docref(1).has_child("keep"));
+        ASSERT_TRUE(t.docref(1).has_child("clip"));
+        EXPECT_EQ(t.docref(1)["strip"].val(), csubstr{});
+        EXPECT_EQ(t.docref(1)["clip"].val(), csubstr{});
+        EXPECT_EQ(t.docref(1)["keep"].val(), csubstr("\n"));
     });
 }
-#endif
 
 
 TEST(block_folded, test_suite_MJS9)
@@ -630,6 +688,106 @@ TEST(block_folded, test_suite_W4TN)
 
 CASE_GROUP(BLOCK_FOLDED)
 {
+//
+ADD_CASE_TO_GROUP("indentation requirements",
+R"(---
+>
+hello
+there
+---
+>
+ hello
+ there
+---
+>
+  hello
+  there
+---
+>
+ciao
+qua
+---
+>
+    ciao
+    qua
+---
+>
+      ciao
+      qua
+---
+- >
+ hello
+ there
+- >
+ ciao
+ qua
+---
+foo: >
+ hello
+ there
+bar: >
+ ciao
+ qua
+)",
+N(STREAM, L{
+        N(DOCVAL|QV, "hello there\n"),
+        N(DOCVAL|QV, "hello there\n"),
+        N(DOCVAL|QV, "hello there\n"),
+        N(DOCVAL|QV, "ciao qua\n"),
+        N(DOCVAL|QV, "ciao qua\n"),
+        N(DOCVAL|QV, "ciao qua\n"),
+        N(SEQ|DOC, L{N(QV, "hello there\n"), N(QV, "ciao qua\n")}),
+        N(MAP|DOC, L{N(QV, "foo", "hello there\n"), N(QV, "bar", "ciao qua\n")}),
+    }));
+
+ADD_CASE_TO_GROUP("indentation requirements err seq", EXPECT_PARSE_ERROR,
+R"(- >
+hello
+there
+- >
+ciao
+qua
+)",
+N(L{N(QV, "hello there"), N(QV, "ciao qua\n")}));
+
+ADD_CASE_TO_GROUP("indentation requirements err map", EXPECT_PARSE_ERROR,
+R"(foo: >
+hello
+there
+bar: >
+ciao
+qua
+)",
+N(L{N(QV, "foo", "hello there\n"), N(QV, "bar" "ciao qua\n")}));
+
+ADD_CASE_TO_GROUP("indentation requirements err level", EXPECT_PARSE_ERROR,
+R"(--- >2
+ hello
+ there
+)",
+N(NOTYPE));
+
+ADD_CASE_TO_GROUP("foo without space after",
+R"(>
+  foo
+)",
+N(DOCVAL|QV, "foo\n"));
+
+ADD_CASE_TO_GROUP("foo with space after",
+R"(>
+  foo
+  
+)",
+N(DOCVAL|QV, "foo\n"));
+
+ADD_CASE_TO_GROUP("simple with indents",
+R"(>
+  foo
+     
+    bar
+)",
+N(DOCVAL|QV, "foo\n   \n  bar\n"));
+
 
 ADD_CASE_TO_GROUP("7T8X",
 R"(- >

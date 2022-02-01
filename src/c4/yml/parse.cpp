@@ -3908,9 +3908,22 @@ csubstr Parser::_scan_block()
             _c4dbgpf("scanning block: indentation ref not set. curr='%.*s' firstnonws=%zu", _c4prsp(lc.stripped), lc.stripped.first_not_of(' '));
             if(lc.stripped.first_not_of(' ') != npos) // non-empty line
             {
-                _c4dbgp("scanning block: line not empty");
+                _c4dbgpf("scanning block: line not empty. indentation=%zu indref=%zu", lc.indentation, m_state->indref);
                 if(provisional_indentation == npos)
                 {
+                    if(lc.indentation < m_state->indref)
+                    {
+                        _c4dbgpf("scanning block: block terminated indentation=%zu < indref=%zu", lc.indentation, m_state->indref);
+                        break;
+                    }
+                    else if(lc.indentation == m_state->indref)
+                    {
+                        if(has_any(RSEQ|RMAP))
+                        {
+                            _c4dbgpf("scanning block: block terminated. reading container and indentation=%zu==indref=%zu", lc.indentation, m_state->indref);
+                            break;
+                        }
+                    }
                     _c4dbgpf("scanning block: set indentation ref from this line: ref=%zu", lc.indentation);
                     indentation = lc.indentation;
                 }
@@ -3946,8 +3959,8 @@ csubstr Parser::_scan_block()
                 }
                 else
                 {
-                    _c4dbgpf("scanning block: initialize provisional_ref=%zu", lc.indentation);
-                    provisional_indentation = lc.indentation;
+                    provisional_indentation = lc.indentation + has_any(RSEQ|RVAL);
+                    _c4dbgpf("scanning block: initialize provisional_ref=%zu", provisional_indentation);
                 }
             }
         }

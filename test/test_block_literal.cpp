@@ -30,12 +30,12 @@ TEST(block_literal, empty_block)
 
 )");
         EXPECT_FALSE(t.empty());
-        // FAILS! EXPECT_EQ(t[0].val(), csubstr(""));
-        // FAILS! EXPECT_EQ(t[1].val(), csubstr(""));
-        // FAILS! EXPECT_EQ(t[2].val(), csubstr(""));
+        EXPECT_EQ(t[0].val(), csubstr(""));
+        EXPECT_EQ(t[1].val(), csubstr(""));
+        EXPECT_EQ(t[2].val(), csubstr("\n"));
     }
     {
-        Tree t = parse_in_arena(R"(# fails!
+        Tree t = parse_in_arena(R"(
 - |
   
 - |-
@@ -44,20 +44,20 @@ TEST(block_literal, empty_block)
   
 )");
         EXPECT_FALSE(t.empty());
-        // FAILS! EXPECT_EQ(t[0].val(), csubstr(" \n"));
-        // FAILS! EXPECT_EQ(t[1].val(), csubstr(" "));
-        // FAILS! EXPECT_EQ(t[2].val(), csubstr("\n"));
+        EXPECT_EQ(t[0].val(), csubstr(""));
+        EXPECT_EQ(t[1].val(), csubstr(""));
+        EXPECT_EQ(t[2].val(), csubstr("\n"));
     }
     {
-        Tree t = parse_in_arena(R"(# fails!
+        Tree t = parse_in_arena(R"(
 - |
 - |-
 - |+
 )");
         EXPECT_FALSE(t.empty());
-        // FAILS! EXPECT_EQ(t[0].val(), csubstr(""));
-        // FAILS! EXPECT_EQ(t[1].val(), csubstr(""));
-        // FAILS! EXPECT_EQ(t[2].val(), csubstr(""));
+        EXPECT_EQ(t[0].val(), csubstr(""));
+        EXPECT_EQ(t[1].val(), csubstr(""));
+        EXPECT_EQ(t[2].val(), csubstr(""));
     }
 }
 
@@ -203,6 +203,85 @@ TEST(block_literal, errors_on_tab_indents)
 
 CASE_GROUP(BLOCK_LITERAL)
 {
+//
+ADD_CASE_TO_GROUP("indentation requirements",
+R"(---
+|
+hello
+there
+---
+|
+ hello
+ there
+---
+|
+  hello
+  there
+---
+|
+ciao
+qua
+---
+|
+    ciao
+    qua
+---
+|
+      ciao
+      qua
+---
+- |
+ hello
+ there
+- |
+ ciao
+ qua
+---
+foo: |
+ hello
+ there
+bar: |
+ ciao
+ qua
+)",
+N(STREAM, L{
+        N(DOCVAL|QV, "hello\nthere\n"),
+        N(DOCVAL|QV, "hello\nthere\n"),
+        N(DOCVAL|QV, "hello\nthere\n"),
+        N(DOCVAL|QV, "ciao\nqua\n"),
+        N(DOCVAL|QV, "ciao\nqua\n"),
+        N(DOCVAL|QV, "ciao\nqua\n"),
+        N(SEQ|DOC, L{N(QV, "hello\nthere\n"), N(QV, "ciao\nqua\n")}),
+        N(MAP|DOC, L{N(QV, "foo", "hello\nthere\n"), N(QV, "bar", "ciao\nqua\n")}),
+    }));
+
+ADD_CASE_TO_GROUP("indentation requirements err seq", EXPECT_PARSE_ERROR,
+R"(- |
+hello
+there
+- |
+ciao
+qua
+)",
+N(L{N(QV, "hello\nthere\n"), N(QV, "ciao\nqua\n")}));
+
+ADD_CASE_TO_GROUP("indentation requirements err map", EXPECT_PARSE_ERROR,
+R"(foo: |
+hello
+there
+bar: |
+ciao
+qua
+)",
+N(L{N(QV, "foo", "hello\nthere\n"), N(QV, "bar" "ciao\nqua\n")}));
+
+ADD_CASE_TO_GROUP("indentation requirements err level", EXPECT_PARSE_ERROR,
+R"(--- |2
+ hello
+ there
+)",
+N(NOTYPE));
+
 
 ADD_CASE_TO_GROUP("block literal as map entry",
 R"(
@@ -859,6 +938,21 @@ R"(|
 )",
   N(DOCVAL|VALQUO, "asd\n \t \n")
     );
+
+ADD_CASE_TO_GROUP("block literal, empty block vals in seq 0",
+R"(- |+
+  
+- |+
+  )",
+N(L{N(QV, "\n"), N(QV, ""),}));
+
+ADD_CASE_TO_GROUP("block literal, empty block vals in seq 1",
+R"(- |+
+  
+- |+
+  
+)",
+N(L{N(QV, "\n"), N(QV, "\n"),}));
 
 }
 

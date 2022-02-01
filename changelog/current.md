@@ -102,6 +102,31 @@ As part of the [new feature to track source locations](https://github.com/biojpp
 
 ### Fixes
 
+- Fix handling of indentation when parsing block scalars ([PR#210](https://github.com/biojppm/rapidyaml/pulls/210)):
+  ```yaml
+  ---
+  |
+  hello
+  there
+  ---
+  |
+  ciao
+  qua
+  ---
+  - |
+   hello
+   there
+  - |
+   ciao
+   qua
+  ---
+  foo: |
+   hello
+   there
+  bar: |
+   ciao
+   qua
+  ```
 - Fix parsing of maps when opening a scope with whitespace before the colon ([PR#210](https://github.com/biojppm/rapidyaml/pulls/210)):
   ```yaml
   foo0 : bar

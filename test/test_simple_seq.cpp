@@ -98,14 +98,14 @@ TEST(simple_seq, deeply_nested_to_cover_parse_stack_resizes)
     ASSERT_TRUE(t.ref(id).has_parent());
     NodeRef seq = t.ref(id).parent();
     ASSERT_TRUE(seq.is_seq());
-    EXPECT_EQ(seq[0], "0");
-    EXPECT_EQ(seq[1], "1");
-    EXPECT_EQ(seq[2], "2");
-    EXPECT_EQ(seq[3], "3");
-    EXPECT_EQ(seq[4], "4");
-    EXPECT_EQ(seq[5], "5");
-    EXPECT_EQ(seq[6], "6");
-    EXPECT_EQ(seq[7], "7");
+    EXPECT_EQ(seq[0].val(), csubstr("0"));
+    EXPECT_EQ(seq[1].val(), csubstr("1"));
+    EXPECT_EQ(seq[2].val(), csubstr("2"));
+    EXPECT_EQ(seq[3].val(), csubstr("3"));
+    EXPECT_EQ(seq[4].val(), csubstr("4"));
+    EXPECT_EQ(seq[5].val(), csubstr("5"));
+    EXPECT_EQ(seq[6].val(), csubstr("6"));
+    EXPECT_EQ(seq[7].val(), csubstr("7"));
 }
 
 

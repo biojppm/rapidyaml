@@ -28,13 +28,10 @@ constexpr const AllowedFailure allowed_failures[] = {
     // These tests are temporarily skipped, and cover issues that must be fixed.
 
     // double quoted scalars
-    {"DE56", eIN_________, "Trailing tabs in double quoted"},
+    {"DE56", eIN_________, "trailing tabs in double quoted"},
     {"G4RS", CPART_ALL, "special characters must be emitted in double quoted style"},
     // block scalars
     {"2G84", CPART_IN_YAML_ERRORS, "throws an error reading the block literal spec"},
-    {"K858", eIN_OUT_____, "emitting block scalars is not idempotent"},
-    {"JEF9", IN_OUT__________, "trailing newlines in block literal"},
-    {"L24T", e_______EMIT, "trailing newlines in block literal"},
     // explicit keys
     {"5WE3", eIN_________, "explicit key is wrongly parsed"},
     {"DFF7", eIN_________, "problem with missing explicit key"},
