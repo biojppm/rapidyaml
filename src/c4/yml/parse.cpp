@@ -1111,12 +1111,13 @@ bool Parser::_handle_seq_impl()
             {
                 _c4dbgp("val is a child map + this key is empty, no anchors or tags");
                 addrem_flags(RNXT, RVAL); // before _push_level!
+                size_t ind = m_state->indref;
                 _push_level();
                 _start_map();
                 _store_scalar_null(rem.str);
                 addrem_flags(RVAL, RKEY);
-                _c4dbgpf("set indentation from map anchor: %zu", m_state->indref + 2);
-                _set_indentation(m_state->indref + 2); // this is the column where the map starts
+                _c4dbgpf("set indentation from map anchor: %zu", ind + 2);
+                _set_indentation(ind + 2); // this is the column where the map starts
                 _line_progressed(rem.begins_with(": ") ? 2u : 1u);
                 return true;
             }

@@ -78,7 +78,6 @@ TEST(seq_of_map, with_tags)
     }
 }
 
-#ifdef JAVAI // #209
 TEST(seq_of_map, missing_scalars_v1)
 {
     Tree t = parse_in_arena(R"(a:
@@ -132,7 +131,6 @@ TEST(seq_of_map, missing_scalars_v3)
     EXPECT_EQ(t["a"][1].first_child().key(), nullptr);
     EXPECT_EQ(t["a"][1].first_child().val(), nullptr);
 }
-#endif
 
 
 //-----------------------------------------------------------------------------
