@@ -84,7 +84,7 @@ private:
     void _write_doc(size_t id);
     void _write_scalar(csubstr s, bool was_quoted);
     void _write_scalar_json(csubstr s, bool as_key, bool was_quoted);
-    void _write_scalar_literal(csubstr s, size_t level, bool as_key);
+    void _write_scalar_literal(csubstr s, size_t level, bool as_key, bool explicit_indentation=false);
     void _write_scalar_folded(csubstr s, size_t level, bool as_key);
     void _write_scalar_squo(csubstr s, size_t level);
     void _write_scalar_dquo(csubstr s, size_t level);

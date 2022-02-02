@@ -39,7 +39,6 @@ TEST(style, flags)
     EXPECT_TRUE(tree.rootref().type().marked_flow_ml());
 }
 
-
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -95,6 +94,53 @@ void check_same_emit(Tree const& expected)
         test_compare(actual4, expected);
     }
 }
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+
+TEST(style, noflags)
+{
+    Tree expected = parse_in_arena("{}");
+    NodeRef r = expected.rootref();
+    r["normal"] |= MAP;
+    r["normal"]["singleline"] = "foo";
+    r["normal"]["multiline"] |= MAP;
+    r["normal"]["multiline"]["____________"] = "foo";
+    r["normal"]["multiline"]["____mid_____"] = "foo\nbar";
+    r["normal"]["multiline"]["____mid_end1"] = "foo\nbar\n";
+    r["normal"]["multiline"]["____mid_end2"] = "foo\nbar\n\n";
+    r["normal"]["multiline"]["____mid_end3"] = "foo\nbar\n\n\n";
+    r["normal"]["multiline"]["____________"] = "foo";
+    r["normal"]["multiline"]["____________"] = "foo bar";
+    r["normal"]["multiline"]["________end1"] = "foo bar\n";
+    r["normal"]["multiline"]["________end2"] = "foo bar\n\n";
+    r["normal"]["multiline"]["________end3"] = "foo bar\n\n\n";
+    r["normal"]["multiline"]["beg_________"] = "\nfoo";
+    r["normal"]["multiline"]["beg_mid_____"] = "\nfoo\nbar";
+    r["normal"]["multiline"]["beg_mid_end1"] = "\nfoo\nbar\n";
+    r["normal"]["multiline"]["beg_mid_end2"] = "\nfoo\nbar\n\n";
+    r["normal"]["multiline"]["beg_mid_end3"] = "\nfoo\nbar\n\n\n";
+    r["leading_ws"] |= MAP;
+    r["leading_ws"]["singleline"] |= MAP;
+    r["leading_ws"]["singleline"]["space"] = " foo";
+    r["leading_ws"]["singleline"]["tab"] = "\tfoo";
+    r["leading_ws"]["singleline"]["space_and_tab0"] = " \tfoo";
+    r["leading_ws"]["singleline"]["space_and_tab1"] = "\t foo";
+    r["leading_ws"]["multiline"] |= MAP;
+    r["leading_ws"]["multiline"]["beg_________"] = "\n \tfoo";
+    r["leading_ws"]["multiline"]["beg_mid_____"] = "\n \tfoo\nbar";
+    r["leading_ws"]["multiline"]["beg_mid_end1"] = "\n \tfoo\nbar\n";
+    r["leading_ws"]["multiline"]["beg_mid_end2"] = "\n \tfoo\nbar\n\n";
+    r["leading_ws"]["multiline"]["beg_mid_end3"] = "\n \tfoo\nbar\n\n\n";
+    check_same_emit(expected);
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 TEST(scalar, base)
 {

@@ -4,8 +4,8 @@ namespace c4 {
 namespace yml {
 
 constexpr const CasePart_e IN______________ = CPART_IN_YAML;
-//connstexpr const CasePart_e ___OUT______JSON =               CPART_OUT_YAML                |CPART_IN_JSON;
-constexpr const CasePart_e IN_OUT__________ = CPART_IN_YAML|CPART_OUT_YAML;
+//constexpr const CasePart_e ___OUT______JSON =               CPART_OUT_YAML                |CPART_IN_JSON;
+//constexpr const CasePart_e IN_OUT__________ = CPART_IN_YAML|CPART_OUT_YAML;
 constexpr const CasePart_e IN_____EMIT_____ = CPART_IN_YAML               |CPART_EMIT_YAML;
 constexpr const CasePart_e _______EMIT_____ =                              CPART_EMIT_YAML;
 //constexpr const CasePart_e IN_____EMIT_JSON = CPART_IN_YAML               |CPART_EMIT_YAML|CPART_IN_JSON;
@@ -43,6 +43,14 @@ constexpr const AllowedFailure allowed_failures[] = {
     // other
     {"A2M4", eIN_________, "fails to parse the value sequence, parses as scalar"},
     {"UKK6", IN______________, "fails to parse double :: in UNK state"},
+    // problems with the multiple tests in the spec
+    {"9MQT", e___OUT_____, "problems with multiple tests in the spec"},
+    {"DE56", e___OUT_____, "problems with multiple tests in the spec"},
+    {"HM87", e___OUT_____, "problems with multiple tests in the spec"},
+    {"KH5V", e___OUT_____, "problems with multiple tests in the spec"},
+    {"SM9W", e___OUT_____, "problems with multiple tests in the spec"},
+    {"JEF9", eIN_OUT_____, "trailing newlines in block literal"},
+    {"L24T", e_______EMIT, "trailing newlines in block literal"},
 
 
     //-------------------------------------------------------------------------

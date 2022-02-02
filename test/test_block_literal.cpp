@@ -70,17 +70,19 @@ TEST(block_literal, emit_does_not_add_lines_to_multi_at_end_1)
     r.append_child() = "\n\n";
     r.append_child() = "last";
     std::string out = emitrs<std::string>(t);
-    std::string expected = R"(- '
-
-
-'
-- '
-
-
-'
-- last
-)";
-    EXPECT_EQ(out, expected);
+    t.clear();
+    t = parse_in_arena(to_csubstr(out));
+    EXPECT_EQ(t[0].val(), csubstr("\n\n"));
+    EXPECT_EQ(t[1].val(), csubstr("\n\n"));
+    EXPECT_EQ(t[2].val(), csubstr("last"));
+    out = emitrs<std::string>(t);
+    t.clear();
+    t = parse_in_arena(to_csubstr(out));
+    EXPECT_EQ(t[0].val(), csubstr("\n\n"));
+    EXPECT_EQ(t[1].val(), csubstr("\n\n"));
+    EXPECT_EQ(t[2].val(), csubstr("last"));
+    out = emitrs<std::string>(t);
+    t.clear();
     t = parse_in_arena(to_csubstr(out));
     EXPECT_EQ(t[0].val(), csubstr("\n\n"));
     EXPECT_EQ(t[1].val(), csubstr("\n\n"));
@@ -282,6 +284,29 @@ R"(--- |2
 )",
 N(NOTYPE));
 
+ADD_CASE_TO_GROUP("empty, specs only 2G84_02",
+"--- |1-",
+N(STREAM, L{N(DOCVAL|VALQUO, {})}));
+
+ADD_CASE_TO_GROUP("empty, specs only 2G84_03",
+"--- |1+",
+N(STREAM, L{N(DOCVAL|VALQUO, {})}));
+
+ADD_CASE_TO_GROUP("empty, specs only 2G84_xx",
+"--- |+",
+N(STREAM, L{N(DOCVAL|VALQUO, {})}));
+
+ADD_CASE_TO_GROUP("empty, specs only 2G84_02_1",
+"|1-",
+N(DOCVAL|VALQUO, {}));
+
+ADD_CASE_TO_GROUP("empty, specs only 2G84_03_1",
+"|1+",
+N(DOCVAL|VALQUO, {}));
+
+ADD_CASE_TO_GROUP("empty, specs only 2G84_xx_1",
+"|+",
+N(DOCVAL|VALQUO, {}));
 
 ADD_CASE_TO_GROUP("block literal as map entry",
 R"(
@@ -797,6 +822,96 @@ R"(|
 
 )",
   N(DOCVAL|VALQUO, "")
+    );
+
+ADD_CASE_TO_GROUP("block literal with empty docval 14",
+R"(- |+
+)",
+  N(SEQ, L{N(VALQUO, "")})
+    );
+
+ADD_CASE_TO_GROUP("block literal with empty docval 14.1",
+R"(foo: |+
+)",
+  N(MAP, L{N(VALQUO, "foo", "")})
+    );
+
+ADD_CASE_TO_GROUP("block literal with empty docval 14.2",
+R"(|+
+)",
+  N(DOCVAL|VALQUO, "")
+    );
+
+ADD_CASE_TO_GROUP("block literal with empty docval 15",
+R"(- |+
+
+)",
+  N(SEQ, L{N(VALQUO, "\n")})
+    );
+
+ADD_CASE_TO_GROUP("block literal with empty docval 15.1",
+R"(foo: |+
+
+)",
+  N(MAP, L{N(VALQUO, "foo", "\n")})
+    );
+
+ADD_CASE_TO_GROUP("block literal with empty docval 15.2",
+R"(|+
+
+)",
+  N(DOCVAL|VALQUO, "\n")
+    );
+
+ADD_CASE_TO_GROUP("block literal with empty docval 16",
+R"(|+
+
+
+)",
+  N(DOCVAL|VALQUO, "\n\n")
+    );
+
+ADD_CASE_TO_GROUP("block literal with empty docval 16.1",
+R"(foo: |+
+
+
+)",
+  N(MAP, L{N(VALQUO, "foo", "\n\n")})
+    );
+
+ADD_CASE_TO_GROUP("block literal with empty docval 16.2",
+R"(- |+
+
+
+)",
+  N(SEQ, L{N(VALQUO, "\n\n")})
+    );
+
+ADD_CASE_TO_GROUP("block literal with empty docval 17",
+R"(|+
+
+
+
+)",
+  N(DOCVAL|VALQUO, "\n\n\n")
+    );
+
+ADD_CASE_TO_GROUP("block literal with empty docval 17.1",
+R"(foo: |+
+
+
+
+)",
+  N(MAP, L{N(VALQUO, "foo", "\n\n\n")})
+    );
+
+ADD_CASE_TO_GROUP("block literal with empty docval 17.2",
+R"(- |+
+
+
+
+)",
+  N(SEQ, L{N(VALQUO, "\n\n\n")})
     );
 
 ADD_CASE_TO_GROUP("block literal with docval no newlines at end 0",

@@ -15,7 +15,7 @@ got it
 
 really
 )");
-        EXPECT_EQ(t[0].val(), csubstr("hello there\ngot it\n\nreally\n"));
+        EXPECT_EQ(t.rootref().val(), csubstr("hello there\ngot it\n\nreally\n"));
     }
 }
 
@@ -1381,33 +1381,54 @@ R"(>
 
 ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 0",
 R"(>+)",
-  N(DOCVAL|VALQUO, "\n")
+  N(DOCVAL|VALQUO, "")
     );
 
 ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 1",
 R"(>+
 )",
-  N(DOCVAL|VALQUO, "\n")
+  N(DOCVAL|VALQUO, "")
     );
 
 ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 1.1",
 R"(>+
- )",
-  N(DOCVAL|VALQUO, "\n")
+  )",
+  N(DOCVAL|VALQUO, "")
+    );
+
+ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 1.2",
+R"(>+
+  asd)",
+  N(DOCVAL|VALQUO, "asd")
+    );
+
+ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 1.3",
+R"(>+
+  asd
+)",
+  N(DOCVAL|VALQUO, "asd\n")
+    );
+
+ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 1.4",
+R"(>+
+  asd
+  
+)",
+  N(DOCVAL|VALQUO, "asd\n\n")
     );
 
 ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 2",
 R"(>+
 
 )",
-  N(DOCVAL|VALQUO, "\n\n")
+  N(DOCVAL|VALQUO, "\n")
     );
 
 ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 2.1",
 R"(>+
 
- )",
-  N(DOCVAL|VALQUO, "\n\n")
+  )",
+  N(DOCVAL|VALQUO, "\n")
     );
 
 ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 3",
@@ -1415,7 +1436,7 @@ R"(>+
 
 
 )",
-  N(DOCVAL|VALQUO, "\n\n\n")
+  N(DOCVAL|VALQUO, "\n\n")
     );
 
 ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 4",
@@ -1424,7 +1445,7 @@ R"(>+
 
 
 )",
-  N(DOCVAL|VALQUO, "\n\n\n\n")
+  N(DOCVAL|VALQUO, "\n\n\n")
     );
 
 ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 5",
@@ -1434,8 +1455,23 @@ R"(>+
 
 
 )",
-  N(DOCVAL|VALQUO, "\n\n\n\n\n")
+  N(DOCVAL|VALQUO, "\n\n\n\n")
     );
+
+ADD_CASE_TO_GROUP("block folded, empty block vals in seq 0",
+R"(- >+
+  
+- >+
+  )",
+N(L{N(QV, "\n"), N(QV, ""),}));
+
+ADD_CASE_TO_GROUP("block folded, empty block vals in seq 1",
+R"(- >+
+  
+- >+
+  
+)",
+N(L{N(QV, "\n"), N(QV, "\n"),}));
 
 }
 

@@ -455,14 +455,7 @@ void Emitter<Writer>::_write(NodeScalar const& C4_RESTRICT sc, NodeType flags, s
     _RYML_CB_ASSERT(m_tree->callbacks(), ((flags & (_WIP_KEY_STYLE|_WIP_VAL_STYLE)) == 0) || (((flags&_WIP_KEY_STYLE) == 0) != ((flags&_WIP_VAL_STYLE) == 0)));
 
     auto style_marks = flags & (_WIP_KEY_STYLE|_WIP_VAL_STYLE);
-    if(!style_marks)
-    {
-        if(sc.scalar.begins_with_any(" \t") || (sc.scalar.first_of('\n') == npos) || sc.scalar.trim("\n").empty())
-            _write_scalar(sc.scalar, flags.is_quoted());
-        else
-            _write_scalar_literal(sc.scalar, ilevel, flags.has_key());
-    }
-    else if(style_marks & (_WIP_KEY_LITERAL|_WIP_VAL_LITERAL))
+    if(style_marks & (_WIP_KEY_LITERAL|_WIP_VAL_LITERAL))
     {
         _write_scalar_literal(sc.scalar, ilevel, flags.has_key());
     }
@@ -482,6 +475,32 @@ void Emitter<Writer>::_write(NodeScalar const& C4_RESTRICT sc, NodeType flags, s
     {
         _write_scalar_plain(sc.scalar, ilevel);
     }
+    else if(!style_marks)
+    {
+        size_t first_non_nl = sc.scalar.first_not_of('\n');
+        bool all_newlines = first_non_nl == npos;
+        bool has_leading_ws = (!all_newlines) && sc.scalar.sub(first_non_nl).begins_with_any(" \t");
+        bool do_literal = ((!sc.scalar.empty() && all_newlines) || (has_leading_ws && !sc.scalar.trim(' ').empty()));
+        if(do_literal)
+        {
+            _write_scalar_literal(sc.scalar, ilevel, flags.has_key(), /*explicit_indentation*/has_leading_ws);
+        }
+        else
+        {
+            for(size_t i = 0; i < sc.scalar.len; ++i)
+            {
+                if(sc.scalar.str[i] == '\n')
+                {
+                    _write_scalar_literal(sc.scalar, ilevel, flags.has_key(), /*explicit_indentation*/has_leading_ws);
+                    goto wrote_special;
+                }
+                // todo: check for escaped characters requiring double quotes
+            }
+            _write_scalar(sc.scalar, flags.is_quoted());
+        wrote_special:
+            ;
+        }
+    }
     else
     {
         _RYML_CB_ERR(m_tree->callbacks(), "not implemented");
@@ -497,21 +516,28 @@ void Emitter<Writer>::_write_json(NodeScalar const& C4_RESTRICT sc, NodeType fla
     _write_scalar_json(sc.scalar, flags.has_key(), flags.is_quoted());
 }
 
-#define _rymlindent_nextline() for(size_t lv = 0; lv < ilevel+1; ++lv) { this->Writer::_do_write("  "); }
+#define _rymlindent_nextline() for(size_t lv = 0; lv < ilevel+1; ++lv) { this->Writer::_do_write(' '); this->Writer::_do_write(' '); }
 
 template<class Writer>
-void Emitter<Writer>::_write_scalar_literal(csubstr s, size_t ilevel, bool explicit_key)
+void Emitter<Writer>::_write_scalar_literal(csubstr s, size_t ilevel, bool explicit_key, bool explicit_indentation)
 {
     if(explicit_key)
         this->Writer::_do_write("? ");
     csubstr trimmed = s.trimr("\n\r");
     size_t numnewlines_at_end = s.len - trimmed.len - s.sub(trimmed.len).count('\r');
-    if(numnewlines_at_end == 0)
-        this->Writer::_do_write("|-\n");
+    //
+    if(!explicit_indentation)
+        this->Writer::_do_write('|');
+    else
+        this->Writer::_do_write("|2");
+    //
+    if(numnewlines_at_end > 1 || (trimmed.len == 0 && s.len > 0)/*only newlines*/)
+        this->Writer::_do_write("+\n");
     else if(numnewlines_at_end == 1)
-        this->Writer::_do_write("|\n");
-    else if(numnewlines_at_end > 1)
-        this->Writer::_do_write("|+\n");
+        this->Writer::_do_write('\n');
+    else
+        this->Writer::_do_write("-\n");
+    //
     if(trimmed.len)
     {
         size_t pos = 0; // tracks the last character that was already written

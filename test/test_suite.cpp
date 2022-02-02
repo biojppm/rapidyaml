@@ -160,9 +160,9 @@ struct ProcLevel
         else
         {
             if(immutable)
-                tree = c4::yml::parse_in_arena(filename, c4::to_csubstr(src));
+                tree = parse_in_arena(filename, c4::to_csubstr(src));
             else
-                tree = c4::yml::parse_in_place(filename, c4::to_substr(src));
+                tree = parse_in_place(filename, c4::to_substr(src));
         }
         was_parsed = true;
         #if RYML_NFO
@@ -446,8 +446,9 @@ struct SpecialCharsFilter
         txt = _do_replace("——»", "\t", txt);
         txt = _do_replace("—»", "\t", txt);
         txt = _do_replace("»", "\t", txt);
-        txt = _do_replace("↵", "\n", txt);
         txt = _do_replace("←", "\r", txt);
+        txt = _do_replace("↵\r\n", "\n", txt);
+        txt = _do_replace("↵\n", "\n", txt);
         txt = _do_replace("∎", "", txt);
         txt = _do_replace("⇔", "\xef\xbb\xbf", txt); // byte order mark 0xef 0xbb 0xbf
         return txt;
@@ -557,6 +558,7 @@ struct SuiteCase
         size_t isubcase = 0;
         SpecialCharsFilter filter;
         SubCase *sc = nullptr;
+        NodeRef last_tree;
         for(const NodeRef spec : doc.children())
         {
             check_known_keys(filename, spec);
@@ -621,7 +623,7 @@ struct SuiteCase
             else if(spec.has_child("dump"))
             {
                 csubstr txt = spec["dump"].val();
-                in_json.init(filename, txt, CPART_OUT_YAML, expect_error);
+                out_yaml.init(filename, txt, CPART_OUT_YAML, expect_error);
                 sc->out_yaml.init(filename, txt, CPART_OUT_YAML, sc->expect_error);
             }
 
@@ -649,10 +651,13 @@ struct SuiteCase
                 csubstr txt = spec["tree"].val();
                 txt = filter.replace_events(txt);
                 events.init(filename, txt);
+                last_tree = spec["tree"];
             }
-            else if(spec.has_child("tree"))
+            else
             {
-                csubstr txt = spec["tree"].val();
+                NodeRef tree = spec.has_child("tree") ? spec["tree"] : last_tree;
+                last_tree = tree;
+                csubstr txt = tree.val();
                 txt = filter.replace_events(txt);
                 sc->events.init(filename, txt);
             }

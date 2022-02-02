@@ -3883,6 +3883,7 @@ csubstr Parser::_scan_block()
     {
         // peek next line, but do not advance immediately
         lc.reset_with_next_line(m_buf, m_state->pos.offset);
+        _c4dbgpf("scanning block: peeking at '%.*s'", _c4prsp(lc.stripped));
         // evaluate termination conditions
         if(indentation != npos)
         {
@@ -3905,10 +3906,10 @@ csubstr Parser::_scan_block()
         }
         else
         {
-            _c4dbgpf("scanning block: indentation ref not set. curr='%.*s' firstnonws=%zu", _c4prsp(lc.stripped), lc.stripped.first_not_of(' '));
+            _c4dbgpf("scanning block: indentation ref not set. firstnonws=%zu", lc.stripped.first_not_of(' '));
             if(lc.stripped.first_not_of(' ') != npos) // non-empty line
             {
-                _c4dbgpf("scanning block: line not empty. indentation=%zu indref=%zu", lc.indentation, m_state->indref);
+                _c4dbgpf("scanning block: line not empty. indref=%zu indprov=%zu indentation=%zu", m_state->indref, provisional_indentation, lc.indentation);
                 if(provisional_indentation == npos)
                 {
                     if(lc.indentation < m_state->indref)
@@ -3932,7 +3933,8 @@ csubstr Parser::_scan_block()
                     if(lc.indentation >= provisional_indentation)
                     {
                         _c4dbgpf("scanning block: set indentation ref from provisional indentation: provisional_ref=%zu, thisline=%zu", provisional_indentation, lc.indentation);
-                        indentation = provisional_indentation ? provisional_indentation : lc.indentation;
+                        //indentation = provisional_indentation ? provisional_indentation : lc.indentation;
+                        indentation = lc.indentation;
                     }
                     else
                     {
@@ -3946,12 +3948,7 @@ csubstr Parser::_scan_block()
                 _c4dbgp("scanning block: line empty");
                 if(provisional_indentation != npos)
                 {
-                    if(lc.indentation < provisional_indentation)
-                    {
-                        _c4dbgpf("scanning block: stop; indentation=%zu < provisional_ref=%zu", lc.indentation, provisional_indentation);
-                        break;
-                    }
-                    else
+                    if(lc.indentation >= provisional_indentation)
                     {
                         _c4dbgpf("scanning block: increase provisional_ref %zu -> %zu", provisional_indentation, lc.indentation);
                         provisional_indentation = lc.indentation;
@@ -3959,7 +3956,7 @@ csubstr Parser::_scan_block()
                 }
                 else
                 {
-                    provisional_indentation = lc.indentation + has_any(RSEQ|RVAL);
+                    provisional_indentation = lc.indentation ? lc.indentation : has_any(RSEQ|RVAL);
                     _c4dbgpf("scanning block: initialize provisional_ref=%zu", provisional_indentation);
                 }
             }
@@ -4458,7 +4455,7 @@ bool Parser::_apply_chomp(substr buf, size_t *C4_RESTRICT pos, BlockChomp_e chom
         if(trimmed.len == *pos)
         {
             _c4dbgpf("chomp=KEEP: add missing newline @%zu", *pos);
-            m_filter_arena.str[(*pos)++] = '\n';
+            //m_filter_arena.str[(*pos)++] = '\n';
             added_newline = true;
         }
         break;
@@ -4622,11 +4619,13 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
             }
             _c4dbgfbl(": start folding at %zu, is_indented=%d", i, (int)is_indented);
             auto on_change_indentation = [&](size_t numnl_following, size_t last_newl, size_t first_non_whitespace){
-                _c4dbgfbl("filt_block[%zu]: add 1+%zu newlines", i, numnl_following);
+                _c4dbgfbl("[%zu]: add 1+%zu newlines", i, numnl_following);
                 for(size_t j = 0; j < 1 + numnl_following; ++j)
                     m_filter_arena.str[pos++] = '\n';
                 for(i = last_newl + 1 + indentation; i < first_non_whitespace; ++i)
                 {
+                    if(r.str[i] == '\r')
+                        continue;
                     _c4dbgfbl("[%zu]: add '%.*s'", i, _c4prc(r.str[i]));
                     m_filter_arena.str[pos++] = r.str[i];
                 }
@@ -4646,13 +4645,16 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
                     {
                         ++numnl_following;
                         csubstr rem = r.sub(i+1);
-                        size_t first = rem.first_not_of(" \r");
+                        size_t first = rem.first_not_of(' ');
+                        _c4dbgfbl("[%zu]: found newline. first=%zu rem.len=%zu", i, first, rem.len);
                         if(first != npos)
                         {
                             first_non_whitespace = first + i+1;
+                            while(first_non_whitespace < r.len && r[first_non_whitespace] == '\r')
+                                ++first_non_whitespace;
                             _RYML_CB_ASSERT(m_stack.m_callbacks, first < rem.len);
                             _RYML_CB_ASSERT(m_stack.m_callbacks, i+1+first < r.len);
-                            _c4dbgfbl("[%zu]: %zu spaces follow before next nonws character @ [%zu]='%c'", i, first, i+1+first, rem.str[first]);
+                            _c4dbgfbl("[%zu]: %zu spaces follow before next nonws character @ [%zu]='%.*s'", i, first, i+1+first, _c4prc(rem.str[first]));
                             if(first < indentation)
                             {
                                 _c4dbgfbl("[%zu]: skip %zu<%zu spaces from indentation", i, first, indentation);
@@ -4668,6 +4670,9 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
                                     goto finished_counting_newlines;
                                 }
                             }
+                            // prepare the next while loop iteration
+                            // by setting i at the next newline after
+                            // an empty line
                             if(r[first_non_whitespace] == '\n')
                                 i = first_non_whitespace;
                             else
@@ -4678,9 +4683,11 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
                             _RYML_CB_ASSERT(m_stack.m_callbacks, i+1 <= r.len);
                             first = rem.len;
                             first_non_whitespace = first + i+1;
-                            _c4dbgfbl("[%zu]: %zu spaces to the end", i, first);
+                            while(first_non_whitespace < r.len && r[first_non_whitespace] == '\r')
+                                ++first_non_whitespace;
                             if(first)
                             {
+                                _c4dbgfbl("[%zu]: %zu spaces to the end", i, first);
                                 if(first < indentation)
                                 {
                                     _c4dbgfbl("[%zu]: skip everything", i);
@@ -4699,16 +4706,17 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
                             }
                             else // if(i+1 == r.len)
                             {
-                                _RYML_CB_ASSERT(m_stack.m_callbacks, rem.len == 0);
+                                _c4dbgfbl("[%zu]: it's the final newline", i);
                                 _RYML_CB_ASSERT(m_stack.m_callbacks, i+1 == r.len);
-                                numnl_following += (chomp == CHOMP_KEEP);
+                                _RYML_CB_ASSERT(m_stack.m_callbacks, rem.len == 0);
                             }
                             goto end_of_scalar;
                         }
                     }
                 end_of_scalar:
-                    // write all the trailing newlines. since we're at the
-                    // end no folding is needed, so write every newline (add 1)
+                    // Write all the trailing newlines. Since we're
+                    // at the end no folding is needed, so write every
+                    // newline (add 1).
                     _c4dbgfbl("[%zu]: add %zu trailing newlines", i, 1+numnl_following);
                     for(size_t j = 0; j < 1 + numnl_following; ++j)
                         m_filter_arena.str[pos++] = '\n';
@@ -4718,6 +4726,7 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
                     while(first_non_whitespace < r.len && r[first_non_whitespace] == '\t')
                         ++first_non_whitespace;
                     _c4dbgfbl("[%zu]: #newlines=%zu firstnonws=%zu", i, numnl_following, first_non_whitespace);
+                    _RYML_CB_ASSERT(m_stack.m_callbacks, first_non_whitespace <= r.len);
                     size_t last_newl = r.last_of('\n', first_non_whitespace);
                     size_t this_indentation = first_non_whitespace - last_newl - 1;
                     _c4dbgfbl("[%zu]: #newlines=%zu firstnonws=%zu lastnewl=%zu this_indentation=%zu vs indentation=%zu", i, numnl_following, first_non_whitespace, last_newl, this_indentation, indentation);
