@@ -30,13 +30,6 @@ class NodeRef;
 class Tree;
 
 
-/** the integral type necessary to cover all the bits marking node types */
-using tag_bits = uint16_t;
-
-/** the integral type necessary to cover all the bits marking node types */
-using type_bits = uint64_t;
-
-
 /** encode a floating point value to a string. */
 template<class T>
 size_t to_chars_float(substr buf, T val)
@@ -90,8 +83,11 @@ bool from_chars_float(csubstr buf, T *C4_RESTRICT val)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+/** the integral type necessary to cover all the bits marking node tags */
+using tag_bits = uint16_t;
+
 /** a bit mask for marking tags for types */
-typedef enum : uint8_t {
+typedef enum : tag_bits {
     // container types
     TAG_NONE      =  0,
     TAG_MAP       =  1, /**< !!map   Unordered set of key: value pairs without duplicates. @see https://yaml.org/type/map.html */
@@ -157,7 +153,7 @@ typedef enum : type_bits {
     DOCSEQ  = DOC|SEQ,
     DOCVAL  = DOC|VAL,
     _WIP_STYLE_FLOW_SL = c4bit(14), ///< mark container with single-line flow format (seqs as '[val1,val2], maps as '{key: val, key2: val2}')
-    _WIP_STYLE_FLOW_ML = c4bit(15), ///< mark container with single-line flow format (seqs as '[val1,\nval2], maps as '{key: val,\nkey2: val2}')
+    _WIP_STYLE_FLOW_ML = c4bit(15), ///< mark container with multi-line flow format (seqs as '[val1,\nval2], maps as '{key: val,\nkey2: val2}')
     _WIP_STYLE_BLOCK   = c4bit(16), ///< mark container with block format (seqs as '- val\n', maps as 'key: val')
     _WIP_KEY_LITERAL   = c4bit(17), ///< mark key scalar as multiline, block literal |
     _WIP_VAL_LITERAL   = c4bit(18), ///< mark val scalar as multiline, block literal |
@@ -489,9 +485,7 @@ public:
     inline NodeData *get(size_t i)
     {
         if(i == NONE)
-        {
             return nullptr;
-        }
         RYML_ASSERT(i >= 0 && i < m_cap);
         return m_buf + i;
     }
@@ -500,9 +494,7 @@ public:
     inline NodeData const *get(size_t i) const
     {
         if(i == NONE)
-        {
             return nullptr;
-        }
         RYML_ASSERT(i >= 0 && i < m_cap);
         return m_buf + i;
     }

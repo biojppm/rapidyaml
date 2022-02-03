@@ -4488,7 +4488,7 @@ bool Parser::_apply_chomp(substr buf, size_t *C4_RESTRICT pos, BlockChomp_e chom
 csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e chomp, size_t indentation)
 {
     // a debugging scaffold:
-    #if 0 || 1
+    #if 0
     #define _c4dbgfbl(fmt, ...) _c4dbgpf("filt_block" fmt, __VA_ARGS__)
     #else
     #define _c4dbgfbl(...)
