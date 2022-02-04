@@ -18,14 +18,9 @@ constexpr const AllowedFailure allowed_failures[] = {
     // These tests are temporarily skipped, and cover issues that must be fixed.
 
     // double quoted scalars
-    _("DE56_02-in_yaml-events", "trailing tabs in double quoted"),
-    _("DE56_03-in_yaml-events", "trailing tabs in double quoted"),
     _("G4RS-in_json"          , "special characters must be emitted in double quoted style"),
     _("G4RS-in_yaml"          , "special characters must be emitted in double quoted style"),
     _("G4RS-out_yaml"         , "special characters must be emitted in double quoted style"),
-    // block scalars
-    _("2G84_00-error"         , "throws an error reading the block literal spec"),
-    _("2G84_01-error"         , "throws an error reading the block literal spec"),
     // explicit keys
     _("5WE3-in_yaml-events"   , "explicit key is wrongly parsed"),
     _("DFF7-in_yaml-events"   , "problem with missing explicit key"),
@@ -40,8 +35,8 @@ constexpr const AllowedFailure allowed_failures[] = {
     _("L24T_00-emit_yaml-events", "trailing newlines in block literal"),
     _("L24T_01-emit_yaml-events", "trailing newlines in block literal"),
     // tabs
-    _("A2M4-in_yaml-events"     , "indentation with tabs causes problems"),
     _("6CA3-in_yaml"            , "indentation with tabs causes problems"),
+    _("A2M4-in_yaml-events"     , "indentation with tabs causes problems"),
     _("6CA3-emit_yaml"          , "indentation with tabs causes problems"),
     _("DK95_00-emit_yaml-events", "indentation with tabs causes problems"),
     _("DK95_01-error"           , "indentation with tabs causes problems"),
@@ -60,6 +55,8 @@ constexpr const AllowedFailure allowed_failures[] = {
     // SECTION 2. Expected errors that fail to materialize.
 
     _("236B-error"   , "should not accept final scalar in a map"),
+    _("2G84_00-error", "should not accept the block literal spec"),
+    _("2G84_01-error", "should not accept the block literal spec"),
     _("3HFZ-error"   , "should not accept scalar after ..."),
     _("4EJS-error"   , "should not accept double anchor for scalar"),
     _("4JVG-error"   , "should not accept double anchor for scalar"),

@@ -3799,8 +3799,8 @@ csubstr Parser::_scan_dquot_scalar()
     if(needs_filter)
     {
         csubstr ret = _filter_dquot_scalar(s);
+        _c4dbgpf("final scalar: [%zu]\"%.*s\"", ret.len, _c4prsp(ret));
         _RYML_CB_ASSERT(m_stack.m_callbacks, ret.len <= s.len || s.empty() || s.trim(' ').empty());
-        _c4dbgpf("final scalar: \"%.*s\"", _c4prsp(ret));
         return ret;
     }
 
@@ -4293,14 +4293,14 @@ csubstr Parser::_filter_dquot_scalar(substr s)
                 }
                 i += ii - i - 1;
             }
-            else if(next == '\r' || next == ' ' || next == '\t')
-            {
-                //++i;
-            }
-            else if(next == '"' || next == '/') // escapes for json compatibility
+            else if(next == '"' || next == '/'  || next == ' ' || next == '\t') // escapes for json compatibility
             {
                 m_filter_arena.str[pos++] = next;
                 ++i;
+            }
+            else if(next == '\r')
+            {
+                //++i;
             }
             else if(next == 'n')
             {
