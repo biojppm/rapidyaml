@@ -35,7 +35,6 @@
     // For this sample, we will be using std interop, so...
     #include <ryml_std.hpp> // optional header. BUT when used, needs to be included BEFORE ryml.hpp
     #include <ryml.hpp>
-    #include <c4/yml/preprocess.hpp> // needed only for the json sample
     #include <c4/format.hpp> // needed only needed for the examples below
 #endif
 
@@ -3164,73 +3163,36 @@ void sample_emit_nested_node()
 /** shows how to parse and emit JSON. */
 void sample_json()
 {
-    {
-        // Since JSON is a subset of YAML, parsing JSON is just the
-        // same as YAML:
-        ryml::Tree tree = ryml::parse_in_arena(R"({
-"doe": "a deer, a female deer",
-"ray": "a drop of golden sun",
-"me": "a name, I call myself",
-"far": "a long long way to go"
+    // Since JSON is a subset of YAML, parsing JSON is just the
+    // same as YAML:
+    ryml::Tree tree = ryml::parse_in_arena(R"({
+"doe":"a deer, a female deer",
+"ray":"a drop of golden sun",
+"me":"a name, I call myself",
+"far":"a long long way to go"
 })");
-        // However, emitting still defaults to YAML
-        CHECK(ryml::emitrs<std::string>(tree) == R"('doe': 'a deer, a female deer'
+    // However, emitting still defaults to YAML
+    CHECK(ryml::emitrs<std::string>(tree) == R"('doe': 'a deer, a female deer'
 'ray': 'a drop of golden sun'
 'me': 'a name, I call myself'
 'far': 'a long long way to go'
 )");
-        // to emit JSON, use the proper overload:
-        CHECK(ryml::emitrs_json<std::string>(tree) == R"({"doe": "a deer, a female deer","ray": "a drop of golden sun","me": "a name, I call myself","far": "a long long way to go"})");
-        // to emit JSON to a stream:
-        std::stringstream ss;
-        ss << ryml::as_json(tree);  // <- mark it like this
-        CHECK(ss.str() == R"({"doe": "a deer, a female deer","ray": "a drop of golden sun","me": "a name, I call myself","far": "a long long way to go"})");
-        // Note the following limitations:
-        //
-        // - streams cannot be emitted as json, and are not
-        //   allowed. But you can work around this by emitting the
-        //   individual documents separately; see the sample_docs()
-        //   below for such an example.
-        //
-        // - tags cannot be emitted as json, and are not allowed.
-        //
-        // - anchors and aliases cannot be emitted as json and are not allowed.
-    }
-
-    // IMPORTANT NOTE.
+    // to emit JSON, use the proper overload:
+    CHECK(ryml::emitrs_json<std::string>(tree) == R"({"doe": "a deer, a female deer","ray": "a drop of golden sun","me": "a name, I call myself","far": "a long long way to go"})");
+    // to emit JSON to a stream:
+    std::stringstream ss;
+    ss << ryml::as_json(tree);  // <- mark it like this
+    CHECK(ss.str() == R"({"doe": "a deer, a female deer","ray": "a drop of golden sun","me": "a name, I call myself","far": "a long long way to go"})");
+    // Note the following limitations:
     //
-    // Although JSON is generally a subset of YAML, [there is an
-    // exception that is valid JSON, but not valid
-    // YAML](https://stackoverflow.com/questions/42124227/why-does-the-yaml-spec-mandate-a-space-after-the-colon):
+    // - YAML streams cannot be emitted as json, and are not
+    //   allowed. But you can work around this by emitting the
+    //   individual documents separately; see the sample_docs()
+    //   below for such an example.
     //
-    // ryml::Tree tree = ryml::parse(R"({"a":"b"})"); // ERROR: missing space after the semicolon
+    // - tags cannot be emitted as json, and are not allowed.
     //
-    // This above is deliberate, and is meant to save added complexity
-    // in the parser code. However, you can still parse this with
-    // ryml if prior to parsing you preprocess the JSON into valid
-    // YAML, adding the missing spaces after the semicolons. ryml
-    // provides a freestanding function to do this:
-    // `ryml::preprocess_json()`:
-    {
-        // there are also in-place overloads, which generally should be preferred:
-        std::string yaml = ryml::preprocess_json<std::string>(R"({"a":"b"})");
-        // now you have a buffer with valid yaml - note the space:
-        CHECK(yaml == R"({"a": "b"})");
-        // ... which you can parse:
-        ryml::Tree tree = ryml::parse_in_place(ryml::to_substr(yaml));
-        CHECK(tree["a"] == "b");
-    }
-
-    // There is also `ryml::preprocess_rxmap()`, a function to convert
-    // non-standard relaxed maps (ie, keys with implicit true values)
-    // into standard YAML maps.
-    {
-        // you can also use in-place overloads
-        std::string yaml = ryml::preprocess_rxmap<std::string>("{a, b, c, d: [e, f, g]}");
-        CHECK(yaml == R"({a: 1, b: 1, c: 1, d: [e, f, g]})");
-        ryml::Tree tree = ryml::parse_in_place(ryml::to_substr(yaml));
-        CHECK(tree["a"] == "1");
-    }
+    // - anchors and aliases cannot be emitted as json and are not allowed.
 }
 
 

@@ -215,7 +215,7 @@ TEST(simple_map, no_seq_key_block)
 
 CASE_GROUP(SIMPLE_MAP)
 {
-
+//
 ADD_CASE_TO_GROUP("empty map",
 "{}",
     MAP
@@ -829,6 +829,33 @@ N(MAP, L{
     N("baz", "bat"),
 }));
 */
+
+ADD_CASE_TO_GROUP("json compact",
+R"(---
+{
+"foo0":"bar",
+"foo1":bar,
+"foo3":{"a":map},
+"foo5":[a,seq],
+}
+--- {"foo0":"bar","foo1":bar,"foo3":{"a":map},"foo5":[a,seq],}
+)",
+N(STREAM,
+  L{
+      N(DOCMAP, L{
+              N(KEYVAL|KEYQUO|VALQUO,"foo0","bar"),
+              N(KEYVAL|KEYQUO,"foo1","bar"),
+              N(KEYMAP|KEYQUO,"foo3", L{N(KEYVAL|KEYQUO,"a","map")}),
+              N(KEYSEQ|KEYQUO,"foo5", L{N("a"),N("seq")}),
+          }),
+      N(DOCMAP, L{
+              N(KEYVAL|KEYQUO|VALQUO,"foo0","bar"),
+              N(KEYVAL|KEYQUO,"foo1","bar"),
+              N(KEYMAP|KEYQUO,"foo3", L{N(KEYVAL|KEYQUO,"a","map")}),
+              N(KEYSEQ|KEYQUO,"foo5", L{N("a"),N("seq")}),
+          }),
+    })
+);
 }
 
 } // namespace yml

@@ -102,6 +102,7 @@ As part of the [new feature to track source locations](https://github.com/biojpp
 
 ### Fixes
 
+- The ryml parser now successfully parses compact JSON code `{"like":"this"}` without any need for preprocessing. So the `preprocess_json()` functions and utilities are no longer necessary and have been removed. If you were using these functions, just remove the calls and pass the original source directly to ryml ([PR#210](https://github.com/biojppm/rapidyaml/pulls/210)).
 - Fix handling of indentation when parsing block scalars ([PR#210](https://github.com/biojppm/rapidyaml/pulls/210)):
   ```yaml
   ---

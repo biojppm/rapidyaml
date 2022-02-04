@@ -603,11 +603,12 @@ bool Parser::_handle_unk()
             _start_map_unk(start_as_child); // wait for the val scalar to append the key-val pair
             _line_progressed(2);
         }
-        else if(rem == ":")
+        else if(rem == ":" || rem.begins_with(":\"") || rem.begins_with(":'"))
         {
-            _c4dbgpf("got a ':' -- it's a map (as_child=%d)", start_as_child);
+            if(rem == ":") { _c4dbgpf("got a ':' -- it's a map (as_child=%d)", start_as_child); }
+            else { _c4dbgpf("got a '%.*s' -- it's a map (as_child=%d)", 2, rem.str, start_as_child); }
             _start_map_unk(start_as_child); // wait for the val scalar to append the key-val pair
-            _line_progressed(1);
+            _line_progressed(1); // advance only 1
         }
         else if(rem.begins_with('}'))
         {

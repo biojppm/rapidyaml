@@ -898,9 +898,9 @@ the source buffer.)
 
 ## YAML standard conformance
 
-ryml is close to feature complete. Most of the YAML features are
-well covered in the unit tests, and expected to work, unless in the exceptions
-noted in the following sections.
+ryml is close to feature complete. Most of the YAML features are well
+covered in the unit tests, and expected to work, unless in the
+exceptions noted below.
 
 Of course, there are many dark corners in YAML, and there certainly
 can appear cases which ryml fails to parse. Your [bug reports or pull
@@ -910,86 +910,88 @@ welcome.
 See also [the roadmap](./ROADMAP.md) for a list of future work.
 
 
+### Known limitations
+
+ryml deliberately makes no effort to follow the standard in the following situations:
+
+* Containers are not accepted as mapping keys: keys must be scalar strings.
+* Tags are parsed as-is; tag lookup is not supported.
+* Anchor names must not end with a terminating colon: eg `&anchor: key: val`.
+* Tabs after `:` or `-` are not supported.
+* `%TAG` directives have no effect and are ignored. All schemas are assumed
+  to be the default YAML 2002 schema.
+* `%YAML` directives have no effect and are ignored.
+
+Some of the limitations above will be worked on (tag lookups, tab
+tokens). Others (notably container keys) absolutely will not, not in
+the data tree at least.
+
+Also, ryml tends to be on the permissive side where the YAML standard
+dictates there should be an error; in many of these cases, ryml will
+tolerate the input. This may be good or bad, but in any case is being
+improved on (meaning ryml will grow progressively less tolerant of
+YAML errors in the coming releases). So we strongly suggest to stay
+away from those dark corners of YAML which are generally a source of
+problems, which is a good practice anyway.
+
+If you do run into trouble and would like to investigate conformance
+of your YAML code, beware of existing online YAML linters, many of
+which are not fully conformant; instead, try using
+[https://play.yaml.io](https://play.yaml.io), an amazing tool from the
+YAML people which lets you dynamically input your YAML and continuously
+see the results from all the existing parsers (kudos to
+@ingydotnet). And of course, if you detect anything bad with ryml,
+please [open an issue](https://github.com/biojppm/rapidyaml/issues) so
+that we can improve.
+
+
 ### Test suite status
 
-ryml is tested in the CI with the [YAML test
-suite](https://github.com/yaml/yaml-test-suite). This is a reference
-set of cases covering the full YAML spec. Each of
-these cases have several subparts:
+As part of its CI testing, ryml uses the [YAML test
+suite](https://github.com/yaml/yaml-test-suite). This is an extensive
+set of reference cases covering the full YAML spec. Each of these
+cases have several subparts:
  * `in-yaml`: mildly, plainly or extremely difficult-to-parse YAML
  * `in-json`: equivalent JSON (where possible/meaningful)
  * `out-yaml`: equivalent standard YAML
  * `emit-yaml`: equivalent standard YAML
  * `events`: reference results (ie, expected tree)
 
-When testing, ryml parses each of the 4 yaml/json parts, then emit the
-parsed tree, then parse the emitted result and verify that emission is
-idempotent, ie that the emitted result is the same as its input
-without any loss of information. To ensure consistency, this happens
-over four levels of parse/emission pairs. And to ensure correctness,
-the parsed result is compared against the `events` spec, which
-constitute the reference. This is then combined with several
-variations: unix vs windows line endings, emitting to string, file or
-streams, which results in ~250 tests per case part. With 3 parts per
-case and ~300 cases, this makes over 200'000 individual tests.
+When testing, ryml parses each of the 4 yaml/json parts, then emits
+the parsed tree, then parses the emitted result and verifies that
+emission is idempotent, ie that the emitted result is semantically the
+same as its input without any loss of information. To ensure
+consistency, this happens over four levels of parse/emission
+pairs. And to ensure correctness, each of the stages is compared
+against the `events` spec from the test, which constitutes the
+reference. The tests also check for equality between the reference
+events in the test case and the events emitted by ryml from the data
+tree parsed from the test case input. All of this is then carried out
+combining several variations: both unix `\n` vs windows `\r\n` line
+endings, emitting to string, file or streams, which results in ~250
+tests per case part. With multiple parts per case and ~400 reference
+cases in the test suite, this makes over several hundred thousand
+individual tests to which ryml is subjected, which are added to the
+unit tests in ryml, which also employ the same extensive
+combinatorial approach.
 
 Also, note that in [their own words](http://matrix.yaml.io/), the
 tests from the YAML test suite *contain a lot of edge cases that don't
 play such an important role in real world examples*. And yet, despite
-the extreme focus of the test suite, currently ryml only fails to
-parse 15 out of ~900-1200 subparts from the test suite, and when
-compared against the reference results from `events` part, only 30
-subparts fail. These are the current issues:
+the extreme focus of the test suite, currently ryml only fails a minor
+fraction of the test cases, mostly related with the deliberate
+limitations noted above. Other than the deliberate limitations noted
+above, these are the main current issues:
   * explicit keys (starting with `?`)
     * problem parsing when the scalar is missing after `? `
     * not supported in flow style
   * several expected parse errors do not materialize
 
-Refer to the [list of known
-failures](test/test_suite/test_suite_parts.cpp) for the current
-status, as this is subject to ongoing work.
+For the current failure status, refer to the [list of known
+exceptions](test/test_suite/test_suite_parts.cpp) from ryml's test
+suite runner, as this is subject to ongoing work and continuous
+improvement.
 
-
---------- 
-
-## Known limitations
-
-ryml deliberately makes no effort to follow the standard in the following situations:
-
-* `%YAML` directives have no effect and are ignored.
-* `%TAG` directives have no effect and are ignored. All schemas are assumed
-  to be the default YAML 2002 schema.
-* Tags are parsed as-is; tag lookup is not supported. YAML test suite cases:
-  [5TYM](https://github.com/yaml/yaml-test-suite/tree/main/src/5TYM.yaml),
-  [6CK3](https://github.com/yaml/yaml-test-suite/tree/main/src/6CK3.yaml),
-  [6WLZ](https://github.com/yaml/yaml-test-suite/tree/main/src/6WLZ.yaml),
-  [9WXW](https://github.com/yaml/yaml-test-suite/tree/main/src/9WXW.yaml),
-  [C4HZ](https://github.com/yaml/yaml-test-suite/tree/main/src/C4HZ.yaml),
-  [CC74](https://github.com/yaml/yaml-test-suite/tree/main/src/CC74.yaml),
-  [P76L](https://github.com/yaml/yaml-test-suite/tree/main/src/P76L.yaml),
-  [QLJ7](https://github.com/yaml/yaml-test-suite/tree/main/src/QLJ7.yaml),
-  [U3C3](https://github.com/yaml/yaml-test-suite/tree/main/src/U3C3.yaml),
-  [Z9M4](https://github.com/yaml/yaml-test-suite/tree/main/src/Z9M4.yaml).
-* Anchor names must not end with a terminating colon. YAML test suite cases:
-  [2SXE](https://github.com/yaml/yaml-test-suite/tree/main/src/2SXE.yaml),
-  [W5VH](https://github.com/yaml/yaml-test-suite/tree/main/src/W5VH.yaml).
-* Tabs after `:` or `-` are not supported. YAML test suite cases:
-  [6BCT](https://github.com/yaml/yaml-test-suite/tree/main/src/6BCT.yaml),
-  [J3BT](https://github.com/yaml/yaml-test-suite/tree/main/src/J3BT.yaml).
-* Containers are not accepted as mapping keys: keys must be
-  scalar strings. YAML test suite cases:
-  [4FJ6](https://github.com/yaml/yaml-test-suite/tree/main/src/4FJ6.yaml),
-  [6BFJ](https://github.com/yaml/yaml-test-suite/tree/main/src/6BFJ.yaml),
-  [6PBE](https://github.com/yaml/yaml-test-suite/tree/main/src/6PBE.yaml),
-  [KK5P](https://github.com/yaml/yaml-test-suite/tree/main/src/KK5P.yaml),
-  [KZN9](https://github.com/yaml/yaml-test-suite/tree/main/src/KZN9.yaml),
-  [LX3P](https://github.com/yaml/yaml-test-suite/tree/main/src/LX3P.yaml),
-  [M5DY](https://github.com/yaml/yaml-test-suite/tree/main/src/M5DY.yaml),
-  [Q9WF](https://github.com/yaml/yaml-test-suite/tree/main/src/Q9WF.yaml),
-  [SBG9](https://github.com/yaml/yaml-test-suite/tree/main/src/SBG9.yaml),
-  [V9D5](https://github.com/yaml/yaml-test-suite/tree/main/src/V9D5.yaml),
-  [X38W](https://github.com/yaml/yaml-test-suite/tree/main/src/X38W.yaml),
-  [XW4D](https://github.com/yaml/yaml-test-suite/tree/main/src/XW4D.yaml).
 
 
 ------
@@ -1017,7 +1019,7 @@ alternative C/C++ libraries:
 
 Recently [libfyaml](https://github.com/pantoniou/libfyaml)
 appeared. This is a newer C library, fully conformant to the YAML
-standard as shown by 100% success in the test suite, which does offer
+standard with an amazing 100% success in the test suite; it also offers
 the tree as a data structure. As a downside, it does not work in
 Windows, and it is also multiple times slower parsing and emitting.
 
