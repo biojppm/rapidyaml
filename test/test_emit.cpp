@@ -6,6 +6,7 @@
 #include <c4/yml/detail/checks.hpp>
 #include <c4/yml/detail/print.hpp>
 #endif
+#include <c4/fs/fs.hpp>
 
 #include "./test_case.hpp"
 
@@ -14,127 +15,43 @@
 namespace c4 {
 namespace yml {
 
-std::string emit2str(Tree const& t)
+template<class Emit>
+std::string emit2file(Emit &&fn)
 {
-    return emitrs<std::string>(t);
+    C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4996) // fopen unsafe
+    std::string filename = fs::tmpnam<std::string>();
+    FILE *f = fopen(filename.c_str(), "wb");
+    C4_CHECK(f != nullptr);
+    fn(f);
+    fflush(f);
+    fclose(f);
+    std::string result = fs::file_get_contents<std::string>(filename.c_str());
+    fs::rmfile(filename.c_str());
+    return result;
+    C4_SUPPRESS_WARNING_MSVC_POP
 }
 
-TEST(style, flags)
+template<class Emit>
+std::string emit2stream(Emit &&fn)
 {
-    Tree tree = parse_in_arena("foo: bar");
-    EXPECT_TRUE(tree.rootref().type().default_block());
-    EXPECT_FALSE(tree.rootref().type().marked_flow());
-    EXPECT_FALSE(tree.rootref().type().marked_flow_sl());
-    EXPECT_FALSE(tree.rootref().type().marked_flow_ml());
-    tree._add_flags(tree.root_id(), _WIP_STYLE_FLOW_SL);
-    EXPECT_FALSE(tree.rootref().type().default_block());
-    EXPECT_TRUE(tree.rootref().type().marked_flow());
-    EXPECT_TRUE(tree.rootref().type().marked_flow_sl());
-    EXPECT_FALSE(tree.rootref().type().marked_flow_ml());
-    tree._rem_flags(tree.root_id(), _WIP_STYLE_FLOW_SL);
-    tree._add_flags(tree.root_id(), _WIP_STYLE_FLOW_ML);
-    EXPECT_FALSE(tree.rootref().type().default_block());
-    EXPECT_TRUE(tree.rootref().type().marked_flow());
-    EXPECT_FALSE(tree.rootref().type().marked_flow_sl());
-    EXPECT_TRUE(tree.rootref().type().marked_flow_ml());
+    std::ostringstream ss;
+    fn(ss);
+    return ss.str();
 }
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-csubstr scalar_yaml = R"(
-this is the key: >-
-  this is the multiline
-  "val" with
-
-  'empty' lines
-)";
-
-void check_same_emit(Tree const& expected)
+template<class Emit>
+std::string emit2buf(Emit &&fn)
 {
-    #if 0
-        #define _showtrees(num)                                     \
-            std::cout << "--------\nEMITTED" #num "\n--------\n";   \
-            std::cout << ws ## num;                                 \
-            std::cout << "--------\nACTUAL" #num "\n--------\n";    \
-            print_tree(actual ## num);                              \
-            std::cout << "--------\nEXPECTED" #num "\n--------\n";  \
-            print_tree(expected)
-    #else
-        #define _showtrees(num)
-    #endif
-
-    std::string ws1, ws2, ws3, ws4;
-    emitrs(expected, &ws1);
+    std::string buf;
+    buf.resize(2048);
+    substr out = fn(to_substr(buf));
+    if(out.len > buf.size())
     {
-        SCOPED_TRACE("actual1");
-        Tree actual1 = parse_in_arena(to_csubstr(ws1));
-        _showtrees(1);
-        test_compare(actual1, expected);
-        emitrs(actual1, &ws2);
+        buf.resize(out.len);
+        out = fn(to_substr(buf));
     }
-    {
-        SCOPED_TRACE("actual2");
-        Tree actual2 = parse_in_arena(to_csubstr(ws2));
-        _showtrees(2);
-        test_compare(actual2, expected);
-        emitrs(actual2, &ws3);
-    }
-    {
-        SCOPED_TRACE("actual3");
-        Tree actual3 = parse_in_arena(to_csubstr(ws3));
-        _showtrees(3);
-        test_compare(actual3, expected);
-        emitrs(actual3, &ws4);
-    }
-    {
-        SCOPED_TRACE("actual4");
-        Tree actual4 = parse_in_arena(to_csubstr(ws4));
-        _showtrees(4);
-        test_compare(actual4, expected);
-    }
-}
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-
-TEST(style, noflags)
-{
-    Tree expected = parse_in_arena("{}");
-    NodeRef r = expected.rootref();
-    r["normal"] |= MAP;
-    r["normal"]["singleline"] = "foo";
-    r["normal"]["multiline"] |= MAP;
-    r["normal"]["multiline"]["____________"] = "foo";
-    r["normal"]["multiline"]["____mid_____"] = "foo\nbar";
-    r["normal"]["multiline"]["____mid_end1"] = "foo\nbar\n";
-    r["normal"]["multiline"]["____mid_end2"] = "foo\nbar\n\n";
-    r["normal"]["multiline"]["____mid_end3"] = "foo\nbar\n\n\n";
-    r["normal"]["multiline"]["____________"] = "foo";
-    r["normal"]["multiline"]["____________"] = "foo bar";
-    r["normal"]["multiline"]["________end1"] = "foo bar\n";
-    r["normal"]["multiline"]["________end2"] = "foo bar\n\n";
-    r["normal"]["multiline"]["________end3"] = "foo bar\n\n\n";
-    r["normal"]["multiline"]["beg_________"] = "\nfoo";
-    r["normal"]["multiline"]["beg_mid_____"] = "\nfoo\nbar";
-    r["normal"]["multiline"]["beg_mid_end1"] = "\nfoo\nbar\n";
-    r["normal"]["multiline"]["beg_mid_end2"] = "\nfoo\nbar\n\n";
-    r["normal"]["multiline"]["beg_mid_end3"] = "\nfoo\nbar\n\n\n";
-    r["leading_ws"] |= MAP;
-    r["leading_ws"]["singleline"] |= MAP;
-    r["leading_ws"]["singleline"]["space"] = " foo";
-    r["leading_ws"]["singleline"]["tab"] = "\tfoo";
-    r["leading_ws"]["singleline"]["space_and_tab0"] = " \tfoo";
-    r["leading_ws"]["singleline"]["space_and_tab1"] = "\t foo";
-    r["leading_ws"]["multiline"] |= MAP;
-    r["leading_ws"]["multiline"]["beg_________"] = "\n \tfoo";
-    r["leading_ws"]["multiline"]["beg_mid_____"] = "\n \tfoo\nbar";
-    r["leading_ws"]["multiline"]["beg_mid_end1"] = "\n \tfoo\nbar\n";
-    r["leading_ws"]["multiline"]["beg_mid_end2"] = "\n \tfoo\nbar\n\n";
-    r["leading_ws"]["multiline"]["beg_mid_end3"] = "\n \tfoo\nbar\n\n\n";
-    check_same_emit(expected);
+    buf.resize(out.len);
+    return buf;
 }
 
 
@@ -142,233 +59,28 @@ TEST(style, noflags)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-TEST(scalar, base)
+TEST(as_json, basic)
 {
-    Tree tree = parse_in_arena(scalar_yaml);
-    EXPECT_EQ(tree[0].key(), csubstr("this is the key"));
-    EXPECT_EQ(tree[0].val(), csubstr("this is the multiline \"val\" with\n'empty' lines"));
-    EXPECT_EQ(emit2str(tree), R"(this is the key: |-
-  this is the multiline "val" with
-  'empty' lines
-)");
-    check_same_emit(tree);
-}
-
-TEST(scalar, block_literal)
-{
-    Tree tree = parse_in_arena(scalar_yaml);
+    Tree et;
     {
-        SCOPED_TRACE("val only");
-        EXPECT_FALSE(tree[0].type().key_marked_literal());
-        EXPECT_FALSE(tree[0].type().val_marked_literal());
-        tree._add_flags(tree[0].id(), _WIP_VAL_LITERAL);
-        EXPECT_FALSE(tree[0].type().key_marked_literal());
-        EXPECT_TRUE(tree[0].type().val_marked_literal());
-        EXPECT_EQ(emit2str(tree), R"(this is the key: |-
-  this is the multiline "val" with
-  'empty' lines
-)");
-        check_same_emit(tree);
+        as_json j(et);
+        EXPECT_EQ(j.tree, &et);
+    }
+    Tree t = parse_in_arena("[foo, bar]");
+    {
+        as_json j(t);
+        EXPECT_EQ(j.tree, &t);
+        EXPECT_EQ(j.node, t.root_id());
     }
     {
-        SCOPED_TRACE("key+val");
-        tree._add_flags(tree[0].id(), _WIP_KEY_LITERAL);
-        EXPECT_TRUE(tree[0].type().key_marked_literal());
-        EXPECT_TRUE(tree[0].type().val_marked_literal());
-        EXPECT_EQ(emit2str(tree), R"(? |-
-  this is the key
-: |-
-  this is the multiline "val" with
-  'empty' lines
-)");
-        check_same_emit(tree);
+        as_json j(t, 2u);
+        EXPECT_EQ(j.tree, &t);
+        EXPECT_EQ(j.node, 2u);
     }
     {
-        SCOPED_TRACE("key only");
-        tree._rem_flags(tree[0].id(), _WIP_VAL_LITERAL);
-        EXPECT_TRUE(tree[0].type().key_marked_literal());
-        EXPECT_FALSE(tree[0].type().val_marked_literal());
-        EXPECT_EQ(emit2str(tree), R"(? |-
-  this is the key
-: |-
-  this is the multiline "val" with
-  'empty' lines
-)");
-        check_same_emit(tree);
-    }
-}
-
-TEST(scalar, block_folded)
-{
-    Tree tree = parse_in_arena(scalar_yaml);
-    {
-        SCOPED_TRACE("val only");
-        EXPECT_FALSE(tree[0].type().key_marked_folded());
-        EXPECT_FALSE(tree[0].type().val_marked_folded());
-        tree._add_flags(tree[0].id(), _WIP_VAL_FOLDED);
-        EXPECT_FALSE(tree[0].type().key_marked_folded());
-        EXPECT_TRUE(tree[0].type().val_marked_folded());
-        EXPECT_EQ(emit2str(tree), R"(this is the key: >-
-  this is the multiline "val" with
-
-  'empty' lines
-)");
-        check_same_emit(tree);
-    }
-    {
-        SCOPED_TRACE("key+val");
-        tree._add_flags(tree[0].id(), _WIP_KEY_FOLDED);
-        EXPECT_TRUE(tree[0].type().key_marked_folded());
-        EXPECT_TRUE(tree[0].type().val_marked_folded());
-        EXPECT_EQ(emit2str(tree), R"(? >-
-  this is the key
-: >-
-  this is the multiline "val" with
-
-  'empty' lines
-)");
-        check_same_emit(tree);
-    }
-    {
-        SCOPED_TRACE("val only");
-        tree._rem_flags(tree[0].id(), _WIP_VAL_FOLDED);
-        EXPECT_TRUE(tree[0].type().key_marked_folded());
-        EXPECT_FALSE(tree[0].type().val_marked_folded());
-        EXPECT_EQ(emit2str(tree), R"(? >-
-  this is the key
-: |-
-  this is the multiline "val" with
-  'empty' lines
-)");
-        check_same_emit(tree);
-    }
-}
-
-TEST(scalar, squot)
-{
-    Tree tree = parse_in_arena(scalar_yaml);
-    EXPECT_FALSE(tree[0].type().key_marked_squo());
-    EXPECT_FALSE(tree[0].type().val_marked_squo());
-    {
-        SCOPED_TRACE("val only");
-        tree._add_flags(tree[0].id(), _WIP_VAL_SQUO);
-        EXPECT_FALSE(tree[0].type().key_marked_squo());
-        EXPECT_TRUE(tree[0].type().val_marked_squo());
-        EXPECT_EQ(emit2str(tree), R"(this is the key: 'this is the multiline "val" with
-
-  ''empty'' lines'
-)");
-        check_same_emit(tree);
-    }
-    {
-        SCOPED_TRACE("key+val");
-        tree._add_flags(tree[0].id(), _WIP_KEY_SQUO);
-        EXPECT_TRUE(tree[0].type().key_marked_squo());
-        EXPECT_TRUE(tree[0].type().val_marked_squo());
-        EXPECT_EQ(emit2str(tree), R"('this is the key': 'this is the multiline "val" with
-
-  ''empty'' lines'
-)");
-        check_same_emit(tree);
-    }
-    {
-        SCOPED_TRACE("key only");
-        tree._rem_flags(tree[0].id(), _WIP_VAL_SQUO);
-        EXPECT_TRUE(tree[0].type().key_marked_squo());
-        EXPECT_FALSE(tree[0].type().val_marked_squo());
-        EXPECT_EQ(emit2str(tree), R"('this is the key': |-
-  this is the multiline "val" with
-  'empty' lines
-)");
-        check_same_emit(tree);
-    }
-}
-
-TEST(scalar, dquot)
-{
-    Tree tree = parse_in_arena(scalar_yaml);
-    EXPECT_FALSE(tree[0].type().key_marked_dquo());
-    EXPECT_FALSE(tree[0].type().val_marked_dquo());
-    {
-        SCOPED_TRACE("val only");
-        tree._add_flags(tree[0].id(), _WIP_VAL_DQUO);
-        EXPECT_FALSE(tree[0].type().key_marked_dquo());
-        EXPECT_TRUE(tree[0].type().val_marked_dquo());
-        // visual studio fails to compile this string when used inside
-        // the EXPECT_EQ() macro below. So we declare it separately
-        // instead:
-        csubstr yaml = R"(this is the key: "this is the multiline \"val\" with
-
-  'empty' lines"
-)";
-        EXPECT_EQ(emit2str(tree), yaml);
-        check_same_emit(tree);
-    }
-    {
-        SCOPED_TRACE("key+val");
-        tree._add_flags(tree[0].id(), _WIP_KEY_DQUO);
-        EXPECT_TRUE(tree[0].type().key_marked_dquo());
-        EXPECT_TRUE(tree[0].type().val_marked_dquo());
-        // visual studio fails to compile this string when used inside
-        // the EXPECT_EQ() macro below. So we declare it separately
-        // instead:
-        csubstr yaml = R"("this is the key": "this is the multiline \"val\" with
-
-  'empty' lines"
-)";
-        EXPECT_EQ(emit2str(tree), yaml);
-        check_same_emit(tree);
-    }
-    {
-        SCOPED_TRACE("key only");
-        tree._rem_flags(tree[0].id(), _WIP_VAL_DQUO);
-        EXPECT_TRUE(tree[0].type().key_marked_dquo());
-        EXPECT_FALSE(tree[0].type().val_marked_dquo());
-        EXPECT_EQ(emit2str(tree), R"("this is the key": |-
-  this is the multiline "val" with
-  'empty' lines
-)");
-        check_same_emit(tree);
-    }
-}
-
-TEST(scalar, plain)
-{
-    Tree tree = parse_in_arena(scalar_yaml);
-    EXPECT_FALSE(tree[0].type().key_marked_plain());
-    EXPECT_FALSE(tree[0].type().val_marked_plain());
-    {
-        SCOPED_TRACE("val only");
-        tree._add_flags(tree[0].id(), _WIP_VAL_PLAIN);
-        EXPECT_FALSE(tree[0].type().key_marked_plain());
-        EXPECT_TRUE(tree[0].type().val_marked_plain());
-        EXPECT_EQ(emit2str(tree), R"(this is the key: this is the multiline "val" with
-
-  'empty' lines
-)");
-        check_same_emit(tree);
-    }
-    {
-        SCOPED_TRACE("key+val");
-        tree._add_flags(tree[0].id(), _WIP_KEY_PLAIN);
-        EXPECT_TRUE(tree[0].type().key_marked_plain());
-        EXPECT_TRUE(tree[0].type().val_marked_plain());
-        EXPECT_EQ(emit2str(tree), R"(this is the key: this is the multiline "val" with
-
-  'empty' lines
-)");
-        check_same_emit(tree);
-    }
-    {
-        SCOPED_TRACE("key only");
-        tree._rem_flags(tree[0].id(), _WIP_VAL_PLAIN);
-        EXPECT_TRUE(tree[0].type().key_marked_plain());
-        EXPECT_FALSE(tree[0].type().val_marked_plain());
-        EXPECT_EQ(emit2str(tree), R"(this is the key: |-
-  this is the multiline "val" with
-  'empty' lines
-)");
-        check_same_emit(tree);
+        as_json j(t[0]);
+        EXPECT_EQ(j.tree, &t);
+        EXPECT_EQ(j.node, 1u);
     }
 }
 
@@ -377,171 +89,286 @@ TEST(scalar, plain)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-TEST(stream, block)
+template<class ...Args>
+void test_emits(Tree const& t, size_t id, std::string const& expected, std::string const& expected_json)
 {
-    Tree tree = parse_in_arena(R"(
----
-scalar
-%YAML 1.2
----
-foo
----
-bar
-)");
-    EXPECT_TRUE(tree.rootref().is_stream());
-    EXPECT_TRUE(tree.docref(0).is_doc());
-    EXPECT_TRUE(tree.docref(0).is_val());
-    EXPECT_EQ(emit2str(tree), "--- scalar %YAML 1.2\n--- foo\n--- bar\n");
-    tree._add_flags(tree.root_id(), _WIP_STYLE_FLOW_SL);
-    EXPECT_EQ(emit2str(tree), "--- scalar %YAML 1.2\n--- foo\n--- bar\n");
+    EXPECT_EQ(emit2buf([&](substr buf){ return emit(t, id, buf); }), expected);
+    EXPECT_EQ(emit2buf([&](substr buf){ return emit_json(t, id, buf); }), expected_json);
+    EXPECT_EQ(emit2file([&](FILE *f){ return emit(t, id, f); }), expected);
+    EXPECT_EQ(emit2file([&](FILE *f){ return emit_json(t, id, f); }), expected_json);
+    EXPECT_EQ(emitrs<std::string>(t, id), expected);
+    EXPECT_EQ(emitrs_json<std::string>(t, id), expected_json);
+}
+
+template<class ...Args>
+void test_emits(Tree const& t, std::string const& expected, std::string const& expected_json)
+{
+    EXPECT_EQ(emit2buf([&](substr buf){ return emit(t, buf); }), expected);
+    EXPECT_EQ(emit2buf([&](substr buf){ return emit_json(t, buf); }), expected_json);
+    EXPECT_EQ(emit2file([&](FILE *f){ return emit(t, f); }), expected);
+    EXPECT_EQ(emit2file([&](FILE *f){ return emit_json(t, f); }), expected_json);
+    EXPECT_EQ(emit2stream([&](std::ostream& s){ s << t; }), expected);
+    EXPECT_EQ(emit2stream([&](std::ostream& s){ s << as_json(t); }), expected_json);
+    EXPECT_EQ(emitrs<std::string>(t), expected);
+    EXPECT_EQ(emitrs_json<std::string>(t), expected_json);
+}
+
+template<class ...Args>
+void test_emits(const NodeRef t, std::string const& expected, std::string const& expected_json)
+{
+    EXPECT_EQ(emit2buf([&](substr buf){ return emit(t, buf); }), expected);
+    EXPECT_EQ(emit2buf([&](substr buf){ return emit_json(t, buf); }), expected_json);
+    EXPECT_EQ(emit2file([&](FILE *f){ return emit(t, f); }), expected);
+    EXPECT_EQ(emit2file([&](FILE *f){ return emit_json(t, f); }), expected_json);
+    EXPECT_EQ(emit2stream([&](std::ostream& s){ s << t; }), expected);
+    EXPECT_EQ(emit2stream([&](std::ostream& s){ s << as_json(t); }), expected_json);
+    EXPECT_EQ(emitrs<std::string>(t), expected);
+    EXPECT_EQ(emitrs_json<std::string>(t), expected_json);
 }
 
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-TEST(seq, block)
+TEST(emit, empty_tree)
 {
-    Tree tree = parse_in_arena("[1, 2, 3, 4, 5, 6]");
-    EXPECT_EQ(emit2str(tree), R"(- 1
-- 2
-- 3
-- 4
-- 5
-- 6
-)");
+    const Tree t; // must be const!
+    std::string expected = R"()";
+    test_emits(t, expected, expected);
 }
 
-TEST(seq, flow_sl)
+TEST(emit, existing_tree)
 {
-    Tree tree = parse_in_arena("[1, 2, 3, 4, 5, 6]");
-    tree._add_flags(tree.root_id(), _WIP_STYLE_FLOW_SL);
-    EXPECT_EQ(emit2str(tree), R"([1,2,3,4,5,6])");
+    const Tree t = parse_in_arena("[foo, bar]");
+    std::string expected = "- foo\n- bar\n";
+    std::string expected_json = R"(["foo","bar"])";
+    test_emits(t, expected, expected_json);
 }
 
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-TEST(keyseq, block)
+TEST(emit, existing_seq_node)
 {
-    Tree tree = parse_in_arena("{foo: [1, 2, 3, 4, 5, 6]}");
-    EXPECT_TRUE(tree.rootref().type().default_block());
-    EXPECT_EQ(emit2str(tree), R"(foo:
-  - 1
-  - 2
-  - 3
-  - 4
-  - 5
-  - 6
-)");
-    tree = parse_in_arena("{foo: [1, [2, 3], 4, [5, 6]]}");
-    EXPECT_EQ(emit2str(tree), R"(foo:
-  - 1
-  - - 2
-    - 3
-  - 4
-  - - 5
-    - 6
-)");
+    Tree nct = parse_in_arena("[foo, bar, [nested, seq], {nested: map}]");
+    Tree const& t = nct;
+    {
+        std::string expected = "- foo\n- bar\n- - nested\n  - seq\n- nested: map\n";
+        std::string expected_json = R"(["foo","bar",["nested","seq"],{"nested": "map"}])";
+        {
+            SCOPED_TRACE("rootref");
+            test_emits(t.rootref(), expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("t");
+            test_emits(t, expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("t, id");
+            test_emits(t, t.root_id(), expected, expected_json);
+        }
+    }
+    {
+        const NodeRef n = t[0];
+        std::string expected = "foo\n";
+        std::string expected_json = "\"foo\"";
+        {
+            SCOPED_TRACE("noderef");
+            test_emits(n, expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("t, id");
+            test_emits(t, n.id(), expected, expected_json);
+        }
+        nct._add_flags(n.id(), _WIP_STYLE_FLOW_SL);
+        expected = "foo";
+        {
+            SCOPED_TRACE("t, id");
+            test_emits(n, expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("t, id");
+            test_emits(t, n.id(), expected, expected_json);
+        }
+    }
+    {
+        const NodeRef n = t[1];
+        std::string expected = "bar\n";
+        std::string expected_json = "\"bar\"";
+        {
+            SCOPED_TRACE("noderef");
+            test_emits(n, expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("t, id");
+            test_emits(t, n.id(), expected, expected_json);
+        }
+        nct._add_flags(n.id(), _WIP_STYLE_FLOW_SL);
+        expected = "bar";
+        {
+            SCOPED_TRACE("t, id");
+            test_emits(n, expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("t, id");
+            test_emits(t, n.id(), expected, expected_json);
+        }
+
+    }
+    {
+        const NodeRef n = t[2];
+        std::string expected = "- nested\n- seq\n";
+        std::string expected_json = "[\"nested\",\"seq\"]";
+        {
+            SCOPED_TRACE("noderef");
+            test_emits(n, expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("t, id");
+            test_emits(t, n.id(), expected, expected_json);
+        }
+        expected = "[nested,seq]";
+        nct._add_flags(n.id(), _WIP_STYLE_FLOW_SL);
+        {
+            SCOPED_TRACE("t, id");
+            test_emits(n, expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("t, id");
+            test_emits(t, n.id(), expected, expected_json);
+        }
+    }
+    {
+        const NodeRef n = t[3];
+        std::string expected = "nested: map\n";
+        std::string expected_json = "{\"nested\": \"map\"}";
+        {
+            SCOPED_TRACE("noderef");
+            test_emits(n, expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("t, id");
+            test_emits(t, n.id(), expected, expected_json);
+        }
+        expected = "{nested: map}";
+        nct._add_flags(n.id(), _WIP_STYLE_FLOW_SL);
+        {
+            SCOPED_TRACE("t, id");
+            test_emits(n, expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("t, id");
+            test_emits(t, n.id(), expected, expected_json);
+        }
+    }
 }
 
-TEST(keyseq, flow_sl)
+TEST(emit, existing_map_node)
 {
-    Tree tree = parse_in_arena("{foo: [1, 2, 3, 4, 5, 6]}");
-    EXPECT_TRUE(tree.rootref().type().default_block());
-    tree._add_flags(tree.root_id(), _WIP_STYLE_FLOW_SL);
-    EXPECT_FALSE(tree.rootref().type().default_block());
-    EXPECT_EQ(emit2str(tree), R"({foo: [1,2,3,4,5,6]})");
-    //
-    tree = parse_in_arena("{foo: [1, [2, 3], 4, [5, 6]]}");
-    tree._add_flags(tree.root_id(), _WIP_STYLE_FLOW_SL);
-    EXPECT_EQ(emit2str(tree), R"({foo: [1,[2,3],4,[5,6]]})");
-    //
-    tree._rem_flags(tree.root_id(), _WIP_STYLE_FLOW_SL);
-    tree._add_flags(tree["foo"][1].id(), _WIP_STYLE_FLOW_SL);
-    tree._add_flags(tree["foo"][3].id(), _WIP_STYLE_FLOW_SL);
-    EXPECT_EQ(emit2str(tree), R"(foo:
-  - 1
-  - [2,3]
-  - 4
-  - [5,6]
-)");
-}
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-TEST(map, block)
-{
-    Tree tree = parse_in_arena("{1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10}");
-    EXPECT_EQ(emit2str(tree), R"(1: 10
-2: 10
-3: 10
-4: 10
-5: 10
-6: 10
-)");
-}
-
-TEST(map, flow_sl)
-{
-    Tree tree = parse_in_arena("{1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10}");
-    tree._add_flags(tree.root_id(), _WIP_STYLE_FLOW_SL);
-    EXPECT_EQ(emit2str(tree), R"({1: 10,2: 10,3: 10,4: 10,5: 10,6: 10})");
-}
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-TEST(keymap, block)
-{
-    Tree tree = parse_in_arena("{foo: {1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10}}");
-    EXPECT_EQ(emit2str(tree), R"(foo:
-  1: 10
-  2: 10
-  3: 10
-  4: 10
-  5: 10
-  6: 10
-)");
-}
-
-
-TEST(keymap, flow_sl)
-{
-    Tree tree = parse_in_arena("{foo: {1: 10, 2: 10, 3: 10, 4: 10, 5: 10, 6: 10}}");
-    tree._add_flags(tree.root_id(), _WIP_STYLE_FLOW_SL);
-    EXPECT_EQ(emit2str(tree), R"({foo: {1: 10,2: 10,3: 10,4: 10,5: 10,6: 10}})");
-    //
-    tree = parse_in_arena("{foo: {1: 10, 2: {2: 10, 3: 10}, 4: 10, 5: {5: 10, 6: 10}}}");
-    EXPECT_EQ(emit2str(tree), R"(foo:
-  1: 10
-  2:
-    2: 10
-    3: 10
-  4: 10
-  5:
-    5: 10
-    6: 10
-)");
-    tree._add_flags(tree.root_id(), _WIP_STYLE_FLOW_SL);
-    EXPECT_EQ(emit2str(tree), R"({foo: {1: 10,2: {2: 10,3: 10},4: 10,5: {5: 10,6: 10}}})");
-    tree._rem_flags(tree.root_id(), _WIP_STYLE_FLOW_SL);
-    tree._add_flags(tree["foo"][1].id(), _WIP_STYLE_FLOW_SL);
-    tree._add_flags(tree["foo"][3].id(), _WIP_STYLE_FLOW_SL);
-    EXPECT_EQ(emit2str(tree), R"(foo:
-  1: 10
-  2: {2: 10,3: 10}
-  4: 10
-  5: {5: 10,6: 10}
-)");
+    Tree nct = parse_in_arena("{0: foo, 1: bar, 2: [nested, seq], 3: {nested: map}}");
+    Tree const& t = nct;
+    {
+        std::string expected = "0: foo\n1: bar\n2:\n  - nested\n  - seq\n3:\n  nested: map\n";
+        std::string expected_json = R"({"0": "foo","1": "bar","2": ["nested","seq"],"3": {"nested": "map"}})";
+        {
+            SCOPED_TRACE("rootref");
+            test_emits(t.rootref(), expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("t");
+            test_emits(t, expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("t, id");
+            test_emits(t, t.root_id(), expected, expected_json);
+        }
+    }
+    {
+        const NodeRef n = t[0];
+        std::string expected = "0: foo\n";
+        std::string expected_json = "\"0\": \"foo\"";
+        {
+            SCOPED_TRACE("noderef");
+            test_emits(n, expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("t, id");
+            test_emits(t, n.id(), expected, expected_json);
+        }
+        expected = "0: foo";
+        nct._add_flags(n.id(), _WIP_STYLE_FLOW_SL);
+        {
+            SCOPED_TRACE("t, id");
+            test_emits(n, expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("t, id");
+            test_emits(t, n.id(), expected, expected_json);
+        }
+    }
+    {
+        const NodeRef n = t[1];
+        std::string expected = "1: bar\n";
+        std::string expected_json = "\"1\": \"bar\"";
+        {
+            SCOPED_TRACE("noderef");
+            test_emits(n, expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("t, id");
+            test_emits(t, n.id(), expected, expected_json);
+        }
+        expected = "1: bar";
+        nct._add_flags(n.id(), _WIP_STYLE_FLOW_SL);
+        {
+            SCOPED_TRACE("t, id");
+            test_emits(n, expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("t, id");
+            test_emits(t, n.id(), expected, expected_json);
+        }
+    }
+    {
+        const NodeRef n = t[2];
+        std::string expected = "2:\n  - nested\n  - seq\n";
+        std::string expected_json = "\"2\": [\"nested\",\"seq\"]";
+        {
+            SCOPED_TRACE("noderef");
+            test_emits(n, expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("t, id");
+            test_emits(t, n.id(), expected, expected_json);
+        }
+        expected = "2: [nested,seq]";
+        nct._add_flags(n.id(), _WIP_STYLE_FLOW_SL);
+        {
+            SCOPED_TRACE("t, id");
+            test_emits(n, expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("t, id");
+            test_emits(t, n.id(), expected, expected_json);
+        }
+    }
+    {
+        const NodeRef n = t[3];
+        std::string expected = "3:\n  nested: map\n";
+        std::string expected_json = "\"3\": {\"nested\": \"map\"}";
+        {
+            SCOPED_TRACE("noderef");
+            test_emits(n, expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("t, id");
+            test_emits(t, n.id(), expected, expected_json);
+        }
+        expected = "3: {nested: map}";
+        nct._add_flags(n.id(), _WIP_STYLE_FLOW_SL);
+        {
+            SCOPED_TRACE("t, id");
+            test_emits(n, expected, expected_json);
+        }
+        {
+            SCOPED_TRACE("t, id");
+            test_emits(t, n.id(), expected, expected_json);
+        }
+    }
 }
 
 

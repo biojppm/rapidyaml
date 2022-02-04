@@ -148,6 +148,27 @@ As part of the [new feature to track source locations](https://github.com/biojpp
   assert(tree[0].val() == "☺ ☺ ✅ 𝄞");
   ```
   This is mandated by the YAML standard and was missing from ryml ([PR#207](https://github.com/biojppm/rapidyaml/pulls/207)).
+- Fix emission of nested nodes which are sequences: when these are given as the emit root, the `- ` from the parent node was added ([PR#210](https://github.com/biojppm/rapidyaml/pulls/210)):
+  ```c++
+  const ryml::Tree tree = ryml::parse_in_arena(R"(
+  - - Rochefort 10
+    - Busch
+    - Leffe Rituel
+    - - and so
+      - many other
+      - wonderful beers
+  )");
+  // before (error), YAML valid but not expected
+  //assert(ryml::emitrs<std::string>(tree[0][3]) == R"(- - and so
+  //  - many other
+  //  - wonderful beers
+  //)");
+  // now: YAML valid and expected
+  assert(ryml::emitrs<std::string>(tree[0][3]) == R"(- and so
+  - many other
+  - wonderful beers
+  )");
+  ```
 - Fix [#193](https://github.com/biojppm/rapidyaml/issues/193): amalgamated header missing `#include <stdarg.h>` which prevented compilation in bare-metal `arm-none-eabi` ([PR #195](https://github.com/biojppm/rapidyaml/pull/195), requiring also [c4core #64](https://github.com/biojppm/c4core/pull/64)).
 - Accept `infinity`,`inf` and `nan` as special float values (but not mixed case: eg `InFiNiTy` or `Inf` or `NaN` are not accepted) ([PR #186](https://github.com/biojppm/rapidyaml/pull/186)).
 - Accept special float values with upper or mixed case: `.Inf`, `.INF`, `.NaN`, `.NAN`. Previously, only low-case `.inf` and `.nan` were accepted ([PR #186](https://github.com/biojppm/rapidyaml/pull/186)).

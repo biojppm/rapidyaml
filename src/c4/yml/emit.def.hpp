@@ -11,20 +11,46 @@ namespace yml {
 template<class Writer>
 substr Emitter<Writer>::emit(EmitType_e type, Tree const& t, size_t id, bool error_on_excess)
 {
+    if(t.empty())
+    {
+        _RYML_CB_ASSERT(t.callbacks(), id == NONE);
+        return {};
+    }
+    _RYML_CB_CHECK(t.callbacks(), id < t.size());
     m_tree = &t;
-    if(type == YAML)
+    if(type == EMIT_YAML)
         _emit_yaml(id);
-    else if(type == JSON)
+    else if(type == EMIT_JSON)
         _do_visit_json(id);
     else
         _RYML_CB_ERR(m_tree->callbacks(), "unknown emit type");
-    substr result = this->Writer::_get(error_on_excess);
-    return result;
+    return this->Writer::_get(error_on_excess);
 }
+
+template<class Writer>
+substr Emitter<Writer>::emit(EmitType_e type, Tree const& t, bool error_on_excess)
+{
+    if(t.empty())
+        return {};
+    return emit(type, t, t.root_id(), error_on_excess);
+}
+
+template<class Writer>
+substr Emitter<Writer>::emit(EmitType_e type, NodeRef const& n, bool error_on_excess)
+{
+    _RYML_CB_CHECK(n.tree()->callbacks(), n.valid());
+    return emit(type, *n.tree(), n.id(), error_on_excess);
+}
+
+
+//-----------------------------------------------------------------------------
 
 template<class Writer>
 void Emitter<Writer>::_emit_yaml(size_t id)
 {
+    // save branches in the visitor by doing the initial stream/doc
+    // logic here, sparing the need to check stream/val/keyval inside
+    // the visitor functions
     auto dispatch = [this](size_t node){
         NodeType ty = m_tree->type(node);
         if(ty.marked_flow_sl())
@@ -32,11 +58,26 @@ void Emitter<Writer>::_emit_yaml(size_t id)
         else if(ty.marked_flow_ml())
             _do_visit_flow_ml(node, 0);
         else
+        {
             _do_visit_block(node, 0);
+        }
     };
-    // save branches in the visitor by doing the initial stream/doc
-    // logic here, sparing the need to check stream/val/keyval inside
-    // the visitor functions
+    if(!m_tree->is_root(id))
+    {
+        if(m_tree->is_container(id) && !m_tree->type(id).marked_flow())
+        {
+            size_t ilevel = 0;
+            if(m_tree->has_key(id))
+            {
+                this->Writer::_do_write(m_tree->key(id));
+                this->Writer::_do_write(":\n");
+                ++ilevel;
+            }
+            _do_visit_block_container(id, ilevel, ilevel);
+            return;
+        }
+    }
+
     if(m_tree->is_stream(id))
     {
         for(size_t child = m_tree->first_child(id); child != NONE; child = m_tree->next_sibling(child))
@@ -62,7 +103,7 @@ void Emitter<Writer>::_emit_yaml(size_t id)
     }
     else if(m_tree->is_val(id))
     {
-        this->Writer::_do_write("- ");
+        //this->Writer::_do_write("- ");
         _writev(id, 0);
         if(!m_tree->type(id).marked_flow())
             this->Writer::_do_write('\n');
@@ -211,6 +252,91 @@ void Emitter<Writer>::_do_visit_flow_ml(size_t id, size_t ilevel, size_t do_inde
 }
 
 template<class Writer>
+void Emitter<Writer>::_do_visit_block_container(size_t node, size_t next_level, size_t do_indent)
+{
+    RepC ind = indent_to(do_indent * next_level);
+
+    if(m_tree->is_seq(node))
+    {
+        for(size_t child = m_tree->first_child(node); child != NONE; child = m_tree->next_sibling(child))
+        {
+            _RYML_CB_ASSERT(m_tree->callbacks(), !m_tree->has_key(child));
+            if(m_tree->is_val(child))
+            {
+                this->Writer::_do_write(ind);
+                this->Writer::_do_write("- ");
+                _writev(child, next_level);
+                this->Writer::_do_write('\n');
+            }
+            else
+            {
+                _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_container(child));
+                NodeType ty = m_tree->type(child);
+                if(ty.marked_flow_sl())
+                {
+                    this->Writer::_do_write(ind);
+                    this->Writer::_do_write("- ");
+                    _do_visit_flow_sl(child, 0u);
+                    this->Writer::_do_write('\n');
+                }
+                else if(ty.marked_flow_ml())
+                {
+                    this->Writer::_do_write(ind);
+                    this->Writer::_do_write("- ");
+                    _do_visit_flow_ml(child, next_level, do_indent);
+                    this->Writer::_do_write('\n');
+                }
+                else
+                {
+                    _do_visit_block(child, next_level, do_indent);
+                }
+            }
+            do_indent = true;
+            ind = indent_to(do_indent * next_level);
+        }
+    }
+    else // map
+    {
+        _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_map(node));
+        for(size_t ich = m_tree->first_child(node); ich != NONE; ich = m_tree->next_sibling(ich))
+        {
+            _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->has_key(ich));
+            if(m_tree->is_keyval(ich))
+            {
+                this->Writer::_do_write(ind);
+                _writek(ich, next_level);
+                this->Writer::_do_write(": ");
+                _writev(ich, next_level);
+                this->Writer::_do_write('\n');
+            }
+            else
+            {
+                _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_container(ich));
+                NodeType ty = m_tree->type(ich);
+                if(ty.marked_flow_sl())
+                {
+                    this->Writer::_do_write(ind);
+                    _do_visit_flow_sl(ich, 0u);
+                    this->Writer::_do_write('\n');
+                }
+                else if(ty.marked_flow_ml())
+                {
+                    this->Writer::_do_write(ind);
+                    _do_visit_flow_ml(ich, 0u);
+                    this->Writer::_do_write('\n');
+                }
+                else
+                {
+                    _do_visit_block(ich, next_level, do_indent);
+                }
+            }
+            do_indent = true;
+            ind = indent_to(do_indent * next_level);
+        }
+    }
+}
+
+template<class Writer>
 void Emitter<Writer>::_do_visit_block(size_t node, size_t ilevel, size_t do_indent)
 {
     RYML_ASSERT(!m_tree->is_stream(node));
@@ -267,34 +393,22 @@ void Emitter<Writer>::_do_visit_block(size_t node, size_t ilevel, size_t do_inde
         if(m_tree->has_children(node))
         {
             if(m_tree->has_key(node))
-            {
                 nl = true;
-            }
             else
-            {
                 if(!m_tree->is_root(node) && !nl)
-                {
                     spc = true;
-                }
-            }
         }
         else
         {
             if(m_tree->is_seq(node))
-            {
                 this->Writer::_do_write(" []\n");
-            }
             else if(m_tree->is_map(node))
-            {
                 this->Writer::_do_write(" {}\n");
-            }
             return;
         }
 
         if(spc && !nl)
-        {
             this->Writer::_do_write(' ');
-        }
 
         do_indent = 0;
         if(nl)
@@ -305,86 +419,10 @@ void Emitter<Writer>::_do_visit_block(size_t node, size_t ilevel, size_t do_inde
     } // container
 
     size_t next_level = ilevel + 1;
-    if(m_tree->is_stream(node) || m_tree->is_doc(node) || m_tree->is_root(node))
+    if(m_tree->is_root(node) || m_tree->is_doc(node))
         next_level = ilevel; // do not indent at top level
-    ind = indent_to(do_indent * next_level);
 
-    if(m_tree->is_seq(node))
-    {
-        for(size_t child = m_tree->first_child(node); child != NONE; child = m_tree->next_sibling(child))
-        {
-            _RYML_CB_ASSERT(m_tree->callbacks(), !m_tree->has_key(child));
-            if(m_tree->is_val(child))
-            {
-                this->Writer::_do_write(ind);
-                this->Writer::_do_write("- ");
-                _writev(child, next_level);
-                this->Writer::_do_write('\n');
-            }
-            else
-            {
-                _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_container(child));
-                NodeType ty = m_tree->type(child);
-                if(ty.marked_flow_sl())
-                {
-                    this->Writer::_do_write(ind);
-                    this->Writer::_do_write("- ");
-                    _do_visit_flow_sl(child, 0u);
-                    this->Writer::_do_write('\n');
-                }
-                else if(ty.marked_flow_ml())
-                {
-                    this->Writer::_do_write(ind);
-                    this->Writer::_do_write("- ");
-                    _do_visit_flow_ml(child, next_level, do_indent);
-                    this->Writer::_do_write('\n');
-                }
-                else
-                    _do_visit_block(child, next_level, do_indent);
-            }
-            do_indent = true;
-            ind = indent_to(do_indent * next_level);
-        }
-    }
-    else // map
-    {
-        _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_map(node));
-        for(size_t ich = m_tree->first_child(node); ich != NONE; ich = m_tree->next_sibling(ich))
-        {
-            _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->has_key(ich));
-            if(m_tree->is_keyval(ich))
-            {
-                this->Writer::_do_write(ind);
-                _writek(ich, next_level);
-                this->Writer::_do_write(": ");
-                _writev(ich, next_level);
-                this->Writer::_do_write('\n');
-            }
-            else
-            {
-                _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_container(ich));
-                NodeType ty = m_tree->type(ich);
-                if(ty.marked_flow_sl())
-                {
-                    this->Writer::_do_write(ind);
-                    _do_visit_flow_sl(ich, 0u);
-                    this->Writer::_do_write('\n');
-                }
-                else if(ty.marked_flow_ml())
-                {
-                    this->Writer::_do_write(ind);
-                    _do_visit_flow_ml(ich, 0u);
-                    this->Writer::_do_write('\n');
-                }
-                else
-                {
-                    _do_visit_block(ich, next_level, do_indent);
-                }
-            }
-            do_indent = true;
-            ind = indent_to(do_indent * next_level);
-        }
-    }
+    _do_visit_block_container(node, next_level, do_indent);
 }
 
 template<class Writer>

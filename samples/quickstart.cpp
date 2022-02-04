@@ -3121,7 +3121,7 @@ void sample_emit_to_file()
 /** just like parsing into a nested node, you can also emit from a nested node. */
 void sample_emit_nested_node()
 {
-    auto tree = ryml::parse_in_arena(R"(- a
+    const ryml::Tree tree = ryml::parse_in_arena(R"(- a
 - b
 - x0: 1
   x1: 2
@@ -3134,16 +3134,26 @@ void sample_emit_nested_node()
     - Rochefort 10
     - Busch
     - Leffe Rituel
-- foo
-- bar
-- baz
-- bat
+    - - and so
+      - many other
+      - wonderful beers
+- more
+- seq
+- members
+- here
 )");
-    CHECK(ryml::emitrs<std::string>(tree[3]["beer"][0]) == "- Rochefort 10\n");
     CHECK(ryml::emitrs<std::string>(tree[3]["beer"]) == R"(beer:
   - Rochefort 10
   - Busch
   - Leffe Rituel
+  - - and so
+    - many other
+    - wonderful beers
+)");
+    CHECK(ryml::emitrs<std::string>(tree[3]["beer"][0]) == "Rochefort 10\n");
+    CHECK(ryml::emitrs<std::string>(tree[3]["beer"][3]) == R"(- and so
+- many other
+- wonderful beers
 )");
 }
 
