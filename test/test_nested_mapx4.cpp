@@ -3,15 +3,10 @@
 namespace c4 {
 namespace yml {
 
-#define NESTED_MAPX4_CASES                      \
-        "nested map x4, explicit",              \
-        "nested map x4"
-
 CASE_GROUP(NESTED_MAPX4)
 {
-    APPEND_CASES(
 
-C("nested map x4, explicit",
+ADD_CASE_TO_GROUP("nested map x4, explicit",
 R"({
   foo0: {
      foo1: { foo2: {foo3: 0000, bar3: 0001, baz3: 0002}, bar2: {foo3: 0010, bar3: 0011, baz3: 0012}, baz2: {foo3: 0020, bar3: 0021, baz3: 0022} },
@@ -46,9 +41,9 @@ R"({
          N("baz1", L{N("foo2", L{N("foo3", "2200"), N("bar3", "2201"), N("baz3", "2202")}),  N("bar2", L{N("foo3", "2210"), N("bar3", "2211"), N("baz3", "2212")}),  N("baz2", L{N("foo3", "2220"), N("bar3", "2221"), N("baz3", "2222")})}),
       })
     }
-),
+);
 
-C("nested map x4",
+ADD_CASE_TO_GROUP("nested map x4",
 R"(
 foo0:
   foo1:
@@ -188,11 +183,8 @@ baz0:
          N("baz1", L{N("foo2", L{N("foo3", "2200"), N("bar3", "2201"), N("baz3", "2202")}),  N("bar2", L{N("foo3", "2210"), N("bar3", "2211"), N("baz3", "2212")}),  N("baz2", L{N("foo3", "2220"), N("bar3", "2221"), N("baz3", "2222")})}),
       })
     }
-),
-    )
+);
 }
-
-INSTANTIATE_GROUP(NESTED_MAPX4)
 
 } // namespace yml
 } // namespace c4

@@ -3,16 +3,10 @@
 namespace c4 {
 namespace yml {
 
-#define NESTED_MAPX3_CASES \
-    "nested map x3, explicit",               \
-        "nested map x3"
-
-
 CASE_GROUP(NESTED_MAPX3)
 {
-    APPEND_CASES(
 
-C("nested map x3, explicit",
+ADD_CASE_TO_GROUP("nested map x3, explicit",
 R"({
   foo0: {
      foo1: {foo2: 000, bar2: 001, baz2: 002},
@@ -44,9 +38,9 @@ R"({
          N{"bar1", L{N{"foo2", "210"}, N{"bar2", "211"}, N{"baz2", "212"}}},
          N{"baz1", L{N{"foo2", "220"}, N{"bar2", "221"}, N{"baz2", "222"}}} }},
           }
-),
+);
 
-C("nested map x3",
+ADD_CASE_TO_GROUP("nested map x3",
 R"(
 foo0:
   foo1:
@@ -102,12 +96,8 @@ baz0:
          N{"bar1", L{N{"foo2", "210"}, N{"bar2", "211"}, N{"baz2", "212"}}},
          N{"baz1", L{N{"foo2", "220"}, N{"bar2", "221"}, N{"baz2", "222"}}} }},
       }
-),
-    )
+);
 }
-
-
-INSTANTIATE_GROUP(NESTED_MAPX3)
 
 } // namespace yml
 } // namespace c4

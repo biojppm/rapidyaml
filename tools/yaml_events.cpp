@@ -7,6 +7,7 @@
 #include <test_suite/test_suite_events.hpp>
 #include <c4/fs/fs.hpp>
 #include <cstdio>
+#include <stdexcept>
 
 using namespace c4;
 using namespace c4::yml;
@@ -23,29 +24,25 @@ int main(int argc, const char *argv[])
         usage(argv[0]);
         return 1;
     }
-
-    // do not abort on error
-    int exit_status = 0;
     Callbacks callbacks = {};
-    callbacks.m_user_data = &exit_status;
-    callbacks.m_error = [](const char *msg, size_t msg_len, Location location, void *status)
+    callbacks.m_error = [](const char *msg, size_t msg_len, Location location, void *)
     {
         report_error(msg, msg_len, location, stderr);
-        *(int*)status = 1;
+        throw std::runtime_error({msg, msg_len});
     };
-
-    Tree tree(callbacks);
-    csubstr filename = to_csubstr(argv[1]);
-    std::string evt, src = load_file(filename);
-    tree.reserve(to_substr(src).count('\n'));
-    parse_in_place(filename, to_substr(src), &tree);
-    if(exit_status)
-        return exit_status;
-    emit_events(&evt, tree);
-    if(exit_status)
-        return exit_status;
-    std::fwrite(evt.data(), 1, evt.size(), stdout);
-
+    try {
+        Tree tree(callbacks);
+        csubstr filename = to_csubstr(argv[1]);
+        std::string evt, src = load_file(filename);
+        tree.reserve(to_substr(src).count('\n'));
+        parse_in_place(filename, to_substr(src), &tree);
+        emit_events(&evt, tree);
+        std::fwrite(evt.data(), 1, evt.size(), stdout);
+    }
+    catch(std::exception const&)
+    {
+        return 1;
+    }
     return 0;
 }
 
@@ -59,7 +56,6 @@ void usage(const char *exename)
 %s <file>     # read from file
 )", exename, exename);
 }
-
 
 std::string load_file(csubstr filename)
 {

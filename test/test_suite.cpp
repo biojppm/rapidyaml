@@ -15,6 +15,20 @@
 #include <gtest/gtest.h>
 
 
+/* Each case from the test suite contains:
+ *
+ *  - (awkward) input yaml (in_yaml)
+ *  - (somewhat standard) output equivalent (out_yaml)
+ *  - (when meaningful/possible) json equivalent (in_json)
+ *  - yaml parsing events (events)
+ *
+ * Running a test consists of parsing the contents above into a data
+ * structure, and then repeatedly parsing and emitting yaml in a sort
+ * of pipe. Ie, (eg for in_yaml) parse in_yaml, emit corresponding
+ * yaml, then parse this emitted yaml, and so on. Each parse/emit pair
+ * is named a processing level in this test. */
+
+
 C4_SUPPRESS_WARNING_MSVC_PUSH
 C4_SUPPRESS_WARNING_MSVC(4702) // unreachable code
 
@@ -45,6 +59,7 @@ struct Events
         src.assign(src_.begin(), src_.end());
         tree.clear();
         tree.clear_arena();
+        tree.reserve(10);
         was_parsed = false;
         enabled = true;
     }
@@ -160,9 +175,9 @@ struct ProcLevel
         else
         {
             if(immutable)
-                tree = c4::yml::parse_in_arena(filename, c4::to_csubstr(src));
+                tree = parse_in_arena(filename, c4::to_csubstr(src));
             else
-                tree = c4::yml::parse_in_place(filename, c4::to_substr(src));
+                tree = parse_in_place(filename, c4::to_substr(src));
         }
         was_parsed = true;
         #if RYML_NFO
@@ -233,42 +248,29 @@ struct ProcLevel
 /** holds data for one particular test suite approach. */
 struct Approach
 {
+    csubstr casename;
+    csubstr filename;
     ProcLevel levels[NLEVELS] = {};
-    CasePart_e case_part = CPART_NONE;
     AllowedFailure allowed_failure = {};
-    AllowedFailure allowed_failure_events = {};
-    AllowedFailure allowed_failure_errors = {};
     bool enabled = false;
     bool expect_error = false;
 
-    void init(csubstr filename, csubstr src_, bool immutable_, bool reuse_, CasePart_e case_part_, bool expect_error_)
+    void init(csubstr casename_, csubstr filename_, csubstr src_, bool immutable_, bool reuse_, bool expect_error_)
     {
-        RYML_ASSERT((case_part & CPART_EVENTS) == 0u);
-        case_part = case_part_;
-        allowed_failure = is_failure_expected(filename, case_part);
-        allowed_failure_events = is_failure_expected(filename, events_part(case_part));
-        allowed_failure_errors = is_failure_expected(filename, CPART_IN_YAML_ERRORS);
-        enabled = !allowed_failure.skip(case_part);
+        casename = casename_;
+        filename = filename_;
+        allowed_failure = is_failure_expected(casename);
         for(ProcLevel &l : levels)
             l.init(filename, src_, immutable_, reuse_);
         expect_error = expect_error_;
     }
 
     csubstr src() const { return c4::to_csubstr(levels[0].src); }
-    bool skip_part() const { return expect_error || src().empty() || allowed_failure.skip(case_part); }
-    bool skip_error() const { return !expect_error || allowed_failure_errors.skip(CPART_IN_YAML_ERRORS); }
-    bool skip_events() const
-    {
-        RYML_ASSERT(events_part(CPART_IN_YAML) == CPART_IN_YAML_EVENTS);
-        RYML_ASSERT(events_part(CPART_OUT_YAML) == CPART_OUT_YAML_EVENTS);
-        RYML_ASSERT(events_part(CPART_EMIT_YAML) == CPART_EMIT_YAML_EVENTS);
-        // use bit-or to ensure calling both, so that both report a skip
-        return (bool)((int)skip_part() | (int)allowed_failure_events.skip(events_part(case_part)));
-    }
+    bool skip() const { return allowed_failure; }
 
     void parse(size_t num, bool emit)
     {
-        if(skip_part())
+        if(allowed_failure)
             GTEST_SKIP();
         for(size_t i = 0; i < num; ++i)
         {
@@ -282,14 +284,14 @@ struct Approach
 
     void compare_trees(size_t num)
     {
-        if(skip_part())
+        if(allowed_failure)
             GTEST_SKIP();
         for(size_t i = 1; i < num; ++i)
             levels[i].compare_trees(levels[i-1]);
     }
     void compare_trees(size_t num, Approach const& other)
     {
-        if(skip_part())
+        if(allowed_failure)
             GTEST_SKIP();
         for(size_t i = 0; i < num; ++i)
             levels[i].compare_trees(other.levels[i]);
@@ -297,14 +299,14 @@ struct Approach
 
     void compare_emitted(size_t num)
     {
-        if(skip_part())
+        if(allowed_failure)
             GTEST_SKIP();
         for(size_t i = 1; i < num; ++i)
             levels[i].compare_emitted(levels[i-1]);
     }
     void compare_emitted(size_t num, Approach const& other)
     {
-        if(skip_part())
+        if(allowed_failure)
             GTEST_SKIP();
         for(size_t i = 0; i < num; ++i)
             levels[i].compare_emitted(other.levels[i]);
@@ -312,7 +314,7 @@ struct Approach
 
     void compare_events(Events *events)
     {
-        if(skip_events())
+        if(allowed_failure || filename.ends_with(".json"))
             GTEST_SKIP();
         events->parse_events(src());
         parse(1, /*emit*/false);
@@ -321,7 +323,7 @@ struct Approach
 
     void compare_emitted_events(Events *events)
     {
-        if(skip_events())
+        if(allowed_failure || filename.ends_with(".json"))
             GTEST_SKIP();
         events->parse_events(src());
         parse(1, /*emit*/false);
@@ -330,7 +332,7 @@ struct Approach
 
     void check_expected_error()
     {
-        if(skip_error())
+        if(allowed_failure)
             GTEST_SKIP();
         ExpectError::do_check(&levels[0].tree, [this]{
             levels[0].parse();
@@ -360,21 +362,21 @@ struct Subject
     std::string unix_src;
     std::string windows_src;
 
-    void init(csubstr filename, csubstr src, CasePart_e case_part, bool expect_error)
+    void init(csubstr casename, csubstr filename, csubstr src, bool expect_error)
     {
         src = replace_all("\r", "", src, &unix_src);
 
-        unix_arena      .init(filename, src, /*immutable*/true , /*reuse*/false, case_part, expect_error);
-        unix_arena_reuse.init(filename, src, /*immutable*/true , /*reuse*/true , case_part, expect_error);
-        unix_inplace      .init(filename, src, /*immutable*/false, /*reuse*/false, case_part, expect_error);
-        unix_inplace_reuse.init(filename, src, /*immutable*/false, /*reuse*/true , case_part, expect_error);
+        unix_arena      .init(casename, filename, src, /*immutable*/true , /*reuse*/false, expect_error);
+        unix_arena_reuse.init(casename, filename, src, /*immutable*/true , /*reuse*/true , expect_error);
+        unix_inplace      .init(casename, filename, src, /*immutable*/false, /*reuse*/false, expect_error);
+        unix_inplace_reuse.init(casename, filename, src, /*immutable*/false, /*reuse*/true , expect_error);
 
         src = replace_all("\n", "\r\n", src, &windows_src);
 
-        windows_arena      .init(filename, src, /*immutable*/true , /*reuse*/false, case_part, expect_error);
-        windows_arena_reuse.init(filename, src, /*immutable*/true , /*reuse*/true , case_part, expect_error);
-        windows_inplace      .init(filename, src, /*immutable*/false, /*reuse*/false, case_part, expect_error);
-        windows_inplace_reuse.init(filename, src, /*immutable*/false, /*reuse*/true , case_part, expect_error);
+        windows_arena      .init(casename, filename, src, /*immutable*/true , /*reuse*/false, expect_error);
+        windows_arena_reuse.init(casename, filename, src, /*immutable*/true , /*reuse*/true , expect_error);
+        windows_inplace      .init(casename, filename, src, /*immutable*/false, /*reuse*/false, expect_error);
+        windows_inplace_reuse.init(casename, filename, src, /*immutable*/false, /*reuse*/true , expect_error);
     }
 };
 
@@ -385,293 +387,52 @@ struct Subject
 
 // some utility functions, used below
 
-void check_known_keys(csubstr filename, NodeRef const spec)
-{
-    for(auto node : spec.children())
-    {
-        csubstr k = node.key();
-        if(k == "name")
-            ;
-        else if(k == "from")
-            ;
-        else if(k == "yaml")
-            ;
-        else if(k == "tags")
-            ;
-        else if(k == "tree")
-            ;
-        else if(k == "json")
-            ;
-        else if(k == "dump")
-            ;
-        else if(k == "emit")
-            ;
-        else if(k == "fail")
-            ;
-        else if(k == "toke")
-            ;
-        else if(k == "skip")
-            ;
-        else if(k == "note")
-            ;
-        else if(k == "also")
-            ;
-        else
-            C4_ERROR("%.*s: unknown tag '%.*s'",
-                     (int)filename.len, filename.str,
-                     (int)k.len, k.str);
-    }
-}
-
-struct SpecialCharsFilter
-{
-    std::string tmpa;
-    std::string tmpb;
-    std::string *current = &tmpa;
-    csubstr _do_replace(csubstr pattern, csubstr repl, csubstr subject)
-    {
-        subject = replace_all(pattern, repl, subject, current);
-        if(current == &tmpa)
-            current = &tmpb;
-        else
-            current = &tmpa;
-        return subject;
-    }
-    // https://github.com/yaml/yaml-test-suite#special-characters
-    csubstr replace_normal(csubstr txt)
-    {
-        txt = _do_replace("␣", " ", txt);
-        txt = _do_replace("————»", "\t", txt);
-        txt = _do_replace("———»", "\t", txt);
-        txt = _do_replace("——»", "\t", txt);
-        txt = _do_replace("—»", "\t", txt);
-        txt = _do_replace("»", "\t", txt);
-        txt = _do_replace("↵", "\n", txt);
-        txt = _do_replace("←", "\r", txt);
-        txt = _do_replace("∎", "", txt);
-        txt = _do_replace("⇔", "\xef\xbb\xbf", txt); // byte order mark 0xef 0xbb 0xbf
-        return txt;
-    }
-    csubstr replace_events(csubstr txt)
-    {
-        txt = replace_normal(txt);
-        txt = _do_replace("<SPC>", " ", txt);
-        txt = _do_replace("<TAB>", "\t", txt);
-        return txt;
-    }
-};
-
-
-/** all the ways that a test case can be processed are
- * available through this class. Tests are defined below and use only
- * one of these. */
+/** all the ways to process a test case are available through this
+ * class. Tests are defined below and use only one of these. */
 struct SuiteCase
 {
-    csubstr     filename;
+    csubstr     case_title;
+    csubstr     case_dir;
+    std::string filename;
     std::string file_contents;
+    std::string events_filename;
+    std::string events_file_contents;
 
-    // this is the tree parsed from the test suite file for this case
-    Tree spec_tree;
-
-    // a single case from the test suite may contain several subcases
-    csubstr desc;
-    csubstr from;
-    csubstr tags;
-    bool    expect_error;
-    bool    skip;
-
-    Subject in_yaml;
-    Subject in_json;
-    Subject out_yaml;
-    Subject emit_yaml;
-
+    Subject input;
     Events  events;
-
-    struct SubCase
-    {
-        csubstr tags;
-        bool    expect_error;
-        bool    skip;
-        Subject in_yaml;
-        Subject in_json;
-        Subject out_yaml;
-        Subject emit_yaml;
-        Events  events;
-        SubCase() = default;
-    };
-    std::vector<SubCase> extra_subcases;
-
-    static csubstr src(Subject const& s)
-    {
-        return c4::to_csubstr(s.unix_arena.levels[0].src);
-    }
-
-    static bool parse_spec_error_directives(const NodeRef spec, bool case_value)
-    {
-        bool expect_error = case_value;
-        if(spec.has_child("tags"))
-            expect_error = (spec["tags"].val().find("error") != npos);
-        if(spec.has_child("fail"))
-        {
-            if(!expect_error)
-            {
-                spec["fail"] >> expect_error;
-            }
-            else
-            {
-                bool tmp = false;
-                spec["fail"] >> tmp;
-                C4_CHECK(tmp == expect_error);
-            }
-        }
-        return expect_error;
-    };
-    static bool parse_spec_skip_directives(const NodeRef spec, bool case_value)
-    {
-        bool skip = case_value;
-        if(spec.has_child("skip"))
-            spec["skip"] >> skip;
-        return skip;
-    };
+    bool    expect_error;
 
     /** loads the several types of tests from an input test suite file */
-    SuiteCase(const char* filename_)
+    SuiteCase(const char *case_title_, const char* case_dir_, const char *input_file)
     {
-        filename = c4::to_csubstr(filename_);
+        using namespace c4;
+        using c4::to_csubstr;
 
-        // read the file
-        c4::fs::file_get_contents(filename_, &file_contents);
-        csubstr contents = c4::to_csubstr(file_contents);
-        #if RYML_NFO
-        _nfo_logf("contents:\n~~~{}~~~", contents);
-        #endif
+        case_title = to_csubstr(case_title_);
 
-        // now parse the file
-        parse_in_arena(filename, contents, &spec_tree);
-        #if RYML_NFO
-        c4::print("parsed:"); print_tree(spec_tree);
-        #endif
-        const NodeRef doc = spec_tree.rootref().is_stream() ? spec_tree.docref(0) : spec_tree.rootref();
-        RYML_CHECK(doc.num_children() >= 1u);
-        new ((void*)&extra_subcases) std::vector<SubCase>(doc.num_children() - 1u);
-        size_t isubcase = 0;
-        SpecialCharsFilter filter;
-        SubCase *sc = nullptr;
-        for(const NodeRef spec : doc.children())
-        {
-            check_known_keys(filename, spec);
-            if(isubcase == 0)
-            {
-                desc = spec["name"].val();
-                from = spec["from"].val();
-                tags = spec["tags"].val();
-                expect_error = parse_spec_error_directives(spec, false);
-                skip = parse_spec_skip_directives(spec, false);
-            }
-            else
-            {
-                // not really sure, so check for now
-                RYML_CHECK(!spec.has_child("name"));
-                RYML_CHECK(!spec.has_child("from"));
-                sc = &extra_subcases[isubcase - 1u];
-                sc->expect_error = parse_spec_error_directives(spec, expect_error);
-                sc->skip = parse_spec_skip_directives(spec, skip);
-            }
+        case_dir = to_csubstr(case_dir_);
+        RYML_CHECK(case_dir.find('\\') == yml::npos);
+        C4_CHECK_MSG(fs::dir_exists(case_dir.str), "dir not found: '%s'", case_dir);
 
-            // in_yaml
-            if(isubcase == 0u)
-            {
-                csubstr txt = spec["yaml"].val();
-                txt = filter.replace_normal(txt);
-                in_yaml.init(filename, txt, CPART_IN_YAML, expect_error);
-            }
-            else if(spec.has_child("yaml"))
-            {
-                csubstr txt = spec["yaml"].val();
-                txt = filter.replace_normal(txt);
-                sc->in_yaml.init(filename, txt, CPART_IN_YAML, sc->expect_error);
-            }
+        filename = catrs<std::string>(case_dir, '/', to_csubstr(input_file));
+        C4_CHECK_MSG(fs::file_exists(filename.c_str()), "file not found: '%s'", filename.c_str());
+        log("testing suite case: {} {} ({})", case_title, filename, case_dir);
 
-            // in_json
-            if(isubcase == 0u)
-            {
-                if(spec.has_child("json"))
-                {
-                    csubstr txt = spec["json"].val();
-                    in_json.init(filename, txt, CPART_IN_JSON, expect_error);
-                }
-            }
-            else if(spec.has_child("json"))
-            {
-                csubstr txt = spec["json"].val();
-                in_json.init(filename, txt, CPART_IN_JSON, expect_error);
-                sc->in_json.init(filename, txt, CPART_IN_YAML, sc->expect_error);
-            }
+        std::string errfile = catrs<std::string>(to_csubstr(case_dir_), "/error");
+        expect_error = fs::file_exists(errfile.c_str());
 
-            // out_yaml
-            if(isubcase == 0u)
-            {
-                if(spec.has_child("dump"))
-                {
-                    csubstr txt = spec["dump"].val();
-                    txt = filter.replace_normal(txt);
-                    out_yaml.init(filename, txt, CPART_OUT_YAML, expect_error);
-                }
-            }
-            else if(spec.has_child("dump"))
-            {
-                csubstr txt = spec["dump"].val();
-                in_json.init(filename, txt, CPART_OUT_YAML, expect_error);
-                sc->out_yaml.init(filename, txt, CPART_OUT_YAML, sc->expect_error);
-            }
+        fs::file_get_contents(filename.c_str(), &file_contents);
+        input.init(case_title, to_csubstr(filename), to_csubstr(file_contents), expect_error);
 
-            // emit_yaml
-            if(isubcase == 0u)
-            {
-                if(spec.has_child("emit"))
-                {
-                    csubstr txt = spec["emit"].val();
-                    txt = filter.replace_normal(txt);
-                    emit_yaml.init(filename, txt, CPART_EMIT_YAML, expect_error);
-                }
-            }
-            else if(spec.has_child("emit"))
-            {
-                csubstr txt = spec["emit"].val();
-                txt = filter.replace_normal(txt);
-                sc->emit_yaml.init(filename, txt, CPART_EMIT_YAML, sc->expect_error);
-            }
+        events_filename = catrs<std::string>(case_dir, "/test.event");
+        C4_CHECK(fs::file_exists(events_filename.c_str()));
+        fs::file_get_contents(events_filename.c_str(), &events_file_contents);
+        events.init(to_csubstr(events_filename), to_csubstr(events_file_contents));
 
-            // events
-            if(isubcase == 0u)
-            {
-                C4_CHECK(spec.has_child("tree"));
-                csubstr txt = spec["tree"].val();
-                txt = filter.replace_events(txt);
-                events.init(filename, txt);
-            }
-            else if(spec.has_child("tree"))
-            {
-                csubstr txt = spec["tree"].val();
-                txt = filter.replace_events(txt);
-                sc->events.init(filename, txt);
-            }
-
-            ++isubcase;
-        }
-    }
-
-    void print() const
-    {
-        c4::dump("~~~ file: "      , filename      , "~~~\n",
-                 "~~~ desc: "      , desc          , "~~~\n",
-                 "~~~ from: "      , from          , "~~~\n",
-                 "~~~ tags: "      , tags          , "~~~\n",
-                 "~~~ in-yaml:\n"  , src(in_yaml  ), "~~~\n",
-                 "~~~ in-json:\n"  , src(in_json  ), "~~~\n",
-                 "~~~ out-yaml:\n" , src(out_yaml ), "~~~\n",
-                 "~~~ emit-yaml:\n", src(emit_yaml), "~~~\n",
-                 "~~~ events:\n"   , events.src    , "~~~\n");
+        dump("~~~ case: "      , case_title    , "~~~\n",
+             "~~~ file: "      , filename      , "~~~\n",
+             "~~~ input:\n"    , to_csubstr(input.unix_arena.levels[0].src), "~~~\n",
+             "~~~ events:\n"   , events.src    , "~~~\n");
     }
 
 };
@@ -687,254 +448,93 @@ struct SuiteCase
 SuiteCase* g_suite_case = nullptr;
 bool g_do_subcases = true;
 
-#define ANNOUNCE_SUBCASE(cls, pfx, i) \
-    c4::dump("~~~~~~~~~~~~~~~~~~~~~~~ "                   \
-             #cls "." #pfx ": SUBCASE ", i,               \
-             " ~~~~~~~~~~~~~~~~~~~~~~~\n");               \
-    SCOPED_TRACE(i)                                       \
 
 
-
-#define DEFINE_EVENT_TESTS(cls, pfx)                                \
-                                                                    \
-TEST(cls##_##pfx##_events, compare)                                 \
-{                                                                   \
-    if(!g_suite_case || !g_suite_case->cls.pfx.enabled)             \
-        GTEST_SKIP();                                               \
-    if(g_suite_case->skip || g_suite_case->expect_error)            \
-        GTEST_SKIP();                                               \
-    g_suite_case->cls.pfx.compare_events(&g_suite_case->events);    \
-    size_t i_extra_subcase = 0;                                     \
-    for(auto &sc : g_suite_case->extra_subcases)                    \
-    {                                                               \
-        if(!g_do_subcases || !sc.cls.pfx.enabled || !sc.events.enabled) \
-            continue;                                               \
-        ANNOUNCE_SUBCASE(cls, pfx ## events, i_extra_subcase);      \
-        sc.cls.pfx.compare_events(&sc.events);                      \
-        ++i_extra_subcase;                                          \
-    }                                                               \
-}                                                                   \
-                                                                    \
-TEST(cls##_##pfx##_events, emit_events)                             \
-{                                                                   \
-    if(!g_suite_case || !g_suite_case->cls.pfx.enabled)             \
-        GTEST_SKIP();                                               \
-    if(g_suite_case->skip || g_suite_case->expect_error)            \
-        GTEST_SKIP();                                               \
-    g_suite_case->cls.pfx.compare_emitted_events(&g_suite_case->events); \
-    size_t i_extra_subcase = 0;                                     \
-    for(auto &sc : g_suite_case->extra_subcases)                    \
-    {                                                               \
-        if(!g_do_subcases || !sc.cls.pfx.enabled || !sc.events.enabled) \
-            continue;                                               \
-        ANNOUNCE_SUBCASE(cls, pfx ## events, i_extra_subcase);      \
-        sc.cls.pfx.compare_emitted_events(&sc.events);              \
-        ++i_extra_subcase;                                          \
-    }                                                               \
-}
-
-
-
-#define DEFINE_ERROR_TESTS(pfx)                                     \
-                                                                    \
-TEST(in_yaml_##pfx##_errors, check_expected_error)                  \
-{                                                                   \
-    if(g_suite_case->skip || !g_suite_case->expect_error)           \
-        GTEST_SKIP();                                               \
-    g_suite_case->in_yaml.pfx.check_expected_error();               \
-    size_t i_extra_subcase = 0;                                     \
-    for(auto &sc : g_suite_case->extra_subcases)                    \
-    {                                                               \
-        if(!g_do_subcases || !sc.in_yaml.pfx.enabled)               \
-            continue;                                               \
-        ANNOUNCE_SUBCASE(in_yaml, pfx ## errors, i_extra_subcase);  \
-        sc.in_yaml.pfx.check_expected_error();                      \
-        ++i_extra_subcase;                                          \
-    }                                                               \
-}
-
-
-
-#define DEFINE_TEST_CLASS(cls, pfx)                             \
-                                                                \
-                                                                \
-struct cls##_##pfx : public ::testing::TestWithParam<size_t>    \
-{                                                               \
-    Approach* get_test_case() const                             \
-    {                                                           \
-        RYML_CHECK(GetParam() < NLEVELS);                       \
-        if(g_suite_case && g_suite_case->cls.pfx.enabled)       \
-            return &g_suite_case->cls.pfx;                      \
-        c4::dump(#cls "." #pfx ": no input for this case\n");   \
-        return nullptr;                                         \
-    }                                                           \
-};                                                              \
-                                                                \
-                                                                \
-TEST_P(cls##_##pfx, parse)                                      \
-{                                                               \
-    if(!get_test_case())                                        \
-        GTEST_SKIP();                                           \
-    if(g_suite_case->skip || g_suite_case->expect_error)        \
-        GTEST_SKIP();                                           \
-    get_test_case()->parse(1 + GetParam(), false);              \
-    size_t i_extra_subcase = 0;                                 \
-    for(auto &sc : g_suite_case->extra_subcases)                \
-    {                                                           \
-        if(!g_do_subcases || !sc.cls.pfx.enabled)               \
-            continue;                                           \
-        ANNOUNCE_SUBCASE(cls, pfx, i_extra_subcase);            \
-        sc.cls.pfx.parse(1 + GetParam(), false);                \
-        ++i_extra_subcase;                                      \
-    }                                                           \
-}                                                               \
-                                                                \
-                                                                \
-TEST_P(cls##_##pfx, compare_trees)                              \
-{                                                               \
-    if(!get_test_case())                                        \
-        GTEST_SKIP();                                           \
-    if(g_suite_case->skip || g_suite_case->expect_error)        \
-        GTEST_SKIP();                                           \
-    get_test_case()->compare_trees(1 + GetParam());             \
-    size_t i_extra_subcase = 0;                                 \
-    for(auto &sc : g_suite_case->extra_subcases)                \
-    {                                                           \
-        if(!g_do_subcases || !sc.cls.pfx.enabled)               \
-            continue;                                           \
-        ANNOUNCE_SUBCASE(cls, pfx, i_extra_subcase);            \
-        sc.cls.pfx.compare_trees(1 + GetParam());               \
-        ++i_extra_subcase;                                      \
-    }                                                           \
-}                                                               \
-                                                                \
-                                                                \
-TEST_P(cls##_##pfx, emit)                                       \
-{                                                               \
-    if(!get_test_case())                                        \
-        GTEST_SKIP();                                           \
-    if(g_suite_case->skip || g_suite_case->expect_error)        \
-        GTEST_SKIP();                                           \
-    get_test_case()->parse(1 + GetParam(), true);               \
-    size_t i_extra_subcase = 0;                                 \
-    for(auto &sc : g_suite_case->extra_subcases)                \
-    {                                                           \
-        if(!g_do_subcases || !sc.cls.pfx.enabled)               \
-            continue;                                           \
-        ANNOUNCE_SUBCASE(cls, pfx, i_extra_subcase);            \
-        sc.cls.pfx.parse(1 + GetParam(), true);                 \
-        ++i_extra_subcase;                                      \
-    }                                                           \
-}                                                               \
-                                                                \
-                                                                \
-TEST_P(cls##_##pfx, compare_emitted)                            \
-{                                                               \
-    if(!get_test_case())                                        \
-        GTEST_SKIP();                                           \
-    if(g_suite_case->skip || g_suite_case->expect_error)        \
-        GTEST_SKIP();                                           \
-    get_test_case()->compare_emitted(1 + GetParam());           \
-    size_t i_extra_subcase = 0;                                 \
-    for(auto &sc : g_suite_case->extra_subcases)                \
-    {                                                           \
-        if(!g_do_subcases || !sc.cls.pfx.enabled)               \
-            continue;                                           \
-        ANNOUNCE_SUBCASE(cls, pfx, i_extra_subcase);            \
-        sc.cls.pfx.compare_emitted(1 + GetParam());             \
-        ++i_extra_subcase;                                      \
-    }                                                           \
-}                                                               \
-\
-INSTANTIATE_TEST_SUITE_P(_, cls##_##pfx, testing::Range<size_t>(0, NLEVELS))
+#define DEFINE_TESTS(which)                                             \
+                                                                        \
+                                                                        \
+struct which : public ::testing::TestWithParam<size_t>                  \
+{                                                                       \
+};                                                                      \
+                                                                        \
+                                                                        \
+TEST_P(which, parse)                                                    \
+{                                                                       \
+    RYML_CHECK(GetParam() < NLEVELS);                                   \
+    if(g_suite_case->expect_error)                                      \
+        GTEST_SKIP();                                                   \
+    g_suite_case->input.which.parse(1 + GetParam(), false);             \
+}                                                                       \
+                                                                        \
+                                                                        \
+TEST_P(which, compare_trees)                                            \
+{                                                                       \
+    RYML_CHECK(GetParam() < NLEVELS);                                   \
+    if(g_suite_case->expect_error)                                      \
+        GTEST_SKIP();                                                   \
+    g_suite_case->input.which.compare_trees(1 + GetParam());            \
+}                                                                       \
+                                                                        \
+                                                                        \
+TEST_P(which, emit)                                                     \
+{                                                                       \
+    RYML_CHECK(GetParam() < NLEVELS);                                   \
+    if(g_suite_case->expect_error)                                      \
+        GTEST_SKIP();                                                   \
+    g_suite_case->input.which.parse(1 + GetParam(), true);              \
+}                                                                       \
+                                                                        \
+                                                                        \
+TEST_P(which, compare_emitted)                                          \
+{                                                                       \
+    RYML_CHECK(GetParam() < NLEVELS);                                   \
+    if(g_suite_case->expect_error)                                      \
+        GTEST_SKIP();                                                   \
+    g_suite_case->input.which.compare_emitted(1 + GetParam());          \
+}                                                                       \
+                                                                        \
+/*-----------------------------------------------*/                     \
+                                                                        \
+TEST(which##_events, compare)                                           \
+{                                                                       \
+    if(g_suite_case->expect_error)                                      \
+        GTEST_SKIP();                                                   \
+    g_suite_case->input.which.compare_events(&g_suite_case->events);    \
+}                                                                       \
+                                                                        \
+TEST(which##_events, emit_events)                                       \
+{                                                                       \
+    if(g_suite_case->expect_error)                                      \
+        GTEST_SKIP();                                                   \
+    g_suite_case->input.which.compare_emitted_events(&g_suite_case->events); \
+}                                                                       \
+                                                                        \
+/*-----------------------------------------------*/                     \
+                                                                        \
+TEST(which##_errors, check_expected_error)                              \
+{                                                                       \
+    if(!g_suite_case->expect_error)                                     \
+        GTEST_SKIP();                                                   \
+    g_suite_case->input.which.check_expected_error();                   \
+}                                                                       \
+                                                                        \
+                                                                        \
+INSTANTIATE_TEST_SUITE_P(_, which, testing::Range<size_t>(0, NLEVELS))
 
 
-// in-json
-DEFINE_TEST_CLASS(in_json, unix_arena);
-DEFINE_TEST_CLASS(in_json, unix_inplace);
-DEFINE_TEST_CLASS(in_json, unix_arena_reuse);
-DEFINE_TEST_CLASS(in_json, unix_inplace_reuse);
-DEFINE_TEST_CLASS(in_json, windows_arena);
-DEFINE_TEST_CLASS(in_json, windows_inplace);
-DEFINE_TEST_CLASS(in_json, windows_arena_reuse);
-DEFINE_TEST_CLASS(in_json, windows_inplace_reuse);
-
-
-// out-yaml
-DEFINE_TEST_CLASS(out_yaml, unix_arena);
-DEFINE_TEST_CLASS(out_yaml, unix_inplace);
-DEFINE_TEST_CLASS(out_yaml, unix_arena_reuse);
-DEFINE_TEST_CLASS(out_yaml, unix_inplace_reuse);
-DEFINE_TEST_CLASS(out_yaml, windows_arena);
-DEFINE_TEST_CLASS(out_yaml, windows_inplace);
-DEFINE_TEST_CLASS(out_yaml, windows_arena_reuse);
-DEFINE_TEST_CLASS(out_yaml, windows_inplace_reuse);
-
-DEFINE_EVENT_TESTS(out_yaml, unix_arena)
-DEFINE_EVENT_TESTS(out_yaml, unix_inplace)
-DEFINE_EVENT_TESTS(out_yaml, unix_arena_reuse)
-DEFINE_EVENT_TESTS(out_yaml, unix_inplace_reuse)
-DEFINE_EVENT_TESTS(out_yaml, windows_arena)
-DEFINE_EVENT_TESTS(out_yaml, windows_inplace)
-DEFINE_EVENT_TESTS(out_yaml, windows_arena_reuse)
-DEFINE_EVENT_TESTS(out_yaml, windows_inplace_reuse)
-
-
-// emit-yaml
-DEFINE_TEST_CLASS(emit_yaml, unix_arena);
-DEFINE_TEST_CLASS(emit_yaml, unix_inplace);
-DEFINE_TEST_CLASS(emit_yaml, unix_arena_reuse);
-DEFINE_TEST_CLASS(emit_yaml, unix_inplace_reuse);
-DEFINE_TEST_CLASS(emit_yaml, windows_arena);
-DEFINE_TEST_CLASS(emit_yaml, windows_inplace);
-DEFINE_TEST_CLASS(emit_yaml, windows_arena_reuse);
-DEFINE_TEST_CLASS(emit_yaml, windows_inplace_reuse);
-
-DEFINE_EVENT_TESTS(emit_yaml, unix_arena)
-DEFINE_EVENT_TESTS(emit_yaml, unix_inplace)
-DEFINE_EVENT_TESTS(emit_yaml, unix_arena_reuse)
-DEFINE_EVENT_TESTS(emit_yaml, unix_inplace_reuse)
-DEFINE_EVENT_TESTS(emit_yaml, windows_arena)
-DEFINE_EVENT_TESTS(emit_yaml, windows_inplace)
-DEFINE_EVENT_TESTS(emit_yaml, windows_arena_reuse)
-DEFINE_EVENT_TESTS(emit_yaml, windows_inplace_reuse)
-
-
-// in-yaml: this is the hardest one
-DEFINE_TEST_CLASS(in_yaml, unix_arena);
-DEFINE_TEST_CLASS(in_yaml, unix_inplace);
-DEFINE_TEST_CLASS(in_yaml, unix_arena_reuse);
-DEFINE_TEST_CLASS(in_yaml, unix_inplace_reuse);
-DEFINE_TEST_CLASS(in_yaml, windows_arena);
-DEFINE_TEST_CLASS(in_yaml, windows_inplace);
-DEFINE_TEST_CLASS(in_yaml, windows_arena_reuse);
-DEFINE_TEST_CLASS(in_yaml, windows_inplace_reuse);
-
-DEFINE_EVENT_TESTS(in_yaml, unix_arena)
-DEFINE_EVENT_TESTS(in_yaml, unix_inplace)
-DEFINE_EVENT_TESTS(in_yaml, unix_arena_reuse)
-DEFINE_EVENT_TESTS(in_yaml, unix_inplace_reuse)
-DEFINE_EVENT_TESTS(in_yaml, windows_arena)
-DEFINE_EVENT_TESTS(in_yaml, windows_inplace)
-DEFINE_EVENT_TESTS(in_yaml, windows_arena_reuse)
-DEFINE_EVENT_TESTS(in_yaml, windows_inplace_reuse)
-
-DEFINE_ERROR_TESTS(unix_arena)
-DEFINE_ERROR_TESTS(unix_inplace)
-DEFINE_ERROR_TESTS(unix_arena_reuse)
-DEFINE_ERROR_TESTS(unix_inplace_reuse)
-DEFINE_ERROR_TESTS(windows_arena)
-DEFINE_ERROR_TESTS(windows_inplace)
-DEFINE_ERROR_TESTS(windows_arena_reuse)
-DEFINE_ERROR_TESTS(windows_inplace_reuse)
+DEFINE_TESTS(unix_arena);
+DEFINE_TESTS(unix_inplace);
+DEFINE_TESTS(unix_arena_reuse);
+DEFINE_TESTS(unix_inplace_reuse);
+DEFINE_TESTS(windows_arena);
+DEFINE_TESTS(windows_inplace);
+DEFINE_TESTS(windows_arena_reuse);
+DEFINE_TESTS(windows_inplace_reuse);
 
 
 //-------------------------------------------
 // this is needed to use the test case library
-Case const* get_case(csubstr /*name*/)
-{
-    return nullptr;
-}
+Case const* get_case(csubstr /*name*/) { return nullptr; }
 
 } // namespace yml
 } // namespace c4
@@ -947,43 +547,26 @@ Case const* get_case(csubstr /*name*/)
 
 int main(int argc, char* argv[])
 {
+    c4::dump("$");
+    for(int i = 0; i < argc; ++i)
+        c4::dump(' ', c4::to_csubstr(argv[i]));
+    c4::dump("\n");
+
     // make gtest parse its args
-    ::testing::InitGoogleTest(&argc, argv);
+    testing::InitGoogleTest(&argc, argv);
 
     // now we have only our args to consider
-    if(argc != 2)
+    if(argc != 4)
     {
-        c4::log("usage:\n{} <test-suite-file>", c4::to_csubstr(argv[0]));
+        log("usage:\n{} <test_name> <test-dir> <input-file>", c4::to_csubstr(argv[0]));
         return 1;
-    }
-    else if(c4::to_csubstr(argv[1]) == "-h" || c4::to_csubstr(argv[1]) == "--help")
-    {
-        return 0;
     }
 
     // load the test case from the suite file
-    auto path = c4::to_substr(argv[1]);
-    path.replace('\\', '/');
-    RYML_CHECK(path.len > 0);
-    RYML_CHECK(path[0] != '-');
-    C4_CHECK_MSG(c4::fs::file_exists(path.str), "file not found: '%.*s'", (int)path.len, path.str);
-    c4::log("testing suite case: {} ({})", path.basename(), path);
-
-    c4::yml::SuiteCase suite_case(path.str);
-    c4::print(suite_case.file_contents);
-    suite_case.print();
+    c4::yml::SuiteCase suite_case(argv[1], argv[2], argv[3]);
     c4::yml::g_suite_case = &suite_case;
 
-    // run all tests!
-    int status = RUN_ALL_TESTS();
-
-    // a terminating message
-    c4::log("\n{}: TESTS {}: {}\n",
-            suite_case.filename.basename(),
-            status == 0 ? "SUCCEEDED" : "FAILED",
-            suite_case.filename);
-
-    return status;
+    return  RUN_ALL_TESTS();
 }
 
 C4_SUPPRESS_WARNING_MSVC_PUSH

@@ -639,36 +639,12 @@ top62:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-#define SIMPLE_ANCHOR_CASES                            \
-    "simple anchor 1, implicit, unresolved",\
-    "simple anchor 1, implicit, resolved",\
-    "simple anchor 1, explicit, unresolved",\
-    "simple anchor 1, explicit, resolved",\
-    "anchor example 2, unresolved",\
-    "anchor example 2, resolved",\
-    "anchor example 3, unresolved",\
-    "anchor example 3, resolved",\
-    "merge example, unresolved",\
-    "merge example, resolved",\
-    "tagged doc with anchors 9KAX",\
-    "github131 1, unresolved",\
-    "github131 1, resolved",\
-    "anchors+refs on key+val, unresolved",\
-    "anchors+refs on key+val, resolved",\
-    "ambiguous anchor, unresolved",\
-    "ambiguous anchor, resolved",\
-    "ambiguous anchor in seq, unresolved",\
-    "ambiguous anchor in seq, resolved",\
-    "anchor after complex key without value ZWK4",\
-    "anchor mixed with tag HMQ5, unresolved",\
-    "anchor mixed with tag HMQ5, resolved"
 
 
 CASE_GROUP(SIMPLE_ANCHOR)
 {
-    APPEND_CASES(
 
-C("merge example, unresolved",
+ADD_CASE_TO_GROUP("merge example, unresolved",
 R"(# https://yaml.org/type/merge.html
 - &CENTER { x: 1, y: 2 }
 - &LEFT { x: 0, y: 2 }
@@ -706,9 +682,9 @@ L{
     N(L{N("<<", AR(KEYREF, "<<"), "*CENTER", AR(VALREF, "*CENTER")), N("r", "10"), N("label", "center/big")}),
     N(L{N("<<", AR(KEYREF, "<<"), L{N("*CENTER", AR(VALREF, "*CENTER")), N("*BIG", AR(VALREF, "*BIG"))}), N("label", "center/big")}),
     N(L{N("<<", AR(KEYREF, "<<"), L{N("*BIG", AR(VALREF, "*BIG")), N("*LEFT", AR(VALREF, "*LEFT")), N("*SMALL", AR(VALREF, "*SMALL"))}), N("x", "1"), N("label", "center/big")}),
-}),
+});
 
-C("merge example, resolved", RESOLVE_REFS,
+ADD_CASE_TO_GROUP("merge example, resolved", RESOLVE_REFS,
 R"(# https://yaml.org/type/merge.html
 - &CENTER { x: 1, y: 2 }
 - &LEFT { x: 0, y: 2 }
@@ -746,9 +722,9 @@ L{
     N(L{N("x", "1" ), N("y", "2"), N("r", "10"), N("label", "center/big")}),
     N(L{N("x", "1" ), N("y", "2"), N("r", "10"), N("label", "center/big")}),
     N(L{N("x", "1" ), N("y", "2"), N("r", "10"), N("label", "center/big")}),
-}),
+});
 
-C("simple anchor 1, implicit, unresolved",
+ADD_CASE_TO_GROUP("simple anchor 1, implicit, unresolved",
 R"(
 anchored_content: &anchor_name This string will appear as the value of two keys.
 other_anchor: *anchor_name
@@ -775,9 +751,9 @@ bar: &bar
       N("foo", L{N("<<", AR(KEYREF, "<<"), "*base", AR(VALREF, "base")), N("age", "10")}, AR(VALANCH, "foo")),
       N("bar", L{N("<<", AR(KEYREF, "<<"), "*base", AR(VALREF, "base")), N("age", "20")}, AR(VALANCH, "bar")),
   }
-),
+);
 
-C("simple anchor 1, explicit, unresolved",
+ADD_CASE_TO_GROUP("simple anchor 1, explicit, unresolved",
 R"({
 anchored_content: &anchor_name This string will appear as the value of two keys.,
 other_anchor: *anchor_name,
@@ -808,9 +784,9 @@ bar: &bar {
       N("foo", L{N("<<", AR(KEYREF, "<<"), "*base", AR(VALREF, "base")), N("age", "10")}, AR(VALANCH, "foo")),
       N("bar", L{N("<<", AR(KEYREF, "<<"), "*base", AR(VALREF, "base")), N("age", "20")}, AR(VALANCH, "bar")),
   }
-),
+);
 
-C("simple anchor 1, implicit, resolved", RESOLVE_REFS,
+ADD_CASE_TO_GROUP("simple anchor 1, implicit, resolved", RESOLVE_REFS,
 R"(
 anchored_content: &anchor_name This string will appear as the value of two keys.
 other_anchor: *anchor_name
@@ -837,9 +813,9 @@ bar: &bar
       N("foo", L{N("name", "Everyone has same name"), N("age", "10")}),
       N("bar", L{N("name", "Everyone has same name"), N("age", "20")}),
   }
-),
+);
 
-C("simple anchor 1, explicit, resolved", RESOLVE_REFS,
+ADD_CASE_TO_GROUP("simple anchor 1, explicit, resolved", RESOLVE_REFS,
 R"({
 anchored_content: &anchor_name This string will appear as the value of two keys.,
 other_anchor: *anchor_name,
@@ -870,10 +846,10 @@ bar: &bar {
       N("foo", L{N("name", "Everyone has same name"), N("age", "10")}),
       N("bar", L{N("name", "Everyone has same name"), N("age", "20")}),
   }
-),
+);
 
 
-C("anchor example 2, unresolved",
+ADD_CASE_TO_GROUP("anchor example 2, unresolved",
 R"(
 receipt:     Oz-Ware Purchase Invoice
 date:        2012-08-06
@@ -924,10 +900,10 @@ L{
    N{"ship-to", "*id001", AR(VALREF, "id001")},
    N{QV, "specialDelivery", "Follow the Yellow Brick Road to the Emerald City. Pay no attention to the man behind the curtain.\n"}
   }
-),
+);
 
 
-C("anchor example 2, resolved", RESOLVE_REFS,
+ADD_CASE_TO_GROUP("anchor example 2, resolved", RESOLVE_REFS,
 R"(
 receipt:     Oz-Ware Purchase Invoice
 date:        2012-08-06
@@ -981,9 +957,9 @@ L{
         N{"state", "KS"},}},
    N{QV, "specialDelivery", "Follow the Yellow Brick Road to the Emerald City. Pay no attention to the man behind the curtain.\n"}
   }
-),
+);
 
-C("anchor example 3, unresolved",
+ADD_CASE_TO_GROUP("anchor example 3, unresolved",
 R"(
 - step:  &id001                  # defines anchor label &id001
     instrument:      Lasik 2000
@@ -1033,9 +1009,9 @@ N{"step", L{
 N{"step", "*id002", AR(VALREF, "id002")},
     }),
     }
-),
+);
 
-C("anchor example 3, resolved", RESOLVE_REFS,
+ADD_CASE_TO_GROUP("anchor example 3, resolved", RESOLVE_REFS,
 R"(
 - step:  &id001                  # defines anchor label &id001
     instrument:      Lasik 2000
@@ -1106,9 +1082,9 @@ N{"step", L{
         }},
     }),
     }
-),
+);
 
-C("tagged doc with anchors 9KAX",
+ADD_CASE_TO_GROUP("tagged doc with anchors 9KAX",
 R"(
 ---
 &a1
@@ -1171,9 +1147,9 @@ N(STREAM, L{
     N(DOCVAL, TS("!!str", "value11"), AR(VALANCH, "a11")),
     N(DOCVAL, TS("!!str", "value11"), AR(VALANCH, "a11")),
 })
-),
+);
 
-C("github131 1, unresolved",
+ADD_CASE_TO_GROUP("github131 1, unresolved",
 R"(
 a: &vref b
 *vref: c
@@ -1192,9 +1168,9 @@ L{
          N("*kref", AR(KEYREF, "kref"), "cc"),
          N("*kvref", AR(KEYREF, "kvref"), "cc"),
     })
-}),
+});
 
-C("github131 1, resolved", RESOLVE_REFS,
+ADD_CASE_TO_GROUP("github131 1, resolved", RESOLVE_REFS,
 R"(
 a: &vref b
 *vref: c
@@ -1210,25 +1186,25 @@ L{
     N("aa", "bb"),
     N("aaa", "bbb"),
     N("foo", L{N("aa", "cc"), N("bbb", "cc")})
-}),
+});
 
 
-C("anchors+refs on key+val, unresolved",
+ADD_CASE_TO_GROUP("anchors+refs on key+val, unresolved",
 R"({&a0 a0: &b0 b0, *b0: *a0})",
 L{
     N("a0", AR(KEYANCH, "a0"), "b0", AR(VALANCH, "b0")),
     N(AR(KEYREF, "*b0"), AR(VALREF, "*a0")),
-}),
+});
 
-C("anchors+refs on key+val, resolved", RESOLVE_REFS,
+ADD_CASE_TO_GROUP("anchors+refs on key+val, resolved", RESOLVE_REFS,
 R"({&a0 a0: &b0 b0, *b0: *a0})",
 L{
     N("a0", "b0"),
     N("b0", "a0"),
-}),
+});
 
 
-C("ambiguous anchor, unresolved",
+ADD_CASE_TO_GROUP("ambiguous anchor, unresolved",
 R"(&rootanchor
 &a0 a0: &b0 b0
 *b0: *a0
@@ -1261,9 +1237,9 @@ N(L{
     N("map4", "*a0", AR(VALREF, "a0")),
     N("map5", L{N("a5", AR(KEYANCH, "a5"), "b5", AR(VALANCH, "b5")), N(AR(KEYREF, "*b5"), AR(VALREF, "*a5")),}, AR(VALANCH, "map5")),
     N("map6", L{N("a6", "b6", AR(VALANCH, "b6")), N(AR(KEYREF, "*b6"), AR(VALREF, "*b6")),}, AR(VALANCH, "map6")),
-}, AR(VALANCH, "rootanchor"))),
+}, AR(VALANCH, "rootanchor")));
 
-C("ambiguous anchor, resolved", RESOLVE_REFS,
+ADD_CASE_TO_GROUP("ambiguous anchor, resolved", RESOLVE_REFS,
 R"(
 &a0 a0: &b0 b0
 *b0: *a0
@@ -1295,10 +1271,10 @@ L{
     N("map4", "a0"),
     N("map5", L{N("a5", "b5"), N("b5", "a5"),}),
     N("map6", L{N("a6", "b6"), N("b6", "b6"),}),
-}),
+});
 
 
-C("ambiguous anchor in seq, unresolved",
+ADD_CASE_TO_GROUP("ambiguous anchor in seq, unresolved",
 R"(
 &seq
 - &a0
@@ -1340,9 +1316,9 @@ N(L{
   N("*a0", AR(VALREF, "*a0")),
   N("*a7", AR(VALREF, "*a7")),
   N("*a9", AR(VALREF, "*a9")),
-}, AR(VALANCH, "seq"))),
+}, AR(VALANCH, "seq")));
 
-C("ambiguous anchor in seq, resolved", RESOLVE_REFS,
+ADD_CASE_TO_GROUP("ambiguous anchor in seq, resolved", RESOLVE_REFS,
 R"(
 &seq
 - &a0
@@ -1384,9 +1360,9 @@ L{
   N(L{N("k1", AR(KEYANCH, "a1"), "v1"), N("k2", AR(KEYANCH, "a2"), "v2"), N("k3", AR(KEYANCH, "a3"), "v3")}),
   N(L{N("k8", AR(KEYANCH, "a8"), "v8")}),
   N(L{N("k10", "v10")}),
-}),
+});
 
-C("anchor after complex key without value ZWK4",
+ADD_CASE_TO_GROUP("anchor after complex key without value ZWK4",
 R"(
 a: 1
 ? b
@@ -1395,9 +1371,9 @@ a: 1
   L{
     N("a", "1"), N(KEYVAL, "b", {}), N("c", AR(KEYANCH, "anchor"), "3")
   }
-),
+);
 
-C("anchor mixed with tag HMQ5, unresolved",
+ADD_CASE_TO_GROUP("anchor mixed with tag HMQ5, unresolved",
 R"(
 !!str &a1 "foo":
   !!str bar
@@ -1407,9 +1383,9 @@ R"(
       N(KEYVAL|KEYQUO, TS("!!str", "foo"), AR(KEYANCH, "a1"), TS("!!str", "bar")),
       N("baz", AR(KEYANCH, "a2"), "*a1", AR(VALREF, "*a1")),
   }
-),
+);
 
-C("anchor mixed with tag HMQ5, resolved", RESOLVE_REFS,
+ADD_CASE_TO_GROUP("anchor mixed with tag HMQ5, resolved", RESOLVE_REFS,
 R"(
 !!str &a1 "foo":
   !!str bar
@@ -1419,12 +1395,9 @@ R"(
       N(KEYVAL|KEYQUO, TS("!!str", "foo"), TS("!!str", "bar")),
       N("baz", "foo"),
   }
-)
-
-    )
+);
 }
 
-INSTANTIATE_GROUP(SIMPLE_ANCHOR)
 
 C4_SUPPRESS_WARNING_GCC_POP
 

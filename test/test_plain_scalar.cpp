@@ -252,97 +252,61 @@ tabs
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-#define PLAIN_SCALAR_CASES                                          \
-    "plain scalar, 1 word only",                                    \
-    "plain scalar, 1 line with spaces",                             \
-    "plain scalar, multiline",                                      \
-    "plain scalar, multiline, unindented",                          \
-    "plain scalar, multiline, quotes, escapes",                     \
-    "plain scalar, multiline, quotes, escapes, blank lines middle", \
-    "plain scalar, multiline, quotes, escapes, blank lines first",  \
-    "plain scalar, multiline, quotes, escapes, blank lines last",   \
-    "plain scalar, example",                                        \
-    "plain scalar, map example 1"/*,                                \
-    "plain scalar, map example 2"*/,                                \
-    "plain scalar, seq example 1"/*,                                \
-    "plain scalar, seq example 2"*/,                                \
-    "plain scalar, special characters 1",                           \
-    "plain scalar, special characters 3MYT",                        \
-    "plain scalar, sequence ambiguity",                             \
-    "plain scalar, empty lines at the beginning",                   \
-    "plain scalar, empty continuation lines",                       \
-    "plain scalar, do not accept ': ' mid line",                    \
-    "plain scalar, do not accept ': ' start line",                  \
-    "plain scalar, do not accept ': ' at line end",                 \
-    "plain scalar, do not accept ':' at line end",                  \
-    "plain scalar, accept ' #' at line start",                      \
-    "plain scalar, accept ' #' on first line",                      \
-    "plain scalar, accept ' #' at line end",                        \
-    "plain scalar, accept '#'",                                     \
-    "plain scalar, explicit",                                       \
-    "plain scalar, explicit, early end, seq",                       \
-    "plain scalar, explicit, early end, map",                       \
-    "plain scalar, multiple docs",                                  \
-    "plain scalar, multiple docs, termination",                     \
-    "plain scalar, trailing whitespace"
-
-
 CASE_GROUP(PLAIN_SCALAR)
 {
-    APPEND_CASES(
-
-C("plain scalar, 1 word only",
+//
+ADD_CASE_TO_GROUP("plain scalar, 1 word only",
 R"(a_single_word_scalar_to_test)",
   N(DOCVAL, "a_single_word_scalar_to_test")
-),
+);
 
-C("plain scalar, 1 line with spaces",
+ADD_CASE_TO_GROUP("plain scalar, 1 line with spaces",
 R"(a scalar with spaces in it all in one line)",
   N(DOCVAL, "a scalar with spaces in it all in one line")
-),
+);
 
-C("plain scalar, multiline",
+ADD_CASE_TO_GROUP("plain scalar, multiline",
 R"(
 a scalar with several lines in it
   of course also with spaces but for now there are no quotes
   and also no blank lines to speak of)",
   N(DOCVAL, "a scalar with several lines in it of course also with spaces but for now there are no quotes and also no blank lines to speak of")
-),
+);
 
-C("plain scalar, multiline, unindented",
+ADD_CASE_TO_GROUP("plain scalar, multiline, unindented",
 R"(
 a scalar with several lines in it
  of course also with spaces but for now there are no quotes
  and also no blank lines to speak of)",
   N(DOCVAL, "a scalar with several lines in it of course also with spaces but for now there are no quotes and also no blank lines to speak of")
-),
+);
 
-C("plain scalar, multiline, quotes, escapes",
+ADD_CASE_TO_GROUP("plain scalar, multiline, quotes, escapes",
 R"(
 a scalar with several lines in it and also 'single quotes'
   and "double quotes" and assorted escapes such as \r or \n)",
   N(DOCVAL, "a scalar with several lines in it and also 'single quotes' and \"double quotes\" and assorted escapes such as \\r or \\n")
-),
+);
 
-C("plain scalar, multiline, quotes, escapes, blank lines middle",
+ADD_CASE_TO_GROUP("plain scalar, multiline, quotes, escapes, blank lines middle",
 R"(
 A scalar with several lines in it and also 'single quotes'.
   A blank line follows after this one.
   
   And "double quotes" and assorted escapes such as \r or \n)",
   N(DOCVAL, "A scalar with several lines in it and also 'single quotes'. A blank line follows after this one.\nAnd \"double quotes\" and assorted escapes such as \\r or \\n")
-),
+);
 
-C("plain scalar, multiline, quotes, escapes, blank lines first",
+ADD_CASE_TO_GROUP("plain scalar, multiline, quotes, escapes, blank lines first",
 R"(
 A scalar with several lines in it and also 'single quotes'.
   
   A blank line precedes this one.
   And "double quotes" and assorted escapes such as \r or \n)",
   N(DOCVAL, "A scalar with several lines in it and also 'single quotes'.\nA blank line precedes this one. And \"double quotes\" and assorted escapes such as \\r or \\n")
-),
+);
 
-C("plain scalar, multiline, quotes, escapes, blank lines last",
+ADD_CASE_TO_GROUP("plain scalar, multiline, quotes, escapes, blank lines last",
 R"(
 A scalar with several lines in it and also 'single quotes'.
   And "double quotes" and assorted escapes such as \r or \n.
@@ -350,9 +314,9 @@ A scalar with several lines in it and also 'single quotes'.
   
   )",
   N(DOCVAL, "A scalar with several lines in it and also 'single quotes'. And \"double quotes\" and assorted escapes such as \\r or \\n. A blank line follows after this one.")
-),
+);
 
-C("plain scalar, example",
+ADD_CASE_TO_GROUP("plain scalar, example",
 R"(
 Several lines of text
   with some "quotes" of various 'types'.
@@ -361,9 +325,9 @@ Several lines of text
   Newlines can be added by leaving a blank line.
       Additional leading whitespace is ignored.)",
   N(DOCVAL, "Several lines of text with some \"quotes\" of various 'types'. Escapes (like \\n) don't do anything.\nNewlines can be added by leaving a blank line. Additional leading whitespace is ignored.")
-),
+);
 
-C("plain scalar, map example 1",
+ADD_CASE_TO_GROUP("plain scalar, map example 1",
 R"(
 example: Several lines of text,
  with some "quotes" of various 'types'.
@@ -403,10 +367,10 @@ final example: Several lines of text,
                        "There are more lines that follow. "
                        "And the last line terminates at the end of the file."),
     }
-),
+);
 
 /*
-C("plain scalar, map example 2", IGNORE_LIBYAML_PARSE_FAIL|IGNORE_YAMLCPP_PARSE_FAIL,
+ADD_CASE_TO_GROUP("plain scalar, map example 2", IGNORE_LIBYAML_PARSE_FAIL|IGNORE_YAMLCPP_PARSE_FAIL,
 R"(
 example:
   Several lines of text,
@@ -417,10 +381,10 @@ example:
       Additional leading whitespace is ignored.
 )",
   L{N("example", "Several lines of text, with some \"quotes\" of various 'types'. Escapes (like \\n) don't do anything.\nNewlines can be added by leaving a blank line. Additional leading whitespace is ignored.")}
-),
+);
 */
 
-C("plain scalar, seq example 1",
+ADD_CASE_TO_GROUP("plain scalar, seq example 1",
 R"(
 - Several lines of text,
   with some "quotes" of various 'types'.
@@ -432,10 +396,10 @@ R"(
       "Escapes (like \\n) don't do anything.\n"
       "Newlines can be added by leaving a blank line. "
       "Additional leading whitespace is ignored.")}
-),
+);
 
 /*
-C("plain scalar, seq example 2", IGNORE_LIBYAML_PARSE_FAIL|IGNORE_YAMLCPP_PARSE_FAIL,
+ADD_CASE_TO_GROUP("plain scalar, seq example 2", IGNORE_LIBYAML_PARSE_FAIL|IGNORE_YAMLCPP_PARSE_FAIL,
 R"(
 -
   Several lines of text,
@@ -446,10 +410,10 @@ R"(
       Additional leading whitespace is ignored.
 )",
   L{N("Several lines of text, with some \"quotes\" of various 'types'. Escapes (like \\n) don't do anything.\nNewlines can be added by leaving a blank line. Additional leading whitespace is ignored.")}
-),
+);
 */
 
-C("plain scalar, special characters 1",
+ADD_CASE_TO_GROUP("plain scalar, special characters 1",
 R"(
 - Several lines of text,
   with special:characters, like:this-or-this -
@@ -490,9 +454,9 @@ R"(
       "followed by more text "
       "and another four at the end -"
     )}
-),
+);
 
-C("plain scalar, special characters 3MYT",
+ADD_CASE_TO_GROUP("plain scalar, special characters 3MYT",
 R"(---  # ZWK4
 a: 1
 ? b
@@ -557,10 +521,10 @@ k:#foo
       N(DOCVAL, "k:#foo !t s"),
       N(DOCVAL, "k:#foo !t s"),
   })
-    ),
+    );
 
 // make sure there is no ambiguity with this case
-C("plain scalar, sequence ambiguity",
+ADD_CASE_TO_GROUP("plain scalar, sequence ambiguity",
 R"(
 -         - some text
           - and this is a sequence
@@ -577,9 +541,9 @@ R"(
       N(L{N("some text"), N("and this is a sequence")}),
       N("some text - and this is /not/ a sequence"),
   }
-),
+);
 
-C("plain scalar, empty lines at the beginning",
+ADD_CASE_TO_GROUP("plain scalar, empty lines at the beginning",
 R"(
 - 
 
@@ -602,9 +566,9 @@ R"(
       N("Several lines of text, with special:characters, like:this-or-this - - and some \"quotes\" of various 'types'."),
       N("Several lines of text, with special:characters, like:this-or-this - - and some \"quotes\" of various 'types'."),
   }
-),
+);
 
-C("plain scalar, empty continuation lines",
+ADD_CASE_TO_GROUP("plain scalar, empty continuation lines",
 R"(
 - the next lines have 2cols, 0cols, 2cols,
   
@@ -636,12 +600,12 @@ R"(
         "\n\n\n\n\n\n\n\n\n\n\n\n"
         "and finally some more text"),
   }
-),
+);
 
 
-C("plain scalar, indented first line",
+ADD_CASE_TO_GROUP("plain scalar, indented first line",
 R"(
-- Several lines of text, empty next -
+- Several lines of text,
  
   with special:characters, like:this-or-this -
   - and some "quotes" of various 'types'.
@@ -656,22 +620,22 @@ R"(
   - and some "quotes" of various 'types'.
 )",
   L{
-      N("Several lines of text, with special:characters, like:this-or-this - - and some \"quotes\" of various 'types'."),
+      N("Several lines of text,\nwith special:characters, like:this-or-this - - and some \"quotes\" of various 'types'."),
       N("Several lines of text, with special:characters, like:this-or-this - - and some \"quotes\" of various 'types'."),
       N("Several lines of text, with special:characters, like:this-or-this - - and some \"quotes\" of various 'types'."),
   }
-),
+);
 
-C("plain scalar, do not accept ': ' mid line", EXPECT_PARSE_ERROR,
+ADD_CASE_TO_GROUP("plain scalar, do not accept ': ' mid line", EXPECT_PARSE_ERROR,
 R"(- Several lines of text,
   with special:characters, like:this-or-this -
   - and some "quotes" of various 'types'.
   But this: must cause a parse error.
 )",
   LineCol(4, 11)
-),
+);
 
-C("plain scalar, do not accept ': ' start line", EXPECT_PARSE_ERROR,
+ADD_CASE_TO_GROUP("plain scalar, do not accept ': ' start line", EXPECT_PARSE_ERROR,
 R"(
 - Several lines of text,
   with special:characters, like:this-or-this -
@@ -680,18 +644,18 @@ R"(
   : foo bar
 )",
   LineCol(6, 3)
-),
+);
 
-C("plain scalar, do not accept ': ' at line end", EXPECT_PARSE_ERROR,
+ADD_CASE_TO_GROUP("plain scalar, do not accept ': ' at line end", EXPECT_PARSE_ERROR,
 R"(- Several lines of text,
   with special:characters, like:this-or-this -
   - and some "quotes" of various 'types'.
   But this must cause a parse error: 
 )",
   LineCol(4, 36)
-),
+);
 
-C("plain scalar, do not accept ':' at line end", EXPECT_PARSE_ERROR,
+ADD_CASE_TO_GROUP("plain scalar, do not accept ':' at line end", EXPECT_PARSE_ERROR,
 R"(- Several lines of text,
   with special:characters, like:this-or-this -
   - and some "quotes" of various 'types'.
@@ -699,31 +663,31 @@ R"(- Several lines of text,
   - well, did it?
 )",
   LineCol(4, 36)
-),
+);
 
-C("plain scalar, accept ' #' at line start",
+ADD_CASE_TO_GROUP("plain scalar, accept ' #' at line start",
 R"(- Several lines of text,
   and this is valid -
   #with special:characters, like:this-or-this -
 )",
   L{N("Several lines of text, and this is valid -"),}
-),
+);
 
-C("plain scalar, accept ' #' on first line",
+ADD_CASE_TO_GROUP("plain scalar, accept ' #' on first line",
 R"(- Several lines of text, and this is valid -
   #with special:characters, like:this-or-this -
 )",
   L{N("Several lines of text, and this is valid -")}
-),
+);
 
-C("plain scalar, accept ' #' at line end",
+ADD_CASE_TO_GROUP("plain scalar, accept ' #' at line end",
 R"(- Several lines of text,
   with special:characters, #comment at the end
 )",
   L{N("Several lines of text, with special:characters,")}
-),
+);
 
-C("plain scalar, accept '#'",
+ADD_CASE_TO_GROUP("plain scalar, accept '#'",
 R"(
 - Several lines of text, # with a comment
 - Several lines of text,
@@ -736,9 +700,9 @@ R"(
         "with special#characters, like#this_#_-or-#-:this - "
         "- and some \"quotes\" of various 'types'."),
    }
-),
+);
 
-C("plain scalar, explicit",
+ADD_CASE_TO_GROUP("plain scalar, explicit",
 R"(
 [
   a plain scalar
@@ -765,25 +729,25 @@ and yet more, deindented
       N("and yet another one\n\n\nwith many lines\nand yet more"),
       N("deindented"),
    }
-),
+);
 
-C("plain scalar, explicit, early end, seq", EXPECT_PARSE_ERROR,
+ADD_CASE_TO_GROUP("plain scalar, explicit, early end, seq", EXPECT_PARSE_ERROR,
 R"([
   a plain scalar
     with several lines
 )",
   LineCol(4, 1)
-),
+);
 
-C("plain scalar, explicit, early end, map", EXPECT_PARSE_ERROR,
+ADD_CASE_TO_GROUP("plain scalar, explicit, early end, map", EXPECT_PARSE_ERROR,
 R"({foo:
   a plain scalar
     with several lines
 )",
   LineCol(4, 1)
-),
+);
 
-C("plain scalar, multiple docs",
+ADD_CASE_TO_GROUP("plain scalar, multiple docs",
 R"(---
 - a plain scalar
     with several lines
@@ -795,9 +759,9 @@ R"(---
     N(DOCSEQ, L{N("a plain scalar with several lines")}),
     N(DOCSEQ, L{N("a second plain scalar with several lines")}),
   })
-),
+);
 
-C("plain scalar, multiple docs, termination",
+ADD_CASE_TO_GROUP("plain scalar, multiple docs, termination",
 R"(---
 - a plain scalar
     with several lines
@@ -810,9 +774,9 @@ R"(---
     N(DOCSEQ, L{N("a plain scalar with several lines")}),
     N(DOCSEQ, L{N("a second plain scalar with several lines")}),
   })
-),
+);
 
-C("plain scalar, trailing whitespace",
+ADD_CASE_TO_GROUP("plain scalar, trailing whitespace",
   R"(---
 foo  
 ---
@@ -829,12 +793,8 @@ foo
           N(DOCVAL, "foo"),
           N(DOCVAL, "foo"),
       })
-    )
-    )
-
+    );
 }
-
-INSTANTIATE_GROUP(PLAIN_SCALAR)
 
 } // namespace yml
 } // namespace c4

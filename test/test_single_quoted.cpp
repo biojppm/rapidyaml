@@ -3,7 +3,6 @@
 namespace c4 {
 namespace yml {
 
-
 TEST(double_quoted, test_suite_KSS4)
 {
     csubstr yaml = R"(
@@ -213,56 +212,36 @@ bar: ''')");
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-#define SINGLE_QUOTED_CASES                             \
-            "squoted, only text",                       \
-            "squoted, with double quotes",              \
-            "squoted, with single quotes",              \
-            "squoted, with single and double quotes",   \
-            "squoted, with escapes",                    \
-            "squoted, all",                             \
-            "squoted, empty",                           \
-            "squoted, blank",                           \
-            "squoted, numbers",                         \
-            "squoted, trailing space",                  \
-            "squoted, leading space",                   \
-            "squoted, trailing and leading space",      \
-            "squoted, 1 squote",                        \
-            "squoted, 2 squotes",                       \
-            "squoted, 3 squotes",                       \
-            "squoted, 4 squotes",                       \
-            "squoted, 5 squotes"
-
 CASE_GROUP(SINGLE_QUOTED)
 {
-    APPEND_CASES(
 
-C("squoted, only text",
+ADD_CASE_TO_GROUP("squoted, only text",
 R"('Some text without any quotes.'
 )",
   N(DOCVAL | VALQUO, "Some text without any quotes.")
-),
+);
 
-C("squoted, with double quotes",
+ADD_CASE_TO_GROUP("squoted, with double quotes",
 R"('Some "text" "with double quotes"')",
   N(DOCVAL | VALQUO, "Some \"text\" \"with double quotes\"")
-),
+);
 
-C("squoted, with single quotes",
+ADD_CASE_TO_GROUP("squoted, with single quotes",
 R"('Some text ''with single quotes''')",
   N(DOCVAL | VALQUO, "Some text 'with single quotes'")
-),
+);
 
-C("squoted, with single and double quotes",
+ADD_CASE_TO_GROUP("squoted, with single and double quotes",
 R"('Some text ''with single quotes'' "and double quotes".')",
   N(DOCVAL | VALQUO, "Some text 'with single quotes' \"and double quotes\".")
-),
+);
 
-C("squoted, with escapes",
+ADD_CASE_TO_GROUP("squoted, with escapes",
 R"('Some text with escapes \n \r \t')",
   N(DOCVAL | VALQUO, "Some text with escapes \\n \\r \\t")
-),
+);
 
-C("squoted, all",
+ADD_CASE_TO_GROUP("squoted, all",
 R"('Several lines of text,
 containing ''single quotes'' and "double quotes". Escapes (like \n) don''t do anything.
 
@@ -270,14 +249,14 @@ Newlines can be added by leaving a blank line.
             Leading whitespace on lines is ignored.'
 )",
   N(DOCVAL | VALQUO, "Several lines of text, containing 'single quotes' and \"double quotes\". Escapes (like \\n) don't do anything.\nNewlines can be added by leaving a blank line. Leading whitespace on lines is ignored.")
-),
+);
 
-C("squoted, empty",
+ADD_CASE_TO_GROUP("squoted, empty",
 R"('')",
   N(DOCVAL | VALQUO, "")
-),
+);
 
-C("squoted, blank",
+ADD_CASE_TO_GROUP("squoted, blank",
 R"(
 - ''
 - ' '
@@ -286,9 +265,9 @@ R"(
 - '    '
 )",
   L{N(QV, ""), N(QV, " "), N(QV, "  "), N(QV, "   "), N(QV, "    ")}
-),
+);
 
-C("squoted, numbers", // these should not be quoted when emitting
+ADD_CASE_TO_GROUP("squoted, numbers", // these should not be quoted when emitting
 R"(
 - -1
 - -1.0
@@ -297,50 +276,50 @@ R"(
 - 1e+2
 )",
   L{N("-1"), N("-1.0"), N("+1.0"), N("1e-2"), N("1e+2")}
-),
+);
 
-C("squoted, trailing space",
+ADD_CASE_TO_GROUP("squoted, trailing space",
 R"('a aaaa  ')",
   N(DOCVAL | VALQUO, "a aaaa  ")
-),
+);
 
-C("squoted, leading space",
+ADD_CASE_TO_GROUP("squoted, leading space",
 R"('  a aaaa')",
   N(DOCVAL | VALQUO, "  a aaaa")
-),
+);
 
-C("squoted, trailing and leading space",
+ADD_CASE_TO_GROUP("squoted, trailing and leading space",
 R"('  012345  ')",
   N(DOCVAL | VALQUO, "  012345  ")
-),
+);
 
-C("squoted, 1 squote",
+ADD_CASE_TO_GROUP("squoted, 1 squote",
 R"('''')",
   N(DOCVAL | VALQUO, "'")
-),
+);
 
-C("squoted, 2 squotes",
+ADD_CASE_TO_GROUP("squoted, 2 squotes",
 R"('''''')",
   N(DOCVAL | VALQUO, "''")
-),
+);
 
-C("squoted, 3 squotes",
+ADD_CASE_TO_GROUP("squoted, 3 squotes",
 R"('''''''')",
   N(DOCVAL | VALQUO, "'''")
-),
+);
 
-C("squoted, 4 squotes",
+ADD_CASE_TO_GROUP("squoted, 4 squotes",
 R"('''''''''')",
   N(DOCVAL | VALQUO, "''''")
-),
+);
 
-C("squoted, 5 squotes",
+ADD_CASE_TO_GROUP("squoted, 5 squotes",
 R"('''''''''''')",
   N(DOCVAL | VALQUO, "'''''")
-),
+);
 
 /*
-C("squoted, example 2",
+ADD_CASE_TO_GROUP("squoted, example 2",
 R"('This is a key
 
 that has multiple lines
@@ -348,12 +327,9 @@ that has multiple lines
 ': and this is its value
 )",
   L{N("This is a key\nthat has multiple lines\n", "and this is its value")}
-),
+);
 */
-    )
 }
-
-INSTANTIATE_GROUP(SINGLE_QUOTED)
 
 } // namespace yml
 } // namespace c4

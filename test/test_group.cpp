@@ -7,7 +7,7 @@
 #include <fstream>
 #include <stdexcept>
 
-#define RYML_NFO (1 || RYML_DBG)
+#define RYML_NFO (RYML_DBG || 0)
 
 //-----------------------------------------------------------------------------
 namespace c4 {
@@ -24,8 +24,8 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
     if(c->flags & EXPECT_PARSE_ERROR)
     {
         auto flags = c->flags;
-        ExpectError::do_check(&cd->parsed_tree, [cd, flags](){
-            parse_in_place(cd->src, &cd->parsed_tree);
+        ExpectError::do_check(&cd->parsed_tree, [this, cd, flags](){
+            parse_in_place(c->fileline, cd->src, &cd->parsed_tree);
             if(flags & RESOLVE_REFS)
                 cd->parsed_tree.resolve();
             #ifdef RYML_DBG
@@ -38,17 +38,20 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
         return;
     }
 
-    parse_in_place(cd->src, &cd->parsed_tree);
-    {
-        SCOPED_TRACE("checking tree invariants of unresolved parsed tree");
-        test_invariants(cd->parsed_tree);
-    }
+    cd->parsed_tree.clear();
+    parse_in_place(c->fileline, cd->src, &cd->parsed_tree);
+
     #ifdef RYML_NFO
     std::cout << "REF TREE:\n";
     print_tree(c->root);
     std::cout << "PARSED TREE:\n";
     print_tree(cd->parsed_tree);
     #endif
+
+    {
+        SCOPED_TRACE("checking tree invariants of unresolved parsed tree");
+        test_invariants(cd->parsed_tree);
+    }
     {
         SCOPED_TRACE("checking node invariants of unresolved parsed tree");
         test_invariants(cd->parsed_tree.rootref());
@@ -110,7 +113,7 @@ void YmlTestCase::_test_emit_yml_stdout(CaseDataLineEndings *cd)
     if(c->flags & EXPECT_PARSE_ERROR)
         return;
     if(cd->parsed_tree.empty())
-        parse_in_place(cd->src, &cd->parsed_tree);
+        parse_in_place(c->fileline, cd->src, &cd->parsed_tree);
     if(cd->emit_buf.empty())
         cd->emitted_yml = emitrs(cd->parsed_tree, &cd->emit_buf);
     cd->numbytes_stdout = emit(cd->parsed_tree);
@@ -122,7 +125,7 @@ void YmlTestCase::_test_emit_yml_cout(CaseDataLineEndings *cd)
     if(c->flags & EXPECT_PARSE_ERROR)
         return;
     if(cd->parsed_tree.empty())
-        parse_in_place(cd->src, &cd->parsed_tree);
+        parse_in_place(c->fileline, cd->src, &cd->parsed_tree);
     if(cd->emit_buf.empty())
         cd->emitted_yml = emitrs(cd->parsed_tree, &cd->emit_buf);
     std::cout << cd->parsed_tree;
@@ -135,7 +138,7 @@ void YmlTestCase::_test_emit_yml_stringstream(CaseDataLineEndings *cd)
     if(c->flags & EXPECT_PARSE_ERROR)
         return;
     if(cd->parsed_tree.empty())
-        parse_in_place(cd->src, &cd->parsed_tree);
+        parse_in_place(c->fileline, cd->src, &cd->parsed_tree);
     if(cd->emit_buf.empty())
         cd->emitted_yml = emitrs(cd->parsed_tree, &cd->emit_buf);
     {
@@ -158,7 +161,7 @@ void YmlTestCase::_test_emit_yml_ofstream(CaseDataLineEndings *cd)
     if(c->flags & EXPECT_PARSE_ERROR)
         return;
     if(cd->parsed_tree.empty())
-        parse_in_place(cd->src, &cd->parsed_tree);
+        parse_in_place(c->fileline, cd->src, &cd->parsed_tree);
     if(cd->emit_buf.empty())
         cd->emitted_yml = emitrs(cd->parsed_tree, &cd->emit_buf);
     auto fn = fs::tmpnam<std::string>();
@@ -223,14 +226,14 @@ void YmlTestCase::_test_complete_round_trip(CaseDataLineEndings *cd)
     if(c->flags & EXPECT_PARSE_ERROR)
         return;
     if(cd->parsed_tree.empty())
-        parse_in_place(cd->src, &cd->parsed_tree);
+        parse_in_place(c->fileline, cd->src, &cd->parsed_tree);
     if(cd->emit_buf.empty())
         cd->emitted_yml = emitrs(cd->parsed_tree, &cd->emit_buf);
     {
         SCOPED_TRACE("parsing emitted yml");
         cd->parse_buf = cd->emit_buf;
         cd->parsed_yml = to_substr(cd->parse_buf);
-        parse_in_place(cd->parsed_yml, &cd->emitted_tree);
+        parse_in_place(c->fileline, cd->parsed_yml, &cd->emitted_tree);
     }
     #ifdef RYML_NFO
     std::cout << "~~~~~~~~~~~~~~ src yml:\n";
@@ -283,7 +286,7 @@ void YmlTestCase::_test_recreate_from_ref(CaseDataLineEndings *cd)
     if(c->flags & EXPECT_PARSE_ERROR)
         return;
     if(cd->parsed_tree.empty())
-        parse_in_place(cd->src, &cd->parsed_tree);
+        parse_in_place(c->fileline, cd->src, &cd->parsed_tree);
     if(cd->emit_buf.empty())
         cd->emitted_yml = emitrs(cd->parsed_tree, &cd->emit_buf);
     {

@@ -425,8 +425,9 @@ TEST(to_tag, with_namespace)
 
 TEST(to_tag, with_namespace_bracket)
 {
-    EXPECT_EQ(to_tag("<tag:yaml.org,2002:"          ), TAG_NONE);
-    EXPECT_EQ(to_tag("<tag:yaml.org,2002:."         ), TAG_NONE);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:"           ), TAG_NONE);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:."          ), TAG_NONE);
+    EXPECT_EQ(to_tag("<tag:yaml.org,2002:foo"        ), TAG_NONE);
 
     EXPECT_EQ(to_tag("<tag:yaml.org,2002:map>"       ), TAG_MAP);
     EXPECT_EQ(to_tag("<tag:yaml.org,2002:omap>"      ), TAG_OMAP);
@@ -538,40 +539,79 @@ TEST(normalize_tag, basic)
     EXPECT_EQ(normalize_tag("!<!>"), "!");
 }
 
+TEST(normalize_tag_long, basic)
+{
+    EXPECT_EQ(normalize_tag_long("<tag:yaml.org,2002:"          ), "<tag:yaml.org,2002:");
+    EXPECT_EQ(normalize_tag_long("<tag:yaml.org,2002:."         ), "<tag:yaml.org,2002:.");
+
+    EXPECT_EQ(normalize_tag_long("<tag:yaml.org,2002:map>"       ), "<tag:yaml.org,2002:map>");
+    EXPECT_EQ(normalize_tag_long("<tag:yaml.org,2002:omap>"      ), "<tag:yaml.org,2002:omap>");
+    EXPECT_EQ(normalize_tag_long("<tag:yaml.org,2002:pairs>"     ), "<tag:yaml.org,2002:pairs>");
+    EXPECT_EQ(normalize_tag_long("<tag:yaml.org,2002:set>"       ), "<tag:yaml.org,2002:set>");
+    EXPECT_EQ(normalize_tag_long("<tag:yaml.org,2002:seq>"       ), "<tag:yaml.org,2002:seq>");
+    EXPECT_EQ(normalize_tag_long("<tag:yaml.org,2002:binary>"    ), "<tag:yaml.org,2002:binary>");
+    EXPECT_EQ(normalize_tag_long("<tag:yaml.org,2002:bool>"      ), "<tag:yaml.org,2002:bool>");
+    EXPECT_EQ(normalize_tag_long("<tag:yaml.org,2002:float>"     ), "<tag:yaml.org,2002:float>");
+    EXPECT_EQ(normalize_tag_long("<tag:yaml.org,2002:int>"       ), "<tag:yaml.org,2002:int>");
+    EXPECT_EQ(normalize_tag_long("<tag:yaml.org,2002:merge>"     ), "<tag:yaml.org,2002:merge>");
+    EXPECT_EQ(normalize_tag_long("<tag:yaml.org,2002:null>"      ), "<tag:yaml.org,2002:null>");
+    EXPECT_EQ(normalize_tag_long("<tag:yaml.org,2002:str>"       ), "<tag:yaml.org,2002:str>");
+    EXPECT_EQ(normalize_tag_long("<tag:yaml.org,2002:timestamp>" ), "<tag:yaml.org,2002:timestamp>");
+    EXPECT_EQ(normalize_tag_long("<tag:yaml.org,2002:value>"     ), "<tag:yaml.org,2002:value>");
+
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:map>"       ), "<tag:yaml.org,2002:map>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:omap>"      ), "<tag:yaml.org,2002:omap>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:pairs>"     ), "<tag:yaml.org,2002:pairs>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:set>"       ), "<tag:yaml.org,2002:set>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:seq>"       ), "<tag:yaml.org,2002:seq>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:binary>"    ), "<tag:yaml.org,2002:binary>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:bool>"      ), "<tag:yaml.org,2002:bool>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:float>"     ), "<tag:yaml.org,2002:float>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:int>"       ), "<tag:yaml.org,2002:int>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:merge>"     ), "<tag:yaml.org,2002:merge>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:null>"      ), "<tag:yaml.org,2002:null>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:str>"       ), "<tag:yaml.org,2002:str>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:timestamp>" ), "<tag:yaml.org,2002:timestamp>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:value>"     ), "<tag:yaml.org,2002:value>");
+
+    EXPECT_EQ(normalize_tag_long("!!map"      ), "<tag:yaml.org,2002:map>");
+    EXPECT_EQ(normalize_tag_long("!!omap"     ), "<tag:yaml.org,2002:omap>");
+    EXPECT_EQ(normalize_tag_long("!!pairs"    ), "<tag:yaml.org,2002:pairs>");
+    EXPECT_EQ(normalize_tag_long("!!set"      ), "<tag:yaml.org,2002:set>");
+    EXPECT_EQ(normalize_tag_long("!!seq"      ), "<tag:yaml.org,2002:seq>");
+    EXPECT_EQ(normalize_tag_long("!!binary"   ), "<tag:yaml.org,2002:binary>");
+    EXPECT_EQ(normalize_tag_long("!!bool"     ), "<tag:yaml.org,2002:bool>");
+    EXPECT_EQ(normalize_tag_long("!!float"    ), "<tag:yaml.org,2002:float>");
+    EXPECT_EQ(normalize_tag_long("!!int"      ), "<tag:yaml.org,2002:int>");
+    EXPECT_EQ(normalize_tag_long("!!merge"    ), "<tag:yaml.org,2002:merge>");
+    EXPECT_EQ(normalize_tag_long("!!null"     ), "<tag:yaml.org,2002:null>");
+    EXPECT_EQ(normalize_tag_long("!!str"      ), "<tag:yaml.org,2002:str>");
+    EXPECT_EQ(normalize_tag_long("!!timestamp"), "<tag:yaml.org,2002:timestamp>");
+    EXPECT_EQ(normalize_tag_long("!!value"    ), "<tag:yaml.org,2002:value>");
+
+    EXPECT_EQ(normalize_tag_long("<!foo>"), "!foo");
+    EXPECT_EQ(normalize_tag_long("<foo>"), "<foo>");
+    EXPECT_EQ(normalize_tag_long("<!>"), "!");
+
+    EXPECT_EQ(normalize_tag_long("!<!foo>"), "!foo");
+    EXPECT_EQ(normalize_tag_long("!<foo>"), "<foo>");
+    EXPECT_EQ(normalize_tag_long("!<!>"), "!");
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-
-#define TAG_PROPERTY_CASES \
-    "user tag, empty, test suite 52DL",                \
-    "tag property in implicit map, std tags",\
-    "tag property in implicit map, usr tags",\
-    "tag property in explicit map, std tags",\
-    "tag property in explicit map, usr tags",\
-    "tag property in implicit seq, std tags",\
-    "tag property in implicit seq, usr tags",\
-    "tag property in explicit seq, std tags",\
-    "tag property in explicit seq, usr tags",\
-    "tagged explicit sequence in map, std tags",\
-    "tagged explicit sequence in map, usr tags",\
-    "tagged doc",\
-    "ambiguous tag in map, std tag",\
-    "ambiguous tag in map, usr tag",\
-    "ambiguous tag in seq, std tag",\
-    "ambiguous tag in seq, usr tag"
-
 
 CASE_GROUP(TAG_PROPERTY)
 {
-    APPEND_CASES(
 
-C("user tag, empty, test suite 52DL",
+ADD_CASE_TO_GROUP("user tag, empty, test suite 52DL",
 R"(! a)",
 N(DOCVAL, TS("!", "a"))
-),
+);
 
-C("tag property in implicit map, std tags",
+ADD_CASE_TO_GROUP("tag property in implicit map, std tags",
 R"(ivar: !!int 0
 svar: !!str 0
 fvar: !!float 0.1
@@ -595,9 +635,9 @@ picture: !!binary >-
       N("myObject", TL("!myClass", L{N("name", "Joe"), N("age", "15")})),
       N(QV, "picture", TS("!!binary", R"(R0lGODdhDQAIAIAAAAAAANn Z2SwAAAAADQAIAAACF4SDGQ ar3xxbJ9p0qa7R0YxwzaFME 1IAADs=)")),
     }
-),
+);
 
-C("tag property in implicit map, usr tags",
+ADD_CASE_TO_GROUP("tag property in implicit map, usr tags",
 R"(ivar: !int 0
 svar: !str 0
 fvar: !float 0.1
@@ -621,23 +661,22 @@ picture: !binary >-
       N("myObject", TL("!myClass", L{N("name", "Joe"), N("age", "15")})),
       N(QV, "picture", TS("!binary", R"(R0lGODdhDQAIAIAAAAAAANn Z2SwAAAAADQAIAAACF4SDGQ ar3xxbJ9p0qa7R0YxwzaFME 1IAADs=)")),
     }
-),
+);
 
-C("tag property in explicit map, std tags",
+ADD_CASE_TO_GROUP("tag property in explicit map, std tags",
 R"({
 ivar: !!int 0,
 svar: !!str 0,
 !!str key: !!int val
-}
-)",
+})",
     L{
       N("ivar", TS("!!int", "0")),
       N("svar", TS("!!str", "0")),
       N(TS("!!str", "key"), TS("!!int", "val"))
     }
-),
+);
 
-C("tag property in explicit map, usr tags",
+ADD_CASE_TO_GROUP("tag property in explicit map, usr tags",
 R"({
 ivar: !int 0,
 svar: !str 0,
@@ -649,37 +688,9 @@ svar: !str 0,
       N("svar", TS("!str", "0")),
       N(TS("!str", "key"), TS("!int", "val"))
     }
-),
+);
 
-C("tag property in explicit map, std tags",
-R"({
-ivar: !!int 0,
-svar: !!str 0,
-!!str key: !!int val
-}
-)",
-    L{
-      N("ivar", TS("!!int", "0")),
-      N("svar", TS("!!str", "0")),
-      N(TS("!!str", "key"), TS("!!int", "val"))
-    }
-),
-
-C("tag property in explicit map, usr tags",
-R"({
-ivar: !int 0,
-svar: !str 0,
-!str key: !int val
-}
-)",
-    L{
-      N("ivar", TS("!int", "0")),
-      N("svar", TS("!str", "0")),
-      N(TS("!str", "key"), TS("!int", "val"))
-    }
-),
-
-C("tag property in implicit seq, std tags",
+ADD_CASE_TO_GROUP("tag property in implicit seq, std tags",
 R"(- !!int 0
 - !!str 0
 )",
@@ -687,9 +698,9 @@ R"(- !!int 0
       N(TS("!!int", "0")),
       N(TS("!!str", "0")),
     }
-),
+);
 
-C("tag property in implicit seq, usr tags",
+ADD_CASE_TO_GROUP("tag property in implicit seq, usr tags",
 R"(- !int 0
 - !str 0
 )",
@@ -697,9 +708,9 @@ R"(- !int 0
       N(TS("!int", "0")),
       N(TS("!str", "0")),
     }
-),
+);
 
-C("tag property in explicit seq, std tags",
+ADD_CASE_TO_GROUP("tag property in explicit seq, std tags",
 R"([
 !!int 0,
 !!str 0
@@ -709,9 +720,9 @@ R"([
       N(TS("!!int", "0")),
       N(TS("!!str", "0")),
     }
-),
+);
 
-C("tag property in explicit seq, usr tags",
+ADD_CASE_TO_GROUP("tag property in explicit seq, usr tags",
 R"([
 !int 0,
 !str 0
@@ -721,9 +732,9 @@ R"([
       N(TS("!int", "0")),
       N(TS("!str", "0")),
     }
-),
+);
 
-C("tagged explicit sequence in map, std tags",
+ADD_CASE_TO_GROUP("tagged explicit sequence in map, std tags",
 R"(some_seq: !!its_type [
 !!int 0,
 !!str 0
@@ -734,9 +745,9 @@ R"(some_seq: !!its_type [
               N(TS("!!str", "0")),
                   }))
           }
-),
+);
 
-C("tagged explicit sequence in map, usr tags",
+ADD_CASE_TO_GROUP("tagged explicit sequence in map, usr tags",
 R"(some_seq: !its_type [
 !int 0,
 !str 0
@@ -747,9 +758,9 @@ R"(some_seq: !its_type [
               N(TS("!str", "0")),
                   }))
           }
-),
+);
 
-C("tagged doc",
+ADD_CASE_TO_GROUP("tagged doc",
 R"(
 --- !!map
 a: 0
@@ -796,10 +807,10 @@ N(STREAM, L{
     N(DOCVAL, TS("!!str", "a b")),
     N(DOCMAP, TL("!!set", L{N(KEYVAL, "a", /*"~"*/{}), N(KEYVAL, "b", /*"~"*/{})})),
     N(DOCMAP, TL("!!set", L{N(KEYVAL, "a", /*"~"*/{}), N(KEYVAL, "b", /*"~"*/{})})),
-})),
+}));
 
 
-C("ambiguous tag in map, std tag",
+ADD_CASE_TO_GROUP("ambiguous tag in map, std tag",
 R"(!!map
 !!str a0: !!xxx b0
 !!str fooz: !!map
@@ -821,9 +832,9 @@ TL("!!map", L{
   N(TS("!!str", "foo"), TL("!!map", L{N(TS("!!int", "1"), TS("!!float", "20.0")), N(TS("!!int", "3"), TS("!!float", "40.0"))})),
   N("bar", TL("!!map", L{N("10", TS("!!str", "2")), N("30", TS("!!str", "4"))})),
   N(TS("!!str", "baz"), L{N(TS("!!int", "10"), TS("!!float", "20")), N(TS("!!int", "30"), TS("!!float", "40"))}),
-})),
+}));
 
-C("ambiguous tag in map, usr tag",
+ADD_CASE_TO_GROUP("ambiguous tag in map, usr tag",
 R"(!map
 !str a0: !xxx b0
 !str fooz: !map
@@ -845,10 +856,10 @@ TL("!map", L{
   N(TS("!str", "foo"), TL("!map", L{N(TS("!int", "1"), TS("!float", "20.0")), N(TS("!int", "3"), TS("!float", "40.0"))})),
   N("bar", TL("!map", L{N("10", TS("!str", "2")), N("30", TS("!str", "4"))})),
   N(TS("!str", "baz"), L{N(TS("!int", "10"), TS("!float", "20")), N(TS("!int", "30"), TS("!float", "40"))}),
-})),
+}));
 
 
-C("ambiguous tag in seq, std tag",
+ADD_CASE_TO_GROUP("ambiguous tag in seq, std tag",
 R"(!!seq
 - !!str k1: v1
   !!str k2: v2
@@ -880,9 +891,9 @@ TL("!!seq", L{
   N(L{N(TS("!!str", "v10")), N(TS("!!str", "v20")), N(TS("!!str", "v30"))}),
   N(TL("!!seq", L{N(TS("!!str", "v40")), N(TS("!!str", "v50")), N(TS("!!str", "v60"))})),
   N(TL("!!seq", L{N("v70"), N("v80"), N("v90")})),
-})),
+}));
 
-C("ambiguous tag in seq, usr tag",
+ADD_CASE_TO_GROUP("ambiguous tag in seq, usr tag",
 R"(!seq
 - !str k1: v1
   !str k2: v2
@@ -914,12 +925,8 @@ TL("!seq", L{
   N(L{N(TS("!str", "v10")), N(TS("!str", "v20")), N(TS("!str", "v30"))}),
   N(TL("!seq", L{N(TS("!str", "v40")), N(TS("!str", "v50")), N(TS("!str", "v60"))})),
   N(TL("!seq", L{N("v70"), N("v80"), N("v90")})),
-})),
-
-    )
+}));
 }
-
-INSTANTIATE_GROUP(TAG_PROPERTY)
 
 } // namespace yml
 } // namespace c4

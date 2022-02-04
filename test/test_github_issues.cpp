@@ -164,53 +164,32 @@ TEST(github, 31)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-#define GITHUB_ISSUES_CASES \
-        "github3-problem1",\
-        "github3-problem2-ex1",\
-        "github3-problem2-ex2",\
-        "github3-problem3",\
-        /*"github3",*/\
-        "github6-problem1",\
-        "github6",\
-        "github34/ex1",\
-        "github34/ex2",\
-        "github34",\
-        "github35/expected_error11",\
-        "github35/expected_error12",\
-        "github35/expected_error21",\
-        "github35/expected_error22",\
-        "github128/1",\
-        "github128/2",\
-        "github129"
-
-
 CASE_GROUP(GITHUB_ISSUES)
 {
-    APPEND_CASES(
 
-C("github3-problem1",
+ADD_CASE_TO_GROUP("github3-problem1",
 R"(
 translation: [-2, -2, 5])",
 L{N("translation", L{N("-2"), N("-2"), N("5")})}
-),
+);
 
 // these must work without quotes
-C("github3-problem2-ex1",
+ADD_CASE_TO_GROUP("github3-problem2-ex1",
 R"(
 audio resource:
 )",
 L{N(KEYVAL, "audio resource", /*"~"*/{})}
-),
-C("github3-problem2-ex2",
+);
+ADD_CASE_TO_GROUP("github3-problem2-ex2",
 R"(
 audio resource:
 more:
   example: y
 )",
 L{N(KEYVAL, "audio resource", /*"~"*/{}), N("more", L{N("example", "y")})}
-),
+);
 
-C("github3-problem3",
+ADD_CASE_TO_GROUP("github3-problem3",
 R"(component:
   type: perspective camera component
   some_data: {}  # this was working
@@ -223,10 +202,10 @@ L{N("component", L{
         N(KEYMAP, "data", L{})
     }
 )}
-),
+);
 
 /* THIS IS CAUSING VS TO CRASH OUT OF HEAP SPACE
-C("github3",
+ADD_CASE_TO_GROUP("github3",
 R"(
 universe:
   objects:
@@ -324,10 +303,10 @@ universe:
               }) // objects
           }) // universe
       }
-),
+);
 */
 
-C("github6-problem1",
+ADD_CASE_TO_GROUP("github6-problem1",
 R"(
 - UQxRibHKEDI:
   - 0.mp4
@@ -350,9 +329,9 @@ N(L{N("UQxRibHKEDI", L{N("0.mp4"), N("1.mp4"), N("2.mp4"), N("3.mp4")})}),
 N(L{N("DcYsg8VFdC0", L{N("0.mp4"), N("1.mp4"), N("2.mp4"), N("3.mp4")})}),
 N(L{N("Yt3ymqZXzLY", L{N("0.mp4"), N("1.mp4"), N("2.mp4"), N("3.mp4")})}),
 }
-),
+);
 
-C("github6",
+ADD_CASE_TO_GROUP("github6",
 R"(videos:
 - UQxRibHKEDI:
   - 0.mp4
@@ -375,9 +354,9 @@ N(L{N("UQxRibHKEDI", L{N("0.mp4"), N("1.mp4"), N("2.mp4"), N("3.mp4")})}),
 N(L{N("DcYsg8VFdC0", L{N("0.mp4"), N("1.mp4"), N("2.mp4"), N("3.mp4")})}),
 N(L{N("Yt3ymqZXzLY", L{N("0.mp4"), N("1.mp4"), N("2.mp4"), N("3.mp4")})}),
 })}
-),
+);
 
-C("github34/ex1",
+ADD_CASE_TO_GROUP("github34/ex1",
 R"(
 # correct:
 MessageID1: 'MapRegion_HyrulePrairie'
@@ -404,9 +383,9 @@ L{
   N(QV, "MessageID9", "MapRegion_HyrulePrairie"),
   N(QV, "MessageID0", "MapRegion_HyrulePrairie"),
 }
-),
+);
 
-C("github34/ex2",
+ADD_CASE_TO_GROUP("github34/ex2",
 R"(
 # correct:
 - MessageID1: 'MapRegion_HyrulePrairie'
@@ -433,9 +412,9 @@ L{
   N(L{N(QV, "MessageID9", "MapRegion_HyrulePrairie")}),
   N(L{N(QV, "MessageID0", "MapRegion_HyrulePrairie")}),
 }
-),
+);
 
-C("github34",
+ADD_CASE_TO_GROUP("github34",
 R"(
 # incorrect: uninitialised memory?
 -  MessageID1:          'MapRegion_HyrulePrairie'
@@ -481,48 +460,48 @@ L{
   N(L{N("key1", "true1"), N(QV, "MessageID1", "MapRegion_HyrulePrairie1 ")}),
   N(L{N("key2", "true2"), N(QV, "MessageID2", "MapRegion_HyrulePrairie2 ")}),
 }
-),
+);
 
-C("github35/expected_error11", EXPECT_PARSE_ERROR,
+ADD_CASE_TO_GROUP("github35/expected_error11", EXPECT_PARSE_ERROR,
 R"(
 # *segfault* // not anymore!
 - key1: true1
  MessageID1:          'MapRegion_HyrulePrairie1 '
 )",
   LineCol(4, 1)
-),
+);
 
-C("github35/expected_error12", EXPECT_PARSE_ERROR,
+ADD_CASE_TO_GROUP("github35/expected_error12", EXPECT_PARSE_ERROR,
 R"(
 # *segfault* // not anymore!
 - key2: true2
  MessageID2:          "MapRegion_HyrulePrairie2 "
 )",
   LineCol(4, 1)
-),
+);
 
-C("github35/expected_error21", EXPECT_PARSE_ERROR,
+ADD_CASE_TO_GROUP("github35/expected_error21", EXPECT_PARSE_ERROR,
 R"(
 # *segfault* // not anymore!
 - key1: true1
     MessageID1:          'MapRegion_HyrulePrairie1 '
 )",
   LineCol(4, 15)
-),
+);
 
-C("github35/expected_error22", EXPECT_PARSE_ERROR,
+ADD_CASE_TO_GROUP("github35/expected_error22", EXPECT_PARSE_ERROR,
 R"(
 # *segfault* // not anymore!
 - key2: true2
     MessageID2:          "MapRegion_HyrulePrairie2 "
 )",
   LineCol(4, 15)
-),
+);
 
-C("github128/1", RESOLVE_REFS | EXPECT_PARSE_ERROR, "a: *invalid"),
-C("github128/2", RESOLVE_REFS/* | HAS_PARSE_ERROR*/, "*", N(DOCVAL, "*")),
+ADD_CASE_TO_GROUP("github128/1", RESOLVE_REFS | EXPECT_PARSE_ERROR, "a: *invalid");
+ADD_CASE_TO_GROUP("github128/2", RESOLVE_REFS/* | HAS_PARSE_ERROR*/, "*", N(DOCVAL, "*"));
 
-C("github129", RESOLVE_REFS, R"(
+ADD_CASE_TO_GROUP("github129", RESOLVE_REFS, R"(
 ref: &ref ref_val
 a: *ref   # resolve the reference
 b: '*ref' # don't resolve, it's just a string
@@ -551,12 +530,8 @@ i: |+     # don't resolve, it's just a string
         N(QV, "h", "*ref"),   // this should not be resolved (just a string)
         N(QV, "i", "*ref\n"),   // this should not be resolved (just a string)
     }
-)
-
-    )
+);
 }
-
-INSTANTIATE_GROUP(GITHUB_ISSUES)
 
 } // namespace yml
 } // namespace c4

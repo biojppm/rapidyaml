@@ -388,7 +388,7 @@ public:
     inline void operator= (NodeType_e t)
     {
         _apply_seed();
-        m_tree->_set_flags(m_id, t);
+        m_tree->_add_flags(m_id, t);
     }
 
     inline void operator|= (NodeType_e t)

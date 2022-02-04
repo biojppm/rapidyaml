@@ -91,7 +91,7 @@ void EventsEmitter::emit_scalar(csubstr val, bool quoted)
             }
             break;
         case UINT8_C(0xe2):
-            if(i + 2 < val.len)
+            if(i+2 < val.len)
             {
                 if(s[i+1] == UINT8_C(0x80))
                 {
@@ -115,14 +115,15 @@ void EventsEmitter::emit_scalar(csubstr val, bool quoted)
 
 void EventsEmitter::emit_tag(csubstr tag)
 {
-    if(tag.begins_with('<'))
+    csubstr ntag = normalize_tag_long(tag);
+    if(ntag.begins_with('<'))
     {
-        pr(tag);
+        pr(ntag);
     }
     else
     {
         pr('<');
-        pr(tag);
+        pr(ntag);
         pr('>');
     }
 }
@@ -229,7 +230,6 @@ void EventsEmitter::emit_doc(size_t node)
     }
     else
     {
-        emit_val_anchor_tag(node);
         pr('\n');
         emit_events(node);
     }
@@ -238,10 +238,10 @@ void EventsEmitter::emit_doc(size_t node)
 
 void EventsEmitter::emit_events()
 {
-    size_t root = m_tree->root_id();
     pr("+STR\n");
     if(!m_tree->empty())
     {
+        size_t root = m_tree->root_id();
         if(m_tree->is_stream(root))
             for(size_t node = m_tree->first_child(root); node != NONE; node = m_tree->next_sibling(node))
                 emit_doc(node);

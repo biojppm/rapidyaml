@@ -3,24 +3,10 @@
 namespace c4 {
 namespace yml {
 
-#define INDENTATION_CASES \
-    "indented doc",\
-    "4 chars",\
-    "2 chars + 4 chars, ex0",\
-    "2 chars + 4 chars, ex1",\
-    "2 chars + 4 chars, ex2",\
-    "non-indented blank lines",\
-    "unnecessary indentation",\
-    "blank lines indented, 1 - at same scope",\
-    "indentation at start",\
-    "unaligned comments",\
-    "issue83"
-
 CASE_GROUP(INDENTATION)
 {
-    APPEND_CASES(
 
-C("indented doc", R"(
+ADD_CASE_TO_GROUP("indented doc", R"(
     # this is an indented doc
     ---
     - foo
@@ -28,9 +14,9 @@ C("indented doc", R"(
     - baz
 )",
 N(STREAM, L{N(DOCSEQ, L{N("foo"), N("bar"), N("baz")})})
-),
+);
 
-C("4 chars",
+ADD_CASE_TO_GROUP("4 chars",
 R"(
 key:
      value
@@ -52,9 +38,9 @@ L{
         N("sub_key1", L{N("val2"), N("val3")}),
         N("sub_key2", L{N("val4"), N("val5")}),
     })
-}),
+});
 
-C("2 chars + 4 chars, ex0",
+ADD_CASE_TO_GROUP("2 chars + 4 chars, ex0",
 R"(
 key:
      value
@@ -76,9 +62,9 @@ L{
         N("sub_key1", L{N("val2"), N("val3")}),
         N("sub_key2", L{N("val4"), N("val5")}),
     })
-}),
+});
 
-C("2 chars + 4 chars, ex1",
+ADD_CASE_TO_GROUP("2 chars + 4 chars, ex1",
 R"(
 key:
      value
@@ -100,9 +86,9 @@ L{
         N("sub_key1", L{N("val2"), N("val3")}),
         N("sub_key2", L{N("val4"), N("val5")}),
     })
-}),
+});
 
-C("2 chars + 4 chars, ex2",
+ADD_CASE_TO_GROUP("2 chars + 4 chars, ex2",
 R"(
 key:
      value
@@ -124,9 +110,9 @@ L{
         N("sub_key1", L{N("val2"), N("val3")}),
         N("sub_key2", L{N("val4"), N("val5")}),
     })
-}),
+});
 
-C("non-indented blank lines",
+ADD_CASE_TO_GROUP("non-indented blank lines",
 R"(
 matrix:
 
@@ -178,9 +164,9 @@ L{N("matrix", L{
       N("env61"), N("env62"), N("env63"), N("env64"), 
         }
   )})
-}),
+});
 
-C("unnecessary indentation",
+ADD_CASE_TO_GROUP("unnecessary indentation",
 R"(
 skip_commits:
   files:
@@ -218,10 +204,10 @@ L{
     N("files", L{N("a"), N("b"), N("c"), N("d"), N("e"), N("f"),}),
     N("more_files", L{N("a"), N("b"),}),
   })
-}),
+});
 
 
-C("blank lines indented, 1 - at same scope",
+ADD_CASE_TO_GROUP("blank lines indented, 1 - at same scope",
 R"(
 skip_commits:
   files:
@@ -237,9 +223,9 @@ L{
   N("skip_commits", L{
     N("files", L{N("a"), N("b"), N("c"), N("d"),}),
   }),
-}),
+});
 
-C("indentation at start",
+ADD_CASE_TO_GROUP("indentation at start",
 R"(
       foo:
         - a
@@ -251,9 +237,9 @@ R"(
 L{
   N("foo", L{N("a"), N("b"),}),
   N("bar", L{N("c"), N("d"),}),
-}),
+});
  
-C("unaligned comments",
+ADD_CASE_TO_GROUP("unaligned comments",
 R"(
       stand2sit:
         map: mirror
@@ -330,9 +316,9 @@ L{
     N("map", "mirror"),
     N("dat", L{N("a"), N("b"), N("b1"), N("b2"), N("b3"), N("b4"), N("b5"), N("b6"), N("b61"), N("b62"), N("b63"), N("b64"), N("b65"), N("b66"), N("b7"), N("b8"), N("b9"), N("b10"), N("e"), N("f"), N("g")}),
   }),
-}),
+});
 
-C("issue83",
+ADD_CASE_TO_GROUP("issue83",
 R"(
 e:
   - f
@@ -347,12 +333,8 @@ N("e", L{N("f")}),
 N("g", "h"),
 N("a", L{N("b")}),
 N("c", "d"),
-})
-
-  )
+});
 }
-
-INSTANTIATE_GROUP(INDENTATION)
 
 } // namespace yml
 } // namespace c4

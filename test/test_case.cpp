@@ -203,7 +203,7 @@ void ExpectError::do_check(Tree *tree, std::function<void()> fn, Location expect
     }
     catch(ExpectedError const& e)
     {
-        #if 1 || defined(RYML_DBG )
+        #if defined(RYML_DBG)
         std::cout << "---------------\n";
         std::cout << "got an expected error:\n" << e.what() << "\n";
         std::cout << "---------------\n";

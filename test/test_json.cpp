@@ -221,6 +221,125 @@ broken_value: '0.30.2'
 }
 
 
+#define _test(actual_src, expected_src)                     \
+    {                                                       \
+        SCOPED_TRACE(__LINE__);                             \
+        csubstr file = __FILE__ ":" C4_XQUOTE(__LINE__);    \
+        Tree actual = parse_in_arena(file, actual_src);     \
+        Tree expected = parse_in_arena(file, expected_src); \
+        test_compare(actual, expected);                     \
+    }
+
+
+TEST(json, basic)
+{
+    _test("", "");
+    _test("{}", "{}");
+    _test(R"("a":"b")",
+          R"("a": "b")");
+    _test(R"('a':'b')",
+          R"('a': 'b')");
+    _test(R"({'a':'b'})",
+          R"({'a': 'b'})");
+    _test(R"({"a":"b"})",
+          R"({"a": "b"})");
+
+    _test(R"({"a":{"a":"b"}})",
+          R"({"a": {"a": "b"}})");
+    _test(R"({'a':{'a':'b'}})",
+          R"({'a': {'a': 'b'}})");
+}
+
+TEST(json, github142)
+{
+    _test(R"({"A":"B}"})",
+          R"({"A": "B}"})");
+    _test(R"({"A":"{B"})",
+          R"({"A": "{B"})");
+    _test(R"({"A":"{B}"})",
+          R"({"A": "{B}"})");
+    _test(R"({  "A":"B}"  })",
+          R"({  "A": "B}"  })");
+    _test(R"({"A":["B]","[C","[D]"]})",
+          R"({"A": ["B]","[C","[D]"]})");
+    //_test(R"({"A":["B\"]","[\"C","\"[D]\""]})", // VS2019 chokes on this.
+    //      R"({"A": ["B\"]","[\"C","\"[D]\""]})");
+
+    _test(R"({'A':'B}'})",
+          R"({'A': 'B}'})");
+    _test(R"({'A':'{B'})",
+          R"({'A': '{B'})");
+    _test(R"({'A':'{B}'})",
+          R"({'A': '{B}'})");
+    _test(R"({  'A':'B}'  })",
+          R"({  'A': 'B}'  })");
+    _test(R"({'A':['B]','[C','[D]']})",
+          R"({'A': ['B]','[C','[D]']})");
+    _test(R"({'A':['B'']','[''C','''[D]''']})",
+          R"({'A': ['B'']','[''C','''[D]''']})");
+}
+
+TEST(json, github52)
+{
+    _test(R"({"a": "b","c": 42,"d": "e"})",
+          R"({"a": "b","c": 42,"d": "e"})");
+    _test(R"({"aaaa": "bbbb","cccc": 424242,"dddddd": "eeeeeee"})",
+          R"({"aaaa": "bbbb","cccc": 424242,"dddddd": "eeeeeee"})");
+
+    _test(R"({"a":"b","c":42,"d":"e"})",
+          R"({"a": "b","c": 42,"d": "e"})");
+    _test(R"({"aaaaa":"bbbbb","ccccc":424242,"ddddd":"eeeee"})",
+          R"({"aaaaa": "bbbbb","ccccc": 424242,"ddddd": "eeeee"})");
+    _test(R"({"a":"b","c":{},"d":"e"})",
+          R"({"a": "b","c": {},"d": "e"})");
+    _test(R"({"aaaaa":"bbbbb","ccccc":{    },"ddddd":"eeeee"})",
+          R"({"aaaaa": "bbbbb","ccccc": {    },"ddddd": "eeeee"})");
+    _test(R"({"a":"b","c":true,"d":"e"})",
+          R"({"a": "b","c": true,"d": "e"})");
+    _test(R"({"a":"b","c":false,"d":"e"})",
+          R"({"a": "b","c": false,"d": "e"})");
+    _test(R"({"a":"b","c":true,"d":"e"})",
+          R"({"a": "b","c": true,"d": "e"})");
+    _test(R"({"a":"b","c":null,"d":"e"})",
+          R"({"a": "b","c": null,"d": "e"})");
+    _test(R"({"aaaaa":"bbbbb","ccccc":false,"ddddd":"eeeee"})",
+          R"({"aaaaa": "bbbbb","ccccc": false,"ddddd": "eeeee"})");
+    _test(R"({"a":"b","c":false,"d":"e"})",
+          R"({"a": "b","c": false,"d": "e"})");
+    _test(R"({"aaaaa":"bbbbb","ccccc":true,"ddddd":"eeeee"})",
+          R"({"aaaaa": "bbbbb","ccccc": true,"ddddd": "eeeee"})");
+}
+
+TEST(json, nested)
+{
+    _test(R"({"a":"b","c":{"a":"b","c":{},"d":"e"},"d":"e"})",
+          R"({"a": "b","c": {"a": "b","c": {},"d": "e"},"d": "e"})");
+    _test(R"({"a":"b","c":{"a":"b","c":{"a":"b","c":{},"d":"e"},"d":"e"},"d":"e"})",
+          R"({"a": "b","c": {"a": "b","c": {"a": "b","c": {},"d": "e"},"d": "e"},"d": "e"})");
+    _test(R"({"a":"b","c":{"a":"b","c":{"a":"b","c":{"a":"b","c":{},"d":"e"},"d":"e"},"d":"e"},"d":"e"})",
+          R"({"a": "b","c": {"a": "b","c": {"a": "b","c": {"a": "b","c": {},"d": "e"},"d": "e"},"d": "e"},"d": "e"})");
+    _test(R"({"a":"b","c":{"a":"b","c":{"a":"b","c":{"a":"b","c":{"a":"b","c":{},"d":"e"},"d":"e"},"d":"e"},"d":"e"},"d":"e"})",
+          R"({"a": "b","c": {"a": "b","c": {"a": "b","c": {"a": "b","c": {"a": "b","c": {},"d": "e"},"d": "e"},"d": "e"},"d": "e"},"d": "e"})");
+
+    _test(R"({"a":"b","c":["a","c","d","e"],"d":"e"})",
+          R"({"a": "b","c": ["a","c","d","e"],"d": "e"})");
+}
+
+TEST(json, nested_end)
+{
+    _test(R"({"a":"b","d":"e","c":{"a":"b","d":"e","c":{}}})",
+          R"({"a": "b","d": "e","c": {"a": "b","d": "e","c": {}}})");
+    _test(R"({"a":"b","d":"e","c":{"a":"b","d":"e","c":{"a":"b","d":"e","c":{}}}})",
+          R"({"a": "b","d": "e","c": {"a": "b","d": "e","c": {"a": "b","d": "e","c": {}}}})");
+    _test(R"({"a":"b","d":"e","c":{"a":"b","d":"e","c":{"a":"b","d":"e","c":{"a":"b","d":"e","c":{}}}}})",
+          R"({"a": "b","d": "e","c": {"a": "b","d": "e","c": {"a": "b","d": "e","c": {"a": "b","d": "e","c": {}}}}})");
+    _test(R"({"a":"b","d":"e","c":{"a":"b","d":"e","c":{"a":"b","d":"e","c":{"a":"b","d":"e","c":{"a":"b","d":"e","c":{}}}}}})",
+          R"({"a": "b","d": "e","c": {"a": "b","d": "e","c": {"a": "b","d": "e","c": {"a": "b","d": "e","c": {"a": "b","d": "e","c": {}}}}}})");
+}
+
+#undef _test
+
+
 //-------------------------------------------
 // this is needed to use the test case library
 Case const* get_case(csubstr /*name*/)

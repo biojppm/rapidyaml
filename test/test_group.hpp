@@ -4,6 +4,7 @@
 
 #include "./test_case.hpp"
 #include "c4/span.hpp"
+#include <algorithm>
 
 #if defined(_MSC_VER)
 #   pragma warning(push)
@@ -25,7 +26,7 @@ namespace yml {
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 // a fixture for running the tests
-struct YmlTestCase : public ::testing::TestWithParam<const char*>
+struct YmlTestCase : public ::testing::TestWithParam<csubstr>
 {
     csubstr const name;
     Case const* c;
@@ -69,52 +70,66 @@ using L = CaseNode::iseqmap;
 using TS = TaggedScalar;
 using TL = CaseNode::TaggedList;
 using AR = AnchorRef;
-static const NodeType QK {VAL | KEYQUO};
-static const NodeType QV {VAL | VALQUO};
-static const NodeType QKV {VAL | KEYQUO | VALQUO};
-using PT = std::pair<const csubstr, Case>;
-#define C(name, ...)                                        \
-    PT                                                      \
-    (                                                       \
-        std::piecewise_construct_t{} C4_COMMA               \
-        std::forward_as_tuple(name) C4_COMMA                \
-        std::forward_as_tuple(name C4_COMMA __VA_ARGS__)    \
-    )
+
+constexpr const NodeType_e QK = (NodeType_e)(VAL | KEYQUO);
+constexpr const NodeType_e QV = (NodeType_e)(VAL | VALQUO);
+constexpr const NodeType_e QKV = (NodeType_e)(VAL | KEYQUO | VALQUO);
 
 
-#define ADD_CASE_GROUP(name) \
-    {\
-        c4::cspan<PT> li = get_cases_##name();\
-        cases.insert(li.begin(), li.end());\
-    }
+
+/* all arguments are to the constructor of Case */
+#define ADD_CASE_TO_GROUP(...)                  \
+    group_cases__->emplace_back(csubstr(__FILE__), __LINE__+1, __VA_ARGS__)
 
 
-#define CASE_GROUP(name) \
-    c4::cspan<PT> get_cases_##name()
-
-
-#define APPEND_CASES(...) \
-    static const PT arr[] = {__VA_ARGS__}; \
-    c4::cspan<PT> buf(arr);                \
-    return buf;
-
-
-#define INSTANTIATE_GROUP(group_name)                                   \
+#define CASE_GROUP(group_name)                                          \
                                                                         \
-INSTANTIATE_TEST_SUITE_P(group_name, YmlTestCase, ::testing::Values(group_name##_CASES)); \
+/* fwd declaration to fill the container with cases */                  \
+void add_cases_##group_name(std::vector<Case> *group_cases);            \
+                                                                        \
+/* container with the cases */                                          \
+std::vector<Case> const& get_cases_##group_name()                       \
+{                                                                       \
+    static std::vector<Case> cases_##group_name;                        \
+    if(cases_##group_name.empty())                                      \
+        add_cases_##group_name(&cases_##group_name);                    \
+    return cases_##group_name;                                          \
+}                                                                       \
+                                                                        \
+/* container with the case names */                                     \
+std::vector<csubstr> const& get_case_names_##group_name()               \
+{                                                                       \
+    static std::vector<csubstr> case_names_##group_name;                \
+    if(case_names_##group_name.empty())                                 \
+    {                                                                   \
+        for(auto const& c : get_cases_##group_name())                   \
+            case_names_##group_name.emplace_back(c.name);               \
+        /* check repetitions */                                         \
+        std::vector<csubstr> cp = case_names_##group_name;              \
+        std::sort(cp.begin(), cp.end());                                \
+        for(size_t i = 0; i+1 < cp.size(); ++i)                         \
+            if(cp[i] == cp[i+1])                                        \
+                C4_ERROR("duplicate case name: '%.*s'", _c4prsp(cp[i])); \
+    }                                                                   \
+    return case_names_##group_name;                                     \
+}                                                                       \
+                                                                        \
+INSTANTIATE_TEST_SUITE_P(group_name, YmlTestCase, ::testing::ValuesIn(get_case_names_##group_name())); \
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(YmlTestCase);             \
                                                                         \
+/* used by the fixture to obtain a case by name */                      \
 Case const* get_case(csubstr name)                                      \
 {                                                                       \
-    static std::map<csubstr, Case> cases;                               \
-    if(cases.empty())                                                   \
-    {                                                                   \
-        ADD_CASE_GROUP(group_name);                                     \
-    }                                                                   \
-    auto it = cases.find(name);                                         \
-    C4_ASSERT_MSG(it != cases.end(), "name='%.*s'", _c4prsp(name));     \
-    return &it->second;                                                 \
-}
+    for(Case const& c : get_cases_##group_name())                       \
+        if(c.name == name)                                              \
+            return &c;                                                  \
+    C4_ERROR("case not found: '%.*s'", _c4prsp(name));                  \
+    return nullptr;                                                     \
+}                                                                       \
+                                                                        \
+/* finally, define the cases by calling ADD_CASE_TO_GROUP() */          \
+void add_cases_##group_name(std::vector<Case> *group_cases__)
+
 
 } // namespace yml
 } // namespace c4
