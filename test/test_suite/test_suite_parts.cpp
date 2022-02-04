@@ -18,26 +18,21 @@ constexpr const AllowedFailure allowed_failures[] = {
     // These tests are temporarily skipped, and cover issues that must be fixed.
 
     // double quoted scalars
-    _("G4RS-in_json"          , "special characters must be emitted in double quoted style"),
-    _("G4RS-in_yaml"          , "special characters must be emitted in double quoted style"),
-    _("G4RS-out_yaml"         , "special characters must be emitted in double quoted style"),
+    _("G4RS-in_json"            , "special characters must be emitted in double quoted style"),
+    _("G4RS-in_yaml"            , "special characters must be emitted in double quoted style"),
+    _("G4RS-out_yaml"           , "special characters must be emitted in double quoted style"),
     // explicit keys
-    _("5WE3-in_yaml-events"   , "explicit key is wrongly parsed"),
-    _("DFF7-in_yaml-events"   , "problem with missing explicit key"),
-    _("FRK4-in_yaml-events"   , "explicit key is wrongly parsed"),
-    _("NJ66-in_yaml-events"   , "explicit key is wrongly parsed"),
+    _("5WE3-in_yaml-events"     , "explicit key is wrongly parsed"),
+    _("DFF7-in_yaml-events"     , "problem with missing explicit key"),
+    _("FRK4-in_yaml-events"     , "explicit key is wrongly parsed"),
+    _("NJ66-in_yaml-events"     , "explicit key is wrongly parsed"),
     // other
     _("UKK6_01-in_yaml"         , "fails to parse double :: in UNK state"),
     _("UKK6_02-in_yaml-events"  , "fails to parse double :: in UNK state"),
-    // problems with the multiple tests in the spec
-    _("9MQT_01-error"           , "problems with multiple tests in the spec"),
-    _("JEF9_02-in_yaml-events"  , "trailing newlines in block literal"),
-    _("L24T_00-emit_yaml-events", "trailing newlines in block literal"),
-    _("L24T_01-emit_yaml-events", "trailing newlines in block literal"),
     // tabs
     _("6CA3-in_yaml"            , "indentation with tabs causes problems"),
-    _("A2M4-in_yaml-events"     , "indentation with tabs causes problems"),
     _("6CA3-emit_yaml"          , "indentation with tabs causes problems"),
+    _("A2M4-in_yaml-events"     , "indentation with tabs causes problems"),
     _("DK95_00-emit_yaml-events", "indentation with tabs causes problems"),
     _("DK95_01-error"           , "indentation with tabs causes problems"),
     _("DK95_02-emit_yaml-events", "indentation with tabs causes problems"),
@@ -75,6 +70,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     _("9JBA-error"   , "should not accept comment after flow seq terminating ]"),
     _("9MAG-error"   , "should not accept flow sequence with invalid comma at the beginning"),
     _("9MMA-error"   , "should not accept empty doc after %YAML directive"),
+    _("9MQT_01-error", "should not accept scalars after ..."),
     _("B63P-error"   , "should not accept directive without doc"),
     _("BU8L-error"   , "should not accept node properties spread over multiple lines"),
     _("CML9-error"   , "should not accept comment inside flow scalar"),
@@ -196,6 +192,8 @@ constexpr const AllowedFailure allowed_failures[] = {
     _("B3HG-out_yaml-events"   , "out-yaml test spec is missing a --- document token, which is required in the events"),
     _("EX5H-out_yaml-events"   , "out-yaml test spec is missing a --- document token, which is required in the events"),
     _("EXG3-out_yaml-events"   , "out-yaml test spec is missing a --- document token, which is required in the events"),
+    _("L24T_00-emit_yaml-events", "out-yaml test spec is missing a --- document token, which is required in the events"),
+    _("L24T_01-emit_yaml-events", "out-yaml test spec is missing a --- document token, which is required in the events"),
     _("M6YH-out_yaml-events"   , "out-yaml test spec is missing a --- document token, which is required in the events"),
     _("Q8AD-out_yaml-events"   , "out-yaml test spec is missing a --- document token, which is required in the events"),
     _("T26H-out_yaml-events"   , "out-yaml test spec is missing a --- document token, which is required in the events"),

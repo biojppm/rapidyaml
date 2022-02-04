@@ -3947,10 +3947,15 @@ csubstr Parser::_scan_block()
             }
             else // empty line
             {
-                _c4dbgp("scanning block: line empty");
+                _c4dbgpf("scanning block: line empty or %zu spaces. line_indentation=%zu prov_indentation=%zu", lc.stripped.len, lc.indentation, provisional_indentation);
                 if(provisional_indentation != npos)
                 {
-                    if(lc.indentation >= provisional_indentation)
+                    if(lc.stripped.len >= provisional_indentation)
+                    {
+                        _c4dbgpf("scanning block: increase provisional_ref %zu -> %zu", provisional_indentation, lc.stripped.len);
+                        provisional_indentation = lc.stripped.len;
+                    }
+                    else if(lc.indentation >= provisional_indentation && lc.indentation != npos)
                     {
                         _c4dbgpf("scanning block: increase provisional_ref %zu -> %zu", provisional_indentation, lc.indentation);
                         provisional_indentation = lc.indentation;
@@ -3960,6 +3965,11 @@ csubstr Parser::_scan_block()
                 {
                     provisional_indentation = lc.indentation ? lc.indentation : has_any(RSEQ|RVAL);
                     _c4dbgpf("scanning block: initialize provisional_ref=%zu", provisional_indentation);
+                    if(provisional_indentation == npos)
+                    {
+                        provisional_indentation = lc.stripped.len ? lc.stripped.len : has_any(RSEQ|RVAL);
+                        _c4dbgpf("scanning block: initialize provisional_ref=%zu", provisional_indentation);
+                    }
                 }
             }
         }
@@ -4523,8 +4533,16 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
                 }
                 else
                 {
-                    _c4dbgfbl(": all spaces %zu, return empty", r.len);
-                    return r.first(0);
+                    if(chomp != CHOMP_KEEP || r.len == 0)
+                    {
+                        _c4dbgfbl(": all spaces %zu, return empty", r.len);
+                        return r.first(0);
+                    }
+                    else
+                    {
+                        r[0] = '\n';
+                        return r.first(1);
+                    }
                 }
             }
             _grow_filter_arena(s.len + 2u);  // use s.len! because we may need to add a newline at the end, so the leading indentation will allow space for that newline

@@ -79,7 +79,7 @@ constexpr const NodeType_e QKV = (NodeType_e)(VAL | KEYQUO | VALQUO);
 
 /* all arguments are to the constructor of Case */
 #define ADD_CASE_TO_GROUP(...)                  \
-    group_cases__->emplace_back(__VA_ARGS__)
+    group_cases__->emplace_back(csubstr(__FILE__), __LINE__+1, __VA_ARGS__)
 
 
 #define CASE_GROUP(group_name)                                          \

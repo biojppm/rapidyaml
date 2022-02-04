@@ -197,6 +197,16 @@ TEST(block_literal, errors_on_tab_indents)
 }
 #endif
 
+TEST(block_literal, test_suite_L24T_00)
+{
+    // this is double quoted, but will be emitted as a block literal
+    csubstr yaml = R"(foo: "x\n \n"
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_EQ(t["foo"].val(), csubstr("x\n \n"));
+    });
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -824,10 +834,22 @@ R"(|
   N(DOCVAL|VALQUO, "")
     );
 
-ADD_CASE_TO_GROUP("block literal with empty docval 14",
+ADD_CASE_TO_GROUP("block literal with empty docval 14.0",
 R"(- |+
 )",
   N(SEQ, L{N(VALQUO, "")})
+    );
+
+ADD_CASE_TO_GROUP("block literal with empty docval 14.0.1",
+R"(- |+
+ )",
+  N(SEQ, L{N(VALQUO, "\n")})
+    );
+
+ADD_CASE_TO_GROUP("block literal with empty docval 14.0.2",
+R"(- |+
+   )",
+  N(SEQ, L{N(VALQUO, "\n")})
     );
 
 ADD_CASE_TO_GROUP("block literal with empty docval 14.1",
@@ -836,16 +858,47 @@ R"(foo: |+
   N(MAP, L{N(VALQUO, "foo", "")})
     );
 
+ADD_CASE_TO_GROUP("block literal with empty docval 14.1.1",
+R"(foo: |+
+ )",
+  N(MAP, L{N(VALQUO, "foo", "\n")})
+    );
+
+ADD_CASE_TO_GROUP("block literal with empty docval 14.1.2",
+R"(foo: |+
+  )",
+  N(MAP, L{N(VALQUO, "foo", "\n")})
+    );
+
 ADD_CASE_TO_GROUP("block literal with empty docval 14.2",
 R"(|+
 )",
   N(DOCVAL|VALQUO, "")
     );
 
-ADD_CASE_TO_GROUP("block literal with empty docval 15",
+ADD_CASE_TO_GROUP("block literal with empty docval 14.2.1",
+R"(|+
+ )",
+  N(DOCVAL|VALQUO, "\n")
+    );
+
+ADD_CASE_TO_GROUP("block literal with empty docval 14.2.2",
+R"(|+
+   )",
+  N(DOCVAL|VALQUO, "\n")
+    );
+
+ADD_CASE_TO_GROUP("block literal with empty docval 15.0",
 R"(- |+
 
 )",
+  N(SEQ, L{N(VALQUO, "\n")})
+    );
+
+ADD_CASE_TO_GROUP("block literal with empty docval 15.0.1",
+R"(- |+
+
+  )",
   N(SEQ, L{N(VALQUO, "\n")})
     );
 
@@ -856,10 +909,24 @@ R"(foo: |+
   N(MAP, L{N(VALQUO, "foo", "\n")})
     );
 
+ADD_CASE_TO_GROUP("block literal with empty docval 15.1.1",
+R"(foo: |+
+
+  )",
+  N(MAP, L{N(VALQUO, "foo", "\n")})
+    );
+
 ADD_CASE_TO_GROUP("block literal with empty docval 15.2",
 R"(|+
 
 )",
+  N(DOCVAL|VALQUO, "\n")
+    );
+
+ADD_CASE_TO_GROUP("block literal with empty docval 15.2.1",
+R"(|+
+
+  )",
   N(DOCVAL|VALQUO, "\n")
     );
 
@@ -924,6 +991,20 @@ ADD_CASE_TO_GROUP("block literal with docval no newlines at end 1",
 R"(|
   asd
 )",
+  N(DOCVAL|VALQUO, "asd\n")
+    );
+
+ADD_CASE_TO_GROUP("block literal with docval no newlines at end 1.1",
+R"(|
+  asd
+  )",
+  N(DOCVAL|VALQUO, "asd\n")
+    );
+
+ADD_CASE_TO_GROUP("block literal with docval no newlines at end 1.2",
+R"(|+
+  asd
+  )",
   N(DOCVAL|VALQUO, "asd\n")
     );
 
@@ -1059,7 +1140,7 @@ R"(- |+
   
 - |+
   )",
-N(L{N(QV, "\n"), N(QV, ""),}));
+N(L{N(QV, "\n"), N(QV, "\n"),}));
 
 ADD_CASE_TO_GROUP("block literal, empty block vals in seq 1",
 R"(- |+

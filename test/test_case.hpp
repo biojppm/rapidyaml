@@ -6,6 +6,7 @@
 #else
 #include "c4/std/vector.hpp"
 #include "c4/std/string.hpp"
+#include "c4/format.hpp"
 #include <c4/yml/yml.hpp>
 #include <c4/yml/detail/parser_dbg.hpp>
 #endif
@@ -433,6 +434,8 @@ typedef enum {
 
 struct Case
 {
+    std::string filelinebuf;
+    csubstr fileline;
     csubstr name;
     csubstr src;
     CaseNode root;
@@ -440,12 +443,11 @@ struct Case
     Location expected_location;
 
     //! create a standard test case: name, source and expected CaseNode structure
-    template<size_t N, class... Args> Case(csubstr name_,         const char (&src_)[N], Args&& ...args) : name(name_), src(src_), root(std::forward<Args>(args)...), flags(), expected_location() {}
+    template<size_t N, class... Args> Case(csubstr file, int line, csubstr name_,         const char (&src_)[N], Args&& ...args) : filelinebuf(catrs<std::string>(file, ':', line)), fileline(to_csubstr(filelinebuf)), name(name_), src(src_), root(std::forward<Args>(args)...), flags(), expected_location() {}
     //! create a test case with explicit flags: name, source flags, and expected CaseNode structure
-    template<size_t N, class... Args> Case(csubstr name_, int f_, const char (&src_)[N], Args&& ...args) : name(name_), src(src_), root(std::forward<Args>(args)...), flags((TestCaseFlags_e)f_), expected_location()  {}
-
+    template<size_t N, class... Args> Case(csubstr file, int line, csubstr name_, int f_, const char (&src_)[N], Args&& ...args) : filelinebuf(catrs<std::string>(file, ':', line)), fileline(to_csubstr(filelinebuf)), name(name_), src(src_), root(std::forward<Args>(args)...), flags((TestCaseFlags_e)f_), expected_location()  {}
     //! create a test case with an error on an expected location
-    template<size_t N>                Case(csubstr name_, int f_, const char (&src_)[N], LineCol loc) : name(name_), src(src_), root(), flags((TestCaseFlags_e)f_), expected_location(name, loc.line, loc.col) {}
+    template<size_t N>                Case(csubstr file, int line, csubstr name_, int f_, const char (&src_)[N], LineCol loc) : filelinebuf(catrs<std::string>(file, ':', line)), fileline(to_csubstr(filelinebuf)), name(name_), src(src_), root(), flags((TestCaseFlags_e)f_), expected_location(name, loc.line, loc.col) {}
 
 };
 
