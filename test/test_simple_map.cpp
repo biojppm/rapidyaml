@@ -207,6 +207,94 @@ TEST(simple_map, no_seq_key_block)
 }
 #endif
 
+#ifdef RYML_WITH_TAB_TOKENS
+TEST(simple_map, block_tab_tokens)
+{
+    Tree tree = parse_in_arena(R"(
+--- # block, spaces only
+a: 0
+b: 1
+c: 2
+--- # block, tabs after token
+a:	0
+b:	1
+c:	2
+--- # block, tabs before and after token
+a	:	0
+b	:	1
+c	:	2
+--- # block, tabs before token
+a	: 0
+b	: 1
+c	: 2
+--- # block, tabs before newline
+a	: 0	
+b	: 1	
+c	: 2	
+)");
+    EXPECT_EQ(tree.docref(0)["a"].val(), csubstr("0"));
+    EXPECT_EQ(tree.docref(0)["b"].val(), csubstr("1"));
+    EXPECT_EQ(tree.docref(0)["c"].val(), csubstr("2"));
+    EXPECT_EQ(tree.docref(1)["a"].val(), csubstr("0"));
+    EXPECT_EQ(tree.docref(1)["b"].val(), csubstr("1"));
+    EXPECT_EQ(tree.docref(1)["c"].val(), csubstr("2"));
+    EXPECT_EQ(tree.docref(2)["a"].val(), csubstr("0"));
+    EXPECT_EQ(tree.docref(2)["b"].val(), csubstr("1"));
+    EXPECT_EQ(tree.docref(2)["c"].val(), csubstr("2"));
+    EXPECT_EQ(tree.docref(3)["a"].val(), csubstr("0"));
+    EXPECT_EQ(tree.docref(3)["b"].val(), csubstr("1"));
+    EXPECT_EQ(tree.docref(3)["c"].val(), csubstr("2"));
+    EXPECT_EQ(tree.docref(4)["a"].val(), csubstr("0"));
+    EXPECT_EQ(tree.docref(4)["b"].val(), csubstr("1"));
+    EXPECT_EQ(tree.docref(4)["c"].val(), csubstr("2"));
+}
+
+TEST(simple_map, flow_tab_tokens)
+{
+    Tree tree = parse_in_arena(R"(
+--- # flow, no tabs
+{a: 0, b: 1, c: 2}
+--- # flow, tabs after token
+{a:	0, b:	1, c:	2}
+--- # flow, tabs before and after token
+{a	:	0, b	:	1, c	:	2}
+--- # flow, tabs before token
+{a	: 0, b	: 1, c	: 2}
+--- # flow, tabs after val
+{a	: 0	, b	: 1	, c	: 2	}
+--- # flow, tabs after val and comma
+{a	:	0	, b	:	1	,	c	:	2	}
+--- # flow, tabs everywhere
+	{	
+	a	:	0	,	
+	b	:	1	,	
+	c	:	2	
+	}	
+	)");
+    EXPECT_EQ(tree.docref(0)["a"].val(), csubstr("0"));
+    EXPECT_EQ(tree.docref(0)["b"].val(), csubstr("1"));
+    EXPECT_EQ(tree.docref(0)["c"].val(), csubstr("2"));
+    EXPECT_EQ(tree.docref(1)["a"].val(), csubstr("0"));
+    EXPECT_EQ(tree.docref(1)["b"].val(), csubstr("1"));
+    EXPECT_EQ(tree.docref(1)["c"].val(), csubstr("2"));
+    EXPECT_EQ(tree.docref(2)["a"].val(), csubstr("0"));
+    EXPECT_EQ(tree.docref(2)["b"].val(), csubstr("1"));
+    EXPECT_EQ(tree.docref(2)["c"].val(), csubstr("2"));
+    EXPECT_EQ(tree.docref(3)["a"].val(), csubstr("0"));
+    EXPECT_EQ(tree.docref(3)["b"].val(), csubstr("1"));
+    EXPECT_EQ(tree.docref(3)["c"].val(), csubstr("2"));
+    EXPECT_EQ(tree.docref(4)["a"].val(), csubstr("0"));
+    EXPECT_EQ(tree.docref(4)["b"].val(), csubstr("1"));
+    EXPECT_EQ(tree.docref(4)["c"].val(), csubstr("2"));
+    EXPECT_EQ(tree.docref(5)["a"].val(), csubstr("0"));
+    EXPECT_EQ(tree.docref(5)["b"].val(), csubstr("1"));
+    EXPECT_EQ(tree.docref(5)["c"].val(), csubstr("2"));
+    EXPECT_EQ(tree.docref(6)["a"].val(), csubstr("0"));
+    EXPECT_EQ(tree.docref(6)["b"].val(), csubstr("1"));
+    EXPECT_EQ(tree.docref(6)["c"].val(), csubstr("2"));
+}
+#endif // RYML_WITH_TAB_TOKENS
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

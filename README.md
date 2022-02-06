@@ -917,13 +917,12 @@ ryml deliberately makes no effort to follow the standard in the following situat
 * Containers are not accepted as mapping keys: keys must be scalar strings.
 * Tags are parsed as-is; tag lookup is not supported.
 * Anchor names must not end with a terminating colon: eg `&anchor: key: val`.
-* Tabs after `:` or `-` are not supported.
 * `%TAG` directives have no effect and are ignored. All schemas are assumed
   to be the default YAML 2002 schema.
 * `%YAML` directives have no effect and are ignored.
 
-Some of the limitations above will be worked on (tag lookups, tab
-tokens). Others (notably container keys) absolutely will not, not in
+Some of the limitations above will be worked on, (eg tag
+lookups). Others (notably container keys) absolutely will not, not in
 the data tree at least.
 
 Also, ryml tends to be on the permissive side where the YAML standard

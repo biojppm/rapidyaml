@@ -11,7 +11,20 @@
 #ifdef RYML_DBG
 #include "c4/yml/detail/print.hpp"
 #endif
-#define RYML_FILTER_ARENA
+
+#ifndef RYML_ERRMSG_SIZE
+    #define RYML_ERRMSG_SIZE 1024
+#endif
+
+//#define RYML_WITH_TAB_TOKENS
+#ifdef RYML_WITH_TAB_TOKENS
+#define _RYML_WITH_TAB_TOKENS(...) __VA_ARGS__
+#define _RYML_WITH_OR_WITHOUT_TAB_TOKENS(...) with
+#else
+#define _RYML_WITH_TAB_TOKENS(...)
+#define _RYML_WITH_OR_WITHOUT_TAB_TOKENS(with, without) without
+#endif
+
 
 #if defined(_MSC_VER)
 #   pragma warning(push)
@@ -63,7 +76,7 @@ bool _is_scalar_next__rseq_rval(csubstr s)
 
 bool _is_scalar_next__rmap(csubstr s)
 {
-    return !(s.begins_with(": ") || s.begins_with_any("#,!&") || s.begins_with("? "));
+    return !(s.begins_with(": ") || s.begins_with_any("#,!&") || s.begins_with("? ") _RYML_WITH_TAB_TOKENS(|| s.begins_with(":\t")));
 }
 
 bool _is_scalar_next__rmap_val(csubstr s)
@@ -397,9 +410,6 @@ void Parser::_fmt_msg(DumpFn &&dumpfn) const
 template<class ...Args>
 void Parser::_err(csubstr fmt, Args const& C4_RESTRICT ...args) const
 {
-#ifndef RYML_ERRMSG_SIZE
-    #define RYML_ERRMSG_SIZE 1024
-#endif
     char errmsg[RYML_ERRMSG_SIZE];
     detail::_SubstrWriter writer(errmsg);
     auto dumpfn = [&writer](csubstr s){ writer.append(s); };
@@ -559,7 +569,7 @@ bool Parser::_handle_unk()
         }
     }
 
-    if(rem.begins_with("- "))
+    if(rem.begins_with("- ") _RYML_WITH_TAB_TOKENS( || rem.begins_with("-\t")))
     {
         _c4dbgpf("it's a seq (as_child={})", start_as_child);
         _move_key_anchor_to_val_anchor();
@@ -686,7 +696,7 @@ bool Parser::_handle_unk()
             _append_val(_consume_scalar());
             _line_progressed(1);
         }
-        else if(rem.begins_with(": "))
+        else if(rem.begins_with(": ") _RYML_WITH_TAB_TOKENS( || rem.begins_with(":\t")))
         {
             _c4dbgpf("got a ': ' -- it's a map (as_child={})", start_as_child);
             _start_map_unk(start_as_child); // wait for the val scalar to append the key-val pair
@@ -786,7 +796,7 @@ bool Parser::_handle_unk()
                 }
             }
             _store_scalar(scalar, is_quoted);
-            if(rem.begins_with(": "))
+            if(rem.begins_with(": ") _RYML_WITH_TAB_TOKENS( || rem.begins_with(":\t")))
             {
                 _c4dbgpf("got a ': ' next -- it's a map (as_child={})", start_as_child);
                 _push_level();
@@ -840,11 +850,24 @@ bool Parser::_handle_seq_expl()
     {
         // with explicit flow, indentation does not matter
         _c4dbgp("starts with spaces");
-        rem = rem.left_of(rem.first_not_of(' '));
-        _c4dbgpf("skip {} spaces", rem.len);
-        _line_progressed(rem.len);
+        size_t pos = rem.first_not_of(' ');
+        if(pos == npos)
+            pos = rem.len;
+        _c4dbgpf("skip {} spaces", pos);
+        _line_progressed(pos);
         return true;
     }
+    _RYML_WITH_TAB_TOKENS(else if(rem.begins_with('\t'))
+    {
+        // with explicit flow, indentation does not matter
+        _c4dbgp("starts with tabs");
+        size_t pos = rem.first_not_of('\t');
+        if(pos == npos)
+            pos = rem.len;
+        _c4dbgpf("skip {} tabs", pos);
+        _line_progressed(pos);
+        return true;
+    })
     else if(rem.begins_with('#'))
     {
         _c4dbgp("it's a comment");
@@ -902,7 +925,7 @@ bool Parser::_handle_seq_expl()
             _line_progressed(1);
             return true;
         }
-        else if(rem.begins_with(": "))
+        else if(rem.begins_with(": ") _RYML_WITH_TAB_TOKENS( || rem.begins_with(":\t")))
         {
             _c4dbgpf("found ': ' -- there's an implicit map in the seq node[{}]", m_state->node_id);
             _start_seqimap();
@@ -1017,7 +1040,7 @@ bool Parser::_handle_seq_impl()
             return true;
         }
 
-        if(rem.begins_with("- "))
+        if(rem.begins_with("- ") _RYML_WITH_TAB_TOKENS( || rem.begins_with("-\t")))
         {
             _c4dbgp("expect another val");
             addrem_flags(RVAL, RNXT);
@@ -1070,17 +1093,18 @@ bool Parser::_handle_seq_impl()
             _c4dbgpf("it's a{} scalar", is_quoted ? " quoted" : "");
 
             rem = m_state->line_contents.rem;
-            if(rem.begins_with(' '))
+            if(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(rem.begins_with_any(" \t"), rem.begins_with(' ')))
             {
                 _c4dbgp("skipping whitespace...");
-                size_t skip = rem.first_not_of(' ');
+                size_t skip = rem.first_not_of(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \t", ' '));
                 if(skip == csubstr::npos)
                     skip = rem.len; // maybe the line is just whitespace
                 _line_progressed(skip);
                 rem = rem.sub(skip);
             }
 
-            if(!rem.begins_with('#') && (rem.begins_with(": ") || rem.ends_with(':')))
+            _c4dbgpf("rem=[%zu]~~~%.*s~~~", rem.len, _c4prsp(rem));
+            if(!rem.begins_with('#') && (rem.ends_with(':') || rem.begins_with(": ") _RYML_WITH_TAB_TOKENS( || rem.begins_with(":\t"))))
             {
                 _c4dbgp("actually, the scalar is the first key of a map, and it opens a new scope");
                 if(m_key_anchor.empty())
@@ -1256,11 +1280,24 @@ bool Parser::_handle_map_expl()
     {
         // with explicit flow, indentation does not matter
         _c4dbgp("starts with spaces");
-        rem = rem.left_of(rem.first_not_of(' '));
-        _c4dbgpf("skip {} spaces", rem.len);
-        _line_progressed(rem.len);
+        size_t pos = rem.first_not_of(' ');
+        if(pos == npos)
+            pos = rem.len;
+        _c4dbgpf("skip {} spaces", pos);
+        _line_progressed(pos);
         return true;
     }
+    _RYML_WITH_TAB_TOKENS(else if(rem.begins_with('\t'))
+    {
+        // with explicit flow, indentation does not matter
+        _c4dbgp("starts with tabs");
+        size_t pos = rem.first_not_of('\t');
+        if(pos == npos)
+            pos = rem.len;
+        _c4dbgpf("skip {} tabs", pos);
+        _line_progressed(pos);
+        return true;
+    })
     else if(rem.begins_with('#'))
     {
         _c4dbgp("it's a comment");
@@ -1587,10 +1624,11 @@ bool Parser::_handle_map_impl()
         }
         else if(rem.begins_with_any(" \t"))
         {
-            //_RYML_CB_ASSERT(m_stack.m_callbacks,  ! _at_line_begin());
-            rem = rem.left_of(rem.first_not_of(" \t"));
-            _c4dbgpf("skip {} spaces/tabs", rem.len);
-            _line_progressed(rem.len);
+            size_t pos = rem.first_not_of(" \t");
+            if(pos == npos)
+                pos = rem.len;
+            _c4dbgpf("skip {} spaces/tabs", pos);
+            _line_progressed(pos);
             return true;
         }
         else if(rem == '?' || rem.begins_with("? "))
@@ -1619,7 +1657,7 @@ bool Parser::_handle_map_impl()
             }
             return true;
         }
-        else if(rem == ':' || rem.begins_with(": ") )
+        else if(rem.begins_with(": ") _RYML_WITH_TAB_TOKENS( || rem.begins_with(":\t")))
         {
             _c4dbgp("key finished");
             if(!has_all(SSCL))
@@ -2288,16 +2326,22 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
             _c4dbgp("RSEQ|RVAL");
             if( ! _is_scalar_next__rseq_rval(s))
                 return false;
-            s = s.left_of(s.find(" #")); // is there a comment?
-            s = s.left_of(s.find(": ")); // is there a key-value?
             if(s.ends_with(':'))
-                s = s.left_of(s.len-1);
+            {
+                --s.len;
+            }
+            else
+            {
+                auto first = s.first_of_any(": " _RYML_WITH_TAB_TOKENS( , ":\t"), " #");
+                if(first)
+                    s.len = first.pos;
+            }
             if(has_all(EXPL))
             {
                 _c4dbgp("RSEQ|RVAL|EXPL");
                 s = s.left_of(s.first_of(",]"));
             }
-            s = s.trimr(' ');
+            s = s.trimr(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \t", ' '));
         }
         else
         {
@@ -2311,10 +2355,23 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
         size_t colon_space = s.find(": ");
         if(colon_space == npos)
         {
-            colon_space = s.find(":");
-            _RYML_CB_ASSERT(m_stack.m_callbacks, s.len > 0);
-            if(colon_space != s.len-1)
-                colon_space = npos;
+            _RYML_WITH_OR_WITHOUT_TAB_TOKENS(
+                // with tab tokens
+                colon_space = s.find(":\t");
+                if(colon_space == npos)
+                {
+                    _RYML_CB_ASSERT(m_stack.m_callbacks, s.len > 0);
+                    colon_space = s.find(':');
+                    if(colon_space != s.len-1)
+                        colon_space = npos;
+                }
+                ,
+                // without tab tokens
+                colon_space = s.find(':');
+                _RYML_CB_ASSERT(m_stack.m_callbacks, s.len > 0);
+                if(colon_space != s.len-1)
+                    colon_space = npos;
+            )
         }
 
         if(has_all(RKEY))
@@ -2343,7 +2400,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
                 if(s.begins_with("? ") || s == '?')
                     return false;
                 s = s.left_of(colon_space);
-                s = s.trimr(' ');
+                s = s.trimr(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \t", ' '));
                 if(has_any(EXPL))
                 {
                     _c4dbgpf("RMAP|RKEY|EXPL: '{}'", s);
@@ -2366,9 +2423,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
             _c4dbgp("RMAP|RVAL");
             _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(QMRK));
             if( ! _is_scalar_next__rmap_val(s))
-            {
                 return false;
-            }
             s = s.left_of(s.find(" #")); // is there a comment?
             s = s.left_of(s.find("\t#")); // is there a comment?
             if(has_any(EXPL))
@@ -2379,7 +2434,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
                 else
                     s = s.left_of(s.first_of(",]"));
             }
-            s = s.trim(' ');
+            s = s.trim(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \t", ' '));
             if(s.begins_with("---"))
                 return false;
             else if(s.begins_with("..."))
@@ -2392,7 +2447,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
     }
     else if(has_all(RUNK))
     {
-        _c4dbgp("RUNK");
+        _c4dbgpf("RUNK '[{}]~~~{}~~~", s.len, s);
         if( ! _is_scalar_next__runk(s))
         {
             _c4dbgp("RUNK: no scalar next");
@@ -2404,6 +2459,10 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
             s = s.left_of(pos);
         else if(s.ends_with(':'))
             s = s.left_of(s.len-1);
+        _RYML_WITH_TAB_TOKENS(
+        else if((pos = s.find(":\t")) != npos) // TABS
+            s = s.left_of(pos);
+        )
         else
             s = s.left_of(s.first_of(','));
         s = s.trim(" \t");
