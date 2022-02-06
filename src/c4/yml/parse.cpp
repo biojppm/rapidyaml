@@ -521,7 +521,7 @@ bool Parser::_handle_unk()
         _move_key_tag_to_val_tag();
         _push_level();
         _start_map(start_as_child);
-        addrem_flags(RKEY|CPLX, RVAL);
+        addrem_flags(RKEY|QMRK, RVAL);
         _save_indentation();
         _line_progressed(2);
         return true;
@@ -826,7 +826,7 @@ bool Parser::_handle_seq_expl()
             _start_seqimap();
             _line_progressed(2);
             _RYML_CB_ASSERT(m_stack.m_callbacks, has_any(SSCL) && m_state->scalar == "");
-            addrem_flags(CPLX|RKEY, RVAL|SSCL);
+            addrem_flags(QMRK|RKEY, RVAL|SSCL);
             return true;
         }
         else if(_handle_types())
@@ -1057,7 +1057,7 @@ bool Parser::_handle_seq_impl()
             addrem_flags(RNXT, RVAL); // before _push_level!
             _push_level();
             _start_map();
-            addrem_flags(CPLX|RKEY, RVAL);
+            addrem_flags(QMRK|RKEY, RVAL);
             _save_indentation();
             _line_progressed(2);
             return true;
@@ -1248,7 +1248,7 @@ bool Parser::_handle_map_expl()
         if(rem.begins_with(": "))
         {
             _c4dbgp("wait for val");
-            addrem_flags(RVAL, RKEY|CPLX);
+            addrem_flags(RVAL, RKEY|QMRK);
             _line_progressed(2);
             if(!has_all(SSCL))
             {
@@ -1260,7 +1260,7 @@ bool Parser::_handle_map_expl()
         else if(rem == ':')
         {
             _c4dbgp("wait for val");
-            addrem_flags(RVAL, RKEY|CPLX);
+            addrem_flags(RVAL, RKEY|QMRK);
             _line_progressed(1);
             if(!has_all(SSCL))
             {
@@ -1272,7 +1272,7 @@ bool Parser::_handle_map_expl()
         else if(rem.begins_with('?'))
         {
             _c4dbgp("complex key");
-            add_flags(CPLX);
+            add_flags(QMRK);
             _line_progressed(1);
             return true;
         }
@@ -1321,7 +1321,7 @@ bool Parser::_handle_map_expl()
             if(rem.begins_with(':'))
             {
                 _c4dbgp("wait for val");
-                addrem_flags(RVAL, RKEY|CPLX);
+                addrem_flags(RVAL, RKEY|QMRK);
                 _line_progressed(pos + 1);
                 if(!has_all(SSCL))
                 {
@@ -1455,10 +1455,7 @@ bool Parser::_handle_map_impl()
     }
 
     if(_handle_indentation())
-    {
-        //rem = m_state->line_contents.rem;
         return true;
-    }
 
     if(has_any(RKEY))
     {
@@ -1470,10 +1467,13 @@ bool Parser::_handle_map_impl()
         if(_scan_scalar(&rem, &is_quoted)) // this also progresses the line
         {
             _c4dbgpf("it's a%s scalar", is_quoted ? " quoted" : "");
-            if(has_all(CPLX|SSCL))
+            if(has_all(QMRK|SSCL))
+            {
+                _c4dbgpf("current key is QMRK; SSCL is set. so take store scalar='%.*s' as key and add an empty val", _c4prsp(m_state->scalar));
                 _append_key_val_null(rem.str - 1);
+            }
             _store_scalar(rem, is_quoted);
-            if(has_all(CPLX|RSET))
+            if(has_all(QMRK|RSET))
             {
                 _c4dbgp("it's a complex key, so use null value '~'");
                 _append_key_val_null(rem.str);
@@ -1483,7 +1483,7 @@ bool Parser::_handle_map_impl()
             if(rem.begins_with(':'))
             {
                 _c4dbgp("wait for val");
-                addrem_flags(RVAL, RKEY|CPLX);
+                addrem_flags(RVAL, RKEY|QMRK);
                 _line_progressed(1);
                 rem = m_state->line_contents.rem;
                 if(rem.begins_with_any(" \t"))
@@ -1504,19 +1504,21 @@ bool Parser::_handle_map_impl()
             _line_progressed(rem.len);
             return true;
         }
-        else if(rem.begins_with("? "))
+        else if(rem == '?' || rem.begins_with("? "))
         {
             _c4dbgp("it's a complex key");
-            add_flags(CPLX);
-            _line_progressed(2);
+            _line_progressed(rem.begins_with("? ") ? 2u : 1u);
             if(has_any(SSCL))
                 _append_key_val_null(rem.str - 1);
+            add_flags(QMRK);
             return true;
         }
-        else if(has_all(CPLX) && rem.begins_with(':'))
+        else if(has_all(QMRK) && rem.begins_with(':'))
         {
             _c4dbgp("complex key finished");
-            addrem_flags(RVAL, RKEY|CPLX);
+            if(!has_any(SSCL))
+                _store_scalar_null(rem.str);
+            addrem_flags(RVAL, RKEY|QMRK);
             _line_progressed(1);
             rem = m_state->line_contents.rem;
             if(rem.begins_with(' '))
@@ -1528,28 +1530,17 @@ bool Parser::_handle_map_impl()
             }
             return true;
         }
-        else if(rem.begins_with(": "))
+        else if(rem == ':' || rem.begins_with(": ") )
         {
             _c4dbgp("key finished");
             if(!has_all(SSCL))
             {
                 _c4dbgp("key was empty...");
                 _store_scalar_null(rem.str);
+                rem_flags(QMRK);
             }
             addrem_flags(RVAL, RKEY);
-            _line_progressed(2);
-            return true;
-        }
-        else if(rem == ':')
-        {
-            _c4dbgp("key finished");
-            if(!has_all(SSCL))
-            {
-                _c4dbgp("key was empty...");
-                _store_scalar_null(rem.str);
-            }
-            addrem_flags(RVAL, RKEY);
-            _line_progressed(1);
+            _line_progressed(rem == ':' ? 1 : 2);
             return true;
         }
         else if(rem.begins_with("..."))
@@ -1766,12 +1757,12 @@ bool Parser::_handle_key_anchors_and_refs()
     if(rem.begins_with('&'))
     {
         _c4dbgp("found a key anchor!!!");
-        if(has_all(CPLX|SSCL))
+        if(has_all(QMRK|SSCL))
         {
             _RYML_CB_ASSERT(m_stack.m_callbacks, has_any(RKEY));
             _c4dbgp("there is a stored key, so this anchor is for the next element");
             _append_key_val_null(rem.str - 1);
-            rem_flags(CPLX);
+            rem_flags(QMRK);
             return true;
         }
         csubstr anchor = rem.left_of(rem.first_of(' '));
@@ -1956,12 +1947,12 @@ bool Parser::_handle_types()
     if(t.empty())
         return false;
 
-    if(has_all(CPLX|SSCL))
+    if(has_all(QMRK|SSCL))
     {
         _RYML_CB_ASSERT(m_stack.m_callbacks, has_any(RKEY));
         _c4dbgp("there is a stored key, so this tag is for the next element");
         _append_key_val_null(rem.str - 1);
-        rem_flags(CPLX);
+        rem_flags(QMRK);
     }
 
     const char *tag_beginning = rem.str;
@@ -2235,11 +2226,18 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
 
         if(has_all(RKEY))
         {
-            if(has_any(CPLX))
+            _RYML_CB_ASSERT(m_stack.m_callbacks, !s.begins_with(' '));
+            if(has_any(QMRK))
             {
                 _c4dbgp("RMAP|RKEY|CPLX");
                 _RYML_CB_ASSERT(m_stack.m_callbacks, has_any(RMAP));
+                if(s.begins_with("? ") || s == '?')
+                    return false;
                 s = s.left_of(colon_space);
+                s = s.left_of(s.first_of("#"));
+                if(has_any(EXPL))
+                    s = s.left_of(s.first_of(':'));
+                s = s.trimr(" \t");
                 if(s.begins_with("---"))
                     return false;
                 else if(s.begins_with("..."))
@@ -2249,7 +2247,8 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
             {
                 _c4dbgp("RMAP|RKEY");
                 _RYML_CB_CHECK(m_stack.m_callbacks, !s.begins_with('{'));
-                s = s.triml(' ');
+                if(s.begins_with("? ") || s == '?')
+                    return false;
                 s = s.left_of(colon_space);
                 s = s.trimr(' ');
                 if(has_any(EXPL))
@@ -2272,7 +2271,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
         else if(has_all(RVAL))
         {
             _c4dbgp("RMAP|RVAL");
-            _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(CPLX));
+            _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(QMRK));
             if( ! _is_scalar_next__rmap_val(s))
             {
                 return false;
@@ -2346,7 +2345,7 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
 
 csubstr Parser::_extend_scanned_scalar(csubstr s)
 {
-    if(has_all(RMAP|RKEY|CPLX))
+    if(has_all(RMAP|RKEY|QMRK))
     {
         size_t scalar_indentation = has_any(EXPL) ? 0 : m_state->scalar_col;
         _c4dbgpf("extend_scalar: complex key! indref=%zu scalar_indentation=%zu scalar_col=%zu", m_state->indref, scalar_indentation, m_state->scalar_col);
@@ -2355,9 +2354,7 @@ csubstr Parser::_extend_scanned_scalar(csubstr s)
         {
             substr full = _scan_complex_key(s, n).trimr(" \t\r\n");
             if(full != s)
-            {
                 s = _filter_plain_scalar(full, scalar_indentation);
-            }
         }
     }
     // deal with plain (unquoted) scalars that continue to the next line
@@ -2376,9 +2373,7 @@ csubstr Parser::_extend_scanned_scalar(csubstr s)
                 _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->line_contents.full.is_super(n));
                 substr full = _scan_plain_scalar_impl(s, n, scalar_indentation);
                 if(full.len >= s.len)
-                {
                     s = _filter_plain_scalar(full, scalar_indentation);
-                }
             }
         }
         else
@@ -3182,6 +3177,12 @@ void Parser::_stop_map()
 {
     _c4dbgpf("stop_map[%zu]", m_state->node_id);
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_map(m_state->node_id));
+    if(has_all(QMRK|RKEY) && !has_all(SSCL))
+    {
+        _c4dbgpf("stop_map[%zu]: RKEY", m_state->node_id);
+        _store_scalar_null(m_state->line_contents.rem.str);
+        _append_key_val_null(m_state->line_contents.rem.str);
+    }
     bool key_empty = (m_key_tag.empty() && m_key_anchor.empty());
     bool val_empty = (m_val_tag.empty() && m_val_anchor.empty());
     if(has_none(RMAP) || (key_empty && val_empty))
@@ -3192,11 +3193,6 @@ void Parser::_stop_map()
         _c4dbgpf("stop_map[%zu]: RVAL", m_state->node_id);
         if(!has_all(SSCL))
             _store_scalar_null(m_state->line_contents.rem.str);
-        _append_key_val_null(m_state->line_contents.rem.str);
-    }
-    else if(has_all(CPLX|RKEY))
-    {
-        _store_scalar_null(m_state->line_contents.rem.str);
         _append_key_val_null(m_state->line_contents.rem.str);
     }
 }
@@ -3375,6 +3371,7 @@ NodeData* Parser::_append_key_val(csubstr val, flag_t val_quoted)
     }
     _write_key_anchor(nid);
     _write_val_anchor(nid);
+    rem_flags(QMRK);
     return m_tree->get(nid);
 }
 
@@ -5015,7 +5012,7 @@ int Parser::_prfl(char *buf, int buflen, flag_t flags)
     _prflag(RMAP);
     _prflag(RSEQ);
     _prflag(EXPL);
-    _prflag(CPLX);
+    _prflag(QMRK);
     _prflag(RKEY);
     _prflag(RVAL);
     _prflag(RNXT);

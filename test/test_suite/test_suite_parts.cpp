@@ -21,11 +21,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     _("G4RS-in_json"            , "special characters must be emitted in double quoted style"),
     _("G4RS-in_yaml"            , "special characters must be emitted in double quoted style"),
     _("G4RS-out_yaml"           , "special characters must be emitted in double quoted style"),
-    // explicit keys
-    _("5WE3-in_yaml-events"     , "explicit key is wrongly parsed"),
-    _("DFF7-in_yaml-events"     , "problem with missing explicit key"),
-    _("FRK4-in_yaml-events"     , "explicit key is wrongly parsed"),
-    _("NJ66-in_yaml-events"     , "explicit key is wrongly parsed"),
     // other
     _("UKK6_01-in_yaml"         , "fails to parse double :: in UNK state"),
     _("UKK6_02-in_yaml-events"  , "fails to parse double :: in UNK state"),

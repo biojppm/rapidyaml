@@ -375,7 +375,7 @@ private:
         RMAP = 0x01 <<  2,   ///< reading a map
         RSEQ = 0x01 <<  3,   ///< reading a seq
         EXPL = 0x01 <<  4,   ///< reading is inside explicit flow chars: [] or {}
-        CPLX = 0x01 <<  5,   ///< reading a complex key
+        QMRK = 0x01 <<  5,   ///< reading an explicit key (`? key`)
         RKEY = 0x01 <<  6,   ///< reading a scalar as key
         RVAL = 0x01 <<  7,   ///< reading a scalar as val
         RNXT = 0x01 <<  8,   ///< read next val or keyval

@@ -3331,15 +3331,13 @@ a:
 - !!int 0
 - !!str 0
 )";
-    auto tree = ryml::parse_in_arena(ryml::to_csubstr(unresolved));
+    ryml::Tree tree = ryml::parse_in_arena(ryml::to_csubstr(unresolved));
     CHECK(ryml::emitrs<std::string>(tree) == resolved);
-    auto stream = tree.rootref();
+    const ryml::NodeRef stream = tree.rootref();
     CHECK(stream.is_stream());
     CHECK(stream.num_children() == 13);
     for(auto node : stream.children())
-    {
         CHECK(node.is_doc());
-    }
     CHECK(stream[11].val_tag() == "!!set");
 }
 

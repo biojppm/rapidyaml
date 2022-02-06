@@ -47,12 +47,21 @@ cc:
 CASE_GROUP(SIMPLE_SET)
 {
 
+ADD_CASE_TO_GROUP("doc as set, missing value",
+R"(!!set
+? a
+? b
+?
+)",
+N(TL("!!set", L{N(KEYVAL, "a", {}), N(KEYVAL, "b", {}), N(KEYVAL, {}, "")}))
+);
+
 ADD_CASE_TO_GROUP("doc as set, implicit",
 R"(!!set
 ? a
 ? b
 )",
-N(TL("!!set", L{N(KEYVAL, "a", /*"~"*/{}), N(KEYVAL, "b", /*"~"*/{})}))
+N(TL("!!set", L{N(KEYVAL, "a", {}), N(KEYVAL, "b", {})}))
 );
 
 ADD_CASE_TO_GROUP("doc as set",
