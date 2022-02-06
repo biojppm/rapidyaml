@@ -83,9 +83,9 @@ size_t count_following_newlines(csubstr r, size_t *C4_RESTRICT i, size_t indenta
                 {
                     if(r.str[*i] != ' ' && r.str[*i] != '\r')
                         break;
-                    if(*i >= stop)
-                        break;
+                    RYML_ASSERT(*i < stop);
                 }
+                C4_UNUSED(stop);
             }
         }
         else if(r.str[*i] == ' ' || r.str[*i] == '\t' || r.str[*i] == '\r')  // skip leading whitespace
@@ -439,11 +439,6 @@ bool Parser::_handle_unk()
             _save_indentation();
             return true;
         }
-        else if(trimmed.empty())
-        {
-            _line_progressed(rem.len);
-            return true;
-        }
         else if(trimmed.begins_with("..."))
         {
             _end_stream();
@@ -456,6 +451,7 @@ bool Parser::_handle_unk()
             _start_doc();
             _set_indentation(indref);
         }
+        _RYML_CB_ASSERT(m_stack.m_callbacks, !trimmed.empty());
     }
 
     _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RNXT|RSEQ|RMAP));
@@ -1955,7 +1951,9 @@ bool Parser::_handle_types()
         rem_flags(QMRK);
     }
 
+    #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
     const char *tag_beginning = rem.str;
+    #endif
     size_t tag_indentation = m_state->line_contents.current_col(t);
     _c4dbgpf("there was a tag: '%.*s', indentation=%zu", _c4prsp(t), tag_indentation);
     _RYML_CB_ASSERT(m_stack.m_callbacks, t.end() > m_state->line_contents.rem.begin());
@@ -1981,6 +1979,7 @@ bool Parser::_handle_types()
         rem = rem.left_of(rem.find("#"));
         rem = rem.trimr(" \t");
         _c4dbgpf("rem='%.*s'", _c4prsp(rem));
+        #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
         if(rem == ':' || rem.begins_with(": "))
         {
             _c4dbgp("the last val was null, and this is a tag from a null key");
@@ -1991,6 +1990,7 @@ bool Parser::_handle_types()
             size_t token_len = rem == ':' ? 1 : 2;
             _line_progressed(static_cast<size_t>(token_len + rem.begin() - m_state->line_contents.rem.begin()));
         }
+        #endif
         _c4dbgpf("saving map val tag '%.*s'", _c4prsp(t));
         _RYML_CB_ASSERT(m_stack.m_callbacks, m_val_tag.empty());
         m_val_tag = t;
@@ -2563,19 +2563,21 @@ substr Parser::_scan_complex_key(csubstr currscalar, csubstr peeked_line)
         peeked_line = next_peeked;
 
         _c4dbgpf("rcplxkey: line contents: '%.*s'", _c4prsp(peeked_line.trimr("\r\n")));
-        if(peeked_line.find(": ") != npos)
+        size_t colpos;
+        if((colpos = peeked_line.find(": ")) != npos)
         {
             _c4dbgp("rcplxkey: found ': ', stopping.");
-            _line_progressed(peeked_line.find(": "));
+            _line_progressed(colpos);
             break;
         }
-        else if(peeked_line.ends_with(':'))
+        #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
+        else if((colpos = peeked_line.ends_with(':')))
         {
             _c4dbgp("rcplxkey: ends with ':', stopping.");
-            _line_progressed(peeked_line.find(':'));
+            _line_progressed(colpos);
             break;
         }
-
+        #endif
         _c4dbgpf("rcplxkey: append another line: (len=%zu)'%.*s'", peeked_line.len, _c4prsp(peeked_line.trimr("\r\n")));
         if(!_advance_to_peeked())
         {
@@ -2657,8 +2659,10 @@ C4_ALWAYS_INLINE size_t _extend_from_combined_newline(char nl, char following)
 csubstr from_next_line(csubstr rem)
 {
     size_t nlpos = rem.first_of("\r\n");
+    #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
     if(nlpos == csubstr::npos)
         return {};
+    #endif
     const char nl = rem[nlpos];
     rem = rem.right_of(nlpos);
     if(rem.empty())
@@ -2936,6 +2940,7 @@ void Parser::_start_doc(bool as_child)
         m_state->node_id = m_tree->append_child(parent_id);
         m_tree->to_doc(m_state->node_id);
     }
+    #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
     else
     {
         _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_seq(parent_id) || m_tree->empty(parent_id));
@@ -2945,6 +2950,7 @@ void Parser::_start_doc(bool as_child)
             m_tree->to_doc(parent_id, DOC);
         }
     }
+    #endif
     _c4dbgpf("start_doc: id=%zd", m_state->node_id);
     add_flags(RUNK|RTOP|NDOC);
     _handle_types();
@@ -2980,11 +2986,13 @@ void Parser::_end_stream()
         {
             _c4dbgp("append null key val...");
             added = _append_key_val_null(m_state->line_contents.rem.str);
+            #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
             if(has_any(RSEQIMAP))
             {
                 _stop_seqimap();
                 _pop_level();
             }
+            #endif
         }
         else if(m_tree->is_doc(m_state->node_id) || m_tree->type(m_state->node_id) == NOTYPE)
         {
@@ -3022,24 +3030,28 @@ void Parser::_end_stream()
                 m_key_tag = {};
             }
         }
+        #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
         if(!m_key_anchor.empty())
         {
             _c4dbgpf("node[%zu]: set key anchor='%.*s'", added_id, _c4prsp(m_key_anchor));
             m_tree->set_key_anchor(added_id, m_key_anchor);
             m_key_anchor = {};
         }
+        #endif
         if(!m_val_anchor.empty())
         {
             _c4dbgpf("node[%zu]: set val anchor='%.*s'", added_id, _c4prsp(m_val_anchor));
             m_tree->set_val_anchor(added_id, m_val_anchor);
             m_val_anchor = {};
         }
+        #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
         if(!m_key_tag.empty())
         {
             _c4dbgpf("node[%zu]: set key tag='%.*s' -> '%.*s'", added_id, _c4prsp(m_key_tag), _c4prsp(normalize_tag(m_key_tag)));
             m_tree->set_key_tag(added_id, normalize_tag(m_key_tag));
             m_key_tag = {};
         }
+        #endif
         if(!m_val_tag.empty())
         {
             _c4dbgpf("node[%zu]: set val tag='%.*s' -> '%.*s'", added_id, _c4prsp(m_val_tag), _c4prsp(normalize_tag(m_val_tag)));
@@ -3183,18 +3195,6 @@ void Parser::_stop_map()
         _store_scalar_null(m_state->line_contents.rem.str);
         _append_key_val_null(m_state->line_contents.rem.str);
     }
-    bool key_empty = (m_key_tag.empty() && m_key_anchor.empty());
-    bool val_empty = (m_val_tag.empty() && m_val_anchor.empty());
-    if(has_none(RMAP) || (key_empty && val_empty))
-        return;
-    _c4dbgpf("stop_map[%zu]: RMAP, and tags or anchors pending", m_state->node_id);
-    if(has_all(RVAL))
-    {
-        _c4dbgpf("stop_map[%zu]: RVAL", m_state->node_id);
-        if(!has_all(SSCL))
-            _store_scalar_null(m_state->line_contents.rem.str);
-        _append_key_val_null(m_state->line_contents.rem.str);
-    }
 }
 
 
@@ -3236,8 +3236,7 @@ void Parser::_start_seq(bool as_child)
         else
         {
             type_bits as_doc = 0;
-            if(m_tree->is_doc(m_state->node_id))
-                as_doc |= DOC;
+            _RYML_CB_ASSERT(m_stack.m_callbacks, !m_tree->is_doc(m_state->node_id));
             m_tree->to_seq(m_state->node_id, as_doc);
             _c4dbgpf("start_seq: id=%zd%s", m_state->node_id, as_doc ? " as doc" : "");
         }
@@ -3438,9 +3437,10 @@ bool Parser::_handle_indentation()
         {
             if(has_all(RMAP))
             {
-                _append_key_val_null(rem.sub(ind).str - 1);
+                _append_key_val_null(rem.str + ind - 1);
                 addrem_flags(RKEY, RVAL);
             }
+            #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
             else if(has_all(RSEQ))
             {
                 _append_val(_consume_scalar());
@@ -3450,6 +3450,7 @@ bool Parser::_handle_indentation()
             {
                 _c4err("internal error");
             }
+            #endif
         }
         else if(has_all(RSEQ|RNXT) && ! rem.sub(ind).begins_with('-'))
         {
@@ -3514,8 +3515,7 @@ bool Parser::_handle_indentation()
                     auto parent = popto - 1;
                     if(parent->indref == popto->indref)
                     {
-                        _c4dbgpf("the parent (level=%zu,node=%zu) has the same indentation (%zu). is this in an indentless sequence?",
-                                 parent->level, parent->node_id, popto->indref);
+                        _c4dbgpf("the parent (level=%zu,node=%zu) has the same indentation (%zu). is this in an indentless sequence?", parent->level, parent->node_id, popto->indref);
                         _c4dbgpf("isseq(popto)=%d ismap(parent)=%d", m_tree->is_seq(popto->node_id), m_tree->is_map(parent->node_id));
                         if(m_tree->is_seq(popto->node_id) && m_tree->is_map(parent->node_id))
                         {
@@ -3571,10 +3571,6 @@ bool Parser::_handle_indentation()
         else if(has_all(RSEQ|RVAL))
         {
             // nothing to do here
-        }
-        else if(rem.triml(' ').begins_with("#"))
-        {
-            C4_NEVER_REACH(); // this should have been handled earlier
         }
         else
         {
@@ -3911,12 +3907,15 @@ csubstr Parser::_scan_block()
                 _c4dbgpf("scanning block: line not empty. indref=%zu indprov=%zu indentation=%zu", m_state->indref, provisional_indentation, lc.indentation);
                 if(provisional_indentation == npos)
                 {
+                    #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
                     if(lc.indentation < m_state->indref)
                     {
                         _c4dbgpf("scanning block: block terminated indentation=%zu < indref=%zu", lc.indentation, m_state->indref);
                         break;
                     }
-                    else if(lc.indentation == m_state->indref)
+                    else
+                    #endif
+                    if(lc.indentation == m_state->indref)
                     {
                         if(has_any(RSEQ|RMAP))
                         {
@@ -3952,11 +3951,13 @@ csubstr Parser::_scan_block()
                         _c4dbgpf("scanning block: increase provisional_ref %zu -> %zu", provisional_indentation, lc.stripped.len);
                         provisional_indentation = lc.stripped.len;
                     }
+                    #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
                     else if(lc.indentation >= provisional_indentation && lc.indentation != npos)
                     {
                         _c4dbgpf("scanning block: increase provisional_ref %zu -> %zu", provisional_indentation, lc.indentation);
                         provisional_indentation = lc.indentation;
                     }
+                    #endif
                 }
                 else
                 {
@@ -4615,13 +4616,6 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
     case BLOCK_FOLD:
         {
             _c4dbgp("filt_block: style=fold");
-            size_t lastnonnl = r.last_not_of('\n'); // do not fold trailing newlines
-            if(lastnonnl == npos && chomp != CHOMP_KEEP) // not multiline, no need to filter
-            {
-                _c4dbgp("filt_block: no folding needed");
-                return r;
-            }
-            _c4dbgp("filt_block: needs folding");
             _grow_filter_arena(r.len + 2);
             size_t pos = 0; // the filtered size
             bool filtered_chars = false;
@@ -4700,8 +4694,6 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
                             _RYML_CB_ASSERT(m_stack.m_callbacks, i+1 <= r.len);
                             first = rem.len;
                             first_non_whitespace = first + i+1;
-                            while(first_non_whitespace < r.len && r[first_non_whitespace] == '\r')
-                                ++first_non_whitespace;
                             if(first)
                             {
                                 _c4dbgfbl("[%zu]: %zu spaces to the end", i, first);
@@ -4910,73 +4902,77 @@ void Parser::_dbg(const char *fmt, ...) const
     int len = _fmt_msg(errmsg, RYML_ERRMSG_SIZE, fmt, args);
     va_end(args);
     _RYML_CB_ASSERT(m_stack.m_callbacks, len <= RYML_ERRMSG_SIZE);
-    printf("%.*s", len, errmsg);
+    fwrite(errmsg, 1, (size_t)len, stdout);
 }
 #endif
 
 //-----------------------------------------------------------------------------
-#define _wrapbuf() pos += del; len -= del; if(len < 0) { pos = 0; len = buflen; }
+#define _rymlpr(fn, ...)                                \
+    do {                                                \
+        del = fn(buf + pos, slen, __VA_ARGS__);         \
+        _wrapbuf();                                     \
+    } while(0)
+#define _wrapbuf()                              \
+    pos += del;                                 \
+    len -= del;                                 \
+    slen -= (size_t)del;                        \
+    if(len < 0)                                 \
+    {                                           \
+        pos = 0;                                \
+        len = buflen;                           \
+        slen = (size_t)buflen;                  \
+    }
 
 int Parser::_fmt_msg(char *buf, int buflen, const char *fmt, va_list args) const
 {
+    int del;
     int pos = 0;
     int len = buflen;
     size_t slen = (size_t)len;
     auto const& lc = m_state->line_contents;
 
     // first line: print the message
-    int del = vsnprintf(buf + pos, slen, fmt, args);
-    _wrapbuf();
-    del = snprintf(buf + pos, slen, "\n");
-    _wrapbuf();
+    _rymlpr(vsnprintf, fmt, args);
+    _rymlpr(snprintf, "\n");
 
     csubstr contents = lc.stripped;
     if(contents.len)
     {
         // next line: print the yaml src line
         if( ! m_file.empty())
-            del = snprintf(buf + pos, slen, "%.*s:%zu:%zu: ", (int)m_file.len, m_file.str, m_state->pos.line, m_state->pos.col);
+            _rymlpr(snprintf, "%.*s:%zu:%zu: ", _c4prsp(m_file), m_state->pos.line, m_state->pos.col);
         else
-            del = snprintf(buf + pos, slen, "%zu:%zu ", m_state->pos.line, m_state->pos.col);
+            _rymlpr(snprintf, "%zu:%zu ", m_state->pos.line, m_state->pos.col);
         int offs = del;
-        _wrapbuf();
         const char *maybe_ellipsis = (contents.len > 80u ? "...":"");
-        if( !lc.stripped.empty())
-        {
-            size_t printed_size = contents.len < 80u ? contents.len : 80u;
-            del = snprintf(buf + pos, slen, "%.*s%s  (size=%zd)\n",
-                           (int)printed_size, contents.str, maybe_ellipsis, contents.len);
-            _wrapbuf();
-        }
+        csubstr toprint = contents.len < 80u ? contents : contents.sub(80u);
+        _rymlpr(snprintf, "%.*s%s  (size=%zd)\n", _c4prsp(toprint), maybe_ellipsis, contents.len);
         // next line: highlight the remaining portion of the previous line
-        size_t firstcol = static_cast<size_t>(lc.rem.begin() - lc.full.begin());
+        size_t firstcol = (size_t)(lc.rem.begin() - lc.full.begin());
         size_t lastcol = firstcol + lc.rem.len;
-        del = snprintf(buf + pos, slen, "%*s", (offs+(int)firstcol), ""); // this works only for spaces....
-        _wrapbuf();
+        _rymlpr(snprintf, "%*s", (offs+(int)firstcol), ""); // this works only for spaces....
         // the %*s technique works only for spaces, so put the characters directly
         del = (int)(lc.rem.len < 80u ? lc.rem.len : 80u);
-        for(int i = 0; i < del && i < len; ++i) { buf[pos + i] = (i ? '~' : '^'); }
-        _wrapbuf();
-        del = snprintf(buf + pos, slen, "%s  (cols %zd-%zd)\n", maybe_ellipsis, firstcol+1, lastcol+1);
-        _wrapbuf();
+        for(int i = 0; i < del && i < len; ++i)
+        {
+            ++del;
+            buf[pos + i] = (i ? '~' : '^');
+            _wrapbuf();
+        }
+        _rymlpr(snprintf, "%s  (cols %zd-%zd)\n", maybe_ellipsis, firstcol+1, lastcol+1);
     }
     else
     {
-        del = snprintf(buf + pos, slen, "\n");
-        _wrapbuf();
+        _rymlpr(snprintf, "\n");
     }
 
 #ifdef RYML_DBG
     // next line: print the state flags
     {
-        del = snprintf(buf + pos, slen, "top state: ");
+        _rymlpr(snprintf, "top state: ");
+        _prfl(buf+pos, len, m_state->flags);
         _wrapbuf();
-
-        del = _prfl(buf + pos, len, m_state->flags);
-        _wrapbuf();
-
-        del = snprintf(buf + pos, slen, "\n");
-        _wrapbuf();
+        _rymlpr(snprintf, "\n");
     }
 #endif
 
@@ -4988,23 +4984,16 @@ int Parser::_prfl(char *buf, int buflen, flag_t flags)
     int len = buflen;
     size_t slen = (size_t)buflen;
     int pos = 0, del = 0;
-
     bool gotone = false;
 
 #define _prflag(fl)                               \
     if((flags & fl) == (fl))                      \
     {                                             \
         if(!gotone)                               \
-        {                                         \
             gotone = true;                        \
-        }                                         \
         else                                      \
-        {                                         \
-            del = snprintf(buf + pos, slen, "|"); \
-            _wrapbuf();                           \
-        }                                         \
-        del = snprintf(buf + pos, slen, #fl);     \
-        _wrapbuf();                               \
+            _rymlpr(snprintf, "|");               \
+        _rymlpr(snprintf, #fl);  \
     }
 
     _prflag(RTOP);
@@ -5021,12 +5010,14 @@ int Parser::_prfl(char *buf, int buflen, flag_t flags)
     _prflag(RSET);
     _prflag(NDOC);
     _prflag(RSEQIMAP);
+
 #undef _prflag
 
     return pos;
 }
 
 #undef _wrapbuf
+#undef _rymlpr
 
 
 //-----------------------------------------------------------------------------
@@ -5067,11 +5058,7 @@ void Parser::_resize_filter_arena(size_t num_characters)
 substr Parser::_finish_filter_arena(substr dst, size_t pos)
 {
     _RYML_CB_ASSERT(m_stack.m_callbacks, pos <= m_filter_arena.len);
-    if(pos > dst.len)
-    {
-        _c4dbgpf("arena filter too large for destination buffer, use scalar in the tree arena. available=%zu needed=%zu", dst.len, pos);
-        dst = m_tree->alloc_arena(pos);
-    }
+    _RYML_CB_ASSERT(m_stack.m_callbacks, pos <= dst.len);
     memcpy(dst.str, m_filter_arena.str, pos);
     return dst.first(pos);
 }
@@ -5133,12 +5120,8 @@ Location Parser::location(Tree const& tree, size_t node) const
             return val_location(m_buf.str); // just return the front of the buffer
         }
     }
-    else if(tree.type(node) == NOTYPE)
-    {
-        return val_location(m_buf.str);
-    }
-    _RYML_CB_ERR(m_stack.m_callbacks, "unknown node type");
-    return {};
+    _RYML_CB_ASSERT(m_stack.m_callbacks, tree.type(node) == NOTYPE);
+    return val_location(m_buf.str);
 }
 
 Location Parser::val_location(const char *val) const
