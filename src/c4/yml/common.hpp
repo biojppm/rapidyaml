@@ -195,6 +195,44 @@ do                                                                      \
         (cb).m_free((buf), (num) * sizeof(T), (cb).m_user_data);    \
         (buf) = nullptr;                                            \
     } while(0)
+
+
+namespace detail {
+struct _SubstrWriter
+{
+    substr buf;
+    size_t pos;
+    _SubstrWriter(substr buf_, size_t pos_=0) : buf(buf_), pos(pos_) {}
+    void append(csubstr s)
+    {
+        C4_ASSERT(!s.overlaps(buf));
+        if(pos + s.len <= buf.len)
+            memcpy(buf.str + pos, s.str, s.len);
+        pos += s.len;
+    }
+    void append(char c)
+    {
+        if(pos < buf.len)
+            buf.str[pos] = c;
+        ++pos;
+    }
+    void append_n(char c, size_t numtimes)
+    {
+        if(pos + numtimes < buf.len)
+            memset(buf.str + pos, c, numtimes);
+        pos += numtimes;
+    }
+    size_t slack() const { return pos <= buf.len ? buf.len - pos : 0; }
+    size_t excess() const { return pos > buf.len ? pos - buf.len : 0; }
+    //! get the part written so far
+    csubstr curr() const { return pos <= buf.len ? buf.first(pos) : buf; }
+    //! get the part that is still free to write to (the remainder)
+    substr rem() { return pos < buf.len ? buf.sub(pos) : buf.last(0); }
+
+    size_t advance(size_t more) { pos += more; return pos; }
+};
+} // namespace detail
+
 /// @endcond
 
 } // namespace yml

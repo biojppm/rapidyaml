@@ -519,11 +519,11 @@ private:
     void _mv(Parser *that);
 
 #ifdef RYML_DBG
-    void _dbg(const char *msg, ...) const;
+    template<class ...Args> void _dbg(csubstr fmt, Args const& C4_RESTRICT ...args) const;
 #endif
-    void _err(const char *msg, ...) const;
-    int  _fmt_msg(char *buf, int buflen, const char *msg, va_list args) const;
-    static int  _prfl(char *buf, int buflen, flag_t v);
+    template<class ...Args> void _err(csubstr fmt, Args const& C4_RESTRICT ...args) const;
+    template<class DumpFn>  void _fmt_msg(DumpFn &&dumpfn) const;
+    static csubstr _prfl(substr buf, flag_t v);
 
 private:
 
