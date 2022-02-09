@@ -380,13 +380,13 @@ private:
         RVAL = 0x01 <<  7,   ///< reading a scalar as val
         RNXT = 0x01 <<  8,   ///< read next val or keyval
         SSCL = 0x01 <<  9,   ///< there's a stored scalar
-        RSET = 0x01 << 10,   ///< the (implicit) map being read is a !!set. @see https://yaml.org/type/set.html
-        NDOC = 0x01 << 11,   ///< no document mode. a document has ended and another has not started yet.
+        QSCL = 0x01 << 10,   ///< stored scalar was quoted
+        RSET = 0x01 << 11,   ///< the (implicit) map being read is a !!set. @see https://yaml.org/type/set.html
+        NDOC = 0x01 << 12,   ///< no document mode. a document has ended and another has not started yet.
         //! reading an implicit map nested in an explicit seq.
         //! eg, {key: [key2: value2, key3: value3]}
         //! is parsed as {key: [{key2: value2}, {key3: value3}]}
-        RSEQIMAP = 0x01 << 12,
-        SSCL_QUO = 0x01 << 13, ///< stored scalar was quoted
+        RSEQIMAP = 0x01 << 13,
     } State_e;
 
     struct LineContents

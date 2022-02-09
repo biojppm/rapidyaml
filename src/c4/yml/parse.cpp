@@ -3090,7 +3090,7 @@ void Parser::_end_stream()
         else if(m_tree->is_doc(m_state->node_id) || m_tree->type(m_state->node_id) == NOTYPE)
         {
             _c4dbgp("to docval...");
-            NodeType_e quoted = has_any(SSCL_QUO) ? VALQUO : NOTYPE; // do this before consuming the scalar
+            NodeType_e quoted = has_any(QSCL) ? VALQUO : NOTYPE; // do this before consuming the scalar
             m_tree->to_val(m_state->node_id, _consume_scalar(), DOC|quoted);
             added = m_tree->get(m_state->node_id);
         }
@@ -3196,7 +3196,7 @@ void Parser::_start_map(bool as_child)
         if(has_all(SSCL))
         {
             type_bits key_quoted = NOTYPE;
-            if(m_state->flags & SSCL_QUO) // before consuming the scalar
+            if(m_state->flags & QSCL) // before consuming the scalar
                 key_quoted |= KEYQUO;
             csubstr key = _consume_scalar();
             m_tree->to_map(m_state->node_id, key, key_quoted);
@@ -3313,7 +3313,7 @@ void Parser::_start_seq(bool as_child)
         {
             _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_map(parent_id));
             type_bits key_quoted = 0;
-            if(m_state->flags & SSCL_QUO) // before consuming the scalar
+            if(m_state->flags & QSCL) // before consuming the scalar
                 key_quoted |= KEYQUO;
             csubstr key = _consume_scalar();
             m_tree->to_seq(m_state->node_id, key, key_quoted);
@@ -3439,7 +3439,7 @@ NodeData* Parser::_append_key_val(csubstr val, flag_t val_quoted)
 {
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_map(m_state->node_id));
     type_bits additional_flags = 0;
-    if(m_state->flags & SSCL_QUO)
+    if(m_state->flags & QSCL)
         additional_flags |= KEYQUO;
     if(val_quoted)
         additional_flags |= VALQUO;
@@ -3474,7 +3474,7 @@ void Parser::_store_scalar(csubstr s, flag_t is_quoted)
     _c4dbgpf("state[{}]: storing scalar '{}' (flag: {}) (old scalar='{}')",
              m_state-m_stack.begin(), s, m_state->flags & SSCL, m_state->scalar);
     RYML_CHECK(has_none(SSCL));
-    add_flags(SSCL | (is_quoted * SSCL_QUO));
+    add_flags(SSCL | (is_quoted * QSCL));
     m_state->scalar = s;
 }
 
@@ -3483,7 +3483,7 @@ csubstr Parser::_consume_scalar()
     _c4dbgpf("state[{}]: consuming scalar '{}' (flag: {}))", m_state-m_stack.begin(), m_state->scalar, m_state->flags & SSCL);
     RYML_CHECK(m_state->flags & SSCL);
     csubstr s = m_state->scalar;
-    rem_flags(SSCL | SSCL_QUO);
+    rem_flags(SSCL | QSCL);
     m_state->scalar.clear();
     return s;
 }
@@ -3497,9 +3497,9 @@ void Parser::_move_scalar_from_top()
     if(prev.flags & SSCL)
     {
         _c4dbgpf("moving scalar '{}' from state[{}] to state[{}] (overwriting '{}')", prev.scalar, &prev-m_stack.begin(), m_state-m_stack.begin(), m_state->scalar);
-        add_flags(prev.flags & (SSCL | SSCL_QUO));
+        add_flags(prev.flags & (SSCL | QSCL));
         m_state->scalar = prev.scalar;
-        rem_flags(SSCL | SSCL_QUO, &prev);
+        rem_flags(SSCL | QSCL, &prev);
         prev.scalar.clear();
     }
 }
@@ -5003,12 +5003,14 @@ csubstr Parser::_prfl(substr buf, flag_t flags)
     _prflag(RVAL);
     _prflag(RNXT);
     _prflag(SSCL);
-    _prflag(SSCL_QUO);
+    _prflag(QSCL);
     _prflag(RSET);
     _prflag(NDOC);
     _prflag(RSEQIMAP);
 
     #undef _prflag
+
+    RYML_ASSERT(pos <= buf.len);
 
     return buf.first(pos);
 }
