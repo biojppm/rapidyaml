@@ -10,6 +10,7 @@ c4_project(VERSION 0.3.0 STANDALONE
 
 #-------------------------------------------------------
 
+option(RYML_WITH_TAB_TOKENS "Enable parsing of tabs after ':' and '-'. This is costly and disabled by default." OFF)
 option(RYML_DEFAULT_CALLBACKS "Enable ryml's default implementation of callbacks: allocate(), free(), error()" ON)
 option(RYML_BUILD_TOOLS "build tools" OFF)
 option(RYML_BUILD_API "Enable API generation (python, etc)" OFF)
@@ -56,6 +57,10 @@ c4_add_library(ryml
     LIBS c4core
     INCORPORATE c4core
     )
+
+if(RYML_WITH_TAB_TOKENS)
+    target_compile_definitions(ryml PUBLIC RYML_WITH_TAB_TOKENS)
+endif()
 
 if(NOT RYML_DEFAULT_CALLBACKS)
     target_compile_definitions(ryml PRIVATE RYML_NO_DEFAULT_CALLBACKS)
