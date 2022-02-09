@@ -980,18 +980,12 @@ tests from the YAML test suite *contain a lot of edge cases that don't
 play such an important role in real world examples*. And yet, despite
 the extreme focus of the test suite, currently ryml only fails a minor
 fraction of the test cases, mostly related with the deliberate
-limitations noted above. Other than the deliberate limitations noted
-above, these are the main current issues:
-  * explicit keys (starting with `?`)
-    * problem parsing when the scalar is missing after `? `
-    * not supported in flow style
-  * several expected parse errors do not materialize
-
-For the current failure status, refer to the [list of known
+limitations noted above. Other than those limitations, by far the main
+issue with ryml is that several standard-mandated parse errors fail to
+materialize. For the up-to-date list of ryml failures in the
+test-suite, refer to the [list of known
 exceptions](test/test_suite/test_suite_parts.cpp) from ryml's test
-suite runner, as this is subject to ongoing work and continuous
-improvement.
-
+suite runner, which is used as part of ryml's CI process.
 
 
 ------

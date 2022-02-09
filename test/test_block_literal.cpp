@@ -207,6 +207,14 @@ TEST(block_literal, test_suite_L24T_00)
     });
 }
 
+TEST(block_literal, error_on_bad_spec)
+{
+    Tree t;
+    ExpectError::do_check(&t, [&t]{
+        t = parse_in_arena("- |012abc\n  must have errors above\n");
+    });
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

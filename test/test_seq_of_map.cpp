@@ -132,6 +132,27 @@ TEST(seq_of_map, missing_scalars_v3)
     EXPECT_EQ(t["a"][1].first_child().val(), nullptr);
 }
 
+TEST(explicit_key, test_suite_NJ66)
+{
+    csubstr yaml = R"(
+- { single line: value}
+- { multi
+  line: value}
+- { multi
+    line: value}
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_seq());
+        ASSERT_EQ(t.rootref().num_children(), 3u);
+        ASSERT_TRUE(t[0].has_child("single line"));
+        ASSERT_TRUE(t[1].has_child("multi line"));
+        ASSERT_TRUE(t[2].has_child("multi line"));
+        EXPECT_EQ(t[0]["single line"].val(), csubstr("value"));
+        EXPECT_EQ(t[1]["multi line"].val(), csubstr("value"));
+        EXPECT_EQ(t[2]["multi line"].val(), csubstr("value"));
+    });
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

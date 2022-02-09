@@ -6,48 +6,13 @@
 namespace c4 {
 namespace yml {
 
-C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
-
-namespace {
-struct _SubstrWriter
-{
-    substr buf;
-    size_t pos;
-    _SubstrWriter(substr buf_, size_t pos_=0) : buf(buf_), pos(pos_) {}
-    void append(csubstr s)
-    {
-        C4_ASSERT(!s.overlaps(buf));
-        if(pos + s.len <= buf.len)
-            memcpy(buf.str + pos, s.str, s.len);
-        pos += s.len;
-    }
-    void append(char c)
-    {
-        if(pos < buf.len)
-            buf.str[pos] = c;
-        ++pos;
-    }
-    size_t slack() const { return pos <= buf.len ? buf.len - pos : 0; }
-    size_t excess() const { return pos > buf.len ? pos - buf.len : 0; }
-    //! get the part written so far
-    csubstr curr() const { return pos <= buf.len ? buf.first(pos) : buf; }
-    //! get the part that is still free to write to (the remainder)
-    substr rem() { return pos <= buf.len ? buf.sub(pos) : substr(buf.end(), size_t(0u)); }
-
-    size_t advance(size_t more) { pos += more; return pos; }
-};
-
-} // empty namespace
-
-C4_SUPPRESS_WARNING_GCC_POP
-
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
 namespace {
-bool _is_idchar(char c)
+C4_ALWAYS_INLINE bool _is_idchar(char c)
 {
     return (c >= 'a' && c <= 'z')
         || (c >= 'A' && c <= 'Z')
@@ -56,7 +21,7 @@ bool _is_idchar(char c)
 }
 
 typedef enum { kReadPending = 0, kKeyPending = 1, kValPending = 2 } _ppstate;
-_ppstate _next(_ppstate s)
+C4_ALWAYS_INLINE _ppstate _next(_ppstate s)
 {
     int n = (int)s + 1;
     return (_ppstate)(n <= (int)kValPending ? n : 0);
@@ -68,7 +33,7 @@ _ppstate _next(_ppstate s)
 
 size_t preprocess_rxmap(csubstr s, substr buf)
 {
-    _SubstrWriter writer(buf);
+    detail::_SubstrWriter writer(buf);
     _ppstate state = kReadPending;
     size_t last = 0;
 

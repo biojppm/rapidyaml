@@ -102,7 +102,14 @@ As part of the [new feature to track source locations](https://github.com/biojpp
 
 ### Fixes
 
-- The ryml parser now successfully parses compact JSON code `{"like":"this"}` without any need for preprocessing. So the `preprocess_json()` functions and utilities are no longer necessary and have been removed. If you were using these functions, just remove the calls and pass the original source directly to ryml ([PR#210](https://github.com/biojppm/rapidyaml/pulls/210)).
+- Fix edge cases of parsing of explicit keys (ie keys after `?`) ([PR#212](https://github.com/biojppm/rapidyaml/pulls/212)):
+  ```yaml
+  # all these were fixed:
+  ? : # empty
+  ? explicit key   # this comment was not parsed correctly
+  ?    # trailing empty key was not added to the map
+  ```
+- ryml now parses successfully compact JSON code `{"like":"this"}` without any need for preprocessing. So the `preprocess_json()` functions and utilities are no longer necessary and have been removed. If you were using these functions, just remove the calls and pass the original source directly to ryml ([PR#210](https://github.com/biojppm/rapidyaml/pulls/210)).
 - Fix handling of indentation when parsing block scalars ([PR#210](https://github.com/biojppm/rapidyaml/pulls/210)):
   ```yaml
   ---
@@ -180,6 +187,7 @@ As part of the [new feature to track source locations](https://github.com/biojpp
   - `c4/error.hpp`: (failure in debug mode in Xcode 11 and earlier) `__clang_major__` does not mean the same as in the common clang, and as a result the warning `-Wgnu-inline-cpp-without-extern` does not exist there.
 - Ensure error messages do not wrap around the buffer when the YAML source line is too long ([PR#210](https://github.com/biojppm/rapidyaml/pulls/210)).
 - Ensure error is emitted on unclosed flow sequence characters eg `[[[` ([PR#210](https://github.com/biojppm/rapidyaml/pulls/210)). Same thing for `[]]`.
+- Refactor error message building and parser debug logging to use the new dump facilities in c4core ([PR#212](https://github.com/biojppm/rapidyaml/pulls/212)).
 - Parse: fix read-after-free when duplicating a parser state node, when pushing to the stack requires a stack buffer resize ([PR#210](https://github.com/biojppm/rapidyaml/pulls/210)).
 
 
@@ -194,7 +202,7 @@ As part of the [new feature to track source locations](https://github.com/biojpp
   | double quoted  | 212	| 230	| 8% |
   | plain (unquoted) | 173	| 186	| 8% |
   
-  The cost for small scalars is negligible, with benchmark improvement in the interval of -2% to 5%, so well within the margin of benchmark variability in a regular OS.
+  The cost for small scalars is negligible, with benchmark improvement in the interval of -2% to 5%, so well within the margin of benchmark variability in a regular OS. In the future, this will be optimized again by copying each character in place, thus completely avoiding the staging arena.
 - `Callbacks`: add `operator==()` and `operator!=()` ([PR #168](https://github.com/biojppm/rapidyaml/pull/168)).
 - `Tree`: on error or assert prefer the error callback stored into the tree's current `Callbacks`, rather than the global `Callbacks` ([PR #168](https://github.com/biojppm/rapidyaml/pull/168)).
 - `detail::stack<>`: improve behavior when assigning from objects `Callbacks`, test all rule-of-5 scenarios ([PR #168](https://github.com/biojppm/rapidyaml/pull/168)).

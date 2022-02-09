@@ -375,18 +375,18 @@ private:
         RMAP = 0x01 <<  2,   ///< reading a map
         RSEQ = 0x01 <<  3,   ///< reading a seq
         EXPL = 0x01 <<  4,   ///< reading is inside explicit flow chars: [] or {}
-        CPLX = 0x01 <<  5,   ///< reading a complex key
+        QMRK = 0x01 <<  5,   ///< reading an explicit key (`? key`)
         RKEY = 0x01 <<  6,   ///< reading a scalar as key
         RVAL = 0x01 <<  7,   ///< reading a scalar as val
         RNXT = 0x01 <<  8,   ///< read next val or keyval
         SSCL = 0x01 <<  9,   ///< there's a stored scalar
-        RSET = 0x01 << 10,   ///< the (implicit) map being read is a !!set. @see https://yaml.org/type/set.html
-        NDOC = 0x01 << 11,   ///< no document mode. a document has ended and another has not started yet.
+        QSCL = 0x01 << 10,   ///< stored scalar was quoted
+        RSET = 0x01 << 11,   ///< the (implicit) map being read is a !!set. @see https://yaml.org/type/set.html
+        NDOC = 0x01 << 12,   ///< no document mode. a document has ended and another has not started yet.
         //! reading an implicit map nested in an explicit seq.
         //! eg, {key: [key2: value2, key3: value3]}
         //! is parsed as {key: [{key2: value2}, {key3: value3}]}
-        RSEQIMAP = 0x01 << 12,
-        SSCL_QUO = 0x01 << 13, ///< stored scalar was quoted
+        RSEQIMAP = 0x01 << 13,
     } State_e;
 
     struct LineContents
@@ -519,11 +519,11 @@ private:
     void _mv(Parser *that);
 
 #ifdef RYML_DBG
-    void _dbg(const char *msg, ...) const;
+    template<class ...Args> void _dbg(csubstr fmt, Args const& C4_RESTRICT ...args) const;
 #endif
-    void _err(const char *msg, ...) const;
-    int  _fmt_msg(char *buf, int buflen, const char *msg, va_list args) const;
-    static int  _prfl(char *buf, int buflen, flag_t v);
+    template<class ...Args> void _err(csubstr fmt, Args const& C4_RESTRICT ...args) const;
+    template<class DumpFn>  void _fmt_msg(DumpFn &&dumpfn) const;
+    static csubstr _prfl(substr buf, flag_t v);
 
 private:
 

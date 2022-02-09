@@ -25,10 +25,30 @@
 
 // some debugging scaffolds
 #ifdef RYML_DBG
-#   define _c4dbgt(fmt, ...)   this->_dbg("%s:%d: "   fmt     , __FILE__, __LINE__, ## __VA_ARGS__)
-#   define _c4dbgpf(fmt, ...)   printf   ("%s:%d: "   fmt "\n", __FILE__, __LINE__, ## __VA_ARGS__)
-#   define _c4dbgp(msg)         printf   ("%s:%d: "   msg "\n", __FILE__, __LINE__                )
-#   define _c4dbgq(msg)         printf(msg "\n")
+#include <c4/dump.hpp>
+namespace c4 {
+inline void _dbg_dumper(csubstr s) { fwrite(s.str, 1, s.len, stdout); };
+template<class ...Args>
+void _dbg_printf(c4::csubstr fmt, Args&& ...args)
+{
+    static char writebuf[256];
+    auto results = c4::format_dump_resume<&_dbg_dumper>(writebuf, fmt, std::forward<Args>(args)...);
+    // resume writing if the results failed to fit the buffer
+    if(C4_UNLIKELY(results.bufsize > sizeof(writebuf))) // bufsize will be that of the largest element serialized. Eg int(1), will require 1 byte.
+    {
+        results = format_dump_resume<&_dbg_dumper>(results, writebuf, fmt, std::forward<Args>(args)...);
+        if(C4_UNLIKELY(results.bufsize > sizeof(writebuf)))
+        {
+            results = format_dump_resume<&_dbg_dumper>(results, writebuf, fmt, std::forward<Args>(args)...);
+        }
+    }
+}
+} // namespace c4
+
+#   define _c4dbgt(fmt, ...)   this->_dbg ("{}:{}: "   fmt     , __FILE__, __LINE__, ## __VA_ARGS__)
+#   define _c4dbgpf(fmt, ...)  _dbg_printf("{}:{}: "   fmt "\n", __FILE__, __LINE__, ## __VA_ARGS__)
+#   define _c4dbgp(msg)        _dbg_printf("{}:{}: "   msg "\n", __FILE__, __LINE__                )
+#   define _c4dbgq(msg)        _dbg_printf(msg "\n")
 #   define _c4err(fmt, ...)   \
     do { if(c4::is_debugger_attached()) { C4_DEBUG_BREAK(); } \
          this->_err("ERROR:\n" "%s:%d: " fmt, __FILE__, __LINE__, ## __VA_ARGS__); } while(0)
@@ -42,7 +62,7 @@
          this->_err("ERROR: " fmt, ## __VA_ARGS__); } while(0)
 #endif
 
-#define _c4prsp(sp) ((int)(sp).len), (sp).str
+#define _c4prsp(sp) sp
 #define _c4prc(c) (__c4prc(c) ? 2 : 1), (__c4prc(c) ? __c4prc(c) : &c)
 #define _c4presc(s) __c4presc(s.str, s.len)
 inline const char *__c4prc(const char c)

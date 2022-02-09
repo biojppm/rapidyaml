@@ -4,7 +4,6 @@ namespace c4 {
 namespace yml {
 
 
-#ifdef TEST_SUITE_WIP
 TEST(explicit_key, test_suite_5WE3)
 {
     csubstr yaml = R"(
@@ -16,8 +15,8 @@ TEST(explicit_key, test_suite_5WE3)
 )";
     test_check_emit_check(yaml, [](Tree const &t){
         ASSERT_TRUE(t.rootref().is_map());
-        ASSERT_NE(t.find_child(t.root_id(), "explicit key"), NONE);
-        ASSERT_NE(t.find_child(t.root_id(), "block key\n"), NONE);
+        ASSERT_NE(t.find_child(t.root_id(), "explicit key"), (size_t)NONE);
+        ASSERT_NE(t.find_child(t.root_id(), "block key\n"), (size_t)NONE);
         EXPECT_EQ(t["explicit key"].val(), csubstr{});
         EXPECT_TRUE(t["block key\n"].is_seq());
         EXPECT_EQ(t["block key\n"][0], csubstr("one"));
@@ -26,7 +25,7 @@ TEST(explicit_key, test_suite_5WE3)
 }
 
 
-TEST(explicit_key, test_suite_DFF7)
+TEST(explicit_key, test_suite_DFF7_v1)
 {
     csubstr yaml = R"(
 {
@@ -37,12 +36,39 @@ implicit: entry,
 )";
     test_check_emit_check(yaml, [](Tree const &t){
         ASSERT_TRUE(t.rootref().is_map());
+        ASSERT_EQ(t.rootref().num_children(), 3u);
         ASSERT_TRUE(t.rootref().has_child("explicit"));
-        EXPECT_EQ(t["explicit"].val(), csubstr("empty"));
+        EXPECT_EQ(t["explicit"].val(), csubstr("entry"));
         ASSERT_TRUE(t.rootref().has_child("implicit"));
-        EXPECT_EQ(t["explicit"].val(), csubstr("empty"));
+        EXPECT_EQ(t["explicit"].val(), csubstr("entry"));
         ASSERT_TRUE(t.rootref().has_child(csubstr{}));
         EXPECT_EQ(t[csubstr{}].val(), csubstr{});
+    });
+}
+
+TEST(explicit_key, test_suite_DFF7_v2)
+{
+    csubstr yaml = R"(
+{
+?
+  key on next line
+:
+  val on next line
+,
+?
+  # no key
+:
+  val on next line
+}
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_map());
+        ASSERT_EQ(t.rootref().num_children(), 2u);
+        ASSERT_TRUE(t.rootref().has_child("key on next line"));
+        EXPECT_EQ(t[0].key(), "key on next line");
+        EXPECT_EQ(t[0].val(), "val on next line");
+        EXPECT_EQ(t[1].key(), csubstr{});
+        EXPECT_EQ(t[1].val(), "val on next line");
     });
 }
 
@@ -65,23 +91,27 @@ TEST(explicit_key, test_suite_FRK4)
 }
 
 
-TEST(explicit_key, test_suite_NJ66)
+TEST(explicit_key, test_suite_M2N8)
 {
     csubstr yaml = R"(
-- { single line: value}
-- { multi
-  line: value}
+- ? : x
+- ? : 
+- ? :
 )";
     test_check_emit_check(yaml, [](Tree const &t){
         ASSERT_TRUE(t.rootref().is_seq());
-        ASSERT_EQ(t.rootref().num_children(), 2);
-        ASSERT_TRUE(t[0].has_child("single line"));
-        EXPECT_EQ(t[0]["single line"].val(), csubstr("value"));
-        ASSERT_TRUE(t[1].has_child("multi line"));
-        EXPECT_EQ(t[1]["multi line"].val(), csubstr("value"));
+        ASSERT_EQ(t.rootref().num_children(), 3u);
+        ASSERT_EQ(t[0].num_children(), 1u);
+        EXPECT_EQ(t[0][0].key(), csubstr{});
+        EXPECT_EQ(t[0][0].val(), "x");
+        ASSERT_EQ(t[1].num_children(), 1u);
+        EXPECT_EQ(t[1][0].key(), csubstr{});
+        EXPECT_EQ(t[1][0].val(), csubstr{});
+        ASSERT_EQ(t[2].num_children(), 1u);
+        EXPECT_EQ(t[2][0].key(), csubstr{});
+        EXPECT_EQ(t[2][0].val(), csubstr{});
     });
 }
-#endif
 
 
 //-----------------------------------------------------------------------------
@@ -91,6 +121,37 @@ TEST(explicit_key, test_suite_NJ66)
 
 CASE_GROUP(EXPLICIT_KEY)
 {
+//
+ADD_CASE_TO_GROUP("explicit key, last value missing",
+R"(
+? a
+? b
+?
+--- !!set   # test that we do not add any last item
+? a
+? b
+--- !!set   # test that we do add the last item
+? a
+? b
+?
+)",
+N(STREAM, L{
+        N(DOCMAP, L{
+                N(KEYVAL, "a", {}),
+                N(KEYVAL, "b", {}),
+                N(KEYVAL, "", {})
+            }),
+        N(DOCMAP, TL("!!set", L{
+                    N(KEYVAL, "a", {}),
+                    N(KEYVAL, "b", {}),
+                })),
+        N(DOCMAP, TL("!!set", L{
+                    N(KEYVAL, "a", {}),
+                    N(KEYVAL, "b", {}),
+                    N(KEYVAL, "", {})
+                })),
+    })
+);
 
 ADD_CASE_TO_GROUP("explicit key, ambiguity 2EBW",
 R"(
@@ -315,14 +376,25 @@ R"(? >-
    }
 );
 
-ADD_CASE_TO_GROUP("explicit key, missing val 7W2P ZWK4",
-R"(--- # 7W2P
+ADD_CASE_TO_GROUP("explicit key, missing val 7W2P",
+R"(
 ? a
 ? b
 c:
 ? d
 e:
---- # ZWK4
+)",
+N(MAP, L{
+        N(KEYVAL, "a", {}),
+        N(KEYVAL, "b", {}),
+        N(KEYVAL, "c", {}),
+        N(KEYVAL, "d", {}),
+        N(KEYVAL, "e", {}),
+    })
+);
+
+ADD_CASE_TO_GROUP("explicit key, missing val ZWK4",
+R"(
 a: 1
 ? b
 &anchor c: 3
@@ -330,24 +402,16 @@ a: 1
 !!str e: 4
 ? f
 )",
-  N(STREAM, L{
-      N(DOCMAP, L{
-              N(KEYVAL, "a", {}),
-              N(KEYVAL, "b", {}),
-              N(KEYVAL, "c", {}),
-              N(KEYVAL, "d", {}),
-              N(KEYVAL, "e", {}),
-          }),
-      N(DOCMAP, L{
-              N("a", "1"),
-              N(KEYVAL, "b", {}),
-              N("c", AR(KEYANCH, "anchor"), "3"),
-              N(KEYVAL, "d", {}),
-              N(TS("!!str", "e"), "4"),
-              N(KEYVAL, "f", {}),
-          }),
-  })
-    );
+N(MAP, L{
+        N("a", "1"),
+        N(KEYVAL, "b", {}),
+        N("c", AR(KEYANCH, "anchor"), "3"),
+        N(KEYVAL, "d", {}),
+        N(TS("!!str", "e"), "4"),
+        N(KEYVAL, "f", {}),
+    })
+);
+
 }
 
 } // namespace yml
