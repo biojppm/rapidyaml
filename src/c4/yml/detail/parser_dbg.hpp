@@ -51,7 +51,7 @@ void _dbg_printf(c4::csubstr fmt, Args&& ...args)
 #   define _c4dbgq(msg)        _dbg_printf(msg "\n")
 #   define _c4err(fmt, ...)   \
     do { if(c4::is_debugger_attached()) { C4_DEBUG_BREAK(); } \
-         this->_err("ERROR:\n" "%s:%d: " fmt, __FILE__, __LINE__, ## __VA_ARGS__); } while(0)
+         this->_err("ERROR:\n" "{}:{}: " fmt, __FILE__, __LINE__, ## __VA_ARGS__); } while(0)
 #else
 #   define _c4dbgt(fmt, ...)
 #   define _c4dbgpf(fmt, ...)
@@ -63,21 +63,20 @@ void _dbg_printf(c4::csubstr fmt, Args&& ...args)
 #endif
 
 #define _c4prsp(sp) sp
-#define _c4prc(c) (__c4prc(c) ? 2 : 1), (__c4prc(c) ? __c4prc(c) : &c)
 #define _c4presc(s) __c4presc(s.str, s.len)
-inline const char *__c4prc(const char c)
+inline c4::csubstr _c4prc(const char &C4_RESTRICT c)
 {
     switch(c)
     {
-    case '\n': return "\\n";
-    case '\t': return "\\t";
-    case '\0': return "\\0";
-    case '\r': return "\\r";
-    case '\f': return "\\f";
-    case '\b': return "\\b";
-    case '\v': return "\\v";
-    case '\a': return "\\a";
-    default: return nullptr;
+    case '\n': return c4::csubstr("\\n");
+    case '\t': return c4::csubstr("\\t");
+    case '\0': return c4::csubstr("\\0");
+    case '\r': return c4::csubstr("\\r");
+    case '\f': return c4::csubstr("\\f");
+    case '\b': return c4::csubstr("\\b");
+    case '\v': return c4::csubstr("\\v");
+    case '\a': return c4::csubstr("\\a");
+    default: return c4::csubstr(&c, 1);
     }
 }
 inline void __c4presc(const char *s, size_t len)

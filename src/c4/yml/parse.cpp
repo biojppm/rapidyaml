@@ -370,24 +370,23 @@ void Parser::_fmt_msg(DumpFn &&dumpfn) const
     if(contents.len)
     {
         // print the yaml src line
-        size_t offs;
-        if( ! m_file.empty())
-            offs = _parse_dump(dumpfn, "{}:{}:{}", m_file, m_state->pos.line, m_state->pos.col);
-        else
-            offs = _parse_dump(dumpfn, "{}:{}", m_state->pos.line, m_state->pos.col);
+        size_t offs = 3u + to_chars(substr{}, m_state->pos.line) + to_chars(substr{}, m_state->pos.col);
+        if(m_file.len)
+        {
+            _parse_dump(dumpfn, "{}:", m_file);
+            offs += m_file.len + 1;
+        }
+        _parse_dump(dumpfn, "{}:{}: ", m_state->pos.line, m_state->pos.col);
+        csubstr maybe_full_content = (contents.len < 80u ? contents : contents.first(80u));
         csubstr maybe_ellipsis = (contents.len < 80u ? csubstr{} : csubstr("..."));
-        _parse_dump(dumpfn, "{}:{}",m_state->pos.line, m_state->pos.col);
-        _parse_dump(dumpfn, "{}{}  (size={})\n",
-                    (contents.len < 80u ? contents : contents.first(80u)),
-                    maybe_ellipsis,
-                    contents.len);
+        _parse_dump(dumpfn, "{}{}  (size={})\n", maybe_full_content, maybe_ellipsis, contents.len);
         // highlight the remaining portion of the previous line
         size_t firstcol = (size_t)(lc.rem.begin() - lc.full.begin());
         size_t lastcol = firstcol + lc.rem.len;
         for(size_t i = 0; i < offs + firstcol; ++i)
             dumpfn(" ");
         dumpfn("^");
-        for(size_t i = 0, e = (lc.rem.len < 80u ? lc.rem.len : 80u); i < e; ++i)
+        for(size_t i = 1, e = (lc.rem.len < 80u ? lc.rem.len : 80u); i < e; ++i)
             dumpfn("~");
         _parse_dump(dumpfn, "{}  (cols {}-{})\n", maybe_ellipsis, firstcol+1, lastcol+1);
     }
