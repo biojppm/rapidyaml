@@ -110,7 +110,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     // These tests are skipped because they cover parts of YAML that
     // are deliberately not implemented by ryml.
 
-    #ifndef RYML_WITH_TAB_TOKENS - or : are supported only when the above macro is defined
+    #ifndef RYML_WITH_TAB_TOKENS // - or : are supported only when the above macro is defined
     _("6BCT-in_yaml"           , "tabs after - or :"),
     _("J3BT-in_yaml-events"    , "tabs after - or :"),
     #endif

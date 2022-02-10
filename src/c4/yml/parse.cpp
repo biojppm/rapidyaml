@@ -19,7 +19,7 @@
 //#define RYML_WITH_TAB_TOKENS
 #ifdef RYML_WITH_TAB_TOKENS
 #define _RYML_WITH_TAB_TOKENS(...) __VA_ARGS__
-#define _RYML_WITH_OR_WITHOUT_TAB_TOKENS(...) with
+#define _RYML_WITH_OR_WITHOUT_TAB_TOKENS(with, without) with
 #else
 #define _RYML_WITH_TAB_TOKENS(...)
 #define _RYML_WITH_OR_WITHOUT_TAB_TOKENS(with, without) without
@@ -836,6 +836,30 @@ bool Parser::_handle_unk()
     return false;
 }
 
+
+//-----------------------------------------------------------------------------
+C4_ALWAYS_INLINE void Parser::_skipchars(char c)
+{
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->line_contents.rem.begins_with(c));
+    size_t pos = m_state->line_contents.rem.first_not_of(c);
+    if(pos == npos)
+        pos = m_state->line_contents.rem.len; // maybe the line is just whitespace
+    _c4dbgpf("skip {} '{}'", pos, c);
+    _line_progressed(pos);
+}
+
+template<size_t N>
+C4_ALWAYS_INLINE void Parser::_skipchars(const char (&chars)[N])
+{
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->line_contents.rem.begins_with_any(chars));
+    size_t pos = m_state->line_contents.rem.first_not_of(chars);
+    if(pos == npos)
+        pos = m_state->line_contents.rem.len; // maybe the line is just whitespace
+    _c4dbgpf("skip {} characters", pos);
+    _line_progressed(pos);
+}
+
+
 //-----------------------------------------------------------------------------
 bool Parser::_handle_seq_expl()
 {
@@ -849,22 +873,13 @@ bool Parser::_handle_seq_expl()
     {
         // with explicit flow, indentation does not matter
         _c4dbgp("starts with spaces");
-        size_t pos = rem.first_not_of(' ');
-        if(pos == npos)
-            pos = rem.len;
-        _c4dbgpf("skip {} spaces", pos);
-        _line_progressed(pos);
+        _skipchars(' ');
         return true;
     }
     _RYML_WITH_TAB_TOKENS(else if(rem.begins_with('\t'))
     {
-        // with explicit flow, indentation does not matter
         _c4dbgp("starts with tabs");
-        size_t pos = rem.first_not_of('\t');
-        if(pos == npos)
-            pos = rem.len;
-        _c4dbgpf("skip {} tabs", pos);
-        _line_progressed(pos);
+        _skipchars('\t');
         return true;
     })
     else if(rem.begins_with('#'))
@@ -993,7 +1008,7 @@ bool Parser::_handle_seq_expl()
             _line_progressed(1);
             return true;
         }
-        else if(rem.begins_with(": "))
+        else if(rem.begins_with(": ") _RYML_WITH_TAB_TOKENS( || rem.begins_with(":\t")))
         {
             _c4dbgpf("found ': ' -- there's an implicit map in the seq node[{}]", m_state->node_id);
             _start_seqimap();
@@ -1035,9 +1050,7 @@ bool Parser::_handle_seq_impl()
         _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RVAL));
 
         if(_handle_indentation())
-        {
             return true;
-        }
 
         if(rem.begins_with("- ") _RYML_WITH_TAB_TOKENS( || rem.begins_with("-\t")))
         {
@@ -1056,9 +1069,7 @@ bool Parser::_handle_seq_impl()
         else if(rem.begins_with_any(" \t"))
         {
             _RYML_CB_ASSERT(m_stack.m_callbacks,  ! _at_line_begin());
-            rem = rem.left_of(rem.first_not_of(" \t"));
-            _c4dbgpf("skipping {} spaces/tabs", rem.len);
-            _line_progressed(rem.len);
+            _skipchars(" \t");
             return true;
         }
         else if(rem.begins_with("..."))
@@ -1102,7 +1113,7 @@ bool Parser::_handle_seq_impl()
                 rem = rem.sub(skip);
             }
 
-            _c4dbgpf("rem=[%zu]~~~%.*s~~~", rem.len, _c4prsp(rem));
+            _c4dbgpf("rem=[{}]~~~{}~~~", rem.len, rem);
             if(!rem.begins_with('#') && (rem.ends_with(':') || rem.begins_with(": ") _RYML_WITH_TAB_TOKENS( || rem.begins_with(":\t"))))
             {
                 _c4dbgp("actually, the scalar is the first key of a map, and it opens a new scope");
@@ -1131,7 +1142,7 @@ bool Parser::_handle_seq_impl()
             }
             return true;
         }
-        else if(rem.begins_with("- "))
+        else if(rem.begins_with("- ") _RYML_WITH_TAB_TOKENS( || rem.begins_with("-\t")))
         {
             if(_rval_dash_start_or_continue_seq())
                 _line_progressed(2);
@@ -1279,22 +1290,14 @@ bool Parser::_handle_map_expl()
     {
         // with explicit flow, indentation does not matter
         _c4dbgp("starts with spaces");
-        size_t pos = rem.first_not_of(' ');
-        if(pos == npos)
-            pos = rem.len;
-        _c4dbgpf("skip {} spaces", pos);
-        _line_progressed(pos);
+        _skipchars(' ');
         return true;
     }
     _RYML_WITH_TAB_TOKENS(else if(rem.begins_with('\t'))
     {
         // with explicit flow, indentation does not matter
         _c4dbgp("starts with tabs");
-        size_t pos = rem.first_not_of('\t');
-        if(pos == npos)
-            pos = rem.len;
-        _c4dbgpf("skip {} tabs", pos);
-        _line_progressed(pos);
+        _skipchars('\t');
         return true;
     })
     else if(rem.begins_with('#'))
@@ -1360,7 +1363,7 @@ bool Parser::_handle_map_expl()
             _store_scalar(rem, is_quoted);
             rem = m_state->line_contents.rem;
             csubstr trimmed = rem.triml(" \t");
-            if(trimmed.len && (trimmed.begins_with(": ") || trimmed.begins_with_any(":,}")))
+            if(trimmed.len && (trimmed.begins_with(": ") || trimmed.begins_with_any(":,}") _RYML_WITH_TAB_TOKENS( || rem.begins_with(":\t"))))
             {
                 _RYML_CB_ASSERT(m_stack.m_callbacks, trimmed.str >= rem.str);
                 size_t num = static_cast<size_t>(trimmed.str - rem.str);
@@ -1370,7 +1373,7 @@ bool Parser::_handle_map_expl()
             }
         }
 
-        if(rem.begins_with(": "))
+        if(rem.begins_with(": ") _RYML_WITH_TAB_TOKENS( || rem.begins_with(":\t")))
         {
             _c4dbgp("wait for val");
             addrem_flags(RVAL, RKEY|QMRK);
@@ -1650,13 +1653,11 @@ bool Parser::_handle_map_impl()
             if(rem.begins_with(' '))
             {
                 _RYML_CB_ASSERT(m_stack.m_callbacks,  ! _at_line_begin());
-                rem = rem.left_of(rem.first_not_of(' '));
-                _c4dbgpf("skip {} spaces", rem.len);
-                _line_progressed(rem.len);
+                _skipchars(' ');
             }
             return true;
         }
-        else if(rem.begins_with(": ") _RYML_WITH_TAB_TOKENS( || rem.begins_with(":\t")))
+        else if(rem == ':' || rem.begins_with(": ") _RYML_WITH_TAB_TOKENS( || rem.begins_with(":\t")))
         {
             _c4dbgp("key finished");
             if(!has_all(SSCL))

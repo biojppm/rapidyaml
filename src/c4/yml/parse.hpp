@@ -363,6 +363,10 @@ private:
     void  _write_key_anchor(size_t node_id);
     void  _write_val_anchor(size_t node_id);
 
+    void _skipchars(char c);
+    template<size_t N>
+    void _skipchars(const char (&chars)[N]);
+
 private:
 
     static size_t _count_nlines(csubstr src);
