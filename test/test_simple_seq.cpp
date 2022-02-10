@@ -109,6 +109,63 @@ TEST(simple_seq, deeply_nested_to_cover_parse_stack_resizes)
 }
 
 
+#ifdef RYML_WITH_TAB_TOKENS
+TEST(simple_seq, block_tab_tokens)
+{
+    Tree tree = parse_in_arena(R"(
+--- # block, spaces only
+- 0
+- 1
+- 2
+--- # block, tabs after
+-	0
+-	1
+-	2
+--- # block, tabs after token, and after val
+-	0	
+-	1	
+-	2	
+)");
+    EXPECT_EQ(tree.docref(0)[0].val(), csubstr("0"));
+    EXPECT_EQ(tree.docref(0)[1].val(), csubstr("1"));
+    EXPECT_EQ(tree.docref(0)[2].val(), csubstr("2"));
+    EXPECT_EQ(tree.docref(1)[0].val(), csubstr("0"));
+    EXPECT_EQ(tree.docref(1)[1].val(), csubstr("1"));
+    EXPECT_EQ(tree.docref(1)[2].val(), csubstr("2"));
+}
+
+TEST(simple_seq, flow_tab_tokens)
+{
+    Tree tree = parse_in_arena(R"(
+--- # flow, no tabs
+[0, 1, 2]
+--- # flow, tabs after
+[0,	1,	2]
+--- # flow, tabs before and after
+[0	,	1	,	2]
+--- # flow, tabs everywhere
+	[	
+	0	,	
+	1	,	
+	2	, 	
+	]	
+)");
+    EXPECT_EQ(tree.docref(0)[0].val(), csubstr("0"));
+    EXPECT_EQ(tree.docref(0)[1].val(), csubstr("1"));
+    EXPECT_EQ(tree.docref(0)[2].val(), csubstr("2"));
+    EXPECT_EQ(tree.docref(1)[0].val(), csubstr("0"));
+    EXPECT_EQ(tree.docref(1)[1].val(), csubstr("1"));
+    EXPECT_EQ(tree.docref(1)[2].val(), csubstr("2"));
+    EXPECT_EQ(tree.docref(2)[0].val(), csubstr("0"));
+    EXPECT_EQ(tree.docref(2)[1].val(), csubstr("1"));
+    EXPECT_EQ(tree.docref(2)[2].val(), csubstr("2"));
+    EXPECT_EQ(tree.docref(3)[0].val(), csubstr("0"));
+    EXPECT_EQ(tree.docref(3)[1].val(), csubstr("1"));
+    EXPECT_EQ(tree.docref(3)[2].val(), csubstr("2"));
+}
+#endif // RYML_WITH_TAB_TOKENS
+
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -413,6 +470,11 @@ L{
     }
 );
 
+#ifdef RYML_WITH_TAB_TOKENS
+#define _ryml_with_or_without_tabs(with, without) with
+#else
+#define _ryml_with_or_without_tabs(with, without) without
+#endif
 ADD_CASE_TO_GROUP("simple seq expl, scalars with special chars, colon",
 R"(
 - [[], :@]
@@ -429,7 +491,7 @@ L{
    N(L{N(SEQ), N(":^")}),
    N(L{N(SEQ), N(":$")}),
    N(L{N(SEQ), N("::")}),
-   N(L{N(SEQ), N(":	")}),
+   N(L{N(SEQ), _ryml_with_or_without_tabs(N(MAP, L{N("", "")}), N(":	"))}),
    N(L{N(SEQ), N(":`")}),
 }
 );

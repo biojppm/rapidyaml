@@ -288,8 +288,8 @@ private:
     csubstr _scan_squot_scalar();
     csubstr _scan_dquot_scalar();
     csubstr _scan_block();
-    substr  _scan_plain_scalar_impl(csubstr currscalar, csubstr peeked_line, size_t indentation);
-    substr  _scan_plain_scalar_expl(csubstr currscalar, csubstr peeked_line);
+    substr  _scan_plain_scalar_blck(csubstr currscalar, csubstr peeked_line, size_t indentation);
+    substr  _scan_plain_scalar_flow(csubstr currscalar, csubstr peeked_line);
     substr  _scan_complex_key(csubstr currscalar, csubstr peeked_line);
     csubstr _scan_to_next_nonempty_line(size_t indentation);
     csubstr _extend_scanned_scalar(csubstr currscalar);
@@ -310,10 +310,10 @@ private:
     bool  _handle_indentation();
 
     bool  _handle_unk();
-    bool  _handle_map_expl();
-    bool  _handle_map_impl();
-    bool  _handle_seq_expl();
-    bool  _handle_seq_impl();
+    bool  _handle_map_flow();
+    bool  _handle_map_blck();
+    bool  _handle_seq_flow();
+    bool  _handle_seq_blck();
     bool  _handle_top();
     bool  _handle_types();
     bool  _handle_key_anchors_and_refs();
@@ -363,6 +363,10 @@ private:
     void  _write_key_anchor(size_t node_id);
     void  _write_val_anchor(size_t node_id);
 
+    void _skipchars(char c);
+    template<size_t N>
+    void _skipchars(const char (&chars)[N]);
+
 private:
 
     static size_t _count_nlines(csubstr src);
@@ -374,7 +378,7 @@ private:
         RUNK = 0x01 <<  1,   ///< reading an unknown: must determine whether scalar, map or seq
         RMAP = 0x01 <<  2,   ///< reading a map
         RSEQ = 0x01 <<  3,   ///< reading a seq
-        EXPL = 0x01 <<  4,   ///< reading is inside explicit flow chars: [] or {}
+        FLOW = 0x01 <<  4,   ///< reading is inside explicit flow chars: [] or {}
         QMRK = 0x01 <<  5,   ///< reading an explicit key (`? key`)
         RKEY = 0x01 <<  6,   ///< reading a scalar as key
         RVAL = 0x01 <<  7,   ///< reading a scalar as val

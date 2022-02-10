@@ -657,7 +657,8 @@ sample_location_tracking();    ///< track node locations in the parsed source tr
 
 ### Package managers
 
-If you opt for package managers, here's where ryml is available so far (thanks to all the contributors!):
+If you opt for package managers, here's where ryml is available so far
+(thanks to all the contributors!):
   * [vcpkg](https://vcpkg.io/en/packages.html): `vcpkg install ryml`
   * Arch Linux/Manjaro:
     * [rapidyaml-git (AUR)](https://aur.archlinux.org/packages/rapidyaml-git/)
@@ -766,6 +767,9 @@ more about each sample:
 The following cmake variables can be used to control the build behavior of
 ryml:
 
+  * `RYML_WITH_TAB_TOKENS=ON/OFF`. Enable/disable support for tabs as
+    valid container tokens after `:` and `-`. Defaults to `OFF`,
+    because this may cost up to 10% in processing time.
   * `RYML_DEFAULT_CALLBACKS=ON/OFF`. Enable/disable ryml's default
     implementation of error and allocation callbacks. Defaults to `ON`.
   * `RYML_STANDALONE=ON/OFF`. ryml uses
@@ -787,7 +791,8 @@ ryml is strongly coupled to c4core, and this is reinforced by the fact
 that c4core is a submodule of the current repo. However, it is still
 possible to use a c4core version different from the one in the repo
 (of course, only if there are no incompatibilities between the
-versions). You can find out how to achieve this by looking at the [`custom_c4core` sample](./samples/custom_c4core/CMakeLists.txt).
+versions). You can find out how to achieve this by looking at the
+[`custom_c4core` sample](./samples/custom_c4core/CMakeLists.txt).
 
 
 ------
@@ -814,8 +819,8 @@ be changed.) With that said, here's an example of the Python API:
 ```python
 import ryml
 
-# because ryml does not take ownership of the source buffer
-# ryml cannot accept strings; only bytes or bytearrays
+# ryml cannot accept strings because it does not take ownership of the
+# source buffer; only bytes or bytearrays are accepted.
 src = b"{HELLO: a, foo: b, bar: c, baz: d, seq: [0, 1, 2, 3]}"
 
 def check(tree):
@@ -914,17 +919,20 @@ See also [the roadmap](./ROADMAP.md) for a list of future work.
 
 ryml deliberately makes no effort to follow the standard in the following situations:
 
+* Tab characters after `:` and `-` are not accepted tokens, unless
+  ryml is compiled with the macro `RYML_WITH_TAB_TOKENS`. This
+  requirement exists because checking for tabs introduces branching
+  into the parser's hot code and in some cases costs as much as 10%
+  in parsing time.
 * Containers are not accepted as mapping keys: keys must be scalar strings.
 * Tags are parsed as-is; tag lookup is not supported.
 * Anchor names must not end with a terminating colon: eg `&anchor: key: val`.
-* Tabs after `:` or `-` are not supported.
 * `%TAG` directives have no effect and are ignored. All schemas are assumed
   to be the default YAML 2002 schema.
 * `%YAML` directives have no effect and are ignored.
 
-Some of the limitations above will be worked on (tag lookups, tab
-tokens). Others (notably container keys) absolutely will not, not in
-the data tree at least.
+Some of the limitations above will be worked on, (eg tag
+lookups). Others (notably container keys) most likely will not.
 
 Also, ryml tends to be on the permissive side where the YAML standard
 dictates there should be an error; in many of these cases, ryml will
@@ -937,12 +945,13 @@ problems, which is a good practice anyway.
 If you do run into trouble and would like to investigate conformance
 of your YAML code, beware of existing online YAML linters, many of
 which are not fully conformant; instead, try using
-[https://play.yaml.io](https://play.yaml.io), an amazing tool from the
-YAML people which lets you dynamically input your YAML and continuously
-see the results from all the existing parsers (kudos to
-@ingydotnet). And of course, if you detect anything bad with ryml,
-please [open an issue](https://github.com/biojppm/rapidyaml/issues) so
-that we can improve.
+[https://play.yaml.io](https://play.yaml.io), an amazing tool which
+lets you dynamically input your YAML and continuously see the results
+from all the existing parsers (kudos to @ingydotnet and the people
+from the YAML test suite). And of course, if you detect anything wrong
+with ryml, please [open an
+issue](https://github.com/biojppm/rapidyaml/issues) so that we can
+improve.
 
 
 ### Test suite status

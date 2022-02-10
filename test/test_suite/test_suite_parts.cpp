@@ -110,6 +110,10 @@ constexpr const AllowedFailure allowed_failures[] = {
     // These tests are skipped because they cover parts of YAML that
     // are deliberately not implemented by ryml.
 
+    #ifndef RYML_WITH_TAB_TOKENS // - or : are supported only when the above macro is defined
+    _("6BCT-in_yaml"           , "tabs after - or :"),
+    _("J3BT-in_yaml-events"    , "tabs after - or :"),
+    #endif
     // container keys are not supported
     _("4FJ6-in_yaml"           , "only scalar keys allowed (keys cannot be maps or seqs)"),
     _("4FJ6-out_yaml"          , "only scalar keys allowed (keys cannot be maps or seqs)"),
@@ -126,10 +130,10 @@ constexpr const AllowedFailure allowed_failures[] = {
     _("KZN9-out_yaml"          , "only scalar keys allowed (keys cannot be maps or seqs)"),
     _("LX3P-in_yaml"           , "only scalar keys allowed (keys cannot be maps or seqs)"),
     _("LX3P-out_yaml"          , "only scalar keys allowed (keys cannot be maps or seqs)"),
-    _("M2N8_00-in_yaml"        , "only scalar keys allowed (keys cannot be maps or seqs)"),// FIXME but only case 1
-    _("M2N8_00-out_yaml"       , "only scalar keys allowed (keys cannot be maps or seqs)"),// FIXME but only case 1
-    _("M2N8_01-in_yaml-events" , "only scalar keys allowed (keys cannot be maps or seqs)"),// FIXME but only case 1
-    _("M2N8_01-out_yaml-events", "only scalar keys allowed (keys cannot be maps or seqs)"),// FIXME but only case 1
+    _("M2N8_00-in_yaml"        , "only scalar keys allowed (keys cannot be maps or seqs)"),
+    _("M2N8_00-out_yaml"       , "only scalar keys allowed (keys cannot be maps or seqs)"),
+    _("M2N8_01-in_yaml-events" , "only scalar keys allowed (keys cannot be maps or seqs)"),
+    _("M2N8_01-out_yaml-events", "only scalar keys allowed (keys cannot be maps or seqs)"),
     _("M5DY-in_yaml"           , "only scalar keys allowed (keys cannot be maps or seqs)"),
     _("M5DY-out_yaml"          , "only scalar keys allowed (keys cannot be maps or seqs)"),
     _("Q9WF-in_yaml"           , "only scalar keys allowed (keys cannot be maps or seqs)"),
@@ -144,9 +148,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     _("X38W-out_yaml"          , "only scalar keys allowed (keys cannot be maps or seqs)"),
     _("XW4D-in_yaml"           , "only scalar keys allowed (keys cannot be maps or seqs)"),
     _("XW4D-out_yaml"          , "only scalar keys allowed (keys cannot be maps or seqs)"),
-    // tabs after - or : are not supported
-    _("6BCT-in_yaml"           , "tabs after - or :"),
-    _("J3BT-in_yaml-events"    , "tabs after - or :"),
     // anchors with : are not supported
     _("2SXE-in_yaml-events"    , "weird characters in anchors, anchors must not end with :"),
     // tags are parsed as-is; tag lookup is not supported

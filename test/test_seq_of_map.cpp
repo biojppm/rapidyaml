@@ -132,26 +132,25 @@ TEST(seq_of_map, missing_scalars_v3)
     EXPECT_EQ(t["a"][1].first_child().val(), nullptr);
 }
 
-TEST(explicit_key, test_suite_NJ66)
+#ifdef RYML_WITH_TAB_TOKENS
+TEST(seq_of_map, test_suite_6BCT)
 {
-    csubstr yaml = R"(
-- { single line: value}
-- { multi
-  line: value}
-- { multi
-    line: value}
-)";
-    test_check_emit_check(yaml, [](Tree const &t){
-        ASSERT_TRUE(t.rootref().is_seq());
-        ASSERT_EQ(t.rootref().num_children(), 3u);
-        ASSERT_TRUE(t[0].has_child("single line"));
-        ASSERT_TRUE(t[1].has_child("multi line"));
-        ASSERT_TRUE(t[2].has_child("multi line"));
-        EXPECT_EQ(t[0]["single line"].val(), csubstr("value"));
-        EXPECT_EQ(t[1]["multi line"].val(), csubstr("value"));
-        EXPECT_EQ(t[2]["multi line"].val(), csubstr("value"));
-    });
+    Tree t = parse_in_arena(R"(
+- foo0: bar0
+-	 foo1	 :	 bar1	 
+- 	foo2 	: 	bar2 	
+)");
+    #ifdef RYML_DBG
+    print_tree(t);
+    #endif
+    ASSERT_TRUE(t[0].is_map());
+    ASSERT_TRUE(t[1].is_map());
+    ASSERT_TRUE(t[2].is_map());
+    EXPECT_EQ(t[0]["foo0"].val(), csubstr("bar0"));
+    EXPECT_EQ(t[1]["foo1"].val(), csubstr("bar1"));
+    EXPECT_EQ(t[2]["foo2"].val(), csubstr("bar2"));
 }
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -275,7 +274,7 @@ L{N(KEYSEQ|KEYQUO, "implicit block key", L{
   N(L{N(KEYSEQ|KEYQUO, "implicit flow key s", L{N("val1"), N("val2")})}),
 })});
 
-/* TODO JAVAI 209
+
 ADD_CASE_TO_GROUP("seq of maps, implicit map in seq, missing scalar",
 R"({a : [
   : foo
@@ -294,7 +293,7 @@ L{
   N("b", L{N(MAP, L{N("", "foo")}),}),
   N("c", L{N(MAP, L{N(KEYVAL, "", {})}), N(MAP, L{N(KEYVAL, "", {})}),}),
 });
-*/
+
 
 ADD_CASE_TO_GROUP("seq of maps, implicit with anchors, unresolved",
 R"(
@@ -309,6 +308,7 @@ L{
   N(L{N( "a1", AR(KEYANCH, "a1"), "v1"), N( "a2", AR(KEYANCH, "a2"), "v2"), N( "a3", AR(KEYANCH, "a3"), "v3")}),
   N(L{N("*a1", AR(KEYREF, "*a1"), "w1"), N("*a2", AR(KEYREF, "*a2"), "w2"), N("*a3", AR(KEYREF, "*a3"), "w3")}),
 });
+
 
 ADD_CASE_TO_GROUP("seq of maps, implicit with anchors, resolved", RESOLVE_REFS,
 R"(
