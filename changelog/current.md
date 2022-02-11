@@ -98,6 +98,8 @@ As part of the [new feature to track source locations](https://github.com/biojpp
   assert(from_tag_long(TAG_MAP) == "<tag:yaml.org,2002:map>");
   assert(normalize_tag_long("!!map") == "<tag:yaml.org,2002:map>");
   ```
+- Add an experimental API to resolve tags based on the tree's tag directives. This API is still imature and will likely be subject to changes, so we won't document it yet.
+- Regarding emit styles (see issue [#37](https://github.com/biojppm/rapidyaml/issues/37)): add an experimental API to force flow/block style on container nodes, as well as block-literal/block-folded/double-quoted/single-quoted/plain styles on scalar nodes. This API is also immature and will likely be subject to changes, so we won't document it yet. But if you are desperate for this functionality, the new facilities will let you go further.
 
 
 ### Fixes

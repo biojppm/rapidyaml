@@ -128,7 +128,6 @@ csubstr filtered_scalar(csubstr str, ScalarType scalar_type, Tree *tree)
     return buf;
 }
 
-
 struct Scalar
 {
     OptionalScalar scalar = {};

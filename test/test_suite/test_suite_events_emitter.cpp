@@ -1,3 +1,6 @@
+#ifndef RYML_SINGLE_HEADER
+#include <c4/yml/std/string.hpp>
+#endif
 #include "test_suite_events.hpp"
 
 namespace c4 {
@@ -7,9 +10,10 @@ struct EventsEmitter
 {
     substr buf;
     size_t pos;
+    std::string tagbuf;
     Tree const* C4_RESTRICT m_tree;
     EventsEmitter(Tree const& tree, substr buf_) : buf(buf_), pos(), m_tree(&tree) {}
-    void emit_tag(csubstr tag);
+    void emit_tag(csubstr tag, size_t node);
     void emit_scalar(csubstr val, bool quoted);
     void emit_key_anchor_tag(size_t node);
     void emit_val_anchor_tag(size_t node);
@@ -113,18 +117,31 @@ void EventsEmitter::emit_scalar(csubstr val, bool quoted)
     pr(val.sub(prev)); // print remaining portion
 }
 
-void EventsEmitter::emit_tag(csubstr tag)
+void EventsEmitter::emit_tag(csubstr tag, size_t node)
 {
-    csubstr ntag = normalize_tag_long(tag);
-    if(ntag.begins_with('<'))
+    size_t tagsize = m_tree->resolve_tag(to_substr(tagbuf), tag, node);
+    if(tagsize)
     {
-        pr(ntag);
+        if(tagsize > tagbuf.size())
+        {
+            tagbuf.resize(tagsize);
+            tagsize = m_tree->resolve_tag(to_substr(tagbuf), tag, node);
+        }
+        pr(to_substr(tagbuf).first(tagsize));
     }
     else
     {
-        pr('<');
-        pr(ntag);
-        pr('>');
+        csubstr ntag = normalize_tag_long(tag);
+        if(ntag.begins_with('<'))
+        {
+            pr(ntag);
+        }
+        else
+        {
+            pr('<');
+            pr(ntag);
+            pr('>');
+        }
     }
 }
 
@@ -138,7 +155,7 @@ void EventsEmitter::emit_key_anchor_tag(size_t node)
     if(m_tree->has_key_tag(node))
     {
         pr(' ');
-        emit_tag(m_tree->key_tag(node));
+        emit_tag(m_tree->key_tag(node), node);
     }
 }
 
@@ -152,7 +169,7 @@ void EventsEmitter::emit_val_anchor_tag(size_t node)
     if(m_tree->has_val_tag(node))
     {
         pr(' ');
-        emit_tag(m_tree->val_tag(node));
+        emit_tag(m_tree->val_tag(node), node);
     }
 }
 

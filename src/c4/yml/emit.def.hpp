@@ -78,10 +78,37 @@ void Emitter<Writer>::_emit_yaml(size_t id)
         }
     }
 
+    auto *btd = m_tree->tag_directives().b;
+    auto *etd = m_tree->tag_directives().e;
+    auto write_tag_directives = [&btd, etd, this](size_t next_node){
+        auto end = btd;
+        while(end < etd)
+        {
+            if(end->next_node_id > next_node)
+                break;
+            ++end;
+        }
+        for( ; btd != end; ++btd)
+        {
+            if(next_node != m_tree->first_child(m_tree->parent(next_node)))
+                this->Writer::_do_write("...\n");
+            this->Writer::_do_write("%TAG ");
+            this->Writer::_do_write(btd->handle);
+            this->Writer::_do_write(' ');
+            this->Writer::_do_write(btd->prefix);
+            this->Writer::_do_write('\n');
+        }
+    };
     if(m_tree->is_stream(id))
     {
+        if(m_tree->first_child(id) != NONE)
+            write_tag_directives(m_tree->first_child(id));
         for(size_t child = m_tree->first_child(id); child != NONE; child = m_tree->next_sibling(child))
+        {
             dispatch(child);
+            if(m_tree->next_sibling(child) != NONE)
+                write_tag_directives(m_tree->next_sibling(child));
+        }
     }
     else if(m_tree->is_container(id))
     {
