@@ -1745,7 +1745,7 @@ bool Parser::_handle_map_blck()
             }
             return true;
         }
-        else if(rem.begins_with("- "))
+        else if(rem.begins_with("- ") _RYML_WITH_TAB_TOKENS( || rem.begins_with("-\t")))
         {
             _c4dbgp("val is a nested seq, indented");
             addrem_flags(RKEY, RVAL); // before _push_level!
@@ -2332,6 +2332,9 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
             _c4dbgp("RSEQ|RVAL");
             if( ! _is_scalar_next__rseq_rval(s))
                 return false;
+            _RYML_WITH_TAB_TOKENS(else if(s.begins_with("-\t"))
+                return false;
+            )
             if(s.ends_with(':'))
             {
                 --s.len;
@@ -2430,6 +2433,9 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
             _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(QMRK));
             if( ! _is_scalar_next__rmap_val(s))
                 return false;
+            _RYML_WITH_TAB_TOKENS(else if(s.begins_with("-\t"))
+                return false;
+            )
             s = s.left_of(s.find(" #")); // is there a comment?
             s = s.left_of(s.find("\t#")); // is there a comment?
             if(has_any(FLOW))

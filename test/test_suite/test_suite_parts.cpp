@@ -24,7 +24,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     // other
     _("UKK6_01-in_yaml"         , "fails to parse double :: in UNK state"),
     // tabs
-    _("A2M4-in_yaml-events"     , "indentation with tabs causes problems"),
     _("DK95_00-emit_yaml-events", "indentation with tabs causes problems"),
     _("DK95_01-error"           , "indentation with tabs causes problems"),
     _("DK95_02-emit_yaml-events", "indentation with tabs causes problems"),
@@ -117,8 +116,10 @@ constexpr const AllowedFailure allowed_failures[] = {
     // are deliberately not implemented by ryml.
 
     #ifndef RYML_WITH_TAB_TOKENS // -<tab> or :<tab> are supported only when the above macro is defined
-    _("6BCT-in_yaml"           , "tabs after - or :"),
-    _("J3BT-in_yaml-events"    , "tabs after - or :"),
+    _("A2M4-in_yaml-events"    , "tabs tokens"),
+    _("6BCT-in_yaml"           , "tabs tokens"),
+    _("J3BT-in_yaml-events"    , "tabs tokens"),
+    _("Y79Y_010-in_yaml-events", "tabs tokens"),
     #endif
     // container keys are not supported
     _("4FJ6-in_yaml"           , "only scalar keys allowed (keys cannot be maps or seqs)"),
