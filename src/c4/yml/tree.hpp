@@ -108,12 +108,26 @@ typedef enum : tag_bits {
     TAG_YAML      = 15, /**< !!yaml   Specify the default value of a mapping https://yaml.org/type/yaml.html */
 } YamlTag_e;
 
-
 YamlTag_e to_tag(csubstr tag);
 csubstr from_tag(YamlTag_e tag);
 csubstr from_tag_long(YamlTag_e tag);
 csubstr normalize_tag(csubstr tag);
 csubstr normalize_tag_long(csubstr tag);
+
+struct TagDirective
+{
+    /** Eg `!e!` in `%TAG !e! tag:example.com,2000:app/` */
+    csubstr handle;
+    /** Eg `tag:example.com,2000:app/` in `%TAG !e! tag:example.com,2000:app/` */
+    csubstr prefix;
+    /** The next node to which this tag directive applies */
+    size_t next_node_id;
+};
+
+#ifndef RYML_MAX_TAG_DIRECTIVES
+/** the maximum number of tag directives in a Tree */
+#define RYML_MAX_TAG_DIRECTIVES 4
+#endif
 
 
 
@@ -152,6 +166,7 @@ typedef enum : type_bits {
     DOCMAP  = DOC|MAP,
     DOCSEQ  = DOC|SEQ,
     DOCVAL  = DOC|VAL,
+    // these flags are from a work in progress and should not be used yet
     _WIP_STYLE_FLOW_SL = c4bit(14), ///< mark container with single-line flow format (seqs as '[val1,val2], maps as '{key: val, key2: val2}')
     _WIP_STYLE_FLOW_ML = c4bit(15), ///< mark container with multi-line flow format (seqs as '[val1,\nval2], maps as '{key: val,\nkey2: val2}')
     _WIP_STYLE_BLOCK   = c4bit(16), ///< mark container with block format (seqs as '- val\n', maps as 'key: val')
@@ -248,6 +263,7 @@ public:
     C4_ALWAYS_INLINE bool is_val_quoted() const { return (type & (VAL|VALQUO)) == (VAL|VALQUO); }
     C4_ALWAYS_INLINE bool is_quoted() const { return (type & (KEY|KEYQUO)) == (KEY|KEYQUO) || (type & (VAL|VALQUO)) == (VAL|VALQUO); }
 
+    // these predicates are a work in progress and subject to change. Don't use yet.
     C4_ALWAYS_INLINE bool default_block() const { return (type & (_WIP_STYLE_BLOCK|_WIP_STYLE_FLOW_ML|_WIP_STYLE_FLOW_SL)) == 0; }
     C4_ALWAYS_INLINE bool marked_block() const { return (type & (_WIP_STYLE_BLOCK)) != 0; }
     C4_ALWAYS_INLINE bool marked_flow_sl() const { return (type & (_WIP_STYLE_FLOW_SL)) != 0; }
@@ -732,6 +748,39 @@ public:
 
 public:
 
+    /** @name tag directives */
+    /** @{ */
+
+    void resolve_tags();
+
+    size_t num_tag_directives() const;
+    size_t add_tag_directive(TagDirective const& td);
+    void clear_tag_directives();
+
+    size_t resolve_tag(substr output, csubstr tag, size_t node_id) const;
+    csubstr resolve_tag_sub(substr output, csubstr tag, size_t node_id) const
+    {
+        size_t needed = resolve_tag(output, tag, node_id);
+        return needed <= output.len ? output.first(needed) : output;
+    }
+
+    using tag_directive_const_iterator = TagDirective const*;
+    tag_directive_const_iterator begin_tag_directives() const { return m_tag_directives; }
+    tag_directive_const_iterator end_tag_directives() const { return m_tag_directives + num_tag_directives(); }
+
+    struct TagDirectiveProxy
+    {
+        tag_directive_const_iterator b, e;
+        tag_directive_const_iterator begin() const { return b; }
+        tag_directive_const_iterator end() const { return e; }
+    };
+
+    TagDirectiveProxy tag_directives() const { return TagDirectiveProxy{begin_tag_directives(), end_tag_directives()}; }
+
+    /** @} */
+
+public:
+
     /** @name modifying hierarchy */
     /** @{ */
 
@@ -966,7 +1015,7 @@ public:
      * existing arena, and thus change the contents of individual nodes. */
     substr alloc_arena(size_t sz)
     {
-        if(sz >= arena_slack())
+        if(sz > arena_slack())
             _grow_arena(sz - arena_slack());
         substr s = _request_span(sz);
         return s;
@@ -1324,6 +1373,8 @@ public:
     size_t m_arena_pos;
 
     Callbacks m_callbacks;
+
+    TagDirective m_tag_directives[RYML_MAX_TAG_DIRECTIVES];
 
 };
 

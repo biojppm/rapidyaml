@@ -80,7 +80,14 @@ void test_compare(Tree const& actual, size_t node_actual,
     EXPECT_EQ(actual.has_val_tag(node_actual), expected.has_val_tag(node_expected)) << _MORE_INFO;
     if(actual.has_val_tag(node_actual) && expected.has_val_tag(node_expected))
     {
-        EXPECT_EQ(actual.val_tag(node_actual), expected.val_tag(node_expected)) << _MORE_INFO;
+        auto filtered = [](csubstr tag) {
+            if(tag.begins_with("!<!") && tag.ends_with('>'))
+                return tag.offs(3, 1);
+            return tag;
+        };
+        csubstr actual_tag = filtered(actual.val_tag(node_actual));
+        csubstr expected_tag = filtered(actual.val_tag(node_expected));
+        EXPECT_EQ(actual_tag, expected_tag) << _MORE_INFO;
     }
 
     EXPECT_EQ(actual.has_key_anchor(node_actual), expected.has_key_anchor(node_expected)) << _MORE_INFO;
@@ -108,7 +115,7 @@ void test_compare(Tree const& actual, size_t node_actual,
 
 void test_arena_not_shared(Tree const& a, Tree const& b)
 {
-    for(NodeData *n = a.m_buf, *e = a.m_buf + a.m_cap; n != e; ++n)
+    for(NodeData const* n = a.m_buf, *e = a.m_buf + a.m_cap; n != e; ++n)
     {
         EXPECT_FALSE(b.in_arena(n->m_key.scalar)) << n - a.m_buf;
         EXPECT_FALSE(b.in_arena(n->m_key.tag   )) << n - a.m_buf;
@@ -117,7 +124,7 @@ void test_arena_not_shared(Tree const& a, Tree const& b)
         EXPECT_FALSE(b.in_arena(n->m_val.tag   )) << n - a.m_buf;
         EXPECT_FALSE(b.in_arena(n->m_val.anchor)) << n - a.m_buf;
     }
-    for(NodeData *n = b.m_buf, *e = b.m_buf + b.m_cap; n != e; ++n)
+    for(NodeData const* n = b.m_buf, *e = b.m_buf + b.m_cap; n != e; ++n)
     {
         EXPECT_FALSE(a.in_arena(n->m_key.scalar)) << n - b.m_buf;
         EXPECT_FALSE(a.in_arena(n->m_key.tag   )) << n - b.m_buf;
@@ -125,6 +132,16 @@ void test_arena_not_shared(Tree const& a, Tree const& b)
         EXPECT_FALSE(a.in_arena(n->m_val.scalar)) << n - b.m_buf;
         EXPECT_FALSE(a.in_arena(n->m_val.tag   )) << n - b.m_buf;
         EXPECT_FALSE(a.in_arena(n->m_val.anchor)) << n - b.m_buf;
+    }
+    for(TagDirective const& td : a.m_tag_directives)
+    {
+        EXPECT_FALSE(b.in_arena(td.handle));
+        EXPECT_FALSE(b.in_arena(td.prefix));
+    }
+    for(TagDirective const& td : b.m_tag_directives)
+    {
+        EXPECT_FALSE(a.in_arena(td.handle));
+        EXPECT_FALSE(a.in_arena(td.prefix));
     }
 }
 

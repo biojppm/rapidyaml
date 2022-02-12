@@ -243,6 +243,170 @@ description:
 }
 
 
+TEST(events, tag_directives_6CK3)
+{
+    test_evts(
+        R"(
+%TAG !e! tag:example.com,2000:app/
+---
+- !local foo
+- !!str bar
+- !e!tag%21 baz
+)",
+        R"(+STR
++DOC ---
++SEQ
+=VAL <!local> :foo
+=VAL <tag:yaml.org,2002:str> :bar
+=VAL <tag:example.com,2000:app/tag!> :baz
+-SEQ
+-DOC
+-STR
+)");
+}
+
+TEST(events, tag_directives_6VLF)
+{
+    test_evts(
+        R"(
+%FOO  bar baz # Should be ignored
+              # with a warning.
+--- "foo"
+)",
+        R"(+STR
++DOC ---
+=VAL 'foo
+-DOC
+-STR
+)");
+}
+
+TEST(events, tag_directives_6WLZ)
+{
+    test_evts(
+        R"(
+# Private
+---
+!foo "bar"
+...
+# Global
+%TAG ! tag:example.com,2000:app/
+---
+!foo "bar"
+)",
+        R"(+STR
++DOC ---
+=VAL <!foo> 'bar
+-DOC
++DOC ---
+=VAL <tag:example.com,2000:app/foo> 'bar
+-DOC
+-STR
+)");
+}
+
+TEST(events, tag_directives_9WXW)
+{
+    test_evts(
+        R"(
+# Private
+#---   # note this is commented out
+!foo "bar"
+...
+# Global
+%TAG ! tag:example.com,2000:app/
+---
+!foo "bar"
+)",
+        R"(+STR
++DOC ---
+=VAL <!foo> 'bar
+-DOC
++DOC ---
+=VAL <tag:example.com,2000:app/foo> 'bar
+-DOC
+-STR
+)");
+}
+
+
+TEST(events, tag_directives_7FWL)
+{
+    test_evts(
+        R"(!<tag:yaml.org,2002:str> foo :
+  !<!bar> baz
+)",
+        R"(+STR
++DOC
++MAP
+=VAL <tag:yaml.org,2002:str> :foo
+=VAL <!bar> :baz
+-MAP
+-DOC
+-STR
+)");
+}
+
+TEST(events, tag_directives_P76L)
+{
+    test_evts(
+        R"(
+%TAG !! tag:example.com,2000:app/
+---
+!!int 1 - 3 # Interval, not integer
+)",
+        R"(+STR
++DOC ---
+=VAL <tag:example.com,2000:app/int> :1 - 3
+-DOC
+-STR
+)");
+}
+
+TEST(events, tag_directives_S4JQ)
+{
+    test_evts(
+        R"(
+- "12"
+- 12
+- ! 12
+)",
+        R"(+STR
++DOC
++SEQ
+=VAL '12
+=VAL :12
+=VAL <!> :12
+-SEQ
+-DOC
+-STR
+)");
+}
+
+TEST(events, tag_directives_lookup)
+{
+    test_evts(
+        R"(
+%TAG !m! !my-
+--- # Bulb here
+!m!light fluorescent
+...
+%TAG !m! !meta-
+--- # Color here
+!m!light green
+)",
+        R"(+STR
++DOC ---
+=VAL <!my-light> :fluorescent
+-DOC
++DOC ---
+=VAL <!meta-light> :green
+-DOC
+-STR
+)");
+}
+
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

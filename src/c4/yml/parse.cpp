@@ -1823,6 +1823,7 @@ bool Parser::_handle_map_blck()
     return false;
 }
 
+
 //-----------------------------------------------------------------------------
 bool Parser::_handle_top()
 {
@@ -1840,7 +1841,7 @@ bool Parser::_handle_top()
 
     if(trimmed.begins_with('%'))
     {
-        _c4dbgpf("%% directive! ignoring...: '{}'", rem);
+        _handle_directive(trimmed);
         _line_progressed(rem.len);
         return true;
     }
@@ -2192,6 +2193,7 @@ bool Parser::_handle_types()
                 csubstr scalar = _slurp_doc_scalar();
                 _c4dbgpf("docval. after slurp: {}, at node {}: '{}'", m_state->pos.offset, m_state->node_id, scalar);
                 m_tree->to_val(m_state->node_id, scalar, DOC);
+                _c4dbgpf("docval. val tag {} -> {}", m_val_tag, normalize_tag(m_val_tag));
                 m_tree->set_val_tag(m_state->node_id, normalize_tag(m_val_tag));
                 m_val_tag.clear();
                 if(!m_val_anchor.empty())
@@ -3147,9 +3149,10 @@ void Parser::_end_stream()
         }
         else if(m_tree->is_doc(m_state->node_id) || m_tree->type(m_state->node_id) == NOTYPE)
         {
-            _c4dbgp("to docval...");
             NodeType_e quoted = has_any(QSCL) ? VALQUO : NOTYPE; // do this before consuming the scalar
-            m_tree->to_val(m_state->node_id, _consume_scalar(), DOC|quoted);
+            csubstr scalar = _consume_scalar();
+            _c4dbgpf("node[{}]: to docval '{}'{}", m_state->node_id, scalar, quoted == VALQUO ? ", quoted" : "");
+            m_tree->to_val(m_state->node_id, scalar, DOC|quoted);
             added = m_tree->get(m_state->node_id);
         }
         else
@@ -4976,6 +4979,43 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
 size_t Parser::_count_nlines(csubstr src)
 {
     return 1 + src.count('\n');
+}
+
+//-----------------------------------------------------------------------------
+void Parser::_handle_directive(csubstr directive_)
+{
+    csubstr directive = directive_;
+    if(directive.begins_with("%TAG"))
+    {
+        TagDirective td;
+        _c4dbgpf("%TAG directive: {}", directive_);
+        directive = directive.sub(4);
+        if(!directive.begins_with(' '))
+            _c4err("malformed tag directive: {}", directive_);
+        directive = directive.triml(' ');
+        size_t pos = directive.find(' ');
+        if(pos == npos)
+            _c4err("malformed tag directive: {}", directive_);
+        td.handle = directive.first(pos);
+        directive = directive.sub(td.handle.len).triml(' ');
+        pos = directive.find(' ');
+        if(pos != npos)
+            directive = directive.first(pos);
+        td.prefix = directive;
+        td.next_node_id = m_tree->size();
+        if(m_tree->size() > 0)
+        {
+            size_t prev = m_tree->size() - 1;
+            if(m_tree->is_root(prev) && m_tree->type(prev) != NOTYPE && !m_tree->is_stream(prev))
+                ++td.next_node_id;
+        }
+        _c4dbgpf("%TAG: handle={} prefix={} next_node={}", td.handle, td.prefix, td.next_node_id);
+        m_tree->add_tag_directive(td);
+    }
+    else if(directive.begins_with("%YAML"))
+    {
+        _c4dbgpf("%YAML directive! ignoring...: {}", directive);
+    }
 }
 
 //-----------------------------------------------------------------------------

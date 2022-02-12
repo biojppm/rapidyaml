@@ -919,20 +919,20 @@ See also [the roadmap](./ROADMAP.md) for a list of future work.
 
 ryml deliberately makes no effort to follow the standard in the following situations:
 
+* Containers are not accepted as mapping keys: keys must be scalars.
 * Tab characters after `:` and `-` are not accepted tokens, unless
   ryml is compiled with the macro `RYML_WITH_TAB_TOKENS`. This
   requirement exists because checking for tabs introduces branching
   into the parser's hot code and in some cases costs as much as 10%
   in parsing time.
-* Containers are not accepted as mapping keys: keys must be scalar strings.
-* Tags are parsed as-is; tag lookup is not supported.
 * Anchor names must not end with a terminating colon: eg `&anchor: key: val`.
-* `%TAG` directives have no effect and are ignored. All schemas are assumed
-  to be the default YAML 2002 schema.
 * `%YAML` directives have no effect and are ignored.
-
-Some of the limitations above will be worked on, (eg tag
-lookups). Others (notably container keys) most likely will not.
+* `%TAG` directives are limited to a default maximum of 4 instances
+  per `Tree`. To increase this maximum, define the preprocessor symbol
+  `RYML_MAX_TAG_DIRECTIVES` to a suitable value. This arbitrary limit
+  reflects the usual practice of having at most 1 or 2 tag directives;
+  also, be aware that this feature is under consideration for removal
+  in YAML 1.3.
 
 Also, ryml tends to be on the permissive side where the YAML standard
 dictates there should be an error; in many of these cases, ryml will

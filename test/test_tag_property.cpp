@@ -4,6 +4,213 @@
 namespace c4 {
 namespace yml {
 
+TEST(tag_directives, basic)
+{
+    Tree t = parse_in_arena(R"(
+%TAG !m! !my-
+--- # Bulb here
+!m!light fluorescent
+...
+%TAG !m! !meta-
+--- # Color here
+!m!light green
+)");
+    EXPECT_EQ(t[0].val_tag(), "!m!light");
+    EXPECT_EQ(t[1].val_tag(), "!m!light");
+    EXPECT_EQ(t.num_tag_directives(), 2u);
+    char buf_[100];
+    EXPECT_EQ(t.resolve_tag_sub(buf_, "!m!light", 1u), csubstr("<!my-light>"));
+    EXPECT_EQ(t.resolve_tag_sub(buf_, "!m!light", 2u), csubstr("<!meta-light>"));
+    EXPECT_EQ(emitrs<std::string>(t), std::string(R"(%TAG !m! !my-
+--- !m!light fluorescent
+...
+%TAG !m! !meta-
+--- !m!light green
+)"));
+}
+
+TEST(tag_directives, accepts_comment)
+{
+    Tree t = parse_in_arena(R"(
+%TAG !m! !my-   # comment
+--- # Bulb here
+!m!light fluorescent
+...
+%TAG !m! !meta-   # comment
+--- # Color here
+!m!light green
+)");
+    EXPECT_EQ(t[0].val_tag(), "!m!light");
+    EXPECT_EQ(t[1].val_tag(), "!m!light");
+    EXPECT_EQ(t.num_tag_directives(), 2u);
+    char buf_[100];
+    EXPECT_EQ(t.resolve_tag_sub(buf_, "!m!light", 1u), csubstr("<!my-light>"));
+    EXPECT_EQ(t.resolve_tag_sub(buf_, "!m!light", 2u), csubstr("<!meta-light>"));
+    EXPECT_EQ(emitrs<std::string>(t), std::string(R"(%TAG !m! !my-
+--- !m!light fluorescent
+...
+%TAG !m! !meta-
+--- !m!light green
+)"));
+}
+
+TEST(tag_directives, accepts_multiple_spaces)
+{
+    Tree t = parse_in_arena(R"(
+%TAG    !m!    !my-   # comment
+--- # Bulb here
+!m!light fluorescent
+...
+%TAG    !m!    !meta-   # comment
+--- # Color here
+!m!light green
+)");
+    EXPECT_EQ(t[0].val_tag(), "!m!light");
+    EXPECT_EQ(t[1].val_tag(), "!m!light");
+    EXPECT_EQ(t.num_tag_directives(), 2u);
+    char buf_[100];
+    EXPECT_EQ(t.resolve_tag_sub(buf_, "!m!light", 1u), csubstr("<!my-light>"));
+    EXPECT_EQ(t.resolve_tag_sub(buf_, "!m!light", 2u), csubstr("<!meta-light>"));
+    EXPECT_EQ(emitrs<std::string>(t), std::string(R"(%TAG !m! !my-
+--- !m!light fluorescent
+...
+%TAG !m! !meta-
+--- !m!light green
+)"));
+}
+
+TEST(tag_directives, errors)
+{
+    {
+        Tree t;
+        ExpectError::do_check(&t, [&]{
+            t = parse_in_arena(R"(
+%TAG
+--- # Bulb here
+!m!light fluorescent)");
+        });
+    }
+    {
+        Tree t;
+        ExpectError::do_check(&t, [&]{
+            t = parse_in_arena(R"(
+%TAG !m!
+--- # Bulb here
+!m!light fluorescent)");
+        });
+    }
+}
+
+TEST(tag_directives, resolve_tags)
+{
+    Tree t = parse_in_arena(R"(
+%TAG !m! !my-   # comment
+--- # Bulb here
+!m!light fluorescent: !m!light bulb
+...
+%TAG !m! !meta-   # comment
+--- # Color here
+!m!light green: !m!light color
+)");
+    EXPECT_EQ(t.docref(0)[0].key_tag(), "!m!light");
+    EXPECT_EQ(t.docref(0)[0].val_tag(), "!m!light");
+    EXPECT_EQ(t.num_tag_directives(), 2u);
+    t.resolve_tags();
+    EXPECT_EQ(t.docref(0)[0].key_tag(), "<!my-light>");
+    EXPECT_EQ(t.docref(0)[0].val_tag(), "<!my-light>");
+    EXPECT_EQ(emitrs<std::string>(t), std::string(R"(%TAG !m! !my-
+---
+!<!my-light> fluorescent: !<!my-light> bulb
+...
+%TAG !m! !meta-
+---
+!<!meta-light> green: !<!meta-light> color
+)"));
+}
+
+TEST(tag_directives, safe_with_empty_tree)
+{
+    Tree t;
+    t.resolve_tags();
+    EXPECT_TRUE(t.empty());
+}
+
+TEST(tag_directives, decode_uri_chars)
+{
+    {
+        Tree t = parse_in_arena(R"(
+%TAG !e! tag:example.com,2000:app/
+---
+- !e!%61%62%63%21 baz
+)");
+        t.resolve_tags();
+        EXPECT_EQ(t.docref(0)[0].val_tag(), csubstr("<tag:example.com,2000:app/abc!>"));
+    }
+    {
+        Tree t;
+        auto checkerr = [&t](csubstr yaml){
+            ExpectError::do_check(&t, [&]{
+                t.clear();
+                t = parse_in_arena(yaml);
+                t.resolve_tags();
+            });
+        };
+        {
+            SCOPED_TRACE("without numbers at begin");
+            checkerr(R"(
+%TAG !e! tag:example.com,2000:app/
+---
+- !e!%%62%63 baz
+)");
+        }
+        {
+            SCOPED_TRACE("without numbers in the middle");
+            checkerr(R"(
+%TAG !e! tag:example.com,2000:app/
+---
+- !e!%61%%63 baz
+)");
+        }
+        {
+            SCOPED_TRACE("without numbers in the end");
+            checkerr(R"(
+%TAG !e! tag:example.com,2000:app/
+---
+- !e!%61%62% baz
+)");
+        }
+        {
+            SCOPED_TRACE("with wrong characters numbers at begin");
+            checkerr(R"(
+%TAG !e! tag:example.com,2000:app/
+---
+- !e!%h%62%63 baz
+)");
+        }
+        {
+            SCOPED_TRACE("with wrong characters in the middle");
+            checkerr(R"(
+%TAG !e! tag:example.com,2000:app/
+---
+- !e!%61%hh%63 baz
+)");
+        }
+        {
+            SCOPED_TRACE("with wrong characters in the end");
+            checkerr(R"(
+%TAG !e! tag:example.com,2000:app/
+---
+- !e!%61%62%hh baz
+)");
+        }
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 TEST(tags, test_suite_735Y)
 {
     csubstr yaml_without_seq = R"(
@@ -76,26 +283,26 @@ TEST(tags, parsing)
   - !<!!str> val
   - !<tag:yaml.org,2002:str> val
 )");
-    EXPECT_EQ(t.rootref().val_tag(), "!!seq");
-    EXPECT_EQ(t[0].val_tag(), "!!map");
-    EXPECT_EQ(t[1].val_tag(), "!!map");
-    EXPECT_EQ(t[2].val_tag(), "!!seq");
-    EXPECT_EQ(t[0]["key1"].key_tag(), "!key");
-    EXPECT_EQ(t[0]["key1"].val_tag(), "!val");
-    EXPECT_EQ(t[0]["key2"].key_tag(), "!key");
-    EXPECT_EQ(t[0]["key2"].val_tag(), "!val");
-    EXPECT_EQ(t[0]["key3"].key_tag(), "<key>");
-    EXPECT_EQ(t[0]["key3"].val_tag(), "<val>");
+    EXPECT_EQ(t.rootref().val_tag(), csubstr("!!seq"));
+    EXPECT_EQ(t[0].val_tag(), csubstr("!!map"));
+    EXPECT_EQ(t[1].val_tag(), csubstr("!!map"));
+    EXPECT_EQ(t[2].val_tag(), csubstr("!!seq"));
+    EXPECT_EQ(t[0]["key1"].key_tag(), csubstr("!key"));
+    EXPECT_EQ(t[0]["key1"].val_tag(), csubstr("!val"));
+    EXPECT_EQ(t[0]["key2"].key_tag(), csubstr("<!key>"));
+    EXPECT_EQ(t[0]["key2"].val_tag(), csubstr("<!val>"));
+    EXPECT_EQ(t[0]["key3"].key_tag(), csubstr("<key>"));
+    EXPECT_EQ(t[0]["key3"].val_tag(), csubstr("<val>"));
     EXPECT_EQ(t[0]["<!key> key4"].has_key_tag(), false);
     EXPECT_EQ(t[0]["<!key> key4"].has_val_tag(), false);
-    EXPECT_EQ(t[0]["<!key> key4"].key(), "<!key> key4");
-    EXPECT_EQ(t[0]["<!key> key4"].val(), "<!val> val4");
-    EXPECT_EQ(t[2][5].val_tag(), "!!str");
+    EXPECT_EQ(t[0]["<!key> key4"].key(), csubstr("<!key> key4"));
+    EXPECT_EQ(t[0]["<!key> key4"].val(), csubstr("<!val> val4"));
+    EXPECT_EQ(t[2][5].val_tag(), csubstr("!!str"));
 
     EXPECT_EQ(emitrs<std::string>(t), R"(!!seq
 - !!map
   !key key1: !val val1
-  !key key2: !val val2
+  !<!key> key2: !<!val> val2
   !<key> key3: !<val> val3
   <!key> key4: <!val> val4
 - !!map
@@ -104,8 +311,8 @@ TEST(tags, parsing)
   - !val val
   - !str val
   - <!str> val
-  - !str val
-  - !!str val
+  - !<!str> val
+  - !<!!str> val
   - !!str val
 )");
 }
@@ -500,20 +707,20 @@ TEST(normalize_tag, basic)
     EXPECT_EQ(normalize_tag("<tag:yaml.org,2002:timestamp>" ), "!!timestamp");
     EXPECT_EQ(normalize_tag("<tag:yaml.org,2002:value>"     ), "!!value");
 
-    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:map>"       ), "!!map");
-    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:omap>"      ), "!!omap");
-    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:pairs>"     ), "!!pairs");
-    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:set>"       ), "!!set");
-    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:seq>"       ), "!!seq");
-    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:binary>"    ), "!!binary");
-    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:bool>"      ), "!!bool");
-    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:float>"     ), "!!float");
-    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:int>"       ), "!!int");
-    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:merge>"     ), "!!merge");
-    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:null>"      ), "!!null");
-    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:str>"       ), "!!str");
-    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:timestamp>" ), "!!timestamp");
-    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:value>"     ), "!!value");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:map>"      ), "!!map");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:omap>"     ), "!!omap");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:pairs>"    ), "!!pairs");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:set>"      ), "!!set");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:seq>"      ), "!!seq");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:binary>"   ), "!!binary");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:bool>"     ), "!!bool");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:float>"    ), "!!float");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:int>"      ), "!!int");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:merge>"    ), "!!merge");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:null>"     ), "!!null");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:str>"      ), "!!str");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:timestamp>"), "!!timestamp");
+    EXPECT_EQ(normalize_tag("!<tag:yaml.org,2002:value>"    ), "!!value");
 
     EXPECT_EQ(normalize_tag("!!map"      ), "!!map");
     EXPECT_EQ(normalize_tag("!!omap"     ), "!!omap");
@@ -530,13 +737,17 @@ TEST(normalize_tag, basic)
     EXPECT_EQ(normalize_tag("!!timestamp"), "!!timestamp");
     EXPECT_EQ(normalize_tag("!!value"    ), "!!value");
 
-    EXPECT_EQ(normalize_tag("<!foo>"), "!foo");
-    EXPECT_EQ(normalize_tag("<foo>"), "<foo>");
-    EXPECT_EQ(normalize_tag("<!>"), "!");
+    EXPECT_EQ(normalize_tag("!!foo"      ), "!!foo");
 
-    EXPECT_EQ(normalize_tag("!<!foo>"), "!foo");
+    EXPECT_EQ(normalize_tag("!my-light"), "!my-light");
+    EXPECT_EQ(normalize_tag("!foo"), "!foo");
+    EXPECT_EQ(normalize_tag("<!foo>"), "<!foo>");
+    EXPECT_EQ(normalize_tag("<foo>"), "<foo>");
+    EXPECT_EQ(normalize_tag("<!>"), "<!>");
+
+    EXPECT_EQ(normalize_tag("!<!foo>"), "<!foo>");
     EXPECT_EQ(normalize_tag("!<foo>"), "<foo>");
-    EXPECT_EQ(normalize_tag("!<!>"), "!");
+    EXPECT_EQ(normalize_tag("!<!>"), "<!>");
 }
 
 TEST(normalize_tag_long, basic)
@@ -559,20 +770,20 @@ TEST(normalize_tag_long, basic)
     EXPECT_EQ(normalize_tag_long("<tag:yaml.org,2002:timestamp>" ), "<tag:yaml.org,2002:timestamp>");
     EXPECT_EQ(normalize_tag_long("<tag:yaml.org,2002:value>"     ), "<tag:yaml.org,2002:value>");
 
-    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:map>"       ), "<tag:yaml.org,2002:map>");
-    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:omap>"      ), "<tag:yaml.org,2002:omap>");
-    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:pairs>"     ), "<tag:yaml.org,2002:pairs>");
-    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:set>"       ), "<tag:yaml.org,2002:set>");
-    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:seq>"       ), "<tag:yaml.org,2002:seq>");
-    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:binary>"    ), "<tag:yaml.org,2002:binary>");
-    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:bool>"      ), "<tag:yaml.org,2002:bool>");
-    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:float>"     ), "<tag:yaml.org,2002:float>");
-    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:int>"       ), "<tag:yaml.org,2002:int>");
-    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:merge>"     ), "<tag:yaml.org,2002:merge>");
-    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:null>"      ), "<tag:yaml.org,2002:null>");
-    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:str>"       ), "<tag:yaml.org,2002:str>");
-    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:timestamp>" ), "<tag:yaml.org,2002:timestamp>");
-    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:value>"     ), "<tag:yaml.org,2002:value>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:map>"      ), "<tag:yaml.org,2002:map>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:omap>"     ), "<tag:yaml.org,2002:omap>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:pairs>"    ), "<tag:yaml.org,2002:pairs>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:set>"      ), "<tag:yaml.org,2002:set>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:seq>"      ), "<tag:yaml.org,2002:seq>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:binary>"   ), "<tag:yaml.org,2002:binary>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:bool>"     ), "<tag:yaml.org,2002:bool>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:float>"    ), "<tag:yaml.org,2002:float>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:int>"      ), "<tag:yaml.org,2002:int>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:merge>"    ), "<tag:yaml.org,2002:merge>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:null>"     ), "<tag:yaml.org,2002:null>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:str>"      ), "<tag:yaml.org,2002:str>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:timestamp>"), "<tag:yaml.org,2002:timestamp>");
+    EXPECT_EQ(normalize_tag_long("!<tag:yaml.org,2002:value>"    ), "<tag:yaml.org,2002:value>");
 
     EXPECT_EQ(normalize_tag_long("!!map"      ), "<tag:yaml.org,2002:map>");
     EXPECT_EQ(normalize_tag_long("!!omap"     ), "<tag:yaml.org,2002:omap>");
@@ -589,13 +800,19 @@ TEST(normalize_tag_long, basic)
     EXPECT_EQ(normalize_tag_long("!!timestamp"), "<tag:yaml.org,2002:timestamp>");
     EXPECT_EQ(normalize_tag_long("!!value"    ), "<tag:yaml.org,2002:value>");
 
-    EXPECT_EQ(normalize_tag_long("<!foo>"), "!foo");
-    EXPECT_EQ(normalize_tag_long("<foo>"), "<foo>");
-    EXPECT_EQ(normalize_tag_long("<!>"), "!");
+    EXPECT_EQ(normalize_tag_long("!!foo"      ), "!!foo");
 
-    EXPECT_EQ(normalize_tag_long("!<!foo>"), "!foo");
+    EXPECT_EQ(normalize_tag_long("!my-light"), "!my-light");
+    EXPECT_EQ(normalize_tag_long("!foo"), "!foo");
+    EXPECT_EQ(normalize_tag_long("<!foo>"), "<!foo>");
+    EXPECT_EQ(normalize_tag_long("<foo>"), "<foo>");
+    EXPECT_EQ(normalize_tag_long("<!>"), "<!>");
+
+    EXPECT_EQ(normalize_tag_long("!<!foo>"), "<!foo>");
     EXPECT_EQ(normalize_tag_long("!<foo>"), "<foo>");
-    EXPECT_EQ(normalize_tag_long("!<!>"), "!");
+    EXPECT_EQ(normalize_tag_long("!<!foo>"), "<!foo>");
+    EXPECT_EQ(normalize_tag_long("!<foo>"), "<foo>");
+    EXPECT_EQ(normalize_tag_long("!<!>"), "<!>");
 }
 
 

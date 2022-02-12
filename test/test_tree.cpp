@@ -3528,7 +3528,6 @@ TEST(set_root_as_stream, root_is_docval)
 }
 
 
-
 //-------------------------------------------
 //-------------------------------------------
 //-------------------------------------------
@@ -3593,6 +3592,80 @@ doc4
         EXPECT_EQ(r.child(3).id(), t.docref(3).id());
         EXPECT_EQ(r.child(4).id(), t.docref(4).id());
     }
+}
+
+
+//-------------------------------------------
+//-------------------------------------------
+//-------------------------------------------
+
+TEST(Tree, add_tag_directives)
+{
+    #if RYML_MAX_TAG_DIRECTIVES != 4
+    #error this test assumes RYML_MAX_TAG_DIRECTIVES == 4
+    #endif
+    const TagDirective td[RYML_MAX_TAG_DIRECTIVES + 1] = {
+        TagDirective{csubstr("!a!"), csubstr("!ay-"), 0u},
+        TagDirective{csubstr("!b!"), csubstr("!by-"), 0u},
+        TagDirective{csubstr("!c!"), csubstr("!cy-"), 0u},
+        TagDirective{csubstr("!d!"), csubstr("!dy-"), 0u},
+        TagDirective{csubstr("!e!"), csubstr("!ey-"), 0u},
+    };
+    Tree t;
+    auto check_up_to = [&](size_t num)
+    {
+        size_t pos = 0;
+        EXPECT_EQ(t.num_tag_directives(), num);
+        for(TagDirective const& d : t.tag_directives())
+        {
+            EXPECT_EQ(d.handle.str, td[pos].handle.str);
+            EXPECT_EQ(d.handle.len, td[pos].handle.len);
+            EXPECT_EQ(d.prefix.str, td[pos].prefix.str);
+            EXPECT_EQ(d.prefix.str, td[pos].prefix.str);
+            EXPECT_EQ(d.next_node_id, td[pos].next_node_id);
+            ++pos;
+        }
+        EXPECT_EQ(pos, num);
+    };
+    check_up_to(0);
+    t.add_tag_directive(td[0]);
+    check_up_to(1);
+    t.add_tag_directive(td[1]);
+    check_up_to(2);
+    t.add_tag_directive(td[2]);
+    check_up_to(3);
+    t.add_tag_directive(td[3]);
+    check_up_to(4);
+    ExpectError::do_check(&t, [&]{ // number exceeded
+        t.add_tag_directive(td[4]);
+    });
+    t.clear_tag_directives();
+    check_up_to(0);
+}
+
+TEST(Tree, resolve_tag)
+{
+    csubstr yaml = R"(
+#%TAG !m! !my-
+--- # Bulb here
+!m!light fluorescent
+...
+#%TAG !m! !meta-
+--- # Color here
+!m!light green
+)";
+    // we're not testing the parser here, just the tag mechanics.
+    // So we'll add the tag directives by hand.
+    Tree t = parse_in_arena(yaml);
+    EXPECT_EQ(t[0].val_tag(), "!m!light");
+    EXPECT_EQ(t[1].val_tag(), "!m!light");
+    EXPECT_EQ(t.num_tag_directives(), 0u);
+    t.add_tag_directive(TagDirective{csubstr("!m!"), csubstr("!my-"), 1});
+    t.add_tag_directive(TagDirective{csubstr("!m!"), csubstr("!meta-"), 2});
+    EXPECT_EQ(t.num_tag_directives(), 2u);
+    char buf_[100];
+    EXPECT_EQ(t.resolve_tag_sub(buf_, "!m!light", 1u), csubstr("<!my-light>"));
+    EXPECT_EQ(t.resolve_tag_sub(buf_, "!m!light", 2u), csubstr("<!meta-light>"));
 }
 
 
