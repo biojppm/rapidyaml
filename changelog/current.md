@@ -180,6 +180,7 @@ As part of the [new feature to track source locations](https://github.com/biojpp
   - wonderful beers
   )");
   ```
+- Fix parsing of isolated `!`: should be an empty val tagged with `!` (UKK06-02).
 - Fix [#193](https://github.com/biojppm/rapidyaml/issues/193): amalgamated header missing `#include <stdarg.h>` which prevented compilation in bare-metal `arm-none-eabi` ([PR #195](https://github.com/biojppm/rapidyaml/pull/195), requiring also [c4core #64](https://github.com/biojppm/c4core/pull/64)).
 - Accept `infinity`,`inf` and `nan` as special float values (but not mixed case: eg `InFiNiTy` or `Inf` or `NaN` are not accepted) ([PR #186](https://github.com/biojppm/rapidyaml/pull/186)).
 - Accept special float values with upper or mixed case: `.Inf`, `.INF`, `.NaN`, `.NAN`. Previously, only low-case `.inf` and `.nan` were accepted ([PR #186](https://github.com/biojppm/rapidyaml/pull/186)).

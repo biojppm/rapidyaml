@@ -23,7 +23,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     _("G4RS-out_yaml"           , "special characters must be emitted in double quoted style"),
     // other
     _("UKK6_01-in_yaml"         , "fails to parse double :: in UNK state"),
-    _("UKK6_02-in_yaml-events"  , "fails to parse double :: in UNK state"),
     // tabs
     _("6CA3-in_yaml"            , "indentation with tabs causes problems"),
     _("6CA3-emit_yaml"          , "indentation with tabs causes problems"),

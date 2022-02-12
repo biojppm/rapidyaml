@@ -3165,6 +3165,13 @@ void Parser::_end_stream()
         _c4dbgp("add last...");
         added = _append_val_null(m_state->line_contents.rem.str);
     }
+    else if(!m_val_tag.empty() && (m_tree->is_doc(m_state->node_id) || m_tree->type(m_state->node_id) == NOTYPE))
+    {
+        csubstr scalar = m_state->line_contents.rem.first(0);
+        _c4dbgpf("node[{}]: add null scalar as docval", m_state->node_id);
+        m_tree->to_val(m_state->node_id, scalar, DOC);
+        added = m_tree->get(m_state->node_id);
+    }
 
     if(added)
     {
