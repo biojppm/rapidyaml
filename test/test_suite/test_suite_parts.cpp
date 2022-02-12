@@ -24,8 +24,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     // other
     _("UKK6_01-in_yaml"         , "fails to parse double :: in UNK state"),
     // tabs
-    _("6CA3-in_yaml"            , "indentation with tabs causes problems"),
-    _("6CA3-emit_yaml"          , "indentation with tabs causes problems"),
     _("A2M4-in_yaml-events"     , "indentation with tabs causes problems"),
     _("DK95_00-emit_yaml-events", "indentation with tabs causes problems"),
     _("DK95_01-error"           , "indentation with tabs causes problems"),
@@ -179,6 +177,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     _("4ABK-out_yaml-events"   , "out-yaml contains null, while in-yaml and events contain empty scalars"),
     _("4WA9-out_yaml-events"   , "out-yaml test spec is missing a --- document token, which is required in the events"),
     _("652Z-out_yaml-events"   , "out-yaml test spec is missing a --- document token, which is required in the events"),
+    _("6CA3-emit_yaml"         , "out-yaml test spec is missing a --- document token, which is required in the events"),
     _("6FWR-out_yaml-events"   , "out-yaml test spec is missing a --- document token, which is required in the events"),
     _("6WPF-out_yaml-events"   , "out-yaml test spec is missing a --- document token, which is required in the events"),
     _("9TFX-out_yaml-events"   , "out-yaml test spec is missing a --- document token, which is required in the events"),

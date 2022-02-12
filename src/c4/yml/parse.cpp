@@ -976,6 +976,11 @@ bool Parser::_handle_seq_flow()
             _line_progressed(1);
             return true;
         }
+        else if(rem.begins_with('\t'))
+        {
+            _skipchars('\t');
+            return true;
+        }
         else
         {
             _c4err("parse error");

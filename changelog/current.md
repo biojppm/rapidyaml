@@ -112,6 +112,7 @@ As part of the [new feature to track source locations](https://github.com/biojpp
   ?    # trailing empty key was not added to the map
   ```
 - Fixed parsing of tabs used as whitespace tokens after `:` or `-`. This feature [is costly (see some benchmark results here)](https://github.com/biojppm/rapidyaml/pull/211#issuecomment-1030688035) and thus it is disabled by default, and requires defining a macro or cmake option `RYML_WITH_TAB_TOKENS` to enable ([PR#211](https://github.com/biojppm/rapidyaml/pulls/211)).
+- Allow tab indentation in flow seqs ([PR#215](https://github.com/biojppm/rapidyaml/pulls/215)) (6CA3).
 - ryml now parses successfully compact JSON code `{"like":"this"}` without any need for preprocessing. This code was not valid YAML 1.1, but was made valid in YAML 1.2. So the `preprocess_json()` functions, used to insert spaces after `:` are no longer necessary and have been removed. If you were using these functions, remove the calls and just pass the original source directly to ryml's parser ([PR#210](https://github.com/biojppm/rapidyaml/pulls/210)).
 - Fix handling of indentation when parsing block scalars ([PR#210](https://github.com/biojppm/rapidyaml/pulls/210)):
   ```yaml
@@ -180,7 +181,7 @@ As part of the [new feature to track source locations](https://github.com/biojpp
   - wonderful beers
   )");
   ```
-- Fix parsing of isolated `!`: should be an empty val tagged with `!` (UKK06-02).
+- Fix parsing of isolated `!`: should be an empty val tagged with `!` (UKK06-02) ([PR#215](https://github.com/biojppm/rapidyaml/pulls/215)).
 - Fix [#193](https://github.com/biojppm/rapidyaml/issues/193): amalgamated header missing `#include <stdarg.h>` which prevented compilation in bare-metal `arm-none-eabi` ([PR #195](https://github.com/biojppm/rapidyaml/pull/195), requiring also [c4core #64](https://github.com/biojppm/c4core/pull/64)).
 - Accept `infinity`,`inf` and `nan` as special float values (but not mixed case: eg `InFiNiTy` or `Inf` or `NaN` are not accepted) ([PR #186](https://github.com/biojppm/rapidyaml/pull/186)).
 - Accept special float values with upper or mixed case: `.Inf`, `.INF`, `.NaN`, `.NAN`. Previously, only low-case `.inf` and `.nan` were accepted ([PR #186](https://github.com/biojppm/rapidyaml/pull/186)).
