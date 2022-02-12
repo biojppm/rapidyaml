@@ -49,7 +49,7 @@ small C++ utilities multiplatform library.
 ryml is written in C++11, and compiles cleanly with:
 * Visual Studio 2015 and later
 * clang++ 3.9 and later
-* g++ 5 and later
+* g++ 5 and later (4.8 under work)
 * Intel Compiler
 
 ryml is [extensively unit-tested in Linux, Windows and
@@ -64,6 +64,13 @@ architectures, and include analysing ryml with:
     * undefined behavior
     * thread
   * [LGTM.com](https://lgtm.com/projects/g/biojppm/rapidyaml)
+
+ryml also [runs in
+bare-metal](https://github.com/biojppm/rapidyaml/issues/193), and
+[RISC-V
+architectures](https://github.com/biojppm/c4core/pull/69]. Both of
+these are pending implementation of CI actions for continuous
+validation, but ryml has been proven to work there.
 
 ryml is [available in Python](https://pypi.org/project/rapidyaml/),
 and can very easily be compiled to JavaScript through emscripten (see

@@ -100,6 +100,8 @@ As part of the [new feature to track source locations](https://github.com/biojpp
   ```
 - Add an experimental API to resolve tags based on the tree's tag directives. This API is still imature and will likely be subject to changes, so we won't document it yet.
 - Regarding emit styles (see issue [#37](https://github.com/biojppm/rapidyaml/issues/37)): add an experimental API to force flow/block style on container nodes, as well as block-literal/block-folded/double-quoted/single-quoted/plain styles on scalar nodes. This API is also immature and will likely be subject to changes, so we won't document it yet. But if you are desperate for this functionality, the new facilities will let you go further.
+- Add preliminary support for bare-metal ARM architectures, with CI tests pending implementation of QEMU action. ([#193](https://github.com/biojppm/rapidyaml/issues/193), [c4core#63](https://github.com/biojppm/c4core/issues/63)).
+- Add preliminary support for RISC-V architectures, with CI tests pending availability of RISC-V based github actions. ([c4core#69](https://github.com/biojppm/c4core/pulls/69)).
 
 
 ### Fixes
@@ -219,4 +221,6 @@ As part of the [new feature to track source locations](https://github.com/biojpp
 - @ingydotnet
 - @perlpunk
 - @cschreib
+- @fargies
+- @Xeonacid
 - @aviktorov
