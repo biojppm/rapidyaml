@@ -976,6 +976,11 @@ bool Parser::_handle_seq_flow()
             _line_progressed(1);
             return true;
         }
+        else if(rem.begins_with('\t'))
+        {
+            _skipchars('\t');
+            return true;
+        }
         else
         {
             _c4err("parse error");
@@ -1740,7 +1745,7 @@ bool Parser::_handle_map_blck()
             }
             return true;
         }
-        else if(rem.begins_with("- "))
+        else if(rem.begins_with("- ") _RYML_WITH_TAB_TOKENS( || rem.begins_with("-\t")))
         {
             _c4dbgp("val is a nested seq, indented");
             addrem_flags(RKEY, RVAL); // before _push_level!
@@ -2327,6 +2332,9 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
             _c4dbgp("RSEQ|RVAL");
             if( ! _is_scalar_next__rseq_rval(s))
                 return false;
+            _RYML_WITH_TAB_TOKENS(else if(s.begins_with("-\t"))
+                return false;
+            )
             if(s.ends_with(':'))
             {
                 --s.len;
@@ -2425,6 +2433,9 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
             _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(QMRK));
             if( ! _is_scalar_next__rmap_val(s))
                 return false;
+            _RYML_WITH_TAB_TOKENS(else if(s.begins_with("-\t"))
+                return false;
+            )
             s = s.left_of(s.find(" #")); // is there a comment?
             s = s.left_of(s.find("\t#")); // is there a comment?
             if(has_any(FLOW))
@@ -3164,6 +3175,13 @@ void Parser::_end_stream()
     {
         _c4dbgp("add last...");
         added = _append_val_null(m_state->line_contents.rem.str);
+    }
+    else if(!m_val_tag.empty() && (m_tree->is_doc(m_state->node_id) || m_tree->type(m_state->node_id) == NOTYPE))
+    {
+        csubstr scalar = m_state->line_contents.rem.first(0);
+        _c4dbgpf("node[{}]: add null scalar as docval", m_state->node_id);
+        m_tree->to_val(m_state->node_id, scalar, DOC);
+        added = m_tree->get(m_state->node_id);
     }
 
     if(added)
