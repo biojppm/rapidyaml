@@ -827,8 +827,8 @@ void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
                 // has leading whitespace
                 s.begins_with_any(" \n\t\r")
                 ||
-                // looks like reference or anchor
-                s.begins_with_any("*&")
+                // looks like reference or anchor or would be treated as a directive
+                s.begins_with_any("*&%")
                 ||
                 s.begins_with("<<")
                 ||
