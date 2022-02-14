@@ -3,7 +3,7 @@
 namespace c4 {
 namespace yml {
 
-TEST(double_quoted, test_suite_KSS4)
+TEST(single_quoted, test_suite_KSS4)
 {
     csubstr yaml = R"(
 ---
@@ -111,6 +111,27 @@ tie-fighter: '|\-*-/|'
         EXPECT_EQ(t["single"].val()     , csubstr(R"("Howdy!" he cried.)"));
         EXPECT_EQ(t["quoted"].val()     , csubstr(R"( # Not a 'comment'.)"));
         EXPECT_EQ(t["tie-fighter"].val(), csubstr(R"(|\-*-/|)"));
+    });
+}
+
+TEST(single_quoted, quotes_are_preserved)
+{
+    csubstr yaml = R"(
+'%ROOT': '%VAL'
+'%ROOT2':
+  - '%VAL'
+  - '%VAL'
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_map());
+        ASSERT_TRUE(t.rootref().has_child("%ROOT"));
+        ASSERT_TRUE(t.rootref().has_child("%ROOT2"));
+        ASSERT_EQ(t["%ROOT2"].num_children(), 2u);
+        EXPECT_TRUE(t["%ROOT"].is_key_quoted());
+        EXPECT_TRUE(t["%ROOT"].is_val_quoted());
+        EXPECT_TRUE(t["%ROOT2"].is_key_quoted());
+        EXPECT_TRUE(t["%ROOT2"][0].is_val_quoted());
+        EXPECT_TRUE(t["%ROOT2"][1].is_val_quoted());
     });
 }
 

@@ -371,6 +371,28 @@ TEST(emit, existing_map_node)
     }
 }
 
+TEST(emit, percent_is_quoted)
+{
+    Tree ti = parse_in_arena("{}");
+    ASSERT_TRUE(ti.rootref().is_map());
+    ti["%ROOT"] = "%VAL";
+    ti["%ROOT2"] |= SEQ;
+    ti["%ROOT2"][0] = "%VAL";
+    ti["%ROOT2"][1] = "%VAL";
+    std::string yaml = emitrs<std::string>(ti);
+    test_check_emit_check(to_csubstr(yaml), [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_map());
+        ASSERT_TRUE(t.rootref().has_child("%ROOT"));
+        ASSERT_TRUE(t.rootref().has_child("%ROOT2"));
+        ASSERT_EQ(t["%ROOT2"].num_children(), 2u);
+        EXPECT_TRUE(t["%ROOT"].is_key_quoted());
+        EXPECT_TRUE(t["%ROOT"].is_val_quoted());
+        EXPECT_TRUE(t["%ROOT2"].is_key_quoted());
+        EXPECT_TRUE(t["%ROOT2"][0].is_val_quoted());
+        EXPECT_TRUE(t["%ROOT2"][1].is_val_quoted());
+    });
+}
+
 
 //-------------------------------------------
 // this is needed to use the test case library
