@@ -62,8 +62,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     _("Y79Y_004-error", "should not accept tab after -"),
     _("Y79Y_005-error", "should not accept tab after -"),
     // block scalars
-    _("2G84_00-error" , "should not accept the block literal spec"),
-    _("2G84_01-error" , "should not accept the block literal spec"),
     _("5LLU-error"    , "should not accept folded scalar with wrong indented line after spaces only"),
     _("S4GJ-error"    , "should not accept text after block scalar indicator"),
     _("S98Z-error"    , "should not accept block scalar with more spaces than first content line"),
@@ -112,7 +110,8 @@ constexpr const AllowedFailure allowed_failures[] = {
     // These tests are skipped because they cover parts of YAML that
     // are deliberately not implemented by ryml.
 
-    #ifndef RYML_WITH_TAB_TOKENS // -<tab> or :<tab> are supported only when the above macro is defined
+    // -<tab> or :<tab> are supported only when the above macro is defined
+    #ifndef RYML_WITH_TAB_TOKENS
     _("A2M4-in_yaml-events"    , "tabs tokens"),
     _("6BCT-in_yaml"           , "tabs tokens"),
     _("J3BT-in_yaml"           , "tabs tokens"),

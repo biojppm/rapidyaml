@@ -12,19 +12,33 @@
     :barbar: b    # was ok
     :barbarbar: c # was ol
   ```
-- Maps: ensure parse error on keyless trailing scalars:
-  ```yaml
-  --- # test suite case 236B
-  foo:
-    bar
-  invalid
-  --- # test suite case 7MNF
-  top1:
-    key1: val1
-  top2
-  --- # test suite case 9CWY
-  key:
-   - item1
-   - item2
-  invalid
-  ```
+- Scalars:
+  - Do not accept block scalars with 0 indentation:
+    ```yaml
+    # test suite case 2G84
+    --- |0   # error
+    --- |10  # error
+    --- |1-  # ok
+    --- |1+  # ok
+    ```
+- Maps
+  - ensure parse error on keyless terminating scalars:
+    ```yaml
+    ---
+    foo:
+      bar
+    valid:    # ok
+    --- # test suite case 236B
+    foo:
+      bar
+    invalid   # parse error expected
+    --- # test suite case 7MNF
+    top1:
+      key1: val1
+    invalid   # parse error expected
+    --- # test suite case 9CWY
+    key:
+     - item1
+     - item2
+    invalid   # parse error expected
+    ```

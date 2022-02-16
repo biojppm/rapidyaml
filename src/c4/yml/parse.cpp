@@ -4003,6 +4003,7 @@ csubstr Parser::_scan_block()
     BlockStyle_e newline = s.begins_with('>') ? BLOCK_FOLD : BLOCK_LITERAL;
     BlockChomp_e chomp = CHOMP_CLIP; // default to clip unless + or - are used
     size_t indentation = npos; // have to find out if no spec is given
+    bool explicit_chomp = false;
     csubstr digits;
     if(s.len > 1)
     {
@@ -4014,6 +4015,7 @@ csubstr Parser::_scan_block()
         _c4dbgpf("scanning block: spec chomp char at {}", pos);
         if(pos != npos)
         {
+            explicit_chomp = true;
             if(t[pos] == '-')
                 chomp = CHOMP_STRIP;
             else if(t[pos] == '+')
@@ -4028,7 +4030,9 @@ csubstr Parser::_scan_block()
         if( ! digits.empty())
         {
             if( ! c4::atou(digits, &indentation))
-                _c4err("parse error: could not read decimal");
+                _c4err("could not read block scalar indentation");
+            if( ! indentation)
+                _c4err("invalid block scalar indentation");
             _c4dbgpf("scanning block: indentation specified: {}. add {} from curr state -> {}", indentation, m_state->indref, indentation+m_state->indref);
             indentation += m_state->indref;
         }
@@ -4160,7 +4164,6 @@ csubstr Parser::_scan_block()
         ++num_lines;
     }
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->pos.line == (first + num_lines));
-    C4_UNUSED(num_lines);
     C4_UNUSED(first);
 
     if(indentation == npos)
@@ -4171,6 +4174,8 @@ csubstr Parser::_scan_block()
 
     if(num_lines)
         _line_ended_undo();
+    else if(!explicit_chomp)
+        _c4err("block scalars must not be empty");
 
     _c4dbgpf("scanning block: raw=~~~{}~~~", raw_block);
 
