@@ -76,8 +76,8 @@ ryml is [available in Python](https://pypi.org/project/rapidyaml/),
 and can very easily be compiled to JavaScript through emscripten (see
 below).
 
-See also [the changelog](https://github.com/biojppm/rapidyaml/changelog)
-and [the roadmap](https://github.com/biojppm/rapidyaml/ROADMAP.md).
+See also [the changelog](https://github.com/biojppm/rapidyaml/tree/master/changelog)
+and [the roadmap](https://github.com/biojppm/rapidyaml/tree/master/ROADMAP.md).
 
 <!-- endpythonreadme -->
 
