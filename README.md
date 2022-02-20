@@ -68,7 +68,7 @@ architectures, and include analysing ryml with:
 ryml also [runs in
 bare-metal](https://github.com/biojppm/rapidyaml/issues/193), and
 [RISC-V
-architectures](https://github.com/biojppm/c4core/pull/69]. Both of
+architectures](https://github.com/biojppm/c4core/pull/69). Both of
 these are pending implementation of CI actions for continuous
 validation, but ryml has been proven to work there.
 
@@ -1046,3 +1046,4 @@ takes inspiration from
 ## License
 
 ryml is permissively licensed under the [MIT license](LICENSE.txt).
+ 
