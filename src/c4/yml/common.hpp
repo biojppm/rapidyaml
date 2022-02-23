@@ -197,6 +197,18 @@ do                                                                      \
     } while(0)
 
 
+
+namespace detail {
+template<int8_t signedval, uint8_t unsignedval>
+struct _charconstant_t
+    : public std::conditional<std::is_signed<char>::value,
+                              std::integral_constant<int8_t, signedval>,
+                              std::integral_constant<uint8_t, unsignedval>>::type
+{};
+#define _RYML_CHCONST(signedval, unsignedval) ::c4::yml::detail::_charconstant_t<INT8_C(signedval), UINT8_C(unsignedval)>::value
+} // namespace detail
+
+
 namespace detail {
 struct _SubstrWriter
 {

@@ -25,19 +25,20 @@ TEST(double_quoted, escaped_chars)
     expected += INT8_C(0x1b); // \e
     //
     // wrap explicitly to avoid overflow
-    expected += INT8_C(-0x3e); // UINT8_C(0xc2) \_ (1)
-    expected += INT8_C(-0x60); // UINT8_C(0xa0) \_ (2)
+    expected += _RYML_CHCONST(-0x3e, 0xc2); // \_ (1)
+    expected += _RYML_CHCONST(-0x60, 0xa0); // \_ (2)
     //
-    expected += INT8_C(-0x3e); // UINT8_C(0xc2) \N (1)
-    expected += INT8_C(-0x7b); // UINT8_C(0x85) \N (2)
+    expected += _RYML_CHCONST(-0x3e, 0xc2); // \N (1)
+    expected += _RYML_CHCONST(-0x7b, 0x85); // \N (2)
     //
-    expected += INT8_C(-0x1e); // UINT8_C(0xe2) \L (1)
-    expected += INT8_C(-0x80); // UINT8_C(0x80) \L (2)
-    expected += INT8_C(-0x58); // UINT8_C(0xa8) \L (3)
+    expected += _RYML_CHCONST(-0x1e, 0xe2); // \L (1)
+    expected += _RYML_CHCONST(-0x80, 0x80); // \L (2)
+    expected += _RYML_CHCONST(-0x58, 0xa8); // \L (3)
     //
-    expected += INT8_C(-0x1e); // UINT8_C(0xe2) \P (1)
-    expected += INT8_C(-0x80); // UINT8_C(0x80) \P (2)
-    expected += INT8_C(-0x57); // UINT8_C(0xa9) \P (3)
+    expected += _RYML_CHCONST(-0x1e, 0xe2); // \P (1)
+    expected += _RYML_CHCONST(-0x80, 0x80); // \P (2)
+    expected += _RYML_CHCONST(-0x57, 0xa9); // \P (3)
+    //
     Tree t = parse_in_arena(yaml);
     csubstr v = t.rootref().val();
     std::string actual = {v.str, v.len};

@@ -49,7 +49,7 @@ small C++ utilities multiplatform library.
 ryml is written in C++11, and compiles cleanly with:
 * Visual Studio 2015 and later
 * clang++ 3.9 and later
-* g++ 5 and later (4.8 under work)
+* g++ 4.8 and later
 * Intel Compiler
 
 ryml is [extensively unit-tested in Linux, Windows and

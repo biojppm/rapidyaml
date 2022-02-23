@@ -4576,31 +4576,31 @@ csubstr Parser::_filter_dquot_scalar(substr s)
             else if(next == '_') // unicode non breaking space \u00a0
             {
                 // https://www.compart.com/en/unicode/U+00a0
-                m_filter_arena.str[pos++] = -0x3e; // = UINT8_C(0xc2);
-                m_filter_arena.str[pos++] = -0x60; // = UINT8_C(0xa0);
+                m_filter_arena.str[pos++] = _RYML_CHCONST(-0x3e, 0xc2);
+                m_filter_arena.str[pos++] = _RYML_CHCONST(-0x60, 0xa0);
                 ++i;
             }
             else if(next == 'N') // unicode next line \u0085
             {
                 // https://www.compart.com/en/unicode/U+0085
-                m_filter_arena.str[pos++] = -0x3e; // UINT8_C(0xc2);
-                m_filter_arena.str[pos++] = -0x7b; // UINT8_C(0x85);
+                m_filter_arena.str[pos++] = _RYML_CHCONST(-0x3e, 0xc2);
+                m_filter_arena.str[pos++] = _RYML_CHCONST(-0x7b, 0x85);
                 ++i;
             }
             else if(next == 'L') // unicode line separator \u2028
             {
                 // https://www.utf8-chartable.de/unicode-utf8-table.pl?start=8192&number=1024&names=-&utf8=0x&unicodeinhtml=hex
-                m_filter_arena.str[pos++] = -0x1e; // = UINT8_C(0xe2);
-                m_filter_arena.str[pos++] = -0x80; // = UINT8_C(0x80);
-                m_filter_arena.str[pos++] = -0x58; // = UINT8_C(0xa8);
+                m_filter_arena.str[pos++] = _RYML_CHCONST(-0x1e, 0xe2);
+                m_filter_arena.str[pos++] = _RYML_CHCONST(-0x80, 0x80);
+                m_filter_arena.str[pos++] = _RYML_CHCONST(-0x58, 0xa8);
                 ++i;
             }
             else if(next == 'P') // unicode paragraph separator \u2029
             {
                 // https://www.utf8-chartable.de/unicode-utf8-table.pl?start=8192&number=1024&names=-&utf8=0x&unicodeinhtml=hex
-                m_filter_arena.str[pos++] = -0x1e; // = UINT8_C(0xe2);
-                m_filter_arena.str[pos++] = -0x80; // = UINT8_C(0x80);
-                m_filter_arena.str[pos++] = -0x57; // = UINT8_C(0xa9);
+                m_filter_arena.str[pos++] = _RYML_CHCONST(-0x1e, 0xe2);
+                m_filter_arena.str[pos++] = _RYML_CHCONST(-0x80, 0x80);
+                m_filter_arena.str[pos++] = _RYML_CHCONST(-0x57, 0xa9);
                 ++i;
             }
             _c4dbgfdq("[{}]: backslash...sofar=[{}]~~~{}~~~", i, pos, m_filter_arena.first(pos));
