@@ -75,12 +75,28 @@ constexpr const NodeType_e QK = (NodeType_e)(VAL | KEYQUO);
 constexpr const NodeType_e QV = (NodeType_e)(VAL | VALQUO);
 constexpr const NodeType_e QKV = (NodeType_e)(VAL | KEYQUO | VALQUO);
 
+#ifdef __GNUC__
+#if __GNUC__ == 4 && __GNUC_MINOR__ >= 8
+struct CaseAdder {
+    std::vector<Case> *group_cases;
+    const csubstr file;
+    const int line;
 
+    template<typename... Args>
+    void operator ()(Args... parameters) const {
+        group_cases->emplace_back(csubstr(file), line, parameters...);
+    }
+};
 
 /* all arguments are to the constructor of Case */
+#define ADD_CASE_TO_GROUP CaseAdder{group_cases__, csubstr(__FILE__), __LINE__+1}
+#endif
+#endif
+
+#ifndef ADD_CASE_TO_GROUP
 #define ADD_CASE_TO_GROUP(...)                  \
     group_cases__->emplace_back(csubstr(__FILE__), __LINE__+1, __VA_ARGS__)
-
+#endif
 
 #define CASE_GROUP(group_name)                                          \
                                                                         \

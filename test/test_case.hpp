@@ -41,11 +41,17 @@ namespace yml {
 
 inline void PrintTo(Callbacks const& cb, ::std::ostream* os)
 {
+#ifdef __GNUC__
+#define RYML_GNUC_EXTENSION __extension__
+#else
+#define RYML_GNUC_EXTENSION
+#endif
     *os << '{'
         << "userdata." << (void*)cb.m_user_data << ','
-        << "allocate." << (void*)cb.m_allocate << ','
-        << "free." << (void*)cb.m_free << ','
-        << "error." << (void*)cb.m_error << '}';
+        << "allocate." << RYML_GNUC_EXTENSION (void*)cb.m_allocate << ','
+        << "free." << RYML_GNUC_EXTENSION (void*)cb.m_free << ','
+        << "error." << RYML_GNUC_EXTENSION (void*)cb.m_error << '}';
+#undef RYML_GNUC_EXTENSION
 }
 
 struct Case;
@@ -443,12 +449,11 @@ struct Case
     Location expected_location;
 
     //! create a standard test case: name, source and expected CaseNode structure
-    template<size_t N, class... Args> Case(csubstr file, int line, csubstr name_,         const char (&src_)[N], Args&& ...args) : filelinebuf(catrs<std::string>(file, ':', line)), fileline(to_csubstr(filelinebuf)), name(name_), src(src_), root(std::forward<Args>(args)...), flags(), expected_location() {}
+    template<class... Args> Case(csubstr file, int line, const char *name_,         const char *src_, Args&& ...args) : filelinebuf(catrs<std::string>(file, ':', line)), fileline(to_csubstr(filelinebuf)), name(to_csubstr(name_)), src(to_csubstr(src_)), root(std::forward<Args>(args)...), flags(), expected_location() {}
     //! create a test case with explicit flags: name, source flags, and expected CaseNode structure
-    template<size_t N, class... Args> Case(csubstr file, int line, csubstr name_, int f_, const char (&src_)[N], Args&& ...args) : filelinebuf(catrs<std::string>(file, ':', line)), fileline(to_csubstr(filelinebuf)), name(name_), src(src_), root(std::forward<Args>(args)...), flags((TestCaseFlags_e)f_), expected_location()  {}
+    template<class... Args> Case(csubstr file, int line, const char *name_, int f_, const char *src_, Args&& ...args) : filelinebuf(catrs<std::string>(file, ':', line)), fileline(to_csubstr(filelinebuf)), name(to_csubstr(name_)), src(to_csubstr(src_)), root(std::forward<Args>(args)...), flags((TestCaseFlags_e)f_), expected_location()  {}
     //! create a test case with an error on an expected location
-    template<size_t N>                Case(csubstr file, int line, csubstr name_, int f_, const char (&src_)[N], LineCol loc) : filelinebuf(catrs<std::string>(file, ':', line)), fileline(to_csubstr(filelinebuf)), name(name_), src(src_), root(), flags((TestCaseFlags_e)f_), expected_location(name, loc.line, loc.col) {}
-
+                            Case(csubstr file, int line, const char *name_, int f_, const char *src_, LineCol loc) : filelinebuf(catrs<std::string>(file, ':', line)), fileline(to_csubstr(filelinebuf)), name(to_csubstr(name_)), src(to_csubstr(src_)), root(), flags((TestCaseFlags_e)f_), expected_location(name, loc.line, loc.col) {}
 };
 
 //-----------------------------------------------------------------------------

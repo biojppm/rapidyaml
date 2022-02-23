@@ -128,11 +128,25 @@ int main()
 
 namespace sample {
 
+bool report_check(const char *file, int line, const char *predicate, bool result);
+#ifdef __GNUC__
+#if __GNUC__ == 4 && __GNUC_MINOR__ >= 8
+struct CheckPredicate {
+    const char *file;
+    const int line;
+
+    void operator ()(bool predicate) const {
+        if (!report_check(file, line, nullptr, predicate)) { C4_DEBUG_BREAK(); }
+    }
+};
+#define CHECK CheckPredicate{__FILE__, __LINE__}
+#endif
+#endif
+
+#if !defined(CHECK)
 /// a quick'n'dirty assertion to verify a predicate
 #define CHECK(predicate) do { if(!report_check(__FILE__, __LINE__, #predicate, (predicate))) { C4_DEBUG_BREAK(); } } while(0)
-
-bool report_check(const char *file, int line, const char *predicate, bool result);
-
+#endif
 
 //-----------------------------------------------------------------------------
 
@@ -2492,7 +2506,7 @@ void sample_base64()
         tree.rootref().append_child() << ryml::key(ryml::fmt::base64(c.text)) << c.text;
         CHECK(tree[c.base64].val() == c.text);
     }
-    C4_CHECK(ryml::emitrs<std::string>(tree) == R"('Love all, trust a few, do wrong to none.': TG92ZSBhbGwsIHRydXN0IGEgZmV3LCBkbyB3cm9uZyB0byBub25lLg==
+    CHECK(ryml::emitrs<std::string>(tree) == R"('Love all, trust a few, do wrong to none.': TG92ZSBhbGwsIHRydXN0IGEgZmV3LCBkbyB3cm9uZyB0byBub25lLg==
 'The fool doth think he is wise, but the wise man knows himself to be a fool.': VGhlIGZvb2wgZG90aCB0aGluayBoZSBpcyB3aXNlLCBidXQgdGhlIHdpc2UgbWFuIGtub3dzIGhpbXNlbGYgdG8gYmUgYSBmb29sLg==
 Brevity is the soul of wit.: QnJldml0eSBpcyB0aGUgc291bCBvZiB3aXQu
 All that glitters is not gold.: QWxsIHRoYXQgZ2xpdHRlcnMgaXMgbm90IGdvbGQu
@@ -3963,13 +3977,13 @@ static int num_failed_checks = 0;
 bool report_check(const char *file, int line, const char *predicate, bool result)
 {
     ++num_checks;
-    const char *msg = "OK! ";
+    const char *msg = predicate ? "OK! " : "OK!";
     if(!result)
     {
         ++num_failed_checks;
-        msg = "ERROR: ";
+        msg = predicate ?  "ERROR: " : "ERROR";
     }
-    std::cout << file << ':' << line << ": " << msg << predicate << std::endl;
+    std::cout << file << ':' << line << ": " << msg << (predicate ? predicate : "") << std::endl;
     return result;
 }
 

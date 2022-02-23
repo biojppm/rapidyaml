@@ -4,6 +4,8 @@ project(ryml
     DESCRIPTION "Rapid YAML parsing and emitting"
     HOMEPAGE_URL "https://github.com/biojppm/rapidyaml"
     LANGUAGES CXX)
+include(./compat.cmake)
+
 c4_project(VERSION 0.3.0 STANDALONE
     AUTHOR "Joao Paulo Magalhaes <dev@jpmag.me>")
 
