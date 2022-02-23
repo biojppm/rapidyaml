@@ -197,6 +197,7 @@ As part of the [new feature to track source locations](https://github.com/biojpp
 - Ensure error is emitted on unclosed flow sequence characters eg `[[[` ([PR#210](https://github.com/biojppm/rapidyaml/pulls/210)). Same thing for `[]]`.
 - Refactor error message building and parser debug logging to use the new dump facilities in c4core ([PR#212](https://github.com/biojppm/rapidyaml/pulls/212)).
 - Parse: fix read-after-free when duplicating a parser state node, when pushing to the stack requires a stack buffer resize ([PR#210](https://github.com/biojppm/rapidyaml/pulls/210)).
+- Add support for legacy gcc 4.8 ([PR#217](https://github.com/biojppm/rapidyaml/pulls/217)).
 
 
 ### Improvements
