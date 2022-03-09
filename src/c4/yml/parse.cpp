@@ -2823,10 +2823,8 @@ C4_ALWAYS_INLINE size_t _extend_from_combined_newline(char nl, char following)
 csubstr from_next_line(csubstr rem)
 {
     size_t nlpos = rem.first_of("\r\n");
-    #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
     if(nlpos == csubstr::npos)
         return {};
-    #endif
     const char nl = rem[nlpos];
     rem = rem.right_of(nlpos);
     if(rem.empty())
