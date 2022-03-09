@@ -944,6 +944,62 @@ N(STREAM,
           }),
     })
 );
+
+
+ADD_CASE_TO_GROUP("issue223 0 fails",
+R"(
+            A:
+                - 1
+                - 4
+            B:
+                - 2
+                - 3
+ )",
+N(L{
+  N("A", L{N("1"), N("4")}),
+  N("B", L{N("2"), N("3")}),
+  })
+);
+
+ADD_CASE_TO_GROUP("issue223 1 passes",
+R"(A:
+  - 1
+  - 4
+B:
+  - 2
+  - 3
+)",
+N(L{
+  N("A", L{N("1"), N("4")}),
+  N("B", L{N("2"), N("3")}),
+  })
+);
+
+ADD_CASE_TO_GROUP("issue223 2 passes",
+R"(A:
+  - 1
+  - 4
+B:
+  - 2
+  - 3)",
+N(L{
+  N("A", L{N("1"), N("4")}),
+  N("B", L{N("2"), N("3")}),
+  })
+);
+ADD_CASE_TO_GROUP("issue223 3 fails",
+R"(A:
+  - 1
+  - 4
+B:
+  - 2
+  - 3
+ )",
+N(L{
+  N("A", L{N("1"), N("4")}),
+  N("B", L{N("2"), N("3")}),
+  })
+);
 }
 
 } // namespace yml
