@@ -243,12 +243,12 @@ public:
     C4_ALWAYS_INLINE bool is_container() const { return (type & (MAP|SEQ|STREAM)) != 0; }
     C4_ALWAYS_INLINE bool is_map() const { return (type & MAP) != 0; }
     C4_ALWAYS_INLINE bool is_seq() const { return (type & SEQ) != 0; }
-    C4_ALWAYS_INLINE bool has_val() const { return (type & VAL) != 0; }
     C4_ALWAYS_INLINE bool has_key() const { return (type & KEY) != 0; }
-    C4_ALWAYS_INLINE bool is_val() const { return (type & (KEYVAL)) == VAL; }
+    C4_ALWAYS_INLINE bool has_val() const { return (type & VAL) != 0; }
+    C4_ALWAYS_INLINE bool is_val() const { return (type & KEYVAL) == VAL; }
     C4_ALWAYS_INLINE bool is_keyval() const { return (type & KEYVAL) == KEYVAL; }
     C4_ALWAYS_INLINE bool has_key_tag() const { return (type & (KEY|KEYTAG)) == (KEY|KEYTAG); }
-    C4_ALWAYS_INLINE bool has_val_tag() const { return ((type & (VALTAG)) && (type & (VAL|MAP|SEQ))); }
+    C4_ALWAYS_INLINE bool has_val_tag() const { return ((type & VALTAG) && (type & (VAL|MAP|SEQ))); }
     C4_ALWAYS_INLINE bool has_key_anchor() const { return (type & (KEY|KEYANCH)) == (KEY|KEYANCH); }
     C4_ALWAYS_INLINE bool is_key_anchor() const { return (type & (KEY|KEYANCH)) == (KEY|KEYANCH); }
     C4_ALWAYS_INLINE bool has_val_anchor() const { return (type & VALANCH) != 0 && (type & (VAL|SEQ|MAP)) != 0; }
