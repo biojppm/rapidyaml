@@ -3,6 +3,19 @@
 namespace c4 {
 namespace yml {
 
+TEST(simple_map, keys_with_leading_colon)
+{
+    Tree tree = parse_in_arena(R"(
+:foo:
+  :bar: a
+  :barbar: b
+  :barbarbar: c
+)");
+    EXPECT_EQ(tree[":foo"][":bar"].val(), "a");
+    EXPECT_EQ(tree[":foo"][":barbar"].val(), "b");
+    EXPECT_EQ(tree[":foo"][":barbarbar"].val(), "c");
+}
+
 TEST(simple_map, open_on_new_doc_without_space)
 {
     Tree tree = parse_in_arena(R"(
