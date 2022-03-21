@@ -65,7 +65,7 @@ void _parse_dump(DumpFn dumpfn, c4::csubstr fmt, Args&& ...args)
 
 bool _is_scalar_next__runk(csubstr s)
 {
-    return !(s.begins_with(": ") || s.begins_with_any("#,:{}[]%&") || s.begins_with("? ") || s == "-" || s.begins_with("- "));
+    return !(s.begins_with(": ") || s.begins_with_any("#,{}[]%&") || s.begins_with("? ") || s == "-" || s.begins_with("- ") || s.begins_with(":\"") || s.begins_with(":'"));
 }
 
 bool _is_scalar_next__rseq_rval(csubstr s)
@@ -2465,8 +2465,10 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
             _c4dbgp("RUNK: no scalar next");
             return false;
         }
-        s = s.left_of(s.find(" #"));
-        size_t pos = s.find(": ");
+        size_t pos = s.find(" #");
+        if(pos != npos)
+            s = s.left_of(pos);
+        pos = s.find(": ");
         if(pos != npos)
             s = s.left_of(pos);
         else if(s.ends_with(':'))
