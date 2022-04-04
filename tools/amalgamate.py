@@ -43,6 +43,7 @@ def amalgamate_ryml(filename: str,
                     with_c4core: bool,
                     with_fastfloat: bool,
                     with_stl: bool):
+    c4core_amalgamated = ""
     if with_c4core:
         c4core_amalgamated = "src/c4/c4core_all.hpp"
         am_c4core.amalgamate_c4core(f"{projdir}/{c4core_amalgamated}",
