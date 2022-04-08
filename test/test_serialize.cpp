@@ -211,7 +211,7 @@ good:
 set:
   - nothing
   - nothing
-})");
+)");
     t["set"][0] << std::numeric_limits<float>::quiet_NaN();
     t["set"][1] << std::numeric_limits<double>::quiet_NaN();
     EXPECT_EQ(t["set"][0].val(), ".nan");
@@ -278,7 +278,7 @@ good:
 set:
   - nothing
   - nothing
-})");
+)");
     float finf = std::numeric_limits<float>::infinity();
     double dinf = std::numeric_limits<double>::infinity();
     t["set"][0] << finf;
@@ -350,7 +350,7 @@ good:
 set:
   - nothing
   - nothing
-})");
+)");
     t["set"][0] << -finf;
     t["set"][1] << -dinf;
     EXPECT_EQ(t["set"][0].val(), "-.inf");

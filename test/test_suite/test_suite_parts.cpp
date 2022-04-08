@@ -31,10 +31,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     // SECTION 2. Expected errors that fail to materialize.
 
     // maps
-    _("236B-error"    , "should not accept final scalar in a map"),
-    _("7MNF-error"    , "should not accept final scalar in a map"),
     _("62EZ-error"    , "should not accept invalid block mapping key on same line as previous key"),
-    _("9CWY-error"    , "should not accept final scalar in a map"),
     _("CXX2-error"    , "should not accept mapping with anchor on document start line"),
     _("DK95_06-error" , "should not accept tab indentation"),
     _("GDY7-error"    , "should not accept comment that looks like a mapping key"),
@@ -118,6 +115,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     #ifndef RYML_WITH_TAB_TOKENS // -<tab> or :<tab> are supported only when the above macro is defined
     _("A2M4-in_yaml-events"    , "tabs tokens"),
     _("6BCT-in_yaml"           , "tabs tokens"),
+    _("J3BT-in_yaml"           , "tabs tokens"),
     _("J3BT-in_yaml-events"    , "tabs tokens"),
     _("Y79Y_010-in_yaml-events", "tabs tokens"),
     #endif

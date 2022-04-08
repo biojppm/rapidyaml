@@ -3152,8 +3152,11 @@ void Parser::_end_stream()
         }
         else if(m_tree->is_map(m_state->node_id))
         {
-            _c4dbgp("append null key val...");
-            added = _append_key_val_null(m_state->line_contents.rem.str);
+            if(has_any(RVAL|QMRK))
+            {
+                _c4dbgp("append null key val...");
+                added = _append_key_val_null(m_state->line_contents.rem.str);
+            }
             #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
             if(has_any(RSEQIMAP))
             {
@@ -3239,7 +3242,8 @@ void Parser::_end_stream()
     while(m_stack.size() > 1)
     {
         _c4dbgpf("popping level: {} (stack sz={})", m_state->level, m_stack.size());
-        _RYML_CB_ASSERT(m_stack.m_callbacks,  ! has_any(SSCL, &m_stack.top()));
+        if(has_any(SSCL))
+           _err("unexpected scalar");
         if(has_all(RSEQ|FLOW))
             _err("closing ] not found");
         _pop_level();
