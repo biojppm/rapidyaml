@@ -10,6 +10,10 @@
 #include "c4/yml/detail/parser_dbg.hpp"
 #ifdef RYML_DBG
 #include "c4/yml/detail/print.hpp"
+namespace c4 {
+char _dbg_writebuf_[256];
+const substr _dbg_writebuf = _dbg_writebuf_;
+} // namespace c4
 #endif
 
 #ifndef RYML_ERRMSG_SIZE

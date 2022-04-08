@@ -28,27 +28,29 @@
 #include <c4/dump.hpp>
 namespace c4 {
 inline void _dbg_dumper(csubstr s) { fwrite(s.str, 1, s.len, stdout); };
+extern const substr _dbg_writebuf;
 template<class ...Args>
-void _dbg_printf(c4::csubstr fmt, Args&& ...args)
+void _dbg_printf(c4::csubstr fmt, Args const& C4_RESTRICT ...args)
 {
-    static char writebuf[256];
-    auto results = c4::format_dump_resume<&_dbg_dumper>(writebuf, fmt, std::forward<Args>(args)...);
+    auto iter_results = c4::format_dump_resume<&_dbg_dumper>(_dbg_writebuf, fmt, args...);
     // resume writing if the results failed to fit the buffer
-    if(C4_UNLIKELY(results.bufsize > sizeof(writebuf))) // bufsize will be that of the largest element serialized. Eg int(1), will require 1 byte.
+    if(C4_UNLIKELY(iter_results.bufsize > _dbg_writebuf.len)) // bufsize will be that of the largest element serialized. Eg int(1), will require 1 byte.
     {
-        results = format_dump_resume<&_dbg_dumper>(results, writebuf, fmt, std::forward<Args>(args)...);
-        if(C4_UNLIKELY(results.bufsize > sizeof(writebuf)))
+        iter_results = format_dump_resume<&_dbg_dumper>(iter_results, _dbg_writebuf, fmt, args...);
+        if(C4_UNLIKELY(iter_results.bufsize > _dbg_writebuf.len))
         {
-            results = format_dump_resume<&_dbg_dumper>(results, writebuf, fmt, std::forward<Args>(args)...);
+            iter_results = format_dump_resume<&_dbg_dumper>(iter_results, _dbg_writebuf, fmt, args...);
         }
     }
+    if(fmt.last_of('\n') != csubstr::npos)
+        fflush(stdout);
 }
 } // namespace c4
 
 #   define _c4dbgt(fmt, ...)   this->_dbg ("{}:{}: "   fmt     , __FILE__, __LINE__, ## __VA_ARGS__)
-#   define _c4dbgpf(fmt, ...)  _dbg_printf("{}:{}: "   fmt "\n", __FILE__, __LINE__, ## __VA_ARGS__)
-#   define _c4dbgp(msg)        _dbg_printf("{}:{}: "   msg "\n", __FILE__, __LINE__                )
-#   define _c4dbgq(msg)        _dbg_printf(msg "\n")
+#   define _c4dbgpf(fmt, ...)  ::c4::_dbg_printf("{}:{}: "   fmt "\n", __FILE__, __LINE__, ## __VA_ARGS__)
+#   define _c4dbgp(msg)        ::c4::_dbg_printf("{}:{}: "   msg "\n", __FILE__, __LINE__                )
+#   define _c4dbgq(msg)        ::c4::_dbg_printf(msg "\n")
 #   define _c4err(fmt, ...)   \
     do { if(c4::is_debugger_attached()) { C4_DEBUG_BREAK(); } \
          this->_err("ERROR:\n" "{}:{}: " fmt, __FILE__, __LINE__, ## __VA_ARGS__); } while(0)
