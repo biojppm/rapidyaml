@@ -3476,6 +3476,15 @@ d: 3
 
 //-----------------------------------------------------------------------------
 
+// To avoid imposing a particular type of error handling, ryml accepts
+// custom error handlers. This enables users to use exceptions, or
+// plain calls to abort(), as they see fit.
+//
+// However, it is important to note that the error callback must never
+// return to the caller! Otherwise, an infinite loop or program crash
+// may occur.
+
+
 struct ErrorHandlerExample
 {
     // this will be called on error
@@ -3528,6 +3537,10 @@ void sample_error_handler()
 {
     ErrorHandlerExample errh;
 
+    // set a global error handler. Note the error callback must never
+    // return: it must either abort or throw an exception. Otherwise,
+    // the parser will enter into an infinite loop, or the program may
+    // crash.
     ryml::set_callbacks(errh.callbacks());
     errh.check_effect(/*committed*/true);
     errh.check_error_occurs([]{

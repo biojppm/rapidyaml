@@ -108,7 +108,11 @@ struct RYML_EXPORT Location : public LineCol
 
 /** the type of the function used to report errors. This function must
  * interrupt execution, either by raising an exception or calling
- * std::abort(). */
+ * std::abort().
+ *
+ * @warning the error callback must never return: it must either abort
+ * or throw an exception. Otherwise, the parser will enter into an
+ * infinite loop, or the program may crash. */
 using pfn_error = void (*)(const char* msg, size_t msg_len, Location location, void *user_data);
 /** the type of the function used to allocate memory */
 using pfn_allocate = void* (*)(size_t len, void* hint, void *user_data);
@@ -137,7 +141,11 @@ inline void error(const char (&msg)[N])
 
 //-----------------------------------------------------------------------------
 
-/// a c-style callbacks class
+/** a c-style callbacks class
+ *
+ * @warning the error callback must never return: it must either abort
+ * or throw an exception. Otherwise, the parser will enter into an
+ * infinite loop, or the program may crash. */
 struct RYML_EXPORT Callbacks
 {
     void *       m_user_data;
@@ -158,11 +166,15 @@ struct RYML_EXPORT Callbacks
     }
 };
 
+/** set the global callbacks.
+ *
+ * @warning the error callback must never return: it must either abort
+ * or throw an exception. Otherwise, the parser will enter into an
+ * infinite loop, or the program may crash. */
+RYML_EXPORT void set_callbacks(Callbacks const& c);
 /// get the global callbacks
 RYML_EXPORT Callbacks const& get_callbacks();
-/// set the global callbacks
-RYML_EXPORT void set_callbacks(Callbacks const& c);
-/// set the global callbacks to their defaults
+/// set the global callbacks back to their defaults
 RYML_EXPORT void reset_callbacks();
 
 /// @cond dev
