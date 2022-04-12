@@ -11,3 +11,4 @@
     :barbar: b    # was ok
     :barbarbar: c # was ol
   ```
+- Fix [#246](https://github.com/biojppm/rapidyaml/issues/246): add missing `#define` for the include guard of the amalgamated header.
