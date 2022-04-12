@@ -2743,7 +2743,7 @@ template<class K, class V>
 bool read(ryml::NodeRef const& n, my_map_type<K, V> *map)
 {
     K k{};
-    V v;
+    V v{};
     for(auto const ch : n)
     {
         ch >> c4::yml::key(k) >> v;
