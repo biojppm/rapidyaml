@@ -927,6 +927,19 @@ public:
 
     void merge_with(Tree const* src, size_t src_node=NONE, size_t dst_root=NONE);
 
+public:
+
+    /** compare string views to see if src node is a subset of dst node */
+    bool is_subset_strview(Tree const *dst, size_t dst_node = NONE, size_t src_node = NONE);
+    bool is_subset_strview_skipval(Tree const *dst, size_t dst_node = NONE, size_t src_node = NONE);
+
+private:
+    /** compare subset node types */
+    bool _is_subset_type_equal(Tree const *dst, size_t dst_node, size_t src_node);
+
+    bool _is_subset_strview_init(Tree const *dst, size_t dst_node, size_t src_node, bool skip_val);
+    bool _is_subset_strview_recursive(Tree const *dst, size_t dst_node, size_t src_node, bool skip_val);
+
     /** @} */
 
 public:

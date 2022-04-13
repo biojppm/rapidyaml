@@ -1282,6 +1282,161 @@ void Tree::merge_with(Tree const *src, size_t src_node, size_t dst_node)
 
 //-----------------------------------------------------------------------------
 
+bool Tree::is_subset_strview(Tree const *dst, size_t dst_node, size_t src_node)
+{
+    return _is_subset_strview_init(dst, dst_node, src_node, false /* don't skip values */);
+}
+
+bool Tree::is_subset_strview_skipval(Tree const *dst, size_t dst_node, size_t src_node)
+{
+    return _is_subset_strview_init(dst, dst_node, src_node, true /* skip values */);
+}
+
+bool Tree::_is_subset_strview_init(Tree const *dst, size_t dst_node, size_t src_node, bool skip_val)
+{
+    _RYML_CB_ASSERT(m_callbacks, dst != nullptr);
+    if (src_node == NONE)
+        src_node = root_id();
+    if (dst_node == NONE)
+        dst_node = dst->root_id();
+
+    // guard against different types
+    if(!_is_subset_type_equal(dst, dst_node, src_node))
+        return false;
+
+    // stream
+    if (is_stream(src_node))
+    {
+        if (num_children(src_node) > dst->num_children(dst_node))
+            return false;
+
+        size_t dch = dst->first_child(dst_node);
+        for (size_t sch = first_child(src_node); sch != NONE;sch = next_sibling(sch))
+        {
+            if (!_is_subset_strview_recursive(dst, dch, sch, skip_val))
+                return false;
+            dch = dst->next_sibling(dch);
+        }
+        return true;
+    }
+    else
+    {
+        return _is_subset_strview_recursive(dst, dst_node, src_node, skip_val);
+    }
+}
+
+bool Tree::_is_subset_strview_recursive(Tree const *dst, size_t dst_node, size_t src_node, bool skip_val)
+{
+    // guard against different types
+    if(!_is_subset_type_equal(dst, dst_node, src_node))
+        return false;
+
+    // docval | val
+    if (is_val(src_node))
+    {
+        if (is_val_anchor(src_node))
+        {
+            if (val_anchor(src_node) != dst->val_anchor(dst_node))
+                return false;
+        }
+
+        if(skip_val)
+          return true;
+
+        if (val(src_node) == dst->val(dst_node))
+            return true;
+        return false;
+    }
+    // keyval
+    else if (is_keyval(src_node))
+    {
+        if (is_key_anchor(src_node))
+        {
+            if (key_anchor(src_node) != dst->key_anchor(dst_node))
+                return false;
+        }
+
+        if (is_val_anchor(src_node))
+        {
+            if (val_anchor(src_node) != dst->val_anchor(dst_node))
+                return false;
+        }
+
+        if (key(src_node) == dst->key(dst_node) && (skip_val || val(src_node) == dst->val(dst_node)))
+            return true;
+        return false;
+    }
+    // docseq | keyseq | seq
+    else if (is_seq(src_node))
+    {
+        if (num_children(src_node) > dst->num_children(dst_node))
+            return false;
+
+        size_t dch = dst->first_child(dst_node);
+        for (size_t sch = first_child(src_node); sch != NONE; sch = next_sibling(sch))
+        {
+            if (!_is_subset_strview_recursive(dst, dch, sch, skip_val))
+                return false;
+            dch = dst->next_sibling(dch);
+        }
+        return true;
+    }
+    // docmap | keymap | map
+    else if (is_map(src_node))
+    {
+        if (num_children(src_node) > dst->num_children(dst_node))
+            return false;
+
+        for (size_t sch = first_child(src_node); sch != NONE; sch = next_sibling(sch))
+        {
+            size_t dch = dst->find_child(dst_node, key(sch));
+            if (dch == NONE)
+                return false;
+            if (!_is_subset_strview_recursive(dst, dch, sch, skip_val))
+                return false;
+        }
+        return true;
+    }
+    // notype
+    else if(type(src_node) == NOTYPE)
+    {
+        return true;
+    }
+    else
+    {
+        C4_NEVER_REACH();
+    }
+}
+
+bool Tree::_is_subset_type_equal(Tree const *dst, size_t dst_node, size_t src_node)
+{
+    /* compare different node types for equality. A MAP/SEQ which only
+     * differs from one of these types (see below) is accepted because a subset
+     * comparator does not care if the MAP/SEQ was from a doc or a key.
+     *
+     *   interchangeable valid types: DOC[MAP/SEQ], KEY[MAP/SEQ] and MAP/SEQ */
+    if (type(src_node) != dst->type(dst_node))
+    {
+        if(is_map(src_node))
+        {
+            // recheck if the type matches when removing interchangeable types
+            if((type(src_node) & ~(DOCMAP | KEYMAP | MAP)) != (dst->type(dst_node) & ~(DOCMAP | KEYMAP | MAP)))
+                return false;
+        }
+        else if(is_seq(src_node))
+        {
+            if((type(src_node) & ~(DOCSEQ | KEYSEQ | SEQ)) != (dst->type(dst_node) & ~(DOCSEQ | KEYSEQ | SEQ)))
+                return false;
+        }
+        else
+            return false;
+    }
+    return true;
+}
+
+
+//-----------------------------------------------------------------------------
+
 namespace detail {
 /** @todo make this part of the public API, refactoring as appropriate
  * to be able to use the same resolver to handle multiple trees (one
