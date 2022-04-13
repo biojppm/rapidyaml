@@ -1751,7 +1751,7 @@ void sample_create_trees()
         std::string a_drop = "a drop of golden sun";
         // this will copy the string to the tree's arena:
         // (see the serialization samples below)
-        root["ray"] << "a drop of golden sun";
+        root["ray"] << a_drop;
         // and now you can modify the original string without changing
         // the tree:
         a_drop[0] = 'Z';
