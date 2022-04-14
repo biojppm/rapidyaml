@@ -929,16 +929,17 @@ public:
 
 public:
 
-    /** compare string views to see if src node is a subset of dst node */
-    bool is_subset_strview(Tree const *dst, size_t dst_node = NONE, size_t src_node = NONE);
-    bool is_subset_strview_skipval(Tree const *dst, size_t dst_node = NONE, size_t src_node = NONE);
+    /** non-recursive predicates: */
+
+    /** return true if subject_node has all the keys or indices in refnode from a reftree
+     * @note does not check values, only keys (for maps) or indices (for seqs) */
+    bool has_all(Tree const* reftree, size_t refnode = NONE, size_t subject_node = NONE ) const;
 
 private:
-    /** compare subset node types */
-    bool _is_subset_type_equal(Tree const *dst, size_t dst_node, size_t src_node);
 
-    bool _is_subset_strview_init(Tree const *dst, size_t dst_node, size_t src_node, bool skip_val);
-    bool _is_subset_strview_recursive(Tree const *dst, size_t dst_node, size_t src_node, bool skip_val);
+    /** and helper functions to drive the recursive descent: */
+
+    bool _has_all_recursive(Tree const* reftree, size_t refnode, size_t subject_node) const;
 
     /** @} */
 
