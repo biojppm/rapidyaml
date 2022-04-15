@@ -687,7 +687,7 @@ you can also generate a customized file suiting your particular needs
 (or commit):
 
 ```console
-[user@host rapidyaml]$ python tools/amalgamate.py -h
+[user@host rapidyaml]$ python3 tools/amalgamate.py -h
 usage: amalgamate.py [-h] [--c4core | --no-c4core] [--fastfloat | --no-fastfloat] [--stl | --no-stl] [output]
 
 positional arguments:
