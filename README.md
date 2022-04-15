@@ -743,7 +743,7 @@ when cloning the repo, to ensure ryml's submodules are checked out as well:
 git clone --recursive https://github.com/biojppm/rapidyaml
 ```
 If you omit `--recursive`, after cloning you
-will have to do `git submodule init` and `git submodule update` 
+will have to do `git submodule update --init --recursive`
 to ensure ryml's submodules are checked out.
 
 ### Quickstart samples
