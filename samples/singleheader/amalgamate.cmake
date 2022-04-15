@@ -1,3 +1,4 @@
+find_package(Python3 COMPONENTS Interpreter)
 
 # amalgamate ryml to get the single header
 function(amalgamate_ryml header_dir header_file)
@@ -9,8 +10,8 @@ function(amalgamate_ryml header_dir header_file)
         LIST_DIRECTORIES FALSE
         CONFIGURE_DEPENDS "${rymldir}/src")
     add_custom_command(OUTPUT "${singleheader}"
-        COMMAND python "${amscript}" "${singleheader}"
-        COMMENT "python ${amscript} ${singleheader}"
+        COMMAND "${Python3_EXECUTABLE}" "${amscript}" "${singleheader}"
+        COMMENT "${Python3_EXECUTABLE} ${amscript} ${singleheader}"
         DEPENDS ${srcfiles} "${amscript}" "${rymldir}/ext/c4core/cmake/amalgamate_utils.py")
     set(${header_dir} "${singleheaderdir}" PARENT_SCOPE)
     set(${header_file} "${singleheader}" PARENT_SCOPE)
