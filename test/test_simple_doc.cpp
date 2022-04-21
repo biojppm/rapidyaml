@@ -4,6 +4,32 @@ namespace c4 {
 namespace yml {
 
 
+TEST(simple_doc, issue_251)
+{
+    {
+        csubstr yaml = R"(
+...
+)";
+        test_check_emit_check(yaml, [](Tree const &t){
+            EXPECT_EQ(t.rootref().type(), NOTYPE);
+            ASSERT_EQ(t.rootref().num_children(), 0u);
+        });
+    }
+    {
+        Tree tree;
+        NodeRef root = tree.rootref();
+        root |= MAP;
+        root["test"] = "...";
+        root["test"] |= VALQUO;
+
+        std::string s = emitrs<std::string>(tree);
+        test_check_emit_check(to_csubstr(s), [](Tree const &t){
+            EXPECT_EQ(t["test"].val(), "...");
+        });
+    }
+}
+
+
 TEST(simple_doc, test_suite_XLQ9)
 {
     csubstr yaml = R"(
