@@ -12,3 +12,10 @@
     :barbarbar: c # was ol
   ```
 - Fix [#246](https://github.com/biojppm/rapidyaml/issues/246): add missing `#define` for the include guard of the amalgamated header.
+- YAML test suite events emitter: fix emission of inheriting nodes. The events for `{<<: *anchor, foo: bar}` are now correctly emitted as:
+  ```yaml
+  =VAL :<<  # previously was =ALI <<
+  =ALI *anchor
+  =VAL :foo
+  =VAL :bar
+  ```

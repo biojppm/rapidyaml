@@ -406,6 +406,47 @@ TEST(events, tag_directives_lookup)
 )");
 }
 
+TEST(events, anchors_refs)
+{
+    test_evts(
+        R"(
+A: &A
+    V: 3
+    L:
+        - 1
+B:
+    <<: *A
+    V: 4
+    L:
+        -5
+)",
+        R"(+STR
++DOC
++MAP
+=VAL :A
++MAP &A
+=VAL :V
+=VAL :3
+=VAL :L
++SEQ
+=VAL :1
+-SEQ
+-MAP
+=VAL :B
++MAP
+=VAL :<<
+=ALI *A
+=VAL :V
+=VAL :4
+=VAL :L
+=VAL :-5
+-MAP
+-MAP
+-DOC
+-STR
+)");
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

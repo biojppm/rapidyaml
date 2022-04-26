@@ -179,9 +179,19 @@ void EventsEmitter::emit_events(size_t node)
     {
         if(m_tree->is_key_ref(node))
         {
-            pr("=ALI ");
-            pr(m_tree->key(node));
-            pr('\n');
+            csubstr k = m_tree->key(node);
+            if(k != "<<")
+            {
+                pr("=ALI ");
+                pr(k);
+                pr('\n');
+            }
+            else
+            {
+                pr("=VAL :");
+                pr(k);
+                pr('\n');
+            }
         }
         else
         {
