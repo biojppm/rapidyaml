@@ -399,6 +399,41 @@ TEST(double_quoted, error_on_bad_utf_codepoints)
     verify_error_is_reported("bad value  \\U"  , R"(foo: "\Ukokokoko")");
 }
 
+TEST(double_quoted, github253)
+{
+    {
+        Tree tree;
+        NodeRef root = tree.rootref();
+        root |= MAP;
+        root["t"] = "t't\\nt";
+        root["t"] |= _WIP_VAL_DQUO;
+        std::string s = emitrs<std::string>(tree);
+        Tree tree2 = parse_in_arena(to_csubstr(s));
+        EXPECT_EQ(tree2["t"].val(), tree["t"].val());
+    }
+    {
+        Tree tree;
+        NodeRef root = tree.rootref();
+        root |= MAP;
+        root["t"] = "t't\\nt";
+        root["t"] |= _WIP_VAL_SQUO;
+        std::string s = emitrs<std::string>(tree);
+        Tree tree2 = parse_in_arena(to_csubstr(s));
+        EXPECT_EQ(tree2["t"].val(), tree["t"].val());
+    }
+    {
+        Tree tree;
+        NodeRef root = tree.rootref();
+        root |= MAP;
+        root["s"] = "t\rt";
+        root["s"] |= _WIP_VAL_DQUO;
+        std::string s = emitrs<std::string>(tree);
+        EXPECT_EQ(s, "s: \"t\\rt\"\n");
+        Tree tree2 = parse_in_arena(to_csubstr(s));
+        EXPECT_EQ(tree2["s"].val(), tree["s"].val());
+    }
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
