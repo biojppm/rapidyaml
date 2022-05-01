@@ -767,6 +767,13 @@ void Emitter<Writer>::_write_scalar_dquo(csubstr s, size_t ilevel)
                 pos = i;
             }
         }
+        else if(C4_UNLIKELY(curr == '\r'))
+        {
+            csubstr sub = s.range(pos, i);
+            this->Writer::_do_write(sub);  // write everything up to (excluding) this char
+            this->Writer::_do_write("\\r"); // write the escaped char
+            pos = i+1;
+        }
     }
     // write missing characters at the end of the string
     if(pos < s.len)

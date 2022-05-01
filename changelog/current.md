@@ -19,3 +19,15 @@
   =VAL :foo
   =VAL :bar
   ```
+- Fix [#253](https://github.com/biojppm/rapidyaml/issues/253): double-quoted emitter should encode carriage-return `\r` to preserve roundtrip equivalence:
+  ```yaml
+  Tree tree;
+  NodeRef root = tree.rootref();
+  root |= MAP;
+  root["s"] = "t\rt";
+  root["s"] |= _WIP_VAL_DQUO;
+  std::string s = emitrs<std::string>(tree);
+  EXPECT_EQ(s, "s: \"t\\rt\"\n");
+  Tree tree2 = parse_in_arena(to_csubstr(s));
+  EXPECT_EQ(tree2["s"].val(), tree["s"].val());
+  ```
