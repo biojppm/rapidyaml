@@ -66,7 +66,6 @@ TEST(null_val, block_seq)
 - ~
 )";
     ASSERT_EQ(yaml.count('\r'), 0u);
-    auto after = [yaml](csubstr pattern){ return getafter(yaml, pattern); };
     Tree tree = parse_in_arena(yaml);
     ASSERT_EQ(tree.rootref().num_children(), 10u);
     // FIXME: empty vals in block seqs are pointing at the next item!
@@ -101,7 +100,6 @@ val8: null
 val9: ~
 )";
     ASSERT_EQ(yaml.count('\r'), 0u);
-    auto after = [yaml](csubstr pattern){ return getafter(yaml, pattern); };
     Tree tree = parse_in_arena(yaml);
     ASSERT_EQ(tree.rootref().num_children(), 10u);
     // FIXME: empty vals in block seqs are pointing at the next item!
