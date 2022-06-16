@@ -22,15 +22,9 @@ csubstr getafter(csubstr yaml, csubstr pattern)
         {                                                          \
             EXPECT_EQ(expr, nullptr);                              \
             EXPECT_EQ(expr.len, 0u);                               \
-            EXPECT_NE(expr.str, nullptr);                          \
+            EXPECT_EQ(expr.str, nullptr);                          \
         }                                                          \
         EXPECT_TRUE(expr_.which##_is_null());                      \
-        EXPECT_LT(expr.str, arena.end());                          \
-        ASSERT_GE(expr.str, arena.begin());                        \
-        size_t exprpos = (size_t)(expr.str - arena.begin());       \
-        EXPECT_TRUE(arena.sub(exprpos).begins_with(pattern));      \
-        ASSERT_GE(arena.sub(exprpos).len, csubstr(pattern).len);   \
-        EXPECT_EQ(arena.sub(exprpos).first(csubstr(pattern).len), csubstr(pattern)); \
     } while(0)
 
 
@@ -304,13 +298,6 @@ map:
   EXPECT_EQ(csubstr(t["seq"][1].val().str, 4), csubstr("null"));
   EXPECT_EQ(csubstr(t["map"]["val0"].val().str, 1), csubstr("~"));
   EXPECT_EQ(csubstr(t["map"]["val1"].val().str, 4), csubstr("null"));
-  // but empty null values currently point at the NEXT location:
-  EXPECT_EQ(csubstr(t["seq"][2].val().str, 15), csubstr("-\n  # a comment"));
-  EXPECT_EQ(csubstr(t["seq"][3].val().str, 6), csubstr("-\nmap:"));
-  EXPECT_EQ(csubstr(t["seq"][4].val().str, 5), csubstr("\nmap:"));
-  EXPECT_EQ(csubstr(t["map"]["val2"].val().str, 6), csubstr(" val3:"));
-  EXPECT_EQ(csubstr(t["map"]["val3"].val().str, 6), csubstr(" val4:"));
-  EXPECT_EQ(csubstr(t["map"]["val4"].val().str, 1), csubstr("val4:\n").sub(5));
 }
 
 

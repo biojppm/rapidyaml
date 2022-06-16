@@ -5506,8 +5506,11 @@ Location Parser::location(Tree const& tree, size_t node) const
 {
     if(tree.has_key(node))
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, tree.key(node).is_sub(m_buf));
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.is_super(tree.key(node)));
+        if(tree.key(node).str != nullptr)
+        {
+            _RYML_CB_ASSERT(m_stack.m_callbacks, tree.key(node).str == nullptr || tree.key(node).is_sub(m_buf));
+            _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.is_super(tree.key(node)));
+        }
         return val_location(tree.key(node).str);
     }
     else if(tree.has_val(node))
@@ -5546,6 +5549,12 @@ Location Parser::location(Tree const& tree, size_t node) const
 
 Location Parser::val_location(const char *val) const
 {
+    if(val == nullptr)
+    {
+        // we don't know the location of null values anymore ;-(
+        return Location{m_file, 0, 0, 0};
+    }
+
     csubstr src = m_buf;
     // NOTE: the pointer needs to belong to the buffer that was used to parse.
     _RYML_CB_CHECK(m_stack.m_callbacks, val >= src.begin() && val <= src.end());
