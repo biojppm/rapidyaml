@@ -22,7 +22,7 @@ void write(c4::yml::NodeRef *n, std::vector<V, Alloc> const& vec)
 }
 
 template<class V, class Alloc>
-bool read(c4::yml::NodeRef const& n, std::vector<V, Alloc> *vec)
+bool read(c4::yml::ConstNodeRef const& n, std::vector<V, Alloc> *vec)
 {
     vec->resize(n.num_children());
     size_t pos = 0;

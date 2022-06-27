@@ -238,15 +238,15 @@ Stack:
 )";
     test_check_emit_check(yaml, [](Tree const &t){
         ASSERT_TRUE(t.rootref().is_stream());
-        const NodeRef doc0 = t.rootref()[0];
+        ConstNodeRef doc0 = t.rootref()[0];
         EXPECT_EQ(doc0["Time"].val(), csubstr("2001-11-23 15:01:42 -5"));
         EXPECT_EQ(doc0["User"].val(), csubstr("ed"));
         EXPECT_EQ(doc0["Warning"].val(), csubstr("This is an error message for the log file"));
-        const NodeRef doc1 = t.rootref()[1];
+        ConstNodeRef doc1 = t.rootref()[1];
         EXPECT_EQ(doc1["Time"].val(), csubstr("2001-11-23 15:02:31 -5"));
         EXPECT_EQ(doc1["User"].val(), csubstr("ed"));
         EXPECT_EQ(doc1["Warning"].val(), csubstr("A slightly different error message."));
-        const NodeRef doc2 = t.rootref()[2];
+        ConstNodeRef doc2 = t.rootref()[2];
         EXPECT_EQ(doc2["Date"].val(), csubstr("2001-11-23 15:03:17 -5"));
         EXPECT_EQ(doc2["User"].val(), csubstr("ed"));
         EXPECT_EQ(doc2["Fatal"].val(), csubstr("Unknown variable \"bar\""));

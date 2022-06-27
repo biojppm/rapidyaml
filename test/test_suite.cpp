@@ -201,8 +201,8 @@ struct ProcLevel
     void _resolve_if_needed()
     {
         const NodeRef root = tree.rootref();
-        bool has_anchors_or_refs = root.visit([](NodeRef const* node, size_t /*level*/){
-            return (node->is_anchor() || node->is_ref());
+        bool has_anchors_or_refs = root.visit([](ConstNodeRef const& node, size_t /*level*/){
+            return (node.is_anchor() || node.is_ref());
         });
         if(has_anchors_or_refs)
         {

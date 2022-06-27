@@ -36,7 +36,7 @@ substr Emitter<Writer>::emit(EmitType_e type, Tree const& t, bool error_on_exces
 }
 
 template<class Writer>
-substr Emitter<Writer>::emit(EmitType_e type, NodeRef const& n, bool error_on_excess)
+substr Emitter<Writer>::emit(EmitType_e type, ConstNodeRef const& n, bool error_on_excess)
 {
     _RYML_CB_CHECK(n.tree()->callbacks(), n.valid());
     return emit(type, *n.tree(), n.id(), error_on_excess);

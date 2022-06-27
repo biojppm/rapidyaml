@@ -26,7 +26,7 @@ void write(c4::yml::NodeRef *n, std::map<K, V, Less, Alloc> const& m)
 }
 
 template<class K, class V, class Less, class Alloc>
-bool read(c4::yml::NodeRef const& n, std::map<K, V, Less, Alloc> * m)
+bool read(c4::yml::ConstNodeRef const& n, std::map<K, V, Less, Alloc> * m)
 {
     K k{};
     V v{};
