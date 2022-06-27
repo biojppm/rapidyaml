@@ -418,14 +418,14 @@ public:
     template<class Visitor>
     C4_ALWAYS_INLINE C4_CONST bool visit(Visitor fn, size_t indentation_level=0, bool skip_root=true) const noexcept
     {
-        return detail::_visit(*this, fn, indentation_level, skip_root);
+        return detail::_visit(*(ConstImpl*)this, fn, indentation_level, skip_root);
     }
 
     /** visit every child node calling fn(node, level) */
     template<class Visitor>
     C4_ALWAYS_INLINE C4_CONST bool visit_stacked(Visitor fn, size_t indentation_level=0, bool skip_root=true) const noexcept
     {
-        return detail::_visit_stacked(*this, fn, indentation_level, skip_root);
+        return detail::_visit_stacked(*(ConstImpl*)this, fn, indentation_level, skip_root);
     }
 
     /** @} */
@@ -521,9 +521,6 @@ public:
 
     /** @} */
 
-public:
-
-    C4_ALWAYS_INLINE ConstNodeRef mknd_(size_t id_) const noexcept { return {m_tree, id_}; }
 };
 
 
@@ -533,7 +530,7 @@ public:
 
 /** a reference to a node in an existing yaml tree, offering a more
  * convenient API than the index-based API used in the tree. */
-class RYML_EXPORT NodeRef
+class RYML_EXPORT NodeRef : public detail::NonMutatingNodeMethods<NodeRef, ConstNodeRef>
 {
 public:
 
@@ -557,6 +554,9 @@ private:
     csubstr m_seed;
 
     friend ConstNodeRef;
+    template<class Impl, class ConstImpl>
+    friend struct NonMutatingNodeMethods;
+
     // require valid: a helper macro, undefined at the end
     #define _C4RV()                                                         \
         RYML_ASSERT(m_tree != nullptr);                                     \
@@ -627,94 +627,14 @@ public:
 
 public:
 
-    /** @name node property getters */
+    /** @name non-const node property getters */
     /** @{ */
 
-    inline Tree      * tree()       { return m_tree; }
-    inline Tree const* tree() const { return m_tree; }
-
+    inline Tree * tree() { return m_tree; }
     inline size_t id() const { return m_id; }
 
     /** returns the data or null when the id is NONE */
-    inline NodeData      * get()       { return m_tree->get(m_id); }
-    /** returns the data or null when the id is NONE */
-    inline NodeData const* get() const { return m_tree->get(m_id); }
-
-    inline NodeType     type() const { _C4RV(); return m_tree->type(m_id); }
-    inline const char*  type_str() const { _C4RV(); RYML_ASSERT(valid() && ! is_seed()); return m_tree->type_str(m_id); }
-
-    inline csubstr key()        const { _C4RV(); return m_tree->key(m_id); }
-    inline csubstr key_tag()    const { _C4RV(); return m_tree->key_tag(m_id); }
-    inline csubstr key_ref()    const { _C4RV(); return m_tree->key_ref(m_id); }
-    inline csubstr key_anchor() const { _C4RV(); return m_tree->key_anchor(m_id); }
-
-    inline csubstr val()        const { _C4RV(); return m_tree->val(m_id); }
-    inline csubstr val_tag()    const { _C4RV(); return m_tree->val_tag(m_id); }
-    inline csubstr val_ref()    const { _C4RV(); return m_tree->val_ref(m_id); }
-    inline csubstr val_anchor() const { _C4RV(); return m_tree->val_anchor(m_id); }
-
-    inline NodeScalar const& keysc() const { _C4RV(); return m_tree->keysc(m_id); }
-    inline NodeScalar const& valsc() const { _C4RV(); return m_tree->valsc(m_id); }
-
-    inline bool key_is_null() const { _C4RV(); return m_tree->key_is_null(m_id); }
-    inline bool val_is_null() const { _C4RV(); return m_tree->val_is_null(m_id); }
-
-    /** @} */
-
-public:
-
-    /** @name node property predicates */
-    /** @{ */
-
-    C4_ALWAYS_INLINE bool empty()            const { _C4RV(); return m_tree->empty(m_id); }
-    C4_ALWAYS_INLINE bool is_stream()        const { _C4RV(); return m_tree->is_stream(m_id); }
-    C4_ALWAYS_INLINE bool is_doc()           const { _C4RV(); return m_tree->is_doc(m_id); }
-    C4_ALWAYS_INLINE bool is_container()     const { _C4RV(); return m_tree->is_container(m_id); }
-    C4_ALWAYS_INLINE bool is_map()           const { _C4RV(); return m_tree->is_map(m_id); }
-    C4_ALWAYS_INLINE bool is_seq()           const { _C4RV(); return m_tree->is_seq(m_id); }
-    C4_ALWAYS_INLINE bool has_val()          const { _C4RV(); return m_tree->has_val(m_id); }
-    C4_ALWAYS_INLINE bool has_key()          const { _C4RV(); return m_tree->has_key(m_id); }
-    C4_ALWAYS_INLINE bool is_val()           const { _C4RV(); return m_tree->is_val(m_id); }
-    C4_ALWAYS_INLINE bool is_keyval()        const { _C4RV(); return m_tree->is_keyval(m_id); }
-    C4_ALWAYS_INLINE bool has_key_tag()      const { _C4RV(); return m_tree->has_key_tag(m_id); }
-    C4_ALWAYS_INLINE bool has_val_tag()      const { _C4RV(); return m_tree->has_val_tag(m_id); }
-    C4_ALWAYS_INLINE bool has_key_anchor()   const { _C4RV(); return m_tree->has_key_anchor(m_id); }
-    C4_ALWAYS_INLINE bool is_key_anchor()    const { _C4RV(); return m_tree->is_key_anchor(m_id); }
-    C4_ALWAYS_INLINE bool has_val_anchor()   const { _C4RV(); return m_tree->has_val_anchor(m_id); }
-    C4_ALWAYS_INLINE bool is_val_anchor()    const { _C4RV(); return m_tree->is_val_anchor(m_id); }
-    C4_ALWAYS_INLINE bool has_anchor()       const { _C4RV(); return m_tree->has_anchor(m_id); }
-    C4_ALWAYS_INLINE bool is_anchor()        const { _C4RV(); return m_tree->is_anchor(m_id); }
-    C4_ALWAYS_INLINE bool is_key_ref()       const { _C4RV(); return m_tree->is_key_ref(m_id); }
-    C4_ALWAYS_INLINE bool is_val_ref()       const { _C4RV(); return m_tree->is_val_ref(m_id); }
-    C4_ALWAYS_INLINE bool is_ref()           const { _C4RV(); return m_tree->is_ref(m_id); }
-    C4_ALWAYS_INLINE bool is_anchor_or_ref() const { _C4RV(); return m_tree->is_anchor_or_ref(m_id); }
-    C4_ALWAYS_INLINE bool is_key_quoted()    const { _C4RV(); return m_tree->is_key_quoted(m_id); }
-    C4_ALWAYS_INLINE bool is_val_quoted()    const { _C4RV(); return m_tree->is_val_quoted(m_id); }
-    C4_ALWAYS_INLINE bool is_quoted()        const { _C4RV(); return m_tree->is_quoted(m_id); }
-
-    C4_ALWAYS_INLINE bool parent_is_seq()    const { _C4RV(); return m_tree->parent_is_seq(m_id); }
-    C4_ALWAYS_INLINE bool parent_is_map()    const { _C4RV(); return m_tree->parent_is_map(m_id); }
-
-    /** @} */
-
-public:
-
-    /** @name hierarchy predicates */
-    /** @{ */
-
-    inline bool is_root()    const { _C4RV(); return m_tree->is_root(m_id); }
-    inline bool has_parent() const { _C4RV(); return m_tree->has_parent(m_id); }
-
-    inline bool has_child(ConstNodeRef const& ch) const { _C4RV(); return m_tree->has_child(m_id, ch.m_id); }
-    inline bool has_child(csubstr name) const { _C4RV();  return m_tree->has_child(m_id, name); }
-    inline bool has_children() const { _C4RV(); return m_tree->has_children(m_id); }
-
-    inline bool has_sibling(ConstNodeRef const& n) const { _C4RV(); return m_tree->has_sibling(m_id, n.m_id); }
-    inline bool has_sibling(csubstr name) const { _C4RV();  return m_tree->has_sibling(m_id, name); }
-    /** counts with this */
-    inline bool has_siblings() const { _C4RV(); return m_tree->has_siblings(m_id); }
-    /** does not count with this */
-    inline bool has_other_siblings() const { _C4RV(); return m_tree->has_other_siblings(m_id); }
+    inline NodeData * get() { RYML_ASSERT(m_tree != nullptr); return m_tree->get(m_id); }
 
     /** @} */
 
@@ -724,59 +644,22 @@ public:
     /** @{ */
 
     NodeRef      parent()       { _C4RV(); return {m_tree, m_tree->parent(m_id)}; }
-    ConstNodeRef parent() const { _C4RV(); return {m_tree, m_tree->parent(m_id)}; }
-
     NodeRef      prev_sibling()       { _C4RV(); return {m_tree, m_tree->prev_sibling(m_id)}; }
-    ConstNodeRef prev_sibling() const { _C4RV(); return {m_tree, m_tree->prev_sibling(m_id)}; }
-
     NodeRef       next_sibling()       { _C4RV(); return {m_tree, m_tree->next_sibling(m_id)}; }
-    NodeRef const next_sibling() const { _C4RV(); return {m_tree, m_tree->next_sibling(m_id)}; }
 
     /** O(#num_children) */
-    size_t  num_children() const { _C4RV(); return m_tree->num_children(m_id); }
-    size_t  child_pos(NodeRef const& n) const { _C4RV(); return m_tree->child_pos(m_id, n.m_id); }
     NodeRef      first_child()       { _C4RV(); return {m_tree, m_tree->first_child(m_id)}; }
-    ConstNodeRef first_child() const { _C4RV(); return {m_tree, m_tree->first_child(m_id)}; }
     NodeRef      last_child ()       { _C4RV(); return {m_tree, m_tree->last_child(m_id)}; }
-    ConstNodeRef last_child () const { _C4RV(); return {m_tree, m_tree->last_child(m_id)}; }
     NodeRef      child(size_t pos)       { _C4RV(); return {m_tree, m_tree->child(m_id, pos)}; }
-    ConstNodeRef child(size_t pos) const { _C4RV(); return {m_tree, m_tree->child(m_id, pos)}; }
     NodeRef      find_child(csubstr name)       { _C4RV(); return {m_tree, m_tree->find_child(m_id, name)}; }
-    ConstNodeRef find_child(csubstr name) const { _C4RV(); return {m_tree, m_tree->find_child(m_id, name)}; }
 
     /** O(#num_siblings) */
-    size_t  num_siblings() const { _C4RV(); return m_tree->num_siblings(m_id); }
-    size_t  num_other_siblings() const { _C4RV(); return m_tree->num_other_siblings(m_id); }
-    size_t  sibling_pos(NodeRef const& n) const { _C4RV(); return m_tree->child_pos(m_tree->parent(m_id), n.m_id); }
     NodeRef      first_sibling()       { _C4RV(); return {m_tree, m_tree->first_sibling(m_id)}; }
-    ConstNodeRef first_sibling() const { _C4RV(); return {m_tree, m_tree->first_sibling(m_id)}; }
     NodeRef      last_sibling ()       { _C4RV(); return {m_tree, m_tree->last_sibling(m_id)}; }
-    ConstNodeRef last_sibling () const { _C4RV(); return {m_tree, m_tree->last_sibling(m_id)}; }
     NodeRef      sibling(size_t pos)       { _C4RV(); return {m_tree, m_tree->sibling(m_id, pos)}; }
-    ConstNodeRef sibling(size_t pos) const { _C4RV(); return {m_tree, m_tree->sibling(m_id, pos)}; }
     NodeRef      find_sibling(csubstr name)       { _C4RV(); return {m_tree, m_tree->find_sibling(m_id, name)}; }
-    ConstNodeRef find_sibling(csubstr name) const { _C4RV(); return {m_tree, m_tree->find_sibling(m_id, name)}; }
 
     NodeRef      doc(size_t num)       { _C4RV(); return {m_tree, m_tree->doc(num)}; }
-    ConstNodeRef doc(size_t num) const { _C4RV(); return {m_tree, m_tree->doc(num)}; }
-
-    /** O(num_children) */
-    ConstNodeRef operator[] (csubstr k) const
-    {
-        _C4RV();
-        size_t ch = m_tree->find_child(m_id, k);
-        RYML_ASSERT(ch != NONE);
-        return ConstNodeRef(m_tree, ch);
-    }
-
-    /** O(num_children) */
-    ConstNodeRef operator[] (size_t pos) const
-    {
-        _C4RV();
-        size_t ch = m_tree->child(m_id, pos);
-        RYML_ASSERT(ch != NONE);
-        return ConstNodeRef(m_tree, ch);
-    }
 
     /** Find child by key. O(num_children). returns a seed node if no such child is found.  */
     NodeRef operator[] (csubstr k)
@@ -975,82 +858,6 @@ public:
 
     /** @} */
 
-public:
-
-    /** @name deserialization */
-    /** @{ */
-
-    template<class T>
-    inline NodeRef const& operator>> (T &v) const
-    {
-        _C4RV();
-        ConstNodeRef const& cref = *this;
-        if( ! read(cref, &v))
-            _RYML_CB_ERR(m_tree->m_callbacks, "could not deserialize value");
-        return *this;
-    }
-
-    /** deserialize the node's key to the given variable */
-    template<class T>
-    inline NodeRef const& operator>> (Key<T> v) const
-    {
-        _C4RV();
-        if( ! from_chars(key(), &v.k))
-            _RYML_CB_ERR(m_tree->m_callbacks, "could not deserialize key");
-        return *this;
-    }
-
-    /** deserialize the node's key as base64 */
-    NodeRef const& operator>> (Key<fmt::base64_wrapper> w) const
-    {
-        deserialize_key(w.wrapper);
-        return *this;
-    }
-
-    /** deserialize the node's val as base64 */
-    NodeRef const& operator>> (fmt::base64_wrapper w) const
-    {
-        deserialize_val(w);
-        return *this;
-    }
-
-    /** decode the base64-encoded key deserialize and assign the
-     * decoded blob to the given buffer/
-     * @return the size of base64-decoded blob */
-    size_t deserialize_key(fmt::base64_wrapper v) const;
-    /** decode the base64-encoded key deserialize and assign the
-     * decoded blob to the given buffer/
-     * @return the size of base64-decoded blob */
-    size_t deserialize_val(fmt::base64_wrapper v) const;
-
-    template<class T>
-    bool get_if(csubstr name, T *var) const
-    {
-        auto ch = find_child(name);
-        if(!ch.valid())
-            return false;
-        ch >> *var;
-        return true;
-    }
-
-    template<class T>
-    bool get_if(csubstr name, T *var, T const& fallback) const
-    {
-        auto ch = find_child(name);
-        if(ch.valid())
-        {
-            ch >> *var;
-            return true;
-        }
-        else
-        {
-            *var = fallback;
-            return false;
-        }
-    }
-
-    /** @} */
-
 private:
 
     void _apply_seed()
@@ -1225,7 +1032,7 @@ public:
 public:
 
     /** change the node's position within its parent */
-    inline void move(NodeRef const& after)
+    inline void move(ConstNodeRef const& after)
     {
         _C4RV();
         m_tree->move(m_id, after.m_id);
@@ -1289,19 +1096,13 @@ public:
     /** @{ */
 
     using       iterator = detail::child_iterator<     NodeRef>;
-    using const_iterator = detail::child_iterator<ConstNodeRef>;
 
     using       children_view = detail::children_view_<     NodeRef>;
-    using const_children_view = detail::children_view_<ConstNodeRef>;
 
     inline iterator begin() { return iterator(m_tree, m_tree->first_child(m_id)); }
     inline iterator end  () { return iterator(m_tree, NONE); }
 
-    inline const_iterator begin() const { return const_iterator(m_tree, m_tree->first_child(m_id)); }
-    inline const_iterator end  () const { return const_iterator(m_tree, NONE); }
-
           children_view children()       { return       children_view(begin(), end()); }
-    const_children_view children() const { return const_children_view(begin(), end()); }
 
     #if defined(__clang__)
     #   pragma clang diagnostic push
@@ -1313,8 +1114,7 @@ public:
     #   endif
     #endif
 
-          children_view siblings()       { if(is_root()) { return       children_view(end(), end()); } else { size_t p = get()->m_parent; return       children_view(iterator(m_tree, m_tree->get(p)->m_first_child), iterator(m_tree, NONE)); } }
-    const_children_view siblings() const { if(is_root()) { return const_children_view(end(), end()); } else { size_t p = get()->m_parent; return const_children_view(const_iterator(m_tree, m_tree->get(p)->m_first_child), const_iterator(m_tree, NONE)); } }
+    children_view siblings() { if(is_root()) { return children_view(end(), end()); } else { size_t p = get()->m_parent; return       children_view(iterator(m_tree, m_tree->get(p)->m_first_child), iterator(m_tree, NONE)); } }
 
     #if defined(__clang__)
     #   pragma clang diagnostic pop
@@ -1328,26 +1128,11 @@ public:
     {
         return detail::_visit(*this, fn, indentation_level, skip_root);
     }
-    /** visit every child node calling fn(node) */
-    template<class Visitor>
-    bool visit(Visitor fn, size_t indentation_level=0, bool skip_root=true) const
-    {
-        ConstNodeRef const& nr = *this;
-        return detail::_visit(nr, fn, indentation_level, skip_root);
-    }
-
     /** visit every child node calling fn(node, level) */
     template<class Visitor>
     bool visit_stacked(Visitor fn, size_t indentation_level=0, bool skip_root=true)
     {
         return detail::_visit_stacked(*this, fn, indentation_level, skip_root);
-    }
-    /** visit every child node calling fn(node, level) */
-    template<class Visitor>
-    bool visit_stacked(Visitor fn, size_t indentation_level=0, bool skip_root=true) const
-    {
-        ConstNodeRef const& nr = *this;
-        return detail::_visit_stacked(nr, fn, indentation_level, skip_root);
     }
 
     /** @} */

@@ -3359,7 +3359,7 @@ a:
 )";
     ryml::Tree tree = ryml::parse_in_arena(ryml::to_csubstr(unresolved));
     CHECK(ryml::emitrs<std::string>(tree) == resolved);
-    const ryml::NodeRef stream = tree.rootref();
+    const ryml::ConstNodeRef stream = tree.rootref();
     CHECK(stream.is_stream());
     CHECK(stream.num_children() == 13);
     for(auto node : stream.children())
@@ -3390,7 +3390,7 @@ d: 3
     // iteration through docs
     {
         // using the node API
-        const ryml::NodeRef stream = tree.rootref();
+        const ryml::ConstNodeRef stream = tree.rootref();
         CHECK(stream.is_root());
         CHECK(stream.is_stream());
         CHECK(!stream.is_doc());
@@ -3469,7 +3469,7 @@ d: 3
         // using the node API
         {
             size_t count = 0;
-            const ryml::NodeRef stream = tree.rootref();
+            const ryml::ConstNodeRef stream = tree.rootref();
             CHECK(stream.num_children() == C4_COUNTOF(expected_json));
             for(ryml::ConstNodeRef doc : stream.children())
                 CHECK(ryml::emitrs_json<std::string>(doc) == expected_json[count++]);

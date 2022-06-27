@@ -66,7 +66,7 @@ TEST(locations, seq_block)
       - yet another val
 )";
     Tree t = parser.parse_in_arena("myfile.yml", yaml);
-    const NodeRef seq = t.rootref();
+    ConstNodeRef seq = t.rootref();
     ASSERT_TRUE(seq.is_seq());
     _checkloc(seq         ,  1u, 0u, "- ");
     _checkloc(seq[0]      ,  1u, 2u, "this");
@@ -105,7 +105,7 @@ and:
     hah: here
 )";
     Tree t = parser.parse_in_arena("myfile.yml", yaml);
-    const NodeRef map = t.rootref();
+    ConstNodeRef map = t.rootref();
     ASSERT_TRUE(map.is_map());
     _checkloc(map                         ,  1u, 0u, "this:");
     _checkloc(map["this"]                 ,  1u, 0u, "this:");
@@ -282,7 +282,7 @@ TEST(locations, seq_flow)
     Parser parser;
     csubstr yaml = R"([one,two,three,four,items])";
     parser.parse_in_arena("myfile.yml", yaml, &t);
-    const NodeRef seq = t.rootref();
+    ConstNodeRef seq = t.rootref();
     ASSERT_TRUE(seq.is_seq());
     _checkloc(seq   ,  0u,  0u, "[");
     _checkloc(seq[0],  0u,  1u, "one");
@@ -298,7 +298,7 @@ TEST(locations, map_flow)
     Parser parser;
     csubstr yaml = R"({one: item,two: items,three: items,four: items})";
     parser.parse_in_arena("myfile.yml", yaml, &t);
-    const NodeRef map = t.rootref();
+    ConstNodeRef map = t.rootref();
     ASSERT_TRUE(map.is_map());
     _checkloc(map   ,  0u,  0u, "{");
     _checkloc(map[0],  0u,  1u, "one:");
@@ -322,7 +322,7 @@ TEST(locations, seq_flow_nested)
   was
 ])";
     parser.parse_in_arena("myfile.yml", yaml, &t);
-    const NodeRef seq = t.rootref();
+    ConstNodeRef seq = t.rootref();
     ASSERT_TRUE(seq.is_seq());
     _checkloc(seq                      ,  0u,  0u, "[");
     _checkloc(seq[0]                   ,  1u,  2u, "one");
@@ -374,8 +374,8 @@ baz:
     -     3_
 )";
     parser.parse_in_arena("myfile.yml", yaml, &t);
-    const NodeRef stream = t.rootref();
-    const NodeRef map = t.docref(0);
+    ConstNodeRef stream = t.rootref();
+    ConstNodeRef map = t.docref(0);
     ASSERT_TRUE(map.is_map());
     ASSERT_TRUE(map.is_doc());
     _checkloc(stream       , 0u, 0u, "---");
@@ -462,7 +462,7 @@ baz6:
     -     3_
 )";
     parser.parse_in_arena("myfile.yml", yaml, &t);
-    const NodeRef map = t.docref(0);
+    ConstNodeRef map = t.docref(0);
     ASSERT_TRUE(map.is_map());
     ASSERT_TRUE(map.is_doc());
     _checkloc(t.rootref()   ,     0u, 0u, "---");
