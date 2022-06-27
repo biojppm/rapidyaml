@@ -5,20 +5,6 @@ namespace yml {
 
 
 
-size_t ConstNodeRef::deserialize_key(c4::fmt::base64_wrapper w) const
-{
-    RYML_ASSERT(valid());
-    RYML_ASSERT(get() != nullptr);
-    return from_chars(key(), &w);
-}
-
-size_t ConstNodeRef::deserialize_val(c4::fmt::base64_wrapper w) const
-{
-    RYML_ASSERT(valid());
-    RYML_ASSERT(get() != nullptr);
-    return from_chars(val(), &w);
-}
-
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
