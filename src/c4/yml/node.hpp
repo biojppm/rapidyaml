@@ -41,6 +41,13 @@ template<class T>
 typename std::enable_if<   std::is_floating_point<T>::value, bool>::type
 read(NodeRef const& n, T *v);
 
+template<class T>
+typename std::enable_if< ! std::is_floating_point<T>::value, bool>::type
+read_key(NodeRef const& n, T *v);
+
+template<class T>
+typename std::enable_if<   std::is_floating_point<T>::value, bool>::type
+read_key(NodeRef const& n, T *v);
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -468,6 +475,48 @@ public:
         return *this;
     }
 
+    template<class T>
+    inline NodeRef const& val(T &v) const
+    {
+        RYML_ASSERT( ! is_seed());
+        RYML_ASSERT(valid());
+        RYML_ASSERT(get() != nullptr);
+        if( ! read(*this, &v))
+        {
+            c4::yml::error("could not deserialize value");
+        }
+        return *this;
+    }
+
+    template<class T>
+    inline NodeRef const& key(T &v) const
+    {
+        RYML_ASSERT( ! is_seed());
+        RYML_ASSERT(valid());
+        RYML_ASSERT(get() != nullptr);
+        if( ! read_key(*this, &v))
+        {
+            c4::yml::error("could not deserialize value");
+        }
+        return *this;
+    }
+
+    template<class T>
+    inline T as() const
+    {
+        T v;
+        val(v);
+        return v;
+    }
+
+    template<class T>
+    inline T key_as() const
+    {
+        T v;
+        key(v);
+        return v;
+    }
+
 public:
 
     /** serialize a variable, then assign the result to the node's key */
@@ -889,6 +938,19 @@ inline read(NodeRef const& n, T *v)
     return from_chars_float(n.val(), v);
 }
 
+template<class T>
+typename std::enable_if< ! std::is_floating_point<T>::value, bool>::type
+inline read_key(NodeRef const& n, T *v)
+{
+    return from_chars(n.key(), v);
+}
+
+template<class T>
+typename std::enable_if< std::is_floating_point<T>::value, bool>::type
+inline read_key(NodeRef const& n, T *v)
+{
+    return from_chars_float(n.key(), v);
+}
 
 //-----------------------------------------------------------------------------
 template<class Visitor>
