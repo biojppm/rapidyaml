@@ -123,6 +123,7 @@ public:
 
     inline bool valid() const { return m_tree != nullptr && m_id != NONE; }
     inline bool is_seed() const { return m_seed.str != nullptr || m_seed.len != NONE; }
+    inline explicit operator bool() const { return valid() && !is_seed(); }
 
     inline void _clear_seed() { /*do this manually or an assert is triggered*/ m_seed.str = nullptr; m_seed.len = NONE; }
 
