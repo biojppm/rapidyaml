@@ -145,14 +145,13 @@ bool _visit_stacked(NodeRefType &node, Visitor fn, size_t indentation_level, boo
 
 //-----------------------------------------------------------------------------
 
+/** a CRTP base for read-only node methods */
 template<class Impl, class ConstImpl>
-struct NonMutatingNodeMethods
+struct RoNodeMethods
 {
     // helper CRTP macros, undefined at the end
-    #define tree_ ((Impl const* C4_RESTRICT)this)->m_tree
-    #define id_ ((Impl const* C4_RESTRICT)this)->m_id
-    #define ttree_(nd) ((Impl const& C4_RESTRICT)nd).m_tree
-    #define tid_(nd) ((Impl const& C4_RESTRICT)nd).m_id
+    #define tree_ ((ConstImpl const* C4_RESTRICT)this)->m_tree
+    #define id_ ((ConstImpl const* C4_RESTRICT)this)->m_id
     // require valid
     #define _C4RV()                                       \
         RYML_ASSERT(tree_ != nullptr);                    \
@@ -230,11 +229,11 @@ public:
     C4_ALWAYS_INLINE C4_CONST bool is_root()    const noexcept { _C4RV(); return tree_->is_root(id_); }
     C4_ALWAYS_INLINE C4_CONST bool has_parent() const noexcept { _C4RV(); return tree_->has_parent(id_); }
 
-    C4_ALWAYS_INLINE C4_CONST bool has_child(ConstNodeRef const& ch) const noexcept { _C4RV(); return tree_->has_child(id_, tid_(ch)); }
+    C4_ALWAYS_INLINE C4_CONST bool has_child(ConstImpl const& ch) const noexcept { _C4RV(); return tree_->has_child(id_, ch.m_id); }
     C4_ALWAYS_INLINE C4_CONST bool has_child(csubstr name) const noexcept { _C4RV(); return tree_->has_child(id_, name); }
     C4_ALWAYS_INLINE C4_CONST bool has_children() const noexcept { _C4RV(); return tree_->has_children(id_); }
 
-    C4_ALWAYS_INLINE C4_CONST bool has_sibling(ConstNodeRef const& n) const noexcept { _C4RV(); return tree_->has_sibling(id_, tid_(n)); }
+    C4_ALWAYS_INLINE C4_CONST bool has_sibling(ConstImpl const& n) const noexcept { _C4RV(); return tree_->has_sibling(id_, n.m_id); }
     C4_ALWAYS_INLINE C4_CONST bool has_sibling(csubstr name) const noexcept { _C4RV(); return tree_->has_sibling(id_, name); }
     /** counts with this */
     C4_ALWAYS_INLINE C4_CONST bool has_siblings() const noexcept { _C4RV(); return tree_->has_siblings(id_); }
@@ -253,17 +252,17 @@ public:
     C4_ALWAYS_INLINE C4_CONST ConstImpl next_sibling() const noexcept { _C4RV(); return {tree_, tree_->next_sibling(id_)}; }
 
     /** O(#num_children) */
-    C4_ALWAYS_INLINE C4_CONST size_t  num_children() const noexcept { _C4RV(); return tree_->num_children(id_); }
-    C4_ALWAYS_INLINE C4_CONST size_t  child_pos(ConstNodeRef const& n) const noexcept { _C4RV(); return tree_->child_pos(id_, tid_(n)); }
+    C4_ALWAYS_INLINE C4_CONST size_t    num_children() const noexcept { _C4RV(); return tree_->num_children(id_); }
+    C4_ALWAYS_INLINE C4_CONST size_t    child_pos(ConstImpl const& n) const noexcept { _C4RV(); return tree_->child_pos(id_, n.m_id); }
     C4_ALWAYS_INLINE C4_CONST ConstImpl first_child() const noexcept { _C4RV(); return {tree_, tree_->first_child(id_)}; }
     C4_ALWAYS_INLINE C4_CONST ConstImpl last_child () const noexcept { _C4RV(); return {tree_, tree_->last_child (id_)}; }
     C4_ALWAYS_INLINE C4_CONST ConstImpl child(size_t pos) const noexcept { _C4RV(); return {tree_, tree_->child(id_, pos)}; }
     C4_ALWAYS_INLINE C4_CONST ConstImpl find_child(csubstr name) const noexcept { _C4RV(); return {tree_, tree_->find_child(id_, name)}; }
 
     /** O(#num_siblings) */
-    C4_ALWAYS_INLINE C4_CONST size_t  num_siblings() const noexcept { _C4RV(); return tree_->num_siblings(id_); }
-    C4_ALWAYS_INLINE C4_CONST size_t  num_other_siblings() const noexcept { _C4RV(); return tree_->num_other_siblings(id_); }
-    C4_ALWAYS_INLINE C4_CONST size_t  sibling_pos(ConstNodeRef const& n) const noexcept { _C4RV(); return tree_->child_pos(tree_->parent(id_), tid_(n)); }
+    C4_ALWAYS_INLINE C4_CONST size_t    num_siblings() const noexcept { _C4RV(); return tree_->num_siblings(id_); }
+    C4_ALWAYS_INLINE C4_CONST size_t    num_other_siblings() const noexcept { _C4RV(); return tree_->num_other_siblings(id_); }
+    C4_ALWAYS_INLINE C4_CONST size_t    sibling_pos(ConstImpl const& n) const noexcept { _C4RV(); return tree_->child_pos(tree_->parent(id_), n.m_id); }
     C4_ALWAYS_INLINE C4_CONST ConstImpl first_sibling() const noexcept { _C4RV(); return {tree_, tree_->first_sibling(id_)}; }
     C4_ALWAYS_INLINE C4_CONST ConstImpl last_sibling () const noexcept { _C4RV(); return {tree_, tree_->last_sibling(id_)}; }
     C4_ALWAYS_INLINE C4_CONST ConstImpl sibling(size_t pos) const noexcept { _C4RV(); return {tree_, tree_->sibling(id_, pos)}; }
@@ -433,8 +432,6 @@ public:
     #undef _C4RV
     #undef tree_
     #undef id_
-    #undef ttree_
-    #undef tid_
 };
 
 } // namespace detail
@@ -443,7 +440,7 @@ public:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-class RYML_EXPORT ConstNodeRef : public detail::NonMutatingNodeMethods<ConstNodeRef, ConstNodeRef>
+class RYML_EXPORT ConstNodeRef : public detail::RoNodeMethods<ConstNodeRef, ConstNodeRef>
 {
 public:
 
@@ -456,7 +453,7 @@ private:
 
     friend NodeRef;
     template<class Impl, class ConstImpl>
-    friend struct NonMutatingNodeMethods;
+    friend struct RoNodeMethods;
 
 public:
 
@@ -530,7 +527,7 @@ public:
 
 /** a reference to a node in an existing yaml tree, offering a more
  * convenient API than the index-based API used in the tree. */
-class RYML_EXPORT NodeRef : public detail::NonMutatingNodeMethods<NodeRef, ConstNodeRef>
+class RYML_EXPORT NodeRef : public detail::RoNodeMethods<NodeRef, ConstNodeRef>
 {
 public:
 
@@ -555,7 +552,7 @@ private:
 
     friend ConstNodeRef;
     template<class Impl, class ConstImpl>
-    friend struct NonMutatingNodeMethods;
+    friend struct RoNodeMethods;
 
     // require valid: a helper macro, undefined at the end
     #define _C4RV()                                                         \
@@ -576,7 +573,7 @@ public:
     NodeRef(std::nullptr_t) : m_tree(nullptr), m_id(NONE), m_seed() {}
 
     /** convert automatically to ConstNodeRef */
-    C4_ALWAYS_INLINE operator ConstNodeRef const& () const { return *((ConstNodeRef const*)this); }
+    C4_ALWAYS_INLINE operator ConstNodeRef const& () const noexcept { return *((ConstNodeRef const*)this); }
 
     /** @} */
 
@@ -615,6 +612,9 @@ public:
     inline bool operator== (NodeRef const& that) const { _C4RV(); RYML_ASSERT(that.valid() && !that.is_seed()); RYML_ASSERT(that.m_tree == m_tree); return m_id == that.m_id; }
     inline bool operator!= (NodeRef const& that) const { return ! this->operator==(that); }
 
+    inline bool operator== (ConstNodeRef const& that) const { _C4RV(); RYML_ASSERT(that.valid()); RYML_ASSERT(that.m_tree == m_tree); return m_id == that.m_id; }
+    inline bool operator!= (ConstNodeRef const& that) const { return ! this->operator==(that); }
+
     inline bool operator== (std::nullptr_t) const { return m_tree == nullptr || m_id == NONE || is_seed(); }
     inline bool operator!= (std::nullptr_t) const { return m_tree != nullptr && m_id != NONE && !is_seed(); }
 
@@ -643,23 +643,23 @@ public:
     /** @name hierarchy getters */
     /** @{ */
 
-    NodeRef      parent()       { _C4RV(); return {m_tree, m_tree->parent(m_id)}; }
-    NodeRef      prev_sibling()       { _C4RV(); return {m_tree, m_tree->prev_sibling(m_id)}; }
-    NodeRef       next_sibling()       { _C4RV(); return {m_tree, m_tree->next_sibling(m_id)}; }
+    NodeRef parent() { _C4RV(); return {m_tree, m_tree->parent(m_id)}; }
+    NodeRef prev_sibling() { _C4RV(); return {m_tree, m_tree->prev_sibling(m_id)}; }
+    NodeRef next_sibling() { _C4RV(); return {m_tree, m_tree->next_sibling(m_id)}; }
 
     /** O(#num_children) */
-    NodeRef      first_child()       { _C4RV(); return {m_tree, m_tree->first_child(m_id)}; }
-    NodeRef      last_child ()       { _C4RV(); return {m_tree, m_tree->last_child(m_id)}; }
-    NodeRef      child(size_t pos)       { _C4RV(); return {m_tree, m_tree->child(m_id, pos)}; }
-    NodeRef      find_child(csubstr name)       { _C4RV(); return {m_tree, m_tree->find_child(m_id, name)}; }
+    NodeRef first_child(){ _C4RV(); return {m_tree, m_tree->first_child(m_id)}; }
+    NodeRef last_child() { _C4RV(); return {m_tree, m_tree->last_child(m_id)}; }
+    NodeRef child(size_t pos) { _C4RV(); return {m_tree, m_tree->child(m_id, pos)}; }
+    NodeRef find_child(csubstr name) { _C4RV(); return {m_tree, m_tree->find_child(m_id, name)}; }
 
     /** O(#num_siblings) */
-    NodeRef      first_sibling()       { _C4RV(); return {m_tree, m_tree->first_sibling(m_id)}; }
-    NodeRef      last_sibling ()       { _C4RV(); return {m_tree, m_tree->last_sibling(m_id)}; }
-    NodeRef      sibling(size_t pos)       { _C4RV(); return {m_tree, m_tree->sibling(m_id, pos)}; }
-    NodeRef      find_sibling(csubstr name)       { _C4RV(); return {m_tree, m_tree->find_sibling(m_id, name)}; }
+    NodeRef first_sibling() { _C4RV(); return {m_tree, m_tree->first_sibling(m_id)}; }
+    NodeRef last_sibling () { _C4RV(); return {m_tree, m_tree->last_sibling(m_id)}; }
+    NodeRef sibling(size_t pos) { _C4RV(); return {m_tree, m_tree->sibling(m_id, pos)}; }
+    NodeRef find_sibling(csubstr name) { _C4RV(); return {m_tree, m_tree->find_sibling(m_id, name)}; }
 
-    NodeRef      doc(size_t num)       { _C4RV(); return {m_tree, m_tree->doc(num)}; }
+    NodeRef doc(size_t num) { _C4RV(); return {m_tree, m_tree->doc(num)}; }
 
     /** Find child by key. O(num_children). returns a seed node if no such child is found.  */
     NodeRef operator[] (csubstr k)
