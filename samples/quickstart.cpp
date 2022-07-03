@@ -30,15 +30,15 @@
 #elif defined(RYML_SINGLE_HEADER_LIB) // using the single header from a library
     #include <ryml_all.hpp>
 #else
-    // <ryml_std.hpp> is only needed if interop with std types is
+    #include <ryml.hpp>
+    // <ryml_std.hpp> is needed if interop with std containers is
     // desired; ryml itself does not use any STL container.
     // For this sample, we will be using std interop, so...
-    #include <ryml_std.hpp> // optional header. BUT when used, needs to be included BEFORE ryml.hpp
-    #include <ryml.hpp>
-    #include <c4/format.hpp> // needed only needed for the examples below
+    #include <ryml_std.hpp> // optional header, provided for std:: interop
+    #include <c4/format.hpp> // needed for the examples below
 #endif
 
-// these are only needed for the examples below
+// these are needed for the examples below
 #include <iostream>
 #include <sstream>
 #include <vector>
