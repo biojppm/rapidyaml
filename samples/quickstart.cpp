@@ -207,13 +207,13 @@ void sample_quick_overview()
     // To read the parsed tree
 
     // ConstNodeRef::operator[] does a lookup, is O(num_children[node]).
-    // maps use string keys, seqs use integral keys.
     CHECK(tree["foo"].is_keyval());
     CHECK(tree["foo"].key() == "foo");
     CHECK(tree["foo"].val() == "1");
     CHECK(tree["bar"].is_seq());
     CHECK(tree["bar"].has_key());
     CHECK(tree["bar"].key() == "bar");
+    // maps use string keys, seqs use integral keys:
     CHECK(tree["bar"][0].val() == "2");
     CHECK(tree["bar"][1].val() == "3");
     CHECK(tree["john"].val() == "doe");
@@ -223,12 +223,11 @@ void sample_quick_overview()
     CHECK(tree[0].id() == tree["foo"].id());
     CHECK(tree[1].id() == tree["bar"].id());
     CHECK(tree[2].id() == tree["john"].id());
-    // Tree::operator[](int) searches a root child by its position.
+    // Tree::operator[](int) searches a ***root*** child by its position.
     CHECK(tree[0].id() == tree["foo"].id());  // 0: first child of root
     CHECK(tree[1].id() == tree["bar"].id());  // 1: first child of root
     CHECK(tree[2].id() == tree["john"].id()); // 2: first child of root
-    // NodeRef::operator[](int) searches a node child by its position
-    // on __the node__'s children list:
+    // NodeRef::operator[](int) searches a ***node*** child by its position:
     CHECK(bar[0].val() == "2"); // 0 means first child of bar
     CHECK(bar[1].val() == "3"); // 1 means second child of bar
     // NodeRef::operator[](string):
@@ -444,8 +443,8 @@ void sample_quick_overview()
     CHECK(root.num_children() == 9);
     CHECK(root["newmap"].num_children() == 0);
     CHECK(root["newmap (serialized)"].num_children() == 0);
-    // operator[] does not mutate the tree until the returned node is
-    // written to.
+    // When the tree is mutable, operator[] does not mutate the tree
+    // until the returned node is written to.
     //
     // Until such time, the NodeRef object keeps in itself the required
     // information to write to the proper place in the tree. This is
@@ -453,24 +452,44 @@ void sample_quick_overview()
     //
     // This means that passing a key/index which does not exist will
     // not mutate the tree, but will instead store (in the node) the
-    // proper place of the tree to do so if and when it is required.
+    // proper place of the tree to be able to do so, if and when it is
+    // required.
     //
     // This is a significant difference from eg, the behavior of
     // std::map, which mutates the map immediately within the call to
     // operator[].
-    CHECK(!root.has_child("I am nobody"));
-    ryml::NodeRef nobody = wroot["I am nobody"];
-    CHECK(nobody.valid());   // points at the tree, and a specific place in the tree
-    CHECK(nobody.is_seed()); // ... but nothing is there yet.    CHECK(!root.has_child("I am nobody")); // same as above
-    ryml::NodeRef somebody = wroot["I am somebody"];
-    CHECK(!root.has_child("I am somebody")); // same as above
-    CHECK(somebody.valid());
-    CHECK(somebody.is_seed()); // same as above
-    somebody = "indeed";  // this will commit to the tree, mutating at the proper place
-    CHECK(somebody.valid());
-    CHECK(!somebody.is_seed()); // now the tree has this node, and it is no longer a seed
-    CHECK(root.has_child("I am somebody"));
-    CHECK(root["I am somebody"].val() == "indeed");
+    //
+    // All of the points above apply only if the tree is mutable. If
+    // the tree is const, then a NodeRef cannot be obtained from it;
+    // only a ConstNodeRef, which can never be used to mutate the
+    // tree.
+    CHECK(!root.has_child("I am not nothing"));
+    ryml::NodeRef nothing = wroot["I am nothing"];
+    CHECK(nothing.valid());   // points at the tree, and a specific place in the tree
+    CHECK(nothing.is_seed()); // ... but nothing is there yet.
+    CHECK(!root.has_child("I am nothing")); // same as above
+    ryml::NodeRef something = wroot["I am something"];
+    ryml::ConstNodeRef constsomething = wroot["I am something"];
+    CHECK(!root.has_child("I am something")); // same as above
+    CHECK(something.valid());
+    CHECK(something.is_seed()); // same as above
+    CHECK(!constsomething.valid()); // NOTE: because a ConstNodeRef
+                                    // cannot be used to mutate a
+                                    // tree, it is only valid() if it
+                                    // is pointing at an existing
+                                    // node.
+    something = "indeed";  // this will commit to the tree, mutating at the proper place
+    CHECK(root.has_child("I am something"));
+    CHECK(root["I am something"].val() == "indeed");
+    CHECK(something.valid());
+    CHECK(!something.is_seed()); // now the tree has this node, so the
+                                 // ref is no longer a seed
+    // now the constref is also valid (but it needs to be reassigned):
+    ryml::ConstNodeRef constsomethingnew = wroot["I am something"];
+    CHECK(constsomethingnew.valid());
+    // note that the old constref is now stale, because it only keeps
+    // the state at creation:
+    CHECK(!constsomething.valid());
 
 
     //------------------------------------------------------------------
@@ -501,13 +520,45 @@ newseq: []
 newseq (serialized): []
 newmap: {}
 newmap (serialized): []
-I am somebody: indeed
+I am something: indeed
 )";
     CHECK(buf_result == expected_result);
     CHECK(str_result == expected_result);
     CHECK(stream_result == expected_result);
     // There are many possibilities to emit to buffer;
     // please look at the emit sample functions below.
+
+    //------------------------------------------------------------------
+    // ConstNodeRef vs NodeRef
+
+    ryml::NodeRef noderef = tree["bar"][0];
+    ryml::ConstNodeRef constnoderef = tree["bar"][0];
+
+    // ConstNodeRef cannot be used to mutate the tree, but a NodeRef can:
+    //constnoderef = "21";  // compile error
+    //constnoderef << "22"; // compile error
+    noderef = "21";         // ok, can assign because it's not const
+    CHECK(tree["bar"][0].val() == "21");
+    noderef << "22";        // ok, can serialize and assign because it's not const
+    CHECK(tree["bar"][0].val() == "22");
+
+    // it is not possible to obtain a NodeRef from a ConstNodeRef:
+    // noderef = constnoderef; // compile error
+
+    // it is always possible to obtain a ConstNodeRef from a NodeRef:
+    constnoderef = noderef;    // ok can assign const <- nonconst
+
+    // If a tree is const, then only ConstNodeRef's can be
+    // obtained from that tree:
+    ryml::Tree const& consttree = tree;
+    //noderef = consttree["bar"][0];    // compile error
+    noderef = tree["bar"][0];           // ok
+    constnoderef = consttree["bar"][0]; // ok
+
+    // ConstNodeRef and NodeRef can be compared for equality.
+    // Equality means they point at the same node.
+    CHECK(constnoderef == noderef);
+    CHECK(!(constnoderef != noderef));
 
     //------------------------------------------------------------------
     // Dealing with UTF8
@@ -517,6 +568,8 @@ fr: Planète (Gazeuse)
 ru: Планета (Газ)
 ja: 惑星（ガス）
 zh: 行星（气体）
+# UTF8 decoding only happens in double-quoted strings,\
+# as per the YAML standard
 decode this: "\u263A \xE2\x98\xBA"
 and this as well: "\u2705 \U0001D11E"
 )");

@@ -469,6 +469,9 @@ public:
     ConstNodeRef(ConstNodeRef const&) = default;
     ConstNodeRef(ConstNodeRef     &&) = default;
 
+    ConstNodeRef(NodeRef const&);
+    ConstNodeRef(NodeRef     &&);
+
     /** @} */
 
 public:
@@ -476,10 +479,14 @@ public:
     /** @name assignment */
     /** @{ */
 
+    ConstNodeRef& operator= (std::nullptr_t) { m_tree = nullptr; m_id = NONE; return *this; }
+
     ConstNodeRef& operator= (ConstNodeRef const&) = default;
     ConstNodeRef& operator= (ConstNodeRef     &&) = default;
 
-    ConstNodeRef& operator= (std::nullptr_t) { m_tree = nullptr; m_id = NONE; return *this; }
+    ConstNodeRef& operator= (NodeRef const&);
+    ConstNodeRef& operator= (NodeRef     &&);
+
 
     /** @} */
 
@@ -571,9 +578,6 @@ public:
     NodeRef(Tree *t, size_t id, size_t seed_pos) : m_tree(t), m_id(id), m_seed() { m_seed.str = nullptr; m_seed.len = seed_pos; }
     NodeRef(Tree *t, size_t id, csubstr  seed_key) : m_tree(t), m_id(id), m_seed(seed_key) {}
     NodeRef(std::nullptr_t) : m_tree(nullptr), m_id(NONE), m_seed() {}
-
-    /** convert automatically to ConstNodeRef */
-    C4_ALWAYS_INLINE operator ConstNodeRef const& () const noexcept { return *((ConstNodeRef const*)this); }
 
     /** @} */
 
@@ -1140,7 +1144,39 @@ public:
 #undef _C4RV
 };
 
+
 //-----------------------------------------------------------------------------
+
+inline ConstNodeRef::ConstNodeRef(NodeRef const& that)
+    : m_tree(that.m_tree)
+    , m_id(!that.is_seed() ? that.id() : NONE)
+{
+}
+
+inline ConstNodeRef::ConstNodeRef(NodeRef && that)
+    : m_tree(that.m_tree)
+    , m_id(!that.is_seed() ? that.id() : NONE)
+{
+}
+
+
+inline ConstNodeRef& ConstNodeRef::operator= (NodeRef const& that)
+{
+    m_tree = (that.m_tree);
+    m_id = (!that.is_seed() ? that.id() : NONE);
+    return *this;
+}
+
+inline ConstNodeRef& ConstNodeRef::operator= (NodeRef && that)
+{
+    m_tree = (that.m_tree);
+    m_id = (!that.is_seed() ? that.id() : NONE);
+    return *this;
+}
+
+
+//-----------------------------------------------------------------------------
+
 template<class T>
 inline void write(NodeRef *n, T const& v)
 {

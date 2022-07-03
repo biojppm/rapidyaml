@@ -391,13 +391,13 @@ TEST(NodeRef, vsConstNodeRef)
     EXPECT_FALSE(mseq != seq);
     EXPECT_TRUE(seq == mseq);
     EXPECT_FALSE(seq != mseq);
-    // mseq = ct["iseq"]; // deliberate compilation error
+    // mseq = ct["iseq"]; // deliberate compile error
     seq = ct["iseq"]; // ok
     // mseq = seq; // deliberate compilation error
     seq = mseq; // ok
     {
         NodeData *nd = mseq.get();
-        // nd = seq.get(); // deliberate compilation error
+        // nd = seq.get(); // deliberate compile error
         C4_UNUSED(nd);
     }
     {
