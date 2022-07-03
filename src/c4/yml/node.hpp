@@ -149,6 +149,7 @@ bool _visit_stacked(NodeRefType &node, Visitor fn, size_t indentation_level, boo
 template<class Impl, class ConstImpl>
 struct RoNodeMethods
 {
+    C4_SUPPRESS_WARNING_CLANG_WITH_PUSH("-Wcast-align")
     // helper CRTP macros, undefined at the end
     #define tree_ ((ConstImpl const* C4_RESTRICT)this)->m_tree
     #define id_ ((ConstImpl const* C4_RESTRICT)this)->m_id
@@ -432,6 +433,7 @@ public:
     #undef _C4RV
     #undef tree_
     #undef id_
+    C4_SUPPRESS_WARNING_CLANG_POP
 };
 
 } // namespace detail
@@ -446,7 +448,7 @@ public:
 
     using tree_type = Tree const;
 
-private:
+public:
 
     Tree const* C4_RESTRICT m_tree;
     size_t m_id;
