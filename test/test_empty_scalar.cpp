@@ -4,7 +4,9 @@
 namespace c4 {
 namespace yml {
 
-// See also issue 263: https://github.com/biojppm/rapidyaml/issues/263
+// See also:
+// https://github.com/biojppm/rapidyaml/issues/263
+// https://github.com/biojppm/rapidyaml/pulls/264
 
 C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
 

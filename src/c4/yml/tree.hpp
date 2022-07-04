@@ -983,23 +983,52 @@ public:
     {
         substr rem(m_arena.sub(m_arena_pos));
         size_t num = to_chars(rem, a);
-
-        if(num == 0 && m_arena.str == nullptr)
-        {
-            // Arena is empty and we want to store a zero-length string.
-            // Even though the string has zero length, we need some "memory" to
-            // store a non-nullptr string
-            rem = _grow_arena(1);
-        }
-        else if(num > rem.len)
+        if(num > rem.len)
         {
             rem = _grow_arena(num);
             num = to_chars(rem, a);
             RYML_ASSERT(num <= rem.len);
         }
-
         rem = _request_span(num);
         return rem;
+    }
+
+    /** serialize the given csubstr to the tree's arena, growing the arena as
+     * needed to accomodate the serialization.
+     * @note Growing the arena may cause relocation of the entire
+     * existing arena, and thus change the contents of existing individual nodes.
+     * @see alloc_arena() */
+    csubstr to_arena(csubstr a)
+    {
+        substr rem(m_arena.sub(m_arena_pos));
+        size_t num = to_chars(rem, a);
+        if(num > rem.len)
+        {
+            rem = _grow_arena(num);
+            num = to_chars(rem, a);
+            RYML_ASSERT(num <= rem.len);
+        }
+        else if(num == 0u)
+        {
+            if(a.str != nullptr && m_arena.str == nullptr)
+            {
+                // Arena is empty and we want to store a non-null
+                // zero-length string.
+                // Even though the string has zero length, we need
+                // some "memory" to store a non-nullptr string
+                rem = _grow_arena(1);
+            }
+            else if(a.str == nullptr)
+            {
+                return csubstr{};
+            }
+        }
+        rem = _request_span(num);
+        return rem;
+    }
+    csubstr to_arena(std::nullptr_t)
+    {
+        return csubstr{};
     }
 
     /** serialize the given floating-point variable to the tree's arena, growing it as
@@ -1046,7 +1075,8 @@ public:
 
     /** grow the tree's string arena by the given size and return a substr
      * of the added portion
-     * @note Growing the arena may cause relocation of the entire
+     * @note This operation has a potential complexity of O(numNodes).
+     * Growing the arena may cause relocation of the entire
      * existing arena, and thus change the contents of individual nodes. */
     substr alloc_arena(size_t sz)
     {
@@ -1057,7 +1087,8 @@ public:
     }
 
     /** ensure the tree's internal string arena is at least the given capacity
-     * @note Growing the arena may cause relocation of the entire
+     * @note This operation has a potential complexity of O(numNodes).
+     * Growing the arena may cause relocation of the entire
      * existing arena, and thus change the contents of individual nodes. */
     void reserve_arena(size_t arena_cap)
     {
