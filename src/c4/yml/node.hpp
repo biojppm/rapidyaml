@@ -701,8 +701,6 @@ public:
     NodeRef& operator= (NodeRef const&) = default;
     NodeRef& operator= (NodeRef     &&) = default;
 
-    NodeRef& operator= (std::nullptr_t) { m_tree = nullptr; m_id = NONE; m_seed = {}; return *this; }
-
     /** @} */
 
 public:
@@ -846,6 +844,12 @@ public:
     {
         _apply_seed();
         _apply(v);
+    }
+
+    inline void operator= (std::nullptr_t)
+    {
+        _apply_seed();
+        _apply({});
     }
 
     inline void operator= (csubstr v)
