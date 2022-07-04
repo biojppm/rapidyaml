@@ -3227,11 +3227,16 @@ void Parser::_line_ended_undo()
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->pos.col == 1u);
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->pos.line > 0u);
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->pos.offset >= m_state->line_contents.full.len - m_state->line_contents.stripped.len);
-    _c4dbgpf("line[{}] undo ended! line {}-->{}, offset {}-->{}", m_state->pos.line, m_state->pos.line, m_state->pos.line - 1, m_state->pos.offset, m_state->pos.offset - (m_state->line_contents.full.len - m_state->line_contents.stripped.len));
-    m_state->pos.offset -= m_state->line_contents.full.len - m_state->line_contents.stripped.len;
+    size_t delta = m_state->line_contents.full.len - m_state->line_contents.stripped.len;
+    _c4dbgpf("line[{}] undo ended! line {}-->{}, offset {}-->{}", m_state->pos.line, m_state->pos.line, m_state->pos.line - 1, m_state->pos.offset, m_state->pos.offset - delta);
+    m_state->pos.offset -= delta;
     --m_state->pos.line;
     m_state->pos.col = m_state->line_contents.stripped.len + 1u;
+    // don't forget to undo also the changes to the remainder of the line
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->pos.offset >= m_buf.len || m_buf[m_state->pos.offset] == '\n' || m_buf[m_state->pos.offset] == '\r');
+    m_state->line_contents.rem = m_buf.sub(m_state->pos.offset, 0);
 }
+
 
 //-----------------------------------------------------------------------------
 void Parser::_set_indentation(size_t indentation)
@@ -4341,8 +4346,7 @@ csubstr Parser::_scan_block()
     _line_ended();
     _scan_line();
 
-    _c4dbgpf("scanning block: style={}  chomp={}  indentation={}", newline==BLOCK_FOLD ? "fold" : "literal",
-        chomp==CHOMP_CLIP ? "clip" : (chomp==CHOMP_STRIP ? "strip" : "keep"), indentation);
+    _c4dbgpf("scanning block: style={}  chomp={}  indentation={}", newline==BLOCK_FOLD ? "fold" : "literal", chomp==CHOMP_CLIP ? "clip" : (chomp==CHOMP_STRIP ? "strip" : "keep"), indentation);
 
     // start with a zero-length block, already pointing at the right place
     substr raw_block(m_buf.data() + m_state->pos.offset, size_t(0));// m_state->line_contents.full.sub(0, 0);
@@ -4389,15 +4393,17 @@ csubstr Parser::_scan_block()
                 _c4dbgpf("scanning block: line not empty. indref={} indprov={} indentation={}", m_state->indref, provisional_indentation, lc.indentation);
                 if(provisional_indentation == npos)
                 {
-                    #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
                     if(lc.indentation < m_state->indref)
                     {
                         _c4dbgpf("scanning block: block terminated indentation={} < indref={}", lc.indentation, m_state->indref);
+                        if(raw_block.len == 0)
+                        {
+                            _c4dbgp("scanning block: was empty, undo next line");
+                            _line_ended_undo();
+                        }
                         break;
                     }
-                    else
-                    #endif
-                    if(lc.indentation == m_state->indref)
+                    else if(lc.indentation == m_state->indref)
                     {
                         if(has_any(RSEQ|RMAP))
                         {
@@ -4461,7 +4467,7 @@ csubstr Parser::_scan_block()
         _line_ended();
         ++num_lines;
     }
-    _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->pos.line == (first + num_lines));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->pos.line == (first + num_lines) || (raw_block.len == 0));
     C4_UNUSED(num_lines);
     C4_UNUSED(first);
 
