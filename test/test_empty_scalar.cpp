@@ -4,9 +4,7 @@
 namespace c4 {
 namespace yml {
 
-/**
-    See also issue 263.
- */
+// See also issue 263: https://github.com/biojppm/rapidyaml/issues/263
 
 C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
 
@@ -15,20 +13,62 @@ constexpr const NodeType_e DQV = (NodeType_e)(DOC | QV);
 TEST(empty_scalar, parse_zero_length_strings)
 {
     char inp[] = R"(
-- ""
-- ''
-- >
-- |
+seq:
+  - ""
+  - ''
+  - >
+  - |
+map:
+  a: ""
+  b: ''
+  c: >
+  d: |
 )";
-
-    Tree tr = parse_in_place(inp);
-
-    ASSERT_EQ(tr.rootref().num_children(), 4);
-    for(const auto &child : tr.rootref().children())
+    const Tree tr = parse_in_place(inp);
+    EXPECT_TRUE(tr["seq"].has_key());
+    EXPECT_TRUE(tr["map"].has_key());
+    EXPECT_TRUE(tr["seq"].is_seq());
+    EXPECT_TRUE(tr["map"].is_map());
+    for(const char *name : {"seq", "map"})
     {
-        ASSERT_EQ(child.type(), QV);
-        ASSERT_EQ(child.val(), "");
-        ASSERT_FALSE(child.val_is_null());
+        NodeRef node = tr[to_csubstr(name)];
+        ASSERT_EQ(node.num_children(), 4);
+        for(const auto &child : node.children())
+        {
+            EXPECT_TRUE(child.is_val_quoted());
+            EXPECT_EQ(child.val(), "");
+            EXPECT_FALSE(child.val_is_null());
+        }
+    }
+}
+
+TEST(empty_scalar, parse_empty_strings)
+{
+    char inp[] = R"(
+# use multiple empty entries to ensure the parser
+# correctly deals with the several cases
+seq:
+  -
+  -
+  - 
+  -
+map:
+  a:
+  b:
+  c: 
+  d: 
+)";
+    const Tree tr = parse_in_place(inp);
+    for(const char *name : {"seq", "map"})
+    {
+        NodeRef node = tr[to_csubstr(name)];
+        ASSERT_EQ(node.num_children(), 4);
+        for(const auto &child : node.children())
+        {
+            EXPECT_FALSE(child.type().is_val_quoted());
+            EXPECT_EQ(child.val(), "");
+            EXPECT_TRUE(child.val_is_null());
+        }
     }
 }
 
@@ -37,36 +77,64 @@ TEST(empty_scalar, build_zero_length_string)
     Tree tr;
     NodeRef root = tr.rootref();
     root |= MAP;
+    auto addseq = [&root](csubstr name) { NodeRef n = root[name]; n |= SEQ; return n; };
 
-    NodeRef non_quoted = root["non_quoted"];
-    non_quoted |= SEQ;
+    // try both with nonnull-zero-length and null-zero-length
+    csubstr empty = csubstr("nonempty").first(0);
+    csubstr nullss = {};
 
-    const std::string e;  // empty std::string
+    // these are the conditions we wish to cover:
+    ASSERT_TRUE(nullss.str == nullptr);
+    ASSERT_TRUE(nullss.len == 0u);
+    ASSERT_TRUE(empty.str != nullptr);
+    ASSERT_TRUE(empty.len == 0u);
 
-    non_quoted.append_child() << "";
-    non_quoted.append_child() = "";
-    non_quoted.append_child() << e;
+    // = and << must have exactly the same behavior where nullity is
+    // regarded
 
-    NodeRef quoted = root["quoted"];
-    quoted |= SEQ;
-    {auto r = quoted.append_child(); r << ""; r.set_type(r.type() | VALQUO);}
-    {auto r = quoted.append_child(); r = "";  r.set_type(r.type() | VALQUO);}
-    {auto r = quoted.append_child(); r << e;  r.set_type(r.type() | VALQUO);}
-
-    ASSERT_EQ(non_quoted.num_children(), 3);
-    for(const auto &child : non_quoted.children())
+    // quoted cases will never be null, regardless of the
+    // incoming scalar
+    NodeRef quoted = addseq("quoted");
+    {NodeRef r = quoted.append_child(); r = ""      ; r.set_type(r.type() | VALQUO);}
+    {NodeRef r = quoted.append_child(); r << ""     ; r.set_type(r.type() | VALQUO);}
+    {NodeRef r = quoted.append_child(); r = empty   ; r.set_type(r.type() | VALQUO);}
+    {NodeRef r = quoted.append_child(); r << empty  ; r.set_type(r.type() | VALQUO);}
+    {NodeRef r = quoted.append_child(); r = nullss  ; r.set_type(r.type() | VALQUO);}
+    {NodeRef r = quoted.append_child(); r << nullss ; r.set_type(r.type() | VALQUO);}
+    {NodeRef r = quoted.append_child(); r = nullptr ; r.set_type(r.type() | VALQUO);}
+    {NodeRef r = quoted.append_child(); r << nullptr; r.set_type(r.type() | VALQUO);}
+    ASSERT_TRUE(quoted.has_children());
+    for(const auto &child : quoted.children())
     {
-        EXPECT_EQ(child.type(), VAL);
+        EXPECT_TRUE(child.is_val_quoted());
         EXPECT_EQ(child.val(), "");
+        EXPECT_EQ(child.val(), nullptr);
         EXPECT_FALSE(child.val_is_null());
     }
 
-    ASSERT_EQ(quoted.num_children(), 3);
-    for(const auto &child : quoted.children())
+    // ... but according to the incoming scalar, non quoted cases may
+    // or may not be null
+    NodeRef non_quoted = addseq("nonquoted");
+    non_quoted.append_child() = "";
+    non_quoted.append_child() << "";
+    non_quoted.append_child() = empty;
+    non_quoted.append_child() << empty;
+    non_quoted.append_child() = nullss;
+    non_quoted.append_child() << nullss;
+    non_quoted.append_child() = nullptr;
+    non_quoted.append_child() << nullptr;
+    ASSERT_TRUE(non_quoted.has_children());
+    size_t pos = 0;
+    for(const auto &child : non_quoted.children())
     {
-        EXPECT_EQ(child.type(), VAL | VALQUO);
+        EXPECT_TRUE(child.is_val());
         EXPECT_EQ(child.val(), "");
-        EXPECT_FALSE(child.val_is_null());
+        EXPECT_EQ(child.val(), nullptr);
+        if(pos < 4u)
+            EXPECT_FALSE(child.val_is_null()) << "pos=" << pos;
+        else
+            EXPECT_TRUE(child.val_is_null()) << "pos=" << pos;
+        ++pos;
     }
 }
 
