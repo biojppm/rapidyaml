@@ -206,9 +206,6 @@ public:
 
 public:
 
-    C4_ALWAYS_INLINE operator NodeType_e      & C4_RESTRICT ()       { return type; }
-    C4_ALWAYS_INLINE operator NodeType_e const& C4_RESTRICT () const { return type; }
-
     C4_ALWAYS_INLINE NodeType() : type(NOTYPE) {}
     C4_ALWAYS_INLINE NodeType(NodeType_e t) : type(t) {}
     C4_ALWAYS_INLINE NodeType(type_bits t) : type((NodeType_e)t) {}
@@ -229,6 +226,14 @@ public:
 
 public:
 
+    C4_ALWAYS_INLINE operator NodeType_e      & C4_RESTRICT ()       { return type; }
+    C4_ALWAYS_INLINE operator NodeType_e const& C4_RESTRICT () const { return type; }
+
+    C4_ALWAYS_INLINE bool operator== (NodeType_e t) const { return type == t; }
+    C4_ALWAYS_INLINE bool operator!= (NodeType_e t) const { return type != t; }
+
+public:
+
     #if defined(__clang__)
     #   pragma clang diagnostic push
     #   pragma clang diagnostic ignored "-Wnull-dereference"
@@ -239,6 +244,7 @@ public:
     #   endif
     #endif
 
+    C4_ALWAYS_INLINE bool is_notype() const { return type == NOTYPE; }
     C4_ALWAYS_INLINE bool is_stream() const { return ((type & STREAM) == STREAM) != 0; }
     C4_ALWAYS_INLINE bool is_doc() const { return (type & DOC) != 0; }
     C4_ALWAYS_INLINE bool is_container() const { return (type & (MAP|SEQ|STREAM)) != 0; }

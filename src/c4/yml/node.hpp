@@ -454,8 +454,7 @@ public:
     size_t m_id;
 
     friend NodeRef;
-    template<class Impl, class ConstImpl>
-    friend struct RoNodeMethods;
+    friend struct detail::RoNodeMethods<ConstNodeRef, ConstNodeRef>;
 
 public:
 
@@ -560,8 +559,7 @@ private:
     csubstr m_seed;
 
     friend ConstNodeRef;
-    template<class Impl, class ConstImpl>
-    friend struct RoNodeMethods;
+    friend struct detail::RoNodeMethods<NodeRef, ConstNodeRef>;
 
     // require valid: a helper macro, undefined at the end
     #define _C4RV()                                                         \
