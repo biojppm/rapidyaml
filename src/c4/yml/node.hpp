@@ -164,26 +164,26 @@ public:
     /** @{ */
 
     /** returns the data or null when the id is NONE */
-    C4_ALWAYS_INLINE C4_CONST NodeData const* get() const noexcept { RYML_ASSERT(tree_ != nullptr); return tree_->get(id_); }
+    C4_ALWAYS_INLINE C4_PURE NodeData const* get() const noexcept { RYML_ASSERT(tree_ != nullptr); return tree_->get(id_); }
 
-    C4_ALWAYS_INLINE C4_CONST NodeType    type() const noexcept { _C4RV(); return tree_->type(id_); }
-    C4_ALWAYS_INLINE C4_CONST const char* type_str() const noexcept { return tree_->type_str(id_); }
+    C4_ALWAYS_INLINE C4_PURE NodeType    type() const noexcept { _C4RV(); return tree_->type(id_); }
+    C4_ALWAYS_INLINE C4_PURE const char* type_str() const noexcept { return tree_->type_str(id_); }
 
-    C4_ALWAYS_INLINE C4_CONST csubstr key()        const noexcept { _C4RV(); return tree_->key(id_); }
-    C4_ALWAYS_INLINE C4_CONST csubstr key_tag()    const noexcept { _C4RV(); return tree_->key_tag(id_); }
-    C4_ALWAYS_INLINE C4_CONST csubstr key_ref()    const noexcept { _C4RV(); return tree_->key_ref(id_); }
-    C4_ALWAYS_INLINE C4_CONST csubstr key_anchor() const noexcept { _C4RV(); return tree_->key_anchor(id_); }
+    C4_ALWAYS_INLINE C4_PURE csubstr key()        const noexcept { _C4RV(); return tree_->key(id_); }
+    C4_ALWAYS_INLINE C4_PURE csubstr key_tag()    const noexcept { _C4RV(); return tree_->key_tag(id_); }
+    C4_ALWAYS_INLINE C4_PURE csubstr key_ref()    const noexcept { _C4RV(); return tree_->key_ref(id_); }
+    C4_ALWAYS_INLINE C4_PURE csubstr key_anchor() const noexcept { _C4RV(); return tree_->key_anchor(id_); }
 
-    C4_ALWAYS_INLINE C4_CONST csubstr val()        const noexcept { _C4RV(); return tree_->val(id_); }
-    C4_ALWAYS_INLINE C4_CONST csubstr val_tag()    const noexcept { _C4RV(); return tree_->val_tag(id_); }
-    C4_ALWAYS_INLINE C4_CONST csubstr val_ref()    const noexcept { _C4RV(); return tree_->val_ref(id_); }
-    C4_ALWAYS_INLINE C4_CONST csubstr val_anchor() const noexcept { _C4RV(); return tree_->val_anchor(id_); }
+    C4_ALWAYS_INLINE C4_PURE csubstr val()        const noexcept { _C4RV(); return tree_->val(id_); }
+    C4_ALWAYS_INLINE C4_PURE csubstr val_tag()    const noexcept { _C4RV(); return tree_->val_tag(id_); }
+    C4_ALWAYS_INLINE C4_PURE csubstr val_ref()    const noexcept { _C4RV(); return tree_->val_ref(id_); }
+    C4_ALWAYS_INLINE C4_PURE csubstr val_anchor() const noexcept { _C4RV(); return tree_->val_anchor(id_); }
 
-    C4_ALWAYS_INLINE C4_CONST NodeScalar const& keysc() const noexcept { _C4RV(); return tree_->keysc(id_); }
-    C4_ALWAYS_INLINE C4_CONST NodeScalar const& valsc() const noexcept { _C4RV(); return tree_->valsc(id_); }
+    C4_ALWAYS_INLINE C4_PURE NodeScalar const& keysc() const noexcept { _C4RV(); return tree_->keysc(id_); }
+    C4_ALWAYS_INLINE C4_PURE NodeScalar const& valsc() const noexcept { _C4RV(); return tree_->valsc(id_); }
 
-    C4_ALWAYS_INLINE C4_CONST bool key_is_null() const noexcept { _C4RV(); return tree_->key_is_null(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool val_is_null() const noexcept { _C4RV(); return tree_->val_is_null(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool key_is_null() const noexcept { _C4RV(); return tree_->key_is_null(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool val_is_null() const noexcept { _C4RV(); return tree_->val_is_null(id_); }
 
     /** @} */
 
@@ -192,33 +192,33 @@ public:
     /** @name node property predicates */
     /** @{ */
 
-    C4_ALWAYS_INLINE C4_CONST bool empty()            const noexcept { _C4RV(); return tree_->empty(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool is_stream()        const noexcept { _C4RV(); return tree_->is_stream(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool is_doc()           const noexcept { _C4RV(); return tree_->is_doc(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool is_container()     const noexcept { _C4RV(); return tree_->is_container(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool is_map()           const noexcept { _C4RV(); return tree_->is_map(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool is_seq()           const noexcept { _C4RV(); return tree_->is_seq(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool has_val()          const noexcept { _C4RV(); return tree_->has_val(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool has_key()          const noexcept { _C4RV(); return tree_->has_key(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool is_val()           const noexcept { _C4RV(); return tree_->is_val(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool is_keyval()        const noexcept { _C4RV(); return tree_->is_keyval(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool has_key_tag()      const noexcept { _C4RV(); return tree_->has_key_tag(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool has_val_tag()      const noexcept { _C4RV(); return tree_->has_val_tag(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool has_key_anchor()   const noexcept { _C4RV(); return tree_->has_key_anchor(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool is_key_anchor()    const noexcept { _C4RV(); return tree_->is_key_anchor(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool has_val_anchor()   const noexcept { _C4RV(); return tree_->has_val_anchor(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool is_val_anchor()    const noexcept { _C4RV(); return tree_->is_val_anchor(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool has_anchor()       const noexcept { _C4RV(); return tree_->has_anchor(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool is_anchor()        const noexcept { _C4RV(); return tree_->is_anchor(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool is_key_ref()       const noexcept { _C4RV(); return tree_->is_key_ref(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool is_val_ref()       const noexcept { _C4RV(); return tree_->is_val_ref(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool is_ref()           const noexcept { _C4RV(); return tree_->is_ref(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool is_anchor_or_ref() const noexcept { _C4RV(); return tree_->is_anchor_or_ref(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool is_key_quoted()    const noexcept { _C4RV(); return tree_->is_key_quoted(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool is_val_quoted()    const noexcept { _C4RV(); return tree_->is_val_quoted(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool is_quoted()        const noexcept { _C4RV(); return tree_->is_quoted(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool parent_is_seq()    const noexcept { _C4RV(); return tree_->parent_is_seq(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool parent_is_map()    const noexcept { _C4RV(); return tree_->parent_is_map(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool empty()            const noexcept { _C4RV(); return tree_->empty(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool is_stream()        const noexcept { _C4RV(); return tree_->is_stream(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool is_doc()           const noexcept { _C4RV(); return tree_->is_doc(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool is_container()     const noexcept { _C4RV(); return tree_->is_container(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool is_map()           const noexcept { _C4RV(); return tree_->is_map(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool is_seq()           const noexcept { _C4RV(); return tree_->is_seq(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool has_val()          const noexcept { _C4RV(); return tree_->has_val(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool has_key()          const noexcept { _C4RV(); return tree_->has_key(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool is_val()           const noexcept { _C4RV(); return tree_->is_val(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool is_keyval()        const noexcept { _C4RV(); return tree_->is_keyval(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool has_key_tag()      const noexcept { _C4RV(); return tree_->has_key_tag(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool has_val_tag()      const noexcept { _C4RV(); return tree_->has_val_tag(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool has_key_anchor()   const noexcept { _C4RV(); return tree_->has_key_anchor(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool is_key_anchor()    const noexcept { _C4RV(); return tree_->is_key_anchor(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool has_val_anchor()   const noexcept { _C4RV(); return tree_->has_val_anchor(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool is_val_anchor()    const noexcept { _C4RV(); return tree_->is_val_anchor(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool has_anchor()       const noexcept { _C4RV(); return tree_->has_anchor(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool is_anchor()        const noexcept { _C4RV(); return tree_->is_anchor(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool is_key_ref()       const noexcept { _C4RV(); return tree_->is_key_ref(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool is_val_ref()       const noexcept { _C4RV(); return tree_->is_val_ref(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool is_ref()           const noexcept { _C4RV(); return tree_->is_ref(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool is_anchor_or_ref() const noexcept { _C4RV(); return tree_->is_anchor_or_ref(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool is_key_quoted()    const noexcept { _C4RV(); return tree_->is_key_quoted(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool is_val_quoted()    const noexcept { _C4RV(); return tree_->is_val_quoted(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool is_quoted()        const noexcept { _C4RV(); return tree_->is_quoted(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool parent_is_seq()    const noexcept { _C4RV(); return tree_->parent_is_seq(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool parent_is_map()    const noexcept { _C4RV(); return tree_->parent_is_map(id_); }
 
     /** @} */
 
@@ -227,19 +227,19 @@ public:
     /** @name hierarchy predicates */
     /** @{ */
 
-    C4_ALWAYS_INLINE C4_CONST bool is_root()    const noexcept { _C4RV(); return tree_->is_root(id_); }
-    C4_ALWAYS_INLINE C4_CONST bool has_parent() const noexcept { _C4RV(); return tree_->has_parent(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool is_root()    const noexcept { _C4RV(); return tree_->is_root(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool has_parent() const noexcept { _C4RV(); return tree_->has_parent(id_); }
 
-    C4_ALWAYS_INLINE C4_CONST bool has_child(ConstImpl const& ch) const noexcept { _C4RV(); return tree_->has_child(id_, ch.m_id); }
-    C4_ALWAYS_INLINE C4_CONST bool has_child(csubstr name) const noexcept { _C4RV(); return tree_->has_child(id_, name); }
-    C4_ALWAYS_INLINE C4_CONST bool has_children() const noexcept { _C4RV(); return tree_->has_children(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool has_child(ConstImpl const& ch) const noexcept { _C4RV(); return tree_->has_child(id_, ch.m_id); }
+    C4_ALWAYS_INLINE C4_PURE bool has_child(csubstr name) const noexcept { _C4RV(); return tree_->has_child(id_, name); }
+    C4_ALWAYS_INLINE C4_PURE bool has_children() const noexcept { _C4RV(); return tree_->has_children(id_); }
 
-    C4_ALWAYS_INLINE C4_CONST bool has_sibling(ConstImpl const& n) const noexcept { _C4RV(); return tree_->has_sibling(id_, n.m_id); }
-    C4_ALWAYS_INLINE C4_CONST bool has_sibling(csubstr name) const noexcept { _C4RV(); return tree_->has_sibling(id_, name); }
+    C4_ALWAYS_INLINE C4_PURE bool has_sibling(ConstImpl const& n) const noexcept { _C4RV(); return tree_->has_sibling(id_, n.m_id); }
+    C4_ALWAYS_INLINE C4_PURE bool has_sibling(csubstr name) const noexcept { _C4RV(); return tree_->has_sibling(id_, name); }
     /** counts with this */
-    C4_ALWAYS_INLINE C4_CONST bool has_siblings() const noexcept { _C4RV(); return tree_->has_siblings(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool has_siblings() const noexcept { _C4RV(); return tree_->has_siblings(id_); }
     /** does not count with this */
-    C4_ALWAYS_INLINE C4_CONST bool has_other_siblings() const noexcept { _C4RV(); return tree_->has_other_siblings(id_); }
+    C4_ALWAYS_INLINE C4_PURE bool has_other_siblings() const noexcept { _C4RV(); return tree_->has_other_siblings(id_); }
 
     /** @} */
 
@@ -248,31 +248,31 @@ public:
     /** @name hierarchy getters */
     /** @{ */
 
-    C4_ALWAYS_INLINE C4_CONST ConstImpl parent() const noexcept { _C4RV(); return {tree_, tree_->parent(id_)}; }
-    C4_ALWAYS_INLINE C4_CONST ConstImpl prev_sibling() const noexcept { _C4RV(); return {tree_, tree_->prev_sibling(id_)}; }
-    C4_ALWAYS_INLINE C4_CONST ConstImpl next_sibling() const noexcept { _C4RV(); return {tree_, tree_->next_sibling(id_)}; }
+    C4_ALWAYS_INLINE C4_PURE ConstImpl parent() const noexcept { _C4RV(); return {tree_, tree_->parent(id_)}; }
+    C4_ALWAYS_INLINE C4_PURE ConstImpl prev_sibling() const noexcept { _C4RV(); return {tree_, tree_->prev_sibling(id_)}; }
+    C4_ALWAYS_INLINE C4_PURE ConstImpl next_sibling() const noexcept { _C4RV(); return {tree_, tree_->next_sibling(id_)}; }
+    C4_ALWAYS_INLINE C4_PURE ConstImpl doc(size_t num) const noexcept { _C4RV(); return {tree_, tree_->doc(num)}; }
 
     /** O(#num_children) */
-    C4_ALWAYS_INLINE C4_CONST size_t    num_children() const noexcept { _C4RV(); return tree_->num_children(id_); }
-    C4_ALWAYS_INLINE C4_CONST size_t    child_pos(ConstImpl const& n) const noexcept { _C4RV(); return tree_->child_pos(id_, n.m_id); }
-    C4_ALWAYS_INLINE C4_CONST ConstImpl first_child() const noexcept { _C4RV(); return {tree_, tree_->first_child(id_)}; }
-    C4_ALWAYS_INLINE C4_CONST ConstImpl last_child () const noexcept { _C4RV(); return {tree_, tree_->last_child (id_)}; }
-    C4_ALWAYS_INLINE C4_CONST ConstImpl child(size_t pos) const noexcept { _C4RV(); return {tree_, tree_->child(id_, pos)}; }
-    C4_ALWAYS_INLINE C4_CONST ConstImpl find_child(csubstr name) const noexcept { _C4RV(); return {tree_, tree_->find_child(id_, name)}; }
+    C4_ALWAYS_INLINE C4_PURE size_t    num_children() const noexcept { _C4RV(); return tree_->num_children(id_); }
+    C4_ALWAYS_INLINE C4_PURE size_t    child_pos(ConstImpl const& n) const noexcept { _C4RV(); return tree_->child_pos(id_, n.m_id); }
+    C4_ALWAYS_INLINE C4_PURE ConstImpl first_child() const noexcept { _C4RV(); return {tree_, tree_->first_child(id_)}; }
+    C4_ALWAYS_INLINE C4_PURE ConstImpl last_child () const noexcept { _C4RV(); return {tree_, tree_->last_child (id_)}; }
+    C4_ALWAYS_INLINE C4_PURE ConstImpl child(size_t pos) const noexcept { _C4RV(); return {tree_, tree_->child(id_, pos)}; }
+    C4_ALWAYS_INLINE C4_PURE ConstImpl find_child(csubstr name) const noexcept { _C4RV(); return {tree_, tree_->find_child(id_, name)}; }
 
     /** O(#num_siblings) */
-    C4_ALWAYS_INLINE C4_CONST size_t    num_siblings() const noexcept { _C4RV(); return tree_->num_siblings(id_); }
-    C4_ALWAYS_INLINE C4_CONST size_t    num_other_siblings() const noexcept { _C4RV(); return tree_->num_other_siblings(id_); }
-    C4_ALWAYS_INLINE C4_CONST size_t    sibling_pos(ConstImpl const& n) const noexcept { _C4RV(); return tree_->child_pos(tree_->parent(id_), n.m_id); }
-    C4_ALWAYS_INLINE C4_CONST ConstImpl first_sibling() const noexcept { _C4RV(); return {tree_, tree_->first_sibling(id_)}; }
-    C4_ALWAYS_INLINE C4_CONST ConstImpl last_sibling () const noexcept { _C4RV(); return {tree_, tree_->last_sibling(id_)}; }
-    C4_ALWAYS_INLINE C4_CONST ConstImpl sibling(size_t pos) const noexcept { _C4RV(); return {tree_, tree_->sibling(id_, pos)}; }
-    C4_ALWAYS_INLINE C4_CONST ConstImpl find_sibling(csubstr name) const noexcept { _C4RV(); return {tree_, tree_->find_sibling(id_, name)}; }
+    C4_ALWAYS_INLINE C4_PURE size_t    num_siblings() const noexcept { _C4RV(); return tree_->num_siblings(id_); }
+    C4_ALWAYS_INLINE C4_PURE size_t    num_other_siblings() const noexcept { _C4RV(); return tree_->num_other_siblings(id_); }
+    C4_ALWAYS_INLINE C4_PURE size_t    sibling_pos(ConstImpl const& n) const noexcept { _C4RV(); return tree_->child_pos(tree_->parent(id_), n.m_id); }
+    C4_ALWAYS_INLINE C4_PURE ConstImpl first_sibling() const noexcept { _C4RV(); return {tree_, tree_->first_sibling(id_)}; }
+    C4_ALWAYS_INLINE C4_PURE ConstImpl last_sibling () const noexcept { _C4RV(); return {tree_, tree_->last_sibling(id_)}; }
+    C4_ALWAYS_INLINE C4_PURE ConstImpl sibling(size_t pos) const noexcept { _C4RV(); return {tree_, tree_->sibling(id_, pos)}; }
+    C4_ALWAYS_INLINE C4_PURE ConstImpl find_sibling(csubstr name) const noexcept { _C4RV(); return {tree_, tree_->find_sibling(id_, name)}; }
 
-    C4_ALWAYS_INLINE C4_CONST ConstImpl doc(size_t num) const noexcept { _C4RV(); return {tree_, tree_->doc(num)}; }
 
     /** O(num_children) */
-    C4_ALWAYS_INLINE C4_CONST ConstImpl operator[] (csubstr k) const noexcept
+    C4_ALWAYS_INLINE C4_PURE ConstImpl operator[] (csubstr k) const noexcept
     {
         _C4RV();
         size_t ch = tree_->find_child(id_, k);
@@ -281,7 +281,7 @@ public:
     }
 
     /** O(num_children) */
-    C4_ALWAYS_INLINE C4_CONST ConstImpl operator[] (size_t pos) const noexcept
+    C4_ALWAYS_INLINE C4_PURE ConstImpl operator[] (size_t pos) const noexcept
     {
         _C4RV();
         size_t ch = tree_->child(id_, pos);
@@ -382,10 +382,10 @@ public:
     using const_iterator = detail::child_iterator<ConstImpl>;
     using const_children_view = detail::children_view_<ConstImpl>;
 
-    C4_ALWAYS_INLINE C4_CONST const_iterator begin() const noexcept { _C4RV(); return const_iterator(tree_, tree_->first_child(id_)); }
-    C4_ALWAYS_INLINE C4_CONST const_iterator end  () const noexcept { _C4RV(); return const_iterator(tree_, NONE); }
+    C4_ALWAYS_INLINE C4_PURE const_iterator begin() const noexcept { _C4RV(); return const_iterator(tree_, tree_->first_child(id_)); }
+    C4_ALWAYS_INLINE C4_PURE const_iterator end  () const noexcept { _C4RV(); return const_iterator(tree_, NONE); }
 
-    C4_ALWAYS_INLINE C4_CONST const_children_view children() const noexcept { _C4RV(); return const_children_view(begin(), end()); }
+    C4_ALWAYS_INLINE C4_PURE const_children_view children() const noexcept { _C4RV(); return const_children_view(begin(), end()); }
 
     #if defined(__clang__)
     #   pragma clang diagnostic push
@@ -397,7 +397,7 @@ public:
     #   endif
     #endif
 
-    C4_ALWAYS_INLINE C4_CONST const_children_view siblings() const noexcept
+    C4_ALWAYS_INLINE C4_PURE const_children_view siblings() const noexcept
     {
         _C4RV();
         if(is_root())
@@ -416,14 +416,14 @@ public:
 
     /** visit every child node calling fn(node) */
     template<class Visitor>
-    C4_ALWAYS_INLINE C4_CONST bool visit(Visitor fn, size_t indentation_level=0, bool skip_root=true) const noexcept
+    C4_ALWAYS_INLINE C4_PURE bool visit(Visitor fn, size_t indentation_level=0, bool skip_root=true) const noexcept
     {
         return detail::_visit(*(ConstImpl*)this, fn, indentation_level, skip_root);
     }
 
     /** visit every child node calling fn(node, level) */
     template<class Visitor>
-    C4_ALWAYS_INLINE C4_CONST bool visit_stacked(Visitor fn, size_t indentation_level=0, bool skip_root=true) const noexcept
+    C4_ALWAYS_INLINE C4_PURE bool visit_stacked(Visitor fn, size_t indentation_level=0, bool skip_root=true) const noexcept
     {
         return detail::_visit_stacked(*(ConstImpl*)this, fn, indentation_level, skip_root);
     }
@@ -496,7 +496,7 @@ public:
     /** @name state queries */
     /** @{ */
 
-    C4_ALWAYS_INLINE C4_CONST bool valid() const noexcept { return m_tree != nullptr && m_id != NONE; }
+    C4_ALWAYS_INLINE C4_PURE bool valid() const noexcept { return m_tree != nullptr && m_id != NONE; }
 
     /** @} */
 
@@ -505,8 +505,8 @@ public:
     /** @name member getters */
     /** @{ */
 
-    C4_ALWAYS_INLINE C4_CONST Tree const* tree() const noexcept { return m_tree; }
-    C4_ALWAYS_INLINE C4_CONST size_t id() const noexcept { return m_id; }
+    C4_ALWAYS_INLINE C4_PURE Tree const* tree() const noexcept { return m_tree; }
+    C4_ALWAYS_INLINE C4_PURE size_t id() const noexcept { return m_id; }
 
     /** @} */
 
@@ -515,14 +515,14 @@ public:
     /** @name comparisons */
     /** @{ */
 
-    C4_ALWAYS_INLINE C4_CONST bool operator== (ConstNodeRef const& that) const noexcept { RYML_ASSERT(that.m_tree == m_tree); return m_id == that.m_id; }
-    C4_ALWAYS_INLINE C4_CONST bool operator!= (ConstNodeRef const& that) const noexcept { RYML_ASSERT(that.m_tree == m_tree); return ! this->operator==(that); }
+    C4_ALWAYS_INLINE C4_PURE bool operator== (ConstNodeRef const& that) const noexcept { RYML_ASSERT(that.m_tree == m_tree); return m_id == that.m_id; }
+    C4_ALWAYS_INLINE C4_PURE bool operator!= (ConstNodeRef const& that) const noexcept { RYML_ASSERT(that.m_tree == m_tree); return ! this->operator==(that); }
 
-    C4_ALWAYS_INLINE C4_CONST bool operator== (std::nullptr_t) const noexcept { return m_tree == nullptr || m_id == NONE; }
-    C4_ALWAYS_INLINE C4_CONST bool operator!= (std::nullptr_t) const noexcept { return ! this->operator== (nullptr); }
+    C4_ALWAYS_INLINE C4_PURE bool operator== (std::nullptr_t) const noexcept { return m_tree == nullptr || m_id == NONE; }
+    C4_ALWAYS_INLINE C4_PURE bool operator!= (std::nullptr_t) const noexcept { return ! this->operator== (nullptr); }
 
-    C4_ALWAYS_INLINE C4_CONST bool operator== (csubstr val) const noexcept { RYML_ASSERT(has_val()); return m_tree->val(m_id) == val; }
-    C4_ALWAYS_INLINE C4_CONST bool operator!= (csubstr val) const noexcept { RYML_ASSERT(has_val()); return m_tree->val(m_id) != val; }
+    C4_ALWAYS_INLINE C4_PURE bool operator== (csubstr val) const noexcept { RYML_ASSERT(has_val()); return m_tree->val(m_id) == val; }
+    C4_ALWAYS_INLINE C4_PURE bool operator!= (csubstr val) const noexcept { RYML_ASSERT(has_val()); return m_tree->val(m_id) != val; }
 
     /** @} */
 

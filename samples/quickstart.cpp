@@ -418,10 +418,10 @@ void sample_quick_overview()
     CHECK(root["newkeyval"].val() == "shiny and new");
     CHECK(root["newkeyval (serialized)"].key() == "newkeyval (serialized)");
     CHECK(root["newkeyval (serialized)"].val() == "shiny and new (serialized)");
-    CHECK( ! root["newkeyval"].key().is_sub(tree.arena())); // it's using directly the static string above
-    CHECK( ! root["newkeyval"].val().is_sub(tree.arena())); // it's using directly the static string above
-    CHECK(   root["newkeyval (serialized)"].key().is_sub(tree.arena())); // it's using a serialization of the string above
-    CHECK(   root["newkeyval (serialized)"].val().is_sub(tree.arena())); // it's using a serialization of the string above
+    CHECK( ! tree.in_arena(root["newkeyval"].key())); // it's using directly the static string above
+    CHECK( ! tree.in_arena(root["newkeyval"].val())); // it's using directly the static string above
+    CHECK(   tree.in_arena(root["newkeyval (serialized)"].key())); // it's using a serialization of the string above
+    CHECK(   tree.in_arena(root["newkeyval (serialized)"].val())); // it's using a serialization of the string above
     // adding a val node to a seq:
     CHECK(root["bar"].num_children() == 2);
     wroot["bar"][2] = "oh so nice";

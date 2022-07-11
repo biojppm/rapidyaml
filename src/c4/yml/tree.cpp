@@ -1557,9 +1557,7 @@ size_t Tree::num_children(size_t node) const
 {
     size_t count = 0;
     for(size_t i = first_child(node); i != NONE; i = next_sibling(i))
-    {
         ++count;
-    }
     return count;
 }
 
