@@ -12,13 +12,6 @@
     :barbarbar: c # was ol
   ```
 - Fix [#246](https://github.com/biojppm/rapidyaml/issues/246): add missing `#define` for the include guard of the amalgamated header.
-- YAML test suite events emitter: fix emission of inheriting nodes. The events for `{<<: *anchor, foo: bar}` are now correctly emitted as:
-  ```yaml
-  =VAL :<<  # previously was =ALI <<
-  =ALI *anchor
-  =VAL :foo
-  =VAL :bar
-  ```
 - Fix [#253](https://github.com/biojppm/rapidyaml/issues/253): double-quoted emitter should encode carriage-return `\r` to preserve roundtrip equivalence:
   ```yaml
   Tree tree;
@@ -30,4 +23,12 @@
   EXPECT_EQ(s, "s: \"t\\rt\"\n");
   Tree tree2 = parse_in_arena(to_csubstr(s));
   EXPECT_EQ(tree2["s"].val(), tree["s"].val());
+  ```
+- Fix [#280](https://github.com/biojppm/rapidyaml/issues/280) ([PR#281](https://github.com/biojppm/rapidyaml/pull/281)): deserialization of `std::vector<bool>` failed because its `operator[]` returns a `reference` instead of `value_type`.
+- YAML test suite events emitter: fix emission of inheriting nodes. The events for `{<<: *anchor, foo: bar}` are now correctly emitted as:
+  ```yaml
+  =VAL :<<  # previously was =ALI <<
+  =ALI *anchor
+  =VAL :foo
+  =VAL :bar
   ```
