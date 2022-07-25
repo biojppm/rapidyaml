@@ -117,6 +117,12 @@ TEST(serialize, std_vector_int)
     using L = std::initializer_list<T>;
     do_test_serialize<std::vector<T>>(L{1, 2, 3, 4, 5});
 }
+TEST(serialize, std_vector_bool)
+{
+    using T = bool;
+    using L = std::initializer_list<T>;
+    do_test_serialize<std::vector<T>>(L{true, false, true, false, true, true});
+}
 TEST(serialize, std_vector_string)
 {
     using T = std::string;
