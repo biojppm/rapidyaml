@@ -774,7 +774,12 @@ void test_invariants(Tree const& t)
     EXPECT_LE(t.size(), t.capacity());
     EXPECT_EQ(t.size() + t.slack(), t.capacity());
 
-    if(t.empty()) return;
+    if(t.empty())
+        return;
+
+    EXPECT_LE(t.arena_pos(), t.arena_size());
+    EXPECT_LE(t.arena_slack(), t.arena_size());
+    EXPECT_EQ(t.arena_pos() + t.arena_slack(), t.arena_size());
 
     size_t count = test_tree_invariants(t.rootref());
     EXPECT_EQ(count, t.size());

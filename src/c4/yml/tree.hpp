@@ -466,13 +466,9 @@ public:
 
     inline bool   empty() const { return m_size == 0; }
 
-    inline size_t size () const { return m_size; }
+    inline size_t size() const { return m_size; }
     inline size_t capacity() const { return m_cap; }
     inline size_t slack() const { RYML_ASSERT(m_cap >= m_size); return m_cap - m_size; }
-
-    inline size_t arena_size() const { return m_arena_pos; }
-    inline size_t arena_capacity() const { return m_arena.len; }
-    inline size_t arena_slack() const { RYML_ASSERT(m_arena.len >= m_arena_pos); return m_arena.len - m_arena_pos; }
 
     Callbacks const& callbacks() const { return m_callbacks; }
     void callbacks(Callbacks const& cb) { m_callbacks = cb; }
@@ -935,7 +931,13 @@ public:
     /** @{ */
 
     /** get the current size of the tree's internal arena */
-    size_t arena_pos() const { return m_arena_pos; }
+    RYML_DEPRECATED("use arena_size() instead") size_t arena_pos() const { return m_arena_pos; }
+    /** get the current size of the tree's internal arena */
+    inline size_t arena_size() const { return m_arena_pos; }
+    /** get the current capacity of the tree's internal arena */
+    inline size_t arena_capacity() const { return m_arena.len; }
+    /** get the current slack of the tree's internal arena */
+    inline size_t arena_slack() const { RYML_ASSERT(m_arena.len >= m_arena_pos); return m_arena.len - m_arena_pos; }
 
     /** get the current arena */
     substr arena() const { return m_arena.first(m_arena_pos); }
