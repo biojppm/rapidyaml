@@ -1049,7 +1049,7 @@ private:
 
     substr _grow_arena(size_t more)
     {
-        size_t cap = m_arena_pos + more;
+        size_t cap = m_arena.len + more;
         cap = cap < 2 * m_arena.len ? 2 * m_arena.len : cap;
         cap = cap < 64 ? 64 : cap;
         reserve_arena(cap);
