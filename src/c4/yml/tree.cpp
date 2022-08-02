@@ -1835,7 +1835,7 @@ void Tree::resolve_tags()
         return;
     size_t needed_size = _count_resolved_tags_size(this, root_id());
     if(needed_size)
-        reserve_arena(arena_pos() + needed_size);
+        reserve_arena(arena_size() + needed_size);
     _resolve_tags(this, root_id());
 }
 

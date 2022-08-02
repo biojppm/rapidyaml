@@ -738,6 +738,32 @@ TEST(Tree, reserve)
     test_invariants(t);
 }
 
+// https://github.com/biojppm/rapidyaml/issues/288
+TEST(Tree, reserve_arena_issue288)
+{
+    Tree t;
+    EXPECT_EQ(t.arena_slack(), 0u);
+    EXPECT_EQ(t.arena_capacity(), 0u);
+    EXPECT_EQ(t.arena_size(), 0u);
+    t.reserve_arena(3u);
+    EXPECT_EQ(t.arena_slack(), 3u);
+    EXPECT_GE(t.arena_capacity(), 3u);
+    EXPECT_EQ(t.arena_size(), 0u);
+    // longer than the slack to cause another call to _grow_arena()
+    std::string stars(2 * t.arena_slack(), '*');
+    t.copy_to_arena(to_csubstr(stars));
+    EXPECT_GE(t.arena_capacity(), stars.size());
+    EXPECT_EQ(t.arena_size(), stars.size());
+    EXPECT_EQ(t.arena(), to_csubstr(stars));
+    // again
+    std::string pluses(2 * t.arena_slack(), '+');
+    t.copy_to_arena(to_csubstr(pluses));
+    EXPECT_GE(t.arena_capacity(), stars.size() + pluses.size());
+    EXPECT_EQ(t.arena_size(), stars.size() + pluses.size());
+    EXPECT_EQ(t.arena().first(stars.size()), to_csubstr(stars));
+    EXPECT_EQ(t.arena().last(pluses.size()), to_csubstr(pluses));
+}
+
 TEST(Tree, clear)
 {
     Tree t(16, 64);
