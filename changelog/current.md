@@ -34,3 +34,4 @@
   =VAL :foo
   =VAL :bar
   ```
+- Fix [cmake#8](https://github.com/biojppm/cmake/issues/8): `SOVERSION` missing from shared libraries.
