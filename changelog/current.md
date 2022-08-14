@@ -1,3 +1,33 @@
+
+### Modifications
+
+- **BREAKING CHANGE**: make the node API const-correct ([PR#267](https://github.com/biojppm/rapidyaml/pull/267)): added `ConstNodeRef` to hold a constant reference to a node. As the name implies, a `ConstNodeRef` object cannot be used in any tree-mutating operation. It is also smaller than the existing `NodeRef` (and faster because it does not need to check its own validity on every access). As a result of this change, there are now some constraints when obtaining a ref from a tree, and existing code is likely to break in this type of situation:
+  ```c++
+  const Tree const_tree = ...;
+  NodeRef nr = const_tree.rootref(); // ERROR (was ok): cannot obtain a mutating NodeRef from a const Tree
+  ConstNodeRef cnr = const_tree.rootref(); // ok
+  
+  Tree tree = ...;
+  NodeRef nr = tree.rootref(); // ok
+  ConstNodeRef cnr = tree.rootref(); // ok (implicit conversion from NodeRef to ConstNodeRef)
+  // to obtain a ConstNodeRef from a mutable Tree
+  // while avoiding implicit conversion, use the `c`
+  // prefix:
+  ConstNodeRef cnr = tree.crootref();
+  // likewise for tree.ref() and tree.cref().
+  
+  nr = cnr; // ERROR: cannot obtain NodeRef from ConstNodeRef
+  cnr = nr; // ok
+  ```
+  Naturally, use of `ConstNodeRef` needs to be propagated through client code. One such place is when deserializing types:
+  ```c++
+  // needs to be changed from:
+  template<class T> bool read(ryml::NodeRef const& n, T *var);
+  // ... to:
+  template<class T> bool read(ryml::ConstNodeRef const& n, T *var);
+  ```
+
+
 ### Fixes
 
 - Fix [#233](https://github.com/biojppm/rapidyaml/issues/233) - accept leading colon in the first key of a flow map (`UNK` node) [PR#234](https://github.com/biojppm/rapidyaml/pull/234):

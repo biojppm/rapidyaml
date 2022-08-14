@@ -358,8 +358,7 @@ void sample_quick_overview()
     // As implied by its name, ConstNodeRef is a reference to a const
     // node. It can be used to read from the node, but not write to it
     // or modify the hierarchy of the node. If any modification is
-    // desired then a NodeRef must be used instead, which allows
-    // mutation of the target node:
+    // desired then a NodeRef must be used instead:
     ryml::NodeRef wroot = tree.rootref();
 
     // operator= assigns an existing string to the receiving node.
@@ -443,6 +442,7 @@ void sample_quick_overview()
     CHECK(root.num_children() == 9);
     CHECK(root["newmap"].num_children() == 0);
     CHECK(root["newmap (serialized)"].num_children() == 0);
+    //
     // When the tree is mutable, operator[] does not mutate the tree
     // until the returned node is written to.
     //
