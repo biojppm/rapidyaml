@@ -33,6 +33,8 @@ target_include_directories(miniyaml PUBLIC
     $<BUILD_INTERFACE:${miniyaml_dir}>
     $<BUILD_INTERFACE:${miniyaml_dir}/yaml>
     $<INSTALL_INTERFACE:include>)
+c4_set_folder_remote_project_targets(ext
+    miniyaml)
 
 # yaml-cpp
 c4_import_remote_proj(yaml-cpp ${_ed}/yaml-cpp REMOTE

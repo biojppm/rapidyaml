@@ -39,6 +39,15 @@ inline void PrintTo(csubstr s, ::std::ostream* os) { os->write(s.str, (std::stre
 
 namespace yml {
 
+inline void PrintTo(NodeType ty, ::std::ostream* os)
+{
+    *os << ty.type_str();
+}
+inline void PrintTo(NodeType_e ty, ::std::ostream* os)
+{
+    *os << NodeType::type_str(ty);
+}
+
 inline void PrintTo(Callbacks const& cb, ::std::ostream* os)
 {
 #ifdef __GNUC__
