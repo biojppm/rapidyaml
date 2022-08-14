@@ -95,7 +95,7 @@ inline size_t print_node(Tree const& p, size_t node, int level, size_t count, bo
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-inline void print_node(NodeRef const& p, int level=0)
+inline void print_node(ConstNodeRef const& p, int level=0)
 {
     print_node(*p.tree(), p.id(), level, 0, true);
 }

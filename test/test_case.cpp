@@ -332,7 +332,7 @@ NodeType_e CaseNode::_guess() const
 
 
 //-----------------------------------------------------------------------------
-void CaseNode::compare_child(yml::NodeRef const& n, size_t pos) const
+void CaseNode::compare_child(yml::ConstNodeRef const& n, size_t pos) const
 {
     EXPECT_TRUE(pos < n.num_children());
     EXPECT_TRUE(pos < children.size());
@@ -412,7 +412,7 @@ void CaseNode::compare_child(yml::NodeRef const& n, size_t pos) const
     }
 }
 
-void CaseNode::compare(yml::NodeRef const& actual, bool ignore_quote) const
+void CaseNode::compare(yml::ConstNodeRef const& actual, bool ignore_quote) const
 {
     if(ignore_quote)
     {
@@ -499,11 +499,11 @@ void CaseNode::recreate(yml::NodeRef *n) const
 
 //-----------------------------------------------------------------------------
 
-void print_path(NodeRef const& n)
+void print_path(ConstNodeRef const& n)
 {
     size_t len = 0;
     char buf[1024];
-    NodeRef p = n;
+    ConstNodeRef p = n;
     while(p != nullptr)
     {
         if(p.has_key())
@@ -611,10 +611,10 @@ void print_node(CaseNode const& p, int level)
 }
 
 
-void print_tree(NodeRef const& p, int level)
+void print_tree(ConstNodeRef const& p, int level)
 {
     print_node(p, level);
-    for(NodeRef const ch : p.children())
+    for(ConstNodeRef ch : p.children())
     {
         print_tree(ch, level+1);
     }
@@ -635,7 +635,7 @@ void print_tree(CaseNode const& t)
     printf("--------------------------------------\n");
 }
 
-void test_invariants(NodeRef const n)
+void test_invariants(ConstNodeRef const& n)
 {
     if(n.is_root())
     {
@@ -657,7 +657,7 @@ void test_invariants(NodeRef const n)
         EXPECT_FALSE(n.is_val());
     }
     // check parent & sibling reciprocity
-    for(NodeRef const s : n.siblings())
+    for(ConstNodeRef s : n.siblings())
     {
         EXPECT_TRUE(n.has_sibling(s));
         EXPECT_TRUE(s.has_sibling(n));
@@ -682,7 +682,7 @@ void test_invariants(NodeRef const n)
     {
         EXPECT_TRUE(n.is_container());
         EXPECT_FALSE(n.is_map());
-        for(NodeRef const ch : n.children())
+        for(ConstNodeRef ch : n.children())
         {
             EXPECT_FALSE(ch.is_keyval());
             EXPECT_FALSE(ch.has_key());
@@ -692,7 +692,7 @@ void test_invariants(NodeRef const n)
     {
         EXPECT_TRUE(n.is_container());
         EXPECT_FALSE(n.is_seq());
-        for(NodeRef const ch : n.children())
+        for(ConstNodeRef ch : n.children())
         {
             EXPECT_TRUE(ch.has_key());
         }
@@ -720,13 +720,13 @@ void test_invariants(NodeRef const n)
     // ... add more tests here
 
     // now recurse into the children
-    for(NodeRef const ch : n.children())
+    for(ConstNodeRef ch : n.children())
     {
         test_invariants(ch);
     }
 }
 
-size_t test_tree_invariants(NodeRef const& n)
+size_t test_tree_invariants(ConstNodeRef const& n)
 {
     auto parent = n.parent();
 
@@ -756,7 +756,7 @@ size_t test_tree_invariants(NodeRef const& n)
     }
 
     size_t count = 1, num = 0;
-    for(NodeRef const ch : n.children())
+    for(ConstNodeRef ch : n.children())
     {
         EXPECT_NE(ch.id(), n.id());
         count += test_tree_invariants(ch);

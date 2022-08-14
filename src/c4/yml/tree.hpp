@@ -27,6 +27,7 @@ struct NodeScalar;
 struct NodeInit;
 struct NodeData;
 class NodeRef;
+class ConstNodeRef;
 class Tree;
 
 
@@ -205,9 +206,6 @@ public:
 
 public:
 
-    C4_ALWAYS_INLINE operator NodeType_e      & C4_RESTRICT ()       { return type; }
-    C4_ALWAYS_INLINE operator NodeType_e const& C4_RESTRICT () const { return type; }
-
     C4_ALWAYS_INLINE NodeType() : type(NOTYPE) {}
     C4_ALWAYS_INLINE NodeType(NodeType_e t) : type(t) {}
     C4_ALWAYS_INLINE NodeType(type_bits t) : type((NodeType_e)t) {}
@@ -228,6 +226,14 @@ public:
 
 public:
 
+    C4_ALWAYS_INLINE operator NodeType_e      & C4_RESTRICT ()       { return type; }
+    C4_ALWAYS_INLINE operator NodeType_e const& C4_RESTRICT () const { return type; }
+
+    C4_ALWAYS_INLINE bool operator== (NodeType_e t) const { return type == t; }
+    C4_ALWAYS_INLINE bool operator!= (NodeType_e t) const { return type != t; }
+
+public:
+
     #if defined(__clang__)
     #   pragma clang diagnostic push
     #   pragma clang diagnostic ignored "-Wnull-dereference"
@@ -238,6 +244,7 @@ public:
     #   endif
     #endif
 
+    C4_ALWAYS_INLINE bool is_notype() const { return type == NOTYPE; }
     C4_ALWAYS_INLINE bool is_stream() const { return ((type & STREAM) == STREAM) != 0; }
     C4_ALWAYS_INLINE bool is_doc() const { return (type & DOC) != 0; }
     C4_ALWAYS_INLINE bool is_container() const { return (type & (MAP|SEQ|STREAM)) != 0; }
@@ -524,35 +531,43 @@ public:
     size_t root_id() const {                                 RYML_ASSERT(m_cap > 0 && m_size > 0); return 0; }
 
     //! Get a NodeRef of a node by id
-    NodeRef       ref(size_t id);
+    NodeRef      ref(size_t id);
     //! Get a NodeRef of a node by id
-    NodeRef const ref(size_t id) const;
+    ConstNodeRef ref(size_t id) const;
+    //! Get a NodeRef of a node by id
+    ConstNodeRef cref(size_t id);
+    //! Get a NodeRef of a node by id
+    ConstNodeRef cref(size_t id) const;
 
     //! Get the root as a NodeRef
-    NodeRef       rootref();
+    NodeRef      rootref();
     //! Get the root as a NodeRef
-    NodeRef const rootref() const;
+    ConstNodeRef rootref() const;
+    //! Get the root as a NodeRef
+    ConstNodeRef crootref();
+    //! Get the root as a NodeRef
+    ConstNodeRef crootref() const;
 
     //! find a root child by name, return it as a NodeRef
     //! @note requires the root to be a map.
-    NodeRef       operator[] (csubstr key);
+    NodeRef      operator[] (csubstr key);
     //! find a root child by name, return it as a NodeRef
     //! @note requires the root to be a map.
-    NodeRef const operator[] (csubstr key) const;
+    ConstNodeRef operator[] (csubstr key) const;
 
     //! find a root child by index: return the root node's @p i-th child as a NodeRef
     //! @note @i is NOT the node id, but the child's position
-    NodeRef       operator[] (size_t i);
+    NodeRef      operator[] (size_t i);
     //! find a root child by index: return the root node's @p i-th child as a NodeRef
     //! @note @i is NOT the node id, but the child's position
-    NodeRef const operator[] (size_t i) const;
+    ConstNodeRef operator[] (size_t i) const;
 
     //! get the i-th document of the stream
     //! @note @i is NOT the node id, but the doc position within the stream
-    NodeRef       docref(size_t i);
+    NodeRef      docref(size_t i);
     //! get the i-th document of the stream
     //! @note @i is NOT the node id, but the doc position within the stream
-    NodeRef const docref(size_t i) const;
+    ConstNodeRef docref(size_t i) const;
 
     /** @} */
 

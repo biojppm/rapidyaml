@@ -164,7 +164,7 @@ indented_once:
       exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
   err3_parses: no
 )");
-    const NodeRef n = t["indented_once"];
+    ConstNodeRef n = t["indented_once"];
     EXPECT_EQ(n["ok"  ][0].val(), csubstr("exec pg_isready -U \"dog\" -d \"dbname=dog\" -h 127.0.0.1 -p 5432\n"));
     EXPECT_EQ(n["err" ][0].val(), csubstr("exec pg_isready -U \"dog\" -d \"dbname=dog\" -h 127.0.0.1 -p 5432\n"));
     EXPECT_EQ(n["err2"][0].val(), csubstr("exec pg_isready -U \"dog\" -d \"dbname=dog\" -h 127.0.0.1 -p 5432\n"));
@@ -194,7 +194,7 @@ indented_once:
         exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
     err3_parses: no
 )");
-    const NodeRef n = t["indented_once"]["indented_twice"];
+    ConstNodeRef n = t["indented_once"]["indented_twice"];
     EXPECT_EQ(n["ok"  ][0].val(), csubstr("exec pg_isready -U \"dog\" -d \"dbname=dog\" -h 127.0.0.1 -p 5432\n"));
     EXPECT_EQ(n["err" ][0].val(), csubstr("exec pg_isready -U \"dog\" -d \"dbname=dog\" -h 127.0.0.1 -p 5432\n"));
     EXPECT_EQ(n["err2"][0].val(), csubstr("exec pg_isready -U \"dog\" -d \"dbname=dog\" -h 127.0.0.1 -p 5432\n"));
@@ -225,7 +225,7 @@ indented_once:
           exec pg_isready -U "dog" -d "dbname=dog" -h 127.0.0.1 -p 5432
       err3_parses: no
 )");
-    const NodeRef n = t["indented_once"]["indented_twice"]["indented_thrice"];
+    ConstNodeRef n = t["indented_once"]["indented_twice"]["indented_thrice"];
     EXPECT_EQ(n["ok"  ][0].val(), csubstr("exec pg_isready -U \"dog\" -d \"dbname=dog\" -h 127.0.0.1 -p 5432\n"));
     EXPECT_EQ(n["err" ][0].val(), csubstr("exec pg_isready -U \"dog\" -d \"dbname=dog\" -h 127.0.0.1 -p 5432\n"));
     EXPECT_EQ(n["err2"][0].val(), csubstr("exec pg_isready -U \"dog\" -d \"dbname=dog\" -h 127.0.0.1 -p 5432\n"));
@@ -283,7 +283,7 @@ foo:
 )";
     test_check_emit_check(yaml, [](Tree const &t){
         ASSERT_TRUE(t.rootref().is_stream());
-        NodeRef doc = t.rootref().child(0);
+        ConstNodeRef doc = t.rootref().child(0);
         ASSERT_TRUE(doc.is_seq());
         ASSERT_EQ(doc.num_children(), 4u);
         EXPECT_EQ(doc[0].val(), csubstr("child0\n"));
@@ -644,7 +644,7 @@ TEST(block_folded, test_suite_W4TN)
 # empty
 )";
     test_check_emit_check(yaml, [](Tree const &t){
-        NodeRef const r = t.rootref();
+        ConstNodeRef r = t.rootref();
         ASSERT_TRUE(r.is_stream());
         ASSERT_EQ(r.num_children(), 10u);
         ASSERT_TRUE(r.doc(0).is_doc());

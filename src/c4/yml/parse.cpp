@@ -5186,7 +5186,7 @@ csubstr Parser::location_contents(Location const& loc) const
     return m_buf.sub(loc.offset);
 }
 
-Location Parser::location(NodeRef node) const
+Location Parser::location(ConstNodeRef node) const
 {
     _RYML_CB_ASSERT(m_stack.m_callbacks, node.valid());
     return location(*node.tree(), node.id());

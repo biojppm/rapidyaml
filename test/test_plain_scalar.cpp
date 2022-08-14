@@ -29,7 +29,7 @@ word1
 )";
     test_check_emit_check(yaml, [](Tree const &t){
         EXPECT_TRUE(t.rootref().is_stream());
-        NodeRef doc = t.rootref().first_child();
+        ConstNodeRef doc = t.rootref().first_child();
         ASSERT_TRUE(doc.is_doc());
         ASSERT_TRUE(doc.is_val());
         EXPECT_EQ(doc.val(), "word1");

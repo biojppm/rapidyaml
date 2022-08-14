@@ -236,7 +236,7 @@ public:
     /** Get the location of a node of the last tree to be parsed by this parser. */
     Location location(Tree const& tree, size_t node_id) const;
     /** Get the location of a node of the last tree to be parsed by this parser. */
-    Location location(NodeRef node) const;
+    Location location(ConstNodeRef node) const;
     /** Get the string starting at a particular location, to the end
      * of the parsed source buffer. */
     csubstr location_contents(Location const& loc) const;

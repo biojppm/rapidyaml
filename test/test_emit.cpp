@@ -114,7 +114,7 @@ void test_emits(Tree const& t, std::string const& expected, std::string const& e
 }
 
 template<class ...Args>
-void test_emits(const NodeRef t, std::string const& expected, std::string const& expected_json)
+void test_emits(ConstNodeRef t, std::string const& expected, std::string const& expected_json)
 {
     EXPECT_EQ(emit2buf([&](substr buf){ return emit(t, buf); }), expected);
     EXPECT_EQ(emit2buf([&](substr buf){ return emit_json(t, buf); }), expected_json);
@@ -151,7 +151,7 @@ TEST(emit, existing_seq_node)
         std::string expected_json = R"(["foo","bar",["nested","seq"],{"nested": "map"}])";
         {
             SCOPED_TRACE("rootref");
-            test_emits(t.rootref(), expected, expected_json);
+            test_emits(t.crootref(), expected, expected_json);
         }
         {
             SCOPED_TRACE("t");
@@ -163,7 +163,7 @@ TEST(emit, existing_seq_node)
         }
     }
     {
-        const NodeRef n = t[0];
+        ConstNodeRef n = t[0];
         std::string expected = "foo\n";
         std::string expected_json = "\"foo\"";
         {
@@ -186,7 +186,7 @@ TEST(emit, existing_seq_node)
         }
     }
     {
-        const NodeRef n = t[1];
+        ConstNodeRef n = t[1];
         std::string expected = "bar\n";
         std::string expected_json = "\"bar\"";
         {
@@ -210,7 +210,7 @@ TEST(emit, existing_seq_node)
 
     }
     {
-        const NodeRef n = t[2];
+        ConstNodeRef n = t[2];
         std::string expected = "- nested\n- seq\n";
         std::string expected_json = "[\"nested\",\"seq\"]";
         {
@@ -233,7 +233,7 @@ TEST(emit, existing_seq_node)
         }
     }
     {
-        const NodeRef n = t[3];
+        ConstNodeRef n = t[3];
         std::string expected = "nested: map\n";
         std::string expected_json = "{\"nested\": \"map\"}";
         {
@@ -278,7 +278,7 @@ TEST(emit, existing_map_node)
         }
     }
     {
-        const NodeRef n = t[0];
+        ConstNodeRef n = t[0];
         std::string expected = "0: foo\n";
         std::string expected_json = "\"0\": \"foo\"";
         {
@@ -301,7 +301,7 @@ TEST(emit, existing_map_node)
         }
     }
     {
-        const NodeRef n = t[1];
+        ConstNodeRef n = t[1];
         std::string expected = "1: bar\n";
         std::string expected_json = "\"1\": \"bar\"";
         {
@@ -324,7 +324,7 @@ TEST(emit, existing_map_node)
         }
     }
     {
-        const NodeRef n = t[2];
+        ConstNodeRef n = t[2];
         std::string expected = "2:\n  - nested\n  - seq\n";
         std::string expected_json = "\"2\": [\"nested\",\"seq\"]";
         {
@@ -347,7 +347,7 @@ TEST(emit, existing_map_node)
         }
     }
     {
-        const NodeRef n = t[3];
+        ConstNodeRef n = t[3];
         std::string expected = "3:\n  nested: map\n";
         std::string expected_json = "\"3\": {\"nested\": \"map\"}";
         {

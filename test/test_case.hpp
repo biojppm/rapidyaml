@@ -39,6 +39,15 @@ inline void PrintTo(csubstr s, ::std::ostream* os) { os->write(s.str, (std::stre
 
 namespace yml {
 
+inline void PrintTo(NodeType ty, ::std::ostream* os)
+{
+    *os << ty.type_str();
+}
+inline void PrintTo(NodeType_e ty, ::std::ostream* os)
+{
+    *os << NodeType::type_str(ty);
+}
+
 inline void PrintTo(Callbacks const& cb, ::std::ostream* os)
 {
 #ifdef __GNUC__
@@ -69,11 +78,11 @@ void test_compare(Tree const& actual, size_t node_actual,
 void test_arena_not_shared(Tree const& a, Tree const& b);
 
 void test_invariants(Tree const& t);
-void test_invariants(NodeRef const n);
+void test_invariants(ConstNodeRef const& n);
 
 void print_node(CaseNode const& t, int level=0);
 void print_tree(CaseNode const& p, int level=0);
-void print_path(NodeRef const& p);
+void print_path(ConstNodeRef const& p);
 
 
 
@@ -413,8 +422,8 @@ public:
 
 public:
 
-    void compare(yml::NodeRef const& n, bool ignore_quote=false) const;
-    void compare_child(yml::NodeRef const& n, size_t pos) const;
+    void compare(yml::ConstNodeRef const& n, bool ignore_quote=false) const;
+    void compare_child(yml::ConstNodeRef const& n, size_t pos) const;
 
     size_t reccount() const
     {
