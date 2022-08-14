@@ -34,7 +34,7 @@ bool read(c4::yml::ConstNodeRef const& n, std::vector<V, Alloc> *vec)
 /** specialization: std::vector<bool> uses std::vector<bool>::reference as
  * the return value of its operator[]. */
 template<class Alloc>
-bool read(c4::yml::NodeRef const& n, std::vector<bool, Alloc> *vec)
+bool read(c4::yml::ConstNodeRef const& n, std::vector<bool, Alloc> *vec)
 {
     vec->resize(n.num_children());
     size_t pos = 0;
