@@ -1,5 +1,5 @@
 
-### Modifications
+### API changes
 
 - **BREAKING CHANGE**: make the node API const-correct ([PR#267](https://github.com/biojppm/rapidyaml/pull/267)): added `ConstNodeRef` to hold a constant reference to a node. As the name implies, a `ConstNodeRef` object cannot be used in any tree-mutating operation. It is also smaller than the existing `NodeRef` (and faster because it does not need to check its own validity on every access). As a result of this change, there are now some constraints when obtaining a ref from a tree, and existing code is likely to break in this type of situation:
   ```c++
@@ -28,6 +28,20 @@
   ```
 - The initial version of `ConstNodeRef/NodeRef` had the problem that const methods in the CRTP base did not participate in overload resolution ([#294](https://github.com/biojppm/rapidyaml/issues/294)), preventing calls from `const NodeRef` objects. This was fixed by moving non-const methods to the CRTP base and disabling them with SFINAE ([PR#295](https://github.com/biojppm/rapidyaml/pull/295)).
 - Also added disambiguation iteration methods to both types: `.cbegin()`, `.cend()`, `.cchildren()`, `.csiblings()` ([PR#295](https://github.com/biojppm/rapidyaml/pull/295)).
+
+### Performance improvements
+
+- Fix [#289](https://github.com/biojppm/rapidyaml/issues/289) - parsing of flow-style sequences had quadratic complexity, causing long parse times in ultra long lines [PR#293](https://github.com/biojppm/rapidyaml/pull/293).
+  - This was due to scanning for tokens like `: ` before scanning for `,` or `]`, which caused line-length scans on every scalar scan. Changing the order of the checks was enough to address the quadratic complexity, and the parse times for flow-style are now in line with block-style.
+  - As part of this PR, a significant number of runtime branches was eliminated by separating `Parser::_scan_scalar()` into several different `{seq,map}x{block,flow}` functions specific for each context. Expect some improvement in parse times.
+  - Also, on Debug builds (or assertion-enabled builds) there was a paranoid assertion calling `Tree::has_child()` in `Tree::insert_child()` that caused quadratic behavior because the assertion had linear complexity. It was replaced with a somewhat equivalent O(1) assertion.
+  - Now the byte throughput is independent of line size for styles and containers. This can be seen in the table below, which shows parse troughputs in MB/s of 1000 containers of different styles and sizes (flow containers are in a single line):
+  | Container | Style | 10elms      | 100elms      | 1000elms      |
+  |-----------|-------|-------------|--------------|---------------| 
+  | 1000 Maps | block | 50.8MB/s    | 57.8MB/s     | 63.9MB/s      |
+  | 1000 Maps | flow  | 58.2MB/s    | 65.9MB/s     | 74.5MB/s      |
+  | 1000 Seqs | block | 55.7MB/s    | 59.2MB/s     | 60.0MB/s      |
+  | 1000 Seqs | flow  | 52.8MB/s    | 55.6MB/s     | 54.5MB/s      |
 
 
 ### Fixes
