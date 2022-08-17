@@ -795,20 +795,22 @@ public:
     /** @name modifying hierarchy */
     /** @{ */
 
-    /** create and insert a new child of "parent". insert after the (to-be)
-     * sibling "after", which must be a child of "parent". To insert as the
+    /** create and insert a new child of @p parent. insert after the (to-be)
+     * sibling @p after, which must be a child of @p parent. To insert as the
      * first child, set after to NONE */
-    inline size_t insert_child(size_t parent, size_t after)
+    C4_ALWAYS_INLINE size_t insert_child(size_t parent, size_t after)
     {
         RYML_ASSERT(parent != NONE);
         RYML_ASSERT(is_container(parent) || is_root(parent));
-        RYML_ASSERT(after == NONE || has_child(parent, after));
+        RYML_ASSERT(after == NONE || (_p(after)->m_parent == parent));
         size_t child = _claim();
         _set_hierarchy(child, parent, after);
         return child;
     }
-    inline size_t prepend_child(size_t parent) { return insert_child(parent, NONE); }
-    inline size_t  append_child(size_t parent) { return insert_child(parent, last_child(parent)); }
+    /** create and insert a node as the first child of @p parent */
+    C4_ALWAYS_INLINE size_t prepend_child(size_t parent) { return insert_child(parent, NONE); }
+    /** create and insert a node as the last child of @p parent */
+    C4_ALWAYS_INLINE size_t  append_child(size_t parent) { return insert_child(parent, _p(parent)->m_last_child); }
 
 public:
 
@@ -823,17 +825,13 @@ public:
     #endif
 
     //! create and insert a new sibling of n. insert after "after"
-    inline size_t insert_sibling(size_t node, size_t after)
+    C4_ALWAYS_INLINE size_t insert_sibling(size_t node, size_t after)
     {
-        RYML_ASSERT(node != NONE);
-        RYML_ASSERT( ! is_root(node));
-        RYML_ASSERT(parent(node) != NONE);
-        RYML_ASSERT(after == NONE || (has_sibling(node, after) && has_sibling(after, node)));
-        RYML_ASSERT(get(node) != nullptr);
-        return insert_child(get(node)->m_parent, after);
+        return insert_child(_p(node)->m_parent, after);
     }
-    inline size_t prepend_sibling(size_t node) { return insert_sibling(node, NONE); }
-    inline size_t  append_sibling(size_t node) { return insert_sibling(node, last_sibling(node)); }
+    /** create and insert a node as the first node of @p parent */
+    C4_ALWAYS_INLINE size_t prepend_sibling(size_t node) { return prepend_child(_p(node)->m_parent); }
+    C4_ALWAYS_INLINE size_t  append_sibling(size_t node) { return append_child(_p(node)->m_parent); }
 
 public:
 
