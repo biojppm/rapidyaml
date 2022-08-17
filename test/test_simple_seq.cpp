@@ -481,7 +481,7 @@ R"(
 - [[], :%]
 - [[], :^]
 - [[], :$]
-- [[], ::]
+#- [[], ::]
 - [[], :	]
 - [[], :`]
 )",
@@ -490,7 +490,7 @@ L{
    N(L{N(SEQ), N(":%")}),
    N(L{N(SEQ), N(":^")}),
    N(L{N(SEQ), N(":$")}),
-   N(L{N(SEQ), N("::")}),
+   //N(L{N(SEQ), N("::")}), TODO: yaml playground
    N(L{N(SEQ), _ryml_with_or_without_tabs(N(MAP, L{N("", "")}), N(":	"))}),
    N(L{N(SEQ), N(":`")}),
 }

@@ -282,7 +282,11 @@ private:
      * Will only be written to if this method returns true.
      * Will be set to true if the scanned scalar was quoted, by '', "", > or |.
      */
-    bool    _scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted);
+    bool    _scan_scalar_seq_blck(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted);
+    bool    _scan_scalar_map_blck(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted);
+    bool    _scan_scalar_seq_flow(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted);
+    bool    _scan_scalar_map_flow(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted);
+    bool    _scan_scalar_unk(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted);
 
     csubstr _scan_comment();
     csubstr _scan_squot_scalar();
