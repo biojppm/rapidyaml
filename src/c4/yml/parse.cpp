@@ -2335,6 +2335,11 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
             _RYML_WITH_TAB_TOKENS(else if(s.begins_with("-\t"))
                 return false;
             )
+            if(has_all(FLOW))
+            {
+                _c4dbgp("RSEQ|RVAL|EXPL");
+                s = s.left_of(s.first_of(",]"));
+            }
             if(s.ends_with(':'))
             {
                 --s.len;
@@ -2344,11 +2349,6 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
                 auto first = s.first_of_any(": " _RYML_WITH_TAB_TOKENS( , ":\t"), " #");
                 if(first)
                     s.len = first.pos;
-            }
-            if(has_all(FLOW))
-            {
-                _c4dbgp("RSEQ|RVAL|EXPL");
-                s = s.left_of(s.first_of(",]"));
             }
             s = s.trimr(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \t", ' '));
         }
