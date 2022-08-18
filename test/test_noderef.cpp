@@ -408,6 +408,149 @@ TEST(NodeRef, vsConstNodeRef)
 }
 
 
+// see https://github.com/biojppm/rapidyaml/issues/294
+TEST(NodeRef, overload_sets)
+{
+    // doc()
+    {
+        Tree t = parse_in_arena("a\n---\nb");
+        NodeRef n = t;
+        NodeRef const nc = t;
+        ConstNodeRef const cn = t;
+        EXPECT_EQ(n.doc(0), nc.doc(0));
+        EXPECT_EQ(n.doc(0), cn.doc(0));
+    }
+    Tree t = parse_in_arena("{iseq: [8, 10], imap: {a: b, c: d}}");
+    NodeRef n = t;
+    NodeRef const nc = t;
+    ConstNodeRef const cn = t;
+    // get()
+    {
+        EXPECT_EQ(n["iseq"].get(), nc["iseq"].get());
+        EXPECT_EQ(n["iseq"].get(), cn["iseq"].get());
+    }
+    // parent()
+    {
+        EXPECT_EQ(n["iseq"].parent(), nc["iseq"].parent());
+        EXPECT_EQ(n["iseq"].parent(), cn["iseq"].parent());
+    }
+    // child_pos()
+    {
+        EXPECT_EQ(n["iseq"].child_pos(n["iseq"][0]), nc["iseq"].child_pos(n["iseq"][0]));
+        EXPECT_EQ(n["iseq"].child_pos(n["iseq"][0]), cn["iseq"].child_pos(n["iseq"][0]));
+    }
+    // num_children()
+    {
+        EXPECT_EQ(n["iseq"].num_children(), nc["iseq"].num_children());
+        EXPECT_EQ(n["iseq"].num_children(), cn["iseq"].num_children());
+    }
+    // first_child()
+    {
+        EXPECT_EQ(n["iseq"].first_child(), nc["iseq"].first_child());
+        EXPECT_EQ(n["iseq"].first_child(), cn["iseq"].first_child());
+    }
+    // last_child()
+    {
+        EXPECT_EQ(n["iseq"].last_child(), nc["iseq"].last_child());
+        EXPECT_EQ(n["iseq"].last_child(), cn["iseq"].last_child());
+    }
+    // child()
+    {
+        EXPECT_EQ(n["iseq"].child(0), nc["iseq"].child(0));
+        EXPECT_EQ(n["iseq"].child(0), cn["iseq"].child(0));
+    }
+    // find_child()
+    {
+        EXPECT_EQ(n.find_child("iseq"), nc.find_child("iseq"));
+        EXPECT_EQ(n.find_child("iseq"), cn.find_child("iseq"));
+    }
+    // prev_sibling()
+    {
+        EXPECT_EQ(n["iseq"][1].prev_sibling(), nc["iseq"][1].prev_sibling());
+        EXPECT_EQ(n["iseq"][1].prev_sibling(), cn["iseq"][1].prev_sibling());
+    }
+    // next_sibling()
+    {
+        EXPECT_EQ(n["iseq"][0].next_sibling(), nc["iseq"][0].next_sibling());
+        EXPECT_EQ(n["iseq"][0].next_sibling(), cn["iseq"][0].next_sibling());
+    }
+    // first_sibling()
+    {
+        EXPECT_EQ(n["iseq"][1].first_sibling(), nc["iseq"][1].first_sibling());
+        EXPECT_EQ(n["iseq"][1].first_sibling(), cn["iseq"][1].first_sibling());
+    }
+    // last_sibling()
+    {
+        EXPECT_EQ(n["iseq"][0].last_sibling(), nc["iseq"][0].last_sibling());
+        EXPECT_EQ(n["iseq"][0].last_sibling(), cn["iseq"][0].last_sibling());
+    }
+    // sibling()
+    {
+        EXPECT_EQ(n["iseq"][1].sibling(0), nc["iseq"][1].sibling(0));
+        EXPECT_EQ(n["iseq"][1].sibling(0), cn["iseq"][1].sibling(0));
+    }
+    // find_sibling()
+    {
+        EXPECT_EQ(n["iseq"].find_sibling("imap"), nc["iseq"].find_sibling("imap"));
+        EXPECT_EQ(n["iseq"].find_sibling("imap"), cn["iseq"].find_sibling("imap"));
+    }
+    // operator[](csubstr)
+    {
+        EXPECT_EQ(n["iseq"].id(), nc["iseq"].id());
+        EXPECT_EQ(n["iseq"].id(), cn["iseq"].id());
+    }
+    // operator[](size_t)
+    {
+        EXPECT_EQ(n["iseq"][0].id(), nc["iseq"][0].id());
+        EXPECT_EQ(n["iseq"][0].id(), cn["iseq"][0].id());
+    }
+    // begin()
+    {
+        EXPECT_EQ(n["iseq"].begin().m_child_id, nc["iseq"].begin().m_child_id);
+        EXPECT_EQ(n["iseq"].begin().m_child_id, cn["iseq"].begin().m_child_id);
+    }
+    // end()
+    {
+        EXPECT_EQ(n["iseq"].end().m_child_id, nc["iseq"].end().m_child_id);
+        EXPECT_EQ(n["iseq"].end().m_child_id, cn["iseq"].end().m_child_id);
+    }
+    // cbegin()
+    {
+        EXPECT_EQ(n["iseq"].cbegin().m_child_id, nc["iseq"].cbegin().m_child_id);
+        EXPECT_EQ(n["iseq"].cbegin().m_child_id, cn["iseq"].cbegin().m_child_id);
+    }
+    // cend()
+    {
+        EXPECT_EQ(n["iseq"].cend().m_child_id, nc["iseq"].cend().m_child_id);
+        EXPECT_EQ(n["iseq"].cend().m_child_id, cn["iseq"].cend().m_child_id);
+    }
+    // children()
+    {
+        EXPECT_EQ(n["iseq"].children().b.m_child_id, nc["iseq"].children().b.m_child_id);
+        EXPECT_EQ(n["iseq"].children().b.m_child_id, cn["iseq"].children().b.m_child_id);
+    }
+    // cchildren()
+    {
+        EXPECT_EQ(n["iseq"].cchildren().b.m_child_id, nc["iseq"].cchildren().b.m_child_id);
+        EXPECT_EQ(n["iseq"].cchildren().b.m_child_id, cn["iseq"].cchildren().b.m_child_id);
+    }
+    // siblings()
+    {
+        EXPECT_EQ(n["iseq"][0].siblings().b.m_child_id, nc["iseq"][0].siblings().b.m_child_id);
+        EXPECT_EQ(n["iseq"][0].siblings().b.m_child_id, cn["iseq"][0].siblings().b.m_child_id);
+        EXPECT_EQ(n.siblings().b.m_child_id, nc.siblings().b.m_child_id);
+        EXPECT_EQ(n.siblings().b.m_child_id, cn.siblings().b.m_child_id);
+    }
+    // csiblings()
+    {
+        EXPECT_EQ(n["iseq"][0].csiblings().b.m_child_id, nc["iseq"][0].csiblings().b.m_child_id);
+        EXPECT_EQ(n["iseq"][0].csiblings().b.m_child_id, cn["iseq"][0].csiblings().b.m_child_id);
+        EXPECT_EQ(n.csiblings().b.m_child_id, nc.csiblings().b.m_child_id);
+        EXPECT_EQ(n.csiblings().b.m_child_id, cn.csiblings().b.m_child_id);
+    }
+}
+
+
 //-------------------------------------------
 // this is needed to use the test case library
 Case const* get_case(csubstr /*name*/)

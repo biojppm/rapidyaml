@@ -153,10 +153,13 @@ struct RoNodeMethods
     // helper CRTP macros, undefined at the end
     #define tree_ ((ConstImpl const* C4_RESTRICT)this)->m_tree
     #define id_ ((ConstImpl const* C4_RESTRICT)this)->m_id
+    #define tree__ ((Impl const* C4_RESTRICT)this)->m_tree
+    #define id__ ((Impl const* C4_RESTRICT)this)->m_id
     // require valid
     #define _C4RV()                                       \
         RYML_ASSERT(tree_ != nullptr);                    \
         _RYML_CB_ASSERT(tree_->m_callbacks, id_ != NONE)
+    #define _C4_IF_MUTABLE(ty) typename std::enable_if<!std::is_same<U, ConstImpl>::value, ty>::type
 
 public:
 
@@ -165,6 +168,9 @@ public:
 
     /** returns the data or null when the id is NONE */
     C4_ALWAYS_INLINE C4_PURE NodeData const* get() const noexcept { RYML_ASSERT(tree_ != nullptr); return tree_->get(id_); }
+    /** returns the data or null when the id is NONE */
+    template<class U=Impl>
+    C4_ALWAYS_INLINE C4_PURE auto get() noexcept -> _C4_IF_MUTABLE(NodeData*) { RYML_ASSERT(tree_ != nullptr); return tree__->get(id__); }
 
     C4_ALWAYS_INLINE C4_PURE NodeType    type() const noexcept { _C4RV(); return tree_->type(id_); }
     C4_ALWAYS_INLINE C4_PURE const char* type_str() const noexcept { return tree_->type_str(id_); }
@@ -248,26 +254,65 @@ public:
     /** @name hierarchy getters */
     /** @{ */
 
-    C4_ALWAYS_INLINE C4_PURE ConstImpl parent() const noexcept { _C4RV(); return {tree_, tree_->parent(id_)}; }
-    C4_ALWAYS_INLINE C4_PURE ConstImpl prev_sibling() const noexcept { _C4RV(); return {tree_, tree_->prev_sibling(id_)}; }
-    C4_ALWAYS_INLINE C4_PURE ConstImpl next_sibling() const noexcept { _C4RV(); return {tree_, tree_->next_sibling(id_)}; }
+
+    template<class U=Impl>
+    C4_ALWAYS_INLINE C4_PURE auto doc(size_t num) noexcept -> _C4_IF_MUTABLE(Impl) { _C4RV(); return {tree__, tree__->doc(num)}; }
     C4_ALWAYS_INLINE C4_PURE ConstImpl doc(size_t num) const noexcept { _C4RV(); return {tree_, tree_->doc(num)}; }
 
+
+    template<class U=Impl>
+    C4_ALWAYS_INLINE C4_PURE auto parent() noexcept -> _C4_IF_MUTABLE(Impl) { _C4RV(); return {tree__, tree__->parent(id__)}; }
+    C4_ALWAYS_INLINE C4_PURE ConstImpl parent() const noexcept { _C4RV(); return {tree_, tree_->parent(id_)}; }
+
+
     /** O(#num_children) */
-    C4_ALWAYS_INLINE C4_PURE size_t    num_children() const noexcept { _C4RV(); return tree_->num_children(id_); }
-    C4_ALWAYS_INLINE C4_PURE size_t    child_pos(ConstImpl const& n) const noexcept { _C4RV(); return tree_->child_pos(id_, n.m_id); }
+    C4_ALWAYS_INLINE C4_PURE size_t child_pos(ConstImpl const& n) const noexcept { _C4RV(); return tree_->child_pos(id_, n.m_id); }
+    C4_ALWAYS_INLINE C4_PURE size_t num_children() const noexcept { _C4RV(); return tree_->num_children(id_); }
+
+    template<class U=Impl>
+    C4_ALWAYS_INLINE C4_PURE auto first_child() noexcept -> _C4_IF_MUTABLE(Impl) { _C4RV(); return {tree__, tree__->first_child(id__)}; }
     C4_ALWAYS_INLINE C4_PURE ConstImpl first_child() const noexcept { _C4RV(); return {tree_, tree_->first_child(id_)}; }
+
+    template<class U=Impl>
+    C4_ALWAYS_INLINE C4_PURE auto last_child() noexcept -> _C4_IF_MUTABLE(Impl) { _C4RV(); return {tree__, tree__->last_child(id__)}; }
     C4_ALWAYS_INLINE C4_PURE ConstImpl last_child () const noexcept { _C4RV(); return {tree_, tree_->last_child (id_)}; }
+
+    template<class U=Impl>
+    C4_ALWAYS_INLINE C4_PURE auto child(size_t pos) noexcept -> _C4_IF_MUTABLE(Impl) { _C4RV(); return {tree__, tree__->child(id__, pos)}; }
     C4_ALWAYS_INLINE C4_PURE ConstImpl child(size_t pos) const noexcept { _C4RV(); return {tree_, tree_->child(id_, pos)}; }
+
+    template<class U=Impl>
+    C4_ALWAYS_INLINE C4_PURE auto find_child(csubstr name)  noexcept -> _C4_IF_MUTABLE(Impl) { _C4RV(); return {tree__, tree__->find_child(id__, name)}; }
     C4_ALWAYS_INLINE C4_PURE ConstImpl find_child(csubstr name) const noexcept { _C4RV(); return {tree_, tree_->find_child(id_, name)}; }
 
+
     /** O(#num_siblings) */
-    C4_ALWAYS_INLINE C4_PURE size_t    num_siblings() const noexcept { _C4RV(); return tree_->num_siblings(id_); }
-    C4_ALWAYS_INLINE C4_PURE size_t    num_other_siblings() const noexcept { _C4RV(); return tree_->num_other_siblings(id_); }
-    C4_ALWAYS_INLINE C4_PURE size_t    sibling_pos(ConstImpl const& n) const noexcept { _C4RV(); return tree_->child_pos(tree_->parent(id_), n.m_id); }
+    C4_ALWAYS_INLINE C4_PURE size_t num_siblings() const noexcept { _C4RV(); return tree_->num_siblings(id_); }
+    C4_ALWAYS_INLINE C4_PURE size_t num_other_siblings() const noexcept { _C4RV(); return tree_->num_other_siblings(id_); }
+    C4_ALWAYS_INLINE C4_PURE size_t sibling_pos(ConstImpl const& n) const noexcept { _C4RV(); return tree_->child_pos(tree_->parent(id_), n.m_id); }
+
+    template<class U=Impl>
+    C4_ALWAYS_INLINE C4_PURE auto prev_sibling() noexcept -> _C4_IF_MUTABLE(Impl) { _C4RV(); return {tree__, tree__->prev_sibling(id__)}; }
+    C4_ALWAYS_INLINE C4_PURE ConstImpl prev_sibling() const noexcept { _C4RV(); return {tree_, tree_->prev_sibling(id_)}; }
+
+    template<class U=Impl>
+    C4_ALWAYS_INLINE C4_PURE auto next_sibling() noexcept -> _C4_IF_MUTABLE(Impl) { _C4RV(); return {tree__, tree__->next_sibling(id__)}; }
+    C4_ALWAYS_INLINE C4_PURE ConstImpl next_sibling() const noexcept { _C4RV(); return {tree_, tree_->next_sibling(id_)}; }
+
+    template<class U=Impl>
+    C4_ALWAYS_INLINE C4_PURE auto first_sibling() noexcept -> _C4_IF_MUTABLE(Impl) { _C4RV(); return {tree__, tree__->first_sibling(id__)}; }
     C4_ALWAYS_INLINE C4_PURE ConstImpl first_sibling() const noexcept { _C4RV(); return {tree_, tree_->first_sibling(id_)}; }
+
+    template<class U=Impl>
+    C4_ALWAYS_INLINE C4_PURE auto last_sibling() noexcept -> _C4_IF_MUTABLE(Impl) { _C4RV(); return {tree__, tree__->last_sibling(id__)}; }
     C4_ALWAYS_INLINE C4_PURE ConstImpl last_sibling () const noexcept { _C4RV(); return {tree_, tree_->last_sibling(id_)}; }
+
+    template<class U=Impl>
+    C4_ALWAYS_INLINE C4_PURE auto sibling(size_t pos) noexcept -> _C4_IF_MUTABLE(Impl) { _C4RV(); return {tree__, tree__->sibling(id__, pos)}; }
     C4_ALWAYS_INLINE C4_PURE ConstImpl sibling(size_t pos) const noexcept { _C4RV(); return {tree_, tree_->sibling(id_, pos)}; }
+
+    template<class U=Impl>
+    C4_ALWAYS_INLINE C4_PURE auto find_sibling(csubstr name) noexcept -> _C4_IF_MUTABLE(Impl) { _C4RV(); return {tree__, tree__->find_sibling(id__, name)}; }
     C4_ALWAYS_INLINE C4_PURE ConstImpl find_sibling(csubstr name) const noexcept { _C4RV(); return {tree_, tree_->find_sibling(id_, name)}; }
 
 
@@ -279,6 +324,14 @@ public:
         _RYML_CB_ASSERT(tree_->m_callbacks, ch != NONE);
         return {tree_, ch};
     }
+    /** Find child by key. O(num_children). returns a seed node if no such child is found.  */
+    template<class U=Impl>
+    C4_ALWAYS_INLINE C4_PURE auto operator[] (csubstr k) noexcept -> _C4_IF_MUTABLE(Impl)
+    {
+        _C4RV();
+        size_t ch = tree__->find_child(id__, k);
+        return ch != NONE ? Impl(tree__, ch) : NodeRef(tree__, id__, k);
+    }
 
     /** O(num_children) */
     C4_ALWAYS_INLINE C4_PURE ConstImpl operator[] (size_t pos) const noexcept
@@ -287,6 +340,15 @@ public:
         size_t ch = tree_->child(id_, pos);
         _RYML_CB_ASSERT(tree_->m_callbacks, ch != NONE);
         return {tree_, ch};
+    }
+
+    /** Find child by position. O(pos). returns a seed node if no such child is found.  */
+    template<class U=Impl>
+    C4_ALWAYS_INLINE C4_PURE auto operator[] (size_t pos) noexcept -> _C4_IF_MUTABLE(Impl)
+    {
+        _C4RV();
+        size_t ch = tree__->child(id__, pos);
+        return ch != NONE ? Impl(tree__, ch) : NodeRef(tree__, id__, pos);
     }
 
     /** @} */
@@ -376,17 +438,6 @@ public:
 
 public:
 
-    /** @name iteration */
-    /** @{ */
-
-    using const_iterator = detail::child_iterator<ConstImpl>;
-    using const_children_view = detail::children_view_<ConstImpl>;
-
-    C4_ALWAYS_INLINE C4_PURE const_iterator begin() const noexcept { _C4RV(); return const_iterator(tree_, tree_->first_child(id_)); }
-    C4_ALWAYS_INLINE C4_PURE const_iterator end  () const noexcept { _C4RV(); return const_iterator(tree_, NONE); }
-
-    C4_ALWAYS_INLINE C4_PURE const_children_view children() const noexcept { _C4RV(); return const_children_view(begin(), end()); }
-
     #if defined(__clang__)
     #   pragma clang diagnostic push
     #   pragma clang diagnostic ignored "-Wnull-dereference"
@@ -397,28 +448,68 @@ public:
     #   endif
     #endif
 
+    /** @name iteration */
+    /** @{ */
+
+    using iterator = detail::child_iterator<Impl>;
+    using const_iterator = detail::child_iterator<ConstImpl>;
+    using children_view = detail::children_view_<Impl>;
+    using const_children_view = detail::children_view_<ConstImpl>;
+
+    template<class U=Impl>
+    C4_ALWAYS_INLINE C4_PURE auto begin() noexcept -> _C4_IF_MUTABLE(iterator) { _C4RV(); return iterator(tree__, tree__->first_child(id__)); }
+    C4_ALWAYS_INLINE C4_PURE const_iterator begin() const noexcept { _C4RV(); return const_iterator(tree_, tree_->first_child(id_)); }
+    C4_ALWAYS_INLINE C4_PURE const_iterator cbegin() const noexcept { _C4RV(); return const_iterator(tree_, tree_->first_child(id_)); }
+
+    template<class U=Impl>
+    C4_ALWAYS_INLINE C4_PURE auto end() noexcept -> _C4_IF_MUTABLE(iterator) { _C4RV(); return iterator(tree__, NONE); }
+    C4_ALWAYS_INLINE C4_PURE const_iterator end() const noexcept { _C4RV(); return const_iterator(tree_, NONE); }
+    C4_ALWAYS_INLINE C4_PURE const_iterator cend() const noexcept { _C4RV(); return const_iterator(tree_, tree_->first_child(id_)); }
+
+    /** get an iterable view over children */
+    template<class U=Impl>
+    C4_ALWAYS_INLINE C4_PURE auto children() noexcept -> _C4_IF_MUTABLE(children_view) { _C4RV(); return children_view(begin(), end()); }
+    /** get an iterable view over children */
+    C4_ALWAYS_INLINE C4_PURE const_children_view children() const noexcept { _C4RV(); return const_children_view(begin(), end()); }
+    /** get an iterable view over children */
+    C4_ALWAYS_INLINE C4_PURE const_children_view cchildren() const noexcept { _C4RV(); return const_children_view(begin(), end()); }
+
+    /** get an iterable view over all siblings (including the calling node) */
+    template<class U=Impl>
+    C4_ALWAYS_INLINE C4_PURE auto siblings() noexcept -> _C4_IF_MUTABLE(children_view)
+    {
+        _C4RV();
+        NodeData const *nd = tree__->get(id__);
+        return (nd->m_parent != NONE) ? // does it have a parent?
+            children_view(iterator(tree__, tree_->get(nd->m_parent)->m_first_child), iterator(tree__, NONE))
+            :
+            children_view(end(), end());
+    }
+    /** get an iterable view over all siblings (including the calling node) */
     C4_ALWAYS_INLINE C4_PURE const_children_view siblings() const noexcept
     {
         _C4RV();
-        if(is_root())
-            return const_children_view(end(), end());
-        size_t p = get()->m_parent;
-        return const_children_view(
-            const_iterator(tree_, tree_->get(p)->m_first_child),
-            const_iterator(tree_, NONE));
+        NodeData const *nd = tree_->get(id_);
+        return (nd->m_parent != NONE) ? // does it have a parent?
+            const_children_view(const_iterator(tree_, tree_->get(nd->m_parent)->m_first_child), const_iterator(tree_, NONE))
+            :
+            const_children_view(end(), end());
     }
-
-    #if defined(__clang__)
-    #   pragma clang diagnostic pop
-    #elif defined(__GNUC__)
-    #   pragma GCC diagnostic pop
-    #endif
+    /** get an iterable view over all siblings (including the calling node) */
+    C4_ALWAYS_INLINE C4_PURE const_children_view csiblings() const noexcept { return siblings(); }
 
     /** visit every child node calling fn(node) */
     template<class Visitor>
     C4_ALWAYS_INLINE C4_PURE bool visit(Visitor fn, size_t indentation_level=0, bool skip_root=true) const noexcept
     {
         return detail::_visit(*(ConstImpl*)this, fn, indentation_level, skip_root);
+    }
+    /** visit every child node calling fn(node) */
+    template<class Visitor, class U=Impl>
+    auto visit(Visitor fn, size_t indentation_level=0, bool skip_root=true) noexcept
+        -> _C4_IF_MUTABLE(bool)
+    {
+        return detail::_visit(*(Impl*)this, fn, indentation_level, skip_root);
     }
 
     /** visit every child node calling fn(node, level) */
@@ -427,12 +518,29 @@ public:
     {
         return detail::_visit_stacked(*(ConstImpl*)this, fn, indentation_level, skip_root);
     }
+    /** visit every child node calling fn(node, level) */
+    template<class Visitor, class U=Impl>
+    auto visit_stacked(Visitor fn, size_t indentation_level=0, bool skip_root=true) noexcept
+        -> _C4_IF_MUTABLE(bool)
+    {
+        return detail::_visit_stacked(*(Impl*)this, fn, indentation_level, skip_root);
+    }
 
     /** @} */
 
+    #if defined(__clang__)
+    #   pragma clang diagnostic pop
+    #elif defined(__GNUC__)
+    #   pragma GCC diagnostic pop
+    #endif
+
+    #undef _C4_IF_MUTABLE
     #undef _C4RV
     #undef tree_
+    #undef tree__
     #undef id_
+    #undef id__
+
     C4_SUPPRESS_WARNING_CLANG_POP
 };
 
@@ -540,6 +648,7 @@ class RYML_EXPORT NodeRef : public detail::RoNodeMethods<NodeRef, ConstNodeRef>
 public:
 
     using tree_type = Tree;
+    using base_type = detail::RoNodeMethods<NodeRef, ConstNodeRef>;
 
 private:
 
@@ -631,55 +740,13 @@ public:
 
 public:
 
-    /** @name non-const node property getters */
+    /** @name node property getters */
     /** @{ */
 
-    inline Tree * tree() { return m_tree; }
-    inline size_t id() const { return m_id; }
+    C4_ALWAYS_INLINE C4_PURE Tree * tree() noexcept { return m_tree; }
+    C4_ALWAYS_INLINE C4_PURE Tree const* tree() const noexcept { return m_tree; }
 
-    /** returns the data or null when the id is NONE */
-    inline NodeData * get() { RYML_ASSERT(m_tree != nullptr); return m_tree->get(m_id); }
-
-    /** @} */
-
-public:
-
-    /** @name hierarchy getters */
-    /** @{ */
-
-    NodeRef parent() { _C4RV(); return {m_tree, m_tree->parent(m_id)}; }
-    NodeRef prev_sibling() { _C4RV(); return {m_tree, m_tree->prev_sibling(m_id)}; }
-    NodeRef next_sibling() { _C4RV(); return {m_tree, m_tree->next_sibling(m_id)}; }
-
-    /** O(#num_children) */
-    NodeRef first_child(){ _C4RV(); return {m_tree, m_tree->first_child(m_id)}; }
-    NodeRef last_child() { _C4RV(); return {m_tree, m_tree->last_child(m_id)}; }
-    NodeRef child(size_t pos) { _C4RV(); return {m_tree, m_tree->child(m_id, pos)}; }
-    NodeRef find_child(csubstr name) { _C4RV(); return {m_tree, m_tree->find_child(m_id, name)}; }
-
-    /** O(#num_siblings) */
-    NodeRef first_sibling() { _C4RV(); return {m_tree, m_tree->first_sibling(m_id)}; }
-    NodeRef last_sibling () { _C4RV(); return {m_tree, m_tree->last_sibling(m_id)}; }
-    NodeRef sibling(size_t pos) { _C4RV(); return {m_tree, m_tree->sibling(m_id, pos)}; }
-    NodeRef find_sibling(csubstr name) { _C4RV(); return {m_tree, m_tree->find_sibling(m_id, name)}; }
-
-    NodeRef doc(size_t num) { _C4RV(); return {m_tree, m_tree->doc(num)}; }
-
-    /** Find child by key. O(num_children). returns a seed node if no such child is found.  */
-    NodeRef operator[] (csubstr k)
-    {
-        _C4RV();
-        size_t ch = m_tree->find_child(m_id, k);
-        return ch != NONE ? NodeRef(m_tree, ch) : NodeRef(m_tree, m_id, k);
-    }
-
-    /** Find child by position. O(pos). returns a seed node if no such child is found.  */
-    NodeRef operator[] (size_t pos)
-    {
-        _C4RV();
-        size_t ch = m_tree->child(m_id, pos);
-        return ch != NONE ? NodeRef(m_tree, ch) : NodeRef(m_tree, m_id, pos);
-    }
+    C4_ALWAYS_INLINE C4_PURE size_t id() const noexcept { return m_id; }
 
     /** @} */
 
@@ -805,7 +872,7 @@ public:
 
     /** serialize a variable to the arena */
     template<class T>
-    inline csubstr to_arena(T const& C4_RESTRICT s) const
+    inline csubstr to_arena(T const& C4_RESTRICT s)
     {
         _C4RV();
         return m_tree->to_arena(s);
@@ -1090,53 +1157,6 @@ public:
         {
             parent.m_tree->duplicate_children(m_tree, m_id, parent.m_id, after.m_id);
         }
-    }
-
-    /** @} */
-
-public:
-
-    /** @name iteration */
-    /** @{ */
-
-    using       iterator = detail::child_iterator<     NodeRef>;
-
-    using       children_view = detail::children_view_<     NodeRef>;
-
-    inline iterator begin() { return iterator(m_tree, m_tree->first_child(m_id)); }
-    inline iterator end  () { return iterator(m_tree, NONE); }
-
-          children_view children()       { return       children_view(begin(), end()); }
-
-    #if defined(__clang__)
-    #   pragma clang diagnostic push
-    #   pragma clang diagnostic ignored "-Wnull-dereference"
-    #elif defined(__GNUC__)
-    #   pragma GCC diagnostic push
-    #   if __GNUC__ >= 6
-    #       pragma GCC diagnostic ignored "-Wnull-dereference"
-    #   endif
-    #endif
-
-    children_view siblings() { if(is_root()) { return children_view(end(), end()); } else { size_t p = get()->m_parent; return       children_view(iterator(m_tree, m_tree->get(p)->m_first_child), iterator(m_tree, NONE)); } }
-
-    #if defined(__clang__)
-    #   pragma clang diagnostic pop
-    #elif defined(__GNUC__)
-    #   pragma GCC diagnostic pop
-    #endif
-
-    /** visit every child node calling fn(node) */
-    template<class Visitor>
-    bool visit(Visitor fn, size_t indentation_level=0, bool skip_root=true)
-    {
-        return detail::_visit(*this, fn, indentation_level, skip_root);
-    }
-    /** visit every child node calling fn(node, level) */
-    template<class Visitor>
-    bool visit_stacked(Visitor fn, size_t indentation_level=0, bool skip_root=true)
-    {
-        return detail::_visit_stacked(*this, fn, indentation_level, skip_root);
     }
 
     /** @} */
