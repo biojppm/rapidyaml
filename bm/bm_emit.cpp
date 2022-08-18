@@ -177,7 +177,7 @@ void bm_yamlcpp(bm::State& st)
 
 void bm_ryml_ostream(bm::State& st)
 {
-    c4::csubstr src = c4::to_csubstr(s_bm_case->src);
+    c4::csubstr src = c4::to_csubstr(s_bm_case->src).trimr('\0');
     ryml::Tree tree = ryml::parse_in_arena(s_bm_case->filename, src);
     std::string str;
     std::ostringstream os;
@@ -191,7 +191,7 @@ void bm_ryml_ostream(bm::State& st)
 
 void bm_ryml_str(bm::State& st)
 {
-    c4::csubstr src = c4::to_csubstr(s_bm_case->src);
+    c4::csubstr src = c4::to_csubstr(s_bm_case->src).trimr('\0');
     ryml::Tree tree = ryml::parse_in_arena(s_bm_case->filename, src);
     std::string str;
     for(auto _ : st)
@@ -203,7 +203,7 @@ void bm_ryml_str(bm::State& st)
 
 void bm_ryml_str_reserve(bm::State& st)
 {
-    c4::csubstr src = c4::to_csubstr(s_bm_case->src);
+    c4::csubstr src = c4::to_csubstr(s_bm_case->src).trimr('\0');
     std::string str;
     str.resize(2 * src.size());
     ryml::Tree tree = ryml::parse_in_arena(s_bm_case->filename, src);

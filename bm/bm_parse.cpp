@@ -152,7 +152,7 @@ void bm_libfyaml_arena(bm::State& st)
 
 void bm_ryml_arena(bm::State& st)
 {
-    c4::csubstr src = c4::to_csubstr(s_bm_case->src);
+    c4::csubstr src = c4::to_csubstr(s_bm_case->src).trimr('\0');
     for(auto _ : st)
     {
         ryml::Tree tree = ryml::parse_in_arena(s_bm_case->filename, src);
@@ -162,7 +162,7 @@ void bm_ryml_arena(bm::State& st)
 
 void bm_ryml_inplace(bm::State& st)
 {
-    c4::substr src = c4::to_substr(s_bm_case->in_place);
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
     for(auto _ : st)
     {
         s_bm_case->prepare(st, kResetInPlace);
@@ -173,7 +173,7 @@ void bm_ryml_inplace(bm::State& st)
 
 void bm_ryml_arena_reuse(bm::State& st)
 {
-    c4::csubstr src = c4::to_csubstr(s_bm_case->src);
+    c4::csubstr src = c4::to_csubstr(s_bm_case->src).trimr('\0');
     for(auto _ : st)
     {
         s_bm_case->prepare(st, kClearTree|kClearTreeArena);
@@ -184,7 +184,7 @@ void bm_ryml_arena_reuse(bm::State& st)
 
 void bm_ryml_inplace_reuse(bm::State& st)
 {
-    c4::substr src = c4::to_substr(s_bm_case->in_place);
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
     for(auto _ : st)
     {
         s_bm_case->prepare(st, kResetInPlace|kClearTree|kClearTreeArena);

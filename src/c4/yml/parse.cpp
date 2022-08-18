@@ -663,7 +663,7 @@ bool Parser::_handle_unk()
 
         csubstr saved_scalar;
         bool is_quoted;
-        if(_scan_scalar(&saved_scalar, &is_quoted))
+        if(_scan_scalar_unk(&saved_scalar, &is_quoted))
         {
             rem = m_state->line_contents.rem;
             _c4dbgpf("... and there's also a scalar next! '{}'", saved_scalar);
@@ -780,7 +780,7 @@ bool Parser::_handle_unk()
         csubstr scalar;
         size_t indentation = m_state->line_contents.indentation; // save
         bool is_quoted;
-        if(_scan_scalar(&scalar, &is_quoted))
+        if(_scan_scalar_unk(&scalar, &is_quoted))
         {
             _c4dbgpf("got a {} scalar", is_quoted ? "quoted" : "");
             rem = m_state->line_contents.rem;
@@ -904,7 +904,7 @@ bool Parser::_handle_seq_flow()
     {
         _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RNXT));
         bool is_quoted;
-        if(_scan_scalar(&rem, &is_quoted))
+        if(_scan_scalar_seq_flow(&rem, &is_quoted))
         {
             _c4dbgp("it's a scalar");
             addrem_flags(RNXT, RVAL);
@@ -1102,7 +1102,7 @@ bool Parser::_handle_seq_blck()
 
         csubstr s;
         bool is_quoted;
-        if(_scan_scalar(&s, &is_quoted)) // this also progresses the line
+        if(_scan_scalar_seq_blck(&s, &is_quoted)) // this also progresses the line
         {
             _c4dbgpf("it's a{} scalar", is_quoted ? " quoted" : "");
 
@@ -1361,7 +1361,7 @@ bool Parser::_handle_map_flow()
         _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RVAL));
 
         bool is_quoted;
-        if(has_none(SSCL) && _scan_scalar(&rem, &is_quoted))
+        if(has_none(SSCL) && _scan_scalar_map_flow(&rem, &is_quoted))
         {
             _c4dbgp("it's a scalar");
             _store_scalar(rem, is_quoted);
@@ -1481,7 +1481,7 @@ bool Parser::_handle_map_flow()
         _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RKEY));
         _RYML_CB_ASSERT(m_stack.m_callbacks, has_all(SSCL));
         bool is_quoted;
-        if(_scan_scalar(&rem, &is_quoted))
+        if(_scan_scalar_map_flow(&rem, &is_quoted))
         {
             _c4dbgp("it's a scalar");
             addrem_flags(RNXT, RVAL|RKEY);
@@ -1565,7 +1565,7 @@ bool Parser::_handle_map_flow()
 //-----------------------------------------------------------------------------
 bool Parser::_handle_map_blck()
 {
-    _c4dbgpf("handle_map_impl: node_id={}  level={}", m_state->node_id, m_state->level);
+    _c4dbgpf("handle_map_blck: node_id={}  level={}", m_state->node_id, m_state->level);
     csubstr rem = m_state->line_contents.rem;
 
     _RYML_CB_ASSERT(m_stack.m_callbacks, has_all(RMAP));
@@ -1587,16 +1587,19 @@ bool Parser::_handle_map_blck()
     }
 
     if(_handle_indentation())
+    {
+        _c4dbgp("indentation token");
         return true;
+    }
 
     if(has_any(RKEY))
     {
         _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RNXT));
         _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RVAL));
 
-        _c4dbgp("read scalar?");
+        _c4dbgp("RMAP|RKEY read scalar?");
         bool is_quoted;
-        if(_scan_scalar(&rem, &is_quoted)) // this also progresses the line
+        if(_scan_scalar_map_blck(&rem, &is_quoted)) // this also progresses the line
         {
             _c4dbgpf("it's a{} scalar", is_quoted ? " quoted" : "");
             if(has_all(QMRK|SSCL))
@@ -1705,9 +1708,10 @@ bool Parser::_handle_map_blck()
         _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RNXT));
         _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RKEY));
 
+        _c4dbgp("RMAP|RVAL read scalar?");
         csubstr s;
         bool is_quoted;
-        if(_scan_scalar(&s, &is_quoted)) // this also progresses the line
+        if(_scan_scalar_map_blck(&s, &is_quoted)) // this also progresses the line
         {
             _c4dbgpf("it's a{} scalar", is_quoted ? " quoted" : "");
 
@@ -1813,6 +1817,13 @@ bool Parser::_handle_map_blck()
         else if(rem.begins_with("--- ") || rem == "---" || rem.begins_with("---\t"))
         {
             _start_new_doc(rem);
+            return true;
+        }
+        else if(rem.begins_with("..."))
+        {
+            _c4dbgp("end current document");
+            _end_stream();
+            _line_progressed(3);
             return true;
         }
         else
@@ -2288,9 +2299,16 @@ csubstr Parser::_slurp_doc_scalar()
     return s;
 }
 
+
 //-----------------------------------------------------------------------------
-bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
+
+bool Parser::_scan_scalar_seq_blck(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
 {
+    _RYML_CB_ASSERT(m_stack.m_callbacks,  has_any(RSEQ));
+    _RYML_CB_ASSERT(m_stack.m_callbacks,  has_any(RVAL));
+    _RYML_CB_ASSERT(m_stack.m_callbacks,  ! has_any(RKEY));
+    _RYML_CB_ASSERT(m_stack.m_callbacks,  ! has_any(FLOW));
+
     csubstr s = m_state->line_contents.rem;
     if(s.len == 0)
         return false;
@@ -2324,129 +2342,126 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
     {
         return false;
     }
-    else if(has_any(RSEQ))
-    {
-        _RYML_CB_ASSERT(m_stack.m_callbacks,  ! has_all(RKEY));
-        if(has_all(RVAL))
-        {
-            _c4dbgp("RSEQ|RVAL");
-            if( ! _is_scalar_next__rseq_rval(s))
-                return false;
-            _RYML_WITH_TAB_TOKENS(else if(s.begins_with("-\t"))
-                return false;
-            )
-            if(s.ends_with(':'))
-            {
-                --s.len;
-            }
-            else
-            {
-                auto first = s.first_of_any(": " _RYML_WITH_TAB_TOKENS( , ":\t"), " #");
-                if(first)
-                    s.len = first.pos;
-            }
-            if(has_all(FLOW))
-            {
-                _c4dbgp("RSEQ|RVAL|EXPL");
-                s = s.left_of(s.first_of(",]"));
-            }
-            s = s.trimr(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \t", ' '));
-        }
-        else
-        {
-            _c4err("internal error");
-        }
-    }
-    else if(has_any(RMAP))
-    {
-        if( ! _is_scalar_next__rmap(s))
-            return false;
-        size_t colon_space = s.find(": ");
-        if(colon_space == npos)
-        {
-            _RYML_WITH_OR_WITHOUT_TAB_TOKENS(
-                // with tab tokens
-                colon_space = s.find(":\t");
-                if(colon_space == npos)
-                {
-                    _RYML_CB_ASSERT(m_stack.m_callbacks, s.len > 0);
-                    colon_space = s.find(':');
-                    if(colon_space != s.len-1)
-                        colon_space = npos;
-                }
-                ,
-                // without tab tokens
-                colon_space = s.find(':');
-                _RYML_CB_ASSERT(m_stack.m_callbacks, s.len > 0);
-                if(colon_space != s.len-1)
-                    colon_space = npos;
-            )
-        }
 
-        if(has_all(RKEY))
+    _c4dbgp("RSEQ|RVAL");
+    if( ! _is_scalar_next__rseq_rval(s))
+        return false;
+    _RYML_WITH_TAB_TOKENS(else if(s.begins_with("-\t"))
+        return false;
+    )
+
+    if(s.ends_with(':'))
+    {
+        --s.len;
+    }
+    else
+    {
+        auto first = s.first_of_any(": " _RYML_WITH_TAB_TOKENS( , ":\t"), " #");
+        if(first)
+            s.len = first.pos;
+    }
+    s = s.trimr(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \t", ' '));
+
+    if(s.empty())
+        return false;
+
+    m_state->scalar_col = m_state->line_contents.current_col(s);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, s.str >= m_state->line_contents.rem.str);
+    _line_progressed(static_cast<size_t>(s.str - m_state->line_contents.rem.str) + s.len);
+
+    if(_at_line_end() && s != '~')
+    {
+        _c4dbgpf("at line end. curr='{}'", s);
+        s = _extend_scanned_scalar(s);
+    }
+
+    _c4dbgpf("scalar was '{}'", s);
+
+    *scalar = s;
+    *quoted = false;
+    return true;
+}
+
+bool Parser::_scan_scalar_map_blck(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
+{
+    _c4dbgp("_scan_scalar_map_blck");
+    _RYML_CB_ASSERT(m_stack.m_callbacks,  has_any(RMAP));
+    _RYML_CB_ASSERT(m_stack.m_callbacks,  ! has_any(FLOW));
+    _RYML_CB_ASSERT(m_stack.m_callbacks,  has_any(RKEY|RVAL));
+
+    csubstr s = m_state->line_contents.rem;
+    #ifdef RYML_NO_COVERAGE__TO_BE_DELETED__OR_REFACTORED
+    if(s.len == 0)
+        return false;
+    #endif
+    s = s.trim(" \t");
+    if(s.len == 0)
+        return false;
+
+    if(s.begins_with('\''))
+    {
+        _c4dbgp("got a ': scanning single-quoted scalar");
+        m_state->scalar_col = m_state->line_contents.current_col(s);
+        *scalar = _scan_squot_scalar();
+        *quoted = true;
+        return true;
+    }
+    else if(s.begins_with('"'))
+    {
+        _c4dbgp("got a \": scanning double-quoted scalar");
+        m_state->scalar_col = m_state->line_contents.current_col(s);
+        *scalar = _scan_dquot_scalar();
+        *quoted = true;
+        return true;
+    }
+    else if(s.begins_with('|') || s.begins_with('>'))
+    {
+        *scalar = _scan_block();
+        *quoted = true;
+        return true;
+    }
+    else if(has_any(RTOP) && _is_doc_sep(s))
+    {
+        return false;
+    }
+
+    if( ! _is_scalar_next__rmap(s))
+        return false;
+
+    size_t colon_token = s.find(": ");
+    if(colon_token == npos)
+    {
+        _RYML_WITH_OR_WITHOUT_TAB_TOKENS(
+            // with tab tokens
+            colon_token = s.find(":\t");
+            if(colon_token == npos)
+            {
+                _RYML_CB_ASSERT(m_stack.m_callbacks, s.len > 0);
+                colon_token = s.find(':');
+                if(colon_token != s.len-1)
+                    colon_token = npos;
+            }
+            ,
+            // without tab tokens
+            colon_token = s.find(':');
+            _RYML_CB_ASSERT(m_stack.m_callbacks, s.len > 0);
+            if(colon_token != s.len-1)
+                colon_token = npos;
+        )
+    }
+
+    if(has_all(RKEY))
+    {
+        _RYML_CB_ASSERT(m_stack.m_callbacks, !s.begins_with(' '));
+        if(has_any(QMRK))
         {
-            _RYML_CB_ASSERT(m_stack.m_callbacks, !s.begins_with(' '));
-            if(has_any(QMRK))
-            {
-                _c4dbgp("RMAP|RKEY|CPLX");
-                _RYML_CB_ASSERT(m_stack.m_callbacks, has_any(RMAP));
-                if(s.begins_with("? ") || s == '?')
-                    return false;
-                s = s.left_of(colon_space);
-                s = s.left_of(s.first_of("#"));
-                if(has_any(FLOW))
-                    s = s.left_of(s.first_of(':'));
-                s = s.trimr(" \t");
-                if(s.begins_with("---"))
-                    return false;
-                else if(s.begins_with("..."))
-                    return false;
-            }
-            else
-            {
-                _c4dbgp("RMAP|RKEY");
-                _RYML_CB_CHECK(m_stack.m_callbacks, !s.begins_with('{'));
-                if(s.begins_with("? ") || s == '?')
-                    return false;
-                s = s.left_of(colon_space);
-                s = s.trimr(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \t", ' '));
-                if(has_any(FLOW))
-                {
-                    _c4dbgpf("RMAP|RKEY|EXPL: '{}'", s);
-                    s = s.left_of(s.first_of(",}"));
-                    if(s.ends_with(':'))
-                        s = s.offs(0, 1);
-                }
-                else if(s.begins_with("---"))
-                {
-                    return false;
-                }
-                else if(s.begins_with("..."))
-                {
-                    return false;
-                }
-            }
-        }
-        else if(has_all(RVAL))
-        {
-            _c4dbgp("RMAP|RVAL");
-            _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(QMRK));
-            if( ! _is_scalar_next__rmap_val(s))
+            _c4dbgp("RMAP|RKEY|CPLX");
+            _RYML_CB_ASSERT(m_stack.m_callbacks, has_any(RMAP));
+            if(s.begins_with("? ") || s == '?')
                 return false;
-            _RYML_WITH_TAB_TOKENS(else if(s.begins_with("-\t"))
-                return false;
-            )
-            s = s.left_of(s.find(" #")); // is there a comment?
-            s = s.left_of(s.find("\t#")); // is there a comment?
-            if(has_any(FLOW))
-            {
-                _c4dbgp("RMAP|RVAL|EXPL");
-                if(has_none(RSEQIMAP))
-                    s = s.left_of(s.first_of(",}"));
-                else
-                    s = s.left_of(s.first_of(",]"));
-            }
-            s = s.trim(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \t", ' '));
+            s = s.left_of(colon_token);
+            s = s.left_of(s.first_of("#"));
+            s = s.trimr(" \t");
             if(s.begins_with("---"))
                 return false;
             else if(s.begins_with("..."))
@@ -2454,37 +2469,42 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
         }
         else
         {
-            _c4err("parse error");
+            _c4dbgp("RMAP|RKEY");
+            _RYML_CB_CHECK(m_stack.m_callbacks, !s.begins_with('{'));
+            if(s.begins_with("? ") || s == '?')
+                return false;
+            s = s.left_of(colon_token);
+            s = s.trimr(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \t", ' '));
+            if(s.begins_with("---"))
+            {
+                return false;
+            }
+            else if(s.begins_with("..."))
+            {
+                return false;
+            }
         }
     }
-    else if(has_all(RUNK))
+    else if(has_all(RVAL))
     {
-        _c4dbgpf("RUNK '[{}]~~~{}~~~", s.len, s);
-        if( ! _is_scalar_next__runk(s))
-        {
-            _c4dbgp("RUNK: no scalar next");
+        _c4dbgp("RMAP|RVAL");
+        _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(QMRK));
+        if( ! _is_scalar_next__rmap_val(s))
             return false;
-        }
-        size_t pos = s.find(" #");
-        if(pos != npos)
-            s = s.left_of(pos);
-        pos = s.find(": ");
-        if(pos != npos)
-            s = s.left_of(pos);
-        else if(s.ends_with(':'))
-            s = s.left_of(s.len-1);
         _RYML_WITH_TAB_TOKENS(
-        else if((pos = s.find(":\t")) != npos) // TABS
-            s = s.left_of(pos);
+        else if(s.begins_with("-\t"))
+            return false;
         )
-        else
-            s = s.left_of(s.first_of(','));
-        s = s.trim(" \t");
-        _c4dbgpf("RUNK: scalar='{}'", s);
-    }
-    else
-    {
-        _c4err("not implemented");
+        _c4dbgp("RMAP|RVAL: scalar");
+        s = s.left_of(s.find(" #")); // is there a comment?
+        s = s.left_of(s.find("\t#")); // is there a comment?
+        s = s.trim(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \t", ' '));
+        if(s.begins_with("---"))
+            return false;
+        #ifdef RYML_NO_COVERAGE__TO_BE_DELETED__OR_REFACTORED
+        else if(s.begins_with("..."))
+            return false;
+        #endif
     }
 
     if(s.empty())
@@ -2506,6 +2526,285 @@ bool Parser::_scan_scalar(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
     *quoted = false;
     return true;
 }
+
+bool Parser::_scan_scalar_seq_flow(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
+{
+    _RYML_CB_ASSERT(m_stack.m_callbacks,  has_any(RSEQ));
+    _RYML_CB_ASSERT(m_stack.m_callbacks,  has_any(FLOW));
+    _RYML_CB_ASSERT(m_stack.m_callbacks,  has_any(RVAL));
+    _RYML_CB_ASSERT(m_stack.m_callbacks,  ! has_any(RKEY));
+
+    csubstr s = m_state->line_contents.rem;
+    if(s.len == 0)
+        return false;
+    s = s.trim(" \t");
+    if(s.len == 0)
+        return false;
+
+    if(s.begins_with('\''))
+    {
+        _c4dbgp("got a ': scanning single-quoted scalar");
+        m_state->scalar_col = m_state->line_contents.current_col(s);
+        *scalar = _scan_squot_scalar();
+        *quoted = true;
+        return true;
+    }
+    else if(s.begins_with('"'))
+    {
+        _c4dbgp("got a \": scanning double-quoted scalar");
+        m_state->scalar_col = m_state->line_contents.current_col(s);
+        *scalar = _scan_dquot_scalar();
+        *quoted = true;
+        return true;
+    }
+
+    if(has_all(RVAL))
+    {
+        _c4dbgp("RSEQ|RVAL");
+        if( ! _is_scalar_next__rseq_rval(s))
+            return false;
+        _RYML_WITH_TAB_TOKENS(else if(s.begins_with("-\t"))
+            return false;
+        )
+        _c4dbgp("RSEQ|RVAL|FLOW");
+        s = s.left_of(s.first_of(",]"));
+        if(s.ends_with(':'))
+        {
+            --s.len;
+        }
+        else
+        {
+            auto first = s.first_of_any(": " _RYML_WITH_TAB_TOKENS( , ":\t"), " #");
+            if(first)
+                s.len = first.pos;
+        }
+        s = s.trimr(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \t", ' '));
+    }
+
+    if(s.empty())
+        return false;
+
+    m_state->scalar_col = m_state->line_contents.current_col(s);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, s.str >= m_state->line_contents.rem.str);
+    _line_progressed(static_cast<size_t>(s.str - m_state->line_contents.rem.str) + s.len);
+
+    if(_at_line_end() && s != '~')
+    {
+        _c4dbgpf("at line end. curr='{}'", s);
+        s = _extend_scanned_scalar(s);
+    }
+
+    _c4dbgpf("scalar was '{}'", s);
+
+    *scalar = s;
+    *quoted = false;
+    return true;
+}
+
+bool Parser::_scan_scalar_map_flow(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
+{
+    _RYML_CB_ASSERT(m_stack.m_callbacks,  has_any(RMAP));
+    _RYML_CB_ASSERT(m_stack.m_callbacks,  has_any(FLOW));
+    _RYML_CB_ASSERT(m_stack.m_callbacks,  has_any(RKEY|RVAL));
+
+    csubstr s = m_state->line_contents.rem;
+    if(s.len == 0)
+        return false;
+    s = s.trim(" \t");
+    if(s.len == 0)
+        return false;
+
+    if(s.begins_with('\''))
+    {
+        _c4dbgp("got a ': scanning single-quoted scalar");
+        m_state->scalar_col = m_state->line_contents.current_col(s);
+        *scalar = _scan_squot_scalar();
+        *quoted = true;
+        return true;
+    }
+    else if(s.begins_with('"'))
+    {
+        _c4dbgp("got a \": scanning double-quoted scalar");
+        m_state->scalar_col = m_state->line_contents.current_col(s);
+        *scalar = _scan_dquot_scalar();
+        *quoted = true;
+        return true;
+    }
+
+    if( ! _is_scalar_next__rmap(s))
+        return false;
+
+    if(has_all(RKEY))
+    {
+        _RYML_CB_ASSERT(m_stack.m_callbacks, !s.begins_with(' '));
+        size_t colon_token = s.find(": ");
+        if(colon_token == npos)
+        {
+            _RYML_WITH_OR_WITHOUT_TAB_TOKENS(
+                // with tab tokens
+                colon_token = s.find(":\t");
+                if(colon_token == npos)
+                {
+                    _RYML_CB_ASSERT(m_stack.m_callbacks, s.len > 0);
+                    colon_token = s.find(':');
+                    if(colon_token != s.len-1)
+                        colon_token = npos;
+                }
+                ,
+                // without tab tokens
+                colon_token = s.find(':');
+                _RYML_CB_ASSERT(m_stack.m_callbacks, s.len > 0);
+                if(colon_token != s.len-1)
+                    colon_token = npos;
+            )
+        }
+        if(s.begins_with("? ") || s == '?')
+            return false;
+        if(has_any(QMRK))
+        {
+            _c4dbgp("RMAP|RKEY|CPLX");
+            _RYML_CB_ASSERT(m_stack.m_callbacks, has_any(RMAP));
+            s = s.left_of(colon_token);
+            s = s.left_of(s.first_of("#"));
+            s = s.left_of(s.first_of(':'));
+            s = s.trimr(" \t");
+            if(s.begins_with("---"))
+                return false;
+            else if(s.begins_with("..."))
+                return false;
+        }
+        else
+        {
+            _RYML_CB_CHECK(m_stack.m_callbacks, !s.begins_with('{'));
+            _c4dbgp("RMAP|RKEY");
+            s = s.left_of(colon_token);
+            s = s.trimr(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \t", ' '));
+            _c4dbgpf("RMAP|RKEY|FLOW: '{}'", s);
+            s = s.left_of(s.first_of(",}"));
+            if(s.ends_with(':'))
+                --s.len;
+        }
+    }
+    else if(has_all(RVAL))
+    {
+        _c4dbgp("RMAP|RVAL");
+        _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(QMRK));
+        if( ! _is_scalar_next__rmap_val(s))
+            return false;
+        _RYML_WITH_TAB_TOKENS(else if(s.begins_with("-\t"))
+            return false;
+        )
+        _c4dbgp("RMAP|RVAL|FLOW");
+        if(has_none(RSEQIMAP))
+            s = s.left_of(s.first_of(",}"));
+        else
+            s = s.left_of(s.first_of(",]"));
+        s = s.left_of(s.find(" #")); // is there a comment?
+        s = s.left_of(s.find("\t#")); // is there a comment?
+        s = s.trim(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \t", ' '));
+    }
+
+    if(s.empty())
+        return false;
+
+    m_state->scalar_col = m_state->line_contents.current_col(s);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, s.str >= m_state->line_contents.rem.str);
+    _line_progressed(static_cast<size_t>(s.str - m_state->line_contents.rem.str) + s.len);
+
+    if(_at_line_end() && s != '~')
+    {
+        _c4dbgpf("at line end. curr='{}'", s);
+        s = _extend_scanned_scalar(s);
+    }
+
+    _c4dbgpf("scalar was '{}'", s);
+
+    *scalar = s;
+    *quoted = false;
+    return true;
+}
+
+bool Parser::_scan_scalar_unk(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
+{
+    _RYML_CB_ASSERT(m_stack.m_callbacks,  has_any(RUNK));
+
+    csubstr s = m_state->line_contents.rem;
+    if(s.len == 0)
+        return false;
+    s = s.trim(" \t");
+    if(s.len == 0)
+        return false;
+
+    if(s.begins_with('\''))
+    {
+        _c4dbgp("got a ': scanning single-quoted scalar");
+        m_state->scalar_col = m_state->line_contents.current_col(s);
+        *scalar = _scan_squot_scalar();
+        *quoted = true;
+        return true;
+    }
+    else if(s.begins_with('"'))
+    {
+        _c4dbgp("got a \": scanning double-quoted scalar");
+        m_state->scalar_col = m_state->line_contents.current_col(s);
+        *scalar = _scan_dquot_scalar();
+        *quoted = true;
+        return true;
+    }
+    else if(s.begins_with('|') || s.begins_with('>'))
+    {
+        *scalar = _scan_block();
+        *quoted = true;
+        return true;
+    }
+    else if(has_any(RTOP) && _is_doc_sep(s))
+    {
+        return false;
+    }
+
+    _c4dbgpf("RUNK '[{}]~~~{}~~~", s.len, s);
+    if( ! _is_scalar_next__runk(s))
+    {
+        _c4dbgp("RUNK: no scalar next");
+        return false;
+    }
+    size_t pos = s.find(" #");
+    if(pos != npos)
+        s = s.left_of(pos);
+    pos = s.find(": ");
+    if(pos != npos)
+        s = s.left_of(pos);
+    else if(s.ends_with(':'))
+        s = s.left_of(s.len-1);
+    _RYML_WITH_TAB_TOKENS(
+    else if((pos = s.find(":\t")) != npos) // TABS
+        s = s.left_of(pos);
+    )
+    else
+        s = s.left_of(s.first_of(','));
+    s = s.trim(" \t");
+    _c4dbgpf("RUNK: scalar='{}'", s);
+
+    if(s.empty())
+        return false;
+
+    m_state->scalar_col = m_state->line_contents.current_col(s);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, s.str >= m_state->line_contents.rem.str);
+    _line_progressed(static_cast<size_t>(s.str - m_state->line_contents.rem.str) + s.len);
+
+    if(_at_line_end() && s != '~')
+    {
+        _c4dbgpf("at line end. curr='{}'", s);
+        s = _extend_scanned_scalar(s);
+    }
+
+    _c4dbgpf("scalar was '{}'", s);
+
+    *scalar = s;
+    *quoted = false;
+    return true;
+}
+
 
 //-----------------------------------------------------------------------------
 
@@ -2573,7 +2872,7 @@ substr Parser::_scan_plain_scalar_flow(csubstr currscalar, csubstr peeked_line)
             csubstr tpkl = peeked_line.triml(' ').trimr("\r\n");
             if(tpkl.begins_with(": ") || tpkl == ':')
             {
-                _c4dbgpf("rscalar[EXPL]: map value starts on the peeked line: '{}'", peeked_line);
+                _c4dbgpf("rscalar[FLOW]: map value starts on the peeked line: '{}'", peeked_line);
                 peeked_line = peeked_line.first(0);
                 break;
             }
@@ -2583,7 +2882,7 @@ substr Parser::_scan_plain_scalar_flow(csubstr currscalar, csubstr peeked_line)
                 if(colon_pos && colon_pos.pos < pos)
                 {
                     peeked_line = peeked_line.first(colon_pos.pos);
-                    _c4dbgpf("rscalar[EXPL]: found colon at {}. peeked='{}'", colon_pos.pos, peeked_line);
+                    _c4dbgpf("rscalar[FLOW]: found colon at {}. peeked='{}'", colon_pos.pos, peeked_line);
                     _RYML_CB_ASSERT(m_stack.m_callbacks, peeked_line.end() >= m_state->line_contents.rem.begin());
                     _line_progressed(static_cast<size_t>(peeked_line.end() - m_state->line_contents.rem.begin()));
                     break;
@@ -2592,13 +2891,13 @@ substr Parser::_scan_plain_scalar_flow(csubstr currscalar, csubstr peeked_line)
         }
         if(pos != npos)
         {
-            _c4dbgpf("rscalar[EXPL]: found special character '{}' at {}, stopping: '{}'", peeked_line[pos], pos, peeked_line.left_of(pos).trimr("\r\n"));
+            _c4dbgpf("rscalar[FLOW]: found special character '{}' at {}, stopping: '{}'", peeked_line[pos], pos, peeked_line.left_of(pos).trimr("\r\n"));
             peeked_line = peeked_line.left_of(pos);
             _RYML_CB_ASSERT(m_stack.m_callbacks, peeked_line.end() >= m_state->line_contents.rem.begin());
             _line_progressed(static_cast<size_t>(peeked_line.end() - m_state->line_contents.rem.begin()));
             break;
         }
-        _c4dbgpf("rscalar[EXPL]: append another line, full: '{}'", peeked_line.trimr("\r\n"));
+        _c4dbgpf("rscalar[FLOW]: append another line, full: '{}'", peeked_line.trimr("\r\n"));
         if(!first)
         {
             RYML_CHECK(_advance_to_peeked());
@@ -3584,7 +3883,8 @@ void Parser::_move_scalar_from_top()
 }
 
 //-----------------------------------------------------------------------------
-/** @todo this function is a monster and needs love. */
+/** @todo this function is a monster and needs love. Likely, it needs
+ * to be split like _scan_scalar_*() */
 bool Parser::_handle_indentation()
 {
     _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(FLOW));
@@ -3605,37 +3905,27 @@ bool Parser::_handle_indentation()
     _c4dbgpf("indentation? ind={} indref={}", ind, m_state->indref);
     if(ind == m_state->indref)
     {
-        if(has_all(SSCL|RVAL) && ! rem.sub(ind).begins_with('-'))
+        _c4dbgpf("same indentation: {}", ind);
+        if(!rem.sub(ind).begins_with('-'))
         {
-            if(has_all(RMAP))
+            if(has_all(SSCL|RVAL))
             {
-                _append_key_val_null(rem.str + ind - 1);
-                addrem_flags(RKEY, RVAL);
+                if(has_all(RMAP))
+                {
+                    _c4dbgp("add with null val");
+                    _append_key_val_null(rem.str + ind - 1);
+                    addrem_flags(RKEY, RVAL);
+                }
             }
-            #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
-            else if(has_all(RSEQ))
+            else if(has_all(RSEQ|RNXT))
             {
-                _append_val(_consume_scalar());
-                addrem_flags(RNXT, RVAL);
+                if(m_stack.size() > 2) // do not pop to root level
+                {
+                    _c4dbgp("end the indentless seq");
+                    _pop_level();
+                    return true;
+                }
             }
-            else
-            {
-                _c4err("internal error");
-            }
-            #endif
-        }
-        else if(has_all(RSEQ|RNXT) && ! rem.sub(ind).begins_with('-'))
-        {
-            if(m_stack.size() > 2) // do not pop to root level
-            {
-                _c4dbgp("end the indentless seq");
-                _pop_level();
-                return true;
-            }
-        }
-        else
-        {
-            _c4dbgpf("same indentation ({}) -- nothing to see here", ind);
         }
         _line_progressed(ind);
         return ind > 0;

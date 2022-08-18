@@ -102,7 +102,7 @@ set(RYML_SAJSON_INC_DIR ${sajson_dir}/include)
 
 # -----------------------------------------------------------------------------
 
-function(ryml_add_bm_exe name)
+function(ryml_add_bm_comparison_exe name)
     c4_add_executable(ryml-bm-${name}
         SOURCES bm_common.hpp ${ARGN}
         LIBS ryml yaml yaml-cpp benchmark jsoncpp_static nlohmann_json c4fs
@@ -119,10 +119,11 @@ function(ryml_add_bm_exe name)
     _c4_set_target_folder(ryml-bm-${name}-all bm/run)
 endfunction()
 
-ryml_add_bm_exe(parse bm_parse.cpp)
-ryml_add_bm_exe(emit bm_emit.cpp)
+ryml_add_bm_comparison_exe(parse bm_parse.cpp)
+ryml_add_bm_comparison_exe(emit bm_emit.cpp)
 
-function(ryml_add_bm_case target name case_file)
+
+function(ryml_add_bm_comparison_case target name case_file)
     c4_dbg("adding benchmark case: ${case_file}")
     get_filename_component(case "${case_file}" NAME_WE) # case identifier
     get_filename_component(ext "${case_file}" EXT) # prevent json readers from reading yml data
@@ -135,7 +136,9 @@ function(ryml_add_bm_case target name case_file)
     add_dependencies(ryml-bm-${name}-all ryml-bm-${name}-${case})
 endfunction()
 
+
 set(RYML_BM_CASE_MANIFESTS "" CACHE STRING "additional benchmark case manifests")
+
 foreach(mnf ${RYML_BM_CASE_MANIFESTS} "${CMAKE_CURRENT_LIST_DIR}/cases/bm-cases.txt")
     if(NOT EXISTS "${mnf}")
         c4_err("benchmark manifest file not found: ${mnf}")
@@ -146,7 +149,7 @@ foreach(mnf ${RYML_BM_CASE_MANIFESTS} "${CMAKE_CURRENT_LIST_DIR}/cases/bm-cases.
         if(NOT EXISTS "${mnf_dir}/${case_file}")
             c4_err("benchmark case file not found: ${mnf_dir}/${case_file}")
         endif()
-        ryml_add_bm_case(ryml-bm-parse parse "${mnf_dir}/${case_file}")
-        ryml_add_bm_case(ryml-bm-emit emit "${mnf_dir}/${case_file}")
+        ryml_add_bm_comparison_case(ryml-bm-parse parse "${mnf_dir}/${case_file}")
+        ryml_add_bm_comparison_case(ryml-bm-emit emit "${mnf_dir}/${case_file}")
     endforeach()
 endforeach()
