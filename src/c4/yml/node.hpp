@@ -459,16 +459,20 @@ public:
     template<class U=Impl>
     C4_ALWAYS_INLINE C4_PURE auto begin() noexcept -> _C4_IF_MUTABLE(iterator) { _C4RV(); return iterator(tree__, tree__->first_child(id__)); }
     C4_ALWAYS_INLINE C4_PURE const_iterator begin() const noexcept { _C4RV(); return const_iterator(tree_, tree_->first_child(id_)); }
+    C4_ALWAYS_INLINE C4_PURE const_iterator cbegin() const noexcept { _C4RV(); return const_iterator(tree_, tree_->first_child(id_)); }
 
     template<class U=Impl>
     C4_ALWAYS_INLINE C4_PURE auto end() noexcept -> _C4_IF_MUTABLE(iterator) { _C4RV(); return iterator(tree__, NONE); }
     C4_ALWAYS_INLINE C4_PURE const_iterator end() const noexcept { _C4RV(); return const_iterator(tree_, NONE); }
+    C4_ALWAYS_INLINE C4_PURE const_iterator cend() const noexcept { _C4RV(); return const_iterator(tree_, tree_->first_child(id_)); }
 
     /** get an iterable view over children */
     template<class U=Impl>
     C4_ALWAYS_INLINE C4_PURE auto children() noexcept -> _C4_IF_MUTABLE(children_view) { _C4RV(); return children_view(begin(), end()); }
     /** get an iterable view over children */
     C4_ALWAYS_INLINE C4_PURE const_children_view children() const noexcept { _C4RV(); return const_children_view(begin(), end()); }
+    /** get an iterable view over children */
+    C4_ALWAYS_INLINE C4_PURE const_children_view cchildren() const noexcept { _C4RV(); return const_children_view(begin(), end()); }
 
     /** get an iterable view over all siblings (including the calling node) */
     template<class U=Impl>
@@ -491,6 +495,8 @@ public:
             :
             const_children_view(end(), end());
     }
+    /** get an iterable view over all siblings (including the calling node) */
+    C4_ALWAYS_INLINE C4_PURE const_children_view csiblings() const noexcept { return siblings(); }
 
     /** visit every child node calling fn(node) */
     template<class Visitor>
