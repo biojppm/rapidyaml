@@ -26,6 +26,7 @@
   // ... to:
   template<class T> bool read(ryml::ConstNodeRef const& n, T *var);
   ```
+- The initial version of `ConstNodeRef/NodeRef` had the problem that const methods in the CRTP base did not participate in overload resolution ([#294](https://github.com/biojppm/rapidyaml/issues/294)), preventing calls from `const NodeRef` objects. This was fixed by moving non-const methods to the CRTP base and disabling them with SFINAE ([PR#295](https://github.com/biojppm/rapidyaml/pull/295)).
 
 
 ### Fixes
