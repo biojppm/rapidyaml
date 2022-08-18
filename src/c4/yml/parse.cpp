@@ -1565,7 +1565,7 @@ bool Parser::_handle_map_flow()
 //-----------------------------------------------------------------------------
 bool Parser::_handle_map_blck()
 {
-    _c4dbgpf("handle_map_impl: node_id={}  level={}", m_state->node_id, m_state->level);
+    _c4dbgpf("handle_map_blck: node_id={}  level={}", m_state->node_id, m_state->level);
     csubstr rem = m_state->line_contents.rem;
 
     _RYML_CB_ASSERT(m_stack.m_callbacks, has_all(RMAP));
@@ -1587,14 +1587,17 @@ bool Parser::_handle_map_blck()
     }
 
     if(_handle_indentation())
+    {
+        _c4dbgp("indentation token");
         return true;
+    }
 
     if(has_any(RKEY))
     {
         _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RNXT));
         _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RVAL));
 
-        _c4dbgp("read scalar?");
+        _c4dbgp("RMAP|RKEY read scalar?");
         bool is_quoted;
         if(_scan_scalar_map_blck(&rem, &is_quoted)) // this also progresses the line
         {
@@ -1705,6 +1708,7 @@ bool Parser::_handle_map_blck()
         _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RNXT));
         _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RKEY));
 
+        _c4dbgp("RMAP|RVAL read scalar?");
         csubstr s;
         bool is_quoted;
         if(_scan_scalar_map_blck(&s, &is_quoted)) // this also progresses the line
@@ -1813,6 +1817,13 @@ bool Parser::_handle_map_blck()
         else if(rem.begins_with("--- ") || rem == "---" || rem.begins_with("---\t"))
         {
             _start_new_doc(rem);
+            return true;
+        }
+        else if(rem.begins_with("..."))
+        {
+            _c4dbgp("end current document");
+            _end_stream();
+            _line_progressed(3);
             return true;
         }
         else
@@ -2373,12 +2384,16 @@ bool Parser::_scan_scalar_seq_blck(csubstr *C4_RESTRICT scalar, bool *C4_RESTRIC
 
 bool Parser::_scan_scalar_map_blck(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quoted)
 {
+    _c4dbgp("_scan_scalar_map_blck");
     _RYML_CB_ASSERT(m_stack.m_callbacks,  has_any(RMAP));
     _RYML_CB_ASSERT(m_stack.m_callbacks,  ! has_any(FLOW));
+    _RYML_CB_ASSERT(m_stack.m_callbacks,  has_any(RKEY|RVAL));
 
     csubstr s = m_state->line_contents.rem;
+    #ifdef RYML_NO_COVERAGE__TO_BE_DELETED__OR_REFACTORED
     if(s.len == 0)
         return false;
+    #endif
     s = s.trim(" \t");
     if(s.len == 0)
         return false;
@@ -2412,6 +2427,7 @@ bool Parser::_scan_scalar_map_blck(csubstr *C4_RESTRICT scalar, bool *C4_RESTRIC
 
     if( ! _is_scalar_next__rmap(s))
         return false;
+
     size_t colon_token = s.find(": ");
     if(colon_token == npos)
     {
@@ -2479,17 +2495,16 @@ bool Parser::_scan_scalar_map_blck(csubstr *C4_RESTRICT scalar, bool *C4_RESTRIC
         else if(s.begins_with("-\t"))
             return false;
         )
+        _c4dbgp("RMAP|RVAL: scalar");
         s = s.left_of(s.find(" #")); // is there a comment?
         s = s.left_of(s.find("\t#")); // is there a comment?
         s = s.trim(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \t", ' '));
         if(s.begins_with("---"))
             return false;
+        #ifdef RYML_NO_COVERAGE__TO_BE_DELETED__OR_REFACTORED
         else if(s.begins_with("..."))
             return false;
-    }
-    else
-    {
-        _c4err("parse error");
+        #endif
     }
 
     if(s.empty())
@@ -2541,16 +2556,6 @@ bool Parser::_scan_scalar_seq_flow(csubstr *C4_RESTRICT scalar, bool *C4_RESTRIC
         *scalar = _scan_dquot_scalar();
         *quoted = true;
         return true;
-    }
-    else if(s.begins_with('|') || s.begins_with('>'))
-    {
-        *scalar = _scan_block();
-        *quoted = true;
-        return true;
-    }
-    else if(has_any(RTOP) && _is_doc_sep(s))
-    {
-        return false;
     }
 
     if(has_all(RVAL))
@@ -2625,16 +2630,6 @@ bool Parser::_scan_scalar_map_flow(csubstr *C4_RESTRICT scalar, bool *C4_RESTRIC
         *quoted = true;
         return true;
     }
-    else if(s.begins_with('|') || s.begins_with('>'))
-    {
-        *scalar = _scan_block();
-        *quoted = true;
-        return true;
-    }
-    else if(has_any(RTOP) && _is_doc_sep(s))
-    {
-        return false;
-    }
 
     if( ! _is_scalar_next__rmap(s))
         return false;
@@ -2688,14 +2683,6 @@ bool Parser::_scan_scalar_map_flow(csubstr *C4_RESTRICT scalar, bool *C4_RESTRIC
             s = s.left_of(s.first_of(",}"));
             if(s.ends_with(':'))
                 --s.len;
-            else if(s.begins_with("---"))
-            {
-                return false;
-            }
-            else if(s.begins_with("..."))
-            {
-                return false;
-            }
         }
     }
     else if(has_all(RVAL))
@@ -2715,14 +2702,6 @@ bool Parser::_scan_scalar_map_flow(csubstr *C4_RESTRICT scalar, bool *C4_RESTRIC
         s = s.left_of(s.find(" #")); // is there a comment?
         s = s.left_of(s.find("\t#")); // is there a comment?
         s = s.trim(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \t", ' '));
-        if(s.begins_with("---"))
-            return false;
-        else if(s.begins_with("..."))
-            return false;
-    }
-    else
-    {
-        _c4err("parse error");
     }
 
     if(s.empty())
@@ -3904,7 +3883,8 @@ void Parser::_move_scalar_from_top()
 }
 
 //-----------------------------------------------------------------------------
-/** @todo this function is a monster and needs love. */
+/** @todo this function is a monster and needs love. Likely, it needs
+ * to be split like _scan_scalar_*() */
 bool Parser::_handle_indentation()
 {
     _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(FLOW));
@@ -3925,37 +3905,27 @@ bool Parser::_handle_indentation()
     _c4dbgpf("indentation? ind={} indref={}", ind, m_state->indref);
     if(ind == m_state->indref)
     {
-        if(has_all(SSCL|RVAL) && ! rem.sub(ind).begins_with('-'))
+        _c4dbgpf("same indentation: {}", ind);
+        if(!rem.sub(ind).begins_with('-'))
         {
-            if(has_all(RMAP))
+            if(has_all(SSCL|RVAL))
             {
-                _append_key_val_null(rem.str + ind - 1);
-                addrem_flags(RKEY, RVAL);
+                if(has_all(RMAP))
+                {
+                    _c4dbgp("add with null val");
+                    _append_key_val_null(rem.str + ind - 1);
+                    addrem_flags(RKEY, RVAL);
+                }
             }
-            #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
-            else if(has_all(RSEQ))
+            else if(has_all(RSEQ|RNXT))
             {
-                _append_val(_consume_scalar());
-                addrem_flags(RNXT, RVAL);
+                if(m_stack.size() > 2) // do not pop to root level
+                {
+                    _c4dbgp("end the indentless seq");
+                    _pop_level();
+                    return true;
+                }
             }
-            else
-            {
-                _c4err("internal error");
-            }
-            #endif
-        }
-        else if(has_all(RSEQ|RNXT) && ! rem.sub(ind).begins_with('-'))
-        {
-            if(m_stack.size() > 2) // do not pop to root level
-            {
-                _c4dbgp("end the indentless seq");
-                _pop_level();
-                return true;
-            }
-        }
-        else
-        {
-            _c4dbgpf("same indentation ({}) -- nothing to see here", ind);
         }
         _line_progressed(ind);
         return ind > 0;

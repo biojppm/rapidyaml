@@ -24,10 +24,17 @@ foo: bar
 foo: bar
 ---
 foo: bar
+---
+foo:
+...
+foo:
+---
 )");
     EXPECT_EQ(tree.docref(0)["foo"].val(), "bar");
     EXPECT_EQ(tree.docref(1)["foo"].val(), "bar");
     EXPECT_EQ(tree.docref(2)["foo"].val(), "bar");
+    EXPECT_EQ(tree.docref(3)["foo"].val(), "");
+    EXPECT_EQ(tree.docref(4)["foo"].val(), "");
 }
 
 TEST(simple_map, open_on_new_doc_with_space_before_colon)

@@ -70,8 +70,11 @@ R"(--- !!set
 ? bb
 ? cc
 )",
-N(STREAM, L{N(DOCMAP, TL("!!set", L{N(KEYVAL, "aa", /*"~"*/{}), N(KEYVAL, "bb", /*"~"*/{}), N(KEYVAL, "cc", /*"~"*/{})}))})
-);
+N(STREAM, L{N(DOCMAP, TL("!!set", L{
+  N(KEYVAL, "aa", /*"~"*/{}),
+  N(KEYVAL, "bb", /*"~"*/{}),
+  N(KEYVAL, "cc", /*"~"*/{})})
+)}));
 
 ADD_CASE_TO_GROUP("sets 2XXW",
 R"(

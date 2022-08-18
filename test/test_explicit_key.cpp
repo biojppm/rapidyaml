@@ -134,6 +134,7 @@ R"(
 ? a
 ? b
 ?
+...
 )",
 N(STREAM, L{
         N(DOCMAP, L{
