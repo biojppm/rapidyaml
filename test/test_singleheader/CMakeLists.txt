@@ -4,7 +4,7 @@ project(ryml
     HOMEPAGE_URL "https://github.com/biojppm/rapidyaml"
     LANGUAGES CXX)
 include(../../ext/c4core/cmake/c4Project.cmake)
-c4_project(VERSION 0.4.1
+c4_project(VERSION 0.5.0
     AUTHOR "Joao Paulo Magalhaes <dev@jpmag.me>")
 
 # amalgamate ryml to get the single header
