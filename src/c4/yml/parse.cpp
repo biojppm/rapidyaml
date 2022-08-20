@@ -1048,7 +1048,6 @@ bool Parser::_handle_seq_blck()
         rem = _scan_comment();
         return true;
     }
-
     if(has_any(RNXT))
     {
         _RYML_CB_ASSERT(m_stack.m_callbacks, has_none(RVAL));
@@ -3908,22 +3907,34 @@ bool Parser::_handle_indentation()
         _c4dbgpf("same indentation: {}", ind);
         if(!rem.sub(ind).begins_with('-'))
         {
-            if(has_all(SSCL|RVAL))
+            _c4dbgp("does not begin with -");
+            if(has_any(RMAP))
             {
-                if(has_all(RMAP))
+                if(has_all(SSCL|RVAL))
                 {
                     _c4dbgp("add with null val");
                     _append_key_val_null(rem.str + ind - 1);
                     addrem_flags(RKEY, RVAL);
                 }
             }
-            else if(has_all(RSEQ|RNXT))
+            else if(has_any(RSEQ))
             {
                 if(m_stack.size() > 2) // do not pop to root level
                 {
-                    _c4dbgp("end the indentless seq");
-                    _pop_level();
-                    return true;
+                    if(has_any(RNXT))
+                    {
+                        _c4dbgp("end the indentless seq");
+                        _pop_level();
+                        return true;
+                    }
+                    else if(has_any(RVAL))
+                    {
+                        _c4dbgp("add with null val");
+                        _append_val_null(rem.str);
+                        _c4dbgp("end the indentless seq");
+                        _pop_level();
+                        return true;
+                    }
                 }
             }
         }
