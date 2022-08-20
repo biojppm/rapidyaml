@@ -38,13 +38,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {std: 11, cxx: em++, emver: 2.0.34, bt: Debug  , os: ubuntu-latest, bitlinks: static32}
+          #- {std: 11, cxx: em++, emver: 2.0.34, bt: Debug  , os: ubuntu-latest, bitlinks: static32}
           - {std: 11, cxx: em++, emver: 2.0.34, bt: Release, os: ubuntu-latest, bitlinks: static32}
-          - {std: 20, cxx: em++, emver: 2.0.34, bt: Debug  , os: ubuntu-latest, bitlinks: static32}
+          #- {std: 20, cxx: em++, emver: 2.0.34, bt: Debug  , os: ubuntu-latest, bitlinks: static32}
           - {std: 20, cxx: em++, emver: 2.0.34, bt: Release, os: ubuntu-latest, bitlinks: static32}
-          - {std: 11, cxx: em++, emver: 3.0.0 , bt: Debug  , os: ubuntu-latest, bitlinks: static32}
+          #- {std: 11, cxx: em++, emver: 3.0.0 , bt: Debug  , os: ubuntu-latest, bitlinks: static32}
           - {std: 11, cxx: em++, emver: 3.0.0 , bt: Release, os: ubuntu-latest, bitlinks: static32}
-          - {std: 20, cxx: em++, emver: 3.0.0 , bt: Debug  , os: ubuntu-latest, bitlinks: static32}
+          #- {std: 20, cxx: em++, emver: 3.0.0 , bt: Debug  , os: ubuntu-latest, bitlinks: static32}
           - {std: 20, cxx: em++, emver: 3.0.0 , bt: Release, os: ubuntu-latest, bitlinks: static32}
     env:
       STD: "${{matrix.std}}"

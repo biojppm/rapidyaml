@@ -225,6 +225,7 @@ jobs:
     steps:
       # use fetch-depth to ensure all tags are fetched
       - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive, fetch-depth: 0}}
+      - {name: install ninja, uses: seanmiddleditch/gha-setup-ninja@master}
       - name: create wheel
         uses: joerick/cibuildwheel@v2.1.1
       - name: rename wheelhouse -> dist
