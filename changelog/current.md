@@ -71,6 +71,19 @@
   Tree tree2 = parse_in_arena(to_csubstr(s));
   EXPECT_EQ(tree2["s"].val(), tree["s"].val());
   ```
+- Fix [#274](https://github.com/biojppm/rapidyaml/issues/274) ([PR#296](https://github.com/biojppm/rapidyaml/pull/296)): Lists with unindented items and trailing empty values parse incorrectly:
+  ```yaml
+  foo:
+  - bar
+  -
+  baz: qux
+  ```
+  was parsed as
+  ```yaml
+  foo:
+  - bar
+  - baz: qux
+  ```
 - Fix [#280](https://github.com/biojppm/rapidyaml/issues/280) ([PR#281](https://github.com/biojppm/rapidyaml/pull/281)): deserialization of `std::vector<bool>` failed because its `operator[]` returns a `reference` instead of `value_type`.
 - Fix [#288](https://github.com/biojppm/rapidyaml/issues/288) ([PR#290](https://github.com/biojppm/rapidyaml/pull/290)): segfault on successive calls to `Tree::_grow_arena()`, caused by using the arena position instead of its length as starting point for the new arena capacity.
 - Deprecate `Tree::arena_pos()`: use `Tree::arena_size()` instead ([PR#290](https://github.com/biojppm/rapidyaml/pull/290)).
