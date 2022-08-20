@@ -27,10 +27,21 @@
   template<class T> bool read(ryml::ConstNodeRef const& n, T *var);
   ```
 - The initial version of `ConstNodeRef/NodeRef` had the problem that const methods in the CRTP base did not participate in overload resolution ([#294](https://github.com/biojppm/rapidyaml/issues/294)), preventing calls from `const NodeRef` objects. This was fixed by moving non-const methods to the CRTP base and disabling them with SFINAE ([PR#295](https://github.com/biojppm/rapidyaml/pull/295)).
-- Also added disambiguation iteration methods to both types: `.cbegin()`, `.cend()`, `.cchildren()`, `.csiblings()` ([PR#295](https://github.com/biojppm/rapidyaml/pull/295)).
+- Also added disambiguation iteration methods: `.cbegin()`, `.cend()`, `.cchildren()`, `.csiblings()` ([PR#295](https://github.com/biojppm/rapidyaml/pull/295)).
+
 
 ### Performance improvements
 
+- Improve performance of integer serialization and deserialization (in [c4core](https://github.com/biojppm/c4core)). Eg, on Linux/g++11.2, with integral types:
+  - `c4::to_chars()` can be expected to be roughly...
+    - ~40% to 2x faster than `std::to_chars()`
+    - ~10x-30x faster than `sprintf()`
+    - ~50x-100x faster than a naive `stringstream::operator<<()` followed by `stringstream::str()`
+  - `c4::from_chars()` can be expected to be roughly...
+    - ~10%-30% faster than `std::from_chars()`
+    - ~10x faster than `scanf()`
+    - ~30x-50x faster than a naive `stringstream::str()` followed by `stringstream::operator>>()`
+  For more details, see [the changelog for c4core 0.1.10](https://github.com/biojppm/c4core/releases/tag/v0.1.10).
 - Fix [#289](https://github.com/biojppm/rapidyaml/issues/289) - parsing of flow-style sequences had quadratic complexity, causing long parse times in ultra long lines [PR#293](https://github.com/biojppm/rapidyaml/pull/293).
   - This was due to scanning for tokens like `: ` before scanning for `,` or `]`, which caused line-length scans on every scalar scan. Changing the order of the checks was enough to address the quadratic complexity, and the parse times for flow-style are now in line with block-style.
   - As part of this PR, a significant number of runtime branches was eliminated by separating `Parser::_scan_scalar()` into several different `{seq,map}x{block,flow}` functions specific for each context. Expect some improvement in parse times.
