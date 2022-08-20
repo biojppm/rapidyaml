@@ -1,7 +1,7 @@
 
-### API changes
+### Breaking changes
 
-- **BREAKING CHANGE**: make the node API const-correct ([PR#267](https://github.com/biojppm/rapidyaml/pull/267)): added `ConstNodeRef` to hold a constant reference to a node. As the name implies, a `ConstNodeRef` object cannot be used in any tree-mutating operation. It is also smaller than the existing `NodeRef` (and faster because it does not need to check its own validity on every access). As a result of this change, there are now some constraints when obtaining a ref from a tree, and existing code is likely to break in this type of situation:
+- Make the node API const-correct ([PR#267](https://github.com/biojppm/rapidyaml/pull/267)): added `ConstNodeRef` to hold a constant reference to a node. As the name implies, a `ConstNodeRef` object cannot be used in any tree-mutating operation. It is also smaller than the existing `NodeRef` (and faster because it does not need to check its own validity on every access). As a result of this change, there are now some constraints when obtaining a ref from a tree, and existing code is likely to break in this type of situation:
   ```c++
   const Tree const_tree = ...;
   NodeRef nr = const_tree.rootref(); // ERROR (was ok): cannot obtain a mutating NodeRef from a const Tree
@@ -36,6 +36,7 @@
   - As part of this PR, a significant number of runtime branches was eliminated by separating `Parser::_scan_scalar()` into several different `{seq,map}x{block,flow}` functions specific for each context. Expect some improvement in parse times.
   - Also, on Debug builds (or assertion-enabled builds) there was a paranoid assertion calling `Tree::has_child()` in `Tree::insert_child()` that caused quadratic behavior because the assertion had linear complexity. It was replaced with a somewhat equivalent O(1) assertion.
   - Now the byte throughput is independent of line size for styles and containers. This can be seen in the table below, which shows parse troughputs in MB/s of 1000 containers of different styles and sizes (flow containers are in a single line):
+
   | Container | Style | 10elms      | 100elms      | 1000elms      |
   |-----------|-------|-------------|--------------|---------------| 
   | 1000 Maps | block | 50.8MB/s    | 57.8MB/s     | 63.9MB/s      |
