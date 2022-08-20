@@ -37,10 +37,10 @@ jobs:
       matrix:
         include:
           # vs2017 is only availble in windows-2016
-          - {std: 11, cxx: vs2017, bt: Debug  , os: windows-2016, bitlinks: shared64 static32}
-          - {std: 11, cxx: vs2017, bt: Release, os: windows-2016, bitlinks: shared64 static32}
-          - {std: 14, cxx: vs2017, bt: Debug  , os: windows-2016, bitlinks: shared64 static32}
-          - {std: 14, cxx: vs2017, bt: Release, os: windows-2016, bitlinks: shared64 static32}
+          #- {std: 11, cxx: vs2017, bt: Debug  , os: windows-2016, bitlinks: shared64 static32}
+          #- {std: 11, cxx: vs2017, bt: Release, os: windows-2016, bitlinks: shared64 static32}
+          #- {std: 14, cxx: vs2017, bt: Debug  , os: windows-2016, bitlinks: shared64 static32}
+          #- {std: 14, cxx: vs2017, bt: Release, os: windows-2016, bitlinks: shared64 static32}
           #
           - {std: 11, cxx: vs2019, bt: Debug  , os: windows-2019, bitlinks: shared64 static32}
           - {std: 11, cxx: vs2019, bt: Release, os: windows-2019, bitlinks: shared64 static32}
