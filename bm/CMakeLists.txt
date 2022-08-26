@@ -1,5 +1,9 @@
 c4_setup_benchmarking()
 
+add_custom_target(ryml-bm-plot)
+c4_set_folder_remote_project_targets(bm/plot ryml-bm-plot)
+find_package(Python REQUIRED COMPONENTS Interpreter)
+
 # thirdparty libs that will be compared with ryml
 
 set(_ed ${CMAKE_CURRENT_BINARY_DIR}/subprojects) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)
@@ -132,8 +136,18 @@ function(ryml_add_bm_comparison_case target name case_file)
     endif()
     c4_add_target_benchmark(${target} ${case}
         FILTER "${filter_json}"
-        ARGS ${case_file})
+        ARGS ${case_file}
+        RESULTS_FILE results_file)
     add_dependencies(ryml-bm-${name}-all ryml-bm-${name}-${case})
+    _c4_set_target_folder(ryml-bm-${name}-${case} bm/run)
+    add_custom_target(ryml-bm-${name}-${case}-plot
+        #DEPENDS ${result_files}
+        COMMAND cmake -E echo "${Python_EXECUTABLE}"
+        COMMAND ${Python_EXECUTABLE} --version
+        COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/bm_plot_rapidyaml.py ${name} ${case} ${results_file}
+        )
+    _c4_set_target_folder(ryml-bm-${name}-${case}-plot bm/plot)
+    add_dependencies(ryml-bm-plot ryml-bm-${name}-${case}-plot)
 endfunction()
 
 
