@@ -149,6 +149,7 @@ foreach(mnf ${RYML_BM_CASE_MANIFESTS} "${CMAKE_CURRENT_LIST_DIR}/cases/bm-cases.
         if(NOT EXISTS "${mnf_dir}/${case_file}")
             c4_err("benchmark case file not found: ${mnf_dir}/${case_file}")
         endif()
+        c4_log("adding benchmark case: ${mnf_dir}/${case_file}")
         ryml_add_bm_comparison_case(ryml-bm-parse parse "${mnf_dir}/${case_file}")
         ryml_add_bm_comparison_case(ryml-bm-emit emit "${mnf_dir}/${case_file}")
     endforeach()
