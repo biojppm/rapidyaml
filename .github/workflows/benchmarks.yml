@@ -110,19 +110,23 @@ jobs:
       - name: shared64-configure---------------------------------------------------
         run: export CMAKE_FLAGS="-DPython_EXECUTABLE=$(which python)" && source .github/setenv.sh && c4_cfg_test shared64
       - {name: shared64-build, run: source .github/setenv.sh && c4_build_target shared64 ryml-bm-build}
-      - {name: shared64-run, run: source .github/setenv.sh && c4_run_target shared64 ryml-bm-run}
+      - {name: shared64-run, run: export NUM_JOBS_BUILD=1 && source .github/setenv.sh && c4_run_target shared64 ryml-bm-run}
+      - {name: shared64-plot, run: export NUM_JOBS_BUILD=1 && source .github/setenv.sh && c4_run_target shared64 ryml-bm-plot}
       - name: static64-configure---------------------------------------------------
         run: export CMAKE_FLAGS="-DPython_EXECUTABLE=$(which python)" && source .github/setenv.sh && c4_cfg_test static64
       - {name: static64-build, run: source .github/setenv.sh && c4_build_target static64 ryml-bm-build}
-      - {name: static64-run, run: source .github/setenv.sh && c4_run_target static64 ryml-bm-run}
+      - {name: static64-run, run: export NUM_JOBS_BUILD=1 && source .github/setenv.sh && c4_run_target static64 ryml-bm-run}
+      - {name: static64-plot, run: export NUM_JOBS_BUILD=1 && source .github/setenv.sh && c4_run_target static64 ryml-bm-plot}
       - name: static32-configure---------------------------------------------------
         run: export CMAKE_FLAGS="-DPython_EXECUTABLE=$(which python)" && source .github/setenv.sh && c4_cfg_test static32
       - {name: static32-build, run: source .github/setenv.sh && c4_build_target static32 ryml-bm-build}
-      - {name: static32-run, run: source .github/setenv.sh && c4_run_target static32 ryml-bm-run}
+      - {name: static32-run, run: export NUM_JOBS_BUILD=1 && source .github/setenv.sh && c4_run_target static32 ryml-bm-run}
+      - {name: static32-plot, run: export NUM_JOBS_BUILD=1 && source .github/setenv.sh && c4_run_target static32 ryml-bm-plot}
       - name: shared32-configure---------------------------------------------------
         run: export CMAKE_FLAGS="-DPython_EXECUTABLE=$(which python)" && source .github/setenv.sh && c4_cfg_test shared32
       - {name: shared32-build, run: source .github/setenv.sh && c4_build_target shared32 ryml-bm-build}
-      - {name: shared32-run, run: source .github/setenv.sh && c4_run_target shared32 ryml-bm-run}
+      - {name: shared32-run, run: export NUM_JOBS_BUILD=1 && source .github/setenv.sh && c4_run_target shared32 ryml-bm-run}
+      - {name: shared32-plot, run: export NUM_JOBS_BUILD=1 && source .github/setenv.sh && c4_run_target shared32 ryml-bm-plot}
       - name: gather benchmark results
         run: |
           set -x
@@ -131,7 +135,7 @@ jobs:
           echo SRC_VERSION=$SRC_VERSION
           desc=$SRC_TAG
           for bl in ${{matrix.bitlinks}} ; do
-            dst=$(echo benchmark_results/$desc/x86_64/${{matrix.cxx}}-${{matrix.bt}}-c++${{matrix.std}}-$bl | sed 's:++-:xx:g' | sed 's:+:x:g')
+            dst=$(echo ryml-benchmark_results/$desc/x86_64/${{matrix.cxx}}-${{matrix.bt}}-c++${{matrix.std}}-$bl | sed 's:++-:xx:g' | sed 's:+:x:g')
             mkdir -p $dst
             find build -name bm-results
             mv -vf build/$bl/bm/bm-results/* $dst/.
@@ -139,5 +143,5 @@ jobs:
       - name: upload benchmark result artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: benchmark_results
-          path: benchmark_results/
+          name: ryml-benchmark_results
+          path: ryml-benchmark_results/
