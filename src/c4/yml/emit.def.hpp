@@ -878,14 +878,8 @@ void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
 template<class Writer>
 void Emitter<Writer>::_write_scalar_json(csubstr s, bool as_key, bool was_quoted)
 {
-    if(was_quoted)
-    {
-        this->Writer::_do_write('"');
-        this->Writer::_do_write(s);
-        this->Writer::_do_write('"');
-    }
     // json only allows strings as keys
-    else if(!as_key && (s.is_number() || s == "true" || s == "null" || s == "false"))
+    if(!as_key && !was_quoted && (s.is_number() || s == "true" || s == "null" || s == "false"))
     {
         this->Writer::_do_write(s);
     }
@@ -895,15 +889,43 @@ void Emitter<Writer>::_write_scalar_json(csubstr s, bool as_key, bool was_quoted
         this->Writer::_do_write('"');
         for(size_t i = 0; i < s.len; ++i)
         {
-            if(s[i] == '"')
+            switch(s.str[i])
             {
-                if(i > 0)
-                {
-                    csubstr sub = s.range(pos, i);
-                    this->Writer::_do_write(sub);
-                }
-                pos = i + 1;
-                this->Writer::_do_write("\\\"");
+            case '"':
+              this->Writer ::_do_write(s.range(pos, i));
+              this->Writer ::_do_write("\\\"");
+              pos = i + 1;
+              break;
+            case '\n':
+              this->Writer ::_do_write(s.range(pos, i));
+              this->Writer ::_do_write("\\n");
+              pos = i + 1;
+              break;
+            case '\t':
+              this->Writer ::_do_write(s.range(pos, i));
+              this->Writer ::_do_write("\\t");
+              pos = i + 1;
+              break;
+            case '\\':
+              this->Writer ::_do_write(s.range(pos, i));
+              this->Writer ::_do_write("\\\\");
+              pos = i + 1;
+              break;
+            case '\r':
+              this->Writer ::_do_write(s.range(pos, i));
+              this->Writer ::_do_write("\\r");
+              pos = i + 1;
+              break;
+            case '\b':
+              this->Writer ::_do_write(s.range(pos, i));
+              this->Writer ::_do_write("\\b");
+              pos = i + 1;
+              break;
+            case '\f':
+              this->Writer ::_do_write(s.range(pos, i));
+              this->Writer ::_do_write("\\f");
+              pos = i + 1;
+              break;
             }
         }
         if(pos < s.len)
