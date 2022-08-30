@@ -1211,23 +1211,35 @@ void sample_substr()
         CHECK(ryml::csubstr("-1234)asdkjh").first_real_span() == "-1234");
         CHECK(ryml::csubstr("-1234gasdkjh").first_real_span() == "");
         CHECK(ryml::csubstr("1.234 asdkjh").first_real_span() == "1.234");
-        CHECK(ryml::csubstr("1.234e5 asdkjh").first_real_span() == "1.234e5");
         CHECK(ryml::csubstr("1.234e+5 asdkjh").first_real_span() == "1.234e+5");
         CHECK(ryml::csubstr("1.234e-5 asdkjh").first_real_span() == "1.234e-5");
         CHECK(ryml::csubstr("1.234 asdkjh").first_real_span() == "1.234");
-        CHECK(ryml::csubstr("1.234e5 asdkjh").first_real_span() == "1.234e5");
         CHECK(ryml::csubstr("1.234e+5 asdkjh").first_real_span() == "1.234e+5");
         CHECK(ryml::csubstr("1.234e-5 asdkjh").first_real_span() == "1.234e-5");
         CHECK(ryml::csubstr("-1.234 asdkjh").first_real_span() == "-1.234");
-        CHECK(ryml::csubstr("-1.234e5 asdkjh").first_real_span() == "-1.234e5");
         CHECK(ryml::csubstr("-1.234e+5 asdkjh").first_real_span() == "-1.234e+5");
         CHECK(ryml::csubstr("-1.234e-5 asdkjh").first_real_span() == "-1.234e-5");
+        // hexadecimal real numbers
         CHECK(ryml::csubstr("0x1.e8480p+19 asdkjh").first_real_span() == "0x1.e8480p+19");
         CHECK(ryml::csubstr("0x1.e8480p-19 asdkjh").first_real_span() == "0x1.e8480p-19");
         CHECK(ryml::csubstr("-0x1.e8480p+19 asdkjh").first_real_span() == "-0x1.e8480p+19");
         CHECK(ryml::csubstr("-0x1.e8480p-19 asdkjh").first_real_span() == "-0x1.e8480p-19");
         CHECK(ryml::csubstr("+0x1.e8480p+19 asdkjh").first_real_span() == "+0x1.e8480p+19");
         CHECK(ryml::csubstr("+0x1.e8480p-19 asdkjh").first_real_span() == "+0x1.e8480p-19");
+        // binary real numbers
+        CHECK(ryml::csubstr("0b101.011p+19 asdkjh").first_real_span() == "0b101.011p+19");
+        CHECK(ryml::csubstr("0b101.011p-19 asdkjh").first_real_span() == "0b101.011p-19");
+        CHECK(ryml::csubstr("-0b101.011p+19 asdkjh").first_real_span() == "-0b101.011p+19");
+        CHECK(ryml::csubstr("-0b101.011p-19 asdkjh").first_real_span() == "-0b101.011p-19");
+        CHECK(ryml::csubstr("+0b101.011p+19 asdkjh").first_real_span() == "+0b101.011p+19");
+        CHECK(ryml::csubstr("+0b101.011p-19 asdkjh").first_real_span() == "+0b101.011p-19");
+        // octal real numbers
+        CHECK(ryml::csubstr("0o173.045p+19 asdkjh").first_real_span() == "0o173.045p+19");
+        CHECK(ryml::csubstr("0o173.045p-19 asdkjh").first_real_span() == "0o173.045p-19");
+        CHECK(ryml::csubstr("-0o173.045p+19 asdkjh").first_real_span() == "-0o173.045p+19");
+        CHECK(ryml::csubstr("-0o173.045p-19 asdkjh").first_real_span() == "-0o173.045p-19");
+        CHECK(ryml::csubstr("+0o173.045p+19 asdkjh").first_real_span() == "+0o173.045p+19");
+        CHECK(ryml::csubstr("+0o173.045p-19 asdkjh").first_real_span() == "+0o173.045p-19");
     }
     // see also is_number()
 
