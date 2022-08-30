@@ -220,6 +220,23 @@ broken_value: '0.30.2'
 )");
 }
 
+TEST(emit_json, issue291)
+{
+    Tree t = parse_in_arena("{}");
+    t["james"] = "045";
+    auto s = emitrs_json<std::string>(t);
+    EXPECT_EQ(s, "{\"james\": \"045\"}");
+}
+
+TEST(emit_json, issue292)
+{
+    EXPECT_FALSE(csubstr("0.1.0").is_number());
+    Tree t = parse_in_arena("{}");
+    t["james"] = "1.2.3";
+    auto s = emitrs_json<std::string>(t);
+    EXPECT_EQ(s, "{\"james\": \"1.2.3\"}");
+}
+
 TEST(emit_json, issue297)
 {
     char yml_buf[] = R"(

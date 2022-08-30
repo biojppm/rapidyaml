@@ -879,7 +879,10 @@ template<class Writer>
 void Emitter<Writer>::_write_scalar_json(csubstr s, bool as_key, bool was_quoted)
 {
     // json only allows strings as keys
-    if(!as_key && !was_quoted && (s.is_number() || s == "true" || s == "null" || s == "false"))
+    if((!as_key)
+       && (!was_quoted)
+       && ((s.is_number() && !(s.len > 1 && s.str[0] == '0'))
+           || s == "true" || s == "null" || s == "false"))
     {
         this->Writer::_do_write(s);
     }
