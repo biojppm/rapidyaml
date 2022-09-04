@@ -24,6 +24,7 @@
 #   pragma warning(disable : 5054) // rapidjson: operator '|': deprecated between enumerations of different types
 #elif defined(__clang__)
 #   pragma clang diagnostic push
+#   pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #   pragma clang diagnostic ignored "-Wunused-parameter"
 #   pragma clang diagnostic ignored "-Wc99-extensions"
 #   pragma clang diagnostic ignored "-Wfloat-equal"
@@ -35,6 +36,7 @@
 #   endif
 #elif defined(__GNUC__)
 #   pragma GCC diagnostic push
+#   pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #   pragma GCC diagnostic ignored "-Wshadow"
 #   pragma GCC diagnostic ignored "-Wunused-parameter"
 #   pragma GCC diagnostic ignored "-Wunused-but-set-variable"
