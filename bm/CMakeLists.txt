@@ -11,7 +11,7 @@ set(_ed ${CMAKE_CURRENT_BINARY_DIR}/subprojects) # casual ryml extern dir (these
 # libyaml
 c4_require_subproject(libyaml REMOTE
     GIT_REPOSITORY https://github.com/yaml/libyaml
-    GIT_TAG master
+    GIT_TAG master GIT_SHALLOW ON
   OVERRIDE BUILD_TESTING OFF
   SET_FOLDER_TARGETS ext yaml)
 
@@ -29,7 +29,7 @@ endif()
 set(miniyaml_dir ${_ed}/miniyaml)
 c4_download_remote_proj(miniyaml miniyaml_dir
     GIT_REPOSITORY https://github.com/jimmiebergmann/mini-yaml
-    GIT_TAG master)
+    GIT_TAG master GIT_SHALLOW ON)
 add_library(miniyaml
     ${miniyaml_dir}/yaml/Yaml.hpp
     ${miniyaml_dir}/yaml/Yaml.cpp)
@@ -82,7 +82,7 @@ c4_set_folder_remote_project_targets(ext/jsoncpp
 # nlohmannjson needs to be compiled
 c4_require_subproject(nlohmann_json REMOTE
     GIT_REPOSITORY https://github.com/nlohmann/json
-    GIT_TAG master
+    GIT_TAG master GIT_SHALLOW ON
     OVERRIDE
         JSON_BuildTests OFF
         JSON_Install OFF
