@@ -48,15 +48,64 @@ struct YmlTestCase : public ::testing::TestWithParam<csubstr>
     }
 
     void _test_parse_using_ryml(CaseDataLineEndings *cd);
+
     void _test_emit_yml_stdout(CaseDataLineEndings *cd);
+    void _test_emit_json_stdout(CaseDataLineEndings *cd);
+
     void _test_emit_yml_cout(CaseDataLineEndings *cd);
+    void _test_emit_json_cout(CaseDataLineEndings *cd);
+
     void _test_emit_yml_stringstream(CaseDataLineEndings *cd);
+    void _test_emit_json_stringstream(CaseDataLineEndings *cd);
+
     void _test_emit_yml_ofstream(CaseDataLineEndings *cd);
+    void _test_emit_json_ofstream(CaseDataLineEndings *cd);
+
     void _test_emit_yml_string(CaseDataLineEndings *cd);
+    void _test_emit_json_string(CaseDataLineEndings *cd);
+
     void _test_emitrs(CaseDataLineEndings *cd);
+    void _test_emitrs_json(CaseDataLineEndings *cd);
+
     void _test_emitrs_cfile(CaseDataLineEndings *cd);
+    void _test_emitrs_json_cfile(CaseDataLineEndings *cd);
+
     void _test_complete_round_trip(CaseDataLineEndings *cd);
+    void _test_complete_round_trip_json(CaseDataLineEndings *cd);
+
     void _test_recreate_from_ref(CaseDataLineEndings *cd);
+
+    void _ensure_parse(CaseDataLineEndings *cd)
+    {
+        if(cd->parsed_tree.empty())
+            parse_in_place(c->fileline, cd->src, &cd->parsed_tree);
+    }
+    void _ensure_emit(CaseDataLineEndings *cd)
+    {
+        _ensure_parse(cd);
+        if(cd->emit_buf.empty())
+        {
+            cd->emitted_yml = emitrs(cd->parsed_tree, &cd->emit_buf);
+            ASSERT_EQ(cd->emitted_yml.size(), cd->emit_buf.size());
+            if(cd->emitted_yml.size())
+            {
+                ASSERT_EQ(cd->emitted_yml.data(), cd->emit_buf.data());
+            }
+        }
+    }
+    void _ensure_emit_json(CaseDataLineEndings *cd)
+    {
+        _ensure_parse(cd);
+        if(cd->emitjson_buf.empty())
+        {
+            cd->emitted_json = emitrs_json(cd->parsed_tree, &cd->emitjson_buf);
+            ASSERT_EQ(cd->emitted_json.size(), cd->emitjson_buf.size());
+            if(cd->emitted_json.size())
+            {
+                ASSERT_EQ(cd->emitted_json.data(), cd->emitjson_buf.data());
+            }
+        }
+    }
 };
 
 

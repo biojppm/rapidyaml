@@ -444,6 +444,7 @@ public:
 typedef enum {
     EXPECT_PARSE_ERROR = (1<<0),
     RESOLVE_REFS = (1<<1),
+    JSON_ALSO = (1<<2), // TODO: make it the opposite: opt-out instead of opt-in
 } TestCaseFlags_e;
 
 
@@ -476,12 +477,22 @@ struct CaseDataLineEndings
     Tree parsed_tree;
 
     size_t numbytes_stdout;
-    std::vector<char> emit_buf;
+    size_t numbytes_stdout_json;
+
+    std::string emit_buf;
     csubstr emitted_yml;
-    std::vector<char> parse_buf;
+
+    std::string emitjson_buf;
+    csubstr emitted_json;
+
+    std::string parse_buf;
     substr parsed_yml;
 
+    std::string parse_buf_json;
+    substr parsed_json;
+
     Tree emitted_tree;
+    Tree emitted_tree_json;
 
     Tree recreated;
 };
@@ -490,7 +501,9 @@ struct CaseDataLineEndings
 struct CaseData
 {
     CaseDataLineEndings unix_style;
+    CaseDataLineEndings unix_style_json;
     CaseDataLineEndings windows_style;
+    CaseDataLineEndings windows_style_json;
 };
 
 
