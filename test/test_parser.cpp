@@ -532,6 +532,15 @@ TEST(parse_in_arena, overloads)
     }
 }
 
+TEST(parse_in_place, version_numbers)
+{
+    char src1_[] = "{a: 1.2.3}";
+    {
+        Tree tree = parse_in_place(src1_);
+        EXPECT_EQ(tree["a"].val(), "1.2.3");
+    }
+}
+
 } // namespace yml
 } // namespace c4
 
