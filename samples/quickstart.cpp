@@ -496,16 +496,16 @@ void sample_quick_overview()
     // Emitting:
 
     // emit to a FILE*
-    ryml::emit(tree, stdout);
+    ryml::emit_yaml(tree, stdout);
     // emit to a stream
     std::stringstream ss;
     ss << tree;
     std::string stream_result = ss.str();
     // emit to a buffer:
-    std::string str_result = ryml::emitrs<std::string>(tree);
+    std::string str_result = ryml::emitrs_yaml<std::string>(tree);
     // can emit to any given buffer:
     char buf[1024];
-    ryml::csubstr buf_result = ryml::emit(tree, buf);
+    ryml::csubstr buf_result = ryml::emit_yaml(tree, buf);
     // now check
     ryml::csubstr expected_result = R"(foo: says who
 bar:
@@ -1523,7 +1523,7 @@ void sample_parse_reuse_tree()
     CHECK(root["bar"].key() == "bar");
     CHECK(root["bar"][0].val() == "2");
     CHECK(root["bar"][1].val() == "3");
-    CHECK(ryml::emitrs<std::string>(tree) == R"(foo: 1
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(foo: 1
 bar:
   - 2
   - 3
@@ -1531,7 +1531,7 @@ bar:
 
     // WATCHOUT: parsing into an existing tree will APPEND to it:
     ryml::parse_in_arena("{foo2: 12, bar2: [22, 32]}", &tree);
-    CHECK(ryml::emitrs<std::string>(tree) == R"(foo: 1
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(foo: 1
 bar:
   - 2
   - 3
@@ -1554,7 +1554,7 @@ bar2:
     tree.clear();
     tree.clear_arena();  // you may or may not want to clear the arena
     ryml::parse_in_arena("[a, b, {x0: 1, x1: 2}]", &tree);
-    CHECK(ryml::emitrs<std::string>(tree) == R"(- a
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(- a
 - b
 - x0: 1
   x1: 2
@@ -1568,7 +1568,7 @@ bar2:
 
     // we can parse directly into a node nested deep in an existing tree:
     ryml::parse_in_arena("{champagne: Dom Perignon, coffee: Arabica}", root.append_child());
-    CHECK(ryml::emitrs<std::string>(tree) == R"(- a
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(- a
 - b
 - x0: 1
   x1: 2
@@ -1590,7 +1590,7 @@ bar2:
     ryml::NodeRef beer = root[3].append_child({ryml::KEYSEQ, "beer"});
     ryml::parse_in_arena("{vinho verde: Soalheiro, vinho tinto: Redoma 2017}", more);
     ryml::parse_in_arena("[Rochefort 10, Busch, Leffe Rituel]", beer);
-    CHECK(ryml::emitrs<std::string>(tree) == R"(- a
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(- a
 - b
 - x0: 1
   x1: 2
@@ -1606,7 +1606,7 @@ bar2:
 )");
 
     ryml::parse_in_arena("[foo, bar, baz, bat]", root);
-    CHECK(ryml::emitrs<std::string>(tree) == R"(- a
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(- a
 - b
 - x0: 1
   x1: 2
@@ -1626,7 +1626,7 @@ bar2:
 )");
 
     ryml::parse_in_arena("[Kasteel Donker]", beer);
-    CHECK(ryml::emitrs<std::string>(tree) == R"(- a
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(- a
 - b
 - x0: 1
   x1: 2
@@ -1666,14 +1666,14 @@ void sample_parse_reuse_parser()
                               // because it is above 16.
 
     auto champagnes = parser.parse_in_arena("champagnes.yml", "[Dom Perignon, Gosset Grande Reserve, Ruinart Blanc de Blancs, Jacquesson 742]");
-    CHECK(ryml::emitrs<std::string>(champagnes) == R"(- Dom Perignon
+    CHECK(ryml::emitrs_yaml<std::string>(champagnes) == R"(- Dom Perignon
 - Gosset Grande Reserve
 - Ruinart Blanc de Blancs
 - Jacquesson 742
 )");
 
     auto beers = parser.parse_in_arena("beers.yml", "[Rochefort 10, Busch, Leffe Rituel, Kasteel Donker]");
-    CHECK(ryml::emitrs<std::string>(beers) == R"(- Rochefort 10
+    CHECK(ryml::emitrs_yaml<std::string>(beers) == R"(- Rochefort 10
 - Busch
 - Leffe Rituel
 - Kasteel Donker
@@ -1710,7 +1710,7 @@ void sample_parse_reuse_tree_and_parser()
     ryml::csubstr wines = "[Soalheiro, Niepoort Redoma 2017, Vina Esmeralda]";
 
     parser.parse_in_arena("champagnes.yml", champagnes, &tree);
-    CHECK(ryml::emitrs<std::string>(tree) == R"(- Dom Perignon
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(- Dom Perignon
 - Gosset Grande Reserve
 - Ruinart Blanc de Blancs
 - Jacquesson 742
@@ -1718,7 +1718,7 @@ void sample_parse_reuse_tree_and_parser()
 
     // watchout: this will APPEND to the given tree:
     parser.parse_in_arena("beers.yml", beers, &tree);
-    CHECK(ryml::emitrs<std::string>(tree) == R"(- Dom Perignon
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(- Dom Perignon
 - Gosset Grande Reserve
 - Ruinart Blanc de Blancs
 - Jacquesson 742
@@ -1731,7 +1731,7 @@ void sample_parse_reuse_tree_and_parser()
     // if you don't wish to append, clear the tree first:
     tree.clear();
     parser.parse_in_arena("wines.yml", wines, &tree);
-    CHECK(ryml::emitrs<std::string>(tree) == R"(- Soalheiro
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(- Soalheiro
 - Niepoort Redoma 2017
 - Vina Esmeralda
 )");
@@ -1858,7 +1858,7 @@ void sample_create_trees()
     root["cars"] = "GTO";
 
     std::cout << tree;
-    CHECK(ryml::emitrs<std::string>(tree) == R"(doe: 'a deer, a female deer'
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(doe: 'a deer, a female deer'
 ray: a drop of golden sun
 pi: 3.14159
 xmas: true
@@ -2583,7 +2583,7 @@ void sample_base64()
         tree.rootref().append_child() << ryml::key(ryml::fmt::base64(c.text)) << c.text;
         CHECK(tree[c.base64].val() == c.text);
     }
-    CHECK(ryml::emitrs<std::string>(tree) == R"('Love all, trust a few, do wrong to none.': TG92ZSBhbGwsIHRydXN0IGEgZmV3LCBkbyB3cm9uZyB0byBub25lLg==
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"('Love all, trust a few, do wrong to none.': TG92ZSBhbGwsIHRydXN0IGEgZmV3LCBkbyB3cm9uZyB0byBub25lLg==
 'The fool doth think he is wise, but the wise man knows himself to be a fool.': VGhlIGZvb2wgZG90aCB0aGluayBoZSBpcyB3aXNlLCBidXQgdGhlIHdpc2UgbWFuIGtub3dzIGhpbXNlbGYgdG8gYmUgYSBmb29sLg==
 Brevity is the soul of wit.: QnJldml0eSBpcyB0aGUgc291bCBvZiB3aXQu
 All that glitters is not gold.: QWxsIHRoYXQgZ2xpdHRlcnMgaXMgbm90IGdvbGQu
@@ -2739,7 +2739,7 @@ void sample_user_scalar_types()
     CHECK(v4in.y == v4out.y);
     CHECK(v4in.z == v4out.z);
     CHECK(v4in.w == v4out.w);
-    CHECK(ryml::emitrs<std::string>(t) == R"(v2: '(10,11)'
+    CHECK(ryml::emitrs_yaml<std::string>(t) == R"(v2: '(10,11)'
 v3: '(100,101,102)'
 v4: '(1000,1001,1002,1003)'
 )");
@@ -2767,7 +2767,7 @@ v4: '(1000,1001,1002,1003)'
     CHECK(eov4in.x == pov4out.x);
     CHECK(eov4in.y == pov4out.y);
     CHECK(eov4in.z == pov4out.z);
-    CHECK(ryml::emitrs<std::string>(t) == R"(v2: '(20,21)'
+    CHECK(ryml::emitrs_yaml<std::string>(t) == R"(v2: '(20,21)'
 v3: '(30,31,32)'
 v4: '(40,41,42,43)'
 )");
@@ -2896,7 +2896,7 @@ void sample_user_container_types()
         CHECK(mt_out.map.map_member.find(kv.first) != mt_out.map.map_member.end());
         CHECK(mt_out.map.map_member[kv.first] == kv.second);
     }
-    CHECK(ryml::emitrs<std::string>(t) == R"(v2: '(20,21)'
+    CHECK(ryml::emitrs_yaml<std::string>(t) == R"(v2: '(20,21)'
 v3: '(30,31,32)'
 v4: '(40,41,42,43)'
 seq:
@@ -2984,7 +2984,7 @@ void sample_std_types()
     CHECK(vmt.size() == 3);
     ryml::Tree tree_out;
     tree_out.rootref() << vmt;
-    CHECK(ryml::emitrs<std::string>(tree_out) == yml_std_string);
+    CHECK(ryml::emitrs_yaml<std::string>(tree_out) == yml_std_string);
 }
 
 
@@ -3022,39 +3022,39 @@ void sample_emit_to_container()
         // do a blank call on an empty buffer to find the required size.
         // no overflow will occur, and returns a substr with the size
         // required to output
-        ryml::csubstr output = ryml::emit(treea, treea.root_id(), ryml::substr{}, /*error_on_excess*/false);
+        ryml::csubstr output = ryml::emit_yaml(treea, treea.root_id(), ryml::substr{}, /*error_on_excess*/false);
         CHECK(output.str == nullptr);
         CHECK(output.len > 0);
         size_t num_needed_chars = output.len;
         std::vector<char> buf(num_needed_chars);
         // now try again with the proper buffer
-        output = ryml::emit(treea, treea.root_id(), ryml::to_substr(buf), /*error_on_excess*/true);
+        output = ryml::emit_yaml(treea, treea.root_id(), ryml::to_substr(buf), /*error_on_excess*/true);
         CHECK(output == ymla);
 
         // it is possible to reuse the buffer and grow it as needed.
         // first do a blank run to find the size:
-        output = ryml::emit(treeb, treeb.root_id(), ryml::substr{}, /*error_on_excess*/false);
+        output = ryml::emit_yaml(treeb, treeb.root_id(), ryml::substr{}, /*error_on_excess*/false);
         CHECK(output.str == nullptr);
         CHECK(output.len > 0);
         CHECK(output.len == ymlb.len);
         num_needed_chars = output.len;
         buf.resize(num_needed_chars);
         // now try again with the proper buffer
-        output = ryml::emit(treeb, treeb.root_id(), ryml::to_substr(buf), /*error_on_excess*/true);
+        output = ryml::emit_yaml(treeb, treeb.root_id(), ryml::to_substr(buf), /*error_on_excess*/true);
         CHECK(output == ymlb);
 
         // there is a convenience wrapper performing the same as above:
         // provided to_substr() is defined for that container.
-        output = ryml::emitrs(treeb, &buf);
+        output = ryml::emitrs_yaml(treeb, &buf);
         CHECK(output == ymlb);
 
         // or you can just output a new container:
         // provided to_substr() is defined for that container.
-        std::vector<char> another = ryml::emitrs<std::vector<char>>(treeb);
+        std::vector<char> another = ryml::emitrs_yaml<std::vector<char>>(treeb);
         CHECK(ryml::to_csubstr(another) == ymlb);
 
         // you can also emit nested nodes:
-        another = ryml::emitrs<std::vector<char>>(treeb[3][2]);
+        another = ryml::emitrs_yaml<std::vector<char>>(treeb[3][2]);
         CHECK(ryml::to_csubstr(another) == R"(more:
   vinho verde: Soalheiro
   vinho tinto: Redoma 2017
@@ -3067,40 +3067,40 @@ void sample_emit_to_container()
         // do a blank call on an empty buffer to find the required size.
         // no overflow will occur, and returns a substr with the size
         // required to output
-        ryml::csubstr output = ryml::emit(treea, treea.root_id(), ryml::substr{}, /*error_on_excess*/false);
+        ryml::csubstr output = ryml::emit_yaml(treea, treea.root_id(), ryml::substr{}, /*error_on_excess*/false);
         CHECK(output.str == nullptr);
         CHECK(output.len > 0);
         size_t num_needed_chars = output.len;
         std::string buf;
         buf.resize(num_needed_chars);
         // now try again with the proper buffer
-        output = ryml::emit(treea, treea.root_id(), ryml::to_substr(buf), /*error_on_excess*/true);
+        output = ryml::emit_yaml(treea, treea.root_id(), ryml::to_substr(buf), /*error_on_excess*/true);
         CHECK(output == ymla);
 
         // it is possible to reuse the buffer and grow it as needed.
         // first do a blank run to find the size:
-        output = ryml::emit(treeb, treeb.root_id(), ryml::substr{}, /*error_on_excess*/false);
+        output = ryml::emit_yaml(treeb, treeb.root_id(), ryml::substr{}, /*error_on_excess*/false);
         CHECK(output.str == nullptr);
         CHECK(output.len > 0);
         CHECK(output.len == ymlb.len);
         num_needed_chars = output.len;
         buf.resize(num_needed_chars);
         // now try again with the proper buffer
-        output = ryml::emit(treeb, treeb.root_id(), ryml::to_substr(buf), /*error_on_excess*/true);
+        output = ryml::emit_yaml(treeb, treeb.root_id(), ryml::to_substr(buf), /*error_on_excess*/true);
         CHECK(output == ymlb);
 
         // there is a convenience wrapper performing the above instructions:
         // provided to_substr() is defined for that container
-        output = ryml::emitrs(treeb, &buf);
+        output = ryml::emitrs_yaml(treeb, &buf);
         CHECK(output == ymlb);
 
         // or you can just output a new container:
         // provided to_substr() is defined for that container.
-        std::string another = ryml::emitrs<std::string>(treeb);
+        std::string another = ryml::emitrs_yaml<std::string>(treeb);
         CHECK(ryml::to_csubstr(another) == ymlb);
 
         // you can also emit nested nodes:
-        another = ryml::emitrs<std::string>(treeb[3][2]);
+        another = ryml::emitrs_yaml<std::string>(treeb[3][2]);
         CHECK(ryml::to_csubstr(another) == R"(more:
   vinho verde: Soalheiro
   vinho tinto: Redoma 2017
@@ -3199,7 +3199,7 @@ void sample_emit_to_file()
     auto tree = ryml::parse_in_arena(yml);
     // this is emitting to stdout, but of course you can pass in any
     // FILE* obtained from fopen()
-    size_t len = ryml::emit(tree, tree.root_id(), stdout);
+    size_t len = ryml::emit_yaml(tree, tree.root_id(), stdout);
     // the return value is the number of characters that were written
     // to the file
     CHECK(len == yml.len);
@@ -3232,7 +3232,7 @@ void sample_emit_nested_node()
 - members
 - here
 )");
-    CHECK(ryml::emitrs<std::string>(tree[3]["beer"]) == R"(beer:
+    CHECK(ryml::emitrs_yaml<std::string>(tree[3]["beer"]) == R"(beer:
   - Rochefort 10
   - Busch
   - Leffe Rituel
@@ -3240,8 +3240,8 @@ void sample_emit_nested_node()
     - many other
     - wonderful beers
 )");
-    CHECK(ryml::emitrs<std::string>(tree[3]["beer"][0]) == "Rochefort 10\n");
-    CHECK(ryml::emitrs<std::string>(tree[3]["beer"][3]) == R"(- and so
+    CHECK(ryml::emitrs_yaml<std::string>(tree[3]["beer"][0]) == "Rochefort 10\n");
+    CHECK(ryml::emitrs_yaml<std::string>(tree[3]["beer"][3]) == R"(- and so
 - many other
 - wonderful beers
 )");
@@ -3263,7 +3263,7 @@ void sample_json()
 "far":"a long long way to go"
 })");
     // However, emitting still defaults to YAML
-    CHECK(ryml::emitrs<std::string>(tree) == R"('doe': 'a deer, a female deer'
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"('doe': 'a deer, a female deer'
 'ray': 'a drop of golden sun'
 'me': 'a name, I call myself'
 'far': 'a long long way to go'
@@ -3423,7 +3423,7 @@ a:
 - !!str 0
 )";
     ryml::Tree tree = ryml::parse_in_arena(ryml::to_csubstr(unresolved));
-    CHECK(ryml::emitrs<std::string>(tree) == resolved);
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == resolved);
     const ryml::ConstNodeRef stream = tree.rootref();
     CHECK(stream.is_stream());
     CHECK(stream.num_children() == 13);
@@ -3450,7 +3450,7 @@ d: 3
 - 7
 )";
     ryml::Tree tree = ryml::parse_in_place(ryml::to_substr(yml));
-    CHECK(ryml::emitrs<std::string>(tree) == yml);
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == yml);
 
     // iteration through docs
     {

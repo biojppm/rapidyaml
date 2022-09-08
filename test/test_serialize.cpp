@@ -79,7 +79,7 @@ TEST(serialize, type_as_str)
     EXPECT_EQ(v4in.w, v4out.w);
 
     char buf[256];
-    c4::csubstr ret = c4::yml::emit(t, buf);
+    c4::csubstr ret = c4::yml::emit_yaml(t, buf);
     EXPECT_EQ(ret, R"(v2: '(10,11)'
 v3: '(100,101,102)'
 v4: '(1000,1001,1002,1003)'
@@ -104,7 +104,7 @@ void do_test_serialize(Args&& ...args)
 
     n << s;
     //print_tree(t);
-    emit(t);
+    emit_yaml(t);
     c4::yml::check_invariants(t);
     n >> out;
     EXPECT_EQ(s, out);
@@ -441,7 +441,7 @@ references:
 
     Tree t = parse_in_arena(yaml);
     std::string cmpbuf;
-    emitrs(t, &cmpbuf);
+    emitrs_yaml(t, &cmpbuf);
     EXPECT_EQ(cmpbuf, yaml);
 }
 
@@ -475,7 +475,7 @@ reference_list:
     tree.set_val_ref(elem0_id, "id001");
 
     std::string cmpbuf;
-    emitrs(tree, &cmpbuf);
+    emitrs_yaml(tree, &cmpbuf);
     EXPECT_EQ(cmpbuf, expected_yaml);
 }
 

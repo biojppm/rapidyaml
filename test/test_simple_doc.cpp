@@ -22,7 +22,7 @@ TEST(simple_doc, issue_251)
         root["test"] = "...";
         root["test"] |= VALQUO;
 
-        std::string s = emitrs<std::string>(tree);
+        std::string s = emitrs_yaml<std::string>(tree);
         test_check_emit_check(to_csubstr(s), [](Tree const &t){
             EXPECT_EQ(t["test"].val(), "...");
         });

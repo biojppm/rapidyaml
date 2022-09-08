@@ -21,7 +21,7 @@ TEST(tag_directives, basic)
     char buf_[100];
     EXPECT_EQ(t.resolve_tag_sub(buf_, "!m!light", 1u), csubstr("<!my-light>"));
     EXPECT_EQ(t.resolve_tag_sub(buf_, "!m!light", 2u), csubstr("<!meta-light>"));
-    EXPECT_EQ(emitrs<std::string>(t), std::string(R"(%TAG !m! !my-
+    EXPECT_EQ(emitrs_yaml<std::string>(t), std::string(R"(%TAG !m! !my-
 --- !m!light fluorescent
 ...
 %TAG !m! !meta-
@@ -46,7 +46,7 @@ TEST(tag_directives, accepts_comment)
     char buf_[100];
     EXPECT_EQ(t.resolve_tag_sub(buf_, "!m!light", 1u), csubstr("<!my-light>"));
     EXPECT_EQ(t.resolve_tag_sub(buf_, "!m!light", 2u), csubstr("<!meta-light>"));
-    EXPECT_EQ(emitrs<std::string>(t), std::string(R"(%TAG !m! !my-
+    EXPECT_EQ(emitrs_yaml<std::string>(t), std::string(R"(%TAG !m! !my-
 --- !m!light fluorescent
 ...
 %TAG !m! !meta-
@@ -71,7 +71,7 @@ TEST(tag_directives, accepts_multiple_spaces)
     char buf_[100];
     EXPECT_EQ(t.resolve_tag_sub(buf_, "!m!light", 1u), csubstr("<!my-light>"));
     EXPECT_EQ(t.resolve_tag_sub(buf_, "!m!light", 2u), csubstr("<!meta-light>"));
-    EXPECT_EQ(emitrs<std::string>(t), std::string(R"(%TAG !m! !my-
+    EXPECT_EQ(emitrs_yaml<std::string>(t), std::string(R"(%TAG !m! !my-
 --- !m!light fluorescent
 ...
 %TAG !m! !meta-
@@ -118,7 +118,7 @@ TEST(tag_directives, resolve_tags)
     t.resolve_tags();
     EXPECT_EQ(t.docref(0)[0].key_tag(), "<!my-light>");
     EXPECT_EQ(t.docref(0)[0].val_tag(), "<!my-light>");
-    EXPECT_EQ(emitrs<std::string>(t), std::string(R"(%TAG !m! !my-
+    EXPECT_EQ(emitrs_yaml<std::string>(t), std::string(R"(%TAG !m! !my-
 ---
 !<!my-light> fluorescent: !<!my-light> bulb
 ...
@@ -299,7 +299,7 @@ TEST(tags, parsing)
     EXPECT_EQ(t[0]["<!key> key4"].val(), csubstr("<!val> val4"));
     EXPECT_EQ(t[2][5].val_tag(), csubstr("!!str"));
 
-    EXPECT_EQ(emitrs<std::string>(t), R"(!!seq
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(!!seq
 - !!map
   !key key1: !val val1
   !<!key> key2: !<!val> val2
@@ -477,7 +477,7 @@ TEST(tags, setting_user_tags_do_not_require_leading_mark)
     EXPECT_EQ(t.val_tag(keyseq), "valtag");
     EXPECT_EQ(t.val_tag(val),    "valtag2");
 
-    EXPECT_EQ(emitrs<std::string>(t), R"(key: val
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(key: val
 keymap: {}
 !keytag keyseq: !valtag
   - !valtag2 val
@@ -491,7 +491,7 @@ keymap: {}
     EXPECT_EQ(t.val_tag(keyseq), "!valtag");
     EXPECT_EQ(t.val_tag(val),    "!valtag2");
 
-    EXPECT_EQ(emitrs<std::string>(t), R"(key: val
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(key: val
 keymap: {}
 !keytag keyseq: !valtag
   - !valtag2 val

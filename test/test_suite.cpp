@@ -220,7 +220,7 @@ struct ProcLevel
             _nfo_logf("level[{}] not parsed. parse!", level);
             parse();
         }
-        emitrs(tree, &emitted);
+        emitrs_yaml(tree, &emitted);
         csubstr ss = to_csubstr(emitted);
         if(ss.ends_with("\n...\n"))
             emitted.resize(emitted.size() - 4);

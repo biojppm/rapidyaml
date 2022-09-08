@@ -41,7 +41,7 @@ void test_ints()
         EXPECT_EQ(out, val);
     }
     {
-        std::string emitted = emitrs<std::string>(t);
+        std::string emitted = emitrs_yaml<std::string>(t);
         Tree parsed = parse_in_place(to_substr(emitted));
         ASSERT_EQ(parsed["dec"].num_children(), values.size());
         ASSERT_EQ(parsed["hex"].num_children(), values.size());

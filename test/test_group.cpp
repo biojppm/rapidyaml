@@ -114,7 +114,7 @@ void YmlTestCase::_test_emit_yml_stdout(CaseDataLineEndings *cd)
         return;
     _ensure_parse(cd);
     _ensure_emit(cd);
-    cd->numbytes_stdout = emit(cd->parsed_tree);
+    cd->numbytes_stdout = emit_yaml(cd->parsed_tree);
     EXPECT_EQ(cd->numbytes_stdout, cd->emitted_yml.size());
 }
 
@@ -267,7 +267,7 @@ void YmlTestCase::_test_emit_yml_string(CaseDataLineEndings *cd)
         return;
     _ensure_parse(cd);
     _ensure_emit(cd);
-    auto em = emitrs(cd->parsed_tree, &cd->emit_buf);
+    auto em = emitrs_yaml(cd->parsed_tree, &cd->emit_buf);
     EXPECT_EQ(em.len, cd->emit_buf.size());
     EXPECT_EQ(em.len, cd->numbytes_stdout);
     #ifdef RYML_NFO
@@ -300,11 +300,11 @@ void YmlTestCase::_test_emitrs(CaseDataLineEndings *cd)
     _ensure_parse(cd);
     using vtype = std::vector<char>;
     using stype = std::string;
-    vtype vv, v = emitrs<vtype>(cd->parsed_tree);
-    stype ss, s = emitrs<stype>(cd->parsed_tree);
+    vtype vv, v = emitrs_yaml<vtype>(cd->parsed_tree);
+    stype ss, s = emitrs_yaml<stype>(cd->parsed_tree);
     EXPECT_EQ(to_csubstr(v), to_csubstr(s));
-    csubstr svv = emitrs(cd->parsed_tree, &vv);
-    csubstr sss = emitrs(cd->parsed_tree, &ss);
+    csubstr svv = emitrs_yaml(cd->parsed_tree, &vv);
+    csubstr sss = emitrs_yaml(cd->parsed_tree, &ss);
     EXPECT_EQ(svv, sss);
 }
 
@@ -332,11 +332,11 @@ void YmlTestCase::_test_emitrs_cfile(CaseDataLineEndings *cd)
     if(c->flags & EXPECT_PARSE_ERROR)
         return;
     _ensure_parse(cd);
-    auto s = emitrs<std::string>(cd->parsed_tree);
+    auto s = emitrs_yaml<std::string>(cd->parsed_tree);
     std::string r;
     {
         c4::fs::ScopedTmpFile f;
-        emit(cd->parsed_tree, f.m_file);
+        emit_yaml(cd->parsed_tree, f.m_file);
         fflush(f.m_file);
         r = f.contents<std::string>();
     }
@@ -490,7 +490,7 @@ void YmlTestCase::_test_recreate_from_ref(CaseDataLineEndings *cd)
     if(cd->parsed_tree.empty())
         parse_in_place(c->fileline, cd->src, &cd->parsed_tree);
     if(cd->emit_buf.empty())
-        cd->emitted_yml = emitrs(cd->parsed_tree, &cd->emit_buf);
+        cd->emitted_yml = emitrs_yaml(cd->parsed_tree, &cd->emit_buf);
     {
         SCOPED_TRACE("recreating a new tree from the ref tree");
         cd->recreated.reserve(cd->parsed_tree.size());

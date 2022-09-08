@@ -85,7 +85,7 @@ struct YmlTestCase : public ::testing::TestWithParam<csubstr>
         _ensure_parse(cd);
         if(cd->emit_buf.empty())
         {
-            cd->emitted_yml = emitrs(cd->parsed_tree, &cd->emit_buf);
+            cd->emitted_yml = emitrs_yaml(cd->parsed_tree, &cd->emit_buf);
             ASSERT_EQ(cd->emitted_yml.size(), cd->emit_buf.size());
             if(cd->emitted_yml.size())
             {

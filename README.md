@@ -587,16 +587,16 @@ CHECK(!constsomething.valid());
 // Emitting:
 
 // emit to a FILE*
-ryml::emit(tree, stdout);
+ryml::emit_yaml(tree, stdout); // there is also emit_json()
 // emit to a stream
 std::stringstream ss;
 ss << tree;
 std::string stream_result = ss.str();
 // emit to a buffer:
-std::string str_result = ryml::emitrs<std::string>(tree);
+std::string str_result = ryml::emitrs_yaml<std::string>(tree); // there is also emitrs_json()
 // can emit to any given buffer:
 char buf[1024];
-ryml::csubstr buf_result = ryml::emit(tree, buf);
+ryml::csubstr buf_result = ryml::emit_yaml(tree, buf);
 // now check
 ryml::csubstr expected_result = R"(foo: says who
 bar:

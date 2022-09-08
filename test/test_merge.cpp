@@ -42,8 +42,8 @@ void test_merge(std::initializer_list<csubstr> li, csubstr expected)
         merged.merge_with(&loaded);
     }
 
-    auto buf_result = emitrs<std::string>(merged);
-    auto buf_expected = emitrs<std::string>(ref);
+    auto buf_result = emitrs_yaml<std::string>(merged);
+    auto buf_expected = emitrs_yaml<std::string>(ref);
 
     EXPECT_EQ(buf_result, buf_expected);
 }
