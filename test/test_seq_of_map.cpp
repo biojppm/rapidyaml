@@ -20,7 +20,7 @@ TEST(seq_of_map, with_anchors)
   a4: v4
 )";
         Tree t = parse_in_arena(yaml);
-        EXPECT_EQ(emitrs<std::string>(t), yaml);
+        EXPECT_EQ(emitrs_yaml<std::string>(t), yaml);
         ASSERT_EQ(t.rootref().num_children(), 3u);
         ASSERT_EQ(t[2].has_val_anchor(), true);
         ASSERT_EQ(t[2].val_anchor(), "seq");
@@ -36,7 +36,7 @@ TEST(seq_of_map, with_anchors)
   *a3: w3
 )";
         Tree t = parse_in_arena(yaml);
-        EXPECT_EQ(emitrs<std::string>(t), yaml);
+        EXPECT_EQ(emitrs_yaml<std::string>(t), yaml);
     }
 }
 
@@ -58,7 +58,7 @@ TEST(seq_of_map, with_tags)
   !foo a3: v3
 )";
         Tree t = parse_in_arena(yaml);
-        EXPECT_EQ(emitrs<std::string>(t), yaml);
+        EXPECT_EQ(emitrs_yaml<std::string>(t), yaml);
     }
     {
         // but this case may fail because the indentation
@@ -74,7 +74,7 @@ TEST(seq_of_map, with_tags)
   !foo a3: v3
 )";
         Tree t = parse_in_arena(yaml);
-        EXPECT_EQ(emitrs<std::string>(t), yaml);
+        EXPECT_EQ(emitrs_yaml<std::string>(t), yaml);
     }
 }
 

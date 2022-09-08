@@ -9,7 +9,7 @@ namespace c4 {
 namespace yml {
 
 template<class Writer>
-substr Emitter<Writer>::emit(EmitType_e type, Tree const& t, size_t id, bool error_on_excess)
+substr Emitter<Writer>::emit_as(EmitType_e type, Tree const& t, size_t id, bool error_on_excess)
 {
     if(t.empty())
     {
@@ -28,18 +28,18 @@ substr Emitter<Writer>::emit(EmitType_e type, Tree const& t, size_t id, bool err
 }
 
 template<class Writer>
-substr Emitter<Writer>::emit(EmitType_e type, Tree const& t, bool error_on_excess)
+substr Emitter<Writer>::emit_as(EmitType_e type, Tree const& t, bool error_on_excess)
 {
     if(t.empty())
         return {};
-    return emit(type, t, t.root_id(), error_on_excess);
+    return this->emit_as(type, t, t.root_id(), error_on_excess);
 }
 
 template<class Writer>
-substr Emitter<Writer>::emit(EmitType_e type, ConstNodeRef const& n, bool error_on_excess)
+substr Emitter<Writer>::emit_as(EmitType_e type, ConstNodeRef const& n, bool error_on_excess)
 {
     _RYML_CB_CHECK(n.tree()->callbacks(), n.valid());
-    return emit(type, *n.tree(), n.id(), error_on_excess);
+    return this->emit_as(type, *n.tree(), n.id(), error_on_excess);
 }
 
 

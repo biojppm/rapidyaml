@@ -958,7 +958,7 @@ far: a long long way to run
 )");
     Tree copy = tree;
     EXPECT_EQ(copy.size(), tree.size());
-    EXPECT_EQ(emitrs<std::string>(copy), R"(&keyanchor key: val
+    EXPECT_EQ(emitrs_yaml<std::string>(copy), R"(&keyanchor key: val
 key2: &valanchor val2
 keyref: *keyanchor
 *valanchor: was val anchor
@@ -972,7 +972,7 @@ far: a long long way to run
     Tree copy2 = copy;
     EXPECT_EQ(copy.size(), tree.size());
     copy2.resolve();
-    EXPECT_EQ(emitrs<std::string>(copy2), R"(key: val
+    EXPECT_EQ(emitrs_yaml<std::string>(copy2), R"(key: val
 key2: val2
 keyref: key
 val2: was val anchor
@@ -3215,7 +3215,7 @@ TEST(change_type, from_val)
     t[1].change_type(MAP);
     t[2].change_type(SEQ);
     Tree expected = parse_in_arena("[val0, {}, []]");
-    EXPECT_EQ(emitrs<std::string>(t), emitrs<std::string>(expected));
+    EXPECT_EQ(emitrs_yaml<std::string>(t), emitrs_yaml<std::string>(expected));
 }
 TEST(change_type, from_keyval)
 {
@@ -3224,7 +3224,7 @@ TEST(change_type, from_keyval)
     t[1].change_type(MAP);
     t[2].change_type(SEQ);
     Tree expected = parse_in_arena("{keyval0: val0, keyval1: {}, keyval2: []}");
-    EXPECT_EQ(emitrs<std::string>(t), emitrs<std::string>(expected));
+    EXPECT_EQ(emitrs_yaml<std::string>(t), emitrs_yaml<std::string>(expected));
 }
 
 TEST(change_type, from_map)
@@ -3234,7 +3234,7 @@ TEST(change_type, from_map)
     t[1].change_type(MAP);
     t[2].change_type(SEQ);
     Tree expected = parse_in_arena("[ , {map1: {map1key0: a, map1key1: b}}, []]");
-    EXPECT_EQ(emitrs<std::string>(t), emitrs<std::string>(expected));
+    EXPECT_EQ(emitrs_yaml<std::string>(t), emitrs_yaml<std::string>(expected));
 }
 TEST(change_type, from_keymap)
 {
@@ -3243,7 +3243,7 @@ TEST(change_type, from_keymap)
     t[1].change_type(MAP);
     t[2].change_type(SEQ);
     Tree expected = parse_in_arena("{map0: , map1: {map1: {map1key0: a, map1key1: b}}, map2: []}");
-    EXPECT_EQ(emitrs<std::string>(t), emitrs<std::string>(expected));
+    EXPECT_EQ(emitrs_yaml<std::string>(t), emitrs_yaml<std::string>(expected));
 }
 
 TEST(change_type, from_seq)
@@ -3253,7 +3253,7 @@ TEST(change_type, from_seq)
     t[1].change_type(MAP);
     t[2].change_type(SEQ);
     Tree expected = parse_in_arena("[ , {}, [seq20, seq21]]");
-    EXPECT_EQ(emitrs<std::string>(t), emitrs<std::string>(expected));
+    EXPECT_EQ(emitrs_yaml<std::string>(t), emitrs_yaml<std::string>(expected));
 }
 TEST(change_type, from_keyseq)
 {
@@ -3262,7 +3262,7 @@ TEST(change_type, from_keyseq)
     t[1].change_type(MAP);
     t[2].change_type(SEQ);
     Tree expected = parse_in_arena("{map0: , map1: {}, map2: [seq20, seq21]}");
-    EXPECT_EQ(emitrs<std::string>(t), emitrs<std::string>(expected));
+    EXPECT_EQ(emitrs_yaml<std::string>(t), emitrs_yaml<std::string>(expected));
 }
 
 
@@ -3469,7 +3469,7 @@ TEST(Tree, lookup_path_or_modify)
         EXPECT_EQ(t["newmap"]["newseq1"][2][2][2].val(), "trigger");
         EXPECT_EQ(t["newmap"]["newseq1"][2][2][3].val(), "happy");
 
-        EXPECT_EQ(emitrs<std::string>(t), R"(newmap:
+        EXPECT_EQ(emitrs_yaml<std::string>(t), R"(newmap:
   newseq:
     - newmap:
         newseq:

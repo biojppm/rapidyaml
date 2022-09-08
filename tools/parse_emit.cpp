@@ -78,7 +78,7 @@ int main(int argc, const char *argv[])
         {
             TS(emit_to_buffer);
             output.resize(contents.size()); // resize, not just reserve
-            yml::emitrs(tree, &output);
+            yml::emitrs_yaml(tree, &output);
         }
         {
             TS(print_stdout);

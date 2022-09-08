@@ -99,7 +99,7 @@ void test_check_emit_check(csubstr yaml, CheckFn check_fn)
     }
     auto emit_and_parse = [&](const char* identifier){
         SCOPED_TRACE(identifier);
-        std::string emitted = emitrs<std::string>(t);
+        std::string emitted = emitrs_yaml<std::string>(t);
         #ifdef RYML_DBG
         printf("~~~%s~~~\n%.*s", identifier, (int)emitted.size(), emitted.data());
         #endif

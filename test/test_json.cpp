@@ -213,7 +213,7 @@ broken_value: "0.30.2"
     emitrs_json(t, &out);
     EXPECT_EQ(out, R"({"string_value": "string","number_value": "9001","broken_value": "0.30.2"})");
     out.clear();
-    emitrs(t, &out);
+    emitrs_yaml(t, &out);
     EXPECT_EQ(out, R"(string_value: 'string'
 number_value: '9001'
 broken_value: '0.30.2'

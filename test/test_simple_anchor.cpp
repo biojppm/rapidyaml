@@ -68,14 +68,14 @@ TEST(anchors, no_ambiguity_when_key_scalars_begin_with_star)
     EXPECT_EQ(t[1].key_ref(), "foo");
     EXPECT_EQ(t[2].key(), "*foo");
 
-    EXPECT_EQ(emitrs<std::string>(t), R"(foo: &foo 1
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(foo: &foo 1
 *foo: 2
 '*foo': 3
 )");
 
     t.resolve();
 
-    EXPECT_EQ(emitrs<std::string>(t), R"(foo: 1
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(foo: 1
 1: 2
 '*foo': 3
 )");
@@ -95,14 +95,14 @@ TEST(anchors, no_ambiguity_when_val_scalars_begin_with_star)
     EXPECT_EQ(t["ref"].val(), "*foo");
     EXPECT_EQ(t["quo"].val(), "*foo");
 
-    EXPECT_EQ(emitrs<std::string>(t), R"(foo: &foo 1
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(foo: &foo 1
 ref: *foo
 quo: '*foo'
 )");
 
     t.resolve();
 
-    EXPECT_EQ(emitrs<std::string>(t), R"(foo: 1
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(foo: 1
 ref: 1
 quo: '*foo'
 )");
@@ -126,7 +126,7 @@ TEST(anchors, no_ambiguity_with_inheritance)
     EXPECT_EQ(t["bar"]["<<"].key_ref(), "<<");
     EXPECT_EQ(t["bar"]["<<"].val_ref(), "foo");
 
-    EXPECT_EQ(emitrs<std::string>(t), R"(foo: &foo
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(foo: &foo
   a: 1
   b: 2
 bar:
@@ -137,7 +137,7 @@ dq:
   '<<': hehe
 )");
     t.resolve();
-    EXPECT_EQ(emitrs<std::string>(t), R"(foo:
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(foo:
   a: 1
   b: 2
 bar:
@@ -166,7 +166,7 @@ TEST(anchors, programatic_key_ref)
     ch = r.append_child();
     ch.set_key_ref("vanchor");
     ch.set_val("7");
-    EXPECT_EQ(emitrs<std::string>(t), R"(&kanchor kanchor: 2
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(&kanchor kanchor: 2
 vanchor: &vanchor 3
 '*kanchor': 4
 '*vanchor': 5
@@ -174,7 +174,7 @@ vanchor: &vanchor 3
 *vanchor: 7
 )");
     t.resolve();
-    EXPECT_EQ(emitrs<std::string>(t), R"(kanchor: 2
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(kanchor: 2
 vanchor: 3
 '*kanchor': 4
 '*vanchor': 5
@@ -196,13 +196,13 @@ TEST(anchors, programatic_val_ref)
     t["kref"].set_val_ref("kanchor");
     t["vref"].set_val_ref("vanchor");
 
-    EXPECT_EQ(emitrs<std::string>(t), R"(&kanchor kanchor: 2
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(&kanchor kanchor: 2
 vanchor: &vanchor 3
 kref: *kanchor
 vref: *vanchor
 )");
     t.resolve();
-    EXPECT_EQ(emitrs<std::string>(t), R"(kanchor: 2
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(kanchor: 2
 vanchor: 3
 kref: kanchor
 vref: 3
@@ -224,7 +224,7 @@ TEST(anchors, programatic_inheritance)
 
     t["notref"]["<<"] = "*orig";
 
-    EXPECT_EQ(emitrs<std::string>(t), R"(orig: &orig
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(orig: &orig
   foo: bar
   baz: bat
 copy:
@@ -236,7 +236,7 @@ notref:
   '<<': '*orig'
 )");
     t.resolve();
-    EXPECT_EQ(emitrs<std::string>(t), R"(orig:
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(orig:
   foo: bar
   baz: bat
 copy:
@@ -270,7 +270,7 @@ TEST(anchors, programatic_multiple_inheritance)
     ref2.set_val_ref("orig2");
     ref3.set_val_ref("orig3");
 
-    EXPECT_EQ(emitrs<std::string>(t), R"(orig1: &orig1
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(orig1: &orig1
   foo: bar
 orig2: &orig2
   baz: bat
@@ -283,7 +283,7 @@ copy:
     - *orig3
 )");
     t.resolve();
-    EXPECT_EQ(emitrs<std::string>(t), R"(orig1:
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(orig1:
   foo: bar
 orig2:
   baz: bat
@@ -304,7 +304,7 @@ TEST(anchors, set_anchor_leading_ampersand_is_optional)
     t["with"].set_key_anchor("&with");
     EXPECT_EQ(t["without"].key_anchor(), "without");
     EXPECT_EQ(t["with"].key_anchor(), "with");
-    EXPECT_EQ(emitrs<std::string>(t), R"(&without without: 0
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(&without without: 0
 &with with: 1
 )");
 
@@ -312,7 +312,7 @@ TEST(anchors, set_anchor_leading_ampersand_is_optional)
     t["with"].set_val_anchor("&with");
     EXPECT_EQ(t["without"].val_anchor(), "without");
     EXPECT_EQ(t["with"].val_anchor(), "with");
-    EXPECT_EQ(emitrs<std::string>(t), R"(&without without: &without 0
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(&without without: &without 0
 &with with: &with 1
 )");
 }
@@ -323,7 +323,7 @@ TEST(anchors, set_ref_leading_star_is_optional)
 
     t["*without"] = "0";
     t["*with"] = "1";
-    EXPECT_EQ(emitrs<std::string>(t), R"('*without': 0
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"('*without': 0
 '*with': 1
 )");
 
@@ -331,7 +331,7 @@ TEST(anchors, set_ref_leading_star_is_optional)
     t["*with"].set_key_ref("*with");
     EXPECT_EQ(t["*without"].key_ref(), "without");
     EXPECT_EQ(t["*with"].key_ref(), "with");
-    EXPECT_EQ(emitrs<std::string>(t), R"(*without: 0
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(*without: 0
 *with: 1
 )");
 
@@ -339,7 +339,7 @@ TEST(anchors, set_ref_leading_star_is_optional)
     t["*with"].set_val_ref("*with");
     EXPECT_EQ(t["*without"].val_ref(), "without");
     EXPECT_EQ(t["*with"].val_ref(), "with");
-    EXPECT_EQ(emitrs<std::string>(t), R"(*without: *without
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(*without: *without
 *with: *with
 )");
 }
@@ -362,7 +362,7 @@ TEST(anchors, set_key_ref_also_sets_the_key_when_none_exists)
     EXPECT_EQ(with.key(), "*with");
     EXPECT_EQ(without.key_ref(), "without");
     EXPECT_EQ(with.key_ref(), "with");
-    EXPECT_EQ(emitrs<std::string>(t), R"(*without: 0
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(*without: 0
 *with: 1
 )");
 }
@@ -385,7 +385,7 @@ TEST(anchors, set_val_ref_also_sets_the_val_when_none_exists)
     EXPECT_EQ(with.val(), "*with");
     EXPECT_EQ(without.val_ref(), "without");
     EXPECT_EQ(with.val_ref(), "with");
-    EXPECT_EQ(emitrs<std::string>(t), R"(without: *without
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(without: *without
 with: *with
 )");
 }
@@ -399,7 +399,7 @@ TEST(anchors, set_key_ref_replaces_existing_key)
     EXPECT_FALSE(root.has_child("*foo"));
     EXPECT_FALSE(root.has_child("*notfoo"));
     EXPECT_TRUE(root.has_child("notfoo"));
-    EXPECT_EQ(emitrs<std::string>(t), "*notfoo: bar\n");
+    EXPECT_EQ(emitrs_yaml<std::string>(t), "*notfoo: bar\n");
 }
 
 TEST(anchors, set_val_ref_replaces_existing_key)
@@ -410,7 +410,7 @@ TEST(anchors, set_val_ref_replaces_existing_key)
     EXPECT_EQ(root["foo"].val(), "notbar");
     root["foo"].set_val_ref("*notfoo");
     EXPECT_EQ(root["foo"].val(), "*notfoo");
-    EXPECT_EQ(emitrs<std::string>(t), "foo: *notfoo\n");
+    EXPECT_EQ(emitrs_yaml<std::string>(t), "foo: *notfoo\n");
 }
 
 
@@ -431,7 +431,7 @@ foo: key
 )");
     #endif
     // so we get this instead:
-    EXPECT_EQ(emitrs<std::string>(t), R"(key: value
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(key: value
 foo:
   value: 
 )");
@@ -577,13 +577,13 @@ TEST(simple_anchor, resolve_works_on_keyrefvalref)
     EXPECT_EQ(t["*b"].is_val_ref(), true);
     EXPECT_EQ(t["*b"].key_ref(), "b");
     EXPECT_EQ(t["*b"].val_ref(), "a");
-    EXPECT_EQ(emitrs<std::string>(t), R"(&a a: &b b
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(&a a: &b b
 *b: *a
 )");
     t.resolve();
     EXPECT_EQ(t["a"].val(), "b");
     EXPECT_EQ(t["b"].val(), "a");
-    EXPECT_EQ(emitrs<std::string>(t), R"(a: b
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(a: b
 b: a
 )");
 }

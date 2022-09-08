@@ -407,7 +407,7 @@ TEST(double_quoted, github253)
         root |= MAP;
         root["t"] = "t't\\nt";
         root["t"] |= _WIP_VAL_DQUO;
-        std::string s = emitrs<std::string>(tree);
+        std::string s = emitrs_yaml<std::string>(tree);
         Tree tree2 = parse_in_arena(to_csubstr(s));
         EXPECT_EQ(tree2["t"].val(), tree["t"].val());
     }
@@ -417,7 +417,7 @@ TEST(double_quoted, github253)
         root |= MAP;
         root["t"] = "t't\\nt";
         root["t"] |= _WIP_VAL_SQUO;
-        std::string s = emitrs<std::string>(tree);
+        std::string s = emitrs_yaml<std::string>(tree);
         Tree tree2 = parse_in_arena(to_csubstr(s));
         EXPECT_EQ(tree2["t"].val(), tree["t"].val());
     }
@@ -427,7 +427,7 @@ TEST(double_quoted, github253)
         root |= MAP;
         root["s"] = "t\rt";
         root["s"] |= _WIP_VAL_DQUO;
-        std::string s = emitrs<std::string>(tree);
+        std::string s = emitrs_yaml<std::string>(tree);
         EXPECT_EQ(s, "s: \"t\\rt\"\n");
         Tree tree2 = parse_in_arena(to_csubstr(s));
         EXPECT_EQ(tree2["s"].val(), tree["s"].val());

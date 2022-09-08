@@ -16,7 +16,7 @@ namespace yml {
 
 std::string emit2str(Tree const& t)
 {
-    return emitrs<std::string>(t);
+    return emitrs_yaml<std::string>(t);
 }
 
 
@@ -67,27 +67,27 @@ void check_same_emit(Tree const& expected)
     #endif
 
     std::string ws1, ws2, ws3, ws4;
-    emitrs(expected, &ws1);
+    emitrs_yaml(expected, &ws1);
     {
         SCOPED_TRACE("actual1");
         Tree actual1 = parse_in_arena(to_csubstr(ws1));
         _showtrees(1);
         test_compare(actual1, expected);
-        emitrs(actual1, &ws2);
+        emitrs_yaml(actual1, &ws2);
     }
     {
         SCOPED_TRACE("actual2");
         Tree actual2 = parse_in_arena(to_csubstr(ws2));
         _showtrees(2);
         test_compare(actual2, expected);
-        emitrs(actual2, &ws3);
+        emitrs_yaml(actual2, &ws3);
     }
     {
         SCOPED_TRACE("actual3");
         Tree actual3 = parse_in_arena(to_csubstr(ws3));
         _showtrees(3);
         test_compare(actual3, expected);
-        emitrs(actual3, &ws4);
+        emitrs_yaml(actual3, &ws4);
     }
     {
         SCOPED_TRACE("actual4");

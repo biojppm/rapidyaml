@@ -101,7 +101,7 @@ TEST(NodeRef, general)
     EXPECT_EQ(root["b"]["key"].val(), "val");
 
 
-    emit(t);
+    emit_yaml(t);
 
     EXPECT_TRUE(root.type().is_map());
     EXPECT_TRUE(root["a"].type().is_keyval());
@@ -140,7 +140,7 @@ TEST(NodeRef, general)
 
     root["b"]["seq"][2].set_val_serialized(22);
 
-    emit(t);
+    emit_yaml(t);
 
     EXPECT_TRUE(root["b"]["aaa"].type().is_keyval());
     EXPECT_EQ(root["b"]["aaa"].key_tag(), "!!str");
@@ -301,9 +301,9 @@ TEST(NodeRef, move_in_same_parent)
     EXPECT_TRUE(m.is_map());
     EXPECT_EQ(s.num_children(), vec2.size());
     EXPECT_EQ(m.num_children(), map2.size());
-    //printf("fonix"); print_tree(t); emit(r);
+    //printf("fonix"); print_tree(t); emit_yaml(r);
     r[0].move(r[1]);
-    //printf("fonix"); print_tree(t); emit(r);
+    //printf("fonix"); print_tree(t); emit_yaml(r);
     EXPECT_EQ(r[0].get(), m.get());
     EXPECT_EQ(r[0].num_children(), map2.size());
     EXPECT_EQ(r[1].get(), s.get());
@@ -326,11 +326,11 @@ TEST(NodeRef, move_to_other_parent)
 
     NodeData *elm2 = r[2].get();
     EXPECT_EQ(r[2].val(), "elm2");
-    //printf("fonix"); print_tree(t); emit(r);
+    //printf("fonix"); print_tree(t); emit_yaml(r);
     r[2].move(r[0], r[0][0]);
     EXPECT_EQ(r[0][1].get(), elm2);
     EXPECT_EQ(r[0][1].val(), "elm2");
-    //printf("fonix"); print_tree(t); emit(r);
+    //printf("fonix"); print_tree(t); emit_yaml(r);
 }
 
 TEST(NodeRef, duplicate)

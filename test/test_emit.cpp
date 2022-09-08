@@ -92,37 +92,37 @@ TEST(as_json, basic)
 template<class ...Args>
 void test_emits(Tree const& t, size_t id, std::string const& expected, std::string const& expected_json)
 {
-    EXPECT_EQ(emit2buf([&](substr buf){ return emit(t, id, buf); }), expected);
+    EXPECT_EQ(emit2buf([&](substr buf){ return emit_yaml(t, id, buf); }), expected);
     EXPECT_EQ(emit2buf([&](substr buf){ return emit_json(t, id, buf); }), expected_json);
-    EXPECT_EQ(emit2file([&](FILE *f){ return emit(t, id, f); }), expected);
+    EXPECT_EQ(emit2file([&](FILE *f){ return emit_yaml(t, id, f); }), expected);
     EXPECT_EQ(emit2file([&](FILE *f){ return emit_json(t, id, f); }), expected_json);
-    EXPECT_EQ(emitrs<std::string>(t, id), expected);
+    EXPECT_EQ(emitrs_yaml<std::string>(t, id), expected);
     EXPECT_EQ(emitrs_json<std::string>(t, id), expected_json);
 }
 
 template<class ...Args>
 void test_emits(Tree const& t, std::string const& expected, std::string const& expected_json)
 {
-    EXPECT_EQ(emit2buf([&](substr buf){ return emit(t, buf); }), expected);
+    EXPECT_EQ(emit2buf([&](substr buf){ return emit_yaml(t, buf); }), expected);
     EXPECT_EQ(emit2buf([&](substr buf){ return emit_json(t, buf); }), expected_json);
-    EXPECT_EQ(emit2file([&](FILE *f){ return emit(t, f); }), expected);
+    EXPECT_EQ(emit2file([&](FILE *f){ return emit_yaml(t, f); }), expected);
     EXPECT_EQ(emit2file([&](FILE *f){ return emit_json(t, f); }), expected_json);
     EXPECT_EQ(emit2stream([&](std::ostream& s){ s << t; }), expected);
     EXPECT_EQ(emit2stream([&](std::ostream& s){ s << as_json(t); }), expected_json);
-    EXPECT_EQ(emitrs<std::string>(t), expected);
+    EXPECT_EQ(emitrs_yaml<std::string>(t), expected);
     EXPECT_EQ(emitrs_json<std::string>(t), expected_json);
 }
 
 template<class ...Args>
 void test_emits(ConstNodeRef t, std::string const& expected, std::string const& expected_json)
 {
-    EXPECT_EQ(emit2buf([&](substr buf){ return emit(t, buf); }), expected);
+    EXPECT_EQ(emit2buf([&](substr buf){ return emit_yaml(t, buf); }), expected);
     EXPECT_EQ(emit2buf([&](substr buf){ return emit_json(t, buf); }), expected_json);
-    EXPECT_EQ(emit2file([&](FILE *f){ return emit(t, f); }), expected);
+    EXPECT_EQ(emit2file([&](FILE *f){ return emit_yaml(t, f); }), expected);
     EXPECT_EQ(emit2file([&](FILE *f){ return emit_json(t, f); }), expected_json);
     EXPECT_EQ(emit2stream([&](std::ostream& s){ s << t; }), expected);
     EXPECT_EQ(emit2stream([&](std::ostream& s){ s << as_json(t); }), expected_json);
-    EXPECT_EQ(emitrs<std::string>(t), expected);
+    EXPECT_EQ(emitrs_yaml<std::string>(t), expected);
     EXPECT_EQ(emitrs_json<std::string>(t), expected_json);
 }
 
@@ -379,7 +379,7 @@ TEST(emit, percent_is_quoted)
     ti["%ROOT2"] |= SEQ;
     ti["%ROOT2"][0] = "%VAL";
     ti["%ROOT2"][1] = "%VAL";
-    std::string yaml = emitrs<std::string>(ti);
+    std::string yaml = emitrs_yaml<std::string>(ti);
     test_check_emit_check(to_csubstr(yaml), [](Tree const &t){
         ASSERT_TRUE(t.rootref().is_map());
         ASSERT_TRUE(t.rootref().has_child("%ROOT"));

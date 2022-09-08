@@ -63,7 +63,7 @@ TEST(general, emitting)
     //print_tree(tree);
 
     // emit to stdout (can also emit to FILE* or ryml::span)
-    emitrs(tree, &cmpbuf);
+    emitrs_yaml(tree, &cmpbuf);
     const char* exp = R"(foo: 1
 seq:
   - bar0
@@ -88,7 +88,7 @@ seq:
         // knows how to turn an std::string into a c4::csubstr/c4::substr.
     }
 
-    emitrs(tree, &cmpbuf);
+    emitrs_yaml(tree, &cmpbuf);
     exp = R"(foo: 1
 seq:
   - bar0
@@ -104,7 +104,7 @@ seq:
     int k=66;
     r.append_child() << key(k) << 7;
 
-    emitrs(tree, &cmpbuf);
+    emitrs_yaml(tree, &cmpbuf);
     exp = R"(foo: 1
 seq:
   - bar0
@@ -125,7 +125,7 @@ TEST(general, map_to_root)
     Tree t;
     t.rootref() << m;
 
-    emitrs(t, &cmpbuf);
+    emitrs_yaml(t, &cmpbuf);
     exp = R"(bar: 2
 foo: 1
 )";
@@ -173,7 +173,7 @@ TEST(general, numbers)
 - 1e+2
 )";
     Tree t = parse_in_arena(yaml);
-    auto s = emitrs<std::string>(t);
+    auto s = emitrs_yaml<std::string>(t);
     EXPECT_EQ(s, std::string(yaml));
 }
 
@@ -201,7 +201,7 @@ TEST(general, newlines_on_maps_nested_in_seqs)
     species: BokoblinSeries
 )";
     Tree t = parse_in_arena(yaml);
-    auto s = emitrs<std::string>(t);
+    auto s = emitrs_yaml<std::string>(t);
     EXPECT_EQ(expected, s);
 }
 
@@ -277,7 +277,7 @@ TEST(general, github_issue_124)
     {
         SCOPED_TRACE(inp);
         Tree t = parse_in_arena(inp);
-        std::string s = emitrs<std::string>(t);
+        std::string s = emitrs_yaml<std::string>(t);
         // The re-emitted output should not contain the comment.
         EXPECT_EQ(c4::to_csubstr(s), "a:\n  - b\nc: d\n");
     }

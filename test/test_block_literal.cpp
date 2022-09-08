@@ -69,19 +69,19 @@ TEST(block_literal, emit_does_not_add_lines_to_multi_at_end_1)
     r.append_child() = "\n\n";
     r.append_child() = "\n\n";
     r.append_child() = "last";
-    std::string out = emitrs<std::string>(t);
+    std::string out = emitrs_yaml<std::string>(t);
     t.clear();
     t = parse_in_arena(to_csubstr(out));
     EXPECT_EQ(t[0].val(), csubstr("\n\n"));
     EXPECT_EQ(t[1].val(), csubstr("\n\n"));
     EXPECT_EQ(t[2].val(), csubstr("last"));
-    out = emitrs<std::string>(t);
+    out = emitrs_yaml<std::string>(t);
     t.clear();
     t = parse_in_arena(to_csubstr(out));
     EXPECT_EQ(t[0].val(), csubstr("\n\n"));
     EXPECT_EQ(t[1].val(), csubstr("\n\n"));
     EXPECT_EQ(t[2].val(), csubstr("last"));
-    out = emitrs<std::string>(t);
+    out = emitrs_yaml<std::string>(t);
     t.clear();
     t = parse_in_arena(to_csubstr(out));
     EXPECT_EQ(t[0].val(), csubstr("\n\n"));
@@ -104,15 +104,15 @@ TEST(block_literal, emit_does_not_add_lines_to_multi_at_end_2)
    
 
 )";
-    std::string out = emitrs<std::string>(t);
+    std::string out = emitrs_yaml<std::string>(t);
     EXPECT_EQ(out, expected);
     t = parse_in_arena(to_csubstr(out));
     EXPECT_EQ(t.docref(0).val(), csubstr("ab\n\n \n"));
-    out = emitrs<std::string>(t);
+    out = emitrs_yaml<std::string>(t);
     EXPECT_EQ(out, expected);
     t = parse_in_arena(to_csubstr(out));
     EXPECT_EQ(t.docref(0).val(), csubstr("ab\n\n \n"));
-    out = emitrs<std::string>(t);
+    out = emitrs_yaml<std::string>(t);
     EXPECT_EQ(out, expected);
     t = parse_in_arena(to_csubstr(out));
     EXPECT_EQ(t.docref(0).val(), csubstr("ab\n\n \n"));
@@ -158,12 +158,12 @@ TEST(block_literal, emit_does_not_add_lines_to_multi_at_end_3)
     Tree t = parse_in_arena(to_csubstr(yaml));
     EXPECT_EQ(t[0].val(), "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n");
     EXPECT_EQ(t[1].val(), "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n\n");
-    std::string out = emitrs<std::string>(t);
+    std::string out = emitrs_yaml<std::string>(t);
     EXPECT_EQ(out, expected);
     t = parse_in_arena(to_csubstr(out));
     EXPECT_EQ(t[0].val(), "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n");
     EXPECT_EQ(t[1].val(), "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n\n");
-    out = emitrs<std::string>(t);
+    out = emitrs_yaml<std::string>(t);
     EXPECT_EQ(out, expected);
 }
 
@@ -178,7 +178,7 @@ TEST(block_literal, carriage_return)
     Tree t = parse_in_arena(to_csubstr(yaml));
     EXPECT_EQ(t["with"].val(), "text\n \tlines\n");
     EXPECT_EQ(t["without"].val(), "text\n \tlines\n");
-    auto emitted = emitrs<std::string>(t);
+    auto emitted = emitrs_yaml<std::string>(t);
     #ifdef RYML_DBG
     __c4presc(emitted.data(), emitted.size());
     #endif
