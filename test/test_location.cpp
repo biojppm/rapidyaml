@@ -523,6 +523,90 @@ baz6:
 }
 
 
+TEST(locations, issue260_0)
+{
+    Parser parser;
+    Tree tree = parser.parse_in_arena("source.yml", R"(Body:
+  - Id: 1
+    Name: Apple
+    Script: |
+      Line One
+      Line Two
+  - Id: 2
+    Name: Cat
+    Script: |
+      Line One
+      Line Two
+  - Id: 3
+    Name: Dog
+    Script: |
+      Line One
+      Line Two)");
+    EXPECT_EQ(tree["Body"][2]["Name"].val(), "Dog");
+    EXPECT_EQ(parser.location(tree["Body"][2]["Name"]).line, 12u);
+}
+
+TEST(locations, issue260_1)
+{
+    Parser parser;
+    Tree tree = parser.parse_in_arena("source.yml", R"(Body:  # 0
+  - Id: 1           # line 1
+    Name: Apple
+  - Id: 2           # line 3
+    Name: Cat
+    Script: |
+      Line One
+      Line Two
+  - Id: 3           # line 8
+    Name: Cat2
+    Script: >
+      Line One
+      Line Two
+  - Id: 4           # line 13
+    Name: Cat3
+    Script: "
+      Line One
+      Line Two"
+  - Id: 5           # line 18
+    Name: Cat4
+    Script: '
+      Line One
+      Line Two'
+  - Id: 5           # line 23
+    Name: Cat5
+    Script:
+      Line One
+      Line Two
+  - Id: 6           # line 28
+    Name: Dog
+    Script: |
+      Line One
+      Line Two)");
+    EXPECT_EQ(parser.location(tree["Body"][0]).line, 1u);
+    EXPECT_EQ(parser.location(tree["Body"][1]).line, 3u);
+    EXPECT_EQ(parser.location(tree["Body"][2]).line, 8u);
+    EXPECT_EQ(parser.location(tree["Body"][3]).line, 13u);
+    EXPECT_EQ(parser.location(tree["Body"][4]).line, 18u);
+    EXPECT_EQ(parser.location(tree["Body"][5]).line, 23u);
+    EXPECT_EQ(parser.location(tree["Body"][6]).line, 28u);
+    EXPECT_EQ(parser.location(tree["Body"][0]["Id"]).line, 1u);
+    EXPECT_EQ(parser.location(tree["Body"][1]["Id"]).line, 3u);
+    EXPECT_EQ(parser.location(tree["Body"][2]["Id"]).line, 8u);
+    EXPECT_EQ(parser.location(tree["Body"][3]["Id"]).line, 13u);
+    EXPECT_EQ(parser.location(tree["Body"][4]["Id"]).line, 18u);
+    EXPECT_EQ(parser.location(tree["Body"][5]["Id"]).line, 23u);
+    EXPECT_EQ(parser.location(tree["Body"][6]["Id"]).line, 28u);
+    EXPECT_EQ(parser.location(tree["Body"][0]["Name"]).line, 1u+1u);
+    EXPECT_EQ(parser.location(tree["Body"][1]["Name"]).line, 3u+1u);
+    EXPECT_EQ(parser.location(tree["Body"][2]["Name"]).line, 8u+1u);
+    EXPECT_EQ(parser.location(tree["Body"][3]["Name"]).line, 13u+1u);
+    EXPECT_EQ(parser.location(tree["Body"][4]["Name"]).line, 18u+1u);
+    EXPECT_EQ(parser.location(tree["Body"][5]["Name"]).line, 23u+1u);
+    EXPECT_EQ(parser.location(tree["Body"][6]["Name"]).line, 28u+1u);
+}
+
+
+
 // The other test executables are written to contain the declarative-style
 // YmlTestCases. This executable does not have any but the build setup
 // assumes it does, and links with the test lib, which requires an existing
