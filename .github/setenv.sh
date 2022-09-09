@@ -101,7 +101,8 @@ function c4_run_test()
     c4_run_target $* test
 }
 
-function c4_build_target()  # runs in parallel
+# runs in parallel
+function c4_build_target()
 {
     if _c4skipbitlink "$1" ; then return 0 ; fi
     id=$1
@@ -117,7 +118,8 @@ function c4_build_target()  # runs in parallel
     cmake --build $build_dir --config $BT $target -- $(_c4_generator_build_flags) $(_c4_parallel_build_flags)
 }
 
-function c4_run_target()  # does not run in parallel
+# does not run in parallel
+function c4_run_target()
 {
     if _c4skipbitlink "$1" ; then return 0 ; fi
     id=$1
@@ -236,7 +238,7 @@ function c4_cfg_test()
         # export CODECOV_TOKEN=.......
         # export COVERALLS_REPO_TOKEN=.......
         _addprojflags COVERAGE_CODECOV=ON COVERAGE_CODECOV_SILENT=ON
-        _addprojflags COVERAGE_COVERALLS=ON COVERAGE_COVERALLS_SILENT=ON
+        _addprojflags COVERAGE_COVERALLS=ON COVERAGE_COVERALLS_SILENT=OFF
     fi
     if [ ! -z "$VERBOSE_MAKEFILES" ] ; then
         _addcmkflags -DCMAKE_VERBOSE_MAKEFILES=$VERBOSE_MAKEFILES
