@@ -106,7 +106,7 @@ def _addseq(t, node, k=None):
     return m
 
 
-def _addleaf(t, node, k, v=None):
+def _addval(t, node, k, v=None):
     ch = t.append_child(node)
     if v is None:
         t.to_val(ch, k)
@@ -121,32 +121,32 @@ def _addleaf(t, node, k, v=None):
 def check_tree_mod(ut, t):
     # some convenient shorthands
     eq = ut.assertEqual
-    def _leaf(node, k, v=None):
-        ch = _addleaf(t, node, k, v)
+    def _addval_and_check(node, k, v=None):
+        ch = _addval(t, node, k, v)
         pos = t.child_pos(node, ch)
         eq(t.child(node, pos), ch)
         if v is not None:
             eq(t.find_child(node, k), ch)
             eq(t.child(node, pos), t.find_child(node, k))
         return ch
-    def _seq(node, k):
+    def _addseq_and_check(node, k):
         ch = _addseq(t, node, k)
         eq(t.find_child(node, k), ch)
         return ch
-    def _map(node, k):
+    def _addmap_and_check(node, k):
         ch = _addmap(t, node, k)
         eq(t.find_child(node, k), ch)
         return ch
-    m = _map(t.root_id(), "check_tree_mod_map")
-    _leaf(m, "k1", "v1")
-    _leaf(m, "k2", "v2")
-    _leaf(m, "k3", "v3")
+    m = _addmap_and_check(t.root_id(), "check_tree_mod_map")
+    _addval_and_check(m, "k1", "v1")
+    _addval_and_check(m, "k2", "v2")
+    _addval_and_check(m, "k3", "v3")
     eq(t.num_children(m), 3)
     eq(t.num_siblings(t.first_child(m)), 3)
-    s = _seq(t.root_id(), "check_tree_mod_seq")
-    _leaf(s, "v1")
-    _leaf(s, "v2")
-    _leaf(s, "v3")
+    s = _addseq_and_check(t.root_id(), "check_tree_mod_seq")
+    _addval_and_check(s, "v1")
+    _addval_and_check(s, "v2")
+    _addval_and_check(s, "v3")
     eq(t.num_children(s), 3)
     eq(t.num_siblings(t.first_child(m)), 3)
 
@@ -154,7 +154,7 @@ def check_tree_mod(ut, t):
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
-class SimpleHardcoded:
+class SimpleTestCase:
 
     yaml = "{'HELLO': a, foo: \"b\", bar: c, baz: d, seq: [0, 1, 2, 3]}"
 
@@ -353,92 +353,97 @@ class SimpleHardcoded:
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
-class _TestBase(unittest.TestCase):
+class TestRunner(unittest.TestCase):
 
-    def _setUp(self, case=None):
+    def setUp(self):
+        self._setUp(SimpleTestCase())
+
+    # allow creating this class with different cases
+    # if they are added
+    def _setUp(self, case):
         self.case = case
         self.src_as_str = str(case.yaml)
         self.src_as_bytes = bytes(case.yaml, "utf8")
         self.src_as_bytearray = bytearray(case.yaml, "utf8")
 
     # ----------------------------------------------------------
-    def _test11_str__ro(self):  # cannot read string buffers (or can we?)
+    def test11_str__arena(self):  # cannot read string buffers (or can we?)
         tree = ryml.parse_in_arena(self.src_as_str)
         self.case.check(self, tree)
 
-    def _test12_str__ro__reuse_tree(self):  # cannot read string buffers (or can we?)
+    def test12_str__arena__reuse_tree(self):  # cannot read string buffers (or can we?)
         t = ryml.Tree()
         ryml.parse_in_arena(self.src_as_str, tree=t)
         self.case.check(self, t)
 
-    def _test13_str__rw(self):  # cannot mutate string buffers (or can we?)
+    def test13_str__inplace(self):  # cannot mutate string buffers (or can we?)
         with self.assertRaises(TypeError) as context:
             ryml.parse_in_place(self.src_as_str)
         self.assertTrue(type(context.exception), TypeError)
 
     # ----------------------------------------------------------
-    def _test21_bytes__ro(self):
+    def test21_bytes__arena(self):
         tree = ryml.parse_in_arena(self.src_as_bytes)
         self.case.check(self, tree)
 
-    def _test22_bytes__ro__reuse_tree(self):
+    def test22_bytes__arena__reuse_tree(self):
         t = ryml.Tree()
         r = ryml.parse_in_arena(self.src_as_bytes, tree=t)
         self.assertTrue(r is t)
         self.case.check(self, t)
 
-    def _test23_bytes__rw(self):  # cannot mutate bytes buffers
+    def test23_bytes__inplace(self):  # cannot mutate bytes buffers
         with self.assertRaises(TypeError) as context:
             ryml.parse_in_place(self.src_as_bytes)
         self.assertTrue(type(context.exception), TypeError)
 
     # ----------------------------------------------------------
-    def _test31_bytearray__ro(self):
+    def test31_bytearray__arena(self):
         tree = ryml.parse_in_arena(self.src_as_bytearray)
         self.case.check(self, tree)
 
-    def _test32_bytearray__ro__reuse_tree(self):
+    def test32_bytearray__arena__reuse_tree(self):
         t = ryml.Tree()
         r = ryml.parse_in_arena(self.src_as_bytearray, tree=t)
         self.assertTrue(r is t)
         self.case.check(self, t)
 
-    def _test33_bytearray__rw(self):  # bytearray buffers are mutable
+    def test33_bytearray__inplace(self):  # bytearray buffers are mutable
         tree = ryml.parse_in_place(self.src_as_bytearray)
         self.case.check(self, tree)
 
-    def _test34_bytearray__rw__reuse_tree(self):  # bytearray buffers are mutable
+    def test34_bytearray__inplace__reuse_tree(self):  # bytearray buffers are mutable
         t = ryml.Tree()
         r = ryml.parse_in_place(self.src_as_bytearray, tree=t)
         self.assertTrue(r is t)
         self.case.check(self, t)
 
     # ----------------------------------------------------------
-    def _test41_emit_yaml(self):
+    def test41_emit_yaml(self):
         tree = ryml.parse_in_arena(self.src_as_bytearray)
         yaml = ryml.emit_yaml(tree)
         output_tree = ryml.parse_in_arena(yaml)
         self.case.check(self, output_tree)
 
-    def _test41_emit_json(self):
+    def test41_emit_json(self):
         tree = ryml.parse_in_arena(self.src_as_bytearray)
         json = ryml.emit_json(tree)
         output_tree = ryml.parse_in_arena(json)
         self.case.check(self, output_tree, is_json=True)
 
-    def _test42_compute_emit_yaml_length(self):
+    def test42_compute_emit_yaml_length(self):
         tree = ryml.parse_in_arena(self.src_as_bytearray)
         yaml = ryml.emit_yaml(tree)
         length = ryml.compute_emit_yaml_length(tree)
         self.assertEqual(len(yaml), length)
 
-    def _test42_compute_emit_json_length(self):
+    def test42_compute_emit_json_length(self):
         tree = ryml.parse_in_arena(self.src_as_bytearray)
         json = ryml.emit_json(tree)
         length = ryml.compute_emit_json_length(tree)
         self.assertEqual(len(json), length)
 
-    def _test43_emit_yaml_in_place(self):
+    def test43_emit_yaml_inplace(self):
         tree = ryml.parse_in_arena(self.src_as_bytearray)
         yaml = ryml.emit_yaml(tree)
         length = ryml.compute_emit_yaml_length(tree)
@@ -449,7 +454,7 @@ class _TestBase(unittest.TestCase):
         self.assertTrue(s.tobytes().decode('utf-8') == yaml)
         self.assertTrue(buf.decode('utf-8') == yaml)
 
-    def _test43_emit_json_in_place(self):
+    def test43_emit_json_inplace(self):
         tree = ryml.parse_in_arena(self.src_as_bytearray)
         json = ryml.emit_json(tree)
         length = ryml.compute_emit_json_length(tree)
@@ -460,86 +465,20 @@ class _TestBase(unittest.TestCase):
         self.assertTrue(s.tobytes().decode('utf-8') == json)
         self.assertTrue(buf.decode('utf-8') == json)
 
-    def _test44_emit_yaml_short_buf(self):
+    def test44_emit_yaml_short_buf(self):
         tree = ryml.parse_in_arena(self.src_as_bytearray)
         length = ryml.compute_emit_yaml_length(tree)
         buf = bytearray(length-1)
         with self.assertRaises(IndexError):
             ryml.emit_yaml_in_place(tree, buf)
 
-    def _test44_emit_json_short_buf(self):
+    def test44_emit_json_short_buf(self):
         tree = ryml.parse_in_arena(self.src_as_bytearray)
         length = ryml.compute_emit_json_length(tree)
         buf = bytearray(length-1)
         with self.assertRaises(IndexError):
             ryml.emit_json_in_place(tree, buf)
 
-
-# -----------------------------------------------------------------------------
-# -----------------------------------------------------------------------------
-# -----------------------------------------------------------------------------
-class TestSimpleHardCoded(_TestBase):
-
-    def setUp(self):
-        _TestBase._setUp(self, SimpleHardcoded())
-
-    # ----------------------------------------------------------
-    def test11_str__ro(self):
-        super()._test11_str__ro()
-
-    def test12_str__ro__reuse_tree(self):
-        self._test12_str__ro__reuse_tree()
-
-    def test13_str__rw(self):
-        self._test13_str__rw()
-
-    # ----------------------------------------------------------
-    def test21_bytes__ro(self):
-        self._test21_bytes__ro()
-
-    def test22_bytes__ro__reuse_tree(self):
-        self._test22_bytes__ro__reuse_tree()
-
-    def test23_bytes__rw(self):
-        self._test23_bytes__rw()
-
-    # ----------------------------------------------------------
-    def test31_bytearray__ro(self):
-        self._test31_bytearray__ro()
-
-    def test32_bytearray__ro__reuse_tree(self):
-        self._test32_bytearray__ro__reuse_tree()
-
-    def test33_bytearray__rw(self):
-        self._test33_bytearray__rw()
-
-    def test34_bytearray__rw__reuse_tree(self):
-        self._test34_bytearray__rw__reuse_tree()
-
-    # ----------------------------------------------------------
-    def test41_emit_yaml(self):
-        self._test41_emit_yaml()
-
-    def test41_emit_json(self):
-        self._test41_emit_json()
-
-    def test42_compute_emit_yaml_length(self):
-        self._test42_compute_emit_yaml_length()
-
-    def test42_compute_emit_json_length(self):
-        self._test42_compute_emit_json_length()
-
-    def test43_emit_yaml_in_place(self):
-        self._test43_emit_yaml_in_place()
-
-    def test43_emit_json_in_place(self):
-        self._test43_emit_json_in_place()
-
-    def test44_emit_yaml_short_buf(self):
-        self._test44_emit_yaml_short_buf()
-
-    def test44_emit_json_short_buf(self):
-        self._test44_emit_json_short_buf()
 
 
 # -----------------------------------------------------------------------------

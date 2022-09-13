@@ -149,7 +149,7 @@ jobs:
           set -x
           source vars.sh
           mkdir -p assets
-          asset_src=`ls -1 ./build/shared64/${PROJ_PFX_TARGET}*-${{matrix.config.sfxg}}`
+          asset_src=`ls -1 ./build/shared64/*-${{matrix.config.sfxg}}`
           asset_dst=./assets/${PROJ_PKG_NAME}${SRC_VERSION}-${{matrix.config.sfxp}}
           [ ! -f $asset_src ] && exit 1
           cp -fav $asset_src $asset_dst
@@ -198,40 +198,54 @@ jobs:
     runs-on: ${{matrix.config.os}}
     env:
       CMAKE_FLAGS: "${{matrix.config.cmakeflags}} -DRYML_DEV=OFF -DRYML_BUILD_API=ON -DRYML_API_TESTS=OFF -DRYML_API_BENCHMARKS=OFF"
-      CIBW_BUILD: "cp${{matrix.config.cibw_pyv}}*-${{matrix.config.cibw_platform}}"
+      CIBW_BUILD: "cp${{matrix.config.cibw_pyv}}-${{matrix.config.cibw_platform}}"
       CIBW_ARCHS: "${{matrix.config.cibw_arch}}"
     strategy:
       fail-fast: false
       matrix:
         config:
-          - {pythonv: 3.9, cibw_pyv: 39 , cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
-          - {pythonv: 3.9, cibw_pyv: 39 , cibw_arch: i686  , cibw_platform: manylinux_i686  , osname: linux, os: ubuntu-20.04}
-          - {pythonv: 3.8, cibw_pyv: 38 , cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
-          - {pythonv: 3.8, cibw_pyv: 38 , cibw_arch: i686  , cibw_platform: manylinux_i686  , osname: linux, os: ubuntu-20.04}
-          - {pythonv: 3.7, cibw_pyv: 37 , cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
-          - {pythonv: 3.7, cibw_pyv: 37 , cibw_arch: i686  , cibw_platform: manylinux_i686  , osname: linux, os: ubuntu-20.04}
-          # the windows 32bit are disabled because they are causing problems and preventing the release.
+          # the 3-digit versions NEED to be quoted to prevent the version being read as float. (!)
+          - {pythonv: '3.11', cibw_pyv: 311, cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
+          - {pythonv: '3.11', cibw_pyv: 311, cibw_arch: i686  , cibw_platform: manylinux_i686  , osname: linux, os: ubuntu-20.04}
+          - {pythonv: '3.10', cibw_pyv: 310, cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
+          - {pythonv: '3.10', cibw_pyv: 310, cibw_arch: i686  , cibw_platform: manylinux_i686  , osname: linux, os: ubuntu-20.04}
+          - {pythonv:  3.9  , cibw_pyv: 39 , cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
+          - {pythonv:  3.9  , cibw_pyv: 39 , cibw_arch: i686  , cibw_platform: manylinux_i686  , osname: linux, os: ubuntu-20.04}
+          - {pythonv:  3.8  , cibw_pyv: 38 , cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
+          - {pythonv:  3.8  , cibw_pyv: 38 , cibw_arch: i686  , cibw_platform: manylinux_i686  , osname: linux, os: ubuntu-20.04}
+          - {pythonv:  3.7  , cibw_pyv: 37 , cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
+          - {pythonv:  3.7  , cibw_pyv: 37 , cibw_arch: i686  , cibw_platform: manylinux_i686  , osname: linux, os: ubuntu-20.04}
+          - {pythonv:  3.6  , cibw_pyv: 36 , cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
+          - {pythonv:  3.6  , cibw_pyv: 36 , cibw_arch: i686  , cibw_platform: manylinux_i686  , osname: linux, os: ubuntu-20.04}
+          # the windows builds are disabled because they are causing problems and preventing the release.
           # the problems are related to CMakeExtension forcing the use of Ninja
           # which does not play well with the -G 'Visual Studio...' option used below.
           # fixing this looks like it will be time-intensive.
-          #- {pythonv: 3.9, cibw_pyv: 39 , cibw_arch: AMD64 , cibw_platform: win_amd64       , osname: win  , os: windows-2019, cxx: vs2019, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
-          #- {pythonv: 3.9, cibw_pyv: 39 , cibw_arch: x86   , cibw_platform: win32           , osname: win  , os: windows-2019, cxx: vs2019, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
-          #- {pythonv: 3.8, cibw_pyv: 38 , cibw_arch: AMD64 , cibw_platform: win_amd64       , osname: win  , os: windows-2019, cxx: vs2019, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
-          #- {pythonv: 3.8, cibw_pyv: 38 , cibw_arch: x86   , cibw_platform: win32           , osname: win  , os: windows-2019, cxx: vs2019, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
-          #- {pythonv: 3.7, cibw_pyv: 37 , cibw_arch: AMD64 , cibw_platform: win_amd64       , osname: win  , os: windows-2019, cxx: vs2019, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
-          #- {pythonv: 3.7, cibw_pyv: 37 , cibw_arch: x86   , cibw_platform: win32           , osname: win  , os: windows-2019, cxx: vs2019, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
-          # TODO: macos
-          #- {pythonv: 3.9 , cxx: xcode, os: macos-10.15}
-          #- {pythonv: 3.9 , cxx: xcode, os: macos-10.15}
-          #- {pythonv: 3.8 , cxx: xcode, os: macos-10.15}
-          #- {pythonv: 3.8 , cxx: xcode, os: macos-10.15}
-          #- {pythonv: 3.7 , cxx: xcode, os: macos-10.15}
-          #- {pythonv: 3.7 , cxx: xcode, os: macos-10.15}
+          #- {pythonv: '3.11', cibw_pyv: 311, cibw_arch: AMD64 , cibw_platform: win_amd64, osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
+          #- {pythonv: '3.11', cibw_pyv: 311, cibw_arch: x86   , cibw_platform: win32    , osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
+          #- {pythonv: '3.10', cibw_pyv: 310, cibw_arch: AMD64 , cibw_platform: win_amd64, osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
+          #- {pythonv: '3.10', cibw_pyv: 310, cibw_arch: x86   , cibw_platform: win32    , osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
+          #- {pythonv:  3.9  , cibw_pyv: 39 , cibw_arch: AMD64 , cibw_platform: win_amd64, osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
+          #- {pythonv:  3.9  , cibw_pyv: 39 , cibw_arch: x86   , cibw_platform: win32    , osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
+          #- {pythonv:  3.8  , cibw_pyv: 38 , cibw_arch: AMD64 , cibw_platform: win_amd64, osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
+          #- {pythonv:  3.8  , cibw_pyv: 38 , cibw_arch: x86   , cibw_platform: win32    , osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
+          - {pythonv:  3.7  , cibw_pyv: 37 , cibw_arch: AMD64 , cibw_platform: win_amd64, osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
+          #- {pythonv:  3.7  , cibw_pyv: 37 , cibw_arch: x86   , cibw_platform: win32    , osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
+          - {pythonv:  3.6  , cibw_pyv: 36 , cibw_arch: AMD64 , cibw_platform: win_amd64, osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
+          #- {pythonv:  3.6  , cibw_pyv: 36 , cibw_arch: x86   , cibw_platform: win32    , osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
+          ## macosx builds are generating a SIGSEGV when importing. (!)
+          ## https://github.com/biojppm/rapidyaml/actions/runs/3062528713/jobs/4943611397#step:7:269
+          #- {pythonv: '3.11', cibw_pyv: 311, cibw_arch: x86_64, cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
+          #- {pythonv: '3.10', cibw_pyv: 310, cibw_arch: x86_64, cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
+          #- {pythonv:  3.9  , cibw_pyv: 39 , cibw_arch: x86_64, cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
+          #- {pythonv:  3.8  , cibw_pyv: 38 , cibw_arch: x86_64, cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
+          #- {pythonv:  3.7  , cibw_pyv: 37 , cibw_arch: x86_64, cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
+          #- {pythonv:  3.6  , cibw_pyv: 36 , cibw_arch: x86_64, cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
     steps:
       # use fetch-depth to ensure all tags are fetched
       - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive, fetch-depth: 0}}
       - name: create wheel
-        uses: joerick/cibuildwheel@v2.1.1
+        uses: joerick/cibuildwheel@v2.9.0
       - name: rename wheelhouse -> dist
         run: |
           mv -fv wheelhouse dist
@@ -243,24 +257,27 @@ jobs:
       - name: install python ${{matrix.config.pythonv}}
         uses: actions/setup-python@v4
         with:
-          python-version: ${{matrix.config.pythonv}}
+          python-version: '${{matrix.config.pythonv}}'
       - name: test with python ${{matrix.config.pythonv}}
         run: |
           set -x
-          # do not run the tests in 32 bit
-          arch=${{matrix.config.cibw_arch}}
-          if [ "$arch" == "i686" ] || [ "$arch" == "x86" ] ; then
+          echo "python ${{matrix.config.pythonv}} ${{matrix.config.py_arch}} ${{matrix.config.cibw_arch}}"
+          # skip 32 bit tests, as Python 32 bits are not available in ubuntu
+          arch="${{matrix.config.cibw_arch}}"
+          if [ "$arch" == "x86" ] || [ "$arch" == "i686" ] ; then
             exit 0
           fi
           python --version
+          python -c 'import sys ; import struct ; print("python:", sys.version, struct.calcsize("P") * 8, "bits")'
           pip --version
           pip install -v -r requirements.txt
           pip install -v -r api/python/requirements.txt
           for whl in dist/* ; do
             pip install -v $whl
             pip show -f rapidyaml
-            python -c 'import ryml ; dir(ryml) ; tree = ryml.parse_in_arena(b"{foo: bar}") ; assert tree.key(1) == b"foo" ; assert tree.val(1) == b"bar"'
-            python -m nose -v api/python/ryml/tests
+            python -c 'import ryml ; print("ryml", ryml.version, ryml.version_tuple)'
+            python -c 'import ryml ; tree = ryml.parse_in_arena(b"{foo: bar}") ; assert tree.key(1) == b"foo" ; assert tree.val(1) == b"bar" ; print(str(tree.key(1), "utf8")) ; print(str(tree.val(1), "utf8"))'
+            python -m pytest -vvv api/python/tests
             pip uninstall -y -v rapidyaml
           done
 
@@ -289,16 +306,6 @@ jobs:
         run: |
           ls -lFhp assets/
           ls -lFhp dist/
-      #
-      # PyPI (test)
-      - name: Publish python packages to test PyPI
-        uses: pypa/gh-action-pypi-publish@v1.4.2
-        with:
-          repository_url: https://test.pypi.org/legacy/
-          user: __token__
-          password: ${{secrets.PYPI_TOKEN_TEST}}
-          verbose: true
-          skip_existing: true
       #
       # Github
       - name: Restore vars.sh
@@ -338,6 +345,16 @@ jobs:
         with:
           release_id: ${{steps.create_release.outputs.id}}
           assets_path: ./assets/
+      #
+      # PyPI (test)
+      - name: Publish python packages to test PyPI
+        uses: pypa/gh-action-pypi-publish@v1.4.2
+        with:
+          repository_url: https://test.pypi.org/legacy/
+          user: __token__
+          password: ${{secrets.PYPI_TOKEN_TEST}}
+          verbose: true
+          skip_existing: true
       #
       # PyPI (production)
       - name: Publish python packages to production PyPI

@@ -41,6 +41,7 @@ compile_commands.json
 .eggs/
 dist/
 rapidyaml.egg-info/
+wheelhouse/
 
 # continuous integration files
 .ci/.vagrant

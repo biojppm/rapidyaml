@@ -469,7 +469,6 @@ public:
     bool has_children(size_t node) const;
     bool has_sibling(size_t node, c4::csubstr key) const;
     //bool has_sibling(size_t node, size_t sib) const;
-    bool has_siblings(size_t node) const;
     bool has_other_siblings(size_t node) const;
 
 public:

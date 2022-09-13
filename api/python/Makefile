@@ -10,24 +10,29 @@ ifeq ($(OS),Windows_NT)
 ACTIVATE_SCRIPT := venv/Scripts/activate
 endif
 
+# How to invoke python
+PYTHON := python
+# How to invoke pytest
+PYTEST := $(PYTHON) -m pytest -vvv
+
 ACTIVATE=[[ -e $(ACTIVATE_SCRIPT) ]] && source $(ACTIVATE_SCRIPT);
 
+.PHONY: clean
 clean:
 	rm -rf dist *.egg-info
 	rm -rf ../../build ../../.egg*
 	rm -rf ryml/*.so ryml/ryml.py ryml/include ryml/lib
 
-.PHONY: clean
-
+.PHONY: venv-clean
 venv-clean:
 	rm -rf venv
 
-.PHONY: venv-clean
 
 $(ACTIVATE_SCRIPT): requirements.txt Makefile
 	make venv
 	@touch $(ACTIVATE_SCRIPT)
 
+.PHONY: venv
 venv:
 	virtualenv --python=python3 --always-copy venv
 	# Packaging tooling.
@@ -35,65 +40,55 @@ venv:
 	# Setup requirements.
 	${ACTIVATE} pip install -v -r requirements.txt
 	${ACTIVATE} pip install -v -e ../..
-	@${ACTIVATE} python -c "from ryml.version import version as v; print('Installed version:', v)"
-
-.PHONY: venv
-
-build-sdist: | $(ACTIVATE_SCRIPT)
-	${ACTIVATE} (cd ../..; python -m build --sdist --outdir $(PWD)/dist)
+	@${ACTIVATE} $(PYTHON) -c "from ryml.version import version as v; print('Installed version:', v)"
 
 .PHONY: build-sdist
+build-sdist: | $(ACTIVATE_SCRIPT)
+	${ACTIVATE} (cd ../..; $(PYTHON) -m build --sdist --outdir $(PWD)/dist)
 
+
+.PHONY: build-wheel
 build-wheel: | $(ACTIVATE_SCRIPT)
 	rm -rf dist
 	$(MAKE) build-sdist
 	@ls -l dist/*.tar.gz
 	${ACTIVATE} pip wheel -v dist/*.tar.gz --wheel-dir $(PWD)/dist
 
-.PHONY: build-wheel
-
+.PHONY: build
 build:
 	rm -rf build dist
 	$(MAKE) build-sdist
 	$(MAKE) build-wheel
 
-.PHONY: build
-
 # PYPI_TEST = --repository-url https://test.pypi.org/legacy/
 PYPI_TEST = --repository testpypi
 
+.PHONY: upload-test
 upload-test: | $(ACTIVATE_SCRIPT)
 	make clean
 	make build-sdist
 	${ACTIVATE} twine upload ${PYPI_TEST} dist/*
 
-.PHONY: upload-test
-
+.PHONY: upload
 upload: | $(ACTIVATE_SCRIPT)
 	make clean
 	make build-sdist
 	${ACTIVATE} twine upload --verbose dist/*
 
-.PHONY: upload
-
+.PHONY: check
 check: | $(ACTIVATE_SCRIPT)
 	make clean
 	make build-wheel
 	${ACTIVATE} twine check dist/*.whl
 
-.PHONY: check
-
-install: | $(ACTIVATE_SCRIPT)
-	${ACTIVATE} python setup.py install
-
 .PHONY: install
-
-test: | $(ACTIVATE_SCRIPT)
-	${ACTIVATE} python -m nose ryml/tests
+install: | $(ACTIVATE_SCRIPT)
+	${ACTIVATE} $(PYTHON) setup.py install
 
 .PHONY: test
-
-version: | $(ACTIVATE_SCRIPT)
-	${ACTIVATE} python setup.py --version
+test: | $(ACTIVATE_SCRIPT)
+	${ACTIVATE} $(PYTEST) tests
 
 .PHONY: version
+version: | $(ACTIVATE_SCRIPT)
+	${ACTIVATE} $(PYTHON) setup.py --version

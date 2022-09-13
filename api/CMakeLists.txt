@@ -5,9 +5,15 @@ option(RYML_API_BENCHMARKS "Enable API tests" ${RYML_BUILD_BENCHMARKS})
 c4_log("enabling API")
 
 cmake_policy(PUSH)
-cmake_policy(SET CMP0078 NEW) # https://cmake.org/cmake/help/v3.14/policy/CMP0078.html
-cmake_policy(SET CMP0086 NEW) # https://cmake.org/cmake/help/v3.14/policy/CMP0086.html
-cmake_policy(SET CMP0094 NEW) # https://cmake.org/cmake/help/v3.14/policy/CMP0094.html
+# UseSWIG generates standard target names.
+# https://cmake.org/cmake/help/latest/policy/CMP0078.html
+cmake_policy(SET CMP0078 NEW)
+# UseSWIG honors SWIG_MODULE_NAME via -module flag.
+# https://cmake.org/cmake/help/latest/policy/CMP0086.html
+cmake_policy(SET CMP0086 NEW)
+# Modules FindPython3, FindPython2 and FindPython use LOCATION for lookup strategy.
+# https://cmake.org/cmake/help/latest/policy/CMP0094.html
+cmake_policy(SET CMP0094 NEW)
 
 find_package(SWIG REQUIRED)
 c4_log("found swig ${SWIG_VERSION}: ${SWIG_EXECUTABLE}")
@@ -53,10 +59,19 @@ endif()
 if(RYML_BUILD_API_PYTHON)
     c4_log("enabling python3 API")
     set(Python3_FIND_VIRTUALENV "FIRST")
-    # use Development.Module to ensure this works with cibuildwheel:
-    # https://github.com/pypa/cibuildwheel/issues/639
-    find_package(Python3 COMPONENTS Interpreter Development.Module REQUIRED)
-    c4_log("found python ${Python3_VERSION}: ${Python3_EXECUTABLE}")
+    if(APPLE)
+        find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+    else()
+        # use Development.Module to ensure this works with cibuildwheel:
+        # https://github.com/pypa/cibuildwheel/issues/639
+        find_package(Python3 COMPONENTS Interpreter Development.Module REQUIRED)
+    endif()
+    c4_log("found python:
+    ver=${Python3_VERSION}
+    exe=${Python3_EXECUTABLE}
+    lib=${Python3_LIBRARIES}
+    inc=${Python3_INCLUDE_DIRS}
+")
     #
     set(t ryml-api-python3) # the target name
     set(g ${CMAKE_CURRENT_BINARY_DIR}/src/python3) # where to put c++ generated srcs
