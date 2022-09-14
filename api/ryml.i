@@ -259,13 +259,15 @@ def walk(tree, node=None, indentation_level=0):
        ch = tree.next_sibling(ch)
 
 
+@deprecated(deprecated_in="0.5.0", details="Use parse_in_arena() instead")
+def parse(buf, **kwargs):
+    return parse_in_arena(tree, id)
+def parse_in_arena(buf, **kwargs):
+    return _call_parse(parse_csubstr, buf, **kwargs)
 def parse_in_place(buf, **kwargs):
     _check_valid_for_in_situ(buf)
     return _call_parse(parse_substr, buf, **kwargs)
 
-
-def parse_in_arena(buf, **kwargs):
-    return _call_parse(parse_csubstr, buf, **kwargs)
 
 
 def _call_parse(parse_fn, buf, **kwargs):
