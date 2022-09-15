@@ -43,7 +43,7 @@ callbacks.
 ryml does not depend on the STL, ie, it does not use any std container
 as part of its data structures), but it can serialize and deserialize
 these containers into the data tree, with the use of optional
-headers. ryml ships with [c4core](https://github.com/biojppm/c4core) a
+headers. ryml ships with [c4core](https://github.com/biojppm/c4core), a
 small C++ utilities multiplatform library.
 
 ryml is written in C++11, and compiles cleanly with:
@@ -939,38 +939,48 @@ def check(tree):
     assert str(k, "utf8") == "seq"   # ok again
 
 # parse immutable buffer
-tree = ryml.parse(src)
+tree = ryml.parse_in_arena(src)
 check(tree) # OK
 
-# also works, but requires bytearrays or
-# objects offering writeable memory
+# parse mutable buffer.
+# requires bytearrays or objects offering writeable memory
 mutable = bytearray(src)
 tree = ryml.parse_in_place(mutable)
 check(tree) # OK
 ```
-
 As expected, the performance results so far are encouraging. In
 a [timeit benchmark](api/python/parse_bm.py) compared
 against [PyYaml](https://pyyaml.org/)
 and [ruamel.yaml](https://yaml.readthedocs.io/en/latest/), ryml parses
-quicker by a factor of 30x-50x:
-
+quicker by generally 100x and up to 400x:
 ```
-+-----------------------+-------+----------+---------+----------------+
-| case                  | iters | time(ms) | avg(ms) | avg_read(MB/s) |
-+-----------------------+-------+----------+---------+----------------+
-| parse:RuamelYaml      |    88 | 800.483  |  9.096  |      0.234     |
-| parse:PyYaml          |    88 | 541.370  |  6.152  |      0.346     |
-| parse:RymlRo          |  3888 | 776.020  |  0.200  |     10.667     |
-| parse:RymlRoReuse     |  1888 | 381.558  |  0.202  |     10.535     |
-| parse:RymlRw          |  3888 | 775.121  |  0.199  |     10.679     |
-| parse:RymlRwReuse     |  3888 | 774.534  |  0.199  |     10.687     |
-+-----------------------+-------+----------+---------+----------------+
++----------------------------------------+-------+----------+----------+-----------+
+| style_seqs_blck_outer1000_inner100.yml | count | time(ms) | avg(ms)  | avg(MB/s) |
++----------------------------------------+-------+----------+----------+-----------+
+| parse:RuamelYamlParse                  |     1 | 4564.812 | 4564.812 |     0.173 |
+| parse:PyYamlParse                      |     1 | 2815.426 | 2815.426 |     0.280 |
+| parse:RymlParseInArena                 |    38 |  588.024 |   15.474 |    50.988 |
+| parse:RymlParseInArenaReuse            |    38 |  466.997 |   12.289 |    64.202 |
+| parse:RymlParseInPlace                 |    38 |  579.770 |   15.257 |    51.714 |
+| parse:RymlParseInPlaceReuse            |    38 |  462.932 |   12.182 |    64.765 |
++----------------------------------------+-------+----------+----------+-----------+
 ```
+(Note that the parse timings above are somewhat biased towards ryml, because
+it does not perform any type conversions in Python-land: return types
+are merely `memoryviews` to the source buffer, possibly copied to the tree's
+arena).
 
-(Note that the results above are somewhat biased towards ryml, because it does
-not perform any type conversions: return types are merely `memoryviews` to
-the source buffer.)
+As for emitting, the improvement can be as high as 3000x:
+```
++----------------------------------------+-------+-----------+-----------+-----------+
+| style_maps_blck_outer1000_inner100.yml | count |  time(ms) |  avg(ms)  | avg(MB/s) |
++----------------------------------------+-------+-----------+-----------+-----------+
+| emit_yaml:RuamelYamlEmit               |     1 | 18149.288 | 18149.288 |     0.054 |
+| emit_yaml:PyYamlEmit                   |     1 |  2683.380 |  2683.380 |     0.365 |
+| emit_yaml:RymlEmitToNewBuffer          |    88 |   861.726 |     9.792 |    99.976 |
+| emit_yaml:RymlEmitReuse                |    88 |   437.931 |     4.976 |   196.725 |
++----------------------------------------+-------+-----------+-----------+-----------+
+```
 
 
 ------

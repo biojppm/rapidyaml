@@ -18,7 +18,7 @@ using namespace c4;
 
 struct timed_section
 {
-    using myclock = std::chrono::high_resolution_clock;
+    using myclock = std::chrono::steady_clock;
     using msecs = std::chrono::duration<double, std::milli>;
 
     csubstr name;
@@ -28,7 +28,7 @@ struct timed_section
     timed_section(csubstr n) : name(n), start(myclock::now()) {}
     ~timed_section()
     {
-        fprintf(stderr, "%.2lgms: %.*s\n", since().count(), (int)name.len, name.str);
+        fprintf(stderr, "%.6fms: %.*s\n", since().count(), (int)name.len, name.str);
         fflush(stderr);
     }
 };
@@ -42,15 +42,39 @@ struct timed_section
 
 int main(int argc, const char *argv[])
 {
-    if(argc != 2)
+    bool print_emitted_to_stdout = true;
+    csubstr file;
+    // LCOV_EXCL_START
+    auto show_usage = [argv]{
+        printf("usage: %s [-s] <path/to/file.yaml>\n", argv[0]);
+    };
+    if(argc == 2)
     {
-        printf("usage: %s <path/to/file.yaml>\n", argv[0]);
+        file = to_csubstr(argv[1]);
+    }
+    else if(argc > 2)
+    {
+        file = to_csubstr(argv[2]);
+        csubstr arg = to_csubstr(argv[1]);
+        if(arg == "-s")
+        {
+            print_emitted_to_stdout = false;
+        }
+        else
+        {
+            show_usage();
+            return 1;
+        }
+    }
+    else
+    {
+        show_usage();
         return 1;
     }
+    // LCOV_EXCL_STOP
 
     TS(TOTAL);
 
-    csubstr file = to_csubstr(argv[1]);
     C4_CHECK_MSG(fs::path_exists(file.str), "cannot find file: %s (cwd=%s)", file.str, fs::cwd<std::string>().c_str());
 
     {
@@ -80,6 +104,7 @@ int main(int argc, const char *argv[])
             output.resize(contents.size()); // resize, not just reserve
             yml::emitrs_yaml(tree, &output);
         }
+        if(print_emitted_to_stdout)
         {
             TS(print_stdout);
             fwrite(output.data(), 1, output.size(), stdout);

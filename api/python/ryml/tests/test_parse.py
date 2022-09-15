@@ -158,7 +158,7 @@ class SimpleHardcoded:
 
     yaml = "{'HELLO': a, foo: \"b\", bar: c, baz: d, seq: [0, 1, 2, 3]}"
 
-    def check(self, ut, t):
+    def check(self, ut, t, is_json=False):
         # some convenient shorthands
         eq = ut.assertEqual
         ne = ut.assertNotEqual
@@ -209,29 +209,58 @@ class SimpleHardcoded:
         eq(t.val(7), b"1")
         eq(t.val(8), b"2")
         eq(t.val(9), b"3")
-        tr(t.is_key_quoted(1))
-        fs(t.is_key_quoted(2))
-        fs(t.is_key_quoted(3))
-        fs(t.is_key_quoted(4))
-        fs(t.is_key_quoted(5))
-        fs(t.is_val_quoted(1))
-        tr(t.is_val_quoted(2))
-        fs(t.is_val_quoted(3))
-        fs(t.is_val_quoted(4))
-        fs(t.is_val_quoted(5))
-        fs(t.is_val_quoted(6))
-        fs(t.is_val_quoted(7))
-        fs(t.is_val_quoted(8))
-        fs(t.is_val_quoted(9))
-        tr(t.is_quoted(1))
-        tr(t.is_quoted(2))
-        fs(t.is_quoted(3))
-        fs(t.is_quoted(4))
-        fs(t.is_quoted(5))
-        fs(t.is_quoted(6))
-        fs(t.is_quoted(7))
-        fs(t.is_quoted(8))
-        fs(t.is_quoted(9))
+        if not is_json:
+            tr(t.is_key_quoted(1))
+            fs(t.is_key_quoted(2))
+            fs(t.is_key_quoted(3))
+            fs(t.is_key_quoted(4))
+            fs(t.is_key_quoted(5))
+        else:
+            tr(t.is_key_quoted(1))
+            tr(t.is_key_quoted(2))
+            tr(t.is_key_quoted(3))
+            tr(t.is_key_quoted(4))
+            tr(t.is_key_quoted(5))
+        if not is_json:
+            fs(t.is_val_quoted(1))
+            tr(t.is_val_quoted(2))
+            fs(t.is_val_quoted(3))
+            fs(t.is_val_quoted(4))
+            fs(t.is_val_quoted(5))
+            fs(t.is_val_quoted(6))
+            fs(t.is_val_quoted(7))
+            fs(t.is_val_quoted(8))
+            fs(t.is_val_quoted(9))
+        else:
+            tr(t.is_val_quoted(1))
+            tr(t.is_val_quoted(2))
+            tr(t.is_val_quoted(3))
+            tr(t.is_val_quoted(4))
+            fs(t.is_val_quoted(5))
+            fs(t.is_val_quoted(6))
+            fs(t.is_val_quoted(7))
+            fs(t.is_val_quoted(8))
+            fs(t.is_val_quoted(9))
+        if not is_json:
+            tr(t.is_quoted(1))
+            tr(t.is_quoted(2))
+            fs(t.is_quoted(3))
+            fs(t.is_quoted(4))
+            fs(t.is_quoted(5))
+            fs(t.is_quoted(6))
+            fs(t.is_quoted(7))
+            fs(t.is_quoted(8))
+            fs(t.is_quoted(9))
+        else:
+            tr(t.is_quoted(1))
+            tr(t.is_quoted(2))
+            tr(t.is_quoted(3))
+            tr(t.is_quoted(4))
+            tr(t.is_quoted(5))
+            fs(t.is_quoted(6))
+            fs(t.is_quoted(7))
+            fs(t.is_quoted(8))
+            fs(t.is_quoted(9))
         tr(t.has_sibling(1, b"bar"))
         tr(t.has_sibling(1, b"baz"))
         tr(t.has_sibling(2, b"foo"))
@@ -385,35 +414,65 @@ class _TestBase(unittest.TestCase):
         self.case.check(self, t)
 
     # ----------------------------------------------------------
-    def _test41_emit(self):
+    def _test41_emit_yaml(self):
         tree = ryml.parse_in_arena(self.src_as_bytearray)
-        yaml = ryml.emit(tree)
+        yaml = ryml.emit_yaml(tree)
         output_tree = ryml.parse_in_arena(yaml)
         self.case.check(self, output_tree)
 
-    def _test42_compute_emit_length(self):
+    def _test41_emit_json(self):
         tree = ryml.parse_in_arena(self.src_as_bytearray)
-        yaml = ryml.emit(tree)
-        length = ryml.compute_emit_length(tree)
+        json = ryml.emit_json(tree)
+        output_tree = ryml.parse_in_arena(json)
+        self.case.check(self, output_tree, is_json=True)
+
+    def _test42_compute_emit_yaml_length(self):
+        tree = ryml.parse_in_arena(self.src_as_bytearray)
+        yaml = ryml.emit_yaml(tree)
+        length = ryml.compute_emit_yaml_length(tree)
         self.assertEqual(len(yaml), length)
 
-    def _test43_emit_in_place(self):
+    def _test42_compute_emit_json_length(self):
         tree = ryml.parse_in_arena(self.src_as_bytearray)
-        yaml = ryml.emit(tree)
-        length = ryml.compute_emit_length(tree)
+        json = ryml.emit_json(tree)
+        length = ryml.compute_emit_json_length(tree)
+        self.assertEqual(len(json), length)
+
+    def _test43_emit_yaml_in_place(self):
+        tree = ryml.parse_in_arena(self.src_as_bytearray)
+        yaml = ryml.emit_yaml(tree)
+        length = ryml.compute_emit_yaml_length(tree)
         self.assertEqual(len(yaml), length)
         buf = bytearray(length)
-        s = ryml.emit_in_place(tree, buf)
+        s = ryml.emit_yaml_in_place(tree, buf)
         self.assertEqual(len(s), length)
         self.assertTrue(s.tobytes().decode('utf-8') == yaml)
         self.assertTrue(buf.decode('utf-8') == yaml)
 
-    def _test44_short_buf(self):
+    def _test43_emit_json_in_place(self):
         tree = ryml.parse_in_arena(self.src_as_bytearray)
-        length = ryml.compute_emit_length(tree)
+        json = ryml.emit_json(tree)
+        length = ryml.compute_emit_json_length(tree)
+        self.assertEqual(len(json), length)
+        buf = bytearray(length)
+        s = ryml.emit_json_in_place(tree, buf)
+        self.assertEqual(len(s), length)
+        self.assertTrue(s.tobytes().decode('utf-8') == json)
+        self.assertTrue(buf.decode('utf-8') == json)
+
+    def _test44_emit_yaml_short_buf(self):
+        tree = ryml.parse_in_arena(self.src_as_bytearray)
+        length = ryml.compute_emit_yaml_length(tree)
         buf = bytearray(length-1)
         with self.assertRaises(IndexError):
-            ryml.emit_in_place(tree, buf)
+            ryml.emit_yaml_in_place(tree, buf)
+
+    def _test44_emit_json_short_buf(self):
+        tree = ryml.parse_in_arena(self.src_as_bytearray)
+        length = ryml.compute_emit_json_length(tree)
+        buf = bytearray(length-1)
+        with self.assertRaises(IndexError):
+            ryml.emit_json_in_place(tree, buf)
 
 
 # -----------------------------------------------------------------------------
@@ -457,17 +516,30 @@ class TestSimpleHardCoded(_TestBase):
     def test34_bytearray__rw__reuse_tree(self):
         self._test34_bytearray__rw__reuse_tree()
 
-    def test41_emit(self):
-        self._test41_emit()
+    # ----------------------------------------------------------
+    def test41_emit_yaml(self):
+        self._test41_emit_yaml()
 
-    def test42_compute_emit_length(self):
-        self._test42_compute_emit_length()
+    def test41_emit_json(self):
+        self._test41_emit_json()
 
-    def test43_emit_in_place(self):
-        self._test43_emit_in_place()
+    def test42_compute_emit_yaml_length(self):
+        self._test42_compute_emit_yaml_length()
 
-    def test44_short_buf(self):
-        self._test44_short_buf()
+    def test42_compute_emit_json_length(self):
+        self._test42_compute_emit_json_length()
+
+    def test43_emit_yaml_in_place(self):
+        self._test43_emit_yaml_in_place()
+
+    def test43_emit_json_in_place(self):
+        self._test43_emit_json_in_place()
+
+    def test44_emit_yaml_short_buf(self):
+        self._test44_emit_yaml_short_buf()
+
+    def test44_emit_json_short_buf(self):
+        self._test44_emit_json_short_buf()
 
 
 # -----------------------------------------------------------------------------

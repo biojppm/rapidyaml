@@ -5,3 +5,4 @@ build
 twine
 setuptools_scm
 setuptools-git
+deprecation

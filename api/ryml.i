@@ -123,31 +123,60 @@ void parse_substr(c4::substr s, c4::yml::Tree *t)
     c4::yml::parse_in_place(s, t);
 }
 
-char * emit_malloc(const c4::yml::Tree &t, size_t id)
+char * emit_yaml_malloc(c4::yml::Tree const& t, size_t id)
 {
     c4::substr buf;
-    c4::substr ret = c4::yml::emit(t, id, buf, /*error_on_excess*/false);
+    c4::substr ret = c4::yml::emit_yaml(t, id, buf, /*error_on_excess*/false);
     if(ret.str == nullptr && ret.len > 0)
     {
         // Use new[] to parse with delete[] in SWIG.
-        char * alloc = new char[ret.len+1];
+        char * alloc = new char[ret.len + 1]; // we'll return a c-string and not a csubstr
         c4::substr alloced_buf(alloc, ret.len);
-        ret = c4::yml::emit(t, id, alloced_buf, /*error_on_excess*/true);
+        ret = c4::yml::emit_yaml(t, id, alloced_buf, /*error_on_excess*/true);
         ret.str[ret.len] = 0;
     }
     return ret.str;
 }
 
-size_t emit_length(const c4::yml::Tree &t, size_t id)
+char * emit_json_malloc(c4::yml::Tree const& t, size_t id)
 {
     c4::substr buf;
-    c4::substr ret = c4::yml::emit(t, id, buf, /*error_on_excess*/false);
+    c4::substr ret = c4::yml::emit_json(t, id, buf, /*error_on_excess*/false);
+    if(ret.str == nullptr && ret.len > 0)
+    {
+        // Use new[] to parse with delete[] in SWIG.
+        char * alloc = new char[ret.len + 1]; // we'll return a c-string and not a csubstr
+        c4::substr alloced_buf(alloc, ret.len);
+        ret = c4::yml::emit_json(t, id, alloced_buf, /*error_on_excess*/true);
+        ret.str[ret.len] = 0;
+    }
+    return ret.str;
+}
+
+size_t emit_yaml_length(const c4::yml::Tree &t, size_t id)
+{
+    c4::substr buf;
+    c4::substr ret = c4::yml::emit_yaml(t, id, buf, /*error_on_excess*/false);
     return ret.len;
 }
 
-bool emit_to_substr(const c4::yml::Tree &t, size_t id, c4::substr s, size_t *OUTPUT)
+size_t emit_json_length(const c4::yml::Tree &t, size_t id)
 {
-    c4::substr result = c4::yml::emit(t, id, s, /*error_on_excess*/false);
+    c4::substr buf;
+    c4::substr ret = c4::yml::emit_json(t, id, buf, /*error_on_excess*/false);
+    return ret.len;
+}
+
+bool emit_yaml_to_substr(const c4::yml::Tree &t, size_t id, c4::substr s, size_t *OUTPUT)
+{
+    c4::substr result = c4::yml::emit_yaml(t, id, s, /*error_on_excess*/false);
+    *OUTPUT = result.len;
+    return result.str == nullptr;
+}
+
+bool emit_json_to_substr(const c4::yml::Tree &t, size_t id, c4::substr s, size_t *OUTPUT)
+{
+    c4::substr result = c4::yml::emit_json(t, id, s, /*error_on_excess*/false);
     *OUTPUT = result.len;
     return result.str == nullptr;
 }
@@ -186,6 +215,8 @@ bool _same_mem(c4::csubstr l, c4::csubstr r)
 
 %pythoncode %{
 
+from deprecation import deprecated
+
 
 def as_csubstr(s):
     return _get_as_csubstr(s)
@@ -199,20 +230,22 @@ def u(memview):
 
 def children(tree, node=None):
     assert tree is not None
-    if node is None: node = tree.root_id()
+    if node is None:
+        node = tree.root_id()
     ch = tree.first_child(node)
     while ch != NONE:
-       yield ch
-       ch = tree.next_sibling(ch)
+        yield ch
+        ch = tree.next_sibling(ch)
 
 
 def siblings(tree, node):
     assert tree is not None
-    if node is None: return
+    if node is None:
+        return
     ch = tree.first_sibling(node)
     while ch != NONE:
-       yield ch
-       ch = tree.next_sibling(ch)
+        yield ch
+        ch = tree.next_sibling(ch)
 
 
 def walk(tree, node=None, indentation_level=0):
@@ -226,35 +259,15 @@ def walk(tree, node=None, indentation_level=0):
        ch = tree.next_sibling(ch)
 
 
+@deprecated(deprecated_in="0.5.0", details="Use parse_in_arena() instead")
+def parse(buf, **kwargs):
+    return parse_in_arena(tree, id)
+def parse_in_arena(buf, **kwargs):
+    return _call_parse(parse_csubstr, buf, **kwargs)
 def parse_in_place(buf, **kwargs):
     _check_valid_for_in_situ(buf)
     return _call_parse(parse_substr, buf, **kwargs)
 
-
-def parse_in_arena(buf, **kwargs):
-    return _call_parse(parse_csubstr, buf, **kwargs)
-
-
-def emit(tree, id=None):
-    if id is None:
-        id = tree.root_id()
-    return emit_malloc(tree, id)
-
-
-def compute_emit_length(tree, id=None):
-    if id is None:
-        id = tree.root_id()
-    return emit_length(tree, id)
-
-
-def emit_in_place(tree, buf, id=None):
-    if id is None:
-        id = tree.root_id()
-    (failed, expected_size) = emit_to_substr(tree, id, buf)
-    if failed:
-        raise IndexError("Output buffer has {} bytes, but emit required {} bytes".format(
-            len(buf), expected_size))
-    return memoryview(buf)[:expected_size]
 
 
 def _call_parse(parse_fn, buf, **kwargs):
@@ -266,6 +279,50 @@ def _call_parse(parse_fn, buf, **kwargs):
 def _check_valid_for_in_situ(obj):
     if type(obj) in (str, bytes):
         raise TypeError("cannot parse in situ: " + type(obj).__name__)
+
+
+
+@deprecated(deprecated_in="0.5.0", details="Use emit_yaml() instead")
+def emit(tree, id=None):
+    return emit_yaml(tree, id)
+def emit_yaml(tree, id=None):
+    if id is None:
+        id = tree.root_id()
+    return emit_yaml_malloc(tree, id)
+def emit_json(tree, id=None):
+    if id is None:
+        id = tree.root_id()
+    return emit_json_malloc(tree, id)
+
+
+@deprecated(deprecated_in="0.5.0", details="Use compute_emit_yaml_length() instead")
+def compute_emit_length(tree, id=None):
+    return compute_emit_yaml_length(tree, id)
+def compute_emit_yaml_length(tree, id=None):
+    if id is None:
+        id = tree.root_id()
+    return emit_yaml_length(tree, id)
+def compute_emit_json_length(tree, id=None):
+    if id is None:
+        id = tree.root_id()
+    return emit_json_length(tree, id)
+
+
+@deprecated(deprecated_in="0.5.0", details="Use emit_yaml_in_place() instead")
+def emit_in_place(tree, buf, id=None):
+    return emit_yaml_in_place(tree, buf, id)
+def emit_yaml_in_place(tree, buf, id=None):
+    return _emit_fn_in_place(tree, buf, id, emit_yaml_to_substr)
+def emit_json_in_place(tree, buf, id=None):
+    return _emit_fn_in_place(tree, buf, id, emit_json_to_substr)
+def _emit_fn_in_place(tree, buf, id, fn):
+    if id is None:
+        id = tree.root_id()
+    (failed, expected_size) = fn(tree, id, buf)
+    if failed:
+        raise IndexError("Output buffer has {} bytes, but emit requires {} bytes".format(
+            len(buf), expected_size))
+    return memoryview(buf)[:expected_size]
 
 %}
 
