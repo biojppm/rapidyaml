@@ -135,8 +135,12 @@ struct CheckPredicate {
     const char *file;
     const int line;
 
-    void operator ()(bool predicate) const {
-        if (!report_check(file, line, nullptr, predicate)) { C4_DEBUG_BREAK(); }
+    void operator() (bool predicate) const
+    {
+        if (!report_check(file, line, nullptr, predicate))
+        {
+            C4_DEBUG_BREAK();
+        }
     }
 };
 #define CHECK CheckPredicate{__FILE__, __LINE__}
@@ -587,8 +591,12 @@ and this as well: "\u2705 \U0001D11E"
 
     //------------------------------------------------------------------
     // Getting the location of nodes in the source:
-    ryml::Parser parser;
+    //
+    // Location tracking is opt-in:
+    ryml::Parser parser(ryml::ParserOptions().locations(true));
+    // Now the parser will start by building the accelerator structure:
     ryml::Tree tree2 = parser.parse_in_arena("expected.yml", expected_result);
+    // ... and use it when querying
     ryml::Location loc = parser.location(tree2["bar"][1]);
     CHECK(parser.location_contents(loc).begins_with("30"));
     CHECK(loc.line == 3u);
@@ -3894,31 +3902,34 @@ void sample_location_tracking()
 aa: contents,
 foo: [one, [two, three]]
 })";
-    // A parser is needed to track locations. The parser caches a
-    // source-to-node lookup structure using the parsed source buffer
-    // to accelerate tracking the location of a node.
-    ryml::Parser parser;
-    // On each parse, the location structure is marked dirty, but not
-    // rebuilt. This enables having locations and paying for them
-    // only when they are used.
-    ryml::Tree tree = parser.parse_in_arena("source.yml", yaml);
-    // Thereafter, on the first location query after parsing, the
-    // parser will (re)build the location accelerator. This may
-    // trigger an allocation, but we can avoid this allocation by
-    // reserving at the beginning:
-    parser.reserve_locations(50u); // reserve for 50 lines
-    // Rebuilding the acceleration structure consists of a single scan
-    // over the source buffer, and is not expensive:
-    // complexity=O(numchars).
+    // A parser is needed to track locations, and it has to be
+    // explicitly set to do it. Location tracking is disabled by
+    // default.
+    ryml::ParserOptions opts = {};
+    opts.locations(true); // enable locations, default is false
+    ryml::Parser parser(opts);
+    CHECK(parser.options().locations());
+    // When locations are enabled, the first task while parsing will
+    // consist of building and caching (in the parser) a
+    // source-to-node lookup structure to accelerate location lookups.
     //
+    // The cost of building the location accelerator is linear in the
+    // size of the source buffer. This increased cost is the reason
+    // for the opt-in requirement. When locations are disabled there
+    // is no cost.
+    //
+    // Building the location accelerator may trigger an allocation,
+    // but this can and should be avoided by reserving prior to
+    // parsing:
+    parser.reserve_locations(50u); // reserve for 50 lines
+    // Now the structure will be built during parsing:
+    ryml::Tree tree = parser.parse_in_arena("source.yml", yaml);
+    // Now we are ready to query the location from the parser:
+    ryml::Location loc = parser.location(tree.rootref());
     // As for the complexity of the query: for large buffers it is
     // O(log(numlines)). For short source buffers (30 lines and less),
     // it is O(numlines), as a plain linear search is faster in this
     // case.
-    //
-    // So the complexity of the first location call after parsing is:
-    // cost(rebuild lookup) + cost(lookup) = O(numchars) + O(log(numlines))
-    ryml::Location loc = parser.location(tree.rootref());
     CHECK(parser.location_contents(loc).begins_with("{"));
     CHECK(loc.offset == 0u);
     CHECK(loc.line == 0u);
@@ -3962,7 +3973,7 @@ foo: [one, [two, three]]
     ryml::Tree docval = parser.parse_in_arena("docval.yaml", "this is a docval");
     // From now on, none of the locations from the previous tree can
     // be queried:
-    //loc = parser.location(tree.rootref()); // ERROR, Undefined Behavior
+    //loc = parser.location(tree.rootref()); // ERROR, undefined behavior
     loc = parser.location(docval.rootref()); // OK. this is the latest tree from this parser
     CHECK(parser.location_contents(loc).begins_with("this is a docval"));
     CHECK(loc.line == 0u);

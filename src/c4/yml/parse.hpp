@@ -23,6 +23,36 @@
 namespace c4 {
 namespace yml {
 
+struct RYML_EXPORT ParserOptions
+{
+private:
+
+    typedef enum : uint32_t {
+        LOCATIONS = (1 << 0),
+        DEFAULTS = 0,
+    } Flags_e;
+
+    uint32_t flags = DEFAULTS;
+public:
+    ParserOptions() = default;
+
+    /** @name source location tracking */
+    /** @{ */
+
+    /** enable/disable source location tracking */
+    ParserOptions& locations(bool enabled)
+    {
+        if(enabled)
+            flags |= LOCATIONS;
+        else
+            flags &= ~LOCATIONS;
+        return *this;
+    }
+    bool locations() const { return (flags & LOCATIONS) != 0u; }
+
+    /** @} */
+};
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -34,8 +64,8 @@ public:
     /** @name construction and assignment */
     /** @{ */
 
-    Parser() : Parser(get_callbacks()) {}
-    Parser(Callbacks const& cb);
+    Parser(Callbacks const& cb, ParserOptions opts={});
+    Parser(ParserOptions opts={}) : Parser(get_callbacks(), opts) {}
     ~Parser();
 
     Parser(Parser &&);
@@ -104,6 +134,8 @@ public:
     size_t stack_capacity() const { return m_stack.capacity(); }
     size_t locations_capacity() const { return m_newline_offsets_capacity; }
     size_t filter_arena_capacity() const { return m_filter_arena.len; }
+
+    ParserOptions const& options() const { return m_options; }
 
     /** @} */
 
@@ -516,9 +548,8 @@ private:
     void _grow_filter_arena(size_t num_characters);
     substr _finish_filter_arena(substr dst, size_t pos);
 
-    void _prepare_locations() const;         // only changes mutable members
-    void _resize_locations(size_t sz) const; // only changes mutable members
-    void _mark_locations_dirty();
+    void _prepare_locations();
+    void _resize_locations(size_t sz);
     bool _locations_dirty() const;
 
 private:
@@ -536,6 +567,8 @@ private:
     static csubstr _prfl(substr buf, flag_t v);
 
 private:
+
+    ParserOptions m_options;
 
     csubstr m_file;
      substr m_buf;
@@ -561,10 +594,10 @@ private:
 
     substr m_filter_arena;
 
-    mutable size_t *m_newline_offsets;
-    mutable size_t  m_newline_offsets_size;
-    mutable size_t  m_newline_offsets_capacity;
-    mutable csubstr m_newline_offsets_buf;
+    size_t *m_newline_offsets;
+    size_t  m_newline_offsets_size;
+    size_t  m_newline_offsets_capacity;
+    csubstr m_newline_offsets_buf;
 };
 
 
