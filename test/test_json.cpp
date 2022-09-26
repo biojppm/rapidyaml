@@ -230,11 +230,22 @@ TEST(emit_json, issue291)
 
 TEST(emit_json, issue292)
 {
+    EXPECT_FALSE(csubstr("0.0.0").is_number());
     EXPECT_FALSE(csubstr("0.1.0").is_number());
+    EXPECT_FALSE(csubstr("0.6.1").is_number());
+    EXPECT_FALSE(csubstr("1.1.9").is_number());
+    EXPECT_FALSE(csubstr("1.2.3").is_number());
     Tree t = parse_in_arena("{}");
+    t["james"] = "0.0.0";
+    EXPECT_EQ(emitrs_json<std::string>(t), "{\"james\": \"0.0.0\"}");
+    t["james"] = "0.1.0";
+    EXPECT_EQ(emitrs_json<std::string>(t), "{\"james\": \"0.1.0\"}");
+    t["james"] = "0.6.1";
+    EXPECT_EQ(emitrs_json<std::string>(t), "{\"james\": \"0.6.1\"}");
+    t["james"] = "1.1.9";
+    EXPECT_EQ(emitrs_json<std::string>(t), "{\"james\": \"1.1.9\"}");
     t["james"] = "1.2.3";
-    auto s = emitrs_json<std::string>(t);
-    EXPECT_EQ(s, "{\"james\": \"1.2.3\"}");
+    EXPECT_EQ(emitrs_json<std::string>(t), "{\"james\": \"1.2.3\"}");
 }
 
 TEST(emit_json, issue297)
