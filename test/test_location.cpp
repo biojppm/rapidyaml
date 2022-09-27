@@ -9,6 +9,45 @@
 namespace c4 {
 namespace yml {
 
+TEST(locations, default_is_no_location)
+{
+    {
+        ParserOptions opts;
+        EXPECT_EQ(opts.locations(), false);
+    }
+    {
+        Parser parser;
+        EXPECT_EQ(parser.options().locations(), false);
+    }
+    {
+        Parser parser(ParserOptions{});
+        EXPECT_EQ(parser.options().locations(), false);
+    }
+    {
+        Parser parser(ParserOptions().locations(false));
+        EXPECT_EQ(parser.options().locations(), false);
+    }
+    {
+        Parser parser(ParserOptions().locations(true));
+        EXPECT_EQ(parser.options().locations(), true);
+    }
+}
+
+
+TEST(locations, error_is_triggered_querying_with_locations_disabled)
+{
+    bool parsed_ok = false;
+    ExpectError::do_check([&]{
+        Parser parser(ParserOptions().locations(false));
+        Tree t = parser.parse_in_arena("test", "foo: bar");
+        parsed_ok = true;
+        (void)parser.location(t["foo"]);
+    });
+    EXPECT_TRUE(parsed_ok);
+}
+
+
+
 #define _checkloc(node, line_, col_, str)                               \
     {                                                                   \
         const Location loc = parser.location(node);                     \
@@ -18,9 +57,19 @@ namespace yml {
         EXPECT_EQ(t.arena().sub(loc.offset, csubstr(str).len), csubstr(str)); \
     }
 
+TEST(locations, no_error_is_triggered_querying_with_locations)
+{
+    Parser parser(ParserOptions().locations(true));
+    EXPECT_EQ(parser.options().locations(), true);
+    Tree t = parser.parse_in_arena("myfile.yml", "foo: bar");
+    _checkloc(t["foo"], 0, 0, "foo");
+}
+
+
 TEST(locations, docval)
 {
-    Parser parser;
+    ParserOptions opts = ParserOptions().locations(true);
+    Parser parser(opts);
     Tree t = parser.parse_in_arena("myfile.yml", "docval");
     _checkloc(t.rootref(), 0u, 0u, "docval");
     t = parser.parse_in_arena("myfile.yml", "\n docval");
@@ -31,7 +80,8 @@ TEST(locations, docval)
 
 TEST(locations, docval_null)
 {
-    Parser parser;
+    ParserOptions opts = ParserOptions().locations(true);
+    Parser parser(opts);
     Tree t = parser.parse_in_arena("myfile.yml", "~");
     _checkloc(t.rootref(), 0u, 0u, "~");
     t = parser.parse_in_arena("myfile.yml", "");
@@ -47,7 +97,8 @@ TEST(locations, docval_null)
 
 TEST(locations, seq_block)
 {
-    Parser parser;
+    ParserOptions opts = ParserOptions().locations(true);
+    Parser parser(opts);
     csubstr yaml = R"(
 - this
 - is
@@ -89,7 +140,8 @@ TEST(locations, seq_block)
 
 TEST(locations, map_block)
 {
-    Parser parser;
+    ParserOptions opts = ParserOptions().locations(true);
+    Parser parser(opts);
     csubstr yaml = R"(
 this: ~
 is: ~
@@ -123,7 +175,8 @@ and:
 
 TEST(locations, seq_block_null)
 {
-    Parser parser;
+    ParserOptions opts = ParserOptions().locations(true);
+    Parser parser(opts);
     Tree t = parser.parse_in_arena("myfile.yml", R"(---
 - ~
 - ~
@@ -178,7 +231,8 @@ TEST(locations, seq_block_null)
 
 TEST(locations, map_block_null)
 {
-    Parser parser;
+    ParserOptions opts = ParserOptions().locations(true);
+    Parser parser(opts);
     Tree t = parser.parse_in_arena("myfile.yml", R"(---
 ~: v
 ---
@@ -197,7 +251,8 @@ null: v
 
 TEST(locations, empty_seq)
 {
-    Parser parser;
+    ParserOptions opts = ParserOptions().locations(true);
+    Parser parser(opts);
     Tree t = parser.parse_in_arena("myfile.yml", R"(---
 - []
 - []
@@ -237,7 +292,8 @@ key: []
 
 TEST(locations, empty_map)
 {
-    Parser parser;
+    ParserOptions opts = ParserOptions().locations(true);
+    Parser parser(opts);
     Tree t = parser.parse_in_arena("myfile.yml", R"(---
 - {}
 - {}
@@ -279,7 +335,8 @@ key: {}
 TEST(locations, seq_flow)
 {
     Tree t;
-    Parser parser;
+    ParserOptions opts = ParserOptions().locations(true);
+    Parser parser(opts);
     csubstr yaml = R"([one,two,three,four,items])";
     parser.parse_in_arena("myfile.yml", yaml, &t);
     ConstNodeRef seq = t.rootref();
@@ -295,7 +352,8 @@ TEST(locations, seq_flow)
 TEST(locations, map_flow)
 {
     Tree t;
-    Parser parser;
+    ParserOptions opts = ParserOptions().locations(true);
+    Parser parser(opts);
     csubstr yaml = R"({one: item,two: items,three: items,four: items})";
     parser.parse_in_arena("myfile.yml", yaml, &t);
     ConstNodeRef map = t.rootref();
@@ -310,7 +368,8 @@ TEST(locations, map_flow)
 TEST(locations, seq_flow_nested)
 {
     Tree t;
-    Parser parser;
+    ParserOptions opts = ParserOptions().locations(true);
+    Parser parser(opts);
     csubstr yaml = R"([
   one,
   two,
@@ -350,7 +409,8 @@ TEST(locations, seq_flow_nested)
 
 TEST(locations, grow_array)
 {
-    Parser parser;
+    ParserOptions opts = ParserOptions().locations(true);
+    Parser parser(opts);
     Tree t = parser.parse_in_arena("myfile.yml", "docval");
     _checkloc(t.rootref(), 0u, 0u, "docval");
     t = parser.parse_in_arena("myfile.yml", "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\ndocval");
@@ -362,7 +422,8 @@ TEST(locations, grow_array)
 TEST(locations, small_array)
 {
     Tree t;
-    Parser parser;
+    ParserOptions opts = ParserOptions().locations(true);
+    Parser parser(opts);
     csubstr yaml = R"(---
 foo: yes
 bar:
@@ -395,7 +456,8 @@ baz:
 TEST(locations, large_array)
 {
     Tree t;
-    Parser parser;
+    ParserOptions opts = ParserOptions().locations(true);
+    Parser parser(opts);
     csubstr yaml = R"(---
 foo1: definitely  # 1
 bar1:
@@ -521,6 +583,92 @@ baz6:
     _checkloc(map["baz6"][1],  55u+7u, 6u, "2_");
     _checkloc(map["baz6"][2],  55u+8u, 10u, "3_");
 }
+
+
+TEST(locations, issue260_0)
+{
+    ParserOptions opts = ParserOptions().locations(true);
+    Parser parser(opts);
+    Tree tree = parser.parse_in_arena("source.yml", R"(Body:
+  - Id: 1
+    Name: Apple
+    Script: |
+      Line One
+      Line Two
+  - Id: 2
+    Name: Cat
+    Script: |
+      Line One
+      Line Two
+  - Id: 3
+    Name: Dog
+    Script: |
+      Line One
+      Line Two)");
+    EXPECT_EQ(tree["Body"][2]["Name"].val(), "Dog");
+    EXPECT_EQ(parser.location(tree["Body"][2]["Name"]).line, 12u);
+}
+
+TEST(locations, issue260_1)
+{
+    ParserOptions opts = ParserOptions().locations(true);
+    Parser parser(opts);
+    Tree tree = parser.parse_in_arena("source.yml", R"(Body:  # 0
+  - Id: 1           # line 1
+    Name: Apple
+  - Id: 2           # line 3
+    Name: Cat
+    Script: |
+      Line One
+      Line Two
+  - Id: 3           # line 8
+    Name: Cat2
+    Script: >
+      Line One
+      Line Two
+  - Id: 4           # line 13
+    Name: Cat3
+    Script: "
+      Line One
+      Line Two"
+  - Id: 5           # line 18
+    Name: Cat4
+    Script: '
+      Line One
+      Line Two'
+  - Id: 5           # line 23
+    Name: Cat5
+    Script:
+      Line One
+      Line Two
+  - Id: 6           # line 28
+    Name: Dog
+    Script: |
+      Line One
+      Line Two)");
+    EXPECT_EQ(parser.location(tree["Body"][0]).line, 1u);
+    EXPECT_EQ(parser.location(tree["Body"][1]).line, 3u);
+    EXPECT_EQ(parser.location(tree["Body"][2]).line, 8u);
+    EXPECT_EQ(parser.location(tree["Body"][3]).line, 13u);
+    EXPECT_EQ(parser.location(tree["Body"][4]).line, 18u);
+    EXPECT_EQ(parser.location(tree["Body"][5]).line, 23u);
+    EXPECT_EQ(parser.location(tree["Body"][6]).line, 28u);
+    EXPECT_EQ(parser.location(tree["Body"][0]["Id"]).line, 1u);
+    EXPECT_EQ(parser.location(tree["Body"][1]["Id"]).line, 3u);
+    EXPECT_EQ(parser.location(tree["Body"][2]["Id"]).line, 8u);
+    EXPECT_EQ(parser.location(tree["Body"][3]["Id"]).line, 13u);
+    EXPECT_EQ(parser.location(tree["Body"][4]["Id"]).line, 18u);
+    EXPECT_EQ(parser.location(tree["Body"][5]["Id"]).line, 23u);
+    EXPECT_EQ(parser.location(tree["Body"][6]["Id"]).line, 28u);
+    EXPECT_EQ(parser.location(tree["Body"][0]["Name"]).line, 1u+1u);
+    EXPECT_EQ(parser.location(tree["Body"][1]["Name"]).line, 3u+1u);
+    EXPECT_EQ(parser.location(tree["Body"][2]["Name"]).line, 8u+1u);
+    EXPECT_EQ(parser.location(tree["Body"][3]["Name"]).line, 13u+1u);
+    EXPECT_EQ(parser.location(tree["Body"][4]["Name"]).line, 18u+1u);
+    EXPECT_EQ(parser.location(tree["Body"][5]["Name"]).line, 23u+1u);
+    EXPECT_EQ(parser.location(tree["Body"][6]["Name"]).line, 28u+1u);
+}
+
 
 
 // The other test executables are written to contain the declarative-style

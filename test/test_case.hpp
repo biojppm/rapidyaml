@@ -146,10 +146,13 @@ struct ExpectError
     c4::yml::Callbacks m_tree_prev;
     Location expected_location;
 
+    ExpectError(Location loc={}) : ExpectError(nullptr, loc) {}
     ExpectError(Tree *tree, Location loc={});
     ~ExpectError();
 
+    static void do_check(            std::function<void()> fn, Location expected={}) { do_check(nullptr, fn, expected); }
     static void do_check(Tree *tree, std::function<void()> fn, Location expected={});
+    static void check_assertion(            std::function<void()> fn, Location expected={}) { check_assertion(nullptr, fn, expected); }
     static void check_assertion(Tree *tree, std::function<void()> fn, Location expected={});
 };
 

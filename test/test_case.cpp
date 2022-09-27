@@ -187,7 +187,7 @@ ExpectError::ExpectError(Tree *tree, Location loc)
     : m_got_an_error(false)
     , m_tree(tree)
     , m_glob_prev(get_callbacks())
-    , m_tree_prev(tree->callbacks())
+    , m_tree_prev(tree ? tree->callbacks() : Callbacks{})
     , expected_location(loc)
 {
     auto err = [](const char* msg, size_t len, Location errloc, void *this_) {
@@ -198,16 +198,18 @@ ExpectError::ExpectError(Tree *tree, Location loc)
     c4::yml::Callbacks tcb((void*)this, nullptr, nullptr, err);
     c4::yml::Callbacks gcb((void*)this, nullptr, nullptr, err);
     #else
-    c4::yml::Callbacks tcb((void*)this, m_tree_prev.m_allocate, m_tree_prev.m_free, err);
+    c4::yml::Callbacks tcb((void*)this, tree ? m_tree_prev.m_allocate : nullptr, tree ? m_tree_prev.m_free : nullptr, err);
     c4::yml::Callbacks gcb((void*)this, m_glob_prev.m_allocate, m_glob_prev.m_free, err);
     #endif
-    tree->callbacks(tcb);
+    if(tree)
+        tree->callbacks(tcb);
     set_callbacks(gcb);
 }
 
 ExpectError::~ExpectError()
 {
-    m_tree->callbacks(m_tree_prev);
+    if(m_tree)
+        m_tree->callbacks(m_tree_prev);
     set_callbacks(m_tree_prev);
 }
 
