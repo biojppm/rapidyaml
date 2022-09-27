@@ -843,7 +843,7 @@ void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
                 s.ends_with_any(" \n\t\r")
                 ||
                 // has special chars
-                (s.first_of("#:-?,\n{}[]'\"") != npos)
+                (s.first_of("#:-?,\n{}[]'\"@`") != npos)
             )
         )
     );
