@@ -393,6 +393,41 @@ TEST(emit, percent_is_quoted)
     });
 }
 
+TEST(emit, at_is_quoted__issue_309)
+{
+    Tree ti = parse_in_arena("{at: [], backtick: []");
+    ti["at"][0] << "@test";
+    ti["at"][1] = "@test2";
+    ti["at"][2] << "@";
+    ti["at"][3] = "@";
+    ti["backtick"][0] << "`test";
+    ti["backtick"][1] = "`test2";
+    ti["backtick"][2] << "`";
+    ti["backtick"][3] = "`";
+    std::string yaml = emitrs_yaml<std::string>(ti);
+    test_check_emit_check(to_csubstr(yaml), [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_map());
+        ASSERT_TRUE(t.rootref().has_child("at"));
+        ASSERT_TRUE(t.rootref().has_child("backtick"));
+        ASSERT_EQ(t["at"][0].val(), "@test");
+        ASSERT_EQ(t["at"][1].val(), "@test2");
+        ASSERT_EQ(t["at"][2].val(), "@");
+        ASSERT_EQ(t["at"][3].val(), "@");
+        ASSERT_TRUE(t["at"][0].is_val_quoted());
+        ASSERT_TRUE(t["at"][1].is_val_quoted());
+        ASSERT_TRUE(t["at"][2].is_val_quoted());
+        ASSERT_TRUE(t["at"][3].is_val_quoted());
+        ASSERT_EQ(t["backtick"][0].val(), "`test");
+        ASSERT_EQ(t["backtick"][1].val(), "`test2");
+        ASSERT_EQ(t["backtick"][2].val(), "`");
+        ASSERT_EQ(t["backtick"][3].val(), "`");
+        ASSERT_TRUE(t["backtick"][0].is_val_quoted());
+        ASSERT_TRUE(t["backtick"][1].is_val_quoted());
+        ASSERT_TRUE(t["backtick"][2].is_val_quoted());
+        ASSERT_TRUE(t["backtick"][3].is_val_quoted());
+    });
+}
+
 
 //-------------------------------------------
 // this is needed to use the test case library
