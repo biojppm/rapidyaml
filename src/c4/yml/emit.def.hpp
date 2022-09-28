@@ -876,13 +876,27 @@ void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
     }
 }
 template<class Writer>
-void Emitter<Writer>::_write_scalar_json(csubstr s, bool as_key, bool was_quoted)
+void Emitter<Writer>::_write_scalar_json(csubstr s, bool as_key, bool use_quotes)
 {
-    // json only allows strings as keys
-    if((!as_key)
-       && (!was_quoted)
-       && ((s.is_number() && !(s.len > 1 && s.str[0] == '0'))
-           || s == "true" || s == "null" || s == "false"))
+    if((!use_quotes)
+       // json keys require quotes
+       && (!as_key)
+       && (
+           // do not quote special cases
+           (s == "true" || s == "false" || s == "null")
+           || (
+               // do not quote numbers
+               (s.is_number()
+                && (
+                    // quote integral numbers if they have a leading 0
+                    // https://github.com/biojppm/rapidyaml/issues/291
+                    (!(s.len > 1 && s.begins_with('0')))
+                    // do not quote reals with leading 0
+                    // https://github.com/biojppm/rapidyaml/issues/313
+                    || (s.find('.') != csubstr::npos) ))
+               )
+           )
+        )
     {
         this->Writer::_do_write(s);
     }
