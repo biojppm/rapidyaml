@@ -231,10 +231,20 @@ TEST(emit_json, issue291)
 TEST(emit_json, issue292)
 {
     EXPECT_FALSE(csubstr("0.0.0").is_number());
+    EXPECT_FALSE(csubstr("0.0.0").is_integer());
+    EXPECT_FALSE(csubstr("0.0.0").is_real());
     EXPECT_FALSE(csubstr("0.1.0").is_number());
+    EXPECT_FALSE(csubstr("0.1.0").is_integer());
+    EXPECT_FALSE(csubstr("0.1.0").is_real());
     EXPECT_FALSE(csubstr("0.6.1").is_number());
+    EXPECT_FALSE(csubstr("0.6.1").is_integer());
+    EXPECT_FALSE(csubstr("0.6.1").is_real());
     EXPECT_FALSE(csubstr("1.1.9").is_number());
+    EXPECT_FALSE(csubstr("1.1.9").is_integer());
+    EXPECT_FALSE(csubstr("1.1.9").is_real());
     EXPECT_FALSE(csubstr("1.2.3").is_number());
+    EXPECT_FALSE(csubstr("1.2.3").is_integer());
+    EXPECT_FALSE(csubstr("1.2.3").is_real());
     Tree t = parse_in_arena("{}");
     t["james"] = "0.0.0";
     EXPECT_EQ(emitrs_json<std::string>(t), "{\"james\": \"0.0.0\"}");
@@ -273,6 +283,106 @@ TEST(emit_json, issue297_escaped_chars)
     std::string expected = R"({"quote": "abc\"def","newline": "abc\ndef","tab": "abc\tdef","carriage": "abc\rdef","backslash": "abc\\def","backspace": "abc\bdef","formfeed": "abc\fdef"})";
     auto actual = emitrs_json<std::string>(t);
     EXPECT_EQ(actual, expected);
+}
+
+namespace {
+std::string k(ConstNodeRef node) { return std::string(node.key().str, node.key().len); }
+std::string v(ConstNodeRef node) { return std::string(node.val().str, node.val().len); }
+}
+TEST(emit_json, issue313_quoted_numbers__1)
+{
+    EXPECT_TRUE(csubstr("0.99356698989868164").is_number()); // [WEIRD0][0]
+    EXPECT_TRUE(csubstr("0.99356698989868164").is_real()); // [WEIRD0][0]
+    EXPECT_FALSE(csubstr("0.99356698989868164").is_integer()); // [WEIRD0][0]
+    EXPECT_TRUE(csubstr("0.0064908224157989025").is_number()); // [WEIRD2][0]
+    EXPECT_TRUE(csubstr("0.0064908224157989025").is_real()); // [WEIRD2][0]
+    EXPECT_FALSE(csubstr("0.0064908224157989025").is_integer()); // [WEIRD2][0]
+    EXPECT_TRUE(csubstr("0.0064917667768895626").is_number()); // [WEIRD2][1]
+    EXPECT_TRUE(csubstr("0.0064917667768895626").is_real()); // [WEIRD2][1]
+    EXPECT_FALSE(csubstr("0.0064917667768895626").is_integer()); // [WEIRD2][1]
+    EXPECT_TRUE(csubstr("0.0064947893843054771").is_number()); // [WEIRD2][2]
+    EXPECT_TRUE(csubstr("0.0064947893843054771").is_real()); // [WEIRD2][2]
+    EXPECT_FALSE(csubstr("0.0064947893843054771").is_integer()); // [WEIRD2][2]
+    EXPECT_TRUE(csubstr("0.91054189205169678").is_number()); // [WEIRD4][0]
+    EXPECT_TRUE(csubstr("0.91054189205169678").is_real()); // [WEIRD4][0]
+    EXPECT_FALSE(csubstr("0.91054189205169678").is_integer()); // [WEIRD4][0]
+    EXPECT_TRUE(csubstr("0.13215841352939606").is_number()); // [REALLY_WEIRD5][9][0]
+    EXPECT_TRUE(csubstr("0.13215841352939606").is_real()); // [REALLY_WEIRD5][9][0]
+    EXPECT_FALSE(csubstr("0.13215841352939606").is_integer()); // [REALLY_WEIRD5][9][0]
+    Tree t0 = parse_in_arena(R"([
+    0.99356698989868164,
+    0.0064908224157989025,
+    0.0064917667768895626,
+    0.0064947893843054771,
+    0.91054189205169678,
+    0.13215841352939606,
+])");
+    std::string yaml = emitrs_json<std::string>(t0);
+    test_check_emit_check(to_csubstr(yaml), [&](Tree const &t){
+        for(ConstNodeRef number : t.rootref().children())
+        {
+            ASSERT_TRUE(number.is_val());
+            EXPECT_FALSE(number.is_val_quoted()) << "tree[" << t.rootref().child_pos(number) << "]=" << v(number);
+        }
+    });
+}
+
+
+TEST(emit_json, issue313_quoted_numbers__2)
+{
+    Tree ti = parse_in_arena(R"({
+WEIRD0: [0.99356698989868164, 1.0605627298355103],
+OK1:    [0, 0, 0],
+WEIRD2: [0.0064908224157989025, 0.0064917667768895626, 0.0064947893843054771],
+OK3:    [6.6227097511291504, 6.8674740791320801, 7.0403199195861816, 7.5792555809020996, 7.9916787147521973, 8.136042594909668, 8.5505847930908203, 8.701807975769043, 8.926518440246582, 8.9484291076660156, 9.0740194320678711, 9.3788108825683594, 9.406926155090332],
+WEIRD4: [0.91054189205169678, 0.98725020885467529, 1.070807933807373],
+REALLY_WEIRD5: [
+  [1.5158847570419312, 1.6361792087554932],  # 0
+  [1.0741721391677856, 1.1791903972625732],  # 1
+  [1.4423576593399048, 1.7063977718353271],  # 2
+  [1.1791903972625732],                      # 3
+  [1.1493504047393799, 1.1791903972625732],  # 4
+  [1.1791903972625732, 1.3334760665893555],  # 5
+  [1.0655292272567749, 1.4933452606201172],  # 6
+  [1.0712906122207642, 1.1791903972625732],  # 7
+  [1.1791903972625732, 1.830910325050354],   # 8
+  [0.13215841352939606, 1.4161584377288818], # 9
+  [1.1791903972625732, 1.5179581642150879],  # 10
+  [1.1791903972625732, 1.2864601612091064],  # 11
+  [1.1791903972625732, 1.6865267753601074],  # 12
+  [1.1791903972625732, 1.2192368507385254],  # 13
+  [1.1130030155181885, 1.5196701288223267],  # 14
+  [1.0621790885925293, 1.1791903972625732]   # 15
+]})");
+    std::string yaml = emitrs_json<std::string>(ti);
+    test_check_emit_check(to_csubstr(yaml), [](Tree const &t){
+        for(ConstNodeRef node : t.rootref().children())
+        {
+            ASSERT_TRUE(node.is_seq());
+            ASSERT_TRUE(node.has_key());
+            EXPECT_TRUE(node.is_key_quoted()) << "tree[" << k(node) << "]";
+            if(node.key() != "REALLY_WEIRD5")
+            {
+                for(ConstNodeRef number : node.children())
+                {
+                    ASSERT_TRUE(number.is_val());
+                    EXPECT_FALSE(number.is_val_quoted()) << "tree[" << k(node) << "][" << node.child_pos(number) << "]=" << v(number);
+                }
+            }
+            else
+            {
+                for(ConstNodeRef seq : node.children())
+                {
+                    ASSERT_TRUE(seq.is_seq());
+                    for(ConstNodeRef number : seq.children())
+                    {
+                        ASSERT_TRUE(number.is_val());
+                        EXPECT_FALSE(number.is_val_quoted()) << "tree[" << k(node) << "][" << node.child_pos(seq) << "][" << seq.child_pos(number) << "]=" << v(number);
+                    }
+                }
+            }
+        }
+    });
 }
 
 
