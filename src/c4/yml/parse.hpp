@@ -552,6 +552,9 @@ private:
     void _resize_locations(size_t sz);
     bool _locations_dirty() const;
 
+    bool _location_from_cont(Tree const& tree, size_t node, Location *C4_RESTRICT loc) const;
+    bool _location_from_node(Tree const& tree, size_t node, Location *C4_RESTRICT loc, size_t level) const;
+
 private:
 
     void _free();

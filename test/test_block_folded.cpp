@@ -175,7 +175,7 @@ next:
         for(const char *name : {"map", "next"})
         {
             ASSERT_TRUE(t.rootref().has_child(to_csubstr(name))) << "name=" << name;
-            NodeRef node = t[to_csubstr(name)];
+            ConstNodeRef node = t[to_csubstr(name)];
             EXPECT_TRUE(node.has_key());
             EXPECT_TRUE(node.is_map());
             EXPECT_TRUE(node.is_map());
@@ -203,7 +203,7 @@ next:
         for(const char *name : {"seq", "next"})
         {
             ASSERT_TRUE(t.rootref().has_child(to_csubstr(name))) << "name=" << name;
-            NodeRef node = t[to_csubstr(name)];
+            ConstNodeRef node = t[to_csubstr(name)];
             EXPECT_TRUE(node.has_key());
             EXPECT_TRUE(node.is_seq());
             ASSERT_EQ(node.num_children(), 4u);

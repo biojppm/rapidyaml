@@ -5510,62 +5510,123 @@ Location Parser::location(ConstNodeRef node) const
 
 Location Parser::location(Tree const& tree, size_t node) const
 {
-    if(tree.has_key(node))
-    {
-        if(tree.key(node).str != nullptr)
-        {
-            _RYML_CB_ASSERT(m_stack.m_callbacks, tree.key(node).str == nullptr || tree.key(node).is_sub(m_buf));
-            _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.is_super(tree.key(node)));
-        }
-        return val_location(tree.key(node).str);
-    }
-    else if(tree.has_val(node))
-    {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, tree.val(node).is_sub(m_buf));
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.is_super(tree.val(node)));
-        return val_location(tree.val(node).str);
-    }
-    else if(tree.is_container(node))
-    {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, !tree.has_key(node));
-        if(!tree.is_stream(node))
-        {
-            const char *node_start = tree._p(node)->m_val.scalar.str;  // this was stored in the container
-            if(tree.has_children(node))
-            {
-                size_t child = tree.first_child(node);
-                if(tree.has_key(child))
-                {
-                    // when a map starts, the container was set after the key
-                    csubstr k = tree.key(child);
-                    if(node_start > k.str)
-                        node_start = k.str;
-                }
-            }
-            return val_location(node_start);
-        }
-        else // it's a stream
-        {
-            return val_location(m_buf.str); // just return the front of the buffer
-        }
-    }
-    _RYML_CB_ASSERT(m_stack.m_callbacks, tree.type(node) == NOTYPE);
+    // try hard to avoid getting the location from a null string.
+    Location loc;
+    if(_location_from_node(tree, node, &loc, 0))
+        return loc;
     return val_location(m_buf.str);
 }
 
-Location Parser::val_location(const char *val) const
+bool Parser::_location_from_node(Tree const& tree, size_t node, Location *C4_RESTRICT loc, size_t level) const
 {
-    if(val == nullptr)
+    if(tree.has_key(node))
     {
-        // we don't know the location of null values anymore ;-(
-        return Location{m_file, 0, 0, 0};
+        csubstr k = tree.key(node);
+        if(C4_LIKELY(k.str != nullptr))
+        {
+            _RYML_CB_ASSERT(m_stack.m_callbacks, k.is_sub(m_buf));
+            _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.is_super(k));
+            *loc = val_location(k.str);
+            return true;
+        }
     }
 
-    csubstr src = m_buf;
-    // NOTE: the pointer needs to belong to the buffer that was used to parse.
-    _RYML_CB_CHECK(m_stack.m_callbacks, val >= src.begin() && val <= src.end());
-    // NOTE: if any of these checks fails, the parser needs to be instantiated
-    // with locations enabled.
+    if(tree.has_val(node))
+    {
+        csubstr v = tree.val(node);
+        if(C4_LIKELY(v.str != nullptr))
+        {
+            _RYML_CB_ASSERT(m_stack.m_callbacks, v.is_sub(m_buf));
+            _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.is_super(v));
+            *loc = val_location(v.str);
+            return true;
+        }
+    }
+
+    if(tree.is_container(node))
+    {
+        if(_location_from_cont(tree, node, loc))
+        {
+            return true;
+        }
+    }
+
+    if(tree.type(node) != NOTYPE && level == 0)
+    {
+        // try the prev sibling
+        {
+            const size_t prev = tree.prev_sibling(node);
+            if(prev != NONE)
+            {
+                if(_location_from_node(tree, prev, loc, level+1))
+                {
+                    return true;
+                }
+            }
+        }
+        // try the next sibling
+        {
+            const size_t next = tree.next_sibling(node);
+            if(next != NONE)
+            {
+                if(_location_from_node(tree, next, loc, level+1))
+                {
+                    return true;
+                }
+            }
+        }
+        // try the parent
+        {
+            const size_t parent = tree.parent(node);
+            if(parent != NONE)
+            {
+                if(_location_from_node(tree, parent, loc, level+1))
+                {
+                    return true;
+                }
+                C4_ERROR("7.3");
+            }
+        }
+    }
+
+    return false;
+}
+
+bool Parser::_location_from_cont(Tree const& tree, size_t node, Location *C4_RESTRICT loc) const
+{
+    _RYML_CB_ASSERT(m_stack.m_callbacks, tree.is_container(node));
+    if(!tree.is_stream(node))
+    {
+        const char *node_start = tree._p(node)->m_val.scalar.str;  // this was stored in the container
+        if(tree.has_children(node))
+        {
+            size_t child = tree.first_child(node);
+            if(tree.has_key(child))
+            {
+                // when a map starts, the container was set after the key
+                csubstr k = tree.key(child);
+                if(node_start > k.str)
+                    node_start = k.str;
+            }
+        }
+        *loc = val_location(node_start);
+        return true;
+    }
+    else // it's a stream
+    {
+        *loc = val_location(m_buf.str); // just return the front of the buffer
+    }
+    return true;
+}
+
+
+Location Parser::val_location(const char *val) const
+{
+    if(C4_UNLIKELY(val == nullptr))
+        return {m_file, 0, 0, 0};
+
+    // NOTE: if any of these checks fails, the parser needs to be
+    // instantiated with locations enabled.
     _RYML_CB_CHECK(m_stack.m_callbacks, m_options.locations());
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.str == m_newline_offsets_buf.str);
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.len == m_newline_offsets_buf.len);
@@ -5573,6 +5634,10 @@ Location Parser::val_location(const char *val) const
     _RYML_CB_ASSERT(m_stack.m_callbacks, !_locations_dirty());
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_newline_offsets != nullptr);
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_newline_offsets_size > 0);
+    // NOTE: the pointer needs to belong to the buffer that was used to parse.
+    csubstr src = m_buf;
+    _RYML_CB_CHECK(m_stack.m_callbacks, val != nullptr || src.str == nullptr);
+    _RYML_CB_CHECK(m_stack.m_callbacks, (val >= src.begin() && val <= src.end()) || (src.str == nullptr && val == nullptr));
     // ok. search the first stored newline after the given ptr
     using lineptr_type = size_t const* C4_RESTRICT;
     lineptr_type lineptr = nullptr;

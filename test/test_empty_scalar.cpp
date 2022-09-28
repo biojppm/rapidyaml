@@ -33,7 +33,7 @@ map:
     EXPECT_TRUE(tr["map"].is_map());
     for(const char *name : {"seq", "map"})
     {
-        NodeRef node = tr[to_csubstr(name)];
+        ConstNodeRef node = tr[to_csubstr(name)];
         ASSERT_EQ(node.num_children(), 4);
         for(const auto &child : node.children())
         {
@@ -63,7 +63,7 @@ map:
     const Tree tr = parse_in_place(inp);
     for(const char *name : {"seq", "map"})
     {
-        NodeRef node = tr[to_csubstr(name)];
+        ConstNodeRef node = tr[to_csubstr(name)];
         ASSERT_EQ(node.num_children(), 4);
         for(const auto &child : node.children())
         {

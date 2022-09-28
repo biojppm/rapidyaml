@@ -855,7 +855,7 @@ public:
     inline void operator= (std::nullptr_t)
     {
         _apply_seed();
-        _apply({});
+        _apply(csubstr{});
     }
 
     inline void operator= (csubstr v)

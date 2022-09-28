@@ -177,7 +177,7 @@ TEST(locations, seq_block_null)
 {
     ParserOptions opts = ParserOptions().locations(true);
     Parser parser(opts);
-    Tree t = parser.parse_in_arena("myfile.yml", R"(---
+    const Tree t = parser.parse_in_arena("myfile.yml", R"(---
 - ~
 - ~
 - notnull
@@ -193,6 +193,24 @@ TEST(locations, seq_block_null)
 - - - ~
 - - ~
 - ~
+---
+-
+-
+-
+-
+  -
+  -
+  -
+    -
+      -
+        -
+        -
+      -
+    -
+  -
+  -
+  -
+-
 )");
     _checkloc(t.rootref()   ,               0u, 0u, "---");
     _checkloc(t.docref(0)   ,               1u, 0u, "- ");
@@ -227,6 +245,22 @@ TEST(locations, seq_block_null)
     _checkloc(t.docref(1)[7],              14u, 2u, "- ");
     _checkloc(t.docref(1)[7][0],           14u, 4u, "~");
     _checkloc(t.docref(1)[8],              15u, 2u, "~");
+    _checkloc(t.docref(2)   ,              17u, 0u, "-");
+    _checkloc(t.docref(2)[0],              17u, 0u, "-");
+    _checkloc(t.docref(2)[1],              17u, 0u, "-");
+    _checkloc(t.docref(2)[2],              21u, 2u, "-");
+    _checkloc(t.docref(2)[3],              21u, 2u, "-");
+    _checkloc(t.docref(2)[3][0],           21u, 2u, "-");
+    _checkloc(t.docref(2)[3][1],           24u, 4u, "-");
+    _checkloc(t.docref(2)[3][2],           24u, 4u, "-");
+    _checkloc(t.docref(2)[3][2][0],        25u, 6u, "-");
+    _checkloc(t.docref(2)[3][2][0][0],     26u, 8u, "-");
+    _checkloc(t.docref(2)[3][2][0][0][0],  26u, 8u, "-");
+    _checkloc(t.docref(2)[3][2][0][0][1],  26u, 8u, "-");
+    _checkloc(t.docref(2)[3][2][1],        25u, 6u, "-");
+    _checkloc(t.docref(2)[3][3],           24u, 4u, "-"); // fix: this should be after the previous child
+    _checkloc(t.docref(2)[3][4],           21u, 2u, "-"); // fix: this should be after the previous child
+    _checkloc(t.docref(2)[3][5],           21u, 2u, "-"); // fix: this should be after the previous child
 }
 
 TEST(locations, map_block_null)
@@ -245,8 +279,8 @@ null: v
     _checkloc(t.docref(0)[0], 1u, 0u, "~");
     _checkloc(t.docref(1)   , 3u, 0u, "null");
     _checkloc(t.docref(1)[0], 3u, 0u, "null");
-    _checkloc(t.docref(2)   , 0u,  0u, "");
-    _checkloc(t.docref(2)[0], 0u,  0u, "");
+    _checkloc(t.docref(2)   , 0u, 0u, "");
+    _checkloc(t.docref(2)[0], 5u, 3u, "");
 }
 
 TEST(locations, empty_seq)
