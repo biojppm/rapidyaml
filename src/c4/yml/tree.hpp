@@ -591,25 +591,11 @@ public:
     csubstr    const& val_anchor(size_t node) const { RYML_ASSERT( ! is_val_ref(node) && has_val_anchor(node)); return _p(node)->m_val.anchor; }
     NodeScalar const& valsc     (size_t node) const { RYML_ASSERT(has_val(node)); return _p(node)->m_val; }
 
-    bool key_is_null(size_t node) const { RYML_ASSERT(has_key(node)); if(is_key_quoted(node)) return false; csubstr s = _p(node)->m_key.scalar; return s == nullptr || s == "~" || s == "null" || s == "Null" || s == "NULL"; }
-    bool val_is_null(size_t node) const
-    {
-        RYML_ASSERT(has_val(node));
-        if(is_val_quoted(node)) return false;
-
-        csubstr s = _p(node)->m_val.scalar;
-        return
-            s.str == nullptr ||
-            s == "~" ||
-            s == "null" ||
-            s == "Null" ||
-            s == "NULL"; }
-
     /** @} */
 
 public:
 
-    /** @name node type predicates */
+    /** @name node predicates */
     /** @{ */
 
     C4_ALWAYS_INLINE bool is_stream(size_t node) const { return _p(node)->m_type.is_stream(); }
@@ -641,9 +627,20 @@ public:
     C4_ALWAYS_INLINE bool parent_is_map(size_t node) const { RYML_ASSERT(has_parent(node)); return is_map(_p(node)->m_parent); }
 
     /** true when key and val are empty, and has no children */
-    bool empty(size_t node) const { return ! has_children(node) && _p(node)->m_key.empty() && (( ! (_p(node)->m_type & VAL)) || _p(node)->m_val.empty()); }
+    C4_ALWAYS_INLINE bool empty(size_t node) const { return ! has_children(node) && _p(node)->m_key.empty() && (( ! (_p(node)->m_type & VAL)) || _p(node)->m_val.empty()); }
     /** true when the node has an anchor named a */
-    bool has_anchor(size_t node, csubstr a) const { return _p(node)->m_key.anchor == a || _p(node)->m_val.anchor == a; }
+    C4_ALWAYS_INLINE bool has_anchor(size_t node, csubstr a) const { return _p(node)->m_key.anchor == a || _p(node)->m_val.anchor == a; }
+
+    C4_ALWAYS_INLINE bool key_is_null(size_t node) const { RYML_ASSERT(has_key(node)); NodeData const* C4_RESTRICT n = _p(node); return !n->m_type.is_key_quoted() && _is_null(n->m_key.scalar); }
+    C4_ALWAYS_INLINE bool val_is_null(size_t node) const { RYML_ASSERT(has_val(node)); NodeData const* C4_RESTRICT n = _p(node); return !n->m_type.is_val_quoted() && _is_null(n->m_val.scalar); }
+    static bool _is_null(csubstr s) noexcept
+    {
+        return s.str == nullptr ||
+            s == "~" ||
+            s == "null" ||
+            s == "Null" ||
+            s == "NULL";
+    }
 
     /** @} */
 
