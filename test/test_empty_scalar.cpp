@@ -39,6 +39,7 @@ map:
         {
             EXPECT_TRUE(child.is_val_quoted());
             EXPECT_EQ(child.val(), "");
+            EXPECT_EQ(child.val(), nullptr);
             EXPECT_FALSE(child.val_is_null());
         }
     }
@@ -69,9 +70,26 @@ map:
         {
             EXPECT_FALSE(child.type().is_val_quoted());
             EXPECT_EQ(child.val(), "");
+            EXPECT_EQ(child.val(), nullptr);
             EXPECT_TRUE(child.val_is_null());
         }
     }
+}
+
+TEST(empty_scalar, gcc_error)
+{
+    Tree tr;
+    csubstr nullstr = {};
+    ASSERT_EQ(nullstr.str, nullptr);
+    ASSERT_EQ(nullstr.len, 0);
+    std::cout << "\nserializing with empty arena...\n";
+    csubstr result = tr.to_arena(nullstr);
+    EXPECT_EQ(result.str, nullptr); // fails!
+    EXPECT_EQ(result.len, 0);
+    std::cout << "\nserializing with nonempty arena...\n";
+    result = tr.to_arena(nullstr);
+    EXPECT_EQ(result.str, nullptr); // fails!
+    EXPECT_EQ(result.len, 0);
 }
 
 TEST(empty_scalar, build_zero_length_string)
@@ -86,10 +104,10 @@ TEST(empty_scalar, build_zero_length_string)
     csubstr nullss = {};
 
     // these are the conditions we wish to cover:
-    ASSERT_TRUE(nullss.str == nullptr);
-    ASSERT_TRUE(nullss.len == 0u);
     ASSERT_TRUE(empty.str != nullptr);
     ASSERT_TRUE(empty.len == 0u);
+    ASSERT_TRUE(nullss.str == nullptr);
+    ASSERT_TRUE(nullss.len == 0u);
 
     // = and << must have exactly the same behavior where nullity is
     // regarded
@@ -106,7 +124,7 @@ TEST(empty_scalar, build_zero_length_string)
     {NodeRef r = quoted.append_child(); r = nullptr ; r.set_type(r.type() | VALQUO);}
     {NodeRef r = quoted.append_child(); r << nullptr; r.set_type(r.type() | VALQUO);}
     ASSERT_TRUE(quoted.has_children());
-    for(const auto &child : quoted.children())
+    for(ConstNodeRef child : quoted.cchildren())
     {
         EXPECT_TRUE(child.is_val_quoted());
         EXPECT_EQ(child.val(), "");
@@ -117,25 +135,37 @@ TEST(empty_scalar, build_zero_length_string)
     // ... but according to the incoming scalar, non quoted cases may
     // or may not be null
     NodeRef non_quoted = addseq("nonquoted");
+    NodeRef non_quoted_null = addseq("nonquoted_null");
     non_quoted.append_child() = "";
     non_quoted.append_child() << "";
     non_quoted.append_child() = empty;
     non_quoted.append_child() << empty;
-    non_quoted.append_child() = nullss;
-    non_quoted.append_child() << nullss;
-    non_quoted.append_child() = nullptr;
-    non_quoted.append_child() << nullptr;
+    non_quoted_null.append_child() = nullss;
+    non_quoted_null.append_child() << nullss;
+    non_quoted_null.append_child() = nullptr;
+    non_quoted_null.append_child() << nullptr;
     ASSERT_TRUE(non_quoted.has_children());
+    ASSERT_TRUE(non_quoted_null.has_children());
     size_t pos = 0;
-    for(const auto &child : non_quoted.children())
+    for(ConstNodeRef child : non_quoted.cchildren())
     {
-        EXPECT_TRUE(child.is_val());
-        EXPECT_EQ(child.val(), "");
-        EXPECT_EQ(child.val(), nullptr);
-        if(pos < 4u)
-            EXPECT_FALSE(child.val_is_null()) << "pos=" << pos;
-        else
-            EXPECT_TRUE(child.val_is_null()) << "pos=" << pos;
+        EXPECT_TRUE(child.is_val()) << "pos=" << pos;
+        EXPECT_EQ(child.val(), "") << "pos=" << pos;
+        EXPECT_EQ(child.val(), nullptr) << "pos=" << pos;
+        EXPECT_EQ(child.val().len, 0u) << "pos=" << pos;
+        EXPECT_NE(child.val().str, nullptr) << "pos=" << pos;
+        EXPECT_FALSE(child.val_is_null()) << "pos=" << pos;
+        ++pos;
+    }
+    pos = 0;
+    for(ConstNodeRef child : non_quoted_null.cchildren())
+    {
+        EXPECT_TRUE(child.is_val()) << "pos=" << pos;
+        EXPECT_EQ(child.val(), "") << "pos=" << pos;
+        EXPECT_EQ(child.val(), nullptr) << "pos=" << pos;
+        EXPECT_EQ(child.val().len, 0u) << "pos=" << pos;
+        EXPECT_EQ(child.val().str, nullptr) << "pos=" << pos;
+        EXPECT_TRUE(child.val_is_null()) << "pos=" << pos;
         ++pos;
     }
 }

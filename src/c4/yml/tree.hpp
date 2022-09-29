@@ -1007,17 +1007,17 @@ public:
         }
         else if(num == 0u)
         {
-            if(a.str != nullptr && m_arena.str == nullptr)
+            if(a.str == nullptr)  // ??????  should enter this branch!
+            {
+                return csubstr{};
+            }
+            else if(m_arena.str == nullptr)
             {
                 // Arena is empty and we want to store a non-null
                 // zero-length string.
                 // Even though the string has zero length, we need
                 // some "memory" to store a non-nullptr string
                 rem = _grow_arena(1);
-            }
-            else if(a.str == nullptr)
-            {
-                return csubstr{};
             }
         }
         rem = _request_span(num);
