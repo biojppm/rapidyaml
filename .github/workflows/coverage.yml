@@ -42,8 +42,9 @@ jobs:
     env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}",
           CODECOV_TOKEN: "${{secrets.CODECOV_TOKEN}}",
           COVERALLS_REPO_TOKEN: "${{secrets.COVERALLS_REPO_TOKEN}}",
+          # https://github.com/lemurheavy/coveralls-public/issues/1665
           # https://docs.coveralls.io/parallel-build-webhook
-          COVERALLS_PARALLEL: true
+          #COVERALLS_PARALLEL: true
           }
     steps:
       - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
