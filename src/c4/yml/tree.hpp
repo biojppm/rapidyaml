@@ -997,15 +997,19 @@ public:
      * @see alloc_arena() */
     csubstr to_arena(csubstr a)
     {
-        substr rem(m_arena.sub(m_arena_pos));
-        size_t num = to_chars(rem, a);
-        if(num > rem.len)
+        if(a.len > 0)
         {
-            rem = _grow_arena(num);
-            num = to_chars(rem, a);
-            RYML_ASSERT(num <= rem.len);
+            substr rem(m_arena.sub(m_arena_pos));
+            size_t num = to_chars(rem, a);
+            if(num > rem.len)
+            {
+                rem = _grow_arena(num);
+                num = to_chars(rem, a);
+                RYML_ASSERT(num <= rem.len);
+            }
+            return _request_span(num);
         }
-        else if(num == 0u)
+        else
         {
             if(a.str == nullptr)  // ??????  should enter this branch!
             {
@@ -1017,11 +1021,10 @@ public:
                 // zero-length string.
                 // Even though the string has zero length, we need
                 // some "memory" to store a non-nullptr string
-                rem = _grow_arena(1);
+                _grow_arena(1);
             }
+            return _request_span(0);
         }
-        rem = _request_span(num);
-        return rem;
     }
     csubstr to_arena(std::nullptr_t)
     {
