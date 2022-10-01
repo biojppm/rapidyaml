@@ -3233,7 +3233,9 @@ TEST(change_type, from_map)
     t[0].change_type(VAL);
     t[1].change_type(MAP);
     t[2].change_type(SEQ);
-    Tree expected = parse_in_arena("[ , {map1: {map1key0: a, map1key1: b}}, []]");
+    EXPECT_FALSE(t[0].val_is_null());
+    EXPECT_NE(t[0].val(), nullptr);
+    Tree expected = parse_in_arena("['', {map1: {map1key0: a, map1key1: b}}, []]");
     EXPECT_EQ(emitrs_yaml<std::string>(t), emitrs_yaml<std::string>(expected));
 }
 TEST(change_type, from_keymap)
@@ -3242,7 +3244,9 @@ TEST(change_type, from_keymap)
     t[0].change_type(VAL);
     t[1].change_type(MAP);
     t[2].change_type(SEQ);
-    Tree expected = parse_in_arena("{map0: , map1: {map1: {map1key0: a, map1key1: b}}, map2: []}");
+    EXPECT_FALSE(t[0].val_is_null());
+    EXPECT_NE(t[0].val(), nullptr);
+    Tree expected = parse_in_arena("{map0: '', map1: {map1: {map1key0: a, map1key1: b}}, map2: []}");
     EXPECT_EQ(emitrs_yaml<std::string>(t), emitrs_yaml<std::string>(expected));
 }
 
@@ -3252,7 +3256,9 @@ TEST(change_type, from_seq)
     t[0].change_type(VAL);
     t[1].change_type(MAP);
     t[2].change_type(SEQ);
-    Tree expected = parse_in_arena("[ , {}, [seq20, seq21]]");
+    EXPECT_FALSE(t[0].val_is_null());
+    EXPECT_NE(t[0].val(), nullptr);
+    Tree expected = parse_in_arena("['', {}, [seq20, seq21]]");
     EXPECT_EQ(emitrs_yaml<std::string>(t), emitrs_yaml<std::string>(expected));
 }
 TEST(change_type, from_keyseq)
@@ -3261,7 +3267,9 @@ TEST(change_type, from_keyseq)
     t[0].change_type(VAL);
     t[1].change_type(MAP);
     t[2].change_type(SEQ);
-    Tree expected = parse_in_arena("{map0: , map1: {}, map2: [seq20, seq21]}");
+    EXPECT_FALSE(t[0].val_is_null());
+    EXPECT_NE(t[0].val(), nullptr);
+    Tree expected = parse_in_arena("{map0: '', map1: {}, map2: [seq20, seq21]}");
     EXPECT_EQ(emitrs_yaml<std::string>(t), emitrs_yaml<std::string>(expected));
 }
 
