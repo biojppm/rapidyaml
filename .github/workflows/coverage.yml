@@ -42,7 +42,7 @@ jobs:
     env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}",
           CODECOV_TOKEN: "${{secrets.CODECOV_TOKEN}}",
           COVERALLS_REPO_TOKEN: "${{secrets.COVERALLS_REPO_TOKEN}}",
-          # https://github.com/lemurheavy/coveralls-public/issues/1665
+          # coveralls disabled: https://github.com/lemurheavy/coveralls-public/issues/1665
           # https://docs.coveralls.io/parallel-build-webhook
           #COVERALLS_PARALLEL: true
           }
@@ -62,8 +62,8 @@ jobs:
             build/static64/lcov
             build/static64/coverage3-final_filtered.lcov
       - {name: static64-submit-codecov, run: source .github/setenv.sh && c4_submit_coverage static64 codecov}
-      # only do one coveralls submission; see https://github.com/lemurheavy/coveralls-public/issues/1665
-      - {name: static64-submit-coveralls, run: "if [ \"${{matrix.std}}\" == \"17\" ] ; then ( source .github/setenv.sh && c4_submit_coverage static64 coveralls ) ; fi" }
+      # coveralls disabled: https://github.com/lemurheavy/coveralls-public/issues/1665
+      #- {name: static64-submit-coveralls, run: "if [ \"${{matrix.std}}\" == \"17\" ] ; then ( source .github/setenv.sh && c4_submit_coverage static64 coveralls ) ; fi" }
       - name: static32-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test static32
       - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
@@ -76,9 +76,10 @@ jobs:
             build/static32/lcov
             build/static32/coverage3-final_filtered.lcov
       - {name: static32-submit-codecov, run: source .github/setenv.sh && c4_submit_coverage static32 codecov}
+      # coveralls disabled: https://github.com/lemurheavy/coveralls-public/issues/1665
       #- {name: static32-submit-coveralls, run: source .github/setenv.sh && c4_submit_coverage static32 coveralls}
 
-  # https://github.com/marketplace/actions/coveralls-github-action
+  # coveralls disabled: https://github.com/lemurheavy/coveralls-public/issues/1665
   # https://github.com/lemurheavy/coveralls-public/issues/1665
   #coveralls_finish:
   #  needs: [coverage]
