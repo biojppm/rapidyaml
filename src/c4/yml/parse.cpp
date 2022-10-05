@@ -5616,9 +5616,9 @@ Location Parser::val_location(const char *val) const
     if(C4_UNLIKELY(val == nullptr))
         return {m_file, 0, 0, 0};
 
+    _RYML_CB_CHECK(m_stack.m_callbacks, m_options.locations());
     // NOTE: if any of these checks fails, the parser needs to be
     // instantiated with locations enabled.
-    _RYML_CB_CHECK(m_stack.m_callbacks, m_options.locations());
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.str == m_newline_offsets_buf.str);
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.len == m_newline_offsets_buf.len);
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_options.locations());
@@ -5670,17 +5670,9 @@ Location Parser::val_location(const char *val) const
             }
         }
     }
-    if(!lineptr)
-    {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.empty());
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_newline_offsets_size == 1);
-        lineptr = m_newline_offsets;
-    }
-    else
-    {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, *lineptr > offset);
-    }
-    _RYML_CB_ASSERT(m_stack.m_callbacks, lineptr >= m_newline_offsets && lineptr < m_newline_offsets + m_newline_offsets_size);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, lineptr >= m_newline_offsets);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, lineptr <= m_newline_offsets + m_newline_offsets_size);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, *lineptr > offset);
     Location loc;
     loc.name = m_file;
     loc.offset = offset;
