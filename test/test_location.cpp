@@ -275,11 +275,11 @@ null: v
  : v
 )");
     _checkloc(t.rootref()   , 0u, 0u, "---");
-    _checkloc(t.docref(0)   , 1u, 0u, "~");
+    _checkloc(t.docref(0)   , 1u, 0u, "");
     _checkloc(t.docref(0)[0], 1u, 0u, "~");
     _checkloc(t.docref(1)   , 3u, 0u, "null");
     _checkloc(t.docref(1)[0], 3u, 0u, "null");
-    _checkloc(t.docref(2)   , 0u, 0u, "");
+    _checkloc(t.docref(2)   , 5u, 1u, "");
     _checkloc(t.docref(2)[0], 5u, 3u, "");
 }
 

@@ -5546,9 +5546,7 @@ bool Parser::_location_from_node(Tree const& tree, size_t node, Location *C4_RES
     if(tree.is_container(node))
     {
         if(_location_from_cont(tree, node, loc))
-        {
             return true;
-        }
     }
 
     if(tree.type(node) != NOTYPE && level == 0)
@@ -5559,9 +5557,7 @@ bool Parser::_location_from_node(Tree const& tree, size_t node, Location *C4_RES
             if(prev != NONE)
             {
                 if(_location_from_node(tree, prev, loc, level+1))
-                {
                     return true;
-                }
             }
         }
         // try the next sibling
@@ -5570,9 +5566,7 @@ bool Parser::_location_from_node(Tree const& tree, size_t node, Location *C4_RES
             if(next != NONE)
             {
                 if(_location_from_node(tree, next, loc, level+1))
-                {
                     return true;
-                }
             }
         }
         // try the parent
@@ -5581,10 +5575,7 @@ bool Parser::_location_from_node(Tree const& tree, size_t node, Location *C4_RES
             if(parent != NONE)
             {
                 if(_location_from_node(tree, parent, loc, level+1))
-                {
                     return true;
-                }
-                C4_ERROR("7.3");
             }
         }
     }
@@ -5605,7 +5596,7 @@ bool Parser::_location_from_cont(Tree const& tree, size_t node, Location *C4_RES
             {
                 // when a map starts, the container was set after the key
                 csubstr k = tree.key(child);
-                if(node_start > k.str)
+                if(k.str && node_start > k.str)
                     node_start = k.str;
             }
         }
