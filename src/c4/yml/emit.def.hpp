@@ -819,7 +819,7 @@ void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
     // was evaluated as true even if s.str was actually a nullptr (!!!)
     if(s.len == size_t(0))
     {
-        if(was_quoted)
+        if(was_quoted || s.str != nullptr)
             this->Writer::_do_write("''");
         return;
     }

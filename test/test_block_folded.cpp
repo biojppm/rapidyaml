@@ -115,6 +115,108 @@ TEST(block_folded, empty_block1)
     EXPECT_EQ(t[4].val(), csubstr(""));
 }
 
+TEST(block_folded, empty_block_as_container_member)
+{
+    // this was ok
+    test_check_emit_check(R"(
+map:
+  a: ""
+  b: ''
+  d: |
+  c: >
+  e:
+)", [](Tree const &t){
+        EXPECT_TRUE(t["map"].has_key());
+        EXPECT_TRUE(t["map"].is_map());
+        EXPECT_EQ(t["map"].num_children(), 5u);
+        for(const auto &child : t["map"].children())
+        {
+            EXPECT_EQ(child.val(), "");
+            if(child.key() != "e")
+            {
+                EXPECT_TRUE(child.type().is_val_quoted());
+                EXPECT_FALSE(child.val_is_null());
+            }
+        }
+    });
+    // this was ok
+    test_check_emit_check(R"(
+map:
+  a: ""
+  b: ''
+  d: |
+  c: >
+)", [](Tree const &t){
+        EXPECT_TRUE(t["map"].has_key());
+        EXPECT_TRUE(t["map"].is_map());
+        EXPECT_TRUE(t["map"].is_map());
+        EXPECT_EQ(t["map"].num_children(), 4u);
+        for(const auto &child : t["map"].children())
+        {
+            EXPECT_EQ(child.val(), "");
+            EXPECT_TRUE(child.type().is_val_quoted());
+            EXPECT_FALSE(child.val_is_null());
+        }
+    });
+    // this was not ok! the block literal before next is extended: to
+    // include the YAML for next!
+    test_check_emit_check(R"(
+map:
+  a: ""
+  b: ''
+  d: |
+  c: >
+next:
+  a: ""
+  b: ''
+  d: |
+  c: >
+)", [](Tree const &t){
+        for(const char *name : {"map", "next"})
+        {
+            ASSERT_TRUE(t.rootref().has_child(to_csubstr(name))) << "name=" << name;
+            ConstNodeRef node = t[to_csubstr(name)];
+            EXPECT_TRUE(node.has_key());
+            EXPECT_TRUE(node.is_map());
+            EXPECT_TRUE(node.is_map());
+            ASSERT_EQ(node.num_children(), 4u);
+            for(const auto &child : node.children())
+            {
+                EXPECT_EQ(child.val(), "");
+                EXPECT_TRUE(child.type().is_val_quoted());
+                EXPECT_FALSE(child.val_is_null());
+            }
+        }
+    });
+    test_check_emit_check(R"(
+seq:
+  - ""
+  - ''
+  - |
+  - >
+next:
+  - ""
+  - ''
+  - |
+  - >
+)", [](Tree const &t){
+        for(const char *name : {"seq", "next"})
+        {
+            ASSERT_TRUE(t.rootref().has_child(to_csubstr(name))) << "name=" << name;
+            ConstNodeRef node = t[to_csubstr(name)];
+            EXPECT_TRUE(node.has_key());
+            EXPECT_TRUE(node.is_seq());
+            ASSERT_EQ(node.num_children(), 4u);
+            for(const auto &child : node.children())
+            {
+                EXPECT_EQ(child.val(), "");
+                EXPECT_TRUE(child.type().is_val_quoted());
+                EXPECT_FALSE(child.val_is_null());
+            }
+        }
+    });
+}
+
 TEST(block_folded, issue152_not_indented)
 {
     const Tree t = parse_in_arena(R"(

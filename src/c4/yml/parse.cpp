@@ -3227,11 +3227,16 @@ void Parser::_line_ended_undo()
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->pos.col == 1u);
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->pos.line > 0u);
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->pos.offset >= m_state->line_contents.full.len - m_state->line_contents.stripped.len);
-    _c4dbgpf("line[{}] undo ended! line {}-->{}, offset {}-->{}", m_state->pos.line, m_state->pos.line, m_state->pos.line - 1, m_state->pos.offset, m_state->pos.offset - (m_state->line_contents.full.len - m_state->line_contents.stripped.len));
-    m_state->pos.offset -= m_state->line_contents.full.len - m_state->line_contents.stripped.len;
+    size_t delta = m_state->line_contents.full.len - m_state->line_contents.stripped.len;
+    _c4dbgpf("line[{}] undo ended! line {}-->{}, offset {}-->{}", m_state->pos.line, m_state->pos.line, m_state->pos.line - 1, m_state->pos.offset, m_state->pos.offset - delta);
+    m_state->pos.offset -= delta;
     --m_state->pos.line;
     m_state->pos.col = m_state->line_contents.stripped.len + 1u;
+    // don't forget to undo also the changes to the remainder of the line
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->pos.offset >= m_buf.len || m_buf[m_state->pos.offset] == '\n' || m_buf[m_state->pos.offset] == '\r');
+    m_state->line_contents.rem = m_buf.sub(m_state->pos.offset, 0);
 }
+
 
 //-----------------------------------------------------------------------------
 void Parser::_set_indentation(size_t indentation)
@@ -4341,8 +4346,7 @@ csubstr Parser::_scan_block()
     _line_ended();
     _scan_line();
 
-    _c4dbgpf("scanning block: style={}  chomp={}  indentation={}", newline==BLOCK_FOLD ? "fold" : "literal",
-        chomp==CHOMP_CLIP ? "clip" : (chomp==CHOMP_STRIP ? "strip" : "keep"), indentation);
+    _c4dbgpf("scanning block: style={}  chomp={}  indentation={}", newline==BLOCK_FOLD ? "fold" : "literal", chomp==CHOMP_CLIP ? "clip" : (chomp==CHOMP_STRIP ? "strip" : "keep"), indentation);
 
     // start with a zero-length block, already pointing at the right place
     substr raw_block(m_buf.data() + m_state->pos.offset, size_t(0));// m_state->line_contents.full.sub(0, 0);
@@ -4389,15 +4393,17 @@ csubstr Parser::_scan_block()
                 _c4dbgpf("scanning block: line not empty. indref={} indprov={} indentation={}", m_state->indref, provisional_indentation, lc.indentation);
                 if(provisional_indentation == npos)
                 {
-                    #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
                     if(lc.indentation < m_state->indref)
                     {
                         _c4dbgpf("scanning block: block terminated indentation={} < indref={}", lc.indentation, m_state->indref);
+                        if(raw_block.len == 0)
+                        {
+                            _c4dbgp("scanning block: was empty, undo next line");
+                            _line_ended_undo();
+                        }
                         break;
                     }
-                    else
-                    #endif
-                    if(lc.indentation == m_state->indref)
+                    else if(lc.indentation == m_state->indref)
                     {
                         if(has_any(RSEQ|RMAP))
                         {
@@ -4461,7 +4467,7 @@ csubstr Parser::_scan_block()
         _line_ended();
         ++num_lines;
     }
-    _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->pos.line == (first + num_lines));
+    _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->pos.line == (first + num_lines) || (raw_block.len == 0));
     C4_UNUSED(num_lines);
     C4_UNUSED(first);
 
@@ -5504,60 +5510,125 @@ Location Parser::location(ConstNodeRef node) const
 
 Location Parser::location(Tree const& tree, size_t node) const
 {
-    if(tree.has_key(node))
-    {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, tree.key(node).is_sub(m_buf));
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.is_super(tree.key(node)));
-        return val_location(tree.key(node).str);
-    }
-    else if(tree.has_val(node))
-    {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, tree.val(node).is_sub(m_buf));
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.is_super(tree.val(node)));
-        return val_location(tree.val(node).str);
-    }
-    else if(tree.is_container(node))
-    {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, !tree.has_key(node));
-        if(!tree.is_stream(node))
-        {
-            const char *node_start = tree._p(node)->m_val.scalar.str;  // this was stored in the container
-            if(tree.has_children(node))
-            {
-                size_t child = tree.first_child(node);
-                if(tree.has_key(child))
-                {
-                    // when a map starts, the container was set after the key
-                    csubstr k = tree.key(child);
-                    if(node_start > k.str)
-                        node_start = k.str;
-                }
-            }
-            return val_location(node_start);
-        }
-        else // it's a stream
-        {
-            return val_location(m_buf.str); // just return the front of the buffer
-        }
-    }
-    _RYML_CB_ASSERT(m_stack.m_callbacks, tree.type(node) == NOTYPE);
+    // try hard to avoid getting the location from a null string.
+    Location loc;
+    if(_location_from_node(tree, node, &loc, 0))
+        return loc;
     return val_location(m_buf.str);
 }
 
+bool Parser::_location_from_node(Tree const& tree, size_t node, Location *C4_RESTRICT loc, size_t level) const
+{
+    if(tree.has_key(node))
+    {
+        csubstr k = tree.key(node);
+        if(C4_LIKELY(k.str != nullptr))
+        {
+            _RYML_CB_ASSERT(m_stack.m_callbacks, k.is_sub(m_buf));
+            _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.is_super(k));
+            *loc = val_location(k.str);
+            return true;
+        }
+    }
+
+    if(tree.has_val(node))
+    {
+        csubstr v = tree.val(node);
+        if(C4_LIKELY(v.str != nullptr))
+        {
+            _RYML_CB_ASSERT(m_stack.m_callbacks, v.is_sub(m_buf));
+            _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.is_super(v));
+            *loc = val_location(v.str);
+            return true;
+        }
+    }
+
+    if(tree.is_container(node))
+    {
+        if(_location_from_cont(tree, node, loc))
+            return true;
+    }
+
+    if(tree.type(node) != NOTYPE && level == 0)
+    {
+        // try the prev sibling
+        {
+            const size_t prev = tree.prev_sibling(node);
+            if(prev != NONE)
+            {
+                if(_location_from_node(tree, prev, loc, level+1))
+                    return true;
+            }
+        }
+        // try the next sibling
+        {
+            const size_t next = tree.next_sibling(node);
+            if(next != NONE)
+            {
+                if(_location_from_node(tree, next, loc, level+1))
+                    return true;
+            }
+        }
+        // try the parent
+        {
+            const size_t parent = tree.parent(node);
+            if(parent != NONE)
+            {
+                if(_location_from_node(tree, parent, loc, level+1))
+                    return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+bool Parser::_location_from_cont(Tree const& tree, size_t node, Location *C4_RESTRICT loc) const
+{
+    _RYML_CB_ASSERT(m_stack.m_callbacks, tree.is_container(node));
+    if(!tree.is_stream(node))
+    {
+        const char *node_start = tree._p(node)->m_val.scalar.str;  // this was stored in the container
+        if(tree.has_children(node))
+        {
+            size_t child = tree.first_child(node);
+            if(tree.has_key(child))
+            {
+                // when a map starts, the container was set after the key
+                csubstr k = tree.key(child);
+                if(k.str && node_start > k.str)
+                    node_start = k.str;
+            }
+        }
+        *loc = val_location(node_start);
+        return true;
+    }
+    else // it's a stream
+    {
+        *loc = val_location(m_buf.str); // just return the front of the buffer
+    }
+    return true;
+}
+
+
 Location Parser::val_location(const char *val) const
 {
-    csubstr src = m_buf;
-    // NOTE: the pointer needs to belong to the buffer that was used to parse.
-    _RYML_CB_CHECK(m_stack.m_callbacks, val >= src.begin() && val <= src.end());
-    // NOTE: if any of these checks fails, the parser needs to be instantiated
-    // with locations enabled.
+    if(C4_UNLIKELY(val == nullptr))
+        return {m_file, 0, 0, 0};
+
     _RYML_CB_CHECK(m_stack.m_callbacks, m_options.locations());
+    // NOTE: if any of these checks fails, the parser needs to be
+    // instantiated with locations enabled.
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.str == m_newline_offsets_buf.str);
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.len == m_newline_offsets_buf.len);
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_options.locations());
     _RYML_CB_ASSERT(m_stack.m_callbacks, !_locations_dirty());
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_newline_offsets != nullptr);
     _RYML_CB_ASSERT(m_stack.m_callbacks, m_newline_offsets_size > 0);
+    // NOTE: the pointer needs to belong to the buffer that was used to parse.
+    csubstr src = m_buf;
+    _RYML_CB_CHECK(m_stack.m_callbacks, val != nullptr || src.str == nullptr);
+    _RYML_CB_CHECK(m_stack.m_callbacks, (val >= src.begin() && val <= src.end()) || (src.str == nullptr && val == nullptr));
     // ok. search the first stored newline after the given ptr
     using lineptr_type = size_t const* C4_RESTRICT;
     lineptr_type lineptr = nullptr;
@@ -5599,17 +5670,9 @@ Location Parser::val_location(const char *val) const
             }
         }
     }
-    if(!lineptr)
-    {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_buf.empty());
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_newline_offsets_size == 1);
-        lineptr = m_newline_offsets;
-    }
-    else
-    {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, *lineptr > offset);
-    }
-    _RYML_CB_ASSERT(m_stack.m_callbacks, lineptr >= m_newline_offsets && lineptr < m_newline_offsets + m_newline_offsets_size);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, lineptr >= m_newline_offsets);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, lineptr <= m_newline_offsets + m_newline_offsets_size);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, *lineptr > offset);
     Location loc;
     loc.name = m_file;
     loc.offset = offset;

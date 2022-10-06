@@ -701,8 +701,6 @@ public:
     NodeRef& operator= (NodeRef const&) = default;
     NodeRef& operator= (NodeRef     &&) = default;
 
-    NodeRef& operator= (std::nullptr_t) { m_tree = nullptr; m_id = NONE; m_seed = {}; return *this; }
-
     /** @} */
 
 public:
@@ -783,6 +781,12 @@ public:
         m_tree->_set_val(m_id, s);
         return s.len;
     }
+    size_t set_val_serialized(std::nullptr_t)
+    {
+        _C4RV();
+        m_tree->_set_val(m_id, csubstr{});
+        return 0;
+    }
 
     /** encode a blob as base64, then assign the result to the node's key
      * @return the size of base64-encoded blob */
@@ -846,6 +850,12 @@ public:
     {
         _apply_seed();
         _apply(v);
+    }
+
+    inline void operator= (std::nullptr_t)
+    {
+        _apply_seed();
+        _apply(csubstr{});
     }
 
     inline void operator= (csubstr v)

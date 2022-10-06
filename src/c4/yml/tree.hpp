@@ -591,14 +591,11 @@ public:
     csubstr    const& val_anchor(size_t node) const { RYML_ASSERT( ! is_val_ref(node) && has_val_anchor(node)); return _p(node)->m_val.anchor; }
     NodeScalar const& valsc     (size_t node) const { RYML_ASSERT(has_val(node)); return _p(node)->m_val; }
 
-    bool key_is_null(size_t node) const { RYML_ASSERT(has_key(node)); if(is_key_quoted(node)) return false; csubstr s = _p(node)->m_key.scalar; return s == nullptr || s == "~" || s == "null" || s == "Null" || s == "NULL"; }
-    bool val_is_null(size_t node) const { RYML_ASSERT(has_val(node)); if(is_val_quoted(node)) return false; csubstr s = _p(node)->m_val.scalar; return s == nullptr || s == "~" || s == "null" || s == "Null" || s == "NULL"; }
-
     /** @} */
 
 public:
 
-    /** @name node type predicates */
+    /** @name node predicates */
     /** @{ */
 
     C4_ALWAYS_INLINE bool is_stream(size_t node) const { return _p(node)->m_type.is_stream(); }
@@ -630,9 +627,20 @@ public:
     C4_ALWAYS_INLINE bool parent_is_map(size_t node) const { RYML_ASSERT(has_parent(node)); return is_map(_p(node)->m_parent); }
 
     /** true when key and val are empty, and has no children */
-    bool empty(size_t node) const { return ! has_children(node) && _p(node)->m_key.empty() && (( ! (_p(node)->m_type & VAL)) || _p(node)->m_val.empty()); }
+    C4_ALWAYS_INLINE bool empty(size_t node) const { return ! has_children(node) && _p(node)->m_key.empty() && (( ! (_p(node)->m_type & VAL)) || _p(node)->m_val.empty()); }
     /** true when the node has an anchor named a */
-    bool has_anchor(size_t node, csubstr a) const { return _p(node)->m_key.anchor == a || _p(node)->m_val.anchor == a; }
+    C4_ALWAYS_INLINE bool has_anchor(size_t node, csubstr a) const { return _p(node)->m_key.anchor == a || _p(node)->m_val.anchor == a; }
+
+    C4_ALWAYS_INLINE bool key_is_null(size_t node) const { RYML_ASSERT(has_key(node)); NodeData const* C4_RESTRICT n = _p(node); return !n->m_type.is_key_quoted() && _is_null(n->m_key.scalar); }
+    C4_ALWAYS_INLINE bool val_is_null(size_t node) const { RYML_ASSERT(has_val(node)); NodeData const* C4_RESTRICT n = _p(node); return !n->m_type.is_val_quoted() && _is_null(n->m_val.scalar); }
+    static bool _is_null(csubstr s) noexcept
+    {
+        return s.str == nullptr ||
+            s == "~" ||
+            s == "null" ||
+            s == "Null" ||
+            s == "NULL";
+    }
 
     /** @} */
 
@@ -961,31 +969,15 @@ public:
         return m_arena.is_super(s);
     }
 
-    /** serialize the given non-floating-point variable to the tree's arena, growing it as
-     * needed to accomodate the serialization.
+    /** serialize the given floating-point variable to the tree's
+     * arena, growing it as needed to accomodate the serialization.
+     *
      * @note Growing the arena may cause relocation of the entire
-     * existing arena, and thus change the contents of individual nodes.
-     * @see alloc_arena() */
-    template<class T>
-    typename std::enable_if<!std::is_floating_point<T>::value, csubstr>::type
-    to_arena(T const& C4_RESTRICT a)
-    {
-        substr rem(m_arena.sub(m_arena_pos));
-        size_t num = to_chars(rem, a);
-        if(num > rem.len)
-        {
-            rem = _grow_arena(num);
-            num = to_chars(rem, a);
-            RYML_ASSERT(num <= rem.len);
-        }
-        rem = _request_span(num);
-        return rem;
-    }
-
-    /** serialize the given floating-point variable to the tree's arena, growing it as
-     * needed to accomodate the serialization.
-     * @note Growing the arena may cause relocation of the entire
-     * existing arena, and thus change the contents of individual nodes.
+     * existing arena, and thus change the contents of individual
+     * nodes, and thus cost O(numnodes)+O(arenasize). To avoid this
+     * cost, ensure that the arena is reserved to an appropriate size
+     * using .reserve_arena()
+     *
      * @see alloc_arena() */
     template<class T>
     typename std::enable_if<std::is_floating_point<T>::value, csubstr>::type
@@ -1003,9 +995,91 @@ public:
         return rem;
     }
 
-    /** copy the given substr to the tree's arena, growing it by the required size
+    /** serialize the given non-floating-point variable to the tree's
+     * arena, growing it as needed to accomodate the serialization.
+     *
      * @note Growing the arena may cause relocation of the entire
-     * existing arena, and thus change the contents of individual nodes.
+     * existing arena, and thus change the contents of individual
+     * nodes, and thus cost O(numnodes)+O(arenasize). To avoid this
+     * cost, ensure that the arena is reserved to an appropriate size
+     * using .reserve_arena()
+     *
+     * @see alloc_arena() */
+    template<class T>
+    typename std::enable_if<!std::is_floating_point<T>::value, csubstr>::type
+    to_arena(T const& C4_RESTRICT a)
+    {
+        substr rem(m_arena.sub(m_arena_pos));
+        size_t num = to_chars(rem, a);
+        if(num > rem.len)
+        {
+            rem = _grow_arena(num);
+            num = to_chars(rem, a);
+            RYML_ASSERT(num <= rem.len);
+        }
+        rem = _request_span(num);
+        return rem;
+    }
+
+    /** serialize the given csubstr to the tree's arena, growing the
+     * arena as needed to accomodate the serialization.
+     *
+     * @note Growing the arena may cause relocation of the entire
+     * existing arena, and thus change the contents of individual
+     * nodes, and thus cost O(numnodes)+O(arenasize). To avoid this
+     * cost, ensure that the arena is reserved to an appropriate size
+     * using .reserve_arena()
+     *
+     * @see alloc_arena() */
+    csubstr to_arena(csubstr a)
+    {
+        if(a.len > 0)
+        {
+            substr rem(m_arena.sub(m_arena_pos));
+            size_t num = to_chars(rem, a);
+            if(num > rem.len)
+            {
+                rem = _grow_arena(num);
+                num = to_chars(rem, a);
+                RYML_ASSERT(num <= rem.len);
+            }
+            return _request_span(num);
+        }
+        else
+        {
+            if(a.str == nullptr)
+            {
+                return csubstr{};
+            }
+            else if(m_arena.str == nullptr)
+            {
+                // Arena is empty and we want to store a non-null
+                // zero-length string.
+                // Even though the string has zero length, we need
+                // some "memory" to store a non-nullptr string
+                _grow_arena(1);
+            }
+            return _request_span(0);
+        }
+    }
+    C4_ALWAYS_INLINE csubstr to_arena(const char *s)
+    {
+        return to_arena(to_csubstr(s));
+    }
+    C4_ALWAYS_INLINE csubstr to_arena(std::nullptr_t)
+    {
+        return csubstr{};
+    }
+
+    /** copy the given substr to the tree's arena, growing it by the
+     * required size
+     *
+     * @note Growing the arena may cause relocation of the entire
+     * existing arena, and thus change the contents of individual
+     * nodes, and thus cost O(numnodes)+O(arenasize). To avoid this
+     * cost, ensure that the arena is reserved to an appropriate size
+     * using .reserve_arena()
+     *
      * @see alloc_arena() */
     substr copy_to_arena(csubstr s)
     {
@@ -1017,7 +1091,8 @@ public:
         C4_SUPPRESS_WARNING_GCC("-Wstringop-overflow=") // no need for terminating \0
         C4_SUPPRESS_WARNING_GCC( "-Wrestrict") // there's an assert to ensure no violation of restrict behavior
         #endif
-        memcpy(cp.str, s.str, s.len);
+        if(s.len)
+            memcpy(cp.str, s.str, s.len);
         #if (!defined(__clang__)) && (defined(__GNUC__) && __GNUC__ >= 10)
         C4_SUPPRESS_WARNING_GCC_POP
         #endif
@@ -1026,8 +1101,14 @@ public:
 
     /** grow the tree's string arena by the given size and return a substr
      * of the added portion
+     *
      * @note Growing the arena may cause relocation of the entire
-     * existing arena, and thus change the contents of individual nodes. */
+     * existing arena, and thus change the contents of individual
+     * nodes, and thus cost O(numnodes)+O(arenasize). To avoid this
+     * cost, ensure that the arena is reserved to an appropriate size
+     * using .reserve_arena().
+     *
+     * @see reserve_arena() */
     substr alloc_arena(size_t sz)
     {
         if(sz > arena_slack())
@@ -1037,7 +1118,8 @@ public:
     }
 
     /** ensure the tree's internal string arena is at least the given capacity
-     * @note Growing the arena may cause relocation of the entire
+     * @note This operation has a potential complexity of O(numNodes)+O(arenasize).
+     * Growing the arena may cause relocation of the entire
      * existing arena, and thus change the contents of individual nodes. */
     void reserve_arena(size_t arena_cap)
     {
