@@ -438,14 +438,18 @@ void sample_quick_overview()
     wroot.append_child() << ryml::key("newseq (serialized)") |= ryml::SEQ;
     CHECK(root.num_children() == 7);
     CHECK(root["newseq"].num_children() == 0);
+    CHECK(root["newseq"].is_seq());
     CHECK(root["newseq (serialized)"].num_children() == 0);
+    CHECK(root["newseq (serialized)"].is_seq());
     // adding a map node:
     CHECK(root.num_children() == 7);
     wroot["newmap"] |= ryml::MAP;
-    wroot.append_child() << ryml::key("newmap (serialized)") |= ryml::SEQ;
+    wroot.append_child() << ryml::key("newmap (serialized)") |= ryml::MAP;
     CHECK(root.num_children() == 9);
     CHECK(root["newmap"].num_children() == 0);
+    CHECK(root["newmap"].is_map());
     CHECK(root["newmap (serialized)"].num_children() == 0);
+    CHECK(root["newmap (serialized)"].is_map());
     //
     // When the tree is mutable, operator[] does not mutate the tree
     // until the returned node is written to.
@@ -523,7 +527,7 @@ newkeyval (serialized): shiny and new (serialized)
 newseq: []
 newseq (serialized): []
 newmap: {}
-newmap (serialized): []
+newmap (serialized): {}
 I am something: indeed
 )";
     CHECK(buf_result == expected_result);
