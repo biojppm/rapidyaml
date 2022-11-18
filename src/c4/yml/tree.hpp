@@ -654,11 +654,11 @@ public:
     bool has_parent(size_t node) const { return _p(node)->m_parent != NONE; }
 
     bool has_child(size_t node, csubstr key) const { return find_child(node, key) != npos; }
-    bool has_child(size_t node, size_t ch) const { return child_pos(node, ch) != npos; }
+    bool has_child(size_t node, size_t ch) const { return _p(ch)->m_parent == node; }
     bool has_children(size_t node) const { return _p(node)->m_first_child != NONE; }
 
-    bool has_sibling(size_t node, size_t sib) const { return is_root(node) ? sib==node : child_pos(_p(node)->m_parent, sib) != npos; }
     bool has_sibling(size_t node, csubstr key) const { return find_sibling(node, key) != npos; }
+    bool has_sibling(size_t node, size_t sib) const { return _p(node)->m_parent == _p(sib)->m_parent; }
     /** counts with *this */
     bool has_siblings(size_t /*node*/) const { return true; }
     /** does not count with *this */
