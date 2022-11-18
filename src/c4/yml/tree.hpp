@@ -660,9 +660,18 @@ public:
     bool has_sibling(size_t node, csubstr key) const { return find_sibling(node, key) != npos; }
     bool has_sibling(size_t node, size_t sib) const { return _p(node)->m_parent == _p(sib)->m_parent; }
     /** counts with *this */
-    bool has_siblings(size_t /*node*/) const { return true; }
+    RYML_DEPRECATED("use has_other_siblings()") bool has_siblings(size_t /*node*/) const { return true; }
     /** does not count with *this */
-    bool has_other_siblings(size_t node) const { return is_root(node) ? false : (_p(_p(node)->m_parent)->m_first_child != _p(_p(node)->m_parent)->m_last_child); }
+    bool has_other_siblings(size_t node) const
+    {
+        NodeData const *n = _p(node);
+        if(C4_LIKELY(n->m_parent != NONE))
+        {
+            n = _p(n->m_parent);
+            return n->m_first_child != n->m_last_child;
+        }
+        return false;
+    }
 
     /** @} */
 
