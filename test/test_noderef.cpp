@@ -310,6 +310,36 @@ TEST(NodeRef, move_in_same_parent)
     EXPECT_EQ(r[1].num_children(), vec2.size());
 }
 
+TEST(NodeRef, move_in_same_parent_to_first_position)
+{
+    Tree t = parse_in_arena("[1, 2, 3, 0, 4]");
+    NodeRef r = t;
+
+    EXPECT_TRUE(r[0].val() == "1");
+    EXPECT_TRUE(r[1].val() == "2");
+    EXPECT_TRUE(r[2].val() == "3");
+    EXPECT_TRUE(r[3].val() == "0");
+    EXPECT_TRUE(r[4].val() == "4");
+    r[3].move({});
+    EXPECT_TRUE(r[0].val() == "0");
+    EXPECT_TRUE(r[1].val() == "1");
+    EXPECT_TRUE(r[2].val() == "2");
+    EXPECT_TRUE(r[3].val() == "3");
+    EXPECT_TRUE(r[4].val() == "4");
+    r[0].move({}); // should have no effect
+    EXPECT_TRUE(r[0].val() == "0");
+    EXPECT_TRUE(r[1].val() == "1");
+    EXPECT_TRUE(r[2].val() == "2");
+    EXPECT_TRUE(r[3].val() == "3");
+    EXPECT_TRUE(r[4].val() == "4");
+    r[4].move({});
+    EXPECT_TRUE(r[0].val() == "4");
+    EXPECT_TRUE(r[1].val() == "0");
+    EXPECT_TRUE(r[2].val() == "1");
+    EXPECT_TRUE(r[3].val() == "2");
+    EXPECT_TRUE(r[4].val() == "3");
+}
+
 TEST(NodeRef, move_to_other_parent)
 {
     Tree t;
@@ -331,6 +361,127 @@ TEST(NodeRef, move_to_other_parent)
     EXPECT_EQ(r[0][1].get(), elm2);
     EXPECT_EQ(r[0][1].val(), "elm2");
     //printf("fonix"); print_tree(t); emit_yaml(r);
+}
+
+TEST(NodeRef, move_to_other_parent_to_first_position)
+{
+    Tree t = parse_in_arena("[[0, 1, 2, 3, 4], [00, 10, 20, 30, 40]]");
+    NodeRef r = t;
+
+    EXPECT_TRUE(r[0][0].val() == "0");
+    EXPECT_TRUE(r[0][1].val() == "1");
+    EXPECT_TRUE(r[0][2].val() == "2");
+    EXPECT_TRUE(r[0][3].val() == "3");
+    EXPECT_TRUE(r[0][4].val() == "4");
+    EXPECT_TRUE(r[1][0].val() == "00");
+    EXPECT_TRUE(r[1][1].val() == "10");
+    EXPECT_TRUE(r[1][2].val() == "20");
+    EXPECT_TRUE(r[1][3].val() == "30");
+    EXPECT_TRUE(r[1][4].val() == "40");
+    r[0][0].move(r[1], {});
+    EXPECT_TRUE(r[0][0].val() == "1");
+    EXPECT_TRUE(r[0][1].val() == "2");
+    EXPECT_TRUE(r[0][2].val() == "3");
+    EXPECT_TRUE(r[0][3].val() == "4");
+    EXPECT_TRUE(r[1][0].val() == "0");
+    EXPECT_TRUE(r[1][1].val() == "00");
+    EXPECT_TRUE(r[1][2].val() == "10");
+    EXPECT_TRUE(r[1][3].val() == "20");
+    EXPECT_TRUE(r[1][4].val() == "30");
+    EXPECT_TRUE(r[1][5].val() == "40");
+    r[1][0].move(r[0], {});
+    EXPECT_TRUE(r[0][0].val() == "0");
+    EXPECT_TRUE(r[0][1].val() == "1");
+    EXPECT_TRUE(r[0][2].val() == "2");
+    EXPECT_TRUE(r[0][3].val() == "3");
+    EXPECT_TRUE(r[0][4].val() == "4");
+    EXPECT_TRUE(r[1][0].val() == "00");
+    EXPECT_TRUE(r[1][1].val() == "10");
+    EXPECT_TRUE(r[1][2].val() == "20");
+    EXPECT_TRUE(r[1][3].val() == "30");
+    EXPECT_TRUE(r[1][4].val() == "40");
+}
+
+TEST(NodeRef, move_to_other_tree)
+{
+    Tree t0 = parse_in_arena("[0, 1, 2, 3, 4]");
+    Tree t1 = parse_in_arena("[00, 10, 20, 30, 40]");
+    NodeRef r0 = t0;
+    NodeRef r1 = t1;
+
+    EXPECT_TRUE(r0[0].val() == "0");
+    EXPECT_TRUE(r0[1].val() == "1");
+    EXPECT_TRUE(r0[2].val() == "2");
+    EXPECT_TRUE(r0[3].val() == "3");
+    EXPECT_TRUE(r0[4].val() == "4");
+    EXPECT_TRUE(r1[0].val() == "00");
+    EXPECT_TRUE(r1[1].val() == "10");
+    EXPECT_TRUE(r1[2].val() == "20");
+    EXPECT_TRUE(r1[3].val() == "30");
+    EXPECT_TRUE(r1[4].val() == "40");
+    r0[0].move(r1, r1[0]);
+    EXPECT_TRUE(r0[0].val() == "1");
+    EXPECT_TRUE(r0[1].val() == "2");
+    EXPECT_TRUE(r0[2].val() == "3");
+    EXPECT_TRUE(r0[3].val() == "4");
+    EXPECT_TRUE(r1[0].val() == "00");
+    EXPECT_TRUE(r1[1].val() == "0");
+    EXPECT_TRUE(r1[2].val() == "10");
+    EXPECT_TRUE(r1[3].val() == "20");
+    EXPECT_TRUE(r1[4].val() == "30");
+    EXPECT_TRUE(r1[5].val() == "40");
+    r1[1].move(r0[0], r0[0]);
+    EXPECT_TRUE(r0[0].val() == "1");
+    EXPECT_TRUE(r0[1].val() == "0");
+    EXPECT_TRUE(r0[2].val() == "2");
+    EXPECT_TRUE(r0[3].val() == "3");
+    EXPECT_TRUE(r0[4].val() == "4");
+    EXPECT_TRUE(r1[0].val() == "00");
+    EXPECT_TRUE(r1[1].val() == "10");
+    EXPECT_TRUE(r1[2].val() == "20");
+    EXPECT_TRUE(r1[3].val() == "30");
+    EXPECT_TRUE(r1[4].val() == "40");
+}
+
+TEST(NodeRef, move_to_other_tree_to_first_position)
+{
+    Tree t0 = parse_in_arena("[0, 1, 2, 3, 4]");
+    Tree t1 = parse_in_arena("[00, 10, 20, 30, 40]");
+    NodeRef r0 = t0;
+    NodeRef r1 = t1;
+
+    EXPECT_TRUE(r0[0].val() == "0");
+    EXPECT_TRUE(r0[1].val() == "1");
+    EXPECT_TRUE(r0[2].val() == "2");
+    EXPECT_TRUE(r0[3].val() == "3");
+    EXPECT_TRUE(r0[4].val() == "4");
+    EXPECT_TRUE(r1[0].val() == "00");
+    EXPECT_TRUE(r1[1].val() == "10");
+    EXPECT_TRUE(r1[2].val() == "20");
+    EXPECT_TRUE(r1[3].val() == "30");
+    EXPECT_TRUE(r1[4].val() == "40");
+    r0[0].move(r1, {});
+    EXPECT_TRUE(r0[0].val() == "1");
+    EXPECT_TRUE(r0[1].val() == "2");
+    EXPECT_TRUE(r0[2].val() == "3");
+    EXPECT_TRUE(r0[3].val() == "4");
+    EXPECT_TRUE(r1[0].val() == "0");
+    EXPECT_TRUE(r1[1].val() == "00");
+    EXPECT_TRUE(r1[2].val() == "10");
+    EXPECT_TRUE(r1[3].val() == "20");
+    EXPECT_TRUE(r1[4].val() == "30");
+    EXPECT_TRUE(r1[5].val() == "40");
+    r1[0].move(r0, {});
+    EXPECT_TRUE(r0[0].val() == "0");
+    EXPECT_TRUE(r0[1].val() == "1");
+    EXPECT_TRUE(r0[2].val() == "2");
+    EXPECT_TRUE(r0[3].val() == "3");
+    EXPECT_TRUE(r0[4].val() == "4");
+    EXPECT_TRUE(r1[0].val() == "00");
+    EXPECT_TRUE(r1[1].val() == "10");
+    EXPECT_TRUE(r1[2].val() == "20");
+    EXPECT_TRUE(r1[3].val() == "30");
+    EXPECT_TRUE(r1[4].val() == "40");
 }
 
 TEST(NodeRef, duplicate)

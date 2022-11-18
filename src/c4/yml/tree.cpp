@@ -986,7 +986,7 @@ void Tree::move(size_t node, size_t after)
 {
     _RYML_CB_ASSERT(m_callbacks, node != NONE);
     _RYML_CB_ASSERT(m_callbacks,  ! is_root(node));
-    _RYML_CB_ASSERT(m_callbacks, has_sibling(node, after) && has_sibling(after, node));
+    _RYML_CB_ASSERT(m_callbacks, (after == NONE) || (has_sibling(node, after) && has_sibling(after, node)));
 
     _rem_hierarchy(node);
     _set_hierarchy(node, parent(node), after);
