@@ -20,11 +20,24 @@
 #endif
 
 
+#if defined(NDEBUG) || defined(C4_NO_DEBUG_BREAK)
+#   define RYML_DEBUG_BREAK()
+#else
+#   define RYML_DEBUG_BREAK()                               \
+    {                                                       \
+        if(c4::get_error_flags() & c4::ON_ERROR_DEBUGBREAK) \
+        {                                                   \
+            C4_DEBUG_BREAK();                               \
+        }                                                   \
+    }
+#endif
+
+
 #define RYML_CHECK(cond)                                                \
     do {                                                                \
         if(!(cond))                                                     \
         {                                                               \
-            C4_DEBUG_BREAK();                                           \
+            RYML_DEBUG_BREAK()                                          \
             c4::yml::error("check failed: " #cond, c4::yml::Location(__FILE__, __LINE__, 0)); \
         }                                                               \
     } while(0)
@@ -34,7 +47,7 @@
     {                                                                   \
         if(!(cond))                                                     \
         {                                                               \
-            C4_DEBUG_BREAK();                                           \
+            RYML_DEBUG_BREAK()                                          \
             c4::yml::error(msg ": check failed: " #cond, c4::yml::Location(__FILE__, __LINE__, 0)); \
         }                                                               \
     } while(0)
@@ -182,7 +195,7 @@ RYML_EXPORT void reset_callbacks();
 do                                                                      \
 {                                                                       \
     const char msg[] = msg_literal;                                     \
-    C4_DEBUG_BREAK();                                                   \
+    RYML_DEBUG_BREAK()                                                  \
     (cb).m_error(msg, sizeof(msg), c4::yml::Location(__FILE__, 0, __LINE__, 0), (cb).m_user_data); \
 } while(0)
 #define _RYML_CB_CHECK(cb, cond)                                        \
@@ -191,7 +204,7 @@ do                                                                      \
         if(!(cond))                                                     \
         {                                                               \
             const char msg[] = "check failed: " #cond;                  \
-            C4_DEBUG_BREAK();                                           \
+            RYML_DEBUG_BREAK()                                          \
             (cb).m_error(msg, sizeof(msg), c4::yml::Location(__FILE__, 0, __LINE__, 0), (cb).m_user_data); \
         }                                                               \
     } while(0)

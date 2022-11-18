@@ -139,7 +139,7 @@ struct CheckPredicate {
     {
         if (!report_check(file, line, nullptr, predicate))
         {
-            C4_DEBUG_BREAK();
+            RYML_DEBUG_BREAK();
         }
     }
 };
@@ -149,7 +149,7 @@ struct CheckPredicate {
 
 #if !defined(CHECK)
 /// a quick'n'dirty assertion to verify a predicate
-#define CHECK(predicate) do { if(!report_check(__FILE__, __LINE__, #predicate, (predicate))) { C4_DEBUG_BREAK(); } } while(0)
+#define CHECK(predicate) do { if(!report_check(__FILE__, __LINE__, #predicate, (predicate))) { RYML_DEBUG_BREAK(); } } while(0)
 #endif
 
 //-----------------------------------------------------------------------------
