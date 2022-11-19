@@ -308,6 +308,7 @@ TEST(NodeRef, move_in_same_parent)
     EXPECT_EQ(r[0].num_children(), map2.size());
     EXPECT_EQ(r[1].get(), s.get());
     EXPECT_EQ(r[1].num_children(), vec2.size());
+    test_invariants(t);
 }
 
 TEST(NodeRef, move_in_same_parent_to_first_position)
@@ -326,18 +327,21 @@ TEST(NodeRef, move_in_same_parent_to_first_position)
     EXPECT_TRUE(r[2].val() == "2");
     EXPECT_TRUE(r[3].val() == "3");
     EXPECT_TRUE(r[4].val() == "4");
+    test_invariants(t);
     r[0].move({}); // should have no effect
     EXPECT_TRUE(r[0].val() == "0");
     EXPECT_TRUE(r[1].val() == "1");
     EXPECT_TRUE(r[2].val() == "2");
     EXPECT_TRUE(r[3].val() == "3");
     EXPECT_TRUE(r[4].val() == "4");
+    test_invariants(t);
     r[4].move({});
     EXPECT_TRUE(r[0].val() == "4");
     EXPECT_TRUE(r[1].val() == "0");
     EXPECT_TRUE(r[2].val() == "1");
     EXPECT_TRUE(r[3].val() == "2");
     EXPECT_TRUE(r[4].val() == "3");
+    test_invariants(t);
 }
 
 TEST(NodeRef, move_to_other_parent)
@@ -361,6 +365,7 @@ TEST(NodeRef, move_to_other_parent)
     EXPECT_EQ(r[0][1].get(), elm2);
     EXPECT_EQ(r[0][1].val(), "elm2");
     //printf("fonix"); print_tree(t); emit_yaml(r);
+    test_invariants(t);
 }
 
 TEST(NodeRef, move_to_other_parent_to_first_position)
@@ -378,6 +383,7 @@ TEST(NodeRef, move_to_other_parent_to_first_position)
     EXPECT_TRUE(r[1][2].val() == "20");
     EXPECT_TRUE(r[1][3].val() == "30");
     EXPECT_TRUE(r[1][4].val() == "40");
+    test_invariants(t);
     r[0][0].move(r[1], {});
     EXPECT_TRUE(r[0][0].val() == "1");
     EXPECT_TRUE(r[0][1].val() == "2");
@@ -389,6 +395,7 @@ TEST(NodeRef, move_to_other_parent_to_first_position)
     EXPECT_TRUE(r[1][3].val() == "20");
     EXPECT_TRUE(r[1][4].val() == "30");
     EXPECT_TRUE(r[1][5].val() == "40");
+    test_invariants(t);
     r[1][0].move(r[0], {});
     EXPECT_TRUE(r[0][0].val() == "0");
     EXPECT_TRUE(r[0][1].val() == "1");
@@ -400,6 +407,7 @@ TEST(NodeRef, move_to_other_parent_to_first_position)
     EXPECT_TRUE(r[1][2].val() == "20");
     EXPECT_TRUE(r[1][3].val() == "30");
     EXPECT_TRUE(r[1][4].val() == "40");
+    test_invariants(t);
 }
 
 TEST(NodeRef, move_to_other_tree)
@@ -420,6 +428,8 @@ TEST(NodeRef, move_to_other_tree)
     EXPECT_TRUE(r1[3].val() == "30");
     EXPECT_TRUE(r1[4].val() == "40");
     r0[0].move(r1, r1[0]);
+    test_invariants(t0);
+    test_invariants(t1);
     EXPECT_TRUE(r0[0].val() == "1");
     EXPECT_TRUE(r0[1].val() == "2");
     EXPECT_TRUE(r0[2].val() == "3");
@@ -430,7 +440,9 @@ TEST(NodeRef, move_to_other_tree)
     EXPECT_TRUE(r1[3].val() == "20");
     EXPECT_TRUE(r1[4].val() == "30");
     EXPECT_TRUE(r1[5].val() == "40");
-    r1[1].move(r0[0], r0[0]);
+    test_invariants(t0);
+    test_invariants(t1);
+    r1[1].move(r0, r0[0]);
     EXPECT_TRUE(r0[0].val() == "1");
     EXPECT_TRUE(r0[1].val() == "0");
     EXPECT_TRUE(r0[2].val() == "2");
@@ -441,6 +453,8 @@ TEST(NodeRef, move_to_other_tree)
     EXPECT_TRUE(r1[2].val() == "20");
     EXPECT_TRUE(r1[3].val() == "30");
     EXPECT_TRUE(r1[4].val() == "40");
+    test_invariants(t0);
+    test_invariants(t1);
 }
 
 TEST(NodeRef, move_to_other_tree_to_first_position)
@@ -460,6 +474,8 @@ TEST(NodeRef, move_to_other_tree_to_first_position)
     EXPECT_TRUE(r1[2].val() == "20");
     EXPECT_TRUE(r1[3].val() == "30");
     EXPECT_TRUE(r1[4].val() == "40");
+    test_invariants(t0);
+    test_invariants(t1);
     r0[0].move(r1, {});
     EXPECT_TRUE(r0[0].val() == "1");
     EXPECT_TRUE(r0[1].val() == "2");
@@ -471,6 +487,8 @@ TEST(NodeRef, move_to_other_tree_to_first_position)
     EXPECT_TRUE(r1[3].val() == "20");
     EXPECT_TRUE(r1[4].val() == "30");
     EXPECT_TRUE(r1[5].val() == "40");
+    test_invariants(t0);
+    test_invariants(t1);
     r1[0].move(r0, {});
     EXPECT_TRUE(r0[0].val() == "0");
     EXPECT_TRUE(r0[1].val() == "1");
@@ -482,6 +500,8 @@ TEST(NodeRef, move_to_other_tree_to_first_position)
     EXPECT_TRUE(r1[2].val() == "20");
     EXPECT_TRUE(r1[3].val() == "30");
     EXPECT_TRUE(r1[4].val() == "40");
+    test_invariants(t0);
+    test_invariants(t1);
 }
 
 TEST(NodeRef, duplicate)
@@ -517,6 +537,7 @@ TEST(NodeRef, duplicate)
     EXPECT_EQ(dup[1].val().str, r[1][1].val().str);
     EXPECT_EQ(dup[1].key().len, r[1][1].key().len);
     EXPECT_EQ(dup[1].val().len, r[1][1].val().len);
+    test_invariants(t);
 }
 
 TEST(NodeRef, intseq)
@@ -528,6 +549,7 @@ TEST(NodeRef, intseq)
     n[1] >> b;
     EXPECT_EQ(a, 8);
     EXPECT_EQ(b, 10);
+    test_invariants(t);
 }
 
 TEST(NodeRef, vsConstNodeRef)
@@ -556,6 +578,7 @@ TEST(NodeRef, vsConstNodeRef)
         nd = seq.get(); // ok
         C4_UNUSED(nd);
     }
+    test_invariants(t);
 }
 
 

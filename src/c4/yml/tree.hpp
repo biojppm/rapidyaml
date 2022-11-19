@@ -653,15 +653,18 @@ public:
 
     bool has_parent(size_t node) const { return _p(node)->m_parent != NONE; }
 
-    bool has_child(size_t node, csubstr key) const { return find_child(node, key) != npos; }
+    /** true if @p node has a child with id @p ch */
     bool has_child(size_t node, size_t ch) const { return _p(ch)->m_parent == node; }
+    /** true if @p node has a child with key @p key */
+    bool has_child(size_t node, csubstr key) const { return find_child(node, key) != npos; }
+    /** true if @p node has any children key */
     bool has_children(size_t node) const { return _p(node)->m_first_child != NONE; }
 
-    bool has_sibling(size_t node, csubstr key) const { return find_sibling(node, key) != npos; }
+    /** true if @p node has a sibling with id @p sib */
     bool has_sibling(size_t node, size_t sib) const { return _p(node)->m_parent == _p(sib)->m_parent; }
-    /** counts with *this */
-    RYML_DEPRECATED("use has_other_siblings()") bool has_siblings(size_t /*node*/) const { return true; }
-    /** does not count with *this */
+    /** true if one of the node's siblings has the given key */
+    bool has_sibling(size_t node, csubstr key) const { return find_sibling(node, key) != npos; }
+    /** true if node is not a single child */
     bool has_other_siblings(size_t node) const
     {
         NodeData const *n = _p(node);
@@ -672,6 +675,8 @@ public:
         }
         return false;
     }
+
+    RYML_DEPRECATED("use has_other_siblings()") bool has_siblings(size_t /*node*/) const { return true; }
 
     /** @} */
 

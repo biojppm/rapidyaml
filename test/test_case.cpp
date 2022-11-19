@@ -639,85 +639,88 @@ void print_tree(CaseNode const& t)
 
 void test_invariants(ConstNodeRef const& n)
 {
+    #define _MORE_INFO << "id=" << n.id()
+
     if(n.is_root())
     {
-        EXPECT_FALSE(n.has_other_siblings());
+        EXPECT_FALSE(n.has_other_siblings()) _MORE_INFO;
     }
     // keys or vals cannot be root
     if(n.has_key() || n.is_val() || n.is_keyval())
     {
-        EXPECT_TRUE(!n.is_root() || (n.is_doc() && !n.has_key()));
+        EXPECT_TRUE(!n.is_root() || (n.is_doc() && !n.has_key())) _MORE_INFO;
     }
     // vals cannot be containers
     if( ! n.empty() && ! n.is_doc())
     {
-        EXPECT_NE(n.has_val(), n.is_container());
+        EXPECT_NE(n.has_val(), n.is_container()) _MORE_INFO;
     }
     if(n.has_children())
     {
-        EXPECT_TRUE(n.is_container());
-        EXPECT_FALSE(n.is_val());
+        EXPECT_TRUE(n.is_container()) _MORE_INFO;
+        EXPECT_FALSE(n.is_val()) _MORE_INFO;
     }
     // check parent & sibling reciprocity
     for(ConstNodeRef s : n.siblings())
     {
-        EXPECT_TRUE(n.has_sibling(s));
-        EXPECT_TRUE(s.has_sibling(n));
-        EXPECT_EQ(s.parent().get(), n.parent().get());
+        EXPECT_TRUE(n.has_sibling(s)) _MORE_INFO;
+        EXPECT_TRUE(s.has_sibling(n)) _MORE_INFO;
+        EXPECT_EQ(s.parent().get(), n.parent().get()) _MORE_INFO;
     }
     if(n.parent() != nullptr)
     {
-        EXPECT_TRUE(n.parent().has_child(n));
-        EXPECT_EQ(n.parent().num_children(), n.num_siblings());
+        EXPECT_EQ(n.parent().num_children() > 1, n.has_other_siblings()) _MORE_INFO;
+        EXPECT_TRUE(n.parent().has_child(n)) _MORE_INFO;
+        EXPECT_EQ(n.parent().num_children(), n.num_siblings()) _MORE_INFO;
         // doc parent must be a seq and a stream
         if(n.is_doc())
         {
-            EXPECT_TRUE(n.parent().is_seq());
-            EXPECT_TRUE(n.parent().is_stream());
+            EXPECT_TRUE(n.parent().is_seq()) _MORE_INFO;
+            EXPECT_TRUE(n.parent().is_stream()) _MORE_INFO;
         }
     }
     else
     {
-        EXPECT_TRUE(n.is_root());
+        EXPECT_TRUE(n.is_root()) _MORE_INFO;
     }
     if(n.is_seq())
     {
-        EXPECT_TRUE(n.is_container());
-        EXPECT_FALSE(n.is_map());
+        EXPECT_TRUE(n.is_container()) _MORE_INFO;
+        EXPECT_FALSE(n.is_map()) _MORE_INFO;
         for(ConstNodeRef ch : n.children())
         {
-            EXPECT_FALSE(ch.is_keyval());
-            EXPECT_FALSE(ch.has_key());
+            EXPECT_FALSE(ch.is_keyval()) _MORE_INFO;
+            EXPECT_FALSE(ch.has_key()) _MORE_INFO;
         }
     }
     if(n.is_map())
     {
-        EXPECT_TRUE(n.is_container());
-        EXPECT_FALSE(n.is_seq());
+        EXPECT_TRUE(n.is_container()) _MORE_INFO;
+        EXPECT_FALSE(n.is_seq()) _MORE_INFO;
         for(ConstNodeRef ch : n.children())
         {
-            EXPECT_TRUE(ch.has_key());
+            EXPECT_TRUE(ch.has_key()) _MORE_INFO;
         }
     }
     if(n.has_key_anchor())
     {
-        EXPECT_FALSE(n.key_anchor().empty());
-        EXPECT_FALSE(n.is_key_ref());
+        EXPECT_FALSE(n.key_anchor().empty()) _MORE_INFO;
+        EXPECT_FALSE(n.is_key_ref()) _MORE_INFO;
     }
     if(n.has_val_anchor())
     {
-        EXPECT_FALSE(n.val_anchor().empty());
-        EXPECT_FALSE(n.is_val_ref());
+        EXPECT_FALSE(n.val_anchor().empty()) _MORE_INFO;
+        EXPECT_FALSE(n.is_val_ref()) _MORE_INFO;
     }
     if(n.is_key_ref())
     {
-        EXPECT_FALSE(n.key_ref().empty());
-        EXPECT_FALSE(n.has_key_anchor());
+        EXPECT_FALSE(n.key_ref().empty()) _MORE_INFO;
+        EXPECT_FALSE(n.has_key_anchor()) _MORE_INFO;
     }
     if(n.is_val_ref())
     {
-        EXPECT_FALSE(n.val_ref().empty());
-        EXPECT_FALSE(n.has_val_anchor());
+        EXPECT_FALSE(n.val_ref().empty()) _MORE_INFO;
+        EXPECT_FALSE(n.has_val_anchor()) _MORE_INFO;
     }
     // ... add more tests here
 
@@ -726,6 +729,8 @@ void test_invariants(ConstNodeRef const& n)
     {
         test_invariants(ch);
     }
+
+    #undef _MORE_INFO
 }
 
 size_t test_tree_invariants(ConstNodeRef const& n)
@@ -787,6 +792,12 @@ void test_invariants(Tree const& t)
     EXPECT_EQ(count, t.size());
 
     check_invariants(t);
+    test_invariants(t.rootref());
+
+    if(!testing::UnitTest::GetInstance()->current_test_info()->result()->Passed())
+    {
+        print_tree(t);
+    }
 
     return;
 #if 0 == 1

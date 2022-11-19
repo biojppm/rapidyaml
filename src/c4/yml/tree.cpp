@@ -985,6 +985,7 @@ void Tree::_swap_props(size_t n_, size_t m_)
 void Tree::move(size_t node, size_t after)
 {
     _RYML_CB_ASSERT(m_callbacks, node != NONE);
+    _RYML_CB_ASSERT(m_callbacks, node != after);
     _RYML_CB_ASSERT(m_callbacks,  ! is_root(node));
     _RYML_CB_ASSERT(m_callbacks, (after == NONE) || (has_sibling(node, after) && has_sibling(after, node)));
 
@@ -997,7 +998,10 @@ void Tree::move(size_t node, size_t after)
 void Tree::move(size_t node, size_t new_parent, size_t after)
 {
     _RYML_CB_ASSERT(m_callbacks, node != NONE);
+    _RYML_CB_ASSERT(m_callbacks, node != after);
     _RYML_CB_ASSERT(m_callbacks, new_parent != NONE);
+    _RYML_CB_ASSERT(m_callbacks, new_parent != node);
+    _RYML_CB_ASSERT(m_callbacks, new_parent != after);
     _RYML_CB_ASSERT(m_callbacks,  ! is_root(node));
 
     _rem_hierarchy(node);
@@ -1006,8 +1010,10 @@ void Tree::move(size_t node, size_t new_parent, size_t after)
 
 size_t Tree::move(Tree *src, size_t node, size_t new_parent, size_t after)
 {
+    _RYML_CB_ASSERT(m_callbacks, src != nullptr);
     _RYML_CB_ASSERT(m_callbacks, node != NONE);
     _RYML_CB_ASSERT(m_callbacks, new_parent != NONE);
+    _RYML_CB_ASSERT(m_callbacks, new_parent != after);
 
     size_t dup = duplicate(src, node, new_parent, after);
     src->remove(node);
