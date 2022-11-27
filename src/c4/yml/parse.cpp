@@ -4139,10 +4139,9 @@ csubstr Parser::_scan_squot_scalar()
 
         // leading whitespace also needs filtering
         needs_filter = needs_filter
-            || numlines > 1
+            || (numlines > 1)
             || line_is_blank
-            || (_at_line_begin() && line.begins_with(' '))
-            || (m_state->line_contents.full.last_of('\r') != csubstr::npos);
+            || (_at_line_begin() && line.begins_with(' '));
 
         if(pos == npos)
         {
@@ -4241,10 +4240,9 @@ csubstr Parser::_scan_dquot_scalar()
 
         // leading whitespace also needs filtering
         needs_filter = needs_filter
-            || numlines > 1
+            || (numlines > 1)
             || line_is_blank
-            || (_at_line_begin() && line.begins_with(' '))
-            || (m_state->line_contents.full.last_of('\r') != csubstr::npos);
+            || (_at_line_begin() && line.begins_with(' '));
 
         if(pos == npos)
         {
