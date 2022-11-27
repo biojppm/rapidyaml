@@ -56,10 +56,10 @@ jobs:
       LINT: "${{matrix.lint}}"
       OS: "${{matrix.os}}"
     steps:
-      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+      - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
       - name: setup emscripten cache
         id: cache-system-libraries
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with: {path: "${{env.EMSCRIPTEN_CACHE_FOLDER}}", key: "${{matrix.emver}}-${{runner.os}}"}
       - name: setup emscripten
         uses: mymindstorm/setup-emsdk@v11
