@@ -55,7 +55,7 @@ jobs:
           - {std: 20, cxx: vs2022, bt: Release, os: windows-2022, bitlinks: shared64 static32}
     env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
     steps:
-      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+      - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
       - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
       - {name: show info, run: source .github/setenv.sh && c4_show_info}
       - name: shared64-configure---------------------------------------------------
@@ -102,7 +102,7 @@ jobs:
 #          - {std: 17, platform: x64, cxx: x86_64-w64-mingw32-g++, bt: Release, os: windows-latest, bitlinks: shared64 static64}
 #    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
 #    steps:
-#      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+#      - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
 #      - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
 #      - name: install mingw
 #        uses: egor-tensin/setup-mingw@v2

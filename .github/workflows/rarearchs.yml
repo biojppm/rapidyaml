@@ -64,9 +64,9 @@ jobs:
           #- {std: 17, bt: Debug  , arch: armv7  , distro: ubuntu20.04}
           #- {std: 17, bt: Release, arch: armv7  , distro: ubuntu20.04}
     steps:
-      - {name: checkout, uses: actions/checkout@v2, with: {submodules: recursive}}
+      - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
       - name: test
-        uses: uraimo/run-on-arch-action@v2.0.5
+        uses: uraimo/run-on-arch-action@v2.3.0
         with:
           arch: ${{matrix.arch}}
           distro: ${{matrix.distro}}
