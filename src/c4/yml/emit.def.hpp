@@ -832,10 +832,10 @@ void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
             &&
             (
                 // has leading whitespace
-                s.begins_with_any(" \n\t\r")
-                ||
-                // looks like reference or anchor or would be treated as a directive
-                s.begins_with_any("*&%")
+                // looks like reference or anchor
+                // would be treated as a directive
+                // see https://www.yaml.info/learn/quote.html#noplain
+                s.begins_with_any(" \n\t\r*&%@`")
                 ||
                 s.begins_with("<<")
                 ||
@@ -843,7 +843,7 @@ void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
                 s.ends_with_any(" \n\t\r")
                 ||
                 // has special chars
-                (s.first_of("#:-?,\n{}[]'\"@`") != npos)
+                (s.first_of("#:-?,\n{}[]'\"") != npos)
             )
         )
     );
