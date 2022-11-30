@@ -21,8 +21,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     _("G4RS-in_json"            , "special characters must be emitted in double quoted style"),
     _("G4RS-in_yaml"            , "special characters must be emitted in double quoted style"),
     _("G4RS-out_yaml"           , "special characters must be emitted in double quoted style"),
-    // block scalars
-    _("Y79Y_001"                , "tab problems"),
     // other
     _("UKK6_01-in_yaml"         , "fails to parse double :: in UNK state"),
 

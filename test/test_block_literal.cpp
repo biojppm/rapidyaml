@@ -836,6 +836,13 @@ R"(
   L{N(L{N(QV, "aaa", "xxx\n"), N(QV, "bbb", "yyy\n")})}
     );
 
+ADD_CASE_TO_GROUP("block literal with tab and spaces",
+R"(|
+       	  )",
+  N(DOCVAL|VALQUO, "\t  \n")
+    );
+
+
 ADD_CASE_TO_GROUP("block literal with empty docval 1",
 R"(|)",
   N(DOCVAL|VALQUO, "")
@@ -863,19 +870,6 @@ R"(|
 ADD_CASE_TO_GROUP("block literal with empty docval 5",
 R"(|
     
-)",
-  N(DOCVAL|VALQUO, "")
-    );
-
-ADD_CASE_TO_GROUP("block literal with empty docval 6",
-R"(|
-       	  )",
-  N(DOCVAL|VALQUO, "")
-    );
-
-ADD_CASE_TO_GROUP("block literal with empty docval 7",
-R"(|
-       	  
 )",
   N(DOCVAL|VALQUO, "")
     );

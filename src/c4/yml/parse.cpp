@@ -4991,7 +4991,7 @@ csubstr Parser::_filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e 
 
     _c4dbgfbl(": indentation={} before=[{}]~~~{}~~~", indentation, s.len, s);
 
-    if(chomp != CHOMP_KEEP && s.trim(" \n\r\t").len == 0u)
+    if(chomp != CHOMP_KEEP && s.trim(" \n\r").len == 0u)
     {
         _c4dbgp("filt_block: empty scalar");
         return s.first(0);
