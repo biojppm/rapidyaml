@@ -1451,7 +1451,7 @@ public:
 
     inline void _clear_val(size_t node)
     {
-        _p(node)->m_key.clear();
+        _p(node)->m_val.clear();
         _rem_flags(node, VAL);
     }
 
