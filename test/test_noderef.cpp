@@ -504,40 +504,109 @@ TEST(NodeRef, move_to_other_tree_to_first_position)
     test_invariants(t1);
 }
 
-TEST(NodeRef, duplicate)
+TEST(NodeRef, duplicate_to_same_tree)
 {
-    Tree t;
-    NodeRef r = t;
+    Tree t = parse_in_arena("[{a0: [b0, c0], a1: [b1, c1], a2: [b2, c2], a3: [b3, c3]}]");
+    auto checkseq = [](ConstNodeRef const& s){
+        ASSERT_EQ(s.num_children(), 4u);
+        ASSERT_EQ(s[0].num_children(), 2u);
+        ASSERT_EQ(s[1].num_children(), 2u);
+        ASSERT_EQ(s[2].num_children(), 2u);
+        ASSERT_EQ(s[3].num_children(), 2u);
+        EXPECT_EQ(s[0].key(), "a0");
+        EXPECT_EQ(s[0][0].val(), "b0");
+        EXPECT_EQ(s[0][1].val(), "c0");
+        EXPECT_EQ(s[1].key(), "a1");
+        EXPECT_EQ(s[1][0].val(), "b1");
+        EXPECT_EQ(s[1][1].val(), "c1");
+        EXPECT_EQ(s[2].key(), "a2");
+        EXPECT_EQ(s[2][0].val(), "b2");
+        EXPECT_EQ(s[2][1].val(), "c2");
+        EXPECT_EQ(s[3].key(), "a3");
+        EXPECT_EQ(s[3][0].val(), "b3");
+        EXPECT_EQ(s[3][1].val(), "c3");
+    };
+    {
+        SCOPED_TRACE("at the beginning");
+        t[0].duplicate({});
+        test_check_emit_check(t, [&checkseq](ConstNodeRef r){
+            checkseq(r[0]);
+            checkseq(r[1]);
+        });
+    }
+    {
+        SCOPED_TRACE("at the end");
+        t[0].duplicate(t.rootref().last_child());
+        test_check_emit_check(t, [&checkseq](ConstNodeRef r){
+            checkseq(r[0]);
+            checkseq(r[1]);
+            checkseq(r[2]);
+        });
+    }
+    {
+        SCOPED_TRACE("in the middle");
+        t[0].duplicate(t.rootref().first_child());
+        test_check_emit_check(t, [&checkseq](ConstNodeRef r){
+            checkseq(r[0]);
+            checkseq(r[1]);
+            checkseq(r[2]);
+        });
+    }
+}
 
-    std::vector<std::vector<int>> vec2({{100, 200}, {300, 400}, {500, 600}, {700, 800, 900}});
-    std::map<std::string, int> map2({{"bar", 200}, {"baz", 300}, {"foo", 100}});
-
-    r |= SEQ;
-    r.append_child() << vec2;
-    r.append_child() << map2;
-    r.append_child() << "elm2";
-    r.append_child() << "elm3";
-
-    EXPECT_EQ(r[0][0].num_children(), 2u);
-    NodeRef dup = r[1].duplicate(r[0][0], r[0][0][1]);
-    EXPECT_EQ(r[0][0].num_children(), 3u);
-    EXPECT_EQ(r[0][0][2].num_children(), map2.size());
-    EXPECT_NE(dup.get(), r[1].get());
-    EXPECT_EQ(dup[0].key(), "bar");
-    EXPECT_EQ(dup[0].val(), "200");
-    EXPECT_EQ(dup[1].key(), "baz");
-    EXPECT_EQ(dup[1].val(), "300");
-    EXPECT_EQ(dup[2].key(), "foo");
-    EXPECT_EQ(dup[2].val(), "100");
-    EXPECT_EQ(dup[0].key().str, r[1][0].key().str);
-    EXPECT_EQ(dup[0].val().str, r[1][0].val().str);
-    EXPECT_EQ(dup[0].key().len, r[1][0].key().len);
-    EXPECT_EQ(dup[0].val().len, r[1][0].val().len);
-    EXPECT_EQ(dup[1].key().str, r[1][1].key().str);
-    EXPECT_EQ(dup[1].val().str, r[1][1].val().str);
-    EXPECT_EQ(dup[1].key().len, r[1][1].key().len);
-    EXPECT_EQ(dup[1].val().len, r[1][1].val().len);
-    test_invariants(t);
+TEST(NodeRef, duplicate_to_different_tree)
+{
+    Tree t = parse_in_arena("[{a0: [b0, c0], a1: [b1, c1], a2: [b2, c2], a3: [b3, c3]}]");
+    auto checkseq = [](ConstNodeRef const& s){
+        ASSERT_EQ(s.num_children(), 4u);
+        ASSERT_EQ(s[0].num_children(), 2u);
+        ASSERT_EQ(s[1].num_children(), 2u);
+        ASSERT_EQ(s[2].num_children(), 2u);
+        ASSERT_EQ(s[3].num_children(), 2u);
+        EXPECT_EQ(s[0].key(), "a0");
+        EXPECT_EQ(s[0][0].val(), "b0");
+        EXPECT_EQ(s[0][1].val(), "c0");
+        EXPECT_EQ(s[1].key(), "a1");
+        EXPECT_EQ(s[1][0].val(), "b1");
+        EXPECT_EQ(s[1][1].val(), "c1");
+        EXPECT_EQ(s[2].key(), "a2");
+        EXPECT_EQ(s[2][0].val(), "b2");
+        EXPECT_EQ(s[2][1].val(), "c2");
+        EXPECT_EQ(s[3].key(), "a3");
+        EXPECT_EQ(s[3][0].val(), "b3");
+        EXPECT_EQ(s[3][1].val(), "c3");
+    };
+    auto check_orig = [&checkseq](ConstNodeRef const& r){
+        ASSERT_TRUE(r.is_seq());
+        ASSERT_GE(r.num_children(), 1u);
+        checkseq(r[0]);
+    };
+    Tree d = parse_in_arena("[]");
+    {
+        SCOPED_TRACE("at the beginning");
+        t[0].duplicate(d, {});
+        test_check_emit_check(t, check_orig);
+        test_check_emit_check(d, check_orig);
+    }
+    {
+        SCOPED_TRACE("at the end");
+        t[0].duplicate(d, d.rootref().last_child());
+        test_check_emit_check(t, check_orig);
+        test_check_emit_check(d, check_orig);
+        test_check_emit_check(d, [&checkseq](ConstNodeRef r){
+            checkseq(r[1]);
+        });
+    }
+    {
+        SCOPED_TRACE("in the middle");
+        t[0].duplicate(d, d.rootref().first_child());
+        test_check_emit_check(t, check_orig);
+        test_check_emit_check(d, check_orig);
+        test_check_emit_check(d, [&checkseq](ConstNodeRef r){
+            checkseq(r[1]);
+            checkseq(r[2]);
+        });
+    }
 }
 
 TEST(NodeRef, intseq)

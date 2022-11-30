@@ -87,31 +87,40 @@ void print_path(ConstNodeRef const& p);
 
 
 template<class CheckFn>
-void test_check_emit_check(csubstr yaml, CheckFn check_fn)
+void test_check_emit_check(Tree const& t, CheckFn check_fn)
 {
-    Tree t = parse_in_arena(yaml);
     #ifdef RYML_DBG
     print_tree(t);
     #endif
     {
         SCOPED_TRACE("original yaml");
+        test_invariants(t);
         check_fn(t);
     }
-    auto emit_and_parse = [&](const char* identifier){
+    auto emit_and_parse = [&check_fn](Tree const& tp, const char* identifier){
         SCOPED_TRACE(identifier);
-        std::string emitted = emitrs_yaml<std::string>(t);
+        std::string emitted = emitrs_yaml<std::string>(tp);
         #ifdef RYML_DBG
         printf("~~~%s~~~\n%.*s", identifier, (int)emitted.size(), emitted.data());
         #endif
-        t = parse_in_arena(to_csubstr(emitted));
+        Tree cp = parse_in_arena(to_csubstr(emitted));
         #ifdef RYML_DBG
-        print_tree(t);
+        print_tree(cp);
         #endif
-        check_fn(t);
+        test_invariants(cp);
+        check_fn(cp);
+        return cp;
     };
-    emit_and_parse("emitted 1");
-    emit_and_parse("emitted 2");
-    emit_and_parse("emitted 3");
+    Tree cp = emit_and_parse(t, "emitted 1");
+    cp = emit_and_parse(cp, "emitted 2");
+    cp = emit_and_parse(cp, "emitted 3");
+}
+
+template<class CheckFn>
+void test_check_emit_check(csubstr yaml, CheckFn check_fn)
+{
+    Tree t = parse_in_arena(yaml);
+    test_check_emit_check(t, check_fn);
 }
 
 

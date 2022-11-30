@@ -1112,18 +1112,20 @@ public:
 
 public:
 
-    /** change the node's position within its parent. To move to the
-     * first position in the parent, simply pass an empty or
-     * default-constructed reference like this: `n.move({})`, which is equivalent to */
+    /** change the node's position within its parent, placing it after
+     * @p after. To move to the first position in the parent, simply
+     * pass an empty or default-constructed reference like this:
+     * `n.move({})`. */
     inline void move(ConstNodeRef const& after)
     {
         _C4RV();
         m_tree->move(m_id, after.m_id);
     }
 
-    /** move the node to a different parent, which may belong to a different
-     * tree. When this is the case, then this node's tree pointer is reset to
-     * the tree of the parent node. */
+    /** move the node to a different @p parent (which may belong to a
+     * different tree), placing it after @p after. When the
+     * destination parent is in a new tree, then this node's tree
+     * pointer is reset to the tree of the parent node. */
     inline void move(NodeRef const& parent, ConstNodeRef const& after)
     {
         _C4RV();
@@ -1138,10 +1140,28 @@ public:
         }
     }
 
+    /** duplicate the current node somewhere within its parent, and
+     * place it after the node @p after. To place into the first
+     * position of the parent, simply pass an empty or
+     * default-constructed reference like this: `n.move({})`. */
+    inline NodeRef duplicate(ConstNodeRef const& after) const
+    {
+        _C4RV();
+        RYML_ASSERT(m_tree == after.m_tree || after.m_id == NONE);
+        size_t dup = m_tree->duplicate(m_id, m_tree->parent(m_id), after.m_id);
+        NodeRef r(m_tree, dup);
+        return r;
+    }
+
+    /** duplicate the current node somewhere into a different @p parent
+     * (possibly from a different tree), and place it after the node
+     * @p after. To place into the first position of the parent,
+     * simply pass an empty or default-constructed reference like
+     * this: `n.move({})`. */
     inline NodeRef duplicate(NodeRef const& parent, ConstNodeRef const& after) const
     {
         _C4RV();
-        RYML_ASSERT(parent.m_tree == after.m_tree);
+        RYML_ASSERT(parent.m_tree == after.m_tree || after.m_id == NONE);
         if(parent.m_tree == m_tree)
         {
             size_t dup = m_tree->duplicate(m_id, parent.m_id, after.m_id);
