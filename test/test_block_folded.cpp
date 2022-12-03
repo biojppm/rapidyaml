@@ -1232,6 +1232,13 @@ another: text
       })
 );
 
+ADD_CASE_TO_GROUP("block folded with tab and spaces",
+R"(>
+       	  )",
+  N(DOCVAL|VALQUO, "\t  \n")
+    );
+
+
 ADD_CASE_TO_GROUP("block folded with empty docval 1",
 R"(>)",
   N(DOCVAL|VALQUO, "")
@@ -1263,22 +1270,8 @@ R"(>
   N(DOCVAL|VALQUO, "")
     );
 
-ADD_CASE_TO_GROUP("block folded with empty docval 6",
-R"(>
-       	  )",
-  N(DOCVAL|VALQUO, "")
-    );
-
-ADD_CASE_TO_GROUP("block folded with empty docval 7",
-R"(>
-       	  
-)",
-  N(DOCVAL|VALQUO, "")
-    );
-
 ADD_CASE_TO_GROUP("block folded with empty docval 8",
 R"(>
-
 
 )",
   N(DOCVAL|VALQUO, "")
