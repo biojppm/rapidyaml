@@ -1393,21 +1393,14 @@ public:
     void _swap_hierarchy(size_t n_, size_t m_);
     void _copy_hierarchy(size_t dst_, size_t src_);
 
-    void _copy_props(size_t dst_, size_t src_)
+    inline void _copy_props(size_t dst_, size_t src_)
     {
-        auto      & C4_RESTRICT dst = *_p(dst_);
-        auto const& C4_RESTRICT src = *_p(src_);
-        dst.m_type = src.m_type;
-        dst.m_key  = src.m_key;
-        dst.m_val  = src.m_val;
+        _copy_props(dst_, this, src_);
     }
 
-    void _copy_props_wo_key(size_t dst_, size_t src_)
+    inline void _copy_props_wo_key(size_t dst_, size_t src_)
     {
-        auto      & C4_RESTRICT dst = *_p(dst_);
-        auto const& C4_RESTRICT src = *_p(src_);
-        dst.m_type = src.m_type;
-        dst.m_val  = src.m_val;
+        _copy_props_wo_key(dst_, this, src_);
     }
 
     void _copy_props(size_t dst_, Tree const* that_tree, size_t src_)
@@ -1423,7 +1416,8 @@ public:
     {
         auto      & C4_RESTRICT dst = *_p(dst_);
         auto const& C4_RESTRICT src = *that_tree->_p(src_);
-        dst.m_type = src.m_type;
+        type_bits key_mask = KEY | KEYQUO | KEYANCH | KEYREF | KEYTAG;
+        dst.m_type = (src.m_type & ~key_mask) | (dst.m_type & key_mask);
         dst.m_val  = src.m_val;
     }
 
