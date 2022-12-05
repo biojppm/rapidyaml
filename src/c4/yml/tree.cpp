@@ -1214,15 +1214,17 @@ size_t Tree::duplicate_children_no_rep(Tree const *src, size_t node, size_t pare
                     remove(rep);
                     prev = duplicate(src, i, parent, prev);
                 }
-                else if(after_pos == NONE || rep_pos >= after_pos)
+                else if(prev == NONE)
+                {
+                    // first iteration with prev = after = NONE and repetition
+                    prev = rep;
+                }
+                else if(rep != prev)
                 {
                     // rep is located after the node which will be inserted
                     // and overrides it. So move the rep into this node's place.
-                    if(rep != prev)
-                    {
-                        move(rep, prev);
-                        prev = rep;
-                    }
+                    move(rep, prev);
+                    prev = rep;
                 }
             } // there's a repetition
         }
