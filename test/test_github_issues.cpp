@@ -18,6 +18,43 @@ TEST(github, 268)
     ASSERT_EQ(root["map"]["node"], "bar");
 }
 
+TEST(github, 277)
+{
+    Tree tree = parse_in_arena(R"(
+    A: &A
+        V: 3
+        W: 4
+    B:
+        <<: *A
+        V: 5
+        X: 6
+    )");
+    const char *keys[] = {"V", "W", "X"};
+    const char *vals[] = {"5", "4", "6"};
+    tree.resolve();
+    auto root = tree.rootref();
+    ASSERT_TRUE(root["B"].is_map());
+    size_t num_childs = root["B"].num_children();
+    size_t child = 0;
+    ASSERT_EQ(num_childs, 3);
+    for (const auto node : root["B"].children())
+    {
+        EXPECT_EQ(node.key(), csubstr(keys[child], 1));
+        EXPECT_EQ(node.val(), csubstr(vals[child], 1));
+        child++;
+    }
+    // test whether the tree is corrupted
+    test_invariants(tree);
+    child = num_childs;
+    for (size_t n = tree.last_child(root["B"].id()); n != NONE; n = tree.prev_sibling(n))
+    {
+        ASSERT_NE(child, 0);
+        EXPECT_EQ(tree.key(n), csubstr(keys[child - 1], 1));
+        child--;
+    }
+}
+
+
 TEST(github, 78)
 {
     Tree t = parse_in_arena("{foo: 1, bar: [2, 3]}");
@@ -25,6 +62,7 @@ TEST(github, 78)
     EXPECT_EQ(t["bar"][0].val(), "2");
     EXPECT_EQ(t["bar"][1].val(), "3");
 }
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
