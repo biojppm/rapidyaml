@@ -167,6 +167,8 @@ typedef enum : type_bits {
     DOCMAP  = DOC|MAP,
     DOCSEQ  = DOC|SEQ,
     DOCVAL  = DOC|VAL,
+    _KEYMASK = KEY | KEYQUO | KEYANCH | KEYREF | KEYTAG,
+    _VALMASK = VAL | VALQUO | VALANCH | VALREF | VALTAG,
     // these flags are from a work in progress and should not be used yet
     _WIP_STYLE_FLOW_SL = c4bit(14), ///< mark container with single-line flow format (seqs as '[val1,val2], maps as '{key: val, key2: val2}')
     _WIP_STYLE_FLOW_ML = c4bit(15), ///< mark container with multi-line flow format (seqs as '[val1,\nval2], maps as '{key: val,\nkey2: val2}')
@@ -1416,8 +1418,7 @@ public:
     {
         auto      & C4_RESTRICT dst = *_p(dst_);
         auto const& C4_RESTRICT src = *that_tree->_p(src_);
-        type_bits key_mask = KEY | KEYQUO | KEYANCH | KEYREF | KEYTAG;
-        dst.m_type = (src.m_type & ~key_mask) | (dst.m_type & key_mask);
+        dst.m_type = (src.m_type & ~_KEYMASK) | (dst.m_type & _KEYMASK);
         dst.m_val  = src.m_val;
     }
 
