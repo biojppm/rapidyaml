@@ -167,6 +167,8 @@ typedef enum : type_bits {
     DOCMAP  = DOC|MAP,
     DOCSEQ  = DOC|SEQ,
     DOCVAL  = DOC|VAL,
+    _KEYMASK = KEY | KEYQUO | KEYANCH | KEYREF | KEYTAG,
+    _VALMASK = VAL | VALQUO | VALANCH | VALREF | VALTAG,
     // these flags are from a work in progress and should not be used yet
     _WIP_STYLE_FLOW_SL = c4bit(14), ///< mark container with single-line flow format (seqs as '[val1,val2], maps as '{key: val, key2: val2}')
     _WIP_STYLE_FLOW_ML = c4bit(15), ///< mark container with multi-line flow format (seqs as '[val1,\nval2], maps as '{key: val,\nkey2: val2}')
@@ -1393,21 +1395,14 @@ public:
     void _swap_hierarchy(size_t n_, size_t m_);
     void _copy_hierarchy(size_t dst_, size_t src_);
 
-    void _copy_props(size_t dst_, size_t src_)
+    inline void _copy_props(size_t dst_, size_t src_)
     {
-        auto      & C4_RESTRICT dst = *_p(dst_);
-        auto const& C4_RESTRICT src = *_p(src_);
-        dst.m_type = src.m_type;
-        dst.m_key  = src.m_key;
-        dst.m_val  = src.m_val;
+        _copy_props(dst_, this, src_);
     }
 
-    void _copy_props_wo_key(size_t dst_, size_t src_)
+    inline void _copy_props_wo_key(size_t dst_, size_t src_)
     {
-        auto      & C4_RESTRICT dst = *_p(dst_);
-        auto const& C4_RESTRICT src = *_p(src_);
-        dst.m_type = src.m_type;
-        dst.m_val  = src.m_val;
+        _copy_props_wo_key(dst_, this, src_);
     }
 
     void _copy_props(size_t dst_, Tree const* that_tree, size_t src_)
@@ -1423,7 +1418,7 @@ public:
     {
         auto      & C4_RESTRICT dst = *_p(dst_);
         auto const& C4_RESTRICT src = *that_tree->_p(src_);
-        dst.m_type = src.m_type;
+        dst.m_type = (src.m_type & ~_KEYMASK) | (dst.m_type & _KEYMASK);
         dst.m_val  = src.m_val;
     }
 

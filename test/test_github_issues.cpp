@@ -3,6 +3,21 @@
 namespace c4 {
 namespace yml {
 
+TEST(github, 268)
+{
+    Tree tree = parse_in_arena(R"(
+        list:
+            - &bar bar
+        map:
+            node: *bar
+    )");
+    tree.resolve();
+    auto root = tree.rootref();
+    ASSERT_TRUE(root["map"].is_map());
+    ASSERT_TRUE(root["map"].has_child("node"));
+    ASSERT_EQ(root["map"]["node"], "bar");
+}
+
 TEST(github, 78)
 {
     Tree t = parse_in_arena("{foo: 1, bar: [2, 3]}");
