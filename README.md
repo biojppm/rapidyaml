@@ -1001,7 +1001,8 @@ See also [the roadmap](./ROADMAP.md) for a list of future work.
 
 ### Known limitations
 
-ryml deliberately makes no effort to follow the standard in the following situations:
+ryml deliberately makes no effort to follow the standard in the
+following situations:
 
 * Containers are not accepted as mapping keys: keys must be scalars.
 * Tab characters after `:` and `-` are not accepted tokens, unless
@@ -1010,6 +1011,17 @@ ryml deliberately makes no effort to follow the standard in the following situat
   into the parser's hot code and in some cases costs as much as 10%
   in parsing time.
 * Anchor names must not end with a terminating colon: eg `&anchor: key: val`.
+* Non-unique map keys are allowed. Enforcing key uniqueness in the
+  parser or in the tree would cause log-linear parsing complexity (for
+  root children on a mostly flat tree), and would increase code size
+  through added structural, logical and cyclomatic complexity. So
+  enforcing uniqueness in the parser would hurt users who may not care
+  about it (they may not care either because non-uniqueness is OK for
+  their use case, or because it is impossible to occur). On the other
+  hand, any user who requires uniqueness can easily enforce it by
+  doing a post-parse walk through the tree. So choosing to not enforce
+  key uniqueness adheres to the spirit of "don't pay for what you
+  don't use".
 * `%YAML` directives have no effect and are ignored.
 * `%TAG` directives are limited to a default maximum of 4 instances
   per `Tree`. To increase this maximum, define the preprocessor symbol
