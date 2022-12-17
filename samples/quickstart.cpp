@@ -128,7 +128,7 @@ int main()
 
 namespace sample {
 
-bool report_check(const char *file, int line, const char *predicate, bool result);
+bool report_check(int line, const char *predicate, bool result);
 #ifdef __GNUC__
 #if __GNUC__ == 4 && __GNUC_MINOR__ >= 8
 struct CheckPredicate {
@@ -137,7 +137,7 @@ struct CheckPredicate {
 
     void operator() (bool predicate) const
     {
-        if (!report_check(file, line, nullptr, predicate))
+        if (!report_check(line, nullptr, predicate))
         {
             RYML_DEBUG_BREAK();
         }
@@ -149,7 +149,7 @@ struct CheckPredicate {
 
 #if !defined(CHECK)
 /// a quick'n'dirty assertion to verify a predicate
-#define CHECK(predicate) do { if(!report_check(__FILE__, __LINE__, #predicate, (predicate))) { RYML_DEBUG_BREAK(); } } while(0)
+#define CHECK(predicate) do { if(!report_check(__LINE__, #predicate, (predicate))) { RYML_DEBUG_BREAK(); } } while(0)
 #endif
 
 //-----------------------------------------------------------------------------
@@ -4085,7 +4085,7 @@ static int num_failed_checks = 0;
 } // namespace /*anon*/
 
 
-bool report_check(const char *file, int line, const char *predicate, bool result)
+bool report_check(int line, const char *predicate, bool result)
 {
     ++num_checks;
     const char *msg = predicate ? "OK! " : "OK!";
@@ -4094,7 +4094,7 @@ bool report_check(const char *file, int line, const char *predicate, bool result
         ++num_failed_checks;
         msg = predicate ?  "ERROR: " : "ERROR";
     }
-    std::cout << file << ':' << line << ": " << msg << (predicate ? predicate : "") << std::endl;
+    std::cout << __FILE__ << ':' << line << ": " << msg << (predicate ? predicate : "") << std::endl;
     return result;
 }
 
