@@ -1275,16 +1275,19 @@ void sample_substr()
             size_t count = 0;
             for(csubstr part : csubstr("aa/bb/cc/dd/ee/ff").split('/'))
                 CHECK(part == parts[count++]);
+            CHECK(count == 6u);
         }
         {
             size_t count = 0;
             for(csubstr part : csubstr("aa.bb.cc.dd.ee.ff").split('.'))
                 CHECK(part == parts[count++]);
+            CHECK(count == 6u);
         }
         {
             size_t count = 0;
             for(csubstr part : csubstr("aa-bb-cc-dd-ee-ff").split('-'))
                 CHECK(part == parts[count++]);
+            CHECK(count == 6u);
         }
         // see also next_split()
     }
@@ -1420,7 +1423,7 @@ void sample_parse_in_place()
     char src[] = "{foo: 1, bar: [2, 3]}"; // ryml can parse in situ
     ryml::substr srcview = src; // a mutable view to the source buffer
     ryml::Tree tree = ryml::parse_in_place(srcview); // you can also reuse the tree and/or parser
-    ryml::NodeRef root = tree.rootref(); // get a reference to the root
+    ryml::ConstNodeRef root = tree.crootref(); // get a reference to the root
 
     CHECK(root.is_map());
     CHECK(root["foo"].is_keyval());
@@ -1471,7 +1474,7 @@ void sample_parse_in_arena()
     // to parse read-only memory, ryml will copy first to the tree's
     // arena, and then parse the copied buffer:
     ryml::Tree tree = ryml::parse_in_arena("{foo: 1, bar: [2, 3]}");
-    ryml::NodeRef root = tree.rootref(); // get a reference to the root
+    ryml::ConstNodeRef root = tree.crootref(); // get a reference to the root
 
     CHECK(root.is_map());
     CHECK(root["foo"].is_keyval());
@@ -1499,7 +1502,7 @@ void sample_parse_in_arena()
     ryml::substr srcview = src;
     //tree = ryml::parse_in_place(srcview); // linker error, overload intentionally undefined
 
-    // If you really intend to parse an originally mutable buffer,
+    // If you really intend to parse a mutable buffer in the arena,
     // then simply convert it to immutable prior to calling
     // parse_in_arena():
     ryml::csubstr csrcview = srcview; // assigning from src also works
@@ -1524,7 +1527,7 @@ void sample_parse_reuse_tree()
     // now parse into the tree:
     ryml::parse_in_arena("{foo: 1, bar: [2, 3]}", &tree);
 
-    ryml::NodeRef root = tree.rootref();
+    ryml::ConstNodeRef root = tree.crootref();
     CHECK(root.num_children() == 2);
     CHECK(root.is_map());
     CHECK(root["foo"].is_keyval());
@@ -1579,7 +1582,8 @@ bar2:
     CHECK(root[2]["x1"].val() == "2");
 
     // we can parse directly into a node nested deep in an existing tree:
-    ryml::parse_in_arena("{champagne: Dom Perignon, coffee: Arabica}", root.append_child());
+    ryml::NodeRef mroot = tree.rootref(); // modifiable root
+    ryml::parse_in_arena("{champagne: Dom Perignon, coffee: Arabica}", mroot.append_child());
     CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(- a
 - b
 - x0: 1
@@ -1598,8 +1602,8 @@ bar2:
     CHECK(root[3]["coffee"].val() == "Arabica");
 
     // watchout: to add to an existing node within a map, the node's key must first be set:
-    ryml::NodeRef more = root[3].append_child({ryml::KEYMAP, "more"});
-    ryml::NodeRef beer = root[3].append_child({ryml::KEYSEQ, "beer"});
+    ryml::NodeRef more = mroot[3].append_child({ryml::KEYMAP, "more"});
+    ryml::NodeRef beer = mroot[3].append_child({ryml::KEYSEQ, "beer"});
     ryml::parse_in_arena("{vinho verde: Soalheiro, vinho tinto: Redoma 2017}", more);
     ryml::parse_in_arena("[Rochefort 10, Busch, Leffe Rituel]", beer);
     CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(- a
@@ -1617,7 +1621,7 @@ bar2:
     - Leffe Rituel
 )");
 
-    ryml::parse_in_arena("[foo, bar, baz, bat]", root);
+    ryml::parse_in_arena("[foo, bar, baz, bat]", mroot);
     CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(- a
 - b
 - x0: 1
@@ -1710,10 +1714,11 @@ void sample_parse_reuse_tree_and_parser()
     tree.reserve(256); // reserve 256 characters (good enough for this sample)
     // it is also advised to reserve the parser depth
     // to the expected depth of the data tree:
-    parser.reserve_stack(10); // uses small storage optimization
-                              // defaulting to 16 depth, so this
-                              // instruction is a no-op, and the stack
-                              // will be located in the parser object.
+    parser.reserve_stack(10); // the parser uses small storage
+                              // optimization defaulting to 16 depth,
+                              // so this instruction is a no-op, and
+                              // the stack will be located in the
+                              // parser object.
     parser.reserve_stack(20); // But this will cause an allocation
                               // because it is above 16.
 
@@ -1775,7 +1780,7 @@ xmas-fifth-day:
   turtle-doves: two
 cars: GTO
 )");
-    ryml::ConstNodeRef root = tree.rootref();
+    ryml::ConstNodeRef root = tree.crootref();
 
     // iterate children
     {
@@ -1808,6 +1813,7 @@ cars: GTO
         ryml::csubstr calling_birds[] = {"huey", "dewey", "louie", "fred"};
         for(ryml::ConstNodeRef n : root["calling-birds"][2].siblings())
             CHECK(n.val() == calling_birds[count++]);
+        CHECK(count == 4u);
     }
 }
 
