@@ -735,6 +735,7 @@ If you opt for package managers, here's where ryml is available so far
   * Arch Linux/Manjaro:
     * [rapidyaml-git (AUR)](https://aur.archlinux.org/packages/rapidyaml-git/)
     * [python-rapidyaml-git (AUR)](https://aur.archlinux.org/packages/python-rapidyaml-git/)
+  * [Fedora Linux](https://getfedora.org/)/[EPEL](https://docs.fedoraproject.org/en-US/epel/): `dnf install rapidyaml-devel`, `dnf install python3-rapidyaml`
   * [PyPI](https://pypi.org/project/rapidyaml/)
 
 Although package managers are very useful for quickly getting up to
