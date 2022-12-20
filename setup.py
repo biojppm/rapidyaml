@@ -120,6 +120,7 @@ setup(
         'setuptools-git',
         'setuptools',
     ],
+    install_requires=['deprecation'],
     # Extra arguments
     **setup_kw,
 )
