@@ -76,6 +76,7 @@ INSTRUCTIONS:
         am.onlyif(with_c4core, c4core_amalgamated),
         "src/c4/yml/export.hpp",
         "src/c4/yml/common.hpp",
+        "src/c4/yml/node_type.hpp",
         "src/c4/yml/tree.hpp",
         "src/c4/yml/node.hpp",
         "src/c4/yml/writer.hpp",
