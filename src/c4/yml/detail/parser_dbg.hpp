@@ -64,7 +64,7 @@ void _dbg_printf(c4::csubstr fmt, Args&& ...args)
 
 #define _c4prsp(sp) sp
 #define _c4presc(s) __c4presc(s.str, s.len)
-inline c4::csubstr _c4prc(const char &C4_RESTRICT c)
+inline c4::csubstr _c4prc(const char &C4_RESTRICT c) // pass by reference!
 {
     switch(c)
     {

@@ -1,7 +1,41 @@
+#include "./test_case.hpp"
 #include "./test_group.hpp"
 
 namespace c4 {
 namespace yml {
+
+
+void test_filter(csubstr input, csubstr expected)
+{
+    size_t indentation = 0;
+    std::string subject;
+    c4::catrs(&subject, input);
+    c4::substr scalar = to_substr(subject);
+    ASSERT_EQ(scalar, input);
+    ScalarFilterProcessor proc = {};
+    substr out = proc.filter_squoted(scalar, indentation);
+    EXPECT_TRUE(out.is_sub(scalar));// << "\ninput=" << input << "\nexpected=" << expected;
+    EXPECT_EQ(out, expected);
+}
+
+TEST(single_quoted, filter)
+{
+    test_filter("", "");
+    test_filter("foo", "foo");
+    test_filter("quoted\nstring", "quoted string");
+    test_filter("quoted\n  string", "quoted string");
+    test_filter("\t\n\ndetected\n\n", "\t\ndetected\n");
+    test_filter(
+        R"(Several lines of text,
+  with some "quotes" of various 'types'.
+  Escapes (like \n) don't do anything.
+  
+  Newlines can be added by leaving a blank line.
+    Additional leading whitespace is ignored.
+)",
+        R"(Several lines of text, with some "quotes" of various 'types'. Escapes (like \n) don't do anything.
+Newlines can be added by leaving a blank line. Additional leading whitespace is ignored.)");
+}
 
 TEST(single_quoted, test_suite_KSS4)
 {

@@ -36,6 +36,8 @@ c4_add_library(ryml
         c4/yml/common.cpp
         c4/yml/emit.def.hpp
         c4/yml/emit.hpp
+        c4/yml/filter.hpp
+        c4/yml/filter.cpp
         c4/yml/export.hpp
         c4/yml/node.hpp
         c4/yml/node.cpp
