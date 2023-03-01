@@ -281,6 +281,43 @@ TEST(NodeRef, remove_child)
     noderef_check_tree(root);
 }
 
+
+TEST(NodeRef, remove_child__issue_356)
+{
+    csubstr yaml = R"(
+numbers:
+  one: true
+  two: false
+  three: false
+  four: false
+formats:
+  rtt: json
+)";
+    Tree tree = parse_in_arena(yaml);
+    NodeRef root = tree.rootref();
+    const std::string expected = R"(formats:
+  rtt: json
+)";
+    auto test_formats = [&](const char *id){
+        SCOPED_TRACE(id);
+        NodeRef formats = root["formats"];
+        std::cout << id << " id=" << formats.id() << "\n";
+        EXPECT_TRUE(formats.valid());
+        print_tree(tree);
+        check_invariants(tree);
+        EXPECT_EQ(emitrs_yaml<std::string>(formats), expected);
+        EXPECT_EQ(emitrs_yaml<std::string>(tree, formats.id()), expected);
+    };
+    test_formats("0 after parse");
+    NodeRef numbers = root["numbers"];
+    numbers.remove_child("one");
+    test_formats("1 after remove one");
+    numbers.remove_child("two");
+    test_formats("2 after remove two");
+    numbers.remove_child("three");
+    test_formats("3 after remove three");
+}
+
 TEST(NodeRef, move_in_same_parent)
 {
     Tree t;
