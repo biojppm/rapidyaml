@@ -16,7 +16,7 @@ substr Emitter<Writer>::emit_as(EmitType_e type, Tree const& t, size_t id, bool 
         _RYML_CB_ASSERT(t.callbacks(), id == NONE);
         return {};
     }
-    _RYML_CB_CHECK(t.callbacks(), id < t.size());
+    _RYML_CB_CHECK(t.callbacks(), id < t.capacity());
     m_tree = &t;
     if(type == EMIT_YAML)
         _emit_yaml(id);
