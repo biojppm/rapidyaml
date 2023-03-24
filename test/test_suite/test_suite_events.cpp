@@ -227,7 +227,7 @@ void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
     struct ParseLevel { size_t tree_node; };
     detail::stack<ParseLevel> m_stack = {};
     Tree &C4_RESTRICT tree = *tree_;
-    size_t linenum = 0;(void)linenum;
+    size_t linenum = 0; (void)linenum;
     Scalar key = {};
     _nfo_logf("parsing events! src:\n{}", src);
     for(csubstr line : src.split('\n'))

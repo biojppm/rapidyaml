@@ -3,6 +3,7 @@
 #include "c4/yml/common.hpp"
 #endif
 #include <stdexcept>
+#include <csetjmp>
 
 
 namespace c4 {
@@ -18,11 +19,21 @@ Location stored_location;
 void * stored_mem;
 size_t stored_length;
 
+C4_IF_EXCEPTIONS_(
+    ,
+    std::jmp_buf s_jmp_env_expect_error = {};
+    )
+
 C4_NORETURN void test_error_impl(const char* msg, size_t length, Location loc, void * /*user_data*/)
 {
     stored_msg = std::string(msg, length);
     stored_location = loc;
-    throw std::runtime_error(stored_msg);
+    C4_IF_EXCEPTIONS(
+        throw std::runtime_error(stored_msg);
+        ,
+        std::longjmp(s_jmp_env_expect_error, 1);
+    );
+    C4_UNREACHABLE_AFTER_ERR();
 }
 
 void* test_allocate_impl(size_t length, void * /*hint*/, void * /*user_data*/)
@@ -287,10 +298,12 @@ TEST(error, basic)
     set_callbacks(cb);
     // message
     EXPECT_EQ(get_callbacks().m_error, &test_error_impl);
-    try {
+    C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
+    {
         c4::yml::error("some message 123"); // calls test_error_impl, which sets stored_msg and stored_location
     }
-    catch (std::exception const&) {
+    C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
+    {
         ;
     }
     EXPECT_EQ(stored_msg, "some message 123");
@@ -299,10 +312,12 @@ TEST(error, basic)
     EXPECT_EQ(stored_location.line, 0u);
     EXPECT_EQ(stored_location.col, 0u);
     // location
-    try {
+    C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
+    {
         c4::yml::error("some message 456", Location("file.yml", 433u, 123u, 4u));
     }
-    catch (std::exception const&) {
+    C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
+    {
         ;
     }
     EXPECT_EQ(stored_msg, "some message 456");
@@ -321,10 +336,12 @@ TEST(RYML_CHECK, basic)
     set_callbacks(cb);
     ASSERT_EQ(get_callbacks(), cb);
     size_t the_line;
-    try {
+    C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
+    {
         the_line = __LINE__; RYML_CHECK(false);  // keep both statements in the same line
     }
-    catch (std::exception const&) {
+    C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
+    {
         ;
     }
     EXPECT_EQ(stored_msg, "check failed: false");
@@ -345,10 +362,12 @@ TEST(RYML_ASSERT, basic)
     stored_msg = "";
     stored_location = {};
     size_t the_line;
-    try {
+    C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
+    {
         the_line = __LINE__; RYML_ASSERT(false);  // keep both statements in the same line
     }
-    catch (std::exception const&) {
+    C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
+    {
         ;
     }
     #if RYML_USE_ASSERT

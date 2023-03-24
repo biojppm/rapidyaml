@@ -19,6 +19,11 @@ set -x
 function c4_install_test_requirements()
 {
     os=$1
+    if [ "$os" == "" ] ; then
+        if [ "$(which lsb_release)" != "" ] ; then
+            os=ubuntu
+        fi
+    fi
     case "$os" in
         ubuntu*)
             c4_install_test_requirements_ubuntu
@@ -80,11 +85,12 @@ function c4_install_test_requirements_ubuntu()
 
 function c4_install_all_possible_requirements_ubuntu()
 {
+    UBUNTU_RELEASE=$(lsb_release -rs)
+    UBUNTU_RELEASE_NAME=$(lsb_release -cs)
     export CXX_=all
     export BT=Coverage
     APT_PKG=""  # all
     PIP_PKG=""
-    sudo dpkg --add-architecture i386
     c4_gather_test_requirements_ubuntu
     _c4_add_arm_compilers
     echo "apt packages: $APT_PKG"
@@ -96,17 +102,15 @@ function c4_install_all_possible_requirements_ubuntu()
 
 function c4_gather_test_requirements_ubuntu()
 {
-    if [ "$GITHUB_WORKFLOW" != "" ] ; then
-        sudo dpkg --add-architecture i386
-    else
-        _add_apt build-essential
-        _add_apt cmake
-    fi
+    sudo dpkg --add-architecture i386
+    _add_apt build-essential
+    _add_apt cmake
 
     _add_apt linux-libc-dev:i386
     _add_apt libc6:i386
     _add_apt libc6-dev:i386
     _add_apt libc6-dbg:i386
+    _c4_addlibcxx
 
     _c4_gather_compilers "$CXX_"
 
@@ -130,6 +134,7 @@ function c4_gather_test_requirements_ubuntu()
         _add_pip ndg-httpsclient
         _add_pip pyasn1
         _add_pip cpp-coveralls
+        _add_pip setuptools_rust
     fi
 
     if [ "$CMANY" != "" ] ; then
@@ -148,8 +153,8 @@ function c4_install_test_requirements_ubuntu_impl()
 {
     wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key 2>/dev/null | sudo apt-key add -
     wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | sudo apt-key add -
-    sudo -E apt-add-repository --yes "deb https://apt.kitware.com/ubuntu/ $UBUNTU_RELEASE_NAME main"
-    sudo -E add-apt-repository --yes ppa:ubuntu-toolchain-r/test
+    sudo -E apt-add-repository --yes --no-update "deb https://apt.kitware.com/ubuntu/ $UBUNTU_RELEASE_NAME main"
+    sudo -E apt-add-repository --yes --no-update ppa:ubuntu-toolchain-r/test
 
     if [ "$APT_PKG" != "" ] ; then
         #sudo -E apt-get clean
@@ -158,6 +163,8 @@ function c4_install_test_requirements_ubuntu_impl()
     fi
 
     if [ "$PIP_PKG" != "" ]; then
+        sudo pip3 install setuptools-rust
+        sudo pip3 install --upgrade pip
         sudo pip3 install $PIP_PKG
     fi
 }
@@ -167,21 +174,68 @@ function c4_install_test_requirements_ubuntu_impl()
 
 function _c4_add_arm_compilers()
 {
+    _add_apt qemu
+
     # this is going to be deprecated:
     # https://askubuntu.com/questions/1243252/how-to-install-arm-none-eabi-gdb-on-ubuntu-20-04-lts-focal-fossa
-    sudo -E add-apt-repository --yes ppa:team-gcc-arm-embedded/ppa
+    #sudo -E add-apt-repository --yes --no-update ppa:team-gcc-arm-embedded/ppa
+    #_add_apt gcc-arm-embedded
+    #_add_apt g++-arm-linux-gnueabihf
+    #_add_apt g++-multilib-arm-linux-gnueabihf
 
-    _add_apt gcc-arm-embedded
-    _add_apt g++-arm-linux-gnueabihf
-    _add_apt g++-multilib-arm-linux-gnueabihf
-    _add_apt qemu
+    # do this instead:
+    _c4_install_arm_none_eabi
 }
 
+function _c4_install_arm_none_eabi()
+{
+    # taken from:
+    # https://askubuntu.com/questions/1243252/how-to-install-arm-none-eabi-gdb-on-ubuntu-20-04-lts-focal-fossa/1371525#1371525
+    VER=${1:-15:10.3-2021.10-9}
+    SHORTVER=${2:-10.3-2021.10}
+    URL=https://developer.arm.com/-/media/Files/downloads/gnu-rm/$SHORTVER/gcc-arm-none-eabi-$SHORTVER-x86_64-linux.tar.bz2
+    echo "Creating gcc-arm-none-eabi debian package version $VER"
+
+    echo "Entering temporary directory..."
+    cd /tmp
+
+    echo "Downloading..."
+    name=gcc-arm-none-eabi-$SHORTVER
+    curl -fSL -A "Mozilla/4.0" -o $name.tar "$URL"
+
+    echo "Extracting..."
+    tar -xf $name.tar
+    rm -f $name.tar
+
+    echo "Generating debian package..."
+    [ -d $name-dpkg ] && rm -rf $name-dpkg
+    mkdir $name-dpkg
+    mkdir $name-dpkg/DEBIAN
+    mkdir $name-dpkg/usr
+    cat >  $name-dpkg/DEBIAN/control <<EOF
+Package: gcc-arm-none-eabi
+Version: $VER
+Architecture: amd64
+Maintainer: maintainer
+Description: Arm Embedded toolchain
+EOF
+    mv -f $name/* $name-dpkg/usr/
+    dpkg-deb --build --root-owner-group $name-dpkg
+    mv -v $name-dpkg.deb $name.deb
+    dpkg -i $name.deb
+
+    echo "Testing install..."
+    arm-none-eabi-gcc --version
+    arm-none-eabi-g++ --version
+
+    cd -
+}
 
 function _c4_gather_compilers()
 {
     cxx=$1
     case $cxx in
+        g++-13     ) _c4_addgcc 13 ;;
         g++-12     ) _c4_addgcc 12 ;;
         g++-11     ) _c4_addgcc 11 ;;
         g++-10     ) _c4_addgcc 10 ;;
@@ -190,8 +244,9 @@ function _c4_gather_compilers()
         g++-7      ) _c4_addgcc 7  ;;
         g++-6      ) _c4_addgcc 6  ;;
         g++-5      ) _c4_addgcc 5  ;;
-        #g++-4.9    ) _c4_addgcc 4.9 ;;  # https://askubuntu.com/questions/1036108/install-gcc-4-9-at-ubuntu-18-04
+        g++-4.9    ) _c4_addgcc 4.9 ;;  # https://askubuntu.com/questions/1036108/install-gcc-4-9-at-ubuntu-18-04
         g++-4.8    ) _c4_addgcc 4.8 ;;
+        clang++-15 ) _c4_addclang 15  ;;
         clang++-14 ) _c4_addclang 14  ;;
         clang++-13 ) _c4_addclang 13  ;;
         clang++-12 ) _c4_addclang 12  ;;
@@ -205,7 +260,15 @@ function _c4_gather_compilers()
         clang++-4.0) _c4_addclang 4.0 ;;
         clang++-3.9) _c4_addclang 3.9 ;;
         all)
-            all="g++-12 g++-11 g++-10 g++-9 g++-8 g++-7 g++-6 g++-5 clang++-14 clang++-13 clang++-12 clang++-11 clang++-10 clang++-9 clang++-8 clang++-7 clang++-6.0 clang++-5.0 clang++-4.0 clang++-3.9"
+            for ver in 11 10 9 8 7 6 5 4.9 4.8 ; do
+                all="$all g++-$ver"
+            done
+            if [ "$UBUNTU_RELEASE_NAME" == "jammy" ] ; then  # jammy is 22.04
+                all="g++-13 g++-12 $all"
+            fi
+            for ver in 15 14 13 12 11 10 9 8 7 6.0 5.0 4.0 3.9 ; do
+                all="$all clang++-$ver"
+            done
             echo "installing all compilers: $all"
             for cxx in $all ; do
                 _c4_gather_compilers $cxx
@@ -228,17 +291,50 @@ function _c4_addgcc()
 {
     gccversion=$1
     case $gccversion in
+        6 )
+            if [ "$UBUNTU_RELEASE_NAME" == "focal" ] ; then  # focal is 20.04
+                _add_src gcc-6 "deb http://dk.archive.ubuntu.com/ubuntu/ bionic main"
+                _add_src gcc-6 "deb http://dk.archive.ubuntu.com/ubuntu/ bionic universe"
+            fi
+            ;;
         5 )
-            _add_apt gcc-5 "deb http://dk.archive.ubuntu.com/ubuntu/ xenial main"
-            _add_apt gcc-5 "deb http://dk.archive.ubuntu.com/ubuntu/ xenial universe"
+            _add_src gcc-5 "deb http://dk.archive.ubuntu.com/ubuntu/ xenial main"
+            _add_src gcc-5 "deb http://dk.archive.ubuntu.com/ubuntu/ xenial universe"
+            ;;
+        4.9 )
+            ( cd /tmp ; \
+              wget http://security.ubuntu.com/ubuntu/pool/main/m/mpfr4/libmpfr4_3.1.4-1_amd64.deb ; \
+              dpkg -i libmpfr4_3.1.4-1_amd64.deb \
+            )
+            _add_src gcc-4.9 "deb http://dk.archive.ubuntu.com/ubuntu/ xenial main"
+            _add_src gcc-4.9 "deb http://dk.archive.ubuntu.com/ubuntu/ xenial universe"
             ;;
         *)
             ;;
     esac
-    _add_apt g++-$gccversion
-    _add_apt g++-$gccversion-multilib
-    _add_apt libstdc++-$gccversion-dev
-    _add_apt lib32stdc++-$gccversion-dev
+    case $gccversion in
+        4.9 )
+            _add_apt libmpfr4
+            _add_apt cpp-$gccversion
+            _add_apt gcc-$gccversion
+            _add_apt gcc-$gccversion-multilib
+            _add_apt g++-$gccversion
+            ;;
+        12 | 13 )
+            _add_apt cpp-$gccversion
+            _add_apt gcc-$gccversion-multilib
+            _add_apt gcc-$gccversion
+            _add_apt g++-$gccversion
+            ;;
+        *)
+            _add_apt cpp-$gccversion
+            _add_apt gcc-$gccversion
+            _add_apt g++-$gccversion
+            _add_apt g++-$gccversion-multilib
+            _add_apt libstdc++-$gccversion-dev
+            _add_apt lib32stdc++-$gccversion-dev
+            ;;
+    esac
 }
 
 # add a clang compiler
@@ -247,10 +343,9 @@ function _c4_addclang()
     clversion=$1
     case $clversion in
         # in 18.04, clang9 and later require PPAs
-        9 | 10 | 11 | 12 | 13 | 14)
+        9 | 10 | 11 | 12 | 13 | 14 | 15)
             _add_apt clang-$clversion "deb http://apt.llvm.org/$UBUNTU_RELEASE_NAME/ llvm-toolchain-$UBUNTU_RELEASE_NAME-$clversion main"
             # libstdc++ is required
-            #_c4_addgcc 12
             _c4_addgcc 11
             _c4_addgcc 10
             _c4_addgcc 9
@@ -259,6 +354,9 @@ function _c4_addclang()
             _add_apt clang
             ;;
         *)
+            if [ "$UBUNTU_RELEASE_NAME" == "focal" ] ; then  # focal is 20.04
+                _add_apt clang-$clversion "deb http://apt.llvm.org/$UBUNTU_RELEASE_NAME/ llvm-toolchain-$UBUNTU_RELEASE_NAME-$clversion main"
+            fi
             _add_apt clang-$clversion
             ;;
     esac
@@ -296,19 +394,19 @@ function _add_apt()
     sourceslist=$2
     APT_PKG="$APT_PKG $pkgs"
     echo "adding to apt packages: $pkgs"
-    _add_src "$sourceslist" "# for packages: $pkgs"
+    _add_src "$pkgs" "$sourceslist"
 }
 
 # add an apt source
 function _add_src()
 {
-    sourceslist=$1
-    comment=$2
+    comment=$1
+    sourceslist=$2
     if [ ! -z "$sourceslist" ] ; then
         echo "adding apt source: $sourceslist"
+        sudo sed "/# c4proj $comment/d" -i /etc/apt/sources.list
         sudo bash -c "cat >> /etc/apt/sources.list <<EOF
-$comment
-$sourceslist
+$sourceslist   # c4proj $comment
 EOF"
         #cat /etc/apt/sources.list
     fi

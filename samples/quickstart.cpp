@@ -24,6 +24,11 @@
 #include <vector>
 #include <array>
 #include <map>
+#ifdef C4_EXCEPTIONS
+#include <stdexcept>
+#else
+#include <csetjmp>
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -4580,18 +4585,22 @@ d: 3
 
 //-----------------------------------------------------------------------------
 
-// To avoid imposing a particular type of error handling, ryml accepts
-// custom error handlers. This enables users to use exceptions, or
-// plain calls to abort(), as they see fit.
+// To avoid imposing a particular type of error handling, ryml uses an
+// error handler callback. This enables users to use exceptions, or
+// setjmp()/longjmp(), or plain calls to abort(), as they see fit.
 //
 // However, it is important to note that the error callback must never
 // return to the caller! Otherwise, an infinite loop or program crash
-// may occur.
+// will likely occur.
 //
-// The default error handler calls std::abort(). You can use the cmake
-// option and the macro RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS to have
-// the default error handler throw a std::runtime_error instead.
-
+// For this reason, to recover from an error when exceptions are disabled,
+// then a non-local jump must be performed using setjmp()/longjmp().
+// The code below demonstrates both flows.
+//
+// ryml provides a default error handler, which calls
+// std::abort(). You can use the cmake option and the macro
+// RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS to have the default error
+// handler throw a std::runtime_error instead.
 
 /** demonstrates how to set a custom error handler for ryml */
 void sample_error_handler()
@@ -5089,13 +5098,26 @@ int report_checks()
 
 // methods for the example error handler
 
+// this macro selects code for when exceptions are enabled/disabled
+C4_IF_EXCEPTIONS_( /*nothing for exceptions*/ ,
+                   /*environment for setjmp*/
+                   static std::jmp_buf s_jmp_env;
+                   static std::string s_jmp_msg;
+                   )
+
 // checking
 template<class Fn>
 C4_NODISCARD bool ErrorHandlerExample::check_error_occurs(Fn &&fn) const
 {
     bool expected_error_occurred = false;
-    try { fn(); }
-    catch(std::exception const&) { expected_error_occurred = true; }
+    C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env) == 0)) // selectively picks based on availability of exceptions
+    {
+        fn();
+    }
+    C4_IF_EXCEPTIONS_(catch(...), else)
+    {
+        expected_error_occurred = true;
+    }
     return expected_error_occurred;
 }
 template<class Fn>
@@ -5121,7 +5143,15 @@ C4_NORETURN void ErrorHandlerExample::on_error(const char* msg, size_t len, ryml
     std::string full_msg = ryml::formatrs<std::string>(
         "{}:{}:{} ({}B): ERROR: {}",
         loc.name, loc.line, loc.col, loc.offset, ryml::csubstr(msg, len));
-    throw std::runtime_error(full_msg);
+    C4_IF_EXCEPTIONS(
+        // this will execute if exceptions are enabled.
+        throw std::runtime_error(full_msg);
+        ,
+        // this will execute if exceptions are disabled. It will
+        // jump to the function calling the corresponding setjmp().
+        s_jmp_msg = full_msg;
+        std::longjmp(s_jmp_env, 1);
+    );
 }
 
 /** a helper to create the Callbacks object with the custom error handler */
