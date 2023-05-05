@@ -14,6 +14,8 @@
 using namespace c4;
 
 
+C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
+
 //-----------------------------------------------------------------------------
 
 struct timed_section
@@ -114,3 +116,5 @@ int main(int argc, const char *argv[])
 
     return 0;
 }
+
+C4_SUPPRESS_WARNING_GCC_CLANG_POP

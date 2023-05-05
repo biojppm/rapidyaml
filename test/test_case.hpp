@@ -14,12 +14,22 @@
 #include <gtest/gtest.h>
 #include <functional>
 
-#ifdef __GNUC__
-#   pragma GCC diagnostic push
-#   pragma GCC diagnostic ignored "-Wtype-limits"
+
+// no pragma push for these warnings! they will be suppressed in the
+// files including this header (most test files)
+#ifdef __clang__
+#   pragma clang diagnostic ignored "-Wold-style-cast"
+#elif defined(__GNUC__)
+#   pragma GCC diagnostic ignored "-Wold-style-cast"
 #endif
 
-#if defined(_MSC_VER)
+
+#ifdef __clang__
+#   pragma clang diagnostic push
+#elif defined(__GNUC__)
+#   pragma GCC diagnostic push
+#   pragma GCC diagnostic ignored "-Wtype-limits"
+#elif defined(_MSC_VER)
 #   pragma warning(push)
 #   pragma warning(disable: 4296/*expression is always 'boolean_value'*/)
 #   pragma warning(disable: 4389/*'==': signed/unsigned mismatch*/)
@@ -522,12 +532,12 @@ struct CaseData
 } // namespace yml
 } // namespace c4
 
-#if defined(_MSC_VER)
-#   pragma warning(pop)
-#endif
-
-#ifdef __GNUC__
+#ifdef __clang__
+#   pragma clang diagnostic pop
+#elif defined(__GNUC__)
 #   pragma GCC diagnostic pop
+#elif defined(_MSC_VER)
+#   pragma warning(pop)
 #endif
 
 #endif /* _TEST_CASE_HPP_ */

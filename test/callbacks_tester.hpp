@@ -10,6 +10,10 @@
 namespace c4 {
 namespace yml {
 
+C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wcast-qual")
+
 struct CallbacksTester
 {
     std::vector<char> memory_pool;
@@ -70,6 +74,8 @@ struct CallbacksTester
         // no need to free here
     }
 };
+
+C4_SUPPRESS_WARNING_GCC_CLANG_POP
 
 } // namespace yml
 } // namespace c4

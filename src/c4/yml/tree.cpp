@@ -4,8 +4,9 @@
 #include "c4/yml/detail/stack.hpp"
 
 
-C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wtype-limits")
 C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4296/*expression is always 'boolean_value'*/)
+C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
+C4_SUPPRESS_WARNING_GCC("-Wtype-limits")
 
 namespace c4 {
 namespace yml {
@@ -1181,7 +1182,7 @@ size_t Tree::duplicate_children_no_rep(Tree const *src, size_t node, size_t pare
 
     // for each child to be duplicated...
     size_t prev = after;
-    for(size_t i = src->first_child(node), icount = 0; i != NONE; ++icount, i = src->next_sibling(i))
+    for(size_t i = src->first_child(node); i != NONE; i = src->next_sibling(i))
     {
         if(is_seq(parent))
         {
@@ -2179,5 +2180,5 @@ Tree::_lookup_path_token Tree::_next_token(lookup_result *r, _lookup_path_token 
 } // namespace c4
 
 
-C4_SUPPRESS_WARNING_GCC_POP
+C4_SUPPRESS_WARNING_GCC_CLANG_POP
 C4_SUPPRESS_WARNING_MSVC_POP

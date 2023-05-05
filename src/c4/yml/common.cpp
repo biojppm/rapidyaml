@@ -8,6 +8,8 @@
 namespace c4 {
 namespace yml {
 
+C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
+
 namespace {
 Callbacks s_default_callbacks;
 } // anon namespace
@@ -112,6 +114,8 @@ void error(const char *msg, size_t msg_len, Location loc)
 {
     s_default_callbacks.m_error(msg, msg_len, loc, s_default_callbacks.m_user_data);
 }
+
+C4_SUPPRESS_WARNING_GCC_CLANG_POP
 
 } // namespace yml
 } // namespace c4

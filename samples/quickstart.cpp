@@ -126,6 +126,11 @@ int main()
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wcast-qual")
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
+C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
+
 namespace sample {
 
 bool report_check(int line, const char *predicate, bool result);
@@ -151,6 +156,7 @@ struct CheckPredicate {
 /// a quick'n'dirty assertion to verify a predicate
 #define CHECK(predicate) do { if(!report_check(__LINE__, #predicate, (predicate))) { RYML_DEBUG_BREAK(); } } while(0)
 #endif
+
 
 //-----------------------------------------------------------------------------
 
@@ -2171,7 +2177,7 @@ void sample_formatting()
         ryml::formatrs(&vbuf, "and c={} seems about right", 2);
         CHECK(sbuf == "and c=2 seems about right");
         // with formatrs() it is also possible to append:
-        ryml::formatrs(ryml::append, &sbuf, ", and finally d={} - done", 3);
+        ryml::formatrs_append(&sbuf, ", and finally d={} - done", 3);
         CHECK(sbuf == "and c=2 seems about right, and finally d=3 - done");
     }
 
@@ -2243,7 +2249,7 @@ void sample_formatting()
         ryml::catrs(&vbuf, "and c=", 2, " seems about right");
         CHECK(sbuf == "and c=2 seems about right");
         // with catrs() it is also possible to append:
-        ryml::catrs(ryml::append, &sbuf, ", and finally d=", 3, " - done");
+        ryml::catrs_append(&sbuf, ", and finally d=", 3, " - done");
         CHECK(sbuf == "and c=2 seems about right, and finally d=3 - done");
     }
 
@@ -2333,7 +2339,7 @@ void sample_formatting()
         CHECK(ryml::to_csubstr(vbuf) == "a=0 and b=1 and c=2 and 45 and 67");
 
         // with catseprs() it is also possible to append:
-        ryml::catseprs(ryml::append, &sbuf, " well ", " --- a=0", "b=11", "c=12", 145, 167);
+        ryml::catseprs_append(&sbuf, " well ", " --- a=0", "b=11", "c=12", 145, 167);
         CHECK(sbuf == "a=0 and b=1 and c=2 and 45 and 67 --- a=0 well b=11 well c=12 well 145 well 167");
     }
 
@@ -4243,3 +4249,5 @@ void file_put_contents(const char *filename, const char *buf, size_t sz, const c
 C4_SUPPRESS_WARNING_MSVC_POP
 
 } // namespace sample
+
+C4_SUPPRESS_WARNING_GCC_CLANG_POP
