@@ -71,6 +71,8 @@
 namespace c4 {
 namespace yml {
 
+C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
+
 enum : size_t {
     /** a null position */
     npos = size_t(-1),
@@ -271,6 +273,8 @@ struct _SubstrWriter
 } // namespace detail
 
 /// @endcond
+
+C4_SUPPRESS_WARNING_GCC_CLANG_POP
 
 } // namespace yml
 } // namespace c4

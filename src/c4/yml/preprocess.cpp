@@ -6,6 +6,7 @@
 namespace c4 {
 namespace yml {
 
+C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -105,6 +106,7 @@ size_t preprocess_rxmap(csubstr s, substr buf)
     return writer.pos;
 }
 
+C4_SUPPRESS_WARNING_GCC_CLANG_POP
 
 } // namespace yml
 } // namespace c4

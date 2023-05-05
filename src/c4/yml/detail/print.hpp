@@ -8,10 +8,11 @@
 namespace c4 {
 namespace yml {
 
+C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
 
 inline size_t print_node(Tree const& p, size_t node, int level, size_t count, bool print_children)
 {
-    printf("[%zd]%*s[%zd] %p", count, (2*level), "", node, (void*)p.get(node));
+    printf("[%zd]%*s[%zd] %p", count, (2*level), "", node, (void const*)p.get(node));
     if(p.is_root(node))
     {
         printf(" [ROOT]");
@@ -120,6 +121,7 @@ inline size_t print_tree(Tree const& p, size_t node=NONE)
     return ret;
 }
 
+C4_SUPPRESS_WARNING_GCC_CLANG_POP
 
 } /* namespace yml */
 } /* namespace c4 */

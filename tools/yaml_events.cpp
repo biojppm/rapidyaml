@@ -9,6 +9,8 @@
 #include <cstdio>
 #include <stdexcept>
 
+C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
+
 using namespace c4;
 using namespace c4::yml;
 
@@ -90,3 +92,5 @@ void report_error(const char* msg, size_t length, Location loc, FILE *f)
     fprintf(f, "%.*s\n", (int)length, msg);
     fflush(f);
 }
+
+C4_SUPPRESS_WARNING_GCC_CLANG_POP

@@ -6,6 +6,8 @@
 namespace c4 {
 namespace yml {
 
+C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
+
 struct EventsEmitter
 {
     substr buf;
@@ -284,6 +286,8 @@ size_t emit_events(substr buf, Tree const& C4_RESTRICT tree)
     e.emit_events();
     return e.pos;
 }
+
+C4_SUPPRESS_WARNING_GCC_CLANG_POP
 
 } // namespace yml
 } // namespace c4

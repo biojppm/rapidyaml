@@ -12,6 +12,8 @@
 namespace c4 {
 namespace yml {
 
+C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
+
 namespace detail {
 
 template<size_t N>
@@ -852,6 +854,8 @@ Case const* get_case(csubstr /*name*/)
 {
     return nullptr;
 }
+
+C4_SUPPRESS_WARNING_GCC_CLANG_POP
 
 } // namespace yml
 } // namespace c4

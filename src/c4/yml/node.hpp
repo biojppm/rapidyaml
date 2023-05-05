@@ -9,12 +9,15 @@
 #include "c4/yml/tree.hpp"
 #include "c4/base64.hpp"
 
-#ifdef __GNUC__
+#ifdef __clang__
+#   pragma clang diagnostic push
+#   pragma clang diagnostic ignored "-Wtype-limits"
+#   pragma clang diagnostic ignored "-Wold-style-cast"
+#elif defined(__GNUC__)
 #   pragma GCC diagnostic push
 #   pragma GCC diagnostic ignored "-Wtype-limits"
-#endif
-
-#if defined(_MSC_VER)
+#   pragma GCC diagnostic ignored "-Wold-style-cast"
+#elif defined(_MSC_VER)
 #   pragma warning(push)
 #   pragma warning(disable: 4251/*needs to have dll-interface to be used by clients of struct*/)
 #   pragma warning(disable: 4296/*expression is always 'boolean_value'*/)
@@ -502,7 +505,7 @@ public:
     template<class Visitor>
     C4_ALWAYS_INLINE C4_PURE bool visit(Visitor fn, size_t indentation_level=0, bool skip_root=true) const noexcept
     {
-        return detail::_visit(*(ConstImpl*)this, fn, indentation_level, skip_root);
+        return detail::_visit(*(ConstImpl const*)this, fn, indentation_level, skip_root);
     }
     /** visit every child node calling fn(node) */
     template<class Visitor, class U=Impl>
@@ -516,7 +519,7 @@ public:
     template<class Visitor>
     C4_ALWAYS_INLINE C4_PURE bool visit_stacked(Visitor fn, size_t indentation_level=0, bool skip_root=true) const noexcept
     {
-        return detail::_visit_stacked(*(ConstImpl*)this, fn, indentation_level, skip_root);
+        return detail::_visit_stacked(*(ConstImpl const*)this, fn, indentation_level, skip_root);
     }
     /** visit every child node calling fn(node, level) */
     template<class Visitor, class U=Impl>
@@ -1265,12 +1268,13 @@ inline read(ConstNodeRef const& n, T *v)
 } // namespace c4
 
 
-#if defined(_MSC_VER)
-#   pragma warning(pop)
-#endif
 
-#ifdef __GNUC__
+#ifdef __clang__
+#   pragma clang diagnostic pop
+#elif defined(__GNUC__)
 #   pragma GCC diagnostic pop
+#elif defined(_MSC_VER)
+#   pragma warning(pop)
 #endif
 
 #endif /* _C4_YML_NODE_HPP_ */

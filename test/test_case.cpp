@@ -14,9 +14,11 @@
 #   pragma warning(push)
 #elif defined(__clang__)
 #   pragma clang diagnostic push
+#   pragma clang diagnostic ignored "-Wold-style-cast"
 #elif defined(__GNUC__)
 #   pragma GCC diagnostic push
 #   pragma GCC diagnostic ignored "-Wuseless-cast"
+#   pragma GCC diagnostic ignored "-Wold-style-cast"
 #   if __GNUC__ >= 6
 #       pragma GCC diagnostic ignored "-Wnull-dereference"
 #   endif
@@ -163,10 +165,10 @@ std::string format_error(const char* msg, size_t len, Location loc)
     #endif
     if(!loc) return msg;
     std::string out;
-    if(!loc.name.empty()) c4::formatrs(append, &out, "{}:", loc.name);
-    c4::formatrs(append, &out, "{}:{}:", loc.line, loc.col);
-    if(loc.offset) c4::formatrs(append, &out, " (@{}B):", loc.offset);
-    c4::formatrs(append, &out, "{}:", csubstr(msg, len));
+    if(!loc.name.empty()) c4::formatrs_append(&out, "{}:", loc.name);
+    c4::formatrs_append(&out, "{}:{}:", loc.line, loc.col);
+    if(loc.offset) c4::formatrs_append(&out, " (@{}B):", loc.offset);
+    c4::formatrs_append(&out, "{}:", csubstr(msg, len));
     return out;
 }
 
@@ -552,7 +554,7 @@ void print_path(ConstNodeRef const& n)
 
 void print_node(CaseNode const& p, int level)
 {
-    printf("%*s%p", (2*level), "", (void*)&p);
+    printf("%*s%p", (2*level), "", (void const*)&p);
     if( ! p.parent)
     {
         printf(" [ROOT]");

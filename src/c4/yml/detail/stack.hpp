@@ -13,6 +13,9 @@
 
 namespace c4 {
 namespace yml {
+
+C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
+
 namespace detail {
 
 /** A lightweight contiguous stack with SSO. This avoids a dependency on std. */
@@ -268,6 +271,9 @@ void stack<T, N>::_cb(Callbacks const& cb)
 }
 
 } // namespace detail
+
+C4_SUPPRESS_WARNING_GCC_CLANG_POP
+
 } // namespace yml
 } // namespace c4
 
