@@ -2,7 +2,6 @@
 [![MIT Licensed](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/biojppm/rapidyaml/blob/master/LICENSE.txt)
 [![release](https://img.shields.io/github/v/release/biojppm/rapidyaml?color=g&include_prereleases&label=release%20&sort=semver)](https://github.com/biojppm/rapidyaml/releases)
 [![PyPI](https://img.shields.io/pypi/v/rapidyaml?color=g)](https://pypi.org/project/rapidyaml/)
-[![Docs](https://img.shields.io/badge/docs-docsforge-blue)](https://rapidyaml.docsforge.com/)
 [![Gitter](https://badges.gitter.im/rapidyaml/community.svg)](https://gitter.im/rapidyaml/community)
 
 [![test](https://github.com/biojppm/rapidyaml/workflows/test/badge.svg?branch=master)](https://github.com/biojppm/rapidyaml/actions)
