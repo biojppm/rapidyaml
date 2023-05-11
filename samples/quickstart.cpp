@@ -74,6 +74,7 @@ void sample_emit_to_container();    ///< emit to memory, eg a string or vector-l
 void sample_emit_to_stream();       ///< emit to a stream, eg std::ostream
 void sample_emit_to_file();         ///< emit to a FILE*
 void sample_emit_nested_node();     ///< pick a nested node as the root when emitting
+void sample_emit_style();           ///< set the nodes to FLOW/BLOCK format
 void sample_json();                 ///< JSON parsing and emitting
 void sample_anchors_and_aliases();  ///< deal with YAML anchors and aliases
 void sample_tags();                 ///< deal with YAML type tags
@@ -109,6 +110,7 @@ int main()
     sample::sample_emit_to_stream();
     sample::sample_emit_to_file();
     sample::sample_emit_nested_node();
+    sample::sample_emit_style();
     sample::sample_json();
     sample::sample_anchors_and_aliases();
     sample::sample_tags();
@@ -3353,6 +3355,57 @@ void sample_emit_nested_node()
 - many other
 - wonderful beers
 )");
+}
+
+
+//-----------------------------------------------------------------------------
+
+/** [experimental] pick flow/block style for certain nodes. */
+void sample_emit_style()
+{
+    ryml::Tree tree = ryml::parse_in_arena(R"(
+NodeOne:
+  - key: a
+    desc: b
+    class: c
+    number: d
+  - key: e
+    desc: f
+    class: g
+    number: h
+  - key: i
+    desc: j
+    class: k
+    number: l
+)");
+    // ryml uses block style by default:
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(NodeOne:
+  - key: a
+    desc: b
+    class: c
+    number: d
+  - key: e
+    desc: f
+    class: g
+    number: h
+  - key: i
+    desc: j
+    class: k
+    number: l
+)");
+    // you can override the emit style of individual nodes:
+    for(ryml::NodeRef child : tree["NodeOne"].children())
+        child |= ryml::_WIP_STYLE_FLOW_SL; // flow, single-line
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(NodeOne:
+  - {key: a,desc: b,class: c,number: d}
+  - {key: e,desc: f,class: g,number: h}
+  - {key: i,desc: j,class: k,number: l}
+)");
+    tree["NodeOne"] |= ryml::_WIP_STYLE_FLOW_SL;
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(NodeOne: [{key: a,desc: b,class: c,number: d},{key: e,desc: f,class: g,number: h},{key: i,desc: j,class: k,number: l}]
+)");
+    tree.rootref() |= ryml::_WIP_STYLE_FLOW_SL;
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"({{NodeOne: [{key: a,desc: b,class: c,number: d},{key: e,desc: f,class: g,number: h},{key: i,desc: j,class: k,number: l}]})");
 }
 
 
