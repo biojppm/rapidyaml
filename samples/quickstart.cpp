@@ -3405,7 +3405,7 @@ NodeOne:
     CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(NodeOne: [{key: a,desc: b,class: c,number: d},{key: e,desc: f,class: g,number: h},{key: i,desc: j,class: k,number: l}]
 )");
     tree.rootref() |= ryml::_WIP_STYLE_FLOW_SL;
-    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"({{NodeOne: [{key: a,desc: b,class: c,number: d},{key: e,desc: f,class: g,number: h},{key: i,desc: j,class: k,number: l}]})");
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"({NodeOne: [{key: a,desc: b,class: c,number: d},{key: e,desc: f,class: g,number: h},{key: i,desc: j,class: k,number: l}]})");
 }
 
 
