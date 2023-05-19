@@ -3893,6 +3893,7 @@ TEST(Tree, resolve_tag)
     // we're not testing the parser here, just the tag mechanics.
     // So we'll add the tag directives by hand.
     Tree t = parse_in_arena(yaml);
+    ASSERT_EQ(t.rootref().num_children(), 2);
     EXPECT_EQ(t[0].val_tag(), "!m!light");
     EXPECT_EQ(t[1].val_tag(), "!m!light");
     EXPECT_EQ(t.num_tag_directives(), 0u);

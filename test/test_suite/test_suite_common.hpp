@@ -19,9 +19,9 @@
 #define RYML_NFO (0 || RYML_DBG)
 
 #if RYML_NFO
-#define _nfo_print_tree(title, tree) do { c4::log("{}:{}: " title ":", __FILE__, __LINE__); print_tree(tree); c4::yml::emit(tree, stdout); fflush(stdout); } while(0)
-#define _nfo_logf(fmt, ...)          do { c4::log("{}:{}: " fmt      , __FILE__, __LINE__, __VA_ARGS__);                                   fflush(stdout); } while(0)
-#define _nfo_log(fmt)                do { c4::log("{}:{}: " fmt      , __FILE__, __LINE__);                                                fflush(stdout); } while(0)
+#define _nfo_print_tree(title, tree) do { c4::log("{}:{}: " title ":", __FILE__, __LINE__); print_tree(tree); c4::yml::emit_yaml(tree, stdout); fflush(stdout); } while(0)
+#define _nfo_logf(fmt, ...)          do { c4::log("{}:{}: " fmt      , __FILE__, __LINE__, __VA_ARGS__);                                        fflush(stdout); } while(0)
+#define _nfo_log(fmt)                do { c4::log("{}:{}: " fmt      , __FILE__, __LINE__);                                                     fflush(stdout); } while(0)
 #define _nfo_printf(...) printf(__VA_ARGS__)
 #else
 #define _nfo_print_tree(title, tree)

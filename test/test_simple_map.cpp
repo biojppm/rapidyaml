@@ -3,6 +3,73 @@
 namespace c4 {
 namespace yml {
 
+TEST(simple_map, issue373)
+{
+    {
+        const Tree tree = parse_in_arena(R"({"": ""})");
+        ASSERT_EQ(tree.rootref().num_children(), 1u);
+        EXPECT_EQ(tree[0].key(), "");
+        EXPECT_EQ(tree[0].val(), "");
+        EXPECT_EQ(tree[""].key(), "");
+        EXPECT_EQ(tree[""].val(), "");
+    }
+    {
+        const Tree tree = parse_in_arena(R"("": "")");
+        ASSERT_EQ(tree.rootref().num_children(), 1u);
+        EXPECT_EQ(tree[0].key(), "");
+        EXPECT_EQ(tree[0].val(), "");
+        EXPECT_EQ(tree[""].key(), "");
+        EXPECT_EQ(tree[""].val(), "");
+    }
+    {
+        const Tree tree = parse_in_arena(R"({m: {"":""}})");
+        ASSERT_EQ(tree.rootref().num_children(), 1u);
+        EXPECT_EQ(tree["m"][0].key(), "");
+        EXPECT_EQ(tree["m"][0].val(), "");
+        EXPECT_EQ(tree["m"][""].key(), "");
+        EXPECT_EQ(tree["m"][""].val(), "");
+    }
+    {
+        const Tree tree = parse_in_arena(R"(m:
+    "a": ""
+)");
+        std::cout << tree;
+        ASSERT_EQ(tree.rootref().num_children(), 1u);
+        ASSERT_EQ(tree["m"].num_children(), 1u);
+        EXPECT_EQ(tree["m"][0].key(), "a");
+        EXPECT_EQ(tree["m"][0].val(), "");
+        EXPECT_EQ(tree["m"]["a"].key(), "a");
+        EXPECT_EQ(tree["m"]["a"].val(), "");
+    }
+    {
+        const Tree tree = parse_in_arena(R"(m:
+    "": ""
+)");
+        std::cout << tree;
+        ASSERT_EQ(tree.rootref().num_children(), 1u);
+        ASSERT_EQ(tree["m"].num_children(), 1u);
+        EXPECT_EQ(tree["m"][0].key(), "");
+        EXPECT_EQ(tree["m"][0].val(), "");
+        EXPECT_EQ(tree["m"][""].key(), "");
+        EXPECT_EQ(tree["m"][""].val(), "");
+    }
+    {
+        const Tree tree = parse_in_arena(R"(m:
+    "": ""
+n:
+    "": "a"
+)");
+        std::cout << tree;
+        ASSERT_EQ(tree.rootref().num_children(), 2u);
+        ASSERT_EQ(tree["m"].num_children(), 1u);
+        EXPECT_EQ(tree["m"][0].key(), "");
+        EXPECT_EQ(tree["m"][0].val(), "");
+        ASSERT_EQ(tree["n"].num_children(), 1u);
+        EXPECT_EQ(tree["n"][0].key(), "");
+        EXPECT_EQ(tree["n"][0].val(), "a");
+    }
+}
+
 TEST(simple_map, issue274)
 {
     Tree tree = parse_in_arena(R"(
