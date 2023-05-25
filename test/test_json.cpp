@@ -309,7 +309,7 @@ TEST(emit_json, issue313_quoted_numbers__1)
     EXPECT_TRUE(csubstr("0.13215841352939606").is_number()); // [REALLY_WEIRD5][9][0]
     EXPECT_TRUE(csubstr("0.13215841352939606").is_real()); // [REALLY_WEIRD5][9][0]
     EXPECT_FALSE(csubstr("0.13215841352939606").is_integer()); // [REALLY_WEIRD5][9][0]
-    Tree t0 = parse_in_arena(R"([
+    const Tree t0 = parse_in_arena(R"([
     0.99356698989868164,
     0.0064908224157989025,
     0.0064917667768895626,
@@ -386,33 +386,42 @@ REALLY_WEIRD5: [
 }
 
 
-#define _test(actual_src, expected_src)                     \
-    {                                                       \
-        SCOPED_TRACE(__LINE__);                             \
-        csubstr file = __FILE__ ":" C4_XQUOTE(__LINE__);    \
-        Tree actual = parse_in_arena(file, actual_src);     \
-        Tree expected = parse_in_arena(file, expected_src); \
-        test_compare(actual, expected);                     \
+#define _test(actual_src, expected_src)                           \
+    {                                                             \
+        SCOPED_TRACE(__LINE__);                                   \
+        csubstr file = __FILE__ ":" C4_XQUOTE(__LINE__);          \
+        const Tree actual = parse_in_arena(file, actual_src);     \
+        const Tree expected = parse_in_arena(file, expected_src); \
+        print_tree(actual);                                       \
+        test_compare(actual, expected);                           \
     }
 
 
-TEST(json, basic)
+TEST(json, compact_map)
 {
     _test("", "");
     _test("{}", "{}");
-    _test(R"("a":"b")",
-          R"("a": "b")");
-    _test(R"('a':'b')",
-          R"('a': 'b')");
-    _test(R"({'a':'b'})",
-          R"({'a': 'b'})");
-    _test(R"({"a":"b"})",
-          R"({"a": "b"})");
 
-    _test(R"({"a":{"a":"b"}})",
-          R"({"a": {"a": "b"}})");
-    _test(R"({'a':{'a':'b'}})",
-          R"({'a': {'a': 'b'}})");
+    _test(R"("a":"b")", R"("a": "b")");
+    _test(R"('a':'b')", R"('a': 'b')");
+
+    _test(R"({'a':'b'})", R"({'a': 'b'})");
+    _test(R"({"a":"b"})", R"({"a": "b"})");
+
+    _test(R"("a":{"a":"b"})", R"("a": {"a": "b"})");
+    _test(R"('a':{'a':'b'})", R"('a': {'a': 'b'})");
+
+    _test(R"({"a":{"a":"b"}})", R"({"a": {"a": "b"}})");
+    _test(R"({'a':{'a':'b'}})", R"({'a': {'a': 'b'}})");
+}
+
+TEST(json, compact_seq)
+{
+    _test(R"("a",["a","b"])", R"("a", ["a", "b"])");
+    _test(R"('a',['a','b'])", R"('a', ['a', 'b'])");
+
+    _test(R"(["a",["a","b"]])", R"(["a", ["a", "b"]])");
+    _test(R"(['a',['a','b']])", R"(['a', ['a', 'b']])");
 }
 
 TEST(json, github142)
