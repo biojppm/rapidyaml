@@ -18,11 +18,11 @@ constexpr const AllowedFailure allowed_failures[] = {
     // These tests are temporarily skipped, and cover issues that must be fixed.
 
     // double quoted scalars
-    _("G4RS-in_json"            , "special characters must be emitted in double quoted style"),
-    _("G4RS-in_yaml"            , "special characters must be emitted in double quoted style"),
-    _("G4RS-out_yaml"           , "special characters must be emitted in double quoted style"),
+    _("G4RS-in_json" , "special characters must be emitted in double quoted style"),
+    _("G4RS-in_yaml" , "special characters must be emitted in double quoted style"),
+    _("G4RS-out_yaml", "special characters must be emitted in double quoted style"),
     // other
-    _("UKK6_01-in_yaml"         , "fails to parse double :: in UNK state"),
+    _("UKK6_01-in_yaml", "fails to parse double :: in UNK state"),
 
 
     //-------------------------------------------------------------------------
@@ -61,7 +61,6 @@ constexpr const AllowedFailure allowed_failures[] = {
     _("YJV2-error"    , "should not accept [-]"),
     _("Y79Y_003-error", "should not accept leading tabs in seq elmt"),
     _("Y79Y_004-error", "should not accept tab after -"),
-    _("Y79Y_005-error", "should not accept tab after -"),
     // block scalars
     _("2G84_00-error" , "should not accept the block literal spec"),
     _("2G84_01-error" , "should not accept the block literal spec"),
@@ -113,7 +112,8 @@ constexpr const AllowedFailure allowed_failures[] = {
     // These tests are skipped because they cover parts of YAML that
     // are deliberately not implemented by ryml.
 
-    #ifndef RYML_WITH_TAB_TOKENS // -<tab> or :<tab> are supported only when the above macro is defined
+    #ifndef RYML_WITH_TAB_TOKENS
+    // -<tab> or :<tab> are supported only when the above macro is defined
     _("A2M4-in_yaml-events"    , "tabs tokens"),
     _("6BCT-in_yaml"           , "tabs tokens"),
     _("J3BT-in_yaml-events"    , "tabs tokens"),

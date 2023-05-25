@@ -718,6 +718,7 @@ bool Parser::_handle_unk()
             _start_map_unk(start_as_child); // wait for the val scalar to append the key-val pair
             _line_progressed(1); // advance only 1
         }
+        #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
         else if(rem.begins_with('}'))
         {
             if(!has_all(RMAP|FLOW))
@@ -734,6 +735,7 @@ bool Parser::_handle_unk()
             saved_scalar.clear();
             is_quoted = false;
         }
+        #endif
         else if(rem.begins_with("..."))
         {
             _c4dbgp("got stream end '...'");

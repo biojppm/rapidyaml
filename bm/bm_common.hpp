@@ -8,7 +8,6 @@
 #include <vector>
 #include <iostream>
 
-#include "./libyaml.hpp"
 #include <benchmark/benchmark.h>
 
 // warning suppressions for thirdparty code
@@ -51,6 +50,7 @@
 #       pragma GCC diagnostic ignored "-Wclass-memaccess" // rapidjson/document.h:1952:24
 #   endif
 #endif
+#include "./libyaml.hpp"
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
 #include <rapidjson/stringbuffer.h>
