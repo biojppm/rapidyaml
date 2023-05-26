@@ -77,6 +77,7 @@ void bm_nlohmann(bm::State& st)
 }
 
 #ifdef RYML_HAVE_LIBFYAML
+C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
 int fyaml_dumper_ostream(struct fy_emitter *emit, fy_emitter_write_type type, const char *str, int len, void *userdata)
 {
     C4_UNUSED(emit);
@@ -94,6 +95,7 @@ int fyaml_dumper_str(struct fy_emitter *emit, fy_emitter_write_type type, const 
     s->append(str, len);
     return 0;
 }
+C4_SUPPRESS_WARNING_GCC_CLANG_POP
 
 void bm_fyaml_ostream(bm::State& st)
 {
@@ -196,7 +198,7 @@ void bm_ryml_str(bm::State& st)
     std::string str;
     for(auto _ : st)
     {
-        emitrs(tree, &str);
+        emitrs_yaml(tree, &str);
     }
     s_bm_case->report(st);
 }
@@ -209,7 +211,7 @@ void bm_ryml_str_reserve(bm::State& st)
     ryml::Tree tree = ryml::parse_in_arena(s_bm_case->filename, src);
     for(auto _ : st)
     {
-        emitrs(tree, &str);
+        emitrs_yaml(tree, &str);
     }
     s_bm_case->report(st);
 }
