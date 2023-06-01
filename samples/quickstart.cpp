@@ -874,6 +874,73 @@ void sample_substr()
         CHECK(s.right_of(FOO) == "barBAR");
     }
 
+    // printing a substr/csubstr using printf-like
+    {
+        ryml::csubstr s = "some substring";
+        ryml::csubstr some = s.first(4);
+        CHECK(some == "some");
+        CHECK(s == "some substring");
+        // To print a csubstr using printf(), use the %.*s format specifier:
+        {
+            char result[32] = {0};
+            std::snprintf(result, sizeof(result), "%.*s", (int)some.len, some.str);
+            printf("~~~%s~~~\n", result);
+            CHECK(ryml::to_csubstr((const char*)result) == "some");
+            CHECK(ryml::to_csubstr((const char*)result) == some);
+        }
+        // But NOTE: because this is a string view type, in general
+        // the C-string is NOT zero terminated.  So NEVER print it
+        // directly, or it will overflow past the end of the given
+        // substr, with a potential unbounded access.  For example,
+        // this is bad:
+        {
+            char result[32] = {0};
+            std::snprintf(result, sizeof(result), "%s", some.str); // ERROR! do not print the c-string directly
+            CHECK(ryml::to_csubstr((const char*)result) == "some substring");
+            CHECK(ryml::to_csubstr((const char*)result) == s);
+        }
+    }
+
+    // printing a substr/csubstr using ostreams
+    {
+        ryml::csubstr s = "some substring";
+        ryml::csubstr some = s.first(4);
+        CHECK(some == "some");
+        CHECK(s == "some substring");
+        // simple! just use plain operator<<
+        {
+            std::stringstream ss;
+            ss << s;
+            CHECK(ss.str() == "some substring"); // as expected
+            CHECK(ss.str() == s); // as expected
+        }
+        // But NOTE: because this is a string view type, in general
+        // the C-string is NOT zero terminated.  So NEVER print it
+        // directly, or it will overflow past the end of the given
+        // substr, with a potential unbounded access.  For example,
+        // this is bad:
+        {
+            std::stringstream ss;
+            ss << some.str; // ERROR! do not print the c-string directly
+            CHECK(ss.str() == "some substring"); // NOT "some"
+            CHECK(ss.str() == s); // NOT some
+        }
+        // this is also bad (the same)
+        {
+            std::stringstream ss;
+            ss << some.data(); // ERROR! do not print the c-string directly
+            CHECK(ss.str() == "some substring"); // NOT "some"
+            CHECK(ss.str() == s); // NOT some
+        }
+        // this is ok:
+        {
+            std::stringstream ss;
+            ss << some;
+            CHECK(ss.str() == "some"); // ok
+            CHECK(ss.str() == some); // ok
+        }
+    }
+
     // is_sub(),is_super()
     {
         ryml::csubstr foobar = "foobar";
@@ -1357,9 +1424,6 @@ void sample_substr()
         CHECK(ryml::csubstr("//0/1/2/"  ).gpop_right('/', skip_empty) ==     "1/2/"  );
         CHECK(ryml::csubstr("//0/1/2//" ).gpop_right('/', skip_empty) ==     "1/2//"  );
     }
-
-    // see the docs:
-    // https://c4core.docsforge.com/master/api/c4/basic_substring/
 }
 
 
