@@ -352,15 +352,18 @@ void sample_quick_overview()
     // Deserializing: use operator>>
     {
         int foo = 0, bar0 = 0, bar1 = 0;
-        std::string john;
+        std::string john_str;
+        std::string bar_str;
         root["foo"] >> foo;
         root["bar"][0] >> bar0;
         root["bar"][1] >> bar1;
-        root["john"] >> john; // requires from_chars(std::string). see serialization samples below.
+        root["john"] >> john_str; // requires from_chars(std::string). see serialization samples below.
+        root["bar"] >> ryml::key(bar_str); // to deserialize the key, use the tag function ryml::key()
         CHECK(foo == 1);
         CHECK(bar0 == 2);
         CHECK(bar1 == 3);
-        CHECK(john == "doe");
+        CHECK(john_str == "doe");
+        CHECK(bar_str == "bar");
     }
 
 
