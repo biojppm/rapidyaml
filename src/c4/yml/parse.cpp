@@ -2784,20 +2784,34 @@ bool Parser::_scan_scalar_unk(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quo
     }
     size_t pos = s.find(" #");
     if(pos != npos)
+    {
+        _c4dbgpf("RUNK: found ' #' at {}", pos);
         s = s.left_of(pos);
+    }
     pos = s.find(": ");
     if(pos != npos)
+    {
+        _c4dbgpf("RUNK: found ': ' at {}", pos);
         s = s.left_of(pos);
+    }
     else if(s.ends_with(':'))
+    {
+        _c4dbgp("RUNK: ends with ':'");
         s = s.left_of(s.len-1);
+    }
     _RYML_WITH_TAB_TOKENS(
     else if((pos = s.find(":\t")) != npos) // TABS
+    {
+        _c4dbgp("RUNK: ends with ':\\t'");
         s = s.left_of(pos);
-    )
+    })
     else
+    {
+        _c4dbgp("RUNK: trimming left of ,");
         s = s.left_of(s.first_of(','));
+    }
     s = s.trim(" \t");
-    _c4dbgpf("RUNK: scalar='{}'", s);
+    _c4dbgpf("RUNK: scalar=[{}]~~~{}~~~", s.len, s);
 
     if(s.empty())
         return false;
@@ -2808,11 +2822,11 @@ bool Parser::_scan_scalar_unk(csubstr *C4_RESTRICT scalar, bool *C4_RESTRICT quo
 
     if(_at_line_end() && s != '~')
     {
-        _c4dbgpf("at line end. curr='{}'", s);
+        _c4dbgpf("at line end. curr=[{}]~~~{}~~", s.len, s);
         s = _extend_scanned_scalar(s);
     }
 
-    _c4dbgpf("scalar was '{}'", s);
+    _c4dbgpf("scalar was [{}]~~~{}~~~", s.len, s);
 
     *scalar = s;
     *quoted = false;
@@ -4046,7 +4060,7 @@ bool Parser::_handle_indentation()
         _RYML_CB_ASSERT(m_stack.m_callbacks, ind > m_state->indref);
         if(has_all(RMAP|RVAL))
         {
-            if(_is_scalar_next__rmap_val(remt) && remt.first_of(":?") == npos)
+            if(_is_scalar_next__rmap_val(remt) && (!remt.first_of_any(": ", "? ")) && (!remt.ends_with(":")))
             {
                 _c4dbgpf("actually it seems a value: '{}'", remt);
             }
