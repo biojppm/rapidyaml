@@ -503,7 +503,7 @@ public:
 
     /** visit every child node calling fn(node) */
     template<class Visitor>
-    C4_ALWAYS_INLINE C4_PURE bool visit(Visitor fn, size_t indentation_level=0, bool skip_root=true) const noexcept
+    C4_ALWAYS_INLINE bool visit(Visitor fn, size_t indentation_level=0, bool skip_root=true) const noexcept
     {
         return detail::_visit(*(ConstImpl const*)this, fn, indentation_level, skip_root);
     }
@@ -517,7 +517,7 @@ public:
 
     /** visit every child node calling fn(node, level) */
     template<class Visitor>
-    C4_ALWAYS_INLINE C4_PURE bool visit_stacked(Visitor fn, size_t indentation_level=0, bool skip_root=true) const noexcept
+    C4_ALWAYS_INLINE bool visit_stacked(Visitor fn, size_t indentation_level=0, bool skip_root=true) const noexcept
     {
         return detail::_visit_stacked(*(ConstImpl const*)this, fn, indentation_level, skip_root);
     }
