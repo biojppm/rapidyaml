@@ -44,6 +44,11 @@
 #include <vector>
 #include <array>
 #include <map>
+#ifdef C4_EXCEPTIONS
+#include <stdexcept>
+#else
+#include <csetjmp>
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -3781,22 +3786,42 @@ d: 3
 
 //-----------------------------------------------------------------------------
 
-// To avoid imposing a particular type of error handling, ryml accepts
-// custom error handlers. This enables users to use exceptions, or
-// plain calls to abort(), as they see fit.
+// To avoid imposing a particular type of error handling, ryml uses an
+// error handler callback. This enables users to use exceptions, or
+// setjmp()/longjmp(), or plain calls to abort(), as they see fit.
 //
 // However, it is important to note that the error callback must never
 // return to the caller! Otherwise, an infinite loop or program crash
-// may occur.
+// will likely occur.
+//
+// For this reason, to recover from an error when exceptions are disabled,
+// then a non-local jump must be performed using setjmp()/longjmp().
+// The code below demonstrates both flows.
 
+// this macro selects code for when exceptions are enabled/disabled
+C4_IF_EXCEPTIONS_( /*nothing for exceptions*/ ,
+                   /*environment for setjmp*/
+                   static std::jmp_buf s_jmp_env;
+                   static std::string s_jmp_msg;
+                   )
 
 struct ErrorHandlerExample
 {
     // this will be called on error
     void on_error(const char* msg, size_t len, ryml::Location loc)
     {
-        throw std::runtime_error(ryml::formatrs<std::string>("{}:{}:{} ({}B): ERROR: {}",
-            loc.name, loc.line, loc.col, loc.offset, ryml::csubstr(msg, len)));
+        // format a nice message
+        std::string smsg = ryml::formatrs<std::string>("{}:{}:{} ({}B): ERROR: {}",
+                                                       loc.name, loc.line, loc.col, loc.offset, ryml::csubstr(msg, len));
+        C4_IF_EXCEPTIONS(
+            // this will execute if exceptions are enabled.
+            throw std::runtime_error(smsg);
+            ,
+            // this will execute if exceptions are disabled. It will
+            // jump to the function calling the corresponding setjmp().
+            s_jmp_msg = smsg;
+            std::longjmp(s_jmp_env, 1);
+        );
     }
 
     // bridge
@@ -3814,8 +3839,14 @@ struct ErrorHandlerExample
     void check_error_occurs(Fn &&fn) const
     {
         bool expected_error_occurred = false;
-        try { fn(); }
-        catch(std::runtime_error const&) { expected_error_occurred = true; }
+        C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env) == 0)) // selectively picks based on availability of exceptions
+        {
+            fn();
+        }
+        C4_IF_EXCEPTIONS_(catch(...), else)
+        {
+            expected_error_occurred = true;
+        }
         CHECK(expected_error_occurred);
     }
     void check_effect(bool committed) const

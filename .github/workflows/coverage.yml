@@ -24,28 +24,27 @@ env:
 
 
 jobs:
+
   #----------------------------------------------------------------------------
   coverage:
-    name: coverage/c++${{matrix.std}}
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip coverage')) ||
-      contains(github.event.head_commit.message, 'only coverage')
+    name: coverage/${{matrix.name}}
+    # if: github.ref == 'refs/heads/master'
     continue-on-error: true
+    if: always()  # https://stackoverflow.com/questions/62045967/github-actions-is-there-a-way-to-continue-on-error-while-still-getting-correct
     runs-on: ${{matrix.os}}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - {std: 11, cxx: g++-9, bt: Coverage, os: ubuntu-20.04}
-          - {std: 17, cxx: g++-9, bt: Coverage, os: ubuntu-20.04}
-    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}",
-          CODECOV_TOKEN: "${{secrets.CODECOV_TOKEN}}",
-          COVERALLS_REPO_TOKEN: "${{secrets.COVERALLS_REPO_TOKEN}}",
-          # coveralls disabled: https://github.com/lemurheavy/coveralls-public/issues/1665
-          # https://docs.coveralls.io/parallel-build-webhook
-          #COVERALLS_PARALLEL: true
-          }
+          - {name: c++11, std: 11, cxx: g++-9, cc: gcc-9, bt: Coverage, os: ubuntu-20.04}
+          - {name: c++17, std: 17, cxx: g++-9, cc: gcc-9, bt: Coverage, os: ubuntu-20.04}
+          #- {name: c++20, std: 20, cxx: g++-9, cc: gcc-9, bt: Coverage, os: ubuntu-20.04}
+    env: {
+      STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}",
+      CODECOV_TOKEN: "${{secrets.CODECOV_TOKEN}}",
+      COVERALLS_REPO_TOKEN: "${{secrets.COVERALLS_REPO_TOKEN}}",
+      COVERALLS_PARALLEL: true,
+      }
     steps:
       - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
       - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
@@ -53,13 +52,13 @@ jobs:
       - name: static64-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test static64
       - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
-      - {name: static64-coverage, run: source .github/setenv.sh && c4_run_target static64 ryml-coverage}
+      - {name: static64-run, run: source .github/setenv.sh && c4_build_target static64 ryml-coverage}
       - name: static64-coverage-artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: coverage-static64-cxx${{matrix.std}}
+          name: coverage-static64
           path: |
-            build/static64/lcov
+            build/static64/lcov/
             build/static64/coverage3-final_filtered.lcov
       - {name: static64-submit-codecov, run: source .github/setenv.sh && c4_submit_coverage static64 codecov}
       # coveralls disabled: https://github.com/lemurheavy/coveralls-public/issues/1665
@@ -67,7 +66,7 @@ jobs:
       - name: static32-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test static32
       - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
-      - {name: static32-coverage, run: source .github/setenv.sh && c4_run_target static32 ryml-coverage}
+      - {name: static32-run, run: source .github/setenv.sh && c4_build_target static32 ryml-coverage}
       - name: static32-coverage-artifacts
         uses: actions/upload-artifact@v3
         with:

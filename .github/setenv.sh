@@ -18,7 +18,7 @@ function c4_show_info()
     pwd
     ls -lFhp
     echo "BITLINKS=$BITLINKS"
-    for bl in shared64 static64 shared32 static32 ; do
+    for bl in shared64 static64 shared32 static32 arm64 arm64shared arm64static shared64arm static64arm arm32 arm32shared arm32static shared32arm static32arm arm ; do
         if _c4skipbitlink $bl ; then
             echo "skip $bl"
         else
@@ -62,8 +62,8 @@ function c4_show_info()
 function _c4bits()
 {
     case "$1" in
-        shared64|static64|arm64) echo 64 ;;
-        shared32|static32|arm32|arm) echo 32 ;;
+        shared64|static64|static64arm|shared64arm|arm64static|arm64shared|arm64) echo 64 ;;
+        shared32|static32|static32arm|shared32arm|arm32static|arm32shared|arm32|arm) echo 32 ;;
         *) exit 1 ;;
     esac
 }
@@ -71,8 +71,20 @@ function _c4bits()
 function _c4linktype()
 {
     case "$1" in
-        shared64|shared32) echo shared ;;
-        static64|static32) echo static ;;
+        shared64|shared32|arm64static|arm32static|static64arm|static32arm) echo shared ;;
+        static64|static32|arm64shared|arm32shared|shared64arm|shared32arm|arm64|arm32|arm) echo static ;;
+        *) exit 1 ;;
+    esac
+}
+
+function _c4vsarchtype()
+{
+    # https://cmake.org/cmake/help/git-stage/generator/Visual%20Studio%2016%202019.html
+    case "$1" in
+        shared64|static64) echo x64 ;;
+        shared32|static32) echo Win32 ;;
+        arm64|arm64shared|arm64static|shared64arm|static64arm) echo ARM64 ;;
+        arm32|arm32shared|arm32static|shared32arm|static32arm|arm) echo ARM ;;
         *) exit 1 ;;
     esac
 }
@@ -101,8 +113,7 @@ function c4_run_test()
     c4_run_target $* test
 }
 
-# runs in parallel
-function c4_build_target()
+function c4_build_target()  # runs in parallel
 {
     if _c4skipbitlink "$1" ; then return 0 ; fi
     id=$1
@@ -118,8 +129,7 @@ function c4_build_target()
     cmake --build $build_dir --config $BT $target -- $(_c4_generator_build_flags) $(_c4_parallel_build_flags)
 }
 
-# does not run in parallel
-function c4_run_target()
+function c4_run_target()  # does not run in parallel
 {
     if _c4skipbitlink "$1" ; then return 0 ; fi
     id=$1
@@ -237,7 +247,7 @@ function c4_cfg_test()
         # the coverage repo tokens can be set in the travis environment:
         # export CODECOV_TOKEN=.......
         # export COVERALLS_REPO_TOKEN=.......
-        _addprojflags COVERAGE_CODECOV=ON COVERAGE_CODECOV_SILENT=ON
+        _addprojflags COVERAGE_CODECOV=ON COVERAGE_CODECOV_SILENT=OFF
         _addprojflags COVERAGE_COVERALLS=ON COVERAGE_COVERALLS_SILENT=OFF
     fi
     if [ ! -z "$VERBOSE_MAKEFILES" ] ; then
@@ -247,6 +257,34 @@ function c4_cfg_test()
     if [ ! -z "$CMAKE_FLAGS" ] ; then
         _addcmkflags $CMAKE_FLAGS
     fi
+    # do this before setting CMAKE_C_FLAGS
+    case "$CXX_" in
+        vs*)
+            # WATCHOUT: leave a leading space in the _FLAGS options!
+            # This is needed because bash will expand a leading
+            # /DWIN32 to the fs root, ie to something like
+            # C:/Git/DWIN32. The leading space prevents this.
+            #
+            # see https://github.com/bmatzelle/gow/issues/196
+            CFLAGS=" /DWIN32 /D_WINDOWS $CFLAGS"
+            CXXFLAGS=" /DWIN32 /D_WINDOWS /EHsc /GR $CXXFLAGS"
+            ;;
+        xcode) ;;
+        arm*|"") # make sure arm* comes before *g++ or *gcc*
+            ;;
+        *g++*|*gcc*|*clang*)
+            CFLAGS="-std=c99 -m$bits $CFLAGS"
+            CXXFLAGS="-m$bits $CXXFLAGS"
+            ;;
+        em++)
+            CFLAGS="-s DISABLE_EXCEPTION_CATCHING=0 $CFLAGS"
+            CXXFLAGS="-s DISABLE_EXCEPTION_CATCHING=0 $CXXFLAGS"
+            ;;
+        *)
+            echo "unknown compiler"
+            exit 1
+            ;;
+    esac
 
     echo "building with additional cmake flags: $CMFLAGS"
 
@@ -262,69 +300,62 @@ function c4_cfg_test()
     # so we have to do this precious jewell of chicanery:
     case "$CXX_" in
         vs2022)
-            g='Visual Studio 17 2022'
-            case "$bits" in
-                64) a=x64 ;;
-                32) a=Win32 ;;
-            esac
             cmake -S $PROJ_DIR -B $build_dir -DCMAKE_INSTALL_PREFIX="$install_dir" \
-                  -DCMAKE_BUILD_TYPE=$BT -G "$g" -A $a $CMFLAGS
+                  -G 'Visual Studio 17 2022' -A $(_c4vsarchtype $id) \
+                  $(_c4_add_ehsc_to_vs_arm32 $id) \
+                  -DCMAKE_BUILD_TYPE=$BT $CMFLAGS \
+                  -DCMAKE_C_FLAGS=" $CFLAGS" -DCMAKE_CXX_FLAGS=" $CXXFLAGS"
             ;;
         vs2019)
-            g='Visual Studio 16 2019'
-            case "$bits" in
-                64) a=x64 ;;
-                32) a=Win32 ;;
-            esac
             cmake -S $PROJ_DIR -B $build_dir -DCMAKE_INSTALL_PREFIX="$install_dir" \
-                  -DCMAKE_BUILD_TYPE=$BT -G "$g" -A $a $CMFLAGS
+                  -G 'Visual Studio 16 2019' -A $(_c4vsarchtype $id) \
+                  $(_c4_add_ehsc_to_vs_arm32 $id) \
+                  -DCMAKE_BUILD_TYPE=$BT $CMFLAGS \
+                  -DCMAKE_C_FLAGS=" $CFLAGS" -DCMAKE_CXX_FLAGS=" $CXXFLAGS"
             ;;
         vs2017)
             case "$bits" in
                 64) g="Visual Studio 15 2017 Win64" ;;
                 32) g="Visual Studio 15 2017" ;;
+                *) exit 1 ;;
             esac
             cmake -S $PROJ_DIR -B $build_dir -DCMAKE_INSTALL_PREFIX="$install_dir" \
-                  -DCMAKE_BUILD_TYPE=$BT -G "$g" $CMFLAGS
+                  $(_c4_add_ehsc_to_vs_arm32 $id) \
+                  -DCMAKE_BUILD_TYPE=$BT -G "$g" \
+                  -DCMAKE_C_FLAGS=" $CFLAGS" -DCMAKE_CXX_FLAGS=" $CXXFLAGS"
             ;;
         xcode)
             g=Xcode
             case "$bits" in
                 64) a="x86_64" ;;
                 32) a="i386"
+                    echo "xcode does not support i386"
                     exit 1 # i386 is deprecated in xcode
                     ;;
             esac
             cmake -S $PROJ_DIR -B $build_dir -DCMAKE_INSTALL_PREFIX="$install_dir" \
-                  -DCMAKE_BUILD_TYPE=$BT -G "$g" -DCMAKE_OSX_ARCHITECTURES=$a $CMFLAGS
+                  -DCMAKE_BUILD_TYPE=$BT -G "$g" \
+                  -DCMAKE_OSX_ARCHITECTURES=$a $CMFLAGS \
+                  -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CXXFLAGS"
             ;;
         arm*|"") # make sure arm* comes before *g++ or *gcc*
             cmake -S $PROJ_DIR -B $build_dir -DCMAKE_INSTALL_PREFIX="$install_dir" \
-                  -DCMAKE_BUILD_TYPE=$BT $CMFLAGS
-            ;;
-        *mingw*)
-            export CC_=$(echo "$CXX_" | sed 's:clang++:clang:g' | sed 's:g++:gcc:g')
-            cmake -S $PROJ_DIR -B $build_dir -DCMAKE_INSTALL_PREFIX="$install_dir" \
-                  -G "MinGW Makefiles" \
                   -DCMAKE_BUILD_TYPE=$BT $CMFLAGS \
-                  -DCMAKE_C_COMPILER=$CC_ -DCMAKE_CXX_COMPILER=$CXX_ \
-                  -DCMAKE_C_FLAGS="-m$bits" -DCMAKE_CXX_FLAGS="-m$bits"
-            cmake --build $build_dir --target help | sed 1d | sort
+                  -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CXXFLAGS"
             ;;
         *g++*|*gcc*|*clang*)
             export CC_=$(echo "$CXX_" | sed 's:clang++:clang:g' | sed 's:g++:gcc:g')
             _c4_choose_clang_tidy $CXX_
             cmake -S $PROJ_DIR -B $build_dir -DCMAKE_INSTALL_PREFIX="$install_dir" \
-                  -DCMAKE_BUILD_TYPE=$BT $CMFLAGS \
                   -DCMAKE_C_COMPILER=$CC_ -DCMAKE_CXX_COMPILER=$CXX_ \
-                  -DCMAKE_C_FLAGS="-m$bits" -DCMAKE_CXX_FLAGS="-m$bits"
+                  -DCMAKE_BUILD_TYPE=$BT $CMFLAGS \
+                  -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CXXFLAGS"
             cmake --build $build_dir --target help | sed 1d | sort
             ;;
         em++)
             emcmake cmake -S $PROJ_DIR -B $build_dir -DCMAKE_INSTALL_PREFIX="$install_dir" \
                   -DCMAKE_BUILD_TYPE=$BT $CMFLAGS \
-                  -DCMAKE_CXX_FLAGS="-s DISABLE_EXCEPTION_CATCHING=0" \
-                  -DRYML_TEST_TOOLS=OFF
+                  -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CXXFLAGS"
             ;;
         *)
             echo "unknown compiler"
@@ -372,6 +403,21 @@ function _addprojflags()
     for f in $* ; do
         CMFLAGS="$CMFLAGS -D${PROJ_PFX_CMAKE}${f}"
     done
+}
+
+function _c4_add_ehsc_to_vs_arm32()
+{
+    id=$1
+    case "$CXX_" in
+        vs*)
+            case "$id" in
+                arm32|arm32shared|arm32static|shared32arm|static32arm|arm)
+                    echo '-DCMAKE_CXX_FLAGS="/EHsc"'
+                    ;;
+                *)
+            esac
+            ;;
+    esac
 }
 
 function _c4_parallel_build_flags()

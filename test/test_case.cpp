@@ -9,6 +9,9 @@
 #endif
 
 #include <gtest/gtest.h>
+#ifndef C4_EXCEPTIONS
+#include <csetjmp>
+#endif
 
 #if defined(_MSC_VER)
 #   pragma warning(push)
@@ -172,11 +175,17 @@ std::string format_error(const char* msg, size_t len, Location loc)
     return out;
 }
 
-struct ExpectedError : public std::runtime_error
+struct ExpectedError C4_IF_EXCEPTIONS_( : public std::runtime_error, )
 {
+    C4_IF_EXCEPTIONS_( ,
+        std::string smsg;
+        const char *what() const { return smsg.c_str(); }
+        ExpectedError() = default;
+    )
     Location error_location;
     ExpectedError(const char* msg, size_t len, Location loc)
-        : std::runtime_error(format_error(msg, len, loc))
+        : C4_IF_EXCEPTIONS_(std::runtime_error(format_error(msg, len, loc)),
+                            smsg(format_error(msg, len, loc)))
         , error_location(loc)
     {
     }
@@ -184,6 +193,11 @@ struct ExpectedError : public std::runtime_error
 
 
 //-----------------------------------------------------------------------------
+C4_IF_EXCEPTIONS_(
+    ,
+    std::jmp_buf s_jmp_env_expect_error = {};
+    ExpectedError s_jmp_err = {};
+    )
 
 ExpectError::ExpectError(Tree *tree, Location loc)
     : m_got_an_error(false)
@@ -194,7 +208,12 @@ ExpectError::ExpectError(Tree *tree, Location loc)
 {
     auto err = [](const char* msg, size_t len, Location errloc, void *this_) {
         ((ExpectError*)this_)->m_got_an_error = true;
-        throw ExpectedError(msg, len, errloc);
+        C4_IF_EXCEPTIONS(
+            throw ExpectedError(msg, len, errloc);
+            ,
+            s_jmp_err = ExpectedError(msg, len, errloc);
+            std::longjmp(s_jmp_env_expect_error, 1);
+        );
     };
     #ifdef RYML_NO_DEFAULT_CALLBACKS
     c4::yml::Callbacks tcb((void*)this, nullptr, nullptr, err);
@@ -218,12 +237,13 @@ ExpectError::~ExpectError()
 void ExpectError::do_check(Tree *tree, std::function<void()> fn, Location expected_location)
 {
     auto context = ExpectError(tree, expected_location);
-    try
+    C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
     {
         fn();
     }
-    catch(ExpectedError const& e)
+    C4_IF_EXCEPTIONS_(catch(ExpectedError const& e), else)
     {
+        C4_IF_EXCEPTIONS_( , ExpectedError const& e = s_jmp_err);
         #if defined(RYML_DBG)
         std::cout << "---------------\n";
         std::cout << "got an expected error:\n" << e.what() << "\n";

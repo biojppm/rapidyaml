@@ -108,6 +108,8 @@ function _c4_validate_ver()
     if [ ! -f changelog/$ver.md ] ; then \
         if [ -f changelog/current.md ] ; then
             git mv changelog/current.md changelog/$ver.md
+            touch changelog/current.md
+            git add changelog/current.md
         else
             echo "ERROR: could not find changelog/$ver.md or changelog/current.md"
             exit 1
