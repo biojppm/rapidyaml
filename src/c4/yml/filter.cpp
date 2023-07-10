@@ -23,14 +23,22 @@ struct FilterProcessorInplace
         rpos = 0;
         wpos = 0;
     }
-    C4_ALWAYS_INLINE void skip(size_t num) noexcept
+    C4_ALWAYS_INLINE void skip() noexcept { ++rpos; }
+    C4_ALWAYS_INLINE void skip(size_t num) noexcept { rpos += num; }
+    C4_ALWAYS_INLINE void append() noexcept
     {
-        rpos += num;
-    }
-    C4_ALWAYS_INLINE void advance() noexcept
-    {
-        ++rpos;
+        if(wpos < rpos)
+            subject.str[wpos] = subject.str[rpos];
         ++wpos;
+        ++rpos;
+    }
+    C4_ALWAYS_INLINE void append(size_t num) noexcept
+    {
+        RYML_ASSERT(num);
+        if(num && wpos < rpos)
+            memcpy(subject.str + wpos, subject.str + rpos, num);
+        wpos += num;
+        rpos += num;
     }
     C4_ALWAYS_INLINE bool skipped_chars() const noexcept
     {
@@ -51,10 +59,8 @@ struct FilterProcessorSrcDst
         rpos = 0;
         wpos = 0;
     }
-    C4_ALWAYS_INLINE void skip(size_t num) noexcept
-    {
-        rpos += num;
-    }
+    C4_ALWAYS_INLINE void skip() noexcept { ++rpos; }
+    C4_ALWAYS_INLINE void skip(size_t num) noexcept { rpos += num; }
     C4_ALWAYS_INLINE void advance() noexcept
     {
         dst.str[wpos++] = src.str[rpos++];

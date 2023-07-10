@@ -7,15 +7,19 @@ namespace yml {
 
 void test_filter(csubstr input, csubstr expected)
 {
-    size_t indentation = 0;
-    std::string subject;
-    c4::catrs(&subject, input);
-    c4::substr scalar = to_substr(subject);
-    ASSERT_EQ(scalar, input);
+    SCOPED_TRACE(input);
+    SCOPED_TRACE(expected);
+    std::string subject_;
+    subject_.resize(2 * input.size());
+    c4::substr dst = to_substr(subject_);
     ScalarFilterProcessor proc = {};
-    substr out = proc.filter_squoted(scalar, indentation);
-    EXPECT_TRUE(out.is_sub(scalar));// << "\ninput=" << input << "\nexpected=" << expected;
+    csubstr out = proc.filter_squoted(input, dst, Location{});
+    if(input != expected)
+    {
+        EXPECT_TRUE(out.is_sub(dst));// << "\ninput=" << input << "\nexpected=" << expected;
+    }
     EXPECT_EQ(out, expected);
+    std::cout << "OK! ~~~" << input << "~~~   --->  ~~~" << out << "~~~\n";
 }
 
 TEST(single_quoted, filter)
