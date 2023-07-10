@@ -12,10 +12,6 @@
 #include "c4/yml/detail/print.hpp"
 #endif
 
-#ifndef RYML_ERRMSG_SIZE
-    #define RYML_ERRMSG_SIZE 1024
-#endif
-
 //#define RYML_WITH_TAB_TOKENS
 #ifdef RYML_WITH_TAB_TOKENS
 #define _RYML_WITH_TAB_TOKENS(...) __VA_ARGS__
@@ -48,22 +44,6 @@ namespace c4 {
 namespace yml {
 
 namespace {
-
-template<class DumpFn, class ...Args>
-void _parse_dump(DumpFn dumpfn, c4::csubstr fmt, Args&& ...args)
-{
-    char writebuf[256];
-    auto results = c4::format_dump_resume(dumpfn, writebuf, fmt, std::forward<Args>(args)...);
-    // resume writing if the results failed to fit the buffer
-    if(C4_UNLIKELY(results.bufsize > sizeof(writebuf))) // bufsize will be that of the largest element serialized. Eg int(1), will require 1 byte.
-    {
-        results = format_dump_resume(dumpfn, results, writebuf, fmt, std::forward<Args>(args)...);
-        if(C4_UNLIKELY(results.bufsize > sizeof(writebuf)))
-        {
-            results = format_dump_resume(dumpfn, results, writebuf, fmt, std::forward<Args>(args)...);
-        }
-    }
-}
 
 bool _is_scalar_next__runk(csubstr s)
 {

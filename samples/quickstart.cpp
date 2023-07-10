@@ -138,25 +138,31 @@ namespace sample {
 bool report_check(int line, const char *predicate, bool result);
 #ifdef __GNUC__
 #if __GNUC__ == 4 && __GNUC_MINOR__ >= 8
-struct CheckPredicate {
+#define CHECK CheckPredicate{__FILE__, __LINE__}
+struct CheckPredicate
+{
     const char *file;
     const int line;
-
     void operator() (bool predicate) const
     {
         if (!report_check(line, nullptr, predicate))
         {
+#ifdef RYML_DBG
             RYML_DEBUG_BREAK();
+#endif
         }
     }
 };
-#define CHECK CheckPredicate{__FILE__, __LINE__}
 #endif
 #endif
 
-#if !defined(CHECK)
+#ifndef CHECK
+#ifndef RYML_DBG
 /// a quick'n'dirty assertion to verify a predicate
+#define CHECK(predicate) report_check(__LINE__, #predicate, (predicate))
+#else
 #define CHECK(predicate) do { if(!report_check(__LINE__, #predicate, (predicate))) { RYML_DEBUG_BREAK(); } } while(0)
+#endif
 #endif
 
 

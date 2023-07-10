@@ -6,6 +6,12 @@
 #include <c4/yml/export.hpp>
 
 
+#ifndef RYML_ERRMSG_SIZE
+/// size for the error message buffer
+    #define RYML_ERRMSG_SIZE 1024
+#endif
+
+
 #ifndef RYML_USE_ASSERT
 #   define RYML_USE_ASSERT C4_USE_ASSERT
 #endif
@@ -20,16 +26,18 @@
 #endif
 
 
-#if defined(NDEBUG) || defined(C4_NO_DEBUG_BREAK)
+#ifndef RYML_DBG
+#   define RYML_DEBUG_BREAK()
+#elif (defined(NDEBUG) || defined(C4_NO_DEBUG_BREAK))
 #   define RYML_DEBUG_BREAK()
 #else
 #   define RYML_DEBUG_BREAK()                               \
-    {                                                       \
+    do {                                                    \
         if(c4::get_error_flags() & c4::ON_ERROR_DEBUGBREAK) \
         {                                                   \
             C4_DEBUG_BREAK();                               \
         }                                                   \
-    }
+    } while(0)
 #endif
 
 
@@ -37,7 +45,7 @@
     do {                                                                \
         if(!(cond))                                                     \
         {                                                               \
-            RYML_DEBUG_BREAK()                                          \
+            RYML_DEBUG_BREAK();                                         \
             c4::yml::error("check failed: " #cond, c4::yml::Location(__FILE__, __LINE__, 0)); \
         }                                                               \
     } while(0)
@@ -47,7 +55,7 @@
     {                                                                   \
         if(!(cond))                                                     \
         {                                                               \
-            RYML_DEBUG_BREAK()                                          \
+            RYML_DEBUG_BREAK();                                         \
             c4::yml::error(msg ": check failed: " #cond, c4::yml::Location(__FILE__, __LINE__, 0)); \
         }                                                               \
     } while(0)
@@ -197,7 +205,7 @@ RYML_EXPORT void reset_callbacks();
 do                                                                      \
 {                                                                       \
     const char msg[] = msg_literal;                                     \
-    RYML_DEBUG_BREAK()                                                  \
+    RYML_DEBUG_BREAK();                                                 \
     (cb).m_error(msg, sizeof(msg), c4::yml::Location(__FILE__, 0, __LINE__, 0), (cb).m_user_data); \
 } while(0)
 #define _RYML_CB_CHECK(cb, cond)                                        \
@@ -206,7 +214,7 @@ do                                                                      \
         if(!(cond))                                                     \
         {                                                               \
             const char msg[] = "check failed: " #cond;                  \
-            RYML_DEBUG_BREAK()                                          \
+            RYML_DEBUG_BREAK();                                         \
             (cb).m_error(msg, sizeof(msg), c4::yml::Location(__FILE__, 0, __LINE__, 0), (cb).m_user_data); \
         }                                                               \
     } while(0)
@@ -273,6 +281,53 @@ struct _SubstrWriter
 } // namespace detail
 
 /// @endcond
+
+
+typedef enum {
+    BLOCK_LITERAL, //!< keep newlines (|)
+    BLOCK_FOLD     //!< replace newline with single space (>)
+} BlockStyle_e;
+
+typedef enum {
+    CHOMP_CLIP,    //!< single newline at end (default)
+    CHOMP_STRIP,   //!< no newline at end     (-)
+    CHOMP_KEEP     //!< all newlines from end (+)
+} BlockChomp_e;
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+template<class DumpFn, class ...Args>
+C4_NO_INLINE void _parse_dump(DumpFn dumpfn, csubstr fmt, Args&& ...args)
+{
+    char writebuf[256];
+    auto results = format_dump_resume(dumpfn, writebuf, fmt, std::forward<Args>(args)...);
+    // resume writing if the results failed to fit the buffer
+    if(C4_UNLIKELY(results.bufsize > sizeof(writebuf))) // bufsize will be that of the largest element serialized. Eg int(1), will require 1 byte.
+    {
+        results = format_dump_resume(dumpfn, results, writebuf, fmt, std::forward<Args>(args)...);
+        if(C4_UNLIKELY(results.bufsize > sizeof(writebuf)))
+        {
+            results = format_dump_resume(dumpfn, results, writebuf, fmt, std::forward<Args>(args)...);
+        }
+    }
+}
+template<class ...Args>
+void _report_err(Callbacks const& C4_RESTRICT callbacks, Location const& C4_RESTRICT loc, csubstr fmt, Args const& C4_RESTRICT ...args)
+{
+    char errmsg[RYML_ERRMSG_SIZE];
+    detail::_SubstrWriter writer(errmsg);
+    auto dumpfn = [&writer](csubstr s){ writer.append(s); };
+    _parse_dump(dumpfn, fmt, args...);
+    writer.append('\n');
+    if(loc.name.len)
+        _parse_dump(dumpfn, "{}:", loc.name);
+    _parse_dump(dumpfn, "{}:{}: ", loc.line, loc.col);
+    size_t len = writer.pos < RYML_ERRMSG_SIZE ? writer.pos : RYML_ERRMSG_SIZE;
+    callbacks.m_error(errmsg, len, loc, callbacks.m_user_data);
+}
 
 C4_SUPPRESS_WARNING_GCC_CLANG_POP
 

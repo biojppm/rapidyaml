@@ -5,6 +5,10 @@
 #include "c4/yml/common.hpp"
 #endif
 
+C4_SUPPRESS_WARNING_MSVC_PUSH
+C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
+
 namespace c4 {
 namespace yml {
 
@@ -176,5 +180,8 @@ public:
 
 } // namespace yml
 } // namespace c4
+
+C4_SUPPRESS_WARNING_MSVC_POP
+C4_SUPPRESS_WARNING_GCC_CLANG_POP
 
 #endif /* C4_YML_NODE_TYPE_HPP_ */

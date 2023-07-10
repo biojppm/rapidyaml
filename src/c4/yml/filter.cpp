@@ -1,4 +1,11 @@
 #include "c4/yml/filter.hpp"
+#include "c4/charconv.hpp"
+#include "c4/utf.hpp"
+#include "c4/yml/detail/parser_dbg.hpp"
+
+C4_SUPPRESS_WARNING_MSVC_PUSH
+C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
+C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 
 namespace c4 {
 namespace yml {
@@ -62,7 +69,6 @@ struct FilterProcessorSrcDst
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-
 
 /** @p i is set to the first non whitespace character after the line
  * @return the number of empty lines after the initial position */
@@ -206,8 +212,9 @@ void ScalarFilterProcessor::_filter_ws(csubstr r, substr dst, size_t *C4_RESTRIC
     #undef _c4dbgfws
 }
 
-substr ScalarFilterProcessor::filter_plain(csubstr scalar, substr dst, size_t indentation, Location const* loc)
+csubstr ScalarFilterProcessor::filter_plain(csubstr scalar, substr dst, size_t indentation, Location const& C4_RESTRICT loc)
 {
+    (void)loc;
     // a debugging scaffold:
     #if 0
     #define _c4dbgfps(...) _c4dbgpf("filt_plain" __VA_ARGS__)
@@ -256,7 +263,7 @@ substr ScalarFilterProcessor::filter_plain(csubstr scalar, substr dst, size_t in
     return dst.first(pos);
 }
 
-substr ScalarFilterProcessor::filter_squoted(csubstr scalar, substr dst, Location const* loc)
+csubstr ScalarFilterProcessor::filter_squoted(csubstr scalar, substr dst, LocCRef loc)
 {
     (void)loc;
     // a debugging scaffold:
@@ -319,10 +326,10 @@ substr ScalarFilterProcessor::filter_squoted(csubstr scalar, substr dst, Locatio
     _c4dbgpf(": #filteredchars={} after=~~~{}~~~", scalar.len - r.len, r);
 
     #undef _c4dbgfsq
-    return dst.first(pos);
+    return r;
 }
 
-substr ScalarFilterProcessor::filter_dquoted(csubstr scalar, substr dst, size_t indentation, Location const* loc)
+csubstr ScalarFilterProcessor::filter_dquoted(csubstr scalar, substr dst, LocCRef loc)
 {
     // a debugging scaffold:
     #if 0
@@ -341,8 +348,8 @@ substr ScalarFilterProcessor::filter_dquoted(csubstr scalar, substr dst, size_t 
     // at least one non-space character. Empty lines, if any, are
     // consumed as part of the line folding.
 
-    _grow_filter_arena(s.len + 2u * s.count('\\'));
-    substr r = s;
+    _RYML_CB_ASSERT(*m_callbacks, dst.len >= scalar.len + 2u * scalar.count('\\'));
+    csubstr r = scalar;
     size_t pos = 0; // the filtered size
     bool filtered_chars = false;
     for(size_t i = 0; i < r.len; ++i)
@@ -420,40 +427,40 @@ substr ScalarFilterProcessor::filter_dquoted(csubstr scalar, substr dst, size_t 
             else if(next == 'x') // UTF8
             {
                 if(i + 1u + 2u >= r.len)
-                    _c4err("\\x requires 2 hex digits");
+                    _c4errflt(loc, "\\x requires 2 hex digits");
                 uint8_t byteval = {};
                 if(!read_hex(r.sub(i + 2u, 2u), &byteval))
-                    _c4err("failed to read \\x codepoint");
+                    _c4errflt(loc, "failed to read \\x codepoint");
                 dst.str[pos++] = *(char*)&byteval;
                 i += 1u + 2u;
             }
             else if(next == 'u') // UTF16
             {
                 if(i + 1u + 4u >= r.len)
-                    _c4err("\\u requires 4 hex digits");
+                    _c4errflt(loc, "\\u requires 4 hex digits");
                 char readbuf[8];
                 csubstr codepoint = r.sub(i + 2u, 4u);
                 uint32_t codepoint_val = {};
                 if(!read_hex(codepoint, &codepoint_val))
-                    _c4err("failed to parse \\u codepoint");
+                    _c4errflt(loc, "failed to parse \\u codepoint");
                 size_t numbytes = decode_code_point((uint8_t*)readbuf, sizeof(readbuf), codepoint_val);
                 C4_ASSERT(numbytes <= 4);
-                memcpy(m_filter_arena.str + pos, readbuf, numbytes);
+                memcpy(dst.str + pos, readbuf, numbytes);
                 pos += numbytes;
                 i += 1u + 4u;
             }
             else if(next == 'U') // UTF32
             {
                 if(i + 1u + 8u >= r.len)
-                    _c4err("\\U requires 8 hex digits");
+                    _c4errflt(loc, "\\U requires 8 hex digits");
                 char readbuf[8];
                 csubstr codepoint = r.sub(i + 2u, 8u);
                 uint32_t codepoint_val = {};
                 if(!read_hex(codepoint, &codepoint_val))
-                    _c4err("failed to parse \\U codepoint");
+                    _c4errflt(loc, "failed to parse \\U codepoint");
                 size_t numbytes = decode_code_point((uint8_t*)readbuf, sizeof(readbuf), codepoint_val);
                 C4_ASSERT(numbytes <= 4);
-                memcpy(m_filter_arena.str + pos, readbuf, numbytes);
+                memcpy(dst.str + pos, readbuf, numbytes);
                 pos += numbytes;
                 i += 1u + 8u;
             }
@@ -532,7 +539,7 @@ substr ScalarFilterProcessor::filter_dquoted(csubstr scalar, substr dst, size_t 
         r = dst.first(pos);
     }
 
-    _RYML_CB_ASSERT(*m_callbacks, s.len >= r.len);
+    _RYML_CB_ASSERT(*m_callbacks, scalar.len >= r.len);
     _c4dbgpf(": #filteredchars={} after=~~~{}~~~", s.len - r.len, r);
 
     #undef _c4dbgfdq
@@ -540,7 +547,7 @@ substr ScalarFilterProcessor::filter_dquoted(csubstr scalar, substr dst, size_t 
     return r;
 }
 
-substr ScalarFilterProcessor::filter_block_literal(csubstr scalar, substr dst, size_t indentation, Location const* loc)
+csubstr ScalarFilterProcessor::filter_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp, LocCRef loc)
 {
     // a debugging scaffold:
     #if 0
@@ -549,15 +556,15 @@ substr ScalarFilterProcessor::filter_block_literal(csubstr scalar, substr dst, s
     #define _c4dbgfbl(...)
     #endif
 
-    _c4dbgfbl(": indentation={} before=[{}]~~~{}~~~", indentation, s.len, s);
+    _c4dbgfbl(": indentation={} before=[{}]~~~{}~~~", indentation, scalar.len, scalar);
 
-    if(chomp != CHOMP_KEEP && s.trim(" \n\r").len == 0u)
+    if(chomp != CHOMP_KEEP && scalar.trim(" \n\r").len == 0u)
     {
-        _c4dbgp("filt_block: empty scalar");
-        return s.first(0);
+        _c4dbgfbl("filt_block: empty scalar");
+        return scalar.first(0);
     }
 
-    substr r = s;
+    csubstr r = scalar;
 
     _c4dbgp("filt_block: style=literal");
     // trim leading whitespace up to indentation
@@ -580,12 +587,13 @@ substr ScalarFilterProcessor::filter_block_literal(csubstr scalar, substr dst, s
             }
             else
             {
-                r[0] = '\n';
-                return r.first(1);
+                dst[0] = '\n';
+                return dst.first(1);
             }
         }
     }
-    _grow_filter_arena(s.len + 2u);  // use s.len! because we may need to add a newline at the end, so the leading indentation will allow space for that newline
+
+    _RYML_CB_ASSERT(*m_callbacks, dst.len >= scalar.len + 2u); // use s.len! because we may need to add a newline at the end, so the leading indentation will allow space for that newline
     size_t pos = 0; // the filtered size
     for(size_t i = 0; i < r.len; ++i)
     {
@@ -644,14 +652,15 @@ substr ScalarFilterProcessor::filter_block_literal(csubstr scalar, substr dst, s
             }
         }
     }
-    _RYML_CB_ASSERT(*m_callbacks, s.len >= pos);
+    _RYML_CB_ASSERT(*m_callbacks, pos <= scalar.len);
+
     _c4dbgfbl(": #filteredchars={} after=~~~{}~~~", s.len - r.len, r);
-    bool changed = _apply_chomp(m_filter_arena, &pos, chomp);
+    bool changed = _apply_chomp(dst, dst, &pos, chomp, loc);
     _RYML_CB_ASSERT(*m_callbacks, pos <= dst.len);
-    _RYML_CB_ASSERT(*m_callbacks, pos <= s.len);
+    _RYML_CB_ASSERT(*m_callbacks, pos <= scalar.len);
     if(pos < r.len || changed)
     {
-        r = _finish_filter_arena(s, pos); // write into s
+        r = dst.first(pos);
     }
 
     _c4dbgfbl(": final=[{}]~~~{}~~~", r.len, r);
@@ -661,7 +670,7 @@ substr ScalarFilterProcessor::filter_block_literal(csubstr scalar, substr dst, s
     return r;
 }
 
-substr ScalarFilterProcessor::filter_block_folded(csubstr scalar, substr dst, size_t indentation, Location const* loc)
+csubstr ScalarFilterProcessor::filter_block_folded(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp, LocCRef loc)
 {
     // a debugging scaffold:
     #if 0
@@ -672,15 +681,16 @@ substr ScalarFilterProcessor::filter_block_folded(csubstr scalar, substr dst, si
 
     _c4dbgfbl(": indentation={} before=[{}]~~~{}~~~", indentation, s.len, s);
 
-    if(chomp != CHOMP_KEEP && s.trim(" \n\r").len == 0u)
+    if(chomp != CHOMP_KEEP && scalar.trim(" \n\r").len == 0u)
     {
         _c4dbgp("filt_block: empty scalar");
-        return s.first(0);
+        return scalar.first(0);
     }
 
-    substr r = s;
+    csubstr r = scalar;
     _c4dbgp("filt_block: style=fold");
-    _grow_filter_arena(r.len + 2);
+    _RYML_CB_ASSERT(*m_callbacks, dst.len >= scalar.len + 2u); // use s.len! because we may need to add a newline at the end, so the leading indentation will allow space for that newline
+
     size_t pos = 0; // the filtered size
     bool filtered_chars = false;
     bool started = false;
@@ -867,7 +877,7 @@ substr ScalarFilterProcessor::filter_block_folded(csubstr scalar, substr dst, si
     }
     _RYML_CB_ASSERT(*m_callbacks, pos <= dst.len);
     _c4dbgfbl(": #filteredchars={} after=[{}]~~~{}~~~", (int)s.len - (int)pos, pos, dst.first(pos));
-    bool changed = _apply_chomp(m_filter_arena, &pos, chomp);
+    bool changed = _apply_chomp(dst, dst, &pos, chomp, loc);
     if(pos < r.len || filtered_chars || changed)
     {
         r = dst.first(pos); // write into s
@@ -881,5 +891,45 @@ substr ScalarFilterProcessor::filter_block_folded(csubstr scalar, substr dst, si
 }
 
 
+bool ScalarFilterProcessor::_apply_chomp(csubstr buf, substr dst, size_t *C4_RESTRICT pos, BlockChomp_e chomp, LocCRef loc)
+{
+    csubstr trimmed = buf.first(*pos).trimr('\n');
+    bool added_newline = false;
+    switch(chomp)
+    {
+    case CHOMP_KEEP:
+        if(trimmed.len == *pos)
+        {
+            _c4dbgpf("chomp=KEEP: add missing newline @{}", *pos);
+            //dst.str[(*pos)++] = '\n';
+            added_newline = true;
+        }
+        break;
+    case CHOMP_CLIP:
+        if(trimmed.len == *pos)
+        {
+            _c4dbgpf("chomp=CLIP: add missing newline @{}", *pos);
+            dst.str[(*pos)++] = '\n';
+            added_newline = true;
+        }
+        else
+        {
+            _c4dbgpf("chomp=CLIP: include single trailing newline @{}", trimmed.len+1);
+            *pos = trimmed.len + 1;
+        }
+        break;
+    case CHOMP_STRIP:
+        _c4dbgpf("chomp=STRIP: strip {}-{}-{} newlines", *pos, trimmed.len, *pos-trimmed.len);
+        *pos = trimmed.len;
+        break;
+    default:
+        _c4errflt(loc, "unknown chomp style");
+    }
+    return added_newline;
+}
+
 } // namespace yml
 } // namespace c4
+
+C4_SUPPRESS_WARNING_MSVC_POP
+C4_SUPPRESS_WARNING_GCC_CLANG_POP

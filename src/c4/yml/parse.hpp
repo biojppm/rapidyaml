@@ -281,19 +281,6 @@ public:
 
 private:
 
-    typedef enum {
-        BLOCK_LITERAL, //!< keep newlines (|)
-        BLOCK_FOLD     //!< replace newline with single space (>)
-    } BlockStyle_e;
-
-    typedef enum {
-        CHOMP_CLIP,    //!< single newline at end (default)
-        CHOMP_STRIP,   //!< no newline at end     (-)
-        CHOMP_KEEP     //!< all newlines from end (+)
-    } BlockChomp_e;
-
-private:
-
     using flag_t = int;
 
     static size_t _estimate_capacity(csubstr src) { size_t c = _count_nlines(src); c = c >= 16 ? c : 16; return c; }
