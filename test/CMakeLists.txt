@@ -61,6 +61,7 @@ endfunction()
 
 ryml_add_test(callbacks)
 ryml_add_test(stack)
+ryml_add_test(filter)
 ryml_add_test(parser)
 ryml_add_test(tree)
 ryml_add_test(noderef)
