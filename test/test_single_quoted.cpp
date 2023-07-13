@@ -4,6 +4,10 @@
 namespace c4 {
 namespace yml {
 
+struct squoted_case
+{
+    csubstr input, output;
+};
 
 void test_filter(csubstr input, csubstr expected)
 {
@@ -22,24 +26,57 @@ void test_filter(csubstr input, csubstr expected)
     std::cout << "OK! ~~~" << input << "~~~   --->  ~~~" << out << "~~~\n";
 }
 
-TEST(single_quoted, filter)
+void test_filter_inplace(csubstr input, csubstr expected)
 {
-    test_filter("", "");
-    test_filter("foo", "foo");
-    test_filter("quoted\nstring", "quoted string");
-    test_filter("quoted\n  string", "quoted string");
-    test_filter("\t\n\ndetected\n\n", "\t\ndetected\n");
-    test_filter(
-        R"(Several lines of text,
-  with some "quotes" of various 'types'.
-  Escapes (like \n) don't do anything.
-  
-  Newlines can be added by leaving a blank line.
-    Additional leading whitespace is ignored.
-)",
-        R"(Several lines of text, with some "quotes" of various 'types'. Escapes (like \n) don't do anything.
-Newlines can be added by leaving a blank line. Additional leading whitespace is ignored.)");
+    SCOPED_TRACE(input);
+    SCOPED_TRACE(expected);
+    std::string subject_(input.str, input.len);
+    c4::substr dst = to_substr(subject_);
+    ScalarFilterProcessor proc = {};
+    csubstr out = proc.filter_squoted(dst, Location{});
+    EXPECT_TRUE(out.is_sub(dst));// << "\ninput=" << input << "\nexpected=" << expected;
+    EXPECT_EQ(out, expected);
+    std::cout << "OK! ~~~" << input << "~~~   --->  ~~~" << out << "~~~\n";
 }
+
+struct SQuotedFilterTest : public ::testing::TestWithParam<squoted_case>
+{
+};
+
+TEST_P(SQuotedFilterTest, filter)
+{
+    squoted_case sqc = GetParam();
+    test_filter(sqc.input, sqc.output);
+}
+TEST_P(SQuotedFilterTest, filter_inplace)
+{
+    squoted_case sqc = GetParam();
+    test_filter_inplace(sqc.input, sqc.output);
+}
+
+squoted_case test_cases_filter[] = {
+    #define sqc(input, output) squoted_case{csubstr(input), csubstr(output)}
+    sqc("", ""),
+    sqc("foo", "foo"),
+    sqc("quoted\nstring", "quoted string"),
+    sqc("quoted\n  string", "quoted string"),
+    sqc("\t\n\ndetected\n\n", "\t\ndetected\n"),
+    sqc(" 1st non-empty\n\n 2nd non-empty \n 3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
+    sqc(" 1st non-empty\n\n 2nd non-empty \t\n \t3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
+    sqc(" 1st non-empty\n\n 2nd non-empty\t \n\t 3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
+    sqc(R"(Several lines of text,
+containing ''single quotes'' and "double quotes". Escapes (like \n) don''t do anything.
+
+Newlines can be added by leaving a blank line.
+            Leading whitespace on lines is ignored.)",
+        "Several lines of text, containing 'single quotes' and \"double quotes\". Escapes (like \\n) don't do anything.\nNewlines can be added by leaving a blank line. Leading whitespace on lines is ignored."),
+    #undef sqc
+};
+
+INSTANTIATE_TEST_SUITE_P(single_quoted_filter,
+                         SQuotedFilterTest,
+                         testing::ValuesIn(test_cases_filter));
+
 
 TEST(single_quoted, test_suite_KSS4)
 {
