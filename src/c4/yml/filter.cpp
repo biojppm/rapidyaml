@@ -14,35 +14,59 @@ namespace {
 
 struct FilterProcessorInplace
 {
-    substr subject;
+    substr src;
     size_t rpos;
     size_t wpos;
-    C4_ALWAYS_INLINE void reset(substr s) noexcept
+    Callbacks const* m_callbacks;
+    C4_ALWAYS_INLINE FilterProcessorInplace(substr src_, Callbacks const* callbacks) noexcept
+        : src(src_)
+        , rpos(0)
+        , wpos(0)
+        , m_callbacks(callbacks)
     {
-        subject = s;
-        rpos = 0;
-        wpos = 0;
     }
+
+    C4_ALWAYS_INLINE operator bool() const noexcept { return rpos < src.len; }
+    C4_ALWAYS_INLINE csubstr sofar() const noexcept { _RYML_CB_ASSERT(*m_callbacks, wpos <= src.len); return src.first(wpos); }
+    C4_ALWAYS_INLINE char curr() const noexcept { _RYML_CB_ASSERT(*m_callbacks, rpos < src.len); return src[rpos]; }
+    C4_ALWAYS_INLINE char next() const noexcept { _RYML_CB_ASSERT(*m_callbacks, rpos < src.len); return rpos+1 < src.len ? src[rpos+1] : '\0'; }
+    C4_ALWAYS_INLINE bool skipped_chars() const noexcept { return wpos != rpos; }
+
     C4_ALWAYS_INLINE void skip() noexcept { ++rpos; }
     C4_ALWAYS_INLINE void skip(size_t num) noexcept { rpos += num; }
-    C4_ALWAYS_INLINE void append() noexcept
+
+    C4_ALWAYS_INLINE void copy() noexcept
     {
+        _RYML_CB_ASSERT(*m_callbacks, wpos < src.len);
+        _RYML_CB_ASSERT(*m_callbacks, rpos < src.len);
         if(wpos < rpos)
-            subject.str[wpos] = subject.str[rpos];
+            src.str[wpos] = src.str[rpos];
         ++wpos;
         ++rpos;
     }
-    C4_ALWAYS_INLINE void append(size_t num) noexcept
+    C4_ALWAYS_INLINE void copy(size_t num) noexcept
     {
         RYML_ASSERT(num);
+        _RYML_CB_ASSERT(*m_callbacks, wpos+num <= src.len);
+        _RYML_CB_ASSERT(*m_callbacks, rpos+num <= src.len);
         if(num && wpos < rpos)
-            memcpy(subject.str + wpos, subject.str + rpos, num);
+            memcpy(src.str + wpos, src.str + rpos, num);
         wpos += num;
         rpos += num;
     }
-    C4_ALWAYS_INLINE bool skipped_chars() const noexcept
+
+    C4_ALWAYS_INLINE void set(char c) noexcept
     {
-        return wpos != rpos;
+        _RYML_CB_ASSERT(*m_callbacks, wpos < src.len);
+        src.str[wpos++] = c;
+    }
+    C4_ALWAYS_INLINE void set(char c, size_t num) noexcept
+    {
+        RYML_ASSERT(num);
+        _RYML_CB_ASSERT(*m_callbacks, wpos+num <= src.len);
+        if(wpos < rpos)
+            memset(src.str + wpos, c, num);
+        wpos += num;
     }
 };
 
@@ -52,22 +76,52 @@ struct FilterProcessorSrcDst
     substr dst;
     size_t rpos;
     size_t wpos;
-    C4_ALWAYS_INLINE void reset(csubstr src_, substr dst_) noexcept
+    Callbacks const* m_callbacks;
+    C4_ALWAYS_INLINE FilterProcessorSrcDst(csubstr src_, substr dst_, Callbacks const* callbacks) noexcept
+        : src(src_)
+        , dst(dst_)
+        , rpos(0)
+        , wpos(0)
+        , m_callbacks(callbacks)
     {
-        src = src_;
-        dst = dst_;
-        rpos = 0;
-        wpos = 0;
     }
+
+    C4_ALWAYS_INLINE operator bool() const noexcept { return rpos < src.len; }
+    C4_ALWAYS_INLINE csubstr sofar() const noexcept { _RYML_CB_ASSERT(*m_callbacks, wpos <= dst.len); return dst.first(wpos); }
+    C4_ALWAYS_INLINE char curr() const noexcept { _RYML_CB_ASSERT(*m_callbacks, rpos < src.len); return src[rpos]; }
+    C4_ALWAYS_INLINE char next() const noexcept { _RYML_CB_ASSERT(*m_callbacks, rpos < src.len); return rpos+1 < src.len ? src[rpos+1] : '\0'; }
+    C4_ALWAYS_INLINE bool skipped_chars() const noexcept { return wpos != rpos; }
+
     C4_ALWAYS_INLINE void skip() noexcept { ++rpos; }
     C4_ALWAYS_INLINE void skip(size_t num) noexcept { rpos += num; }
-    C4_ALWAYS_INLINE void advance() noexcept
+
+    C4_ALWAYS_INLINE void copy() noexcept
     {
+        _RYML_CB_ASSERT(*m_callbacks, wpos < dst.len);
+        _RYML_CB_ASSERT(*m_callbacks, rpos < src.len);
         dst.str[wpos++] = src.str[rpos++];
     }
-    C4_ALWAYS_INLINE bool skipped_chars() const noexcept
+    C4_ALWAYS_INLINE void copy(size_t num) noexcept
     {
-        return wpos != rpos;
+        RYML_ASSERT(num);
+        _RYML_CB_ASSERT(*m_callbacks, wpos+num <= dst.len);
+        _RYML_CB_ASSERT(*m_callbacks, rpos+num <= src.len);
+        memcpy(dst.str + wpos, src.str + rpos, num);
+        wpos += num;
+        rpos += num;
+    }
+
+    C4_ALWAYS_INLINE void set(char c) noexcept
+    {
+        _RYML_CB_ASSERT(*m_callbacks, wpos < dst.len);
+        dst.str[wpos++] = c;
+    }
+    C4_ALWAYS_INLINE void set(char c, size_t num) noexcept
+    {
+        RYML_ASSERT(num);
+        _RYML_CB_ASSERT(*m_callbacks, wpos+num <= dst.len);
+        memset(dst.str + wpos, c, num);
+        wpos += num;
     }
 };
 
@@ -83,13 +137,27 @@ size_t _count_following_newlines(csubstr r, size_t *C4_RESTRICT i, size_t indent
     RYML_ASSERT(r[*i] == '\n');
     size_t numnl_following = 0;
     ++(*i);
-    for( ; *i < r.len; ++(*i))
+    if(indentation == 0)
     {
-        if(r.str[*i] == '\n')
+        for( ; *i < r.len; ++(*i))
         {
-            ++numnl_following;
-            if(indentation) // skip the indentation after the newline
+            if(r.str[*i] == '\n')
+                ++numnl_following;
+            // skip leading whitespace
+            else if(r.str[*i] == ' ' || r.str[*i] == '\t' || r.str[*i] == '\r')
+                ;
+            else
+                break;
+        }
+    }
+    else
+    {
+        for( ; *i < r.len; ++(*i))
+        {
+            if(r.str[*i] == '\n')
             {
+                ++numnl_following;
+                // skip the indentation after the newline
                 size_t stop = *i + indentation;
                 for( ; *i < r.len; ++(*i))
                 {
@@ -99,11 +167,12 @@ size_t _count_following_newlines(csubstr r, size_t *C4_RESTRICT i, size_t indent
                 }
                 C4_UNUSED(stop);
             }
+            // skip leading whitespace
+            else if(r.str[*i] == ' ' || r.str[*i] == '\t' || r.str[*i] == '\r')
+                ;
+            else
+                break;
         }
-        else if(r.str[*i] == ' ' || r.str[*i] == '\t' || r.str[*i] == '\r')  // skip leading whitespace
-            ;
-        else
-            break;
     }
     return numnl_following;
 }
@@ -178,12 +247,131 @@ bool ScalarFilterProcessor::_filter_nl(csubstr r, substr dst, size_t *C4_RESTRIC
     return replaced;
 }
 
+template<bool backslash_is_escape, bool keep_trailing_whitespace, class FilterProcessor>
+bool ScalarFilterProcessor::_filter_nl(FilterProcessor &C4_RESTRICT proc, size_t indentation)
+{
+    // a debugging scaffold:
+    #if 1
+    #define _c4dbgfnl(fmt, ...) _c4dbgpf("filt_nl[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
+    #else
+    #define _c4dbgfnl(...)
+    #endif
+
+    const char curr = proc.curr();
+    bool replaced = false;
+
+    _RYML_CB_ASSERT(*m_callbacks, indentation != npos);
+    _RYML_CB_ASSERT(*m_callbacks, curr == '\n');
+
+    _c4dbgfnl("found newline. sofar=[{}]~~~{}~~~", proc.wpos, proc.sofar());
+    size_t ii = proc.rpos;
+    size_t numnl_following = _count_following_newlines(proc.src, &proc.rpos, indentation);
+    if(numnl_following)
+    {
+        proc.set('\n', numnl_following);
+        _c4dbgfnl("{} consecutive (empty) lines {} in the middle. totalws={}", 1+numnl_following, ii < proc.src.len ? "in the middle" : "at the end", proc.rpos-ii);
+    }
+    else
+    {
+        const size_t ret = proc.src.first_not_of(" \t", proc.rpos+1);
+        if(ret != npos)
+        {
+            proc.set(' ');
+            ii = ret ? ret - 1 : ret;
+             _c4dbgfnl("single newline. convert to space. ii={}/{}. sofar=[{}]~~~{}~~~", ii, proc.src.len, proc.wpos, proc.sofar());
+            replaced = true;
+            proc.rpos = ii;
+        }
+        else
+        {
+            if C4_IF_CONSTEXPR (keep_trailing_whitespace)
+            {
+                proc.set(' ');
+                ++ii;
+                _c4dbgfnl("single newline. convert to space. ii={}/{}. sofar=[{}]~~~{}~~~", ii, proc.src.len, proc.wpos, proc.sofar());
+                replaced = true;
+                proc.rpos = ii;
+            }
+            else
+            {
+                _c4dbgfnl("last newline, everything else is whitespace. ii={}/{}", ii, proc.src.len);
+                proc.rpos = proc.src.len;
+            }
+        }
+        if C4_IF_CONSTEXPR (backslash_is_escape)
+        {
+            if(ii < proc.src.len && proc.str[ii] == '\\')
+            {
+                const char next = ii+1 < proc.src.len ? proc.src.str[ii+1] : '\0';
+                if(next == ' ' || next == '\t')
+                {
+                    _c4dbgfnl("extend skip to backslash{}", "");
+                    ++ii;
+                }
+            }
+            proc.rpos = ii;
+        }
+    }
+
+    #undef _c4dbgfnl
+
+    return replaced;
+}
+
+template<bool keep_trailing_whitespace, class FilterProcessor>
+void ScalarFilterProcessor::_filter_ws(FilterProcessor &proc)
+{
+    // a debugging scaffold:
+    #if 1
+    #define _c4dbgfws(fmt, ...) _c4dbgpf("filt_ws[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
+    #else
+    #define _c4dbgfws(...)
+    #endif
+
+    const char curr = proc.curr();
+    _c4dbgfws("found whitespace '{}'", _c4prc(curr));
+    _RYML_CB_ASSERT(*m_callbacks, curr == ' ' || curr == '\t');
+
+    const size_t first_pos = proc.rpos > 0 ? proc.src.first_not_of(" \t", proc.rpos) : proc.src.first_not_of(' ', proc.rpos);
+    if(first_pos != npos)
+    {
+        const char first_char = proc.src[first_pos];
+        if(first_char == '\n' || first_char == '\r') // skip trailing whitespace
+        {
+            _c4dbgfws("whitespace is trailing on line. firstnonws='{}'@{}", _c4prc(first_char), first_pos);
+            proc.skip(first_pos-proc.rpos);
+        }
+        else // a legit whitespace
+        {
+            proc.copy();
+            _c4dbgfws("legit whitespace. sofar=[{}]~~~{}~~~", proc.wpos, proc.sofar());
+        }
+    }
+    else
+    {
+        _c4dbgfws("... everything else is trailing whitespace{}", "");
+        const size_t num = proc.src.len - proc.rpos;
+        if C4_IF_CONSTEXPR (keep_trailing_whitespace)
+        {
+            _c4dbgfws("copy {} chars", num);
+            proc.copy(num);
+        }
+        else
+        {
+            _c4dbgfws("skip {} chars", num);
+            proc.skip(num);
+        }
+    }
+
+    #undef _c4dbgfws
+}
+
 template<bool keep_trailing_whitespace>
 void ScalarFilterProcessor::_filter_ws(csubstr r, substr dst, size_t *C4_RESTRICT i, size_t *C4_RESTRICT pos)
 {
     // a debugging scaffold:
     #if 0
-    #define _c4dbgfws(fmt, ...) _c4dbgpf("filt_nl[{}]: " fmt, *i, __VA_ARGS__)
+    #define _c4dbgfws(fmt, ...) _c4dbgpf("filt_ws[{}]: " fmt, *i, __VA_ARGS__)
     #else
     #define _c4dbgfws(...)
     #endif
@@ -203,7 +391,7 @@ void ScalarFilterProcessor::_filter_ws(csubstr r, substr dst, size_t *C4_RESTRIC
         else // a legit whitespace
         {
             dst.str[(*pos)++] = curr;
-            _c4dbgfws("legit whitespace. sofar=[{}]~~~{}~~~", *pos, m_filter_arena.first(*pos));
+            _c4dbgfws("legit whitespace. sofar=[{}]~~~{}~~~", *pos, dst.first(*pos));
         }
     }
     else
@@ -217,6 +405,12 @@ void ScalarFilterProcessor::_filter_ws(csubstr r, substr dst, size_t *C4_RESTRIC
 
     #undef _c4dbgfws
 }
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+/* plain scalars */
 
 csubstr ScalarFilterProcessor::filter_plain(csubstr scalar, substr dst, size_t indentation, Location const& C4_RESTRICT loc)
 {
@@ -269,71 +463,82 @@ csubstr ScalarFilterProcessor::filter_plain(csubstr scalar, substr dst, size_t i
     return dst.first(pos);
 }
 
-csubstr ScalarFilterProcessor::filter_squoted(csubstr scalar, substr dst, LocCRef loc)
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+/* single quoted */
+
+template<class FilterProcessor>
+csubstr ScalarFilterProcessor::filter_squoted(FilterProcessor &C4_RESTRICT proc, LocCRef loc)
 {
     (void)loc;
     // a debugging scaffold:
-    #if 0
-    #define _c4dbgfsq(...) _c4dbgpf("filt_squo" __VA_ARGS__)
+    #if 1
+    #define _c4dbgfsq(fmt, ...) _c4dbgpf("filt_squo[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
     #else
-    #define _c4dbgfsq(...)
+    #define _c4dbgfsq(fmt, ...)
     #endif
 
     // from the YAML spec for double-quoted scalars:
     // https://yaml.org/spec/1.2-old/spec.html#style/flow/single-quoted
 
-    _RYML_CB_ASSERT(*m_callbacks, dst.len >= scalar.len);
+    _c4dbgfsq("before=[{}]~~~{}~~~", proc.src.len, proc.src);
 
-    _c4dbgfsq(": before=~~~{}~~~", s);
-
-    csubstr r = scalar;
-    size_t pos = 0; // the filtered size
-    bool filtered_chars = false;
-    for(size_t i = 0; i < r.len; ++i)
+    while(proc)
     {
-        const char curr = r[i];
-        _c4dbgfsq("[{}]: '{}'", i, _c4prc(curr));
-        if(curr == ' ' || curr == '\t')
+        const char curr = proc.curr();
+        _c4dbgfsq("'{}', sofar=[{}]~~~{}~~~", _c4prc(curr), proc.wpos, proc.sofar());
+        switch(curr)
         {
-            _filter_ws</*keep_trailing_ws*/true>(r, dst, &i, &pos);
-        }
-        else if(curr == '\n')
-        {
-            filtered_chars = _filter_nl</*backslash_is_escape*/false, /*keep_trailing_ws*/true>(r, dst, &i, &pos, /*indentation*/0);
-        }
-        else if(curr == '\r')  // skip \r --- https://stackoverflow.com/questions/1885900
-        {
-            ;
-        }
-        else if(curr == '\'')
-        {
-            char next = i+1 < r.len ? r[i+1] : '\0';
-            if(next == '\'')
+        case ' ':
+        case '\t':
+            _c4dbgfsq("whitespace", curr);
+            _filter_ws</*keep_trailing_ws*/true>(proc);
+            break;
+        case '\n':
+            _c4dbgfsq("newline", curr);
+            _filter_nl</*backslash_is_escape*/false, /*keep_trailing_ws*/true>(proc, /*indentation*/0);
+            break;
+        case '\r':  // skip \r --- https://stackoverflow.com/questions/1885900
+            _c4dbgfsq("skip cr", curr);
+            proc.skip();
+            break;
+        case '\'':
+            _c4dbgfsq("squote", curr);
+            if(proc.next() == '\'')
             {
-                _c4dbgfsq("[{}]: two consecutive quotes", i);
-                filtered_chars = true;
-                dst.str[pos++] = '\'';
-                ++i;
+                _c4dbgfsq("two consecutive squotes", curr);
+                proc.copy();
+                proc.skip();
             }
-        }
-        else
-        {
-            dst.str[pos++] = curr;
+            break;
+        default:
+            proc.copy();
+            break;
         }
     }
 
-    _RYML_CB_ASSERT(*m_callbacks, pos <= dst.len);
-    if(pos < r.len || filtered_chars)
-    {
-        r = dst.first(pos);
-    }
+    _c4dbgpf(": #filteredchars={} after=~~~[{}]{}~~~", proc.src.len-proc.sofar().len, proc.sofar().len, proc.sofar());
 
-    _RYML_CB_ASSERT(*m_callbacks, scalar.len >= r.len);
-    _c4dbgpf(": #filteredchars={} after=~~~{}~~~", scalar.len - r.len, r);
-
+    return proc.sofar();
     #undef _c4dbgfsq
-    return r;
 }
+
+csubstr ScalarFilterProcessor::filter_squoted(csubstr scalar, substr dst, LocCRef loc)
+{
+    FilterProcessorSrcDst proc(scalar, dst, m_callbacks);
+    return filter_squoted(proc, loc);
+}
+
+csubstr ScalarFilterProcessor::filter_squoted(substr dst, LocCRef loc)
+{
+    FilterProcessorInplace proc(dst, m_callbacks);
+    return filter_squoted(proc, loc);
+}
+
+
+//-----------------------------------------------------------------------------
 
 csubstr ScalarFilterProcessor::filter_dquoted(csubstr scalar, substr dst, LocCRef loc)
 {
@@ -546,7 +751,7 @@ csubstr ScalarFilterProcessor::filter_dquoted(csubstr scalar, substr dst, LocCRe
     }
 
     _RYML_CB_ASSERT(*m_callbacks, scalar.len >= r.len);
-    _c4dbgpf(": #filteredchars={} after=~~~{}~~~", s.len - r.len, r);
+    _c4dbgpf(": #filteredchars={} after=~~~{}~~~", scalar.len - r.len, r);
 
     #undef _c4dbgfdq
 

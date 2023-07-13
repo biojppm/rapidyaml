@@ -15,6 +15,8 @@ struct ScalarFilterProcessor
 
     csubstr filter_squoted(substr scalar, LocCRef loc);
     csubstr filter_squoted(csubstr scalar, substr dst, LocCRef loc);
+    template<class FilterProcessor>
+    csubstr filter_squoted(FilterProcessor &C4_RESTRICT proc, LocCRef loc);
 
     csubstr filter_dquoted(substr scalar, LocCRef loc);
     csubstr filter_dquoted(csubstr scalar, substr dst, LocCRef loc);
@@ -36,9 +38,13 @@ public:
 
     template<bool backslash_is_escape, bool keep_trailing_whitespace>
     bool _filter_nl(csubstr r, substr dst, size_t *C4_RESTRICT i, size_t *C4_RESTRICT pos, size_t indentation);
+    template<bool backslash_is_escape, bool keep_trailing_whitespace, class FilterProcessor>
+    bool _filter_nl(FilterProcessor &C4_RESTRICT proc, size_t indentation);
 
     template<bool keep_trailing_whitespace>
     void _filter_ws(csubstr r, substr dst, size_t *C4_RESTRICT i, size_t *C4_RESTRICT pos);
+    template<bool keep_trailing_whitespace, class FilterProcessor>
+    void _filter_ws(FilterProcessor &C4_RESTRICT proc);
 
     bool _apply_chomp(csubstr buf, substr dst, size_t *C4_RESTRICT pos, BlockChomp_e chomp, LocCRef loc);
 

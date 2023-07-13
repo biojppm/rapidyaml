@@ -56,20 +56,55 @@ TEST_P(SQuotedFilterTest, filter_inplace)
 
 squoted_case test_cases_filter[] = {
     #define sqc(input, output) squoted_case{csubstr(input), csubstr(output)}
+    // 0
     sqc("", ""),
+    sqc(" ", " "),
+    sqc("  ", "  "),
+    sqc("   ", "   "),
+    sqc("    ", "    "),
+    // 5
     sqc("foo", "foo"),
     sqc("quoted\nstring", "quoted string"),
+    sqc("quoted\n\nstring", "quoted\nstring"),
     sqc("quoted\n  string", "quoted string"),
+    sqc("\"Howdy!\" he cried.", "\"Howdy!\" he cried."),
+    // 10
+    sqc(" # Not a ''comment''.", " # Not a 'comment'."),
+    sqc("|\\-*-/|", "|\\-*-/|"),
     sqc("\t\n\ndetected\n\n", "\t\ndetected\n"),
     sqc(" 1st non-empty\n\n 2nd non-empty \n 3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
     sqc(" 1st non-empty\n\n 2nd non-empty \t\n \t3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
+    // 15
     sqc(" 1st non-empty\n\n 2nd non-empty\t \n\t 3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
-    sqc(R"(Several lines of text,
-containing ''single quotes'' and "double quotes". Escapes (like \n) don''t do anything.
-
-Newlines can be added by leaving a blank line.
-            Leading whitespace on lines is ignored.)",
+    sqc("Several lines of text,\ncontaining ''single quotes'' and \"double quotes\". Escapes (like \\n) don''t do anything.\n\nNewlines can be added by leaving a blank line.\n            Leading whitespace on lines is ignored.",
         "Several lines of text, containing 'single quotes' and \"double quotes\". Escapes (like \\n) don't do anything.\nNewlines can be added by leaving a blank line. Leading whitespace on lines is ignored."),
+    sqc(R"(Some text ''with single quotes'' "and double quotes".)", "Some text 'with single quotes' \"and double quotes\"."),
+    sqc(R"(Some text with escapes \n \r \t)", "Some text with escapes \\n \\r \\t"),
+    sqc("''", "'"),
+    // 20
+    sqc("''''", "''"),
+    sqc("''''''", "'''"),
+    sqc("''''''''", "''''"),
+    sqc("''''''''''", "'''''"),
+    sqc("''''''''''''", "''''''"),
+    // 25
+    sqc(R"(a aaaa )",  "a aaaa "),
+    sqc(R"(a aaaa  )",  "a aaaa  "),
+    sqc(R"(a aaaa   )",  "a aaaa   "),
+    sqc(R"(a aaaa    )",  "a aaaa    "),
+    sqc(R"(a aaaa     )",  "a aaaa     "),
+    // 30
+    sqc(R"( a aaaa)",  " a aaaa"),
+    sqc(R"(  a aaaa)",  "  a aaaa"),
+    sqc(R"(   a aaaa)",  "   a aaaa"),
+    sqc(R"(    a aaaa)",  "    a aaaa"),
+    sqc(R"(     a aaaa)",  "     a aaaa"),
+    // 35
+    sqc(R"( a aaaa )",  " a aaaa "),
+    sqc(R"(  a aaaa  )",  "  a aaaa  "),
+    sqc(R"(   a aaaa   )",  "   a aaaa   "),
+    sqc(R"(    a aaaa    )",  "    a aaaa    "),
+    sqc(R"(     a aaaa     )",  "     a aaaa     "),
     #undef sqc
 };
 
