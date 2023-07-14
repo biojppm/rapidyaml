@@ -3,6 +3,84 @@
 namespace c4 {
 namespace yml {
 
+struct dquoted_case
+{
+    csubstr input, output;
+};
+
+void test_filter(csubstr input, csubstr expected)
+{
+    SCOPED_TRACE(input);
+    SCOPED_TRACE(expected);
+    std::string subject_;
+    subject_.resize(2 * input.size());
+    c4::substr dst = to_substr(subject_);
+    ScalarFilterProcessor proc = {};
+    csubstr out = proc.filter_dquoted(input, dst, Location{});
+    if(input != expected)
+    {
+        EXPECT_TRUE(out.is_sub(dst));// << "\ninput=" << input << "\nexpected=" << expected;
+    }
+    EXPECT_EQ(out, expected);
+    std::cout << "OK! ~~~" << input << "~~~   --->  ~~~" << out << "~~~\n";
+}
+/*
+void test_filter_inplace(csubstr input, csubstr expected)
+{
+    SCOPED_TRACE(input);
+    SCOPED_TRACE(expected);
+    std::string subject_(input.str, input.len);
+    c4::substr dst = to_substr(subject_);
+    ScalarFilterProcessor proc = {};
+    csubstr out = proc.filter_dquoted(dst, Location{});
+    EXPECT_TRUE(out.is_sub(dst));// << "\ninput=" << input << "\nexpected=" << expected;
+    EXPECT_EQ(out, expected);
+    std::cout << "OK! ~~~" << input << "~~~   --->  ~~~" << out << "~~~\n";
+}
+*/
+
+struct DQuotedFilterTest : public ::testing::TestWithParam<dquoted_case>
+{
+};
+
+TEST_P(DQuotedFilterTest, filter)
+{
+    dquoted_case dqc = GetParam();
+    test_filter(dqc.input, dqc.output);
+}
+/*
+TEST_P(DQuotedFilterTest, filter_inplace)
+{
+    dquoted_case dqc = GetParam();
+    test_filter_inplace(dqc.input, dqc.output);
+}
+*/
+
+dquoted_case test_cases_filter[] = {
+    #define dqc(input, output) dquoted_case{csubstr(input), csubstr(output)}
+    // 0
+    dqc("", ""),
+    dqc(" ", " "),
+    dqc("  ", "  "),
+    dqc("   ", "   "),
+    dqc("    ", "    "),
+    // 5
+    dqc("foo", "foo"),
+    dqc("foo bar", "foo bar"),
+    dqc("1 leading\n   \\ttab", "1 leading \ttab"),
+    dqc("2 leading\n    \\	tab", "2 leading \ttab"),
+    dqc("3 leading\n    	tab", "3 leading tab"),
+    dqc("4 leading\n    \\t  tab", "4 leading \t  tab"),
+    dqc("5 leading\n    \\	  tab", "5 leading \t  tab"),
+    dqc("6 leading\n    	  tab", "6 leading tab"),
+    #undef dqc
+};
+
+INSTANTIATE_TEST_SUITE_P(double_quoted_filter,
+                         DQuotedFilterTest,
+                         testing::ValuesIn(test_cases_filter));
+
+
 TEST(double_quoted, escaped_chars)
 {
     csubstr yaml = R"("\\\"\n\r\t\	\/\ \0\b\f\a\v\e\_\N\L\P")";
@@ -24,7 +102,6 @@ TEST(double_quoted, escaped_chars)
     expected += '\v';
     expected += INT8_C(0x1b); // \e
     //
-    // wrap explicitly to avoid overflow
     expected += _RYML_CHCONST(-0x3e, 0xc2); // \_ (1)
     expected += _RYML_CHCONST(-0x60, 0xa0); // \_ (2)
     //

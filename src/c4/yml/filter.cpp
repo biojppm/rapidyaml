@@ -251,7 +251,7 @@ template<bool backslash_is_escape, bool keep_trailing_whitespace, class FilterPr
 bool ScalarFilterProcessor::_filter_nl(FilterProcessor &C4_RESTRICT proc, size_t indentation)
 {
     // a debugging scaffold:
-    #if 1
+    #if 0
     #define _c4dbgfnl(fmt, ...) _c4dbgpf("filt_nl[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
     #else
     #define _c4dbgfnl(...)
@@ -322,7 +322,7 @@ template<bool keep_trailing_whitespace, class FilterProcessor>
 void ScalarFilterProcessor::_filter_ws(FilterProcessor &proc)
 {
     // a debugging scaffold:
-    #if 1
+    #if 0
     #define _c4dbgfws(fmt, ...) _c4dbgpf("filt_ws[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
     #else
     #define _c4dbgfws(...)
@@ -474,7 +474,7 @@ csubstr ScalarFilterProcessor::filter_squoted(FilterProcessor &C4_RESTRICT proc,
 {
     (void)loc;
     // a debugging scaffold:
-    #if 1
+    #if 0
     #define _c4dbgfsq(fmt, ...) _c4dbgpf("filt_squo[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
     #else
     #define _c4dbgfsq(fmt, ...)
