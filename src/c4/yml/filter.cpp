@@ -184,7 +184,7 @@ template<bool backslash_is_escape, bool keep_trailing_whitespace>
 bool ScalarFilterProcessor::_filter_nl(csubstr r, substr dst, size_t *C4_RESTRICT i, size_t *C4_RESTRICT pos, size_t indentation)
 {
     // a debugging scaffold:
-    #if 0
+    #if 1
     #define _c4dbgfnl(fmt, ...) _c4dbgpf("filter_nl[{}]: " fmt, *i, __VA_ARGS__)
     #else
     #define _c4dbgfnl(...)
@@ -196,7 +196,7 @@ bool ScalarFilterProcessor::_filter_nl(csubstr r, substr dst, size_t *C4_RESTRIC
     _RYML_CB_ASSERT(*m_callbacks, indentation != npos);
     _RYML_CB_ASSERT(*m_callbacks, curr == '\n');
 
-    _c4dbgfnl("found newline. sofar=[{}]~~~{}~~~", *pos, m_filter_arena.first(*pos));
+    _c4dbgfnl("found newline. sofar=[{}]~~~{}~~~", *pos, dst.first(*pos));
     size_t ii = *i;
     size_t numnl_following = _count_following_newlines(r, &ii, indentation);
     if(numnl_following)
@@ -210,7 +210,7 @@ bool ScalarFilterProcessor::_filter_nl(csubstr r, substr dst, size_t *C4_RESTRIC
         if(r.first_not_of(" \t", *i+1) != npos)
         {
             dst.str[(*pos)++] = ' ';
-            _c4dbgfnl("single newline. convert to space. ii={}/{}. sofar=[{}]~~~{}~~~", ii, r.len, *pos, m_filter_arena.first(*pos));
+            _c4dbgfnl("single newline. convert to space. ii={}/{}. sofar=[{}]~~~{}~~~", ii, r.len, *pos, dst.first(*pos));
             replaced = true;
         }
         else
@@ -218,7 +218,7 @@ bool ScalarFilterProcessor::_filter_nl(csubstr r, substr dst, size_t *C4_RESTRIC
             if C4_IF_CONSTEXPR (keep_trailing_whitespace)
             {
                 dst.str[(*pos)++] = ' ';
-                _c4dbgfnl("single newline. convert to space. ii={}/{}. sofar=[{}]~~~{}~~~", ii, r.len, *pos, m_filter_arena.first(*pos));
+                _c4dbgfnl("single newline. convert to space. ii={}/{}. sofar=[{}]~~~{}~~~", ii, r.len, *pos, dst.first(*pos));
                 replaced = true;
             }
             else
@@ -543,13 +543,13 @@ csubstr ScalarFilterProcessor::filter_squoted(substr dst, LocCRef loc)
 csubstr ScalarFilterProcessor::filter_dquoted(csubstr scalar, substr dst, LocCRef loc)
 {
     // a debugging scaffold:
-    #if 0
+    #if 1
     #define _c4dbgfdq(...) _c4dbgpf("filt_dquo" __VA_ARGS__)
     #else
     #define _c4dbgfdq(...)
     #endif
 
-    _c4dbgfdq(": before=~~~{}~~~", s);
+    _c4dbgfdq(": before=[{}]~~~{}~~~", scalar.len, scalar);
 
     // from the YAML spec for double-quoted scalars:
     // https://yaml.org/spec/1.2-old/spec.html#style/flow/double-quoted
@@ -566,7 +566,7 @@ csubstr ScalarFilterProcessor::filter_dquoted(csubstr scalar, substr dst, LocCRe
     for(size_t i = 0; i < r.len; ++i)
     {
         const char curr = r[i];
-        _c4dbgfdq("[{}]: '{}'", i, _c4prc(curr));
+        _c4dbgfdq("[{}]: '{}' sofar=[{}]~~~{}~~~", i, _c4prc(curr), pos, dst.first(pos));
         if(curr == ' ' || curr == '\t')
         {
             _filter_ws</*keep_trailing_ws*/true>(r, dst, &i, &pos);
@@ -758,6 +758,11 @@ csubstr ScalarFilterProcessor::filter_dquoted(csubstr scalar, substr dst, LocCRe
     return r;
 }
 
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 csubstr ScalarFilterProcessor::filter_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp, LocCRef loc)
 {
     // a debugging scaffold:
@@ -880,6 +885,11 @@ csubstr ScalarFilterProcessor::filter_block_literal(csubstr scalar, substr dst, 
 
     return r;
 }
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 csubstr ScalarFilterProcessor::filter_block_folded(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp, LocCRef loc)
 {
@@ -1101,6 +1111,8 @@ csubstr ScalarFilterProcessor::filter_block_folded(csubstr scalar, substr dst, s
     return r.first(pos);
 }
 
+
+//-----------------------------------------------------------------------------
 
 bool ScalarFilterProcessor::_apply_chomp(csubstr buf, substr dst, size_t *C4_RESTRICT pos, BlockChomp_e chomp, LocCRef loc)
 {

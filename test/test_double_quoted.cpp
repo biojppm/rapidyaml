@@ -13,7 +13,7 @@ void test_filter(csubstr input, csubstr expected)
     SCOPED_TRACE(input);
     SCOPED_TRACE(expected);
     std::string subject_;
-    subject_.resize(2 * input.size());
+    subject_.resize(2 * input.size() + 4);
     c4::substr dst = to_substr(subject_);
     ScalarFilterProcessor proc = {};
     csubstr out = proc.filter_dquoted(input, dst, Location{});
@@ -22,7 +22,6 @@ void test_filter(csubstr input, csubstr expected)
         EXPECT_TRUE(out.is_sub(dst));// << "\ninput=" << input << "\nexpected=" << expected;
     }
     EXPECT_EQ(out, expected);
-    std::cout << "OK! ~~~" << input << "~~~   --->  ~~~" << out << "~~~\n";
 }
 /*
 void test_filter_inplace(csubstr input, csubstr expected)
@@ -56,6 +55,37 @@ TEST_P(DQuotedFilterTest, filter_inplace)
 }
 */
 
+const char dqescparsed_[] = {
+         '\\',
+         '"',
+         '\n',
+         '\r',
+         '\t',
+         '\t',
+         '/',
+         ' ',
+         '\0',
+         '\b',
+         '\f',
+         '\a',
+         '\v',
+         INT8_C(0x1b),
+          // \_
+         _RYML_CHCONST(-0x3e, 0xc2),
+         _RYML_CHCONST(-0x60, 0xa0),
+         // \N
+         _RYML_CHCONST(-0x3e, 0xc2),
+         _RYML_CHCONST(-0x7b, 0x85),
+         // \L
+         _RYML_CHCONST(-0x1e, 0xe2),
+         _RYML_CHCONST(-0x80, 0x80),
+         _RYML_CHCONST(-0x58, 0xa8),
+         // \P
+         _RYML_CHCONST(-0x1e, 0xe2),
+         _RYML_CHCONST(-0x80, 0x80),
+         _RYML_CHCONST(-0x57, 0xa9),
+    };
+csubstr dqescparsed = {dqescparsed_, C4_COUNTOF(dqescparsed_)};
 dquoted_case test_cases_filter[] = {
     #define dqc(input, output) dquoted_case{csubstr(input), csubstr(output)}
     // 0
@@ -70,9 +100,28 @@ dquoted_case test_cases_filter[] = {
     dqc("1 leading\n   \\ttab", "1 leading \ttab"),
     dqc("2 leading\n    \\	tab", "2 leading \ttab"),
     dqc("3 leading\n    	tab", "3 leading tab"),
+    // 10
     dqc("4 leading\n    \\t  tab", "4 leading \t  tab"),
     dqc("5 leading\n    \\	  tab", "5 leading \t  tab"),
     dqc("6 leading\n    	  tab", "6 leading tab"),
+    dqc("Empty line\n\n  as a line feed", "Empty line\nas a line feed"),
+    dqc(R"(foo\nbar:baz\tx \\$%^&*()x)", "foo\nbar:baz\tx \\$%^&*()x"),
+    // 15
+    dqc(R"(\\\"\n\r\t\	\/\ \0\b\f\a\v\e\_\N\L\P)", dqescparsed),
+    dqc("\u263A\u2705\U0001D11E", R"(☺✅𝄞)"),
+    dqc(R"(\b1998\t1999\t2000\n)", "\b1998\t1999\t2000\n"),
+    dqc(R"(\x0d\x0a is \r\n)", "\r\n is \r\n"),
+    dqc("\n  foo\n\n    bar\n\n  baz\n", " foo\nbar\nbaz "),
+    // 20
+    dqc(" 1st non-empty\n\n 2nd non-empty \n 3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
+    dqc("\n  ", " "),
+    dqc("  \n  ", " "),
+    dqc("\n\n  ", "\n"),
+    dqc("\n\n\n  ", "\n\n"),
+    // 25
+    dqc("folded \nto a space,	\n \nto a line feed, or 	\\\n \\ 	non-content", "folded to a space,\nto a line feed, or \t \tnon-content"),
+    dqc("folded \nto a space,\n \nto a line feed, or 	\\\n \\ 	non-content", "folded to a space,\nto a line feed, or \t \tnon-content"),
+    dqc("	\n\ndetected\n\n", "\t\ndetected\n"),
     #undef dqc
 };
 
@@ -84,42 +133,12 @@ INSTANTIATE_TEST_SUITE_P(double_quoted_filter,
 TEST(double_quoted, escaped_chars)
 {
     csubstr yaml = R"("\\\"\n\r\t\	\/\ \0\b\f\a\v\e\_\N\L\P")";
-    // build the string like this because some of the characters are
-    // filtered out under the double quotes
-    std::string expected;
-    expected += '\\';
-    expected += '"';
-    expected += '\n';
-    expected += '\r';
-    expected += '\t';
-    expected += '\t';
-    expected += '/';
-    expected += ' ';
-    expected += '\0';
-    expected += '\b';
-    expected += '\f';
-    expected += '\a';
-    expected += '\v';
-    expected += INT8_C(0x1b); // \e
-    //
-    expected += _RYML_CHCONST(-0x3e, 0xc2); // \_ (1)
-    expected += _RYML_CHCONST(-0x60, 0xa0); // \_ (2)
-    //
-    expected += _RYML_CHCONST(-0x3e, 0xc2); // \N (1)
-    expected += _RYML_CHCONST(-0x7b, 0x85); // \N (2)
-    //
-    expected += _RYML_CHCONST(-0x1e, 0xe2); // \L (1)
-    expected += _RYML_CHCONST(-0x80, 0x80); // \L (2)
-    expected += _RYML_CHCONST(-0x58, 0xa8); // \L (3)
-    //
-    expected += _RYML_CHCONST(-0x1e, 0xe2); // \P (1)
-    expected += _RYML_CHCONST(-0x80, 0x80); // \P (2)
-    expected += _RYML_CHCONST(-0x57, 0xa9); // \P (3)
-    //
     Tree t = parse_in_arena(yaml);
     csubstr v = t.rootref().val();
     std::string actual = {v.str, v.len};
-    EXPECT_EQ(actual, expected);
+    // build the string like this because some of the characters are
+    // filtered out under the double quotes
+    EXPECT_EQ(actual, std::string(dqescparsed.str, dqescparsed.len));
 }
 
 TEST(double_quoted, test_suite_3RLN)
