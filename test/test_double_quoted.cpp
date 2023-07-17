@@ -107,24 +107,49 @@ dquoted_case test_cases_filter[] = {
     dqc("Empty line\n\n  as a line feed", "Empty line\nas a line feed"),
     dqc(R"(foo\nbar:baz\tx \\$%^&*()x)", "foo\nbar:baz\tx \\$%^&*()x"),
     // 15
+    dqc(R"(\)", ""),
+    dqc(R"(\\)", "\\"),
+    dqc(R"(\\\)", "\\"),
+    dqc(R"(\\\\)", "\\\\"),
+    dqc(R"(\\\\\)", "\\\\"),
+    // 20
+    dqc(R"(\	)", "\t"),
+    dqc(R"(\t)", "\t"),
+    dqc(R"(\ )", " "),
+    dqc(R"(\\ )", "\\ "),
+    dqc(R"(\")", "\""),
+    // 25
+    dqc(R"(\"\")", "\"\""),
+    dqc(R"(\n)", "\n"),
+    dqc(R"(\r)", "\r"),
+    dqc(R"(\t)", "\t"),
+    dqc(R"(\0)", "\0"),
+    // 30
+    dqc(R"(\b)", "\b"),
+    dqc(R"(\f)", "\f"),
+    dqc(R"(\a)", "\a"),
+    dqc(R"(\v)", "\v"),
+    dqc(R"(\e)", "\x1b"),
+    // 35
+    dqc(R"(\_)", "\xc2\xa0"),
     dqc(R"(\\\"\n\r\t\	\/\ \0\b\f\a\v\e\_\N\L\P)", dqescparsed),
     dqc("\u263A\u2705\U0001D11E", R"(☺✅𝄞)"),
     dqc(R"(\b1998\t1999\t2000\n)", "\b1998\t1999\t2000\n"),
     dqc(R"(\x0d\x0a is \r\n)", "\r\n is \r\n"),
+    // 40
     dqc("\n  foo\n\n    bar\n\n  baz\n", " foo\nbar\nbaz "),
-    // 20
     dqc(" 1st non-empty\n\n 2nd non-empty \n 3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
     dqc(" 1st non-empty\n\n 2nd non-empty \n	3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
     dqc(" 1st non-empty\n\n 2nd non-empty 	\n 	3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
     dqc(" 1st non-empty\n\n 2nd non-empty	 \n	3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
+    // 45
     dqc("\n  ", " "),
-    // 25
     dqc("  \n  ", " "),
     dqc("\n\n  ", "\n"),
     dqc("\n\n\n  ", "\n\n"),
     dqc("folded \nto a space,	\n \nto a line feed, or 	\\\n \\ 	non-content", "folded to a space,\nto a line feed, or \t \tnon-content"),
+    // 50
     dqc("folded \nto a space,\n \nto a line feed, or 	\\\n \\ 	non-content", "folded to a space,\nto a line feed, or \t \tnon-content"),
-    // 30
     dqc("	\n\ndetected\n\n", "\t\ndetected\n"),
     #undef dqc
 };

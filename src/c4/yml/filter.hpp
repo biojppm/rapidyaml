@@ -41,7 +41,7 @@ public:
     template<bool backslash_is_escape, bool keep_trailing_whitespace>
     bool _filter_nl(csubstr r, substr dst, size_t *C4_RESTRICT i, size_t *C4_RESTRICT pos, size_t indentation);
     template<bool backslash_is_escape, bool keep_trailing_whitespace, class FilterProcessor>
-    bool _filter_nl(FilterProcessor &C4_RESTRICT proc, size_t indentation);
+    void _filter_nl(FilterProcessor &C4_RESTRICT proc, size_t indentation);
 
     template<bool keep_trailing_whitespace>
     void _filter_ws(csubstr r, substr dst, size_t *C4_RESTRICT i, size_t *C4_RESTRICT pos);

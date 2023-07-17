@@ -18,11 +18,20 @@ struct FilterProcessorInplace
     size_t rpos;
     size_t wpos;
     Callbacks const* m_callbacks;
+
     C4_ALWAYS_INLINE FilterProcessorInplace(substr src_, Callbacks const* callbacks) noexcept
         : src(src_)
         , rpos(0)
         , wpos(0)
         , m_callbacks(callbacks)
+    {
+    }
+
+    C4_ALWAYS_INLINE FilterProcessorInplace(substr src_) noexcept
+        : src(src_)
+        , rpos(0)
+        , wpos(0)
+        , m_callbacks(&get_callbacks())
     {
     }
 
@@ -77,7 +86,8 @@ struct FilterProcessorInplace
     }
     C4_ALWAYS_INLINE void translate_esc(const char *s, size_t nw, size_t nr) noexcept
     {
-        RYML_ASSERT(nw > 0);
+        _RYML_CB_ASSERT(*m_callbacks, nw > 0);
+        _RYML_CB_ASSERT(*m_callbacks, nr > 0);
         _RYML_CB_ASSERT(*m_callbacks, wpos+nw <= src.len);
         memcpy(src.str + wpos, s, nw);
         wpos += nw;
@@ -86,10 +96,12 @@ struct FilterProcessorInplace
     template<size_t NW>
     C4_ALWAYS_INLINE void translate_esc(const char (&s)[NW], size_t nr) noexcept
     {
-        RYML_ASSERT(NW > 1);
+        _RYML_CB_ASSERT(*m_callbacks, NW > 1);
+        _RYML_CB_ASSERT(*m_callbacks, nr > 0);
         _RYML_CB_ASSERT(*m_callbacks, wpos+NW-1 <= src.len);
         memcpy(src.str + wpos, s, NW-1);
-        wpos += 1 + nr;
+        wpos += NW - 1;
+        rpos += 1 + nr;
     }
 };
 
@@ -100,6 +112,7 @@ struct FilterProcessorSrcDst
     size_t rpos;
     size_t wpos;
     Callbacks const* m_callbacks;
+
     C4_ALWAYS_INLINE FilterProcessorSrcDst(csubstr src_, substr dst_, Callbacks const* callbacks) noexcept
         : src(src_)
         , dst(dst_)
@@ -109,11 +122,19 @@ struct FilterProcessorSrcDst
     {
     }
 
+    C4_ALWAYS_INLINE FilterProcessorSrcDst(csubstr src_, substr dst_) noexcept
+        : src(src_)
+        , dst(dst_)
+        , rpos(0)
+        , wpos(0)
+        , m_callbacks(&get_callbacks())
+    {
+    }
+
     C4_ALWAYS_INLINE operator bool() const noexcept { return rpos < src.len; }
     C4_ALWAYS_INLINE csubstr sofar() const noexcept { _RYML_CB_ASSERT(*m_callbacks, wpos <= dst.len); return dst.first(wpos); }
     C4_ALWAYS_INLINE char curr() const noexcept { _RYML_CB_ASSERT(*m_callbacks, rpos < src.len); return src[rpos]; }
     C4_ALWAYS_INLINE char next() const noexcept { _RYML_CB_ASSERT(*m_callbacks, rpos < src.len); return rpos+1 < src.len ? src[rpos+1] : '\0'; }
-    C4_ALWAYS_INLINE char next2() const noexcept { _RYML_CB_ASSERT(*m_callbacks, rpos < src.len); return rpos+2 < src.len ? src[rpos+2] : '\0'; }
     C4_ALWAYS_INLINE bool skipped_chars() const noexcept { return wpos != rpos; }
 
     C4_ALWAYS_INLINE void skip() noexcept { ++rpos; }
@@ -127,7 +148,7 @@ struct FilterProcessorSrcDst
     }
     C4_ALWAYS_INLINE void copy(size_t num) noexcept
     {
-        RYML_ASSERT(num);
+        _RYML_CB_ASSERT(*m_callbacks, num);
         _RYML_CB_ASSERT(*m_callbacks, wpos+num <= dst.len);
         _RYML_CB_ASSERT(*m_callbacks, rpos+num <= src.len);
         memcpy(dst.str + wpos, src.str + rpos, num);
@@ -142,7 +163,7 @@ struct FilterProcessorSrcDst
     }
     C4_ALWAYS_INLINE void set(char c, size_t num) noexcept
     {
-        RYML_ASSERT(num);
+        _RYML_CB_ASSERT(*m_callbacks, num > 0);
         _RYML_CB_ASSERT(*m_callbacks, wpos+num <= dst.len);
         memset(dst.str + wpos, c, num);
         wpos += num;
@@ -156,7 +177,8 @@ struct FilterProcessorSrcDst
     }
     C4_ALWAYS_INLINE void translate_esc(const char *s, size_t nw, size_t nr) noexcept
     {
-        RYML_ASSERT(nw > 0);
+        _RYML_CB_ASSERT(*m_callbacks, nw > 0);
+        _RYML_CB_ASSERT(*m_callbacks, nr > 0);
         _RYML_CB_ASSERT(*m_callbacks, wpos+nw <= src.len);
         memcpy(dst.str + wpos, s, nw);
         wpos += nw;
@@ -165,10 +187,12 @@ struct FilterProcessorSrcDst
     template<size_t NW>
     C4_ALWAYS_INLINE void translate_esc(const char (&s)[NW], size_t nr) noexcept
     {
-        RYML_ASSERT(NW > 1);
+        _RYML_CB_ASSERT(*m_callbacks, NW > 1);
+        _RYML_CB_ASSERT(*m_callbacks, nr > 0);
         _RYML_CB_ASSERT(*m_callbacks, wpos+NW-1 <= src.len);
         memcpy(dst.str + wpos, s, NW-1);
-        wpos += 1 + nr;
+        wpos += NW - 1;
+        rpos += 1 + nr;
     }
 };
 
@@ -295,7 +319,7 @@ bool ScalarFilterProcessor::_filter_nl(csubstr r, substr dst, size_t *C4_RESTRIC
 }
 
 template<bool backslash_is_escape, bool keep_trailing_whitespace, class FilterProcessor>
-bool ScalarFilterProcessor::_filter_nl(FilterProcessor &C4_RESTRICT proc, size_t indentation)
+void ScalarFilterProcessor::_filter_nl(FilterProcessor &C4_RESTRICT proc, size_t indentation)
 {
     // a debugging scaffold:
     #if 1
@@ -304,15 +328,12 @@ bool ScalarFilterProcessor::_filter_nl(FilterProcessor &C4_RESTRICT proc, size_t
     #define _c4dbgfnl(...)
     #endif
 
-    const char curr = proc.curr();
-    bool replaced = false;
-
     _RYML_CB_ASSERT(*m_callbacks, indentation != npos);
-    _RYML_CB_ASSERT(*m_callbacks, curr == '\n');
+    _RYML_CB_ASSERT(*m_callbacks, proc.curr() == '\n');
 
     _c4dbgfnl("found newline. sofar=[{}]~~~{}~~~", proc.wpos, proc.sofar());
     size_t ii = proc.rpos;
-    size_t numnl_following = _count_following_newlines(proc.src, &proc.rpos, indentation);
+    const size_t numnl_following = _count_following_newlines(proc.src, &ii, indentation);
     if(numnl_following)
     {
         proc.set('\n', numnl_following);
@@ -324,46 +345,42 @@ bool ScalarFilterProcessor::_filter_nl(FilterProcessor &C4_RESTRICT proc, size_t
         if(ret != npos)
         {
             proc.set(' ');
-            ii = ret ? ret - 1 : ret;
-             _c4dbgfnl("single newline. convert to space. ii={}/{}. sofar=[{}]~~~{}~~~", ii, proc.src.len, proc.wpos, proc.sofar());
-            replaced = true;
-            proc.rpos = ii;
+             _c4dbgfnl("single newline. convert to space. ret={}/{}. sofar=[{}]~~~{}~~~", ii, proc.src.len, proc.wpos, proc.sofar());
         }
         else
         {
             if C4_IF_CONSTEXPR (keep_trailing_whitespace)
             {
                 proc.set(' ');
-                ++ii;
                 _c4dbgfnl("single newline. convert to space. ii={}/{}. sofar=[{}]~~~{}~~~", ii, proc.src.len, proc.wpos, proc.sofar());
-                replaced = true;
-                proc.rpos = ii;
             }
             else
             {
                 _c4dbgfnl("last newline, everything else is whitespace. ii={}/{}", ii, proc.src.len);
-                proc.rpos = proc.src.len;
+                ii = proc.src.len;
             }
         }
         if C4_IF_CONSTEXPR (backslash_is_escape)
         {
             if(ii < proc.src.len && proc.src.str[ii] == '\\')
             {
+                _c4dbgfnl("backslash at [{}]", ii);
                 const char next = ii+1 < proc.src.len ? proc.src.str[ii+1] : '\0';
                 if(next == ' ' || next == '\t')
                 {
-                    _c4dbgfnl("extend skip to backslash{}", "");
+                    _c4dbgfnl("extend skip to backslash", "");
                     ++ii;
                 }
             }
-            proc.rpos = ii;
         }
     }
+    proc.rpos = ii;
 
     #undef _c4dbgfnl
-
-    return replaced;
 }
+
+
+//-----------------------------------------------------------------------------
 
 template<bool keep_trailing_whitespace, class FilterProcessor>
 void ScalarFilterProcessor::_filter_ws(FilterProcessor &proc)
@@ -593,6 +610,8 @@ csubstr ScalarFilterProcessor::filter_dquoted(FilterProcessor &C4_RESTRICT proc,
     // a debugging scaffold:
     #if 1
     #define _c4dbgfdq(fmt, ...) _c4dbgpf("filt_dquo[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
+    for(size_t i = 0; i < proc.src.len; ++i)
+        _c4dbgpf("filt_dquo: input[{}]='{}'", i, _c4prc(proc.src.str[i]));
     #else
     #define _c4dbgfdq(...)
     #endif
@@ -772,6 +791,10 @@ csubstr ScalarFilterProcessor::filter_dquoted(FilterProcessor &C4_RESTRICT proc,
                     _RYML_CHCONST(-0x57, 0xa9),
                 };
                 proc.translate_esc(payload, /*nread*/1);
+            }
+            else if(next == '\0')
+            {
+                proc.skip();
             }
             _c4dbgfdq("backslash...sofar=[{}]~~~{}~~~", proc.wpos, proc.sofar());
         }
