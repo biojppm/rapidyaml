@@ -23,7 +23,7 @@ void test_filter(csubstr input, csubstr expected)
     }
     EXPECT_EQ(out, expected);
 }
-/*
+
 void test_filter_inplace(csubstr input, csubstr expected)
 {
     SCOPED_TRACE(input);
@@ -36,7 +36,7 @@ void test_filter_inplace(csubstr input, csubstr expected)
     EXPECT_EQ(out, expected);
     std::cout << "OK! ~~~" << input << "~~~   --->  ~~~" << out << "~~~\n";
 }
-*/
+
 
 struct DQuotedFilterTest : public ::testing::TestWithParam<dquoted_case>
 {
@@ -47,13 +47,13 @@ TEST_P(DQuotedFilterTest, filter)
     dquoted_case dqc = GetParam();
     test_filter(dqc.input, dqc.output);
 }
-/*
+
 TEST_P(DQuotedFilterTest, filter_inplace)
 {
     dquoted_case dqc = GetParam();
     test_filter_inplace(dqc.input, dqc.output);
 }
-*/
+
 
 const char dqescparsed_[] = {
          '\\',
@@ -114,13 +114,17 @@ dquoted_case test_cases_filter[] = {
     dqc("\n  foo\n\n    bar\n\n  baz\n", " foo\nbar\nbaz "),
     // 20
     dqc(" 1st non-empty\n\n 2nd non-empty \n 3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
+    dqc(" 1st non-empty\n\n 2nd non-empty \n	3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
+    dqc(" 1st non-empty\n\n 2nd non-empty 	\n 	3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
+    dqc(" 1st non-empty\n\n 2nd non-empty	 \n	3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
     dqc("\n  ", " "),
+    // 25
     dqc("  \n  ", " "),
     dqc("\n\n  ", "\n"),
     dqc("\n\n\n  ", "\n\n"),
-    // 25
     dqc("folded \nto a space,	\n \nto a line feed, or 	\\\n \\ 	non-content", "folded to a space,\nto a line feed, or \t \tnon-content"),
     dqc("folded \nto a space,\n \nto a line feed, or 	\\\n \\ 	non-content", "folded to a space,\nto a line feed, or \t \tnon-content"),
+    // 30
     dqc("	\n\ndetected\n\n", "\t\ndetected\n"),
     #undef dqc
 };

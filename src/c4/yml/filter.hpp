@@ -20,6 +20,8 @@ struct ScalarFilterProcessor
 
     csubstr filter_dquoted(substr scalar, LocCRef loc);
     csubstr filter_dquoted(csubstr scalar, substr dst, LocCRef loc);
+    template<class FilterProcessor>
+    csubstr filter_dquoted(FilterProcessor &C4_RESTRICT proc, LocCRef loc);
 
     csubstr filter_block_literal(substr scalar, size_t indentation, BlockChomp_e chomp, LocCRef loc);
     csubstr filter_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp, LocCRef loc);

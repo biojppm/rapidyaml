@@ -68,6 +68,29 @@ struct FilterProcessorInplace
             memset(src.str + wpos, c, num);
         wpos += num;
     }
+
+    C4_ALWAYS_INLINE void translate_esc(char c) noexcept
+    {
+        _RYML_CB_ASSERT(*m_callbacks, wpos < src.len);
+        src.str[wpos++] = c;
+        rpos += 2;
+    }
+    C4_ALWAYS_INLINE void translate_esc(const char *s, size_t nw, size_t nr) noexcept
+    {
+        RYML_ASSERT(nw > 0);
+        _RYML_CB_ASSERT(*m_callbacks, wpos+nw <= src.len);
+        memcpy(src.str + wpos, s, nw);
+        wpos += nw;
+        rpos += 1 + nr;
+    }
+    template<size_t NW>
+    C4_ALWAYS_INLINE void translate_esc(const char (&s)[NW], size_t nr) noexcept
+    {
+        RYML_ASSERT(NW > 1);
+        _RYML_CB_ASSERT(*m_callbacks, wpos+NW-1 <= src.len);
+        memcpy(src.str + wpos, s, NW-1);
+        wpos += 1 + nr;
+    }
 };
 
 struct FilterProcessorSrcDst
@@ -90,6 +113,7 @@ struct FilterProcessorSrcDst
     C4_ALWAYS_INLINE csubstr sofar() const noexcept { _RYML_CB_ASSERT(*m_callbacks, wpos <= dst.len); return dst.first(wpos); }
     C4_ALWAYS_INLINE char curr() const noexcept { _RYML_CB_ASSERT(*m_callbacks, rpos < src.len); return src[rpos]; }
     C4_ALWAYS_INLINE char next() const noexcept { _RYML_CB_ASSERT(*m_callbacks, rpos < src.len); return rpos+1 < src.len ? src[rpos+1] : '\0'; }
+    C4_ALWAYS_INLINE char next2() const noexcept { _RYML_CB_ASSERT(*m_callbacks, rpos < src.len); return rpos+2 < src.len ? src[rpos+2] : '\0'; }
     C4_ALWAYS_INLINE bool skipped_chars() const noexcept { return wpos != rpos; }
 
     C4_ALWAYS_INLINE void skip() noexcept { ++rpos; }
@@ -122,6 +146,29 @@ struct FilterProcessorSrcDst
         _RYML_CB_ASSERT(*m_callbacks, wpos+num <= dst.len);
         memset(dst.str + wpos, c, num);
         wpos += num;
+    }
+
+    C4_ALWAYS_INLINE void translate_esc(char c) noexcept
+    {
+        _RYML_CB_ASSERT(*m_callbacks, wpos < dst.len);
+        dst.str[wpos++] = c;
+        rpos += 2;
+    }
+    C4_ALWAYS_INLINE void translate_esc(const char *s, size_t nw, size_t nr) noexcept
+    {
+        RYML_ASSERT(nw > 0);
+        _RYML_CB_ASSERT(*m_callbacks, wpos+nw <= src.len);
+        memcpy(dst.str + wpos, s, nw);
+        wpos += nw;
+        rpos += 1 + nr;
+    }
+    template<size_t NW>
+    C4_ALWAYS_INLINE void translate_esc(const char (&s)[NW], size_t nr) noexcept
+    {
+        RYML_ASSERT(NW > 1);
+        _RYML_CB_ASSERT(*m_callbacks, wpos+NW-1 <= src.len);
+        memcpy(dst.str + wpos, s, NW-1);
+        wpos += 1 + nr;
     }
 };
 
@@ -251,7 +298,7 @@ template<bool backslash_is_escape, bool keep_trailing_whitespace, class FilterPr
 bool ScalarFilterProcessor::_filter_nl(FilterProcessor &C4_RESTRICT proc, size_t indentation)
 {
     // a debugging scaffold:
-    #if 0
+    #if 1
     #define _c4dbgfnl(fmt, ...) _c4dbgpf("filt_nl[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
     #else
     #define _c4dbgfnl(...)
@@ -300,7 +347,7 @@ bool ScalarFilterProcessor::_filter_nl(FilterProcessor &C4_RESTRICT proc, size_t
         }
         if C4_IF_CONSTEXPR (backslash_is_escape)
         {
-            if(ii < proc.src.len && proc.str[ii] == '\\')
+            if(ii < proc.src.len && proc.src.str[ii] == '\\')
             {
                 const char next = ii+1 < proc.src.len ? proc.src.str[ii+1] : '\0';
                 if(next == ' ' || next == '\t')
@@ -540,16 +587,17 @@ csubstr ScalarFilterProcessor::filter_squoted(substr dst, LocCRef loc)
 
 //-----------------------------------------------------------------------------
 
-csubstr ScalarFilterProcessor::filter_dquoted(csubstr scalar, substr dst, LocCRef loc)
+template<class FilterProcessor>
+csubstr ScalarFilterProcessor::filter_dquoted(FilterProcessor &C4_RESTRICT proc, LocCRef loc)
 {
     // a debugging scaffold:
     #if 1
-    #define _c4dbgfdq(...) _c4dbgpf("filt_dquo" __VA_ARGS__)
+    #define _c4dbgfdq(fmt, ...) _c4dbgpf("filt_dquo[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
     #else
     #define _c4dbgfdq(...)
     #endif
 
-    _c4dbgfdq(": before=[{}]~~~{}~~~", scalar.len, scalar);
+    _c4dbgfdq("before=[{}]~~~{}~~~", proc.src.len, proc.src);
 
     // from the YAML spec for double-quoted scalars:
     // https://yaml.org/spec/1.2-old/spec.html#style/flow/double-quoted
@@ -559,203 +607,196 @@ csubstr ScalarFilterProcessor::filter_dquoted(csubstr scalar, substr dst, LocCRe
     // at least one non-space character. Empty lines, if any, are
     // consumed as part of the line folding.
 
-    _RYML_CB_ASSERT(*m_callbacks, dst.len >= scalar.len + 2u * scalar.count('\\'));
-    csubstr r = scalar;
-    size_t pos = 0; // the filtered size
-    bool filtered_chars = false;
-    for(size_t i = 0; i < r.len; ++i)
+    while(proc)
     {
-        const char curr = r[i];
-        _c4dbgfdq("[{}]: '{}' sofar=[{}]~~~{}~~~", i, _c4prc(curr), pos, dst.first(pos));
+        const char curr = proc.curr();
+        _c4dbgfdq("'{}' sofar=[{}]~~~{}~~~", _c4prc(curr), proc.wpos, proc.sofar());
         if(curr == ' ' || curr == '\t')
         {
-            _filter_ws</*keep_trailing_ws*/true>(r, dst, &i, &pos);
+            _c4dbgfdq("whitespace", curr);
+            _filter_ws</*keep_trailing_ws*/true>(proc);
         }
         else if(curr == '\n')
         {
-            filtered_chars = _filter_nl</*backslash_is_escape*/true, /*keep_trailing_ws*/true>(r, dst, &i, &pos, /*indentation*/0);
+            _c4dbgfdq("newline", curr);
+            _filter_nl</*backslash_is_escape*/true, /*keep_trailing_ws*/true>(proc, /*indentation*/0);
         }
         else if(curr == '\r')  // skip \r --- https://stackoverflow.com/questions/1885900
         {
-            ;
+            _c4dbgfdq("carriage return", curr);
         }
         else if(curr == '\\')
         {
-            char next = i+1 < r.len ? r[i+1] : '\0';
-            _c4dbgfdq("[{}]: backslash, next='{}'", i, _c4prc(next));
-            filtered_chars = true;
+            char next = proc.next();
+            _c4dbgfdq("backslash, next='{}'", _c4prc(next));
             if(next == '\r')
             {
-                if(i+2 < r.len && r[i+2] == '\n')
+                if(proc.rpos+2 < proc.src.len && proc.src.str[proc.rpos+2] == '\n')
                 {
-                    ++i; // newline escaped with \ -- skip both (add only one as i is loop-incremented)
+                    proc.skip(); // newline escaped with \ -- skip both (add only one as i is loop-incremented)
                     next = '\n';
-                    _c4dbgfdq("[{}]: was \\r\\n, now next='\\n'", i);
+                    _c4dbgfdq("[{}]: was \\r\\n, now next='\\n'", proc.rpos);
                 }
             }
-            // remember the loop will also increment i
+
             if(next == '\n')
             {
-                size_t ii = i + 2;
-                for( ; ii < r.len; ++ii)
+                size_t ii = proc.rpos + 2;
+                for( ; ii < proc.src.len; ++ii)
                 {
-                    if(r.str[ii] == ' ' || r.str[ii] == '\t')  // skip leading whitespace
+                    if(proc.src.str[ii] == ' ' || proc.src.str[ii] == '\t')  // skip leading whitespace
                         ;
                     else
                         break;
                 }
-                i += ii - i - 1;
+                proc.skip(ii - proc.rpos - 1);
             }
             else if(next == '"' || next == '/'  || next == ' ' || next == '\t') // escapes for json compatibility
             {
-                dst.str[pos++] = next;
-                ++i;
+                proc.translate_esc(next);
             }
             else if(next == '\r')
             {
-                //++i;
+                //proc.skip();
             }
             else if(next == 'n')
             {
-                dst.str[pos++] = '\n';
-                ++i;
+                proc.translate_esc('\n');
             }
             else if(next == 'r')
             {
-                dst.str[pos++] = '\r';
-                ++i; // skip
+                proc.translate_esc('\r');
             }
             else if(next == 't')
             {
-                dst.str[pos++] = '\t';
-                ++i;
+                proc.translate_esc('\t');
             }
             else if(next == '\\')
             {
-                dst.str[pos++] = '\\';
-                ++i;
+                proc.translate_esc('\\');
             }
             else if(next == 'x') // UTF8
             {
-                if(i + 1u + 2u >= r.len)
+                if(proc.rpos + 1u + 2u >= proc.src.len)
                     _c4errflt(loc, "\\x requires 2 hex digits");
                 uint8_t byteval = {};
-                if(!read_hex(r.sub(i + 2u, 2u), &byteval))
+                if(!read_hex(proc.src.sub(proc.rpos + 2u, 2u), &byteval))
                     _c4errflt(loc, "failed to read \\x codepoint");
-                dst.str[pos++] = *(char*)&byteval;
-                i += 1u + 2u;
+                proc.translate_esc((const char*)&byteval, 1u, /*nread*/2u);
             }
             else if(next == 'u') // UTF16
             {
-                if(i + 1u + 4u >= r.len)
+                if(proc.rpos + 1u + 4u >= proc.src.len)
                     _c4errflt(loc, "\\u requires 4 hex digits");
                 char readbuf[8];
-                csubstr codepoint = r.sub(i + 2u, 4u);
+                csubstr codepoint = proc.src.sub(proc.rpos + 2u, 4u);
                 uint32_t codepoint_val = {};
                 if(!read_hex(codepoint, &codepoint_val))
                     _c4errflt(loc, "failed to parse \\u codepoint");
                 size_t numbytes = decode_code_point((uint8_t*)readbuf, sizeof(readbuf), codepoint_val);
                 C4_ASSERT(numbytes <= 4);
-                memcpy(dst.str + pos, readbuf, numbytes);
-                pos += numbytes;
-                i += 1u + 4u;
+                proc.translate_esc(readbuf, numbytes, /*nread*/4u);
             }
             else if(next == 'U') // UTF32
             {
-                if(i + 1u + 8u >= r.len)
+                if(proc.rpos + 1u + 8u >= proc.src.len)
                     _c4errflt(loc, "\\U requires 8 hex digits");
                 char readbuf[8];
-                csubstr codepoint = r.sub(i + 2u, 8u);
+                csubstr codepoint = proc.src.sub(proc.rpos + 2u, 8u);
                 uint32_t codepoint_val = {};
                 if(!read_hex(codepoint, &codepoint_val))
                     _c4errflt(loc, "failed to parse \\U codepoint");
                 size_t numbytes = decode_code_point((uint8_t*)readbuf, sizeof(readbuf), codepoint_val);
                 C4_ASSERT(numbytes <= 4);
-                memcpy(dst.str + pos, readbuf, numbytes);
-                pos += numbytes;
-                i += 1u + 8u;
+                proc.translate_esc(readbuf, numbytes, /*nread*/8u);
             }
             // https://yaml.org/spec/1.2.2/#rule-c-ns-esc-char
             else if(next == '0')
             {
-                dst.str[pos++] = '\0';
-                ++i;
+                proc.translate_esc('\0');
             }
             else if(next == 'b') // backspace
             {
-                dst.str[pos++] = '\b';
-                ++i;
+                proc.translate_esc('\b');
             }
             else if(next == 'f') // form feed
             {
-                dst.str[pos++] = '\f';
-                ++i;
+                proc.translate_esc('\f');
             }
             else if(next == 'a') // bell character
             {
-                dst.str[pos++] = '\a';
-                ++i;
+                proc.translate_esc('\a');
             }
             else if(next == 'v') // vertical tab
             {
-                dst.str[pos++] = '\v';
-                ++i;
+                proc.translate_esc('\v');
             }
             else if(next == 'e') // escape character
             {
-                dst.str[pos++] = '\x1b';
-                ++i;
+                proc.translate_esc('\x1b');
             }
             else if(next == '_') // unicode non breaking space \u00a0
             {
                 // https://www.compart.com/en/unicode/U+00a0
-                dst.str[pos++] = _RYML_CHCONST(-0x3e, 0xc2);
-                dst.str[pos++] = _RYML_CHCONST(-0x60, 0xa0);
-                ++i;
+                const char payload[] = {
+                    _RYML_CHCONST(-0x3e, 0xc2),
+                    _RYML_CHCONST(-0x60, 0xa0),
+                };
+                proc.translate_esc(payload, /*nread*/1);
             }
             else if(next == 'N') // unicode next line \u0085
             {
                 // https://www.compart.com/en/unicode/U+0085
-                dst.str[pos++] = _RYML_CHCONST(-0x3e, 0xc2);
-                dst.str[pos++] = _RYML_CHCONST(-0x7b, 0x85);
-                ++i;
+                const char payload[] = {
+                    _RYML_CHCONST(-0x3e, 0xc2),
+                    _RYML_CHCONST(-0x7b, 0x85),
+                };
+                proc.translate_esc(payload, /*nread*/1);
             }
             else if(next == 'L') // unicode line separator \u2028
             {
                 // https://www.utf8-chartable.de/unicode-utf8-table.pl?start=8192&number=1024&names=-&utf8=0x&unicodeinhtml=hex
-                dst.str[pos++] = _RYML_CHCONST(-0x1e, 0xe2);
-                dst.str[pos++] = _RYML_CHCONST(-0x80, 0x80);
-                dst.str[pos++] = _RYML_CHCONST(-0x58, 0xa8);
-                ++i;
+                const char payload[] = {
+                    _RYML_CHCONST(-0x1e, 0xe2),
+                    _RYML_CHCONST(-0x80, 0x80),
+                    _RYML_CHCONST(-0x58, 0xa8),
+                };
+                proc.translate_esc(payload, /*nread*/1);
             }
             else if(next == 'P') // unicode paragraph separator \u2029
             {
                 // https://www.utf8-chartable.de/unicode-utf8-table.pl?start=8192&number=1024&names=-&utf8=0x&unicodeinhtml=hex
-                dst.str[pos++] = _RYML_CHCONST(-0x1e, 0xe2);
-                dst.str[pos++] = _RYML_CHCONST(-0x80, 0x80);
-                dst.str[pos++] = _RYML_CHCONST(-0x57, 0xa9);
-                ++i;
+                const char payload[] = {
+                    _RYML_CHCONST(-0x1e, 0xe2),
+                    _RYML_CHCONST(-0x80, 0x80),
+                    _RYML_CHCONST(-0x57, 0xa9),
+                };
+                proc.translate_esc(payload, /*nread*/1);
             }
-            _c4dbgfdq("[{}]: backslash...sofar=[{}]~~~{}~~~", i, pos, dst.first(pos));
+            _c4dbgfdq("backslash...sofar=[{}]~~~{}~~~", proc.wpos, proc.sofar());
         }
         else
         {
-            dst.str[pos++] = curr;
+            proc.copy();
         }
     }
 
-    _RYML_CB_ASSERT(*m_callbacks, pos <= dst.len);
-    if(pos < r.len || filtered_chars)
-    {
-        r = dst.first(pos);
-    }
+    _c4dbgpf("after[{}]=~~~{}~~~", proc.wpos, proc.sofar());
 
-    _RYML_CB_ASSERT(*m_callbacks, scalar.len >= r.len);
-    _c4dbgpf(": #filteredchars={} after=~~~{}~~~", scalar.len - r.len, r);
-
+    return proc.sofar();
     #undef _c4dbgfdq
+}
 
-    return r;
+csubstr ScalarFilterProcessor::filter_dquoted(csubstr scalar, substr dst, LocCRef loc)
+{
+    FilterProcessorSrcDst proc(scalar, dst, m_callbacks);
+    return filter_dquoted(proc, loc);
+}
+
+csubstr ScalarFilterProcessor::filter_dquoted(substr dst, LocCRef loc)
+{
+    FilterProcessorInplace proc(dst, m_callbacks);
+    return filter_dquoted(proc, loc);
 }
 
 
