@@ -55,7 +55,11 @@ TEST_P(DQuotedFilterTest, filter_inplace)
 }
 
 
-const char dqescparsed_[] = {
+#define DECLARE_CSUBSTR_FROM_CHAR_ARR(name, ...) \
+const char name##_[] = { __VA_ARGS__ }; \
+csubstr name = {name##_, C4_COUNTOF(name##_)}
+
+DECLARE_CSUBSTR_FROM_CHAR_ARR(dqescparsed,
          '\\',
          '"',
          '\n',
@@ -84,10 +88,27 @@ const char dqescparsed_[] = {
          _RYML_CHCONST(-0x1e, 0xe2),
          _RYML_CHCONST(-0x80, 0x80),
          _RYML_CHCONST(-0x57, 0xa9),
-    };
-csubstr dqescparsed = {dqescparsed_, C4_COUNTOF(dqescparsed_)};
+    );
+DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_underscore,
+         _RYML_CHCONST(-0x3e, 0xc2),
+         _RYML_CHCONST(-0x60, 0xa0),
+    );
+DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_N,
+         _RYML_CHCONST(-0x3e, 0xc2),
+         _RYML_CHCONST(-0x7b, 0x85),
+    );
+DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_L,
+         _RYML_CHCONST(-0x1e, 0xe2),
+         _RYML_CHCONST(-0x80, 0x80),
+         _RYML_CHCONST(-0x58, 0xa8),
+    );
+DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_P,
+         _RYML_CHCONST(-0x1e, 0xe2),
+         _RYML_CHCONST(-0x80, 0x80),
+         _RYML_CHCONST(-0x57, 0xa9),
+    );
 dquoted_case test_cases_filter[] = {
-    #define dqc(input, output) dquoted_case{csubstr(input), csubstr(output)}
+    #define dqc(input, ...) dquoted_case{csubstr(input), csubstr(__VA_ARGS__)}
     // 0
     dqc("", ""),
     dqc(" ", " "),
@@ -131,24 +152,33 @@ dquoted_case test_cases_filter[] = {
     dqc(R"(\v)", "\v"),
     dqc(R"(\e)", "\x1b"),
     // 35
-    dqc(R"(\_)", "\xc2\xa0"),
+    dqc(R"(\_)", dqesc_underscore),
+    dqc(R"(\N)", dqesc_N),
+    dqc(R"(\L)", dqesc_L),
+    dqc(R"(\P)", dqesc_P),
     dqc(R"(\\\"\n\r\t\	\/\ \0\b\f\a\v\e\_\N\L\P)", dqescparsed),
+    // 40
+    dqc("\u263A", R"(☺)"),
+    dqc("\u263a", R"(☺)"),
+    dqc("\u2705", R"(✅)"),
+    dqc("\U0001D11E", R"(𝄞)"),
+    dqc("\U0001d11e", R"(𝄞)"),
+    // 45
     dqc("\u263A\u2705\U0001D11E", R"(☺✅𝄞)"),
     dqc(R"(\b1998\t1999\t2000\n)", "\b1998\t1999\t2000\n"),
     dqc(R"(\x0d\x0a is \r\n)", "\r\n is \r\n"),
-    // 40
     dqc("\n  foo\n\n    bar\n\n  baz\n", " foo\nbar\nbaz "),
     dqc(" 1st non-empty\n\n 2nd non-empty \n 3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
+    // 50
     dqc(" 1st non-empty\n\n 2nd non-empty \n	3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
     dqc(" 1st non-empty\n\n 2nd non-empty 	\n 	3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
     dqc(" 1st non-empty\n\n 2nd non-empty	 \n	3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
-    // 45
     dqc("\n  ", " "),
     dqc("  \n  ", " "),
+    // 55
     dqc("\n\n  ", "\n"),
     dqc("\n\n\n  ", "\n\n"),
     dqc("folded \nto a space,	\n \nto a line feed, or 	\\\n \\ 	non-content", "folded to a space,\nto a line feed, or \t \tnon-content"),
-    // 50
     dqc("folded \nto a space,\n \nto a line feed, or 	\\\n \\ 	non-content", "folded to a space,\nto a line feed, or \t \tnon-content"),
     dqc("	\n\ndetected\n\n", "\t\ndetected\n"),
     #undef dqc

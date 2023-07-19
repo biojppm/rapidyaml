@@ -760,6 +760,7 @@ csubstr ScalarFilterProcessor::filter_dquoted(FilterProcessor &C4_RESTRICT proc,
                 const char payload[] = {
                     _RYML_CHCONST(-0x3e, 0xc2),
                     _RYML_CHCONST(-0x60, 0xa0),
+                    '\0'
                 };
                 proc.translate_esc(payload, /*nread*/1);
             }
@@ -769,6 +770,7 @@ csubstr ScalarFilterProcessor::filter_dquoted(FilterProcessor &C4_RESTRICT proc,
                 const char payload[] = {
                     _RYML_CHCONST(-0x3e, 0xc2),
                     _RYML_CHCONST(-0x7b, 0x85),
+                    '\0'
                 };
                 proc.translate_esc(payload, /*nread*/1);
             }
@@ -779,6 +781,7 @@ csubstr ScalarFilterProcessor::filter_dquoted(FilterProcessor &C4_RESTRICT proc,
                     _RYML_CHCONST(-0x1e, 0xe2),
                     _RYML_CHCONST(-0x80, 0x80),
                     _RYML_CHCONST(-0x58, 0xa8),
+                    '\0'
                 };
                 proc.translate_esc(payload, /*nread*/1);
             }
@@ -789,6 +792,7 @@ csubstr ScalarFilterProcessor::filter_dquoted(FilterProcessor &C4_RESTRICT proc,
                     _RYML_CHCONST(-0x1e, 0xe2),
                     _RYML_CHCONST(-0x80, 0x80),
                     _RYML_CHCONST(-0x57, 0xa9),
+                    '\0'
                 };
                 proc.translate_esc(payload, /*nread*/1);
             }
