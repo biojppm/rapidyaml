@@ -8,12 +8,17 @@ struct dquoted_case
     csubstr input, output;
 };
 
+size_t needed_size(csubstr input)
+{
+    return 4 * input.size() + 4;
+}
+
 void test_filter(csubstr input, csubstr expected)
 {
     SCOPED_TRACE(input);
     SCOPED_TRACE(expected);
     std::string subject_;
-    subject_.resize(2 * input.size() + 4);
+    subject_.resize(needed_size(input));
     c4::substr dst = to_substr(subject_);
     ScalarFilterProcessor proc = {};
     csubstr out = proc.filter_dquoted(input, dst, Location{});
@@ -29,9 +34,10 @@ void test_filter_inplace(csubstr input, csubstr expected)
     SCOPED_TRACE(input);
     SCOPED_TRACE(expected);
     std::string subject_(input.str, input.len);
+    subject_.reserve(needed_size(input));
     c4::substr dst = to_substr(subject_);
     ScalarFilterProcessor proc = {};
-    csubstr out = proc.filter_dquoted(dst, Location{});
+    csubstr out = proc.filter_dquoted(dst, subject_.capacity(), Location{});
     EXPECT_TRUE(out.is_sub(dst));// << "\ninput=" << input << "\nexpected=" << expected;
     EXPECT_EQ(out, expected);
     std::cout << "OK! ~~~" << input << "~~~   --->  ~~~" << out << "~~~\n";

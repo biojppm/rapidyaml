@@ -13,12 +13,12 @@ struct ScalarFilterProcessor
     csubstr filter_plain(substr scalar, size_t indentation, LocCRef loc);
     csubstr filter_plain(csubstr scalar, substr dst, size_t indentation, LocCRef loc);
 
-    csubstr filter_squoted(substr scalar, LocCRef loc);
+    csubstr filter_squoted(substr scalar, size_t cap, LocCRef loc);
     csubstr filter_squoted(csubstr scalar, substr dst, LocCRef loc);
     template<class FilterProcessor>
     csubstr filter_squoted(FilterProcessor &C4_RESTRICT proc, LocCRef loc);
 
-    csubstr filter_dquoted(substr scalar, LocCRef loc);
+    csubstr filter_dquoted(substr scalar, size_t cap, LocCRef loc);
     csubstr filter_dquoted(csubstr scalar, substr dst, LocCRef loc);
     template<class FilterProcessor>
     csubstr filter_dquoted(FilterProcessor &C4_RESTRICT proc, LocCRef loc);

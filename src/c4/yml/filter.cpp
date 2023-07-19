@@ -17,26 +17,29 @@ struct FilterProcessorInplace
     substr src;
     size_t rpos;
     size_t wpos;
+    size_t wcap;
     Callbacks const* m_callbacks;
 
-    C4_ALWAYS_INLINE FilterProcessorInplace(substr src_, Callbacks const* callbacks) noexcept
+    C4_ALWAYS_INLINE FilterProcessorInplace(substr src_, size_t wcap_, Callbacks const* callbacks) noexcept
         : src(src_)
         , rpos(0)
         , wpos(0)
+        , wcap(wcap_)
         , m_callbacks(callbacks)
     {
     }
 
-    C4_ALWAYS_INLINE FilterProcessorInplace(substr src_) noexcept
+    C4_ALWAYS_INLINE FilterProcessorInplace(substr src_, size_t wcap_) noexcept
         : src(src_)
         , rpos(0)
         , wpos(0)
+        , wcap(wcap_)
         , m_callbacks(&get_callbacks())
     {
     }
 
     C4_ALWAYS_INLINE operator bool() const noexcept { return rpos < src.len; }
-    C4_ALWAYS_INLINE csubstr sofar() const noexcept { _RYML_CB_ASSERT(*m_callbacks, wpos <= src.len); return src.first(wpos); }
+    C4_ALWAYS_INLINE csubstr sofar() const noexcept { _RYML_CB_ASSERT(*m_callbacks, wpos <= wcap); return csubstr(src.str, wcap).first(wpos); }
     C4_ALWAYS_INLINE char curr() const noexcept { _RYML_CB_ASSERT(*m_callbacks, rpos < src.len); return src[rpos]; }
     C4_ALWAYS_INLINE char next() const noexcept { _RYML_CB_ASSERT(*m_callbacks, rpos < src.len); return rpos+1 < src.len ? src[rpos+1] : '\0'; }
     C4_ALWAYS_INLINE bool skipped_chars() const noexcept { return wpos != rpos; }
@@ -46,7 +49,7 @@ struct FilterProcessorInplace
 
     C4_ALWAYS_INLINE void copy() noexcept
     {
-        _RYML_CB_ASSERT(*m_callbacks, wpos < src.len);
+        _RYML_CB_ASSERT(*m_callbacks, wpos < wcap);
         _RYML_CB_ASSERT(*m_callbacks, rpos < src.len);
         if(wpos < rpos)
             src.str[wpos] = src.str[rpos];
@@ -56,7 +59,7 @@ struct FilterProcessorInplace
     C4_ALWAYS_INLINE void copy(size_t num) noexcept
     {
         RYML_ASSERT(num);
-        _RYML_CB_ASSERT(*m_callbacks, wpos+num <= src.len);
+        _RYML_CB_ASSERT(*m_callbacks, wpos+num <= wcap);
         _RYML_CB_ASSERT(*m_callbacks, rpos+num <= src.len);
         if(num && wpos < rpos)
             memcpy(src.str + wpos, src.str + rpos, num);
@@ -66,13 +69,13 @@ struct FilterProcessorInplace
 
     C4_ALWAYS_INLINE void set(char c) noexcept
     {
-        _RYML_CB_ASSERT(*m_callbacks, wpos < src.len);
+        _RYML_CB_ASSERT(*m_callbacks, wpos < wcap);
         src.str[wpos++] = c;
     }
     C4_ALWAYS_INLINE void set(char c, size_t num) noexcept
     {
         RYML_ASSERT(num);
-        _RYML_CB_ASSERT(*m_callbacks, wpos+num <= src.len);
+        _RYML_CB_ASSERT(*m_callbacks, wpos+num <= wcap);
         if(wpos < rpos)
             memset(src.str + wpos, c, num);
         wpos += num;
@@ -80,7 +83,7 @@ struct FilterProcessorInplace
 
     C4_ALWAYS_INLINE void translate_esc(char c) noexcept
     {
-        _RYML_CB_ASSERT(*m_callbacks, wpos < src.len);
+        _RYML_CB_ASSERT(*m_callbacks, wpos < wcap);
         src.str[wpos++] = c;
         rpos += 2;
     }
@@ -88,7 +91,8 @@ struct FilterProcessorInplace
     {
         _RYML_CB_ASSERT(*m_callbacks, nw > 0);
         _RYML_CB_ASSERT(*m_callbacks, nr > 0);
-        _RYML_CB_ASSERT(*m_callbacks, wpos+nw <= src.len);
+        _RYML_CB_ASSERT(*m_callbacks, wpos+nw <= wcap);
+        _RYML_CB_ASSERT(*m_callbacks, rpos+nr <= src.len);
         memcpy(src.str + wpos, s, nw);
         wpos += nw;
         rpos += 1 + nr;
@@ -98,7 +102,8 @@ struct FilterProcessorInplace
     {
         _RYML_CB_ASSERT(*m_callbacks, NW > 1);
         _RYML_CB_ASSERT(*m_callbacks, nr > 0);
-        _RYML_CB_ASSERT(*m_callbacks, wpos+NW-1 <= src.len);
+        _RYML_CB_ASSERT(*m_callbacks, wpos+NW-1 <= wcap);
+        _RYML_CB_ASSERT(*m_callbacks, rpos+nr <= src.len);
         memcpy(src.str + wpos, s, NW-1);
         wpos += NW - 1;
         rpos += 1 + nr;
@@ -179,7 +184,8 @@ struct FilterProcessorSrcDst
     {
         _RYML_CB_ASSERT(*m_callbacks, nw > 0);
         _RYML_CB_ASSERT(*m_callbacks, nr > 0);
-        _RYML_CB_ASSERT(*m_callbacks, wpos+nw <= src.len);
+        _RYML_CB_ASSERT(*m_callbacks, wpos+nw <= dst.len);
+        _RYML_CB_ASSERT(*m_callbacks, rpos+nr <= src.len);
         memcpy(dst.str + wpos, s, nw);
         wpos += nw;
         rpos += 1 + nr;
@@ -189,7 +195,8 @@ struct FilterProcessorSrcDst
     {
         _RYML_CB_ASSERT(*m_callbacks, NW > 1);
         _RYML_CB_ASSERT(*m_callbacks, nr > 0);
-        _RYML_CB_ASSERT(*m_callbacks, wpos+NW-1 <= src.len);
+        _RYML_CB_ASSERT(*m_callbacks, wpos+NW-1 <= dst.len);
+        _RYML_CB_ASSERT(*m_callbacks, rpos+nr <= src.len);
         memcpy(dst.str + wpos, s, NW-1);
         wpos += NW - 1;
         rpos += 1 + nr;
@@ -595,9 +602,9 @@ csubstr ScalarFilterProcessor::filter_squoted(csubstr scalar, substr dst, LocCRe
     return filter_squoted(proc, loc);
 }
 
-csubstr ScalarFilterProcessor::filter_squoted(substr dst, LocCRef loc)
+csubstr ScalarFilterProcessor::filter_squoted(substr dst, size_t cap, LocCRef loc)
 {
-    FilterProcessorInplace proc(dst, m_callbacks);
+    FilterProcessorInplace proc(dst, cap, m_callbacks);
     return filter_squoted(proc, loc);
 }
 
@@ -698,10 +705,13 @@ csubstr ScalarFilterProcessor::filter_dquoted(FilterProcessor &C4_RESTRICT proc,
             {
                 if(proc.rpos + 1u + 2u >= proc.src.len)
                     _c4errflt(loc, "\\x requires 2 hex digits");
+                csubstr codepoint = proc.src.sub(proc.rpos + 2u, 2u);
+                _c4dbgfdq("utf8 ~~~{}~~~ rpos={} rem=~~~{}~~~", codepoint, proc.rpos, proc.src.sub(proc.rpos));
                 uint8_t byteval = {};
-                if(!read_hex(proc.src.sub(proc.rpos + 2u, 2u), &byteval))
+                if(!read_hex(codepoint, &byteval))
                     _c4errflt(loc, "failed to read \\x codepoint");
-                proc.translate_esc((const char*)&byteval, 1u, /*nread*/2u);
+                proc.translate_esc((const char*)&byteval, 1u, /*nread*/3u);
+                _c4dbgfdq("utf8 after rpos={} rem=~~~{}~~~", proc.rpos, proc.src.sub(proc.rpos));
             }
             else if(next == 'u') // UTF16
             {
@@ -714,7 +724,7 @@ csubstr ScalarFilterProcessor::filter_dquoted(FilterProcessor &C4_RESTRICT proc,
                     _c4errflt(loc, "failed to parse \\u codepoint");
                 size_t numbytes = decode_code_point((uint8_t*)readbuf, sizeof(readbuf), codepoint_val);
                 C4_ASSERT(numbytes <= 4);
-                proc.translate_esc(readbuf, numbytes, /*nread*/4u);
+                proc.translate_esc(readbuf, numbytes, /*nread*/5u);
             }
             else if(next == 'U') // UTF32
             {
@@ -727,7 +737,7 @@ csubstr ScalarFilterProcessor::filter_dquoted(FilterProcessor &C4_RESTRICT proc,
                     _c4errflt(loc, "failed to parse \\U codepoint");
                 size_t numbytes = decode_code_point((uint8_t*)readbuf, sizeof(readbuf), codepoint_val);
                 C4_ASSERT(numbytes <= 4);
-                proc.translate_esc(readbuf, numbytes, /*nread*/8u);
+                proc.translate_esc(readbuf, numbytes, /*nread*/9u);
             }
             // https://yaml.org/spec/1.2.2/#rule-c-ns-esc-char
             else if(next == '0')
@@ -820,9 +830,9 @@ csubstr ScalarFilterProcessor::filter_dquoted(csubstr scalar, substr dst, LocCRe
     return filter_dquoted(proc, loc);
 }
 
-csubstr ScalarFilterProcessor::filter_dquoted(substr dst, LocCRef loc)
+csubstr ScalarFilterProcessor::filter_dquoted(substr dst, size_t cap, LocCRef loc)
 {
-    FilterProcessorInplace proc(dst, m_callbacks);
+    FilterProcessorInplace proc(dst, cap, m_callbacks);
     return filter_dquoted(proc, loc);
 }
 
