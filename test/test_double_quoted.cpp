@@ -1,3 +1,4 @@
+#include "./test_case.hpp"
 #include "./test_group.hpp"
 
 namespace c4 {
@@ -15,8 +16,7 @@ size_t needed_size(csubstr input)
 
 void test_filter(csubstr input, csubstr expected)
 {
-    SCOPED_TRACE(input);
-    SCOPED_TRACE(expected);
+    RYML_TRACE_FMT("\nstr=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~", input.len, input, expected.len, expected);
     std::string subject_;
     subject_.resize(needed_size(input));
     c4::substr dst = to_substr(subject_);
@@ -31,8 +31,7 @@ void test_filter(csubstr input, csubstr expected)
 
 void test_filter_inplace(csubstr input, csubstr expected)
 {
-    SCOPED_TRACE(input);
-    SCOPED_TRACE(expected);
+    RYML_TRACE_FMT("\nstr=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~", input.len, input, expected.len, expected);
     std::string subject_(input.str, input.len);
     subject_.reserve(needed_size(input));
     c4::substr dst = to_substr(subject_);

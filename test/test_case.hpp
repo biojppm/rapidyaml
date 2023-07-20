@@ -49,6 +49,8 @@ inline void PrintTo(csubstr s, ::std::ostream* os) { os->write(s.str, (std::stre
 
 namespace yml {
 
+#define RYML_TRACE_FMT(fmt, ...) SCOPED_TRACE([&]{ return formatrs<std::string>(fmt, __VA_ARGS__); }())
+
 inline void PrintTo(NodeType ty, ::std::ostream* os)
 {
     *os << ty.type_str();
