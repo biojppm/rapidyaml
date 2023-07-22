@@ -14,10 +14,10 @@ namespace {
 
 struct FilterProcessorInplace
 {
-    substr src;
-    size_t rpos;
-    size_t wpos;
-    size_t wcap;
+    substr src;  ///< the subject string
+    size_t rpos; ///< read position
+    size_t wpos; ///< write position
+    size_t wcap; ///< write capacity the capacity of the subject string's buffer
     Callbacks const* m_callbacks;
 
     C4_ALWAYS_INLINE FilterProcessorInplace(substr src_, size_t wcap_, Callbacks const* callbacks) noexcept
@@ -87,26 +87,31 @@ struct FilterProcessorInplace
         src.str[wpos++] = c;
         rpos += 2;
     }
-    C4_ALWAYS_INLINE void translate_esc(const char *s, size_t nw, size_t nr) noexcept
+    C4_ALWAYS_INLINE void translate_esc(const char *C4_RESTRICT s, size_t nw, size_t nr) noexcept
     {
         _RYML_CB_ASSERT(*m_callbacks, nw > 0);
         _RYML_CB_ASSERT(*m_callbacks, nr > 0);
         _RYML_CB_ASSERT(*m_callbacks, wpos+nw <= wcap);
         _RYML_CB_ASSERT(*m_callbacks, rpos+nr <= src.len);
-        memcpy(src.str + wpos, s, nw);
-        wpos += nw;
-        rpos += 1 + nr;
-    }
-    template<size_t NW>
-    C4_ALWAYS_INLINE void translate_esc(const char (&s)[NW], size_t nr) noexcept
-    {
-        _RYML_CB_ASSERT(*m_callbacks, NW > 1);
-        _RYML_CB_ASSERT(*m_callbacks, nr > 0);
-        _RYML_CB_ASSERT(*m_callbacks, wpos+NW-1 <= wcap);
-        _RYML_CB_ASSERT(*m_callbacks, rpos+nr <= src.len);
-        memcpy(src.str + wpos, s, NW-1);
-        wpos += NW - 1;
-        rpos += 1 + nr;
+        const size_t wpos_next = wpos + nw;
+        const size_t rpos_next = rpos + 1 + nr;
+        if(wpos_next <= rpos_next)
+        {
+            // there is no overlap, just do a vanilla copy
+            memcpy(src.str + wpos, s, nw);
+            wpos = wpos_next;
+            rpos = rpos_next;
+        }
+        else
+        {
+            // there IS overlap. move the string to the right
+            const size_t excess = wpos_next - rpos_next;
+            _RYML_CB_ASSERT(*m_callbacks, rpos+nr+excess <= src.len);
+            memmove(src.str + wpos_next, src.str + rpos_next, src.len - rpos_next);
+            memcpy(src.str + wpos, s, nw);
+            wpos = wpos_next;
+            rpos = wpos_next; // wpos, not rpos
+        }
     }
 };
 
@@ -180,7 +185,7 @@ struct FilterProcessorSrcDst
         dst.str[wpos++] = c;
         rpos += 2;
     }
-    C4_ALWAYS_INLINE void translate_esc(const char *s, size_t nw, size_t nr) noexcept
+    C4_ALWAYS_INLINE void translate_esc(const char *C4_RESTRICT s, size_t nw, size_t nr) noexcept
     {
         _RYML_CB_ASSERT(*m_callbacks, nw > 0);
         _RYML_CB_ASSERT(*m_callbacks, nr > 0);
@@ -188,17 +193,6 @@ struct FilterProcessorSrcDst
         _RYML_CB_ASSERT(*m_callbacks, rpos+nr <= src.len);
         memcpy(dst.str + wpos, s, nw);
         wpos += nw;
-        rpos += 1 + nr;
-    }
-    template<size_t NW>
-    C4_ALWAYS_INLINE void translate_esc(const char (&s)[NW], size_t nr) noexcept
-    {
-        _RYML_CB_ASSERT(*m_callbacks, NW > 1);
-        _RYML_CB_ASSERT(*m_callbacks, nr > 0);
-        _RYML_CB_ASSERT(*m_callbacks, wpos+NW-1 <= dst.len);
-        _RYML_CB_ASSERT(*m_callbacks, rpos+nr <= src.len);
-        memcpy(dst.str + wpos, s, NW-1);
-        wpos += NW - 1;
         rpos += 1 + nr;
     }
 };
@@ -675,11 +669,12 @@ csubstr ScalarFilterProcessor::filter_dquoted(FilterProcessor &C4_RESTRICT proc,
                     else
                         break;
                 }
-                proc.skip(ii - proc.rpos - 1);
+                proc.skip(ii - proc.rpos);
             }
-            else if(next == '"' || next == '/'  || next == ' ' || next == '\t') // escapes for json compatibility
+            else if(next == '"' || next == '/' || next == ' ' || next == '\t') // escapes for json compatibility
             {
                 proc.translate_esc(next);
+                _c4dbgfdq("here, used '{}'", _c4prc(next));
             }
             else if(next == '\r')
             {
@@ -770,9 +765,8 @@ csubstr ScalarFilterProcessor::filter_dquoted(FilterProcessor &C4_RESTRICT proc,
                 const char payload[] = {
                     _RYML_CHCONST(-0x3e, 0xc2),
                     _RYML_CHCONST(-0x60, 0xa0),
-                    '\0'
                 };
-                proc.translate_esc(payload, /*nread*/1);
+                proc.translate_esc(payload, /*nwrite*/2, /*nread*/1);
             }
             else if(next == 'N') // unicode next line \u0085
             {
@@ -780,9 +774,8 @@ csubstr ScalarFilterProcessor::filter_dquoted(FilterProcessor &C4_RESTRICT proc,
                 const char payload[] = {
                     _RYML_CHCONST(-0x3e, 0xc2),
                     _RYML_CHCONST(-0x7b, 0x85),
-                    '\0'
                 };
-                proc.translate_esc(payload, /*nread*/1);
+                proc.translate_esc(payload, /*nwrite*/2, /*nread*/1);
             }
             else if(next == 'L') // unicode line separator \u2028
             {
@@ -791,9 +784,8 @@ csubstr ScalarFilterProcessor::filter_dquoted(FilterProcessor &C4_RESTRICT proc,
                     _RYML_CHCONST(-0x1e, 0xe2),
                     _RYML_CHCONST(-0x80, 0x80),
                     _RYML_CHCONST(-0x58, 0xa8),
-                    '\0'
                 };
-                proc.translate_esc(payload, /*nread*/1);
+                proc.translate_esc(payload, /*nwrite*/3, /*nread*/1);
             }
             else if(next == 'P') // unicode paragraph separator \u2029
             {
@@ -802,9 +794,8 @@ csubstr ScalarFilterProcessor::filter_dquoted(FilterProcessor &C4_RESTRICT proc,
                     _RYML_CHCONST(-0x1e, 0xe2),
                     _RYML_CHCONST(-0x80, 0x80),
                     _RYML_CHCONST(-0x57, 0xa9),
-                    '\0'
                 };
-                proc.translate_esc(payload, /*nread*/1);
+                proc.translate_esc(payload, /*nwrite*/3, /*nread*/1);
             }
             else if(next == '\0')
             {

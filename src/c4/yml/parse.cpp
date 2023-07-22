@@ -4753,7 +4753,7 @@ csubstr Parser::_filter_dquot_scalar(substr s)
     for(size_t i = 0; i < r.len; ++i)
     {
         const char curr = r[i];
-        _c4dbgfdq("[{}]: '{}'", i, _c4prc(curr));
+        _c4dbgfdq("[{}->{}]: '{}' sofar=[{}]~~~{}~~~", i, pos, _c4prc(curr), pos, m_filter_arena.first(pos));
         if(curr == ' ' || curr == '\t')
         {
             _filter_ws</*keep_trailing_ws*/true>(r, &i, &pos);
@@ -4769,7 +4769,7 @@ csubstr Parser::_filter_dquot_scalar(substr s)
         else if(curr == '\\')
         {
             char next = i+1 < r.len ? r[i+1] : '\0';
-            _c4dbgfdq("[{}]: backslash, next='{}'", i, _c4prc(next));
+            _c4dbgfdq("[{}->{}]: backslash, next='{}'", i, pos, _c4prc(next));
             filtered_chars = true;
             if(next == '\r')
             {
@@ -4777,7 +4777,7 @@ csubstr Parser::_filter_dquot_scalar(substr s)
                 {
                     ++i; // newline escaped with \ -- skip both (add only one as i is loop-incremented)
                     next = '\n';
-                    _c4dbgfdq("[{}]: was \\r\\n, now next='\\n'", i);
+                    _c4dbgfdq("[{}->{}]: was \\r\\n, now next='\\n'", i, pos);
                 }
             }
             // remember the loop will also increment i
@@ -4923,7 +4923,7 @@ csubstr Parser::_filter_dquot_scalar(substr s)
                 m_filter_arena.str[pos++] = _RYML_CHCONST(-0x57, 0xa9);
                 ++i;
             }
-            _c4dbgfdq("[{}]: backslash...sofar=[{}]~~~{}~~~", i, pos, m_filter_arena.first(pos));
+            _c4dbgfdq("[{}->{}]: backslash...sofar=[{}]~~~{}~~~", i, pos, pos, m_filter_arena.first(pos));
         }
         else
         {
