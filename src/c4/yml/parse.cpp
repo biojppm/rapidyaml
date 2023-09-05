@@ -4572,7 +4572,7 @@ void Parser::_filter_ws(substr r, size_t *C4_RESTRICT i, size_t *C4_RESTRICT pos
 {
     // a debugging scaffold:
     #if 0
-    #define _c4dbgfws(fmt, ...) _c4dbgpf("filt_nl[{}]: " fmt, *i, __VA_ARGS__)
+    #define _c4dbgfws(fmt, ...) _c4dbgpf("filt_ws[{}]: " fmt, *i, __VA_ARGS__)
     #else
     #define _c4dbgfws(...)
     #endif
@@ -4731,7 +4731,7 @@ csubstr Parser::_filter_dquot_scalar(substr s)
 {
     // a debugging scaffold:
     #if 0
-    #define _c4dbgfdq(...) _c4dbgpf("filt_dquo_scalar" __VA_ARGS__)
+    #define _c4dbgfdq(...) _c4dbgpf("filt_dquo" __VA_ARGS__)
     #else
     #define _c4dbgfdq(...)
     #endif

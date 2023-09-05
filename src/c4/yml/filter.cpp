@@ -404,7 +404,7 @@ void ScalarFilterProcessor::_filter_ws(FilterProcessor &proc)
         if(first_char == '\n' || first_char == '\r') // skip trailing whitespace
         {
             _c4dbgfws("whitespace is trailing on line. firstnonws='{}'@{}", _c4prc(first_char), first_pos);
-            proc.skip(first_pos-proc.rpos);
+            proc.skip(first_pos - proc.rpos);
         }
         else // a legit whitespace
         {
