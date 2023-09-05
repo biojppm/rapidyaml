@@ -15,27 +15,29 @@ namespace {
 struct FilterProcessorInplace
 {
     substr src;  ///< the subject string
+    size_t wcap; ///< write capacity - the capacity of the subject string's buffer
     size_t rpos; ///< read position
     size_t wpos; ///< write position
-    size_t wcap; ///< write capacity the capacity of the subject string's buffer
     Callbacks const* m_callbacks;
 
     C4_ALWAYS_INLINE FilterProcessorInplace(substr src_, size_t wcap_, Callbacks const* callbacks) noexcept
         : src(src_)
+        , wcap(wcap_)
         , rpos(0)
         , wpos(0)
-        , wcap(wcap_)
         , m_callbacks(callbacks)
     {
+        _RYML_CB_ASSERT(*m_callbacks, wcap >= src.len);
     }
 
     C4_ALWAYS_INLINE FilterProcessorInplace(substr src_, size_t wcap_) noexcept
         : src(src_)
+        , wcap(wcap_)
         , rpos(0)
         , wpos(0)
-        , wcap(wcap_)
         , m_callbacks(&get_callbacks())
     {
+        _RYML_CB_ASSERT(*m_callbacks, wcap >= src.len);
     }
 
     C4_ALWAYS_INLINE operator bool() const noexcept { return rpos < src.len; }
@@ -58,7 +60,7 @@ struct FilterProcessorInplace
     }
     C4_ALWAYS_INLINE void copy(size_t num) noexcept
     {
-        RYML_ASSERT(num);
+        _RYML_CB_ASSERT(*m_callbacks, num);
         _RYML_CB_ASSERT(*m_callbacks, wpos+num <= wcap);
         _RYML_CB_ASSERT(*m_callbacks, rpos+num <= src.len);
         if(num && wpos < rpos)
@@ -74,7 +76,7 @@ struct FilterProcessorInplace
     }
     C4_ALWAYS_INLINE void set(char c, size_t num) noexcept
     {
-        RYML_ASSERT(num);
+        _RYML_CB_ASSERT(*m_callbacks, num);
         _RYML_CB_ASSERT(*m_callbacks, wpos+num <= wcap);
         if(wpos < rpos)
             memset(src.str + wpos, c, num);
@@ -104,16 +106,20 @@ struct FilterProcessorInplace
         }
         else
         {
-            // there IS overlap. move the string to the right
+            // there IS overlap. move the (to-be-read) string to the right
             const size_t excess = wpos_next - rpos_next;
             _RYML_CB_ASSERT(*m_callbacks, rpos+nr+excess <= src.len);
             memmove(src.str + wpos_next, src.str + rpos_next, src.len - rpos_next);
             memcpy(src.str + wpos, s, nw);
             wpos = wpos_next;
             rpos = wpos_next; // wpos, not rpos
+            // extend the string up to capacity
+            src.len += excess;
+            src.len = src.len <= wcap ? src.len : wcap;
         }
     }
 };
+
 
 struct FilterProcessorSrcDst
 {
@@ -130,6 +136,8 @@ struct FilterProcessorSrcDst
         , wpos(0)
         , m_callbacks(callbacks)
     {
+        _RYML_CB_ASSERT(*m_callbacks, src.len <= dst.len);
+        _RYML_CB_ASSERT(*m_callbacks, !dst.overlaps(src));
     }
 
     C4_ALWAYS_INLINE FilterProcessorSrcDst(csubstr src_, substr dst_) noexcept
@@ -139,6 +147,8 @@ struct FilterProcessorSrcDst
         , wpos(0)
         , m_callbacks(&get_callbacks())
     {
+        _RYML_CB_ASSERT(*m_callbacks, src.len <= dst.len);
+        _RYML_CB_ASSERT(*m_callbacks, !dst.overlaps(src));
     }
 
     C4_ALWAYS_INLINE operator bool() const noexcept { return rpos < src.len; }
@@ -604,6 +614,9 @@ csubstr ScalarFilterProcessor::filter_squoted(substr dst, size_t cap, LocCRef lo
 
 
 //-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+/* double quoted */
 
 template<class FilterProcessor>
 csubstr ScalarFilterProcessor::filter_dquoted(FilterProcessor &C4_RESTRICT proc, LocCRef loc)

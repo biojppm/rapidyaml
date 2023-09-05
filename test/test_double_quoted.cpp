@@ -11,36 +11,40 @@ struct dquoted_case
 
 size_t needed_size(csubstr input)
 {
-    return 4 * input.size() + 4;
+    return 4 * input.len + 4;
 }
 
 void test_filter(csubstr input, csubstr expected)
 {
     RYML_TRACE_FMT("\nstr=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~", input.len, input, expected.len, expected);
+    size_t sz = needed_size(input);
     std::string subject_;
-    subject_.resize(needed_size(input));
+    subject_.resize(sz);
     c4::substr dst = to_substr(subject_);
     ScalarFilterProcessor proc = {};
     csubstr out = proc.filter_dquoted(input, dst, Location{});
     if(input != expected)
     {
-        EXPECT_TRUE(out.is_sub(dst));// << "\ninput=" << input << "\nexpected=" << expected;
+        EXPECT_TRUE(out.is_sub(dst));
     }
+    RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
     EXPECT_EQ(out, expected);
 }
 
 void test_filter_inplace(csubstr input, csubstr expected)
 {
     RYML_TRACE_FMT("\nstr=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~", input.len, input, expected.len, expected);
+    size_t sz = needed_size(input);
+    ASSERT_GT(sz, input.len);
     std::string subject_(input.str, input.len);
-    subject_.reserve(needed_size(input));
+    subject_.reserve(sz);
     c4::substr dst = to_substr(subject_);
     c4::csubstr dst_full = csubstr(subject_.data(), subject_.capacity());
     ScalarFilterProcessor proc = {};
     csubstr out = proc.filter_dquoted(dst, subject_.capacity(), Location{});
-    EXPECT_TRUE(out.is_sub(dst_full));// << "\ninput=" << input << "\nexpected=" << expected;
+    EXPECT_TRUE(out.is_sub(dst_full));
+    RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
     EXPECT_EQ(out, expected);
-    std::cout << "OK! ~~~" << input << "~~~   --->  ~~~" << out << "~~~\n";
 }
 
 
