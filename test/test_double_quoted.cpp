@@ -15,14 +15,25 @@ struct dquoted_case
 // test also cases where the destination string is not large
 // enough to accomodate the filtered string.
 
-void test_filter(csubstr input, csubstr expected, size_t sz)
+/** when filtering from src to dst, specifying the dst sz is enough to
+ * cover the different cases */
+void test_filter(csubstr input, csubstr expected, size_t dst_sz)
 {
-    RYML_TRACE_FMT("\nstr=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~\nsz={}", input.len, input, expected.len, expected, sz);
+    RYML_TRACE_FMT("\nstr=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~\nsz={}", input.len, input, expected.len, expected, dst_sz);
+    // fill the dst buffer with a ref char to ensure there is no
+    // write overflow.
+    const size_t actual_sz = size_t(30) + (dst_sz > expected.len ? dst_sz : expected.len);
     std::string subject_;
-    subject_.resize(sz);
-    c4::substr dst = to_substr(subject_);
+    subject_.resize(actual_sz);
+    const substr full = to_substr(subject_);
+    // fill the canary region
+    const char refchar = '`';
+    full.sub(dst_sz).fill(refchar);
+    // filter now
+    const substr dst = full.first(dst_sz);
     ScalarFilterProcessor proc = {};
-    csubstr out = proc.filter_dquoted(input, dst, Location{});
+    const csubstr out = proc.filter_dquoted(input, dst, Location{});
+    // check the result
     EXPECT_EQ(out.len, expected.len);
     if(out.str)
     {
@@ -30,72 +41,101 @@ void test_filter(csubstr input, csubstr expected, size_t sz)
         RYML_TRACE_FMT("\nout.str={}\ndst.str={}", (void const*)out.str, (void const*)dst.str);
         EXPECT_TRUE(out.is_sub(dst));
         EXPECT_EQ(out, expected);
+        // check the fill character in the canary region
+        EXPECT_GT(full.sub(dst_sz).len, 0u);
+        EXPECT_EQ(full.sub(dst_sz).first_not_of(refchar), csubstr::npos);
     }
 }
 
-void test_filter_inplace(csubstr input, csubstr expected)
+
+void test_filter_inplace(csubstr input, csubstr expected, csubstr leading_input, csubstr leading_expected)
 {
-    // test also with an expanding leading string (\L expands to three bytes).
-    // This ensures coverage of cases where expected.len > capacity.
-    for(std::string leading : {"", "\\L\\L\\L\\L\\L\\L\\L\\L\\L\\L\\L\\L\\L\\L\\L\\L"})
+    // fill the dst buffer with a ref char to ensure there is no
+    // write overflow.
+    const size_t input_sz = leading_input.len + input.len;
+    const size_t expected_sz = leading_expected.len + expected.len;
+    const size_t max_sz = (input_sz > expected_sz ? input_sz : expected_sz);
+    const size_t full_sz = max_sz + size_t(30);
+    std::string expected_(leading_expected.str, leading_expected.len);
+    expected_ += std::string(expected.str, expected.len);
+    if(input_sz >= expected_sz)
     {
-        std::string subject_(leading);
+        // there is enough room to filter.
+        // create the string
+        std::string subject_(leading_input.str, leading_input.len);
         subject_ += std::string(input.str, input.len);
-        RYML_TRACE_FMT("\ninp=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~\nlead=[{}]~~~{}~~~", input.len, input, expected.len, expected, leading.size(), leading);
-        subject_.reserve(expected.len);
-        c4::substr dst = to_substr(subject_);
-        c4::csubstr dst_full = csubstr(subject_.data(), subject_.capacity());
+        subject_.resize(full_sz);
+        // fill the canary region
+        const char refchar = '`';
+        const substr full = to_substr(subject_);
+        full.sub(max_sz).fill(refchar);
+        RYML_TRACE_FMT("\ninp=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~\nlead=[{}]~~~{}~~~", input.len, input, expected.len, expected, leading_input.len, leading_input);
+        substr dst = full.first(input_sz);
         ScalarFilterProcessor proc = {};
-        csubstr out = proc.filter_dquoted(dst, subject_.capacity(), Location{});
-        EXPECT_TRUE(out.is_sub(dst_full));
-        RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
-        EXPECT_EQ(out, expected);
+        csubstr out = proc.filter_dquoted(dst, input_sz, Location{});
+        EXPECT_EQ(out.len, expected_sz);
+        ASSERT_NE(out.str, nullptr);
+        EXPECT_EQ(out, expected_);
+        // check the fill character in the canary region
+        EXPECT_GT(full.sub(input_sz).len, 0u);
+        EXPECT_EQ(full.sub(input_sz).first_not_of(refchar), csubstr::npos);
     }
-}
-
-
-struct DQuotedFilterTest : public ::testing::TestWithParam<dquoted_case>
-{
-};
-
-TEST_P(DQuotedFilterTest, filter__same_size)
-{
-    dquoted_case dqc = GetParam();
-    test_filter(dqc.input, dqc.output, /*sz*/dqc.output.len);
-}
-
-TEST_P(DQuotedFilterTest, filter__larger_size)
-{
-    dquoted_case dqc = GetParam();
-    test_filter(dqc.input, dqc.output, /*sz*/dqc.output.len + 2u);
-}
-
-TEST_P(DQuotedFilterTest, filter__smaller_size)
-{
-    dquoted_case dqc = GetParam();
-    test_filter(dqc.input, dqc.output, /*sz*/dqc.output.len / 2u);
-}
-
-TEST_P(DQuotedFilterTest, filter__zero_size)
-{
-    dquoted_case dqc = GetParam();
-    test_filter(dqc.input, dqc.output, /*sz*/0u);
-}
-
-
-TEST_P(DQuotedFilterTest, filter_inplace)
-{
-    dquoted_case dqc = GetParam();
-    test_filter_inplace(dqc.input, dqc.output);
+    else // input_sz < expected_sz
+    {
+        // there is room to filter IF we pass expected_sz as the capacity.
+        {
+            // create the string
+            std::string subject_(leading_input.str, leading_input.len);
+            subject_ += std::string(input.str, input.len);
+            subject_.resize(full_sz);
+            // fill the canary region
+            const char refchar = '`';
+            const substr full = to_substr(subject_);
+            full.sub(max_sz).fill(refchar);
+            RYML_TRACE_FMT("\ninp=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~\nlead=[{}]~~~{}~~~", input.len, input, expected.len, expected, leading_input.len, leading_input);
+            // filter now
+            substr dst = full.first(input_sz);
+            ScalarFilterProcessor proc = {};
+            csubstr out = proc.filter_dquoted(dst, expected_sz, Location{});
+            EXPECT_EQ(out.len, expected_sz);
+            ASSERT_NE(out.str, nullptr);
+            EXPECT_EQ(out, expected_);
+            // check the fill character in the canary region
+            EXPECT_GT(full.sub(max_sz).len, 0u);
+            EXPECT_EQ(full.sub(max_sz).first_not_of(refchar), csubstr::npos);
+        }
+        // there is no room to filter IF we pass input_sz as the capacity.
+        {
+            // create the string
+            std::string subject_(leading_input.str, leading_input.len);
+            subject_ += std::string(input.str, input.len);
+            subject_.resize(full_sz);
+            // fill the canary region
+            const char refchar = '`';
+            const substr full = to_substr(subject_);
+            full.sub(max_sz).fill(refchar);
+            RYML_TRACE_FMT("\ninp=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~\nlead=[{}]~~~{}~~~", input.len, input, expected.len, expected, leading_input.len, leading_input);
+            // filter now
+            substr dst = full.first(input_sz);
+            ScalarFilterProcessor proc = {};
+            csubstr out = proc.filter_dquoted(dst, input_sz, Location{});
+            EXPECT_EQ(out.len, expected_sz);
+            EXPECT_EQ(out.str, nullptr);
+            // check the fill character in the canary region
+            EXPECT_GT(full.sub(max_sz).len, 0u);
+            EXPECT_EQ(full.sub(max_sz).first_not_of(refchar), csubstr::npos);
+        }
+    }
 }
 
 
 //-----------------------------------------------------------------------------
 
+// some strings cannot be portably declared in double quotes "" in C++.
+// So we use this helper macro.
 #define DECLARE_CSUBSTR_FROM_CHAR_ARR(name, ...) \
-const char name##_[] = { __VA_ARGS__ }; \
-csubstr name = {name##_, C4_COUNTOF(name##_)}
-
+    const char name##_[] = { __VA_ARGS__ }; \
+    csubstr name = {name##_, C4_COUNTOF(name##_)}
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqescparsed,
          '\\',
          '"',
@@ -112,152 +152,87 @@ DECLARE_CSUBSTR_FROM_CHAR_ARR(dqescparsed,
          '\v',
          INT8_C(0x1b),
           // \_
-         _RYML_CHCONST(-0x3e, 0xc2),
-         _RYML_CHCONST(-0x60, 0xa0),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
          // \N
-         _RYML_CHCONST(-0x3e, 0xc2),
-         _RYML_CHCONST(-0x7b, 0x85),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
          // \L
-         _RYML_CHCONST(-0x1e, 0xe2),
-         _RYML_CHCONST(-0x80, 0x80),
-         _RYML_CHCONST(-0x58, 0xa8),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
          // \P
-         _RYML_CHCONST(-0x1e, 0xe2),
-         _RYML_CHCONST(-0x80, 0x80),
-         _RYML_CHCONST(-0x57, 0xa9),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_underscore,
-         _RYML_CHCONST(-0x3e, 0xc2),
-         _RYML_CHCONST(-0x60, 0xa0),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_underscore2,
-         _RYML_CHCONST(-0x3e, 0xc2),
-         _RYML_CHCONST(-0x60, 0xa0),
-         _RYML_CHCONST(-0x3e, 0xc2),
-         _RYML_CHCONST(-0x60, 0xa0),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_underscore3,
-         _RYML_CHCONST(-0x3e, 0xc2),
-         _RYML_CHCONST(-0x60, 0xa0),
-         _RYML_CHCONST(-0x3e, 0xc2),
-         _RYML_CHCONST(-0x60, 0xa0),
-         _RYML_CHCONST(-0x3e, 0xc2),
-         _RYML_CHCONST(-0x60, 0xa0),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_underscore4,
-         _RYML_CHCONST(-0x3e, 0xc2),
-         _RYML_CHCONST(-0x60, 0xa0),
-         _RYML_CHCONST(-0x3e, 0xc2),
-         _RYML_CHCONST(-0x60, 0xa0),
-         _RYML_CHCONST(-0x3e, 0xc2),
-         _RYML_CHCONST(-0x60, 0xa0),
-         _RYML_CHCONST(-0x3e, 0xc2),
-         _RYML_CHCONST(-0x60, 0xa0),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_N,
-         _RYML_CHCONST(-0x3e, 0xc2),
-         _RYML_CHCONST(-0x7b, 0x85),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_N2,
-         _RYML_CHCONST(-0x3e, 0xc2),
-         _RYML_CHCONST(-0x7b, 0x85),
-         _RYML_CHCONST(-0x3e, 0xc2),
-         _RYML_CHCONST(-0x7b, 0x85),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_N3,
-         _RYML_CHCONST(-0x3e, 0xc2),
-         _RYML_CHCONST(-0x7b, 0x85),
-         _RYML_CHCONST(-0x3e, 0xc2),
-         _RYML_CHCONST(-0x7b, 0x85),
-         _RYML_CHCONST(-0x3e, 0xc2),
-         _RYML_CHCONST(-0x7b, 0x85),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_N4,
-         _RYML_CHCONST(-0x3e, 0xc2),
-         _RYML_CHCONST(-0x7b, 0x85),
-         _RYML_CHCONST(-0x3e, 0xc2),
-         _RYML_CHCONST(-0x7b, 0x85),
-         _RYML_CHCONST(-0x3e, 0xc2),
-         _RYML_CHCONST(-0x7b, 0x85),
-         _RYML_CHCONST(-0x3e, 0xc2),
-         _RYML_CHCONST(-0x7b, 0x85),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_L,
-         _RYML_CHCONST(-0x1e, 0xe2),
-         _RYML_CHCONST(-0x80, 0x80),
-         _RYML_CHCONST(-0x58, 0xa8),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_L2,
-         _RYML_CHCONST(-0x1e, 0xe2),
-         _RYML_CHCONST(-0x80, 0x80),
-         _RYML_CHCONST(-0x58, 0xa8),
-         _RYML_CHCONST(-0x1e, 0xe2),
-         _RYML_CHCONST(-0x80, 0x80),
-         _RYML_CHCONST(-0x58, 0xa8),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_L3,
-         _RYML_CHCONST(-0x1e, 0xe2),
-         _RYML_CHCONST(-0x80, 0x80),
-         _RYML_CHCONST(-0x58, 0xa8),
-         _RYML_CHCONST(-0x1e, 0xe2),
-         _RYML_CHCONST(-0x80, 0x80),
-         _RYML_CHCONST(-0x58, 0xa8),
-         _RYML_CHCONST(-0x1e, 0xe2),
-         _RYML_CHCONST(-0x80, 0x80),
-         _RYML_CHCONST(-0x58, 0xa8),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_L4,
-         _RYML_CHCONST(-0x1e, 0xe2),
-         _RYML_CHCONST(-0x80, 0x80),
-         _RYML_CHCONST(-0x58, 0xa8),
-         _RYML_CHCONST(-0x1e, 0xe2),
-         _RYML_CHCONST(-0x80, 0x80),
-         _RYML_CHCONST(-0x58, 0xa8),
-         _RYML_CHCONST(-0x1e, 0xe2),
-         _RYML_CHCONST(-0x80, 0x80),
-         _RYML_CHCONST(-0x58, 0xa8),
-         _RYML_CHCONST(-0x1e, 0xe2),
-         _RYML_CHCONST(-0x80, 0x80),
-         _RYML_CHCONST(-0x58, 0xa8),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_P,
-         _RYML_CHCONST(-0x1e, 0xe2),
-         _RYML_CHCONST(-0x80, 0x80),
-         _RYML_CHCONST(-0x57, 0xa9),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_P2,
-         _RYML_CHCONST(-0x1e, 0xe2),
-         _RYML_CHCONST(-0x80, 0x80),
-         _RYML_CHCONST(-0x57, 0xa9),
-         _RYML_CHCONST(-0x1e, 0xe2),
-         _RYML_CHCONST(-0x80, 0x80),
-         _RYML_CHCONST(-0x57, 0xa9),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_P3,
-         _RYML_CHCONST(-0x1e, 0xe2),
-         _RYML_CHCONST(-0x80, 0x80),
-         _RYML_CHCONST(-0x57, 0xa9),
-         _RYML_CHCONST(-0x1e, 0xe2),
-         _RYML_CHCONST(-0x80, 0x80),
-         _RYML_CHCONST(-0x57, 0xa9),
-         _RYML_CHCONST(-0x1e, 0xe2),
-         _RYML_CHCONST(-0x80, 0x80),
-         _RYML_CHCONST(-0x57, 0xa9),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_P4,
-         _RYML_CHCONST(-0x1e, 0xe2),
-         _RYML_CHCONST(-0x80, 0x80),
-         _RYML_CHCONST(-0x57, 0xa9),
-         _RYML_CHCONST(-0x1e, 0xe2),
-         _RYML_CHCONST(-0x80, 0x80),
-         _RYML_CHCONST(-0x57, 0xa9),
-         _RYML_CHCONST(-0x1e, 0xe2),
-         _RYML_CHCONST(-0x80, 0x80),
-         _RYML_CHCONST(-0x57, 0xa9),
-         _RYML_CHCONST(-0x1e, 0xe2),
-         _RYML_CHCONST(-0x80, 0x80),
-         _RYML_CHCONST(-0x57, 0xa9),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
     );
+
+// declare double quoted test cases
 dquoted_case test_cases_filter[] = {
     #define dqc(input, ...) dquoted_case{csubstr(input), csubstr(__VA_ARGS__)}
     // 0
@@ -359,10 +334,71 @@ dquoted_case test_cases_filter[] = {
     #undef dqc
 };
 
+
+//-----------------------------------------------------------------------------
+
+struct DQuotedFilterSrcDstTest : public ::testing::TestWithParam<dquoted_case>
+{
+};
+
+
+TEST_P(DQuotedFilterSrcDstTest, same_size)
+{
+    dquoted_case dqc = GetParam();
+    test_filter(dqc.input, dqc.output, /*sz*/dqc.output.len);
+}
+
+TEST_P(DQuotedFilterSrcDstTest, larger_size)
+{
+    dquoted_case dqc = GetParam();
+    test_filter(dqc.input, dqc.output, /*sz*/dqc.output.len + 2u);
+    test_filter(dqc.input, dqc.output, /*sz*/dqc.output.len + 100u);
+}
+
+TEST_P(DQuotedFilterSrcDstTest, smaller_size)
+{
+    dquoted_case dqc = GetParam();
+    test_filter(dqc.input, dqc.output, /*sz*/dqc.output.len / 2u);
+}
+
+TEST_P(DQuotedFilterSrcDstTest, zero_size)
+{
+    dquoted_case dqc = GetParam();
+    test_filter(dqc.input, dqc.output, /*sz*/0u);
+}
+
+
+
+struct DQuotedFilterInplaceTest : public ::testing::TestWithParam<dquoted_case>
+{
+};
+
+
+TEST_P(DQuotedFilterInplaceTest, same_size)
+{
+    dquoted_case dqc = GetParam();
+    test_filter_inplace(dqc.input, dqc.output, /*leading*/"", /*leading_expected*/"");
+}
+
+TEST_P(DQuotedFilterInplaceTest, smaller_size)
+{
+    // test also with an expanding leading string (\L expands to three bytes).
+    // This ensures coverage of cases where expected.len > capacity.
+    dquoted_case dqc = GetParam();
+    test_filter_inplace(dqc.input, dqc.output, /*leading*/"\\L\\L\\L\\L", /*leading_expected*/dqesc_L4);
+}
+
+
 INSTANTIATE_TEST_SUITE_P(double_quoted_filter,
-                         DQuotedFilterTest,
+                         DQuotedFilterSrcDstTest,
                          testing::ValuesIn(test_cases_filter));
 
+INSTANTIATE_TEST_SUITE_P(double_quoted_filter,
+                         DQuotedFilterInplaceTest,
+                         testing::ValuesIn(test_cases_filter));
+
+
+//-----------------------------------------------------------------------------
 
 TEST(double_quoted, escaped_chars)
 {

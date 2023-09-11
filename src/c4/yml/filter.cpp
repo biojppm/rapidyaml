@@ -42,7 +42,7 @@ struct FilterProcessorInplace
 
     C4_ALWAYS_INLINE operator bool() const noexcept { return rpos < src.len; }
 
-    C4_ALWAYS_INLINE csubstr result() const noexcept { return csubstr(wpos <= wcap ? src.str : nullptr, wpos); }
+    C4_ALWAYS_INLINE csubstr result() const noexcept { csubstr ret; ret.str = wpos <= src.len ? src.str : nullptr; ret.len = wpos; return ret; }
     C4_ALWAYS_INLINE csubstr sofar() const noexcept { return csubstr(src.str, wpos <= wcap ? wpos : wcap); }
 
     C4_ALWAYS_INLINE char curr() const noexcept { _RYML_CB_ASSERT(*m_callbacks, rpos < src.len); return src[rpos]; }
@@ -54,9 +54,8 @@ struct FilterProcessorInplace
 
     C4_ALWAYS_INLINE void copy() noexcept
     {
-        _RYML_CB_ASSERT(*m_callbacks, wpos < wcap);
         _RYML_CB_ASSERT(*m_callbacks, rpos < src.len);
-        if(wpos != rpos)
+        if((wpos != rpos) && (wpos < wcap))
             src.str[wpos] = src.str[rpos];
         ++wpos;
         ++rpos;
@@ -66,7 +65,7 @@ struct FilterProcessorInplace
         _RYML_CB_ASSERT(*m_callbacks, num);
         _RYML_CB_ASSERT(*m_callbacks, wpos+num <= wcap);
         _RYML_CB_ASSERT(*m_callbacks, rpos+num <= src.len);
-        if((wpos < rpos) || (rpos + num <= wpos))
+        if((wpos != rpos) || (rpos + num <= wpos))
             memcpy(src.str + wpos, src.str + rpos, num);
         wpos += num;
         rpos += num;
@@ -76,7 +75,8 @@ struct FilterProcessorInplace
     {
         _RYML_CB_ASSERT(*m_callbacks, wpos < wcap);
         if(wpos < wcap)
-            src.str[wpos++] = c;
+            src.str[wpos] = c;
+        ++wpos;
     }
     C4_ALWAYS_INLINE void set(char c, size_t num) noexcept
     {
@@ -91,21 +91,22 @@ struct FilterProcessorInplace
     {
         _RYML_CB_ASSERT(*m_callbacks, wpos < wcap);
         if(wpos < wcap)
-            src.str[wpos++] = c;
+            src.str[wpos] = c;
+        ++wpos;
         rpos += 2;
     }
     C4_ALWAYS_INLINE void translate_esc(const char *C4_RESTRICT s, size_t nw, size_t nr) noexcept
     {
         _RYML_CB_ASSERT(*m_callbacks, nw > 0);
         _RYML_CB_ASSERT(*m_callbacks, nr > 0);
-        _RYML_CB_ASSERT(*m_callbacks, wpos+nw <= wcap);
         _RYML_CB_ASSERT(*m_callbacks, rpos+nr <= src.len);
         const size_t wpos_next = wpos + nw;
         const size_t rpos_next = rpos + 1 + nr;
         if(wpos_next <= rpos_next)
         {
             // there is no overlap, just do a vanilla copy
-            memcpy(src.str + wpos, s, nw);
+            if(wpos_next <= wcap)
+                memcpy(src.str + wpos, s, nw);
             wpos = wpos_next;
             rpos = rpos_next;
         }
@@ -114,8 +115,11 @@ struct FilterProcessorInplace
             // there IS overlap. move the (to-be-read) string to the right
             const size_t excess = wpos_next - rpos_next;
             _RYML_CB_ASSERT(*m_callbacks, rpos+nr+excess <= src.len);
-            memmove(src.str + wpos_next, src.str + rpos_next, src.len - rpos_next);
-            memcpy(src.str + wpos, s, nw);
+            if(wpos_next <= wcap)
+            {
+                memmove(src.str + wpos_next, src.str + rpos_next, src.len - rpos_next);
+                memcpy(src.str + wpos, s, nw);
+            }
             wpos = wpos_next;
             rpos = wpos_next; // wpos, not rpos
             // extend the string up to capacity
@@ -170,8 +174,9 @@ struct FilterProcessorSrcDst
     {
         _RYML_CB_ASSERT(*m_callbacks, rpos < src.len);
         if(wpos < dst.len)
-            dst.str[wpos] = src.str[rpos++];
+            dst.str[wpos] = src.str[rpos];
         ++wpos;
+        ++rpos;
     }
     C4_ALWAYS_INLINE void copy(size_t num) noexcept
     {
