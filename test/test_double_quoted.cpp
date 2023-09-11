@@ -9,42 +9,48 @@ struct dquoted_case
     csubstr input, output;
 };
 
-size_t needed_size(csubstr input)
-{
-    return 4 * input.len + 4;
-}
 
-void test_filter(csubstr input, csubstr expected)
+// double quoted filtering can result in an output larger than the input.
+// so we ensure adequate test covering by using different sizes.
+// test also cases where the destination string is not large
+// enough to accomodate the filtered string.
+
+void test_filter(csubstr input, csubstr expected, size_t sz)
 {
-    RYML_TRACE_FMT("\nstr=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~", input.len, input, expected.len, expected);
-    size_t sz = needed_size(input);
+    RYML_TRACE_FMT("\nstr=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~\nsz={}", input.len, input, expected.len, expected, sz);
     std::string subject_;
     subject_.resize(sz);
     c4::substr dst = to_substr(subject_);
     ScalarFilterProcessor proc = {};
     csubstr out = proc.filter_dquoted(input, dst, Location{});
-    if(input != expected)
+    EXPECT_EQ(out.len, expected.len);
+    if(out.str)
     {
+        RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
+        RYML_TRACE_FMT("\nout.str={}\ndst.str={}", (void const*)out.str, (void const*)dst.str);
         EXPECT_TRUE(out.is_sub(dst));
+        EXPECT_EQ(out, expected);
     }
-    RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
-    EXPECT_EQ(out, expected);
 }
 
 void test_filter_inplace(csubstr input, csubstr expected)
 {
-    RYML_TRACE_FMT("\nstr=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~", input.len, input, expected.len, expected);
-    size_t sz = needed_size(input);
-    ASSERT_GT(sz, input.len);
-    std::string subject_(input.str, input.len);
-    subject_.reserve(sz);
-    c4::substr dst = to_substr(subject_);
-    c4::csubstr dst_full = csubstr(subject_.data(), subject_.capacity());
-    ScalarFilterProcessor proc = {};
-    csubstr out = proc.filter_dquoted(dst, subject_.capacity(), Location{});
-    EXPECT_TRUE(out.is_sub(dst_full));
-    RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
-    EXPECT_EQ(out, expected);
+    // test also with an expanding leading string (\L expands to three bytes).
+    // This ensures coverage of cases where expected.len > capacity.
+    for(std::string leading : {"", "\\L\\L\\L\\L\\L\\L\\L\\L\\L\\L\\L\\L\\L\\L\\L\\L"})
+    {
+        std::string subject_(leading);
+        subject_ += std::string(input.str, input.len);
+        RYML_TRACE_FMT("\ninp=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~\nlead=[{}]~~~{}~~~", input.len, input, expected.len, expected, leading.size(), leading);
+        subject_.reserve(expected.len);
+        c4::substr dst = to_substr(subject_);
+        c4::csubstr dst_full = csubstr(subject_.data(), subject_.capacity());
+        ScalarFilterProcessor proc = {};
+        csubstr out = proc.filter_dquoted(dst, subject_.capacity(), Location{});
+        EXPECT_TRUE(out.is_sub(dst_full));
+        RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
+        EXPECT_EQ(out, expected);
+    }
 }
 
 
@@ -52,11 +58,30 @@ struct DQuotedFilterTest : public ::testing::TestWithParam<dquoted_case>
 {
 };
 
-TEST_P(DQuotedFilterTest, filter)
+TEST_P(DQuotedFilterTest, filter__same_size)
 {
     dquoted_case dqc = GetParam();
-    test_filter(dqc.input, dqc.output);
+    test_filter(dqc.input, dqc.output, /*sz*/dqc.output.len);
 }
+
+TEST_P(DQuotedFilterTest, filter__larger_size)
+{
+    dquoted_case dqc = GetParam();
+    test_filter(dqc.input, dqc.output, /*sz*/dqc.output.len + 2u);
+}
+
+TEST_P(DQuotedFilterTest, filter__smaller_size)
+{
+    dquoted_case dqc = GetParam();
+    test_filter(dqc.input, dqc.output, /*sz*/dqc.output.len / 2u);
+}
+
+TEST_P(DQuotedFilterTest, filter__zero_size)
+{
+    dquoted_case dqc = GetParam();
+    test_filter(dqc.input, dqc.output, /*sz*/0u);
+}
+
 
 TEST_P(DQuotedFilterTest, filter_inplace)
 {
@@ -64,6 +89,8 @@ TEST_P(DQuotedFilterTest, filter_inplace)
     test_filter_inplace(dqc.input, dqc.output);
 }
 
+
+//-----------------------------------------------------------------------------
 
 #define DECLARE_CSUBSTR_FROM_CHAR_ARR(name, ...) \
 const char name##_[] = { __VA_ARGS__ }; \

@@ -41,7 +41,10 @@ struct FilterProcessorInplace
     }
 
     C4_ALWAYS_INLINE operator bool() const noexcept { return rpos < src.len; }
-    C4_ALWAYS_INLINE csubstr sofar() const noexcept { _RYML_CB_ASSERT(*m_callbacks, wpos <= wcap); return csubstr(src.str, wcap).first(wpos); }
+
+    C4_ALWAYS_INLINE csubstr result() const noexcept { return csubstr(wpos <= wcap ? src.str : nullptr, wpos); }
+    C4_ALWAYS_INLINE csubstr sofar() const noexcept { return csubstr(src.str, wpos <= wcap ? wpos : wcap); }
+
     C4_ALWAYS_INLINE char curr() const noexcept { _RYML_CB_ASSERT(*m_callbacks, rpos < src.len); return src[rpos]; }
     C4_ALWAYS_INLINE char next() const noexcept { _RYML_CB_ASSERT(*m_callbacks, rpos < src.len); return rpos+1 < src.len ? src[rpos+1] : '\0'; }
     C4_ALWAYS_INLINE bool skipped_chars() const noexcept { return wpos != rpos; }
@@ -53,7 +56,7 @@ struct FilterProcessorInplace
     {
         _RYML_CB_ASSERT(*m_callbacks, wpos < wcap);
         _RYML_CB_ASSERT(*m_callbacks, rpos < src.len);
-        if(wpos < rpos)
+        if(wpos != rpos)
             src.str[wpos] = src.str[rpos];
         ++wpos;
         ++rpos;
@@ -63,7 +66,7 @@ struct FilterProcessorInplace
         _RYML_CB_ASSERT(*m_callbacks, num);
         _RYML_CB_ASSERT(*m_callbacks, wpos+num <= wcap);
         _RYML_CB_ASSERT(*m_callbacks, rpos+num <= src.len);
-        if(num && wpos < rpos)
+        if((wpos < rpos) || (rpos + num <= wpos))
             memcpy(src.str + wpos, src.str + rpos, num);
         wpos += num;
         rpos += num;
@@ -72,7 +75,8 @@ struct FilterProcessorInplace
     C4_ALWAYS_INLINE void set(char c) noexcept
     {
         _RYML_CB_ASSERT(*m_callbacks, wpos < wcap);
-        src.str[wpos++] = c;
+        if(wpos < wcap)
+            src.str[wpos++] = c;
     }
     C4_ALWAYS_INLINE void set(char c, size_t num) noexcept
     {
@@ -86,7 +90,8 @@ struct FilterProcessorInplace
     C4_ALWAYS_INLINE void translate_esc(char c) noexcept
     {
         _RYML_CB_ASSERT(*m_callbacks, wpos < wcap);
-        src.str[wpos++] = c;
+        if(wpos < wcap)
+            src.str[wpos++] = c;
         rpos += 2;
     }
     C4_ALWAYS_INLINE void translate_esc(const char *C4_RESTRICT s, size_t nw, size_t nr) noexcept
@@ -125,8 +130,8 @@ struct FilterProcessorSrcDst
 {
     csubstr src;
     substr dst;
-    size_t rpos;
-    size_t wpos;
+    size_t rpos; ///< read position
+    size_t wpos; ///< write position
     Callbacks const* m_callbacks;
 
     C4_ALWAYS_INLINE FilterProcessorSrcDst(csubstr src_, substr dst_, Callbacks const* callbacks) noexcept
@@ -136,7 +141,6 @@ struct FilterProcessorSrcDst
         , wpos(0)
         , m_callbacks(callbacks)
     {
-        _RYML_CB_ASSERT(*m_callbacks, src.len <= dst.len);
         _RYML_CB_ASSERT(*m_callbacks, !dst.overlaps(src));
     }
 
@@ -147,12 +151,14 @@ struct FilterProcessorSrcDst
         , wpos(0)
         , m_callbacks(&get_callbacks())
     {
-        _RYML_CB_ASSERT(*m_callbacks, src.len <= dst.len);
         _RYML_CB_ASSERT(*m_callbacks, !dst.overlaps(src));
     }
 
     C4_ALWAYS_INLINE operator bool() const noexcept { return rpos < src.len; }
-    C4_ALWAYS_INLINE csubstr sofar() const noexcept { _RYML_CB_ASSERT(*m_callbacks, wpos <= dst.len); return dst.first(wpos); }
+
+    C4_ALWAYS_INLINE csubstr sofar() const noexcept { return csubstr(dst.str, wpos <= dst.len ? wpos : dst.len); }
+    C4_ALWAYS_INLINE csubstr result() const noexcept { csubstr ret; ret.str = wpos <= dst.len ? dst.str : nullptr; ret.len = wpos; return ret; }
+
     C4_ALWAYS_INLINE char curr() const noexcept { _RYML_CB_ASSERT(*m_callbacks, rpos < src.len); return src[rpos]; }
     C4_ALWAYS_INLINE char next() const noexcept { _RYML_CB_ASSERT(*m_callbacks, rpos < src.len); return rpos+1 < src.len ? src[rpos+1] : '\0'; }
     C4_ALWAYS_INLINE bool skipped_chars() const noexcept { return wpos != rpos; }
@@ -162,46 +168,49 @@ struct FilterProcessorSrcDst
 
     C4_ALWAYS_INLINE void copy() noexcept
     {
-        _RYML_CB_ASSERT(*m_callbacks, wpos < dst.len);
         _RYML_CB_ASSERT(*m_callbacks, rpos < src.len);
-        dst.str[wpos++] = src.str[rpos++];
+        if(wpos < dst.len)
+            dst.str[wpos] = src.str[rpos++];
+        ++wpos;
     }
     C4_ALWAYS_INLINE void copy(size_t num) noexcept
     {
         _RYML_CB_ASSERT(*m_callbacks, num);
-        _RYML_CB_ASSERT(*m_callbacks, wpos+num <= dst.len);
         _RYML_CB_ASSERT(*m_callbacks, rpos+num <= src.len);
-        memcpy(dst.str + wpos, src.str + rpos, num);
+        if(wpos + num <= dst.len)
+            memcpy(dst.str + wpos, src.str + rpos, num);
         wpos += num;
         rpos += num;
     }
 
     C4_ALWAYS_INLINE void set(char c) noexcept
     {
-        _RYML_CB_ASSERT(*m_callbacks, wpos < dst.len);
-        dst.str[wpos++] = c;
+        if(wpos < dst.len)
+            dst.str[wpos] = c;
+        ++wpos;
     }
     C4_ALWAYS_INLINE void set(char c, size_t num) noexcept
     {
         _RYML_CB_ASSERT(*m_callbacks, num > 0);
-        _RYML_CB_ASSERT(*m_callbacks, wpos+num <= dst.len);
-        memset(dst.str + wpos, c, num);
+        if(wpos + num <= dst.len)
+            memset(dst.str + wpos, c, num);
         wpos += num;
     }
 
     C4_ALWAYS_INLINE void translate_esc(char c) noexcept
     {
-        _RYML_CB_ASSERT(*m_callbacks, wpos < dst.len);
-        dst.str[wpos++] = c;
+        if(wpos < dst.len)
+            dst.str[wpos] = c;
+        ++wpos;
         rpos += 2;
     }
     C4_ALWAYS_INLINE void translate_esc(const char *C4_RESTRICT s, size_t nw, size_t nr) noexcept
     {
         _RYML_CB_ASSERT(*m_callbacks, nw > 0);
         _RYML_CB_ASSERT(*m_callbacks, nr > 0);
-        _RYML_CB_ASSERT(*m_callbacks, wpos+nw <= dst.len);
         _RYML_CB_ASSERT(*m_callbacks, rpos+nr <= src.len);
-        memcpy(dst.str + wpos, s, nw);
+        if(wpos+nw <= dst.len)
+            memcpy(dst.str + wpos, s, nw);
         wpos += nw;
         rpos += 1 + nr;
     }
@@ -596,7 +605,7 @@ csubstr ScalarFilterProcessor::filter_squoted(FilterProcessor &C4_RESTRICT proc,
 
     _c4dbgpf(": #filteredchars={} after=~~~[{}]{}~~~", proc.src.len-proc.sofar().len, proc.sofar().len, proc.sofar());
 
-    return proc.sofar();
+    return proc.result();
     #undef _c4dbgfsq
 }
 
@@ -824,7 +833,7 @@ csubstr ScalarFilterProcessor::filter_dquoted(FilterProcessor &C4_RESTRICT proc,
 
     _c4dbgpf("after[{}]=~~~{}~~~", proc.wpos, proc.sofar());
 
-    return proc.sofar();
+    return proc.result();
     #undef _c4dbgfdq
 }
 
