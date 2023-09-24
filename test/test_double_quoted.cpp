@@ -75,6 +75,7 @@ void test_filter_inplace(csubstr input, csubstr expected, csubstr leading_input,
         EXPECT_EQ(out.len, expected_sz);
         if(out.str)
         {
+            if(cap )
             EXPECT_EQ(out, expected_);
             // check the fill character in the canary region
             EXPECT_GT(full.sub(max_sz).len, 0u);
@@ -95,7 +96,7 @@ void test_filter_inplace(csubstr input, csubstr expected, csubstr leading_input,
         }
         // there is no room to filter if we pass input_sz as the capacity.
         {
-            RYML_TRACE_FMT("expanding.2: up to larger input_sz={}", input_sz);
+            RYML_TRACE_FMT("expanding.2: up to smaller input_sz={}", input_sz);
             run(input_sz);
         }
     }
@@ -110,6 +111,8 @@ void test_filter_inplace(csubstr input, csubstr expected, csubstr leading_input,
 #define DECLARE_CSUBSTR_FROM_CHAR_ARR(name, ...) \
     const char name##_[] = { __VA_ARGS__ }; \
     csubstr name = {name##_, C4_COUNTOF(name##_)}
+
+C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4566) // 4566: character represented by universal-character-name '\u263A' cannot be represented in the current code page (1252)
 
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqescparsed,
          '\\',
@@ -274,20 +277,20 @@ dquoted_case test_cases_filter[] = {
     // 50
     dqc(R"(\P\P\P\P)", dqesc_P4),
     dqc(R"(\\\"\n\r\t\	\/\ \0\b\f\a\v\e\_\N\L\P)", dqescparsed),
-    dqc("\u263A", R"(☺)"),
-    dqc("\u263a", R"(☺)"),
-    dqc("\u2705", R"(✅)"),
+    dqc(u8"\u263A", R"(☺)"),
+    dqc(u8"\u263a", R"(☺)"),
+    dqc(u8"\u2705", R"(✅)"),
     // 55
-    dqc("\u2705\u2705", R"(✅✅)"),
-    dqc("\u2705\u2705\u2705", R"(✅✅✅)"),
-    dqc("\u2705\u2705\u2705\u2705", R"(✅✅✅✅)"),
-    dqc("\U0001D11E", R"(𝄞)"),
-    dqc("\U0001d11e", R"(𝄞)"),
+    dqc(u8"\u2705\u2705", R"(✅✅)"),
+    dqc(u8"\u2705\u2705\u2705", R"(✅✅✅)"),
+    dqc(u8"\u2705\u2705\u2705\u2705", R"(✅✅✅✅)"),
+    dqc(u8"\U0001D11E", R"(𝄞)"),
+    dqc(u8"\U0001d11e", R"(𝄞)"),
     // 60
-    dqc("\U0001d11e\U0001D11E", R"(𝄞𝄞)"),
-    dqc("\U0001d11e\U0001D11E\U0001D11E", R"(𝄞𝄞𝄞)"),
-    dqc("\U0001d11e\U0001D11E\U0001D11E\U0001D11E", R"(𝄞𝄞𝄞𝄞)"),
-    dqc("\u263A\u2705\U0001D11E", R"(☺✅𝄞)"),
+    dqc(u8"\U0001d11e\U0001D11E", R"(𝄞𝄞)"),
+    dqc(u8"\U0001d11e\U0001D11E\U0001D11E", R"(𝄞𝄞𝄞)"),
+    dqc(u8"\U0001d11e\U0001D11E\U0001D11E\U0001D11E", R"(𝄞𝄞𝄞𝄞)"),
+    dqc(u8"\u263A\u2705\U0001D11E", R"(☺✅𝄞)"),
     dqc(R"(\b1998\t1999\t2000\n)", "\b1998\t1999\t2000\n"),
     // 65
     dqc(R"(\x0d\x0a is \r\n)", "\r\n is \r\n"),
@@ -309,6 +312,7 @@ dquoted_case test_cases_filter[] = {
     dqc("This is a key\n\nthat has multiple lines\n\n", "This is a key\nthat has multiple lines\n"),
     #undef dqc
 };
+C4_SUPPRESS_WARNING_MSVC_POP
 
 
 //-----------------------------------------------------------------------------
@@ -318,26 +322,26 @@ struct DQuotedFilterSrcDstTest : public ::testing::TestWithParam<dquoted_case>
 };
 
 
-TEST_P(DQuotedFilterSrcDstTest, same_size)
+TEST_P(DQuotedFilterSrcDstTest, dst_is_same_size)
 {
     dquoted_case dqc = GetParam();
-    test_filter(dqc.input, dqc.output, /*sz*/dqc.output.len);
+    test_filter(dqc.input, dqc.output, /*dst_sz*/dqc.output.len);
 }
 
-TEST_P(DQuotedFilterSrcDstTest, larger_size)
+TEST_P(DQuotedFilterSrcDstTest, dst_is_larger_size)
 {
     dquoted_case dqc = GetParam();
     test_filter(dqc.input, dqc.output, /*sz*/dqc.output.len + 2u);
     test_filter(dqc.input, dqc.output, /*sz*/dqc.output.len + 100u);
 }
 
-TEST_P(DQuotedFilterSrcDstTest, smaller_size)
+TEST_P(DQuotedFilterSrcDstTest, dst_is_smaller_size)
 {
     dquoted_case dqc = GetParam();
     test_filter(dqc.input, dqc.output, /*sz*/dqc.output.len / 2u);
 }
 
-TEST_P(DQuotedFilterSrcDstTest, zero_size)
+TEST_P(DQuotedFilterSrcDstTest, dst_is_zero_size)
 {
     dquoted_case dqc = GetParam();
     test_filter(dqc.input, dqc.output, /*sz*/0u);
@@ -350,13 +354,13 @@ struct DQuotedFilterInplaceTest : public ::testing::TestWithParam<dquoted_case>
 };
 
 
-TEST_P(DQuotedFilterInplaceTest, same_size)
+TEST_P(DQuotedFilterInplaceTest, dst_is_same_size)
 {
     dquoted_case dqc = GetParam();
     test_filter_inplace(dqc.input, dqc.output, /*leading*/"", /*leading_expected*/"");
 }
 
-TEST_P(DQuotedFilterInplaceTest, smaller_size)
+TEST_P(DQuotedFilterInplaceTest, dst_is_smaller_size)
 {
     // test also with an expanding leading string ("\\L" expands from
     // two to three bytes). This ensures coverage of cases where

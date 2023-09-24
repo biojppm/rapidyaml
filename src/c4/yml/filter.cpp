@@ -10,7 +10,7 @@ C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 namespace c4 {
 namespace yml {
 
-namespace {
+namespace detail {
 
 struct FilterProcessorInplace
 {
@@ -18,6 +18,7 @@ struct FilterProcessorInplace
     size_t wcap; ///< write capacity - the capacity of the subject string's buffer
     size_t rpos; ///< read position
     size_t wpos; ///< write position
+    bool unfiltered_chars;
     Callbacks const* m_callbacks;
 
     C4_ALWAYS_INLINE FilterProcessorInplace(substr src_, size_t wcap_, Callbacks const* callbacks) noexcept
@@ -25,6 +26,7 @@ struct FilterProcessorInplace
         , wcap(wcap_)
         , rpos(0)
         , wpos(0)
+        , unfiltered_chars(false)
         , m_callbacks(callbacks)
     {
         _RYML_CB_ASSERT(*m_callbacks, wcap >= src.len);
@@ -35,6 +37,7 @@ struct FilterProcessorInplace
         , wcap(wcap_)
         , rpos(0)
         , wpos(0)
+        , unfiltered_chars(false)
         , m_callbacks(&get_callbacks())
     {
         _RYML_CB_ASSERT(*m_callbacks, wcap >= src.len);
@@ -42,12 +45,11 @@ struct FilterProcessorInplace
 
     C4_ALWAYS_INLINE bool has_more_chars() const noexcept { return rpos < src.len; }
 
-    C4_ALWAYS_INLINE csubstr result() const noexcept { csubstr ret; ret.str = wpos <= src.len ? src.str : nullptr; ret.len = wpos; return ret; }
+    C4_ALWAYS_INLINE csubstr result() const noexcept { csubstr ret; ret.str = wpos <= src.len && !unfiltered_chars ? src.str : nullptr; ret.len = wpos; return ret; }
     C4_ALWAYS_INLINE csubstr sofar() const noexcept { return csubstr(src.str, wpos <= wcap ? wpos : wcap); }
 
     C4_ALWAYS_INLINE char curr() const noexcept { _RYML_CB_ASSERT(*m_callbacks, rpos < src.len); return src[rpos]; }
     C4_ALWAYS_INLINE char next() const noexcept { return rpos+1 < src.len ? src[rpos+1] : '\0'; }
-    C4_ALWAYS_INLINE bool skipped_chars() const noexcept { return wpos != rpos; }
 
     C4_ALWAYS_INLINE void skip() noexcept { ++rpos; }
     C4_ALWAYS_INLINE void skip(size_t num) noexcept { rpos += num; }
@@ -55,8 +57,13 @@ struct FilterProcessorInplace
     C4_ALWAYS_INLINE void copy() noexcept
     {
         _RYML_CB_ASSERT(*m_callbacks, rpos < src.len);
-        if((wpos != rpos) && (wpos < wcap))
+        // write only if wpos is behind rpos
+        // |                respect write-capacity
+        // |                |
+        if((wpos < rpos) && (wpos < wcap))
             src.str[wpos] = src.str[rpos];
+        else
+            unfiltered_chars = true;
         ++wpos;
         ++rpos;
     }
@@ -64,34 +71,67 @@ struct FilterProcessorInplace
     {
         _RYML_CB_ASSERT(*m_callbacks, num);
         _RYML_CB_ASSERT(*m_callbacks, rpos+num <= src.len);
-        if((wpos != rpos) || (rpos + num <= wpos))
-            memcpy(src.str + wpos, src.str + rpos, num);
+        // write only if wpos is behind rpos
+        // |                respect write-capacity
+        // |                |
+        if((wpos < rpos) && (wpos + num < wcap))
+        {
+            if(wpos + num <= rpos) // there is no overlap
+                memcpy(src.str + wpos, src.str + rpos, num);
+            else                   // there is overlap
+                memmove(src.str + wpos, src.str + rpos, num);
+        }
+        else
+        {
+            unfiltered_chars = true;
+        }
         wpos += num;
         rpos += num;
     }
 
     C4_ALWAYS_INLINE void set(char c) noexcept
     {
-        if(wpos < wcap)
+        // write only if wpos is behind rpos
+        // |                respect write-capacity
+        // |                |
+        if((wpos < rpos) && (wpos <= wcap))
             src.str[wpos] = c;
+        else
+            unfiltered_chars = true;
         ++wpos;
     }
     C4_ALWAYS_INLINE void set(char c, size_t num) noexcept
     {
         _RYML_CB_ASSERT(*m_callbacks, num);
-        if(wpos < rpos)
+        // write only if wpos is behind rpos
+        // |                respect write-capacity
+        // |                |
+        if((wpos < rpos) && (wpos + num <= wcap))
+        {
+            _RYML_CB_ASSERT(*m_callbacks, wpos + num <= rpos);
             memset(src.str + wpos, c, num);
+        }
+        else
+        {
+            unfiltered_chars = true;
+        }
         wpos += num;
     }
 
     C4_ALWAYS_INLINE void translate_esc(char c) noexcept
     {
-        if(wpos < wcap)
+        // write only if wpos is behind rpos
+        // |                respect write-capacity
+        // |                |
+        if((wpos < rpos) && (wpos <= wcap))
             src.str[wpos] = c;
+        else
+            unfiltered_chars = true;
         ++wpos;
         rpos += 2;
     }
-    C4_ALWAYS_INLINE void translate_esc(const char *C4_RESTRICT s, size_t nw, size_t nr) noexcept
+
+    void translate_esc(const char *C4_RESTRICT s, size_t nw, size_t nr) noexcept
     {
         _RYML_CB_ASSERT(*m_callbacks, nw > 0);
         _RYML_CB_ASSERT(*m_callbacks, nr > 0);
@@ -120,6 +160,7 @@ struct FilterProcessorInplace
                 else
                 {
                     rpos = rpos_next;
+                    unfiltered_chars = true;
                 }
                 // extend the string up to capacity
                 src.len += excess;
@@ -127,6 +168,7 @@ struct FilterProcessorInplace
             else
             {
                 rpos = rpos_next;
+                unfiltered_chars = true;
             }
             wpos = wpos_next;
         }
@@ -226,6 +268,9 @@ struct FilterProcessorSrcDst
 };
 
 
+} // namespace detail
+
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -277,8 +322,10 @@ size_t _count_following_newlines(csubstr r, size_t *C4_RESTRICT i, size_t indent
     return numnl_following;
 }
 
-} // namespace
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
 template<bool backslash_is_escape, bool keep_trailing_whitespace>
 bool ScalarFilterProcessor::_filter_nl(csubstr r, substr dst, size_t *C4_RESTRICT i, size_t *C4_RESTRICT pos, size_t indentation)
@@ -620,13 +667,13 @@ csubstr ScalarFilterProcessor::filter_squoted(FilterProcessor &C4_RESTRICT proc,
 
 csubstr ScalarFilterProcessor::filter_squoted(csubstr scalar, substr dst, LocCRef loc)
 {
-    FilterProcessorSrcDst proc(scalar, dst, m_callbacks);
+    detail::FilterProcessorSrcDst proc(scalar, dst, m_callbacks);
     return filter_squoted(proc, loc);
 }
 
 csubstr ScalarFilterProcessor::filter_squoted(substr dst, size_t cap, LocCRef loc)
 {
-    FilterProcessorInplace proc(dst, cap, m_callbacks);
+    detail::FilterProcessorInplace proc(dst, cap, m_callbacks);
     return filter_squoted(proc, loc);
 }
 
@@ -823,27 +870,36 @@ csubstr ScalarFilterProcessor::filter_dquoted(FilterProcessor &C4_RESTRICT proc,
     {
         const char curr = proc.curr();
         _c4dbgfdq("'{}' sofar=[{}]~~~{}~~~", _c4prc(curr), proc.wpos, proc.sofar());
-        if(curr == ' ' || curr == '\t')
+        switch(curr)
+        {
+        case ' ':
+        case '\t':
         {
             _c4dbgfdq("whitespace", curr);
             _filter_ws</*keep_trailing_ws*/true>(proc);
+            break;
         }
-        else if(curr == '\n')
+        case '\n':
         {
             _c4dbgfdq("newline", curr);
             _filter_nl</*backslash_is_escape*/true, /*keep_trailing_ws*/true>(proc, /*indentation*/0);
+            break;
         }
-        else if(curr == '\r')  // skip \r --- https://stackoverflow.com/questions/1885900
+        case '\r':  // skip \r --- https://stackoverflow.com/questions/1885900
         {
-            _c4dbgfdq("carriage return", curr);
+            _c4dbgfdq("carriage return, ignore", curr);
+            break;
         }
-        else if(curr == '\\')
+        case '\\':
         {
             _filter_dquoted_backslash(proc, loc);
+            break;
         }
-        else
+        default:
         {
             proc.copy();
+            break;
+        }
         }
     }
 
@@ -857,13 +913,13 @@ csubstr ScalarFilterProcessor::filter_dquoted(FilterProcessor &C4_RESTRICT proc,
 
 csubstr ScalarFilterProcessor::filter_dquoted(csubstr scalar, substr dst, LocCRef loc)
 {
-    FilterProcessorSrcDst proc(scalar, dst, m_callbacks);
+    detail::FilterProcessorSrcDst proc(scalar, dst, m_callbacks);
     return filter_dquoted(proc, loc);
 }
 
 csubstr ScalarFilterProcessor::filter_dquoted(substr dst, size_t cap, LocCRef loc)
 {
-    FilterProcessorInplace proc(dst, cap, m_callbacks);
+    detail::FilterProcessorInplace proc(dst, cap, m_callbacks);
     return filter_dquoted(proc, loc);
 }
 
