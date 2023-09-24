@@ -50,6 +50,7 @@ void test_filter(csubstr input, csubstr expected, size_t dst_sz)
 
 void test_filter_inplace(csubstr input, csubstr expected, csubstr leading_input, csubstr leading_expected)
 {
+    RYML_TRACE_FMT("\ninp=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~\nlead=[{}]~~~{}~~~\nlead_exp=[{}]~~~{}~~~", input.len, input, expected.len, expected, leading_input.len, leading_input, leading_expected.len, leading_expected);
     // fill the dst buffer with a ref char to ensure there is no
     // write overflow.
     const size_t input_sz = leading_input.len + input.len;
@@ -58,9 +59,7 @@ void test_filter_inplace(csubstr input, csubstr expected, csubstr leading_input,
     const size_t full_sz = max_sz + size_t(30);
     std::string expected_(leading_expected.str, leading_expected.len);
     expected_ += std::string(expected.str, expected.len);
-    if(input_sz >= expected_sz)
-    {
-        // there is enough room to filter.
+    auto run = [&](size_t cap){
         // create the string
         std::string subject_(leading_input.str, leading_input.len);
         subject_ += std::string(input.str, input.len);
@@ -69,61 +68,35 @@ void test_filter_inplace(csubstr input, csubstr expected, csubstr leading_input,
         const char refchar = '`';
         const substr full = to_substr(subject_);
         full.sub(max_sz).fill(refchar);
-        RYML_TRACE_FMT("\ninp=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~\nlead=[{}]~~~{}~~~", input.len, input, expected.len, expected, leading_input.len, leading_input);
         substr dst = full.first(input_sz);
+        // filter now
         ScalarFilterProcessor proc = {};
-        csubstr out = proc.filter_dquoted(dst, input_sz, Location{});
+        csubstr out = proc.filter_dquoted(dst, cap, Location{});
         EXPECT_EQ(out.len, expected_sz);
-        ASSERT_NE(out.str, nullptr);
-        EXPECT_EQ(out, expected_);
-        // check the fill character in the canary region
-        EXPECT_GT(full.sub(input_sz).len, 0u);
-        EXPECT_EQ(full.sub(input_sz).first_not_of(refchar), csubstr::npos);
-    }
-    else // input_sz < expected_sz
-    {
-        // there is room to filter IF we pass expected_sz as the capacity.
+        if(out.str)
         {
-            // create the string
-            std::string subject_(leading_input.str, leading_input.len);
-            subject_ += std::string(input.str, input.len);
-            subject_.resize(full_sz);
-            // fill the canary region
-            const char refchar = '`';
-            const substr full = to_substr(subject_);
-            full.sub(max_sz).fill(refchar);
-            RYML_TRACE_FMT("\ninp=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~\nlead=[{}]~~~{}~~~", input.len, input, expected.len, expected, leading_input.len, leading_input);
-            // filter now
-            substr dst = full.first(input_sz);
-            ScalarFilterProcessor proc = {};
-            csubstr out = proc.filter_dquoted(dst, expected_sz, Location{});
-            EXPECT_EQ(out.len, expected_sz);
-            ASSERT_NE(out.str, nullptr);
             EXPECT_EQ(out, expected_);
             // check the fill character in the canary region
             EXPECT_GT(full.sub(max_sz).len, 0u);
             EXPECT_EQ(full.sub(max_sz).first_not_of(refchar), csubstr::npos);
         }
-        // there is no room to filter IF we pass input_sz as the capacity.
+    };
+    if(input_sz >= expected_sz)
+    {
+        RYML_TRACE_FMT("all good: input_sz={} >= expected_sz={}", input_sz, expected_sz);
+        run(input_sz);
+    }
+    else // input_sz < expected_sz
+    {
+        RYML_TRACE_FMT("expanding: input_sz={} < expected_sz={}", input_sz, expected_sz);
         {
-            // create the string
-            std::string subject_(leading_input.str, leading_input.len);
-            subject_ += std::string(input.str, input.len);
-            subject_.resize(full_sz);
-            // fill the canary region
-            const char refchar = '`';
-            const substr full = to_substr(subject_);
-            full.sub(max_sz).fill(refchar);
-            RYML_TRACE_FMT("\ninp=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~\nlead=[{}]~~~{}~~~", input.len, input, expected.len, expected, leading_input.len, leading_input);
-            // filter now
-            substr dst = full.first(input_sz);
-            ScalarFilterProcessor proc = {};
-            csubstr out = proc.filter_dquoted(dst, input_sz, Location{});
-            EXPECT_EQ(out.len, expected_sz);
-            EXPECT_EQ(out.str, nullptr);
-            // check the fill character in the canary region
-            EXPECT_GT(full.sub(max_sz).len, 0u);
-            EXPECT_EQ(full.sub(max_sz).first_not_of(refchar), csubstr::npos);
+            RYML_TRACE_FMT("expanding.1: up to larger expected_sz={}", expected_sz);
+            run(expected_sz);
+        }
+        // there is no room to filter if we pass input_sz as the capacity.
+        {
+            RYML_TRACE_FMT("expanding.2: up to larger input_sz={}", input_sz);
+            run(input_sz);
         }
     }
 }
@@ -131,11 +104,13 @@ void test_filter_inplace(csubstr input, csubstr expected, csubstr leading_input,
 
 //-----------------------------------------------------------------------------
 
-// some strings cannot be portably declared in double quotes "" in C++.
-// So we use this helper macro.
+// some strings cannot be portably declared in double quotes in C++,
+// so we use this helper macro, which creates an char array and
+// associated csubstr.
 #define DECLARE_CSUBSTR_FROM_CHAR_ARR(name, ...) \
     const char name##_[] = { __VA_ARGS__ }; \
     csubstr name = {name##_, C4_COUNTOF(name##_)}
+
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqescparsed,
          '\\',
          '"',
@@ -218,6 +193,7 @@ DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_P,
          _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_P2,
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
          _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
     );
 DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_P3,
@@ -382,8 +358,9 @@ TEST_P(DQuotedFilterInplaceTest, same_size)
 
 TEST_P(DQuotedFilterInplaceTest, smaller_size)
 {
-    // test also with an expanding leading string (\L expands to three bytes).
-    // This ensures coverage of cases where expected.len > capacity.
+    // test also with an expanding leading string ("\\L" expands from
+    // two to three bytes). This ensures coverage of cases where
+    // expected.len > capacity.
     dquoted_case dqc = GetParam();
     test_filter_inplace(dqc.input, dqc.output, /*leading*/"\\L\\L\\L\\L", /*leading_expected*/dqesc_L4);
 }

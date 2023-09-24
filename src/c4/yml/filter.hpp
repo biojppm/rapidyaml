@@ -48,6 +48,9 @@ public:
     template<bool keep_trailing_whitespace, class FilterProcessor>
     void _filter_ws(FilterProcessor &C4_RESTRICT proc);
 
+    template<class FilterProcessor>
+    void _filter_dquoted_backslash(FilterProcessor &C4_RESTRICT proc, LocCRef loc);
+
     bool _apply_chomp(csubstr buf, substr dst, size_t *C4_RESTRICT pos, BlockChomp_e chomp, LocCRef loc);
 
 };
