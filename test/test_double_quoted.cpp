@@ -17,7 +17,7 @@ struct dquoted_case
 
 /** when filtering from src to dst, specifying the dst sz is enough to
  * cover the different cases */
-void test_filter(csubstr input, csubstr expected, size_t dst_sz)
+void test_filter_src_dst(csubstr input, csubstr expected, size_t dst_sz)
 {
     RYML_TRACE_FMT("\nstr=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~\nsz={}", input.len, input, expected.len, expected, dst_sz);
     // fill the dst buffer with a ref char to ensure there is no
@@ -50,7 +50,6 @@ void test_filter(csubstr input, csubstr expected, size_t dst_sz)
 
 void test_filter_inplace(csubstr input, csubstr expected, csubstr leading_input, csubstr leading_expected)
 {
-    RYML_TRACE_FMT("\ninp=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~\nlead=[{}]~~~{}~~~\nlead_exp=[{}]~~~{}~~~", input.len, input, expected.len, expected, leading_input.len, leading_input, leading_expected.len, leading_expected);
     // fill the dst buffer with a ref char to ensure there is no
     // write overflow.
     const size_t input_sz = leading_input.len + input.len;
@@ -59,6 +58,7 @@ void test_filter_inplace(csubstr input, csubstr expected, csubstr leading_input,
     const size_t full_sz = max_sz + size_t(30);
     std::string expected_(leading_expected.str, leading_expected.len);
     expected_ += std::string(expected.str, expected.len);
+    RYML_TRACE_FMT("\ninp=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~\nlead=[{}]~~~{}~~~\nlead_exp=[{}]~~~{}~~~\nmax_sz={}", input.len, input, expected.len, expected, leading_input.len, leading_input, leading_expected.len, leading_expected, max_sz);
     auto run = [&](size_t cap){
         // create the string
         std::string subject_(leading_input.str, leading_input.len);
@@ -75,11 +75,10 @@ void test_filter_inplace(csubstr input, csubstr expected, csubstr leading_input,
         EXPECT_EQ(out.len, expected_sz);
         if(out.str)
         {
-            if(cap )
             EXPECT_EQ(out, expected_);
-            // check the fill character in the canary region
+            // check the fill character in the canary region.
             EXPECT_GT(full.sub(max_sz).len, 0u);
-            EXPECT_EQ(full.sub(max_sz).first_not_of(refchar), csubstr::npos);
+            EXPECT_EQ(full.first_not_of(refchar, max_sz), csubstr::npos);
         }
     };
     if(input_sz >= expected_sz)
@@ -307,12 +306,23 @@ dquoted_case test_cases_filter[] = {
     // 75
     dqc("folded \nto a space,	\n \nto a line feed, or 	\\\n \\ 	non-content", "folded to a space,\nto a line feed, or \t \tnon-content"),
     dqc("folded \nto a space,\n \nto a line feed, or 	\\\n \\ 	non-content", "folded to a space,\nto a line feed, or \t \tnon-content"),
-    dqc("	\n\ndetected\n\n", "\t\ndetected\n"),
+    //dqc("	\n\ndetected\n\n", "\t\ndetected\n"), // this case cannot be prefixed with anything.
     dqc(R"(This is a key\nthat has multiple lines\n)", "This is a key\nthat has multiple lines\n"),
     dqc("This is a key\n\nthat has multiple lines\n\n", "This is a key\nthat has multiple lines\n"),
     #undef dqc
 };
 C4_SUPPRESS_WARNING_MSVC_POP
+
+
+TEST(double_quoted_filter, leading_tab)
+{
+    // this case cannot have a prefix
+    csubstr expected = "\t\ndetected\n";
+    test_filter_src_dst("	\n\ndetected\n\n", expected, /*sz*/expected.len + 2u);
+    test_filter_src_dst("\t\n\ndetected\n\n", expected, /*sz*/expected.len + 2u);
+    test_filter_inplace("	\n\ndetected\n\n", "\t\ndetected\n", "", "");
+    test_filter_inplace("\t\n\ndetected\n\n", "\t\ndetected\n", "", "");
+}
 
 
 //-----------------------------------------------------------------------------
@@ -325,26 +335,26 @@ struct DQuotedFilterSrcDstTest : public ::testing::TestWithParam<dquoted_case>
 TEST_P(DQuotedFilterSrcDstTest, dst_is_same_size)
 {
     dquoted_case dqc = GetParam();
-    test_filter(dqc.input, dqc.output, /*dst_sz*/dqc.output.len);
+    test_filter_src_dst(dqc.input, dqc.output, /*dst_sz*/dqc.output.len);
 }
 
 TEST_P(DQuotedFilterSrcDstTest, dst_is_larger_size)
 {
     dquoted_case dqc = GetParam();
-    test_filter(dqc.input, dqc.output, /*sz*/dqc.output.len + 2u);
-    test_filter(dqc.input, dqc.output, /*sz*/dqc.output.len + 100u);
+    test_filter_src_dst(dqc.input, dqc.output, /*sz*/dqc.output.len + 2u);
+    test_filter_src_dst(dqc.input, dqc.output, /*sz*/dqc.output.len + 100u);
 }
 
 TEST_P(DQuotedFilterSrcDstTest, dst_is_smaller_size)
 {
     dquoted_case dqc = GetParam();
-    test_filter(dqc.input, dqc.output, /*sz*/dqc.output.len / 2u);
+    test_filter_src_dst(dqc.input, dqc.output, /*sz*/dqc.output.len / 2u);
 }
 
 TEST_P(DQuotedFilterSrcDstTest, dst_is_zero_size)
 {
     dquoted_case dqc = GetParam();
-    test_filter(dqc.input, dqc.output, /*sz*/0u);
+    test_filter_src_dst(dqc.input, dqc.output, /*sz*/0u);
 }
 
 

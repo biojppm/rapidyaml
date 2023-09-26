@@ -7,6 +7,8 @@ C4_SUPPRESS_WARNING_MSVC_PUSH
 C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
 C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 
+// see https://blogs.perl.org/users/tinita/2018/03/strings-in-yaml---to-quote-or-not-to-quote.html
+
 namespace c4 {
 namespace yml {
 
@@ -398,7 +400,7 @@ template<bool backslash_is_escape, bool keep_trailing_whitespace, class FilterPr
 void ScalarFilterProcessor::_filter_nl(FilterProcessor &C4_RESTRICT proc, size_t indentation)
 {
     // a debugging scaffold:
-    #if 1
+    #if 0
     #define _c4dbgfnl(fmt, ...) _c4dbgpf("filt_nl[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
     #else
     #define _c4dbgfnl(...)
@@ -476,9 +478,10 @@ void ScalarFilterProcessor::_filter_ws(FilterProcessor &proc)
     if(first_pos != npos)
     {
         const char first_char = proc.src[first_pos];
+        _c4dbgfws("firstnonws='{}'@{}", _c4prc(first_char), first_pos);
         if(first_char == '\n' || first_char == '\r') // skip trailing whitespace
         {
-            _c4dbgfws("whitespace is trailing on line. firstnonws='{}'@{}", _c4prc(first_char), first_pos);
+            _c4dbgfws("whitespace is trailing on line", "");
             proc.skip(first_pos - proc.rpos);
         }
         else // a legit whitespace
@@ -684,7 +687,7 @@ csubstr ScalarFilterProcessor::filter_squoted(substr dst, size_t cap, LocCRef lo
 /* double quoted */
 
 // a debugging scaffold:
-#if 1
+#if 0
 #define _c4dbgfdq(fmt, ...) _c4dbgpf("filt_dquo[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
 #else
 #define _c4dbgfdq(...)
@@ -903,7 +906,7 @@ csubstr ScalarFilterProcessor::filter_dquoted(FilterProcessor &C4_RESTRICT proc,
         }
     }
 
-    _c4dbgpf("after[{}]=~~~{}~~~", proc.wpos, proc.sofar());
+    _c4dbgfdq("after[{}]=~~~{}~~~", proc.wpos, proc.sofar());
 
     return proc.result();
 }
