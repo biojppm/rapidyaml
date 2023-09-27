@@ -400,7 +400,7 @@ template<bool backslash_is_escape, bool keep_trailing_whitespace, class FilterPr
 void ScalarFilterProcessor::_filter_nl(FilterProcessor &C4_RESTRICT proc, size_t indentation)
 {
     // a debugging scaffold:
-    #if 0
+    #if 1
     #define _c4dbgfnl(fmt, ...) _c4dbgpf("filt_nl[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
     #else
     #define _c4dbgfnl(...)
@@ -415,7 +415,7 @@ void ScalarFilterProcessor::_filter_nl(FilterProcessor &C4_RESTRICT proc, size_t
     if(numnl_following)
     {
         proc.set('\n', numnl_following);
-        _c4dbgfnl("{} consecutive (empty) lines {} in the middle. totalws={}", 1+numnl_following, ii < proc.src.len ? "in the middle" : "at the end", proc.rpos-ii);
+        _c4dbgfnl("{} consecutive (empty) lines {}. totalws={}", 1+numnl_following, ii < proc.src.len ? "in the middle" : "at the end", proc.rpos-ii);
     }
     else
     {
@@ -470,9 +470,8 @@ void ScalarFilterProcessor::_filter_ws(FilterProcessor &proc)
     #define _c4dbgfws(...)
     #endif
 
-    const char curr = proc.curr();
-    _c4dbgfws("found whitespace '{}'", _c4prc(curr));
-    _RYML_CB_ASSERT(*m_callbacks, curr == ' ' || curr == '\t');
+    _c4dbgfws("found whitespace '{}'", _c4prc(proc.curr()));
+    _RYML_CB_ASSERT(*m_callbacks, proc.curr() == ' ' || proc.curr() == '\t');
 
     const size_t first_pos = proc.rpos > 0 ? proc.src.first_not_of(" \t", proc.rpos) : proc.src.first_not_of(' ', proc.rpos);
     if(first_pos != npos)
@@ -555,8 +554,71 @@ void ScalarFilterProcessor::_filter_ws(csubstr r, substr dst, size_t *C4_RESTRIC
 //-----------------------------------------------------------------------------
 /* plain scalars */
 
-csubstr ScalarFilterProcessor::filter_plain(csubstr scalar, substr dst, size_t indentation, Location const& C4_RESTRICT loc)
+template<class FilterProcessor>
+csubstr ScalarFilterProcessor::filter_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation, LocCRef loc)
 {
+    (void)loc;
+    // a debugging scaffold:
+    #if 1
+    #define _c4dbgfps(fmt, ...) _c4dbgpf("filt_plain[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
+    #else
+    #define _c4dbgfps(fmt, ...)
+    #endif
+
+    _c4dbgfps("before=[{}]~~~{}~~~", proc.src.len, proc.src);
+
+    while(proc.has_more_chars())
+    {
+        const char curr = proc.curr();
+        _c4dbgfps("'{}', sofar=[{}]~~~{}~~~", _c4prc(curr), proc.wpos, proc.sofar());
+        switch(curr)
+        {
+        case ' ':
+        case '\t':
+        {
+            _c4dbgfps("whitespace", curr);
+            _filter_ws</*keep_trailing_ws*/false>(proc);
+            break;
+        }
+        case '\n':
+        {
+            _c4dbgfps("newline", curr);
+            _filter_nl</*backslash_is_escape*/false, /*keep_trailing_ws*/false>(proc, /*indentation*/indentation);
+            break;
+        }
+        case '\r':  // skip \r --- https://stackoverflow.com/questions/1885900
+        {
+            _c4dbgfps("carriage return, ignore", curr);
+            proc.skip();
+            break;
+        }
+        default:
+        {
+            proc.copy();
+            break;
+        }
+        }
+    }
+
+    _c4dbgfps("after[{}]=~~~{}~~~", proc.wpos, proc.sofar());
+
+    #undef _c4dbgfps
+
+    return proc.result();
+}
+
+
+csubstr ScalarFilterProcessor::filter_plain(csubstr scalar, substr dst, size_t indentation, LocCRef loc)
+{
+    detail::FilterProcessorSrcDst proc(scalar, dst, m_callbacks);
+    return filter_plain(proc, indentation, loc);
+}
+
+csubstr ScalarFilterProcessor::filter_plain(substr dst, size_t cap, size_t indentation, LocCRef loc)
+{
+    detail::FilterProcessorInplace proc(dst, cap, m_callbacks);
+    return filter_plain(proc, indentation, loc);
+#ifdef old
     (void)loc;
     // a debugging scaffold:
     #if 0
@@ -604,6 +666,7 @@ csubstr ScalarFilterProcessor::filter_plain(csubstr scalar, substr dst, size_t i
 
     #undef _c4dbgfps
     return dst.first(pos);
+#endif
 }
 
 

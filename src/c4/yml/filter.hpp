@@ -10,7 +10,9 @@ struct ScalarFilterProcessor
 {
     using LocCRef = Location const& C4_RESTRICT;
 
-    csubstr filter_plain(substr scalar, size_t indentation, LocCRef loc);
+    template<class FilterProcessor>
+    csubstr filter_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation, LocCRef loc);
+    csubstr filter_plain(substr scalar, size_t cap, size_t indentation, LocCRef loc);
     csubstr filter_plain(csubstr scalar, substr dst, size_t indentation, LocCRef loc);
 
     template<class FilterProcessor>
