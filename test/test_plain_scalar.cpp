@@ -136,6 +136,10 @@ plain_scalar_case test_cases_filter[] = {
     // 25
     psc(0, "---word1\n\nword2\n", "---word1\nword2"),
     psc(0, "---word1\n\nword2", "---word1\nword2"),
+    psc(0, "---word1\n\n\nword2", "---word1\n\nword2"),
+    psc(0, "---word1\n\n\n\nword2", "---word1\n\n\nword2"),
+    psc(0, "---word1\n\n\n\n\nword2", "---word1\n\n\n\nword2"),
+    // 30
     psc(2, R"(value
   with
    	
@@ -148,7 +152,6 @@ plain_scalar_case test_cases_filter[] = {
         baz
    	   
 )", "value with\ntabs tabs\nfoo\nbar baz"),
-    // 30
     // 35
     // 40
     // 45
