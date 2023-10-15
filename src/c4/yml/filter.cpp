@@ -14,169 +14,6 @@ namespace yml {
 
 namespace detail {
 
-struct FilterProcessorInplace
-{
-    substr src;  ///< the subject string
-    size_t wcap; ///< write capacity - the capacity of the subject string's buffer
-    size_t rpos; ///< read position
-    size_t wpos; ///< write position
-    bool unfiltered_chars;
-    Callbacks const* m_callbacks;
-
-    C4_ALWAYS_INLINE FilterProcessorInplace(substr src_, size_t wcap_, Callbacks const* callbacks) noexcept
-        : src(src_)
-        , wcap(wcap_)
-        , rpos(0)
-        , wpos(0)
-        , unfiltered_chars(false)
-        , m_callbacks(callbacks)
-    {
-        _RYML_CB_ASSERT(*m_callbacks, wcap >= src.len);
-    }
-
-    C4_ALWAYS_INLINE FilterProcessorInplace(substr src_, size_t wcap_) noexcept
-        : src(src_)
-        , wcap(wcap_)
-        , rpos(0)
-        , wpos(0)
-        , unfiltered_chars(false)
-        , m_callbacks(&get_callbacks())
-    {
-        _RYML_CB_ASSERT(*m_callbacks, wcap >= src.len);
-    }
-
-    C4_ALWAYS_INLINE bool has_more_chars() const noexcept { return rpos < src.len; }
-
-    C4_ALWAYS_INLINE csubstr result() const noexcept { csubstr ret; ret.str = wpos <= src.len && !unfiltered_chars ? src.str : nullptr; ret.len = wpos; return ret; }
-    C4_ALWAYS_INLINE csubstr sofar() const noexcept { return csubstr(src.str, wpos <= wcap ? wpos : wcap); }
-
-    C4_ALWAYS_INLINE char curr() const noexcept { _RYML_CB_ASSERT(*m_callbacks, rpos < src.len); return src[rpos]; }
-    C4_ALWAYS_INLINE char next() const noexcept { return rpos+1 < src.len ? src[rpos+1] : '\0'; }
-
-    C4_ALWAYS_INLINE void skip() noexcept { ++rpos; }
-    C4_ALWAYS_INLINE void skip(size_t num) noexcept { rpos += num; }
-
-    C4_ALWAYS_INLINE void copy() noexcept
-    {
-        _RYML_CB_ASSERT(*m_callbacks, rpos < src.len);
-        // write only if wpos is behind rpos
-        // |                respect write-capacity
-        // |                |
-        if((wpos < rpos) && (wpos < wcap))
-            src.str[wpos] = src.str[rpos];
-        else
-            unfiltered_chars = true;
-        ++wpos;
-        ++rpos;
-    }
-    C4_ALWAYS_INLINE void copy(size_t num) noexcept
-    {
-        _RYML_CB_ASSERT(*m_callbacks, num);
-        _RYML_CB_ASSERT(*m_callbacks, rpos+num <= src.len);
-        // write only if wpos is behind rpos
-        // |                respect write-capacity
-        // |                |
-        if((wpos < rpos) && (wpos + num < wcap))
-        {
-            if(wpos + num <= rpos) // there is no overlap
-                memcpy(src.str + wpos, src.str + rpos, num);
-            else                   // there is overlap
-                memmove(src.str + wpos, src.str + rpos, num);
-        }
-        else
-        {
-            unfiltered_chars = true;
-        }
-        wpos += num;
-        rpos += num;
-    }
-
-    C4_ALWAYS_INLINE void set(char c) noexcept
-    {
-        // write only if wpos is behind rpos
-        // |                respect write-capacity
-        // |                |
-        if((wpos < rpos) && (wpos <= wcap))
-            src.str[wpos] = c;
-        else
-            unfiltered_chars = true;
-        ++wpos;
-    }
-    C4_ALWAYS_INLINE void set(char c, size_t num) noexcept
-    {
-        _RYML_CB_ASSERT(*m_callbacks, num);
-        // write only if wpos is behind rpos
-        // |                respect write-capacity
-        // |                |
-        if((wpos < rpos) && (wpos + num <= wcap))
-        {
-            _RYML_CB_ASSERT(*m_callbacks, wpos + num <= rpos);
-            memset(src.str + wpos, c, num);
-        }
-        else
-        {
-            unfiltered_chars = true;
-        }
-        wpos += num;
-    }
-
-    C4_ALWAYS_INLINE void translate_esc(char c) noexcept
-    {
-        // write only if wpos is behind rpos
-        // |                respect write-capacity
-        // |                |
-        if((wpos < rpos) && (wpos <= wcap))
-            src.str[wpos] = c;
-        else
-            unfiltered_chars = true;
-        ++wpos;
-        rpos += 2;
-    }
-
-    void translate_esc(const char *C4_RESTRICT s, size_t nw, size_t nr) noexcept
-    {
-        _RYML_CB_ASSERT(*m_callbacks, nw > 0);
-        _RYML_CB_ASSERT(*m_callbacks, nr > 0);
-        _RYML_CB_ASSERT(*m_callbacks, rpos+nr <= src.len);
-        const size_t wpos_next = wpos + nw;
-        const size_t rpos_next = rpos + 1 + nr;
-        if(wpos_next <= rpos_next) // read and write do not overlap. just do a vanilla copy.
-        {
-            if(wpos_next <= wcap)
-                memcpy(src.str + wpos, s, nw);
-            wpos = wpos_next;
-            rpos = rpos_next;
-        }
-        else // there is overlap. move the (to-be-read) string to the right.
-        {
-            const size_t excess = wpos_next - rpos_next;
-            if(src.len + excess <= wcap) // ensure we do not go past the end.
-            {
-                _RYML_CB_ASSERT(*m_callbacks, rpos+nr+excess <= src.len);
-                if(wpos_next <= wcap)
-                {
-                    memmove(src.str + wpos_next, src.str + rpos_next, src.len - rpos_next);
-                    memcpy(src.str + wpos, s, nw);
-                    rpos = wpos_next; // wpos, not rpos
-                }
-                else
-                {
-                    rpos = rpos_next;
-                    unfiltered_chars = true;
-                }
-                // extend the string up to capacity
-                src.len += excess;
-            }
-            else
-            {
-                rpos = rpos_next;
-                unfiltered_chars = true;
-            }
-            wpos = wpos_next;
-        }
-    }
-};
-
 
 struct FilterProcessorSrcDst
 {
@@ -269,6 +106,195 @@ struct FilterProcessorSrcDst
     }
 };
 
+
+struct FilterProcessorInplace
+{
+    substr src;  ///< the subject string
+    size_t wcap; ///< write capacity - the capacity of the subject string's buffer
+    size_t rpos; ///< read position
+    size_t wpos; ///< write position
+    bool unfiltered_chars;
+    Callbacks const* m_callbacks;
+
+    C4_ALWAYS_INLINE FilterProcessorInplace(substr src_, size_t wcap_, Callbacks const* callbacks) noexcept
+        : src(src_)
+        , wcap(wcap_)
+        , rpos(0)
+        , wpos(0)
+        , unfiltered_chars(false)
+        , m_callbacks(callbacks)
+    {
+        _RYML_CB_ASSERT(*m_callbacks, wcap >= src.len);
+    }
+
+    C4_ALWAYS_INLINE FilterProcessorInplace(substr src_, size_t wcap_) noexcept
+        : src(src_)
+        , wcap(wcap_)
+        , rpos(0)
+        , wpos(0)
+        , unfiltered_chars(false)
+        , m_callbacks(&get_callbacks())
+    {
+        _RYML_CB_ASSERT(*m_callbacks, wcap >= src.len);
+    }
+
+    C4_ALWAYS_INLINE bool has_more_chars() const noexcept { return rpos < src.len; }
+
+    C4_ALWAYS_INLINE csubstr result() const noexcept
+    {
+        _c4dbgpf("inplace: wpos={} wcap={} unfiltered={}", wpos, wcap, unfiltered_chars);
+        csubstr ret;
+        ret.str = (wpos <= wcap && !unfiltered_chars) ? src.str : nullptr;
+        ret.len = wpos;
+        return ret;
+    }
+    C4_ALWAYS_INLINE csubstr sofar() const noexcept { return csubstr(src.str, wpos <= wcap ? wpos : wcap); }
+
+    C4_ALWAYS_INLINE char curr() const noexcept { _RYML_CB_ASSERT(*m_callbacks, rpos < src.len); return src[rpos]; }
+    C4_ALWAYS_INLINE char next() const noexcept { return rpos+1 < src.len ? src[rpos+1] : '\0'; }
+
+    C4_ALWAYS_INLINE void skip() noexcept { ++rpos; }
+    C4_ALWAYS_INLINE void skip(size_t num) noexcept { rpos += num; }
+
+    C4_ALWAYS_INLINE void copy() noexcept
+    {
+        _RYML_CB_ASSERT(*m_callbacks, rpos < src.len);
+        // write only if wpos is behind rpos
+        // |                respect write-capacity
+        // |                |
+        if((wpos < rpos) && (wpos < wcap))
+        {
+            src.str[wpos] = src.str[rpos];
+        }
+        else if(wpos > rpos)
+        {
+            _c4dbgpf("inplace: set unfiltered {}->1 (wpos={}<rpos={})={}  (wpos={}<wcap={})!", unfiltered_chars, wpos, rpos, wpos<rpos, wpos, wcap, wpos<wcap);
+            unfiltered_chars = true;
+        }
+        ++wpos;
+        ++rpos;
+    }
+    C4_ALWAYS_INLINE void copy(size_t num) noexcept
+    {
+        _RYML_CB_ASSERT(*m_callbacks, num);
+        _RYML_CB_ASSERT(*m_callbacks, rpos+num <= src.len);
+        // write only if wpos is behind rpos
+        // |                respect write-capacity
+        // |                |
+        if((wpos < rpos) && (wpos + num < wcap))
+        {
+            if(wpos + num <= rpos) // there is no overlap
+                memcpy(src.str + wpos, src.str + rpos, num);
+            else                   // there is overlap
+                memmove(src.str + wpos, src.str + rpos, num);
+        }
+        else
+        {
+            _c4dbgpf("inplace: set unfiltered {}->1!", unfiltered_chars);
+            unfiltered_chars = true;
+        }
+        wpos += num;
+        rpos += num;
+    }
+
+    C4_ALWAYS_INLINE void set(char c) noexcept
+    {
+        // write only if wpos is behind rpos
+        // |                respect write-capacity
+        // |                |
+        if((wpos < rpos) && (wpos <= wcap))
+        {
+            src.str[wpos] = c;
+        }
+        else
+        {
+            _c4dbgpf("inplace: set unfiltered {}->1!", unfiltered_chars);
+            unfiltered_chars = true;
+        }
+        ++wpos;
+    }
+    C4_ALWAYS_INLINE void set(char c, size_t num) noexcept
+    {
+        _RYML_CB_ASSERT(*m_callbacks, num);
+        // write only if wpos is behind rpos
+        // |                respect write-capacity
+        // |                |
+        if((wpos < rpos) && (wpos + num <= wcap))
+        {
+            _RYML_CB_ASSERT(*m_callbacks, wpos + num <= rpos);
+            memset(src.str + wpos, c, num);
+        }
+        else
+        {
+            _c4dbgpf("inplace: set unfiltered {}->1!", unfiltered_chars);
+            unfiltered_chars = true;
+        }
+        wpos += num;
+    }
+
+    C4_ALWAYS_INLINE void translate_esc(char c) noexcept
+    {
+        // write only if wpos is behind rpos
+        // |                respect write-capacity
+        // |                |
+        if((wpos < rpos) && (wpos <= wcap))
+        {
+            src.str[wpos] = c;
+        }
+        else
+        {
+            _c4dbgpf("inplace: set unfiltered {}->1!", unfiltered_chars);
+            unfiltered_chars = true;
+        }
+        ++wpos;
+        rpos += 2;
+    }
+
+    void translate_esc(const char *C4_RESTRICT s, size_t nw, size_t nr) noexcept
+    {
+        _RYML_CB_ASSERT(*m_callbacks, nw > 0);
+        _RYML_CB_ASSERT(*m_callbacks, nr > 0);
+        _RYML_CB_ASSERT(*m_callbacks, rpos+nr <= src.len);
+        const size_t wpos_next = wpos + nw;
+        const size_t rpos_next = rpos + 1 + nr;
+        if(wpos_next <= rpos_next) // read and write do not overlap. just do a vanilla copy.
+        {
+            if(wpos_next <= wcap)
+                memcpy(src.str + wpos, s, nw);
+            wpos = wpos_next;
+            rpos = rpos_next;
+        }
+        else // there is overlap. move the (to-be-read) string to the right.
+        {
+            const size_t excess = wpos_next - rpos_next;
+            if(src.len + excess <= wcap) // ensure we do not go past the end.
+            {
+                _RYML_CB_ASSERT(*m_callbacks, rpos+nr+excess <= src.len);
+                if(wpos_next <= wcap)
+                {
+                    memmove(src.str + wpos_next, src.str + rpos_next, src.len - rpos_next);
+                    memcpy(src.str + wpos, s, nw);
+                    rpos = wpos_next; // wpos, not rpos
+                }
+                else
+                {
+                    rpos = rpos_next;
+                    _c4dbgpf("inplace: set unfiltered {}->1!", unfiltered_chars);
+                    unfiltered_chars = true;
+                }
+                // extend the string up to capacity
+                src.len += excess;
+            }
+            else
+            {
+                _c4dbgpf("inplace: set unfiltered {}->1!", unfiltered_chars);
+                rpos = rpos_next;
+                unfiltered_chars = true;
+            }
+            wpos = wpos_next;
+        }
+    }
+};
 
 } // namespace detail
 
@@ -605,19 +631,6 @@ csubstr ScalarFilterProcessor::filter_plain(FilterProcessor &C4_RESTRICT proc, s
     #undef _c4dbgfps
 
     return proc.result();
-}
-
-
-csubstr ScalarFilterProcessor::filter_plain(csubstr scalar, substr dst, size_t indentation, LocCRef loc)
-{
-    detail::FilterProcessorSrcDst proc(scalar, dst, m_callbacks);
-    return filter_plain(proc, indentation, loc);
-}
-
-csubstr ScalarFilterProcessor::filter_plain(substr dst, size_t cap, size_t indentation, LocCRef loc)
-{
-    detail::FilterProcessorInplace proc(dst, cap, m_callbacks);
-    return filter_plain(proc, indentation, loc);
 #ifdef old
     (void)loc;
     // a debugging scaffold:
@@ -667,6 +680,19 @@ csubstr ScalarFilterProcessor::filter_plain(substr dst, size_t cap, size_t inden
     #undef _c4dbgfps
     return dst.first(pos);
 #endif
+}
+
+
+csubstr ScalarFilterProcessor::filter_plain(csubstr scalar, substr dst, size_t indentation, LocCRef loc)
+{
+    detail::FilterProcessorSrcDst proc(scalar, dst, m_callbacks);
+    return filter_plain(proc, indentation, loc);
+}
+
+csubstr ScalarFilterProcessor::filter_plain(substr dst, size_t cap, size_t indentation, LocCRef loc)
+{
+    detail::FilterProcessorInplace proc(dst, cap, m_callbacks);
+    return filter_plain(proc, indentation, loc);
 }
 
 

@@ -10,7 +10,7 @@
 namespace c4 {
 namespace yml {
 
-TEST(Filter, foo)
+TEST(FilterProcessor, inplace)
 {
 }
 

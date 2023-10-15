@@ -67,7 +67,7 @@ void test_filter_inplace(csubstr input, csubstr expected, size_t indentation)
         // filter now
         ScalarFilterProcessor proc = {};
         csubstr out = proc.filter_plain(dst, cap, indentation, Location{});
-        EXPECT_EQ(out.len, expected.len);
+        EXPECT_EQ(out.len, expected.len) << (out.str ? out.str : "(no out.str)");
         if(out.str)
         {
             EXPECT_EQ(out, expected);
@@ -97,7 +97,7 @@ void test_filter_inplace(csubstr input, csubstr expected, size_t indentation)
 }
 
 
-// declare double quoted test cases
+// declare test cases
 plain_scalar_case test_cases_filter[] = {
     #define psc(indentation, input, expected) plain_scalar_case{indentation, csubstr(input), csubstr(expected)}
     // 0
@@ -140,6 +140,30 @@ plain_scalar_case test_cases_filter[] = {
     psc(0, "---word1\n\n\n\nword2", "---word1\n\n\nword2"),
     psc(0, "---word1\n\n\n\n\nword2", "---word1\n\n\n\nword2"),
     // 30
+    psc(0, R"(value
+with
+  
+tabs
+tabs
+  
+  foo
+  
+    bar
+      baz
+     
+)", "value with\ntabs tabs\nfoo\nbar baz"),
+    psc(2, R"(value
+with
+
+tabs
+tabs
+
+  foo
+
+    bar
+      baz
+
+)", "value with\ntabs tabs\nfoo\nbar baz"),
     psc(2, R"(value
   with
    	
@@ -151,6 +175,18 @@ plain_scalar_case test_cases_filter[] = {
       bar
         baz
    	   
+)", "value with\ntabs tabs\nfoo\nbar baz"),
+    psc(2, R"(value
+  with
+
+  tabs
+  tabs
+
+    foo
+
+      bar
+        baz
+
 )", "value with\ntabs tabs\nfoo\nbar baz"),
     // 35
     // 40
@@ -459,24 +495,43 @@ TEST(plain_scalar, test_suite_NB6Z_seq)
 
 TEST(plain_scalar, test_suite_NB6Z_docval)
 {
-    csubstr yaml = R"(
-value
-with
- 	
-tabs
-tabs
- 	
-  foo
- 	
-    bar
-      baz
- 	
-)";
-    test_check_emit_check(yaml, [](Tree const &t){
+    auto check = [](Tree const &t){
         ASSERT_TRUE(t.rootref().is_doc());
         ASSERT_TRUE(t.rootref().is_val());
         EXPECT_EQ(t.rootref().val(), csubstr("value with\ntabs tabs\nfoo\nbar baz"));
-    });
+    };
+    {
+        SCOPED_TRACE("case 0");
+        test_check_emit_check(R"(
+value
+with
+   	
+tabs
+tabs
+   	
+  foo
+   	
+    bar
+      baz
+   	
+)", check);
+    }
+    {
+        SCOPED_TRACE("case 1");
+        test_check_emit_check(R"(
+value
+with
+
+tabs
+tabs
+
+  foo
+
+    bar
+      baz
+
+)", check);
+    }
 }
 
 
