@@ -31,7 +31,7 @@ void test_filter_src_dst(csubstr input, csubstr expected, size_t indentation, si
     full.sub(dst_sz).fill(refchar);
     // filter now
     const substr dst = full.first(dst_sz);
-    ScalarFilterProcessor proc = {};
+    ScalarFilter proc = {};
     const csubstr out = proc.filter_plain(input, dst, indentation, Location{});
     // check the result
     EXPECT_EQ(out.len, expected.len);
@@ -65,7 +65,7 @@ void test_filter_inplace(csubstr input, csubstr expected, size_t indentation)
         full.sub(max_sz).fill(refchar);
         substr dst = full.first(input.len);
         // filter now
-        ScalarFilterProcessor proc = {};
+        ScalarFilter proc = {};
         csubstr out = proc.filter_plain(dst, cap, indentation, Location{});
         EXPECT_EQ(out.len, expected.len) << (out.str ? out.str : "(no out.str)");
         if(out.str)

@@ -6,7 +6,7 @@
 namespace c4 {
 namespace yml {
 
-struct ScalarFilterProcessor
+struct ScalarFilter
 {
     using LocCRef = Location const& C4_RESTRICT;
 
@@ -35,8 +35,8 @@ public:
 
     Callbacks const* m_callbacks; // FIXME use CRTP for this
 
-    ScalarFilterProcessor() : m_callbacks(&get_callbacks()) {}
-    ScalarFilterProcessor(Callbacks const& cb) : m_callbacks(&cb) {}
+    ScalarFilter() : m_callbacks(&get_callbacks()) {}
+    ScalarFilter(Callbacks const& cb) : m_callbacks(&cb) {}
 
 public:
 

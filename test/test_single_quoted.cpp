@@ -12,10 +12,11 @@ struct squoted_case
 void test_filter(csubstr input, csubstr expected)
 {
     RYML_TRACE_FMT("\nstr=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~", input.len, input, expected.len, expected);
+    ASSERT_LE(expected.len, input.len);
     std::string subject_;
     subject_.resize(2 * input.size());
     c4::substr dst = to_substr(subject_);
-    ScalarFilterProcessor proc = {};
+    ScalarFilter proc = {};
     csubstr out = proc.filter_squoted(input, dst, Location{});
     if(input != expected)
     {
@@ -28,10 +29,12 @@ void test_filter(csubstr input, csubstr expected)
 void test_filter_inplace(csubstr input, csubstr expected)
 {
     RYML_TRACE_FMT("\nstr=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~", input.len, input, expected.len, expected);
+    ASSERT_LE(expected.len, input.len);
     std::string subject_(input.str, input.len);
     c4::substr dst = to_substr(subject_);
-    ScalarFilterProcessor proc = {};
+    ScalarFilter proc = {};
     csubstr out = proc.filter_squoted(dst, subject_.size(), Location{});
+    ASSERT_TRUE(out.str);
     EXPECT_TRUE(out.is_sub(dst));// << "\ninput=" << input << "\nexpected=" << expected;
     EXPECT_EQ(out, expected);
     std::cout << "OK! ~~~" << input << "~~~   --->  ~~~" << out << "~~~\n";
