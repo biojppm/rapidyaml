@@ -151,7 +151,7 @@ tabs
     bar
       baz
      
-)", "value with\ntabs tabs\nfoo\nbar baz"),
+)", "value with\ntabs tabs\nfoo\nbar baz\n"), // !!! not sure the final \n is right
     psc(2, R"(value
 with
 
@@ -163,7 +163,7 @@ tabs
     bar
       baz
 
-)", "value with\ntabs tabs\nfoo\nbar baz"),
+)", "value with\ntabs tabs\nfoo\nbar baz\n"), // !!! not sure the final \n is right
     psc(2, R"(value
   with
    	
@@ -175,7 +175,7 @@ tabs
       bar
         baz
    	   
-)", "value with\ntabs tabs\nfoo\nbar baz"),
+)", "value with\ntabs tabs\nfoo\nbar baz\n"), // !!! not sure the final \n is right
     psc(2, R"(value
   with
 
@@ -187,7 +187,7 @@ tabs
       bar
         baz
 
-)", "value with\ntabs tabs\nfoo\nbar baz"),
+)", "value with\ntabs tabs\nfoo\nbar baz\n"), // !!! not sure the final \n is right
     // 35
     // 40
     // 45

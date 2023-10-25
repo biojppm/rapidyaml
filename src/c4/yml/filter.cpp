@@ -420,7 +420,7 @@ csubstr ScalarFilter::filter_squoted(FilterProcessor &C4_RESTRICT proc, LocCRef 
 {
     (void)loc;
     // a debugging scaffold:
-    #if 1
+    #if 0
     #define _c4dbgfsq(fmt, ...) _c4dbgpf("filt_squo[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
     #else
     #define _c4dbgfsq(fmt, ...)

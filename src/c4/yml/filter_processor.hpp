@@ -1,11 +1,12 @@
 #ifndef _C4_YML_FILTER_PROCESSOR_HPP_
 #define _C4_YML_FILTER_PROCESSOR_HPP_
 
+#include "c4/yml/common.hpp"
+
 #ifdef RYML_DBG
 #include "c4/charconv.hpp"
 #include "c4/yml/detail/parser_dbg.hpp"
 #endif
-#include "c4/yml/common.hpp"
 
 namespace c4 {
 namespace yml {
@@ -105,23 +106,18 @@ struct FilterProcessorSrcDst
         wpos += nw;
         rpos += 1 + nr;
     }
-    template<size_t nw_>
-    C4_ALWAYS_INLINE void translate_esc(const char (& C4_RESTRICT s)[nw_], size_t nr) noexcept
-    {
-        static_assert(nw_ > 1, "nw");
-        enum : size_t { nw = nw_-1 };
-        _RYML_CB_ASSERT(*m_callbacks, nw > 0);
-        _RYML_CB_ASSERT(*m_callbacks, nr > 0);
-        _RYML_CB_ASSERT(*m_callbacks, rpos+nr <= src.len);
-        if(wpos+nw <= dst.len)
-            memcpy(dst.str + wpos, s, nw);
-        wpos += nw;
-        rpos += 1 + nr;
-    }
 };
 
 
 //-----------------------------------------------------------------------------
+// filter in place
+
+// debugging scaffold
+#if 0
+#define _c4dbgip(...) _c4dbgpf(__VA_ARGS__);
+#else
+#define _c4dbgip(...)
+#endif
 
 struct FilterProcessorInplace
 {
@@ -158,7 +154,7 @@ struct FilterProcessorInplace
 
     C4_ALWAYS_INLINE csubstr result() const noexcept
     {
-        _c4dbgpf("inplace: wpos={} wcap={} unfiltered={}", this->wpos, this->wcap, this->unfiltered_chars);
+        _c4dbgip("inplace: wpos={} wcap={} unfiltered={}", this->wpos, this->wcap, this->unfiltered_chars);
         csubstr ret;
         ret.str = (wpos <= wcap && !unfiltered_chars) ? src.str : nullptr;
         ret.len = wpos;
@@ -176,11 +172,12 @@ struct FilterProcessorInplace
     {
         if(wpos < wcap)  // respect write-capacity
         {
-            src.str[wpos] = c;
+            if(wpos <= rpos)
+                src.str[wpos] = c;
         }
         else
         {
-            _c4dbgpf("inplace: set unfiltered {}->1!", unfiltered_chars);
+            _c4dbgip("inplace: set unfiltered {}->1!", unfiltered_chars);
             unfiltered_chars = true;
         }
         ++wpos;
@@ -190,11 +187,12 @@ struct FilterProcessorInplace
         _RYML_CB_ASSERT(*m_callbacks, num);
         if(wpos + num <= wcap)  // respect write-capacity
         {
-            memset(src.str + wpos, c, num);
+            if(wpos <= rpos)
+                memset(src.str + wpos, c, num);
         }
         else
         {
-            _c4dbgpf("inplace: set unfiltered {}->1!", unfiltered_chars);
+            _c4dbgip("inplace: set unfiltered {}->1!", unfiltered_chars);
             unfiltered_chars = true;
         }
         wpos += num;
@@ -205,12 +203,12 @@ struct FilterProcessorInplace
         _RYML_CB_ASSERT(*m_callbacks, rpos < src.len);
         if(wpos < wcap)  // respect write-capacity
         {
-            if(wpos != rpos)  // write only if wpos is behind rpos
+            if(wpos < rpos)  // write only if wpos is behind rpos
                 src.str[wpos] = src.str[rpos];
         }
         else
         {
-            _c4dbgpf("inplace: set unfiltered {}->1 (wpos={}!=rpos={})={}  (wpos={}<wcap={})!", unfiltered_chars, wpos, rpos, wpos!=rpos, wpos, wcap, wpos<wcap);
+            _c4dbgip("inplace: set unfiltered {}->1 (wpos={}!=rpos={})={}  (wpos={}<wcap={})!", unfiltered_chars, wpos, rpos, wpos!=rpos, wpos, wcap, wpos<wcap);
             unfiltered_chars = true;
         }
         ++wpos;
@@ -222,7 +220,7 @@ struct FilterProcessorInplace
         _RYML_CB_ASSERT(*m_callbacks, rpos+num <= src.len);
         if(wpos + num <= wcap)  // respect write-capacity
         {
-            if(wpos != rpos)  // write only if wpos is behind rpos
+            if(wpos < rpos)  // write only if wpos is behind rpos
             {
                 if(wpos + num <= rpos) // there is no overlap
                     memcpy(src.str + wpos, src.str + rpos, num);
@@ -232,7 +230,7 @@ struct FilterProcessorInplace
         }
         else
         {
-            _c4dbgpf("inplace: set unfiltered {}->1 (wpos={}<rpos={})={}  (wpos={}<wcap={})!", unfiltered_chars, wpos, rpos, wpos<rpos, wpos, wcap, wpos<wcap);
+            _c4dbgip("inplace: set unfiltered {}->1 (wpos={}<rpos={})={}  (wpos={}<wcap={})!", unfiltered_chars, wpos, rpos, wpos<rpos, wpos, wcap, wpos<wcap);
             unfiltered_chars = true;
         }
         wpos += num;
@@ -243,18 +241,19 @@ struct FilterProcessorInplace
     {
         if(wpos < wcap) // respect write-capacity
         {
-            src.str[wpos] = c;
+            if(wpos <= rpos)
+                src.str[wpos] = c;
         }
         else
         {
-            _c4dbgpf("inplace: set unfiltered {}->1!", unfiltered_chars);
+            _c4dbgip("inplace: set unfiltered {}->1!", unfiltered_chars);
             unfiltered_chars = true;
         }
         ++wpos;
         rpos += 2;
     }
 
-    void translate_esc(const char *C4_RESTRICT s, size_t nw, size_t nr) noexcept
+    C4_NO_INLINE void translate_esc(const char *C4_RESTRICT s, size_t nw, size_t nr) noexcept
     {
         _RYML_CB_ASSERT(*m_callbacks, nw > 0);
         _RYML_CB_ASSERT(*m_callbacks, nr > 0);
@@ -283,7 +282,7 @@ struct FilterProcessorInplace
                 else
                 {
                     rpos = rpos_next;
-                    _c4dbgpf("inplace: set unfiltered {}->1!", unfiltered_chars);
+                    _c4dbgip("inplace: set unfiltered {}->1!", unfiltered_chars);
                     unfiltered_chars = true;
                 }
                 // extend the string up to capacity
@@ -291,55 +290,7 @@ struct FilterProcessorInplace
             }
             else
             {
-                _c4dbgpf("inplace: set unfiltered {}->1!", unfiltered_chars);
-                rpos = rpos_next;
-                unfiltered_chars = true;
-            }
-            wpos = wpos_next;
-        }
-    }
-
-    template<size_t nw_>
-    void translate_esc(const char (& C4_RESTRICT s)[nw_], size_t nr) noexcept
-    {
-        static_assert(nw_ > 1, "nw");
-        enum : size_t { nw = nw_-1 };
-        _RYML_CB_ASSERT(*m_callbacks, nw > 0);
-        _RYML_CB_ASSERT(*m_callbacks, nr > 0);
-        _RYML_CB_ASSERT(*m_callbacks, rpos+nr <= src.len);
-        const size_t wpos_next = wpos + nw;
-        const size_t rpos_next = rpos + 1 + nr;
-        if(wpos_next <= rpos_next) // read and write do not overlap. just do a vanilla copy.
-        {
-            if(wpos_next <= wcap)
-                memcpy(src.str + wpos, s, nw);
-            wpos = wpos_next;
-            rpos = rpos_next;
-        }
-        else // there is overlap. move the (to-be-read) string to the right.
-        {
-            const size_t excess = wpos_next - rpos_next;
-            if(src.len + excess <= wcap) // ensure we do not go past the end.
-            {
-                _RYML_CB_ASSERT(*m_callbacks, rpos+nr+excess <= src.len);
-                if(wpos_next <= wcap)
-                {
-                    memmove(src.str + wpos_next, src.str + rpos_next, src.len - rpos_next);
-                    memcpy(src.str + wpos, s, nw);
-                    rpos = wpos_next; // wpos, not rpos
-                }
-                else
-                {
-                    rpos = rpos_next;
-                    _c4dbgpf("inplace: set unfiltered {}->1!", unfiltered_chars);
-                    unfiltered_chars = true;
-                }
-                // extend the string up to capacity
-                src.len += excess;
-            }
-            else
-            {
-                _c4dbgpf("inplace: set unfiltered {}->1!", unfiltered_chars);
+                _c4dbgip("inplace: set unfiltered {}->1!", unfiltered_chars);
                 rpos = rpos_next;
                 unfiltered_chars = true;
             }
@@ -347,6 +298,9 @@ struct FilterProcessorInplace
         }
     }
 };
+
+#undef _c4dbgip
+
 
 /** @} */
 
