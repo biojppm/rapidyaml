@@ -734,6 +734,7 @@ csubstr ScalarFilter::filter_dquoted(substr dst, size_t cap, LocCRef loc)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+#ifdef OLD
 csubstr ScalarFilter::filter_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp, LocCRef loc)
 {
     // a debugging scaffold:
@@ -856,6 +857,136 @@ csubstr ScalarFilter::filter_block_literal(csubstr scalar, substr dst, size_t in
     #undef _c4dbgfbl
 
     return r;
+}
+#endif
+
+template<class FilterProcessor>
+csubstr ScalarFilter::filter_block_literal(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp, LocCRef loc)
+{
+    // a debugging scaffold:
+    #if 0
+    #define _c4dbgfbl(fmt, ...) _c4dbgpf("filt_block_lit[{}->{}]" fmt, proc.rpos, proc.wpos, __VA_ARGS__)
+    #else
+    #define _c4dbgfbl(...)
+    #endif
+
+    _c4dbgfbl(": indentation={} before=[{}]~~~{}~~~", indentation, proc.src.len, proc.src);
+
+    // trim leading whitespace up to indentation
+    {
+        csubstr r = proc.src;
+        const size_t numws = r.first_not_of(' ');
+        if(numws != npos)
+        {
+            if(numws > indentation)
+                proc.skip(indentation);
+            else
+                proc.skip(numws);
+            _c4dbgfbl(": after triml=[{}]~~~{}~~~", r.len, r);
+        }
+        else
+        {
+            if(chomp != CHOMP_KEEP || r.len == 0)
+            {
+                _c4dbgfbl(": all spaces {}, return empty", r.len);
+                proc.skip(r.len);
+            }
+            else
+            {
+                proc.set('\n');
+                proc.skip(r.len - 1);
+            }
+        }
+    }
+
+    // now filter the bulk
+    while(proc.has_more_chars())
+    {
+        const char curr = proc.curr();
+        _c4dbgfbl("'%c' sofar=[{}]~~~{}~~~",  _c4prc(curr), proc.wpos, proc.sofar());
+        switch(curr)
+        {
+        case '\n':
+        {
+            _c4dbgfbl("found newline");
+            // skip indentation on the next line
+            csubstr rem = proc.rem();
+            if(rem.len)
+            {
+                size_t first = rem.first_not_of(' ', 1);
+                if(first != npos)
+                {
+                    _c4dbgfbl("{} spaces follow before next nonws character", first);
+                    if(first < indentation)
+                    {
+                        _c4dbgfbl("[{}]: skip {}<{} spaces from indentation", i, first, indentation);
+                        proc.skip(first);
+                    }
+                    else
+                    {
+                        _c4dbgfbl("[{}]: skip {} spaces from indentation", i, indentation);
+                        proc.skip(indentation);
+                    }
+                }
+                else
+                {
+                    _c4dbgfbl("all spaces to the end: {} spaces", i, first);
+                    first = rem.len;
+                    if(first)
+                    {
+                        if(first < indentation)
+                        {
+                            _c4dbgfbl("skip everything", i);
+                            proc.skip(proc.src.len - proc.rpos);
+                        }
+                        else
+                        {
+                            _c4dbgfbl("skip {} spaces from indentation", indentation);
+                            proc.skip(indentation);
+                        }
+                    }
+                }
+            }
+            break;
+        }
+        case '\r':
+            proc.skip();
+            break;
+        default:
+            proc.copy();
+            break;
+        }
+    }
+
+    bool changed = _apply_chomp(dst, dst, &pos, chomp, loc);
+    _RYML_CB_ASSERT(*m_callbacks, pos <= dst.len);
+    _RYML_CB_ASSERT(*m_callbacks, pos <= scalar.len);
+    if(pos < r.len || changed)
+    {
+        r = dst.first(pos);
+    }
+
+    _c4dbgfbl(": final=[{}]~~~{}~~~", r.len, r);
+
+    #undef _c4dbgfbl
+
+    return proc.result();
+}
+
+csubstr ScalarFilter::filter_block_literal(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp, LocCRef loc)
+{
+    if(chomp != CHOMP_KEEP && scalar.trim(" \n\r").len == 0u)
+        return scalar.first(0);
+    FilterProcessorInplace proc(scalar, cap, m_callbacks);
+    return filter_block_literal(proc, indentation, chomp, loc);
+}
+
+csubstr ScalarFilter::filter_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp, LocCRef loc)
+{
+    if(chomp != CHOMP_KEEP && scalar.trim(" \n\r").len == 0u)
+        return scalar.first(0);
+    FilterProcessorSrcDst proc(scalar, dst, m_callbacks);
+    return filter_block_literal(proc, indentation, chomp, loc);
 }
 
 

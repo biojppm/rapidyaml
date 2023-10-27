@@ -25,7 +25,9 @@ struct ScalarFilter
     csubstr filter_dquoted(substr scalar, size_t cap, LocCRef loc);
     csubstr filter_dquoted(csubstr scalar, substr dst, LocCRef loc);
 
-    csubstr filter_block_literal(substr scalar, size_t indentation, BlockChomp_e chomp, LocCRef loc);
+    template<class FilterProcessor>
+    csubstr filter_block_literal(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp, LocCRef loc);
+    csubstr filter_block_literal(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp, LocCRef loc);
     csubstr filter_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp, LocCRef loc);
 
     csubstr filter_block_folded(substr scalar, size_t indentation, BlockChomp_e chomp, LocCRef loc);
