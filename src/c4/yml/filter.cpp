@@ -734,6 +734,86 @@ csubstr ScalarFilter::filter_dquoted(substr dst, size_t cap, LocCRef loc)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+
+bool ScalarFilter::_apply_chomp(csubstr buf, substr dst, size_t *C4_RESTRICT pos, BlockChomp_e chomp, LocCRef loc)
+{
+    csubstr trimmed = buf.first(*pos).trimr('\n');
+    bool added_newline = false;
+    switch(chomp)
+    {
+    case CHOMP_KEEP:
+        if(trimmed.len == *pos)
+        {
+            _c4dbgpf("chomp=KEEP: add missing newline @{}", *pos);
+            //dst.str[(*pos)++] = '\n';
+            added_newline = true;
+        }
+        break;
+    case CHOMP_CLIP:
+        if(trimmed.len == *pos)
+        {
+            _c4dbgpf("chomp=CLIP: add missing newline @{}", *pos);
+            dst.str[(*pos)++] = '\n';
+            added_newline = true;
+        }
+        else
+        {
+            _c4dbgpf("chomp=CLIP: include single trailing newline @{}", trimmed.len+1);
+            *pos = trimmed.len + 1;
+        }
+        break;
+    case CHOMP_STRIP:
+        _c4dbgpf("chomp=STRIP: strip {}-{}-{} newlines", *pos, trimmed.len, *pos-trimmed.len);
+        *pos = trimmed.len;
+        break;
+    default:
+        _c4errflt(loc, "unknown chomp style");
+    }
+    return added_newline;
+}
+
+template<class FilterProcessor>
+void ScalarFilter::_apply_chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp, LocCRef loc)
+{
+    switch(chomp)
+    {
+    case CHOMP_CLIP:
+    {
+        csubstr rem = proc.rem(); // the remaining string
+        size_t first = rem.last_not_of('\n');
+        if(first != npos) // every remaining character is \n. use only one.
+        {
+            _c4dbgpf("chomp=CLIP: include single trailing newline @{}", proc.wpos);
+            proc.copy();
+        }
+        else // there are no newline characters. add one.
+        {
+            _c4dbgpf("chomp=CLIP: add missing newline @{}", proc.wpos);
+            proc.set('\n');
+        }
+        break;
+    }
+    case CHOMP_KEEP:
+        {
+            // copy everything.
+            if(proc.wpos < proc.src.len)
+                proc.copy(proc.src.len - proc.wpos);
+            break;
+        }
+    case CHOMP_STRIP:
+    {
+        // nothing to do!
+        _c4dbgpf("chomp=STRIP: strip {}-{}-{} newlines", proc.sofar().trimr('\n').len);
+        break;
+    }
+    default:
+        _c4errflt(loc, "unknown chomp style");
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+
 #ifdef OLD
 csubstr ScalarFilter::filter_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp, LocCRef loc)
 {
@@ -870,6 +950,9 @@ csubstr ScalarFilter::filter_block_literal(FilterProcessor &C4_RESTRICT proc, si
     #define _c4dbgfbl(...)
     #endif
 
+    if(chomp != CHOMP_KEEP && proc.src.trim(" \n\r").len == 0u)
+        return proc.sofar();
+
     _c4dbgfbl(": indentation={} before=[{}]~~~{}~~~", indentation, proc.src.len, proc.src);
 
     // trim leading whitespace up to indentation
@@ -908,8 +991,7 @@ csubstr ScalarFilter::filter_block_literal(FilterProcessor &C4_RESTRICT proc, si
         {
         case '\n':
         {
-            _c4dbgfbl("found newline");
-            // skip indentation on the next line
+            _c4dbgfbl("found newline. skip indentation on the next line");
             csubstr rem = proc.rem();
             if(rem.len)
             {
@@ -958,13 +1040,7 @@ csubstr ScalarFilter::filter_block_literal(FilterProcessor &C4_RESTRICT proc, si
         }
     }
 
-    bool changed = _apply_chomp(dst, dst, &pos, chomp, loc);
-    _RYML_CB_ASSERT(*m_callbacks, pos <= dst.len);
-    _RYML_CB_ASSERT(*m_callbacks, pos <= scalar.len);
-    if(pos < r.len || changed)
-    {
-        r = dst.first(pos);
-    }
+    _apply_chomp(proc, chomp, loc);
 
     _c4dbgfbl(": final=[{}]~~~{}~~~", r.len, r);
 
@@ -975,16 +1051,12 @@ csubstr ScalarFilter::filter_block_literal(FilterProcessor &C4_RESTRICT proc, si
 
 csubstr ScalarFilter::filter_block_literal(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp, LocCRef loc)
 {
-    if(chomp != CHOMP_KEEP && scalar.trim(" \n\r").len == 0u)
-        return scalar.first(0);
     FilterProcessorInplace proc(scalar, cap, m_callbacks);
     return filter_block_literal(proc, indentation, chomp, loc);
 }
 
 csubstr ScalarFilter::filter_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp, LocCRef loc)
 {
-    if(chomp != CHOMP_KEEP && scalar.trim(" \n\r").len == 0u)
-        return scalar.first(0);
     FilterProcessorSrcDst proc(scalar, dst, m_callbacks);
     return filter_block_literal(proc, indentation, chomp, loc);
 }
@@ -1212,46 +1284,6 @@ csubstr ScalarFilter::filter_block_folded(csubstr scalar, substr dst, size_t ind
     #undef _c4dbgfbl
 
     return r.first(pos);
-}
-
-
-//-----------------------------------------------------------------------------
-
-bool ScalarFilter::_apply_chomp(csubstr buf, substr dst, size_t *C4_RESTRICT pos, BlockChomp_e chomp, LocCRef loc)
-{
-    csubstr trimmed = buf.first(*pos).trimr('\n');
-    bool added_newline = false;
-    switch(chomp)
-    {
-    case CHOMP_KEEP:
-        if(trimmed.len == *pos)
-        {
-            _c4dbgpf("chomp=KEEP: add missing newline @{}", *pos);
-            //dst.str[(*pos)++] = '\n';
-            added_newline = true;
-        }
-        break;
-    case CHOMP_CLIP:
-        if(trimmed.len == *pos)
-        {
-            _c4dbgpf("chomp=CLIP: add missing newline @{}", *pos);
-            dst.str[(*pos)++] = '\n';
-            added_newline = true;
-        }
-        else
-        {
-            _c4dbgpf("chomp=CLIP: include single trailing newline @{}", trimmed.len+1);
-            *pos = trimmed.len + 1;
-        }
-        break;
-    case CHOMP_STRIP:
-        _c4dbgpf("chomp=STRIP: strip {}-{}-{} newlines", *pos, trimmed.len, *pos-trimmed.len);
-        *pos = trimmed.len;
-        break;
-    default:
-        _c4errflt(loc, "unknown chomp style");
-    }
-    return added_newline;
 }
 
 } // namespace yml

@@ -55,6 +55,8 @@ public:
     template<class FilterProcessor>
     void _filter_dquoted_backslash(FilterProcessor &C4_RESTRICT proc, LocCRef loc);
 
+    template<class FilterProcessor>
+    void _apply_chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp, LocCRef loc);
     bool _apply_chomp(csubstr buf, substr dst, size_t *C4_RESTRICT pos, BlockChomp_e chomp, LocCRef loc);
 
 };

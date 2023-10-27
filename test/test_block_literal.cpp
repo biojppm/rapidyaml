@@ -3,6 +3,96 @@
 namespace c4 {
 namespace yml {
 
+
+struct blocklit_case
+{
+    size_t indentation;
+    BlockChomp_e chomp;
+    csubstr input, expected;
+};
+
+void test_filter_src_dst(blocklit_case const& blcase)
+{
+    RYML_TRACE_FMT("\nstr=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~", blcase.input.len, blcase.input, blcase.expected.len, blcase.expected);
+    std::string subject_;
+    subject_.resize(2 * blcase.input.size());
+    c4::substr dst = to_substr(subject_);
+    ScalarFilter proc = {};
+    csubstr out = proc.filter_block_literal(blcase.input, dst, blcase.indentation, blcase.chomp, Location{});
+    if(blcase.input != blcase.expected)
+    {
+        EXPECT_TRUE(out.is_sub(dst));// << "\ninput=" << input << "\nexpected=" << expected;
+    }
+    EXPECT_EQ(out, blcase.expected);
+}
+
+void test_filter_inplace(blocklit_case const& blcase)
+{
+    RYML_TRACE_FMT("\nstr=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~", blcase.input.len, blcase.input, blcase.expected.len, blcase.expected);
+    ASSERT_LE(blcase.expected.len, blcase.input.len);
+    std::string subject_(blcase.input.str, blcase.input.len);
+    c4::substr dst = to_substr(subject_);
+    ScalarFilter proc = {};
+    csubstr out = proc.filter_block_literal(dst, subject_.size(), blcase.indentation, blcase.chomp, Location{});
+    ASSERT_TRUE(out.str);
+    EXPECT_TRUE(out.is_sub(dst));// << "\ninput=" << input << "\nexpected=" << expected;
+    EXPECT_EQ(out, blcase.expected);
+}
+
+struct BlockLitFilterTest : public ::testing::TestWithParam<blocklit_case>
+{
+};
+
+TEST_P(BlockLitFilterTest, filter_src_dst)
+{
+    test_filter_src_dst(GetParam());
+}
+TEST_P(BlockLitFilterTest, filter_inplace)
+{
+    test_filter_inplace(GetParam());
+}
+
+blocklit_case test_cases_filter[] = {
+    #define blc(indentation, chomp, input, output) blocklit_case{indentation, chomp, csubstr(input), csubstr(output)}
+    // 0
+    blc(0, CHOMP_STRIP, "", ""),
+    blc(0, CHOMP_CLIP, "", ""),
+    blc(0, CHOMP_KEEP, "", ""),
+    blc(0, CHOMP_STRIP, "\n", ""),
+    blc(0, CHOMP_CLIP, "\n", ""),
+    // 5
+    blc(0, CHOMP_KEEP, "\n", "\n"),
+    blc(0, CHOMP_STRIP, "\n\n", ""),
+    blc(0, CHOMP_CLIP, "\n\n", ""),
+    blc(0, CHOMP_KEEP, "\n\n", "\n\n"),
+    blc(0, CHOMP_STRIP, "\n\n", ""),
+    // 10
+    blc(0, CHOMP_CLIP, "\n\n", ""),
+    blc(0, CHOMP_KEEP, "\n\n", "\n\n"),
+    blc(0, CHOMP_STRIP, "\n\n\n", ""),
+    blc(0, CHOMP_CLIP, "\n\n\n", ""),
+    blc(0, CHOMP_KEEP, "\n\n\n", "\n\n\n"),
+    // 15
+    blc(0, CHOMP_STRIP, "\n\n\n\n", ""),
+    blc(0, CHOMP_CLIP, "\n\n\n\n", ""),
+    blc(0, CHOMP_KEEP, "\n\n\n\n", "\n\n\n\n"),
+    // 20
+    // 25
+    // 30
+    // 35
+    // 40
+    #undef blc
+};
+
+INSTANTIATE_TEST_SUITE_P(block_literal_filter,
+                         BlockLitFilterTest,
+                         testing::ValuesIn(test_cases_filter));
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 TEST(block_literal, empty_block)
 {
     {
