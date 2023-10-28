@@ -775,12 +775,13 @@ bool ScalarFilter::_apply_chomp(csubstr buf, substr dst, size_t *C4_RESTRICT pos
 template<class FilterProcessor>
 void ScalarFilter::_apply_chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp, LocCRef loc)
 {
+    _RYML_CB_ASSERT(*m_callbacks, proc.rem().first_not_of(" \n\r") == npos);
     switch(chomp)
     {
     case CHOMP_CLIP:
     {
         csubstr rem = proc.rem(); // the remaining string
-        size_t first = rem.last_not_of('\n');
+        const size_t first = rem.last_not_of('\n');
         if(first != npos) // every remaining character is \n. use only one.
         {
             _c4dbgpf("chomp=CLIP: include single trailing newline @{}", proc.wpos);
@@ -794,16 +795,26 @@ void ScalarFilter::_apply_chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e 
         break;
     }
     case CHOMP_KEEP:
+    {
+        _c4dbgpf("chomp=KEEP: copy all remaining new lines of {} characters", proc.rem().len);
+        while(proc.has_more_chars())
         {
-            // copy everything.
-            if(proc.wpos < proc.src.len)
-                proc.copy(proc.src.len - proc.wpos);
-            break;
+            const char curr = proc.curr();
+            switch(curr)
+            {
+            case '\n':
+                proc.copy();
+                break;
+            default:
+                proc.skip();
+            }
         }
+        break;
+    }
     case CHOMP_STRIP:
     {
+        _c4dbgpf("chomp=STRIP: strip {} characters", proc.rem().len);
         // nothing to do!
-        _c4dbgpf("chomp=STRIP: strip {}-{}-{} newlines", proc.sofar().trimr('\n').len);
         break;
     }
     default:
@@ -944,16 +955,24 @@ template<class FilterProcessor>
 csubstr ScalarFilter::filter_block_literal(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp, LocCRef loc)
 {
     // a debugging scaffold:
-    #if 0
-    #define _c4dbgfbl(fmt, ...) _c4dbgpf("filt_block_lit[{}->{}]" fmt, proc.rpos, proc.wpos, __VA_ARGS__)
+    #if 1
+    #define _c4dbgfbl(fmt, ...) _c4dbgpf("filt_block_lit[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
     #else
     #define _c4dbgfbl(...)
     #endif
 
-    if(chomp != CHOMP_KEEP && proc.src.trim(" \n\r").len == 0u)
-        return proc.sofar();
+    _c4dbgfbl("indentation={} before=[{}]~~~{}~~~", indentation, proc.src.len, proc.src);
 
-    _c4dbgfbl(": indentation={} before=[{}]~~~{}~~~", indentation, proc.src.len, proc.src);
+    csubstr trimmed = proc.src.trimr(" \n\r");
+    if(!trimmed.len)
+    {
+        _c4dbgfbl("all white space: len={}", proc.src.len);
+        if (chomp == CHOMP_KEEP && proc.src.len)
+            proc.copy(proc.src.len);
+        return proc.sofar();
+    }
+
+    _RYML_CB_ASSERT(*m_callbacks, trimmed.len > 0u);
 
     // trim leading whitespace up to indentation
     {
@@ -965,13 +984,13 @@ csubstr ScalarFilter::filter_block_literal(FilterProcessor &C4_RESTRICT proc, si
                 proc.skip(indentation);
             else
                 proc.skip(numws);
-            _c4dbgfbl(": after triml=[{}]~~~{}~~~", r.len, r);
+            _c4dbgfbl("after triml=[{}]~~~{}~~~", r.len, r);
         }
         else
         {
             if(chomp != CHOMP_KEEP || r.len == 0)
             {
-                _c4dbgfbl(": all spaces {}, return empty", r.len);
+                _c4dbgfbl("all spaces {}, return empty", r.len);
                 proc.skip(r.len);
             }
             else
@@ -983,42 +1002,44 @@ csubstr ScalarFilter::filter_block_literal(FilterProcessor &C4_RESTRICT proc, si
     }
 
     // now filter the bulk
-    while(proc.has_more_chars())
+    while(proc.has_more_chars(/*maxpos*/trimmed.len))
     {
         const char curr = proc.curr();
-        _c4dbgfbl("'%c' sofar=[{}]~~~{}~~~",  _c4prc(curr), proc.wpos, proc.sofar());
+        _c4dbgfbl("'{}' sofar=[{}]~~~{}~~~",  _c4prc(curr), proc.wpos, proc.sofar());
         switch(curr)
         {
         case '\n':
         {
-            _c4dbgfbl("found newline. skip indentation on the next line");
-            csubstr rem = proc.rem();
+            _c4dbgfbl("found newline. skip indentation on the next line", curr);
+            // copy the newline
+            proc.copy();
+            csubstr rem = proc.rem(); // remaining
             if(rem.len)
             {
-                size_t first = rem.first_not_of(' ', 1);
+                size_t first = rem.first_not_of(' ');
                 if(first != npos)
                 {
                     _c4dbgfbl("{} spaces follow before next nonws character", first);
                     if(first < indentation)
                     {
-                        _c4dbgfbl("[{}]: skip {}<{} spaces from indentation", i, first, indentation);
+                        _c4dbgfbl("skip {}<{} spaces from indentation", first, indentation);
                         proc.skip(first);
                     }
                     else
                     {
-                        _c4dbgfbl("[{}]: skip {} spaces from indentation", i, indentation);
+                        _c4dbgfbl("skip {} spaces from indentation", indentation);
                         proc.skip(indentation);
                     }
                 }
                 else
                 {
-                    _c4dbgfbl("all spaces to the end: {} spaces", i, first);
+                    _c4dbgfbl("all spaces to the end: {} spaces", first);
                     first = rem.len;
                     if(first)
                     {
                         if(first < indentation)
                         {
-                            _c4dbgfbl("skip everything", i);
+                            _c4dbgfbl("skip everything", curr);
                             proc.skip(proc.src.len - proc.rpos);
                         }
                         else
@@ -1040,9 +1061,11 @@ csubstr ScalarFilter::filter_block_literal(FilterProcessor &C4_RESTRICT proc, si
         }
     }
 
+    _c4dbgfbl("before chomp=[{}]~~~{}~~~", proc.sofar().len, proc.sofar());
+
     _apply_chomp(proc, chomp, loc);
 
-    _c4dbgfbl(": final=[{}]~~~{}~~~", r.len, r);
+    _c4dbgfbl("final=[{}]~~~{}~~~", proc.sofar().len, proc.sofar());
 
     #undef _c4dbgfbl
 

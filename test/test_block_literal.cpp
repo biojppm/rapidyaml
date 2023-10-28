@@ -19,24 +19,64 @@ void test_filter_src_dst(blocklit_case const& blcase)
     c4::substr dst = to_substr(subject_);
     ScalarFilter proc = {};
     csubstr out = proc.filter_block_literal(blcase.input, dst, blcase.indentation, blcase.chomp, Location{});
-    if(blcase.input != blcase.expected)
-    {
-        EXPECT_TRUE(out.is_sub(dst));// << "\ninput=" << input << "\nexpected=" << expected;
-    }
+    EXPECT_TRUE(out.is_sub(dst));
+    RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
     EXPECT_EQ(out, blcase.expected);
 }
 
 void test_filter_inplace(blocklit_case const& blcase)
 {
     RYML_TRACE_FMT("\nstr=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~", blcase.input.len, blcase.input, blcase.expected.len, blcase.expected);
-    ASSERT_LE(blcase.expected.len, blcase.input.len);
-    std::string subject_(blcase.input.str, blcase.input.len);
-    c4::substr dst = to_substr(subject_);
-    ScalarFilter proc = {};
-    csubstr out = proc.filter_block_literal(dst, subject_.size(), blcase.indentation, blcase.chomp, Location{});
-    ASSERT_TRUE(out.str);
-    EXPECT_TRUE(out.is_sub(dst));// << "\ninput=" << input << "\nexpected=" << expected;
-    EXPECT_EQ(out, blcase.expected);
+    if(blcase.input.len >= blcase.expected.len)
+    {
+        std::string subject_(blcase.input.str, blcase.input.len);
+        c4::substr dst = to_substr(subject_);
+        ScalarFilter proc = {};
+        csubstr out = proc.filter_block_literal(dst, subject_.size(), blcase.indentation, blcase.chomp, Location{});
+        ASSERT_TRUE(out.str);
+        EXPECT_TRUE(out.is_sub(dst));
+        RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
+        EXPECT_EQ(out, blcase.expected);
+    }
+    else
+    {
+        {
+            SCOPED_TRACE("spare size");
+            std::string subject_(blcase.input.str, blcase.input.len);
+            subject_.resize(blcase.expected.len + 30);
+            c4::substr dst = to_substr(subject_).first(blcase.input.len);
+            c4::substr rem = to_substr(subject_).sub(blcase.expected.len);
+            rem.fill('^');
+            ScalarFilter proc = {};
+            csubstr out = proc.filter_block_literal(dst, subject_.size(), blcase.indentation, blcase.chomp, Location{});
+            ASSERT_TRUE(out.str);
+            EXPECT_TRUE(out.is_super(dst));
+            RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
+            EXPECT_EQ(out, blcase.expected);
+            EXPECT_EQ(rem.first_not_of('^'), npos);
+        }
+        {
+            SCOPED_TRACE("trimmed size");
+            std::string subject_(blcase.input.str, blcase.input.len);
+            subject_.resize(blcase.expected.len);
+            c4::substr dst = to_substr(subject_).first(blcase.input.len);
+            ScalarFilter proc = {};
+            csubstr out = proc.filter_block_literal(dst, subject_.size(), blcase.indentation, blcase.chomp, Location{});
+            ASSERT_TRUE(out.str);
+            EXPECT_TRUE(out.is_super(dst));
+            RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
+            EXPECT_EQ(out, blcase.expected);
+        }
+        {
+            SCOPED_TRACE("insufficient size");
+            std::string subject_(blcase.input.str, blcase.input.len);
+            c4::substr dst = to_substr(subject_);
+            ScalarFilter proc = {};
+            csubstr out = proc.filter_block_literal(dst, subject_.size(), blcase.indentation, blcase.chomp, Location{});
+            ASSERT_FALSE(out.str);
+            EXPECT_EQ(out.len, blcase.expected.len);
+        }
+    }
 }
 
 struct BlockLitFilterTest : public ::testing::TestWithParam<blocklit_case>
@@ -55,32 +95,76 @@ TEST_P(BlockLitFilterTest, filter_inplace)
 blocklit_case test_cases_filter[] = {
     #define blc(indentation, chomp, input, output) blocklit_case{indentation, chomp, csubstr(input), csubstr(output)}
     // 0
+    blc(2, CHOMP_STRIP,
+        "Several lines of text,\n  with some \"quotes\" of various 'types',\n  and also a blank line:\n\n  plus another line at the end.\n\n",
+        "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end."),
+    blc(2, CHOMP_CLIP,
+        "Several lines of text,\n  with some \"quotes\" of various 'types',\n  and also a blank line:\n\n  plus another line at the end.\n\n",
+        "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
+    blc(2, CHOMP_KEEP,
+        "Several lines of text,\n  with some \"quotes\" of various 'types',\n  and also a blank line:\n\n  plus another line at the end.\n\n",
+        "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n\n"),
+    // 3
+    blc(2, CHOMP_STRIP,
+        "  Several lines of text,\n  with some \"quotes\" of various 'types',\n  and also a blank line:\n\n  plus another line at the end.\n  \n",
+        "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end."),
+    blc(2, CHOMP_CLIP,
+        "  Several lines of text,\n  with some \"quotes\" of various 'types',\n  and also a blank line:\n\n  plus another line at the end.\n  \n",
+        "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
+    blc(2, CHOMP_KEEP,
+        "  Several lines of text,\n  with some \"quotes\" of various 'types',\n  and also a blank line:\n\n  plus another line at the end.\n  \n",
+        "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n\n"),
+    // 6
     blc(0, CHOMP_STRIP, "", ""),
     blc(0, CHOMP_CLIP, "", ""),
     blc(0, CHOMP_KEEP, "", ""),
+    // 9
     blc(0, CHOMP_STRIP, "\n", ""),
     blc(0, CHOMP_CLIP, "\n", ""),
-    // 5
     blc(0, CHOMP_KEEP, "\n", "\n"),
+    // 12
     blc(0, CHOMP_STRIP, "\n\n", ""),
     blc(0, CHOMP_CLIP, "\n\n", ""),
     blc(0, CHOMP_KEEP, "\n\n", "\n\n"),
+    // 15
     blc(0, CHOMP_STRIP, "\n\n", ""),
-    // 10
     blc(0, CHOMP_CLIP, "\n\n", ""),
     blc(0, CHOMP_KEEP, "\n\n", "\n\n"),
+    // 18
     blc(0, CHOMP_STRIP, "\n\n\n", ""),
     blc(0, CHOMP_CLIP, "\n\n\n", ""),
     blc(0, CHOMP_KEEP, "\n\n\n", "\n\n\n"),
-    // 15
+    // 21
     blc(0, CHOMP_STRIP, "\n\n\n\n", ""),
     blc(0, CHOMP_CLIP, "\n\n\n\n", ""),
     blc(0, CHOMP_KEEP, "\n\n\n\n", "\n\n\n\n"),
-    // 20
-    // 25
+    // 24
+    blc(0, CHOMP_STRIP, "a", "a"),
+    blc(0, CHOMP_CLIP, "a", "a\n"),
+    blc(0, CHOMP_KEEP, "a", "a"),
+    // 27
+    blc(0, CHOMP_STRIP, "a\n", "a"),
+    blc(0, CHOMP_CLIP, "a\n", "a\n"),
+    blc(0, CHOMP_KEEP, "a\n", "a\n"),
     // 30
-    // 35
-    // 40
+    blc(0, CHOMP_STRIP, "a\n\n", "a"),
+    blc(0, CHOMP_CLIP, "a\n\n", "a\n"),
+    blc(0, CHOMP_KEEP, "a\n\n", "a\n\n"),
+    // 33
+    blc(0, CHOMP_STRIP, "a\n\n", "a"),
+    blc(0, CHOMP_CLIP, "a\n\n", "a\n"),
+    blc(0, CHOMP_KEEP, "a\n\n", "a\n\n"),
+    // 36
+    blc(0, CHOMP_STRIP, "a\n\n\n", "a"),
+    blc(0, CHOMP_CLIP, "a\n\n\n", "a\n"),
+    blc(0, CHOMP_KEEP, "a\n\n\n", "a\n\n\n"),
+    // 39
+    blc(0, CHOMP_STRIP, "a\n\n\n\n", "a"),
+    blc(0, CHOMP_CLIP, "a\n\n\n\n", "a\n"),
+    blc(0, CHOMP_KEEP, "a\n\n\n\n", "a\n\n\n\n"),
+    // 42
+    // 45
+    // 48
     #undef blc
 };
 
