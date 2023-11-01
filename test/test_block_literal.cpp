@@ -106,65 +106,73 @@ blocklit_case test_cases_filter[] = {
         "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n\n"),
     // 3
     blc(2, CHOMP_STRIP,
-        "  Several lines of text,\n  with some \"quotes\" of various 'types',\n  and also a blank line:\n\n  plus another line at the end.\n  \n",
+        "  Several lines of text,\n  with some \"quotes\" of various 'types',\n  and also a blank line:\n\n  plus another line at the end.",
         "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end."),
     blc(2, CHOMP_CLIP,
-        "  Several lines of text,\n  with some \"quotes\" of various 'types',\n  and also a blank line:\n\n  plus another line at the end.\n  \n",
+        "  Several lines of text,\n  with some \"quotes\" of various 'types',\n  and also a blank line:\n\n  plus another line at the end.\n",
         "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n"),
     blc(2, CHOMP_KEEP,
         "  Several lines of text,\n  with some \"quotes\" of various 'types',\n  and also a blank line:\n\n  plus another line at the end.\n  \n",
         "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n\n"),
     // 6
     blc(0, CHOMP_STRIP, "", ""),
-    blc(0, CHOMP_CLIP, "", ""),
-    blc(0, CHOMP_KEEP, "", ""),
+    blc(1, CHOMP_CLIP, "", ""),
+    blc(1, CHOMP_KEEP, "", ""),
     // 9
-    blc(0, CHOMP_STRIP, "\n", ""),
-    blc(0, CHOMP_CLIP, "\n", ""),
-    blc(0, CHOMP_KEEP, "\n", "\n"),
+    blc(1, CHOMP_STRIP, "\n", ""),
+    blc(1, CHOMP_CLIP, "\n", ""),
+    blc(1, CHOMP_KEEP, "\n", "\n"),
     // 12
-    blc(0, CHOMP_STRIP, "\n\n", ""),
-    blc(0, CHOMP_CLIP, "\n\n", ""),
-    blc(0, CHOMP_KEEP, "\n\n", "\n\n"),
+    blc(1, CHOMP_STRIP, "\n\n", ""),
+    blc(1, CHOMP_CLIP, "\n\n", ""),
+    blc(1, CHOMP_KEEP, "\n\n", "\n\n"),
     // 15
-    blc(0, CHOMP_STRIP, "\n\n", ""),
-    blc(0, CHOMP_CLIP, "\n\n", ""),
-    blc(0, CHOMP_KEEP, "\n\n", "\n\n"),
+    blc(1, CHOMP_STRIP, "\n\n", ""),
+    blc(1, CHOMP_CLIP, "\n\n", ""),
+    blc(1, CHOMP_KEEP, "\n\n", "\n\n"),
     // 18
-    blc(0, CHOMP_STRIP, "\n\n\n", ""),
-    blc(0, CHOMP_CLIP, "\n\n\n", ""),
-    blc(0, CHOMP_KEEP, "\n\n\n", "\n\n\n"),
+    blc(1, CHOMP_STRIP, "\n\n\n", ""),
+    blc(1, CHOMP_CLIP, "\n\n\n", ""),
+    blc(1, CHOMP_KEEP, "\n\n\n", "\n\n\n"),
     // 21
-    blc(0, CHOMP_STRIP, "\n\n\n\n", ""),
-    blc(0, CHOMP_CLIP, "\n\n\n\n", ""),
-    blc(0, CHOMP_KEEP, "\n\n\n\n", "\n\n\n\n"),
+    blc(1, CHOMP_STRIP, "\n\n\n\n", ""),
+    blc(1, CHOMP_CLIP, "\n\n\n\n", ""),
+    blc(1, CHOMP_KEEP, "\n\n\n\n", "\n\n\n\n"),
     // 24
-    blc(0, CHOMP_STRIP, "a", "a"),
-    blc(0, CHOMP_CLIP, "a", "a\n"),
-    blc(0, CHOMP_KEEP, "a", "a"),
+    blc(1, CHOMP_STRIP, "a", "a"),
+    blc(1, CHOMP_CLIP, "a", "a\n"),
+    blc(1, CHOMP_KEEP, "a", "a"),
     // 27
-    blc(0, CHOMP_STRIP, "a\n", "a"),
-    blc(0, CHOMP_CLIP, "a\n", "a\n"),
-    blc(0, CHOMP_KEEP, "a\n", "a\n"),
+    blc(1, CHOMP_STRIP, "a\n", "a"),
+    blc(1, CHOMP_CLIP, "a\n", "a\n"),
+    blc(1, CHOMP_KEEP, "a\n", "a\n"),
     // 30
-    blc(0, CHOMP_STRIP, "a\n\n", "a"),
-    blc(0, CHOMP_CLIP, "a\n\n", "a\n"),
-    blc(0, CHOMP_KEEP, "a\n\n", "a\n\n"),
+    blc(1, CHOMP_STRIP, "a\n\n", "a"),
+    blc(1, CHOMP_CLIP, "a\n\n", "a\n"),
+    blc(1, CHOMP_KEEP, "a\n\n", "a\n\n"),
     // 33
-    blc(0, CHOMP_STRIP, "a\n\n", "a"),
-    blc(0, CHOMP_CLIP, "a\n\n", "a\n"),
-    blc(0, CHOMP_KEEP, "a\n\n", "a\n\n"),
+    blc(1, CHOMP_STRIP, "a\n\n", "a"),
+    blc(1, CHOMP_CLIP, "a\n\n", "a\n"),
+    blc(1, CHOMP_KEEP, "a\n\n", "a\n\n"),
     // 36
-    blc(0, CHOMP_STRIP, "a\n\n\n", "a"),
-    blc(0, CHOMP_CLIP, "a\n\n\n", "a\n"),
-    blc(0, CHOMP_KEEP, "a\n\n\n", "a\n\n\n"),
+    blc(1, CHOMP_STRIP, "a\n\n\n", "a"),
+    blc(1, CHOMP_CLIP, "a\n\n\n", "a\n"),
+    blc(1, CHOMP_KEEP, "a\n\n\n", "a\n\n\n"),
     // 39
-    blc(0, CHOMP_STRIP, "a\n\n\n\n", "a"),
-    blc(0, CHOMP_CLIP, "a\n\n\n\n", "a\n"),
-    blc(0, CHOMP_KEEP, "a\n\n\n\n", "a\n\n\n\n"),
+    blc(1, CHOMP_STRIP, "a\n\n\n\n", "a"),
+    blc(1, CHOMP_CLIP, "a\n\n\n\n", "a\n"),
+    blc(1, CHOMP_KEEP, "a\n\n\n\n", "a\n\n\n\n"),
     // 42
+    blc(1, CHOMP_STRIP, " ab\n \n \n", "ab"),
+    blc(1, CHOMP_CLIP, " ab\n \n \n", "ab\n"),
+    blc(1, CHOMP_KEEP, " ab\n \n \n", "ab\n\n\n"),
     // 45
+    blc(1, CHOMP_STRIP, " ab\n \n  \n", "ab\n\n "),
+    blc(1, CHOMP_CLIP, " ab\n \n  \n", "ab\n\n \n"),
+    blc(1, CHOMP_KEEP, " ab\n \n  \n", "ab\n\n \n"),
     // 48
+    // 51
+    // 54
     #undef blc
 };
 

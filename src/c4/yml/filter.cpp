@@ -345,55 +345,6 @@ csubstr ScalarFilter::filter_plain(FilterProcessor &C4_RESTRICT proc, size_t ind
     #undef _c4dbgfps
 
     return proc.result();
-#ifdef old
-    (void)loc;
-    // a debugging scaffold:
-    #if 0
-    #define _c4dbgfps(...) _c4dbgpf("filt_plain" __VA_ARGS__)
-    #else
-    #define _c4dbgfps(...)
-    #endif
-
-    _RYML_CB_ASSERT(*m_callbacks, dst.len >= scalar.len);
-
-    _c4dbgfps(": before=~~~{}~~~", scalar);
-
-    csubstr r = scalar.triml(" \t");
-    size_t pos = 0; // the filtered size
-    bool filtered_chars = false;
-    for(size_t i = 0; i < r.len; ++i)
-    {
-        const char curr = r.str[i];
-        _c4dbgfps("[{}]: '{}'", i, _c4prc(curr));
-        if(curr == ' ' || curr == '\t')
-        {
-            _filter_ws</*keep_trailing_ws*/false>(r, dst, &i, &pos);
-        }
-        else if(curr == '\n')
-        {
-            filtered_chars = _filter_nl</*backslash_is_escape*/false, /*keep_trailing_ws*/false>(r, dst, &i, &pos, indentation);
-        }
-        else if(curr == '\r')  // skip \r --- https://stackoverflow.com/questions/1885900
-        {
-            ;
-        }
-        else
-        {
-            dst.str[pos++] = r[i];
-        }
-    }
-
-    _RYML_CB_ASSERT(*m_callbacks, pos <= dst.len);
-    if(pos < r.len || filtered_chars)
-    {
-        r = dst.first(pos);
-    }
-    _RYML_CB_ASSERT(*m_callbacks, dst.len <= scalar.len);
-    _c4dbgfps("#filteredchars={} after=~~~{}~~~", scalar.len - dst.len, r);
-
-    #undef _c4dbgfps
-    return dst.first(pos);
-#endif
 }
 
 
@@ -734,8 +685,7 @@ csubstr ScalarFilter::filter_dquoted(substr dst, size_t cap, LocCRef loc)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-
-bool ScalarFilter::_apply_chomp(csubstr buf, substr dst, size_t *C4_RESTRICT pos, BlockChomp_e chomp, LocCRef loc)
+bool ScalarFilter::_chomp(csubstr buf, substr dst, size_t *C4_RESTRICT pos, BlockChomp_e chomp, LocCRef loc)
 {
     csubstr trimmed = buf.first(*pos).trimr('\n');
     bool added_newline = false;
@@ -772,54 +722,159 @@ bool ScalarFilter::_apply_chomp(csubstr buf, substr dst, size_t *C4_RESTRICT pos
     return added_newline;
 }
 
-template<class FilterProcessor>
-void ScalarFilter::_apply_chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp, LocCRef loc)
+size_t _find_last_newline_and_larger_indentation(csubstr s, size_t indentation) noexcept
 {
+    if(indentation + 1 > s.len)
+        return npos;
+    for(size_t i = s.len-indentation-1; i != size_t(-1); --i)
+    {
+        if(s.str[i] == '\n')
+        {
+            size_t first = s.sub(i + 1).first_not_of(' ');
+            if(first > indentation)
+                return i;
+        }
+    }
+    return npos;
+}
+
+template<class FilterProcessor>
+void ScalarFilter::_chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp, size_t indentation, LocCRef loc)
+{
+    _RYML_CB_ASSERT(*m_callbacks, chomp == CHOMP_CLIP || chomp == CHOMP_KEEP || chomp == CHOMP_STRIP);
     _RYML_CB_ASSERT(*m_callbacks, proc.rem().first_not_of(" \n\r") == npos);
+    _RYML_CB_ASSERT(*m_callbacks, indentation >= 1);
+
+    // a debugging scaffold:
+    #if 1
+    #define _c4dbgchomp(fmt, ...) _c4dbgpf("chomp[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
+    #else
+    #define _c4dbgchomp(...)
+    #endif
+
+    C4_UNUSED(loc);
+
+    // advance to the last line having spaces beyond the indentation
+    {
+        size_t last = _find_last_newline_and_larger_indentation(proc.rem(), indentation);
+        if(last != npos)
+        {
+            _c4dbgchomp("found newline and larger indentation. last={}", last);
+            last = proc.rpos + last + size_t(1) + indentation;  // last started at to-be-read.
+            _RYML_CB_ASSERT(*m_callbacks, last <= proc.src.len);
+            // remove indentation spaces, copy the rest
+            while((proc.rpos < last) && proc.has_more_chars())
+            {
+                const char curr = proc.curr();
+                _c4dbgchomp("curr='{}'", _c4prc(curr));
+                switch(curr)
+                {
+                case '\n':
+                    {
+                        _c4dbgchomp("newline! remlen={}", proc.rem().len);
+                        proc.copy();
+                        // are there spaces after the newline?
+                        csubstr at_next_line = proc.rem();
+                        if(at_next_line.begins_with(' '))
+                        {
+                            // there are spaces.
+                            const size_t first_non_space = at_next_line.first_not_of(' ');
+                            _c4dbgchomp("first_non_space={}", first_non_space);
+                            if(first_non_space != npos) // there are spaces
+                            {
+                                _c4dbgchomp("next line begins with spaces. indentation={}", indentation);
+                                if(first_non_space <= indentation)
+                                {
+                                    _c4dbgchomp("skip spaces={}<=indentation={}", first_non_space, indentation);
+                                    proc.skip(first_non_space);
+                                }
+                                else
+                                {
+                                    _c4dbgchomp("skip indentation={}<spaces={}", indentation, first_non_space);
+                                    proc.skip(indentation);
+                                    // copy the spaces after the indentation
+                                    _c4dbgchomp("copy {}={}-{} spaces", first_non_space - indentation, first_non_space, indentation);
+                                    proc.copy(first_non_space - indentation);
+                                }
+                            }
+                        }
+                        break;
+                    }
+                case '\r':
+                    proc.skip();
+                    break;
+                default:
+                    _RYML_CB_ERR(*m_callbacks, "never reach this");
+                    break;
+                }
+            }
+        }
+    }
+    // from now on, we only have line ends (or indentation spaces)
     switch(chomp)
     {
     case CHOMP_CLIP:
     {
-        csubstr rem = proc.rem(); // the remaining string
-        const size_t first = rem.last_not_of('\n');
-        if(first != npos) // every remaining character is \n. use only one.
+        bool had_one = false;
+        while(proc.has_more_chars())
         {
-            _c4dbgpf("chomp=CLIP: include single trailing newline @{}", proc.wpos);
-            proc.copy();
+            const char curr = proc.curr();
+            _c4dbgchomp("CLIP: '{}'", _c4prc(curr));
+            switch(curr)
+            {
+            case '\n':
+            {
+                _c4dbgchomp("copy newline!", curr);
+                proc.copy();
+                proc.set_at_end();
+                had_one = true;
+                break;
+            }
+            case ' ':
+            case '\r':
+                _c4dbgchomp("skip!", curr);
+                proc.skip();
+                break;
+            }
         }
-        else // there are no newline characters. add one.
+        if(!had_one) // there were no newline characters. add one.
         {
-            _c4dbgpf("chomp=CLIP: add missing newline @{}", proc.wpos);
+            _c4dbgchomp("chomp=CLIP: add missing newline @{}", proc.wpos);
             proc.set('\n');
         }
         break;
     }
     case CHOMP_KEEP:
     {
-        _c4dbgpf("chomp=KEEP: copy all remaining new lines of {} characters", proc.rem().len);
+        _c4dbgchomp("chomp=KEEP: copy all remaining new lines of {} characters", proc.rem().len);
         while(proc.has_more_chars())
         {
             const char curr = proc.curr();
+            _c4dbgchomp("KEEP: '{}'", _c4prc(curr));
             switch(curr)
             {
             case '\n':
+                _c4dbgchomp("copy newline!", curr);
                 proc.copy();
                 break;
-            default:
+            case ' ':
+            case '\r':
+                _c4dbgchomp("skip!", curr);
                 proc.skip();
+                break;
             }
         }
         break;
     }
     case CHOMP_STRIP:
     {
-        _c4dbgpf("chomp=STRIP: strip {} characters", proc.rem().len);
+        _c4dbgchomp("chomp=STRIP: strip {} characters", proc.rem().len);
         // nothing to do!
         break;
     }
-    default:
-        _c4errflt(loc, "unknown chomp style");
     }
+
+    #undef _c4dbgchomp
 }
 
 
@@ -951,58 +1006,77 @@ csubstr ScalarFilter::filter_block_literal(csubstr scalar, substr dst, size_t in
 }
 #endif
 
+// a debugging scaffold:
+#if 1
+#define _c4dbgfbl(fmt, ...) _c4dbgpf("filt_block_lit[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
+#else
+#define _c4dbgfbl(...)
+#endif
+
+template<class FilterProcessor>
+void ScalarFilter::_filter_block_literal_indentation(FilterProcessor &C4_RESTRICT proc, size_t indentation, LocCRef loc)
+{
+    C4_UNUSED(loc);
+    csubstr rem = proc.rem(); // remaining
+    if(rem.len)
+    {
+        size_t first = rem.first_not_of(' ');
+        if(first != npos)
+        {
+            _c4dbgfbl("{} spaces follow before next nonws character", first);
+            if(first < indentation)
+            {
+                _c4dbgfbl("skip {}<{} spaces from indentation", first, indentation);
+                proc.skip(first);
+            }
+            else
+            {
+                _c4dbgfbl("skip {} spaces from indentation", indentation);
+                proc.skip(indentation);
+            }
+        }
+        else
+        {
+            _c4dbgfbl("all spaces to the end: {} spaces", first);
+            first = rem.len;
+            if(first)
+            {
+                if(first < indentation)
+                {
+                    _c4dbgfbl("skip everything", first);
+                    proc.skip(proc.src.len - proc.rpos);
+                }
+                else
+                {
+                    _c4dbgfbl("skip {} spaces from indentation", indentation);
+                    proc.skip(indentation);
+                }
+            }
+        }
+    }
+}
+
 template<class FilterProcessor>
 csubstr ScalarFilter::filter_block_literal(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp, LocCRef loc)
 {
-    // a debugging scaffold:
-    #if 1
-    #define _c4dbgfbl(fmt, ...) _c4dbgpf("filt_block_lit[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
-    #else
-    #define _c4dbgfbl(...)
-    #endif
 
     _c4dbgfbl("indentation={} before=[{}]~~~{}~~~", indentation, proc.src.len, proc.src);
 
-    csubstr trimmed = proc.src.trimr(" \n\r");
-    if(!trimmed.len)
+    csubstr to_chomp = proc.src.trimr(" \n\r");
+    if(!to_chomp.len)
     {
-        _c4dbgfbl("all white space: len={}", proc.src.len);
+        _c4dbgfbl("all newline: len={}", proc.src.len);
         if (chomp == CHOMP_KEEP && proc.src.len)
             proc.copy(proc.src.len);
         return proc.sofar();
     }
 
-    _RYML_CB_ASSERT(*m_callbacks, trimmed.len > 0u);
+    _RYML_CB_ASSERT(*m_callbacks, to_chomp.len > 0u);
 
-    // trim leading whitespace up to indentation
-    {
-        csubstr r = proc.src;
-        const size_t numws = r.first_not_of(' ');
-        if(numws != npos)
-        {
-            if(numws > indentation)
-                proc.skip(indentation);
-            else
-                proc.skip(numws);
-            _c4dbgfbl("after triml=[{}]~~~{}~~~", r.len, r);
-        }
-        else
-        {
-            if(chomp != CHOMP_KEEP || r.len == 0)
-            {
-                _c4dbgfbl("all spaces {}, return empty", r.len);
-                proc.skip(r.len);
-            }
-            else
-            {
-                proc.set('\n');
-                proc.skip(r.len - 1);
-            }
-        }
-    }
+    _filter_block_literal_indentation(proc, indentation, loc);
 
     // now filter the bulk
-    while(proc.has_more_chars(/*maxpos*/trimmed.len))
+    while(proc.has_more_chars(/*maxpos*/to_chomp.len))
     {
         const char curr = proc.curr();
         _c4dbgfbl("'{}' sofar=[{}]~~~{}~~~",  _c4prc(curr), proc.wpos, proc.sofar());
@@ -1011,45 +1085,8 @@ csubstr ScalarFilter::filter_block_literal(FilterProcessor &C4_RESTRICT proc, si
         case '\n':
         {
             _c4dbgfbl("found newline. skip indentation on the next line", curr);
-            // copy the newline
-            proc.copy();
-            csubstr rem = proc.rem(); // remaining
-            if(rem.len)
-            {
-                size_t first = rem.first_not_of(' ');
-                if(first != npos)
-                {
-                    _c4dbgfbl("{} spaces follow before next nonws character", first);
-                    if(first < indentation)
-                    {
-                        _c4dbgfbl("skip {}<{} spaces from indentation", first, indentation);
-                        proc.skip(first);
-                    }
-                    else
-                    {
-                        _c4dbgfbl("skip {} spaces from indentation", indentation);
-                        proc.skip(indentation);
-                    }
-                }
-                else
-                {
-                    _c4dbgfbl("all spaces to the end: {} spaces", first);
-                    first = rem.len;
-                    if(first)
-                    {
-                        if(first < indentation)
-                        {
-                            _c4dbgfbl("skip everything", curr);
-                            proc.skip(proc.src.len - proc.rpos);
-                        }
-                        else
-                        {
-                            _c4dbgfbl("skip {} spaces from indentation", indentation);
-                            proc.skip(indentation);
-                        }
-                    }
-                }
-            }
+            proc.copy();  // copy the newline
+            _filter_block_literal_indentation(proc, indentation, loc);
             break;
         }
         case '\r':
@@ -1061,16 +1098,16 @@ csubstr ScalarFilter::filter_block_literal(FilterProcessor &C4_RESTRICT proc, si
         }
     }
 
-    _c4dbgfbl("before chomp=[{}]~~~{}~~~", proc.sofar().len, proc.sofar());
+    _c4dbgfbl("before chomp: #tochomp={}   sofar=[{}]~~~{}~~~", proc.rem().len, proc.sofar().len, proc.sofar());
 
-    _apply_chomp(proc, chomp, loc);
+    _chomp(proc, chomp, indentation, loc);
 
     _c4dbgfbl("final=[{}]~~~{}~~~", proc.sofar().len, proc.sofar());
 
-    #undef _c4dbgfbl
-
     return proc.result();
 }
+
+#undef _c4dbgfbl
 
 csubstr ScalarFilter::filter_block_literal(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp, LocCRef loc)
 {
@@ -1296,7 +1333,7 @@ csubstr ScalarFilter::filter_block_folded(csubstr scalar, substr dst, size_t ind
     }
     _RYML_CB_ASSERT(*m_callbacks, pos <= dst.len);
     _c4dbgfbl(": #filteredchars={} after=[{}]~~~{}~~~", (int)s.len - (int)pos, pos, dst.first(pos));
-    bool changed = _apply_chomp(dst, dst, &pos, chomp, loc);
+    bool changed = _chomp(dst, dst, &pos, chomp, loc);
     if(pos < r.len || filtered_chars || changed)
     {
         r = dst.first(pos); // write into s

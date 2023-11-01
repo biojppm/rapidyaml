@@ -45,6 +45,9 @@ struct FilterProcessorSrcDst
         _RYML_CB_ASSERT(*m_callbacks, !dst.overlaps(src));
     }
 
+    C4_ALWAYS_INLINE void setpos(size_t rpos_, size_t wpos_) noexcept { rpos = rpos_; wpos = wpos_; }
+    C4_ALWAYS_INLINE void set_at_end() noexcept { skip(src.len - rpos); }
+
     C4_ALWAYS_INLINE bool has_more_chars() const noexcept { return rpos < src.len; }
     C4_ALWAYS_INLINE bool has_more_chars(size_t maxpos) const noexcept { _RYML_CB_ASSERT(*m_callbacks, maxpos <= src.len); return rpos < maxpos; }
 
@@ -151,6 +154,9 @@ struct FilterProcessorInplace
     {
         _RYML_CB_ASSERT(*m_callbacks, wcap >= src.len);
     }
+
+    C4_ALWAYS_INLINE void setpos(size_t rpos_, size_t wpos_) noexcept { rpos = rpos_; wpos = wpos_; }
+    C4_ALWAYS_INLINE void set_at_end() noexcept { skip(src.len - rpos); }
 
     C4_ALWAYS_INLINE bool has_more_chars() const noexcept { return rpos < src.len; }
     C4_ALWAYS_INLINE bool has_more_chars(size_t maxpos) const noexcept { _RYML_CB_ASSERT(*m_callbacks, maxpos <= src.len); return rpos < maxpos; }
