@@ -19,7 +19,11 @@ void test_filter_src_dst(blocklit_case const& blcase)
     c4::substr dst = to_substr(subject_);
     ScalarFilter proc = {};
     csubstr out = proc.filter_block_literal(blcase.input, dst, blcase.indentation, blcase.chomp, Location{});
-    EXPECT_TRUE(out.is_sub(dst));
+    if(blcase.chomp != CHOMP_CLIP)
+    {
+        EXPECT_EQ(out.len, blcase.expected.len);
+    }
+    ASSERT_TRUE(out.is_sub(dst));
     RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
     EXPECT_EQ(out, blcase.expected);
 }
@@ -33,6 +37,10 @@ void test_filter_inplace(blocklit_case const& blcase)
         c4::substr dst = to_substr(subject_);
         ScalarFilter proc = {};
         csubstr out = proc.filter_block_literal(dst, subject_.size(), blcase.indentation, blcase.chomp, Location{});
+        if(blcase.chomp != CHOMP_CLIP)
+        {
+            EXPECT_EQ(out.len, blcase.expected.len);
+        }
         ASSERT_TRUE(out.str);
         EXPECT_TRUE(out.is_sub(dst));
         RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
@@ -49,6 +57,10 @@ void test_filter_inplace(blocklit_case const& blcase)
             rem.fill('^');
             ScalarFilter proc = {};
             csubstr out = proc.filter_block_literal(dst, subject_.size(), blcase.indentation, blcase.chomp, Location{});
+            if(blcase.chomp != CHOMP_CLIP)
+            {
+                EXPECT_EQ(out.len, blcase.expected.len);
+            }
             ASSERT_TRUE(out.str);
             EXPECT_TRUE(out.is_super(dst));
             RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
@@ -62,6 +74,10 @@ void test_filter_inplace(blocklit_case const& blcase)
             c4::substr dst = to_substr(subject_).first(blcase.input.len);
             ScalarFilter proc = {};
             csubstr out = proc.filter_block_literal(dst, subject_.size(), blcase.indentation, blcase.chomp, Location{});
+            if(blcase.chomp != CHOMP_CLIP)
+            {
+                EXPECT_EQ(out.len, blcase.expected.len);
+            }
             ASSERT_TRUE(out.str);
             EXPECT_TRUE(out.is_super(dst));
             RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
@@ -73,8 +89,11 @@ void test_filter_inplace(blocklit_case const& blcase)
             c4::substr dst = to_substr(subject_);
             ScalarFilter proc = {};
             csubstr out = proc.filter_block_literal(dst, subject_.size(), blcase.indentation, blcase.chomp, Location{});
+            if(blcase.chomp != CHOMP_CLIP)
+            {
+                EXPECT_EQ(out.len, blcase.expected.len);
+            }
             ASSERT_FALSE(out.str);
-            EXPECT_EQ(out.len, blcase.expected.len);
         }
     }
 }
@@ -83,14 +102,42 @@ struct BlockLitFilterTest : public ::testing::TestWithParam<blocklit_case>
 {
 };
 
+std::string add_carriage_returns(csubstr input)
+{
+    std::string result;
+    result.reserve(input.len + input.count('\n'));
+    for(const char c : input)
+    {
+        if(c == '\n')
+            result += '\r';
+        result += c;
+    }
+    return result;
+}
+
 TEST_P(BlockLitFilterTest, filter_src_dst)
 {
     test_filter_src_dst(GetParam());
+}
+TEST_P(BlockLitFilterTest, filter_src_dst_carriage_return)
+{
+    ParamType p = GetParam();
+    std::string subject = add_carriage_returns(p.input);
+    p.input = to_csubstr(subject);
+    test_filter_src_dst(p);
 }
 TEST_P(BlockLitFilterTest, filter_inplace)
 {
     test_filter_inplace(GetParam());
 }
+TEST_P(BlockLitFilterTest, filter_inplace_carriage_return)
+{
+    ParamType p = GetParam();
+    std::string subject = add_carriage_returns(p.input);
+    p.input = to_csubstr(subject);
+    test_filter_inplace(p);
+}
+
 
 blocklit_case test_cases_filter[] = {
     #define blc(indentation, chomp, input, output) blocklit_case{indentation, chomp, csubstr(input), csubstr(output)}
@@ -115,7 +162,7 @@ blocklit_case test_cases_filter[] = {
         "  Several lines of text,\n  with some \"quotes\" of various 'types',\n  and also a blank line:\n\n  plus another line at the end.\n  \n",
         "Several lines of text,\nwith some \"quotes\" of various 'types',\nand also a blank line:\n\nplus another line at the end.\n\n"),
     // 6
-    blc(0, CHOMP_STRIP, "", ""),
+    blc(1, CHOMP_STRIP, "", ""),
     blc(1, CHOMP_CLIP, "", ""),
     blc(1, CHOMP_KEEP, "", ""),
     // 9
@@ -151,9 +198,9 @@ blocklit_case test_cases_filter[] = {
     blc(1, CHOMP_CLIP, "a\n\n", "a\n"),
     blc(1, CHOMP_KEEP, "a\n\n", "a\n\n"),
     // 33
-    blc(1, CHOMP_STRIP, "a\n\n", "a"),
-    blc(1, CHOMP_CLIP, "a\n\n", "a\n"),
-    blc(1, CHOMP_KEEP, "a\n\n", "a\n\n"),
+    blc(0, CHOMP_STRIP, "a\n\n", "a"),
+    blc(0, CHOMP_CLIP, "a\n\n", "a\n"),
+    blc(0, CHOMP_KEEP, "a\n\n", "a\n\n"),
     // 36
     blc(1, CHOMP_STRIP, "a\n\n\n", "a"),
     blc(1, CHOMP_CLIP, "a\n\n\n", "a\n"),
@@ -171,8 +218,19 @@ blocklit_case test_cases_filter[] = {
     blc(1, CHOMP_CLIP, " ab\n \n  \n", "ab\n\n \n"),
     blc(1, CHOMP_KEEP, " ab\n \n  \n", "ab\n\n \n"),
     // 48
+    blc(0, CHOMP_STRIP, "ab\n\n \n", "ab\n\n "),
+    blc(0, CHOMP_CLIP, "ab\n\n \n", "ab\n\n \n"),
+    blc(0, CHOMP_KEEP, "ab\n\n \n", "ab\n\n \n"),
     // 51
+    blc(1, CHOMP_STRIP, "hello\nthere\n", "hello\nthere"),
+    blc(1, CHOMP_CLIP, "hello\nthere\n", "hello\nthere\n"),
+    blc(1, CHOMP_KEEP, "hello\nthere\n", "hello\nthere\n"),
     // 54
+    blc(0, CHOMP_STRIP, "hello\nthere\n", "hello\nthere"),
+    blc(0, CHOMP_CLIP, "hello\nthere\n", "hello\nthere\n"),
+    blc(0, CHOMP_KEEP, "hello\nthere\n", "hello\nthere\n"),
+    // 57
+
     #undef blc
 };
 

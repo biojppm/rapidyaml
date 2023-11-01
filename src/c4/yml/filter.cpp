@@ -730,11 +730,19 @@ size_t _find_last_newline_and_larger_indentation(csubstr s, size_t indentation) 
     {
         if(s.str[i] == '\n')
         {
-            size_t first = s.sub(i + 1).first_not_of(' ');
+            csubstr rem = s.sub(i + 1);
+            size_t first = rem.first_not_of(' ');
+            first = (first != npos) ? first :rem.len;
             if(first > indentation)
                 return i;
         }
     }
+    //_RYML_CB_ASSERT(*m_callbacks, _find_last_newline_and_larger_indentation("ab\n\n\n", 0) == npos);
+    //_RYML_CB_ASSERT(*m_callbacks, _find_last_newline_and_larger_indentation("ab\n \n\n", 0) == 2);
+    //_RYML_CB_ASSERT(*m_callbacks, _find_last_newline_and_larger_indentation("ab\n\n \n", 0) == 3);
+    //_RYML_CB_ASSERT(*m_callbacks, _find_last_newline_and_larger_indentation("ab\n \n \n", 0) == 4);
+    //_RYML_CB_ASSERT(*m_callbacks, _find_last_newline_and_larger_indentation("ab\n \n  \n", 1) == 4);
+    //_RYML_CB_ASSERT(*m_callbacks, _find_last_newline_and_larger_indentation("ab\n  \n \n", 1) == 2);
     return npos;
 }
 
@@ -743,7 +751,6 @@ void ScalarFilter::_chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp,
 {
     _RYML_CB_ASSERT(*m_callbacks, chomp == CHOMP_CLIP || chomp == CHOMP_KEEP || chomp == CHOMP_STRIP);
     _RYML_CB_ASSERT(*m_callbacks, proc.rem().first_not_of(" \n\r") == npos);
-    _RYML_CB_ASSERT(*m_callbacks, indentation >= 1);
 
     // a debugging scaffold:
     #if 1
@@ -1062,21 +1069,30 @@ csubstr ScalarFilter::filter_block_literal(FilterProcessor &C4_RESTRICT proc, si
 
     _c4dbgfbl("indentation={} before=[{}]~~~{}~~~", indentation, proc.src.len, proc.src);
 
-    csubstr to_chomp = proc.src.trimr(" \n\r");
-    if(!to_chomp.len)
+    csubstr contents = proc.src.trimr(" \n\r");
+    if(!contents.len)
     {
         _c4dbgfbl("all newline: len={}", proc.src.len);
         if (chomp == CHOMP_KEEP && proc.src.len)
-            proc.copy(proc.src.len);
+        {
+            while(proc.has_more_chars())
+            {
+                const char curr = proc.curr();
+                if(curr != '\r')
+                    proc.copy();
+                else
+                    proc.skip();
+            }
+        }
         return proc.sofar();
     }
 
-    _RYML_CB_ASSERT(*m_callbacks, to_chomp.len > 0u);
+    _RYML_CB_ASSERT(*m_callbacks, contents.len > 0u);
 
     _filter_block_literal_indentation(proc, indentation, loc);
 
     // now filter the bulk
-    while(proc.has_more_chars(/*maxpos*/to_chomp.len))
+    while(proc.has_more_chars(/*maxpos*/contents.len))
     {
         const char curr = proc.curr();
         _c4dbgfbl("'{}' sofar=[{}]~~~{}~~~",  _c4prc(curr), proc.wpos, proc.sofar());
