@@ -1072,13 +1072,14 @@ csubstr ScalarFilter::filter_block_literal(FilterProcessor &C4_RESTRICT proc, si
     csubstr contents = proc.src.trimr(" \n\r");
     if(!contents.len)
     {
-        _c4dbgfbl("all newline: len={}", proc.src.len);
-        if (chomp == CHOMP_KEEP && proc.src.len)
+        _c4dbgfbl("all whitespace: len={}", proc.src.len);
+        if(chomp == CHOMP_KEEP && proc.src.len)
         {
+            _c4dbgfbl("chomp=KEEP all {} newlines", proc.src.count('\n'));
             while(proc.has_more_chars())
             {
                 const char curr = proc.curr();
-                if(curr != '\r')
+                if(curr == '\n')
                     proc.copy();
                 else
                     proc.skip();
@@ -1087,7 +1088,20 @@ csubstr ScalarFilter::filter_block_literal(FilterProcessor &C4_RESTRICT proc, si
         return proc.sofar();
     }
 
+    // extend contents to just before the first newline at the end,
+    // in case it is preceded by spaces
+    {
+        size_t firstnewl = proc.src.first_of('\n', contents.len);
+        _c4dbgfbl("contents.len={}  firstnewl={}", contents.len, firstnewl);
+        if(firstnewl != npos)
+        {
+            contents = proc.src.first(firstnewl);
+        }
+    }
+
     _RYML_CB_ASSERT(*m_callbacks, contents.len > 0u);
+
+    _c4dbgfbl("to filter=[{}]~~~{}~~~", contents.len, contents);
 
     _filter_block_literal_indentation(proc, indentation, loc);
 

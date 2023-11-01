@@ -230,6 +230,110 @@ blocklit_case test_cases_filter[] = {
     blc(0, CHOMP_CLIP, "hello\nthere\n", "hello\nthere\n"),
     blc(0, CHOMP_KEEP, "hello\nthere\n", "hello\nthere\n"),
     // 57
+    blc(3, CHOMP_CLIP,
+        "   There once was a short man from Ealing\n   Who got on a bus to Darjeeling\n       It said on the door\n       \"Please don't spit on the floor\"\n   So he carefully spat on the ceiling.\n",
+        "There once was a short man from Ealing\nWho got on a bus to Darjeeling\n    It said on the door\n    \"Please don't spit on the floor\"\nSo he carefully spat on the ceiling.\n"),
+    blc(8, CHOMP_CLIP,
+        "        <blockquote style=\"font: italic 12pt Times\">\n"
+        "        <p>\"Three is always greater than two,\n"
+        "           even for large values of two\"</p>\n"
+        "        <p>--Author Unknown</p>\n"
+        "        </blockquote>",
+        "<blockquote style=\"font: italic 12pt Times\">\n"
+        "<p>\"Three is always greater than two,\n"
+        "   even for large values of two\"</p>\n"
+        "<p>--Author Unknown</p>\n"
+        "</blockquote>\n"),
+    blc(2, CHOMP_CLIP,
+        "  Several lines of text,\n"
+        "  with some \"quotes\" of various 'types',\n"
+        "  and also a blank line:\n"
+        "  \n"
+        "  plus another line at the end.\n",
+        "Several lines of text,\n"
+        "with some \"quotes\" of various 'types',\n"
+        "and also a blank line:\n"
+        "\n"
+        "plus another line at the end.\n"),
+    // 60
+    blc(2, CHOMP_CLIP,
+        "  Several lines of text,\n"
+        "  with some \"quotes\" of various 'types',\n"
+        "  and also a blank line:\n"
+        "   \n"
+        "  plus another line at the end.",
+        "Several lines of text,\n"
+        "with some \"quotes\" of various 'types',\n"
+        "and also a blank line:\n"
+        " \n"
+        "plus another line at the end.\n"),
+    blc(2, CHOMP_CLIP,
+        "  Several lines of text,\n"
+        "  with some \"quotes\" of various 'types',\n"
+        "  and also a blank line:\n"
+        "    \n"
+        "  plus another line at the end.",
+        "Several lines of text,\n"
+        "with some \"quotes\" of various 'types',\n"
+        "and also a blank line:\n"
+        "  \n"
+        "plus another line at the end.\n"),
+    blc(4, CHOMP_CLIP,
+        "    #include \"{{hdr.filename}}\"\n  \n    {{src.gencode}}",
+        "#include \"{{hdr.filename}}\"\n\n{{src.gencode}}\n"),
+    // 63
+    blc(1, CHOMP_STRIP, " \n  \n   \n", ""),
+    blc(1, CHOMP_CLIP, " \n  \n   \n", ""),
+    blc(1, CHOMP_KEEP, " \n  \n   \n", "\n\n\n"),
+    // 66
+    blc(1, CHOMP_STRIP, " \n  \n   \n    ", ""),
+    blc(1, CHOMP_CLIP, " \n  \n   \n    ", ""),
+    blc(1, CHOMP_KEEP, " \n  \n   \n    ", "\n\n\n"),
+    // 69
+    blc(1, CHOMP_STRIP, " \n  \n   \n    \n     \n      \n    \n   \n \n", ""),
+    blc(1, CHOMP_CLIP, " \n  \n   \n    \n     \n      \n    \n   \n \n", ""),
+    blc(1, CHOMP_KEEP, " \n  \n   \n    \n     \n      \n    \n   \n \n", "\n\n\n\n\n\n\n\n\n"),
+    // 72
+    blc(1, CHOMP_STRIP, " \n  \n   \n\n     \n      \n\n   \n \n", ""),
+    blc(1, CHOMP_CLIP, " \n  \n   \n\n     \n      \n\n   \n \n", ""),
+    blc(1, CHOMP_KEEP, " \n  \n   \n\n     \n      \n\n   \n \n", "\n\n\n\n\n\n\n\n\n"),
+    // 75
+    blc(7, CHOMP_STRIP,
+        "       asd\n"
+        "     \n"
+        "   \n"
+        "       \n"
+        "  \n"
+        " \n"
+        "  ",
+        "asd"),
+    blc(7, CHOMP_CLIP,
+        "       asd\n"
+        "     \n"
+        "   \n"
+        "       \n"
+        "  \n"
+        " \n"
+        "  ",
+        "asd\n"),
+    blc(7, CHOMP_KEEP,
+        "       asd\n"
+        "     \n"
+        "   \n"
+        "       \n"
+        "  \n"
+        " \n"
+        "  ",
+        "asd\n\n\n\n\n\n"),
+    // 78
+    blc(5, CHOMP_STRIP, "     asd\n     	 ", "asd\n\t "),
+    blc(5, CHOMP_CLIP, "     asd\n     	 ", "asd\n\t \n"),
+    blc(5, CHOMP_KEEP, "     asd\n     	 ", "asd\n\t "),
+    // 81
+    blc(5, CHOMP_STRIP, "     asd\n      	 ", "asd\n \t "),
+    blc(5, CHOMP_CLIP, "     asd\n      	 ", "asd\n \t \n"),
+    blc(5, CHOMP_KEEP, "     asd\n      	 ", "asd\n \t "),
+
 
     #undef blc
 };
