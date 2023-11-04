@@ -247,7 +247,7 @@ jobs:
       # use fetch-depth to ensure all tags are fetched
       - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive, fetch-depth: 0}}
       - name: create wheel
-        uses: joerick/cibuildwheel@v2.9.0
+        uses: pypa/cibuildwheel@v2.16.2
       - name: rename wheelhouse -> dist
         run: |
           mv -fv wheelhouse dist
