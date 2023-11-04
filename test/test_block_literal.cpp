@@ -140,7 +140,7 @@ TEST_P(BlockLitFilterTest, filter_inplace_carriage_return)
 
 
 blocklit_case test_cases_filter[] = {
-    #define blc(indentation, chomp, input, output) blocklit_case{indentation, chomp, csubstr(input), csubstr(output)}
+#define blc(indentation, chomp, input, output) blocklit_case{indentation, chomp, csubstr(input), csubstr(output)}
     // 0
     blc(2, CHOMP_STRIP,
         "Several lines of text,\n  with some \"quotes\" of various 'types',\n  and also a blank line:\n\n  plus another line at the end.\n\n",
@@ -231,8 +231,16 @@ blocklit_case test_cases_filter[] = {
     blc(0, CHOMP_KEEP, "hello\nthere\n", "hello\nthere\n"),
     // 57
     blc(3, CHOMP_CLIP,
-        "   There once was a short man from Ealing\n   Who got on a bus to Darjeeling\n       It said on the door\n       \"Please don't spit on the floor\"\n   So he carefully spat on the ceiling.\n",
-        "There once was a short man from Ealing\nWho got on a bus to Darjeeling\n    It said on the door\n    \"Please don't spit on the floor\"\nSo he carefully spat on the ceiling.\n"),
+        "   There once was a short man from Ealing\n"
+        "   Who got on a bus to Darjeeling\n"
+        "       It said on the door\n"
+        "       \"Please don't spit on the floor\"\n"
+        "   So he carefully spat on the ceiling.\n",
+        "There once was a short man from Ealing\n"
+        "Who got on a bus to Darjeeling\n"
+        "    It said on the door\n"
+        "    \"Please don't spit on the floor\"\n"
+        "So he carefully spat on the ceiling.\n"),
     blc(8, CHOMP_CLIP,
         "        <blockquote style=\"font: italic 12pt Times\">\n"
         "        <p>\"Three is always greater than two,\n"
@@ -326,14 +334,21 @@ blocklit_case test_cases_filter[] = {
         "  ",
         "asd\n\n\n\n\n\n"),
     // 78
-    blc(5, CHOMP_STRIP, "     asd\n     	 ", "asd\n\t "),
-    blc(5, CHOMP_CLIP, "     asd\n     	 ", "asd\n\t \n"),
-    blc(5, CHOMP_KEEP, "     asd\n     	 ", "asd\n\t "),
+    blc(5, CHOMP_STRIP, "     asd\n     \t ", "asd\n\t "),
+    blc(5, CHOMP_CLIP, "     asd\n     \t ", "asd\n\t \n"),
+    blc(5, CHOMP_KEEP, "     asd\n     \t ", "asd\n\t "),
     // 81
-    blc(5, CHOMP_STRIP, "     asd\n      	 ", "asd\n \t "),
-    blc(5, CHOMP_CLIP, "     asd\n      	 ", "asd\n \t \n"),
-    blc(5, CHOMP_KEEP, "     asd\n      	 ", "asd\n \t "),
-
+    blc(5, CHOMP_STRIP, "     asd\n     \t \n", "asd\n\t "),
+    blc(5, CHOMP_CLIP, "     asd\n     \t \n", "asd\n\t \n"),
+    blc(5, CHOMP_KEEP, "     asd\n     \t \n", "asd\n\t \n"),
+    // 84
+    blc(5, CHOMP_STRIP, "     asd\n      \t ", "asd\n \t "),
+    blc(5, CHOMP_CLIP, "     asd\n      \t ", "asd\n \t \n"),
+    blc(5, CHOMP_KEEP, "     asd\n      \t ", "asd\n \t "),
+    // 84
+    blc(5, CHOMP_STRIP, "     asd\n      \t \n", "asd\n \t "),
+    blc(5, CHOMP_CLIP, "     asd\n      \t \n", "asd\n \t \n"),
+    blc(5, CHOMP_KEEP, "     asd\n      \t \n", "asd\n \t \n"),
 
     #undef blc
 };

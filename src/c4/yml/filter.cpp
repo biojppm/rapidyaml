@@ -204,7 +204,7 @@ template<bool keep_trailing_whitespace, class FilterProcessor>
 void ScalarFilter::_filter_ws(FilterProcessor &proc)
 {
     // a debugging scaffold:
-    #if 1
+    #if 0
     #define _c4dbgfws(fmt, ...) _c4dbgpf("filt_ws[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
     #else
     #define _c4dbgfws(...)
@@ -753,7 +753,7 @@ void ScalarFilter::_chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp,
     _RYML_CB_ASSERT(*m_callbacks, proc.rem().first_not_of(" \n\r") == npos);
 
     // a debugging scaffold:
-    #if 1
+    #if 0
     #define _c4dbgchomp(fmt, ...) _c4dbgpf("chomp[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
     #else
     #define _c4dbgchomp(...)
@@ -1014,7 +1014,7 @@ csubstr ScalarFilter::filter_block_literal(csubstr scalar, substr dst, size_t in
 #endif
 
 // a debugging scaffold:
-#if 1
+#if 0
 #define _c4dbgfbl(fmt, ...) _c4dbgpf("filt_block_lit[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
 #else
 #define _c4dbgfbl(...)
@@ -1066,7 +1066,6 @@ void ScalarFilter::_filter_block_literal_indentation(FilterProcessor &C4_RESTRIC
 template<class FilterProcessor>
 csubstr ScalarFilter::filter_block_literal(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp, LocCRef loc)
 {
-
     _c4dbgfbl("indentation={} before=[{}]~~~{}~~~", indentation, proc.src.len, proc.src);
 
     csubstr contents = proc.src.trimr(" \n\r");
@@ -1092,10 +1091,16 @@ csubstr ScalarFilter::filter_block_literal(FilterProcessor &C4_RESTRICT proc, si
     // in case it is preceded by spaces
     {
         size_t firstnewl = proc.src.first_of('\n', contents.len);
-        _c4dbgfbl("contents.len={}  firstnewl={}", contents.len, firstnewl);
+        _c4dbgfbl("contents.len={}", contents.len);
         if(firstnewl != npos)
         {
             contents = proc.src.first(firstnewl);
+            _c4dbgfbl("contents.len={}  <--- firstnewl={}", contents.len, firstnewl);
+        }
+        else
+        {
+            contents.len = proc.src.len;
+            _c4dbgfbl("contents.len={}  <--- src.len={}", contents.len, proc.src.len);
         }
     }
 
