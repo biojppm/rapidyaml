@@ -30,7 +30,9 @@ struct ScalarFilter
     csubstr filter_block_literal(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp, LocCRef loc);
     csubstr filter_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp, LocCRef loc);
 
-    csubstr filter_block_folded(substr scalar, size_t indentation, BlockChomp_e chomp, LocCRef loc);
+    template<class FilterProcessor>
+    csubstr filter_block_folded(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp, LocCRef loc);
+    csubstr filter_block_folded(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp, LocCRef loc);
     csubstr filter_block_folded(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp, LocCRef loc);
 
 public:
@@ -52,15 +54,12 @@ public:
     template<bool keep_trailing_whitespace, class FilterProcessor>
     void _filter_ws(FilterProcessor &C4_RESTRICT proc);
 
-    template<class FilterProcessor>
-    void _filter_dquoted_backslash(FilterProcessor &C4_RESTRICT proc, LocCRef loc);
+    template<class FilterProcessor> void _filter_dquoted_backslash(FilterProcessor &C4_RESTRICT proc, LocCRef loc);
 
-    template<class FilterProcessor>
-    void _chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp, size_t indentation, LocCRef loc);
-    bool _chomp(csubstr buf, substr dst, size_t *C4_RESTRICT pos, BlockChomp_e chomp, LocCRef loc);
-
-    template<class FilterProcessor>
-    void _filter_block_literal_indentation(FilterProcessor &C4_RESTRICT proc, size_t indentation, LocCRef loc);
+    template<class FilterProcessor> void _chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp, size_t indentation, LocCRef loc);
+    template<class FilterProcessor> size_t _handle_all_whitespace(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp);
+    template<class FilterProcessor> size_t _extend_to_chomp(FilterProcessor &C4_RESTRICT proc, size_t contents_len);
+    template<class FilterProcessor> void _filter_block_indentation(FilterProcessor &C4_RESTRICT proc, size_t indentation, LocCRef loc);
 };
 
 } // namespace yml
