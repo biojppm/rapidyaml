@@ -3,6 +3,399 @@
 namespace c4 {
 namespace yml {
 
+struct blockfolded_case
+{
+    size_t indentation;
+    BlockChomp_e chomp;
+    csubstr input, expected;
+};
+
+void test_filter_src_dst(blockfolded_case const& blcase)
+{
+    RYML_TRACE_FMT("\nstr=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~", blcase.input.len, blcase.input, blcase.expected.len, blcase.expected);
+    std::string subject_;
+    subject_.resize(2 * blcase.input.size());
+    c4::substr dst = to_substr(subject_);
+    ScalarFilter proc = {};
+    csubstr out = proc.filter_block_folded(blcase.input, dst, blcase.indentation, blcase.chomp, Location{});
+    if(blcase.chomp != CHOMP_CLIP)
+    {
+        EXPECT_EQ(out.len, blcase.expected.len);
+    }
+    ASSERT_TRUE(out.is_sub(dst));
+    RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
+    EXPECT_EQ(out, blcase.expected);
+}
+
+void test_filter_inplace(blockfolded_case const& blcase)
+{
+    RYML_TRACE_FMT("\nstr=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~", blcase.input.len, blcase.input, blcase.expected.len, blcase.expected);
+    if(blcase.input.len >= blcase.expected.len)
+    {
+        std::string subject_(blcase.input.str, blcase.input.len);
+        c4::substr dst = to_substr(subject_);
+        ScalarFilter proc = {};
+        csubstr out = proc.filter_block_folded(dst, subject_.size(), blcase.indentation, blcase.chomp, Location{});
+        if(blcase.chomp != CHOMP_CLIP)
+        {
+            EXPECT_EQ(out.len, blcase.expected.len);
+        }
+        ASSERT_TRUE(out.str);
+        EXPECT_TRUE(out.is_sub(dst));
+        RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
+        EXPECT_EQ(out, blcase.expected);
+    }
+    else
+    {
+        {
+            SCOPED_TRACE("spare size");
+            std::string subject_(blcase.input.str, blcase.input.len);
+            subject_.resize(blcase.expected.len + 30);
+            c4::substr dst = to_substr(subject_).first(blcase.input.len);
+            c4::substr rem = to_substr(subject_).sub(blcase.expected.len);
+            rem.fill('^');
+            ScalarFilter proc = {};
+            csubstr out = proc.filter_block_folded(dst, subject_.size(), blcase.indentation, blcase.chomp, Location{});
+            if(blcase.chomp != CHOMP_CLIP)
+            {
+                EXPECT_EQ(out.len, blcase.expected.len);
+            }
+            ASSERT_TRUE(out.str);
+            EXPECT_TRUE(out.is_super(dst));
+            RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
+            EXPECT_EQ(out, blcase.expected);
+            EXPECT_EQ(rem.first_not_of('^'), npos);
+        }
+        {
+            SCOPED_TRACE("trimmed size");
+            std::string subject_(blcase.input.str, blcase.input.len);
+            subject_.resize(blcase.expected.len);
+            c4::substr dst = to_substr(subject_).first(blcase.input.len);
+            ScalarFilter proc = {};
+            csubstr out = proc.filter_block_folded(dst, subject_.size(), blcase.indentation, blcase.chomp, Location{});
+            if(blcase.chomp != CHOMP_CLIP)
+            {
+                EXPECT_EQ(out.len, blcase.expected.len);
+            }
+            ASSERT_TRUE(out.str);
+            EXPECT_TRUE(out.is_super(dst));
+            RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
+            EXPECT_EQ(out, blcase.expected);
+        }
+        {
+            SCOPED_TRACE("insufficient size");
+            std::string subject_(blcase.input.str, blcase.input.len);
+            c4::substr dst = to_substr(subject_);
+            ScalarFilter proc = {};
+            csubstr out = proc.filter_block_folded(dst, subject_.size(), blcase.indentation, blcase.chomp, Location{});
+            if(blcase.chomp != CHOMP_CLIP)
+            {
+                EXPECT_EQ(out.len, blcase.expected.len);
+            }
+            ASSERT_FALSE(out.str);
+        }
+    }
+}
+
+struct BlockLitFilterTest : public ::testing::TestWithParam<blockfolded_case>
+{
+};
+
+std::string add_carriage_returns(csubstr input)
+{
+    std::string result;
+    result.reserve(input.len + input.count('\n'));
+    for(const char c : input)
+    {
+        if(c == '\n')
+            result += '\r';
+        result += c;
+    }
+    return result;
+}
+
+TEST_P(BlockLitFilterTest, filter_src_dst)
+{
+    test_filter_src_dst(GetParam());
+}
+TEST_P(BlockLitFilterTest, filter_src_dst_carriage_return)
+{
+    ParamType p = GetParam();
+    std::string subject = add_carriage_returns(p.input);
+    p.input = to_csubstr(subject);
+    test_filter_src_dst(p);
+}
+TEST_P(BlockLitFilterTest, filter_inplace)
+{
+    test_filter_inplace(GetParam());
+}
+TEST_P(BlockLitFilterTest, filter_inplace_carriage_return)
+{
+    ParamType p = GetParam();
+    std::string subject = add_carriage_returns(p.input);
+    p.input = to_csubstr(subject);
+    test_filter_inplace(p);
+}
+
+
+blockfolded_case test_cases_filter[] = {
+#define bfc(indentation, chomp, input, output) blockfolded_case{indentation, chomp, csubstr(input), csubstr(output)}
+    // 0
+    bfc(2, CHOMP_STRIP,
+        "Several lines of text,\n  with some \"quotes\" of various 'types',\n  and also a blank line:\n\n  plus another line at the end.\n\n",
+        "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end."),
+    bfc(2, CHOMP_CLIP,
+        "Several lines of text,\n  with some \"quotes\" of various 'types',\n  and also a blank line:\n\n  plus another line at the end.\n\n",
+        "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+    bfc(2, CHOMP_KEEP,
+        "Several lines of text,\n  with some \"quotes\" of various 'types',\n  and also a blank line:\n\n  plus another line at the end.\n\n",
+        "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n\n"),
+    // 3
+    bfc(2, CHOMP_STRIP,
+        "Several lines of text,\n  with some \"quotes\" of various 'types',\n  and also a blank line:\n\n  plus another line at the end.\n\n",
+        "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end."),
+    bfc(2, CHOMP_CLIP,
+        "Several lines of text,\n  with some \"quotes\" of various 'types',\n  and also a blank line:\n\n  plus another line at the end.\n\n",
+        "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+    bfc(2, CHOMP_KEEP,
+        "Several lines of text,\n  with some \"quotes\" of various 'types',\n  and also a blank line:\n\n  plus another line at the end.\n\n",
+        "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n\n"),
+    // 6
+    bfc(1, CHOMP_STRIP, "", ""),
+    bfc(1, CHOMP_CLIP, "", ""),
+    bfc(1, CHOMP_KEEP, "", ""),
+    // 9
+    bfc(1, CHOMP_STRIP, "\n", ""),
+    bfc(1, CHOMP_CLIP, "\n", ""),
+    bfc(1, CHOMP_KEEP, "\n", "\n"),
+    // 12
+    bfc(1, CHOMP_STRIP, "\n\n", ""),
+    bfc(1, CHOMP_CLIP, "\n\n", ""),
+    bfc(1, CHOMP_KEEP, "\n\n", "\n\n"),
+    // 15
+    bfc(1, CHOMP_STRIP, "\n\n", ""),
+    bfc(1, CHOMP_CLIP, "\n\n", ""),
+    bfc(1, CHOMP_KEEP, "\n\n", "\n\n"),
+    // 18
+    bfc(1, CHOMP_STRIP, "\n\n\n", ""),
+    bfc(1, CHOMP_CLIP, "\n\n\n", ""),
+    bfc(1, CHOMP_KEEP, "\n\n\n", "\n\n\n"),
+    // 21
+    bfc(1, CHOMP_STRIP, "\n\n\n\n", ""),
+    bfc(1, CHOMP_CLIP, "\n\n\n\n", ""),
+    bfc(1, CHOMP_KEEP, "\n\n\n\n", "\n\n\n\n"),
+    // 24
+    bfc(1, CHOMP_STRIP, "a", "a"),
+    bfc(1, CHOMP_CLIP, "a", "a\n"),
+    bfc(1, CHOMP_KEEP, "a", "a"),
+    // 27
+    bfc(1, CHOMP_STRIP, "a\n", "a"),
+    bfc(1, CHOMP_CLIP, "a\n", "a\n"),
+    bfc(1, CHOMP_KEEP, "a\n", "a\n"),
+    // 30
+    bfc(1, CHOMP_STRIP, "a\n\n", "a"),
+    bfc(1, CHOMP_CLIP, "a\n\n", "a\n"),
+    bfc(1, CHOMP_KEEP, "a\n\n", "a\n\n"),
+    // 33
+    bfc(0, CHOMP_STRIP, "a\n\n", "a"),
+    bfc(0, CHOMP_CLIP, "a\n\n", "a\n"),
+    bfc(0, CHOMP_KEEP, "a\n\n", "a\n\n"),
+    // 36
+    bfc(1, CHOMP_STRIP, "a\n\n\n", "a"),
+    bfc(1, CHOMP_CLIP, "a\n\n\n", "a\n"),
+    bfc(1, CHOMP_KEEP, "a\n\n\n", "a\n\n\n"),
+    // 39
+    bfc(1, CHOMP_STRIP, "a\n\n\n\n", "a"),
+    bfc(1, CHOMP_CLIP, "a\n\n\n\n", "a\n"),
+    bfc(1, CHOMP_KEEP, "a\n\n\n\n", "a\n\n\n\n"),
+    // 42
+    bfc(1, CHOMP_STRIP, " ab\n \n \n", "ab"),
+    bfc(1, CHOMP_CLIP, " ab\n \n \n", "ab\n"),
+    bfc(1, CHOMP_KEEP, " ab\n \n \n", "ab\n\n\n"),
+    // 45
+    bfc(1, CHOMP_STRIP, " ab\n \n  \n", "ab\n\n "),
+    bfc(1, CHOMP_CLIP, " ab\n \n  \n", "ab\n\n \n"),
+    bfc(1, CHOMP_KEEP, " ab\n \n  \n", "ab\n\n \n"),
+    // 48
+    bfc(0, CHOMP_STRIP, "ab\n\n \n", "ab\n\n "),
+    bfc(0, CHOMP_CLIP, "ab\n\n \n", "ab\n\n \n"),
+    bfc(0, CHOMP_KEEP, "ab\n\n \n", "ab\n\n \n"),
+    // 51
+    bfc(1, CHOMP_STRIP, "hello\nthere\n", "hello there"),
+    bfc(1, CHOMP_CLIP, "hello\nthere\n", "hello there\n"),
+    bfc(1, CHOMP_KEEP, "hello\nthere\n", "hello there\n"),
+    // 54
+    bfc(0, CHOMP_STRIP, "hello\nthere\n", "hello there"),
+    bfc(0, CHOMP_CLIP, "hello\nthere\n", "hello there\n"),
+    bfc(0, CHOMP_KEEP, "hello\nthere\n", "hello there\n"),
+    // 57
+    bfc(3, CHOMP_CLIP,
+        "   There once was a short man from Ealing\n"
+        "   Who got on a bus to Darjeeling\n"
+        "       It said on the door\n"
+        "       \"Please don't spit on the floor\"\n"
+        "   So he carefully spat on the ceiling.\n",
+        "There once was a short man from Ealing "
+        "Who got on a bus to Darjeeling\n"
+        "    It said on the door\n"
+        "    \"Please don't spit on the floor\"\n"
+        "So he carefully spat on the ceiling.\n"),
+    bfc(3, CHOMP_CLIP,
+        "   There once was a short man from Ealing\n"
+        "   Who got on a bus to Darjeeling\n"
+        "       It said on the door\n"
+        "       extra 0\n"
+        "         extra 2\n"
+        "         extra 2\n"
+        "           extra 4\n"
+        "           extra 4\n"
+        "           extra 4\n"
+        "         extra 2\n"
+        "       extra 0\n"
+        "       \"Please don't spit on the floor\"\n"
+        "   So he carefully spat on the ceiling.\n",
+        "There once was a short man from Ealing "
+        "Who got on a bus to Darjeeling\n"
+        "    It said on the door\n"
+        "    extra 0\n"
+        "      extra 2\n"
+        "      extra 2\n"
+        "        extra 4\n"
+        "        extra 4\n"
+        "        extra 4\n"
+        "      extra 2\n"
+        "    extra 0\n"
+        "    \"Please don't spit on the floor\"\n"
+        "So he carefully spat on the ceiling.\n"),
+    bfc(1, CHOMP_STRIP, " \n  \n   \n", ""),
+    // 60
+    bfc(1, CHOMP_STRIP, " \n  \n   \n", ""),
+    bfc(1, CHOMP_CLIP, " \n  \n   \n", ""),
+    bfc(1, CHOMP_KEEP, " \n  \n   \n", "\n\n\n"),
+    // 63
+    bfc(1, CHOMP_STRIP, " \n  \n   \n    ", ""),
+    bfc(1, CHOMP_CLIP, " \n  \n   \n    ", ""),
+    bfc(1, CHOMP_KEEP, " \n  \n   \n    ", "\n\n\n"),
+    // 66
+    bfc(1, CHOMP_STRIP, " \n  \n   \n    \n     \n      \n    \n   \n \n", ""),
+    bfc(1, CHOMP_CLIP, " \n  \n   \n    \n     \n      \n    \n   \n \n", ""),
+    bfc(1, CHOMP_KEEP, " \n  \n   \n    \n     \n      \n    \n   \n \n", "\n\n\n\n\n\n\n\n\n"),
+    // 69
+    bfc(1, CHOMP_STRIP, " \n  \n   \n\n     \n      \n\n   \n \n", ""),
+    bfc(1, CHOMP_CLIP, " \n  \n   \n\n     \n      \n\n   \n \n", ""),
+    bfc(1, CHOMP_KEEP, " \n  \n   \n\n     \n      \n\n   \n \n", "\n\n\n\n\n\n\n\n\n"),
+    // 72
+    bfc(7, CHOMP_STRIP,
+        "       asd\n"
+        "     \n"
+        "   \n"
+        "       \n"
+        "  \n"
+        " \n"
+        "  ",
+        "asd"),
+    bfc(7, CHOMP_CLIP,
+        "       asd\n"
+        "     \n"
+        "   \n"
+        "       \n"
+        "  \n"
+        " \n"
+        "  ",
+        "asd\n"),
+    bfc(7, CHOMP_KEEP,
+        "       asd\n"
+        "     \n"
+        "   \n"
+        "       \n"
+        "  \n"
+        " \n"
+        "  ",
+        "asd\n\n\n\n\n\n"),
+    // 75
+    bfc(5, CHOMP_STRIP, "     asd\n     \t ", "asd \t "),
+    bfc(5, CHOMP_CLIP, "     asd\n     \t ", "asd \t \n"),
+    bfc(5, CHOMP_KEEP, "     asd\n     \t ", "asd \t "),
+    // 78
+    bfc(5, CHOMP_STRIP, "     asd\n     \t \n", "asd \t "),
+    bfc(5, CHOMP_CLIP, "     asd\n     \t \n", "asd \t \n"),
+    bfc(5, CHOMP_KEEP, "     asd\n     \t \n", "asd \t \n"),
+    // 81
+    bfc(5, CHOMP_STRIP, "     asd\n      \t ", "asd\n \t "),
+    bfc(5, CHOMP_CLIP, "     asd\n      \t ", "asd\n \t \n"),
+    bfc(5, CHOMP_KEEP, "     asd\n      \t ", "asd\n \t "),
+    // 84
+    bfc(5, CHOMP_STRIP, "     asd\n      \t \n", "asd\n \t "),
+    bfc(5, CHOMP_CLIP, "     asd\n      \t \n", "asd\n \t \n"),
+    bfc(5, CHOMP_KEEP, "     asd\n      \t \n", "asd\n \t \n"),
+    // 87
+    bfc(2, CHOMP_CLIP, "\n  foo\n  bar\n", "\nfoo bar\n"),
+    bfc(2, CHOMP_CLIP, "\n\n  foo\n  bar\n", "\n\nfoo bar\n"),
+    bfc(2, CHOMP_CLIP, "\n\n\n  foo\n  bar\n", "\n\n\nfoo bar\n"),
+    // 90
+    bfc(1, CHOMP_CLIP,
+        " folded\n"
+        " line\n"
+        "\n"
+        " next\n"
+        " line\n"
+        "   * bullet\n"
+        "\n"
+        "   * list\n"
+        "   * lines\n"
+        "\n"
+        " last\n"
+        " line\n",
+        "folded line\n"
+        "next line\n"
+        "  * bullet\n"
+        "\n"
+        "  * list\n"
+        "  * lines\n"
+        "\n"
+        "last line\n"
+        ""),
+    bfc(1, CHOMP_CLIP,
+        " \n"
+        "  \n"
+        "  literal\n"
+        "   \n"
+        "  \n"
+        "  text\n"
+        "",
+        "\n"
+        " \n"
+        " literal\n"
+        "  \n"
+        " \n"
+        " text\n"),
+    bfc(2, CHOMP_CLIP,
+        " \n"
+        "  \n"
+        "  literal\n"
+        "   \n"
+        "  \n"
+        "  text\n"
+        "",
+        "\n"
+        "\n"
+        "literal\n"
+        " \n"
+        "\n"
+        "text\n"),
+
+    #undef blc
+};
+
+INSTANTIATE_TEST_SUITE_P(block_folded_filter,
+                         BlockLitFilterTest,
+                         testing::ValuesIn(test_cases_filter));
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 TEST(block_folded, basic)
 {
     {

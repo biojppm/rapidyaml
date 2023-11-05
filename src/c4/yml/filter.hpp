@@ -60,6 +60,8 @@ public:
     template<class FilterProcessor> size_t _handle_all_whitespace(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp);
     template<class FilterProcessor> size_t _extend_to_chomp(FilterProcessor &C4_RESTRICT proc, size_t contents_len);
     template<class FilterProcessor> void _filter_block_indentation(FilterProcessor &C4_RESTRICT proc, size_t indentation, LocCRef loc);
+    template<class FilterProcessor> size_t _filter_block_folded_newlines(FilterProcessor &C4_RESTRICT proc, size_t indentation, size_t len, LocCRef loc);
+    template<class FilterProcessor> size_t _filter_block_folded_indented(FilterProcessor &C4_RESTRICT proc, size_t indentation, size_t len, size_t curr_indentation, LocCRef loc);
 };
 
 } // namespace yml

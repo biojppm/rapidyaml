@@ -696,7 +696,7 @@ size_t _find_last_newline_and_larger_indentation(csubstr s, size_t indentation) 
         {
             csubstr rem = s.sub(i + 1);
             size_t first = rem.first_not_of(' ');
-            first = (first != npos) ? first :rem.len;
+            first = (first != npos) ? first : rem.len;
             if(first > indentation)
                 return i;
         }
@@ -717,7 +717,7 @@ void ScalarFilter::_chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp,
     _RYML_CB_ASSERT(*m_callbacks, proc.rem().first_not_of(" \n\r") == npos);
 
     // a debugging scaffold:
-    #if 0
+    #if 1
     #define _c4dbgchomp(fmt, ...) _c4dbgpf("chomp[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
     #else
     #define _c4dbgchomp(...)
@@ -1035,6 +1035,114 @@ csubstr ScalarFilter::filter_block_literal(csubstr scalar, substr dst, size_t in
 #define _c4dbgfbf(...)
 #endif
 
+
+template<class FilterProcessor>
+size_t ScalarFilter::_filter_block_folded_indented(FilterProcessor &C4_RESTRICT proc, size_t indentation, size_t len, size_t curr_indentation, LocCRef loc)
+{
+    _RYML_CB_ASSERT(*m_callbacks, proc.rem().first_not_of(' ') == curr_indentation);
+    proc.copy(curr_indentation);
+    while(proc.has_more_chars(len))
+    {
+        const char curr = proc.curr();
+        _c4dbgfbf("'{}' sofar=[{}]~~~{}~~~",  _c4prc(curr), proc.wpos, proc.sofar());
+        switch(curr)
+        {
+        case '\n':
+            {
+                proc.copy();
+                _filter_block_indentation(proc, indentation, loc);
+                const size_t first = proc.rem().first_not_of(' ');
+                _c4dbgfbf("newline. firstns={}",  first);
+                if(first == 0)
+                {
+                    _c4dbgfbf("done with indented block",  first);
+                    goto endloop;
+                }
+                else if(first != npos)
+                {
+                    proc.copy(first);
+                    _c4dbgfbf("copy all {} spaces",  first);
+                }
+                break;
+            }
+            break;
+        case '\r':
+            proc.skip();
+            break;
+        default:
+            proc.copy();
+            break;
+        }
+    }
+ endloop:
+    return indentation;
+}
+
+
+template<class FilterProcessor>
+size_t ScalarFilter::_filter_block_folded_newlines(FilterProcessor &C4_RESTRICT proc, size_t indentation, size_t len, LocCRef loc)
+{
+    _RYML_CB_ASSERT(*m_callbacks, proc.curr() == '\n');
+    size_t num_newl_extra = 0;
+    // skip the first newline
+    if(proc.wpos)
+    {
+        _c4dbgfbf("skip first newline in block",  0);
+        proc.skip();
+    }
+    else
+    {
+        _c4dbgfbf("first newline is leading, copy",  0);
+        proc.copy();
+        ++num_newl_extra;
+    }
+    _filter_block_indentation(proc, indentation, loc);
+    // now copy all the following newlines until the indentation increases
+    while(proc.has_more_chars(len))
+    {
+        const char curr = proc.curr();
+        _c4dbgfbf("'{}' sofar=[{}]~~~{}~~~",  _c4prc(curr), proc.wpos, proc.sofar());
+        switch(curr)
+        {
+        case '\n':
+            ++num_newl_extra;
+            proc.copy();
+            _filter_block_indentation(proc, indentation, loc);
+            break;
+        case ' ':
+            {
+                const size_t first = proc.rem().first_not_of(' ');
+                if(first != npos)
+                {
+                    _c4dbgfbf("indentation increased to {}",  first);
+                    if(!num_newl_extra)
+                    {
+                        _c4dbgfbf("was the indentation. add newline", first);
+                        proc.set('\n');
+                        ++num_newl_extra;
+                    }
+                    _filter_block_folded_indented(proc, indentation, len, first, loc);
+                }
+                break;
+            }
+        case '\r':
+            proc.skip();
+            break;
+        default:
+            goto endloop;
+            break;
+        }
+    }
+ endloop:
+    if(!num_newl_extra)
+    {
+        _c4dbgfbf("add missing newline from the first", 0);
+        proc.set(' ');
+    }
+    return indentation;
+}
+
+
 template<class FilterProcessor>
 csubstr ScalarFilter::filter_block_folded(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp, LocCRef loc)
 {
@@ -1059,9 +1167,8 @@ csubstr ScalarFilter::filter_block_folded(FilterProcessor &C4_RESTRICT proc, siz
         {
         case '\n':
         {
-            _c4dbgfbf("found newline. skip indentation on the next line", curr);
-            proc.copy();  // copy the newline
-            _filter_block_indentation(proc, indentation, loc);
+            _c4dbgfbf("found newline", curr);
+            (void)_filter_block_folded_newlines(proc, indentation, contents_len, loc);
             break;
         }
         case '\r':
@@ -1117,7 +1224,7 @@ csubstr ScalarFilter::filter_block_folded(csubstr scalar, substr dst, size_t ind
 
     csubstr r = scalar;
     _c4dbgp("filt_block: style=fold");
-    _RYML_CB_ASSERT(*m_callbacks, dst.len >= scalar.len + 2u); // use s.len! because we may need to add a newline at the end, so the leading indentation will allow space for that newline
+    _RYML_CB_ASSERT(*m_callbacks, dst.len >= scalar.len + 2u); // use scalar.len! because we may need to add a newline at the end, so the leading indentation will allow space for that newline
 
     size_t pos = 0; // the filtered size
     bool filtered_chars = false;
