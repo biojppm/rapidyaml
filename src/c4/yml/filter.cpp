@@ -17,6 +17,24 @@ namespace yml {
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+size_t _count_following_newlines(csubstr r, size_t *C4_RESTRICT i)
+{
+    RYML_ASSERT(r[*i] == '\n');
+    size_t numnl_following = 0;
+    ++(*i);
+    for( ; *i < r.len; ++(*i))
+    {
+        if(r.str[*i] == '\n')
+            ++numnl_following;
+        // skip leading whitespace
+        else if(r.str[*i] == ' ' || r.str[*i] == '\t' || r.str[*i] == '\r')
+            ;
+        else
+            break;
+    }
+    return numnl_following;
+}
+
 /** @p i is set to the first non whitespace character after the line
  * @return the number of empty lines after the initial position */
 size_t _count_following_newlines(csubstr r, size_t *C4_RESTRICT i, size_t indentation)
@@ -69,147 +87,16 @@ size_t _count_following_newlines(csubstr r, size_t *C4_RESTRICT i, size_t indent
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-template<bool backslash_is_escape, bool keep_trailing_whitespace>
-bool ScalarFilter::_filter_nl(csubstr r, substr dst, size_t *C4_RESTRICT i, size_t *C4_RESTRICT pos, size_t indentation)
+// a debugging scaffold:
+#if 0
+#define _c4dbgfws(fmt, ...) _c4dbgpf("filt_ws[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
+#else
+#define _c4dbgfws(...)
+#endif
+
+template<class FilterProcessor>
+bool ScalarFilter::_filter_ws_handle_to_first_non_space(FilterProcessor &proc)
 {
-    // a debugging scaffold:
-    #if 1
-    #define _c4dbgfnl(fmt, ...) _c4dbgpf("filter_nl[{}]: " fmt, *i, __VA_ARGS__)
-    #else
-    #define _c4dbgfnl(...)
-    #endif
-
-    const char curr = r[*i];
-    bool replaced = false;
-
-    _RYML_CB_ASSERT(*m_callbacks, indentation != npos);
-    _RYML_CB_ASSERT(*m_callbacks, curr == '\n');
-
-    _c4dbgfnl("found newline. sofar=[{}]~~~{}~~~", *pos, dst.first(*pos));
-    size_t ii = *i;
-    size_t numnl_following = _count_following_newlines(r, &ii, indentation);
-    if(numnl_following)
-    {
-        _c4dbgfnl("{} consecutive (empty) lines {} in the middle. totalws={}", 1+numnl_following, ii < r.len ? "in the middle" : "at the end", ii - *i);
-        for(size_t j = 0; j < numnl_following; ++j)
-            dst.str[(*pos)++] = '\n';
-    }
-    else
-    {
-        if(r.first_not_of(" \t", *i+1) != npos)
-        {
-            dst.str[(*pos)++] = ' ';
-            _c4dbgfnl("single newline. convert to space. ii={}/{}. sofar=[{}]~~~{}~~~", ii, r.len, *pos, dst.first(*pos));
-            replaced = true;
-        }
-        else
-        {
-            if C4_IF_CONSTEXPR (keep_trailing_whitespace)
-            {
-                dst.str[(*pos)++] = ' ';
-                _c4dbgfnl("single newline. convert to space. ii={}/{}. sofar=[{}]~~~{}~~~", ii, r.len, *pos, dst.first(*pos));
-                replaced = true;
-            }
-            else
-            {
-                _c4dbgfnl("last newline, everything else is whitespace. ii={}/{}", ii, r.len);
-                *i = r.len;
-            }
-        }
-        if C4_IF_CONSTEXPR (backslash_is_escape)
-        {
-            if(ii < r.len && r.str[ii] == '\\')
-            {
-                const char next = ii+1 < r.len ? r.str[ii+1] : '\0';
-                if(next == ' ' || next == '\t')
-                {
-                    _c4dbgfnl("extend skip to backslash{}", "");
-                    ++ii;
-                }
-            }
-        }
-    }
-    *i = ii - 1; // correct for the loop increment
-
-    #undef _c4dbgfnl
-
-    return replaced;
-}
-
-template<bool backslash_is_escape, bool keep_trailing_whitespace, class FilterProcessor>
-void ScalarFilter::_filter_nl(FilterProcessor &C4_RESTRICT proc, size_t indentation)
-{
-    // a debugging scaffold:
-    #if 1
-    #define _c4dbgfnl(fmt, ...) _c4dbgpf("filt_nl[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
-    #else
-    #define _c4dbgfnl(...)
-    #endif
-
-    _RYML_CB_ASSERT(*m_callbacks, indentation != npos);
-    _RYML_CB_ASSERT(*m_callbacks, proc.curr() == '\n');
-
-    _c4dbgfnl("found newline. sofar=[{}]~~~{}~~~", proc.wpos, proc.sofar());
-    size_t ii = proc.rpos;
-    const size_t numnl_following = _count_following_newlines(proc.src, &ii, indentation);
-    if(numnl_following)
-    {
-        proc.set('\n', numnl_following);
-        _c4dbgfnl("{} consecutive (empty) lines {}. totalws={}", 1+numnl_following, ii < proc.src.len ? "in the middle" : "at the end", proc.rpos-ii);
-    }
-    else
-    {
-        const size_t ret = proc.src.first_not_of(" \t", proc.rpos+1);
-        if(ret != npos)
-        {
-            proc.set(' ');
-             _c4dbgfnl("single newline. convert to space. ret={}/{}. sofar=[{}]~~~{}~~~", ii, proc.src.len, proc.wpos, proc.sofar());
-        }
-        else
-        {
-            if C4_IF_CONSTEXPR (keep_trailing_whitespace)
-            {
-                proc.set(' ');
-                _c4dbgfnl("single newline. convert to space. ii={}/{}. sofar=[{}]~~~{}~~~", ii, proc.src.len, proc.wpos, proc.sofar());
-            }
-            else
-            {
-                _c4dbgfnl("last newline, everything else is whitespace. ii={}/{}", ii, proc.src.len);
-                ii = proc.src.len;
-            }
-        }
-        if C4_IF_CONSTEXPR (backslash_is_escape)
-        {
-            if(ii < proc.src.len && proc.src.str[ii] == '\\')
-            {
-                _c4dbgfnl("backslash at [{}]", ii);
-                const char next = ii+1 < proc.src.len ? proc.src.str[ii+1] : '\0';
-                if(next == ' ' || next == '\t')
-                {
-                    _c4dbgfnl("extend skip to backslash", "");
-                    ++ii;
-                }
-            }
-        }
-    }
-    proc.rpos = ii;
-
-    #undef _c4dbgfnl
-}
-
-
-//-----------------------------------------------------------------------------
-
-template<bool keep_trailing_whitespace, class FilterProcessor>
-void ScalarFilter::_filter_ws(FilterProcessor &proc)
-{
-    // a debugging scaffold:
-    #if 0
-    #define _c4dbgfws(fmt, ...) _c4dbgpf("filt_ws[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
-    #else
-    #define _c4dbgfws(...)
-    #endif
-
     _c4dbgfws("found whitespace '{}'", _c4prc(proc.curr()));
     _RYML_CB_ASSERT(*m_callbacks, proc.curr() == ' ' || proc.curr() == '\t');
 
@@ -228,65 +115,35 @@ void ScalarFilter::_filter_ws(FilterProcessor &proc)
             proc.copy();
             _c4dbgfws("legit whitespace. sofar=[{}]~~~{}~~~", proc.wpos, proc.sofar());
         }
+        return true;
     }
     else
     {
-        _c4dbgfws("... everything else is trailing whitespace{}", "");
-        const size_t num = proc.src.len - proc.rpos;
-        if C4_IF_CONSTEXPR (keep_trailing_whitespace)
-        {
-            _c4dbgfws("copy {} chars", num);
-            proc.copy(num);
-        }
-        else
-        {
-            _c4dbgfws("skip {} chars", num);
-            proc.skip(num);
-        }
+        return false;
     }
-
-    #undef _c4dbgfws
 }
 
-template<bool keep_trailing_whitespace>
-void ScalarFilter::_filter_ws(csubstr r, substr dst, size_t *C4_RESTRICT i, size_t *C4_RESTRICT pos)
+template<class FilterProcessor>
+void ScalarFilter::_filter_ws_copy_trailing(FilterProcessor &proc)
 {
-    // a debugging scaffold:
-    #if 0
-    #define _c4dbgfws(fmt, ...) _c4dbgpf("filt_ws[{}]: " fmt, *i, __VA_ARGS__)
-    #else
-    #define _c4dbgfws(...)
-    #endif
-
-    const char curr = r[*i];
-    _c4dbgfws("found whitespace '{}'", _c4prc(curr));
-    _RYML_CB_ASSERT(*m_callbacks, curr == ' ' || curr == '\t');
-
-    size_t first = *i > 0 ? r.first_not_of(" \t", *i) : r.first_not_of(' ', *i);
-    if(first != npos)
+    if(!_filter_ws_handle_to_first_non_space(proc))
     {
-        if(r[first] == '\n' || r[first] == '\r') // skip trailing whitespace
-        {
-            _c4dbgfws("whitespace is trailing on line. firstnonws='{}'@{}", _c4prc(r[first]), first);
-            *i = first - 1; // correct for the loop increment
-        }
-        else // a legit whitespace
-        {
-            dst.str[(*pos)++] = curr;
-            _c4dbgfws("legit whitespace. sofar=[{}]~~~{}~~~", *pos, dst.first(*pos));
-        }
+        _c4dbgfws("... everything else is trailing whitespace - copy {} chars", proc.src.len - proc.rpos);
+        proc.copy(proc.src.len - proc.rpos);
     }
-    else
-    {
-        _c4dbgfws("... everything else is trailing whitespace{}", "");
-        if C4_IF_CONSTEXPR (keep_trailing_whitespace)
-            for(size_t j = *i; j < r.len; ++j)
-                dst.str[(*pos)++] = r[j];
-        *i = r.len;
-    }
-
-    #undef _c4dbgfws
 }
+
+template<class FilterProcessor>
+void ScalarFilter::_filter_ws_skip_trailing(FilterProcessor &proc)
+{
+    if(!_filter_ws_handle_to_first_non_space(proc))
+    {
+        _c4dbgfws("... everything else is trailing whitespace - skip {} chars", proc.src.len - proc.rpos);
+        proc.skip(proc.src.len - proc.rpos);
+    }
+}
+
+#undef _c4dbgfws
 
 
 //-----------------------------------------------------------------------------
@@ -294,16 +151,48 @@ void ScalarFilter::_filter_ws(csubstr r, substr dst, size_t *C4_RESTRICT i, size
 //-----------------------------------------------------------------------------
 /* plain scalars */
 
+// a debugging scaffold:
+#if 0
+#define _c4dbgfps(fmt, ...) _c4dbgpf("filt_plain[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
+#else
+#define _c4dbgfps(fmt, ...)
+#endif
+
+template<class FilterProcessor>
+void ScalarFilter::_filter_nl_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation)
+{
+    _RYML_CB_ASSERT(*m_callbacks, indentation != npos);
+    _RYML_CB_ASSERT(*m_callbacks, proc.curr() == '\n');
+
+    _c4dbgfps("found newline. sofar=[{}]~~~{}~~~", proc.wpos, proc.sofar());
+    size_t ii = proc.rpos;
+    const size_t numnl_following = _count_following_newlines(proc.src, &ii, indentation);
+    if(numnl_following)
+    {
+        proc.set('\n', numnl_following);
+        _c4dbgfps("{} consecutive (empty) lines {}. totalws={}", 1+numnl_following, ii < proc.src.len ? "in the middle" : "at the end", proc.rpos-ii);
+    }
+    else
+    {
+        const size_t ret = proc.src.first_not_of(" \t", proc.rpos+1);
+        if(ret != npos)
+        {
+            proc.set(' ');
+             _c4dbgfps("single newline. convert to space. ret={}/{}. sofar=[{}]~~~{}~~~", ii, proc.src.len, proc.wpos, proc.sofar());
+        }
+        else
+        {
+            _c4dbgfps("last newline, everything else is whitespace. ii={}/{}", ii, proc.src.len);
+            ii = proc.src.len;
+        }
+    }
+    proc.rpos = ii;
+}
+
 template<class FilterProcessor>
 csubstr ScalarFilter::filter_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation, LocCRef loc)
 {
     (void)loc;
-    // a debugging scaffold:
-    #if 1
-    #define _c4dbgfps(fmt, ...) _c4dbgpf("filt_plain[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
-    #else
-    #define _c4dbgfps(fmt, ...)
-    #endif
 
     _c4dbgfps("before=[{}]~~~{}~~~", proc.src.len, proc.src);
 
@@ -315,37 +204,29 @@ csubstr ScalarFilter::filter_plain(FilterProcessor &C4_RESTRICT proc, size_t ind
         {
         case ' ':
         case '\t':
-        {
             _c4dbgfps("whitespace", curr);
-            _filter_ws</*keep_trailing_ws*/false>(proc);
+            _filter_ws_skip_trailing(proc);
             break;
-        }
         case '\n':
-        {
             _c4dbgfps("newline", curr);
-            _filter_nl</*backslash_is_escape*/false, /*keep_trailing_ws*/false>(proc, /*indentation*/indentation);
+            _filter_nl_plain(proc, /*indentation*/indentation);
             break;
-        }
         case '\r':  // skip \r --- https://stackoverflow.com/questions/1885900
-        {
             _c4dbgfps("carriage return, ignore", curr);
             proc.skip();
             break;
-        }
         default:
-        {
             proc.copy();
             break;
-        }
         }
     }
 
     _c4dbgfps("after[{}]=~~~{}~~~", proc.wpos, proc.sofar());
 
-    #undef _c4dbgfps
-
     return proc.result();
 }
+
+#undef _c4dbgfps
 
 
 csubstr ScalarFilter::filter_plain(csubstr scalar, substr dst, size_t indentation, LocCRef loc)
@@ -366,16 +247,47 @@ csubstr ScalarFilter::filter_plain(substr dst, size_t cap, size_t indentation, L
 //-----------------------------------------------------------------------------
 /* single quoted */
 
+// a debugging scaffold:
+#if 0
+#define _c4dbgfsq(fmt, ...) _c4dbgpf("filt_squo[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
+#else
+#define _c4dbgfsq(fmt, ...)
+#endif
+
+template<class FilterProcessor>
+void ScalarFilter::_filter_nl_squoted(FilterProcessor &C4_RESTRICT proc)
+{
+    _RYML_CB_ASSERT(*m_callbacks, proc.curr() == '\n');
+
+    _c4dbgfsq("found newline. sofar=[{}]~~~{}~~~", proc.wpos, proc.sofar());
+    size_t ii = proc.rpos;
+    const size_t numnl_following = _count_following_newlines(proc.src, &ii);
+    if(numnl_following)
+    {
+        proc.set('\n', numnl_following);
+        _c4dbgfsq("{} consecutive (empty) lines {}. totalws={}", 1+numnl_following, ii < proc.src.len ? "in the middle" : "at the end", proc.rpos-ii);
+    }
+    else
+    {
+        const size_t ret = proc.src.first_not_of(" \t", proc.rpos+1);
+        if(ret != npos)
+        {
+            proc.set(' ');
+            _c4dbgfsq("single newline. convert to space. ret={}/{}. sofar=[{}]~~~{}~~~", ii, proc.src.len, proc.wpos, proc.sofar());
+        }
+        else
+        {
+            proc.set(' ');
+            _c4dbgfsq("single newline. convert to space. ii={}/{}. sofar=[{}]~~~{}~~~", ii, proc.src.len, proc.wpos, proc.sofar());
+        }
+    }
+    proc.rpos = ii;
+}
+
 template<class FilterProcessor>
 csubstr ScalarFilter::filter_squoted(FilterProcessor &C4_RESTRICT proc, LocCRef loc)
 {
     (void)loc;
-    // a debugging scaffold:
-    #if 0
-    #define _c4dbgfsq(fmt, ...) _c4dbgpf("filt_squo[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
-    #else
-    #define _c4dbgfsq(fmt, ...)
-    #endif
 
     // from the YAML spec for double-quoted scalars:
     // https://yaml.org/spec/1.2-old/spec.html#style/flow/single-quoted
@@ -391,11 +303,11 @@ csubstr ScalarFilter::filter_squoted(FilterProcessor &C4_RESTRICT proc, LocCRef 
         case ' ':
         case '\t':
             _c4dbgfsq("whitespace", curr);
-            _filter_ws</*keep_trailing_ws*/true>(proc);
+            _filter_ws_copy_trailing(proc);
             break;
         case '\n':
             _c4dbgfsq("newline", curr);
-            _filter_nl</*backslash_is_escape*/false, /*keep_trailing_ws*/true>(proc, /*indentation*/0);
+            _filter_nl_squoted(proc);
             break;
         case '\r':  // skip \r --- https://stackoverflow.com/questions/1885900
             _c4dbgfsq("skip cr", curr);
@@ -416,11 +328,12 @@ csubstr ScalarFilter::filter_squoted(FilterProcessor &C4_RESTRICT proc, LocCRef 
         }
     }
 
-    _c4dbgpf(": #filteredchars={} after=~~~[{}]{}~~~", proc.src.len-proc.sofar().len, proc.sofar().len, proc.sofar());
+    _c4dbgfsq(": #filteredchars={} after=~~~[{}]{}~~~", proc.src.len-proc.sofar().len, proc.sofar().len, proc.sofar());
 
     return proc.result();
-    #undef _c4dbgfsq
 }
+
+#undef _c4dbgfsq
 
 csubstr ScalarFilter::filter_squoted(csubstr scalar, substr dst, LocCRef loc)
 {
@@ -446,6 +359,46 @@ csubstr ScalarFilter::filter_squoted(substr dst, size_t cap, LocCRef loc)
 #else
 #define _c4dbgfdq(...)
 #endif
+
+template<class FilterProcessor>
+void ScalarFilter::_filter_nl_dquoted(FilterProcessor &C4_RESTRICT proc)
+{
+    _RYML_CB_ASSERT(*m_callbacks, proc.curr() == '\n');
+
+    _c4dbgfdq("found newline. sofar=[{}]~~~{}~~~", proc.wpos, proc.sofar());
+    size_t ii = proc.rpos;
+    const size_t numnl_following = _count_following_newlines(proc.src, &ii);
+    if(numnl_following)
+    {
+        proc.set('\n', numnl_following);
+        _c4dbgfdq("{} consecutive (empty) lines {}. totalws={}", 1+numnl_following, ii < proc.src.len ? "in the middle" : "at the end", proc.rpos-ii);
+    }
+    else
+    {
+        const size_t ret = proc.src.first_not_of(" \t", proc.rpos+1);
+        if(ret != npos)
+        {
+            proc.set(' ');
+            _c4dbgfdq("single newline. convert to space. ret={}/{}. sofar=[{}]~~~{}~~~", ii, proc.src.len, proc.wpos, proc.sofar());
+        }
+        else
+        {
+            proc.set(' ');
+            _c4dbgfdq("single newline. convert to space. ii={}/{}. sofar=[{}]~~~{}~~~", ii, proc.src.len, proc.wpos, proc.sofar());
+        }
+        if(ii < proc.src.len && proc.src.str[ii] == '\\')
+        {
+            _c4dbgfdq("backslash at [{}]", ii);
+            const char next = ii+1 < proc.src.len ? proc.src.str[ii+1] : '\0';
+            if(next == ' ' || next == '\t')
+            {
+                _c4dbgfdq("extend skip to backslash", "");
+                ++ii;
+            }
+        }
+    }
+    proc.rpos = ii;
+}
 
 template<class FilterProcessor>
 void ScalarFilter::_filter_dquoted_backslash(FilterProcessor &C4_RESTRICT proc, LocCRef loc)
@@ -633,13 +586,13 @@ csubstr ScalarFilter::filter_dquoted(FilterProcessor &C4_RESTRICT proc, LocCRef 
         case '\t':
         {
             _c4dbgfdq("whitespace", curr);
-            _filter_ws</*keep_trailing_ws*/true>(proc);
+            _filter_ws_copy_trailing(proc);
             break;
         }
         case '\n':
         {
             _c4dbgfdq("newline", curr);
-            _filter_nl</*backslash_is_escape*/true, /*keep_trailing_ws*/true>(proc, /*indentation*/0);
+            _filter_nl_dquoted(proc);
             break;
         }
         case '\r':  // skip \r --- https://stackoverflow.com/questions/1885900
@@ -717,7 +670,7 @@ void ScalarFilter::_chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp,
     _RYML_CB_ASSERT(*m_callbacks, proc.rem().first_not_of(" \n\r") == npos);
 
     // a debugging scaffold:
-    #if 1
+    #if 0
     #define _c4dbgchomp(fmt, ...) _c4dbgpf("chomp[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
     #else
     #define _c4dbgchomp(...)
@@ -1029,7 +982,7 @@ csubstr ScalarFilter::filter_block_literal(csubstr scalar, substr dst, size_t in
 //-----------------------------------------------------------------------------
 
 // a debugging scaffold:
-#if 1
+#if 0
 #define _c4dbgfbf(fmt, ...) _c4dbgpf("filt_block_folded[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
 #else
 #define _c4dbgfbf(...)
@@ -1202,229 +1155,6 @@ csubstr ScalarFilter::filter_block_folded(csubstr scalar, substr dst, size_t ind
     FilterProcessorSrcDst proc(scalar, dst, m_callbacks);
     return filter_block_folded(proc, indentation, chomp, loc);
 }
-
-
-#ifdef OLD
-csubstr ScalarFilter::filter_block_folded(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp, LocCRef loc)
-{
-    // a debugging scaffold:
-    #if 0
-    #define _c4dbgfbl(fmt, ...) _c4dbgpf("filt_block" fmt, __VA_ARGS__)
-    #else
-    #define _c4dbgfbl(...)
-    #endif
-
-    _c4dbgfbl(": indentation={} before=[{}]~~~{}~~~", indentation, s.len, s);
-
-    if(chomp != CHOMP_KEEP && scalar.trim(" \n\r").len == 0u)
-    {
-        _c4dbgp("filt_block: empty scalar");
-        return scalar.first(0);
-    }
-
-    csubstr r = scalar;
-    _c4dbgp("filt_block: style=fold");
-    _RYML_CB_ASSERT(*m_callbacks, dst.len >= scalar.len + 2u); // use scalar.len! because we may need to add a newline at the end, so the leading indentation will allow space for that newline
-
-    size_t pos = 0; // the filtered size
-    bool filtered_chars = false;
-    bool started = false;
-    bool is_indented = false;
-    size_t i = r.first_not_of(' ');
-    _c4dbgfbl(": first non space at {}", i);
-    if(i > indentation)
-    {
-        is_indented = true;
-        i = indentation;
-    }
-    _c4dbgfbl(": start folding at {}, is_indented={}", i, (int)is_indented);
-    auto on_change_indentation = [&](size_t numnl_following, size_t last_newl, size_t first_non_whitespace){
-        _c4dbgfbl("[{}]: add 1+{} newlines", i, numnl_following);
-        for(size_t j = 0; j < 1 + numnl_following; ++j)
-            dst.str[pos++] = '\n';
-        for(i = last_newl + 1 + indentation; i < first_non_whitespace; ++i)
-        {
-            if(r.str[i] == '\r')
-                continue;
-            _c4dbgfbl("[{}]: add '{}'", i, _c4prc(r.str[i]));
-            dst.str[pos++] = r.str[i];
-        }
-        --i;
-    };
-    for( ; i < r.len; ++i)
-    {
-        const char curr = r.str[i];
-        _c4dbgfbl("[{}]='{}'", i, _c4prc(curr));
-        if(curr == '\n')
-        {
-            filtered_chars = true;
-            // skip indentation on the next line, and advance over the next non-indented blank lines as well
-            size_t first_non_whitespace;
-            size_t numnl_following = (size_t)-1;
-            while(r[i] == '\n')
-            {
-                ++numnl_following;
-                csubstr rem = r.sub(i+1);
-                size_t first = rem.first_not_of(' ');
-                _c4dbgfbl("[{}]: found newline. first={} rem.len={}", i, first, rem.len);
-                if(first != npos)
-                {
-                    first_non_whitespace = first + i+1;
-                    while(first_non_whitespace < r.len && r[first_non_whitespace] == '\r')
-                        ++first_non_whitespace;
-                    _RYML_CB_ASSERT(*m_callbacks, first < rem.len);
-                    _RYML_CB_ASSERT(*m_callbacks, i+1+first < r.len);
-                    _c4dbgfbl("[{}]: {} spaces follow before next nonws character @ [{}]='{}'", i, first, i+1+first, _c4prc(rem.str[first]));
-                    if(first < indentation)
-                    {
-                        _c4dbgfbl("[{}]: skip {}<{} spaces from indentation", i, first, indentation);
-                        i += first;
-                    }
-                    else
-                    {
-                        _c4dbgfbl("[{}]: skip {} spaces from indentation", i, indentation);
-                        i += indentation;
-                        if(first > indentation)
-                        {
-                            _c4dbgfbl("[{}]: {} further indented than {}, stop newlining", i, first, indentation);
-                            goto finished_counting_newlines;
-                        }
-                    }
-                    // prepare the next while loop iteration
-                    // by setting i at the next newline after
-                    // an empty line
-                    if(r[first_non_whitespace] == '\n')
-                        i = first_non_whitespace;
-                    else
-                        goto finished_counting_newlines;
-                }
-                else
-                {
-                    _RYML_CB_ASSERT(*m_callbacks, i+1 <= r.len);
-                    first = rem.len;
-                    first_non_whitespace = first + i+1;
-                    if(first)
-                    {
-                        _c4dbgfbl("[{}]: {} spaces to the end", i, first);
-                        if(first < indentation)
-                        {
-                            _c4dbgfbl("[{}]: skip everything", i);
-                            i += first;
-                        }
-                        else
-                        {
-                            _c4dbgfbl("[{}]: skip {} spaces from indentation", i, indentation);
-                            i += indentation;
-                            if(first > indentation)
-                            {
-                                _c4dbgfbl("[{}]: {} spaces missing. not done yet", i, indentation - first);
-                                goto finished_counting_newlines;
-                            }
-                        }
-                    }
-                    else // if(i+1 == r.len)
-                    {
-                        _c4dbgfbl("[{}]: it's the final newline", i);
-                        _RYML_CB_ASSERT(*m_callbacks, i+1 == r.len);
-                        _RYML_CB_ASSERT(*m_callbacks, rem.len == 0);
-                    }
-                    goto end_of_scalar;
-                }
-            }
-        end_of_scalar:
-            // Write all the trailing newlines. Since we're
-            // at the end no folding is needed, so write every
-            // newline (add 1).
-            _c4dbgfbl("[{}]: add {} trailing newlines", i, 1+numnl_following);
-            for(size_t j = 0; j < 1 + numnl_following; ++j)
-                dst.str[pos++] = '\n';
-            break;
-        finished_counting_newlines:
-            _c4dbgfbl("[{}]: #newlines={} firstnonws={}", i, numnl_following, first_non_whitespace);
-            while(first_non_whitespace < r.len && r[first_non_whitespace] == '\t')
-                ++first_non_whitespace;
-            _c4dbgfbl("[{}]: #newlines={} firstnonws={}", i, numnl_following, first_non_whitespace);
-            _RYML_CB_ASSERT(*m_callbacks, first_non_whitespace <= r.len);
-            size_t last_newl = r.last_of('\n', first_non_whitespace);
-            size_t this_indentation = first_non_whitespace - last_newl - 1;
-            _c4dbgfbl("[{}]: #newlines={} firstnonws={} lastnewl={} this_indentation={} vs indentation={}", i, numnl_following, first_non_whitespace, last_newl, this_indentation, indentation);
-            _RYML_CB_ASSERT(*m_callbacks, first_non_whitespace >= last_newl + 1);
-            _RYML_CB_ASSERT(*m_callbacks, this_indentation >= indentation);
-            if(!started)
-            {
-                _c4dbgfbl("[{}]: #newlines={}. write all leading newlines", i, numnl_following);
-                for(size_t j = 0; j < 1 + numnl_following; ++j)
-                    dst.str[pos++] = '\n';
-                if(this_indentation > indentation)
-                {
-                    is_indented = true;
-                    _c4dbgfbl("[{}]: advance ->{}", i, last_newl + indentation);
-                    i = last_newl + indentation;
-                }
-                else
-                {
-                    i = first_non_whitespace - 1;
-                    _c4dbgfbl("[{}]: advance ->{}", i, first_non_whitespace);
-                }
-            }
-            else if(this_indentation == indentation)
-            {
-                _c4dbgfbl("[{}]: same indentation", i);
-                if(!is_indented)
-                {
-                    if(numnl_following == 0)
-                    {
-                        _c4dbgfbl("[{}]: fold!", i);
-                        dst.str[pos++] = ' ';
-                    }
-                    else
-                    {
-                        _c4dbgfbl("[{}]: add {} newlines", i, 1 + numnl_following);
-                        for(size_t j = 0; j < numnl_following; ++j)
-                            dst.str[pos++] = '\n';
-                    }
-                    i = first_non_whitespace - 1;
-                    _c4dbgfbl("[{}]: advance {}->{}", i, i, first_non_whitespace);
-                }
-                else
-                {
-                    _c4dbgfbl("[{}]: back to ref indentation", i);
-                    is_indented = false;
-                    on_change_indentation(numnl_following, last_newl, first_non_whitespace);
-                    _c4dbgfbl("[{}]: advance {}->{}", i, i, first_non_whitespace);
-                }
-            }
-            else
-            {
-                _c4dbgfbl("[{}]: increased indentation.", i);
-                is_indented = true;
-                _RYML_CB_ASSERT(*m_callbacks, this_indentation > indentation);
-                on_change_indentation(numnl_following, last_newl, first_non_whitespace);
-                _c4dbgfbl("[{}]: advance {}->{}", i, i, first_non_whitespace);
-            }
-        }
-        else if(curr != '\r')
-        {
-            if(curr != '\t')
-                started = true;
-            dst.str[pos++] = curr;
-        }
-    }
-    _RYML_CB_ASSERT(*m_callbacks, pos <= dst.len);
-    _c4dbgfbl(": #filteredchars={} after=[{}]~~~{}~~~", (int)s.len - (int)pos, pos, dst.first(pos));
-    bool changed = _chomp(dst, dst, &pos, chomp, loc);
-    if(pos < r.len || filtered_chars || changed)
-    {
-        r = dst.first(pos); // write into s
-    }
-
-    _c4dbgfbl(": final=[{}]~~~{}~~~", r.len, r);
-
-    #undef _c4dbgfbl
-
-    return r.first(pos);
-}
-#endif
 
 } // namespace yml
 } // namespace c4

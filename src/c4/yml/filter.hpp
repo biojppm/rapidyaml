@@ -10,31 +10,6 @@ struct ScalarFilter
 {
     using LocCRef = Location const& C4_RESTRICT;
 
-    template<class FilterProcessor>
-    csubstr filter_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation, LocCRef loc);
-    csubstr filter_plain(substr scalar, size_t cap, size_t indentation, LocCRef loc);
-    csubstr filter_plain(csubstr scalar, substr dst, size_t indentation, LocCRef loc);
-
-    template<class FilterProcessor>
-    csubstr filter_squoted(FilterProcessor &C4_RESTRICT proc, LocCRef loc);
-    csubstr filter_squoted(substr scalar, size_t cap, LocCRef loc);
-    csubstr filter_squoted(csubstr scalar, substr dst, LocCRef loc);
-
-    template<class FilterProcessor>
-    csubstr filter_dquoted(FilterProcessor &C4_RESTRICT proc, LocCRef loc);
-    csubstr filter_dquoted(substr scalar, size_t cap, LocCRef loc);
-    csubstr filter_dquoted(csubstr scalar, substr dst, LocCRef loc);
-
-    template<class FilterProcessor>
-    csubstr filter_block_literal(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp, LocCRef loc);
-    csubstr filter_block_literal(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp, LocCRef loc);
-    csubstr filter_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp, LocCRef loc);
-
-    template<class FilterProcessor>
-    csubstr filter_block_folded(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp, LocCRef loc);
-    csubstr filter_block_folded(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp, LocCRef loc);
-    csubstr filter_block_folded(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp, LocCRef loc);
-
 public:
 
     Callbacks const* m_callbacks; // FIXME use CRTP for this
@@ -44,15 +19,38 @@ public:
 
 public:
 
-    template<bool backslash_is_escape, bool keep_trailing_whitespace>
-    bool _filter_nl(csubstr r, substr dst, size_t *C4_RESTRICT i, size_t *C4_RESTRICT pos, size_t indentation);
-    template<bool backslash_is_escape, bool keep_trailing_whitespace, class FilterProcessor>
-    void _filter_nl(FilterProcessor &C4_RESTRICT proc, size_t indentation);
+    csubstr filter_plain(substr scalar, size_t cap, size_t indentation, LocCRef loc);
+    csubstr filter_plain(csubstr scalar, substr dst, size_t indentation, LocCRef loc);
 
-    template<bool keep_trailing_whitespace>
-    void _filter_ws(csubstr r, substr dst, size_t *C4_RESTRICT i, size_t *C4_RESTRICT pos);
-    template<bool keep_trailing_whitespace, class FilterProcessor>
-    void _filter_ws(FilterProcessor &C4_RESTRICT proc);
+    csubstr filter_squoted(substr scalar, size_t cap, LocCRef loc);
+    csubstr filter_squoted(csubstr scalar, substr dst, LocCRef loc);
+
+    csubstr filter_dquoted(substr scalar, size_t cap, LocCRef loc);
+    csubstr filter_dquoted(csubstr scalar, substr dst, LocCRef loc);
+
+    csubstr filter_block_literal(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp, LocCRef loc);
+    csubstr filter_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp, LocCRef loc);
+
+    csubstr filter_block_folded(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp, LocCRef loc);
+    csubstr filter_block_folded(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp, LocCRef loc);
+
+public:
+
+    template<class FilterProcessor> csubstr filter_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation, LocCRef loc);
+    template<class FilterProcessor> csubstr filter_squoted(FilterProcessor &C4_RESTRICT proc, LocCRef loc);
+    template<class FilterProcessor> csubstr filter_dquoted(FilterProcessor &C4_RESTRICT proc, LocCRef loc);
+    template<class FilterProcessor> csubstr filter_block_literal(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp, LocCRef loc);
+    template<class FilterProcessor> csubstr filter_block_folded(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp, LocCRef loc);
+
+public:
+
+    template<class FilterProcessor> void _filter_nl_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation);
+    template<class FilterProcessor> void _filter_nl_squoted(FilterProcessor &C4_RESTRICT proc);
+    template<class FilterProcessor> void _filter_nl_dquoted(FilterProcessor &C4_RESTRICT proc);
+
+    template<class FilterProcessor> bool _filter_ws_handle_to_first_non_space(FilterProcessor &C4_RESTRICT proc);
+    template<class FilterProcessor> void _filter_ws_copy_trailing(FilterProcessor &C4_RESTRICT proc);
+    template<class FilterProcessor> void _filter_ws_skip_trailing(FilterProcessor &C4_RESTRICT proc);
 
     template<class FilterProcessor> void _filter_dquoted_backslash(FilterProcessor &C4_RESTRICT proc, LocCRef loc);
 
