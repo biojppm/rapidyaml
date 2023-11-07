@@ -17,7 +17,7 @@ void test_filter(csubstr input, csubstr expected)
     subject_.resize(2 * input.size());
     c4::substr dst = to_substr(subject_);
     ScalarFilter proc = {};
-    csubstr out = proc.filter_squoted(input, dst, Location{});
+    csubstr out = proc.filter_squoted(input, dst);
     if(input != expected)
     {
         EXPECT_TRUE(out.is_sub(dst));// << "\ninput=" << input << "\nexpected=" << expected;
@@ -33,7 +33,7 @@ void test_filter_inplace(csubstr input, csubstr expected)
     std::string subject_(input.str, input.len);
     c4::substr dst = to_substr(subject_);
     ScalarFilter proc = {};
-    csubstr out = proc.filter_squoted(dst, subject_.size(), Location{});
+    csubstr out = proc.filter_squoted(dst, subject_.size());
     ASSERT_TRUE(out.str);
     EXPECT_TRUE(out.is_sub(dst));// << "\ninput=" << input << "\nexpected=" << expected;
     EXPECT_EQ(out, expected);

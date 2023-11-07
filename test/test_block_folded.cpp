@@ -17,7 +17,7 @@ void test_filter_src_dst(blockfolded_case const& blcase)
     subject_.resize(2 * blcase.input.size());
     c4::substr dst = to_substr(subject_);
     ScalarFilter proc = {};
-    csubstr out = proc.filter_block_folded(blcase.input, dst, blcase.indentation, blcase.chomp, Location{});
+    csubstr out = proc.filter_block_folded(blcase.input, dst, blcase.indentation, blcase.chomp);
     if(blcase.chomp != CHOMP_CLIP)
     {
         EXPECT_EQ(out.len, blcase.expected.len);
@@ -35,7 +35,7 @@ void test_filter_inplace(blockfolded_case const& blcase)
         std::string subject_(blcase.input.str, blcase.input.len);
         c4::substr dst = to_substr(subject_);
         ScalarFilter proc = {};
-        csubstr out = proc.filter_block_folded(dst, subject_.size(), blcase.indentation, blcase.chomp, Location{});
+        csubstr out = proc.filter_block_folded(dst, subject_.size(), blcase.indentation, blcase.chomp);
         if(blcase.chomp != CHOMP_CLIP)
         {
             EXPECT_EQ(out.len, blcase.expected.len);
@@ -55,7 +55,7 @@ void test_filter_inplace(blockfolded_case const& blcase)
             c4::substr rem = to_substr(subject_).sub(blcase.expected.len);
             rem.fill('^');
             ScalarFilter proc = {};
-            csubstr out = proc.filter_block_folded(dst, subject_.size(), blcase.indentation, blcase.chomp, Location{});
+            csubstr out = proc.filter_block_folded(dst, subject_.size(), blcase.indentation, blcase.chomp);
             if(blcase.chomp != CHOMP_CLIP)
             {
                 EXPECT_EQ(out.len, blcase.expected.len);
@@ -72,7 +72,7 @@ void test_filter_inplace(blockfolded_case const& blcase)
             subject_.resize(blcase.expected.len);
             c4::substr dst = to_substr(subject_).first(blcase.input.len);
             ScalarFilter proc = {};
-            csubstr out = proc.filter_block_folded(dst, subject_.size(), blcase.indentation, blcase.chomp, Location{});
+            csubstr out = proc.filter_block_folded(dst, subject_.size(), blcase.indentation, blcase.chomp);
             if(blcase.chomp != CHOMP_CLIP)
             {
                 EXPECT_EQ(out.len, blcase.expected.len);
@@ -87,7 +87,7 @@ void test_filter_inplace(blockfolded_case const& blcase)
             std::string subject_(blcase.input.str, blcase.input.len);
             c4::substr dst = to_substr(subject_);
             ScalarFilter proc = {};
-            csubstr out = proc.filter_block_folded(dst, subject_.size(), blcase.indentation, blcase.chomp, Location{});
+            csubstr out = proc.filter_block_folded(dst, subject_.size(), blcase.indentation, blcase.chomp);
             if(blcase.chomp != CHOMP_CLIP)
             {
                 EXPECT_EQ(out.len, blcase.expected.len);

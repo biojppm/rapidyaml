@@ -19,28 +19,38 @@ public:
 
 public:
 
-    csubstr filter_plain(substr scalar, size_t cap, size_t indentation, LocCRef loc);
-    csubstr filter_plain(csubstr scalar, substr dst, size_t indentation, LocCRef loc);
+    /** filter a plain scalar */
+    csubstr filter_plain(csubstr scalar, substr dst, size_t indentation);
+    /** filter a plain scalar in place */
+    csubstr filter_plain(substr scalar, size_t cap, size_t indentation);
 
-    csubstr filter_squoted(substr scalar, size_t cap, LocCRef loc);
-    csubstr filter_squoted(csubstr scalar, substr dst, LocCRef loc);
+    /** filter a single-quoted scalar */
+    csubstr filter_squoted(csubstr scalar, substr dst);
+    /** filter a single-quoted scalar in place */
+    csubstr filter_squoted(substr scalar, size_t cap);
 
-    csubstr filter_dquoted(substr scalar, size_t cap, LocCRef loc);
+    /** filter a double-quoted scalar */
     csubstr filter_dquoted(csubstr scalar, substr dst, LocCRef loc);
+    /** filter a double-quoted scalar in place */
+    csubstr filter_dquoted(substr scalar, size_t cap, LocCRef loc);
 
-    csubstr filter_block_literal(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp, LocCRef loc);
-    csubstr filter_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp, LocCRef loc);
+    /** filter a block literal */
+    csubstr filter_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp);
+    /** filter a block literal in place */
+    csubstr filter_block_literal(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp);
 
-    csubstr filter_block_folded(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp, LocCRef loc);
-    csubstr filter_block_folded(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp, LocCRef loc);
+    /** filter a block folded scalar */
+    csubstr filter_block_folded(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp);
+    /** filter a block folded scalar in place */
+    csubstr filter_block_folded(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp);
 
 public:
 
-    template<class FilterProcessor> csubstr filter_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation, LocCRef loc);
-    template<class FilterProcessor> csubstr filter_squoted(FilterProcessor &C4_RESTRICT proc, LocCRef loc);
+    template<class FilterProcessor> csubstr filter_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation);
+    template<class FilterProcessor> csubstr filter_squoted(FilterProcessor &C4_RESTRICT proc);
     template<class FilterProcessor> csubstr filter_dquoted(FilterProcessor &C4_RESTRICT proc, LocCRef loc);
-    template<class FilterProcessor> csubstr filter_block_literal(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp, LocCRef loc);
-    template<class FilterProcessor> csubstr filter_block_folded(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp, LocCRef loc);
+    template<class FilterProcessor> csubstr filter_block_literal(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp);
+    template<class FilterProcessor> csubstr filter_block_folded(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp);
 
 public:
 
@@ -54,12 +64,12 @@ public:
 
     template<class FilterProcessor> void _filter_dquoted_backslash(FilterProcessor &C4_RESTRICT proc, LocCRef loc);
 
-    template<class FilterProcessor> void _chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp, size_t indentation, LocCRef loc);
+    template<class FilterProcessor> void   _chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp, size_t indentation);
     template<class FilterProcessor> size_t _handle_all_whitespace(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp);
     template<class FilterProcessor> size_t _extend_to_chomp(FilterProcessor &C4_RESTRICT proc, size_t contents_len);
-    template<class FilterProcessor> void _filter_block_indentation(FilterProcessor &C4_RESTRICT proc, size_t indentation, LocCRef loc);
-    template<class FilterProcessor> size_t _filter_block_folded_newlines(FilterProcessor &C4_RESTRICT proc, size_t indentation, size_t len, LocCRef loc);
-    template<class FilterProcessor> size_t _filter_block_folded_indented(FilterProcessor &C4_RESTRICT proc, size_t indentation, size_t len, size_t curr_indentation, LocCRef loc);
+    template<class FilterProcessor> void   _filter_block_indentation(FilterProcessor &C4_RESTRICT proc, size_t indentation);
+    template<class FilterProcessor> size_t _filter_block_folded_newlines(FilterProcessor &C4_RESTRICT proc, size_t indentation, size_t len);
+    template<class FilterProcessor> size_t _filter_block_folded_indented(FilterProcessor &C4_RESTRICT proc, size_t indentation, size_t len, size_t curr_indentation);
 };
 
 } // namespace yml
