@@ -53,7 +53,7 @@ struct FilterProcessorSrcDst
 
     C4_ALWAYS_INLINE csubstr rem() const noexcept { return src.sub(rpos); }
     C4_ALWAYS_INLINE csubstr sofar() const noexcept { return csubstr(dst.str, wpos <= dst.len ? wpos : dst.len); }
-    C4_ALWAYS_INLINE csubstr result() const noexcept { csubstr ret; ret.str = wpos <= dst.len ? dst.str : nullptr; ret.len = wpos; return ret; }
+    C4_ALWAYS_INLINE FilterResult result() const noexcept { FilterResult ret; ret.str.str = wpos <= dst.len ? dst.str : nullptr; ret.str.len = wpos; return ret; }
 
     C4_ALWAYS_INLINE char curr() const noexcept { _RYML_CB_ASSERT(*m_callbacks, rpos < src.len); return src[rpos]; }
     C4_ALWAYS_INLINE char next() const noexcept { return rpos+1 < src.len ? src[rpos+1] : '\0'; }
@@ -161,12 +161,12 @@ struct FilterProcessorInplace
     C4_ALWAYS_INLINE bool has_more_chars() const noexcept { return rpos < src.len; }
     C4_ALWAYS_INLINE bool has_more_chars(size_t maxpos) const noexcept { _RYML_CB_ASSERT(*m_callbacks, maxpos <= src.len); return rpos < maxpos; }
 
-    C4_ALWAYS_INLINE csubstr result() const noexcept
+    C4_ALWAYS_INLINE FilterResult result() const noexcept
     {
         _c4dbgip("inplace: wpos={} wcap={} unfiltered={}", this->wpos, this->wcap, this->unfiltered_chars);
-        csubstr ret;
-        ret.str = (wpos <= wcap && !unfiltered_chars) ? src.str : nullptr;
-        ret.len = wpos;
+        FilterResult ret;
+        ret.str.str = (wpos <= wcap && !unfiltered_chars) ? src.str : nullptr;
+        ret.str.len = wpos;
         return ret;
     }
     C4_ALWAYS_INLINE csubstr sofar() const noexcept { return csubstr(src.str, wpos <= wcap ? wpos : wcap); }

@@ -189,7 +189,7 @@ void ScalarFilter::_filter_nl_plain(FilterProcessor &C4_RESTRICT proc, size_t in
 }
 
 template<class FilterProcessor>
-csubstr ScalarFilter::filter_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation)
+FilterResult ScalarFilter::_filter_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation)
 {
     _RYML_CB_ASSERT(*m_callbacks, indentation != npos);
     _c4dbgfps("before=[{}]~~~{}~~~", proc.src.len, proc.src);
@@ -227,16 +227,16 @@ csubstr ScalarFilter::filter_plain(FilterProcessor &C4_RESTRICT proc, size_t ind
 #undef _c4dbgfps
 
 
-csubstr ScalarFilter::filter_plain(csubstr scalar, substr dst, size_t indentation)
+FilterResult ScalarFilter::filter_plain(csubstr scalar, substr dst, size_t indentation)
 {
     FilterProcessorSrcDst proc(scalar, dst, m_callbacks);
-    return filter_plain(proc, indentation);
+    return _filter_plain(proc, indentation);
 }
 
-csubstr ScalarFilter::filter_plain(substr dst, size_t cap, size_t indentation)
+FilterResult ScalarFilter::filter_plain_inplace(substr dst, size_t cap, size_t indentation)
 {
     FilterProcessorInplace proc(dst, cap, m_callbacks);
-    return filter_plain(proc, indentation);
+    return _filter_plain(proc, indentation);
 }
 
 
@@ -283,7 +283,7 @@ void ScalarFilter::_filter_nl_squoted(FilterProcessor &C4_RESTRICT proc)
 }
 
 template<class FilterProcessor>
-csubstr ScalarFilter::filter_squoted(FilterProcessor &C4_RESTRICT proc)
+FilterResult ScalarFilter::_filter_squoted(FilterProcessor &C4_RESTRICT proc)
 {
     // from the YAML spec for double-quoted scalars:
     // https://yaml.org/spec/1.2-old/spec.html#style/flow/single-quoted
@@ -331,16 +331,16 @@ csubstr ScalarFilter::filter_squoted(FilterProcessor &C4_RESTRICT proc)
 
 #undef _c4dbgfsq
 
-csubstr ScalarFilter::filter_squoted(csubstr scalar, substr dst)
+FilterResult ScalarFilter::filter_squoted(csubstr scalar, substr dst)
 {
     FilterProcessorSrcDst proc(scalar, dst, m_callbacks);
-    return filter_squoted(proc);
+    return _filter_squoted(proc);
 }
 
-csubstr ScalarFilter::filter_squoted(substr dst, size_t cap)
+FilterResult ScalarFilter::filter_squoted_inplace(substr dst, size_t cap)
 {
     FilterProcessorInplace proc(dst, cap, m_callbacks);
-    return filter_squoted(proc);
+    return _filter_squoted(proc);
 }
 
 
@@ -560,7 +560,7 @@ void ScalarFilter::_filter_dquoted_backslash(FilterProcessor &C4_RESTRICT proc, 
 
 
 template<class FilterProcessor>
-csubstr ScalarFilter::filter_dquoted(FilterProcessor &C4_RESTRICT proc, LocCRef loc)
+FilterResult ScalarFilter::_filter_dquoted(FilterProcessor &C4_RESTRICT proc, LocCRef loc)
 {
     _c4dbgfdq("before=[{}]~~~{}~~~", proc.src.len, proc.src);
 
@@ -617,16 +617,16 @@ csubstr ScalarFilter::filter_dquoted(FilterProcessor &C4_RESTRICT proc, LocCRef 
 #undef _c4dbgfdq
 
 
-csubstr ScalarFilter::filter_dquoted(csubstr scalar, substr dst, LocCRef loc)
+FilterResult ScalarFilter::filter_dquoted(csubstr scalar, substr dst, LocCRef loc)
 {
     FilterProcessorSrcDst proc(scalar, dst, m_callbacks);
-    return filter_dquoted(proc, loc);
+    return _filter_dquoted(proc, loc);
 }
 
-csubstr ScalarFilter::filter_dquoted(substr dst, size_t cap, LocCRef loc)
+FilterResult ScalarFilter::filter_dquoted_inplace(substr dst, size_t cap, LocCRef loc)
 {
     FilterProcessorInplace proc(dst, cap, m_callbacks);
-    return filter_dquoted(proc, loc);
+    return _filter_dquoted(proc, loc);
 }
 
 
@@ -909,13 +909,13 @@ size_t ScalarFilter::_extend_to_chomp(FilterProcessor &C4_RESTRICT proc, size_t 
 #endif
 
 template<class FilterProcessor>
-csubstr ScalarFilter::filter_block_literal(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp)
+FilterResult ScalarFilter::_filter_block_literal(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp)
 {
     _c4dbgfbl("indentation={} before=[{}]~~~{}~~~", indentation, proc.src.len, proc.src);
 
     size_t contents_len = _handle_all_whitespace(proc, chomp);
     if(!contents_len)
-        return proc.sofar();
+        return proc.result();
 
     contents_len = _extend_to_chomp(proc, contents_len);
 
@@ -957,16 +957,16 @@ csubstr ScalarFilter::filter_block_literal(FilterProcessor &C4_RESTRICT proc, si
 
 #undef _c4dbgfbl
 
-csubstr ScalarFilter::filter_block_literal(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp)
+FilterResult ScalarFilter::filter_block_literal_inplace(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp)
 {
     FilterProcessorInplace proc(scalar, cap, m_callbacks);
-    return filter_block_literal(proc, indentation, chomp);
+    return _filter_block_literal(proc, indentation, chomp);
 }
 
-csubstr ScalarFilter::filter_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp)
+FilterResult ScalarFilter::filter_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp)
 {
     FilterProcessorSrcDst proc(scalar, dst, m_callbacks);
-    return filter_block_literal(proc, indentation, chomp);
+    return _filter_block_literal(proc, indentation, chomp);
 }
 
 
@@ -1090,13 +1090,13 @@ size_t ScalarFilter::_filter_block_folded_newlines(FilterProcessor &C4_RESTRICT 
 
 
 template<class FilterProcessor>
-csubstr ScalarFilter::filter_block_folded(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp)
+FilterResult ScalarFilter::_filter_block_folded(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp)
 {
     _c4dbgfbf("indentation={} before=[{}]~~~{}~~~", indentation, proc.src.len, proc.src);
 
     size_t contents_len = _handle_all_whitespace(proc, chomp);
     if(!contents_len)
-        return proc.sofar();
+        return proc.result();
 
     contents_len = _extend_to_chomp(proc, contents_len);
 
@@ -1137,16 +1137,16 @@ csubstr ScalarFilter::filter_block_folded(FilterProcessor &C4_RESTRICT proc, siz
 
 #undef _c4dbgfbf
 
-csubstr ScalarFilter::filter_block_folded(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp)
+FilterResult ScalarFilter::filter_block_folded_inplace(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp)
 {
     FilterProcessorInplace proc(scalar, cap, m_callbacks);
-    return filter_block_folded(proc, indentation, chomp);
+    return _filter_block_folded(proc, indentation, chomp);
 }
 
-csubstr ScalarFilter::filter_block_folded(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp)
+FilterResult ScalarFilter::filter_block_folded(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp)
 {
     FilterProcessorSrcDst proc(scalar, dst, m_callbacks);
-    return filter_block_folded(proc, indentation, chomp);
+    return _filter_block_folded(proc, indentation, chomp);
 }
 
 } // namespace yml

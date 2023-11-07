@@ -32,11 +32,12 @@ void test_filter_src_dst(csubstr input, csubstr expected, size_t indentation, si
     // filter now
     const substr dst = full.first(dst_sz);
     ScalarFilter proc = {};
-    const csubstr out = proc.filter_plain(input, dst, indentation);
+    FilterResult result = proc.filter_plain(input, dst, indentation);
     // check the result
-    EXPECT_EQ(out.len, expected.len);
-    if(out.str)
+    EXPECT_EQ(result.required_len(), expected.len);
+    if(result.valid())
     {
+        const csubstr out = result.get();
         RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
         RYML_TRACE_FMT("\nout.str={}\ndst.str={}", (void const*)out.str, (void const*)dst.str);
         EXPECT_TRUE(out.is_sub(dst));
@@ -66,10 +67,11 @@ void test_filter_inplace(csubstr input, csubstr expected, size_t indentation)
         substr dst = full.first(input.len);
         // filter now
         ScalarFilter proc = {};
-        csubstr out = proc.filter_plain(dst, cap, indentation);
-        EXPECT_EQ(out.len, expected.len) << (out.str ? out.str : "(no out.str)");
-        if(out.str)
+        FilterResult result = proc.filter_plain_inplace(dst, cap, indentation);
+        EXPECT_EQ(result.required_len(), expected.len) << (result.valid() ? result.get().str : "(no out.str)");
+        if(result.valid())
         {
+        const csubstr out = result.get();
             EXPECT_EQ(out, expected);
             // check the fill character in the canary region.
             EXPECT_GT(full.sub(max_sz).len, 0u);

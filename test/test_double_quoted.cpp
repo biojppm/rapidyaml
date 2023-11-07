@@ -32,11 +32,12 @@ void test_filter_src_dst(csubstr input, csubstr expected, size_t dst_sz)
     // filter now
     const substr dst = full.first(dst_sz);
     ScalarFilter proc = {};
-    const csubstr out = proc.filter_dquoted(input, dst, Location{});
+    FilterResult result = proc.filter_dquoted(input, dst, Location{});
     // check the result
-    EXPECT_EQ(out.len, expected.len);
-    if(out.str)
+    EXPECT_EQ(result.required_len(), expected.len);
+    if(result.valid())
     {
+        const csubstr out = result.get();
         RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
         RYML_TRACE_FMT("\nout.str=[{}]{}\ndst.str=[{}]{}", out.len,(void const*)out.str, dst.len,(void const*)dst.str);
         EXPECT_TRUE(out.is_sub(dst));
@@ -71,10 +72,11 @@ void test_filter_inplace(csubstr input, csubstr expected, csubstr leading_input,
         substr dst = full.first(input_sz);
         // filter now
         ScalarFilter proc = {};
-        csubstr out = proc.filter_dquoted(dst, cap, Location{});
-        EXPECT_EQ(out.len, expected_sz);
-        if(out.str)
+        FilterResult result = proc.filter_dquoted_inplace(dst, cap, Location{});
+        EXPECT_EQ(result.required_len(), expected_sz);
+        if(result.valid())
         {
+            const csubstr out = result.get();
             EXPECT_EQ(out, expected_);
             // check the fill character in the canary region.
             EXPECT_GT(full.sub(max_sz).len, 0u);

@@ -244,6 +244,16 @@ struct _charconstant_t
 } // namespace detail
 
 
+/** Abstracts the fact that a filter result may not fit in the intended memory. */
+struct FilterResult
+{
+    C4_ALWAYS_INLINE bool valid() const noexcept { return str.str != nullptr; }
+    C4_ALWAYS_INLINE size_t required_len() const noexcept { return str.len; }
+    C4_ALWAYS_INLINE csubstr get() { RYML_ASSERT(valid()); return str; }
+    csubstr str;
+};
+
+
 namespace detail {
 struct _SubstrWriter
 {
