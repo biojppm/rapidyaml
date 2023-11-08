@@ -42,8 +42,12 @@ private:
     } Flags_e;
 
     uint32_t flags = DEFAULTS;
+
 public:
+
     ParserOptions() = default;
+
+public:
 
     /** @name scalar filtering */
     /** @{ */
@@ -58,9 +62,11 @@ public:
         return *this;
     }
     /** query scalar filtering status */
-    bool scalar_filtering() const { return (flags & SCALAR_FILTERING) != 0u; }
+    C4_ALWAYS_INLINE bool scalar_filtering() const noexcept { return (flags & SCALAR_FILTERING); }
 
     /** @} */
+
+public:
 
     /** @name source location tracking */
     /** @{ */
@@ -75,7 +81,7 @@ public:
         return *this;
     }
     /** query source location tracking status */
-    bool locations() const { return (flags & LOCATIONS) != 0u; }
+    C4_ALWAYS_INLINE bool locations() const noexcept { return (flags & LOCATIONS); }
 
     /** @} */
 };
@@ -344,15 +350,11 @@ private:
     csubstr _scan_to_next_nonempty_line(size_t indentation);
     csubstr _extend_scanned_scalar(csubstr currscalar);
 
-    csubstr _filter_squot_scalar(const substr s);
+    csubstr _filter_squot_scalar(substr s);
     csubstr _filter_dquot_scalar(substr s);
     csubstr _filter_plain_scalar(substr s, size_t indentation);
-    csubstr _filter_block_scalar(substr s, BlockStyle_e style, BlockChomp_e chomp, size_t indentation);
-    template<bool backslash_is_escape, bool keep_trailing_whitespace>
-    bool    _filter_nl(substr scalar, size_t *C4_RESTRICT pos, size_t *C4_RESTRICT filter_arena_pos, size_t indentation);
-    template<bool keep_trailing_whitespace>
-    void    _filter_ws(substr scalar, size_t *C4_RESTRICT pos, size_t *C4_RESTRICT filter_arena_pos);
-    bool    _apply_chomp(substr buf, size_t *C4_RESTRICT pos, BlockChomp_e chomp);
+    csubstr _filter_block_literal_scalar(substr s, BlockChomp_e chomp, size_t indentation);
+    csubstr _filter_block_folded_scalar(substr s, BlockChomp_e chomp, size_t indentation);
 
     void  _handle_finished_file();
     void  _handle_line();

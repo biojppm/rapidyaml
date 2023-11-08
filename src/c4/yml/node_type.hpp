@@ -71,6 +71,7 @@ typedef enum : type_bits {
     _WIP_VAL_FT_SQ     = c4bit(30), ///< features: mark val scalar as having single quotes in its contents
     _WIP_KEY_FT_DQ     = c4bit(31), ///< features: mark key scalar as having double quotes in its contents
     _WIP_VAL_FT_DQ     = c4bit(32), ///< features: mark val scalar as having double quotes in its contents
+    _WIP_UNFILTERED    = c4bit(33), ///< the scalar is yet to be filtered. Eg, when the parser is set not to filter.
     #undef c4bit
 } NodeType_e;
 
