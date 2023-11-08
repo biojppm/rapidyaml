@@ -1,3 +1,6 @@
+#ifndef C4_YML_FILTER_DEF_HPP_
+#define C4_YML_FILTER_DEF_HPP_
+
 #include "c4/yml/filter.hpp"
 #include "c4/charconv.hpp"
 #include "c4/utf.hpp"
@@ -17,7 +20,7 @@ namespace yml {
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-size_t _count_following_newlines(csubstr r, size_t *C4_RESTRICT i)
+inline size_t _count_following_newlines(csubstr r, size_t *C4_RESTRICT i)
 {
     RYML_ASSERT(r[*i] == '\n');
     size_t numnl_following = 0;
@@ -37,7 +40,7 @@ size_t _count_following_newlines(csubstr r, size_t *C4_RESTRICT i)
 
 /** @p i is set to the first non whitespace character after the line
  * @return the number of empty lines after the initial position */
-size_t _count_following_newlines(csubstr r, size_t *C4_RESTRICT i, size_t indentation)
+inline size_t _count_following_newlines(csubstr r, size_t *C4_RESTRICT i, size_t indentation)
 {
     RYML_ASSERT(r[*i] == '\n');
     size_t numnl_following = 0;
@@ -94,11 +97,12 @@ size_t _count_following_newlines(csubstr r, size_t *C4_RESTRICT i, size_t indent
 #define _c4dbgfws(...)
 #endif
 
+template<class Parser>
 template<class FilterProcessor>
-bool ScalarFilter::_filter_ws_handle_to_first_non_space(FilterProcessor &proc)
+bool ScalarFilterCRTP<Parser>::_filter_ws_handle_to_first_non_space(FilterProcessor &proc) noexcept
 {
     _c4dbgfws("found whitespace '{}'", _c4prc(proc.curr()));
-    _RYML_CB_ASSERT(*m_callbacks, proc.curr() == ' ' || proc.curr() == '\t');
+    _RYML_CB_ASSERT(((Parser const*)this)->callbacks(), proc.curr() == ' ' || proc.curr() == '\t');
 
     const size_t first_pos = proc.rpos > 0 ? proc.src.first_not_of(" \t", proc.rpos) : proc.src.first_not_of(' ', proc.rpos);
     if(first_pos != npos)
@@ -123,8 +127,9 @@ bool ScalarFilter::_filter_ws_handle_to_first_non_space(FilterProcessor &proc)
     }
 }
 
+template<class Parser>
 template<class FilterProcessor>
-void ScalarFilter::_filter_ws_copy_trailing(FilterProcessor &proc)
+void ScalarFilterCRTP<Parser>::_filter_ws_copy_trailing(FilterProcessor &proc) noexcept
 {
     if(!_filter_ws_handle_to_first_non_space(proc))
     {
@@ -133,8 +138,9 @@ void ScalarFilter::_filter_ws_copy_trailing(FilterProcessor &proc)
     }
 }
 
+template<class Parser>
 template<class FilterProcessor>
-void ScalarFilter::_filter_ws_skip_trailing(FilterProcessor &proc)
+void ScalarFilterCRTP<Parser>::_filter_ws_skip_trailing(FilterProcessor &proc) noexcept
 {
     if(!_filter_ws_handle_to_first_non_space(proc))
     {
@@ -158,10 +164,11 @@ void ScalarFilter::_filter_ws_skip_trailing(FilterProcessor &proc)
 #define _c4dbgfps(fmt, ...)
 #endif
 
+template<class Parser>
 template<class FilterProcessor>
-void ScalarFilter::_filter_nl_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation)
+void ScalarFilterCRTP<Parser>::_filter_nl_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation) noexcept
 {
-    _RYML_CB_ASSERT(*m_callbacks, proc.curr() == '\n');
+    _RYML_CB_ASSERT(((Parser const*)this)->callbacks(), proc.curr() == '\n');
 
     _c4dbgfps("found newline. sofar=[{}]~~~{}~~~", proc.wpos, proc.sofar());
     size_t ii = proc.rpos;
@@ -188,10 +195,11 @@ void ScalarFilter::_filter_nl_plain(FilterProcessor &C4_RESTRICT proc, size_t in
     proc.rpos = ii;
 }
 
+template<class Parser>
 template<class FilterProcessor>
-FilterResult ScalarFilter::_filter_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation)
+FilterResult ScalarFilterCRTP<Parser>::_filter_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation) noexcept
 {
-    _RYML_CB_ASSERT(*m_callbacks, indentation != npos);
+    _RYML_CB_ASSERT(((Parser const*)this)->callbacks(), indentation != npos);
     _c4dbgfps("before=[{}]~~~{}~~~", proc.src.len, proc.src);
 
     while(proc.has_more_chars())
@@ -227,15 +235,17 @@ FilterResult ScalarFilter::_filter_plain(FilterProcessor &C4_RESTRICT proc, size
 #undef _c4dbgfps
 
 
-FilterResult ScalarFilter::filter_plain(csubstr scalar, substr dst, size_t indentation)
+template<class Parser>
+FilterResult ScalarFilterCRTP<Parser>::filter_plain(csubstr scalar, substr dst, size_t indentation) noexcept
 {
-    FilterProcessorSrcDst proc(scalar, dst, m_callbacks);
+    FilterProcessorSrcDst proc(scalar, dst);
     return _filter_plain(proc, indentation);
 }
 
-FilterResult ScalarFilter::filter_plain_inplace(substr dst, size_t cap, size_t indentation)
+template<class Parser>
+FilterResult ScalarFilterCRTP<Parser>::filter_plain_inplace(substr dst, size_t cap, size_t indentation) noexcept
 {
-    FilterProcessorInplace proc(dst, cap, m_callbacks);
+    FilterProcessorInplace proc(dst, cap);
     return _filter_plain(proc, indentation);
 }
 
@@ -252,10 +262,11 @@ FilterResult ScalarFilter::filter_plain_inplace(substr dst, size_t cap, size_t i
 #define _c4dbgfsq(fmt, ...)
 #endif
 
+template<class Parser>
 template<class FilterProcessor>
-void ScalarFilter::_filter_nl_squoted(FilterProcessor &C4_RESTRICT proc)
+void ScalarFilterCRTP<Parser>::_filter_nl_squoted(FilterProcessor &C4_RESTRICT proc) noexcept
 {
-    _RYML_CB_ASSERT(*m_callbacks, proc.curr() == '\n');
+    _RYML_CB_ASSERT(((Parser const*)this)->callbacks(), proc.curr() == '\n');
 
     _c4dbgfsq("found newline. sofar=[{}]~~~{}~~~", proc.wpos, proc.sofar());
     size_t ii = proc.rpos;
@@ -282,8 +293,9 @@ void ScalarFilter::_filter_nl_squoted(FilterProcessor &C4_RESTRICT proc)
     proc.rpos = ii;
 }
 
+template<class Parser>
 template<class FilterProcessor>
-FilterResult ScalarFilter::_filter_squoted(FilterProcessor &C4_RESTRICT proc)
+FilterResult ScalarFilterCRTP<Parser>::_filter_squoted(FilterProcessor &C4_RESTRICT proc) noexcept
 {
     // from the YAML spec for double-quoted scalars:
     // https://yaml.org/spec/1.2-old/spec.html#style/flow/single-quoted
@@ -331,15 +343,17 @@ FilterResult ScalarFilter::_filter_squoted(FilterProcessor &C4_RESTRICT proc)
 
 #undef _c4dbgfsq
 
-FilterResult ScalarFilter::filter_squoted(csubstr scalar, substr dst)
+template<class Parser>
+FilterResult ScalarFilterCRTP<Parser>::filter_squoted(csubstr scalar, substr dst) noexcept
 {
-    FilterProcessorSrcDst proc(scalar, dst, m_callbacks);
+    FilterProcessorSrcDst proc(scalar, dst);
     return _filter_squoted(proc);
 }
 
-FilterResult ScalarFilter::filter_squoted_inplace(substr dst, size_t cap)
+template<class Parser>
+FilterResult ScalarFilterCRTP<Parser>::filter_squoted_inplace(substr dst, size_t cap) noexcept
 {
-    FilterProcessorInplace proc(dst, cap, m_callbacks);
+    FilterProcessorInplace proc(dst, cap);
     return _filter_squoted(proc);
 }
 
@@ -356,10 +370,11 @@ FilterResult ScalarFilter::filter_squoted_inplace(substr dst, size_t cap)
 #define _c4dbgfdq(...)
 #endif
 
+template<class Parser>
 template<class FilterProcessor>
-void ScalarFilter::_filter_nl_dquoted(FilterProcessor &C4_RESTRICT proc)
+void ScalarFilterCRTP<Parser>::_filter_nl_dquoted(FilterProcessor &C4_RESTRICT proc) noexcept
 {
-    _RYML_CB_ASSERT(*m_callbacks, proc.curr() == '\n');
+    _RYML_CB_ASSERT(((Parser const*)this)->callbacks(), proc.curr() == '\n');
 
     _c4dbgfdq("found newline. sofar=[{}]~~~{}~~~", proc.wpos, proc.sofar());
     size_t ii = proc.rpos;
@@ -396,8 +411,9 @@ void ScalarFilter::_filter_nl_dquoted(FilterProcessor &C4_RESTRICT proc)
     proc.rpos = ii;
 }
 
+template<class Parser>
 template<class FilterProcessor>
-void ScalarFilter::_filter_dquoted_backslash(FilterProcessor &C4_RESTRICT proc, LocCRef loc)
+void ScalarFilterCRTP<Parser>::_filter_dquoted_backslash(FilterProcessor &C4_RESTRICT proc, LocCRef loc) noexcept
 {
     char next = proc.next();
     _c4dbgfdq("backslash, next='{}'", _c4prc(next));
@@ -452,38 +468,38 @@ void ScalarFilter::_filter_dquoted_backslash(FilterProcessor &C4_RESTRICT proc, 
     }
     else if(next == 'x') // UTF8
     {
-        if(proc.rpos + 1u + 2u >= proc.src.len)
-            _c4errflt(loc, "\\x requires 2 hex digits");
+        if(C4_UNLIKELY(proc.rpos + 1u + 2u >= proc.src.len))
+            _c4errflt(((Parser const*)this)->callbacks(), loc, "\\x requires 2 hex digits. scalar pos={}", proc.rpos);
         csubstr codepoint = proc.src.sub(proc.rpos + 2u, 2u);
         _c4dbgfdq("utf8 ~~~{}~~~ rpos={} rem=~~~{}~~~", codepoint, proc.rpos, proc.src.sub(proc.rpos));
         uint8_t byteval = {};
-        if(!read_hex(codepoint, &byteval))
-            _c4errflt(loc, "failed to read \\x codepoint. scalar pos={}", proc.rpos);
+        if(C4_UNLIKELY(!read_hex(codepoint, &byteval)))
+            _c4errflt(((Parser const*)this)->callbacks(), loc, "failed to read \\x codepoint. scalar pos={}", proc.rpos);
         proc.translate_esc((const char*)&byteval, 1u, /*nread*/3u);
         _c4dbgfdq("utf8 after rpos={} rem=~~~{}~~~", proc.rpos, proc.src.sub(proc.rpos));
     }
     else if(next == 'u') // UTF16
     {
-        if(proc.rpos + 1u + 4u >= proc.src.len)
-            _c4errflt(loc, "\\u requires 4 hex digits");
+        if(C4_UNLIKELY(proc.rpos + 1u + 4u >= proc.src.len))
+            _c4errflt(((Parser const*)this)->callbacks(), loc, "\\u requires 4 hex digits. scalar pos={}", proc.rpos);
         char readbuf[8];
         csubstr codepoint = proc.src.sub(proc.rpos + 2u, 4u);
         uint32_t codepoint_val = {};
-        if(!read_hex(codepoint, &codepoint_val))
-            _c4errflt(loc, "failed to parse \\u codepoint. scalar pos={}", proc.rpos);
+        if(C4_UNLIKELY(!read_hex(codepoint, &codepoint_val)))
+            _c4errflt(((Parser const*)this)->callbacks(), loc, "failed to parse \\u codepoint. scalar pos={}", proc.rpos);
         size_t numbytes = decode_code_point((uint8_t*)readbuf, sizeof(readbuf), codepoint_val);
         C4_ASSERT(numbytes <= 4);
         proc.translate_esc(readbuf, numbytes, /*nread*/5u);
     }
     else if(next == 'U') // UTF32
     {
-        if(proc.rpos + 1u + 8u >= proc.src.len)
-            _c4errflt(loc, "\\U requires 8 hex digits");
+        if(C4_UNLIKELY(proc.rpos + 1u + 8u >= proc.src.len))
+            _c4errflt(((Parser const*)this)->callbacks(), loc, "\\U requires 8 hex digits. scalar pos={}", proc.rpos);
         char readbuf[8];
         csubstr codepoint = proc.src.sub(proc.rpos + 2u, 8u);
         uint32_t codepoint_val = {};
-        if(!read_hex(codepoint, &codepoint_val))
-            _c4errflt(loc, "failed to parse \\U codepoint. scalar pos={}", proc.rpos);
+        if(C4_UNLIKELY(!read_hex(codepoint, &codepoint_val)))
+            _c4errflt(((Parser const*)this)->callbacks(), loc, "failed to parse \\U codepoint. scalar pos={}", proc.rpos);
         size_t numbytes = decode_code_point((uint8_t*)readbuf, sizeof(readbuf), codepoint_val);
         C4_ASSERT(numbytes <= 4);
         proc.translate_esc(readbuf, numbytes, /*nread*/9u);
@@ -559,19 +575,13 @@ void ScalarFilter::_filter_dquoted_backslash(FilterProcessor &C4_RESTRICT proc, 
 }
 
 
+template<class Parser>
 template<class FilterProcessor>
-FilterResult ScalarFilter::_filter_dquoted(FilterProcessor &C4_RESTRICT proc, LocCRef loc)
+FilterResult ScalarFilterCRTP<Parser>::_filter_dquoted(FilterProcessor &C4_RESTRICT proc, LocCRef loc) noexcept
 {
     _c4dbgfdq("before=[{}]~~~{}~~~", proc.src.len, proc.src);
-
     // from the YAML spec for double-quoted scalars:
     // https://yaml.org/spec/1.2-old/spec.html#style/flow/double-quoted
-    //
-    // All leading and trailing white space characters are excluded
-    // from the content. Each continuation line must therefore contain
-    // at least one non-space character. Empty lines, if any, are
-    // consumed as part of the line folding.
-
     while(proc.has_more_chars())
     {
         const char curr = proc.curr();
@@ -608,24 +618,24 @@ FilterResult ScalarFilter::_filter_dquoted(FilterProcessor &C4_RESTRICT proc, Lo
         }
         }
     }
-
     _c4dbgfdq("after[{}]=~~~{}~~~", proc.wpos, proc.sofar());
-
     return proc.result();
 }
 
 #undef _c4dbgfdq
 
 
-FilterResult ScalarFilter::filter_dquoted(csubstr scalar, substr dst, LocCRef loc)
+template<class Parser>
+FilterResult ScalarFilterCRTP<Parser>::filter_dquoted(csubstr scalar, substr dst, LocCRef loc) noexcept
 {
-    FilterProcessorSrcDst proc(scalar, dst, m_callbacks);
+    FilterProcessorSrcDst proc(scalar, dst);
     return _filter_dquoted(proc, loc);
 }
 
-FilterResult ScalarFilter::filter_dquoted_inplace(substr dst, size_t cap, LocCRef loc)
+template<class Parser>
+FilterResult ScalarFilterCRTP<Parser>::filter_dquoted_inplace(substr dst, size_t cap, LocCRef loc) noexcept
 {
-    FilterProcessorInplace proc(dst, cap, m_callbacks);
+    FilterProcessorInplace proc(dst, cap);
     return _filter_dquoted(proc, loc);
 }
 
@@ -635,7 +645,7 @@ FilterResult ScalarFilter::filter_dquoted_inplace(substr dst, size_t cap, LocCRe
 //-----------------------------------------------------------------------------
 // block filtering helpers
 
-size_t _find_last_newline_and_larger_indentation(csubstr s, size_t indentation) noexcept
+inline size_t _find_last_newline_and_larger_indentation(csubstr s, size_t indentation) noexcept
 {
     if(indentation + 1 > s.len)
         return npos;
@@ -650,20 +660,21 @@ size_t _find_last_newline_and_larger_indentation(csubstr s, size_t indentation) 
                 return i;
         }
     }
-    //_RYML_CB_ASSERT(*m_callbacks, _find_last_newline_and_larger_indentation("ab\n\n\n", 0) == npos);
-    //_RYML_CB_ASSERT(*m_callbacks, _find_last_newline_and_larger_indentation("ab\n \n\n", 0) == 2);
-    //_RYML_CB_ASSERT(*m_callbacks, _find_last_newline_and_larger_indentation("ab\n\n \n", 0) == 3);
-    //_RYML_CB_ASSERT(*m_callbacks, _find_last_newline_and_larger_indentation("ab\n \n \n", 0) == 4);
-    //_RYML_CB_ASSERT(*m_callbacks, _find_last_newline_and_larger_indentation("ab\n \n  \n", 1) == 4);
-    //_RYML_CB_ASSERT(*m_callbacks, _find_last_newline_and_larger_indentation("ab\n  \n \n", 1) == 2);
+    //_RYML_CB_ASSERT(((Parser const*)this)->callbacks(), _find_last_newline_and_larger_indentation("ab\n\n\n", 0) == npos);
+    //_RYML_CB_ASSERT(((Parser const*)this)->callbacks(), _find_last_newline_and_larger_indentation("ab\n \n\n", 0) == 2);
+    //_RYML_CB_ASSERT(((Parser const*)this)->callbacks(), _find_last_newline_and_larger_indentation("ab\n\n \n", 0) == 3);
+    //_RYML_CB_ASSERT(((Parser const*)this)->callbacks(), _find_last_newline_and_larger_indentation("ab\n \n \n", 0) == 4);
+    //_RYML_CB_ASSERT(((Parser const*)this)->callbacks(), _find_last_newline_and_larger_indentation("ab\n \n  \n", 1) == 4);
+    //_RYML_CB_ASSERT(((Parser const*)this)->callbacks(), _find_last_newline_and_larger_indentation("ab\n  \n \n", 1) == 2);
     return npos;
 }
 
+template<class Parser>
 template<class FilterProcessor>
-void ScalarFilter::_chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp, size_t indentation)
+void ScalarFilterCRTP<Parser>::_filter_chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp, size_t indentation) noexcept
 {
-    _RYML_CB_ASSERT(*m_callbacks, chomp == CHOMP_CLIP || chomp == CHOMP_KEEP || chomp == CHOMP_STRIP);
-    _RYML_CB_ASSERT(*m_callbacks, proc.rem().first_not_of(" \n\r") == npos);
+    _RYML_CB_ASSERT(((Parser const*)this)->callbacks(), chomp == CHOMP_CLIP || chomp == CHOMP_KEEP || chomp == CHOMP_STRIP);
+    _RYML_CB_ASSERT(((Parser const*)this)->callbacks(), proc.rem().first_not_of(" \n\r") == npos);
 
     // a debugging scaffold:
     #if 0
@@ -679,7 +690,7 @@ void ScalarFilter::_chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp,
         {
             _c4dbgchomp("found newline and larger indentation. last={}", last);
             last = proc.rpos + last + size_t(1) + indentation;  // last started at to-be-read.
-            _RYML_CB_ASSERT(*m_callbacks, last <= proc.src.len);
+            _RYML_CB_ASSERT(((Parser const*)this)->callbacks(), last <= proc.src.len);
             // remove indentation spaces, copy the rest
             while((proc.rpos < last) && proc.has_more_chars())
             {
@@ -722,7 +733,7 @@ void ScalarFilter::_chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp,
                     proc.skip();
                     break;
                 default:
-                    _RYML_CB_ERR(*m_callbacks, "never reach this");
+                    _RYML_CB_ERR(((Parser const*)this)->callbacks(), "never reach this");
                     break;
                 }
             }
@@ -803,8 +814,9 @@ void ScalarFilter::_chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp,
 #define _c4dbgfb(...)
 #endif
 
+template<class Parser>
 template<class FilterProcessor>
-void ScalarFilter::_filter_block_indentation(FilterProcessor &C4_RESTRICT proc, size_t indentation)
+void ScalarFilterCRTP<Parser>::_filter_block_indentation(FilterProcessor &C4_RESTRICT proc, size_t indentation) noexcept
 {
     csubstr rem = proc.rem(); // remaining
     if(rem.len)
@@ -845,8 +857,9 @@ void ScalarFilter::_filter_block_indentation(FilterProcessor &C4_RESTRICT proc, 
     }
 }
 
+template<class Parser>
 template<class FilterProcessor>
-size_t ScalarFilter::_handle_all_whitespace(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp)
+size_t ScalarFilterCRTP<Parser>::_handle_all_whitespace(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp) noexcept
 {
     _c4dbgfb("indentation={} before=[{}]~~~{}~~~", indentation, proc.src.len, proc.src);
 
@@ -870,12 +883,13 @@ size_t ScalarFilter::_handle_all_whitespace(FilterProcessor &C4_RESTRICT proc, B
     return contents.len;
 }
 
+template<class Parser>
 template<class FilterProcessor>
-size_t ScalarFilter::_extend_to_chomp(FilterProcessor &C4_RESTRICT proc, size_t contents_len)
+size_t ScalarFilterCRTP<Parser>::_extend_to_chomp(FilterProcessor &C4_RESTRICT proc, size_t contents_len) noexcept
 {
     _c4dbgfb("contents_len={}", contents_len);
 
-    _RYML_CB_ASSERT(*m_callbacks, contents_len > 0u);
+    _RYML_CB_ASSERT(((Parser const*)this)->callbacks(), contents_len > 0u);
 
     // extend contents to just before the first newline at the end,
     // in case it is preceded by spaces
@@ -908,8 +922,9 @@ size_t ScalarFilter::_extend_to_chomp(FilterProcessor &C4_RESTRICT proc, size_t 
 #define _c4dbgfbl(...)
 #endif
 
+template<class Parser>
 template<class FilterProcessor>
-FilterResult ScalarFilter::_filter_block_literal(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp)
+FilterResult ScalarFilterCRTP<Parser>::_filter_block_literal(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp) noexcept
 {
     _c4dbgfbl("indentation={} before=[{}]~~~{}~~~", indentation, proc.src.len, proc.src);
 
@@ -948,7 +963,7 @@ FilterResult ScalarFilter::_filter_block_literal(FilterProcessor &C4_RESTRICT pr
 
     _c4dbgfbl("before chomp: #tochomp={}   sofar=[{}]~~~{}~~~", proc.rem().len, proc.sofar().len, proc.sofar());
 
-    _chomp(proc, chomp, indentation);
+    _filter_chomp(proc, chomp, indentation);
 
     _c4dbgfbl("final=[{}]~~~{}~~~", proc.sofar().len, proc.sofar());
 
@@ -957,15 +972,17 @@ FilterResult ScalarFilter::_filter_block_literal(FilterProcessor &C4_RESTRICT pr
 
 #undef _c4dbgfbl
 
-FilterResult ScalarFilter::filter_block_literal_inplace(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp)
+template<class Parser>
+FilterResult ScalarFilterCRTP<Parser>::filter_block_literal_inplace(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept
 {
-    FilterProcessorInplace proc(scalar, cap, m_callbacks);
+    FilterProcessorInplace proc(scalar, cap);
     return _filter_block_literal(proc, indentation, chomp);
 }
 
-FilterResult ScalarFilter::filter_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp)
+template<class Parser>
+FilterResult ScalarFilterCRTP<Parser>::filter_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp) noexcept
 {
-    FilterProcessorSrcDst proc(scalar, dst, m_callbacks);
+    FilterProcessorSrcDst proc(scalar, dst);
     return _filter_block_literal(proc, indentation, chomp);
 }
 
@@ -982,10 +999,11 @@ FilterResult ScalarFilter::filter_block_literal(csubstr scalar, substr dst, size
 #endif
 
 
+template<class Parser>
 template<class FilterProcessor>
-size_t ScalarFilter::_filter_block_folded_indented(FilterProcessor &C4_RESTRICT proc, size_t indentation, size_t len, size_t curr_indentation)
+size_t ScalarFilterCRTP<Parser>::_filter_block_folded_indented(FilterProcessor &C4_RESTRICT proc, size_t indentation, size_t len, size_t curr_indentation) noexcept
 {
-    _RYML_CB_ASSERT(*m_callbacks, proc.rem().first_not_of(' ') == curr_indentation);
+    _RYML_CB_ASSERT(((Parser const*)this)->callbacks(), proc.rem().first_not_of(' ') == curr_indentation);
     proc.copy(curr_indentation);
     while(proc.has_more_chars(len))
     {
@@ -1025,10 +1043,11 @@ size_t ScalarFilter::_filter_block_folded_indented(FilterProcessor &C4_RESTRICT 
 }
 
 
+template<class Parser>
 template<class FilterProcessor>
-size_t ScalarFilter::_filter_block_folded_newlines(FilterProcessor &C4_RESTRICT proc, size_t indentation, size_t len)
+size_t ScalarFilterCRTP<Parser>::_filter_block_folded_newlines(FilterProcessor &C4_RESTRICT proc, size_t indentation, size_t len) noexcept
 {
-    _RYML_CB_ASSERT(*m_callbacks, proc.curr() == '\n');
+    _RYML_CB_ASSERT(((Parser const*)this)->callbacks(), proc.curr() == '\n');
     size_t num_newl_extra = 0;
     // skip the first newline
     if(proc.wpos)
@@ -1089,8 +1108,9 @@ size_t ScalarFilter::_filter_block_folded_newlines(FilterProcessor &C4_RESTRICT 
 }
 
 
+template<class Parser>
 template<class FilterProcessor>
-FilterResult ScalarFilter::_filter_block_folded(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp)
+FilterResult ScalarFilterCRTP<Parser>::_filter_block_folded(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp) noexcept
 {
     _c4dbgfbf("indentation={} before=[{}]~~~{}~~~", indentation, proc.src.len, proc.src);
 
@@ -1128,7 +1148,7 @@ FilterResult ScalarFilter::_filter_block_folded(FilterProcessor &C4_RESTRICT pro
 
     _c4dbgfbf("before chomp: #tochomp={}   sofar=[{}]~~~{}~~~", proc.rem().len, proc.sofar().len, proc.sofar());
 
-    _chomp(proc, chomp, indentation);
+    _filter_chomp(proc, chomp, indentation);
 
     _c4dbgfbf("final=[{}]~~~{}~~~", proc.sofar().len, proc.sofar());
 
@@ -1137,15 +1157,17 @@ FilterResult ScalarFilter::_filter_block_folded(FilterProcessor &C4_RESTRICT pro
 
 #undef _c4dbgfbf
 
-FilterResult ScalarFilter::filter_block_folded_inplace(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp)
+template<class Parser>
+FilterResult ScalarFilterCRTP<Parser>::filter_block_folded_inplace(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept
 {
-    FilterProcessorInplace proc(scalar, cap, m_callbacks);
+    FilterProcessorInplace proc(scalar, cap);
     return _filter_block_folded(proc, indentation, chomp);
 }
 
-FilterResult ScalarFilter::filter_block_folded(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp)
+template<class Parser>
+FilterResult ScalarFilterCRTP<Parser>::filter_block_folded(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp) noexcept
 {
-    FilterProcessorSrcDst proc(scalar, dst, m_callbacks);
+    FilterProcessorSrcDst proc(scalar, dst);
     return _filter_block_folded(proc, indentation, chomp);
 }
 
@@ -1154,3 +1176,6 @@ FilterResult ScalarFilter::filter_block_folded(csubstr scalar, substr dst, size_
 
 C4_SUPPRESS_WARNING_MSVC_POP
 C4_SUPPRESS_WARNING_GCC_CLANG_POP
+
+
+#endif /* C4_YML_FILTER_DEF_HPP_ */

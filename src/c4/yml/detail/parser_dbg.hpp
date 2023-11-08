@@ -54,8 +54,8 @@ void _dbg_printf(c4::csubstr fmt, Args&& ...args)
 #   define _c4dbgq(msg)        _dbg_printf(msg "\n")
 #   define _c4err(fmt, ...)   \
     do { RYML_DEBUG_BREAK(); this->_err("ERROR:\n" "{}:{}: " fmt, __FILE__, __LINE__, ## __VA_ARGS__); } while(0)
-#   define _c4errflt(loc, fmt, ...)   \
-    do { RYML_DEBUG_BREAK(); ::c4::yml::_report_err(*m_callbacks, loc, "ERROR:\n" "{}:{}: " fmt, __FILE__, __LINE__, ## __VA_ARGS__); } while(0)
+#   define _c4errflt(cb, loc, fmt, ...)   \
+    do { RYML_DEBUG_BREAK(); ::c4::yml::_report_err((cb), loc, "ERROR:\n" "{}:{}: " fmt, __FILE__, __LINE__, ## __VA_ARGS__); } while(0)
 #else
 #   define _c4dbgt(fmt, ...)
 #   define _c4dbgpf(fmt, ...)
@@ -63,8 +63,8 @@ void _dbg_printf(c4::csubstr fmt, Args&& ...args)
 #   define _c4dbgq(msg)
 #   define _c4err(fmt, ...)   \
     this->_err("ERROR: " fmt, ## __VA_ARGS__)
-#   define _c4errflt(loc, fmt, ...)   \
-    ::c4::yml::_report_err(*m_callbacks, loc, "ERROR:\n" "{}:{}: " fmt, __FILE__, __LINE__, ## __VA_ARGS__)
+#   define _c4errflt(cb, loc, fmt, ...)   \
+    ::c4::yml::_report_err((cb), loc, "ERROR:\n" "{}:{}: " fmt, __FILE__, __LINE__, ## __VA_ARGS__)
 #endif
 
 

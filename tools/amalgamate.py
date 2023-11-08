@@ -38,6 +38,25 @@ c4core_def_code = f""" // propagate defines to c4core
 #include <stdarg.h>
 """
 
+ryml_preamble = f"""
+Rapid YAML - a library to parse and emit YAML, and do it fast.
+
+{repo}
+
+DO NOT EDIT. This file is generated automatically.
+This is an amalgamated single-header version of the library.
+
+INSTRUCTIONS:
+  - Include at will in any header of your project
+  - In one (and only one) of your project source files,
+    #define {ryml_defmacro} and then include this header.
+    This will enable the function and class definitions in
+    the header file.
+  - To compile into a shared library, just define the
+    preprocessor symbol RYML_SHARED . This will take
+    care of symbol export/import.
+"""
+
 
 def amalgamate_ryml(filename: str,
                     with_c4core: bool,
@@ -50,26 +69,8 @@ def amalgamate_ryml(filename: str,
                                     with_fastfloat=with_fastfloat,
                                     with_stl=with_stl)
     repo = "https://github.com/biojppm/rapidyaml"
-    defmacro = ryml_defmacro
     srcfiles = [
-        am.cmttext(f"""
-Rapid YAML - a library to parse and emit YAML, and do it fast.
-
-{repo}
-
-DO NOT EDIT. This file is generated automatically.
-This is an amalgamated single-header version of the library.
-
-INSTRUCTIONS:
-  - Include at will in any header of your project
-  - In one (and only one) of your project source files,
-    #define {defmacro} and then include this header.
-    This will enable the function and class definitions in
-    the header file.
-  - To compile into a shared library, just define the
-    preprocessor symbol RYML_SHARED . This will take
-    care of symbol export/import.
-"""),
+        am.cmttext(ryml_preamble),
         am.cmtfile("LICENSE.txt"),
         am.injcode(exports_def_code),
         am.onlyif(with_c4core, am.injcode(c4core_def_code)),
@@ -93,7 +94,7 @@ INSTRUCTIONS:
         am.onlyif(with_stl, "src/c4/yml/std/std.hpp"),
         "src/c4/yml/common.cpp",
         "src/c4/yml/tree.cpp",
-        "src/c4/yml/filter.cpp",
+        "src/c4/yml/filter.def.hpp",
         "src/c4/yml/parse.cpp",
         "src/c4/yml/node.cpp",
         "src/c4/yml/preprocess.hpp",
@@ -112,7 +113,7 @@ INSTRUCTIONS:
                              re.compile(r'^\s*#\s*include "(c4/.*)".*$'),
                              re.compile(r'^\s*#\s*include <(c4/.*)>.*$'),
                          ],
-                         definition_macro=defmacro,
+                         definition_macro=ryml_defmacro,
                          repo=repo,
                          result_incguard="_RYML_SINGLE_HEADER_AMALGAMATED_HPP_")
     result_with_only_first_includes = am.include_only_first(result)

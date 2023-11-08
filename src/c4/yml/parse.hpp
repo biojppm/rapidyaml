@@ -13,6 +13,14 @@
 #include "c4/yml/detail/stack.hpp"
 #endif
 
+#ifndef _C4_YML_FILTER_HPP_
+#include "c4/yml/filter.hpp"
+#endif
+
+#ifndef _C4_YML_FILTER_DEF_HPP_
+#include "c4/yml/filter.def.hpp"
+#endif
+
 #include <stdarg.h>
 
 #if defined(_MSC_VER)
@@ -28,13 +36,31 @@ struct RYML_EXPORT ParserOptions
 private:
 
     typedef enum : uint32_t {
-        LOCATIONS = (1 << 0),
-        DEFAULTS = 0,
+        SCALAR_FILTERING = (1u << 0),
+        LOCATIONS = (1u << 1),
+        DEFAULTS = SCALAR_FILTERING,
     } Flags_e;
 
     uint32_t flags = DEFAULTS;
 public:
     ParserOptions() = default;
+
+    /** @name scalar filtering */
+    /** @{ */
+
+    /** enable/disable scalar filtering */
+    ParserOptions& scalar_filtering(bool enabled)
+    {
+        if(enabled)
+            flags |= SCALAR_FILTERING;
+        else
+            flags &= ~SCALAR_FILTERING;
+        return *this;
+    }
+    /** query scalar filtering status */
+    bool scalar_filtering() const { return (flags & SCALAR_FILTERING) != 0u; }
+
+    /** @} */
 
     /** @name source location tracking */
     /** @{ */
@@ -48,6 +74,7 @@ public:
             flags &= ~LOCATIONS;
         return *this;
     }
+    /** query source location tracking status */
     bool locations() const { return (flags & LOCATIONS) != 0u; }
 
     /** @} */
@@ -57,7 +84,7 @@ public:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-class RYML_EXPORT Parser
+class RYML_EXPORT Parser : public ScalarFilterCRTP<Parser>
 {
 public:
 
@@ -123,7 +150,7 @@ public:
     /** @{ */
 
     /** Get the current callbacks in the parser. */
-    Callbacks callbacks() const { return m_stack.m_callbacks; }
+    Callbacks const& callbacks() const { return m_stack.m_callbacks; }
 
     /** Get the name of the latest file parsed by this object. */
     csubstr filename() const { return m_file; }
