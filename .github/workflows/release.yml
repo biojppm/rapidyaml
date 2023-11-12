@@ -205,6 +205,8 @@ jobs:
       matrix:
         config:
           # the 3-digit versions NEED to be quoted to prevent the version being read as float. (!)
+          - {pythonv: '3.12', cibw_pyv: 312, cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
+          - {pythonv: '3.12', cibw_pyv: 312, cibw_arch: i686  , cibw_platform: manylinux_i686  , osname: linux, os: ubuntu-20.04}
           - {pythonv: '3.11', cibw_pyv: 311, cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
           - {pythonv: '3.11', cibw_pyv: 311, cibw_arch: i686  , cibw_platform: manylinux_i686  , osname: linux, os: ubuntu-20.04}
           - {pythonv: '3.10', cibw_pyv: 310, cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
@@ -245,7 +247,7 @@ jobs:
       # use fetch-depth to ensure all tags are fetched
       - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive, fetch-depth: 0}}
       - name: create wheel
-        uses: joerick/cibuildwheel@v2.9.0
+        uses: pypa/cibuildwheel@v2.16.2
       - name: rename wheelhouse -> dist
         run: |
           mv -fv wheelhouse dist
