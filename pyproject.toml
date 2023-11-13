@@ -5,4 +5,5 @@ requires = [
          "setuptools-git",
          "wheel",
          "ninja",
-         "cmake_build_extension"]
+         "cmake_build_extension",
+         "swig"]
