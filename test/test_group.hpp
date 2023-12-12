@@ -126,7 +126,8 @@ constexpr const NodeType_e QKV = (NodeType_e)(VAL | KEYQUO | VALQUO);
 
 #ifdef __GNUC__
 #if __GNUC__ == 4 && __GNUC_MINOR__ >= 8
-struct CaseAdder {
+struct CaseAdder
+{
     std::vector<Case> *group_cases;
     const csubstr file;
     const int line;
@@ -149,8 +150,10 @@ struct CaseAdder {
 
 #define CASE_GROUP(group_name)                                          \
                                                                         \
+                                                                        \
 /* fwd declaration to fill the container with cases */                  \
 void add_cases_##group_name(std::vector<Case> *group_cases);            \
+                                                                        \
                                                                         \
 /* container with the cases */                                          \
 std::vector<Case> const& get_cases_##group_name()                       \
@@ -160,6 +163,7 @@ std::vector<Case> const& get_cases_##group_name()                       \
         add_cases_##group_name(&cases_##group_name);                    \
     return cases_##group_name;                                          \
 }                                                                       \
+                                                                        \
                                                                         \
 /* container with the case names */                                     \
 std::vector<csubstr> const& get_case_names_##group_name()               \
@@ -179,8 +183,11 @@ std::vector<csubstr> const& get_case_names_##group_name()               \
     return case_names_##group_name;                                     \
 }                                                                       \
                                                                         \
+                                                                        \
 INSTANTIATE_TEST_SUITE_P(group_name, YmlTestCase, ::testing::ValuesIn(get_case_names_##group_name())); \
+                                                                        \
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(YmlTestCase);             \
+                                                                        \
                                                                         \
 /* used by the fixture to obtain a case by name */                      \
 Case const* get_case(csubstr name)                                      \
@@ -191,6 +198,7 @@ Case const* get_case(csubstr name)                                      \
     C4_ERROR("case not found: '%.*s'", _c4prsp(name));                  \
     return nullptr;                                                     \
 }                                                                       \
+                                                                        \
                                                                         \
 /* finally, define the cases by calling ADD_CASE_TO_GROUP() */          \
 void add_cases_##group_name(std::vector<Case> *group_cases__)

@@ -105,7 +105,7 @@ void test_filter_inplace(blockfolded_case const& blcase)
     }
 }
 
-struct BlockLitFilterTest : public ::testing::TestWithParam<blockfolded_case>
+struct BlockFoldedFilterTest : public ::testing::TestWithParam<blockfolded_case>
 {
 };
 
@@ -122,22 +122,22 @@ std::string add_carriage_returns(csubstr input)
     return result;
 }
 
-TEST_P(BlockLitFilterTest, filter_src_dst)
+TEST_P(BlockFoldedFilterTest, filter_src_dst)
 {
     test_filter_src_dst(GetParam());
 }
-TEST_P(BlockLitFilterTest, filter_src_dst_carriage_return)
+TEST_P(BlockFoldedFilterTest, filter_src_dst_carriage_return)
 {
     ParamType p = GetParam();
     std::string subject = add_carriage_returns(p.input);
     p.input = to_csubstr(subject);
     test_filter_src_dst(p);
 }
-TEST_P(BlockLitFilterTest, filter_inplace)
+TEST_P(BlockFoldedFilterTest, filter_inplace)
 {
     test_filter_inplace(GetParam());
 }
-TEST_P(BlockLitFilterTest, filter_inplace_carriage_return)
+TEST_P(BlockFoldedFilterTest, filter_inplace_carriage_return)
 {
     ParamType p = GetParam();
     std::string subject = add_carriage_returns(p.input);
@@ -391,12 +391,20 @@ blockfolded_case test_cases_filter[] = {
         " \n"
         "\n"
         "text\n"),
+    // 93
+    bfc(5, CHOMP_CLIP, "     asd\n      ", "asd\n \n"),
+    bfc(5, CHOMP_CLIP, "     asd\n       ", "asd\n  \n"),
+    bfc(5, CHOMP_CLIP, "     asd\n     \t ", "asd\n\t \n"),
+    // 96
+    bfc(5, CHOMP_CLIP, "     asd\n     \t \n", "asd\n\t \n"),
+    bfc(5, CHOMP_CLIP, "     asd\n      \t", "asd\n \t\n"),
+    bfc(5, CHOMP_CLIP, "     asd\n      \t\n", "asd\n \t\n"),
 
     #undef blc
 };
 
 INSTANTIATE_TEST_SUITE_P(block_folded_filter,
-                         BlockLitFilterTest,
+                         BlockFoldedFilterTest,
                          testing::ValuesIn(test_cases_filter));
 
 
@@ -1861,7 +1869,7 @@ R"(>
 ADD_CASE_TO_GROUP("block folded with docval no newlines at end 12",
 R"(>
      asd
-     	 
+
 )",
   N(DOCVAL|VALQUO, "asd\n\t \n")
     );

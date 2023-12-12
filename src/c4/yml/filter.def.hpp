@@ -706,25 +706,27 @@ void ScalarFilterCRTP<Parser>::_filter_chomp(FilterProcessor &C4_RESTRICT proc, 
                         csubstr at_next_line = proc.rem();
                         if(at_next_line.begins_with(' '))
                         {
+                            _c4dbgchomp("next line begins with spaces. indentation={}", indentation);
                             // there are spaces.
-                            const size_t first_non_space = at_next_line.first_not_of(' ');
+                            size_t first_non_space = at_next_line.first_not_of(' ');
                             _c4dbgchomp("first_non_space={}", first_non_space);
-                            if(first_non_space != npos) // there are spaces
+                            if(first_non_space == npos)
                             {
-                                _c4dbgchomp("next line begins with spaces. indentation={}", indentation);
-                                if(first_non_space <= indentation)
-                                {
-                                    _c4dbgchomp("skip spaces={}<=indentation={}", first_non_space, indentation);
-                                    proc.skip(first_non_space);
-                                }
-                                else
-                                {
-                                    _c4dbgchomp("skip indentation={}<spaces={}", indentation, first_non_space);
-                                    proc.skip(indentation);
-                                    // copy the spaces after the indentation
-                                    _c4dbgchomp("copy {}={}-{} spaces", first_non_space - indentation, first_non_space, indentation);
-                                    proc.copy(first_non_space - indentation);
-                                }
+                                _c4dbgchomp("{} spaces, to the end", at_next_line.len);
+                                first_non_space = at_next_line.len;
+                            }
+                            if(first_non_space <= indentation)
+                            {
+                                _c4dbgchomp("skip spaces={}<=indentation={}", first_non_space, indentation);
+                                proc.skip(first_non_space);
+                            }
+                            else
+                            {
+                                _c4dbgchomp("skip indentation={}<spaces={}", indentation, first_non_space);
+                                proc.skip(indentation);
+                                // copy the spaces after the indentation
+                                _c4dbgchomp("copy {}={}-{} spaces", first_non_space - indentation, first_non_space, indentation);
+                                proc.copy(first_non_space - indentation);
                             }
                         }
                         break;
@@ -739,6 +741,7 @@ void ScalarFilterCRTP<Parser>::_filter_chomp(FilterProcessor &C4_RESTRICT proc, 
             }
         }
     }
+
     // from now on, we only have line ends (or indentation spaces)
     switch(chomp)
     {
@@ -808,7 +811,7 @@ void ScalarFilterCRTP<Parser>::_filter_chomp(FilterProcessor &C4_RESTRICT proc, 
 
 
 // a debugging scaffold:
-#if 0
+#if 1
 #define _c4dbgfb(fmt, ...) _c4dbgpf("filt_block[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
 #else
 #define _c4dbgfb(...)
@@ -861,15 +864,14 @@ template<class Parser>
 template<class FilterProcessor>
 size_t ScalarFilterCRTP<Parser>::_handle_all_whitespace(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp) noexcept
 {
-    _c4dbgfb("indentation={} before=[{}]~~~{}~~~", indentation, proc.src.len, proc.src);
-
     csubstr contents = proc.src.trimr(" \n\r");
+    _c4dbgfb("ws: contents_len={} wslen={}", contents.len, proc.src.len-contents.len);
     if(!contents.len)
     {
-        _c4dbgfb("all whitespace: len={}", proc.src.len);
+        _c4dbgfb("ws: all whitespace: len={}", proc.src.len);
         if(chomp == CHOMP_KEEP && proc.src.len)
         {
-            _c4dbgfb("chomp=KEEP all {} newlines", proc.src.count('\n'));
+            _c4dbgfb("ws: chomp=KEEP all {} newlines", proc.src.count('\n'));
             while(proc.has_more_chars())
             {
                 const char curr = proc.curr();
@@ -877,6 +879,10 @@ size_t ScalarFilterCRTP<Parser>::_handle_all_whitespace(FilterProcessor &C4_REST
                     proc.copy();
                 else
                     proc.skip();
+            }
+            if(!proc.wpos)
+            {
+                proc.set('\n');
             }
         }
     }
@@ -1071,29 +1077,33 @@ size_t ScalarFilterCRTP<Parser>::_filter_block_folded_newlines(FilterProcessor &
         {
         case '\n':
             ++num_newl_extra;
+            _c4dbgfbf("another newline. sofar={}", num_newl_extra);
             proc.copy();
             _filter_block_indentation(proc, indentation);
             break;
         case ' ':
+        //case '\t':
             {
-                const size_t first = proc.rem().first_not_of(' ');
-                if(first != npos)
+                //size_t first = proc.rem().first_not_of(" \t");
+                size_t first = proc.rem().first_not_of(' ');
+                _c4dbgfbf("space. first={}", first);
+                if(first == npos)
+                    first = proc.rem().len;
+                _c4dbgfbf("indentation increased to {}",  first);
+                if(!num_newl_extra)
                 {
-                    _c4dbgfbf("indentation increased to {}",  first);
-                    if(!num_newl_extra)
-                    {
-                        _c4dbgfbf("was the indentation. add newline", first);
-                        proc.set('\n');
-                        ++num_newl_extra;
-                    }
-                    _filter_block_folded_indented(proc, indentation, len, first);
+                    _c4dbgfbf("was the indentation. add newline", first);
+                    proc.set('\n');
+                    ++num_newl_extra;
                 }
+                _filter_block_folded_indented(proc, indentation, len, first);
                 break;
             }
         case '\r':
             proc.skip();
             break;
         default:
+            _c4dbgfbf("not space, not newline. stop.", 0);
             goto endloop;
             break;
         }

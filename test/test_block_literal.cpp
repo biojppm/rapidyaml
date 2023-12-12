@@ -353,10 +353,21 @@ blocklit_case test_cases_filter[] = {
     blc(5, CHOMP_STRIP, "     asd\n      \t ", "asd\n \t "),
     blc(5, CHOMP_CLIP, "     asd\n      \t ", "asd\n \t \n"),
     blc(5, CHOMP_KEEP, "     asd\n      \t ", "asd\n \t "),
-    // 84
+    // 87
     blc(5, CHOMP_STRIP, "     asd\n      \t \n", "asd\n \t "),
     blc(5, CHOMP_CLIP, "     asd\n      \t \n", "asd\n \t \n"),
     blc(5, CHOMP_KEEP, "     asd\n      \t \n", "asd\n \t \n"),
+    // 90
+    blc(5, CHOMP_CLIP, "     asd\n      ", "asd\n \n"),
+    blc(5, CHOMP_CLIP, "     asd\n       ", "asd\n  \n"),
+    blc(5, CHOMP_CLIP, "     asd\n     \t ", "asd\n\t \n"),
+    // 93
+    blc(5, CHOMP_CLIP, "     asd\n      \t", "asd\n \t\n"),
+    blc(2, CHOMP_CLIP, " ", ""),
+    blc(2, CHOMP_KEEP, " ", "\n"),
+    // 96
+    blc(2, CHOMP_CLIP, " ", ""),
+    blc(2, CHOMP_STRIP, " ", ""),
 
     #undef blc
 };
