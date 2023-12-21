@@ -321,13 +321,13 @@ blockfolded_case test_cases_filter[] = {
         "  ",
         "asd\n\n\n\n\n\n"),
     // 75
-    bfc(5, CHOMP_STRIP, "     asd\n     \t ", "asd \t "),
-    bfc(5, CHOMP_CLIP, "     asd\n     \t ", "asd \t \n"),
-    bfc(5, CHOMP_KEEP, "     asd\n     \t ", "asd \t "),
+    bfc(5, CHOMP_STRIP, "     asd\n     \t ", "asd\n\t "),
+    bfc(5, CHOMP_CLIP, "     asd\n     \t ", "asd\n\t \n"),
+    bfc(5, CHOMP_KEEP, "     asd\n     \t ", "asd\n\t "),
     // 78
-    bfc(5, CHOMP_STRIP, "     asd\n     \t \n", "asd \t "),
-    bfc(5, CHOMP_CLIP, "     asd\n     \t \n", "asd \t \n"),
-    bfc(5, CHOMP_KEEP, "     asd\n     \t \n", "asd \t \n"),
+    bfc(5, CHOMP_STRIP, "     asd\n     \t \n", "asd\n\t "),
+    bfc(5, CHOMP_CLIP, "     asd\n     \t \n", "asd\n\t \n"),
+    bfc(5, CHOMP_KEEP, "     asd\n     \t \n", "asd\n\t \n"),
     // 81
     bfc(5, CHOMP_STRIP, "     asd\n      \t ", "asd\n \t "),
     bfc(5, CHOMP_CLIP, "     asd\n      \t ", "asd\n \t \n"),
@@ -1869,7 +1869,7 @@ R"(>
 ADD_CASE_TO_GROUP("block folded with docval no newlines at end 12",
 R"(>
      asd
-
+     	 
 )",
   N(DOCVAL|VALQUO, "asd\n\t \n")
     );
@@ -1897,7 +1897,7 @@ R"(>+
 ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 1.1",
 R"(>+
   )",
-  N(DOCVAL|VALQUO, "")
+  N(DOCVAL|VALQUO, "\n")
     );
 
 ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 1.2",
@@ -1967,7 +1967,7 @@ R"(- >+
   
 - >+
   )",
-N(L{N(QV, "\n"), N(QV, ""),}));
+N(L{N(QV, "\n"), N(QV, "\n"),}));
 
 ADD_CASE_TO_GROUP("block folded, empty block vals in seq 1",
 R"(- >+

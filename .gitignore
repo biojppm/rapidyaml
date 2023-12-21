@@ -33,6 +33,7 @@ build/
 install/
 .python-version
 compile_commands.json
+launch.json
 
 # test files
 /Testing/

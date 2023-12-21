@@ -811,7 +811,7 @@ void ScalarFilterCRTP<Parser>::_filter_chomp(FilterProcessor &C4_RESTRICT proc, 
 
 
 // a debugging scaffold:
-#if 1
+#if 0
 #define _c4dbgfb(fmt, ...) _c4dbgpf("filt_block[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
 #else
 #define _c4dbgfb(...)
@@ -1009,7 +1009,8 @@ template<class Parser>
 template<class FilterProcessor>
 size_t ScalarFilterCRTP<Parser>::_filter_block_folded_indented(FilterProcessor &C4_RESTRICT proc, size_t indentation, size_t len, size_t curr_indentation) noexcept
 {
-    _RYML_CB_ASSERT(((Parser const*)this)->callbacks(), proc.rem().first_not_of(' ') == curr_indentation);
+    //_RYML_CB_ASSERT(((Parser const*)this)->callbacks(), proc.rem().first_not_of(' ') == curr_indentation);
+    _RYML_CB_ASSERT(((Parser const*)this)->callbacks(), (proc.rem().first_not_of(" \t") == curr_indentation) || (proc.rem().first_not_of(" \t") == npos));
     proc.copy(curr_indentation);
     while(proc.has_more_chars(len))
     {
@@ -1082,10 +1083,10 @@ size_t ScalarFilterCRTP<Parser>::_filter_block_folded_newlines(FilterProcessor &
             _filter_block_indentation(proc, indentation);
             break;
         case ' ':
-        //case '\t':
+        case '\t':
             {
-                //size_t first = proc.rem().first_not_of(" \t");
-                size_t first = proc.rem().first_not_of(' ');
+                size_t first = proc.rem().first_not_of(" \t");
+                //size_t first = proc.rem().first_not_of(' ');
                 _c4dbgfbf("space. first={}", first);
                 if(first == npos)
                     first = proc.rem().len;
