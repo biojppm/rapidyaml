@@ -604,6 +604,7 @@ FilterResult ScalarFilterCRTP<Parser>::_filter_dquoted(FilterProcessor &C4_RESTR
         case '\r':  // skip \r --- https://stackoverflow.com/questions/1885900
         {
             _c4dbgfdq("carriage return, ignore", curr);
+            proc.skip();
             break;
         }
         case '\\':
