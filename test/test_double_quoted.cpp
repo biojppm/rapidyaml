@@ -1,6 +1,9 @@
 #include "./test_case.hpp"
 #include "./test_group.hpp"
 
+C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
+C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
+
 namespace c4 {
 namespace yml {
 
@@ -31,8 +34,8 @@ void test_filter_src_dst(csubstr input, csubstr expected, size_t dst_sz)
     full.sub(dst_sz).fill(refchar);
     // filter now
     const substr dst = full.first(dst_sz);
-    ScalarFilter proc = {};
-    FilterResult result = proc.filter_dquoted(input, dst, Location{});
+    Parser proc = {};
+    FilterResult result = proc.filter_dquoted(input, dst);
     // check the result
     EXPECT_EQ(result.required_len(), expected.len);
     if(result.valid())
@@ -71,8 +74,8 @@ void test_filter_inplace(csubstr input, csubstr expected, csubstr leading_input,
         full.sub(max_sz).fill(refchar);
         substr dst = full.first(input_sz);
         // filter now
-        ScalarFilter proc = {};
-        FilterResult result = proc.filter_dquoted_inplace(dst, cap, Location{});
+        Parser proc = {};
+        FilterResult result = proc.filter_dquoted_inplace(dst, cap);
         EXPECT_EQ(result.required_len(), expected_sz);
         if(result.valid())
         {
@@ -278,20 +281,20 @@ dquoted_case test_cases_filter[] = {
     // 50
     dqc(R"(\P\P\P\P)", dqesc_P4),
     dqc(R"(\\\"\n\r\t\	\/\ \0\b\f\a\v\e\_\N\L\P)", dqescparsed),
-    dqc(u8"\u263A", R"(☺)"),
-    dqc(u8"\u263a", R"(☺)"),
-    dqc(u8"\u2705", R"(✅)"),
+    dqc(R"(\u263A)", R"(☺)"),
+    dqc(R"(\u263a)", R"(☺)"),
+    dqc(R"(\u2705)", R"(✅)"),
     // 55
-    dqc(u8"\u2705\u2705", R"(✅✅)"),
-    dqc(u8"\u2705\u2705\u2705", R"(✅✅✅)"),
-    dqc(u8"\u2705\u2705\u2705\u2705", R"(✅✅✅✅)"),
-    dqc(u8"\U0001D11E", R"(𝄞)"),
-    dqc(u8"\U0001d11e", R"(𝄞)"),
+    dqc(R"(\u2705\u2705)", R"(✅✅)"),
+    dqc(R"(\u2705\u2705\u2705)", R"(✅✅✅)"),
+    dqc(R"(\u2705\u2705\u2705\u2705)", R"(✅✅✅✅)"),
+    dqc(R"(\U0001D11E)", R"(𝄞)"),
+    dqc(R"(\U0001d11e)", R"(𝄞)"),
     // 60
-    dqc(u8"\U0001d11e\U0001D11E", R"(𝄞𝄞)"),
-    dqc(u8"\U0001d11e\U0001D11E\U0001D11E", R"(𝄞𝄞𝄞)"),
-    dqc(u8"\U0001d11e\U0001D11E\U0001D11E\U0001D11E", R"(𝄞𝄞𝄞𝄞)"),
-    dqc(u8"\u263A\u2705\U0001D11E", R"(☺✅𝄞)"),
+    dqc(R"(\U0001d11e\U0001D11E)", R"(𝄞𝄞)"),
+    dqc(R"(\U0001d11e\U0001D11E\U0001D11E)", R"(𝄞𝄞𝄞)"),
+    dqc(R"(\U0001d11e\U0001D11E\U0001D11E\U0001D11E)", R"(𝄞𝄞𝄞𝄞)"),
+    dqc(R"(\u263A\u2705\U0001D11E)", R"(☺✅𝄞)"),
     dqc(R"(\b1998\t1999\t2000\n)", "\b1998\t1999\t2000\n"),
     // 65
     dqc(R"(\x0d\x0a is \r\n)", "\r\n is \r\n"),
@@ -967,3 +970,5 @@ that has multiple lines
 
 } // namespace yml
 } // namespace c4
+
+C4_SUPPRESS_WARNING_GCC_CLANG_POP

@@ -6,6 +6,11 @@
 #include <c4/yml/export.hpp>
 
 
+
+
+#include <cstdio>
+
+
 #ifndef RYML_ERRMSG_SIZE
 /// size for the error message buffer
     #define RYML_ERRMSG_SIZE 1024
@@ -336,6 +341,7 @@ void _report_err(Callbacks const& C4_RESTRICT callbacks, Location const& C4_REST
         _parse_dump(dumpfn, "{}:", loc.name);
     _parse_dump(dumpfn, "{}:{}: ", loc.line, loc.col);
     size_t len = writer.pos < RYML_ERRMSG_SIZE ? writer.pos : RYML_ERRMSG_SIZE;
+    printf("AQUI 0\n");
     callbacks.m_error(errmsg, len, loc, callbacks.m_user_data);
 }
 

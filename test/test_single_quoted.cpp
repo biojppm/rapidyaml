@@ -16,7 +16,7 @@ void test_filter(csubstr input, csubstr expected)
     std::string subject_;
     subject_.resize(2 * input.size());
     c4::substr dst = to_substr(subject_);
-    ScalarFilter proc = {};
+    Parser proc = {};
     FilterResult result = proc.filter_squoted(input, dst);
     ASSERT_TRUE(result.valid());
     csubstr out = result.get();
@@ -34,7 +34,7 @@ void test_filter_inplace(csubstr input, csubstr expected)
     ASSERT_LE(expected.len, input.len);
     std::string subject_(input.str, input.len);
     c4::substr dst = to_substr(subject_);
-    ScalarFilter proc = {};
+    Parser proc = {};
     FilterResult result = proc.filter_squoted_inplace(dst, subject_.size());
     ASSERT_TRUE(result.valid());
     csubstr out = result.get();

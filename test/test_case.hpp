@@ -9,8 +9,6 @@
 #include "c4/format.hpp"
 #include <c4/yml/yml.hpp>
 #include <c4/yml/detail/parser_dbg.hpp>
-#include <c4/yml/filter.hpp>
-#include <c4/yml/filter.def.hpp>
 #endif
 
 #include <gtest/gtest.h>

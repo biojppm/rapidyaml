@@ -13,14 +13,6 @@
 #include "c4/yml/detail/stack.hpp"
 #endif
 
-#ifndef _C4_YML_FILTER_HPP_
-#include "c4/yml/filter.hpp"
-#endif
-
-#ifndef _C4_YML_FILTER_DEF_HPP_
-#include "c4/yml/filter.def.hpp"
-#endif
-
 #include <stdarg.h>
 
 #if defined(_MSC_VER)
@@ -90,7 +82,7 @@ public:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-class RYML_EXPORT Parser : public ScalarFilterCRTP<Parser>
+class RYML_EXPORT Parser
 {
 public:
 
@@ -312,6 +304,40 @@ public:
 
     /** @} */
 
+public:
+
+    using LocCRef = Location const& C4_RESTRICT;
+
+    /** @name scalar filtering */
+    /** @{*/
+
+    /** filter a plain scalar */
+    FilterResult filter_plain(csubstr scalar, substr dst, size_t indentation) noexcept;
+    /** filter a plain scalar in place */
+    FilterResult filter_plain_inplace(substr scalar, size_t cap, size_t indentation) noexcept;
+
+    /** filter a single-quoted scalar */
+    FilterResult filter_squoted(csubstr scalar, substr dst) noexcept;
+    /** filter a single-quoted scalar in place */
+    FilterResult filter_squoted_inplace(substr scalar, size_t cap) noexcept;
+
+    /** filter a double-quoted scalar */
+    FilterResult filter_dquoted(csubstr scalar, substr dst);
+    /** filter a double-quoted scalar in place */
+    FilterResult filter_dquoted_inplace(substr scalar, size_t cap);
+
+    /** filter a block-literal scalar */
+    FilterResult filter_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp) noexcept;
+    /** filter a block-literal scalar in place */
+    FilterResult filter_block_literal_inplace(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept;
+
+    /** filter a block-folded scalar */
+    FilterResult filter_block_folded(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp) noexcept;
+    /** filter a block-folded scalar in place */
+    FilterResult filter_block_folded_inplace(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept;
+
+    /** @} */
+
 private:
 
     using flag_t = int;
@@ -424,6 +450,33 @@ private:
 private:
 
     static size_t _count_nlines(csubstr src);
+
+public:
+
+    template<class FilterProcessor> FilterResult _filter_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation) noexcept;
+    template<class FilterProcessor> FilterResult _filter_squoted(FilterProcessor &C4_RESTRICT proc) noexcept;
+    template<class FilterProcessor> FilterResult _filter_dquoted(FilterProcessor &C4_RESTRICT proc);
+    template<class FilterProcessor> FilterResult _filter_block_literal(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp) noexcept;
+    template<class FilterProcessor> FilterResult _filter_block_folded(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp) noexcept;
+
+public:
+
+    template<class FilterProcessor> void   _filter_nl_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation) noexcept;
+    template<class FilterProcessor> void   _filter_nl_squoted(FilterProcessor &C4_RESTRICT proc) noexcept;
+    template<class FilterProcessor> void   _filter_nl_dquoted(FilterProcessor &C4_RESTRICT proc) noexcept;
+
+    template<class FilterProcessor> bool   _filter_ws_handle_to_first_non_space(FilterProcessor &C4_RESTRICT proc) noexcept;
+    template<class FilterProcessor> void   _filter_ws_copy_trailing(FilterProcessor &C4_RESTRICT proc) noexcept;
+    template<class FilterProcessor> void   _filter_ws_skip_trailing(FilterProcessor &C4_RESTRICT proc) noexcept;
+
+    template<class FilterProcessor> void   _filter_dquoted_backslash(FilterProcessor &C4_RESTRICT proc);
+
+    template<class FilterProcessor> void   _filter_chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp, size_t indentation) noexcept;
+    template<class FilterProcessor> size_t _handle_all_whitespace(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp) noexcept;
+    template<class FilterProcessor> size_t _extend_to_chomp(FilterProcessor &C4_RESTRICT proc, size_t contents_len) noexcept;
+    template<class FilterProcessor> void   _filter_block_indentation(FilterProcessor &C4_RESTRICT proc, size_t indentation) noexcept;
+    template<class FilterProcessor> size_t _filter_block_folded_newlines(FilterProcessor &C4_RESTRICT proc, size_t indentation, size_t len) noexcept;
+    template<class FilterProcessor> size_t _filter_block_folded_indented(FilterProcessor &C4_RESTRICT proc, size_t indentation, size_t len, size_t curr_indentation) noexcept;
 
 private:
 
@@ -582,6 +635,8 @@ private:
     template<class ...Args> void _dbg(csubstr fmt, Args const& C4_RESTRICT ...args) const;
 #endif
     template<class ...Args> void _err(csubstr fmt, Args const& C4_RESTRICT ...args) const;
+    template<class ...Args> void _errloc(csubstr fmt, LocCRef loc, Args const& C4_RESTRICT ...args) const;
+
     template<class DumpFn>  void _fmt_msg(DumpFn &&dumpfn) const;
     static csubstr _prfl(substr buf, flag_t v);
 

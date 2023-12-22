@@ -9,6 +9,7 @@
 #endif
 
 #include <gtest/gtest.h>
+#include <exception>
 
 #if defined(_MSC_VER)
 #   pragma warning(push)
@@ -172,10 +173,10 @@ std::string format_error(const char* msg, size_t len, Location loc)
     return out;
 }
 
-struct ExpectedError : public std::runtime_error
+struct ExpectedError__ : public std::runtime_error
 {
     Location error_location;
-    ExpectedError(const char* msg, size_t len, Location loc)
+    ExpectedError__(const char* msg, size_t len, Location loc)
         : std::runtime_error(format_error(msg, len, loc))
         , error_location(loc)
     {
@@ -193,8 +194,9 @@ ExpectError::ExpectError(Tree *tree, Location loc)
     , expected_location(loc)
 {
     auto err = [](const char* msg, size_t len, Location errloc, void *this_) {
-        ((ExpectError*)this_)->m_got_an_error = true;
-        throw ExpectedError(msg, len, errloc);
+        _c4dbgpf("called error callback!");
+        ((ExpectError*)this_)->m_got_an_error = true; // assign in here to ensure the exception was thrown here
+        throw ExpectedError__(msg, len, errloc);
     };
     #ifdef RYML_NO_DEFAULT_CALLBACKS
     c4::yml::Callbacks tcb((void*)this, nullptr, nullptr, err);
@@ -220,15 +222,16 @@ void ExpectError::do_check(Tree *tree, std::function<void()> fn, Location expect
     auto context = ExpectError(tree, expected_location);
     try
     {
+        _c4dbgpf("check expected error");
         fn();
+        _c4dbgpf("check expected error: failed!");
     }
-    catch(ExpectedError const& e)
+    catch(c4::yml::ExpectedError__ const& e)
     {
-        #if defined(RYML_DBG)
-        std::cout << "---------------\n";
-        std::cout << "got an expected error:\n" << e.what() << "\n";
-        std::cout << "---------------\n";
-        #endif
+        _c4dbgpf("\n---------------\n"
+                 "got an expected error:\n"
+                 "{}\n"
+                 "---------------\n", e.what());
         if(context.expected_location)
         {
             EXPECT_EQ(static_cast<bool>(context.expected_location),
@@ -240,7 +243,13 @@ void ExpectError::do_check(Tree *tree, std::function<void()> fn, Location expect
                 EXPECT_EQ(e.error_location.offset, context.expected_location.offset);
             }
         }
-    };
+    }
+    catch(...)
+    {
+        _c4dbgp("---------------\n"
+                "got an unexpected exception!\n"
+                "---------------\n");
+    }
     EXPECT_TRUE(context.m_got_an_error);
 }
 

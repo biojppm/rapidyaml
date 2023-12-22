@@ -17,7 +17,7 @@ void test_filter_src_dst(blocklit_case const& blcase)
     std::string subject_;
     subject_.resize(2 * blcase.input.size());
     c4::substr dst = to_substr(subject_);
-    ScalarFilter proc = {};
+    Parser proc = {};
     FilterResult result = proc.filter_block_literal(blcase.input, dst, blcase.indentation, blcase.chomp);
     ASSERT_TRUE(result.valid());
     const csubstr out = result.get();
@@ -37,7 +37,7 @@ void test_filter_inplace(blocklit_case const& blcase)
     {
         std::string subject_(blcase.input.str, blcase.input.len);
         c4::substr dst = to_substr(subject_);
-        ScalarFilter proc = {};
+        Parser proc = {};
         FilterResult result = proc.filter_block_literal_inplace(dst, subject_.size(), blcase.indentation, blcase.chomp);
         ASSERT_TRUE(result.valid());
         const csubstr out = result.get();
@@ -59,7 +59,7 @@ void test_filter_inplace(blocklit_case const& blcase)
             c4::substr dst = to_substr(subject_).first(blcase.input.len);
             c4::substr rem = to_substr(subject_).sub(blcase.expected.len);
             rem.fill('^');
-            ScalarFilter proc = {};
+            Parser proc = {};
             FilterResult result = proc.filter_block_literal_inplace(dst, subject_.size(), blcase.indentation, blcase.chomp);
             ASSERT_TRUE(result.valid());
             const csubstr out = result.get();
@@ -78,7 +78,7 @@ void test_filter_inplace(blocklit_case const& blcase)
             std::string subject_(blcase.input.str, blcase.input.len);
             subject_.resize(blcase.expected.len);
             c4::substr dst = to_substr(subject_).first(blcase.input.len);
-            ScalarFilter proc = {};
+            Parser proc = {};
             FilterResult result = proc.filter_block_literal_inplace(dst, subject_.size(), blcase.indentation, blcase.chomp);
             ASSERT_TRUE(result.valid());
             const csubstr out = result.get();
@@ -95,7 +95,7 @@ void test_filter_inplace(blocklit_case const& blcase)
             SCOPED_TRACE("insufficient size");
             std::string subject_(blcase.input.str, blcase.input.len);
             c4::substr dst = to_substr(subject_);
-            ScalarFilter proc = {};
+            Parser proc = {};
             FilterResult result = proc.filter_block_literal_inplace(dst, subject_.size(), blcase.indentation, blcase.chomp);
             ASSERT_FALSE(result.valid());
             if(blcase.chomp != CHOMP_CLIP)
