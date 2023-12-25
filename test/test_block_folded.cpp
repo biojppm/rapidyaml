@@ -399,7 +399,93 @@ blockfolded_case test_cases_filter[] = {
     bfc(5, CHOMP_CLIP, "     asd\n     \t \n", "asd\n\t \n"),
     bfc(5, CHOMP_CLIP, "     asd\n      \t", "asd\n \t\n"),
     bfc(5, CHOMP_CLIP, "     asd\n      \t\n", "asd\n \t\n"),
-
+    // 99
+    bfc(1, CHOMP_CLIP,
+        " Sammy Sosa completed another\n"
+        " fine season with great stats.\n"
+        "\n"
+        " 63 Home Runs\n"
+        " 0.288 Batting Average\n"
+        "\n"
+        " What a year!\n"
+        ,
+        "Sammy Sosa completed another fine season with great stats.\n"
+        "63 Home Runs 0.288 Batting Average\n"
+        "What a year!\n"
+        ),
+    bfc(1, CHOMP_CLIP,
+        " Sammy Sosa completed another\n"
+        " fine season with great stats.\n"
+        "   63 Home Runs\n"
+        "   0.288 Batting Average\n"
+        " What a year!\n"
+        ,
+        "Sammy Sosa completed another fine season with great stats.\n"
+        "  63 Home Runs\n"
+        "  0.288 Batting Average\n"
+        "What a year!\n"
+        ),
+    bfc(1, CHOMP_CLIP,
+        " Sammy Sosa completed another\n"
+        " fine season with great stats.\n"
+        "\n"
+        "   63 Home Runs\n"
+        "   0.288 Batting Average\n"
+        "\n"
+        " What a year!\n"
+        ,
+        "Sammy Sosa completed another fine season with great stats.\n"
+        "\n"
+        "  63 Home Runs\n"
+        "  0.288 Batting Average\n"
+        "\n"
+        "What a year!\n"
+        ),
+    // 102
+    bfc(1, CHOMP_CLIP,
+        " Sammy Sosa completed another\n"
+        " fine season with great stats.\n"
+        "\n"
+        "\n"
+        "   63 Home Runs\n"
+        "   0.288 Batting Average\n"
+        "\n"
+        "\n"
+        " What a year!\n"
+        ,
+        "Sammy Sosa completed another fine season with great stats.\n"
+        "\n"
+        "\n"
+        "  63 Home Runs\n"
+        "  0.288 Batting Average\n"
+        "\n"
+        "\n"
+        "What a year!\n"
+        ),
+    bfc(1, CHOMP_CLIP,
+        " Sammy Sosa completed another\n"
+        " fine season with great stats.\n"
+        "\n"
+        "\n"
+        "\n"
+        "   63 Home Runs\n"
+        "   0.288 Batting Average\n"
+        "\n"
+        "\n"
+        "\n"
+        " What a year!\n"
+        ,
+        "Sammy Sosa completed another fine season with great stats.\n"
+        "\n"
+        "\n"
+        "\n"
+        "  63 Home Runs\n"
+        "  0.288 Batting Average\n"
+        "\n"
+        "\n"
+        "\n"
+        "What a year!\n"
+        ),
     #undef blc
 };
 
