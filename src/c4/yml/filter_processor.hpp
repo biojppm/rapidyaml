@@ -33,6 +33,7 @@ struct FilterProcessorSrcDst
         RYML_ASSERT(!dst.overlaps(src));
     }
 
+    C4_ALWAYS_INLINE void setwpos(size_t wpos_) noexcept { wpos = wpos_; }
     C4_ALWAYS_INLINE void setpos(size_t rpos_, size_t wpos_) noexcept { rpos = rpos_; wpos = wpos_; }
     C4_ALWAYS_INLINE void set_at_end() noexcept { skip(src.len - rpos); }
 
@@ -50,6 +51,11 @@ struct FilterProcessorSrcDst
     C4_ALWAYS_INLINE void skip() noexcept { ++rpos; }
     C4_ALWAYS_INLINE void skip(size_t num) noexcept { rpos += num; }
 
+    C4_ALWAYS_INLINE void set_at(size_t pos, char c) noexcept
+    {
+        RYML_ASSERT(pos < wpos);
+        dst.str[pos] = c;
+    }
     C4_ALWAYS_INLINE void set(char c) noexcept
     {
         if(wpos < dst.len)
@@ -130,6 +136,7 @@ struct FilterProcessorInplace
         RYML_ASSERT(wcap >= src.len);
     }
 
+    C4_ALWAYS_INLINE void setwpos(size_t wpos_) noexcept { wpos = wpos_; }
     C4_ALWAYS_INLINE void setpos(size_t rpos_, size_t wpos_) noexcept { rpos = rpos_; wpos = wpos_; }
     C4_ALWAYS_INLINE void set_at_end() noexcept { skip(src.len - rpos); }
 
@@ -153,6 +160,14 @@ struct FilterProcessorInplace
     C4_ALWAYS_INLINE void skip() noexcept { ++rpos; }
     C4_ALWAYS_INLINE void skip(size_t num) noexcept { rpos += num; }
 
+    C4_ALWAYS_INLINE void set_at(size_t pos, char c) noexcept
+    {
+        RYML_ASSERT(pos < wpos);
+        const size_t save = wpos;
+        wpos = pos;
+        set(c);
+        wpos = save;
+    }
     C4_ALWAYS_INLINE void set(char c) noexcept
     {
         if(wpos < wcap)  // respect write-capacity

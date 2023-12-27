@@ -4674,7 +4674,7 @@ template<class FilterProcessor>
 bool Parser::_filter_ws_handle_to_first_non_space(FilterProcessor &proc) noexcept
 {
     _c4dbgfws("found whitespace '{}'", _c4prc(proc.curr()));
-    _RYML_CB_ASSERT(((Parser const*)this)->callbacks(), proc.curr() == ' ' || proc.curr() == '\t');
+    _RYML_CB_ASSERT(this->callbacks(), proc.curr() == ' ' || proc.curr() == '\t');
 
     const size_t first_pos = proc.rpos > 0 ? proc.src.first_not_of(" \t", proc.rpos) : proc.src.first_not_of(' ', proc.rpos);
     if(first_pos != npos)
@@ -4737,7 +4737,7 @@ void Parser::_filter_ws_skip_trailing(FilterProcessor &proc) noexcept
 template<class FilterProcessor>
 void Parser::_filter_nl_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation) noexcept
 {
-    _RYML_CB_ASSERT(((Parser const*)this)->callbacks(), proc.curr() == '\n');
+    _RYML_CB_ASSERT(this->callbacks(), proc.curr() == '\n');
 
     _c4dbgfps("found newline. sofar=[{}]~~~{}~~~", proc.wpos, proc.sofar());
     size_t ii = proc.rpos;
@@ -4767,7 +4767,7 @@ void Parser::_filter_nl_plain(FilterProcessor &C4_RESTRICT proc, size_t indentat
 template<class FilterProcessor>
 FilterResult Parser::_filter_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation) noexcept
 {
-    _RYML_CB_ASSERT(((Parser const*)this)->callbacks(), indentation != npos);
+    _RYML_CB_ASSERT(this->callbacks(), indentation != npos);
     _c4dbgfps("before=[{}]~~~{}~~~", proc.src.len, proc.src);
 
     while(proc.has_more_chars())
@@ -4831,7 +4831,7 @@ FilterResult Parser::filter_plain_inplace(substr dst, size_t cap, size_t indenta
 template<class FilterProcessor>
 void Parser::_filter_nl_squoted(FilterProcessor &C4_RESTRICT proc) noexcept
 {
-    _RYML_CB_ASSERT(((Parser const*)this)->callbacks(), proc.curr() == '\n');
+    _RYML_CB_ASSERT(this->callbacks(), proc.curr() == '\n');
 
     _c4dbgfsq("found newline. sofar=[{}]~~~{}~~~", proc.wpos, proc.sofar());
     size_t ii = proc.rpos;
@@ -4935,7 +4935,7 @@ FilterResult Parser::filter_squoted_inplace(substr dst, size_t cap) noexcept
 template<class FilterProcessor>
 void Parser::_filter_nl_dquoted(FilterProcessor &C4_RESTRICT proc) noexcept
 {
-    _RYML_CB_ASSERT(((Parser const*)this)->callbacks(), proc.curr() == '\n');
+    _RYML_CB_ASSERT(this->callbacks(), proc.curr() == '\n');
 
     _c4dbgfdq("found newline. sofar=[{}]~~~{}~~~", proc.wpos, proc.sofar());
     size_t ii = proc.rpos;
@@ -5218,20 +5218,20 @@ inline size_t _find_last_newline_and_larger_indentation(csubstr s, size_t indent
                 return i;
         }
     }
-    //_RYML_CB_ASSERT(((Parser const*)this)->callbacks(), _find_last_newline_and_larger_indentation("ab\n\n\n", 0) == npos);
-    //_RYML_CB_ASSERT(((Parser const*)this)->callbacks(), _find_last_newline_and_larger_indentation("ab\n \n\n", 0) == 2);
-    //_RYML_CB_ASSERT(((Parser const*)this)->callbacks(), _find_last_newline_and_larger_indentation("ab\n\n \n", 0) == 3);
-    //_RYML_CB_ASSERT(((Parser const*)this)->callbacks(), _find_last_newline_and_larger_indentation("ab\n \n \n", 0) == 4);
-    //_RYML_CB_ASSERT(((Parser const*)this)->callbacks(), _find_last_newline_and_larger_indentation("ab\n \n  \n", 1) == 4);
-    //_RYML_CB_ASSERT(((Parser const*)this)->callbacks(), _find_last_newline_and_larger_indentation("ab\n  \n \n", 1) == 2);
+    //_RYML_CB_ASSERT(this->callbacks(), _find_last_newline_and_larger_indentation("ab\n\n\n", 0) == npos);
+    //_RYML_CB_ASSERT(this->callbacks(), _find_last_newline_and_larger_indentation("ab\n \n\n", 0) == 2);
+    //_RYML_CB_ASSERT(this->callbacks(), _find_last_newline_and_larger_indentation("ab\n\n \n", 0) == 3);
+    //_RYML_CB_ASSERT(this->callbacks(), _find_last_newline_and_larger_indentation("ab\n \n \n", 0) == 4);
+    //_RYML_CB_ASSERT(this->callbacks(), _find_last_newline_and_larger_indentation("ab\n \n  \n", 1) == 4);
+    //_RYML_CB_ASSERT(this->callbacks(), _find_last_newline_and_larger_indentation("ab\n  \n \n", 1) == 2);
     return npos;
 }
 
 template<class FilterProcessor>
 void Parser::_filter_chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp, size_t indentation) noexcept
 {
-    _RYML_CB_ASSERT(((Parser const*)this)->callbacks(), chomp == CHOMP_CLIP || chomp == CHOMP_KEEP || chomp == CHOMP_STRIP);
-    _RYML_CB_ASSERT(((Parser const*)this)->callbacks(), proc.rem().first_not_of(" \n\r") == npos);
+    _RYML_CB_ASSERT(this->callbacks(), chomp == CHOMP_CLIP || chomp == CHOMP_KEEP || chomp == CHOMP_STRIP);
+    _RYML_CB_ASSERT(this->callbacks(), proc.rem().first_not_of(" \n\r") == npos);
 
     // a debugging scaffold:
     #if 0
@@ -5247,7 +5247,7 @@ void Parser::_filter_chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp
         {
             _c4dbgchomp("found newline and larger indentation. last={}", last);
             last = proc.rpos + last + size_t(1) + indentation;  // last started at to-be-read.
-            _RYML_CB_ASSERT(((Parser const*)this)->callbacks(), last <= proc.src.len);
+            _RYML_CB_ASSERT(this->callbacks(), last <= proc.src.len);
             // remove indentation spaces, copy the rest
             while((proc.rpos < last) && proc.has_more_chars())
             {
@@ -5292,7 +5292,7 @@ void Parser::_filter_chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp
                     proc.skip();
                     break;
                 default:
-                    _RYML_CB_ERR(((Parser const*)this)->callbacks(), "never reach this");
+                    _RYML_CB_ERR(this->callbacks(), "never reach this");
                     break;
                 }
             }
@@ -5449,7 +5449,7 @@ size_t Parser::_extend_to_chomp(FilterProcessor &C4_RESTRICT proc, size_t conten
 {
     _c4dbgfb("contents_len={}", contents_len);
 
-    _RYML_CB_ASSERT(((Parser const*)this)->callbacks(), contents_len > 0u);
+    _RYML_CB_ASSERT(this->callbacks(), contents_len > 0u);
 
     // extend contents to just before the first newline at the end,
     // in case it is preceded by spaces
@@ -5549,7 +5549,7 @@ FilterResult Parser::filter_block_literal(csubstr scalar, substr dst, size_t ind
 //-----------------------------------------------------------------------------
 
 // a debugging scaffold:
-#if 0
+#if 1
 #define _c4dbgfbf(fmt, ...) _c4dbgpf("filt_block_folded[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
 #else
 #define _c4dbgfbf(...)
@@ -5557,10 +5557,107 @@ FilterResult Parser::filter_block_literal(csubstr scalar, substr dst, size_t ind
 
 
 template<class FilterProcessor>
-size_t Parser::_filter_block_folded_indented(FilterProcessor &C4_RESTRICT proc, size_t indentation, size_t len, size_t curr_indentation) noexcept
+void Parser::_filter_block_folded_newlines_leading(FilterProcessor &C4_RESTRICT proc, size_t indentation, size_t len) noexcept
 {
-    //_RYML_CB_ASSERT(((Parser const*)this)->callbacks(), proc.rem().first_not_of(' ') == curr_indentation);
-    _RYML_CB_ASSERT(((Parser const*)this)->callbacks(), (proc.rem().first_not_of(" \t") == curr_indentation) || (proc.rem().first_not_of(" \t") == npos));
+    _filter_block_indentation(proc, indentation);
+    while(proc.has_more_chars(len))
+    {
+        const char curr = proc.curr();
+        _c4dbgfbf("'{}' sofar=[{}]~~~{}~~~",  _c4prc(curr), proc.wpos, proc.sofar());
+        switch(curr)
+        {
+        case '\n':
+            _c4dbgfbf("newline.", curr);
+            proc.copy();
+            _filter_block_indentation(proc, indentation);
+            break;
+        case '\r':
+            proc.skip();
+            break;
+        default:
+            _c4dbgfbf("newl leading: not space, not newline. stop.", 0);
+            return;
+        }
+    }
+}
+
+template<class FilterProcessor>
+void Parser::_filter_block_folded_newlines(FilterProcessor &C4_RESTRICT proc, size_t indentation, size_t len) noexcept
+{
+    _RYML_CB_ASSERT(this->callbacks(), proc.curr() == '\n');
+    size_t num_newl = 0;
+    size_t wpos_at_first_newl = npos;
+    while(proc.has_more_chars(len))
+    {
+        const char curr = proc.curr();
+        _c4dbgfbf("'{}' sofar=[{}]~~~{}~~~",  _c4prc(curr), proc.wpos, proc.sofar());
+        switch(curr)
+        {
+        case '\n':
+            _c4dbgfbf("newline. sofar={}", num_newl);
+            switch(++num_newl)
+            {
+            case 1u:
+                _c4dbgfbf("... this is the first newline. turn into space. wpos={}", proc.wpos);
+                wpos_at_first_newl = proc.wpos;
+                proc.skip();
+                proc.set(' ');
+                break;
+            case 2u:
+                _c4dbgfbf("... this is the second newline. prev space (at wpos={}) must be newline", wpos_at_first_newl);
+                _RYML_CB_ASSERT(this->callbacks(), wpos_at_first_newl != npos);
+                _RYML_CB_ASSERT(this->callbacks(), proc.sofar()[wpos_at_first_newl] == ' ');
+                _RYML_CB_ASSERT(this->callbacks(), wpos_at_first_newl + 1u == proc.wpos);
+                proc.skip();
+                proc.set_at(wpos_at_first_newl, '\n');
+                _RYML_CB_ASSERT(this->callbacks(), proc.sofar()[wpos_at_first_newl] == '\n');
+                break;
+            default:
+                _c4dbgfbf("... subsequent newline (num_newl={}). copy", num_newl);
+                proc.copy();
+                break;
+            }
+            _filter_block_indentation(proc, indentation);
+            break;
+        case ' ':
+        case '\t':
+            {
+                size_t first = proc.rem().first_not_of(" \t");
+                //size_t first = proc.rem().first_not_of(' ');
+                _c4dbgfbf("space. first={}", first);
+                if(first == npos)
+                    first = proc.rem().len;
+                _c4dbgfbf("... indentation increased to {}",  first);
+                if(num_newl)
+                {
+                    _c4dbgfbf("... prev space (at wpos={}) must be newline", wpos_at_first_newl);
+                    proc.set_at(wpos_at_first_newl, '\n');
+                }
+                if(num_newl > 1u) {
+                    _c4dbgfbf("... add missing newline", wpos_at_first_newl);
+                    proc.set('\n');
+                }
+                _filter_block_folded_indented_block(proc, indentation, len, first);
+                num_newl = 0;
+                wpos_at_first_newl = npos;
+                break;
+            }
+        case '\r':
+            proc.skip();
+            break;
+        default:
+            _c4dbgfbf("not space, not newline. stop.", 0);
+            return;
+        }
+    }
+}
+
+
+template<class FilterProcessor>
+void Parser::_filter_block_folded_indented_block(FilterProcessor &C4_RESTRICT proc, size_t indentation, size_t len, size_t curr_indentation) noexcept
+{
+    //_RYML_CB_ASSERT(this->callbacks(), proc.rem().first_not_of(' ') == curr_indentation);
+    _RYML_CB_ASSERT(this->callbacks(), (proc.rem().first_not_of(" \t") == curr_indentation) || (proc.rem().first_not_of(" \t") == npos));
     proc.copy(curr_indentation);
     while(proc.has_more_chars(len))
     {
@@ -5572,12 +5669,22 @@ size_t Parser::_filter_block_folded_indented(FilterProcessor &C4_RESTRICT proc, 
             {
                 proc.copy();
                 _filter_block_indentation(proc, indentation);
-                const size_t first = proc.rem().first_not_of(' ');
+                csubstr rem = proc.rem();
+                const size_t first = rem.first_not_of(' ');
                 _c4dbgfbf("newline. firstns={}",  first);
                 if(first == 0)
                 {
-                    _c4dbgfbf("done with indented block",  first);
-                    goto endloop;
+                    const char c = rem[first];
+                    _c4dbgfbf("firstns={}='{}'", first, _c4prc(c));
+                    if(c == '\n' || c == '\r')
+                    {
+                        ;
+                    }
+                    else
+                    {
+                        _c4dbgfbf("done with indented block",  first);
+                        goto endloop;
+                    }
                 }
                 else if(first != npos)
                 {
@@ -5596,75 +5703,7 @@ size_t Parser::_filter_block_folded_indented(FilterProcessor &C4_RESTRICT proc, 
         }
     }
  endloop:
-    return indentation;
-}
-
-
-template<class FilterProcessor>
-size_t Parser::_filter_block_folded_newlines(FilterProcessor &C4_RESTRICT proc, size_t indentation, size_t len) noexcept
-{
-    _RYML_CB_ASSERT(((Parser const*)this)->callbacks(), proc.curr() == '\n');
-    size_t num_newl_extra = 0;
-    // skip the first newline
-    if(proc.wpos)
-    {
-        _c4dbgfbf("skip first newline in block",  0);
-        proc.skip();
-    }
-    else
-    {
-        _c4dbgfbf("first newline is leading, copy",  0);
-        proc.copy();
-        ++num_newl_extra;
-    }
-    _filter_block_indentation(proc, indentation);
-    // now copy all the following newlines until the indentation increases
-    while(proc.has_more_chars(len))
-    {
-        const char curr = proc.curr();
-        _c4dbgfbf("'{}' sofar=[{}]~~~{}~~~",  _c4prc(curr), proc.wpos, proc.sofar());
-        switch(curr)
-        {
-        case '\n':
-            ++num_newl_extra;
-            _c4dbgfbf("another newline. sofar={}", num_newl_extra);
-            proc.copy();
-            _filter_block_indentation(proc, indentation);
-            break;
-        case ' ':
-        case '\t':
-            {
-                size_t first = proc.rem().first_not_of(" \t");
-                //size_t first = proc.rem().first_not_of(' ');
-                _c4dbgfbf("space. first={}", first);
-                if(first == npos)
-                    first = proc.rem().len;
-                _c4dbgfbf("indentation increased to {}",  first);
-                if(!num_newl_extra)
-                {
-                    _c4dbgfbf("was the indentation. add newline", first);
-                    proc.set('\n');
-                    ++num_newl_extra;
-                }
-                _filter_block_folded_indented(proc, indentation, len, first);
-                break;
-            }
-        case '\r':
-            proc.skip();
-            break;
-        default:
-            _c4dbgfbf("not space, not newline. stop.", 0);
-            goto endloop;
-            break;
-        }
-    }
- endloop:
-    if(!num_newl_extra)
-    {
-        _c4dbgfbf("add missing newline from the first", 0);
-        proc.set(' ');
-    }
-    return indentation;
+    return;
 }
 
 
@@ -5681,7 +5720,7 @@ FilterResult Parser::_filter_block_folded(FilterProcessor &C4_RESTRICT proc, siz
 
     _c4dbgfbf("to filter=[{}]~~~{}~~~", contents_len, proc.src.first(contents_len));
 
-    _filter_block_indentation(proc, indentation);
+    _filter_block_folded_newlines_leading(proc, indentation, contents_len);
 
     // now filter the bulk
     while(proc.has_more_chars(/*maxpos*/contents_len))
@@ -5693,7 +5732,7 @@ FilterResult Parser::_filter_block_folded(FilterProcessor &C4_RESTRICT proc, siz
         case '\n':
         {
             _c4dbgfbf("found newline", curr);
-            (void)_filter_block_folded_newlines(proc, indentation, contents_len);
+            _filter_block_folded_newlines(proc, indentation, contents_len);
             break;
         }
         case '\r':
@@ -5727,6 +5766,7 @@ FilterResult Parser::filter_block_folded(csubstr scalar, substr dst, size_t inde
     FilterProcessorSrcDst proc(scalar, dst);
     return _filter_block_folded(proc, indentation, chomp);
 }
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
