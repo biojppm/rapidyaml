@@ -486,6 +486,25 @@ blockfolded_case test_cases_filter[] = {
         "\n"
         "What a year!\n"
         ),
+    bfc(2, CHOMP_CLIP,
+        "   more indented\n"
+        "  regular\n"
+        ,
+        " more indented\n"
+        "regular\n"
+        ),
+    // 105
+    bfc(2, CHOMP_CLIP,
+        "\n"
+        "\n"
+        "   more indented\n"
+        "  regular\n"
+        ,
+        "\n"
+        "\n"
+        " more indented\n"
+        "regular\n"
+        ),
     #undef blc
 };
 

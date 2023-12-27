@@ -5574,6 +5574,18 @@ void Parser::_filter_block_folded_newlines_leading(FilterProcessor &C4_RESTRICT 
         case '\r':
             proc.skip();
             break;
+        case ' ':
+        case '\t':
+        {
+            size_t first = proc.rem().first_not_of(" \t");
+            //size_t first = proc.rem().first_not_of(' ');
+            _c4dbgfbf("space. first={}", first);
+            if(first == npos)
+                first = proc.rem().len;
+            _c4dbgfbf("... indentation increased to {}",  first);
+            _filter_block_folded_indented_block(proc, indentation, len, first);
+            break;
+        }
         default:
             _c4dbgfbf("newl leading: not space, not newline. stop.", 0);
             return;
