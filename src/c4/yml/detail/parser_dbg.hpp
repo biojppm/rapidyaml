@@ -29,7 +29,8 @@
 namespace c4 {
 inline void _dbg_dumper(csubstr s)
 {
-    fwrite(s.str, 1, s.len, stdout);
+    if(s.str)
+        fwrite(s.str, 1, s.len, stdout);
 }
 template<class ...Args>
 void _dbg_printf(c4::csubstr fmt, Args&& ...args)
@@ -87,6 +88,7 @@ inline c4::csubstr _c4prc(const char &C4_RESTRICT c) // pass by reference!
 }
 inline void __c4presc(const char *s, size_t len)
 {
+    RYML_ASSERT(s || !len);
     size_t prev = 0;
     for(size_t i = 0; i < len; ++i)
     {
@@ -129,7 +131,8 @@ inline void __c4presc(const char *s, size_t len)
             }
         }
     }
-    fwrite(s + prev, 1, len - prev, stdout);
+    if(len > prev)
+        fwrite(s + prev, 1, len - prev, stdout);
 }
 
 #pragma clang diagnostic pop

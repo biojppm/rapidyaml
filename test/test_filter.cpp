@@ -647,7 +647,7 @@ TEST(FilterProcessorInplace, translate_esc_bulk_excess__spare_capacity)
     ASSERT_LT(smaller_capacity, needed_capacity);
     t.set_capacity(smaller_capacity);
     ASSERT_GE(t.buf.capacity(), smaller_capacity);
-    const substr full_subject = {t.buf.data(), smaller_capacity};
+    const substr full_subject = {&t.buf[0], smaller_capacity};
     full_subject.sub(t.buf.size()).fill('^');
     EXPECT_EQ(t.proc.wcap, smaller_capacity);
     EXPECT_EQ(t.proc.rpos, 0);

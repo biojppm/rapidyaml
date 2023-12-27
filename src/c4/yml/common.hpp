@@ -264,22 +264,25 @@ struct _SubstrWriter
 {
     substr buf;
     size_t pos;
-    _SubstrWriter(substr buf_, size_t pos_=0) : buf(buf_), pos(pos_) {}
+    _SubstrWriter(substr buf_, size_t pos_=0) : buf(buf_), pos(pos_) { C4_ASSERT(buf.str); }
     void append(csubstr s)
     {
         C4_ASSERT(!s.overlaps(buf));
-        if(pos + s.len <= buf.len)
+        C4_ASSERT(s.str || !s.len);
+        if(s.len && pos + s.len <= buf.len)
             memcpy(buf.str + pos, s.str, s.len);
         pos += s.len;
     }
     void append(char c)
     {
+        C4_ASSERT(buf.str);
         if(pos < buf.len)
             buf.str[pos] = c;
         ++pos;
     }
     void append_n(char c, size_t numtimes)
     {
+        C4_ASSERT(buf.str);
         if(pos + numtimes < buf.len)
             memset(buf.str + pos, c, numtimes);
         pos += numtimes;

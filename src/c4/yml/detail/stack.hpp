@@ -177,6 +177,7 @@ void stack<T, N>::reserve(size_t sz)
         return;
     }
     T *buf = (T*) m_callbacks.m_allocate(sz * sizeof(T), m_stack, m_callbacks.m_user_data);
+    RYML_ASSERT(((uintptr_t)buf % alignof(T)) == 0u);
     memcpy(buf, m_stack, m_size * sizeof(T));
     if(m_stack != m_buf)
     {

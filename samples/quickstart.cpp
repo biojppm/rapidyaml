@@ -3883,7 +3883,7 @@ void sample_error_handler()
 struct GlobalAllocatorExample
 {
     std::vector<char> memory_pool = std::vector<char>(10u * 1024u); // 10KB
-    size_t num_allocs = 0, alloc_size = 0;
+    size_t num_allocs = 0, alloc_size = 0, corr_size = 0;
     size_t num_deallocs = 0, dealloc_size = 0;
 
     void *allocate(size_t len)
@@ -3891,9 +3891,21 @@ struct GlobalAllocatorExample
         void *ptr = &memory_pool[alloc_size];
         alloc_size += len;
         ++num_allocs;
-        if(C4_UNLIKELY(alloc_size > memory_pool.size()))
+        // ensure the ptr is aligned
+        uintptr_t uptr = (uintptr_t)ptr;
+        const uintptr_t align = alignof(std::max_align_t);
+        if (uptr % align)
         {
-            std::cerr << "out of memory! requested=" << alloc_size << " vs " << memory_pool.size() << " available" << std::endl;
+            uintptr_t prev = uptr - (uptr % align);
+            uintptr_t next = prev + align;
+            uintptr_t corr = next - uptr;
+            ptr = (void*)(((char*)ptr) + corr);
+            corr_size += corr;
+        }
+        // check
+        if(C4_UNLIKELY(alloc_size + corr_size > memory_pool.size()))
+        {
+            std::cerr << "out of memory! requested=" << alloc_size << "+" << corr_size << " vs " << memory_pool.size() << " available" << std::endl;
             std::abort();
         }
         return ptr;

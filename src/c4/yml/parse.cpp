@@ -456,7 +456,7 @@ void Parser::_err(csubstr fmt, Args const& C4_RESTRICT ...args) const
 template<class ...Args>
 void Parser::_dbg(csubstr fmt, Args const& C4_RESTRICT ...args) const
 {
-    auto dumpfn = [](csubstr s){ fwrite(s.str, 1, s.len, stdout); };
+    auto dumpfn = [](csubstr s){ if(s.str) fwrite(s.str, 1, s.len, stdout); };
     _parse_dump(dumpfn, fmt, args...);
     dumpfn("\n");
     _fmt_msg(dumpfn);
@@ -5549,7 +5549,7 @@ FilterResult Parser::filter_block_literal(csubstr scalar, substr dst, size_t ind
 //-----------------------------------------------------------------------------
 
 // a debugging scaffold:
-#if 1
+#if 0
 #define _c4dbgfbf(fmt, ...) _c4dbgpf("filt_block_folded[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
 #else
 #define _c4dbgfbf(...)

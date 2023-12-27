@@ -25,13 +25,13 @@ struct EventsEmitter
     template<size_t N>
     C4_ALWAYS_INLINE void pr(const char (&s)[N])
     {
-        if(pos + N-1 <= buf.len)
+        if(N > 1 && pos + N-1 <= buf.len)
             memcpy(buf.str + pos, s, N-1);
         pos += N-1;
     }
     C4_ALWAYS_INLINE void pr(csubstr s)
     {
-        if(pos + s.len <= buf.len)
+        if(s.len && pos + s.len <= buf.len)
             memcpy(buf.str + pos, s.str, s.len);
         pos += s.len;
     }

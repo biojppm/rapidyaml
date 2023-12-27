@@ -14,6 +14,7 @@ auto mkvals() -> typename std::enable_if<!std::is_signed<I>::value, std::vector<
     return std::vector<I>({0, 1, 5, 10, std::numeric_limits<I>::max(),});
 }
 template<class I>
+C4_NO_UBSAN_IOVRFLW
 void test_ints()
 {
     C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")

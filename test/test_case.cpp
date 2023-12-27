@@ -194,7 +194,7 @@ ExpectError::ExpectError(Tree *tree, Location loc)
     , expected_location(loc)
 {
     auto err = [](const char* msg, size_t len, Location errloc, void *this_) {
-        _c4dbgpf("called error callback!");
+        _c4dbgp("called error callback!");
         ((ExpectError*)this_)->m_got_an_error = true; // assign in here to ensure the exception was thrown here
         throw ExpectedError__(msg, len, errloc);
     };
@@ -222,9 +222,9 @@ void ExpectError::do_check(Tree *tree, std::function<void()> fn, Location expect
     auto context = ExpectError(tree, expected_location);
     try
     {
-        _c4dbgpf("check expected error");
+        _c4dbgp("check expected error");
         fn();
-        _c4dbgpf("check expected error: failed!");
+        _c4dbgp("check expected error: failed!");
     }
     catch(c4::yml::ExpectedError__ const& e)
     {
