@@ -35,7 +35,7 @@ void test_filter_src_dst(csubstr input, csubstr expected, size_t dst_sz)
     // filter now
     const substr dst = full.first(dst_sz);
     Parser proc = {};
-    FilterResult result = proc.filter_dquoted(input, dst);
+    FilterResult result = proc.filter_scalar_dquoted(input, dst);
     // check the result
     EXPECT_EQ(result.required_len(), expected.len);
     if(result.valid())
@@ -75,7 +75,7 @@ void test_filter_inplace(csubstr input, csubstr expected, csubstr leading_input,
         substr dst = full.first(input_sz);
         // filter now
         Parser proc = {};
-        FilterResult result = proc.filter_dquoted_inplace(dst, cap);
+        FilterResult result = proc.filter_scalar_dquoted_in_place(dst, cap);
         EXPECT_EQ(result.required_len(), expected_sz);
         if(result.valid())
         {

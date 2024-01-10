@@ -28,9 +28,8 @@ struct RYML_EXPORT ParserOptions
 private:
 
     typedef enum : uint32_t {
-        SCALAR_FILTERING = (1u << 0),
         LOCATIONS = (1u << 1),
-        DEFAULTS = SCALAR_FILTERING,
+        DEFAULTS = 0u,
     } Flags_e;
 
     uint32_t flags = DEFAULTS;
@@ -41,30 +40,11 @@ public:
 
 public:
 
-    /** @name scalar filtering */
-    /** @{ */
-
-    /** enable/disable scalar filtering */
-    ParserOptions& scalar_filtering(bool enabled)
-    {
-        if(enabled)
-            flags |= SCALAR_FILTERING;
-        else
-            flags &= ~SCALAR_FILTERING;
-        return *this;
-    }
-    /** query scalar filtering status */
-    C4_ALWAYS_INLINE bool scalar_filtering() const noexcept { return (flags & SCALAR_FILTERING); }
-
-    /** @} */
-
-public:
-
     /** @name source location tracking */
     /** @{ */
 
     /** enable/disable source location tracking */
-    ParserOptions& locations(bool enabled)
+    ParserOptions& locations(bool enabled) noexcept
     {
         if(enabled)
             flags |= LOCATIONS;
@@ -312,29 +292,29 @@ public:
     /** @{*/
 
     /** filter a plain scalar */
-    FilterResult filter_plain(csubstr scalar, substr dst, size_t indentation) noexcept;
+    FilterResult filter_scalar_plain(csubstr scalar, substr dst, size_t indentation) noexcept;
     /** filter a plain scalar in place */
-    FilterResult filter_plain_inplace(substr scalar, size_t cap, size_t indentation) noexcept;
+    FilterResult filter_scalar_plain_in_place(substr scalar, size_t cap, size_t indentation) noexcept;
 
     /** filter a single-quoted scalar */
-    FilterResult filter_squoted(csubstr scalar, substr dst) noexcept;
+    FilterResult filter_scalar_squoted(csubstr scalar, substr dst) noexcept;
     /** filter a single-quoted scalar in place */
-    FilterResult filter_squoted_inplace(substr scalar, size_t cap) noexcept;
+    FilterResult filter_scalar_squoted_in_place(substr scalar, size_t cap) noexcept;
 
     /** filter a double-quoted scalar */
-    FilterResult filter_dquoted(csubstr scalar, substr dst);
+    FilterResult filter_scalar_dquoted(csubstr scalar, substr dst);
     /** filter a double-quoted scalar in place */
-    FilterResult filter_dquoted_inplace(substr scalar, size_t cap);
+    FilterResult filter_scalar_dquoted_in_place(substr scalar, size_t cap);
 
     /** filter a block-literal scalar */
-    FilterResult filter_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp) noexcept;
+    FilterResult filter_scalar_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp) noexcept;
     /** filter a block-literal scalar in place */
-    FilterResult filter_block_literal_inplace(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept;
+    FilterResult filter_scalar_block_literal_in_place(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept;
 
     /** filter a block-folded scalar */
-    FilterResult filter_block_folded(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp) noexcept;
+    FilterResult filter_scalar_block_folded(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp) noexcept;
     /** filter a block-folded scalar in place */
-    FilterResult filter_block_folded_inplace(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept;
+    FilterResult filter_scalar_block_folded_in_place(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept;
 
     /** @} */
 
@@ -376,11 +356,11 @@ private:
     csubstr _scan_to_next_nonempty_line(size_t indentation);
     csubstr _extend_scanned_scalar(csubstr currscalar);
 
-    csubstr _filter_squot_scalar(substr s);
-    csubstr _filter_dquot_scalar(substr s);
-    csubstr _filter_plain_scalar(substr s, size_t indentation);
-    csubstr _filter_block_literal_scalar(substr s, BlockChomp_e chomp, size_t indentation);
-    csubstr _filter_block_folded_scalar(substr s, BlockChomp_e chomp, size_t indentation);
+    csubstr _filter_scalar_squot(substr s);
+    csubstr _filter_scalar_dquot(substr s);
+    csubstr _filter_scalar_plain(substr s, size_t indentation);
+    csubstr _filter_scalar_block_literal(substr s, BlockChomp_e chomp, size_t indentation);
+    csubstr _filter_scalar_block_folded(substr s, BlockChomp_e chomp, size_t indentation);
 
     void  _handle_finished_file();
     void  _handle_line();

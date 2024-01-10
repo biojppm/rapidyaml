@@ -2869,7 +2869,7 @@ csubstr Parser::_extend_scanned_scalar(csubstr s)
         {
             substr full = _scan_complex_key(s, n).trimr(" \t\r\n");
             if(full != s)
-                s = _filter_plain_scalar(full, scalar_indentation);
+                s = _filter_scalar_plain(full, scalar_indentation);
         }
     }
     // deal with plain (unquoted) scalars that continue to the next line
@@ -2888,7 +2888,7 @@ csubstr Parser::_extend_scanned_scalar(csubstr s)
                 _RYML_CB_ASSERT(m_stack.m_callbacks, m_state->line_contents.full.is_super(n));
                 substr full = _scan_plain_scalar_blck(s, n, scalar_indentation);
                 if(full.len >= s.len)
-                    s = _filter_plain_scalar(full, scalar_indentation);
+                    s = _filter_scalar_plain(full, scalar_indentation);
             }
         }
         else
@@ -2899,7 +2899,7 @@ csubstr Parser::_extend_scanned_scalar(csubstr s)
             {
                 _c4dbgp("rscalar[FLOW]");
                 substr full = _scan_plain_scalar_flow(s, n);
-                s = _filter_plain_scalar(full, /*indentation*/0);
+                s = _filter_scalar_plain(full, /*indentation*/0);
             }
         }
     }
@@ -4218,10 +4218,7 @@ csubstr Parser::_scan_squot_scalar()
 
     if(needs_filter)
     {
-        if(m_options.scalar_filtering())
-        {
-            return _filter_squot_scalar(s);
-        }
+        return _filter_scalar_squot(s);
     }
 
     return s;
@@ -4319,10 +4316,7 @@ csubstr Parser::_scan_dquot_scalar()
 
     if(needs_filter)
     {
-        if(m_options.scalar_filtering())
-        {
-           return _filter_dquot_scalar(s);
-        }
+        return _filter_scalar_dquot(s);
     }
 
     return s;
@@ -4530,132 +4524,19 @@ csubstr Parser::_scan_block()
     _c4dbgpf("scanning block: raw=~~~{}~~~", raw_block);
 
     // ok! now we strip the newlines and spaces according to the specs
-    if(m_options.scalar_filtering())
+    switch(block_style)
     {
-        switch(block_style)
-        {
-        case BLOCK_FOLD:
-            s = _filter_block_folded_scalar(raw_block, chomp, indentation);
-            break;
-        case BLOCK_LITERAL:
-            s = _filter_block_literal_scalar(raw_block, chomp, indentation);
-            break;
-        }
+    case BLOCK_FOLD:
+        s = _filter_scalar_block_folded(raw_block, chomp, indentation);
+        break;
+    case BLOCK_LITERAL:
+        s = _filter_scalar_block_literal(raw_block, chomp, indentation);
+        break;
     }
 
     _c4dbgpf("scanning block: final=~~~{}~~~", s);
 
     return s;
-}
-
-
-//-----------------------------------------------------------------------------
-csubstr Parser::_filter_plain_scalar(substr s, size_t indentation)
-{
-    _c4dbgpf("filtering plain scalar: s=[{}]~~~{}~~~", s.len, s);
-    FilterResult r = this->filter_plain_inplace(s, s.len, indentation);
-    if(C4_LIKELY(r.valid()))
-    {
-        _c4dbgpf("filtering plain scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
-        return r.get();
-    }
-    else
-    {
-        _c4dbgpf("filtering plain scalar: not enough space: needs {}, have {}", r.required_len(), s.len);
-        substr dst = m_tree->alloc_arena(r.required_len());
-        r = this->filter_plain(s, dst, indentation);
-        _RYML_CB_CHECK(m_stack.m_callbacks, r.valid());
-        _c4dbgpf("filtering plain scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
-        return r.get();
-    }
-}
-
-
-//-----------------------------------------------------------------------------
-csubstr Parser::_filter_squot_scalar(substr s)
-{
-    _c4dbgpf("filtering squo scalar: s=[{}]~~~{}~~~", s.len, s);
-    FilterResult r = this->filter_squoted_inplace(s, s.len);
-    if(C4_LIKELY(r.valid()))
-    {
-        _c4dbgpf("filtering squo scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
-        return r.get();
-    }
-    else
-    {
-        _c4dbgpf("filtering squo scalar: not enough space: needs {}, have {}", r.required_len(), s.len);
-        substr dst = m_tree->alloc_arena(r.required_len());
-        r = this->filter_squoted(s, dst);
-        _RYML_CB_CHECK(m_stack.m_callbacks, r.valid());
-        _c4dbgpf("filtering squo scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
-        return r.get();
-    }
-}
-
-
-//-----------------------------------------------------------------------------
-csubstr Parser::_filter_dquot_scalar(substr s)
-{
-    _c4dbgpf("filtering dquo scalar: s=[{}]~~~{}~~~", s.len, s);
-    FilterResult r = this->filter_dquoted_inplace(s, s.len);
-    if(C4_LIKELY(r.valid()))
-    {
-        _c4dbgpf("filtering dquo scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
-        return r.get();
-    }
-    else
-    {
-        _c4dbgpf("filtering dquo scalar: not enough space: needs {}, have {}", r.required_len(), s.len);
-        substr dst = m_tree->alloc_arena(r.required_len());
-        r = this->filter_dquoted(s, dst);
-        _RYML_CB_CHECK(m_stack.m_callbacks, r.valid());
-        _c4dbgpf("filtering dquo scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
-        return r.get();
-    }
-}
-
-
-//-----------------------------------------------------------------------------
-csubstr Parser::_filter_block_literal_scalar(substr s, BlockChomp_e chomp, size_t indentation)
-{
-    _c4dbgpf("filtering block literal scalar: s=[{}]~~~{}~~~", s.len, s);
-    FilterResult r = this->filter_block_literal_inplace(s, s.len, indentation, chomp);
-    if(C4_LIKELY(r.valid()))
-    {
-        _c4dbgpf("filtering block literal scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
-        return r.get();
-    }
-    else
-    {
-        _c4dbgpf("filtering block literal scalar: not enough space: needs {}, have {}", r.required_len(), s.len);
-        substr dst = m_tree->alloc_arena(r.required_len());
-        r = this->filter_block_literal(s, dst, indentation, chomp);
-        _RYML_CB_CHECK(m_stack.m_callbacks, r.valid());
-        _c4dbgpf("filtering block literal scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
-        return r.get();
-    }
-}
-
-
-//-----------------------------------------------------------------------------
-csubstr Parser::_filter_block_folded_scalar(substr s, BlockChomp_e chomp, size_t indentation)
-{
-    _c4dbgpf("filtering block folded scalar: s=[{}]~~~{}~~~", s.len, s);
-    FilterResult r = this->filter_block_folded_inplace(s, s.len, indentation, chomp);
-    if(C4_LIKELY(r.valid()))
-    {
-        _c4dbgpf("filtering block folded scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
-        return r.get();
-    }
-    else
-    {
-        _c4dbgpf("filtering block folded scalar: not enough space: needs {}, have {}", r.required_len(), s.len);
-        substr dst = m_tree->alloc_arena(r.required_len());
-        r = this->filter_block_folded(s, dst, indentation, chomp);
-        _RYML_CB_CHECK(m_stack.m_callbacks, r.valid());
-        _c4dbgpf("filtering block folded scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
-        return r.get();
-    }
 }
 
 
@@ -4803,13 +4684,13 @@ FilterResult Parser::_filter_plain(FilterProcessor &C4_RESTRICT proc, size_t ind
 #undef _c4dbgfps
 
 
-FilterResult Parser::filter_plain(csubstr scalar, substr dst, size_t indentation) noexcept
+FilterResult Parser::filter_scalar_plain(csubstr scalar, substr dst, size_t indentation) noexcept
 {
     FilterProcessorSrcDst proc(scalar, dst);
     return _filter_plain(proc, indentation);
 }
 
-FilterResult Parser::filter_plain_inplace(substr dst, size_t cap, size_t indentation) noexcept
+FilterResult Parser::filter_scalar_plain_in_place(substr dst, size_t cap, size_t indentation) noexcept
 {
     FilterProcessorInplace proc(dst, cap);
     return _filter_plain(proc, indentation);
@@ -4907,13 +4788,13 @@ FilterResult Parser::_filter_squoted(FilterProcessor &C4_RESTRICT proc) noexcept
 
 #undef _c4dbgfsq
 
-FilterResult Parser::filter_squoted(csubstr scalar, substr dst) noexcept
+FilterResult Parser::filter_scalar_squoted(csubstr scalar, substr dst) noexcept
 {
     FilterProcessorSrcDst proc(scalar, dst);
     return _filter_squoted(proc);
 }
 
-FilterResult Parser::filter_squoted_inplace(substr dst, size_t cap) noexcept
+FilterResult Parser::filter_scalar_squoted_in_place(substr dst, size_t cap) noexcept
 {
     FilterProcessorInplace proc(dst, cap);
     return _filter_squoted(proc);
@@ -5185,13 +5066,13 @@ FilterResult Parser::_filter_dquoted(FilterProcessor &C4_RESTRICT proc)
 #undef _c4dbgfdq
 
 
-FilterResult Parser::filter_dquoted(csubstr scalar, substr dst)
+FilterResult Parser::filter_scalar_dquoted(csubstr scalar, substr dst)
 {
     FilterProcessorSrcDst proc(scalar, dst);
     return _filter_dquoted(proc);
 }
 
-FilterResult Parser::filter_dquoted_inplace(substr dst, size_t cap)
+FilterResult Parser::filter_scalar_dquoted_in_place(substr dst, size_t cap)
 {
     FilterProcessorInplace proc(dst, cap);
     return _filter_dquoted(proc);
@@ -5531,13 +5412,13 @@ FilterResult Parser::_filter_block_literal(FilterProcessor &C4_RESTRICT proc, si
 
 #undef _c4dbgfbl
 
-FilterResult Parser::filter_block_literal_inplace(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept
+FilterResult Parser::filter_scalar_block_literal_in_place(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept
 {
     FilterProcessorInplace proc(scalar, cap);
     return _filter_block_literal(proc, indentation, chomp);
 }
 
-FilterResult Parser::filter_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp) noexcept
+FilterResult Parser::filter_scalar_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp) noexcept
 {
     FilterProcessorSrcDst proc(scalar, dst);
     return _filter_block_literal(proc, indentation, chomp);
@@ -5767,16 +5648,107 @@ FilterResult Parser::_filter_block_folded(FilterProcessor &C4_RESTRICT proc, siz
 
 #undef _c4dbgfbf
 
-FilterResult Parser::filter_block_folded_inplace(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept
+FilterResult Parser::filter_scalar_block_folded_in_place(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept
 {
     FilterProcessorInplace proc(scalar, cap);
     return _filter_block_folded(proc, indentation, chomp);
 }
 
-FilterResult Parser::filter_block_folded(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp) noexcept
+FilterResult Parser::filter_scalar_block_folded(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp) noexcept
 {
     FilterProcessorSrcDst proc(scalar, dst);
     return _filter_block_folded(proc, indentation, chomp);
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+csubstr Parser::_filter_scalar_plain(substr s, size_t indentation)
+{
+    _c4dbgpf("filtering plain scalar: s=[{}]~~~{}~~~", s.len, s);
+    FilterResult r = this->filter_scalar_plain_in_place(s, s.len, indentation);
+    _RYML_CB_ASSERT(m_stack.m_callbacks, r.valid());
+    _c4dbgpf("filtering plain scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
+    return r.get();
+}
+
+
+//-----------------------------------------------------------------------------
+csubstr Parser::_filter_scalar_squot(substr s)
+{
+    _c4dbgpf("filtering squo scalar: s=[{}]~~~{}~~~", s.len, s);
+    FilterResult r = this->filter_scalar_squoted_in_place(s, s.len);
+    _RYML_CB_ASSERT(this->callbacks(), r.valid());
+    _c4dbgpf("filtering squo scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
+    return r.get();
+}
+
+
+//-----------------------------------------------------------------------------
+csubstr Parser::_filter_scalar_dquot(substr s)
+{
+    _c4dbgpf("filtering dquo scalar: s=[{}]~~~{}~~~", s.len, s);
+    FilterResult r = this->filter_scalar_dquoted_in_place(s, s.len);
+    if(C4_LIKELY(r.valid()))
+    {
+        _c4dbgpf("filtering dquo scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
+        return r.get();
+    }
+    else
+    {
+        _c4dbgpf("filtering dquo scalar: not enough space: needs {}, have {}", r.required_len(), s.len);
+        substr dst = m_tree->alloc_arena(r.required_len());
+        r = this->filter_scalar_dquoted(s, dst);
+        _RYML_CB_CHECK(m_stack.m_callbacks, r.valid());
+        _c4dbgpf("filtering dquo scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
+        return r.get();
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+csubstr Parser::_filter_scalar_block_literal(substr s, BlockChomp_e chomp, size_t indentation)
+{
+    _c4dbgpf("filtering block literal scalar: s=[{}]~~~{}~~~", s.len, s);
+    FilterResult r = this->filter_scalar_block_literal_in_place(s, s.len, indentation, chomp);
+    if(C4_LIKELY(r.valid()))
+    {
+        _c4dbgpf("filtering block literal scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
+        return r.get();
+    }
+    else
+    {
+        _c4dbgpf("filtering block literal scalar: not enough space: needs {}, have {}", r.required_len(), s.len);
+        substr dst = m_tree->alloc_arena(r.required_len());
+        r = this->filter_scalar_block_literal(s, dst, indentation, chomp);
+        _RYML_CB_CHECK(m_stack.m_callbacks, r.valid());
+        _c4dbgpf("filtering block literal scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
+        return r.get();
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+csubstr Parser::_filter_scalar_block_folded(substr s, BlockChomp_e chomp, size_t indentation)
+{
+    _c4dbgpf("filtering block folded scalar: s=[{}]~~~{}~~~", s.len, s);
+    FilterResult r = this->filter_scalar_block_folded_in_place(s, s.len, indentation, chomp);
+    if(C4_LIKELY(r.valid()))
+    {
+        _c4dbgpf("filtering block folded scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
+        return r.get();
+    }
+    else
+    {
+        _c4dbgpf("filtering block folded scalar: not enough space: needs {}, have {}", r.required_len(), s.len);
+        substr dst = m_tree->alloc_arena(r.required_len());
+        r = this->filter_scalar_block_folded(s, dst, indentation, chomp);
+        _RYML_CB_CHECK(m_stack.m_callbacks, r.valid());
+        _c4dbgpf("filtering block folded scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
+        return r.get();
+    }
 }
 
 

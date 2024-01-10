@@ -249,6 +249,18 @@ struct _charconstant_t
 } // namespace detail
 
 
+typedef enum {
+    BLOCK_LITERAL, //!< keep newlines (|)
+    BLOCK_FOLD     //!< replace newline with single space (>)
+} BlockStyle_e;
+
+typedef enum {
+    CHOMP_CLIP,    //!< single newline at end (default)
+    CHOMP_STRIP,   //!< no newline at end     (-)
+    CHOMP_KEEP     //!< all newlines from end (+)
+} BlockChomp_e;
+
+
 /** Abstracts the fact that a filter result may not fit in the intended memory. */
 struct FilterResult
 {
@@ -299,18 +311,6 @@ struct _SubstrWriter
 } // namespace detail
 
 /// @endcond
-
-
-typedef enum {
-    BLOCK_LITERAL, //!< keep newlines (|)
-    BLOCK_FOLD     //!< replace newline with single space (>)
-} BlockStyle_e;
-
-typedef enum {
-    CHOMP_CLIP,    //!< single newline at end (default)
-    CHOMP_STRIP,   //!< no newline at end     (-)
-    CHOMP_KEEP     //!< all newlines from end (+)
-} BlockChomp_e;
 
 
 //-----------------------------------------------------------------------------

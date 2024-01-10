@@ -32,7 +32,7 @@ void test_filter_src_dst(csubstr input, csubstr expected, size_t indentation, si
     // filter now
     const substr dst = full.first(dst_sz);
     Parser proc = {};
-    FilterResult result = proc.filter_plain(input, dst, indentation);
+    FilterResult result = proc.filter_scalar_plain(input, dst, indentation);
     // check the result
     EXPECT_EQ(result.required_len(), expected.len);
     if(result.valid())
@@ -67,7 +67,7 @@ void test_filter_inplace(csubstr input, csubstr expected, size_t indentation)
         substr dst = full.first(input.len);
         // filter now
         Parser proc = {};
-        FilterResult result = proc.filter_plain_inplace(dst, cap, indentation);
+        FilterResult result = proc.filter_scalar_plain_in_place(dst, cap, indentation);
         EXPECT_EQ(result.required_len(), expected.len) << (result.valid() ? result.get().str : "(no out.str)");
         if(result.valid())
         {
@@ -201,7 +201,6 @@ tabs
     // 75
     #undef psc
 };
-C4_SUPPRESS_WARNING_MSVC_POP
 
 
 struct PlainScalarFilterSrcDstTest : public ::testing::TestWithParam<plain_scalar_case>

@@ -175,7 +175,7 @@ csubstr from_tag(YamlTag_e tag)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-const char* NodeType::type_str(NodeType_e ty)
+const char* NodeType::type_str(NodeType_e ty) noexcept
 {
     switch(ty & _TYMASK)
     {
