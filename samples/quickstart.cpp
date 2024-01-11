@@ -3893,7 +3893,7 @@ struct GlobalAllocatorExample
         ++num_allocs;
         // ensure the ptr is aligned
         uintptr_t uptr = (uintptr_t)ptr;
-        const uintptr_t align = alignof(std::max_align_t);
+        const uintptr_t align = alignof(max_align_t);
         if (uptr % align)
         {
             uintptr_t prev = uptr - (uptr % align);

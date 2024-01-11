@@ -1,4 +1,9 @@
 #include "./test_group.hpp"
+#ifdef RYML_SINGLE_HEADER
+#include <ryml_all.hpp>
+#else
+#include <c4/charconv.hpp>
+#endif
 
 namespace c4 {
 namespace yml {

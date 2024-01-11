@@ -38,7 +38,19 @@ c4core_def_code = f""" // propagate defines to c4core
 #include <stdarg.h>
 """
 
-ryml_preamble = f"""
+
+def amalgamate_ryml(filename: str,
+                    with_c4core: bool,
+                    with_fastfloat: bool,
+                    with_stl: bool):
+    c4core_amalgamated = ""
+    if with_c4core:
+        c4core_amalgamated = "src/c4/c4core_all.hpp"
+        am_c4core.amalgamate_c4core(f"{projdir}/{c4core_amalgamated}",
+                                    with_fastfloat=with_fastfloat,
+                                    with_stl=with_stl)
+    repo = "https://github.com/biojppm/rapidyaml"
+    ryml_preamble = f"""
 Rapid YAML - a library to parse and emit YAML, and do it fast.
 
 {repo}
@@ -56,19 +68,6 @@ INSTRUCTIONS:
     preprocessor symbol RYML_SHARED . This will take
     care of symbol export/import.
 """
-
-
-def amalgamate_ryml(filename: str,
-                    with_c4core: bool,
-                    with_fastfloat: bool,
-                    with_stl: bool):
-    c4core_amalgamated = ""
-    if with_c4core:
-        c4core_amalgamated = "src/c4/c4core_all.hpp"
-        am_c4core.amalgamate_c4core(f"{projdir}/{c4core_amalgamated}",
-                                    with_fastfloat=with_fastfloat,
-                                    with_stl=with_stl)
-    repo = "https://github.com/biojppm/rapidyaml"
     srcfiles = [
         am.cmttext(ryml_preamble),
         am.cmtfile("LICENSE.txt"),
@@ -94,7 +93,6 @@ def amalgamate_ryml(filename: str,
         am.onlyif(with_stl, "src/c4/yml/std/std.hpp"),
         "src/c4/yml/common.cpp",
         "src/c4/yml/tree.cpp",
-        "src/c4/yml/filter.def.hpp",
         "src/c4/yml/parse.cpp",
         "src/c4/yml/node.cpp",
         "src/c4/yml/preprocess.hpp",

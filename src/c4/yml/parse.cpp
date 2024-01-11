@@ -5084,7 +5084,7 @@ FilterResult Parser::filter_scalar_dquoted_in_place(substr dst, size_t cap)
 //-----------------------------------------------------------------------------
 // block filtering helpers
 
-inline size_t _find_last_newline_and_larger_indentation(csubstr s, size_t indentation) noexcept
+RYML_EXPORT size_t _find_last_newline_and_larger_indentation(csubstr s, size_t indentation) noexcept
 {
     if(indentation + 1 > s.len)
         return npos;
@@ -5099,12 +5099,6 @@ inline size_t _find_last_newline_and_larger_indentation(csubstr s, size_t indent
                 return i;
         }
     }
-    //_RYML_CB_ASSERT(this->callbacks(), _find_last_newline_and_larger_indentation("ab\n\n\n", 0) == npos);
-    //_RYML_CB_ASSERT(this->callbacks(), _find_last_newline_and_larger_indentation("ab\n \n\n", 0) == 2);
-    //_RYML_CB_ASSERT(this->callbacks(), _find_last_newline_and_larger_indentation("ab\n\n \n", 0) == 3);
-    //_RYML_CB_ASSERT(this->callbacks(), _find_last_newline_and_larger_indentation("ab\n \n \n", 0) == 4);
-    //_RYML_CB_ASSERT(this->callbacks(), _find_last_newline_and_larger_indentation("ab\n \n  \n", 1) == 4);
-    //_RYML_CB_ASSERT(this->callbacks(), _find_last_newline_and_larger_indentation("ab\n  \n \n", 1) == 2);
     return npos;
 }
 
@@ -5459,7 +5453,6 @@ void Parser::_filter_block_folded_newlines_leading(FilterProcessor &C4_RESTRICT 
         case '\t':
         {
             size_t first = proc.rem().first_not_of(" \t");
-            //size_t first = proc.rem().first_not_of(' ');
             _c4dbgfbf("space. first={}", first);
             if(first == npos)
                 first = proc.rem().len;
@@ -5516,7 +5509,6 @@ void Parser::_filter_block_folded_newlines(FilterProcessor &C4_RESTRICT proc, si
         case '\t':
             {
                 size_t first = proc.rem().first_not_of(" \t");
-                //size_t first = proc.rem().first_not_of(' ');
                 _c4dbgfbf("space. first={}", first);
                 if(first == npos)
                     first = proc.rem().len;
@@ -5549,7 +5541,6 @@ void Parser::_filter_block_folded_newlines(FilterProcessor &C4_RESTRICT proc, si
 template<class FilterProcessor>
 void Parser::_filter_block_folded_indented_block(FilterProcessor &C4_RESTRICT proc, size_t indentation, size_t len, size_t curr_indentation) noexcept
 {
-    //_RYML_CB_ASSERT(this->callbacks(), proc.rem().first_not_of(' ') == curr_indentation);
     _RYML_CB_ASSERT(this->callbacks(), (proc.rem().first_not_of(" \t") == curr_indentation) || (proc.rem().first_not_of(" \t") == npos));
     proc.copy(curr_indentation);
     while(proc.has_more_chars(len))
