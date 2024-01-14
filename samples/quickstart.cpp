@@ -3902,12 +3902,9 @@ struct GlobalAllocatorExample
             ptr = (void*)(((char*)ptr) + corr);
             corr_size += corr;
         }
-        // check
-        if(C4_UNLIKELY(alloc_size + corr_size > memory_pool.size()))
-        {
-            std::cerr << "out of memory! requested=" << alloc_size << "+" << corr_size << " vs " << memory_pool.size() << " available" << std::endl;
-            std::abort();
-        }
+        C4_CHECK_MSG(alloc_size + corr_size <= memory_pool.size(),
+                     "out of memory! requested=%zu+%zu available=%zu\n",
+                     alloc_size, corr_size, memory_pool.size());
         return ptr;
     }
 

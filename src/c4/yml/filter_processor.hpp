@@ -112,7 +112,7 @@ struct FilterProcessorSrcDst
 // filter in place
 
 // debugging scaffold
-#if 0
+#if 1
 #define _c4dbgip(...) _c4dbgpf(__VA_ARGS__);
 #else
 #define _c4dbgip(...)
@@ -124,14 +124,14 @@ struct FilterProcessorInplace
     size_t wcap; ///< write capacity - the capacity of the subject string's buffer
     size_t rpos; ///< read position
     size_t wpos; ///< write position
-    bool unfiltered_chars; ///< whether there are characters left unfiltered (eg because the string was too small)
+    size_t unwritten_excess; ///< number of characters that were not added to wpos from lack of capacity
 
     C4_ALWAYS_INLINE FilterProcessorInplace(substr src_, size_t wcap_) noexcept
         : src(src_)
         , wcap(wcap_)
         , rpos(0)
         , wpos(0)
-        , unfiltered_chars(false)
+        , unwritten_excess(0)
     {
         RYML_ASSERT(wcap >= src.len);
     }
@@ -145,10 +145,10 @@ struct FilterProcessorInplace
 
     C4_ALWAYS_INLINE FilterResult result() const noexcept
     {
-        _c4dbgip("inplace: wpos={} wcap={} unfiltered={}", this->wpos, this->wcap, this->unfiltered_chars);
+        _c4dbgip("inplace: wpos={} wcap={} unfiltered={}", this->wpos, this->wcap, this->unwritten_excess);
         FilterResult ret;
-        ret.str.str = (wpos <= wcap && !unfiltered_chars) ? src.str : nullptr;
-        ret.str.len = wpos;
+        ret.str.str = (wpos <= wcap && !unwritten_excess) ? src.str : nullptr;
+        ret.str.len = wpos + unwritten_excess;
         return ret;
     }
     C4_ALWAYS_INLINE csubstr sofar() const noexcept { return csubstr(src.str, wpos <= wcap ? wpos : wcap); }
@@ -177,8 +177,8 @@ struct FilterProcessorInplace
         }
         else
         {
-            _c4dbgip("inplace: set unfiltered {}->1!", unfiltered_chars);
-            unfiltered_chars = true;
+            _c4dbgip("inplace: add unwritten {}->{}!", unwritten_excess, unwritten_excess+1u);
+            ++unwritten_excess;
         }
         ++wpos;
     }
@@ -192,8 +192,8 @@ struct FilterProcessorInplace
         }
         else
         {
-            _c4dbgip("inplace: set unfiltered {}->1!", unfiltered_chars);
-            unfiltered_chars = true;
+            _c4dbgip("inplace: add unwritten {}->{}!", unwritten_excess, unwritten_excess+1u);
+            unwritten_excess += num;
         }
         wpos += num;
     }
@@ -208,8 +208,8 @@ struct FilterProcessorInplace
         }
         else
         {
-            _c4dbgip("inplace: set unfiltered {}->1 (wpos={}!=rpos={})={}  (wpos={}<wcap={})!", unfiltered_chars, wpos, rpos, wpos!=rpos, wpos, wcap, wpos<wcap);
-            unfiltered_chars = true;
+            _c4dbgip("inplace: add unwritten {}->{} (wpos={}!=rpos={})={}  (wpos={}<wcap={})!", unwritten_excess, unwritten_excess+1, wpos, rpos, wpos!=rpos, wpos, wcap, wpos<wcap);
+            ++unwritten_excess;
         }
         ++wpos;
         ++rpos;
@@ -230,8 +230,8 @@ struct FilterProcessorInplace
         }
         else
         {
-            _c4dbgip("inplace: set unfiltered {}->1 (wpos={}<rpos={})={}  (wpos={}<wcap={})!", unfiltered_chars, wpos, rpos, wpos<rpos, wpos, wcap, wpos<wcap);
-            unfiltered_chars = true;
+            _c4dbgip("inplace: add unwritten {}->{} (wpos={}!=rpos={})={}  (wpos={}<wcap={})!", unwritten_excess, unwritten_excess+num, wpos, rpos, wpos!=rpos, wpos, wcap, wpos<wcap);
+            unwritten_excess += num;
         }
         wpos += num;
         rpos += num;
@@ -246,8 +246,8 @@ struct FilterProcessorInplace
         }
         else
         {
-            _c4dbgip("inplace: set unfiltered {}->1!", unfiltered_chars);
-            unfiltered_chars = true;
+            _c4dbgip("inplace: add unfiltered {}->{}!", unwritten_excess, unwritten_excess+1u);
+            ++unwritten_excess;
         }
         ++wpos;
         rpos += 2;
@@ -259,7 +259,7 @@ struct FilterProcessorInplace
         RYML_ASSERT(nr > 0);
         RYML_ASSERT(rpos+nr <= src.len);
         const size_t wpos_next = wpos + nw;
-        const size_t rpos_next = rpos + 1 + nr;
+        const size_t rpos_next = rpos + nr + 1u; // add 1u to account for the escape character
         if(wpos_next <= rpos_next) // read and write do not overlap. just do a vanilla copy.
         {
             if(wpos_next <= wcap)
@@ -282,17 +282,19 @@ struct FilterProcessorInplace
                 else
                 {
                     rpos = rpos_next;
-                    _c4dbgip("inplace: set unfiltered {}->1!", unfiltered_chars);
-                    unfiltered_chars = true;
+                    const size_t unw = nw > (nr + 1u) ? nw - (nr + 1u) : 0;
+                    _c4dbgip("inplace: add unfiltered {}->{}!", unwritten_excess, unwritten_excess+unw);
+                    unwritten_excess += unw;
                 }
                 // extend the string up to capacity
                 src.len += excess;
             }
             else
             {
-                _c4dbgip("inplace: set unfiltered {}->1!", unfiltered_chars);
                 rpos = rpos_next;
-                unfiltered_chars = true;
+                const size_t unw = nw > (nr + 1u) ? nw - (nr + 1u) : 0;
+                _c4dbgip("inplace: add unfiltered {}->{}!", unwritten_excess, unwritten_excess+unw);
+                unwritten_excess += unw;
             }
             wpos = wpos_next;
         }

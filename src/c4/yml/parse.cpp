@@ -4593,11 +4593,7 @@ void Parser::_filter_ws_copy_trailing(FilterProcessor &proc) noexcept
 template<class FilterProcessor>
 void Parser::_filter_ws_skip_trailing(FilterProcessor &proc) noexcept
 {
-    if(!_filter_ws_handle_to_first_non_space(proc))
-    {
-        _c4dbgfws("... everything else is trailing whitespace - skip {} chars", proc.src.len - proc.rpos);
-        proc.skip(proc.src.len - proc.rpos);
-    }
+    _RYML_CB_ASSERT(this->callbacks(), _filter_ws_handle_to_first_non_space(proc));
 }
 
 #undef _c4dbgfws
@@ -5128,6 +5124,7 @@ void Parser::_filter_chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp
             {
                 const char curr = proc.curr();
                 _c4dbgchomp("curr='{}'", _c4prc(curr));
+                _RYML_CB_ASSERT(this->callbacks(), curr == '\n' || curr == '\r');
                 switch(curr)
                 {
                 case '\n':
@@ -5165,9 +5162,6 @@ void Parser::_filter_chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp
                     }
                 case '\r':
                     proc.skip();
-                    break;
-                default:
-                    _RYML_CB_ERR(this->callbacks(), "never reach this");
                     break;
                 }
             }
@@ -5272,6 +5266,8 @@ void Parser::_filter_block_indentation(FilterProcessor &C4_RESTRICT proc, size_t
         }
         else
         {
+            C4_ERROR("crl");
+            // UNCOVERED
             _c4dbgfb("all spaces to the end: {} spaces", first);
             first = rem.len;
             if(first)
@@ -5689,9 +5685,16 @@ csubstr Parser::_filter_scalar_dquot(substr s)
     }
     else
     {
-        _c4dbgpf("filtering dquo scalar: not enough space: needs {}, have {}", r.required_len(), s.len);
-        substr dst = m_tree->alloc_arena(r.required_len());
+        const size_t len = r.required_len();
+        _RYML_CB_ASSERT(this->callbacks(), s.len < len);
+        _c4dbgpf("filtering dquo scalar: not enough space: needs {}, have {}", len, s.len);
+        _RYML_CB_ASSERT(this->callbacks(), m_tree);
+        substr dst = m_tree->alloc_arena(len);
+        _c4dbgpf("filtering dquo scalar: dst.len={}", dst.len);
+        _RYML_CB_ASSERT(this->callbacks(), dst.len == len);
         r = this->filter_scalar_dquoted(s, dst);
+        _c4dbgpf("filtering dquo scalar: ... result now needs {} was {}", r.required_len(), len);
+        _RYML_CB_ASSERT(this->callbacks(), r.required_len() == len);
         _RYML_CB_CHECK(m_stack.m_callbacks, r.valid());
         _c4dbgpf("filtering dquo scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
         return r.get();
@@ -5712,6 +5715,7 @@ csubstr Parser::_filter_scalar_block_literal(substr s, BlockChomp_e chomp, size_
     else
     {
         _c4dbgpf("filtering block literal scalar: not enough space: needs {}, have {}", r.required_len(), s.len);
+        _RYML_CB_ASSERT(this->callbacks(), m_tree);
         substr dst = m_tree->alloc_arena(r.required_len());
         r = this->filter_scalar_block_literal(s, dst, indentation, chomp);
         _RYML_CB_CHECK(m_stack.m_callbacks, r.valid());
@@ -5734,6 +5738,7 @@ csubstr Parser::_filter_scalar_block_folded(substr s, BlockChomp_e chomp, size_t
     else
     {
         _c4dbgpf("filtering block folded scalar: not enough space: needs {}, have {}", r.required_len(), s.len);
+        _RYML_CB_ASSERT(this->callbacks(), m_tree);
         substr dst = m_tree->alloc_arena(r.required_len());
         r = this->filter_scalar_block_folded(s, dst, indentation, chomp);
         _RYML_CB_CHECK(m_stack.m_callbacks, r.valid());

@@ -329,6 +329,7 @@ C4_NO_INLINE void _parse_dump(DumpFn dumpfn, csubstr fmt, Args&& ...args)
         if(C4_UNLIKELY(results.bufsize > sizeof(writebuf)))
         {
             results = format_dump_resume(dumpfn, results, writebuf, fmt, std::forward<Args>(args)...);
+            C4_CHECK(results.bufsize <= sizeof(writebuf));
         }
     }
 }

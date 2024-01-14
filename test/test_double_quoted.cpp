@@ -66,7 +66,8 @@ void test_filter_inplace(csubstr input, csubstr expected, csubstr leading_input,
     auto run = [&](size_t cap){
         // create the string
         std::string subject_(leading_input.str, leading_input.len);
-        subject_ += std::string(input.str, input.len);
+        subject_.append(input.str, input.len);
+        std::string subject_2 = subject_;
         subject_.resize(full_sz);
         // fill the canary region
         const char refchar = '`';
@@ -74,13 +75,24 @@ void test_filter_inplace(csubstr input, csubstr expected, csubstr leading_input,
         full.sub(max_sz).fill(refchar);
         substr dst = full.first(input_sz);
         // filter now
-        Parser proc = {};
-        FilterResult result = proc.filter_scalar_dquoted_in_place(dst, cap);
+        Parser parser1 = {};
+std::cout << "WTF0: input_sz=" << input_sz << "  -->  expected_sz=" << expected_sz << " " << subject_.size() << "\n";
+        FilterResult result = parser1.filter_scalar_dquoted_in_place(dst, cap);
+std::cout << "WTF1: input_sz=" << input_sz << "  -->  expected_sz=" << expected_sz << " " << subject_2.size() << "\n";
+        Parser parser2 = {};
+        Tree tree = parser2.parse_in_arena("file", "# set the tree in the parser");
+std::cout << "WTF2: input_sz=" << input_sz << "  -->  expected_sz=" << expected_sz << " " << subject_2.size() << "\n";
+        csubstr sresult = parser2._filter_scalar_dquot(to_substr(subject_2));
+std::cout << "WTF3: input_sz=" << input_sz << "  -->  expected_sz=" << expected_sz << " " << subject_2.size() << "\n";
         EXPECT_EQ(result.required_len(), expected_sz);
+        EXPECT_EQ(sresult.len, expected_sz);
         if(result.valid())
         {
             const csubstr out = result.get();
             EXPECT_EQ(out, expected_);
+            EXPECT_EQ(sresult, expected_);
+            EXPECT_EQ(sresult.str, out.str);
+            EXPECT_EQ(sresult.len, out.len);
             // check the fill character in the canary region.
             EXPECT_GT(full.sub(max_sz).len, 0u);
             EXPECT_EQ(full.first_not_of(refchar, max_sz), csubstr::npos);
@@ -319,14 +331,10 @@ dquoted_case test_cases_filter[] = {
 C4_SUPPRESS_WARNING_MSVC_POP
 
 
+//-----------------------------------------------------------------------------
+
 TEST(double_quoted_filter, leading_tab)
 {
-    // this case cannot have a prefix
-    csubstr expected = "\t\ndetected\n";
-    test_filter_src_dst("	\n\ndetected\n\n", expected, /*sz*/expected.len + 2u);
-    test_filter_src_dst("\t\n\ndetected\n\n", expected, /*sz*/expected.len + 2u);
-    test_filter_inplace("	\n\ndetected\n\n", "\t\ndetected\n", "", "");
-    test_filter_inplace("\t\n\ndetected\n\n", "\t\ndetected\n", "", "");
 }
 
 

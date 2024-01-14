@@ -356,11 +356,15 @@ private:
     csubstr _scan_to_next_nonempty_line(size_t indentation);
     csubstr _extend_scanned_scalar(csubstr currscalar);
 
+public: // exposed for testing. to be cleared.
+
     csubstr _filter_scalar_squot(substr s);
     csubstr _filter_scalar_dquot(substr s);
     csubstr _filter_scalar_plain(substr s, size_t indentation);
     csubstr _filter_scalar_block_literal(substr s, BlockChomp_e chomp, size_t indentation);
     csubstr _filter_scalar_block_folded(substr s, BlockChomp_e chomp, size_t indentation);
+
+private:
 
     void  _handle_finished_file();
     void  _handle_line();
