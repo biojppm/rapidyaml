@@ -38,7 +38,7 @@ void test_filter_inplace(blocklit_case const& blcase)
         std::string subject_(blcase.input.str, blcase.input.len);
         c4::substr dst = to_substr(subject_);
         Parser proc = {};
-        FilterResult result = proc.filter_scalar_block_literal_in_place(dst, subject_.size(), blcase.indentation, blcase.chomp);
+        FilterResultInPlace result = proc.filter_scalar_block_literal_in_place(dst, subject_.size(), blcase.indentation, blcase.chomp);
         ASSERT_TRUE(result.valid());
         const csubstr out = result.get();
         if(blcase.chomp != CHOMP_CLIP)
@@ -60,7 +60,7 @@ void test_filter_inplace(blocklit_case const& blcase)
             c4::substr rem = to_substr(subject_).sub(blcase.expected.len);
             rem.fill('^');
             Parser proc = {};
-            FilterResult result = proc.filter_scalar_block_literal_in_place(dst, subject_.size(), blcase.indentation, blcase.chomp);
+            FilterResultInPlace result = proc.filter_scalar_block_literal_in_place(dst, subject_.size(), blcase.indentation, blcase.chomp);
             ASSERT_TRUE(result.valid());
             const csubstr out = result.get();
             if(blcase.chomp != CHOMP_CLIP)
@@ -79,7 +79,7 @@ void test_filter_inplace(blocklit_case const& blcase)
             subject_.resize(blcase.expected.len);
             c4::substr dst = to_substr(subject_).first(blcase.input.len);
             Parser proc = {};
-            FilterResult result = proc.filter_scalar_block_literal_in_place(dst, subject_.size(), blcase.indentation, blcase.chomp);
+            FilterResultInPlace result = proc.filter_scalar_block_literal_in_place(dst, subject_.size(), blcase.indentation, blcase.chomp);
             ASSERT_TRUE(result.valid());
             const csubstr out = result.get();
             if(blcase.chomp != CHOMP_CLIP)
@@ -96,7 +96,7 @@ void test_filter_inplace(blocklit_case const& blcase)
             std::string subject_(blcase.input.str, blcase.input.len);
             c4::substr dst = to_substr(subject_);
             Parser proc = {};
-            FilterResult result = proc.filter_scalar_block_literal_in_place(dst, subject_.size(), blcase.indentation, blcase.chomp);
+            FilterResultInPlace result = proc.filter_scalar_block_literal_in_place(dst, subject_.size(), blcase.indentation, blcase.chomp);
             ASSERT_FALSE(result.valid());
             if(blcase.chomp != CHOMP_CLIP)
             {

@@ -269,6 +269,15 @@ struct FilterResult
     C4_ALWAYS_INLINE csubstr get() { RYML_ASSERT(valid()); return str; }
     csubstr str;
 };
+/** Abstracts the fact that a filter result may not fit in the intended memory. */
+struct FilterResultInPlace
+{
+    C4_ALWAYS_INLINE bool valid() const noexcept { return str.str != nullptr; }
+    C4_ALWAYS_INLINE size_t required_len() const noexcept { return reqlen; }
+    C4_ALWAYS_INLINE csubstr get() { RYML_ASSERT(valid()); return str; }
+    csubstr str;
+    size_t reqlen;
+};
 
 
 namespace detail {

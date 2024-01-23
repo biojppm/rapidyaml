@@ -77,7 +77,7 @@ void test_filter_inplace(csubstr input, csubstr expected, csubstr leading_input,
         // filter now
         Parser parser1 = {};
 std::cout << "WTF0: input_sz=" << input_sz << "  -->  expected_sz=" << expected_sz << " " << subject_.size() << "\n";
-        FilterResult result = parser1.filter_scalar_dquoted_in_place(dst, cap);
+        FilterResultInPlace result = parser1.filter_scalar_dquoted_in_place(dst, cap);
 std::cout << "WTF1: input_sz=" << input_sz << "  -->  expected_sz=" << expected_sz << " " << subject_2.size() << "\n";
         Parser parser2 = {};
         Tree tree = parser2.parse_in_arena("file", "# set the tree in the parser");

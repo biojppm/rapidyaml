@@ -4626,7 +4626,7 @@ void Parser::_filter_nl_plain(FilterProcessor &C4_RESTRICT proc, size_t indentat
 }
 
 template<class FilterProcessor>
-FilterResult Parser::_filter_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation) noexcept
+auto Parser::_filter_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation) noexcept -> decltype(proc.result())
 {
     _RYML_CB_ASSERT(this->callbacks(), indentation != npos);
     _c4dbgfps("before=[{}]~~~{}~~~", proc.src.len, proc.src);
@@ -4670,7 +4670,7 @@ FilterResult Parser::filter_scalar_plain(csubstr scalar, substr dst, size_t inde
     return _filter_plain(proc, indentation);
 }
 
-FilterResult Parser::filter_scalar_plain_in_place(substr dst, size_t cap, size_t indentation) noexcept
+FilterResultInPlace Parser::filter_scalar_plain_in_place(substr dst, size_t cap, size_t indentation) noexcept
 {
     FilterProcessorInplace proc(dst, cap);
     return _filter_plain(proc, indentation);
@@ -4720,7 +4720,7 @@ void Parser::_filter_nl_squoted(FilterProcessor &C4_RESTRICT proc) noexcept
 }
 
 template<class FilterProcessor>
-FilterResult Parser::_filter_squoted(FilterProcessor &C4_RESTRICT proc) noexcept
+auto Parser::_filter_squoted(FilterProcessor &C4_RESTRICT proc) noexcept -> decltype(proc.result())
 {
     // from the YAML spec for double-quoted scalars:
     // https://yaml.org/spec/1.2-old/spec.html#style/flow/single-quoted
@@ -4774,7 +4774,7 @@ FilterResult Parser::filter_scalar_squoted(csubstr scalar, substr dst) noexcept
     return _filter_squoted(proc);
 }
 
-FilterResult Parser::filter_scalar_squoted_in_place(substr dst, size_t cap) noexcept
+FilterResultInPlace Parser::filter_scalar_squoted_in_place(substr dst, size_t cap) noexcept
 {
     FilterProcessorInplace proc(dst, cap);
     return _filter_squoted(proc);
@@ -4997,7 +4997,7 @@ void Parser::_filter_dquoted_backslash(FilterProcessor &C4_RESTRICT proc)
 
 
 template<class FilterProcessor>
-FilterResult Parser::_filter_dquoted(FilterProcessor &C4_RESTRICT proc)
+auto Parser::_filter_dquoted(FilterProcessor &C4_RESTRICT proc) -> decltype(proc.result())
 {
     _c4dbgfdq("before=[{}]~~~{}~~~", proc.src.len, proc.src);
     // from the YAML spec for double-quoted scalars:
@@ -5052,7 +5052,7 @@ FilterResult Parser::filter_scalar_dquoted(csubstr scalar, substr dst)
     return _filter_dquoted(proc);
 }
 
-FilterResult Parser::filter_scalar_dquoted_in_place(substr dst, size_t cap)
+FilterResultInPlace Parser::filter_scalar_dquoted_in_place(substr dst, size_t cap)
 {
     FilterProcessorInplace proc(dst, cap);
     return _filter_dquoted(proc);
@@ -5338,7 +5338,7 @@ size_t Parser::_extend_to_chomp(FilterProcessor &C4_RESTRICT proc, size_t conten
 #endif
 
 template<class FilterProcessor>
-FilterResult Parser::_filter_block_literal(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp) noexcept
+auto Parser::_filter_block_literal(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp) noexcept -> decltype(proc.result())
 {
     _c4dbgfbl("indentation={} before=[{}]~~~{}~~~", indentation, proc.src.len, proc.src);
 
@@ -5386,15 +5386,15 @@ FilterResult Parser::_filter_block_literal(FilterProcessor &C4_RESTRICT proc, si
 
 #undef _c4dbgfbl
 
-FilterResult Parser::filter_scalar_block_literal_in_place(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept
-{
-    FilterProcessorInplace proc(scalar, cap);
-    return _filter_block_literal(proc, indentation, chomp);
-}
-
 FilterResult Parser::filter_scalar_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp) noexcept
 {
     FilterProcessorSrcDst proc(scalar, dst);
+    return _filter_block_literal(proc, indentation, chomp);
+}
+
+FilterResultInPlace Parser::filter_scalar_block_literal_in_place(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept
+{
+    FilterProcessorInplace proc(scalar, cap);
     return _filter_block_literal(proc, indentation, chomp);
 }
 
@@ -5572,7 +5572,7 @@ void Parser::_filter_block_folded_indented_block(FilterProcessor &C4_RESTRICT pr
 
 
 template<class FilterProcessor>
-FilterResult Parser::_filter_block_folded(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp) noexcept
+auto Parser::_filter_block_folded(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp) noexcept -> decltype(proc.result())
 {
     _c4dbgfbf("indentation={} before=[{}]~~~{}~~~", indentation, proc.src.len, proc.src);
 
@@ -5619,15 +5619,15 @@ FilterResult Parser::_filter_block_folded(FilterProcessor &C4_RESTRICT proc, siz
 
 #undef _c4dbgfbf
 
-FilterResult Parser::filter_scalar_block_folded_in_place(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept
-{
-    FilterProcessorInplace proc(scalar, cap);
-    return _filter_block_folded(proc, indentation, chomp);
-}
-
 FilterResult Parser::filter_scalar_block_folded(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp) noexcept
 {
     FilterProcessorSrcDst proc(scalar, dst);
+    return _filter_block_folded(proc, indentation, chomp);
+}
+
+FilterResultInPlace Parser::filter_scalar_block_folded_in_place(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept
+{
+    FilterProcessorInplace proc(scalar, cap);
     return _filter_block_folded(proc, indentation, chomp);
 }
 
@@ -5639,7 +5639,7 @@ FilterResult Parser::filter_scalar_block_folded(csubstr scalar, substr dst, size
 csubstr Parser::_filter_scalar_plain(substr s, size_t indentation)
 {
     _c4dbgpf("filtering plain scalar: s=[{}]~~~{}~~~", s.len, s);
-    FilterResult r = this->filter_scalar_plain_in_place(s, s.len, indentation);
+    FilterResultInPlace r = this->filter_scalar_plain_in_place(s, s.len, indentation);
     _RYML_CB_ASSERT(m_stack.m_callbacks, r.valid());
     _c4dbgpf("filtering plain scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
     return r.get();
@@ -5650,7 +5650,7 @@ csubstr Parser::_filter_scalar_plain(substr s, size_t indentation)
 csubstr Parser::_filter_scalar_squot(substr s)
 {
     _c4dbgpf("filtering squo scalar: s=[{}]~~~{}~~~", s.len, s);
-    FilterResult r = this->filter_scalar_squoted_in_place(s, s.len);
+    FilterResultInPlace r = this->filter_scalar_squoted_in_place(s, s.len);
     _RYML_CB_ASSERT(this->callbacks(), r.valid());
     _c4dbgpf("filtering squo scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
     return r.get();
@@ -5661,7 +5661,7 @@ csubstr Parser::_filter_scalar_squot(substr s)
 csubstr Parser::_filter_scalar_dquot(substr s)
 {
     _c4dbgpf("filtering dquo scalar: s=[{}]~~~{}~~~", s.len, s);
-    FilterResult r = this->filter_scalar_dquoted_in_place(s, s.len);
+    FilterResultInPlace r = this->filter_scalar_dquoted_in_place(s, s.len);
     if(C4_LIKELY(r.valid()))
     {
         _c4dbgpf("filtering dquo scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
@@ -5676,11 +5676,11 @@ csubstr Parser::_filter_scalar_dquot(substr s)
         substr dst = m_tree->alloc_arena(len);
         _c4dbgpf("filtering dquo scalar: dst.len={}", dst.len);
         _RYML_CB_ASSERT(this->callbacks(), dst.len == len);
-        r = this->filter_scalar_dquoted(s, dst);
-        _c4dbgpf("filtering dquo scalar: ... result now needs {} was {}", r.required_len(), len);
-        _RYML_CB_ASSERT(this->callbacks(), r.required_len() == len);
-        _RYML_CB_CHECK(m_stack.m_callbacks, r.valid());
-        _c4dbgpf("filtering dquo scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
+        FilterResult rsd = this->filter_scalar_dquoted(s, dst);
+        _c4dbgpf("filtering dquo scalar: ... result now needs {} was {}", rsd.required_len(), len);
+        _RYML_CB_ASSERT(this->callbacks(), rsd.required_len() == len);
+        _RYML_CB_CHECK(m_stack.m_callbacks, rsd.valid());
+        _c4dbgpf("filtering dquo scalar: success! s=[{}]~~~{}~~~", rsd.get().len, rsd.get());
         return r.get();
     }
 }
@@ -5690,7 +5690,7 @@ csubstr Parser::_filter_scalar_dquot(substr s)
 csubstr Parser::_filter_scalar_block_literal(substr s, BlockChomp_e chomp, size_t indentation)
 {
     _c4dbgpf("filtering block literal scalar: s=[{}]~~~{}~~~", s.len, s);
-    FilterResult r = this->filter_scalar_block_literal_in_place(s, s.len, indentation, chomp);
+    FilterResultInPlace r = this->filter_scalar_block_literal_in_place(s, s.len, indentation, chomp);
     if(C4_LIKELY(r.valid()))
     {
         _c4dbgpf("filtering block literal scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
@@ -5701,9 +5701,9 @@ csubstr Parser::_filter_scalar_block_literal(substr s, BlockChomp_e chomp, size_
         _c4dbgpf("filtering block literal scalar: not enough space: needs {}, have {}", r.required_len(), s.len);
         _RYML_CB_ASSERT(this->callbacks(), m_tree);
         substr dst = m_tree->alloc_arena(r.required_len());
-        r = this->filter_scalar_block_literal(s, dst, indentation, chomp);
-        _RYML_CB_CHECK(m_stack.m_callbacks, r.valid());
-        _c4dbgpf("filtering block literal scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
+        FilterResult rsd = this->filter_scalar_block_literal(s, dst, indentation, chomp);
+        _RYML_CB_CHECK(m_stack.m_callbacks, rsd.valid());
+        _c4dbgpf("filtering block literal scalar: success! s=[{}]~~~{}~~~", rsd.get().len, rsd.get());
         return r.get();
     }
 }
@@ -5713,7 +5713,7 @@ csubstr Parser::_filter_scalar_block_literal(substr s, BlockChomp_e chomp, size_
 csubstr Parser::_filter_scalar_block_folded(substr s, BlockChomp_e chomp, size_t indentation)
 {
     _c4dbgpf("filtering block folded scalar: s=[{}]~~~{}~~~", s.len, s);
-    FilterResult r = this->filter_scalar_block_folded_in_place(s, s.len, indentation, chomp);
+    FilterResultInPlace r = this->filter_scalar_block_folded_in_place(s, s.len, indentation, chomp);
     if(C4_LIKELY(r.valid()))
     {
         _c4dbgpf("filtering block folded scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
@@ -5724,9 +5724,9 @@ csubstr Parser::_filter_scalar_block_folded(substr s, BlockChomp_e chomp, size_t
         _c4dbgpf("filtering block folded scalar: not enough space: needs {}, have {}", r.required_len(), s.len);
         _RYML_CB_ASSERT(this->callbacks(), m_tree);
         substr dst = m_tree->alloc_arena(r.required_len());
-        r = this->filter_scalar_block_folded(s, dst, indentation, chomp);
-        _RYML_CB_CHECK(m_stack.m_callbacks, r.valid());
-        _c4dbgpf("filtering block folded scalar: success! s=[{}]~~~{}~~~", r.get().len, r.get());
+        FilterResult rsd = this->filter_scalar_block_folded(s, dst, indentation, chomp);
+        _RYML_CB_CHECK(m_stack.m_callbacks, rsd.valid());
+        _c4dbgpf("filtering block folded scalar: success! s=[{}]~~~{}~~~", rsd.get().len, rsd.get());
         return r.get();
     }
 }

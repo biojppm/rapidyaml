@@ -291,27 +291,27 @@ public:
     /** filter a plain scalar */
     FilterResult filter_scalar_plain(csubstr scalar, substr dst, size_t indentation) noexcept;
     /** filter a plain scalar in place */
-    FilterResult filter_scalar_plain_in_place(substr scalar, size_t cap, size_t indentation) noexcept;
+    FilterResultInPlace filter_scalar_plain_in_place(substr scalar, size_t cap, size_t indentation) noexcept;
 
     /** filter a single-quoted scalar */
     FilterResult filter_scalar_squoted(csubstr scalar, substr dst) noexcept;
     /** filter a single-quoted scalar in place */
-    FilterResult filter_scalar_squoted_in_place(substr scalar, size_t cap) noexcept;
+    FilterResultInPlace filter_scalar_squoted_in_place(substr scalar, size_t cap) noexcept;
 
     /** filter a double-quoted scalar */
     FilterResult filter_scalar_dquoted(csubstr scalar, substr dst);
     /** filter a double-quoted scalar in place */
-    FilterResult filter_scalar_dquoted_in_place(substr scalar, size_t cap);
+    FilterResultInPlace filter_scalar_dquoted_in_place(substr scalar, size_t cap);
 
     /** filter a block-literal scalar */
     FilterResult filter_scalar_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp) noexcept;
     /** filter a block-literal scalar in place */
-    FilterResult filter_scalar_block_literal_in_place(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept;
+    FilterResultInPlace filter_scalar_block_literal_in_place(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept;
 
     /** filter a block-folded scalar */
     FilterResult filter_scalar_block_folded(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp) noexcept;
     /** filter a block-folded scalar in place */
-    FilterResult filter_scalar_block_folded_in_place(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept;
+    FilterResultInPlace filter_scalar_block_folded_in_place(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept;
 
     /** @} */
 
@@ -434,11 +434,11 @@ private:
 
 public:
 
-    template<class FilterProcessor> FilterResult _filter_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation) noexcept;
-    template<class FilterProcessor> FilterResult _filter_squoted(FilterProcessor &C4_RESTRICT proc) noexcept;
-    template<class FilterProcessor> FilterResult _filter_dquoted(FilterProcessor &C4_RESTRICT proc);
-    template<class FilterProcessor> FilterResult _filter_block_literal(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp) noexcept;
-    template<class FilterProcessor> FilterResult _filter_block_folded(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp) noexcept;
+    template<class FilterProcessor> auto _filter_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation) noexcept -> decltype(proc.result());
+    template<class FilterProcessor> auto _filter_squoted(FilterProcessor &C4_RESTRICT proc) noexcept -> decltype(proc.result());
+    template<class FilterProcessor> auto _filter_dquoted(FilterProcessor &C4_RESTRICT proc) -> decltype(proc.result());
+    template<class FilterProcessor> auto _filter_block_literal(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp) noexcept -> decltype(proc.result());
+    template<class FilterProcessor> auto _filter_block_folded(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp) noexcept -> decltype(proc.result());
 
 public:
 

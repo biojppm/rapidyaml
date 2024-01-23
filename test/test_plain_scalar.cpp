@@ -67,7 +67,7 @@ void test_filter_inplace(csubstr input, csubstr expected, size_t indentation)
         substr dst = full.first(input.len);
         // filter now
         Parser proc = {};
-        FilterResult result = proc.filter_scalar_plain_in_place(dst, cap, indentation);
+        FilterResultInPlace result = proc.filter_scalar_plain_in_place(dst, cap, indentation);
         EXPECT_EQ(result.required_len(), expected.len) << (result.valid() ? result.get().str : "(no out.str)");
         if(result.valid())
         {
