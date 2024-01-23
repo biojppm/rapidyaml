@@ -179,7 +179,6 @@ Parser::Parser(Callbacks const& cb, ParserOptions opts)
     , m_key_anchor()
     , m_val_anchor_indentation(0)
     , m_val_anchor()
-    , m_filter_arena()
     , m_newline_offsets()
     , m_newline_offsets_size(0)
     , m_newline_offsets_capacity(0)
@@ -208,7 +207,6 @@ Parser::Parser(Parser &&that)
     , m_key_anchor(that.m_key_anchor)
     , m_val_anchor_indentation(that.m_val_anchor_indentation)
     , m_val_anchor(that.m_val_anchor)
-    , m_filter_arena(that.m_filter_arena)
     , m_newline_offsets(that.m_newline_offsets)
     , m_newline_offsets_size(that.m_newline_offsets_size)
     , m_newline_offsets_capacity(that.m_newline_offsets_capacity)
@@ -236,7 +234,6 @@ Parser::Parser(Parser const& that)
     , m_key_anchor(that.m_key_anchor)
     , m_val_anchor_indentation(that.m_val_anchor_indentation)
     , m_val_anchor(that.m_val_anchor)
-    , m_filter_arena()
     , m_newline_offsets()
     , m_newline_offsets_size()
     , m_newline_offsets_capacity()
@@ -248,10 +245,6 @@ Parser::Parser(Parser const& that)
         _RYML_CB_CHECK(m_stack.m_callbacks, m_newline_offsets_capacity == that.m_newline_offsets_capacity);
         memcpy(m_newline_offsets, that.m_newline_offsets, that.m_newline_offsets_size * sizeof(size_t));
         m_newline_offsets_size = that.m_newline_offsets_size;
-    }
-    if(that.m_filter_arena.len)
-    {
-        _resize_filter_arena(that.m_filter_arena.len);
     }
 }
 
@@ -276,7 +269,6 @@ Parser& Parser::operator=(Parser &&that)
     m_key_anchor = (that.m_key_anchor);
     m_val_anchor_indentation = (that.m_val_anchor_indentation);
     m_val_anchor = (that.m_val_anchor);
-    m_filter_arena = that.m_filter_arena;
     m_newline_offsets = (that.m_newline_offsets);
     m_newline_offsets_size = (that.m_newline_offsets_size);
     m_newline_offsets_capacity = (that.m_newline_offsets_capacity);
@@ -306,8 +298,6 @@ Parser& Parser::operator=(Parser const& that)
     m_key_anchor = (that.m_key_anchor);
     m_val_anchor_indentation = (that.m_val_anchor_indentation);
     m_val_anchor = (that.m_val_anchor);
-    if(that.m_filter_arena.len > 0)
-        _resize_filter_arena(that.m_filter_arena.len);
     if(that.m_newline_offsets_capacity > m_newline_offsets_capacity)
         _resize_locations(that.m_newline_offsets_capacity);
     _RYML_CB_CHECK(m_stack.m_callbacks, m_newline_offsets_capacity >= that.m_newline_offsets_capacity);
@@ -338,7 +328,6 @@ void Parser::_clr()
     m_key_anchor = {};
     m_val_anchor_indentation = {};
     m_val_anchor = {};
-    m_filter_arena = {};
     m_newline_offsets = {};
     m_newline_offsets_size = {};
     m_newline_offsets_capacity = {};
@@ -354,11 +343,6 @@ void Parser::_free()
         m_newline_offsets_size = 0u;
         m_newline_offsets_capacity = 0u;
         m_newline_offsets_buf = 0u;
-    }
-    if(m_filter_arena.len)
-    {
-        _RYML_CB_FREE(m_stack.m_callbacks, m_filter_arena.str, char, m_filter_arena.len);
-        m_filter_arena = {};
     }
     m_stack._free();
 }
@@ -5887,50 +5871,6 @@ csubstr Parser::_prfl(substr buf, flag_t flags)
     RYML_ASSERT(pos <= buf.len);
 
     return buf.first(pos);
-}
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-void Parser::_grow_filter_arena(size_t num_characters_needed)
-{
-    _c4dbgpf("grow: arena={} numchars={}", m_filter_arena.len, num_characters_needed);
-    if(num_characters_needed <= m_filter_arena.len)
-        return;
-    size_t sz = m_filter_arena.len << 1;
-    _c4dbgpf("grow: sz={}", sz);
-    sz = num_characters_needed > sz ? num_characters_needed : sz;
-    _c4dbgpf("grow: sz={}", sz);
-    sz = sz < 128u ? 128u : sz;
-    _c4dbgpf("grow: sz={}", sz);
-    _RYML_CB_ASSERT(m_stack.m_callbacks, sz >= num_characters_needed);
-    _resize_filter_arena(sz);
-}
-
-void Parser::_resize_filter_arena(size_t num_characters)
-{
-    if(num_characters > m_filter_arena.len)
-    {
-        _c4dbgpf("resize: sz={}", num_characters);
-        char *prev = m_filter_arena.str;
-        if(m_filter_arena.str)
-        {
-            _RYML_CB_ASSERT(m_stack.m_callbacks, m_filter_arena.len > 0);
-            _RYML_CB_FREE(m_stack.m_callbacks, m_filter_arena.str, char, m_filter_arena.len);
-        }
-        m_filter_arena.str = _RYML_CB_ALLOC_HINT(m_stack.m_callbacks, char, num_characters, prev);
-        m_filter_arena.len = num_characters;
-    }
-}
-
-substr Parser::_finish_filter_arena(substr dst, size_t pos)
-{
-    _RYML_CB_ASSERT(m_stack.m_callbacks, pos <= m_filter_arena.len);
-    _RYML_CB_ASSERT(m_stack.m_callbacks, pos <= dst.len);
-    memcpy(dst.str, m_filter_arena.str, pos);
-    return dst.first(pos);
 }
 
 

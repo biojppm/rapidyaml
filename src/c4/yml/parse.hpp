@@ -113,12 +113,8 @@ public:
         _resize_locations(num_source_lines);
     }
 
-    /** Reserve a certain capacity for the character arena used to
-     * filter scalars. */
-    void reserve_filter_arena(size_t num_characters)
-    {
-        _resize_filter_arena(num_characters);
-    }
+    RYML_DEPRECATED("filter arena no longer needed")
+    void reserve_filter_arena(size_t) {}
 
     /** @} */
 
@@ -138,7 +134,8 @@ public:
 
     size_t stack_capacity() const { return m_stack.capacity(); }
     size_t locations_capacity() const { return m_newline_offsets_capacity; }
-    size_t filter_arena_capacity() const { return m_filter_arena.len; }
+    RYML_DEPRECATED("filter arena no longer needed")
+    size_t filter_arena_capacity() const { return 0u; }
 
     ParserOptions const& options() const { return m_options; }
 
@@ -598,10 +595,6 @@ private:
     void addrem_flags(flag_t on, flag_t off, State * s);
     void rem_flags(flag_t off, State * s);
 
-    void _resize_filter_arena(size_t num_characters);
-    void _grow_filter_arena(size_t num_characters);
-    substr _finish_filter_arena(substr dst, size_t pos);
-
     void _prepare_locations();
     void _resize_locations(size_t sz);
     bool _locations_dirty() const;
@@ -650,8 +643,6 @@ private:
     csubstr m_key_anchor;
     size_t  m_val_anchor_indentation;
     csubstr m_val_anchor;
-
-    substr m_filter_arena;
 
     size_t *m_newline_offsets;
     size_t  m_newline_offsets_size;
