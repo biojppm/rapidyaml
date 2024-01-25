@@ -51,6 +51,7 @@ void test_filter_src_dst(csubstr input, csubstr expected, size_t indentation, si
 
 void test_filter_inplace(csubstr input, csubstr expected, size_t indentation)
 {
+    EXPECT_LE(expected.len, input.len);
     // fill the dst buffer with a ref char to ensure there is no
     // write overflow.
     const size_t max_sz = (input.len > expected.len ? input.len : expected.len);
@@ -68,7 +69,8 @@ void test_filter_inplace(csubstr input, csubstr expected, size_t indentation)
         // filter now
         Parser proc = {};
         FilterResultInPlace result = proc.filter_scalar_plain_in_place(dst, cap, indentation);
-        EXPECT_EQ(result.required_len(), expected.len) << (result.valid() ? result.get().str : "(no out.str)");
+        EXPECT_EQ(result.get().len, expected.len) << (result.valid() ? result.get().str : "(no out.str)");
+        EXPECT_EQ(result.required_len(), input.len) << (result.valid() ? result.get().str : "(no out.str)");
         if(result.valid())
         {
         const csubstr out = result.get();

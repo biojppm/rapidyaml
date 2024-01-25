@@ -76,14 +76,10 @@ void test_filter_inplace(csubstr input, csubstr expected, csubstr leading_input,
         substr dst = full.first(input_sz);
         // filter now
         Parser parser1 = {};
-std::cout << "WTF0: input_sz=" << input_sz << "  -->  expected_sz=" << expected_sz << " " << subject_.size() << "\n";
         FilterResultInPlace result = parser1.filter_scalar_dquoted_in_place(dst, cap);
-std::cout << "WTF1: input_sz=" << input_sz << "  -->  expected_sz=" << expected_sz << " " << subject_2.size() << "\n";
         Parser parser2 = {};
         Tree tree = parser2.parse_in_arena("file", "# set the tree in the parser");
-std::cout << "WTF2: input_sz=" << input_sz << "  -->  expected_sz=" << expected_sz << " " << subject_2.size() << "\n";
         csubstr sresult = parser2._filter_scalar_dquot(to_substr(subject_2));
-std::cout << "WTF3: input_sz=" << input_sz << "  -->  expected_sz=" << expected_sz << " " << subject_2.size() << "\n";
         EXPECT_GE(result.required_len(), expected_sz);
         EXPECT_EQ(sresult.len, result.str.len);
         if(result.valid())
@@ -91,8 +87,7 @@ std::cout << "WTF3: input_sz=" << input_sz << "  -->  expected_sz=" << expected_
             const csubstr out = result.get();
             EXPECT_EQ(out, expected_);
             EXPECT_EQ(sresult, expected_);
-            EXPECT_EQ(sresult.str, out.str);
-            EXPECT_EQ(sresult.len, out.len);
+            EXPECT_EQ(sresult, out);
             // check the fill character in the canary region.
             EXPECT_GT(full.sub(max_sz).len, 0u);
             EXPECT_EQ(full.first_not_of(refchar, max_sz), csubstr::npos);

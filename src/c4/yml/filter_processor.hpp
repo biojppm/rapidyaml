@@ -118,7 +118,7 @@ struct FilterProcessorSrcDst
 // filter in place
 
 // debugging scaffold
-#if 1
+#if 0
 #define _c4dbgip(...) _c4dbgpf(__VA_ARGS__);
 #else
 #define _c4dbgip(...)

@@ -4787,7 +4787,7 @@ FilterResultInPlace Parser::filter_scalar_squoted_in_place(substr dst, size_t ca
 /* double quoted */
 
 // a debugging scaffold:
-#if 1
+#if 0
 #define _c4dbgfdq(fmt, ...) _c4dbgpf("filt_dquo[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
 #else
 #define _c4dbgfdq(...)
