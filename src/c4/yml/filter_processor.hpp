@@ -181,7 +181,7 @@ struct FilterProcessorInplace
     {
         if(wpos < wcap)  // respect write-capacity
         {
-            if(wpos <= rpos)
+            if((wpos <= rpos) && !unfiltered_chars)
                 src.str[wpos] = c;
         }
         else
@@ -197,7 +197,7 @@ struct FilterProcessorInplace
         RYML_ASSERT(num);
         if(wpos + num <= wcap)  // respect write-capacity
         {
-            if(wpos <= rpos)
+            if((wpos <= rpos) && !unfiltered_chars)
                 memset(src.str + wpos, c, num);
         }
         else
@@ -214,7 +214,7 @@ struct FilterProcessorInplace
         RYML_ASSERT(rpos < src.len);
         if(wpos < wcap)  // respect write-capacity
         {
-            if(wpos < rpos)  // write only if wpos is behind rpos
+            if((wpos < rpos) && !unfiltered_chars)  // write only if wpos is behind rpos
                 src.str[wpos] = src.str[rpos];
         }
         else
@@ -232,7 +232,7 @@ struct FilterProcessorInplace
         RYML_ASSERT(rpos+num <= src.len);
         if(wpos + num <= wcap)  // respect write-capacity
         {
-            if(wpos < rpos)  // write only if wpos is behind rpos
+            if((wpos < rpos) && !unfiltered_chars)  // write only if wpos is behind rpos
             {
                 if(wpos + num <= rpos) // there is no overlap
                     memcpy(src.str + wpos, src.str + rpos, num);
@@ -255,7 +255,7 @@ struct FilterProcessorInplace
         RYML_ASSERT(rpos + 2 <= src.len);
         if(wpos < wcap) // respect write-capacity
         {
-            if(wpos <= rpos)
+            if((wpos <= rpos) && !unfiltered_chars)
                 src.str[wpos] = c;
         }
         else
@@ -277,7 +277,7 @@ struct FilterProcessorInplace
         const size_t rpos_next = rpos + nr + 1u; // add 1u to account for the escape character
         if(wpos_next <= rpos_next) // read and write do not overlap. just do a vanilla copy.
         {
-            if(wpos_next <= wcap)
+            if((wpos_next <= wcap) && !unfiltered_chars)
                 memcpy(src.str + wpos, s, nw);
             rpos = rpos_next;
             wpos = wpos_next;
@@ -292,8 +292,11 @@ struct FilterProcessorInplace
                 RYML_ASSERT(rpos+nr+excess <= src.len);
                 if(wpos_next <= wcap)
                 {
-                    memmove(src.str + wpos_next, src.str + rpos_next, src.len - rpos_next);
-                    memcpy(src.str + wpos, s, nw);
+                    if(!unfiltered_chars)
+                    {
+                        memmove(src.str + wpos_next, src.str + rpos_next, src.len - rpos_next);
+                        memcpy(src.str + wpos, s, nw);
+                    }
                     rpos = wpos_next; // wpos, not rpos
                 }
                 else
@@ -313,7 +316,7 @@ struct FilterProcessorInplace
                 //const size_t unw = nw > (nr + 1u) ? nw - (nr + 1u) : 0;
                 RYML_ASSERT(rpos_next <= src.len);
                 const size_t required_size = wpos_next + (src.len - rpos_next);
-                _c4dbgip("inplace: add unfiltered {}->{}   maxcap={}->{}!", unfiltered_chars, true, maxcap, required_size);
+                _c4dbgip("inplace: add unfiltered {}->{}   maxcap={}->{}!", unfiltered_chars, true, maxcap, required_size > maxcap ? required_size : maxcap);
                 RYML_ASSERT(required_size > wcap);
                 unfiltered_chars = true;
                 maxcap = required_size > maxcap ? required_size : maxcap;

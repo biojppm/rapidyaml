@@ -4787,7 +4787,7 @@ FilterResultInPlace Parser::filter_scalar_squoted_in_place(substr dst, size_t ca
 /* double quoted */
 
 // a debugging scaffold:
-#if 0
+#if 1
 #define _c4dbgfdq(fmt, ...) _c4dbgpf("filt_dquo[{}->{}]: " fmt, proc.rpos, proc.wpos, __VA_ARGS__)
 #else
 #define _c4dbgfdq(...)
@@ -4991,6 +4991,10 @@ void Parser::_filter_dquoted_backslash(FilterProcessor &C4_RESTRICT proc)
     else if(next == '\0')
     {
         proc.skip();
+    }
+    else
+    {
+        _c4err("unknown character '{}' after '\\' pos={}", _c4prc(next), proc.rpos);
     }
     _c4dbgfdq("backslash...sofar=[{}]~~~{}~~~", proc.wpos, proc.sofar());
 }
