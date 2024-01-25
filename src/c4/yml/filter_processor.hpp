@@ -138,7 +138,7 @@ struct FilterProcessorInplace
         , wcap(wcap_)
         , rpos(0)
         , wpos(0)
-        , maxcap(0)
+        , maxcap(src.len)
         , unfiltered_chars(false)
     {
         RYML_ASSERT(wcap >= src.len);
@@ -153,10 +153,10 @@ struct FilterProcessorInplace
 
     C4_ALWAYS_INLINE FilterResultInPlace result() const noexcept
     {
-        _c4dbgip("inplace: wpos={} wcap={} unfiltered={}", this->wpos, this->wcap, this->unfiltered_chars);
+        _c4dbgip("inplace: wpos={} wcap={} unfiltered={} maxcap={}", this->wpos, this->wcap, this->unfiltered_chars, this->maxcap);
         FilterResultInPlace ret;
         ret.str.str = (wpos <= wcap && !unfiltered_chars) ? src.str : nullptr;
-        ret.str.len = wpos + unfiltered_chars;
+        ret.str.len = wpos;
         ret.reqlen = maxcap;
         return ret;
     }
@@ -186,7 +186,7 @@ struct FilterProcessorInplace
         }
         else
         {
-            _c4dbgip("inplace: add unwritten {}->{}!", unfiltered_chars, true);
+            _c4dbgip("inplace: add unwritten {}->{}   maxcap={}->{}!", unfiltered_chars, true, maxcap, (wpos+1u > maxcap ? wpos+1u : maxcap));
             unfiltered_chars = true;
         }
         ++wpos;
@@ -202,7 +202,7 @@ struct FilterProcessorInplace
         }
         else
         {
-            _c4dbgip("inplace: add unwritten {}->{}!", unfiltered_chars, true);
+            _c4dbgip("inplace: add unwritten {}->{}   maxcap={}->{}!", unfiltered_chars, true, maxcap, (wpos+num > maxcap ? wpos+num : maxcap));
             unfiltered_chars = true;
         }
         wpos += num;
@@ -219,7 +219,7 @@ struct FilterProcessorInplace
         }
         else
         {
-            _c4dbgip("inplace: add unwritten {}->{} (wpos={}!=rpos={})={}  (wpos={}<wcap={})!", unfiltered_chars, true, wpos, rpos, wpos!=rpos, wpos, wcap, wpos<wcap);
+            _c4dbgip("inplace: add unwritten {}->{} (wpos={}!=rpos={})={}  (wpos={}<wcap={})   maxcap={}->{}!", unfiltered_chars, true, wpos, rpos, wpos!=rpos, wpos, wcap, wpos<wcap, maxcap, (wpos+1u > maxcap ? wpos+1u : maxcap));
             unfiltered_chars = true;
         }
         ++rpos;
@@ -242,7 +242,7 @@ struct FilterProcessorInplace
         }
         else
         {
-            _c4dbgip("inplace: add unwritten {}->{} (wpos={}!=rpos={})={}  (wpos={}<wcap={})!", unfiltered_chars, true, wpos, rpos, wpos!=rpos, wpos, wcap, wpos<wcap);
+            _c4dbgip("inplace: add unwritten {}->{} (wpos={}!=rpos={})={}  (wpos={}<wcap={})  maxcap={}->{}!", unfiltered_chars, true, wpos, rpos, wpos!=rpos, wpos, wcap, wpos<wcap);
             unfiltered_chars = true;
         }
         rpos += num;
@@ -252,6 +252,7 @@ struct FilterProcessorInplace
 
     void translate_esc(char c) noexcept
     {
+        RYML_ASSERT(rpos + 2 <= src.len);
         if(wpos < wcap) // respect write-capacity
         {
             if(wpos <= rpos)
@@ -259,7 +260,7 @@ struct FilterProcessorInplace
         }
         else
         {
-            _c4dbgip("inplace: add unfiltered {}->{}!", unfiltered_chars, true);
+            _c4dbgip("inplace: add unfiltered {}->{}  maxcap={}->{}!", unfiltered_chars, true, maxcap, (wpos+1u > maxcap ? wpos+1u : maxcap));
             unfiltered_chars = true;
         }
         rpos += 2;
@@ -278,13 +279,15 @@ struct FilterProcessorInplace
         {
             if(wpos_next <= wcap)
                 memcpy(src.str + wpos, s, nw);
-            wpos = wpos_next;
             rpos = rpos_next;
+            wpos = wpos_next;
+            maxcap = wpos > maxcap ? wpos : maxcap;
         }
         else // there is overlap. move the (to-be-read) string to the right.
         {
             const size_t excess = wpos_next - rpos_next;
-            if(src.len + excess <= wcap) // ensure we do not go past the end.
+            RYML_ASSERT(wpos_next > rpos_next);
+            if(src.len + excess <= wcap) // ensure we do not go past the end
             {
                 RYML_ASSERT(rpos+nr+excess <= src.len);
                 if(wpos_next <= wcap)
@@ -296,23 +299,28 @@ struct FilterProcessorInplace
                 else
                 {
                     rpos = rpos_next;
-                    const size_t unw = nw > (nr + 1u) ? nw - (nr + 1u) : 0;
-                    _c4dbgip("inplace: add unfiltered {}->{}!", unfiltered_chars, unfiltered_chars+unw);
-                    unfiltered_chars += unw;
+                    //const size_t unw = nw > (nr + 1u) ? nw - (nr + 1u) : 0;
+                    _c4dbgip("inplace: add unfiltered {}->{}   maxcap={}->{}!", unfiltered_chars, true);
+                    unfiltered_chars = true;
                 }
+                wpos = wpos_next;
                 // extend the string up to capacity
                 src.len += excess;
+                maxcap = wpos > maxcap ? wpos : maxcap;
             }
             else
             {
+                //const size_t unw = nw > (nr + 1u) ? nw - (nr + 1u) : 0;
+                RYML_ASSERT(rpos_next <= src.len);
+                const size_t required_size = wpos_next + (src.len - rpos_next);
+                _c4dbgip("inplace: add unfiltered {}->{}   maxcap={}->{}!", unfiltered_chars, true, maxcap, required_size);
+                RYML_ASSERT(required_size > wcap);
+                unfiltered_chars = true;
+                maxcap = required_size > maxcap ? required_size : maxcap;
+                wpos = wpos_next;
                 rpos = rpos_next;
-                const size_t unw = nw > (nr + 1u) ? nw - (nr + 1u) : 0;
-                _c4dbgip("inplace: add unfiltered {}->{}!", unfiltered_chars, unfiltered_chars+unw);
-                unfiltered_chars += unw;
             }
-            wpos = wpos_next;
         }
-        maxcap = wpos > maxcap ? wpos : maxcap;
     }
 };
 

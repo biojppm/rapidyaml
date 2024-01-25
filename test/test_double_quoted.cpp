@@ -84,8 +84,8 @@ std::cout << "WTF1: input_sz=" << input_sz << "  -->  expected_sz=" << expected_
 std::cout << "WTF2: input_sz=" << input_sz << "  -->  expected_sz=" << expected_sz << " " << subject_2.size() << "\n";
         csubstr sresult = parser2._filter_scalar_dquot(to_substr(subject_2));
 std::cout << "WTF3: input_sz=" << input_sz << "  -->  expected_sz=" << expected_sz << " " << subject_2.size() << "\n";
-        EXPECT_EQ(result.required_len(), expected_sz);
-        EXPECT_EQ(sresult.len, expected_sz);
+        EXPECT_GE(result.required_len(), expected_sz);
+        EXPECT_EQ(sresult.len, result.str.len);
         if(result.valid())
         {
             const csubstr out = result.get();

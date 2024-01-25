@@ -5670,7 +5670,6 @@ csubstr Parser::_filter_scalar_dquot(substr s)
     else
     {
         const size_t len = r.required_len();
-        _RYML_CB_ASSERT(this->callbacks(), s.len < len);
         _c4dbgpf("filtering dquo scalar: not enough space: needs {}, have {}", len, s.len);
         _RYML_CB_ASSERT(this->callbacks(), m_tree);
         substr dst = m_tree->alloc_arena(len);
@@ -5678,10 +5677,10 @@ csubstr Parser::_filter_scalar_dquot(substr s)
         _RYML_CB_ASSERT(this->callbacks(), dst.len == len);
         FilterResult rsd = this->filter_scalar_dquoted(s, dst);
         _c4dbgpf("filtering dquo scalar: ... result now needs {} was {}", rsd.required_len(), len);
-        _RYML_CB_ASSERT(this->callbacks(), rsd.required_len() == len);
+        _RYML_CB_ASSERT(this->callbacks(), rsd.required_len() <= len); // may be smaller!
         _RYML_CB_CHECK(m_stack.m_callbacks, rsd.valid());
         _c4dbgpf("filtering dquo scalar: success! s=[{}]~~~{}~~~", rsd.get().len, rsd.get());
-        return r.get();
+        return rsd.get();
     }
 }
 
@@ -5704,7 +5703,7 @@ csubstr Parser::_filter_scalar_block_literal(substr s, BlockChomp_e chomp, size_
         FilterResult rsd = this->filter_scalar_block_literal(s, dst, indentation, chomp);
         _RYML_CB_CHECK(m_stack.m_callbacks, rsd.valid());
         _c4dbgpf("filtering block literal scalar: success! s=[{}]~~~{}~~~", rsd.get().len, rsd.get());
-        return r.get();
+        return rsd.get();
     }
 }
 
@@ -5727,7 +5726,7 @@ csubstr Parser::_filter_scalar_block_folded(substr s, BlockChomp_e chomp, size_t
         FilterResult rsd = this->filter_scalar_block_folded(s, dst, indentation, chomp);
         _RYML_CB_CHECK(m_stack.m_callbacks, rsd.valid());
         _c4dbgpf("filtering block folded scalar: success! s=[{}]~~~{}~~~", rsd.get().len, rsd.get());
-        return r.get();
+        return rsd.get();
     }
 }
 

@@ -810,6 +810,215 @@ TEST(FilterProcessorInplace, set_after_translate_esc_bulk_excess__trimmed_capaci
     }
 }
 
+TEST(FilterProcessorInplace, translate_esc_with_temporary_excess_requirement__trimmed_capacity)
+{
+    InplaceTester t("00112233445566");
+    t.trim_capacity();
+    EXPECT_EQ(t.proc.wcap, 14);
+    EXPECT_EQ(t.proc.rpos, 0);
+    EXPECT_EQ(t.proc.wpos, 0);
+    EXPECT_EQ(t.proc.src.len, 14);
+    EXPECT_FALSE(t.proc.unfiltered_chars);
+    EXPECT_EQ(t.proc.sofar(), "");
+    EXPECT_EQ(t.proc.maxcap, 14);
+    // 00112233445566
+    // ^ (rpos)
+    // ^ (wpos)
+    t.proc.translate_esc("aaaa", /*nw*/4, /*nr*/1);
+    EXPECT_EQ(t.proc.rpos, 2);
+    EXPECT_EQ(t.proc.wpos, 4);
+    EXPECT_EQ(t.proc.src.len, 14);
+    EXPECT_EQ(t.proc.sofar(), "0011");
+    EXPECT_EQ(t.proc.result().str.str, nullptr);
+    EXPECT_EQ(t.proc.result().str.len, 4);
+    EXPECT_EQ(t.proc.result().required_len(), 16);
+    EXPECT_EQ(t.subject, "00112233445566");
+    EXPECT_EQ(t.proc.maxcap, 16);   // increased!
+    EXPECT_TRUE(t.proc.unfiltered_chars);
+    // 00112233445566
+    //   ^ (rpos)
+    //     ^ (wpos)
+    t.proc.translate_esc('b'); // do not write!
+    EXPECT_EQ(t.proc.rpos, 4);
+    EXPECT_EQ(t.proc.wpos, 5);
+    EXPECT_EQ(t.proc.src.len, 14);
+    EXPECT_EQ(t.proc.sofar(), "00112"); // must not set 'b'
+    EXPECT_EQ(t.proc.result().str.str, nullptr);
+    EXPECT_EQ(t.proc.result().str.len, 5);
+    EXPECT_EQ(t.proc.result().required_len(), 16);
+    EXPECT_EQ(t.subject, "00112233445566");
+    EXPECT_EQ(t.proc.maxcap, 16);
+    EXPECT_TRUE(t.proc.unfiltered_chars);
+    // 00112233445566
+    //     ^ (rpos)
+    //      ^ (wpos)
+    t.proc.translate_esc('c'); // do not write!
+    EXPECT_EQ(t.proc.rpos, 6);
+    EXPECT_EQ(t.proc.wpos, 6);
+    EXPECT_EQ(t.proc.src.len, 14);
+    EXPECT_EQ(t.proc.sofar(), "001122"); // must not set 'c'
+    EXPECT_EQ(t.proc.result().str.str, nullptr);
+    EXPECT_EQ(t.proc.result().str.len, 6);
+    EXPECT_EQ(t.proc.result().required_len(), 16);
+    EXPECT_EQ(t.subject, "00112233445566");
+    EXPECT_EQ(t.proc.maxcap, 16);
+    EXPECT_TRUE(t.proc.unfiltered_chars);
+    // 00112233445566
+    //       ^ (rpos)
+    //       ^ (wpos)
+    t.proc.translate_esc('d'); // can write
+    EXPECT_EQ(t.proc.rpos, 8);
+    EXPECT_EQ(t.proc.wpos, 7);
+    EXPECT_EQ(t.proc.src.len, 14);
+    EXPECT_EQ(t.proc.sofar(), "001122d"); // can set because now wpos < rpos
+    EXPECT_EQ(t.proc.result().str.str, nullptr);
+    EXPECT_EQ(t.proc.result().str.len, 7);
+    EXPECT_EQ(t.proc.result().required_len(), 16);
+    EXPECT_EQ(t.subject, "001122d3445566");
+    EXPECT_EQ(t.proc.maxcap, 16);
+    EXPECT_TRUE(t.proc.unfiltered_chars);
+    // 00112233445566
+    //         ^ (rpos)
+    //        ^ (wpos)
+    t.proc.translate_esc('e'); // can write
+    EXPECT_EQ(t.proc.rpos, 10);
+    EXPECT_EQ(t.proc.wpos, 8);
+    EXPECT_EQ(t.proc.src.len, 14);
+    EXPECT_EQ(t.proc.sofar(), "001122de"); // can set because now wpos < rpos
+    EXPECT_EQ(t.proc.result().str.str, nullptr);
+    EXPECT_EQ(t.proc.result().str.len, 8);
+    EXPECT_EQ(t.proc.result().required_len(), 16);
+    EXPECT_EQ(t.subject, "001122de445566");
+    EXPECT_EQ(t.proc.maxcap, 16);
+    EXPECT_TRUE(t.proc.unfiltered_chars);
+    // 00112233445566
+    //           ^ (rpos)
+    //         ^ (wpos)
+    t.proc.translate_esc('f'); // can write
+    EXPECT_EQ(t.proc.rpos, 12);
+    EXPECT_EQ(t.proc.wpos, 9);
+    EXPECT_EQ(t.proc.src.len, 14);
+    EXPECT_EQ(t.proc.sofar(), "001122def"); // can set because now wpos < rpos
+    EXPECT_EQ(t.proc.result().str.str, nullptr);
+    EXPECT_EQ(t.proc.result().str.len, 9);
+    EXPECT_EQ(t.proc.result().required_len(), 16);
+    EXPECT_EQ(t.subject, "001122def45566");
+    EXPECT_EQ(t.proc.maxcap, 16);
+    EXPECT_TRUE(t.proc.unfiltered_chars);
+    // 00112233445566
+    //             ^ (rpos)
+    //          ^ (wpos)
+    t.proc.translate_esc('g'); // can write
+    EXPECT_EQ(t.proc.rpos, 14);
+    EXPECT_EQ(t.proc.wpos, 10);
+    EXPECT_EQ(t.proc.src.len, 14);
+    EXPECT_EQ(t.proc.sofar(), "001122defg"); // can set because now wpos < rpos
+    EXPECT_EQ(t.proc.result().str.str, nullptr);
+    EXPECT_EQ(t.proc.result().str.len, 10);
+    EXPECT_EQ(t.proc.result().required_len(), 16);
+    EXPECT_EQ(t.subject, "001122defg5566");
+    EXPECT_EQ(t.proc.maxcap, 16);
+    EXPECT_TRUE(t.proc.unfiltered_chars);
+    // 00112233445566
+    //               ^ (rpos)
+    //           ^ (wpos)
+    t.proc.set('h'); // can write
+    EXPECT_EQ(t.proc.rpos, 14);
+    EXPECT_EQ(t.proc.wpos, 11);
+    EXPECT_EQ(t.proc.src.len, 14);
+    EXPECT_EQ(t.proc.sofar(), "001122defgh"); // can set because now wpos < rpos
+    EXPECT_EQ(t.proc.result().str.str, nullptr);
+    EXPECT_EQ(t.proc.result().str.len, 11);
+    EXPECT_EQ(t.proc.result().required_len(), 16);
+    EXPECT_EQ(t.subject, "001122defgh566");
+    EXPECT_EQ(t.proc.maxcap, 16);
+    EXPECT_TRUE(t.proc.unfiltered_chars);
+    // 00112233445566
+    //               ^ (rpos)
+    //            ^ (wpos)
+    t.proc.set('i'); // can write
+    EXPECT_EQ(t.proc.rpos, 14);
+    EXPECT_EQ(t.proc.wpos, 12);
+    EXPECT_EQ(t.proc.src.len, 14);
+    EXPECT_EQ(t.proc.sofar(), "001122defghi"); // can set because now wpos < rpos
+    EXPECT_EQ(t.proc.result().str.str, nullptr);
+    EXPECT_EQ(t.proc.result().str.len, 12);
+    EXPECT_EQ(t.proc.result().required_len(), 16);
+    EXPECT_EQ(t.subject, "001122defghi66");
+    EXPECT_EQ(t.proc.maxcap, 16);
+    EXPECT_TRUE(t.proc.unfiltered_chars);
+    // 00112233445566
+    //               ^ (rpos)
+    //             ^ (wpos)
+    t.proc.set('j'); // can write
+    EXPECT_EQ(t.proc.rpos, 14);
+    EXPECT_EQ(t.proc.wpos, 13);
+    EXPECT_EQ(t.proc.src.len, 14);
+    EXPECT_EQ(t.proc.sofar(), "001122defghij"); // can set because now wpos < rpos
+    EXPECT_EQ(t.proc.result().str.str, nullptr);
+    EXPECT_EQ(t.proc.result().str.len, 13);
+    EXPECT_EQ(t.proc.result().required_len(), 16);
+    EXPECT_EQ(t.subject, "001122defghij6");
+    EXPECT_EQ(t.proc.maxcap, 16);
+    EXPECT_TRUE(t.proc.unfiltered_chars);
+    // 00112233445566
+    //               ^ (rpos)
+    //              ^ (wpos)
+    t.proc.set('k'); // can write
+    EXPECT_EQ(t.proc.rpos, 14);
+    EXPECT_EQ(t.proc.wpos, 14);
+    EXPECT_EQ(t.proc.src.len, 14);
+    EXPECT_EQ(t.proc.sofar(), "001122defghijk"); // can set because now wpos < rpos
+    EXPECT_EQ(t.proc.result().str.str, nullptr);
+    EXPECT_EQ(t.proc.result().str.len, 14);
+    EXPECT_EQ(t.proc.result().required_len(), 16);
+    EXPECT_EQ(t.subject, "001122defghijk");
+    EXPECT_EQ(t.proc.maxcap, 16);
+    EXPECT_TRUE(t.proc.unfiltered_chars);
+    // 00112233445566
+    //               ^ (rpos)
+    //               ^ (wpos)
+    t.proc.set('!'); // cannot write
+    EXPECT_EQ(t.proc.rpos, 14);
+    EXPECT_EQ(t.proc.wpos, 15);
+    EXPECT_EQ(t.proc.src.len, 14);
+    EXPECT_EQ(t.proc.sofar(), "001122defghijk"); // can set because now wpos < rpos
+    EXPECT_EQ(t.proc.result().str.str, nullptr);
+    EXPECT_EQ(t.proc.result().str.len, 15);
+    EXPECT_EQ(t.proc.result().required_len(), 16);
+    EXPECT_EQ(t.subject, "001122defghijk");
+    EXPECT_EQ(t.proc.maxcap, 16);
+    EXPECT_TRUE(t.proc.unfiltered_chars);
+    // 00112233445566
+    //               ^ (rpos)
+    //                ^ (wpos)
+    t.proc.set('!'); // cannot write
+    EXPECT_EQ(t.proc.rpos, 14);
+    EXPECT_EQ(t.proc.wpos, 16);
+    EXPECT_EQ(t.proc.src.len, 14);
+    EXPECT_EQ(t.proc.sofar(), "001122defghijk"); // can set because now wpos < rpos
+    EXPECT_EQ(t.proc.result().str.str, nullptr);
+    EXPECT_EQ(t.proc.result().str.len, 16);
+    EXPECT_EQ(t.proc.result().required_len(), 16);
+    EXPECT_EQ(t.subject, "001122defghijk");
+    EXPECT_EQ(t.proc.maxcap, 16);
+    EXPECT_TRUE(t.proc.unfiltered_chars);
+    // 00112233445566
+    //               ^ (rpos)
+    //                 ^ (wpos)
+    t.proc.set('!'); // cannot write
+    EXPECT_EQ(t.proc.rpos, 14);
+    EXPECT_EQ(t.proc.wpos, 17);
+    EXPECT_EQ(t.proc.src.len, 14);
+    EXPECT_EQ(t.proc.sofar(), "001122defghijk"); // can set because now wpos < rpos
+    EXPECT_EQ(t.proc.result().str.str, nullptr);
+    EXPECT_EQ(t.proc.result().str.len, 17);
+    EXPECT_EQ(t.proc.result().required_len(), 17); // increased!
+    EXPECT_EQ(t.subject, "001122defghijk");
+    EXPECT_EQ(t.proc.maxcap, 17);
+    EXPECT_TRUE(t.proc.unfiltered_chars);
+}
+
 TEST(FilterProcessorInplace, translate_esc_after_translate_esc_bulk_excess__trimmed_capacity)
 {
     {
