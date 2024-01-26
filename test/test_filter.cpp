@@ -14,7 +14,7 @@ struct InplaceTester
 {
     std::string buf;
     substr subject;
-    FilterProcessorInplace proc;
+    FilterProcessorInplaceExtending proc;
     C4_NO_COPY_OR_MOVE(InplaceTester);
     InplaceTester(const char *str)
         : buf(str)
@@ -33,7 +33,7 @@ struct InplaceTester
     {
         buf.reserve(cap);
         subject = to_substr(buf);
-        proc = FilterProcessorInplace(subject, cap);
+        proc = FilterProcessorInplaceExtending(subject, cap);
     }
 };
 

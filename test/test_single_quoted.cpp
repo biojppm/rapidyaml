@@ -35,7 +35,7 @@ void test_filter_inplace(csubstr input, csubstr expected)
     std::string subject_(input.str, input.len);
     c4::substr dst = to_substr(subject_);
     Parser proc = {};
-    FilterResultInPlace result = proc.filter_scalar_squoted_in_place(dst, subject_.size());
+    FilterResult result = proc.filter_scalar_squoted_in_place(dst, subject_.size());
     ASSERT_TRUE(result.valid());
     csubstr out = result.get();
     ASSERT_TRUE(out.str);

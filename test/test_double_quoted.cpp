@@ -76,7 +76,7 @@ void test_filter_inplace(csubstr input, csubstr expected, csubstr leading_input,
         substr dst = full.first(input_sz);
         // filter now
         Parser parser1 = {};
-        FilterResultInPlace result = parser1.filter_scalar_dquoted_in_place(dst, cap);
+        FilterResultExtending result = parser1.filter_scalar_dquoted_in_place(dst, cap);
         Parser parser2 = {};
         Tree tree = parser2.parse_in_arena("file", "# set the tree in the parser");
         csubstr sresult = parser2._filter_scalar_dquot(to_substr(subject_2));

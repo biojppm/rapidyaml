@@ -291,27 +291,27 @@ public:
     /** filter a plain scalar */
     FilterResult filter_scalar_plain(csubstr scalar, substr dst, size_t indentation) noexcept;
     /** filter a plain scalar in place */
-    FilterResultInPlace filter_scalar_plain_in_place(substr scalar, size_t cap, size_t indentation) noexcept;
+    FilterResult filter_scalar_plain_in_place(substr scalar, size_t cap, size_t indentation) noexcept;
 
     /** filter a single-quoted scalar */
     FilterResult filter_scalar_squoted(csubstr scalar, substr dst) noexcept;
     /** filter a single-quoted scalar in place */
-    FilterResultInPlace filter_scalar_squoted_in_place(substr scalar, size_t cap) noexcept;
+    FilterResult filter_scalar_squoted_in_place(substr scalar, size_t cap) noexcept;
 
     /** filter a double-quoted scalar */
     FilterResult filter_scalar_dquoted(csubstr scalar, substr dst);
     /** filter a double-quoted scalar in place */
-    FilterResultInPlace filter_scalar_dquoted_in_place(substr scalar, size_t cap);
+    FilterResultExtending filter_scalar_dquoted_in_place(substr scalar, size_t cap);
 
     /** filter a block-literal scalar */
     FilterResult filter_scalar_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp) noexcept;
     /** filter a block-literal scalar in place */
-    FilterResultInPlace filter_scalar_block_literal_in_place(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept;
+    FilterResult filter_scalar_block_literal_in_place(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept;
 
     /** filter a block-folded scalar */
     FilterResult filter_scalar_block_folded(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp) noexcept;
     /** filter a block-folded scalar in place */
-    FilterResultInPlace filter_scalar_block_folded_in_place(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept;
+    FilterResult filter_scalar_block_folded_in_place(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept;
 
     /** @} */
 
