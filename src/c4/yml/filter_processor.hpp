@@ -101,7 +101,7 @@ struct FilterProcessorSrcDst
         ++wpos;
         rpos += 2;
     }
-    C4_ALWAYS_INLINE void translate_esc(const char *C4_RESTRICT s, size_t nw, size_t nr) noexcept
+    C4_ALWAYS_INLINE void translate_esc_bulk(const char *C4_RESTRICT s, size_t nw, size_t nr) noexcept
     {
         RYML_ASSERT(nw > 0);
         RYML_ASSERT(nr > 0);
@@ -111,6 +111,10 @@ struct FilterProcessorSrcDst
         wpos += nw;
         rpos += 1 + nr;
     }
+    C4_ALWAYS_INLINE void translate_esc_extending(const char *C4_RESTRICT s, size_t nw, size_t nr) noexcept
+    {
+        translate_esc_bulk(s, nw, nr);
+    }
 };
 
 
@@ -118,20 +122,25 @@ struct FilterProcessorSrcDst
 // filter in place
 
 // debugging scaffold
-#if 0
-#define _c4dbgip(...) _c4dbgpf(__VA_ARGS__);
+#if defined(RYML_DBG) && 0
+#define _c4dbgip(...) _c4dbgpf(__VA_ARGS__)
 #else
 #define _c4dbgip(...)
 #endif
 
-struct FilterProcessorInplace__
+/** Filters in place. While the result may be larger than the source,
+ * any extending happens only at the end of the string. Consequently,
+ * it's impossible for characters to be left unfiltered.
+ *
+ * @see FilterProcessorInplaceMidExtending */
+struct FilterProcessorInplaceEndExtending
 {
     substr src;  ///< the subject string
     size_t wcap; ///< write capacity - the capacity of the subject string's buffer
     size_t rpos; ///< read position
     size_t wpos; ///< write position
 
-    C4_ALWAYS_INLINE FilterProcessorInplace__(substr src_, size_t wcap_) noexcept
+    C4_ALWAYS_INLINE FilterProcessorInplaceEndExtending(substr src_, size_t wcap_) noexcept
         : src(src_)
         , wcap(wcap_)
         , rpos(0)
@@ -149,7 +158,7 @@ struct FilterProcessorInplace__
 
     C4_ALWAYS_INLINE FilterResult result() const noexcept
     {
-        _c4dbgip("inplace: wpos={} wcap={} unfiltered={} maxcap={}", this->wpos, this->wcap, this->unfiltered_chars, this->maxcap);
+        _c4dbgip("inplace: wpos={} wcap={} small={}", wpos, wcap, wpos > rpos);
         FilterResult ret;
         ret.str.str = (wpos <= wcap) ? src.str : nullptr;
         ret.str.len = wpos;
@@ -174,7 +183,6 @@ struct FilterProcessorInplace__
     }
     void set(char c) noexcept
     {
-        RYML_ASSERT(wpos <= rpos);
         if(wpos < wcap)  // respect write-capacity
             src.str[wpos] = c;
         ++wpos;
@@ -182,7 +190,6 @@ struct FilterProcessorInplace__
     void set(char c, size_t num) noexcept
     {
         RYML_ASSERT(num);
-        RYML_ASSERT(wpos <= rpos);
         if(wpos + num <= wcap)  // respect write-capacity
             memset(src.str + wpos, c, num);
         wpos += num;
@@ -190,7 +197,7 @@ struct FilterProcessorInplace__
 
     void copy() noexcept
     {
-        RYML_ASSERT(wpos < rpos);
+        RYML_ASSERT(wpos <= rpos);
         RYML_ASSERT(rpos < src.len);
         if(wpos < wcap)  // respect write-capacity
             src.str[wpos] = src.str[rpos];
@@ -201,7 +208,7 @@ struct FilterProcessorInplace__
     {
         RYML_ASSERT(num);
         RYML_ASSERT(rpos+num <= src.len);
-        RYML_ASSERT(wpos < rpos);
+        RYML_ASSERT(wpos <= rpos);
         if(wpos + num <= wcap)  // respect write-capacity
         {
             if(wpos + num <= rpos) // there is no overlap
@@ -223,7 +230,7 @@ struct FilterProcessorInplace__
         ++wpos;
     }
 
-    C4_NO_INLINE void translate_esc(const char *C4_RESTRICT s, size_t nw, size_t nr) noexcept
+    void translate_esc_bulk(const char *C4_RESTRICT s, size_t nw, size_t nr) noexcept
     {
         RYML_ASSERT(nw > 0);
         RYML_ASSERT(nr > 0);
@@ -238,11 +245,26 @@ struct FilterProcessorInplace__
         rpos = rpos_next;
         wpos = wpos_next;
     }
+
+    C4_ALWAYS_INLINE void translate_esc_extending(const char *C4_RESTRICT s, size_t nw, size_t nr) noexcept
+    {
+        translate_esc_bulk(s, nw, nr);
+    }
 };
 
 
-//struct FilterProcessorInplaceExtending
-struct FilterProcessorInplaceExtending
+/** Filters in place. The result may be larger than the source, and
+ * extending may happen anywhere. As a result some characters may be
+ * left unfiltered when there is no slack in the buffer and the
+ * write-position would overlap the read-position. Consequently, it's
+ * possible for characters to be left unfiltered. In YAML, this
+ * happens only with double-quoted strings, and only with a small
+ * number of escape sequences such as \L which is substituted by three
+ * bytes. These escape sequences cause a call to translate_esc_extending()
+ * which is the only entry point to this unfiltered situation.
+ *
+ * @see FilterProcessorInplaceMidExtending */
+struct FilterProcessorInplaceMidExtending
 {
     substr src;  ///< the subject string
     size_t wcap; ///< write capacity - the capacity of the subject string's buffer
@@ -251,7 +273,7 @@ struct FilterProcessorInplaceExtending
     size_t maxcap; ///< the max capacity needed for filtering the string. This may be larger than the final string size.
     bool unfiltered_chars; ///< number of characters that were not added to wpos from lack of capacity
 
-    C4_ALWAYS_INLINE FilterProcessorInplaceExtending(substr src_, size_t wcap_) noexcept
+    C4_ALWAYS_INLINE FilterProcessorInplaceMidExtending(substr src_, size_t wcap_) noexcept
         : src(src_)
         , wcap(wcap_)
         , rpos(0)
@@ -386,7 +408,29 @@ struct FilterProcessorInplaceExtending
         maxcap = wpos > maxcap ? wpos : maxcap;
     }
 
-    C4_NO_INLINE void translate_esc(const char *C4_RESTRICT s, size_t nw, size_t nr) noexcept
+    C4_NO_INLINE void translate_esc_bulk(const char *C4_RESTRICT s, size_t nw, size_t nr) noexcept
+    {
+        RYML_ASSERT(nw > 0);
+        RYML_ASSERT(nr > 0);
+        RYML_ASSERT(nr+1u >= nw);
+        const size_t wpos_next = wpos + nw;
+        const size_t rpos_next = rpos + nr + 1u; // add 1u to account for the escape character
+        if(wpos_next <= wcap)  // respect write-capacity
+        {
+            if((wpos <= rpos) && !unfiltered_chars)  // write only if wpos is behind rpos
+                memcpy(src.str + wpos, s, nw);
+        }
+        else
+        {
+            _c4dbgip("inplace: add unwritten {}->{} (wpos={}!=rpos={})={}  (wpos={}<wcap={})  maxcap={}->{}!", unfiltered_chars, true, wpos, rpos, wpos!=rpos, wpos, wcap, wpos<wcap);
+            unfiltered_chars = true;
+        }
+        rpos = rpos_next;
+        wpos = wpos_next;
+        maxcap = wpos > maxcap ? wpos : maxcap;
+    }
+
+    C4_NO_INLINE void translate_esc_extending(const char *C4_RESTRICT s, size_t nw, size_t nr) noexcept
     {
         RYML_ASSERT(nw > 0);
         RYML_ASSERT(nr > 0);

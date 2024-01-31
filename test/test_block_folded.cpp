@@ -35,10 +35,16 @@ void test_filter_inplace(blockfolded_case const& blcase)
     if(blcase.input.len >= blcase.expected.len)
     {
         std::string subject_(blcase.input.str, blcase.input.len);
+        std::string subject_2 = subject_;
         c4::substr dst = to_substr(subject_);
-        Parser proc = {};
-        FilterResult result = proc.filter_scalar_block_folded_in_place(dst, subject_.size(), blcase.indentation, blcase.chomp);
+        Parser parser1 = {};
+        FilterResult result = parser1.filter_scalar_block_folded_in_place(dst, subject_.size(), blcase.indentation, blcase.chomp);
         ASSERT_TRUE(result.valid());
+        Parser parser2 = {};
+        Tree tree = parser2.parse_in_arena("file", "# set the tree in the parser");
+        csubstr sresult = parser2._filter_scalar_block_folded(to_substr(subject_2), blcase.chomp, blcase.indentation);
+        EXPECT_GE(result.required_len(), blcase.expected.len);
+        EXPECT_EQ(sresult.len, result.str.len);
         const csubstr out = result.get();
         if(blcase.chomp != CHOMP_CLIP)
         {
@@ -54,13 +60,19 @@ void test_filter_inplace(blockfolded_case const& blcase)
         {
             SCOPED_TRACE("spare size");
             std::string subject_(blcase.input.str, blcase.input.len);
+            std::string subject_2 = subject_;
             subject_.resize(blcase.expected.len + 30);
             c4::substr dst = to_substr(subject_).first(blcase.input.len);
             c4::substr rem = to_substr(subject_).sub(blcase.expected.len);
             rem.fill('^');
-            Parser proc = {};
-            FilterResult result = proc.filter_scalar_block_folded_in_place(dst, subject_.size(), blcase.indentation, blcase.chomp);
+            Parser parser1 = {};
+            FilterResult result = parser1.filter_scalar_block_folded_in_place(dst, subject_.size(), blcase.indentation, blcase.chomp);
             ASSERT_TRUE(result.valid());
+            Parser parser2 = {};
+            Tree tree = parser2.parse_in_arena("file", "# set the tree in the parser");
+            csubstr sresult = parser2._filter_scalar_block_folded(to_substr(subject_2), blcase.chomp, blcase.indentation);
+            EXPECT_GE(result.required_len(), blcase.expected.len);
+            EXPECT_EQ(sresult.len, result.str.len);
             const csubstr out = result.get();
             if(blcase.chomp != CHOMP_CLIP)
             {
@@ -75,11 +87,17 @@ void test_filter_inplace(blockfolded_case const& blcase)
         {
             SCOPED_TRACE("trimmed size");
             std::string subject_(blcase.input.str, blcase.input.len);
+            std::string subject_2 = subject_;
             subject_.resize(blcase.expected.len);
             c4::substr dst = to_substr(subject_).first(blcase.input.len);
             Parser proc = {};
             FilterResult result = proc.filter_scalar_block_folded_in_place(dst, subject_.size(), blcase.indentation, blcase.chomp);
             ASSERT_TRUE(result.valid());
+            Parser parser2 = {};
+            Tree tree = parser2.parse_in_arena("file", "# set the tree in the parser");
+            csubstr sresult = parser2._filter_scalar_block_folded(to_substr(subject_2), blcase.chomp, blcase.indentation);
+            EXPECT_GE(result.required_len(), blcase.expected.len);
+            EXPECT_EQ(sresult.len, result.str.len);
             const csubstr out = result.get();
             if(blcase.chomp != CHOMP_CLIP)
             {
@@ -93,9 +111,15 @@ void test_filter_inplace(blockfolded_case const& blcase)
         {
             SCOPED_TRACE("insufficient size");
             std::string subject_(blcase.input.str, blcase.input.len);
+            std::string subject_2 = subject_;
             c4::substr dst = to_substr(subject_);
             Parser proc = {};
             FilterResult result = proc.filter_scalar_block_folded_in_place(dst, subject_.size(), blcase.indentation, blcase.chomp);
+            Parser parser2 = {};
+            Tree tree = parser2.parse_in_arena("file", "# set the tree in the parser");
+            csubstr sresult = parser2._filter_scalar_block_folded(to_substr(subject_2), blcase.chomp, blcase.indentation);
+            EXPECT_GE(result.required_len(), blcase.expected.len);
+            EXPECT_EQ(sresult.len, result.str.len);
             if(blcase.chomp != CHOMP_CLIP)
             {
                 EXPECT_EQ(result.required_len(), blcase.expected.len);

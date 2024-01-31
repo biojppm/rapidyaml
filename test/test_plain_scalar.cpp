@@ -60,6 +60,7 @@ void test_filter_inplace(csubstr input, csubstr expected, size_t indentation)
     auto run = [&](size_t cap){
         // create the string
         std::string subject_(input.str, input.len);
+        std::string subject_2 = subject_;
         subject_.resize(full_sz);
         // fill the canary region
         const char refchar = '`';
@@ -67,10 +68,15 @@ void test_filter_inplace(csubstr input, csubstr expected, size_t indentation)
         full.sub(max_sz).fill(refchar);
         substr dst = full.first(input.len);
         // filter now
-        Parser proc = {};
-        FilterResult result = proc.filter_scalar_plain_in_place(dst, cap, indentation);
-        EXPECT_EQ(result.get().len, expected.len) << (result.valid() ? result.get().str : "(no out.str)");
-        EXPECT_EQ(result.required_len(), input.len) << (result.valid() ? result.get().str : "(no out.str)");
+        Parser parser1 = {};
+        FilterResult result = parser1.filter_scalar_plain_in_place(dst, cap, indentation);
+        EXPECT_EQ(result.get().len, expected.len);
+        EXPECT_EQ(result.required_len(), expected.len);
+        Parser parser2 = {};
+        Tree tree = parser2.parse_in_arena("file", "# set the tree in the parser");
+        csubstr sresult = parser2._filter_scalar_plain(to_substr(subject_2), indentation);
+        EXPECT_GE(result.required_len(), expected.len);
+        EXPECT_EQ(sresult.len, result.str.len);
         if(result.valid())
         {
         const csubstr out = result.get();

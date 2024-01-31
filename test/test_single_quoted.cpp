@@ -33,9 +33,15 @@ void test_filter_inplace(csubstr input, csubstr expected)
     RYML_TRACE_FMT("\nstr=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~", input.len, input, expected.len, expected);
     ASSERT_LE(expected.len, input.len);
     std::string subject_(input.str, input.len);
+    std::string subject_2 = subject_;
     c4::substr dst = to_substr(subject_);
-    Parser proc = {};
-    FilterResult result = proc.filter_scalar_squoted_in_place(dst, subject_.size());
+    Parser parser1 = {};
+    FilterResult result = parser1.filter_scalar_squoted_in_place(dst, subject_.size());
+    Parser parser2 = {};
+    Tree tree = parser2.parse_in_arena("file", "# set the tree in the parser");
+    csubstr sresult = parser2._filter_scalar_squot(to_substr(subject_2));
+    EXPECT_GE(result.required_len(), expected.len);
+    EXPECT_EQ(sresult.len, result.str.len);
     ASSERT_TRUE(result.valid());
     csubstr out = result.get();
     ASSERT_TRUE(out.str);

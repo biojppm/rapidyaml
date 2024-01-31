@@ -10,13 +10,14 @@
 namespace c4 {
 namespace yml {
 
-struct InplaceTester
+template<class Processor>
+struct TesterInplace_
 {
     std::string buf;
     substr subject;
-    FilterProcessorInplaceExtending proc;
-    C4_NO_COPY_OR_MOVE(InplaceTester);
-    InplaceTester(const char *str)
+    Processor proc;
+    C4_NO_COPY_OR_MOVE(TesterInplace_);
+    TesterInplace_(const char *str)
         : buf(str)
         , subject(to_substr(buf))
         , proc(subject, buf.capacity())
@@ -33,19 +34,22 @@ struct InplaceTester
     {
         buf.reserve(cap);
         subject = to_substr(buf);
-        proc = FilterProcessorInplaceExtending(subject, cap);
+        proc = FilterProcessorInplaceMidExtending(subject, cap);
     }
 };
+using TesterInplaceMid = TesterInplace_<FilterProcessorInplaceMidExtending>;
+using TesterInplaceEnd = TesterInplace_<FilterProcessorInplaceEndExtending>;
 
-struct SrcDstTester
+
+struct TesterSrcDst
 {
     std::string src_;
     std::string dst_;
     csubstr src;
     substr dst;
     FilterProcessorSrcDst proc;
-    C4_NO_COPY_OR_MOVE(SrcDstTester);
-    SrcDstTester(const char *str)
+    C4_NO_COPY_OR_MOVE(TesterSrcDst);
+    TesterSrcDst(const char *str)
         : src_(str)
         , dst_(str)
         , src(to_csubstr(src_))
@@ -72,9 +76,9 @@ struct SrcDstTester
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-TEST(FilterProcessorInplace, set)
+TEST(FilterProcessorInplaceMid, set)
 {
-    InplaceTester t("subject");
+    TesterInplaceMid t("subject");
     EXPECT_EQ(t.proc.rpos, 0);
     EXPECT_EQ(t.proc.wpos, 0);
     EXPECT_FALSE(t.proc.unfiltered_chars);
@@ -122,9 +126,55 @@ TEST(FilterProcessorInplace, set)
     EXPECT_FALSE(t.proc.unfiltered_chars);
 }
 
+TEST(FilterProcessorInplaceEnd, set)
+{
+    TesterInplaceEnd t("subject");
+    EXPECT_EQ(t.proc.rpos, 0);
+    EXPECT_EQ(t.proc.wpos, 0);
+    EXPECT_EQ(t.proc.sofar(), "");
+    t.proc.skip();
+    EXPECT_EQ(t.proc.rpos, 1);
+    EXPECT_EQ(t.proc.wpos, 0);
+    EXPECT_EQ(t.proc.sofar(), "");
+    EXPECT_EQ(t.proc.result().get(), "");
+    EXPECT_EQ(t.subject, "subject");
+    t.proc.set('.');
+    EXPECT_EQ(t.proc.rpos, 1);
+    EXPECT_EQ(t.proc.wpos, 1);
+    EXPECT_EQ(t.proc.sofar(), ".");
+    EXPECT_EQ(t.proc.result().get(), ".");
+    EXPECT_EQ(t.subject, ".ubject");
+    t.proc.skip(2);
+    EXPECT_EQ(t.proc.rpos, 3);
+    EXPECT_EQ(t.proc.wpos, 1);
+    t.proc.set('.', 2);
+    EXPECT_EQ(t.proc.rpos, 3);
+    EXPECT_EQ(t.proc.wpos, 3);
+    EXPECT_EQ(t.subject, "...ject");
+    EXPECT_EQ(t.proc.sofar(), "...");
+    ASSERT_TRUE(t.proc.result().valid());
+    EXPECT_EQ(t.proc.result().get(), "...");
+    t.proc.skip(3);
+    t.proc.set('x', 3);
+    EXPECT_EQ(t.proc.wpos, 6);
+    EXPECT_EQ(t.proc.rpos, 6);
+    EXPECT_EQ(t.subject, "...xxxt");
+    EXPECT_EQ(t.proc.sofar(), "...xxx");
+    ASSERT_TRUE(t.proc.result().valid());
+    EXPECT_EQ(t.proc.result().get(), "...xxx");
+    t.proc.skip(1);
+    t.proc.set('.');
+    EXPECT_EQ(t.proc.wpos, 7);
+    EXPECT_EQ(t.proc.rpos, 7);
+    EXPECT_EQ(t.subject, "...xxx.");
+    EXPECT_EQ(t.proc.sofar(), "...xxx.");
+    ASSERT_TRUE(t.proc.result().valid());
+    EXPECT_EQ(t.proc.result().get(), "...xxx.");
+}
+
 TEST(FilterProcessorSrcDst, set)
 {
-    SrcDstTester t("subject");
+    TesterSrcDst t("subject");
     EXPECT_EQ(t.proc.wpos, 0);
     EXPECT_EQ(t.proc.rpos, 0);
     EXPECT_EQ(t.proc.sofar(), "");
@@ -156,11 +206,11 @@ TEST(FilterProcessorSrcDst, set)
     EXPECT_EQ(t.proc.result().get(), "...xxx");
 }
 
-TEST(FilterProcessorInplace, set_single_does_not_unfilter)
+TEST(FilterProcessorInplaceMid, set_single_does_not_unfilter)
 {
     // skip -> set
     {
-        InplaceTester t("0");
+        TesterInplaceMid t("0");
         t.trim_capacity();
         EXPECT_EQ(t.proc.wcap, 1);
         EXPECT_EQ(t.proc.rpos, 0);
@@ -179,7 +229,7 @@ TEST(FilterProcessorInplace, set_single_does_not_unfilter)
     }
     // set -> skip
     {
-        InplaceTester t("0");
+        TesterInplaceMid t("0");
         t.trim_capacity();
         EXPECT_EQ(t.proc.wcap, 1);
         EXPECT_EQ(t.proc.rpos, 0);
@@ -198,11 +248,49 @@ TEST(FilterProcessorInplace, set_single_does_not_unfilter)
     }
 }
 
-TEST(FilterProcessorInplace, set_bulk_does_not_unfilter)
+TEST(FilterProcessorInplaceEnd, set_single_does_not_unfilter)
 {
     // skip -> set
     {
-        InplaceTester t("0123");
+        TesterInplaceEnd t("0");
+        t.trim_capacity();
+        EXPECT_EQ(t.proc.wcap, 1);
+        EXPECT_EQ(t.proc.rpos, 0);
+        EXPECT_EQ(t.proc.wpos, 0);
+        EXPECT_EQ(t.proc.sofar(), "");
+        t.proc.skip();
+        EXPECT_EQ(t.proc.rpos, 1);
+        EXPECT_EQ(t.proc.wpos, 0);
+        t.proc.set('a');
+        EXPECT_EQ(t.proc.rpos, 1);
+        EXPECT_EQ(t.proc.wpos, 1);
+        EXPECT_EQ(t.proc.sofar(), "a");
+        EXPECT_EQ(t.proc.result().get(), "a");
+    }
+    // set -> skip
+    {
+        TesterInplaceEnd t("0");
+        t.trim_capacity();
+        EXPECT_EQ(t.proc.wcap, 1);
+        EXPECT_EQ(t.proc.rpos, 0);
+        EXPECT_EQ(t.proc.wpos, 0);
+        EXPECT_EQ(t.proc.sofar(), "");
+        t.proc.set('a');
+        EXPECT_EQ(t.proc.rpos, 0);
+        EXPECT_EQ(t.proc.wpos, 1);
+        t.proc.skip();
+        EXPECT_EQ(t.proc.rpos, 1);
+        EXPECT_EQ(t.proc.wpos, 1);
+        EXPECT_EQ(t.proc.sofar(), "a");
+        EXPECT_EQ(t.proc.result().get(), "a");
+    }
+}
+
+TEST(FilterProcessorInplaceMid, set_bulk_does_not_unfilter)
+{
+    // skip -> set
+    {
+        TesterInplaceMid t("0123");
         t.trim_capacity();
         EXPECT_EQ(t.proc.wcap, 4);
         EXPECT_EQ(t.proc.rpos, 0);
@@ -219,7 +307,7 @@ TEST(FilterProcessorInplace, set_bulk_does_not_unfilter)
     }
     // set -> skip
     {
-        InplaceTester t("0123");
+        TesterInplaceMid t("0123");
         t.trim_capacity();
         EXPECT_EQ(t.proc.wcap, 4);
         EXPECT_EQ(t.proc.rpos, 0);
@@ -233,16 +321,50 @@ TEST(FilterProcessorInplace, set_bulk_does_not_unfilter)
         EXPECT_EQ(t.proc.sofar(), "aaaa");
         EXPECT_EQ(t.proc.result().get(), "aaaa");
         EXPECT_FALSE(t.proc.unfiltered_chars);
+    }
+}
+
+TEST(FilterProcessorInplaceEnd, set_bulk_does_not_unfilter)
+{
+    // skip -> set
+    {
+        TesterInplaceEnd t("0123");
+        t.trim_capacity();
+        EXPECT_EQ(t.proc.wcap, 4);
+        EXPECT_EQ(t.proc.rpos, 0);
+        EXPECT_EQ(t.proc.wpos, 0);
+        EXPECT_EQ(t.proc.sofar(), "");
+        t.proc.skip(4);
+        t.proc.set('a', 4);
+        EXPECT_EQ(t.proc.rpos, 4);
+        EXPECT_EQ(t.proc.wpos, 4);
+        EXPECT_EQ(t.proc.sofar(), "aaaa");
+        EXPECT_EQ(t.proc.result().get(), "aaaa");
+    }
+    // set -> skip
+    {
+        TesterInplaceEnd t("0123");
+        t.trim_capacity();
+        EXPECT_EQ(t.proc.wcap, 4);
+        EXPECT_EQ(t.proc.rpos, 0);
+        EXPECT_EQ(t.proc.wpos, 0);
+        EXPECT_EQ(t.proc.sofar(), "");
+        t.proc.set('a', 4);
+        t.proc.skip(4);
+        EXPECT_EQ(t.proc.rpos, 4);
+        EXPECT_EQ(t.proc.wpos, 4);
+        EXPECT_EQ(t.proc.sofar(), "aaaa");
+        EXPECT_EQ(t.proc.result().get(), "aaaa");
     }
 }
 
 
 //-----------------------------------------------------------------------------
 
-TEST(FilterProcessorInplace, copy)
+TEST(FilterProcessorInplaceMid, copy)
 {
     {
-        InplaceTester t("subject");
+        TesterInplaceMid t("subject");
         EXPECT_EQ(t.proc.rpos, 0);
         EXPECT_EQ(t.proc.wpos, 0);
         EXPECT_FALSE(t.proc.unfiltered_chars);
@@ -278,7 +400,7 @@ TEST(FilterProcessorInplace, copy)
         EXPECT_FALSE(t.proc.unfiltered_chars);
     }
     {
-        InplaceTester t("s");
+        TesterInplaceMid t("s");
         t.trim_capacity();
         EXPECT_EQ(t.proc.wcap, 1);
         t.proc.copy();
@@ -290,7 +412,7 @@ TEST(FilterProcessorInplace, copy)
         EXPECT_FALSE(t.proc.unfiltered_chars);
     }
     {
-        InplaceTester t("0");
+        TesterInplaceMid t("0");
         t.trim_capacity();
         EXPECT_EQ(t.proc.wcap, 1);
         EXPECT_EQ(t.proc.rpos, 0);
@@ -305,7 +427,7 @@ TEST(FilterProcessorInplace, copy)
         EXPECT_EQ(t.subject, "0");
     }
     {
-        InplaceTester t("012345");
+        TesterInplaceMid t("012345");
         t.trim_capacity();
         EXPECT_EQ(t.proc.wcap, 6);
         EXPECT_EQ(t.proc.rpos, 0);
@@ -324,9 +446,85 @@ TEST(FilterProcessorInplace, copy)
     }
 }
 
+TEST(FilterProcessorInplaceEnd, copy)
+{
+    {
+        TesterInplaceEnd t("subject");
+        EXPECT_EQ(t.proc.rpos, 0);
+        EXPECT_EQ(t.proc.wpos, 0);
+        EXPECT_EQ(t.proc.sofar(), "");
+        EXPECT_EQ(t.proc.result().get(), "");
+        t.proc.copy();
+        EXPECT_EQ(t.proc.rpos, 1);
+        EXPECT_EQ(t.proc.wpos, 1);
+        EXPECT_EQ(t.proc.sofar(), "s");
+        EXPECT_EQ(t.proc.result().get(), "s");
+        EXPECT_EQ(t.subject, "subject");
+        t.proc.skip();
+        EXPECT_EQ(t.proc.rpos, 2);
+        EXPECT_EQ(t.proc.wpos, 1);
+        EXPECT_EQ(t.proc.sofar(), "s");
+        EXPECT_EQ(t.proc.result().get(), "s");
+        EXPECT_EQ(t.subject, "subject");
+        t.proc.copy();
+        EXPECT_EQ(t.proc.rpos, 3);
+        EXPECT_EQ(t.proc.wpos, 2);
+        EXPECT_EQ(t.proc.sofar(), "sb");
+        EXPECT_EQ(t.proc.result().get(), "sb");
+        EXPECT_EQ(t.subject, "sbbject");
+        t.proc.copy(4);
+        EXPECT_EQ(t.proc.rpos, 7);
+        EXPECT_EQ(t.proc.wpos, 6);
+        EXPECT_EQ(t.proc.sofar(), "sbject");
+        EXPECT_EQ(t.proc.result().get(), "sbject");
+        EXPECT_EQ(t.subject, "sbjectt");
+    }
+    {
+        TesterInplaceEnd t("s");
+        t.trim_capacity();
+        EXPECT_EQ(t.proc.wcap, 1);
+        t.proc.copy();
+        EXPECT_EQ(t.proc.rpos, 1);
+        EXPECT_EQ(t.proc.wpos, 1);
+        EXPECT_EQ(t.proc.sofar(), "s");
+        EXPECT_EQ(t.proc.result().get(), "s");
+        EXPECT_EQ(t.subject, "s");
+    }
+    {
+        TesterInplaceEnd t("0");
+        t.trim_capacity();
+        EXPECT_EQ(t.proc.wcap, 1);
+        EXPECT_EQ(t.proc.rpos, 0);
+        EXPECT_EQ(t.proc.wpos, 0);
+        EXPECT_EQ(t.proc.sofar(), "");
+        t.proc.copy();
+        EXPECT_EQ(t.proc.rpos, 1);
+        EXPECT_EQ(t.proc.wpos, 1);
+        EXPECT_EQ(t.proc.sofar(), "0");
+        EXPECT_EQ(t.proc.result().get(), "0");
+        EXPECT_EQ(t.subject, "0");
+    }
+    {
+        TesterInplaceEnd t("012345");
+        t.trim_capacity();
+        EXPECT_EQ(t.proc.wcap, 6);
+        EXPECT_EQ(t.proc.rpos, 0);
+        EXPECT_EQ(t.proc.wpos, 0);
+        EXPECT_EQ(t.proc.sofar(), "");
+        EXPECT_EQ(t.proc.result().get(), "");
+        EXPECT_EQ(t.subject, "012345");
+        t.proc.copy(6);
+        EXPECT_EQ(t.proc.rpos, 6);
+        EXPECT_EQ(t.proc.wpos, 6);
+        EXPECT_EQ(t.proc.sofar(), "012345");
+        EXPECT_EQ(t.proc.result().get(), "012345");
+        EXPECT_EQ(t.subject, "012345");
+    }
+}
+
 TEST(FilterProcessorSrcDst, copy)
 {
-    SrcDstTester t("subject");
+    TesterSrcDst t("subject");
     EXPECT_EQ(t.proc.rpos, 0);
     EXPECT_EQ(t.proc.wpos, 0);
     EXPECT_EQ(t.proc.sofar(), "");
@@ -357,9 +555,9 @@ TEST(FilterProcessorSrcDst, copy)
     EXPECT_EQ(t.dst, "sbjectt");
 }
 
-TEST(FilterProcessorInplace, copy_single_does_not_unfilter)
+TEST(FilterProcessorInplaceMid, copy_single_does_not_unfilter)
 {
-    InplaceTester t("0");
+    TesterInplaceMid t("0");
     t.trim_capacity();
     EXPECT_EQ(t.proc.wcap, 1);
     EXPECT_EQ(t.proc.rpos, 0);
@@ -374,9 +572,24 @@ TEST(FilterProcessorInplace, copy_single_does_not_unfilter)
     EXPECT_FALSE(t.proc.unfiltered_chars);
 }
 
-TEST(FilterProcessorInplace, copy_bulk_does_not_unfilter)
+TEST(FilterProcessorInplaceEnd, copy_single_does_not_unfilter)
 {
-    InplaceTester t("0123");
+    TesterInplaceEnd t("0");
+    t.trim_capacity();
+    EXPECT_EQ(t.proc.wcap, 1);
+    EXPECT_EQ(t.proc.rpos, 0);
+    EXPECT_EQ(t.proc.wpos, 0);
+    EXPECT_EQ(t.proc.sofar(), "");
+    t.proc.copy();
+    EXPECT_EQ(t.proc.rpos, 1);
+    EXPECT_EQ(t.proc.wpos, 1);
+    EXPECT_EQ(t.proc.sofar(), "0");
+    EXPECT_EQ(t.proc.result().get(), "0");
+}
+
+TEST(FilterProcessorInplaceMid, copy_bulk_does_not_unfilter)
+{
+    TesterInplaceMid t("0123");
     t.trim_capacity();
     EXPECT_EQ(t.proc.wcap, 4);
     EXPECT_EQ(t.proc.rpos, 0);
@@ -391,12 +604,27 @@ TEST(FilterProcessorInplace, copy_bulk_does_not_unfilter)
     EXPECT_FALSE(t.proc.unfiltered_chars);
 }
 
+TEST(FilterProcessorInplaceEnd, copy_bulk_does_not_unfilter)
+{
+    TesterInplaceEnd t("0123");
+    t.trim_capacity();
+    EXPECT_EQ(t.proc.wcap, 4);
+    EXPECT_EQ(t.proc.rpos, 0);
+    EXPECT_EQ(t.proc.wpos, 0);
+    EXPECT_EQ(t.proc.sofar(), "");
+    t.proc.copy(4);
+    EXPECT_EQ(t.proc.rpos, 4);
+    EXPECT_EQ(t.proc.wpos, 4);
+    EXPECT_EQ(t.proc.sofar(), "0123");
+    EXPECT_EQ(t.proc.result().get(), "0123");
+}
+
 
 //-----------------------------------------------------------------------------
 
-TEST(FilterProcessorInplace, translate_esc_single)
+TEST(FilterProcessorInplaceMid, translate_esc_single)
 {
-    InplaceTester t("\\t\\b\\n\\r\\t");
+    TesterInplaceMid t("\\t\\b\\n\\r\\t");
     t.trim_capacity();
     EXPECT_EQ(t.proc.wcap, 10);
     EXPECT_EQ(t.proc.rpos, 0);
@@ -457,9 +685,63 @@ TEST(FilterProcessorInplace, translate_esc_single)
     EXPECT_TRUE(t.proc.unfiltered_chars);
 }
 
+TEST(FilterProcessorInplaceEnd, translate_esc_single)
+{
+    TesterInplaceEnd t("\\t\\b\\n\\r\\t");
+    t.trim_capacity();
+    EXPECT_EQ(t.proc.wcap, 10);
+    EXPECT_EQ(t.proc.rpos, 0);
+    EXPECT_EQ(t.proc.wpos, 0);
+    EXPECT_EQ(t.proc.sofar(), "");
+    t.proc.translate_esc('\t');
+    EXPECT_EQ(t.proc.rpos, 2);
+    EXPECT_EQ(t.proc.wpos, 1);
+    EXPECT_EQ(t.proc.sofar(), "\t");
+    EXPECT_EQ(t.proc.result().get(), "\t");
+    EXPECT_EQ(t.subject, "\tt\\b\\n\\r\\t");
+    t.proc.translate_esc('\b');
+    EXPECT_EQ(t.proc.rpos, 4);
+    EXPECT_EQ(t.proc.wpos, 2);
+    EXPECT_EQ(t.proc.sofar(), "\t\b");
+    EXPECT_EQ(t.proc.result().get(), "\t\b");
+    EXPECT_EQ(t.subject, "\t\b\\b\\n\\r\\t");
+    t.proc.translate_esc('\n');
+    EXPECT_EQ(t.proc.rpos, 6);
+    EXPECT_EQ(t.proc.wpos, 3);
+    EXPECT_EQ(t.proc.sofar(), "\t\b\n");
+    EXPECT_EQ(t.proc.result().get(), "\t\b\n");
+    EXPECT_EQ(t.subject, "\t\b\nb\\n\\r\\t");
+    t.proc.translate_esc('\r');
+    EXPECT_EQ(t.proc.rpos, 8);
+    EXPECT_EQ(t.proc.wpos, 4);
+    EXPECT_EQ(t.proc.sofar(), "\t\b\n\r");
+    EXPECT_EQ(t.proc.result().get(), "\t\b\n\r");
+    EXPECT_EQ(t.subject, "\t\b\n\r\\n\\r\\t");
+    t.proc.translate_esc('\t');
+    EXPECT_EQ(t.proc.rpos, 10);
+    EXPECT_EQ(t.proc.wpos, 5);
+    EXPECT_EQ(t.proc.sofar(), "\t\b\n\r\t");
+    EXPECT_EQ(t.proc.result().get(), "\t\b\n\r\t");
+    EXPECT_EQ(t.subject, "\t\b\n\r\tn\\r\\t");
+    t.set_to_end(/*slack*/1);
+    EXPECT_EQ(t.proc.rpos, 10);
+    EXPECT_EQ(t.proc.wpos, 9);
+    EXPECT_EQ(t.subject, "\t\b\n\r\tn\\r\\t");
+    // can write this one
+    t.proc.set('+');
+    EXPECT_EQ(t.proc.rpos, 10); // this is fine, no read is done
+    EXPECT_EQ(t.proc.wpos, 10);
+    EXPECT_EQ(t.subject, "\t\b\n\r\tn\\r\\+");
+    // but this one will set to unfiltered
+    t.proc.set('x');
+    EXPECT_EQ(t.proc.rpos, 10); // this is fine, no read is done
+    EXPECT_EQ(t.proc.wpos, 11);
+    EXPECT_EQ(t.subject, "\t\b\n\r\tn\\r\\+");
+}
+
 TEST(FilterProcessorSrcDst, translate_esc_single)
 {
-    SrcDstTester t("\\t\\b\\n\\r\\t");
+    TesterSrcDst t("\\t\\b\\n\\r\\t");
     EXPECT_EQ(t.proc.rpos, 0);
     EXPECT_EQ(t.proc.wpos, 0);
     EXPECT_EQ(t.proc.sofar(), "");
@@ -504,44 +786,44 @@ TEST(FilterProcessorSrcDst, translate_esc_single)
 
 //-----------------------------------------------------------------------------
 
-TEST(FilterProcessorInplace, translate_esc_bulk)
+TEST(FilterProcessorInplaceMid, translate_esc_bulk)
 {
-    InplaceTester t("0011223344");
+    TesterInplaceMid t("0011223344");
     t.trim_capacity();
     EXPECT_EQ(t.proc.wcap, 10);
     EXPECT_EQ(t.proc.rpos, 0);
     EXPECT_EQ(t.proc.wpos, 0);
     EXPECT_FALSE(t.proc.unfiltered_chars);
     EXPECT_EQ(t.proc.sofar(), "");
-    t.proc.translate_esc("aa", /*nw*/2, /*nr*/1);
+    t.proc.translate_esc_bulk("aa", /*nw*/2, /*nr*/1);
     EXPECT_EQ(t.proc.rpos, 2);
     EXPECT_EQ(t.proc.wpos, 2);
     EXPECT_EQ(t.proc.sofar(), "aa");
     EXPECT_EQ(t.proc.result().get(), "aa");
     EXPECT_EQ(t.subject, "aa11223344");
     EXPECT_FALSE(t.proc.unfiltered_chars);
-    t.proc.translate_esc("bb", /*nw*/2, /*nr*/1);
+    t.proc.translate_esc_bulk("bb", /*nw*/2, /*nr*/1);
     EXPECT_EQ(t.proc.rpos, 4);
     EXPECT_EQ(t.proc.wpos, 4);
     EXPECT_EQ(t.proc.sofar(), "aabb");
     EXPECT_EQ(t.proc.result().get(), "aabb");
     EXPECT_EQ(t.subject, "aabb223344");
     EXPECT_FALSE(t.proc.unfiltered_chars);
-    t.proc.translate_esc("cc", /*nw*/2, /*nr*/1);
+    t.proc.translate_esc_bulk("cc", /*nw*/2, /*nr*/1);
     EXPECT_EQ(t.proc.rpos, 6);
     EXPECT_EQ(t.proc.wpos, 6);
     EXPECT_EQ(t.proc.sofar(), "aabbcc");
     EXPECT_EQ(t.proc.result().get(), "aabbcc");
     EXPECT_EQ(t.subject, "aabbcc3344");
     EXPECT_FALSE(t.proc.unfiltered_chars);
-    t.proc.translate_esc("dd", /*nw*/2, /*nr*/1);
+    t.proc.translate_esc_bulk("dd", /*nw*/2, /*nr*/1);
     EXPECT_EQ(t.proc.rpos, 8);
     EXPECT_EQ(t.proc.wpos, 8);
     EXPECT_EQ(t.proc.sofar(), "aabbccdd");
     EXPECT_EQ(t.proc.result().get(), "aabbccdd");
     EXPECT_EQ(t.subject, "aabbccdd44");
     EXPECT_FALSE(t.proc.unfiltered_chars);
-    t.proc.translate_esc("ee", /*nw*/2, /*nr*/1);
+    t.proc.translate_esc_bulk("ee", /*nw*/2, /*nr*/1);
     EXPECT_EQ(t.proc.rpos, 10);
     EXPECT_EQ(t.proc.wpos, 10);
     EXPECT_EQ(t.proc.sofar(), "aabbccddee");
@@ -550,33 +832,73 @@ TEST(FilterProcessorInplace, translate_esc_bulk)
     EXPECT_FALSE(t.proc.unfiltered_chars);
 }
 
-TEST(FilterProcessorSrcDst, translate_esc_bulk)
+TEST(FilterProcessorInplaceEnd, translate_esc_bulk)
 {
-    SrcDstTester t("0011223344");
+    TesterInplaceEnd t("0011223344");
+    t.trim_capacity();
+    EXPECT_EQ(t.proc.wcap, 10);
     EXPECT_EQ(t.proc.rpos, 0);
     EXPECT_EQ(t.proc.wpos, 0);
     EXPECT_EQ(t.proc.sofar(), "");
-    t.proc.translate_esc("aa", /*nw*/2, /*nr*/1);
+    t.proc.translate_esc_bulk("aa", /*nw*/2, /*nr*/1);
     EXPECT_EQ(t.proc.rpos, 2);
     EXPECT_EQ(t.proc.wpos, 2);
     EXPECT_EQ(t.proc.sofar(), "aa");
     EXPECT_EQ(t.proc.result().get(), "aa");
-    t.proc.translate_esc("bb", /*nw*/2, /*nr*/1);
+    EXPECT_EQ(t.subject, "aa11223344");
+    t.proc.translate_esc_bulk("bb", /*nw*/2, /*nr*/1);
     EXPECT_EQ(t.proc.rpos, 4);
     EXPECT_EQ(t.proc.wpos, 4);
     EXPECT_EQ(t.proc.sofar(), "aabb");
     EXPECT_EQ(t.proc.result().get(), "aabb");
-    t.proc.translate_esc("cc", /*nw*/2, /*nr*/1);
+    EXPECT_EQ(t.subject, "aabb223344");
+    t.proc.translate_esc_bulk("cc", /*nw*/2, /*nr*/1);
     EXPECT_EQ(t.proc.rpos, 6);
     EXPECT_EQ(t.proc.wpos, 6);
     EXPECT_EQ(t.proc.sofar(), "aabbcc");
     EXPECT_EQ(t.proc.result().get(), "aabbcc");
-    t.proc.translate_esc("dd", /*nw*/2, /*nr*/1);
+    EXPECT_EQ(t.subject, "aabbcc3344");
+    t.proc.translate_esc_bulk("dd", /*nw*/2, /*nr*/1);
     EXPECT_EQ(t.proc.rpos, 8);
     EXPECT_EQ(t.proc.wpos, 8);
     EXPECT_EQ(t.proc.sofar(), "aabbccdd");
     EXPECT_EQ(t.proc.result().get(), "aabbccdd");
-    t.proc.translate_esc("ee", /*nw*/2, /*nr*/1);
+    EXPECT_EQ(t.subject, "aabbccdd44");
+    t.proc.translate_esc_bulk("ee", /*nw*/2, /*nr*/1);
+    EXPECT_EQ(t.proc.rpos, 10);
+    EXPECT_EQ(t.proc.wpos, 10);
+    EXPECT_EQ(t.proc.sofar(), "aabbccddee");
+    EXPECT_EQ(t.proc.result().get(), "aabbccddee");
+    EXPECT_EQ(t.subject, "aabbccddee");
+}
+
+TEST(FilterProcessorSrcDst, translate_esc_bulk)
+{
+    TesterSrcDst t("0011223344");
+    EXPECT_EQ(t.proc.rpos, 0);
+    EXPECT_EQ(t.proc.wpos, 0);
+    EXPECT_EQ(t.proc.sofar(), "");
+    t.proc.translate_esc_bulk("aa", /*nw*/2, /*nr*/1);
+    EXPECT_EQ(t.proc.rpos, 2);
+    EXPECT_EQ(t.proc.wpos, 2);
+    EXPECT_EQ(t.proc.sofar(), "aa");
+    EXPECT_EQ(t.proc.result().get(), "aa");
+    t.proc.translate_esc_bulk("bb", /*nw*/2, /*nr*/1);
+    EXPECT_EQ(t.proc.rpos, 4);
+    EXPECT_EQ(t.proc.wpos, 4);
+    EXPECT_EQ(t.proc.sofar(), "aabb");
+    EXPECT_EQ(t.proc.result().get(), "aabb");
+    t.proc.translate_esc_bulk("cc", /*nw*/2, /*nr*/1);
+    EXPECT_EQ(t.proc.rpos, 6);
+    EXPECT_EQ(t.proc.wpos, 6);
+    EXPECT_EQ(t.proc.sofar(), "aabbcc");
+    EXPECT_EQ(t.proc.result().get(), "aabbcc");
+    t.proc.translate_esc_bulk("dd", /*nw*/2, /*nr*/1);
+    EXPECT_EQ(t.proc.rpos, 8);
+    EXPECT_EQ(t.proc.wpos, 8);
+    EXPECT_EQ(t.proc.sofar(), "aabbccdd");
+    EXPECT_EQ(t.proc.result().get(), "aabbccdd");
+    t.proc.translate_esc_bulk("ee", /*nw*/2, /*nr*/1);
     EXPECT_EQ(t.proc.rpos, 10);
     EXPECT_EQ(t.proc.wpos, 10);
     EXPECT_EQ(t.proc.sofar(), "aabbccddee");
@@ -586,9 +908,9 @@ TEST(FilterProcessorSrcDst, translate_esc_bulk)
 
 //-----------------------------------------------------------------------------
 
-TEST(FilterProcessorInplace, translate_esc_bulk_excess__trimmed_capacity)
+TEST(FilterProcessorInplaceMid, translate_esc_extending_bulk_excess__trimmed_capacity)
 {
-    InplaceTester t("0011223344");
+    TesterInplaceMid t("0011223344");
     t.trim_capacity();
     EXPECT_EQ(t.proc.wcap, 10);
     EXPECT_EQ(t.proc.rpos, 0);
@@ -596,7 +918,7 @@ TEST(FilterProcessorInplace, translate_esc_bulk_excess__trimmed_capacity)
     EXPECT_EQ(t.proc.src.len, 10);
     EXPECT_FALSE(t.proc.unfiltered_chars);
     EXPECT_EQ(t.proc.sofar(), "");
-    t.proc.translate_esc("aaa", /*nw*/3, /*nr*/1);
+    t.proc.translate_esc_extending("aaa", /*nw*/3, /*nr*/1);
     EXPECT_EQ(t.proc.rpos, 2);
     EXPECT_EQ(t.proc.wpos, 3);
     EXPECT_EQ(t.proc.src.len, 10);
@@ -604,7 +926,7 @@ TEST(FilterProcessorInplace, translate_esc_bulk_excess__trimmed_capacity)
     EXPECT_EQ(t.proc.result().str, nullptr);
     EXPECT_EQ(t.subject, "0011223344");
     EXPECT_TRUE(t.proc.unfiltered_chars);
-    t.proc.translate_esc("bbb", /*nw*/3, /*nr*/1);
+    t.proc.translate_esc_extending("bbb", /*nw*/3, /*nr*/1);
     EXPECT_EQ(t.proc.rpos, 4);
     EXPECT_EQ(t.proc.wpos, 6);
     EXPECT_EQ(t.proc.src.len, 10);
@@ -612,7 +934,7 @@ TEST(FilterProcessorInplace, translate_esc_bulk_excess__trimmed_capacity)
     EXPECT_EQ(t.proc.result().str, nullptr);
     EXPECT_EQ(t.subject, "0011223344");
     EXPECT_TRUE(t.proc.unfiltered_chars);
-    t.proc.translate_esc("ccc", /*nw*/3, /*nr*/1);
+    t.proc.translate_esc_extending("ccc", /*nw*/3, /*nr*/1);
     EXPECT_EQ(t.proc.rpos, 6);
     EXPECT_EQ(t.proc.wpos, 9);
     EXPECT_EQ(t.proc.src.len, 10);
@@ -620,7 +942,7 @@ TEST(FilterProcessorInplace, translate_esc_bulk_excess__trimmed_capacity)
     EXPECT_EQ(t.proc.result().str, nullptr);
     EXPECT_EQ(t.subject, "0011223344");
     EXPECT_TRUE(t.proc.unfiltered_chars);
-    t.proc.translate_esc("ddd", /*nw*/3, /*nr*/1);
+    t.proc.translate_esc_extending("ddd", /*nw*/3, /*nr*/1);
     EXPECT_EQ(t.proc.rpos, 8);
     EXPECT_EQ(t.proc.wpos, 12);
     EXPECT_EQ(t.proc.src.len, 10);
@@ -629,7 +951,7 @@ TEST(FilterProcessorInplace, translate_esc_bulk_excess__trimmed_capacity)
     EXPECT_EQ(t.subject, "0011223344");
     EXPECT_TRUE(t.proc.unfiltered_chars);
     // write 4 characters
-    t.proc.translate_esc("cccc", /*nw*/4, /*nr*/1);
+    t.proc.translate_esc_extending("cccc", /*nw*/4, /*nr*/1);
     EXPECT_EQ(t.proc.rpos, 10);
     EXPECT_EQ(t.proc.wpos, 16);
     EXPECT_EQ(t.proc.src.len, 10);
@@ -639,9 +961,9 @@ TEST(FilterProcessorInplace, translate_esc_bulk_excess__trimmed_capacity)
     EXPECT_TRUE(t.proc.unfiltered_chars);
 }
 
-TEST(FilterProcessorInplace, translate_esc_bulk_excess__spare_capacity)
+TEST(FilterProcessorInplaceMid, translate_esc_extending_bulk_excess__spare_capacity)
 {
-    InplaceTester t("0011223344");
+    TesterInplaceMid t("0011223344");
     const size_t needed_capacity = 16u;
     const size_t smaller_capacity = 14u;
     ASSERT_LT(smaller_capacity, needed_capacity);
@@ -656,7 +978,7 @@ TEST(FilterProcessorInplace, translate_esc_bulk_excess__spare_capacity)
     EXPECT_EQ(full_subject, "0011223344^^^^");
     EXPECT_FALSE(t.proc.unfiltered_chars);
     EXPECT_EQ(t.proc.sofar(), "");
-    t.proc.translate_esc("aaa", /*nw*/3, /*nr*/1);
+    t.proc.translate_esc_extending("aaa", /*nw*/3, /*nr*/1);
     EXPECT_EQ(t.proc.rpos, 3);
     EXPECT_EQ(t.proc.wpos, 3);
     EXPECT_EQ(t.proc.src.len, 11);
@@ -664,7 +986,7 @@ TEST(FilterProcessorInplace, translate_esc_bulk_excess__spare_capacity)
     EXPECT_EQ(t.proc.result().get(), "aaa");
     EXPECT_EQ(full_subject, "aaa11223344^^^");
     EXPECT_FALSE(t.proc.unfiltered_chars);
-    t.proc.translate_esc("bbb", /*nw*/3, /*nr*/1);
+    t.proc.translate_esc_extending("bbb", /*nw*/3, /*nr*/1);
     EXPECT_EQ(t.proc.rpos, 6);
     EXPECT_EQ(t.proc.wpos, 6);
     EXPECT_EQ(t.proc.src.len, 12);
@@ -672,7 +994,7 @@ TEST(FilterProcessorInplace, translate_esc_bulk_excess__spare_capacity)
     EXPECT_EQ(t.proc.result().get(), "aaabbb");
     EXPECT_EQ(full_subject, "aaabbb223344^^");
     EXPECT_FALSE(t.proc.unfiltered_chars);
-    t.proc.translate_esc("ccc", /*nw*/3, /*nr*/1);
+    t.proc.translate_esc_extending("ccc", /*nw*/3, /*nr*/1);
     EXPECT_EQ(t.proc.rpos, 9);
     EXPECT_EQ(t.proc.wpos, 9);
     EXPECT_EQ(t.proc.src.len, 13);
@@ -680,7 +1002,7 @@ TEST(FilterProcessorInplace, translate_esc_bulk_excess__spare_capacity)
     EXPECT_EQ(t.proc.result().get(), "aaabbbccc");
     EXPECT_EQ(full_subject, "aaabbbccc3344^");
     EXPECT_FALSE(t.proc.unfiltered_chars);
-    t.proc.translate_esc("ddd", /*nw*/3, /*nr*/1);
+    t.proc.translate_esc_extending("ddd", /*nw*/3, /*nr*/1);
     EXPECT_EQ(t.proc.rpos, 12);
     EXPECT_EQ(t.proc.wpos, 12);
     EXPECT_EQ(t.proc.src.len, 14);
@@ -688,7 +1010,7 @@ TEST(FilterProcessorInplace, translate_esc_bulk_excess__spare_capacity)
     EXPECT_EQ(t.proc.result().get(), "aaabbbcccddd");
     EXPECT_EQ(full_subject, "aaabbbcccddd44");
     EXPECT_FALSE(t.proc.unfiltered_chars);
-    t.proc.translate_esc("eeee", /*nw*/4, /*nr*/1);
+    t.proc.translate_esc_extending("eeee", /*nw*/4, /*nr*/1);
     EXPECT_EQ(t.proc.rpos, 14);
     EXPECT_EQ(t.proc.wpos, 16);
     EXPECT_EQ(t.proc.src.len, smaller_capacity); // not 16! limited
@@ -698,10 +1020,10 @@ TEST(FilterProcessorInplace, translate_esc_bulk_excess__spare_capacity)
     EXPECT_TRUE(t.proc.unfiltered_chars);
 }
 
-TEST(FilterProcessorInplace, copy_after_translate_esc_bulk_excess__trimmed_capacity)
+TEST(FilterProcessorInplaceMid, copy_after_translate_esc_extending_bulk_excess__trimmed_capacity)
 {
     {
-        InplaceTester t("0011223344");
+        TesterInplaceMid t("0011223344");
         t.trim_capacity();
         EXPECT_EQ(t.proc.wcap, 10);
         EXPECT_EQ(t.proc.rpos, 0);
@@ -709,7 +1031,7 @@ TEST(FilterProcessorInplace, copy_after_translate_esc_bulk_excess__trimmed_capac
         EXPECT_EQ(t.proc.src.len, 10);
         EXPECT_FALSE(t.proc.unfiltered_chars);
         EXPECT_EQ(t.proc.sofar(), "");
-        t.proc.translate_esc("aaaa", /*nw*/4, /*nr*/1);
+        t.proc.translate_esc_extending("aaaa", /*nw*/4, /*nr*/1);
         EXPECT_EQ(t.proc.rpos, 2);
         EXPECT_EQ(t.proc.wpos, 4);
         EXPECT_EQ(t.proc.src.len, 10);
@@ -727,7 +1049,7 @@ TEST(FilterProcessorInplace, copy_after_translate_esc_bulk_excess__trimmed_capac
         EXPECT_TRUE(t.proc.unfiltered_chars);
     }
     {
-        InplaceTester t("0011223344");
+        TesterInplaceMid t("0011223344");
         t.trim_capacity();
         EXPECT_EQ(t.proc.wcap, 10);
         EXPECT_EQ(t.proc.rpos, 0);
@@ -735,7 +1057,7 @@ TEST(FilterProcessorInplace, copy_after_translate_esc_bulk_excess__trimmed_capac
         EXPECT_EQ(t.proc.src.len, 10);
         EXPECT_FALSE(t.proc.unfiltered_chars);
         EXPECT_EQ(t.proc.sofar(), "");
-        t.proc.translate_esc("aaaa", /*nw*/4, /*nr*/1);
+        t.proc.translate_esc_extending("aaaa", /*nw*/4, /*nr*/1);
         EXPECT_EQ(t.proc.rpos, 2);
         EXPECT_EQ(t.proc.wpos, 4);
         EXPECT_EQ(t.proc.src.len, 10);
@@ -754,10 +1076,10 @@ TEST(FilterProcessorInplace, copy_after_translate_esc_bulk_excess__trimmed_capac
     }
 }
 
-TEST(FilterProcessorInplace, set_after_translate_esc_bulk_excess__trimmed_capacity)
+TEST(FilterProcessorInplaceMid, set_after_translate_esc_extending_bulk_excess__trimmed_capacity)
 {
     {
-        InplaceTester t("0011223344");
+        TesterInplaceMid t("0011223344");
         t.trim_capacity();
         EXPECT_EQ(t.proc.wcap, 10);
         EXPECT_EQ(t.proc.rpos, 0);
@@ -765,7 +1087,7 @@ TEST(FilterProcessorInplace, set_after_translate_esc_bulk_excess__trimmed_capaci
         EXPECT_EQ(t.proc.src.len, 10);
         EXPECT_FALSE(t.proc.unfiltered_chars);
         EXPECT_EQ(t.proc.sofar(), "");
-        t.proc.translate_esc("aaaa", /*nw*/4, /*nr*/1);
+        t.proc.translate_esc_extending("aaaa", /*nw*/4, /*nr*/1);
         EXPECT_EQ(t.proc.rpos, 2);
         EXPECT_EQ(t.proc.wpos, 4);
         EXPECT_EQ(t.proc.src.len, 10);
@@ -783,7 +1105,7 @@ TEST(FilterProcessorInplace, set_after_translate_esc_bulk_excess__trimmed_capaci
         EXPECT_TRUE(t.proc.unfiltered_chars);
     }
     {
-        InplaceTester t("0011223344");
+        TesterInplaceMid t("0011223344");
         t.trim_capacity();
         EXPECT_EQ(t.proc.wcap, 10);
         EXPECT_EQ(t.proc.rpos, 0);
@@ -791,7 +1113,7 @@ TEST(FilterProcessorInplace, set_after_translate_esc_bulk_excess__trimmed_capaci
         EXPECT_EQ(t.proc.src.len, 10);
         EXPECT_FALSE(t.proc.unfiltered_chars);
         EXPECT_EQ(t.proc.sofar(), "");
-        t.proc.translate_esc("aaaa", /*nw*/4, /*nr*/1);
+        t.proc.translate_esc_extending("aaaa", /*nw*/4, /*nr*/1);
         EXPECT_EQ(t.proc.rpos, 2);
         EXPECT_EQ(t.proc.wpos, 4);
         EXPECT_EQ(t.proc.src.len, 10);
@@ -810,9 +1132,9 @@ TEST(FilterProcessorInplace, set_after_translate_esc_bulk_excess__trimmed_capaci
     }
 }
 
-TEST(FilterProcessorInplace, translate_esc_with_temporary_excess_requirement__trimmed_capacity)
+TEST(FilterProcessorInplaceMid, translate_esc_extending_with_temporary_excess_requirement__trimmed_capacity)
 {
-    InplaceTester t("00112233445566");
+    TesterInplaceMid t("00112233445566");
     t.trim_capacity();
     EXPECT_EQ(t.proc.wcap, 14);
     EXPECT_EQ(t.proc.rpos, 0);
@@ -824,7 +1146,7 @@ TEST(FilterProcessorInplace, translate_esc_with_temporary_excess_requirement__tr
     // 00112233445566
     // ^ (rpos)
     // ^ (wpos)
-    t.proc.translate_esc("aaaa", /*nw*/4, /*nr*/1);
+    t.proc.translate_esc_extending("aaaa", /*nw*/4, /*nr*/1);
     EXPECT_EQ(t.proc.rpos, 2);
     EXPECT_EQ(t.proc.wpos, 4);
     EXPECT_EQ(t.proc.src.len, 14);
@@ -1019,10 +1341,10 @@ TEST(FilterProcessorInplace, translate_esc_with_temporary_excess_requirement__tr
     EXPECT_TRUE(t.proc.unfiltered_chars);
 }
 
-TEST(FilterProcessorInplace, translate_esc_after_translate_esc_bulk_excess__trimmed_capacity)
+TEST(FilterProcessorInplaceMid, translate_esc_extending_after_translate_esc_extending_bulk_excess__trimmed_capacity)
 {
     {
-        InplaceTester t("0011223344");
+        TesterInplaceMid t("0011223344");
         t.trim_capacity();
         EXPECT_EQ(t.proc.wcap, 10);
         EXPECT_EQ(t.proc.rpos, 0);
@@ -1030,7 +1352,7 @@ TEST(FilterProcessorInplace, translate_esc_after_translate_esc_bulk_excess__trim
         EXPECT_EQ(t.proc.src.len, 10);
         EXPECT_FALSE(t.proc.unfiltered_chars);
         EXPECT_EQ(t.proc.sofar(), "");
-        t.proc.translate_esc("aaaa", /*nw*/4, /*nr*/1);
+        t.proc.translate_esc_extending("aaaa", /*nw*/4, /*nr*/1);
         EXPECT_EQ(t.proc.rpos, 2);
         EXPECT_EQ(t.proc.wpos, 4);
         EXPECT_EQ(t.proc.src.len, 10);
@@ -1048,7 +1370,7 @@ TEST(FilterProcessorInplace, translate_esc_after_translate_esc_bulk_excess__trim
         EXPECT_TRUE(t.proc.unfiltered_chars);
     }
     {
-        InplaceTester t("0011223344");
+        TesterInplaceMid t("0011223344");
         t.trim_capacity();
         EXPECT_EQ(t.proc.wcap, 10);
         EXPECT_EQ(t.proc.rpos, 0);
@@ -1056,7 +1378,7 @@ TEST(FilterProcessorInplace, translate_esc_after_translate_esc_bulk_excess__trim
         EXPECT_EQ(t.proc.src.len, 10);
         EXPECT_FALSE(t.proc.unfiltered_chars);
         EXPECT_EQ(t.proc.sofar(), "");
-        t.proc.translate_esc("aaaa", /*nw*/4, /*nr*/1);
+        t.proc.translate_esc_extending("aaaa", /*nw*/4, /*nr*/1);
         EXPECT_EQ(t.proc.rpos, 2);
         EXPECT_EQ(t.proc.wpos, 4);
         EXPECT_EQ(t.proc.src.len, 10);
@@ -1064,7 +1386,7 @@ TEST(FilterProcessorInplace, translate_esc_after_translate_esc_bulk_excess__trim
         EXPECT_EQ(t.proc.result().str, nullptr);
         EXPECT_EQ(t.subject, "0011223344");
         EXPECT_TRUE(t.proc.unfiltered_chars);
-        t.proc.translate_esc("!!", /*nw*/2, /*nr*/1);
+        t.proc.translate_esc_bulk("!!", /*nw*/2, /*nr*/1);
         EXPECT_EQ(t.proc.rpos, 4);
         EXPECT_EQ(t.proc.wpos, 6);
         EXPECT_EQ(t.proc.src.len, 10);
@@ -1078,9 +1400,9 @@ TEST(FilterProcessorInplace, translate_esc_after_translate_esc_bulk_excess__trim
 
 //-----------------------------------------------------------------------------
 
-TEST(FilterProcessorSrcDst, translate_esc_bulk_excess)
+TEST(FilterProcessorSrcDst, translate_esc_extending_bulk_excess)
 {
-    SrcDstTester t("0011223344");
+    TesterSrcDst t("0011223344");
     const size_t needed_size = 16u;
     const size_t smaller_size = 14u;
     ASSERT_LT(smaller_size, needed_size);
@@ -1091,31 +1413,31 @@ TEST(FilterProcessorSrcDst, translate_esc_bulk_excess)
     EXPECT_EQ(t.proc.wpos, 0);
     EXPECT_EQ(t.proc.sofar(), "");
     EXPECT_EQ(t.dst, csubstr("^^^^^^^^^^^^^^"));
-    t.proc.translate_esc("aaa", /*nw*/3, /*nr*/1);
+    t.proc.translate_esc_extending("aaa", /*nw*/3, /*nr*/1);
     EXPECT_EQ(t.proc.rpos, 2);
     EXPECT_EQ(t.proc.wpos, 3);
     EXPECT_EQ(t.proc.sofar(), "aaa");
     EXPECT_EQ(t.proc.result().get(), "aaa");
     EXPECT_EQ(t.dst, "aaa^^^^^^^^^^^");
-    t.proc.translate_esc("bbb", /*nw*/3, /*nr*/1);
+    t.proc.translate_esc_extending("bbb", /*nw*/3, /*nr*/1);
     EXPECT_EQ(t.proc.rpos, 4);
     EXPECT_EQ(t.proc.wpos, 6);
     EXPECT_EQ(t.proc.sofar(), "aaabbb");
     EXPECT_EQ(t.proc.result().get(), "aaabbb");
     EXPECT_EQ(t.dst, "aaabbb^^^^^^^^");
-    t.proc.translate_esc("ccc", /*nw*/3, /*nr*/1);
+    t.proc.translate_esc_extending("ccc", /*nw*/3, /*nr*/1);
     EXPECT_EQ(t.proc.rpos, 6);
     EXPECT_EQ(t.proc.wpos, 9);
     EXPECT_EQ(t.proc.sofar(), "aaabbbccc");
     EXPECT_EQ(t.proc.result().get(), "aaabbbccc");
     EXPECT_EQ(t.dst, "aaabbbccc^^^^^");
-    t.proc.translate_esc("ddd", /*nw*/3, /*nr*/1);
+    t.proc.translate_esc_extending("ddd", /*nw*/3, /*nr*/1);
     EXPECT_EQ(t.proc.rpos, 8);
     EXPECT_EQ(t.proc.wpos, 12);
     EXPECT_EQ(t.proc.sofar(), "aaabbbcccddd");
     EXPECT_EQ(t.proc.result().get(), "aaabbbcccddd");
     EXPECT_EQ(t.dst, "aaabbbcccddd^^");
-    t.proc.translate_esc("eeee", /*nw*/4, /*nr*/1);
+    t.proc.translate_esc_extending("eeee", /*nw*/4, /*nr*/1);
     EXPECT_EQ(t.proc.rpos, 10);
     EXPECT_EQ(t.proc.wpos, 16);
     EXPECT_EQ(t.proc.sofar(), "aaabbbcccddd^^");

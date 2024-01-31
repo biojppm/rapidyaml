@@ -4672,7 +4672,7 @@ FilterResult Parser::filter_scalar_plain(csubstr scalar, substr dst, size_t inde
 
 FilterResult Parser::filter_scalar_plain_in_place(substr dst, size_t cap, size_t indentation) noexcept
 {
-    FilterProcessorInplace__ proc(dst, cap);
+    FilterProcessorInplaceEndExtending proc(dst, cap);
     return _filter_plain(proc, indentation);
 }
 
@@ -4776,7 +4776,7 @@ FilterResult Parser::filter_scalar_squoted(csubstr scalar, substr dst) noexcept
 
 FilterResult Parser::filter_scalar_squoted_in_place(substr dst, size_t cap) noexcept
 {
-    FilterProcessorInplace__ proc(dst, cap);
+    FilterProcessorInplaceEndExtending proc(dst, cap);
     return _filter_squoted(proc);
 }
 
@@ -4896,7 +4896,7 @@ void Parser::_filter_dquoted_backslash(FilterProcessor &C4_RESTRICT proc)
         uint8_t byteval = {};
         if(C4_UNLIKELY(!read_hex(codepoint, &byteval)))
             _c4err("failed to read \\x codepoint. scalar pos={}", proc.rpos);
-        proc.translate_esc((const char*)&byteval, 1u, /*nread*/3u);
+        proc.translate_esc_bulk((const char*)&byteval, 1u, /*nread*/3u);
         _c4dbgfdq("utf8 after rpos={} rem=~~~{}~~~", proc.rpos, proc.src.sub(proc.rpos));
     }
     else if(next == 'u') // UTF16
@@ -4910,7 +4910,7 @@ void Parser::_filter_dquoted_backslash(FilterProcessor &C4_RESTRICT proc)
             _c4err("failed to parse \\u codepoint. scalar pos={}", proc.rpos);
         size_t numbytes = decode_code_point((uint8_t*)readbuf, sizeof(readbuf), codepoint_val);
         C4_ASSERT(numbytes <= 4);
-        proc.translate_esc(readbuf, numbytes, /*nread*/5u);
+        proc.translate_esc_bulk(readbuf, numbytes, /*nread*/5u);
     }
     else if(next == 'U') // UTF32
     {
@@ -4923,7 +4923,7 @@ void Parser::_filter_dquoted_backslash(FilterProcessor &C4_RESTRICT proc)
             _c4err("failed to parse \\U codepoint. scalar pos={}", proc.rpos);
         size_t numbytes = decode_code_point((uint8_t*)readbuf, sizeof(readbuf), codepoint_val);
         C4_ASSERT(numbytes <= 4);
-        proc.translate_esc(readbuf, numbytes, /*nread*/9u);
+        proc.translate_esc_bulk(readbuf, numbytes, /*nread*/9u);
     }
     // https://yaml.org/spec/1.2.2/#rule-c-ns-esc-char
     else if(next == '0')
@@ -4957,7 +4957,7 @@ void Parser::_filter_dquoted_backslash(FilterProcessor &C4_RESTRICT proc)
             _RYML_CHCONST(-0x3e, 0xc2),
             _RYML_CHCONST(-0x60, 0xa0),
         };
-        proc.translate_esc(payload, /*nwrite*/2, /*nread*/1);
+        proc.translate_esc_bulk(payload, /*nwrite*/2, /*nread*/1);
     }
     else if(next == 'N') // unicode next line \u0085
     {
@@ -4966,7 +4966,7 @@ void Parser::_filter_dquoted_backslash(FilterProcessor &C4_RESTRICT proc)
             _RYML_CHCONST(-0x3e, 0xc2),
             _RYML_CHCONST(-0x7b, 0x85),
         };
-        proc.translate_esc(payload, /*nwrite*/2, /*nread*/1);
+        proc.translate_esc_bulk(payload, /*nwrite*/2, /*nread*/1);
     }
     else if(next == 'L') // unicode line separator \u2028
     {
@@ -4976,7 +4976,7 @@ void Parser::_filter_dquoted_backslash(FilterProcessor &C4_RESTRICT proc)
             _RYML_CHCONST(-0x80, 0x80),
             _RYML_CHCONST(-0x58, 0xa8),
         };
-        proc.translate_esc(payload, /*nwrite*/3, /*nread*/1);
+        proc.translate_esc_extending(payload, /*nwrite*/3, /*nread*/1);
     }
     else if(next == 'P') // unicode paragraph separator \u2029
     {
@@ -4986,7 +4986,7 @@ void Parser::_filter_dquoted_backslash(FilterProcessor &C4_RESTRICT proc)
             _RYML_CHCONST(-0x80, 0x80),
             _RYML_CHCONST(-0x57, 0xa9),
         };
-        proc.translate_esc(payload, /*nwrite*/3, /*nread*/1);
+        proc.translate_esc_extending(payload, /*nwrite*/3, /*nread*/1);
     }
     else if(next == '\0')
     {
@@ -5058,7 +5058,7 @@ FilterResult Parser::filter_scalar_dquoted(csubstr scalar, substr dst)
 
 FilterResultExtending Parser::filter_scalar_dquoted_in_place(substr dst, size_t cap)
 {
-    FilterProcessorInplaceExtending proc(dst, cap);
+    FilterProcessorInplaceMidExtending proc(dst, cap);
     return _filter_dquoted(proc);
 }
 
@@ -5398,7 +5398,7 @@ FilterResult Parser::filter_scalar_block_literal(csubstr scalar, substr dst, siz
 
 FilterResult Parser::filter_scalar_block_literal_in_place(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept
 {
-    FilterProcessorInplace__ proc(scalar, cap);
+    FilterProcessorInplaceEndExtending proc(scalar, cap);
     return _filter_block_literal(proc, indentation, chomp);
 }
 
@@ -5631,7 +5631,7 @@ FilterResult Parser::filter_scalar_block_folded(csubstr scalar, substr dst, size
 
 FilterResult Parser::filter_scalar_block_folded_in_place(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept
 {
-    FilterProcessorInplace__ proc(scalar, cap);
+    FilterProcessorInplaceEndExtending proc(scalar, cap);
     return _filter_block_folded(proc, indentation, chomp);
 }
 
