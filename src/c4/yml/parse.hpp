@@ -743,6 +743,10 @@ RYML_DEPRECATED("use parse_in_arena() instead") inline void parse(csubstr filena
 
 /** @} */
 
+namespace detail {
+RYML_EXPORT size_t _find_last_newline_and_larger_indentation(csubstr s, size_t indentation) noexcept;
+}
+
 } // namespace yml
 } // namespace c4
 

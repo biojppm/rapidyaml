@@ -3,6 +3,7 @@
 #else
 #include "c4/yml/filter_processor.hpp"
 #include "c4/yml/std/string.hpp"
+#include "c4/yml/parse.hpp"
 #endif
 #include <gtest/gtest.h>
 
@@ -1447,13 +1448,12 @@ TEST(FilterProcessorSrcDst, translate_esc_extending_bulk_excess)
 
 TEST(Filter, _find_last_newline_and_larger_indentation)
 {
-    RYML_EXPORT size_t _find_last_newline_and_larger_indentation(csubstr s, size_t indentation) noexcept;
-    EXPECT_EQ(_find_last_newline_and_larger_indentation("ab\n\n\n", 0), npos);
-    EXPECT_EQ(_find_last_newline_and_larger_indentation("ab\n \n\n", 0), 2u);
-    EXPECT_EQ(_find_last_newline_and_larger_indentation("ab\n\n \n", 0), 3u);
-    EXPECT_EQ(_find_last_newline_and_larger_indentation("ab\n \n \n", 0), 4u);
-    EXPECT_EQ(_find_last_newline_and_larger_indentation("ab\n \n  \n", 1), 4u);
-    EXPECT_EQ(_find_last_newline_and_larger_indentation("ab\n  \n \n", 1), 2u);
+    EXPECT_EQ(detail::_find_last_newline_and_larger_indentation("ab\n\n\n", 0), npos);
+    EXPECT_EQ(detail::_find_last_newline_and_larger_indentation("ab\n \n\n", 0), 2u);
+    EXPECT_EQ(detail::_find_last_newline_and_larger_indentation("ab\n\n \n", 0), 3u);
+    EXPECT_EQ(detail::_find_last_newline_and_larger_indentation("ab\n \n \n", 0), 4u);
+    EXPECT_EQ(detail::_find_last_newline_and_larger_indentation("ab\n \n  \n", 1), 4u);
+    EXPECT_EQ(detail::_find_last_newline_and_larger_indentation("ab\n  \n \n", 1), 2u);
 }
 
 } // namespace yml

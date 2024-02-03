@@ -5068,7 +5068,7 @@ FilterResultExtending Parser::filter_scalar_dquoted_in_place(substr dst, size_t 
 //-----------------------------------------------------------------------------
 // block filtering helpers
 
-RYML_EXPORT size_t _find_last_newline_and_larger_indentation(csubstr s, size_t indentation) noexcept
+RYML_EXPORT size_t detail::_find_last_newline_and_larger_indentation(csubstr s, size_t indentation) noexcept
 {
     if(indentation + 1 > s.len)
         return npos;
@@ -5101,7 +5101,7 @@ void Parser::_filter_chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp
 
     // advance to the last line having spaces beyond the indentation
     {
-        size_t last = _find_last_newline_and_larger_indentation(proc.rem(), indentation);
+        size_t last = detail::_find_last_newline_and_larger_indentation(proc.rem(), indentation);
         if(last != npos)
         {
             _c4dbgchomp("found newline and larger indentation. last={}", last);
