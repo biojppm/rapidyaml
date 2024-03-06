@@ -3569,7 +3569,7 @@ void Parser::_end_stream()
         _c4dbgpf("popping level: {} (stack sz={})", m_state->level, m_stack.size());
         _RYML_CB_ASSERT(m_stack.m_callbacks,  ! has_any(SSCL, &m_stack.top()));
         if(has_all(RSEQ|FLOW))
-            _err("closing ] not found");
+            _c4err("closing ] not found");
         _pop_level();
     }
     add_flags(NDOC);
