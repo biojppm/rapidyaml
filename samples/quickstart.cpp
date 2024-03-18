@@ -2135,8 +2135,9 @@ void sample_tree_arena()
 //-----------------------------------------------------------------------------
 
 /** ryml provides facilities for serializing the C++ fundamental
-    types. This is achieved through to_chars()/from_chars().
-    See an example below for user scalar types. */
+    types, including boolean and null values. This is achieved through
+    to_chars()/from_chars().  See an example below for user scalar
+    types. */
 void sample_fundamental_types()
 {
     ryml::Tree tree;
@@ -2160,23 +2161,28 @@ void sample_fundamental_types()
     CHECK(tree.to_arena((void*)1) == "0x1");        CHECK(tree.arena() == "abcde0101234-45-56-67-70x1");
     CHECK(tree.to_arena(float(0.124)) == "0.124");  CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.124");
     CHECK(tree.to_arena(double(0.234)) == "0.234"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.234");
-    CHECK(tree.to_arena(bool(true)) == "1");        CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.2341");
-    CHECK(tree.to_arena(bool(false)) == "0");       CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410");
+
+    // write boolean values - see also sample_formatting()
+    CHECK(tree.to_arena(bool(true)) == "1");                    CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.2341");
+    CHECK(tree.to_arena(bool(false)) == "0");                   CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410");
+    CHECK(tree.to_arena(c4::fmt::boolalpha(true)) == "true");   CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410true");
+    CHECK(tree.to_arena(c4::fmt::boolalpha(false)) == "false"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410truefalse");
 
     // write special float values
     const float  fnan = std::numeric_limits<float >::quiet_NaN();
     const double dnan = std::numeric_limits<double>::quiet_NaN();
     const float  finf = std::numeric_limits<float >::infinity();
     const double dinf = std::numeric_limits<double>::infinity();
-    CHECK(tree.to_arena( finf) ==  ".inf"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410.inf");
-    CHECK(tree.to_arena( dinf) ==  ".inf"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410.inf.inf");
-    CHECK(tree.to_arena(-finf) == "-.inf"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410.inf.inf-.inf");
-    CHECK(tree.to_arena(-dinf) == "-.inf"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410.inf.inf-.inf-.inf");
-    CHECK(tree.to_arena( fnan) ==  ".nan"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410.inf.inf-.inf-.inf.nan");
-    CHECK(tree.to_arena( dnan) ==  ".nan"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410.inf.inf-.inf-.inf.nan.nan");
+    CHECK(tree.to_arena( finf) ==  ".inf"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410truefalse.inf");
+    CHECK(tree.to_arena( dinf) ==  ".inf"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410truefalse.inf.inf");
+    CHECK(tree.to_arena(-finf) == "-.inf"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410truefalse.inf.inf-.inf");
+    CHECK(tree.to_arena(-dinf) == "-.inf"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410truefalse.inf.inf-.inf-.inf");
+    CHECK(tree.to_arena( fnan) ==  ".nan"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410truefalse.inf.inf-.inf-.inf.nan");
+    CHECK(tree.to_arena( dnan) ==  ".nan"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410truefalse.inf.inf-.inf-.inf.nan.nan");
+
     // read special float values
-    tree = ryml::parse_in_arena(R"({ninf: -.inf, pinf: .inf, nan: .nan})");
     C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wfloat-equal");
+    tree = ryml::parse_in_arena(R"({ninf: -.inf, pinf: .inf, nan: .nan})");
     float f = 0.f;
     double d = 0.;
     CHECK(f == 0.f);
@@ -2188,6 +2194,141 @@ void sample_fundamental_types()
     tree["nan" ] >> f; CHECK(std::isnan(f));
     tree["nan" ] >> d; CHECK(std::isnan(d));
     C4_SUPPRESS_WARNING_GCC_CLANG_POP
+
+    // reading empty/null values - see also sample_formatting()
+    tree = ryml::parse_in_arena(R"(
+plain:
+squoted: ''
+dquoted: ""
+literal: |
+folded: >
+all_null: [~, null, Null, NULL]
+non_null: [nULL, non_null, non null, null it is not]
+)");
+    // all of these scalars have zero-length:
+    CHECK(tree["plain"].val().len == 0);
+    CHECK(tree["squoted"].val().len == 0);
+    CHECK(tree["dquoted"].val().len == 0);
+    CHECK(tree["literal"].val().len == 0);
+    CHECK(tree["folded"].val().len == 0);
+    // but only the empty scalar has null string:
+    CHECK(tree["plain"].val().str == nullptr);
+    CHECK(tree["squoted"].val().str != nullptr);
+    CHECK(tree["dquoted"].val().str != nullptr);
+    CHECK(tree["literal"].val().str != nullptr);
+    CHECK(tree["folded"].val().str != nullptr);
+    // likewise, scalar comparison to nullptr has the same results:
+    CHECK(tree["plain"].val() == nullptr);
+    CHECK(tree["squoted"].val() != nullptr);
+    CHECK(tree["dquoted"].val() != nullptr);
+    CHECK(tree["literal"].val() != nullptr);
+    CHECK(tree["folded"].val() != nullptr);
+    // the tree and node classes provide the corresponding predicate
+    // functions .key_is_val() and .val_is_null():
+    CHECK(tree["plain"].val_is_null());
+    CHECK( ! tree["squoted"].val_is_null());
+    CHECK( ! tree["dquoted"].val_is_null());
+    CHECK( ! tree["literal"].val_is_null());
+    CHECK( ! tree["folded"].val_is_null());
+    for(ryml::ConstNodeRef child : tree["all_null"].children())
+    {
+        CHECK(child.val() != nullptr); // it is pointing at a string, so it is not nullptr!
+        CHECK(child.val_is_null());
+    }
+    // matching to null is case-sensitive. only the cases shown above
+    // match to null:
+    for(ryml::ConstNodeRef child : tree["non_null"].children())
+    {
+        CHECK(child.val() != nullptr);
+        CHECK( ! child.val_is_null());
+    }
+    // Because the meaning of null/~/empty will vary from application
+    // to application, ryml makes no assumption on what should be
+    // serialized as null. It leaves this decision to the user. But
+    // it also provides the proper toolbox for the user to implement
+    // its intended solution.
+    //
+    // writing/disambiguating null values:
+    ryml::csubstr null = {};
+    ryml::csubstr nonnull = "";
+    ryml::csubstr strnull = "null";
+    ryml::csubstr tilde = "~";
+    CHECK(null   .len == 0); CHECK(null   .str == nullptr); CHECK(null    == nullptr);
+    CHECK(nonnull.len == 0); CHECK(nonnull.str != nullptr); CHECK(nonnull != nullptr);
+    CHECK(strnull.len != 0); CHECK(strnull.str != nullptr); CHECK(strnull != nullptr);
+    CHECK(tilde  .len != 0); CHECK(tilde  .str != nullptr); CHECK(tilde   != nullptr);
+    tree.clear();
+    tree.clear_arena();
+    tree.rootref() |= ryml::MAP;
+    // serializes as an empty plain scalar:
+    tree["empty_null"] << null; CHECK(tree.arena() == "");
+    // serializes as an empty quoted scalar:
+    tree["empty_nonnull"] << nonnull; CHECK(tree.arena() == "");
+    // serializes as the normal 'null' string:
+    tree["str_null"] << strnull; CHECK(tree.arena() == "null");
+    // serializes as the normal '~' string:
+    tree["str_tilde"] << tilde; CHECK(tree.arena() == "null~");
+    // this is the resulting yaml:
+    CHECK(ryml::emitrs_yaml<std::string>(tree) ==
+          R"(empty_null: 
+empty_nonnull: ''
+str_null: null
+str_tilde: ~
+)");
+    // To enforce a particular concept of what is a null string, you
+    // can use the appropriate condition based on pointer nulity or
+    // other appropriate criteria.
+    //
+    // As an example, proper comparison to nullptr:
+    auto null_if_nullptr = [](ryml::csubstr s) {
+        return s.str == nullptr ? "null" : s;
+    };
+    tree["empty_null"] << null_if_nullptr(null);
+    tree["empty_nonnull"] << null_if_nullptr(nonnull);
+    tree["str_null"] << null_if_nullptr(strnull);
+    tree["str_tilde"] << null_if_nullptr(tilde);
+    // this is the resulting yaml:
+std::cout << tree;
+    CHECK(ryml::emitrs_yaml<std::string>(tree) ==
+          R"(empty_null: null
+empty_nonnull: ''
+str_null: null
+str_tilde: ~
+)");
+    //
+    // As another example, nulity check based on the YAML nulity
+    // predicate:
+    auto null_if_predicate = [](ryml::csubstr s) {
+        return ryml::Tree::scalar_is_null(s) ? "null" : s;
+    };
+    tree["empty_null"] << null_if_predicate(null);
+    tree["empty_nonnull"] << null_if_predicate(nonnull);
+    tree["str_null"] << null_if_predicate(strnull);
+    tree["str_tilde"] << null_if_predicate(tilde);
+    // this is the resulting yaml:
+    CHECK(ryml::emitrs_yaml<std::string>(tree) ==
+          R"(empty_null: null
+empty_nonnull: ''
+str_null: null
+str_tilde: null
+)");
+    //
+    // As another example, nulity check based on the YAML nulity
+    // predicate, but returning "~" to simbolize nulity:
+    auto tilde_if_predicate = [](ryml::csubstr s) {
+        return ryml::Tree::scalar_is_null(s) ? "~" : s;
+    };
+    tree["empty_null"] << tilde_if_predicate(null);
+    tree["empty_nonnull"] << tilde_if_predicate(nonnull);
+    tree["str_null"] << tilde_if_predicate(strnull);
+    tree["str_tilde"] << tilde_if_predicate(tilde);
+    // this is the resulting yaml:
+    CHECK(ryml::emitrs_yaml<std::string>(tree) ==
+          R"(empty_null: ~
+empty_nonnull: ''
+str_null: ~
+str_tilde: ~
+)");
 }
 
 
@@ -2576,7 +2717,9 @@ void sample_formatting()
         CHECK("1.234e+06"     == cat_sub(buf, fmt::real(1234234.234234234, 4, FTOA_FLEX)));   // AKA %g
         CHECK("1.23e+06"      == cat_sub(buf, fmt::real(1234234.234234234, 3, FTOA_FLEX)));   // AKA %g
         CHECK("1.2e+06"       == cat_sub(buf, fmt::real(1234234.234234234, 2, FTOA_FLEX)));   // AKA %g
-        // AKA %a (hexadecimal formatting of floats)
+        // FTOA_HEXA: AKA %a (hexadecimal formatting of floats)
+        CHECK("0x1.e8480p+19" == cat_sub(buf, fmt::real(1000000.000000000, 5, FTOA_HEXA)));   // AKA %a
+        CHECK("0x1.2d53ap+20" == cat_sub(buf, fmt::real(1234234.234234234, 5, FTOA_HEXA)));   // AKA %a
         // Earlier versions of emscripten's sprintf() (from MUSL) do not
         // respect some precision values when printing in hexadecimal
         // format.
@@ -2587,8 +2730,6 @@ void sample_formatting()
         #else
         #define _c4emscripten_alt(alt1, alt2) alt1
         #endif
-        CHECK("0x1.e8480p+19" == cat_sub(buf, fmt::real(1000000.000000000, 5, FTOA_HEXA)));   // AKA %a
-        CHECK("0x1.2d53ap+20" == cat_sub(buf, fmt::real(1234234.234234234, 5, FTOA_HEXA)));   // AKA %a
         CHECK(_c4emscripten_alt("0x1.2d54p+20", "0x1.2d538p+20")
                               == cat_sub(buf, fmt::real(1234234.234234234, 4, FTOA_HEXA)));   // AKA %a
         CHECK("0x1.2d5p+20"   == cat_sub(buf, fmt::real(1234234.234234234, 3, FTOA_HEXA)));   // AKA %a
