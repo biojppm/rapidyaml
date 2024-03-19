@@ -14,9 +14,11 @@
 #if RYML_USE_ASSERT
 #   define RYML_ASSERT(cond) RYML_CHECK(cond)
 #   define RYML_ASSERT_MSG(cond, msg) RYML_CHECK_MSG(cond, msg)
+#   define _RYML_CB_ASSERT(cb, cond) _RYML_CB_CHECK((cb), (cond))
 #else
 #   define RYML_ASSERT(cond)
 #   define RYML_ASSERT_MSG(cond, msg)
+#   define _RYML_CB_ASSERT(cb, cond)
 #endif
 
 
@@ -210,11 +212,6 @@ do                                                                      \
             (cb).m_error(msg, sizeof(msg), c4::yml::Location(__FILE__, 0, __LINE__, 0), (cb).m_user_data); \
         }                                                               \
     } while(0)
-#ifdef RYML_USE_ASSERT
-#define _RYML_CB_ASSERT(cb, cond) _RYML_CB_CHECK((cb), (cond))
-#else
-#define _RYML_CB_ASSERT(cb, cond) do {} while(0)
-#endif
 #define _RYML_CB_ALLOC_HINT(cb, T, num, hint) (T*) (cb).m_allocate((num) * sizeof(T), (hint), (cb).m_user_data)
 #define _RYML_CB_ALLOC(cb, T, num) _RYML_CB_ALLOC_HINT((cb), (T), (num), nullptr)
 #define _RYML_CB_FREE(cb, buf, T, num)                              \
