@@ -15,10 +15,12 @@
 #   define RYML_ASSERT(cond) RYML_CHECK(cond)
 #   define RYML_ASSERT_MSG(cond, msg) RYML_CHECK_MSG(cond, msg)
 #   define _RYML_CB_ASSERT(cb, cond) _RYML_CB_CHECK((cb), (cond))
+#   define RYML_NOEXCEPT
 #else
 #   define RYML_ASSERT(cond)
 #   define RYML_ASSERT_MSG(cond, msg)
 #   define _RYML_CB_ASSERT(cb, cond)
+#   define RYML_NOEXCEPT noexcept
 #endif
 
 
