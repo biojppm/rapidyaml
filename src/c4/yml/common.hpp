@@ -24,7 +24,7 @@
 #endif
 
 
-#if defined(NDEBUG) || defined(C4_NO_DEBUG_BREAK)
+#if defined(NDEBUG) || defined(C4_NO_DEBUG_BREAK) || (!defined(RYML_DBG))
 #   define RYML_DEBUG_BREAK()
 #else
 #   define RYML_DEBUG_BREAK()                               \
