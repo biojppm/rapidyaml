@@ -6,8 +6,8 @@
 #include <c4/yml/detail/checks.hpp>
 #include <c4/yml/detail/print.hpp>
 #endif
-#include "./test_case.hpp"
-#include "./callbacks_tester.hpp"
+#include "./test_lib/test_case.hpp"
+#include "./test_lib/callbacks_tester.hpp"
 
 #include <gtest/gtest.h>
 
@@ -298,10 +298,9 @@ formats:
     const std::string expected = R"(formats:
   rtt: json
 )";
-    auto test_formats = [&](const char *id){
-        SCOPED_TRACE(id);
+    auto test_formats = [&](const char *desc){
         NodeRef formats = root["formats"];
-        std::cout << id << " id=" << formats.id() << "\n";
+        RYML_TRACE_FMT("desc={} formats.id={} ", desc, formats.id());
         EXPECT_TRUE(formats.valid());
         print_tree(tree);
         check_invariants(tree);

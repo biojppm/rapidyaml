@@ -1,7 +1,297 @@
-#include "./test_group.hpp"
+#include "./test_lib/test_group.hpp"
 
 namespace c4 {
 namespace yml {
+
+struct plain_scalar_case
+{
+    size_t indentation;
+    csubstr input, expected;
+};
+
+
+// double quoted filtering can result in an output larger than the input.
+// so we ensure adequate test covering by using different sizes.
+// test also cases where the destination string is not large
+// enough to accomodate the filtered string.
+
+/** when filtering from src to dst, specifying the dst sz is enough to
+ * cover the different cases */
+void test_filter_src_dst(csubstr input, csubstr expected, size_t indentation, size_t dst_sz)
+{
+    RYML_TRACE_FMT("\nstr=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~\nsz={}", input.len, input, expected.len, expected, dst_sz);
+    // fill the dst buffer with a ref char to ensure there is no
+    // write overflow.
+    const size_t actual_sz = size_t(30) + (dst_sz > expected.len ? dst_sz : expected.len);
+    std::string subject_;
+    subject_.resize(actual_sz);
+    const substr full = to_substr(subject_);
+    // fill the canary region
+    const char refchar = '`';
+    full.sub(dst_sz).fill(refchar);
+    // filter now
+    const substr dst = full.first(dst_sz);
+    Parser::handler_type evt_handler = {};
+    Parser proc(&evt_handler);
+    FilterResult result = proc.filter_scalar_plain(input, dst, indentation);
+    // check the result
+    EXPECT_EQ(result.required_len(), expected.len);
+    if(result.valid())
+    {
+        const csubstr out = result.get();
+        RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
+        RYML_TRACE_FMT("\nout.str={}\ndst.str={}", (void const*)out.str, (void const*)dst.str);
+        EXPECT_TRUE(out.is_sub(dst));
+        EXPECT_EQ(out, expected);
+        // check the fill character in the canary region
+        EXPECT_GT(full.sub(dst_sz).len, 0u);
+        EXPECT_EQ(full.sub(dst_sz).first_not_of(refchar), csubstr::npos);
+    }
+}
+
+
+void test_filter_inplace(csubstr input, csubstr expected, size_t indentation)
+{
+    EXPECT_LE(expected.len, input.len);
+    // fill the dst buffer with a ref char to ensure there is no
+    // write overflow.
+    const size_t max_sz = (input.len > expected.len ? input.len : expected.len);
+    const size_t full_sz = max_sz + size_t(30);
+    RYML_TRACE_FMT("\ninp=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~\nmax_sz={}", input.len, input, expected.len, expected, max_sz);
+    auto run = [&](size_t cap){
+        // create the string
+        std::string subject_(input.str, input.len);
+        std::string subject_2 = subject_;
+        subject_.resize(full_sz);
+        // fill the canary region
+        const char refchar = '`';
+        const substr full = to_substr(subject_);
+        full.sub(max_sz).fill(refchar);
+        substr dst = full.first(input.len);
+        // filter now
+        Parser::handler_type evt_handler1 = {};
+        Parser parser1(&evt_handler1);
+        FilterResult result = parser1.filter_scalar_plain_in_place(dst, cap, indentation);
+        EXPECT_EQ(result.get().len, expected.len);
+        EXPECT_EQ(result.required_len(), expected.len);
+        Parser::handler_type evt_handler2 = {};
+        Parser parser2(&evt_handler2);
+        Tree tree = parse_in_arena(&parser2, "file", "# set the tree in the parser");
+        csubstr sresult = parser2._filter_scalar_plain(to_substr(subject_2), indentation);
+        EXPECT_GE(result.required_len(), expected.len);
+        EXPECT_EQ(sresult.len, result.str.len);
+        if(result.valid())
+        {
+        const csubstr out = result.get();
+            EXPECT_EQ(out, expected);
+            // check the fill character in the canary region.
+            EXPECT_GT(full.sub(max_sz).len, 0u);
+            EXPECT_EQ(full.first_not_of(refchar, max_sz), csubstr::npos);
+        }
+    };
+    if(input.len >= expected.len)
+    {
+        RYML_TRACE_FMT("all good: input.len={} >= expected.len={}", input.len, expected.len);
+        run(input.len);
+    }
+    else // input.len < expected.len
+    {
+        RYML_TRACE_FMT("expanding: input.len={} < expected.len={}", input.len, expected.len);
+        {
+            RYML_TRACE_FMT("expanding.1: up to larger expected.len={}", expected.len);
+            run(expected.len);
+        }
+        // there is no room to filter if we pass input.len as the capacity.
+        {
+            RYML_TRACE_FMT("expanding.2: up to smaller input.len={}", input.len);
+            run(input.len);
+        }
+    }
+}
+
+
+// declare test cases
+plain_scalar_case test_cases_filter[] = {
+    #define psc(indentation, input, expected) plain_scalar_case{indentation, csubstr(input), csubstr(expected)}
+    // 0
+    psc(0, "A", "A"),
+    psc(0, "A B", "A B"),
+    psc(0, "A\nB", "A B"),
+    psc(1, "A\nB", "A B"),
+    psc(2, "A\nB", "A B"),
+    // 5
+    psc(0, "A\n\nB", "A\nB"),
+    psc(1, "A\n\nB", "A\nB"),
+    psc(2, "A\n\nB", "A\nB"),
+    psc(0, "A\n\n\nB", "A\n\nB"),
+    psc(1, "A\n\n\nB", "A\n\nB"),
+    // 10
+    psc(2, "A\n\n\nB", "A\n\nB"),
+    psc(0, "A\n\n\n\nB", "A\n\n\nB"),
+    psc(1, "A\n\n\n\nB", "A\n\n\nB"),
+    psc(2, "A\n\n\n\nB", "A\n\n\nB"),
+    psc(0, "A\n\n\n\n\nB", "A\n\n\n\nB"),
+    // 15
+    psc(1, "A\n\n\n\n\nB", "A\n\n\n\nB"),
+    psc(2, "A\n\n\n\n\nB", "A\n\n\n\nB"),
+    psc(0, "a\nb  \n  c\nd\n\ne", "a b c d\ne"),
+    psc(1, "a\nb  \n  c\nd\n\ne", "a b c d\ne"),
+    psc(2, "a\nb  \n  c\nd\n\ne", "a b c d\ne"),
+    //psc(0, "A\n \n", "A"),
+    //psc(1, "A\n \n", "A"),
+    //psc(2, "A\n \n", "A"),
+    // 20
+    psc(0, "1st non-empty\n\n 2nd non-empty \n   	3rd non-empty\n", "1st non-empty\n2nd non-empty 3rd non-empty"),
+    psc(1, "1st non-empty\n\n 2nd non-empty \n   	3rd non-empty\n", "1st non-empty\n2nd non-empty 3rd non-empty"),
+    psc(2, "1st non-empty\n\n 2nd non-empty \n   	3rd non-empty\n", "1st non-empty\n2nd non-empty 3rd non-empty"),
+    psc(0, "---word1\nword2\n", "---word1 word2"),
+    psc(0, "---word1\nword2", "---word1 word2"),
+    // 25
+    psc(0, "---word1\n\nword2\n", "---word1\nword2"),
+    psc(0, "---word1\n\nword2", "---word1\nword2"),
+    psc(0, "---word1\n\n\nword2", "---word1\n\nword2"),
+    psc(0, "---word1\n\n\n\nword2", "---word1\n\n\nword2"),
+    psc(0, "---word1\n\n\n\n\nword2", "---word1\n\n\n\nword2"),
+    // 30
+    psc(0, R"(value
+with
+  
+tabs
+tabs
+  
+  foo
+  
+    bar
+      baz
+     
+)", "value with\ntabs tabs\nfoo\nbar baz\n"), // !!! not sure the final \n is right
+    psc(2, R"(value
+with
+
+tabs
+tabs
+
+  foo
+
+    bar
+      baz
+
+)", "value with\ntabs tabs\nfoo\nbar baz\n"), // !!! not sure the final \n is right
+    psc(2, R"(value
+  with
+   	
+  tabs
+  tabs
+   	
+    foo
+   	
+      bar
+        baz
+   	   
+)", "value with\ntabs tabs\nfoo\nbar baz\n"), // !!! not sure the final \n is right
+    psc(2, R"(value
+  with
+
+  tabs
+  tabs
+
+    foo
+
+      bar
+        baz
+
+)", "value with\ntabs tabs\nfoo\nbar baz\n"), // !!! not sure the final \n is right
+    // 35
+    // 40
+    // 45
+    // 50
+    // 55
+    // 60
+    // 65
+    // 70
+    // 75
+    #undef psc
+};
+
+
+struct PlainScalarFilterSrcDstTest : public ::testing::TestWithParam<plain_scalar_case>
+{
+};
+
+TEST_P(PlainScalarFilterSrcDstTest, dst_is_same_size)
+{
+    plain_scalar_case dqc = GetParam();
+    test_filter_src_dst(dqc.input, dqc.expected, dqc.indentation, /*dst_sz*/dqc.expected.len);
+}
+
+TEST_P(PlainScalarFilterSrcDstTest, dst_is_larger_size)
+{
+    plain_scalar_case dqc = GetParam();
+    test_filter_src_dst(dqc.input, dqc.expected, dqc.indentation, /*sz*/dqc.expected.len + 2u);
+    test_filter_src_dst(dqc.input, dqc.expected, dqc.indentation, /*sz*/dqc.expected.len + 100u);
+}
+
+TEST_P(PlainScalarFilterSrcDstTest, dst_is_smaller_size)
+{
+    plain_scalar_case dqc = GetParam();
+    test_filter_src_dst(dqc.input, dqc.expected, dqc.indentation, /*sz*/dqc.expected.len / 2u);
+}
+
+TEST_P(PlainScalarFilterSrcDstTest, dst_is_zero_size)
+{
+    plain_scalar_case dqc = GetParam();
+    test_filter_src_dst(dqc.input, dqc.expected, dqc.indentation, /*sz*/0u);
+}
+
+struct PlainScalarFilterInplaceTest : public ::testing::TestWithParam<plain_scalar_case>
+{
+};
+
+TEST_P(PlainScalarFilterInplaceTest, dst_is_same_size)
+{
+    plain_scalar_case dqc = GetParam();
+    test_filter_inplace(dqc.input, dqc.expected, dqc.indentation);
+}
+
+
+
+INSTANTIATE_TEST_SUITE_P(plain_scalar_filter,
+                         PlainScalarFilterSrcDstTest,
+                         testing::ValuesIn(test_cases_filter));
+
+INSTANTIATE_TEST_SUITE_P(plain_scalar_filter,
+                         PlainScalarFilterInplaceTest,
+                         testing::ValuesIn(test_cases_filter));
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+TEST(plain_scalar, multiline_1_4)
+{
+    csubstr val = "Several lines of text,\n"
+        "\n"
+        "but the second line is empty, and _unindented_. "
+        "There are more lines that follow. "
+        "And the last line terminates at the end of the file.";
+    std::string yaml = R"(Several lines of text,
+
+
+  but the second line is empty, and _unindented_.
+  There are more lines that follow. And the last line
+  terminates at the end of the file.
+)";
+    std::string expected = R"(Several lines of text,
+
+
+  but the second line is empty, and _unindented_. There are more lines that follow. And the last line terminates at the end of the file.
+)";
+    test_check_emit_check(to_csubstr(yaml), [&](Tree const &t){
+        ASSERT_EQ(t.rootref().val(), val);
+        ASSERT_EQ(emitrs_yaml<std::string>(t), expected);
+    });
+}
 
 TEST(plain_scalar, issue153_seq)
 {
@@ -64,7 +354,6 @@ TEST(plain_scalar, test_suite_82AN)
 word2
 )";
     test_check_emit_check(yaml, [](Tree const &t){
-        ASSERT_TRUE(t.rootref().is_doc());
         ASSERT_TRUE(t.rootref().is_val());
         EXPECT_EQ(t.rootref().val(), csubstr("---word1 word2"));
     });
@@ -97,7 +386,6 @@ d
 e
 )";
     test_check_emit_check(yaml, [](Tree const &t){
-        ASSERT_TRUE(t.rootref().is_doc());
         ASSERT_TRUE(t.rootref().is_val());
         EXPECT_EQ(t.rootref().val(), csubstr("a b c d\ne"));
     });
@@ -152,7 +440,6 @@ TEST(plain_scalar, test_suite_HS5T)
    	3rd non-empty
 )";
     test_check_emit_check(yaml, [](Tree const &t){
-        ASSERT_TRUE(t.rootref().is_doc());
         ASSERT_TRUE(t.rootref().is_val());
         EXPECT_EQ(t.rootref().val(), csubstr("1st non-empty\n2nd non-empty 3rd non-empty"));
     });
@@ -161,7 +448,7 @@ TEST(plain_scalar, test_suite_HS5T)
 TEST(plain_scalar, test_suite_NB6Z)
 {
     csubstr yaml = R"(
-key:
+key0:
   value
   with
    	
@@ -192,11 +479,11 @@ key3: something
 )";
     test_check_emit_check(yaml, [](Tree const &t){
         ASSERT_TRUE(t.rootref().is_map());
-        ASSERT_TRUE(t.rootref().has_child("key"));
+        ASSERT_TRUE(t.rootref().has_child("key0"));
         ASSERT_TRUE(t.rootref().has_child("key1"));
         ASSERT_TRUE(t.rootref().has_child("key2"));
         ASSERT_TRUE(t.rootref().has_child("key3"));
-        EXPECT_EQ(t["key"].val(), csubstr("value with\ntabs tabs\nfoo\nbar baz"));
+        EXPECT_EQ(t["key0"].val(), csubstr("value with\ntabs tabs\nfoo\nbar baz"));
         EXPECT_EQ(t["key1"].val(), csubstr("value with\ntabs tabs\nfoo\nbar baz"));
         EXPECT_EQ(t["key2"].val(), csubstr("something else"));
         EXPECT_EQ(t["key3"].val(), csubstr("something else"));
@@ -242,24 +529,42 @@ TEST(plain_scalar, test_suite_NB6Z_seq)
 
 TEST(plain_scalar, test_suite_NB6Z_docval)
 {
-    csubstr yaml = R"(
-value
-with
- 	
-tabs
-tabs
- 	
-  foo
- 	
-    bar
-      baz
- 	
-)";
-    test_check_emit_check(yaml, [](Tree const &t){
-        ASSERT_TRUE(t.rootref().is_doc());
+    auto check = [](Tree const &t){
         ASSERT_TRUE(t.rootref().is_val());
         EXPECT_EQ(t.rootref().val(), csubstr("value with\ntabs tabs\nfoo\nbar baz"));
-    });
+    };
+    {
+        SCOPED_TRACE("case 0");
+        test_check_emit_check(R"(
+value
+with
+   	
+tabs
+tabs
+   	
+  foo
+   	
+    bar
+      baz
+   	
+)", check);
+    }
+    {
+        SCOPED_TRACE("case 1");
+        test_check_emit_check(R"(
+value
+with
+
+tabs
+tabs
+
+  foo
+
+    bar
+      baz
+
+)", check);
+    }
 }
 
 
@@ -272,12 +577,12 @@ CASE_GROUP(PLAIN_SCALAR)
 //
 ADD_CASE_TO_GROUP("plain scalar, 1 word only",
 R"(a_single_word_scalar_to_test)",
-  N(DOCVAL, "a_single_word_scalar_to_test")
+  N(VP, "a_single_word_scalar_to_test")
 );
 
 ADD_CASE_TO_GROUP("plain scalar, 1 line with spaces",
 R"(a scalar with spaces in it all in one line)",
-  N(DOCVAL, "a scalar with spaces in it all in one line")
+  N(VP, "a scalar with spaces in it all in one line")
 );
 
 ADD_CASE_TO_GROUP("plain scalar, multiline",
@@ -285,7 +590,7 @@ R"(
 a scalar with several lines in it
   of course also with spaces but for now there are no quotes
   and also no blank lines to speak of)",
-  N(DOCVAL, "a scalar with several lines in it of course also with spaces but for now there are no quotes and also no blank lines to speak of")
+  N(VP, "a scalar with several lines in it of course also with spaces but for now there are no quotes and also no blank lines to speak of")
 );
 
 ADD_CASE_TO_GROUP("plain scalar, multiline, unindented",
@@ -293,14 +598,14 @@ R"(
 a scalar with several lines in it
  of course also with spaces but for now there are no quotes
  and also no blank lines to speak of)",
-  N(DOCVAL, "a scalar with several lines in it of course also with spaces but for now there are no quotes and also no blank lines to speak of")
+  N(VP, "a scalar with several lines in it of course also with spaces but for now there are no quotes and also no blank lines to speak of")
 );
 
 ADD_CASE_TO_GROUP("plain scalar, multiline, quotes, escapes",
 R"(
 a scalar with several lines in it and also 'single quotes'
   and "double quotes" and assorted escapes such as \r or \n)",
-  N(DOCVAL, "a scalar with several lines in it and also 'single quotes' and \"double quotes\" and assorted escapes such as \\r or \\n")
+  N(VP, "a scalar with several lines in it and also 'single quotes' and \"double quotes\" and assorted escapes such as \\r or \\n")
 );
 
 ADD_CASE_TO_GROUP("plain scalar, multiline, quotes, escapes, blank lines middle",
@@ -309,7 +614,7 @@ A scalar with several lines in it and also 'single quotes'.
   A blank line follows after this one.
   
   And "double quotes" and assorted escapes such as \r or \n)",
-  N(DOCVAL, "A scalar with several lines in it and also 'single quotes'. A blank line follows after this one.\nAnd \"double quotes\" and assorted escapes such as \\r or \\n")
+  N(VP, "A scalar with several lines in it and also 'single quotes'. A blank line follows after this one.\nAnd \"double quotes\" and assorted escapes such as \\r or \\n")
 );
 
 ADD_CASE_TO_GROUP("plain scalar, multiline, quotes, escapes, blank lines first",
@@ -318,7 +623,7 @@ A scalar with several lines in it and also 'single quotes'.
   
   A blank line precedes this one.
   And "double quotes" and assorted escapes such as \r or \n)",
-  N(DOCVAL, "A scalar with several lines in it and also 'single quotes'.\nA blank line precedes this one. And \"double quotes\" and assorted escapes such as \\r or \\n")
+  N(VP, "A scalar with several lines in it and also 'single quotes'.\nA blank line precedes this one. And \"double quotes\" and assorted escapes such as \\r or \\n")
 );
 
 ADD_CASE_TO_GROUP("plain scalar, multiline, quotes, escapes, blank lines last",
@@ -328,7 +633,7 @@ A scalar with several lines in it and also 'single quotes'.
   A blank line follows after this one.
   
   )",
-  N(DOCVAL, "A scalar with several lines in it and also 'single quotes'. And \"double quotes\" and assorted escapes such as \\r or \\n. A blank line follows after this one.")
+  N(VP, "A scalar with several lines in it and also 'single quotes'. And \"double quotes\" and assorted escapes such as \\r or \\n. A blank line follows after this one.")
 );
 
 ADD_CASE_TO_GROUP("plain scalar, example",
@@ -339,9 +644,69 @@ Several lines of text
   
   Newlines can be added by leaving a blank line.
       Additional leading whitespace is ignored.)",
-  N(DOCVAL, "Several lines of text with some \"quotes\" of various 'types'. Escapes (like \\n) don't do anything.\nNewlines can be added by leaving a blank line. Additional leading whitespace is ignored.")
+  N(VP, "Several lines of text with some \"quotes\" of various 'types'. Escapes (like \\n) don't do anything.\nNewlines can be added by leaving a blank line. Additional leading whitespace is ignored.")
 );
 
+ADD_CASE_TO_GROUP("plain scalar, map example 1.1",
+R"(
+example: Several lines of text,
+ with some "quotes" of various 'types'.
+  Escapes (like \n) don't do anything.
+
+  Newlines can be added by leaving a blank line.
+      Additional leading whitespace is ignored.
+
+)",
+  N(MB, L{
+    N(KP|VP, "example", "Several lines of text, with some \"quotes\" of various 'types'. "
+                 "Escapes (like \\n) don't do anything.\n"
+                 "Newlines can be added by leaving a blank line. "
+                 "Additional leading whitespace is ignored."),
+    })
+);
+ADD_CASE_TO_GROUP("plain scalar, map example 1.2",
+R"(
+another example: Several lines of text,
+   
+  but the second line is empty, and _indented_.
+   There are more lines that follow.
+
+)",
+  N(MB, L{
+    N(KP|VP, "another example", "Several lines of text,\n"
+                         "but the second line is empty, and _indented_. "
+                         "There are more lines that follow."),
+    })
+);
+ADD_CASE_TO_GROUP("plain scalar, map example 1.3",
+R"(
+yet another example: Several lines of text,
+
+  but the second line is empty, and _unindented_.
+  There are more lines that follow.
+)",
+  N(MB, L{
+    N(KP|VP, "yet another example", "Several lines of text,\n"
+                             "but the second line is empty, and _unindented_. "
+                             "There are more lines that follow."),
+    })
+);
+ADD_CASE_TO_GROUP("plain scalar, map example 1.4",
+R"(
+final example: Several lines of text,
+
+
+  but the second line is empty, and _unindented_.
+  There are more lines that follow. And the last line
+  terminates at the end of the file.)",
+  N(MB, L{
+    N(KP|VP, "final example", "Several lines of text,\n"
+                       "\n"
+                       "but the second line is empty, and _unindented_. "
+                       "There are more lines that follow. "
+                       "And the last line terminates at the end of the file."),
+    })
+);
 ADD_CASE_TO_GROUP("plain scalar, map example 1",
 R"(
 example: Several lines of text,
@@ -366,22 +731,22 @@ final example: Several lines of text,
   but the second line is empty, and _unindented_.
   There are more lines that follow. And the last line
   terminates at the end of the file.)",
-  L{
-    N("example", "Several lines of text, with some \"quotes\" of various 'types'. "
+  N(MB, L{
+    N(KP|VP, "example", "Several lines of text, with some \"quotes\" of various 'types'. "
                  "Escapes (like \\n) don't do anything.\n"
                  "Newlines can be added by leaving a blank line. "
                  "Additional leading whitespace is ignored."),
-    N("another example", "Several lines of text,\n"
+    N(KP|VP, "another example", "Several lines of text,\n"
                          "but the second line is empty, and _indented_. "
                          "There are more lines that follow."),
-    N("yet another example", "Several lines of text,\n"
+    N(KP|VP, "yet another example", "Several lines of text,\n"
                              "but the second line is empty, and _unindented_. "
                              "There are more lines that follow."),
-    N("final example", "Several lines of text,\n\n"
+    N(KP|VP, "final example", "Several lines of text,\n\n"
                        "but the second line is empty, and _unindented_. "
                        "There are more lines that follow. "
                        "And the last line terminates at the end of the file."),
-    }
+    })
 );
 
 /*
@@ -407,10 +772,10 @@ R"(
   
   Newlines can be added by leaving a blank line.
       Additional leading whitespace is ignored.)",
-  L{N("Several lines of text, with some \"quotes\" of various 'types'. "
+  N(SB, L{N(VP, "Several lines of text, with some \"quotes\" of various 'types'. "
       "Escapes (like \\n) don't do anything.\n"
       "Newlines can be added by leaving a blank line. "
-      "Additional leading whitespace is ignored.")}
+      "Additional leading whitespace is ignored.")})
 );
 
 /*
@@ -459,7 +824,7 @@ R"(
   
   
 )",
-  L{N("Several lines of text, with special:characters, like:this-or-this - - and some \"quotes\" of various 'types'. "
+N(SB, L{N(VP, "Several lines of text, with special:characters, like:this-or-this - - and some \"quotes\" of various 'types'. "
       "How about empty lines?\n"
       "Can we also have [] or {} inside? Guess we can. "
       "And how about at the beginning? { - for example } [ - for example ] - - for example ::- for example\n"
@@ -468,7 +833,7 @@ R"(
       "and an empty line, unindented -\n"
       "followed by more text "
       "and another four at the end -"
-    )}
+    )})
 );
 
 ADD_CASE_TO_GROUP("plain scalar, special characters 3MYT",
@@ -513,28 +878,28 @@ k:#foo
      !t s
 )",
   N(STREAM, L{
-      N(DOCMAP, L{
-              N("a", "1"),
-              N(KEYVAL, "b", {}),
-              N("c", AR(KEYANCH, "anchor"), "3"),
-              N(KEYVAL, "d", {}),
-              N(TS("!!str", "e"), "4"),
-              N(KEYVAL, "f", {}),
+      N(DOC|MB, L{
+              N(KP|VP, "a", "1"),
+              N(KP|VP, "b", {}),
+              N(KP|VP, "c", AR(KEYANCH, "anchor"), "3"),
+              N(KP|VP, "d", {}),
+              N(KP|VP, TS("!!str", "e"), "4"),
+              N(KP|VP, "f", {}),
           }),
 
-      N(DOCVAL, "k:#foo &a !t s"),
-      N(DOCVAL|VALQUO, "k:#foo &a !t s"),
-      N(DOCVAL|VALQUO, "k:#foo &a !t s"),
+      N(DOC|VP, "k:#foo &a !t s"),
+      N(DOC|VD, "k:#foo &a !t s"),
+      N(DOC|VS, "k:#foo &a !t s"),
 
-      N(DOCVAL, "k:#foo &a !t s"),
-      N(DOCVAL, "k:#foo &a !t s"),
-      N(DOCVAL, "k:#foo &a !t s"),
-      N(DOCVAL, "k:#foo &a !t s"),
+      N(DOC|VP, "k:#foo &a !t s"),
+      N(DOC|VP, "k:#foo &a !t s"),
+      N(DOC|VP, "k:#foo &a !t s"),
+      N(DOC|VP, "k:#foo &a !t s"),
 
-      N(DOCVAL, "k:#foo !t s"),
-      N(DOCVAL, "k:#foo !t s"),
-      N(DOCVAL, "k:#foo !t s"),
-      N(DOCVAL, "k:#foo !t s"),
+      N(DOC|VP, "k:#foo !t s"),
+      N(DOC|VP, "k:#foo !t s"),
+      N(DOC|VP, "k:#foo !t s"),
+      N(DOC|VP, "k:#foo !t s"),
   })
     );
 
@@ -550,12 +915,12 @@ R"(
 - some text
   - and this is /not/ a sequence
 )",
-  L{
-      N(L{N("some text"), N("and this is a sequence")}),
-      N("some text - and this is /not/ a sequence"),
-      N(L{N("some text"), N("and this is a sequence")}),
-      N("some text - and this is /not/ a sequence"),
-  }
+  N(SB, L{
+      N(SB, L{N(VP, "some text"), N(VP, "and this is a sequence")}),
+      N(VP, "some text - and this is /not/ a sequence"),
+      N(SB, L{N(VP, "some text"), N(VP, "and this is a sequence")}),
+      N(VP, "some text - and this is /not/ a sequence"),
+  })
 );
 
 ADD_CASE_TO_GROUP("plain scalar, empty lines at the beginning",
@@ -576,11 +941,11 @@ R"(
   with special:characters, like:this-or-this -
   - and some "quotes" of various 'types'.
 )",
-  L{
-      N("Several lines of text, with special:characters, like:this-or-this - - and some \"quotes\" of various 'types'."),
-      N("Several lines of text, with special:characters, like:this-or-this - - and some \"quotes\" of various 'types'."),
-      N("Several lines of text, with special:characters, like:this-or-this - - and some \"quotes\" of various 'types'."),
-  }
+N(SB, L{
+      N(VP, "Several lines of text, with special:characters, like:this-or-this - - and some \"quotes\" of various 'types'."),
+      N(VP, "Several lines of text, with special:characters, like:this-or-this - - and some \"quotes\" of various 'types'."),
+      N(VP, "Several lines of text, with special:characters, like:this-or-this - - and some \"quotes\" of various 'types'."),
+  })
 );
 
 ADD_CASE_TO_GROUP("plain scalar, empty continuation lines",
@@ -606,15 +971,15 @@ R"(
 
   and finally some more text
 )",
-  L{
-      N("the next lines have 2cols, 0cols, 2cols,"
+N(SB, L{
+      N(VP, "the next lines have 2cols, 0cols, 2cols,"
         "\n\n\n"
         "and this line has some text in it. -> 0"
         "\n"
         "now 0, 0, 2, 2, 0, 1, 1, 0, 4, 4, 0, 0"
         "\n\n\n\n\n\n\n\n\n\n\n\n"
         "and finally some more text"),
-  }
+  })
 );
 
 
@@ -634,11 +999,11 @@ R"(
   with special:characters, like:this-or-this -
   - and some "quotes" of various 'types'.
 )",
-  L{
-      N("Several lines of text,\nwith special:characters, like:this-or-this - - and some \"quotes\" of various 'types'."),
-      N("Several lines of text, with special:characters, like:this-or-this - - and some \"quotes\" of various 'types'."),
-      N("Several lines of text, with special:characters, like:this-or-this - - and some \"quotes\" of various 'types'."),
-  }
+N(SB, L{
+      N(VP, "Several lines of text,\nwith special:characters, like:this-or-this - - and some \"quotes\" of various 'types'."),
+      N(VP, "Several lines of text, with special:characters, like:this-or-this - - and some \"quotes\" of various 'types'."),
+      N(VP, "Several lines of text, with special:characters, like:this-or-this - - and some \"quotes\" of various 'types'."),
+  })
 );
 
 ADD_CASE_TO_GROUP("plain scalar, do not accept ': ' mid line", EXPECT_PARSE_ERROR,
@@ -685,21 +1050,21 @@ R"(- Several lines of text,
   and this is valid -
   #with special:characters, like:this-or-this -
 )",
-  L{N("Several lines of text, and this is valid -"),}
+N(SB, L{N(VP, "Several lines of text, and this is valid -"),})
 );
 
 ADD_CASE_TO_GROUP("plain scalar, accept ' #' on first line",
 R"(- Several lines of text, and this is valid -
   #with special:characters, like:this-or-this -
 )",
-  L{N("Several lines of text, and this is valid -")}
+  N(SB, L{N(VP, "Several lines of text, and this is valid -")})
 );
 
 ADD_CASE_TO_GROUP("plain scalar, accept ' #' at line end",
 R"(- Several lines of text,
   with special:characters, #comment at the end
 )",
-  L{N("Several lines of text, with special:characters,")}
+  N(SB, L{N(VP,"Several lines of text, with special:characters,")})
 );
 
 ADD_CASE_TO_GROUP("plain scalar, accept '#'",
@@ -709,12 +1074,12 @@ R"(
   with special#characters, like#this_#_-or-#-:this -
   - and some "quotes" of various 'types'.
 )",
-  L{
-      N("Several lines of text,"),
-      N("Several lines of text, "
+  N(SB, L{
+      N(VP, "Several lines of text,"),
+      N(VP, "Several lines of text, "
         "with special#characters, like#this_#_-or-#-:this - "
         "- and some \"quotes\" of various 'types'."),
-   }
+   })
 );
 
 ADD_CASE_TO_GROUP("plain scalar, explicit",
@@ -738,12 +1103,12 @@ with many lines
 and yet more, deindented
 ]
 )",
-  L{
-      N("a plain scalar with several lines\nand blank lines\nas well"),
-      N("and another plain scalar"),
-      N("and yet another one\n\n\nwith many lines\nand yet more"),
-      N("deindented"),
-   }
+  N(SFS, L{
+      N(VP, "a plain scalar with several lines\nand blank lines\nas well"),
+      N(VP, "and another plain scalar"),
+      N(VP, "and yet another one\n\n\nwith many lines\nand yet more"),
+      N(VP, "deindented"),
+   })
 );
 
 ADD_CASE_TO_GROUP("plain scalar, explicit, early end, seq", EXPECT_PARSE_ERROR,
@@ -771,8 +1136,8 @@ R"(---
     with several lines
 )",
   N(STREAM, L{
-    N(DOCSEQ, L{N("a plain scalar with several lines")}),
-    N(DOCSEQ, L{N("a second plain scalar with several lines")}),
+    N(DOC|SB, L{N(VP, "a plain scalar with several lines")}),
+    N(DOC|SB, L{N(VP, "a second plain scalar with several lines")}),
   })
 );
 
@@ -786,8 +1151,8 @@ R"(---
     with several lines
 )",
   N(STREAM, L{
-    N(DOCSEQ, L{N("a plain scalar with several lines")}),
-    N(DOCSEQ, L{N("a second plain scalar with several lines")}),
+    N(DOC|SB, L{N(VP, "a plain scalar with several lines")}),
+    N(DOC|SB, L{N(VP, "a second plain scalar with several lines")}),
   })
 );
 
@@ -804,9 +1169,9 @@ foo
 
 )",
   N(STREAM, L{
-          N(DOCVAL, "foo"),
-          N(DOCVAL, "foo"),
-          N(DOCVAL, "foo"),
+          N(DOC|VP, "foo"),
+          N(DOC|VP, "foo"),
+          N(DOC|VP, "foo"),
       })
     );
 }

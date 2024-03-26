@@ -1,4 +1,4 @@
-#include "./test_group.hpp"
+#include "./test_lib/test_group.hpp"
 #include <string>
 
 namespace c4 {
@@ -9,8 +9,6 @@ namespace yml {
 // https://github.com/biojppm/rapidyaml/pull/264
 
 C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
-
-constexpr const NodeType_e DQV = (NodeType_e)(DOC | QV);
 
 TEST(empty_scalar, parse_zero_length_strings)
 {
@@ -47,37 +45,43 @@ map:
     }
 }
 
-TEST(empty_scalar, flow_seq)
+void test_empty_squo(ConstNodeRef ch)
+{
+    SCOPED_TRACE(ch.id());
+    EXPECT_NE((ch.type() & VALQUO), 0u);
+    EXPECT_NE((ch.type() & _WIP_VAL_SQUO), 0u);
+    EXPECT_TRUE((ch.type() & _WIP_VAL_SQUO) == _WIP_VAL_SQUO);
+    EXPECT_TRUE(ch.tree()->is_val_quoted(ch.id()));
+    EXPECT_TRUE(ch.is_val_quoted());
+    EXPECT_FALSE(ch.val_is_null());
+    EXPECT_EQ(ch.val().len, 0);
+    EXPECT_NE(ch.val().str, nullptr);
+    EXPECT_NE(ch.val(), nullptr);
+}
+TEST(empty_scalar, flow_seq0)
 {
     test_check_emit_check("['', '']", [&](Tree const &t){
-        ASSERT_TRUE(t.rootref().has_children());
+        EXPECT_TRUE(t.rootref().has_children());
+        EXPECT_EQ(t.rootref().num_children(), 2);
         for(ConstNodeRef ch : t.rootref().children())
-        {
-            EXPECT_TRUE(ch.is_val_quoted());
-            EXPECT_FALSE(ch.val_is_null());
-            EXPECT_EQ(ch.val().len, 0);
-            EXPECT_NE(ch.val().str, nullptr);
-            EXPECT_NE(ch.val(), nullptr);
-        }
+            test_empty_squo(ch);
     });
-    test_check_emit_check("[ , ]", [&](Tree const &t){
-        ASSERT_TRUE(t.rootref().has_children());
+}
+TEST(empty_scalar, flow_seq1)
+{
+    test_check_emit_check("['', ]", [&](Tree const &t){
+        EXPECT_TRUE(t.rootref().has_children());
+        EXPECT_EQ(t.rootref().num_children(), 1);
         for(ConstNodeRef ch : t.rootref().children())
-        {
-            EXPECT_FALSE(ch.is_val_quoted());
-            EXPECT_TRUE(ch.val_is_null());
-            EXPECT_EQ(ch.val().len, 0);
-            EXPECT_EQ(ch.val().str, nullptr);
-            EXPECT_EQ(ch.val(), nullptr);
-        }
+            test_empty_squo(ch);
     });
 }
 
 TEST(empty_scalar, parse_empty_strings)
 {
+    // use multiple empty entries to ensure the parser
+    // correctly deals with the several cases
     char inp[] = R"(
-# use multiple empty entries to ensure the parser
-# correctly deals with the several cases
 seq:
   -
   -
@@ -90,18 +94,25 @@ map:
   d: 
 )";
     const Tree tr = parse_in_place(inp);
+    #ifdef RYML_DBG
+    print_tree(tr);
+    #endif
     for(const char *name : {"seq", "map"})
     {
+        SCOPED_TRACE(name);
         ConstNodeRef node = tr[to_csubstr(name)];
         ASSERT_EQ(node.num_children(), 4);
+        size_t pos = 0;
         for(const auto &child : node.children())
         {
+            SCOPED_TRACE(pos);
             EXPECT_FALSE(child.type().is_val_quoted());
             EXPECT_EQ(child.val(), "");
             EXPECT_EQ(child.val(), nullptr);
             EXPECT_EQ(child.val().str, nullptr);
             EXPECT_EQ(child.val().len, 0u);
             EXPECT_TRUE(child.val_is_null());
+            ++pos;
         }
     }
 }
@@ -123,13 +134,7 @@ TEST(empty_scalar, std_string)
     tree["eq"]["stdstr"] = stdss;
     tree["eq"]["nullss"] = nullss;
     EXPECT_EQ(emitrs_yaml<std::string>(tree),
-             "ser:\n"
-             "  stdstr: ''\n"
-             "  nullss: \n"
-             "eq:\n"
-             "  stdstr: ''\n"
-             "  nullss: \n"
-              );
+              "{ser: {stdstr: '',nullss: },eq: {stdstr: '',nullss: }}");
 }
 
 TEST(empty_scalar, to_arena)
@@ -184,14 +189,18 @@ TEST(empty_scalar, gcc_error)
     csubstr nullstr = {};
     ASSERT_EQ(nullstr.str, nullptr);
     ASSERT_EQ(nullstr.len, 0);
-    std::cout << "\nserializing with empty arena...\n";
-    csubstr result = tr.to_arena(nullstr);
-    EXPECT_EQ(result.str, nullptr); // fails!
-    EXPECT_EQ(result.len, 0);
-    std::cout << "\nserializing with nonempty arena...\n";
-    result = tr.to_arena(nullstr);
-    EXPECT_EQ(result.str, nullptr); // fails!
-    EXPECT_EQ(result.len, 0);
+    {
+        SCOPED_TRACE("serializing with empty arena");
+        csubstr result = tr.to_arena(nullstr);
+        EXPECT_EQ(result.str, nullptr); // fails!
+        EXPECT_EQ(result.len, 0);
+    }
+    {
+        SCOPED_TRACE("serializing with nonempty arena");
+        csubstr result = tr.to_arena(nullstr);
+        EXPECT_EQ(result.str, nullptr); // fails!
+        EXPECT_EQ(result.len, 0);
+    }
 }
 
 TEST(empty_scalar, build_zero_length_string)
@@ -219,20 +228,29 @@ TEST(empty_scalar, build_zero_length_string)
     // regarded
 
     {
-        NodeRef quoted = addseq("quoted");
-        {NodeRef r = quoted.append_child(); r = ""      ; r.set_type(r.type() | VALQUO);}
-        {NodeRef r = quoted.append_child(); r << ""     ; r.set_type(r.type() | VALQUO);}
-        {NodeRef r = quoted.append_child(); r = empty   ; r.set_type(r.type() | VALQUO);}
-        {NodeRef r = quoted.append_child(); r << empty  ; r.set_type(r.type() | VALQUO);}
-        {NodeRef r = quoted.append_child(); r = stdss   ; r.set_type(r.type() | VALQUO);}
-        {NodeRef r = quoted.append_child(); r << stdss  ; r.set_type(r.type() | VALQUO);}
+        NodeRef quoted = addseq("s-quoted");
+        {NodeRef r = quoted.append_child(); r = ""      ; r.set_type(r.type() | _WIP_VAL_SQUO);}
+        {NodeRef r = quoted.append_child(); r << ""     ; r.set_type(r.type() | _WIP_VAL_SQUO);}
+        {NodeRef r = quoted.append_child(); r = empty   ; r.set_type(r.type() | _WIP_VAL_SQUO);}
+        {NodeRef r = quoted.append_child(); r << empty  ; r.set_type(r.type() | _WIP_VAL_SQUO);}
+        {NodeRef r = quoted.append_child(); r = stdss   ; r.set_type(r.type() | _WIP_VAL_SQUO);}
+        {NodeRef r = quoted.append_child(); r << stdss  ; r.set_type(r.type() | _WIP_VAL_SQUO);}
+    }
+    {
+        NodeRef quoted = addseq("d-quoted");
+        {NodeRef r = quoted.append_child(); r = ""      ; r.set_type(r.type() | _WIP_VAL_DQUO);}
+        {NodeRef r = quoted.append_child(); r << ""     ; r.set_type(r.type() | _WIP_VAL_DQUO);}
+        {NodeRef r = quoted.append_child(); r = empty   ; r.set_type(r.type() | _WIP_VAL_DQUO);}
+        {NodeRef r = quoted.append_child(); r << empty  ; r.set_type(r.type() | _WIP_VAL_DQUO);}
+        {NodeRef r = quoted.append_child(); r = stdss   ; r.set_type(r.type() | _WIP_VAL_DQUO);}
+        {NodeRef r = quoted.append_child(); r << stdss  ; r.set_type(r.type() | _WIP_VAL_DQUO);}
     }
     {
         NodeRef quoted_null = addseq("quoted_null");
-        {NodeRef r = quoted_null.append_child(); r = nullss  ; r.set_type(r.type() | VALQUO);}
-        {NodeRef r = quoted_null.append_child(); r << nullss ; r.set_type(r.type() | VALQUO);}
-        {NodeRef r = quoted_null.append_child(); r = nullptr ; r.set_type(r.type() | VALQUO);}
-        {NodeRef r = quoted_null.append_child(); r << nullptr; r.set_type(r.type() | VALQUO);}
+        {NodeRef r = quoted_null.append_child(); r = nullss  ; r.set_type(r.type() | _WIP_VAL_SQUO);}
+        {NodeRef r = quoted_null.append_child(); r << nullss ; r.set_type(r.type() | _WIP_VAL_SQUO);}
+        {NodeRef r = quoted_null.append_child(); r = nullptr ; r.set_type(r.type() | _WIP_VAL_SQUO);}
+        {NodeRef r = quoted_null.append_child(); r << nullptr; r.set_type(r.type() | _WIP_VAL_SQUO);}
     }
     {
         NodeRef non_quoted = addseq("nonquoted");
@@ -260,12 +278,13 @@ TEST(empty_scalar, build_zero_length_string)
             size_t pos = 0;
             for(ConstNodeRef child : node.cchildren())
             {
-                EXPECT_TRUE(child.is_val_quoted()) << "pos=" << pos;
-                EXPECT_EQ(child.val().len, 0u) << "pos=" << pos;
-                EXPECT_NE(child.val().str, nullptr) << "pos=" << pos;
-                EXPECT_NE(child.val(), nullptr) << "pos=" << pos;
-                EXPECT_EQ(child.val(), "") << "pos=" << pos;
-                EXPECT_FALSE(child.val_is_null()) << "pos=" << pos;
+                SCOPED_TRACE(pos);
+                EXPECT_TRUE(child.is_val_quoted());
+                EXPECT_EQ(child.val().len, 0u);
+                EXPECT_NE(child.val().str, nullptr);
+                EXPECT_NE(child.val(), nullptr);
+                EXPECT_EQ(child.val(), "");
+                EXPECT_FALSE(child.val_is_null());
                 pos++;
             }
         }
@@ -276,12 +295,13 @@ TEST(empty_scalar, build_zero_length_string)
         size_t pos = 0;
         for(ConstNodeRef child : node.cchildren())
         {
-            EXPECT_TRUE(child.is_val_quoted()) << "pos=" << pos;
-            EXPECT_FALSE(child.val_is_null()) << "pos=" << pos; // because it's quoted
-            EXPECT_EQ(child.val().len, 0u) << "pos=" << pos;
-            EXPECT_EQ(child.val().str, nullptr) << "pos=" << pos;
-            EXPECT_EQ(child.val(), nullptr) << "pos=" << pos;
-            EXPECT_EQ(child.val(), "") << "pos=" << pos;
+            SCOPED_TRACE(pos);
+            EXPECT_TRUE(child.is_val_quoted());
+            EXPECT_FALSE(child.val_is_null()); // because it's quoted
+            EXPECT_EQ(child.val().len, 0u);
+            EXPECT_EQ(child.val().str, nullptr);
+            EXPECT_EQ(child.val(), nullptr);
+            EXPECT_EQ(child.val(), "");
             pos++;
         }
     };
@@ -293,12 +313,13 @@ TEST(empty_scalar, build_zero_length_string)
         size_t pos = 0;
         for(ConstNodeRef child : node.cchildren())
         {
-            EXPECT_TRUE(child.is_val()) << "pos=" << pos;
-            EXPECT_FALSE(child.val_is_null()) << "pos=" << pos; // because it's quoted
-            EXPECT_EQ(child.val(), "") << "pos=" << pos;
-            EXPECT_NE(child.val(), nullptr) << "pos=" << pos;
-            EXPECT_EQ(child.val().len, 0u) << "pos=" << pos;
-            EXPECT_NE(child.val().str, nullptr) << "pos=" << pos;
+            SCOPED_TRACE(pos);
+            EXPECT_TRUE(child.is_val());
+            EXPECT_FALSE(child.val_is_null()); // because it's quoted
+            EXPECT_EQ(child.val(), "");
+            EXPECT_NE(child.val(), nullptr);
+            EXPECT_EQ(child.val().len, 0u);
+            EXPECT_NE(child.val().str, nullptr);
             ++pos;
         }
     };
@@ -308,30 +329,37 @@ TEST(empty_scalar, build_zero_length_string)
         size_t pos = 0;
         for(ConstNodeRef child : node.cchildren())
         {
-            EXPECT_TRUE(child.is_val()) << "pos=" << pos;
-            EXPECT_EQ(child.val(), "") << "pos=" << pos;
-            EXPECT_EQ(child.val(), nullptr) << "pos=" << pos;
-            EXPECT_EQ(child.val().len, 0u) << "pos=" << pos;
-            EXPECT_EQ(child.val().str, nullptr) << "pos=" << pos;
-            EXPECT_TRUE(child.val_is_null()) << "pos=" << pos;
+            SCOPED_TRACE(pos);
+            EXPECT_TRUE(child.is_val());
+            EXPECT_EQ(child.val(), "");
+            EXPECT_EQ(child.val(), nullptr);
+            EXPECT_EQ(child.val().len, 0u);
+            EXPECT_EQ(child.val().str, nullptr);
+            EXPECT_TRUE(child.val_is_null());
             ++pos;
         }
     };
 
+    std::string yaml = emitrs_yaml<std::string>(tr);
+    #ifdef RYML_DBG
+    print_tree(tr);
+    printf("~~~~~\n%.*s~~~~\n", (int)yaml.size(), yaml.c_str());
+    #endif
+
     {
         SCOPED_TRACE("input tree");
-        test_quoted_empty(tr["quoted"]);
+        test_quoted_empty(tr["s-quoted"]);
+        test_quoted_empty(tr["d-quoted"]);
         // in the built tree, the values will be quoted and null
         test_quoted_null(tr["quoted_null"]);
         test_non_quoted_empty(tr["nonquoted"]);
         test_non_quoted_null(tr["nonquoted_null"]);
     }
 
-    std::string yaml = emitrs_yaml<std::string>(tr);
-    std::cout << yaml;
     test_check_emit_check(to_csubstr(yaml), [&](Tree const &t){
         SCOPED_TRACE("output tree");
-        test_quoted_empty(t["quoted"]);
+        test_quoted_empty(t["s-quoted"]);
+        test_quoted_empty(t["d-quoted"]);
         // after a roundtrip, they will be nonnull, because the quotes win.
         test_quoted_empty(t["quoted_null"]);
         test_non_quoted_empty(t["nonquoted"]);
@@ -343,7 +371,7 @@ CASE_GROUP(EMPTY_SCALAR)
 {
 ADD_CASE_TO_GROUP("empty scalar, single quoted",
                   "''",
-                  N(DQV, "")
+                  N(VS, "")
 );
 }
 

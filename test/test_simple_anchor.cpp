@@ -1,4 +1,4 @@
-#include "./test_group.hpp"
+#include "./test_lib/test_group.hpp"
 
 namespace c4 {
 namespace yml {
@@ -56,64 +56,45 @@ TEST(anchors, node_scalar_set_ref_when_non_empty)
 
 TEST(anchors, no_ambiguity_when_key_scalars_begin_with_star)
 {
-    Tree t = parse_in_arena("{foo: &foo 1, *foo: 2, '*foo': 3}");
-
+    Tree t = parse_in_arena("{foo: &foo: 1, *foo: : 2, '*foo:': 3}");
     EXPECT_TRUE(t[1].is_key_ref());
     EXPECT_FALSE(t[2].is_key_ref());
-
     EXPECT_FALSE(t[1].is_key_quoted());
     EXPECT_TRUE(t[2].is_key_quoted());
-
-    EXPECT_EQ(t[1].key(), "*foo");
-    EXPECT_EQ(t[1].key_ref(), "foo");
-    EXPECT_EQ(t[2].key(), "*foo");
-
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(foo: &foo 1
-*foo: 2
-'*foo': 3
-)");
-
+    EXPECT_EQ(t[1].key(), "*foo:");
+    EXPECT_EQ(t[1].key_ref(), "foo:");
+    EXPECT_EQ(t[2].key(), "*foo:");
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({foo: &foo: 1,*foo: : 2,'*foo:': 3})");
     t.resolve();
-
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(foo: 1
-1: 2
-'*foo': 3
-)");
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({foo: 1,1: 2,'*foo:': 3})");
 }
 
 TEST(anchors, no_ambiguity_when_val_scalars_begin_with_star)
 {
-    Tree t = parse_in_arena("{foo: &foo 1, ref: *foo, quo: '*foo'}");
-
+    Tree t = parse_in_arena("{foo: &foo: 1, ref: *foo:, quo: '*foo:'}");
     EXPECT_TRUE(t["ref"].is_val_ref());
     EXPECT_FALSE(t["quo"].is_val_ref());
-
     EXPECT_FALSE(t["ref"].is_val_quoted());
     EXPECT_TRUE(t["quo"].is_val_quoted());
-
-    EXPECT_EQ(t["ref"].val_ref(), "foo");
-    EXPECT_EQ(t["ref"].val(), "*foo");
-    EXPECT_EQ(t["quo"].val(), "*foo");
-
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(foo: &foo 1
-ref: *foo
-quo: '*foo'
-)");
-
+    EXPECT_EQ(t["ref"].val_ref(), "foo:");
+    EXPECT_EQ(t["ref"].val(), "*foo:");
+    EXPECT_EQ(t["quo"].val(), "*foo:");
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({foo: &foo: 1,ref: *foo:,quo: '*foo:'})");
     t.resolve();
-
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(foo: 1
-ref: 1
-quo: '*foo'
-)");
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({foo: 1,ref: 1,quo: '*foo:'})");
 }
 
 TEST(anchors, no_ambiguity_with_inheritance)
 {
-    Tree t = parse_in_arena("{foo: &foo {a: 1, b: 2}, bar: {<<: *foo}, sq: {'<<': haha}, dq: {\"<<\": hehe}}");
-
+    Tree t = parse_in_arena(R"({
+foo: &foo {a: 1, b: 2},
+bar: {<<: *foo},
+ sq: {'<<': haha},
+ dq: {"<<": hehe}
+})");
+    _c4dbg_tree("parsed tree", t);
     EXPECT_TRUE(t["bar"].has_child("<<"));
-    EXPECT_TRUE(t["bar"]["<<"].is_key_ref());
+    EXPECT_FALSE(t["bar"]["<<"].is_key_ref());
     EXPECT_TRUE(t["bar"]["<<"].is_val_ref());
     EXPECT_TRUE(t["sq"]["<<"].is_key_quoted());
     EXPECT_TRUE(t["dq"]["<<"].is_key_quoted());
@@ -123,36 +104,18 @@ TEST(anchors, no_ambiguity_with_inheritance)
     EXPECT_EQ(t["dq"]["<<"].key(), "<<");
     EXPECT_EQ(t["bar"]["<<"].key(), "<<");
     EXPECT_EQ(t["bar"]["<<"].val(), "*foo");
-    EXPECT_EQ(t["bar"]["<<"].key_ref(), "<<");
+    //EXPECT_EQ(t["bar"]["<<"].key_ref(), "<<"); // not a ref!
     EXPECT_EQ(t["bar"]["<<"].val_ref(), "foo");
-
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(foo: &foo
-  a: 1
-  b: 2
-bar:
-  <<: *foo
-sq:
-  '<<': haha
-dq:
-  '<<': hehe
-)");
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({foo: &foo {a: 1,b: 2},bar: {<<: *foo},sq: {'<<': haha},dq: {"<<": hehe}})");
     t.resolve();
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(foo:
-  a: 1
-  b: 2
-bar:
-  a: 1
-  b: 2
-sq:
-  '<<': haha
-dq:
-  '<<': hehe
-)");
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({foo: {a: 1,b: 2},bar: {a: 1,b: 2},sq: {'<<': haha},dq: {"<<": hehe}})");
 }
 
 TEST(anchors, programatic_key_ref)
 {
     Tree t = parse_in_arena("{}");
+    t._rem_flags(t.root_id(), _WIP_CONTAINER_STYLE);
+    t._add_flags(t.root_id(), _WIP_STYLE_BLOCK);
     NodeRef r = t.rootref();
     r["kanchor"] = "2";
     r["kanchor"].set_key_anchor("kanchor");
@@ -166,12 +129,13 @@ TEST(anchors, programatic_key_ref)
     ch = r.append_child();
     ch.set_key_ref("vanchor");
     ch.set_val("7");
+    _c4dbg_tree(t);
     EXPECT_EQ(emitrs_yaml<std::string>(t), R"(&kanchor kanchor: 2
 vanchor: &vanchor 3
 '*kanchor': 4
 '*vanchor': 5
-*kanchor: 6
-*vanchor: 7
+*kanchor : 6
+*vanchor : 7
 )");
     t.resolve();
     EXPECT_EQ(emitrs_yaml<std::string>(t), R"(kanchor: 2
@@ -186,6 +150,8 @@ kanchor: 6
 TEST(anchors, programatic_val_ref)
 {
     Tree t = parse_in_arena("{}");
+    t._rem_flags(t.root_id(), _WIP_CONTAINER_STYLE);
+    t._add_flags(t.root_id(), _WIP_STYLE_BLOCK);
     t["kanchor"] = "2";
     t["kanchor"].set_key_anchor("kanchor");
     t["vanchor"] = "3";
@@ -211,10 +177,13 @@ vref: 3
 
 TEST(anchors, programatic_inheritance)
 {
-    Tree t = parse_in_arena("{orig: &orig {foo: bar, baz: bat}, copy: {}, notcopy: {}, notref: {}}");
-
+    Tree t = parse_in_arena(R"(orig: &orig {foo: bar, baz: bat}
+copy: {}
+notcopy: {}
+notref: {}
+)");
+    _c4dbg_tree(t);
     t["copy"]["<<"] = "*orig";
-    t["copy"]["<<"].set_key_ref("<<");
     t["copy"]["<<"].set_val_ref("orig");
 
     t["notcopy"]["test"] = "*orig";
@@ -224,42 +193,28 @@ TEST(anchors, programatic_inheritance)
 
     t["notref"]["<<"] = "*orig";
 
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(orig: &orig
-  foo: bar
-  baz: bat
-copy:
-  <<: *orig
-notcopy:
-  test: *orig
-  '<<': *orig
-notref:
-  '<<': '*orig'
+    _c4dbg_tree(t);
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(orig: &orig {foo: bar,baz: bat}
+copy: {<<: *orig}
+notcopy: {test: *orig,<<: *orig}
+notref: {<<: '*orig'}
 )");
     t.resolve();
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(orig:
-  foo: bar
-  baz: bat
-copy:
-  foo: bar
-  baz: bat
-notcopy:
-  test:
-    foo: bar
-    baz: bat
-  '<<':
-    foo: bar
-    baz: bat
-notref:
-  '<<': '*orig'
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(orig: {foo: bar,baz: bat}
+copy: {foo: bar,baz: bat}
+notcopy: {test: {foo: bar,baz: bat},foo: bar,baz: bat}
+notref: {<<: '*orig'}
 )");
 }
 
 TEST(anchors, programatic_multiple_inheritance)
 {
-    Tree t = parse_in_arena("{orig1: &orig1 {foo: bar}, orig2: &orig2 {baz: bat}, orig3: &orig3 {and: more}, copy: {}}");
-
+    Tree t = parse_in_arena(R"(orig1: &orig1 {foo: bar}
+orig2: &orig2 {baz: bat}
+orig3: &orig3 {and: more}
+copy: {}
+)");
     t["copy"]["<<"] |= SEQ;
-    t["copy"]["<<"].set_key_ref("<<");
     NodeRef ref1 = t["copy"]["<<"].append_child();
     NodeRef ref2 = t["copy"]["<<"].append_child();
     NodeRef ref3 = t["copy"]["<<"].append_child();
@@ -269,30 +224,16 @@ TEST(anchors, programatic_multiple_inheritance)
     ref1.set_val_ref("orig1");
     ref2.set_val_ref("orig2");
     ref3.set_val_ref("orig3");
-
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(orig1: &orig1
-  foo: bar
-orig2: &orig2
-  baz: bat
-orig3: &orig3
-  and: more
-copy:
-  <<:
-    - *orig1
-    - *orig2
-    - *orig3
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(orig1: &orig1 {foo: bar}
+orig2: &orig2 {baz: bat}
+orig3: &orig3 {and: more}
+copy: {<<: [*orig1,*orig2,*orig3]}
 )");
     t.resolve();
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(orig1:
-  foo: bar
-orig2:
-  baz: bat
-orig3:
-  and: more
-copy:
-  foo: bar
-  baz: bat
-  and: more
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(orig1: {foo: bar}
+orig2: {baz: bat}
+orig3: {and: more}
+copy: {foo: bar,baz: bat,and: more}
 )");
 }
 
@@ -304,17 +245,13 @@ TEST(anchors, set_anchor_leading_ampersand_is_optional)
     t["with"].set_key_anchor("&with");
     EXPECT_EQ(t["without"].key_anchor(), "without");
     EXPECT_EQ(t["with"].key_anchor(), "with");
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(&without without: 0
-&with with: 1
-)");
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({&without without: 0,&with with: 1})");
 
     t["without"].set_val_anchor("without");
     t["with"].set_val_anchor("&with");
     EXPECT_EQ(t["without"].val_anchor(), "without");
     EXPECT_EQ(t["with"].val_anchor(), "with");
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(&without without: &without 0
-&with with: &with 1
-)");
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({&without without: &without 0,&with with: &with 1})");
 }
 
 TEST(anchors, set_ref_leading_star_is_optional)
@@ -323,25 +260,19 @@ TEST(anchors, set_ref_leading_star_is_optional)
 
     t["*without"] = "0";
     t["*with"] = "1";
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"('*without': 0
-'*with': 1
-)");
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({'*without': 0,'*with': 1})");
 
     t["*without"].set_key_ref("without");
     t["*with"].set_key_ref("*with");
     EXPECT_EQ(t["*without"].key_ref(), "without");
     EXPECT_EQ(t["*with"].key_ref(), "with");
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(*without: 0
-*with: 1
-)");
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({*without : 0,*with : 1})");
 
     t["*without"].set_val_ref("without");
     t["*with"].set_val_ref("*with");
     EXPECT_EQ(t["*without"].val_ref(), "without");
     EXPECT_EQ(t["*with"].val_ref(), "with");
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(*without: *without
-*with: *with
-)");
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({*without : *without,*with : *with})");
 }
 
 TEST(anchors, set_key_ref_also_sets_the_key_when_none_exists)
@@ -362,9 +293,7 @@ TEST(anchors, set_key_ref_also_sets_the_key_when_none_exists)
     EXPECT_EQ(with.key(), "*with");
     EXPECT_EQ(without.key_ref(), "without");
     EXPECT_EQ(with.key_ref(), "with");
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(*without: 0
-*with: 1
-)");
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({*without : 0,*with : 1})");
 }
 
 TEST(anchors, set_val_ref_also_sets_the_val_when_none_exists)
@@ -385,32 +314,30 @@ TEST(anchors, set_val_ref_also_sets_the_val_when_none_exists)
     EXPECT_EQ(with.val(), "*with");
     EXPECT_EQ(without.val_ref(), "without");
     EXPECT_EQ(with.val_ref(), "with");
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(without: *without
-with: *with
-)");
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({without: *without,with: *with})");
 }
 
 TEST(anchors, set_key_ref_replaces_existing_key)
 {
-    Tree t = parse_in_arena("{*foo: bar}");
+    Tree t = parse_in_arena("{*foo : bar}");
     NodeRef root = t.rootref();
     EXPECT_TRUE(root.has_child("*foo"));
     root["*foo"].set_key_ref("notfoo");
     EXPECT_FALSE(root.has_child("*foo"));
     EXPECT_FALSE(root.has_child("*notfoo"));
     EXPECT_TRUE(root.has_child("notfoo"));
-    EXPECT_EQ(emitrs_yaml<std::string>(t), "*notfoo: bar\n");
+    EXPECT_EQ(emitrs_yaml<std::string>(t), "{*notfoo : bar}");
 }
 
 TEST(anchors, set_val_ref_replaces_existing_key)
 {
-    Tree t = parse_in_arena("{foo: *bar}");
+    Tree t = parse_in_arena("{foo : *bar}");
     NodeRef root = t.rootref();
     root["foo"].set_val_ref("notbar");
     EXPECT_EQ(root["foo"].val(), "notbar");
     root["foo"].set_val_ref("*notfoo");
     EXPECT_EQ(root["foo"].val(), "*notfoo");
-    EXPECT_EQ(emitrs_yaml<std::string>(t), "foo: *notfoo\n");
+    EXPECT_EQ(emitrs_yaml<std::string>(t), "{foo: *notfoo}");
 }
 
 
@@ -425,15 +352,8 @@ foo:
   *a:
 )");
     t.resolve();
-    #ifdef THIS_IS_A_KNOWN_LIMITATION // since we do not allow colon in anchors, this would fail:
-    EXPECT_EQ(emitrs<std::string>(t), R"(key: value
-foo: key
-)");
-    #endif
-    // so we get this instead:
     EXPECT_EQ(emitrs_yaml<std::string>(t), R"(key: value
-foo:
-  value: 
+foo: key
 )");
 }
 
@@ -463,7 +383,7 @@ TEST(CaseNode, anchors)
     }
 
     {
-        CaseNode n("<<", "*base", AR(VALANCH, "base"));
+        TestCaseNode n("<<", "*base", AR(VALANCH, "base"));
         EXPECT_EQ(n.key, "<<");
         EXPECT_EQ(n.val, "*base");
         EXPECT_EQ((type_bits)(n.type & mask), (type_bits)VALANCH);
@@ -474,7 +394,7 @@ TEST(CaseNode, anchors)
     }
 
     {
-        CaseNode n("base", L{N("name", "Everyone has same name")}, AR(VALANCH, "base"));
+        TestCaseNode n("base", L{N("name", "Everyone has same name")}, AR(VALANCH, "base"));
         EXPECT_EQ(n.key, "base");
         EXPECT_EQ(n.val, "");
         EXPECT_NE(n.type.is_seq(), true);
@@ -487,7 +407,7 @@ TEST(CaseNode, anchors)
 
     {
         L l{N("<<", "*base", AR(VALREF, "base"))};
-        CaseNode const& base = *l.begin();
+        TestCaseNode const& base = *l.begin();
         EXPECT_EQ(base.key, "<<");
         EXPECT_EQ(base.val, "*base");
         EXPECT_EQ(base.type.is_keyval(), true);
@@ -500,8 +420,8 @@ TEST(CaseNode, anchors)
 
     {
         L l{N("<<", "*base", AR(VALREF, "base")), N("age", "10")};
-        CaseNode const& base = *l.begin();
-        CaseNode const& age = *(&base + 1);
+        TestCaseNode const& base = *l.begin();
+        TestCaseNode const& age = *(&base + 1);
         EXPECT_EQ(base.key, "<<");
         EXPECT_EQ(base.val, "*base");
         EXPECT_EQ(base.type.is_keyval(), true);
@@ -522,7 +442,7 @@ TEST(CaseNode, anchors)
     }
 
     {
-        CaseNode n("foo", L{N("<<", "*base", AR(VALREF, "base")), N("age", "10")}, AR(VALANCH, "foo"));
+        TestCaseNode n("foo", L{N("<<", "*base", AR(VALREF, "base")), N("age", "10")}, AR(VALANCH, "foo"));
         EXPECT_EQ(n.key, "foo");
         EXPECT_EQ(n.val, "");
         EXPECT_EQ(n.type.has_key(), true);
@@ -533,7 +453,7 @@ TEST(CaseNode, anchors)
         EXPECT_EQ(n.key_anchor.str, "");
         EXPECT_EQ(n.val_anchor.str, "foo");
 
-        CaseNode const& base = n.children[0];
+        TestCaseNode const& base = n.children[0];
         EXPECT_EQ(base.key, "<<");
         EXPECT_EQ(base.val, "*base");
         EXPECT_EQ(base.type.has_key() && base.type.has_val(), true);
@@ -568,7 +488,7 @@ TEST(simple_anchor, resolve_works_on_a_tree_without_refs)
 
 TEST(simple_anchor, resolve_works_on_keyrefvalref)
 {
-    Tree t = parse_in_arena("{&a a: &b b, *b: *a}");
+    Tree t = parse_in_arena("{&a a: &b b, *b : *a}");
     EXPECT_EQ(t["a"].has_key_anchor(), true);
     EXPECT_EQ(t["a"].has_val_anchor(), true);
     EXPECT_EQ(t["a"].key_anchor(), "a");
@@ -577,15 +497,12 @@ TEST(simple_anchor, resolve_works_on_keyrefvalref)
     EXPECT_EQ(t["*b"].is_val_ref(), true);
     EXPECT_EQ(t["*b"].key_ref(), "b");
     EXPECT_EQ(t["*b"].val_ref(), "a");
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(&a a: &b b
-*b: *a
-)");
+    _c4dbg_tree(t);
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({&a a: &b b,*b : *a})");
     t.resolve();
     EXPECT_EQ(t["a"].val(), "b");
     EXPECT_EQ(t["b"].val(), "a");
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(a: b
-b: a
-)");
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"({a: b,b: a})");
 }
 
 TEST(simple_anchor, anchors_of_first_child_key_implicit)
@@ -644,6 +561,16 @@ top62:
 CASE_GROUP(SIMPLE_ANCHOR)
 {
 
+ADD_CASE_TO_GROUP("anchor colon ambiguity 1",
+R"({*foo : bar})",
+N(MFS, L{N(KEY|VP, "*foo", AR(KEYREF, "foo"), "bar")})
+);
+
+ADD_CASE_TO_GROUP("anchor colon ambiguity 2", EXPECT_PARSE_ERROR,
+R"({*foo: bar})",
+   LineCol(1, 8)
+);
+
 ADD_CASE_TO_GROUP("merge example, unresolved",
 R"(# https://yaml.org/type/merge.html
 - &CENTER { x: 1, y: 2 }
@@ -673,16 +600,17 @@ R"(# https://yaml.org/type/merge.html
   x: 1
   label: center/big
 )",
-L{
-    N(L{N("x", "1" ), N("y", "2")}, AR(VALANCH, "CENTER")),
-    N(L{N("x", "0" ), N("y", "2")}, AR(VALANCH, "LEFT"  )),
-    N(L{N("r", "10")             }, AR(VALANCH, "BIG"   )),
-    N(L{N("r", "1" )             }, AR(VALANCH, "SMALL" )),
-    N(L{N("x", "1" ), N("y", "2"), N("r", "10"), N("label", "center/big")}),
-    N(L{N("<<", AR(KEYREF, "<<"), "*CENTER", AR(VALREF, "*CENTER")), N("r", "10"), N("label", "center/big")}),
-    N(L{N("<<", AR(KEYREF, "<<"), L{N("*CENTER", AR(VALREF, "*CENTER")), N("*BIG", AR(VALREF, "*BIG"))}), N("label", "center/big")}),
-    N(L{N("<<", AR(KEYREF, "<<"), L{N("*BIG", AR(VALREF, "*BIG")), N("*LEFT", AR(VALREF, "*LEFT")), N("*SMALL", AR(VALREF, "*SMALL"))}), N("x", "1"), N("label", "center/big")}),
-});
+N(SB, L{
+    N(MFS, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2")}, AR(VALANCH, "CENTER")),
+    N(MFS, L{N(KP|VP, "x", "0" ), N(KP|VP, "y", "2")}, AR(VALANCH, "LEFT"  )),
+    N(MFS, L{N(KP|VP, "r", "10")}, AR(VALANCH, "BIG"   )),
+    N(MFS, L{N(KP|VP, "r", "1" )}, AR(VALANCH, "SMALL" )),
+    N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big")}),
+    N(MB, L{N(KP|VAL, "<<", "*CENTER", AR(VALREF, "*CENTER")), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big")}),
+    N(MB, L{N(KP|SFS, "<<", L{N(VAL, "*CENTER", AR(VALREF, "*CENTER")), N(VAL, "*BIG", AR(VALREF, "*BIG"))}), N(KP|VP, "label", "center/big")}),
+    N(MB, L{N(KP|SFS, "<<", L{N(VAL, "*BIG", AR(VALREF, "*BIG")), N(VAL, "*LEFT", AR(VALREF, "*LEFT")), N(VAL, "*SMALL", AR(VALREF, "*SMALL"))}), N(KP|VP, "x", "1"), N(KP|VP, "label", "center/big")}),
+})
+);
 
 ADD_CASE_TO_GROUP("merge example, resolved", RESOLVE_REFS,
 R"(# https://yaml.org/type/merge.html
@@ -713,16 +641,17 @@ R"(# https://yaml.org/type/merge.html
   x: 1
   label: center/big
 )",
-L{
-    N(L{N("x", "1" ), N("y", "2")}),
-    N(L{N("x", "0" ), N("y", "2")}),
-    N(L{N("r", "10")             }),
-    N(L{N("r", "1" )             }),
-    N(L{N("x", "1" ), N("y", "2"), N("r", "10"), N("label", "center/big")}),
-    N(L{N("x", "1" ), N("y", "2"), N("r", "10"), N("label", "center/big")}),
-    N(L{N("x", "1" ), N("y", "2"), N("r", "10"), N("label", "center/big")}),
-    N(L{N("x", "1" ), N("y", "2"), N("r", "10"), N("label", "center/big")}),
-});
+N(SB, L{
+    N(MFS, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2")}),
+    N(MFS, L{N(KP|VP, "x", "0" ), N(KP|VP, "y", "2")}),
+    N(MFS, L{N(KP|VP, "r", "10")             }),
+    N(MFS, L{N(KP|VP, "r", "1" )             }),
+    N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big")}),
+    N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big")}),
+    N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big")}),
+    N(MB, L{N(KP|VP, "x", "1" ), N(KP|VP, "y", "2"), N(KP|VP, "r", "10"), N(KP|VP, "label", "center/big")}),
+})
+);
 
 ADD_CASE_TO_GROUP("simple anchor 1, implicit, unresolved",
 R"(
@@ -740,17 +669,17 @@ bar: &bar
     <<: *base
     age: 20
 )",
-  L{
-      N("anchored_content", "This string will appear as the value of two keys.", AR(VALANCH, "anchor_name")),
-      N("other_anchor", "*anchor_name", AR(VALREF, "anchor_name")),
-      N("anchors_in_seqs", L{
-              N("this value appears in both elements of the sequence", AR(VALANCH, "anchor_in_seq")),
-              N("*anchor_in_seq", AR(VALREF, "anchor_in_seq")),
+N(MB, L{
+      N(KP|VP, "anchored_content", "This string will appear as the value of two keys.", AR(VALANCH, "anchor_name")),
+      N(KP|VAL, "other_anchor", "*anchor_name", AR(VALREF, "anchor_name")),
+      N(KP|SB, "anchors_in_seqs", L{
+              N(VP, "this value appears in both elements of the sequence", AR(VALANCH, "anchor_in_seq")),
+              N(VAL, "*anchor_in_seq", AR(VALREF, "anchor_in_seq")),
           }),
-      N("base", L{N("name", "Everyone has same name")}, AR(VALANCH, "base")),
-      N("foo", L{N("<<", AR(KEYREF, "<<"), "*base", AR(VALREF, "base")), N("age", "10")}, AR(VALANCH, "foo")),
-      N("bar", L{N("<<", AR(KEYREF, "<<"), "*base", AR(VALREF, "base")), N("age", "20")}, AR(VALANCH, "bar")),
-  }
+      N(KP|MB, "base", L{N(KP|VP, "name", "Everyone has same name")}, AR(VALANCH, "base")),
+      N(KP|MB, "foo", L{N(KP|VAL, "<<", "*base", AR(VALREF, "base")), N(KP|VP, "age", "10")}, AR(VALANCH, "foo")),
+      N(KP|MB, "bar", L{N(KP|VAL, "<<", "*base", AR(VALREF, "base")), N(KP|VP, "age", "20")}, AR(VALANCH, "bar")),
+  })
 );
 
 ADD_CASE_TO_GROUP("simple anchor 1, explicit, unresolved",
@@ -773,17 +702,17 @@ bar: &bar {
     age: 20
   }
 })",
-  L{
-      N("anchored_content", "This string will appear as the value of two keys.", AR(VALANCH, "anchor_name")),
-      N("other_anchor", "*anchor_name", AR(VALREF, "anchor_name")),
-      N("anchors_in_seqs", L{
-              N("this value appears in both elements of the sequence", AR(VALANCH, "anchor_in_seq")),
-              N("*anchor_in_seq", AR(VALREF, "anchor_in_seq")),
+N(MFS,  L{
+      N(KP|VP, "anchored_content", "This string will appear as the value of two keys.", AR(VALANCH, "anchor_name")),
+      N(KP|VAL, "other_anchor", "*anchor_name", AR(VALREF, "anchor_name")),
+      N(KP|SFS, "anchors_in_seqs", L{
+              N(VP, "this value appears in both elements of the sequence", AR(VALANCH, "anchor_in_seq")),
+              N(VAL, "*anchor_in_seq", AR(VALREF, "anchor_in_seq")),
           }),
-      N("base", L{N("name", "Everyone has same name")}, AR(VALANCH, "base")),
-      N("foo", L{N("<<", AR(KEYREF, "<<"), "*base", AR(VALREF, "base")), N("age", "10")}, AR(VALANCH, "foo")),
-      N("bar", L{N("<<", AR(KEYREF, "<<"), "*base", AR(VALREF, "base")), N("age", "20")}, AR(VALANCH, "bar")),
-  }
+      N(KP|MFS, "base", L{N(KP|VP, "name", "Everyone has same name")}, AR(VALANCH, "base")),
+      N(KP|MFS, "foo", L{N(KP|VAL, "<<", "*base", AR(VALREF, "base")), N(KP|VP, "age", "10")}, AR(VALANCH, "foo")),
+      N(KP|MFS, "bar", L{N(KP|VAL, "<<", "*base", AR(VALREF, "base")), N(KP|VP, "age", "20")}, AR(VALANCH, "bar")),
+  })
 );
 
 ADD_CASE_TO_GROUP("simple anchor 1, implicit, resolved", RESOLVE_REFS,
@@ -802,17 +731,17 @@ bar: &bar
     <<: *base
     age: 20
 )",
-  L{
-      N("anchored_content", "This string will appear as the value of two keys."),
-      N("other_anchor", "This string will appear as the value of two keys."),
-      N("anchors_in_seqs", L{
-              N("this value appears in both elements of the sequence"),
-              N("this value appears in both elements of the sequence"),
+N(MB, L{
+      N(KP|VP, "anchored_content", "This string will appear as the value of two keys."),
+      N(KP|VP, "other_anchor", "This string will appear as the value of two keys."),
+      N(KP|SB, "anchors_in_seqs", L{
+              N(VP, "this value appears in both elements of the sequence"),
+              N(VP, "this value appears in both elements of the sequence"),
           }),
-      N("base", L{N("name", "Everyone has same name")}),
-      N("foo", L{N("name", "Everyone has same name"), N("age", "10")}),
-      N("bar", L{N("name", "Everyone has same name"), N("age", "20")}),
-  }
+      N(KP|MB, "base", L{N(KP|VP, "name", "Everyone has same name")}),
+      N(KP|MB, "foo", L{N(KP|VP, "name", "Everyone has same name"), N(KP|VP, "age", "10")}),
+      N(KP|MB, "bar", L{N(KP|VP, "name", "Everyone has same name"), N(KP|VP, "age", "20")}),
+  })
 );
 
 ADD_CASE_TO_GROUP("simple anchor 1, explicit, resolved", RESOLVE_REFS,
@@ -835,17 +764,17 @@ bar: &bar {
     age: 20
   }
 })",
-  L{
-      N("anchored_content", "This string will appear as the value of two keys."),
-      N("other_anchor", "This string will appear as the value of two keys."),
-      N("anchors_in_seqs", L{
-              N("this value appears in both elements of the sequence"),
-              N("this value appears in both elements of the sequence"),
+N(MFS, L{
+      N(KP|VP, "anchored_content", "This string will appear as the value of two keys."),
+      N(KP|VP, "other_anchor", "This string will appear as the value of two keys."),
+      N(KP|SFS, "anchors_in_seqs", L{
+              N(VP, "this value appears in both elements of the sequence"),
+              N(VP, "this value appears in both elements of the sequence"),
           }),
-      N("base", L{N("name", "Everyone has same name")}),
-      N("foo", L{N("name", "Everyone has same name"), N("age", "10")}),
-      N("bar", L{N("name", "Everyone has same name"), N("age", "20")}),
-  }
+      N(KP|MFS, "base", L{N(KP|VP, "name", "Everyone has same name")}),
+      N(KP|MFS, "foo", L{N(KP|VP, "name", "Everyone has same name"), N(KP|VP, "age", "10")}),
+      N(KP|MFS, "bar", L{N(KP|VP, "name", "Everyone has same name"), N(KP|VP, "age", "20")}),
+  })
 );
 
 
@@ -879,27 +808,27 @@ specialDelivery:  >
     Pay no attention to the
     man behind the curtain.
 )",
-L{
-  N{"receipt", "Oz-Ware Purchase Invoice"},
-  N{"date",    "2012-08-06"},
-  N{"customer", L{N{"first_name", "Dorothy"}, N{"family_name", "Gale"}}},
-  N{"items", L{
-    N{L{N{"part_no",   "A4786"},
-        N{"descrip",   "Water Bucket (Filled)"},
-        N{"price",     "1.47"},
-        N{"quantity",  "4"},}},
-    N{L{N{"part_no", "E1628"},
-        N{"descrip",   "High Heeled \"Ruby\" Slippers"},
-        N{"size",      "8"},
-        N{"price",     "133.7"},
-        N{"quantity",  "1"},}}}},
-   N{"bill-to", L{
-        N{QV, "street", "123 Tornado Alley\nSuite 16\n"},
-        N{"city", "East Centerville"},
-        N{"state", "KS"},}, AR(VALANCH, "id001")},
-   N{"ship-to", "*id001", AR(VALREF, "id001")},
-   N{QV, "specialDelivery", "Follow the Yellow Brick Road to the Emerald City. Pay no attention to the man behind the curtain.\n"}
-  }
+N(MB, L{
+  N{KP|VP, "receipt", "Oz-Ware Purchase Invoice"},
+  N{KP|VP, "date",    "2012-08-06"},
+  N{KP|MB, "customer", L{N{KP|VP, "first_name", "Dorothy"}, N{KP|VP, "family_name", "Gale"}}},
+  N{KP|SB, "items", L{
+    N{MB, L{N{KP|VP, "part_no",   "A4786"},
+        N{KP|VP, "descrip",   "Water Bucket (Filled)"},
+        N{KP|VP, "price",     "1.47"},
+        N{KP|VP, "quantity",  "4"},}},
+    N{MB, L{N{KP|VP, "part_no", "E1628"},
+        N{KP|VP, "descrip",   "High Heeled \"Ruby\" Slippers"},
+        N{KP|VP, "size",      "8"},
+        N{KP|VP, "price",     "133.7"},
+        N{KP|VP, "quantity",  "1"},}}}},
+   N{KP|MB, "bill-to", L{
+        N{KP|VL, "street", "123 Tornado Alley\nSuite 16\n"},
+        N{KP|VP, "city", "East Centerville"},
+        N{KP|VP, "state", "KS"},}, AR(VALANCH, "id001")},
+   N{KP|VAL, "ship-to", "*id001", AR(VALREF, "id001")},
+   N{KP|VF, "specialDelivery", "Follow the Yellow Brick Road to the Emerald City. Pay no attention to the man behind the curtain.\n"}
+  })
 );
 
 
@@ -933,30 +862,40 @@ specialDelivery:  >
     Pay no attention to the
     man behind the curtain.
 )",
-L{
-  N{"receipt", "Oz-Ware Purchase Invoice"},
-  N{"date",    "2012-08-06"},
-  N{"customer", L{N{"first_name", "Dorothy"}, N{"family_name", "Gale"}}},
-  N{"items", L{
-    N{L{N{"part_no",   "A4786"},
-        N{"descrip",   "Water Bucket (Filled)"},
-        N{"price",     "1.47"},
-        N{"quantity",  "4"},}},
-    N{L{N{"part_no", "E1628"},
-        N{"descrip",   "High Heeled \"Ruby\" Slippers"},
-        N{"size",      "8"},
-        N{"price",     "133.7"},
-        N{"quantity",  "1"},}}}},
-   N{"bill-to", L{
-        N{QV, "street", "123 Tornado Alley\nSuite 16\n"},
-        N{"city", "East Centerville"},
-        N{"state", "KS"},}},
-   N{"ship-to", L{
-        N{QV, "street", "123 Tornado Alley\nSuite 16\n"},
-        N{"city", "East Centerville"},
-        N{"state", "KS"},}},
-   N{QV, "specialDelivery", "Follow the Yellow Brick Road to the Emerald City. Pay no attention to the man behind the curtain.\n"}
-  }
+N(MB, L{
+  N{KP|VP, "receipt", "Oz-Ware Purchase Invoice"},
+  N{KP|VP, "date",    "2012-08-06"},
+  N{KP|MB, "customer", L{
+    N{KP|VP, "first_name", "Dorothy"},
+    N{KP|VP, "family_name", "Gale"}
+  }},
+  N{KP|SB, "items", L{
+    N{MB, L{
+      N{KP|VP, "part_no",   "A4786"},
+      N{KP|VP, "descrip",   "Water Bucket (Filled)"},
+      N{KP|VP, "price",     "1.47"},
+      N{KP|VP, "quantity",  "4"},
+    }},
+    N{MB, L{
+      N{KP|VP, "part_no", "E1628"},
+      N{KP|VP, "descrip",   "High Heeled \"Ruby\" Slippers"},
+      N{KP|VP, "size",      "8"},
+      N{KP|VP, "price",     "133.7"},
+      N{KP|VP, "quantity",  "1"},
+    }}
+  }},
+  N{KP|MB, "bill-to", L{
+    N{KP|VL, "street", "123 Tornado Alley\nSuite 16\n"},
+    N{KP|VP, "city", "East Centerville"},
+    N{KP|VP, "state", "KS"},
+  }},
+  N{KP|MB, "ship-to", L{
+    N{KP|VL, "street", "123 Tornado Alley\nSuite 16\n"},
+    N{KP|VP, "city", "East Centerville"},
+    N{KP|VP, "state", "KS"},
+  }},
+  N{KP|VF, "specialDelivery", "Follow the Yellow Brick Road to the Emerald City. Pay no attention to the man behind the curtain.\n"}
+})
 );
 
 ADD_CASE_TO_GROUP("anchor example 3, unresolved",
@@ -980,35 +919,41 @@ R"(
     spotSize: 2mm                # redefines just this key, refers rest from &id001
 - step: *id002
 )",
-L{N(L{
-N("step", L{
-    N{"instrument",      "Lasik 2000"},
-    N{"pulseEnergy",     "5.4"},
-    N{"pulseDuration",   "12"},
-    N{"repetition",      "1000"},
-    N{"spotSize",        "1mm"},
-        }, AR(VALANCH, "id001")),
-    }), N(L{
-N("step", L{
-    N{"instrument",      "Lasik 2000"},
-    N{"pulseEnergy",     "5.0"},
-    N{"pulseDuration",   "10"},
-    N{"repetition",      "500"},
-    N{"spotSize",        "2mm"},
-        }, AR(VALANCH, "id002")),
-    }), N(L{
-N{"step", "*id001", AR(VALREF, "id001")},
-    }), N(L{
-N{"step", "*id002", AR(VALREF, "id002")},
-    }), N(L{
-N{"step", L{
-    N{"<<", AR(KEYREF, "<<"), "*id001", AR(VALREF, "id002")},
-    N{"spotSize",        "2mm"},
-        }},
-    }), N(L{
-N{"step", "*id002", AR(VALREF, "id002")},
-    }),
-    }
+N(SB, L{
+  N(MB, L{
+    N(KP|MB, "step", L{
+      N{KP|VP, "instrument",      "Lasik 2000"},
+      N{KP|VP, "pulseEnergy",     "5.4"},
+      N{KP|VP, "pulseDuration",   "12"},
+      N{KP|VP, "repetition",      "1000"},
+      N{KP|VP, "spotSize",        "1mm"},
+    }, AR(VALANCH, "id001")),
+  }),
+  N(MB, L{
+    N(KP|MB, "step", L{
+      N{KP|VP, "instrument",      "Lasik 2000"},
+      N{KP|VP, "pulseEnergy",     "5.0"},
+      N{KP|VP, "pulseDuration",   "10"},
+      N{KP|VP, "repetition",      "500"},
+      N{KP|VP, "spotSize",        "2mm"},
+    }, AR(VALANCH, "id002")),
+  }),
+  N(MB, L{
+    N{KP|VAL, "step", "*id001", AR(VALREF, "id001")},
+  }),
+  N(MB, L{
+    N{KP|VAL, "step", "*id002", AR(VALREF, "id002")},
+  }),
+  N(MB, L{
+    N{KP|MB, "step", L{
+      N{KP|VAL, "<<", "*id001", AR(VALREF, "id002")},
+      N{KP|VP, "spotSize", "2mm"},
+    }},
+  }),
+  N(MB, L{
+    N{KP|VAL, "step", "*id002", AR(VALREF, "id002")},
+  }),
+})
 );
 
 ADD_CASE_TO_GROUP("anchor example 3, resolved", RESOLVE_REFS,
@@ -1032,56 +977,57 @@ R"(
     spotSize: 2mm                # redefines just this key, refers rest from &id001
 - step: *id002
 )",
-  L{N(L{
-N{"step", L{
-    N{"instrument",      "Lasik 2000"},
-    N{"pulseEnergy",     "5.4"},
-    N{"pulseDuration",   "12"},
-    N{"repetition",      "1000"},
-    N{"spotSize",        "1mm"},
+N(SB, L{
+        N(MB, L{
+N{KP|MB, "step", L{
+    N{KP|VP, "instrument",      "Lasik 2000"},
+    N{KP|VP, "pulseEnergy",     "5.4"},
+    N{KP|VP, "pulseDuration",   "12"},
+    N{KP|VP, "repetition",      "1000"},
+    N{KP|VP, "spotSize",        "1mm"},
         }},
-    }), N(L{
-N{"step", L{
-    N{"instrument",      "Lasik 2000"},
-    N{"pulseEnergy",     "5.0"},
-    N{"pulseDuration",   "10"},
-    N{"repetition",      "500"},
-    N{"spotSize",        "2mm"},
+    }), N(MB, L{
+N{KP|MB, "step", L{
+    N{KP|VP, "instrument",      "Lasik 2000"},
+    N{KP|VP, "pulseEnergy",     "5.0"},
+    N{KP|VP, "pulseDuration",   "10"},
+    N{KP|VP, "repetition",      "500"},
+    N{KP|VP, "spotSize",        "2mm"},
         }},
-    }), N(L{
-N{"step", L{
-    N{"instrument",      "Lasik 2000"},
-    N{"pulseEnergy",     "5.4"},
-    N{"pulseDuration",   "12"},
-    N{"repetition",      "1000"},
-    N{"spotSize",        "1mm"},
+    }), N(MB, L{
+N{KP|MB, "step", L{
+    N{KP|VP, "instrument",      "Lasik 2000"},
+    N{KP|VP, "pulseEnergy",     "5.4"},
+    N{KP|VP, "pulseDuration",   "12"},
+    N{KP|VP, "repetition",      "1000"},
+    N{KP|VP, "spotSize",        "1mm"},
         }},
-    }), N(L{
-N{"step", L{
-    N{"instrument",      "Lasik 2000"},
-    N{"pulseEnergy",     "5.0"},
-    N{"pulseDuration",   "10"},
-    N{"repetition",      "500"},
-    N{"spotSize",        "2mm"},
+    }), N(MB, L{
+N{KP|MB, "step", L{
+    N{KP|VP, "instrument",      "Lasik 2000"},
+    N{KP|VP, "pulseEnergy",     "5.0"},
+    N{KP|VP, "pulseDuration",   "10"},
+    N{KP|VP, "repetition",      "500"},
+    N{KP|VP, "spotSize",        "2mm"},
         }},
-    }), N(L{
-N{"step", L{
-    N{"instrument",      "Lasik 2000"},
-    N{"pulseEnergy",     "5.4"},
-    N{"pulseDuration",   "12"},
-    N{"repetition",      "1000"},
-    N{"spotSize",        "2mm"},
+    }), N(MB, L{
+N{KP|MB, "step", L{
+    N{KP|VP, "instrument",      "Lasik 2000"},
+    N{KP|VP, "pulseEnergy",     "5.4"},
+    N{KP|VP, "pulseDuration",   "12"},
+    N{KP|VP, "repetition",      "1000"},
+    N{KP|VP, "spotSize",        "2mm"},
         }},
-    }), N(L{
-N{"step", L{
-    N{"instrument",      "Lasik 2000"},
-    N{"pulseEnergy",     "5.0"},
-    N{"pulseDuration",   "10"},
-    N{"repetition",      "500"},
-    N{"spotSize",        "2mm"},
+    }), N(MB, L{
+N{KP|MB, "step", L{
+    N{KP|VP, "instrument",      "Lasik 2000"},
+    N{KP|VP, "pulseEnergy",     "5.0"},
+    N{KP|VP, "pulseDuration",   "10"},
+    N{KP|VP, "repetition",      "500"},
+    N{KP|VP, "spotSize",        "2mm"},
         }},
     }),
-    }
+})
 );
 
 ADD_CASE_TO_GROUP("tagged doc with anchors 9KAX",
@@ -1129,149 +1075,155 @@ value11
 --- &a11 !!str value11
 )",
 N(STREAM, L{
-    N(DOCVAL, TS("!!str", "scalar1"), AR(VALANCH, "a1")),
-    N(DOCVAL, TS("!!str", "scalar1"), AR(VALANCH, "a1")),
-    N(DOCVAL, TS("!!str", "scalar1"), AR(VALANCH, "a1")),
-    N(DOCVAL, TS("!!str", "scalar1"), AR(VALANCH, "a1")),
-    N(DOCVAL, TS("!!str", "scalar2"), AR(VALANCH, "a2")),
-    N(DOCVAL, TS("!!str", "scalar2"), AR(VALANCH, "a2")),
-    N(DOCVAL, TS("!!str", "scalar3"), AR(VALANCH, "a3")),
-    N(DOCVAL, TS("!!str", "scalar3"), AR(VALANCH, "a3")),
-    N(DOCMAP, TL("!!map", L{N(TS("!!str", "key5"), AR(KEYANCH, "a5"), "value4")}), AR(VALANCH, "a4")),
-    N(DOCMAP, TL("!!map", L{N(TS("!!str", "key5"), AR(KEYANCH, "a5"), "value4")}), AR(VALANCH, "a4")),
-    N(DOCMAP, L{N("a6", "1"), N("b6", AR(KEYANCH, "anchor6"), "2")}),
-    N(DOCMAP, TL("!!map", L{N(TS("!!str", "key8"), AR(KEYANCH, "a8"), "value7")})),
-    N(DOCMAP, TL("!!map", L{N(TS("!!str", "key8"), AR(KEYANCH, "a8"), "value7")})),
-    N(DOCMAP, TL("!!map", L{N(TS("!!str", "key10"), AR(KEYANCH, "a10"), "value9")})),
-    N(DOCMAP, TL("!!map", L{N(TS("!!str", "key10"), AR(KEYANCH, "a10"), "value9")})),
-    N(DOCVAL, TS("!!str", "value11"), AR(VALANCH, "a11")),
-    N(DOCVAL, TS("!!str", "value11"), AR(VALANCH, "a11")),
+    N(DOC|VP, TS("!!str", "scalar1"), AR(VALANCH, "a1")),
+    N(DOC|VP, TS("!!str", "scalar1"), AR(VALANCH, "a1")),
+    N(DOC|VP, TS("!!str", "scalar1"), AR(VALANCH, "a1")),
+    N(DOC|VP, TS("!!str", "scalar1"), AR(VALANCH, "a1")),
+    N(DOC|VP, TS("!!str", "scalar2"), AR(VALANCH, "a2")),
+    N(DOC|VP, TS("!!str", "scalar2"), AR(VALANCH, "a2")),
+    N(DOC|VP, TS("!!str", "scalar3"), AR(VALANCH, "a3")),
+    N(DOC|VP, TS("!!str", "scalar3"), AR(VALANCH, "a3")),
+    N(DOC|MB, TL("!!map", L{N(KP|VP, TS("!!str", "key5"), AR(KEYANCH, "a5"), "value4")}), AR(VALANCH, "a4")),
+    N(DOC|MB, TL("!!map", L{N(KP|VP, TS("!!str", "key5"), AR(KEYANCH, "a5"), "value4")}), AR(VALANCH, "a4")),
+    N(DOC|MB, L{N(KP|VP, "a6", "1"), N(KP|VP, "b6", AR(KEYANCH, "anchor6"), "2")}),
+    N(DOC|MB, TL("!!map", L{N(KP|VP, TS("!!str", "key8"), AR(KEYANCH, "a8"), "value7")})),
+    N(DOC|MB, TL("!!map", L{N(KP|VP, TS("!!str", "key8"), AR(KEYANCH, "a8"), "value7")})),
+    N(DOC|MB, TL("!!map", L{N(KP|VP, TS("!!str", "key10"), AR(KEYANCH, "a10"), "value9")})),
+    N(DOC|MB, TL("!!map", L{N(KP|VP, TS("!!str", "key10"), AR(KEYANCH, "a10"), "value9")})),
+    N(DOC|VP, TS("!!str", "value11"), AR(VALANCH, "a11")),
+    N(DOC|VP, TS("!!str", "value11"), AR(VALANCH, "a11")),
 })
 );
 
 ADD_CASE_TO_GROUP("github131 1, unresolved",
 R"(
 a: &vref b
-*vref: c
+*vref : c
 &kref aa: bb
 aaa: &kvref bbb
 foo:
-  *kref: cc
-  *kvref: cc
+  *kref : cc
+  *kvref : dd
 )",
-L{
-    N("a", "b", AR(VALANCH, "vref")),
-    N("*vref", AR(KEYREF, "vref"), "c"),
-    N("aa", AR(KEYANCH, "kref"), "bb"),
-    N("aaa", "bbb", AR(VALANCH, "kvref")),
-    N("foo", L{
-         N("*kref", AR(KEYREF, "kref"), "cc"),
-         N("*kvref", AR(KEYREF, "kvref"), "cc"),
+N(MB, L{
+    N(KP|VP, "a", "b", AR(VALANCH, "vref")),
+    N(KEY|VP, "*vref", AR(KEYREF, "vref"), "c"),
+    N(KP|VP, "aa", AR(KEYANCH, "kref"), "bb"),
+    N(KP|VP, "aaa", "bbb", AR(VALANCH, "kvref")),
+    N(KP|MB, "foo", L{
+         N(KEY|VP, "*kref", AR(KEYREF, "kref"), "cc"),
+         N(KEY|VP, "*kvref", AR(KEYREF, "kvref"), "dd"),
     })
-});
+})
+);
 
 ADD_CASE_TO_GROUP("github131 1, resolved", RESOLVE_REFS,
 R"(
 a: &vref b
-*vref: c
+*vref : c
 &kref aa: bb
 aaa: &kvref bbb
 foo:
-  *kref: cc
-  *kvref: cc
+  *kref : cc
+  *kvref : dd
 )",
-L{
-    N("a", "b"),
-    N("b", "c"),
-    N("aa", "bb"),
-    N("aaa", "bbb"),
-    N("foo", L{N("aa", "cc"), N("bbb", "cc")})
-});
+N(MB, L{
+    N(KP|VP, "a", "b"),
+    N(KP|VP, "b", "c"),
+    N(KP|VP, "aa", "bb"),
+    N(KP|VP, "aaa", "bbb"),
+    N(KP|MB, "foo", L{N(KP|VP, "aa", "cc"), N(KP|VP, "bbb", "dd")})
+})
+);
 
 
 ADD_CASE_TO_GROUP("anchors+refs on key+val, unresolved",
-R"({&a0 a0: &b0 b0, *b0: *a0})",
-L{
-    N("a0", AR(KEYANCH, "a0"), "b0", AR(VALANCH, "b0")),
+R"({&a0 a0: &b0 b0, *b0 : *a0})",
+N(MFS, L{
+    N(KP|VP, "a0", AR(KEYANCH, "a0"), "b0", AR(VALANCH, "b0")),
     N(AR(KEYREF, "*b0"), AR(VALREF, "*a0")),
-});
+})
+);
 
 ADD_CASE_TO_GROUP("anchors+refs on key+val, resolved", RESOLVE_REFS,
-R"({&a0 a0: &b0 b0, *b0: *a0})",
-L{
-    N("a0", "b0"),
-    N("b0", "a0"),
-});
+R"({&a0 a0: &b0 b0, *b0 : *a0})",
+N(MFS, L{
+    N(KP|VP, "a0", "b0"),
+    N(KP|VP, "b0", "a0"),
+})
+);
 
 
 ADD_CASE_TO_GROUP("ambiguous anchor, unresolved",
 R"(&rootanchor
 &a0 a0: &b0 b0
-*b0: *a0
+*b0 : *a0
 map1:
   &a1 a1: &b1 b1  # &a1 must be a KEY anchor on a1, not a VAL anchor on map1
-  *b1: *a1
+  *b1 : *a1
 map2:
-  *b0: *a0  # ensure the anchor is enough to establish the indentation
+  *b0 : *a0  # ensure the anchor is enough to establish the indentation
   &a2 a2: &b2 b2
-  *b2: *a2
+  *b2 : *a2
 map3: &a3   # &a3 must be a VAL anchor on map3, not a KEY anchor on a3
   a3: &b3 b3
-  *b3: *b0
+  *b3 : *b0
 map4: *a0
 map5:
   &map5
   &a5 a5: &b5 b5
-  *b5: *a5
+  *b5 : *a5
 map6:
   &map6
   a6: &b6 b6
-  *b6: *b6
+  *b6 : *b6
 )",
-N(L{
-    N("a0", AR(KEYANCH, "a0"), "b0", AR(VALANCH, "b0")),
+N(MB, L{
+    N(KP|VP, "a0", AR(KEYANCH, "a0"), "b0", AR(VALANCH, "b0")),
     N(AR(KEYREF, "*b0"), AR(VALREF, "*a0")),
-    N("map1", L{N("a1", AR(KEYANCH, "a1"), "b1", AR(VALANCH, "b1")), N(AR(KEYREF, "*b1"), AR(VALREF, "*a1")),}),
-    N("map2", L{N(AR(KEYREF, "*b0"), AR(VALREF, "*a0")), N("a2", AR(KEYANCH, "a2"), "b2", AR(VALANCH, "b2")), N(AR(KEYREF, "*b2"), AR(VALREF, "*a2")),}),
-    N("map3", L{N("a3", "b3", AR(VALANCH, "b3")), N(AR(KEYREF, "*b3"), AR(VALREF, "*b0")),}, AR(VALANCH, "a3")),
-    N("map4", "*a0", AR(VALREF, "a0")),
-    N("map5", L{N("a5", AR(KEYANCH, "a5"), "b5", AR(VALANCH, "b5")), N(AR(KEYREF, "*b5"), AR(VALREF, "*a5")),}, AR(VALANCH, "map5")),
-    N("map6", L{N("a6", "b6", AR(VALANCH, "b6")), N(AR(KEYREF, "*b6"), AR(VALREF, "*b6")),}, AR(VALANCH, "map6")),
-}, AR(VALANCH, "rootanchor")));
+    N(KP|MB, "map1", L{N(KP|VP, "a1", AR(KEYANCH, "a1"), "b1", AR(VALANCH, "b1")), N(AR(KEYREF, "*b1"), AR(VALREF, "*a1")),}),
+    N(KP|MB, "map2", L{N(AR(KEYREF, "*b0"), AR(VALREF, "*a0")), N(KP|VP, "a2", AR(KEYANCH, "a2"), "b2", AR(VALANCH, "b2")), N(AR(KEYREF, "*b2"), AR(VALREF, "*a2")),}),
+    N(KP|MB, "map3", L{N(KP|VP, "a3", "b3", AR(VALANCH, "b3")), N(AR(KEYREF, "*b3"), AR(VALREF, "*b0")),}, AR(VALANCH, "a3")),
+    N(KP|VAL, "map4", "*a0", AR(VALREF, "a0")),
+    N(KP|MB, "map5", L{N(KP|VP, "a5", AR(KEYANCH, "a5"), "b5", AR(VALANCH, "b5")), N(AR(KEYREF, "*b5"), AR(VALREF, "*a5")),}, AR(VALANCH, "map5")),
+    N(KP|MB, "map6", L{N(KP|VP, "a6", "b6", AR(VALANCH, "b6")), N(AR(KEYREF, "*b6"), AR(VALREF, "*b6")),}, AR(VALANCH, "map6")),
+}, AR(VALANCH, "rootanchor"))
+);
 
 ADD_CASE_TO_GROUP("ambiguous anchor, resolved", RESOLVE_REFS,
 R"(
 &a0 a0: &b0 b0
-*b0: *a0
+*b0 : *a0
 map1:
   &a1 a1: &b1 b1  # &a1 must be a KEY anchor on a1, not a VAL anchor on map1
-  *b1: *a1
+  *b1 : *a1
 map2:
-  *b0: *a0  # ensure the anchor is enough to establish the indentation
+  *b0 : *a0  # ensure the anchor is enough to establish the indentation
   &a2 a2: &b2 b2
-  *b2: *a2
+  *b2 : *a2
 map3: &a3   # &a3 must be a VAL anchor on map3, not a KEY anchor on a3
   a3: &b3 b3
-  *b3: *b0
+  *b3 : *b0
 map4: *a0
 map5:
   &map5
   &a5 a5: &b5 b5
-  *b5: *a5
+  *b5 : *a5
 map6:
   &map6
   a6: &b6 b6
-  *b6: *b6
+  *b6 : *b6
 )",
-L{
-    N("a0", "b0"), N("b0", "a0"),
-    N("map1", L{N("a1", "b1"), N("b1", "a1"),}),
-    N("map2", L{N("b0", "a0"), N("a2", "b2"), N("b2", "a2"),}),
-    N("map3", L{N("a3", "b3"), N("b3", "b0"),}),
-    N("map4", "a0"),
-    N("map5", L{N("a5", "b5"), N("b5", "a5"),}),
-    N("map6", L{N("a6", "b6"), N("b6", "b6"),}),
-});
+N(MB, L{
+    N(KP|VP, "a0", "b0"), N(KP|VP, "b0", "a0"),
+    N(KP|MB, "map1", L{N(KP|VP, "a1", "b1"), N(KP|VP, "b1", "a1"),}),
+    N(KP|MB, "map2", L{N(KP|VP, "b0", "a0"), N(KP|VP, "a2", "b2"), N(KP|VP, "b2", "a2"),}),
+    N(KP|MB, "map3", L{N(KP|VP, "a3", "b3"), N(KP|VP, "b3", "b0"),}),
+    N(KP|VP, "map4", "a0"),
+    N(KP|MB, "map5", L{N(KP|VP, "a5", "b5"), N(KP|VP, "b5", "a5"),}),
+    N(KP|MB, "map6", L{N(KP|VP, "a6", "b6"), N(KP|VP, "b6", "b6"),}),
+})
+);
 
 
 ADD_CASE_TO_GROUP("ambiguous anchor in seq, unresolved",
@@ -1288,35 +1240,36 @@ R"(
   &a8 k8: v8
 - &a9
   k10: v10
-- *a1: w1
-  *a2: w2
-  *a3: w3
-  *a4: w4
-  *a5: w5
-  *a6: w6
-  *a8: w8
+- *a1 : w1
+  *a2 : w2
+  *a3 : w3
+  *a4 : w4
+  *a5 : w5
+  *a6 : w6
+  *a8 : w8
 - *a0
 - *a7
 - *a9
 )",
-N(L{
-  N(L{N("k1", AR(KEYANCH, "a1"), "v1"), N("k2", AR(KEYANCH, "a2"), "v2"), N("k3", AR(KEYANCH, "a3"), "v3")}, AR(VALANCH, "a0")),
-  N(L{N("k4", AR(KEYANCH, "a4"), "v4"), N("k5", AR(KEYANCH, "a5"), "v5"), N("k6", AR(KEYANCH, "a6"), "v6")}),
-  N(L{N("k8", AR(KEYANCH, "a8"), "v8")}, AR(VALANCH, "a7")),
-  N(L{N("k10", "v10")}, AR(VALANCH, "a9")),
-  N(L{
-      N("*a1", AR(KEYREF, "*a1"), "w1"),
-      N("*a2", AR(KEYREF, "*a2"), "w2"),
-      N("*a3", AR(KEYREF, "*a3"), "w3"),
-      N("*a4", AR(KEYREF, "*a4"), "w4"),
-      N("*a5", AR(KEYREF, "*a5"), "w5"),
-      N("*a6", AR(KEYREF, "*a6"), "w6"),
-      N("*a8", AR(KEYREF, "*a8"), "w8"),
+N(SB, L{
+  N(MB, L{N(KP|VP, "k1", AR(KEYANCH, "a1"), "v1"), N(KP|VP, "k2", AR(KEYANCH, "a2"), "v2"), N(KP|VP, "k3", AR(KEYANCH, "a3"), "v3")}, AR(VALANCH, "a0")),
+  N(MB, L{N(KP|VP, "k4", AR(KEYANCH, "a4"), "v4"), N(KP|VP, "k5", AR(KEYANCH, "a5"), "v5"), N(KP|VP, "k6", AR(KEYANCH, "a6"), "v6")}),
+  N(MB, L{N(KP|VP, "k8", AR(KEYANCH, "a8"), "v8")}, AR(VALANCH, "a7")),
+  N(MB, L{N(KP|VP, "k10", "v10")}, AR(VALANCH, "a9")),
+  N(MB, L{
+      N(KEY|VP, "*a1", AR(KEYREF, "*a1"), "w1"),
+      N(KEY|VP, "*a2", AR(KEYREF, "*a2"), "w2"),
+      N(KEY|VP, "*a3", AR(KEYREF, "*a3"), "w3"),
+      N(KEY|VP, "*a4", AR(KEYREF, "*a4"), "w4"),
+      N(KEY|VP, "*a5", AR(KEYREF, "*a5"), "w5"),
+      N(KEY|VP, "*a6", AR(KEYREF, "*a6"), "w6"),
+      N(KEY|VP, "*a8", AR(KEYREF, "*a8"), "w8"),
   }),
-  N("*a0", AR(VALREF, "*a0")),
-  N("*a7", AR(VALREF, "*a7")),
-  N("*a9", AR(VALREF, "*a9")),
-}, AR(VALANCH, "seq")));
+  N(VAL, "*a0", AR(VALREF, "*a0")),
+  N(VAL, "*a7", AR(VALREF, "*a7")),
+  N(VAL, "*a9", AR(VALREF, "*a9")),
+}, AR(VALANCH, "seq"))
+);
 
 ADD_CASE_TO_GROUP("ambiguous anchor in seq, resolved", RESOLVE_REFS,
 R"(
@@ -1331,36 +1284,37 @@ R"(
 - &a7
   &a8 k8: v8
 - &a9
-  k10: v10
-- *a1: w1
-  *a2: w2
-  *a3: w3
-  *a4: w4
-  *a5: w5
-  *a6: w6
-  *a8: w8
+  k10 : v10
+- *a1 : w1
+  *a2 : w2
+  *a3 : w3
+  *a4 : w4
+  *a5 : w5
+  *a6 : w6
+  *a8 : w8
 - *a0
 - *a7
 - *a9
 )",
-L{
-  N(L{N("k1", "v1"), N("k2", "v2"), N("k3", "v3")}),
-  N(L{N("k4", "v4"), N("k5", "v5"), N("k6", "v6")}),
-  N(L{N("k8", "v8")}),
-  N(L{N("k10", "v10")}),
-  N(L{
-      N("k1", "w1"),
-      N("k2", "w2"),
-      N("k3", "w3"),
-      N("k4", "w4"),
-      N("k5", "w5"),
-      N("k6", "w6"),
-      N("k8", "w8"),
+N(SB, L{
+  N(MB, L{N(KP|VP, "k1", "v1"), N(KP|VP, "k2", "v2"), N(KP|VP, "k3", "v3")}),
+  N(MB, L{N(KP|VP, "k4", "v4"), N(KP|VP, "k5", "v5"), N(KP|VP, "k6", "v6")}),
+  N(MB, L{N(KP|VP, "k8", "v8")}),
+  N(MB, L{N(KP|VP, "k10", "v10")}),
+  N(MB, L{
+      N(KP|VP, "k1", "w1"),
+      N(KP|VP, "k2", "w2"),
+      N(KP|VP, "k3", "w3"),
+      N(KP|VP, "k4", "w4"),
+      N(KP|VP, "k5", "w5"),
+      N(KP|VP, "k6", "w6"),
+      N(KP|VP, "k8", "w8"),
   }),
-  N(L{N("k1", AR(KEYANCH, "a1"), "v1"), N("k2", AR(KEYANCH, "a2"), "v2"), N("k3", AR(KEYANCH, "a3"), "v3")}),
-  N(L{N("k8", AR(KEYANCH, "a8"), "v8")}),
-  N(L{N("k10", "v10")}),
-});
+  N(MB, L{N(KP|VP, "k1", AR(KEYANCH, "a1"), "v1"), N(KP|VP, "k2", AR(KEYANCH, "a2"), "v2"), N(KP|VP, "k3", AR(KEYANCH, "a3"), "v3")}),
+  N(MB, L{N(KP|VP, "k8", AR(KEYANCH, "a8"), "v8")}),
+  N(MB, L{N(KP|VP, "k10", "v10")}),
+})
+);
 
 ADD_CASE_TO_GROUP("anchor after complex key without value ZWK4",
 R"(
@@ -1368,9 +1322,9 @@ a: 1
 ? b
 &anchor c: 3
 )",
-  L{
-    N("a", "1"), N(KEYVAL, "b", {}), N("c", AR(KEYANCH, "anchor"), "3")
-  }
+N(MB, L{
+    N(KP|VP, "a", "1"), N(KP|VP, "b", {}), N(KP|VP, "c", AR(KEYANCH, "anchor"), "3")
+  })
 );
 
 ADD_CASE_TO_GROUP("anchor mixed with tag HMQ5, unresolved",
@@ -1379,10 +1333,10 @@ R"(
   !!str bar
 &a2 baz : *a1
 )",
-  L{
-      N(KEYVAL|KEYQUO, TS("!!str", "foo"), AR(KEYANCH, "a1"), TS("!!str", "bar")),
-      N("baz", AR(KEYANCH, "a2"), "*a1", AR(VALREF, "*a1")),
-  }
+N(MB, L{
+      N(KD|VP, TS("!!str", "foo"), AR(KEYANCH, "a1"), TS("!!str", "bar")),
+      N(KP|VAL, "baz", AR(KEYANCH, "a2"), "*a1", AR(VALREF, "*a1")),
+  })
 );
 
 ADD_CASE_TO_GROUP("anchor mixed with tag HMQ5, resolved", RESOLVE_REFS,
@@ -1391,11 +1345,12 @@ R"(
   !!str bar
 &a2 baz : *a1
 )",
-  L{
-      N(KEYVAL|KEYQUO, TS("!!str", "foo"), TS("!!str", "bar")),
-      N("baz", "foo"),
-  }
+N(MB, L{
+      N(KD|VP, TS("!!str", "foo"), TS("!!str", "bar")),
+      N(KP|VD, "baz", "foo"),
+  })
 );
+
 }
 
 

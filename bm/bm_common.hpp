@@ -107,7 +107,8 @@ struct BmCase
     c4::csubstr            filename;
     std::vector<char>      src;
     std::vector<char>      in_place;
-    ryml::Parser           ryml_parser;
+    ryml::EventHandlerTree ryml_evt_handler;
+    ryml::Parser           ryml_parser{&ryml_evt_handler};
     ryml::Tree             ryml_tree;
     bool                   is_json;
     rapidjson::Document    rapidjson_doc;

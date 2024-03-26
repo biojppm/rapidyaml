@@ -1,4 +1,4 @@
-#include "./test_group.hpp"
+#include "./test_lib/test_group.hpp"
 
 namespace c4 {
 namespace yml {
@@ -19,12 +19,12 @@ a sequence:
   - item 1
   - item 2
 )",
-  L{
-      N("a simple key", "a value"),
-      N("a complex key", "another value"),
-      N("a mapping", L{N("key 1", "value 1"), N("key 2", "value 2")}),
-      N("a sequence", L{N("item 1"), N("item 2")}),
-  }
+N(MB, L{
+      N(KP|VP, "a simple key", "a value"),
+      N(KP|VP, "a complex key", "another value"),
+      N(KP|MB, "a mapping", L{N(KP|VP, "key 1", "value 1"), N(KP|VP, "key 2", "value 2")}),
+      N(KP|SB, "a sequence", L{N(VP, "item 1"), N(VP, "item 2")}),
+  })
 );
 
 
@@ -41,18 +41,20 @@ items:
       price:     133.7
       quantity:  1
 )",
-L{
-  N{"items", L{
-    N{L{N{"part_no",   "A4786"},
-        N{"descrip",   "Water Bucket (Filled)"},
-        N{"price",     "1.47"},
-        N{"quantity",  "4"},}},
-    N{L{N{"part_no", "E1628"},
-        N{"descrip",   "High Heeled \"Ruby\" Slippers"},
-        N{"size",      "8"},
-        N{"price",     "133.7"},
-        N{"quantity",  "1"},}}}},
-  }
+N(MB, L{
+  N{KP|SB, "items", L{
+    N{MB, L{
+      N{KP|VP, "part_no",   "A4786"},
+      N{KP|VP, "descrip",   "Water Bucket (Filled)"},
+      N{KP|VP, "price",     "1.47"},
+      N{KP|VP, "quantity",  "4"},}},
+    N{MB, L{
+      N{KP|VP, "part_no", "E1628"},
+      N{KP|VP, "descrip",   "High Heeled \"Ruby\" Slippers"},
+      N{KP|VP, "size",      "8"},
+      N{KP|VP, "price",     "133.7"},
+      N{KP|VP, "quantity",  "1"},}}}},
+  })
 );
 
 ADD_CASE_TO_GROUP("seq nested in map, v2",
@@ -70,19 +72,22 @@ items:
       price:     133.7
       quantity:  1
 )",
-L{
-  N{"items", L{
-    N{L{N{"part_no",   "A4786"},
-        N{"descrip",   "Water Bucket (Filled)"},
-        N{"price",     "1.47"},
-        N{"quantity",  "4"},}},
-    N{L{N{"part_no", "E1628"},
-        N{"descrip",   "High Heeled \"Ruby\" Slippers"},
-        N{"size",      "8"},
-        N{"price",     "133.7"},
-        N{"quantity",  "1"},}}}},
-  }
+N(MB, L{
+  N{KP|SB, "items", L{
+    N{MB, L{
+      N{KP|VP, "part_no",   "A4786"},
+      N{KP|VP, "descrip",   "Water Bucket (Filled)"},
+      N{KP|VP, "price",     "1.47"},
+      N{KP|VP, "quantity",  "4"},}},
+    N{MB, L{
+      N{KP|VP, "part_no", "E1628"},
+      N{KP|VP, "descrip",   "High Heeled \"Ruby\" Slippers"},
+      N{KP|VP, "size",      "8"},
+      N{KP|VP, "price",     "133.7"},
+      N{KP|VP, "quantity",  "1"},}}}},
+  })
 );
+
 }
 
 } // namespace yml

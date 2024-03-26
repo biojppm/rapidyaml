@@ -8,7 +8,7 @@
 #endif
 #include <c4/fs/fs.hpp>
 
-#include "./test_case.hpp"
+#include "./test_lib/test_case.hpp"
 
 #include <gtest/gtest.h>
 
@@ -137,7 +137,7 @@ TEST(emit, empty_tree)
 TEST(emit, existing_tree)
 {
     const Tree t = parse_in_arena("[foo, bar]");
-    std::string expected = "- foo\n- bar\n";
+    std::string expected = "[foo,bar]";
     std::string expected_json = R"(["foo","bar"])";
     test_emits(t, expected, expected_json);
 }
@@ -147,7 +147,8 @@ TEST(emit, existing_seq_node)
     Tree nct = parse_in_arena("[foo, bar, [nested, seq], {nested: map}]");
     Tree const& t = nct;
     {
-        std::string expected = "- foo\n- bar\n- - nested\n  - seq\n- nested: map\n";
+        SCOPED_TRACE("full");
+        std::string expected = "[foo,bar,[nested,seq],{nested: map}]";
         std::string expected_json = R"(["foo","bar",["nested","seq"],{"nested": "map"}])";
         {
             SCOPED_TRACE("rootref");
@@ -163,6 +164,7 @@ TEST(emit, existing_seq_node)
         }
     }
     {
+        SCOPED_TRACE("t[0]");
         ConstNodeRef n = t[0];
         std::string expected = "foo\n";
         std::string expected_json = "\"foo\"";
@@ -186,6 +188,7 @@ TEST(emit, existing_seq_node)
         }
     }
     {
+        SCOPED_TRACE("t[1]");
         ConstNodeRef n = t[1];
         std::string expected = "bar\n";
         std::string expected_json = "\"bar\"";
@@ -210,8 +213,9 @@ TEST(emit, existing_seq_node)
 
     }
     {
+        SCOPED_TRACE("t[2]");
         ConstNodeRef n = t[2];
-        std::string expected = "- nested\n- seq\n";
+        std::string expected = "[nested,seq]";
         std::string expected_json = "[\"nested\",\"seq\"]";
         {
             SCOPED_TRACE("noderef");
@@ -233,8 +237,9 @@ TEST(emit, existing_seq_node)
         }
     }
     {
+        SCOPED_TRACE("t[3]");
         ConstNodeRef n = t[3];
-        std::string expected = "nested: map\n";
+        std::string expected = "{nested: map}";
         std::string expected_json = "{\"nested\": \"map\"}";
         {
             SCOPED_TRACE("noderef");
@@ -262,7 +267,8 @@ TEST(emit, existing_map_node)
     Tree nct = parse_in_arena("{0: foo, 1: bar, 2: [nested, seq], 3: {nested: map}}");
     Tree const& t = nct;
     {
-        std::string expected = "0: foo\n1: bar\n2:\n  - nested\n  - seq\n3:\n  nested: map\n";
+        SCOPED_TRACE("root");
+        std::string expected = "{0: foo,1: bar,2: [nested,seq],3: {nested: map}}";
         std::string expected_json = R"({"0": "foo","1": "bar","2": ["nested","seq"],"3": {"nested": "map"}})";
         {
             SCOPED_TRACE("rootref");
@@ -278,6 +284,7 @@ TEST(emit, existing_map_node)
         }
     }
     {
+        SCOPED_TRACE("t[0]");
         ConstNodeRef n = t[0];
         std::string expected = "0: foo\n";
         std::string expected_json = "\"0\": \"foo\"";
@@ -301,6 +308,7 @@ TEST(emit, existing_map_node)
         }
     }
     {
+        SCOPED_TRACE("t[1]");
         ConstNodeRef n = t[1];
         std::string expected = "1: bar\n";
         std::string expected_json = "\"1\": \"bar\"";
@@ -324,8 +332,9 @@ TEST(emit, existing_map_node)
         }
     }
     {
+        SCOPED_TRACE("t[2]");
         ConstNodeRef n = t[2];
-        std::string expected = "2:\n  - nested\n  - seq\n";
+        std::string expected = "2: [nested,seq]";
         std::string expected_json = "\"2\": [\"nested\",\"seq\"]";
         {
             SCOPED_TRACE("noderef");
@@ -335,8 +344,9 @@ TEST(emit, existing_map_node)
             SCOPED_TRACE("t, id");
             test_emits(t, n.id(), expected, expected_json);
         }
-        expected = "2: [nested,seq]";
-        nct._add_flags(n.id(), _WIP_STYLE_FLOW_SL);
+        expected = "2:\n  - nested\n  - seq\n";
+        nct._rem_flags(n.id(), _WIP_CONTAINER_STYLE);
+        nct._add_flags(n.id(), _WIP_STYLE_BLOCK);
         {
             SCOPED_TRACE("t, id");
             test_emits(n, expected, expected_json);
@@ -347,8 +357,9 @@ TEST(emit, existing_map_node)
         }
     }
     {
+        SCOPED_TRACE("t[3]");
         ConstNodeRef n = t[3];
-        std::string expected = "3:\n  nested: map\n";
+        std::string expected = "3: {nested: map}";
         std::string expected_json = "\"3\": {\"nested\": \"map\"}";
         {
             SCOPED_TRACE("noderef");
@@ -358,8 +369,9 @@ TEST(emit, existing_map_node)
             SCOPED_TRACE("t, id");
             test_emits(t, n.id(), expected, expected_json);
         }
-        expected = "3: {nested: map}";
-        nct._add_flags(n.id(), _WIP_STYLE_FLOW_SL);
+        expected = "3:\n  nested: map\n";
+        nct._rem_flags(n.id(), _WIP_CONTAINER_STYLE);
+        nct._add_flags(n.id(), _WIP_STYLE_BLOCK);
         {
             SCOPED_TRACE("t, id");
             test_emits(n, expected, expected_json);
@@ -395,7 +407,7 @@ TEST(emit, percent_is_quoted)
 
 TEST(emit, at_is_quoted__issue_309)
 {
-    Tree ti = parse_in_arena("{at: [], backtick: []");
+    Tree ti = parse_in_arena("{at: [], backtick: []}");
     ti["at"][0] << "@test";
     ti["at"][1] = "@test2";
     ti["at"][2] << "@";
@@ -432,7 +444,7 @@ TEST(emit, at_is_quoted__issue_309)
 
 TEST(emit, at_is_quoted_only_in_the_beggining__issue_320)
 {
-    Tree ti = parse_in_arena("{at: [], backtick: []");
+    Tree ti = parse_in_arena("{at: [], backtick: []}");
     ti["at"].append_child() << "@test";
     ti["at"].append_child() << "t@est";
     ti["at"].append_child() << "test@";

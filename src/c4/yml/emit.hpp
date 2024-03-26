@@ -15,12 +15,17 @@
 
 
 #define RYML_DEPRECATE_EMIT                                             \
-    RYML_DEPRECATED("use emit_yaml() instead. See https://github.com/biojppm/rapidyaml/issues/120")
-#ifdef emit
-#error "emit is defined, likely from a Qt include. This will cause a compilation error. See https://github.com/biojppm/rapidyaml/issues/120"
-#endif
+    RYML_DEPRECATED("use emit_yaml() instead. "                         \
+                    "See https://github.com/biojppm/rapidyaml/issues/120")
 #define RYML_DEPRECATE_EMITRS                                           \
-    RYML_DEPRECATED("use emitrs_yaml() instead. See https://github.com/biojppm/rapidyaml/issues/120")
+    RYML_DEPRECATED("use emitrs_yaml() instead. "                       \
+                    "See https://github.com/biojppm/rapidyaml/issues/120")
+
+#ifdef emit
+#error "emit is defined, likely from a Qt include. "                    \
+    "This will cause a compilation error. "                             \
+    "See https://github.com/biojppm/rapidyaml/issues/120"
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -83,12 +88,13 @@ public:
 private:
 
     Tree const* C4_RESTRICT m_tree;
+    bool m_flow;
 
     void _emit_yaml(size_t id);
     void _do_visit_flow_sl(size_t id, size_t ilevel=0);
     void _do_visit_flow_ml(size_t id, size_t ilevel=0, size_t do_indent=1);
     void _do_visit_block(size_t id, size_t ilevel=0, size_t do_indent=1);
-    void _do_visit_block_container(size_t id, size_t next_level, size_t do_indent);
+    void _do_visit_block_container(size_t id, size_t next_level, bool do_indent);
     void _do_visit_json(size_t id);
 
 private:
@@ -97,13 +103,15 @@ private:
     void _write_json(NodeScalar const& C4_RESTRICT sc, NodeType flags);
 
     void _write_doc(size_t id);
-    void _write_scalar(csubstr s, bool was_quoted);
     void _write_scalar_json(csubstr s, bool as_key, bool was_quoted);
-    void _write_scalar_literal(csubstr s, size_t level, bool as_key, bool explicit_indentation=false);
+    void _write_scalar_literal(csubstr s, size_t level, bool as_key);
     void _write_scalar_folded(csubstr s, size_t level, bool as_key);
     void _write_scalar_squo(csubstr s, size_t level);
     void _write_scalar_dquo(csubstr s, size_t level);
     void _write_scalar_plain(csubstr s, size_t level);
+
+    size_t _write_escaped_newlines(csubstr s, size_t i);
+    size_t _write_indented_block(csubstr s, size_t i, size_t level);
 
     void _write_tag(csubstr tag)
     {
@@ -113,18 +121,28 @@ private:
     }
 
     enum : type_bits {
-        _keysc =  (KEY|KEYREF|KEYANCH|KEYQUO|_WIP_KEY_STYLE) | ~(VAL|VALREF|VALANCH|VALQUO|_WIP_VAL_STYLE),
-        _valsc = ~(KEY|KEYREF|KEYANCH|KEYQUO|_WIP_KEY_STYLE) |  (VAL|VALREF|VALANCH|VALQUO|_WIP_VAL_STYLE),
+        _keysc =  (KEY|KEYREF|KEYANCH|KEYQUO|_WIP_KEY_STYLE) | ~(VAL|VALREF|VALANCH|VALQUO|_WIP_VAL_STYLE) | _WIP_CONTAINER_STYLE,
+        _valsc = ~(KEY|KEYREF|KEYANCH|KEYQUO|_WIP_KEY_STYLE) |  (VAL|VALREF|VALANCH|VALQUO|_WIP_VAL_STYLE) | _WIP_CONTAINER_STYLE,
         _keysc_json =  (KEY)  | ~(VAL),
         _valsc_json = ~(KEY)  |  (VAL),
     };
 
-    C4_ALWAYS_INLINE void _writek(size_t id, size_t level) { _write(m_tree->keysc(id), m_tree->_p(id)->m_type.type & ~_valsc, level); }
-    C4_ALWAYS_INLINE void _writev(size_t id, size_t level) { _write(m_tree->valsc(id), m_tree->_p(id)->m_type.type & ~_keysc, level); }
+    C4_ALWAYS_INLINE void _writek(size_t id, size_t level) { _write(m_tree->keysc(id), (m_tree->_p(id)->m_type.type & ~_valsc), level); }
+    C4_ALWAYS_INLINE void _writev(size_t id, size_t level) { _write(m_tree->valsc(id), (m_tree->_p(id)->m_type.type & ~_keysc), level); }
 
     C4_ALWAYS_INLINE void _writek_json(size_t id) { _write_json(m_tree->keysc(id), m_tree->_p(id)->m_type.type & ~(VAL)); }
     C4_ALWAYS_INLINE void _writev_json(size_t id) { _write_json(m_tree->valsc(id), m_tree->_p(id)->m_type.type & ~(KEY)); }
 
+    void _indent(size_t level, bool enabled)
+    {
+        if(enabled)
+            this->Writer::_do_write(' ', 2u * level);
+    }
+    void _indent(size_t level)
+    {
+        if(!m_flow)
+            this->Writer::_do_write(' ', 2u * level);
+    }
 };
 
 

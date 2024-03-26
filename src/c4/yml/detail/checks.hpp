@@ -34,8 +34,8 @@ inline void check_invariants(Tree const& t, size_t node)
         node = t.root_id();
     }
 
-    auto const& n = *t._p(node);
-#ifdef RYML_DBG
+    NodeData const& n = *t._p(node);
+#if defined(RYML_DBG) && 0
     if(n.m_first_child != NONE || n.m_last_child != NONE)
     {
         printf("check(%zu): fc=%zu lc=%zu\n", node, n.m_first_child, n.m_last_child);
@@ -103,7 +103,7 @@ inline void check_invariants(Tree const& t, size_t node)
     size_t count = 0;
     for(size_t i = n.m_first_child; i != NONE; i = t.next_sibling(i))
     {
-#ifdef RYML_DBG
+#if defined(RYML_DBG) && 0
         printf("check(%zu):               descend to child[%zu]=%zu\n", node, count, i);
 #endif
         auto const& ch = *t._p(i);

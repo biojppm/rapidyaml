@@ -1,4 +1,4 @@
-#include "./test_group.hpp"
+#include "./test_lib/test_group.hpp"
 
 namespace c4 {
 namespace yml {
@@ -53,7 +53,7 @@ R"(!!set
 ? b
 ?
 )",
-N(TL("!!set", L{N(KEYVAL, "a", {}), N(KEYVAL, "b", {}), N(KEYVAL, {}, "")}))
+N(MB, TL("!!set", L{N(KP|VP, "a", {}), N(KP|VP, "b", {}), N(KP|VP, {}, "")}))
 );
 
 ADD_CASE_TO_GROUP("doc as set, implicit",
@@ -61,7 +61,7 @@ R"(!!set
 ? a
 ? b
 )",
-N(TL("!!set", L{N(KEYVAL, "a", {}), N(KEYVAL, "b", {})}))
+N(MB, TL("!!set", L{N(KP|VP, "a", {}), N(KP|VP, "b", {})}))
 );
 
 ADD_CASE_TO_GROUP("doc as set",
@@ -70,11 +70,14 @@ R"(--- !!set
 ? bb
 ? cc
 )",
-N(STREAM, L{N(DOCMAP, TL("!!set", L{
-  N(KEYVAL, "aa", /*"~"*/{}),
-  N(KEYVAL, "bb", /*"~"*/{}),
-  N(KEYVAL, "cc", /*"~"*/{})})
-)}));
+N(STREAM, L{
+  N(DOC|MB, TL("!!set", L{
+    N(KP|VP, "aa", /*"~"*/{}),
+    N(KP|VP, "bb", /*"~"*/{}),
+    N(KP|VP, "cc", /*"~"*/{})
+  }))
+})
+);
 
 ADD_CASE_TO_GROUP("sets 2XXW",
 R"(
@@ -83,24 +86,14 @@ R"(
 ? Sammy Sosa
 ? Ken Griff
 )",
-N(STREAM, L{N(DOCMAP, TL("!!set", L{
-  N(KEYVAL, "Mark McGwire", /*"~"*/{}),
-  N(KEYVAL, "Sammy Sosa", /*"~"*/{}),
-  N(KEYVAL, "Ken Griff", /*"~"*/{}),})
-)}));
-
-ADD_CASE_TO_GROUP("sets 2XXW, indented",
-R"(
-    --- !!set
-    ? Mark McGwire
-    ? Sammy Sosa
-    ? Ken Griff
-)",
-N(STREAM, L{N(DOCMAP, TL("!!set", L{
-  N(KEYVAL, "Mark McGwire", /*"~"*/{}),
-  N(KEYVAL, "Sammy Sosa", /*"~"*/{}),
-  N(KEYVAL, "Ken Griff", /*"~"*/{}),})
-)}));
+N(STREAM, L{
+  N(DOC|MB, TL("!!set", L{
+    N(KP|VP, "Mark McGwire", /*"~"*/{}),
+    N(KP|VP, "Sammy Sosa", /*"~"*/{}),
+    N(KP|VP, "Ken Griff", /*"~"*/{}),
+  }))
+})
+);
 
 ADD_CASE_TO_GROUP("sets 2XXW, no set",
 R"(
@@ -109,11 +102,14 @@ R"(
 ? Sammy Sosa
 ? Ken Griff
 )",
-N(STREAM, L{N(DOCMAP, L{
-  N(KEYVAL, "Mark McGwire", /*"~"*/{}),
-  N(KEYVAL, "Sammy Sosa", /*"~"*/{}),
-  N(KEYVAL, "Ken Griff", /*"~"*/{}),}
-)}));
+N(STREAM, L{
+  N(DOC|MB, L{
+    N(KP|VP, "Mark McGwire", /*"~"*/{}),
+    N(KP|VP, "Sammy Sosa", /*"~"*/{}),
+    N(KP|VP, "Ken Griff", /*"~"*/{}),
+  })
+})
+);
 
 ADD_CASE_TO_GROUP("sets 2XXW, no doc",
 R"(!!set
@@ -121,11 +117,12 @@ R"(!!set
 ? Sammy Sosa
 ? Ken Griff
 )",
-TL("!!set", L{
-  N(KEYVAL, "Mark McGwire", /*"~"*/{}),
-  N(KEYVAL, "Sammy Sosa", /*"~"*/{}),
-  N(KEYVAL, "Ken Griff", /*"~"*/{}),
-}));
+N(MB, TL("!!set", L{
+  N(KP|VP, "Mark McGwire", /*"~"*/{}),
+  N(KP|VP, "Sammy Sosa", /*"~"*/{}),
+  N(KP|VP, "Ken Griff", /*"~"*/{}),
+}))
+);
 
 ADD_CASE_TO_GROUP("sets 2XXW, no doc, no set",
 R"(
@@ -133,11 +130,13 @@ R"(
 ? Sammy Sosa
 ? Ken Griff
 )",
-L{
-  N(KEYVAL, "Mark McGwire", /*"~"*/{}),
-  N(KEYVAL, "Sammy Sosa", /*"~"*/{}),
-  N(KEYVAL, "Ken Griff", /*"~"*/{}),
-});
+N(MB, L{
+  N(KP|VP, "Mark McGwire", /*"~"*/{}),
+  N(KP|VP, "Sammy Sosa", /*"~"*/{}),
+  N(KP|VP, "Ken Griff", /*"~"*/{}),
+})
+);
+
 }
 
 } // namespace yml

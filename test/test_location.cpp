@@ -2,7 +2,7 @@
 #include <c4/yml/std/std.hpp>
 #include <c4/yml/yml.hpp>
 #endif
-#include "./test_case.hpp"
+#include "./test_lib/test_case.hpp"
 #include <gtest/gtest.h>
 
 
@@ -16,19 +16,23 @@ TEST(locations, default_is_no_location)
         EXPECT_EQ(opts.locations(), false);
     }
     {
-        Parser parser;
+        Parser::handler_type evt_handler = {};
+        Parser parser(&evt_handler);
         EXPECT_EQ(parser.options().locations(), false);
     }
     {
-        Parser parser(ParserOptions{});
+        Parser::handler_type evt_handler = {};
+        Parser parser(&evt_handler, ParserOptions{});
         EXPECT_EQ(parser.options().locations(), false);
     }
     {
-        Parser parser(ParserOptions().locations(false));
+        Parser::handler_type evt_handler = {};
+        Parser parser(&evt_handler, ParserOptions().locations(false));
         EXPECT_EQ(parser.options().locations(), false);
     }
     {
-        Parser parser(ParserOptions().locations(true));
+        Parser::handler_type evt_handler = {};
+        Parser parser(&evt_handler, ParserOptions().locations(true));
         EXPECT_EQ(parser.options().locations(), true);
     }
 }
@@ -38,8 +42,9 @@ TEST(locations, error_is_triggered_querying_with_locations_disabled)
 {
     bool parsed_ok = false;
     ExpectError::do_check([&]{
-        Parser parser(ParserOptions().locations(false));
-        Tree t = parser.parse_in_arena("test", "foo: bar");
+        Parser::handler_type evt_handler = {};
+        Parser parser(&evt_handler, ParserOptions().locations(false));
+        Tree t = parse_in_arena(&parser, "test", "foo: bar");
         parsed_ok = true;
         (void)parser.location(t["foo"]);
     });
@@ -59,9 +64,10 @@ TEST(locations, error_is_triggered_querying_with_locations_disabled)
 
 TEST(locations, no_error_is_triggered_querying_with_locations)
 {
-    Parser parser(ParserOptions().locations(true));
+    Parser::handler_type evt_handler = {};
+    Parser parser(&evt_handler, ParserOptions().locations(true));
     EXPECT_EQ(parser.options().locations(), true);
-    Tree t = parser.parse_in_arena("myfile.yml", "foo: bar");
+    Tree t = parse_in_arena(&parser, "myfile.yml", "foo: bar");
     _checkloc(t["foo"], 0, 0, "foo");
 }
 
@@ -69,24 +75,26 @@ TEST(locations, no_error_is_triggered_querying_with_locations)
 TEST(locations, docval)
 {
     ParserOptions opts = ParserOptions().locations(true);
-    Parser parser(opts);
-    Tree t = parser.parse_in_arena("myfile.yml", "docval");
+    Parser::handler_type evt_handler = {};
+    Parser parser(&evt_handler, opts);
+    Tree t = parse_in_arena(&parser, "myfile.yml", "docval");
     _checkloc(t.rootref(), 0u, 0u, "docval");
-    t = parser.parse_in_arena("myfile.yml", "\n docval");
+    t = parse_in_arena(&parser, "myfile.yml", "\n docval");
     _checkloc(t.rootref(), 1u, 1u, "docval");
-    t = parser.parse_in_arena("myfile.yml", "\n\n docval");
+    t = parse_in_arena(&parser, "myfile.yml", "\n\n docval");
     _checkloc(t.rootref(), 2u, 1u, "docval");
 }
 
 TEST(locations, docval_null)
 {
     ParserOptions opts = ParserOptions().locations(true);
-    Parser parser(opts);
-    Tree t = parser.parse_in_arena("myfile.yml", "~");
+    Parser::handler_type evt_handler = {};
+    Parser parser(&evt_handler, opts);
+    Tree t = parse_in_arena(&parser, "myfile.yml", "~");
     _checkloc(t.rootref(), 0u, 0u, "~");
-    t = parser.parse_in_arena("myfile.yml", "");
+    t = parse_in_arena(&parser, "myfile.yml", "");
     _checkloc(t.rootref(), 0u, 0u, "");
-    t = parser.parse_in_arena("myfile.yml", R"(#
+    t = parse_in_arena(&parser, "myfile.yml", R"(#
 #
 #
 #
@@ -98,7 +106,8 @@ TEST(locations, docval_null)
 TEST(locations, seq_block)
 {
     ParserOptions opts = ParserOptions().locations(true);
-    Parser parser(opts);
+    Parser::handler_type evt_handler = {};
+    Parser parser(&evt_handler, opts);
     csubstr yaml = R"(
 - this
 - is
@@ -116,7 +125,7 @@ TEST(locations, seq_block)
       - another val
       - yet another val
 )";
-    Tree t = parser.parse_in_arena("myfile.yml", yaml);
+    Tree t = parse_in_arena(&parser, "myfile.yml", yaml);
     ConstNodeRef seq = t.rootref();
     ASSERT_TRUE(seq.is_seq());
     _checkloc(seq         ,  1u, 0u, "- ");
@@ -141,7 +150,8 @@ TEST(locations, seq_block)
 TEST(locations, map_block)
 {
     ParserOptions opts = ParserOptions().locations(true);
-    Parser parser(opts);
+    Parser::handler_type evt_handler = {};
+    Parser parser(&evt_handler, opts);
     csubstr yaml = R"(
 this: ~
 is: ~
@@ -156,7 +166,7 @@ and:
     val: here
     hah: here
 )";
-    Tree t = parser.parse_in_arena("myfile.yml", yaml);
+    Tree t = parse_in_arena(&parser, "myfile.yml", yaml);
     ConstNodeRef map = t.rootref();
     ASSERT_TRUE(map.is_map());
     _checkloc(map                         ,  1u, 0u, "this:");
@@ -176,8 +186,9 @@ and:
 TEST(locations, seq_block_null)
 {
     ParserOptions opts = ParserOptions().locations(true);
-    Parser parser(opts);
-    const Tree t = parser.parse_in_arena("myfile.yml", R"(---
+    Parser::handler_type evt_handler = {};
+    Parser parser(&evt_handler, opts);
+    const Tree t = parse_in_arena(&parser, "myfile.yml", R"(---
 - ~
 - ~
 - notnull
@@ -266,8 +277,9 @@ TEST(locations, seq_block_null)
 TEST(locations, map_block_null)
 {
     ParserOptions opts = ParserOptions().locations(true);
-    Parser parser(opts);
-    Tree t = parser.parse_in_arena("myfile.yml", R"(---
+    Parser::handler_type evt_handler = {};
+    Parser parser(&evt_handler, opts);
+    Tree t = parse_in_arena(&parser, "myfile.yml", R"(---
 ~: v
 ---
 null: v
@@ -286,8 +298,9 @@ null: v
 TEST(locations, empty_seq)
 {
     ParserOptions opts = ParserOptions().locations(true);
-    Parser parser(opts);
-    Tree t = parser.parse_in_arena("myfile.yml", R"(---
+    Parser::handler_type evt_handler = {};
+    Parser parser(&evt_handler, opts);
+    Tree t = parse_in_arena(&parser, "myfile.yml", R"(---
 - []
 - []
 - notnull
@@ -327,8 +340,9 @@ key: []
 TEST(locations, empty_map)
 {
     ParserOptions opts = ParserOptions().locations(true);
-    Parser parser(opts);
-    Tree t = parser.parse_in_arena("myfile.yml", R"(---
+    Parser::handler_type evt_handler = {};
+    Parser parser(&evt_handler, opts);
+    Tree t = parse_in_arena(&parser, "myfile.yml", R"(---
 - {}
 - {}
 - notnull
@@ -370,9 +384,10 @@ TEST(locations, seq_flow)
 {
     Tree t;
     ParserOptions opts = ParserOptions().locations(true);
-    Parser parser(opts);
+    Parser::handler_type evt_handler = {};
+    Parser parser(&evt_handler, opts);
     csubstr yaml = R"([one,two,three,four,items])";
-    parser.parse_in_arena("myfile.yml", yaml, &t);
+    parse_in_arena(&parser, "myfile.yml", yaml, &t);
     ConstNodeRef seq = t.rootref();
     ASSERT_TRUE(seq.is_seq());
     _checkloc(seq   ,  0u,  0u, "[");
@@ -387,9 +402,10 @@ TEST(locations, map_flow)
 {
     Tree t;
     ParserOptions opts = ParserOptions().locations(true);
-    Parser parser(opts);
+    Parser::handler_type evt_handler = {};
+    Parser parser(&evt_handler, opts);
     csubstr yaml = R"({one: item,two: items,three: items,four: items})";
-    parser.parse_in_arena("myfile.yml", yaml, &t);
+    parse_in_arena(&parser, "myfile.yml", yaml, &t);
     ConstNodeRef map = t.rootref();
     ASSERT_TRUE(map.is_map());
     _checkloc(map   ,  0u,  0u, "{");
@@ -403,7 +419,8 @@ TEST(locations, seq_flow_nested)
 {
     Tree t;
     ParserOptions opts = ParserOptions().locations(true);
-    Parser parser(opts);
+    Parser::handler_type evt_handler = {};
+    Parser parser(&evt_handler, opts);
     csubstr yaml = R"([
   one,
   two,
@@ -414,7 +431,7 @@ TEST(locations, seq_flow_nested)
   it,
   was
 ])";
-    parser.parse_in_arena("myfile.yml", yaml, &t);
+    parse_in_arena(&parser, "myfile.yml", yaml, &t);
     ConstNodeRef seq = t.rootref();
     ASSERT_TRUE(seq.is_seq());
     _checkloc(seq                      ,  0u,  0u, "[");
@@ -444,10 +461,11 @@ TEST(locations, seq_flow_nested)
 TEST(locations, grow_array)
 {
     ParserOptions opts = ParserOptions().locations(true);
-    Parser parser(opts);
-    Tree t = parser.parse_in_arena("myfile.yml", "docval");
+    Parser::handler_type evt_handler = {};
+    Parser parser(&evt_handler, opts);
+    Tree t = parse_in_arena(&parser, "myfile.yml", "docval");
     _checkloc(t.rootref(), 0u, 0u, "docval");
-    t = parser.parse_in_arena("myfile.yml", "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\ndocval");
+    t = parse_in_arena(&parser, "myfile.yml", "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\ndocval");
     _checkloc(t.rootref(), 47u, 0u, "docval");
 }
 
@@ -457,7 +475,8 @@ TEST(locations, small_array)
 {
     Tree t;
     ParserOptions opts = ParserOptions().locations(true);
-    Parser parser(opts);
+    Parser::handler_type evt_handler = {};
+    Parser parser(&evt_handler, opts);
     csubstr yaml = R"(---
 foo: yes
 bar:
@@ -468,7 +487,7 @@ baz:
     - 2_
     -     3_
 )";
-    parser.parse_in_arena("myfile.yml", yaml, &t);
+    parse_in_arena(&parser, "myfile.yml", yaml, &t);
     ConstNodeRef stream = t.rootref();
     ConstNodeRef map = t.docref(0);
     ASSERT_TRUE(map.is_map());
@@ -491,7 +510,8 @@ TEST(locations, large_array)
 {
     Tree t;
     ParserOptions opts = ParserOptions().locations(true);
-    Parser parser(opts);
+    Parser::handler_type evt_handler = {};
+    Parser parser(&evt_handler, opts);
     csubstr yaml = R"(---
 foo1: definitely  # 1
 bar1:
@@ -557,7 +577,7 @@ baz6:
     - 2_
     -     3_
 )";
-    parser.parse_in_arena("myfile.yml", yaml, &t);
+    parse_in_arena(&parser, "myfile.yml", yaml, &t);
     ConstNodeRef map = t.docref(0);
     ASSERT_TRUE(map.is_map());
     ASSERT_TRUE(map.is_doc());
@@ -622,8 +642,9 @@ baz6:
 TEST(locations, issue260_0)
 {
     ParserOptions opts = ParserOptions().locations(true);
-    Parser parser(opts);
-    Tree tree = parser.parse_in_arena("source.yml", R"(Body:
+    Parser::handler_type evt_handler = {};
+    Parser parser(&evt_handler, opts);
+    Tree tree = parse_in_arena(&parser, "source.yml", R"(Body:
   - Id: 1
     Name: Apple
     Script: |
@@ -646,8 +667,9 @@ TEST(locations, issue260_0)
 TEST(locations, issue260_1)
 {
     ParserOptions opts = ParserOptions().locations(true);
-    Parser parser(opts);
-    Tree tree = parser.parse_in_arena("source.yml", R"(Body:  # 0
+    Parser::handler_type evt_handler = {};
+    Parser parser(&evt_handler, opts);
+    Tree tree = parse_in_arena(&parser, "source.yml", R"(Body:  # 0
   - Id: 1           # line 1
     Name: Apple
   - Id: 2           # line 3

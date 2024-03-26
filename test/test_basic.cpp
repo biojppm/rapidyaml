@@ -7,7 +7,7 @@
 #include <c4/yml/detail/print.hpp>
 #endif
 
-#include "./test_case.hpp"
+#include "./test_lib/test_case.hpp"
 
 #include <gtest/gtest.h>
 
@@ -180,7 +180,7 @@ TEST(general, numbers)
 // github issue 29: https://github.com/biojppm/rapidyaml/issues/29
 TEST(general, newlines_on_maps_nested_in_seqs)
 {
-    const char yaml[] = R"(enemy:
+    std::string yaml = R"(enemy:
 - actors:
   - {name: Enemy_Bokoblin_Junior, value: 4.0}
   - {name: Enemy_Bokoblin_Middle, value: 16.0}
@@ -188,19 +188,15 @@ TEST(general, newlines_on_maps_nested_in_seqs)
   - {name: Enemy_Bokoblin_Dark, value: 48.0}
   species: BokoblinSeries
 )";
-    std::string expected = R"(enemy:
+    std::string expected =  R"(enemy:
   - actors:
-      - name: Enemy_Bokoblin_Junior
-        value: 4.0
-      - name: Enemy_Bokoblin_Middle
-        value: 16.0
-      - name: Enemy_Bokoblin_Senior
-        value: 32.0
-      - name: Enemy_Bokoblin_Dark
-        value: 48.0
+      - {name: Enemy_Bokoblin_Junior,value: 4.0}
+      - {name: Enemy_Bokoblin_Middle,value: 16.0}
+      - {name: Enemy_Bokoblin_Senior,value: 32.0}
+      - {name: Enemy_Bokoblin_Dark,value: 48.0}
     species: BokoblinSeries
 )";
-    Tree t = parse_in_arena(yaml);
+    Tree t = parse_in_arena(to_csubstr(yaml));
     auto s = emitrs_yaml<std::string>(t);
     EXPECT_EQ(expected, s);
 }

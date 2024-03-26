@@ -1,12 +1,817 @@
-#include "./test_group.hpp"
+#include "./test_lib/test_group.hpp"
 
 namespace c4 {
 namespace yml {
 
+struct blockfolded_case
+{
+    size_t indentation;
+    BlockChomp_e chomp;
+    csubstr input, expected;
+};
+
+void test_filter_src_dst(blockfolded_case const& blcase)
+{
+    RYML_TRACE_FMT("\nstr=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~", blcase.input.len, blcase.input, blcase.expected.len, blcase.expected);
+    std::string subject_;
+    subject_.resize(2 * blcase.input.size());
+    c4::substr dst = to_substr(subject_);
+    Parser::handler_type event_handler = {};
+    Parser proc(&event_handler);
+    FilterResult result = proc.filter_scalar_block_folded(blcase.input, dst, blcase.indentation, blcase.chomp);
+    ASSERT_TRUE(result.valid());
+    const csubstr out = result.get();
+    _c4prscalar("input:", blcase.input, true);
+    _c4prscalar("result:", out, true);
+    if(blcase.chomp != CHOMP_CLIP)
+    {
+        EXPECT_EQ(out.len, blcase.expected.len);
+    }
+    ASSERT_TRUE(out.is_sub(dst));
+    RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
+    EXPECT_EQ(out, blcase.expected);
+}
+
+void test_filter_inplace_smaller_result(blockfolded_case const& blcase)
+{
+    RYML_TRACE_FMT("\nstr=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~", blcase.input.len, blcase.input, blcase.expected.len, blcase.expected);
+    std::string subject_(blcase.input.str, blcase.input.len);
+    std::string subject_2 = subject_;
+    c4::substr dst = to_substr(subject_);
+    Parser::handler_type event_handler = {};
+    Parser proc(&event_handler);
+    FilterResult result = proc.filter_scalar_block_folded_in_place(dst, subject_.size(), blcase.indentation, blcase.chomp);
+    ASSERT_TRUE(result.valid());
+    Parser::handler_type event_handler2 = {};
+    Parser parser2(&event_handler2);
+    Tree tree = parse_in_arena(&parser2, "file", "# set the tree in the parser");
+    csubstr sresult = parser2._filter_scalar_folded(to_substr(subject_2), blcase.indentation, blcase.chomp);
+    EXPECT_GE(result.required_len(), blcase.expected.len);
+    EXPECT_EQ(sresult.len, result.str.len);
+    const csubstr out = result.get();
+    if(blcase.chomp != CHOMP_CLIP)
+    {
+        EXPECT_EQ(out.len, blcase.expected.len);
+    }
+    ASSERT_TRUE(out.str);
+    EXPECT_TRUE(out.is_sub(dst));
+    RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
+    EXPECT_EQ(out, blcase.expected);
+}
+
+void test_filter_inplace_larger_result_spare_size(blockfolded_case const& blcase)
+{
+    RYML_TRACE_FMT("\nstr=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~", blcase.input.len, blcase.input, blcase.expected.len, blcase.expected);
+    std::string subject_(blcase.input.str, blcase.input.len);
+    std::string subject_2 = subject_;
+    subject_.resize(blcase.expected.len + 30);
+    c4::substr dst = to_substr(subject_).first(blcase.input.len);
+    c4::substr rem = to_substr(subject_).sub(blcase.expected.len);
+    rem.fill('^');
+    Parser::handler_type event_handler = {};
+    Parser parser1(&event_handler);
+    FilterResult result = parser1.filter_scalar_block_folded_in_place(dst, subject_.size(), blcase.indentation, blcase.chomp);
+    ASSERT_TRUE(result.valid());
+    Parser::handler_type event_handler2 = {};
+    Parser parser2(&event_handler2);
+    Tree tree = parse_in_arena(&parser2, "file", "# set the tree in the parser");
+    parser2.m_evt_handler->m_tree = &tree;
+    csubstr sresult = parser2._filter_scalar_folded(to_substr(subject_2), blcase.indentation, blcase.chomp);
+    EXPECT_GE(result.required_len(), blcase.expected.len);
+    EXPECT_EQ(sresult.len, result.str.len);
+    const csubstr out = result.get();
+    if(blcase.chomp != CHOMP_CLIP)
+    {
+        EXPECT_EQ(out.len, blcase.expected.len);
+    }
+    ASSERT_TRUE(out.str);
+    EXPECT_TRUE(out.is_super(dst));
+    RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
+    EXPECT_EQ(out, blcase.expected);
+    EXPECT_EQ(rem.first_not_of('^'), npos);
+}
+
+void test_filter_inplace_larger_result_trimmed_size(blockfolded_case const& blcase)
+{
+    RYML_TRACE_FMT("\nstr=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~", blcase.input.len, blcase.input, blcase.expected.len, blcase.expected);
+    std::string subject_(blcase.input.str, blcase.input.len);
+    std::string subject_2 = subject_;
+    subject_.resize(blcase.expected.len);
+    c4::substr dst = to_substr(subject_).first(blcase.input.len);
+    Parser::handler_type event_handler = {};
+    Parser proc(&event_handler);
+    FilterResult result = proc.filter_scalar_block_folded_in_place(dst, subject_.size(), blcase.indentation, blcase.chomp);
+    ASSERT_TRUE(result.valid());
+    Parser::handler_type event_handler2 = {};
+    Parser parser2(&event_handler2);
+    Tree tree = parse_in_arena(&parser2, "file", "# set the tree in the parser");
+    parser2.m_evt_handler->m_tree = &tree;
+    csubstr sresult = parser2._filter_scalar_folded(to_substr(subject_2), blcase.indentation, blcase.chomp);
+    EXPECT_GE(result.required_len(), blcase.expected.len);
+    EXPECT_EQ(sresult.len, result.str.len);
+    const csubstr out = result.get();
+    if(blcase.chomp != CHOMP_CLIP)
+    {
+        EXPECT_EQ(out.len, blcase.expected.len);
+    }
+    ASSERT_TRUE(out.str);
+    EXPECT_TRUE(out.is_super(dst));
+    RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
+    EXPECT_EQ(out, blcase.expected);
+}
+
+void test_filter_inplace_larger_result_insufficient_size(blockfolded_case const& blcase)
+{
+    RYML_TRACE_FMT("\nstr=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~", blcase.input.len, blcase.input, blcase.expected.len, blcase.expected);
+    std::string subject_(blcase.input.str, blcase.input.len);
+    std::string subject_2 = subject_;
+    c4::substr dst = to_substr(subject_);
+    Parser::handler_type event_handler = {};
+    Parser proc(&event_handler);
+    FilterResult result = proc.filter_scalar_block_folded_in_place(dst, subject_.size(), blcase.indentation, blcase.chomp);
+    ASSERT_FALSE(result.valid());
+    Parser::handler_type event_handler2 = {};
+    Parser parser2(&event_handler2);
+    Tree tree = parse_in_arena(&parser2, "file", "# set the tree in the parser");
+    parser2.m_evt_handler->m_tree = &tree;
+    csubstr sresult = parser2._filter_scalar_folded(to_substr(subject_2), blcase.indentation, blcase.chomp);
+    _c4prscalar("sresult:", sresult, true);
+    EXPECT_GE(result.required_len(), blcase.expected.len);
+    EXPECT_EQ(sresult.len, result.str.len);
+    if(blcase.chomp != CHOMP_CLIP)
+    {
+        EXPECT_EQ(result.required_len(), blcase.expected.len);
+    }
+    ASSERT_FALSE(result.valid());
+}
+
+
+//-----------------------------------------------------------------------------
+
+struct BlockFoldedFilterTest : public ::testing::TestWithParam<blockfolded_case>
+{
+};
+
+std::string add_carriage_returns(csubstr input)
+{
+    std::string result;
+    result.reserve(input.len + input.count('\n'));
+    for(const char c : input)
+    {
+        if(c == '\n')
+            result += '\r';
+        result += c;
+    }
+    return result;
+}
+
+TEST_P(BlockFoldedFilterTest, filter_src_dst)
+{
+    test_filter_src_dst(GetParam());
+}
+TEST_P(BlockFoldedFilterTest, filter_src_dst_carriage_return)
+{
+    ParamType p = GetParam();
+    std::string subject = add_carriage_returns(p.input);
+    p.input = to_csubstr(subject);
+    test_filter_src_dst(p);
+}
+TEST_P(BlockFoldedFilterTest, filter_inplace_smaller_result)
+{
+    ParamType const& p = GetParam();
+    if(p.input.len >= p.expected.len)
+        test_filter_inplace_smaller_result(p);
+}
+TEST_P(BlockFoldedFilterTest, filter_inplace_smaller_result_carriage_return)
+{
+    ParamType p = GetParam();
+    if(p.input.len >= p.expected.len)
+    {
+        std::string subject = add_carriage_returns(p.input);
+        p.input = to_csubstr(subject);
+        test_filter_inplace_smaller_result(p);
+    }
+}
+
+TEST_P(BlockFoldedFilterTest, filter_inplace_larger_result_spare_size)
+{
+    ParamType const& p = GetParam();
+    if(p.input.len < p.expected.len)
+        test_filter_inplace_larger_result_spare_size(p);
+}
+TEST_P(BlockFoldedFilterTest, filter_inplace_larger_result_result_spare_size_carriage_return)
+{
+    ParamType p = GetParam();
+    if(p.input.len < p.expected.len)
+    {
+        std::string subject = add_carriage_returns(p.input);
+        p.input = to_csubstr(subject);
+        test_filter_inplace_larger_result_spare_size(p);
+    }
+}
+
+TEST_P(BlockFoldedFilterTest, filter_inplace_larger_result_trimmed_size)
+{
+    ParamType const& p = GetParam();
+    if(p.input.len < p.expected.len)
+        test_filter_inplace_larger_result_trimmed_size(p);
+}
+TEST_P(BlockFoldedFilterTest, filter_inplace_larger_result_result_trimmed_size_carriage_return)
+{
+    ParamType p = GetParam();
+    if(p.input.len < p.expected.len)
+    {
+        std::string subject = add_carriage_returns(p.input);
+        p.input = to_csubstr(subject);
+        test_filter_inplace_larger_result_trimmed_size(p);
+    }
+}
+
+TEST_P(BlockFoldedFilterTest, filter_inplace_larger_result_insufficient_size)
+{
+    ParamType const& p = GetParam();
+    if(p.input.len < p.expected.len)
+        test_filter_inplace_larger_result_insufficient_size(p);
+}
+TEST_P(BlockFoldedFilterTest, filter_inplace_larger_result_result_insufficient_size_carriage_return)
+{
+    ParamType p = GetParam();
+    if(p.input.len < p.expected.len)
+    {
+        std::string subject = add_carriage_returns(p.input);
+        p.input = to_csubstr(subject);
+        test_filter_inplace_larger_result_insufficient_size(p);
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+
+blockfolded_case test_cases_filter[] = {
+#define bfc(indentation, chomp, input, output) blockfolded_case{indentation, chomp, csubstr(input), csubstr(output)}
+    // 0
+    bfc(2, CHOMP_STRIP,
+        "Several lines of text,\n  with some \"quotes\" of various 'types',\n  and also a blank line:\n\n  plus another line at the end.\n\n",
+        "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end."),
+    bfc(2, CHOMP_CLIP,
+        "Several lines of text,\n  with some \"quotes\" of various 'types',\n  and also a blank line:\n\n  plus another line at the end.\n\n",
+        "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+    bfc(2, CHOMP_KEEP,
+        "Several lines of text,\n  with some \"quotes\" of various 'types',\n  and also a blank line:\n\n  plus another line at the end.\n\n",
+        "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n\n"),
+    // 3
+    bfc(2, CHOMP_STRIP,
+        "Several lines of text,\n  with some \"quotes\" of various 'types',\n  and also a blank line:\n\n  plus another line at the end.\n\n",
+        "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end."),
+    bfc(2, CHOMP_CLIP,
+        "Several lines of text,\n  with some \"quotes\" of various 'types',\n  and also a blank line:\n\n  plus another line at the end.\n\n",
+        "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+    bfc(2, CHOMP_KEEP,
+        "Several lines of text,\n  with some \"quotes\" of various 'types',\n  and also a blank line:\n\n  plus another line at the end.\n\n",
+        "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n\n"),
+    // 6
+    bfc(1, CHOMP_STRIP, "", ""),
+    bfc(1, CHOMP_CLIP, "", ""),
+    bfc(1, CHOMP_KEEP, "", ""),
+    // 9
+    bfc(1, CHOMP_STRIP, "\n", ""),
+    bfc(1, CHOMP_CLIP, "\n", ""),
+    bfc(1, CHOMP_KEEP, "\n", "\n"),
+    // 12
+    bfc(1, CHOMP_STRIP, "\n\n", ""),
+    bfc(1, CHOMP_CLIP, "\n\n", ""),
+    bfc(1, CHOMP_KEEP, "\n\n", "\n\n"),
+    // 15
+    bfc(1, CHOMP_STRIP, "\n\n", ""),
+    bfc(1, CHOMP_CLIP, "\n\n", ""),
+    bfc(1, CHOMP_KEEP, "\n\n", "\n\n"),
+    // 18
+    bfc(1, CHOMP_STRIP, "\n\n\n", ""),
+    bfc(1, CHOMP_CLIP, "\n\n\n", ""),
+    bfc(1, CHOMP_KEEP, "\n\n\n", "\n\n\n"),
+    // 21
+    bfc(1, CHOMP_STRIP, "\n\n\n\n", ""),
+    bfc(1, CHOMP_CLIP, "\n\n\n\n", ""),
+    bfc(1, CHOMP_KEEP, "\n\n\n\n", "\n\n\n\n"),
+    // 24
+    bfc(1, CHOMP_STRIP, "a", "a"),
+    bfc(1, CHOMP_CLIP, "a", "a\n"),
+    bfc(1, CHOMP_KEEP, "a", "a"),
+    // 27
+    bfc(1, CHOMP_STRIP, "a\n", "a"),
+    bfc(1, CHOMP_CLIP, "a\n", "a\n"),
+    bfc(1, CHOMP_KEEP, "a\n", "a\n"),
+    // 30
+    bfc(1, CHOMP_STRIP, "a\n\n", "a"),
+    bfc(1, CHOMP_CLIP, "a\n\n", "a\n"),
+    bfc(1, CHOMP_KEEP, "a\n\n", "a\n\n"),
+    // 33
+    bfc(0, CHOMP_STRIP, "a\n\n", "a"),
+    bfc(0, CHOMP_CLIP, "a\n\n", "a\n"),
+    bfc(0, CHOMP_KEEP, "a\n\n", "a\n\n"),
+    // 36
+    bfc(1, CHOMP_STRIP, "a\n\n\n", "a"),
+    bfc(1, CHOMP_CLIP, "a\n\n\n", "a\n"),
+    bfc(1, CHOMP_KEEP, "a\n\n\n", "a\n\n\n"),
+    // 39
+    bfc(1, CHOMP_STRIP, "a\n\n\n\n", "a"),
+    bfc(1, CHOMP_CLIP, "a\n\n\n\n", "a\n"),
+    bfc(1, CHOMP_KEEP, "a\n\n\n\n", "a\n\n\n\n"),
+    // 42
+    bfc(1, CHOMP_STRIP, " ab\n \n \n", "ab"),
+    bfc(1, CHOMP_CLIP, " ab\n \n \n", "ab\n"),
+    bfc(1, CHOMP_KEEP, " ab\n \n \n", "ab\n\n\n"),
+    // 45
+    bfc(1, CHOMP_STRIP, " ab\n \n  \n", "ab\n\n "),
+    bfc(1, CHOMP_CLIP, " ab\n \n  \n", "ab\n\n \n"),
+    bfc(1, CHOMP_KEEP, " ab\n \n  \n", "ab\n\n \n"),
+    // 48
+    bfc(0, CHOMP_STRIP, "ab\n\n \n", "ab\n\n "),
+    bfc(0, CHOMP_CLIP, "ab\n\n \n", "ab\n\n \n"),
+    bfc(0, CHOMP_KEEP, "ab\n\n \n", "ab\n\n \n"),
+    // 51
+    bfc(1, CHOMP_STRIP, "hello\nthere\n", "hello there"),
+    bfc(1, CHOMP_CLIP, "hello\nthere\n", "hello there\n"),
+    bfc(1, CHOMP_KEEP, "hello\nthere\n", "hello there\n"),
+    // 54
+    bfc(0, CHOMP_STRIP, "hello\nthere\n", "hello there"),
+    bfc(0, CHOMP_CLIP, "hello\nthere\n", "hello there\n"),
+    bfc(0, CHOMP_KEEP, "hello\nthere\n", "hello there\n"),
+    // 57
+    bfc(3, CHOMP_CLIP,
+        "   There once was a short man from Ealing\n"
+        "   Who got on a bus to Darjeeling\n"
+        "       It said on the door\n"
+        "       \"Please don't spit on the floor\"\n"
+        "   So he carefully spat on the ceiling.\n",
+        "There once was a short man from Ealing "
+        "Who got on a bus to Darjeeling\n"
+        "    It said on the door\n"
+        "    \"Please don't spit on the floor\"\n"
+        "So he carefully spat on the ceiling.\n"),
+    bfc(3, CHOMP_CLIP,
+        "   There once was a short man from Ealing\n"
+        "   Who got on a bus to Darjeeling\n"
+        "       It said on the door\n"
+        "       extra 0\n"
+        "         extra 2\n"
+        "         extra 2\n"
+        "           extra 4\n"
+        "           extra 4\n"
+        "           extra 4\n"
+        "         extra 2\n"
+        "       extra 0\n"
+        "       \"Please don't spit on the floor\"\n"
+        "   So he carefully spat on the ceiling.\n",
+        "There once was a short man from Ealing "
+        "Who got on a bus to Darjeeling\n"
+        "    It said on the door\n"
+        "    extra 0\n"
+        "      extra 2\n"
+        "      extra 2\n"
+        "        extra 4\n"
+        "        extra 4\n"
+        "        extra 4\n"
+        "      extra 2\n"
+        "    extra 0\n"
+        "    \"Please don't spit on the floor\"\n"
+        "So he carefully spat on the ceiling.\n"),
+    bfc(1, CHOMP_STRIP, " \n  \n   \n", ""),
+    // 60
+    bfc(1, CHOMP_STRIP, " \n  \n   \n", ""),
+    bfc(1, CHOMP_CLIP, " \n  \n   \n", ""),
+    bfc(1, CHOMP_KEEP, " \n  \n   \n", "\n\n\n"),
+    // 63
+    bfc(1, CHOMP_STRIP, " \n  \n   \n    ", ""),
+    bfc(1, CHOMP_CLIP, " \n  \n   \n    ", ""),
+    bfc(1, CHOMP_KEEP, " \n  \n   \n    ", "\n\n\n"),
+    // 66
+    bfc(1, CHOMP_STRIP, " \n  \n   \n    \n     \n      \n    \n   \n \n", ""),
+    bfc(1, CHOMP_CLIP, " \n  \n   \n    \n     \n      \n    \n   \n \n", ""),
+    bfc(1, CHOMP_KEEP, " \n  \n   \n    \n     \n      \n    \n   \n \n", "\n\n\n\n\n\n\n\n\n"),
+    // 69
+    bfc(1, CHOMP_STRIP, " \n  \n   \n\n     \n      \n\n   \n \n", ""),
+    bfc(1, CHOMP_CLIP, " \n  \n   \n\n     \n      \n\n   \n \n", ""),
+    bfc(1, CHOMP_KEEP, " \n  \n   \n\n     \n      \n\n   \n \n", "\n\n\n\n\n\n\n\n\n"),
+    // 72
+    bfc(7, CHOMP_STRIP,
+        "       asd\n"
+        "     \n"
+        "   \n"
+        "       \n"
+        "  \n"
+        " \n"
+        "  ",
+        "asd"),
+    bfc(7, CHOMP_CLIP,
+        "       asd\n"
+        "     \n"
+        "   \n"
+        "       \n"
+        "  \n"
+        " \n"
+        "  ",
+        "asd\n"),
+    bfc(7, CHOMP_KEEP,
+        "       asd\n"
+        "     \n"
+        "   \n"
+        "       \n"
+        "  \n"
+        " \n"
+        "  ",
+        "asd\n\n\n\n\n\n"),
+    // 75
+    bfc(5, CHOMP_STRIP, "     asd\n     \t ", "asd\n\t "),
+    bfc(5, CHOMP_CLIP, "     asd\n     \t ", "asd\n\t \n"),
+    bfc(5, CHOMP_KEEP, "     asd\n     \t ", "asd\n\t "),
+    // 78
+    bfc(5, CHOMP_STRIP, "     asd\n     \t \n", "asd\n\t "),
+    bfc(5, CHOMP_CLIP, "     asd\n     \t \n", "asd\n\t \n"),
+    bfc(5, CHOMP_KEEP, "     asd\n     \t \n", "asd\n\t \n"),
+    // 81
+    bfc(5, CHOMP_STRIP, "     asd\n      \t ", "asd\n \t "),
+    bfc(5, CHOMP_CLIP, "     asd\n      \t ", "asd\n \t \n"),
+    bfc(5, CHOMP_KEEP, "     asd\n      \t ", "asd\n \t "),
+    // 84
+    bfc(5, CHOMP_STRIP, "     asd\n      \t \n", "asd\n \t "),
+    bfc(5, CHOMP_CLIP, "     asd\n      \t \n", "asd\n \t \n"),
+    bfc(5, CHOMP_KEEP, "     asd\n      \t \n", "asd\n \t \n"),
+    // 87
+    bfc(2, CHOMP_CLIP, "\n  foo\n  bar\n", "\nfoo bar\n"),
+    bfc(2, CHOMP_CLIP, "\n\n  foo\n  bar\n", "\n\nfoo bar\n"),
+    bfc(2, CHOMP_CLIP, "\n\n\n  foo\n  bar\n", "\n\n\nfoo bar\n"),
+    // 90
+    bfc(1, CHOMP_CLIP,
+        " folded\n"
+        " line\n"
+        "\n"
+        " next\n"
+        " line\n"
+        "   * bullet\n"
+        "\n"
+        "   * list\n"
+        "   * lines\n"
+        "\n"
+        " last\n"
+        " line\n",
+        "folded line\n"
+        "next line\n"
+        "  * bullet\n"
+        "\n"
+        "  * list\n"
+        "  * lines\n"
+        "\n"
+        "last line\n"
+        ""),
+    bfc(1, CHOMP_CLIP,
+        " \n"
+        "  \n"
+        "  literal\n"
+        "   \n"
+        "  \n"
+        "  text\n"
+        "",
+        "\n"
+        " \n"
+        " literal\n"
+        "  \n"
+        " \n"
+        " text\n"),
+    bfc(2, CHOMP_CLIP,
+        " \n"
+        "  \n"
+        "  literal\n"
+        "   \n"
+        "  \n"
+        "  text\n"
+        "",
+        "\n"
+        "\n"
+        "literal\n"
+        " \n"
+        "\n"
+        "text\n"),
+    // 93
+    bfc(5, CHOMP_CLIP, "     asd\n      ", "asd\n \n"),
+    bfc(5, CHOMP_CLIP, "     asd\n       ", "asd\n  \n"),
+    bfc(5, CHOMP_CLIP, "     asd\n     \t ", "asd\n\t \n"),
+    // 96
+    bfc(5, CHOMP_CLIP, "     asd\n     \t \n", "asd\n\t \n"),
+    bfc(5, CHOMP_CLIP, "     asd\n      \t", "asd\n \t\n"),
+    bfc(5, CHOMP_CLIP, "     asd\n      \t\n", "asd\n \t\n"),
+    // 99
+    bfc(1, CHOMP_CLIP,
+        " Sammy Sosa completed another\n"
+        " fine season with great stats.\n"
+        "\n"
+        " 63 Home Runs\n"
+        " 0.288 Batting Average\n"
+        "\n"
+        " What a year!\n"
+        ,
+        "Sammy Sosa completed another fine season with great stats.\n"
+        "63 Home Runs 0.288 Batting Average\n"
+        "What a year!\n"
+        ),
+    bfc(1, CHOMP_CLIP,
+        " Sammy Sosa completed another\n"
+        " fine season with great stats.\n"
+        "   63 Home Runs\n"
+        "   0.288 Batting Average\n"
+        " What a year!\n"
+        ,
+        "Sammy Sosa completed another fine season with great stats.\n"
+        "  63 Home Runs\n"
+        "  0.288 Batting Average\n"
+        "What a year!\n"
+        ),
+    bfc(1, CHOMP_CLIP,
+        " Sammy Sosa completed another\n"
+        " fine season with great stats.\n"
+        "\n"
+        "   63 Home Runs\n"
+        "   0.288 Batting Average\n"
+        "\n"
+        " What a year!\n"
+        ,
+        "Sammy Sosa completed another fine season with great stats.\n"
+        "\n"
+        "  63 Home Runs\n"
+        "  0.288 Batting Average\n"
+        "\n"
+        "What a year!\n"
+        ),
+    // 102
+    bfc(1, CHOMP_CLIP,
+        " Sammy Sosa completed another\n"
+        " fine season with great stats.\n"
+        "\n"
+        "\n"
+        "   63 Home Runs\n"
+        "   0.288 Batting Average\n"
+        "\n"
+        "\n"
+        " What a year!\n"
+        ,
+        "Sammy Sosa completed another fine season with great stats.\n"
+        "\n"
+        "\n"
+        "  63 Home Runs\n"
+        "  0.288 Batting Average\n"
+        "\n"
+        "\n"
+        "What a year!\n"
+        ),
+    bfc(1, CHOMP_CLIP,
+        " Sammy Sosa completed another\n"
+        " fine season with great stats.\n"
+        "\n"
+        "\n"
+        "\n"
+        "   63 Home Runs\n"
+        "   0.288 Batting Average\n"
+        "\n"
+        "\n"
+        "\n"
+        " What a year!\n"
+        ,
+        "Sammy Sosa completed another fine season with great stats.\n"
+        "\n"
+        "\n"
+        "\n"
+        "  63 Home Runs\n"
+        "  0.288 Batting Average\n"
+        "\n"
+        "\n"
+        "\n"
+        "What a year!\n"
+        ),
+    bfc(2, CHOMP_CLIP,
+        "   more indented\n"
+        "  regular\n"
+        ,
+        " more indented\n"
+        "regular\n"
+        ),
+    // 105
+    bfc(2, CHOMP_CLIP,
+        "\n"
+        "\n"
+        "   more indented\n"
+        "  regular\n"
+        ,
+        "\n"
+        "\n"
+        " more indented\n"
+        "regular\n"
+        ),
+    #undef blc
+};
+
+INSTANTIATE_TEST_SUITE_P(block_folded_filter,
+                         BlockFoldedFilterTest,
+                         testing::ValuesIn(test_cases_filter));
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+TEST(block_folded, trailing_newlines_0)
+{
+    std::string yaml = R"(- >
+- >
+- >
+- >
+)";
+    std::string expected = R"(- >-
+- >-
+- >-
+- >-
+)";
+    test_check_emit_check(to_csubstr(yaml), [&](Tree const& t){
+        ConstNodeRef root = t.rootref();
+        ASSERT_TRUE(root.is_seq());
+        ASSERT_EQ(root.num_children(), 4);
+        EXPECT_EQ(t[0].val(), "");
+        EXPECT_EQ(t[1].val(), "");
+        EXPECT_EQ(t[2].val(), "");
+        EXPECT_EQ(t[3].val(), "");
+        EXPECT_TRUE(t[0].type().val_marked_folded());
+        EXPECT_TRUE(t[1].type().val_marked_folded());
+        EXPECT_TRUE(t[2].type().val_marked_folded());
+        EXPECT_TRUE(t[3].type().val_marked_folded());
+        std::string out = emitrs_yaml<std::string>(t);
+        EXPECT_EQ(out, expected);
+    });
+}
+
+TEST(block_folded, trailing_newlines_1)
+{
+    std::string yaml = R"(- >-
+  a
+- >
+  b
+)";
+    test_check_emit_check(to_csubstr(yaml), [&](Tree const& t){
+        ConstNodeRef root = t.rootref();
+        ASSERT_TRUE(root.is_seq());
+        ASSERT_EQ(root.num_children(), 2);
+        EXPECT_EQ(t[0].val(), "a");
+        EXPECT_EQ(t[1].val(), "b\n");
+        EXPECT_TRUE(t[0].type().val_marked_folded());
+        EXPECT_TRUE(t[1].type().val_marked_folded());
+        std::string out = emitrs_yaml<std::string>(t);
+        EXPECT_EQ(out, yaml);
+    });
+}
+
+TEST(block_folded, trailing_newlines_2)
+{
+    std::string yaml = R"(- >+
+- >+
+)";
+    std::string expected = R"(- >-
+- >-
+)";
+    test_check_emit_check(to_csubstr(yaml), [&](Tree const& t){
+        ConstNodeRef root = t.rootref();
+        ASSERT_TRUE(root.is_seq());
+        ASSERT_EQ(root.num_children(), 2);
+        EXPECT_EQ(t[0].val(), "");
+        EXPECT_EQ(t[1].val(), "");
+        EXPECT_TRUE(t[0].type().val_marked_folded());
+        EXPECT_TRUE(t[1].type().val_marked_folded());
+        std::string out = emitrs_yaml<std::string>(t);
+        EXPECT_EQ(out, expected);
+    });
+}
+
+TEST(block_folded, trailing_newlines_3)
+{
+    std::string yaml = R"(- >+
+
+- >+
+
+)";
+    test_check_emit_check(to_csubstr(yaml), [&](Tree const& t){
+        ConstNodeRef root = t.rootref();
+        ASSERT_TRUE(root.is_seq());
+        ASSERT_EQ(root.num_children(), 2);
+        EXPECT_EQ(t[0].val(), "\n");
+        EXPECT_EQ(t[1].val(), "\n");
+        EXPECT_TRUE(t[0].type().val_marked_folded());
+        EXPECT_TRUE(t[1].type().val_marked_folded());
+        std::string out = emitrs_yaml<std::string>(t);
+        EXPECT_EQ(out, yaml);
+    });
+}
+
+TEST(block_folded, trailing_newlines_4)
+{
+    std::string yaml = R"(- >+
+
+
+- >+
+
+
+)";
+    test_check_emit_check(to_csubstr(yaml), [&](Tree const& t){
+        ConstNodeRef root = t.rootref();
+        ASSERT_TRUE(root.is_seq());
+        ASSERT_EQ(root.num_children(), 2);
+        EXPECT_EQ(t[0].val(), "\n\n");
+        EXPECT_EQ(t[1].val(), "\n\n");
+        EXPECT_TRUE(t[0].type().val_marked_folded());
+        EXPECT_TRUE(t[1].type().val_marked_folded());
+        std::string out = emitrs_yaml<std::string>(t);
+        EXPECT_EQ(out, yaml);
+    });
+}
+
+TEST(block_folded, trailing_newlines_5_1)
+{
+    test_check_emit_check(R"(- >
+- >)", [&](Tree const& t){
+        EXPECT_EQ(t[0].val(), csubstr(""));
+        EXPECT_EQ(t[1].val(), csubstr(""));
+    });
+}
+
+TEST(block_folded, trailing_newlines_5_2)
+{
+    test_check_emit_check(R"(- >-
+- >-)", [&](Tree const& t){
+        EXPECT_EQ(t[0].val(), csubstr(""));
+        EXPECT_EQ(t[1].val(), csubstr(""));
+    });
+}
+
+TEST(block_folded, trailing_newlines_5_3)
+{
+    test_check_emit_check(R"(- >+
+- >+)", [&](Tree const& t){
+        EXPECT_EQ(t[0].val(), csubstr(""));
+        EXPECT_EQ(t[1].val(), csubstr(""));
+    });
+}
+
+TEST(block_folded, trailing_newlines_5_4)
+{
+    test_check_emit_check(R"(# no indentation: fails!
+- >
+
+- >-
+
+- >+
+
+)", [&](Tree const& t){
+        EXPECT_FALSE(t.empty());
+        EXPECT_EQ(t[0].val(), csubstr(""));
+        EXPECT_EQ(t[1].val(), csubstr(""));
+        EXPECT_EQ(t[2].val(), csubstr("\n"));
+    });
+}
+
+TEST(block_folded, trailing_newlines_5_5)
+{
+    test_check_emit_check(R"(
+- >
+  
+- >-
+  
+- >+
+  
+)", [&](Tree const& t){
+        EXPECT_FALSE(t.empty());
+        EXPECT_EQ(t[0].val(), csubstr(""));
+        EXPECT_EQ(t[1].val(), csubstr(""));
+        EXPECT_EQ(t[2].val(), csubstr("\n"));
+    });
+}
+
+TEST(block_folded, trailing_newlines_5_6)
+{
+    test_check_emit_check(R"(
+- >
+- >-
+- >+
+)", [&](Tree const& t){
+        EXPECT_FALSE(t.empty());
+        EXPECT_EQ(t[0].val(), csubstr(""));
+        EXPECT_EQ(t[1].val(), csubstr(""));
+        EXPECT_EQ(t[2].val(), csubstr(""));
+    });
+}
+
+
+//-----------------------------------------------------------------------------
+
 TEST(block_folded, basic)
 {
     {
-        Tree t = parse_in_arena(R"(>
+        const Tree t = parse_in_arena(R"(>
 hello
 there
 
@@ -22,22 +827,22 @@ really
 TEST(block_folded, empty_block)
 {
     {
-        Tree t = parse_in_arena(R"(- >
+        const Tree t = parse_in_arena(R"(- >
 )");
         EXPECT_EQ(t[0].val(), csubstr(""));
     }
     {
-        Tree t = parse_in_arena(R"(- >-
+        const Tree t = parse_in_arena(R"(- >-
 )");
         EXPECT_EQ(t[0].val(), csubstr(""));
     }
     {
-        Tree t = parse_in_arena(R"(- >+
+        const Tree t = parse_in_arena(R"(- >+
 )");
         EXPECT_EQ(t[0].val(), csubstr(""));
     }
     {
-        Tree t = parse_in_arena(R"(
+        const Tree t = parse_in_arena(R"(
 - >
 
 - >-
@@ -51,7 +856,7 @@ TEST(block_folded, empty_block)
         EXPECT_EQ(t[2].val(), csubstr("\n"));
     }
     {
-        Tree t = parse_in_arena(R"(
+        const Tree t = parse_in_arena(R"(
 - >
   
 - >-
@@ -65,7 +870,7 @@ TEST(block_folded, empty_block)
         EXPECT_EQ(t[2].val(), csubstr("\n"));
     }
     {
-        Tree t = parse_in_arena(R"(
+        const Tree t = parse_in_arena(R"(
 - >
 - >-
 - >+
@@ -336,14 +1141,13 @@ indented_once:
 
 
 //-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
 
-TEST(block_folded, test_suite_4QFQ)
+TEST(block_folded, test_suite_4QFQ_0)
 {
-    csubstr yaml = R"(
-- |1
+    csubstr yaml = R"(- |1
   child2
+- |2
+   child2
 - |3
     child2
 - ' child2
@@ -351,16 +1155,55 @@ TEST(block_folded, test_suite_4QFQ)
 '
 )";
     test_check_emit_check(yaml, [](Tree const &t){
-        EXPECT_EQ(t[0].val(), csubstr(" child2\n"));
-        EXPECT_EQ(t[1].val(), csubstr(" child2\n"));
-        EXPECT_EQ(t[2].val(), csubstr(" child2\n"));
+        const csubstr v = " child2\n";
+        EXPECT_EQ(t[0].val(), v);
+        EXPECT_EQ(t[1].val(), v);
+        EXPECT_EQ(t[2].val(), v);
+        EXPECT_EQ(t[3].val(), v);
     });
 }
 
-TEST(block_folded, test_suite_4QFQ_pt2)
+TEST(block_folded, test_suite_4QFQ_1)
 {
-    csubstr yaml = R"(---
-- |
+    csubstr yaml = R"(- >1
+  child2
+- >2
+   child2
+- >3
+    child2
+- ' child2
+
+'
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        const csubstr v = " child2\n";
+        EXPECT_EQ(t[0].val(), v);
+        EXPECT_EQ(t[1].val(), v);
+        EXPECT_EQ(t[2].val(), v);
+        EXPECT_EQ(t[3].val(), v);
+    });
+}
+TEST(block_folded, test_suite_4QFQ_2)
+{
+    std::string yaml = R"(>
+ 
+  
+  # child1
+)";
+    std::string emitted = R"(>
+
+
+  # child1
+)";
+    test_check_emit_check(to_csubstr(yaml), [&](Tree const &t){
+        ConstNodeRef n = t.rootref();
+        EXPECT_EQ(n.val(), csubstr("\n\n# child1\n"));
+        EXPECT_EQ(emitrs_yaml<std::string>(t), emitted);
+    });
+}
+TEST(block_folded, test_suite_4QFQ_3)
+{
+    csubstr yaml = R"(- |
  child0
 - >
  
@@ -370,8 +1213,20 @@ TEST(block_folded, test_suite_4QFQ_pt2)
   child2
 - >
  child3
----
-foo:
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ConstNodeRef n = t.rootref();
+        ASSERT_TRUE(n.is_seq());
+        ASSERT_EQ(n.num_children(), 4u);
+        EXPECT_EQ(n[0].val(), csubstr("child0\n"));
+        EXPECT_EQ(n[1].val(), csubstr("\n\n# child1\n"));
+        EXPECT_EQ(n[2].val(), csubstr(" child2\n"));
+        EXPECT_EQ(n[3].val(), csubstr("child3\n"));
+    });
+}
+TEST(block_folded, test_suite_4QFQ_4)
+{
+    csubstr yaml = R"(foo:
   - |
    child0
   - >
@@ -384,27 +1239,22 @@ foo:
    child3
 )";
     test_check_emit_check(yaml, [](Tree const &t){
-        ASSERT_TRUE(t.rootref().is_stream());
-        ConstNodeRef doc = t.rootref().child(0);
-        ASSERT_TRUE(doc.is_seq());
-        ASSERT_EQ(doc.num_children(), 4u);
-        EXPECT_EQ(doc[0].val(), csubstr("child0\n"));
-        EXPECT_EQ(doc[1].val(), csubstr("\n\n# child1\n"));
-        EXPECT_EQ(doc[2].val(), csubstr(" child2\n"));
-        EXPECT_EQ(doc[3].val(), csubstr("child3\n"));
-        doc = t.rootref().child(1);
-        ASSERT_TRUE(doc.is_map());
-        ASSERT_EQ(doc["foo"].num_children(), 4u);
-        EXPECT_EQ(doc["foo"][0].val(), csubstr("child0\n"));
-        EXPECT_EQ(doc["foo"][1].val(), csubstr("\n\n# child1\n"));
-        EXPECT_EQ(doc["foo"][2].val(), csubstr(" child2\n"));
-        EXPECT_EQ(doc["foo"][3].val(), csubstr("child3\n"));
+        ConstNodeRef n = t["foo"];
+        ASSERT_TRUE(n.is_seq());
+        ASSERT_EQ(n.num_children(), 4u);
+        EXPECT_EQ(n[0].val(), csubstr("child0\n"));
+        EXPECT_EQ(n[1].val(), csubstr("\n\n# child1\n"));
+        EXPECT_EQ(n[2].val(), csubstr(" child2\n"));
+        EXPECT_EQ(n[3].val(), csubstr("child3\n"));
     });
 }
 
-TEST(block_folded, test_suite_6VJK)
+
+//-----------------------------------------------------------------------------
+
+TEST(block_folded, test_suite_6VJK_0)
 {
-    csubstr yaml = R"(- >
+    csubstr yaml = R"(>
  Sammy Sosa completed another
  fine season with great stats.
 
@@ -412,56 +1262,126 @@ TEST(block_folded, test_suite_6VJK)
  0.288 Batting Average
 
  What a year!
-- >
- Sammy Sosa completed another
- fine season with great stats.
-   63 Home Runs
-   0.288 Batting Average
- What a year!
-- >
- Sammy Sosa completed another
- fine season with great stats.
-
-   63 Home Runs
-   0.288 Batting Average
-
- What a year!
-- >
- Sammy Sosa completed another
- fine season with great stats.
-
-
-   63 Home Runs
-   0.288 Batting Average
-
-
- What a year!
-- >
- Sammy Sosa completed another
- fine season with great stats.
-
-
-
-   63 Home Runs
-   0.288 Batting Average
-
-
-
- What a year!
-- >-
- No folding needed
-- >
- No folding needed)";
+)";
     test_check_emit_check(yaml, [](Tree const &t){
-        EXPECT_EQ(t[0].val(), csubstr("Sammy Sosa completed another fine season with great stats.\n63 Home Runs 0.288 Batting Average\nWhat a year!\n"));
-        EXPECT_EQ(t[1].val(), csubstr("Sammy Sosa completed another fine season with great stats.\n  63 Home Runs\n  0.288 Batting Average\nWhat a year!\n"));
-        EXPECT_EQ(t[2].val(), csubstr("Sammy Sosa completed another fine season with great stats.\n\n  63 Home Runs\n  0.288 Batting Average\n\nWhat a year!\n"));
-        EXPECT_EQ(t[3].val(), csubstr("Sammy Sosa completed another fine season with great stats.\n\n\n  63 Home Runs\n  0.288 Batting Average\n\n\nWhat a year!\n"));
-        EXPECT_EQ(t[4].val(), csubstr("Sammy Sosa completed another fine season with great stats.\n\n\n\n  63 Home Runs\n  0.288 Batting Average\n\n\n\nWhat a year!\n"));
-        EXPECT_EQ(t[5].val(), csubstr("No folding needed"));
-        EXPECT_EQ(t[6].val(), csubstr("No folding needed\n"));
+        EXPECT_EQ(t.rootref().val(), csubstr(
+                      "Sammy Sosa completed another fine season with great stats.\n"
+                      "63 Home Runs 0.288 Batting Average\n"
+                      "What a year!\n"));
     });
 }
+TEST(block_folded, test_suite_6VJK_1)
+{
+    csubstr yaml = R"(>
+ Sammy Sosa completed another
+ fine season with great stats.
+   63 Home Runs
+   0.288 Batting Average
+ What a year!
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_EQ(t.rootref().val(), csubstr(
+                      "Sammy Sosa completed another fine season with great stats.\n"
+                      "  63 Home Runs\n"
+                      "  0.288 Batting Average\n"
+                      "What a year!\n"));
+    });
+}
+TEST(block_folded, test_suite_6VJK_2)
+{
+    csubstr yaml = R"(>
+ Sammy Sosa completed another
+ fine season with great stats.
+
+   63 Home Runs
+   0.288 Batting Average
+
+ What a year!
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_EQ(t.rootref().val(), csubstr(
+                      "Sammy Sosa completed another fine season with great stats.\n"
+                      "\n"
+                      "  63 Home Runs\n"
+                      "  0.288 Batting Average\n"
+                      "\n"
+                      "What a year!\n"));
+    });
+}
+TEST(block_folded, test_suite_6VJK_3)
+{
+    csubstr yaml = R"(>
+ Sammy Sosa completed another
+ fine season with great stats.
+
+
+   63 Home Runs
+   0.288 Batting Average
+
+
+ What a year!
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_EQ(t.rootref().val(), csubstr(
+                      "Sammy Sosa completed another fine season with great stats.\n"
+                      "\n"
+                      "\n"
+                      "  63 Home Runs\n"
+                      "  0.288 Batting Average\n"
+                      "\n"
+                      "\n"
+                      "What a year!\n"));
+    });
+}
+TEST(block_folded, test_suite_6VJK_4)
+{
+    csubstr yaml = R"(>
+ Sammy Sosa completed another
+ fine season with great stats.
+
+
+
+   63 Home Runs
+   0.288 Batting Average
+
+
+
+ What a year!
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_EQ(t.rootref().val(), csubstr(
+                      "Sammy Sosa completed another fine season with great stats.\n"
+                      "\n"
+                      "\n"
+                      "\n"
+                      "  63 Home Runs\n"
+                      "  0.288 Batting Average\n"
+                      "\n"
+                      "\n"
+                      "\n"
+                      "What a year!\n"));
+    });
+}
+TEST(block_folded, test_suite_6VJK_5)
+{
+    csubstr yaml = R"(>-
+ No folding needed
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_EQ(t.rootref().val(), csubstr("No folding needed"));
+    });
+}
+TEST(block_folded, test_suite_6VJK_6)
+{
+    csubstr yaml = R"(>
+ No folding needed)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_EQ(t.rootref().val(), csubstr("No folding needed\n"));
+    });
+}
+
+
+//-----------------------------------------------------------------------------
 
 TEST(block_folded, test_suite_7T8X)
 {
@@ -482,8 +1402,32 @@ TEST(block_folded, test_suite_7T8X)
 
 # Comment
 )";
-    Tree t = parse_in_arena(yaml);
-    EXPECT_EQ(t.rootref().val(), "\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n");
+    csubstr val = R"(
+folded line
+next line
+  * bullet
+
+  * list
+  * lines
+
+last line
+)";
+    std::string emitted = R"(>
+
+  folded line
+
+  next line
+    * bullet
+
+    * list
+    * lines
+
+  last line
+)";
+    test_check_emit_check(yaml, [&](Tree const &t){
+        EXPECT_EQ(t.rootref().val(), val);
+        EXPECT_EQ(emitrs_yaml<std::string>(t), emitted);
+    });
 }
 
 TEST(block_folded, test_suite_A6F9)
@@ -561,17 +1505,17 @@ TEST(block_folded, test_suite_F6MC)
 {
     csubstr yaml = R"(
 a: >2
-   more indented
-  regular
+   a more indented
+  a regular
 b: >2
 
 
-   more indented
-  regular
+   b more indented
+  b regular
 )";
     test_check_emit_check(yaml, [](Tree const &t){
-        EXPECT_EQ(t["a"].val(), csubstr(" more indented\nregular\n"));
-        EXPECT_EQ(t["b"].val(), csubstr("\n\n more indented\nregular\n"));
+        EXPECT_EQ(t["a"].val(), csubstr(" a more indented\na regular\n"));
+        EXPECT_EQ(t["b"].val(), csubstr("\n\n b more indented\nb regular\n"));
     });
 }
 
@@ -621,7 +1565,7 @@ TEST(block_folded, test_suite_MJS9)
   baz
 )";
     test_check_emit_check(yaml, [](Tree const &t){
-        EXPECT_EQ(t[0].val(), csubstr("foo \n\n\t bar\n\nbaz\n")); // "foo \n\n \t bar\n\nbaz\n"
+        EXPECT_EQ(t[0].val(), csubstr("foo \n\n\t bar\n\nbaz\n"));
     });
 }
 
@@ -783,6 +1727,120 @@ TEST(block_folded, test_suite_W4TN)
 }
 
 
+TEST(block_folded, error_on_folded_in_seqflow)
+{
+    Tree t;
+    ExpectError::do_check(&t, [&t]{
+        t = parse_in_arena("[\n  >\n    a\n,]");
+    });
+}
+
+
+TEST(block_folded, error_on_folded_in_mapflow)
+{
+    Tree t;
+    ExpectError::do_check(&t, [&t]{
+        t = parse_in_arena("{\n b: >\n    a\n,}");
+    });
+}
+
+TEST(block_literal, indentation_indicator_0)
+{
+    {
+        Tree t;
+        ExpectError::do_check(&t, [&t]{
+            t = parse_in_arena(">0");
+        });
+    }
+    {
+        Tree t;
+        ExpectError::do_check(&t, [&t]{
+            t = parse_in_arena(">10");
+        });
+    }
+    {
+        Tree t = parse_in_arena(">1");
+        EXPECT_EQ(t.rootref().val(), "");
+    }
+    {
+        Tree t = parse_in_arena(">3");
+        EXPECT_EQ(t.rootref().val(), "");
+    }
+    {
+        Tree t = parse_in_arena(">4");
+        EXPECT_EQ(t.rootref().val(), "");
+    }
+    {
+        Tree t = parse_in_arena(">5");
+        EXPECT_EQ(t.rootref().val(), "");
+    }
+    {
+        Tree t = parse_in_arena(">6");
+        EXPECT_EQ(t.rootref().val(), "");
+    }
+    {
+        Tree t = parse_in_arena(">7");
+        EXPECT_EQ(t.rootref().val(), "");
+    }
+    {
+        Tree t = parse_in_arena(">8");
+        EXPECT_EQ(t.rootref().val(), "");
+    }
+    {
+        Tree t = parse_in_arena(">9");
+        EXPECT_EQ(t.rootref().val(), "");
+    }
+}
+
+TEST(block_literal, indentation_indicator_1)
+{
+    {
+        Tree t;
+        ExpectError::do_check(&t, [&t]{
+            t = parse_in_arena("--- >0");
+        });
+    }
+    {
+        Tree t;
+        ExpectError::do_check(&t, [&t]{
+            t = parse_in_arena("--- >10");
+        });
+    }
+    {
+        Tree t = parse_in_arena("--- >1");
+        EXPECT_EQ(t.docref(0).val(), "");
+    }
+    {
+        Tree t = parse_in_arena("--- >3");
+        EXPECT_EQ(t.docref(0).val(), "");
+    }
+    {
+        Tree t = parse_in_arena("--- >4");
+        EXPECT_EQ(t.docref(0).val(), "");
+    }
+    {
+        Tree t = parse_in_arena("--- >5");
+        EXPECT_EQ(t.docref(0).val(), "");
+    }
+    {
+        Tree t = parse_in_arena("--- >6");
+        EXPECT_EQ(t.docref(0).val(), "");
+    }
+    {
+        Tree t = parse_in_arena("--- >7");
+        EXPECT_EQ(t.docref(0).val(), "");
+    }
+    {
+        Tree t = parse_in_arena("--- >8");
+        EXPECT_EQ(t.docref(0).val(), "");
+    }
+    {
+        Tree t = parse_in_arena("--- >9");
+        EXPECT_EQ(t.docref(0).val(), "");
+    }
+}
+
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -832,14 +1890,14 @@ bar: >
  qua
 )",
 N(STREAM, L{
-        N(DOCVAL|QV, "hello there\n"),
-        N(DOCVAL|QV, "hello there\n"),
-        N(DOCVAL|QV, "hello there\n"),
-        N(DOCVAL|QV, "ciao qua\n"),
-        N(DOCVAL|QV, "ciao qua\n"),
-        N(DOCVAL|QV, "ciao qua\n"),
-        N(SEQ|DOC, L{N(QV, "hello there\n"), N(QV, "ciao qua\n")}),
-        N(MAP|DOC, L{N(QV, "foo", "hello there\n"), N(QV, "bar", "ciao qua\n")}),
+        N(DOC|VF, "hello there\n"),
+        N(DOC|VF, "hello there\n"),
+        N(DOC|VF, "hello there\n"),
+        N(DOC|VF, "ciao qua\n"),
+        N(DOC|VF, "ciao qua\n"),
+        N(DOC|VF, "ciao qua\n"),
+        N(DOC|SB, L{N(VF, "hello there\n"), N(VF, "ciao qua\n")}),
+        N(DOC|MB, L{N(KP|VF, "foo", "hello there\n"), N(KP|VF, "bar", "ciao qua\n")}),
     }));
 
 ADD_CASE_TO_GROUP("indentation requirements err seq", EXPECT_PARSE_ERROR,
@@ -849,8 +1907,7 @@ there
 - >
 ciao
 qua
-)",
-N(L{N(QV, "hello there"), N(QV, "ciao qua\n")}));
+)");
 
 ADD_CASE_TO_GROUP("indentation requirements err map", EXPECT_PARSE_ERROR,
 R"(foo: >
@@ -859,28 +1916,27 @@ there
 bar: >
 ciao
 qua
-)",
-N(L{N(QV, "foo", "hello there\n"), N(QV, "bar" "ciao qua\n")}));
+)"
+);
 
 ADD_CASE_TO_GROUP("indentation requirements err level", EXPECT_PARSE_ERROR,
 R"(--- >2
  hello
  there
-)",
-N(NOTYPE));
+)");
 
 ADD_CASE_TO_GROUP("foo without space after",
 R"(>
   foo
 )",
-N(DOCVAL|QV, "foo\n"));
+N(VF, "foo\n"));
 
 ADD_CASE_TO_GROUP("foo with space after",
 R"(>
   foo
   
 )",
-N(DOCVAL|QV, "foo\n"));
+N(VF, "foo\n"));
 
 ADD_CASE_TO_GROUP("simple with indents",
 R"(>
@@ -888,7 +1944,7 @@ R"(>
      
     bar
 )",
-N(DOCVAL|QV, "foo\n   \n  bar\n"));
+N(VF, "foo\n   \n  bar\n"));
 
 
 ADD_CASE_TO_GROUP("7T8X",
@@ -945,11 +2001,11 @@ R"(- >
 
 # Comment
 )",
-  L{
-    N(QV, "\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n"),
-    N(QV, "\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n"),
-    N(QV, "\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n"),
-  }
+N(SB, L{
+    N(VF, "\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n"),
+    N(VF, "\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n"),
+    N(VF, "\nfolded line\nnext line\n  * bullet\n\n  * list\n  * lines\n\nlast line\n"),
+  })
 );
 
 
@@ -965,10 +2021,10 @@ R"(
 
 - another val
 )",
-  L{
-    N(QV, "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
-    N("another val")
-  }
+N(SB, L{
+    N(VF, "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+    N(VP,"another val")
+  })
 );
 
 ADD_CASE_TO_GROUP("block folded as map val, implicit indentation 2",
@@ -983,10 +2039,10 @@ example: >
   
 another: val
 )",
-  L{
-    N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
-    N("another", "val")
-  }
+N(MB, L{
+    N(KP|VF, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+    N(KP|VP, "another", "val")
+  })
 );
 
 ADD_CASE_TO_GROUP("block folded as map val, implicit indentation 2, chomp=keep",
@@ -1001,10 +2057,10 @@ example: >+
   
 another: val
 )",
-  L{
-    N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n\n\n"),
-    N("another", "val")
-  }
+N(MB, L{
+    N(KP|VF, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n\n\n"),
+    N(KP|VP, "another", "val")
+  })
 );
 
 ADD_CASE_TO_GROUP("block folded as map val, implicit indentation 2, chomp=strip",
@@ -1019,10 +2075,10 @@ example: >-
   
 another: val
 )",
-  L{
-    N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end."),
-    N("another", "val")
-  }
+N(MB, L{
+    N(KP|VF, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end."),
+    N(KP|VP, "another", "val")
+  })
 );
 
 ADD_CASE_TO_GROUP("block folded as map val, explicit indentation 2",
@@ -1037,10 +2093,10 @@ example: >2
   
 another: val
 )",
-  L{
-    N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
-    N("another", "val")
-  }
+N(MB, L{
+    N(KP|VF, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+    N(KP|VP, "another", "val")
+  })
 );
 
 ADD_CASE_TO_GROUP("block folded as map val, explicit indentation 2, chomp=keep",
@@ -1062,10 +2118,10 @@ example2: >2+
   
   
 )",
-  L{
-    N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n\n\n"),
-    N(QV, "example2", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n\n\n"),
-  }
+N(MB, L{
+    N(KP|VF, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n\n\n"),
+    N(KP|VF, "example2", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n\n\n"),
+  })
 );
 
 ADD_CASE_TO_GROUP("block folded as map val, explicit indentation 2, chomp=strip",
@@ -1087,10 +2143,10 @@ example2: >2-
   
   
 )",
-  L{
-    N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end."),
-    N(QV, "example2", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end."),
-  }
+N(MB, L{
+    N(KP|VF, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end."),
+    N(KP|VF, "example2", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end."),
+  })
 );
 
 ADD_CASE_TO_GROUP("block folded as map val, implicit indentation 3",
@@ -1105,10 +2161,10 @@ example: >
    
 another: val
 )",
-  L{
-    N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
-    N("another", "val")
-  }
+N(MB, L{
+    N(KP|VF, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+    N(KP|VP, "another", "val")
+  })
 );
 
 ADD_CASE_TO_GROUP("block folded as map val, explicit indentation 3",
@@ -1123,10 +2179,10 @@ example: >3
    
 another: val
 )",
-  L{
-    N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
-    N("another", "val")
-  }
+N(MB, L{
+    N(KP|VF, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+    N(KP|VP, "another", "val")
+  })
 );
 
 ADD_CASE_TO_GROUP("block folded as map val, implicit indentation 4",
@@ -1141,10 +2197,10 @@ example: >
     
 another: val
 )",
-  L{
-    N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
-    N("another", "val")
-  }
+N(MB, L{
+    N(KP|VF, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+    N(KP|VP, "another", "val")
+  })
 );
 
 ADD_CASE_TO_GROUP("block folded as map val, explicit indentation 4",
@@ -1159,10 +2215,10 @@ example: >4
     
 another: val
 )",
-  L{
-    N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
-    N("another", "val")
-  }
+N(MB, L{
+    N(KP|VF, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+    N(KP|VP, "another", "val")
+  })
 );
 
 ADD_CASE_TO_GROUP("block folded as map val, implicit indentation 9",
@@ -1177,10 +2233,10 @@ example: >
          
 another: val
 )",
-  L{
-    N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
-    N("another", "val")
-  }
+N(MB, L{
+    N(KP|VF, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+    N(KP|VP, "another", "val")
+  })
 );
 
 ADD_CASE_TO_GROUP("block folded as map val, explicit indentation 9",
@@ -1195,10 +2251,10 @@ example: >9
          
 another: val
 )",
-  L{
-    N(QV, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
-    N("another", "val")
-  }
+N(MB, L{
+    N(KP|VF, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+    N(KP|VP, "another", "val")
+  })
 );
 
 
@@ -1213,7 +2269,7 @@ data: >
    Blank lines denote
    paragraph breaks
 )",
-  N(L{N(KEYVAL|VALQUO, "data", "Wrapped text will be folded into a single paragraph\nBlank lines denote paragraph breaks\n")})
+  N(MB, L{N(KP|VF, "data", "Wrapped text will be folded into a single paragraph\nBlank lines denote paragraph breaks\n")})
 );
 
 ADD_CASE_TO_GROUP("block folded, no chomp, no indentation",
@@ -1226,55 +2282,55 @@ R"(example: >
 
 another: text
 )",
-  N(L{
-      N(KEYVAL|VALQUO, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
-      N("another", "text"),
+  N(MB, L{
+      N(KP|VF, "example", "Several lines of text, with some \"quotes\" of various 'types', and also a blank line:\nplus another line at the end.\n"),
+      N(KP|VP, "another", "text"),
       })
 );
 
 ADD_CASE_TO_GROUP("block folded with tab and spaces",
 R"(>
        	  )",
-  N(DOCVAL|VALQUO, "\t  \n")
+  N(VF, "\t  \n")
     );
 
 
 ADD_CASE_TO_GROUP("block folded with empty docval 1",
 R"(>)",
-  N(DOCVAL|VALQUO, "")
+  N(VF, "")
     );
 
 ADD_CASE_TO_GROUP("block folded with empty docval 2",
 R"(>
 )",
-  N(DOCVAL|VALQUO, "")
+  N(VF, "")
     );
 
 ADD_CASE_TO_GROUP("block folded with empty docval 3",
 R"(>
   )",
-  N(DOCVAL|VALQUO, "")
+  N(VF, "")
     );
 
 ADD_CASE_TO_GROUP("block folded with empty docval 4",
 R"(>
   
 )",
-  N(DOCVAL|VALQUO, "")
+  N(VF, "")
     );
 
 ADD_CASE_TO_GROUP("block folded with empty docval 5",
 R"(>
     
 )",
-  N(DOCVAL|VALQUO, "")
+  N(VF, "")
     );
 
 ADD_CASE_TO_GROUP("block folded with empty docval 8",
 R"(>
 
 )",
-  N(DOCVAL|VALQUO, "")
+  N(VF, "")
     );
 
 ADD_CASE_TO_GROUP("block folded with empty docval 9",
@@ -1283,7 +2339,7 @@ R"(>
 
 
 )",
-  N(DOCVAL|VALQUO, "")
+  N(VF, "")
     );
 
 ADD_CASE_TO_GROUP("block folded with empty docval 10",
@@ -1293,7 +2349,7 @@ R"(>
 
 
 )",
-  N(DOCVAL|VALQUO, "")
+  N(VF, "")
     );
 
 ADD_CASE_TO_GROUP("block folded with empty docval 11",
@@ -1302,7 +2358,7 @@ R"(>
   
    
     )",
-  N(DOCVAL|VALQUO, "")
+  N(VF, "")
     );
 
 ADD_CASE_TO_GROUP("block folded with empty docval 12",
@@ -1317,7 +2373,7 @@ R"(>
    
  
 )",
-  N(DOCVAL|VALQUO, "")
+  N(VF, "")
     );
 
 ADD_CASE_TO_GROUP("block folded with empty docval 13",
@@ -1330,20 +2386,20 @@ R"(>
     
 
 )",
-  N(DOCVAL|VALQUO, "")
+  N(VF, "")
     );
 
 ADD_CASE_TO_GROUP("block folded with docval no newlines at end 0",
 R"(>
   asd)",
-  N(DOCVAL|VALQUO, "asd\n")
+  N(VF, "asd\n")
     );
 
 ADD_CASE_TO_GROUP("block folded with docval no newlines at end 1",
 R"(>
   asd
 )",
-  N(DOCVAL|VALQUO, "asd\n")
+  N(VF, "asd\n")
     );
 
 ADD_CASE_TO_GROUP("block folded with docval no newlines at end 2",
@@ -1351,14 +2407,14 @@ R"(>
   asd
 
 )",
-  N(DOCVAL|VALQUO, "asd\n")
+  N(VF, "asd\n")
     );
 
 ADD_CASE_TO_GROUP("block folded with docval no newlines at end 3",
 R"(>
   asd
   )",
-  N(DOCVAL|VALQUO, "asd\n")
+  N(VF, "asd\n")
     );
 
 ADD_CASE_TO_GROUP("block folded with docval no newlines at end 4",
@@ -1366,7 +2422,7 @@ R"(>
   asd
   
   )",
-  N(DOCVAL|VALQUO, "asd\n")
+  N(VF, "asd\n")
     );
 
 ADD_CASE_TO_GROUP("block folded with docval no newlines at end 5",
@@ -1374,7 +2430,7 @@ R"(>
      asd
    
   )",
-  N(DOCVAL|VALQUO, "asd\n")
+  N(VF, "asd\n")
     );
 
 ADD_CASE_TO_GROUP("block folded with docval no newlines at end 5.1",
@@ -1386,7 +2442,7 @@ R"(>
   
  
   )",
-  N(DOCVAL|VALQUO, "asd\n")
+  N(VF, "asd\n")
     );
 
 ADD_CASE_TO_GROUP("block folded with docval no newlines at end 5.2",
@@ -1398,7 +2454,7 @@ R"(>
   
  
   )",
-  N(DOCVAL|VALQUO, "asd\n")
+  N(VF, "asd\n")
     );
 
 ADD_CASE_TO_GROUP("block folded with docval no newlines at end 5.3",
@@ -1410,14 +2466,14 @@ R"(>
   
  
   )",
-  N(DOCVAL|VALQUO, "asd\n\n\n \n")
+  N(VF, "asd\n\n\n \n")
     );
 
 ADD_CASE_TO_GROUP("block folded with docval no newlines at end 6",
 R"(>
      asd
       )",
-  N(DOCVAL|VALQUO, "asd\n \n")
+  N(VF, "asd\n \n")
     );
 
 ADD_CASE_TO_GROUP("block folded with docval no newlines at end 7",
@@ -1425,14 +2481,14 @@ R"(>
      asd
       
 )",
-  N(DOCVAL|VALQUO, "asd\n \n")
+  N(VF, "asd\n \n")
     );
 
 ADD_CASE_TO_GROUP("block folded with docval no newlines at end 8",
 R"(>
      asd
        )",
-  N(DOCVAL|VALQUO, "asd\n  \n")
+  N(VF, "asd\n  \n")
     );
 
 ADD_CASE_TO_GROUP("block folded with docval no newlines at end 9",
@@ -1440,21 +2496,21 @@ R"(>
      asd
        
 )",
-  N(DOCVAL|VALQUO, "asd\n  \n")
+  N(VF, "asd\n  \n")
     );
 
 ADD_CASE_TO_GROUP("block folded with docval no newlines at end 10",
 R"(>
      asd
      	 )",
-  N(DOCVAL|VALQUO, "asd\n\t \n")
+  N(VF, "asd\n\t \n")
     );
 
 ADD_CASE_TO_GROUP("block folded with docval no newlines at end 11",
 R"(>
      asd
       	 )",
-  N(DOCVAL|VALQUO, "asd\n \t \n")
+  N(VF, "asd\n \t \n")
     );
 
 ADD_CASE_TO_GROUP("block folded with docval no newlines at end 12",
@@ -1462,7 +2518,7 @@ R"(>
      asd
      	 
 )",
-  N(DOCVAL|VALQUO, "asd\n\t \n")
+  N(VF, "asd\n\t \n")
     );
 
 ADD_CASE_TO_GROUP("block folded with docval no newlines at end 13",
@@ -1470,38 +2526,38 @@ R"(>
      asd
       	 
 )",
-  N(DOCVAL|VALQUO, "asd\n \t \n")
+  N(VF, "asd\n \t \n")
     );
 
 
 ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 0",
 R"(>+)",
-  N(DOCVAL|VALQUO, "")
+  N(VF, "")
     );
 
 ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 1",
 R"(>+
 )",
-  N(DOCVAL|VALQUO, "")
+  N(VF, "")
     );
 
 ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 1.1",
 R"(>+
   )",
-  N(DOCVAL|VALQUO, "")
+  N(VF, "\n")
     );
 
 ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 1.2",
 R"(>+
   asd)",
-  N(DOCVAL|VALQUO, "asd")
+  N(VF, "asd")
     );
 
 ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 1.3",
 R"(>+
   asd
 )",
-  N(DOCVAL|VALQUO, "asd\n")
+  N(VF, "asd\n")
     );
 
 ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 1.4",
@@ -1509,21 +2565,21 @@ R"(>+
   asd
   
 )",
-  N(DOCVAL|VALQUO, "asd\n\n")
+  N(VF, "asd\n\n")
     );
 
 ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 2",
 R"(>+
 
 )",
-  N(DOCVAL|VALQUO, "\n")
+  N(VF, "\n")
     );
 
 ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 2.1",
 R"(>+
 
   )",
-  N(DOCVAL|VALQUO, "\n")
+  N(VF, "\n")
     );
 
 ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 3",
@@ -1531,7 +2587,7 @@ R"(>+
 
 
 )",
-  N(DOCVAL|VALQUO, "\n\n")
+  N(VF, "\n\n")
     );
 
 ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 4",
@@ -1540,7 +2596,7 @@ R"(>+
 
 
 )",
-  N(DOCVAL|VALQUO, "\n\n\n")
+  N(VF, "\n\n\n")
     );
 
 ADD_CASE_TO_GROUP("block folded, keep, empty docval trailing 5",
@@ -1550,7 +2606,7 @@ R"(>+
 
 
 )",
-  N(DOCVAL|VALQUO, "\n\n\n\n")
+  N(VF, "\n\n\n\n")
     );
 
 ADD_CASE_TO_GROUP("block folded, empty block vals in seq 0",
@@ -1558,7 +2614,7 @@ R"(- >+
   
 - >+
   )",
-N(L{N(QV, "\n"), N(QV, ""),}));
+N(SB, L{N(VF, "\n"), N(VF, "\n"),}));
 
 ADD_CASE_TO_GROUP("block folded, empty block vals in seq 1",
 R"(- >+
@@ -1566,7 +2622,7 @@ R"(- >+
 - >+
   
 )",
-N(L{N(QV, "\n"), N(QV, "\n"),}));
+N(SB, L{N(VF, "\n"), N(VF, "\n"),}));
 
 }
 

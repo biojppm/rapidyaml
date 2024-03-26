@@ -1,4 +1,4 @@
-#include "./test_group.hpp"
+#include "./test_lib/test_group.hpp"
 
 namespace c4 {
 namespace yml {
@@ -8,13 +8,13 @@ CASE_GROUP(EMPTY_SEQ)
 
 ADD_CASE_TO_GROUP("empty seq, explicit",
 "[]",
-    SEQ
+    SFS
 );
 
 
 ADD_CASE_TO_GROUP("empty seq, explicit, whitespace",
 " []",
-    SEQ
+    SFS
 );
 
 
@@ -22,7 +22,7 @@ ADD_CASE_TO_GROUP("empty seq, multiline",
 R"([
 ]
 )",
-    SEQ
+    SFS
 );
 
 ADD_CASE_TO_GROUP("empty seq, multilines",
@@ -32,7 +32,7 @@ R"([
 
 ]
 )",
-    SEQ
+    SFS
 );
 }
 

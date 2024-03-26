@@ -1,4 +1,4 @@
-#include "./test_group.hpp"
+#include "./test_lib/test_group.hpp"
 
 namespace c4 {
 namespace yml {
@@ -63,63 +63,74 @@ const game::perception::PerceiveData:
     });
 }
 
-TEST(simple_map, issue373)
+TEST(simple_map, issue373_0)
 {
-    {
-        const Tree tree = parse_in_arena(R"({"": ""})");
+    test_check_emit_check(R"({"": ""})", [](Tree const &tree){
         ASSERT_EQ(tree.rootref().num_children(), 1u);
         EXPECT_EQ(tree[0].key(), "");
         EXPECT_EQ(tree[0].val(), "");
         EXPECT_EQ(tree[""].key(), "");
         EXPECT_EQ(tree[""].val(), "");
-    }
-    {
-        const Tree tree = parse_in_arena(R"("": "")");
+    });
+}
+
+TEST(simple_map, issue373_1)
+{
+    test_check_emit_check(R"("": "")", [](Tree const &tree){
         ASSERT_EQ(tree.rootref().num_children(), 1u);
         EXPECT_EQ(tree[0].key(), "");
         EXPECT_EQ(tree[0].val(), "");
         EXPECT_EQ(tree[""].key(), "");
         EXPECT_EQ(tree[""].val(), "");
-    }
-    {
-        const Tree tree = parse_in_arena(R"({m: {"":""}})");
+    });
+}
+
+TEST(simple_map, issue373_2)
+{
+    test_check_emit_check(R"({m: {"":""}})", [](Tree const &tree){
         ASSERT_EQ(tree.rootref().num_children(), 1u);
         EXPECT_EQ(tree["m"][0].key(), "");
         EXPECT_EQ(tree["m"][0].val(), "");
         EXPECT_EQ(tree["m"][""].key(), "");
         EXPECT_EQ(tree["m"][""].val(), "");
-    }
-    {
-        const Tree tree = parse_in_arena(R"(m:
+    });
+}
+
+TEST(simple_map, issue373_3)
+{
+    test_check_emit_check(R"(m:
     "a": ""
-)");
-        std::cout << tree;
+)", [](Tree const &tree){
         ASSERT_EQ(tree.rootref().num_children(), 1u);
         ASSERT_EQ(tree["m"].num_children(), 1u);
         EXPECT_EQ(tree["m"][0].key(), "a");
         EXPECT_EQ(tree["m"][0].val(), "");
         EXPECT_EQ(tree["m"]["a"].key(), "a");
         EXPECT_EQ(tree["m"]["a"].val(), "");
-    }
-    {
-        const Tree tree = parse_in_arena(R"(m:
+    });
+}
+
+TEST(simple_map, issue373_4)
+{
+    test_check_emit_check(R"(m:
     "": ""
-)");
-        std::cout << tree;
+)", [](Tree const &tree){
         ASSERT_EQ(tree.rootref().num_children(), 1u);
         ASSERT_EQ(tree["m"].num_children(), 1u);
         EXPECT_EQ(tree["m"][0].key(), "");
         EXPECT_EQ(tree["m"][0].val(), "");
         EXPECT_EQ(tree["m"][""].key(), "");
         EXPECT_EQ(tree["m"][""].val(), "");
-    }
-    {
-        const Tree tree = parse_in_arena(R"(m:
+    });
+}
+
+TEST(simple_map, issue373_5)
+{
+    test_check_emit_check(R"(m:
     "": ""
 n:
     "": "a"
-)");
-        std::cout << tree;
+)", [](Tree const &tree){
         ASSERT_EQ(tree.rootref().num_children(), 2u);
         ASSERT_EQ(tree["m"].num_children(), 1u);
         EXPECT_EQ(tree["m"][0].key(), "");
@@ -127,12 +138,12 @@ n:
         ASSERT_EQ(tree["n"].num_children(), 1u);
         EXPECT_EQ(tree["n"][0].key(), "");
         EXPECT_EQ(tree["n"][0].val(), "a");
-    }
+    });
 }
 
 TEST(simple_map, issue274)
 {
-    Tree tree = parse_in_arena(R"(
+    csubstr yaml = R"(
 foo:
 - bar
 -
@@ -141,35 +152,53 @@ foo2:
 - bar
 - 
 baz2: qux
-)");
-    std::cout << tree;
-    ASSERT_EQ(tree.rootref().num_children(), 4u);
-    ASSERT_EQ(tree["foo"].num_children(), 2u);
-    EXPECT_EQ(tree["foo"][0].val(), "bar");
-    EXPECT_EQ(tree["foo"][1].val(), "");
-    EXPECT_EQ(tree["baz"].val(), "qux");
-    ASSERT_EQ(tree["foo2"].num_children(), 2u);
-    EXPECT_EQ(tree["foo2"][0].val(), "bar");
-    EXPECT_EQ(tree["foo2"][1].val(), "");
-    EXPECT_EQ(tree["baz2"].val(), "qux");
+)";
+    test_check_emit_check(yaml, [](Tree const &tree){
+        ASSERT_EQ(tree.rootref().num_children(), 4u);
+        ASSERT_EQ(tree["foo"].num_children(), 2u);
+        EXPECT_EQ(tree["foo"][0].val(), "bar");
+        EXPECT_EQ(tree["foo"][1].val(), "");
+        EXPECT_EQ(tree["baz"].val(), "qux");
+        ASSERT_EQ(tree["foo2"].num_children(), 2u);
+        EXPECT_EQ(tree["foo2"][0].val(), "bar");
+        EXPECT_EQ(tree["foo2"][1].val(), "");
+        EXPECT_EQ(tree["baz2"].val(), "qux");
+    });
 }
 
 TEST(simple_map, keys_with_leading_colon)
 {
-    Tree tree = parse_in_arena(R"(
+    csubstr yaml = R"(
 :foo:
   :bar: a
   :barbar: b
   :barbarbar: c
-)");
-    EXPECT_EQ(tree[":foo"][":bar"].val(), "a");
-    EXPECT_EQ(tree[":foo"][":barbar"].val(), "b");
-    EXPECT_EQ(tree[":foo"][":barbarbar"].val(), "c");
+)";
+    test_check_emit_check(yaml, [](Tree const &tree){
+        EXPECT_EQ(tree[":foo"][":bar"].val(), "a");
+        EXPECT_EQ(tree[":foo"][":barbar"].val(), "b");
+        EXPECT_EQ(tree[":foo"][":barbarbar"].val(), "c");
+    });
+}
+
+TEST(simple_map, val_with_leading_colon)
+{
+    csubstr yaml = R"(
+foo:
+  bar: :a
+  barbar: :b
+  barbarbar: :c
+)";
+    test_check_emit_check(yaml, [](Tree const &tree){
+        EXPECT_EQ(tree["foo"]["bar"].val(), ":a");
+        EXPECT_EQ(tree["foo"]["barbar"].val(), ":b");
+        EXPECT_EQ(tree["foo"]["barbarbar"].val(), ":c");
+    });
 }
 
 TEST(simple_map, open_on_new_doc_without_space)
 {
-    Tree tree = parse_in_arena(R"(
+    csubstr yaml = R"(
 foo: bar
 ---
 foo: bar
@@ -180,44 +209,52 @@ foo:
 ...
 foo:
 ---
-)");
-    EXPECT_EQ(tree.docref(0)["foo"].val(), "bar");
-    EXPECT_EQ(tree.docref(1)["foo"].val(), "bar");
-    EXPECT_EQ(tree.docref(2)["foo"].val(), "bar");
-    EXPECT_EQ(tree.docref(3)["foo"].val(), "");
-    EXPECT_EQ(tree.docref(4)["foo"].val(), "");
+)";
+    test_check_emit_check(yaml, [](Tree const &tree){
+        EXPECT_EQ(tree.docref(0)["foo"].val(), "bar");
+        EXPECT_EQ(tree.docref(1)["foo"].val(), "bar");
+        EXPECT_EQ(tree.docref(2)["foo"].val(), "bar");
+        EXPECT_EQ(tree.docref(3)["foo"].val(), "");
+        EXPECT_EQ(tree.docref(4)["foo"].val(), "");
+    });
 }
 
 TEST(simple_map, open_on_new_doc_with_space_before_colon)
 {
-    Tree tree = parse_in_arena(R"(
+    csubstr yaml = R"(
 foo0 : bar
 ---
 foo1 : bar  # the " :" was causing an assert
 ---
 foo2 : bar
 ---
-foo3	: bar
+foo3	: bar  # this is a tab
 ---
-foo4   	  : bar
-)");
-    EXPECT_EQ(tree.docref(0)["foo0"].val(), "bar");
-    EXPECT_EQ(tree.docref(1)["foo1"].val(), "bar");
-    EXPECT_EQ(tree.docref(2)["foo2"].val(), "bar");
-    EXPECT_EQ(tree.docref(3)["foo3"].val(), "bar");
-    EXPECT_EQ(tree.docref(4)["foo4"].val(), "bar");
+foo4   	  : bar  # tabs and spaces
+---
+foo5	   	  : bar  # spaces and tabs
+)";
+    test_check_emit_check(yaml, [](Tree const &tree){
+        ASSERT_EQ(tree.rootref().num_children(), 6u);
+        EXPECT_EQ(tree.docref(0)["foo0"].val(), "bar");
+        EXPECT_EQ(tree.docref(1)["foo1"].val(), "bar");
+        EXPECT_EQ(tree.docref(2)["foo2"].val(), "bar");
+        EXPECT_EQ(tree.docref(3)["foo3"].val(), "bar");
+        EXPECT_EQ(tree.docref(4)["foo4"].val(), "bar");
+        EXPECT_EQ(tree.docref(5)["foo5"].val(), "bar");
+    });
 }
 
 
-TEST(simple_map, test_suite_UT92)
+TEST(simple_map, test_suite_UT92_0)
 {
     csubstr yaml = R"(
 - { matches
-% : 20 }
+ % : 20 }
 - { matches
-%: 20 }
+ %: 20 }
 - { matches
-%:
+ %:
  20 }
 )";
     test_check_emit_check(yaml, [](Tree const &t){
@@ -232,6 +269,26 @@ TEST(simple_map, test_suite_UT92)
         ASSERT_TRUE(t[2].has_child("matches %"));
     });
 }
+
+#ifdef TO_BE_FIXED
+TEST(simple_map, test_suite_UT92_1)
+{
+    Tree tree;
+    ExpectError::do_check(&tree, [&]{
+        csubstr yaml = R"(
+- { matches
+% : 20 }
+- { matches
+%: 20 }
+- { matches
+%:
+ 20 }
+)";
+        parse_in_arena(yaml, &tree);
+        print_tree(tree);
+    });
+}
+#endif
 
 TEST(simple_map, two_nested_flow_maps_not_accepted_because_of_container_key)
 {
@@ -257,7 +314,20 @@ TEST(simple_map, many_unmatched_brackets)
     }
 }
 
-TEST(simple_map, missing_quoted_key)
+TEST(simple_map, missing_quoted_key_0)
+{
+    csubstr yaml = R"(
+'x5':
+'y5': z
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        EXPECT_TRUE(t["x5"].is_key_quoted());
+        EXPECT_TRUE(t["y5"].is_key_quoted());
+        EXPECT_EQ(t["y5"].val(), "z");
+    });
+}
+
+TEST(simple_map, missing_quoted_key_1)
 {
     csubstr yaml = R"(
 "top1" :
@@ -279,10 +349,10 @@ x4:
   'y': z
 ---
 'x5':
-'y': z
+'y5': z
 ---
 x6:
-'y': z
+'y6': z
 ---
 'x7' : [
   'y' : z,
@@ -291,7 +361,7 @@ x6:
 "x8" :
   "y" : value,
   "x" : value
-"y" :
+"y8" :
   "y" : value,
   "x" : value
 )";
@@ -317,10 +387,10 @@ x6:
         EXPECT_TRUE(t.docref(doc)["x4"]["y"].is_key_quoted());
         ++doc;
         EXPECT_TRUE(t.docref(doc)["x5"].is_key_quoted());
-        EXPECT_TRUE(t.docref(doc)["y"].is_key_quoted());
+        EXPECT_TRUE(t.docref(doc)["y5"].is_key_quoted());
         ++doc;
         EXPECT_FALSE(t.docref(doc)["x6"].is_key_quoted());
-        EXPECT_TRUE(t.docref(doc)["y"].is_key_quoted());
+        EXPECT_TRUE(t.docref(doc)["y6"].is_key_quoted());
         ++doc;
         EXPECT_TRUE(t.docref(doc)["x7"].is_key_quoted());
         EXPECT_TRUE(t.docref(doc)["x7"][0]["y"].is_key_quoted());
@@ -328,20 +398,20 @@ x6:
         EXPECT_TRUE(t.docref(doc)["x8"].is_key_quoted());
         EXPECT_TRUE(t.docref(doc)["x8"]["y"].is_key_quoted());
         EXPECT_TRUE(t.docref(doc)["x8"]["x"].is_key_quoted());
-        EXPECT_TRUE(t.docref(doc)["y"].is_key_quoted());
-        EXPECT_TRUE(t.docref(doc)["y"]["y"].is_key_quoted());
-        EXPECT_TRUE(t.docref(doc)["y"]["x"].is_key_quoted());
+        EXPECT_TRUE(t.docref(doc)["y8"].is_key_quoted());
+        EXPECT_TRUE(t.docref(doc)["y8"]["y"].is_key_quoted());
+        EXPECT_TRUE(t.docref(doc)["y8"]["x"].is_key_quoted());
     });
 }
 
-#ifdef JAVAI
-void verify_error_is_reported(csubstr case_name, csubstr yaml, size_t col={})
+void verify_error_is_reported(csubstr case_name, csubstr yaml, LineCol lc={})
 {
     SCOPED_TRACE(case_name);
     SCOPED_TRACE(yaml);
     Tree tree;
     Location loc = {};
-    loc.col = col;
+    loc.line = lc.line;
+    loc.col = lc.col;
     ExpectError::do_check(&tree, [&](){
         parse_in_arena(yaml, &tree);
     }, loc);
@@ -349,7 +419,7 @@ void verify_error_is_reported(csubstr case_name, csubstr yaml, size_t col={})
 
 TEST(simple_map, no_map_key_flow)
 {
-    verify_error_is_reported("map key", R"({ first: Sammy, last: Sosa }: foo)", 28u);
+    verify_error_is_reported("map key", R"({ first: Sammy, last: Sosa }: foo)", LineCol{1,29});
 }
 
 TEST(simple_map, no_map_key_block)
@@ -359,12 +429,12 @@ TEST(simple_map, no_map_key_block)
   last: Sosa
 :
   foo
-)");
+)", LineCol{2,9});
 }
 
 TEST(simple_map, no_seq_key_flow)
 {
-    verify_error_is_reported("seq key", R"([Sammy, Sosa]: foo)", 28u);
+    verify_error_is_reported("seq key", R"([Sammy, Sosa]: foo)", LineCol{1, 14});
 }
 
 TEST(simple_map, no_seq_key_block)
@@ -374,9 +444,8 @@ TEST(simple_map, no_seq_key_block)
   - Sosa
 :
   foo
-)");
+)", LineCol{2, 3});
 }
-#endif
 
 #ifdef RYML_WITH_TAB_TOKENS
 TEST(simple_map, block_tab_tokens)
@@ -466,6 +535,116 @@ TEST(simple_map, flow_tab_tokens)
 }
 #endif // RYML_WITH_TAB_TOKENS
 
+TEST(simple_map, tokens_after_flow_0_0)
+{
+    verify_error_is_reported("", "{ first: Sammy, last: Sosa }foo", LineCol{1,32});
+}
+
+TEST(simple_map, tokens_after_flow_0_1)
+{
+    verify_error_is_reported("", "{ first: Sammy, last: Sosa }\nfoo", LineCol{2,4});
+}
+
+TEST(simple_map, tokens_after_flow_2_0)
+{
+    verify_error_is_reported("", "{ first: Sammy, last: Sosa }- foo", LineCol{1,29});
+}
+
+TEST(simple_map, tokens_after_flow_2_1)
+{
+    verify_error_is_reported("", "{ first: Sammy, last: Sosa }\n- foo", LineCol{2,1});
+}
+
+TEST(simple_map, tokens_after_flow_3_0)
+{
+    verify_error_is_reported("", "{ first: Sammy, last: Sosa }[foo,bar]", LineCol{1,29});
+}
+
+TEST(simple_map, tokens_after_flow_3_1)
+{
+    verify_error_is_reported("", "{ first: Sammy, last: Sosa }\n[foo,bar]", LineCol{2,1});
+}
+
+TEST(simple_map, tokens_after_flow_4_0)
+{
+    verify_error_is_reported("", "{ first: Sammy, last: Sosa }{foo: bar}", LineCol{1,29});
+}
+
+TEST(simple_map, tokens_after_flow_4_1)
+{
+    verify_error_is_reported("", "{ first: Sammy, last: Sosa }\n{foo: bar}", LineCol{2,1});
+}
+
+TEST(simple_map, tokens_after_flow_5_0)
+{
+    verify_error_is_reported("", "{ first: Sammy, last: Sosa }'foo'", LineCol{1,29});
+}
+
+TEST(simple_map, tokens_after_flow_5_1)
+{
+    verify_error_is_reported("", "{ first: Sammy, last: Sosa }\n'foo'", LineCol{2,1});
+}
+
+TEST(simple_map, tokens_after_flow_6_0)
+{
+    verify_error_is_reported("", "{ first: Sammy, last: Sosa }|\nfoo", LineCol{1,29});
+}
+
+TEST(simple_map, tokens_after_flow_6_1)
+{
+    verify_error_is_reported("", "{ first: Sammy, last: Sosa }\n|\nfoo", LineCol{2,1});
+}
+
+TEST(simple_map, tokens_after_flow_7_0)
+{
+    verify_error_is_reported("", "{ first: Sammy, last: Sosa }>\nfoo", LineCol{1,29});
+}
+
+TEST(simple_map, tokens_after_flow_7_1)
+{
+    verify_error_is_reported("", "{ first: Sammy, last: Sosa }\n>\nfoo", LineCol{2,1});
+}
+
+TEST(simple_map, tokens_after_flow_8_0)
+{
+    verify_error_is_reported("", "{ first: Sammy, last: Sosa }?foo", LineCol{1,33});
+}
+
+TEST(simple_map, tokens_after_flow_8_1)
+{
+    verify_error_is_reported("", "{ first: Sammy, last: Sosa }\n?\nfoo", LineCol{2,1});
+}
+
+TEST(simple_map, tokens_after_flow_9_0)
+{
+    verify_error_is_reported("", "{ first: Sammy, last: Sosa }:foo", LineCol{1,33});
+}
+
+TEST(simple_map, tokens_after_flow_9_1)
+{
+    verify_error_is_reported("", "{ first: Sammy, last: Sosa }\n:\nfoo", LineCol{2,1});
+}
+
+TEST(simple_map, tokens_after_flow_10_0)
+{
+    verify_error_is_reported("", "{ first: Sammy, last: Sosa }: foo", LineCol{1,29});// fixme
+}
+
+TEST(simple_map, tokens_after_flow_10_1)
+{
+    verify_error_is_reported("", "{ first: Sammy, last: Sosa }\n: \nfoo", LineCol{2,1});
+}
+
+TEST(simple_map, tokens_after_flow_11_0)
+{
+    verify_error_is_reported("", "{ first: Sammy, last: Sosa } &foo", LineCol{1,34});// fixme
+}
+
+TEST(simple_map, tokens_after_flow_11_1)
+{
+    verify_error_is_reported("", "{ first: Sammy, last: Sosa }\n&foo", LineCol{2,5});
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -477,14 +656,14 @@ CASE_GROUP(SIMPLE_MAP)
 //
 ADD_CASE_TO_GROUP("empty map",
 "{}",
-    MAP
+    MFS
 );
 
 ADD_CASE_TO_GROUP("empty map, multiline",
 R"({
 }
 )",
-    MAP
+    MFS
 );
 
 ADD_CASE_TO_GROUP("empty map, multilines",
@@ -492,12 +671,12 @@ R"({
 # foo bar baz akjasdkj
 }
 )",
-    MAP
+    MFS
 );
 
 ADD_CASE_TO_GROUP("simple map, explicit, single line",
 "{foo: 0, bar: 1, baz: 2, bat: 3}",
-    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+N(MFS, L{N{KP|VP, "foo", "0"}, N{KP|VP, "bar", "1"}, N{KP|VP, "baz", "2"}, N{KP|VP, "bat", "3"}})
 );
 
 ADD_CASE_TO_GROUP("simple map, explicit, multiline, unindented",
@@ -507,7 +686,7 @@ bar: 1,
 baz: 2,
 bat: 3
 })",
-    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+N(MFS, L{N{KP|VP, "foo", "0"}, N{KP|VP, "bar", "1"}, N{KP|VP, "baz", "2"}, N{KP|VP, "bat", "3"}})
 );
 
 ADD_CASE_TO_GROUP("simple map, explicit, multiline, indented",
@@ -517,7 +696,7 @@ R"({
   baz: 2,
   bat: 3
 })",
-    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+N(MFS, L{N{KP|VP, "foo", "0"}, N{KP|VP, "bar", "1"}, N{KP|VP, "baz", "2"}, N{KP|VP, "bat", "3"}})
 );
 
 ADD_CASE_TO_GROUP("simple map",
@@ -527,7 +706,7 @@ bar: 1
 baz: 2
 bat: 3
 )",
-    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+N(MB, L{N{KP|VP, "foo", "0"}, N{KP|VP, "bar", "1"}, N{KP|VP, "baz", "2"}, N{KP|VP, "bat", "3"}})
 );
 
 ADD_CASE_TO_GROUP("simple map, values on next line",
@@ -541,7 +720,7 @@ baz:
 bat:
   3
 )",
-    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+N(MB, L{N{KP|VP, "foo", "0"}, N{KP|VP, "bar", "1"}, N{KP|VP, "baz", "2"}, N{KP|VP, "bat", "3"}})
 );
 
 ADD_CASE_TO_GROUP("simple map, with comments",
@@ -551,7 +730,7 @@ bar: 1   # this is a bar
 baz: 2   # this is a baz
 bat: 3   # this is a bat
 )",
-    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+N(MB, L{N{KP|VP, "foo", "0"}, N{KP|VP, "bar", "1"}, N{KP|VP, "baz", "2"}, N{KP|VP, "bat", "3"}})
 );
 
 ADD_CASE_TO_GROUP("simple map, with comments interspersed",
@@ -565,16 +744,7 @@ baz: 2
 # this is a bat
 bat: 3
 )",
-    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
-);
-
-ADD_CASE_TO_GROUP("simple map, with comments interspersed implicit key X8DW",
-R"(
-? key
-# comment
-: value
-)",
-    L{N("key", "value")}
+N(MB, L{N{KP|VP, "foo", "0"}, N{KP|VP, "bar", "1"}, N{KP|VP, "baz", "2"}, N{KP|VP, "bat", "3"}})
 );
 
 ADD_CASE_TO_GROUP("simple map, with indented comments interspersed, before",
@@ -588,7 +758,7 @@ baz: 2
   # this is a bat
 bat: 3
 )",
-    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+N(MB, L{N{KP|VP, "foo", "0"}, N{KP|VP, "bar", "1"}, N{KP|VP, "baz", "2"}, N{KP|VP, "bat", "3"}})
 );
 
 ADD_CASE_TO_GROUP("simple map, with indented comments interspersed, after",
@@ -602,7 +772,16 @@ baz: 2
 bat: 3
   # this is a bat
 )",
-    L{N{"foo", "0"}, N{"bar", "1"}, N{"baz", "2"}, N{"bat", "3"}}
+N(MB, L{N{KP|VP, "foo", "0"}, N{KP|VP, "bar", "1"}, N{KP|VP, "baz", "2"}, N{KP|VP, "bat", "3"}})
+);
+
+ADD_CASE_TO_GROUP("simple map, with comments interspersed implicit key X8DW",
+R"(
+? key
+# comment
+: value
+)",
+N(MB, L{N(KP|VP, "key", "value")})
 );
 
 ADD_CASE_TO_GROUP("simple map, null values",
@@ -617,12 +796,12 @@ f:
 g:
 foo: bar
 )",
-L{N("key", "val"), N(KEYVAL, "a", /*"~"*/{}), N(KEYVAL, "b", /*"~"*/{}), N(KEYVAL, "c", /*"~"*/{}), N(KEYVAL, "d", /*"~"*/{}), N(KEYVAL, "e", /*"~"*/{}), N(KEYVAL, "f", /*"~"*/{}), N(KEYVAL, "g", /*"~"*/{}), N("foo", "bar"),}
+N(MB, L{N(KP|VP, "key", "val"), N(KP|VP, "a", {}), N(KP|VP, "b", {}), N(KP|VP, "c", {}), N(KP|VP, "d", {}), N(KP|VP, "e", {}), N(KP|VP, "f", {}), N(KP|VP, "g", {}), N(KP|VP, "foo", "bar"),})
 );
 
 ADD_CASE_TO_GROUP("simple map expl, null values 1",
 R"({key: val, a, b, c, d, e: , f: , g: , foo: bar})",
-L{N("key", "val"), N(KEYVAL, "a", /*"~"*/{}), N(KEYVAL, "b", /*"~"*/{}), N(KEYVAL, "c", /*"~"*/{}), N(KEYVAL, "d", /*"~"*/{}), N(KEYVAL, "e", /*"~"*/{}), N(KEYVAL, "f", /*"~"*/{}), N(KEYVAL, "g", /*"~"*/{}), N("foo", "bar"),}
+N(MFS, L{N(KP|VP, "key", "val"), N(KP|VP, "a", {}), N(KP|VP, "b", {}), N(KP|VP, "c", {}), N(KP|VP, "d", {}), N(KP|VP, "e", {}), N(KP|VP, "f", {}), N(KP|VP, "g", {}), N(KP|VP, "foo", "bar"),})
 );
 
 ADD_CASE_TO_GROUP("simple map expl, null values 2",
@@ -633,13 +812,13 @@ R"(
 - {a: 1, b, c: 2}
 - {a, b: 1, c: 2}
 )",
-L{
-   N(L{N(KEYVAL, "a", /*"~"*/{})}),
-   N(L{N(KEYVAL, "a", /*"~"*/{}), N(KEYVAL, "b", /*"~"*/{}), N(KEYVAL, "c", /*"~"*/{})}),
-   N(L{N("a", "1"), N("b", "2"), N(KEYVAL, "c", /*"~"*/{})}),
-   N(L{N("a", "1"), N(KEYVAL, "b", /*"~"*/{}), N("c", "2")}),
-   N(L{N(KEYVAL, "a", /*"~"*/{}), N("b", "1"), N("c", "2")}),
- }
+N(SB, L{
+   N(MFS, L{N(KP|VP, "a", {})}),
+   N(MFS, L{N(KP|VP, "a", {}), N(KP|VP, "b", {}), N(KP|VP, "c", {})}),
+   N(MFS, L{N(KP|VP, "a", "1"), N(KP|VP, "b", "2"), N(KP|VP, "c", {})}),
+   N(MFS, L{N(KP|VP, "a", "1"), N(KP|VP, "b", {}), N(KP|VP, "c", "2")}),
+   N(MFS, L{N(KP|VP, "a", {}), N(KP|VP, "b", "1"), N(KP|VP, "c", "2")}),
+ })
 );
 
 ADD_CASE_TO_GROUP("simple map expl, null values 3, 4ABK",
@@ -648,13 +827,18 @@ R"(
 - {foo:, bar:, baz:}
 - {foo:foo: , bar:bar: , baz:baz: }
 - {foo:foo:, bar:bar:, baz:baz:}
+- {:foo:foo: , :bar:bar: , :baz:baz: }
+- {:foo:foo:, :bar:bar:, :baz:baz:}
 )",
-L{
-  N(L{N(KEYVAL, "foo", {}), N(KEYVAL, "bar", {}), N(KEYVAL, "baz", {})}),
-  N(L{N(KEYVAL, "foo", {}), N(KEYVAL, "bar", {}), N(KEYVAL, "baz", {})}),
-  N(L{N(KEYVAL, "foo:foo", {}), N(KEYVAL, "bar:bar", {}), N(KEYVAL, "baz:baz", {})}),
-  N(L{N(KEYVAL, "foo:foo", {}), N(KEYVAL, "bar:bar", {}), N(KEYVAL, "baz:baz", {})}),
-});
+N(SB, L{
+  N(MFS, L{N(KP|VP, "foo", {}), N(KP|VP, "bar", {}), N(KP|VP, "baz", {})}),
+  N(MFS, L{N(KP|VP, "foo", {}), N(KP|VP, "bar", {}), N(KP|VP, "baz", {})}),
+  N(MFS, L{N(KP|VP, "foo:foo", {}), N(KP|VP, "bar:bar", {}), N(KP|VP, "baz:baz", {})}),
+  N(MFS, L{N(KP|VP, "foo:foo", {}), N(KP|VP, "bar:bar", {}), N(KP|VP, "baz:baz", {})}),
+  N(MFS, L{N(KP|VP, ":foo:foo", {}), N(KP|VP, ":bar:bar", {}), N(KP|VP, ":baz:baz", {})}),
+  N(MFS, L{N(KP|VP, ":foo:foo", {}), N(KP|VP, ":bar:bar", {}), N(KP|VP, ":baz:baz", {})}),
+})
+);
 
 ADD_CASE_TO_GROUP("simple map, scalars with special chars, comma",
 R"(
@@ -675,12 +859,12 @@ c ,d: val, 000
 e ,f: val , 000
 h ,i: val ,000
 )",
-    L{
-  N{"a,b", "val,000"}, N{"c,d", "val, 000"}, N{"e,f", "val , 000"}, N{"h,i", "val ,000"},
-  N{"a, b", "val,000"}, N{"c, d", "val, 000"}, N{"e, f", "val , 000"}, N{"h, i", "val ,000"},
-  N{"a , b", "val,000"}, N{"c , d", "val, 000"}, N{"e , f", "val , 000"}, N{"h , i", "val ,000"},
-  N{"a ,b", "val,000"}, N{"c ,d", "val, 000"}, N{"e ,f", "val , 000"}, N{"h ,i", "val ,000"},
-}
+N(MB, L{
+  N(KP|VP, "a,b", "val,000"), N(KP|VP, "c,d", "val, 000"), N(KP|VP, "e,f", "val , 000"), N(KP|VP, "h,i", "val ,000"),
+  N(KP|VP, "a, b", "val,000"), N(KP|VP, "c, d", "val, 000"), N(KP|VP, "e, f", "val , 000"), N(KP|VP, "h, i", "val ,000"),
+  N(KP|VP, "a , b", "val,000"), N(KP|VP, "c , d", "val, 000"), N(KP|VP, "e , f", "val , 000"), N(KP|VP, "h , i", "val ,000"),
+  N(KP|VP, "a ,b", "val,000"), N(KP|VP, "c ,d", "val, 000"), N(KP|VP, "e ,f", "val , 000"), N(KP|VP, "h ,i", "val ,000"),
+})
 );
 
 ADD_CASE_TO_GROUP("simple map, scalars with special chars, semicolon",
@@ -702,12 +886,12 @@ c :d: "val: 000"
 e :f: "val : 000"
 h :i: val :000
 )",
-    L{
-  N{    "a:b", "val:000"},  N{QV,  "c:d", "val: 000"},  N{QV,  "e:f", "val : 000"},  N{    "h:i", "val :000"},
-  N{QK, "a: b", "val:000"}, N{QKV, "c: d", "val: 000"}, N{QKV, "e: f", "val : 000"},N{QK, "h: i", "val :000"},
-  N{QK, "a : b", "val:000"},N{QKV, "c : d", "val: 000"},N{QKV, "e : f", "val : 000"},N{QK, "h : i", "val :000"},
-  N{    "a :b", "val:000"}, N{QV,  "c :d", "val: 000"}, N{QV,  "e :f", "val : 000"}, N{    "h :i", "val :000"},
-}
+N(MB, L{
+  N{KP|VP, "a:b", "val:000"},  N{KP|VD, "c:d", "val: 000"},  N{KP|VD, "e:f", "val : 000"},  N{KP|VP, "h:i", "val :000"},
+  N{KD|VP, "a: b", "val:000"}, N{KD|VD, "c: d", "val: 000"}, N{KD|VD, "e: f", "val : 000"}, N{KD|VP, "h: i", "val :000"},
+  N{KD|VP, "a : b", "val:000"},N{KD|VD, "c : d", "val: 000"},N{KD|VD, "e : f", "val : 000"},N{KD|VP, "h : i", "val :000"},
+  N{KP|VP, "a :b", "val:000"}, N{KP|VD, "c :d", "val: 000"}, N{KP|VD, "e :f", "val : 000"}, N{KP|VP, "h :i", "val :000"},
+})
 );
 
 ADD_CASE_TO_GROUP("simple map, scalars with special chars, cardinal",
@@ -716,25 +900,28 @@ a#b: val#000
 c#d: val# 000
 e#f: "val # 000"
 h#i: "val #000"
+
 a# b: val#000
 c# d: val# 000
 e# f: "val # 000"
 h# i: "val #000"
+
 "a # b": val#000
 "c # d": val# 000
 "e # f": "val # 000"
 "h # i": "val #000"
+
 "a #b": val#000
 "c #d": val# 000
 "e #f": "val # 000"
 "h #i": "val #000"
 )",
-    L{
-   N{    "a#b",   "val#000"}, N{    "c#d",   "val# 000"}, N{QV,  "e#f",   "val # 000"}, N{QV,  "h#i",   "val #000"},
-   N{    "a# b",  "val#000"}, N{    "c# d",  "val# 000"}, N{QV,  "e# f",  "val # 000"}, N{QV,  "h# i",  "val #000"},
-   N{QK, "a # b", "val#000"}, N{QK, "c # d", "val# 000"}, N{QKV, "e # f", "val # 000"}, N{QKV, "h # i", "val #000"},
-   N{QK, "a #b",  "val#000"}, N{QK, "c #d",  "val# 000"}, N{QKV, "e #f",  "val # 000"}, N{QKV, "h #i",  "val #000"},
-}
+N(MB, L{
+  N{KP|VP, "a#b", "val#000"},  N{KP|VP, "c#d", "val# 000"},  N{KP|VD, "e#f", "val # 000"},  N{KP|VD, "h#i", "val #000"},
+  N{KP|VP, "a# b", "val#000"}, N{KP|VP, "c# d", "val# 000"}, N{KP|VD, "e# f", "val # 000"}, N{KP|VD, "h# i", "val #000"},
+  N{KD|VP, "a # b", "val#000"},N{KD|VP, "c # d", "val# 000"},N{KD|VD, "e # f", "val # 000"},N{KD|VD, "h # i", "val #000"},
+  N{KD|VP, "a #b", "val#000"}, N{KD|VP, "c #d", "val# 000"}, N{KD|VD, "e #f", "val # 000"}, N{KD|VD, "h #i", "val #000"},
+})
 );
 
 ADD_CASE_TO_GROUP("simple map, scalars with special chars, dash",
@@ -756,12 +943,12 @@ c -d: val- 000
 e -f: val - 000
 h -i: val -000
 )",
-    L{
-  N{"a-b", "val-000"}, N{"c-d", "val- 000"}, N{"e-f", "val - 000"}, N{"h-i", "val -000"},
-  N{"a- b", "val-000"}, N{"c- d", "val- 000"}, N{"e- f", "val - 000"}, N{"h- i", "val -000"},
-  N{"a - b", "val-000"}, N{"c - d", "val- 000"}, N{"e - f", "val - 000"}, N{"h - i", "val -000"},
-  N{"a -b", "val-000"}, N{"c -d", "val- 000"}, N{"e -f", "val - 000"}, N{"h -i", "val -000"},
-}
+N(MB, L{
+  N{KP|VP, "a-b", "val-000"}, N{KP|VP, "c-d", "val- 000"}, N{KP|VP, "e-f", "val - 000"}, N{KP|VP, "h-i", "val -000"},
+  N{KP|VP, "a- b", "val-000"}, N{KP|VP, "c- d", "val- 000"}, N{KP|VP, "e- f", "val - 000"}, N{KP|VP, "h- i", "val -000"},
+  N{KP|VP, "a - b", "val-000"}, N{KP|VP, "c - d", "val- 000"}, N{KP|VP, "e - f", "val - 000"}, N{KP|VP, "h - i", "val -000"},
+  N{KP|VP, "a -b", "val-000"}, N{KP|VP, "c -d", "val- 000"}, N{KP|VP, "e -f", "val - 000"}, N{KP|VP, "h -i", "val -000"},
+})
 );
 
 ADD_CASE_TO_GROUP("simple map, scalars with special chars, left-bracket",
@@ -783,12 +970,12 @@ c [d: val[ 000
 e [f: val [ 000
 h [i: val [000
 )",
-    L{
-  N{"a[b", "val[000"}, N{"c[d", "val[ 000"}, N{"e[f", "val [ 000"}, N{"h[i", "val [000"},
-  N{"a[ b", "val[000"}, N{"c[ d", "val[ 000"}, N{"e[ f", "val [ 000"}, N{"h[ i", "val [000"},
-  N{"a [ b", "val[000"}, N{"c [ d", "val[ 000"}, N{"e [ f", "val [ 000"}, N{"h [ i", "val [000"},
-  N{"a [b", "val[000"}, N{"c [d", "val[ 000"}, N{"e [f", "val [ 000"}, N{"h [i", "val [000"},
-}
+N(MB, L{
+  N{KP|VP, "a[b", "val[000"}, N{KP|VP, "c[d", "val[ 000"}, N{KP|VP, "e[f", "val [ 000"}, N{KP|VP, "h[i", "val [000"},
+  N{KP|VP, "a[ b", "val[000"}, N{KP|VP, "c[ d", "val[ 000"}, N{KP|VP, "e[ f", "val [ 000"}, N{KP|VP, "h[ i", "val [000"},
+  N{KP|VP, "a [ b", "val[000"}, N{KP|VP, "c [ d", "val[ 000"}, N{KP|VP, "e [ f", "val [ 000"}, N{KP|VP, "h [ i", "val [000"},
+  N{KP|VP, "a [b", "val[000"}, N{KP|VP, "c [d", "val[ 000"}, N{KP|VP, "e [f", "val [ 000"}, N{KP|VP, "h [i", "val [000"},
+})
 );
 
 ADD_CASE_TO_GROUP("simple map, scalars with special chars, right-bracket",
@@ -810,12 +997,12 @@ c ]d: val] 000
 e ]f: val ] 000
 h ]i: val ]000
 )",
-    L{
-  N{"a]b", "val]000"}, N{"c]d", "val] 000"}, N{"e]f", "val ] 000"}, N{"h]i", "val ]000"},
-  N{"a] b", "val]000"}, N{"c] d", "val] 000"}, N{"e] f", "val ] 000"}, N{"h] i", "val ]000"},
-  N{"a ] b", "val]000"}, N{"c ] d", "val] 000"}, N{"e ] f", "val ] 000"}, N{"h ] i", "val ]000"},
-  N{"a ]b", "val]000"}, N{"c ]d", "val] 000"}, N{"e ]f", "val ] 000"}, N{"h ]i", "val ]000"},
-}
+N(MB, L{
+  N{KP|VP, "a]b", "val]000"}, N{KP|VP, "c]d", "val] 000"}, N{KP|VP, "e]f", "val ] 000"}, N{KP|VP, "h]i", "val ]000"},
+  N{KP|VP, "a] b", "val]000"}, N{KP|VP, "c] d", "val] 000"}, N{KP|VP, "e] f", "val ] 000"}, N{KP|VP, "h] i", "val ]000"},
+  N{KP|VP, "a ] b", "val]000"}, N{KP|VP, "c ] d", "val] 000"}, N{KP|VP, "e ] f", "val ] 000"}, N{KP|VP, "h ] i", "val ]000"},
+  N{KP|VP, "a ]b", "val]000"}, N{KP|VP, "c ]d", "val] 000"}, N{KP|VP, "e ]f", "val ] 000"}, N{KP|VP, "h ]i", "val ]000"},
+})
 );
 
 ADD_CASE_TO_GROUP("simple map, scalars with special chars, left-curly",
@@ -837,12 +1024,12 @@ c {d: val{ 000
 e {f: val { 000
 h {i: val {000
 )",
-    L{
-  N{"a{b", "val{000"}, N{"c{d", "val{ 000"}, N{"e{f", "val { 000"}, N{"h{i", "val {000"},
-  N{"a{ b", "val{000"}, N{"c{ d", "val{ 000"}, N{"e{ f", "val { 000"}, N{"h{ i", "val {000"},
-  N{"a { b", "val{000"}, N{"c { d", "val{ 000"}, N{"e { f", "val { 000"}, N{"h { i", "val {000"},
-  N{"a {b", "val{000"}, N{"c {d", "val{ 000"}, N{"e {f", "val { 000"}, N{"h {i", "val {000"},
-}
+N(MB, L{
+  N{KP|VP, "a{b", "val{000"}, N{KP|VP, "c{d", "val{ 000"}, N{KP|VP, "e{f", "val { 000"}, N{KP|VP, "h{i", "val {000"},
+  N{KP|VP, "a{ b", "val{000"}, N{KP|VP, "c{ d", "val{ 000"}, N{KP|VP, "e{ f", "val { 000"}, N{KP|VP, "h{ i", "val {000"},
+  N{KP|VP, "a { b", "val{000"}, N{KP|VP, "c { d", "val{ 000"}, N{KP|VP, "e { f", "val { 000"}, N{KP|VP, "h { i", "val {000"},
+  N{KP|VP, "a {b", "val{000"}, N{KP|VP, "c {d", "val{ 000"}, N{KP|VP, "e {f", "val { 000"}, N{KP|VP, "h {i", "val {000"},
+})
 );
 
 ADD_CASE_TO_GROUP("simple map, scalars with special chars, right-curly",
@@ -864,12 +1051,12 @@ c }d: val} 000
 e }f: val } 000
 h }i: val }000
 )",
-    L{
-  N{"a}b", "val}000"}, N{"c}d", "val} 000"}, N{"e}f", "val } 000"}, N{"h}i", "val }000"},
-  N{"a} b", "val}000"}, N{"c} d", "val} 000"}, N{"e} f", "val } 000"}, N{"h} i", "val }000"},
-  N{"a } b", "val}000"}, N{"c } d", "val} 000"}, N{"e } f", "val } 000"}, N{"h } i", "val }000"},
-  N{"a }b", "val}000"}, N{"c }d", "val} 000"}, N{"e }f", "val } 000"}, N{"h }i", "val }000"},
-}
+N(MB, L{
+  N{KP|VP, "a}b", "val}000"}, N{KP|VP, "c}d", "val} 000"}, N{KP|VP, "e}f", "val } 000"}, N{KP|VP, "h}i", "val }000"},
+  N{KP|VP, "a} b", "val}000"}, N{KP|VP, "c} d", "val} 000"}, N{KP|VP, "e} f", "val } 000"}, N{KP|VP, "h} i", "val }000"},
+  N{KP|VP, "a } b", "val}000"}, N{KP|VP, "c } d", "val} 000"}, N{KP|VP, "e } f", "val } 000"}, N{KP|VP, "h } i", "val }000"},
+  N{KP|VP, "a }b", "val}000"}, N{KP|VP, "c }d", "val} 000"}, N{KP|VP, "e }f", "val } 000"}, N{KP|VP, "h }i", "val }000"},
+})
 );
 
 ADD_CASE_TO_GROUP("simple map expl, scalars with special chars, comma",
@@ -891,25 +1078,25 @@ c3 ,d3: val3, 0003
 e3 ,f3: val3 , 0003
 h3 ,i3: val3 ,0003
 })",
-    L{ // this is crazy...
-        N(KEYVAL, "a0", /*"~"*/{}),
-        N("b0", "val0"), N(KEYVAL, "0000 c0", /*"~"*/{}),
-        N("d0", "val0"), N(KEYVAL, "0000 e0", /*"~"*/{}),
-        N("f0", "val0"), N(KEYVAL, "0000 h0", /*"~"*/{}),
-        N("i0", "val0"), N(KEYVAL, "0000 a1", /*"~"*/{}),
-        N("b1", "val1"), N(KEYVAL, "0001 c1", /*"~"*/{}),
-        N("d1", "val1"), N(KEYVAL, "0001 e1", /*"~"*/{}),
-        N("f1", "val1"), N(KEYVAL, "0001 h1", /*"~"*/{}),
-        N("i1", "val1"), N(KEYVAL, "0001 a2", /*"~"*/{}),
-        N("b2", "val2"), N(KEYVAL, "0002 c2", /*"~"*/{}),
-        N("d2", "val2"), N(KEYVAL, "0002 e2", /*"~"*/{}),
-        N("f2", "val2"), N(KEYVAL, "0002 h2", /*"~"*/{}),
-        N("i2", "val2"), N(KEYVAL, "0002 a3", /*"~"*/{}),
-        N("b3", "val3"), N(KEYVAL, "0003 c3", /*"~"*/{}),
-        N("d3", "val3"), N(KEYVAL, "0003 e3", /*"~"*/{}),
-        N("f3", "val3"), N(KEYVAL, "0003 h3", /*"~"*/{}),
-        N("i3", "val3"), N(KEYVAL, "0003", /*"~"*/{}),
-}
+N(MFS, L{ // this is crazy...
+        N(KP|VP, "a0", {}),
+        N(KP|VP, "b0", "val0"), N(KP|VP, "0000 c0", {}),
+        N(KP|VP, "d0", "val0"), N(KP|VP, "0000 e0", {}),
+        N(KP|VP, "f0", "val0"), N(KP|VP, "0000 h0", {}),
+        N(KP|VP, "i0", "val0"), N(KP|VP, "0000 a1", {}),
+        N(KP|VP, "b1", "val1"), N(KP|VP, "0001 c1", {}),
+        N(KP|VP, "d1", "val1"), N(KP|VP, "0001 e1", {}),
+        N(KP|VP, "f1", "val1"), N(KP|VP, "0001 h1", {}),
+        N(KP|VP, "i1", "val1"), N(KP|VP, "0001 a2", {}),
+        N(KP|VP, "b2", "val2"), N(KP|VP, "0002 c2", {}),
+        N(KP|VP, "d2", "val2"), N(KP|VP, "0002 e2", {}),
+        N(KP|VP, "f2", "val2"), N(KP|VP, "0002 h2", {}),
+        N(KP|VP, "i2", "val2"), N(KP|VP, "0002 a3", {}),
+        N(KP|VP, "b3", "val3"), N(KP|VP, "0003 c3", {}),
+        N(KP|VP, "d3", "val3"), N(KP|VP, "0003 e3", {}),
+        N(KP|VP, "f3", "val3"), N(KP|VP, "0003 h3", {}),
+        N(KP|VP, "i3", "val3"), N(KP|VP, "0003", {}),
+})
 );
 
 
@@ -933,45 +1120,50 @@ elm4     :
     'key D'     : val D
     "key C"     : val C
 )",
-L{
-    N("foo", "crl"),
-    N("keyA", L{N("keyA.B", "test value")}),
-    N(QK, "key C", "val C"),
-    N(QK, "key D", "val D"),
-    N("elm2", L{N(QK, "key C", "val C"), N(QK, "key D", "val D"), N("key E", "val E"),}),
-    N("elm3", L{N(QK, "key D", "val D"), N(QK, "key C", "val C"), N("key E", "val E"),}),
-    N("elm4", L{N("key E", "val E"), N(QK, "key D", "val D"), N(QK, "key C", "val C"),}),
-}
+N(MB, L{
+    N(KP|VP, "foo", "crl"),
+    N(KP|MB, "keyA", L{N(KP|VP, "keyA.B", "test value")}),
+    N(KD|VP, "key C", "val C"),
+    N(KS|VP, "key D", "val D"),
+    N(KP|MB, "elm2", L{N(KD|VP, "key C", "val C"), N(KS|VP, "key D", "val D"), N(KP|VP, "key E", "val E"),}),
+    N(KP|MB, "elm3", L{N(KS|VP, "key D", "val D"), N(KD|VP, "key C", "val C"), N(KP|VP, "key E", "val E"),}),
+    N(KP|MB, "elm4", L{N(KP|VP, "key E", "val E"), N(KS|VP, "key D", "val D"), N(KD|VP, "key C", "val C"),}),
+})
 );
 
 ADD_CASE_TO_GROUP("simple map, spaces before semicolon, issue65, v0",
 R"({a : b})",
-L{
-    N("a", "b"),
-}
+N(MFS, L{
+    N(KP|VP, "a", "b"),
+})
 );
 
 ADD_CASE_TO_GROUP("simple map, spaces before semicolon, issue65, v1",
-R"(a : b)",
-L{
-    N("a", "b"),
-}
+"a    \t: b",
+N(MB, L{
+    N(KP|VP, "a", "b"),
+})
 );
 
 ADD_CASE_TO_GROUP("simple map, spaces before semicolon, issue65, v2",
-R"(
-is it ok      :     let's see
-ok     : {a : b, c     : d,      e      : f,}
-must be ok   :
-    c0  : d
-    c1    : d
-    c2       : d
-)",
-L{
-    N("is it ok", "let's see"),
-    N("ok", L{N("a", "b"), N("c", "d"), N("e", "f")}),
-    N("must be ok", L{N("c0", "d"), N("c1", "d"), N("c2", "d")}),
-}
+"a    \t: b",
+N(MB, L{
+    N(KP|VP, "a", "b"),
+})
+);
+
+ADD_CASE_TO_GROUP("simple map, spaces before semicolon, issue65, v2_0",
+"a\t    \t: b",
+N(MB, L{
+    N(KP|VP, "a", "b"),
+})
+);
+
+ADD_CASE_TO_GROUP("simple map, spaces before semicolon, issue65, v2_1",
+"a \t    \t : b",
+N(MB, L{
+    N(KP|VP, "a", "b"),
+})
 );
 
 ADD_CASE_TO_GROUP("simple map, spaces before semicolon, issue65, v3",
@@ -986,22 +1178,23 @@ must be ok   : {
     c2       : d,
 }
 })",
-L{
-    N("oka", L{N("a", "b")}),
-    N("is it ok", "let's see"),
-    N("okb", L{N("a", "b")}),
-    N("ok", L{N("a", "b")}),
-    N("must be ok", L{N("c0", "d"), N("c1", "d"), N("c2", "d")}),
-});
+N(MFS, L{
+    N(KP|MFS, "oka", L{N(KP|VP, "a", "b")}),
+    N(KP|VP, "is it ok", "let's see"),
+    N(KP|MFS, "okb", L{N(KP|VP, "a", "b")}),
+    N(KP|MFS, "ok", L{N(KP|VP, "a", "b")}),
+    N(KP|MFS, "must be ok", L{N(KP|VP, "c0", "d"), N(KP|VP, "c1", "d"), N(KP|VP, "c2", "d")}),
+})
+);
 
 ADD_CASE_TO_GROUP("simple map, empty keys 2JQS, v1",
 R"(
 : a
 : b
 )",
-N(MAP, L{
-    N("", "a"),
-    N("", "b"),
+N(MB, L{
+    N(KP|VP, "", "a"),
+    N(KP|VP, "", "b"),
 }));
 
 ADD_CASE_TO_GROUP("simple map, empty keys 2JQS, v2",
@@ -1011,9 +1204,9 @@ R"(
 :
   b
 )",
-N(MAP, L{
-    N("", "a"),
-    N("", "b"),
+N(MB, L{
+    N(KP|VP, "", "a"),
+    N(KP|VP, "", "b"),
 }));
 
 ADD_CASE_TO_GROUP("simple map, empty keys 4ABK, v1",
@@ -1021,9 +1214,9 @@ R"({
 : a,
 : b,
 })",
-N(MAP, L{
-    N("", "a"),
-    N("", "b"),
+N(MFS, L{
+    N(KP|VP, "", "a"),
+    N(KP|VP, "", "b"),
 }));
 
 ADD_CASE_TO_GROUP("simple map, empty keys 4ABK, v2",
@@ -1033,9 +1226,33 @@ R"({
 :
   b,
 })",
-N(MAP, L{
-    N("", "a"),
-    N("", "b"),
+N(MFS, L{
+    N(KP|VP, "", "a"),
+    N(KP|VP, "", "b"),
+}));
+
+ADD_CASE_TO_GROUP("simple map, empty keys 4ABK, v3",
+R"({-k
+:
+  a,-z
+:
+  b,
+})",
+N(MFS, L{
+    N(KP|VP, "-k", "a"),
+    N(KP|VP, "-z", "b"),
+}));
+
+ADD_CASE_TO_GROUP("simple map, empty keys 4ABK, v4",
+R"({:k
+:
+  a,:z
+:
+  b,
+})",
+N(MFS, L{
+    N(KP|VP, ":k", "a"),
+    N(KP|VP, ":z", "b"),
 }));
 
 ADD_CASE_TO_GROUP("simple map, values on next line 4MUZ, v1",
@@ -1044,9 +1261,9 @@ R"({foo
 baz
 : bat
 })",
-N(MAP, L{
-    N("foo", "bar"),
-    N("baz", "bat"),
+N(MFS, L{
+    N(KP|VP, "foo", "bar"),
+    N(KP|VP, "baz", "bat"),
 }));
 
 ADD_CASE_TO_GROUP("simple map, values on next line 4MUZ, v2",
@@ -1057,36 +1274,33 @@ baz
 :
   bat
 })",
-N(MAP, L{
-    N("foo", "bar"),
-    N("baz", "bat"),
+N(MFS, L{
+    N(KP|VP, "foo", "bar"),
+    N(KP|VP, "baz", "bat"),
 }));
 
-/* this is not valid YAML: plain scalars can't have ':' as a token
-ADD_CASE_TO_GROUP("simple map, values on next line 4MUZ, v3",
+// this is not valid YAML: plain scalars can't have ':' as a token
+ADD_CASE_TO_GROUP("simple map, values on next line 4MUZ, v3", EXPECT_PARSE_ERROR,
 R"(foo
 : bar
 baz
 : bat
 )",
-N(MAP, L{
-    N("foo", "bar"),
-    N("baz", "bat"),
-}));
+  LineCol(2, 1)
+);
 
-ADD_CASE_TO_GROUP("simple map, values on next line 4MUZ, v4",
+ADD_CASE_TO_GROUP("simple map, values on next line 4MUZ, v4", EXPECT_PARSE_ERROR,
 R"(foo
+
+
 :
   bar
 baz
 :
   bat
 )",
-N(MAP, L{
-    N("foo", "bar"),
-    N("baz", "bat"),
-}));
-*/
+  LineCol(4, 1)
+);
 
 ADD_CASE_TO_GROUP("json compact",
 R"(---
@@ -1100,17 +1314,17 @@ R"(---
 )",
 N(STREAM,
   L{
-      N(DOCMAP, L{
-              N(KEYVAL|KEYQUO|VALQUO,"foo0","bar"),
-              N(KEYVAL|KEYQUO,"foo1","bar"),
-              N(KEYMAP|KEYQUO,"foo3", L{N(KEYVAL|KEYQUO,"a","map")}),
-              N(KEYSEQ|KEYQUO,"foo5", L{N("a"),N("seq")}),
+      N(DOC|MFS, L{
+              N(KD|VD,"foo0","bar"),
+              N(KD|VP,"foo1","bar"),
+              N(KD|MFS,"foo3", L{N(KD|VP,"a","map")}),
+              N(KD|SFS,"foo5", L{N(VP, "a"),N(VP, "seq")}),
           }),
-      N(DOCMAP, L{
-              N(KEYVAL|KEYQUO|VALQUO,"foo0","bar"),
-              N(KEYVAL|KEYQUO,"foo1","bar"),
-              N(KEYMAP|KEYQUO,"foo3", L{N(KEYVAL|KEYQUO,"a","map")}),
-              N(KEYSEQ|KEYQUO,"foo5", L{N("a"),N("seq")}),
+      N(DOC|MFS, L{
+              N(KD|VD,"foo0","bar"),
+              N(KD|VP,"foo1","bar"),
+              N(KD|MFS,"foo3", L{N(KD|VP,"a","map")}),
+              N(KD|SFS,"foo5", L{N(VP, "a"),N(VP, "seq")}),
           }),
     })
 );
@@ -1125,9 +1339,9 @@ R"(
                 - 2
                 - 3
  )",
-N(L{
-  N("A", L{N("1"), N("4")}),
-  N("B", L{N("2"), N("3")}),
+N(MB, L{
+  N(KP|SB, "A", L{N(VP, "1"), N(VP, "4")}),
+  N(KP|SB, "B", L{N(VP, "2"), N(VP, "3")}),
   })
 );
 
@@ -1139,9 +1353,9 @@ B:
   - 2
   - 3
 )",
-N(L{
-  N("A", L{N("1"), N("4")}),
-  N("B", L{N("2"), N("3")}),
+N(MB, L{
+  N(KP|SB, "A", L{N(VP, "1"), N(VP, "4")}),
+  N(KP|SB, "B", L{N(VP, "2"), N(VP, "3")}),
   })
 );
 
@@ -1152,9 +1366,9 @@ R"(A:
 B:
   - 2
   - 3)",
-N(L{
-  N("A", L{N("1"), N("4")}),
-  N("B", L{N("2"), N("3")}),
+N(MB, L{
+  N(KP|SB, "A", L{N(VP, "1"), N(VP, "4")}),
+  N(KP|SB, "B", L{N(VP, "2"), N(VP, "3")}),
   })
 );
 ADD_CASE_TO_GROUP("issue223 3 fails",
@@ -1165,9 +1379,9 @@ B:
   - 2
   - 3
  )",
-N(L{
-  N("A", L{N("1"), N("4")}),
-  N("B", L{N("2"), N("3")}),
+N(MB, L{
+  N(KP|SB, "A", L{N(VP, "1"), N(VP, "4")}),
+  N(KP|SB, "B", L{N(VP, "2"), N(VP, "3")}),
   })
 );
 }

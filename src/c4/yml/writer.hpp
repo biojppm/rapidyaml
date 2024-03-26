@@ -14,18 +14,6 @@ namespace c4 {
 namespace yml {
 
 
-/** Repeat-Character: a character to be written a number of times. */
-struct RepC
-{
-    char c;
-    size_t num_times;
-};
-inline RepC indent_to(size_t num_levels)
-{
-    return {' ', size_t(2) * num_levels};
-}
-
-
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -77,13 +65,11 @@ struct WriterFile
         ++m_pos;
     }
 
-    inline void _do_write(RepC const rc)
+    inline void _do_write(const char c, size_t num_times)
     {
-        for(size_t i = 0; i < rc.num_times; ++i)
-        {
-            fputc(rc.c, m_file);
-        }
-        m_pos += rc.num_times;
+        for(size_t i = 0; i < num_times; ++i)
+            fputc(c, m_file);
+        m_pos += num_times;
     }
 };
 
@@ -140,13 +126,11 @@ struct WriterOStream
         ++m_pos;
     }
 
-    inline void _do_write(RepC const rc)
+    inline void _do_write(const char c, size_t num_times)
     {
-        for(size_t i = 0; i < rc.num_times; ++i)
-        {
-            m_stream.put(rc.c);
-        }
-        m_pos += rc.num_times;
+        for(size_t i = 0; i < num_times; ++i)
+            m_stream.put(c);
+        m_pos += num_times;
     }
 };
 
@@ -203,22 +187,16 @@ struct WriterBuf
     inline void _do_write(const char c)
     {
         if(m_pos + 1 <= m_buf.len)
-        {
             m_buf[m_pos] = c;
-        }
         ++m_pos;
     }
 
-    inline void _do_write(RepC const rc)
+    inline void _do_write(const char c, size_t num_times)
     {
-        if(m_pos + rc.num_times <= m_buf.len)
-        {
-            for(size_t i = 0; i < rc.num_times; ++i)
-            {
-                m_buf[m_pos + i] = rc.c;
-            }
-        }
-        m_pos += rc.num_times;
+        if(m_pos + num_times <= m_buf.len)
+            for(size_t i = 0; i < num_times; ++i)
+                m_buf[m_pos + i] = c;
+        m_pos += num_times;
     }
 };
 

@@ -1,4 +1,4 @@
-#include "./test_group.hpp"
+#include "./test_lib/test_group.hpp"
 
 namespace c4 {
 namespace yml {
@@ -9,13 +9,13 @@ CASE_GROUP(EMPTY_MAP)
 
 ADD_CASE_TO_GROUP("empty map, explicit",
 "{}",
-    MAP
+    MFS
 );
 
 
 ADD_CASE_TO_GROUP("empty map, explicit, whitespace",
 " {}",
-    MAP
+    MFS
 );
 
 
@@ -24,7 +24,7 @@ R"({
 
 }
 )",
-    MAP
+    MFS
 );
 
 
@@ -35,7 +35,7 @@ R"({
 
 }
 )",
-    MAP
+    MFS
     );
 }
 

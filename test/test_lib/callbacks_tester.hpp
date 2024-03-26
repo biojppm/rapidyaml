@@ -3,7 +3,10 @@
 
 #ifndef RYML_SINGLE_HEADER
 #include "c4/yml/common.hpp"
+#include <c4/charconv.hpp>
+#else
 #endif
+#include <c4/yml/detail/parser_dbg.hpp>
 #include <vector>
 #include <iostream>
 
@@ -21,7 +24,7 @@ struct CallbacksTester
     size_t num_allocs, alloc_size;
     size_t num_deallocs, dealloc_size;
 
-    CallbacksTester(const char *id_="notset", size_t sz=10u * 1024u) // 10KB
+    CallbacksTester(const char *id_="notset", size_t sz=20u * 1024u) // 20KB
         : memory_pool(sz)
         , id(id_)
         , num_allocs()
@@ -39,8 +42,8 @@ struct CallbacksTester
 
     void check()
     {
-        std::cout << "size: alloc=" << alloc_size << " dealloc=" << dealloc_size << std::endl;
-        std::cout << "count: #allocs=" << num_allocs << " #deallocs=" << num_deallocs << std::endl;
+        _c4dbgpf("size: alloc={}  dealloc={}", alloc_size, dealloc_size);
+        _c4dbgpf("count: #allocs={}  #deallocs={}", num_allocs, num_deallocs);
         RYML_CHECK(num_allocs == num_deallocs);
         RYML_CHECK(alloc_size == dealloc_size);
     }
@@ -56,7 +59,7 @@ struct CallbacksTester
 
     void *allocate(size_t len)
     {
-        std::cout << "alloc[" << num_allocs << "]=" << len << "B\n";
+        _c4dbgpf("alloc[{}]={}B", num_allocs, len);
         void *ptr = &memory_pool[alloc_size];
         alloc_size += len;
         ++num_allocs;
@@ -68,7 +71,7 @@ struct CallbacksTester
     {
         RYML_CHECK((char*)mem     >= &memory_pool.front() && (char*)mem     <  &memory_pool.back());
         RYML_CHECK((char*)mem+len >= &memory_pool.front() && (char*)mem+len <= &memory_pool.back());
-        std::cout << "free[" << num_deallocs << "]=" << len << "B\n";
+        _c4dbgpf("free[{}]={}B", num_deallocs, len);
         dealloc_size += len;
         ++num_deallocs;
         // no need to free here

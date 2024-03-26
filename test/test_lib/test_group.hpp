@@ -2,7 +2,7 @@
 #ifndef C4_RYML_TEST_GROUP_HPP_
 #define C4_RYML_TEST_GROUP_HPP_
 
-#include "./test_case.hpp"
+#include "./test_lib/test_case.hpp"
 #include "c4/span.hpp"
 #include <algorithm>
 
@@ -18,6 +18,15 @@
 //#   pragma GCC diagnostic ignored "-Wpragma-system-header-outside-header"
 #endif
 
+#if defined(RYML_WITH_TAB_TOKENS)
+#define _RYML_WITH_TAB_TOKENS(...) __VA_ARGS__
+#define _RYML_WITHOUT_TAB_TOKENS(...)
+#define _RYML_WITH_OR_WITHOUT_TAB_TOKENS(with, without) with
+#else
+#define _RYML_WITH_TAB_TOKENS(...)
+#define _RYML_WITHOUT_TAB_TOKENS(...) __VA_ARGS__
+#define _RYML_WITH_OR_WITHOUT_TAB_TOKENS(with, without) without
+#endif
 
 namespace c4 {
 namespace yml {
@@ -40,10 +49,20 @@ struct YmlTestCase : public ::testing::TestWithParam<csubstr>
 
     void SetUp() override
     {
-        // Code here will be called immediately after the constructor (right
-        // before each test).
+        _show_origin();
+    }
+
+    void TearDown() override
+    {
+        #ifdef RYML_DBG
+        _show_origin();
+        #endif
+    }
+
+    void _show_origin()
+    {
         std::cout << "-------------------------------------------\n";
-        std::cout << "running test case '" << name << "'\n";
+        std::cout << c->filelinebuf << ": " << name << "'\n";
         std::cout << "-------------------------------------------\n";
     }
 
@@ -114,19 +133,43 @@ struct YmlTestCase : public ::testing::TestWithParam<csubstr>
 //-----------------------------------------------------------------------------
 // facilities for declaring test data
 
-using N = CaseNode;
-using L = CaseNode::iseqmap;
+using N = TestCaseNode;
+using L = TestCaseNode::iseqmap;
 using TS = TaggedScalar;
-using TL = CaseNode::TaggedList;
+using TL = TestCaseNode::TaggedList;
 using AR = AnchorRef;
 
-constexpr const NodeType_e QK = (NodeType_e)(VAL | KEYQUO);
-constexpr const NodeType_e QV = (NodeType_e)(VAL | VALQUO);
-constexpr const NodeType_e QKV = (NodeType_e)(VAL | KEYQUO | VALQUO);
+
+constexpr const NodeType_e KP = (KEY|_WIP_KEY_PLAIN);   ///< key, plain scalar
+constexpr const NodeType_e KS = (KEY|_WIP_KEY_SQUO);    ///< key, single-quoted scalar
+constexpr const NodeType_e KD = (KEY|_WIP_KEY_DQUO);    ///< key, double-quoted scalar
+constexpr const NodeType_e KL = (KEY|_WIP_KEY_LITERAL); ///< key, block-literal scalar
+constexpr const NodeType_e KF = (KEY|_WIP_KEY_FOLDED);  ///< key, block-folded scalar
+
+constexpr const NodeType_e VP = (VAL|_WIP_VAL_PLAIN);   ///< val, plain scalar
+constexpr const NodeType_e VS = (VAL|_WIP_VAL_SQUO);    ///< val, single-quoted scalar
+constexpr const NodeType_e VD = (VAL|_WIP_VAL_DQUO);    ///< val, double-quoted scalar
+constexpr const NodeType_e VL = (VAL|_WIP_VAL_LITERAL); ///< val, block-literal scalar
+constexpr const NodeType_e VF = (VAL|_WIP_VAL_FOLDED);  ///< val, block-folded scalar
+
+constexpr const NodeType_e SB = (SEQ|_WIP_STYLE_BLOCK);    ///< sequence, block-style
+constexpr const NodeType_e SFS = (SEQ|_WIP_STYLE_FLOW_SL); ///< sequence, flow-style
+constexpr const NodeType_e SMS = (SEQ|_WIP_STYLE_FLOW_ML); ///< sequence, flow-style
+
+constexpr const NodeType_e MB = (MAP|_WIP_STYLE_BLOCK);    ///< map, flow-style
+constexpr const NodeType_e MFS = (MAP|_WIP_STYLE_FLOW_SL); ///< map, flow-style
+constexpr const NodeType_e MMS = (MAP|_WIP_STYLE_FLOW_ML); ///< map, flow-style
+
+
+constexpr const NodeType_e QK = (VAL | KEYQUO);
+constexpr const NodeType_e QV = (VAL | VALQUO);
+constexpr const NodeType_e QKV = (VAL | KEYQUO | VALQUO);
+
 
 #ifdef __GNUC__
 #if __GNUC__ == 4 && __GNUC_MINOR__ >= 8
-struct CaseAdder {
+struct CaseAdder
+{
     std::vector<Case> *group_cases;
     const csubstr file;
     const int line;
@@ -149,8 +192,10 @@ struct CaseAdder {
 
 #define CASE_GROUP(group_name)                                          \
                                                                         \
+                                                                        \
 /* fwd declaration to fill the container with cases */                  \
 void add_cases_##group_name(std::vector<Case> *group_cases);            \
+                                                                        \
                                                                         \
 /* container with the cases */                                          \
 std::vector<Case> const& get_cases_##group_name()                       \
@@ -160,6 +205,7 @@ std::vector<Case> const& get_cases_##group_name()                       \
         add_cases_##group_name(&cases_##group_name);                    \
     return cases_##group_name;                                          \
 }                                                                       \
+                                                                        \
                                                                         \
 /* container with the case names */                                     \
 std::vector<csubstr> const& get_case_names_##group_name()               \
@@ -173,14 +219,22 @@ std::vector<csubstr> const& get_case_names_##group_name()               \
         std::vector<csubstr> cp = case_names_##group_name;              \
         std::sort(cp.begin(), cp.end());                                \
         for(size_t i = 0; i+1 < cp.size(); ++i)                         \
+        {                                                               \
             if(cp[i] == cp[i+1])                                        \
-                C4_ERROR("duplicate case name: '%.*s'", _c4prsp(cp[i])); \
+            {                                                           \
+                printf("duplicate case name: '%.*s'", (int)cp[i].len, cp[i].str);  \
+                C4_ERROR("duplicate case name: '%.*s'", (int)cp[i].len, cp[i].str);  \
+            }                                                           \
+        }                                                               \
     }                                                                   \
     return case_names_##group_name;                                     \
 }                                                                       \
                                                                         \
+                                                                        \
 INSTANTIATE_TEST_SUITE_P(group_name, YmlTestCase, ::testing::ValuesIn(get_case_names_##group_name())); \
+                                                                        \
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(YmlTestCase);             \
+                                                                        \
                                                                         \
 /* used by the fixture to obtain a case by name */                      \
 Case const* get_case(csubstr name)                                      \
@@ -188,9 +242,11 @@ Case const* get_case(csubstr name)                                      \
     for(Case const& c : get_cases_##group_name())                       \
         if(c.name == name)                                              \
             return &c;                                                  \
-    C4_ERROR("case not found: '%.*s'", _c4prsp(name));                  \
+    printf("case not found: '%.*s'", (int)name.len, name.str);          \
+    C4_ERROR("case not found: '%.*s'", (int)name.len, name.str);        \
     return nullptr;                                                     \
 }                                                                       \
+                                                                        \
                                                                         \
 /* finally, define the cases by calling ADD_CASE_TO_GROUP() */          \
 void add_cases_##group_name(std::vector<Case> *group_cases__)

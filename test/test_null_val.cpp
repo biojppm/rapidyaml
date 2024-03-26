@@ -1,4 +1,4 @@
-#include "./test_group.hpp"
+#include "./test_lib/test_group.hpp"
 #include "c4/error.hpp"
 
 namespace c4 {
@@ -27,26 +27,6 @@ csubstr getafter(csubstr yaml, csubstr pattern)
         EXPECT_TRUE(expr_.which##_is_null());                      \
     } while(0)
 
-
-TEST(null_val, simple)
-{
-    Tree tree = parse_in_arena("{foo: , bar: '', baz: [,,,], bat: [ , , , ], two: [,,], one: [,], empty: []}");
-    _check_null_pointing_at(tree["foo"], val, " ,", tree.arena());
-    ASSERT_EQ(tree["baz"].num_children(), 3u);
-    _check_null_pointing_at(tree["baz"][0], val, "[,,,]", tree.arena());
-    _check_null_pointing_at(tree["baz"][1], val, ",,,]", tree.arena());
-    _check_null_pointing_at(tree["baz"][2], val, ",,]", tree.arena());
-    ASSERT_EQ(tree["bat"].num_children(), 3u);
-    _check_null_pointing_at(tree["bat"][0], val, " , , , ]", tree.arena());
-    _check_null_pointing_at(tree["bat"][1], val, " , , ]", tree.arena());
-    _check_null_pointing_at(tree["bat"][2], val, " , ]", tree.arena());
-    ASSERT_EQ(tree["two"].num_children(), 2u);
-    _check_null_pointing_at(tree["two"][0], val, "[,,]", tree.arena());
-    _check_null_pointing_at(tree["two"][1], val, ",,]", tree.arena());
-    ASSERT_EQ(tree["one"].num_children(), 1u);
-    _check_null_pointing_at(tree["one"][0], val, "[,]", tree.arena());
-    ASSERT_EQ(tree["empty"].num_children(), 0u);
-}
 
 TEST(null_val, block_seq)
 {
@@ -252,8 +232,7 @@ TEST(null_val, issue103)
 
 TEST(null_val, null_key)
 {
-    auto tree = parse_in_arena(R"({null: null})");
-
+    Tree tree = parse_in_arena(R"({null: null})");
     ASSERT_EQ(tree.size(), 2u);
     _check_null_pointing_at(tree[0], key, "null: ", tree.arena());
     _check_null_pointing_at(tree[0], val, "null}", tree.arena());
@@ -278,8 +257,7 @@ map:
   # a comment
   val4:
 )";
-  Parser p;
-  Tree t = p.parse_in_arena("file.yml", yaml);
+  Tree t = parse_in_arena("file.yml", yaml);
   // as expected: (len is null, str is pointing at the value where the node starts)
   EXPECT_EQ(t["seq"][0].val(), "~");
   EXPECT_EQ(t["seq"][1].val(), "null");
@@ -321,25 +299,26 @@ R"(
 - ~: null
 - null: ~
 )",
-L{
-N(VAL, nullptr),
-N(VAL, nullptr),
-N(VAL, "null"),
-N(VAL, "Null"),
-N(VAL, "NULL"),
-N(VAL, "~"),
-N(MAP, L{N(KEYVAL, "null", "null")}),
-N(MAP, L{N(KEYVAL, "Null", "Null")}),
-N(MAP, L{N(KEYVAL, "NULL", "NULL")}),
-N(MAP, L{N(KEYVAL, "~", "~")}),
-N(MAP, L{N(KEYVAL, "~", "null")}),
-N(MAP, L{N(KEYVAL, "null", "~")}),
-});
+N(SB, L{
+N(VP, nullptr),
+N(VP, nullptr),
+N(VP, "null"),
+N(VP, "Null"),
+N(VP, "NULL"),
+N(VP, "~"),
+N(MB, L{N(KP|VP, "null", "null")}),
+N(MB, L{N(KP|VP, "Null", "Null")}),
+N(MB, L{N(KP|VP, "NULL", "NULL")}),
+N(MB, L{N(KP|VP, "~", "~")}),
+N(MB, L{N(KP|VP, "~", "null")}),
+N(MB, L{N(KP|VP, "null", "~")}),
+})
+);
 
 ADD_CASE_TO_GROUP("null map vals, expl",
 R"({foo: , bar: , baz: }
 )",
-L{N(KEYVAL, "foo", nullptr), N(KEYVAL, "bar", nullptr), N(KEYVAL, "baz", nullptr)}
+N(MFS, L{N(KP|VP, "foo", nullptr), N(KP|VP, "bar", nullptr), N(KP|VP, "baz", nullptr)})
 );
 
 ADD_CASE_TO_GROUP("null map vals, impl",
@@ -348,7 +327,7 @@ foo:
 bar: 
 baz: 
 )",
-L{N(KEYVAL, "foo", nullptr), N(KEYVAL, "bar", nullptr), N(KEYVAL, "baz", nullptr)}
+N(MB, L{N(KP|VP, "foo", nullptr), N(KP|VP, "bar", nullptr), N(KP|VP, "baz", nullptr)})
 );
 
 ADD_CASE_TO_GROUP("null seq vals, impl",
@@ -356,7 +335,7 @@ R"(-
 - 
 - 
 )",
-L{N(VAL, nullptr), N(VAL, nullptr), N(VAL, nullptr)}
+N(SB, L{N(VP, nullptr), N(VP, nullptr), N(VP, nullptr)})
 );
 
 ADD_CASE_TO_GROUP("null seq vals in map, impl, mixed 1",
@@ -368,7 +347,7 @@ foo:
 bar: 
 baz: 
 )",
-L{N("foo", L{N(VAL, nullptr), N(VAL, nullptr), N(VAL, nullptr)}), N(KEYVAL, "bar", nullptr), N(KEYVAL, "baz", nullptr)}
+N(MB, L{N(KP|SB, "foo", L{N(VP, nullptr), N(VP, nullptr), N(VP, nullptr)}), N(KP|VP, "bar", nullptr), N(KP|VP, "baz", nullptr)})
 );
 
 ADD_CASE_TO_GROUP("null seq vals in map, impl, mixed 2",
@@ -380,7 +359,7 @@ bar:
   - 
 baz: 
 )",
-L{N(KEYVAL, "foo", nullptr), N("bar", L{N(VAL, nullptr), N(VAL, nullptr), N(VAL, nullptr)}), N(KEYVAL, "baz", nullptr)}
+N(MB, L{N(KP|VP, "foo", nullptr), N(KP|SB, "bar", L{N(VP, nullptr), N(VP, nullptr), N(VP, nullptr)}), N(KP|VP, "baz", nullptr)})
 );
 
 ADD_CASE_TO_GROUP("null seq vals in map, impl, mixed 3",
@@ -392,7 +371,7 @@ baz:
   - 
   - 
 )",
-L{N(KEYVAL, "foo", nullptr), N(KEYVAL, "bar", nullptr), N("baz", L{N(VAL, nullptr), N(VAL, nullptr), N(VAL, nullptr)})}
+N(MB, L{N(KP|VP, "foo", nullptr), N(KP|VP, "bar", nullptr), N(KP|SB, "baz", L{N(VP, nullptr), N(VP, nullptr), N(VP, nullptr)})})
 );
 
 ADD_CASE_TO_GROUP("null map vals in seq, impl, mixed 1",
@@ -403,7 +382,15 @@ R"(
 - 
 - 
 )",
-L{N(L{N(KEYVAL, "foo", nullptr), N(KEYVAL, "bar", nullptr), N(KEYVAL, "baz", nullptr)}), N(VAL, nullptr), N(VAL, nullptr)}
+N(SB, L{
+  N(MB, L{
+    N(KP|VP, "foo", nullptr),
+    N(KP|VP, "bar", nullptr),
+    N(KP|VP, "baz", nullptr)
+  }),
+  N(VP, nullptr),
+  N(VP, nullptr)
+})
 );
 
 ADD_CASE_TO_GROUP("null map vals in seq, impl, mixed 2",
@@ -414,7 +401,15 @@ R"(
   baz: 
 - 
 )",
-L{N(VAL, nullptr), N(L{N(KEYVAL, "foo", nullptr), N(KEYVAL, "bar", nullptr), N(KEYVAL, "baz", nullptr)}), N(VAL, nullptr)}
+N(SB, L{
+  N(VP, nullptr),
+  N(MB, L{
+    N(KP|VP, "foo", nullptr),
+    N(KP|VP, "bar", nullptr),
+    N(KP|VP, "baz", nullptr)
+  }),
+  N(VP, nullptr)
+})
 );
 
 ADD_CASE_TO_GROUP("null map vals in seq, impl, mixed 3",
@@ -425,7 +420,15 @@ R"(
   bar: 
   baz: 
 )",
-L{N(VAL, nullptr), N(VAL, nullptr), N(L{N(KEYVAL, "foo", nullptr), N(KEYVAL, "bar", nullptr), N(KEYVAL, "baz", nullptr)})}
+N(SB, L{
+  N(VP, nullptr),
+  N(VP, nullptr),
+  N(MB, L{
+    N(KP|VP, "foo", nullptr),
+    N(KP|VP, "bar", nullptr),
+    N(KP|VP, "baz", nullptr)
+  }),
+})
 );
 
 ADD_CASE_TO_GROUP("issue84.1",
@@ -438,11 +441,12 @@ your case:
   bar: ''
 whatever: baz
 )",
-L{
-N("fixed case", L{N("foo", "a"), N(KEYVAL, "bar", nullptr)}),
-N("your case", L{N("foo", "a"), N(QV, "bar", "")}),
-N("whatever", "baz"),
-});
+N(MB, L{
+  N(KP|MB, "fixed case", L{N(KP|VP, "foo", "a"), N(KP|VP, "bar", nullptr)}),
+  N(KP|MB, "your case", L{N(KP|VP, "foo", "a"), N(KP|VS, "bar", "")}),
+  N(KP|VP, "whatever", "baz"),
+})
+);
 
 ADD_CASE_TO_GROUP("issue84.2",
 R"(
@@ -461,28 +465,29 @@ param_root:
       IsBurnOutBornIdent: false
       ChangeDropTableName: ''
 )",
-L{
-N("version", "0"),
-N("type", "xml"),
-N("param_root", L{
-    N("objects", L{
-        N("System", L{
-            N(QV, "SameGroupActorName", ""),
-            N("IsGetItemSelf", "false")
-        }),
-        N("General", L{
-            N("Speed", "1.0"),
-            N("Life", "100"),
-            N("IsLifeInfinite", "false"),
-            N("ElectricalDischarge", "1.0"),
-            N("IsBurnOutBorn", "false"),
-            N(KEYVAL, "BurnOutBornName", nullptr),
-            N("IsBurnOutBornIdent", "false"),
-            N(QV, "ChangeDropTableName", ""),
-        }),
-    })
-}),
-});
+N(MB, L{
+  N(KP|VP, "version", "0"),
+  N(KP|VP, "type", "xml"),
+  N(KP|MB, "param_root", L{
+      N(KP|MB, "objects", L{
+          N(KP|MFS, "System", L{
+              N(KP|VS, "SameGroupActorName", ""),
+              N(KP|VP, "IsGetItemSelf", "false")
+          }),
+          N(KP|MB, "General", L{
+              N(KP|VP, "Speed", "1.0"),
+              N(KP|VP, "Life", "100"),
+              N(KP|VP, "IsLifeInfinite", "false"),
+              N(KP|VP, "ElectricalDischarge", "1.0"),
+              N(KP|VP, "IsBurnOutBorn", "false"),
+              N(KP|VP, "BurnOutBornName", nullptr),
+              N(KP|VP, "IsBurnOutBornIdent", "false"),
+              N(KP|VS, "ChangeDropTableName", ""),
+          }),
+      })
+  }),
+})
+);
 
 ADD_CASE_TO_GROUP("issue84.3",
 R"(
@@ -496,20 +501,21 @@ param_root:
       Str64_empty3: ''
   lists: {}
 )",
-L{
-N("version", "10"),
-N("type", "test"),
-N("param_root", L{
-    N("objects", L{
-        N("TestContent", L{
-            N(QV, "Str64_empty", ""),
-            N(KEYVAL, "Str64_empty2", nullptr),
-            N(QV, "Str64_empty3", ""),
-        }),
-    }),
-    N(KEYMAP, "lists", L{})
-}),
-});
+N(MB, L{
+  N(KP|VP, "version", "10"),
+  N(KP|VP, "type", "test"),
+  N(KP|MB, "param_root", L{
+      N(KP|MB, "objects", L{
+          N(KP|MB, "TestContent", L{
+              N(KP|VS, "Str64_empty", ""),
+              N(KP|VP, "Str64_empty2", nullptr),
+              N(KP|VS, "Str64_empty3", ""),
+          }),
+      }),
+      N(KP|MFS, "lists", L{})
+  }),
+})
+);
 
 }
 

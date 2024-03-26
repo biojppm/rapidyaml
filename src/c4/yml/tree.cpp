@@ -1,7 +1,7 @@
 #include "c4/yml/tree.hpp"
 #include "c4/yml/detail/parser_dbg.hpp"
 #include "c4/yml/node.hpp"
-#include "c4/yml/detail/stack.hpp"
+#include "c4/yml/reference_resolver.hpp"
 
 
 C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4296/*expression is always 'boolean_value'*/)
@@ -10,227 +10,6 @@ C4_SUPPRESS_WARNING_GCC("-Wtype-limits")
 
 namespace c4 {
 namespace yml {
-
-
-csubstr normalize_tag(csubstr tag)
-{
-    YamlTag_e t = to_tag(tag);
-    if(t != TAG_NONE)
-        return from_tag(t);
-    if(tag.begins_with("!<"))
-        tag = tag.sub(1);
-    if(tag.begins_with("<!"))
-        return tag;
-    return tag;
-}
-
-csubstr normalize_tag_long(csubstr tag)
-{
-    YamlTag_e t = to_tag(tag);
-    if(t != TAG_NONE)
-        return from_tag_long(t);
-    if(tag.begins_with("!<"))
-        tag = tag.sub(1);
-    if(tag.begins_with("<!"))
-        return tag;
-    return tag;
-}
-
-YamlTag_e to_tag(csubstr tag)
-{
-    if(tag.begins_with("!<"))
-        tag = tag.sub(1);
-    if(tag.begins_with("!!"))
-        tag = tag.sub(2);
-    else if(tag.begins_with('!'))
-        return TAG_NONE;
-    else if(tag.begins_with("tag:yaml.org,2002:"))
-    {
-        RYML_ASSERT(csubstr("tag:yaml.org,2002:").len == 18);
-        tag = tag.sub(18);
-    }
-    else if(tag.begins_with("<tag:yaml.org,2002:"))
-    {
-        RYML_ASSERT(csubstr("<tag:yaml.org,2002:").len == 19);
-        tag = tag.sub(19);
-        if(!tag.len)
-            return TAG_NONE;
-        tag = tag.offs(0, 1);
-    }
-
-    if(tag == "map")
-        return TAG_MAP;
-    else if(tag == "omap")
-        return TAG_OMAP;
-    else if(tag == "pairs")
-        return TAG_PAIRS;
-    else if(tag == "set")
-        return TAG_SET;
-    else if(tag == "seq")
-        return TAG_SEQ;
-    else if(tag == "binary")
-        return TAG_BINARY;
-    else if(tag == "bool")
-        return TAG_BOOL;
-    else if(tag == "float")
-        return TAG_FLOAT;
-    else if(tag == "int")
-        return TAG_INT;
-    else if(tag == "merge")
-        return TAG_MERGE;
-    else if(tag == "null")
-        return TAG_NULL;
-    else if(tag == "str")
-        return TAG_STR;
-    else if(tag == "timestamp")
-        return TAG_TIMESTAMP;
-    else if(tag == "value")
-        return TAG_VALUE;
-
-    return TAG_NONE;
-}
-
-csubstr from_tag_long(YamlTag_e tag)
-{
-    switch(tag)
-    {
-    case TAG_MAP:
-        return {"<tag:yaml.org,2002:map>"};
-    case TAG_OMAP:
-        return {"<tag:yaml.org,2002:omap>"};
-    case TAG_PAIRS:
-        return {"<tag:yaml.org,2002:pairs>"};
-    case TAG_SET:
-        return {"<tag:yaml.org,2002:set>"};
-    case TAG_SEQ:
-        return {"<tag:yaml.org,2002:seq>"};
-    case TAG_BINARY:
-        return {"<tag:yaml.org,2002:binary>"};
-    case TAG_BOOL:
-        return {"<tag:yaml.org,2002:bool>"};
-    case TAG_FLOAT:
-        return {"<tag:yaml.org,2002:float>"};
-    case TAG_INT:
-        return {"<tag:yaml.org,2002:int>"};
-    case TAG_MERGE:
-        return {"<tag:yaml.org,2002:merge>"};
-    case TAG_NULL:
-        return {"<tag:yaml.org,2002:null>"};
-    case TAG_STR:
-        return {"<tag:yaml.org,2002:str>"};
-    case TAG_TIMESTAMP:
-        return {"<tag:yaml.org,2002:timestamp>"};
-    case TAG_VALUE:
-        return {"<tag:yaml.org,2002:value>"};
-    case TAG_YAML:
-        return {"<tag:yaml.org,2002:yaml>"};
-    case TAG_NONE:
-        return {""};
-    }
-    return {""};
-}
-
-csubstr from_tag(YamlTag_e tag)
-{
-    switch(tag)
-    {
-    case TAG_MAP:
-        return {"!!map"};
-    case TAG_OMAP:
-        return {"!!omap"};
-    case TAG_PAIRS:
-        return {"!!pairs"};
-    case TAG_SET:
-        return {"!!set"};
-    case TAG_SEQ:
-        return {"!!seq"};
-    case TAG_BINARY:
-        return {"!!binary"};
-    case TAG_BOOL:
-        return {"!!bool"};
-    case TAG_FLOAT:
-        return {"!!float"};
-    case TAG_INT:
-        return {"!!int"};
-    case TAG_MERGE:
-        return {"!!merge"};
-    case TAG_NULL:
-        return {"!!null"};
-    case TAG_STR:
-        return {"!!str"};
-    case TAG_TIMESTAMP:
-        return {"!!timestamp"};
-    case TAG_VALUE:
-        return {"!!value"};
-    case TAG_YAML:
-        return {"!!yaml"};
-    case TAG_NONE:
-        return {""};
-    }
-    return {""};
-}
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-const char* NodeType::type_str(NodeType_e ty)
-{
-    switch(ty & _TYMASK)
-    {
-    case KEYVAL:
-        return "KEYVAL";
-    case KEY:
-        return "KEY";
-    case VAL:
-        return "VAL";
-    case MAP:
-        return "MAP";
-    case SEQ:
-        return "SEQ";
-    case KEYMAP:
-        return "KEYMAP";
-    case KEYSEQ:
-        return "KEYSEQ";
-    case DOCSEQ:
-        return "DOCSEQ";
-    case DOCMAP:
-        return "DOCMAP";
-    case DOCVAL:
-        return "DOCVAL";
-    case DOC:
-        return "DOC";
-    case STREAM:
-        return "STREAM";
-    case NOTYPE:
-        return "NOTYPE";
-    default:
-        if((ty & KEYVAL) == KEYVAL)
-            return "KEYVAL***";
-        if((ty & KEYMAP) == KEYMAP)
-            return "KEYMAP***";
-        if((ty & KEYSEQ) == KEYSEQ)
-            return "KEYSEQ***";
-        if((ty & DOCSEQ) == DOCSEQ)
-            return "DOCSEQ***";
-        if((ty & DOCMAP) == DOCMAP)
-            return "DOCMAP***";
-        if((ty & DOCVAL) == DOCVAL)
-            return "DOCVAL***";
-        if(ty & KEY)
-            return "KEY***";
-        if(ty & VAL)
-            return "VAL***";
-        if(ty & MAP)
-            return "MAP***";
-        if(ty & SEQ)
-            return "SEQ***";
-        if(ty & DOC)
-            return "DOC***";
-        return "(unk)";
-    }
-}
 
 
 //-----------------------------------------------------------------------------
@@ -396,7 +175,8 @@ void Tree::_copy(Tree const& that)
     _RYML_CB_ASSERT(m_callbacks, m_buf == nullptr);
     _RYML_CB_ASSERT(m_callbacks, m_arena.str == nullptr);
     _RYML_CB_ASSERT(m_callbacks, m_arena.len == 0);
-    m_buf = _RYML_CB_ALLOC_HINT(m_callbacks, NodeData, that.m_cap, that.m_buf);
+    if(that.m_cap)
+        m_buf = _RYML_CB_ALLOC_HINT(m_callbacks, NodeData, that.m_cap, that.m_buf);
     memcpy(m_buf, that.m_buf, that.m_cap * sizeof(NodeData));
     m_cap = that.m_cap;
     m_size = that.m_size;
@@ -1245,20 +1025,24 @@ void Tree::merge_with(Tree const *src, size_t src_node, size_t dst_node)
     if(dst_node == NONE)
         dst_node = root_id();
     _RYML_CB_ASSERT(m_callbacks, src->has_val(src_node) || src->is_seq(src_node) || src->is_map(src_node));
-
     if(src->has_val(src_node))
     {
+        type_bits mask_src = ~_WIP_STYLE; // keep the existing style if it is already a val
         if( ! has_val(dst_node))
         {
             if(has_children(dst_node))
                 remove_children(dst_node);
+            mask_src |= _WIP_VAL_STYLE; // copy the src style
         }
         if(src->is_keyval(src_node))
-            _copy_props(dst_node, src, src_node);
-        else if(src->is_val(src_node))
-            _copy_props_wo_key(dst_node, src, src_node);
+        {
+            _copy_props(dst_node, src, src_node, mask_src);
+        }
         else
-            C4_NEVER_REACH();
+        {
+            _RYML_CB_ASSERT(m_callbacks, src->is_val(src_node));
+            _copy_props_wo_key(dst_node, src, src_node, mask_src);
+        }
     }
     else if(src->is_seq(src_node))
     {
@@ -1271,6 +1055,7 @@ void Tree::merge_with(Tree const *src, size_t src_node, size_t dst_node)
                 to_seq(dst_node, src->key(src_node));
             else
                 to_seq(dst_node);
+            _p(dst_node)->m_type = src->_p(src_node)->m_type;
         }
         for(size_t sch = src->first_child(src_node); sch != NONE; sch = src->next_sibling(sch))
         {
@@ -1279,8 +1064,9 @@ void Tree::merge_with(Tree const *src, size_t src_node, size_t dst_node)
             merge_with(src, sch, dch);
         }
     }
-    else if(src->is_map(src_node))
+    else
     {
+        _RYML_CB_ASSERT(m_callbacks, src->is_map(src_node));
         if( ! is_map(dst_node))
         {
             if(has_children(dst_node))
@@ -1290,6 +1076,7 @@ void Tree::merge_with(Tree const *src, size_t src_node, size_t dst_node)
                 to_map(dst_node, src->key(src_node));
             else
                 to_map(dst_node);
+            _p(dst_node)->m_type = src->_p(src_node)->m_type;
         }
         for(size_t sch = src->first_child(src_node); sch != NONE; sch = src->next_sibling(sch))
         {
@@ -1302,262 +1089,24 @@ void Tree::merge_with(Tree const *src, size_t src_node, size_t dst_node)
             merge_with(src, sch, dch);
         }
     }
-    else
-    {
-        C4_NEVER_REACH();
-    }
 }
 
 
 //-----------------------------------------------------------------------------
 
-namespace detail {
-/** @todo make this part of the public API, refactoring as appropriate
- * to be able to use the same resolver to handle multiple trees (one
- * at a time) */
-struct ReferenceResolver
-{
-    struct refdata
-    {
-        NodeType type;
-        size_t node;
-        size_t prev_anchor;
-        size_t target;
-        size_t parent_ref;
-        size_t parent_ref_sibling;
-    };
-
-    Tree *t;
-    /** from the specs: "an alias node refers to the most recent
-     * node in the serialization having the specified anchor". So
-     * we need to start looking upward from ref nodes.
-     *
-     * @see http://yaml.org/spec/1.2/spec.html#id2765878 */
-    stack<refdata> refs;
-
-    ReferenceResolver(Tree *t_) : t(t_), refs(t_->callbacks())
-    {
-        resolve();
-    }
-
-    void store_anchors_and_refs()
-    {
-        // minimize (re-)allocations by counting first
-        size_t num_anchors_and_refs = count_anchors_and_refs(t->root_id());
-        if(!num_anchors_and_refs)
-            return;
-        refs.reserve(num_anchors_and_refs);
-
-        // now descend through the hierarchy
-        _store_anchors_and_refs(t->root_id());
-
-        // finally connect the reference list
-        size_t prev_anchor = npos;
-        size_t count = 0;
-        for(auto &rd : refs)
-        {
-            rd.prev_anchor = prev_anchor;
-            if(rd.type.is_anchor())
-                prev_anchor = count;
-            ++count;
-        }
-    }
-
-    size_t count_anchors_and_refs(size_t n)
-    {
-        size_t c = 0;
-        c += t->has_key_anchor(n);
-        c += t->has_val_anchor(n);
-        c += t->is_key_ref(n);
-        c += t->is_val_ref(n);
-        for(size_t ch = t->first_child(n); ch != NONE; ch = t->next_sibling(ch))
-            c += count_anchors_and_refs(ch);
-        return c;
-    }
-
-    void _store_anchors_and_refs(size_t n)
-    {
-        if(t->is_key_ref(n) || t->is_val_ref(n) || (t->has_key(n) && t->key(n) == "<<"))
-        {
-            if(t->is_seq(n))
-            {
-                // for merging multiple inheritance targets
-                //   <<: [ *CENTER, *BIG ]
-                for(size_t ich = t->first_child(n); ich != NONE; ich = t->next_sibling(ich))
-                {
-                    RYML_ASSERT(t->num_children(ich) == 0);
-                    refs.push({VALREF, ich, npos, npos, n, t->next_sibling(n)});
-                }
-                return;
-            }
-            if(t->is_key_ref(n) && t->key(n) != "<<") // insert key refs BEFORE inserting val refs
-            {
-                RYML_CHECK((!t->has_key(n)) || t->key(n).ends_with(t->key_ref(n)));
-                refs.push({KEYREF, n, npos, npos, NONE, NONE});
-            }
-            if(t->is_val_ref(n))
-            {
-                RYML_CHECK((!t->has_val(n)) || t->val(n).ends_with(t->val_ref(n)));
-                refs.push({VALREF, n, npos, npos, NONE, NONE});
-            }
-        }
-        if(t->has_key_anchor(n))
-        {
-            RYML_CHECK(t->has_key(n));
-            refs.push({KEYANCH, n, npos, npos, NONE, NONE});
-        }
-        if(t->has_val_anchor(n))
-        {
-            RYML_CHECK(t->has_val(n) || t->is_container(n));
-            refs.push({VALANCH, n, npos, npos, NONE, NONE});
-        }
-        for(size_t ch = t->first_child(n); ch != NONE; ch = t->next_sibling(ch))
-        {
-            _store_anchors_and_refs(ch);
-        }
-    }
-
-    size_t lookup_(refdata *C4_RESTRICT ra)
-    {
-        RYML_ASSERT(ra->type.is_key_ref() || ra->type.is_val_ref());
-        RYML_ASSERT(ra->type.is_key_ref() != ra->type.is_val_ref());
-        csubstr refname;
-        if(ra->type.is_val_ref())
-        {
-            refname = t->val_ref(ra->node);
-        }
-        else
-        {
-            RYML_ASSERT(ra->type.is_key_ref());
-            refname = t->key_ref(ra->node);
-        }
-        while(ra->prev_anchor != npos)
-        {
-            ra = &refs[ra->prev_anchor];
-            if(t->has_anchor(ra->node, refname))
-                return ra->node;
-        }
-
-        #ifndef RYML_ERRMSG_SIZE
-          #define RYML_ERRMSG_SIZE 1024
-        #endif
-
-        char errmsg[RYML_ERRMSG_SIZE];
-        snprintf(errmsg, RYML_ERRMSG_SIZE, "anchor does not exist: '%.*s'",
-                 static_cast<int>(refname.size()), refname.data());
-        c4::yml::error(errmsg);
-        return NONE;
-    }
-
-    void resolve()
-    {
-        store_anchors_and_refs();
-        if(refs.empty())
-            return;
-
-        /* from the specs: "an alias node refers to the most recent
-         * node in the serialization having the specified anchor". So
-         * we need to start looking upward from ref nodes.
-         *
-         * @see http://yaml.org/spec/1.2/spec.html#id2765878 */
-        for(size_t i = 0, e = refs.size(); i < e; ++i)
-        {
-            auto &C4_RESTRICT rd = refs.top(i);
-            if( ! rd.type.is_ref())
-                continue;
-            rd.target = lookup_(&rd);
-        }
-    }
-
-}; // ReferenceResolver
-} // namespace detail
-
 void Tree::resolve()
 {
     if(m_size == 0)
         return;
+    ReferenceResolver rr;
+    resolve(&rr);
+}
 
-    detail::ReferenceResolver rr(this);
-
-    // insert the resolved references
-    size_t prev_parent_ref = NONE;
-    size_t prev_parent_ref_after = NONE;
-    for(auto const& C4_RESTRICT rd : rr.refs)
-    {
-        if( ! rd.type.is_ref())
-            continue;
-        if(rd.parent_ref != NONE)
-        {
-            _RYML_CB_ASSERT(m_callbacks, is_seq(rd.parent_ref));
-            size_t after, p = parent(rd.parent_ref);
-            if(prev_parent_ref != rd.parent_ref)
-            {
-                after = rd.parent_ref;//prev_sibling(rd.parent_ref_sibling);
-                prev_parent_ref_after = after;
-            }
-            else
-            {
-                after = prev_parent_ref_after;
-            }
-            prev_parent_ref = rd.parent_ref;
-            prev_parent_ref_after = duplicate_children_no_rep(rd.target, p, after);
-            remove(rd.node);
-        }
-        else
-        {
-            if(has_key(rd.node) && is_key_ref(rd.node) && key(rd.node) == "<<")
-            {
-                _RYML_CB_ASSERT(m_callbacks, is_keyval(rd.node));
-                size_t p = parent(rd.node);
-                size_t after = prev_sibling(rd.node);
-                duplicate_children_no_rep(rd.target, p, after);
-                remove(rd.node);
-            }
-            else if(rd.type.is_key_ref())
-            {
-                _RYML_CB_ASSERT(m_callbacks, is_key_ref(rd.node));
-                _RYML_CB_ASSERT(m_callbacks, has_key_anchor(rd.target) || has_val_anchor(rd.target));
-                if(has_val_anchor(rd.target) && val_anchor(rd.target) == key_ref(rd.node))
-                {
-                    _RYML_CB_CHECK(m_callbacks, !is_container(rd.target));
-                    _RYML_CB_CHECK(m_callbacks, has_val(rd.target));
-                    _p(rd.node)->m_key.scalar = val(rd.target);
-                    _add_flags(rd.node, KEY);
-                }
-                else
-                {
-                    _RYML_CB_CHECK(m_callbacks, key_anchor(rd.target) == key_ref(rd.node));
-                    _p(rd.node)->m_key.scalar = key(rd.target);
-                    _add_flags(rd.node, VAL);
-                }
-            }
-            else
-            {
-                _RYML_CB_ASSERT(m_callbacks, rd.type.is_val_ref());
-                if(has_key_anchor(rd.target) && key_anchor(rd.target) == val_ref(rd.node))
-                {
-                    _RYML_CB_CHECK(m_callbacks, !is_container(rd.target));
-                    _RYML_CB_CHECK(m_callbacks, has_val(rd.target));
-                    _p(rd.node)->m_val.scalar = key(rd.target);
-                    _add_flags(rd.node, VAL);
-                }
-                else
-                {
-                    duplicate_contents(rd.target, rd.node);
-                }
-            }
-        }
-    }
-
-    // clear anchors and refs
-    for(auto const& C4_RESTRICT ar : rr.refs)
-    {
-        rem_anchor_ref(ar.node);
-        if(ar.parent_ref != NONE)
-            if(type(ar.parent_ref) != NOTYPE)
-                remove(ar.parent_ref);
-    }
-
+void Tree::resolve(ReferenceResolver *C4_RESTRICT rr)
+{
+    if(m_size == 0)
+        return;
+    rr->resolve(this);
 }
 
 //-----------------------------------------------------------------------------
@@ -1727,14 +1276,25 @@ size_t Tree::add_tag_directive(TagDirective const& td)
 {
     _RYML_CB_CHECK(m_callbacks, !td.handle.empty());
     _RYML_CB_CHECK(m_callbacks, !td.prefix.empty());
-    _RYML_CB_ASSERT(m_callbacks, td.handle.begins_with('!'));
-    _RYML_CB_ASSERT(m_callbacks, td.handle.ends_with('!'));
+    _RYML_CB_CHECK(m_callbacks, td.handle.begins_with('!'));
+    _RYML_CB_CHECK(m_callbacks, td.handle.ends_with('!'));
     // https://yaml.org/spec/1.2.2/#rule-ns-word-char
-    _RYML_CB_ASSERT(m_callbacks, td.handle == '!' || td.handle == "!!" || td.handle.trim('!').first_not_of("01234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-") == npos);
+    _RYML_CB_CHECK(m_callbacks, td.handle == '!' || td.handle == "!!" || td.handle.trim('!').first_not_of("01234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-") == npos);
     size_t pos = num_tag_directives();
     _RYML_CB_CHECK(m_callbacks, pos < RYML_MAX_TAG_DIRECTIVES);
     m_tag_directives[pos] = td;
     return pos;
+}
+
+bool Tree::add_tag_directive(csubstr directive_)
+{
+    TagDirective td;
+    if(td.create_from_str(directive_, this))
+    {
+        add_tag_directive(td);
+        return true;
+    }
+    return false;
 }
 
 size_t Tree::resolve_tag(substr output, csubstr tag, size_t node_id) const
@@ -1748,68 +1308,13 @@ size_t Tree::resolve_tag(substr output, csubstr tag, size_t node_id) const
         if(td.handle.empty())
             continue;
         if(tag.begins_with(td.handle) && td.next_node_id <= node_id)
+            return td.transform(tag, output, m_callbacks);
+    }
+    if(tag.begins_with('!'))
+    {
+        if(is_custom_tag(tag))
         {
-            _RYML_CB_ASSERT(m_callbacks, tag.len >= td.handle.len);
-            csubstr rest = tag.sub(td.handle.len);
-            size_t len = 1u + td.prefix.len + rest.len + 1u;
-            size_t numpc = rest.count('%');
-            if(numpc == 0)
-            {
-                if(len <= output.len)
-                {
-                    output.str[0] = '<';
-                    memcpy(1u + output.str, td.prefix.str, td.prefix.len);
-                    memcpy(1u + output.str + td.prefix.len, rest.str, rest.len);
-                    output.str[1u + td.prefix.len + rest.len] = '>';
-                }
-            }
-            else
-            {
-                // need to decode URI % sequences
-                size_t pos = rest.find('%');
-                _RYML_CB_ASSERT(m_callbacks, pos != npos);
-                do {
-                    size_t next = rest.first_not_of("0123456789abcdefABCDEF", pos+1);
-                    if(next == npos)
-                        next = rest.len;
-                    _RYML_CB_CHECK(m_callbacks, pos+1 < next);
-                    _RYML_CB_CHECK(m_callbacks, pos+1 + 2 <= next);
-                    size_t delta = next - (pos+1);
-                    len -= delta;
-                    pos = rest.find('%', pos+1);
-                } while(pos != npos);
-                if(len <= output.len)
-                {
-                    size_t prev = 0, wpos = 0;
-                    auto appendstr = [&](csubstr s) { memcpy(output.str + wpos, s.str, s.len); wpos += s.len; };
-                    auto appendchar = [&](char c) { output.str[wpos++] = c; };
-                    appendchar('<');
-                    appendstr(td.prefix);
-                    pos = rest.find('%');
-                    _RYML_CB_ASSERT(m_callbacks, pos != npos);
-                    do {
-                        size_t next = rest.first_not_of("0123456789abcdefABCDEF", pos+1);
-                        if(next == npos)
-                            next = rest.len;
-                        _RYML_CB_CHECK(m_callbacks, pos+1 < next);
-                        _RYML_CB_CHECK(m_callbacks, pos+1 + 2 <= next);
-                        uint8_t val;
-                        if(C4_UNLIKELY(!read_hex(rest.range(pos+1, next), &val) || val > 127))
-                            _RYML_CB_ERR(m_callbacks, "invalid URI character");
-                        appendstr(rest.range(prev, pos));
-                        appendchar((char)val);
-                        prev = next;
-                        pos = rest.find('%', pos+1);
-                    } while(pos != npos);
-                    _RYML_CB_ASSERT(m_callbacks, pos == npos);
-                    _RYML_CB_ASSERT(m_callbacks, prev > 0);
-                    _RYML_CB_ASSERT(m_callbacks, rest.len >= prev);
-                    appendstr(rest.sub(prev));
-                    appendchar('>');
-                    _RYML_CB_ASSERT(m_callbacks, wpos == len);
-                }
-            }
-            return len;
+            _RYML_CB_ERR(m_callbacks, "tag directive not found");
         }
     }
     return 0; // return 0 to signal that the tag is local and cannot be resolved
@@ -1818,39 +1323,64 @@ size_t Tree::resolve_tag(substr output, csubstr tag, size_t node_id) const
 namespace {
 csubstr _transform_tag(Tree *t, csubstr tag, size_t node)
 {
+    _c4dbgpf("[{}] resolving tag ~~~{}~~~", node, tag);
     size_t required_size = t->resolve_tag(substr{}, tag, node);
     if(!required_size)
+    {
+        if(tag.begins_with("!<"))
+            tag = tag.sub(1);
+        _c4dbgpf("[{}] resolved tag: ~~~{}~~~", node, tag);
         return tag;
-    const char *prev_arena = t->arena().str;
+    }
+    const char *prev_arena = t->arena().str;(void)prev_arena;
     substr buf = t->alloc_arena(required_size);
     _RYML_CB_ASSERT(t->m_callbacks, t->arena().str == prev_arena);
     size_t actual_size = t->resolve_tag(buf, tag, node);
     _RYML_CB_ASSERT(t->m_callbacks, actual_size <= required_size);
+    _c4dbgpf("[{}] resolved tag: ~~~{}~~~", node, buf.first(actual_size));
     return buf.first(actual_size);
 }
 void _resolve_tags(Tree *t, size_t node)
 {
+    NodeData *C4_RESTRICT d = t->_p(node);
+    if(d->m_type & KEYTAG)
+        d->m_key.tag = _transform_tag(t, d->m_key.tag, node);
+    if(d->m_type & VALTAG)
+        d->m_val.tag = _transform_tag(t, d->m_val.tag, node);
     for(size_t child = t->first_child(node); child != NONE; child = t->next_sibling(child))
-    {
-        if(t->has_key(child) && t->has_key_tag(child))
-            t->set_key_tag(child, _transform_tag(t, t->key_tag(child), child));
-        if(t->has_val(child) && t->has_val_tag(child))
-            t->set_val_tag(child, _transform_tag(t, t->val_tag(child), child));
         _resolve_tags(t, child);
-    }
 }
 size_t _count_resolved_tags_size(Tree const* t, size_t node)
 {
     size_t sz = 0;
+    NodeData const* C4_RESTRICT d = t->_p(node);
+    if(d->m_type & KEYTAG)
+        sz += t->resolve_tag(substr{}, d->m_key.tag, node);
+    if(d->m_type & VALTAG)
+        sz += t->resolve_tag(substr{}, d->m_val.tag, node);
     for(size_t child = t->first_child(node); child != NONE; child = t->next_sibling(child))
-    {
-        if(t->has_key(child) && t->has_key_tag(child))
-            sz += t->resolve_tag(substr{}, t->key_tag(child), child);
-        if(t->has_val(child) && t->has_val_tag(child))
-            sz += t->resolve_tag(substr{}, t->val_tag(child), child);
         sz += _count_resolved_tags_size(t, child);
-    }
     return sz;
+}
+void _normalize_tags(Tree *t, size_t node)
+{
+    NodeData *C4_RESTRICT d = t->_p(node);
+    if(d->m_type & KEYTAG)
+        d->m_key.tag = normalize_tag(d->m_key.tag);
+    if(d->m_type & VALTAG)
+        d->m_val.tag = normalize_tag(d->m_val.tag);
+    for(size_t child = t->first_child(node); child != NONE; child = t->next_sibling(child))
+        _normalize_tags(t, child);
+}
+void _normalize_tags_long(Tree *t, size_t node)
+{
+    NodeData *C4_RESTRICT d = t->_p(node);
+    if(d->m_type & KEYTAG)
+        d->m_key.tag = normalize_tag_long(d->m_key.tag);
+    if(d->m_type & VALTAG)
+        d->m_val.tag = normalize_tag_long(d->m_val.tag);
+    for(size_t child = t->first_child(node); child != NONE; child = t->next_sibling(child))
+        _normalize_tags_long(t, child);
 }
 } // namespace
 
@@ -1858,12 +1388,24 @@ void Tree::resolve_tags()
 {
     if(empty())
         return;
-    if(num_tag_directives() == 0)
-        return;
     size_t needed_size = _count_resolved_tags_size(this, root_id());
     if(needed_size)
         reserve_arena(arena_size() + needed_size);
     _resolve_tags(this, root_id());
+}
+
+void Tree::normalize_tags()
+{
+    if(empty())
+        return;
+    _normalize_tags(this, root_id());
+}
+
+void Tree::normalize_tags_long()
+{
+    if(empty())
+        return;
+    _normalize_tags_long(this, root_id());
 }
 
 

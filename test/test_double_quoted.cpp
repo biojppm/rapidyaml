@@ -1,48 +1,435 @@
-#include "./test_group.hpp"
+#include "./test_lib/test_case.hpp"
+#include "./test_lib/test_group.hpp"
+
+C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
+C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
 
 namespace c4 {
 namespace yml {
 
+struct dquoted_case
+{
+    csubstr input, output;
+};
+
+
+// double quoted filtering can result in an output larger than the input.
+// so we ensure adequate test covering by using different sizes.
+// test also cases where the destination string is not large
+// enough to accomodate the filtered string.
+
+/** when filtering from src to dst, specifying the dst sz is enough to
+ * cover the different cases */
+void test_filter_src_dst(csubstr input, csubstr expected, size_t dst_sz)
+{
+    RYML_TRACE_FMT("\nstr=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~\nsz={}", input.len, input, expected.len, expected, dst_sz);
+    // fill the dst buffer with a ref char to ensure there is no
+    // write overflow.
+    const size_t actual_sz = size_t(30) + (dst_sz > expected.len ? dst_sz : expected.len);
+    std::string subject_;
+    subject_.resize(actual_sz);
+    const substr full = to_substr(subject_);
+    // fill the canary region
+    const char refchar = '`';
+    full.sub(dst_sz).fill(refchar);
+    // filter now
+    const substr dst = full.first(dst_sz);
+    Parser::handler_type event_handler = {};
+    Parser proc(&event_handler);
+    FilterResult result = proc.filter_scalar_dquoted(input, dst);
+    // check the result
+    EXPECT_EQ(result.required_len(), expected.len);
+    if(result.valid())
+    {
+        const csubstr out = result.get();
+        RYML_TRACE_FMT("\nout=[{}]~~~{}~~~", out.len, out);
+        RYML_TRACE_FMT("\nout.str=[{}]{}\ndst.str=[{}]{}", out.len,(void const*)out.str, dst.len,(void const*)dst.str);
+        EXPECT_TRUE(out.is_sub(dst));
+        EXPECT_EQ(out, expected);
+        // check the fill character in the canary region
+        EXPECT_GT(full.sub(dst_sz).len, 0u);
+    }
+    EXPECT_EQ(full.sub(dst_sz).first_not_of(refchar), csubstr::npos);
+}
+
+
+void test_filter_inplace(csubstr input, csubstr expected, csubstr leading_input, csubstr leading_expected)
+{
+    // fill the dst buffer with a ref char to ensure there is no
+    // write overflow.
+    const size_t input_sz = leading_input.len + input.len;
+    const size_t expected_sz = leading_expected.len + expected.len;
+    const size_t max_sz = (input_sz > expected_sz ? input_sz : expected_sz);
+    const size_t full_sz = max_sz + size_t(30);
+    std::string expected_(leading_expected.str, leading_expected.len);
+    expected_ += std::string(expected.str, expected.len);
+    RYML_TRACE_FMT("\ninp=[{}]~~~{}~~~\nexp=[{}]~~~{}~~~\nlead=[{}]~~~{}~~~\nlead_exp=[{}]~~~{}~~~\nmax_sz={}", input.len, input, expected.len, expected, leading_input.len, leading_input, leading_expected.len, leading_expected, max_sz);
+    auto run = [&](size_t cap){
+        // create the string
+        std::string subject_(leading_input.str, leading_input.len);
+        subject_.append(input.str, input.len);
+        std::string subject_2 = subject_;
+        subject_.resize(full_sz);
+        // fill the canary region
+        const char refchar = '`';
+        const substr full = to_substr(subject_);
+        full.sub(max_sz).fill(refchar);
+        substr dst = full.first(input_sz);
+        // filter now
+        Parser::handler_type event_handler1 = {};
+        Parser parser1(&event_handler1);
+        FilterResultExtending result = parser1.filter_scalar_dquoted_in_place(dst, cap);
+        Parser::handler_type event_handler2 = {};
+        Parser parser2(&event_handler2);
+        Tree tree = parse_in_arena(&parser2, "file", "# set the tree in the parser");
+        ASSERT_EQ(parser2.m_evt_handler, &event_handler2);
+        parser2.m_evt_handler->m_tree = &tree;
+        csubstr sresult = parser2._filter_scalar_dquot(to_substr(subject_2));
+        EXPECT_GE(result.required_len(), expected_sz);
+        EXPECT_EQ(sresult.len, result.str.len);
+        if(result.valid())
+        {
+            const csubstr out = result.get();
+            EXPECT_EQ(out, expected_);
+            EXPECT_EQ(sresult, expected_);
+            EXPECT_EQ(sresult, out);
+            // check the fill character in the canary region.
+            EXPECT_GT(full.sub(max_sz).len, 0u);
+            EXPECT_EQ(full.first_not_of(refchar, max_sz), csubstr::npos);
+        }
+    };
+    if(input_sz >= expected_sz)
+    {
+        RYML_TRACE_FMT("all good: input_sz={} >= expected_sz={}", input_sz, expected_sz);
+        run(input_sz);
+    }
+    else // input_sz < expected_sz
+    {
+        RYML_TRACE_FMT("expanding: input_sz={} < expected_sz={}", input_sz, expected_sz);
+        {
+            RYML_TRACE_FMT("expanding.1: up to larger expected_sz={}", expected_sz);
+            run(expected_sz);
+        }
+        // there is no room to filter if we pass input_sz as the capacity.
+        {
+            RYML_TRACE_FMT("expanding.2: up to smaller input_sz={}", input_sz);
+            run(input_sz);
+        }
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+
+// some strings cannot be portably declared in double quotes in C++,
+// so we use this helper macro, which creates an char array and
+// associated csubstr.
+#define DECLARE_CSUBSTR_FROM_CHAR_ARR(name, ...) \
+    const char name##_[] = { __VA_ARGS__ }; \
+    csubstr name = {name##_, C4_COUNTOF(name##_)}
+
+C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4566) // 4566: character represented by universal-character-name '\u263A' cannot be represented in the current code page (1252)
+
+DECLARE_CSUBSTR_FROM_CHAR_ARR(dqescparsed,
+         '\\',
+         '"',
+         '\n',
+         '\r',
+         '\t',
+         '\t',
+         '/',
+         ' ',
+         '\0',
+         '\b',
+         '\f',
+         '\a',
+         '\v',
+         INT8_C(0x1b),
+          // \_
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
+         // \N
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
+         // \L
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+         // \P
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+    );
+DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_underscore,
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
+    );
+DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_underscore2,
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
+    );
+DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_underscore3,
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
+    );
+DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_underscore4,
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x60, 0xa0),
+    );
+DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_N,
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
+    );
+DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_N2,
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
+    );
+DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_N3,
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
+    );
+DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_N4,
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
+         _RYML_CHCONST(-0x3e, 0xc2), _RYML_CHCONST(-0x7b, 0x85),
+    );
+DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_L,
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+    );
+DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_L2,
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+    );
+DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_L3,
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+    );
+DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_L4,
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x58, 0xa8),
+    );
+DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_P,
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+    );
+DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_P2,
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+    );
+DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_P3,
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+    );
+DECLARE_CSUBSTR_FROM_CHAR_ARR(dqesc_P4,
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+         _RYML_CHCONST(-0x1e, 0xe2), _RYML_CHCONST(-0x80, 0x80), _RYML_CHCONST(-0x57, 0xa9),
+    );
+
+// declare double quoted test cases
+dquoted_case test_cases_filter[] = {
+    #define dqc(input, ...) dquoted_case{csubstr(input), csubstr(__VA_ARGS__)}
+    // 0
+    dqc("", ""),
+    dqc(" ", " "),
+    dqc("  ", "  "),
+    dqc("   ", "   "),
+    dqc("    ", "    "),
+    // 5
+    dqc("foo", "foo"),
+    dqc("foo bar", "foo bar"),
+    dqc("1 leading\n   \\ttab", "1 leading \ttab"),
+    dqc("2 leading\n    \\	tab", "2 leading \ttab"),
+    dqc("3 leading\n    	tab", "3 leading tab"),
+    // 10
+    dqc("4 leading\n    \\t  tab", "4 leading \t  tab"),
+    dqc("5 leading\n    \\	  tab", "5 leading \t  tab"),
+    dqc("6 leading\n    	  tab", "6 leading tab"),
+    dqc("Empty line\n\n  as a line feed", "Empty line\nas a line feed"),
+    dqc(R"(foo\nbar:baz\tx \\$%^&*()x)", "foo\nbar:baz\tx \\$%^&*()x"),
+    // 15
+    dqc(R"(\)", ""),
+    dqc(R"(\\)", "\\"),
+    dqc(R"(\\\)", "\\"),
+    dqc(R"(\\\\)", "\\\\"),
+    dqc(R"(\\\\\)", "\\\\"),
+    // 20
+    dqc(R"(\	)", "\t"),
+    dqc(R"(\t)", "\t"),
+    dqc(R"(\ )", " "),
+    dqc(R"(\\ )", "\\ "),
+    dqc(R"(\")", "\""),
+    // 25
+    dqc(R"(\"\")", "\"\""),
+    dqc(R"(\n)", "\n"),
+    dqc(R"(\r)", "\r"),
+    dqc(R"(\t)", "\t"),
+    dqc(R"(\0)", "\0"),
+    // 30
+    dqc(R"(\b)", "\b"),
+    dqc(R"(\f)", "\f"),
+    dqc(R"(\a)", "\a"),
+    dqc(R"(\v)", "\v"),
+    dqc(R"(\e)", "\x1b"),
+    // 35
+    dqc(R"(\_)", dqesc_underscore),
+    dqc(R"(\_\_)", dqesc_underscore2),
+    dqc(R"(\_\_\_)", dqesc_underscore3),
+    dqc(R"(\_\_\_\_)", dqesc_underscore4),
+    dqc(R"(\N)", dqesc_N),
+    // 40
+    dqc(R"(\N\N)", dqesc_N2),
+    dqc(R"(\N\N\N)", dqesc_N3),
+    dqc(R"(\N\N\N\N)", dqesc_N4),
+    dqc(R"(\L)", dqesc_L),
+    dqc(R"(\L\L)", dqesc_L2),
+    // 45
+    dqc(R"(\L\L\L)", dqesc_L3),
+    dqc(R"(\L\L\L\L)", dqesc_L4),
+    dqc(R"(\P)", dqesc_P),
+    dqc(R"(\P\P)", dqesc_P2),
+    dqc(R"(\P\P\P)", dqesc_P3),
+    // 50
+    dqc(R"(\P\P\P\P)", dqesc_P4),
+    dqc(R"(\\\"\n\r\t\	\/\ \0\b\f\a\v\e\_\N\L\P)", dqescparsed),
+    dqc(R"(\u263A)", R"(☺)"),
+    dqc(R"(\u263a)", R"(☺)"),
+    dqc(R"(\u2705)", R"(✅)"),
+    // 55
+    dqc(R"(\u2705\u2705)", R"(✅✅)"),
+    dqc(R"(\u2705\u2705\u2705)", R"(✅✅✅)"),
+    dqc(R"(\u2705\u2705\u2705\u2705)", R"(✅✅✅✅)"),
+    dqc(R"(\U0001D11E)", R"(𝄞)"),
+    dqc(R"(\U0001d11e)", R"(𝄞)"),
+    // 60
+    dqc(R"(\U0001d11e\U0001D11E)", R"(𝄞𝄞)"),
+    dqc(R"(\U0001d11e\U0001D11E\U0001D11E)", R"(𝄞𝄞𝄞)"),
+    dqc(R"(\U0001d11e\U0001D11E\U0001D11E\U0001D11E)", R"(𝄞𝄞𝄞𝄞)"),
+    dqc(R"(\u263A\u2705\U0001D11E)", R"(☺✅𝄞)"),
+    dqc(R"(\b1998\t1999\t2000\n)", "\b1998\t1999\t2000\n"),
+    // 65
+    dqc(R"(\x0d\x0a is \r\n)", "\r\n is \r\n"),
+    dqc("\n  foo\n\n    bar\n\n  baz\n", " foo\nbar\nbaz "),
+    dqc(" 1st non-empty\n\n 2nd non-empty \n 3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
+    dqc(" 1st non-empty\n\n 2nd non-empty \n	3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
+    dqc(" 1st non-empty\n\n 2nd non-empty 	\n 	3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
+    // 70
+    dqc(" 1st non-empty\n\n 2nd non-empty	 \n	3rd non-empty ", " 1st non-empty\n2nd non-empty 3rd non-empty "),
+    dqc("\n  ", " "),
+    dqc("  \n  ", " "),
+    dqc("\n\n  ", "\n"),
+    dqc("\n\n\n  ", "\n\n"),
+    // 75
+    dqc("folded \nto a space,	\n \nto a line feed, or 	\\\n \\ 	non-content", "folded to a space,\nto a line feed, or \t \tnon-content"),
+    dqc("folded \nto a space,\n \nto a line feed, or 	\\\n \\ 	non-content", "folded to a space,\nto a line feed, or \t \tnon-content"),
+    //dqc("	\n\ndetected\n\n", "\t\ndetected\n"), // this case cannot be prefixed with anything.
+    dqc(R"(This is a key\nthat has multiple lines\n)", "This is a key\nthat has multiple lines\n"),
+    dqc("This is a key\n\nthat has multiple lines\n\n", "This is a key\nthat has multiple lines\n"),
+    #undef dqc
+};
+C4_SUPPRESS_WARNING_MSVC_POP
+
+
+//-----------------------------------------------------------------------------
+
+TEST(double_quoted_filter, leading_tab)
+{
+}
+
+
+//-----------------------------------------------------------------------------
+
+struct DQuotedFilterSrcDstTest : public ::testing::TestWithParam<dquoted_case>
+{
+};
+
+
+TEST_P(DQuotedFilterSrcDstTest, dst_is_same_size)
+{
+    dquoted_case dqc = GetParam();
+    test_filter_src_dst(dqc.input, dqc.output, /*dst_sz*/dqc.output.len);
+}
+
+TEST_P(DQuotedFilterSrcDstTest, dst_is_larger_size)
+{
+    dquoted_case dqc = GetParam();
+    test_filter_src_dst(dqc.input, dqc.output, /*sz*/dqc.output.len + 2u);
+    test_filter_src_dst(dqc.input, dqc.output, /*sz*/dqc.output.len + 100u);
+}
+
+TEST_P(DQuotedFilterSrcDstTest, dst_is_smaller_size)
+{
+    dquoted_case dqc = GetParam();
+    test_filter_src_dst(dqc.input, dqc.output, /*sz*/dqc.output.len / 2u);
+}
+
+TEST_P(DQuotedFilterSrcDstTest, dst_is_zero_size)
+{
+    dquoted_case dqc = GetParam();
+    test_filter_src_dst(dqc.input, dqc.output, /*sz*/0u);
+}
+
+
+
+struct DQuotedFilterInplaceTest : public ::testing::TestWithParam<dquoted_case>
+{
+};
+
+
+TEST_P(DQuotedFilterInplaceTest, dst_is_same_size)
+{
+    dquoted_case dqc = GetParam();
+    test_filter_inplace(dqc.input, dqc.output, /*leading*/"", /*leading_expected*/"");
+}
+
+TEST_P(DQuotedFilterInplaceTest, dst_is_smaller_size)
+{
+    // test also with an expanding leading string ("\\L" expands from
+    // two to three bytes). This ensures coverage of cases where
+    // expected.len > capacity.
+    dquoted_case dqc = GetParam();
+    test_filter_inplace(dqc.input, dqc.output, /*leading*/"\\L\\L\\L\\L", /*leading_expected*/dqesc_L4);
+}
+
+
+INSTANTIATE_TEST_SUITE_P(double_quoted_filter,
+                         DQuotedFilterSrcDstTest,
+                         testing::ValuesIn(test_cases_filter));
+
+INSTANTIATE_TEST_SUITE_P(double_quoted_filter,
+                         DQuotedFilterInplaceTest,
+                         testing::ValuesIn(test_cases_filter));
+
+
+//-----------------------------------------------------------------------------
+
+TEST(double_quoted, leading_whitespace)
+{
+    csubstr val = "\n \tfoo";
+    std::string emitted;
+    {
+        Tree t = parse_in_arena("\"\"");
+        ASSERT_TRUE(t.rootref().is_val());
+        ASSERT_TRUE(t.rootref().type().val_marked_dquo());
+        t.rootref() = val;
+        emitrs_yaml<std::string>(t, &emitted);
+        _c4dbgpf("emitted: ~~~{}~~~", to_csubstr(emitted));
+    }
+    test_check_emit_check(to_csubstr(emitted), [&](Tree const &t){
+        EXPECT_EQ(t.rootref().val(), val);
+    });
+}
+
 TEST(double_quoted, escaped_chars)
 {
     csubstr yaml = R"("\\\"\n\r\t\	\/\ \0\b\f\a\v\e\_\N\L\P")";
-    // build the string like this because some of the characters are
-    // filtered out under the double quotes
-    std::string expected;
-    expected += '\\';
-    expected += '"';
-    expected += '\n';
-    expected += '\r';
-    expected += '\t';
-    expected += '\t';
-    expected += '/';
-    expected += ' ';
-    expected += '\0';
-    expected += '\b';
-    expected += '\f';
-    expected += '\a';
-    expected += '\v';
-    expected += INT8_C(0x1b); // \e
-    //
-    // wrap explicitly to avoid overflow
-    expected += _RYML_CHCONST(-0x3e, 0xc2); // \_ (1)
-    expected += _RYML_CHCONST(-0x60, 0xa0); // \_ (2)
-    //
-    expected += _RYML_CHCONST(-0x3e, 0xc2); // \N (1)
-    expected += _RYML_CHCONST(-0x7b, 0x85); // \N (2)
-    //
-    expected += _RYML_CHCONST(-0x1e, 0xe2); // \L (1)
-    expected += _RYML_CHCONST(-0x80, 0x80); // \L (2)
-    expected += _RYML_CHCONST(-0x58, 0xa8); // \L (3)
-    //
-    expected += _RYML_CHCONST(-0x1e, 0xe2); // \P (1)
-    expected += _RYML_CHCONST(-0x80, 0x80); // \P (2)
-    expected += _RYML_CHCONST(-0x57, 0xa9); // \P (3)
-    //
     Tree t = parse_in_arena(yaml);
     csubstr v = t.rootref().val();
     std::string actual = {v.str, v.len};
-    EXPECT_EQ(actual, expected);
+    // build the string like this because some of the characters are
+    // filtered out under the double quotes
+    EXPECT_EQ(actual, std::string(dqescparsed.str, dqescparsed.len));
 }
 
 TEST(double_quoted, test_suite_3RLN)
@@ -151,21 +538,36 @@ TEST(double_quoted, test_suite_G4RS)
     csubstr yaml = R"(---
 unicode: "\u263A\u2705\U0001D11E"
 control: "\b1998\t1999\t2000\n"
-#hex esc: "\x0d\x0a is \r\n"
-#---
-#- "\x0d\x0a is \r\n"
-#---
-#{hex esc: "\x0d\x0a is \r\n"}
-#---
-#["\x0d\x0a is \r\n"]
+hex esc: "\x0d\x0a is \r\n"
+---
+- "\x0d\x0a is \r\n"
+---
+{hex esc: "\x0d\x0a is \r\n"}
+---
+["\x0d\x0a is \r\n"]
 )";
     test_check_emit_check(yaml, [](Tree const &t){
         EXPECT_EQ(t.docref(0)["unicode"].val(), csubstr(R"(☺✅𝄞)"));
         EXPECT_EQ(t.docref(0)["control"].val(), csubstr("\b1998\t1999\t2000\n"));
-        //EXPECT_EQ(t.docref(0)["hex esc"].val(), csubstr("\r\n is \r\n")); TODO
-        //EXPECT_EQ(t.docref(1)[0].val(), csubstr("\r\n is \r\n"));
-        //EXPECT_EQ(t.docref(2)[0].val(), csubstr("\r\n is \r\n"));
-        //EXPECT_EQ(t.docref(3)[0].val(), csubstr("\r\n is \r\n"));
+        EXPECT_EQ(t.docref(0)["hex esc"].val(), csubstr("\r\n is \r\n"));
+        EXPECT_EQ(t.docref(1)[0].val(), csubstr("\r\n is \r\n"));
+        EXPECT_EQ(t.docref(2)[0].val(), csubstr("\r\n is \r\n"));
+        EXPECT_EQ(t.docref(3)[0].val(), csubstr("\r\n is \r\n"));
+    });
+}
+
+TEST(double_quoted, test_suite_H2RW_0)
+{
+    std::string yaml = R"("a\n  \nb\n\nc\n\nd\n")";
+    std::string emitted = R"("a\n  \nb\n\nc\n\nd\n"
+)";
+    test_check_emit_check(to_csubstr(yaml), [&](Tree const &t){
+        ASSERT_EQ(t.rootref().val(), csubstr("a\n  \nb\n\nc\n\nd\n"));
+        ASSERT_EQ(emitrs_yaml<std::string>(t), emitted);
+    });
+    test_check_emit_check(to_csubstr(emitted), [&](Tree const &t){
+        ASSERT_EQ(t.rootref().val(), csubstr("a\n  \nb\n\nc\n\nd\n"));
+        ASSERT_EQ(emitrs_yaml<std::string>(t), emitted);
     });
 }
 
@@ -282,6 +684,16 @@ detected
 )";
     test_check_emit_check(yaml, [](Tree const &t){
         EXPECT_EQ(t[0].val(), csubstr("\t\ndetected\n"));
+    });
+}
+
+TEST(double_quoted, test_suite_L24T)
+{
+    csubstr yaml = R"(foo: "x\n \n")";
+    std::string expected = "foo: \"x\\n \\n\"\n";
+    test_check_emit_check(yaml, [&](Tree const &t){
+        EXPECT_EQ(t["foo"].val(), csubstr("x\n \n"));
+        EXPECT_EQ(emitrs_yaml<std::string>(t), expected);
     });
 }
 
@@ -445,37 +857,37 @@ CASE_GROUP(DOUBLE_QUOTED)
 ADD_CASE_TO_GROUP("dquoted, only text",
 R"("Some text without any quotes."
 )",
-  N(DOCVAL | VALQUO, "Some text without any quotes.")
+  N(VD, "Some text without any quotes.")
 );
 
 ADD_CASE_TO_GROUP("dquoted, with single quotes",
 R"("Some text 'with single quotes'")",
-  N(DOCVAL|VALQUO, "Some text 'with single quotes'")
+  N(VD, "Some text 'with single quotes'")
 );
 
 ADD_CASE_TO_GROUP("dquoted, with double quotes",
 R"("Some \"text\" \"with double quotes\"")",
-  N(DOCVAL|VALQUO, "Some \"text\" \"with double quotes\"")
+  N(VD, "Some \"text\" \"with double quotes\"")
 );
 
 ADD_CASE_TO_GROUP("dquoted, with single and double quotes",
 R"("Some text 'with single quotes' \"and double quotes\".")",
-  N(DOCVAL|VALQUO, "Some text 'with single quotes' \"and double quotes\".")
+  N(VD, "Some text 'with single quotes' \"and double quotes\".")
 );
 
 ADD_CASE_TO_GROUP("dquoted, with escapes",
 R"("Some text with escapes \\n \\r \\t")",
-  N(DOCVAL|VALQUO, "Some text with escapes \\n \\r \\t")
+  N(VD, "Some text with escapes \\n \\r \\t")
 );
 
 ADD_CASE_TO_GROUP("dquoted, with newline",
 R"("Some text with\nnewline")",
-  N(DOCVAL|VALQUO, "Some text with\nnewline")
+  N(VD, "Some text with\nnewline")
 );
 
 ADD_CASE_TO_GROUP("dquoted, with tabs",
 R"("\tSome\ttext\twith\ttabs\t")",
-  N(DOCVAL|VALQUO, "\tSome\ttext\twith\ttabs\t")
+  N(VD, "\tSome\ttext\twith\ttabs\t")
 );
 
 ADD_CASE_TO_GROUP("dquoted, with tabs 4ZYM",
@@ -487,9 +899,11 @@ block: |
   text
    	lines
 )",
-  L{N("plain", "text lines"),
-    N(KEYVAL|VALQUO, "quoted", "text lines"),
-    N(KEYVAL|VALQUO,"block", "text\n \tlines\n")}
+N(MB, L{
+  N(KP|VP, "plain", "text lines"),
+  N(KP|VD, "quoted", "text lines"),
+  N(KP|VL, "block", "text\n \tlines\n")
+})
 );
 
 ADD_CASE_TO_GROUP("dquoted, with tabs 7A4E",
@@ -497,7 +911,7 @@ R"(" 1st non-empty
 
  2nd non-empty 
 	3rd non-empty ")",
-  N(DOCVAL|VALQUO, " 1st non-empty\n2nd non-empty 3rd non-empty ")
+  N(VD, " 1st non-empty\n2nd non-empty 3rd non-empty ")
 );
 
 ADD_CASE_TO_GROUP("dquoted, with tabs TL85",
@@ -507,7 +921,7 @@ R"("
   	 bar
 
   baz
-")", N(DOCVAL|VALQUO, " foo\nbar\nbaz "));
+")", N(VD, " foo\nbar\nbaz "));
 
 ADD_CASE_TO_GROUP("dquoted, all",
 R"("Several lines of text,
@@ -519,12 +933,12 @@ aped to prevent them from being converted to a space.
 Newlines can also be added by leaving a blank line.
     Leading whitespace on lines is ignored."
 )",
-  N(DOCVAL|VALQUO, "Several lines of text, containing 'single quotes' and \"double quotes\". Escapes (like \\n) work.\nIn addition, newlines can be escaped to prevent them from being converted to a space.\nNewlines can also be added by leaving a blank line. Leading whitespace on lines is ignored.")
+  N(VD, "Several lines of text, containing 'single quotes' and \"double quotes\". Escapes (like \\n) work.\nIn addition, newlines can be escaped to prevent them from being converted to a space.\nNewlines can also be added by leaving a blank line. Leading whitespace on lines is ignored.")
 );
 
 ADD_CASE_TO_GROUP("dquoted, empty",
 R"("")",
-  N(DOCVAL|VALQUO, "")
+  N(VD, "")
 );
 
 ADD_CASE_TO_GROUP("dquoted, blank",
@@ -535,7 +949,7 @@ R"(
 - "   "
 - "    "
 )",
-  L{N(QV, ""), N(QV, " "), N(QV, "  "), N(QV, "   "), N(QV, "    ")}
+N(SB, L{N(VD, ""), N(VD, " "), N(VD, "  "), N(VD, "   "), N(VD, "    ")})
 );
 
 ADD_CASE_TO_GROUP("dquoted, numbers", // these should not be quoted when emitting
@@ -546,53 +960,53 @@ R"(
 - 1e-2
 - 1e+2
 )",
-  L{N("-1"), N("-1.0"), N("+1.0"), N("1e-2"), N("1e+2")}
+N(SB, L{N(VP, "-1"), N(VP, "-1.0"), N(VP, "+1.0"), N(VP, "1e-2"), N(VP, "1e+2")})
 );
 
 ADD_CASE_TO_GROUP("dquoted, trailing space",
-R"('a aaaa  ')",
-  N(DOCVAL|VALQUO, "a aaaa  ")
+R"("a aaaa  ")",
+  N(VD, "a aaaa  ")
 );
 
 ADD_CASE_TO_GROUP("dquoted, leading space",
-R"('  a aaaa')",
-  N(DOCVAL|VALQUO, "  a aaaa")
+R"("  a aaaa")",
+  N(VD, "  a aaaa")
 );
 
 ADD_CASE_TO_GROUP("dquoted, trailing and leading space",
-R"('  012345  ')",
-  N(DOCVAL|VALQUO, "  012345  ")
+R"("  012345  ")",
+  N(VD, "  012345  ")
 );
 
 ADD_CASE_TO_GROUP("dquoted, 1 dquote",
 R"("\"")",
-  N(DOCVAL|VALQUO, "\"")
+  N(VD, "\"")
 );
 
 ADD_CASE_TO_GROUP("dquoted, 2 dquotes",
 R"("\"\"")",
-  N(DOCVAL|VALQUO, "\"\"")
+  N(VD, "\"\"")
 );
 
 ADD_CASE_TO_GROUP("dquoted, 3 dquotes",
 R"("\"\"\"")",
-  N(DOCVAL|VALQUO, "\"\"\"")
+  N(VD, "\"\"\"")
 );
 
 ADD_CASE_TO_GROUP("dquoted, 4 dquotes",
 R"("\"\"\"\"")",
-  N(DOCVAL|VALQUO, "\"\"\"\"")
+  N(VD, "\"\"\"\"")
 );
 
 ADD_CASE_TO_GROUP("dquoted, 5 dquotes",
 R"("\"\"\"\"\"")",
-  N(DOCVAL|VALQUO, "\"\"\"\"\"")
+  N(VD, "\"\"\"\"\"")
 );
 
 ADD_CASE_TO_GROUP("dquoted, example 2",
 R"("This is a key\nthat has multiple lines\n": and this is its value
 )",
-  L{N(QK, "This is a key\nthat has multiple lines\n", "and this is its value")}
+N(MB, L{N(KD|VP, "This is a key\nthat has multiple lines\n", "and this is its value")})
 );
 
 ADD_CASE_TO_GROUP("dquoted, example 2.1",
@@ -602,9 +1016,11 @@ that has multiple lines
 
 ": and this is its value
 )",
-  L{N(QK, "This is a key\nthat has multiple lines\n", "and this is its value")}
+N(MB, L{N(KD|VP, "This is a key\nthat has multiple lines\n", "and this is its value")})
 );
 }
 
 } // namespace yml
 } // namespace c4
+
+C4_SUPPRESS_WARNING_GCC_CLANG_POP

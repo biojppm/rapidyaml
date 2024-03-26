@@ -1,4 +1,4 @@
-#include "./test_group.hpp"
+#include "./test_lib/test_group.hpp"
 
 namespace c4 {
 namespace yml {
@@ -15,12 +15,12 @@ R"(
 - key 1: value 1
   key 2: value 2
 )",
-  L{
-      N("item 1"),
-      N("item 2"),
-      N(L{N("item 3.1"), N("item 3.2")}),
-      N(L{N("key 1", "value 1"), N("key 2", "value 2")})
-  }
+N(SB, L{
+      N(VP, "item 1"),
+      N(VP, "item 2"),
+      N(SB, L{N(VP, "item 3.1"), N(VP, "item 3.2")}),
+      N(MB, L{N(KP|VP, "key 1", "value 1"), N(KP|VP, "key 2", "value 2")})
+  })
 );
 
 ADD_CASE_TO_GROUP("generic seq v1",
@@ -34,13 +34,14 @@ R"(
   key 1: value 1
   key 2: value 2
 )",
-  L{
-      N("item 1"),
-      N("item 2"),
-      N(L{N("item 3.1"), N("item 3.2")}),
-      N(L{N("key 1", "value 1"), N("key 2", "value 2")})
-  }
+N(SB, L{
+      N(VP, "item 1"),
+      N(VP, "item 2"),
+      N(SB, L{N(VP, "item 3.1"), N(VP, "item 3.2")}),
+      N(MB, L{N(KP|VP, "key 1", "value 1"), N(KP|VP, "key 2", "value 2")})
+  })
 );
+
 }
 
 } // namespace yml

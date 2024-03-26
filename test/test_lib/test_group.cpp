@@ -1,13 +1,12 @@
 #ifndef RYML_SINGLE_HEADER
 #include "c4/yml/detail/print.hpp"
 #endif
-#include "test_group.hpp"
-#include "test_case.hpp"
+#include "test_lib/test_group.hpp"
+#include "test_lib/test_case.hpp"
 #include <c4/fs/fs.hpp>
 #include <fstream>
 #include <stdexcept>
 
-#define RYML_NFO (RYML_DBG || 0)
 
 //-----------------------------------------------------------------------------
 namespace c4 {
@@ -15,10 +14,8 @@ namespace yml {
 
 void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
 {
-    #ifdef RYML_NFO
-    std::cout << "---------------\n";
-    std::cout << c->src;
-    std::cout << "---------------\n";
+    #ifdef RYML_DBG
+    printf("---------------\n%.*s\n---------------\n", (int)c->src.len, c->src.str);
     #endif
 
     if(c->flags & EXPECT_PARSE_ERROR)
@@ -31,8 +28,8 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
             #ifdef RYML_DBG
             // if this point was reached, then it means that the expected
             // error failed to occur. So print debugging info.
-            std::cout << "failed to catch expected error while parsing.\nPARSED TREE:\n";
-            print_tree(cd->parsed_tree);
+            printf("failed to catch expected error while parsing.\n");
+            print_tree("PARSED TREE", cd->parsed_tree);
             #endif
         }, c->expected_location);
         return;
@@ -41,11 +38,9 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
     cd->parsed_tree.clear();
     parse_in_place(c->fileline, cd->src, &cd->parsed_tree);
 
-    #ifdef RYML_NFO
-    std::cout << "REF TREE:\n";
-    print_tree(c->root);
-    std::cout << "PARSED TREE:\n";
-    print_tree(cd->parsed_tree);
+    #ifdef RYML_DBG
+    print_test_tree("REF TREE", c->root);
+    print_tree("PARSED TREE", cd->parsed_tree);
     #endif
 
     {
@@ -60,9 +55,8 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
     if(c->flags & RESOLVE_REFS)
     {
         cd->parsed_tree.resolve();
-        #ifdef RYML_NFO
-        std::cout << "resolved tree!!!\n";
-        print_tree(cd->parsed_tree);
+        #ifdef RYML_DBG
+        print_tree("resolved tree!!!\n", cd->parsed_tree);
         #endif
         {
             SCOPED_TRACE("checking tree invariants of resolved parsed tree");
@@ -84,9 +78,8 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
     if(c->flags & RESOLVE_REFS)
     {
         cd->parsed_tree.reorder();
-        #ifdef RYML_NFO
-        std::cout << "reordered tree!!!\n";
-        print_tree(cd->parsed_tree);
+        #ifdef RYML_DBG
+        print_tree("reordered tree!!!\n", cd->parsed_tree);
         #endif
         {
             SCOPED_TRACE("checking tree invariants of reordered parsed tree after resolving");
@@ -96,7 +89,6 @@ void YmlTestCase::_test_parse_using_ryml(CaseDataLineEndings *cd)
             SCOPED_TRACE("checking node invariants of reordered parsed tree after resolving");
             test_invariants(cd->parsed_tree.rootref());
         }
-
         {
             SCOPED_TRACE("comparing parsed tree to ref tree");
             EXPECT_GE(cd->parsed_tree.capacity(), c->root.reccount());
@@ -267,11 +259,11 @@ void YmlTestCase::_test_emit_yml_string(CaseDataLineEndings *cd)
         return;
     _ensure_parse(cd);
     _ensure_emit(cd);
-    auto em = emitrs_yaml(cd->parsed_tree, &cd->emit_buf);
-    EXPECT_EQ(em.len, cd->emit_buf.size());
-    EXPECT_EQ(em.len, cd->numbytes_stdout);
-    #ifdef RYML_NFO
-    std::cout << em;
+    csubstr emitted = emitrs_yaml(cd->parsed_tree, &cd->emit_buf);
+    EXPECT_EQ(emitted.len, cd->emit_buf.size());
+    EXPECT_EQ(emitted.len, cd->numbytes_stdout);
+    #ifdef RYML_DBG
+    printf("%.*s", (int)emitted.len, emitted.str);
     #endif
 }
 
@@ -284,11 +276,11 @@ void YmlTestCase::_test_emit_json_string(CaseDataLineEndings *cd)
         return;
     _ensure_parse(cd);
     _ensure_emit_json(cd);
-    auto em = emitrs_json(cd->parsed_tree, &cd->emit_buf);
-    EXPECT_EQ(em.len, cd->emitjson_buf.size());
-    EXPECT_EQ(em.len, cd->numbytes_stdout_json);
-    #ifdef RYML_NFO
-    std::cout << em;
+    auto emitted = emitrs_json(cd->parsed_tree, &cd->emit_buf);
+    EXPECT_EQ(emitted.len, cd->emitjson_buf.size());
+    EXPECT_EQ(emitted.len, cd->numbytes_stdout_json);
+    #ifdef RYML_DBG
+    printf("%.*s", (int)emitted.len, emitted.str);
     #endif
 }
 
@@ -370,22 +362,27 @@ void YmlTestCase::_test_complete_round_trip(CaseDataLineEndings *cd)
         return;
     _ensure_parse(cd);
     _ensure_emit(cd);
+    #ifdef RYML_DBG
+    printf("~~~~~~~~~~~~~~ emitted yml:\n");
+    _c4presc(cd->emitted_yml, /*keep_newlines*/true);
+    printf("~~~~~~~~~~~~~~\n");
+    #endif
     {
         SCOPED_TRACE("parsing emitted yml");
         cd->parse_buf = cd->emit_buf;
         cd->parsed_yml = to_substr(cd->parse_buf);
         parse_in_place(c->fileline, cd->parsed_yml, &cd->emitted_tree);
     }
-    #ifdef RYML_NFO
-    std::cout << "~~~~~~~~~~~~~~ src yml:\n";
-    _c4presc(cd->src);
-    std::cout << "~~~~~~~~~~~~~~ parsed tree:\n";
+    #ifdef RYML_DBG
+    printf("~~~~~~~~~~~~~~ src yml:\n");
+    _c4presc(cd->src, /*keep_newlines*/true);
+    printf("~~~~~~~~~~~~~~ parsed tree:\n");
     print_tree(cd->parsed_tree);
-    std::cout << "~~~~~~~~~~~~~~ emitted yml:\n";
-    _c4presc(cd->emitted_yml);
-    std::cout << "~~~~~~~~~~~~~~ emitted tree:\n";
+    printf("~~~~~~~~~~~~~~ emitted yml:\n");
+    _c4presc(cd->emitted_yml, /*keep_newlines*/true);
+    printf("~~~~~~~~~~~~~~ emitted tree:\n");
     print_tree(cd->emitted_tree);
-    std::cout << "~~~~~~~~~~~~~~\n";
+    printf("~~~~~~~~~~~~~~\n");
     #endif
     {
         SCOPED_TRACE("checking node invariants of emitted tree");
@@ -416,7 +413,7 @@ void YmlTestCase::_test_complete_round_trip(CaseDataLineEndings *cd)
         // in this case, we can ignore whether scalars are quoted.
         // Because it can happen that a scalar was quoted in the
         // original file, but the re-emitted data does not quote the
-        // scalars.
+        // scalars. FIXME!
         c->root.compare(cd->emitted_tree.rootref(), true);
     }
 }
@@ -431,22 +428,27 @@ void YmlTestCase::_test_complete_round_trip_json(CaseDataLineEndings *cd)
         return;
     _ensure_parse(cd);
     _ensure_emit_json(cd);
+    #ifdef RYML_DBG
+    printf("~~~~~~~~~~~~~~ emitted json:\n");
+    _c4presc(cd->emitted_json);
+    printf("~~~~~~~~~~~~~~\n");
+    #endif
     {
         SCOPED_TRACE("parsing emitted json");
         cd->parse_buf_json = cd->emitjson_buf;
         cd->parsed_json = to_substr(cd->parse_buf_json);
-        parse_in_place(c->fileline, cd->parsed_json, &cd->emitted_tree_json);
+        parse_json_in_place(c->fileline, cd->parsed_json, &cd->emitted_tree_json);
     }
-    #ifdef RYML_NFO
-    std::cout << "~~~~~~~~~~~~~~ src yml:\n";
+    #ifdef RYML_DBG
+    printf("~~~~~~~~~~~~~~ src yml:\n");
     _c4presc(cd->src);
-    std::cout << "~~~~~~~~~~~~~~ parsed tree:\n";
+    printf("~~~~~~~~~~~~~~ parsed tree:\n");
     print_tree(cd->parsed_tree);
-    std::cout << "~~~~~~~~~~~~~~ emitted json:\n";
+    printf("~~~~~~~~~~~~~~ emitted json:\n");
     _c4presc(cd->emitted_json);
-    std::cout << "~~~~~~~~~~~~~~ emitted json tree:\n";
+    printf("~~~~~~~~~~~~~~ emitted json tree:\n");
     print_tree(cd->emitted_tree_json);
-    std::cout << "~~~~~~~~~~~~~~\n";
+    printf("~~~~~~~~~~~~~~\n");
     #endif
     {
         SCOPED_TRACE("checking node invariants of emitted tree");
@@ -497,10 +499,10 @@ void YmlTestCase::_test_recreate_from_ref(CaseDataLineEndings *cd)
         NodeRef r = cd->recreated.rootref();
         c->root.recreate(&r);
     }
-    #ifdef RYML_NFO
-    std::cout << "REF TREE:\n";
-    print_tree(c->root);
-    std::cout << "RECREATED TREE:\n";
+    #ifdef RYML_DBG
+    printf("REF TREE:\n");
+    print_test_tree(c->root);
+    printf("RECREATED TREE:\n");
     print_tree(cd->recreated);
     #endif
     {
@@ -518,212 +520,213 @@ void YmlTestCase::_test_recreate_from_ref(CaseDataLineEndings *cd)
 }
 
 //-----------------------------------------------------------------------------
+
 TEST_P(YmlTestCase, parse_unix)
 {
-    SCOPED_TRACE("unix style");
+    SCOPED_TRACE("unix style\n" + c->filelinebuf + ": case");
     _test_parse_using_ryml(&d->unix_style);
 }
 
 TEST_P(YmlTestCase, parse_windows)
 {
-    SCOPED_TRACE("windows style");
+    SCOPED_TRACE("windows style\n" + c->filelinebuf + ": case");
     _test_parse_using_ryml(&d->windows_style);
 }
 
 //-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, emit_yml_unix_stdout)
 {
-    SCOPED_TRACE("unix style");
+    SCOPED_TRACE("unix style\n" + c->filelinebuf + ": case");
     _test_emit_yml_stdout(&d->unix_style);
 }
 TEST_P(YmlTestCase, emit_json_unix_stdout)
 {
-    SCOPED_TRACE("unix style json");
+    SCOPED_TRACE("unix style json\n" + c->filelinebuf + ": case");
     _test_emit_json_stdout(&d->unix_style_json);
 }
 
 TEST_P(YmlTestCase, emit_yml_windows_stdout)
 {
-    SCOPED_TRACE("windows style");
+    SCOPED_TRACE("windows style\n" + c->filelinebuf + ": case");
     _test_emit_yml_stdout(&d->windows_style);
 }
 TEST_P(YmlTestCase, emit_json_windows_stdout)
 {
-    SCOPED_TRACE("windows style json");
+    SCOPED_TRACE("windows style json\n" + c->filelinebuf + ": case");
     _test_emit_json_stdout(&d->windows_style_json);
 }
 
 //-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, emit_yml_unix_cout)
 {
-    SCOPED_TRACE("unix style");
+    SCOPED_TRACE("unix style\n" + c->filelinebuf + ": case");
     _test_emit_yml_cout(&d->unix_style);
 }
 TEST_P(YmlTestCase, emit_json_unix_cout)
 {
-    SCOPED_TRACE("unix style json");
+    SCOPED_TRACE("unix style json\n" + c->filelinebuf + ": case");
     _test_emit_json_cout(&d->unix_style_json);
 }
 
 TEST_P(YmlTestCase, emit_yml_windows_cout)
 {
-    SCOPED_TRACE("windows style");
+    SCOPED_TRACE("windows style\n" + c->filelinebuf + ": case");
     _test_emit_yml_cout(&d->windows_style);
 }
 TEST_P(YmlTestCase, emit_json_windows_cout)
 {
-    SCOPED_TRACE("windows style json");
+    SCOPED_TRACE("windows style json\n" + c->filelinebuf + ": case");
     _test_emit_json_cout(&d->windows_style_json);
 }
 
 //-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, emit_yml_unix_stringstream)
 {
-    SCOPED_TRACE("unix style");
+    SCOPED_TRACE("unix style\n" + c->filelinebuf + ": case");
     _test_emit_yml_stringstream(&d->unix_style);
 }
 TEST_P(YmlTestCase, emit_json_unix_stringstream)
 {
-    SCOPED_TRACE("unix style json");
+    SCOPED_TRACE("unix style json\n" + c->filelinebuf + ": case");
     _test_emit_json_stringstream(&d->unix_style_json);
 }
 
 TEST_P(YmlTestCase, emit_yml_windows_stringstream)
 {
-    SCOPED_TRACE("windows style");
+    SCOPED_TRACE("windows style\n" + c->filelinebuf + ": case");
     _test_emit_yml_stringstream(&d->windows_style);
 }
 TEST_P(YmlTestCase, emit_json_windows_stringstream)
 {
-    SCOPED_TRACE("windows style json");
+    SCOPED_TRACE("windows style json\n" + c->filelinebuf + ": case");
     _test_emit_json_stringstream(&d->windows_style_json);
 }
 
 //-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, emit_yml_unix_ofstream)
 {
-    SCOPED_TRACE("unix style");
+    SCOPED_TRACE("unix style\n" + c->filelinebuf + ": case");
     _test_emit_yml_ofstream(&d->unix_style);
 }
 TEST_P(YmlTestCase, emit_json_unix_ofstream)
 {
-    SCOPED_TRACE("unix style json");
+    SCOPED_TRACE("unix style json\n" + c->filelinebuf + ": case");
     _test_emit_json_ofstream(&d->unix_style_json);
 }
 
 TEST_P(YmlTestCase, emit_yml_windows_ofstream)
 {
-    SCOPED_TRACE("windows style");
+    SCOPED_TRACE("windows style\n" + c->filelinebuf + ": case");
     _test_emit_yml_ofstream(&d->windows_style);
 }
 TEST_P(YmlTestCase, emit_json_windows_ofstream)
 {
-    SCOPED_TRACE("windows style json");
+    SCOPED_TRACE("windows style json\n" + c->filelinebuf + ": case");
     _test_emit_json_ofstream(&d->windows_style_json);
 }
 
 //-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, emit_yml_unix_string)
 {
-    SCOPED_TRACE("unix style");
+    SCOPED_TRACE("unix style\n" + c->filelinebuf + ": case");
     _test_emit_yml_string(&d->unix_style);
 }
 TEST_P(YmlTestCase, emit_json_unix_string)
 {
-    SCOPED_TRACE("unix style json");
+    SCOPED_TRACE("unix style json\n" + c->filelinebuf + ": case");
     _test_emit_json_string(&d->unix_style_json);
 }
 
 TEST_P(YmlTestCase, emit_yml_windows_string)
 {
-    SCOPED_TRACE("windows style");
+    SCOPED_TRACE("windows style\n" + c->filelinebuf + ": case");
     _test_emit_yml_string(&d->windows_style);
 }
 TEST_P(YmlTestCase, emit_json_windows_string)
 {
-    SCOPED_TRACE("windows style json");
+    SCOPED_TRACE("windows style json\n" + c->filelinebuf + ": case");
     _test_emit_json_string(&d->windows_style_json);
 }
 
 //-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, unix_emitrs)
 {
-    SCOPED_TRACE("unix style");
+    SCOPED_TRACE("unix style\n" + c->filelinebuf + ": case");
     _test_emitrs(&d->unix_style);
 }
 TEST_P(YmlTestCase, unix_emitrs_json)
 {
-    SCOPED_TRACE("unix style json");
+    SCOPED_TRACE("unix style json\n" + c->filelinebuf + ": case");
     _test_emitrs_json(&d->unix_style_json);
 }
 
 TEST_P(YmlTestCase, windows_emitrs)
 {
-    SCOPED_TRACE("windows style");
+    SCOPED_TRACE("windows style\n" + c->filelinebuf + ": case");
     _test_emitrs(&d->windows_style);
 }
 TEST_P(YmlTestCase, windows_emitrs_json)
 {
-    SCOPED_TRACE("windows style json");
+    SCOPED_TRACE("windows style json\n" + c->filelinebuf + ": case");
     _test_emitrs_json(&d->windows_style_json);
 }
 
 //-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, unix_emitrs_cfile)
 {
-    SCOPED_TRACE("unix style");
+    SCOPED_TRACE("unix style\n" + c->filelinebuf + ": case");
     _test_emitrs_cfile(&d->unix_style);
 }
 TEST_P(YmlTestCase, unix_emitrs_json_cfile)
 {
-    SCOPED_TRACE("unix style json");
+    SCOPED_TRACE("unix style json\n" + c->filelinebuf + ": case");
     _test_emitrs_json_cfile(&d->unix_style_json);
 }
 
 TEST_P(YmlTestCase, windows_emitrs_cfile)
 {
-    SCOPED_TRACE("windows style");
+    SCOPED_TRACE("windows style\n" + c->filelinebuf + ": case");
     _test_emitrs_cfile(&d->windows_style);
 }
 TEST_P(YmlTestCase, windows_emitrs_json_cfile)
 {
-    SCOPED_TRACE("windows style json");
+    SCOPED_TRACE("windows style json\n" + c->filelinebuf + ": case");
     _test_emitrs_json_cfile(&d->windows_style_json);
 }
 
 //-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, complete_unix_round_trip)
 {
-    SCOPED_TRACE("unix style");
+    SCOPED_TRACE("unix style:\n" + c->filelinebuf + ": case");
     _test_complete_round_trip(&d->unix_style);
 }
 TEST_P(YmlTestCase, complete_unix_round_trip_json)
 {
-    SCOPED_TRACE("unix style json");
+    SCOPED_TRACE("unix style json\n" + c->filelinebuf + ": case");
     _test_complete_round_trip_json(&d->unix_style_json);
 }
 
 TEST_P(YmlTestCase, complete_windows_round_trip)
 {
-    SCOPED_TRACE("windows style");
+    SCOPED_TRACE("windows style\n" + c->filelinebuf + ": case");
     _test_complete_round_trip(&d->windows_style);
 }
 TEST_P(YmlTestCase, complete_windows_round_trip_json)
 {
-    SCOPED_TRACE("windows style json");
+    SCOPED_TRACE("windows style json\n" + c->filelinebuf + ": case");
     _test_complete_round_trip_json(&d->windows_style_json);
 }
 
 //-----------------------------------------------------------------------------
 TEST_P(YmlTestCase, unix_recreate_from_ref)
 {
-    SCOPED_TRACE("unix style");
+    SCOPED_TRACE("unix style\n" + c->filelinebuf + ": case");
     _test_recreate_from_ref(&d->unix_style);
 }
 
 TEST_P(YmlTestCase, windows_recreate_from_ref)
 {
-    SCOPED_TRACE("windows style");
+    SCOPED_TRACE("windows style\n" + c->filelinebuf + ": case");
     _test_recreate_from_ref(&d->windows_style);
 }
 

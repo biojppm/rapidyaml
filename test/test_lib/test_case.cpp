@@ -1,4 +1,4 @@
-#include "./test_case.hpp"
+#include "./test_lib/test_case.hpp"
 #ifndef RYML_SINGLE_HEADER
 #include "c4/yml/common.hpp"
 #include "c4/format.hpp"
@@ -9,6 +9,7 @@
 #endif
 
 #include <gtest/gtest.h>
+#include <exception>
 
 #if defined(_MSC_VER)
 #   pragma warning(push)
@@ -22,7 +23,11 @@
 #   if __GNUC__ >= 6
 #       pragma GCC diagnostic ignored "-Wnull-dereference"
 #   endif
+#   if __GNUC__ >= 7
+#       pragma GCC diagnostic ignored "-Wstringop-overflow"
+#   endif
 #endif
+
 
 namespace c4 {
 namespace yml {
@@ -52,34 +57,37 @@ void test_compare(Tree const& actual, size_t node_actual,
      Tree const& expected, size_t node_expected,
      size_t level)
 {
-    #define _MORE_INFO "actual=" << node_actual << " vs expected=" << node_expected
+    RYML_TRACE_FMT("actual={} vs expected={}", node_actual, node_expected);
 
     ASSERT_NE(node_actual, (size_t)NONE);
     ASSERT_NE(node_expected, (size_t)NONE);
     ASSERT_LT(node_actual, actual.capacity());
     ASSERT_LT(node_expected, expected.capacity());
 
-    EXPECT_EQ((type_bits)(actual.type(node_actual)&_TYMASK), (type_bits)(expected.type(node_expected)&_TYMASK)) << _MORE_INFO;
+    NodeType type_actual = actual.type(node_actual)&_TYMASK;
+    NodeType type_expected = expected.type(node_expected)&_TYMASK;
+    RYML_COMPARE_NODE_TYPE(type_actual, type_expected, ==, EQ);
+    //EXPECT_EQ((type_bits)(actual.type(node_actual)&_TYMASK), (type_bits)(expected.type(node_expected)&_TYMASK));
 
-    EXPECT_EQ(actual.has_key(node_actual), expected.has_key(node_expected)) << _MORE_INFO;
+    EXPECT_EQ(actual.has_key(node_actual), expected.has_key(node_expected));
     if(actual.has_key(node_actual) && expected.has_key(node_expected))
     {
-        EXPECT_EQ(actual.key(node_actual), expected.key(node_expected)) << _MORE_INFO;
+        EXPECT_EQ(actual.key(node_actual), expected.key(node_expected));
     }
 
-    EXPECT_EQ(actual.has_val(node_actual), expected.has_val(node_expected)) << _MORE_INFO;
+    EXPECT_EQ(actual.has_val(node_actual), expected.has_val(node_expected));
     if(actual.has_val(node_actual) && expected.has_val(node_expected))
     {
-        EXPECT_EQ(actual.val(node_actual), expected.val(node_expected)) << _MORE_INFO;
+        EXPECT_EQ(actual.val(node_actual), expected.val(node_expected));
     }
 
-    EXPECT_EQ(actual.has_key_tag(node_actual), expected.has_key_tag(node_expected)) << _MORE_INFO;
+    EXPECT_EQ(actual.has_key_tag(node_actual), expected.has_key_tag(node_expected));
     if(actual.has_key_tag(node_actual) && expected.has_key_tag(node_expected))
     {
-        EXPECT_EQ(actual.key_tag(node_actual), expected.key_tag(node_expected)) << _MORE_INFO;
+        EXPECT_EQ(actual.key_tag(node_actual), expected.key_tag(node_expected));
     }
 
-    EXPECT_EQ(actual.has_val_tag(node_actual), expected.has_val_tag(node_expected)) << _MORE_INFO;
+    EXPECT_EQ(actual.has_val_tag(node_actual), expected.has_val_tag(node_expected));
     if(actual.has_val_tag(node_actual) && expected.has_val_tag(node_expected))
     {
         auto filtered = [](csubstr tag) {
@@ -89,30 +97,28 @@ void test_compare(Tree const& actual, size_t node_actual,
         };
         csubstr actual_tag = filtered(actual.val_tag(node_actual));
         csubstr expected_tag = filtered(actual.val_tag(node_expected));
-        EXPECT_EQ(actual_tag, expected_tag) << _MORE_INFO;
+        EXPECT_EQ(actual_tag, expected_tag);
     }
 
-    EXPECT_EQ(actual.has_key_anchor(node_actual), expected.has_key_anchor(node_expected)) << _MORE_INFO;
+    EXPECT_EQ(actual.has_key_anchor(node_actual), expected.has_key_anchor(node_expected));
     if(actual.has_key_anchor(node_actual) && expected.has_key_anchor(node_expected))
     {
-        EXPECT_EQ(actual.key_anchor(node_actual), expected.key_anchor(node_expected)) << _MORE_INFO;
+        EXPECT_EQ(actual.key_anchor(node_actual), expected.key_anchor(node_expected));
     }
 
-    EXPECT_EQ(actual.has_val_anchor(node_actual), expected.has_val_anchor(node_expected)) << _MORE_INFO;
+    EXPECT_EQ(actual.has_val_anchor(node_actual), expected.has_val_anchor(node_expected));
     if(actual.has_val_anchor(node_actual) && expected.has_val_anchor(node_expected))
     {
-        EXPECT_EQ(actual.val_anchor(node_actual), expected.val_anchor(node_expected)) << _MORE_INFO;
+        EXPECT_EQ(actual.val_anchor(node_actual), expected.val_anchor(node_expected));
     }
 
-    EXPECT_EQ(actual.num_children(node_actual), expected.num_children(node_expected)) << _MORE_INFO;
+    EXPECT_EQ(actual.num_children(node_actual), expected.num_children(node_expected));
     for(size_t ia = actual.first_child(node_actual), ib = expected.first_child(node_expected);
         ia != NONE && ib != NONE;
         ia = actual.next_sibling(ia), ib = expected.next_sibling(ib))
     {
         test_compare(actual, ia, expected, ib, level+1);
     }
-
-    #undef _MORE_INFO
 }
 
 void test_arena_not_shared(Tree const& a, Tree const& b)
@@ -163,19 +169,22 @@ std::string format_error(const char* msg, size_t len, Location loc)
     #ifndef RYML_NO_DEFAULT_CALLBACKS
     report_error_impl(msg, len, loc, nullptr);
     #endif
-    if(!loc) return msg;
+    if(!loc)
+        return msg;
     std::string out;
-    if(!loc.name.empty()) c4::formatrs_append(&out, "{}:", loc.name);
+    if(!loc.name.empty())
+        c4::formatrs_append(&out, "{}:", loc.name);
     c4::formatrs_append(&out, "{}:{}:", loc.line, loc.col);
-    if(loc.offset) c4::formatrs_append(&out, " (@{}B):", loc.offset);
+    if(loc.offset)
+        c4::formatrs_append(&out, " (@{}B):", loc.offset);
     c4::formatrs_append(&out, "{}:", csubstr(msg, len));
     return out;
 }
 
-struct ExpectedError : public std::runtime_error
+struct ExpectedError__ : public std::runtime_error
 {
     Location error_location;
-    ExpectedError(const char* msg, size_t len, Location loc)
+    ExpectedError__(const char* msg, size_t len, Location loc)
         : std::runtime_error(format_error(msg, len, loc))
         , error_location(loc)
     {
@@ -193,8 +202,9 @@ ExpectError::ExpectError(Tree *tree, Location loc)
     , expected_location(loc)
 {
     auto err = [](const char* msg, size_t len, Location errloc, void *this_) {
-        ((ExpectError*)this_)->m_got_an_error = true;
-        throw ExpectedError(msg, len, errloc);
+        _c4dbgpf("called error callback! (withlocation={})", bool(errloc));
+        ((ExpectError*)this_)->m_got_an_error = true; // assign in here to ensure the exception was thrown here
+        throw ExpectedError__(msg, len, errloc);
     };
     #ifdef RYML_NO_DEFAULT_CALLBACKS
     c4::yml::Callbacks tcb((void*)this, nullptr, nullptr, err);
@@ -203,6 +213,7 @@ ExpectError::ExpectError(Tree *tree, Location loc)
     c4::yml::Callbacks tcb((void*)this, tree ? m_tree_prev.m_allocate : nullptr, tree ? m_tree_prev.m_free : nullptr, err);
     c4::yml::Callbacks gcb((void*)this, m_glob_prev.m_allocate, m_glob_prev.m_free, err);
     #endif
+    _c4dbgp("setting error callback");
     if(tree)
         tree->callbacks(tcb);
     set_callbacks(gcb);
@@ -213,6 +224,7 @@ ExpectError::~ExpectError()
     if(m_tree)
         m_tree->callbacks(m_tree_prev);
     set_callbacks(m_tree_prev);
+    _c4dbgp("resetting error callback");
 }
 
 void ExpectError::do_check(Tree *tree, std::function<void()> fn, Location expected_location)
@@ -220,19 +232,20 @@ void ExpectError::do_check(Tree *tree, std::function<void()> fn, Location expect
     auto context = ExpectError(tree, expected_location);
     try
     {
+        _c4dbgp("check expected error");
         fn();
+        _c4dbgp("check expected error: failed!");
     }
-    catch(ExpectedError const& e)
+    catch(c4::yml::ExpectedError__ const& e)
     {
-        #if defined(RYML_DBG)
-        std::cout << "---------------\n";
-        std::cout << "got an expected error:\n" << e.what() << "\n";
-        std::cout << "---------------\n";
-        #endif
+        _c4dbgpf("\n---------------\n"
+                 "got an expected error:\n"
+                 "{}\n"
+                 "---------------\n", e.what());
         if(context.expected_location)
         {
-            EXPECT_EQ(static_cast<bool>(context.expected_location),
-                      static_cast<bool>(e.error_location));
+            _c4dbgp("checking expected location...");
+            EXPECT_EQ(static_cast<bool>(e.error_location), static_cast<bool>(context.expected_location));
             EXPECT_EQ(e.error_location.line, context.expected_location.line);
             EXPECT_EQ(e.error_location.col, context.expected_location.col);
             if(context.expected_location.offset)
@@ -240,7 +253,13 @@ void ExpectError::do_check(Tree *tree, std::function<void()> fn, Location expect
                 EXPECT_EQ(e.error_location.offset, context.expected_location.offset);
             }
         }
-    };
+    }
+    catch(...)
+    {
+        _c4dbgp("---------------\n"
+                "got an unexpected exception!\n"
+                "---------------\n");
+    }
     EXPECT_TRUE(context.m_got_an_error);
 }
 
@@ -253,251 +272,6 @@ void ExpectError::check_assertion(Tree *tree, std::function<void()> fn, Location
     C4_UNUSED(fn);
     C4_UNUSED(expected_location);
     #endif
-}
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-using N = CaseNode;
-using L = CaseNode::iseqmap;
-
-TEST(CaseNode, setting_up)
-{
-    L tl1 = {DOC, DOC};
-    L tl2 = {(DOC), (DOC)};
-
-    ASSERT_EQ(tl1.size(), tl2.size());
-    N const& d1 = *tl1.begin();
-    N const& d2 = *(tl1.begin() + 1);
-    ASSERT_EQ(d1.reccount(), d2.reccount());
-    ASSERT_EQ((type_bits)d1.type, (type_bits)DOC);
-    ASSERT_EQ((type_bits)d2.type, (type_bits)DOC);
-
-    N n1(tl1);
-    N n2(tl2);
-    ASSERT_EQ(n1.reccount(), n2.reccount());
-}
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-NodeType_e CaseNode::_guess() const
-{
-    NodeType t;
-    C4_ASSERT(!val.empty() != !children.empty() || (val.empty() && children.empty()));
-    if(children.empty())
-    {
-        C4_ASSERT(parent);
-        if(key.empty())
-        {
-            t = VAL;
-        }
-        else
-        {
-            t = KEYVAL;
-        }
-    }
-    else
-    {
-        NodeType_e has_key = key.empty() ? NOTYPE : KEY;
-        auto const& ch = children.front();
-        if(ch.key.empty())
-        {
-            t = (has_key|SEQ);
-        }
-        else
-        {
-            t = (has_key|MAP);
-        }
-    }
-    if( ! key_tag.empty())
-    {
-        C4_ASSERT( ! key.empty());
-        t.add(KEYTAG);
-    }
-    if( ! val_tag.empty())
-    {
-        C4_ASSERT( ! val.empty() || ! children.empty());
-        t.add(VALTAG);
-    }
-    if( ! key_anchor.str.empty())
-    {
-        t.add(key_anchor.type);
-    }
-    if( ! val_anchor.str.empty())
-    {
-        t.add(val_anchor.type);
-    }
-    return t;
-}
-
-
-//-----------------------------------------------------------------------------
-void CaseNode::compare_child(yml::ConstNodeRef const& n, size_t pos) const
-{
-    EXPECT_TRUE(pos < n.num_children());
-    EXPECT_TRUE(pos < children.size());
-
-    if(pos >= n.num_children() || pos >= children.size()) return;
-
-    ASSERT_GT(n.num_children(), pos);
-    auto const& expectedch = children[pos];
-
-    if(type & MAP)
-    {
-        auto actualch = n.find_child(expectedch.key);
-        if(actualch != nullptr)
-        {
-            // there may be duplicate keys.
-            if(actualch.id() != n[pos].id())
-                actualch = n[pos];
-            //EXPECT_EQ(fch, n[ch.key]);
-            EXPECT_EQ(actualch.get(), n[pos].get());
-            //EXPECT_EQ(n[pos], n[ch.key]);
-            EXPECT_EQ(n[expectedch.key].key(), expectedch.key);
-        }
-        else
-        {
-            printf("error: node should have child %.*s: ", (int)expectedch.key.len, expectedch.key.str);
-            print_path(n);
-            printf("\n");
-            print_node(n);
-            GTEST_FAIL();
-        }
-    }
-
-    if(type & SEQ)
-    {
-        EXPECT_FALSE(n[pos].has_key());
-        EXPECT_EQ(n[pos].get()->m_key.scalar, children[pos].key);
-        auto actualch = n.child(pos);
-        EXPECT_EQ(actualch.get(), n[pos].get());
-    }
-
-    if(expectedch.type & KEY)
-    {
-        auto actualfch = n[pos];
-        EXPECT_TRUE(actualfch.has_key()) << "id=" << actualfch.id();
-        if(actualfch.has_key())
-        {
-            EXPECT_EQ(actualfch.key(), expectedch.key) << "id=" << actualfch.id();
-        }
-
-        if( ! expectedch.key_tag.empty())
-        {
-            EXPECT_TRUE(actualfch.has_key_tag()) << "id=" << actualfch.id();
-            if(actualfch.has_key_tag())
-            {
-                EXPECT_EQ(actualfch.key_tag(), expectedch.key_tag) << "id=" << actualfch.id();
-            }
-        }
-    }
-
-    if(expectedch.type & VAL)
-    {
-        auto actualch = n[pos];
-        EXPECT_TRUE(actualch.has_val()) << "id=" << actualch.id();
-        if(actualch.has_val())
-        {
-            EXPECT_EQ(actualch.val(), expectedch.val) << "id=" << actualch.id();
-        }
-
-        if( ! expectedch.val_tag.empty())
-        {
-            EXPECT_TRUE(actualch.has_val_tag()) << "id=" << actualch.id();
-            if(actualch.has_val_tag())
-            {
-                EXPECT_EQ(actualch.val_tag(), expectedch.val_tag) << "id=" << actualch.id();
-            }
-        }
-    }
-}
-
-void CaseNode::compare(yml::ConstNodeRef const& actual, bool ignore_quote) const
-{
-    if(ignore_quote)
-    {
-        const auto actual_type   = actual.get()->m_type & ~(VALQUO | KEYQUO);
-        const auto expected_type = type & ~(VALQUO | KEYQUO);
-        EXPECT_EQ(expected_type, actual_type) << "id=" << actual.id();
-    }
-    else
-    {
-        EXPECT_EQ((int)actual.get()->m_type, (int)type) << "id=" << actual.id(); // the type() method masks the type, and thus tag flags are omitted on its return value
-    }
-
-    EXPECT_EQ(actual.num_children(), children.size()) << "id=" << actual.id();
-
-    if(actual.has_key())
-    {
-        EXPECT_EQ(actual.key(), key) << "id=" << actual.id();
-    }
-
-    if(actual.has_val())
-    {
-        EXPECT_EQ(actual.val(), val) << "id=" << actual.id();
-    }
-
-    // check that the children are in the same order
-    {
-        EXPECT_EQ(children.size(), actual.num_children()) << "id=" << actual.id();
-
-        size_t ic = 0;
-        for(auto const &expectedch : children)
-        {
-            SCOPED_TRACE("comparing: iteration based on the ref children");
-            (void)expectedch; // unused
-            compare_child(actual, ic++);
-        }
-
-        ic = 0;
-        for(auto const actualch : actual.children())
-        {
-            SCOPED_TRACE("comparing: iteration based on the yml::Node children");
-            (void)actualch; // unused
-            compare_child(actual, ic++);
-        }
-
-        if(actual.first_child() != nullptr)
-        {
-            ic = 0;
-            for(auto const ch : actual.first_child().siblings())
-            {
-                SCOPED_TRACE("comparing: iteration based on the yml::Node siblings");
-                (void)ch; // unused
-                compare_child(actual, ic++);
-            }
-        }
-    }
-
-    for(size_t i = 0, ei = actual.num_children(), j = 0, ej = children.size(); i < ei && j < ej; ++i, ++j)
-    {
-        children[j].compare(actual[i], ignore_quote);
-    }
-}
-
-void CaseNode::recreate(yml::NodeRef *n) const
-{
-    C4_ASSERT( ! n->has_children());
-    auto *nd = n->get();
-    nd->m_type = type|key_anchor.type|val_anchor.type;
-    nd->m_key.scalar = key;
-    nd->m_key.tag = (key_tag);
-    nd->m_key.anchor = key_anchor.str;
-    nd->m_val.scalar = val;
-    nd->m_val.tag = (val_tag);
-    nd->m_val.anchor = val_anchor.str;
-    auto &tree = *n->tree();
-    size_t nid = n->id(); // don't use node from now on
-    for(auto const& ch : children)
-    {
-        size_t id = tree.append_child(nid);
-        NodeRef chn(n->tree(), id);
-        ch.recreate(&chn);
-    }
 }
 
 
@@ -552,7 +326,7 @@ void print_path(ConstNodeRef const& n)
 
 
 
-void print_node(CaseNode const& p, int level)
+void print_test_node(TestCaseNode const& p, int level)
 {
     printf("%*s%p", (2*level), "", (void const*)&p);
     if( ! p.parent)
@@ -562,6 +336,7 @@ void print_node(CaseNode const& p, int level)
     printf(" %s:", NodeType::type_str(p.type));
     if(p.has_key())
     {
+        const char code = _scalar_code_key(p.type);
         if(p.has_key_anchor())
         {
             csubstr ka = p.key_anchor.str;
@@ -570,27 +345,28 @@ void print_node(CaseNode const& p, int level)
         if(p.key_tag.empty())
         {
             csubstr v  = p.key;
-            printf(" '%.*s'", (int)v.len, v.str);
+            printf(" %c%.*s%c", code, (int)v.len, v.str, code);
         }
         else
         {
             csubstr vt = p.key_tag;
             csubstr v  = p.key;
-            printf(" '%.*s %.*s'", (int)vt.len, vt.str, (int)v.len, v.str);
+            printf(" %.*s %c%.*s%c'", (int)vt.len, vt.str, code, (int)v.len, v.str, code);
         }
     }
     if(p.has_val())
     {
+        const char code = _scalar_code_val(p.type);
         if(p.val_tag.empty())
         {
             csubstr v  = p.val;
-            printf(" '%.*s'", (int)v.len, v.str);
+            printf(" %c%.*s%c", code, (int)v.len, v.str, code);
         }
         else
         {
             csubstr vt = p.val_tag;
             csubstr v  = p.val;
-            printf(" '%.*s %.*s'", (int)vt.len, vt.str, (int)v.len, v.str);
+            printf(" %.*s%c%.*s%c", (int)vt.len, vt.str, code, (int)v.len, v.str, code);
         }
     }
     else
@@ -615,114 +391,101 @@ void print_node(CaseNode const& p, int level)
 }
 
 
-void print_tree(ConstNodeRef const& p, int level)
+void print_test_tree(TestCaseNode const& p, int level)
 {
-    print_node(p, level);
-    for(ConstNodeRef ch : p.children())
-    {
-        print_tree(ch, level+1);
-    }
-}
-
-void print_tree(CaseNode const& p, int level)
-{
-    print_node(p, level);
+    print_test_node(p, level);
     for(auto const& ch : p.children)
-        print_tree(ch, level+1);
+        print_test_tree(ch, level+1);
 }
 
-void print_tree(CaseNode const& t)
+void print_test_tree(const char *message, TestCaseNode const& t)
 {
     printf("--------------------------------------\n");
-    print_tree(t, 0);
+    if(message != nullptr)
+        printf("%s:\n", message);
+    print_test_tree(t, 0);
     printf("#nodes: %zd\n", t.reccount());
     printf("--------------------------------------\n");
 }
 
 void test_invariants(ConstNodeRef const& n)
 {
-    #define _MORE_INFO << "id=" << n.id()
-
+    SCOPED_TRACE(n.id());
     if(n.is_root())
     {
-        EXPECT_FALSE(n.has_other_siblings()) _MORE_INFO;
-    }
-    // keys or vals cannot be root
-    if(n.has_key() || n.is_val() || n.is_keyval())
-    {
-        EXPECT_TRUE(!n.is_root() || (n.is_doc() && !n.has_key())) _MORE_INFO;
+        EXPECT_FALSE(n.has_other_siblings());
     }
     // vals cannot be containers
     if( ! n.empty() && ! n.is_doc())
     {
-        EXPECT_NE(n.has_val(), n.is_container()) _MORE_INFO;
+        EXPECT_NE(n.has_val(), n.is_container());
     }
     if(n.has_children())
     {
-        EXPECT_TRUE(n.is_container()) _MORE_INFO;
-        EXPECT_FALSE(n.is_val()) _MORE_INFO;
+        EXPECT_TRUE(n.is_container());
+        EXPECT_FALSE(n.is_val());
     }
     // check parent & sibling reciprocity
     for(ConstNodeRef s : n.siblings())
     {
-        EXPECT_TRUE(n.has_sibling(s)) _MORE_INFO;
-        EXPECT_TRUE(s.has_sibling(n)) _MORE_INFO;
-        EXPECT_EQ(s.parent().get(), n.parent().get()) _MORE_INFO;
+        EXPECT_TRUE(n.has_sibling(s));
+        EXPECT_TRUE(s.has_sibling(n));
+        EXPECT_EQ(s.parent().get(), n.parent().get());
     }
     if(n.parent() != nullptr)
     {
-        EXPECT_EQ(n.parent().num_children() > 1, n.has_other_siblings()) _MORE_INFO;
-        EXPECT_TRUE(n.parent().has_child(n)) _MORE_INFO;
-        EXPECT_EQ(n.parent().num_children(), n.num_siblings()) _MORE_INFO;
+        EXPECT_EQ(n.parent().num_children() > 1, n.has_other_siblings());
+        EXPECT_TRUE(n.parent().has_child(n));
+        EXPECT_EQ(n.parent().num_children(), n.num_siblings());
         // doc parent must be a seq and a stream
         if(n.is_doc())
         {
-            EXPECT_TRUE(n.parent().is_seq()) _MORE_INFO;
-            EXPECT_TRUE(n.parent().is_stream()) _MORE_INFO;
+            EXPECT_TRUE(n.parent().is_seq());
+            EXPECT_TRUE(n.parent().is_stream());
         }
     }
     else
     {
-        EXPECT_TRUE(n.is_root()) _MORE_INFO;
+        EXPECT_TRUE(n.is_root());
     }
     if(n.is_seq())
     {
-        EXPECT_TRUE(n.is_container()) _MORE_INFO;
-        EXPECT_FALSE(n.is_map()) _MORE_INFO;
+        EXPECT_TRUE(n.is_container());
+        EXPECT_FALSE(n.is_map());
         for(ConstNodeRef ch : n.children())
         {
-            EXPECT_FALSE(ch.is_keyval()) _MORE_INFO;
-            EXPECT_FALSE(ch.has_key()) _MORE_INFO;
+            EXPECT_FALSE(ch.is_keyval());
+            EXPECT_FALSE(ch.has_key());
         }
     }
     if(n.is_map())
     {
-        EXPECT_TRUE(n.is_container()) _MORE_INFO;
-        EXPECT_FALSE(n.is_seq()) _MORE_INFO;
+        EXPECT_TRUE(n.is_container());
+        EXPECT_FALSE(n.is_seq());
         for(ConstNodeRef ch : n.children())
         {
-            EXPECT_TRUE(ch.has_key()) _MORE_INFO;
+            EXPECT_TRUE(ch.has_key());
         }
     }
     if(n.has_key_anchor())
     {
-        EXPECT_FALSE(n.key_anchor().empty()) _MORE_INFO;
-        EXPECT_FALSE(n.is_key_ref()) _MORE_INFO;
+        EXPECT_FALSE(n.key_anchor().empty());
+        EXPECT_FALSE(n.is_key_ref());
     }
     if(n.has_val_anchor())
     {
-        EXPECT_FALSE(n.val_anchor().empty()) _MORE_INFO;
-        EXPECT_FALSE(n.is_val_ref()) _MORE_INFO;
+        EXPECT_FALSE(n.val_anchor().empty());
+        EXPECT_FALSE(n.is_val_ref());
     }
     if(n.is_key_ref())
     {
-        EXPECT_FALSE(n.key_ref().empty()) _MORE_INFO;
-        EXPECT_FALSE(n.has_key_anchor()) _MORE_INFO;
+        EXPECT_FALSE(n.key_ref().empty());
+        EXPECT_FALSE(n.has_key_anchor());
     }
     if(n.is_val_ref())
     {
-        EXPECT_FALSE(n.val_ref().empty()) _MORE_INFO;
-        EXPECT_FALSE(n.has_val_anchor()) _MORE_INFO;
+        EXPECT_FALSE(n.val_ref().empty());
+        EXPECT_FALSE(n.has_val_anchor());
     }
     // ... add more tests here
 

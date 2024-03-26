@@ -414,7 +414,7 @@ public:
     template<class T>
     bool get_if(csubstr name, T *var) const
     {
-        auto ch = find_child(name);
+        ConstImpl ch = find_child(name);
         if(!ch.valid())
             return false;
         ch >> *var;
@@ -424,7 +424,7 @@ public:
     template<class T>
     bool get_if(csubstr name, T *var, T const& fallback) const
     {
-        auto ch = find_child(name);
+        ConstImpl ch = find_child(name);
         if(ch.valid())
         {
             ch >> *var;
@@ -768,36 +768,6 @@ public:
     void set_key_ref(csubstr key_ref) { _C4RV(); m_tree->set_key_ref(m_id, key_ref); }
     void set_val_ref(csubstr val_ref) { _C4RV(); m_tree->set_val_ref(m_id, val_ref); }
 
-    template<class T>
-    size_t set_key_serialized(T const& C4_RESTRICT k)
-    {
-        _C4RV();
-        csubstr s = m_tree->to_arena(k);
-        m_tree->_set_key(m_id, s);
-        return s.len;
-    }
-    template<class T>
-    size_t set_val_serialized(T const& C4_RESTRICT v)
-    {
-        _C4RV();
-        csubstr s = m_tree->to_arena(v);
-        m_tree->_set_val(m_id, s);
-        return s.len;
-    }
-    size_t set_val_serialized(std::nullptr_t)
-    {
-        _C4RV();
-        m_tree->_set_val(m_id, csubstr{});
-        return 0;
-    }
-
-    /** encode a blob as base64, then assign the result to the node's key
-     * @return the size of base64-encoded blob */
-    size_t set_key_serialized(fmt::const_base64_wrapper w);
-    /** encode a blob as base64, then assign the result to the node's val
-     * @return the size of base64-encoded blob */
-    size_t set_val_serialized(fmt::const_base64_wrapper w);
-
 public:
 
     inline void clear()
@@ -890,6 +860,43 @@ public:
         _C4RV();
         return m_tree->to_arena(s);
     }
+
+    template<class T>
+    size_t set_key_serialized(T const& C4_RESTRICT k)
+    {
+        _C4RV();
+        csubstr s = m_tree->to_arena(k);
+        m_tree->_set_key(m_id, s);
+        return s.len;
+    }
+    size_t set_key_serialized(std::nullptr_t)
+    {
+        _C4RV();
+        m_tree->_set_key(m_id, csubstr{});
+        return 0;
+    }
+
+    template<class T>
+    size_t set_val_serialized(T const& C4_RESTRICT v)
+    {
+        _C4RV();
+        csubstr s = m_tree->to_arena(v);
+        m_tree->_set_val(m_id, s);
+        return s.len;
+    }
+    size_t set_val_serialized(std::nullptr_t)
+    {
+        _C4RV();
+        m_tree->_set_val(m_id, csubstr{});
+        return 0;
+    }
+
+    /** encode a blob as base64, then assign the result to the node's key
+     * @return the size of base64-encoded blob */
+    size_t set_key_serialized(fmt::const_base64_wrapper w);
+    /** encode a blob as base64, then assign the result to the node's val
+     * @return the size of base64-encoded blob */
+    size_t set_val_serialized(fmt::const_base64_wrapper w);
 
     /** serialize a variable, then assign the result to the node's val */
     inline NodeRef& operator<< (csubstr s)
