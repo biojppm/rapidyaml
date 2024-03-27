@@ -258,7 +258,7 @@ void EventsEmitter::emit_events(size_t node)
     }
     else if(m_tree->is_map(node))
     {
-        pr((m_tree->type(node) & _WIP_CONTAINER_STYLE_FLOW) ? "+MAP {}" : "+MAP");
+        pr((m_tree->type(node) & _WIP_CONTAINER_STYLE_FLOW) ? csubstr("+MAP {}") : csubstr("+MAP"));
         emit_val_anchor_tag(node);
         pr('\n');
         for(size_t child = m_tree->first_child(node); child != NONE; child = m_tree->next_sibling(child))
@@ -267,7 +267,7 @@ void EventsEmitter::emit_events(size_t node)
     }
     else if(m_tree->is_seq(node))
     {
-        pr((m_tree->type(node) & _WIP_CONTAINER_STYLE_FLOW) ? "+SEQ []" : "+SEQ");
+        pr((m_tree->type(node) & _WIP_CONTAINER_STYLE_FLOW) ? csubstr("+SEQ []") : csubstr("+SEQ"));
         emit_val_anchor_tag(node);
         pr('\n');
         for(size_t child = m_tree->first_child(node); child != NONE; child = m_tree->next_sibling(child))

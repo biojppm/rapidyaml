@@ -402,16 +402,22 @@ size_t Tree::_claim()
 C4_SUPPRESS_WARNING_GCC_PUSH
 C4_SUPPRESS_WARNING_CLANG_PUSH
 C4_SUPPRESS_WARNING_CLANG("-Wnull-dereference")
-#if defined(__GNUC__) && (__GNUC__ >= 6)
+#if defined(__GNUC__)
+#if (__GNUC__ >= 6)
 C4_SUPPRESS_WARNING_GCC("-Wnull-dereference")
+#endif
+#if (__GNUC__ > 9)
+C4_SUPPRESS_WARNING_GCC("-Wanalyzer-fd-leak")
+#endif
 #endif
 
 void Tree::_set_hierarchy(size_t ichild, size_t iparent, size_t iprev_sibling)
 {
+    _RYML_CB_ASSERT(m_callbacks, ichild >= 0 && ichild < m_cap);
     _RYML_CB_ASSERT(m_callbacks, iparent == NONE || (iparent >= 0 && iparent < m_cap));
     _RYML_CB_ASSERT(m_callbacks, iprev_sibling == NONE || (iprev_sibling >= 0 && iprev_sibling < m_cap));
 
-    NodeData *C4_RESTRICT child = get(ichild);
+    NodeData *C4_RESTRICT child = _p(ichild);
 
     child->m_parent = iparent;
     child->m_prev_sibling = NONE;
@@ -502,13 +508,6 @@ void Tree::_rem_hierarchy(size_t i)
 }
 
 //-----------------------------------------------------------------------------
-void Tree::reorder()
-{
-    size_t r = root_id();
-    _do_reorder(&r, 0);
-}
-
-//-----------------------------------------------------------------------------
 size_t Tree::_do_reorder(size_t *node, size_t count)
 {
     // swap this node if it's not in place
@@ -528,6 +527,13 @@ size_t Tree::_do_reorder(size_t *node, size_t count)
     }
     return count;
 }
+
+void Tree::reorder()
+{
+    size_t r = root_id();
+    _do_reorder(&r, 0);
+}
+
 
 //-----------------------------------------------------------------------------
 void Tree::_swap(size_t n_, size_t m_)
@@ -1150,6 +1156,9 @@ size_t Tree::child_pos(size_t node, size_t ch) const
 #   pragma GCC diagnostic push
 #   if __GNUC__ >= 6
 #       pragma GCC diagnostic ignored "-Wnull-dereference"
+#   endif
+#   if __GNUC__ > 9
+#       pragma GCC diagnostic ignored "-Wanalyzer-null-dereference"
 #   endif
 #endif
 

@@ -2874,42 +2874,24 @@ void ParseEngine<EventHandler>::_filter_block_folded_newlines(FilterProcessor &C
     _RYML_CB_ASSERT(this->callbacks(), proc.curr() == '\n');
     size_t num_newl = 0;
     size_t wpos_at_first_newl = npos;
-#if 1
-static uint8_t trace[64];
-static uint32_t tracewpos[C4_COUNTOF(trace)];
-uint32_t tracepos = 0;
-#define _trace(id) do { RYML_ASSERT(tracepos < sizeof(trace)); trace[tracepos] = id; tracewpos[tracepos] = (uint32_t)proc.wpos; ++tracepos; } while(0)
-#define _traceshow() do { for(uint32_t i = 0; i < tracepos; ++i) printf("trace[%u/%u]=%u @%u\n", (uint32_t)i, (uint32_t)tracepos, (uint32_t)trace[i], (uint32_t)tracewpos[i]); } while(0)
-#else
-#define _trace(id)
-#define _traceshow()
-#endif
-_trace(0);
     while(proc.has_more_chars(len))
     {
-_trace(1);
         const char curr = proc.curr();
-        //_c4dbgfbf("'{}' sofar=[{}]~~~{}~~~",  _c4prc(curr), proc.wpos, proc.sofar());
+        _c4dbgfbf("'{}' sofar=[{}]~~~{}~~~",  _c4prc(curr), proc.wpos, proc.sofar());
         switch(curr)
         {
         case '\n':
-_trace(2);
-            //_c4dbgfbf("newline. sofar={}", num_newl);
+            _c4dbgfbf("newline. sofar={}", num_newl);
             switch(++num_newl)
             {
             case 1u:
-_trace(21);
-                //_c4dbgfbf("... this is the first newline. turn into space. wpos={}", proc.wpos);
+                _c4dbgfbf("... this is the first newline. turn into space. wpos={}", proc.wpos);
                 wpos_at_first_newl = proc.wpos;
-_trace(210);
                 proc.skip();
-_trace(211);
                 proc.set(' ');
-_trace(212);
                 break;
             case 2u:
-_trace(22);
-                //_c4dbgfbf("... this is the second newline. prev space (at wpos={}) must be newline", wpos_at_first_newl);
+                _c4dbgfbf("... this is the second newline. prev space (at wpos={}) must be newline", wpos_at_first_newl);
                 _RYML_CB_ASSERT(this->callbacks(), wpos_at_first_newl != npos);
                 _RYML_CB_ASSERT(this->callbacks(), proc.sofar()[wpos_at_first_newl] == ' ');
                 _RYML_CB_ASSERT(this->callbacks(), wpos_at_first_newl + 1u == proc.wpos);
@@ -2918,31 +2900,28 @@ _trace(22);
                 _RYML_CB_ASSERT(this->callbacks(), proc.sofar()[wpos_at_first_newl] == '\n');
                 break;
             default:
-_trace(23);
-                //_c4dbgfbf("... subsequent newline (num_newl={}). copy", num_newl);
+                _c4dbgfbf("... subsequent newline (num_newl={}). copy", num_newl);
                 proc.copy();
                 break;
             }
-_trace(24);
             _filter_block_indentation(proc, indentation);
             break;
         case ' ':
         case '\t':
             {
-_trace(3);
                 size_t first = proc.rem().first_not_of(" \t");
-                //_c4dbgfbf("space. first={}", first);
+                _c4dbgfbf("space. first={}", first);
                 if(first == npos)
                     first = proc.rem().len;
-                //_c4dbgfbf("... indentation increased to {}",  first);
+                _c4dbgfbf("... indentation increased to {}",  first);
                 if(num_newl)
                 {
-                    //_c4dbgfbf("... prev space (at wpos={}) must be newline", wpos_at_first_newl);
+                    _c4dbgfbf("... prev space (at wpos={}) must be newline", wpos_at_first_newl);
                     proc.set_at(wpos_at_first_newl, '\n');
                 }
                 if(num_newl > 1u)
                 {
-                    //_c4dbgfbf("... add missing newline", wpos_at_first_newl);
+                    _c4dbgfbf("... add missing newline", wpos_at_first_newl);
                     proc.set('\n');
                 }
                 _filter_block_folded_indented_block(proc, indentation, len, first);
@@ -2951,18 +2930,13 @@ _trace(3);
                 break;
             }
         case '\r':
-_trace(4);
             proc.skip();
             break;
         default:
-_trace(5);
-_traceshow();
-            //_c4dbgfbf("not space, not newline. stop.", 0);
+            _c4dbgfbf("not space, not newline. stop.", 0);
             return;
         }
-_trace(6);
     }
-_traceshow();
 }
 
 

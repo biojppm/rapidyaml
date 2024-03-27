@@ -1,27 +1,28 @@
 #ifndef _C4_YML_EVENT_HANDLER_YAMLSTD_HPP_
 #define _C4_YML_EVENT_HANDLER_YAMLSTD_HPP_
 
+#ifdef RYML_SINGLE_HEADER
+#include <ryml_all.hpp>
+#else
 #ifndef _C4_YML_DETAIL_STACK_HPP_
 #include "c4/yml/detail/stack.hpp"
 #endif
-
 #ifndef _C4_YML_DETAIL_PARSER_DBG_HPP_
 #include "c4/yml/detail/parser_dbg.hpp"
 #endif
-
 #ifndef _C4_YML_PARSER_STATE_HPP_
 #include "c4/yml/parser_state.hpp"
 #endif
-
 #ifndef _C4_YML_TREE_HPP_
 #include "c4/yml/tree.hpp"
 #endif
-
-
-#include <vector>
-#include <string>
+#ifndef _C4_YML_STD_STRING_HPP_
 #include "c4/yml/std/string.hpp"
+#endif
 #include "c4/yml/detail/print.hpp"
+#endif
+#include <vector>
+
 
 namespace c4 {
 namespace yml {

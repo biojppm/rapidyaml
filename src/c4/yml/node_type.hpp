@@ -101,6 +101,7 @@ RYML_EXPORT type_bits scalar_style_choose(csubstr scalar) noexcept;
 /** query whether a scalar can be encoded using single quotes. This is
  * possible, notably when there is leading whitespace after a newline. */
 RYML_EXPORT bool scalar_style_query_squo(csubstr s) noexcept;
+
 /** query whether a scalar can be encoded using plain style (no
  * quotes, not a literal/folded block scalar). */
 RYML_EXPORT bool scalar_style_query_plain(csubstr s) noexcept;

@@ -229,10 +229,15 @@ public:
 
     void _set_parent()
     {
+        C4_SUPPRESS_WARNING_GCC_PUSH
+        #if defined(__GNUC__) && __GNUC__ > 9
+        C4_SUPPRESS_WARNING_GCC("-Wanalyzer-possible-null-dereference")
+        #endif
         for(auto &ch : children)
         {
             ch.parent = this;
         }
+        C4_SUPPRESS_WARNING_GCC_POP
     }
 
     NodeType_e _guess() const;

@@ -71,8 +71,6 @@ c4_add_library(ryml
     INCORPORATE c4core
     )
 
-set_property(TARGET ryml PROPERTY CXX_STANDARD 17) # TO BE REMOVED!!!!!!!
-
 if(RYML_WITH_TAB_TOKENS)
     target_compile_definitions(ryml PUBLIC RYML_WITH_TAB_TOKENS)
 endif()
@@ -83,6 +81,13 @@ endif()
 
 if(RYML_DBG)
     target_compile_definitions(ryml PRIVATE RYML_DBG)
+endif()
+
+if(CMAKE_COMPILER_IS_GNUCXX)
+    option(RYML_FANALYZER "Compile with -fanalyzer https://gcc.gnu.org/onlinedocs/gcc-13.2.0/gcc/Static-Analyzer-Options.html" OFF)
+    if(RYML_FANALYZER)
+        target_compile_options(ryml PUBLIC -fanalyzer)
+    endif()
 endif()
 
 
