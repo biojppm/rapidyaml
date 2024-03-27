@@ -83,7 +83,7 @@ public:
 //-----------------------------------------------------------------------------
 
 template<class EventHandler>
-RYML_EXPORT class RYML_EXPORT ParseEngine
+class ParseEngine
 {
 public:
 

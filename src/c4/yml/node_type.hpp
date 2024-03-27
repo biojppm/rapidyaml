@@ -96,14 +96,14 @@ constexpr C4_ALWAYS_INLINE NodeType_e operator~(NodeType_e bits) noexcept { retu
 //-----------------------------------------------------------------------------
 
 /** choose a style based on the scalar's contents */
-type_bits scalar_style_choose(csubstr scalar) noexcept;
+RYML_EXPORT type_bits scalar_style_choose(csubstr scalar) noexcept;
 
 /** query whether a scalar can be encoded using single quotes. This is
  * possible, notably when there is leading whitespace after a newline. */
-bool scalar_style_query_squo(csubstr s) noexcept;
+RYML_EXPORT bool scalar_style_query_squo(csubstr s) noexcept;
 /** query whether a scalar can be encoded using plain style (no
  * quotes, not a literal/folded block scalar). */
-bool scalar_style_query_plain(csubstr s) noexcept;
+RYML_EXPORT bool scalar_style_query_plain(csubstr s) noexcept;
 
 
 //-----------------------------------------------------------------------------
@@ -111,7 +111,7 @@ bool scalar_style_query_plain(csubstr s) noexcept;
 //-----------------------------------------------------------------------------
 
 /** wraps a NodeType_e element with some syntactic sugar and predicates */
-struct NodeType
+struct RYML_EXPORT NodeType
 {
 public:
 

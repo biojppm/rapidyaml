@@ -8,14 +8,14 @@
 namespace c4 {
 namespace yml {
 
-struct EventHandlerTree;
-template<class EventHandler> class ParseEngine;
-class NodeRef;
 class Tree;
+class NodeRef;
+template<class EventHandler> class ParseEngine;
+struct EventHandlerTree;
 
 /** This is the main parser, where the parser events are handled to
  * create a ryml tree. */
-using Parser = ParseEngine<EventHandlerTree>;
+using Parser = RYML_EXPORT ParseEngine<EventHandlerTree>;
 
 
 //-----------------------------------------------------------------------------
@@ -34,39 +34,39 @@ using Parser = ParseEngine<EventHandlerTree>;
  * @{
  */
 
-void parse_in_place(Parser *parser, csubstr filename, substr yaml, Tree *t, size_t node_id); /**< (1) parse YAML into an existing tree node.
-                                                                                              *
-                                                                                              * The filename will be used in any error messages
-                                                                                              * arising during the parse. The callbacks in the
-                                                                                              * tree are kept, and used to allocate
-                                                                                              * the tree members, if any allocation is required. */
-void parse_in_place(Parser *parser,                   substr yaml, Tree *t, size_t node_id); /**< (2) like (1) but no filename will be reported */
-void parse_in_place(Parser *parser, csubstr filename, substr yaml, Tree *t                ); /**< (3) parse YAML into an existing tree, into its root node.
-                                                                                              *
-                                                                                              * The filename will be used in any error messages
-                                                                                              * arising during the parse. The callbacks in the
-                                                                                              * tree are kept, and used to allocate
-                                                                                              * the tree members, if any allocation is required. */
-void parse_in_place(Parser *parser,                   substr yaml, Tree *t                ); /**< (4) like (3) but no filename will be reported */
-void parse_in_place(Parser *parser, csubstr filename, substr yaml, NodeRef node           ); /**< (5) like (1) but the node is given as a NodeRef */
-void parse_in_place(Parser *parser,                   substr yaml, NodeRef node           ); /**< (6) like (5) but no filename will be reported */
-Tree parse_in_place(Parser *parser, csubstr filename, substr yaml                         ); /**< (7) create a new tree, and parse YAML into its root node.
-                                                                                              *
-                                                                                              * The filename will be used in any error messages
-                                                                                              * arising during the parse. The tree is created with
-                                                                                              * the callbacks currently in the parser.
-                                                                                              */
-Tree parse_in_place(Parser *parser,                   substr yaml                         ); /**< (8) like (7) but no filename will be reported */
+RYML_EXPORT void parse_in_place(Parser *parser, csubstr filename, substr yaml, Tree *t, size_t node_id); /**< (1) parse YAML into an existing tree node.
+                                                                                                          *
+                                                                                                          * The filename will be used in any error messages
+                                                                                                          * arising during the parse. The callbacks in the
+                                                                                                          * tree are kept, and used to allocate
+                                                                                                          * the tree members, if any allocation is required. */
+RYML_EXPORT void parse_in_place(Parser *parser,                   substr yaml, Tree *t, size_t node_id); /**< (2) like (1) but no filename will be reported */
+RYML_EXPORT void parse_in_place(Parser *parser, csubstr filename, substr yaml, Tree *t                ); /**< (3) parse YAML into an existing tree, into its root node.
+                                                                                                          *
+                                                                                                          * The filename will be used in any error messages
+                                                                                                          * arising during the parse. The callbacks in the
+                                                                                                          * tree are kept, and used to allocate
+                                                                                                          * the tree members, if any allocation is required. */
+RYML_EXPORT void parse_in_place(Parser *parser,                   substr yaml, Tree *t                ); /**< (4) like (3) but no filename will be reported */
+RYML_EXPORT void parse_in_place(Parser *parser, csubstr filename, substr yaml, NodeRef node           ); /**< (5) like (1) but the node is given as a NodeRef */
+RYML_EXPORT void parse_in_place(Parser *parser,                   substr yaml, NodeRef node           ); /**< (6) like (5) but no filename will be reported */
+RYML_EXPORT Tree parse_in_place(Parser *parser, csubstr filename, substr yaml                         ); /**< (7) create a new tree, and parse YAML into its root node.
+                                                                                                          *
+                                                                                                          * The filename will be used in any error messages
+                                                                                                          * arising during the parse. The tree is created with
+                                                                                                          * the callbacks currently in the parser.
+                                                                                                          */
+RYML_EXPORT Tree parse_in_place(Parser *parser,                   substr yaml                         ); /**< (8) like (7) but no filename will be reported */
 
 
-void parse_json_in_place(Parser *parser, csubstr filename, substr json, Tree *t, size_t node_id); ///< (1) parse JSON into an existing tree node. The filename will be used in any error messages arising during the parse.
-void parse_json_in_place(Parser *parser,                   substr json, Tree *t, size_t node_id); ///< (2) like (1) but no filename will be reported
-void parse_json_in_place(Parser *parser, csubstr filename, substr json, Tree *t                ); ///< (3) parse JSON into an existing tree, into its root node.
-void parse_json_in_place(Parser *parser,                   substr json, Tree *t                ); ///< (4) like (3) but no filename will be reported
-void parse_json_in_place(Parser *parser, csubstr filename, substr json, NodeRef node           ); ///< (5) like (1) but the node is given as a NodeRef
-void parse_json_in_place(Parser *parser,                   substr json, NodeRef node           ); ///< (6) like (5) but no filename will be reported
-Tree parse_json_in_place(Parser *parser, csubstr filename, substr json                         ); ///< (7) create a new tree, and parse JSON into its root node.
-Tree parse_json_in_place(Parser *parser,                   substr json                         ); ///< (8) like (7) but no filename will be reported
+RYML_EXPORT void parse_json_in_place(Parser *parser, csubstr filename, substr json, Tree *t, size_t node_id); ///< (1) parse JSON into an existing tree node. The filename will be used in any error messages arising during the parse.
+RYML_EXPORT void parse_json_in_place(Parser *parser,                   substr json, Tree *t, size_t node_id); ///< (2) like (1) but no filename will be reported
+RYML_EXPORT void parse_json_in_place(Parser *parser, csubstr filename, substr json, Tree *t                ); ///< (3) parse JSON into an existing tree, into its root node.
+RYML_EXPORT void parse_json_in_place(Parser *parser,                   substr json, Tree *t                ); ///< (4) like (3) but no filename will be reported
+RYML_EXPORT void parse_json_in_place(Parser *parser, csubstr filename, substr json, NodeRef node           ); ///< (5) like (1) but the node is given as a NodeRef
+RYML_EXPORT void parse_json_in_place(Parser *parser,                   substr json, NodeRef node           ); ///< (6) like (5) but no filename will be reported
+RYML_EXPORT Tree parse_json_in_place(Parser *parser, csubstr filename, substr json                         ); ///< (7) create a new tree, and parse JSON into its root node.
+RYML_EXPORT Tree parse_json_in_place(Parser *parser,                   substr json                         ); ///< (8) like (7) but no filename will be reported
 
 /** @} */
 
@@ -90,23 +90,23 @@ Tree parse_json_in_place(Parser *parser,                   substr json          
  * @{
  */
 
-void parse_in_place(csubstr filename, substr yaml, Tree *t, size_t node_id); ///< (1) parse YAML into an existing tree node. The filename will be used in any error messages arising during the parse.
-void parse_in_place(                  substr yaml, Tree *t, size_t node_id); ///< (2) like (1) but no filename will be reported
-void parse_in_place(csubstr filename, substr yaml, Tree *t                ); ///< (3) parse YAML into an existing tree, into its root node.
-void parse_in_place(                  substr yaml, Tree *t                ); ///< (4) like (3) but no filename will be reported
-void parse_in_place(csubstr filename, substr yaml, NodeRef node           ); ///< (5) like (1) but the node is given as a NodeRef
-void parse_in_place(                  substr yaml, NodeRef node           ); ///< (6) like (5) but no filename will be reported
-Tree parse_in_place(csubstr filename, substr yaml                         ); ///< (7) create a new tree, and parse YAML into its root node.
-Tree parse_in_place(                  substr yaml                         ); ///< (8) like (7) but no filename will be reported
+RYML_EXPORT void parse_in_place(csubstr filename, substr yaml, Tree *t, size_t node_id); ///< (1) parse YAML into an existing tree node. The filename will be used in any error messages arising during the parse.
+RYML_EXPORT void parse_in_place(                  substr yaml, Tree *t, size_t node_id); ///< (2) like (1) but no filename will be reported
+RYML_EXPORT void parse_in_place(csubstr filename, substr yaml, Tree *t                ); ///< (3) parse YAML into an existing tree, into its root node.
+RYML_EXPORT void parse_in_place(                  substr yaml, Tree *t                ); ///< (4) like (3) but no filename will be reported
+RYML_EXPORT void parse_in_place(csubstr filename, substr yaml, NodeRef node           ); ///< (5) like (1) but the node is given as a NodeRef
+RYML_EXPORT void parse_in_place(                  substr yaml, NodeRef node           ); ///< (6) like (5) but no filename will be reported
+RYML_EXPORT Tree parse_in_place(csubstr filename, substr yaml                         ); ///< (7) create a new tree, and parse YAML into its root node.
+RYML_EXPORT Tree parse_in_place(                  substr yaml                         ); ///< (8) like (7) but no filename will be reported
 
-void parse_json_in_place(csubstr filename, substr json, Tree *t, size_t node_id); ///< (1) parse JSON into an existing tree node. The filename will be used in any error messages arising during the parse.
-void parse_json_in_place(                  substr json, Tree *t, size_t node_id); ///< (2) like (1) but no filename will be reported
-void parse_json_in_place(csubstr filename, substr json, Tree *t                ); ///< (3) parse JSON into an existing tree, into its root node.
-void parse_json_in_place(                  substr json, Tree *t                ); ///< (4) like (3) but no filename will be reported
-void parse_json_in_place(csubstr filename, substr json, NodeRef node           ); ///< (5) like (1) but the node is given as a NodeRef
-void parse_json_in_place(                  substr json, NodeRef node           ); ///< (6) like (5) but no filename will be reported
-Tree parse_json_in_place(csubstr filename, substr json                         ); ///< (7) create a new tree, and parse JSON into its root node.
-Tree parse_json_in_place(                  substr json                         ); ///< (8) like (7) but no filename will be reported
+RYML_EXPORT void parse_json_in_place(csubstr filename, substr json, Tree *t, size_t node_id); ///< (1) parse JSON into an existing tree node. The filename will be used in any error messages arising during the parse.
+RYML_EXPORT void parse_json_in_place(                  substr json, Tree *t, size_t node_id); ///< (2) like (1) but no filename will be reported
+RYML_EXPORT void parse_json_in_place(csubstr filename, substr json, Tree *t                ); ///< (3) parse JSON into an existing tree, into its root node.
+RYML_EXPORT void parse_json_in_place(                  substr json, Tree *t                ); ///< (4) like (3) but no filename will be reported
+RYML_EXPORT void parse_json_in_place(csubstr filename, substr json, NodeRef node           ); ///< (5) like (1) but the node is given as a NodeRef
+RYML_EXPORT void parse_json_in_place(                  substr json, NodeRef node           ); ///< (6) like (5) but no filename will be reported
+RYML_EXPORT Tree parse_json_in_place(csubstr filename, substr json                         ); ///< (7) create a new tree, and parse JSON into its root node.
+RYML_EXPORT Tree parse_json_in_place(                  substr json                         ); ///< (8) like (7) but no filename will be reported
 
 /** @} */
 
@@ -164,23 +164,23 @@ Tree parse_json_in_place(                  substr json                         )
     " is deliberately left undefined, so that calling it "      \
     "will cause a linker error."
 
-void parse_in_arena(Parser *parser, csubstr filename, csubstr yaml, Tree *t, size_t node_id); ///< (1) parse YAML into an existing tree node. The filename will be used in any error messages arising during the parse.
-void parse_in_arena(Parser *parser,                   csubstr yaml, Tree *t, size_t node_id); ///< (2) like (1) but no filename will be reported
-void parse_in_arena(Parser *parser, csubstr filename, csubstr yaml, Tree *t                ); ///< (3) parse YAML into an existing tree, into its root node.
-void parse_in_arena(Parser *parser,                   csubstr yaml, Tree *t                ); ///< (4) like (3) but no filename will be reported
-void parse_in_arena(Parser *parser, csubstr filename, csubstr yaml, NodeRef node           ); ///< (5) like (1) but the node is given as a NodeRef
-void parse_in_arena(Parser *parser,                   csubstr yaml, NodeRef node           ); ///< (6) like (5) but no filename will be reported
-Tree parse_in_arena(Parser *parser, csubstr filename, csubstr yaml                         ); ///< (7) create a new tree, and parse YAML into its root node.
-Tree parse_in_arena(Parser *parser,                   csubstr yaml                         ); ///< (8) like (7) but no filename will be reported
+RYML_EXPORT void parse_in_arena(Parser *parser, csubstr filename, csubstr yaml, Tree *t, size_t node_id); ///< (1) parse YAML into an existing tree node. The filename will be used in any error messages arising during the parse.
+RYML_EXPORT void parse_in_arena(Parser *parser,                   csubstr yaml, Tree *t, size_t node_id); ///< (2) like (1) but no filename will be reported
+RYML_EXPORT void parse_in_arena(Parser *parser, csubstr filename, csubstr yaml, Tree *t                ); ///< (3) parse YAML into an existing tree, into its root node.
+RYML_EXPORT void parse_in_arena(Parser *parser,                   csubstr yaml, Tree *t                ); ///< (4) like (3) but no filename will be reported
+RYML_EXPORT void parse_in_arena(Parser *parser, csubstr filename, csubstr yaml, NodeRef node           ); ///< (5) like (1) but the node is given as a NodeRef
+RYML_EXPORT void parse_in_arena(Parser *parser,                   csubstr yaml, NodeRef node           ); ///< (6) like (5) but no filename will be reported
+RYML_EXPORT Tree parse_in_arena(Parser *parser, csubstr filename, csubstr yaml                         ); ///< (7) create a new tree, and parse YAML into its root node.
+RYML_EXPORT Tree parse_in_arena(Parser *parser,                   csubstr yaml                         ); ///< (8) like (7) but no filename will be reported
 
-void parse_json_in_arena(Parser *parser, csubstr filename, csubstr json, Tree *t, size_t node_id); ///< (1) parse JSON into an existing tree node. The filename will be used in any error messages arising during the parse.
-void parse_json_in_arena(Parser *parser,                   csubstr json, Tree *t, size_t node_id); ///< (2) like (1) but no filename will be reported
-void parse_json_in_arena(Parser *parser, csubstr filename, csubstr json, Tree *t                ); ///< (3) parse JSON into an existing tree, into its root node.
-void parse_json_in_arena(Parser *parser,                   csubstr json, Tree *t                ); ///< (4) like (3) but no filename will be reported
-void parse_json_in_arena(Parser *parser, csubstr filename, csubstr json, NodeRef node           ); ///< (5) like (1) but the node is given as a NodeRef
-void parse_json_in_arena(Parser *parser,                   csubstr json, NodeRef node           ); ///< (6) like (5) but no filename will be reported
-Tree parse_json_in_arena(Parser *parser, csubstr filename, csubstr json                         ); ///< (7) create a new tree, and parse JSON into its root node.
-Tree parse_json_in_arena(Parser *parser,                   csubstr json                         ); ///< (8) like (7) but no filename will be reported
+RYML_EXPORT void parse_json_in_arena(Parser *parser, csubstr filename, csubstr json, Tree *t, size_t node_id); ///< (1) parse JSON into an existing tree node. The filename will be used in any error messages arising during the parse.
+RYML_EXPORT void parse_json_in_arena(Parser *parser,                   csubstr json, Tree *t, size_t node_id); ///< (2) like (1) but no filename will be reported
+RYML_EXPORT void parse_json_in_arena(Parser *parser, csubstr filename, csubstr json, Tree *t                ); ///< (3) parse JSON into an existing tree, into its root node.
+RYML_EXPORT void parse_json_in_arena(Parser *parser,                   csubstr json, Tree *t                ); ///< (4) like (3) but no filename will be reported
+RYML_EXPORT void parse_json_in_arena(Parser *parser, csubstr filename, csubstr json, NodeRef node           ); ///< (5) like (1) but the node is given as a NodeRef
+RYML_EXPORT void parse_json_in_arena(Parser *parser,                   csubstr json, NodeRef node           ); ///< (6) like (5) but no filename will be reported
+RYML_EXPORT Tree parse_json_in_arena(Parser *parser, csubstr filename, csubstr json                         ); ///< (7) create a new tree, and parse JSON into its root node.
+RYML_EXPORT Tree parse_json_in_arena(Parser *parser,                   csubstr json                         ); ///< (8) like (7) but no filename will be reported
 
 /* READ THE DEPRECATION NOTE!
  *
@@ -247,23 +247,23 @@ RYML_DEPRECATED(RYML_DONT_PARSE_SUBSTR_IN_ARENA) Tree parse_json_in_arena(Parser
  * @{
  */
 
-void parse_in_arena(csubstr filename, csubstr yaml, Tree *t, size_t node_id); ///< (1) parse YAML into an existing tree node. The filename will be used in any error messages arising during the parse.
-void parse_in_arena(                  csubstr yaml, Tree *t, size_t node_id); ///< (2) like (1) but no filename will be reported
-void parse_in_arena(csubstr filename, csubstr yaml, Tree *t                ); ///< (3) parse YAML into an existing tree, into its root node.
-void parse_in_arena(                  csubstr yaml, Tree *t                ); ///< (4) like (3) but no filename will be reported
-void parse_in_arena(csubstr filename, csubstr yaml, NodeRef node           ); ///< (5) like (1) but the node is given as a NodeRef
-void parse_in_arena(                  csubstr yaml, NodeRef node           ); ///< (6) like (5) but no filename will be reported
-Tree parse_in_arena(csubstr filename, csubstr yaml                         ); ///< (7) create a new tree, and parse YAML into its root node.
-Tree parse_in_arena(                  csubstr yaml                         ); ///< (8) like (7) but no filename will be reported
+RYML_EXPORT void parse_in_arena(csubstr filename, csubstr yaml, Tree *t, size_t node_id); ///< (1) parse YAML into an existing tree node. The filename will be used in any error messages arising during the parse.
+RYML_EXPORT void parse_in_arena(                  csubstr yaml, Tree *t, size_t node_id); ///< (2) like (1) but no filename will be reported
+RYML_EXPORT void parse_in_arena(csubstr filename, csubstr yaml, Tree *t                ); ///< (3) parse YAML into an existing tree, into its root node.
+RYML_EXPORT void parse_in_arena(                  csubstr yaml, Tree *t                ); ///< (4) like (3) but no filename will be reported
+RYML_EXPORT void parse_in_arena(csubstr filename, csubstr yaml, NodeRef node           ); ///< (5) like (1) but the node is given as a NodeRef
+RYML_EXPORT void parse_in_arena(                  csubstr yaml, NodeRef node           ); ///< (6) like (5) but no filename will be reported
+RYML_EXPORT Tree parse_in_arena(csubstr filename, csubstr yaml                         ); ///< (7) create a new tree, and parse YAML into its root node.
+RYML_EXPORT Tree parse_in_arena(                  csubstr yaml                         ); ///< (8) like (7) but no filename will be reported
 
-void parse_json_in_arena(csubstr filename, csubstr json, Tree *t, size_t node_id); ///< (1) parse JSON into an existing tree node. The filename will be used in any error messages arising during the parse.
-void parse_json_in_arena(                  csubstr json, Tree *t, size_t node_id); ///< (2) like (1) but no filename will be reported
-void parse_json_in_arena(csubstr filename, csubstr json, Tree *t                ); ///< (3) parse JSON into an existing tree, into its root node.
-void parse_json_in_arena(                  csubstr json, Tree *t                ); ///< (4) like (3) but no filename will be reported
-void parse_json_in_arena(csubstr filename, csubstr json, NodeRef node           ); ///< (5) like (1) but the node is given as a NodeRef
-void parse_json_in_arena(                  csubstr json, NodeRef node           ); ///< (6) like (5) but no filename will be reported
-Tree parse_json_in_arena(csubstr filename, csubstr json                         ); ///< (7) create a new tree, and parse JSON into its root node.
-Tree parse_json_in_arena(                  csubstr json                         ); ///< (8) like (7) but no filename will be reported
+RYML_EXPORT void parse_json_in_arena(csubstr filename, csubstr json, Tree *t, size_t node_id); ///< (1) parse JSON into an existing tree node. The filename will be used in any error messages arising during the parse.
+RYML_EXPORT void parse_json_in_arena(                  csubstr json, Tree *t, size_t node_id); ///< (2) like (1) but no filename will be reported
+RYML_EXPORT void parse_json_in_arena(csubstr filename, csubstr json, Tree *t                ); ///< (3) parse JSON into an existing tree, into its root node.
+RYML_EXPORT void parse_json_in_arena(                  csubstr json, Tree *t                ); ///< (4) like (3) but no filename will be reported
+RYML_EXPORT void parse_json_in_arena(csubstr filename, csubstr json, NodeRef node           ); ///< (5) like (1) but the node is given as a NodeRef
+RYML_EXPORT void parse_json_in_arena(                  csubstr json, NodeRef node           ); ///< (6) like (5) but no filename will be reported
+RYML_EXPORT Tree parse_json_in_arena(csubstr filename, csubstr json                         ); ///< (7) create a new tree, and parse JSON into its root node.
+RYML_EXPORT Tree parse_json_in_arena(                  csubstr json                         ); ///< (8) like (7) but no filename will be reported
 
 /* READ THE DEPRECATION NOTE!
  *

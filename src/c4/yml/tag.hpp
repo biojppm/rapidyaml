@@ -38,17 +38,17 @@ typedef enum : tag_bits {
     TAG_YAML      = 15, /**< !!yaml   Specify the default value of a mapping https://yaml.org/type/yaml.html */
 } YamlTag_e;
 
-YamlTag_e to_tag(csubstr tag);
-csubstr from_tag(YamlTag_e tag);
-csubstr from_tag_long(YamlTag_e tag);
-csubstr normalize_tag(csubstr tag);
-csubstr normalize_tag_long(csubstr tag);
-csubstr normalize_tag_long(csubstr tag, substr output);
+RYML_EXPORT YamlTag_e to_tag(csubstr tag);
+RYML_EXPORT csubstr from_tag(YamlTag_e tag);
+RYML_EXPORT csubstr from_tag_long(YamlTag_e tag);
+RYML_EXPORT csubstr normalize_tag(csubstr tag);
+RYML_EXPORT csubstr normalize_tag_long(csubstr tag);
+RYML_EXPORT csubstr normalize_tag_long(csubstr tag, substr output);
 
-bool is_custom_tag(csubstr tag);
+RYML_EXPORT bool is_custom_tag(csubstr tag);
 
 
-struct TagDirective
+struct RYML_EXPORT TagDirective
 {
     /** Eg `!e!` in `%TAG !e! tag:example.com,2000:app/` */
     csubstr handle;
