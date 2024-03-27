@@ -37,7 +37,8 @@
     do {                                                        \
        _c4dbgq("\n-----------");                                \
        _c4dbgt("handling line={}, offset={}B",                  \
-               _st_tree()->pos.line, _st_tree()->pos.offset);   \
+               m_state->pos.line,                               \
+               m_state->pos.offset);                            \
     } while(0)
 
 
@@ -69,11 +70,6 @@ inline bool _is_blck_token(csubstr s) noexcept
     RYML_ASSERT(s.len > 0);
     RYML_ASSERT(s.str[0] == '-' || s.str[0] == ':' || s.str[0] == '?');
     return ((s.len == 1) || ((s.str[1] == ' ') _RYML_WITH_TAB_TOKENS( || (s.str[1] == '\t'))));
-}
-
-inline bool _is_scalar_next__runk(csubstr s)
-{
-    return !(s.begins_with(": ") || s.begins_with_any("#,{}[]%&") || s.begins_with("? ") || s == "-" || s.begins_with("- ") || s.begins_with(":\"") || s.begins_with(":'"));
 }
 
 inline size_t _count_following_newlines(csubstr r, size_t *C4_RESTRICT i)
@@ -574,7 +570,7 @@ bool ParseEngine<EventHandler>::_is_valid_start_scalar_plain_flow(csubstr s)
             case ' ':
             case '\n':
             case '\r':
-            _RYML_WITHOUT_TAB_TOKENS(case '\t'):
+            _RYML_WITHOUT_TAB_TOKENS(case '\t':)
                 _c4dbgpf("not a scalar: found non-scalar token '?{}'", _c4prc(s.str[1]));
                 return false;
             case '{':
@@ -646,7 +642,7 @@ bool ParseEngine<EventHandler>::_scan2_scalar_plain_seq_flow(ScannedScalar *C4_R
                 break;
             case '#':
                 _c4dbgp("found suspicious '#'");
-                if(!i || (s.str[i-1] == ' ' _RYML_WITH_TAB_TOKENS(|| ss.str[i-1] != '\t')))
+                if(!i || (s.str[i-1] == ' ' _RYML_WITH_TAB_TOKENS(|| s.str[i-1] != '\t')))
                 {
                     _c4dbgpf("found terminating character at {}: '{}'", i, c);
                     _line_progressed(i);
@@ -2923,7 +2919,8 @@ void ParseEngine<EventHandler>::_filter_block_folded_newlines(FilterProcessor &C
                     _c4dbgfbf("... prev space (at wpos={}) must be newline", wpos_at_first_newl);
                     proc.set_at(wpos_at_first_newl, '\n');
                 }
-                if(num_newl > 1u) {
+                if(num_newl > 1u)
+                {
                     _c4dbgfbf("... add missing newline", wpos_at_first_newl);
                     proc.set('\n');
                 }
@@ -2948,7 +2945,8 @@ template<class FilterProcessor>
 void ParseEngine<EventHandler>::_filter_block_folded_indented_block(FilterProcessor &C4_RESTRICT proc, size_t indentation, size_t len, size_t curr_indentation) noexcept
 {
     _RYML_CB_ASSERT(this->callbacks(), (proc.rem().first_not_of(" \t") == curr_indentation) || (proc.rem().first_not_of(" \t") == npos));
-    proc.copy(curr_indentation);
+    if(curr_indentation)
+        proc.copy(curr_indentation);
     while(proc.has_more_chars(len))
     {
         const char curr = proc.curr();
@@ -3178,7 +3176,6 @@ csubstr ParseEngine<EventHandler>::_maybe_filter_key_scalar_plain(ScannedScalar 
         else
         {
             _c4dbgp("plain scalar left unfiltered");
-            maybe_filtered = sc.scalar;
             m_evt_handler->mark_key_scalar_unfiltered();
         }
     }
@@ -3202,7 +3199,6 @@ csubstr ParseEngine<EventHandler>::_maybe_filter_val_scalar_plain(ScannedScalar 
         else
         {
             _c4dbgp("plain scalar left unfiltered");
-            maybe_filtered = sc.scalar;
             m_evt_handler->mark_val_scalar_unfiltered();
         }
     }
@@ -4302,7 +4298,7 @@ seqimap_start:
     _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, has_all(RSEQIMAP));
     _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, has_none(RKEY));
     _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, has_any(RVAL|RNXT|QMRK|RKCL));
-    _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, 1u == has_all(RVAL) + has_all(RNXT) + has_all(QMRK) + has_all(RKCL));
+    _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, 1 == has_all(RVAL) + has_all(RNXT) + has_all(QMRK) + has_all(RKCL));
     _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, m_evt_handler->m_stack.size() >= 3);
 
     _handle2_flow_skip_whitespace();

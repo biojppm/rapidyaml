@@ -606,6 +606,10 @@ blockfolded_case test_cases_filter[] = {
         " more indented\n"
         "regular\n"
         ),
+    bfc(2, CHOMP_STRIP,
+        "this is the multiline\n  \"val\" with\n\n  'empty' lines",
+        "this is the multiline \"val\" with\n'empty' lines"
+        ),
     #undef blc
 };
 

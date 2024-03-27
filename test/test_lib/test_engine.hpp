@@ -197,33 +197,9 @@ void name##_impl(Ps &ps)
 #if !defined(RYML_DBG)
 #define ___(stmt) stmt
 #else
-#define ___(stmt)                                           \
-    do                                                      \
-    {                                                       \
-       stmt;                                                \
-       using T = std::remove_reference_t<decltype(ps)>;     \
-       if constexpr (T::is_events)                          \
-       {                                                    \
-           _c4dbgpf("{}", #stmt);                           \
-           _print_event_str_(ps);                           \
-       }                                                    \
-       if constexpr (T::is_wtree)                           \
-       {                                                    \
-           if(ps.m_parent)                                  \
-               _c4dbgpf("parent.id={} curr.id={}  {}\n",    \
-                      ps.m_parent->tr_id, ps.m_curr->tr_id, \
-                      #stmt);                               \
-           else                                             \
-               _c4dbgpf("parent.id=-- curr.id={}  {}\n",    \
-                        ps.m_curr->tr_id,                   \
-                        #stmt);                             \
-           print_tree(*ps.m_tree);                          \
-       }                                                    \
-    } while(0)
-
-template<class Ps>
-void _print_event_str_(Ps const &ps)
+inline void _print_handler_info(EventHandlerYamlStd const& ps, csubstr stmt)
 {
+    _c4dbgpf("{}", stmt);
     auto indent = [](size_t n){
         for(size_t level = 0; level < n; ++level)
         {
@@ -242,6 +218,22 @@ void _print_event_str_(Ps const &ps)
         }
     }
 }
+inline void _print_handler_info(EventHandlerTree const& ps, csubstr stmt)
+{
+    if(ps.m_parent)
+        _c4dbgpf("parent.id={} curr.id={}  {}\n",
+                ps.m_parent->tr_id, ps.m_curr->tr_id, stmt);
+    else
+        _c4dbgpf("parent.id=-- curr.id={}  {}\n",
+                ps.m_curr->tr_id, stmt);
+    print_tree(*ps.m_tree);
+}
+#define ___(stmt)                       \
+    do                                  \
+    {                                   \
+       stmt;                            \
+       _print_handler_info(ps, #stmt);  \
+    } while(0)
 #endif
 
 } // namespace yml

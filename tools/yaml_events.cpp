@@ -12,11 +12,6 @@
 #include <cstdio>
 #include <stdexcept>
 
-C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
-
-using namespace c4;
-using namespace c4::yml;
-
 
 //-----------------------------------------------------------------------------
 
@@ -27,13 +22,14 @@ ryml-yaml-events [-s|-t] <file>     # read from file
 
 The option can be one of the following:
 
-    -s   events from source: parse the source, directly
-         emitting events during the parse (ie, no ryml
-         tree is created). This is the default behavior.
+    -s   emit events from source: parse the YAML source,
+         and directly emit events during the parse (ie, no
+         ryml tree is created). This is the default behavior
+         when the option is omitted.
 
-    -t   events from tree: parse the source, creating a
-         ryml tree, and THEN emit the events from the
-         created tree.
+    -t   events from tree: parse the YAML source, creating a
+         ryml tree. Once the tree is completely created, emit
+         the events from the created tree.
 
 When the option is omitted, -s is assumed.
 
@@ -54,6 +50,9 @@ $ ryml-yaml-events -s <file>  # emit direct from file
 $ ryml-yaml-events -t <file>  # emit tree from stdin
 
 )";
+
+using namespace c4;
+using namespace c4::yml;
 
 struct Args
 {
@@ -108,10 +107,9 @@ std::string emit_events_from_tree(csubstr filename, substr filecontents)
 
 std::string emit_events_direct(csubstr filename, substr filecontents)
 {
-    using Handler = EventHandlerYamlStd;
-    EventSink sink;
-    Handler handler(&sink, create_custom_callbacks());
-    ParseEngine<Handler> parser(&handler);
+    EventSink sink = {};
+    EventHandlerYamlStd handler(&sink, create_custom_callbacks());
+    ParseEngine<EventHandlerYamlStd> parser(&handler);
     parser.parse_in_place_ev(filename, filecontents);
     return sink.result;
 }
@@ -137,11 +135,15 @@ bool Args::parse(Args *args, int argc, const char *argv[])
         csubstr a = to_csubstr(argv[1]);
         if(a == "-t")
             args->events_from_tree = true;
+        else if(a == "-s")
+            args->events_from_tree = false;
         else
             args->filename = a;
     }
     return true;
 }
+
+C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
 
 std::string load_file(csubstr filename)
 {
@@ -181,6 +183,8 @@ void report_error(const char* msg, size_t length, Location loc, FILE *f)
     fflush(f);
 }
 
+C4_SUPPRESS_WARNING_GCC_CLANG_POP
+
 Callbacks create_custom_callbacks()
 {
     Callbacks callbacks = {};
@@ -192,4 +196,3 @@ Callbacks create_custom_callbacks()
     return callbacks;
 }
 
-C4_SUPPRESS_WARNING_GCC_CLANG_POP
