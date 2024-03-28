@@ -1,6 +1,7 @@
 
 ### Fixes
 
+- Fix [#390](https://github.com/biojppm/rapidyaml/pull/390) - `csubstr::first_real_span()` failed on number with one digit in the exponent.
 - Fix [#361](https://github.com/biojppm/rapidyaml/pull/361) - parse error on map scalars containing `:` and starting on the next line:
   ```yaml
   ---
