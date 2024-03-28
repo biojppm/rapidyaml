@@ -20,6 +20,7 @@ struct AllowedFailure
 };
 
 AllowedFailure is_failure_expected(csubstr casename);
+AllowedFailure case_has_container_keys(csubstr casename);
 
 } // namespace c4
 } // namespace yml

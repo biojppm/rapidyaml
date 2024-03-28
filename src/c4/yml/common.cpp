@@ -89,9 +89,9 @@ Callbacks::Callbacks(void *user_data, pfn_allocate alloc_, pfn_free free_, pfn_e
     m_error(error_)
     #endif
 {
-    C4_CHECK(m_allocate);
-    C4_CHECK(m_free);
-    C4_CHECK(m_error);
+    RYML_CHECK(m_allocate);
+    RYML_CHECK(m_free);
+    RYML_CHECK(m_error);
 }
 
 

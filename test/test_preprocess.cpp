@@ -2,7 +2,7 @@
 #include <c4/yml/std/string.hpp>
 #include <c4/yml/preprocess.hpp>
 #endif
-#include "./test_case.hpp"
+#include "./test_lib/test_case.hpp"
 #include <gtest/gtest.h>
 
 namespace c4 {

@@ -4,69 +4,112 @@
 #endif
 #include <gtest/gtest.h>
 
-#include "./test_case.hpp"
+#include "./test_lib/test_case.hpp"
 #include "./test_suite/test_suite_events.hpp"
+#include "./test_suite/test_suite_event_handler.hpp"
 #include "./test_suite/test_suite_events_emitter.cpp" // HACK
 
 namespace c4 {
 namespace yml {
 
-void test_evts(csubstr src, std::string expected)
+struct EventsCase
 {
-    Tree tree = parse_in_arena(src);
-    #if RYML_DBG
-    print_tree(tree);
-    #endif
-    auto actual = emit_events<std::string>(tree);
-    EXPECT_EQ(actual, expected);
+    const char* file;
+    int line;
+    // previously, the strings below were of type std::string, but
+    // valgrind was complaining of a problem during initialization of
+    // the parameterized test cases. Probably some SIOF?
+    //
+    // So we use csubstr:
+    csubstr name;
+    csubstr src;
+    csubstr expected_events_from_parser;
+    csubstr expected_events_from_tree;
+    EventsCase(const char *file_, int line_, csubstr name_, csubstr src_, csubstr from_parser, csubstr from_tree)
+        : file(file_)
+        , line(line_)
+        , name(name_)
+        , src(src_)
+        , expected_events_from_parser(from_parser)
+        , expected_events_from_tree(from_tree)
+    {
+    }
+    EventsCase(const char *file_, int line_, csubstr name_, csubstr src_, csubstr evts)
+        : file(file_)
+        , line(line_)
+        , name(name_)
+        , src(src_)
+        , expected_events_from_parser(evts)
+        , expected_events_from_tree(evts)
+    {
+    }
+};
+
+class EventsTest : public testing::TestWithParam<EventsCase> {};
+
+
+TEST_P(EventsTest, from_parser)
+{
+    EventsCase const& ec = GetParam();
+    printf("%s:%d: %s", ec.file, ec.line, ec.name.str);
+    RYML_TRACE_FMT("defined in:\n{}:{}: {}", ec.file, ec.line, ec.name);
+    EventSink sink;
+    EventHandlerYamlStd handler(&sink);
+    ParseEngine<EventHandlerYamlStd> parser(&handler);
+    std::string src_copy(ec.src.str, ec.src.len);
+    parser.parse_in_place_ev("(testyaml)", to_substr(src_copy));
+    _c4dbgpf("~~~\n{}~~~\n", sink.result);
+    std::string exp_copy(ec.expected_events_from_parser.str, ec.expected_events_from_parser.len);
+    EXPECT_EQ(sink.result, exp_copy); // use the diff from std::string which is nice
 }
 
-TEST(events, empty)
+TEST_P(EventsTest, from_tree)
 {
-    test_evts(
+    EventsCase const& ec = GetParam();
+    printf("%s:%d: %s", ec.file, ec.line, ec.name.str);
+    RYML_TRACE_FMT("defined in:\n{}:{}: {}", ec.file, ec.line, ec.name);
+    const Tree tree = parse_in_arena(to_csubstr(ec.src));
+    _c4dbg_tree("parsed tree", tree);
+    std::string exp_copy(ec.expected_events_from_tree.str, ec.expected_events_from_tree.len);
+    EXPECT_EQ(emit_events_from_tree<std::string>(tree), exp_copy);
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+#define _ec(name, src, ...) EventsCase{__FILE__, __LINE__, name, src, __VA_ARGS__}
+const EventsCase events_cases[] = {
+    //=======================================================
+    _ec("empty",
         R"()",
         R"(+STR
 -STR
-)"
-        );
-}
-
-TEST(events, empty_whitespace)
-{
-    test_evts(
+)"),
+    //=======================================================
+    _ec("empty_whitespace",
         R"(     )",
         R"(+STR
 -STR
-)"
-        );
-}
-
-TEST(events, empty_whitespace_newlines)
-{
-    test_evts(
-        R"(   
+)"),
+    //=======================================================
+    _ec("empty_whitespace_newlines",
+        R"(
     )",
         R"(+STR
 -STR
-)"
-        );
-}
-
-TEST(events, empty_whitespace_newlines_comments)
-{
-    test_evts(
-        R"(   
+)"),
+    //=======================================================
+    _ec("empty_whitespace_newlines_comments",
+        R"(
 # a comment
     )",
         R"(+STR
 -STR
-)"
-        );
-}
-
-TEST(events, docval)
-{
-    test_evts(
+)"),
+    //=======================================================
+    _ec("docval",
         R"('quoted val'
 )",
         R"(+STR
@@ -74,13 +117,9 @@ TEST(events, docval)
 =VAL 'quoted val
 -DOC
 -STR
-)"
-        );
-}
-
-TEST(events, docsep)
-{
-    test_evts(
+)"),
+    //=======================================================
+    _ec("docsep",
         R"(--- 'quoted val'
 --- another
 ...
@@ -88,6 +127,21 @@ TEST(events, docsep)
 ...
 ---
 ...
+)",
+        R"(+STR
++DOC ---
+=VAL 'quoted val
+-DOC
++DOC ---
+=VAL :another
+-DOC ...
++DOC ---
+=VAL :and yet another
+-DOC ...
++DOC ---
+=VAL :
+-DOC ...
+-STR
 )",
         R"(+STR
 +DOC ---
@@ -103,19 +157,27 @@ TEST(events, docsep)
 =VAL :
 -DOC
 -STR
-)"
-        );
-}
-
-TEST(events, docsep_v2)
-{
-    test_evts(
+)"),
+    //=======================================================
+    _ec("docsep_v2",
         R"(
 doc1
 ---
 doc2
 ...
 doc3
+)",
+        R"(+STR
++DOC
+=VAL :doc1
+-DOC
++DOC ---
+=VAL :doc2
+-DOC ...
++DOC
+=VAL :doc3
+-DOC
+-STR
 )",
         R"(+STR
 +DOC ---
@@ -128,69 +190,49 @@ doc3
 =VAL :doc3
 -DOC
 -STR
-)"
-        );
-}
-
-TEST(events, basic_map)
-{
-    test_evts(
+)"),
+    //=======================================================
+    _ec("basic_map",
         "{foo: bar}",
         R"(+STR
 +DOC
-+MAP
++MAP {}
 =VAL :foo
 =VAL :bar
 -MAP
 -DOC
 -STR
-)"
-        );
-}
-
-TEST(events, basic_seq)
-{
-    test_evts(
+)"),
+    //=======================================================
+    _ec("basic_seq",
         "[foo, bar]",
         R"(+STR
 +DOC
-+SEQ
++SEQ []
 =VAL :foo
 =VAL :bar
 -SEQ
 -DOC
 -STR
-)"
-        );
-}
-
-TEST(events, escapes)
-{
-    test_evts(
+)"),
+    //=======================================================
+    _ec("escapes",
         R"("\t\	\ \r\n\0\f\/\a\v\e\N\_\L\P  \b")",
         "+STR\n"
         "+DOC\n"
-        "=VAL '\\t\\t \\r\\n\\0\\f/\\a\\v\\e\\N\\_\\L\\P  \\b" "\n"
+        "=VAL \"\\t\\t \\r\\n\\0\\f/\\a\\v\\e\\N\\_\\L\\P  \\b" "\n"
         "-DOC\n"
-        "-STR\n"
-        );
-}
-
-TEST(events, dquo_bytes)
-{
-    test_evts(
+        "-STR\n"),
+    //=======================================================
+    _ec("dquo_bytes",
         R"("\x0a\x0a\u263A\x0a\x55\x56\x57\x0a\u2705\U0001D11E")",
         "+STR\n"
         "+DOC\n"
-        "=VAL '\\n\\n☺\\nUVW\\n✅𝄞" "\n"
+        "=VAL \"\\n\\n☺\\nUVW\\n✅𝄞" "\n"
         "-DOC\n"
-        "-STR\n"
-        );
-}
-
-TEST(events, sets)
-{
-    test_evts(
+        "-STR\n"),
+    //=======================================================
+    _ec("sets",
         R"(--- !!set
 ? Mark McGwire
 ? Sammy Sosa
@@ -208,12 +250,9 @@ TEST(events, sets)
 -MAP
 -DOC
 -STR
-)");
-}
-
-TEST(events, binary)
-{
-    test_evts(
+)"),
+    //=======================================================
+    _ec("binary",
         R"(canonical: !!binary "\
  R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5\
  OTk6enp56enmlpaWNjY6Ojo4SEhP/++f/++f/++f/++f/++f/++f/++f/++f/+\
@@ -231,21 +270,26 @@ description:
 +DOC
 +MAP
 =VAL :canonical
-=VAL <tag:yaml.org,2002:binary> 'R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5OTk6enp56enmlpaWNjY6Ojo4SEhP/++f/++f/++f/++f/++f/++f/++f/++f/++f/++f/++f/++f/++f/++SH+Dk1hZGUgd2l0aCBHSU1QACwAAAAADAAMAAAFLCAgjoEwnuNAFOhpEMTRiggcz4BNJHrv/zCFcLiwMWYNG84BwwEeECcgggoBADs=
+=VAL <tag:yaml.org,2002:binary> "R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5OTk6enp56enmlpaWNjY6Ojo4SEhP/++f/++f/++f/++f/++f/++f/++f/++f/++f/++f/++f/++f/++f/++SH+Dk1hZGUgd2l0aCBHSU1QACwAAAAADAAMAAAFLCAgjoEwnuNAFOhpEMTRiggcz4BNJHrv/zCFcLiwMWYNG84BwwEeECcgggoBADs=
 =VAL :generic
-=VAL <tag:yaml.org,2002:binary> 'R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5\nOTk6enp56enmlpaWNjY6Ojo4SEhP/++f/++f/++f/++f/++f/++f/++f/++f/+\n+f/++f/++f/++f/++f/++SH+Dk1hZGUgd2l0aCBHSU1QACwAAAAADAAMAAAFLC\nAgjoEwnuNAFOhpEMTRiggcz4BNJHrv/zCFcLiwMWYNG84BwwEeECcgggoBADs=\n
+=VAL <tag:yaml.org,2002:binary> |R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5\nOTk6enp56enmlpaWNjY6Ojo4SEhP/++f/++f/++f/++f/++f/++f/++f/++f/+\n+f/++f/++f/++f/++f/++SH+Dk1hZGUgd2l0aCBHSU1QACwAAAAADAAMAAAFLC\nAgjoEwnuNAFOhpEMTRiggcz4BNJHrv/zCFcLiwMWYNG84BwwEeECcgggoBADs=\n
 =VAL :description
 =VAL :The binary value above is a tiny arrow encoded as a gif image.
 -MAP
 -DOC
 -STR
-)");
-}
-
-
-TEST(events, tag_directives_6CK3)
-{
-    test_evts(
+)"),
+    //=======================================================
+    _ec("tag_directives_wtf",
+        R"(!!foo fluorescent)",
+        R"(+STR
++DOC
+=VAL <tag:yaml.org,2002:foo> :fluorescent
+-DOC
+-STR
+)"),
+    //=======================================================
+    _ec("tag_directives_6CK3",
         R"(
 %TAG !e! tag:example.com,2000:app/
 ---
@@ -262,12 +306,9 @@ TEST(events, tag_directives_6CK3)
 -SEQ
 -DOC
 -STR
-)");
-}
-
-TEST(events, tag_directives_6VLF)
-{
-    test_evts(
+)"),
+    //=======================================================
+    _ec("tag_directives_6VLF",
         R"(
 %FOO  bar baz # Should be ignored
               # with a warning.
@@ -275,15 +316,12 @@ TEST(events, tag_directives_6VLF)
 )",
         R"(+STR
 +DOC ---
-=VAL 'foo
+=VAL "foo
 -DOC
 -STR
-)");
-}
-
-TEST(events, tag_directives_6WLZ)
-{
-    test_evts(
+)"),
+    //=======================================================
+    _ec("tag_directives_6WLZ",
         R"(
 # Private
 ---
@@ -296,18 +334,24 @@ TEST(events, tag_directives_6WLZ)
 )",
         R"(+STR
 +DOC ---
-=VAL <!foo> 'bar
--DOC
+=VAL <!foo> "bar
+-DOC ...
 +DOC ---
-=VAL <tag:example.com,2000:app/foo> 'bar
+=VAL <tag:example.com,2000:app/foo> "bar
 -DOC
 -STR
-)");
-}
-
-TEST(events, tag_directives_9WXW)
-{
-    test_evts(
+)",
+        R"(+STR
++DOC ---
+=VAL <!foo> "bar
+-DOC
++DOC ---
+=VAL <tag:example.com,2000:app/foo> "bar
+-DOC
+-STR
+)"),
+    //=======================================================
+    _ec("tag_directives_9WXW",
         R"(
 # Private
 #---   # note this is commented out
@@ -319,20 +363,25 @@ TEST(events, tag_directives_9WXW)
 !foo "bar"
 )",
         R"(+STR
++DOC
+=VAL <!foo> "bar
+-DOC ...
 +DOC ---
-=VAL <!foo> 'bar
--DOC
-+DOC ---
-=VAL <tag:example.com,2000:app/foo> 'bar
+=VAL <tag:example.com,2000:app/foo> "bar
 -DOC
 -STR
-)");
-}
-
-
-TEST(events, tag_directives_7FWL)
-{
-    test_evts(
+)",
+        R"(+STR
++DOC ---
+=VAL <!foo> "bar
+-DOC
++DOC ---
+=VAL <tag:example.com,2000:app/foo> "bar
+-DOC
+-STR
+)"),
+    //=======================================================
+    _ec("tag_directives_7FWL",
         R"(!<tag:yaml.org,2002:str> foo :
   !<!bar> baz
 )",
@@ -344,12 +393,9 @@ TEST(events, tag_directives_7FWL)
 -MAP
 -DOC
 -STR
-)");
-}
-
-TEST(events, tag_directives_P76L)
-{
-    test_evts(
+)"),
+    //=======================================================
+    _ec("tag_directives_P76L",
         R"(
 %TAG !! tag:example.com,2000:app/
 ---
@@ -360,12 +406,9 @@ TEST(events, tag_directives_P76L)
 =VAL <tag:example.com,2000:app/int> :1 - 3
 -DOC
 -STR
-)");
-}
-
-TEST(events, tag_directives_S4JQ)
-{
-    test_evts(
+)"),
+    //=======================================================
+    _ec("tag_directives_S4JQ",
         R"(
 - "12"
 - 12
@@ -374,18 +417,15 @@ TEST(events, tag_directives_S4JQ)
         R"(+STR
 +DOC
 +SEQ
-=VAL '12
+=VAL "12
 =VAL :12
 =VAL <!> :12
 -SEQ
 -DOC
 -STR
-)");
-}
-
-TEST(events, tag_directives_lookup)
-{
-    test_evts(
+)"),
+    //=======================================================
+    _ec("tag_directives_lookup",
         R"(
 %TAG !m! !my-
 --- # Bulb here
@@ -398,17 +438,23 @@ TEST(events, tag_directives_lookup)
         R"(+STR
 +DOC ---
 =VAL <!my-light> :fluorescent
+-DOC ...
++DOC ---
+=VAL <!meta-light> :green
+-DOC
+-STR
+)",
+        R"(+STR
++DOC ---
+=VAL <!my-light> :fluorescent
 -DOC
 +DOC ---
 =VAL <!meta-light> :green
 -DOC
 -STR
-)");
-}
-
-TEST(events, anchors_refs)
-{
-    test_evts(
+)"),
+    //=======================================================
+    _ec("anchors_refs",
         R"(
 A: &A
     V: 3
@@ -444,9 +490,11 @@ B:
 -MAP
 -DOC
 -STR
-)");
-}
+)"),
+};
 
+
+INSTANTIATE_TEST_SUITE_P(Events, EventsTest, testing::ValuesIn(events_cases));
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

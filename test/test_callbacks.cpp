@@ -1,4 +1,4 @@
-#include "./test_case.hpp"
+#include "./test_lib/test_case.hpp"
 #ifndef RYML_SINGLE_HEADER
 #include "c4/yml/common.hpp"
 #endif
@@ -222,6 +222,7 @@ TEST(Callbacks, ne)
 TEST(Callbacks, cmp_user_data)
 {
     Callbacks before = get_callbacks();
+    before.m_user_data = (void*)1u;
     Callbacks cp = before;
     EXPECT_EQ(cp, before);
     cp.m_user_data = (void*)(((char*)before.m_user_data) + 100u);

@@ -1,10 +1,13 @@
 #ifdef RYML_SINGLE_HEADER
 #include "ryml_all.hpp"
 #else
+#include "c4/yml/event_handler_tree.hpp"
+#include "c4/yml/parse_engine.hpp"
 #include "c4/yml/parse.hpp"
+#include "c4/yml/node.hpp"
 #endif
 #include <gtest/gtest.h>
-#include "./callbacks_tester.hpp"
+#include "./test_lib/callbacks_tester.hpp"
 
 
 namespace c4 {
@@ -20,11 +23,13 @@ bool is_same(csubstr lhs, csubstr rhs)
 
 void mklarge(Parser *p, Callbacks const& cb)
 {
+    ASSERT_TRUE(p->m_evt_handler);
+    Parser::handler_type *evt_handler = p->m_evt_handler;
     p->~Parser();
-    new ((void*)p) Parser(cb);
+    evt_handler->m_stack.m_callbacks = cb;
+    new ((void*)p) Parser(evt_handler, p->options());
     p->reserve_stack(20); // cause an allocation
     p->reserve_locations(128); // cause an allocation
-    p->reserve_filter_arena(128); // cause an allocation
 }
 
 
@@ -34,7 +39,9 @@ void mklarge(Parser *p, Callbacks const& cb)
 
 TEST(Parser, empty_ctor)
 {
-    Parser parser;
+    Parser::handler_type evt_handler = {};
+    EXPECT_EQ(evt_handler.m_stack.m_callbacks, get_callbacks());
+    Parser parser(&evt_handler);
     EXPECT_EQ(parser.callbacks(), get_callbacks());
 }
 
@@ -42,7 +49,8 @@ TEST(Parser, callbacks_ctor)
 {
     CallbacksTester cbt;
     {
-        Parser parser(cbt.callbacks());
+        Parser::handler_type evt_handler = {cbt.callbacks()};
+        Parser parser(&evt_handler);
         EXPECT_EQ(parser.callbacks(), cbt.callbacks());
     }
     EXPECT_EQ(cbt.num_allocs, 0u);
@@ -51,9 +59,10 @@ TEST(Parser, callbacks_ctor)
 
 TEST(Parser, reserve_capacity)
 {
-    CallbacksTester cbt("test", 20000/*Bytes*/);
+    CallbacksTester cbt("test", 30000/*Bytes*/);
     {
-        Parser parser(cbt.callbacks());
+        Parser::handler_type evt_handler = {cbt.callbacks()};
+        Parser parser(&evt_handler);
         EXPECT_EQ(cbt.num_allocs, 0u);
         EXPECT_EQ(cbt.num_deallocs, 0u);
         parser.reserve_stack(18);
@@ -75,7 +84,8 @@ TEST(Parser, reserve_locations)
 {
     CallbacksTester ts;
     {
-        Parser parser(ts.callbacks());
+        Parser::handler_type evt_handler = {ts.callbacks()};
+        Parser parser(&evt_handler);
         EXPECT_EQ(parser.callbacks(), ts.callbacks());
         EXPECT_EQ(ts.num_allocs, 0u);
         EXPECT_EQ(ts.num_deallocs, 0u);
@@ -91,90 +101,74 @@ TEST(Parser, reserve_locations)
     EXPECT_EQ(ts.dealloc_size, 128u * sizeof(size_t));
 }
 
-TEST(Parser, reserve_filter_arena)
+TEST(Parser, copy_ctor_0)
 {
-    size_t cap = 256u;
+    Parser::handler_type evt_handler = {};
+    EXPECT_EQ(evt_handler.m_stack.m_callbacks, get_callbacks());
+    Parser src(&evt_handler);
+    mklarge(&src, evt_handler.m_stack.m_callbacks);
+    EXPECT_EQ(src.callbacks(), get_callbacks());
+    Parser dst(src);
+    EXPECT_EQ(src.callbacks(), get_callbacks());
+    EXPECT_EQ(dst.callbacks(), get_callbacks());
+}
+
+TEST(Parser, copy_ctor_1)
+{
     CallbacksTester ts;
     {
-        Parser parser(ts.callbacks());
-        EXPECT_EQ(parser.filter_arena_capacity(), 0u);
-        EXPECT_EQ(parser.callbacks(), ts.callbacks());
-        EXPECT_EQ(ts.num_allocs, 0u);
-        EXPECT_EQ(ts.num_deallocs, 0u);
-        parser.reserve_filter_arena(cap);
-        EXPECT_EQ(ts.num_allocs, 1u);
-        EXPECT_EQ(ts.num_deallocs, 0u);
-        EXPECT_EQ(ts.alloc_size, cap);
-        EXPECT_EQ(ts.dealloc_size, 0u);
-    }
-    EXPECT_EQ(ts.num_allocs, 1u);
-    EXPECT_EQ(ts.num_deallocs, 1u);
-    EXPECT_EQ(ts.alloc_size, cap);
-    EXPECT_EQ(ts.dealloc_size, cap);
-}
-
-TEST(Parser, copy_ctor)
-{
-    {
-        Parser src;
-        mklarge(&src, get_callbacks());
-        EXPECT_EQ(src.callbacks(), get_callbacks());
+        Parser::handler_type evt_handler = {ts.callbacks()};
+        Parser src(&evt_handler);
+        mklarge(&src, evt_handler.m_stack.m_callbacks);
+        ASSERT_EQ(src.callbacks(), ts.callbacks());
+        size_t nbefore = ts.num_allocs;
+        EXPECT_GT(ts.num_allocs, 0u);
         Parser dst(src);
-        EXPECT_EQ(src.callbacks(), get_callbacks());
-        EXPECT_EQ(dst.callbacks(), get_callbacks());
+        ASSERT_EQ(src.callbacks(), ts.callbacks());
+        ASSERT_EQ(dst.callbacks(), ts.callbacks());
+        EXPECT_GT(ts.num_allocs, nbefore);
     }
-    {
-        CallbacksTester ts;
-        {
-            Parser src;
-            mklarge(&src, ts.callbacks());
-            ASSERT_EQ(src.callbacks(), ts.callbacks());
-            size_t nbefore = ts.num_allocs;
-            EXPECT_GT(ts.num_allocs, 0u);
-            Parser dst(src);
-            ASSERT_EQ(src.callbacks(), ts.callbacks());
-            ASSERT_EQ(dst.callbacks(), ts.callbacks());
-            EXPECT_GT(ts.num_allocs, nbefore);
-        }
-        EXPECT_EQ(ts.num_allocs, ts.num_deallocs);
-        EXPECT_EQ(ts.alloc_size, ts.dealloc_size);
-    }
+    EXPECT_EQ(ts.num_allocs, ts.num_deallocs);
+    EXPECT_EQ(ts.alloc_size, ts.dealloc_size);
 }
 
-TEST(Parser, move_ctor)
+TEST(Parser, move_ctor_0)
 {
+    Parser::handler_type evt_handler = {};
+    Parser src(&evt_handler);
+    mklarge(&src, evt_handler.m_stack.m_callbacks);
+    EXPECT_EQ(src.callbacks(), get_callbacks());
+    Parser dst(std::move(src));
+    //EXPECT_EQ(src.callbacks(), get_callbacks());
+    EXPECT_EQ(dst.callbacks(), get_callbacks());
+}
+TEST(Parser, move_ctor_1)
+{
+    CallbacksTester ts;
     {
-        Parser src;
-        mklarge(&src, get_callbacks());
-        EXPECT_EQ(src.callbacks(), get_callbacks());
+        Parser::handler_type evt_handler = {ts.callbacks()};
+        Parser src(&evt_handler);
+        mklarge(&src, evt_handler.m_stack.m_callbacks);
+        ASSERT_EQ(src.callbacks(), ts.callbacks());
+        size_t nbefore = ts.num_allocs;
+        EXPECT_GT(ts.num_allocs, 0u);
         Parser dst(std::move(src));
-        EXPECT_EQ(src.callbacks(), get_callbacks());
-        EXPECT_EQ(dst.callbacks(), get_callbacks());
+        //ASSERT_EQ(src.callbacks(), ts.callbacks());
+        ASSERT_EQ(dst.callbacks(), ts.callbacks());
+        EXPECT_EQ(ts.num_allocs, nbefore);
     }
-    {
-        CallbacksTester ts;
-        {
-            Parser src;
-            mklarge(&src, ts.callbacks());
-            ASSERT_EQ(src.callbacks(), ts.callbacks());
-            size_t nbefore = ts.num_allocs;
-            EXPECT_GT(ts.num_allocs, 0u);
-            Parser dst(std::move(src));
-            ASSERT_EQ(src.callbacks(), ts.callbacks());
-            ASSERT_EQ(dst.callbacks(), ts.callbacks());
-            EXPECT_EQ(ts.num_allocs, nbefore);
-        }
-        EXPECT_EQ(ts.num_allocs, ts.num_deallocs);
-        EXPECT_EQ(ts.alloc_size, ts.dealloc_size);
-    }
+    EXPECT_EQ(ts.num_allocs, ts.num_deallocs);
+    EXPECT_EQ(ts.alloc_size, ts.dealloc_size);
 }
 
 TEST(Parser, copy_assign_same_callbacks)
 {
     CallbacksTester ts;
     {
-        Parser src;
-        Parser dst;
+        Parser::handler_type evt_handler_src = {ts.callbacks()};
+        Parser::handler_type evt_handler_dst = {ts.callbacks()};
+        Parser src(&evt_handler_src);
+        Parser dst(&evt_handler_dst);
         mklarge(&src, ts.callbacks());
         mklarge(&dst, ts.callbacks());
         ASSERT_EQ(src.callbacks(), ts.callbacks());
@@ -196,8 +190,10 @@ TEST(Parser, copy_assign_diff_callbacks)
     CallbacksTester ts("src");
     CallbacksTester td("dst");
     {
-        Parser src;
-        Parser dst;
+        Parser::handler_type evt_handler_src = {ts.callbacks()};
+        Parser::handler_type evt_handler_dst = {td.callbacks()};
+        Parser src(&evt_handler_src);
+        Parser dst(&evt_handler_dst);
         mklarge(&src, ts.callbacks());
         mklarge(&dst, td.callbacks());
         ASSERT_EQ(src.callbacks(), ts.callbacks());
@@ -221,8 +217,10 @@ TEST(Parser, move_assign_same_callbacks)
 {
     CallbacksTester ts;
     {
-        Parser src;
-        Parser dst;
+        Parser::handler_type evt_handler_src = {ts.callbacks()};
+        Parser::handler_type evt_handler_dst = {ts.callbacks()};
+        Parser src(&evt_handler_src);
+        Parser dst(&evt_handler_dst);
         mklarge(&src, ts.callbacks());
         mklarge(&dst, ts.callbacks());
         ASSERT_EQ(src.callbacks(), ts.callbacks());
@@ -231,7 +229,7 @@ TEST(Parser, move_assign_same_callbacks)
         EXPECT_GT(ts.num_allocs, 0u);
         EXPECT_GT(ts.num_allocs, 0u);
         dst = std::move(src);
-        ASSERT_EQ(src.callbacks(), ts.callbacks());
+        //ASSERT_EQ(src.callbacks(), ts.callbacks());
         ASSERT_EQ(dst.callbacks(), ts.callbacks());
         EXPECT_EQ(ts.num_allocs, nbefore);
     }
@@ -244,8 +242,10 @@ TEST(Parser, move_assign_diff_callbacks)
     CallbacksTester ts("src");
     CallbacksTester td("dst");
     {
-        Parser src;
-        Parser dst;
+        Parser::handler_type evt_handler_src = {ts.callbacks()};
+        Parser::handler_type evt_handler_dst = {td.callbacks()};
+        Parser src(&evt_handler_src);
+        Parser dst(&evt_handler_dst);
         mklarge(&src, ts.callbacks());
         mklarge(&dst, td.callbacks());
         ASSERT_EQ(src.callbacks(), ts.callbacks());
@@ -254,10 +254,10 @@ TEST(Parser, move_assign_diff_callbacks)
         EXPECT_GT(ts.num_allocs, 0u);
         EXPECT_GT(td.num_allocs, 0u);
         dst = std::move(src);
-        ASSERT_EQ(src.callbacks(), ts.callbacks());
+        //ASSERT_EQ(src.callbacks(), ts.callbacks());
         ASSERT_EQ(dst.callbacks(), ts.callbacks());
-        EXPECT_EQ(td.num_allocs, nbefore); // dst frees with td
-        EXPECT_EQ(ts.num_allocs, nbefore); // dst moves from ts
+        EXPECT_EQ(ts.num_allocs, nbefore);
+        EXPECT_EQ(ts.num_allocs, nbefore);
     }
     EXPECT_EQ(ts.num_allocs, ts.num_deallocs);
     EXPECT_EQ(ts.alloc_size, ts.dealloc_size);
@@ -272,32 +272,36 @@ TEST(Parser, new_tree_receives_callbacks)
     csubstr csrc = src_;
     {
         {
-            Parser parser;
+            Parser::handler_type evt_handler = {};
+            Parser parser(&evt_handler);
             EXPECT_EQ(parser.callbacks(), get_callbacks());
-            Tree t = parser.parse_in_arena("file0", csrc);
+            Tree t = parse_in_arena(&parser, "file0", csrc);
             EXPECT_EQ(t.callbacks(), get_callbacks());
         }
         CallbacksTester cbt("test", 20000/*Bytes*/);
         {
-            Parser parser(cbt.callbacks());
+            Parser::handler_type evt_handler = {cbt.callbacks()};
+            Parser parser(&evt_handler);
             EXPECT_EQ(parser.callbacks(), cbt.callbacks());
-            Tree t = parser.parse_in_arena("file1", csrc);
+            Tree t = parse_in_arena(&parser, "file1", csrc);
             EXPECT_EQ(t.callbacks(), cbt.callbacks());
         }
         cbt.check();
     }
     {
         {
-            Parser parser;
+            Parser::handler_type evt_handler = {};
+            Parser parser(&evt_handler);
             EXPECT_EQ(parser.callbacks(), get_callbacks());
-            Tree t = parser.parse_in_place("file", src);
+            Tree t = parse_in_place(&parser, "file", src);
             EXPECT_EQ(t.callbacks(), get_callbacks());
         }
         CallbacksTester cbt("test", 20000/*Bytes*/);
         {
-            Parser parser(cbt.callbacks());
+            Parser::handler_type evt_handler = {cbt.callbacks()};
+            Parser parser(&evt_handler);
             EXPECT_EQ(parser.callbacks(), cbt.callbacks());
-            Tree t = parser.parse_in_place("file", src);
+            Tree t = parse_in_place(&parser, "file", src);
             EXPECT_EQ(t.callbacks(), cbt.callbacks());
         }
         cbt.check();
@@ -314,10 +318,12 @@ TEST(Parser, existing_tree_overwrites_parser_callbacks)
         CallbacksTester cbt("tree");
         {
             Tree tree(cbt.callbacks());
-            Parser parser(cbp.callbacks());
             EXPECT_EQ(tree.callbacks(), cbt.callbacks());
+            Parser::handler_type evt_handler(cbp.callbacks());
+            EXPECT_EQ(evt_handler.m_stack.m_callbacks, cbp.callbacks());
+            Parser parser(&evt_handler);
             EXPECT_EQ(parser.callbacks(), cbp.callbacks());
-            parser.parse_in_arena("file", csrc, &tree);
+            parse_in_arena(&parser, "file", csrc, &tree);
             EXPECT_EQ(tree.callbacks(), cbt.callbacks());
             EXPECT_EQ(parser.callbacks(), cbp.callbacks());
         }
@@ -329,10 +335,11 @@ TEST(Parser, existing_tree_overwrites_parser_callbacks)
         CallbacksTester cbt("tree");
         {
             Tree tree(cbt.callbacks());
-            Parser parser(cbp.callbacks());
             EXPECT_EQ(tree.callbacks(), cbt.callbacks());
+            Parser::handler_type evt_handler(cbp.callbacks());
+            Parser parser(&evt_handler);
             EXPECT_EQ(parser.callbacks(), cbp.callbacks());
-            parser.parse_in_place("file", src, &tree);
+            parse_in_place(&parser, "file", src, &tree);
             EXPECT_EQ(tree.callbacks(), cbt.callbacks());
             EXPECT_EQ(parser.callbacks(), cbp.callbacks());
         }
@@ -346,25 +353,26 @@ TEST(Parser, filename_and_buffer_are_stored)
     char src_[] = "{a: b}";
     substr src = src_;
     csubstr csrc = src_;
-    Parser parser;
+    Parser::handler_type evt_handler = {};
+    Parser parser(&evt_handler);
     EXPECT_EQ(parser.filename(), csubstr{});
     {
-        Tree tree = parser.parse_in_place("file0", src);
+        Tree tree = parse_in_place(&parser, "file0", src);
         EXPECT_EQ(parser.filename(), "file0");
         EXPECT_TRUE(is_same(parser.source(), src));
     }
     {
-        Tree tree = parser.parse_in_arena("file1", csrc);
+        Tree tree = parse_in_arena(&parser, "file1", csrc);
         EXPECT_EQ(parser.filename(), "file1");
         EXPECT_TRUE(!is_same(parser.source(), src));
     }
     {
-        Tree tree = parser.parse_in_place("file2", src);
+        Tree tree = parse_in_place(&parser, "file2", src);
         EXPECT_EQ(parser.filename(), "file2");
         EXPECT_TRUE(is_same(parser.source(), src));
     }
     {
-        Tree tree = parser.parse_in_arena({}, csrc);
+        Tree tree = parse_in_arena(&parser, csrc);
         EXPECT_EQ(parser.filename(), csubstr{});
         EXPECT_TRUE(!is_same(parser.source(), src));
     }

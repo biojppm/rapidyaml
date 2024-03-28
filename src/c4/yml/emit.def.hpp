@@ -5,6 +5,10 @@
 #include "c4/yml/emit.hpp"
 #endif
 
+#ifndef _C4_YML_DETAIL_PARSER_DBG_HPP_
+#include "c4/yml/detail/parser_dbg.hpp"
+#endif
+
 namespace c4 {
 namespace yml {
 
@@ -18,6 +22,7 @@ substr Emitter<Writer>::emit_as(EmitType_e type, Tree const& t, size_t id, bool 
     }
     _RYML_CB_CHECK(t.callbacks(), id < t.capacity());
     m_tree = &t;
+    m_flow = false;
     if(type == EMIT_YAML)
         _emit_yaml(id);
     else if(type == EMIT_JSON)
@@ -101,11 +106,14 @@ void Emitter<Writer>::_emit_yaml(size_t id)
     };
     if(m_tree->is_stream(id))
     {
-        if(m_tree->first_child(id) != NONE)
-            write_tag_directives(m_tree->first_child(id));
-        for(size_t child = m_tree->first_child(id); child != NONE; child = m_tree->next_sibling(child))
+        const size_t first_child = m_tree->first_child(id);
+        if(first_child != NONE)
+            write_tag_directives(first_child);
+        for(size_t child = first_child; child != NONE; child = m_tree->next_sibling(child))
         {
             dispatch(child);
+            if(m_tree->is_doc(child) && m_tree->type(child).marked_flow_sl())
+                this->Writer::_do_write('\n');
             if(m_tree->next_sibling(child) != NONE)
                 write_tag_directives(m_tree->next_sibling(child));
         }
@@ -145,45 +153,103 @@ void Emitter<Writer>::_emit_yaml(size_t id)
     }
 }
 
+#define _rymlindent_nextline() this->_indent(ilevel + 1);
+
 template<class Writer>
 void Emitter<Writer>::_write_doc(size_t id)
 {
     RYML_ASSERT(m_tree->is_doc(id));
+    RYML_ASSERT(!m_tree->has_key(id));
     if(!m_tree->is_root(id))
     {
         RYML_ASSERT(m_tree->is_stream(m_tree->parent(id)));
         this->Writer::_do_write("---");
     }
+    //
     if(!m_tree->has_val(id)) // this is more frequent
     {
-        if(m_tree->has_val_tag(id))
+        const bool tag = m_tree->has_val_tag(id);
+        const bool anchor = m_tree->has_val_anchor(id);
+        if(!tag && !anchor)
         {
-            if(!m_tree->is_root(id))
-                this->Writer::_do_write(' ');
-            _write_tag(m_tree->val_tag(id));
+            ;
         }
-        if(m_tree->has_val_anchor(id))
+        else if(!tag && anchor)
         {
             if(!m_tree->is_root(id))
                 this->Writer::_do_write(' ');
             this->Writer::_do_write('&');
             this->Writer::_do_write(m_tree->val_anchor(id));
+            if(m_tree->has_children(id) && m_tree->is_root(id))
+                this->Writer::_do_write('\n');
+        }
+        else if(tag && !anchor)
+        {
+            if(!m_tree->is_root(id))
+                this->Writer::_do_write(' ');
+            _write_tag(m_tree->val_tag(id));
+            if(m_tree->has_children(id) && m_tree->is_root(id))
+                this->Writer::_do_write('\n');
+        }
+        else // tag && anchor
+        {
+            if(!m_tree->is_root(id))
+                this->Writer::_do_write(' ');
+            _write_tag(m_tree->val_tag(id));
+            this->Writer::_do_write(" &");
+            this->Writer::_do_write(m_tree->val_anchor(id));
+            if(m_tree->has_children(id) && m_tree->is_root(id))
+                this->Writer::_do_write('\n');
         }
     }
     else // docval
     {
         RYML_ASSERT(m_tree->has_val(id));
-        RYML_ASSERT(!m_tree->has_key(id));
-        if(!m_tree->is_root(id))
-            this->Writer::_do_write(' ');
-        _writev(id, 0);
+        // some plain scalars such as '...' and '---' must not
+        // appear at 0-indentation
+        const csubstr val = m_tree->val(id);
+        const bool preceded_by_3_dashes = !m_tree->is_root(id);
+        const type_bits style_marks = m_tree->type(id) & (_WIP_KEY_STYLE|_WIP_VAL_STYLE);
+        const bool is_plain = m_tree->type(id).val_marked_plain();
+        const bool is_ambiguous = (is_plain || !style_marks)
+            && ((val.begins_with("...") || val.begins_with("---"))
+                ||
+                (val.find('\n') != npos));
+        if(preceded_by_3_dashes)
+        {
+            if(val.len == 0 && !m_tree->has_val_anchor(id) && !m_tree->has_val_tag(id))
+            {
+                this->Writer::_do_write('\n');
+                return;
+            }
+            else if(val.len && is_ambiguous)
+            {
+                this->Writer::_do_write('\n');
+            }
+            else
+            {
+                this->Writer::_do_write(' ');
+            }
+        }
+        size_t ilevel = 0u;
+        if(is_ambiguous)
+        {
+            _rymlindent_nextline();
+            ++ilevel;
+        }
+        _writev(id, ilevel);
+        if(val.len && m_tree->is_root(id))
+            this->Writer::_do_write('\n');
     }
-    this->Writer::_do_write('\n');
+    if(!m_tree->is_root(id))
+        this->Writer::_do_write('\n');
 }
 
 template<class Writer>
 void Emitter<Writer>::_do_visit_flow_sl(size_t node, size_t ilevel)
 {
+    const bool prev_flow = m_flow;
+    m_flow = true;
     RYML_ASSERT(!m_tree->is_stream(node));
     RYML_ASSERT(m_tree->is_container(node) || m_tree->is_doc(node));
     RYML_ASSERT(m_tree->is_root(node) || (m_tree->parent_is_map(node) || m_tree->parent_is_seq(node)));
@@ -193,6 +259,18 @@ void Emitter<Writer>::_do_visit_flow_sl(size_t node, size_t ilevel)
         _write_doc(node);
         if(!m_tree->has_children(node))
             return;
+        else
+        {
+            if(m_tree->is_map(node))
+            {
+                this->Writer::_do_write('{');
+            }
+            else
+            {
+                _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_seq(node));
+                this->Writer::_do_write('[');
+            }
+        }
     }
     else if(m_tree->is_container(node))
     {
@@ -267,6 +345,7 @@ void Emitter<Writer>::_do_visit_flow_sl(size_t node, size_t ilevel)
     {
         this->Writer::_do_write(']');
     }
+    m_flow = prev_flow;
 }
 
 template<class Writer>
@@ -275,14 +354,15 @@ void Emitter<Writer>::_do_visit_flow_ml(size_t id, size_t ilevel, size_t do_inde
     C4_UNUSED(id);
     C4_UNUSED(ilevel);
     C4_UNUSED(do_indent);
+    const bool prev_flow = m_flow;
+    m_flow = true;
     RYML_CHECK(false/*not implemented*/);
+    m_flow = prev_flow;
 }
 
 template<class Writer>
-void Emitter<Writer>::_do_visit_block_container(size_t node, size_t next_level, size_t do_indent)
+void Emitter<Writer>::_do_visit_block_container(size_t node, size_t level, bool do_indent)
 {
-    RepC ind = indent_to(do_indent * next_level);
-
     if(m_tree->is_seq(node))
     {
         for(size_t child = m_tree->first_child(node); child != NONE; child = m_tree->next_sibling(child))
@@ -290,9 +370,9 @@ void Emitter<Writer>::_do_visit_block_container(size_t node, size_t next_level, 
             _RYML_CB_ASSERT(m_tree->callbacks(), !m_tree->has_key(child));
             if(m_tree->is_val(child))
             {
-                this->Writer::_do_write(ind);
+                _indent(level, do_indent);
                 this->Writer::_do_write("- ");
-                _writev(child, next_level);
+                _writev(child, level);
                 this->Writer::_do_write('\n');
             }
             else
@@ -301,25 +381,24 @@ void Emitter<Writer>::_do_visit_block_container(size_t node, size_t next_level, 
                 NodeType ty = m_tree->type(child);
                 if(ty.marked_flow_sl())
                 {
-                    this->Writer::_do_write(ind);
+                    _indent(level, do_indent);
                     this->Writer::_do_write("- ");
                     _do_visit_flow_sl(child, 0u);
                     this->Writer::_do_write('\n');
                 }
                 else if(ty.marked_flow_ml())
                 {
-                    this->Writer::_do_write(ind);
+                    _indent(level, do_indent);
                     this->Writer::_do_write("- ");
-                    _do_visit_flow_ml(child, next_level, do_indent);
+                    _do_visit_flow_ml(child, 0u, do_indent);
                     this->Writer::_do_write('\n');
                 }
                 else
                 {
-                    _do_visit_block(child, next_level, do_indent);
+                    _do_visit_block(child, level, do_indent); // same level
                 }
             }
             do_indent = true;
-            ind = indent_to(do_indent * next_level);
         }
     }
     else // map
@@ -330,10 +409,10 @@ void Emitter<Writer>::_do_visit_block_container(size_t node, size_t next_level, 
             _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->has_key(ich));
             if(m_tree->is_keyval(ich))
             {
-                this->Writer::_do_write(ind);
-                _writek(ich, next_level);
+                _indent(level, do_indent);
+                _writek(ich, level);
                 this->Writer::_do_write(": ");
-                _writev(ich, next_level);
+                _writev(ich, level);
                 this->Writer::_do_write('\n');
             }
             else
@@ -342,25 +421,24 @@ void Emitter<Writer>::_do_visit_block_container(size_t node, size_t next_level, 
                 NodeType ty = m_tree->type(ich);
                 if(ty.marked_flow_sl())
                 {
-                    this->Writer::_do_write(ind);
+                    _indent(level, do_indent);
                     _do_visit_flow_sl(ich, 0u);
                     this->Writer::_do_write('\n');
                 }
                 else if(ty.marked_flow_ml())
                 {
-                    this->Writer::_do_write(ind);
+                    _indent(level, do_indent);
                     _do_visit_flow_ml(ich, 0u);
                     this->Writer::_do_write('\n');
                 }
                 else
                 {
-                    _do_visit_block(ich, next_level, do_indent);
+                    _do_visit_block(ich, level, do_indent); // same level!
                 }
-            }
+            } // keyval vs container
             do_indent = true;
-            ind = indent_to(do_indent * next_level);
-        }
-    }
+        } // for children
+    } // seq vs map
 }
 
 template<class Writer>
@@ -369,8 +447,6 @@ void Emitter<Writer>::_do_visit_block(size_t node, size_t ilevel, size_t do_inde
     RYML_ASSERT(!m_tree->is_stream(node));
     RYML_ASSERT(m_tree->is_container(node) || m_tree->is_doc(node));
     RYML_ASSERT(m_tree->is_root(node) || (m_tree->parent_is_map(node) || m_tree->parent_is_seq(node)));
-    RepC ind = indent_to(do_indent * ilevel);
-
     if(m_tree->is_doc(node))
     {
         _write_doc(node);
@@ -380,20 +456,18 @@ void Emitter<Writer>::_do_visit_block(size_t node, size_t ilevel, size_t do_inde
     else if(m_tree->is_container(node))
     {
         RYML_ASSERT(m_tree->is_map(node) || m_tree->is_seq(node));
-
         bool spc = false; // write a space
         bool nl = false;  // write a newline
-
         if(m_tree->has_key(node))
         {
-            this->Writer::_do_write(ind);
+            _indent(ilevel, do_indent);
             _writek(node, ilevel);
             this->Writer::_do_write(':');
             spc = true;
         }
         else if(!m_tree->is_root(node))
         {
-            this->Writer::_do_write(ind);
+            _indent(ilevel, do_indent);
             this->Writer::_do_write('-');
             spc = true;
         }
@@ -513,13 +587,16 @@ void Emitter<Writer>::_write(NodeScalar const& C4_RESTRICT sc, NodeType flags, s
         if(sc.anchor != "<<")
             this->Writer::_do_write('*');
         this->Writer::_do_write(sc.anchor);
+        if(flags.is_key_ref())
+            this->Writer::_do_write(' ');
         return;
     }
 
     // ensure the style flags only have one of KEY or VAL
-    _RYML_CB_ASSERT(m_tree->callbacks(), ((flags & (_WIP_KEY_STYLE|_WIP_VAL_STYLE)) == 0) || (((flags&_WIP_KEY_STYLE) == 0) != ((flags&_WIP_VAL_STYLE) == 0)));
-
-    auto style_marks = flags & (_WIP_KEY_STYLE|_WIP_VAL_STYLE);
+    _RYML_CB_ASSERT(m_tree->callbacks(), ((flags & _WIP_SCALAR_STYLE) == 0) || (((flags&_WIP_KEY_STYLE) == 0) != ((flags&_WIP_VAL_STYLE) == 0)));
+    type_bits style_marks = flags & _WIP_SCALAR_STYLE;
+    if(!style_marks)
+        style_marks = scalar_style_choose(sc.scalar);
     if(style_marks & (_WIP_KEY_LITERAL|_WIP_VAL_LITERAL))
     {
         _write_scalar_literal(sc.scalar, ilevel, flags.has_key());
@@ -538,33 +615,10 @@ void Emitter<Writer>::_write(NodeScalar const& C4_RESTRICT sc, NodeType flags, s
     }
     else if(style_marks & (_WIP_KEY_PLAIN|_WIP_VAL_PLAIN))
     {
-        _write_scalar_plain(sc.scalar, ilevel);
-    }
-    else if(!style_marks)
-    {
-        size_t first_non_nl = sc.scalar.first_not_of('\n');
-        bool all_newlines = first_non_nl == npos;
-        bool has_leading_ws = (!all_newlines) && sc.scalar.sub(first_non_nl).begins_with_any(" \t");
-        bool do_literal = ((!sc.scalar.empty() && all_newlines) || (has_leading_ws && !sc.scalar.trim(' ').empty()));
-        if(do_literal)
-        {
-            _write_scalar_literal(sc.scalar, ilevel, flags.has_key(), /*explicit_indentation*/has_leading_ws);
-        }
+        if(C4_LIKELY(!(sc.scalar.begins_with(": ") || sc.scalar.begins_with(":\t"))))
+            _write_scalar_plain(sc.scalar, ilevel);
         else
-        {
-            for(size_t i = 0; i < sc.scalar.len; ++i)
-            {
-                if(sc.scalar.str[i] == '\n')
-                {
-                    _write_scalar_literal(sc.scalar, ilevel, flags.has_key(), /*explicit_indentation*/has_leading_ws);
-                    goto wrote_special;
-                }
-                // todo: check for escaped characters requiring double quotes
-            }
-            _write_scalar(sc.scalar, flags.is_quoted());
-        wrote_special:
-            ;
-        }
+            _write_scalar_squo(sc.scalar, ilevel);
     }
     else
     {
@@ -581,30 +635,93 @@ void Emitter<Writer>::_write_json(NodeScalar const& C4_RESTRICT sc, NodeType fla
     _write_scalar_json(sc.scalar, flags.has_key(), flags.is_quoted());
 }
 
-#define _rymlindent_nextline() for(size_t lv = 0; lv < ilevel+1; ++lv) { this->Writer::_do_write(' '); this->Writer::_do_write(' '); }
+template<class Writer>
+size_t Emitter<Writer>::_write_escaped_newlines(csubstr s, size_t i)
+{
+    RYML_ASSERT(s.len > i);
+    RYML_ASSERT(s.str[i] == '\n');
+    //_c4dbgpf("nl@i={} rem=[{}]~~~{}~~~", i, s.sub(i).len, s.sub(i));
+    // add an extra newline for each sequence of consecutive
+    // newline/whitespace
+    this->Writer::_do_write('\n');
+    do
+    {
+        this->Writer::_do_write('\n'); // write the newline again
+        ++i; // increase the outer loop counter!
+    } while(i < s.len && s.str[i] == '\n');
+    RYML_ASSERT(i > 0);
+    --i;
+    RYML_ASSERT(s.str[i] == '\n');
+    return i;
+}
+
+inline bool _is_indented_block(csubstr s, size_t prev, size_t i) noexcept
+{
+    if(prev == 0 && s.begins_with_any(" \t"))
+        return true;
+    const size_t pos = s.first_not_of('\n', i);
+    return (pos != npos) && (s.str[pos] == ' ' || s.str[pos] == '\t');
+}
 
 template<class Writer>
-void Emitter<Writer>::_write_scalar_literal(csubstr s, size_t ilevel, bool explicit_key, bool explicit_indentation)
+size_t Emitter<Writer>::_write_indented_block(csubstr s, size_t i, size_t ilevel)
 {
+    //_c4dbgpf("indblock@i={} rem=[{}]~~~\n{}~~~", i, s.sub(i).len, s.sub(i));
+    RYML_ASSERT(i > 0);
+    RYML_ASSERT(s.str[i-1] == '\n');
+    RYML_ASSERT(i < s.len);
+    RYML_ASSERT(s.str[i] == ' ' || s.str[i] == '\t' || s.str[i] == '\n');
+again:
+    size_t pos = s.find("\n ", i);
+    if(pos == npos)
+        pos = s.find("\n\t", i);
+    if(pos != npos)
+    {
+        ++pos;
+        //_c4dbgpf("indblock line@i={} rem=[{}]~~~\n{}~~~", i, s.range(i, pos).len, s.range(i, pos));
+        _rymlindent_nextline();
+        this->Writer::_do_write(s.range(i, pos));
+        i = pos;
+        goto again;
+    }
+    // consume the newlines after the indented block
+    // to prevent them from being escaped
+    pos = s.find('\n', i);
+    if(pos != npos)
+    {
+        const size_t pos2 = s.first_not_of('\n', pos);
+        pos = (pos2 != npos) ? pos2 : pos;
+        //_c4dbgpf("indblock line@i={} rem=[{}]~~~\n{}~~~", i, s.range(i, pos).len, s.range(i, pos));
+        _rymlindent_nextline();
+        this->Writer::_do_write(s.range(i, pos));
+        i = pos;
+    }
+    return i;
+}
+
+template<class Writer>
+void Emitter<Writer>::_write_scalar_literal(csubstr s, size_t ilevel, bool explicit_key)
+{
+    RYML_ASSERT(s.find("\r") == csubstr::npos);
     if(explicit_key)
         this->Writer::_do_write("? ");
-    csubstr trimmed = s.trimr("\n\r");
-    size_t numnewlines_at_end = s.len - trimmed.len - s.sub(trimmed.len).count('\r');
+    csubstr trimmed = s.trimr('\n');
+    const size_t numnewlines_at_end = s.len - trimmed.len;
+    const bool is_newline_only = (trimmed.len == 0 && (s.len > 0));
+    const bool explicit_indentation = s.triml("\n\r").begins_with_any(" \t");
     //
-    if(!explicit_indentation)
-        this->Writer::_do_write('|');
-    else
-        this->Writer::_do_write("|2");
+    this->Writer::_do_write('|');
+    if(explicit_indentation)
+        this->Writer::_do_write('2');
     //
-    if(numnewlines_at_end > 1 || (trimmed.len == 0 && s.len > 0)/*only newlines*/)
-        this->Writer::_do_write("+\n");
-    else if(numnewlines_at_end == 1)
-        this->Writer::_do_write('\n');
-    else
-        this->Writer::_do_write("-\n");
+    if(numnewlines_at_end > 1 || is_newline_only)
+        this->Writer::_do_write('+');
+    else if(numnewlines_at_end == 0)
+        this->Writer::_do_write('-');
     //
     if(trimmed.len)
     {
+        this->Writer::_do_write('\n');
         size_t pos = 0; // tracks the last character that was already written
         for(size_t i = 0; i < trimmed.len; ++i)
         {
@@ -621,19 +738,10 @@ void Emitter<Writer>::_write_scalar_literal(csubstr s, size_t ilevel, bool expli
             _rymlindent_nextline()
             this->Writer::_do_write(trimmed.sub(pos));
         }
-        if(numnewlines_at_end)
-        {
-            this->Writer::_do_write('\n');
-            --numnewlines_at_end;
-        }
     }
-    for(size_t i = 0; i < numnewlines_at_end; ++i)
-    {
-        _rymlindent_nextline()
-        if(i+1 < numnewlines_at_end || explicit_key)
-            this->Writer::_do_write('\n');
-    }
-    if(explicit_key && !numnewlines_at_end)
+    for(size_t i = !is_newline_only; i < numnewlines_at_end; ++i)
+        this->Writer::_do_write('\n');
+    if(explicit_key)
         this->Writer::_do_write('\n');
 }
 
@@ -641,56 +749,77 @@ template<class Writer>
 void Emitter<Writer>::_write_scalar_folded(csubstr s, size_t ilevel, bool explicit_key)
 {
     if(explicit_key)
-    {
         this->Writer::_do_write("? ");
-    }
     RYML_ASSERT(s.find("\r") == csubstr::npos);
     csubstr trimmed = s.trimr('\n');
-    size_t numnewlines_at_end = s.len - trimmed.len;
+    const size_t numnewlines_at_end = s.len - trimmed.len;
+    const bool is_newline_only = (trimmed.len == 0 && (s.len > 0));
+    const bool explicit_indentation = s.triml("\n\r").begins_with_any(" \t");
+    //
+    this->Writer::_do_write('>');
+    if(explicit_indentation)
+        this->Writer::_do_write('2');
+    //
     if(numnewlines_at_end == 0)
-    {
-        this->Writer::_do_write(">-\n");
-    }
-    else if(numnewlines_at_end == 1)
-    {
-        this->Writer::_do_write(">\n");
-    }
-    else if(numnewlines_at_end > 1)
-    {
-        this->Writer::_do_write(">+\n");
-    }
+        this->Writer::_do_write('-');
+    else if(numnewlines_at_end > 1 || is_newline_only)
+        this->Writer::_do_write('+');
+    //
     if(trimmed.len)
     {
+        this->Writer::_do_write('\n');
         size_t pos = 0; // tracks the last character that was already written
         for(size_t i = 0; i < trimmed.len; ++i)
         {
             if(trimmed[i] != '\n')
                 continue;
-            // write everything up to this point
-            csubstr since_pos = trimmed.range(pos, i+1); // include the newline
-            pos = i+1; // because of the newline
-            _rymlindent_nextline()
-            this->Writer::_do_write(since_pos);
-            this->Writer::_do_write('\n'); // write the newline twice
+            // escape newline sequences
+            if( ! _is_indented_block(s, pos, i))
+            {
+                if(pos < i)
+                {
+                    _rymlindent_nextline()
+                    this->Writer::_do_write(s.range(pos, i));
+                    i = _write_escaped_newlines(s, i);
+                    pos = i+1;
+                }
+                else
+                {
+                    if(i+1 < s.len)
+                    {
+                        if(s.str[i+1] == '\n')
+                        {
+                            ++i;
+                            i = _write_escaped_newlines(s, i);
+                            pos = i+1;
+                        }
+                        else
+                        {
+                            this->Writer::_do_write('\n');
+                            pos = i+1;
+                        }
+                    }
+                }
+            }
+            else // do not escape newlines in indented blocks
+            {
+                ++i;
+                _rymlindent_nextline()
+                this->Writer::_do_write(s.range(pos, i));
+                if(pos > 0 || !s.begins_with_any(" \t"))
+                    i = _write_indented_block(s, i, ilevel);
+                pos = i;
+            }
         }
         if(pos < trimmed.len)
         {
             _rymlindent_nextline()
             this->Writer::_do_write(trimmed.sub(pos));
         }
-        if(numnewlines_at_end)
-        {
-            this->Writer::_do_write('\n');
-            --numnewlines_at_end;
-        }
     }
-    for(size_t i = 0; i < numnewlines_at_end; ++i)
-    {
-        _rymlindent_nextline()
-        if(i+1 < numnewlines_at_end || explicit_key)
-            this->Writer::_do_write('\n');
-    }
-    if(explicit_key && !numnewlines_at_end)
+    for(size_t i = !is_newline_only; i < numnewlines_at_end; ++i)
+        this->Writer::_do_write('\n');
+    if(explicit_key)
         this->Writer::_do_write('\n');
 }
 
@@ -703,18 +832,20 @@ void Emitter<Writer>::_write_scalar_squo(csubstr s, size_t ilevel)
     {
         if(s[i] == '\n')
         {
-            csubstr sub = s.range(pos, i+1);
-            this->Writer::_do_write(sub);  // write everything up to (including) this char
-            this->Writer::_do_write('\n'); // write the character again
-            if(i + 1 < s.len)
-                _rymlindent_nextline()     // indent the next line
+            this->Writer::_do_write(s.range(pos, i));  // write everything up to (excluding) this char
+            //_c4dbgpf("newline at {}. writing ~~~{}~~~", i, s.range(pos, i));
+            i = _write_escaped_newlines(s, i);
+            //_c4dbgpf("newline --> {}", i);
+            if(i < s.len)
+                _rymlindent_nextline()
             pos = i+1;
         }
         else if(s[i] == '\'')
         {
             csubstr sub = s.range(pos, i+1);
-            this->Writer::_do_write(sub); // write everything up to (including) this char
-            this->Writer::_do_write('\''); // write the character again
+            //_c4dbgpf("squote at {}. writing ~~~{}~~~", i, sub);
+            this->Writer::_do_write(sub); // write everything up to (including) this squote
+            this->Writer::_do_write('\''); // write the squote again
             pos = i+1;
         }
     }
@@ -732,149 +863,125 @@ void Emitter<Writer>::_write_scalar_dquo(csubstr s, size_t ilevel)
     for(size_t i = 0; i < s.len; ++i)
     {
         const char curr = s.str[i];
-        if(curr == '"' || curr == '\\')
+        switch(curr)
+        {
+        case '"':
+        case '\\':
         {
             csubstr sub = s.range(pos, i);
             this->Writer::_do_write(sub);  // write everything up to (excluding) this char
             this->Writer::_do_write('\\'); // write the escape
             this->Writer::_do_write(curr); // write the char
             pos = i+1;
+            break;
         }
-        else if(s[i] == '\n')
+#ifndef prefer_writing_newlines_as_double_newlines
+        case '\n':
         {
-            csubstr sub = s.range(pos, i+1);
-            this->Writer::_do_write(sub);  // write everything up to (including) this newline
-            this->Writer::_do_write('\n'); // write the newline again
-            if(i + 1 < s.len)
-                _rymlindent_nextline()     // indent the next line
+            csubstr sub = s.range(pos, i);
+            this->Writer::_do_write(sub);   // write everything up to (excluding) this char
+            this->Writer::_do_write("\\n"); // write the escape
             pos = i+1;
-            if(i+1 < s.len) // escape leading whitespace after the newline
-            {
-                const char next = s.str[i+1];
-                if(next == ' ' || next == '\t')
-                    this->Writer::_do_write('\\');
-            }
+            (void)ilevel;
+            break;
         }
-        else if(curr == ' ' || curr == '\t')
+#else
+        case '\n':
         {
-            // escape trailing whitespace before a newline
-            size_t next = s.first_not_of(" \t\r", i);
-            if(next != npos && s[next] == '\n')
+            // write everything up to (excluding) this newline
+            //_c4dbgpf("nl@i={} rem=[{}]~~~{}~~~", i, s.sub(i).len, s.sub(i));
+            this->Writer::_do_write(s.range(pos, i));
+            i = _write_escaped_newlines(s, i);
+            ++i;
+            pos = i;
+            // as for the next line...
+            if(i < s.len)
+            {
+                _rymlindent_nextline() // indent the next line
+                // escape leading whitespace, and flush it
+                size_t first = s.first_not_of(" \t", i);
+                _c4dbgpf("@i={} first={} rem=[{}]~~~{}~~~", i, first, s.sub(i).len, s.sub(i));
+                if(first > i)
+                {
+                    if(first == npos)
+                        first = s.len;
+                    this->Writer::_do_write('\\');
+                    this->Writer::_do_write(s.range(i, first));
+                    this->Writer::_do_write('\\');
+                    i = first-1;
+                    pos = first;
+                }
+            }
+            break;
+        }
+        // escape trailing whitespace before a newline
+        case ' ':
+        case '\t':
+        {
+            const size_t next = s.first_not_of(" \t\r", i);
+            if(next != npos && s.str[next] == '\n')
             {
                 csubstr sub = s.range(pos, i);
                 this->Writer::_do_write(sub);  // write everything up to (excluding) this char
                 this->Writer::_do_write('\\'); // escape the whitespace
                 pos = i;
             }
+            break;
         }
-        else if(C4_UNLIKELY(curr == '\r'))
+#endif
+        case '\r':
         {
             csubstr sub = s.range(pos, i);
             this->Writer::_do_write(sub);  // write everything up to (excluding) this char
             this->Writer::_do_write("\\r"); // write the escaped char
             pos = i+1;
+            break;
+        }
+        case '\b':
+        {
+            csubstr sub = s.range(pos, i);
+            this->Writer::_do_write(sub);  // write everything up to (excluding) this char
+            this->Writer::_do_write("\\b"); // write the escaped char
+            pos = i+1;
+            break;
+        }
         }
     }
     // write missing characters at the end of the string
     if(pos < s.len)
-    {
-        csubstr sub = s.sub(pos);
-        this->Writer::_do_write(sub);
-    }
+        this->Writer::_do_write(s.sub(pos));
     this->Writer::_do_write('"');
 }
 
 template<class Writer>
 void Emitter<Writer>::_write_scalar_plain(csubstr s, size_t ilevel)
 {
+    if(C4_UNLIKELY(ilevel == 0 && (s.begins_with("...") || s.begins_with("---"))))
+    {
+        _rymlindent_nextline()     // indent the next line
+        ++ilevel;
+    }
     size_t pos = 0; // tracks the last character that was already written
     for(size_t i = 0; i < s.len; ++i)
     {
         const char curr = s.str[i];
         if(curr == '\n')
         {
-            csubstr sub = s.range(pos, i+1);
+            csubstr sub = s.range(pos, i);
             this->Writer::_do_write(sub);  // write everything up to (including) this newline
-            this->Writer::_do_write('\n'); // write the newline again
-            if(i + 1 < s.len)
-                _rymlindent_nextline()     // indent the next line
+            i = _write_escaped_newlines(s, i);
             pos = i+1;
+            if(pos < s.len)
+                _rymlindent_nextline()     // indent the next line
         }
     }
     // write missing characters at the end of the string
     if(pos < s.len)
-    {
-        csubstr sub = s.sub(pos);
-        this->Writer::_do_write(sub);
-    }
+        this->Writer::_do_write(s.sub(pos));
 }
 
 #undef _rymlindent_nextline
 
-template<class Writer>
-void Emitter<Writer>::_write_scalar(csubstr s, bool was_quoted)
-{
-    // this block of code needed to be moved to before the needs_quotes
-    // assignment to work around a g++ optimizer bug where (s.str != nullptr)
-    // was evaluated as true even if s.str was actually a nullptr (!!!)
-    if(s.len == size_t(0))
-    {
-        if(was_quoted || s.str != nullptr)
-            this->Writer::_do_write("''");
-        return;
-    }
-
-    const bool needs_quotes = (
-        was_quoted
-        ||
-        (
-            ( ! s.is_number())
-            &&
-            (
-                // has leading whitespace
-                // looks like reference or anchor
-                // would be treated as a directive
-                // see https://www.yaml.info/learn/quote.html#noplain
-                s.begins_with_any(" \n\t\r*&%@`")
-                ||
-                s.begins_with("<<")
-                ||
-                // has trailing whitespace
-                s.ends_with_any(" \n\t\r")
-                ||
-                // has special chars
-                (s.first_of("#:-?,\n{}[]'\"") != npos)
-            )
-        )
-    );
-
-    if( ! needs_quotes)
-    {
-        this->Writer::_do_write(s);
-    }
-    else
-    {
-        const bool has_dquotes = s.first_of( '"') != npos;
-        const bool has_squotes = s.first_of('\'') != npos;
-        if(!has_squotes && has_dquotes)
-        {
-            this->Writer::_do_write('\'');
-            this->Writer::_do_write(s);
-            this->Writer::_do_write('\'');
-        }
-        else if(has_squotes && !has_dquotes)
-        {
-            RYML_ASSERT(s.count('\n') == 0);
-            this->Writer::_do_write('"');
-            this->Writer::_do_write(s);
-            this->Writer::_do_write('"');
-        }
-        else
-        {
-            _write_scalar_squo(s, /*FIXME FIXME FIXME*/0);
-        }
-    }
-}
 template<class Writer>
 void Emitter<Writer>::_write_scalar_json(csubstr s, bool as_key, bool use_quotes)
 {

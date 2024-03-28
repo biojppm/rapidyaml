@@ -1,552 +1,8 @@
-#include "./test_group.hpp"
-#include "test_case.hpp"
+#include "./test_lib/test_group.hpp"
+#include "./test_lib/test_case.hpp"
 
 namespace c4 {
 namespace yml {
-
-TEST(tag_directives, basic)
-{
-    Tree t = parse_in_arena(R"(
-%TAG !m! !my-
---- # Bulb here
-!m!light fluorescent
-...
-%TAG !m! !meta-
---- # Color here
-!m!light green
-)");
-    EXPECT_EQ(t[0].val_tag(), "!m!light");
-    EXPECT_EQ(t[1].val_tag(), "!m!light");
-    EXPECT_EQ(t.num_tag_directives(), 2u);
-    char buf_[100];
-    EXPECT_EQ(t.resolve_tag_sub(buf_, "!m!light", 1u), csubstr("<!my-light>"));
-    EXPECT_EQ(t.resolve_tag_sub(buf_, "!m!light", 2u), csubstr("<!meta-light>"));
-    EXPECT_EQ(emitrs_yaml<std::string>(t), std::string(R"(%TAG !m! !my-
---- !m!light fluorescent
-...
-%TAG !m! !meta-
---- !m!light green
-)"));
-}
-
-TEST(tag_directives, accepts_comment)
-{
-    Tree t = parse_in_arena(R"(
-%TAG !m! !my-   # comment
---- # Bulb here
-!m!light fluorescent
-...
-%TAG !m! !meta-   # comment
---- # Color here
-!m!light green
-)");
-    EXPECT_EQ(t[0].val_tag(), "!m!light");
-    EXPECT_EQ(t[1].val_tag(), "!m!light");
-    EXPECT_EQ(t.num_tag_directives(), 2u);
-    char buf_[100];
-    EXPECT_EQ(t.resolve_tag_sub(buf_, "!m!light", 1u), csubstr("<!my-light>"));
-    EXPECT_EQ(t.resolve_tag_sub(buf_, "!m!light", 2u), csubstr("<!meta-light>"));
-    EXPECT_EQ(emitrs_yaml<std::string>(t), std::string(R"(%TAG !m! !my-
---- !m!light fluorescent
-...
-%TAG !m! !meta-
---- !m!light green
-)"));
-}
-
-TEST(tag_directives, accepts_multiple_spaces)
-{
-    Tree t = parse_in_arena(R"(
-%TAG    !m!    !my-   # comment
---- # Bulb here
-!m!light fluorescent
-...
-%TAG    !m!    !meta-   # comment
---- # Color here
-!m!light green
-)");
-    EXPECT_EQ(t[0].val_tag(), "!m!light");
-    EXPECT_EQ(t[1].val_tag(), "!m!light");
-    EXPECT_EQ(t.num_tag_directives(), 2u);
-    char buf_[100];
-    EXPECT_EQ(t.resolve_tag_sub(buf_, "!m!light", 1u), csubstr("<!my-light>"));
-    EXPECT_EQ(t.resolve_tag_sub(buf_, "!m!light", 2u), csubstr("<!meta-light>"));
-    EXPECT_EQ(emitrs_yaml<std::string>(t), std::string(R"(%TAG !m! !my-
---- !m!light fluorescent
-...
-%TAG !m! !meta-
---- !m!light green
-)"));
-}
-
-TEST(tag_directives, errors)
-{
-    {
-        Tree t;
-        ExpectError::do_check(&t, [&]{
-            t = parse_in_arena(R"(
-%TAG
---- # Bulb here
-!m!light fluorescent)");
-        });
-    }
-    {
-        Tree t;
-        ExpectError::do_check(&t, [&]{
-            t = parse_in_arena(R"(
-%TAG !m!
---- # Bulb here
-!m!light fluorescent)");
-        });
-    }
-}
-
-TEST(tag_directives, resolve_tags)
-{
-    Tree t = parse_in_arena(R"(
-%TAG !m! !my-   # comment
---- # Bulb here
-!m!light fluorescent: !m!light bulb
-...
-%TAG !m! !meta-   # comment
---- # Color here
-!m!light green: !m!light color
-)");
-    EXPECT_EQ(t.docref(0)[0].key_tag(), "!m!light");
-    EXPECT_EQ(t.docref(0)[0].val_tag(), "!m!light");
-    EXPECT_EQ(t.num_tag_directives(), 2u);
-    t.resolve_tags();
-    EXPECT_EQ(t.docref(0)[0].key_tag(), "<!my-light>");
-    EXPECT_EQ(t.docref(0)[0].val_tag(), "<!my-light>");
-    EXPECT_EQ(emitrs_yaml<std::string>(t), std::string(R"(%TAG !m! !my-
----
-!<!my-light> fluorescent: !<!my-light> bulb
-...
-%TAG !m! !meta-
----
-!<!meta-light> green: !<!meta-light> color
-)"));
-}
-
-TEST(tag_directives, safe_with_empty_tree)
-{
-    Tree t;
-    t.resolve_tags();
-    EXPECT_TRUE(t.empty());
-}
-
-TEST(tag_directives, decode_uri_chars)
-{
-    {
-        Tree t = parse_in_arena(R"(
-%TAG !e! tag:example.com,2000:app/
----
-- !e!%61%62%63%21 baz
-)");
-        t.resolve_tags();
-        EXPECT_EQ(t.docref(0)[0].val_tag(), csubstr("<tag:example.com,2000:app/abc!>"));
-    }
-    {
-        Tree t;
-        auto checkerr = [&t](csubstr yaml){
-            ExpectError::do_check(&t, [&]{
-                t.clear();
-                t = parse_in_arena(yaml);
-                t.resolve_tags();
-            });
-        };
-        {
-            SCOPED_TRACE("without numbers at begin");
-            checkerr(R"(
-%TAG !e! tag:example.com,2000:app/
----
-- !e!%%62%63 baz
-)");
-        }
-        {
-            SCOPED_TRACE("without numbers in the middle");
-            checkerr(R"(
-%TAG !e! tag:example.com,2000:app/
----
-- !e!%61%%63 baz
-)");
-        }
-        {
-            SCOPED_TRACE("without numbers in the end");
-            checkerr(R"(
-%TAG !e! tag:example.com,2000:app/
----
-- !e!%61%62% baz
-)");
-        }
-        {
-            SCOPED_TRACE("with wrong characters numbers at begin");
-            checkerr(R"(
-%TAG !e! tag:example.com,2000:app/
----
-- !e!%h%62%63 baz
-)");
-        }
-        {
-            SCOPED_TRACE("with wrong characters in the middle");
-            checkerr(R"(
-%TAG !e! tag:example.com,2000:app/
----
-- !e!%61%hh%63 baz
-)");
-        }
-        {
-            SCOPED_TRACE("with wrong characters in the end");
-            checkerr(R"(
-%TAG !e! tag:example.com,2000:app/
----
-- !e!%61%62%hh baz
-)");
-        }
-    }
-}
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
-TEST(tags, test_suite_735Y)
-{
-    csubstr yaml_without_seq = R"(
-!!map # Block collection
-foo : bar
-)";
-    test_check_emit_check(yaml_without_seq, [](Tree const &t){
-        EXPECT_TRUE(t.rootref().is_map());
-        EXPECT_TRUE(t.rootref().has_val_tag());
-        EXPECT_EQ(t.rootref()["foo"].val(), csubstr("bar"));
-    });
-
-    csubstr yaml = R"(
--
-  foo : bar
-- #!!map
-  foo : bar
-- #!!map # Block collection
-  foo : bar
-- !!map
-  foo : bar
-- !!map # Block collection
-  foo : bar
-)";
-    test_check_emit_check(yaml, [](Tree const &t){
-        ASSERT_TRUE(t.rootref().is_seq());
-        ASSERT_EQ(t.rootref().num_children(), 5u);
-        //
-        EXPECT_TRUE(t[0].is_map());
-        EXPECT_TRUE(!t[0].has_val_tag());
-        EXPECT_EQ(t[0]["foo"].val(), csubstr("bar"));
-        //
-        EXPECT_TRUE(t[1].is_map());
-        EXPECT_TRUE(!t[1].has_val_tag());
-        EXPECT_EQ(t[1]["foo"].val(), csubstr("bar"));
-        //
-        EXPECT_TRUE(t[2].is_map());
-        EXPECT_TRUE(!t[2].has_val_tag());
-        EXPECT_EQ(t[2]["foo"].val(), csubstr("bar"));
-        //
-        EXPECT_TRUE(t[3].is_map());
-        ASSERT_TRUE(t[3].has_val_tag());
-        EXPECT_EQ(t[3].val_tag(), csubstr("!!map"));
-        EXPECT_EQ(t[3]["foo"].val(), csubstr("bar"));
-        //
-        EXPECT_TRUE(t[4].is_map());
-        ASSERT_TRUE(t[4].has_val_tag());
-        EXPECT_EQ(t[4].val_tag(), csubstr("!!map"));
-        EXPECT_EQ(t[4]["foo"].val(), csubstr("bar"));
-    });
-}
-
-
-TEST(tags, parsing)
-{
-    Tree t = parse_in_arena(R"(
-!!seq
-- !!map
-  !key key1: !val val1
-  !<!key> key2: !<!val> val2
-  !<key> key3: !<val> val3
-  <!key> key4: <!val> val4  # there are NOT parsed as tags
-- !<tag:yaml.org,2002:map>
-  !key key1: !val val1
-- !<tag:yaml.org,2002:seq>
-  - !val val
-  - !str val
-  - <!str> val
-  - !<!str> val
-  - !<!!str> val
-  - !<tag:yaml.org,2002:str> val
-)");
-    EXPECT_EQ(t.rootref().val_tag(), csubstr("!!seq"));
-    EXPECT_EQ(t[0].val_tag(), csubstr("!!map"));
-    EXPECT_EQ(t[1].val_tag(), csubstr("!!map"));
-    EXPECT_EQ(t[2].val_tag(), csubstr("!!seq"));
-    EXPECT_EQ(t[0]["key1"].key_tag(), csubstr("!key"));
-    EXPECT_EQ(t[0]["key1"].val_tag(), csubstr("!val"));
-    EXPECT_EQ(t[0]["key2"].key_tag(), csubstr("<!key>"));
-    EXPECT_EQ(t[0]["key2"].val_tag(), csubstr("<!val>"));
-    EXPECT_EQ(t[0]["key3"].key_tag(), csubstr("<key>"));
-    EXPECT_EQ(t[0]["key3"].val_tag(), csubstr("<val>"));
-    EXPECT_EQ(t[0]["<!key> key4"].has_key_tag(), false);
-    EXPECT_EQ(t[0]["<!key> key4"].has_val_tag(), false);
-    EXPECT_EQ(t[0]["<!key> key4"].key(), csubstr("<!key> key4"));
-    EXPECT_EQ(t[0]["<!key> key4"].val(), csubstr("<!val> val4"));
-    EXPECT_EQ(t[2][5].val_tag(), csubstr("!!str"));
-
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(!!seq
-- !!map
-  !key key1: !val val1
-  !<!key> key2: !<!val> val2
-  !<key> key3: !<val> val3
-  <!key> key4: <!val> val4
-- !!map
-  !key key1: !val val1
-- !!seq
-  - !val val
-  - !str val
-  - <!str> val
-  - !<!str> val
-  - !<!!str> val
-  - !!str val
-)");
-}
-
-
-TEST(tags, setting)
-{
-    Tree t;
-    size_t rid = t.root_id();
-    t.to_map(rid);
-    t.set_val_tag(rid, "!valtag");
-    EXPECT_EQ(t.val_tag(rid), "!valtag");
-
-    // a keymap
-    {
-        size_t child = t.append_child(rid);
-        t.to_seq(child, "key2");
-        t.set_key_tag(child, "!keytag");
-        t.set_val_tag(child, "!valtag2");
-        EXPECT_TRUE(t.has_key(child));
-        EXPECT_FALSE(t.has_val(child));
-        EXPECT_EQ(t.key(child), "key2");
-        EXPECT_EQ(t.key_tag(child), "!keytag");
-        EXPECT_EQ(t.val_tag(child), "!valtag2");
-    }
-
-    // a keyseq
-    {
-        size_t child = t.append_child(rid);
-        t.to_seq(child, "key2");
-        t.set_key_tag(child, "!keytag");
-        t.set_val_tag(child, "!valtag2");
-        EXPECT_TRUE(t.has_key(child));
-        EXPECT_FALSE(t.has_val(child));
-        EXPECT_EQ(t.key(child), "key2");
-        EXPECT_EQ(t.key_tag(child), "!keytag");
-        EXPECT_EQ(t.val_tag(child), "!valtag2");
-    }
-
-    // a keyval
-    {
-        size_t child = t.append_child(rid);
-        t.to_keyval(child, "key", "val");
-        t.set_key_tag(child, "!keytag");
-        t.set_val_tag(child, "!valtag");
-        EXPECT_TRUE(t.has_key(child));
-        EXPECT_TRUE(t.has_val(child));
-        EXPECT_EQ(t.key(child), "key");
-        EXPECT_EQ(t.val(child), "val");
-        EXPECT_EQ(t.key_tag(child), "!keytag");
-        EXPECT_EQ(t.val_tag(child), "!valtag");
-    }
-
-    // a val
-    {
-        size_t seqid = t[1].id();
-        ASSERT_TRUE(t.is_seq(seqid));
-        size_t child = t.append_child(seqid);
-        t.to_val(child, "val");
-        t.set_val_tag(child, "!valtag");
-        EXPECT_FALSE(t.has_key(child));
-        EXPECT_TRUE(t.has_val(child));
-        EXPECT_EQ(t.val(child), "val");
-        EXPECT_EQ(t.val_tag(child), "!valtag");
-    }
-}
-
-TEST(tags, errors)
-{
-    Tree t = parse_in_arena("{key: val, keymap: {}, keyseq: [val]}");
-    size_t keyval = t["keyval"].id();
-    size_t keymap = t["keymap"].id();
-    size_t keyseq = t["keyseq"].id();
-    size_t val = t["keyseq"][0].id();
-    size_t empty_keyval = t.append_child(keymap);
-    size_t empty_val = t.append_child(keyseq);
-
-    ASSERT_NE(keyval, (size_t)npos);
-    ASSERT_NE(keymap, (size_t)npos);
-    ASSERT_NE(keyseq, (size_t)npos);
-    ASSERT_NE(val, (size_t)npos);
-
-    // cannot get key tag in a node that does not have a key tag
-    EXPECT_FALSE(t.has_key_tag(empty_keyval));
-    ExpectError::check_assertion(&t, [&](){
-        EXPECT_EQ(t.key_tag(empty_keyval), "");
-    });
-    ExpectError::check_assertion(&t, [&](){
-        EXPECT_EQ(t.key_tag(keyval), "");
-    });
-    ExpectError::check_assertion(&t, [&](){
-        EXPECT_EQ(t.key_tag(keymap), "");
-    });
-    ExpectError::check_assertion(&t, [&](){
-        EXPECT_EQ(t.key_tag(keyseq), "");
-    });
-    ExpectError::check_assertion(&t, [&](){
-        EXPECT_EQ(t.key_tag(val), "");
-    });
-    // cannot get val tag in a node that does not have a val tag
-    EXPECT_FALSE(t.has_val_tag(empty_val));
-    ExpectError::check_assertion(&t, [&](){
-        EXPECT_EQ(t.val_tag(empty_val), "");
-    });
-    EXPECT_FALSE(t.has_val_tag(empty_keyval));
-    ExpectError::check_assertion(&t, [&](){
-        EXPECT_EQ(t.val_tag(empty_keyval), "");
-    });
-    ExpectError::check_assertion(&t, [&](){
-        EXPECT_EQ(t.val_tag(keyval), "");
-    });
-    ExpectError::check_assertion(&t, [&](){
-        EXPECT_EQ(t.val_tag(keymap), "");
-    });
-    ExpectError::check_assertion(&t, [&](){
-        EXPECT_EQ(t.val_tag(keyseq), "");
-    });
-    ExpectError::check_assertion(&t, [&](){
-        EXPECT_EQ(t.val_tag(val), "");
-    });
-    // cannot set key tag in a node that does not have a key
-    EXPECT_FALSE(t.has_key(empty_keyval));
-    ExpectError::check_assertion(&t, [&](){
-        t.set_key_tag(empty_keyval, "!keytag");
-    });
-    EXPECT_FALSE(t.has_key_tag(val)); // must stay the same
-    ExpectError::check_assertion(&t, [&](){
-        t.set_key_tag(val, "!valtag");
-    });
-    EXPECT_FALSE(t.has_key_tag(val)); // must stay the same
-    // cannot set val tag in a node that does not have a val
-    EXPECT_FALSE(t.has_val(empty_val));
-    ExpectError::check_assertion(&t, [&](){
-        t.set_val_tag(empty_val, "!valtag");
-    });
-    EXPECT_FALSE(t.has_val_tag(empty_val)); // must stay the same
-    EXPECT_FALSE(t.has_val(empty_keyval));
-    ExpectError::check_assertion(&t, [&](){
-        t.set_val_tag(empty_keyval, "!valtag");
-    });
-    EXPECT_FALSE(t.has_val_tag(empty_keyval)); // must stay the same
-}
-
-
-TEST(tags, setting_user_tags_do_not_require_leading_mark)
-{
-    Tree t = parse_in_arena("{key: val, keymap: {}, keyseq: [val]}");
-    size_t keyval = t["keyval"].id();
-    size_t keymap = t["keymap"].id();
-    size_t keyseq = t["keyseq"].id();
-    size_t val = t["keyseq"][0].id();
-    ASSERT_NE(keyval, (size_t)npos);
-    ASSERT_NE(keymap, (size_t)npos);
-    ASSERT_NE(keyseq, (size_t)npos);
-    ASSERT_NE(val, (size_t)npos);
-
-    // without leading mark
-    t.set_key_tag(keyseq, "keytag");
-    t.set_val_tag(keyseq, "valtag");
-    t.set_val_tag(val,    "valtag2");
-    EXPECT_EQ(t.key_tag(keyseq), "keytag");
-    EXPECT_EQ(t.val_tag(keyseq), "valtag");
-    EXPECT_EQ(t.val_tag(val),    "valtag2");
-
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(key: val
-keymap: {}
-!keytag keyseq: !valtag
-  - !valtag2 val
-)");
-
-    // with leading mark
-    t.set_key_tag(keyseq, "!keytag");
-    t.set_val_tag(keyseq, "!valtag");
-    t.set_val_tag(val,    "!valtag2");
-    EXPECT_EQ(t.key_tag(keyseq), "!keytag");
-    EXPECT_EQ(t.val_tag(keyseq), "!valtag");
-    EXPECT_EQ(t.val_tag(val),    "!valtag2");
-
-    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(key: val
-keymap: {}
-!keytag keyseq: !valtag
-  - !valtag2 val
-)");
-}
-
-
-TEST(tags, valid_chars)
-{
-    Tree t = parse_in_arena(R"(
-- !<foo bar> val
-- !<foo> bar> val
-- !<foo> <bar> val
-)");
-    EXPECT_EQ(t[0].val_tag(), "<foo bar>");
-    EXPECT_EQ(t[0].val(), "val");
-    EXPECT_EQ(t[1].val_tag(), "<foo>");
-    EXPECT_EQ(t[1].val(), "bar> val");
-    EXPECT_EQ(t[2].val_tag(), "<foo>");
-    EXPECT_EQ(t[2].val(), "<bar> val");
-}
-
-
-TEST(tags, EHF6)
-{
-    {
-        Tree t = parse_in_arena(R"(!!map {
-  k: !!seq [ a, !!str b],
-  j: !!seq
-     [ a, !!str b]
-})");
-        ASSERT_TRUE(t.rootref().has_val_tag());
-        EXPECT_EQ(t.rootref().val_tag(), "!!map");
-        ASSERT_TRUE(t["k"].has_val_tag());
-        ASSERT_TRUE(t["j"].has_val_tag());
-        EXPECT_EQ(t["k"].val_tag(), "!!seq");
-        EXPECT_EQ(t["j"].val_tag(), "!!seq");
-    }
-    {
-        Tree t = parse_in_arena(R"(!!seq [
-  !!map { !!str k: v},
-  !!map { !!str ? k: v}
-])");
-        ASSERT_TRUE(t.rootref().has_val_tag());
-        EXPECT_EQ(t.rootref().val_tag(), "!!seq");
-        ASSERT_TRUE(t[0].has_val_tag());
-        ASSERT_TRUE(t[1].has_val_tag());
-        EXPECT_EQ(t[0].val_tag(), "!!map");
-        EXPECT_EQ(t[1].val_tag(), "!!map");
-        ASSERT_TRUE(t[0]["k"].has_key_tag());
-        ASSERT_TRUE(t[1]["k"].has_key_tag());
-        EXPECT_EQ(t[0]["k"].key_tag(), "!!str");
-        EXPECT_EQ(t[1]["k"].key_tag(), "!!str");
-    }
-}
 
 
 //-----------------------------------------------------------------------------
@@ -801,6 +257,17 @@ TEST(normalize_tag_long, basic)
     EXPECT_EQ(normalize_tag_long("!!value"    ), "<tag:yaml.org,2002:value>");
 
     EXPECT_EQ(normalize_tag_long("!!foo"      ), "!!foo");
+    EXPECT_EQ(normalize_tag_long("!!light"    ), "!!light");
+
+    EXPECT_EQ(normalize_tag_long("!m!foo"      ), "!m!foo");
+    EXPECT_EQ(normalize_tag_long("!m!light"    ), "!m!light");
+
+    char output[100];
+    EXPECT_EQ(normalize_tag_long("!!foo"      , output), "<tag:yaml.org,2002:foo>");
+    EXPECT_EQ(normalize_tag_long("!!light"    , output), "<tag:yaml.org,2002:light>");
+
+    EXPECT_EQ(normalize_tag_long("!m!foo"      , output), "!m!foo");
+    EXPECT_EQ(normalize_tag_long("!m!light"    , output), "!m!light");
 
     EXPECT_EQ(normalize_tag_long("!my-light"), "!my-light");
     EXPECT_EQ(normalize_tag_long("!foo"), "!foo");
@@ -815,6 +282,733 @@ TEST(normalize_tag_long, basic)
     EXPECT_EQ(normalize_tag_long("!<!>"), "<!>");
 }
 
+TEST(is_custom_tag, basic)
+{
+    EXPECT_FALSE(is_custom_tag("<tag:yaml.org,2002:"));
+    EXPECT_FALSE(is_custom_tag("<tag:yaml.org,2002:."));
+
+    EXPECT_FALSE(is_custom_tag("<tag:yaml.org,2002:map>"));
+    EXPECT_FALSE(is_custom_tag("<tag:yaml.org,2002:omap>"));
+    EXPECT_FALSE(is_custom_tag("<tag:yaml.org,2002:pairs>"));
+    EXPECT_FALSE(is_custom_tag("<tag:yaml.org,2002:set>"));
+    EXPECT_FALSE(is_custom_tag("<tag:yaml.org,2002:seq>"));
+    EXPECT_FALSE(is_custom_tag("<tag:yaml.org,2002:binary>"));
+    EXPECT_FALSE(is_custom_tag("<tag:yaml.org,2002:bool>"));
+    EXPECT_FALSE(is_custom_tag("<tag:yaml.org,2002:float>"));
+    EXPECT_FALSE(is_custom_tag("<tag:yaml.org,2002:int>"));
+    EXPECT_FALSE(is_custom_tag("<tag:yaml.org,2002:merge>"));
+    EXPECT_FALSE(is_custom_tag("<tag:yaml.org,2002:null>"));
+    EXPECT_FALSE(is_custom_tag("<tag:yaml.org,2002:str>"));
+    EXPECT_FALSE(is_custom_tag("<tag:yaml.org,2002:timestamp>"));
+    EXPECT_FALSE(is_custom_tag("<tag:yaml.org,2002:value>"));
+
+    EXPECT_FALSE(is_custom_tag("!<tag:yaml.org,2002:map>"));
+    EXPECT_FALSE(is_custom_tag("!<tag:yaml.org,2002:omap>"));
+    EXPECT_FALSE(is_custom_tag("!<tag:yaml.org,2002:pairs>"));
+    EXPECT_FALSE(is_custom_tag("!<tag:yaml.org,2002:set>"));
+    EXPECT_FALSE(is_custom_tag("!<tag:yaml.org,2002:seq>"));
+    EXPECT_FALSE(is_custom_tag("!<tag:yaml.org,2002:binary>"));
+    EXPECT_FALSE(is_custom_tag("!<tag:yaml.org,2002:bool>"));
+    EXPECT_FALSE(is_custom_tag("!<tag:yaml.org,2002:float>"));
+    EXPECT_FALSE(is_custom_tag("!<tag:yaml.org,2002:int>"));
+    EXPECT_FALSE(is_custom_tag("!<tag:yaml.org,2002:merge>"));
+    EXPECT_FALSE(is_custom_tag("!<tag:yaml.org,2002:null>"));
+    EXPECT_FALSE(is_custom_tag("!<tag:yaml.org,2002:str>"));
+    EXPECT_FALSE(is_custom_tag("!<tag:yaml.org,2002:timestamp>"));
+    EXPECT_FALSE(is_custom_tag("!<tag:yaml.org,2002:value>"));
+
+    EXPECT_FALSE(is_custom_tag("!!map"));
+    EXPECT_FALSE(is_custom_tag("!!omap"));
+    EXPECT_FALSE(is_custom_tag("!!pairs"));
+    EXPECT_FALSE(is_custom_tag("!!set"));
+    EXPECT_FALSE(is_custom_tag("!!seq"));
+    EXPECT_FALSE(is_custom_tag("!!binary"));
+    EXPECT_FALSE(is_custom_tag("!!bool"));
+    EXPECT_FALSE(is_custom_tag("!!float"));
+    EXPECT_FALSE(is_custom_tag("!!int"));
+    EXPECT_FALSE(is_custom_tag("!!merge"));
+    EXPECT_FALSE(is_custom_tag("!!null"));
+    EXPECT_FALSE(is_custom_tag("!!str"));
+    EXPECT_FALSE(is_custom_tag("!!timestamp"));
+    EXPECT_FALSE(is_custom_tag("!!value"));
+
+    EXPECT_FALSE(is_custom_tag("!!foo"));
+    EXPECT_FALSE(is_custom_tag("!!light"));
+
+    EXPECT_TRUE(is_custom_tag("!m!foo"));
+    EXPECT_TRUE(is_custom_tag("!m!light"));
+
+    EXPECT_FALSE(is_custom_tag("!my-light"));
+    EXPECT_FALSE(is_custom_tag("!foo"));
+    EXPECT_FALSE(is_custom_tag("<!foo>"));
+    EXPECT_FALSE(is_custom_tag("<foo>"));
+    EXPECT_FALSE(is_custom_tag("<!>"));
+
+    EXPECT_FALSE(is_custom_tag("!<!foo>"));
+    EXPECT_FALSE(is_custom_tag("!<foo>"));
+    EXPECT_FALSE(is_custom_tag("!<!foo>"));
+    EXPECT_FALSE(is_custom_tag("!<foo>"));
+    EXPECT_FALSE(is_custom_tag("!<!>"));
+}
+
+
+//-----------------------------------------------------------------------------
+
+TEST(tag_directives, basic)
+{
+    Tree t = parse_in_arena(R"(
+%TAG !m! !my-
+--- # Bulb here
+!m!light fluorescent
+...
+%TAG !m! !meta-
+--- # Color here
+!m!light green
+)");
+    EXPECT_EQ(t[0].val_tag(), "!m!light");
+    EXPECT_EQ(t[1].val_tag(), "!m!light");
+    EXPECT_EQ(t.num_tag_directives(), 2u);
+    char buf_[100];
+    EXPECT_EQ(t.resolve_tag_sub(buf_, "!m!light", 1u), csubstr("<!my-light>"));
+    EXPECT_EQ(t.resolve_tag_sub(buf_, "!m!light", 2u), csubstr("<!meta-light>"));
+    EXPECT_EQ(emitrs_yaml<std::string>(t), std::string(R"(%TAG !m! !my-
+--- !m!light fluorescent
+...
+%TAG !m! !meta-
+--- !m!light green
+)"));
+}
+
+TEST(tag_directives, accepts_comment)
+{
+    Tree t = parse_in_arena(R"(
+%TAG !m! !my-   # comment
+--- # Bulb here
+!m!light fluorescent
+...
+%TAG !m! !meta-   # comment
+--- # Color here
+!m!light green
+)");
+    EXPECT_EQ(t[0].val_tag(), "!m!light");
+    EXPECT_EQ(t[1].val_tag(), "!m!light");
+    EXPECT_EQ(t.num_tag_directives(), 2u);
+    char buf_[100];
+    EXPECT_EQ(t.resolve_tag_sub(buf_, "!m!light", 1u), csubstr("<!my-light>"));
+    EXPECT_EQ(t.resolve_tag_sub(buf_, "!m!light", 2u), csubstr("<!meta-light>"));
+    EXPECT_EQ(emitrs_yaml<std::string>(t), std::string(R"(%TAG !m! !my-
+--- !m!light fluorescent
+...
+%TAG !m! !meta-
+--- !m!light green
+)"));
+}
+
+TEST(tag_directives, accepts_multiple_spaces)
+{
+    Tree t = parse_in_arena(R"(
+%TAG    !m!    !my-   # comment
+--- # Bulb here
+!m!light fluorescent
+...
+%TAG    !m!    !meta-   # comment
+--- # Color here
+!m!light green
+)");
+    EXPECT_EQ(t[0].val_tag(), "!m!light");
+    EXPECT_EQ(t[1].val_tag(), "!m!light");
+    EXPECT_EQ(t.num_tag_directives(), 2u);
+    char buf_[100];
+    EXPECT_EQ(t.resolve_tag_sub(buf_, "!m!light", 1u), csubstr("<!my-light>"));
+    EXPECT_EQ(t.resolve_tag_sub(buf_, "!m!light", 2u), csubstr("<!meta-light>"));
+    EXPECT_EQ(emitrs_yaml<std::string>(t), std::string(R"(%TAG !m! !my-
+--- !m!light fluorescent
+...
+%TAG !m! !meta-
+--- !m!light green
+)"));
+}
+
+void test_fail_tag_parsing(csubstr yaml)
+{
+    Tree t;
+    ExpectError::do_check(&t, [&]{
+        t = parse_in_arena(yaml);
+    });
+}
+
+void test_fail_tag_resolve(csubstr yaml)
+{
+    Tree t;
+    t = parse_in_arena(yaml);
+    _c4dbg_tree(t);
+    ExpectError::do_check(&t, [&]{
+        t.resolve_tags();
+    });
+}
+
+TEST(tag_directives, errors_parsing_tags_1)
+{
+    test_fail_tag_parsing(R"(
+%TAG
+--- # Bulb here
+!m!light fluorescent)");
+}
+
+TEST(tag_directives, errors_parsing_tags_2)
+{
+    test_fail_tag_parsing(R"(
+%TAG !m!
+--- # Bulb here
+!m!light fluorescent)");
+}
+
+TEST(tag_directives, errors_resolving_tags_1)
+{
+    test_fail_tag_resolve(R"(
+!b!a asd
+)");
+}
+
+TEST(tag_directives, errors_resolving_tags_2_not_an_error_1)
+{
+    Tree t = parse_in_arena(R"(!local foo)");
+    t.resolve_tags();
+    EXPECT_EQ(t.rootref().val_tag(), "!local");
+    EXPECT_EQ(t.rootref().val(), "foo");
+ }
+
+TEST(tag_directives, errors_resolving_tags_2_not_an_error_2)
+{
+    Tree t = parse_in_arena(R"(! foo)");
+    t.resolve_tags();
+    EXPECT_EQ(t.rootref().val_tag(), "!");
+    EXPECT_EQ(t.rootref().val(), "foo");
+ }
+
+TEST(tag_directives, resolve_tags)
+{
+    Tree t = parse_in_arena(R"(
+%TAG !m! !my-   # comment
+--- # Bulb here
+!m!light fluorescent: !m!light bulb
+...
+%TAG !m! !meta-   # comment
+--- # Color here
+!m!light green: !m!light color
+)");
+    EXPECT_EQ(t.docref(0)[0].key_tag(), "!m!light");
+    EXPECT_EQ(t.docref(0)[0].val_tag(), "!m!light");
+    EXPECT_EQ(t.num_tag_directives(), 2u);
+    t.resolve_tags();
+    EXPECT_EQ(t.docref(0)[0].key_tag(), "<!my-light>");
+    EXPECT_EQ(t.docref(0)[0].val_tag(), "<!my-light>");
+    EXPECT_EQ(emitrs_yaml<std::string>(t), std::string(R"(%TAG !m! !my-
+---
+!<!my-light> fluorescent: !<!my-light> bulb
+...
+%TAG !m! !meta-
+---
+!<!meta-light> green: !<!meta-light> color
+)"));
+}
+
+TEST(tag_directives, safe_with_empty_tree)
+{
+    Tree t;
+    t.resolve_tags();
+    EXPECT_TRUE(t.empty());
+}
+
+TEST(tag_directives, decode_uri_chars)
+{
+    {
+        Tree t = parse_in_arena(R"(
+%TAG !e! tag:example.com,2000:app/
+---
+- !e!%61%62%63%21 baz
+)");
+        t.resolve_tags();
+        EXPECT_EQ(t.docref(0)[0].val_tag(), csubstr("<tag:example.com,2000:app/abc!>"));
+    }
+    {
+        Tree t;
+        auto checkerr = [&t](csubstr yaml){
+            ExpectError::do_check(&t, [&]{
+                t.clear();
+                t = parse_in_arena(yaml);
+                t.resolve_tags();
+            });
+        };
+        {
+            SCOPED_TRACE("without numbers at begin");
+            checkerr(R"(
+%TAG !e! tag:example.com,2000:app/
+---
+- !e!%%62%63 baz
+)");
+        }
+        {
+            SCOPED_TRACE("without numbers in the middle");
+            checkerr(R"(
+%TAG !e! tag:example.com,2000:app/
+---
+- !e!%61%%63 baz
+)");
+        }
+        {
+            SCOPED_TRACE("without numbers in the end");
+            checkerr(R"(
+%TAG !e! tag:example.com,2000:app/
+---
+- !e!%61%62% baz
+)");
+        }
+        {
+            SCOPED_TRACE("with wrong characters numbers at begin");
+            checkerr(R"(
+%TAG !e! tag:example.com,2000:app/
+---
+- !e!%h%62%63 baz
+)");
+        }
+        {
+            SCOPED_TRACE("with wrong characters in the middle");
+            checkerr(R"(
+%TAG !e! tag:example.com,2000:app/
+---
+- !e!%61%hh%63 baz
+)");
+        }
+        {
+            SCOPED_TRACE("with wrong characters in the end");
+            checkerr(R"(
+%TAG !e! tag:example.com,2000:app/
+---
+- !e!%61%62%hh baz
+)");
+        }
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+TEST(tags, test_suite_6WLZ)
+{
+    Tree t0 = parse_in_arena(R"(--- !foo "bar"
+...
+%TAG ! tag:example.com,2000:app/
+--- !foo "bar"
+--- !<tag:example.com,2000:app/foo> "bar"
+)");
+    EXPECT_EQ(t0.docref(0).val_tag(), "!foo");
+    EXPECT_EQ(t0.docref(1).val_tag(), "!foo");
+    EXPECT_EQ(t0.docref(2).val_tag(), "!<tag:example.com,2000:app/foo>");
+    t0.resolve_tags();
+    EXPECT_EQ(t0.docref(0).val_tag(), "!foo");
+    EXPECT_EQ(t0.docref(1).val_tag(), "<tag:example.com,2000:app/foo>");
+    EXPECT_EQ(t0.docref(2).val_tag(), "<tag:example.com,2000:app/foo>");
+    std::string emitted0 = emitrs_yaml<std::string>(t0);
+    EXPECT_EQ(emitted0, R"(--- !foo "bar"
+...
+%TAG ! tag:example.com,2000:app/
+--- !<tag:example.com,2000:app/foo> "bar"
+--- !<tag:example.com,2000:app/foo> "bar"
+)");
+    //
+    Tree t1 = parse_in_arena(to_csubstr(emitted0));
+    t1.resolve_tags();
+    EXPECT_EQ(t1.docref(0).val_tag(), "!foo");
+    EXPECT_EQ(t1.docref(1).val_tag(), "<tag:example.com,2000:app/foo>");
+    EXPECT_EQ(t1.docref(2).val_tag(), "<tag:example.com,2000:app/foo>");
+    std::string emitted1 = emitrs_yaml<std::string>(t1);
+    EXPECT_EQ(emitted1, emitted0);
+    //
+    Tree t2 = parse_in_arena(to_csubstr(emitted1));
+    t2.resolve_tags();
+    EXPECT_EQ(t2.docref(0).val_tag(), "!foo");
+    EXPECT_EQ(t2.docref(1).val_tag(), "<tag:example.com,2000:app/foo>");
+    EXPECT_EQ(t2.docref(2).val_tag(), "<tag:example.com,2000:app/foo>");
+    std::string emitted2 = emitrs_yaml<std::string>(t2);
+    EXPECT_EQ(emitted2, emitted0);
+    //
+    Tree t3 = parse_in_arena(to_csubstr(emitted2));
+    t3.resolve_tags();
+    EXPECT_EQ(t3.docref(0).val_tag(), "!foo");
+    EXPECT_EQ(t3.docref(1).val_tag(), "<tag:example.com,2000:app/foo>");
+    EXPECT_EQ(t3.docref(2).val_tag(), "<tag:example.com,2000:app/foo>");
+    std::string emitted3 = emitrs_yaml<std::string>(t3);
+    EXPECT_EQ(emitted3, emitted0);
+}
+
+
+TEST(tags, test_suite_735Y)
+{
+    csubstr yaml_without_seq = R"(
+!!map # Block collection
+foo : bar
+)";
+    test_check_emit_check(yaml_without_seq, [](Tree const &t){
+        EXPECT_TRUE(t.rootref().is_map());
+        EXPECT_TRUE(t.rootref().has_val_tag());
+        EXPECT_EQ(t.rootref()["foo"].val(), csubstr("bar"));
+    });
+
+    csubstr yaml = R"(
+-
+  foo : bar
+- #!!map
+  foo : bar
+- #!!map # Block collection
+  foo : bar
+- !!map
+  foo : bar
+- !!map # Block collection
+  foo : bar
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ASSERT_TRUE(t.rootref().is_seq());
+        ASSERT_EQ(t.rootref().num_children(), 5u);
+        //
+        EXPECT_TRUE(t[0].is_map());
+        EXPECT_TRUE(!t[0].has_val_tag());
+        EXPECT_EQ(t[0]["foo"].val(), csubstr("bar"));
+        //
+        EXPECT_TRUE(t[1].is_map());
+        EXPECT_TRUE(!t[1].has_val_tag());
+        EXPECT_EQ(t[1]["foo"].val(), csubstr("bar"));
+        //
+        EXPECT_TRUE(t[2].is_map());
+        EXPECT_TRUE(!t[2].has_val_tag());
+        EXPECT_EQ(t[2]["foo"].val(), csubstr("bar"));
+        //
+        EXPECT_TRUE(t[3].is_map());
+        ASSERT_TRUE(t[3].has_val_tag());
+        EXPECT_EQ(t[3].val_tag(), csubstr("!!map"));
+        EXPECT_EQ(t[3]["foo"].val(), csubstr("bar"));
+        //
+        EXPECT_TRUE(t[4].is_map());
+        ASSERT_TRUE(t[4].has_val_tag());
+        EXPECT_EQ(t[4].val_tag(), csubstr("!!map"));
+        EXPECT_EQ(t[4]["foo"].val(), csubstr("bar"));
+    });
+}
+
+
+TEST(tags, parsing)
+{
+    Tree t = parse_in_arena(R"(
+!!seq
+- !!map
+  !key key1: !val val1
+  !<!key> key2: !<!val> val2
+  !<key> key3: !<val> val3
+  <!key> key4: <!val> val4  # these are NOT parsed as tags
+- !<tag:yaml.org,2002:map>
+  !key key1: !val val1
+- !<tag:yaml.org,2002:seq>
+  - !val val
+  - !str val
+  - <!str> val # these are NOT parsed as tags
+  - !<!str> val
+  - !<!!str> val
+  - !<tag:yaml.org,2002:str> val
+)");
+    _c4dbg_tree("parsed tree", t);
+    EXPECT_EQ(t.rootref().val_tag(), csubstr("!!seq"));
+    EXPECT_EQ(t[0].val_tag(), csubstr("!!map"));
+    EXPECT_EQ(t[0]["key1"].key_tag(), csubstr("!key"));
+    EXPECT_EQ(t[0]["key1"].val_tag(), csubstr("!val"));
+    EXPECT_EQ(t[0]["key1"].val_tag(), csubstr("!val"));
+    EXPECT_EQ(t[0]["key2"].key_tag(), csubstr("!<!key>"));
+    EXPECT_EQ(t[0]["key2"].val_tag(), csubstr("!<!val>"));
+    EXPECT_EQ(t[0]["key3"].key_tag(), csubstr("!<key>"));
+    EXPECT_EQ(t[0]["key3"].val_tag(), csubstr("!<val>"));
+    EXPECT_EQ(t[0]["<!key> key4"].has_key_tag(), false);
+    EXPECT_EQ(t[0]["<!key> key4"].has_val_tag(), false);
+    EXPECT_EQ(t[0]["<!key> key4"].key(), csubstr("<!key> key4"));
+    EXPECT_EQ(t[0]["<!key> key4"].val(), csubstr("<!val> val4"));
+    EXPECT_EQ(t[1].val_tag(), csubstr("!<tag:yaml.org,2002:map>"));
+    EXPECT_EQ(t[1]["key1"].key_tag(), csubstr("!key"));
+    EXPECT_EQ(t[1]["key1"].val_tag(), csubstr("!val"));
+    EXPECT_EQ(t[1]["key1"].key(), csubstr("key1"));
+    EXPECT_EQ(t[1]["key1"].val(), csubstr("val1"));
+    EXPECT_EQ(t[2].val_tag(), csubstr("!<tag:yaml.org,2002:seq>"));
+    EXPECT_EQ(t[2][0].val_tag(), csubstr("!val"));
+    EXPECT_EQ(t[2][1].val_tag(), csubstr("!str"));
+    EXPECT_FALSE(t[2][2].has_val_tag()); // not tag
+    EXPECT_EQ(t[2][2].val(), csubstr("<!str> val")); // not tag
+    EXPECT_EQ(t[2][3].val_tag(), csubstr("!<!str>"));
+    EXPECT_EQ(t[2][4].val_tag(), csubstr("!<!!str>"));
+    EXPECT_EQ(t[2][5].val_tag(), csubstr("!<tag:yaml.org,2002:str>"));
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(!!seq
+- !!map
+  !key key1: !val val1
+  !<!key> key2: !<!val> val2
+  !<key> key3: !<val> val3
+  <!key> key4: <!val> val4
+- !<tag:yaml.org,2002:map>
+  !key key1: !val val1
+- !<tag:yaml.org,2002:seq>
+  - !val val
+  - !str val
+  - <!str> val
+  - !<!str> val
+  - !<!!str> val
+  - !<tag:yaml.org,2002:str> val
+)");
+    EXPECT_EQ(normalize_tag(t[0]["key1"].key_tag()), csubstr("!key"));
+    EXPECT_EQ(normalize_tag(t[0]["key1"].val_tag()), csubstr("!val"));
+    EXPECT_EQ(normalize_tag(t[0]["key2"].key_tag()), csubstr("<!key>"));
+    EXPECT_EQ(normalize_tag(t[0]["key2"].val_tag()), csubstr("<!val>"));
+    EXPECT_EQ(normalize_tag(t[0]["key3"].key_tag()), csubstr("<key>"));
+    EXPECT_EQ(normalize_tag(t[0]["key3"].val_tag()), csubstr("<val>"));
+    EXPECT_EQ(normalize_tag(t[1].val_tag()), csubstr("!!map"));
+    EXPECT_EQ(normalize_tag(t[1]["key1"].key_tag()), csubstr("!key"));
+    EXPECT_EQ(normalize_tag(t[1]["key1"].val_tag()), csubstr("!val"));
+    EXPECT_EQ(normalize_tag(t[2].val_tag()), csubstr("!!seq"));
+    EXPECT_EQ(normalize_tag(t[2][0].val_tag()), csubstr("!val"));
+    EXPECT_EQ(normalize_tag(t[2][1].val_tag()), csubstr("!str"));
+    EXPECT_EQ(normalize_tag(t[2][3].val_tag()), csubstr("<!str>"));
+    EXPECT_EQ(normalize_tag(t[2][5].val_tag()), csubstr("!!str"));
+}
+
+
+TEST(tags, setting)
+{
+    Tree t;
+    size_t rid = t.root_id();
+    t.to_map(rid);
+    t.set_val_tag(rid, "!valtag");
+    EXPECT_EQ(t.val_tag(rid), "!valtag");
+
+    // a keymap
+    {
+        size_t child = t.append_child(rid);
+        t.to_seq(child, "key2");
+        t.set_key_tag(child, "!keytag");
+        t.set_val_tag(child, "!valtag2");
+        EXPECT_TRUE(t.has_key(child));
+        EXPECT_FALSE(t.has_val(child));
+        EXPECT_EQ(t.key(child), "key2");
+        EXPECT_EQ(t.key_tag(child), "!keytag");
+        EXPECT_EQ(t.val_tag(child), "!valtag2");
+    }
+
+    // a keyseq
+    {
+        size_t child = t.append_child(rid);
+        t.to_seq(child, "key2");
+        t.set_key_tag(child, "!keytag");
+        t.set_val_tag(child, "!valtag2");
+        EXPECT_TRUE(t.has_key(child));
+        EXPECT_FALSE(t.has_val(child));
+        EXPECT_EQ(t.key(child), "key2");
+        EXPECT_EQ(t.key_tag(child), "!keytag");
+        EXPECT_EQ(t.val_tag(child), "!valtag2");
+    }
+
+    // a keyval
+    {
+        size_t child = t.append_child(rid);
+        t.to_keyval(child, "key", "val");
+        t.set_key_tag(child, "!keytag");
+        t.set_val_tag(child, "!valtag");
+        EXPECT_TRUE(t.has_key(child));
+        EXPECT_TRUE(t.has_val(child));
+        EXPECT_EQ(t.key(child), "key");
+        EXPECT_EQ(t.val(child), "val");
+        EXPECT_EQ(t.key_tag(child), "!keytag");
+        EXPECT_EQ(t.val_tag(child), "!valtag");
+    }
+
+    // a val
+    {
+        size_t seqid = t[1].id();
+        ASSERT_TRUE(t.is_seq(seqid));
+        size_t child = t.append_child(seqid);
+        t.to_val(child, "val");
+        t.set_val_tag(child, "!valtag");
+        EXPECT_FALSE(t.has_key(child));
+        EXPECT_TRUE(t.has_val(child));
+        EXPECT_EQ(t.val(child), "val");
+        EXPECT_EQ(t.val_tag(child), "!valtag");
+    }
+}
+
+TEST(tags, errors)
+{
+    Tree t = parse_in_arena("{key: val, keymap: {}, keyseq: [val]}");
+    size_t keyval = t["keyval"].id();
+    size_t keymap = t["keymap"].id();
+    size_t keyseq = t["keyseq"].id();
+    size_t val = t["keyseq"][0].id();
+    size_t empty_keyval = t.append_child(keymap);
+    size_t empty_val = t.append_child(keyseq);
+
+    ASSERT_NE(keyval, (size_t)npos);
+    ASSERT_NE(keymap, (size_t)npos);
+    ASSERT_NE(keyseq, (size_t)npos);
+    ASSERT_NE(val, (size_t)npos);
+
+    // cannot get key tag in a node that does not have a key tag
+    EXPECT_FALSE(t.has_key_tag(empty_keyval));
+    ExpectError::check_assertion(&t, [&](){
+        EXPECT_EQ(t.key_tag(empty_keyval), "");
+    });
+    ExpectError::check_assertion(&t, [&](){
+        EXPECT_EQ(t.key_tag(keyval), "");
+    });
+    ExpectError::check_assertion(&t, [&](){
+        EXPECT_EQ(t.key_tag(keymap), "");
+    });
+    ExpectError::check_assertion(&t, [&](){
+        EXPECT_EQ(t.key_tag(keyseq), "");
+    });
+    ExpectError::check_assertion(&t, [&](){
+        EXPECT_EQ(t.key_tag(val), "");
+    });
+    // cannot get val tag in a node that does not have a val tag
+    EXPECT_FALSE(t.has_val_tag(empty_val));
+    ExpectError::check_assertion(&t, [&](){
+        EXPECT_EQ(t.val_tag(empty_val), "");
+    });
+    EXPECT_FALSE(t.has_val_tag(empty_keyval));
+    ExpectError::check_assertion(&t, [&](){
+        EXPECT_EQ(t.val_tag(empty_keyval), "");
+    });
+    ExpectError::check_assertion(&t, [&](){
+        EXPECT_EQ(t.val_tag(keyval), "");
+    });
+    ExpectError::check_assertion(&t, [&](){
+        EXPECT_EQ(t.val_tag(keymap), "");
+    });
+    ExpectError::check_assertion(&t, [&](){
+        EXPECT_EQ(t.val_tag(keyseq), "");
+    });
+    ExpectError::check_assertion(&t, [&](){
+        EXPECT_EQ(t.val_tag(val), "");
+    });
+    // cannot set key tag in a node that does not have a key
+    EXPECT_FALSE(t.has_key(empty_keyval));
+    ExpectError::check_assertion(&t, [&](){
+        t.set_key_tag(empty_keyval, "!keytag");
+    });
+    EXPECT_FALSE(t.has_key_tag(val)); // must stay the same
+    ExpectError::check_assertion(&t, [&](){
+        t.set_key_tag(val, "!valtag");
+    });
+    EXPECT_FALSE(t.has_key_tag(val)); // must stay the same
+    // cannot set val tag in a node that does not have a val
+    EXPECT_FALSE(t.has_val(empty_val));
+    ExpectError::check_assertion(&t, [&](){
+        t.set_val_tag(empty_val, "!valtag");
+    });
+    EXPECT_FALSE(t.has_val_tag(empty_val)); // must stay the same
+    EXPECT_FALSE(t.has_val(empty_keyval));
+    ExpectError::check_assertion(&t, [&](){
+        t.set_val_tag(empty_keyval, "!valtag");
+    });
+    EXPECT_FALSE(t.has_val_tag(empty_keyval)); // must stay the same
+}
+
+
+TEST(tags, setting_user_tags_do_not_require_leading_mark)
+{
+    Tree t = parse_in_arena(R"(
+key: val
+keymap: {}
+keyseq: [val]
+)");
+    size_t keyval = t["keyval"].id();
+    size_t keymap = t["keymap"].id();
+    size_t keyseq = t["keyseq"].id();
+    size_t val = t["keyseq"][0].id();
+    ASSERT_NE(keyval, (size_t)npos);
+    ASSERT_NE(keymap, (size_t)npos);
+    ASSERT_NE(keyseq, (size_t)npos);
+    ASSERT_NE(val, (size_t)npos);
+
+    // without leading mark
+    t.set_key_tag(keyseq, "keytag");
+    t.set_val_tag(keyseq, "valtag");
+    t.set_val_tag(val,    "valtag2");
+    EXPECT_EQ(t.key_tag(keyseq), "keytag");
+    EXPECT_EQ(t.val_tag(keyseq), "valtag");
+    EXPECT_EQ(t.val_tag(val),    "valtag2");
+
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(key: val
+keymap: {}
+!keytag keyseq: !valtag [!valtag2 val]
+)");
+
+    // with leading mark
+    t.set_key_tag(keyseq, "!keytag");
+    t.set_val_tag(keyseq, "!valtag");
+    t.set_val_tag(val,    "!valtag2");
+    EXPECT_EQ(t.key_tag(keyseq), "!keytag");
+    EXPECT_EQ(t.val_tag(keyseq), "!valtag");
+    EXPECT_EQ(t.val_tag(val),    "!valtag2");
+
+    EXPECT_EQ(emitrs_yaml<std::string>(t), R"(key: val
+keymap: {}
+!keytag keyseq: !valtag [!valtag2 val]
+)");
+}
+
+
+TEST(tags, valid_chars)
+{
+    Tree t = parse_in_arena(R"(
+- !<foo bar> val
+- !<foo> bar> val
+- !<foo> <bar> val
+)");
+    EXPECT_EQ(t[0].val_tag(), "!<foo bar>");
+    EXPECT_EQ(t[0].val(), "val");
+    EXPECT_EQ(t[1].val_tag(), "!<foo>");
+    EXPECT_EQ(t[1].val(), "bar> val");
+    EXPECT_EQ(t[2].val_tag(), "!<foo>");
+    EXPECT_EQ(t[2].val(), "<bar> val");
+}
+
+
+TEST(tags, EHF6)
+{
+    {
+        Tree t = parse_in_arena(R"(!!map {
+  k: !!seq [ a, !!str b],
+  j: !!seq
+     [ a, !!str b]
+})");
+        ASSERT_TRUE(t.rootref().has_val_tag());
+        EXPECT_EQ(t.rootref().val_tag(), "!!map");
+        ASSERT_TRUE(t["k"].has_val_tag());
+        ASSERT_TRUE(t["j"].has_val_tag());
+        EXPECT_EQ(t["k"].val_tag(), "!!seq");
+        EXPECT_EQ(t["j"].val_tag(), "!!seq");
+    }
+    {
+        Tree t = parse_in_arena(R"(!!seq [
+  !!map { !!str k: v},
+  !!map { !!str ? k: v}
+])");
+        ASSERT_TRUE(t.rootref().has_val_tag());
+        EXPECT_EQ(t.rootref().val_tag(), "!!seq");
+        ASSERT_TRUE(t[0].has_val_tag());
+        ASSERT_TRUE(t[1].has_val_tag());
+        EXPECT_EQ(t[0].val_tag(), "!!map");
+        EXPECT_EQ(t[1].val_tag(), "!!map");
+        ASSERT_TRUE(t[0]["k"].has_key_tag());
+        ASSERT_TRUE(t[1]["k"].has_key_tag());
+        EXPECT_EQ(t[0]["k"].key_tag(), "!!str");
+        EXPECT_EQ(t[1]["k"].key_tag(), "!!str");
+    }
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -825,7 +1019,7 @@ CASE_GROUP(TAG_PROPERTY)
 
 ADD_CASE_TO_GROUP("user tag, empty, test suite 52DL",
 R"(! a)",
-N(DOCVAL, TS("!", "a"))
+N(VP, TS("!", "a"))
 );
 
 ADD_CASE_TO_GROUP("tag property in implicit map, std tags",
@@ -842,16 +1036,16 @@ picture: !!binary >-
   ar3xxbJ9p0qa7R0YxwzaFME
   1IAADs=
 )",
-    L{
-      N("ivar", TS("!!int", "0")),
-      N("svar", TS("!!str", "0")),
-      N("fvar", TS("!!float", "0.1")),
-      N(TS("!!int", "2"), TS("!!float", "3")),
-      N(TS("!!float", "3"), TS("!!int", "3.4")),
-      N(TS("!!str", "key"), TS("!!int", "val")),
-      N("myObject", TL("!myClass", L{N("name", "Joe"), N("age", "15")})),
-      N(QV, "picture", TS("!!binary", R"(R0lGODdhDQAIAIAAAAAAANn Z2SwAAAAADQAIAAACF4SDGQ ar3xxbJ9p0qa7R0YxwzaFME 1IAADs=)")),
-    }
+N(MB, L{
+      N(KP|VP, "ivar", TS("!!int", "0")),
+      N(KP|VP, "svar", TS("!!str", "0")),
+      N(KP|VP, "fvar", TS("!!float", "0.1")),
+      N(KP|VP, TS("!!int", "2"), TS("!!float", "3")),
+      N(KP|VP, TS("!!float", "3"), TS("!!int", "3.4")),
+      N(KP|VP, TS("!!str", "key"), TS("!!int", "val")),
+      N(KP|MFS, "myObject", TL("!myClass", L{N(KP|VP, "name", "Joe"), N(KP|VP, "age", "15")})),
+      N(KP|VF, "picture", TS("!!binary", R"(R0lGODdhDQAIAIAAAAAAANn Z2SwAAAAADQAIAAACF4SDGQ ar3xxbJ9p0qa7R0YxwzaFME 1IAADs=)")),
+    })
 );
 
 ADD_CASE_TO_GROUP("tag property in implicit map, usr tags",
@@ -868,16 +1062,16 @@ picture: !binary >-
   ar3xxbJ9p0qa7R0YxwzaFME
   1IAADs=
 )",
-    L{
-      N("ivar", TS("!int", "0")),
-      N("svar", TS("!str", "0")),
-      N("fvar", TS("!float", "0.1")),
-      N(TS("!int", "2"), TS("!float", "3")),
-      N(TS("!float", "3"), TS("!int", "3.4")),
-      N(TS("!str", "key"), TS("!int", "val")),
-      N("myObject", TL("!myClass", L{N("name", "Joe"), N("age", "15")})),
-      N(QV, "picture", TS("!binary", R"(R0lGODdhDQAIAIAAAAAAANn Z2SwAAAAADQAIAAACF4SDGQ ar3xxbJ9p0qa7R0YxwzaFME 1IAADs=)")),
-    }
+N(MB, L{
+      N(KP|VP, "ivar", TS("!int", "0")),
+      N(KP|VP, "svar", TS("!str", "0")),
+      N(KP|VP, "fvar", TS("!float", "0.1")),
+      N(KP|VP, TS("!int", "2"), TS("!float", "3")),
+      N(KP|VP, TS("!float", "3"), TS("!int", "3.4")),
+      N(KP|VP, TS("!str", "key"), TS("!int", "val")),
+      N(KP|MFS, "myObject", TL("!myClass", L{N(KP|VP, "name", "Joe"), N(KP|VP, "age", "15")})),
+      N(KP|VF, "picture", TS("!binary", R"(R0lGODdhDQAIAIAAAAAAANn Z2SwAAAAADQAIAAACF4SDGQ ar3xxbJ9p0qa7R0YxwzaFME 1IAADs=)")),
+    })
 );
 
 ADD_CASE_TO_GROUP("tag property in explicit map, std tags",
@@ -886,11 +1080,11 @@ ivar: !!int 0,
 svar: !!str 0,
 !!str key: !!int val
 })",
-    L{
-      N("ivar", TS("!!int", "0")),
-      N("svar", TS("!!str", "0")),
-      N(TS("!!str", "key"), TS("!!int", "val"))
-    }
+N(MFS, L{
+      N(KP|VP, "ivar", TS("!!int", "0")),
+      N(KP|VP, "svar", TS("!!str", "0")),
+      N(KP|VP, TS("!!str", "key"), TS("!!int", "val"))
+    })
 );
 
 ADD_CASE_TO_GROUP("tag property in explicit map, usr tags",
@@ -900,31 +1094,31 @@ svar: !str 0,
 !str key: !int val
 }
 )",
-    L{
-      N("ivar", TS("!int", "0")),
-      N("svar", TS("!str", "0")),
-      N(TS("!str", "key"), TS("!int", "val"))
-    }
+N(MFS, L{
+      N(KP|VP, "ivar", TS("!int", "0")),
+      N(KP|VP, "svar", TS("!str", "0")),
+      N(KP|VP, TS("!str", "key"), TS("!int", "val"))
+    })
 );
 
 ADD_CASE_TO_GROUP("tag property in implicit seq, std tags",
 R"(- !!int 0
 - !!str 0
 )",
-    L{
-      N(TS("!!int", "0")),
-      N(TS("!!str", "0")),
-    }
+N(SB, L{
+      N(VP, TS("!!int", "0")),
+      N(VP, TS("!!str", "0")),
+    })
 );
 
 ADD_CASE_TO_GROUP("tag property in implicit seq, usr tags",
 R"(- !int 0
 - !str 0
 )",
-    L{
-      N(TS("!int", "0")),
-      N(TS("!str", "0")),
-    }
+    N(SB, L{
+      N(VP, TS("!int", "0")),
+      N(VP, TS("!str", "0")),
+    })
 );
 
 ADD_CASE_TO_GROUP("tag property in explicit seq, std tags",
@@ -933,10 +1127,10 @@ R"([
 !!str 0
 ]
 )",
-    L{
-      N(TS("!!int", "0")),
-      N(TS("!!str", "0")),
-    }
+N(SFS, L{
+      N(VP, TS("!!int", "0")),
+      N(VP, TS("!!str", "0")),
+    })
 );
 
 ADD_CASE_TO_GROUP("tag property in explicit seq, usr tags",
@@ -945,10 +1139,10 @@ R"([
 !str 0
 ]
 )",
-    L{
-      N(TS("!int", "0")),
-      N(TS("!str", "0")),
-    }
+    N(SFS, L{
+      N(VP, TS("!int", "0")),
+      N(VP, TS("!str", "0")),
+    })
 );
 
 ADD_CASE_TO_GROUP("tagged explicit sequence in map, std tags",
@@ -957,11 +1151,11 @@ R"(some_seq: !!its_type [
 !!str 0
 ]
 )",
-    L{N("some_seq", TL("!!its_type", L{
-              N(TS("!!int", "0")),
-              N(TS("!!str", "0")),
+N(MB, L{N(KP|SFS, "some_seq", TL("!!its_type", L{
+              N(VP, TS("!!int", "0")),
+              N(VP, TS("!!str", "0")),
                   }))
-          }
+          })
 );
 
 ADD_CASE_TO_GROUP("tagged explicit sequence in map, usr tags",
@@ -970,62 +1164,111 @@ R"(some_seq: !its_type [
 !str 0
 ]
 )",
-    L{N("some_seq", TL("!its_type", L{
-              N(TS("!int", "0")),
-              N(TS("!str", "0")),
+N(MB, L{N(KP|SFS, "some_seq", TL("!its_type", L{
+              N(VP, TS("!int", "0")),
+              N(VP, TS("!str", "0")),
                   }))
-          }
+          })
 );
 
-ADD_CASE_TO_GROUP("tagged doc",
+ADD_CASE_TO_GROUP("tagged doc 1",
 R"(
 --- !!map
 a: 0
 b: 1
+)",
+N(STREAM, L{
+    N(DOC|MB, TL("!!map", L{N(KP|VP, "a", "0"), N(KP|VP, "b", "1")})),
+})
+);
+
+ADD_CASE_TO_GROUP("tagged doc 2",
+R"(
 --- !map
 ? a
 : b
+)",
+N(STREAM, L{
+    N(DOC|MB, TL("!map", L{N(KP|VP, "a", "b")})),
+})
+);
+
+ADD_CASE_TO_GROUP("tagged doc 3",
+R"(
 --- !!seq
 - a
 - b
+)",
+N(STREAM, L{
+    N(DOC|SB, TL("!!seq", L{N(VP, "a"), N(VP, "b")})),
+})
+);
+
+ADD_CASE_TO_GROUP("tagged doc 4",
+R"(
 --- !!str
 a
  b
 ...
---- !!str a b
-...
---- !!str a b
+)",
+N(STREAM, L{
+    N(DOC|VP, TS("!!str", "a b")),
+})
+);
+
+ADD_CASE_TO_GROUP("tagged doc 5",
+R"(
 --- !!str
 a: b
---- !!str a: b
+)",
+N(STREAM, L{
+    N(DOC|MB, TL("!!str", L{N(KP|VP, "a", "b")})),
+})
+);
+
+ADD_CASE_TO_GROUP("tagged doc 6",
+R"(
 ---
 !!str a: b
+)",
+N(STREAM, L{
+    N(DOC|MB, L{N(KP|VP, TS("!!str", "a"), "b")}),
+})
+);
+
+ADD_CASE_TO_GROUP("tagged doc 7",
+R"(
 ---
 !!str a
  b
+)",
+N(STREAM, L{
+    N(DOC|VP, TS("!!str", "a b")),
+})
+);
+
+ADD_CASE_TO_GROUP("tagged doc 8",
+R"(
 ---
 !!set
 ? a
 ? b
+)",
+N(STREAM, L{
+    N(DOC|MB, TL("!!set", L{N(KP|VP, "a", /*"~"*/{}), N(KP|VP, "b", /*"~"*/{})})),
+})
+);
+
+ADD_CASE_TO_GROUP("tagged doc 9",
+R"(
 --- !!set
 ? a
 ? b
 )",
 N(STREAM, L{
-    N(DOCMAP, TL("!!map", L{N("a", "0"), N("b", "1")})),
-    N(DOCMAP, TL("!map", L{N("a", "b")})),
-    N(DOCSEQ, TL("!!seq", L{N("a"), N("b")})),
-    N(DOCVAL, TS("!!str", "a b")),
-    N(DOCVAL, TS("!!str", "a b")),
-    N(DOCVAL, TS("!!str", "a b")),
-    N(DOCVAL, TS("!!str", "a: b")),
-    N(DOCVAL, TS("!!str", "a: b")),
-    N(DOCMAP, L{N(TS("!!str", "a"), "b")}),
-    N(DOCVAL, TS("!!str", "a b")),
-    N(DOCMAP, TL("!!set", L{N(KEYVAL, "a", /*"~"*/{}), N(KEYVAL, "b", /*"~"*/{})})),
-    N(DOCMAP, TL("!!set", L{N(KEYVAL, "a", /*"~"*/{}), N(KEYVAL, "b", /*"~"*/{})})),
-}));
-
+    N(DOC|MB, TL("!!set", L{N(KP|VP, "a", /*"~"*/{}), N(KP|VP, "b", /*"~"*/{})})),
+})
+);
 
 ADD_CASE_TO_GROUP("ambiguous tag in map, std tag",
 R"(!!map
@@ -1043,13 +1286,14 @@ bar: !!map
   !!int 10: !!float 20
   !!int 30: !!float 40
 )",
-TL("!!map", L{
-  N(TS("!!str", "a0"), TS("!!xxx", "b0")),
-  N(TS("!!str", "fooz"), TL("!!map", L{N("k1", TS("!!float", "1.0")), N("k3", TS("!!float", "2.0"))})),
-  N(TS("!!str", "foo"), TL("!!map", L{N(TS("!!int", "1"), TS("!!float", "20.0")), N(TS("!!int", "3"), TS("!!float", "40.0"))})),
-  N("bar", TL("!!map", L{N("10", TS("!!str", "2")), N("30", TS("!!str", "4"))})),
-  N(TS("!!str", "baz"), L{N(TS("!!int", "10"), TS("!!float", "20")), N(TS("!!int", "30"), TS("!!float", "40"))}),
-}));
+N(MB, TL("!!map", L{
+  N(KP|VP, TS("!!str", "a0"), TS("!!xxx", "b0")),
+  N(KP|MB, TS("!!str", "fooz"), TL("!!map", L{N(KP|VP, "k1", TS("!!float", "1.0")), N(KP|VP, "k3", TS("!!float", "2.0"))})),
+  N(KP|MB, TS("!!str", "foo"), TL("!!map", L{N(KP|VP, TS("!!int", "1"), TS("!!float", "20.0")), N(KP|VP, TS("!!int", "3"), TS("!!float", "40.0"))})),
+  N(KP|MB, "bar", TL("!!map", L{N(KP|VP, "10", TS("!!str", "2")), N(KP|VP, "30", TS("!!str", "4"))})),
+  N(KP|MB, TS("!!str", "baz"), L{N(KP|VP, TS("!!int", "10"), TS("!!float", "20")), N(KP|VP, TS("!!int", "30"), TS("!!float", "40"))}),
+}))
+);
 
 ADD_CASE_TO_GROUP("ambiguous tag in map, usr tag",
 R"(!map
@@ -1067,13 +1311,14 @@ bar: !map
   !int 10: !float 20
   !int 30: !float 40
 )",
-TL("!map", L{
-  N(TS("!str", "a0"), TS("!xxx", "b0")),
-  N(TS("!str", "fooz"), TL("!map", L{N("k1", TS("!float", "1.0")), N("k3", TS("!float", "2.0"))})),
-  N(TS("!str", "foo"), TL("!map", L{N(TS("!int", "1"), TS("!float", "20.0")), N(TS("!int", "3"), TS("!float", "40.0"))})),
-  N("bar", TL("!map", L{N("10", TS("!str", "2")), N("30", TS("!str", "4"))})),
-  N(TS("!str", "baz"), L{N(TS("!int", "10"), TS("!float", "20")), N(TS("!int", "30"), TS("!float", "40"))}),
-}));
+N(MB, TL("!map", L{
+  N(KP|VP, TS("!str", "a0"), TS("!xxx", "b0")),
+  N(KP|MB, TS("!str", "fooz"), TL("!map", L{N(KP|VP, "k1", TS("!float", "1.0")), N(KP|VP, "k3", TS("!float", "2.0"))})),
+  N(KP|MB, TS("!str", "foo"), TL("!map", L{N(KP|VP, TS("!int", "1"), TS("!float", "20.0")), N(KP|VP, TS("!int", "3"), TS("!float", "40.0"))})),
+  N(KP|MB, "bar", TL("!map", L{N(KP|VP, "10", TS("!str", "2")), N(KP|VP, "30", TS("!str", "4"))})),
+  N(KP|MB, TS("!str", "baz"), L{N(KP|VP, TS("!int", "10"), TS("!float", "20")), N(KP|VP, TS("!int", "30"), TS("!float", "40"))}),
+}))
+);
 
 
 ADD_CASE_TO_GROUP("ambiguous tag in seq, std tag",
@@ -1101,14 +1346,14 @@ R"(!!seq
   - v80
   - v90
 )",
-TL("!!seq", L{
-  N(L{N(TS("!!str", "k1"), "v1"), N(TS("!!str", "k2"), "v2"), N(TS("!!str", "k3"), "v3"), }),
-  N(TL("!!map", L{N(TS("!!str", "k4"), "v4"), N(TS("!!str", "k5"), "v5"), N(TS("!!str", "k6"), "v6"), })),
-  N(TL("!!map", L{N("k7", "v7"), N("k8", "v8"), N("k9", "v9"), })),
-  N(L{N(TS("!!str", "v10")), N(TS("!!str", "v20")), N(TS("!!str", "v30"))}),
-  N(TL("!!seq", L{N(TS("!!str", "v40")), N(TS("!!str", "v50")), N(TS("!!str", "v60"))})),
-  N(TL("!!seq", L{N("v70"), N("v80"), N("v90")})),
-}));
+N(SB, TL("!!seq", L{
+  N(MB, L{N(KP|VP, TS("!!str", "k1"), "v1"), N(KP|VP, TS("!!str", "k2"), "v2"), N(KP|VP, TS("!!str", "k3"), "v3"), }),
+  N(MB, TL("!!map", L{N(KP|VP, TS("!!str", "k4"), "v4"), N(KP|VP, TS("!!str", "k5"), "v5"), N(KP|VP, TS("!!str", "k6"), "v6"), })),
+  N(MB, TL("!!map", L{N(KP|VP, "k7", "v7"), N(KP|VP, "k8", "v8"), N(KP|VP, "k9", "v9"), })),
+  N(SB, L{N(VP, TS("!!str", "v10")), N(VP, TS("!!str", "v20")), N(VP, TS("!!str", "v30"))}),
+  N(SB, TL("!!seq", L{N(VP, TS("!!str", "v40")), N(VP, TS("!!str", "v50")), N(VP, TS("!!str", "v60"))})),
+  N(SB, TL("!!seq", L{N(VP, "v70"), N(VP, "v80"), N(VP, "v90")})),
+})));
 
 ADD_CASE_TO_GROUP("ambiguous tag in seq, usr tag",
 R"(!seq
@@ -1135,14 +1380,15 @@ R"(!seq
   - v80
   - v90
 )",
-TL("!seq", L{
-  N(L{N(TS("!str", "k1"), "v1"), N(TS("!str", "k2"), "v2"), N(TS("!str", "k3"), "v3"), }),
-  N(TL("!map", L{N(TS("!str", "k4"), "v4"), N(TS("!str", "k5"), "v5"), N(TS("!str", "k6"), "v6"), })),
-  N(TL("!map", L{N("k7", "v7"), N("k8", "v8"), N("k9", "v9"), })),
-  N(L{N(TS("!str", "v10")), N(TS("!str", "v20")), N(TS("!str", "v30"))}),
-  N(TL("!seq", L{N(TS("!str", "v40")), N(TS("!str", "v50")), N(TS("!str", "v60"))})),
-  N(TL("!seq", L{N("v70"), N("v80"), N("v90")})),
-}));
+N(SB, TL("!seq", L{
+  N(MB, L{N(KP|VP, TS("!str", "k1"), "v1"), N(KP|VP, TS("!str", "k2"), "v2"), N(KP|VP, TS("!str", "k3"), "v3"), }),
+  N(MB, TL("!map", L{N(KP|VP, TS("!str", "k4"), "v4"), N(KP|VP, TS("!str", "k5"), "v5"), N(KP|VP, TS("!str", "k6"), "v6"), })),
+  N(MB, TL("!map", L{N(KP|VP, "k7", "v7"), N(KP|VP, "k8", "v8"), N(KP|VP, "k9", "v9"), })),
+  N(SB, L{N(VP, TS("!str", "v10")), N(VP, TS("!str", "v20")), N(VP, TS("!str", "v30"))}),
+  N(SB, TL("!seq", L{N(VP, TS("!str", "v40")), N(VP, TS("!str", "v50")), N(VP, TS("!str", "v60"))})),
+  N(SB, TL("!seq", L{N(VP, "v70"), N(VP, "v80"), N(VP, "v90")})),
+})));
+
 }
 
 } // namespace yml

@@ -150,7 +150,7 @@ void bm_libfyaml_arena(bm::State& st)
 }
 #endif
 
-void bm_ryml_arena(bm::State& st)
+void bm_ryml_yaml_arena(bm::State& st)
 {
     c4::csubstr src = c4::to_csubstr(s_bm_case->src).trimr('\0');
     for(auto _ : st)
@@ -160,7 +160,18 @@ void bm_ryml_arena(bm::State& st)
     s_bm_case->report(st);
 }
 
-void bm_ryml_inplace(bm::State& st)
+void bm_ryml_json_arena(bm::State& st)
+{
+    c4::csubstr src = c4::to_csubstr(s_bm_case->src).trimr('\0');
+    for(auto _ : st)
+    {
+        ONLY_FOR_JSON;
+        ryml::Tree tree = ryml::parse_json_in_arena(s_bm_case->filename, src);
+    }
+    s_bm_case->report(st);
+}
+
+void bm_ryml_yaml_inplace(bm::State& st)
 {
     c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
     for(auto _ : st)
@@ -171,32 +182,72 @@ void bm_ryml_inplace(bm::State& st)
     s_bm_case->report(st);
 }
 
-void bm_ryml_arena_reuse(bm::State& st)
+void bm_ryml_json_inplace(bm::State& st)
+{
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
+    for(auto _ : st)
+    {
+        ONLY_FOR_JSON;
+        s_bm_case->prepare(st, kResetInPlace);
+        ryml::Tree tree = ryml::parse_json_in_place(s_bm_case->filename, src);
+    }
+    s_bm_case->report(st);
+}
+
+void bm_ryml_yaml_arena_reuse(bm::State& st)
 {
     c4::csubstr src = c4::to_csubstr(s_bm_case->src).trimr('\0');
     for(auto _ : st)
     {
         s_bm_case->prepare(st, kClearTree|kClearTreeArena);
-        s_bm_case->ryml_parser.parse_in_arena(s_bm_case->filename, src, &s_bm_case->ryml_tree);
+        parse_in_arena(&s_bm_case->ryml_parser, s_bm_case->filename, src, &s_bm_case->ryml_tree);
     }
     s_bm_case->report(st);
 }
 
-void bm_ryml_inplace_reuse(bm::State& st)
+void bm_ryml_json_arena_reuse(bm::State& st)
+{
+    c4::csubstr src = c4::to_csubstr(s_bm_case->src).trimr('\0');
+    for(auto _ : st)
+    {
+        ONLY_FOR_JSON;
+        s_bm_case->prepare(st, kClearTree|kClearTreeArena);
+        parse_json_in_arena(&s_bm_case->ryml_parser, s_bm_case->filename, src, &s_bm_case->ryml_tree);
+    }
+    s_bm_case->report(st);
+}
+
+void bm_ryml_yaml_inplace_reuse(bm::State& st)
 {
     c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
     for(auto _ : st)
     {
         s_bm_case->prepare(st, kResetInPlace|kClearTree|kClearTreeArena);
-        s_bm_case->ryml_parser.parse_in_place(s_bm_case->filename, src, &s_bm_case->ryml_tree);
+        parse_in_place(&s_bm_case->ryml_parser, s_bm_case->filename, src, &s_bm_case->ryml_tree);
     }
     s_bm_case->report(st);
 }
 
-BENCHMARK(bm_ryml_inplace_reuse);
-BENCHMARK(bm_ryml_arena_reuse);
-BENCHMARK(bm_ryml_inplace);
-BENCHMARK(bm_ryml_arena);
+void bm_ryml_json_inplace_reuse(bm::State& st)
+{
+    c4::substr src = c4::to_substr(s_bm_case->in_place).trimr('\0');
+    for(auto _ : st)
+    {
+        ONLY_FOR_JSON;
+        s_bm_case->prepare(st, kResetInPlace|kClearTree|kClearTreeArena);
+        parse_json_in_place(&s_bm_case->ryml_parser, s_bm_case->filename, src, &s_bm_case->ryml_tree);
+    }
+    s_bm_case->report(st);
+}
+
+BENCHMARK(bm_ryml_yaml_inplace_reuse);
+BENCHMARK(bm_ryml_json_inplace_reuse);
+BENCHMARK(bm_ryml_yaml_arena_reuse);
+BENCHMARK(bm_ryml_json_arena_reuse);
+BENCHMARK(bm_ryml_yaml_inplace);
+BENCHMARK(bm_ryml_json_inplace);
+BENCHMARK(bm_ryml_yaml_arena);
+BENCHMARK(bm_ryml_json_arena);
 BENCHMARK(bm_libyaml_arena);
 BENCHMARK(bm_libyaml_arena_reuse);
 #ifdef RYML_HAVE_LIBFYAML

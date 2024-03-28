@@ -18,12 +18,17 @@ C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
 
 namespace detail {
 
-/** A lightweight contiguous stack with SSO. This avoids a dependency on std. */
+/** A lightweight contiguous stack with Small Storage
+ * Optimization. This is required because std::vector can throw
+ * exceptions, and we don't want to enforce any particular error
+ * mechanism. */
 template<class T, size_t N=16>
 class stack
 {
     static_assert(std::is_trivially_copyable<T>::value, "T must be trivially copyable");
     static_assert(std::is_trivially_destructible<T>::value, "T must be trivially destructible");
+
+public:
 
     enum : size_t { sso_size = N };
 
@@ -98,7 +103,7 @@ public:
 
     void push(T const& C4_RESTRICT n)
     {
-        RYML_ASSERT((const char*)&n + sizeof(T) < (const char*)m_stack || &n > m_stack + m_capacity);
+        _RYML_CB_ASSERT(m_callbacks, (const char*)&n + sizeof(T) < (const char*)m_stack || &n > m_stack + m_capacity);
         if(m_size == m_capacity)
         {
             size_t cap = m_capacity == 0 ? N : 2 * m_capacity;
@@ -110,7 +115,7 @@ public:
 
     void push_top()
     {
-        RYML_ASSERT(m_size > 0);
+        _RYML_CB_ASSERT(m_callbacks, m_size > 0);
         if(m_size == m_capacity)
         {
             size_t cap = m_capacity == 0 ? N : 2 * m_capacity;
@@ -122,25 +127,25 @@ public:
 
     T const& C4_RESTRICT pop()
     {
-        RYML_ASSERT(m_size > 0);
+        _RYML_CB_ASSERT(m_callbacks, m_size > 0);
         --m_size;
         return m_stack[m_size];
     }
 
-    C4_ALWAYS_INLINE T const& C4_RESTRICT top() const { RYML_ASSERT(m_size > 0); return m_stack[m_size - 1]; }
-    C4_ALWAYS_INLINE T      & C4_RESTRICT top()       { RYML_ASSERT(m_size > 0); return m_stack[m_size - 1]; }
+    C4_ALWAYS_INLINE T const& C4_RESTRICT top() const { _RYML_CB_ASSERT(m_callbacks, m_size > 0); return m_stack[m_size - 1]; }
+    C4_ALWAYS_INLINE T      & C4_RESTRICT top()       { _RYML_CB_ASSERT(m_callbacks, m_size > 0); return m_stack[m_size - 1]; }
 
-    C4_ALWAYS_INLINE T const& C4_RESTRICT bottom() const { RYML_ASSERT(m_size > 0); return m_stack[0]; }
-    C4_ALWAYS_INLINE T      & C4_RESTRICT bottom()       { RYML_ASSERT(m_size > 0); return m_stack[0]; }
+    C4_ALWAYS_INLINE T const& C4_RESTRICT bottom() const { _RYML_CB_ASSERT(m_callbacks, m_size > 0); return m_stack[0]; }
+    C4_ALWAYS_INLINE T      & C4_RESTRICT bottom()       { _RYML_CB_ASSERT(m_callbacks, m_size > 0); return m_stack[0]; }
 
-    C4_ALWAYS_INLINE T const& C4_RESTRICT top(size_t i) const { RYML_ASSERT(i < m_size); return m_stack[m_size - 1 - i]; }
-    C4_ALWAYS_INLINE T      & C4_RESTRICT top(size_t i)       { RYML_ASSERT(i < m_size); return m_stack[m_size - 1 - i]; }
+    C4_ALWAYS_INLINE T const& C4_RESTRICT top(size_t i) const { _RYML_CB_ASSERT(m_callbacks, i < m_size); return m_stack[m_size - 1 - i]; }
+    C4_ALWAYS_INLINE T      & C4_RESTRICT top(size_t i)       { _RYML_CB_ASSERT(m_callbacks, i < m_size); return m_stack[m_size - 1 - i]; }
 
-    C4_ALWAYS_INLINE T const& C4_RESTRICT bottom(size_t i) const { RYML_ASSERT(i < m_size); return m_stack[i]; }
-    C4_ALWAYS_INLINE T      & C4_RESTRICT bottom(size_t i)       { RYML_ASSERT(i < m_size); return m_stack[i]; }
+    C4_ALWAYS_INLINE T const& C4_RESTRICT bottom(size_t i) const { _RYML_CB_ASSERT(m_callbacks, i < m_size); return m_stack[i]; }
+    C4_ALWAYS_INLINE T      & C4_RESTRICT bottom(size_t i)       { _RYML_CB_ASSERT(m_callbacks, i < m_size); return m_stack[i]; }
 
-    C4_ALWAYS_INLINE T const& C4_RESTRICT operator[](size_t i) const { RYML_ASSERT(i < m_size); return m_stack[i]; }
-    C4_ALWAYS_INLINE T      & C4_RESTRICT operator[](size_t i)       { RYML_ASSERT(i < m_size); return m_stack[i]; }
+    C4_ALWAYS_INLINE T const& C4_RESTRICT operator[](size_t i) const { _RYML_CB_ASSERT(m_callbacks, i < m_size); return m_stack[i]; }
+    C4_ALWAYS_INLINE T      & C4_RESTRICT operator[](size_t i)       { _RYML_CB_ASSERT(m_callbacks, i < m_size); return m_stack[i]; }
 
 public:
 
@@ -154,10 +159,12 @@ public:
     const_iterator end  () const { return (const_iterator)m_stack + m_size; }
 
 public:
+
     void _free();
     void _cp(stack const* C4_RESTRICT that);
     void _mv(stack * that);
     void _cb(Callbacks const& cb);
+
 };
 
 
@@ -177,6 +184,7 @@ void stack<T, N>::reserve(size_t sz)
         return;
     }
     T *buf = (T*) m_callbacks.m_allocate(sz * sizeof(T), m_stack, m_callbacks.m_user_data);
+    _RYML_CB_ASSERT(m_callbacks, ((uintptr_t)buf % alignof(T)) == 0u);
     memcpy(buf, m_stack, m_size * sizeof(T));
     if(m_stack != m_buf)
     {
@@ -192,7 +200,7 @@ void stack<T, N>::reserve(size_t sz)
 template<class T, size_t N>
 void stack<T, N>::_free()
 {
-    RYML_ASSERT(m_stack != nullptr); // this structure cannot be memset() to zero
+    _RYML_CB_ASSERT(m_callbacks, m_stack != nullptr); // this structure cannot be memset() to zero
     if(m_stack != m_buf)
     {
         m_callbacks.m_free(m_stack, m_capacity * sizeof(T), m_callbacks.m_user_data);
@@ -202,7 +210,7 @@ void stack<T, N>::_free()
     }
     else
     {
-        RYML_ASSERT(m_capacity == N);
+        _RYML_CB_ASSERT(m_callbacks, m_capacity == N);
     }
 }
 
@@ -214,13 +222,13 @@ void stack<T, N>::_cp(stack const* C4_RESTRICT that)
 {
     if(that->m_stack != that->m_buf)
     {
-        RYML_ASSERT(that->m_capacity > N);
-        RYML_ASSERT(that->m_size <= that->m_capacity);
+        _RYML_CB_ASSERT(m_callbacks, that->m_capacity > N);
+        _RYML_CB_ASSERT(m_callbacks, that->m_size <= that->m_capacity);
     }
     else
     {
-        RYML_ASSERT(that->m_capacity <= N);
-        RYML_ASSERT(that->m_size <= that->m_capacity);
+        _RYML_CB_ASSERT(m_callbacks, that->m_capacity <= N);
+        _RYML_CB_ASSERT(m_callbacks, that->m_size <= that->m_capacity);
     }
     memcpy(m_stack, that->m_stack, that->m_size * sizeof(T));
     m_size = that->m_size;
@@ -236,14 +244,14 @@ void stack<T, N>::_mv(stack * that)
 {
     if(that->m_stack != that->m_buf)
     {
-        RYML_ASSERT(that->m_capacity > N);
-        RYML_ASSERT(that->m_size <= that->m_capacity);
+        _RYML_CB_ASSERT(m_callbacks, that->m_capacity > N);
+        _RYML_CB_ASSERT(m_callbacks, that->m_size <= that->m_capacity);
         m_stack = that->m_stack;
     }
     else
     {
-        RYML_ASSERT(that->m_capacity <= N);
-        RYML_ASSERT(that->m_size <= that->m_capacity);
+        _RYML_CB_ASSERT(m_callbacks, that->m_capacity <= N);
+        _RYML_CB_ASSERT(m_callbacks, that->m_size <= that->m_capacity);
         memcpy(m_buf, that->m_buf, that->m_size * sizeof(T));
         m_stack = m_buf;
     }
@@ -251,7 +259,7 @@ void stack<T, N>::_mv(stack * that)
     m_capacity = that->m_capacity;
     m_callbacks = that->m_callbacks;
     // make sure no deallocation happens on destruction
-    RYML_ASSERT(that->m_stack != m_buf);
+    _RYML_CB_ASSERT(m_callbacks, that->m_stack != m_buf);
     that->m_stack = that->m_buf;
     that->m_capacity = N;
     that->m_size = 0;

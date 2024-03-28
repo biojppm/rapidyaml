@@ -4,7 +4,7 @@
 #include "c4/yml/detail/stack.hpp"
 #endif
 #include <gtest/gtest.h>
-#include "./callbacks_tester.hpp"
+#include "./test_lib/callbacks_tester.hpp"
 
 
 //-------------------------------------------

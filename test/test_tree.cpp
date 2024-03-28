@@ -6,8 +6,8 @@
 #include <c4/yml/detail/checks.hpp>
 #include <c4/yml/detail/print.hpp>
 #endif
-#include "./test_case.hpp"
-#include "./callbacks_tester.hpp"
+#include "./test_lib/test_case.hpp"
+#include "./test_lib/callbacks_tester.hpp"
 
 #include <gtest/gtest.h>
 
@@ -502,8 +502,9 @@ TEST(Tree, node_cap_ctor)
 
 Tree get_test_tree(CallbacksTester *cbt=nullptr)
 {
-    Parser parser(cbt ? cbt->callbacks() : get_callbacks());
-    Tree t = parser.parse_in_arena("", "{a: b, c: d, e: [0, 1, 2, 3]}");
+    Parser::handler_type evt_handler(cbt ? cbt->callbacks() : get_callbacks());
+    Parser parser(&evt_handler);
+    Tree t = parse_in_arena(&parser, "", "{a: b, c: d, e: [0, 1, 2, 3]}");
     // make sure the tree has strings in its arena
     NodeRef n = t.rootref();
     NodeRef ch = n.append_child();
@@ -526,6 +527,34 @@ TEST(Tree, test_tree_has_arena)
 }
 
 //-------------------------------------------
+
+TEST(Tree, copy_ctor_empty)
+{
+    CallbacksTester cbt;
+    {
+        Tree src(cbt.callbacks());
+        test_invariants(src);
+        {
+            Tree dst(src);
+            test_invariants(dst);
+            test_compare(dst, src);
+            test_arena_not_shared(dst, src);
+            EXPECT_EQ(dst.callbacks(), src.callbacks());
+        }
+    }
+    {
+        Tree src(cbt.callbacks());
+        test_invariants(src);
+        {
+            Tree dst = src;
+            test_invariants(dst);
+            test_compare(dst, src);
+            test_arena_not_shared(dst, src);
+            EXPECT_EQ(dst.callbacks(), src.callbacks());
+        }
+    }
+}
+
 TEST(Tree, copy_ctor)
 {
     CallbacksTester cbt;
@@ -949,7 +978,7 @@ TEST(Tree, relocate)
     Tree tree = parse_in_arena(R"(&keyanchor key: val
 key2: &valanchor val2
 keyref: *keyanchor
-*valanchor: was val anchor
+*valanchor : was val anchor
 !!int 0: !!str foo
 !!str doe: !!str a deer a female deer
 ray: a drop of golden sun
@@ -961,7 +990,7 @@ far: a long long way to run
     EXPECT_EQ(emitrs_yaml<std::string>(copy), R"(&keyanchor key: val
 key2: &valanchor val2
 keyref: *keyanchor
-*valanchor: was val anchor
+*valanchor : was val anchor
 !!int 0: !!str foo
 !!str doe: !!str a deer a female deer
 ray: a drop of golden sun
@@ -2100,6 +2129,7 @@ TEST(Tree, has_val_anchor)
 map: &mapanchor {foo: &keyvalanchor bar, anchor: none}
 seq: &seqanchor [&valanchor foo, bar]
 ...)");
+    _c4dbg_tree(t);
     const size_t stream_id = t.root_id();
     const size_t doc_id = t.first_child(stream_id);
     const size_t map_id = t.first_child(doc_id);
@@ -2108,14 +2138,14 @@ seq: &seqanchor [&valanchor foo, bar]
     const size_t seq_id = t.last_child(doc_id);
     const size_t val_id = t.first_child(seq_id);
     const size_t valnoanchor_id = t.last_child(seq_id);
-    ConstNodeRef stream = t.ref(stream_id);
-    ConstNodeRef doc = t.ref(doc_id);
-    ConstNodeRef map = t.ref(map_id);
-    ConstNodeRef keyval = t.ref(keyval_id);
-    ConstNodeRef keyvalnoanchor = t.ref(keyvalnoanchor_id);
-    ConstNodeRef seq = t.ref(seq_id);
-    ConstNodeRef val = t.ref(val_id);
-    ConstNodeRef valnoanchor = t.ref(valnoanchor_id);
+    ConstNodeRef stream = t.cref(stream_id);
+    ConstNodeRef doc = t.cref(doc_id);
+    ConstNodeRef map = t.cref(map_id);
+    ConstNodeRef keyval = t.cref(keyval_id);
+    ConstNodeRef keyvalnoanchor = t.cref(keyvalnoanchor_id);
+    ConstNodeRef seq = t.cref(seq_id);
+    ConstNodeRef val = t.cref(val_id);
+    ConstNodeRef valnoanchor = t.cref(valnoanchor_id);
     NodeRef mstream = t.ref(stream_id);
     NodeRef mdoc = t.ref(doc_id);
     NodeRef mmap = t.ref(map_id);
@@ -2125,7 +2155,7 @@ seq: &seqanchor [&valanchor foo, bar]
     NodeRef mval = t.ref(val_id);
     NodeRef mvalnoanchor = t.ref(valnoanchor_id);
     EXPECT_FALSE(t.has_val_anchor(stream_id));
-    EXPECT_FALSE(t.has_val_anchor(doc_id));
+    EXPECT_TRUE(t.has_val_anchor(doc_id));
     EXPECT_TRUE(t.has_val_anchor(map_id));
     EXPECT_TRUE(t.has_val_anchor(keyval_id));
     EXPECT_FALSE(t.has_val_anchor(keyvalnoanchor_id));
@@ -2133,7 +2163,7 @@ seq: &seqanchor [&valanchor foo, bar]
     EXPECT_TRUE(t.has_val_anchor(val_id));
     EXPECT_FALSE(t.has_val_anchor(valnoanchor_id));
     EXPECT_FALSE(stream.has_val_anchor());
-    EXPECT_FALSE(doc.has_val_anchor());
+    EXPECT_TRUE(doc.has_val_anchor());
     EXPECT_TRUE(map.has_val_anchor());
     EXPECT_TRUE(keyval.has_val_anchor());
     EXPECT_FALSE(keyvalnoanchor.has_val_anchor());
@@ -2141,7 +2171,7 @@ seq: &seqanchor [&valanchor foo, bar]
     EXPECT_TRUE(val.has_val_anchor());
     EXPECT_FALSE(valnoanchor.has_val_anchor());
     EXPECT_FALSE(mstream.has_val_anchor());
-    EXPECT_FALSE(mdoc.has_val_anchor());
+    EXPECT_TRUE(mdoc.has_val_anchor());
     EXPECT_TRUE(mmap.has_val_anchor());
     EXPECT_TRUE(mkeyval.has_val_anchor());
     EXPECT_FALSE(mkeyvalnoanchor.has_val_anchor());
@@ -2187,6 +2217,7 @@ TEST(Tree, is_val_anchor)
 map: &mapanchor {foo: &keyvalanchor bar, anchor: none}
 seq: &seqanchor [&valanchor foo, bar]
 ...)");
+    _c4dbg_tree(t);
     const size_t stream_id = t.root_id();
     const size_t doc_id = t.first_child(stream_id);
     const size_t map_id = t.first_child(doc_id);
@@ -2212,7 +2243,7 @@ seq: &seqanchor [&valanchor foo, bar]
     NodeRef mval = t.ref(val_id);
     NodeRef mvalnoanchor = t.ref(valnoanchor_id);
     EXPECT_FALSE(t.is_val_anchor(stream_id));
-    EXPECT_FALSE(t.is_val_anchor(doc_id));
+    EXPECT_TRUE(t.is_val_anchor(doc_id));
     EXPECT_TRUE(t.is_val_anchor(map_id));
     EXPECT_TRUE(t.is_val_anchor(keyval_id));
     EXPECT_FALSE(t.is_val_anchor(keyvalnoanchor_id));
@@ -2220,7 +2251,7 @@ seq: &seqanchor [&valanchor foo, bar]
     EXPECT_TRUE(t.is_val_anchor(val_id));
     EXPECT_FALSE(t.is_val_anchor(valnoanchor_id));
     EXPECT_FALSE(stream.is_val_anchor());
-    EXPECT_FALSE(doc.is_val_anchor());
+    EXPECT_TRUE(doc.is_val_anchor());
     EXPECT_TRUE(map.is_val_anchor());
     EXPECT_TRUE(keyval.is_val_anchor());
     EXPECT_FALSE(keyvalnoanchor.is_val_anchor());
@@ -2228,7 +2259,7 @@ seq: &seqanchor [&valanchor foo, bar]
     EXPECT_TRUE(val.is_val_anchor());
     EXPECT_FALSE(valnoanchor.is_val_anchor());
     EXPECT_FALSE(mstream.is_val_anchor());
-    EXPECT_FALSE(mdoc.is_val_anchor());
+    EXPECT_TRUE(mdoc.is_val_anchor());
     EXPECT_TRUE(mmap.is_val_anchor());
     EXPECT_TRUE(mkeyval.is_val_anchor());
     EXPECT_FALSE(mkeyvalnoanchor.is_val_anchor());
@@ -2279,6 +2310,7 @@ TEST(Tree, has_anchor)
 map: &mapanchor {foo: &keyvalanchor bar, anchor: none}
 &seqanchor seq: [&valanchor foo, bar]
 ...)");
+    _c4dbg_tree(t);
     const size_t stream_id = t.root_id();
     const size_t doc_id = t.first_child(stream_id);
     const size_t map_id = t.first_child(doc_id);
@@ -2304,7 +2336,7 @@ map: &mapanchor {foo: &keyvalanchor bar, anchor: none}
     NodeRef mval = t.ref(val_id);
     NodeRef mvalnoanchor = t.ref(valnoanchor_id);
     EXPECT_FALSE(t.has_anchor(stream_id));
-    EXPECT_FALSE(t.has_anchor(doc_id));
+    EXPECT_TRUE(t.has_anchor(doc_id));
     EXPECT_TRUE(t.has_anchor(map_id));
     EXPECT_TRUE(t.has_anchor(keyval_id));
     EXPECT_FALSE(t.has_anchor(keyvalnoanchor_id));
@@ -2312,7 +2344,7 @@ map: &mapanchor {foo: &keyvalanchor bar, anchor: none}
     EXPECT_TRUE(t.has_anchor(val_id));
     EXPECT_FALSE(t.has_anchor(valnoanchor_id));
     EXPECT_FALSE(stream.has_anchor());
-    EXPECT_FALSE(doc.has_anchor());
+    EXPECT_TRUE(doc.has_anchor());
     EXPECT_TRUE(map.has_anchor());
     EXPECT_TRUE(keyval.has_anchor());
     EXPECT_FALSE(keyvalnoanchor.has_anchor());
@@ -2320,7 +2352,7 @@ map: &mapanchor {foo: &keyvalanchor bar, anchor: none}
     EXPECT_TRUE(val.has_anchor());
     EXPECT_FALSE(valnoanchor.has_anchor());
     EXPECT_FALSE(mstream.has_anchor());
-    EXPECT_FALSE(mdoc.has_anchor());
+    EXPECT_TRUE(mdoc.has_anchor());
     EXPECT_TRUE(mmap.has_anchor());
     EXPECT_TRUE(mkeyval.has_anchor());
     EXPECT_FALSE(mkeyvalnoanchor.has_anchor());
@@ -2371,6 +2403,7 @@ TEST(Tree, is_anchor)
 map: &mapanchor {foo: &keyvalanchor bar, anchor: none}
 &seqanchor seq: [&valanchor foo, bar]
 ...)");
+    _c4dbg_tree(t);
     const size_t stream_id = t.root_id();
     const size_t doc_id = t.first_child(stream_id);
     const size_t map_id = t.first_child(doc_id);
@@ -2396,7 +2429,7 @@ map: &mapanchor {foo: &keyvalanchor bar, anchor: none}
     NodeRef mval = t.ref(val_id);
     NodeRef mvalnoanchor = t.ref(valnoanchor_id);
     EXPECT_FALSE(t.is_anchor(stream_id));
-    EXPECT_FALSE(t.is_anchor(doc_id));
+    EXPECT_TRUE(t.is_anchor(doc_id));
     EXPECT_TRUE(t.is_anchor(map_id));
     EXPECT_TRUE(t.is_anchor(keyval_id));
     EXPECT_FALSE(t.is_anchor(keyvalnoanchor_id));
@@ -2404,7 +2437,7 @@ map: &mapanchor {foo: &keyvalanchor bar, anchor: none}
     EXPECT_TRUE(t.is_anchor(val_id));
     EXPECT_FALSE(t.is_anchor(valnoanchor_id));
     EXPECT_FALSE(stream.is_anchor());
-    EXPECT_FALSE(doc.is_anchor());
+    EXPECT_TRUE(doc.is_anchor());
     EXPECT_TRUE(map.is_anchor());
     EXPECT_TRUE(keyval.is_anchor());
     EXPECT_FALSE(keyvalnoanchor.is_anchor());
@@ -2412,7 +2445,7 @@ map: &mapanchor {foo: &keyvalanchor bar, anchor: none}
     EXPECT_TRUE(val.is_anchor());
     EXPECT_FALSE(valnoanchor.is_anchor());
     EXPECT_FALSE(mstream.is_anchor());
-    EXPECT_FALSE(mdoc.is_anchor());
+    EXPECT_TRUE(mdoc.is_anchor());
     EXPECT_TRUE(mmap.is_anchor());
     EXPECT_TRUE(mkeyval.is_anchor());
     EXPECT_FALSE(mkeyvalnoanchor.is_anchor());
@@ -2455,8 +2488,8 @@ TEST(NodeType, is_key_ref)
 TEST(Tree, is_key_ref)
 {
     Tree t = parse_in_arena(R"(---
-*mapref: {foo: bar, notag: none}
-*seqref: [foo, bar]
+*mapref : {foo: bar, notag: none}
+*seqref : [foo, bar]
 ...)");
     const size_t stream_id = t.root_id();
     const size_t doc_id = t.first_child(stream_id);
@@ -2464,12 +2497,12 @@ TEST(Tree, is_key_ref)
     const size_t keyval_id = t.first_child(map_id);
     const size_t seq_id = t.last_child(doc_id);
     const size_t val_id = t.first_child(seq_id);
-    ConstNodeRef stream = t.ref(stream_id);
-    ConstNodeRef doc = t.ref(doc_id);
-    ConstNodeRef map = t.ref(map_id);
-    ConstNodeRef keyval = t.ref(keyval_id);
-    ConstNodeRef seq = t.ref(seq_id);
-    ConstNodeRef val = t.ref(val_id);
+    ConstNodeRef stream = t.cref(stream_id);
+    ConstNodeRef doc = t.cref(doc_id);
+    ConstNodeRef map = t.cref(map_id);
+    ConstNodeRef keyval = t.cref(keyval_id);
+    ConstNodeRef seq = t.cref(seq_id);
+    ConstNodeRef val = t.cref(val_id);
     NodeRef mstream = t.ref(stream_id);
     NodeRef mdoc = t.ref(doc_id);
     NodeRef mmap = t.ref(map_id);
@@ -2738,7 +2771,7 @@ seq: &seq [*valref, bar]
 TEST(NodeType, is_key_quoted)
 {
     EXPECT_FALSE(NodeType().is_key_quoted());
-    EXPECT_FALSE(NodeType(KEYQUO).is_key_quoted());
+    EXPECT_TRUE(NodeType(KEYQUO).is_key_quoted());
     EXPECT_TRUE(NodeType(KEY|KEYQUO).is_key_quoted());
 }
 
@@ -2780,7 +2813,7 @@ notquoted: bar
 TEST(NodeType, is_val_quoted)
 {
     EXPECT_FALSE(NodeType().is_val_quoted());
-    EXPECT_FALSE(NodeType(VALQUO).is_val_quoted());
+    EXPECT_TRUE(NodeType(VALQUO).is_val_quoted());
     EXPECT_TRUE(NodeType(VAL|VALQUO).is_val_quoted());
 }
 
@@ -2822,13 +2855,13 @@ notquoted: bar
 TEST(NodeType, is_quoted)
 {
     EXPECT_FALSE(NodeType().is_quoted());
-    EXPECT_FALSE(NodeType(KEYQUO).is_quoted());
-    EXPECT_FALSE(NodeType(VALQUO).is_quoted());
-    EXPECT_FALSE(NodeType(KEYQUO|VALQUO).is_quoted());
+    EXPECT_TRUE(NodeType(KEYQUO).is_quoted());
+    EXPECT_TRUE(NodeType(VALQUO).is_quoted());
+    EXPECT_TRUE(NodeType(KEYQUO|VALQUO).is_quoted());
     EXPECT_TRUE(NodeType(KEY|KEYQUO).is_quoted());
     EXPECT_TRUE(NodeType(VAL|VALQUO).is_quoted());
-    EXPECT_FALSE(NodeType(KEY|VALQUO).is_quoted());
-    EXPECT_FALSE(NodeType(VAL|KEYQUO).is_quoted());
+    EXPECT_TRUE(NodeType(KEY|VALQUO).is_quoted());
+    EXPECT_TRUE(NodeType(VAL|KEYQUO).is_quoted());
 }
 
 TEST(Tree, is_quoted)
@@ -3183,8 +3216,8 @@ seq: &seq [*valref, bar]
     const size_t map_id = t.first_child(doc_id);
     const size_t keyval_id = t.first_child(map_id);
     const size_t seq_id = t.last_child(doc_id);
-    ConstNodeRef doc = t.ref(doc_id);
-    ConstNodeRef map = t.ref(map_id);
+    ConstNodeRef doc = t.cref(doc_id);
+    ConstNodeRef map = t.cref(map_id);
     NodeRef mdoc = t.ref(doc_id);
     NodeRef mmap = t.ref(map_id);
     EXPECT_EQ(t.find_child(doc_id, "map"), map_id);
@@ -3400,7 +3433,8 @@ TEST(Tree, lookup_path_or_modify)
     }
 
     {
-        Tree t = parse_in_arena("{}");
+        Tree t;
+        t.rootref() |= MAP;
         csubstr bigpath = "newmap.newseq[0].newmap.newseq[0].first";
         auto result = t.lookup_path(bigpath);
         EXPECT_EQ(result.target, (size_t)NONE);
@@ -3483,9 +3517,9 @@ TEST(Tree, lookup_path_or_modify)
         newseq:
           - first: y
   newseq1:
-    - 'Foo?'
+    - Foo?
     - foo
-    - - 'Bar?'
+    - - Bar?
       - bar
       - - Arnold
         - is

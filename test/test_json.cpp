@@ -7,7 +7,7 @@
 #include <c4/yml/detail/print.hpp>
 #endif
 
-#include "./test_case.hpp"
+#include "./test_lib/test_case.hpp"
 
 #include <gtest/gtest.h>
 
@@ -165,7 +165,7 @@ TEST(general, json_stream_operator)
         ss << as_json(t);
         str = ss.str();
     }
-    Tree res = c4::yml::parse_in_place(to_substr(str));
+    Tree res = c4::yml::parse_json_in_place(to_substr(str));
     EXPECT_EQ(res["foo"].val(), "1");
     EXPECT_EQ(res["bar"].val(), "2");
     EXPECT_EQ(res["foobar_barfoo:barfoo_foobar"].val(), "1001");
@@ -201,28 +201,22 @@ TEST(emit_json, issue72)
 
 TEST(emit_json, issue121)
 {
-    Tree t = parse_in_arena(R"(
-string_value: "string"
-number_value: "9001"
-broken_value: "0.30.2"
-)");
-    EXPECT_TRUE(t["string_value"].get()->m_type.type & VALQUO);
-    EXPECT_TRUE(t["number_value"].get()->m_type.type & VALQUO);
-    EXPECT_TRUE(t["broken_value"].get()->m_type.type & VALQUO);
+    csubstr json = R"({"string_value": "string","number_value": "9001","broken_value": "0.30.2"})";
+    const Tree t = parse_json_in_arena(json);
+    EXPECT_TRUE(t["string_value"].get()->m_type.type & _WIP_VAL_DQUO);
+    EXPECT_TRUE(t["number_value"].get()->m_type.type & _WIP_VAL_DQUO);
+    EXPECT_TRUE(t["broken_value"].get()->m_type.type & _WIP_VAL_DQUO);
     std::string out;
     emitrs_json(t, &out);
-    EXPECT_EQ(out, R"({"string_value": "string","number_value": "9001","broken_value": "0.30.2"})");
+    EXPECT_EQ(out, json);
     out.clear();
     emitrs_yaml(t, &out);
-    EXPECT_EQ(out, R"(string_value: 'string'
-number_value: '9001'
-broken_value: '0.30.2'
-)");
+    EXPECT_EQ(out, json);
 }
 
 TEST(emit_json, issue291)
 {
-    Tree t = parse_in_arena("{}");
+    Tree t = parse_json_in_arena("{}");
     t["james"] = "045";
     auto s = emitrs_json<std::string>(t);
     EXPECT_EQ(s, "{\"james\": \"045\"}");
@@ -245,7 +239,7 @@ TEST(emit_json, issue292)
     EXPECT_FALSE(csubstr("1.2.3").is_number());
     EXPECT_FALSE(csubstr("1.2.3").is_integer());
     EXPECT_FALSE(csubstr("1.2.3").is_real());
-    Tree t = parse_in_arena("{}");
+    Tree t = parse_json_in_arena("{}");
     t["james"] = "0.0.0";
     EXPECT_EQ(emitrs_json<std::string>(t), "{\"james\": \"0.0.0\"}");
     t["james"] = "0.1.0";
@@ -272,7 +266,7 @@ comment: |
 
 TEST(emit_json, issue297_escaped_chars)
 {
-    Tree t = parse_in_arena("{}");
+    Tree t = parse_json_in_arena("{}");
     t["quote"] = "abc\"def";
     t["newline"] = "abc\ndef";
     t["tab"] = "abc\tdef";
@@ -309,7 +303,7 @@ TEST(emit_json, issue313_quoted_numbers__1)
     EXPECT_TRUE(csubstr("0.13215841352939606").is_number()); // [REALLY_WEIRD5][9][0]
     EXPECT_TRUE(csubstr("0.13215841352939606").is_real()); // [REALLY_WEIRD5][9][0]
     EXPECT_FALSE(csubstr("0.13215841352939606").is_integer()); // [REALLY_WEIRD5][9][0]
-    const Tree t0 = parse_in_arena(R"([
+    const Tree t0 = parse_json_in_arena(R"([
     0.99356698989868164,
     0.0064908224157989025,
     0.0064917667768895626,
@@ -330,13 +324,13 @@ TEST(emit_json, issue313_quoted_numbers__1)
 
 TEST(emit_json, issue313_quoted_numbers__2)
 {
-    Tree ti = parse_in_arena(R"({
-WEIRD0: [0.99356698989868164, 1.0605627298355103],
-OK1:    [0, 0, 0],
-WEIRD2: [0.0064908224157989025, 0.0064917667768895626, 0.0064947893843054771],
-OK3:    [6.6227097511291504, 6.8674740791320801, 7.0403199195861816, 7.5792555809020996, 7.9916787147521973, 8.136042594909668, 8.5505847930908203, 8.701807975769043, 8.926518440246582, 8.9484291076660156, 9.0740194320678711, 9.3788108825683594, 9.406926155090332],
-WEIRD4: [0.91054189205169678, 0.98725020885467529, 1.070807933807373],
-REALLY_WEIRD5: [
+    Tree ti = parse_json_in_arena(R"({
+"WEIRD0": [0.99356698989868164, 1.0605627298355103],
+"OK1":    [0, 0, 0],
+"WEIRD2": [0.0064908224157989025, 0.0064917667768895626, 0.0064947893843054771],
+"OK3":    [6.6227097511291504, 6.8674740791320801, 7.0403199195861816, 7.5792555809020996, 7.9916787147521973, 8.136042594909668, 8.5505847930908203, 8.701807975769043, 8.926518440246582, 8.9484291076660156, 9.0740194320678711, 9.3788108825683594, 9.406926155090332],
+"WEIRD4": [0.91054189205169678, 0.98725020885467529, 1.070807933807373],
+"REALLY_WEIRD5": [
   [1.5158847570419312, 1.6361792087554932],  # 0
   [1.0741721391677856, 1.1791903972625732],  # 1
   [1.4423576593399048, 1.7063977718353271],  # 2
@@ -390,8 +384,8 @@ REALLY_WEIRD5: [
     {                                                             \
         SCOPED_TRACE(__LINE__);                                   \
         csubstr file = __FILE__ ":" C4_XQUOTE(__LINE__);          \
-        const Tree actual = parse_in_arena(file, actual_src);     \
-        const Tree expected = parse_in_arena(file, expected_src); \
+        const Tree actual = parse_json_in_arena(file, actual_src);     \
+        const Tree expected = parse_json_in_arena(file, expected_src); \
         print_tree(actual);                                       \
         test_compare(actual, expected);                           \
     }
@@ -402,26 +396,12 @@ TEST(json, compact_map)
     _test("", "");
     _test("{}", "{}");
 
-    _test(R"("a":"b")", R"("a": "b")");
-    _test(R"('a':'b')", R"('a': 'b')");
-
-    _test(R"({'a':'b'})", R"({'a': 'b'})");
-    _test(R"({"a":"b"})", R"({"a": "b"})");
-
-    _test(R"("a":{"a":"b"})", R"("a": {"a": "b"})");
-    _test(R"('a':{'a':'b'})", R"('a': {'a': 'b'})");
-
     _test(R"({"a":{"a":"b"}})", R"({"a": {"a": "b"}})");
-    _test(R"({'a':{'a':'b'}})", R"({'a': {'a': 'b'}})");
 }
 
 TEST(json, compact_seq)
 {
-    _test(R"("a",["a","b"])", R"("a", ["a", "b"])");
-    _test(R"('a',['a','b'])", R"('a', ['a', 'b'])");
-
     _test(R"(["a",["a","b"]])", R"(["a", ["a", "b"]])");
-    _test(R"(['a',['a','b']])", R"(['a', ['a', 'b']])");
 }
 
 TEST(json, github142)
@@ -438,19 +418,6 @@ TEST(json, github142)
           R"({"A": ["B]","[C","[D]"]})");
     //_test(R"({"A":["B\"]","[\"C","\"[D]\""]})", // VS2019 chokes on this.
     //      R"({"A": ["B\"]","[\"C","\"[D]\""]})");
-
-    _test(R"({'A':'B}'})",
-          R"({'A': 'B}'})");
-    _test(R"({'A':'{B'})",
-          R"({'A': '{B'})");
-    _test(R"({'A':'{B}'})",
-          R"({'A': '{B}'})");
-    _test(R"({  'A':'B}'  })",
-          R"({  'A': 'B}'  })");
-    _test(R"({'A':['B]','[C','[D]']})",
-          R"({'A': ['B]','[C','[D]']})");
-    _test(R"({'A':['B'']','[''C','''[D]''']})",
-          R"({'A': ['B'']','[''C','''[D]''']})");
 }
 
 TEST(json, github52)
