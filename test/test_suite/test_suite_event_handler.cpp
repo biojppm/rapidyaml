@@ -1,10 +1,10 @@
 #ifndef RYML_SINGLE_HEADER
 #include <c4/yml/node.hpp>
 #include <c4/yml/std/string.hpp>
+#include <c4/yml/parse_engine.def.hpp>
 #endif
 #include "./test_suite_event_handler.hpp"
 
-#include "c4/yml/parse_engine.def.hpp"
 
 namespace c4 {
 namespace yml {

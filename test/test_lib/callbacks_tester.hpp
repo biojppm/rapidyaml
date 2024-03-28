@@ -4,9 +4,9 @@
 #ifndef RYML_SINGLE_HEADER
 #include "c4/yml/common.hpp"
 #include <c4/charconv.hpp>
+#include "c4/yml/detail/parser_dbg.hpp"
 #else
 #endif
-#include <c4/yml/detail/parser_dbg.hpp>
 #include <vector>
 #include <iostream>
 

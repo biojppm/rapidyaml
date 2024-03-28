@@ -139,6 +139,10 @@ using TS = TaggedScalar;
 using TL = TestCaseNode::TaggedList;
 using AR = AnchorRef;
 
+C4_SUPPRESS_WARNING_GCC_PUSH
+#if __GNUC__ > 5
+C4_SUPPRESS_WARNING_GCC("-Wunused-const-variable")
+#endif
 
 constexpr const NodeType_e KP = (KEY|_WIP_KEY_PLAIN);   ///< key, plain scalar
 constexpr const NodeType_e KS = (KEY|_WIP_KEY_SQUO);    ///< key, single-quoted scalar
@@ -160,10 +164,11 @@ constexpr const NodeType_e MB = (MAP|_WIP_STYLE_BLOCK);    ///< map, flow-style
 constexpr const NodeType_e MFS = (MAP|_WIP_STYLE_FLOW_SL); ///< map, flow-style
 constexpr const NodeType_e MMS = (MAP|_WIP_STYLE_FLOW_ML); ///< map, flow-style
 
-
 constexpr const NodeType_e QK = (VAL | KEYQUO);
 constexpr const NodeType_e QV = (VAL | VALQUO);
 constexpr const NodeType_e QKV = (VAL | KEYQUO | VALQUO);
+
+C4_SUPPRESS_WARNING_GCC_POP
 
 
 #ifdef __GNUC__
