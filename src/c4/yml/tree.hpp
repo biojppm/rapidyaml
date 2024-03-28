@@ -453,11 +453,11 @@ public:
 
     ~Tree();
 
-    Tree(Tree const& that) noexcept;
-    Tree(Tree     && that) noexcept;
+    Tree(Tree const& that);
+    Tree(Tree     && that);
 
-    Tree& operator= (Tree const& that) noexcept;
-    Tree& operator= (Tree     && that) noexcept;
+    Tree& operator= (Tree const& that);
+    Tree& operator= (Tree     && that);
 
     /** @} */
 

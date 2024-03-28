@@ -331,12 +331,12 @@ Tree::~Tree()
 }
 
 
-Tree::Tree(Tree const& that) noexcept : Tree(that.m_callbacks)
+Tree::Tree(Tree const& that) : Tree(that.m_callbacks)
 {
     _copy(that);
 }
 
-Tree& Tree::operator= (Tree const& that) noexcept
+Tree& Tree::operator= (Tree const& that)
 {
     _free();
     m_callbacks = that.m_callbacks;
@@ -344,12 +344,12 @@ Tree& Tree::operator= (Tree const& that) noexcept
     return *this;
 }
 
-Tree::Tree(Tree && that) noexcept : Tree(that.m_callbacks)
+Tree::Tree(Tree && that) : Tree(that.m_callbacks)
 {
     _move(that);
 }
 
-Tree& Tree::operator= (Tree && that) noexcept
+Tree& Tree::operator= (Tree && that)
 {
     _free();
     m_callbacks = that.m_callbacks;
