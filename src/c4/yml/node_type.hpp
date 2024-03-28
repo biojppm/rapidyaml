@@ -23,8 +23,7 @@ using type_bits = uint32_t;
 
 /** a bit mask for marking node types */
 typedef enum : type_bits {
-    // a convenience define, undefined below
-    #define c4bit(v) (type_bits(1) << v)
+    #define c4bit(v) (type_bits(1) << v) // a convenience define, undefined below
     NOTYPE  = 0,            ///< no node type is set
     KEY     = c4bit(0),     ///< is member of a map, must have non-empty key
     VAL     = c4bit(1),     ///< a leaf node, has a (possibly empty) value
@@ -52,7 +51,7 @@ typedef enum : type_bits {
     _WIP_KEY_UNFILT    = c4bit(12), ///< the key scalar is yet to be filtered. Eg, when the parser is set not to filter.
     _WIP_VAL_UNFILT    = c4bit(13), ///< the val scalar is yet to be filtered. Eg, when the parser is set not to filter.
     _WIP_STYLE_FLOW_SL = c4bit(14), ///< mark container with single-line flow format (seqs as '[val1,val2], maps as '{key: val,key2: val2}')
-    _WIP_STYLE_FLOW_ML = c4bit(15), ///< mark container with multi-line flow format (seqs as '[val1,\nval2], maps as '{key: val,\nkey2: val2}')
+    _WIP_STYLE_FLOW_ML = c4bit(15), ///< mark container with multi-line flow format (seqs as '[\n  val1,\n  val2\n], maps as '{\n  key: val,\n  key2: val2\n}')
     _WIP_STYLE_BLOCK   = c4bit(16), ///< mark container with block format (seqs as '- val\n', maps as 'key: val')
     _WIP_KEY_LITERAL   = c4bit(17), ///< mark key scalar as multiline, block literal |
     _WIP_VAL_LITERAL   = c4bit(18), ///< mark val scalar as multiline, block literal |
@@ -84,11 +83,11 @@ typedef enum : type_bits {
     #undef c4bit
 } NodeType_e;
 
-constexpr C4_ALWAYS_INLINE NodeType_e operator|(NodeType_e lhs, NodeType_e rhs) noexcept { return (NodeType_e)(((type_bits)lhs) | ((type_bits)rhs)); }
-constexpr C4_ALWAYS_INLINE NodeType_e operator&(NodeType_e lhs, NodeType_e rhs) noexcept { return (NodeType_e)(((type_bits)lhs) & ((type_bits)rhs)); }
-constexpr C4_ALWAYS_INLINE NodeType_e operator>>(NodeType_e bits, uint32_t n) noexcept { return (NodeType_e)(((type_bits)bits) >> n); }
-constexpr C4_ALWAYS_INLINE NodeType_e operator<<(NodeType_e bits, uint32_t n) noexcept { return (NodeType_e)(((type_bits)bits) << n); }
-constexpr C4_ALWAYS_INLINE NodeType_e operator~(NodeType_e bits) noexcept { return (NodeType_e)(~(type_bits)bits); }
+constexpr C4_ALWAYS_INLINE C4_CONST NodeType_e operator|  (NodeType_e lhs, NodeType_e rhs) noexcept { return (NodeType_e)(((type_bits)lhs) | ((type_bits)rhs)); }
+constexpr C4_ALWAYS_INLINE C4_CONST NodeType_e operator&  (NodeType_e lhs, NodeType_e rhs) noexcept { return (NodeType_e)(((type_bits)lhs) & ((type_bits)rhs)); }
+constexpr C4_ALWAYS_INLINE C4_CONST NodeType_e operator>> (NodeType_e bits, uint32_t n) noexcept { return (NodeType_e)(((type_bits)bits) >> n); }
+constexpr C4_ALWAYS_INLINE C4_CONST NodeType_e operator<< (NodeType_e bits, uint32_t n) noexcept { return (NodeType_e)(((type_bits)bits) << n); }
+constexpr C4_ALWAYS_INLINE C4_CONST NodeType_e operator~  (NodeType_e bits) noexcept { return (NodeType_e)(~(type_bits)bits); }
 
 
 //-----------------------------------------------------------------------------
@@ -144,20 +143,7 @@ public:
     C4_ALWAYS_INLINE operator NodeType_e      & C4_RESTRICT ()       noexcept { return type; }
     C4_ALWAYS_INLINE operator NodeType_e const& C4_RESTRICT () const noexcept { return type; }
 
-    C4_ALWAYS_INLINE bool operator== (NodeType_e t) const noexcept { return type == t; }
-    C4_ALWAYS_INLINE bool operator!= (NodeType_e t) const noexcept { return type != t; }
-
 public:
-
-    #if defined(__clang__)
-    #   pragma clang diagnostic push
-    #   pragma clang diagnostic ignored "-Wnull-dereference"
-    #elif defined(__GNUC__)
-    #   pragma GCC diagnostic push
-    #   if __GNUC__ >= 6
-    #       pragma GCC diagnostic ignored "-Wnull-dereference"
-    #   endif
-    #endif
 
     C4_ALWAYS_INLINE bool is_notype() const noexcept { return type == NOTYPE; }
     C4_ALWAYS_INLINE bool is_stream() const noexcept { return ((type & STREAM) == STREAM) != 0; }
@@ -203,12 +189,6 @@ public:
 
     C4_ALWAYS_INLINE bool _wip_key_unfiltered() const noexcept { return (type & (_WIP_KEY_UNFILT)) != 0; }
     C4_ALWAYS_INLINE bool _wip_val_unfiltered() const noexcept { return (type & (_WIP_VAL_UNFILT)) != 0; }
-
-    #if defined(__clang__)
-    #   pragma clang diagnostic pop
-    #elif defined(__GNUC__)
-    #   pragma GCC diagnostic pop
-    #endif
 
 };
 
