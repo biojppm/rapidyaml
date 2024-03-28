@@ -167,21 +167,31 @@ struct CheckPredicate {
 /** a brief tour over most features */
 void sample_quick_overview()
 {
-    // Parse YAML code in place, potentially mutating the buffer.
-    // It is also possible to:
-    //   - parse a read-only buffer using parse_in_arena()
-    //   - reuse an existing tree (advised)
-    //   - reuse an existing parser (advised)
+    // Parse YAML code in place, potentially mutating the buffer:
     char yml_buf[] = "{foo: 1, bar: [2, 3], john: doe}";
     ryml::Tree tree = ryml::parse_in_place(yml_buf);
 
-    // Note: it will always be significantly faster to use mutable
-    // buffers and reuse tree+parser.
+    // The resulting tree contains only views to the parsed string. If
+    // the string was parsed in place, then the string must outlive
+    // the tree! This works in this case because `yml_buf` and `tree`
+    // live on the same scope, so have the same lifetime.
+
+    // It is also possible to:
+    //
+    //   - parse a read-only buffer using parse_in_arena(). This
+    //     copies the YAML buffer to the tree's arena, and spares the
+    //     headache of the string's lifetime.
+    //
+    //   - reuse an existing tree (advised)
+    //
+    //   - reuse an existing parser (advised)
+    //
+    // Note: it will always be significantly faster to parse in place
+    // and reuse tree+parser.
     //
     // Below you will find samples that show how to achieve reuse; but
     // please note that for brevity and clarity, many of the examples
-    // here are parsing immutable buffers, and not reusing tree or
-    // parser.
+    // here are parsing in the arena, and not reusing tree or parser.
 
 
     //------------------------------------------------------------------
@@ -199,10 +209,11 @@ void sample_quick_overview()
 
     // The node API is a lightweight abstraction sitting on top of the
     // index API, but offering a much more convenient interaction:
-    ryml::ConstNodeRef root = tree.rootref();
+    ryml::ConstNodeRef root = tree.rootref();  // a const node reference
     ryml::ConstNodeRef bar = tree["bar"];
     CHECK(root.is_map());
     CHECK(bar.is_seq());
+
     // A node ref is a lightweight handle to the tree and associated id:
     CHECK(root.tree() == &tree); // a node ref points at its tree, WITHOUT refcount
     CHECK(root.id() == root_id); // a node ref's id is the index of the node
@@ -211,10 +222,9 @@ void sample_quick_overview()
     // The node API translates very cleanly to the index API, so most
     // of the code examples below are using the node API.
 
-    // One significant point of the node API is that it holds a raw
-    // pointer to the tree. Care must be taken to ensure the lifetimes
-    // match, so that a node will never access the tree after the tree
-    // went out of scope.
+    // WARNING. A node ref holds a raw pointer to the tree. Care must
+    // be taken to ensure the lifetimes match, so that a node will
+    // never access the tree after the goes out of scope.
 
 
     //------------------------------------------------------------------
@@ -222,16 +232,16 @@ void sample_quick_overview()
 
     // ConstNodeRef::operator[] does a lookup, is O(num_children[node]).
     CHECK(tree["foo"].is_keyval());
-    CHECK(tree["foo"].key() == "foo");
-    CHECK(tree["foo"].val() == "1");
+    CHECK(tree["foo"].val() == "1");   // get the val of a node (must be leaf node, otherwise it is a container and has no val)
+    CHECK(tree["foo"].key() == "foo"); // get the key of a node (must be child of a map, otherwise it has no key)
     CHECK(tree["bar"].is_seq());
     CHECK(tree["bar"].has_key());
     CHECK(tree["bar"].key() == "bar");
-    // maps use string keys, seqs use integral keys:
+    // maps use string keys, seqs use index keys:
     CHECK(tree["bar"][0].val() == "2");
     CHECK(tree["bar"][1].val() == "3");
     CHECK(tree["john"].val() == "doe");
-    // An integral key is the position of the child within its parent,
+    // An index key is the position of the child within its parent,
     // so even maps can also use int keys, if the key position is
     // known.
     CHECK(tree[0].id() == tree["foo"].id());
@@ -239,8 +249,8 @@ void sample_quick_overview()
     CHECK(tree[2].id() == tree["john"].id());
     // Tree::operator[](int) searches a ***root*** child by its position.
     CHECK(tree[0].id() == tree["foo"].id());  // 0: first child of root
-    CHECK(tree[1].id() == tree["bar"].id());  // 1: first child of root
-    CHECK(tree[2].id() == tree["john"].id()); // 2: first child of root
+    CHECK(tree[1].id() == tree["bar"].id());  // 1: second child of root
+    CHECK(tree[2].id() == tree["john"].id()); // 2: third child of root
     // NodeRef::operator[](int) searches a ***node*** child by its position:
     CHECK(bar[0].val() == "2"); // 0 means first child of bar
     CHECK(bar[1].val() == "3"); // 1 means second child of bar
@@ -259,11 +269,12 @@ void sample_quick_overview()
     CHECK(root["bar"].id() == root[1].id());
     CHECK(root["john"].id() == root[2].id());
 
-    // IMPORTANT. The ryml tree uses indexed linked lists for storing
-    // children, so the complexity of `Tree::operator[csubstr]` and
-    // `Tree::operator[size_t]` is linear on the number of root
-    // children. If you use `Tree::operator[]` with a large tree where
-    // the root has many children, you will see a performance hit.
+    // IMPORTANT. The ryml tree uses an index-based linked list for
+    // storing children, so the complexity of
+    // `Tree::operator[csubstr]` and `Tree::operator[size_t]` is O(n),
+    // linear on the number of root children. If you use
+    // `Tree::operator[]` with a large tree where the root has many
+    // children, you will see a performance hit.
     //
     // To avoid this hit, you can create your own accelerator
     // structure. For example, before doing a lookup, do a single
@@ -282,6 +293,7 @@ void sample_quick_overview()
     // both linear in the number of direct children. But of course,
     // depending on the data, that number may be very different from
     // one to another.
+
 
     //------------------------------------------------------------------
     // Hierarchy:
@@ -342,12 +354,48 @@ void sample_quick_overview()
 
     //------------------------------------------------------------------
     // Gotchas:
-    CHECK(!tree["bar"].has_val());          // seq is a container, so no val
-    CHECK(!tree["bar"][0].has_key());       // belongs to a seq, so no key
-    CHECK(!tree["bar"][1].has_key());       // belongs to a seq, so no key
-    //CHECK(tree["bar"].val() == BOOM!);    // ... so attempting to get a val is undefined behavior
-    //CHECK(tree["bar"][0].key() == BOOM!); // ... so attempting to get a key is undefined behavior
-    //CHECK(tree["bar"][1].key() == BOOM!); // ... so attempting to get a key is undefined behavior
+
+    // ryml uses assertions to prevent you from trying to obtain
+    // things that do not exist. For example:
+
+    {
+        ryml::ConstNodeRef seq_node = tree["bar"];
+        ryml::ConstNodeRef val_node = seq_node[0];
+
+        CHECK(seq_node.is_seq());          // seq is a container
+        CHECK(!seq_node.has_val());        // ... so it has no val
+        //CHECK(seq_node.val() == BOOM!);  // ... so attempting to get a val is undefined behavior
+
+        CHECK(val_node.parent() == seq_node); // belongs to a seq
+        CHECK(!val_node.has_key());           // ... so it has no key
+        //CHECK(val_node.key() == BOOM!);     // ... so attempting to get a key is undefined behavior
+
+        CHECK(val_node.is_val());         // this node is a val
+        //CHECK(val_node.first_child() == BOOM!); // ... so attempting to get a child is undefined behavior
+
+        // assertions are also present in methods that /may/ read the val:
+        CHECK(seq_node.is_seq());              // seq is a container
+        //CHECK(seq_node.val_is_null() BOOM!); // so cannot get the val to check
+    }
+
+
+    // By default, assertions are enabled unless the NDEBUG macro is
+    // defined (which happens in release builds).
+    //
+    // This adheres to the pay-only-for-what-you-use philosophy: if
+    // you are sure that your intent is correct, why would you need to
+    // pay the runtime cost for the assertions?
+    //
+    // The downside, of course, is that when you are not sure, release
+    // builds may be doing something crazy.
+    //
+    // So you can override this behavior and enable/disable
+    // assertions, by defining the macro RYML_USE_ASSERT to a proper
+    // value (see c4/yml/common.hpp).
+    //
+    // Also, to be clear, this does not apply to parse errors
+    // happening when the YAML is parsed. Checking for these errors is
+    // always enabled and cannot be switched off.
 
 
     //------------------------------------------------------------------
@@ -370,7 +418,7 @@ void sample_quick_overview()
 
 
     //------------------------------------------------------------------
-    // Modifying existing nodes: operator<< vs operator=
+    // Modifying existing nodes: operator= vs operator<<
 
     // As implied by its name, ConstNodeRef is a reference to a const
     // node. It can be used to read from the node, but not write to it
@@ -379,20 +427,21 @@ void sample_quick_overview()
     ryml::NodeRef wroot = tree.rootref();
 
     // operator= assigns an existing string to the receiving node.
-    // This pointer will be in effect until the tree goes out of scope
-    // so BEWARE to only assign from strings outliving the tree.
+    // The contents are NOT copied, and this pointer will be in effect
+    // until the tree goes out of scope! So BEWARE to only assign from
+    // strings outliving the tree.
     wroot["foo"] = "says you";
     wroot["bar"][0] = "-2";
     wroot["bar"][1] = "-3";
     wroot["john"] = "ron";
     // Now the tree is _pointing_ at the memory of the strings above.
-    // That is OK because those are static strings and will outlive
-    // the tree.
+    // In this case it is OK because those are static strings and will
+    // outlive the tree.
     CHECK(root["foo"].val() == "says you");
     CHECK(root["bar"][0].val() == "-2");
     CHECK(root["bar"][1].val() == "-3");
     CHECK(root["john"].val() == "ron");
-    // WATCHOUT: do not assign from temporary objects:
+    // But WATCHOUT: do not assign from temporary objects:
     // {
     //     std::string crash("will dangle");
     //     root["john"] = ryml::to_csubstr(crash);
@@ -4077,6 +4126,10 @@ d: 3
 // However, it is important to note that the error callback must never
 // return to the caller! Otherwise, an infinite loop or program crash
 // may occur.
+//
+// The default error handler calls std::abort(). You can use the cmake
+// option and the macro RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS to have
+// the default error handler throw a std::runtime_error instead.
 
 
 struct ErrorHandlerExample
@@ -4137,11 +4190,13 @@ void sample_error_handler()
     // crash.
     ryml::set_callbacks(errh.callbacks());
     errh.check_effect(/*committed*/true);
-    errh.check_error_occurs([]{
+    bool had_parse_error = true;
+    errh.check_error_occurs([&had_parse_error]{
+        had_parse_error = true;
         ryml::Tree tree = ryml::parse_in_arena("errorhandler.yml", "[a: b\n}");
-        std::cout << tree;
+        had_parse_error = false; // this line is not executed
     });
-
+    CHECK(had_parse_error);
     ryml::set_callbacks(errh.defaults); // restore defaults.
     errh.check_effect(/*committed*/false);
 }

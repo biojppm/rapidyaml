@@ -246,10 +246,6 @@ ConstNodeRef Tree::rootref() const
     return ConstNodeRef(this, root_id());
 }
 
-ConstNodeRef Tree::crootref()
-{
-    return ConstNodeRef(this, root_id());
-}
 ConstNodeRef Tree::crootref() const
 {
     return ConstNodeRef(this, root_id());
@@ -257,23 +253,17 @@ ConstNodeRef Tree::crootref() const
 
 NodeRef Tree::ref(size_t id)
 {
-    _RYML_CB_ASSERT(m_callbacks, id != NONE && id >= 0 && id < m_size);
+    _RYML_CB_ASSERT(m_callbacks, id != NONE && id >= 0 && id < m_cap);
     return NodeRef(this, id);
 }
 ConstNodeRef Tree::ref(size_t id) const
 {
-    _RYML_CB_ASSERT(m_callbacks, id != NONE && id >= 0 && id < m_size);
-    return ConstNodeRef(this, id);
-}
-
-ConstNodeRef Tree::cref(size_t id)
-{
-    _RYML_CB_ASSERT(m_callbacks, id != NONE && id >= 0 && id < m_size);
+    _RYML_CB_ASSERT(m_callbacks, id != NONE && id >= 0 && id < m_cap);
     return ConstNodeRef(this, id);
 }
 ConstNodeRef Tree::cref(size_t id) const
 {
-    _RYML_CB_ASSERT(m_callbacks, id != NONE && id >= 0 && id < m_size);
+    _RYML_CB_ASSERT(m_callbacks, id != NONE && id >= 0 && id < m_cap);
     return ConstNodeRef(this, id);
 }
 
@@ -331,12 +321,12 @@ Tree::~Tree()
 }
 
 
-Tree::Tree(Tree const& that) noexcept : Tree(that.m_callbacks)
+Tree::Tree(Tree const& that) : Tree(that.m_callbacks)
 {
     _copy(that);
 }
 
-Tree& Tree::operator= (Tree const& that) noexcept
+Tree& Tree::operator= (Tree const& that)
 {
     _free();
     m_callbacks = that.m_callbacks;
@@ -344,12 +334,12 @@ Tree& Tree::operator= (Tree const& that) noexcept
     return *this;
 }
 
-Tree::Tree(Tree && that) noexcept : Tree(that.m_callbacks)
+Tree::Tree(Tree && that) : Tree(that.m_callbacks)
 {
     _move(that);
 }
 
-Tree& Tree::operator= (Tree && that) noexcept
+Tree& Tree::operator= (Tree && that)
 {
     _free();
     m_callbacks = that.m_callbacks;
@@ -1584,6 +1574,7 @@ size_t Tree::child(size_t node, size_t pos) const
 
 size_t Tree::child_pos(size_t node, size_t ch) const
 {
+    _RYML_CB_ASSERT(m_callbacks, node != NONE);
     size_t count = 0;
     for(size_t i = first_child(node); i != NONE; i = next_sibling(i))
     {
@@ -1821,7 +1812,7 @@ csubstr _transform_tag(Tree *t, csubstr tag, size_t node)
     size_t required_size = t->resolve_tag(substr{}, tag, node);
     if(!required_size)
         return tag;
-    const char *prev_arena = t->arena().str;
+    const char *prev_arena = t->arena().str; (void)prev_arena;
     substr buf = t->alloc_arena(required_size);
     _RYML_CB_ASSERT(t->m_callbacks, t->arena().str == prev_arena);
     size_t actual_size = t->resolve_tag(buf, tag, node);

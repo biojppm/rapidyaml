@@ -4527,7 +4527,7 @@ bool Parser::_filter_nl(substr r, size_t *C4_RESTRICT i, size_t *C4_RESTRICT pos
     #define _c4dbgfnl(...)
     #endif
 
-    const char curr = r[*i];
+    const char curr = r[*i];(void)curr;
     bool replaced = false;
 
     _RYML_CB_ASSERT(m_stack.m_callbacks, indentation != npos);

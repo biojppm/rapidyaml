@@ -453,11 +453,11 @@ public:
 
     ~Tree();
 
-    Tree(Tree const& that) noexcept;
-    Tree(Tree     && that) noexcept;
+    Tree(Tree const& that);
+    Tree(Tree     && that);
 
-    Tree& operator= (Tree const& that) noexcept;
-    Tree& operator= (Tree     && that) noexcept;
+    Tree& operator= (Tree const& that);
+    Tree& operator= (Tree     && that);
 
     /** @} */
 
@@ -491,7 +491,7 @@ public:
     /** @{ */
 
     //! get the index of a node belonging to this tree.
-    //! @p n can be nullptr, in which case a
+    //! @p n can be nullptr, in which case NONE is returned
     size_t id(NodeData const* n) const
     {
         if( ! n)
@@ -538,18 +538,21 @@ public:
     //! Get a NodeRef of a node by id
     ConstNodeRef ref(size_t id) const;
     //! Get a NodeRef of a node by id
-    ConstNodeRef cref(size_t id);
-    //! Get a NodeRef of a node by id
     ConstNodeRef cref(size_t id) const;
 
     //! Get the root as a NodeRef
     NodeRef      rootref();
-    //! Get the root as a NodeRef
+    //! Get the root as a ConstNodeRef
     ConstNodeRef rootref() const;
-    //! Get the root as a NodeRef
-    ConstNodeRef crootref();
-    //! Get the root as a NodeRef
+    //! Get the root as a ConstNodeRef
     ConstNodeRef crootref() const;
+
+    //! get the i-th document of the stream
+    //! @note @i is NOT the node id, but the doc position within the stream
+    NodeRef      docref(size_t i);
+    //! get the i-th document of the stream
+    //! @note @i is NOT the node id, but the doc position within the stream
+    ConstNodeRef docref(size_t i) const;
 
     //! find a root child by name, return it as a NodeRef
     //! @note requires the root to be a map.
@@ -564,13 +567,6 @@ public:
     //! find a root child by index: return the root node's @p i-th child as a NodeRef
     //! @note @i is NOT the node id, but the child's position
     ConstNodeRef operator[] (size_t i) const;
-
-    //! get the i-th document of the stream
-    //! @note @i is NOT the node id, but the doc position within the stream
-    NodeRef      docref(size_t i);
-    //! get the i-th document of the stream
-    //! @note @i is NOT the node id, but the doc position within the stream
-    ConstNodeRef docref(size_t i) const;
 
     /** @} */
 

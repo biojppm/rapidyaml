@@ -215,6 +215,20 @@ ExpectError::~ExpectError()
     set_callbacks(m_tree_prev);
 }
 
+void ExpectError::check_success(Tree *tree, std::function<void()> fn)
+{
+    auto context = ExpectError(tree, {});
+    try
+    {
+        fn();
+    }
+    catch(ExpectedError const&)
+    {
+        ;
+    }
+    EXPECT_FALSE(context.m_got_an_error);
+}
+
 void ExpectError::do_check(Tree *tree, std::function<void()> fn, Location expected_location)
 {
     auto context = ExpectError(tree, expected_location);
