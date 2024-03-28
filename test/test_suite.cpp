@@ -137,11 +137,16 @@ struct TestSequenceLevel
     TestSequenceLevel   *prev;
     csubstr             filename;
     std::string         src_tree;
+    std::string         src_tree_json;
     std::string         src_evts;
     EventHandlerTree    evt_handler_tree;
+    EventHandlerTree    evt_handler_tree_json;
     Parser              parser_tree;
+    Parser              parser_tree_json;
     Tree                tree_parsed_from_src;
+    Tree                tree_parsed_from_src_json;
     std::string         emitted_from_tree_parsed_from_src;
+    std::string         emitted_from_tree_parsed_from_src_json;
 
     EventSink           evt_str_sink;
     EventHandlerYamlStd evt_handler_str_sink;
@@ -150,12 +155,16 @@ struct TestSequenceLevel
     bool immutable = false;
     bool reuse = false;
     bool tree_was_parsed = false;
+    bool tree_was_parsed_json = false;
     bool tree_was_emitted = false;
+    bool tree_was_emitted_json = false;
     bool events_were_generated = false;
 
     TestSequenceLevel()
         : evt_handler_tree()
+        , evt_handler_tree_json()
         , parser_tree(&evt_handler_tree)
+        , parser_tree_json(&evt_handler_tree_json)
         , evt_str_sink()
         , evt_handler_str_sink(&evt_str_sink)
         , parser_str_sink(&evt_handler_str_sink)
@@ -172,7 +181,9 @@ struct TestSequenceLevel
         immutable = immutable_;
         reuse = reuse_;
         tree_was_parsed = false;
+        tree_was_parsed_json = false;
         tree_was_emitted = false;
+        tree_was_emitted_json = false;
         events_were_generated = false;
     }
 
@@ -194,7 +205,23 @@ struct TestSequenceLevel
         }
     }
 
-    void parse_src_to_tree()
+    void receive_src_json(TestSequenceLevel & prev_)
+    {
+        RYML_ASSERT(&prev_ == prev);
+        if(!prev_.tree_was_emitted_json)
+        {
+            _nfo_logf("level[{}] not emitted. emit!", prev_.level);
+            prev_.emit_parsed_tree_json();
+        }
+        if(src_tree_json != prev_.emitted_from_tree_parsed_from_src_json)
+        {
+            tree_was_parsed_json = false;
+            tree_was_emitted_json = false;
+            src_tree_json = prev_.emitted_from_tree_parsed_from_src_json;
+        }
+    }
+
+    void parse_yaml_to_tree()
     {
         if(tree_was_parsed)
             return;
@@ -228,7 +255,35 @@ struct TestSequenceLevel
         tree_was_parsed = true;
     }
 
-    void parse_src_to_events()
+    void parse_json_to_tree()
+    {
+        if(tree_was_parsed_json)
+            return;
+        if(prev)
+            receive_src_json(*prev);
+        _nfo_logf("level[{}]: parsing source:\n{}", level, src_tree);
+        if(reuse)
+        {
+            tree_parsed_from_src_json.clear();
+            evt_handler_tree_json.m_stack.m_callbacks = get_callbacks();
+            tree_parsed_from_src_json.m_callbacks = get_callbacks();
+            if(immutable)
+                parse_json_in_arena(&parser_tree_json, filename, c4::to_csubstr(src_tree_json), &tree_parsed_from_src_json);
+            else
+                parse_json_in_place(&parser_tree_json, filename, c4::to_substr(src_tree_json), &tree_parsed_from_src_json);
+        }
+        else
+        {
+            if(immutable)
+                tree_parsed_from_src_json = parse_json_in_arena(filename, c4::to_csubstr(src_tree_json));
+            else
+                tree_parsed_from_src_json = parse_json_in_place(filename, c4::to_substr(src_tree_json));
+        }
+        _nfo_print_tree("PARSED", tree_parsed_from_src_json);
+        tree_was_parsed_json = true;
+    }
+
+    void parse_yaml_to_events()
     {
         if(events_were_generated)
             return;
@@ -250,14 +305,34 @@ struct TestSequenceLevel
         if(!tree_was_parsed)
         {
             _nfo_logf("level[{}] not parsed. parse!", level);
-            parse_src_to_tree();
+            parse_yaml_to_tree();
+        }
+        if(!tree_was_parsed_json)
+        {
+            _nfo_logf("level[{}] json not parsed. parse!", level);
+            parse_json_to_tree();
         }
         emitrs_yaml(tree_parsed_from_src, &emitted_from_tree_parsed_from_src);
+        emitrs_json(tree_parsed_from_src_json, &emitted_from_tree_parsed_from_src_json);
         csubstr ss = to_csubstr(emitted_from_tree_parsed_from_src);
         if(ss.ends_with("\n...\n"))
             emitted_from_tree_parsed_from_src.resize(emitted_from_tree_parsed_from_src.size() - 4);
         tree_was_emitted = true;
         _nfo_logf("EMITTED:\n{}", emitted_from_tree_parsed_from_src);
+    }
+
+    void emit_parsed_tree_json()
+    {
+        if(tree_was_emitted_json)
+            return;
+        if(!tree_was_parsed_json)
+        {
+            _nfo_logf("level[{}] json not parsed. parse!", level);
+            parse_json_to_tree();
+        }
+        emitrs_json(tree_parsed_from_src_json, &emitted_from_tree_parsed_from_src_json);
+        tree_was_emitted_json = true;
+        _nfo_logf("EMITTED:\n{}", emitted_from_tree_parsed_from_src_json);
     }
 
     void compare_trees(TestSequenceLevel & that)
@@ -267,16 +342,35 @@ struct TestSequenceLevel
         if(!that.tree_was_parsed)
         {
             _nfo_logf("level[{}] not parsed. parse!", that.level);
-            that.parse_src_to_tree();
+            that.parse_yaml_to_tree();
         }
         if(!this->tree_was_parsed)
         {
             _nfo_logf("level[{}] not parsed. parse!", level);
-            this->parse_src_to_tree();
+            this->parse_yaml_to_tree();
         }
         _nfo_print_tree("PREV_", that.tree_parsed_from_src);
         _nfo_print_tree("CURR", tree_parsed_from_src);
         test_compare(that.tree_parsed_from_src, tree_parsed_from_src);
+    }
+
+    void compare_trees_json(TestSequenceLevel & that)
+    {
+        SCOPED_TRACE("compare trees");
+        RYML_ASSERT(&that == prev);
+        if(!that.tree_was_parsed_json)
+        {
+            _nfo_logf("level[{}] not parsed. parse!", that.level);
+            that.parse_json_to_tree();
+        }
+        if(!this->tree_was_parsed_json)
+        {
+            _nfo_logf("level[{}] not parsed. parse!", level);
+            this->parse_json_to_tree();
+        }
+        _nfo_print_tree("PREV_", that.tree_parsed_from_src_json);
+        _nfo_print_tree("CURR", tree_parsed_from_src_json);
+        test_compare(that.tree_parsed_from_src_json, tree_parsed_from_src_json);
     }
 
     void compare_emitted_yaml(TestSequenceLevel & that)
@@ -302,6 +396,31 @@ struct TestSequenceLevel
             Tree from_this = parse_in_arena(to_csubstr(emitted_from_tree_parsed_from_src));
             from_prev.resolve_tags();
             from_this.resolve_tags();
+            test_compare(from_prev, from_this);
+        }
+    }
+
+    void compare_emitted_json(TestSequenceLevel & that)
+    {
+        SCOPED_TRACE("compare emitted");
+        RYML_ASSERT(&that == prev);
+        if(!that.tree_was_emitted_json)
+        {
+            _nfo_logf("level[{}] not emitted. emit!", that.level);
+            that.emit_parsed_tree_json();
+        }
+        if(!this->tree_was_emitted_json)
+        {
+            _nfo_logf("level[{}] not emitted. emit!", level);
+            this->emit_parsed_tree_json();
+        }
+        _nfo_logf("level[{}]: EMITTED:\n{}", that.level, that.emitted_from_tree_parsed_from_src_json);
+        _nfo_logf("level[{}]: EMITTED:\n{}", level, emitted_from_tree_parsed_from_src_json);
+        if(this->emitted_from_tree_parsed_from_src_json != that.emitted_from_tree_parsed_from_src_json)
+        {
+            // workaround for lack of idempotency in tag normalization.
+            Tree from_prev = parse_json_in_arena(to_csubstr(that.emitted_from_tree_parsed_from_src_json));
+            Tree from_this = parse_json_in_arena(to_csubstr(emitted_from_tree_parsed_from_src_json));
             test_compare(from_prev, from_this);
         }
     }
@@ -351,26 +470,45 @@ struct TestSequenceData
     csubstr src() const { return c4::to_csubstr(levels[0].src_tree); }
     bool skip() const { return allowed_failure; }
 
-    void parse_src_to_tree(size_t num)
+    void parse_yaml_to_tree(size_t num)
     {
         SKIP_IF(allowed_failure);
         for(size_t i = 0; i < num; ++i)
         {
             if(!has_container_keys && !expect_error)
             {
-                levels[i].parse_src_to_tree();
+                levels[i].parse_yaml_to_tree();
             }
             else
             {
                 ExpectError::do_check([&]{
-                    levels[i].parse_src_to_tree();
+                    levels[i].parse_yaml_to_tree();
                 });
                 break; // because we expect error,we cannot go on to the next
             }
         }
     }
 
-    void parse_src_to_events(size_t num)
+    void parse_json_to_tree(size_t num)
+    {
+        SKIP_IF(allowed_failure);
+        for(size_t i = 0; i < num; ++i)
+        {
+            if(!has_container_keys && !expect_error)
+            {
+                levels[i].parse_json_to_tree();
+            }
+            else
+            {
+                ExpectError::do_check([&]{
+                    levels[i].parse_json_to_tree();
+                });
+                break; // because we expect error,we cannot go on to the next
+            }
+        }
+    }
+
+    void parse_yaml_to_events(size_t num)
     {
         SKIP_IF(allowed_failure);
         //SKIP_IF(has_container_keys); // DO IT!
@@ -378,14 +516,14 @@ struct TestSequenceData
         {
             if(!expect_error)
             {
-                levels[i].parse_src_to_events();
+                levels[i].parse_yaml_to_events();
                 if(has_container_keys)
                     break;
             }
             else
             {
                 ExpectError::do_check([&]{
-                    levels[i].parse_src_to_events();
+                    levels[i].parse_yaml_to_events();
                 });
                 break; // because we expect error,we cannot go on to the next
             }
@@ -399,10 +537,24 @@ struct TestSequenceData
         for(size_t i = 0; i < num; ++i)
         {
             if(!levels[i].tree_was_parsed)
-                levels[i].parse_src_to_tree();
+                levels[i].parse_yaml_to_tree();
             levels[i].emit_parsed_tree();
             if(i + 1 < num)
                 levels[i+1].receive_src(levels[i]);
+        }
+    }
+
+    void emit_tree_parsed_from_src_json(size_t num)
+    {
+        SKIP_IF(allowed_failure);
+        SKIP_IF(has_container_keys);
+        for(size_t i = 0; i < num; ++i)
+        {
+            if(!levels[i].tree_was_parsed)
+                levels[i].parse_json_to_tree();
+            levels[i].emit_parsed_tree_json();
+            if(i + 1 < num)
+                levels[i+1].receive_src_json(levels[i]);
         }
     }
 
@@ -413,12 +565,26 @@ struct TestSequenceData
         for(size_t i = 1; i < num; ++i)
             levels[i].compare_trees(levels[i-1]);
     }
+    void compare_level_trees_json(size_t num)
+    {
+        SKIP_IF(allowed_failure);
+        SKIP_IF(has_container_keys);
+        for(size_t i = 1; i < num; ++i)
+            levels[i].compare_trees_json(levels[i-1]);
+    }
     void compare_subject_trees(size_t num, TestSequenceData & other)
     {
         SKIP_IF(allowed_failure);
         SKIP_IF(has_container_keys);
         for(size_t i = 0; i < num; ++i)
             levels[i].compare_trees(other.levels[i]);
+    }
+    void compare_subject_trees_json(size_t num, TestSequenceData & other)
+    {
+        SKIP_IF(allowed_failure);
+        SKIP_IF(has_container_keys);
+        for(size_t i = 0; i < num; ++i)
+            levels[i].compare_trees_json(other.levels[i]);
     }
 
     void compare_level_emitted(size_t num)
@@ -428,6 +594,13 @@ struct TestSequenceData
         for(size_t i = 1; i < num; ++i)
             levels[i].compare_emitted_yaml(levels[i-1]);
     }
+    void compare_level_emitted_json(size_t num)
+    {
+        SKIP_IF(allowed_failure);
+        SKIP_IF(has_container_keys);
+        for(size_t i = 1; i < num; ++i)
+            levels[i].compare_emitted_json(levels[i-1]);
+    }
     void compare_subject_emitted(size_t num, TestSequenceData & other)
     {
         SKIP_IF(allowed_failure);
@@ -435,13 +608,20 @@ struct TestSequenceData
         for(size_t i = 0; i < num; ++i)
             levels[i].compare_emitted_yaml(other.levels[i]);
     }
+    void compare_subject_emitted_json(size_t num, TestSequenceData & other)
+    {
+        SKIP_IF(allowed_failure);
+        SKIP_IF(has_container_keys);
+        for(size_t i = 0; i < num; ++i)
+            levels[i].compare_emitted_json(other.levels[i]);
+    }
 
     void compare_actual_tree_to_events_tree(TestSuiteCaseEvents *events)
     {
         SKIP_IF(allowed_failure || filename.ends_with(".json"));
         SKIP_IF(has_container_keys);
         events->parse_events(src());
-        parse_src_to_tree(1);
+        parse_yaml_to_tree(1);
         events->compare_actual_tree_to_events_src_tree(src(), levels[0].tree_parsed_from_src);
     }
 
@@ -450,7 +630,7 @@ struct TestSequenceData
         SKIP_IF(allowed_failure || filename.ends_with(".json"));
         SKIP_IF(has_container_keys);
         events->parse_events(src());
-        parse_src_to_tree(1);
+        parse_yaml_to_tree(1);
         events->compare_event_tree_to_src_tree(src(), levels[0].tree_parsed_from_src);
     }
     void compare_emitted_events_str(size_t num, TestSuiteCaseEvents *events)
@@ -458,10 +638,10 @@ struct TestSequenceData
         SKIP_IF(allowed_failure);
         SKIP_IF(has_container_keys);
         events->parse_events(src());
-        parse_src_to_tree(num);
+        parse_yaml_to_tree(num);
         for(size_t i = 0; i < num; ++i)
         {
-            levels[i].parse_src_to_events();
+            levels[i].parse_yaml_to_events();
             events->compare_emitted_events_to_reference_events(levels[i].evt_str_sink.result,
                                                                /*ignore_container_style*/false,
                                                                /*ignore_scalar_style*/(num>0));
@@ -477,7 +657,7 @@ struct TestSequenceData
         if(m_expected_error_to_tree_checked)
             return;
         ExpectError::do_check(&levels[0].tree_parsed_from_src, [this]{
-            levels[0].parse_src_to_tree();
+            levels[0].parse_yaml_to_tree();
         });
         m_expected_error_to_tree_checked = true;
     }
@@ -488,7 +668,7 @@ struct TestSequenceData
         if(m_expected_error_to_events_checked)
             return;
         ExpectError::do_check([this]{
-            levels[0].parse_src_to_events();
+            levels[0].parse_yaml_to_events();
         });
         m_expected_error_to_events_checked = true;
     }
@@ -518,6 +698,7 @@ struct SuiteCase
     std::string events_file_contents;
 
     bool    test_case_expects_error;
+    bool    test_case_is_json;
 
     TestSuiteCaseEvents  events;
 
@@ -555,6 +736,7 @@ struct SuiteCase
 
         std::string errfile = catrs<std::string>(to_csubstr(case_dir_), "/error");
         test_case_expects_error = fs::file_exists(errfile.c_str());
+        test_case_is_json = (npos != to_csubstr(input_file).find("in-json"));
 
         fs::file_get_contents(filename.c_str(), &file_contents);
         _init_seq_data(case_title, to_csubstr(filename), to_csubstr(file_contents), test_case_expects_error);
@@ -648,18 +830,25 @@ struct which : public ::testing::TestWithParam<size_t>                  \
 {                                                                       \
 };                                                                      \
                                                                         \
-TEST_P(which, 0_parse_src_to_tree)                                      \
-{                                                                       \
-    SKIP_IF(g_suite_case->test_case_expects_error);                     \
-    RYML_CHECK(GetParam() < NLEVELS);                                   \
-    g_suite_case->which.parse_src_to_tree(1 + GetParam());              \
-}                                                                       \
-                                                                        \
-TEST_P(which, 0_parse_src_to_events)                                    \
+TEST_P(which, 0_parse_yaml_to_events)                                   \
 {                                                                       \
     /*ALWAYS COMPARE.~SKIP_IF(g_suite_case->test_case_expects_error);*/ \
     RYML_CHECK(GetParam() < NLEVELS);                                   \
-    g_suite_case->which.parse_src_to_events(1 + GetParam());            \
+    g_suite_case->which.parse_yaml_to_events(1 + GetParam());           \
+}                                                                       \
+                                                                        \
+TEST_P(which, 0_parse_yaml_to_tree)                                     \
+{                                                                       \
+    SKIP_IF(g_suite_case->test_case_expects_error);                     \
+    RYML_CHECK(GetParam() < NLEVELS);                                   \
+    g_suite_case->which.parse_yaml_to_tree(1 + GetParam());             \
+}                                                                       \
+TEST_P(which, 0_parse_json_to_tree)                                     \
+{                                                                       \
+    SKIP_IF(g_suite_case->test_case_expects_error);                     \
+    SKIP_IF( ! g_suite_case->test_case_is_json);                        \
+    RYML_CHECK(GetParam() < NLEVELS);                                   \
+    g_suite_case->which.parse_json_to_tree(1 + GetParam());             \
 }                                                                       \
                                                                         \
 TEST_P(which, 1_compare_emitted_events_to_ref_events)                   \
@@ -675,6 +864,13 @@ TEST_P(which, 2_emit_tree_parsed_from_src)                              \
     RYML_CHECK(GetParam() < NLEVELS);                                   \
     g_suite_case->which.emit_tree_parsed_from_src(1 + GetParam());      \
 }                                                                       \
+TEST_P(which, 2_emit_tree_parsed_from_src_json)                         \
+{                                                                       \
+    SKIP_IF( ! g_suite_case->test_case_is_json);                        \
+    SKIP_IF(g_suite_case->test_case_expects_error);                     \
+    RYML_CHECK(GetParam() < NLEVELS);                                   \
+    g_suite_case->which.emit_tree_parsed_from_src_json(1 + GetParam()); \
+}                                                                       \
                                                                         \
 TEST_P(which, 3_compare_level_trees)                                    \
 {                                                                       \
@@ -682,12 +878,26 @@ TEST_P(which, 3_compare_level_trees)                                    \
     RYML_CHECK(GetParam() < NLEVELS);                                   \
     g_suite_case->which.compare_level_trees(1 + GetParam());            \
 }                                                                       \
+TEST_P(which, 3_compare_level_trees_json)                               \
+{                                                                       \
+    SKIP_IF( ! g_suite_case->test_case_is_json);                        \
+    SKIP_IF(g_suite_case->test_case_expects_error);                     \
+    RYML_CHECK(GetParam() < NLEVELS);                                   \
+    g_suite_case->which.compare_level_trees_json(1 + GetParam());       \
+}                                                                       \
                                                                         \
 TEST_P(which, 4_compare_emitted_yaml)                                   \
 {                                                                       \
     SKIP_IF(g_suite_case->test_case_expects_error);                     \
     RYML_CHECK(GetParam() < NLEVELS);                                   \
     g_suite_case->which.compare_level_emitted(1 + GetParam());          \
+}                                                                       \
+TEST_P(which, 4_compare_emitted_yaml_json)                              \
+{                                                                       \
+    SKIP_IF( ! g_suite_case->test_case_is_json);                        \
+    SKIP_IF(g_suite_case->test_case_expects_error);                     \
+    RYML_CHECK(GetParam() < NLEVELS);                                   \
+    g_suite_case->which.compare_level_emitted_json(1 + GetParam());     \
 }                                                                       \
                                                                         \
                                                                         \

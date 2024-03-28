@@ -97,7 +97,7 @@ struct YmlTestCase : public ::testing::TestWithParam<csubstr>
     void _ensure_parse(CaseDataLineEndings *cd)
     {
         if(cd->parsed_tree.empty())
-            parse_in_place(c->fileline, cd->src, &cd->parsed_tree);
+            parse_json_in_place(c->fileline, cd->src, &cd->parsed_tree);
     }
     void _ensure_emit(CaseDataLineEndings *cd)
     {
