@@ -448,91 +448,134 @@ TEST(simple_map, no_seq_key_block)
 }
 
 #ifdef RYML_WITH_TAB_TOKENS
-TEST(simple_map, block_tab_tokens)
+
+TEST(simple_map, block_tab_tokens__0_spaces_only)
 {
     Tree tree = parse_in_arena(R"(
---- # block, spaces only
 a: 0
 b: 1
 c: 2
---- # block, tabs after token
+)");
+    EXPECT_EQ(tree["a"].val(), csubstr("0"));
+    EXPECT_EQ(tree["b"].val(), csubstr("1"));
+    EXPECT_EQ(tree["c"].val(), csubstr("2"));
+}
+
+TEST(simple_map, block_tab_tokens__1_tabs_after_token)
+{
+    Tree tree = parse_in_arena(R"(
 a:	0
 b:	1
 c:	2
---- # block, tabs before and after token
+)");
+    EXPECT_EQ(tree["a"].val(), csubstr("0"));
+    EXPECT_EQ(tree["b"].val(), csubstr("1"));
+    EXPECT_EQ(tree["c"].val(), csubstr("2"));
+}
+
+TEST(simple_map, block_tab_tokens__2_tabs_before_and_after_token)
+{
+    Tree tree = parse_in_arena(R"(
 a	:	0
 b	:	1
 c	:	2
---- # block, tabs before token
+)");
+    EXPECT_EQ(tree["a"].val(), csubstr("0"));
+    EXPECT_EQ(tree["b"].val(), csubstr("1"));
+    EXPECT_EQ(tree["c"].val(), csubstr("2"));
+}
+
+TEST(simple_map, block_tab_tokens__3_tabs_before_token)
+{
+    Tree tree = parse_in_arena(R"(
 a	: 0
 b	: 1
 c	: 2
---- # block, tabs before newline
-a	: 0	
-b	: 1	
-c	: 2	
 )");
-    EXPECT_EQ(tree.docref(0)["a"].val(), csubstr("0"));
-    EXPECT_EQ(tree.docref(0)["b"].val(), csubstr("1"));
-    EXPECT_EQ(tree.docref(0)["c"].val(), csubstr("2"));
-    EXPECT_EQ(tree.docref(1)["a"].val(), csubstr("0"));
-    EXPECT_EQ(tree.docref(1)["b"].val(), csubstr("1"));
-    EXPECT_EQ(tree.docref(1)["c"].val(), csubstr("2"));
-    EXPECT_EQ(tree.docref(2)["a"].val(), csubstr("0"));
-    EXPECT_EQ(tree.docref(2)["b"].val(), csubstr("1"));
-    EXPECT_EQ(tree.docref(2)["c"].val(), csubstr("2"));
-    EXPECT_EQ(tree.docref(3)["a"].val(), csubstr("0"));
-    EXPECT_EQ(tree.docref(3)["b"].val(), csubstr("1"));
-    EXPECT_EQ(tree.docref(3)["c"].val(), csubstr("2"));
-    EXPECT_EQ(tree.docref(4)["a"].val(), csubstr("0"));
-    EXPECT_EQ(tree.docref(4)["b"].val(), csubstr("1"));
-    EXPECT_EQ(tree.docref(4)["c"].val(), csubstr("2"));
+    EXPECT_EQ(tree["a"].val(), csubstr("0"));
+    EXPECT_EQ(tree["b"].val(), csubstr("1"));
+    EXPECT_EQ(tree["c"].val(), csubstr("2"));
 }
 
-TEST(simple_map, flow_tab_tokens)
+TEST(simple_map, block_tab_tokens__4_tabs_before_newline)
 {
     Tree tree = parse_in_arena(R"(
---- # flow, no tabs
-{a: 0, b: 1, c: 2}
---- # flow, tabs after token
-{a:	0, b:	1, c:	2}
---- # flow, tabs before and after token
-{a	:	0, b	:	1, c	:	2}
---- # flow, tabs before token
-{a	: 0, b	: 1, c	: 2}
---- # flow, tabs after val
-{a	: 0	, b	: 1	, c	: 2	}
---- # flow, tabs after val and comma
-{a	:	0	, b	:	1	,	c	:	2	}
---- # flow, tabs everywhere
+a	:	0	
+b	:	1	
+c	:	2	
+)");
+    EXPECT_EQ(tree["a"].val(), csubstr("0"));
+    EXPECT_EQ(tree["b"].val(), csubstr("1"));
+    EXPECT_EQ(tree["c"].val(), csubstr("2"));
+}
+
+TEST(simple_map, block_tab_tokens__5_tabs_everywhere)
+{
+    Tree tree = parse_in_arena(R"(
+a	a	:	0	0	
+b	b	:	1	1	
+c	c	:	2	2	
+)");
+    EXPECT_EQ(tree["a\ta"].val(), csubstr("0\t0"));
+    EXPECT_EQ(tree["b\tb"].val(), csubstr("1\t1"));
+    EXPECT_EQ(tree["c\tc"].val(), csubstr("2\t2"));
+}
+
+
+TEST(simple_map, flow_tab_tokens__0_no_tabs)
+{
+    Tree tree = parse_in_arena(R"({a: 0, b: 1, c: 2})");
+    EXPECT_EQ(tree["a"].val(), csubstr("0"));
+    EXPECT_EQ(tree["b"].val(), csubstr("1"));
+    EXPECT_EQ(tree["c"].val(), csubstr("2"));
+}
+
+TEST(simple_map, flow_tab_tokens__1_tabs_after_token)
+{
+    Tree tree = parse_in_arena(R"({a:	0,	b:	1,	c:	2})");
+    EXPECT_EQ(tree["a"].val(), csubstr("0"));
+    EXPECT_EQ(tree["b"].val(), csubstr("1"));
+    EXPECT_EQ(tree["c"].val(), csubstr("2"));
+}
+
+TEST(simple_map, flow_tab_tokens__2_tabs_before_after_token)
+{
+    Tree tree = parse_in_arena(R"({a	:	0,	b	:	1,	c	:	2})");
+    EXPECT_EQ(tree["a"].val(), csubstr("0"));
+    EXPECT_EQ(tree["b"].val(), csubstr("1"));
+    EXPECT_EQ(tree["c"].val(), csubstr("2"));
+}
+
+TEST(simple_map, flow_tab_tokens__3_tabs_after_val)
+{
+    Tree tree = parse_in_arena(R"({a	: 0	,	b	:	1	,	c	:	2	})");
+    EXPECT_EQ(tree["a"].val(), csubstr("0"));
+    EXPECT_EQ(tree["b"].val(), csubstr("1"));
+    EXPECT_EQ(tree["c"].val(), csubstr("2"));
+}
+
+TEST(simple_map, flow_tab_tokens__4_everywhere)
+{
+    Tree tree = parse_in_arena(R"(	{a	a	: 0	0	,	b	b	:	1	1	,	c	c	:	2	2	}	)");
+    EXPECT_EQ(tree["a\ta"].val(), csubstr("0\t0"));
+    EXPECT_EQ(tree["b\tb"].val(), csubstr("1\t1"));
+    EXPECT_EQ(tree["c\tc"].val(), csubstr("2\t2"));
+}
+
+TEST(simple_map, flow_tab_tokens__5_everywhere)
+{
+    Tree tree = parse_in_arena(R"(	
 	{	
-	a	:	0	,	
-	b	:	1	,	
-	c	:	2	
+	a	a	:	0	0	,	
+	b	b	:	1	1	,	
+	c	c	:	2	2	
 	}	
 	)");
-    EXPECT_EQ(tree.docref(0)["a"].val(), csubstr("0"));
-    EXPECT_EQ(tree.docref(0)["b"].val(), csubstr("1"));
-    EXPECT_EQ(tree.docref(0)["c"].val(), csubstr("2"));
-    EXPECT_EQ(tree.docref(1)["a"].val(), csubstr("0"));
-    EXPECT_EQ(tree.docref(1)["b"].val(), csubstr("1"));
-    EXPECT_EQ(tree.docref(1)["c"].val(), csubstr("2"));
-    EXPECT_EQ(tree.docref(2)["a"].val(), csubstr("0"));
-    EXPECT_EQ(tree.docref(2)["b"].val(), csubstr("1"));
-    EXPECT_EQ(tree.docref(2)["c"].val(), csubstr("2"));
-    EXPECT_EQ(tree.docref(3)["a"].val(), csubstr("0"));
-    EXPECT_EQ(tree.docref(3)["b"].val(), csubstr("1"));
-    EXPECT_EQ(tree.docref(3)["c"].val(), csubstr("2"));
-    EXPECT_EQ(tree.docref(4)["a"].val(), csubstr("0"));
-    EXPECT_EQ(tree.docref(4)["b"].val(), csubstr("1"));
-    EXPECT_EQ(tree.docref(4)["c"].val(), csubstr("2"));
-    EXPECT_EQ(tree.docref(5)["a"].val(), csubstr("0"));
-    EXPECT_EQ(tree.docref(5)["b"].val(), csubstr("1"));
-    EXPECT_EQ(tree.docref(5)["c"].val(), csubstr("2"));
-    EXPECT_EQ(tree.docref(6)["a"].val(), csubstr("0"));
-    EXPECT_EQ(tree.docref(6)["b"].val(), csubstr("1"));
-    EXPECT_EQ(tree.docref(6)["c"].val(), csubstr("2"));
+    EXPECT_EQ(tree["a\ta"].val(), csubstr("0\t0"));
+    EXPECT_EQ(tree["b\tb"].val(), csubstr("1\t1"));
+    EXPECT_EQ(tree["c\tc"].val(), csubstr("2\t2"));
 }
+
 #endif // RYML_WITH_TAB_TOKENS
 
 TEST(simple_map, tokens_after_flow_0_0)

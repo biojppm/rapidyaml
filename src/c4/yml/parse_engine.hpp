@@ -491,6 +491,7 @@ private:
     void _handle_directive(csubstr directive);
 
     void _skipchars(char c);
+    void _maybe_skip_whitespace_tokens();
     void _maybe_skipchars(char c);
     void _maybe_skipchars_up_to(char c, size_t max_to_skip);
     template<size_t N>

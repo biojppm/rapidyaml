@@ -56,11 +56,11 @@ inline char _scalar_code_val(NodeType t)
 }
 inline char _scalar_code_key(Tree const& p, size_t node)
 {
-    return _scalar_code(p._p(node)->m_type & _WIP_KEY_STYLE);
+    return _scalar_code_key(p._p(node)->m_type);
 }
 inline char _scalar_code_val(Tree const& p, size_t node)
 {
-    return _scalar_code(p._p(node)->m_type & _WIP_VAL_STYLE);
+    return _scalar_code_key(p._p(node)->m_type);
 }
 inline size_t print_node(Tree const& p, size_t node, int level, size_t count, bool print_children)
 {

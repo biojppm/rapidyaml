@@ -84,18 +84,15 @@ constexpr const AllowedFailure allowed_failures[] = {
     _("6BCT-in_yaml"            , "tabs tokens"),
     _("A2M4-in_yaml"            , "tabs tokens"),
     _("DC7X-in_yaml"            , "tabs tokens"),
-    _("DC7X-in_yaml-events"     , "tabs tokens"),
     _("DK95_00-in_yaml"         , "tabs tokens"),
     _("DK95_04-in_yaml"         , "tabs tokens"),
-    _("DK95_04-in_yaml-events"  , "tabs tokens"),
     _("J3BT-in_yaml"            , "tabs tokens"),
-    _("J3BT-in_yaml-events"     , "tabs tokens"),
     _("K54U-in_yaml"            , "tabs tokens"),
     _("Y79Y_010-in_yaml"        , "tabs tokens"),
     #endif
-    // container keys are not supported by the ryml tree, but ARE
-    // supported by the parse engine. So they are dealt with
-    // separately using the event parser. See below.
+    // container keys are deliberately not supported by the ryml tree.
+    // But they ARE supported by the parse engine. So they are dealt
+    // with separately using the event parser. See below.
 
     //-------------------------------------------------------------------------
     // SECTION 3. Problems with the test suite spec. (or our
@@ -152,7 +149,7 @@ constexpr const AllowedFailure allowed_failures[] = {
 constexpr const AllowedFailure container_key_cases[] = {
 
     // these cases have container keys, and cannot be parsed into the
-    // ryml tree. However, they CAN be parsed by ryml parse engine.
+    // ryml tree. However, they CAN be parsed by the ryml parse engine.
     // Therefore the tests are enabled if they only use the YAML event
     // emitter based on the parse engine.
 

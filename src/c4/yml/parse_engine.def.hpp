@@ -409,14 +409,26 @@ C4_ALWAYS_INLINE void ParseEngine<EventHandler>::_skipchars(char c)
     _line_progressed(pos);
 }
 template<class EventHandler>
+C4_ALWAYS_INLINE void ParseEngine<EventHandler>::_maybe_skip_whitespace_tokens()
+{
+    csubstr rem = m_state->line_contents.rem;
+    if(rem.len && (rem.str[0] == ' ' _RYML_WITH_TAB_TOKENS(|| rem.str[0] == '\t')))
+    {
+        size_t pos = rem.first_not_of(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \t", ' '));
+        if(pos == npos)
+            pos = rem.len; // maybe the line is just all whitespace
+        _c4dbgpf("skip {} whitespace characters", pos);
+        _line_progressed(pos);
+    }
+}template<class EventHandler>
 C4_ALWAYS_INLINE void ParseEngine<EventHandler>::_maybe_skipchars(char c)
 {
     csubstr rem = m_state->line_contents.rem;
     if(rem.len && rem.str[0] == c)
     {
-        size_t pos = m_state->line_contents.rem.first_not_of(c);
+        size_t pos = rem.first_not_of(c);
         if(pos == npos)
-            pos = m_state->line_contents.rem.len; // maybe the line is just all c
+            pos = rem.len; // maybe the line is just all c
         _c4dbgpf("skip {}x'{}'", pos, c);
         _line_progressed(pos);
     }
@@ -427,9 +439,9 @@ C4_ALWAYS_INLINE void ParseEngine<EventHandler>::_maybe_skipchars_up_to(char c, 
     csubstr rem = m_state->line_contents.rem;
     if(rem.len && rem.str[0] == c)
     {
-        size_t pos = m_state->line_contents.rem.first_not_of(c);
+        size_t pos = rem.first_not_of(c);
         if(pos == npos)
-            pos = m_state->line_contents.rem.len; // maybe the line is just all c
+            pos = rem.len; // maybe the line is just all c
         if(pos > max_to_skip)
             pos = max_to_skip;
         _c4dbgpf("skip {}x'{}'", pos, c);
@@ -502,7 +514,7 @@ csubstr ParseEngine<EventHandler>::_scan2_tag()
         t = rem.left_of(rem.first_of(' '));
     }
     _line_progressed(t.len);
-    _maybe_skipchars(' ');
+    _maybe_skip_whitespace_tokens();
     return t;
 }
 
@@ -642,7 +654,7 @@ bool ParseEngine<EventHandler>::_scan2_scalar_plain_seq_flow(ScannedScalar *C4_R
                 break;
             case '#':
                 _c4dbgp("found suspicious '#'");
-                if(!i || (s.str[i-1] == ' ' _RYML_WITH_TAB_TOKENS(|| s.str[i-1] != '\t')))
+                if(!i || (s.str[i-1] == ' ' _RYML_WITH_TAB_TOKENS(|| s.str[i-1] == '\t')))
                 {
                     _c4dbgpf("found terminating character at {}: '{}'", i, c);
                     _line_progressed(i);
@@ -709,7 +721,7 @@ bool ParseEngine<EventHandler>::_scan2_scalar_plain_seq_flow(ScannedScalar *C4_R
 
 ended_scalar:
 
-    sc->scalar = m_buf.range(start_offset, m_state->pos.offset).trimr(' ');
+    sc->scalar = m_buf.range(start_offset, m_state->pos.offset).trimr(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \t", ' '));
     sc->needs_filter = needs_filter;
 
     _c4prscalar("scanned plain scalar", sc->scalar, /*keep_newlines*/true);
@@ -752,7 +764,7 @@ bool ParseEngine<EventHandler>::_scan2_scalar_plain_map_flow(ScannedScalar *C4_R
                 _c4dbgpf("found terminating character: '{}'", c);
                 goto ended_scalar;
             case ':':
-                if(s.len == i+1 || s.str[i+1] == ' ' || s.str[i+1] == ',' || s.str[i+1] == '}' _RYML_WITHOUT_TAB_TOKENS(|| s.str[i+1] == '\t'))
+                if(s.len == i+1 || s.str[i+1] == ' ' || s.str[i+1] == ',' || s.str[i+1] == '}' _RYML_WITH_TAB_TOKENS(|| s.str[i+1] == '\t'))
                 {
                     _line_progressed(i);
                     _c4dbgpf("found terminating character: '{}'", c);
@@ -772,7 +784,7 @@ bool ParseEngine<EventHandler>::_scan2_scalar_plain_map_flow(ScannedScalar *C4_R
                     _c4err("invalid character: '{}'", c); // noreturn
                 break;
             case '#':
-                if(!i || s.str[i-1] == ' ' _RYML_WITHOUT_TAB_TOKENS(|| s.str[i-1] == '\t'))
+                if(!i || s.str[i-1] == ' ' _RYML_WITH_TAB_TOKENS(|| s.str[i-1] == '\t'))
                 {
                     _line_progressed(i);
                     _c4dbgpf("found terminating character: '{}'", c);
@@ -802,7 +814,7 @@ bool ParseEngine<EventHandler>::_scan2_scalar_plain_map_flow(ScannedScalar *C4_R
 
 ended_scalar:
 
-    sc->scalar = m_buf.range(start_offset, m_state->pos.offset).trimr(" \n\r");
+    sc->scalar = m_buf.range(start_offset, m_state->pos.offset).trimr(_RYML_WITH_OR_WITHOUT_TAB_TOKENS(" \n\t\r", " \n\r"));
     sc->needs_filter = needs_filter;
 
     _c4dbgpf("scalar was [{}]~~~{}~~~", sc->scalar.len, sc->scalar);
@@ -1044,6 +1056,7 @@ bool ParseEngine<EventHandler>::_scan2_scalar_plain_blck(ScannedScalar *C4_RESTR
     case '&':
     case '*':
     case '!':
+    _RYML_WITH_TAB_TOKENS(case '\t':)
         return false;
     case '.':
         if(_is_doc_end(s))
@@ -1054,10 +1067,10 @@ bool ParseEngine<EventHandler>::_scan2_scalar_plain_blck(ScannedScalar *C4_RESTR
         break;
     }
 
+    _c4dbgpf("plain scalar! indentation={}", indentation);
+
     const size_t start_offset = m_state->pos.offset;
     const size_t start_line = m_state->pos.line;
-
-    _c4dbgpf("plain scalar! indentation={}", indentation);
 
     bool needs_filter = false;
     while(true)
@@ -1827,9 +1840,14 @@ void ParseEngine<EventHandler>::_scan2_block(ScannedBlock *C4_RESTRICT sb, size_
         }
         else
         {
-            _c4dbgpf("blck: indentation ref not set. firstnonws={}", lc.stripped.first_not_of(' '));
-            if(lc.stripped.first_not_of(' ') != npos) // non-empty line
+            const size_t fns = lc.stripped.first_not_of(' ');
+            _c4dbgpf("blck: indentation ref not set. firstnonws={}", fns);
+            if(fns != npos) // non-empty line
             {
+                _RYML_WITH_TAB_TOKENS(
+                    if(C4_UNLIKELY(lc.stripped.begins_with('\t')))
+                        _c4err("parse error");
+                )
                 _c4dbgpf("blck: line not empty. indref={} indprov={} indentation={}", indref, provisional_indentation, lc.indentation);
                 if(provisional_indentation == npos)
                 {
@@ -4647,7 +4665,7 @@ seqflow_start:
             _set_indentation(m_evt_handler->m_parent->indref);
             addrem_flags(RSEQIMAP|QMRK, RSEQ|RNXT);
             _line_progressed(1);
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
             goto seqflow_finish;
 
         }
@@ -4770,7 +4788,7 @@ mapflow_start:
             _c4dbgp("mapflow[RKEY]: explicit key");
             _line_progressed(1);
             addrem_flags(QMRK, RKEY);
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
         }
         else if(first == ':')
         {
@@ -4778,7 +4796,7 @@ mapflow_start:
             m_evt_handler->set_key_scalar_plain({});
             addrem_flags(RVAL, RKEY|QMRK);
             _line_progressed(1);
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
         }
         else if(first == '}') // this happens on a trailing comma like ", }"
         {
@@ -5029,7 +5047,7 @@ mapflow_start:
             m_evt_handler->set_key_scalar_plain({});
             addrem_flags(RVAL, QMRK);
             _line_progressed(1);
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
         }
         else if(first == '}') // this happens on a trailing comma like ", }"
         {
@@ -5206,7 +5224,7 @@ seqblck_start:
                 csubstr maybe_filtered = _maybe_filter_key_scalar_squot(sc); // KEY!
                 m_evt_handler->set_key_scalar_squoted(maybe_filtered);
                 addrem_flags(RMAP|RVAL, RSEQ|RNXT);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 goto seqblck_finish;
             }
         }
@@ -5232,7 +5250,7 @@ seqblck_start:
                 csubstr maybe_filtered = _maybe_filter_key_scalar_dquot(sc); // KEY!
                 m_evt_handler->set_key_scalar_dquoted(maybe_filtered);
                 addrem_flags(RMAP|RVAL, RSEQ|RNXT);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 goto seqblck_finish;
             }
         }
@@ -5282,7 +5300,7 @@ seqblck_start:
                     csubstr maybe_filtered = _maybe_filter_key_scalar_plain(sc, m_state->indref);  // KEY!
                     m_evt_handler->set_key_scalar_plain(maybe_filtered);
                     addrem_flags(RMAP|RVAL, RSEQ|RNXT);
-                    _maybe_skipchars(' ');
+                    _maybe_skip_whitespace_tokens();
                     goto seqblck_finish;
                 }
                 else if(m_evt_handler->m_parent && m_evt_handler->m_parent->indref == startindent && has_any(RMAP|BLCK, m_evt_handler->m_parent))
@@ -5294,7 +5312,7 @@ seqblck_start:
                     csubstr maybe_filtered = _maybe_filter_key_scalar_plain(sc, m_state->indref);  // KEY!
                     m_evt_handler->set_key_scalar_plain(maybe_filtered);
                     addrem_flags(RVAL, RNXT|RKEY);
-                    _maybe_skipchars(' ');
+                    _maybe_skip_whitespace_tokens();
                     goto seqblck_finish;
                 }
                 else
@@ -5346,7 +5364,7 @@ seqblck_start:
                 // keep going on inside this function
             }
             _line_progressed(1);
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
         }
         else if(first == ':')
         {
@@ -5358,7 +5376,7 @@ seqblck_start:
             m_evt_handler->set_key_scalar_plain({});
             addrem_flags(RMAP|RVAL, RSEQ|RNXT);
             _line_progressed(1);
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
             goto seqblck_finish;
         }
         else if(first == '&')
@@ -5390,7 +5408,7 @@ seqblck_start:
                 m_evt_handler->set_key_ref(ref);
                 addrem_flags(RMAP|RVAL, RSEQ|RNXT);
                 _set_indentation(startindent);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 goto seqblck_finish;
             }
         }
@@ -5412,7 +5430,7 @@ seqblck_start:
             addrem_flags(RMAP|QMRK, RSEQ|RNXT);
             _save_indentation();
             _line_progressed(1);
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
             goto seqblck_finish;
         }
         else
@@ -5432,7 +5450,7 @@ seqblck_start:
         {
             _c4dbgpf("seqblck[RNXT]: skip {} from indref", m_state->indref);
             _line_progressed(m_state->indref);
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
             rem = m_state->line_contents.rem;
             if(!rem.len)
                 goto seqblck_again;
@@ -5477,7 +5495,7 @@ seqblck_start:
                 addrem_flags(RVAL, RNXT);
                 m_evt_handler->add_sibling();
                 _line_progressed(1);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
             }
             else
             {
@@ -5485,7 +5503,7 @@ seqblck_start:
                 _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, _is_doc_begin_token(rem));
                 _start_doc_suddenly();
                 _line_progressed(3);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 goto seqblck_finish;
             }
         }
@@ -5516,7 +5534,7 @@ seqblck_start:
                 _c4dbgp("seqblck[RNXT]: end+start doc");
                 _start_doc_suddenly();
                 _line_progressed(3);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 goto seqblck_finish;
             }
             else
@@ -5533,7 +5551,7 @@ seqblck_start:
                 _c4dbgp("seqblck[RNXT]: end+start doc");
                 _end_doc_suddenly();
                 _line_progressed(3);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 goto seqblck_finish;
             }
             else
@@ -5673,7 +5691,7 @@ mapblck_start:
             addrem_flags(RVAL, RKEY);
             if(!_maybe_scan_following_colon())
                 _c4err("could not find ':' colon after key");
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
         }
         else if(first == '"')
         {
@@ -5685,7 +5703,7 @@ mapblck_start:
             addrem_flags(RVAL, RKEY);
             if(!_maybe_scan_following_colon())
                 _c4err("could not find ':' colon after key");
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
         }
         // block scalars (| and >) can not be used as keys unless they
         // appear in an explicit QMRK scope (ie, after the ? token),
@@ -5699,14 +5717,14 @@ mapblck_start:
             addrem_flags(RVAL, RKEY);
             if(!_maybe_scan_following_colon())
                 _c4err("could not find ':' colon after key");
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
         }
         else if(first == '?')
         {
             _c4dbgp("mapblck[RKEY]: key token!");
             addrem_flags(QMRK, RKEY);
             _line_progressed(1);
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
             m_was_inside_qmrk = true;
             goto mapblck_again;
         }
@@ -5717,7 +5735,7 @@ mapblck_start:
             m_evt_handler->set_key_scalar_plain({});
             addrem_flags(RVAL, RKEY);
             _line_progressed(1);
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
         }
         else if(first == '*')
         {
@@ -5727,7 +5745,7 @@ mapblck_start:
             addrem_flags(RVAL, RKEY);
             if(!_maybe_scan_following_colon())
                 _c4err("could not find ':' colon after key");
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
         }
         else if(first == '&')
         {
@@ -5778,7 +5796,7 @@ mapblck_start:
                 _RYML_CB_CHECK(m_evt_handler->m_stack.m_callbacks, _is_doc_begin_token(rem));
                 _start_doc_suddenly();
                 _line_progressed(3);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 goto mapblck_finish;
             }
             else
@@ -5795,7 +5813,7 @@ mapblck_start:
                 _c4dbgp("mapblck[RKEY]: end doc");
                 _end_doc_suddenly();
                 _line_progressed(3);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 goto mapblck_finish;
             }
             else
@@ -5803,6 +5821,12 @@ mapblck_start:
                 _c4err("parse error");
             }
         }
+       _RYML_WITH_TAB_TOKENS(
+        else if(first == '\t')
+        {
+            _c4dbgp("mapblck[RKEY]: skip tabs");
+            _maybe_skipchars('\t');
+        })
         else
         {
             _c4err("parse error");
@@ -5839,7 +5863,7 @@ mapblck_start:
             _c4dbgp("mapblck[RKCL]: found the colon");
             addrem_flags(RVAL, RKCL);
             _line_progressed(1);
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
         }
         else if(first == '?')
         {
@@ -5849,7 +5873,7 @@ mapblck_start:
             m_evt_handler->add_sibling();
             addrem_flags(QMRK, RKCL);
             _line_progressed(1);
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
         }
         else if(first == '-')
         {
@@ -5859,7 +5883,7 @@ mapblck_start:
                 _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, _is_doc_begin_token(rem));
                 _start_doc_suddenly();
                 _line_progressed(3);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 goto mapblck_finish;
             }
             else
@@ -6014,7 +6038,7 @@ mapblck_start:
                     _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                     csubstr maybe_filtered = _maybe_filter_key_scalar_squot(sc); // KEY!
                     m_evt_handler->set_key_scalar_squoted(maybe_filtered);
-                    _maybe_skipchars(' ');
+                    _maybe_skip_whitespace_tokens();
                     _set_indentation(m_state->line_contents.indentation);
                     // keep the child state on RVAL
                     addrem_flags(RVAL, RNXT);
@@ -6027,7 +6051,7 @@ mapblck_start:
                     csubstr maybe_filtered = _maybe_filter_key_scalar_squot(sc); // KEY!
                     m_evt_handler->set_key_scalar_squoted(maybe_filtered);
                     // keep going on RVAL
-                    _maybe_skipchars(' ');
+                    _maybe_skip_whitespace_tokens();
                 }
             }
         }
@@ -6054,7 +6078,7 @@ mapblck_start:
                     _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                     csubstr maybe_filtered = _maybe_filter_key_scalar_dquot(sc); // KEY!
                     m_evt_handler->set_key_scalar_dquoted(maybe_filtered);
-                    _maybe_skipchars(' ');
+                    _maybe_skip_whitespace_tokens();
                     _set_indentation(m_state->line_contents.indentation);
                     // keep the child state on RVAL
                     addrem_flags(RVAL, RNXT);
@@ -6067,7 +6091,7 @@ mapblck_start:
                     csubstr maybe_filtered = _maybe_filter_key_scalar_dquot(sc); // KEY!
                     m_evt_handler->set_key_scalar_dquoted(maybe_filtered);
                     // keep going on RVAL
-                    _maybe_skipchars(' ');
+                    _maybe_skip_whitespace_tokens();
                 }
             }
         }
@@ -6115,7 +6139,7 @@ mapblck_start:
                     _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                     csubstr maybe_filtered = _maybe_filter_key_scalar_plain(sc, m_state->indref); // KEY!
                     m_evt_handler->set_key_scalar_plain(maybe_filtered);
-                    _maybe_skipchars(' ');
+                    _maybe_skip_whitespace_tokens();
                     _set_indentation(m_state->line_contents.indentation);
                     // keep the child state on RVAL
                     addrem_flags(RVAL, RNXT);
@@ -6129,7 +6153,7 @@ mapblck_start:
                     csubstr maybe_filtered = _maybe_filter_key_scalar_plain(sc, m_state->indref); // KEY!
                     m_evt_handler->set_key_scalar_plain(maybe_filtered);
                     // keep going on RVAL
-                    _maybe_skipchars(' ');
+                    _maybe_skip_whitespace_tokens();
                 }
             }
         }
@@ -6144,7 +6168,7 @@ mapblck_start:
                 addrem_flags(RSEQ|RVAL, RMAP|RNXT);
                 _set_indentation(startindent);
                 _line_progressed(1);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 goto mapblck_finish;
             }
             else if(m_state->indref == 0 || m_state->line_contents.indentation == 0 || _is_doc_begin_token(rem))
@@ -6153,7 +6177,7 @@ mapblck_start:
                 _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, _is_doc_begin_token(rem));
                 _start_doc_suddenly();
                 _line_progressed(3);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 goto mapblck_finish;
             }
             else
@@ -6216,7 +6240,7 @@ mapblck_start:
                     addrem_flags(RNXT, RVAL);
                 }
             }
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
         }
         else if(first == '&')
         {
@@ -6274,7 +6298,7 @@ mapblck_start:
             }
             m_was_inside_qmrk = true;
             _line_progressed(1);
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
             goto mapblck_again;
         }
         else if(first == ':')
@@ -6286,7 +6310,7 @@ mapblck_start:
                 m_evt_handler->add_sibling();
                 m_evt_handler->set_key_scalar_plain({});
                 _line_progressed(1);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 goto mapblck_again;
             }
             else
@@ -6303,7 +6327,7 @@ mapblck_start:
                 _c4dbgp("seqblck[RVAL]: end doc expl");
                 _end_doc_suddenly();
                 _line_progressed(3);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 goto mapblck_finish;
             }
             else
@@ -6311,6 +6335,12 @@ mapblck_start:
                 _c4err("parse error");
             }
         }
+       _RYML_WITH_TAB_TOKENS(
+        else if(first == '\t')
+        {
+            _c4dbgp("mapblck[RVAL]: skip tabs");
+            _maybe_skipchars('\t');
+        })
         else
         {
             _c4err("parse error");
@@ -6384,7 +6414,7 @@ mapblck_start:
         else if(first == ' ')
         {
             _c4dbgp("mapblck[RNXT]: skip spaces");
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
         }
         else
         {
@@ -6467,7 +6497,7 @@ mapblck_start:
                 m_evt_handler->begin_map_key_block();
                 _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                 m_evt_handler->set_key_scalar_squoted(maybe_filtered);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 _set_indentation(startindent);
                 // keep the child state on RVAL
                 addrem_flags(RVAL, RKCL|QMRK);
@@ -6493,7 +6523,7 @@ mapblck_start:
                 m_evt_handler->begin_map_key_block();
                 _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                 m_evt_handler->set_key_scalar_dquoted(maybe_filtered);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 _set_indentation(startindent);
                 // keep the child state on RVAL
                 addrem_flags(RVAL, RKCL|QMRK);
@@ -6520,7 +6550,7 @@ mapblck_start:
                 m_evt_handler->begin_map_key_block();
                 _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                 m_evt_handler->set_key_scalar_literal(maybe_filtered);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 _set_indentation(startindent);
                 // keep the child state on RVAL
                 addrem_flags(RVAL, RKCL|QMRK);
@@ -6547,7 +6577,7 @@ mapblck_start:
                 m_evt_handler->begin_map_key_block();
                 _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                 m_evt_handler->set_key_scalar_folded(maybe_filtered);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 _set_indentation(startindent);
                 // keep the child state on RVAL
                 addrem_flags(RVAL, RKCL|QMRK);
@@ -6572,7 +6602,7 @@ mapblck_start:
                 m_evt_handler->begin_map_key_block();
                 _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                 m_evt_handler->set_key_scalar_plain(maybe_filtered);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 _set_indentation(startindent);
                 // keep the child state on RVAL
                 addrem_flags(RVAL, RKCL|QMRK);
@@ -6587,7 +6617,7 @@ mapblck_start:
                 _handle_annotations_before_blck_key_scalar();
                 m_evt_handler->set_key_scalar_plain({});
                 _line_progressed(1);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
             }
             else
             {
@@ -6598,7 +6628,7 @@ mapblck_start:
                 _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                 m_evt_handler->set_key_scalar_plain({});
                 _line_progressed(1);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 _set_indentation(startindent);
                 // keep the child state on RVAL
                 addrem_flags(RVAL, RKCL|QMRK);
@@ -6612,7 +6642,7 @@ mapblck_start:
             addrem_flags(RKCL, QMRK);
             if(!_maybe_scan_following_colon())
                 _c4err("could not find ':' colon after key");
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
         }
         else if(first == '&')
         {
@@ -6650,7 +6680,7 @@ mapblck_start:
                 _set_indentation(startindent);
                 _line_progressed(1);
             }
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
             goto mapblck_finish;
         }
         else if(first == '[')
@@ -6780,7 +6810,7 @@ bool ParseEngine<EventHandler>::_handle_unk_json()
     else
     {
         _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks,  ! has_any(SSCL));
-        _maybe_skipchars(' ');
+        _maybe_skip_whitespace_tokens();
         csubstr s = m_state->line_contents.rem;
         if(!s.len)
             return true;
@@ -6810,7 +6840,7 @@ bool ParseEngine<EventHandler>::_handle_unk_json()
                 m_evt_handler->begin_map_val_block();
                 _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                 m_evt_handler->set_key_scalar_dquoted(maybe_filtered);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 _set_indentation(startindent);
                 addrem_flags(RMAP|BLCK|RVAL, RTOP|RUNK|RDOC);
             }
@@ -6838,7 +6868,7 @@ bool ParseEngine<EventHandler>::_handle_unk_json()
                 _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                 csubstr maybe_filtered = _maybe_filter_key_scalar_plain(sc, startindent);
                 m_evt_handler->set_key_scalar_plain(maybe_filtered);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 _set_indentation(startindent);
                 addrem_flags(RMAP|BLCK|RVAL, RTOP|RUNK|RDOC);
             }
@@ -6896,7 +6926,7 @@ bool ParseEngine<EventHandler>::_handle_unk()
                 _set_indentation(0);
                 _addrem_flags2(RDOC|RUNK, NDOC);
                 _line_progressed(3u);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 return true;
             }
         }
@@ -6916,7 +6946,7 @@ bool ParseEngine<EventHandler>::_handle_unk()
                 }
                 addrem_flags(NDOC|RUNK, RDOC);
                 _line_progressed(3u);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 return true;
             }
         }
@@ -6998,7 +7028,7 @@ bool ParseEngine<EventHandler>::_handle_unk()
         m_2doc_empty = false;
         _set_indentation(m_state->line_contents.current_col(rem));
         _line_progressed(1);
-        _maybe_skipchars(' ');
+        _maybe_skip_whitespace_tokens();
         return true;
     }
     else if(rem == '?' || rem.begins_with("? ") _RYML_WITH_TAB_TOKENS( || rem.begins_with("?\t")))
@@ -7013,7 +7043,7 @@ bool ParseEngine<EventHandler>::_handle_unk()
         m_was_inside_qmrk = true;
         _save_indentation();
         _line_progressed(1);
-        _maybe_skipchars(' ');
+        _maybe_skip_whitespace_tokens();
         return true;
     }
     else if(rem == ':' || rem.begins_with(": ") _RYML_WITH_TAB_TOKENS( || rem.begins_with(":\t")))
@@ -7038,7 +7068,7 @@ bool ParseEngine<EventHandler>::_handle_unk()
         }
         addrem_flags(RMAP|BLCK|RVAL, RTOP|RUNK|RDOC);
         _line_progressed(1);
-        _maybe_skipchars(' ');
+        _maybe_skip_whitespace_tokens();
         return true;
     }
     else if(rem.begins_with('&'))
@@ -7076,7 +7106,7 @@ bool ParseEngine<EventHandler>::_handle_unk()
             m_evt_handler->begin_map_val_block();
             _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
             m_evt_handler->set_key_ref(ref);
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
             _set_indentation(startindent);
             addrem_flags(RMAP|BLCK|RVAL, RTOP|RUNK|RDOC);
         }
@@ -7096,7 +7126,7 @@ bool ParseEngine<EventHandler>::_handle_unk()
     else
     {
         _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks,  ! has_any(SSCL));
-        _maybe_skipchars(' ');
+        _maybe_skip_whitespace_tokens();
         csubstr s = m_state->line_contents.rem;
         if(!s.len)
             return true;
@@ -7127,7 +7157,7 @@ bool ParseEngine<EventHandler>::_handle_unk()
                 _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                 csubstr maybe_filtered = _maybe_filter_key_scalar_squot(sc);
                 m_evt_handler->set_key_scalar_squoted(maybe_filtered);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 _set_indentation(startindent);
                 addrem_flags(RMAP|BLCK|RVAL, RTOP|RUNK|RDOC);
             }
@@ -7156,7 +7186,7 @@ bool ParseEngine<EventHandler>::_handle_unk()
                 _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                 csubstr maybe_filtered = _maybe_filter_key_scalar_dquot(sc);
                 m_evt_handler->set_key_scalar_dquoted(maybe_filtered);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 _set_indentation(startindent);
                 addrem_flags(RMAP|BLCK|RVAL, RTOP|RUNK|RDOC);
             }
@@ -7186,7 +7216,7 @@ bool ParseEngine<EventHandler>::_handle_unk()
                 _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                 csubstr maybe_filtered = _maybe_filter_key_scalar_literal(sb);
                 m_evt_handler->set_key_scalar_literal(maybe_filtered);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 _set_indentation(startindent);
                 addrem_flags(RMAP|BLCK|RVAL, RTOP|RUNK|RDOC);
             }
@@ -7216,7 +7246,7 @@ bool ParseEngine<EventHandler>::_handle_unk()
                 _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                 csubstr maybe_filtered = _maybe_filter_key_scalar_folded(sb);
                 m_evt_handler->set_key_scalar_folded(maybe_filtered);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 _set_indentation(startindent);
                 addrem_flags(RMAP|BLCK|RVAL, RTOP|RUNK|RDOC);
             }
@@ -7244,7 +7274,7 @@ bool ParseEngine<EventHandler>::_handle_unk()
                 _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                 csubstr maybe_filtered = _maybe_filter_key_scalar_plain(sc, startindent);
                 m_evt_handler->set_key_scalar_plain(maybe_filtered);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 _set_indentation(startindent);
                 addrem_flags(RMAP|BLCK|RVAL, RTOP|RUNK|RDOC);
             }
@@ -7303,7 +7333,7 @@ bool ParseEngine<EventHandler>::_handle_usty()
             addrem_flags(FLOW|RVAL, RNXT|USTY);
             _set_indentation(startindent);
             _line_progressed(1);
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
         }
         else if(first == '-' && (rem == "-" || rem.begins_with("- ") _RYML_WITH_TAB_TOKENS( || rem.begins_with("-\t"))))
         {
@@ -7313,7 +7343,7 @@ bool ParseEngine<EventHandler>::_handle_usty()
             addrem_flags(BLCK|RVAL, RNXT|USTY);
             _set_indentation(startindent);
             _line_progressed(1);
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
         }
         else if(first == '{')
         {
@@ -7336,7 +7366,7 @@ bool ParseEngine<EventHandler>::_handle_usty()
             addrem_flags(RMAP|FLOW|RKEY, RNXT|USTY);
             _set_indentation(startindent);
             _line_progressed(1);
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
         }
         else if(first == '[')
         {
@@ -7368,7 +7398,7 @@ bool ParseEngine<EventHandler>::_handle_usty()
             addrem_flags(RSEQ|FLOW|RKEY, RNXT|USTY);
             _set_indentation(startindent);
             _line_progressed(1);
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
         }
         else if(first == '-' && (rem == "-" || rem.begins_with("- ") _RYML_WITH_TAB_TOKENS( || rem.begins_with("-\t"))))
         {
@@ -7378,7 +7408,7 @@ bool ParseEngine<EventHandler>::_handle_usty()
             addrem_flags(RSEQ|BLCK|RVAL, RNXT|USTY);
             _set_indentation(startindent);
             _line_progressed(1);
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
         }
         if(first == '{')
         {
@@ -7388,7 +7418,7 @@ bool ParseEngine<EventHandler>::_handle_usty()
             addrem_flags(RMAP|FLOW|RKEY, RNXT|USTY);
             _set_indentation(startindent);
             _line_progressed(1);
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
         }
         else if(first == '?')
         {
@@ -7411,7 +7441,7 @@ bool ParseEngine<EventHandler>::_handle_usty()
             addrem_flags(RMAP|BLCK|RVAL, RNXT|USTY);
             _save_indentation();
             _line_progressed(1);
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
         }
         else if(rem.begins_with('&'))
         {
@@ -7442,7 +7472,7 @@ bool ParseEngine<EventHandler>::_handle_usty()
                 m_evt_handler->begin_map_val_block();
                 _handle_annotations_and_indentation_after_start_mapblck(startindent, startline);
                 m_evt_handler->set_key_ref(ref);
-                _maybe_skipchars(' ');
+                _maybe_skip_whitespace_tokens();
                 _set_indentation(startindent);
                 addrem_flags(RMAP|BLCK|RVAL, RNXT|USTY);
             }
@@ -7460,7 +7490,7 @@ bool ParseEngine<EventHandler>::_handle_usty()
         else
         {
             _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks,  ! has_any(SSCL));
-            _maybe_skipchars(' ');
+            _maybe_skip_whitespace_tokens();
             csubstr s = m_state->line_contents.rem;
             if(!s.len)
                 return true;
@@ -7492,7 +7522,7 @@ bool ParseEngine<EventHandler>::_handle_usty()
                     m_evt_handler->set_key_scalar_squoted(maybe_filtered);
                     _set_indentation(startindent);
                     addrem_flags(RMAP|BLCK|RVAL, RNXT|USTY);
-                    _maybe_skipchars(' ');
+                    _maybe_skip_whitespace_tokens();
                 }
                 return true;
             }
@@ -7519,7 +7549,7 @@ bool ParseEngine<EventHandler>::_handle_usty()
                     m_evt_handler->set_key_scalar_dquoted(maybe_filtered);
                     _set_indentation(startindent);
                     addrem_flags(RMAP|BLCK|RVAL, RNXT|USTY);
-                    _maybe_skipchars(' ');
+                    _maybe_skip_whitespace_tokens();
                 }
                 return true;
             }
@@ -7547,7 +7577,7 @@ bool ParseEngine<EventHandler>::_handle_usty()
                     m_evt_handler->set_key_scalar_literal(maybe_filtered);
                     _set_indentation(startindent);
                     addrem_flags(RMAP|BLCK|RVAL, RNXT|USTY);
-                    _maybe_skipchars(' ');
+                    _maybe_skip_whitespace_tokens();
                 }
                 return true;
             }
@@ -7575,7 +7605,7 @@ bool ParseEngine<EventHandler>::_handle_usty()
                     m_evt_handler->set_key_scalar_folded(maybe_filtered);
                     _set_indentation(startindent);
                     addrem_flags(RMAP|BLCK|RVAL, RNXT|USTY);
-                    _maybe_skipchars(' ');
+                    _maybe_skip_whitespace_tokens();
                 }
                 return true;
             }
@@ -7601,7 +7631,7 @@ bool ParseEngine<EventHandler>::_handle_usty()
                     m_evt_handler->set_key_scalar_plain(maybe_filtered);
                     _set_indentation(startindent);
                     addrem_flags(RMAP|BLCK|RVAL, RNXT|USTY);
-                    _maybe_skipchars(' ');
+                    _maybe_skip_whitespace_tokens();
                 }
                 return true;
             }

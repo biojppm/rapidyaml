@@ -110,58 +110,96 @@ TEST(simple_seq, deeply_nested_to_cover_parse_stack_resizes)
 
 
 #ifdef RYML_WITH_TAB_TOKENS
-TEST(simple_seq, block_tab_tokens)
+TEST(simple_seq, block_tab_tokens__0_spaces_only)
 {
     Tree tree = parse_in_arena(R"(
---- # block, spaces only
 - 0
 - 1
 - 2
---- # block, tabs after
+)");
+    EXPECT_EQ(tree[0].val(), csubstr("0"));
+    EXPECT_EQ(tree[1].val(), csubstr("1"));
+    EXPECT_EQ(tree[2].val(), csubstr("2"));
+}
+TEST(simple_seq, block_tab_tokens__1_tabs_after)
+{
+    Tree tree = parse_in_arena(R"(
 -	0
 -	1
 -	2
---- # block, tabs after token, and after val
+)");
+    EXPECT_EQ(tree[0].val(), csubstr("0"));
+    EXPECT_EQ(tree[1].val(), csubstr("1"));
+    EXPECT_EQ(tree[2].val(), csubstr("2"));
+}
+TEST(simple_seq, block_tab_tokens__2_tabs_before_after)
+{
+    Tree tree = parse_in_arena(R"(
 -	0	
 -	1	
 -	2	
 )");
-    EXPECT_EQ(tree.docref(0)[0].val(), csubstr("0"));
-    EXPECT_EQ(tree.docref(0)[1].val(), csubstr("1"));
-    EXPECT_EQ(tree.docref(0)[2].val(), csubstr("2"));
-    EXPECT_EQ(tree.docref(1)[0].val(), csubstr("0"));
-    EXPECT_EQ(tree.docref(1)[1].val(), csubstr("1"));
-    EXPECT_EQ(tree.docref(1)[2].val(), csubstr("2"));
+    EXPECT_EQ(tree[0].val(), csubstr("0"));
+    EXPECT_EQ(tree[1].val(), csubstr("1"));
+    EXPECT_EQ(tree[2].val(), csubstr("2"));
 }
-
-TEST(simple_seq, flow_tab_tokens)
+TEST(simple_seq, block_tab_tokens__3_tabs_everywhere)
 {
     Tree tree = parse_in_arena(R"(
---- # flow, no tabs
-[0, 1, 2]
---- # flow, tabs after
-[0,	1,	2]
---- # flow, tabs before and after
-[0	,	1	,	2]
---- # flow, tabs everywhere
-	[	
-	0	,	
-	1	,	
-	2	, 	
+-	0	0	
+-	1	1	
+-	2	2	
+)");
+    EXPECT_EQ(tree[0].val(), csubstr("0\t0"));
+    EXPECT_EQ(tree[1].val(), csubstr("1\t1"));
+    EXPECT_EQ(tree[2].val(), csubstr("2\t2"));
+}
+TEST(simple_seq, block_tab_tokens__4_tabs_indentation_error)
+{
+    ExpectError::do_check([]{
+        Tree tree = parse_in_arena(R"(
+	-	0	0	
+	-	1	1	
+	-	2	2	
+)");
+    });
+}
+
+TEST(simple_seq, flow_tab_tokens__0_flow_no_tabs)
+{
+    Tree tree = parse_in_arena(R"([0, 1, 2])");
+    EXPECT_EQ(tree[0].val(), csubstr("0"));
+    EXPECT_EQ(tree[1].val(), csubstr("1"));
+    EXPECT_EQ(tree[2].val(), csubstr("2"));
+}
+
+TEST(simple_seq, flow_tab_tokens__1_flow_tabs_after)
+{
+    Tree tree = parse_in_arena(R"([0,	1,	2]	)");
+    EXPECT_EQ(tree[0].val(), csubstr("0"));
+    EXPECT_EQ(tree[1].val(), csubstr("1"));
+    EXPECT_EQ(tree[2].val(), csubstr("2"));
+}
+
+TEST(simple_seq, flow_tab_tokens__2_flow_tabs_before_and_after)
+{
+    Tree tree = parse_in_arena(R"([0	,	1	,	2])");
+    EXPECT_EQ(tree[0].val(), csubstr("0"));
+    EXPECT_EQ(tree[1].val(), csubstr("1"));
+    EXPECT_EQ(tree[2].val(), csubstr("2"));
+}
+
+TEST(simple_seq, flow_tab_tokens__3_flow_tabs_everywhere)
+{
+    Tree tree = parse_in_arena(R"(	[	
+	0	0	,	
+	1	1	,	
+	2	2	,	
 	]	
 )");
-    EXPECT_EQ(tree.docref(0)[0].val(), csubstr("0"));
-    EXPECT_EQ(tree.docref(0)[1].val(), csubstr("1"));
-    EXPECT_EQ(tree.docref(0)[2].val(), csubstr("2"));
-    EXPECT_EQ(tree.docref(1)[0].val(), csubstr("0"));
-    EXPECT_EQ(tree.docref(1)[1].val(), csubstr("1"));
-    EXPECT_EQ(tree.docref(1)[2].val(), csubstr("2"));
-    EXPECT_EQ(tree.docref(2)[0].val(), csubstr("0"));
-    EXPECT_EQ(tree.docref(2)[1].val(), csubstr("1"));
-    EXPECT_EQ(tree.docref(2)[2].val(), csubstr("2"));
-    EXPECT_EQ(tree.docref(3)[0].val(), csubstr("0"));
-    EXPECT_EQ(tree.docref(3)[1].val(), csubstr("1"));
-    EXPECT_EQ(tree.docref(3)[2].val(), csubstr("2"));
+    EXPECT_EQ(tree[0].val(), csubstr("0\t0"));
+    EXPECT_EQ(tree[1].val(), csubstr("1\t1"));
+    EXPECT_EQ(tree[2].val(), csubstr("2\t2"));
 }
 #endif // RYML_WITH_TAB_TOKENS
 
