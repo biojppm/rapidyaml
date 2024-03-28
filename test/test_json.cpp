@@ -511,6 +511,14 @@ TEST(json, nested_end)
           R"({"a": "b","d": "e","c": {"a": "b","d": "e","c": {"a": "b","d": "e","c": {"a": "b","d": "e","c": {"a": "b","d": "e","c": {}}}}}})");
 }
 
+TEST(json, issue390)
+{
+    const Tree tree = parse_in_arena(R"(quntity: 9.5e7
+quntity2: 95000000)");
+    EXPECT_TRUE(csubstr("9.5e7").is_number());
+    EXPECT_EQ(emitrs_json<std::string>(tree), R"({"quntity": 9.5e7,"quntity2": 95000000})");
+}
+
 #undef _test
 
 
