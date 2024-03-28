@@ -21,7 +21,7 @@ struct CallbacksTester
     size_t num_allocs, alloc_size;
     size_t num_deallocs, dealloc_size;
 
-    CallbacksTester(const char *id_="notset", size_t sz=10u * 1024u) // 10KB
+    CallbacksTester(const char *id_="notset", size_t sz=30u * 1024u) // 30KB
         : memory_pool(sz)
         , id(id_)
         , num_allocs()
