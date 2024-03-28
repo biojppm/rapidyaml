@@ -71,7 +71,8 @@ See also:
       <Item Name="val ref" Condition="(m_type.type &amp; c4::yml::VALREF) != 0">m_val.anchor</Item>
       <Item Name="key anchor" Condition="(m_type.type &amp; c4::yml::KEYANCH) != 0">m_key.anchor</Item>
       <Item Name="val anchor" Condition="(m_type.type &amp; c4::yml::VALANCH) != 0">m_val.anchor</Item>
-      <Item Name="parent">m_parent</Item>
+      <Item Name="parent" Condition="m_parent == c4::yml::NONE">NONE</Item>
+      <Item Name="parent" Condition="m_parent != c4::yml::NONE">m_parent</Item>
       <Item Name="first child"  Condition="m_first_child != c4::yml::NONE">m_first_child</Item>
       <Item Name="last child"   Condition="m_last_child != c4::yml::NONE">m_last_child</Item>
       <Item Name="prev sibling" Condition="m_prev_sibling != c4::yml::NONE">m_prev_sibling</Item>
@@ -128,9 +129,33 @@ See also:
     <DisplayString>{*(m_tree->m_buf + m_id)}</DisplayString>
     <Expand>
       <Item Name="id">m_id</Item>
-      <Item Name="elm">*(m_tree->m_buf + m_id)</Item>
+      <Item Name="element">*(m_tree->m_buf + m_id)</Item>
       <Item Name="tree">m_tree</Item>
-      <Synthetic Name="[children]" Condition="(m_id != c4::yml::NONE) &amp;&amp; ((m_tree->m_buf + m_id)->m_type.type &amp; (c4::yml::MAP|c4::yml::SEQ) != 0)">
+      <Synthetic Name="[children]" Condition="(m_id != c4::yml::NONE) &amp;&amp; (((m_tree->m_buf + m_id)->m_type.type &amp; (c4::yml::MAP|c4::yml::SEQ)) != 0)">
+        <Expand>
+          <CustomListItems>
+            <Variable Name="tree" InitialValue="m_tree"/>
+            <Variable Name="buf" InitialValue="m_tree->m_buf"/>
+            <Variable Name="curr" InitialValue="(m_tree->m_buf + m_id)->m_first_child"/>
+            <Loop>
+              <Item>buf + curr</Item>
+              <Exec>curr = (buf + curr)->m_next_sibling</Exec>
+              <Break Condition="curr == c4::yml::NONE"/>
+            </Loop>
+          </CustomListItems>
+        </Expand>
+      </Synthetic>
+    </Expand>
+  </Type>
+
+  <Type Name="c4::yml::ConstNodeRef">
+    <DisplayString Condition="(m_id == c4::yml::NONE)">(void)</DisplayString>
+    <DisplayString>{*(m_tree->m_buf + m_id)}</DisplayString>
+    <Expand>
+      <Item Name="id">m_id</Item>
+      <Item Name="element">*(m_tree->m_buf + m_id)</Item>
+      <Item Name="tree">m_tree</Item>
+      <Synthetic Name="[children]" Condition="(m_id != c4::yml::NONE) &amp;&amp; (((m_tree->m_buf + m_id)->m_type.type &amp; (c4::yml::MAP|c4::yml::SEQ)) != 0)">
         <Expand>
           <CustomListItems>
             <Variable Name="tree" InitialValue="m_tree"/>
