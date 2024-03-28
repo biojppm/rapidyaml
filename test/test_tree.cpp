@@ -832,6 +832,23 @@ TEST(Tree, clear)
 
 //-------------------------------------------
 
+template<class Function>
+void verify_assertion(Tree &tree, Function &&fn)
+{
+    ExpectError::check_assertion(&tree, [&]{
+        (void)fn(tree);
+    });
+}
+template<class Function>
+void verify_assertion(csubstr src, Function &&fn)
+{
+    Tree tree = parse_in_arena(src);
+    ExpectError::check_assertion(&tree, [&]{
+        (void)fn(tree);
+    });
+}
+
+
 TEST(Tree, ref)
 {
     Tree t = parse_in_arena("[0, 1, 2, 3]");
@@ -845,6 +862,25 @@ TEST(Tree, ref)
     EXPECT_TRUE(t.ref(2).is_val());
     EXPECT_TRUE(t.ref(3).is_val());
     EXPECT_TRUE(t.ref(4).is_val());
+    verify_assertion(t, [](Tree & tree){ (void)tree.ref(tree.capacity()); });
+    verify_assertion(t, [](Tree & tree){ (void)tree.ref(NONE); });
+}
+
+TEST(Tree, cref)
+{
+    Tree t = parse_in_arena("[0, 1, 2, 3]");
+    EXPECT_EQ(t.cref(0).id(), 0);
+    EXPECT_EQ(t.cref(1).id(), 1);
+    EXPECT_EQ(t.cref(2).id(), 2);
+    EXPECT_EQ(t.cref(3).id(), 3);
+    EXPECT_EQ(t.cref(4).id(), 4);
+    EXPECT_TRUE(t.cref(0).is_seq());
+    EXPECT_TRUE(t.cref(1).is_val());
+    EXPECT_TRUE(t.cref(2).is_val());
+    EXPECT_TRUE(t.cref(3).is_val());
+    EXPECT_TRUE(t.cref(4).is_val());
+    verify_assertion(t, [](Tree & tree){ (void)tree.cref(tree.capacity()); });
+    verify_assertion(t, [](Tree & tree){ (void)tree.cref(NONE); });
 }
 
 TEST(Tree, ref_const)
@@ -860,6 +896,8 @@ TEST(Tree, ref_const)
     EXPECT_TRUE(t.ref(2).is_val());
     EXPECT_TRUE(t.ref(3).is_val());
     EXPECT_TRUE(t.ref(4).is_val());
+    verify_assertion("[0, 1, 2, 3]", [](Tree const& tree){ (void)tree.cref(tree.capacity()); });
+    verify_assertion("[0, 1, 2, 3]", [](Tree const& tree){ (void)tree.cref(NONE); });
 }
 
 
@@ -901,6 +939,11 @@ TEST(Tree, operator_square_brackets)
         EXPECT_FALSE(cm[2] != "2");
         EXPECT_FALSE(cm[3] != "3");
         EXPECT_FALSE(cm[4] != "4");
+        //
+        verify_assertion(t, [&](Tree const&){ return cm[m.capacity()]; });
+        verify_assertion(t, [&](Tree const&){ return cm[NONE]; });
+        verify_assertion(t, [&](Tree const&){ return cm[0][0]; });
+        verify_assertion(t, [&](Tree const&){ return cm["a"]; });
     }
     {
         Tree t = parse_in_arena("{a: 0, b: 1, c: 2, d: 3, e: 4}");
@@ -938,6 +981,9 @@ TEST(Tree, operator_square_brackets)
         EXPECT_FALSE(cm["c"] != "2");
         EXPECT_FALSE(cm["d"] != "3");
         EXPECT_FALSE(cm["e"] != "4");
+        //
+        verify_assertion(t, [&](Tree const&){ return cm["f"]; });
+        verify_assertion(t, [&](Tree const&){ return cm["g"]["h"]; });
     }
 }
 
@@ -1044,6 +1090,8 @@ TEST(NodeType, type_str)
     EXPECT_EQ(to_csubstr(NodeType(KEYANCH).type_str()), "(unk)");
     EXPECT_EQ(to_csubstr(NodeType(VALANCH).type_str()), "(unk)");
 }
+
+
 
 TEST(NodeType, is_stream)
 {

@@ -246,10 +246,6 @@ ConstNodeRef Tree::rootref() const
     return ConstNodeRef(this, root_id());
 }
 
-ConstNodeRef Tree::crootref()
-{
-    return ConstNodeRef(this, root_id());
-}
 ConstNodeRef Tree::crootref() const
 {
     return ConstNodeRef(this, root_id());
@@ -257,23 +253,17 @@ ConstNodeRef Tree::crootref() const
 
 NodeRef Tree::ref(size_t id)
 {
-    _RYML_CB_ASSERT(m_callbacks, id != NONE && id >= 0 && id < m_size);
+    _RYML_CB_ASSERT(m_callbacks, id != NONE && id >= 0 && id < m_cap);
     return NodeRef(this, id);
 }
 ConstNodeRef Tree::ref(size_t id) const
 {
-    _RYML_CB_ASSERT(m_callbacks, id != NONE && id >= 0 && id < m_size);
-    return ConstNodeRef(this, id);
-}
-
-ConstNodeRef Tree::cref(size_t id)
-{
-    _RYML_CB_ASSERT(m_callbacks, id != NONE && id >= 0 && id < m_size);
+    _RYML_CB_ASSERT(m_callbacks, id != NONE && id >= 0 && id < m_cap);
     return ConstNodeRef(this, id);
 }
 ConstNodeRef Tree::cref(size_t id) const
 {
-    _RYML_CB_ASSERT(m_callbacks, id != NONE && id >= 0 && id < m_size);
+    _RYML_CB_ASSERT(m_callbacks, id != NONE && id >= 0 && id < m_cap);
     return ConstNodeRef(this, id);
 }
 
@@ -1821,7 +1811,7 @@ csubstr _transform_tag(Tree *t, csubstr tag, size_t node)
     size_t required_size = t->resolve_tag(substr{}, tag, node);
     if(!required_size)
         return tag;
-    const char *prev_arena = t->arena().str;
+    const char *prev_arena = t->arena().str; (void)prev_arena;
     substr buf = t->alloc_arena(required_size);
     _RYML_CB_ASSERT(t->m_callbacks, t->arena().str == prev_arena);
     size_t actual_size = t->resolve_tag(buf, tag, node);
