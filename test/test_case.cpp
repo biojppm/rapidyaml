@@ -222,7 +222,7 @@ void ExpectError::check_success(Tree *tree, std::function<void()> fn)
     {
         fn();
     }
-    catch(ExpectedError const& e)
+    catch(ExpectedError const&)
     {
         ;
     }
