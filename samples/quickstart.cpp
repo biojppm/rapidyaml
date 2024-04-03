@@ -4190,13 +4190,9 @@ void sample_error_handler()
     // crash.
     ryml::set_callbacks(errh.callbacks());
     errh.check_effect(/*committed*/true);
-    bool had_parse_error = true;
-    errh.check_error_occurs([&had_parse_error]{
-        had_parse_error = true;
+    errh.check_error_occurs([&]{
         ryml::Tree tree = ryml::parse_in_arena("errorhandler.yml", "[a: b\n}");
-        had_parse_error = false; // this line is not executed
     });
-    CHECK(had_parse_error);
     ryml::set_callbacks(errh.defaults); // restore defaults.
     errh.check_effect(/*committed*/false);
 }

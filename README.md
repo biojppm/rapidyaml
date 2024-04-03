@@ -1355,6 +1355,12 @@ ryml:
     because this may cost up to 10% in processing time.
   * `RYML_DEFAULT_CALLBACKS=ON/OFF`. Enable/disable ryml's default
     implementation of error and allocation callbacks. Defaults to `ON`.
+  * `RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS=ON/OFF` - Enable/disable
+    the same-named macro, which will make the default error handler
+    provided by ryml throw a `std::runtime_error` exception.
+  * `RYML_USE_ASSERT` - enable assertions in the code regardless of
+    build type. This is disabled by default. Failed assertions will
+    trigger a call to the error callback.
   * `RYML_STANDALONE=ON/OFF`. ryml uses
     [c4core](https://github.com/biojppm/c4core), a C++ library with low-level
     multi-platform utilities for C++. When `RYML_STANDALONE=ON`, c4core is

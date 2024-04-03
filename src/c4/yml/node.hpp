@@ -323,6 +323,14 @@ public:
     C4_ALWAYS_INLINE size_t num_other_siblings() const RYML_NOEXCEPT { _C4RV(); return tree_->num_other_siblings(id_); }
     C4_ALWAYS_INLINE size_t sibling_pos(ConstImpl const& n) const RYML_NOEXCEPT { _C4RV(); _RYML_CB_ASSERT(tree_->callbacks(), n.readable()); return tree_->child_pos(tree_->parent(id_), n.m_id); }
 
+    /** @} */
+
+public:
+
+    /** @name square_brackets
+     * operator[] */
+    /** @{ */
+
     /** Find child by key; complexity is O(num_children).
      *
      * Returns the requested node, or an object in seed state if no
@@ -332,10 +340,11 @@ public:
      * to the tree provided that its create() method is called prior
      * to writing, which happens in most modifying methods in
      * NodeRef. It is the caller's responsibility to verify that the
-     * returned node is readable before subsequently using it.
+     * returned node is readable before subsequently using it to read
+     * from the tree.
      *
      * @warning the calling object must be readable. This precondition
-     * is asserted. This assertion is performed only if @ref
+     * is asserted. The assertion is performed only if @ref
      * RYML_USE_ASSERT is set to true. As with the non-const overload,
      * it is UB to call this method if the node is not readable.
      *
@@ -357,10 +366,11 @@ public:
      * to the tree provided that its create() method is called prior
      * to writing, which happens in most modifying methods in
      * NodeRef. It is the caller's responsibility to verify that the
-     * returned node is readable before subsequently using it.
+     * returned node is readable before subsequently using it to read
+     * from the tree.
      *
      * @warning the calling object must be readable. This precondition
-     * is asserted. This assertion is performed only if @ref
+     * is asserted. The assertion is performed only if @ref
      * RYML_USE_ASSERT is set to true. As with the non-const overload,
      * it is UB to call this method if the node is not readable.
      *
@@ -377,7 +387,7 @@ public:
      *
      * Behaves similar to the non-const overload, but further asserts
      * that the returned node is readable (because it can never be in
-     * a seed state). This assertion is performed only if @ref
+     * a seed state). The assertion is performed only if @ref
      * RYML_USE_ASSERT is set to true. As with the non-const overload,
      * it is UB to use the return value if it is not valid.
      *
@@ -407,6 +417,90 @@ public:
         return {tree_, ch};
     }
 
+    /** @} */
+
+public:
+
+    /** @name at
+     *
+     * These functions are the analogue to operator[], with the
+     * difference that they */
+    /** @{ */
+
+    /** Find child by key; complexity is O(num_children).
+     *
+     * Returns the requested node, or an object in seed state if no
+     * such child is found (see @ref NodeRef for an explanation of
+     * what is seed state). When the object is in seed state, using it
+     * to read from the tree is UB. The seed node can be subsequently
+     * used to write to the tree provided that its create() method is
+     * called prior to writing, which happens inside most mutating
+     * methods in NodeRef. It is the caller's responsibility to verify
+     * that the returned node is readable before subsequently using it
+     * to read from the tree.
+     *
+     * @warning This method will call the error callback (regardless
+     * of build type) whenever any of the following preconditions is
+     * violated: a) the object is valid (points at a tree and a node),
+     * b) the calling object must be readable (must not be in seed
+     * state), c) the calling object must be pointing at a MAP
+     * node. The preconditions are similar to the non-const
+     * operator[](csubstr), but instead of using assertions, this
+     * function directly checks those conditions and calls the error
+     * callback if any of the checks fail.
+     *
+     * @note since it is valid behavior for the returned node to be in
+     * seed state, the error callback is not invoked when this
+     * happens. */
+    template<class U=Impl>
+    C4_ALWAYS_INLINE auto at(csubstr key) -> _C4_IF_MUTABLE(Impl)
+    {
+        RYML_CHECK(tree_ != nullptr);
+        _RYML_CB_CHECK(tree_->m_callbacks, (id_ >= 0 && id_ < tree_->capacity()));
+        _RYML_CB_CHECK(tree_->m_callbacks, ((Impl const*)this)->readable());
+        _RYML_CB_CHECK(tree_->m_callbacks, tree_->is_map(id_));
+        size_t ch = tree__->find_child(id__, key);
+        return ch != NONE ? Impl(tree__, ch) : Impl(tree__, id__, key);
+    }
+
+    /** Find child by position; complexity is O(pos).
+     *
+     * Returns the requested node, or an object in seed state if no
+     * such child is found (see @ref NodeRef for an explanation of
+     * what is seed state). When the object is in seed state, using it
+     * to read from the tree is UB. The seed node can be used to write
+     * to the tree provided that its create() method is called prior
+     * to writing, which happens in most modifying methods in
+     * NodeRef. It is the caller's responsibility to verify that the
+     * returned node is readable before subsequently using it to read
+     * from the tree.
+     *
+     * @warning This method will call the error callback (regardless
+     * of build type) whenever any of the following preconditions is
+     * violated: a) the object is valid (points at a tree and a node),
+     * b) the calling object must be readable (must not be in seed
+     * state), c) the calling object must be pointing at a MAP
+     * node. The preconditions are similar to the non-const
+     * operator[](size_t), but instead of using assertions, this
+     * function directly checks those conditions and calls the error
+     * callback if any of the checks fail.
+     *
+     * @note since it is valid behavior for the returned node to be in
+     * seed state, the error callback is not invoked when this
+     * happens. */
+    template<class U=Impl>
+    C4_ALWAYS_INLINE auto at(size_t pos) -> _C4_IF_MUTABLE(Impl)
+    {
+        RYML_CHECK(tree_ != nullptr);
+        const size_t cap = tree_->capacity();
+        _RYML_CB_CHECK(tree_->m_callbacks, (id_ >= 0 && id_ < cap));
+        _RYML_CB_CHECK(tree_->m_callbacks, (pos >= 0 && pos < cap));
+        _RYML_CB_CHECK(tree_->m_callbacks, ((Impl const*)this)->readable());
+        _RYML_CB_CHECK(tree_->m_callbacks, tree_->is_container(id_));
+        size_t ch = tree__->child(id__, pos);
+        return ch != NONE ? Impl(tree__, ch) : Impl(tree__, id__, pos);
+    }
+
     /** Get a child by name, with error checking; complexity is
      * O(num_children).
      *
@@ -419,8 +513,9 @@ public:
     ConstImpl at(csubstr key) const
     {
         RYML_CHECK(tree_ != nullptr);
+        _RYML_CB_CHECK(tree_->m_callbacks, (id_ >= 0 && id_ < tree_->capacity()));
         _RYML_CB_CHECK(tree_->m_callbacks, ((Impl const*)this)->readable());
-        _RYML_CB_CHECK(tree_->m_callbacks, ((Impl const*)this)->is_map());
+        _RYML_CB_CHECK(tree_->m_callbacks, tree_->is_map(id_));
         size_t ch = tree_->find_child(id_, key);
         _RYML_CB_CHECK(tree_->m_callbacks, ch != NONE);
         return {tree_, ch};
@@ -432,16 +527,19 @@ public:
      * Behaves as operator[](size_t) const, but always raises an error
      * (even when RYML_USE_ASSERT is set to false) when the returned
      * node does not exist, or when this node is not readable, or when
-     * it is not a map. This behaviour is similar to
+     * it is not a container. This behaviour is similar to
      * std::vector::at(), but the error consists in calling the error
      * callback instead of directly raising an exception. */
     ConstImpl at(size_t pos) const
     {
         RYML_CHECK(tree_ != nullptr);
+        const size_t cap = tree_->capacity();
+        _RYML_CB_CHECK(tree_->m_callbacks, (id_ >= 0 && id_ < cap));
+        _RYML_CB_CHECK(tree_->m_callbacks, (pos >= 0 && pos < cap));
         _RYML_CB_CHECK(tree_->m_callbacks, ((Impl const*)this)->readable());
-        _RYML_CB_CHECK(tree_->m_callbacks, ((Impl const*)this)->is_container());
+        _RYML_CB_CHECK(tree_->m_callbacks, tree_->is_container(id_));
         size_t ch = tree_->child(id_, pos);
-        _RYML_CB_ASSERT(tree_->m_callbacks, ch != NONE);
+        _RYML_CB_CHECK(tree_->m_callbacks, ch != NONE);
         return {tree_, ch};
     }
 
@@ -650,6 +748,13 @@ public:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+/** This object holds a pointer to an existing tree, and a node id. It
+ * can be used only to read from the tree.
+ *
+ *
+ *
+ * @warning The lifetime of the tree must be larger than that of this
+ * object. It is up to the user to ensure that this happens. */
 class RYML_EXPORT ConstNodeRef : public detail::RoNodeMethods<ConstNodeRef, ConstNodeRef>
 {
 public:
@@ -746,9 +851,21 @@ public:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-/** a reference to a node in an existing yaml tree, offering a more
+/** A reference to a node in an existing yaml tree, offering a more
  * convenient API than the index-based API used in the tree. This
- * reference can be used to modify the tree. Individual objects may be */
+ * reference can be used to modify the tree.
+ *
+ * When the object is in seed state, using it to read from the tree is
+ * UB. The seed node can be used to write to the tree provided that
+ * its create() method is called prior to writing, which happens in
+ * most modifying methods in NodeRef. It is the owners's
+ * responsibility to verify that the an existing node is readable
+ * before subsequently using it to read from the tree.
+ *
+ * See the quickstart for a more detailed explanation on the
+ *
+ * Individual objects may be
+ * */
 class RYML_EXPORT NodeRef : public detail::RoNodeMethods<NodeRef, ConstNodeRef>
 {
 public:
@@ -1318,6 +1435,7 @@ public:
     /** @} */
 
 #undef _C4RV
+#undef _C4RID
 };
 
 

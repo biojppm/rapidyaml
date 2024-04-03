@@ -833,14 +833,30 @@ TEST(Tree, clear)
 //-------------------------------------------
 
 template<class Function>
-void verify_assertion(Tree &tree, Function &&fn)
+void verify_success_(Tree &tree, Function &&fn)
+{
+    ExpectError::check_success(&tree, [&]{
+        (void)fn(tree);
+    });
+}
+template<class Function>
+void verify_success_(csubstr src, Function &&fn)
+{
+    Tree tree = parse_in_arena(src);
+    ExpectError::check_success(&tree, [&]{
+        (void)fn(tree);
+    });
+}
+
+template<class Function>
+void verify_assertion_(Tree &tree, Function &&fn)
 {
     ExpectError::check_assertion(&tree, [&]{
         (void)fn(tree);
     });
 }
 template<class Function>
-void verify_assertion(csubstr src, Function &&fn)
+void verify_assertion_(csubstr src, Function &&fn)
 {
     Tree tree = parse_in_arena(src);
     ExpectError::check_assertion(&tree, [&]{
@@ -849,20 +865,38 @@ void verify_assertion(csubstr src, Function &&fn)
 }
 
 template<class Function>
-void verify_error(Tree &tree, Function &&fn)
+void verify_error_(Tree &tree, Function &&fn)
 {
     ExpectError::do_check(&tree, [&]{
         (void)fn(tree);
     });
 }
 template<class Function>
-void verify_error(csubstr src, Function &&fn)
+void verify_error_(csubstr src, Function &&fn)
 {
     Tree tree = parse_in_arena(src);
     ExpectError::do_check(&tree, [&]{
         (void)fn(tree);
     });
 }
+
+#define verify_success(...)                     \
+    {                                           \
+        SCOPED_TRACE("caller");                 \
+        verify_success_(__VA_ARGS__);           \
+    }
+
+#define verify_assertion(...)                   \
+    {                                           \
+        SCOPED_TRACE("caller");                 \
+        verify_assertion_(__VA_ARGS__);         \
+    }
+
+#define verify_error(...)                       \
+    {                                           \
+        SCOPED_TRACE("caller");                 \
+        verify_error_(__VA_ARGS__);             \
+    }
 
 
 TEST(Tree, ref)
@@ -917,177 +951,221 @@ TEST(Tree, ref_const)
 }
 
 
-TEST(Tree, operator_square_brackets)
+TEST(Tree, operator_square_brackets_seq)
 {
-    {
-        Tree t = parse_in_arena("[0, 1, 2, 3, 4]");
-        Tree &m = t;
-        Tree const& cm = t;
-        EXPECT_EQ(m[0].val(), "0");
-        EXPECT_EQ(m[1].val(), "1");
-        EXPECT_EQ(m[2].val(), "2");
-        EXPECT_EQ(m[3].val(), "3");
-        EXPECT_EQ(m[4].val(), "4");
-        EXPECT_EQ(cm[0].val(), "0");
-        EXPECT_EQ(cm[1].val(), "1");
-        EXPECT_EQ(cm[2].val(), "2");
-        EXPECT_EQ(cm[3].val(), "3");
-        EXPECT_EQ(cm[4].val(), "4");
-        //
-        EXPECT_TRUE(m[0]  == "0");
-        EXPECT_TRUE(m[1]  == "1");
-        EXPECT_TRUE(m[2]  == "2");
-        EXPECT_TRUE(m[3]  == "3");
-        EXPECT_TRUE(m[4]  == "4");
-        EXPECT_TRUE(cm[0] == "0");
-        EXPECT_TRUE(cm[1] == "1");
-        EXPECT_TRUE(cm[2] == "2");
-        EXPECT_TRUE(cm[3] == "3");
-        EXPECT_TRUE(cm[4] == "4");
-        //
-        EXPECT_FALSE(m[0]  != "0");
-        EXPECT_FALSE(m[1]  != "1");
-        EXPECT_FALSE(m[2]  != "2");
-        EXPECT_FALSE(m[3]  != "3");
-        EXPECT_FALSE(m[4]  != "4");
-        EXPECT_FALSE(cm[0] != "0");
-        EXPECT_FALSE(cm[1] != "1");
-        EXPECT_FALSE(cm[2] != "2");
-        EXPECT_FALSE(cm[3] != "3");
-        EXPECT_FALSE(cm[4] != "4");
-        //
-        verify_assertion(t, [&](Tree const&){ return cm[m.capacity()]; });
-        verify_assertion(t, [&](Tree const&){ return cm[NONE]; });
-        verify_assertion(t, [&](Tree const&){ return cm[0][0]; });
-        verify_assertion(t, [&](Tree const&){ return cm["a"]; });
-    }
-    {
-        Tree t = parse_in_arena("{a: 0, b: 1, c: 2, d: 3, e: 4}");
-        Tree &m = t;
-        Tree const& cm = t;
-        EXPECT_EQ(m["a"].val(), "0");
-        EXPECT_EQ(m["b"].val(), "1");
-        EXPECT_EQ(m["c"].val(), "2");
-        EXPECT_EQ(m["d"].val(), "3");
-        EXPECT_EQ(m["e"].val(), "4");
-        EXPECT_EQ(cm["a"].val(), "0");
-        EXPECT_EQ(cm["b"].val(), "1");
-        EXPECT_EQ(cm["c"].val(), "2");
-        EXPECT_EQ(cm["d"].val(), "3");
-        EXPECT_EQ(cm["e"].val(), "4");
-        //
-        EXPECT_TRUE(m["a"] == "0");
-        EXPECT_TRUE(m["b"] == "1");
-        EXPECT_TRUE(m["c"] == "2");
-        EXPECT_TRUE(m["d"] == "3");
-        EXPECT_TRUE(m["e"] == "4");
-        EXPECT_TRUE(cm["a"] == "0");
-        EXPECT_TRUE(cm["b"] == "1");
-        EXPECT_TRUE(cm["c"] == "2");
-        EXPECT_TRUE(cm["d"] == "3");
-        EXPECT_TRUE(cm["e"] == "4");
-        //
-        EXPECT_FALSE(m["a"] != "0");
-        EXPECT_FALSE(m["b"] != "1");
-        EXPECT_FALSE(m["c"] != "2");
-        EXPECT_FALSE(m["d"] != "3");
-        EXPECT_FALSE(m["e"] != "4");
-        EXPECT_FALSE(cm["a"] != "0");
-        EXPECT_FALSE(cm["b"] != "1");
-        EXPECT_FALSE(cm["c"] != "2");
-        EXPECT_FALSE(cm["d"] != "3");
-        EXPECT_FALSE(cm["e"] != "4");
-        //
-        verify_assertion(t, [&](Tree const&){ return cm["f"]; });
-        verify_assertion(t, [&](Tree const&){ return cm["g"]["h"]; });
-    }
+    Tree t = parse_in_arena("[0, 1, 2, 3, 4]");
+    Tree &m = t;
+    Tree const& cm = t;
+    EXPECT_EQ(m[0].val(), "0");
+    EXPECT_EQ(m[1].val(), "1");
+    EXPECT_EQ(m[2].val(), "2");
+    EXPECT_EQ(m[3].val(), "3");
+    EXPECT_EQ(m[4].val(), "4");
+    EXPECT_EQ(cm[0].val(), "0");
+    EXPECT_EQ(cm[1].val(), "1");
+    EXPECT_EQ(cm[2].val(), "2");
+    EXPECT_EQ(cm[3].val(), "3");
+    EXPECT_EQ(cm[4].val(), "4");
+    //
+    EXPECT_TRUE(m[0]  == "0");
+    EXPECT_TRUE(m[1]  == "1");
+    EXPECT_TRUE(m[2]  == "2");
+    EXPECT_TRUE(m[3]  == "3");
+    EXPECT_TRUE(m[4]  == "4");
+    EXPECT_TRUE(cm[0] == "0");
+    EXPECT_TRUE(cm[1] == "1");
+    EXPECT_TRUE(cm[2] == "2");
+    EXPECT_TRUE(cm[3] == "3");
+    EXPECT_TRUE(cm[4] == "4");
+    //
+    EXPECT_FALSE(m[0]  != "0");
+    EXPECT_FALSE(m[1]  != "1");
+    EXPECT_FALSE(m[2]  != "2");
+    EXPECT_FALSE(m[3]  != "3");
+    EXPECT_FALSE(m[4]  != "4");
+    EXPECT_FALSE(cm[0] != "0");
+    EXPECT_FALSE(cm[1] != "1");
+    EXPECT_FALSE(cm[2] != "2");
+    EXPECT_FALSE(cm[3] != "3");
+    EXPECT_FALSE(cm[4] != "4");
+    //
+    verify_assertion(t, [&](Tree const&){ return cm[m.capacity()]; });
+    verify_assertion(t, [&](Tree const&){ return cm[NONE]; });
+    verify_assertion(t, [&](Tree const&){ return cm[0][0]; });
+    verify_assertion(t, [&](Tree const&){ return cm["a"]; });
 }
 
-TEST(Tree, noderef_at)
+TEST(Tree, operator_square_brackets_map)
 {
-    {
-        Tree t = parse_in_arena("[0, 1, 2, 3, 4]");
-        NodeRef m = t.rootref();
-        ConstNodeRef const cm = t.rootref();
-        EXPECT_EQ(m.at(0).val(), "0");
-        EXPECT_EQ(m.at(1).val(), "1");
-        EXPECT_EQ(m.at(2).val(), "2");
-        EXPECT_EQ(m.at(3).val(), "3");
-        EXPECT_EQ(m.at(4).val(), "4");
-        EXPECT_EQ(cm.at(0).val(), "0");
-        EXPECT_EQ(cm.at(1).val(), "1");
-        EXPECT_EQ(cm.at(2).val(), "2");
-        EXPECT_EQ(cm.at(3).val(), "3");
-        EXPECT_EQ(cm.at(4).val(), "4");
-        //
-        EXPECT_TRUE(m.at(0)  == "0");
-        EXPECT_TRUE(m.at(1)  == "1");
-        EXPECT_TRUE(m.at(2)  == "2");
-        EXPECT_TRUE(m.at(3)  == "3");
-        EXPECT_TRUE(m.at(4)  == "4");
-        EXPECT_TRUE(cm.at(0) == "0");
-        EXPECT_TRUE(cm.at(1) == "1");
-        EXPECT_TRUE(cm.at(2) == "2");
-        EXPECT_TRUE(cm.at(3) == "3");
-        EXPECT_TRUE(cm.at(4) == "4");
-        //
-        EXPECT_FALSE(m.at(0)  != "0");
-        EXPECT_FALSE(m.at(1)  != "1");
-        EXPECT_FALSE(m.at(2)  != "2");
-        EXPECT_FALSE(m.at(3)  != "3");
-        EXPECT_FALSE(m.at(4)  != "4");
-        EXPECT_FALSE(cm.at(0) != "0");
-        EXPECT_FALSE(cm.at(1) != "1");
-        EXPECT_FALSE(cm.at(2) != "2");
-        EXPECT_FALSE(cm.at(3) != "3");
-        EXPECT_FALSE(cm.at(4) != "4");
-        //
-        //TODO: Not sure what to replace with capacity
-        //verify_error(t, [&](Tree const&){ return cm[m.capacity()]; });
-        verify_error(t, [&](Tree const&){ return cm.at(NONE); });
-        verify_error(t, [&](Tree const&){ return cm.at(0).at(0); });
-        verify_error(t, [&](Tree const&){ return cm.at("a"); });
-    }
-    {
-        Tree t = parse_in_arena("{a: 0, b: 1, c: 2, d: 3, e: 4}");
-        NodeRef m = t.rootref();
-        ConstNodeRef const cm = t.rootref();
-        EXPECT_EQ(m.at("a").val(), "0");
-        EXPECT_EQ(m.at("b").val(), "1");
-        EXPECT_EQ(m.at("c").val(), "2");
-        EXPECT_EQ(m.at("d").val(), "3");
-        EXPECT_EQ(m.at("e").val(), "4");
-        EXPECT_EQ(cm.at("a").val(), "0");
-        EXPECT_EQ(cm.at("b").val(), "1");
-        EXPECT_EQ(cm.at("c").val(), "2");
-        EXPECT_EQ(cm.at("d").val(), "3");
-        EXPECT_EQ(cm.at("e").val(), "4");
-        //
-        EXPECT_TRUE(m.at("a") == "0");
-        EXPECT_TRUE(m.at("b") == "1");
-        EXPECT_TRUE(m.at("c") == "2");
-        EXPECT_TRUE(m.at("d") == "3");
-        EXPECT_TRUE(m.at("e") == "4");
-        EXPECT_TRUE(cm.at("a") == "0");
-        EXPECT_TRUE(cm.at("b") == "1");
-        EXPECT_TRUE(cm.at("c") == "2");
-        EXPECT_TRUE(cm.at("d") == "3");
-        EXPECT_TRUE(cm.at("e") == "4");
-        //
-        EXPECT_FALSE(m.at("a") != "0");
-        EXPECT_FALSE(m.at("b") != "1");
-        EXPECT_FALSE(m.at("c") != "2");
-        EXPECT_FALSE(m.at("d") != "3");
-        EXPECT_FALSE(m.at("e") != "4");
-        EXPECT_FALSE(cm.at("a") != "0");
-        EXPECT_FALSE(cm.at("b") != "1");
-        EXPECT_FALSE(cm.at("c") != "2");
-        EXPECT_FALSE(cm.at("d") != "3");
-        EXPECT_FALSE(cm.at("e") != "4");
-        //
-        verify_error(t, [&](Tree const&){ return cm.at("f"); });
-        verify_error(t, [&](Tree const&){ return cm.at("g").at("h"); });
-    }
+    Tree t = parse_in_arena("{a: 0, b: 1, c: 2, d: 3, e: 4}");
+    Tree &m = t;
+    Tree const& cm = t;
+    EXPECT_EQ(m["a"].val(), "0");
+    EXPECT_EQ(m["b"].val(), "1");
+    EXPECT_EQ(m["c"].val(), "2");
+    EXPECT_EQ(m["d"].val(), "3");
+    EXPECT_EQ(m["e"].val(), "4");
+    EXPECT_EQ(cm["a"].val(), "0");
+    EXPECT_EQ(cm["b"].val(), "1");
+    EXPECT_EQ(cm["c"].val(), "2");
+    EXPECT_EQ(cm["d"].val(), "3");
+    EXPECT_EQ(cm["e"].val(), "4");
+    //
+    EXPECT_TRUE(m["a"] == "0");
+    EXPECT_TRUE(m["b"] == "1");
+    EXPECT_TRUE(m["c"] == "2");
+    EXPECT_TRUE(m["d"] == "3");
+    EXPECT_TRUE(m["e"] == "4");
+    EXPECT_TRUE(cm["a"] == "0");
+    EXPECT_TRUE(cm["b"] == "1");
+    EXPECT_TRUE(cm["c"] == "2");
+    EXPECT_TRUE(cm["d"] == "3");
+    EXPECT_TRUE(cm["e"] == "4");
+    //
+    EXPECT_FALSE(m["a"] != "0");
+    EXPECT_FALSE(m["b"] != "1");
+    EXPECT_FALSE(m["c"] != "2");
+    EXPECT_FALSE(m["d"] != "3");
+    EXPECT_FALSE(m["e"] != "4");
+    EXPECT_FALSE(cm["a"] != "0");
+    EXPECT_FALSE(cm["b"] != "1");
+    EXPECT_FALSE(cm["c"] != "2");
+    EXPECT_FALSE(cm["d"] != "3");
+    EXPECT_FALSE(cm["e"] != "4");
+    //
+    verify_assertion(t, [&](Tree const&){ return cm["f"]; });
+    verify_assertion(t, [&](Tree const&){ return cm["g"]["h"]; });
+}
+
+TEST(Tree, noderef_at_seq)
+{
+    Tree t = parse_in_arena("[0, 1, 2, 3, 4]");
+    NodeRef m = t.rootref();
+    ConstNodeRef const cm = t.rootref();
+    EXPECT_EQ(m.at(0).val(), "0");
+    EXPECT_EQ(m.at(1).val(), "1");
+    EXPECT_EQ(m.at(2).val(), "2");
+    EXPECT_EQ(m.at(3).val(), "3");
+    EXPECT_EQ(m.at(4).val(), "4");
+    EXPECT_EQ(cm.at(0).val(), "0");
+    EXPECT_EQ(cm.at(1).val(), "1");
+    EXPECT_EQ(cm.at(2).val(), "2");
+    EXPECT_EQ(cm.at(3).val(), "3");
+    EXPECT_EQ(cm.at(4).val(), "4");
+    //
+    EXPECT_TRUE(m.at(0)  == "0");
+    EXPECT_TRUE(m.at(1)  == "1");
+    EXPECT_TRUE(m.at(2)  == "2");
+    EXPECT_TRUE(m.at(3)  == "3");
+    EXPECT_TRUE(m.at(4)  == "4");
+    EXPECT_TRUE(cm.at(0) == "0");
+    EXPECT_TRUE(cm.at(1) == "1");
+    EXPECT_TRUE(cm.at(2) == "2");
+    EXPECT_TRUE(cm.at(3) == "3");
+    EXPECT_TRUE(cm.at(4) == "4");
+    //
+    EXPECT_FALSE(m.at(0)  != "0");
+    EXPECT_FALSE(m.at(1)  != "1");
+    EXPECT_FALSE(m.at(2)  != "2");
+    EXPECT_FALSE(m.at(3)  != "3");
+    EXPECT_FALSE(m.at(4)  != "4");
+    EXPECT_FALSE(cm.at(0) != "0");
+    EXPECT_FALSE(cm.at(1) != "1");
+    EXPECT_FALSE(cm.at(2) != "2");
+    EXPECT_FALSE(cm.at(3) != "3");
+    EXPECT_FALSE(cm.at(4) != "4");
+    //
+    EXPECT_EQ(cm.num_children(), 5);
+    EXPECT_EQ(cm.num_children(), m.num_children());
+    //
+    verify_error(t, [&](Tree const&){ return cm.at(NONE); });
+    verify_error(t, [&](Tree const&){ return cm.at(t.capacity()); });
+    verify_error(t, [&](Tree const&){ return cm.at(5); });
+    verify_error(t, [&](Tree const&){ return cm.at(6); });
+    verify_error(t, [&](Tree const&){ return cm.at(7); });
+    verify_error(t, [&](Tree const&){ return cm.at(10); });
+    verify_error(t, [&](Tree const&){ return cm.at(0).at(0); });
+    verify_error(t, [&](Tree const&){ return cm.at("a"); });
+    //
+    verify_error(t, [&](Tree const&){ return m.at(NONE); });
+    verify_error(t, [&](Tree const&){ return m.at(t.capacity()); });
+    verify_success(t, [&](Tree const&){ return m.at(5); });
+    verify_success(t, [&](Tree const&){ return m.at(6); });
+    verify_error(t, [&](Tree const&){ return m.at(0).at(0); });
+    verify_error(t, [&](Tree const&){ return m.at("a"); });
+    EXPECT_TRUE(m.at(5).is_seed());
+    EXPECT_TRUE(m.at(6).is_seed());
+    //
+    NodeRef to_be_removed_orig = m.at(4);
+    NodeRef to_be_removed = to_be_removed_orig;
+    EXPECT_EQ(to_be_removed.id(), 5);
+    EXPECT_EQ(to_be_removed_orig.id(), 5);
+    m.remove_child(to_be_removed);
+    EXPECT_EQ(to_be_removed.id(), 5); // it is stale now
+    EXPECT_EQ(to_be_removed_orig.id(), 5); // it is stale now
+    EXPECT_EQ(m.num_children(), 4);
+    EXPECT_TRUE(m.at(4).is_seed());
+    verify_success(t, [&](Tree const&){ return m.at(4); });
+    verify_error(t, [&](Tree const&){ return cm.at(4); });
+}
+
+TEST(Tree, noderef_at_map)
+{
+    Tree t = parse_in_arena("{a: 0, b: 1, c: 2, d: 3, e: 4}");
+    NodeRef m = t.rootref();
+    ConstNodeRef const cm = t.rootref();
+    EXPECT_EQ(m.at("a").val(), "0");
+    EXPECT_EQ(m.at("b").val(), "1");
+    EXPECT_EQ(m.at("c").val(), "2");
+    EXPECT_EQ(m.at("d").val(), "3");
+    EXPECT_EQ(m.at("e").val(), "4");
+    EXPECT_EQ(cm.at("a").val(), "0");
+    EXPECT_EQ(cm.at("b").val(), "1");
+    EXPECT_EQ(cm.at("c").val(), "2");
+    EXPECT_EQ(cm.at("d").val(), "3");
+    EXPECT_EQ(cm.at("e").val(), "4");
+    //
+    EXPECT_TRUE(m.at("a") == "0");
+    EXPECT_TRUE(m.at("b") == "1");
+    EXPECT_TRUE(m.at("c") == "2");
+    EXPECT_TRUE(m.at("d") == "3");
+    EXPECT_TRUE(m.at("e") == "4");
+    EXPECT_TRUE(cm.at("a") == "0");
+    EXPECT_TRUE(cm.at("b") == "1");
+    EXPECT_TRUE(cm.at("c") == "2");
+    EXPECT_TRUE(cm.at("d") == "3");
+    EXPECT_TRUE(cm.at("e") == "4");
+    //
+    EXPECT_FALSE(m.at("a") != "0");
+    EXPECT_FALSE(m.at("b") != "1");
+    EXPECT_FALSE(m.at("c") != "2");
+    EXPECT_FALSE(m.at("d") != "3");
+    EXPECT_FALSE(m.at("e") != "4");
+    EXPECT_FALSE(cm.at("a") != "0");
+    EXPECT_FALSE(cm.at("b") != "1");
+    EXPECT_FALSE(cm.at("c") != "2");
+    EXPECT_FALSE(cm.at("d") != "3");
+    EXPECT_FALSE(cm.at("e") != "4");
+    //
+    verify_error(t, [&](Tree const&){ return cm.at(t.capacity()); });
+    verify_error(t, [&](Tree const&){ return cm.at(NONE); });
+    verify_error(t, [&](Tree const&){ return cm.at(cm.num_children()); });
+    verify_error(t, [&](Tree const&){ return cm.at(5); });
+    verify_error(t, [&](Tree const&){ return cm.at(6); });
+    verify_error(t, [&](Tree const&){ return cm.at("f"); });
+    verify_error(t, [&](Tree const&){ return cm.at("g").at("h"); });
+    //
+    verify_error(t, [&](Tree const&){ return m.at(t.capacity()); });
+    verify_error(t, [&](Tree const&){ return m.at(NONE); });
+    verify_success(t, [&](Tree const&){ return m.at(cm.num_children()); });
+    verify_success(t, [&](Tree const&){ return m.at(5); });
+    verify_success(t, [&](Tree const&){ return m.at(6); });
+    verify_success(t, [&](Tree const&){ return m.at("f"); });
+    verify_error(t, [&](Tree const&){ return m.at("g").at("h"); });
+    EXPECT_TRUE(m.at(cm.num_children()).is_seed());
+    EXPECT_TRUE(m.at(5).is_seed());
+    EXPECT_TRUE(m.at(6).is_seed());
+    EXPECT_TRUE(m.at("f").is_seed());
 }
 
 TEST(Tree, relocate)
