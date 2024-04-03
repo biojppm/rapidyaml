@@ -851,7 +851,7 @@ void verify_assertion(csubstr src, Function &&fn)
 template<class Function>
 void verify_error(Tree &tree, Function &&fn)
 {
-    ExpectError::verify_error(&tree, [&]{
+    ExpectError::do_check(&tree, [&]{
         (void)fn(tree);
     });
 }
@@ -859,7 +859,7 @@ template<class Function>
 void verify_error(csubstr src, Function &&fn)
 {
     Tree tree = parse_in_arena(src);
-    ExpectError::verify_error(&tree, [&]{
+    ExpectError::do_check(&tree, [&]{
         (void)fn(tree);
     });
 }
