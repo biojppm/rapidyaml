@@ -7,8 +7,11 @@
   - Although the code is and was extensively tested, the testing was addressing mostly the happy path. In the fix, I added tests to ensure that the error behavior is as intended.
   - Together with this changeset, a major revision was carried out of the asserting/checking status of each function in the node classes. In most cases, assertions were added to cases that were missing them. So **beware** - user code that was invalid will now assert or error out. Also, assertions and checks are now directed as much as possible to the callbacks of the closest scope, ie if a tree has custom callbacks, errors should go through those callbacks.
   - Also, the intended assertion behavior is now in place: *no assertions in release builds*. **Beware** as well - user code which was relying on this will now silently succeed and return garbage in release builds. See the next points, which may help:
-  - A new method was added to the node class:
-  ```c++
+  - Added new methods to the node class:
+    ```c++
+    /** Distinguish between a valid seed vs a valid non-seed ref. */
+    bool readable() const { return valid() && !is_seed(); }
+
     /** Get a child by name, with error checking; complexity is
      * O(num_children).
      *
@@ -18,8 +21,8 @@
      * readable, or when it is not a map. This behaviour is similar to
      * std::vector::at(), but the error consists in calling the error
      * callback instead of directly raising an exception. */
-   ConstNodeRef ConstNodeRef::at(csubstr key) const;
-   ConstNodeRef NodeRef::at(csubstr key) const;
+    ConstNodeRef ConstNodeRef::at(csubstr key) const;
+    ConstNodeRef NodeRef::at(csubstr key) const;
 
     /** Get a child by position, with error checking; complexity is
      * O(pos).
@@ -30,9 +33,9 @@
      * it is not a map. This behaviour is similar to
      * std::vector::at(), but the error consists in calling the error
      * callback instead of directly raising an exception. */
-  ConstNodeRef ConstNodeRef::at(size_t pos) const;
-  ConstNodeRef NodeRef::at(size_t pos) const;
-  ```
+    ConstNodeRef ConstNodeRef::at(size_t pos) const;
+   ConstNodeRef NodeRef::at(size_t pos) const;
+   ```
   - Added macros and respective cmake options to control error handling:
     - `RYML_USE_ASSERT` - enable assertions regardless of build type. This is disabled by default.
     - `RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS` - defines the same macro, which will make the default error handler provided by ryml throw exceptions instead of calling `std::abort()`. This is disabled by default.
