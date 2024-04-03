@@ -175,6 +175,8 @@ struct ExpectError
     static void check_assertion(Tree *tree, std::function<void()> fn, Location expected={});
     static void check_success(std::function<void()> fn) { check_success(nullptr, fn); }
     static void check_success(Tree *tree, std::function<void()> fn);
+    static void verify_error(            std::function<void()> fn, Location expected={}) { verify_error(nullptr, fn, expected); }
+    static void verify_error(Tree *tree, std::function<void()> fn, Location expected={});
 };
 
 
