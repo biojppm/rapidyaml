@@ -848,6 +848,22 @@ void verify_assertion(csubstr src, Function &&fn)
     });
 }
 
+template<class Function>
+void verify_error(Tree &tree, Function &&fn)
+{
+    ExpectError::verify_error(&tree, [&]{
+        (void)fn(tree);
+    });
+}
+template<class Function>
+void verify_error(csubstr src, Function &&fn)
+{
+    Tree tree = parse_in_arena(src);
+    ExpectError::verify_error(&tree, [&]{
+        (void)fn(tree);
+    });
+}
+
 
 TEST(Tree, ref)
 {
@@ -1027,10 +1043,10 @@ TEST(Tree, noderef_at)
         EXPECT_FALSE(cm.at(4) != "4");
         //
         //TODO: Not sure what to replace with capacity
-        //verify_assertion(t, [&](Tree const&){ return cm[m.capacity()]; });
-        verify_assertion(t, [&](Tree const&){ return cm.at(NONE); });
-        verify_assertion(t, [&](Tree const&){ return cm.at(0).at(0); });
-        verify_assertion(t, [&](Tree const&){ return cm.at("a"); });
+        //verify_error(t, [&](Tree const&){ return cm[m.capacity()]; });
+        verify_error(t, [&](Tree const&){ return cm.at(NONE); });
+        verify_error(t, [&](Tree const&){ return cm.at(0).at(0); });
+        verify_error(t, [&](Tree const&){ return cm.at("a"); });
     }
     {
         Tree t = parse_in_arena("{a: 0, b: 1, c: 2, d: 3, e: 4}");
@@ -1069,8 +1085,8 @@ TEST(Tree, noderef_at)
         EXPECT_FALSE(cm.at("d") != "3");
         EXPECT_FALSE(cm.at("e") != "4");
         //
-        verify_assertion(t, [&](Tree const&){ return cm.at("f"); });
-        verify_assertion(t, [&](Tree const&){ return cm.at("g").at("h"); });
+        verify_error(t, [&](Tree const&){ return cm.at("f"); });
+        verify_error(t, [&](Tree const&){ return cm.at("g").at("h"); });
     }
 }
 

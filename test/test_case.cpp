@@ -269,6 +269,11 @@ void ExpectError::check_assertion(Tree *tree, std::function<void()> fn, Location
     #endif
 }
 
+void ExpectError::verify_error(Tree *tree, std::function<void()> fn, Location expected_location)
+{
+    ExpectError::do_check(tree, fn, expected_location);
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
