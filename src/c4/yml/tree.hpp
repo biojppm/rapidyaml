@@ -339,7 +339,7 @@ public:
 
     void clear() noexcept { tag.clear(); scalar.clear(); anchor.clear(); }
 
-    void set_ref_maybe_replacing_scalar(csubstr ref, bool has_scalar) noexcept
+    void set_ref_maybe_replacing_scalar(csubstr ref, bool has_scalar) RYML_NOEXCEPT
     {
         csubstr trimmed = ref.begins_with('*') ? ref.sub(1) : ref;
         anchor = trimmed;

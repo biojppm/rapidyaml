@@ -51,7 +51,7 @@ public:
         _free();
     }
 
-    stack(stack const& that) noexcept : stack(that.m_callbacks)
+    stack(stack const& that) RYML_NOEXCEPT : stack(that.m_callbacks)
     {
         resize(that.m_size);
         _cp(&that);
@@ -62,7 +62,7 @@ public:
         _mv(&that);
     }
 
-    stack& operator= (stack const& that) noexcept
+    stack& operator= (stack const& that) RYML_NOEXCEPT
     {
         _cb(that.m_callbacks);
         resize(that.m_size);
