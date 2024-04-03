@@ -7,6 +7,8 @@
 
 
 #ifndef RYML_USE_ASSERT
+/** define this macro with a boolean value to force enable/disable
+    assertions. This causes a slowdown of the code.*/
 #   define RYML_USE_ASSERT C4_USE_ASSERT
 #endif
 
@@ -24,9 +26,7 @@
 #endif
 
 
-#if defined(NDEBUG) || defined(C4_NO_DEBUG_BREAK) || (!defined(RYML_DBG))
-#   define RYML_DEBUG_BREAK()
-#else
+#if defined(RYML_DBG) && !defined(NDEBUG) && !defined(C4_NO_DEBUG_BREAK)
 #   define RYML_DEBUG_BREAK()                               \
     {                                                       \
         if(c4::get_error_flags() & c4::ON_ERROR_DEBUGBREAK) \
@@ -34,6 +34,8 @@
             C4_DEBUG_BREAK();                               \
         }                                                   \
     }
+#else
+#   define RYML_DEBUG_BREAK()
 #endif
 
 

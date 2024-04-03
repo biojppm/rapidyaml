@@ -1574,6 +1574,7 @@ size_t Tree::child(size_t node, size_t pos) const
 
 size_t Tree::child_pos(size_t node, size_t ch) const
 {
+    _RYML_CB_ASSERT(m_callbacks, node != NONE);
     size_t count = 0;
     for(size_t i = first_child(node); i != NONE; i = next_sibling(i))
     {

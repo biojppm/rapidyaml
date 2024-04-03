@@ -149,6 +149,275 @@ TEST(NodeRef, general)
     EXPECT_EQ(root["b"]["aaa"].val(), "0");
 }
 
+TEST(NodeRef, valid_vs_seed_vs_readable)
+{
+    static_assert(!ConstNodeRef::is_seed(), "ConstNodeRef must never be a seed");
+    Tree tree = parse_in_arena("foo: bar");
+    NodeRef foo = tree["foo"];
+    ConstNodeRef const_foo = tree["foo"];
+    EXPECT_TRUE(foo.valid());
+    EXPECT_FALSE(foo.is_seed());
+    EXPECT_TRUE(foo.readable());
+    EXPECT_TRUE(const_foo.valid());
+    EXPECT_FALSE(const_foo.is_seed());
+    EXPECT_TRUE(const_foo.readable());
+    NodeRef none;
+    EXPECT_FALSE(none.valid());
+    EXPECT_FALSE(none.is_seed());
+    EXPECT_FALSE(none.readable());
+    ConstNodeRef const_none;
+    EXPECT_FALSE(const_none.valid());
+    EXPECT_FALSE(const_none.is_seed());
+    EXPECT_FALSE(const_none.readable());
+    none = tree["none"];
+    EXPECT_TRUE(none.valid());
+    EXPECT_TRUE(none.is_seed());
+    EXPECT_FALSE(none.readable());
+    ASSERT_FALSE(tree.rootref().has_child(none));
+    const_none = tree["none"];
+    EXPECT_FALSE(const_none.valid());
+    EXPECT_FALSE(const_none.is_seed());
+    EXPECT_TRUE(none.is_seed());
+    EXPECT_FALSE(none.readable());
+}
+
+#define _TEST_FAIL_READ(method_expr)                                    \
+    {                                                                   \
+        SCOPED_TRACE(#method_expr);                                     \
+        std::cout << __FILE__ << ":" << __LINE__ << ": " << #method_expr << "\n"; \
+        if(tree)                                                        \
+            ExpectError::check_assertion(tree, [&]{ return method_expr; }); \
+        else                                                            \
+            ExpectError::check_assertion([&]{ return method_expr; });   \
+    }
+#define _TEST_SUCCEED_READ(method_expr)                                 \
+    {                                                                   \
+        SCOPED_TRACE(#method_expr);                                     \
+        std::cout << __FILE__ << ":" << __LINE__ << ": " << #method_expr << "\n"; \
+        if(tree)                                                        \
+            ExpectError::check_success(tree, [&]{ return method_expr; }); \
+        else                                                            \
+            ExpectError::check_success([&]{ return method_expr; });     \
+    }
+template<class NodeT>
+void test_fail_read(Tree *tree, NodeT node)
+{
+    _TEST_SUCCEED_READ(node.get())
+    _TEST_FAIL_READ(node.type())
+    _TEST_FAIL_READ(node.type_str())
+    _TEST_FAIL_READ(node.key())
+    _TEST_FAIL_READ(node.key_tag())
+    _TEST_FAIL_READ(node.key_anchor())
+    _TEST_FAIL_READ(node.key_ref())
+    _TEST_FAIL_READ(node.key_is_null())
+    _TEST_FAIL_READ(node.keysc())
+    _TEST_FAIL_READ(node.val())
+    _TEST_FAIL_READ(node.val_tag())
+    _TEST_FAIL_READ(node.val_anchor())
+    _TEST_FAIL_READ(node.val_ref())
+    _TEST_FAIL_READ(node.val_is_null())
+    _TEST_FAIL_READ(node.valsc())
+    _TEST_FAIL_READ(node.is_map())
+    _TEST_FAIL_READ(node.empty())
+    _TEST_FAIL_READ(node.is_stream())
+    _TEST_FAIL_READ(node.is_doc())
+    _TEST_FAIL_READ(node.is_container())
+    _TEST_FAIL_READ(node.is_map())
+    _TEST_FAIL_READ(node.is_seq())
+    _TEST_FAIL_READ(node.has_val())
+    _TEST_FAIL_READ(node.has_key())
+    _TEST_FAIL_READ(node.is_keyval())
+    _TEST_FAIL_READ(node.has_key_tag())
+    _TEST_FAIL_READ(node.has_val_tag())
+    _TEST_FAIL_READ(node.has_key_anchor())
+    _TEST_FAIL_READ(node.has_val_anchor())
+    _TEST_FAIL_READ(node.is_val_anchor())
+    _TEST_FAIL_READ(node.has_anchor())
+    _TEST_FAIL_READ(node.is_anchor())
+    _TEST_FAIL_READ(node.is_key_ref())
+    _TEST_FAIL_READ(node.is_val_ref())
+    _TEST_FAIL_READ(node.is_ref())
+    _TEST_FAIL_READ(node.is_anchor_or_ref())
+    _TEST_FAIL_READ(node.is_key_quoted())
+    _TEST_FAIL_READ(node.is_val_quoted())
+    _TEST_FAIL_READ(node.parent_is_seq())
+    _TEST_FAIL_READ(node.parent_is_map())
+    _TEST_FAIL_READ(node.is_root())
+    _TEST_FAIL_READ(node.has_parent())
+    _TEST_FAIL_READ(node.has_child(0))
+    _TEST_FAIL_READ(node.has_child("key"))
+    _TEST_FAIL_READ(node.has_children())
+    _TEST_FAIL_READ(node.has_sibling("key"))
+    _TEST_FAIL_READ(node.has_other_siblings())
+    _TEST_FAIL_READ(node.doc(0))
+    _TEST_FAIL_READ(node.parent())
+    _TEST_FAIL_READ(node.num_children())
+    _TEST_FAIL_READ(node.first_child())
+    _TEST_FAIL_READ(node.last_child())
+    _TEST_FAIL_READ(node.child(0))
+    _TEST_FAIL_READ(node.find_child("key"))
+    _TEST_FAIL_READ(node.prev_sibling())
+    _TEST_FAIL_READ(node.next_sibling())
+    _TEST_FAIL_READ(node.first_sibling())
+    _TEST_FAIL_READ(node.last_sibling())
+    _TEST_FAIL_READ(node.sibling(0))
+    _TEST_FAIL_READ(node.find_sibling("key"))
+    _TEST_FAIL_READ(node.num_children())
+    _TEST_FAIL_READ(node.num_siblings())
+    _TEST_FAIL_READ(node.num_other_siblings())
+    _TEST_FAIL_READ(node["key"])
+    _TEST_FAIL_READ(node[0])
+    _TEST_FAIL_READ(node.at("key"))
+    _TEST_FAIL_READ(node.at(0))
+    int val;
+    _TEST_FAIL_READ(node >> val)
+    _TEST_FAIL_READ(node >> key(val))
+    _TEST_FAIL_READ(node >> fmt::base64(val))
+    _TEST_FAIL_READ(node >> key(fmt::base64(val)))
+    _TEST_FAIL_READ(node.deserialize_key(fmt::base64(val)))
+    _TEST_FAIL_READ(node.deserialize_val(fmt::base64(val)))
+    _TEST_FAIL_READ(node.get_if("key", &val));
+    _TEST_FAIL_READ(node.get_if("key", &val, 0));
+    const NodeT const_node = node;
+    _TEST_FAIL_READ(node.begin());
+    _TEST_FAIL_READ(node.cbegin());
+    _TEST_FAIL_READ(const_node.begin());
+    _TEST_FAIL_READ(const_node.cbegin());
+    _TEST_FAIL_READ(node.end());
+    _TEST_FAIL_READ(node.end());
+    _TEST_FAIL_READ(const_node.end());
+    _TEST_FAIL_READ(const_node.end());
+    _TEST_FAIL_READ(node.children());
+    _TEST_FAIL_READ(node.children());
+    _TEST_FAIL_READ(const_node.children());
+    _TEST_FAIL_READ(const_node.children());
+    _TEST_FAIL_READ(node.siblings());
+    _TEST_FAIL_READ(node.siblings());
+    _TEST_FAIL_READ(const_node.siblings());
+    _TEST_FAIL_READ(const_node.siblings());
+    //_TEST_FAIL_READ(node.visit([](NodeT &n, size_t level){ (void)n; (void)level; return false; }));
+    //_TEST_FAIL_READ(const_node.visit([](const NodeT &n, size_t level){ (void)n; (void)level; return false; }));
+    _TEST_SUCCEED_READ(const_node == node);
+    _TEST_SUCCEED_READ(const_node != node);
+    _TEST_SUCCEED_READ(const_node == nullptr);
+    _TEST_SUCCEED_READ(const_node != nullptr);
+    _TEST_FAIL_READ(const_node == "val");
+    _TEST_FAIL_READ(const_node != "val");
+    if(std::is_same<NodeT, NodeRef>::value)
+    {
+        ConstNodeRef other;
+        _TEST_SUCCEED_READ(node == other);
+        _TEST_SUCCEED_READ(node != node);
+    }
+}
+template<class NodeT>
+void test_fail_read_subject(Tree *tree, NodeT node, NodeT subject)
+{
+    if(node.readable())
+    {
+        _TEST_SUCCEED_READ(node.has_child(subject))
+        _TEST_SUCCEED_READ(node.has_sibling(subject))
+    }
+    else
+    {
+        _TEST_FAIL_READ(node.has_child(subject))
+        _TEST_FAIL_READ(node.has_sibling(subject))
+    }
+    _TEST_FAIL_READ(node.child_pos(subject))
+    _TEST_FAIL_READ(node.sibling_pos(subject))
+}
+#undef _TEST_FAIL_READ
+#undef _TEST_SUCCEED_READ
+
+TEST(NodeRef, cannot_read_from_invalid)
+{
+    SCOPED_TRACE("here");
+    NodeRef none;
+    ASSERT_EQ(none.tree(), nullptr);
+    ASSERT_EQ(none.id(), NONE);
+    EXPECT_FALSE(none.valid());
+    EXPECT_FALSE(none.is_seed());
+    EXPECT_FALSE(none.readable());
+    test_fail_read(nullptr, none);
+    test_fail_read_subject(nullptr, none, none);
+}
+
+TEST(NodeRef, cannot_read_from_invalid_subject)
+{
+    SCOPED_TRACE("here");
+    NodeRef none;
+    Tree tree = parse_in_arena("foo: bar");
+    test_fail_read_subject(&tree, tree["foo"], none);
+}
+
+TEST(ConstNodeRef, cannot_read_from_invalid)
+{
+    SCOPED_TRACE("here");
+    ConstNodeRef const_none;
+    ASSERT_EQ(const_none.tree(), nullptr);
+    ASSERT_EQ(const_none.id(), NONE);
+    EXPECT_FALSE(const_none.valid());
+    EXPECT_FALSE(const_none.is_seed());
+    EXPECT_FALSE(const_none.readable());
+    test_fail_read(nullptr, const_none);
+    test_fail_read_subject(nullptr, const_none, const_none);
+    Tree tree = parse_in_arena("foo: bar");
+    ConstNodeRef foo = tree["foo"];
+    test_fail_read_subject(&tree, foo, const_none);
+}
+
+TEST(ConstNodeRef, cannot_read_from_invalid_subject)
+{
+    SCOPED_TRACE("here");
+    Tree tree = parse_in_arena("foo: bar");
+    ConstNodeRef foo = tree["foo"];
+    ConstNodeRef const_none;
+    test_fail_read_subject(&tree, foo, const_none);
+}
+
+TEST(NodeRef, cannot_read_from_seed)
+{
+    SCOPED_TRACE("here");
+    Tree tree = parse_in_arena("foo: bar");
+    NodeRef none = tree["none"];
+    ASSERT_EQ(none.tree(), &tree);
+    ASSERT_EQ(none.id(), 0);
+    EXPECT_TRUE(none.valid());
+    EXPECT_TRUE(none.is_seed());
+    EXPECT_FALSE(none.readable());
+    test_fail_read(&tree, none);
+    test_fail_read_subject(&tree, none, none);
+}
+
+TEST(NodeRef, cannot_read_from_seed_subject)
+{
+    SCOPED_TRACE("here");
+    Tree tree = parse_in_arena("foo: bar");
+    NodeRef none = tree["none"];
+    ASSERT_EQ(none.tree(), &tree);
+    ASSERT_EQ(none.id(), 0);
+    EXPECT_TRUE(none.valid());
+    EXPECT_TRUE(none.is_seed());
+    EXPECT_FALSE(none.readable());
+    test_fail_read(&tree, none);
+    test_fail_read_subject(&tree, none, none);
+}
+
+TEST(ConstNodeRef, cannot_read_from_seed_subject)
+{
+    SCOPED_TRACE("here");
+    Tree tree = parse_in_arena("foo: bar");
+    ConstNodeRef const_none = tree["none"];
+    ASSERT_EQ(const_none.tree(), &tree);
+    ASSERT_EQ(const_none.id(), NONE);
+    EXPECT_FALSE(const_none.valid());
+    EXPECT_FALSE(const_none.is_seed());
+    EXPECT_FALSE(const_none.readable());
+    test_fail_read(&tree, const_none);
+    ConstNodeRef foo = tree["foo"];
+    test_fail_read_subject(&tree, foo, const_none);
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
