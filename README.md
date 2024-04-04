@@ -602,7 +602,8 @@ CHECK(root["newmap (serialized)"].is_map());
 // This means that passing a key/index which does not exist will
 // not mutate the tree, but will instead store (in the node) the
 // proper place of the tree to be able to do so, if and when it is
-// required.
+// required. This is why the node is said to be in "seed" state -
+// it allows creating the entry in the tree in the future.
 //
 // This is a significant difference from eg, the behavior of
 // std::map, which mutates the map immediately within the call to
@@ -612,50 +613,67 @@ CHECK(root["newmap (serialized)"].is_map());
 // the tree is const, then a NodeRef cannot be obtained from it;
 // only a ConstNodeRef, which can never be used to mutate the
 // tree.
+//
 CHECK(!root.has_child("I am not nothing"));
 ryml::NodeRef nothing = wroot["I am nothing"];
 CHECK(nothing.valid());   // points at the tree, and a specific place in the tree
 CHECK(nothing.is_seed()); // ... but nothing is there yet.
 CHECK(!root.has_child("I am nothing")); // same as above
+CHECK(!nothing.readable()); // ... and this node cannot be used to
+                            // read anything from the tree
 ryml::NodeRef something = wroot["I am something"];
 ryml::ConstNodeRef constsomething = wroot["I am something"];
 CHECK(!root.has_child("I am something")); // same as above
 CHECK(something.valid());
 CHECK(something.is_seed()); // same as above
-CHECK(!constsomething.valid()); // NOTE: because a ConstNodeRef
-                                // cannot be used to mutate a
-                                // tree, it is only valid() if it
-                                // is pointing at an existing
-                                // node.
-something = "indeed";  // this will commit to the tree, mutating at the proper place
+CHECK(!something.readable()); // same as above
+CHECK(!constsomething.valid()); // NOTE: because a ConstNodeRef cannot be
+                                // used to mutate a tree, it is only valid()
+                                // if it is pointing at an existing node.
+something = "indeed";  // this will commit the seed to the tree, mutating at the proper place
 CHECK(root.has_child("I am something"));
 CHECK(root["I am something"].val() == "indeed");
-CHECK(something.valid());
+CHECK(something.valid()); // it was already valid
 CHECK(!something.is_seed()); // now the tree has this node, so the
                              // ref is no longer a seed
+CHECK(something.readable()); // and it is now readable
+//
 // now the constref is also valid (but it needs to be reassigned):
 ryml::ConstNodeRef constsomethingnew = wroot["I am something"];
 CHECK(constsomethingnew.valid());
+CHECK(constsomethingnew.readable());
 // note that the old constref is now stale, because it only keeps
 // the state at creation:
 CHECK(!constsomething.valid());
+CHECK(!constsomething.readable());
+//
+// -----------------------------------------------------------
+// Remember: a seed node cannot be used to read from the tree!
+// -----------------------------------------------------------
+//
+// The seed node needs to be created and become readable first.
+//
+// Trying to invoke any tree-reading method on a node that is not
+// readable will cause an assertion (see RYML_USE_ASSERT).
+//
+// It is your responsibility to verify that the preconditions are
+// met. If you are not sure about the structure of your data,
+// write your code defensively to signify your full intent:
+//
+ryml::NodeRef wbar = wroot["bar"];
+if(wbar.readable() && wbar.is_seq()) // .is_seq() requires .readable()
+{
+    CHECK(wbar[0].readable() && wbar[0].val() == "20");
+    CHECK( ! wbar[100].readable() || wbar[100].val() == "100"); // <- no crash because it is not .readable(), so never tries to call .val()
+    // this would work as well:
+    CHECK( ! wbar[0].is_seed() && wbar[0].val() == "20");
+    CHECK(wbar[100].is_seed() || wbar[100].val() == "100");
+}
 
 
 //------------------------------------------------------------------
 // Emitting:
 
-// emit to a FILE*
-ryml::emit_yaml(tree, stdout);
-// emit to a stream
-std::stringstream ss;
-ss << tree;
-std::string stream_result = ss.str();
-// emit to a buffer:
-std::string str_result = ryml::emitrs_yaml<std::string>(tree);
-// can emit to any given buffer:
-char buf[1024];
-ryml::csubstr buf_result = ryml::emit_yaml(tree, buf);
-// now check
 ryml::csubstr expected_result = R"(foo: says who
 bar:
 - 20
@@ -673,11 +691,25 @@ newmap: {}
 newmap (serialized): {}
 I am something: indeed
 )";
+
+// emit to a FILE*
+ryml::emit_yaml(tree, stdout);
+// emit to a stream
+std::stringstream ss;
+ss << tree;
+std::string stream_result = ss.str();
+// emit to a buffer:
+std::string str_result = ryml::emitrs_yaml<std::string>(tree);
+// can emit to any given buffer:
+char buf[1024];
+ryml::csubstr buf_result = ryml::emit_yaml(tree, buf);
+// now check
 CHECK(buf_result == expected_result);
 CHECK(str_result == expected_result);
 CHECK(stream_result == expected_result);
 // There are many possibilities to emit to buffer;
 // please look at the emit sample functions below.
+
 
 //------------------------------------------------------------------
 // ConstNodeRef vs NodeRef
@@ -724,6 +756,8 @@ zh: 行星（气体）
 # as per the YAML standard
 decode this: "\u263A \xE2\x98\xBA"
 and this as well: "\u2705 \U0001D11E"
+not decoded: '\u263A \xE2\x98\xBA'
+neither this: '\u2705 \U0001D11E'
 )");
 // in-place UTF8 just works:
 CHECK(langs["en"].val() == "Planet (Gas)");
@@ -731,11 +765,13 @@ CHECK(langs["fr"].val() == "Planète (Gazeuse)");
 CHECK(langs["ru"].val() == "Планета (Газ)");
 CHECK(langs["ja"].val() == "惑星（ガス）");
 CHECK(langs["zh"].val() == "行星（气体）");
-// and \x \u \U codepoints are decoded (but only when they appear
+// and \x \u \U codepoints are decoded, but only when they appear
 // inside double-quoted strings, as dictated by the YAML
-// standard):
+// standard:
 CHECK(langs["decode this"].val() == "☺ ☺");
 CHECK(langs["and this as well"].val() == "✅ 𝄞");
+CHECK(langs["not decoded"].val() == "\\u263A \\xE2\\x98\\xBA");
+CHECK(langs["neither this"].val() == "\\u2705 \\U0001D11E");
 
 //------------------------------------------------------------------
 // Getting the location of nodes in the source:
@@ -749,446 +785,8 @@ ryml::Location loc = parser.location(tree2["bar"][1]);
 CHECK(parser.location_contents(loc).begins_with("30"));
 CHECK(loc.line == 3u);
 CHECK(loc.col == 4u);
-// Parse YAML code in place, potentially mutating the buffer.
-// It is also possible to:
-//   - parse a read-only buffer using parse_in_arena()
-//   - reuse an existing tree (advised)
-//   - reuse an existing parser (advised)
-char yml_buf[] = "{foo: 1, bar: [2, 3], john: doe}";
-ryml::Tree tree = ryml::parse_in_place(yml_buf);
-
-// Note: it will always be significantly faster to use mutable
-// buffers and reuse tree+parser.
-//
-// Below you will find samples that show how to achieve reuse; but
-// please note that for brevity and clarity, many of the examples
-// here are parsing immutable buffers, and not reusing tree or
-// parser.
-
-
-//------------------------------------------------------------------
-// API overview
-
-// ryml has a two-level API:
-//
-// The lower level index API is based on the indices of nodes,
-// where the node's id is the node's position in the tree's data
-// array. This API is very efficient, but somewhat difficult to use:
-size_t root_id = tree.root_id();
-size_t bar_id = tree.find_child(root_id, "bar"); // need to get the index right
-CHECK(tree.is_map(root_id)); // all of the index methods are in the tree
-CHECK(tree.is_seq(bar_id));  // ... and receive the subject index
-
-// The node API is a lightweight abstraction sitting on top of the
-// index API, but offering a much more convenient interaction:
-ryml::ConstNodeRef root = tree.rootref();
-ryml::ConstNodeRef bar = tree["bar"];
-CHECK(root.is_map());
-CHECK(bar.is_seq());
-// A node ref is a lightweight handle to the tree and associated id:
-CHECK(root.tree() == &tree); // a node ref points at its tree, WITHOUT refcount
-CHECK(root.id() == root_id); // a node ref's id is the index of the node
-CHECK(bar.id() == bar_id);   // a node ref's id is the index of the node
-
-// The node API translates very cleanly to the index API, so most
-// of the code examples below are using the node API.
-
-// One significant point of the node API is that it holds a raw
-// pointer to the tree. Care must be taken to ensure the lifetimes
-// match, so that a node will never access the tree after the tree
-// went out of scope.
-
-
-//------------------------------------------------------------------
-// To read the parsed tree
-
-// ConstNodeRef::operator[] does a lookup, is O(num_children[node]).
-CHECK(tree["foo"].is_keyval());
-CHECK(tree["foo"].key() == "foo");
-CHECK(tree["foo"].val() == "1");
-CHECK(tree["bar"].is_seq());
-CHECK(tree["bar"].has_key());
-CHECK(tree["bar"].key() == "bar");
-// maps use string keys, seqs use integral keys:
-CHECK(tree["bar"][0].val() == "2");
-CHECK(tree["bar"][1].val() == "3");
-CHECK(tree["john"].val() == "doe");
-// An integral key is the position of the child within its parent,
-// so even maps can also use int keys, if the key position is
-// known.
-CHECK(tree[0].id() == tree["foo"].id());
-CHECK(tree[1].id() == tree["bar"].id());
-CHECK(tree[2].id() == tree["john"].id());
-// Tree::operator[](int) searches a ***root*** child by its position.
-CHECK(tree[0].id() == tree["foo"].id());  // 0: first child of root
-CHECK(tree[1].id() == tree["bar"].id());  // 1: first child of root
-CHECK(tree[2].id() == tree["john"].id()); // 2: first child of root
-// NodeRef::operator[](int) searches a ***node*** child by its position:
-CHECK(bar[0].val() == "2"); // 0 means first child of bar
-CHECK(bar[1].val() == "3"); // 1 means second child of bar
-// NodeRef::operator[](string):
-// A string key is the key of the node: lookup is by name. So it
-// is only available for maps, and it is NOT available for seqs,
-// since seq members do not have keys.
-CHECK(tree["foo"].key() == "foo");
-CHECK(tree["bar"].key() == "bar");
-CHECK(tree["john"].key() == "john");
-CHECK(bar.is_seq());
-// CHECK(bar["BOOM!"].is_seed()); // error, seqs do not have key lookup
-
-// Note that maps can also use index keys as well as string keys:
-CHECK(root["foo"].id() == root[0].id());
-CHECK(root["bar"].id() == root[1].id());
-CHECK(root["john"].id() == root[2].id());
-
-// IMPORTANT. The ryml tree uses indexed linked lists for storing
-// children, so the complexity of `Tree::operator[csubstr]` and
-// `Tree::operator[size_t]` is linear on the number of root
-// children. If you use `Tree::operator[]` with a large tree where
-// the root has many children, you will see a performance hit.
-//
-// To avoid this hit, you can create your own accelerator
-// structure. For example, before doing a lookup, do a single
-// traverse at the root level to fill an `map<csubstr,size_t>`
-// mapping key names to node indices; with a node index, a lookup
-// (via `Tree::get()`) is O(1), so this way you can get O(log n)
-// lookup from a key. (But please do not use `std::map` if you
-// care about performance; use something else like a flat map or
-// sorted vector).
-//
-// As for node refs, the difference from `NodeRef::operator[]` and
-// `ConstNodeRef::operator[]` to `Tree::operator[]` is that the
-// latter refers to the root node, whereas the former are invoked
-// on their target node. But the lookup process works the same for
-// both and their algorithmic complexity is the same: they are
-// both linear in the number of direct children. But of course,
-// depending on the data, that number may be very different from
-// one to another.
-
-//------------------------------------------------------------------
-// Hierarchy:
-
-{
-    ryml::ConstNodeRef foo = root.first_child();
-    ryml::ConstNodeRef john = root.last_child();
-    CHECK(tree.size() == 6); // O(1) number of nodes in the tree
-    CHECK(root.num_children() == 3); // O(num_children[root])
-    CHECK(foo.num_siblings() == 3); // O(num_children[parent(foo)])
-    CHECK(foo.parent().id() == root.id()); // parent() is O(1)
-    CHECK(root.first_child().id() == root["foo"].id()); // first_child() is O(1)
-    CHECK(root.last_child().id() == root["john"].id()); // last_child() is O(1)
-    CHECK(john.first_sibling().id() == foo.id());
-    CHECK(foo.last_sibling().id() == john.id());
-    // prev_sibling(), next_sibling(): (both are O(1))
-    CHECK(foo.num_siblings() == root.num_children());
-    CHECK(foo.prev_sibling().id() == ryml::NONE); // foo is the first_child()
-    CHECK(foo.next_sibling().key() == "bar");
-    CHECK(foo.next_sibling().next_sibling().key() == "john");
-    CHECK(foo.next_sibling().next_sibling().next_sibling().id() == ryml::NONE); // john is the last_child()
-}
-
-
-//------------------------------------------------------------------
-// Iterating:
-{
-    ryml::csubstr expected_keys[] = {"foo", "bar", "john"};
-    // iterate children using the high-level node API:
-    {
-        size_t count = 0;
-        for(ryml::ConstNodeRef const& child : root.children())
-            CHECK(child.key() == expected_keys[count++]);
-    }
-    // iterate siblings using the high-level node API:
-    {
-        size_t count = 0;
-        for(ryml::ConstNodeRef const& child : root["foo"].siblings())
-            CHECK(child.key() == expected_keys[count++]);
-    }
-    // iterate children using the lower-level tree index API:
-    {
-        size_t count = 0;
-        for(size_t child_id = tree.first_child(root_id); child_id != ryml::NONE; child_id = tree.next_sibling(child_id))
-            CHECK(tree.key(child_id) == expected_keys[count++]);
-    }
-    // iterate siblings using the lower-level tree index API:
-    // (notice the only difference from above is in the loop
-    // preamble, which calls tree.first_sibling(bar_id) instead of
-    // tree.first_child(root_id))
-    {
-        size_t count = 0;
-        for(size_t child_id = tree.first_sibling(bar_id); child_id != ryml::NONE; child_id = tree.next_sibling(child_id))
-            CHECK(tree.key(child_id) == expected_keys[count++]);
-    }
-}
-
-
-//------------------------------------------------------------------
-// Gotchas:
-CHECK(!tree["bar"].has_val());          // seq is a container, so no val
-CHECK(!tree["bar"][0].has_key());       // belongs to a seq, so no key
-CHECK(!tree["bar"][1].has_key());       // belongs to a seq, so no key
-//CHECK(tree["bar"].val() == BOOM!);    // ... so attempting to get a val is undefined behavior
-//CHECK(tree["bar"][0].key() == BOOM!); // ... so attempting to get a key is undefined behavior
-//CHECK(tree["bar"][1].key() == BOOM!); // ... so attempting to get a key is undefined behavior
-
-
-//------------------------------------------------------------------
-// Deserializing: use operator>>
-{
-    int foo = 0, bar0 = 0, bar1 = 0;
-    std::string john;
-    root["foo"] >> foo;
-    root["bar"][0] >> bar0;
-    root["bar"][1] >> bar1;
-    root["john"] >> john; // requires from_chars(std::string). see serialization samples below.
-    CHECK(foo == 1);
-    CHECK(bar0 == 2);
-    CHECK(bar1 == 3);
-    CHECK(john == "doe");
-}
-
-
-//------------------------------------------------------------------
-// Modifying existing nodes: operator<< vs operator=
-
-// As implied by its name, ConstNodeRef is a reference to a const
-// node. It can be used to read from the node, but not write to it
-// or modify the hierarchy of the node. If any modification is
-// desired then a NodeRef must be used instead:
-ryml::NodeRef wroot = tree.rootref();
-
-// operator= assigns an existing string to the receiving node.
-// This pointer will be in effect until the tree goes out of scope
-// so beware to only assign from strings outliving the tree.
-wroot["foo"] = "says you";
-wroot["bar"][0] = "-2";
-wroot["bar"][1] = "-3";
-wroot["john"] = "ron";
-// Now the tree is _pointing_ at the memory of the strings above.
-// That is OK because those are static strings and will outlive
-// the tree.
-CHECK(root["foo"].val() == "says you");
-CHECK(root["bar"][0].val() == "-2");
-CHECK(root["bar"][1].val() == "-3");
-CHECK(root["john"].val() == "ron");
-// WATCHOUT: do not assign from temporary objects:
-// {
-//     std::string crash("will dangle");
-//     root["john"] = ryml::to_csubstr(crash);
-// }
-// CHECK(root["john"] == "dangling"); // CRASH! the string was deallocated
-
-// operator<< first serializes the input to the tree's arena, then
-// assigns the serialized string to the receiving node. This avoids
-// constraints with the lifetime, since the arena lives with the tree.
-CHECK(tree.arena().empty());
-wroot["foo"] << "says who";  // requires to_chars(). see serialization samples below.
-wroot["bar"][0] << 20;
-wroot["bar"][1] << 30;
-wroot["john"] << "deere";
-CHECK(root["foo"].val() == "says who");
-CHECK(root["bar"][0].val() == "20");
-CHECK(root["bar"][1].val() == "30");
-CHECK(root["john"].val() == "deere");
-CHECK(tree.arena() == "says who2030deere"); // the result of serializations to the tree arena
-// using operator<< instead of operator=, the crash above is avoided:
-{
-    std::string ok("in_scope");
-    // root["john"] = ryml::to_csubstr(ok); // don't, will dangle
-    wroot["john"] << ryml::to_csubstr(ok); // OK, copy to the tree's arena
-}
-CHECK(root["john"] == "in_scope"); // OK!
-CHECK(tree.arena() == "says who2030deerein_scope"); // the result of serializations to the tree arena
-
-
-//------------------------------------------------------------------
-// Adding new nodes:
-
-// adding a keyval node to a map:
-CHECK(root.num_children() == 3);
-wroot["newkeyval"] = "shiny and new"; // using these strings
-wroot.append_child() << ryml::key("newkeyval (serialized)") << "shiny and new (serialized)"; // serializes and assigns the serialization
-CHECK(root.num_children() == 5);
-CHECK(root["newkeyval"].key() == "newkeyval");
-CHECK(root["newkeyval"].val() == "shiny and new");
-CHECK(root["newkeyval (serialized)"].key() == "newkeyval (serialized)");
-CHECK(root["newkeyval (serialized)"].val() == "shiny and new (serialized)");
-CHECK( ! tree.in_arena(root["newkeyval"].key())); // it's using directly the static string above
-CHECK( ! tree.in_arena(root["newkeyval"].val())); // it's using directly the static string above
-CHECK(   tree.in_arena(root["newkeyval (serialized)"].key())); // it's using a serialization of the string above
-CHECK(   tree.in_arena(root["newkeyval (serialized)"].val())); // it's using a serialization of the string above
-// adding a val node to a seq:
-CHECK(root["bar"].num_children() == 2);
-wroot["bar"][2] = "oh so nice";
-wroot["bar"][3] << "oh so nice (serialized)";
-CHECK(root["bar"].num_children() == 4);
-CHECK(root["bar"][2].val() == "oh so nice");
-CHECK(root["bar"][3].val() == "oh so nice (serialized)");
-// adding a seq node:
-CHECK(root.num_children() == 5);
-wroot["newseq"] |= ryml::SEQ;
-wroot.append_child() << ryml::key("newseq (serialized)") |= ryml::SEQ;
-CHECK(root.num_children() == 7);
-CHECK(root["newseq"].num_children() == 0);
-CHECK(root["newseq (serialized)"].num_children() == 0);
-// adding a map node:
-CHECK(root.num_children() == 7);
-wroot["newmap"] |= ryml::MAP;
-wroot.append_child() << ryml::key("newmap (serialized)") |= ryml::SEQ;
-CHECK(root.num_children() == 9);
-CHECK(root["newmap"].num_children() == 0);
-CHECK(root["newmap (serialized)"].num_children() == 0);
-//
-// When the tree is mutable, operator[] does not mutate the tree
-// until the returned node is written to.
-//
-// Until such time, the NodeRef object keeps in itself the required
-// information to write to the proper place in the tree. This is
-// called being in a "seed" state.
-//
-// This means that passing a key/index which does not exist will
-// not mutate the tree, but will instead store (in the node) the
-// proper place of the tree to be able to do so, if and when it is
-// required.
-//
-// This is a significant difference from eg, the behavior of
-// std::map, which mutates the map immediately within the call to
-// operator[].
-//
-// All of the points above apply only if the tree is mutable. If
-// the tree is const, then a NodeRef cannot be obtained from it;
-// only a ConstNodeRef, which can never be used to mutate the
-// tree.
-CHECK(!root.has_child("I am not nothing"));
-ryml::NodeRef nothing = wroot["I am nothing"];
-CHECK(nothing.valid());   // points at the tree, and a specific place in the tree
-CHECK(nothing.is_seed()); // ... but nothing is there yet.
-CHECK(!root.has_child("I am nothing")); // same as above
-ryml::NodeRef something = wroot["I am something"];
-ryml::ConstNodeRef constsomething = wroot["I am something"];
-CHECK(!root.has_child("I am something")); // same as above
-CHECK(something.valid());
-CHECK(something.is_seed()); // same as above
-CHECK(!constsomething.valid()); // NOTE: because a ConstNodeRef
-                                // cannot be used to mutate a
-                                // tree, it is only valid() if it
-                                // is pointing at an existing
-                                // node.
-something = "indeed";  // this will commit to the tree, mutating at the proper place
-CHECK(root.has_child("I am something"));
-CHECK(root["I am something"].val() == "indeed");
-CHECK(something.valid());
-CHECK(!something.is_seed()); // now the tree has this node, so the
-                             // ref is no longer a seed
-// now the constref is also valid (but it needs to be reassigned):
-ryml::ConstNodeRef constsomethingnew = wroot["I am something"];
-CHECK(constsomethingnew.valid());
-// note that the old constref is now stale, because it only keeps
-// the state at creation:
-CHECK(!constsomething.valid());
-
-
-//------------------------------------------------------------------
-// Emitting:
-
-// emit to a FILE*
-ryml::emit_yaml(tree, stdout); // there is also emit_json()
-// emit to a stream
-std::stringstream ss;
-ss << tree;
-std::string stream_result = ss.str();
-// emit to a buffer:
-std::string str_result = ryml::emitrs_yaml<std::string>(tree); // there is also emitrs_json()
-// can emit to any given buffer:
-char buf[1024];
-ryml::csubstr buf_result = ryml::emit_yaml(tree, buf);
-// now check
-ryml::csubstr expected_result = R"(foo: says who
-bar:
-- 20
-- 30
-- oh so nice
-- oh so nice (serialized)
-john: in_scope
-newkeyval: shiny and new
-newkeyval (serialized): shiny and new (serialized)
-newseq: []
-newseq (serialized): []
-newmap: {}
-newmap (serialized): []
-I am something: indeed
-)";
-CHECK(buf_result == expected_result);
-CHECK(str_result == expected_result);
-CHECK(stream_result == expected_result);
-// There are many possibilities to emit to buffer;
-// please look at the emit sample functions below.
-
-//------------------------------------------------------------------
-// ConstNodeRef vs NodeRef
-
-ryml::NodeRef noderef = tree["bar"][0];
-ryml::ConstNodeRef constnoderef = tree["bar"][0];
-
-// ConstNodeRef cannot be used to mutate the tree, but a NodeRef can:
-//constnoderef = "21";  // compile error
-//constnoderef << "22"; // compile error
-noderef = "21";         // ok, can assign because it's not const
-CHECK(tree["bar"][0].val() == "21");
-noderef << "22";        // ok, can serialize and assign because it's not const
-CHECK(tree["bar"][0].val() == "22");
-
-// it is not possible to obtain a NodeRef from a ConstNodeRef:
-// noderef = constnoderef; // compile error
-
-// it is always possible to obtain a ConstNodeRef from a NodeRef:
-constnoderef = noderef;    // ok can assign const <- nonconst
-
-// If a tree is const, then only ConstNodeRef's can be
-// obtained from that tree:
-ryml::Tree const& consttree = tree;
-//noderef = consttree["bar"][0];    // compile error
-noderef = tree["bar"][0];           // ok
-constnoderef = consttree["bar"][0]; // ok
-
-// ConstNodeRef and NodeRef can be compared for equality.
-// Equality means they point at the same node.
-CHECK(constnoderef == noderef);
-CHECK(!(constnoderef != noderef));
-
-//------------------------------------------------------------------
-// Dealing with UTF8
-ryml::Tree langs = ryml::parse_in_arena(R"(
-en: Planet (Gas)
-fr: Planète (Gazeuse)
-ru: Планета (Газ)
-ja: 惑星（ガス）
-zh: 行星（气体）
-# UTF8 decoding only happens in double-quoted strings,\
-# as per the YAML standard
-decode this: "\u263A \xE2\x98\xBA"
-and this as well: "\u2705 \U0001D11E"
-)");
-// in-place UTF8 just works:
-CHECK(langs["en"].val() == "Planet (Gas)");
-CHECK(langs["fr"].val() == "Planète (Gazeuse)");
-CHECK(langs["ru"].val() == "Планета (Газ)");
-CHECK(langs["ja"].val() == "惑星（ガス）");
-CHECK(langs["zh"].val() == "行星（气体）");
-// and \x \u \U codepoints are decoded (but only when they appear
-// inside double-quoted strings, as dictated by the YAML
-// standard):
-CHECK(langs["decode this"].val() == "☺ ☺");
-CHECK(langs["and this as well"].val() == "✅ 𝄞");
-
-//------------------------------------------------------------------
-// Getting the location of nodes in the source:
-ryml::Parser parser;
-ryml::Tree tree2 = parser.parse_in_arena("expected.yml", expected_result);
-ryml::Location loc = parser.location(tree2["bar"][1]);
-CHECK(parser.location_contents(loc).begins_with("30"));
-CHECK(loc.line == 3u);
-CHECK(loc.col == 4u);
+// For further details in location tracking,
+// refer to the sample function below.
 ```
 
 The [quickstart.cpp sample](./samples/quickstart.cpp) (from which the

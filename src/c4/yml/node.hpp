@@ -424,8 +424,12 @@ public:
     /** @name at
      *
      * These functions are the analogue to operator[], with the
-     * difference that they */
-    /** @{ */
+     * difference that they emit an error instead of an
+     * assertion. That is, if any of the pre or post conditions is
+     * violated, an error is always emitted (resulting in a call to
+     * the error callback).
+     *
+     * @{ */
 
     /** Find child by key; complexity is O(num_children).
      *
@@ -440,14 +444,14 @@ public:
      * to read from the tree.
      *
      * @warning This method will call the error callback (regardless
-     * of build type) whenever any of the following preconditions is
-     * violated: a) the object is valid (points at a tree and a node),
-     * b) the calling object must be readable (must not be in seed
-     * state), c) the calling object must be pointing at a MAP
-     * node. The preconditions are similar to the non-const
-     * operator[](csubstr), but instead of using assertions, this
-     * function directly checks those conditions and calls the error
-     * callback if any of the checks fail.
+     * of build type or of the value of RYML_USE_ASSERT) whenever any
+     * of the following preconditions is violated: a) the object is
+     * valid (points at a tree and a node), b) the calling object must
+     * be readable (must not be in seed state), c) the calling object
+     * must be pointing at a MAP node. The preconditions are similar
+     * to the non-const operator[](csubstr), but instead of using
+     * assertions, this function directly checks those conditions and
+     * calls the error callback if any of the checks fail.
      *
      * @note since it is valid behavior for the returned node to be in
      * seed state, the error callback is not invoked when this
@@ -476,14 +480,14 @@ public:
      * from the tree.
      *
      * @warning This method will call the error callback (regardless
-     * of build type) whenever any of the following preconditions is
-     * violated: a) the object is valid (points at a tree and a node),
-     * b) the calling object must be readable (must not be in seed
-     * state), c) the calling object must be pointing at a MAP
-     * node. The preconditions are similar to the non-const
-     * operator[](size_t), but instead of using assertions, this
-     * function directly checks those conditions and calls the error
-     * callback if any of the checks fail.
+     * of build type or of the value of RYML_USE_ASSERT) whenever any
+     * of the following preconditions is violated: a) the object is
+     * valid (points at a tree and a node), b) the calling object must
+     * be readable (must not be in seed state), c) the calling object
+     * must be pointing at a MAP node. The preconditions are similar
+     * to the non-const operator[](size_t), but instead of using
+     * assertions, this function directly checks those conditions and
+     * calls the error callback if any of the checks fail.
      *
      * @note since it is valid behavior for the returned node to be in
      * seed state, the error callback is not invoked when this
@@ -751,8 +755,6 @@ public:
 /** This object holds a pointer to an existing tree, and a node id. It
  * can be used only to read from the tree.
  *
- *
- *
  * @warning The lifetime of the tree must be larger than that of this
  * object. It is up to the user to ensure that this happens. */
 class RYML_EXPORT ConstNodeRef : public detail::RoNodeMethods<ConstNodeRef, ConstNodeRef>
@@ -810,7 +812,8 @@ public:
     /** @{ */
 
     C4_ALWAYS_INLINE C4_PURE bool valid() const noexcept { return m_tree != nullptr && m_id != NONE; }
-    /** because this is a const method, readable() has the same meaning as valid() */
+    /** because a ConstNodeRef cannot be used to write to the tree,
+     * readable() has the same meaning as valid() */
     C4_ALWAYS_INLINE C4_PURE bool readable() const noexcept { return m_tree != nullptr && m_id != NONE; }
     /** because a ConstNodeRef cannot be used to write to the tree, it can never be a seed.
      * This method is provided for API equivalence between ConstNodeRef and NodeRef. */
@@ -852,20 +855,41 @@ public:
 //-----------------------------------------------------------------------------
 
 /** A reference to a node in an existing yaml tree, offering a more
- * convenient API than the index-based API used in the tree. This
- * reference can be used to modify the tree.
+ * convenient API than the index-based API used in the tree.
+ *
+ * Unlike its imutable ConstNodeRef peer, a NodeRef can be used to
+ * mutate the tree, both by writing to existing nodes and by creating
+ * new nodes to subsequently write to. So, semantically, a NodeRef
+ * object can be in one of three states:
+ *
+ * ```
+ * invalid := not pointing at anything
+ * valid   := pointing at a tree/id pair, and further the node can be...
+ *    ` readable := the node exists now
+ *    ` seed     := the node may come to exist, if we write to it.
+ * ```
+ *
+ * So both `readable` and `seed` are states where the node is also `valid`.
+ *
+ * ```c++
+ * Tree tree = parse("{a: b}");
+ * NodeRef invalid; // not pointing at anything.
+ * NodeRef readable = tree["a"]; // also valid, because "a" exists
+ * NodeRef seed = tree["none"]; // also valid, but is seed because "none" is not in the map
+ * ```
  *
  * When the object is in seed state, using it to read from the tree is
- * UB. The seed node can be used to write to the tree provided that
+ * UB. The seed node can be used to write to the tree, provided that
  * its create() method is called prior to writing, which happens in
- * most modifying methods in NodeRef. It is the owners's
- * responsibility to verify that the an existing node is readable
- * before subsequently using it to read from the tree.
+ * most modifying methods in NodeRef.
  *
- * See the quickstart for a more detailed explanation on the
+ * It is the owners's responsibility to verify that an existing
+ * node is readable before subsequently using it to read from the
+ * tree.
  *
- * Individual objects may be
- * */
+ * @warning The lifetime of the tree must be larger than that of this
+ * object. It is up to the user to ensure that this happens.
+ */
 class RYML_EXPORT NodeRef : public detail::RoNodeMethods<NodeRef, ConstNodeRef>
 {
 public:
@@ -932,11 +956,14 @@ public:
 
 public:
 
-    /** @name state queries */
-    /** @{ */
+    /** @name state_queries
+     * @{ */
 
+    /** true if the object is pointing at a tree and id. @see the doc for the NodeRef */
     inline bool valid() const { return m_tree != nullptr && m_id != NONE; }
-    inline bool is_seed() const { return m_seed.str != nullptr || m_seed.len != NONE; }
+    /** true if the object is valid() and in seed state. @see the doc for the NodeRef */
+    inline bool is_seed() const { return valid() && (m_seed.str != nullptr || m_seed.len != NONE); }
+    /** true if the object is valid() and NOT in seed state. @see the doc for the NodeRef */
     inline bool readable() const { return valid() && !is_seed(); }
 
     inline void _clear_seed() { /*do the following manually or an assert is triggered: */ m_seed.str = nullptr; m_seed.len = NONE; }

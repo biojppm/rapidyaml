@@ -23,7 +23,7 @@ Fix major error handling problem reported in [#389](https://github.com/biojppm/r
      * callback instead of directly raising an exception. */
     ConstNodeRef at(csubstr key) const;
     /** Likewise, but return a seed node when the key is not found */
-    ConstNodeRef at(csubstr key);
+    NodeRef at(csubstr key);
 
     /** Get a child by position, with error checking; complexity is
      * O(pos).
@@ -36,7 +36,7 @@ Fix major error handling problem reported in [#389](https://github.com/biojppm/r
      * callback instead of directly raising an exception. */
     ConstNodeRef at(size_t pos) const;
     /** Likewise, but return a seed node when pos is not found */
-    ConstNodeRef at(csubstr key);
+    NodeRef at(csubstr key);
     ```
   - Added macros and respective cmake options to control error handling:
     - `RYML_USE_ASSERT` - enable assertions regardless of build type. This is disabled by default.
