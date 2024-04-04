@@ -70,6 +70,7 @@ void sample_base64();               ///< encode/decode base64
 void sample_user_scalar_types();    ///< serialize/deserialize scalar (leaf/string) types
 void sample_user_container_types(); ///< serialize/deserialize container (map or seq) types
 void sample_std_types();            ///< serialize/deserialize STL containers
+void sample_float_precision();      ///< control precision of serialized floats
 void sample_emit_to_container();    ///< emit to memory, eg a string or vector-like container
 void sample_emit_to_stream();       ///< emit to a stream, eg std::ostream
 void sample_emit_to_file();         ///< emit to a FILE*
@@ -105,6 +106,7 @@ int main()
     sample::sample_base64();
     sample::sample_user_scalar_types();
     sample::sample_user_container_types();
+    sample::sample_float_precision();
     sample::sample_std_types();
     sample::sample_emit_to_container();
     sample::sample_emit_to_stream();
@@ -378,7 +380,7 @@ void sample_quick_overview()
 
     // operator= assigns an existing string to the receiving node.
     // This pointer will be in effect until the tree goes out of scope
-    // so beware to only assign from strings outliving the tree.
+    // so BEWARE to only assign from strings outliving the tree.
     wroot["foo"] = "says you";
     wroot["bar"][0] = "-2";
     wroot["bar"][1] = "-3";
@@ -417,17 +419,22 @@ void sample_quick_overview()
         wroot["john"] << ryml::to_csubstr(ok); // OK, copy to the tree's arena
     }
     CHECK(root["john"] == "in_scope"); // OK!
-    CHECK(tree.arena() == "says who2030deerein_scope"); // the result of serializations to the tree arena
+    // serializing floating points:
+    wroot["float"] << 2.4;
+    // to force a particular precision or float format:
+    // (see sample_float_precision() and sample_formatting())
+    wroot["digits"] << ryml::fmt::real(2.4, /*num_digits*/6, ryml::FTOA_FLOAT);
+    CHECK(tree.arena() == "says who2030deerein_scope2.42.400000"); // the result of serializations to the tree arena
 
 
     //------------------------------------------------------------------
     // Adding new nodes:
 
     // adding a keyval node to a map:
-    CHECK(root.num_children() == 3);
+    CHECK(root.num_children() == 5);
     wroot["newkeyval"] = "shiny and new"; // using these strings
     wroot.append_child() << ryml::key("newkeyval (serialized)") << "shiny and new (serialized)"; // serializes and assigns the serialization
-    CHECK(root.num_children() == 5);
+    CHECK(root.num_children() == 7);
     CHECK(root["newkeyval"].key() == "newkeyval");
     CHECK(root["newkeyval"].val() == "shiny and new");
     CHECK(root["newkeyval (serialized)"].key() == "newkeyval (serialized)");
@@ -444,19 +451,19 @@ void sample_quick_overview()
     CHECK(root["bar"][2].val() == "oh so nice");
     CHECK(root["bar"][3].val() == "oh so nice (serialized)");
     // adding a seq node:
-    CHECK(root.num_children() == 5);
+    CHECK(root.num_children() == 7);
     wroot["newseq"] |= ryml::SEQ;
     wroot.append_child() << ryml::key("newseq (serialized)") |= ryml::SEQ;
-    CHECK(root.num_children() == 7);
+    CHECK(root.num_children() == 9);
     CHECK(root["newseq"].num_children() == 0);
     CHECK(root["newseq"].is_seq());
     CHECK(root["newseq (serialized)"].num_children() == 0);
     CHECK(root["newseq (serialized)"].is_seq());
     // adding a map node:
-    CHECK(root.num_children() == 7);
+    CHECK(root.num_children() == 9);
     wroot["newmap"] |= ryml::MAP;
     wroot.append_child() << ryml::key("newmap (serialized)") |= ryml::MAP;
-    CHECK(root.num_children() == 9);
+    CHECK(root.num_children() == 11);
     CHECK(root["newmap"].num_children() == 0);
     CHECK(root["newmap"].is_map());
     CHECK(root["newmap (serialized)"].num_children() == 0);
@@ -533,6 +540,8 @@ bar:
   - oh so nice
   - oh so nice (serialized)
 john: in_scope
+float: 2.4
+digits: 2.400000
 newkeyval: shiny and new
 newkeyval (serialized): shiny and new (serialized)
 newseq: []
@@ -553,9 +562,10 @@ I am something: indeed
     ryml::NodeRef noderef = tree["bar"][0];
     ryml::ConstNodeRef constnoderef = tree["bar"][0];
 
-    // ConstNodeRef cannot be used to mutate the tree, but a NodeRef can:
+    // ConstNodeRef cannot be used to mutate the tree:
     //constnoderef = "21";  // compile error
     //constnoderef << "22"; // compile error
+    // ... but a NodeRef can:
     noderef = "21";         // ok, can assign because it's not const
     CHECK(tree["bar"][0].val() == "21");
     noderef << "22";        // ok, can serialize and assign because it's not const
@@ -587,7 +597,7 @@ fr: Planète (Gazeuse)
 ru: Планета (Газ)
 ja: 惑星（ガス）
 zh: 行星（气体）
-# UTF8 decoding only happens in double-quoted strings,\
+# UTF8 decoding only happens in double-quoted strings,
 # as per the YAML standard
 decode this: "\u263A \xE2\x98\xBA"
 and this as well: "\u2705 \U0001D11E"
@@ -2169,6 +2179,7 @@ void sample_fundamental_types()
     CHECK(tree.to_arena(c4::fmt::boolalpha(false)) == "false"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410truefalse");
 
     // write special float values
+    // see also sample_float_precision()
     const float  fnan = std::numeric_limits<float >::quiet_NaN();
     const double dnan = std::numeric_limits<double>::quiet_NaN();
     const float  finf = std::numeric_limits<float >::infinity();
@@ -2181,6 +2192,7 @@ void sample_fundamental_types()
     CHECK(tree.to_arena( dnan) ==  ".nan"); CHECK(tree.arena() == "abcde0101234-45-56-67-70x10.1240.23410truefalse.inf.inf-.inf-.inf.nan.nan");
 
     // read special float values
+    // see also sample_float_precision()
     C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wfloat-equal");
     tree = ryml::parse_in_arena(R"({ninf: -.inf, pinf: .inf, nan: .nan})");
     float f = 0.f;
@@ -2218,6 +2230,8 @@ non_null: [nULL, non_null, non null, null it is not]
     CHECK(tree["literal"].val().str != nullptr);
     CHECK(tree["folded"].val().str != nullptr);
     // likewise, scalar comparison to nullptr has the same results:
+    // (remember that .val() gives you the scalar value, node must
+    // have a val, ie must be a leaf node, not a container)
     CHECK(tree["plain"].val() == nullptr);
     CHECK(tree["squoted"].val() != nullptr);
     CHECK(tree["dquoted"].val() != nullptr);
@@ -2225,7 +2239,7 @@ non_null: [nULL, non_null, non null, null it is not]
     CHECK(tree["folded"].val() != nullptr);
     // the tree and node classes provide the corresponding predicate
     // functions .key_is_val() and .val_is_null():
-    CHECK(tree["plain"].val_is_null());
+    CHECK(tree["plain"].val_is_null()); // requires same preconditions as .val()
     CHECK( ! tree["squoted"].val_is_null());
     CHECK( ! tree["dquoted"].val_is_null());
     CHECK( ! tree["literal"].val_is_null());
@@ -2679,6 +2693,7 @@ void sample_formatting()
         // ------------------------------------------
         // fmt::real(): format floating point numbers
         // ------------------------------------------
+        // see also sample_float_precision()
         CHECK("0"       == cat_sub(buf, fmt::real(0.01f, 0)));
         CHECK("0.0"     == cat_sub(buf, fmt::real(0.01f, 1)));
         CHECK("0.01"    == cat_sub(buf, fmt::real(0.01f, 2)));
@@ -3294,7 +3309,7 @@ void sample_std_types()
     21003: 22003
 )";
     // parse in-place using the std::string above
-    auto tree = ryml::parse_in_place(ryml::to_substr(yml_std_string));
+    ryml::Tree tree = ryml::parse_in_place(ryml::to_substr(yml_std_string));
     // my_type is a container-of-containers type. see above its
     // definition implementation for ryml.
     std::vector<my_type> vmt;
@@ -3303,6 +3318,139 @@ void sample_std_types()
     ryml::Tree tree_out;
     tree_out.rootref() << vmt;
     CHECK(ryml::emitrs_yaml<std::string>(tree_out) == yml_std_string);
+}
+
+
+//-----------------------------------------------------------------------------
+
+/** control precision of serialized floats */
+void sample_float_precision()
+{
+    std::vector<double> reference{1.23234412342131234, 2.12323123143434237, 3.67847983572591234};
+    // A safe precision for comparing doubles. May vary depending on
+    // compiler flags. Double goes to about 15 digits, so 14 should be
+    // safe enough for this test to succeed.
+    const double precision_safe = 1.e-14;
+    const size_t num_digits_safe = 14;
+    const size_t num_digits_original = 17;
+    auto get_num_digits = [](ryml::csubstr number){ return number.sub(2).len; };
+    //
+    // no significant precision is lost when reading
+    // floating point numbers:
+    {
+        ryml::Tree tree = ryml::parse_in_arena(R"([1.23234412342131234, 2.12323123143434237, 3.67847983572591234])");
+        std::vector<double> output;
+        tree.rootref() >> output;
+        CHECK(output.size() == reference.size());
+        for(size_t i = 0; i < reference.size(); ++i)
+        {
+            CHECK(get_num_digits(tree[i].val()) == num_digits_original);
+            CHECK(fabs(output[i] - reference[i]) < precision_safe);
+        }
+    }
+    //
+    // However, depending on the compilation settings, there may be a
+    // significant precision loss when serializing with the default
+    // approach, operator<<(double):
+    {
+        ryml::Tree serialized;
+        serialized.rootref() << reference;
+        std::cout << serialized;
+        // Without std::to_chars() there is a loss of precision:
+        #if (!C4CORE_HAVE_STD_TOCHARS) // This macro is defined when std::to_chars() is available.
+        CHECK(ryml::emitrs_yaml<std::string>(serialized) == R"(- 1.23234
+- 2.12323
+- 3.67848
+)" || (bool)"this is indicative; the exact results will vary from platform to platform.");
+        C4_UNUSED(num_digits_safe);
+        #else  // ... but when using C++17 and above, the results are eminently equal:
+        CHECK((ryml::emitrs_yaml<std::string>(serialized) == R"(- 1.2323441234213124
+- 2.1232312314343424
+- 3.6784798357259123
+)") || (bool)"this is indicative; the exact results will vary from platform to platform.");
+        size_t pos = 0;
+        for(ryml::ConstNodeRef child : serialized.rootref().children())
+        {
+            CHECK(get_num_digits(child.val()) >= num_digits_safe);
+            double out = {};
+            child >> out;
+            CHECK(fabs(out - reference[pos++]) < precision_safe);
+        }
+        #endif
+    }
+    //
+    // The difference is explained by the availability of
+    // fastfloat::from_chars(), std::from_chars() and std::to_chars().
+    //
+    // ryml prefers the fastfloat::from_chars() version. Unfortunately
+    // fastfloat does not have to_chars() (see
+    // https://github.com/fastfloat/fast_float/issues/23).
+    //
+    // When C++17 is used, ryml uses std::to_chars(), which produces
+    // good defaults.
+    //
+    // However, with earlier standards, or in some library
+    // implementations, there's only snprintf() available. Every other
+    // std library function will either disrespect the string limits,
+    // or more precisely, accept no string size limits. So the
+    // implementation of c4core (which ryml uses) falls back to
+    // snprintf("%g"), and that picks by default a (low) number of
+    // digits.
+    //
+    // But all is not lost for C++11/C++14 users!
+    //
+    // To force a particular precision when serializing, you can use
+    // c4::fmt::real() (brought into the ryml:: namespace). Or you can
+    // serialize the number yourself! The small downside is that you
+    // have to build the container.
+    //
+    // First a function to check the result:
+    auto check_precision = [&](ryml::Tree serialized){
+        std::cout << serialized;
+        // now it works!
+        CHECK((ryml::emitrs_yaml<std::string>(serialized) == R"(- 1.23234412342131239
+- 2.12323123143434245
+- 3.67847983572591231
+)") || (bool)"this is indicative; the exact results will vary from platform to platform.");
+        size_t pos = 0;
+        for(ryml::ConstNodeRef child : serialized.rootref().children())
+        {
+            CHECK(get_num_digits(child.val()) == num_digits_original);
+            double out = {};
+            child >> out;
+            CHECK(fabs(out - reference[pos++]) < precision_safe);
+        }
+    };
+    //
+    // Serialization example using fmt::real()
+    {
+        ryml::Tree serialized;
+        ryml::NodeRef root = serialized.rootref();
+        root |= ryml::SEQ;
+        for(const double v : reference)
+            root.append_child() << ryml::fmt::real(v, num_digits_original, ryml::FTOA_FLOAT);
+        check_precision(serialized); // OK - now within bounds!
+    }
+    //
+    // Serialization example using snprintf
+    {
+        ryml::Tree serialized;
+        ryml::NodeRef root = serialized.rootref();
+        root |= ryml::SEQ;
+        char tmp[64];
+        for(const double v : reference)
+        {
+            // reuse a buffer to serialize.
+            // add 1 to the significant digits because the %g
+            // specifier counts the integral digits.
+            (void)snprintf(tmp, sizeof(tmp), "%.18g", v);
+            // copy the serialized string to the tree (operator<<
+            // copies to the arena, operator= just assigns the string
+            // pointer and would be wrong in this case):
+            root.append_child() << ryml::to_csubstr((const char*)tmp);
+        }
+        check_precision(serialized); // OK - now within bounds!
+    }
 }
 
 
@@ -4014,6 +4162,9 @@ void sample_error_handler()
 // whether you really need to use ryml static trees and parsers. If
 // you do need this, then you will need to declare and use a ryml
 // callbacks structure that outlives the tree and/or parser.
+//
+// See also sample_static_trees() for an example on how to use
+// trees with static lifetime.
 
 struct GlobalAllocatorExample
 {
