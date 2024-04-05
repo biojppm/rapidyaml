@@ -215,6 +215,20 @@ ExpectError::~ExpectError()
     set_callbacks(m_tree_prev);
 }
 
+void ExpectError::check_success(Tree *tree, std::function<void()> fn)
+{
+    auto context = ExpectError(tree, {});
+    try
+    {
+        fn();
+    }
+    catch(ExpectedError const&)
+    {
+        ;
+    }
+    EXPECT_FALSE(context.m_got_an_error);
+}
+
 void ExpectError::do_check(Tree *tree, std::function<void()> fn, Location expected_location)
 {
     auto context = ExpectError(tree, expected_location);
@@ -348,8 +362,8 @@ void CaseNode::compare_child(yml::ConstNodeRef const& n, size_t pos) const
 
     if(type & MAP)
     {
-        auto actualch = n.find_child(expectedch.key);
-        if(actualch != nullptr)
+        ConstNodeRef actualch = n.find_child(expectedch.key);
+        if(!actualch.invalid())
         {
             // there may be duplicate keys.
             if(actualch.id() != n[pos].id())
@@ -461,7 +475,7 @@ void CaseNode::compare(yml::ConstNodeRef const& actual, bool ignore_quote) const
             compare_child(actual, ic++);
         }
 
-        if(actual.first_child() != nullptr)
+        if(!actual.first_child().invalid())
         {
             ic = 0;
             for(auto const ch : actual.first_child().siblings())
@@ -508,7 +522,7 @@ void print_path(ConstNodeRef const& n)
     size_t len = 0;
     char buf[1024];
     ConstNodeRef p = n;
-    while(p != nullptr)
+    while(p.readable())
     {
         if(p.has_key())
         {
@@ -525,7 +539,7 @@ void print_path(ConstNodeRef const& n)
     C4_ASSERT(len < sizeof(buf));
     size_t pos = len;
     p = n;
-    while(p.valid() && p != nullptr)
+    while(p.readable())
     {
         if(p.has_key())
         {
@@ -669,7 +683,7 @@ void test_invariants(ConstNodeRef const& n)
         EXPECT_TRUE(s.has_sibling(n)) _MORE_INFO;
         EXPECT_EQ(s.parent().get(), n.parent().get()) _MORE_INFO;
     }
-    if(n.parent() != nullptr)
+    if(n.parent().readable())
     {
         EXPECT_EQ(n.parent().num_children() > 1, n.has_other_siblings()) _MORE_INFO;
         EXPECT_TRUE(n.parent().has_child(n)) _MORE_INFO;
@@ -741,7 +755,7 @@ size_t test_tree_invariants(ConstNodeRef const& n)
 
     if(n.get()->m_prev_sibling == NONE)
     {
-        if(parent != nullptr)
+        if(parent.readable())
         {
             EXPECT_EQ(parent.first_child().get(), n.get());
             EXPECT_EQ(parent.first_child().id(), n.id());
@@ -750,14 +764,14 @@ size_t test_tree_invariants(ConstNodeRef const& n)
 
     if(n.get()->m_next_sibling == NONE)
     {
-        if(parent != nullptr)
+        if(parent.readable())
         {
             EXPECT_EQ(parent.last_child().get(), n.get());
             EXPECT_EQ(parent.last_child().id(), n.id());
         }
     }
 
-    if(parent == nullptr)
+    if(!parent.readable())
     {
         EXPECT_TRUE(n.is_root());
         EXPECT_EQ(n.prev_sibling().get(), nullptr);

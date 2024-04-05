@@ -3,6 +3,9 @@
 #ifndef RYML_NO_DEFAULT_CALLBACKS
 #   include <stdlib.h>
 #   include <stdio.h>
+#   ifdef RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS
+#       include <stdexcept>
+#   endif
 #endif // RYML_NO_DEFAULT_CALLBACKS
 
 namespace c4 {
@@ -39,7 +42,11 @@ void report_error_impl(const char* msg, size_t length, Location loc, FILE *f)
 void error_impl(const char* msg, size_t length, Location loc, void * /*user_data*/)
 {
     report_error_impl(msg, length, loc, nullptr);
+#ifdef RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS
+    throw std::runtime_error(std::string(msg, length));
+#else
     ::abort();
+#endif
 }
 
 void* allocate_impl(size_t length, void * /*hint*/, void * /*user_data*/)

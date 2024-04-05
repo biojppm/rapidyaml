@@ -832,6 +832,73 @@ TEST(Tree, clear)
 
 //-------------------------------------------
 
+template<class Function>
+void verify_success_(Tree &tree, Function &&fn)
+{
+    ExpectError::check_success(&tree, [&]{
+        (void)fn(tree);
+    });
+}
+template<class Function>
+void verify_success_(csubstr src, Function &&fn)
+{
+    Tree tree = parse_in_arena(src);
+    ExpectError::check_success(&tree, [&]{
+        (void)fn(tree);
+    });
+}
+
+template<class Function>
+void verify_assertion_(Tree &tree, Function &&fn)
+{
+    ExpectError::check_assertion(&tree, [&]{
+        (void)fn(tree);
+    });
+}
+template<class Function>
+void verify_assertion_(csubstr src, Function &&fn)
+{
+    Tree tree = parse_in_arena(src);
+    ExpectError::check_assertion(&tree, [&]{
+        (void)fn(tree);
+    });
+}
+
+template<class Function>
+void verify_error_(Tree &tree, Function &&fn)
+{
+    ExpectError::do_check(&tree, [&]{
+        (void)fn(tree);
+    });
+}
+template<class Function>
+void verify_error_(csubstr src, Function &&fn)
+{
+    Tree tree = parse_in_arena(src);
+    ExpectError::do_check(&tree, [&]{
+        (void)fn(tree);
+    });
+}
+
+#define verify_success(...)                     \
+    {                                           \
+        SCOPED_TRACE("caller");                 \
+        verify_success_(__VA_ARGS__);           \
+    }
+
+#define verify_assertion(...)                   \
+    {                                           \
+        SCOPED_TRACE("caller");                 \
+        verify_assertion_(__VA_ARGS__);         \
+    }
+
+#define verify_error(...)                       \
+    {                                           \
+        SCOPED_TRACE("caller");                 \
+        verify_error_(__VA_ARGS__);             \
+    }
+
+
 TEST(Tree, ref)
 {
     Tree t = parse_in_arena("[0, 1, 2, 3]");
@@ -845,6 +912,25 @@ TEST(Tree, ref)
     EXPECT_TRUE(t.ref(2).is_val());
     EXPECT_TRUE(t.ref(3).is_val());
     EXPECT_TRUE(t.ref(4).is_val());
+    verify_assertion(t, [](Tree & tree){ return tree.ref(tree.capacity()); });
+    verify_assertion(t, [](Tree & tree){ return tree.ref(NONE); });
+}
+
+TEST(Tree, cref)
+{
+    Tree t = parse_in_arena("[0, 1, 2, 3]");
+    EXPECT_EQ(t.cref(0).id(), 0);
+    EXPECT_EQ(t.cref(1).id(), 1);
+    EXPECT_EQ(t.cref(2).id(), 2);
+    EXPECT_EQ(t.cref(3).id(), 3);
+    EXPECT_EQ(t.cref(4).id(), 4);
+    EXPECT_TRUE(t.cref(0).is_seq());
+    EXPECT_TRUE(t.cref(1).is_val());
+    EXPECT_TRUE(t.cref(2).is_val());
+    EXPECT_TRUE(t.cref(3).is_val());
+    EXPECT_TRUE(t.cref(4).is_val());
+    verify_assertion(t, [](Tree & tree){ return tree.cref(tree.capacity()); });
+    verify_assertion(t, [](Tree & tree){ return tree.cref(NONE); });
 }
 
 TEST(Tree, ref_const)
@@ -860,85 +946,138 @@ TEST(Tree, ref_const)
     EXPECT_TRUE(t.ref(2).is_val());
     EXPECT_TRUE(t.ref(3).is_val());
     EXPECT_TRUE(t.ref(4).is_val());
+    verify_assertion("[0, 1, 2, 3]", [](Tree const& tree){ return tree.cref(tree.capacity()); });
+    verify_assertion("[0, 1, 2, 3]", [](Tree const& tree){ return tree.cref(NONE); });
 }
 
 
-TEST(Tree, operator_square_brackets)
+TEST(Tree, operator_square_brackets_seq)
 {
-    {
-        Tree t = parse_in_arena("[0, 1, 2, 3, 4]");
-        Tree &m = t;
-        Tree const& cm = t;
-        EXPECT_EQ(m[0].val(), "0");
-        EXPECT_EQ(m[1].val(), "1");
-        EXPECT_EQ(m[2].val(), "2");
-        EXPECT_EQ(m[3].val(), "3");
-        EXPECT_EQ(m[4].val(), "4");
-        EXPECT_EQ(cm[0].val(), "0");
-        EXPECT_EQ(cm[1].val(), "1");
-        EXPECT_EQ(cm[2].val(), "2");
-        EXPECT_EQ(cm[3].val(), "3");
-        EXPECT_EQ(cm[4].val(), "4");
-        //
-        EXPECT_TRUE(m[0]  == "0");
-        EXPECT_TRUE(m[1]  == "1");
-        EXPECT_TRUE(m[2]  == "2");
-        EXPECT_TRUE(m[3]  == "3");
-        EXPECT_TRUE(m[4]  == "4");
-        EXPECT_TRUE(cm[0] == "0");
-        EXPECT_TRUE(cm[1] == "1");
-        EXPECT_TRUE(cm[2] == "2");
-        EXPECT_TRUE(cm[3] == "3");
-        EXPECT_TRUE(cm[4] == "4");
-        //
-        EXPECT_FALSE(m[0]  != "0");
-        EXPECT_FALSE(m[1]  != "1");
-        EXPECT_FALSE(m[2]  != "2");
-        EXPECT_FALSE(m[3]  != "3");
-        EXPECT_FALSE(m[4]  != "4");
-        EXPECT_FALSE(cm[0] != "0");
-        EXPECT_FALSE(cm[1] != "1");
-        EXPECT_FALSE(cm[2] != "2");
-        EXPECT_FALSE(cm[3] != "3");
-        EXPECT_FALSE(cm[4] != "4");
-    }
-    {
-        Tree t = parse_in_arena("{a: 0, b: 1, c: 2, d: 3, e: 4}");
-        Tree &m = t;
-        Tree const& cm = t;
-        EXPECT_EQ(m["a"].val(), "0");
-        EXPECT_EQ(m["b"].val(), "1");
-        EXPECT_EQ(m["c"].val(), "2");
-        EXPECT_EQ(m["d"].val(), "3");
-        EXPECT_EQ(m["e"].val(), "4");
-        EXPECT_EQ(cm["a"].val(), "0");
-        EXPECT_EQ(cm["b"].val(), "1");
-        EXPECT_EQ(cm["c"].val(), "2");
-        EXPECT_EQ(cm["d"].val(), "3");
-        EXPECT_EQ(cm["e"].val(), "4");
-        //
-        EXPECT_TRUE(m["a"] == "0");
-        EXPECT_TRUE(m["b"] == "1");
-        EXPECT_TRUE(m["c"] == "2");
-        EXPECT_TRUE(m["d"] == "3");
-        EXPECT_TRUE(m["e"] == "4");
-        EXPECT_TRUE(cm["a"] == "0");
-        EXPECT_TRUE(cm["b"] == "1");
-        EXPECT_TRUE(cm["c"] == "2");
-        EXPECT_TRUE(cm["d"] == "3");
-        EXPECT_TRUE(cm["e"] == "4");
-        //
-        EXPECT_FALSE(m["a"] != "0");
-        EXPECT_FALSE(m["b"] != "1");
-        EXPECT_FALSE(m["c"] != "2");
-        EXPECT_FALSE(m["d"] != "3");
-        EXPECT_FALSE(m["e"] != "4");
-        EXPECT_FALSE(cm["a"] != "0");
-        EXPECT_FALSE(cm["b"] != "1");
-        EXPECT_FALSE(cm["c"] != "2");
-        EXPECT_FALSE(cm["d"] != "3");
-        EXPECT_FALSE(cm["e"] != "4");
-    }
+    Tree t = parse_in_arena("[0, 1, 2, 3, 4]");
+    Tree &m = t;
+    Tree const& cm = t;
+    EXPECT_EQ(m[0].val(), "0");
+    EXPECT_EQ(m[1].val(), "1");
+    EXPECT_EQ(m[2].val(), "2");
+    EXPECT_EQ(m[3].val(), "3");
+    EXPECT_EQ(m[4].val(), "4");
+    EXPECT_EQ(cm[0].val(), "0");
+    EXPECT_EQ(cm[1].val(), "1");
+    EXPECT_EQ(cm[2].val(), "2");
+    EXPECT_EQ(cm[3].val(), "3");
+    EXPECT_EQ(cm[4].val(), "4");
+    //
+    verify_assertion(t, [&](Tree const&){ return cm[m.capacity()]; });
+    verify_assertion(t, [&](Tree const&){ return cm[NONE]; });
+    verify_assertion(t, [&](Tree const&){ return cm[0][0]; });
+    verify_assertion(t, [&](Tree const&){ return cm["a"]; });
+}
+
+TEST(Tree, operator_square_brackets_map)
+{
+    Tree t = parse_in_arena("{a: 0, b: 1, c: 2, d: 3, e: 4}");
+    Tree &m = t;
+    Tree const& cm = t;
+    EXPECT_EQ(m["a"].val(), "0");
+    EXPECT_EQ(m["b"].val(), "1");
+    EXPECT_EQ(m["c"].val(), "2");
+    EXPECT_EQ(m["d"].val(), "3");
+    EXPECT_EQ(m["e"].val(), "4");
+    EXPECT_EQ(cm["a"].val(), "0");
+    EXPECT_EQ(cm["b"].val(), "1");
+    EXPECT_EQ(cm["c"].val(), "2");
+    EXPECT_EQ(cm["d"].val(), "3");
+    EXPECT_EQ(cm["e"].val(), "4");
+    //
+    verify_assertion(t, [&](Tree const&){ return cm["f"]; });
+    verify_assertion(t, [&](Tree const&){ return cm["g"]["h"]; });
+}
+
+TEST(Tree, noderef_at_seq)
+{
+    Tree t = parse_in_arena("[0, 1, 2, 3, 4]");
+    NodeRef m = t.rootref();
+    ConstNodeRef const cm = t.rootref();
+    EXPECT_EQ(m.at(0).val(), "0");
+    EXPECT_EQ(m.at(1).val(), "1");
+    EXPECT_EQ(m.at(2).val(), "2");
+    EXPECT_EQ(m.at(3).val(), "3");
+    EXPECT_EQ(m.at(4).val(), "4");
+    EXPECT_EQ(cm.at(0).val(), "0");
+    EXPECT_EQ(cm.at(1).val(), "1");
+    EXPECT_EQ(cm.at(2).val(), "2");
+    EXPECT_EQ(cm.at(3).val(), "3");
+    EXPECT_EQ(cm.at(4).val(), "4");
+    //
+    EXPECT_EQ(cm.num_children(), 5);
+    EXPECT_EQ(cm.num_children(), m.num_children());
+    //
+    verify_error(t, [&](Tree const&){ return cm.at(NONE); });
+    verify_error(t, [&](Tree const&){ return cm.at(t.capacity()); });
+    verify_error(t, [&](Tree const&){ return cm.at(5); });
+    verify_error(t, [&](Tree const&){ return cm.at(6); });
+    verify_error(t, [&](Tree const&){ return cm.at(7); });
+    verify_error(t, [&](Tree const&){ return cm.at(10); });
+    verify_error(t, [&](Tree const&){ return cm.at(0).at(0); });
+    verify_error(t, [&](Tree const&){ return cm.at("a"); });
+    //
+    verify_error(t, [&](Tree const&){ return m.at(NONE); });
+    verify_error(t, [&](Tree const&){ return m.at(t.capacity()); });
+    verify_success(t, [&](Tree const&){ return m.at(5); });
+    verify_success(t, [&](Tree const&){ return m.at(6); });
+    verify_error(t, [&](Tree const&){ return m.at(0).at(0); });
+    verify_error(t, [&](Tree const&){ return m.at("a"); });
+    EXPECT_TRUE(m.at(5).is_seed());
+    EXPECT_TRUE(m.at(6).is_seed());
+    //
+    NodeRef to_be_removed_orig = m.at(4);
+    NodeRef to_be_removed = to_be_removed_orig;
+    EXPECT_EQ(to_be_removed.id(), 5);
+    EXPECT_EQ(to_be_removed_orig.id(), 5);
+    m.remove_child(to_be_removed);
+    EXPECT_EQ(to_be_removed.id(), 5); // it is stale now
+    EXPECT_EQ(to_be_removed_orig.id(), 5); // it is stale now
+    EXPECT_EQ(m.num_children(), 4);
+    EXPECT_TRUE(m.at(4).is_seed());
+    verify_success(t, [&](Tree const&){ return m.at(4); });
+    verify_error(t, [&](Tree const&){ return cm.at(4); });
+}
+
+TEST(Tree, noderef_at_map)
+{
+    Tree t = parse_in_arena("{a: 0, b: 1, c: 2, d: 3, e: 4}");
+    NodeRef m = t.rootref();
+    ConstNodeRef const cm = t.rootref();
+    EXPECT_EQ(m.at("a").val(), "0");
+    EXPECT_EQ(m.at("b").val(), "1");
+    EXPECT_EQ(m.at("c").val(), "2");
+    EXPECT_EQ(m.at("d").val(), "3");
+    EXPECT_EQ(m.at("e").val(), "4");
+    EXPECT_EQ(cm.at("a").val(), "0");
+    EXPECT_EQ(cm.at("b").val(), "1");
+    EXPECT_EQ(cm.at("c").val(), "2");
+    EXPECT_EQ(cm.at("d").val(), "3");
+    EXPECT_EQ(cm.at("e").val(), "4");
+    //
+    verify_error(t, [&](Tree const&){ return cm.at(t.capacity()); });
+    verify_error(t, [&](Tree const&){ return cm.at(NONE); });
+    verify_error(t, [&](Tree const&){ return cm.at(cm.num_children()); });
+    verify_error(t, [&](Tree const&){ return cm.at(5); });
+    verify_error(t, [&](Tree const&){ return cm.at(6); });
+    verify_error(t, [&](Tree const&){ return cm.at("f"); });
+    verify_error(t, [&](Tree const&){ return cm.at("g").at("h"); });
+    //
+    verify_error(t, [&](Tree const&){ return m.at(t.capacity()); });
+    verify_error(t, [&](Tree const&){ return m.at(NONE); });
+    verify_success(t, [&](Tree const&){ return m.at(cm.num_children()); });
+    verify_success(t, [&](Tree const&){ return m.at(5); });
+    verify_success(t, [&](Tree const&){ return m.at(6); });
+    verify_success(t, [&](Tree const&){ return m.at("f"); });
+    verify_error(t, [&](Tree const&){ return m.at("g").at("h"); });
+    EXPECT_TRUE(m.at(cm.num_children()).is_seed());
+    EXPECT_TRUE(m.at(5).is_seed());
+    EXPECT_TRUE(m.at(6).is_seed());
+    EXPECT_TRUE(m.at("f").is_seed());
 }
 
 TEST(Tree, relocate)
@@ -1045,6 +1184,8 @@ TEST(NodeType, type_str)
     EXPECT_EQ(to_csubstr(NodeType(VALANCH).type_str()), "(unk)");
 }
 
+
+
 TEST(NodeType, is_stream)
 {
     EXPECT_FALSE(NodeType(NOTYPE).is_stream());
@@ -1074,6 +1215,13 @@ foo: bar
     EXPECT_EQ(stream.is_stream(), stream.get()->m_type.is_stream());
     EXPECT_EQ(doc.is_stream(), doc.get()->m_type.is_stream());
     EXPECT_EQ(keyval.is_stream(), keyval.get()->m_type.is_stream());
+    //
+    ASSERT_TRUE(!t.docref(0)["none"].invalid());
+    ASSERT_TRUE(t.docref(0)["none"].is_seed());
+    ASSERT_FALSE(t.docref(0)["none"].readable());
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].is_stream(); });
+    verify_assertion(t, [&](Tree const&){ return t.is_stream(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.is_stream(NONE); });
 }
 
 TEST(NodeType, is_doc)
@@ -1125,6 +1273,11 @@ a scalar
     EXPECT_EQ(mdoc.is_doc(), mdoc.get()->m_type.is_doc());
     EXPECT_EQ(mkeyval.is_doc(), mkeyval.get()->m_type.is_doc());
     EXPECT_EQ(mdocval.is_doc(), mdocval.get()->m_type.is_doc());
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].is_doc(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).is_doc(); });
+    verify_assertion(t, [&](Tree const&){ return t.is_doc(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.is_doc(NONE); });
 }
 
 TEST(NodeType, is_container)
@@ -1212,6 +1365,11 @@ a scalar
     EXPECT_EQ(mseq.is_container(), mseq.get()->m_type.is_container());
     EXPECT_EQ(mval.is_container(), mval.get()->m_type.is_container());
     EXPECT_EQ(mdocval.is_container(), mdocval.get()->m_type.is_container());
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].is_container(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).is_container(); });
+    verify_assertion(t, [&](Tree const&){ return t.is_container(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.is_container(NONE); });
 }
 
 TEST(NodeType, is_map)
@@ -1296,6 +1454,11 @@ a scalar
     EXPECT_EQ(mseq.is_map(), mseq.get()->m_type.is_map());
     EXPECT_EQ(mval.is_map(), mval.get()->m_type.is_map());
     EXPECT_EQ(mdocval.is_map(), mdocval.get()->m_type.is_map());
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].is_map(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).is_map(); });
+    verify_assertion(t, [&](Tree const&){ return t.is_map(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.is_map(NONE); });
 }
 
 TEST(NodeType, is_seq)
@@ -1380,6 +1543,11 @@ a scalar
     EXPECT_EQ(mseq.is_seq(), mseq.get()->m_type.is_seq());
     EXPECT_EQ(mval.is_seq(), mval.get()->m_type.is_seq());
     EXPECT_EQ(mdocval.is_seq(), mdocval.get()->m_type.is_seq());
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].is_seq(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).is_seq(); });
+    verify_assertion(t, [&](Tree const&){ return t.is_seq(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.is_seq(NONE); });
 }
 
 TEST(NodeType, has_val)
@@ -1464,6 +1632,11 @@ a scalar
     EXPECT_EQ(mseq.has_val(), mseq.get()->m_type.has_val());
     EXPECT_EQ(mval.has_val(), mval.get()->m_type.has_val());
     EXPECT_EQ(mdocval.has_val(), mdocval.get()->m_type.has_val());
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].has_val(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).has_val(); });
+    verify_assertion(t, [&](Tree const&){ return t.has_val(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.has_val(NONE); });
 }
 
 TEST(NodeType, is_val)
@@ -1548,6 +1721,11 @@ a scalar
     EXPECT_EQ(mseq.is_val(), mseq.get()->m_type.is_val());
     EXPECT_EQ(mval.is_val(), mval.get()->m_type.is_val());
     EXPECT_EQ(mdocval.is_val(), mdocval.get()->m_type.is_val());
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].is_val(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(1)[1].is_val(); });
+    verify_assertion(t, [&](Tree const&){ return t.is_val(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.is_val(NONE); });
 }
 
 TEST(NodeType, has_key)
@@ -1631,6 +1809,11 @@ a scalar
     EXPECT_EQ(mseq.has_key(), mseq.get()->m_type.has_key());
     EXPECT_EQ(mval.has_key(), mval.get()->m_type.has_key());
     EXPECT_EQ(mdocval.has_key(), mdocval.get()->m_type.has_key());
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].has_key(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).has_key(); });
+    verify_assertion(t, [&](Tree const&){ return t.has_key(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.has_key(NONE); });
 }
 
 TEST(NodeType, is_keyval)
@@ -1715,6 +1898,11 @@ a scalar
     EXPECT_EQ(mseq.is_keyval(), mseq.get()->m_type.is_keyval());
     EXPECT_EQ(mval.is_keyval(), mval.get()->m_type.is_keyval());
     EXPECT_EQ(mdocval.is_keyval(), mdocval.get()->m_type.is_keyval());
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].is_keyval(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).is_keyval(); });
+    verify_assertion(t, [&](Tree const&){ return t.is_keyval(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.is_keyval(NONE); });
 }
 
 TEST(NodeType, has_key_tag)
@@ -1813,6 +2001,11 @@ a scalar
     EXPECT_EQ(mval.has_key_tag(), mval.get()->m_type.has_key_tag());
     EXPECT_EQ(mvalnotag.has_key_tag(), mvalnotag.get()->m_type.has_key_tag());
     EXPECT_EQ(mdocval.has_key_tag(), mdocval.get()->m_type.has_key_tag());
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].has_key_tag(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).has_key_tag(); });
+    verify_assertion(t, [&](Tree const&){ return t.has_key_tag(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.has_key_tag(NONE); });
 }
 
 TEST(NodeType, has_val_tag)
@@ -1911,6 +2104,11 @@ a scalar
     EXPECT_EQ(mval.has_val_tag(), mval.get()->m_type.has_val_tag());
     EXPECT_EQ(mvalnotag.has_val_tag(), mvalnotag.get()->m_type.has_val_tag());
     EXPECT_EQ(mdocval.has_val_tag(), mdocval.get()->m_type.has_val_tag());
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].has_val_tag(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).has_val_tag(); });
+    verify_assertion(t, [&](Tree const&){ return t.has_val_tag(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.has_val_tag(NONE); });
 }
 
 TEST(NodeType, has_key_anchor)
@@ -1998,6 +2196,11 @@ TEST(Tree, has_key_anchor)
     EXPECT_EQ(mseq.has_key_anchor(), mseq.get()->m_type.has_key_anchor());
     EXPECT_EQ(mval.has_key_anchor(), mval.get()->m_type.has_key_anchor());
     EXPECT_EQ(mvalnoanchor.has_key_anchor(), mvalnoanchor.get()->m_type.has_key_anchor());
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].has_key(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(1).has_key_anchor(); });
+    verify_assertion(t, [&](Tree const&){ return t.has_key_anchor(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.has_key_anchor(NONE); });
 }
 
 TEST(NodeType, is_key_anchor)
@@ -2085,6 +2288,11 @@ TEST(Tree, is_key_anchor)
     EXPECT_EQ(mseq.is_key_anchor(), mseq.get()->m_type.is_key_anchor());
     EXPECT_EQ(mval.is_key_anchor(), mval.get()->m_type.is_key_anchor());
     EXPECT_EQ(mvalnoanchor.is_key_anchor(), mvalnoanchor.get()->m_type.is_key_anchor());
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].is_key_anchor(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(1).is_key_anchor(); });
+    verify_assertion(t, [&](Tree const&){ return t.is_key_anchor(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.is_key_anchor(NONE); });
 }
 
 TEST(NodeType, has_val_anchor)
@@ -2172,6 +2380,11 @@ seq: &seqanchor [&valanchor foo, bar]
     EXPECT_EQ(mseq.has_val_anchor(), mseq.get()->m_type.has_val_anchor());
     EXPECT_EQ(mval.has_val_anchor(), mval.get()->m_type.has_val_anchor());
     EXPECT_EQ(mvalnoanchor.has_val_anchor(), mvalnoanchor.get()->m_type.has_val_anchor());
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].has_val_anchor(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(1).has_val_anchor(); });
+    verify_assertion(t, [&](Tree const&){ return t.has_val_anchor(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.has_val_anchor(NONE); });
 }
 
 TEST(NodeType, is_val_anchor)
@@ -2259,6 +2472,11 @@ seq: &seqanchor [&valanchor foo, bar]
     EXPECT_EQ(mseq.is_val_anchor(), mseq.get()->m_type.is_val_anchor());
     EXPECT_EQ(mval.is_val_anchor(), mval.get()->m_type.is_val_anchor());
     EXPECT_EQ(mvalnoanchor.is_val_anchor(), mvalnoanchor.get()->m_type.is_val_anchor());
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].is_val_anchor(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(1).is_val_anchor(); });
+    verify_assertion(t, [&](Tree const&){ return t.is_val_anchor(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.is_val_anchor(NONE); });
 }
 
 TEST(NodeType, has_anchor)
@@ -2351,6 +2569,8 @@ map: &mapanchor {foo: &keyvalanchor bar, anchor: none}
     EXPECT_EQ(mseq.has_anchor(), mseq.get()->m_type.has_anchor());
     EXPECT_EQ(mval.has_anchor(), mval.get()->m_type.has_anchor());
     EXPECT_EQ(mvalnoanchor.has_anchor(), mvalnoanchor.get()->m_type.has_anchor());
+    verify_assertion(t, [&](Tree const&){ return t.has_anchor(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.has_anchor(NONE); });
 }
 
 TEST(NodeType, is_anchor)
@@ -2443,6 +2663,11 @@ map: &mapanchor {foo: &keyvalanchor bar, anchor: none}
     EXPECT_EQ(mseq.is_anchor(), mseq.get()->m_type.is_anchor());
     EXPECT_EQ(mval.is_anchor(), mval.get()->m_type.is_anchor());
     EXPECT_EQ(mvalnoanchor.is_anchor(), mvalnoanchor.get()->m_type.is_anchor());
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].is_anchor(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).is_anchor(); });
+    verify_assertion(t, [&](Tree const&){ return t.is_anchor(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.is_anchor(NONE); });
 }
 
 TEST(NodeType, is_key_ref)
@@ -2512,6 +2737,11 @@ TEST(Tree, is_key_ref)
     EXPECT_EQ(mkeyval.is_key_ref(), mkeyval.get()->m_type.is_key_ref());
     EXPECT_EQ(mseq.is_key_ref(), mseq.get()->m_type.is_key_ref());
     EXPECT_EQ(mval.is_key_ref(), mval.get()->m_type.is_key_ref());
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].is_key_ref(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).is_key_ref(); });
+    verify_assertion(t, [&](Tree const&){ return t.is_key_ref(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.is_key_ref(NONE); });
 }
 
 TEST(NodeType, is_val_ref)
@@ -2581,6 +2811,11 @@ seq: [*valref, bar]
     EXPECT_EQ(mkeyval.is_val_ref(), mkeyval.get()->m_type.is_val_ref());
     EXPECT_EQ(mseq.is_val_ref(), mseq.get()->m_type.is_val_ref());
     EXPECT_EQ(mval.is_val_ref(), mval.get()->m_type.is_val_ref());
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].is_val_ref(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).is_val_ref(); });
+    verify_assertion(t, [&](Tree const&){ return t.is_val_ref(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.is_val_ref(NONE); });
 }
 
 TEST(NodeType, is_ref)
@@ -2654,6 +2889,11 @@ seq: [*valref, bar]
     EXPECT_EQ(mkeyval.is_ref(), mkeyval.get()->m_type.is_ref());
     EXPECT_EQ(mseq.is_ref(), mseq.get()->m_type.is_ref());
     EXPECT_EQ(mval.is_ref(), mval.get()->m_type.is_ref());
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].is_ref(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).is_ref(); });
+    verify_assertion(t, [&](Tree const&){ return t.is_ref(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.is_ref(NONE); });
 }
 
 TEST(NodeType, is_anchor_or_ref)
@@ -2733,6 +2973,11 @@ seq: &seq [*valref, bar]
     EXPECT_EQ(mkeyval.is_anchor_or_ref(), mkeyval.get()->m_type.is_anchor_or_ref());
     EXPECT_EQ(mseq.is_anchor_or_ref(), mseq.get()->m_type.is_anchor_or_ref());
     EXPECT_EQ(mval.is_anchor_or_ref(), mval.get()->m_type.is_anchor_or_ref());
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].is_anchor_or_ref(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).is_anchor_or_ref(); });
+    verify_assertion(t, [&](Tree const&){ return t.is_anchor_or_ref(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.is_anchor_or_ref(NONE); });
 }
 
 TEST(NodeType, is_key_quoted)
@@ -2775,6 +3020,11 @@ notquoted: bar
     EXPECT_EQ(mmap.is_key_quoted(), mmap.get()->m_type.is_key_quoted());
     EXPECT_EQ(mquoted.is_key_quoted(), mquoted.get()->m_type.is_key_quoted());
     EXPECT_EQ(mnotquoted.is_key_quoted(), mnotquoted.get()->m_type.is_key_quoted());
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].is_key_quoted(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).is_key_quoted(); });
+    verify_assertion(t, [&](Tree const&){ return t.is_key_quoted(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.is_key_quoted(NONE); });
 }
 
 TEST(NodeType, is_val_quoted)
@@ -2817,6 +3067,11 @@ notquoted: bar
     EXPECT_EQ(mmap.is_val_quoted(), mmap.get()->m_type.is_val_quoted());
     EXPECT_EQ(mquoted.is_val_quoted(), mquoted.get()->m_type.is_val_quoted());
     EXPECT_EQ(mnotquoted.is_val_quoted(), mnotquoted.get()->m_type.is_val_quoted());
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].is_val_quoted(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).is_val_quoted(); });
+    verify_assertion(t, [&](Tree const&){ return t.is_val_quoted(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.is_val_quoted(NONE); });
 }
 
 TEST(NodeType, is_quoted)
@@ -2914,6 +3169,11 @@ notquoted: bar
     EXPECT_EQ(mquoted5.is_quoted(), mquoted5.get()->m_type.is_quoted());
     EXPECT_EQ(mquoted6.is_quoted(), mquoted6.get()->m_type.is_quoted());
     EXPECT_EQ(mnotquoted.is_quoted(), mnotquoted.get()->m_type.is_quoted());
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].is_quoted(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).is_quoted(); });
+    verify_assertion(t, [&](Tree const&){ return t.is_quoted(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.is_quoted(NONE); });
 }
 
 
@@ -2968,6 +3228,11 @@ seq: &seq [*valref, bar]
     EXPECT_EQ(t.parent_is_seq(keyval_id), mkeyval.parent_is_seq());
     EXPECT_EQ(t.parent_is_seq(seq_id), mseq.parent_is_seq());
     EXPECT_EQ(t.parent_is_seq(val_id), mval.parent_is_seq());
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].parent_is_seq(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).parent_is_seq(); });
+    verify_assertion(t, [&](Tree const&){ return t.parent_is_seq(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.parent_is_seq(NONE); });
 }
 
 TEST(Tree, parent_is_map)
@@ -3022,6 +3287,11 @@ seq: &seq [*valref, bar]
     EXPECT_EQ(t.parent_is_map(keyval_id), mkeyval.parent_is_map());
     EXPECT_EQ(t.parent_is_map(seq_id), mseq.parent_is_map());
     EXPECT_EQ(t.parent_is_map(val_id), mval.parent_is_map());
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].parent_is_map(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).parent_is_map(); });
+    verify_assertion(t, [&](Tree const&){ return t.parent_is_map(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.parent_is_map(NONE); });
 }
 
 TEST(Tree, has_parent)
@@ -3078,6 +3348,11 @@ seq: &seq [*valref, bar]
     EXPECT_EQ(t.has_parent(keyval_id), mkeyval.has_parent());
     EXPECT_EQ(t.has_parent(seq_id), mseq.has_parent());
     EXPECT_EQ(t.has_parent(val_id), mval.has_parent());
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].has_parent(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).has_parent(); });
+    verify_assertion(t, [&](Tree const&){ return t.has_parent(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.has_parent(NONE); });
 }
 
 
@@ -3126,6 +3401,11 @@ seq: &seq [*valref, bar]
     EXPECT_EQ(mkeyval.num_children(), t.num_children(keyval_id));
     EXPECT_EQ(mseq.num_children(), t.num_children(seq_id));
     EXPECT_EQ(mval.num_children(), t.num_children(val_id));
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].num_children(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).num_children(); });
+    verify_assertion(t, [&](Tree const&){ return t.num_children(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.num_children(NONE); });
 }
 
 TEST(Tree, child)
@@ -3170,6 +3450,11 @@ seq: &seq [*valref, bar]
     EXPECT_EQ(mkeyval.child(0).id(), t.child(keyval_id, 0));
     EXPECT_EQ(mseq.child(0).id(), t.child(seq_id, 0));
     EXPECT_EQ(mval.child(0).id(), t.child(val_id, 0));
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].child(0); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).child(0); });
+    verify_assertion(t, [&](Tree const&){ return t.child(t.capacity(), 0); });
+    verify_assertion(t, [&](Tree const&){ return t.child(NONE, 0); });
 }
 
 TEST(Tree, find_child_by_name)
@@ -3202,6 +3487,11 @@ seq: &seq [*valref, bar]
     EXPECT_EQ(mdoc.find_child("...").id(), t.find_child(doc_id, "..."));
     EXPECT_EQ(mmap.find_child("foo").id(), t.find_child(map_id, "foo"));
     EXPECT_EQ(mmap.find_child("bar").id(), t.find_child(map_id, "bar"));
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].find_child("foo"); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).find_child("foo"); });
+    verify_assertion(t, [&](Tree const&){ return t.find_child(t.capacity(), "foo"); });
+    verify_assertion(t, [&](Tree const&){ return t.find_child(NONE, "foo"); });
 }
 
 
@@ -3214,6 +3504,7 @@ TEST(change_type, from_val)
     t[0].change_type(VAL);
     t[1].change_type(MAP);
     t[2].change_type(SEQ);
+    verify_assertion(t, [&](Tree const&){ return t[3].change_type(VAL); });
     Tree expected = parse_in_arena("[val0, {}, []]");
     EXPECT_EQ(emitrs_yaml<std::string>(t), emitrs_yaml<std::string>(expected));
 }
@@ -3223,6 +3514,7 @@ TEST(change_type, from_keyval)
     t[0].change_type(VAL);
     t[1].change_type(MAP);
     t[2].change_type(SEQ);
+    verify_assertion(t, [&](Tree const&){ return t[3].change_type(VAL); });
     Tree expected = parse_in_arena("{keyval0: val0, keyval1: {}, keyval2: []}");
     EXPECT_EQ(emitrs_yaml<std::string>(t), emitrs_yaml<std::string>(expected));
 }
@@ -3233,6 +3525,7 @@ TEST(change_type, from_map)
     t[0].change_type(VAL);
     t[1].change_type(MAP);
     t[2].change_type(SEQ);
+    verify_assertion(t, [&](Tree const&){ return t[3].change_type(VAL); });
     EXPECT_FALSE(t[0].val_is_null());
     EXPECT_NE(t[0].val(), nullptr);
     Tree expected = parse_in_arena("['', {map1: {map1key0: a, map1key1: b}}, []]");
@@ -3244,6 +3537,7 @@ TEST(change_type, from_keymap)
     t[0].change_type(VAL);
     t[1].change_type(MAP);
     t[2].change_type(SEQ);
+    verify_assertion(t, [&](Tree const&){ return t[3].change_type(VAL); });
     EXPECT_FALSE(t[0].val_is_null());
     EXPECT_NE(t[0].val(), nullptr);
     Tree expected = parse_in_arena("{map0: '', map1: {map1: {map1key0: a, map1key1: b}}, map2: []}");
@@ -3256,6 +3550,7 @@ TEST(change_type, from_seq)
     t[0].change_type(VAL);
     t[1].change_type(MAP);
     t[2].change_type(SEQ);
+    verify_assertion(t, [&](Tree const&){ return t[3].change_type(VAL); });
     EXPECT_FALSE(t[0].val_is_null());
     EXPECT_NE(t[0].val(), nullptr);
     Tree expected = parse_in_arena("['', {}, [seq20, seq21]]");
@@ -3267,6 +3562,7 @@ TEST(change_type, from_keyseq)
     t[0].change_type(VAL);
     t[1].change_type(MAP);
     t[2].change_type(SEQ);
+    verify_assertion(t, [&](Tree const&){ return t[3].change_type(VAL); });
     EXPECT_FALSE(t[0].val_is_null());
     EXPECT_NE(t[0].val(), nullptr);
     Tree expected = parse_in_arena("{map0: '', map1: {}, map2: [seq20, seq21]}");

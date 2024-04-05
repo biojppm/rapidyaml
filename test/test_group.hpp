@@ -15,6 +15,9 @@
 #elif defined(__GNUC__)
 #   pragma GCC diagnostic push
 #   pragma GCC diagnostic ignored "-Wunknown-pragmas"
+#   if __GNUC__ > 5
+#       pragma GCC diagnostic ignored "-Wunused-const-variable"
+#   endif
 //#   pragma GCC diagnostic ignored "-Wpragma-system-header-outside-header"
 #endif
 

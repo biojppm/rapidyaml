@@ -38,7 +38,7 @@ bool read(c4::yml::ConstNodeRef const& n, std::vector<bool, Alloc> *vec)
 {
     vec->resize(n.num_children());
     size_t pos = 0;
-    bool tmp;
+    bool tmp = false;
     for(auto const ch : n)
     {
         ch >> tmp;

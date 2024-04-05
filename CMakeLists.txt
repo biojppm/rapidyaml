@@ -14,7 +14,11 @@ c4_project(VERSION 0.5.0 STANDALONE
 
 option(RYML_WITH_TAB_TOKENS "Enable parsing of tabs after ':' and '-'. This is costly and disabled by default." OFF)
 option(RYML_DEFAULT_CALLBACKS "Enable ryml's default implementation of callbacks: allocate(), free(), error()" ON)
-option(RYML_BUILD_TOOLS "build tools" OFF)
+if(RYML_DEFAULT_CALLBACKS)
+    option(RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS "Throw exceptions instead of calling abort in the default error handler provided by ryml" OFF)
+endif()
+option(RYML_USE_ASSERT "Enable assertions regardless of build type. Default is only when NDEBUG is not defined (which is in release builds). This causes a slowdown of the code." OFF)
+option(RYML_BUILD_TOOLS "Build tools" OFF)
 option(RYML_BUILD_API "Enable API generation (python, etc)" OFF)
 option(RYML_DBG "Enable (very verbose) ryml debug prints." OFF)
 
@@ -66,10 +70,18 @@ endif()
 
 if(NOT RYML_DEFAULT_CALLBACKS)
     target_compile_definitions(ryml PRIVATE RYML_NO_DEFAULT_CALLBACKS)
+else()
+    if(RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS)
+        target_compile_definitions(ryml PRIVATE RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS)
+    endif()
 endif()
 
 if(RYML_DBG)
     target_compile_definitions(ryml PRIVATE RYML_DBG)
+endif()
+
+if(RYML_USE_ASSERT)
+    target_compile_definitions(ryml PUBLIC RYML_USE_ASSERT=1)
 endif()
 
 
