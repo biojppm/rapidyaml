@@ -498,7 +498,7 @@ public:
         {
             return NONE;
         }
-        RYML_ASSERT(n >= m_buf && n < m_buf + m_cap);
+        _RYML_CB_ASSERT(m_callbacks, n >= m_buf && n < m_buf + m_cap);
         return static_cast<size_t>(n - m_buf);
     }
 
@@ -508,7 +508,7 @@ public:
     {
         if(i == NONE)
             return nullptr;
-        RYML_ASSERT(i >= 0 && i < m_cap);
+        _RYML_CB_ASSERT(m_callbacks, i >= 0 && i < m_cap);
         return m_buf + i;
     }
     //! get a pointer to a node's NodeData.
@@ -517,21 +517,21 @@ public:
     {
         if(i == NONE)
             return nullptr;
-        RYML_ASSERT(i >= 0 && i < m_cap);
+        _RYML_CB_ASSERT(m_callbacks, i >= 0 && i < m_cap);
         return m_buf + i;
     }
 
     //! An if-less form of get() that demands a valid node index.
     //! This function is implementation only; use at your own risk.
-    inline NodeData       * _p(size_t i)       { RYML_ASSERT(i != NONE && i >= 0 && i < m_cap); return m_buf + i; }
+    inline NodeData       * _p(size_t i)       { _RYML_CB_ASSERT(m_callbacks, i != NONE && i >= 0 && i < m_cap); return m_buf + i; }
     //! An if-less form of get() that demands a valid node index.
     //! This function is implementation only; use at your own risk.
-    inline NodeData const * _p(size_t i) const { RYML_ASSERT(i != NONE && i >= 0 && i < m_cap); return m_buf + i; }
+    inline NodeData const * _p(size_t i) const { _RYML_CB_ASSERT(m_callbacks, i != NONE && i >= 0 && i < m_cap); return m_buf + i; }
 
     //! Get the id of the root node
-    size_t root_id()       { if(m_cap == 0) { reserve(16); } RYML_ASSERT(m_cap > 0 && m_size > 0); return 0; }
+    size_t root_id()       { if(m_cap == 0) { reserve(16); } _RYML_CB_ASSERT(m_callbacks, m_cap > 0 && m_size > 0); return 0; }
     //! Get the id of the root node
-    size_t root_id() const {                                 RYML_ASSERT(m_cap > 0 && m_size > 0); return 0; }
+    size_t root_id() const {                                 _RYML_CB_ASSERT(m_callbacks, m_cap > 0 && m_size > 0); return 0; }
 
     //! Get a NodeRef of a node by id
     NodeRef      ref(size_t id);
@@ -578,17 +578,17 @@ public:
     NodeType type(size_t node) const { return _p(node)->m_type; }
     const char* type_str(size_t node) const { return NodeType::type_str(_p(node)->m_type); }
 
-    csubstr    const& key       (size_t node) const { RYML_ASSERT(has_key(node)); return _p(node)->m_key.scalar; }
-    csubstr    const& key_tag   (size_t node) const { RYML_ASSERT(has_key_tag(node)); return _p(node)->m_key.tag; }
-    csubstr    const& key_ref   (size_t node) const { RYML_ASSERT(is_key_ref(node) && ! has_key_anchor(node)); return _p(node)->m_key.anchor; }
-    csubstr    const& key_anchor(size_t node) const { RYML_ASSERT( ! is_key_ref(node) && has_key_anchor(node)); return _p(node)->m_key.anchor; }
-    NodeScalar const& keysc     (size_t node) const { RYML_ASSERT(has_key(node)); return _p(node)->m_key; }
+    csubstr    const& key       (size_t node) const { _RYML_CB_ASSERT(m_callbacks, has_key(node)); return _p(node)->m_key.scalar; }
+    csubstr    const& key_tag   (size_t node) const { _RYML_CB_ASSERT(m_callbacks, has_key_tag(node)); return _p(node)->m_key.tag; }
+    csubstr    const& key_ref   (size_t node) const { _RYML_CB_ASSERT(m_callbacks, is_key_ref(node) && ! has_key_anchor(node)); return _p(node)->m_key.anchor; }
+    csubstr    const& key_anchor(size_t node) const { _RYML_CB_ASSERT(m_callbacks,  ! is_key_ref(node) && has_key_anchor(node)); return _p(node)->m_key.anchor; }
+    NodeScalar const& keysc     (size_t node) const { _RYML_CB_ASSERT(m_callbacks, has_key(node)); return _p(node)->m_key; }
 
-    csubstr    const& val       (size_t node) const { RYML_ASSERT(has_val(node)); return _p(node)->m_val.scalar; }
-    csubstr    const& val_tag   (size_t node) const { RYML_ASSERT(has_val_tag(node)); return _p(node)->m_val.tag; }
-    csubstr    const& val_ref   (size_t node) const { RYML_ASSERT(is_val_ref(node) && ! has_val_anchor(node)); return _p(node)->m_val.anchor; }
-    csubstr    const& val_anchor(size_t node) const { RYML_ASSERT( ! is_val_ref(node) && has_val_anchor(node)); return _p(node)->m_val.anchor; }
-    NodeScalar const& valsc     (size_t node) const { RYML_ASSERT(has_val(node)); return _p(node)->m_val; }
+    csubstr    const& val       (size_t node) const { _RYML_CB_ASSERT(m_callbacks, has_val(node)); return _p(node)->m_val.scalar; }
+    csubstr    const& val_tag   (size_t node) const { _RYML_CB_ASSERT(m_callbacks, has_val_tag(node)); return _p(node)->m_val.tag; }
+    csubstr    const& val_ref   (size_t node) const { _RYML_CB_ASSERT(m_callbacks, is_val_ref(node) && ! has_val_anchor(node)); return _p(node)->m_val.anchor; }
+    csubstr    const& val_anchor(size_t node) const { _RYML_CB_ASSERT(m_callbacks,  ! is_val_ref(node) && has_val_anchor(node)); return _p(node)->m_val.anchor; }
+    NodeScalar const& valsc     (size_t node) const { _RYML_CB_ASSERT(m_callbacks, has_val(node)); return _p(node)->m_val; }
 
     /** @} */
 
@@ -622,16 +622,16 @@ public:
     C4_ALWAYS_INLINE bool is_val_quoted(size_t node) const { return _p(node)->m_type.is_val_quoted(); }
     C4_ALWAYS_INLINE bool is_quoted(size_t node) const { return _p(node)->m_type.is_quoted(); }
 
-    C4_ALWAYS_INLINE bool parent_is_seq(size_t node) const { RYML_ASSERT(has_parent(node)); return is_seq(_p(node)->m_parent); }
-    C4_ALWAYS_INLINE bool parent_is_map(size_t node) const { RYML_ASSERT(has_parent(node)); return is_map(_p(node)->m_parent); }
+    C4_ALWAYS_INLINE bool parent_is_seq(size_t node) const { _RYML_CB_ASSERT(m_callbacks, has_parent(node)); return is_seq(_p(node)->m_parent); }
+    C4_ALWAYS_INLINE bool parent_is_map(size_t node) const { _RYML_CB_ASSERT(m_callbacks, has_parent(node)); return is_map(_p(node)->m_parent); }
 
     /** true when key and val are empty, and has no children */
     C4_ALWAYS_INLINE bool empty(size_t node) const { return ! has_children(node) && _p(node)->m_key.empty() && (( ! (_p(node)->m_type & VAL)) || _p(node)->m_val.empty()); }
     /** true when the node has an anchor named a */
     C4_ALWAYS_INLINE bool has_anchor(size_t node, csubstr a) const { return _p(node)->m_key.anchor == a || _p(node)->m_val.anchor == a; }
 
-    C4_ALWAYS_INLINE bool key_is_null(size_t node) const { RYML_ASSERT(has_key(node)); NodeData const* C4_RESTRICT n = _p(node); return !n->m_type.is_key_quoted() && scalar_is_null(n->m_key.scalar); }
-    C4_ALWAYS_INLINE bool val_is_null(size_t node) const { RYML_ASSERT(has_val(node)); NodeData const* C4_RESTRICT n = _p(node); return !n->m_type.is_val_quoted() && scalar_is_null(n->m_val.scalar); }
+    C4_ALWAYS_INLINE bool key_is_null(size_t node) const { _RYML_CB_ASSERT(m_callbacks, has_key(node)); NodeData const* C4_RESTRICT n = _p(node); return !n->m_type.is_key_quoted() && scalar_is_null(n->m_key.scalar); }
+    C4_ALWAYS_INLINE bool val_is_null(size_t node) const { _RYML_CB_ASSERT(m_callbacks, has_val(node)); NodeData const* C4_RESTRICT n = _p(node); return !n->m_type.is_val_quoted() && scalar_is_null(n->m_val.scalar); }
 
     /** @todo move this function to node_type.hpp */
     static bool scalar_is_null(csubstr s) noexcept
@@ -650,7 +650,7 @@ public:
     /** @name hierarchy predicates */
     /** @{ */
 
-    bool is_root(size_t node) const { RYML_ASSERT(_p(node)->m_parent != NONE || node == 0); return _p(node)->m_parent == NONE; }
+    bool is_root(size_t node) const { _RYML_CB_ASSERT(m_callbacks, _p(node)->m_parent != NONE || node == 0); return _p(node)->m_parent == NONE; }
 
     bool has_parent(size_t node) const { return _p(node)->m_parent != NONE; }
 
@@ -703,14 +703,14 @@ public:
     /** counts with this */
     size_t num_siblings(size_t node) const { return is_root(node) ? 1 : num_children(_p(node)->m_parent); }
     /** does not count with this */
-    size_t num_other_siblings(size_t node) const { size_t ns = num_siblings(node); RYML_ASSERT(ns > 0); return ns-1; }
-    size_t sibling_pos(size_t node, size_t sib) const { RYML_ASSERT( ! is_root(node) || node == root_id()); return child_pos(_p(node)->m_parent, sib); }
+    size_t num_other_siblings(size_t node) const { size_t ns = num_siblings(node); _RYML_CB_ASSERT(m_callbacks, ns > 0); return ns-1; }
+    size_t sibling_pos(size_t node, size_t sib) const { _RYML_CB_ASSERT(m_callbacks,  ! is_root(node) || node == root_id()); return child_pos(_p(node)->m_parent, sib); }
     size_t first_sibling(size_t node) const { return is_root(node) ? node : _p(_p(node)->m_parent)->m_first_child; }
     size_t last_sibling(size_t node) const { return is_root(node) ? node : _p(_p(node)->m_parent)->m_last_child; }
     size_t sibling(size_t node, size_t pos) const { return child(_p(node)->m_parent, pos); }
     size_t find_sibling(size_t node, csubstr const& key) const { return find_child(_p(node)->m_parent, key); }
 
-    size_t doc(size_t i) const { size_t rid = root_id(); RYML_ASSERT(is_stream(rid)); return child(rid, i); } //!< gets the @p i document node index. requires that the root node is a stream.
+    size_t doc(size_t i) const { size_t rid = root_id(); _RYML_CB_ASSERT(m_callbacks, is_stream(rid)); return child(rid, i); } //!< gets the @p i document node index. requires that the root node is a stream.
 
     /** @} */
 
@@ -728,16 +728,16 @@ public:
     void to_doc(size_t node, type_bits more_flags=0);
     void to_stream(size_t node, type_bits more_flags=0);
 
-    void set_key(size_t node, csubstr key) { RYML_ASSERT(has_key(node)); _p(node)->m_key.scalar = key; }
-    void set_val(size_t node, csubstr val) { RYML_ASSERT(has_val(node)); _p(node)->m_val.scalar = val; }
+    void set_key(size_t node, csubstr key) { _RYML_CB_ASSERT(m_callbacks, has_key(node)); _p(node)->m_key.scalar = key; }
+    void set_val(size_t node, csubstr val) { _RYML_CB_ASSERT(m_callbacks, has_val(node)); _p(node)->m_val.scalar = val; }
 
-    void set_key_tag(size_t node, csubstr tag) { RYML_ASSERT(has_key(node)); _p(node)->m_key.tag = tag; _add_flags(node, KEYTAG); }
-    void set_val_tag(size_t node, csubstr tag) { RYML_ASSERT(has_val(node) || is_container(node)); _p(node)->m_val.tag = tag; _add_flags(node, VALTAG); }
+    void set_key_tag(size_t node, csubstr tag) { _RYML_CB_ASSERT(m_callbacks, has_key(node)); _p(node)->m_key.tag = tag; _add_flags(node, KEYTAG); }
+    void set_val_tag(size_t node, csubstr tag) { _RYML_CB_ASSERT(m_callbacks, has_val(node) || is_container(node)); _p(node)->m_val.tag = tag; _add_flags(node, VALTAG); }
 
-    void set_key_anchor(size_t node, csubstr anchor) { RYML_ASSERT( ! is_key_ref(node)); _p(node)->m_key.anchor = anchor.triml('&'); _add_flags(node, KEYANCH); }
-    void set_val_anchor(size_t node, csubstr anchor) { RYML_ASSERT( ! is_val_ref(node)); _p(node)->m_val.anchor = anchor.triml('&'); _add_flags(node, VALANCH); }
-    void set_key_ref   (size_t node, csubstr ref   ) { RYML_ASSERT( ! has_key_anchor(node)); NodeData* C4_RESTRICT n = _p(node); n->m_key.set_ref_maybe_replacing_scalar(ref, n->m_type.has_key()); _add_flags(node, KEY|KEYREF); }
-    void set_val_ref   (size_t node, csubstr ref   ) { RYML_ASSERT( ! has_val_anchor(node)); NodeData* C4_RESTRICT n = _p(node); n->m_val.set_ref_maybe_replacing_scalar(ref, n->m_type.has_val()); _add_flags(node, VAL|VALREF); }
+    void set_key_anchor(size_t node, csubstr anchor) { _RYML_CB_ASSERT(m_callbacks,  ! is_key_ref(node)); _p(node)->m_key.anchor = anchor.triml('&'); _add_flags(node, KEYANCH); }
+    void set_val_anchor(size_t node, csubstr anchor) { _RYML_CB_ASSERT(m_callbacks,  ! is_val_ref(node)); _p(node)->m_val.anchor = anchor.triml('&'); _add_flags(node, VALANCH); }
+    void set_key_ref   (size_t node, csubstr ref   ) { _RYML_CB_ASSERT(m_callbacks,  ! has_key_anchor(node)); NodeData* C4_RESTRICT n = _p(node); n->m_key.set_ref_maybe_replacing_scalar(ref, n->m_type.has_key()); _add_flags(node, KEY|KEYREF); }
+    void set_val_ref   (size_t node, csubstr ref   ) { _RYML_CB_ASSERT(m_callbacks,  ! has_val_anchor(node)); NodeData* C4_RESTRICT n = _p(node); n->m_val.set_ref_maybe_replacing_scalar(ref, n->m_type.has_val()); _add_flags(node, VAL|VALREF); }
 
     void rem_key_anchor(size_t node) { _p(node)->m_key.anchor.clear(); _rem_flags(node, KEYANCH); }
     void rem_val_anchor(size_t node) { _p(node)->m_val.anchor.clear(); _rem_flags(node, VALANCH); }
@@ -823,9 +823,9 @@ public:
      * first child, set after to NONE */
     C4_ALWAYS_INLINE size_t insert_child(size_t parent, size_t after)
     {
-        RYML_ASSERT(parent != NONE);
-        RYML_ASSERT(is_container(parent) || is_root(parent));
-        RYML_ASSERT(after == NONE || (_p(after)->m_parent == parent));
+        _RYML_CB_ASSERT(m_callbacks, parent != NONE);
+        _RYML_CB_ASSERT(m_callbacks, is_container(parent) || is_root(parent));
+        _RYML_CB_ASSERT(m_callbacks, after == NONE || (_p(after)->m_parent == parent));
         size_t child = _claim();
         _set_hierarchy(child, parent, after);
         return child;
@@ -973,7 +973,7 @@ public:
     /** get the current capacity of the tree's internal arena */
     inline size_t arena_capacity() const { return m_arena.len; }
     /** get the current slack of the tree's internal arena */
-    inline size_t arena_slack() const { RYML_ASSERT(m_arena.len >= m_arena_pos); return m_arena.len - m_arena_pos; }
+    inline size_t arena_slack() const { _RYML_CB_ASSERT(m_callbacks, m_arena.len >= m_arena_pos); return m_arena.len - m_arena_pos; }
 
     /** get the current arena */
     substr arena() const { return m_arena.first(m_arena_pos); }
@@ -1004,7 +1004,7 @@ public:
         {
             rem = _grow_arena(num);
             num = to_chars_float(rem, a);
-            RYML_ASSERT(num <= rem.len);
+            _RYML_CB_ASSERT(m_callbacks, num <= rem.len);
         }
         rem = _request_span(num);
         return rem;
@@ -1030,7 +1030,7 @@ public:
         {
             rem = _grow_arena(num);
             num = to_chars(rem, a);
-            RYML_ASSERT(num <= rem.len);
+            _RYML_CB_ASSERT(m_callbacks, num <= rem.len);
         }
         rem = _request_span(num);
         return rem;
@@ -1056,7 +1056,7 @@ public:
             {
                 rem = _grow_arena(num);
                 num = to_chars(rem, a);
-                RYML_ASSERT(num <= rem.len);
+                _RYML_CB_ASSERT(m_callbacks, num <= rem.len);
             }
             return _request_span(num);
         }
@@ -1099,8 +1099,8 @@ public:
     substr copy_to_arena(csubstr s)
     {
         substr cp = alloc_arena(s.len);
-        RYML_ASSERT(cp.len == s.len);
-        RYML_ASSERT(!s.overlaps(cp));
+        _RYML_CB_ASSERT(m_callbacks, cp.len == s.len);
+        _RYML_CB_ASSERT(m_callbacks, !s.overlaps(cp));
         #if (!defined(__clang__)) && (defined(__GNUC__) && __GNUC__ >= 10)
         C4_SUPPRESS_WARNING_GCC_PUSH
         C4_SUPPRESS_WARNING_GCC("-Wstringop-overflow=") // no need for terminating \0
@@ -1145,7 +1145,7 @@ public:
             buf.len = arena_cap;
             if(m_arena.str)
             {
-                RYML_ASSERT(m_arena.len >= 0);
+                _RYML_CB_ASSERT(m_callbacks, m_arena.len >= 0);
                 _relocate(buf); // does a memcpy and changes nodes using the arena
                 m_callbacks.m_free(m_arena.str, m_arena.len, m_callbacks.m_user_data);
             }
@@ -1176,12 +1176,12 @@ private:
 
     substr _relocated(csubstr s, substr next_arena) const
     {
-        RYML_ASSERT(m_arena.is_super(s));
-        RYML_ASSERT(m_arena.sub(0, m_arena_pos).is_super(s));
+        _RYML_CB_ASSERT(m_callbacks, m_arena.is_super(s));
+        _RYML_CB_ASSERT(m_callbacks, m_arena.sub(0, m_arena_pos).is_super(s));
         auto pos = (s.str - m_arena.str);
         substr r(next_arena.str + pos, s.len);
-        RYML_ASSERT(r.str - next_arena.str == pos);
-        RYML_ASSERT(next_arena.sub(0, m_arena_pos).is_super(r));
+        _RYML_CB_ASSERT(m_callbacks, r.str - next_arena.str == pos);
+        _RYML_CB_ASSERT(m_callbacks, next_arena.sub(0, m_arena_pos).is_super(r));
         return r;
     }
 
@@ -1284,14 +1284,14 @@ public:
         }
         if(f & KEY)
         {
-            RYML_ASSERT(!is_root(node));
+            _RYML_CB_ASSERT(m_callbacks, !is_root(node));
             auto pid = parent(node); C4_UNUSED(pid);
-            RYML_ASSERT(is_map(pid));
+            _RYML_CB_ASSERT(m_callbacks, is_map(pid));
         }
         if((f & VAL) && !is_root(node))
         {
             auto pid = parent(node); C4_UNUSED(pid);
-            RYML_ASSERT(is_map(pid) || is_seq(pid));
+            _RYML_CB_ASSERT(m_callbacks, is_map(pid) || is_seq(pid));
         }
     }
     #endif
@@ -1318,24 +1318,24 @@ public:
 
     void _set_val(size_t node, csubstr val, type_bits more_flags=0)
     {
-        RYML_ASSERT(num_children(node) == 0);
-        RYML_ASSERT(!is_seq(node) && !is_map(node));
+        _RYML_CB_ASSERT(m_callbacks, num_children(node) == 0);
+        _RYML_CB_ASSERT(m_callbacks, !is_seq(node) && !is_map(node));
         _p(node)->m_val.scalar = val;
         _add_flags(node, VAL|more_flags);
     }
     void _set_val(size_t node, NodeScalar const& val, type_bits more_flags=0)
     {
-        RYML_ASSERT(num_children(node) == 0);
-        RYML_ASSERT( ! is_container(node));
+        _RYML_CB_ASSERT(m_callbacks, num_children(node) == 0);
+        _RYML_CB_ASSERT(m_callbacks,  ! is_container(node));
         _p(node)->m_val = val;
         _add_flags(node, VAL|more_flags);
     }
 
     void _set(size_t node, NodeInit const& i)
     {
-        RYML_ASSERT(i._check());
+        _RYML_CB_ASSERT(m_callbacks, i._check());
         NodeData *n = _p(node);
-        RYML_ASSERT(n->m_key.scalar.empty() || i.key.scalar.empty() || i.key.scalar == n->m_key.scalar);
+        _RYML_CB_ASSERT(m_callbacks, n->m_key.scalar.empty() || i.key.scalar.empty() || i.key.scalar == n->m_key.scalar);
         _add_flags(node, i.type);
         if(n->m_key.scalar.empty())
         {
@@ -1373,7 +1373,7 @@ public:
 
     void _seq2map(size_t node)
     {
-        RYML_ASSERT(is_seq(node));
+        _RYML_CB_ASSERT(m_callbacks, is_seq(node));
         for(size_t i = first_child(node); i != NONE; i = next_sibling(i))
         {
             NodeData *C4_RESTRICT ch = _p(i);
