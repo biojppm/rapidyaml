@@ -967,28 +967,6 @@ TEST(Tree, operator_square_brackets_seq)
     EXPECT_EQ(cm[3].val(), "3");
     EXPECT_EQ(cm[4].val(), "4");
     //
-    EXPECT_TRUE(m[0]  == "0");
-    EXPECT_TRUE(m[1]  == "1");
-    EXPECT_TRUE(m[2]  == "2");
-    EXPECT_TRUE(m[3]  == "3");
-    EXPECT_TRUE(m[4]  == "4");
-    EXPECT_TRUE(cm[0] == "0");
-    EXPECT_TRUE(cm[1] == "1");
-    EXPECT_TRUE(cm[2] == "2");
-    EXPECT_TRUE(cm[3] == "3");
-    EXPECT_TRUE(cm[4] == "4");
-    //
-    EXPECT_FALSE(m[0]  != "0");
-    EXPECT_FALSE(m[1]  != "1");
-    EXPECT_FALSE(m[2]  != "2");
-    EXPECT_FALSE(m[3]  != "3");
-    EXPECT_FALSE(m[4]  != "4");
-    EXPECT_FALSE(cm[0] != "0");
-    EXPECT_FALSE(cm[1] != "1");
-    EXPECT_FALSE(cm[2] != "2");
-    EXPECT_FALSE(cm[3] != "3");
-    EXPECT_FALSE(cm[4] != "4");
-    //
     verify_assertion(t, [&](Tree const&){ return cm[m.capacity()]; });
     verify_assertion(t, [&](Tree const&){ return cm[NONE]; });
     verify_assertion(t, [&](Tree const&){ return cm[0][0]; });
@@ -1011,28 +989,6 @@ TEST(Tree, operator_square_brackets_map)
     EXPECT_EQ(cm["d"].val(), "3");
     EXPECT_EQ(cm["e"].val(), "4");
     //
-    EXPECT_TRUE(m["a"] == "0");
-    EXPECT_TRUE(m["b"] == "1");
-    EXPECT_TRUE(m["c"] == "2");
-    EXPECT_TRUE(m["d"] == "3");
-    EXPECT_TRUE(m["e"] == "4");
-    EXPECT_TRUE(cm["a"] == "0");
-    EXPECT_TRUE(cm["b"] == "1");
-    EXPECT_TRUE(cm["c"] == "2");
-    EXPECT_TRUE(cm["d"] == "3");
-    EXPECT_TRUE(cm["e"] == "4");
-    //
-    EXPECT_FALSE(m["a"] != "0");
-    EXPECT_FALSE(m["b"] != "1");
-    EXPECT_FALSE(m["c"] != "2");
-    EXPECT_FALSE(m["d"] != "3");
-    EXPECT_FALSE(m["e"] != "4");
-    EXPECT_FALSE(cm["a"] != "0");
-    EXPECT_FALSE(cm["b"] != "1");
-    EXPECT_FALSE(cm["c"] != "2");
-    EXPECT_FALSE(cm["d"] != "3");
-    EXPECT_FALSE(cm["e"] != "4");
-    //
     verify_assertion(t, [&](Tree const&){ return cm["f"]; });
     verify_assertion(t, [&](Tree const&){ return cm["g"]["h"]; });
 }
@@ -1052,28 +1008,6 @@ TEST(Tree, noderef_at_seq)
     EXPECT_EQ(cm.at(2).val(), "2");
     EXPECT_EQ(cm.at(3).val(), "3");
     EXPECT_EQ(cm.at(4).val(), "4");
-    //
-    EXPECT_TRUE(m.at(0)  == "0");
-    EXPECT_TRUE(m.at(1)  == "1");
-    EXPECT_TRUE(m.at(2)  == "2");
-    EXPECT_TRUE(m.at(3)  == "3");
-    EXPECT_TRUE(m.at(4)  == "4");
-    EXPECT_TRUE(cm.at(0) == "0");
-    EXPECT_TRUE(cm.at(1) == "1");
-    EXPECT_TRUE(cm.at(2) == "2");
-    EXPECT_TRUE(cm.at(3) == "3");
-    EXPECT_TRUE(cm.at(4) == "4");
-    //
-    EXPECT_FALSE(m.at(0)  != "0");
-    EXPECT_FALSE(m.at(1)  != "1");
-    EXPECT_FALSE(m.at(2)  != "2");
-    EXPECT_FALSE(m.at(3)  != "3");
-    EXPECT_FALSE(m.at(4)  != "4");
-    EXPECT_FALSE(cm.at(0) != "0");
-    EXPECT_FALSE(cm.at(1) != "1");
-    EXPECT_FALSE(cm.at(2) != "2");
-    EXPECT_FALSE(cm.at(3) != "3");
-    EXPECT_FALSE(cm.at(4) != "4");
     //
     EXPECT_EQ(cm.num_children(), 5);
     EXPECT_EQ(cm.num_children(), m.num_children());
@@ -1124,28 +1058,6 @@ TEST(Tree, noderef_at_map)
     EXPECT_EQ(cm.at("c").val(), "2");
     EXPECT_EQ(cm.at("d").val(), "3");
     EXPECT_EQ(cm.at("e").val(), "4");
-    //
-    EXPECT_TRUE(m.at("a") == "0");
-    EXPECT_TRUE(m.at("b") == "1");
-    EXPECT_TRUE(m.at("c") == "2");
-    EXPECT_TRUE(m.at("d") == "3");
-    EXPECT_TRUE(m.at("e") == "4");
-    EXPECT_TRUE(cm.at("a") == "0");
-    EXPECT_TRUE(cm.at("b") == "1");
-    EXPECT_TRUE(cm.at("c") == "2");
-    EXPECT_TRUE(cm.at("d") == "3");
-    EXPECT_TRUE(cm.at("e") == "4");
-    //
-    EXPECT_FALSE(m.at("a") != "0");
-    EXPECT_FALSE(m.at("b") != "1");
-    EXPECT_FALSE(m.at("c") != "2");
-    EXPECT_FALSE(m.at("d") != "3");
-    EXPECT_FALSE(m.at("e") != "4");
-    EXPECT_FALSE(cm.at("a") != "0");
-    EXPECT_FALSE(cm.at("b") != "1");
-    EXPECT_FALSE(cm.at("c") != "2");
-    EXPECT_FALSE(cm.at("d") != "3");
-    EXPECT_FALSE(cm.at("e") != "4");
     //
     verify_error(t, [&](Tree const&){ return cm.at(t.capacity()); });
     verify_error(t, [&](Tree const&){ return cm.at(NONE); });
@@ -1304,7 +1216,7 @@ foo: bar
     EXPECT_EQ(doc.is_stream(), doc.get()->m_type.is_stream());
     EXPECT_EQ(keyval.is_stream(), keyval.get()->m_type.is_stream());
     //
-    ASSERT_TRUE(t.docref(0)["none"].valid());
+    ASSERT_TRUE(!t.docref(0)["none"].invalid());
     ASSERT_TRUE(t.docref(0)["none"].is_seed());
     ASSERT_FALSE(t.docref(0)["none"].readable());
     verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].is_stream(); });

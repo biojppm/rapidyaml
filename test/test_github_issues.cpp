@@ -93,10 +93,11 @@ TEST(github, 60)
     ASSERT_TRUE(root.is_map());
     ASSERT_TRUE(root.has_child("traits"));
     auto rb = root["traits"]["roleBonuses"][0];
-    ASSERT_TRUE(rb.valid());
+    ASSERT_FALSE(rb.invalid());
+    ASSERT_TRUE(rb.readable());
     EXPECT_EQ(rb["bonus"].val(), "5");
     auto txt = rb["bonusText"];
-    ASSERT_TRUE(txt.valid());
+    ASSERT_TRUE(txt.readable());
     ASSERT_TRUE(txt.is_map());
     EXPECT_TRUE(txt.has_child("de"));
     EXPECT_TRUE(txt.has_child("en"));

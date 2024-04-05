@@ -5528,7 +5528,7 @@ csubstr Parser::location_contents(Location const& loc) const
 
 Location Parser::location(ConstNodeRef node) const
 {
-    _RYML_CB_ASSERT(m_stack.m_callbacks, node.valid());
+    _RYML_CB_ASSERT(m_stack.m_callbacks, node.readable());
     return location(*node.tree(), node.id());
 }
 

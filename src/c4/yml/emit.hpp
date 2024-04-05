@@ -433,7 +433,7 @@ CharOwningContainer emitrs_json(Tree const& t)
 template<class CharOwningContainer>
 substr emitrs_yaml(ConstNodeRef const& n, CharOwningContainer * cont)
 {
-    _RYML_CB_CHECK(n.tree()->callbacks(), n.valid());
+    _RYML_CB_CHECK(n.tree()->callbacks(), n.readable());
     return emitrs_yaml(*n.tree(), n.id(), cont);
 }
 template<class CharOwningContainer>
@@ -447,7 +447,7 @@ RYML_DEPRECATE_EMITRS substr emitrs(ConstNodeRef const& n, CharOwningContainer *
 template<class CharOwningContainer>
 substr emitrs_json(ConstNodeRef const& n, CharOwningContainer * cont)
 {
-    _RYML_CB_CHECK(n.tree()->callbacks(), n.valid());
+    _RYML_CB_CHECK(n.tree()->callbacks(), n.readable());
     return emitrs_json(*n.tree(), n.id(), cont);
 }
 
@@ -457,7 +457,7 @@ substr emitrs_json(ConstNodeRef const& n, CharOwningContainer * cont)
 template<class CharOwningContainer>
 CharOwningContainer emitrs_yaml(ConstNodeRef const& n)
 {
-    _RYML_CB_CHECK(n.tree()->callbacks(), n.valid());
+    _RYML_CB_CHECK(n.tree()->callbacks(), n.readable());
     CharOwningContainer c;
     emitrs_yaml(*n.tree(), n.id(), &c);
     return c;
@@ -473,7 +473,7 @@ RYML_DEPRECATE_EMITRS CharOwningContainer emitrs(ConstNodeRef const& n)
 template<class CharOwningContainer>
 CharOwningContainer emitrs_json(ConstNodeRef const& n)
 {
-    _RYML_CB_CHECK(n.tree()->callbacks(), n.valid());
+    _RYML_CB_CHECK(n.tree()->callbacks(), n.readable());
     CharOwningContainer c;
     emitrs_json(*n.tree(), n.id(), &c);
     return c;

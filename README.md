@@ -541,7 +541,7 @@ CHECK(tree.arena() == "says who2030deere"); // the result of serializations to t
     // root["john"] = ryml::to_csubstr(ok); // don't, will dangle
     wroot["john"] << ryml::to_csubstr(ok); // OK, copy to the tree's arena
 }
-CHECK(root["john"] == "in_scope"); // OK!
+CHECK(root["john"].val() == "in_scope"); // OK!
 // serializing floating points:
 wroot["float"] << 2.4;
 // to force a particular precision or float format:
@@ -592,8 +592,9 @@ CHECK(root["newmap"].is_map());
 CHECK(root["newmap (serialized)"].num_children() == 0);
 CHECK(root["newmap (serialized)"].is_map());
 //
-// When the tree is mutable, operator[] does not mutate the tree
-// until the returned node is written to.
+// When the tree is mutable, operator[] first searches the tree
+// for the does not mutate the tree until the returned node is
+// written to.
 //
 // Until such time, the NodeRef object keeps in itself the required
 // information to write to the proper place in the tree. This is
@@ -615,8 +616,10 @@ CHECK(root["newmap (serialized)"].is_map());
 // tree.
 //
 CHECK(!root.has_child("I am not nothing"));
-ryml::NodeRef nothing = wroot["I am nothing"];
-CHECK(nothing.valid());   // points at the tree, and a specific place in the tree
+ryml::NodeRef nothing;
+CHECK(nothing.invalid());    // invalid because it points at nothing
+nothing = wroot["I am nothing"];
+CHECK(!nothing.invalid());   // points at the tree, and a specific place in the tree
 CHECK(nothing.is_seed()); // ... but nothing is there yet.
 CHECK(!root.has_child("I am nothing")); // same as above
 CHECK(!nothing.readable()); // ... and this node cannot be used to
@@ -624,27 +627,27 @@ CHECK(!nothing.readable()); // ... and this node cannot be used to
 ryml::NodeRef something = wroot["I am something"];
 ryml::ConstNodeRef constsomething = wroot["I am something"];
 CHECK(!root.has_child("I am something")); // same as above
-CHECK(something.valid());
+CHECK(!something.invalid());
 CHECK(something.is_seed()); // same as above
 CHECK(!something.readable()); // same as above
-CHECK(!constsomething.valid()); // NOTE: because a ConstNodeRef cannot be
-                                // used to mutate a tree, it is only valid()
-                                // if it is pointing at an existing node.
+CHECK(constsomething.invalid()); // NOTE: because a ConstNodeRef cannot be
+                                 // used to mutate a tree, it is only valid()
+                                 // if it is pointing at an existing node.
 something = "indeed";  // this will commit the seed to the tree, mutating at the proper place
 CHECK(root.has_child("I am something"));
 CHECK(root["I am something"].val() == "indeed");
-CHECK(something.valid()); // it was already valid
+CHECK(!something.invalid()); // it was already valid
 CHECK(!something.is_seed()); // now the tree has this node, so the
                              // ref is no longer a seed
 CHECK(something.readable()); // and it is now readable
 //
 // now the constref is also valid (but it needs to be reassigned):
 ryml::ConstNodeRef constsomethingnew = wroot["I am something"];
-CHECK(constsomethingnew.valid());
+CHECK(!constsomethingnew.invalid());
 CHECK(constsomethingnew.readable());
 // note that the old constref is now stale, because it only keeps
 // the state at creation:
-CHECK(!constsomething.valid());
+CHECK(constsomething.invalid());
 CHECK(!constsomething.readable());
 //
 // -----------------------------------------------------------
@@ -664,6 +667,7 @@ ryml::NodeRef wbar = wroot["bar"];
 if(wbar.readable() && wbar.is_seq()) // .is_seq() requires .readable()
 {
     CHECK(wbar[0].readable() && wbar[0].val() == "20");
+    CHECK( ! wbar[100].readable());
     CHECK( ! wbar[100].readable() || wbar[100].val() == "100"); // <- no crash because it is not .readable(), so never tries to call .val()
     // this would work as well:
     CHECK( ! wbar[0].is_seed() && wbar[0].val() == "20");
@@ -785,49 +789,6 @@ ryml::Location loc = parser.location(tree2["bar"][1]);
 CHECK(parser.location_contents(loc).begins_with("30"));
 CHECK(loc.line == 3u);
 CHECK(loc.col == 4u);
-// For further details in location tracking,
-// refer to the sample function below.
-```
-
-The [quickstart.cpp sample](./samples/quickstart.cpp) (from which the
-above overview was taken) has many more detailed examples, and should
-be your first port of call to find out any particular point about
-ryml's API. It is tested in the CI, and thus has the correct behavior.
-There you can find the following subjects being addressed:
-
-```c++
-sample_quick_overview();       ///< briefly skim over most of the features
-sample_substr();               ///< about ryml's string views (from c4core)
-sample_parse_file();           ///< ready-to-go example of parsing a file from disk
-sample_parse_in_place();       ///< parse a mutable YAML source buffer
-sample_parse_in_arena();       ///< parse a read-only YAML source buffer
-sample_parse_reuse_tree();     ///< parse into an existing tree, maybe into a node
-sample_parse_reuse_parser();   ///< reuse an existing parser
-sample_parse_reuse_tree_and_parser(); ///< how to reuse existing trees and parsers
-sample_iterate_trees();        ///< visit individual nodes and iterate through trees
-sample_create_trees();         ///< programatically create trees
-sample_tree_arena();           ///< interact with the tree's serialization arena
-sample_fundamental_types();    ///< serialize/deserialize fundamental types
-sample_formatting();           ///< control formatting when serializing/deserializing
-sample_base64();               ///< encode/decode base64
-sample_user_scalar_types();    ///< serialize/deserialize scalar (leaf/string) types
-sample_user_container_types(); ///< serialize/deserialize container (map or seq) types
-sample_std_types();            ///< serialize/deserialize STL containers
-sample_float_precision();      ///< control precision of serialized floats
-sample_emit_to_container();    ///< emit to memory, eg a string or vector-like container
-sample_emit_to_stream();       ///< emit to a stream, eg std::ostream
-sample_emit_to_file();         ///< emit to a FILE*
-sample_emit_nested_node();     ///< pick a nested node as the root when emitting
-sample_emit_style();           ///< set the nodes to FLOW/BLOCK format
-sample_json();                 ///< JSON parsing and emitting
-sample_anchors_and_aliases();  ///< deal with YAML anchors and aliases
-sample_tags();                 ///< deal with YAML type tags
-sample_docs();                 ///< deal with YAML docs
-sample_error_handler();        ///< set a custom error handler
-sample_global_allocator();     ///< set a global allocator for ryml
-sample_per_tree_allocator();   ///< set per-tree allocators
-sample_static_trees();         ///< how to use static trees in ryml
-sample_location_tracking();    ///< track node locations in the parsed source tree
 ```
 
 

@@ -196,27 +196,27 @@ TEST(NodeRef, valid_vs_seed_vs_readable)
     Tree tree = parse_in_arena("foo: bar");
     NodeRef foo = tree["foo"];
     ConstNodeRef const_foo = tree["foo"];
-    EXPECT_TRUE(foo.valid());
+    EXPECT_FALSE(foo.invalid());
     EXPECT_FALSE(foo.is_seed());
     EXPECT_TRUE(foo.readable());
-    EXPECT_TRUE(const_foo.valid());
+    EXPECT_FALSE(const_foo.invalid());
     EXPECT_FALSE(const_foo.is_seed());
     EXPECT_TRUE(const_foo.readable());
     NodeRef none;
-    EXPECT_FALSE(none.valid());
+    EXPECT_TRUE(none.invalid());
     EXPECT_FALSE(none.is_seed());
     EXPECT_FALSE(none.readable());
     ConstNodeRef const_none;
-    EXPECT_FALSE(const_none.valid());
+    EXPECT_TRUE(const_none.invalid());
     EXPECT_FALSE(const_none.is_seed());
     EXPECT_FALSE(const_none.readable());
     none = tree["none"];
-    EXPECT_TRUE(none.valid());
+    EXPECT_FALSE(none.invalid());
     EXPECT_TRUE(none.is_seed());
     EXPECT_FALSE(none.readable());
     ASSERT_FALSE(tree.rootref().has_child(none));
     const_none = tree["none"];
-    EXPECT_FALSE(const_none.valid());
+    EXPECT_TRUE(const_none.invalid());
     EXPECT_FALSE(const_none.is_seed());
     EXPECT_TRUE(none.is_seed());
     EXPECT_FALSE(none.readable());
@@ -339,10 +339,6 @@ void test_fail_read(Tree *tree, NodeT node)
     //_TEST_FAIL(const_node.visit([](const NodeT &n, size_t level){ (void)n; (void)level; return false; }));
     _TEST_SUCCEED(const_node == node);
     _TEST_SUCCEED(const_node != node);
-    _TEST_SUCCEED(const_node == nullptr);
-    _TEST_SUCCEED(const_node != nullptr);
-    _TEST_FAIL(const_node == "val");
-    _TEST_FAIL(const_node != "val");
     if(std::is_same<NodeT, NodeRef>::value)
     {
         ConstNodeRef other;
@@ -375,7 +371,7 @@ TEST(NodeRef, cannot_read_from_invalid)
     NodeRef none;
     ASSERT_EQ(none.tree(), nullptr);
     ASSERT_EQ(none.id(), NONE);
-    EXPECT_FALSE(none.valid());
+    EXPECT_TRUE(none.invalid());
     EXPECT_FALSE(none.is_seed());
     EXPECT_FALSE(none.readable());
     test_fail_read(nullptr, none);
@@ -396,7 +392,7 @@ TEST(ConstNodeRef, cannot_read_from_invalid)
     ConstNodeRef const_none;
     ASSERT_EQ(const_none.tree(), nullptr);
     ASSERT_EQ(const_none.id(), NONE);
-    EXPECT_FALSE(const_none.valid());
+    EXPECT_TRUE(const_none.invalid());
     EXPECT_FALSE(const_none.is_seed());
     EXPECT_FALSE(const_none.readable());
     test_fail_read(nullptr, const_none);
@@ -422,7 +418,7 @@ TEST(NodeRef, cannot_read_from_seed)
     NodeRef none = tree["none"];
     ASSERT_EQ(none.tree(), &tree);
     ASSERT_EQ(none.id(), 0);
-    EXPECT_TRUE(none.valid());
+    EXPECT_FALSE(none.invalid());
     EXPECT_TRUE(none.is_seed());
     EXPECT_FALSE(none.readable());
     test_fail_read(&tree, none);
@@ -436,7 +432,7 @@ TEST(NodeRef, cannot_read_from_seed_subject)
     NodeRef none = tree["none"];
     ASSERT_EQ(none.tree(), &tree);
     ASSERT_EQ(none.id(), 0);
-    EXPECT_TRUE(none.valid());
+    EXPECT_FALSE(none.invalid());
     EXPECT_TRUE(none.is_seed());
     EXPECT_FALSE(none.readable());
     test_fail_read(&tree, none);
@@ -450,7 +446,7 @@ TEST(ConstNodeRef, cannot_read_from_seed_subject)
     ConstNodeRef const_none = tree["none"];
     ASSERT_EQ(const_none.tree(), &tree);
     ASSERT_EQ(const_none.id(), NONE);
-    EXPECT_FALSE(const_none.valid());
+    EXPECT_TRUE(const_none.invalid());
     EXPECT_FALSE(const_none.is_seed());
     EXPECT_FALSE(const_none.readable());
     test_fail_read(&tree, const_none);
@@ -732,7 +728,7 @@ formats:
         SCOPED_TRACE(id);
         NodeRef formats = root["formats"];
         std::cout << id << " id=" << formats.id() << "\n";
-        EXPECT_TRUE(formats.valid());
+        EXPECT_TRUE(formats.readable());
         print_tree(tree);
         check_invariants(tree);
         EXPECT_EQ(emitrs_yaml<std::string>(formats), expected);

@@ -2,10 +2,10 @@
 
 Fix major error handling problem reported in [#389](https://github.com/biojppm/rapidyaml/issues/389) ([PR#411](https://github.com/biojppm/rapidyaml/pull/411)):
 
-  - The `NodeRef` and `ConstNodeRef` classes had many methods marked `noexcept` that were doing assertions which could throw exceptions, causing an abort instead of a throw whenever the assertion called an exception-throwing error callback.
+  - The `NodeRef` and `ConstNodeRef` classes are now conditional noexcept using `RYML_NOEXCEPT`, which evaluates either to nothing when assertions are enabled, and to `noexcept` otherwise. The problem was that these classes had many methods explicitly marked `noexcept`, but were doing assertions which could throw exceptions, causing an abort instead of a throw whenever the assertion called an exception-throwing error callback.
   - Also, this problem was compounded by exceptions being enabled in every build type -- despite the intention to have them only in debug builds. There was a problem in the preprocessor code to enable assertions which led to assertions being enabled in release builds even when `RYML_USE_ASSERT` was defined to 0. Thanks to @jdrouhard for reporting this.
   - Although the code is and was extensively tested, the testing was addressing mostly the happy path. Tests were added to ensure that the error behavior is as intended.
-  - Together with this changeset, a major revision was carried out of the asserting/checking status of each function in the node classes. In most cases, assertions were added to functions cases that were missing them. So **beware** - user code that was invalid will now assert or error out. Also, assertions and checks are now directed as much as possible to the callbacks of the closest scope, ie if a tree has custom callbacks, errors should go through those callbacks.
+  - Together with this changeset, a major revision was carried out of the asserting/checking status of each function in the node classes. In most cases, assertions were added to functions cases that were missing them. So **beware** - user code that was invalid will now assert or error out. Also, assertions and checks are now directed as much as possible to the callbacks of the closest scope, ie if a tree has custom callbacks, errors within the tree class should go through those callbacks.
   - Also, the intended assertion behavior is now in place: *no assertions in release builds*. **Beware** as well - user code which was relying on this will now silently succeed and return garbage in release builds. See the next points, which may help:
   - Added new methods to the `NodeRef`/`ConstNodeRef` classes:
     ```c++
@@ -38,9 +38,21 @@ Fix major error handling problem reported in [#389](https://github.com/biojppm/r
     /** Likewise, but return a seed node when pos is not found */
     NodeRef at(csubstr key);
     ```
+  - The state for `NodeRef` was refined, and now there are three mutually exclusive states (and class predicates) for an object of this class:
+    - `.invalid()` when the object was not initialized to any node
+    - `.readable()` when the object points at an existing tree+node
+    - `.is_seed()` when the object points at an hypotethic tree+node
+    - The previous state `.valid()` was deprecated: its semantics were confusing as it actually could be any of `.readable()` or `.is_seed()`
+  - Deprecated also the following methods for `NodeRef`/`ConstNodeRef`:
+    ```c++
+    RYML_DEPRECATED() bool operator== (std::nullptr_t) const;
+    RYML_DEPRECATED() bool operator!= (std::nullptr_t) const;
+    RYML_DEPRECATED() bool operator== (csubstr val) const;
+    RYML_DEPRECATED() bool operator!= (csubstr val) const;
+    ```
   - Added macros and respective cmake options to control error handling:
-    - `RYML_USE_ASSERT` - enable assertions regardless of build type. This is disabled by default.
-    - `RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS` - defines the same macro, which will make the default error handler provided by ryml throw exceptions instead of calling `std::abort()`. This is disabled by default.
+    - `RYML_USE_ASSERT` - enable assertions regardless of build type. This is disabled by default. This macro was already defined; the current PR adds the cmake option.
+    - `RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS` - make the default error handler provided by ryml throw exceptions instead of calling `std::abort()`. This is disabled by default.
   - Also, `RYML_DEBUG_BREAK()` is now enabled only if `RYML_DBG` is defined, as reported in [#362](https://github.com/biojppm/rapidyaml/issues/362).
 
 
@@ -61,6 +73,7 @@ Fix major error handling problem reported in [#389](https://github.com/biojppm/r
 - Fix [#373](https://github.com/biojppm/rapidyaml/issues/373) - false parse error with empty quoted keys in block-style map ([PR#374](https://github.com/biojppm/rapidyaml/pull/374)).
 - Fix [#356](https://github.com/biojppm/rapidyaml/issues/356) - fix overzealous check in `emit_as()`. An id may be larger than the tree's size, eg when nodes were removed. ([PR#357](https://github.com/biojppm/rapidyaml/pull/357)).
 - Fix [#417](https://github.com/biojppm/rapidyaml/issues/417)) - add quickstart example explaining how to avoid precision loss while serializing floats ([PR#420](https://github.com/biojppm/rapidyaml/pull/420)).
+
 
 ### Thanks
 
