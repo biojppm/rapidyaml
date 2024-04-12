@@ -5,6 +5,8 @@
 #include "c4/yml/emit.hpp"
 #endif
 
+/** @file emit.def.hpp Definitions for emit functions. */
+
 namespace c4 {
 namespace yml {
 
@@ -16,6 +18,8 @@ substr Emitter<Writer>::emit_as(EmitType_e type, Tree const& t, size_t id, bool 
         _RYML_CB_ASSERT(t.callbacks(), id == NONE);
         return {};
     }
+    if(id == NONE)
+        id = t.root_id();
     _RYML_CB_CHECK(t.callbacks(), id < t.capacity());
     m_tree = &t;
     if(type == EMIT_YAML)
@@ -24,6 +28,7 @@ substr Emitter<Writer>::emit_as(EmitType_e type, Tree const& t, size_t id, bool 
         _do_visit_json(id);
     else
         _RYML_CB_ERR(m_tree->callbacks(), "unknown emit type");
+    m_tree = nullptr;
     return this->Writer::_get(error_on_excess);
 }
 
@@ -269,13 +274,15 @@ void Emitter<Writer>::_do_visit_flow_sl(size_t node, size_t ilevel)
     }
 }
 
+C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4702) // unreachable error, triggered by flow_ml not implemented
+
 template<class Writer>
 void Emitter<Writer>::_do_visit_flow_ml(size_t id, size_t ilevel, size_t do_indent)
 {
     C4_UNUSED(id);
     C4_UNUSED(ilevel);
     C4_UNUSED(do_indent);
-    RYML_CHECK(false/*not implemented*/);
+    c4::yml::error("not implemented");
 }
 
 template<class Writer>
@@ -451,6 +458,9 @@ void Emitter<Writer>::_do_visit_block(size_t node, size_t ilevel, size_t do_inde
 
     _do_visit_block_container(node, next_level, do_indent);
 }
+
+C4_SUPPRESS_WARNING_MSVC_POP
+
 
 template<class Writer>
 void Emitter<Writer>::_do_visit_json(size_t id)

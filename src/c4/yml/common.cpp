@@ -12,6 +12,7 @@ namespace c4 {
 namespace yml {
 
 C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
+C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4702/*unreachable code*/) // on the call to the unreachable macro
 
 namespace {
 Callbacks s_default_callbacks;
@@ -39,7 +40,7 @@ void report_error_impl(const char* msg, size_t length, Location loc, FILE *f)
     fflush(f);
 }
 
-void error_impl(const char* msg, size_t length, Location loc, void * /*user_data*/)
+[[noreturn]] void error_impl(const char* msg, size_t length, Location loc, void * /*user_data*/)
 {
     report_error_impl(msg, length, loc, nullptr);
 #ifdef RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS
@@ -89,7 +90,7 @@ Callbacks::Callbacks(void *user_data, pfn_allocate alloc_, pfn_free free_, pfn_e
     #ifndef RYML_NO_DEFAULT_CALLBACKS
     m_allocate(alloc_ ? alloc_ : allocate_impl),
     m_free(free_ ? free_ : free_impl),
-    m_error(error_ ? error_ : error_impl)
+    m_error((error_ ? error_ : error_impl))
     #else
     m_allocate(alloc_),
     m_free(free_),
@@ -117,11 +118,24 @@ void reset_callbacks()
     set_callbacks(Callbacks());
 }
 
-void error(const char *msg, size_t msg_len, Location loc)
+// the [[noreturn]] attribute needs to be here as well (UB otherwise)
+// https://en.cppreference.com/w/cpp/language/attributes/noreturn
+[[noreturn]] void error(Callbacks const& cb, const char *msg, size_t msg_len, Location loc)
 {
-    s_default_callbacks.m_error(msg, msg_len, loc, s_default_callbacks.m_user_data);
+    cb.m_error(msg, msg_len, loc, cb.m_user_data);
+    abort(); // call abort in case the error callback didn't interrupt execution
+    C4_UNREACHABLE();
 }
 
+// the [[noreturn]] attribute needs to be here as well (UB otherwise)
+// see https://en.cppreference.com/w/cpp/language/attributes/noreturn
+[[noreturn]] void error(const char *msg, size_t msg_len, Location loc)
+{
+    error(s_default_callbacks, msg, msg_len, loc);
+    C4_UNREACHABLE();
+}
+
+C4_SUPPRESS_WARNING_MSVC_POP
 C4_SUPPRESS_WARNING_GCC_CLANG_POP
 
 } // namespace yml

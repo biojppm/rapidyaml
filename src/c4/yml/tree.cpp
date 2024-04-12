@@ -1436,7 +1436,7 @@ struct ReferenceResolver
         snprintf(errmsg, RYML_ERRMSG_SIZE, "anchor does not exist: '%.*s'",
                  static_cast<int>(refname.size()), refname.data());
         c4::yml::error(errmsg);
-        return NONE;
+        C4_UNREACHABLE_AFTER_ERR();
     }
 
     void resolve()

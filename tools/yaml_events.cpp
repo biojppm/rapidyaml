@@ -27,11 +27,13 @@ int main(int argc, const char *argv[])
         return 1;
     }
     Callbacks callbacks = {};
-    callbacks.m_error = [](const char *msg, size_t msg_len, Location location, void *)
+    pfn_error error = [](const char *msg, size_t msg_len, Location location, void *)
     {
         report_error(msg, msg_len, location, stderr);
         throw std::runtime_error({msg, msg_len});
+        C4_UNREACHABLE_AFTER_ERR();
     };
+    callbacks.m_error = error;
     try {
         Tree tree(callbacks);
         csubstr filename = to_csubstr(argv[1]);
