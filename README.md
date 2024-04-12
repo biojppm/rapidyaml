@@ -1,10 +1,11 @@
 # Rapid YAML
 [![MIT Licensed](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/biojppm/rapidyaml/blob/master/LICENSE.txt)
 [![release](https://img.shields.io/github/v/release/biojppm/rapidyaml?color=g&include_prereleases&label=release%20&sort=semver)](https://github.com/biojppm/rapidyaml/releases)
+[![Documentation Status](https://readthedocs.org/projects/rapidyaml/badge/?version=latest)](https://rapidyaml.readthedocs.io/en/latest/?badge=latest)
+
 [![PyPI](https://img.shields.io/pypi/v/rapidyaml?color=g)](https://pypi.org/project/rapidyaml/)
 [![Gitter](https://badges.gitter.im/rapidyaml/community.svg)](https://gitter.im/rapidyaml/community)
 
-[![test](https://github.com/biojppm/rapidyaml/workflows/test/badge.svg?branch=master)](https://github.com/biojppm/rapidyaml/actions)
 <!-- [![Coveralls](https://coveralls.io/repos/github/biojppm/rapidyaml/badge.svg?branch=master)](https://coveralls.io/github/biojppm/rapidyaml) -->
 [![Codecov](https://codecov.io/gh/biojppm/rapidyaml/branch/master/graph/badge.svg?branch=master)](https://codecov.io/gh/biojppm/rapidyaml)
 
@@ -33,9 +34,9 @@ build->install->`find_package()`) or together with your project (ie with
 ryml can use custom global and per-tree memory allocators and error
 handler callbacks, and is exception-agnostic. ryml provides a default
 implementation for the allocator (using `std::malloc()`) and error
-handlers (using using `std::abort()` is provided, but you can opt out
-and provide your own memory allocation and eg, exception-throwing
-callbacks.
+handlers (using using either exceptions, `longjmp()` or
+`std::abort()`), but you can opt out and provide your own memory
+allocation and eg, exception-throwing callbacks.
 
 ryml does not depend on the STL, ie, it does not use any std container
 as part of its data structures), but it can serialize and deserialize
@@ -49,18 +50,19 @@ ryml is written in C++11, and compiles cleanly with:
 * g++ 4.8 and later
 * Intel Compiler
 
+ryml's API documentation is [available at
+ReadTheDocs](https://rapidyaml.readthedocs.io/en/latest/).
+
 ryml is [extensively unit-tested in Linux, Windows and
 MacOS](https://github.com/biojppm/rapidyaml/actions). The tests cover
 x64, x86, wasm (emscripten), arm, aarch64, ppc64le and s390x
 architectures, and include analysing ryml with:
   * valgrind
   * clang-tidy
-  * clang sanitizers:
+  * gcc/clang sanitizers:
     * memory
     * address
     * undefined behavior
-    * thread
-  * [LGTM.com](https://lgtm.com/projects/g/biojppm/rapidyaml)
 
 ryml also [runs in
 bare-metal](https://github.com/biojppm/rapidyaml/issues/193), and
@@ -219,9 +221,10 @@ workflow in the
 CI](https://github.com/biojppm/rapidyaml/actions/workflows/benchmarks.yml)
 to scroll through the results for yourself.
 
-Also, if you have a case where ryml behaves very nicely or not as nicely as
-claimed above, we would definitely like to see it! Please submit a pull request
-adding the file to [bm/cases](bm/cases), or just send us the files.
+Also, if you have a case where ryml behaves very nicely or not as
+nicely as claimed above, we would definitely like to see it! Please
+open an issue, or submit a pull request adding the file to
+[bm/cases](bm/cases), or just send us the files.
 
 
 ------
@@ -234,42 +237,18 @@ rapid is definitely NOT the same as being unpractical, so ryml was
 written with easy AND efficient usage in mind, and comes with a two
 level API for accessing and traversing the data tree.
 
-The following snippet is a quick overview taken from [the quickstart
-sample](samples/quickstart.cpp). After cloning ryml (don't forget the
-`--recursive` flag for git), you can very
-easily build and run this executable using any of the build samples,
-eg the [`add_subdirectory()` sample](samples/add_subdirectory/).
+The following snippet is a very quick overview taken from quickstart
+sample ([see on
+doxygen](https://rapidyaml.readthedocs.io/en/latest/group__doc__quickstart.html)/[see
+on github](samples/quickstart.cpp). After cloning ryml
+(don't forget the `--recursive` flag for git), you can very easily
+build and run this executable using any of the build samples, eg the
+[`add_subdirectory()` sample](samples/add_subdirectory/) (see [the relevant section](#quickstart-samples)).
 
-```c++
+```cpp
 // Parse YAML code in place, potentially mutating the buffer:
 char yml_buf[] = "{foo: 1, bar: [2, 3], john: doe}";
 ryml::Tree tree = ryml::parse_in_place(yml_buf);
-
-// The resulting tree contains only views to the parsed string. If
-// the string was parsed in place, then the string must outlive
-// the tree! This works in this case because `yml_buf` and `tree`
-// live on the same scope, so have the same lifetime.
-
-// It is also possible to:
-//
-//   - parse a read-only buffer using parse_in_arena(). This
-//     copies the YAML buffer to the tree's arena, and spares the
-//     headache of the string's lifetime.
-//
-//   - reuse an existing tree (advised)
-//
-//   - reuse an existing parser (advised)
-//
-// Note: it will always be significantly faster to parse in place
-// and reuse tree+parser.
-//
-// Below you will find samples that show how to achieve reuse; but
-// please note that for brevity and clarity, many of the examples
-// here are parsing in the arena, and not reusing tree or parser.
-
-
-//------------------------------------------------------------------
-// API overview
 
 // ryml has a two-level API:
 //
@@ -288,191 +267,14 @@ ryml::ConstNodeRef bar = tree["bar"];
 CHECK(root.is_map());
 CHECK(bar.is_seq());
 
-// A node ref is a lightweight handle to the tree and associated id:
-CHECK(root.tree() == &tree); // a node ref points at its tree, WITHOUT refcount
-CHECK(root.id() == root_id); // a node ref's id is the index of the node
-CHECK(bar.id() == bar_id);   // a node ref's id is the index of the node
-
-// The node API translates very cleanly to the index API, so most
-// of the code examples below are using the node API.
-
-// WARNING. A node ref holds a raw pointer to the tree. Care must
-// be taken to ensure the lifetimes match, so that a node will
-// never access the tree after the goes out of scope.
-
+// The resulting tree stores only string views to the YAML source buffer.
+CHECK(root["foo"] == "1");
+CHECK(root["foo"].key().str == yml_buf + 1);
+CHECK(bar[0] == "2");
+CHECK(root["john"] == "doe");
 
 //------------------------------------------------------------------
-// To read the parsed tree
-
-// ConstNodeRef::operator[] does a lookup, is O(num_children[node]).
-CHECK(tree["foo"].is_keyval());
-CHECK(tree["foo"].val() == "1");   // get the val of a node (must be leaf node, otherwise it is a container and has no val)
-CHECK(tree["foo"].key() == "foo"); // get the key of a node (must be child of a map, otherwise it has no key)
-CHECK(tree["bar"].is_seq());
-CHECK(tree["bar"].has_key());
-CHECK(tree["bar"].key() == "bar");
-// maps use string keys, seqs use index keys:
-CHECK(tree["bar"][0].val() == "2");
-CHECK(tree["bar"][1].val() == "3");
-CHECK(tree["john"].val() == "doe");
-// An index key is the position of the child within its parent,
-// so even maps can also use int keys, if the key position is
-// known.
-CHECK(tree[0].id() == tree["foo"].id());
-CHECK(tree[1].id() == tree["bar"].id());
-CHECK(tree[2].id() == tree["john"].id());
-// Tree::operator[](int) searches a ***root*** child by its position.
-CHECK(tree[0].id() == tree["foo"].id());  // 0: first child of root
-CHECK(tree[1].id() == tree["bar"].id());  // 1: second child of root
-CHECK(tree[2].id() == tree["john"].id()); // 2: third child of root
-// NodeRef::operator[](int) searches a ***node*** child by its position:
-CHECK(bar[0].val() == "2"); // 0 means first child of bar
-CHECK(bar[1].val() == "3"); // 1 means second child of bar
-// NodeRef::operator[](string):
-// A string key is the key of the node: lookup is by name. So it
-// is only available for maps, and it is NOT available for seqs,
-// since seq members do not have keys.
-CHECK(tree["foo"].key() == "foo");
-CHECK(tree["bar"].key() == "bar");
-CHECK(tree["john"].key() == "john");
-CHECK(bar.is_seq());
-// CHECK(bar["BOOM!"].is_seed()); // error, seqs do not have key lookup
-
-// Note that maps can also use index keys as well as string keys:
-CHECK(root["foo"].id() == root[0].id());
-CHECK(root["bar"].id() == root[1].id());
-CHECK(root["john"].id() == root[2].id());
-
-// IMPORTANT. The ryml tree uses an index-based linked list for
-// storing children, so the complexity of
-// `Tree::operator[csubstr]` and `Tree::operator[size_t]` is O(n),
-// linear on the number of root children. If you use
-// `Tree::operator[]` with a large tree where the root has many
-// children, you will see a performance hit.
-//
-// To avoid this hit, you can create your own accelerator
-// structure. For example, before doing a lookup, do a single
-// traverse at the root level to fill an `map<csubstr,size_t>`
-// mapping key names to node indices; with a node index, a lookup
-// (via `Tree::get()`) is O(1), so this way you can get O(log n)
-// lookup from a key. (But please do not use `std::map` if you
-// care about performance; use something else like a flat map or
-// sorted vector).
-//
-// As for node refs, the difference from `NodeRef::operator[]` and
-// `ConstNodeRef::operator[]` to `Tree::operator[]` is that the
-// latter refers to the root node, whereas the former are invoked
-// on their target node. But the lookup process works the same for
-// both and their algorithmic complexity is the same: they are
-// both linear in the number of direct children. But of course,
-// depending on the data, that number may be very different from
-// one to another.
-
-
-//------------------------------------------------------------------
-// Hierarchy:
-
-{
-    ryml::ConstNodeRef foo = root.first_child();
-    ryml::ConstNodeRef john = root.last_child();
-    CHECK(tree.size() == 6); // O(1) number of nodes in the tree
-    CHECK(root.num_children() == 3); // O(num_children[root])
-    CHECK(foo.num_siblings() == 3); // O(num_children[parent(foo)])
-    CHECK(foo.parent().id() == root.id()); // parent() is O(1)
-    CHECK(root.first_child().id() == root["foo"].id()); // first_child() is O(1)
-    CHECK(root.last_child().id() == root["john"].id()); // last_child() is O(1)
-    CHECK(john.first_sibling().id() == foo.id());
-    CHECK(foo.last_sibling().id() == john.id());
-    // prev_sibling(), next_sibling(): (both are O(1))
-    CHECK(foo.num_siblings() == root.num_children());
-    CHECK(foo.prev_sibling().id() == ryml::NONE); // foo is the first_child()
-    CHECK(foo.next_sibling().key() == "bar");
-    CHECK(foo.next_sibling().next_sibling().key() == "john");
-    CHECK(foo.next_sibling().next_sibling().next_sibling().id() == ryml::NONE); // john is the last_child()
-}
-
-
-//------------------------------------------------------------------
-// Iterating:
-{
-    ryml::csubstr expected_keys[] = {"foo", "bar", "john"};
-    // iterate children using the high-level node API:
-    {
-        size_t count = 0;
-        for(ryml::ConstNodeRef const& child : root.children())
-            CHECK(child.key() == expected_keys[count++]);
-    }
-    // iterate siblings using the high-level node API:
-    {
-        size_t count = 0;
-        for(ryml::ConstNodeRef const& child : root["foo"].siblings())
-            CHECK(child.key() == expected_keys[count++]);
-    }
-    // iterate children using the lower-level tree index API:
-    {
-        size_t count = 0;
-        for(size_t child_id = tree.first_child(root_id); child_id != ryml::NONE; child_id = tree.next_sibling(child_id))
-            CHECK(tree.key(child_id) == expected_keys[count++]);
-    }
-    // iterate siblings using the lower-level tree index API:
-    // (notice the only difference from above is in the loop
-    // preamble, which calls tree.first_sibling(bar_id) instead of
-    // tree.first_child(root_id))
-    {
-        size_t count = 0;
-        for(size_t child_id = tree.first_sibling(bar_id); child_id != ryml::NONE; child_id = tree.next_sibling(child_id))
-            CHECK(tree.key(child_id) == expected_keys[count++]);
-    }
-}
-
-
-//------------------------------------------------------------------
-// Gotchas:
-
-// ryml uses assertions to prevent you from trying to obtain
-// things that do not exist. For example:
-
-{
-    ryml::ConstNodeRef seq_node = tree["bar"];
-    ryml::ConstNodeRef val_node = seq_node[0];
-
-    CHECK(seq_node.is_seq());          // seq is a container
-    CHECK(!seq_node.has_val());        // ... so it has no val
-    //CHECK(seq_node.val() == BOOM!);  // ... so attempting to get a val is undefined behavior
-
-    CHECK(val_node.parent() == seq_node); // belongs to a seq
-    CHECK(!val_node.has_key());           // ... so it has no key
-    //CHECK(val_node.key() == BOOM!);     // ... so attempting to get a key is undefined behavior
-
-    CHECK(val_node.is_val());         // this node is a val
-    //CHECK(val_node.first_child() == BOOM!); // ... so attempting to get a child is undefined behavior
-
-    // assertions are also present in methods that /may/ read the val:
-    CHECK(seq_node.is_seq());              // seq is a container
-    //CHECK(seq_node.val_is_null() BOOM!); // so cannot get the val to check
-}
-
-
-// By default, assertions are enabled unless the NDEBUG macro is
-// defined (which happens in release builds).
-//
-// This adheres to the pay-only-for-what-you-use philosophy: if
-// you are sure that your intent is correct, why would you need to
-// pay the runtime cost for the assertions?
-//
-// The downside, of course, is that when you are not sure, release
-// builds may be doing something crazy.
-//
-// So you can override this behavior and enable/disable
-// assertions, by defining the macro RYML_USE_ASSERT to a proper
-// value (see c4/yml/common.hpp).
-//
-// Also, to be clear, this does not apply to parse errors
-// happening when the YAML is parsed. Checking for these errors is
-// always enabled and cannot be switched off.
-
-
-//------------------------------------------------------------------
+// To get actual values, you need to deserialize the nodes.
 // Deserializing: use operator>>
 {
     int foo = 0, bar0 = 0, bar1 = 0;
@@ -481,7 +283,7 @@ CHECK(root["john"].id() == root[2].id());
     root["foo"] >> foo;
     root["bar"][0] >> bar0;
     root["bar"][1] >> bar1;
-    root["john"] >> john_str; // requires from_chars(std::string). see serialization samples below.
+    root["john"] >> john_str; // requires from_chars(std::string). see API doc.
     root["bar"] >> ryml::key(bar_str); // to deserialize the key, use the tag function ryml::key()
     CHECK(foo == 1);
     CHECK(bar0 == 2);
@@ -490,15 +292,8 @@ CHECK(root["john"].id() == root[2].id());
     CHECK(bar_str == "bar");
 }
 
-
 //------------------------------------------------------------------
-// Modifying existing nodes: operator= vs operator<<
-
-// As implied by its name, ConstNodeRef is a reference to a const
-// node. It can be used to read from the node, but not write to it
-// or modify the hierarchy of the node. If any modification is
-// desired then a NodeRef must be used instead:
-ryml::NodeRef wroot = tree.rootref();
+// To modify existing nodes, use operator= or operator<<.
 
 // operator= assigns an existing string to the receiving node.
 // The contents are NOT copied, and this pointer will be in effect
@@ -535,19 +330,6 @@ CHECK(root["bar"][0].val() == "20");
 CHECK(root["bar"][1].val() == "30");
 CHECK(root["john"].val() == "deere");
 CHECK(tree.arena() == "says who2030deere"); // the result of serializations to the tree arena
-// using operator<< instead of operator=, the crash above is avoided:
-{
-    std::string ok("in_scope");
-    // root["john"] = ryml::to_csubstr(ok); // don't, will dangle
-    wroot["john"] << ryml::to_csubstr(ok); // OK, copy to the tree's arena
-}
-CHECK(root["john"].val() == "in_scope"); // OK!
-// serializing floating points:
-wroot["float"] << 2.4;
-// to force a particular precision or float format:
-// (see sample_float_precision() and sample_formatting())
-wroot["digits"] << ryml::fmt::real(2.4, /*num_digits*/6, ryml::FTOA_FLOAT);
-CHECK(tree.arena() == "says who2030deerein_scope2.42.400000"); // the result of serializations to the tree arena
 
 
 //------------------------------------------------------------------
@@ -562,117 +344,6 @@ CHECK(root["newkeyval"].key() == "newkeyval");
 CHECK(root["newkeyval"].val() == "shiny and new");
 CHECK(root["newkeyval (serialized)"].key() == "newkeyval (serialized)");
 CHECK(root["newkeyval (serialized)"].val() == "shiny and new (serialized)");
-CHECK( ! tree.in_arena(root["newkeyval"].key())); // it's using directly the static string above
-CHECK( ! tree.in_arena(root["newkeyval"].val())); // it's using directly the static string above
-CHECK(   tree.in_arena(root["newkeyval (serialized)"].key())); // it's using a serialization of the string above
-CHECK(   tree.in_arena(root["newkeyval (serialized)"].val())); // it's using a serialization of the string above
-// adding a val node to a seq:
-CHECK(root["bar"].num_children() == 2);
-wroot["bar"][2] = "oh so nice";
-wroot["bar"][3] << "oh so nice (serialized)";
-CHECK(root["bar"].num_children() == 4);
-CHECK(root["bar"][2].val() == "oh so nice");
-CHECK(root["bar"][3].val() == "oh so nice (serialized)");
-// adding a seq node:
-CHECK(root.num_children() == 7);
-wroot["newseq"] |= ryml::SEQ;
-wroot.append_child() << ryml::key("newseq (serialized)") |= ryml::SEQ;
-CHECK(root.num_children() == 9);
-CHECK(root["newseq"].num_children() == 0);
-CHECK(root["newseq"].is_seq());
-CHECK(root["newseq (serialized)"].num_children() == 0);
-CHECK(root["newseq (serialized)"].is_seq());
-// adding a map node:
-CHECK(root.num_children() == 9);
-wroot["newmap"] |= ryml::MAP;
-wroot.append_child() << ryml::key("newmap (serialized)") |= ryml::MAP;
-CHECK(root.num_children() == 11);
-CHECK(root["newmap"].num_children() == 0);
-CHECK(root["newmap"].is_map());
-CHECK(root["newmap (serialized)"].num_children() == 0);
-CHECK(root["newmap (serialized)"].is_map());
-//
-// When the tree is mutable, operator[] first searches the tree
-// for the does not mutate the tree until the returned node is
-// written to.
-//
-// Until such time, the NodeRef object keeps in itself the required
-// information to write to the proper place in the tree. This is
-// called being in a "seed" state.
-//
-// This means that passing a key/index which does not exist will
-// not mutate the tree, but will instead store (in the node) the
-// proper place of the tree to be able to do so, if and when it is
-// required. This is why the node is said to be in "seed" state -
-// it allows creating the entry in the tree in the future.
-//
-// This is a significant difference from eg, the behavior of
-// std::map, which mutates the map immediately within the call to
-// operator[].
-//
-// All of the points above apply only if the tree is mutable. If
-// the tree is const, then a NodeRef cannot be obtained from it;
-// only a ConstNodeRef, which can never be used to mutate the
-// tree.
-//
-CHECK(!root.has_child("I am not nothing"));
-ryml::NodeRef nothing;
-CHECK(nothing.invalid());    // invalid because it points at nothing
-nothing = wroot["I am nothing"];
-CHECK(!nothing.invalid());   // points at the tree, and a specific place in the tree
-CHECK(nothing.is_seed()); // ... but nothing is there yet.
-CHECK(!root.has_child("I am nothing")); // same as above
-CHECK(!nothing.readable()); // ... and this node cannot be used to
-                            // read anything from the tree
-ryml::NodeRef something = wroot["I am something"];
-ryml::ConstNodeRef constsomething = wroot["I am something"];
-CHECK(!root.has_child("I am something")); // same as above
-CHECK(!something.invalid());
-CHECK(something.is_seed()); // same as above
-CHECK(!something.readable()); // same as above
-CHECK(constsomething.invalid()); // NOTE: because a ConstNodeRef cannot be
-                                 // used to mutate a tree, it is only valid()
-                                 // if it is pointing at an existing node.
-something = "indeed";  // this will commit the seed to the tree, mutating at the proper place
-CHECK(root.has_child("I am something"));
-CHECK(root["I am something"].val() == "indeed");
-CHECK(!something.invalid()); // it was already valid
-CHECK(!something.is_seed()); // now the tree has this node, so the
-                             // ref is no longer a seed
-CHECK(something.readable()); // and it is now readable
-//
-// now the constref is also valid (but it needs to be reassigned):
-ryml::ConstNodeRef constsomethingnew = wroot["I am something"];
-CHECK(!constsomethingnew.invalid());
-CHECK(constsomethingnew.readable());
-// note that the old constref is now stale, because it only keeps
-// the state at creation:
-CHECK(constsomething.invalid());
-CHECK(!constsomething.readable());
-//
-// -----------------------------------------------------------
-// Remember: a seed node cannot be used to read from the tree!
-// -----------------------------------------------------------
-//
-// The seed node needs to be created and become readable first.
-//
-// Trying to invoke any tree-reading method on a node that is not
-// readable will cause an assertion (see RYML_USE_ASSERT).
-//
-// It is your responsibility to verify that the preconditions are
-// met. If you are not sure about the structure of your data,
-// write your code defensively to signify your full intent:
-//
-ryml::NodeRef wbar = wroot["bar"];
-if(wbar.readable() && wbar.is_seq()) // .is_seq() requires .readable()
-{
-    CHECK(wbar[0].readable() && wbar[0].val() == "20");
-    CHECK( ! wbar[100].readable());
-    CHECK( ! wbar[100].readable() || wbar[100].val() == "100"); // <- no crash because it is not .readable(), so never tries to call .val()
-    // this would work as well:
-    CHECK( ! wbar[0].is_seed() && wbar[0].val() == "20");
-    CHECK(wbar[100].is_seed() || wbar[100].val() == "100");
-}
 
 
 //------------------------------------------------------------------
@@ -711,45 +382,9 @@ ryml::csubstr buf_result = ryml::emit_yaml(tree, buf);
 CHECK(buf_result == expected_result);
 CHECK(str_result == expected_result);
 CHECK(stream_result == expected_result);
-// There are many possibilities to emit to buffer;
-// please look at the emit sample functions below.
-
 
 //------------------------------------------------------------------
-// ConstNodeRef vs NodeRef
-
-ryml::NodeRef noderef = tree["bar"][0];
-ryml::ConstNodeRef constnoderef = tree["bar"][0];
-
-// ConstNodeRef cannot be used to mutate the tree:
-//constnoderef = "21";  // compile error
-//constnoderef << "22"; // compile error
-// ... but a NodeRef can:
-noderef = "21";         // ok, can assign because it's not const
-CHECK(tree["bar"][0].val() == "21");
-noderef << "22";        // ok, can serialize and assign because it's not const
-CHECK(tree["bar"][0].val() == "22");
-
-// it is not possible to obtain a NodeRef from a ConstNodeRef:
-// noderef = constnoderef; // compile error
-
-// it is always possible to obtain a ConstNodeRef from a NodeRef:
-constnoderef = noderef;    // ok can assign const <- nonconst
-
-// If a tree is const, then only ConstNodeRef's can be
-// obtained from that tree:
-ryml::Tree const& consttree = tree;
-//noderef = consttree["bar"][0];    // compile error
-noderef = tree["bar"][0];           // ok
-constnoderef = consttree["bar"][0]; // ok
-
-// ConstNodeRef and NodeRef can be compared for equality.
-// Equality means they point at the same node.
-CHECK(constnoderef == noderef);
-CHECK(!(constnoderef != noderef));
-
-//------------------------------------------------------------------
-// Dealing with UTF8
+// UTF8
 ryml::Tree langs = ryml::parse_in_arena(R"(
 en: Planet (Gas)
 fr: Planète (Gazeuse)
@@ -777,6 +412,7 @@ CHECK(langs["and this as well"].val() == "✅ 𝄞");
 CHECK(langs["not decoded"].val() == "\\u263A \\xE2\\x98\\xBA");
 CHECK(langs["neither this"].val() == "\\u2705 \\U0001D11E");
 
+
 //------------------------------------------------------------------
 // Getting the location of nodes in the source:
 //
@@ -798,15 +434,29 @@ CHECK(loc.col == 4u);
 
 ### Package managers
 
-If you opt for package managers, here's where ryml is available so far
-(thanks to all the contributors!):
+ryml is available in most package managers (thanks to all the
+contributors!) and linux distributions. But please be aware: those
+packages are maintained downstream of this repository, so if you have
+issues with the package, file a report with the respective maintainer.
+
+Here's a quick roundup (not maintained):
+* Package managers:
+  * [conan](https://conan.io/center/recipes/rapidyaml)
   * [vcpkg](https://vcpkg.io/en/packages.html): `vcpkg install ryml`
+  * [PyPI](https://pypi.org/project/rapidyaml/)
+* Linux distributions:
   * Arch Linux/Manjaro:
+    * [rapidyaml (aarch64)](https://archlinuxarm.org/packages/aarch64/rapidyaml)
     * [rapidyaml-git (AUR)](https://aur.archlinux.org/packages/rapidyaml-git/)
     * [python-rapidyaml-git (AUR)](https://aur.archlinux.org/packages/python-rapidyaml-git/)
-  * [Fedora Linux](https://getfedora.org/)/[EPEL](https://docs.fedoraproject.org/en-US/epel/): `dnf install rapidyaml-devel`, `dnf install python3-rapidyaml`
-  * [PyPI](https://pypi.org/project/rapidyaml/)
-
+  * [Fedora Linux](https://getfedora.org/)/[EPEL](https://docs.fedoraproject.org/en-US/epel/):
+    * `dnf install rapidyaml-devel`
+    * `dnf install python3-rapidyaml`
+  * [Gentoo](https://packages.gentoo.org/packages/dev-cpp/rapidyaml)
+  * [OpenSuse](https://build.openbuildservice.org/package/show/Emulators/rapidyaml)
+  * [Slackbuilds](https://slackbuilds.org/repository/15.0/libraries/rapidyaml/)
+  * [AltLinux](https://packages.altlinux.org/en/sisyphus/srpms/rapidyaml/3006055151670528141)
+  
 Although package managers are very useful for quickly getting up to
 speed, the advised way is still to bring ryml as a submodule of your
 project, building both together. This makes it easy to track any
@@ -1061,9 +711,9 @@ As for emitting, the improvement can be as high as 3000x:
 
 ## YAML standard conformance
 
-ryml is close to feature complete. Most of the YAML features are well
-covered in the unit tests, and expected to work, unless in the
-exceptions noted below.
+ryml is feature complete with regards to the YAML specification. All
+the YAML features are well covered in the unit tests, and expected to
+work, unless in the exceptions noted below.
 
 Of course, there are many dark corners in YAML, and there certainly
 can appear cases which ryml fails to parse. Your [bug reports or pull

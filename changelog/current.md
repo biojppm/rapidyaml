@@ -1,3 +1,8 @@
+### Add API documentation
+
+- [PR#423](https://github.com/biojppm/rapidyaml/pull/423): **add Doxygen-based API documentation, now hosted in [https://rapidyaml.readthedocs.io/]!**.
+- It uses the base doxygen docs, as I couldn't get doxyrest or breathe or exhale to produce anything meaningful using the groups already established in the source code.
+
 ### Error handling
 
 Fix major error handling problem reported in [#389](https://github.com/biojppm/rapidyaml/issues/389) ([PR#411](https://github.com/biojppm/rapidyaml/pull/411)):
@@ -54,6 +59,9 @@ Fix major error handling problem reported in [#389](https://github.com/biojppm/r
     - `RYML_USE_ASSERT` - enable assertions regardless of build type. This is disabled by default. This macro was already defined; the current PR adds the cmake option.
     - `RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS` - make the default error handler provided by ryml throw exceptions instead of calling `std::abort()`. This is disabled by default.
   - Also, `RYML_DEBUG_BREAK()` is now enabled only if `RYML_DBG` is defined, as reported in [#362](https://github.com/biojppm/rapidyaml/issues/362).
+  - As part of [PR#423](https://github.com/biojppm/rapidyaml/pull/423), to improve linters and codegen:
+    - annotate the error handlers with `[[noreturn]]`/`C4_NORETURN`
+    - annotate some error sites with `C4_UNREACHABLE_AFTER_ERR()`
 
 
 ### More fixes
