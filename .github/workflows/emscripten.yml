@@ -56,7 +56,7 @@ jobs:
       LINT: "${{matrix.lint}}"
       OS: "${{matrix.os}}"
     steps:
-      - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
+      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
       - name: setup emscripten cache
         id: cache-system-libraries
         uses: actions/cache@v3

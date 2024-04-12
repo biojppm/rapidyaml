@@ -115,7 +115,7 @@ function c4_build_target()
     # watchout: the `--parallel` flag to `cmake --build` is broken:
     # https://discourse.cmake.org/t/parallel-does-not-really-enable-parallel-compiles-with-msbuild/964/10
     # https://gitlab.kitware.com/cmake/cmake/-/issues/20564
-    cmake --build $build_dir --config $BT $target -- $(_c4_generator_build_flags) $(_c4_parallel_build_flags)
+    cmake --build $build_dir --config $BT $target --verbose -- $(_c4_generator_build_flags) $(_c4_parallel_build_flags)
 }
 
 # does not run in parallel
@@ -268,7 +268,9 @@ function c4_cfg_test()
                 32) a=Win32 ;;
             esac
             cmake -S $PROJ_DIR -B $build_dir -DCMAKE_INSTALL_PREFIX="$install_dir" \
-                  -DCMAKE_BUILD_TYPE=$BT -G "$g" -A $a $CMFLAGS
+                  -DCMAKE_BUILD_TYPE=$BT \
+                  -G "$g" -A \
+                  $a $CMFLAGS
             ;;
         vs2019)
             g='Visual Studio 16 2019'
@@ -277,7 +279,9 @@ function c4_cfg_test()
                 32) a=Win32 ;;
             esac
             cmake -S $PROJ_DIR -B $build_dir -DCMAKE_INSTALL_PREFIX="$install_dir" \
-                  -DCMAKE_BUILD_TYPE=$BT -G "$g" -A $a $CMFLAGS
+                  -DCMAKE_BUILD_TYPE=$BT \
+                  -G "$g" -A $a \
+                  $CMFLAGS
             ;;
         vs2017)
             case "$bits" in
@@ -285,7 +289,9 @@ function c4_cfg_test()
                 32) g="Visual Studio 15 2017" ;;
             esac
             cmake -S $PROJ_DIR -B $build_dir -DCMAKE_INSTALL_PREFIX="$install_dir" \
-                  -DCMAKE_BUILD_TYPE=$BT -G "$g" $CMFLAGS
+                  -DCMAKE_BUILD_TYPE=$BT \
+                  -G "$g" \
+                  $CMFLAGS
             ;;
         xcode)
             g=Xcode
@@ -296,11 +302,14 @@ function c4_cfg_test()
                     ;;
             esac
             cmake -S $PROJ_DIR -B $build_dir -DCMAKE_INSTALL_PREFIX="$install_dir" \
-                  -DCMAKE_BUILD_TYPE=$BT -G "$g" -DCMAKE_OSX_ARCHITECTURES=$a $CMFLAGS
+                  -DCMAKE_BUILD_TYPE=$BT \
+                  -G "$g" -DCMAKE_OSX_ARCHITECTURES=$a \
+                  $CMFLAGS
             ;;
         arm*|"") # make sure arm* comes before *g++ or *gcc*
             cmake -S $PROJ_DIR -B $build_dir -DCMAKE_INSTALL_PREFIX="$install_dir" \
-                  -DCMAKE_BUILD_TYPE=$BT $CMFLAGS
+                  -DCMAKE_BUILD_TYPE=$BT \
+                  $CMFLAGS
             ;;
         *mingw*)
             export CC_=$(echo "$CXX_" | sed 's:clang++:clang:g' | sed 's:g++:gcc:g')

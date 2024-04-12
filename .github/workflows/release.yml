@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # use fetch-depth to ensure all tags are fetched
-      - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive, fetch-depth: 0}}
+      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive, fetch-depth: 0}}
       - name: Variables (from tag)
         if: contains(github.ref, 'tags/v')
         run: |
@@ -84,12 +84,12 @@ jobs:
     needs: gettag
     runs-on: ubuntu-latest
     steps:
-      - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
+      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
       - name: Download vars.sh
         uses: actions/download-artifact@v3
         with: {name: vars.sh, path: ./}
       - name: Install python 3.9
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with: { python-version: 3.9 }
       - name: Install requirements
         run: |
@@ -133,7 +133,7 @@ jobs:
           - {name: Windows VS2019 zip, sfxg: win64.zip , sfxp: windows-vs2019.zip , gen: ZIP  , mime: zip                      , os: windows-2019, cxx: vs2019}
           - {name: MacOSX sh         , sfxg: apple64.sh, sfxp: macosx-xcode.sh    , gen: STGZ , mime: x-sh                     , os: macos-11.0  , cxx: xcode }
     steps:
-      - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
+      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
       - name: Download vars.sh
         uses: actions/download-artifact@v3
         with: {name: vars.sh, path: ./}
@@ -170,9 +170,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # use fetch-depth to ensure all tags are fetched
-      - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive, fetch-depth: 0}}
+      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive, fetch-depth: 0}}
       - name: install python 3.9
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with: { python-version: 3.9 }
       - name: package python src packages
         run: |
@@ -245,7 +245,7 @@ jobs:
           #- {pythonv:  3.6  , cibw_pyv: 36 , cibw_arch: x86_64, cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
     steps:
       # use fetch-depth to ensure all tags are fetched
-      - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive, fetch-depth: 0}}
+      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive, fetch-depth: 0}}
       - name: create wheel
         uses: pypa/cibuildwheel@v2.16.2
       - name: rename wheelhouse -> dist
@@ -257,7 +257,7 @@ jobs:
         with: {name: dist, path: dist}
       # run the tests
       - name: install python ${{matrix.config.pythonv}}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '${{matrix.config.pythonv}}'
       - name: test with python ${{matrix.config.pythonv}}
@@ -297,7 +297,7 @@ jobs:
       - python_src
       - python_wheels
     steps:
-      - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
+      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
       - name: Gather artifacts - ./assets
         uses: actions/download-artifact@v3
         with: {name: assets, path: assets}
