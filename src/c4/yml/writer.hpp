@@ -13,6 +13,15 @@
 namespace c4 {
 namespace yml {
 
+/** @addtogroup doc_emit
+ * @{
+ */
+
+/** @defgroup doc_writers Writer objects to use with an Emitter
+ * @see Emitter
+ * @{
+ */
+
 
 /** Repeat-Character: a character to be written a number of times. */
 struct RepC
@@ -221,6 +230,10 @@ struct WriterBuf
         m_pos += rc.num_times;
     }
 };
+
+/** @ } */
+
+/** @ } */
 
 
 } // namespace yml

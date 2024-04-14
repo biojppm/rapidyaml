@@ -3,16 +3,6 @@
 
 /** @file preprocess.hpp Functions for preprocessing YAML prior to parsing. */
 
-/** @defgroup Preprocessors Preprocessor functions
- *
- * These are the existing preprocessors:
- *
- * @code{.cpp}
- * size_t preprocess_json(csubstr json, substr buf)
- * size_t preprocess_rxmap(csubstr json, substr buf)
- * @endcode
- */
-
 #ifndef _C4_YML_COMMON_HPP_
 #include "./common.hpp"
 #endif
@@ -22,6 +12,11 @@
 namespace c4 {
 namespace yml {
 
+/** @addtogroup doc_preprocessors
+ * @{
+ */
+
+/** @cond dev */
 namespace detail {
 using Preprocessor = size_t(csubstr, substr);
 template<Preprocessor PP, class CharContainer>
@@ -41,13 +36,15 @@ substr preprocess_into_container(csubstr input, CharContainer *out)
     return to_substr(*out).first(sz);
 }
 } // namespace detail
+/** @endcond */
 
 
 //-----------------------------------------------------------------------------
 
-/** @name preprocess_rxmap
- * Convert flow-type relaxed maps (with implicit bools) into strict YAML
- * flow map.
+/** @defgroup doc_preprocess_rxmap preprocess_rxmap
+ *
+ * @brief Convert flow-type relaxed maps (with implicit bools) into strict YAML
+ * flow map:
  *
  * @code{.yaml}
  * {a, b, c, d: [e, f], g: {a, b}}
@@ -59,9 +56,9 @@ substr preprocess_into_container(csubstr input, CharContainer *out)
  * @param rxmap A relaxed map
  * @param buf output buffer
  * @param out output container
+ *
+ * @{
  */
-
-//@{
 
 /** Write into a given output buffer. This function is safe to call with
  * empty or small buffers; it won't write beyond the end of the buffer.
@@ -91,7 +88,8 @@ CharContainer preprocess_rxmap(csubstr rxmap)
     return out;
 }
 
-//@}
+/** @} */ // preprocess_rxmap
+/** @} */ // group
 
 } // namespace yml
 } // namespace c4

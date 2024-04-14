@@ -1,6 +1,7 @@
 #ifndef _C4_YML_TREE_HPP_
 #define _C4_YML_TREE_HPP_
 
+/** @file tree.hpp */
 
 #include "c4/error.hpp"
 #include "c4/types.hpp"
@@ -85,13 +86,19 @@ bool from_chars_float(csubstr buf, T *C4_RESTRICT val)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+
+/** @addtogroup doc_tag_utils
+ *
+ * @{
+ */
+
 /** the integral type necessary to cover all the bits marking node tags */
 using tag_bits = uint16_t;
 
 /** a bit mask for marking tags for types */
 typedef enum : tag_bits {
     // container types
-    TAG_NONE      =  0,
+    TAG_NONE      =  0, /**< no tag is set */
     TAG_MAP       =  1, /**< !!map   Unordered set of key: value pairs without duplicates. @see https://yaml.org/type/map.html */
     TAG_OMAP      =  2, /**< !!omap  Ordered sequence of key: value pairs without duplicates. @see https://yaml.org/type/omap.html */
     TAG_PAIRS     =  3, /**< !!pairs Ordered sequence of key: value pairs allowing duplicates. @see https://yaml.org/type/pairs.html */
@@ -131,18 +138,25 @@ struct TagDirective
 #define RYML_MAX_TAG_DIRECTIVES 4
 #endif
 
+/** @} */
 
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+
+
+/** @addtogroup doc_node_type
+ *
+ * @{
+ */
 
 
 /** the integral type necessary to cover all the bits marking node types */
 using type_bits = uint64_t;
 
 
-/** a bit mask for marking node types */
+/** a bit mask for marking node types. See NodeType */
 typedef enum : type_bits {
     // a convenience define, undefined below
     #define c4bit(v) (type_bits(1) << v)
@@ -171,9 +185,9 @@ typedef enum : type_bits {
     _KEYMASK = KEY | KEYQUO | KEYANCH | KEYREF | KEYTAG,
     _VALMASK = VAL | VALQUO | VALANCH | VALREF | VALTAG,
     // these flags are from a work in progress and should be used with care
-    _WIP_STYLE_FLOW_SL = c4bit(14), ///< mark container with single-line flow format (seqs as '[val1,val2], maps as '{key: val, key2: val2}')
-    _WIP_STYLE_FLOW_ML = c4bit(15), ///< mark container with multi-line flow format (seqs as '[val1,\nval2], maps as '{key: val,\nkey2: val2}')
-    _WIP_STYLE_BLOCK   = c4bit(16), ///< mark container with block format (seqs as '- val\n', maps as 'key: val')
+    _WIP_STYLE_FLOW_SL = c4bit(14), ///< mark container with single-line flow format (seqs as `[val1,val2]`, maps as `{key: val, key2: val2}`)
+    _WIP_STYLE_FLOW_ML = c4bit(15), ///< mark container with multi-line flow format (seqs as `[val1,\nval2]`, maps as `{key: val,\nkey2: val2}`)
+    _WIP_STYLE_BLOCK   = c4bit(16), ///< mark container with block format (seqs as `- val\n`, maps as `key: val`)
     _WIP_KEY_LITERAL   = c4bit(17), ///< mark key scalar as multiline, block literal |
     _WIP_VAL_LITERAL   = c4bit(18), ///< mark val scalar as multiline, block literal |
     _WIP_KEY_FOLDED    = c4bit(19), ///< mark key scalar as multiline, block folded >
@@ -299,9 +313,18 @@ public:
 };
 
 
+/** @} */
+
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+
+
+/** @addtogroup doc_tree
+ *
+ * @{
+ */
 
 /** a node scalar is a csubstr, which may be tagged and anchored. */
 struct NodeScalar
@@ -495,38 +518,36 @@ public:
     size_t id(NodeData const* n) const
     {
         if( ! n)
-        {
             return NONE;
-        }
         _RYML_CB_ASSERT(m_callbacks, n >= m_buf && n < m_buf + m_cap);
         return static_cast<size_t>(n - m_buf);
     }
 
     //! get a pointer to a node's NodeData.
     //! i can be NONE, in which case a nullptr is returned
-    inline NodeData *get(size_t i)
+    inline NodeData *get(size_t node)
     {
-        if(i == NONE)
+        if(node == NONE)
             return nullptr;
-        _RYML_CB_ASSERT(m_callbacks, i >= 0 && i < m_cap);
-        return m_buf + i;
+        _RYML_CB_ASSERT(m_callbacks, node >= 0 && node < m_cap);
+        return m_buf + node;
     }
     //! get a pointer to a node's NodeData.
     //! i can be NONE, in which case a nullptr is returned.
-    inline NodeData const *get(size_t i) const
+    inline NodeData const *get(size_t node) const
     {
-        if(i == NONE)
+        if(node == NONE)
             return nullptr;
-        _RYML_CB_ASSERT(m_callbacks, i >= 0 && i < m_cap);
-        return m_buf + i;
+        _RYML_CB_ASSERT(m_callbacks, node >= 0 && node < m_cap);
+        return m_buf + node;
     }
 
     //! An if-less form of get() that demands a valid node index.
     //! This function is implementation only; use at your own risk.
-    inline NodeData       * _p(size_t i)       { _RYML_CB_ASSERT(m_callbacks, i != NONE && i >= 0 && i < m_cap); return m_buf + i; }
+    inline NodeData       * _p(size_t node)       { _RYML_CB_ASSERT(m_callbacks, node != NONE && node >= 0 && node < m_cap); return m_buf + node; }
     //! An if-less form of get() that demands a valid node index.
     //! This function is implementation only; use at your own risk.
-    inline NodeData const * _p(size_t i) const { _RYML_CB_ASSERT(m_callbacks, i != NONE && i >= 0 && i < m_cap); return m_buf + i; }
+    inline NodeData const * _p(size_t node) const { _RYML_CB_ASSERT(m_callbacks, node != NONE && node >= 0 && node < m_cap); return m_buf + node; }
 
     //! Get the id of the root node
     size_t root_id()       { if(m_cap == 0) { reserve(16); } _RYML_CB_ASSERT(m_callbacks, m_cap > 0 && m_size > 0); return 0; }
@@ -534,11 +555,11 @@ public:
     size_t root_id() const {                                 _RYML_CB_ASSERT(m_callbacks, m_cap > 0 && m_size > 0); return 0; }
 
     //! Get a NodeRef of a node by id
-    NodeRef      ref(size_t id);
+    NodeRef      ref(size_t node);
     //! Get a NodeRef of a node by id
-    ConstNodeRef ref(size_t id) const;
+    ConstNodeRef ref(size_t node) const;
     //! Get a NodeRef of a node by id
-    ConstNodeRef cref(size_t id) const;
+    ConstNodeRef cref(size_t node) const;
 
     //! Get the root as a NodeRef
     NodeRef      rootref();
@@ -548,10 +569,10 @@ public:
     ConstNodeRef crootref() const;
 
     //! get the i-th document of the stream
-    //! @note @i is NOT the node id, but the doc position within the stream
+    //! @note @p i is NOT the node id, but the doc position within the stream
     NodeRef      docref(size_t i);
     //! get the i-th document of the stream
-    //! @note @i is NOT the node id, but the doc position within the stream
+    //! @note @p i is NOT the node id, but the doc position within the stream
     ConstNodeRef docref(size_t i) const;
 
     //! find a root child by name, return it as a NodeRef
@@ -562,10 +583,10 @@ public:
     ConstNodeRef operator[] (csubstr key) const;
 
     //! find a root child by index: return the root node's @p i-th child as a NodeRef
-    //! @note @i is NOT the node id, but the child's position
+    //! @note @p i is NOT the node id, but the child's position
     NodeRef      operator[] (size_t i);
     //! find a root child by index: return the root node's @p i-th child as a NodeRef
-    //! @note @i is NOT the node id, but the child's position
+    //! @note @p i is NOT the node id, but the child's position
     ConstNodeRef operator[] (size_t i) const;
 
     /** @} */
@@ -1260,6 +1281,8 @@ private:
 
 public:
 
+    /** @cond dev*/
+
     #if ! RYML_USE_ASSERT
     C4_ALWAYS_INLINE void _check_next_flags(size_t, type_bits) {}
     #else
@@ -1449,6 +1472,8 @@ public:
         _rem_flags(node, VAL);
     }
 
+    /** @endcond */
+
 private:
 
     void _clear_range(size_t first, size_t num);
@@ -1482,6 +1507,8 @@ public:
     TagDirective m_tag_directives[RYML_MAX_TAG_DIRECTIVES];
 
 };
+
+/** @} */
 
 } // namespace yml
 } // namespace c4

@@ -1,6 +1,8 @@
 #ifndef _C4_YML_PARSE_HPP_
 #define _C4_YML_PARSE_HPP_
 
+/** @file parse.hpp Utilities to parse YAML and JSON */
+
 #ifndef _C4_YML_TREE_HPP_
 #include "c4/yml/tree.hpp"
 #endif
@@ -23,6 +25,12 @@
 namespace c4 {
 namespace yml {
 
+/** @addtogroup doc_parse
+ *
+ * @{
+ */
+
+/** Options to initialize a @ref Parser object. */
 struct RYML_EXPORT ParserOptions
 {
 private:
@@ -57,6 +65,7 @@ public:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+/** A reusable object to parse YAML/JSON and create the ryml @ref Tree. */
 class RYML_EXPORT Parser
 {
 public:
@@ -141,7 +150,10 @@ public:
 
 public:
 
-    /** @name parse_in_place */
+    /** @name parse_in_place
+     *
+     * parse a mutable buffer in situ, potentially mutating it.
+     */
     /** @{ */
 
     /** Create a new tree and parse into its root.
@@ -185,8 +197,10 @@ public:
 
 public:
 
-    /** @name parse_in_arena: copy the YAML source buffer to the
-     * tree's arena, then parse the copy in situ
+    /** @name parse_in_arena
+     *
+     * copy the YAML source buffer to the tree's arena, then parse the
+     * copy in situ
      *
      * @note overloads receiving a substr YAML buffer are intentionally
      * left undefined, such that calling parse_in_arena() with a substr
@@ -201,10 +215,12 @@ public:
 
     // READ THE NOTE ABOVE!
     #define RYML_DONT_PARSE_SUBSTR_IN_ARENA "Do not pass a (mutable) substr to parse_in_arena(); if you have a substr, it should be parsed in place. Consider using parse_in_place() instead, or convert the buffer to csubstr prior to calling. This function is deliberately left undefined and will cause a linker error."
+    /** @cond dev */
     RYML_DEPRECATED(RYML_DONT_PARSE_SUBSTR_IN_ARENA) Tree parse_in_arena(csubstr filename, substr csrc);
     RYML_DEPRECATED(RYML_DONT_PARSE_SUBSTR_IN_ARENA) void parse_in_arena(csubstr filename, substr csrc, Tree *t);
     RYML_DEPRECATED(RYML_DONT_PARSE_SUBSTR_IN_ARENA) void parse_in_arena(csubstr filename, substr csrc, Tree *t, size_t node_id);
     RYML_DEPRECATED(RYML_DONT_PARSE_SUBSTR_IN_ARENA) void parse_in_arena(csubstr filename, substr csrc, NodeRef node);
+    /** @endcond */
 
     /** Create a new tree and parse into its root.
      * The immutable YAML source is first copied to the tree's arena,
@@ -253,10 +269,12 @@ public:
         this->parse_in_place(filename, src, node.tree(), node.id());
     }
 
+    /** @cond dev */
     RYML_DEPRECATED("use parse_in_arena() instead") Tree parse(csubstr filename, csubstr csrc) { return parse_in_arena(filename, csrc); }
     RYML_DEPRECATED("use parse_in_arena() instead") void parse(csubstr filename, csubstr csrc, Tree *t) { parse_in_arena(filename, csrc, t); }
     RYML_DEPRECATED("use parse_in_arena() instead") void parse(csubstr filename, csubstr csrc, Tree *t, size_t node_id) { parse_in_arena(filename, csrc, t, node_id); }
     RYML_DEPRECATED("use parse_in_arena() instead") void parse(csubstr filename, csubstr csrc, NodeRef node) { parse_in_arena(filename, csrc, node); }
+    /** @endcond */
 
     /** @} */
 
@@ -565,7 +583,7 @@ private:
 #ifdef RYML_DBG
     template<class ...Args> void _dbg(csubstr fmt, Args const& C4_RESTRICT ...args) const;
 #endif
-    template<class ...Args> void _err(csubstr fmt, Args const& C4_RESTRICT ...args) const;
+    template<class ...Args> [[noreturn]] void _err(csubstr fmt, Args const& C4_RESTRICT ...args) const;
     template<class DumpFn>  void _fmt_msg(DumpFn &&dumpfn) const;
     static csubstr _prfl(substr buf, flag_t v);
 
@@ -608,17 +626,19 @@ private:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-/** @name parse_in_place
+/** @defgroup doc_parse_in_place Parse in place
  *
- * @desc parse a mutable YAML source buffer.
+ * Parse a mutable YAML source buffer to create a ryml @ref Tree,
+ * potentially mutating the buffer.
  *
- * @note These freestanding functions use a temporary parser object,
- * and are convenience functions to easily parse YAML without the need
- * to instantiate a separate parser. Note that some properties
- * (notably node locations in the original source code) are only
- * available through the parser object after it has parsed the
- * code. If you need access to any of these properties, use
- * Parser::parse_in_place() */
+ * These freestanding functions use a temporary parser object, and are
+ * convenience functions to easily parse YAML without the need to
+ * instantiate a separate parser. Note that some properties (notably
+ * node locations in the original source code) are only available
+ * through the parser object after it has parsed the code. If you need
+ * access to any of these properties, use Parser::parse_in_place().
+ *
+ * @see Parser */
 /** @{ */
 
 inline Tree parse_in_place(                  substr yaml                         ) { Parser np; return np.parse_in_place({}      , yaml); } //!< parse in-situ a modifiable YAML source buffer.
@@ -630,6 +650,7 @@ inline void parse_in_place(csubstr filename, substr yaml, Tree *t, size_t node_i
 inline void parse_in_place(                  substr yaml, NodeRef node           ) { Parser np; np.parse_in_place({}      , yaml, node); } //!< reusing the YAML tree, parse in-situ a modifiable YAML source buffer
 inline void parse_in_place(csubstr filename, substr yaml, NodeRef node           ) { Parser np; np.parse_in_place(filename, yaml, node); } //!< reusing the YAML tree, parse in-situ a modifiable YAML source buffer, providing a filename for error messages.
 
+/** @cond dev */
 RYML_DEPRECATED("use parse_in_place() instead") inline Tree parse(                  substr yaml                         ) { Parser np; return np.parse_in_place({}      , yaml); }
 RYML_DEPRECATED("use parse_in_place() instead") inline Tree parse(csubstr filename, substr yaml                         ) { Parser np; return np.parse_in_place(filename, yaml); }
 RYML_DEPRECATED("use parse_in_place() instead") inline void parse(                  substr yaml, Tree *t                ) { Parser np; np.parse_in_place({}      , yaml, t); }
@@ -638,22 +659,25 @@ RYML_DEPRECATED("use parse_in_place() instead") inline void parse(              
 RYML_DEPRECATED("use parse_in_place() instead") inline void parse(csubstr filename, substr yaml, Tree *t, size_t node_id) { Parser np; np.parse_in_place(filename, yaml, t, node_id); }
 RYML_DEPRECATED("use parse_in_place() instead") inline void parse(                  substr yaml, NodeRef node           ) { Parser np; np.parse_in_place({}      , yaml, node); }
 RYML_DEPRECATED("use parse_in_place() instead") inline void parse(csubstr filename, substr yaml, NodeRef node           ) { Parser np; np.parse_in_place(filename, yaml, node); }
+/** @endcond */
 
 /** @} */
 
 
 //-----------------------------------------------------------------------------
 
-/** @name parse_in_arena
- * @desc parse a read-only YAML source buffer, copying it first to the tree's arena.
+/** @defgroup doc_parse_in_arena Parse in arena
  *
- * @note These freestanding functions use a temporary parser object,
- * and are convenience functions to easily parse YAML without the need
- * to instantiate a separate parser. Note that some properties
- * (notably node locations in the original source code) are only
- * available through the parser object after it has parsed the
- * code. If you need access to any of these properties, use
- * Parser::parse_in_arena().
+ * Parse a read-only YAML source buffer to create a ryml @ref Tree,
+ * copying the buffer first to the tree's arena. The copy of the
+ * buffer is then parsed in place.
+ *
+ * These freestanding functions use a temporary parser object, and are
+ * convenience functions to easily parse YAML without the need to
+ * instantiate a separate parser. Note that some properties (notably
+ * node locations in the original source code) are only available
+ * through the parser object after it has parsed the code. If you need
+ * access to any of these properties, use Parser::parse_in_arena().
  *
  * @note overloads receiving a substr YAML buffer are intentionally
  * left undefined, such that calling parse_in_arena() with a substr
@@ -663,10 +687,13 @@ RYML_DEPRECATED("use parse_in_place() instead") inline void parse(csubstr filena
  * a mutable buffer in the tree's arena, convert it first to immutable
  * by assigning the substr to a csubstr prior to calling parse_in_arena().
  * This is not needed for parse_in_place() because csubstr is not
- * implicitly convertible to substr. */
+ * implicitly convertible to substr.
+ *
+ * @see Parser */
 /** @{ */
 
 /* READ THE NOTE ABOVE! */
+/** @cond dev */
 RYML_DEPRECATED(RYML_DONT_PARSE_SUBSTR_IN_ARENA) Tree parse_in_arena(                  substr yaml                         );
 RYML_DEPRECATED(RYML_DONT_PARSE_SUBSTR_IN_ARENA) Tree parse_in_arena(csubstr filename, substr yaml                         );
 RYML_DEPRECATED(RYML_DONT_PARSE_SUBSTR_IN_ARENA) void parse_in_arena(                  substr yaml, Tree *t                );
@@ -675,6 +702,7 @@ RYML_DEPRECATED(RYML_DONT_PARSE_SUBSTR_IN_ARENA) void parse_in_arena(           
 RYML_DEPRECATED(RYML_DONT_PARSE_SUBSTR_IN_ARENA) void parse_in_arena(csubstr filename, substr yaml, Tree *t, size_t node_id);
 RYML_DEPRECATED(RYML_DONT_PARSE_SUBSTR_IN_ARENA) void parse_in_arena(                  substr yaml, NodeRef node           );
 RYML_DEPRECATED(RYML_DONT_PARSE_SUBSTR_IN_ARENA) void parse_in_arena(csubstr filename, substr yaml, NodeRef node           );
+/** @endcond */
 
 inline Tree parse_in_arena(                  csubstr yaml                         ) { Parser np; return np.parse_in_arena({}      , yaml); } //!< parse a read-only YAML source buffer, copying it first to the tree's source arena.
 inline Tree parse_in_arena(csubstr filename, csubstr yaml                         ) { Parser np; return np.parse_in_arena(filename, yaml); } //!< parse a read-only YAML source buffer, copying it first to the tree's source arena, providing a filename for error messages.
@@ -685,6 +713,7 @@ inline void parse_in_arena(csubstr filename, csubstr yaml, Tree *t, size_t node_
 inline void parse_in_arena(                  csubstr yaml, NodeRef node           ) { Parser np; np.parse_in_arena({}      , yaml, node); } //!< reusing the YAML tree, parse a read-only YAML source buffer, copying it first to the tree's source arena.
 inline void parse_in_arena(csubstr filename, csubstr yaml, NodeRef node           ) { Parser np; np.parse_in_arena(filename, yaml, node); } //!< reusing the YAML tree, parse a read-only YAML source buffer, copying it first to the tree's source arena, providing a filename for error messages.
 
+/** @cond dev */
 RYML_DEPRECATED("use parse_in_arena() instead") inline Tree parse(                  csubstr yaml                         ) { Parser np; return np.parse_in_arena({}      , yaml); } //!< parse a read-only YAML source buffer, copying it first to the tree's source arena.
 RYML_DEPRECATED("use parse_in_arena() instead") inline Tree parse(csubstr filename, csubstr yaml                         ) { Parser np; return np.parse_in_arena(filename, yaml); } //!< parse a read-only YAML source buffer, copying it first to the tree's source arena, providing a filename for error messages.
 RYML_DEPRECATED("use parse_in_arena() instead") inline void parse(                  csubstr yaml, Tree *t                ) { Parser np; np.parse_in_arena({}      , yaml, t); } //!< reusing the YAML tree, parse a read-only YAML source buffer, copying it first to the tree's source arena.
@@ -693,7 +722,9 @@ RYML_DEPRECATED("use parse_in_arena() instead") inline void parse(              
 RYML_DEPRECATED("use parse_in_arena() instead") inline void parse(csubstr filename, csubstr yaml, Tree *t, size_t node_id) { Parser np; np.parse_in_arena(filename, yaml, t, node_id); } //!< reusing the YAML tree, parse a read-only YAML source buffer, copying it first to the tree's source arena, providing a filename for error messages.
 RYML_DEPRECATED("use parse_in_arena() instead") inline void parse(                  csubstr yaml, NodeRef node           ) { Parser np; np.parse_in_arena({}      , yaml, node); } //!< reusing the YAML tree, parse a read-only YAML source buffer, copying it first to the tree's source arena.
 RYML_DEPRECATED("use parse_in_arena() instead") inline void parse(csubstr filename, csubstr yaml, NodeRef node           ) { Parser np; np.parse_in_arena(filename, yaml, node); } //!< reusing the YAML tree, parse a read-only YAML source buffer, copying it first to the tree's source arena, providing a filename for error messages.
+/** @endcond */
 
+/** @} */
 /** @} */
 
 } // namespace yml

@@ -192,9 +192,10 @@ ExpectError::ExpectError(Tree *tree, Location loc)
     , m_tree_prev(tree ? tree->callbacks() : Callbacks{})
     , expected_location(loc)
 {
-    auto err = [](const char* msg, size_t len, Location errloc, void *this_) {
+    auto err = [](const char* msg, size_t len, Location errloc, void *this_)  {
         ((ExpectError*)this_)->m_got_an_error = true;
         throw ExpectedError(msg, len, errloc);
+        C4_UNREACHABLE_AFTER_ERR();
     };
     #ifdef RYML_NO_DEFAULT_CALLBACKS
     c4::yml::Callbacks tcb((void*)this, nullptr, nullptr, err);
@@ -687,7 +688,7 @@ void test_invariants(ConstNodeRef const& n)
     {
         EXPECT_EQ(n.parent().num_children() > 1, n.has_other_siblings()) _MORE_INFO;
         EXPECT_TRUE(n.parent().has_child(n)) _MORE_INFO;
-        EXPECT_EQ(n.parent().num_children(), n.num_siblings()) _MORE_INFO;
+        EXPECT_EQ(n.parent().num_children(), 1 + n.num_other_siblings()) _MORE_INFO;
         // doc parent must be a seq and a stream
         if(n.is_doc())
         {

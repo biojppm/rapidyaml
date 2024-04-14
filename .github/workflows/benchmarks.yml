@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # use fetch-depth to ensure all tags are fetched
-      - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive, fetch-depth: 0}}
+      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive, fetch-depth: 0}}
       - name: Variables (from tag)
         if: contains(github.ref, 'tags/v')
         run: |
@@ -89,14 +89,14 @@ jobs:
     env: {BM: ON, STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
     steps:
       # use fetch-depth to ensure all tags are fetched
-      - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive, fetch-depth: 0}}
+      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive, fetch-depth: 0}}
       - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
       - name: Download vars.sh
         uses: actions/download-artifact@v3
         with: {name: vars.sh, path: ./}
       - {name: show info, run: source .github/setenv.sh && c4_show_info}
       - name: Install python 3.10 for plotting
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with: { python-version: '3.10' }
       - name: install benchmark plotting dependencies
         run: |

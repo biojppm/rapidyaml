@@ -46,7 +46,7 @@ jobs:
           - {std: 11, cxx: g++-4.8    , bt: Release, os: ubuntu-18.04, bitlinks: shared64 static32}
     env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
     steps:
-      - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
+      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
       - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
       - {name: show info, run: source .github/setenv.sh && c4_show_info}
       - name: shared64-configure---------------------------------------------------
@@ -92,7 +92,7 @@ jobs:
           CMAKE_FLAGS: "${{matrix.cmkflags}}",
           VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
     steps:
-      - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
+      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
       - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
       - {name: show info, run: source .github/setenv.sh && c4_show_info}
       - name: shared64-configure---------------------------------------------------
@@ -143,7 +143,7 @@ jobs:
           - {std: 11, cxx: g++-4.8, bt: Release, vg: ON, os: ubuntu-18.04}
     env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
     steps:
-      - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
+      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
       - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
       - {name: show info, run: source .github/setenv.sh && c4_show_info}
       - name: shared64-configure---------------------------------------------------

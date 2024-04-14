@@ -426,7 +426,8 @@ void Parser::_err(csubstr fmt, Args const& C4_RESTRICT ...args) const
     writer.append('\n');
     _fmt_msg(dumpfn);
     size_t len = writer.pos < RYML_ERRMSG_SIZE ? writer.pos : RYML_ERRMSG_SIZE;
-    m_tree->m_callbacks.m_error(errmsg, len, m_state->pos, m_tree->m_callbacks.m_user_data);
+    c4::yml::error(m_tree->m_callbacks, errmsg, len, m_state->pos);
+    C4_UNREACHABLE_AFTER_ERR();
 }
 
 //-----------------------------------------------------------------------------
@@ -1043,8 +1044,7 @@ bool Parser::_handle_seq_flow()
     {
         _c4err("internal error");
     }
-
-    return true;
+    C4_UNREACHABLE();
 }
 
 //-----------------------------------------------------------------------------
@@ -1572,8 +1572,7 @@ bool Parser::_handle_map_flow()
     {
         _c4err("internal error");
     }
-
-    return false;
+    C4_UNREACHABLE();
 }
 
 //-----------------------------------------------------------------------------
@@ -1849,8 +1848,7 @@ bool Parser::_handle_map_blck()
     {
         _c4err("internal error");
     }
-
-    return false;
+    C4_UNREACHABLE();
 }
 
 
@@ -1900,8 +1898,7 @@ bool Parser::_handle_top()
     {
         _c4err("parse error");
     }
-
-    return false;
+    C4_UNREACHABLE();
 }
 
 
@@ -1934,8 +1931,7 @@ bool Parser::_handle_key_anchors_and_refs()
     else if(C4_UNLIKELY(rem.begins_with('*')))
     {
         _c4err("not implemented - this should have been catched elsewhere");
-        C4_NEVER_REACH();
-        return false;
+        C4_UNREACHABLE();
     }
     return false;
 }
@@ -1993,8 +1989,7 @@ bool Parser::_handle_val_anchors_and_refs()
     else if(C4_UNLIKELY(rem.begins_with('*')))
     {
         _c4err("not implemented - this should have been catched elsewhere");
-        C4_NEVER_REACH();
-        return false;
+        C4_UNREACHABLE();
     }
     return false;
 }
