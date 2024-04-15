@@ -997,7 +997,9 @@ public:
     inline size_t arena_slack() const { _RYML_CB_ASSERT(m_callbacks, m_arena.len >= m_arena_pos); return m_arena.len - m_arena_pos; }
 
     /** get the current arena */
-    substr arena() const { return m_arena.first(m_arena_pos); }
+    csubstr arena() const { return m_arena.first(m_arena_pos); }
+    /** get the current arena */
+    substr arena() { return m_arena.first(m_arena_pos); }
 
     /** return true if the given substring is part of the tree's string arena */
     bool in_arena(csubstr s) const

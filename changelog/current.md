@@ -66,6 +66,11 @@ Fix major error handling problem reported in [#389](https://github.com/biojppm/r
 
 ### More fixes
 
+- `Tree::arena() const`  was returning a `substr`; this was an error. This function was changed to:
+  ```
+  csubstr Tree::arena() const;
+  substr Tree::arena();
+  ```
 - Fix [#390](https://github.com/biojppm/rapidyaml/pull/390) - `csubstr::first_real_span()` failed on scientific numbers with one digit in the exponent.
 - Fix [#361](https://github.com/biojppm/rapidyaml/pull/361) - parse error on map scalars containing `:` and starting on the next line:
   ```yaml
