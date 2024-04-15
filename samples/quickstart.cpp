@@ -34,7 +34,8 @@
 // (Each function addresses a topic and is fully self-contained. Jump
 // to the function to find out about its topic.)
 namespace sample {
-void sample_quick_overview();       ///< brief overview of most common features
+void sample_lightning_overview();   ///< lightning overview of most common features
+void sample_quick_overview();       ///< quick overview of most common features
 void sample_substr();               ///< about ryml's string views (from c4core)
 void sample_parse_file();           ///< ready-to-go example of parsing a file from disk
 void sample_parse_in_place();       ///< parse a mutable YAML source buffer
@@ -72,6 +73,7 @@ int  report_checks();
 
 int main()
 {
+    sample::sample_lightning_overview();
     sample::sample_quick_overview();
     sample::sample_substr();
     sample::sample_parse_file();
@@ -247,7 +249,64 @@ struct ScopedErrorHandlerExample : public ErrorHandlerExample
     ~ScopedErrorHandlerExample() { ryml::set_callbacks(defaults); check_effect(false); }
 };
 
-/** @} */ // sample_helpers
+/** @} */ // doc_sample_helpers
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+/** a lightning tour over most features
+ * see @ref sample_quick_overview */
+void sample_lightning_overview()
+{
+    // Parse YAML code in place, potentially mutating the buffer:
+    char yml_buf[] = "{foo: 1, bar: [2, 3], john: doe}";
+    ryml::Tree tree = ryml::parse_in_place(yml_buf);
+
+    // read from the tree:
+    ryml::NodeRef bar = tree["bar"];
+    CHECK(bar[0].val() == "2");
+    CHECK(bar[1].val() == "3");
+    CHECK(bar[0].val().str == yml_buf + 15); // points at the source buffer
+    CHECK(bar[1].val().str == yml_buf + 18);
+
+    // deserializing:
+    int bar0 = 0, bar1 = 0;
+    bar[0] >> bar0;
+    bar[1] >> bar1;
+    CHECK(bar0 == 2);
+    CHECK(bar1 == 3);
+
+    // serializing:
+    bar[0] << 10; // creates a string in the tree's arena
+    bar[1] << 11;
+    CHECK(bar[0].val() == "10");
+    CHECK(bar[1].val() == "11");
+
+    // add nodes
+    bar.append_child() << 12; // see also operator= (explanation below)
+    CHECK(bar[2].val() == "12");
+
+    // emit tree
+    // to std::string
+    CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(foo: 1
+bar:
+  - 10
+  - 11
+  - 12
+john: doe
+)");
+    std::cout << tree; // emit to stdout
+    ryml::emit_yaml(tree, stdout); // emit to file
+
+    // emit node
+    ryml::ConstNodeRef foo = tree["foo"];
+    // to std::string
+    CHECK(ryml::emitrs_yaml<std::string>(foo) == "foo: 1\n");
+    std::cout << foo; // emit node to stdout
+    ryml::emit_yaml(foo, stdout); // emit node to file
+}
 
 
 //-----------------------------------------------------------------------------
@@ -273,6 +332,8 @@ void sample_quick_overview()
     //   - reuse an existing tree (advised)
     //
     //   - reuse an existing parser (advised)
+    //
+    //   - parse into an existing node deep in a tree
     //
     // Note: it will always be significantly faster to parse in place
     // and reuse tree+parser.
@@ -2373,7 +2434,8 @@ void sample_tree_arena()
     those types that should be serialized as strings in leaf nodes),
     you just need to define the appropriate overloads of to_chars and
     from_chars for those types; see @ref sample_user_scalar_types for
-    an example on how to achieve this. */
+    an example on how to achieve this, and see @ref doc_serialization
+    for more information on serialization. */
 void sample_fundamental_types()
 {
     ryml::Tree tree;
@@ -2437,7 +2499,8 @@ void sample_fundamental_types()
 
 //-----------------------------------------------------------------------------
 
-/** Shows how to deal with empty/null values. See also @ref c4::yml::Tree::val_is_null */
+/** Shows how to deal with empty/null values. See also @ref
+ * c4::yml::Tree::val_is_null */
 void sample_empty_null_values()
 {
     // reading empty/null values - see also sample_formatting()
@@ -2600,8 +2663,10 @@ str_tilde: ~
 
 //-----------------------------------------------------------------------------
 
-/** ryml provides facilities for formatting (imported from c4core into
- * the ryml namespace) - see @ref doc_format_utils
+/** ryml provides facilities for formatting/deformatting (imported
+ * from c4core into the ryml namespace). See @ref doc_format_utils
+ * . These functions are very useful to serialize and deserialize
+ * scalar types; see @ref doc_serialization .
  */
 void sample_formatting()
 {
@@ -3234,12 +3299,93 @@ QmVsaWtlIGZvciB3YW50IG9mIHJhaW4sIHdoaWNoIEkgY291bGQgd2VsbCBiZXRlZW0gdGhlbSBmcm9t
 
 
 //-----------------------------------------------------------------------------
+// Serialization info
+
+} // namespace sample  // because we want the doxygen document above to show up in the proper place
+/** @addtogroup doc_serialization
+ *
+ * ## Fundamental types
+ *
+ * ryml provides serialization/deserialization utilities for all
+ * fundamental data types in @ref doc_charconv .
+ *
+ *  - See @ref sample::sample_fundamental_types() for basic examples
+ *    of serialization of fundamental types.
+ *  - See @ref sample::sample_empty_null_values() for different ways
+ *    to serialize and deserialize empty and null values/
+ *  - When serializing floating point values in C++ earlier than
+ *    17, be aware that there may be a truncation of the precision
+ *    with the default float/double implementations of @ref
+ *    doc_to_chars. To enforce a particular precision, use for
+ *    example @ref c4::fmt::real, or call directly @ref c4::ftoa() or
+ *    @ref c4::dtoa(), or any other method (remember that ryml only
+ *    stores the final string in the tree, so nothing prevents you from
+ *    creating it in whatever way is most suitable). See the relevant
+ *    sample: @ref sample::sample_float_precision().
+ *  - You can also serialize and deserialize base64: see @ref
+ *    doc_base64 and @ref sample::sample_base64
+ *
+ * To serialize/deserialize any non-fundamental type will require
+ * that you instruct ryml on how to achieve this. That will differ
+ * based on whether the type is scalar or container.
+ *
+ *
+ * ## User scalar types
+ *
+ * See @ref doc_sample_scalar_types for serializing user scalar types
+ *   (ie leaf nodes in the YAML tree, containing a string
+ *   representation):
+ *
+ *  - See examples on how to @ref doc_sample_to_chars_scalar
+ *  - See examples on how to @ref doc_sample_from_chars_scalar
+ *  - See the sample @ref sample::sample_user_scalar_types
+ *  - See the sample @ref sample::sample_formatting for examples
+ *    of functions from @ref doc_format_utils that will be very
+ *    helpful in implementing custom `to_chars()`/`from_chars()`
+ *    functions.
+ *  - See @ref doc_charconv for the implementations of
+ *    `to_chars()`/`from_chars()` for the fundamental types.
+ *  - See @ref doc_substr and @ref sample::sample_substr() for the
+ *    many useful utilities in the substring class.
+ *
+ *
+ * ## User container types
+ *
+ * - See @ref doc_sample_container_types for when the type is a
+ *   container (ie, a node which has children, which may themselves be
+ *   containers).
+ *
+ *   - See the sample @ref sample::sample_user_container_types
+ *
+ *   - See the sample @ref sample::sample_std_types, and also...
+ *
+ *
+ * ## STL types
+ *
+ * ryml does not use any STL containers internally, but it can be
+ * used to serialize and deserialize these containers. See @ref
+ * sample::sample_std_types() for an example. See the header @ref
+ * ryml_std.hpp and also the headers it includes:
+ *
+ *  - scalar types:
+ *    - for `std::string`: @ref ext/c4core/src/c4/std/string.hpp
+ *    - for `std::string_view`: @ref ext/c4core/src/c4/std/string_view.hpp
+ *    - for `std::vector<char>`: @ref ext/c4core/src/c4/std/vector.hpp
+ *  - container types:
+ *    - for `std::vector<T>`: @ref src/c4/yml/std/vector.hpp
+ *    - for `std::map<K,V>`: @ref src/c4/yml/std/map.hpp
+ *
+ */
+namespace sample { // because we want the doxygen document above to show up in the proper place
+
+
+//-----------------------------------------------------------------------------
 // user scalar types: implemented in ryml through to_chars() + from_chars()
 
 /** @addtogroup doc_sample_helpers
  * @{ */
 
-/** @defgroup sample_scalar_types Serialize/deserialize scalar types
+/** @defgroup doc_sample_scalar_types Serialize/deserialize scalar types
  * @{ */
 
 template<class T> struct vec2 { T x, y; };  ///< example scalar type, serialized and deserialized
@@ -3254,16 +3400,18 @@ template<class T> struct emit_only_vec2 { T x, y; }; ///< example scalar type, s
 template<class T> struct emit_only_vec3 { T x, y, z; }; ///< example scalar type, serialized only
 template<class T> struct emit_only_vec4 { T x, y, z, w; }; ///< example scalar type, serialized only
 
-/** @defgroup sample_to_chars_scalar Define to_chars to write scalar types
+/** @defgroup doc_sample_to_chars_scalar Define to_chars to write scalar types
  *
  * @brief To serialize user scalar types, implement the appropriate
- * function to_chars (see also @ref doc_to_chars)
+ * function to_chars (see also @ref doc_to_chars):
  *
  * ```cpp
  * // any of these can be used:
  * size_t to_chars(substr buf, T const& v);
  * size_t to_chars(substr buf, T v); // this also works, and is good when the type is small
  * ```
+ *
+ * See the sample @ref sample_user_scalar_types() for an example usage.
  *
  * Your implementation of to_chars must format v to the given string
  * view + return the number of characters written into it. The view
@@ -3277,21 +3425,28 @@ template<class T> struct emit_only_vec4 { T x, y, z, w; }; ///< example scalar t
  * formatting facilities in @ref doc_format_utils and @ref doc_charconv;
  * refer to their documentation for further details. But this is not
  * mandatory, and anything can be used, provided that the implemented
- * to_chars fulfills its contract, described above.
+ * `to_chars()` fulfills its contract, described above.
  *
- * To harness [C++'s ADL rules](http://en.cppreference.com/w/cpp/language/adl),
- * it is important to overload these functions in the namespace of the type
- * you're serializing (or in the c4::yml namespace).
+ * @warning Because of [C++'s ADL
+ * rules](http://en.cppreference.com/w/cpp/language/adl), **it is
+ * required to overload these functions in the namespace of the type**
+ * you're serializing (or in the c4 namespace, or in the c4::yml
+ * namespace). [Here's an example of an issue where failing to do this
+ * was causing problems in some
+ * platforms](https://github.com/biojppm/rapidyaml/issues/424)
  *
- * Please take note of the following pitfall when using serialization
- * functions: you have to include the header with the serialization
- * before any other headers that use functions from it. see the
- * include order at the top of this file.
+ * @note Please take note of the following pitfall when using
+ * serialization functions: you may have to include the header with
+ * your `to_chars()` implementation before any other headers that use
+ * functions from it. See the include order at the top of this source
+ * file. This constraint also applies to the conversion functions for
+ * your types; just like with the STL's headers, they should be
+ * included prior to ryml's headers. Lately, some effort was directed
+ * to provide forward declarations to alleviate this problem, but it
+ * may still occur.
  *
- * This constraint also applies to the conversion functions for your
- * types; just like with the STL's headers, they should be included
- * prior to ryml's headers.
- *
+ * @see string.hpp
+ * @see string_view.hpp
  * @{
  */
 template<class T> size_t to_chars(ryml::substr buf, vec2<T> v) { return ryml::format(buf, "({},{})", v.x, v.y); }
@@ -3304,7 +3459,7 @@ template<class T> size_t to_chars(ryml::substr buf, emit_only_vec4<T> v) { retur
 /** @} */
 
 
-/** @defgroup sample_from_chars_scalar Define from_chars to read scalar types
+/** @defgroup doc_sample_from_chars_scalar Define from_chars to read scalar types
  *
  * @brief To deserialize user scalar types, implement the
  * function `bool from_chars(csubstr buf, T *val)`; see @ref
@@ -3322,18 +3477,23 @@ template<class T> size_t to_chars(ryml::substr buf, emit_only_vec4<T> v) { retur
  * mandatory, and anything can be used, provided that the implemented
  * from_chars fulfills its contract, described above.
  *
- * To harness [C++'s ADL rules](http://en.cppreference.com/w/cpp/language/adl),
- * it is important to overload these functions in the namespace of the type
- * you're serializing (or in the c4::yml namespace).
+ * @warning Because of [C++'s ADL
+ * rules](http://en.cppreference.com/w/cpp/language/adl), **it is
+ * required to overload these functions in the namespace of the type**
+ * you're serializing (or in the c4 namespace, or in the c4::yml
+ * namespace). [Here's an example of an issue where failing to do this
+ * was causing problems in some
+ * platforms](https://github.com/biojppm/rapidyaml/issues/424)
  *
- * Please take note of the following pitfall when using serialization
- * functions: you have to include the header with the serialization
- * before any other headers that use functions from it. see the
- * include order at the top of this file.
- *
- * This constraint also applies to the conversion functions for your
- * types; just like with the STL's headers, they should be included
- * prior to ryml's headers.
+ * @note Please take note of the following pitfall when using
+ * serialization functions: you may have to include the header with
+ * your `from_chars()` implementation before any other headers that use
+ * functions from it. See the include order at the top of this source
+ * file. This constraint also applies to the conversion functions for
+ * your types; just like with the STL's headers, they should be
+ * included prior to ryml's headers. Lately, some effort was directed
+ * to provide forward declarations to alleviate this problem, but it
+ * may still occur.
  *
  * @{
  */
@@ -3344,15 +3504,15 @@ template<class T> bool from_chars(ryml::csubstr buf, vec4<T> *v) { size_t ret = 
 template<class T> bool from_chars(ryml::csubstr buf, parse_only_vec2<T> *v) { size_t ret = ryml::unformat(buf, "({},{})", v->x, v->y); return ret != ryml::yml::npos; }
 template<class T> bool from_chars(ryml::csubstr buf, parse_only_vec3<T> *v) { size_t ret = ryml::unformat(buf, "({},{},{})", v->x, v->y, v->z); return ret != ryml::yml::npos; }
 template<class T> bool from_chars(ryml::csubstr buf, parse_only_vec4<T> *v) { size_t ret = ryml::unformat(buf, "({},{},{},{})", v->x, v->y, v->z, v->w); return ret != ryml::yml::npos; }
-/** @} */ // sample_from_chars_scalar
+/** @} */ // doc_sample_from_chars_scalar
 
-/** @} */ // sample_scalar_types
-/** @} */ // sample_helpers
+/** @} */ // doc_sample_scalar_types
+/** @} */ // doc_sample_helpers
 
 
 /** to add scalar types (ie leaf types converting to/from string),
  * define the functions above for those types. See @ref
- * sample_scalar_types. */
+ * doc_sample_scalar_types. */
 void sample_user_scalar_types()
 {
     ryml::Tree t;
@@ -3422,7 +3582,7 @@ v4: '(40,41,42,43)'
 /** @addtogroup doc_sample_helpers
  * @{ */
 
-/** @defgroup sample_container_types Serialize/deserialize container types
+/** @defgroup doc_sample_container_types Serialize/deserialize container types
  *
  * To serialize/deserialize container types to a tree, implement the
  * appropriate functions:
@@ -3432,14 +3592,26 @@ v4: '(40,41,42,43)'
  * bool read(ryml::ConstNodeRef const& n, T *seq);
  * ```
  *
- * Please take note of the following pitfall when using serialization
- * functions: you have to include the header with the serialization
- * before any other headers that use functions from it. see the
- * include order at the top of this file.
+ * @warning Because of [C++'s ADL
+ * rules](http://en.cppreference.com/w/cpp/language/adl), **it is
+ * required to overload these functions in the namespace of the type**
+ * you're serializing (or in the c4 namespace, or in the c4::yml
+ * namespace). [Here's an example of an issue where failing to do this
+ * was causing problems in some
+ * platforms](https://github.com/biojppm/rapidyaml/issues/424)
  *
- * This constraint also applies to the conversion functions for your
- * types; just like with the STL's headers, they should be included
- * prior to ryml's headers.
+ * @note Please take note of the following pitfall when using
+ * serialization functions: you may have to include the header with
+ * your `write()` or `read()` implementation before any other headers
+ * that use functions from it. See the include order at the top of
+ * this source file. This constraint also applies to the conversion
+ * functions for your types; just like with the STL's headers, they
+ * should be included prior to ryml's headers. Lately, some effort was
+ * directed to provide forward declarations to alleviate this problem,
+ * but it may still occur.
+ *
+ * @see sample::sample_container_types
+ * @see sample::sample_std_types
  *
  * @{ */
 
@@ -3528,13 +3700,15 @@ bool read(ryml::ConstNodeRef const& n, my_type *val)
     return true;
 }
 
-/** @} */ // sample_container_types
+/** @} */ // doc_sample_container_types
 
 /** @} */ // sample_helpers
 
 
 /** shows how to serialize/deserialize container types.
- * @see sample_container_types */
+ * @see doc_sample_container_types
+ * @see sample_std_types
+ * */
 void sample_user_container_types()
 {
     my_type mt_in{
@@ -3591,17 +3765,11 @@ map:
 
 
 //-----------------------------------------------------------------------------
-//
-// Please take note of the following pitfall when using serialization
-// functions: you have to include the header with the serialization
-// before any other headers that use functions from it. see the
-// include order at the top of this file.
-//
-// This constraint also applies to the conversion functions for your
-// types; just like with the STL's headers, they should be included
-// prior to ryml's headers.
 
-/** demonstrates usage with the std implementations provided by ryml in the ryml_std.hpp header */
+/** demonstrates usage with the std implementations provided by ryml
+    in the ryml_std.hpp header
+  @see @ref doc_sample_container_types
+  @see also the STL section in @ref doc_serialization */
 void sample_std_types()
 {
     std::string yml_std_string = R"(- v2: '(20,21)'
@@ -4950,7 +5118,6 @@ C4_NORETURN void ErrorHandlerExample::s_error(const char* msg, size_t len, ryml:
 /** this is the where the callback implementation goes. Remember that it must not return. */
 C4_NORETURN void ErrorHandlerExample::on_error(const char* msg, size_t len, ryml::Location loc)
 {
-    std::cout << "aqui foo!\n";
     std::string full_msg = ryml::formatrs<std::string>(
         "{}:{}:{} ({}B): ERROR: {}",
         loc.name, loc.line, loc.col, loc.offset, ryml::csubstr(msg, len));

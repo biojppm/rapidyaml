@@ -957,6 +957,9 @@ INPUT                  = \
                          ../ext/c4core/src/c4/charconv.hpp \
                          ../ext/c4core/src/c4/format.hpp \
                          ../ext/c4core/src/c4/base64.hpp \
+                         ../ext/c4core/src/c4/std/string.hpp \
+                         ../ext/c4core/src/c4/std/string_view.hpp \
+                         ../ext/c4core/src/c4/std/vector.hpp \
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
@@ -2495,6 +2498,8 @@ PREDEFINED = \
            "C4_MUST_BE_TRIVIAL_COPY(cls)= " \
            "C4_NO_INLINE= " \
            "C4_NO_UBSAN_IOVRFLW= " \
+           "C4_NODISCARD= " \
+           "C4_NORETURN= " \
            "C4_PURE= " \
            "C4_REQUIRE_RW(ty)=ty " \
            "C4_RESTRICT= " \

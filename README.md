@@ -1,7 +1,7 @@
 # Rapid YAML
 [![MIT Licensed](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/biojppm/rapidyaml/blob/master/LICENSE.txt)
 [![release](https://img.shields.io/github/v/release/biojppm/rapidyaml?color=g&include_prereleases&label=release%20&sort=semver)](https://github.com/biojppm/rapidyaml/releases)
-[![Documentation Status](https://readthedocs.org/projects/rapidyaml/badge/?version=latest)](https://rapidyaml.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/rapidyaml/badge/?version=latest)](https://rapidyaml.readthedocs.io/latest/?badge=latest)
 
 [![PyPI](https://img.shields.io/pypi/v/rapidyaml?color=g)](https://pypi.org/project/rapidyaml/)
 [![Gitter](https://badges.gitter.im/rapidyaml/community.svg)](https://gitter.im/rapidyaml/community)
@@ -51,7 +51,7 @@ ryml is written in C++11, and compiles cleanly with:
 * Intel Compiler
 
 ryml's API documentation is [available at
-ReadTheDocs](https://rapidyaml.readthedocs.io/en/latest/).
+ReadTheDocs](https://rapidyaml.readthedocs.io/latest/).
 
 ryml is [extensively unit-tested in Linux, Windows and
 MacOS](https://github.com/biojppm/rapidyaml/actions). The tests cover
@@ -239,7 +239,7 @@ level API for accessing and traversing the data tree.
 
 The following snippet is a very quick overview taken from quickstart
 sample ([see on
-doxygen](https://rapidyaml.readthedocs.io/en/latest/group__doc__quickstart.html)/[see
+doxygen](https://rapidyaml.readthedocs.io/latest/group__doc__quickstart.html)/[see
 on github](samples/quickstart.cpp). After cloning ryml
 (don't forget the `--recursive` flag for git), you can very easily
 build and run this executable using any of the build samples, eg the

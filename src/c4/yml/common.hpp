@@ -75,6 +75,14 @@
  * @see sample::sample_per_tree_allocator
  */
 
+/** @defgroup doc_serialization Serialization/deserialization
+ *
+ * Contains information on how to serialize and deserialize
+ * fundamental types, user scalar types, user container types and
+ * interop with std scalar/container types.
+ *
+ */
+
 /** @defgroup doc_tag_utils Tag utilities
  * @see sample::sample_tags
  */

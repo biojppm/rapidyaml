@@ -10,25 +10,7 @@
     * @ref doc_node_type
     * @ref doc_tree
     * @ref doc_node_classes
-  * For serialization/deserialization:
-    * See @ref sample_scalar_types for when the type is scalar (a leaf node in the YAML tree, containing a string representation): 
-      * See examples on how to @ref sample_to_chars_scalar
-      * See examples on how to @ref sample_from_chars_scalar
-      * See the sample @ref sample::sample_user_scalar_types
-      * When serializing floating point values in C++ earlier than 17,
-        be aware that there may be a truncation of the precision with
-        the default to_chars implementation. To enforce a particular
-        precision, use for example @ref c4::fmt::real, or call
-        directly @ref c4::ftoa or @ref c4::dtoa, or any other method
-        (remember that ryml only stores the final string, so nothing
-        prevents you from creating it). See the relevant sample: @ref
-        sample::sample_float_precision.
-    * See @ref sample_container_types for when the type is a container (ie, a node which has children, which may themselves be containers).
-      * See the sample @ref sample::sample_user_container_types
-    * ryml does not use any STL containers internally, but it can be
-      used to serialize and deserialize these containers. See @ref
-      sample::sample_std_types for an example. See the header @ref
-      ryml_std.hpp and also the headers it includes.
+  * For serialization/deserialization, see @ref doc_serialization.
   * @ref doc_tag_utils - how to resolve tags
   * @ref doc_callbacks - how to set up error/allocation/deallocation
     callbacks either globally for the library, or for specific objects

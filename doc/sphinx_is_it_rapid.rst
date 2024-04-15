@@ -38,9 +38,10 @@ against other libraries.
 Comparison with yaml-cpp
 ------------------------
 
-The first result set is for Windows, and is using a `appveyor.yml config
-file <https://github.com/biojppm/rapidyaml/blob/v0.5.0/bm/cases/appveyor.yml>`__. A comparison of these results is
-summarized on the table below:
+The first result set is for Windows, and is using a `appveyor.yml
+config file
+<https://github.com/biojppm/rapidyaml/blob/v0.5.0/bm/cases/appveyor.yml>`__. A
+comparison of these results is summarized on the table below:
 
 =========================== ===== ======= ==========
 Read rates (MB/s)           ryml  yamlcpp compared
@@ -49,12 +50,13 @@ appveyor / vs2017 / Release 101.5 5.3     20x / 5.2%
 appveyor / vs2017 / Debug   6.4   0.0844  76x / 1.3%
 =========================== ===== ======= ==========
 
-The next set of results is taken in Linux, comparing g++ 8.2 and clang++
-7.0.1 in parsing a YAML buffer from a `travis.yml config
-file <https://github.com/biojppm/rapidyaml/blob/v0.5.0/bm/cases/travis.yml>`__ or a JSON buffer from a
-`compile_commands.json file <https://github.com/biojppm/rapidyaml/blob/v0.5.0/bm/cases/compile_commands.json>`__. You
-can `see the full results
-here <https://github.com/biojppm/rapidyaml/blob/v0.5.0/results/parse.linux.i7_6800K.md>`__. Summarizing:
+The next set of results is taken in Linux, comparing g++ 8.2 and
+clang++ 7.0.1 in parsing a YAML buffer from a `travis.yml config file
+<https://github.com/biojppm/rapidyaml/blob/v0.5.0/bm/cases/travis.yml>`__
+or a JSON buffer from a `compile_commands.json file
+<https://github.com/biojppm/rapidyaml/blob/v0.5.0/bm/cases/compile_commands.json>`__. You
+can `see the full results here
+<https://github.com/biojppm/rapidyaml/blob/v0.5.0/bm/results/parse.linux.i7_6800K.md>`__. Summarizing:
 
 ========================== ===== ======= ========
 Read rates (MB/s)          ryml  yamlcpp compared
@@ -86,13 +88,14 @@ Performance reading JSON
 So how does ryml compare against other JSON readers? Well, it may not
 be the fastest, but it's definitely ahead of the pack!
 
-The benchmark is the `same as above <https://github.com/biojppm/rapidyaml/blob/v0.5.0/bm/bm_parse.cpp>`__, and it is
-reading the
-`compile_commands.json <https://github.com/biojppm/rapidyaml/blob/v0.5.0/bm/cases/compile_commands.json>`__, The
-``_arena`` suffix notes parsing a read-only buffer (so buffer copies are
-performed), while the ``_inplace`` suffix means that the source buffer
-can be parsed in place. The ``_reuse`` means the data tree and/or parser
-are reused on each benchmark repeat.
+The benchmark is the `same as above
+<https://github.com/biojppm/rapidyaml/blob/v0.5.0/bm/bm_parse.cpp>`__,
+and it is reading the `compile_commands.json
+<https://github.com/biojppm/rapidyaml/blob/v0.5.0/bm/cases/compile_commands.json>`__,
+The ``_arena`` suffix notes parsing a read-only buffer (so buffer
+copies are performed), while the ``_inplace`` suffix means that the
+source buffer can be parsed in place. The ``_reuse`` means the data
+tree and/or parser are reused on each benchmark repeat.
 
 Here’s what we get with g++ 8.2:
 
@@ -127,12 +130,14 @@ result).
 Performance emitting
 --------------------
 
-`Emitting benchmarks <https://github.com/biojppm/rapidyaml/blob/v0.5.0/bm/bm_emit.cpp>`__ also show similar speedups from
-the existing libraries, also anecdotally reported by some users `(eg,
-here’s a user reporting 25x speedup from
-yaml-cpp) <https://github.com/biojppm/rapidyaml/issues/28#issue-553855608>`__.
-Also, in some cases (eg, block folded multiline scalars), the speedup is
-as high as 200x (eg, 7.3MB/s -> 1.416MG/s).
+`Emitting benchmarks
+<https://github.com/biojppm/rapidyaml/blob/v0.5.0/bm/bm_emit.cpp>`__
+also show similar speedups from the existing libraries, also
+anecdotally reported by some users `(eg, here’s a user reporting 25x
+speedup from yaml-cpp)
+<https://github.com/biojppm/rapidyaml/issues/28#issue-553855608>`__.
+Also, in some cases (eg, block folded multiline scalars), the speedup
+is as high as 200x (eg, 7.3MB/s -> 1.416MG/s).
 
 
 Serialization performance
