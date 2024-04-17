@@ -197,6 +197,9 @@ namespace sample {
  * @{ */
 
 
+bool report_check(int line, const char *predicate, bool result);
+
+
 // GCC 4.8 has a problem with the CHECK() macro
 #ifndef _DOXYGEN_
 #if (defined(__GNUC__) && (__GNUC__ == 4 && __GNUC_MINOR__ >= 8))
@@ -224,8 +227,6 @@ struct CheckPredicate
 #define CHECK(predicate) assert(predicate)
 #endif
 
-
-bool report_check(int line, const char *predicate, bool result);
 
 // helper functions for sample_parse_file()
 template<class CharContainer> CharContainer file_get_contents(const char *filename);
@@ -3075,7 +3076,7 @@ void sample_formatting()
         // fmt::raw(): dump data in machine format (respecting alignment)
         // --------------------------------------------------------------
         {
-            C4_SUPPRESS_WARNING_CLANG_WITH_PUSH("-Wcast-align")  // we're casting the values directly, so alignment is strictly respected.
+            C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wcast-align")  // we're casting the values directly, so alignment is strictly respected.
             const uint32_t payload[] = {10, 20, 30, 40, UINT32_C(0xdeadbeef)};
             // (package payload as a substr, for comparison only)
             csubstr expected = csubstr((const char *)payload, sizeof(payload));
@@ -3108,7 +3109,7 @@ void sample_formatting()
                 result = *(uint32_t*)reader.buf;
                 CHECK(result == value); // roundtrip completed successfully
             }
-            C4_SUPPRESS_WARNING_CLANG_POP
+            C4_SUPPRESS_WARNING_GCC_CLANG_POP
         }
 
         // -------------------------
@@ -4645,7 +4646,7 @@ void sample_error_handler()
 struct GlobalAllocatorExample
 {
     std::vector<char> memory_pool = std::vector<char>(10u * 1024u); // 10KB
-    size_t num_allocs = 0, alloc_size = 0;
+    size_t num_allocs = 0, alloc_size = 0, corr_size = 0;
     size_t num_deallocs = 0, dealloc_size = 0;
 
     void *allocate(size_t len)
@@ -4653,11 +4654,20 @@ struct GlobalAllocatorExample
         void *ptr = &memory_pool[alloc_size];
         alloc_size += len;
         ++num_allocs;
-        if(C4_UNLIKELY(alloc_size > memory_pool.size()))
+        // ensure the ptr is aligned
+        uintptr_t uptr = (uintptr_t)ptr;
+        const uintptr_t align = alignof(max_align_t);
+        if (uptr % align)
         {
-            std::cerr << "out of memory! requested=" << alloc_size << " vs " << memory_pool.size() << " available" << std::endl;
-            std::abort();
+            uintptr_t prev = uptr - (uptr % align);
+            uintptr_t next = prev + align;
+            uintptr_t corr = next - uptr;
+            ptr = (void*)(((char*)ptr) + corr);
+            corr_size += corr;
         }
+        C4_CHECK_MSG(alloc_size + corr_size <= memory_pool.size(),
+                     "out of memory! requested=%zu+%zu available=%zu\n",
+                     alloc_size, corr_size, memory_pool.size());
         return ptr;
     }
 

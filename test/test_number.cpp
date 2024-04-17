@@ -20,6 +20,7 @@ void test_ints()
     std::vector<I> values = mkvals<I>();
     Tree t = parse_in_arena("{dec: [], hex: [], bin: [], oct: [], versions: ['0.1', 0.1.2, 0.1.2.3, 0.1.2.3.4]}");
     NodeRef r = t.rootref();
+    auto notval = [](I val) { return val <= 0 ? (I)(val + I(1)) : (I)(val - I(1)); }; // try not to overflow
     for(I val : values)
     {
         I out;
@@ -27,16 +28,16 @@ void test_ints()
         r["hex"].append_child() << fmt::hex(val);
         r["bin"].append_child() << fmt::bin(val);
         r["oct"].append_child() << fmt::oct(val);
-        out = (I)(val + I(1));
+        out = notval(val);
         r["dec"].last_child() >> out;
         EXPECT_EQ(out, val);
-        out = (I)(val + I(1));
+        out = notval(val);
         r["hex"].last_child() >> out;
         EXPECT_EQ(out, val);
-        out = (I)(val + I(1));
+        out = notval(val);
         r["bin"].last_child() >> out;
         EXPECT_EQ(out, val);
-        out = (I)(val + I(1));
+        out = notval(val);
         r["oct"].last_child() >> out;
         EXPECT_EQ(out, val);
     }
@@ -51,16 +52,16 @@ void test_ints()
         size_t pos = 0;
         for(I val : values)
         {
-            I out = (I)(val + I(1));
+            I out = notval(val);
             parsed["dec"][pos] >> out;
             EXPECT_EQ(out, val);
-            out = (I)(val + I(1));
+            out = notval(val);
             parsed["hex"][pos] >> out;
             EXPECT_EQ(out, val);
-            out = (I)(val + I(1));
+            out = notval(val);
             parsed["bin"][pos]>> out;
             EXPECT_EQ(out, val);
-            out = (I)(val + I(1));
+            out = notval(val);
             parsed["oct"][pos] >> out;
             EXPECT_EQ(out, val);
             ++pos;
@@ -81,16 +82,16 @@ void test_ints()
         size_t pos = 0;
         for(I val : values)
         {
-            I out = (I)(val + I(1));
+            I out = notval(val);
             parsed["dec"][pos] >> out;
             EXPECT_EQ(out, val);
-            out = (I)(val + I(1));
+            out = notval(val);
             parsed["hex"][pos] >> out;
             EXPECT_EQ(out, val);
-            out = (I)(val + I(1));
+            out = notval(val);
             parsed["bin"][pos]>> out;
             EXPECT_EQ(out, val);
-            out = (I)(val + I(1));
+            out = notval(val);
             parsed["oct"][pos] >> out;
             EXPECT_EQ(out, val);
             ++pos;

@@ -273,7 +273,7 @@ function c4_cfg_test()
         arm*|"") # make sure arm* comes before *g++ or *gcc*
             ;;
         *g++*|*gcc*|*clang*)
-            CFLAGS="-std=c99 -m$bits $CFLAGS"
+            CFLAGS="-m$bits $CFLAGS"
             CXXFLAGS="-m$bits $CXXFLAGS"
             ;;
         em++)

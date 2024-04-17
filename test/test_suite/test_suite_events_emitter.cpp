@@ -31,8 +31,11 @@ struct EventsEmitter
     }
     C4_ALWAYS_INLINE void pr(csubstr s)
     {
-        if(pos + s.len <= buf.len)
+        if(s.len && pos + s.len <= buf.len)
+        {
+            C4_ASSERT(s.str);
             memcpy(buf.str + pos, s.str, s.len);
+        }
         pos += s.len;
     }
     C4_ALWAYS_INLINE void pr(char c)

@@ -86,25 +86,25 @@ inline void __c4presc(const char *s, size_t len)
     {
         switch(s[i])
         {
-        case '\n'  : fwrite(s+prev, 1, i-prev, stdout); putchar('\\'); putchar('n'); putchar('\n'); prev = i+1; break;
-        case '\t'  : fwrite(s+prev, 1, i-prev, stdout); putchar('\\'); putchar('t'); prev = i+1; break;
-        case '\0'  : fwrite(s+prev, 1, i-prev, stdout); putchar('\\'); putchar('0'); prev = i+1; break;
-        case '\r'  : fwrite(s+prev, 1, i-prev, stdout); putchar('\\'); putchar('r'); prev = i+1; break;
-        case '\f'  : fwrite(s+prev, 1, i-prev, stdout); putchar('\\'); putchar('f'); prev = i+1; break;
-        case '\b'  : fwrite(s+prev, 1, i-prev, stdout); putchar('\\'); putchar('b'); prev = i+1; break;
-        case '\v'  : fwrite(s+prev, 1, i-prev, stdout); putchar('\\'); putchar('v'); prev = i+1; break;
-        case '\a'  : fwrite(s+prev, 1, i-prev, stdout); putchar('\\'); putchar('a'); prev = i+1; break;
-        case '\x1b': fwrite(s+prev, 1, i-prev, stdout); putchar('\\'); putchar('e'); prev = i+1; break;
+        case '\n'  : if(i > prev) { fwrite(s+prev, 1, i-prev, stdout); } putchar('\\'); putchar('n'); putchar('\n'); prev = i+1; break;
+        case '\t'  : if(i > prev) { fwrite(s+prev, 1, i-prev, stdout); } putchar('\\'); putchar('t'); prev = i+1; break;
+        case '\0'  : if(i > prev) { fwrite(s+prev, 1, i-prev, stdout); } putchar('\\'); putchar('0'); prev = i+1; break;
+        case '\r'  : if(i > prev) { fwrite(s+prev, 1, i-prev, stdout); } putchar('\\'); putchar('r'); prev = i+1; break;
+        case '\f'  : if(i > prev) { fwrite(s+prev, 1, i-prev, stdout); } putchar('\\'); putchar('f'); prev = i+1; break;
+        case '\b'  : if(i > prev) { fwrite(s+prev, 1, i-prev, stdout); } putchar('\\'); putchar('b'); prev = i+1; break;
+        case '\v'  : if(i > prev) { fwrite(s+prev, 1, i-prev, stdout); } putchar('\\'); putchar('v'); prev = i+1; break;
+        case '\a'  : if(i > prev) { fwrite(s+prev, 1, i-prev, stdout); } putchar('\\'); putchar('a'); prev = i+1; break;
+        case '\x1b': if(i > prev) { fwrite(s+prev, 1, i-prev, stdout); } putchar('\\'); putchar('e'); prev = i+1; break;
         case -0x3e/*0xc2u*/:
             if(i+1 < len)
             {
                 if(s[i+1] == -0x60/*0xa0u*/)
                 {
-                    fwrite(s+prev, 1, i-prev, stdout); putchar('\\'); putchar('_'); prev = i+2; ++i;
+                    if(i > prev) { fwrite(s+prev, 1, i-prev, stdout); } putchar('\\'); putchar('_'); prev = i+2; ++i;
                 }
                 else if(s[i+1] == -0x7b/*0x85u*/)
                 {
-                    fwrite(s+prev, 1, i-prev, stdout); putchar('\\'); putchar('N'); prev = i+2; ++i;
+                    if(i > prev) { fwrite(s+prev, 1, i-prev, stdout); } putchar('\\'); putchar('N'); prev = i+2; ++i;
                 }
                 break;
             }
@@ -113,17 +113,18 @@ inline void __c4presc(const char *s, size_t len)
             {
                 if(s[i+2] == -0x58/*0xa8u*/)
                 {
-                    fwrite(s+prev, 1, i-prev, stdout); putchar('\\'); putchar('L'); prev = i+3; i += 2;
+                    if(i > prev) { fwrite(s+prev, 1, i-prev, stdout); } putchar('\\'); putchar('L'); prev = i+3; i += 2;
                 }
                 else if(s[i+2] == -0x57/*0xa9u*/)
                 {
-                    fwrite(s+prev, 1, i-prev, stdout); putchar('\\'); putchar('P'); prev = i+3; i += 2;
+                    if(i > prev) { fwrite(s+prev, 1, i-prev, stdout); } putchar('\\'); putchar('P'); prev = i+3; i += 2;
                 }
                 break;
             }
         }
     }
-    fwrite(s + prev, 1, len - prev, stdout);
+    if(len > prev)
+        fwrite(s + prev, 1, len - prev, stdout);
 }
 
 #pragma clang diagnostic pop

@@ -415,8 +415,11 @@ struct _SubstrWriter
     void append(csubstr s)
     {
         C4_ASSERT(!s.overlaps(buf));
-        if(pos + s.len <= buf.len)
+        if(s.len && pos + s.len <= buf.len)
+        {
+            C4_ASSERT(s.str);
             memcpy(buf.str + pos, s.str, s.len);
+        }
         pos += s.len;
     }
     void append(char c)
@@ -427,7 +430,7 @@ struct _SubstrWriter
     }
     void append_n(char c, size_t numtimes)
     {
-        if(pos + numtimes < buf.len)
+        if(numtimes && pos + numtimes < buf.len)
             memset(buf.str + pos, c, numtimes);
         pos += numtimes;
     }

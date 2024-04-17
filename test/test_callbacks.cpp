@@ -233,11 +233,13 @@ TEST(Callbacks, ne)
 
 TEST(Callbacks, cmp_user_data)
 {
+    #ifndef C4_UBSAN
     Callbacks before = get_callbacks();
     Callbacks cp = before;
     EXPECT_EQ(cp, before);
-    cp.m_user_data = (void*)(((char*)before.m_user_data) + 100u);
+    cp.m_user_data = (void*)(((char*)before.m_user_data) + 100u); // ubsan: runtime error: applying non-zero offset 100 to null pointer
     EXPECT_NE(cp, before);
+    #endif
 }
 
 TEST(Callbacks, cmp_allocate)

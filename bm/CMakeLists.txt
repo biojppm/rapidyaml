@@ -19,7 +19,7 @@ c4_require_subproject(libyaml REMOTE
 if(NOT WIN32)
     c4_require_subproject(libfyaml REMOTE
         GIT_REPOSITORY https://github.com/pantoniou/libfyaml
-        GIT_TAG fd35c3a5fa58ff2effd8207f2185852c3a837d76 #v0.7.11
+        GIT_TAG v0.9 #fd35c3a5fa58ff2effd8207f2185852c3a837d76 #v0.7.11
         SET_FOLDER_TARGETS ext fyaml
         )
 endif()

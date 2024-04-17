@@ -242,7 +242,7 @@ void ExpectError::check_success(Tree *tree, std::function<void()> fn)
     {
         fn();
     }
-    C4_IF_EXCEPTIONS_(catch(ExpectedError const& e), else)
+    C4_IF_EXCEPTIONS_(catch(ExpectedError const&), else)
     {
         ;
     }
