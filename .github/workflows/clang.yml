@@ -36,10 +36,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {std: 20, cxx: 10 , bt: Debug  , bitlinks: shared64 static32}
-          - {std: 20, cxx: 10 , bt: Release, bitlinks: shared64 static32}
-          - {std: 11, cxx: 6.0, bt: Debug  , bitlinks: shared64 static32}
-          - {std: 11, cxx: 6.0, bt: Release, bitlinks: shared64 static32}
+          - {std: 20, cxx: "10" , bt: Debug  , bitlinks: shared64 static32}
+          - {std: 20, cxx: "10" , bt: Release, bitlinks: shared64 static32}
+          - {std: 11, cxx: "6.0", bt: Debug  , bitlinks: shared64 static32}
+          - {std: 11, cxx: "6.0", bt: Release, bitlinks: shared64 static32}
     env: {STD: "${{matrix.std}}", CXX_: "clang++-${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
     steps:
       - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
@@ -77,10 +77,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {std: 20, cxx: 10 , bt: Debug  , bitlinks: shared64 static32}
-          - {std: 20, cxx: 10 , bt: Release, bitlinks: shared64 static32}
-          - {std: 11, cxx: 6.0, bt: Debug  , bitlinks: shared64 static32}
-          - {std: 11, cxx: 6.0, bt: Release, bitlinks: shared64 static32}
+          - {std: 20, cxx: "10" , bt: Debug  , bitlinks: shared64 static32}
+          - {std: 20, cxx: "10" , bt: Release, bitlinks: shared64 static32}
+          - {std: 11, cxx: "6.0", bt: Debug  , bitlinks: shared64 static32}
+          - {std: 11, cxx: "6.0", bt: Release, bitlinks: shared64 static32}
     env: {STD: "${{matrix.std}}", CXX_: "clang++-${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}",
           CMAKE_FLAGS: "-DRYML_WITH_TAB_TOKENS=ON",
           VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
@@ -121,10 +121,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {std: 20, cxx: 10 , bt: Debug  , bitlinks: shared64 static32}
-          - {std: 20, cxx: 10 , bt: Release, bitlinks: shared64 static32}
-          - {std: 11, cxx: 6.0, bt: Debug  , bitlinks: shared64 static32}
-          - {std: 11, cxx: 6.0, bt: Release, bitlinks: shared64 static32}
+          - {std: 20, cxx: "10" , bt: Debug  , bitlinks: shared64 static32}
+          - {std: 20, cxx: "10" , bt: Release, bitlinks: shared64 static32}
+          - {std: 11, cxx: "6.0", bt: Debug  , bitlinks: shared64 static32}
+          - {std: 11, cxx: "6.0", bt: Release, bitlinks: shared64 static32}
     env: {CXXFLAGS: "-fno-exceptions -fno-rtti", STD: "${{matrix.std}}", CXX_: "clang++-${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
     steps:
       - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
@@ -164,34 +164,34 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {std: 11, cxx: 16 , bt: Debug  , vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: 16 , bt: Release, vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: 15 , bt: Debug  , vg: on, img: ubuntu22.04} # install of clang15 fails on ubuntu18.04
-          - {std: 11, cxx: 15 , bt: Release, vg: on, img: ubuntu22.04} # install of clang15 fails on ubuntu18.04
-          - {std: 11, cxx: 14 , bt: Debug  , vg: on, img: ubuntu22.04} # install of clang14 fails on ubuntu18.04
-          - {std: 11, cxx: 14 , bt: Release, vg: on, img: ubuntu22.04} # install of clang14 fails on ubuntu18.04
-          - {std: 11, cxx: 13 , bt: Debug  , vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: 13 , bt: Release, vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: 12 , bt: Debug  , vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: 12 , bt: Release, vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: 11 , bt: Debug  , vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: 11 , bt: Release, vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: 10 , bt: Debug  , vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: 10 , bt: Release, vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: 9  , bt: Debug  , vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: 9  , bt: Release, vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: 8  , bt: Debug  , vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: 8  , bt: Release, vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: 7  , bt: Debug  , vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: 7  , bt: Release, vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: 6.0, bt: Debug  , vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: 6.0, bt: Release, vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: 5.0, bt: Debug  , vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: 5.0, bt: Release, vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: 4.0, bt: Debug  , vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: 4.0, bt: Release, vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: 3.9, bt: Debug  , vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: 3.9, bt: Release, vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: "16" , bt: Debug  , vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: "16" , bt: Release, vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: "15" , bt: Debug  , vg: on, img: ubuntu22.04} # install of clang15 fails on ubuntu18.04
+          - {std: 11, cxx: "15" , bt: Release, vg: on, img: ubuntu22.04} # install of clang15 fails on ubuntu18.04
+          - {std: 11, cxx: "14" , bt: Debug  , vg: on, img: ubuntu22.04} # install of clang14 fails on ubuntu18.04
+          - {std: 11, cxx: "14" , bt: Release, vg: on, img: ubuntu22.04} # install of clang14 fails on ubuntu18.04
+          - {std: 11, cxx: "13" , bt: Debug  , vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: "13" , bt: Release, vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: "12" , bt: Debug  , vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: "12" , bt: Release, vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: "11" , bt: Debug  , vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: "11" , bt: Release, vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: "10" , bt: Debug  , vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: "10" , bt: Release, vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: "9"  , bt: Debug  , vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: "9"  , bt: Release, vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: "8"  , bt: Debug  , vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: "8"  , bt: Release, vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: "7"  , bt: Debug  , vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: "7"  , bt: Release, vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: "6.0", bt: Debug  , vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: "6.0", bt: Release, vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: "5.0", bt: Debug  , vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: "5.0", bt: Release, vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: "4.0", bt: Debug  , vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: "4.0", bt: Release, vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: "3.9", bt: Debug  , vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: "3.9", bt: Release, vg: on, img: ubuntu18.04}
     env: {STD: "${{matrix.std}}", CXX_: "clang++-${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
     steps:
       - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
@@ -230,22 +230,22 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {std: 11, cxx: 16 , bt: asan, bitlinks: static64}
-          - {std: 14, cxx: 16 , bt: asan, bitlinks: static64}
-          - {std: 17, cxx: 16 , bt: asan, bitlinks: static64}
-          - {std: 20, cxx: 16 , bt: asan, bitlinks: static64}
-          - {std: 11, cxx: 16 , bt: lsan, bitlinks: static64}
-          - {std: 14, cxx: 16 , bt: lsan, bitlinks: static64}
-          - {std: 17, cxx: 16 , bt: lsan, bitlinks: static64}
-          - {std: 20, cxx: 16 , bt: lsan, bitlinks: static64}
-          - {std: 11, cxx: 16 , bt: tsan, bitlinks: static64}
-          - {std: 14, cxx: 16 , bt: tsan, bitlinks: static64}
-          - {std: 17, cxx: 16 , bt: tsan, bitlinks: static64}
-          - {std: 20, cxx: 16 , bt: tsan, bitlinks: static64}
-          - {std: 11, cxx: 16 , bt: ubsan, bitlinks: static64}
-          - {std: 14, cxx: 16 , bt: ubsan, bitlinks: static64}
-          - {std: 17, cxx: 16 , bt: ubsan, bitlinks: static64}
-          - {std: 20, cxx: 16 , bt: ubsan, bitlinks: static64}
+          - {std: 11, cxx: "16" , bt: asan, bitlinks: static64}
+          - {std: 14, cxx: "16" , bt: asan, bitlinks: static64}
+          - {std: 17, cxx: "16" , bt: asan, bitlinks: static64}
+          - {std: 20, cxx: "16" , bt: asan, bitlinks: static64}
+          - {std: 11, cxx: "16" , bt: lsan, bitlinks: static64}
+          - {std: 14, cxx: "16" , bt: lsan, bitlinks: static64}
+          - {std: 17, cxx: "16" , bt: lsan, bitlinks: static64}
+          - {std: 20, cxx: "16" , bt: lsan, bitlinks: static64}
+          - {std: 11, cxx: "16" , bt: tsan, bitlinks: static64}
+          - {std: 14, cxx: "16" , bt: tsan, bitlinks: static64}
+          - {std: 17, cxx: "16" , bt: tsan, bitlinks: static64}
+          - {std: 20, cxx: "16" , bt: tsan, bitlinks: static64}
+          - {std: 11, cxx: "16" , bt: ubsan, bitlinks: static64}
+          - {std: 14, cxx: "16" , bt: ubsan, bitlinks: static64}
+          - {std: 17, cxx: "16" , bt: ubsan, bitlinks: static64}
+          - {std: 20, cxx: "16" , bt: ubsan, bitlinks: static64}
     env: {STD: "${{matrix.std}}", CXX_: "clang++-${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
     steps:
       - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}

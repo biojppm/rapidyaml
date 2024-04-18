@@ -337,10 +337,10 @@ TEST(RYML_CHECK, basic)
     Callbacks cb(nullptr, nullptr, nullptr, &test_error_impl);
     set_callbacks(cb);
     ASSERT_EQ(get_callbacks(), cb);
-    size_t the_line;
+    const size_t the_line = (size_t)(__LINE__ + 3); // careful
     C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
     {
-        the_line = __LINE__; RYML_CHECK(false);  // keep both statements in the same line
+        RYML_CHECK(false);  // keep both statements in the same line
     }
     C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
     {
@@ -363,10 +363,10 @@ TEST(RYML_ASSERT, basic)
     set_callbacks(cb);
     stored_msg = "";
     stored_location = {};
-    size_t the_line;
+    const size_t the_line = (size_t)(__LINE__ + 3); // careful
     C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
     {
-        the_line = __LINE__; RYML_ASSERT(false);  // keep both statements in the same line
+        RYML_ASSERT(false);
     }
     C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
     {
@@ -379,7 +379,7 @@ TEST(RYML_ASSERT, basic)
     EXPECT_EQ(stored_location.line, the_line);
     EXPECT_EQ(stored_location.col, 0u);
     #else
-    C4_UNUSED(the_line);
+    (void)the_line;
     EXPECT_EQ(stored_msg, "");
     EXPECT_EQ(stored_location.name, nullptr);
     EXPECT_EQ(stored_location.offset, 0u);
