@@ -71,7 +71,7 @@ jobs:
       IDIR: "install/${{matrix.name}}-${{matrix.bt}}"
       PDIR:  "prefix/${{matrix.name}}-${{matrix.bt}}"
     steps:
-      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
+      - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
       - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
       - {name: show info, run: source .github/setenv.sh && c4_show_info}
       - name: Install python 3.9

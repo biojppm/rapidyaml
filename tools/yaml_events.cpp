@@ -7,7 +7,13 @@
 #include <test_suite/test_suite_events.hpp>
 #include <c4/fs/fs.hpp>
 #include <cstdio>
+#ifdef C4_EXCEPTIONS
 #include <stdexcept>
+#else
+#include <csetjmp>
+std::jmp_buf jmp_env = {};
+c4::csubstr jmp_msg = {};
+#endif
 
 C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
 
@@ -30,11 +36,18 @@ int main(int argc, const char *argv[])
     pfn_error error = [](const char *msg, size_t msg_len, Location location, void *)
     {
         report_error(msg, msg_len, location, stderr);
-        throw std::runtime_error({msg, msg_len});
-        C4_UNREACHABLE_AFTER_ERR();
+        C4_IF_EXCEPTIONS(
+            throw std::runtime_error({msg, msg_len});
+            C4_UNREACHABLE_AFTER_ERR();
+            ,
+            jmp_msg.assign(msg, msg_len);
+            std::longjmp(jmp_env, 1);
+        );
     };
     callbacks.m_error = error;
-    try {
+    set_callbacks(callbacks);
+    C4_IF_EXCEPTIONS_(try, if(setjmp(jmp_env) == 0))
+    {
         Tree tree(callbacks);
         csubstr filename = to_csubstr(argv[1]);
         std::string evt, src = load_file(filename);
@@ -43,7 +56,7 @@ int main(int argc, const char *argv[])
         emit_events(&evt, tree);
         std::fwrite(evt.data(), 1, evt.size(), stdout);
     }
-    catch(std::exception const&)
+    C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
     {
         return 1;
     }

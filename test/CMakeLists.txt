@@ -109,21 +109,23 @@ ryml_add_test_case_group(github_issues)
 #-------------------------------------------------------------------------
 # test the tools as well
 
-option(RYML_TEST_TOOLS "Enable tests for the tools. Requires file system access." ON)
+if(NOT EMSCRIPTEN)
+    option(RYML_TEST_TOOLS "Enable tests for the tools. Requires file system access." ON)
+endif()
 if(RYML_TEST_TOOLS)
     if(NOT RYML_BUILD_TOOLS)
         add_subdirectory(../tools tools)
     endif()
     add_dependencies(ryml-test-build ryml-parse-emit)
     add_dependencies(ryml-test-build ryml-yaml-events)
-
+    #
     # parse & emit
     if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/appveyor.yml)
         c4_err("could not find test file")
     endif()
     ryml_get_target_exe(ryml-parse-emit RYML_TGT_PARSE_EMIT)
     add_test(NAME ryml-test-tool-parse_emit COMMAND ${RYML_TGT_PARSE_EMIT} ${CMAKE_CURRENT_LIST_DIR}/../bm/cases/appveyor.yml)
-
+    #
     # events emitter
     function(ryml_create_file name contents fileout)
         set(filename ${CMAKE_CURRENT_BINARY_DIR}/${name})

@@ -24,6 +24,11 @@
 #include <vector>
 #include <array>
 #include <map>
+#ifdef C4_EXCEPTIONS
+#include <stdexcept>
+#else
+#include <csetjmp>
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -192,6 +197,9 @@ namespace sample {
  * @{ */
 
 
+bool report_check(int line, const char *predicate, bool result);
+
+
 // GCC 4.8 has a problem with the CHECK() macro
 #ifndef _DOXYGEN_
 #if (defined(__GNUC__) && (__GNUC__ == 4 && __GNUC_MINOR__ >= 8))
@@ -219,8 +227,6 @@ struct CheckPredicate
 #define CHECK(predicate) assert(predicate)
 #endif
 
-
-bool report_check(int line, const char *predicate, bool result);
 
 // helper functions for sample_parse_file()
 template<class CharContainer> CharContainer file_get_contents(const char *filename);
@@ -3049,28 +3055,12 @@ void sample_formatting()
         // FTOA_HEXA: AKA %a (hexadecimal formatting of floats)
         CHECK("0x1.e8480p+19" == cat_sub(buf, fmt::real(1000000.000000000, 5, FTOA_HEXA)));   // AKA %a
         CHECK("0x1.2d53ap+20" == cat_sub(buf, fmt::real(1234234.234234234, 5, FTOA_HEXA)));   // AKA %a
-        // Earlier versions of emscripten's sprintf() (from MUSL) do not
-        // respect some precision values when printing in hexadecimal
-        // format.
-        //
-        // @see https://github.com/biojppm/c4core/pull/52
-        #if defined(__EMSCRIPTEN__) && __EMSCRIPTEN_major__ < 3
-        #define _c4emscripten_alt(alt1, alt2) alt2
-        #else
-        #define _c4emscripten_alt(alt1, alt2) alt1
-        #endif
-        CHECK(_c4emscripten_alt("0x1.2d54p+20", "0x1.2d538p+20")
-                              == cat_sub(buf, fmt::real(1234234.234234234, 4, FTOA_HEXA)));   // AKA %a
-        CHECK("0x1.2d5p+20"   == cat_sub(buf, fmt::real(1234234.234234234, 3, FTOA_HEXA)));   // AKA %a
-        CHECK(_c4emscripten_alt("0x1.2dp+20", "0x1.2d8p+20")
-                              == cat_sub(buf, fmt::real(1234234.234234234, 2, FTOA_HEXA)));   // AKA %a
-        #undef _c4emscripten_alt
 
         // --------------------------------------------------------------
         // fmt::raw(): dump data in machine format (respecting alignment)
         // --------------------------------------------------------------
         {
-            C4_SUPPRESS_WARNING_CLANG_WITH_PUSH("-Wcast-align")  // we're casting the values directly, so alignment is strictly respected.
+            C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wcast-align")  // we're casting the values directly, so alignment is strictly respected.
             const uint32_t payload[] = {10, 20, 30, 40, UINT32_C(0xdeadbeef)};
             // (package payload as a substr, for comparison only)
             csubstr expected = csubstr((const char *)payload, sizeof(payload));
@@ -3103,7 +3093,7 @@ void sample_formatting()
                 result = *(uint32_t*)reader.buf;
                 CHECK(result == value); // roundtrip completed successfully
             }
-            C4_SUPPRESS_WARNING_CLANG_POP
+            C4_SUPPRESS_WARNING_GCC_CLANG_POP
         }
 
         // -------------------------
@@ -4580,18 +4570,22 @@ d: 3
 
 //-----------------------------------------------------------------------------
 
-// To avoid imposing a particular type of error handling, ryml accepts
-// custom error handlers. This enables users to use exceptions, or
-// plain calls to abort(), as they see fit.
+// To avoid imposing a particular type of error handling, ryml uses an
+// error handler callback. This enables users to use exceptions, or
+// setjmp()/longjmp(), or plain calls to abort(), as they see fit.
 //
 // However, it is important to note that the error callback must never
 // return to the caller! Otherwise, an infinite loop or program crash
-// may occur.
+// will likely occur.
 //
-// The default error handler calls std::abort(). You can use the cmake
-// option and the macro RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS to have
-// the default error handler throw a std::runtime_error instead.
-
+// For this reason, to recover from an error when exceptions are disabled,
+// then a non-local jump must be performed using setjmp()/longjmp().
+// The code below demonstrates both flows.
+//
+// ryml provides a default error handler, which calls
+// std::abort(). You can use the cmake option and the macro
+// RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS to have the default error
+// handler throw a std::runtime_error instead.
 
 /** demonstrates how to set a custom error handler for ryml */
 void sample_error_handler()
@@ -4636,7 +4630,7 @@ void sample_error_handler()
 struct GlobalAllocatorExample
 {
     std::vector<char> memory_pool = std::vector<char>(10u * 1024u); // 10KB
-    size_t num_allocs = 0, alloc_size = 0;
+    size_t num_allocs = 0, alloc_size = 0, corr_size = 0;
     size_t num_deallocs = 0, dealloc_size = 0;
 
     void *allocate(size_t len)
@@ -4644,11 +4638,20 @@ struct GlobalAllocatorExample
         void *ptr = &memory_pool[alloc_size];
         alloc_size += len;
         ++num_allocs;
-        if(C4_UNLIKELY(alloc_size > memory_pool.size()))
+        // ensure the ptr is aligned
+        uintptr_t uptr = (uintptr_t)ptr;
+        const uintptr_t align = alignof(max_align_t);
+        if (uptr % align)
         {
-            std::cerr << "out of memory! requested=" << alloc_size << " vs " << memory_pool.size() << " available" << std::endl;
-            std::abort();
+            uintptr_t prev = uptr - (uptr % align);
+            uintptr_t next = prev + align;
+            uintptr_t corr = next - uptr;
+            ptr = (void*)(((char*)ptr) + corr);
+            corr_size += corr;
         }
+        C4_CHECK_MSG(alloc_size + corr_size <= memory_pool.size(),
+                     "out of memory! requested=%zu+%zu available=%zu\n",
+                     alloc_size, corr_size, memory_pool.size());
         return ptr;
     }
 
@@ -5089,13 +5092,26 @@ int report_checks()
 
 // methods for the example error handler
 
+// this macro selects code for when exceptions are enabled/disabled
+C4_IF_EXCEPTIONS_( /*nothing for exceptions*/ ,
+                   /*environment for setjmp*/
+                   static std::jmp_buf s_jmp_env;
+                   static std::string s_jmp_msg;
+                   )
+
 // checking
 template<class Fn>
 C4_NODISCARD bool ErrorHandlerExample::check_error_occurs(Fn &&fn) const
 {
     bool expected_error_occurred = false;
-    try { fn(); }
-    catch(std::exception const&) { expected_error_occurred = true; }
+    C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env) == 0)) // selectively picks based on availability of exceptions
+    {
+        fn();
+    }
+    C4_IF_EXCEPTIONS_(catch(...), else)
+    {
+        expected_error_occurred = true;
+    }
     return expected_error_occurred;
 }
 template<class Fn>
@@ -5121,7 +5137,15 @@ C4_NORETURN void ErrorHandlerExample::on_error(const char* msg, size_t len, ryml
     std::string full_msg = ryml::formatrs<std::string>(
         "{}:{}:{} ({}B): ERROR: {}",
         loc.name, loc.line, loc.col, loc.offset, ryml::csubstr(msg, len));
-    throw std::runtime_error(full_msg);
+    C4_IF_EXCEPTIONS(
+        // this will execute if exceptions are enabled.
+        throw std::runtime_error(full_msg);
+        ,
+        // this will execute if exceptions are disabled. It will
+        // jump to the function calling the corresponding setjmp().
+        s_jmp_msg = full_msg;
+        std::longjmp(s_jmp_env, 1);
+    );
 }
 
 /** a helper to create the Callbacks object with the custom error handler */

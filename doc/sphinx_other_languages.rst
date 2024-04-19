@@ -14,6 +14,22 @@ JavaScript
 A JavaScript+WebAssembly port is available, compiled through
 `emscripten <https://emscripten.org/>`__.
 
+Here's a quick example on how to configure, compile and run the tests
+using `emscripten`:
+
+.. code:: bash
+
+   cd rapidyaml
+   emcmake cmake -S . -B build/emscripten \
+      -D RYML_DEV=ON \
+      -D RYML_BUILD_TESTS=ON \
+      -D RYML_BUILD_BENCHMARKS=OFF \
+      -D RYML_TEST_SUITE=OFF \
+      -D CMAKE_BUILD_TYPE=Release \
+      -D CMAKE_CXX_FLAGS='-s DISABLE_EXCEPTION_CATCHING=0'
+   cmake --build build/emscripten --target ryml-test-run -j
+
+
 
 Python
 ------

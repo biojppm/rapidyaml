@@ -22,11 +22,15 @@ option(RYML_BUILD_TOOLS "Build tools" OFF)
 option(RYML_BUILD_API "Enable API generation (python, etc)" OFF)
 option(RYML_DBG "Enable (very verbose) ryml debug prints." OFF)
 
+option(RYML_INSTALL "Enable install target" ON)
+
 
 #-------------------------------------------------------
 
 c4_require_subproject(c4core INCORPORATE
-    SUBDIRECTORY ${RYML_EXT_DIR}/c4core)
+    SUBDIRECTORY ${RYML_EXT_DIR}/c4core
+    OVERRIDE C4CORE_INSTALL ${RYML_INSTALL}
+)
 
 c4_add_library(ryml
     SOURCES
@@ -87,9 +91,11 @@ endif()
 
 #-------------------------------------------------------
 
-c4_install_target(ryml)
-c4_install_exports(DEPENDENCIES c4core)
-c4_pack_project()
+if(RYML_INSTALL)
+    c4_install_target(ryml)
+    c4_install_exports(DEPENDENCIES c4core)
+    c4_pack_project()
+endif()
 
 
 #-------------------------------------------------------

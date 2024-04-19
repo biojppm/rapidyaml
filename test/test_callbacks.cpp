@@ -3,6 +3,7 @@
 #include "c4/yml/common.hpp"
 #endif
 #include <stdexcept>
+#include <csetjmp>
 
 
 namespace c4 {
@@ -18,11 +19,21 @@ Location stored_location;
 void * stored_mem;
 size_t stored_length;
 
+C4_IF_EXCEPTIONS_(
+    ,
+    std::jmp_buf s_jmp_env_expect_error = {};
+    )
+
 C4_NORETURN void test_error_impl(const char* msg, size_t length, Location loc, void * /*user_data*/)
 {
     stored_msg = std::string(msg, length);
     stored_location = loc;
-    throw std::runtime_error(stored_msg);
+    C4_IF_EXCEPTIONS(
+        throw std::runtime_error(stored_msg);
+        ,
+        std::longjmp(s_jmp_env_expect_error, 1);
+    );
+    C4_UNREACHABLE_AFTER_ERR();
 }
 
 void* test_allocate_impl(size_t length, void * /*hint*/, void * /*user_data*/)
@@ -222,11 +233,13 @@ TEST(Callbacks, ne)
 
 TEST(Callbacks, cmp_user_data)
 {
+    #ifndef C4_UBSAN
     Callbacks before = get_callbacks();
     Callbacks cp = before;
     EXPECT_EQ(cp, before);
-    cp.m_user_data = (void*)(((char*)before.m_user_data) + 100u);
+    cp.m_user_data = (void*)(((char*)before.m_user_data) + 100u); // ubsan: runtime error: applying non-zero offset 100 to null pointer
     EXPECT_NE(cp, before);
+    #endif
 }
 
 TEST(Callbacks, cmp_allocate)
@@ -287,10 +300,12 @@ TEST(error, basic)
     set_callbacks(cb);
     // message
     EXPECT_EQ(get_callbacks().m_error, &test_error_impl);
-    try {
+    C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
+    {
         c4::yml::error("some message 123"); // calls test_error_impl, which sets stored_msg and stored_location
     }
-    catch (std::exception const&) {
+    C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
+    {
         ;
     }
     EXPECT_EQ(stored_msg, "some message 123");
@@ -299,10 +314,12 @@ TEST(error, basic)
     EXPECT_EQ(stored_location.line, 0u);
     EXPECT_EQ(stored_location.col, 0u);
     // location
-    try {
+    C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
+    {
         c4::yml::error("some message 456", Location("file.yml", 433u, 123u, 4u));
     }
-    catch (std::exception const&) {
+    C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
+    {
         ;
     }
     EXPECT_EQ(stored_msg, "some message 456");
@@ -320,11 +337,13 @@ TEST(RYML_CHECK, basic)
     Callbacks cb(nullptr, nullptr, nullptr, &test_error_impl);
     set_callbacks(cb);
     ASSERT_EQ(get_callbacks(), cb);
-    size_t the_line;
-    try {
-        the_line = __LINE__; RYML_CHECK(false);  // keep both statements in the same line
+    const size_t the_line = (size_t)(__LINE__ + 3); // careful
+    C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
+    {
+        RYML_CHECK(false);  // keep both statements in the same line
     }
-    catch (std::exception const&) {
+    C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
+    {
         ;
     }
     EXPECT_EQ(stored_msg, "check failed: false");
@@ -344,11 +363,13 @@ TEST(RYML_ASSERT, basic)
     set_callbacks(cb);
     stored_msg = "";
     stored_location = {};
-    size_t the_line;
-    try {
-        the_line = __LINE__; RYML_ASSERT(false);  // keep both statements in the same line
+    const size_t the_line = (size_t)(__LINE__ + 3); // careful
+    C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
+    {
+        RYML_ASSERT(false);
     }
-    catch (std::exception const&) {
+    C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
+    {
         ;
     }
     #if RYML_USE_ASSERT
@@ -358,7 +379,7 @@ TEST(RYML_ASSERT, basic)
     EXPECT_EQ(stored_location.line, the_line);
     EXPECT_EQ(stored_location.col, 0u);
     #else
-    C4_UNUSED(the_line);
+    (void)the_line;
     EXPECT_EQ(stored_msg, "");
     EXPECT_EQ(stored_location.name, nullptr);
     EXPECT_EQ(stored_location.offset, 0u);
