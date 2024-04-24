@@ -177,8 +177,19 @@ will have to do `git submodule update --init --recursive`
 to ensure ryml's submodules are checked out.
 
 
+Forcing ryml to use a different c4core version
+----------------------------------------------
+
+ryml is strongly coupled to c4core, and this is reinforced by the fact
+that c4core is a submodule of the current repo. However, it is still
+possible to use a c4core version different from the one in the repo (of
+course, only if there are no incompatibilities between the versions).
+You can find out how to achieve this by looking at the
+`custom_c4core sample <https://github.com/biojppm/rapidyaml/blob/v0.5.0/samples/custom_c4core/CMakeLists.txt>`__.
+
+
 CMake build settings for ryml
------------------------------
+=============================
 
 The following cmake variables can be used to control the build behavior
 of ryml:
@@ -199,6 +210,8 @@ of ryml:
    low-level multi-platform utilities for C++. When
    ``RYML_STANDALONE=ON``, c4core is incorporated into ryml as if it is
    the same library. Defaults to ``ON``.
+- ``RYML_INSTALL=ON/OFF``. enable/disable install target. Defaults to
+   ``ON``.
 
 If you’re developing ryml or just debugging problems with ryml itself,
 the following cmake variables can be helpful:
@@ -208,14 +221,3 @@ the following cmake variables can be helpful:
 - ``RYML_DBG=ON/OFF``: a bool variable which enables verbose prints from
   parsing code; can be useful to figure out parsing problems. Defaults
   to ``OFF``.
-
-
-Forcing ryml to use a different c4core version
-----------------------------------------------
-
-ryml is strongly coupled to c4core, and this is reinforced by the fact
-that c4core is a submodule of the current repo. However, it is still
-possible to use a c4core version different from the one in the repo (of
-course, only if there are no incompatibilities between the versions).
-You can find out how to achieve this by looking at the
-`custom_c4core sample <https://github.com/biojppm/rapidyaml/blob/v0.5.0/samples/custom_c4core/CMakeLists.txt>`__.

@@ -205,20 +205,22 @@ jobs:
       matrix:
         config:
           # the 3-digit versions NEED to be quoted to prevent the version being read as float. (!)
+          #- {pythonv: '3.13', cibw_pyv: 313, cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
+          #- {pythonv: '3.13', cibw_pyv: 313, cibw_arch: i686  , cibw_platform: manylinux_i686  , osname: linux, os: ubuntu-20.04}
           - {pythonv: '3.12', cibw_pyv: 312, cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
           - {pythonv: '3.12', cibw_pyv: 312, cibw_arch: i686  , cibw_platform: manylinux_i686  , osname: linux, os: ubuntu-20.04}
           - {pythonv: '3.11', cibw_pyv: 311, cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
           - {pythonv: '3.11', cibw_pyv: 311, cibw_arch: i686  , cibw_platform: manylinux_i686  , osname: linux, os: ubuntu-20.04}
           - {pythonv: '3.10', cibw_pyv: 310, cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
           - {pythonv: '3.10', cibw_pyv: 310, cibw_arch: i686  , cibw_platform: manylinux_i686  , osname: linux, os: ubuntu-20.04}
-          - {pythonv:  3.9  , cibw_pyv: 39 , cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
-          - {pythonv:  3.9  , cibw_pyv: 39 , cibw_arch: i686  , cibw_platform: manylinux_i686  , osname: linux, os: ubuntu-20.04}
-          - {pythonv:  3.8  , cibw_pyv: 38 , cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
-          - {pythonv:  3.8  , cibw_pyv: 38 , cibw_arch: i686  , cibw_platform: manylinux_i686  , osname: linux, os: ubuntu-20.04}
-          - {pythonv:  3.7  , cibw_pyv: 37 , cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
-          - {pythonv:  3.7  , cibw_pyv: 37 , cibw_arch: i686  , cibw_platform: manylinux_i686  , osname: linux, os: ubuntu-20.04}
-          - {pythonv:  3.6  , cibw_pyv: 36 , cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
-          - {pythonv:  3.6  , cibw_pyv: 36 , cibw_arch: i686  , cibw_platform: manylinux_i686  , osname: linux, os: ubuntu-20.04}
+          - {pythonv: '3.9' , cibw_pyv: 39 , cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
+          - {pythonv: '3.9' , cibw_pyv: 39 , cibw_arch: i686  , cibw_platform: manylinux_i686  , osname: linux, os: ubuntu-20.04}
+          - {pythonv: '3.8' , cibw_pyv: 38 , cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
+          - {pythonv: '3.8' , cibw_pyv: 38 , cibw_arch: i686  , cibw_platform: manylinux_i686  , osname: linux, os: ubuntu-20.04}
+          - {pythonv: '3.7' , cibw_pyv: 37 , cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
+          - {pythonv: '3.7' , cibw_pyv: 37 , cibw_arch: i686  , cibw_platform: manylinux_i686  , osname: linux, os: ubuntu-20.04}
+          - {pythonv: '3.6' , cibw_pyv: 36 , cibw_arch: x86_64, cibw_platform: manylinux_x86_64, osname: linux, os: ubuntu-20.04}
+          - {pythonv: '3.6' , cibw_pyv: 36 , cibw_arch: i686  , cibw_platform: manylinux_i686  , osname: linux, os: ubuntu-20.04}
           # the windows builds are disabled because they are causing problems and preventing the release.
           # the problems are related to CMakeExtension forcing the use of Ninja
           # which does not play well with the -G 'Visual Studio...' option used below.
@@ -227,27 +229,27 @@ jobs:
           #- {pythonv: '3.11', cibw_pyv: 311, cibw_arch: x86   , cibw_platform: win32    , osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
           #- {pythonv: '3.10', cibw_pyv: 310, cibw_arch: AMD64 , cibw_platform: win_amd64, osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
           #- {pythonv: '3.10', cibw_pyv: 310, cibw_arch: x86   , cibw_platform: win32    , osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
-          #- {pythonv:  3.9  , cibw_pyv: 39 , cibw_arch: AMD64 , cibw_platform: win_amd64, osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
-          #- {pythonv:  3.9  , cibw_pyv: 39 , cibw_arch: x86   , cibw_platform: win32    , osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
-          #- {pythonv:  3.8  , cibw_pyv: 38 , cibw_arch: AMD64 , cibw_platform: win_amd64, osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
-          #- {pythonv:  3.8  , cibw_pyv: 38 , cibw_arch: x86   , cibw_platform: win32    , osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
-          - {pythonv:  3.7  , cibw_pyv: 37 , cibw_arch: AMD64 , cibw_platform: win_amd64, osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
-          #- {pythonv:  3.7  , cibw_pyv: 37 , cibw_arch: x86   , cibw_platform: win32    , osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
-          - {pythonv:  3.6  , cibw_pyv: 36 , cibw_arch: AMD64 , cibw_platform: win_amd64, osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
-          #- {pythonv:  3.6  , cibw_pyv: 36 , cibw_arch: x86   , cibw_platform: win32    , osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
+          #- {pythonv: '3.9' , cibw_pyv: 39 , cibw_arch: AMD64 , cibw_platform: win_amd64, osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
+          #- {pythonv: '3.9' , cibw_pyv: 39 , cibw_arch: x86   , cibw_platform: win32    , osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
+          #- {pythonv: '3.8' , cibw_pyv: 38 , cibw_arch: AMD64 , cibw_platform: win_amd64, osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
+          #- {pythonv: '3.8' , cibw_pyv: 38 , cibw_arch: x86   , cibw_platform: win32    , osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
+          #- {pythonv: '3.7' , cibw_pyv: 37 , cibw_arch: AMD64 , cibw_platform: win_amd64, osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
+          #- {pythonv: '3.7' , cibw_pyv: 37 , cibw_arch: x86   , cibw_platform: win32    , osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
+          #- {pythonv: '3.6' , cibw_pyv: 36 , cibw_arch: AMD64 , cibw_platform: win_amd64, osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A x64'}
+          #- {pythonv: '3.6' , cibw_pyv: 36 , cibw_arch: x86   , cibw_platform: win32    , osname: win  , os: windows-2019, cxx: vs2019} #, cmakeflags: '-G "Visual Studio 16 2019" -A Win32'}
           ## macosx builds are generating a SIGSEGV when importing. (!)
           ## https://github.com/biojppm/rapidyaml/actions/runs/3062528713/jobs/4943611397#step:7:269
           #- {pythonv: '3.11', cibw_pyv: 311, cibw_arch: x86_64, cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
           #- {pythonv: '3.10', cibw_pyv: 310, cibw_arch: x86_64, cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
-          #- {pythonv:  3.9  , cibw_pyv: 39 , cibw_arch: x86_64, cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
-          #- {pythonv:  3.8  , cibw_pyv: 38 , cibw_arch: x86_64, cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
-          #- {pythonv:  3.7  , cibw_pyv: 37 , cibw_arch: x86_64, cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
-          #- {pythonv:  3.6  , cibw_pyv: 36 , cibw_arch: x86_64, cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
+          #- {pythonv: '3.9' , cibw_pyv: 39 , cibw_arch: x86_64, cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
+          #- {pythonv: '3.8' , cibw_pyv: 38 , cibw_arch: x86_64, cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
+          #- {pythonv: '3.7' , cibw_pyv: 37 , cibw_arch: x86_64, cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
+          #- {pythonv: '3.6' , cibw_pyv: 36 , cibw_arch: x86_64, cibw_platform: macosx_x86_64, osname: macos, os: macos-10.15}
     steps:
       # use fetch-depth to ensure all tags are fetched
       - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive, fetch-depth: 0}}
       - name: create wheel
-        uses: pypa/cibuildwheel@v2.16.2
+        uses: pypa/cibuildwheel@v2.17
       - name: rename wheelhouse -> dist
         run: |
           mv -fv wheelhouse dist
