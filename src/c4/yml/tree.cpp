@@ -1301,6 +1301,101 @@ void Tree::merge_with(Tree const *src, size_t src_node, size_t dst_node)
 
 //-----------------------------------------------------------------------------
 
+bool Tree::has_all(Tree const* reftree, size_t refnode, size_t subject_node) const
+{
+    _RYML_CB_ASSERT(m_callbacks, reftree != nullptr);
+    if (subject_node == NONE)
+        subject_node = root_id();
+    if (refnode == NONE)
+        refnode = reftree->root_id();
+
+    return _has_all_recursive(reftree, refnode, subject_node);
+}
+
+bool Tree::_has_all_recursive(Tree const* reftree, size_t refnode, size_t subject_node) const
+{
+    if (is_val(subject_node))
+    {
+        if( ! reftree->is_val(refnode))
+            return false;
+        // skip value comparison
+        return true;
+    }
+    else if (is_keyval(subject_node))
+    {
+        if( ! reftree->is_keyval(refnode))
+            return false;
+        if (key(subject_node) == reftree->key(refnode))
+            return true;
+        return false;
+    }
+    else if (is_map(subject_node))
+    {
+        if( ! reftree->is_map(refnode))
+            return false;
+
+        if (num_children(subject_node) > reftree->num_children(refnode))
+            return false;
+
+        for (size_t sch = first_child(subject_node); sch != NONE; sch = next_sibling(sch))
+        {
+            size_t rch = reftree->find_child(refnode, key(sch));
+            if (rch == NONE)
+                return false;
+            if ( ! _has_all_recursive(reftree, rch, sch))
+                return false;
+        }
+        return true;
+    }
+    else if (is_seq(subject_node))
+    {
+        if( ! reftree->is_seq(refnode))
+            return false;
+
+        if (num_children(subject_node) > reftree->num_children(refnode))
+            return false;
+
+        size_t rch = reftree->first_child(refnode);
+        for (size_t sch = first_child(subject_node); sch != NONE; sch = next_sibling(sch))
+        {
+            if ( ! _has_all_recursive(reftree, rch, sch))
+                return false;
+            rch = reftree->next_sibling(rch);
+        }
+        return true;
+    }
+    else if (is_stream(subject_node))
+    {
+        if( ! reftree->is_stream(refnode))
+            return false;
+
+        if (num_children(subject_node) > reftree->num_children(refnode))
+            return false;
+
+        size_t rch = reftree->first_child(refnode);
+        for (size_t sch = first_child(subject_node); sch != NONE;sch = next_sibling(sch))
+        {
+            if ( ! _has_all_recursive(reftree, rch, sch))
+                return false;
+            rch = reftree->next_sibling(rch);
+        }
+        return true;
+    }
+    else if(type(subject_node) == NOTYPE)
+    {
+        if(reftree->type(refnode) != NOTYPE)
+            return false;
+        return true;
+    }
+    else
+    {
+        C4_NEVER_REACH();
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+
 namespace detail {
 /** @todo make this part of the public API, refactoring as appropriate
  * to be able to use the same resolver to handle multiple trees (one

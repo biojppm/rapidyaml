@@ -980,6 +980,20 @@ public:
 
     void merge_with(Tree const* src, size_t src_node=NONE, size_t dst_root=NONE);
 
+public:
+
+    /** non-recursive predicates: */
+
+    /** return true if subject_node has all the keys or indices in refnode from a reftree
+     * @note does not check values, only keys (for maps) or indices (for seqs) */
+    bool has_all(Tree const* reftree, size_t refnode = NONE, size_t subject_node = NONE ) const;
+
+private:
+
+    /** and helper functions to drive the recursive descent: */
+
+    bool _has_all_recursive(Tree const* reftree, size_t refnode, size_t subject_node) const;
+
     /** @} */
 
 public:
