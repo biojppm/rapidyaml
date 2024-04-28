@@ -108,5 +108,5 @@ limitations noted above. Other than those limitations, by far the main
 issue with ryml is that several standard-mandated parse errors fail to
 materialize. For the up-to-date list of ryml failures in the test-suite,
 refer to the `list of known
-exceptions <https://github.com/biojppm/rapidyaml/blob/v0.5.0/test/test_suite/test_suite_parts.cpp>`__ from ryml’s test
+exceptions <https://github.com/biojppm/rapidyaml/blob/v0.6.0/test/test_suite/test_suite_parts.cpp>`__ from ryml’s test
 suite runner, which is used as part of ryml’s CI process.

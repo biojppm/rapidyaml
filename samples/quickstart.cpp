@@ -165,7 +165,7 @@ namespace sample {
  * include(FetchContent)
  * FetchContent_Declare(ryml
  *     GIT_REPOSITORY https://github.com/biojppm/rapidyaml.git
- *     GIT_TAG v0.5.0
+ *     GIT_TAG v0.6.0
  *     GIT_SHALLOW FALSE  # ensure submodules are checked out
  * )
  * FetchContent_MakeAvailable(ryml)

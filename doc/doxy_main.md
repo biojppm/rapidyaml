@@ -1,6 +1,6 @@
 # rapidyaml
 
-* Begin by looking at the [project's README](https://github.com/biojppm/rapidyaml/blob/v0.5.0/README.md)
+* Begin by looking at the [project's README](https://github.com/biojppm/rapidyaml/blob/v0.6.0/README.md)
 * [Documentation page](https://rapidyaml.readthedocs.org)
 * Next, skim the docs for the @ref doc_quickstart sample.
 * Good! Now the main ryml topics:
