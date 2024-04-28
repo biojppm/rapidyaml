@@ -91,6 +91,12 @@ Fix major error handling problem reported in [#389](https://github.com/biojppm/r
 - FR [#403](https://github.com/biojppm/rapidyaml/issues/403) - install is now optional when using cmake. The relevant option is `RYML_INSTALL`.
 
 
+### Python
+
+- Fix [#428](https://github.com/biojppm/rapidyaml/issues/428)/[#412](https://github.com/biojppm/rapidyaml/discussions/412) - Parse errors now throw `RuntimeError` instead of aborting.
+
+
+
 ### Thanks
 
 - @Neko-Box-Coder
