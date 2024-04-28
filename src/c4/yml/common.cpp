@@ -8,6 +8,7 @@
 #   endif
 #endif // RYML_NO_DEFAULT_CALLBACKS
 
+
 namespace c4 {
 namespace yml {
 

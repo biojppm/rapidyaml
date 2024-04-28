@@ -484,5 +484,29 @@ class TestRunner(unittest.TestCase):
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
+
+class TestParseFailure(unittest.TestCase):
+
+    yaml = "[:HELLO: b}"
+
+    def setUp(self):
+        self.src_as_str = str(__class__.yaml)
+        self.src_as_bytearray = bytearray(__class__.yaml, "utf8")
+
+    def test_in_arena(self):
+        self.assertNotEqual(self.src_as_str, "")
+        with self.assertRaises(RuntimeError):
+            tree = ryml.parse_in_arena(self.src_as_str)
+
+    def test_in_place(self):
+        self.assertNotEqual(self.src_as_bytearray, "")
+        with self.assertRaises(RuntimeError):
+            tree = ryml.parse_in_place(self.src_as_bytearray)
+
+
+
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 if __name__ == "__main__":
     unittest.main()

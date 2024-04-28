@@ -13,7 +13,7 @@ endif
 # How to invoke python
 PYTHON := python
 # How to invoke pytest
-PYTEST := $(PYTHON) -m pytest -vvv
+PYTEST := $(PYTHON) -m pytest -vvv -s
 
 ACTIVATE=[[ -e $(ACTIVATE_SCRIPT) ]] && source $(ACTIVATE_SCRIPT);
 
@@ -40,10 +40,11 @@ venv:
 	# Setup requirements.
 	${ACTIVATE} pip install -v -r requirements.txt
 	${ACTIVATE} pip install -v -e ../..
-	@${ACTIVATE} $(PYTHON) -c "from ryml.version import version as v; print('Installed version:', v)"
+	${ACTIVATE} $(PYTHON) -c "from ryml.version import version as v; print('Installed version:', v)"
 
 .PHONY: build-sdist
 build-sdist: | $(ACTIVATE_SCRIPT)
+	${ACTIVATE} (cd ../..; pip show build)
 	${ACTIVATE} (cd ../..; $(PYTHON) -m build --sdist --outdir $(PWD)/dist)
 
 
@@ -55,30 +56,27 @@ build-wheel: | $(ACTIVATE_SCRIPT)
 	${ACTIVATE} pip wheel -v dist/*.tar.gz --wheel-dir $(PWD)/dist
 
 .PHONY: build
-build:
-	rm -rf build dist
-	$(MAKE) build-sdist
-	$(MAKE) build-wheel
+build: build-sdist build-wheel
 
 # PYPI_TEST = --repository-url https://test.pypi.org/legacy/
 PYPI_TEST = --repository testpypi
 
 .PHONY: upload-test
 upload-test: | $(ACTIVATE_SCRIPT)
-	make clean
-	make build-sdist
+	$(MAKE) clean
+	$(MAKE) build-sdist
 	${ACTIVATE} twine upload ${PYPI_TEST} dist/*
 
 .PHONY: upload
 upload: | $(ACTIVATE_SCRIPT)
-	make clean
-	make build-sdist
+	$(MAKE) clean
+	$(MAKE) build-sdist
 	${ACTIVATE} twine upload --verbose dist/*
 
 .PHONY: check
 check: | $(ACTIVATE_SCRIPT)
-	make clean
-	make build-wheel
+	$(MAKE) clean
+	$(MAKE) build-wheel
 	${ACTIVATE} twine check dist/*.whl
 
 .PHONY: install
@@ -87,6 +85,7 @@ install: | $(ACTIVATE_SCRIPT)
 
 .PHONY: test
 test: | $(ACTIVATE_SCRIPT)
+	${ACTIVATE} pip install -v -e ../..
 	${ACTIVATE} $(PYTEST) tests
 
 .PHONY: version

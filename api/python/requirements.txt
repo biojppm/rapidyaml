@@ -3,3 +3,5 @@ ninja
 pyyaml
 prettytable
 pytest
+build
+twine

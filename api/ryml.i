@@ -1,7 +1,6 @@
 
 %module ryml
 
-
 //-----------------------------------------------------------------------------
 // this block will be pasted verbatim in the generated C++ source file
 
@@ -23,8 +22,8 @@ using csubstr = c4::csubstr;
 
 %}
 
-//-----------------------------------------------------------------------------
 
+//-----------------------------------------------------------------------------
 
 %apply (const char *STRING, size_t LENGTH) { (const char *str, size_t len) };
 %apply (char *STRING, size_t LENGTH) { (char *str, size_t len) };
@@ -91,6 +90,8 @@ using csubstr = c4::csubstr;
 %typemap(typecheck) c4::csubstr = const char *;
 
 
+//-----------------------------------------------------------------------------
+
 %typemap(out) c4::csubstr {
 #if defined(SWIGPYTHON)
   if($1.str == nullptr) {
@@ -110,6 +111,26 @@ using csubstr = c4::csubstr;
 #endif
 };
 
+
+//-----------------------------------------------------------------------------
+
+// Language independent exception handler.
+// KEEP THIS BEFORE THE FOLLOWING FUNCTIONS!
+// see https://stackoverflow.com/a/61621747
+%include <std_string.i>
+%include <exception.i>
+%exception {
+    try {
+        $action
+    } catch(std::exception &e) {
+        SWIG_exception(SWIG_RuntimeError, e.what());
+    } catch(...) {
+        SWIG_exception(SWIG_UnknownError, "unknown error");
+    }
+}
+
+
+//-----------------------------------------------------------------------------
 
 %inline %{
 

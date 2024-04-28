@@ -56,6 +56,8 @@ cmake_args = dict(
     cmake_component='python',
     cmake_configure_options=get_environment_cmake_flags() + [
         "-DRYML_BUILD_API:BOOL=ON",
+        "-DRYML_DEFAULT_CALLBACKS:BOOL=ON",
+        "-DRYML_DEFAULT_CALLBACK_USES_EXCEPTIONS:BOOL=ON",
         # Force cmake to use the Python interpreter we are currently
         # using to run setup.py
         "-DPython3_EXECUTABLE:FILEPATH=" + sys.executable,

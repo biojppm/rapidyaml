@@ -21,6 +21,10 @@ c4_log("found swig ${SWIG_VERSION}: ${SWIG_EXECUTABLE}")
 # https://cmake.org/cmake/help/v3.13/module/UseSWIG.html
 include(UseSWIG)
 
+if(NOT RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS)
+    message(FATAL_ERROR "API requires exceptions")
+endif()
+
 set(RYML_API_DIR ${CMAKE_CURRENT_LIST_DIR})
 set(RYML_SWIG_SRC ${RYML_API_DIR}/ryml.i)
 
@@ -99,7 +103,8 @@ if(RYML_BUILD_API_PYTHON)
     if(WIN32)
         target_compile_definitions(${t} PUBLIC __WIN32__)
     endif()
-    target_compile_definitions(${t} PUBLIC ${RYML_SWIG_ARCH_DEFINES})
+    c4_get_transitive_property(ryml COMPILE_DEFINITIONS ryml_defs)
+    target_compile_definitions(${t} PUBLIC ${RYML_SWIG_ARCH_DEFINES} ${ryml_defs})
 
     # Install the SWIG .so/.dll file
     install(
