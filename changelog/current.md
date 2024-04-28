@@ -1,7 +1,8 @@
 ### Add API documentation
 
-- [PR#423](https://github.com/biojppm/rapidyaml/pull/423): **add Doxygen-based API documentation, now hosted in [https://rapidyaml.readthedocs.io/]!**.
-- It uses the base doxygen docs, as I couldn't get doxyrest or breathe or exhale to produce anything meaningful using the groups already established in the source code.
+- [PR#423](https://github.com/biojppm/rapidyaml/pull/423): **add Doxygen-based API documentation, now hosted in [https://rapidyaml.readthedocs.io/](https://rapidyaml.readthedocs.io/)!**.
+- It uses the base doxygen docs, as I couldn't get doxyrest or breathe or exhale to produce anything meaningful using the groups already defined in the source code.
+
 
 ### Error handling
 
@@ -86,9 +87,12 @@ Fix major error handling problem reported in [#389](https://github.com/biojppm/r
 - Fix [#373](https://github.com/biojppm/rapidyaml/issues/373) - false parse error with empty quoted keys in block-style map ([PR#374](https://github.com/biojppm/rapidyaml/pull/374)).
 - Fix [#356](https://github.com/biojppm/rapidyaml/issues/356) - fix overzealous check in `emit_as()`. An id may be larger than the tree's size, eg when nodes were removed. ([PR#357](https://github.com/biojppm/rapidyaml/pull/357)).
 - Fix [#417](https://github.com/biojppm/rapidyaml/issues/417)) - add quickstart example explaining how to avoid precision loss while serializing floats ([PR#420](https://github.com/biojppm/rapidyaml/pull/420)).
+- Fix [#380](https://github.com/biojppm/rapidyaml/issues/380) - Debug visualizer .natvis file for Visual Studio was missing `ConstNodeRef` ([PR#383](https://github.com/biojppm/rapidyaml/issues/383)).
+- FR [#403](https://github.com/biojppm/rapidyaml/issues/403) - install is now optional when using cmake. The relevant option is `RYML_INSTALL`.
 
 
 ### Thanks
 
 - @Neko-Box-Coder
 - @jdrouhard
+- @dmachaj
