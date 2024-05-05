@@ -98,7 +98,8 @@ enum : int {
       kClearTree=1,
       kClearTreeArena=2,
       kResetInPlace=4,
-      kAll=kClearTree|kClearTreeArena|kResetInPlace,
+      kReserveTree=8,
+      kAll=kClearTree|kClearTreeArena|kResetInPlace|kReserveTree,
 };
 
 struct BmCase
@@ -107,7 +108,10 @@ struct BmCase
     c4::csubstr            filename;
     std::vector<char>      src;
     std::vector<char>      in_place;
-    ryml::Parser           ryml_parser;
+    ryml::EventHandlerTree ryml_evt_handler;
+    ryml::EventHandlerTree ryml_evt_handler_nofilter;
+    ryml::Parser           ryml_parser{&ryml_evt_handler};
+    ryml::Parser           ryml_parser_nofilter{&ryml_evt_handler_nofilter, ryml::ParserOptions().scalar_filtering(false)};
     ryml::Tree             ryml_tree;
     bool                   is_json;
     rapidjson::Document    rapidjson_doc;
@@ -147,14 +151,14 @@ USAGE: bm <case.yml>
                       strlen(in_place.data()), in_place.size());
     }
 
-    void prepare(bm::State &st, int what)
+    void prepare(bm::State &st, int what, ryml::id_type capacity=0)
     {
         st.PauseTiming();
-        prepare(what);
+        prepare(what, capacity);
         st.ResumeTiming();
     }
 
-    void prepare(int what)
+    void prepare(int what, ryml::id_type capacity=0)
     {
         if(what & kClearTree)
         {
@@ -163,6 +167,11 @@ USAGE: bm <case.yml>
         if(what & kClearTreeArena)
         {
             ryml_tree.clear_arena();
+        }
+        if(what & kReserveTree)
+        {
+            RYML_CHECK(capacity > 0);
+            ryml_tree.reserve(capacity);
         }
         if(what & kResetInPlace)
         {

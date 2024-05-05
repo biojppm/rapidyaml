@@ -177,7 +177,7 @@ void bm_yamlcpp(bm::State& st)
     s_bm_case->report(st);
 }
 
-void bm_ryml_ostream(bm::State& st)
+void bm_ryml_yaml_ostream(bm::State& st)
 {
     c4::csubstr src = c4::to_csubstr(s_bm_case->src).trimr('\0');
     ryml::Tree tree = ryml::parse_in_arena(s_bm_case->filename, src);
@@ -191,7 +191,21 @@ void bm_ryml_ostream(bm::State& st)
     s_bm_case->report(st);
 }
 
-void bm_ryml_str(bm::State& st)
+void bm_ryml_yaml_json_ostream(bm::State& st)
+{
+    c4::csubstr src = c4::to_csubstr(s_bm_case->src).trimr('\0');
+    ryml::Tree tree = ryml::parse_in_arena(s_bm_case->filename, src);
+    std::string str;
+    std::ostringstream os;
+    for(auto _ : st)
+    {
+        os << ryml::as_json(tree);
+        str = os.str();
+    }
+    s_bm_case->report(st);
+}
+
+void bm_ryml_yaml_str(bm::State& st)
 {
     c4::csubstr src = c4::to_csubstr(s_bm_case->src).trimr('\0');
     ryml::Tree tree = ryml::parse_in_arena(s_bm_case->filename, src);
@@ -203,7 +217,19 @@ void bm_ryml_str(bm::State& st)
     s_bm_case->report(st);
 }
 
-void bm_ryml_str_reserve(bm::State& st)
+void bm_ryml_yaml_json_str(bm::State& st)
+{
+    c4::csubstr src = c4::to_csubstr(s_bm_case->src).trimr('\0');
+    ryml::Tree tree = ryml::parse_in_arena(s_bm_case->filename, src);
+    std::string str;
+    for(auto _ : st)
+    {
+        emitrs_json(tree, &str);
+    }
+    s_bm_case->report(st);
+}
+
+void bm_ryml_yaml_str_reserve(bm::State& st)
 {
     c4::csubstr src = c4::to_csubstr(s_bm_case->src).trimr('\0');
     std::string str;
@@ -216,9 +242,25 @@ void bm_ryml_str_reserve(bm::State& st)
     s_bm_case->report(st);
 }
 
-BENCHMARK(bm_ryml_str_reserve);
-BENCHMARK(bm_ryml_str);
-BENCHMARK(bm_ryml_ostream);
+void bm_ryml_yaml_json_str_reserve(bm::State& st)
+{
+    c4::csubstr src = c4::to_csubstr(s_bm_case->src).trimr('\0');
+    std::string str;
+    str.resize(2 * src.size());
+    ryml::Tree tree = ryml::parse_in_arena(s_bm_case->filename, src);
+    for(auto _ : st)
+    {
+        emitrs_json(tree, &str);
+    }
+    s_bm_case->report(st);
+}
+
+BENCHMARK(bm_ryml_yaml_str_reserve);
+BENCHMARK(bm_ryml_yaml_json_str_reserve);
+BENCHMARK(bm_ryml_yaml_str);
+BENCHMARK(bm_ryml_yaml_json_str);
+BENCHMARK(bm_ryml_yaml_ostream);
+BENCHMARK(bm_ryml_yaml_json_ostream);
 #ifdef RYML_HAVE_LIBFYAML
 BENCHMARK(bm_fyaml_str_reserve);
 BENCHMARK(bm_fyaml_str);
