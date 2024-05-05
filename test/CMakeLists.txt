@@ -32,8 +32,8 @@ endif()
 function(ryml_add_test test_name)
     set(t ryml-test-${test_name})
     c4_add_executable(${t}
-        SOURCES test_${test_name}.cpp ${ARGN}
-        LIBS ryml-_testlib gtest_main
+        SOURCES test_${test_name}.cpp
+        LIBS ${ARGN} ryml-_testlib gtest_main
         FOLDER test)
     c4_add_test(${t})
 endfunction()
@@ -52,12 +52,27 @@ function(ryml_add_test_case_group name)
 endfunction()
 
 
-ryml_add_test(parse_engine
-    test_suite/test_suite_event_handler.cpp
-    test_suite/test_suite_event_handler.hpp)
-ryml_add_test(yaml_events
-    test_suite/test_suite_event_handler.cpp
-    test_suite/test_suite_event_handler.hpp)
+c4_add_library(ryml-_evt_handler_yaml_std LIBRARY_STATIC
+    SOURCES
+       test_suite/test_suite_event_handler.cpp
+       test_suite/test_suite_event_handler.hpp
+    LIBS ryml
+    FOLDER test
+)
+function(ryml_add_engine_test name)
+    ryml_add_test(${name} ryml-_evt_handler_yaml_std)
+endfunction()
+
+
+ryml_add_engine_test(parse_engine_1_doc)
+ryml_add_engine_test(parse_engine_2_map)
+ryml_add_engine_test(parse_engine_3_seq)
+ryml_add_engine_test(parse_engine_4_anchor)
+ryml_add_engine_test(parse_engine_5_tag)
+ryml_add_engine_test(parse_engine_6_qmrk)
+ryml_add_engine_test(parse_engine_7_seqimap)
+ryml_add_engine_test(parse_engine_8_scalars_tokens)
+ryml_add_engine_test(yaml_events)
 ryml_add_test(callbacks)
 ryml_add_test(stack)
 ryml_add_test(filter)
@@ -104,10 +119,6 @@ ryml_add_test_case_group(anchor)
 ryml_add_test_case_group(indentation)
 ryml_add_test_case_group(number)
 ryml_add_test_case_group(github_issues)
-
-if(WIN32 AND MSVC)
-    target_compile_options(ryml-test-parse_engine PRIVATE /bigobj)
-endif()
 
 
 #-------------------------------------------------------------------------

@@ -13,7 +13,7 @@ namespace yml {
 template class ParseEngine<EventHandlerYamlStd>;
 
 
-inline void EventHandlerYamlStd::EventSink::append_escaped(csubstr val)
+void EventHandlerYamlStd::EventSink::append_escaped(csubstr val)
 {
     #define _c4flush_use_instead(repl, skip)  \
         do {                                  \

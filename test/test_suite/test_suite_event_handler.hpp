@@ -39,9 +39,9 @@ struct EventHandlerYamlStdState : public ParserState
  * See the documentation for @ref doc_event_handlers, which has
  * important notes about the event model used by rapidyaml.
  *
- * This classe is used only in the CI of this project, and in the
+ * This class is used only in the CI of this project, and in the
  * application used as part of the [standard YAML
- * playground](https://play.yaml.io/main/parser). This is not part of
+ * playground](https://play.yaml.io/main/parser). It is not part of
  * the library and is not installed. *
  */
 struct EventHandlerYamlStd : public EventHandlerStack<EventHandlerYamlStd, EventHandlerYamlStdState>
