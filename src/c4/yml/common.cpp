@@ -28,6 +28,8 @@ void report_error_impl(const char* msg, size_t length, Location loc, FILE *f)
     {
         if(!loc.name.empty())
         {
+            // this is more portable than using fprintf("%.*s:") which
+            // is not available in some embedded platforms
             fwrite(loc.name.str, 1, loc.name.len, f);
             fputc(':', f);
         }
@@ -36,13 +38,17 @@ void report_error_impl(const char* msg, size_t length, Location loc, FILE *f)
             fprintf(f, "%zu:", loc.col);
         if(loc.offset)
             fprintf(f, " (%zuB):", loc.offset);
+        fputc(' ', f);
     }
-    fprintf(f, "%.*s\n", (int)length, msg);
+    RYML_ASSERT(!csubstr(msg, length).ends_with('\0'));
+    fwrite(msg, 1, length, f);
+    fputc('\n', f);
     fflush(f);
 }
 
 [[noreturn]] void error_impl(const char* msg, size_t length, Location loc, void * /*user_data*/)
 {
+    RYML_ASSERT(!csubstr(msg, length).ends_with('\0'));
     report_error_impl(msg, length, loc, nullptr);
 #ifdef RYML_DEFAULT_CALLBACK_USES_EXCEPTIONS
     throw std::runtime_error(std::string(msg, length));
@@ -98,9 +104,9 @@ Callbacks::Callbacks(void *user_data, pfn_allocate alloc_, pfn_free free_, pfn_e
     m_error(error_)
     #endif
 {
-    C4_CHECK(m_allocate);
-    C4_CHECK(m_free);
-    C4_CHECK(m_error);
+    RYML_CHECK(m_allocate);
+    RYML_CHECK(m_free);
+    RYML_CHECK(m_error);
 }
 
 

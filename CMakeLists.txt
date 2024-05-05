@@ -44,17 +44,30 @@ c4_add_library(ryml
         c4/yml/common.cpp
         c4/yml/emit.def.hpp
         c4/yml/emit.hpp
+        c4/yml/event_handler_stack.hpp
+        c4/yml/event_handler_tree.hpp
+        c4/yml/filter_processor.hpp
+        c4/yml/fwd.hpp
         c4/yml/export.hpp
         c4/yml/node.hpp
         c4/yml/node.cpp
+        c4/yml/node_type.hpp
+        c4/yml/node_type.cpp
+        c4/yml/parser_state.hpp
         c4/yml/parse.hpp
         c4/yml/parse.cpp
+        c4/yml/parse_engine.hpp
+        c4/yml/parse_engine.def.hpp
         c4/yml/preprocess.hpp
         c4/yml/preprocess.cpp
+        c4/yml/reference_resolver.hpp
+        c4/yml/reference_resolver.cpp
         c4/yml/std/map.hpp
         c4/yml/std/std.hpp
         c4/yml/std/string.hpp
         c4/yml/std/vector.hpp
+        c4/yml/tag.hpp
+        c4/yml/tag.cpp
         c4/yml/tree.hpp
         c4/yml/tree.cpp
         c4/yml/writer.hpp
@@ -86,6 +99,13 @@ endif()
 
 if(RYML_USE_ASSERT)
     target_compile_definitions(ryml PUBLIC RYML_USE_ASSERT=1)
+endif()
+
+if(CMAKE_COMPILER_IS_GNUCXX)
+    option(RYML_FANALYZER "Compile with -fanalyzer https://gcc.gnu.org/onlinedocs/gcc-13.2.0/gcc/Static-Analyzer-Options.html" OFF)
+    if(RYML_FANALYZER)
+        target_compile_options(ryml PUBLIC -fanalyzer)
+    endif()
 endif()
 
 

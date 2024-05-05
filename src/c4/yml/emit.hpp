@@ -15,13 +15,21 @@
 #include "./node.hpp"
 #endif
 
-#ifdef emit
-#error "emit is defined, likely from a Qt include. This will cause a compilation error. See https://github.com/biojppm/rapidyaml/issues/120"
-#endif
 #define RYML_DEPRECATE_EMIT                                             \
-    RYML_DEPRECATED("use emit_yaml() instead. See https://github.com/biojppm/rapidyaml/issues/120")
+    RYML_DEPRECATED("use emit_yaml() instead. "                         \
+                    "See https://github.com/biojppm/rapidyaml/issues/120")
 #define RYML_DEPRECATE_EMITRS                                           \
-    RYML_DEPRECATED("use emitrs_yaml() instead. See https://github.com/biojppm/rapidyaml/issues/120")
+    RYML_DEPRECATED("use emitrs_yaml() instead. "                       \
+                    "See https://github.com/biojppm/rapidyaml/issues/120")
+
+#ifdef emit
+#error "emit is defined, likely from a Qt include. "                    \
+    "This will cause a compilation error. "                             \
+    "See https://github.com/biojppm/rapidyaml/issues/120"
+#endif
+
+
+C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
 
 
 //-----------------------------------------------------------------------------
@@ -83,7 +91,7 @@ public:
      * @param error_on_excess when true, an error is raised when the
      *        output buffer is too small for the emitted YAML/JSON
      * */
-    substr emit_as(EmitType_e type, Tree const& t, size_t id, bool error_on_excess);
+    substr emit_as(EmitType_e type, Tree const& t, id_type id, bool error_on_excess);
     /** emit starting at the root node */
     substr emit_as(EmitType_e type, Tree const& t, bool error_on_excess=true);
     /** emit the given node */
@@ -92,27 +100,30 @@ public:
 private:
 
     Tree const* C4_RESTRICT m_tree;
+    bool m_flow;
 
-    void _emit_yaml(size_t id);
-    void _do_visit_flow_sl(size_t id, size_t ilevel=0);
-    void _do_visit_flow_ml(size_t id, size_t ilevel=0, size_t do_indent=1);
-    void _do_visit_block(size_t id, size_t ilevel=0, size_t do_indent=1);
-    void _do_visit_block_container(size_t id, size_t next_level, size_t do_indent);
-    void _do_visit_json(size_t id);
+    void _emit_yaml(id_type id);
+    void _do_visit_flow_sl(id_type id, id_type ilevel=0);
+    void _do_visit_flow_ml(id_type id, id_type ilevel=0, id_type do_indent=1);
+    void _do_visit_block(id_type id, id_type ilevel=0, id_type do_indent=1);
+    void _do_visit_block_container(id_type id, id_type next_level, bool do_indent);
+    void _do_visit_json(id_type id);
 
 private:
 
-    void _write(NodeScalar const& C4_RESTRICT sc, NodeType flags, size_t level);
+    void _write(NodeScalar const& C4_RESTRICT sc, NodeType flags, id_type level);
     void _write_json(NodeScalar const& C4_RESTRICT sc, NodeType flags);
 
-    void _write_doc(size_t id);
-    void _write_scalar(csubstr s, bool was_quoted);
-    void _write_scalar_json(csubstr s, bool as_key, bool was_quoted);
-    void _write_scalar_literal(csubstr s, size_t level, bool as_key, bool explicit_indentation=false);
-    void _write_scalar_folded(csubstr s, size_t level, bool as_key);
-    void _write_scalar_squo(csubstr s, size_t level);
-    void _write_scalar_dquo(csubstr s, size_t level);
-    void _write_scalar_plain(csubstr s, size_t level);
+    void _write_doc(id_type id);
+    void _write_scalar_json_dquo(csubstr s);
+    void _write_scalar_literal(csubstr s, id_type level, bool as_key);
+    void _write_scalar_folded(csubstr s, id_type level, bool as_key);
+    void _write_scalar_squo(csubstr s, id_type level);
+    void _write_scalar_dquo(csubstr s, id_type level);
+    void _write_scalar_plain(csubstr s, id_type level);
+
+    size_t _write_escaped_newlines(csubstr s, size_t i);
+    size_t _write_indented_block(csubstr s, size_t i, id_type level);
 
     void _write_tag(csubstr tag)
     {
@@ -122,18 +133,28 @@ private:
     }
 
     enum : type_bits {
-        _keysc =  (KEY|KEYREF|KEYANCH|KEYQUO|_WIP_KEY_STYLE) | ~(VAL|VALREF|VALANCH|VALQUO|_WIP_VAL_STYLE),
-        _valsc = ~(KEY|KEYREF|KEYANCH|KEYQUO|_WIP_KEY_STYLE) |  (VAL|VALREF|VALANCH|VALQUO|_WIP_VAL_STYLE),
+        _keysc =  (KEY|KEYREF|KEYANCH|KEYQUO|KEY_STYLE) | ~(VAL|VALREF|VALANCH|VALQUO|VAL_STYLE) | CONTAINER_STYLE,
+        _valsc = ~(KEY|KEYREF|KEYANCH|KEYQUO|KEY_STYLE) |  (VAL|VALREF|VALANCH|VALQUO|VAL_STYLE) | CONTAINER_STYLE,
         _keysc_json =  (KEY)  | ~(VAL),
         _valsc_json = ~(KEY)  |  (VAL),
     };
 
-    C4_ALWAYS_INLINE void _writek(size_t id, size_t level) { _write(m_tree->keysc(id), m_tree->_p(id)->m_type.type & ~_valsc, level); }
-    C4_ALWAYS_INLINE void _writev(size_t id, size_t level) { _write(m_tree->valsc(id), m_tree->_p(id)->m_type.type & ~_keysc, level); }
+    C4_ALWAYS_INLINE void _writek(id_type id, id_type level) { _write(m_tree->keysc(id), (m_tree->_p(id)->m_type.type & ~_valsc), level); }
+    C4_ALWAYS_INLINE void _writev(id_type id, id_type level) { _write(m_tree->valsc(id), (m_tree->_p(id)->m_type.type & ~_keysc), level); }
 
-    C4_ALWAYS_INLINE void _writek_json(size_t id) { _write_json(m_tree->keysc(id), m_tree->_p(id)->m_type.type & ~(VAL)); }
-    C4_ALWAYS_INLINE void _writev_json(size_t id) { _write_json(m_tree->valsc(id), m_tree->_p(id)->m_type.type & ~(KEY)); }
+    C4_ALWAYS_INLINE void _writek_json(id_type id) { _write_json(m_tree->keysc(id), m_tree->_p(id)->m_type.type & ~(VAL)); }
+    C4_ALWAYS_INLINE void _writev_json(id_type id) { _write_json(m_tree->valsc(id), m_tree->_p(id)->m_type.type & ~(KEY)); }
 
+    void _indent(id_type level, bool enabled)
+    {
+        if(enabled)
+            this->Writer::_do_write(' ', 2u * (size_t)level);
+    }
+    void _indent(id_type level)
+    {
+        if(!m_flow)
+            this->Writer::_do_write(' ', 2u * (size_t)level);
+    }
 };
 
 
@@ -149,14 +170,14 @@ private:
 
 /** emit YAML to the given file. A null file defaults to stdout.
  * Return the number of bytes written. */
-inline size_t emit_yaml(Tree const& t, size_t id, FILE *f)
+inline size_t emit_yaml(Tree const& t, id_type id, FILE *f)
 {
     EmitterFile em(f);
     return em.emit_as(EMIT_YAML, t, id, /*error_on_excess*/true).len;
 }
 /** emit JSON to the given file. A null file defaults to stdout.
  * Return the number of bytes written. */
-inline size_t emit_json(Tree const& t, size_t id, FILE *f)
+inline size_t emit_json(Tree const& t, id_type id, FILE *f)
 {
     EmitterFile em(f);
     return em.emit_as(EMIT_JSON, t, id, /*error_on_excess*/true).len;
@@ -265,17 +286,29 @@ inline OStream& operator<< (OStream& s, as_json const& j)
  */
 
 /** emit YAML to the given buffer. Return a substr trimmed to the emitted YAML.
+ * @param t the tree to emit.
+ * @param id the node where to start emitting.
+ * @param buf the output buffer.
  * @param error_on_excess Raise an error if the space in the buffer is insufficient.
+ * @return a substr trimmed to the result. If the buffer is
+ * insufficient (and error_on_excess is false), the pointer of the
+ * result will be set to null.
  * @overload */
-inline substr emit_yaml(Tree const& t, size_t id, substr buf, bool error_on_excess=true)
+inline substr emit_yaml(Tree const& t, id_type id, substr buf, bool error_on_excess=true)
 {
     EmitterBuf em(buf);
     return em.emit_as(EMIT_YAML, t, id, error_on_excess);
 }
 /** emit JSON to the given buffer. Return a substr trimmed to the emitted JSON.
+ * @param t the tree to emit.
+ * @param id the node where to start emitting.
+ * @param buf the output buffer.
  * @param error_on_excess Raise an error if the space in the buffer is insufficient.
+ * @return a substr trimmed to the result. If the buffer is
+ * insufficient (and error_on_excess is false), the pointer of the
+ * result will be set to null.
  * @overload */
-inline substr emit_json(Tree const& t, size_t id, substr buf, bool error_on_excess=true)
+inline substr emit_json(Tree const& t, id_type id, substr buf, bool error_on_excess=true)
 {
     EmitterBuf em(buf);
     return em.emit_as(EMIT_JSON, t, id, error_on_excess);
@@ -283,7 +316,12 @@ inline substr emit_json(Tree const& t, size_t id, substr buf, bool error_on_exce
 
 
 /** emit YAML to the given buffer. Return a substr trimmed to the emitted YAML.
+ * @param t the tree; will be emitted from the root node.
  * @param error_on_excess Raise an error if the space in the buffer is insufficient.
+ * @param buf the output buffer.
+ * @return a substr trimmed to the result. If the buffer is
+ * insufficient (and error_on_excess is false), the pointer of the
+ * result will be set to null.
  * @overload */
 inline substr emit_yaml(Tree const& t, substr buf, bool error_on_excess=true)
 {
@@ -291,7 +329,12 @@ inline substr emit_yaml(Tree const& t, substr buf, bool error_on_excess=true)
     return em.emit_as(EMIT_YAML, t, error_on_excess);
 }
 /** emit JSON to the given buffer. Return a substr trimmed to the emitted JSON.
+ * @param t the tree; will be emitted from the root node.
+ * @param buf the output buffer.
  * @param error_on_excess Raise an error if the space in the buffer is insufficient.
+ * @return a substr trimmed to the result. If the buffer is
+ * insufficient (and error_on_excess is false), the pointer of the
+ * result will be set to null.
  * @overload */
 inline substr emit_json(Tree const& t, substr buf, bool error_on_excess=true)
 {
@@ -301,7 +344,12 @@ inline substr emit_json(Tree const& t, substr buf, bool error_on_excess=true)
 
 
 /** emit YAML to the given buffer. Return a substr trimmed to the emitted YAML.
+ * @param r the starting node.
+ * @param buf the output buffer.
  * @param error_on_excess Raise an error if the space in the buffer is insufficient.
+ * @return a substr trimmed to the result. If the buffer is
+ * insufficient (and error_on_excess is false), the pointer of the
+ * result will be set to null.
  * @overload
  */
 inline substr emit_yaml(ConstNodeRef const& r, substr buf, bool error_on_excess=true)
@@ -310,7 +358,12 @@ inline substr emit_yaml(ConstNodeRef const& r, substr buf, bool error_on_excess=
     return em.emit_as(EMIT_YAML, r, error_on_excess);
 }
 /** emit JSON to the given buffer. Return a substr trimmed to the emitted JSON.
+ * @param r the starting node.
+ * @param buf the output buffer.
  * @param error_on_excess Raise an error if the space in the buffer is insufficient.
+ * @return a substr trimmed to the result. If the buffer is
+ * insufficient (and error_on_excess is false), the pointer of the
+ * result will be set to null.
  * @overload
  */
 inline substr emit_json(ConstNodeRef const& r, substr buf, bool error_on_excess=true)
@@ -325,7 +378,7 @@ inline substr emit_json(ConstNodeRef const& r, substr buf, bool error_on_excess=
 /** emit+resize: emit YAML to the given `std::string`/`std::vector`-like
  * container, resizing it as needed to fit the emitted YAML. */
 template<class CharOwningContainer>
-substr emitrs_yaml(Tree const& t, size_t id, CharOwningContainer * cont)
+substr emitrs_yaml(Tree const& t, id_type id, CharOwningContainer * cont)
 {
     substr buf = to_substr(*cont);
     substr ret = emit_yaml(t, id, buf, /*error_on_excess*/false);
@@ -340,7 +393,7 @@ substr emitrs_yaml(Tree const& t, size_t id, CharOwningContainer * cont)
 /** emit+resize: emit JSON to the given `std::string`/`std::vector`-like
  * container, resizing it as needed to fit the emitted JSON. */
 template<class CharOwningContainer>
-substr emitrs_json(Tree const& t, size_t id, CharOwningContainer * cont)
+substr emitrs_json(Tree const& t, id_type id, CharOwningContainer * cont)
 {
     substr buf = to_substr(*cont);
     substr ret = emit_json(t, id, buf, /*error_on_excess*/false);
@@ -357,7 +410,7 @@ substr emitrs_json(Tree const& t, size_t id, CharOwningContainer * cont)
 /** emit+resize: emit YAML to the given `std::string`/`std::vector`-like
  * container, resizing it as needed to fit the emitted YAML. */
 template<class CharOwningContainer>
-CharOwningContainer emitrs_yaml(Tree const& t, size_t id)
+CharOwningContainer emitrs_yaml(Tree const& t, id_type id)
 {
     CharOwningContainer c;
     emitrs_yaml(t, id, &c);
@@ -366,7 +419,7 @@ CharOwningContainer emitrs_yaml(Tree const& t, size_t id)
 /** emit+resize: emit JSON to the given `std::string`/`std::vector`-like
  * container, resizing it as needed to fit the emitted JSON. */
 template<class CharOwningContainer>
-CharOwningContainer emitrs_json(Tree const& t, size_t id)
+CharOwningContainer emitrs_json(Tree const& t, id_type id)
 {
     CharOwningContainer c;
     emitrs_json(t, id, &c);
@@ -464,7 +517,7 @@ CharOwningContainer emitrs_json(ConstNodeRef const& n)
 
 /** @cond dev */
 
-RYML_DEPRECATE_EMIT inline size_t emit(Tree const& t, size_t id, FILE *f)
+RYML_DEPRECATE_EMIT inline size_t emit(Tree const& t, id_type id, FILE *f)
 {
     return emit_yaml(t, id, f);
 }
@@ -477,7 +530,7 @@ RYML_DEPRECATE_EMIT inline size_t emit(ConstNodeRef const& r, FILE *f=nullptr)
     return emit_yaml(r, f);
 }
 
-RYML_DEPRECATE_EMIT inline substr emit(Tree const& t, size_t id, substr buf, bool error_on_excess=true)
+RYML_DEPRECATE_EMIT inline substr emit(Tree const& t, id_type id, substr buf, bool error_on_excess=true)
 {
     return emit_yaml(t, id, buf, error_on_excess);
 }
@@ -491,12 +544,12 @@ RYML_DEPRECATE_EMIT inline substr emit(ConstNodeRef const& r, substr buf, bool e
 }
 
 template<class CharOwningContainer>
-RYML_DEPRECATE_EMITRS substr emitrs(Tree const& t, size_t id, CharOwningContainer * cont)
+RYML_DEPRECATE_EMITRS substr emitrs(Tree const& t, id_type id, CharOwningContainer * cont)
 {
     return emitrs_yaml(t, id, cont);
 }
 template<class CharOwningContainer>
-RYML_DEPRECATE_EMITRS CharOwningContainer emitrs(Tree const& t, size_t id)
+RYML_DEPRECATE_EMITRS CharOwningContainer emitrs(Tree const& t, id_type id)
 {
     return emitrs_yaml<CharOwningContainer>(t, id);
 }
@@ -525,6 +578,8 @@ RYML_DEPRECATE_EMITRS CharOwningContainer emitrs(ConstNodeRef const& n)
 
 } // namespace yml
 } // namespace c4
+
+C4_SUPPRESS_WARNING_GCC_CLANG_POP
 
 #undef RYML_DEPRECATE_EMIT
 #undef RYML_DEPRECATE_EMITRS
