@@ -1,6 +1,7 @@
-#include "./test_case.hpp"
+#include "./test_lib/test_case.hpp"
 #ifndef RYML_SINGLE_HEADER
 #include "c4/yml/common.hpp"
+#include "c4/dump.hpp"
 #endif
 #include <stdexcept>
 #include <csetjmp>
@@ -235,6 +236,7 @@ TEST(Callbacks, cmp_user_data)
 {
     #ifndef C4_UBSAN
     Callbacks before = get_callbacks();
+    before.m_user_data = (void*)1u;
     Callbacks cp = before;
     EXPECT_EQ(cp, before);
     cp.m_user_data = (void*)(((char*)before.m_user_data) + 100u); // ubsan: runtime error: applying non-zero offset 100 to null pointer
@@ -390,6 +392,79 @@ TEST(RYML_ASSERT, basic)
     EXPECT_NE(get_callbacks().m_error, &test_error_impl);
 }
 
+
+//-----------------------------------------------------------------------------
+
+struct Dumper
+{
+    char errmsg[RYML_ERRMSG_SIZE] = {0};
+    detail::_SubstrWriter writer{errmsg};
+    void operator()(csubstr s)
+    {
+        writer.append(s);
+    }
+};
+TEST(_parse_dump, small_args)
+{
+    const std::string str(/*count*/RYML_LOGBUF_SIZE-1, 's');
+    const csubstr fmt = "smaller={}";
+    const std::string expected = formatrs<std::string>(fmt, str);
+    {
+        Dumper dumper;
+        char writebuf[RYML_LOGBUF_SIZE];
+        c4::DumpResults results = c4::format_dump_resume(dumper, writebuf, fmt, str);
+        EXPECT_EQ(results.bufsize, str.size());
+        EXPECT_EQ(dumper.writer.curr(), to_csubstr(expected));
+    }
+    {
+        Dumper dumper;
+        detail::_dump(dumper, fmt, str);
+        EXPECT_EQ(dumper.writer.curr(), to_csubstr(expected));
+    }
+}
+
+TEST(_parse_dump, large_args)
+{
+    const std::string str(/*count*/RYML_LOGBUF_SIZE+1, 'l');
+    const csubstr fmt = "larger={}";
+    {
+        Dumper dumper;
+        char writebuf[RYML_LOGBUF_SIZE];
+        c4::DumpResults results = c4::format_dump_resume(dumper, writebuf, fmt, str);
+        const csubstr expected = "larger=";
+        EXPECT_EQ(results.bufsize, str.size());
+        EXPECT_EQ(dumper.writer.curr(), expected);
+    }
+    {
+        Dumper dumper;
+        detail::_dump(dumper, fmt, str);
+        const std::string expected = formatrs<std::string>(fmt, str);
+        EXPECT_EQ(dumper.writer.curr(), to_csubstr(expected));
+    }
+}
+
+TEST(_parse_dump, unprintable_args)
+{
+    const std::string str(/*count*/RYML_LOGBUF_SIZE_MAX+1, 'u');
+    const csubstr fmt = "unprintable={}";
+    const csubstr expected = "unprintable=";
+    {
+        Dumper dumper;
+        char writebuf[RYML_LOGBUF_SIZE];
+        c4::DumpResults results = c4::format_dump_resume(dumper, writebuf, fmt, str);
+        EXPECT_EQ(results.bufsize, str.size());
+        EXPECT_EQ(dumper.writer.curr(), expected);
+    }
+    {
+        Dumper dumper;
+        detail::_dump(dumper, fmt, str);
+        size_t unprintable_size = (size_t)(RYML_LOGBUF_SIZE_MAX+1);
+        const std::string zeros(/*count*/unprintable_size, '\0');
+        EXPECT_EQ(to_csubstr(zeros).len, unprintable_size);
+        EXPECT_EQ(dumper.writer.pos, expected.size());
+        EXPECT_EQ(dumper.writer.curr(), expected);
+    }
+}
 
 // FIXME this is here merely to avoid a linker error
 Case const* get_case(csubstr)

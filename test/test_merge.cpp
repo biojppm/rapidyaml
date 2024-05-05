@@ -4,7 +4,7 @@
 #endif
 #include <gtest/gtest.h>
 
-#include "./test_case.hpp"
+#include "./test_lib/test_case.hpp"
 
 namespace c4 {
 namespace yml {
@@ -39,11 +39,16 @@ void test_merge(std::initializer_list<csubstr> li, csubstr expected)
     {
         loaded.clear(); // do not clear the arena of the loaded tree
         parse_in_arena(src, &loaded);
+        _c4dbg_tree("loaded", loaded);
         merged.merge_with(&loaded);
+        _c4dbg_tree("merged", merged);
     }
 
-    auto buf_result = emitrs_yaml<std::string>(merged);
-    auto buf_expected = emitrs_yaml<std::string>(ref);
+    _c4dbg_tree("ref", ref);
+
+    test_compare(merged, ref);
+    std::string buf_result = emitrs_yaml<std::string>(merged);
+    std::string buf_expected = emitrs_yaml<std::string>(ref);
 
     EXPECT_EQ(buf_result, buf_expected);
 }
@@ -62,6 +67,103 @@ TEST(merge, basic)
         },
         "{a: 1, b: 1, c: 20}"
     );
+}
+
+TEST(merge, dst_scalar_keeps_style)
+{
+    Tree dst = parse_in_arena("a: b");
+    const Tree src = parse_in_arena("'a': 'c'");
+    EXPECT_EQ(dst["a"], "b");
+    EXPECT_EQ(src["a"], "c");
+    EXPECT_TRUE(dst["a"].type().is_key_plain());
+    EXPECT_TRUE(dst["a"].type().is_val_plain());
+    EXPECT_TRUE(src["a"].type().is_key_squo());
+    EXPECT_TRUE(src["a"].type().is_val_squo());
+    _c4dbg_tree("src", src);
+    _c4dbg_tree("dst", dst);
+    dst.merge_with(&src);
+    _c4dbg_tree("merged", dst);
+    EXPECT_EQ(dst["a"], "c");
+    EXPECT_EQ(src["a"], "c");
+    EXPECT_TRUE(dst["a"].type().is_key_plain());
+    EXPECT_TRUE(dst["a"].type().is_val_plain());
+}
+TEST(merge, src_scalar_assigns_style_0)
+{
+    test_merge(
+        {
+            "{}",
+            "{a: 'b'}",
+        },
+        "{a: 'b'}"
+    );
+}
+TEST(merge, src_scalar_assigns_style_1)
+{
+    test_merge(
+        {
+            "{}",
+            "{a: 'b'}",
+            "{a: \"c\"}",
+        },
+        "{a: 'c'}"
+    );
+}
+TEST(merge, src_scalar_assigns_style_2)
+{
+    test_merge(
+        {
+            "{}",
+            "{a: 'b'}",
+            "{a: \"c\"}",
+            "{a: d}",
+        },
+        "{a: 'd'}"
+    );
+}
+TEST(merge, src_map_assigns_style_0)
+{
+    test_merge(
+        {
+            "{}",
+            "a: 'b'",
+            "{aa: \"bb\"}",
+        },
+        "{a: 'b', aa: \"bb\"}"
+        );
+}
+TEST(merge, src_map_assigns_style_1)
+{
+    test_merge(
+        {
+            "foo: bar",
+            "{a: 'b'}",
+            "{foo: \"bar\"}",
+        },
+        "foo: bar\na: 'b'\n"
+        );
+}
+TEST(merge, src_seq_assigns_style_0)
+{
+    test_merge(
+        {
+            "[]",
+            "- 0\n- 1\n",
+            "- 2\n- 3\n",
+        },
+        "[0,1,2,3]"
+        );
+}
+TEST(merge, src_seq_assigns_style_1)
+{
+    test_merge(
+        {
+            "- 0\n- 1\n",
+            "[a,b]",
+            "[c,d]",
+        },
+        "- 0\n- 1\n- a\n- b\n- c\n- d\n"
+        );
 }
 
 TEST(merge, val_to_seq)
@@ -108,7 +210,7 @@ TEST(merge, map_to_val)
     );
 }
 
-TEST(merge, seq_no_overlap_explicit)
+TEST(merge, seq_no_overlap)
 {
     test_merge(
         {"[0, 1, 2]", "[3, 4, 5]", "[6, 7, 8]"},
@@ -117,16 +219,8 @@ TEST(merge, seq_no_overlap_explicit)
 }
 
 
-TEST(merge, seq_no_overlap_implicit)
-{
-    test_merge(
-        {"0, 1, 2", "3, 4, 5", "6, 7, 8"},
-        "0, 1, 2, 3, 4, 5, 6, 7, 8"
-    );
-}
 
-
-TEST(merge, seq_overlap_explicit)
+TEST(merge, seq_overlap)
 {
     test_merge(
         {"[0, 1, 2]", "[1, 2, 3]", "[2, 3, 4]"},
@@ -136,21 +230,15 @@ TEST(merge, seq_overlap_explicit)
 }
 
 
-TEST(merge, seq_overlap_implicit)
-{
-    // now a bit more difficult
-    test_merge(
-        {"0, 1, 2", "1, 2, 3", "2, 3, 4"},
-        "0, 1, 2, 1, 2, 3, 2, 3, 4"
-        // or this? "0, 1, 2, 3, 4"
-    );
-}
-
 
 TEST(merge, map_orthogonal)
 {
     test_merge(
-        {"a: 0", "b: 1", "c: 2"},
+        {
+            "{a: 0}",
+            "{b: 1}",
+            "{c: 2}"
+        },
         "{a: 0, b: 1, c: 2}"
     );
 }
@@ -160,9 +248,9 @@ TEST(merge, map_overriding)
 {
     test_merge(
         {
-            "a: 0",
+            "{a: 0}",
             "{a: 1, b: 1}",
-            "c: 2"
+            "{c: 2}"
         },
         "{a: 1, b: 1, c: 2}"
     );
@@ -172,14 +260,14 @@ TEST(merge, map_overriding_multiple)
 {
     test_merge(
         {
-            "a: 0",
+            "{a: 0}",
             "{a: 1, b: 1}",
-            "c: 2",
-            "a: 2",
-            "a: 3",
-            "c: 4",
-            "c: 5",
-            "a: 4",
+            "{c: 2}",
+            "{a: 2}",
+            "{a: 3}",
+            "{c: 4}",
+            "{c: 5}",
+            "{a: 4}",
         },
         "{a: 4, b: 1, c: 5}"
     );

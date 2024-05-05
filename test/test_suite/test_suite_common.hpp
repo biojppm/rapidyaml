@@ -13,7 +13,7 @@
 #include <c4/fs/fs.hpp>
 #include <c4/log/log.hpp>
 
-#include "test_case.hpp"
+#include "test_lib/test_case.hpp"
 #include <gtest/gtest.h>
 
 #define RYML_NFO (0 || RYML_DBG)

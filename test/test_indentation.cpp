@@ -1,4 +1,5 @@
-#include "./test_group.hpp"
+#include "./test_lib/test_group.hpp"
+#include "./test_lib/test_group.def.hpp"
 
 namespace c4 {
 namespace yml {
@@ -6,14 +7,75 @@ namespace yml {
 CASE_GROUP(INDENTATION)
 {
 
-ADD_CASE_TO_GROUP("indented doc", R"(
-    # this is an indented doc
-    ---
-    - foo
-    - bar
-    - baz
+ADD_CASE_TO_GROUP("plain scalar indentation, 0", R"(
+plain
+ scalar
+ follows
 )",
-N(STREAM, L{N(DOCSEQ, L{N("foo"), N("bar"), N("baz")})})
+N(VP, "plain scalar follows")
+);
+
+ADD_CASE_TO_GROUP("plain scalar indentation, 0.1", R"(
+plain
+scalar
+follows
+)",
+N(VP, "plain scalar follows")
+);
+
+ADD_CASE_TO_GROUP("plain scalar indentation, 1",
+R"(a: plain
+ scalar
+ follows
+)",
+N(MB, L{N(KP|VP, "a", "plain scalar follows")})
+);
+
+ADD_CASE_TO_GROUP("plain scalar indentation, 1, err", EXPECT_PARSE_ERROR,
+R"(a: plain
+scalar
+follows
+)",
+LineCol(2, 7)
+);
+
+ADD_CASE_TO_GROUP("plain scalar indentation, 2",
+R"(- plain
+ scalar
+ follows
+)",
+N(SB, L{N(VP, "plain scalar follows")})
+);
+
+ADD_CASE_TO_GROUP("plain scalar indentation, 2, err", EXPECT_PARSE_ERROR,
+R"(- plain
+scalar
+follows
+)",
+LineCol(2, 1)
+);
+
+ADD_CASE_TO_GROUP("plain scalar indentation, 3",
+R"(a: [plain
+ scalar
+ follows
+ ]
+)",
+N(MB, L{N(KP|SFS, "a", L{N(VP, "plain scalar follows")})})
+);
+
+// FIXME: this should be a parse error
+ADD_CASE_TO_GROUP("plain scalar indentation, 3.1",
+R"(a: [plain
+ scalar
+ follows
+]
+b: c
+)",
+N(MB, L{
+  N(KP|SFS, "a", L{N(VP, "plain scalar follows")}),
+  N(KP|VP, "b", "c"),
+})
 );
 
 ADD_CASE_TO_GROUP("4 chars",
@@ -31,14 +93,15 @@ another_key:
       - val4
       - val5
 )",
-L{
-    N("key", "value"),
-    N("another_key", L{
-        N("sub_key0", L{N("val0"), N("val1")}),
-        N("sub_key1", L{N("val2"), N("val3")}),
-        N("sub_key2", L{N("val4"), N("val5")}),
+N(MB, L{
+    N(KP|VP, "key", "value"),
+    N(KP|MB, "another_key", L{
+        N(KP|SB, "sub_key0", L{N(VP, "val0"), N(VP, "val1")}),
+        N(KP|SB, "sub_key1", L{N(VP, "val2"), N(VP, "val3")}),
+        N(KP|SB, "sub_key2", L{N(VP, "val4"), N(VP, "val5")}),
     })
-});
+})
+);
 
 ADD_CASE_TO_GROUP("2 chars + 4 chars, ex0",
 R"(
@@ -55,14 +118,15 @@ another_key:
       - val4
       - val5
 )",
-L{
-    N("key", "value"),
-    N("another_key", L{
-        N("sub_key0", L{N("val0"), N("val1")}),
-        N("sub_key1", L{N("val2"), N("val3")}),
-        N("sub_key2", L{N("val4"), N("val5")}),
+N(MB, L{
+    N(KP|VP, "key", "value"),
+    N(KP|MB, "another_key", L{
+        N(KP|SB, "sub_key0", L{N(VP, "val0"), N(VP, "val1")}),
+        N(KP|SB, "sub_key1", L{N(VP, "val2"), N(VP, "val3")}),
+        N(KP|SB, "sub_key2", L{N(VP, "val4"), N(VP, "val5")}),
     })
-});
+})
+);
 
 ADD_CASE_TO_GROUP("2 chars + 4 chars, ex1",
 R"(
@@ -79,14 +143,15 @@ another_key:
       - val4
       - val5
 )",
-L{
-    N("key", "value"),
-    N("another_key", L{
-        N("sub_key0", L{N("val0"), N("val1")}),
-        N("sub_key1", L{N("val2"), N("val3")}),
-        N("sub_key2", L{N("val4"), N("val5")}),
+N(MB, L{
+    N(KP|VP, "key", "value"),
+    N(KP|MB, "another_key", L{
+        N(KP|SB, "sub_key0", L{N(VP, "val0"), N(VP, "val1")}),
+        N(KP|SB, "sub_key1", L{N(VP, "val2"), N(VP, "val3")}),
+        N(KP|SB, "sub_key2", L{N(VP, "val4"), N(VP, "val5")}),
     })
-});
+})
+);
 
 ADD_CASE_TO_GROUP("2 chars + 4 chars, ex2",
 R"(
@@ -103,18 +168,18 @@ another_key:
         - val4
         - val5
 )",
-L{
-    N("key", "value"),
-    N("another_key", L{
-        N("sub_key0", L{N("val0"), N("val1")}),
-        N("sub_key1", L{N("val2"), N("val3")}),
-        N("sub_key2", L{N("val4"), N("val5")}),
+N(MB, L{
+    N(KP|VP, "key", "value"),
+    N(KP|MB, "another_key", L{
+        N(KP|SB, "sub_key0", L{N(VP, "val0"), N(VP, "val1")}),
+        N(KP|SB, "sub_key1", L{N(VP, "val2"), N(VP, "val3")}),
+        N(KP|SB, "sub_key2", L{N(VP, "val4"), N(VP, "val5")}),
     })
-});
+})
+);
 
 ADD_CASE_TO_GROUP("non-indented blank lines",
-R"(
-matrix:
+R"(matrix:
 
   include:  # next line is blank
 
@@ -153,18 +218,19 @@ matrix:
     - env63
     - env64  # next line has five spaces
 )",
-L{N("matrix", L{
-    N("include", L{
-      N("env01"), N("env02"), N("env03"), N("env04"), 
-      N("env11"), N("env12"), N("env13"), N("env14"), 
-      N("env21"), N("env22"), N("env23"), N("env24"), 
-      N("env31"), N("env32"), N("env33"), N("env34"), 
-      N("env41"), N("env42"), N("env43"), N("env44"), 
-      N("env51"), N("env52"), N("env53"), N("env54"), 
-      N("env61"), N("env62"), N("env63"), N("env64"), 
-        }
-  )})
-});
+N(MB, L{N(KP|MB, "matrix", L{
+    N(KP|SB, "include", L{
+      N(VP, "env01"), N(VP, "env02"), N(VP, "env03"), N(VP, "env04"),
+      N(VP, "env11"), N(VP, "env12"), N(VP, "env13"), N(VP, "env14"),
+      N(VP, "env21"), N(VP, "env22"), N(VP, "env23"), N(VP, "env24"),
+      N(VP, "env31"), N(VP, "env32"), N(VP, "env33"), N(VP, "env34"),
+      N(VP, "env41"), N(VP, "env42"), N(VP, "env43"), N(VP, "env44"),
+      N(VP, "env51"), N(VP, "env52"), N(VP, "env53"), N(VP, "env54"),
+      N(VP, "env61"), N(VP, "env62"), N(VP, "env63"), N(VP, "env64"),
+    })
+  })
+})
+);
 
 ADD_CASE_TO_GROUP("unnecessary indentation",
 R"(
@@ -194,17 +260,18 @@ more_skip:
     - a
     - b
 )",
-L{
-  N("skip_commits", L{
-    N("files", L{N("a"), N("b"), N("c"), N("d"), N("e"), N("f"),}),
-    N("more_files", L{N("a"), N("b"),}),
-    N("even_more_files", L{N("a"), N("b"),}),
+N(MB, L{
+  N(KP|MB, "skip_commits", L{
+    N(KP|SB, "files", L{N(VP, "a"), N(VP, "b"), N(VP, "c"), N(VP, "d"), N(VP, "e"), N(VP, "f"),}),
+    N(KP|SB, "more_files", L{N(VP, "a"), N(VP, "b"),}),
+    N(KP|SB, "even_more_files", L{N(VP, "a"), N(VP, "b"),}),
   }),
-  N("more_skip", L{
-    N("files", L{N("a"), N("b"), N("c"), N("d"), N("e"), N("f"),}),
-    N("more_files", L{N("a"), N("b"),}),
+  N(KP|MB, "more_skip", L{
+    N(KP|SB, "files", L{N(VP, "a"), N(VP, "b"), N(VP, "c"), N(VP, "d"), N(VP, "e"), N(VP, "f"),}),
+    N(KP|SB, "more_files", L{N(VP, "a"), N(VP, "b"),}),
   })
-});
+})
+);
 
 
 ADD_CASE_TO_GROUP("blank lines indented, 1 - at same scope",
@@ -219,11 +286,12 @@ skip_commits:
    
                 - d
 )",
-L{
-  N("skip_commits", L{
-    N("files", L{N("a"), N("b"), N("c"), N("d"),}),
+N(MB, L{
+  N(KP|MB, "skip_commits", L{
+    N(KP|SB, "files", L{N(VP, "a"), N(VP, "b"), N(VP, "c"), N(VP, "d"),}),
   }),
-});
+})
+);
 
 ADD_CASE_TO_GROUP("indentation at start",
 R"(
@@ -234,11 +302,12 @@ R"(
         - c
         - d
 )",
-L{
-  N("foo", L{N("a"), N("b"),}),
-  N("bar", L{N("c"), N("d"),}),
-});
- 
+N(MB, L{
+  N(KP|SB, "foo", L{N(VP, "a"), N(VP, "b"),}),
+  N(KP|SB, "bar", L{N(VP, "c"), N(VP, "d"),}),
+})
+);
+
 ADD_CASE_TO_GROUP("unaligned comments",
 R"(
       stand2sit:
@@ -311,12 +380,12 @@ R"(
           - f
           - g
 )",
-L{
-  N("stand2sit", L{
-    N("map", "mirror"),
-    N("dat", L{N("a"), N("b"), N("b1"), N("b2"), N("b3"), N("b4"), N("b5"), N("b6"), N("b61"), N("b62"), N("b63"), N("b64"), N("b65"), N("b66"), N("b7"), N("b8"), N("b9"), N("b10"), N("e"), N("f"), N("g")}),
+N(MB, L{
+  N(KP|MB, "stand2sit", L{
+    N(KP|VP, "map", "mirror"),
+    N(KP|SB, "dat", L{N(VP, "a"), N(VP, "b"), N(VP, "b1"), N(VP, "b2"), N(VP, "b3"), N(VP, "b4"), N(VP, "b5"), N(VP, "b6"), N(VP, "b61"), N(VP, "b62"), N(VP, "b63"), N(VP, "b64"), N(VP, "b65"), N(VP, "b66"), N(VP, "b7"), N(VP, "b8"), N(VP, "b9"), N(VP, "b10"), N(VP, "e"), N(VP, "f"), N(VP, "g")}),
   }),
-});
+}));
 
 ADD_CASE_TO_GROUP("issue83",
 R"(
@@ -328,12 +397,14 @@ a:
   
 c: d
 )",
-L{
-N("e", L{N("f")}),
-N("g", "h"),
-N("a", L{N("b")}),
-N("c", "d"),
-});
+N(MB, L{
+N(KP|SB, "e", L{N(VP, "f")}),
+N(KP|VP, "g", "h"),
+N(KP|SB, "a", L{N(VP, "b")}),
+N(KP|VP, "c", "d"),
+})
+);
+
 }
 
 } // namespace yml

@@ -1,4 +1,5 @@
 #include "test_suite_events.hpp"
+#include "test_suite_event_handler.hpp"
 #include "test_suite_common.hpp"
 #ifndef RYML_SINGLE_HEADER
 #include <c4/yml/detail/stack.hpp>
@@ -7,65 +8,21 @@
 namespace c4 {
 namespace yml {
 
+
+std::string emit_events_from_source(substr src)
+{
+    EventHandlerYamlStd::EventSink sink;
+    EventHandlerYamlStd handler(&sink);
+    ParseEngine<EventHandlerYamlStd> parser(&handler);
+    parser.parse_in_place_ev("(testyaml)", src);
+    return sink.result;
+}
+
+
 namespace /*anon*/ {
 
-struct ScalarType
+csubstr filtered_scalar(csubstr str, Tree *tree)
 {
-    typedef enum {
-        PLAIN = 0,
-        SQUOTED,
-        DQUOTED,
-        LITERAL,
-        FOLDED
-    } ScalarType_e;
-
-    ScalarType_e val = PLAIN;
-    bool operator== (ScalarType_e v) const { return val == v; }
-    bool operator!= (ScalarType_e v) const { return val != v; }
-    ScalarType& operator= (ScalarType_e v) { val = v; return *this; }
-
-    csubstr to_str() const
-    {
-        switch(val)
-        {
-        case ScalarType::PLAIN: return csubstr("PLAIN");
-        case ScalarType::SQUOTED: return csubstr("SQUOTED");
-        case ScalarType::DQUOTED: return csubstr("DQUOTED");
-        case ScalarType::LITERAL: return csubstr("LITERAL");
-        case ScalarType::FOLDED: return csubstr("FOLDED");
-        }
-        C4_ERROR("");
-        return csubstr("");
-    }
-
-    bool is_quoted() const { return val == ScalarType::SQUOTED || val == ScalarType::DQUOTED; }
-};
-
-
-struct OptionalScalar
-{
-    csubstr val = {};
-    bool was_set = false;
-    inline operator csubstr() const { return get(); }
-    inline operator bool() const { return was_set; }
-    void operator= (csubstr v) { val = v; was_set = true; }
-    csubstr get() const { RYML_ASSERT(was_set); return val; }
-};
-
-#if RYML_NFO
-size_t to_chars(c4::substr buf, OptionalScalar const& s)
-{
-    if(!s)
-        return 0u;
-    if(s.val.len <= buf.len)
-        memcpy(buf.str, s.val.str, s.val.len);
-    return s.val.len;
-}
-#endif
-
-csubstr filtered_scalar(csubstr str, ScalarType scalar_type, Tree *tree)
-{
-    (void)scalar_type;
     csubstr tokens[] = {R"(\n)", R"(\t)", R"(\\)"};
     if(!str.first_of_any_iter(std::begin(tokens), std::end(tokens)))
         return str;
@@ -120,6 +77,16 @@ csubstr filtered_scalar(csubstr str, ScalarType scalar_type, Tree *tree)
                 append_str(i);
                 append_chars("\t", 2u);
             }
+            else if(next1 == 'b')
+            {
+                append_str(i);
+                append_chars("\b", 2u);
+            }
+            else if(next1 == 'r')
+            {
+                append_str(i);
+                append_chars("\r", 2u);
+            }
         }
     }
     append_str(str.len);
@@ -134,61 +101,73 @@ struct Scalar
     OptionalScalar anchor = {};
     OptionalScalar ref    = {};
     OptionalScalar tag    = {};
-    ScalarType     type   = {};
+    NodeType       flags = {};
     inline operator bool() const { if(anchor || tag) { RYML_ASSERT(scalar); } return scalar.was_set; }
     void add_key_props(Tree *tree, size_t node) const
     {
         if(ref)
         {
-            _nfo_logf("node[{}]: set key ref: '{}'", node, ref);
+            _nfo_logf("node[{}]: set key ref: '{}'", node, ref.get());
             tree->set_key_ref(node, ref);
         }
         if(anchor)
         {
-            _nfo_logf("node[{}]: set key anchor: '{}'", node, anchor);
+            _nfo_logf("node[{}]: set key anchor: '{}'", node, anchor.get());
             tree->set_key_anchor(node, anchor);
         }
         if(tag)
         {
-            csubstr ntag = normalize_tag(tag);
-            _nfo_logf("node[{}]: set key tag: '{}' -> '{}'", node, tag, ntag);
+            csubstr ntag = normalize_tag_long(tag);
+            _nfo_logf("node[{}]: set key tag: '{}' -> '{}'", node, tag.get(), ntag);
             tree->set_key_tag(node, ntag);
         }
-        if(type.is_quoted())
+        if(flags != NOTYPE)
         {
-            _nfo_logf("node[{}]: set key as quoted", node);
-            tree->_add_flags(node, KEYQUO);
+            #ifdef RYML_DBG
+            char buf1[128];
+            char buf2[128];
+            char buf3[128];
+            #endif
+            _nfo_logf("node[{}]: set key flags: {}: {}->{}", node, flags.type_str(buf1), flags.type_str(buf2), flags.type_str(buf3));
+            tree->_add_flags(node, flags & KEY_STYLE);
         }
     }
     void add_val_props(Tree *tree, size_t node) const
     {
         if(ref)
         {
-            _nfo_logf("node[{}]: set val ref: '{}'", node, ref);
+            _nfo_logf("node[{}]: set val ref: '{}'", node, ref.get());
             tree->set_val_ref(node, ref);
         }
         if(anchor)
         {
-            _nfo_logf("node[{}]: set val anchor: '{}'", node, anchor);
+            _nfo_logf("node[{}]: set val anchor: '{}'", node, anchor.get());
             tree->set_val_anchor(node, anchor);
         }
         if(tag)
         {
-            csubstr ntag = normalize_tag(tag);
-            _nfo_logf("node[{}]: set val tag: '{}' -> '{}'", node, tag, ntag);
+            csubstr ntag = normalize_tag_long(tag);
+            _nfo_logf("node[{}]: set val tag: '{}' -> '{}'", node, tag.get(), ntag);
             tree->set_val_tag(node, ntag);
         }
-        if(type.is_quoted())
+        if(flags != NOTYPE)
         {
-            _nfo_logf("node[{}]: set val as quoted", node);
-            tree->_add_flags(node, VALQUO);
+            #ifdef RYML_DBG
+            char buf1[128];
+            char buf2[128];
+            char buf3[128];
+            #endif
+            _nfo_logf("node[{}]: set val flags: {}: {}->{}", node, flags.type_str(buf1), flags.type_str(buf2), flags.type_str(buf3));
+            tree->_add_flags(node, flags & VAL_STYLE);
         }
     }
     csubstr filtered_scalar(Tree *tree) const
     {
-        return ::c4::yml::filtered_scalar(scalar, type, tree);
+        return ::c4::yml::filtered_scalar(scalar, tree);
     }
 };
+
+} // namespace /*anon*/
 
 csubstr parse_anchor_and_tag(csubstr tokens, OptionalScalar *anchor, OptionalScalar *tag)
 {
@@ -207,7 +186,7 @@ csubstr parse_anchor_and_tag(csubstr tokens, OptionalScalar *anchor, OptionalSca
             *anchor = tokens.first(pos).sub(1);
             tokens = tokens.right_of(pos);
         }
-        _nfo_logf("anchor: {}", *anchor);
+        _nfo_logf("anchor: {}", anchor->get());
     }
     if(tokens.begins_with('<'))
     {
@@ -215,14 +194,114 @@ csubstr parse_anchor_and_tag(csubstr tokens, OptionalScalar *anchor, OptionalSca
         RYML_ASSERT(pos != (size_t)csubstr::npos);
         *tag = tokens.first(pos + 1);
         tokens = tokens.right_of(pos).triml(' ');
-        _nfo_logf("tag: {}", *tag);
+        _nfo_logf("tag: {}", tag->maybe_get());
     }
     return tokens;
 }
 
-} // namespace /*anon*/
+bool compare_events(csubstr ref_evts, csubstr emt_evts, bool ignore_container_style=false, bool ignore_scalar_style=false)
+{
+    auto diff_line_with_optional_ending = [](csubstr ref, csubstr emt, csubstr optional_ending){
+        RYML_ASSERT(ref != emt);
+        ref = ref.stripr(optional_ending).trimr(' ');
+        emt = emt.stripr(optional_ending).trimr(' ');
+        bool diff = ref != emt;
+        return diff;
+    };
+    auto diff_val_with_scalar_wildcard = [](csubstr ref, csubstr emt){
+        RYML_ASSERT(ref.begins_with("=VAL "));
+        RYML_ASSERT(emt.begins_with("=VAL "));
+        ref = ref.sub(5);
+        emt = emt.sub(5);
+        OptionalScalar reftag = {}, refanchor = {};
+        OptionalScalar emttag = {}, emtanchor = {};
+        if((bool(reftag) != bool(emttag)) || (reftag && (reftag.get() != emttag.get())))
+            return true;
+        if((bool(refanchor) != bool(emtanchor)) || (refanchor && (refanchor.get() != emtanchor.get())))
+            return true;
+        ref = parse_anchor_and_tag(ref, &refanchor, &reftag).triml(' ');
+        emt = parse_anchor_and_tag(emt, &emtanchor, &emttag).triml(' ');
+        RYML_ASSERT(ref.len > 0);
+        RYML_ASSERT(emt.len > 0);
+        RYML_ASSERT(ref[0] == ':' || ref[0] == '\'' || ref[0] == '"' || ref[0] == '|' || ref[0] == '>');
+        RYML_ASSERT(emt[0] == ':' || emt[0] == '\'' || emt[0] == '"' || emt[0] == '|' || emt[0] == '>');
+        ref = ref.sub(1);
+        emt = emt.sub(1);
+        if(ref != emt)
+            return true;
+        return false;
+    };
+    if(bool(ref_evts.len) != bool(emt_evts.len))
+        return true;
+    size_t posref = 0;
+    size_t posemt = 0;
+    bool fail = false;
+    while(posref < ref_evts.len && posemt < emt_evts.len)
+    {
+        const size_t endref = ref_evts.find('\n', posref);
+        const size_t endemt = emt_evts.find('\n', posemt);
+        if((endref == npos || endemt == npos) && (endref != endemt))
+        {
+            fail = true;
+            break;
+        }
+        csubstr ref = ref_evts.range(posref, endref);
+        csubstr emt = emt_evts.range(posemt, endemt);
+        if(ref != emt)
+        {
+            if(ref.begins_with("+DOC"))
+            {
+                if(diff_line_with_optional_ending(ref, emt, "---"))
+                {
+                    fail = true;
+                    break;
+                }
+            }
+            else if(ref.begins_with("-DOC"))
+            {
+                if(diff_line_with_optional_ending(ref, emt, "..."))
+                {
+                    fail = true;
+                    break;
+                }
+            }
+            else if(ignore_container_style && ref.begins_with("+MAP"))
+            {
+                if(diff_line_with_optional_ending(ref, emt, "{}"))
+                {
+                    fail = true;
+                    break;
+                }
+            }
+            else if(ignore_container_style && ref.begins_with("+SEQ"))
+            {
+                if(diff_line_with_optional_ending(ref, emt, "[]"))
+                {
+                    fail = true;
+                    break;
+                }
+            }
+            else if(ignore_scalar_style && ref.begins_with("=VAL"))
+            {
+                if(diff_val_with_scalar_wildcard(ref, emt))
+                {
+                    fail = true;
+                    break;
+                }
+            }
+            else
+            {
+                fail = true;
+                break;
+            }
+        }
+        posref = endref + 1u;
+        posemt = endemt + 1u;
+    }
+    return fail;
+}
 
-void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
+void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
 {
     struct ParseLevel { size_t tree_node; };
     detail::stack<ParseLevel> m_stack = {};
@@ -247,33 +326,34 @@ void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
             {
                 _nfo_llog("double-quoted scalar!");
                 curr.scalar = line.sub(1);
-                curr.type = ScalarType::DQUOTED;
+                curr.flags = SCALAR_DQUO;
             }
             else if(line.begins_with('\''))
             {
                 _nfo_llog("single-quoted scalar!");
                 curr.scalar = line.sub(1);
-                curr.type = ScalarType::SQUOTED;
+                curr.flags = SCALAR_SQUO;
             }
             else if(line.begins_with('|'))
             {
                 _nfo_llog("block literal scalar!");
                 curr.scalar = line.sub(1);
-                curr.type = ScalarType::LITERAL;
+                curr.flags = SCALAR_LITERAL;
             }
             else if(line.begins_with('>'))
             {
                 _nfo_llog("block folded scalar!");
                 curr.scalar = line.sub(1);
-                curr.type = ScalarType::FOLDED;
+                curr.flags = SCALAR_FOLDED;
             }
             else
             {
                 _nfo_llog("plain scalar");
                 ASSERT_TRUE(line.begins_with(':'));
                 curr.scalar = line.sub(1);
+                curr.flags = SCALAR_PLAIN;
             }
-            _nfo_logf("parsed scalar: '{}'", curr.scalar);
+            _nfo_logf("parsed scalar: '{}'", curr.scalar.maybe_get());
             if(m_stack.empty())
             {
                 _nfo_log("stack was empty, pushing root as DOC...");
@@ -288,8 +368,8 @@ void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
                 ASSERT_TRUE(curr);
                 _nfo_logf("seq[{}]: adding child", top.tree_node);
                 size_t node = tree.append_child(top.tree_node);
-                NodeType_e as_doc = tree.is_stream(top.tree_node) ? DOC : NOTYPE;
-                _nfo_logf("seq[{}]: child={} val='{}' as_doc=", top.tree_node, node, curr.scalar, NodeType::type_str(as_doc));
+                NodeType as_doc = tree.is_stream(top.tree_node) ? DOC : NOTYPE;
+                _nfo_logf("seq[{}]: child={} val='{}' as_doc=", top.tree_node, node, curr.scalar.maybe_get(), as_doc.type_str());
                 tree.to_val(node, curr.filtered_scalar(&tree), as_doc);
                 curr.add_val_props(&tree, node);
             }
@@ -298,26 +378,27 @@ void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
                 _nfo_logf("is map! map_id={}", top.tree_node);
                 if(!key)
                 {
-                    _nfo_logf("store key='{}' anchor='{}' tag='{}' type={}", curr.scalar, curr.anchor, curr.tag, curr.type.to_str());
+                    char buf[128];(void)buf;
+                    _nfo_logf("store key='{}' anchor='{}' tag='{}' type={}", curr.scalar.maybe_get(), curr.anchor.maybe_get(), curr.tag.maybe_get(), curr.flags.type_str(buf));
                     key = curr;
                 }
                 else
                 {
                     _nfo_logf("map[{}]: adding child", top.tree_node);
                     size_t node = tree.append_child(top.tree_node);
-                    NodeType_e as_doc = tree.is_stream(top.tree_node) ? DOC : NOTYPE;
-                    _nfo_logf("map[{}]: child={} key='{}' val='{}' as_doc={}", top.tree_node, node, key.scalar, curr.scalar, NodeType::type_str(as_doc));
+                    NodeType as_doc = tree.is_stream(top.tree_node) ? DOC : NOTYPE;
+                    _nfo_logf("map[{}]: child={} key='{}' val='{}' as_doc={}", top.tree_node, node, key.scalar.maybe_get(), curr.scalar.maybe_get(), as_doc.type_str());
                     tree.to_keyval(node, key.filtered_scalar(&tree), curr.filtered_scalar(&tree), as_doc);
                     key.add_key_props(&tree, node);
                     curr.add_val_props(&tree, node);
-                    _nfo_logf("clear key='{}'", key.scalar);
+                    _nfo_logf("clear key='{}'", key.scalar.maybe_get());
                     key = {};
                 }
             }
             else
             {
                 _nfo_logf("setting tree_node={} to DOCVAL...", top.tree_node);
-                tree.to_val(top.tree_node, curr.filtered_scalar(&tree), DOC);
+                tree.to_val(top.tree_node, curr.filtered_scalar(&tree), tree.type(top.tree_node));
                 curr.add_val_props(&tree, top.tree_node);
             }
         }
@@ -338,7 +419,7 @@ void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
             {
                 if(key)
                 {
-                    _nfo_logf("node[{}] is map and key '{}' is pending: set {} as val ref", top.tree_node, key.scalar, alias);
+                    _nfo_logf("node[{}] is map and key '{}' is pending: set {} as val ref", top.tree_node, key.scalar.maybe_get(), alias);
                     size_t node = tree.append_child(top.tree_node);
                     tree.to_keyval(node, key.filtered_scalar(&tree), alias);
                     key.add_key_props(&tree, node);
@@ -364,17 +445,25 @@ void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
             OptionalScalar anchor = {};
             OptionalScalar tag = {};
             csubstr more_tokens = line.stripl("+SEQ").triml(' ');
+            NodeType more_flags = NOTYPE;
             if(more_tokens.begins_with('['))
             {
                 ASSERT_TRUE(more_tokens.begins_with("[]"));
                 more_tokens = more_tokens.offs(2, 0).triml(' ');
+                more_flags.add(FLOW_SL);
+                _nfo_log("seq is flow");
+            }
+            else
+            {
+                more_flags.add(BLOCK);
+                _nfo_log("seq is block");
             }
             parse_anchor_and_tag(more_tokens, &anchor, &tag);
             size_t node = tree.root_id();
             if(m_stack.empty())
             {
                 _nfo_log("stack was empty, set root to SEQ");
-                tree._add_flags(node, SEQ);
+                tree._add_flags(node, SEQ|more_flags);
                 m_stack.push({node});
                 ASSERT_FALSE(key); // for the key to exist, the parent must exist and be a map
             }
@@ -383,7 +472,6 @@ void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
                 size_t parent = m_stack.top().tree_node;
                 _nfo_logf("stack was not empty. parent={}", parent);
                 ASSERT_NE(parent, (size_t)NONE);
-                NodeType more_flags = NOTYPE;
                 if(tree.is_doc(parent) && !(tree.is_seq(parent) || tree.is_map(parent)))
                 {
                     _nfo_logf("set node to parent={}, add DOC", parent);
@@ -403,7 +491,7 @@ void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
                     ASSERT_EQ(tree.is_map(parent) || node == parent, true);
                     tree.to_seq(node, key.filtered_scalar(&tree), more_flags);
                     key.add_key_props(&tree, node);
-                    _nfo_logf("clear key='{}'", key.scalar);
+                    _nfo_logf("clear key='{}'", key.scalar.maybe_get());
                     key = {};
                 }
                 else
@@ -432,17 +520,25 @@ void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
             OptionalScalar anchor = {};
             OptionalScalar tag = {};
             csubstr more_tokens = line.stripl("+MAP").triml(' ');
+            NodeType more_flags = NOTYPE;
             if(more_tokens.begins_with('{'))
             {
                 ASSERT_TRUE(more_tokens.begins_with("{}"));
                 more_tokens = more_tokens.offs(2, 0).triml(' ');
+                more_flags.add(FLOW_SL);
+                _nfo_log("map is flow");
+            }
+            else
+            {
+                more_flags.add(BLOCK);
+                _nfo_log("map is block");
             }
             parse_anchor_and_tag(more_tokens, &anchor, &tag);
             size_t node = tree.root_id();
             if(m_stack.empty())
             {
                 _nfo_log("stack was empty, set root to MAP");
-                tree._add_flags(node, MAP);
+                tree._add_flags(node, MAP|more_flags);
                 m_stack.push({node});
                 ASSERT_FALSE(key); // for the key to exist, the parent must exist and be a map
             }
@@ -451,7 +547,6 @@ void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
                 size_t parent = m_stack.top().tree_node;
                 _nfo_logf("stack was not empty. parent={}", parent);
                 ASSERT_NE(parent, (size_t)NONE);
-                NodeType more_flags = NOTYPE;
                 if(tree.is_doc(parent) && !(tree.is_seq(parent) || tree.is_map(parent)))
                 {
                     _nfo_logf("set node to parent={}, add DOC", parent);
@@ -471,7 +566,7 @@ void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
                     ASSERT_EQ(tree.is_map(parent) || node == parent, true);
                     tree.to_map(node, key.filtered_scalar(&tree), more_flags);
                     key.add_key_props(&tree, node);
-                    _nfo_logf("clear key='{}'", key.scalar);
+                    _nfo_logf("clear key='{}'", key.scalar.maybe_get());
                     key = {};
                 }
                 else
@@ -535,7 +630,7 @@ void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
                 else if(is_sep)
                 {
                     _nfo_logf("separator was specified: {}", rem);
-                    if((!tree.is_container(node)) && (!tree.is_doc(node)))
+                    if((!tree.is_container(node)) && (!tree.is_val(node)))
                     {
                         tree._add_flags(node, STREAM);
                         node = tree.append_child(node);
@@ -555,7 +650,7 @@ void EventsParser::parse(csubstr src, Tree *C4_RESTRICT tree_)
                 }
                 else
                 {
-                    if(tree.is_doc(node))
+                    if(tree.is_container(node) || tree.is_val(node))
                     {
                         _nfo_log("rearrange root as STREAM");
                         tree.set_root_as_stream();

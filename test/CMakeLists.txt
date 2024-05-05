@@ -12,13 +12,15 @@ c4_target_compile_flags(ryml-test-quickstart PUBLIC GCC -Wno-useless-cast)
 c4_add_test(ryml-test-quickstart)
 
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL GNU)
-    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 7.0.0)
-        set_property(SOURCE test_case.cpp APPEND PROPERTY COMPILE_OPTIONS -Wno-stringop-overflow)
-    endif()
-endif()
 c4_add_library(ryml-_testlib LIBRARY_TYPE STATIC
-    SOURCES test_case.hpp test_case.cpp callbacks_tester.hpp
+    SOURCES
+       test_lib/callbacks_tester.hpp
+       test_lib/test_case_node.hpp
+       test_lib/test_case_node.cpp
+       test_lib/test_case.hpp
+       test_lib/test_case.cpp
+       test_lib/test_engine.hpp
+       test_lib/test_engine.cpp
     INC_DIRS ${CMAKE_CURRENT_LIST_DIR}
     LIBS ryml c4fs gtest
     FOLDER test)
@@ -30,38 +32,37 @@ endif()
 function(ryml_add_test test_name)
     set(t ryml-test-${test_name})
     c4_add_executable(${t}
-        SOURCES test_${test_name}.cpp
-        LIBS ${ARGN} ryml-_testlib gtest_main
+        SOURCES test_${test_name}.cpp ${ARGN}
+        LIBS ryml-_testlib gtest_main
         FOLDER test)
-    if(RYML_DBG)
-        target_compile_definitions(${t} PRIVATE RYML_DBG)
-    endif()
     c4_add_test(${t})
 endfunction()
 
 
-c4_add_library(ryml-_testgroup LIBRARY_TYPE OBJECT
-    SOURCES test_group.cpp test_group.hpp
+c4_add_library(ryml-_testgroup LIBRARY_TYPE STATIC
+    SOURCES
+       test_lib/test_group.hpp
+       test_lib/test_group.def.hpp
+       test_lib/test_group.cpp
     LIBS ryml ryml-_testlib c4fs
     FOLDER test)
 function(ryml_add_test_case_group name)
-    ryml_add_test(${name} ryml-_testgroup)
+    ryml_add_test(${name})
+    target_link_libraries(ryml-test-${name} PUBLIC ryml-_testgroup)
 endfunction()
 
 
-function(ryml_get_target_exe target_name target_file)
-    if(CMAKE_CROSSCOMPILING)
-        set(tgt ${CMAKE_CROSSCOMPILING_EMULATOR} $<TARGET_FILE:${target_name}>)
-    else()
-        set(tgt $<TARGET_FILE:${target_name}>)
-    endif()
-    set(${target_file} ${tgt} PARENT_SCOPE)
-endfunction()
-
-
+ryml_add_test(parse_engine
+    test_suite/test_suite_event_handler.cpp
+    test_suite/test_suite_event_handler.hpp)
+ryml_add_test(yaml_events
+    test_suite/test_suite_event_handler.cpp
+    test_suite/test_suite_event_handler.hpp)
 ryml_add_test(callbacks)
 ryml_add_test(stack)
+ryml_add_test(filter)
 ryml_add_test(parser)
+ryml_add_test(node_type)
 ryml_add_test(tree)
 ryml_add_test(noderef)
 ryml_add_test(emit)
@@ -72,46 +73,59 @@ ryml_add_test(json)
 ryml_add_test(preprocess)
 ryml_add_test(merge)
 ryml_add_test(location)
-ryml_add_test(yaml_events)
 ryml_add_test_case_group(empty_file)
-ryml_add_test_case_group(empty_map)
-ryml_add_test_case_group(empty_seq)
-ryml_add_test_case_group(empty_scalar)
-ryml_add_test_case_group(simple_doc)
-ryml_add_test_case_group(simple_map)
-ryml_add_test_case_group(simple_seq)
-ryml_add_test_case_group(simple_set)
-ryml_add_test_case_group(single_quoted)
-ryml_add_test_case_group(double_quoted)
-ryml_add_test_case_group(plain_scalar)
-ryml_add_test_case_group(block_literal)
-ryml_add_test_case_group(block_folded)
+ryml_add_test_case_group(doc)
+ryml_add_test_case_group(seq)
+ryml_add_test_case_group(seq_empty)
+ryml_add_test_case_group(seq_generic)
+ryml_add_test_case_group(map)
+ryml_add_test_case_group(map_empty)
+ryml_add_test_case_group(map_generic)
+ryml_add_test_case_group(map_set)
+ryml_add_test_case_group(seq_of_map)
+ryml_add_test_case_group(map_of_seq)
+ryml_add_test_case_group(scalar_empty)
+ryml_add_test_case_group(scalar_null)
+ryml_add_test_case_group(scalar_squoted)
+ryml_add_test_case_group(scalar_dquoted)
+ryml_add_test_case_group(scalar_literal)
+ryml_add_test_case_group(scalar_folded)
+ryml_add_test_case_group(scalar_plain)
 ryml_add_test_case_group(tag_property)
 ryml_add_test_case_group(explicit_key)
-ryml_add_test_case_group(nested_mapx2)
-ryml_add_test_case_group(nested_seqx2)
-ryml_add_test_case_group(nested_mapx3)
-ryml_add_test_case_group(nested_seqx3)
-ryml_add_test_case_group(nested_mapx4)
-ryml_add_test_case_group(nested_seqx4)
-ryml_add_test_case_group(map_of_seq)
-ryml_add_test_case_group(seq_of_map)
-ryml_add_test_case_group(generic_map)
-ryml_add_test_case_group(generic_seq)
+ryml_add_test_case_group(map_nestedx2)
+ryml_add_test_case_group(seq_nestedx2)
+ryml_add_test_case_group(map_nestedx3)
+ryml_add_test_case_group(seq_nestedx3)
+ryml_add_test_case_group(map_nestedx4)
+ryml_add_test_case_group(seq_nestedx4)
 ryml_add_test_case_group(scalar_names)
-ryml_add_test_case_group(simple_anchor)
+ryml_add_test_case_group(anchor)
 ryml_add_test_case_group(indentation)
 ryml_add_test_case_group(number)
-ryml_add_test_case_group(null_val)
 ryml_add_test_case_group(github_issues)
+
+if(WIN32 AND MSVC)
+    target_compile_options(ryml-test-parse_engine PRIVATE /bigobj)
+endif()
 
 
 #-------------------------------------------------------------------------
 # test the tools as well
 
+function(ryml_get_target_exe target_name target_file)
+    if(CMAKE_CROSSCOMPILING)
+        set(tgt ${CMAKE_CROSSCOMPILING_EMULATOR} $<TARGET_FILE:${target_name}>)
+    else()
+        set(tgt $<TARGET_FILE:${target_name}>)
+    endif()
+    set(${target_file} ${tgt} PARENT_SCOPE)
+endfunction()
+
 if(NOT EMSCRIPTEN)
     option(RYML_TEST_TOOLS "Enable tests for the tools. Requires file system access." ON)
 endif()
+
 if(RYML_TEST_TOOLS)
     if(NOT RYML_BUILD_TOOLS)
         add_subdirectory(../tools tools)
@@ -133,19 +147,22 @@ if(RYML_TEST_TOOLS)
 ")
         set("${fileout}" "${filename}" PARENT_SCOPE)
     endfunction()
-    function(ryml_add_event_tool_test name expect_success contents)
+    function(ryml_add_event_tool_test name expect_success flags contents)
         ryml_create_file(${name}.yml "${contents}" file)
-        add_test(NAME ryml-test-tool-events-${name} COMMAND ${RYML_TGT_EVENTS} ${file})
+        add_test(NAME ryml-test-tool-events-${name} COMMAND ${RYML_TGT_EVENTS} ${flags} ${file})
         if(NOT expect_success)
             set_tests_properties(ryml-test-tool-events-${name} PROPERTIES WILL_FAIL TRUE)
         endif()
     endfunction()
     ryml_get_target_exe(ryml-yaml-events RYML_TGT_EVENTS)
-    ryml_add_event_tool_test(success TRUE "{foo: bar, baz: [exactly]}")
-    ryml_add_event_tool_test(fail_squo FALSE "foo: 'bar")
-    ryml_add_event_tool_test(fail_dquo FALSE "foo: \"bar")
-    ryml_add_event_tool_test(fail_seq1 FALSE "[ a, b, c ] ]")
-    ryml_add_event_tool_test(fail_seq2 FALSE "[ [a, b, c ]")
+    ryml_add_event_tool_test(success_tree TRUE "-t" "{foo: bar, baz: [exactly]}")
+    ryml_add_event_tool_test(success_evts TRUE ""   "{{this: is, a: keymap}: [seq,val]}")
+    ryml_add_event_tool_test(fail_squo_tree FALSE "-t" "foo: 'bar")
+    ryml_add_event_tool_test(fail_squo_evts FALSE ""   "foo: 'bar")
+    ryml_add_event_tool_test(fail_dquo_tree FALSE "-t" "foo: \"bar")
+    ryml_add_event_tool_test(fail_dquo_evts FALSE ""   "foo: \"bar")
+    ryml_add_event_tool_test(fail_seq1_tree FALSE "-t" "[ a, b, c ] ]")
+    ryml_add_event_tool_test(fail_seq2_evts FALSE ""   "[ [a, b, c ]")
 endif()
 
 
@@ -174,6 +191,8 @@ if(RYML_TEST_SUITE)
             test_suite.cpp
             test_suite/test_suite_common.hpp
             test_suite/test_suite_events_emitter.cpp
+            test_suite/test_suite_event_handler.cpp
+            test_suite/test_suite_event_handler.hpp
             test_suite/test_suite_events.cpp
             test_suite/test_suite_events.hpp
             test_suite/test_suite_parts.cpp
@@ -193,7 +212,8 @@ if(RYML_TEST_SUITE)
             foreach(case_file ${case_files})
                 string(REPLACE "." "_" approach "${case_file}")
                 set(test_name ${case_name}-${approach})
-                #message("${test_name}: ${case_name}: ${case_dir} ${case_file}")
+                #message("${test_name}: ${case_name} ${case_dir} ${case_file}")
+                set(cmd_with_args ${tgt} "${test_name}" "${suite_dir}/${case_dir}" "${case_file}")
                 if("${case_file}" STREQUAL "===")
                     continue()
                 elseif("${case_file}" STREQUAL "test.event")
@@ -202,16 +222,24 @@ if(RYML_TEST_SUITE)
                     continue()
                 elseif("${case_file}" STREQUAL "error")
                     continue()
+                elseif("${case_file}" STREQUAL "in.yaml")
+                    add_test(NAME ryml-test-suite-${test_name}        COMMAND ${cmd_with_args} "--gtest_filter=-*events*:-*check_expected_error*")
+                    add_test(NAME ryml-test-suite-${test_name}-events COMMAND ${cmd_with_args} "--gtest_filter=*events*")
+                elseif("${case_file}" STREQUAL "out.yaml")
+                    add_test(NAME ryml-test-suite-${test_name}        COMMAND ${cmd_with_args} "--gtest_filter=-*events*:-*check_expected_error*")
+                    add_test(NAME ryml-test-suite-${test_name}-events COMMAND ${cmd_with_args} "--gtest_filter=-*ref_events*:*events*")
+                elseif("${case_file}" STREQUAL "emit.yaml")
+                    add_test(NAME ryml-test-suite-${test_name}        COMMAND ${cmd_with_args} "--gtest_filter=-*events*:-*check_expected_error*")
+                    add_test(NAME ryml-test-suite-${test_name}-events COMMAND ${cmd_with_args} "--gtest_filter=-*ref_events*:*events*")
                 elseif("${case_file}" STREQUAL "in.json")
-                    add_test(NAME ryml-test-suite-${test_name} COMMAND ${tgt} "${test_name}" "${suite_dir}/${case_dir}" in.json "--gtest_filter=-*events*:-*check_expected_error")
+                    add_test(NAME ryml-test-suite-${test_name}        COMMAND ${cmd_with_args} "--gtest_filter=-*events*:-*check_expected_error*")
                 else()
-                    add_test(NAME ryml-test-suite-${test_name} COMMAND ${tgt} "${test_name}" "${suite_dir}/${case_dir}" "${case_file}" "--gtest_filter=-*events*:-*check_expected_error")
-                    add_test(NAME ryml-test-suite-${test_name}-events COMMAND ${tgt} "${test_name}-events" "${suite_dir}/${case_dir}" "${case_file}" "--gtest_filter=*events*")
+                    c4_err("unknown file: ${case_file}")
                 endif()
             endforeach()
         else()
             set(test_name ${case_name}-error)
-            add_test(NAME ryml-test-suite-${test_name} COMMAND ${tgt} "${test_name}" "${suite_dir}/${case_dir}" in.yaml "--gtest_filter=*check_expected_error")
+            add_test(NAME ryml-test-suite-${test_name} COMMAND ${tgt} "${test_name}" "${suite_dir}/${case_dir}" in.yaml "--gtest_filter=*check_expected_error*:*check_expected_error*ref_events")
         endif()
     endfunction()
 

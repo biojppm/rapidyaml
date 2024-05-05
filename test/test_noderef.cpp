@@ -6,8 +6,8 @@
 #include <c4/yml/detail/checks.hpp>
 #include <c4/yml/detail/print.hpp>
 #endif
-#include "./test_case.hpp"
-#include "./callbacks_tester.hpp"
+#include "./test_lib/test_case.hpp"
+#include "./test_lib/callbacks_tester.hpp"
 
 #include <gtest/gtest.h>
 
@@ -222,128 +222,146 @@ TEST(NodeRef, valid_vs_seed_vs_readable)
     EXPECT_FALSE(none.readable());
 }
 
-#define _TEST_FAIL(method_expr)                                    \
-    {                                                                   \
-        SCOPED_TRACE(#method_expr);                                     \
-        if(tree)                                                        \
-            ExpectError::check_assertion(tree, [&]{ return method_expr; }); \
-        else                                                            \
-            ExpectError::check_assertion([&]{ return method_expr; });   \
+#define _TEST_FAIL(tree, method_expr)           \
+    {                                           \
+        SCOPED_TRACE(#method_expr);             \
+        ExpectError::check_assertion(tree, [&]{ \
+            auto ret = (method_expr);           \
+            C4_DONT_OPTIMIZE(ret);              \
+        });                                     \
     }
-#define _TEST_SUCCEED(method_expr)                                 \
-    {                                                                   \
-        SCOPED_TRACE(#method_expr);                                     \
-        if(tree)                                                        \
-            ExpectError::check_success(tree, [&]{ return method_expr; }); \
-        else                                                            \
-            ExpectError::check_success([&]{ return method_expr; });     \
+#define _TEST_SUCCEED(tree, method_expr)        \
+    {                                           \
+        SCOPED_TRACE(#method_expr);             \
+        ExpectError::check_success(tree, [&]{   \
+            auto ret = (method_expr);           \
+            C4_DONT_OPTIMIZE(ret);              \
+        });                                     \
     }
 
 template<class NodeT>
 void test_fail_read(Tree *tree, NodeT node)
 {
-    _TEST_SUCCEED(node.get())
-    _TEST_FAIL(node.type())
-    _TEST_FAIL(node.type_str())
-    _TEST_FAIL(node.key())
-    _TEST_FAIL(node.key_tag())
-    _TEST_FAIL(node.key_anchor())
-    _TEST_FAIL(node.key_ref())
-    _TEST_FAIL(node.key_is_null())
-    _TEST_FAIL(node.keysc())
-    _TEST_FAIL(node.val())
-    _TEST_FAIL(node.val_tag())
-    _TEST_FAIL(node.val_anchor())
-    _TEST_FAIL(node.val_ref())
-    _TEST_FAIL(node.val_is_null())
-    _TEST_FAIL(node.valsc())
-    _TEST_FAIL(node.is_map())
-    _TEST_FAIL(node.empty())
-    _TEST_FAIL(node.is_stream())
-    _TEST_FAIL(node.is_doc())
-    _TEST_FAIL(node.is_container())
-    _TEST_FAIL(node.is_map())
-    _TEST_FAIL(node.is_seq())
-    _TEST_FAIL(node.has_val())
-    _TEST_FAIL(node.has_key())
-    _TEST_FAIL(node.is_keyval())
-    _TEST_FAIL(node.has_key_tag())
-    _TEST_FAIL(node.has_val_tag())
-    _TEST_FAIL(node.has_key_anchor())
-    _TEST_FAIL(node.has_val_anchor())
-    _TEST_FAIL(node.is_val_anchor())
-    _TEST_FAIL(node.has_anchor())
-    _TEST_FAIL(node.is_anchor())
-    _TEST_FAIL(node.is_key_ref())
-    _TEST_FAIL(node.is_val_ref())
-    _TEST_FAIL(node.is_ref())
-    _TEST_FAIL(node.is_anchor_or_ref())
-    _TEST_FAIL(node.is_key_quoted())
-    _TEST_FAIL(node.is_val_quoted())
-    _TEST_FAIL(node.parent_is_seq())
-    _TEST_FAIL(node.parent_is_map())
-    _TEST_FAIL(node.is_root())
-    _TEST_FAIL(node.has_parent())
-    _TEST_FAIL(node.has_child(0))
-    _TEST_FAIL(node.has_child("key"))
-    _TEST_FAIL(node.has_children())
-    _TEST_FAIL(node.has_sibling("key"))
-    _TEST_FAIL(node.has_other_siblings())
-    _TEST_FAIL(node.doc(0))
-    _TEST_FAIL(node.parent())
-    _TEST_FAIL(node.num_children())
-    _TEST_FAIL(node.first_child())
-    _TEST_FAIL(node.last_child())
-    _TEST_FAIL(node.child(0))
-    _TEST_FAIL(node.find_child("key"))
-    _TEST_FAIL(node.prev_sibling())
-    _TEST_FAIL(node.next_sibling())
-    _TEST_FAIL(node.first_sibling())
-    _TEST_FAIL(node.last_sibling())
-    _TEST_FAIL(node.sibling(0))
-    _TEST_FAIL(node.find_sibling("key"))
-    _TEST_FAIL(node.num_children())
-    _TEST_FAIL(node.num_siblings())
-    _TEST_FAIL(node.num_other_siblings())
-    _TEST_FAIL(node["key"])
-    _TEST_FAIL(node[0])
-    _TEST_FAIL(node.at("key"))
-    _TEST_FAIL(node.at(0))
+    _TEST_SUCCEED(tree, node.get())
+    _TEST_FAIL(tree, node.type())
+    _TEST_FAIL(tree, node.type_str())
+    _TEST_FAIL(tree, node.key())
+    _TEST_FAIL(tree, node.key_tag())
+    _TEST_FAIL(tree, node.key_anchor())
+    _TEST_FAIL(tree, node.key_ref())
+    _TEST_FAIL(tree, node.key_is_null())
+    _TEST_FAIL(tree, node.keysc())
+    _TEST_FAIL(tree, node.val())
+    _TEST_FAIL(tree, node.val_tag())
+    _TEST_FAIL(tree, node.val_anchor())
+    _TEST_FAIL(tree, node.val_ref())
+    _TEST_FAIL(tree, node.val_is_null())
+    _TEST_FAIL(tree, node.valsc())
+    _TEST_FAIL(tree, node.is_map())
+    _TEST_FAIL(tree, node.empty())
+    _TEST_FAIL(tree, node.is_stream())
+    _TEST_FAIL(tree, node.is_doc())
+    _TEST_FAIL(tree, node.is_container())
+    _TEST_FAIL(tree, node.is_map())
+    _TEST_FAIL(tree, node.is_seq())
+    _TEST_FAIL(tree, node.has_val())
+    _TEST_FAIL(tree, node.has_key())
+    _TEST_FAIL(tree, node.is_keyval())
+    _TEST_FAIL(tree, node.has_key_tag())
+    _TEST_FAIL(tree, node.has_val_tag())
+    _TEST_FAIL(tree, node.has_key_anchor())
+    _TEST_FAIL(tree, node.has_val_anchor())
+    _TEST_FAIL(tree, node.has_anchor())
+    _TEST_FAIL(tree, node.is_key_ref())
+    _TEST_FAIL(tree, node.is_val_ref())
+    _TEST_FAIL(tree, node.is_ref())
+    _TEST_FAIL(tree, node.parent_is_seq())
+    _TEST_FAIL(tree, node.parent_is_map())
+    _TEST_FAIL(tree, node.type_has_any(MAP|SEQ))
+    _TEST_FAIL(tree, node.type_has_all(MAP|SEQ))
+    _TEST_FAIL(tree, node.type_has_none(MAP|SEQ))
+    _TEST_FAIL(tree, node.is_container_styled())
+    _TEST_FAIL(tree, node.is_block())
+    _TEST_FAIL(tree, node.is_flow())
+    _TEST_FAIL(tree, node.is_flow_sl())
+    _TEST_FAIL(tree, node.is_flow_ml())
+    _TEST_FAIL(tree, node.is_key_styled())
+    _TEST_FAIL(tree, node.is_val_styled())
+    _TEST_FAIL(tree, node.is_key_literal())
+    _TEST_FAIL(tree, node.is_val_literal())
+    _TEST_FAIL(tree, node.is_key_folded())
+    _TEST_FAIL(tree, node.is_val_folded())
+    _TEST_FAIL(tree, node.is_key_squo())
+    _TEST_FAIL(tree, node.is_val_squo())
+    _TEST_FAIL(tree, node.is_key_dquo())
+    _TEST_FAIL(tree, node.is_val_dquo())
+    _TEST_FAIL(tree, node.is_key_plain())
+    _TEST_FAIL(tree, node.is_val_plain())
+    _TEST_FAIL(tree, node.is_key_quoted())
+    _TEST_FAIL(tree, node.is_val_quoted())
+    _TEST_FAIL(tree, node.is_quoted())
+    _TEST_FAIL(tree, node.is_root())
+    _TEST_FAIL(tree, node.has_parent())
+    _TEST_FAIL(tree, node.has_child(0))
+    _TEST_FAIL(tree, node.has_child("key"))
+    _TEST_FAIL(tree, node.has_children())
+    _TEST_FAIL(tree, node.has_sibling("key"))
+    _TEST_FAIL(tree, node.has_other_siblings())
+    _TEST_FAIL(tree, node.doc(0))
+    _TEST_FAIL(tree, node.parent())
+    _TEST_FAIL(tree, node.num_children())
+    _TEST_FAIL(tree, node.first_child())
+    _TEST_FAIL(tree, node.last_child())
+    _TEST_FAIL(tree, node.child(0))
+    _TEST_FAIL(tree, node.find_child("key"))
+    _TEST_FAIL(tree, node.prev_sibling())
+    _TEST_FAIL(tree, node.next_sibling())
+    _TEST_FAIL(tree, node.first_sibling())
+    _TEST_FAIL(tree, node.last_sibling())
+    _TEST_FAIL(tree, node.sibling(0))
+    _TEST_FAIL(tree, node.find_sibling("key"))
+    _TEST_FAIL(tree, node.num_children())
+    _TEST_FAIL(tree, node.num_siblings())
+    _TEST_FAIL(tree, node.num_other_siblings())
+    _TEST_FAIL(tree, node["key"])
+    _TEST_FAIL(tree, node[0])
+    _TEST_FAIL(tree, node.at("key"))
+    _TEST_FAIL(tree, node.at(0))
     int val;
-    _TEST_FAIL(node >> val)
-    _TEST_FAIL(node >> key(val))
-    _TEST_FAIL(node >> fmt::base64(val))
-    _TEST_FAIL(node >> key(fmt::base64(val)))
-    _TEST_FAIL(node.deserialize_key(fmt::base64(val)))
-    _TEST_FAIL(node.deserialize_val(fmt::base64(val)))
-    _TEST_FAIL(node.get_if("key", &val));
-    _TEST_FAIL(node.get_if("key", &val, 0));
+    _TEST_FAIL(tree, node >> val)
+    _TEST_FAIL(tree, node >> key(val))
+    _TEST_FAIL(tree, node >> fmt::base64(val))
+    _TEST_FAIL(tree, node >> key(fmt::base64(val)))
+    _TEST_FAIL(tree, node.deserialize_key(fmt::base64(val)))
+    _TEST_FAIL(tree, node.deserialize_val(fmt::base64(val)))
+    _TEST_FAIL(tree, node.get_if("key", &val));
+    _TEST_FAIL(tree, node.get_if("key", &val, 0));
     const NodeT const_node = node;
-    _TEST_FAIL(node.begin());
-    _TEST_FAIL(node.cbegin());
-    _TEST_FAIL(const_node.begin());
-    _TEST_FAIL(const_node.cbegin());
-    _TEST_FAIL(node.end());
-    _TEST_FAIL(node.end());
-    _TEST_FAIL(const_node.end());
-    _TEST_FAIL(const_node.end());
-    _TEST_FAIL(node.children());
-    _TEST_FAIL(node.children());
-    _TEST_FAIL(const_node.children());
-    _TEST_FAIL(const_node.children());
-    _TEST_FAIL(node.siblings());
-    _TEST_FAIL(node.siblings());
-    _TEST_FAIL(const_node.siblings());
-    _TEST_FAIL(const_node.siblings());
-    //_TEST_FAIL(node.visit([](NodeT &n, size_t level){ (void)n; (void)level; return false; }));
-    //_TEST_FAIL(const_node.visit([](const NodeT &n, size_t level){ (void)n; (void)level; return false; }));
-    _TEST_SUCCEED(const_node == node);
-    _TEST_SUCCEED(const_node != node);
+    _TEST_FAIL(tree, node.begin());
+    _TEST_FAIL(tree, node.cbegin());
+    _TEST_FAIL(tree, const_node.begin());
+    _TEST_FAIL(tree, const_node.cbegin());
+    _TEST_FAIL(tree, node.end());
+    _TEST_FAIL(tree, node.end());
+    _TEST_FAIL(tree, const_node.end());
+    _TEST_FAIL(tree, const_node.end());
+    _TEST_FAIL(tree, node.children());
+    _TEST_FAIL(tree, node.children());
+    _TEST_FAIL(tree, const_node.children());
+    _TEST_FAIL(tree, const_node.children());
+    _TEST_FAIL(tree, node.siblings());
+    _TEST_FAIL(tree, node.siblings());
+    _TEST_FAIL(tree, const_node.siblings());
+    _TEST_FAIL(tree, const_node.siblings());
+    //_TEST_FAIL(tree, node.visit([](NodeT &n, size_t level){ (void)n; (void)level; return false; }));
+    //_TEST_FAIL(tree, const_node.visit([](const NodeT &n, size_t level){ (void)n; (void)level; return false; }));
+    _TEST_SUCCEED(tree, const_node == node);
+    _TEST_SUCCEED(tree, const_node != node);
     if(std::is_same<NodeT, NodeRef>::value)
     {
         ConstNodeRef other;
-        _TEST_SUCCEED(node == other);
-        _TEST_SUCCEED(node != node);
+        _TEST_SUCCEED(tree, node == other);
+        _TEST_SUCCEED(tree, node != node);
     }
 }
 template<class NodeT>
@@ -351,24 +369,24 @@ void test_fail_read_subject(Tree *tree, NodeT node, NodeT subject)
 {
     if(node.readable())
     {
-        _TEST_SUCCEED(node.has_child(subject))
-        _TEST_SUCCEED(node.has_sibling(subject))
+        _TEST_SUCCEED(tree, node.has_child(subject))
+        _TEST_SUCCEED(tree, node.has_sibling(subject))
     }
     else
     {
-        _TEST_FAIL(node.has_child(subject))
-        _TEST_FAIL(node.has_sibling(subject))
+        _TEST_FAIL(tree, node.has_child(subject))
+        _TEST_FAIL(tree, node.has_sibling(subject))
     }
-    _TEST_FAIL(node.child_pos(subject))
-    _TEST_FAIL(node.sibling_pos(subject))
+    _TEST_FAIL(tree, node.child_pos(subject))
+    _TEST_FAIL(tree, node.sibling_pos(subject))
 }
 #undef _TEST_FAIL_READ
 #undef _TEST_SUCCEED_READ
 
 TEST(NodeRef, cannot_read_from_invalid)
 {
-    SCOPED_TRACE("here");
     NodeRef none;
+    SCOPED_TRACE("here");
     ASSERT_EQ(none.tree(), nullptr);
     ASSERT_EQ(none.id(), NONE);
     EXPECT_TRUE(none.invalid());
@@ -724,10 +742,9 @@ formats:
     const std::string expected = R"(formats:
   rtt: json
 )";
-    auto test_formats = [&](const char *id){
-        SCOPED_TRACE(id);
+    auto test_formats = [&](const char *desc){
         NodeRef formats = root["formats"];
-        std::cout << id << " id=" << formats.id() << "\n";
+        RYML_TRACE_FMT("desc={} formats.id={} ", desc, formats.id());
         EXPECT_TRUE(formats.readable());
         print_tree(tree);
         check_invariants(tree);

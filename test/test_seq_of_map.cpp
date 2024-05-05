@@ -1,5 +1,6 @@
-#include "./test_group.hpp"
-#include "test_case.hpp"
+#include "./test_lib/test_group.hpp"
+#include "test_lib/test_group.def.hpp"
+#include "test_lib/test_case.hpp"
 
 namespace c4 {
 namespace yml {
@@ -13,9 +14,9 @@ TEST(seq_of_map, with_anchors)
   &a2 a2: v2
   &a3 a3: v3
 - a0: w0
-  *a1: w1
-  *a2: w2
-  *a3: w3
+  *a1 : w1
+  *a2 : w2
+  *a3 : w3
 - &seq
   a4: v4
 )";
@@ -31,9 +32,9 @@ TEST(seq_of_map, with_anchors)
         csubstr yaml = R"(- &a1 a1: v1
   &a2 a2: v2
   &a3 a3: v3
-- *a1: w1
-  *a2: w2
-  *a3: w3
+- *a1 : w1
+  *a2 : w2
+  *a3 : w3
 )";
         Tree t = parse_in_arena(yaml);
         EXPECT_EQ(emitrs_yaml<std::string>(t), yaml);
@@ -107,11 +108,15 @@ TEST(seq_of_map, missing_scalars_v2)
     #endif
     ASSERT_EQ(t["a"].num_children(), 2u);
     ASSERT_EQ(t["a"][0].num_children(), 1u);
-    EXPECT_EQ(t["a"][0].first_child().key(), nullptr);
-    EXPECT_EQ(t["a"][0].first_child().val(), nullptr);
+    EXPECT_EQ(t["a"][0].first_child().key().len, 0);
+    EXPECT_EQ(t["a"][0].first_child().val().len, 0);
+    EXPECT_EQ(t["a"][0].first_child().key().str, nullptr) << (const void*)t["a"][0].first_child().key().str;
+    EXPECT_EQ(t["a"][0].first_child().val().str, nullptr) << (const void*)t["a"][0].first_child().val().str;
     ASSERT_EQ(t["a"][1].num_children(), 1u);
-    EXPECT_EQ(t["a"][1].first_child().key(), nullptr);
-    EXPECT_EQ(t["a"][1].first_child().val(), nullptr);
+    EXPECT_EQ(t["a"][1].first_child().key().len, 0);
+    EXPECT_EQ(t["a"][1].first_child().val().len, 0);
+    EXPECT_EQ(t["a"][1].first_child().key().str, nullptr) << (const void*)t["a"][1].first_child().key().str;
+    EXPECT_EQ(t["a"][1].first_child().val().str, nullptr) << (const void*)t["a"][1].first_child().val().str;
 }
 
 TEST(seq_of_map, missing_scalars_v3)
@@ -123,13 +128,16 @@ TEST(seq_of_map, missing_scalars_v3)
     #ifdef RYML_DBG
     print_tree(t);
     #endif
-    ASSERT_EQ(t["a"].num_children(), 2u);
     ASSERT_EQ(t["a"][0].num_children(), 1u);
-    EXPECT_EQ(t["a"][0].first_child().key(), nullptr);
-    EXPECT_EQ(t["a"][0].first_child().val(), nullptr);
+    EXPECT_EQ(t["a"][0].first_child().key().len, 0);
+    EXPECT_EQ(t["a"][0].first_child().val().len, 0);
+    EXPECT_EQ(t["a"][0].first_child().key().str, nullptr) << (const void*)t["a"][0].first_child().key().str;
+    EXPECT_EQ(t["a"][0].first_child().val().str, nullptr) << (const void*)t["a"][0].first_child().val().str;
     ASSERT_EQ(t["a"][1].num_children(), 1u);
-    EXPECT_EQ(t["a"][1].first_child().key(), nullptr);
-    EXPECT_EQ(t["a"][1].first_child().val(), nullptr);
+    EXPECT_EQ(t["a"][1].first_child().key().len, 0);
+    EXPECT_EQ(t["a"][1].first_child().val().len, 0);
+    EXPECT_EQ(t["a"][1].first_child().key().str, nullptr) << (const void*)t["a"][1].first_child().key().str;
+    EXPECT_EQ(t["a"][1].first_child().val().str, nullptr) << (const void*)t["a"][1].first_child().val().str;
 }
 
 #ifdef RYML_WITH_TAB_TOKENS
@@ -163,15 +171,15 @@ CASE_GROUP(SEQ_OF_MAP)
 
 ADD_CASE_TO_GROUP("seq of empty maps, one line",
 R"([{}, {}, {}])",
-  L{MAP, MAP, MAP}
+N(SFS, L{MFS, MFS, MFS})
 );
 
 ADD_CASE_TO_GROUP("seq of maps, one line",
 R"([{name: John Smith, age: 33}, {name: Mary Smith, age: 27}])",
-  L{
-      N{L{N("name", "John Smith"), N("age", "33")}},
-      N{L{N("name", "Mary Smith"), N("age", "27")}}
-  }
+N(SFS, L{
+      N{MFS, L{N(KP|VP, "name", "John Smith"), N(KP|VP, "age", "33")}},
+      N{MFS, L{N(KP|VP, "name", "Mary Smith"), N(KP|VP, "age", "27")}}
+  })
 );
 
 ADD_CASE_TO_GROUP("seq of maps, implicit seq, explicit maps",
@@ -179,10 +187,10 @@ R"(
 - {name: John Smith, age: 33}
 - {name: Mary Smith, age: 27}
 )",
-  L{
-      N{L{N("name", "John Smith"), N("age", "33")}},
-      N{L{N("name", "Mary Smith"), N("age", "27")}}
-  }
+N(SB, L{
+      N{MFS, L{N(KP|VP, "name", "John Smith"), N(KP|VP, "age", "33")}},
+      N{MFS, L{N(KP|VP, "name", "Mary Smith"), N(KP|VP, "age", "27")}}
+  })
 );
 
 ADD_CASE_TO_GROUP("seq of maps",
@@ -192,10 +200,10 @@ R"(
 - name: Mary Smith
   age: 27
 )",
-  L{
-      N{L{N("name", "John Smith"), N("age", "33")}},
-      N{L{N("name", "Mary Smith"), N("age", "27")}}
-  }
+N(SB,  L{
+      N{MB, L{N(KP|VP, "name", "John Smith"), N(KP|VP, "age", "33")}},
+      N{MB, L{N(KP|VP, "name", "Mary Smith"), N(KP|VP, "age", "27")}}
+  })
 );
 
 ADD_CASE_TO_GROUP("seq of maps, next line",
@@ -211,10 +219,10 @@ R"(
   age:
     27
 )",
-  L{
-      N{L{N("name", "John Smith"), N("age", "33")}},
-      N{L{N("name", "Mary Smith"), N("age", "27")}}
-  }
+N(SB,  L{
+      N{MB, L{N(KP|VP, "name", "John Smith"), N(KP|VP, "age", "33")}},
+      N{MB, L{N(KP|VP, "name", "Mary Smith"), N(KP|VP, "age", "27")}}
+  })
 );
 
 ADD_CASE_TO_GROUP("seq of maps, bug #32 ex1",
@@ -222,9 +230,9 @@ R"(
 - 'a': 1
   b: 2
 )",
-  L{
-      N{L{N(QK, "a", "1"), N("b", "2")}}
-  }
+N(SB,  L{
+      N{MB, L{N(KS|VP, "a", "1"), N(KP|VP, "b", "2")}}
+  })
 );
 
 ADD_CASE_TO_GROUP("seq of maps, bug #32 ex2",
@@ -238,12 +246,12 @@ R"(
   c: 3
 - {'a': 1, b: 2}
 )",
-  L{
-      N{L{N("a", "1"), N("b", "2")}},
-      N{L{N("b", "2"), N(QK, "a", "1")}},
-      N{L{N("b", "2"), N(QK, "a", "1"), N("c", "3")}},
-      N{L{N(QK, "a", "1"), N("b", "2")}},
-  }
+N(SB,  L{
+      N{MB, L{N(KP|VP, "a", "1"), N(KP|VP, "b", "2")}},
+      N{MB, L{N(KP|VP, "b", "2"), N(KS|VP, "a", "1")}},
+      N{MB, L{N(KP|VP, "b", "2"), N(KS|VP, "a", "1"), N(KP|VP, "c", "3")}},
+      N{MFS, L{N(KS|VP, "a", "1"), N(KP|VP, "b", "2")}},
+  })
 );
 
 ADD_CASE_TO_GROUP("seq of maps, bug #32 ex3",
@@ -253,9 +261,10 @@ b: 2
 b: 2
 'a': 1
 )",
-L{
-    N(QK, "a", "1"), N("b", "2"), N("b", "2"), N(QK, "a", "1"),
-});
+N(MB, L{
+    N(KS|VP, "a", "1"), N(KP|VP, "b", "2"), N(KP|VP, "b", "2"), N(KS|VP, "a", "1"),
+})
+);
 
 
 ADD_CASE_TO_GROUP("seq of maps, implicit map in seq",
@@ -266,13 +275,16 @@ R"('implicit block key' : [
   'implicit flow key m' : {key1: val1, key2: val2},
   'implicit flow key s' : [val1, val2],
 ])",
-L{N(KEYSEQ|KEYQUO, "implicit block key", L{
-  N(L{N(KEYVAL|KEYQUO, "implicit flow key 1", "value1")}),
-  N(L{N(KEYVAL|KEYQUO, "implicit flow key 2", "value2")}),
-  N(L{N(KEYVAL|KEYQUO, "implicit flow key 3", "value3")}),
-  N(L{N(KEYMAP|KEYQUO, "implicit flow key m", L{N("key1", "val1"), N("key2", "val2")})}),
-  N(L{N(KEYSEQ|KEYQUO, "implicit flow key s", L{N("val1"), N("val2")})}),
-})});
+N(MB, L{
+  N(KS|SFS, "implicit block key", L{
+    N(MFS, L{N(KS|VP, "implicit flow key 1", "value1")}),
+    N(MFS, L{N(KS|VP, "implicit flow key 2", "value2")}),
+    N(MFS, L{N(KS|VP, "implicit flow key 3", "value3")}),
+    N(MFS, L{N(KS|MFS, "implicit flow key m", L{N(KP|VP, "key1", "val1"), N(KP|VP, "key2", "val2")})}),
+    N(MFS, L{N(KS|SFS, "implicit flow key s", L{N(VP, "val1"), N(VP, "val2")})}),
+  })
+})
+);
 
 
 ADD_CASE_TO_GROUP("seq of maps, implicit map in seq, missing scalar",
@@ -288,11 +300,12 @@ c : [
 ,
   :
 ]})",
-L{
-  N("a", L{N(MAP, L{N("", "foo")}),}),
-  N("b", L{N(MAP, L{N("", "foo")}),}),
-  N("c", L{N(MAP, L{N(KEYVAL, "", {})}), N(MAP, L{N(KEYVAL, "", {})}),}),
-});
+N(MFS, L{
+  N(KP|SFS, "a", L{N(MFS, L{N(KP|VP, "", "foo")}),}),
+  N(KP|SFS, "b", L{N(MFS, L{N(KP|VP, "", "foo")}),}),
+  N(KP|SFS, "c", L{N(MFS, L{N(KP|VP, "", {})}), N(MFS, L{N(KP|VP, "", {})}),}),
+})
+);
 
 
 ADD_CASE_TO_GROUP("seq of maps, implicit with anchors, unresolved",
@@ -300,14 +313,15 @@ R"(
 - &a1 a1: v1
   &a2 a2: v2
   &a3 a3: v3
-- *a1: w1
-  *a2: w2
-  *a3: w3
+- *a1 : w1
+  *a2 : w2
+  *a3 : w3
 )",
-L{
-  N(L{N( "a1", AR(KEYANCH, "a1"), "v1"), N( "a2", AR(KEYANCH, "a2"), "v2"), N( "a3", AR(KEYANCH, "a3"), "v3")}),
-  N(L{N("*a1", AR(KEYREF, "*a1"), "w1"), N("*a2", AR(KEYREF, "*a2"), "w2"), N("*a3", AR(KEYREF, "*a3"), "w3")}),
-});
+N(SB, L{
+  N(MB, L{N(KP|VP,  "a1", AR(KEYANCH, "a1"), "v1"), N(KP|VP,  "a2", AR(KEYANCH, "a2"), "v2"), N(KP|VP,  "a3", AR(KEYANCH, "a3"), "v3")}),
+  N(MB, L{N(KEY|VP, "*a1", AR(KEYREF, "*a1"), "w1"), N(KEY|VP, "*a2", AR(KEYREF, "*a2"), "w2"), N(KEY|VP, "*a3", AR(KEYREF, "*a3"), "w3")}),
+})
+);
 
 
 ADD_CASE_TO_GROUP("seq of maps, implicit with anchors, resolved", RESOLVE_REFS,
@@ -315,14 +329,15 @@ R"(
 - &a1 a1: v1
   &a2 a2: v2
   &a3 a3: v3
-- *a1: w1
-  *a2: w2
-  *a3: w3
+- *a1 : w1
+  *a2 : w2
+  *a3 : w3
 )",
-L{
-  N(L{N("a1", "v1"), N("a2", "v2"), N("a3", "v3")}),
-  N(L{N("a1", "w1"), N("a2", "w2"), N("a3", "w3")}),
-});
+N(SB, L{
+  N(MB, L{N(KP|VP, "a1", "v1"), N(KP|VP, "a2", "v2"), N(KP|VP, "a3", "v3")}),
+  N(MB, L{N(KP|VP, "a1", "w1"), N(KP|VP, "a2", "w2"), N(KP|VP, "a3", "w3")}),
+})
+);
 
 
 ADD_CASE_TO_GROUP("seq of maps, implicit with tags",
@@ -337,11 +352,13 @@ R"(
   !foo a2: v2
   !foo a3: v3
 )",
-L{
-  N(L{N(TS("!!str", "a1"), "v1"), N(TS("!!str", "a2"), "v2"), N(TS("!!str", "a3"), "v3")}),
-  N(L{N("a1", TS("!!str", "w1")), N("a2", TS("!!str", "w2")), N("a3", TS("!!str", "w3"))}),
-  N(L{N(TS("!foo", "a1"), "v1"), N(TS("!foo", "a2"), "v2"), N(TS("!foo", "a3"), "v3")}),
-});
+N(SB, L{
+  N(MB, L{N(KP|VP, TS("!!str", "a1"), "v1"), N(KP|VP, TS("!!str", "a2"), "v2"), N(KP|VP, TS("!!str", "a3"), "v3")}),
+  N(MB, L{N(KP|VP, "a1", TS("!!str", "w1")), N(KP|VP, "a2", TS("!!str", "w2")), N(KP|VP, "a3", TS("!!str", "w3"))}),
+  N(MB, L{N(KP|VP, TS("!foo", "a1"), "v1"), N(KP|VP, TS("!foo", "a2"), "v2"), N(KP|VP, TS("!foo", "a3"), "v3")}),
+})
+);
+
 }
 
 } // namespace yml

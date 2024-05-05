@@ -16,7 +16,7 @@ struct EventsEmitter
     Tree const* C4_RESTRICT m_tree;
     EventsEmitter(Tree const& tree, substr buf_) : buf(buf_), pos(), m_tree(&tree) {}
     void emit_tag(csubstr tag, size_t node);
-    void emit_scalar(csubstr val, bool quoted);
+    void emit_scalar(csubstr val, char openchar);
     void emit_key_anchor_tag(size_t node);
     void emit_val_anchor_tag(size_t node);
     void emit_events(size_t node);
@@ -25,7 +25,7 @@ struct EventsEmitter
     template<size_t N>
     C4_ALWAYS_INLINE void pr(const char (&s)[N])
     {
-        if(pos + N-1 <= buf.len)
+        if(N > 1 && pos + N-1 <= buf.len)
             memcpy(buf.str + pos, s, N-1);
         pos += N-1;
     }
@@ -59,10 +59,40 @@ struct EventsEmitter
     }
 };
 
-void EventsEmitter::emit_scalar(csubstr val, bool quoted)
+inline char _ev_scalar_code(NodeType masked)
 {
-    constexpr const char openchar[] = {':', '\''};
-    pr(openchar[quoted]);
+    if(masked & SCALAR_LITERAL)
+        return '|';
+    if(masked & SCALAR_FOLDED)
+        return '>';
+    if(masked & SCALAR_SQUO)
+        return '\'';
+    if(masked & SCALAR_DQUO)
+        return '"';
+    if(masked & SCALAR_PLAIN)
+        return ':';
+    return ':';
+}
+inline char _ev_scalar_code_key(NodeType t)
+{
+    return _ev_scalar_code(t & KEY_STYLE);
+}
+inline char _ev_scalar_code_val(NodeType t)
+{
+    return _ev_scalar_code(t & VAL_STYLE);
+}
+inline char _ev_scalar_code_key(Tree const* p, size_t node)
+{
+    return _ev_scalar_code(p->_p(node)->m_type & KEY_STYLE);
+}
+inline char _ev_scalar_code_val(Tree const* p, size_t node)
+{
+    return _ev_scalar_code(p->_p(node)->m_type & VAL_STYLE);
+}
+
+void EventsEmitter::emit_scalar(csubstr val, char openchar)
+{
+    pr(openchar);
     size_t prev = 0;
     uint8_t const* C4_RESTRICT s = (uint8_t const* C4_RESTRICT) val.str;
     for(size_t i = 0; i < val.len; ++i)
@@ -136,7 +166,12 @@ void EventsEmitter::emit_tag(csubstr tag, size_t node)
     }
     else
     {
-        csubstr ntag = normalize_tag_long(tag);
+        csubstr ntag = normalize_tag_long(tag, to_substr(tagbuf));
+        if(!ntag.str)
+        {
+            tagbuf.resize(2 * ntag.len);
+            ntag = normalize_tag_long(tag, to_substr(tagbuf));
+        }
         if(ntag.begins_with('<'))
         {
             pr(ntag);
@@ -203,7 +238,7 @@ void EventsEmitter::emit_events(size_t node)
             pr("=VAL");
             emit_key_anchor_tag(node);
             pr(' ');
-            emit_scalar(m_tree->key(node), m_tree->is_key_quoted(node));
+            emit_scalar(m_tree->key(node), _ev_scalar_code_key(m_tree, node));
             pr('\n');
         }
     }
@@ -220,13 +255,13 @@ void EventsEmitter::emit_events(size_t node)
             pr("=VAL");
             emit_val_anchor_tag(node);
             pr(' ');
-            emit_scalar(m_tree->val(node), m_tree->is_val_quoted(node));
+            emit_scalar(m_tree->val(node), _ev_scalar_code_val(m_tree, node));
             pr('\n');
         }
     }
     else if(m_tree->is_map(node))
     {
-        pr("+MAP");
+        pr((m_tree->type(node) & CONTAINER_STYLE_FLOW) ? csubstr("+MAP {}") : csubstr("+MAP"));
         emit_val_anchor_tag(node);
         pr('\n');
         for(size_t child = m_tree->first_child(node); child != NONE; child = m_tree->next_sibling(child))
@@ -235,7 +270,7 @@ void EventsEmitter::emit_events(size_t node)
     }
     else if(m_tree->is_seq(node))
     {
-        pr("+SEQ");
+        pr((m_tree->type(node) & CONTAINER_STYLE_FLOW) ? csubstr("+SEQ []") : csubstr("+SEQ"));
         emit_val_anchor_tag(node);
         pr('\n');
         for(size_t child = m_tree->first_child(node); child != NONE; child = m_tree->next_sibling(child))
@@ -257,7 +292,7 @@ void EventsEmitter::emit_doc(size_t node)
         pr("\n=VAL");
         emit_val_anchor_tag(node);
         pr(' ');
-        emit_scalar(m_tree->val(node), m_tree->is_val_quoted(node));
+        emit_scalar(m_tree->val(node), _ev_scalar_code_val(m_tree, node));
         pr('\n');
     }
     else
@@ -283,7 +318,7 @@ void EventsEmitter::emit_events()
     pr("-STR\n");
 }
 
-size_t emit_events(substr buf, Tree const& C4_RESTRICT tree)
+size_t emit_events_from_tree(substr buf, Tree const& C4_RESTRICT tree)
 {
     EventsEmitter e(tree, buf);
     e.emit_events();

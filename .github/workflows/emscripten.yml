@@ -59,7 +59,7 @@ jobs:
       - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
       - name: setup emscripten cache
         id: cache-system-libraries
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with: {path: "${{env.EMSCRIPTEN_CACHE_FOLDER}}", key: "${{matrix.emver}}-${{runner.os}}"}
       - name: setup emscripten
         uses: mymindstorm/setup-emsdk@v11
