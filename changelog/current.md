@@ -30,7 +30,7 @@ The parser was completely refactored ([#PR414](https://github.com/biojppm/rapidy
   - Filtering can now be disabled while parsing, to ensure a fully-readonly parse (but this feature is still experimental and somewhat untested, given the scope of the rewrite work).
   - The parser now offers methods to filter scalars in place or out of place.
 - Style flags were added to `NodeType_e`:
-  ```
+  ```cpp
     FLOW_SL     ///< mark container with single-line flow style (seqs as '[val1,val2], maps as '{key: val,key2: val2}')
     FLOW_ML     ///< mark container with multi-line flow style (seqs as '[\n  val1,\n  val2\n], maps as '{\n  key: val,\n  key2: val2\n}')
     BLOCK       ///< mark container with block style (seqs as '- val\n', maps as 'key: val')
@@ -46,7 +46,7 @@ The parser was completely refactored ([#PR414](https://github.com/biojppm/rapidy
     VAL_PLAIN   ///< mark val scalar as plain scalar (unquoted, even when multiline)
   ```
 - Style predicates were added to `NodeType`, `Tree`, `ConstNodeRef` and `NodeRef`:
-  ```
+  ```cpp
     bool is_container_styled() const;
     bool is_block() const 
     bool is_flow_sl() const;
@@ -67,13 +67,13 @@ The parser was completely refactored ([#PR414](https://github.com/biojppm/rapidy
     bool is_val_plain() const;
   ```
 - Style modifiers were also added:
-  ```
+  ```cpp
     void set_container_style(NodeType_e style);
     void set_key_style(NodeType_e style);
     void set_val_style(NodeType_e style);
   ```
 - Emit helper predicates were added, and are used when an emitted node was built programatically without style flags:
-  ```
+  ```cpp
   /** choose a YAML emitting style based on the scalar's contents */
   NodeType_e scalar_style_choose(csubstr scalar) noexcept;
   /** query whether a scalar can be encoded using single quotes.

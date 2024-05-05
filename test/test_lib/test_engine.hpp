@@ -214,7 +214,7 @@ inline void _print_handler_info(EventHandlerYamlStd const& ps, csubstr stmt)
     };
     for(id_type i = 0; i < ps.m_stack.size(); ++i)
     {
-        auto const& str = ps._ev_buf_(i).get();
+        auto const& str = ps._buf_(i).get();
         indent(i);
         _dbg_printf("[{}]\n", i);
         for(csubstr line : str.split('\n'))

@@ -18,10 +18,12 @@ namespace yml {
  * @{ */
 
 
+/** The stack state needed specifically by @ref EventHandlerTree */
 struct EventHandlerTreeState : public ParserState
 {
     NodeData *tr_data;
 };
+
 
 /** The event handler to create a ryml @ref Tree. See the
  * documentation for @ref doc_event_handlers, which has important
@@ -32,7 +34,6 @@ struct EventHandlerTree : public EventHandlerStack<EventHandlerTree, EventHandle
     /** @name types
      * @{ */
 
-    // our internal state must inherit from parser state
     using state = EventHandlerTreeState;
 
     /** @} */
@@ -40,9 +41,6 @@ struct EventHandlerTree : public EventHandlerStack<EventHandlerTree, EventHandle
 public:
 
     /** @cond dev */
-    static constexpr const bool is_events = false; // remove
-    static constexpr const bool is_wtree = true;
-
     Tree *C4_RESTRICT m_tree;
     id_type m_id;
 
@@ -54,7 +52,6 @@ public:
     #define _disable_(bits) _disable__<bits>()
     #endif
     #define _has_any_(bits) _has_any__<bits>()
-
     /** @endcond */
 
 public:
@@ -151,7 +148,7 @@ public:
         if(_stack_should_push_on_begin_doc())
         {
             _c4dbgp("push!");
-            _tr_set_root_as_stream();
+            _set_root_as_stream();
             _push();
             _enable_(DOC);
         }
@@ -162,7 +159,7 @@ public:
         _c4dbgp("end_doc");
         if(_stack_should_pop_on_end_doc())
         {
-            _tr_remove_speculative();
+            _remove_speculative();
             _c4dbgp("pop!");
             _pop();
         }
@@ -176,7 +173,7 @@ public:
         if(!m_tree->is_stream(m_tree->root_id())) //if(_should_push_on_begin_doc())
         {
             _c4dbgp("ensure stream");
-            _tr_set_root_as_stream();
+            _set_root_as_stream();
             id_type first = m_tree->first_child(m_tree->root_id());
             _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_stream(m_tree->root_id()));
             _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->num_children(m_tree->root_id()) == 1u);
@@ -189,7 +186,7 @@ public:
             {
                 _c4dbgp("tweak");
                 _push();
-                _tr_remove_speculative();
+                _remove_speculative();
                 m_curr->node_id = m_tree->last_child(m_tree->root_id());
                 m_curr->tr_data = m_tree->_p(m_curr->node_id);
             }
@@ -205,9 +202,7 @@ public:
     void end_doc_expl()
     {
         _c4dbgp("end_doc_expl");
-        {
-            _tr_remove_speculative();
-        }
+        _remove_speculative();
         if(_stack_should_pop_on_end_doc())
         {
             _c4dbgp("pop!");
@@ -235,14 +230,14 @@ public:
     {
         _c4dbgpf("node[{}]: begin_map_val_flow", m_curr->node_id);
         _enable_(MAP|FLOW_SL);
-        _tr_save_loc();
+        _save_loc();
         _push();
     }
     void begin_map_val_block()
     {
         _c4dbgpf("node[{}]: begin_map_val_block", m_curr->node_id);
         _enable_(MAP|BLOCK);
-        _tr_save_loc();
+        _save_loc();
         _push();
     }
 
@@ -272,14 +267,14 @@ public:
     {
         _c4dbgpf("node[{}]: begin_seq_val_flow", m_curr->node_id);
         _enable_(SEQ|FLOW_SL);
-        _tr_save_loc();
+        _save_loc();
         _push();
     }
     void begin_seq_val_block()
     {
         _c4dbgpf("node[{}]: begin_seq_val_block", m_curr->node_id);
         _enable_(SEQ|BLOCK);
-        _tr_save_loc();
+        _save_loc();
         _push();
     }
 
@@ -301,9 +296,9 @@ public:
         _RYML_CB_ASSERT(m_stack.m_callbacks, m_parent);
         _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->has_children(m_parent->node_id));
         NodeData const* prev = m_tree->m_buf; // watchout against relocation of the tree nodes
-        _tr_set_state_(m_curr, m_tree->_append_child__unprotected(m_parent->node_id));
+        _set_state_(m_curr, m_tree->_append_child__unprotected(m_parent->node_id));
         if(prev != m_tree->m_buf)
-            _tr_refresh_after_relocation();
+            _refresh_after_relocation();
         _c4dbgpf("node[{}]: added sibling={} prev={}", m_parent->node_id, m_curr->node_id, m_tree->prev_sibling(m_curr->node_id));
     }
 
@@ -320,7 +315,7 @@ public:
         _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_seq(m_parent->node_id));
         _RYML_CB_ASSERT(m_stack.m_callbacks, !m_tree->is_container(m_curr->node_id));
         _RYML_CB_ASSERT(m_stack.m_callbacks, !m_tree->has_key(m_curr->node_id));
-        const NodeData tmp = _tr_val2key_(*m_curr->tr_data);
+        const NodeData tmp = _val2key_(*m_curr->tr_data);
         _disable_(_VALMASK|VAL_STYLE);
         m_curr->tr_data->m_val = {};
         begin_map_val_flow();
@@ -530,7 +525,7 @@ public:
     /** @cond dev */
     void _reset_parser_state(state* st, id_type parse_root, id_type node)
     {
-        _tr_set_state_(st, node);
+        _set_state_(st, node);
         const NodeType type = m_tree->type(node);
         #ifdef RYML_DBG
         char flagbuf[80];
@@ -586,13 +581,13 @@ public:
         m_curr->node_id = m_tree->_append_child__unprotected(m_parent->node_id);
         m_curr->tr_data = m_tree->_p(m_curr->node_id);
         if(prev != m_tree->m_buf)
-            _tr_refresh_after_relocation();
+            _refresh_after_relocation();
         _c4dbgpf("pushed! level={}. top is now node={} (parent={})", m_curr->level, m_curr->node_id, m_parent ? m_parent->node_id : NONE);
     }
     /** end the current scope */
     void _pop()
     {
-        _tr_remove_speculative_with_parent();
+        _remove_speculative_with_parent();
         _stack_pop();
     }
 
@@ -613,19 +608,19 @@ public:
 
 public:
 
-    C4_ALWAYS_INLINE void _tr_set_state_(state *C4_RESTRICT s, id_type id) noexcept
+    C4_ALWAYS_INLINE void _set_state_(state *C4_RESTRICT s, id_type id) noexcept
     {
         s->node_id = id;
         s->tr_data = m_tree->_p(id);
     }
-    void _tr_refresh_after_relocation()
+    void _refresh_after_relocation()
     {
         _c4dbgp("tree: refreshing stack data after tree data relocation");
         for(auto &st : m_stack)
             st.tr_data = m_tree->_p(st.node_id);
     }
 
-    void _tr_set_root_as_stream()
+    void _set_root_as_stream()
     {
         _c4dbgp("set root as stream");
         _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->root_id() == 0u);
@@ -639,10 +634,10 @@ public:
         _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_doc(m_tree->first_child(m_tree->root_id())));
         if(hack)
             m_tree->_p(m_tree->first_child(m_tree->root_id()))->m_type.rem(VAL);
-        _tr_set_state_(m_curr, m_tree->root_id());
+        _set_state_(m_curr, m_tree->root_id());
     }
 
-    static NodeData _tr_val2key_(NodeData const& C4_RESTRICT d) noexcept
+    static NodeData _val2key_(NodeData const& C4_RESTRICT d) noexcept
     {
         NodeData r = d;
         r.m_key = d.m_val;
@@ -656,7 +651,7 @@ public:
         return r;
     }
 
-    void _tr_remove_speculative()
+    void _remove_speculative()
     {
         _c4dbgp("remove speculative node");
         _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->size() > 0);
@@ -666,7 +661,7 @@ public:
                 m_tree->remove(last_added);
     }
 
-    void _tr_remove_speculative_with_parent()
+    void _remove_speculative_with_parent()
     {
         _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->size() > 0);
         const id_type last_added = m_tree->size() - 1;
@@ -678,7 +673,7 @@ public:
         }
     }
 
-    C4_ALWAYS_INLINE void _tr_save_loc()
+    C4_ALWAYS_INLINE void _save_loc()
     {
         m_tree->_p(m_curr->node_id)->m_val.scalar.str = m_curr->line_contents.rem.str;
     }

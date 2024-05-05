@@ -28,6 +28,7 @@ namespace yml {
 /** @addtogroup doc_event_handlers
  * @{ */
 
+/** The stack state needed specifically by @ref EventHandlerYamlStd */
 struct EventHandlerYamlStdState : public ParserState
 {
     NodeData ev_data;
@@ -71,16 +72,12 @@ struct EventHandlerYamlStd : public EventHandlerStack<EventHandlerYamlStd, Event
 public:
 
     /** @cond dev */
-    static constexpr const bool is_events = true; // remove
-    static constexpr const bool is_wtree = false; // remove
-
-    EventSink *C4_RESTRICT m_ev_sink;
-    std::vector<EventSink> m_ev_val_buffers; // FIXME: don't use std::vector
-    // TODO: use this for both tree and events (ie remove the tree directives)
-    char m_ev_key_tag_buf[256];
-    char m_ev_val_tag_buf[256];
-    TagDirective m_ev_tag_directives[RYML_MAX_TAG_DIRECTIVES];
-    std::string m_ev_arena;
+    EventSink *C4_RESTRICT m_sink;
+    std::vector<EventSink> m_val_buffers;
+    char m_key_tag_buf[256];
+    char m_val_tag_buf[256];
+    TagDirective m_tag_directives[RYML_MAX_TAG_DIRECTIVES];
+    std::string m_arena;
 
     // undefined at the end
     #define _enable_(bits) _enable__<bits>()
@@ -93,9 +90,9 @@ public:
     /** @name construction and resetting
      * @{ */
 
-    EventHandlerYamlStd() : EventHandlerStack(), m_ev_sink(), m_ev_val_buffers() {}
-    EventHandlerYamlStd(Callbacks const& cb) : EventHandlerStack(cb), m_ev_sink(), m_ev_val_buffers() {}
-    EventHandlerYamlStd(EventSink *sink, Callbacks const& cb) : EventHandlerStack(cb), m_ev_sink(sink), m_ev_val_buffers()
+    EventHandlerYamlStd() : EventHandlerStack(), m_sink(), m_val_buffers() {}
+    EventHandlerYamlStd(Callbacks const& cb) : EventHandlerStack(cb), m_sink(), m_val_buffers() {}
+    EventHandlerYamlStd(EventSink *sink, Callbacks const& cb) : EventHandlerStack(cb), m_sink(sink), m_val_buffers()
     {
         reset();
     }
@@ -105,10 +102,10 @@ public:
     {
         _stack_reset_root();
         m_curr->flags |= RUNK|RTOP;
-        for(auto &td : m_ev_tag_directives)
+        for(auto &td : m_tag_directives)
             td = {};
-        m_ev_val_buffers.resize((size_t)m_stack.size());
-        m_ev_arena.clear();
+        m_val_buffers.resize((size_t)m_stack.size());
+        m_arena.clear();
     }
 
     /** @} */
@@ -131,7 +128,7 @@ public:
     {
         while(m_stack.size() > 1)
             _pop();
-        _ev_buf_flush_();
+        _buf_flush_();
     }
 
     /** @} */
@@ -143,13 +140,13 @@ public:
 
     void begin_stream()
     {
-        _ev_send_("+STR\n");
+        _send_("+STR\n");
     }
 
     void end_stream()
     {
-        _ev_send_("-STR\n");
-        _ev_buf_flush_();
+        _send_("-STR\n");
+        _buf_flush_();
     }
 
     /** @} */
@@ -169,13 +166,13 @@ public:
             _push();
             _enable_(DOC);
         }
-        _ev_send_("+DOC\n");
+        _send_("+DOC\n");
     }
     /** implicit doc end (without ...) */
     void end_doc()
     {
         _c4dbgp("end_doc");
-        _ev_send_("-DOC\n");
+        _send_("-DOC\n");
         if(_stack_should_pop_on_end_doc())
         {
             _c4dbgp("pop!");
@@ -192,14 +189,14 @@ public:
             _c4dbgp("push!");
             _push();
         }
-        _ev_send_("+DOC ---\n");
+        _send_("+DOC ---\n");
         _enable_(DOC);
     }
     /** explicit doc end, with ... */
     void end_doc_expl()
     {
         _c4dbgp("end_doc_expl");
-        _ev_send_("-DOC ...\n");
+        _send_("-DOC ...\n");
         if(_stack_should_pop_on_end_doc())
         {
             _c4dbgp("pop!");
@@ -216,38 +213,38 @@ public:
 
     void begin_map_key_flow()
     {
-        _ev_send_("+MAP {}");
-        _ev_send_key_props_();
-        _ev_send_('\n');
-        _ev_mark_parent_with_children_();
+        _send_("+MAP {}");
+        _send_key_props_();
+        _send_('\n');
+        _mark_parent_with_children_();
         _enable_(MAP|FLOW_SL);
         _push();
     }
     void begin_map_key_block()
     {
-        _ev_send_("+MAP");
-        _ev_send_key_props_();
-        _ev_send_('\n');
-        _ev_mark_parent_with_children_();
+        _send_("+MAP");
+        _send_key_props_();
+        _send_('\n');
+        _mark_parent_with_children_();
         _enable_(MAP|BLOCK);
         _push();
     }
 
     void begin_map_val_flow()
     {
-        _ev_send_("+MAP {}");
-        _ev_send_val_props_();
-        _ev_send_('\n');
-        _ev_mark_parent_with_children_();
+        _send_("+MAP {}");
+        _send_val_props_();
+        _send_('\n');
+        _mark_parent_with_children_();
         _enable_(MAP|FLOW_SL);
         _push();
     }
     void begin_map_val_block()
     {
-        _ev_send_("+MAP");
-        _ev_send_val_props_();
-        _ev_send_('\n');
-        _ev_mark_parent_with_children_();
+        _send_("+MAP");
+        _send_val_props_();
+        _send_('\n');
+        _mark_parent_with_children_();
         _enable_(MAP|BLOCK);
         _push();
     }
@@ -255,7 +252,7 @@ public:
     void end_map()
     {
         _pop();
-        _ev_send_("-MAP\n");
+        _send_("-MAP\n");
     }
 
     /** @} */
@@ -267,38 +264,38 @@ public:
 
     void begin_seq_key_flow()
     {
-        _ev_send_("+SEQ []");
-        _ev_send_key_props_();
-        _ev_send_('\n');
-        _ev_mark_parent_with_children_();
+        _send_("+SEQ []");
+        _send_key_props_();
+        _send_('\n');
+        _mark_parent_with_children_();
         _enable_(SEQ|FLOW_SL);
         _push();
     }
     void begin_seq_key_block()
     {
-        _ev_send_("+SEQ");
-        _ev_send_key_props_();
-        _ev_send_('\n');
-        _ev_mark_parent_with_children_();
+        _send_("+SEQ");
+        _send_key_props_();
+        _send_('\n');
+        _mark_parent_with_children_();
         _enable_(SEQ|BLOCK);
         _push();
     }
 
     void begin_seq_val_flow()
     {
-        _ev_send_("+SEQ []");
-        _ev_send_val_props_();
-        _ev_send_('\n');
-        _ev_mark_parent_with_children_();
+        _send_("+SEQ []");
+        _send_val_props_();
+        _send_('\n');
+        _mark_parent_with_children_();
         _enable_(SEQ|FLOW_SL);
         _push();
     }
     void begin_seq_val_block()
     {
-        _ev_send_("+SEQ");
-        _ev_send_val_props_();
-        _ev_send_('\n');
-        _ev_mark_parent_with_children_();
+        _send_("+SEQ");
+        _send_val_props_();
+        _send_('\n');
+        _mark_parent_with_children_();
         _enable_(SEQ|BLOCK);
         _push();
     }
@@ -306,7 +303,7 @@ public:
     void end_seq()
     {
         _pop();
-        _ev_send_("-SEQ\n"); // before popping
+        _send_("-SEQ\n"); // before popping
     }
 
     /** @} */
@@ -319,7 +316,7 @@ public:
     void add_sibling()
     {
         _RYML_CB_ASSERT(m_stack.m_callbacks, m_parent);
-        _ev_buf_flush_to_(m_curr->level, m_parent->level);
+        _buf_flush_to_(m_curr->level, m_parent->level);
         m_curr->ev_data = {};
     }
 
@@ -332,15 +329,15 @@ public:
     {
         // ensure we have a temporary buffer to save the current val
         const id_type tmp = m_curr->level + id_type(2);
-        _ev_buf_ensure_(tmp + id_type(2));
+        _buf_ensure_(tmp + id_type(2));
         // save the current val to the temporary buffer
-        _ev_buf_flush_to_(m_curr->level, tmp);
+        _buf_flush_to_(m_curr->level, tmp);
         // create the map.
         // this will push a new level, and tmp is one further
         begin_map_val_flow();
         _RYML_CB_ASSERT(m_stack.m_callbacks, tmp != m_curr->level);
         // now move the saved val as the first key
-        _ev_buf_flush_to_(tmp, m_curr->level);
+        _buf_flush_to_(tmp, m_curr->level);
     }
 
     /** like its flow counterpart, but this function can only be
@@ -351,7 +348,7 @@ public:
      */
     void actually_val_is_first_key_of_new_map_block()
     {
-        EventSink &sink = _ev_buf_();
+        EventSink &sink = _buf_();
         substr full = sink.get();(void)full;
         // interpolate +MAP\n after the last +DOC\n
         _RYML_CB_ASSERT(m_stack.m_callbacks, full.len);
@@ -386,13 +383,13 @@ public:
     C4_ALWAYS_INLINE void set_key_scalar_plain(csubstr scalar)
     {
         _c4dbgpf("node[{}]: set key scalar plain: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
-        _ev_send_key_scalar_(scalar, ':');
+        _send_key_scalar_(scalar, ':');
         _enable_(KEY|KEY_PLAIN);
     }
     C4_ALWAYS_INLINE void set_val_scalar_plain(csubstr scalar)
     {
         _c4dbgpf("node[{}]: set val scalar plain: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
-        _ev_send_val_scalar_(scalar, ':');
+        _send_val_scalar_(scalar, ':');
         _enable_(VAL|VAL_PLAIN);
     }
 
@@ -400,13 +397,13 @@ public:
     C4_ALWAYS_INLINE void set_key_scalar_dquoted(csubstr scalar)
     {
         _c4dbgpf("node[{}]: set key scalar dquot: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
-        _ev_send_key_scalar_(scalar, '"');
+        _send_key_scalar_(scalar, '"');
         _enable_(KEY|KEY_DQUO);
     }
     C4_ALWAYS_INLINE void set_val_scalar_dquoted(csubstr scalar)
     {
         _c4dbgpf("node[{}]: set val scalar dquot: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
-        _ev_send_val_scalar_(scalar, '"');
+        _send_val_scalar_(scalar, '"');
         _enable_(VAL|VAL_DQUO);
     }
 
@@ -414,13 +411,13 @@ public:
     C4_ALWAYS_INLINE void set_key_scalar_squoted(csubstr scalar)
     {
         _c4dbgpf("node[{}]: set key scalar squot: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
-        _ev_send_key_scalar_(scalar, '\'');
+        _send_key_scalar_(scalar, '\'');
         _enable_(KEY|KEY_SQUO);
     }
     C4_ALWAYS_INLINE void set_val_scalar_squoted(csubstr scalar)
     {
         _c4dbgpf("node[{}]: set val scalar squot: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
-        _ev_send_val_scalar_(scalar, '\'');
+        _send_val_scalar_(scalar, '\'');
         _enable_(VAL|VAL_SQUO);
     }
 
@@ -428,13 +425,13 @@ public:
     C4_ALWAYS_INLINE void set_key_scalar_literal(csubstr scalar)
     {
         _c4dbgpf("node[{}]: set key scalar literal: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
-        _ev_send_key_scalar_(scalar, '|');
+        _send_key_scalar_(scalar, '|');
         _enable_(KEY|KEY_LITERAL);
     }
     C4_ALWAYS_INLINE void set_val_scalar_literal(csubstr scalar)
     {
         _c4dbgpf("node[{}]: set val scalar literal: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
-        _ev_send_val_scalar_(scalar, '|');
+        _send_val_scalar_(scalar, '|');
         _enable_(VAL|VAL_LITERAL);
     }
 
@@ -442,13 +439,13 @@ public:
     C4_ALWAYS_INLINE void set_key_scalar_folded(csubstr scalar)
     {
         _c4dbgpf("node[{}]: set key scalar folded: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
-        _ev_send_key_scalar_(scalar, '>');
+        _send_key_scalar_(scalar, '>');
         _enable_(KEY|KEY_FOLDED);
     }
     C4_ALWAYS_INLINE void set_val_scalar_folded(csubstr scalar)
     {
         _c4dbgpf("node[{}]: set val scalar folded: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
-        _ev_send_val_scalar_(scalar, '>');
+        _send_val_scalar_(scalar, '>');
         _enable_(VAL|VAL_FOLDED);
     }
 
@@ -499,18 +496,18 @@ public:
         _c4dbgpf("node[{}]: set key ref: [{}]~~~{}~~~", m_curr->node_id, ref.len, ref);
         RYML_ASSERT(ref.begins_with('*'));
         _enable_(KEY|KEYREF);
-        _ev_send_("=ALI ");
-        _ev_send_(ref);
-        _ev_send_('\n');
+        _send_("=ALI ");
+        _send_(ref);
+        _send_('\n');
     }
     void set_val_ref(csubstr ref)
     {
         _c4dbgpf("node[{}]: set val ref: [{}]~~~{}~~~", m_curr->node_id, ref.len, ref);
         RYML_ASSERT(ref.begins_with('*'));
         _enable_(VAL|VALREF);
-        _ev_send_("=ALI ");
-        _ev_send_(ref);
-        _ev_send_('\n');
+        _send_("=ALI ");
+        _send_(ref);
+        _send_('\n');
     }
 
     /** @} */
@@ -524,13 +521,13 @@ public:
     {
         _c4dbgpf("node[{}]: set key tag: [{}]~~~{}~~~", m_curr->node_id, tag.len, tag);
         _enable_(KEYTAG);
-        m_curr->ev_data.m_key.tag = _ev_transform_directive(tag, m_ev_key_tag_buf);
+        m_curr->ev_data.m_key.tag = _transform_directive(tag, m_key_tag_buf);
     }
     void set_val_tag(csubstr tag)
     {
         _c4dbgpf("node[{}]: set val tag: [{}]~~~{}~~~", m_curr->node_id, tag.len, tag);
         _enable_(VALTAG);
-        m_curr->ev_data.m_val.tag = _ev_transform_directive(tag, m_ev_val_tag_buf);
+        m_curr->ev_data.m_val.tag = _transform_directive(tag, m_val_tag_buf);
     }
 
     /** @} */
@@ -545,9 +542,9 @@ public:
         _RYML_CB_ASSERT(m_stack.m_callbacks, directive.begins_with('%'));
         if(directive.begins_with("%TAG"))
         {
-            const id_type pos = _ev_num_tag_directives();
+            const id_type pos = _num_tag_directives();
             _RYML_CB_CHECK(m_stack.m_callbacks, pos < RYML_MAX_TAG_DIRECTIVES);
-            _RYML_CB_CHECK(m_stack.m_callbacks, m_ev_tag_directives[pos].create_from_str(directive));
+            _RYML_CB_CHECK(m_stack.m_callbacks, m_tag_directives[pos].create_from_str(directive));
         }
     }
 
@@ -560,9 +557,9 @@ public:
 
     substr alloc_arena(size_t len)
     {
-        const size_t curr = m_ev_arena.size();
-        m_ev_arena.resize(curr + len);
-        return to_substr(m_ev_arena).sub(curr);
+        const size_t curr = m_arena.size();
+        m_arena.resize(curr + len);
+        return to_substr(m_arena).sub(curr);
     }
 
     /** @} */
@@ -576,8 +573,8 @@ public:
     void _push()
     {
         _stack_push();
-        _ev_buf_ensure_(m_stack.size() + id_type(1));
-        _ev_buf_().reset();
+        _buf_ensure_(m_stack.size() + id_type(1));
+        _buf_().reset();
         m_curr->ev_data = {};
         _c4dbgpf("pushed! level={}", m_curr->level);
     }
@@ -585,7 +582,7 @@ public:
     /** end the current scope */
     void _pop()
     {
-        _ev_buf_flush_to_(m_curr->level, m_parent->level);
+        _buf_flush_to_(m_curr->level, m_parent->level);
         _stack_pop();
     }
 
@@ -602,141 +599,141 @@ public:
         return (m_curr->ev_data.m_type.type & bits) != 0;
     }
 
-    void _ev_mark_parent_with_children_()
+    void _mark_parent_with_children_()
     {
         if(m_parent)
             m_parent->has_children = true;
     }
 
-    EventSink& _ev_buf_() noexcept
+    EventSink& _buf_() noexcept
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, (size_t)m_curr->level < m_ev_val_buffers.size());
-        return m_ev_val_buffers[(size_t)m_curr->level];
+        _RYML_CB_ASSERT(m_stack.m_callbacks, (size_t)m_curr->level < m_val_buffers.size());
+        return m_val_buffers[(size_t)m_curr->level];
     }
 
-    EventSink& _ev_buf_(id_type level) noexcept
+    EventSink& _buf_(id_type level) noexcept
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, (size_t)level < m_ev_val_buffers.size());
-        return m_ev_val_buffers[(size_t)level];
+        _RYML_CB_ASSERT(m_stack.m_callbacks, (size_t)level < m_val_buffers.size());
+        return m_val_buffers[(size_t)level];
     }
 
-    EventSink const& _ev_buf_(id_type level) const noexcept
+    EventSink const& _buf_(id_type level) const noexcept
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, (size_t)level < m_ev_val_buffers.size());
-        return m_ev_val_buffers[(size_t)level];
+        _RYML_CB_ASSERT(m_stack.m_callbacks, (size_t)level < m_val_buffers.size());
+        return m_val_buffers[(size_t)level];
     }
 
-    static void _ev_buf_flush_to_(EventSink &C4_RESTRICT src, EventSink &C4_RESTRICT dst) noexcept
+    static void _buf_flush_to_(EventSink &C4_RESTRICT src, EventSink &C4_RESTRICT dst) noexcept
     {
         dst.append(src.get());
         src.reset();
     }
 
-    void _ev_buf_flush_to_(id_type level_src, id_type level_dst) noexcept
+    void _buf_flush_to_(id_type level_src, id_type level_dst) noexcept
     {
-        auto &src = _ev_buf_(level_src);
-        auto &dst = _ev_buf_(level_dst);
-        _ev_buf_flush_to_(src, dst);
+        auto &src = _buf_(level_src);
+        auto &dst = _buf_(level_dst);
+        _buf_flush_to_(src, dst);
     }
 
-    void _ev_buf_flush_() noexcept
+    void _buf_flush_() noexcept
     {
-        _ev_buf_flush_to_(_ev_buf_(), *m_ev_sink);
+        _buf_flush_to_(_buf_(), *m_sink);
     }
 
-    void _ev_buf_ensure_(id_type size_needed) noexcept
+    void _buf_ensure_(id_type size_needed) noexcept
     {
-        if((size_t)size_needed > m_ev_val_buffers.size())
-            m_ev_val_buffers.resize((size_t)size_needed);
+        if((size_t)size_needed > m_val_buffers.size())
+            m_val_buffers.resize((size_t)size_needed);
     }
 
-    C4_ALWAYS_INLINE void _ev_send_(csubstr s) noexcept { _ev_buf_().append(s); }
-    C4_ALWAYS_INLINE void _ev_send_(char c) noexcept { _ev_buf_().append(c); }
+    C4_ALWAYS_INLINE void _send_(csubstr s) noexcept { _buf_().append(s); }
+    C4_ALWAYS_INLINE void _send_(char c) noexcept { _buf_().append(c); }
 
-    void _ev_send_key_scalar_(csubstr scalar, char scalar_type_code)
+    void _send_key_scalar_(csubstr scalar, char scalar_type_code)
     {
-        _ev_send_("=VAL");
-        _ev_send_key_props_();
-        _ev_send_(' ');
-        _ev_send_(scalar_type_code);
-        _ev_buf_().append_escaped(scalar);
-        _ev_send_('\n');
+        _send_("=VAL");
+        _send_key_props_();
+        _send_(' ');
+        _send_(scalar_type_code);
+        _buf_().append_escaped(scalar);
+        _send_('\n');
     }
-    void _ev_send_val_scalar_(csubstr scalar, char scalar_type_code)
+    void _send_val_scalar_(csubstr scalar, char scalar_type_code)
     {
-        _ev_send_("=VAL");
-        _ev_send_val_props_();
-        _ev_send_(' ');
-        _ev_send_(scalar_type_code);
-        _ev_buf_().append_escaped(scalar);
-        _ev_send_('\n');
+        _send_("=VAL");
+        _send_val_props_();
+        _send_(' ');
+        _send_(scalar_type_code);
+        _buf_().append_escaped(scalar);
+        _send_('\n');
     }
 
-    void _ev_send_key_props_()
+    void _send_key_props_()
     {
         if(_has_any_(KEYANCH|KEYREF))
         {
-            _ev_send_(" &");
-            _ev_send_(m_curr->ev_data.m_key.anchor);
+            _send_(" &");
+            _send_(m_curr->ev_data.m_key.anchor);
         }
         if(_has_any_(KEYTAG))
         {
-            _ev_send_tag_(m_curr->ev_data.m_key.tag);
+            _send_tag_(m_curr->ev_data.m_key.tag);
         }
         m_curr->ev_data.m_key = {};
         _disable_(KEYANCH|KEYREF|KEYTAG);
     }
-    void _ev_send_val_props_()
+    void _send_val_props_()
     {
         if(_has_any_(VALANCH|VALREF))
         {
-            _ev_send_(" &");
-            _ev_send_(m_curr->ev_data.m_val.anchor);
+            _send_(" &");
+            _send_(m_curr->ev_data.m_val.anchor);
         }
         if(m_curr->ev_data.m_type.type & VALTAG)
         {
-            _ev_send_tag_(m_curr->ev_data.m_val.tag);
+            _send_tag_(m_curr->ev_data.m_val.tag);
         }
         m_curr->ev_data.m_val = {};
         _disable_(VALANCH|VALREF|VALTAG);
     }
-    void _ev_send_tag_(csubstr tag)
+    void _send_tag_(csubstr tag)
     {
         _RYML_CB_ASSERT(m_stack.m_callbacks, !tag.empty());
         if(tag.str[0] == '<')
         {
-            _ev_send_(' ');
-            _ev_send_(tag);
+            _send_(' ');
+            _send_(tag);
         }
         else
         {
-            _ev_send_(" <");
-            _ev_send_(tag);
-            _ev_send_('>');
+            _send_(" <");
+            _send_(tag);
+            _send_('>');
         }
     }
 
-    void _ev_clear_tag_directives_()
+    void _clear_tag_directives_()
     {
-        for(TagDirective &td : m_ev_tag_directives)
+        for(TagDirective &td : m_tag_directives)
             td = {};
     }
-    id_type _ev_num_tag_directives() const
+    id_type _num_tag_directives() const
     {
         // this assumes we have a very small number of tag directives
         for(id_type i = 0; i < RYML_MAX_TAG_DIRECTIVES; ++i)
-            if(m_ev_tag_directives[i].handle.empty())
+            if(m_tag_directives[i].handle.empty())
                 return i;
         return RYML_MAX_TAG_DIRECTIVES;
     }
-    csubstr _ev_transform_directive(csubstr tag, substr output)
+    csubstr _transform_directive(csubstr tag, substr output)
     {
         // lookup from the end. We want to find the first directive that
         // matches the tag and has a target node id leq than the given
         // node_id.
         for(id_type i = RYML_MAX_TAG_DIRECTIVES-1; i != NONE; --i)
         {
-            TagDirective const& td = m_ev_tag_directives[i];
+            TagDirective const& td = m_tag_directives[i];
             if(td.handle.empty())
                 continue;
             if(tag.begins_with(td.handle))
