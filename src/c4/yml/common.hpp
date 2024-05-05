@@ -281,29 +281,40 @@ struct RYML_EXPORT LineCol
     //! column
     size_t col;
 
-    LineCol() : offset(), line(), col() {}
+    LineCol() = default;
     //! construct from line and column
     LineCol(size_t l, size_t c) : offset(0), line(l), col(c) {}
     //! construct from offset, line and column
     LineCol(size_t o, size_t l, size_t c) : offset(o), line(l), col(c) {}
 };
+static_assert(std::is_trivial<LineCol>::value, "LineCol not trivial");
+static_assert(std::is_standard_layout<LineCol>::value, "Location not trivial");
 
 
 //! a source file position
-struct RYML_EXPORT Location : public LineCol
+struct RYML_EXPORT Location
 {
+    //! number of bytes from the beginning of the source buffer
+    size_t offset;
+    //! line
+    size_t line;
+    //! column
+    size_t col;
+    //! file name
     csubstr name;
 
     operator bool () const { return !name.empty() || line != 0 || offset != 0 || col != 0; }
+    operator LineCol const& () const { return reinterpret_cast<LineCol const&>(*this); }
 
-    Location() : LineCol(), name() {}
-    Location(                         size_t l, size_t c) : LineCol{   l, c}, name( ) {}
-    Location(               size_t b, size_t l, size_t c) : LineCol{b, l, c}, name( ) {}
-    Location(    csubstr n,           size_t l, size_t c) : LineCol{   l, c}, name(n) {}
-    Location(    csubstr n, size_t b, size_t l, size_t c) : LineCol{b, l, c}, name(n) {}
-    Location(const char *n,           size_t l, size_t c) : LineCol{   l, c}, name(to_csubstr(n)) {}
-    Location(const char *n, size_t b, size_t l, size_t c) : LineCol{b, l, c}, name(to_csubstr(n)) {}
+    Location() = default;
+    Location(                         size_t l, size_t c) : offset( ), line(l), col(c), name( ) {}
+    Location(               size_t b, size_t l, size_t c) : offset(b), line(l), col(c), name( ) {}
+    Location(    csubstr n,           size_t l, size_t c) : offset( ), line(l), col(c), name(n) {}
+    Location(    csubstr n, size_t b, size_t l, size_t c) : offset(b), line(l), col(c), name(n) {}
+    Location(const char *n,           size_t l, size_t c) : offset( ), line(l), col(c), name(to_csubstr(n)) {}
+    Location(const char *n, size_t b, size_t l, size_t c) : offset(b), line(l), col(c), name(to_csubstr(n)) {}
 };
+static_assert(std::is_standard_layout<Location>::value, "Location not trivial");
 
 
 //-----------------------------------------------------------------------------

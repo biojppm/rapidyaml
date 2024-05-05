@@ -644,18 +644,12 @@ public:
         return needed <= output.len ? output.first(needed) : output;
     }
 
-    using tag_directive_const_iterator = TagDirective const*;
-    tag_directive_const_iterator begin_tag_directives() const { return m_tag_directives; }
-    tag_directive_const_iterator end_tag_directives() const { return m_tag_directives + num_tag_directives(); }
+    TagDirective const* begin_tag_directives() const { return m_tag_directives; }
+    TagDirective const* end_tag_directives() const { return m_tag_directives + num_tag_directives(); }
+    c4::yml::TagDirectiveRange tag_directives() const { return c4::yml::TagDirectiveRange{begin_tag_directives(), end_tag_directives()}; }
 
-    struct TagDirectiveProxy
-    {
-        tag_directive_const_iterator b, e;
-        tag_directive_const_iterator begin() const { return b; }
-        tag_directive_const_iterator end() const { return e; }
-    };
-
-    TagDirectiveProxy tag_directives() const { return TagDirectiveProxy{begin_tag_directives(), end_tag_directives()}; }
+    RYML_DEPRECATED("use c4::yml::tag_directive_const_iterator") typedef TagDirective const* tag_directive_const_iterator;
+    RYML_DEPRECATED("use c4::yml::TagDirectiveRange") typedef c4::yml::TagDirectiveRange TagDirectiveProxy;
 
     /** @} */
 

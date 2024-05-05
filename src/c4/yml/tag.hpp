@@ -68,6 +68,14 @@ struct RYML_EXPORT TagDirective
     size_t transform(csubstr tag, substr output, Callbacks const& callbacks) const;
 };
 
+struct RYML_EXPORT TagDirectiveRange
+{
+    TagDirective const* C4_RESTRICT b;
+    TagDirective const* C4_RESTRICT e;
+    C4_ALWAYS_INLINE TagDirective const* begin() const noexcept { return b; }
+    C4_ALWAYS_INLINE TagDirective const* end() const noexcept { return e; }
+};
+
 /** @} */
 
 } // namespace yml

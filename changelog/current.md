@@ -106,3 +106,8 @@ A type `id_type` was added to signify the integer type for the node id, defaulti
 
 The reference (ie, alias) resolver object is now exposed in
 [`c4/yml/reference_resolver.hpp`](https://github.com/biojppm/master/src/c4/yml/reference_resolver.hpp) (link valid after this PR is merged). Previously this object was temporarily instantiated in `Tree::resolve()`. Exposing it now enables the user to reuse this object through different calls, saving a potential allocation on every call.
+
+
+### Tag utilities
+
+Tag utilities were moved to the new header [`c4/yml/tag.hpp`](https://github.com/biojppm/master/src/c4/yml/tag.hpp) (link valid after this PR is merged). The types `Tree::tag_directive_const_iterator` and `Tree::TagDirectiveProxy` were deprecated. Fixed also an unitialization problem with `Tree::m_tag_directives`.

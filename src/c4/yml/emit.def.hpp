@@ -87,24 +87,24 @@ void Emitter<Writer>::_emit_yaml(id_type id)
         }
     }
 
-    auto *btd = m_tree->tag_directives().b;
-    auto *etd = m_tree->tag_directives().e;
-    auto write_tag_directives = [&btd, etd, this](id_type next_node){
-        auto end = btd;
-        while(end < etd)
+    TagDirectiveRange tagds = m_tree->tag_directives();
+    auto write_tag_directives = [&tagds, this](const id_type next_node){
+        TagDirective const* C4_RESTRICT end = tagds.b;
+        while(end < tagds.e)
         {
             if(end->next_node_id > next_node)
                 break;
             ++end;
         }
-        for( ; btd != end; ++btd)
+        const size_t parent = m_tree->parent(next_node);
+        for( ; tagds.b != end; ++tagds.b)
         {
-            if(next_node != m_tree->first_child(m_tree->parent(next_node)))
+            if(next_node != m_tree->first_child(parent))
                 this->Writer::_do_write("...\n");
             this->Writer::_do_write("%TAG ");
-            this->Writer::_do_write(btd->handle);
+            this->Writer::_do_write(tagds.b->handle);
             this->Writer::_do_write(' ');
-            this->Writer::_do_write(btd->prefix);
+            this->Writer::_do_write(tagds.b->prefix);
             this->Writer::_do_write('\n');
         }
     };

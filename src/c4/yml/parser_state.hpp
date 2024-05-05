@@ -46,12 +46,12 @@ typedef enum : ParserFlag_t {
 /** Helper to control the line contents while parsing a buffer */
 struct LineContents
 {
-    substr  full;        ///< the full line, including newlines on the right
-    substr  stripped;    ///< the stripped line, excluding newlines on the right
     substr  rem;         ///< the stripped line remainder; initially starts at the first non-space character
     size_t  indentation; ///< the number of spaces on the beginning of the line
+    substr  full;        ///< the full line, including newlines on the right
+    substr  stripped;    ///< the stripped line, excluding newlines on the right
 
-    LineContents() : full(), stripped(), rem(), indentation() {}
+    LineContents() = default;
 
     void reset_with_next_line(substr buf, size_t offset)
     {
@@ -120,6 +120,7 @@ struct LineContents
         return col;
     }
 };
+static_assert(std::is_standard_layout<LineContents>::value, "LineContents not standard");
 
 
 //-----------------------------------------------------------------------------
@@ -128,20 +129,17 @@ struct LineContents
 
 struct ParserState
 {
-    ParserFlag_t flags;
-    id_type      level;
-    id_type      node_id; // don't hold a pointer to the node as it will be relocated during tree resizes
-    csubstr      scalar;  // TODO remove
-    bool         more_indented;
-    size_t       scalar_col; // the column where the scalar (or its quotes) begin
-
-    Location     pos;
     LineContents line_contents;
+    Location     pos;
+    ParserFlag_t flags;
     size_t       indref;  ///< the reference indentation in the current block scope
+    id_type      level;
+    id_type      node_id; ///< don't hold a pointer to the node as it will be relocated during tree resizes
+    size_t       scalar_col; // the column where the scalar (or its quotes) begin
+    bool         more_indented;
+    bool         has_children;
 
-    bool has_children;
-
-    ParserState() : flags(), level(), node_id(), scalar(), scalar_col(), pos(), line_contents(), indref() {}
+    ParserState() = default;
 
     void start_parse(const char *file, id_type node_id_)
     {
@@ -153,7 +151,6 @@ struct ParserState
         node_id = node_id_;
         more_indented = false;
         scalar_col = 0;
-        scalar.clear();
         indref = 0;
         has_children = false;
     }
@@ -166,15 +163,11 @@ struct ParserState
         ++level;
         has_children = false;
     }
+
     C4_ALWAYS_INLINE void reset_before_pop(ParserState const& to_pop)
     {
         pos = to_pop.pos;
         line_contents = to_pop.line_contents;
-    }
-
-    C4_ALWAYS_INLINE void mark_with_children()
-    {
-        has_children = true;
     }
 
 public:
@@ -204,6 +197,8 @@ public:
         return line_contents.indentation != npos && line_contents.indentation < indref;
     }
 };
+static_assert(std::is_standard_layout<ParserState>::value, "ParserState not standard");
+
 
 } // namespace yml
 } // namespace c4
