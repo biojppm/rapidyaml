@@ -11,6 +11,7 @@
     * @ref doc_tree
     * @ref doc_node_classes
   * For serialization/deserialization, see @ref doc_serialization.
+  * @ref doc_ref_utils - how to resolve references to anchors
   * @ref doc_tag_utils - how to resolve tags
   * @ref doc_callbacks - how to set up error/allocation/deallocation
     callbacks either globally for the library, or for specific objects

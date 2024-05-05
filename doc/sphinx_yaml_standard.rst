@@ -10,22 +10,43 @@ appear cases which ryml fails to parse. Your `bug reports or pull
 requests <https://github.com/biojppm/rapidyaml/issues>`__ are very
 welcome.
 
-See also `the roadmap <https://github.com/biojppm/rapidyaml/tree/master/ROADMAP.md>`__ for a list of future work.
+.. note::
 
-Known limitations
------------------
+   If you do run into trouble and would like to investigate
+   conformance of your YAML code, **do not use existing online YAML
+   linters**, many of which are not fully conformant; instead, try
+   using `https://play.yaml.io
+   <https://play.yaml.io/main/parser?input=IyBFZGl0IE1lIQoKJVlBTUwgMS4yCi0tLQpmb286IEhlbGxvLCBZQU1MIQpiYXI6IFsxMjMsIHRydWVdCmJhejoKLSBvbmUKLSB0d28KLSBudWxsCg==>`__,
+   an amazing tool which lets you dynamically input your YAML and
+   continuously see the results from all the existing parsers (kudos
+   to @ingydotnet and the people from the YAML test suite). And of
+   course, if you detect anything wrong with ryml, please `open an
+   issue <https://github.com/biojppm/rapidyaml/issues>`__ so that we
+   can improve.
+
+
+Deliberate deviations
+---------------------
 
 ryml deliberately makes no effort to follow the standard in the
 following situations:
 
--  Containers are not accepted as mapping keys: keys must be scalars.
+-  ryml's tree does NOT accept containers are as mapping keys: keys
+   must be scalars. HOWEVER, this is a limitation only of the tree. The
+   event-based parser engine DOES parse container keys. The parser
+   engine is the result of a recent refactor and its usage is meant to
+   be used by other programming languages to create their native
+   data-structures. This engine is fully tested and fully conformant
+   (other than the general error permissiveness noted below). But
+   because it is recent, it is still undocumented, and it requires some
+   API cleanup before being ready for isolated use. Please get in touch
+   if you are interested in integrating the event-based parser engine
+   without the standalone `ryml::parse_*()`
 -  Tab characters after ``:`` and ``-`` are not accepted tokens, unless
    ryml is compiled with the macro ``RYML_WITH_TAB_TOKENS``. This
    requirement exists because checking for tabs introduces branching
    into the parser’s hot code and in some cases costs as much as 10% in
    parsing time.
--  Anchor names must not end with a terminating colon: eg
-   ``&anchor: key: val``.
 -  Non-unique map keys are allowed. Enforcing key uniqueness in the
    parser or in the tree would cause log-linear parsing complexity (for
    root children on a mostly flat tree), and would increase code size
@@ -45,31 +66,22 @@ following situations:
    tag directives; also, be aware that this feature is under
    consideration for removal in YAML 1.3.
 
-Also, ryml tends to be on the permissive side where the YAML standard
-dictates there should be an error; in many of these cases, ryml will
-tolerate the input. This may be good or bad, but in any case is being
-improved on (meaning ryml will grow progressively less tolerant of YAML
-errors in the coming releases). So we strongly suggest to stay away from
-those dark corners of YAML which are generally a source of problems,
-which is a good practice anyway.
 
-.. note::
+Known (unintended) deviations
+-----------------------------
 
-   If you do run into trouble and would like to investigate
-   conformance of your YAML code, **do not use existing online YAML
-   linters**, many of which are not fully conformant; instead, try
-   using `https://play.yaml.io
-   <https://play.yaml.io/main/parser?input=IyBFZGl0IE1lIQoKJVlBTUwgMS4yCi0tLQpmb286IEhlbGxvLCBZQU1MIQpiYXI6IFsxMjMsIHRydWVdCmJhejoKLSBvbmUKLSB0d28KLSBudWxsCg==>`__,
-   an amazing tool which lets you dynamically input your YAML and
-   continuously see the results from all the existing parsers (kudos
-   to @ingydotnet and the people from the YAML test suite). And of
-   course, if you detect anything wrong with ryml, please `open an
-   issue <https://github.com/biojppm/rapidyaml/issues>`__ so that we
-   can improve.
+ryml tends to be on the permissive side in several cases where the
+YAML standard dictates that there should be an error; in many of these
+cases, ryml will tolerate the input without producing an error. This
+is being improved on, meaning **ryml will grow progressively less
+tolerant of YAML errors** in the coming releases. So we strongly
+suggest to stay away from those dark corners of YAML which are
+generally a source of problems; this is good practice anyway.
+
 
 
 YAML test suite
-===============
+---------------
 
 As part of its CI testing, ryml uses the `YAML test
 suite <https://github.com/yaml/yaml-test-suite>`__. This is an extensive
@@ -99,7 +111,7 @@ several hundred thousand individual tests to which ryml is subjected,
 which are added to the unit tests in ryml, which also employ the same
 extensive combinatorial approach.
 
-Also, note that in `their own words <http://matrix.yaml.io/>`__, the
+Also, note that in `their own words <http://matrix.yaml.info/>`__, the
 tests from the YAML test suite *contain a lot of edge cases that don’t
 play such an important role in real world examples*. And yet, despite
 the extreme focus of the test suite, currently ryml only fails a minor

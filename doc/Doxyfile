@@ -952,6 +952,8 @@ WARN_LOGFILE           =
 INPUT                  = \
                          ./doxy_main.md \
                          ../src \
+                         ../test/test_suite/test_suite_event_handler.hpp \
+                         ../test/test_suite/test_suite_event_handler.cpp \
                          ../samples/quickstart.cpp \
                          ../ext/c4core/src/c4/substr.hpp \
                          ../ext/c4core/src/c4/charconv.hpp \
