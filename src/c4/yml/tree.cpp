@@ -89,6 +89,7 @@ Tree::Tree(Callbacks const& cb)
     , m_arena()
     , m_arena_pos(0)
     , m_callbacks(cb)
+    , m_tag_directives()
 {
 }
 
