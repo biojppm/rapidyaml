@@ -88,7 +88,7 @@ The parser was completely refactored ([#PR414](https://github.com/biojppm/rapidy
 
 As a result of the refactor, there are some limited changes with impact in client code. Even though this was a large refactor, effort was directed at keeping maximal backwards compatibility, and the changes are not wide. But they still exist:
 
-- The existing `parse_...()` methods in the `Parser` class were all removed. Use the corresponding `parse_...(Parser*, ...)` function from the header [`c4/yml/parse.hpp`](https://github.com/biojppm/master/src/c4/yml/parse.hpp).
+- The existing `parse_...()` methods in the `Parser` class were all removed. Use the corresponding `parse_...(Parser*, ...)` function from the header [`c4/yml/parse.hpp`](https://github.com/biojppm/rapidyaml/blob/master/src/c4/yml/parse.hpp).
 - When instantiated by the user, the parser now needs to receive a `EventHandlerTree` object, which is responsible for building the tree. Although fully functional and tested, the structure of this class is still somewhat experimental and is still likely to change. There is an alternative event handler implementation responsible for producing the events for the YAML test suite in `test/test_suite/test_suite_event_handler.hpp`.
 - The declaration and definition of `NodeType` was moved to a separate header file `c4/yml/node_type.hpp` (previously it was in `c4/yml/tree.hpp`).
 - Some of the node type flags were removed, and several flags (and combination flags) were added. 
@@ -104,19 +104,19 @@ A type `id_type` was added to signify the integer type for the node id, defaulti
 ### Reference resolver is now exposed
 
 The reference (ie, alias) resolver object is now exposed in
-[`c4/yml/reference_resolver.hpp`](https://github.com/biojppm/master/src/c4/yml/reference_resolver.hpp). Previously this object was temporarily instantiated in `Tree::resolve()`. Exposing it now enables the user to reuse this object through different calls, saving a potential allocation on every call.
+[`c4/yml/reference_resolver.hpp`](https://github.com/biojppm/rapidyaml/blob/master/src/c4/yml/reference_resolver.hpp). Previously this object was temporarily instantiated in `Tree::resolve()`. Exposing it now enables the user to reuse this object through different calls, saving a potential allocation on every call.
 
 
 ### Tag utilities
 
-Tag utilities were moved to the new header [`c4/yml/tag.hpp`](https://github.com/biojppm/master/src/c4/yml/tag.hpp). The types `Tree::tag_directive_const_iterator` and `Tree::TagDirectiveProxy` were deprecated. Fixed also an unitialization problem with `Tree::m_tag_directives`.
+Tag utilities were moved to the new header [`c4/yml/tag.hpp`](https://github.com/biojppm/rapidyaml/blob/master/src/c4/yml/tag.hpp). The types `Tree::tag_directive_const_iterator` and `Tree::TagDirectiveProxy` were deprecated. Fixed also an unitialization problem with `Tree::m_tag_directives`.
 
 
 ### Performance improvements
 
 To compare performance before and after this changeset, the benchmark runs were run (in the same PC), and the results were collected into these two files:
-  - [results before newparser](https://github.com/biojppm/master/bm/results/results_before_newparser.md)
-  - [results after newparser](https://github.com/biojppm/master/bm/results/results_after_newparser.md)
+  - [results before newparser](https://github.com/biojppm/rapidyaml/blob/master/bm/results/results_before_newparser.md)
+  - [results after newparser](https://github.com/biojppm/rapidyaml/blob/master/bm/results/results_after_newparser.md)
   - (suggestion: compare these files in a diff viewer)
 
 There are a lot of results in these files, and many insights can be obtained by browsing them; too many to list here. Below we show only some selected results.
@@ -128,11 +128,11 @@ Here are some figures for parsing performance, for `bm_ryml_inplace_reuse` (name
 |------|------------|-----------|--------|
 | case | B/s before newparser | B/s after newparser | improv % |
 |------|------------|-----------|--------|
-| [PARSE/appveyor.yml](https://github.com/biojppm/master/bm/cases/appveyor.yml) | 168.628Mi/s | 232.017Mi/s | ~+40% |
-| [PARSE/compile_commands.json](https://github.com/biojppm/master/bm/cases/compile_commands.yml) | 630.17Mi/s | 609.877Mi/s | ~-3% |
-| [PARSE/travis.yml](https://github.com/biojppm/master/bm/cases/travis.yml) | 193.674Mi/s | 271.598Mi/s | ~+50% |
-| [PARSE/scalar_dquot_multiline.yml](https://github.com/biojppm/master/bm/cases/scalar_dquot_multiline.yml) | 224.796Mi/s | 187.335Mi/s | ~-10% |
-| [PARSE/scalar_dquot_singleline.yml](https://github.com/biojppm/master/bm/cases/scalar_dquot_singleline.yml) | 339.889Mi/s | 388.924Mi/s | ~-16% |
+| [PARSE/appveyor.yml](https://github.com/biojppm/rapidyaml/blob/master/bm/cases/appveyor.yml) | 168.628Mi/s | 232.017Mi/s | ~+40% |
+| [PARSE/compile_commands.json](https://github.com/biojppm/rapidyaml/blob/master/bm/cases/compile_commands.yml) | 630.17Mi/s | 609.877Mi/s | ~-3% |
+| [PARSE/travis.yml](https://github.com/biojppm/rapidyaml/blob/master/bm/cases/travis.yml) | 193.674Mi/s | 271.598Mi/s | ~+50% |
+| [PARSE/scalar_dquot_multiline.yml](https://github.com/biojppm/rapidyaml/blob/master/bm/cases/scalar_dquot_multiline.yml) | 224.796Mi/s | 187.335Mi/s | ~-10% |
+| [PARSE/scalar_dquot_singleline.yml](https://github.com/biojppm/rapidyaml/blob/master/bm/cases/scalar_dquot_singleline.yml) | 339.889Mi/s | 388.924Mi/s | ~-16% |
 
 Some conclusions:
 - parse performance improved by ~30%-50% for YAML without filtering-heavy parsing.
@@ -146,11 +146,11 @@ Here are some figures emitting performance improvements retrieved from these fil
 |------|------------|-----------|
 | case | B/s before newparser | B/s after newparser |
 |------|------------|-----------|
-| [EMIT/appveyor.yml](https://github.com/biojppm/master/bm/cases/appveyor.yml) | 311.718Mi/s | 1018.44Mi/s |
-| [EMIT/compile_commands.json](https://github.com/biojppm/master/bm/cases/compile_commands.yml) | 434.206Mi/s | 771.682Mi/s |
-| [EMIT/travis.yml](https://github.com/biojppm/master/bm/cases/travis.yml) | 333.322Mi/s | 1.41597Gi/s |
-| [EMIT/scalar_dquot_multiline.yml](https://github.com/biojppm/master/bm/cases/scalar_dquot_multiline.yml) | 868.6Mi/s | 692.564Mi/s |
-| [EMIT/scalar_dquot_singleline.yml](https://github.com/biojppm/master/bm/cases/scalar_dquot_singleline.yml) | 336.98Mi/s | 638.368Mi/s |
-| [EMIT/style_seqs_flow_outer1000_inner100.yml](https://github.com/biojppm/master/bm/cases/style_seqs_flow_outer1000_inner100.yml) | 136.826Mi/s | 279.487Mi/s |
+| [EMIT/appveyor.yml](https://github.com/biojppm/rapidyaml/blob/master/bm/cases/appveyor.yml) | 311.718Mi/s | 1018.44Mi/s |
+| [EMIT/compile_commands.json](https://github.com/biojppm/rapidyaml/blob/master/bm/cases/compile_commands.yml) | 434.206Mi/s | 771.682Mi/s |
+| [EMIT/travis.yml](https://github.com/biojppm/rapidyaml/blob/master/bm/cases/travis.yml) | 333.322Mi/s | 1.41597Gi/s |
+| [EMIT/scalar_dquot_multiline.yml](https://github.com/biojppm/rapidyaml/blob/master/bm/cases/scalar_dquot_multiline.yml) | 868.6Mi/s | 692.564Mi/s |
+| [EMIT/scalar_dquot_singleline.yml](https://github.com/biojppm/rapidyaml/blob/master/bm/cases/scalar_dquot_singleline.yml) | 336.98Mi/s | 638.368Mi/s |
+| [EMIT/style_seqs_flow_outer1000_inner100.yml](https://github.com/biojppm/rapidyaml/blob/master/bm/cases/style_seqs_flow_outer1000_inner100.yml) | 136.826Mi/s | 279.487Mi/s |
 
-Emit performance improved everywhere by over 1.5x and as much as 3x-4x for YAML without filtering-heavy parsing. This
+Emit performance improved everywhere by over 1.5x and as much as 3x-4x for YAML without filtering-heavy parsing.
