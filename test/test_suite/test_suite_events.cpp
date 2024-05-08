@@ -8,17 +8,6 @@
 namespace c4 {
 namespace yml {
 
-
-std::string emit_events_from_source(substr src)
-{
-    EventHandlerYamlStd::EventSink sink;
-    EventHandlerYamlStd handler(&sink);
-    ParseEngine<EventHandlerYamlStd> parser(&handler);
-    parser.parse_in_place_ev("(testyaml)", src);
-    return sink.result;
-}
-
-
 namespace /*anon*/ {
 
 csubstr filtered_scalar(csubstr str, Tree *tree)

@@ -21,12 +21,15 @@ C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
 C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
 C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
 
+
 namespace c4 {
 namespace yml {
 
 
 /** @addtogroup doc_event_handlers
  * @{ */
+
+std::string emit_events_from_source(substr src);
 
 /** The stack state needed specifically by @ref EventHandlerYamlStd */
 struct EventHandlerYamlStdState : public ParserState
