@@ -128,6 +128,7 @@ jobs:
       matrix:
         config:
           #  name of the artifact    | suffix (gen)    | suffix (package)         | cpack gen | mime type                      | os              | cxx
+          - {name: Ubuntu 22.04 deb  , sfxg: unix64.deb, sfxp: ubuntu-22.04.deb   , gen: DEB  , mime: vnd.debian.binary-package, os: ubuntu-22.04             }
           - {name: Ubuntu 20.04 deb  , sfxg: unix64.deb, sfxp: ubuntu-20.04.deb   , gen: DEB  , mime: vnd.debian.binary-package, os: ubuntu-20.04             }
           #- {name: Ubuntu 18.04 deb  , sfxg: unix64.deb, sfxp: ubuntu-18.04.deb   , gen: DEB  , mime: vnd.debian.binary-package, os: ubuntu-18.04             }
           - {name: Windows VS2019 zip, sfxg: win64.zip , sfxp: windows-vs2019.zip , gen: ZIP  , mime: zip                      , os: windows-2019, cxx: vs2019}

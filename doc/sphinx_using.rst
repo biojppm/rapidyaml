@@ -210,8 +210,7 @@ of ryml:
    low-level multi-platform utilities for C++. When
    ``RYML_STANDALONE=ON``, c4core is incorporated into ryml as if it is
    the same library. Defaults to ``ON``.
-- ``RYML_INSTALL=ON/OFF``. enable/disable install target. Defaults to
-   ``ON``.
+- ``RYML_INSTALL=ON/OFF``. enable/disable install target. Defaults to ``ON``.
 
 If you’re developing ryml or just debugging problems with ryml itself,
 the following cmake variables can be helpful:

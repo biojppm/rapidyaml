@@ -1,4 +1,5 @@
-#include "./test_group.hpp"
+#include "./test_lib/test_group.hpp"
+#include "./test_lib/test_group.def.hpp"
 
 namespace c4 {
 namespace yml {
@@ -9,19 +10,19 @@ CASE_GROUP(MAP_OF_SEQ)
 
 ADD_CASE_TO_GROUP("map of empty seqs",
 R"({foo: [], bar: [], baz: []})",
-     L{
-         N(KEYSEQ, "foo", L()),
-         N(KEYSEQ, "bar", L()),
-         N(KEYSEQ, "baz", L()),
-     }
+N(MFS, L{
+         N(KP|SFS, "foo", L()),
+         N(KP|SFS, "bar", L()),
+         N(KP|SFS, "baz", L()),
+     })
 );
 
 ADD_CASE_TO_GROUP("map of seqs, one line",
 R"({men: [John Smith, Bill Jones], women: [Mary Smith, Susan Williams]})",
-     L{
-         N("men", L{N{"John Smith"}, N{"Bill Jones"}}),
-         N("women", L{N{"Mary Smith"}, N{"Susan Williams"}})
-     }
+N(MFS, L{
+         N(KP|SFS, "men", L{N{VP, "John Smith"}, N{VP, "Bill Jones"}}),
+         N(KP|SFS, "women", L{N{VP, "Mary Smith"}, N{VP, "Susan Williams"}})
+     })
 );
 
 ADD_CASE_TO_GROUP("map of seqs",
@@ -33,10 +34,10 @@ women:
   - Mary Smith
   - Susan Williams
 )",
-     L{
-         N("men", L{N{"John Smith"}, N{"Bill Jones"}}),
-         N("women", L{N{"Mary Smith"}, N{"Susan Williams"}})
-     }
+N(MB, L{
+         N(KP|SB, "men", L{N{VP, "John Smith"}, N{VP, "Bill Jones"}}),
+         N(KP|SB, "women", L{N{VP, "Mary Smith"}, N{VP, "Susan Williams"}})
+     })
 );
 
 ADD_CASE_TO_GROUP("map of seqs, not indented",
@@ -48,10 +49,10 @@ women:
 - Mary Smith
 - Susan Williams
 )",
-     L{
-         N("men", L{N{"John Smith"}, N{"Bill Jones"}}),
-         N("women", L{N{"Mary Smith"}, N{"Susan Williams"}})
-     }
+N(MB, L{
+         N(KP|SB, "men", L{N{VP, "John Smith"}, N{VP, "Bill Jones"}}),
+         N(KP|SB, "women", L{N{VP, "Mary Smith"}, N{VP, "Susan Williams"}})
+     })
 );
 
 ADD_CASE_TO_GROUP("map of seqs, not indented, more",
@@ -104,42 +105,43 @@ product4:
   tax2: 789.10      # we must jump two levels
 tax5: 1234.5
 )",
-L{
-    N("product", L{
-       N(L{N("sku", "BL4438H"), N("quantity", "1"), N("description", "Super Hoop"), N("price", "2392.00")}),
+N(MB, L{
+    N(KP|SB, "product", L{
+       N(MB, L{N(KP|VP, "sku", "BL4438H"), N(KP|VP, "quantity", "1"), N(KP|VP, "description", "Super Hoop"), N(KP|VP, "price", "2392.00")}),
     }),
-    N("tax", "1234.5"),
-    N("product2", L{
-      N("subproduct1", L{
-        N(L{N("sku", "BL4438H"), N("quantity", "1"), N("description", "Super Hoop"), N("price", "2392.00")}),
+    N(KP|VP, "tax", "1234.5"),
+    N(KP|MB, "product2", L{
+      N(KP|SB, "subproduct1", L{
+        N(MB, L{N(KP|VP, "sku", "BL4438H"), N(KP|VP, "quantity", "1"), N(KP|VP, "description", "Super Hoop"), N(KP|VP, "price", "2392.00")}),
       }),
-      N("subproduct2", L{
-        N(L{N("sku", "BL4438H"), N("quantity", "1"), N("description", "Super Hoop"), N("price", "2392.00")}),
+      N(KP|SB, "subproduct2", L{
+        N(MB, L{N(KP|VP, "sku", "BL4438H"), N(KP|VP, "quantity", "1"), N(KP|VP, "description", "Super Hoop"), N(KP|VP, "price", "2392.00")}),
       }),
-      N("tax2", "789.10"),
+      N(KP|VP, "tax2", "789.10"),
     }),
-    N("tax3", "1234.5"),
-    N("product3", L{
-      N("subproduct1", L{
-        N(L{N("sku", "BL4438H"), N("quantity", "1"), N("description", "Super Hoop"), N("price", "2392.00")}),
+    N(KP|VP, "tax3", "1234.5"),
+    N(KP|MB, "product3", L{
+      N(KP|SB, "subproduct1", L{
+        N(MB, L{N(KP|VP, "sku", "BL4438H"), N(KP|VP, "quantity", "1"), N(KP|VP, "description", "Super Hoop"), N(KP|VP, "price", "2392.00")}),
       }),
-      N("subproduct2", L{
-        N(L{N("sku", "BL4438H"), N("quantity", "1"), N("description", "Super Hoop"), N("price", "2392.00")}),
+      N(KP|SB, "subproduct2", L{
+        N(MB, L{N(KP|VP, "sku", "BL4438H"), N(KP|VP, "quantity", "1"), N(KP|VP, "description", "Super Hoop"), N(KP|VP, "price", "2392.00")}),
       }),
-      N("tax2", "789.10"),
+      N(KP|VP, "tax2", "789.10"),
     }),
-    N("tax4", "1234.5"),
-    N("product4", L{
-      N("subproduct1", L{
-        N(L{N("sku", "BL4438H"), N("quantity", "1"), N("description", "Super Hoop"), N("price", "2392.00")}),
+    N(KP|VP, "tax4", "1234.5"),
+    N(KP|MB, "product4", L{
+      N(KP|SB, "subproduct1", L{
+        N(MB, L{N(KP|VP, "sku", "BL4438H"), N(KP|VP, "quantity", "1"), N(KP|VP, "description", "Super Hoop"), N(KP|VP, "price", "2392.00")}),
       }),
-      N("subproduct2", L{
-        N(L{N("sku", "BL4438H"), N("quantity", "1"), N("description", "Super Hoop"), N("price", "2392.00")}),
+      N(KP|SB, "subproduct2", L{
+        N(MB, L{N(KP|VP, "sku", "BL4438H"), N(KP|VP, "quantity", "1"), N(KP|VP, "description", "Super Hoop"), N(KP|VP, "price", "2392.00")}),
       }),
-      N("tax2", "789.10"),
+      N(KP|VP, "tax2", "789.10"),
     }),
-    N("tax5", "1234.5"),
-});
+    N(KP|VP, "tax5", "1234.5"),
+})
+);
 
 ADD_CASE_TO_GROUP("map of seqs, next line",
 R"(
@@ -154,10 +156,10 @@ women:
   - 
     Susan Williams
 )",
-     L{
-         N("men", L{N{"John Smith"}, N{"Bill Jones"}}),
-         N("women", L{N{"Mary Smith"}, N{"Susan Williams"}})
-     }
+N(MB, L{
+        N(KP|SB, "men", L{N{VP, "John Smith"}, N{VP, "Bill Jones"}}),
+        N(KP|SB, "women", L{N{VP, "Mary Smith"}, N{VP, "Susan Williams"}})
+     })
 );
 
 ADD_CASE_TO_GROUP("map of seqs, next line without space",
@@ -173,10 +175,10 @@ women:
   -
     Susan Williams
 )",
-     L{
-         N("men", L{N{"John Smith"}, N{"Bill Jones"}}),
-         N("women", L{N{"Mary Smith"}, N{"Susan Williams"}})
-     }
+N(MB, L{
+        N(KP|SB, "men", L{N{VP, "John Smith"}, N{VP, "Bill Jones"}}),
+        N(KP|SB, "women", L{N{VP, "Mary Smith"}, N{VP, "Susan Williams"}})
+     })
 );
 
 ADD_CASE_TO_GROUP("map of seqs, deal with unk",
@@ -189,11 +191,13 @@ skip_commits:
     - d
     - e
 )",
-L{
-  N("skip_commits", L{N("files",
-    L{N("a"), N("b"), N("c"), N("d"), N("e")}
-  )}),
-}
+N(MB, L{
+  N(KP|MB, "skip_commits", L{
+    N(KP|SB, "files", L{
+      N(VP, "a"), N(VP, "b"), N(VP, "c"), N(VP, "d"), N(VP, "e")
+    })
+  })
+})
 );
 }
 

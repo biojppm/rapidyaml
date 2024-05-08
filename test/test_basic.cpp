@@ -7,7 +7,7 @@
 #include <c4/yml/detail/print.hpp>
 #endif
 
-#include "./test_case.hpp"
+#include "./test_lib/test_case.hpp"
 
 #include <gtest/gtest.h>
 
@@ -180,7 +180,7 @@ TEST(general, numbers)
 // github issue 29: https://github.com/biojppm/rapidyaml/issues/29
 TEST(general, newlines_on_maps_nested_in_seqs)
 {
-    const char yaml[] = R"(enemy:
+    std::string yaml = R"(enemy:
 - actors:
   - {name: Enemy_Bokoblin_Junior, value: 4.0}
   - {name: Enemy_Bokoblin_Middle, value: 16.0}
@@ -188,19 +188,15 @@ TEST(general, newlines_on_maps_nested_in_seqs)
   - {name: Enemy_Bokoblin_Dark, value: 48.0}
   species: BokoblinSeries
 )";
-    std::string expected = R"(enemy:
+    std::string expected =  R"(enemy:
   - actors:
-      - name: Enemy_Bokoblin_Junior
-        value: 4.0
-      - name: Enemy_Bokoblin_Middle
-        value: 16.0
-      - name: Enemy_Bokoblin_Senior
-        value: 32.0
-      - name: Enemy_Bokoblin_Dark
-        value: 48.0
+      - {name: Enemy_Bokoblin_Junior,value: 4.0}
+      - {name: Enemy_Bokoblin_Middle,value: 16.0}
+      - {name: Enemy_Bokoblin_Senior,value: 32.0}
+      - {name: Enemy_Bokoblin_Dark,value: 48.0}
     species: BokoblinSeries
 )";
-    Tree t = parse_in_arena(yaml);
+    Tree t = parse_in_arena(to_csubstr(yaml));
     auto s = emitrs_yaml<std::string>(t);
     EXPECT_EQ(expected, s);
 }
@@ -283,6 +279,47 @@ TEST(general, github_issue_124)
     }
 }
 
+TEST(general, _c4prc)
+{
+    const char *ptr = "abcdefgh"; // as ptr!
+    csubstr buf = ptr;
+    EXPECT_EQ(buf.len, 8u);
+    for(const char c : buf)
+    {
+        SCOPED_TRACE(c);
+        EXPECT_EQ(_c4prc(c).len, 1);
+        EXPECT_EQ(_c4prc(c).str, &c);
+    }
+    ptr = "\n\t\0\r\f\b\v\a"; // as ptr!
+    buf = {ptr, 8u};
+    EXPECT_EQ(buf.len, 8u);
+    for(const char c : buf)
+    {
+        SCOPED_TRACE(c);
+        EXPECT_EQ(_c4prc(c).len, 2);
+        EXPECT_NE(_c4prc(c).str, &c);
+    }
+}
+
+#ifdef RYML_DBG
+TEST(general, _c4presc)
+{
+    const char buf_[] = {
+        'a','b','c','d','e','f','g','h','\n',
+        '\t','\0','\r','\f','\b','\v','\a','\x1b',
+        detail::_charconstant_t<-0x3e,0xc2u>::value, detail::_charconstant_t<-0x60,0xa0u>::value, // \_
+        detail::_charconstant_t<-0x3e,0xc2u>::value, detail::_charconstant_t<-0x7b,0x85u>::value, // \N
+        detail::_charconstant_t<-0x1e,0xe2u>::value, detail::_charconstant_t<-0x58,0x80u>::value, // \N
+        detail::_charconstant_t<-0x1e,0xe2u>::value, detail::_charconstant_t<-0x57,0xa9u>::value, // \N
+        'a','b','c','d','e','f','g','h',
+        'a','b','c','d','e','f','g','h',
+        'a','b','c','d','e','f','g','h',
+    };
+    csubstr buf = buf_;
+    _c4presc(buf, false);
+    _c4presc(buf, true);
+}
+#endif
 
 
 //-------------------------------------------

@@ -47,6 +47,8 @@ ryml is written in C++11, and compiles cleanly with:
     <https://github.com/biojppm/c4conf>`_.
 
 
+----
+
 Table of contents
 =================
 
@@ -54,6 +56,7 @@ Table of contents
    :maxdepth: 3
 
    Doxygen docs <doxygen/index.html#http://>
+   YAML playground <https://play.yaml.io/main/parser?input=IyBFZGl0IE1lIQoKJVlBTUwgMS4yCi0tLQpmb286IEhlbGxvLCBZQU1MIQpiYXI6IFsxMjMsIHRydWVdCmJhejoKLSBvbmUKLSB0d28KLSBudWxsCg==>
    ./sphinx_quicklinks
    ./sphinx_is_it_rapid
    ./sphinx_yaml_standard
@@ -61,6 +64,7 @@ Table of contents
    ./sphinx_other_languages
    ./sphinx_alternative_libraries
 
+----
 
 API teaser
 ==========

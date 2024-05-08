@@ -132,7 +132,7 @@ function(ryml_add_bm_comparison_case target name case_file)
     get_filename_component(case "${case_file}" NAME_WE) # case identifier
     get_filename_component(ext "${case_file}" EXT) # prevent json readers from reading yml data
     if(NOT ("${ext}" STREQUAL ".json"))
-        set(filter_json "yml|yaml")
+        set(filter_json "ryml_yaml|yaml")
     endif()
     c4_add_target_benchmark(${target} ${case}
         FILTER "${filter_json}"

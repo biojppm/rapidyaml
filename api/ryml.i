@@ -240,16 +240,20 @@ from deprecation import deprecated
 
 
 def as_csubstr(s):
+    """return as a ryml::csubstr"""
     return _get_as_csubstr(s)
 
 def as_substr(s):
+    """return as a ryml::ssubstr"""
     return _get_as_substr(s)
 
 def u(memview):
+    """return memview as a utf8"""
     return str(memview, "utf8")
 
 
 def children(tree, node=None):
+    """walk (non-recursively) the children of a node"""
     assert tree is not None
     if node is None:
         node = tree.root_id()
@@ -260,6 +264,7 @@ def children(tree, node=None):
 
 
 def siblings(tree, node):
+    """walk (non-recursively) the siblings of a node"""
     assert tree is not None
     if node is None:
         return
@@ -269,13 +274,15 @@ def siblings(tree, node):
         ch = tree.next_sibling(ch)
 
 
-def walk(tree, node=None, indentation_level=0):
+def walk(tree, node=None, depth=0):
+    """walk recursively starting at a node, returning a tuple of node and depth"""
     assert tree is not None
-    if node is None: node = tree.root_id()
-    yield node, indentation_level
+    if node is None:
+        node = tree.root_id()
+    yield node, depth
     ch = tree.first_child(node)
     while ch != NONE:
-       for gc, il in walk(tree, ch, indentation_level + 1):
+       for gc, il in walk(tree, ch, depth + 1):
            yield gc, il
        ch = tree.next_sibling(ch)
 
@@ -283,34 +290,66 @@ def walk(tree, node=None, indentation_level=0):
 @deprecated(deprecated_in="0.5.0", details="Use parse_in_arena() instead")
 def parse(buf, **kwargs):
     return parse_in_arena(tree, id)
-def parse_in_arena(buf, **kwargs):
-    return _call_parse(parse_csubstr, buf, **kwargs)
-def parse_in_place(buf, **kwargs):
-    _check_valid_for_in_situ(buf)
-    return _call_parse(parse_substr, buf, **kwargs)
+
+def parse_in_arena(buf, tree=None):
+    """parse immutable YAML in the trees arena. Copy the YAML into a buffer
+    in the C++ tree's arena, then parse the YAML from the trees arena.
+
+    :param buf:
+       the YAML buffer to be parsed
+    :type buf: ``str``, ``bytes``, ``bytearray`` or ``memoryview``
+
+    :param tree:
+       a tree to be reused. When no tree is given, a new tree is created,
+       and returned at the end.
+    :type buf: ``ryml.Tree``
+    """
+    return _call_parse(parse_csubstr, buf, tree)
+
+def parse_in_place(buf, tree=None):
+    """parse in place a mutable buffer containing YAML. The resulting tree
+    will point into the given buffer.
+
+    :param buf:
+       the YAML buffer to be parsed
+    :type buf:
+       ``bytearray`` or ``memoryview`` (NOT ``str`` or ``bytes``, which are not writeable)
+
+    :param tree:
+       a tree to be reused. When no tree is given, a new tree is created,
+       and returned at the end.
+    :type buf: ``ryml.Tree``
+    """
+    _check_valid_for_in_place(buf)
+    return _call_parse(parse_substr, buf, tree)
 
 
 
-def _call_parse(parse_fn, buf, **kwargs):
-    tree = kwargs.get("tree", Tree())
+def _call_parse(parse_fn, buf, tree):
+    if tree is None:
+        tree = Tree()
     parse_fn(buf, tree)
     return tree
 
 
-def _check_valid_for_in_situ(obj):
-    if type(obj) in (str, bytes):
-        raise TypeError("cannot parse in situ: " + type(obj).__name__)
+def _check_valid_for_in_place(obj):
+    if type(obj) in (str, bytes):  # is there a better heuristic?
+        raise TypeError("cannot parse in place: " + type(obj).__name__)
 
 
 
 @deprecated(deprecated_in="0.5.0", details="Use emit_yaml() instead")
 def emit(tree, id=None):
     return emit_yaml(tree, id)
+
 def emit_yaml(tree, id=None):
+    """emit the given tree as YAML, creating a new output buffer"""
     if id is None:
         id = tree.root_id()
     return emit_yaml_malloc(tree, id)
+
 def emit_json(tree, id=None):
+    """emit the given tree as JSON, creating a new output buffer"""
     if id is None:
         id = tree.root_id()
     return emit_json_malloc(tree, id)
@@ -319,10 +358,12 @@ def emit_json(tree, id=None):
 @deprecated(deprecated_in="0.5.0", details="Use compute_emit_yaml_length() instead")
 def compute_emit_length(tree, id=None):
     return compute_emit_yaml_length(tree, id)
+
 def compute_emit_yaml_length(tree, id=None):
     if id is None:
         id = tree.root_id()
     return emit_yaml_length(tree, id)
+
 def compute_emit_json_length(tree, id=None):
     if id is None:
         id = tree.root_id()
@@ -332,10 +373,13 @@ def compute_emit_json_length(tree, id=None):
 @deprecated(deprecated_in="0.5.0", details="Use emit_yaml_in_place() instead")
 def emit_in_place(tree, buf, id=None):
     return emit_yaml_in_place(tree, buf, id)
+
 def emit_yaml_in_place(tree, buf, id=None):
     return _emit_fn_in_place(tree, buf, id, emit_yaml_to_substr)
+
 def emit_json_in_place(tree, buf, id=None):
     return _emit_fn_in_place(tree, buf, id, emit_json_to_substr)
+
 def _emit_fn_in_place(tree, buf, id, fn):
     if id is None:
         id = tree.root_id()
@@ -347,12 +391,15 @@ def _emit_fn_in_place(tree, buf, id, fn):
 
 %}
 
+
 //-----------------------------------------------------------------------------
 
 namespace c4 {
 namespace yml {
 
 constexpr const size_t NONE = (size_t)-1;
+
+using type_bits = uint32_t;
 
 typedef enum {
     NOTYPE  = 0,          ///< no type is set
@@ -368,61 +415,199 @@ typedef enum {
     VALANCH = (1<<9),     ///< the val has an &anchor
     KEYTAG  = (1<<10),    ///< the key has an explicit tag/type
     VALTAG  = (1<<11),    ///< the val has an explicit tag/type
+    KEY_UNFILT  = (1<<12), ///< the key scalar was left unfiltered; the parser was set not to filter. @see ParserOptions
+    VAL_UNFILT  = (1<<13), ///< the val scalar was left unfiltered; the parser was set not to filter. @see ParserOptions
+    //
+    // style flags:
+    //
+    FLOW_SL     = (1<<14), ///< mark container with single-line flow style (seqs as '[val1,val2], maps as '{key: val,key2: val2}')
+    FLOW_ML     = (1<<15), ///< mark container with multi-line flow style (seqs as '[\n  val1,\n  val2\n], maps as '{\n  key: val,\n  key2: val2\n}')
+    BLOCK       = (1<<16), ///< mark container with block style (seqs as '- val\n', maps as 'key: val')
+    KEY_LITERAL = (1<<17), ///< mark key scalar as multiline, block literal |
+    VAL_LITERAL = (1<<18), ///< mark val scalar as multiline, block literal |
+    KEY_FOLDED  = (1<<19), ///< mark key scalar as multiline, block folded >
+    VAL_FOLDED  = (1<<20), ///< mark val scalar as multiline, block folded >
+    KEY_SQUO    = (1<<21), ///< mark key scalar as single quoted '
+    VAL_SQUO    = (1<<22), ///< mark val scalar as single quoted '
+    KEY_DQUO    = (1<<23), ///< mark key scalar as double quoted "
+    VAL_DQUO    = (1<<24), ///< mark val scalar as double quoted "
+    KEY_PLAIN   = (1<<25), ///< mark key scalar as plain scalar (unquoted, even when multiline)
+    VAL_PLAIN   = (1<<26), ///< mark val scalar as plain scalar (unquoted, even when multiline)
+    //
+    // type combination masks:
+    //
+    KEYVAL  = KEY|VAL,
+    KEYSEQ  = KEY|SEQ,
+    KEYMAP  = KEY|MAP,
+    DOCMAP  = DOC|MAP,
+    DOCSEQ  = DOC|SEQ,
+    DOCVAL  = DOC|VAL,
+    //
+    // style combination masks:
+    //
+    SCALAR_LITERAL = KEY_LITERAL|VAL_LITERAL,
+    SCALAR_FOLDED  = KEY_FOLDED|VAL_FOLDED,
+    SCALAR_SQUO    = KEY_SQUO|VAL_SQUO,
+    SCALAR_DQUO    = KEY_DQUO|VAL_DQUO,
+    SCALAR_PLAIN   = KEY_PLAIN|VAL_PLAIN,
+    KEYQUO         = KEY_SQUO|KEY_DQUO|KEY_FOLDED|KEY_LITERAL, ///< key style is one of ', ", > or |
+    VALQUO         = VAL_SQUO|VAL_DQUO|VAL_FOLDED|VAL_LITERAL, ///< val style is one of ', ", > or |
+    KEY_STYLE      = KEY_LITERAL|KEY_FOLDED|KEY_SQUO|KEY_DQUO|KEY_PLAIN, ///< mask of all the scalar styles for key (not container styles!)
+    VAL_STYLE      = VAL_LITERAL|VAL_FOLDED|VAL_SQUO|VAL_DQUO|VAL_PLAIN, ///< mask of all the scalar styles for val (not container styles!)
+    SCALAR_STYLE   = KEY_STYLE|VAL_STYLE,
+    CONTAINER_STYLE_FLOW  = FLOW_SL|FLOW_ML,
+    CONTAINER_STYLE_BLOCK = BLOCK,
+    CONTAINER_STYLE       = FLOW_SL|FLOW_ML|BLOCK,
+    STYLE          = SCALAR_STYLE | CONTAINER_STYLE,
 } NodeType_e;
 
+constexpr NodeType_e operator|  (NodeType_e lhs, NodeType_e rhs) noexcept;
+constexpr NodeType_e operator&  (NodeType_e lhs, NodeType_e rhs) noexcept;
+constexpr NodeType_e operator>> (NodeType_e bits, uint32_t n) noexcept;
+constexpr NodeType_e operator<< (NodeType_e bits, uint32_t n) noexcept;
+constexpr NodeType_e operator~  (NodeType_e bits) noexcept;
+NodeType_e& operator&= (NodeType_e &subject, NodeType_e bits) noexcept;
+NodeType_e& operator|= (NodeType_e &subject, NodeType_e bits) noexcept;
+
+
+/*---------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 
 struct NodeType
 {
+public:
+
     NodeType_e type;
 
-    NodeType();
-    NodeType(NodeType_e t);
-    ~NodeType();
+public:
 
-    const char *type_str();
-    static const char* type_str(NodeType_e t);
+    NodeType() noexcept;
+    NodeType(NodeType_e t) noexcept;
+    NodeType(type_bits t) noexcept;
 
-    void set(NodeType_e t);
-    void add(NodeType_e t);
-    void rem(NodeType_e t);
+    bool has_any(NodeType_e t) const noexcept;
+    bool has_all(NodeType_e t) const noexcept;
+    bool has_none(NodeType_e t) const noexcept;
 
-    bool is_stream() const;
-    bool is_doc() const;
-    bool is_container() const;
-    bool is_map() const;
-    bool is_seq() const;
-    bool has_val() const;
-    bool has_key() const;
-    bool is_val() const;
-    bool is_keyval() const;
-    bool has_key_tag() const;
-    bool has_val_tag() const;
-    bool has_key_anchor() const;
-    bool has_val_anchor() const;
-    bool has_anchor() const;
-    bool is_key_ref() const;
-    bool is_val_ref() const;
-    bool is_ref() const;
-    bool is_anchor_or_ref() const;
-    bool is_key_quoted() const;
-    bool is_val_quoted() const;
-    bool is_quoted() const;
+    void set(NodeType_e t) noexcept;
+    void add(NodeType_e t) noexcept;
+    void rem(NodeType_e t) noexcept;
+    void addrem(NodeType_e bits_to_add, NodeType_e bits_to_remove) noexcept;
+
+    void clear() noexcept;
+
+public:
+
+    /** @name node type queries
+     * @{ */
+
+    /** return a preset string based on the node type */
+    const char *type_str() const noexcept;
+    /** return a preset string based on the node type */
+    static const char* type_str(NodeType_e t) noexcept;
+
+    /** fill a string with the node type flags. If the string is small, returns {null, len} */
+    c4::csubstr type_str(c4::substr buf) const noexcept;
+
+    /** fill a string with the node type flags. If the string is small, returns {null, len}  */
+    static c4::csubstr type_str(c4::substr buf, NodeType_e t) noexcept;
+
+public:
+
+    /** @name node type queries
+     * @{ */
+
+    bool is_notype()         const noexcept;
+    bool is_stream()         const noexcept;
+    bool is_doc()            const noexcept;
+    bool is_container()      const noexcept;
+    bool is_map()            const noexcept;
+    bool is_seq()            const noexcept;
+    bool has_key()           const noexcept;
+    bool has_val()           const noexcept;
+    bool is_val()            const noexcept;
+    bool is_keyval()         const noexcept;
+    bool has_key_tag()       const noexcept;
+    bool has_val_tag()       const noexcept;
+    bool has_key_anchor()    const noexcept;
+    bool has_val_anchor()    const noexcept;
+    bool has_anchor()        const noexcept;
+    bool is_key_ref()        const noexcept;
+    bool is_val_ref()        const noexcept;
+    bool is_ref()            const noexcept;
+
+    bool is_key_unfiltered() const noexcept;
+    bool is_val_unfiltered() const noexcept;
+
+    /** @} */
+
+public:
+
+    /** @name container+scalar style queries
+     * @{ */
+
+    bool is_container_styled() const noexcept;
+    bool is_block() const noexcept;
+    bool is_flow_sl() const noexcept;
+    bool is_flow_ml() const noexcept;
+    bool is_flow() const noexcept;
+
+    bool is_key_styled() const noexcept;
+    bool is_val_styled() const noexcept;
+    bool is_key_literal() const noexcept;
+    bool is_val_literal() const noexcept;
+    bool is_key_folded() const noexcept;
+    bool is_val_folded() const noexcept;
+    bool is_key_squo() const noexcept;
+    bool is_val_squo() const noexcept;
+    bool is_key_dquo() const noexcept;
+    bool is_val_dquo() const noexcept;
+    bool is_key_plain() const noexcept;
+    bool is_val_plain() const noexcept;
+    bool is_key_quoted() const noexcept;
+    bool is_val_quoted() const noexcept;
+    bool is_quoted() const noexcept;
+
+    void set_container_style(NodeType_e style) noexcept;
+    void set_key_style(NodeType_e style) noexcept;
+    void set_val_style(NodeType_e style) noexcept;
+
+    /** @} */
 };
 
+
+/*---------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
+
+#ifndef RYML_ID_TYPE
+/** The type of a node id in the YAML tree. In the future, the default
+ * will likely change to int32_t, which was observed to be faster.
+ * @see id_type */
+#define RYML_ID_TYPE size_t
+#endif
+
+
+/** The type of a node id in the YAML tree; to override the default
+ * type, define the macro @ref RYML_ID_TYPE to a suitable integer
+ * type. */
+using id_type = RYML_ID_TYPE;
 
 struct Tree
 {
     Tree();
     ~Tree();
 
-    void reserve(size_t node_capacity);
-    void reserve_arena(size_t node_capacity);
+    void reserve(id_type node_capacity);
+    void reserve_arena(size_t arena_capacity);
     void clear();
     void clear_arena();
 
-    size_t size() const;
-    size_t capacity() const;
-    size_t slack() const;
+    bool   empty() const;
+    id_type size() const;
+    id_type capacity() const;
+    id_type slack() const;
 
     size_t arena_size() const;
     size_t arena_capacity() const;
@@ -434,248 +619,207 @@ public:
 
     // getters
 
-    NodeType_e  type(size_t node) const;
-    const char* type_str(size_t node) const;
+    NodeType_e  type(id_type node) const;
+    const char* type_str(id_type node) const;
 
-    c4::csubstr key       (size_t node) const;
-    c4::csubstr key_tag   (size_t node) const;
-    c4::csubstr key_ref   (size_t node) const;
-    c4::csubstr key_anchor(size_t node) const;
-    c4::yml::NodeScalar keysc(size_t node) const;
+    c4::csubstr key       (id_type node) const;
+    c4::csubstr key_tag   (id_type node) const;
+    c4::csubstr key_ref   (id_type node) const;
+    c4::csubstr key_anchor(id_type node) const;
+    c4::yml::NodeScalar keysc(id_type node) const;
 
-    c4::csubstr val       (size_t node) const;
-    c4::csubstr val_tag   (size_t node) const;
-    c4::csubstr val_ref   (size_t node) const;
-    c4::csubstr val_anchor(size_t node) const;
-    c4::yml::NodeScalar valsc(size_t node) const;
+    c4::csubstr val       (id_type node) const;
+    c4::csubstr val_tag   (id_type node) const;
+    c4::csubstr val_ref   (id_type node) const;
+    c4::csubstr val_anchor(id_type node) const;
+    c4::yml::NodeScalar valsc(id_type node) const;
 
 public:
 
     // node predicates
 
-    bool is_root(size_t node) const;
-    bool is_stream(size_t node) const;
-    bool is_doc(size_t node) const;
-    bool is_container(size_t node) const;
-    bool is_map(size_t node) const;
-    bool is_seq(size_t node) const;
-    bool has_val(size_t node) const;
-    bool has_key(size_t node) const;
-    bool is_val(size_t node) const;
-    bool is_keyval(size_t node) const;
-    bool has_key_tag(size_t node) const;
-    bool has_val_tag(size_t node) const;
-    bool has_key_anchor(size_t node) const;
-    bool has_val_anchor(size_t node) const;
-    bool is_key_ref(size_t node) const;
-    bool is_val_ref(size_t node) const;
-    bool is_ref(size_t node) const;
-    bool is_anchor_or_ref(size_t node) const;
-    bool is_key_quoted(size_t node) const;
-    bool is_val_quoted(size_t node) const;
-    bool is_quoted(size_t node) const;
-    bool is_anchor(size_t node) const;
-    bool parent_is_seq(size_t node) const;
-    bool parent_is_map(size_t node) const;
-    bool empty(size_t node) const;
-    bool has_anchor(size_t node, c4::csubstr a) const;
+    bool type_has_any(id_type node, NodeType_e bits) const;
+    bool type_has_all(id_type node, NodeType_e bits) const;
+    bool type_has_none(id_type node, NodeType_e bits) const;
+
+    bool is_stream(id_type node) const;
+    bool is_doc(id_type node) const;
+    bool is_container(id_type node) const;
+    bool is_map(id_type node) const;
+    bool is_seq(id_type node) const;
+    bool has_key(id_type node) const;
+    bool has_val(id_type node) const;
+    bool is_val(id_type node) const;
+    bool is_keyval(id_type node) const;
+    bool has_key_tag(id_type node) const;
+    bool has_val_tag(id_type node) const;
+    bool has_key_anchor(id_type node) const;
+    bool has_val_anchor(id_type node) const;
+    bool has_anchor(id_type node) const;
+    bool is_key_ref(id_type node) const;
+    bool is_val_ref(id_type node) const;
+    bool is_ref(id_type node) const;
+
+    bool parent_is_seq(id_type node) const;
+    bool parent_is_map(id_type node) const;
+
+    bool has_anchor(id_type node, c4::csubstr a) const;
+    bool key_is_null(id_type node) const;
+    bool val_is_null(id_type node) const;
 
 public:
 
     // hierarchy predicates
 
-    bool has_parent(size_t node) const;
-    bool has_child(size_t node, c4::csubstr key) const;
-    //bool has_child(size_t node, size_t ch) const;
-    bool has_children(size_t node) const;
-    bool has_sibling(size_t node, c4::csubstr key) const;
-    //bool has_sibling(size_t node, size_t sib) const;
-    bool has_other_siblings(size_t node) const;
+    bool is_root(id_type node) const;
+
+    bool has_parent(id_type node) const;
+    bool has_child(id_type node, c4::csubstr key) const;
+    //bool has_child(id_type node, id_type ch) const;
+    bool has_children(id_type node) const;
+    bool has_sibling(id_type node, c4::csubstr key) const;
+    //bool has_sibling(id_type node, id_type sib) const;
+    bool has_other_siblings(id_type node) const;
 
 public:
 
     // hierarchy getters
 
-    size_t root_id() const;
+    id_type root_id() const;
 
-    size_t parent(size_t node) const;
-    size_t prev_sibling(size_t node) const;
-    size_t next_sibling(size_t node) const;
-    size_t num_children(size_t node) const;
-    size_t child_pos(size_t node, size_t ch) const;
-    size_t first_child(size_t node) const;
-    size_t last_child(size_t node) const;
-    size_t child(size_t node, size_t pos) const;
-    size_t find_child(size_t node, c4::csubstr key) const;
-    size_t num_siblings(size_t node) const;
-    size_t num_other_siblings(size_t node) const;
-    size_t sibling_pos(size_t node, size_t sib) const;
-    size_t first_sibling(size_t node) const;
-    size_t last_sibling(size_t node) const;
-    size_t sibling(size_t node, size_t pos) const;
-    size_t find_sibling(size_t node, c4::csubstr key) const;
+    id_type parent(id_type node) const;
+    id_type prev_sibling(id_type node) const;
+    id_type next_sibling(id_type node) const;
+    id_type num_children(id_type node) const;
+    id_type child_pos(id_type node, id_type ch) const;
+    id_type first_child(id_type node) const;
+    id_type last_child(id_type node) const;
+    id_type child(id_type node, id_type pos) const;
+    id_type find_child(id_type node, c4::csubstr key) const;
+    id_type num_siblings(id_type node) const;
+    id_type num_other_siblings(id_type node) const;
+    id_type sibling_pos(id_type node, id_type sib) const;
+    id_type first_sibling(id_type node) const;
+    id_type last_sibling(id_type node) const;
+    id_type sibling(id_type node, id_type pos) const;
+    id_type find_sibling(id_type node, c4::csubstr key) const;
 
 public:
 
-    void to_keyval(size_t node, c4::csubstr key, c4::csubstr val, int more_flags=0);
-    void to_map(size_t node, c4::csubstr key, int more_flags=0);
-    void to_seq(size_t node, c4::csubstr key, int more_flags=0);
-    void to_val(size_t node, c4::csubstr val, int more_flags=0);
-    void to_stream(size_t node, int more_flags=0);
-    void to_map(size_t node, int more_flags=0);
-    void to_seq(size_t node, int more_flags=0);
-    void to_doc(size_t node, int more_flags=0);
+    /** @name node style predicates and modifiers. see the corresponding predicate in NodeType */
+    /** @{ */
 
-    void set_key_tag(size_t node, c4::csubstr tag);
-    void set_key_anchor(size_t node, c4::csubstr anchor);
-    void set_val_anchor(size_t node, c4::csubstr anchor);
-    void set_key_ref   (size_t node, c4::csubstr ref   );
-    void set_val_ref   (size_t node, c4::csubstr ref   );
+    bool is_container_styled(id_type node) const;
+    bool is_block(id_type node) const;
+    bool is_flow_sl(id_type node) const;
+    bool is_flow_ml(id_type node) const;
+    bool is_flow(id_type node) const;
 
-    void _set_key(size_t node, c4::csubstr key, int more_flags=0);
-    void _set_val(size_t node, c4::csubstr val, int more_flags=0);
+    bool is_key_styled(id_type node) const;
+    bool is_val_styled(id_type node) const;
+    bool is_key_literal(id_type node) const;
+    bool is_val_literal(id_type node) const;
+    bool is_key_folded(id_type node) const;
+    bool is_val_folded(id_type node) const;
+    bool is_key_squo(id_type node) const;
+    bool is_val_squo(id_type node) const;
+    bool is_key_dquo(id_type node) const;
+    bool is_val_dquo(id_type node) const;
+    bool is_key_plain(id_type node) const;
+    bool is_val_plain(id_type node) const;
+    bool is_key_quoted(id_type node) const;
+    bool is_val_quoted(id_type node) const;
+    bool is_quoted(id_type node) const;
 
-    void set_val_tag(size_t node, c4::csubstr tag);
-    void rem_key_anchor(size_t node);
-    void rem_val_anchor(size_t node);
-    void rem_key_ref   (size_t node);
-    void rem_val_ref   (size_t node);
-    void rem_anchor_ref(size_t node);
+    void set_container_style(id_type node, NodeType_e style);
+    void set_key_style(id_type node, NodeType_e style);
+    void set_val_style(id_type node, NodeType_e style);
+
+    /** @} */
+
+public:
+
+    void to_keyval(id_type node, c4::csubstr key, c4::csubstr val, int more_flags=0);
+    void to_map(id_type node, c4::csubstr key, int more_flags=0);
+    void to_seq(id_type node, c4::csubstr key, int more_flags=0);
+    void to_val(id_type node, c4::csubstr val, int more_flags=0);
+    void to_stream(id_type node, int more_flags=0);
+    void to_map(id_type node, int more_flags=0);
+    void to_seq(id_type node, int more_flags=0);
+    void to_doc(id_type node, int more_flags=0);
+
+    void set_key_tag(id_type node, c4::csubstr tag);
+    void set_key_anchor(id_type node, c4::csubstr anchor);
+    void set_val_anchor(id_type node, c4::csubstr anchor);
+    void set_key_ref   (id_type node, c4::csubstr ref   );
+    void set_val_ref   (id_type node, c4::csubstr ref   );
+
+    void _set_key(id_type node, c4::csubstr key, int more_flags=0);
+    void _set_val(id_type node, c4::csubstr val, int more_flags=0);
+
+    void set_val_tag(id_type node, c4::csubstr tag);
+    void rem_key_anchor(id_type node);
+    void rem_val_anchor(id_type node);
+    void rem_key_ref   (id_type node);
+    void rem_val_ref   (id_type node);
+    void rem_anchor_ref(id_type node);
 
 public:
 
     /** create and insert a new child of "parent". insert after the (to-be)
      * sibling "after", which must be a child of "parent". To insert as the
      * first child, set after to NONE */
-    size_t insert_child(size_t parent, size_t after);
-    size_t prepend_child(size_t parent);
-    size_t  append_child(size_t parent);
+    id_type insert_child(id_type parent, id_type after);
+    id_type prepend_child(id_type parent);
+    id_type  append_child(id_type parent);
 
 public:
 
     //! create and insert a new sibling of n. insert after "after"
-    size_t insert_sibling(size_t node, size_t after);
-    size_t prepend_sibling(size_t node);
-    size_t  append_sibling(size_t node);
+    id_type insert_sibling(id_type node, id_type after);
+    id_type prepend_sibling(id_type node);
+    id_type  append_sibling(id_type node);
 
 public:
 
     //! remove an entire branch at once: ie remove the children and the node itself
-    void remove(size_t node);
+    void remove(id_type node);
 
     //! remove all the node's children, but keep the node itself
-    void remove_children(size_t node);
+    void remove_children(id_type node);
 
 public:
 
     void reorder();
 
     /** change the node's position in the parent */
-    void move(size_t node, size_t after);
+    void move(id_type node, id_type after);
 
     /** change the node's parent and position */
-    void move(size_t node, size_t new_parent, size_t after);
+    void move(id_type node, id_type new_parent, id_type after);
     /** change the node's parent and position */
-    size_t move(Tree * src, size_t node, size_t new_parent, size_t after);
+    id_type move(Tree * src, id_type node, id_type new_parent, id_type after);
 
     /** recursively duplicate the node */
-    size_t duplicate(size_t node, size_t new_parent, size_t after);
+    id_type duplicate(id_type node, id_type new_parent, id_type after);
     /** recursively duplicate a node from a different tree */
-    size_t duplicate(Tree const* src, size_t node, size_t new_parent, size_t after);
+    id_type duplicate(Tree const* src, id_type node, id_type new_parent, id_type after);
 
     /** recursively duplicate the node's children (but not the node) */
-    void duplicate_children(size_t node, size_t parent, size_t after);
+    void duplicate_children(id_type node, id_type parent, id_type after);
     /** recursively duplicate the node's children (but not the node), where the node is from a different tree */
-    void duplicate_children(Tree const* src, size_t node, size_t parent, size_t after);
+    void duplicate_children(Tree const* src, id_type node, id_type parent, id_type after);
 
-    void duplicate_contents(size_t node, size_t where);
+    void duplicate_contents(id_type node, id_type where);
 
     /** duplicate the node's children (but not the node) in a new parent, but
      * omit repetitions where a duplicated node has the same key (in maps) or
      * value (in seqs). If one of the duplicated children has the same key
      * (in maps) or value (in seqs) as one of the parent's children, the one
      * that is placed closest to the end will prevail. */
-    void duplicate_children_no_rep(size_t node, size_t parent, size_t after);
+    void duplicate_children_no_rep(id_type node, id_type parent, id_type after);
 
 };
-
-/*
-%extend Tree {
-
-    bool has_anchor(size_t node, const char *str, size_t len) const
-    {
-        return $self->has_anchor(node, c4::csubstr(str, len));
-    }
-
-    bool has_child(size_t node, const char *str, size_t len) const
-    {
-        return $self->has_child(node, c4::csubstr(str, len));
-    }
-
-    bool has_sibling(size_t node, const char *str, size_t len) const
-    {
-        return $self->has_sibling(node, c4::csubstr(str, len));
-    }
-
-    size_t find_child(size_t node, const char *str, size_t len) const
-    {
-        return $self->find_child(node, c4::csubstr(str, len));
-    }
-
-    size_t find_sibling(size_t node, const char *str, size_t len) const
-    {
-        return $self->find_sibling(node, c4::csubstr(str, len));
-    }
-
-    void to_keyval(size_t node, const char *keystr, size_t keylen, const char *valstr, size_t vallen, int more_flags=0)
-    {
-        return $self->to_keyval(node, c4::csubstr(keystr, keylen), c4::csubstr(valstr, vallen), more_flags);
-    }
-
-    void to_map(size_t node, const char *keystr, size_t keylen, int more_flags=0)
-    {
-        return $self->to_map(node, c4::csubstr(keystr, keylen), more_flags);
-    }
-
-    void to_seq(size_t node, const char *keystr, size_t keylen, int more_flags=0)
-    {
-        return $self->to_seq(node, c4::csubstr(keystr, keylen), more_flags);
-    }
-
-    void to_val(size_t node, const char *valstr, size_t vallen, int more_flags=0)
-    {
-        return $self->to_val(node, c4::csubstr(valstr, vallen), more_flags);
-    }
-
-    void set_key_tag(size_t node, const char *str, size_t len)
-    {
-        return $self->set_key_tag(node, c4::csubstr(str, len));
-    }
-    void set_val_tag(size_t node, const char *str, size_t len)
-    {
-        return $self->set_val_tag(node, c4::csubstr(str, len));
-    }
-
-    void set_key_anchor(size_t node, const char *str, size_t len)
-    {
-        return $self->set_key_anchor(node, c4::csubstr(str, len));
-    }
-    void set_val_anchor(size_t node, const char *str, size_t len)
-    {
-        return $self->set_val_anchor(node, c4::csubstr(str, len));
-    }
-
-    void set_key_ref(size_t node, const char *str, size_t len)
-    {
-        return $self->set_key_ref(node, c4::csubstr(str, len));
-    }
-    void set_val_ref(size_t node, const char *str, size_t len)
-    {
-        return $self->set_val_ref(node, c4::csubstr(str, len));
-    }
-
-};
-*/
 
 } // namespace yml
 } // namespace c4

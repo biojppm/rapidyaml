@@ -8,11 +8,21 @@ out the general approach, other languages are likely to follow (all of
 this is possible because we’re using `SWIG <http://www.swig.org/>`__,
 which makes it easy to do so).
 
+
 JavaScript
 ----------
 
 A JavaScript+WebAssembly port is available, compiled through
-`emscripten <https://emscripten.org/>`__.
+`emscripten <https://emscripten.org/>`__. Here's a quick example of
+how to compile ryml with emscripten using ``emcmake``:
+
+.. code:: bash
+
+   git clone --recursive https://github.com/biojppm/rapidyaml
+   cd rapidyaml
+   emcmake cmake -S . -B build \
+       -DCMAKE_CXX_FLAGS="-s DISABLE_EXCEPTION_CATCHING=0"
+
 
 Here's a quick example on how to configure, compile and run the tests
 using `emscripten`:

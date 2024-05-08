@@ -1,8 +1,8 @@
-#include "./test_group.hpp"
+#include "./test_lib/test_group.hpp"
+#include "./test_lib/test_group.def.hpp"
 
 namespace c4 {
 namespace yml {
-
 
 TEST(explicit_key, test_suite_5WE3)
 {
@@ -21,6 +21,26 @@ TEST(explicit_key, test_suite_5WE3)
         EXPECT_TRUE(t["block key\n"].is_seq());
         EXPECT_EQ(t["block key\n"][0], csubstr("one"));
         EXPECT_EQ(t["block key\n"][1], csubstr("two"));
+    });
+}
+
+TEST(explicit_key, test_suite_652Z)
+{
+    csubstr yaml = R"(
+?foo: bar  # not an explicit key in RUNK
+?bar: 42   # not an explicit key in RMAP|RKEY
+?baz:
+   ?bat: 24  # not an explicit key in RMAP|RVAL
+)";
+    test_check_emit_check(yaml, [](Tree const &t){
+        ConstNodeRef r = t.rootref();
+        ASSERT_TRUE(r.has_child("?foo"));
+        ASSERT_TRUE(r.has_child("?bar"));
+        ASSERT_TRUE(r.has_child("?baz"));
+        EXPECT_EQ(r["?foo"].val(), "bar");
+        EXPECT_EQ(r["?bar"].val(), "42");
+        ASSERT_TRUE(r["?baz"].has_child("?bat"));
+        ASSERT_EQ(r["?baz"]["?bat"], "24");
     });
 }
 
@@ -91,29 +111,6 @@ TEST(explicit_key, test_suite_FRK4)
 }
 
 
-TEST(explicit_key, test_suite_M2N8)
-{
-    csubstr yaml = R"(
-- ? : x
-- ? : 
-- ? :
-)";
-    test_check_emit_check(yaml, [](Tree const &t){
-        ASSERT_TRUE(t.rootref().is_seq());
-        ASSERT_EQ(t.rootref().num_children(), 3u);
-        ASSERT_EQ(t[0].num_children(), 1u);
-        EXPECT_EQ(t[0][0].key(), csubstr{});
-        EXPECT_EQ(t[0][0].val(), "x");
-        ASSERT_EQ(t[1].num_children(), 1u);
-        EXPECT_EQ(t[1][0].key(), csubstr{});
-        EXPECT_EQ(t[1][0].val(), csubstr{});
-        ASSERT_EQ(t[2].num_children(), 1u);
-        EXPECT_EQ(t[2][0].key(), csubstr{});
-        EXPECT_EQ(t[2][0].val(), csubstr{});
-    });
-}
-
-
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -121,7 +118,7 @@ TEST(explicit_key, test_suite_M2N8)
 
 CASE_GROUP(EXPLICIT_KEY)
 {
-//
+
 ADD_CASE_TO_GROUP("explicit key, last value missing",
 R"(
 ? a
@@ -134,22 +131,68 @@ R"(
 ? a
 ? b
 ?
+)",
+N(STREAM, L{
+        N(DOC|MB, L{
+                N(KP|VP, "a", {}),
+                N(KP|VP, "b", {}),
+                N(KP|VP, "", {})
+            }),
+        N(DOC|MB, TL("!!set", L{
+                    N(KP|VP, "a", {}),
+                    N(KP|VP, "b", {}),
+                })),
+        N(DOC|MB, TL("!!set", L{
+                    N(KP|VP, "a", {}),
+                    N(KP|VP, "b", {}),
+                    N(KP|VP, "", {})
+                })),
+    })
+);
+
+ADD_CASE_TO_GROUP("explicit key, all values missing",
+R"(
+?
+?
+?
+)",
+N(MB, L{
+  N(KP|VP, "", {}),
+  N(KP|VP, "", {}),
+  N(KP|VP, "", {}),
+})
+);
+
+ADD_CASE_TO_GROUP("explicit key, last value missing, end doc",
+R"(
+? a
+? b
+?
+...
+--- !!set   # test that we do not add any last item
+? a
+? b
+...
+--- !!set   # test that we do add the last item
+? a
+? b
+?
 ...
 )",
 N(STREAM, L{
-        N(DOCMAP, L{
-                N(KEYVAL, "a", {}),
-                N(KEYVAL, "b", {}),
-                N(KEYVAL, "", {})
+        N(DOC|MB, L{
+                N(KP|VP, "a", {}),
+                N(KP|VP, "b", {}),
+                N(KP|VP, "", {})
             }),
-        N(DOCMAP, TL("!!set", L{
-                    N(KEYVAL, "a", {}),
-                    N(KEYVAL, "b", {}),
+        N(DOC|MB, TL("!!set", L{
+                    N(KP|VP, "a", {}),
+                    N(KP|VP, "b", {}),
                 })),
-        N(DOCMAP, TL("!!set", L{
-                    N(KEYVAL, "a", {}),
-                    N(KEYVAL, "b", {}),
-                    N(KEYVAL, "", {})
+        N(DOC|MB, TL("!!set", L{
+                    N(KP|VP, "a", {}),
+                    N(KP|VP, "b", {}),
+                    N(KP|VP, "", {})
                 })),
     })
 );
@@ -162,31 +205,16 @@ a!"#$%&'()*+,-./09:;<=>?@AZ[\]^_`az{|}~: safe
 -foo: safe dash
 this is#not: a comment
 )",
-L{
-  N("a!\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~", "safe"),
-  N("?foo", "safe question mark"),
-  N(":foo", "safe colon"),
-  N("-foo", "safe dash"),
-  N("this is#not", "a comment"),
-});
+N(MB, L{
+  N(KP|VP, "a!\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~", "safe"),
+  N(KP|VP, "?foo", "safe question mark"),
+  N(KP|VP, ":foo", "safe colon"),
+  N(KP|VP, "-foo", "safe dash"),
+  N(KP|VP, "this is#not", "a comment"),
+})
+);
 
-ADD_CASE_TO_GROUP("explicit key, ambiguity 2EBW, expl",
-R"({
-  a!"#$%&'()*+-./09:;<=>?@AZ[\]^_`az{|~: safe,
-  ?foo: safe question mark,
-  :foo: safe colon,
-  -foo: safe dash,
-  this is#not: a comment,
-})",
-L{
-  N("a!\"#$%&'()*+-./09:;<=>?@AZ[\\]^_`az{|~", "safe"),
-  N("?foo", "safe question mark"),
-  N(":foo", "safe colon"),
-  N("-foo", "safe dash"),
-  N("this is#not", "a comment"),
-});
-
-ADD_CASE_TO_GROUP("explicit key, ambiguity 2EBW, impl seq",
+ADD_CASE_TO_GROUP("explicit key, ambiguity 2EBW, block seq",
 R"(
 - a!"#$%&'()*+,-./09:;<=>?@AZ[\]^_`az{|}~
 - ?foo
@@ -194,36 +222,21 @@ R"(
 - -foo
 - this is#not:a comment
 )",
-L{
-  N("a!\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~"),
-  N("?foo"),
-  N(":foo"),
-  N("-foo"),
-  N("this is#not:a comment"),
-});
-
-ADD_CASE_TO_GROUP("explicit key, ambiguity 2EBW, expl seq",
-R"([
-  a!"#$%&'()*+-./09:;<=>?@AZ[\^_`az{|}~,
-  ?foo,
-  :foo,
-  -foo,
-  this is#not:a comment,
-])",
-L{
-  N("a!\"#$%&'()*+-./09:;<=>?@AZ[\\^_`az{|}~"),
-  N("?foo"),
-  N(":foo"),
-  N("-foo"),
-  N("this is#not:a comment"),
-});
+N(SB, L{
+  N(VP, "a!\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~"),
+  N(VP, "?foo"),
+  N(VP, ":foo"),
+  N(VP, "-foo"),
+  N(VP, "this is#not:a comment"),
+})
+);
 
 ADD_CASE_TO_GROUP("explicit key with line break in between",
 R"(
 ? an explicit key
 : its value
 )",
-  L{N("an explicit key", "its value")}
+N(MB, L{N(KP|VP, "an explicit key", "its value")})
 );
 
 ADD_CASE_TO_GROUP("explicit key 2nd, inside explicit map",
@@ -233,10 +246,10 @@ R"(
     ? an explicit key: another value,
 }
 )",
-  L{
-      N("a simple key", "a value"),
-      N("an explicit key", "another value"),
-  }
+N(MFS, L{
+      N(KP|VP, "a simple key", "a value"),
+      N(KP|VP, "an explicit key", "another value"),
+  })
 );
 
 ADD_CASE_TO_GROUP("explicit key 1st, inside explicit map",
@@ -246,63 +259,54 @@ R"(
     a simple key: a value,
 }
 )",
-  L{
-      N("an explicit key", "another value"),
-      N("a simple key", "a value"),
-  }
+N(MFS, L{
+      N(KP|VP, "an explicit key", "another value"),
+      N(KP|VP, "a simple key", "a value"),
+  })
 );
 
-ADD_CASE_TO_GROUP("explicit key 2nd",
+ADD_CASE_TO_GROUP("M2N8", EXPECT_PARSE_ERROR,
+R"(
+- ? : x
+- ? : 
+- ? :
+)",
+  LineCol(2, 5)
+);
+
+ADD_CASE_TO_GROUP("explicit key 2nd", EXPECT_PARSE_ERROR,
 R"(
 a simple key: a value
 ? an explicit key: another value
 )",
-  L{
-      N("a simple key", "a value"),
-      N("an explicit key", "another value"),
-  }
+  LineCol(3, 19)
 );
 
-ADD_CASE_TO_GROUP("explicit key 1st",
+ADD_CASE_TO_GROUP("explicit key 1st", EXPECT_PARSE_ERROR,
 R"(
 ? an explicit key: another value
 a simple key: a value
 )",
-  L{
-      N("an explicit key", "another value"),
-      N("a simple key", "a value"),
-  }
+  LineCol(2, 19)
 );
 
-ADD_CASE_TO_GROUP("explicit key nested in a map, 1st",
+ADD_CASE_TO_GROUP("explicit key nested in a map, 1st", EXPECT_PARSE_ERROR,
 R"(
 map:
   ? an explicit key: another value
   a simple key: a value
 ? an explicit key deindented: its value
 )",
-  L{
-      N("map", L{
-          N("an explicit key", "another value"),
-          N("a simple key", "a value"),
-      }),
-      N("an explicit key deindented", "its value")
-   }
+  LineCol(3, 21)
 );
 
-ADD_CASE_TO_GROUP("explicit key nested in a seq, 1st",
+ADD_CASE_TO_GROUP("explicit key nested in a seq, 1st", EXPECT_PARSE_ERROR,
 R"(
 - ? an explicit key: another value
   a simple key: a value
 - ? another explicit key: its value
 )",
-  L{
-      N(L{
-          N("an explicit key", "another value"),
-          N("a simple key", "a value"),
-      }),
-      N(L{N("another explicit key", "its value")})
-   }
+  LineCol(2, 21)
 );
 
 ADD_CASE_TO_GROUP("explicit block key, literal, clip",
@@ -312,9 +316,9 @@ R"(? |
     
 : and this is its value
 )",
-  L{
-      N(QK, "This is a key\nthat has multiple lines\n", "and this is its value")
-   }
+N(MB, L{
+  N(KL|VP, "This is a key\nthat has multiple lines\n", "and this is its value")
+   })
 );
 
 ADD_CASE_TO_GROUP("explicit block key, literal, keep",
@@ -324,9 +328,9 @@ R"(? |+
     
 : and this is its value
 )",
-  L{
-      N(QK, "This is a key\nthat has multiple lines\n\n", "and this is its value")
-   }
+N(MB, L{
+      N(KL|VP, "This is a key\nthat has multiple lines\n\n", "and this is its value")
+   })
 );
 
 ADD_CASE_TO_GROUP("explicit block key, literal, strip",
@@ -336,9 +340,9 @@ R"(? |-
     
 : and this is its value
 )",
-  L{
-      N(QK, "This is a key\nthat has multiple lines", "and this is its value")
-   }
+N(MB, L{
+  N(KL|VP, "This is a key\nthat has multiple lines", "and this is its value")
+   })
 );
 
 ADD_CASE_TO_GROUP("explicit block key, folded, clip",
@@ -348,9 +352,9 @@ R"(? >
     
 : and this is its value
 )",
-  L{
-      N(QK, "This is a key that has multiple lines\n", "and this is its value")
-   }
+N(MB, L{
+  N(KF|VP, "This is a key that has multiple lines\n", "and this is its value")
+   })
 );
 
 ADD_CASE_TO_GROUP("explicit block key, folded, keep",
@@ -360,9 +364,9 @@ R"(? >+
     
 : and this is its value
 )",
-  L{
-      N(QK, "This is a key that has multiple lines\n\n", "and this is its value")
-   }
+N(MB, L{
+  N(KF|VP, "This is a key that has multiple lines\n\n", "and this is its value")
+   })
 );
 
 ADD_CASE_TO_GROUP("explicit block key, folded, strip",
@@ -372,9 +376,9 @@ R"(? >-
     
 : and this is its value
 )",
-  L{
-      N(QK, "This is a key that has multiple lines", "and this is its value")
-   }
+N(MB, L{
+      N(KF|VP, "This is a key that has multiple lines", "and this is its value")
+   })
 );
 
 ADD_CASE_TO_GROUP("explicit key, missing val 7W2P",
@@ -385,12 +389,12 @@ c:
 ? d
 e:
 )",
-N(MAP, L{
-        N(KEYVAL, "a", {}),
-        N(KEYVAL, "b", {}),
-        N(KEYVAL, "c", {}),
-        N(KEYVAL, "d", {}),
-        N(KEYVAL, "e", {}),
+N(MB, L{
+        N(KP|VP, "a", {}),
+        N(KP|VP, "b", {}),
+        N(KP|VP, "c", {}),
+        N(KP|VP, "d", {}),
+        N(KP|VP, "e", {}),
     })
 );
 
@@ -403,13 +407,13 @@ a: 1
 !!str e: 4
 ? f
 )",
-N(MAP, L{
-        N("a", "1"),
-        N(KEYVAL, "b", {}),
-        N("c", AR(KEYANCH, "anchor"), "3"),
-        N(KEYVAL, "d", {}),
-        N(TS("!!str", "e"), "4"),
-        N(KEYVAL, "f", {}),
+N(MB, L{
+        N(KP|VP, "a", "1"),
+        N(KP|VP, "b", {}),
+        N(KP|VP, "c", AR(KEYANCH, "anchor"), "3"),
+        N(KP|VP, "d", {}),
+        N(KP|VP, TS("!!str", "e"), "4"),
+        N(KP|VP, "f", {}),
     })
 );
 

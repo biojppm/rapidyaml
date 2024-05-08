@@ -17,7 +17,7 @@ template<class V, class Alloc>
 void write(c4::yml::NodeRef *n, std::vector<V, Alloc> const& vec)
 {
     *n |= c4::yml::SEQ;
-    for(auto const& v : vec)
+    for(V const& v : vec)
         n->append_child() << v;
 }
 
@@ -26,8 +26,8 @@ bool read(c4::yml::ConstNodeRef const& n, std::vector<V, Alloc> *vec)
 {
     vec->resize(n.num_children());
     size_t pos = 0;
-    for(auto const ch : n)
-        ch >> (*vec)[pos++];
+    for(ConstNodeRef const child : n)
+        child >> (*vec)[pos++];
     return true;
 }
 
@@ -38,10 +38,10 @@ bool read(c4::yml::ConstNodeRef const& n, std::vector<bool, Alloc> *vec)
 {
     vec->resize(n.num_children());
     size_t pos = 0;
-    bool tmp = false;
-    for(auto const ch : n)
+    bool tmp = {};
+    for(ConstNodeRef const child : n)
     {
-        ch >> tmp;
+        child >> tmp;
         (*vec)[pos++] = tmp;
     }
     return true;

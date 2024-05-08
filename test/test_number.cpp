@@ -1,4 +1,10 @@
-#include "./test_group.hpp"
+#include "./test_lib/test_group.hpp"
+#include "./test_lib/test_group.def.hpp"
+#ifdef RYML_SINGLE_HEADER
+#include <ryml_all.hpp>
+#else
+#include <c4/charconv.hpp>
+#endif
 
 namespace c4 {
 namespace yml {
@@ -14,6 +20,7 @@ auto mkvals() -> typename std::enable_if<!std::is_signed<I>::value, std::vector<
     return std::vector<I>({0, 1, 5, 10, std::numeric_limits<I>::max(),});
 }
 template<class I>
+C4_NO_UBSAN_IOVRFLW
 void test_ints()
 {
     C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
@@ -117,37 +124,39 @@ TEST(number, idec)
 }
 
 
-
 CASE_GROUP(NUMBER)
 {
 
-ADD_CASE_TO_GROUP("integer numbers, flow", JSON_ALSO,
+ADD_CASE_TO_GROUP("integer numbers, flow", JSON_WRITE,
 R"(translation: [-2, -2, 5, 0xa, -0xb, 0XA, -0XA, 0b10, -0b10, 0B10, -0B10, 0o17, -0o17, 0O17, -0O17])",
-L{N("translation", L{
-  N("-2"), N("-2"), N("5"),
-  N("0xa"), N("-0xb"),
-  N("0XA"), N("-0XA"),
-  N("0b10"), N("-0b10"),
-  N("0B10"), N("-0B10"),
-  N("0o17"), N("-0o17"),
-  N("0O17"), N("-0O17"),
-})});
+N(MB, L{
+  N(KP|SFS, "translation", L{
+    N(VP, "-2"), N(VP, "-2"), N(VP, "5"),
+    N(VP, "0xa"), N(VP, "-0xb"),
+    N(VP, "0XA"), N(VP, "-0XA"),
+    N(VP, "0b10"), N(VP, "-0b10"),
+    N(VP, "0B10"), N(VP, "-0B10"),
+    N(VP, "0o17"), N(VP, "-0o17"),
+    N(VP, "0O17"), N(VP, "-0O17"),
+  })
+})
+);
 
-ADD_CASE_TO_GROUP("integer numbers, block", JSON_ALSO,
+ADD_CASE_TO_GROUP("integer numbers, block", JSON_WRITE,
 R"(translation:
   - -2
   - -2
   - -5
 )",
-L{N("translation", L{N("-2"), N("-2"), N("-5")})}
+N(MB, L{N(KP|SB, "translation", L{N(VP, "-2"), N(VP, "-2"), N(VP, "-5")})})
 );
 
-ADD_CASE_TO_GROUP("floating point numbers, flow", JSON_ALSO,
+ADD_CASE_TO_GROUP("floating point numbers, flow", JSON_WRITE,
 R"([-2.0, -2.1, 0.1, .1, -.2, -2.e+6, -3e-6, 1.12345e+011])",
-L{N("-2.0"), N("-2.1"), N("0.1"), N(".1"), N("-.2"), N("-2.e+6"), N("-3e-6"), N("1.12345e+011")}
+N(SFS, L{N(VP, "-2.0"), N(VP, "-2.1"), N(VP, "0.1"), N(VP, ".1"), N(VP, "-.2"), N(VP, "-2.e+6"), N(VP, "-3e-6"), N(VP, "1.12345e+011")})
 );
 
-ADD_CASE_TO_GROUP("floating point numbers, block", JSON_ALSO,
+ADD_CASE_TO_GROUP("floating point numbers, block", JSON_WRITE,
 R"(
 - -2.0
 - -2.1
@@ -158,10 +167,10 @@ R"(
 - -3e-6
 - 1.12345e+011
 )",
-L{N("-2.0"), N("-2.1"), N("0.1"), N(".1"), N("-.2"), N("-2.e+6"), N("-3e-6"), N("1.12345e+011")}
+N(SB, L{N(VP, "-2.0"), N(VP, "-2.1"), N(VP, "0.1"), N(VP, ".1"), N(VP, "-.2"), N(VP, "-2.e+6"), N(VP, "-3e-6"), N(VP, "1.12345e+011")})
 );
 
-ADD_CASE_TO_GROUP("hex floating point numbers, block", JSON_ALSO,
+ADD_CASE_TO_GROUP("hex floating point numbers, block", JSON_WRITE,
 R"(
 - -2.0
 - -2.1
@@ -172,10 +181,10 @@ R"(
 - -3e-6
 - 1.12345e+011
 )",
-L{N("-2.0"), N("-2.1"), N("0.1"), N(".1"), N("-.2"), N("-2.e+6"), N("-3e-6"), N("1.12345e+011")}
+N(SB, L{N(VP, "-2.0"), N(VP, "-2.1"), N(VP, "0.1"), N(VP, ".1"), N(VP, "-.2"), N(VP, "-2.e+6"), N(VP, "-3e-6"), N(VP, "1.12345e+011")})
 );
 
-ADD_CASE_TO_GROUP("version numbers", JSON_ALSO,
+ADD_CASE_TO_GROUP("version numbers", JSON_WRITE,
 R"(
 - 1.2.3
 - 1.2.3.4
@@ -196,22 +205,22 @@ R"(
 - {a: 1.2.3, b: 4.5.6}
 - {a: 1.2.3.4, b: 4.5.6.7}
 )",
-L{
-    N("1.2.3"),
-    N("1.2.3.4"),
-    N(L{N("1.2.3"), N("4.5.6")}),
-    N(L{N("1.2.3.4"), N("4.5.6.7")}),
-    N(L{N("1.2.3"), N("4.5.6")}),
-    N(L{N("1.2.3.4"), N("4.5.6.7")}),
-    N(L{N("a", "1.2.3")}),
-    N(L{N("a", "1.2.3.4")}),
-    N(L{N("a", "1.2.3")}),
-    N(L{N("a", "1.2.3.4")}),
-    N(L{N("a", "1.2.3"), N("b", "4.5.6")}),
-    N(L{N("a", "1.2.3.4"), N("b", "4.5.6.7")}),
-    N(L{N("a", "1.2.3"), N("b", "4.5.6")}),
-    N(L{N("a", "1.2.3.4"), N("b", "4.5.6.7")}),
-});
+N(SB, L{
+    N(VP, "1.2.3"),
+    N(VP, "1.2.3.4"),
+    N(SFS, L{N(VP, "1.2.3"), N(VP, "4.5.6")}),
+    N(SFS, L{N(VP, "1.2.3.4"), N(VP, "4.5.6.7")}),
+    N(SB, L{N(VP, "1.2.3"), N(VP, "4.5.6")}),
+    N(SB, L{N(VP, "1.2.3.4"), N(VP, "4.5.6.7")}),
+    N(MB, L{N(KP|VP, "a", "1.2.3")}),
+    N(MB, L{N(KP|VP, "a", "1.2.3.4")}),
+    N(MFS, L{N(KP|VP, "a", "1.2.3")}),
+    N(MFS, L{N(KP|VP, "a", "1.2.3.4")}),
+    N(MB, L{N(KP|VP, "a", "1.2.3"), N(KP|VP, "b", "4.5.6")}),
+    N(MB, L{N(KP|VP, "a", "1.2.3.4"), N(KP|VP, "b", "4.5.6.7")}),
+    N(MFS, L{N(KP|VP, "a", "1.2.3"), N(KP|VP, "b", "4.5.6")}),
+    N(MFS, L{N(KP|VP, "a", "1.2.3.4"), N(KP|VP, "b", "4.5.6.7")}),
+}));
 }
 
 } // namespace yml

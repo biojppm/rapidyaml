@@ -4,449 +4,469 @@
 #endif
 #include <gtest/gtest.h>
 
-#include "./test_case.hpp"
+#include "./test_lib/test_case.hpp"
 #include "./test_suite/test_suite_events.hpp"
+#include "./test_suite/test_suite_event_handler.hpp"
 #include "./test_suite/test_suite_events_emitter.cpp" // HACK
 
 namespace c4 {
 namespace yml {
 
-void test_evts(csubstr src, std::string expected)
+struct EventsCase
 {
-    Tree tree = parse_in_arena(src);
-    #if RYML_DBG
-    print_tree(tree);
-    #endif
-    auto actual = emit_events<std::string>(tree);
-    EXPECT_EQ(actual, expected);
+    const char* file;
+    int line;
+    // previously, the strings below were of type std::string, but
+    // valgrind was complaining of a problem during initialization of
+    // the parameterized test cases. Probably some SIOF?
+    //
+    // So we use csubstr:
+    csubstr name;
+    csubstr src;
+    csubstr expected_events_from_parser;
+    csubstr expected_events_from_tree;
+    EventsCase(const char *file_, int line_, csubstr name_, csubstr src_, csubstr from_parser, csubstr from_tree)
+        : file(file_)
+        , line(line_)
+        , name(name_)
+        , src(src_)
+        , expected_events_from_parser(from_parser)
+        , expected_events_from_tree(from_tree)
+    {
+    }
+    EventsCase(const char *file_, int line_, csubstr name_, csubstr src_, csubstr evts)
+        : file(file_)
+        , line(line_)
+        , name(name_)
+        , src(src_)
+        , expected_events_from_parser(evts)
+        , expected_events_from_tree(evts)
+    {
+    }
+};
+
+class EventsTest : public testing::TestWithParam<EventsCase> {};
+
+
+TEST_P(EventsTest, from_parser)
+{
+    EventsCase const& ec = GetParam();
+    printf("%s:%d: %s", ec.file, ec.line, ec.name.str);
+    RYML_TRACE_FMT("defined in:\n{}:{}: {}", ec.file, ec.line, ec.name);
+    EventHandlerYamlStd::EventSink sink;
+    EventHandlerYamlStd handler(&sink);
+    ParseEngine<EventHandlerYamlStd> parser(&handler);
+    std::string src_copy(ec.src.str, ec.src.len);
+    parser.parse_in_place_ev("(testyaml)", to_substr(src_copy));
+    _c4dbgpf("~~~\n{}~~~\n", sink.result);
+    std::string exp_copy(ec.expected_events_from_parser.str, ec.expected_events_from_parser.len);
+    EXPECT_EQ(sink.result, exp_copy); // use the diff from std::string which is nice
 }
 
-TEST(events, empty)
+TEST_P(EventsTest, from_tree)
 {
-    test_evts(
-        R"()",
-        R"(+STR
--STR
-)"
-        );
+    EventsCase const& ec = GetParam();
+    printf("%s:%d: %s", ec.file, ec.line, ec.name.str);
+    RYML_TRACE_FMT("defined in:\n{}:{}: {}", ec.file, ec.line, ec.name);
+    const Tree tree = parse_in_arena(to_csubstr(ec.src));
+    _c4dbg_tree("parsed tree", tree);
+    std::string exp_copy(ec.expected_events_from_tree.str, ec.expected_events_from_tree.len);
+    EXPECT_EQ(emit_events_from_tree<std::string>(tree), exp_copy);
 }
 
-TEST(events, empty_whitespace)
-{
-    test_evts(
-        R"(     )",
-        R"(+STR
--STR
-)"
-        );
-}
 
-TEST(events, empty_whitespace_newlines)
-{
-    test_evts(
-        R"(   
-    )",
-        R"(+STR
--STR
-)"
-        );
-}
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
-TEST(events, empty_whitespace_newlines_comments)
-{
-    test_evts(
-        R"(   
-# a comment
-    )",
-        R"(+STR
--STR
-)"
-        );
-}
-
-TEST(events, docval)
-{
-    test_evts(
-        R"('quoted val'
-)",
-        R"(+STR
-+DOC
-=VAL 'quoted val
--DOC
--STR
-)"
-        );
-}
-
-TEST(events, docsep)
-{
-    test_evts(
-        R"(--- 'quoted val'
---- another
-...
---- and yet another
-...
----
-...
-)",
-        R"(+STR
-+DOC ---
-=VAL 'quoted val
--DOC
-+DOC ---
-=VAL :another
--DOC
-+DOC ---
-=VAL :and yet another
--DOC
-+DOC ---
-=VAL :
--DOC
--STR
-)"
-        );
-}
-
-TEST(events, docsep_v2)
-{
-    test_evts(
-        R"(
-doc1
----
-doc2
-...
-doc3
-)",
-        R"(+STR
-+DOC ---
-=VAL :doc1
--DOC
-+DOC ---
-=VAL :doc2
--DOC
-+DOC ---
-=VAL :doc3
--DOC
--STR
-)"
-        );
-}
-
-TEST(events, basic_map)
-{
-    test_evts(
-        "{foo: bar}",
-        R"(+STR
-+DOC
-+MAP
-=VAL :foo
-=VAL :bar
--MAP
--DOC
--STR
-)"
-        );
-}
-
-TEST(events, basic_seq)
-{
-    test_evts(
+#define _ec(name, src, ...) EventsCase{__FILE__, __LINE__, name, src, __VA_ARGS__}
+const EventsCase events_cases[] = {
+    //=======================================================
+    _ec("empty",
+        "",
+        "+STR\n"
+        "-STR\n"),
+    //=======================================================
+    _ec("empty_whitespace",
+        "     ",
+        "+STR\n"
+        "-STR\n"),
+    //=======================================================
+    _ec("empty_whitespace_newlines",
+        "\n    ",
+        "+STR\n"
+        "-STR\n"),
+    //=======================================================
+    _ec("empty_whitespace_newlines_comments",
+        "\n"
+        "# a comment\n"
+        "    ",
+        "+STR\n"
+        "-STR\n"),
+    //=======================================================
+    _ec("docval",
+        "'quoted val'\n"
+        ,
+        "+STR\n"
+        "+DOC\n"
+        "=VAL 'quoted val\n"
+        "-DOC\n"
+        "-STR\n"),
+    //=======================================================
+    _ec("docsep",
+        "--- 'quoted val'\n"
+        "--- another\n"
+        "...\n"
+        "--- and yet another\n"
+        "...\n"
+        "---\n"
+        "...\n"
+        ,
+        "+STR\n"
+        "+DOC ---\n"
+        "=VAL 'quoted val\n"
+        "-DOC\n"
+        "+DOC ---\n"
+        "=VAL :another\n"
+        "-DOC ...\n"
+        "+DOC ---\n"
+        "=VAL :and yet another\n"
+        "-DOC ...\n"
+        "+DOC ---\n"
+        "=VAL :\n"
+        "-DOC ...\n"
+        "-STR\n"
+        ,
+        "+STR\n"
+        "+DOC ---\n"
+        "=VAL 'quoted val\n"
+        "-DOC\n"
+        "+DOC ---\n"
+        "=VAL :another\n"
+        "-DOC\n"
+        "+DOC ---\n"
+        "=VAL :and yet another\n"
+        "-DOC\n"
+        "+DOC ---\n"
+        "=VAL :\n"
+        "-DOC\n"
+        "-STR\n"),
+    //=======================================================
+    _ec("docsep_v2"
+        ,
+        "\n"
+        "doc1\n"
+        "---\n"
+        "doc2\n"
+        "...\n"
+        "doc3\n"
+        ,
+        "+STR\n"
+        "+DOC\n"
+        "=VAL :doc1\n"
+        "-DOC\n"
+        "+DOC ---\n"
+        "=VAL :doc2\n"
+        "-DOC ...\n"
+        "+DOC\n"
+        "=VAL :doc3\n"
+        "-DOC\n"
+        "-STR\n"
+        ,
+        "+STR\n"
+        "+DOC ---\n"
+        "=VAL :doc1\n"
+        "-DOC\n"
+        "+DOC ---\n"
+        "=VAL :doc2\n"
+        "-DOC\n"
+        "+DOC ---\n"
+        "=VAL :doc3\n"
+        "-DOC\n"
+        "-STR\n"),
+    //=======================================================
+    _ec("basic_map",
+        "{foo: bar}"
+        ,
+        "+STR\n"
+        "+DOC\n"
+        "+MAP {}\n"
+        "=VAL :foo\n"
+        "=VAL :bar\n"
+        "-MAP\n"
+        "-DOC\n"
+        "-STR\n"),
+    //=======================================================
+    _ec("basic_seq",
         "[foo, bar]",
-        R"(+STR
-+DOC
-+SEQ
-=VAL :foo
-=VAL :bar
--SEQ
--DOC
--STR
-)"
-        );
-}
-
-TEST(events, escapes)
-{
-    test_evts(
-        R"("\t\	\ \r\n\0\f\/\a\v\e\N\_\L\P  \b")",
         "+STR\n"
         "+DOC\n"
-        "=VAL '\\t\\t \\r\\n\\0\\f/\\a\\v\\e\\N\\_\\L\\P  \\b" "\n"
+        "+SEQ []\n"
+        "=VAL :foo\n"
+        "=VAL :bar\n"
+        "-SEQ\n"
         "-DOC\n"
-        "-STR\n"
-        );
-}
-
-TEST(events, dquo_bytes)
-{
-    test_evts(
-        R"("\x0a\x0a\u263A\x0a\x55\x56\x57\x0a\u2705\U0001D11E")",
+        "-STR\n"),
+    //=======================================================
+    _ec("escapes",
+        "\"\\t\\	\\ \\r\\n\\0\\f\\/\\a\\v\\e\\N\\_\\L\\P  \\b\"",
         "+STR\n"
         "+DOC\n"
-        "=VAL '\\n\\n☺\\nUVW\\n✅𝄞" "\n"
+        "=VAL \"\\t\\t \\r\\n\\0\\f/\\a\\v\\e\\N\\_\\L\\P  \\b" "\n"
+        "-DOC\n"
+        "-STR\n"),
+    //=======================================================
+    _ec("dquo_bytes",
+        "\"\\x0a\\x0a\\u263A\\x0a\\x55\\x56\\x57\\x0a\\u2705\\U0001D11E\"",
+        "+STR\n"
+        "+DOC\n"
+        "=VAL \"\\n\\n☺\\nUVW\\n✅𝄞" "\n"
+        "-DOC\n"
+        "-STR\n"),
+    //=======================================================
+    _ec("sets",
+        "--- !!set\n"
+        "? Mark McGwire\n"
+        "? Sammy Sosa\n"
+        "? Ken Griff\n",
+        "+STR\n"
+        "+DOC ---\n"
+        "+MAP <tag:yaml.org,2002:set>\n"
+        "=VAL :Mark McGwire\n"
+        "=VAL :\n"
+        "=VAL :Sammy Sosa\n"
+        "=VAL :\n"
+        "=VAL :Ken Griff\n"
+        "=VAL :\n"
+        "-MAP\n"
+        "-DOC\n"
+        "-STR\n"),
+    //=======================================================
+    _ec("binary"
+        ,
+        "canonical: !!binary \"\\\n"
+        " R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5\\\n"
+        " OTk6enp56enmlpaWNjY6Ojo4SEhP/++f/++f/++f/++f/++f/++f/++f/++f/+\\\n"
+        " +f/++f/++f/++f/++f/++SH+Dk1hZGUgd2l0aCBHSU1QACwAAAAADAAMAAAFLC\\\n"
+        " AgjoEwnuNAFOhpEMTRiggcz4BNJHrv/zCFcLiwMWYNG84BwwEeECcgggoBADs=\"\n"
+        "generic: !!binary |\n"
+        " R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5\n"
+        " OTk6enp56enmlpaWNjY6Ojo4SEhP/++f/++f/++f/++f/++f/++f/++f/++f/+\n"
+        " +f/++f/++f/++f/++f/++SH+Dk1hZGUgd2l0aCBHSU1QACwAAAAADAAMAAAFLC\n"
+        " AgjoEwnuNAFOhpEMTRiggcz4BNJHrv/zCFcLiwMWYNG84BwwEeECcgggoBADs=\n"
+        "description:\n"
+        " The binary value above is a tiny arrow encoded as a gif image.\n"
+        ,
+        "+STR\n"
+        "+DOC\n"
+        "+MAP\n"
+        "=VAL :canonical\n"
+        "=VAL <tag:yaml.org,2002:binary> \"R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5OTk6enp56enmlpaWNjY6Ojo4SEhP/++f/++f/++f/++f/++f/++f/++f/++f/++f/++f/++f/++f/++f/++SH+Dk1hZGUgd2l0aCBHSU1QACwAAAAADAAMAAAFLCAgjoEwnuNAFOhpEMTRiggcz4BNJHrv/zCFcLiwMWYNG84BwwEeECcgggoBADs=\n"
+        "=VAL :generic\n"
+        "=VAL <tag:yaml.org,2002:binary> |R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5\\nOTk6enp56enmlpaWNjY6Ojo4SEhP/++f/++f/++f/++f/++f/++f/++f/++f/+\\n+f/++f/++f/++f/++f/++SH+Dk1hZGUgd2l0aCBHSU1QACwAAAAADAAMAAAFLC\\nAgjoEwnuNAFOhpEMTRiggcz4BNJHrv/zCFcLiwMWYNG84BwwEeECcgggoBADs=\\n\n"
+        "=VAL :description\n"
+        "=VAL :The binary value above is a tiny arrow encoded as a gif image.\n"
+        "-MAP\n"
         "-DOC\n"
         "-STR\n"
-        );
-}
+        ),
+    //=======================================================
+    _ec("tag_directives_wtf",
+        "!!foo fluorescent",
+        "+STR\n"
+        "+DOC\n"
+        "=VAL <tag:yaml.org,2002:foo> :fluorescent\n"
+        "-DOC\n"
+        "-STR\n"),
+    //=======================================================
+    _ec("tag_directives_6CK3",
+        "\n"
+        "%TAG !e! tag:example.com,2000:app/\n"
+        "---\n"
+        "- !local foo\n"
+        "- !!str bar\n"
+        "- !e!tag%21 baz\n",
+        "+STR\n"
+        "+DOC ---\n"
+        "+SEQ\n"
+        "=VAL <!local> :foo\n"
+        "=VAL <tag:yaml.org,2002:str> :bar\n"
+        "=VAL <tag:example.com,2000:app/tag!> :baz\n"
+        "-SEQ\n"
+        "-DOC\n"
+        "-STR\n"),
+    //=======================================================
+    _ec("tag_directives_6VLF",
+        "\n"
+        "%FOO  bar baz # Should be ignored\n"
+        "              # with a warning.\n"
+        "--- \"foo\"\n",
+        "+STR\n"
+        "+DOC ---\n"
+        "=VAL \"foo\n"
+        "-DOC\n"
+        "-STR\n"),
+    //=======================================================
+    _ec("tag_directives_6WLZ",
+        "\n"
+        "# Private\n"
+        "---\n"
+        "!foo \"bar\"\n"
+        "...\n"
+        "# Global\n"
+        "%TAG ! tag:example.com,2000:app/\n"
+        "---\n"
+        "!foo \"bar\"\n",
+        "+STR\n"
+        "+DOC ---\n"
+        "=VAL <!foo> \"bar\n"
+        "-DOC ...\n"
+        "+DOC ---\n"
+        "=VAL <tag:example.com,2000:app/foo> \"bar\n"
+        "-DOC\n"
+        "-STR\n",
+        "+STR\n"
+        "+DOC ---\n"
+        "=VAL <!foo> \"bar\n"
+        "-DOC\n"
+        "+DOC ---\n"
+        "=VAL <tag:example.com,2000:app/foo> \"bar\n"
+        "-DOC\n"
+        "-STR\n"),
+    //=======================================================
+    _ec("tag_directives_9WXW",
+        "\n"
+        "# Private\n"
+        "#---   # note this is commented out\n"
+        "!foo \"bar\"\n"
+        "...\n"
+        "# Global\n"
+        "%TAG ! tag:example.com,2000:app/\n"
+        "---\n"
+        "!foo \"bar\"\n",
+        "+STR\n"
+        "+DOC\n"
+        "=VAL <!foo> \"bar\n"
+        "-DOC ...\n"
+        "+DOC ---\n"
+        "=VAL <tag:example.com,2000:app/foo> \"bar\n"
+        "-DOC\n"
+        "-STR\n",
+        "+STR\n"
+        "+DOC ---\n"
+        "=VAL <!foo> \"bar\n"
+        "-DOC\n"
+        "+DOC ---\n"
+        "=VAL <tag:example.com,2000:app/foo> \"bar\n"
+        "-DOC\n"
+        "-STR\n"),
+    //=======================================================
+    _ec("tag_directives_7FWL",
+        "!<tag:yaml.org,2002:str> foo :\n"
+        "  !<!bar> baz\n",
+        "+STR\n"
+        "+DOC\n"
+        "+MAP\n"
+        "=VAL <tag:yaml.org,2002:str> :foo\n"
+        "=VAL <!bar> :baz\n"
+        "-MAP\n"
+        "-DOC\n"
+        "-STR\n"),
+    //=======================================================
+    _ec("tag_directives_P76L",
+        "\n"
+        "%TAG !! tag:example.com,2000:app/\n"
+        "---\n"
+        "!!int 1 - 3 # Interval, not integer\n",
+        "+STR\n"
+        "+DOC ---\n"
+        "=VAL <tag:example.com,2000:app/int> :1 - 3\n"
+        "-DOC\n"
+        "-STR\n"),
+    //=======================================================
+    _ec("tag_directives_S4JQ",
+        "\n"
+        "- \"12\"\n"
+        "- 12\n"
+        "- ! 12\n"
+        ,
+        "+STR\n"
+        "+DOC\n"
+        "+SEQ\n"
+        "=VAL \"12\n"
+        "=VAL :12\n"
+        "=VAL <!> :12\n"
+        "-SEQ\n"
+        "-DOC\n"
+        "-STR\n"),
+    //=======================================================
+    _ec("tag_directives_lookup",
+        "\n"
+        "%TAG !m! !my-\n"
+        "--- # Bulb here\n"
+        "!m!light fluorescent\n"
+        "...\n"
+        "%TAG !m! !meta-\n"
+        "--- # Color here\n"
+        "!m!light green\n"
+        ,
+        "+STR\n"
+        "+DOC ---\n"
+        "=VAL <!my-light> :fluorescent\n"
+        "-DOC ...\n"
+        "+DOC ---\n"
+        "=VAL <!meta-light> :green\n"
+        "-DOC\n"
+        "-STR\n"
+        ,
+        "+STR\n"
+        "+DOC ---\n"
+        "=VAL <!my-light> :fluorescent\n"
+        "-DOC\n"
+        "+DOC ---\n"
+        "=VAL <!meta-light> :green\n"
+        "-DOC\n"
+        "-STR\n"),
+    //=======================================================
+    _ec("anchors_refs",
+        "\n"
+        "A: &A\n"
+        "    V: 3\n"
+        "    L:\n"
+        "        - 1\n"
+        "B:\n"
+        "    <<: *A\n"
+        "    V: 4\n"
+        "    L:\n"
+        "        -5\n",
+        "+STR\n"
+        "+DOC\n"
+        "+MAP\n"
+        "=VAL :A\n"
+        "+MAP &A\n"
+        "=VAL :V\n"
+        "=VAL :3\n"
+        "=VAL :L\n"
+        "+SEQ\n"
+        "=VAL :1\n"
+        "-SEQ\n"
+        "-MAP\n"
+        "=VAL :B\n"
+        "+MAP\n"
+        "=VAL :<<\n"
+        "=ALI *A\n"
+        "=VAL :V\n"
+        "=VAL :4\n"
+        "=VAL :L\n"
+        "=VAL :-5\n"
+        "-MAP\n"
+        "-MAP\n"
+        "-DOC\n"
+        "-STR\n"),
+};
 
-TEST(events, sets)
-{
-    test_evts(
-        R"(--- !!set
-? Mark McGwire
-? Sammy Sosa
-? Ken Griff
-)",
-        R"(+STR
-+DOC ---
-+MAP <tag:yaml.org,2002:set>
-=VAL :Mark McGwire
-=VAL :
-=VAL :Sammy Sosa
-=VAL :
-=VAL :Ken Griff
-=VAL :
--MAP
--DOC
--STR
-)");
-}
 
-TEST(events, binary)
-{
-    test_evts(
-        R"(canonical: !!binary "\
- R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5\
- OTk6enp56enmlpaWNjY6Ojo4SEhP/++f/++f/++f/++f/++f/++f/++f/++f/+\
- +f/++f/++f/++f/++f/++SH+Dk1hZGUgd2l0aCBHSU1QACwAAAAADAAMAAAFLC\
- AgjoEwnuNAFOhpEMTRiggcz4BNJHrv/zCFcLiwMWYNG84BwwEeECcgggoBADs="
-generic: !!binary |
- R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5
- OTk6enp56enmlpaWNjY6Ojo4SEhP/++f/++f/++f/++f/++f/++f/++f/++f/+
- +f/++f/++f/++f/++f/++SH+Dk1hZGUgd2l0aCBHSU1QACwAAAAADAAMAAAFLC
- AgjoEwnuNAFOhpEMTRiggcz4BNJHrv/zCFcLiwMWYNG84BwwEeECcgggoBADs=
-description:
- The binary value above is a tiny arrow encoded as a gif image.
-)",
-        R"(+STR
-+DOC
-+MAP
-=VAL :canonical
-=VAL <tag:yaml.org,2002:binary> 'R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5OTk6enp56enmlpaWNjY6Ojo4SEhP/++f/++f/++f/++f/++f/++f/++f/++f/++f/++f/++f/++f/++f/++SH+Dk1hZGUgd2l0aCBHSU1QACwAAAAADAAMAAAFLCAgjoEwnuNAFOhpEMTRiggcz4BNJHrv/zCFcLiwMWYNG84BwwEeECcgggoBADs=
-=VAL :generic
-=VAL <tag:yaml.org,2002:binary> 'R0lGODlhDAAMAIQAAP//9/X17unp5WZmZgAAAOfn515eXvPz7Y6OjuDg4J+fn5\nOTk6enp56enmlpaWNjY6Ojo4SEhP/++f/++f/++f/++f/++f/++f/++f/++f/+\n+f/++f/++f/++f/++f/++SH+Dk1hZGUgd2l0aCBHSU1QACwAAAAADAAMAAAFLC\nAgjoEwnuNAFOhpEMTRiggcz4BNJHrv/zCFcLiwMWYNG84BwwEeECcgggoBADs=\n
-=VAL :description
-=VAL :The binary value above is a tiny arrow encoded as a gif image.
--MAP
--DOC
--STR
-)");
-}
-
-
-TEST(events, tag_directives_6CK3)
-{
-    test_evts(
-        R"(
-%TAG !e! tag:example.com,2000:app/
----
-- !local foo
-- !!str bar
-- !e!tag%21 baz
-)",
-        R"(+STR
-+DOC ---
-+SEQ
-=VAL <!local> :foo
-=VAL <tag:yaml.org,2002:str> :bar
-=VAL <tag:example.com,2000:app/tag!> :baz
--SEQ
--DOC
--STR
-)");
-}
-
-TEST(events, tag_directives_6VLF)
-{
-    test_evts(
-        R"(
-%FOO  bar baz # Should be ignored
-              # with a warning.
---- "foo"
-)",
-        R"(+STR
-+DOC ---
-=VAL 'foo
--DOC
--STR
-)");
-}
-
-TEST(events, tag_directives_6WLZ)
-{
-    test_evts(
-        R"(
-# Private
----
-!foo "bar"
-...
-# Global
-%TAG ! tag:example.com,2000:app/
----
-!foo "bar"
-)",
-        R"(+STR
-+DOC ---
-=VAL <!foo> 'bar
--DOC
-+DOC ---
-=VAL <tag:example.com,2000:app/foo> 'bar
--DOC
--STR
-)");
-}
-
-TEST(events, tag_directives_9WXW)
-{
-    test_evts(
-        R"(
-# Private
-#---   # note this is commented out
-!foo "bar"
-...
-# Global
-%TAG ! tag:example.com,2000:app/
----
-!foo "bar"
-)",
-        R"(+STR
-+DOC ---
-=VAL <!foo> 'bar
--DOC
-+DOC ---
-=VAL <tag:example.com,2000:app/foo> 'bar
--DOC
--STR
-)");
-}
-
-
-TEST(events, tag_directives_7FWL)
-{
-    test_evts(
-        R"(!<tag:yaml.org,2002:str> foo :
-  !<!bar> baz
-)",
-        R"(+STR
-+DOC
-+MAP
-=VAL <tag:yaml.org,2002:str> :foo
-=VAL <!bar> :baz
--MAP
--DOC
--STR
-)");
-}
-
-TEST(events, tag_directives_P76L)
-{
-    test_evts(
-        R"(
-%TAG !! tag:example.com,2000:app/
----
-!!int 1 - 3 # Interval, not integer
-)",
-        R"(+STR
-+DOC ---
-=VAL <tag:example.com,2000:app/int> :1 - 3
--DOC
--STR
-)");
-}
-
-TEST(events, tag_directives_S4JQ)
-{
-    test_evts(
-        R"(
-- "12"
-- 12
-- ! 12
-)",
-        R"(+STR
-+DOC
-+SEQ
-=VAL '12
-=VAL :12
-=VAL <!> :12
--SEQ
--DOC
--STR
-)");
-}
-
-TEST(events, tag_directives_lookup)
-{
-    test_evts(
-        R"(
-%TAG !m! !my-
---- # Bulb here
-!m!light fluorescent
-...
-%TAG !m! !meta-
---- # Color here
-!m!light green
-)",
-        R"(+STR
-+DOC ---
-=VAL <!my-light> :fluorescent
--DOC
-+DOC ---
-=VAL <!meta-light> :green
--DOC
--STR
-)");
-}
-
-TEST(events, anchors_refs)
-{
-    test_evts(
-        R"(
-A: &A
-    V: 3
-    L:
-        - 1
-B:
-    <<: *A
-    V: 4
-    L:
-        -5
-)",
-        R"(+STR
-+DOC
-+MAP
-=VAL :A
-+MAP &A
-=VAL :V
-=VAL :3
-=VAL :L
-+SEQ
-=VAL :1
--SEQ
--MAP
-=VAL :B
-+MAP
-=VAL :<<
-=ALI *A
-=VAL :V
-=VAL :4
-=VAL :L
-=VAL :-5
--MAP
--MAP
--DOC
--STR
-)");
-}
-
+INSTANTIATE_TEST_SUITE_P(Events, EventsTest, testing::ValuesIn(events_cases));
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

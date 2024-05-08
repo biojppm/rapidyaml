@@ -7,7 +7,7 @@
 #include <c4/yml/detail/print.hpp>
 #endif
 
-#include "./test_case.hpp"
+#include "./test_lib/test_case.hpp"
 
 #include <gtest/gtest.h>
 
@@ -203,9 +203,23 @@ TEST(serialize, bool)
     EXPECT_EQ(w, false);
 }
 
-TEST(serialize, nan)
+TEST(serialize, nan_0)
 {
-    Tree t = parse_in_arena(R"(
+    Tree t;
+    t.rootref() |= SEQ;
+    t[0] << std::numeric_limits<float>::quiet_NaN();
+    t[1] << std::numeric_limits<double>::quiet_NaN();
+    EXPECT_EQ(t[0].val(), ".nan");
+    EXPECT_EQ(t[1].val(), ".nan");
+    EXPECT_EQ(emitrs_yaml<std::string>(t),
+              R"(- .nan
+- .nan
+)");
+}
+
+TEST(serialize, nan_1)
+{
+    csubstr yaml = R"(
 good:
   - .nan
   -   .nan
@@ -217,61 +231,82 @@ good:
 set:
   - nothing
   - nothing
-})");
-    t["set"][0] << std::numeric_limits<float>::quiet_NaN();
-    t["set"][1] << std::numeric_limits<double>::quiet_NaN();
-    EXPECT_EQ(t["set"][0].val(), ".nan");
-    EXPECT_EQ(t["set"][1].val(), ".nan");
-    EXPECT_EQ(t["good"][0].val(), ".nan");
-    EXPECT_EQ(t["good"][1].val(), ".nan");
-    EXPECT_EQ(t["good"][2].val(), ".NaN");
-    EXPECT_EQ(t["good"][3].val(), ".NAN");
-    EXPECT_EQ(t["good"][4].val(), "nan");
-    EXPECT_EQ(t["good"][5].val(), ".nan");
-    float f;
-    double d;
-    f = 0.f;
-    d = 0.;
-    t["good"][0] >> f;
-    t["good"][0] >> d;
-    EXPECT_TRUE(std::isnan(f));
-    EXPECT_TRUE(std::isnan(d));
-    f = 0.f;
-    d = 0.;
-    t["good"][1] >> f;
-    t["good"][1] >> d;
-    EXPECT_TRUE(std::isnan(f));
-    EXPECT_TRUE(std::isnan(d));
-    f = 0.f;
-    d = 0.;
-    t["good"][2] >> f;
-    t["good"][2] >> d;
-    EXPECT_TRUE(std::isnan(f));
-    EXPECT_TRUE(std::isnan(d));
-    f = 0.f;
-    d = 0.;
-    t["good"][3] >> f;
-    t["good"][3] >> d;
-    EXPECT_TRUE(std::isnan(f));
-    EXPECT_TRUE(std::isnan(d));
-    f = 0.f;
-    d = 0.;
-    t["good"][4] >> f;
-    t["good"][4] >> d;
-    EXPECT_TRUE(std::isnan(f));
-    EXPECT_TRUE(std::isnan(d));
-    f = 0.f;
-    d = 0.;
-    t["good"][5] >> f;
-    t["good"][5] >> d;
-    EXPECT_TRUE(std::isnan(f));
-    EXPECT_TRUE(std::isnan(d));
+)";
+    test_check_emit_check(yaml, [](Tree const& t){
+        EXPECT_EQ(t["good"][0].val(), ".nan");
+        EXPECT_EQ(t["good"][1].val(), ".nan");
+        EXPECT_EQ(t["good"][2].val(), ".NaN");
+        EXPECT_EQ(t["good"][3].val(), ".NAN");
+        EXPECT_EQ(t["good"][4].val(), "nan");
+        EXPECT_EQ(t["good"][5].val(), ".nan");
+        float f;
+        double d;
+        f = 0.f;
+        d = 0.;
+        t["good"][0] >> f;
+        t["good"][0] >> d;
+        EXPECT_TRUE(std::isnan(f));
+        EXPECT_TRUE(std::isnan(d));
+        f = 0.f;
+        d = 0.;
+        t["good"][1] >> f;
+        t["good"][1] >> d;
+        EXPECT_TRUE(std::isnan(f));
+        EXPECT_TRUE(std::isnan(d));
+        f = 0.f;
+        d = 0.;
+        t["good"][2] >> f;
+        t["good"][2] >> d;
+        EXPECT_TRUE(std::isnan(f));
+        EXPECT_TRUE(std::isnan(d));
+        f = 0.f;
+        d = 0.;
+        t["good"][3] >> f;
+        t["good"][3] >> d;
+        EXPECT_TRUE(std::isnan(f));
+        EXPECT_TRUE(std::isnan(d));
+        f = 0.f;
+        d = 0.;
+        t["good"][4] >> f;
+        t["good"][4] >> d;
+        EXPECT_TRUE(std::isnan(f));
+        EXPECT_TRUE(std::isnan(d));
+        f = 0.f;
+        d = 0.;
+        t["good"][5] >> f;
+        t["good"][5] >> d;
+        EXPECT_TRUE(std::isnan(f));
+        EXPECT_TRUE(std::isnan(d));
+    });
 }
 
-TEST(serialize, inf)
+TEST(serialize, inf_0)
+{
+    Tree t;
+    t.rootref() |= SEQ;
+    const float finf = std::numeric_limits<float>::infinity();
+    const double dinf = std::numeric_limits<double>::infinity();
+    t[0] << finf;
+    t[1] << dinf;
+    t[2] << -finf;
+    t[3] << -dinf;
+    EXPECT_EQ(t[0].val(), ".inf");
+    EXPECT_EQ(t[1].val(), ".inf");
+    EXPECT_EQ(t[2].val(), "-.inf");
+    EXPECT_EQ(t[3].val(), "-.inf");
+    EXPECT_EQ(scalar_style_choose("-.inf"), SCALAR_PLAIN);
+    EXPECT_EQ(emitrs_yaml<std::string>(t),
+              R"(- .inf
+- .inf
+- -.inf
+- -.inf
+)");
+}
+
+TEST(serialize, inf_1)
 {
     C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wfloat-equal");
-    Tree t = parse_in_arena(R"(
+    csubstr yaml = R"(
 good:
   - .inf
   -   .inf
@@ -284,66 +319,69 @@ good:
 set:
   - nothing
   - nothing
-})");
-    float finf = std::numeric_limits<float>::infinity();
-    double dinf = std::numeric_limits<double>::infinity();
-    t["set"][0] << finf;
-    t["set"][1] << dinf;
-    EXPECT_EQ(t["set"][0].val(), ".inf");
-    EXPECT_EQ(t["set"][1].val(), ".inf");
-    EXPECT_EQ(t["good"][0].val(), ".inf");
-    EXPECT_EQ(t["good"][1].val(), ".inf");
-    EXPECT_EQ(t["good"][2].val(), ".Inf");
-    EXPECT_EQ(t["good"][3].val(), ".INF");
-    EXPECT_EQ(t["good"][4].val(), "inf");
-    EXPECT_EQ(t["good"][5].val(), "infinity");
-    EXPECT_EQ(t["good"][6].val(), ".inf");
-    float f;
-    double d;
-    f = 0.f;
-    d = 0.;
-    t["good"][0] >> f;
-    t["good"][0] >> d;
-    EXPECT_TRUE(f == finf);
-    EXPECT_TRUE(d == dinf);
-    f = 0.f;
-    d = 0.;
-    t["good"][1] >> f;
-    t["good"][1] >> d;
-    EXPECT_TRUE(f == finf);
-    EXPECT_TRUE(d == dinf);
-    f = 0.f;
-    d = 0.;
-    t["good"][2] >> f;
-    t["good"][2] >> d;
-    EXPECT_TRUE(f == finf);
-    EXPECT_TRUE(d == dinf);
-    f = 0.f;
-    d = 0.;
-    t["good"][3] >> f;
-    t["good"][3] >> d;
-    EXPECT_TRUE(f == finf);
-    EXPECT_TRUE(d == dinf);
-    f = 0.f;
-    d = 0.;
-    t["good"][4] >> f;
-    t["good"][4] >> d;
-    EXPECT_TRUE(f == finf);
-    EXPECT_TRUE(d == dinf);
-    f = 0.f;
-    d = 0.;
-    t["good"][5] >> f;
-    t["good"][5] >> d;
-    EXPECT_TRUE(f == finf);
-    EXPECT_TRUE(d == dinf);
-    f = 0.f;
-    d = 0.;
-    t["good"][6] >> f;
-    t["good"][6] >> d;
-    EXPECT_TRUE(f == finf);
-    EXPECT_TRUE(d == dinf);
+)";
+    test_check_emit_check(yaml, [](Tree const& t){
+        float finf = std::numeric_limits<float>::infinity();
+        double dinf = std::numeric_limits<double>::infinity();
+        EXPECT_EQ(t["good"][0].val(), ".inf");
+        EXPECT_EQ(t["good"][1].val(), ".inf");
+        EXPECT_EQ(t["good"][2].val(), ".Inf");
+        EXPECT_EQ(t["good"][3].val(), ".INF");
+        EXPECT_EQ(t["good"][4].val(), "inf");
+        EXPECT_EQ(t["good"][5].val(), "infinity");
+        EXPECT_EQ(t["good"][6].val(), ".inf");
+        float f;
+        double d;
+        f = 0.f;
+        d = 0.;
+        t["good"][0] >> f;
+        t["good"][0] >> d;
+        EXPECT_TRUE(f == finf);
+        EXPECT_TRUE(d == dinf);
+        f = 0.f;
+        d = 0.;
+        t["good"][1] >> f;
+        t["good"][1] >> d;
+        EXPECT_TRUE(f == finf);
+        EXPECT_TRUE(d == dinf);
+        f = 0.f;
+        d = 0.;
+        t["good"][2] >> f;
+        t["good"][2] >> d;
+        EXPECT_TRUE(f == finf);
+        EXPECT_TRUE(d == dinf);
+        f = 0.f;
+        d = 0.;
+        t["good"][3] >> f;
+        t["good"][3] >> d;
+        EXPECT_TRUE(f == finf);
+        EXPECT_TRUE(d == dinf);
+        f = 0.f;
+        d = 0.;
+        t["good"][4] >> f;
+        t["good"][4] >> d;
+        EXPECT_TRUE(f == finf);
+        EXPECT_TRUE(d == dinf);
+        f = 0.f;
+        d = 0.;
+        t["good"][5] >> f;
+        t["good"][5] >> d;
+        EXPECT_TRUE(f == finf);
+        EXPECT_TRUE(d == dinf);
+        f = 0.f;
+        d = 0.;
+        t["good"][6] >> f;
+        t["good"][6] >> d;
+        EXPECT_TRUE(f == finf);
+        EXPECT_TRUE(d == dinf);
+    });
+    C4_SUPPRESS_WARNING_GCC_CLANG_POP
+}
 
-    t = parse_in_arena(R"(
+TEST(serialize, inf_2)
+{
+    C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wfloat-equal");
+    csubstr yaml = R"(
 good:
   - -.inf
   -   -.inf
@@ -356,60 +394,62 @@ good:
 set:
   - nothing
   - nothing
-})");
-    t["set"][0] << -finf;
-    t["set"][1] << -dinf;
-    EXPECT_EQ(t["set"][0].val(), "-.inf");
-    EXPECT_EQ(t["set"][1].val(), "-.inf");
-    EXPECT_EQ(t["good"][0].val(), "-.inf");
-    EXPECT_EQ(t["good"][1].val(), "-.inf");
-    EXPECT_EQ(t["good"][2].val(), "-.Inf");
-    EXPECT_EQ(t["good"][3].val(), "-.INF");
-    EXPECT_EQ(t["good"][4].val(), "-inf");
-    EXPECT_EQ(t["good"][5].val(), "-infinity");
-    EXPECT_EQ(t["good"][6].val(), "-.inf");
-    f = 0.f;
-    d = 0.;
-    t["good"][0] >> f;
-    t["good"][0] >> d;
-    EXPECT_TRUE(f == -finf);
-    EXPECT_TRUE(d == -dinf);
-    f = 0.f;
-    d = 0.;
-    t["good"][1] >> f;
-    t["good"][1] >> d;
-    EXPECT_TRUE(f == -finf);
-    EXPECT_TRUE(d == -dinf);
-    f = 0.f;
-    d = 0.;
-    t["good"][2] >> f;
-    t["good"][2] >> d;
-    EXPECT_TRUE(f == -finf);
-    EXPECT_TRUE(d == -dinf);
-    f = 0.f;
-    d = 0.;
-    t["good"][3] >> f;
-    t["good"][3] >> d;
-    EXPECT_TRUE(f == -finf);
-    EXPECT_TRUE(d == -dinf);
-    f = 0.f;
-    d = 0.;
-    t["good"][4] >> f;
-    t["good"][4] >> d;
-    EXPECT_TRUE(f == -finf);
-    EXPECT_TRUE(d == -dinf);
-    f = 0.f;
-    d = 0.;
-    t["good"][5] >> f;
-    t["good"][5] >> d;
-    EXPECT_TRUE(f == -finf);
-    EXPECT_TRUE(d == -dinf);
-    f = 0.f;
-    d = 0.;
-    t["good"][6] >> f;
-    t["good"][6] >> d;
-    EXPECT_TRUE(f == -finf);
-    EXPECT_TRUE(d == -dinf);
+)";
+    test_check_emit_check(yaml, [](Tree const& t){
+        float finf = std::numeric_limits<float>::infinity();
+        double dinf = std::numeric_limits<double>::infinity();
+        EXPECT_EQ(t["good"][0].val(), "-.inf");
+        EXPECT_EQ(t["good"][1].val(), "-.inf");
+        EXPECT_EQ(t["good"][2].val(), "-.Inf");
+        EXPECT_EQ(t["good"][3].val(), "-.INF");
+        EXPECT_EQ(t["good"][4].val(), "-inf");
+        EXPECT_EQ(t["good"][5].val(), "-infinity");
+        EXPECT_EQ(t["good"][6].val(), "-.inf");
+        float f;
+        double d;
+        f = 0.f;
+        d = 0.;
+        t["good"][0] >> f;
+        t["good"][0] >> d;
+        EXPECT_TRUE(f == -finf);
+        EXPECT_TRUE(d == -dinf);
+        f = 0.f;
+        d = 0.;
+        t["good"][1] >> f;
+        t["good"][1] >> d;
+        EXPECT_TRUE(f == -finf);
+        EXPECT_TRUE(d == -dinf);
+        f = 0.f;
+        d = 0.;
+        t["good"][2] >> f;
+        t["good"][2] >> d;
+        EXPECT_TRUE(f == -finf);
+        EXPECT_TRUE(d == -dinf);
+        f = 0.f;
+        d = 0.;
+        t["good"][3] >> f;
+        t["good"][3] >> d;
+        EXPECT_TRUE(f == -finf);
+        EXPECT_TRUE(d == -dinf);
+        f = 0.f;
+        d = 0.;
+        t["good"][4] >> f;
+        t["good"][4] >> d;
+        EXPECT_TRUE(f == -finf);
+        EXPECT_TRUE(d == -dinf);
+        f = 0.f;
+        d = 0.;
+        t["good"][5] >> f;
+        t["good"][5] >> d;
+        EXPECT_TRUE(f == -finf);
+        EXPECT_TRUE(d == -dinf);
+        f = 0.f;
+        d = 0.;
+        t["good"][6] >> f;
+        t["good"][6] >> d;
+        EXPECT_TRUE(f == -finf);
+        EXPECT_TRUE(d == -dinf);
+    });
     C4_SUPPRESS_WARNING_GCC_CLANG_POP
 }
 
@@ -455,28 +495,26 @@ reference_list:
 )";
 
     Tree tree;
-    auto root_id = tree.root_id();
+    const size_t root_id = tree.root_id();
     tree.to_map(root_id);
 
-    auto anchor_list_id = tree.append_child(root_id);
+    const size_t anchor_list_id = tree.append_child(root_id);
     tree.to_seq(anchor_list_id, "anchor_objects");
 
-    auto anchor_map0 = tree.append_child(anchor_list_id);
+    const size_t anchor_map0 = tree.append_child(anchor_list_id);
     tree.to_map(anchor_map0);
     tree.set_val_anchor(anchor_map0, "id001");
 
-    auto anchor_elem0 = tree.append_child(anchor_map0);
+    const size_t anchor_elem0 = tree.append_child(anchor_map0);
     tree.to_keyval(anchor_elem0, "name", "a_name");
 
-    auto ref_list_id = tree.append_child(root_id);
+    const size_t ref_list_id = tree.append_child(root_id);
     tree.to_seq(ref_list_id, "reference_list");
 
-    auto elem0_id = tree.append_child(ref_list_id);
+    const size_t elem0_id = tree.append_child(ref_list_id);
     tree.set_val_ref(elem0_id, "id001");
 
-    std::string cmpbuf;
-    emitrs_yaml(tree, &cmpbuf);
-    EXPECT_EQ(cmpbuf, expected_yaml);
+    EXPECT_EQ(emitrs_yaml<std::string>(tree), expected_yaml);
 }
 
 
