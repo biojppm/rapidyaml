@@ -89,13 +89,13 @@ int main(int argc, const char *argv[])
         }
         {
             TS(tree_reserve);
-            size_t nlines;
+            size_t cap;
             {
-                TS(count_lines);
-                nlines = to_csubstr(contents).count('\n');
+                TS(estimate_capacity);
+                cap = yml::estimate_tree_capacity(to_csubstr(contents));
             }
-            fprintf(stderr, "reserving #lines=%zu\n", nlines);
-            tree.reserve(nlines);
+            fprintf(stderr, "reserving capacity=%zu\n", cap);
+            tree.reserve(cap);
         }
         {
             TS(parse_yml);

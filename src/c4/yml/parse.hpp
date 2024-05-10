@@ -12,6 +12,8 @@ class Tree;
 class NodeRef;
 template<class EventHandler> class ParseEngine;
 struct EventHandlerTree;
+RYML_EXPORT id_type estimate_tree_capacity(csubstr src);
+
 
 /** @addtogroup doc_parse
  * @{ */
