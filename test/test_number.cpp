@@ -56,7 +56,7 @@ void test_ints()
         ASSERT_EQ(parsed["bin"].num_children(), values.size());
         ASSERT_EQ(parsed["oct"].num_children(), values.size());
         ASSERT_EQ(parsed["versions"].num_children(), 4u);
-        size_t pos = 0;
+        id_type pos = 0;
         for(I val : values)
         {
             I out = notval(val);
@@ -86,7 +86,7 @@ void test_ints()
         ASSERT_EQ(parsed["bin"].num_children(), values.size());
         ASSERT_EQ(parsed["oct"].num_children(), values.size());
         ASSERT_EQ(parsed["versions"].num_children(), 4u);
-        size_t pos = 0;
+        id_type pos = 0;
         for(I val : values)
         {
             I out = notval(val);

@@ -103,7 +103,7 @@ struct Scalar
     OptionalScalar tag    = {};
     NodeType       flags = {};
     inline operator bool() const { if(anchor || tag) { RYML_ASSERT(scalar); } return scalar.was_set; }
-    void add_key_props(Tree *tree, size_t node) const
+    void add_key_props(Tree *tree, id_type node) const
     {
         if(ref)
         {
@@ -132,7 +132,7 @@ struct Scalar
             tree->_add_flags(node, flags & KEY_STYLE);
         }
     }
-    void add_val_props(Tree *tree, size_t node) const
+    void add_val_props(Tree *tree, id_type node) const
     {
         if(ref)
         {
@@ -303,7 +303,7 @@ bool compare_events(csubstr ref_evts, csubstr emt_evts, bool ignore_container_st
 
 void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
 {
-    struct ParseLevel { size_t tree_node; };
+    struct ParseLevel { id_type tree_node; };
     detail::stack<ParseLevel> m_stack = {};
     Tree &C4_RESTRICT tree = *tree_;
     size_t linenum = 0; (void)linenum;
@@ -367,7 +367,7 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
                 ASSERT_FALSE(key);
                 ASSERT_TRUE(curr);
                 _nfo_logf("seq[{}]: adding child", top.tree_node);
-                size_t node = tree.append_child(top.tree_node);
+                id_type node = tree.append_child(top.tree_node);
                 NodeType as_doc = tree.is_stream(top.tree_node) ? DOC : NOTYPE;
                 _nfo_logf("seq[{}]: child={} val='{}' as_doc=", top.tree_node, node, curr.scalar.maybe_get(), as_doc.type_str());
                 tree.to_val(node, curr.filtered_scalar(&tree), as_doc);
@@ -385,7 +385,7 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
                 else
                 {
                     _nfo_logf("map[{}]: adding child", top.tree_node);
-                    size_t node = tree.append_child(top.tree_node);
+                    id_type node = tree.append_child(top.tree_node);
                     NodeType as_doc = tree.is_stream(top.tree_node) ? DOC : NOTYPE;
                     _nfo_logf("map[{}]: child={} key='{}' val='{}' as_doc={}", top.tree_node, node, key.scalar.maybe_get(), curr.scalar.maybe_get(), as_doc.type_str());
                     tree.to_keyval(node, key.filtered_scalar(&tree), curr.filtered_scalar(&tree), as_doc);
@@ -411,7 +411,7 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
             {
                 _nfo_logf("node[{}] is seq: set {} as val ref", top.tree_node, alias);
                 ASSERT_FALSE(key);
-                size_t node = tree.append_child(top.tree_node);
+                id_type node = tree.append_child(top.tree_node);
                 tree.to_val(node, alias);
                 tree.set_val_ref(node, alias);
             }
@@ -420,7 +420,7 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
                 if(key)
                 {
                     _nfo_logf("node[{}] is map and key '{}' is pending: set {} as val ref", top.tree_node, key.scalar.maybe_get(), alias);
-                    size_t node = tree.append_child(top.tree_node);
+                    id_type node = tree.append_child(top.tree_node);
                     tree.to_keyval(node, key.filtered_scalar(&tree), alias);
                     key.add_key_props(&tree, node);
                     tree.set_val_ref(node, alias);
@@ -459,7 +459,7 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
                 _nfo_log("seq is block");
             }
             parse_anchor_and_tag(more_tokens, &anchor, &tag);
-            size_t node = tree.root_id();
+            id_type node = tree.root_id();
             if(m_stack.empty())
             {
                 _nfo_log("stack was empty, set root to SEQ");
@@ -469,9 +469,9 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
             }
             else
             {
-                size_t parent = m_stack.top().tree_node;
+                id_type parent = m_stack.top().tree_node;
                 _nfo_logf("stack was not empty. parent={}", parent);
-                ASSERT_NE(parent, (size_t)NONE);
+                ASSERT_NE(parent, (id_type)NONE);
                 if(tree.is_doc(parent) && !(tree.is_seq(parent) || tree.is_map(parent)))
                 {
                     _nfo_logf("set node to parent={}, add DOC", parent);
@@ -534,7 +534,7 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
                 _nfo_log("map is block");
             }
             parse_anchor_and_tag(more_tokens, &anchor, &tag);
-            size_t node = tree.root_id();
+            id_type node = tree.root_id();
             if(m_stack.empty())
             {
                 _nfo_log("stack was empty, set root to MAP");
@@ -544,9 +544,9 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
             }
             else
             {
-                size_t parent = m_stack.top().tree_node;
+                id_type parent = m_stack.top().tree_node;
                 _nfo_logf("stack was not empty. parent={}", parent);
-                ASSERT_NE(parent, (size_t)NONE);
+                ASSERT_NE(parent, (id_type)NONE);
                 if(tree.is_doc(parent) && !(tree.is_seq(parent) || tree.is_map(parent)))
                 {
                     _nfo_logf("set node to parent={}, add DOC", parent);
@@ -592,7 +592,7 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
         else if(line.begins_with("-SEQ"))
         {
             _nfo_logf("popping SEQ, empty={}", m_stack.empty());
-            size_t node;
+            id_type node;
             if(m_stack.empty())
                 node = tree.root_id();
             else
@@ -602,7 +602,7 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
         else if(line.begins_with("-MAP"))
         {
             _nfo_logf("popping MAP, empty={}", m_stack.empty());
-            size_t node;
+            id_type node;
             if(m_stack.empty())
                 node = tree.root_id();
             else
@@ -613,7 +613,7 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
         {
             csubstr rem = line.stripl("+DOC").triml(' ');
             _nfo_logf("pushing DOC: {}", rem);
-            size_t node = tree.root_id();
+            id_type node = tree.root_id();
             auto is_sep = rem.first_of_any("---\n", "--- ", "---\r") || rem.ends_with("---");
             ASSERT_EQ(key, false); // for the key to exist, the parent must exist and be a map
             if(m_stack.empty())
@@ -660,9 +660,9 @@ void parse_events_to_tree(csubstr src, Tree *C4_RESTRICT tree_)
             }
             else
             {
-                size_t parent = m_stack.top().tree_node;
+                id_type parent = m_stack.top().tree_node;
                 _nfo_logf("add DOC to parent={}", parent);
-                ASSERT_NE(parent, (size_t)NONE);
+                ASSERT_NE(parent, (id_type)NONE);
                 node = tree.append_child(parent);
                 _nfo_logf("child DOC={}", node);
                 tree.to_doc(node);

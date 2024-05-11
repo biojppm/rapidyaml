@@ -93,7 +93,7 @@ TEST(simple_seq, deeply_nested_to_cover_parse_stack_resizes)
 [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[0, 1, 2, 3, 4, 5, 6, 7]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
 )";
     Tree t = parse_in_arena(yaml);
-    size_t id = t.root_id();
+    id_type id = t.root_id();
     while(t.has_children(id))
         id = t.first_child(id);
     ASSERT_TRUE(t.cref(id).has_parent());

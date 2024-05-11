@@ -107,7 +107,7 @@ int main(int argc, const char *argv[])
 std::string emit_events_from_tree(csubstr filename, substr filecontents)
 {
     Tree tree(create_custom_callbacks());
-    tree.reserve(filecontents.count('\n'));
+    tree.reserve(estimate_tree_capacity(filecontents));
     parse_in_place(filename, filecontents, &tree);
     return emit_events_from_tree<std::string>(tree);
 }

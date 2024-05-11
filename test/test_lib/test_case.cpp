@@ -487,7 +487,7 @@ void test_invariants(ConstNodeRef const& n)
         EXPECT_EQ(n.parent().num_children() > 1, n.has_other_siblings());
         EXPECT_TRUE(n.parent().has_child(n));
         EXPECT_EQ(n.parent().num_children(), n.num_siblings());
-        EXPECT_EQ(n.parent().num_children(), n.num_other_siblings()+1u);
+        EXPECT_EQ(n.parent().num_children(), n.num_other_siblings()+id_type(1));
         // doc parent must be a seq and a stream
         if(n.is_doc())
         {

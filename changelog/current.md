@@ -19,6 +19,10 @@ Most of the changes are from the giant Parser refactor described below. Before g
   NodeRef::depth_asc() const;
   NodeRef::depth_desc() const;
   ```
+- [#PR432](https://github.com/biojppm/rapidyaml/pull/432) - Added a function to estimate the required tree capacity, based on yaml markup:
+  ```cpp
+  size_t estimate_tree_capacity(csubstr); // estimate number of nodes resulting from yaml
+  ```
 
 
 ------

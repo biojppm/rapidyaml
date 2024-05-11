@@ -357,8 +357,8 @@ john: doe)";
     // The lower level index API is based on the indices of nodes,
     // where the node's id is the node's position in the tree's data
     // array. This API is very efficient, but somewhat difficult to use:
-    size_t root_id = tree.root_id();
-    size_t bar_id = tree.find_child(root_id, "bar"); // need to get the index right
+    ryml::id_type root_id = tree.root_id();
+    ryml::id_type bar_id = tree.find_child(root_id, "bar"); // need to get the index right
     CHECK(tree.is_map(root_id)); // all of the index methods are in the tree
     CHECK(tree.is_seq(bar_id));  // ... and receive the subject index
 
@@ -426,14 +426,14 @@ john: doe)";
 
     // IMPORTANT. The ryml tree uses an index-based linked list for
     // storing children, so the complexity of
-    // `Tree::operator[csubstr]` and `Tree::operator[size_t]` is O(n),
+    // `Tree::operator[csubstr]` and `Tree::operator[id_type]` is O(n),
     // linear on the number of root children. If you use
     // `Tree::operator[]` with a large tree where the root has many
     // children, you will see a performance hit.
     //
     // To avoid this hit, you can create your own accelerator
     // structure. For example, before doing a lookup, do a single
-    // traverse at the root level to fill an `map<csubstr,size_t>`
+    // traverse at the root level to fill an `map<csubstr,id_type>`
     // mapping key names to node indices; with a node index, a lookup
     // (via `Tree::get()`) is O(1), so this way you can get O(log n)
     // lookup from a key. (But please do not use `std::map` if you
@@ -479,20 +479,20 @@ john: doe)";
         ryml::csubstr expected_keys[] = {"foo", "bar", "john"};
         // iterate children using the high-level node API:
         {
-            size_t count = 0;
+            ryml::id_type count = 0;
             for(ryml::ConstNodeRef const& child : root.children())
                 CHECK(child.key() == expected_keys[count++]);
         }
         // iterate siblings using the high-level node API:
         {
-            size_t count = 0;
+            ryml::id_type count = 0;
             for(ryml::ConstNodeRef const& child : root["foo"].siblings())
                 CHECK(child.key() == expected_keys[count++]);
         }
         // iterate children using the lower-level tree index API:
         {
-            size_t count = 0;
-            for(size_t child_id = tree.first_child(root_id); child_id != ryml::NONE; child_id = tree.next_sibling(child_id))
+            ryml::id_type count = 0;
+            for(ryml::id_type child_id = tree.first_child(root_id); child_id != ryml::NONE; child_id = tree.next_sibling(child_id))
                 CHECK(tree.key(child_id) == expected_keys[count++]);
         }
         // iterate siblings using the lower-level tree index API:
@@ -500,8 +500,8 @@ john: doe)";
         // preamble, which calls tree.first_sibling(bar_id) instead of
         // tree.first_child(root_id))
         {
-            size_t count = 0;
-            for(size_t child_id = tree.first_sibling(bar_id); child_id != ryml::NONE; child_id = tree.next_sibling(child_id))
+            ryml::id_type count = 0;
+            for(ryml::id_type child_id = tree.first_sibling(bar_id); child_id != ryml::NONE; child_id = tree.next_sibling(child_id))
                 CHECK(tree.key(child_id) == expected_keys[count++]);
         }
     }
@@ -3629,7 +3629,7 @@ void write(ryml::NodeRef *n, my_type const& val)
 template<class T>
 bool read(ryml::ConstNodeRef const& n, my_seq_type<T> *seq)
 {
-    seq->seq_member.resize(n.num_children()); // num_children() is O(N)
+    seq->seq_member.resize(static_cast<size_t>(n.num_children())); // num_children() is O(N)
     size_t pos = 0;
     for(auto const ch : n.children())
         ch >> seq->seq_member[pos++];
@@ -3813,7 +3813,7 @@ void sample_float_precision()
         CHECK(output.size() == reference.size());
         for(size_t i = 0; i < reference.size(); ++i)
         {
-            CHECK(get_num_digits(tree[i].val()) == num_digits_original);
+            CHECK(get_num_digits(tree[(ryml::id_type)i].val()) == num_digits_original);
             CHECK(fabs(output[i] - reference[i]) < precision_safe);
         }
     }
@@ -4577,12 +4577,12 @@ d: 3
         CHECK(tree.docref(1).id() == stream.child(1).id());
         CHECK(tree.docref(2).id() == stream.child(2).id());
         // equivalent: using the lower level index API
-        const size_t stream_id = tree.root_id();
+        const ryml::id_type stream_id = tree.root_id();
         CHECK(tree.is_root(stream_id));
         CHECK(tree.is_stream(stream_id));
         CHECK(!tree.is_doc(stream_id));
         CHECK(tree.num_children(stream_id) == 3);
-        for(size_t doc_id = tree.first_child(stream_id); doc_id != ryml::NONE; doc_id = tree.next_sibling(stream_id))
+        for(ryml::id_type doc_id = tree.first_child(stream_id); doc_id != ryml::NONE; doc_id = tree.next_sibling(stream_id))
             CHECK(tree.is_doc(doc_id));
         CHECK(tree.doc(0) == tree.child(stream_id, 0));
         CHECK(tree.doc(1) == tree.child(stream_id, 1));
@@ -4594,7 +4594,7 @@ d: 3
         CHECK(stream[0]["a"].val() == "0");
         CHECK(stream[0]["b"].val() == "1");
         // equivalent: using the index API
-        const size_t doc0_id = tree.first_child(stream_id);
+        const ryml::id_type doc0_id = tree.first_child(stream_id);
         CHECK(tree.is_doc(doc0_id));
         CHECK(tree.is_map(doc0_id));
         CHECK(tree.val(tree.find_child(doc0_id, "a")) == "0");
@@ -4606,7 +4606,7 @@ d: 3
         CHECK(stream[1]["c"].val() == "2");
         CHECK(stream[1]["d"].val() == "3");
         // equivalent: using the index API
-        const size_t doc1_id = tree.next_sibling(doc0_id);
+        const ryml::id_type doc1_id = tree.next_sibling(doc0_id);
         CHECK(tree.is_doc(doc1_id));
         CHECK(tree.is_map(doc1_id));
         CHECK(tree.val(tree.find_child(doc1_id, "c")) == "2");
@@ -4620,7 +4620,7 @@ d: 3
         CHECK(stream[2][2].val() == "6");
         CHECK(stream[2][3].val() == "7");
         // equivalent: using the index API
-        const size_t doc2_id = tree.next_sibling(doc1_id);
+        const ryml::id_type doc2_id = tree.next_sibling(doc1_id);
         CHECK(tree.is_doc(doc2_id));
         CHECK(tree.is_seq(doc2_id));
         CHECK(tree.val(tree.child(doc2_id, 0)) == "4");
@@ -4644,18 +4644,18 @@ d: 3
         };
         // using the node API
         {
-            size_t count = 0;
+            ryml::id_type count = 0;
             const ryml::ConstNodeRef stream = tree.rootref();
-            CHECK(stream.num_children() == C4_COUNTOF(expected_json));
+            CHECK(stream.num_children() == (ryml::id_type)C4_COUNTOF(expected_json));
             for(ryml::ConstNodeRef doc : stream.children())
                 CHECK(ryml::emitrs_json<std::string>(doc) == expected_json[count++]);
         }
         // equivalent: using the index API
         {
-            size_t count = 0;
-            const size_t stream_id = tree.root_id();
-            CHECK(tree.num_children(stream_id) == C4_COUNTOF(expected_json));
-            for(size_t doc_id = tree.first_child(stream_id); doc_id != ryml::NONE; doc_id = tree.next_sibling(doc_id))
+            ryml::id_type count = 0;
+            const ryml::id_type stream_id = tree.root_id();
+            CHECK(tree.num_children(stream_id) == (ryml::id_type)C4_COUNTOF(expected_json));
+            for(ryml::id_type doc_id = tree.first_child(stream_id); doc_id != ryml::NONE; doc_id = tree.next_sibling(doc_id))
                 CHECK(ryml::emitrs_json<std::string>(tree, doc_id) == expected_json[count++]);
         }
     }
