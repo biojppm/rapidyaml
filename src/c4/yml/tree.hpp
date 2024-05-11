@@ -371,7 +371,7 @@ public:
     C4_ALWAYS_INLINE bool parent_is_map(id_type node) const { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, has_parent(node)); return is_map(m_relation[node].m_parent); }
 
     /** true when the node has an anchor named a */
-    C4_ALWAYS_INLINE bool has_anchor(id_type node, csubstr a) const { _ryml_chkid(node); return m_key_anchor[node] == a || m_val_anchor[node] == a; }
+    C4_ALWAYS_INLINE bool has_anchor(id_type node, csubstr a) const { _ryml_chkid(node); return ((m_type[node] & KEYANCH) && m_key_anchor[node] == a) || ((m_type[node] & VALANCH) && m_val_anchor[node] == a); }
 
     /** true if the node key does not have any KEYQUO flags, and its scalar verifies scalar_is_null().
      * @warning the node must verify .has_key() (asserted) (ie must be a member of a map)

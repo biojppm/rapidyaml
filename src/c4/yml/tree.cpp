@@ -134,6 +134,7 @@ C4_NO_INLINE void _resize_node_data(Callbacks const& cb,
                                     csubstr      *C4_RESTRICT * m_key_anchor,
                                     NodeRelation *C4_RESTRICT * m_relation)
 {
+    _RYML_CB_ASSERT(cb, new_cap > 0);
     const node_buf_data newsz(new_cap);
     uint8_t *buf = _RYML_CB_ALLOC_HINT(cb, uint8_t, (size_t)newsz.total_size, *m_type);
     _RYML_CB_CHECK(cb, buf != nullptr);
@@ -286,26 +287,29 @@ void Tree::_copy(Tree const& that)
     _RYML_CB_ASSERT(m_callbacks, m_relation == nullptr);
     _RYML_CB_ASSERT(m_callbacks, m_arena.str == nullptr);
     _RYML_CB_ASSERT(m_callbacks, m_arena.len == 0);
-    _resize_node_data(m_callbacks,
-                      0,
-                      that.m_cap,
-                      &m_type,
-                      &m_val,
-                      &m_val_tag,
-                      &m_val_anchor,
-                      &m_key,
-                      &m_key_tag,
-                      &m_key_anchor,
-                      &m_relation);
-    memcpy(m_type, that.m_type, (size_t)that.m_cap * sizeof(NodeType));
-    memcpy(m_val, that.m_val, (size_t)that.m_cap * _ryml_num_val_arrays * sizeof(csubstr));
-    memcpy(m_relation, that.m_relation, (size_t)that.m_cap * sizeof(NodeRelation));
-    m_cap = that.m_cap;
-    m_size = that.m_size;
-    m_free_head = that.m_free_head;
-    m_free_tail = that.m_free_tail;
-    m_arena_pos = that.m_arena_pos;
-    m_arena = that.m_arena;
+    if(that.m_cap)
+    {
+        _resize_node_data(m_callbacks,
+                          0,
+                          that.m_cap,
+                          &m_type,
+                          &m_val,
+                          &m_val_tag,
+                          &m_val_anchor,
+                          &m_key,
+                          &m_key_tag,
+                          &m_key_anchor,
+                          &m_relation);
+        memcpy(m_type, that.m_type, (size_t)that.m_cap * sizeof(NodeType));
+        memcpy(m_val, that.m_val, (size_t)that.m_cap * _ryml_num_val_arrays * sizeof(csubstr));
+        memcpy(m_relation, that.m_relation, (size_t)that.m_cap * sizeof(NodeRelation));
+        m_cap = that.m_cap;
+        m_size = that.m_size;
+        m_free_head = that.m_free_head;
+        m_free_tail = that.m_free_tail;
+        m_arena_pos = that.m_arena_pos;
+        m_arena = that.m_arena;
+    }
     if(that.m_arena.str)
     {
         _RYML_CB_ASSERT(m_callbacks, that.m_arena.len > 0);
@@ -393,11 +397,9 @@ void Tree::reserve(id_type cap)
 {
     if(cap > m_cap)
     {
-        size_t new_cap = (size_t)cap;
-        size_t old_cap = (size_t)m_cap;
         _resize_node_data(m_callbacks,
-                          old_cap,
-                          new_cap,
+                          (size_t)m_cap,
+                          (size_t)cap,
                           &m_type,
                           &m_val,
                           &m_val_tag,
@@ -462,10 +464,6 @@ void Tree::_claim_root()
 
 
 //-----------------------------------------------------------------------------
-C4_SUPPRESS_WARNING_GCC_PUSH
-#if defined(__GNUC__) && __GNUC__>= 8
-    C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wclass-memaccess") // error: ‘void* memset(void*, int, size_t)’ clearing an object of type ‘class c4::yml::Tree’ with no trivial copy-assignment; use assignment or value-initialization instead
-#endif
 void Tree::_clear_range(id_type first, id_type num)
 {
     if(num == 0)
@@ -478,13 +476,7 @@ void Tree::_clear_range(id_type first, id_type num)
         m_relation[i].m_next_sibling = i + 1;
     }
     m_relation[first + num - 1].m_next_sibling = NONE;
-    //// TODO we should not need to clear the data, only the hierarchy
-    //memset(m_val        + first, 0, (size_t)num * sizeof(csubstr));
-    //memset(m_val_tag    + first, 0, (size_t)num * sizeof(csubstr));
-    //memset(m_val_anchor + first, 0, (size_t)num * sizeof(csubstr));
-    //memset(m_key        + first, 0, (size_t)num * sizeof(csubstr));
-    //memset(m_key_tag    + first, 0, (size_t)num * sizeof(csubstr));
-    //memset(m_key_anchor + first, 0, (size_t)num * sizeof(csubstr));
+    // we don't need to clear the node data
 }
 
 
@@ -545,7 +537,6 @@ id_type Tree::_claim()
     _clear(ichild);
     return ichild;
 }
-C4_SUPPRESS_WARNING_GCC_POP
 
 
 //-----------------------------------------------------------------------------
