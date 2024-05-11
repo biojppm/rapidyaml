@@ -1363,9 +1363,9 @@ TEST(Tree, is_stream)
     Tree t = parse_in_arena(R"(---
 foo: bar
 ...)");
-    const size_t stream_id = t.root_id();
-    const size_t doc_id = t.first_child(stream_id);
-    const size_t keyval_id = t.first_child(doc_id);
+    const id_type stream_id = t.root_id();
+    const id_type doc_id = t.first_child(stream_id);
+    const id_type keyval_id = t.first_child(doc_id);
     ConstNodeRef stream = t.ref(stream_id);
     ConstNodeRef doc = t.ref(doc_id);
     ConstNodeRef keyval = t.ref(keyval_id);
@@ -1403,10 +1403,10 @@ foo: bar
 ---
 a scalar
 ...)");
-    const size_t stream_id = t.root_id();
-    const size_t doc_id = t.first_child(stream_id);
-    const size_t keyval_id = t.first_child(doc_id);
-    const size_t docval_id = t.last_child(stream_id);
+    const id_type stream_id = t.root_id();
+    const id_type doc_id = t.first_child(stream_id);
+    const id_type keyval_id = t.first_child(doc_id);
+    const id_type docval_id = t.last_child(stream_id);
     ConstNodeRef stream = t.ref(stream_id);
     ConstNodeRef doc = t.ref(doc_id);
     ConstNodeRef keyval = t.ref(keyval_id);
@@ -1489,13 +1489,13 @@ seq: [foo, bar]
 ---
 a scalar
 ...)");
-    const size_t stream_id = t.root_id();
-    const size_t doc_id = t.first_child(stream_id);
-    const size_t map_id = t.first_child(doc_id);
-    const size_t keyval_id = t.first_child(map_id);
-    const size_t seq_id = t.last_child(doc_id);
-    const size_t val_id = t.first_child(seq_id);
-    const size_t docval_id = t.last_child(stream_id);
+    const id_type stream_id = t.root_id();
+    const id_type doc_id = t.first_child(stream_id);
+    const id_type map_id = t.first_child(doc_id);
+    const id_type keyval_id = t.first_child(map_id);
+    const id_type seq_id = t.last_child(doc_id);
+    const id_type val_id = t.first_child(seq_id);
+    const id_type docval_id = t.last_child(stream_id);
     ConstNodeRef stream = t.ref(stream_id);
     ConstNodeRef doc = t.ref(doc_id);
     ConstNodeRef map = t.ref(map_id);
@@ -1578,13 +1578,13 @@ seq: [foo, bar]
 ---
 a scalar
 ...)");
-    const size_t stream_id = t.root_id();
-    const size_t doc_id = t.first_child(stream_id);
-    const size_t map_id = t.first_child(doc_id);
-    const size_t keyval_id = t.first_child(map_id);
-    const size_t seq_id = t.last_child(doc_id);
-    const size_t val_id = t.first_child(seq_id);
-    const size_t docval_id = t.last_child(stream_id);
+    const id_type stream_id = t.root_id();
+    const id_type doc_id = t.first_child(stream_id);
+    const id_type map_id = t.first_child(doc_id);
+    const id_type keyval_id = t.first_child(map_id);
+    const id_type seq_id = t.last_child(doc_id);
+    const id_type val_id = t.first_child(seq_id);
+    const id_type docval_id = t.last_child(stream_id);
     ConstNodeRef stream = t.ref(stream_id);
     ConstNodeRef doc = t.ref(doc_id);
     ConstNodeRef map = t.ref(map_id);
@@ -1667,13 +1667,13 @@ seq: [foo, bar]
 ---
 a scalar
 ...)");
-    const size_t stream_id = t.root_id();
-    const size_t doc_id = t.first_child(stream_id);
-    const size_t map_id = t.first_child(doc_id);
-    const size_t keyval_id = t.first_child(map_id);
-    const size_t seq_id = t.last_child(doc_id);
-    const size_t val_id = t.first_child(seq_id);
-    const size_t docval_id = t.last_child(stream_id);
+    const id_type stream_id = t.root_id();
+    const id_type doc_id = t.first_child(stream_id);
+    const id_type map_id = t.first_child(doc_id);
+    const id_type keyval_id = t.first_child(map_id);
+    const id_type seq_id = t.last_child(doc_id);
+    const id_type val_id = t.first_child(seq_id);
+    const id_type docval_id = t.last_child(stream_id);
     ConstNodeRef stream = t.ref(stream_id);
     ConstNodeRef doc = t.ref(doc_id);
     ConstNodeRef map = t.ref(map_id);
@@ -1756,13 +1756,13 @@ seq: [foo, bar]
 ---
 a scalar
 ...)");
-    const size_t stream_id = t.root_id();
-    const size_t doc_id = t.first_child(stream_id);
-    const size_t map_id = t.first_child(doc_id);
-    const size_t keyval_id = t.first_child(map_id);
-    const size_t seq_id = t.last_child(doc_id);
-    const size_t val_id = t.first_child(seq_id);
-    const size_t docval_id = t.last_child(stream_id);
+    const id_type stream_id = t.root_id();
+    const id_type doc_id = t.first_child(stream_id);
+    const id_type map_id = t.first_child(doc_id);
+    const id_type keyval_id = t.first_child(map_id);
+    const id_type seq_id = t.last_child(doc_id);
+    const id_type val_id = t.first_child(seq_id);
+    const id_type docval_id = t.last_child(stream_id);
     ConstNodeRef stream = t.ref(stream_id);
     ConstNodeRef doc = t.ref(doc_id);
     ConstNodeRef map = t.ref(map_id);
@@ -1845,13 +1845,13 @@ seq: [foo, bar]
 ---
 a scalar
 ...)");
-    const size_t stream_id = t.root_id();
-    const size_t doc_id = t.first_child(stream_id);
-    const size_t map_id = t.first_child(doc_id);
-    const size_t keyval_id = t.first_child(map_id);
-    const size_t seq_id = t.last_child(doc_id);
-    const size_t val_id = t.first_child(seq_id);
-    const size_t docval_id = t.last_child(stream_id);
+    const id_type stream_id = t.root_id();
+    const id_type doc_id = t.first_child(stream_id);
+    const id_type map_id = t.first_child(doc_id);
+    const id_type keyval_id = t.first_child(map_id);
+    const id_type seq_id = t.last_child(doc_id);
+    const id_type val_id = t.first_child(seq_id);
+    const id_type docval_id = t.last_child(stream_id);
     ConstNodeRef stream = t.ref(stream_id);
     ConstNodeRef doc = t.ref(doc_id);
     ConstNodeRef map = t.ref(map_id);
@@ -1933,13 +1933,13 @@ seq: [foo, bar]
 ---
 a scalar
 ...)");
-    const size_t stream_id = t.root_id();
-    const size_t doc_id = t.first_child(stream_id);
-    const size_t map_id = t.first_child(doc_id);
-    const size_t keyval_id = t.first_child(map_id);
-    const size_t seq_id = t.last_child(doc_id);
-    const size_t val_id = t.first_child(seq_id);
-    const size_t docval_id = t.last_child(stream_id);
+    const id_type stream_id = t.root_id();
+    const id_type doc_id = t.first_child(stream_id);
+    const id_type map_id = t.first_child(doc_id);
+    const id_type keyval_id = t.first_child(map_id);
+    const id_type seq_id = t.last_child(doc_id);
+    const id_type val_id = t.first_child(seq_id);
+    const id_type docval_id = t.last_child(stream_id);
     ConstNodeRef stream = t.ref(stream_id);
     ConstNodeRef doc = t.ref(doc_id);
     ConstNodeRef map = t.ref(map_id);
@@ -2022,13 +2022,13 @@ seq: [foo, bar]
 ---
 a scalar
 ...)");
-    const size_t stream_id = t.root_id();
-    const size_t doc_id = t.first_child(stream_id);
-    const size_t map_id = t.first_child(doc_id);
-    const size_t keyval_id = t.first_child(map_id);
-    const size_t seq_id = t.last_child(doc_id);
-    const size_t val_id = t.first_child(seq_id);
-    const size_t docval_id = t.last_child(stream_id);
+    const id_type stream_id = t.root_id();
+    const id_type doc_id = t.first_child(stream_id);
+    const id_type map_id = t.first_child(doc_id);
+    const id_type keyval_id = t.first_child(map_id);
+    const id_type seq_id = t.last_child(doc_id);
+    const id_type val_id = t.first_child(seq_id);
+    const id_type docval_id = t.last_child(stream_id);
     ConstNodeRef stream = t.ref(stream_id);
     ConstNodeRef doc = t.ref(doc_id);
     ConstNodeRef map = t.ref(map_id);
@@ -2107,15 +2107,15 @@ TEST(Tree, has_key_tag)
 ---
 a scalar
 ...)");
-    const size_t stream_id = t.root_id();
-    const size_t doc_id = t.first_child(stream_id);
-    const size_t map_id = t.first_child(doc_id);
-    const size_t keyval_id = t.first_child(map_id);
-    const size_t keyvalnotag_id = t.last_child(map_id);
-    const size_t seq_id = t.last_child(doc_id);
-    const size_t val_id = t.first_child(seq_id);
-    const size_t valnotag_id = t.last_child(seq_id);
-    const size_t docval_id = t.last_child(stream_id);
+    const id_type stream_id = t.root_id();
+    const id_type doc_id = t.first_child(stream_id);
+    const id_type map_id = t.first_child(doc_id);
+    const id_type keyval_id = t.first_child(map_id);
+    const id_type keyvalnotag_id = t.last_child(map_id);
+    const id_type seq_id = t.last_child(doc_id);
+    const id_type val_id = t.first_child(seq_id);
+    const id_type valnotag_id = t.last_child(seq_id);
+    const id_type docval_id = t.last_child(stream_id);
     ConstNodeRef stream = t.ref(stream_id);
     ConstNodeRef doc = t.ref(doc_id);
     ConstNodeRef map = t.ref(map_id);
@@ -2210,15 +2210,15 @@ seq: !seqtag [!footag foo, bar]
 ---
 a scalar
 ...)");
-    const size_t stream_id = t.root_id();
-    const size_t doc_id = t.first_child(stream_id);
-    const size_t map_id = t.first_child(doc_id);
-    const size_t keyval_id = t.first_child(map_id);
-    const size_t keyvalnotag_id = t.last_child(map_id);
-    const size_t seq_id = t.last_child(doc_id);
-    const size_t val_id = t.first_child(seq_id);
-    const size_t valnotag_id = t.last_child(seq_id);
-    const size_t docval_id = t.last_child(stream_id);
+    const id_type stream_id = t.root_id();
+    const id_type doc_id = t.first_child(stream_id);
+    const id_type map_id = t.first_child(doc_id);
+    const id_type keyval_id = t.first_child(map_id);
+    const id_type keyvalnotag_id = t.last_child(map_id);
+    const id_type seq_id = t.last_child(doc_id);
+    const id_type val_id = t.first_child(seq_id);
+    const id_type valnotag_id = t.last_child(seq_id);
+    const id_type docval_id = t.last_child(stream_id);
     ConstNodeRef stream = t.ref(stream_id);
     ConstNodeRef doc = t.ref(doc_id);
     ConstNodeRef map = t.ref(map_id);
@@ -2311,14 +2311,14 @@ TEST(Tree, has_key_anchor)
 &mapanchor map: {&keyvalanchor foo: bar, anchor: none}
 &seqanchor seq: [&valanchor foo, bar]
 ...)");
-    const size_t stream_id = t.root_id();
-    const size_t doc_id = t.first_child(stream_id);
-    const size_t map_id = t.first_child(doc_id);
-    const size_t keyval_id = t.first_child(map_id);
-    const size_t keyvalnoanchor_id = t.last_child(map_id);
-    const size_t seq_id = t.last_child(doc_id);
-    const size_t val_id = t.first_child(seq_id);
-    const size_t valnoanchor_id = t.last_child(seq_id);
+    const id_type stream_id = t.root_id();
+    const id_type doc_id = t.first_child(stream_id);
+    const id_type map_id = t.first_child(doc_id);
+    const id_type keyval_id = t.first_child(map_id);
+    const id_type keyvalnoanchor_id = t.last_child(map_id);
+    const id_type seq_id = t.last_child(doc_id);
+    const id_type val_id = t.first_child(seq_id);
+    const id_type valnoanchor_id = t.last_child(seq_id);
     ConstNodeRef stream = t.ref(stream_id);
     ConstNodeRef doc = t.ref(doc_id);
     ConstNodeRef map = t.ref(map_id);
@@ -2404,14 +2404,14 @@ map: &mapanchor {foo: &keyvalanchor bar, anchor: none}
 seq: &seqanchor [&valanchor foo, bar]
 ...)");
     _c4dbg_tree(t);
-    const size_t stream_id = t.root_id();
-    const size_t doc_id = t.first_child(stream_id);
-    const size_t map_id = t.first_child(doc_id);
-    const size_t keyval_id = t.first_child(map_id);
-    const size_t keyvalnoanchor_id = t.last_child(map_id);
-    const size_t seq_id = t.last_child(doc_id);
-    const size_t val_id = t.first_child(seq_id);
-    const size_t valnoanchor_id = t.last_child(seq_id);
+    const id_type stream_id = t.root_id();
+    const id_type doc_id = t.first_child(stream_id);
+    const id_type map_id = t.first_child(doc_id);
+    const id_type keyval_id = t.first_child(map_id);
+    const id_type keyvalnoanchor_id = t.last_child(map_id);
+    const id_type seq_id = t.last_child(doc_id);
+    const id_type val_id = t.first_child(seq_id);
+    const id_type valnoanchor_id = t.last_child(seq_id);
     ConstNodeRef stream = t.cref(stream_id);
     ConstNodeRef doc = t.cref(doc_id);
     ConstNodeRef map = t.cref(map_id);
@@ -2502,14 +2502,14 @@ map: &mapanchor {foo: &keyvalanchor bar, anchor: none}
 &seqanchor seq: [&valanchor foo, bar]
 ...)");
     _c4dbg_tree(t);
-    const size_t stream_id = t.root_id();
-    const size_t doc_id = t.first_child(stream_id);
-    const size_t map_id = t.first_child(doc_id);
-    const size_t keyval_id = t.first_child(map_id);
-    const size_t keyvalnoanchor_id = t.last_child(map_id);
-    const size_t seq_id = t.last_child(doc_id);
-    const size_t val_id = t.first_child(seq_id);
-    const size_t valnoanchor_id = t.last_child(seq_id);
+    const id_type stream_id = t.root_id();
+    const id_type doc_id = t.first_child(stream_id);
+    const id_type map_id = t.first_child(doc_id);
+    const id_type keyval_id = t.first_child(map_id);
+    const id_type keyvalnoanchor_id = t.last_child(map_id);
+    const id_type seq_id = t.last_child(doc_id);
+    const id_type val_id = t.first_child(seq_id);
+    const id_type valnoanchor_id = t.last_child(seq_id);
     ConstNodeRef stream = t.ref(stream_id);
     ConstNodeRef doc = t.ref(doc_id);
     ConstNodeRef map = t.ref(map_id);
@@ -2591,12 +2591,12 @@ TEST(Tree, is_key_ref)
 *mapref : {foo: bar, notag: none}
 *seqref : [foo, bar]
 ...)");
-    const size_t stream_id = t.root_id();
-    const size_t doc_id = t.first_child(stream_id);
-    const size_t map_id = t.first_child(doc_id);
-    const size_t keyval_id = t.first_child(map_id);
-    const size_t seq_id = t.last_child(doc_id);
-    const size_t val_id = t.first_child(seq_id);
+    const id_type stream_id = t.root_id();
+    const id_type doc_id = t.first_child(stream_id);
+    const id_type map_id = t.first_child(doc_id);
+    const id_type keyval_id = t.first_child(map_id);
+    const id_type seq_id = t.last_child(doc_id);
+    const id_type val_id = t.first_child(seq_id);
     ConstNodeRef stream = t.cref(stream_id);
     ConstNodeRef doc = t.cref(doc_id);
     ConstNodeRef map = t.cref(map_id);
@@ -2665,12 +2665,12 @@ TEST(Tree, is_val_ref)
 map: {foo: *keyvalref, notag: none}
 seq: [*valref, bar]
 ...)");
-    const size_t stream_id = t.root_id();
-    const size_t doc_id = t.first_child(stream_id);
-    const size_t map_id = t.first_child(doc_id);
-    const size_t keyval_id = t.first_child(map_id);
-    const size_t seq_id = t.last_child(doc_id);
-    const size_t val_id = t.first_child(seq_id);
+    const id_type stream_id = t.root_id();
+    const id_type doc_id = t.first_child(stream_id);
+    const id_type map_id = t.first_child(doc_id);
+    const id_type keyval_id = t.first_child(map_id);
+    const id_type seq_id = t.last_child(doc_id);
+    const id_type val_id = t.first_child(seq_id);
     ConstNodeRef stream = t.ref(stream_id);
     ConstNodeRef doc = t.ref(doc_id);
     ConstNodeRef map = t.ref(map_id);
@@ -2743,12 +2743,12 @@ TEST(Tree, is_ref)
 map: {foo: *keyvalref, notag: none}
 seq: [*valref, bar]
 ...)");
-    const size_t stream_id = t.root_id();
-    const size_t doc_id = t.first_child(stream_id);
-    const size_t map_id = t.first_child(doc_id);
-    const size_t keyval_id = t.first_child(map_id);
-    const size_t seq_id = t.last_child(doc_id);
-    const size_t val_id = t.first_child(seq_id);
+    const id_type stream_id = t.root_id();
+    const id_type doc_id = t.first_child(stream_id);
+    const id_type map_id = t.first_child(doc_id);
+    const id_type keyval_id = t.first_child(map_id);
+    const id_type seq_id = t.last_child(doc_id);
+    const id_type val_id = t.first_child(seq_id);
     ConstNodeRef stream = t.ref(stream_id);
     ConstNodeRef doc = t.ref(doc_id);
     ConstNodeRef map = t.ref(map_id);
@@ -2817,9 +2817,9 @@ TEST(Tree, is_key_quoted)
 "quoted": foo
 notquoted: bar
 ...)");
-    const size_t map_id = t.first_child(t.root_id());
-    const size_t quoted_id = t.first_child(map_id);
-    const size_t notquoted_id = t.last_child(map_id);
+    const id_type map_id = t.first_child(t.root_id());
+    const id_type quoted_id = t.first_child(map_id);
+    const id_type notquoted_id = t.last_child(map_id);
     ConstNodeRef map = t.ref(map_id);
     ConstNodeRef quoted = t.ref(quoted_id);
     ConstNodeRef notquoted = t.ref(notquoted_id);
@@ -2864,9 +2864,9 @@ TEST(Tree, is_val_quoted)
 "quoted": "foo"
 notquoted: bar
 ...)");
-    const size_t map_id = t.first_child(t.root_id());
-    const size_t quoted_id = t.first_child(map_id);
-    const size_t notquoted_id = t.last_child(map_id);
+    const id_type map_id = t.first_child(t.root_id());
+    const id_type quoted_id = t.first_child(map_id);
+    const id_type notquoted_id = t.last_child(map_id);
     ConstNodeRef map = t.ref(map_id);
     ConstNodeRef quoted = t.ref(quoted_id);
     ConstNodeRef notquoted = t.ref(notquoted_id);
@@ -2921,14 +2921,14 @@ quoted5: 'foo'
 'quoted6': 'foo'
 notquoted: bar
 ...)");
-    const size_t map_id = t.first_child(t.root_id());
-    const size_t quoted1_id = t.find_child(map_id, "quoted1");
-    const size_t quoted2_id = t.find_child(map_id, "quoted2");
-    const size_t quoted3_id = t.find_child(map_id, "quoted3");
-    const size_t quoted4_id = t.find_child(map_id, "quoted4");
-    const size_t quoted5_id = t.find_child(map_id, "quoted5");
-    const size_t quoted6_id = t.find_child(map_id, "quoted6");
-    const size_t notquoted_id = t.last_child(map_id);
+    const id_type map_id = t.first_child(t.root_id());
+    const id_type quoted1_id = t.find_child(map_id, "quoted1");
+    const id_type quoted2_id = t.find_child(map_id, "quoted2");
+    const id_type quoted3_id = t.find_child(map_id, "quoted3");
+    const id_type quoted4_id = t.find_child(map_id, "quoted4");
+    const id_type quoted5_id = t.find_child(map_id, "quoted5");
+    const id_type quoted6_id = t.find_child(map_id, "quoted6");
+    const id_type notquoted_id = t.last_child(map_id);
     ConstNodeRef map = t.ref(map_id);
     ConstNodeRef quoted1 = t.ref(quoted1_id);
     ConstNodeRef quoted2 = t.ref(quoted2_id);
@@ -3007,12 +3007,12 @@ TEST(Tree, parent_is_seq)
 map: {foo: *keyvalref, notag: none}
 seq: &seq [*valref, bar]
 ...)");
-    const size_t stream_id = t.root_id();
-    const size_t doc_id = t.first_child(stream_id);
-    const size_t map_id = t.first_child(doc_id);
-    const size_t keyval_id = t.first_child(map_id);
-    const size_t seq_id = t.last_child(doc_id);
-    const size_t val_id = t.first_child(seq_id);
+    const id_type stream_id = t.root_id();
+    const id_type doc_id = t.first_child(stream_id);
+    const id_type map_id = t.first_child(doc_id);
+    const id_type keyval_id = t.first_child(map_id);
+    const id_type seq_id = t.last_child(doc_id);
+    const id_type val_id = t.first_child(seq_id);
     ConstNodeRef doc = t.ref(doc_id);
     ConstNodeRef map = t.ref(map_id);
     ConstNodeRef keyval = t.ref(keyval_id);
@@ -3065,12 +3065,12 @@ TEST(Tree, parent_is_map)
 map: {foo: *keyvalref, notag: none}
 seq: &seq [*valref, bar]
 ...)");
-    const size_t stream_id = t.root_id();
-    const size_t doc_id = t.first_child(stream_id);
-    const size_t map_id = t.first_child(doc_id);
-    const size_t keyval_id = t.first_child(map_id);
-    const size_t seq_id = t.last_child(doc_id);
-    const size_t val_id = t.first_child(seq_id);
+    const id_type stream_id = t.root_id();
+    const id_type doc_id = t.first_child(stream_id);
+    const id_type map_id = t.first_child(doc_id);
+    const id_type keyval_id = t.first_child(map_id);
+    const id_type seq_id = t.last_child(doc_id);
+    const id_type val_id = t.first_child(seq_id);
     ConstNodeRef doc = t.ref(doc_id);
     ConstNodeRef map = t.ref(map_id);
     ConstNodeRef keyval = t.ref(keyval_id);
@@ -3124,12 +3124,12 @@ TEST(Tree, has_parent)
 map: {foo: *keyvalref, notag: none}
 seq: &seq [*valref, bar]
 ...)");
-    const size_t stream_id = t.root_id();
-    const size_t doc_id = t.first_child(stream_id);
-    const size_t map_id = t.first_child(doc_id);
-    const size_t keyval_id = t.first_child(map_id);
-    const size_t seq_id = t.last_child(doc_id);
-    const size_t val_id = t.first_child(seq_id);
+    const id_type stream_id = t.root_id();
+    const id_type doc_id = t.first_child(stream_id);
+    const id_type map_id = t.first_child(doc_id);
+    const id_type keyval_id = t.first_child(map_id);
+    const id_type seq_id = t.last_child(doc_id);
+    const id_type val_id = t.first_child(seq_id);
     ConstNodeRef stream = t.ref(stream_id);
     ConstNodeRef doc = t.ref(doc_id);
     ConstNodeRef map = t.ref(map_id);
@@ -3189,12 +3189,12 @@ TEST(Tree, num_children)
 map: {foo: *keyvalref, notag: none}
 seq: &seq [*valref, bar]
 ...)");
-    const size_t stream_id = t.root_id();
-    const size_t doc_id = t.first_child(stream_id);
-    const size_t map_id = t.first_child(doc_id);
-    const size_t keyval_id = t.first_child(map_id);
-    const size_t seq_id = t.last_child(doc_id);
-    const size_t val_id = t.first_child(seq_id);
+    const id_type stream_id = t.root_id();
+    const id_type doc_id = t.first_child(stream_id);
+    const id_type map_id = t.first_child(doc_id);
+    const id_type keyval_id = t.first_child(map_id);
+    const id_type seq_id = t.last_child(doc_id);
+    const id_type val_id = t.first_child(seq_id);
     ConstNodeRef stream = t.ref(stream_id);
     ConstNodeRef doc = t.ref(doc_id);
     ConstNodeRef map = t.ref(map_id);
@@ -3238,12 +3238,12 @@ TEST(Tree, child)
 map: {foo: *keyvalref, notag: none}
 seq: &seq [*valref, bar]
 ...)");
-    const size_t stream_id = t.root_id();
-    const size_t doc_id = t.first_child(stream_id);
-    const size_t map_id = t.first_child(doc_id);
-    const size_t keyval_id = t.first_child(map_id);
-    const size_t seq_id = t.last_child(doc_id);
-    const size_t val_id = t.first_child(seq_id);
+    const id_type stream_id = t.root_id();
+    const id_type doc_id = t.first_child(stream_id);
+    const id_type map_id = t.first_child(doc_id);
+    const id_type keyval_id = t.first_child(map_id);
+    const id_type seq_id = t.last_child(doc_id);
+    const id_type val_id = t.first_child(seq_id);
     ConstNodeRef stream = t.ref(stream_id);
     ConstNodeRef doc = t.ref(doc_id);
     ConstNodeRef map = t.ref(map_id);
@@ -3259,9 +3259,9 @@ seq: &seq [*valref, bar]
     EXPECT_EQ(t.child(stream_id, 0), doc_id);
     EXPECT_EQ(t.child(doc_id, 0), map_id);
     EXPECT_EQ(t.child(map_id, 0), keyval_id);
-    EXPECT_EQ(t.child(keyval_id, 0), (size_t)NONE);
+    EXPECT_EQ(t.child(keyval_id, 0), (id_type)NONE);
     EXPECT_EQ(t.child(seq_id, 0), val_id);
-    EXPECT_EQ(t.child(val_id, 0), (size_t)NONE);
+    EXPECT_EQ(t.child(val_id, 0), (id_type)NONE);
     EXPECT_EQ(stream.child(0).id(), t.child(stream_id, 0));
     EXPECT_EQ(doc.child(0).id(), t.child(doc_id, 0));
     EXPECT_EQ(map.child(0).id(), t.child(map_id, 0));
@@ -3287,20 +3287,20 @@ TEST(Tree, find_child_by_name)
 map: {foo: *keyvalref, notag: none}
 seq: &seq [*valref, bar]
 ...)");
-    const size_t stream_id = t.root_id();
-    const size_t doc_id = t.first_child(stream_id);
-    const size_t map_id = t.first_child(doc_id);
-    const size_t keyval_id = t.first_child(map_id);
-    const size_t seq_id = t.last_child(doc_id);
+    const id_type stream_id = t.root_id();
+    const id_type doc_id = t.first_child(stream_id);
+    const id_type map_id = t.first_child(doc_id);
+    const id_type keyval_id = t.first_child(map_id);
+    const id_type seq_id = t.last_child(doc_id);
     ConstNodeRef doc = t.cref(doc_id);
     ConstNodeRef map = t.cref(map_id);
     NodeRef mdoc = t.ref(doc_id);
     NodeRef mmap = t.ref(map_id);
     EXPECT_EQ(t.find_child(doc_id, "map"), map_id);
     EXPECT_EQ(t.find_child(doc_id, "seq"), seq_id);
-    EXPECT_EQ(t.find_child(doc_id, "..."), (size_t)NONE);
+    EXPECT_EQ(t.find_child(doc_id, "..."), (id_type)NONE);
     EXPECT_EQ(t.find_child(map_id, "foo"), keyval_id);
-    EXPECT_EQ(t.find_child(map_id, "bar"), (size_t)NONE);
+    EXPECT_EQ(t.find_child(map_id, "bar"), (id_type)NONE);
     EXPECT_EQ(doc.find_child("map").id(), t.find_child(doc_id, "map"));
     EXPECT_EQ(doc.find_child("seq").id(), t.find_child(doc_id, "seq"));
     EXPECT_EQ(doc.find_child("...").id(), t.find_child(doc_id, "..."));
@@ -3324,10 +3324,10 @@ TEST(Tree, find_sibling_by_name)
 map: {foo: *keyvalref, notag: none}
 seq: &seq [*valref, bar]
 ...)");
-    const size_t stream_id = t.root_id();
-    const size_t doc_id = t.first_child(stream_id);
-    const size_t map_id = t.first_child(doc_id);
-    const size_t seq_id = t.last_child(doc_id);
+    const id_type stream_id = t.root_id();
+    const id_type doc_id = t.first_child(stream_id);
+    const id_type map_id = t.first_child(doc_id);
+    const id_type seq_id = t.last_child(doc_id);
     ConstNodeRef map = t.cref(map_id);
     ConstNodeRef seq = t.cref(seq_id);
     NodeRef mmap = t.ref(map_id);
@@ -3335,10 +3335,10 @@ seq: &seq [*valref, bar]
     //
     EXPECT_EQ(t.find_sibling(map_id, "map"), map_id);
     EXPECT_EQ(t.find_sibling(map_id, "seq"), seq_id);
-    EXPECT_EQ(t.find_sibling(map_id, "..."), (size_t)NONE);
+    EXPECT_EQ(t.find_sibling(map_id, "..."), (id_type)NONE);
     EXPECT_EQ(t.find_sibling(seq_id, "map"), map_id);
     EXPECT_EQ(t.find_sibling(seq_id, "seq"), seq_id);
-    EXPECT_EQ(t.find_sibling(seq_id, "..."), (size_t)NONE);
+    EXPECT_EQ(t.find_sibling(seq_id, "..."), (id_type)NONE);
     //
     EXPECT_TRUE(t.has_sibling(map_id, "map"));
     EXPECT_TRUE(t.has_sibling(map_id, "seq"));
@@ -3607,31 +3607,31 @@ a:
 
     auto lp = t.lookup_path("x");
     EXPECT_FALSE(lp);
-    EXPECT_EQ(lp.target, (size_t)NONE);
-    EXPECT_EQ(lp.closest, (size_t)NONE);
+    EXPECT_EQ(lp.target, (id_type)NONE);
+    EXPECT_EQ(lp.closest, (id_type)NONE);
     EXPECT_EQ(lp.resolved(), "");
     EXPECT_EQ(lp.unresolved(), "x");
     lp = t.lookup_path("a.x");
     EXPECT_FALSE(lp);
-    EXPECT_EQ(lp.target, (size_t)NONE);
+    EXPECT_EQ(lp.target, (id_type)NONE);
     EXPECT_EQ(lp.closest, 1);
     EXPECT_EQ(lp.resolved(), "a");
     EXPECT_EQ(lp.unresolved(), "x");
     lp = t.lookup_path("a.b.x");
     EXPECT_FALSE(lp);
-    EXPECT_EQ(lp.target, (size_t)NONE);
+    EXPECT_EQ(lp.target, (id_type)NONE);
     EXPECT_EQ(lp.closest, 2);
     EXPECT_EQ(lp.resolved(), "a.b");
     EXPECT_EQ(lp.unresolved(), "x");
     lp = t.lookup_path("a.c.x");
     EXPECT_FALSE(lp);
-    EXPECT_EQ(lp.target, (size_t)NONE);
+    EXPECT_EQ(lp.target, (id_type)NONE);
     EXPECT_EQ(lp.closest, 3);
     EXPECT_EQ(lp.resolved(), "a.c");
     EXPECT_EQ(lp.unresolved(), "x");
 
-    size_t sz = t.size();
-    EXPECT_EQ(t.lookup_path("x").target, (size_t)NONE);
+    id_type sz = t.size();
+    EXPECT_EQ(t.lookup_path("x").target, (id_type)NONE);
     EXPECT_EQ(t.lookup_path_or_modify("x", "x"), sz);
     EXPECT_EQ(t.lookup_path("x").target, sz);
     EXPECT_EQ(t.val(sz), "x");
@@ -3641,7 +3641,7 @@ a:
     EXPECT_EQ(t.val(sz), "z");
 
     sz = t.size();
-    EXPECT_EQ(t.lookup_path("a.x").target, (size_t)NONE);
+    EXPECT_EQ(t.lookup_path("a.x").target, (id_type)NONE);
     EXPECT_EQ(t.lookup_path_or_modify("x", "a.x"), sz);
     EXPECT_EQ(t.lookup_path("a.x").target, sz);
     EXPECT_EQ(t.val(sz), "x");
@@ -3651,7 +3651,7 @@ a:
     EXPECT_EQ(t.val(sz), "z");
 
     sz = t.size();
-    EXPECT_EQ(t.lookup_path("a.c.x").target, (size_t)NONE);
+    EXPECT_EQ(t.lookup_path("a.c.x").target, (id_type)NONE);
     EXPECT_EQ(t.lookup_path_or_modify("x", "a.c.x"), sz);
     EXPECT_EQ(t.lookup_path("a.c.x").target, sz);
     EXPECT_EQ(t.val(sz), "x");
@@ -3679,11 +3679,11 @@ TEST(Tree, lookup_path_or_modify)
         t.rootref() |= MAP;
         csubstr bigpath = "newmap.newseq[0].newmap.newseq[0].first";
         auto result = t.lookup_path(bigpath);
-        EXPECT_EQ(result.target, (size_t)NONE);
-        EXPECT_EQ(result.closest, (size_t)NONE);
+        EXPECT_EQ(result.target, (id_type)NONE);
+        EXPECT_EQ(result.closest, (id_type)NONE);
         EXPECT_EQ(result.resolved(), "");
         EXPECT_EQ(result.unresolved(), bigpath);
-        size_t sz = t.lookup_path_or_modify("x", bigpath);
+        id_type sz = t.lookup_path_or_modify("x", bigpath);
         EXPECT_EQ(t.lookup_path(bigpath).target, sz);
         EXPECT_EQ(t.val(sz), "x");
         EXPECT_EQ(t["newmap"]["newseq"].num_children(), 1u);
@@ -3693,7 +3693,7 @@ TEST(Tree, lookup_path_or_modify)
         EXPECT_EQ(t["newmap"]["newseq"][0]["newmap"]["newseq"].num_children(), 1u);
         EXPECT_EQ(t["newmap"]["newseq"][0]["newmap"]["newseq"][0].is_map(), true);
         EXPECT_EQ(t["newmap"]["newseq"][0]["newmap"]["newseq"][0]["first"].val(), "x");
-        size_t sz2 = t.lookup_path_or_modify("y", bigpath);
+        id_type sz2 = t.lookup_path_or_modify("y", bigpath);
         EXPECT_EQ(t["newmap"]["newseq"][0]["newmap"]["newseq"][0]["first"].val(), "y");
         EXPECT_EQ(sz2, sz);
         EXPECT_EQ(t.lookup_path(bigpath).target, sz);
@@ -4057,7 +4057,7 @@ doc3
 ---
 doc4
 )");
-    size_t ir = t.root_id();
+    id_type ir = t.root_id();
     ASSERT_EQ(t.num_children(ir), 5u);
     ASSERT_TRUE(t.is_stream(ir));
     EXPECT_EQ(t.child(ir, 0), t.doc(0));
@@ -4124,9 +4124,9 @@ TEST(Tree, add_tag_directives)
         TagDirective{csubstr("!e!"), csubstr("!ey-"), 0u},
     };
     Tree t;
-    auto check_up_to = [&](size_t num)
+    auto check_up_to = [&](id_type num)
     {
-        size_t pos = 0;
+        id_type pos = 0;
         EXPECT_EQ(t.num_tag_directives(), num);
         for(TagDirective const& d : t.tag_directives())
         {

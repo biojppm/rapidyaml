@@ -42,8 +42,8 @@ TEST(github, 277)
     #endif
     ConstNodeRef root = tree.crootref();
     ASSERT_TRUE(root["B"].is_map());
-    size_t num_childs = root["B"].num_children();
-    size_t child = 0;
+    id_type num_childs = root["B"].num_children();
+    id_type child = 0;
     ASSERT_EQ(num_childs, 3);
     for (const auto node : root["B"].children())
     {
@@ -54,7 +54,7 @@ TEST(github, 277)
     // test whether the tree is corrupted
     test_invariants(tree);
     child = num_childs;
-    for (size_t n = tree.last_child(root["B"].id()); n != NONE; n = tree.prev_sibling(n))
+    for (id_type n = tree.last_child(root["B"].id()); n != NONE; n = tree.prev_sibling(n))
     {
         ASSERT_NE(child, 0);
         EXPECT_EQ(tree.key(n), csubstr(keys[child - 1], 1));

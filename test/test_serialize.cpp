@@ -495,23 +495,23 @@ reference_list:
 )";
 
     Tree tree;
-    const size_t root_id = tree.root_id();
+    const id_type root_id = tree.root_id();
     tree.to_map(root_id);
 
-    const size_t anchor_list_id = tree.append_child(root_id);
+    const id_type anchor_list_id = tree.append_child(root_id);
     tree.to_seq(anchor_list_id, "anchor_objects");
 
-    const size_t anchor_map0 = tree.append_child(anchor_list_id);
+    const id_type anchor_map0 = tree.append_child(anchor_list_id);
     tree.to_map(anchor_map0);
     tree.set_val_anchor(anchor_map0, "id001");
 
-    const size_t anchor_elem0 = tree.append_child(anchor_map0);
+    const id_type anchor_elem0 = tree.append_child(anchor_map0);
     tree.to_keyval(anchor_elem0, "name", "a_name");
 
-    const size_t ref_list_id = tree.append_child(root_id);
+    const id_type ref_list_id = tree.append_child(root_id);
     tree.to_seq(ref_list_id, "reference_list");
 
-    const size_t elem0_id = tree.append_child(ref_list_id);
+    const id_type elem0_id = tree.append_child(ref_list_id);
     tree.set_val_ref(elem0_id, "id001");
 
     EXPECT_EQ(emitrs_yaml<std::string>(tree), expected_yaml);

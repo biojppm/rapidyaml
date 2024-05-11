@@ -89,12 +89,12 @@ int main(int argc, const char *argv[])
         }
         {
             TS(tree_reserve);
-            size_t cap;
+            yml::id_type cap;
             {
                 TS(estimate_capacity);
                 cap = yml::estimate_tree_capacity(to_csubstr(contents));
             }
-            fprintf(stderr, "reserving capacity=%zu\n", cap);
+            fprintf(stderr, "reserving capacity=%zu\n", (size_t)cap);
             tree.reserve(cap);
         }
         {

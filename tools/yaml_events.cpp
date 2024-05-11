@@ -107,7 +107,9 @@ int main(int argc, const char *argv[])
 std::string emit_events_from_tree(csubstr filename, substr filecontents)
 {
     Tree tree(create_custom_callbacks());
-    tree.reserve(filecontents.count('\n'));
+    C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
+    tree.reserve(static_cast<id_type>(filecontents.count('\n')));
+    C4_SUPPRESS_WARNING_GCC_POP
     parse_in_place(filename, filecontents, &tree);
     return emit_events_from_tree<std::string>(tree);
 }

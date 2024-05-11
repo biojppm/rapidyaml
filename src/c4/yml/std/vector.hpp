@@ -24,7 +24,9 @@ void write(c4::yml::NodeRef *n, std::vector<V, Alloc> const& vec)
 template<class V, class Alloc>
 bool read(c4::yml::ConstNodeRef const& n, std::vector<V, Alloc> *vec)
 {
-    vec->resize(n.num_children());
+    C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
+    vec->resize(static_cast<size_t>(n.num_children()));
+    C4_SUPPRESS_WARNING_GCC_POP
     size_t pos = 0;
     for(ConstNodeRef const child : n)
         child >> (*vec)[pos++];
@@ -36,7 +38,9 @@ bool read(c4::yml::ConstNodeRef const& n, std::vector<V, Alloc> *vec)
 template<class Alloc>
 bool read(c4::yml::ConstNodeRef const& n, std::vector<bool, Alloc> *vec)
 {
-    vec->resize(n.num_children());
+    C4_SUPPRESS_WARNING_GCC_WITH_PUSH("-Wuseless-cast")
+    vec->resize(static_cast<size_t>(n.num_children()));
+    C4_SUPPRESS_WARNING_GCC_POP
     size_t pos = 0;
     bool tmp = {};
     for(ConstNodeRef const child : n)

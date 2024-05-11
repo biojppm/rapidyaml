@@ -11,7 +11,7 @@ namespace c4 {
 namespace yml {
 
 static_assert(std::is_same<std::underlying_type<decltype(c4::yml::npos)>::type, size_t>::value, "invalid type");
-static_assert(std::is_same<std::underlying_type<decltype(c4::yml::NONE)>::type, size_t>::value, "invalid type");
+static_assert(std::is_same<std::underlying_type<decltype(c4::yml::NONE)>::type, id_type>::value, "invalid type");
 static_assert(size_t(c4::yml::npos) == ((size_t)-1), "invalid value"); // some debuggers show the wrong value...
 static_assert(size_t(c4::yml::NONE) == ((size_t)-1), "invalid value"); // some debuggers show the wrong value...
 

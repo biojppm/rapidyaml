@@ -15,12 +15,12 @@ struct EventsEmitter
     std::string tagbuf;
     Tree const* C4_RESTRICT m_tree;
     EventsEmitter(Tree const& tree, substr buf_) : buf(buf_), pos(), m_tree(&tree) {}
-    void emit_tag(csubstr tag, size_t node);
+    void emit_tag(csubstr tag, id_type node);
     void emit_scalar(csubstr val, char openchar);
-    void emit_key_anchor_tag(size_t node);
-    void emit_val_anchor_tag(size_t node);
-    void emit_events(size_t node);
-    void emit_doc(size_t node);
+    void emit_key_anchor_tag(id_type node);
+    void emit_val_anchor_tag(id_type node);
+    void emit_events(id_type node);
+    void emit_doc(id_type node);
     void emit_events();
     template<size_t N>
     C4_ALWAYS_INLINE void pr(const char (&s)[N])
@@ -81,11 +81,11 @@ inline char _ev_scalar_code_val(NodeType t)
 {
     return _ev_scalar_code(t & VAL_STYLE);
 }
-inline char _ev_scalar_code_key(Tree const* p, size_t node)
+inline char _ev_scalar_code_key(Tree const* p, id_type node)
 {
     return _ev_scalar_code(p->_p(node)->m_type & KEY_STYLE);
 }
-inline char _ev_scalar_code_val(Tree const* p, size_t node)
+inline char _ev_scalar_code_val(Tree const* p, id_type node)
 {
     return _ev_scalar_code(p->_p(node)->m_type & VAL_STYLE);
 }
@@ -152,7 +152,7 @@ void EventsEmitter::emit_scalar(csubstr val, char openchar)
     pr(val.sub(prev)); // print remaining portion
 }
 
-void EventsEmitter::emit_tag(csubstr tag, size_t node)
+void EventsEmitter::emit_tag(csubstr tag, id_type node)
 {
     size_t tagsize = m_tree->resolve_tag(to_substr(tagbuf), tag, node);
     if(tagsize)
@@ -185,7 +185,7 @@ void EventsEmitter::emit_tag(csubstr tag, size_t node)
     }
 }
 
-void EventsEmitter::emit_key_anchor_tag(size_t node)
+void EventsEmitter::emit_key_anchor_tag(id_type node)
 {
     if(m_tree->has_key_anchor(node))
     {
@@ -199,7 +199,7 @@ void EventsEmitter::emit_key_anchor_tag(size_t node)
     }
 }
 
-void EventsEmitter::emit_val_anchor_tag(size_t node)
+void EventsEmitter::emit_val_anchor_tag(id_type node)
 {
     if(m_tree->has_val_anchor(node))
     {
@@ -213,7 +213,7 @@ void EventsEmitter::emit_val_anchor_tag(size_t node)
     }
 }
 
-void EventsEmitter::emit_events(size_t node)
+void EventsEmitter::emit_events(id_type node)
 {
     if(m_tree->has_key(node))
     {
@@ -264,7 +264,7 @@ void EventsEmitter::emit_events(size_t node)
         pr((m_tree->type(node) & CONTAINER_STYLE_FLOW) ? csubstr("+MAP {}") : csubstr("+MAP"));
         emit_val_anchor_tag(node);
         pr('\n');
-        for(size_t child = m_tree->first_child(node); child != NONE; child = m_tree->next_sibling(child))
+        for(id_type child = m_tree->first_child(node); child != NONE; child = m_tree->next_sibling(child))
             emit_events(child);
         pr("-MAP\n");
     }
@@ -273,13 +273,13 @@ void EventsEmitter::emit_events(size_t node)
         pr((m_tree->type(node) & CONTAINER_STYLE_FLOW) ? csubstr("+SEQ []") : csubstr("+SEQ"));
         emit_val_anchor_tag(node);
         pr('\n');
-        for(size_t child = m_tree->first_child(node); child != NONE; child = m_tree->next_sibling(child))
+        for(id_type child = m_tree->first_child(node); child != NONE; child = m_tree->next_sibling(child))
             emit_events(child);
         pr("-SEQ\n");
     }
 }
 
-void EventsEmitter::emit_doc(size_t node)
+void EventsEmitter::emit_doc(id_type node)
 {
     if(m_tree->type(node) == NOTYPE)
         return;
@@ -308,9 +308,9 @@ void EventsEmitter::emit_events()
     pr("+STR\n");
     if(!m_tree->empty())
     {
-        size_t root = m_tree->root_id();
+        id_type root = m_tree->root_id();
         if(m_tree->is_stream(root))
-            for(size_t node = m_tree->first_child(root); node != NONE; node = m_tree->next_sibling(node))
+            for(id_type node = m_tree->first_child(root); node != NONE; node = m_tree->next_sibling(node))
                 emit_doc(node);
         else
             emit_doc(root);
