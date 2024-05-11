@@ -435,14 +435,14 @@ public:
     void set_key_anchor(csubstr anchor)
     {
         _c4dbgpf("node[{}]: set key anchor: [{}]~~~{}~~~", m_curr->node_id, anchor.len, anchor);
-        RYML_ASSERT(!anchor.begins_with('&'));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, !anchor.begins_with('&'));
         _enable_(KEYANCH);
         m_curr->tr_data->m_key.anchor = anchor;
     }
     void set_val_anchor(csubstr anchor)
     {
         _c4dbgpf("node[{}]: set val anchor: [{}]~~~{}~~~", m_curr->node_id, anchor.len, anchor);
-        RYML_ASSERT(!anchor.begins_with('&'));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, !anchor.begins_with('&'));
         _enable_(VALANCH);
         m_curr->tr_data->m_val.anchor = anchor;
     }
@@ -450,7 +450,7 @@ public:
     void set_key_ref(csubstr ref)
     {
         _c4dbgpf("node[{}]: set key ref: [{}]~~~{}~~~", m_curr->node_id, ref.len, ref);
-        RYML_ASSERT(ref.begins_with('*'));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, ref.begins_with('*'));
         _enable_(KEY|KEYREF);
         m_curr->tr_data->m_key.anchor = ref.sub(1);
         m_curr->tr_data->m_key.scalar = ref;
@@ -458,7 +458,7 @@ public:
     void set_val_ref(csubstr ref)
     {
         _c4dbgpf("node[{}]: set val ref: [{}]~~~{}~~~", m_curr->node_id, ref.len, ref);
-        RYML_ASSERT(ref.begins_with('*'));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, ref.begins_with('*'));
         _enable_(VAL|VALREF);
         m_curr->tr_data->m_val.anchor = ref.sub(1);
         m_curr->tr_data->m_val.scalar = ref;
