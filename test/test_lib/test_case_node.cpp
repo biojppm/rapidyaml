@@ -107,7 +107,7 @@ void TestCaseNode::compare_child(yml::ConstNodeRef const& n, id_type pos) const
                 actualch = n[pos];
             SCOPED_TRACE(actualch.id());
             //EXPECT_EQ(fch, n[ch.key]);
-            EXPECT_EQ(actualch.get(), n[pos].get());
+            EXPECT_EQ(actualch.id(), n[pos].id());
             //EXPECT_EQ(n[pos], n[ch.key]);
             EXPECT_EQ(n[expectedch.key].key(), expectedch.key);
         }
@@ -126,10 +126,10 @@ void TestCaseNode::compare_child(yml::ConstNodeRef const& n, id_type pos) const
     if(type & SEQ)
     {
         EXPECT_FALSE(n[pos].has_key());
-        EXPECT_EQ(n[pos].get()->m_key.scalar, children[(size_t)pos].key);
+        EXPECT_EQ(n[pos].key(), children[(size_t)pos].key);
         ConstNodeRef actualch = n.child(pos);
         SCOPED_TRACE(actualch.id());
-        EXPECT_EQ(actualch.get(), n[pos].get());
+        EXPECT_EQ(actualch.id(), n[pos].id());
     }
 
     if(expectedch.type & KEY)
@@ -177,10 +177,11 @@ void TestCaseNode::compare_child(yml::ConstNodeRef const& n, id_type pos) const
 void TestCaseNode::compare(yml::ConstNodeRef const& actual, bool ignore_quote) const
 {
     SCOPED_TRACE(actual.id());
+    NodeType unmasked_type = actual.tree()->m_type[actual.id()];
     if(ignore_quote)
     {
         const type_bits mask = VALQUO | KEYQUO | KEY_STYLE | VAL_STYLE | CONTAINER_STYLE;
-        const type_bits actual_type   = actual.get()->m_type & ~mask;
+        const type_bits actual_type   = unmasked_type & ~mask;
         const type_bits expected_type = type & ~mask;
         EXPECT_EQ(expected_type, actual_type);
         RYML_COMPARE_NODE_TYPE(expected_type, actual_type, ==, EQ);
@@ -188,7 +189,7 @@ void TestCaseNode::compare(yml::ConstNodeRef const& actual, bool ignore_quote) c
     else
     {
         // the type() method masks the type, and thus tag flags are omitted on its return value
-        RYML_COMPARE_NODE_TYPE(actual.get()->m_type, this->type, ==, EQ);
+        RYML_COMPARE_NODE_TYPE(unmasked_type, this->type, ==, EQ);
     }
 
     EXPECT_EQ(actual.num_children(), children.size());
@@ -243,19 +244,20 @@ void TestCaseNode::compare(yml::ConstNodeRef const& actual, bool ignore_quote) c
 void TestCaseNode::recreate(yml::NodeRef *n) const
 {
     C4_ASSERT( ! n->has_children());
-    NodeData *nd = n->get();
-    nd->m_type = type|key_anchor.type|val_anchor.type;
-    nd->m_key.scalar = key;
-    nd->m_key.tag = (key_tag);
-    nd->m_key.anchor = key_anchor.str;
-    nd->m_val.scalar = val;
-    nd->m_val.tag = (val_tag);
-    nd->m_val.anchor = val_anchor.str;
+    Tree *t = n->tree();
+    id_type id = n->id();
+    t->m_type[id] = type|key_anchor.type|val_anchor.type;
+    t->m_key[id] = key;
+    t->m_key_tag[id] = (key_tag);
+    t->m_key_anchor[id] = key_anchor.str;
+    t->m_val[id] = val;
+    t->m_val_tag[id] = (val_tag);
+    t->m_val_anchor[id] = val_anchor.str;
     Tree &tree = *n->tree();
     id_type nid = n->id(); // don't use node from now on
     for(TestCaseNode const& ch : children)
     {
-        id_type id = tree.append_child(nid);
+        id = tree.append_child(nid);
         NodeRef chn(n->tree(), id);
         ch.recreate(&chn);
     }

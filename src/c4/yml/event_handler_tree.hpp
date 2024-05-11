@@ -18,23 +18,16 @@ namespace yml {
  * @{ */
 
 
-/** The stack state needed specifically by @ref EventHandlerTree */
-struct EventHandlerTreeState : public ParserState
-{
-    NodeData *tr_data;
-};
-
-
 /** The event handler to create a ryml @ref Tree. See the
  * documentation for @ref doc_event_handlers, which has important
  * notes about the event model used by rapidyaml. */
-struct EventHandlerTree : public EventHandlerStack<EventHandlerTree, EventHandlerTreeState>
+struct EventHandlerTree : public EventHandlerStack<EventHandlerTree, ParserState>
 {
 
     /** @name types
      * @{ */
 
-    using state = EventHandlerTreeState;
+    using state = ParserState;
 
     /** @} */
 
@@ -188,7 +181,6 @@ public:
                 _push();
                 _remove_speculative();
                 m_curr->node_id = m_tree->last_child(m_tree->root_id());
-                m_curr->tr_data = m_tree->_p(m_curr->node_id);
             }
         }
         else
@@ -299,10 +291,7 @@ public:
     {
         _RYML_CB_ASSERT(m_stack.m_callbacks, m_parent);
         _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->has_children(m_parent->node_id));
-        NodeData const* prev = m_tree->m_buf; // watchout against relocation of the tree nodes
         _set_state_(m_curr, m_tree->_append_child__unprotected(m_parent->node_id));
-        if(prev != m_tree->m_buf)
-            _refresh_after_relocation();
         _c4dbgpf("node[{}]: added sibling={} prev={}", m_parent->node_id, m_curr->node_id, m_tree->prev_sibling(m_curr->node_id));
     }
 
@@ -313,18 +302,26 @@ public:
      */
     void actually_val_is_first_key_of_new_map_flow()
     {
-        if(C4_UNLIKELY(m_tree->is_container(m_curr->node_id)))
+        const id_type id = m_curr->node_id;
+        if(C4_UNLIKELY(m_tree->is_container(id)))
             _RYML_CB_ERR_(m_stack.m_callbacks, "ryml trees cannot handle containers as keys", m_curr->pos);
         _RYML_CB_ASSERT(m_stack.m_callbacks, m_parent);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_seq(m_parent->node_id));
-        _RYML_CB_ASSERT(m_stack.m_callbacks, !m_tree->is_container(m_curr->node_id));
-        _RYML_CB_ASSERT(m_stack.m_callbacks, !m_tree->has_key(m_curr->node_id));
-        const NodeData tmp = _val2key_(*m_curr->tr_data);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_seq(id));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, !m_tree->is_container(id));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, !m_tree->has_key(id));
+        // save type and val before changing the tree
+        NodeType type = m_tree->m_type[id];
+        const csubstr val = m_tree->m_val[id];
+        static_assert((_VALMASK >> 1u) == _KEYMASK, "required for this function to work");
+        static_assert((VAL_STYLE >> 1u) == KEY_STYLE, "required for this function to work");
+        type = ((type & (_VALMASK|VAL_STYLE)) >> 1u);
+        type = (type & ~(_VALMASK|VAL_STYLE));
+        type = (type | KEY);
         _disable_(_VALMASK|VAL_STYLE);
-        m_curr->tr_data->m_val = {};
+        m_tree->m_val[id].clear();
         begin_map_val_flow();
-        m_curr->tr_data->m_type = tmp.m_type;
-        m_curr->tr_data->m_key = tmp.m_key;
+        m_tree->m_type[id] = type;
+        m_tree->m_key[id] = val;
     }
 
     /** like its flow counterpart, but this function can only be
@@ -349,13 +346,13 @@ public:
     C4_ALWAYS_INLINE void set_key_scalar_plain(csubstr scalar) noexcept
     {
         _c4dbgpf("node[{}]: set key scalar plain: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
-        m_curr->tr_data->m_key.scalar = scalar;
+        m_tree->m_key[m_curr->node_id] = scalar;
         _enable_(KEY|KEY_PLAIN);
     }
     C4_ALWAYS_INLINE void set_val_scalar_plain(csubstr scalar) noexcept
     {
         _c4dbgpf("node[{}]: set val scalar plain: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
-        m_curr->tr_data->m_val.scalar = scalar;
+        m_tree->m_val[m_curr->node_id] = scalar;
         _enable_(VAL|VAL_PLAIN);
     }
 
@@ -363,13 +360,13 @@ public:
     C4_ALWAYS_INLINE void set_key_scalar_dquoted(csubstr scalar) noexcept
     {
         _c4dbgpf("node[{}]: set key scalar dquot: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
-        m_curr->tr_data->m_key.scalar = scalar;
+        m_tree->m_key[m_curr->node_id] = scalar;
         _enable_(KEY|KEY_DQUO);
     }
     C4_ALWAYS_INLINE void set_val_scalar_dquoted(csubstr scalar) noexcept
     {
         _c4dbgpf("node[{}]: set val scalar dquot: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
-        m_curr->tr_data->m_val.scalar = scalar;
+        m_tree->m_val[m_curr->node_id] = scalar;
         _enable_(VAL|VAL_DQUO);
     }
 
@@ -377,13 +374,13 @@ public:
     C4_ALWAYS_INLINE void set_key_scalar_squoted(csubstr scalar) noexcept
     {
         _c4dbgpf("node[{}]: set key scalar squot: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
-        m_curr->tr_data->m_key.scalar = scalar;
+        m_tree->m_key[m_curr->node_id] = scalar;
         _enable_(KEY|KEY_SQUO);
     }
     C4_ALWAYS_INLINE void set_val_scalar_squoted(csubstr scalar) noexcept
     {
         _c4dbgpf("node[{}]: set val scalar squot: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
-        m_curr->tr_data->m_val.scalar = scalar;
+        m_tree->m_val[m_curr->node_id] = scalar;
         _enable_(VAL|VAL_SQUO);
     }
 
@@ -391,13 +388,13 @@ public:
     C4_ALWAYS_INLINE void set_key_scalar_literal(csubstr scalar) noexcept
     {
         _c4dbgpf("node[{}]: set key scalar literal: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
-        m_curr->tr_data->m_key.scalar = scalar;
+        m_tree->m_key[m_curr->node_id] = scalar;
         _enable_(KEY|KEY_LITERAL);
     }
     C4_ALWAYS_INLINE void set_val_scalar_literal(csubstr scalar) noexcept
     {
         _c4dbgpf("node[{}]: set val scalar literal: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
-        m_curr->tr_data->m_val.scalar = scalar;
+        m_tree->m_val[m_curr->node_id] = scalar;
         _enable_(VAL|VAL_LITERAL);
     }
 
@@ -405,13 +402,13 @@ public:
     C4_ALWAYS_INLINE void set_key_scalar_folded(csubstr scalar) noexcept
     {
         _c4dbgpf("node[{}]: set key scalar folded: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
-        m_curr->tr_data->m_key.scalar = scalar;
+        m_tree->m_key[m_curr->node_id] = scalar;
         _enable_(KEY|KEY_FOLDED);
     }
     C4_ALWAYS_INLINE void set_val_scalar_folded(csubstr scalar) noexcept
     {
         _c4dbgpf("node[{}]: set val scalar folded: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
-        m_curr->tr_data->m_val.scalar = scalar;
+        m_tree->m_val[m_curr->node_id] = scalar;
         _enable_(VAL|VAL_FOLDED);
     }
 
@@ -437,14 +434,14 @@ public:
         _c4dbgpf("node[{}]: set key anchor: [{}]~~~{}~~~", m_curr->node_id, anchor.len, anchor);
         _RYML_CB_ASSERT(m_stack.m_callbacks, !anchor.begins_with('&'));
         _enable_(KEYANCH);
-        m_curr->tr_data->m_key.anchor = anchor;
+        m_tree->m_key_anchor[m_curr->node_id] = anchor;
     }
     void set_val_anchor(csubstr anchor) RYML_NOEXCEPT
     {
         _c4dbgpf("node[{}]: set val anchor: [{}]~~~{}~~~", m_curr->node_id, anchor.len, anchor);
         _RYML_CB_ASSERT(m_stack.m_callbacks, !anchor.begins_with('&'));
         _enable_(VALANCH);
-        m_curr->tr_data->m_val.anchor = anchor;
+        m_tree->m_val_anchor[m_curr->node_id] = anchor;
     }
 
     void set_key_ref(csubstr ref) RYML_NOEXCEPT
@@ -452,16 +449,16 @@ public:
         _c4dbgpf("node[{}]: set key ref: [{}]~~~{}~~~", m_curr->node_id, ref.len, ref);
         _RYML_CB_ASSERT(m_stack.m_callbacks, ref.begins_with('*'));
         _enable_(KEY|KEYREF);
-        m_curr->tr_data->m_key.anchor = ref.sub(1);
-        m_curr->tr_data->m_key.scalar = ref;
+        m_tree->m_key_anchor[m_curr->node_id] = ref.sub(1);
+        m_tree->m_key[m_curr->node_id] = ref;
     }
     void set_val_ref(csubstr ref) RYML_NOEXCEPT
     {
         _c4dbgpf("node[{}]: set val ref: [{}]~~~{}~~~", m_curr->node_id, ref.len, ref);
         _RYML_CB_ASSERT(m_stack.m_callbacks, ref.begins_with('*'));
         _enable_(VAL|VALREF);
-        m_curr->tr_data->m_val.anchor = ref.sub(1);
-        m_curr->tr_data->m_val.scalar = ref;
+        m_tree->m_val_anchor[m_curr->node_id] = ref.sub(1);
+        m_tree->m_val[m_curr->node_id] = ref;
     }
 
     /** @} */
@@ -475,13 +472,13 @@ public:
     {
         _c4dbgpf("node[{}]: set key tag: [{}]~~~{}~~~", m_curr->node_id, tag.len, tag);
         _enable_(KEYTAG);
-        m_curr->tr_data->m_key.tag = tag;
+        m_tree->m_key_tag[m_curr->node_id] = tag;
     }
     void set_val_tag(csubstr tag) noexcept
     {
         _c4dbgpf("node[{}]: set val tag: [{}]~~~{}~~~", m_curr->node_id, tag.len, tag);
         _enable_(VALTAG);
-        m_curr->tr_data->m_val.tag = tag;
+        m_tree->m_val_tag[m_curr->node_id] = tag;
     }
 
     /** @} */
@@ -598,11 +595,7 @@ public:
     void _push()
     {
         _stack_push();
-        NodeData const* prev = m_tree->m_buf; // watch out against relocation of the tree nodes
         m_curr->node_id = m_tree->_append_child__unprotected(m_parent->node_id);
-        m_curr->tr_data = m_tree->_p(m_curr->node_id);
-        if(prev != m_tree->m_buf)
-            _refresh_after_relocation();
         _c4dbgpf("pushed! level={}. top is now node={} (parent={})", m_curr->level, m_curr->node_id, m_parent ? m_parent->node_id : NONE);
     }
     /** end the current scope */
@@ -614,17 +607,17 @@ public:
 
 public:
 
-    template<type_bits bits> C4_HOT C4_ALWAYS_INLINE void _enable__() noexcept
+    template<NodeType_e bits> C4_HOT C4_ALWAYS_INLINE void _enable__() noexcept
     {
-        m_curr->tr_data->m_type.type = static_cast<NodeType_e>(m_curr->tr_data->m_type.type | bits);
+        m_tree->m_type[m_curr->node_id] |= bits;
     }
-    template<type_bits bits> C4_HOT C4_ALWAYS_INLINE void _disable__() noexcept
+    template<NodeType_e bits> C4_HOT C4_ALWAYS_INLINE void _disable__() noexcept
     {
-        m_curr->tr_data->m_type.type = static_cast<NodeType_e>(m_curr->tr_data->m_type.type & (~bits));
+        m_tree->m_type[m_curr->node_id] &= ~bits;
     }
-    template<type_bits bits> C4_HOT C4_ALWAYS_INLINE bool _has_any__() const noexcept
+    template<NodeType_e bits> C4_HOT C4_ALWAYS_INLINE bool _has_any__() const noexcept
     {
-        return (m_curr->tr_data->m_type.type & bits) != 0;
+        return ((m_tree->m_type[m_curr->node_id].type & bits) != 0);
     }
 
 public:
@@ -632,44 +625,25 @@ public:
     C4_ALWAYS_INLINE void _set_state_(state *C4_RESTRICT s, id_type id) noexcept
     {
         s->node_id = id;
-        s->tr_data = m_tree->_p(id);
-    }
-    void _refresh_after_relocation()
-    {
-        _c4dbgp("tree: refreshing stack data after tree data relocation");
-        for(auto &st : m_stack)
-            st.tr_data = m_tree->_p(st.node_id);
     }
 
     void _set_root_as_stream()
     {
         _c4dbgp("set root as stream");
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->root_id() == 0u);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_curr->node_id == 0u);
-        const bool hack = !m_tree->has_children(m_curr->node_id) && !m_tree->is_val(m_curr->node_id);
+        const id_type node = m_curr->node_id;
+        const id_type root = m_tree->root_id();
+        _RYML_CB_ASSERT(m_stack.m_callbacks, root == 0u);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, node == 0u);
+        const bool hack = !m_tree->has_children(node) && !m_tree->is_val(node);
         if(hack)
-            m_tree->_p(m_tree->root_id())->m_type.add(VAL);
+            m_tree->m_type[node].add(VAL);
         m_tree->set_root_as_stream();
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_stream(m_tree->root_id()));
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->has_children(m_tree->root_id()));
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_doc(m_tree->first_child(m_tree->root_id())));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_stream(root));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->has_children(root));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_doc(m_tree->first_child(root)));
         if(hack)
-            m_tree->_p(m_tree->first_child(m_tree->root_id()))->m_type.rem(VAL);
-        _set_state_(m_curr, m_tree->root_id());
-    }
-
-    static NodeData _val2key_(NodeData const& C4_RESTRICT d) noexcept
-    {
-        NodeData r = d;
-        r.m_key = d.m_val;
-        r.m_val = {};
-        r.m_type = d.m_type;
-        static_assert((_VALMASK >> 1u) == _KEYMASK, "required for this function to work");
-        static_assert((VAL_STYLE >> 1u) == KEY_STYLE, "required for this function to work");
-        r.m_type.type = ((d.m_type.type & (_VALMASK|VAL_STYLE)) >> 1u);
-        r.m_type.type = (r.m_type.type & ~(_VALMASK|VAL_STYLE));
-        r.m_type.type = (r.m_type.type | KEY);
-        return r;
+            m_tree->m_type[m_tree->first_child(root)].rem(VAL);
+        _set_state_(m_curr, root);
     }
 
     void _remove_speculative()
@@ -678,7 +652,7 @@ public:
         _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->size() > 0);
         const id_type last_added = m_tree->size() - 1;
         if(m_tree->has_parent(last_added))
-            if(m_tree->_p(last_added)->m_type == NOTYPE)
+            if(m_tree->m_type[last_added] == NOTYPE)
                 m_tree->remove(last_added);
     }
 
@@ -687,7 +661,7 @@ public:
         _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->size() > 0);
         const id_type last_added = m_tree->size() - 1;
         _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->has_parent(last_added));
-        if(m_tree->_p(last_added)->m_type == NOTYPE)
+        if(m_tree->m_type[last_added] == NOTYPE)
         {
             _c4dbgpf("remove speculative node with parent. parent={} node={} parent(node)={}", m_parent->node_id, last_added, m_tree->parent(last_added));
             m_tree->remove(last_added);
@@ -696,8 +670,7 @@ public:
 
     C4_ALWAYS_INLINE void _save_loc()
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->_p(m_curr->node_id)->m_val.scalar.len == 0);
-        m_tree->_p(m_curr->node_id)->m_val.scalar.str = m_curr->line_contents.rem.str;
+        m_tree->m_val[m_curr->node_id].str = m_curr->line_contents.rem.str;
     }
 
 #undef _enable_

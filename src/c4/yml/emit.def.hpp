@@ -581,26 +581,33 @@ void Emitter<Writer>::_do_visit_json(id_type id, id_type depth)
 }
 
 template<class Writer>
-void Emitter<Writer>::_write(NodeScalar const& C4_RESTRICT sc, NodeType flags, id_type ilevel)
+void Emitter<Writer>::_write_scalar(id_type id,
+                             csubstr const& C4_RESTRICT scalar,
+                             csubstr const* C4_RESTRICT tag,
+                             csubstr const* C4_RESTRICT anchor_ref,
+                             NodeType flags,
+                             id_type ilevel)
 {
-    if( ! sc.tag.empty())
+    // tag and anchor/ref are passed as arrays to save memory accesses
+    // when the scalar does not have them
+    if(flags & (KEYTAG|VALTAG))
     {
-        _write_tag(sc.tag);
+        _write_tag(tag[id]);
         this->Writer::_do_write(' ');
     }
     if(flags.has_anchor())
     {
-        RYML_ASSERT(flags.is_ref() != flags.has_anchor());
-        RYML_ASSERT( ! sc.anchor.empty());
+        _RYML_CB_ASSERT(m_tree->callbacks(), flags.is_ref() != flags.has_anchor());
+        _RYML_CB_ASSERT(m_tree->callbacks(),  ! anchor_ref[id].empty());
         this->Writer::_do_write('&');
-        this->Writer::_do_write(sc.anchor);
+        this->Writer::_do_write(anchor_ref[id]);
         this->Writer::_do_write(' ');
     }
     else if(flags.is_ref())
     {
-        if(sc.anchor != "<<")
+        if(anchor_ref[id] != "<<")
             this->Writer::_do_write('*');
-        this->Writer::_do_write(sc.anchor);
+        this->Writer::_do_write(anchor_ref[id]);
         if(flags.is_key_ref())
             this->Writer::_do_write(' ');
         return;
@@ -610,29 +617,29 @@ void Emitter<Writer>::_write(NodeScalar const& C4_RESTRICT sc, NodeType flags, i
     _RYML_CB_ASSERT(m_tree->callbacks(), ((flags & SCALAR_STYLE) == 0) || (((flags&KEY_STYLE) == 0) != ((flags&VAL_STYLE) == 0)));
     type_bits style_marks = flags & SCALAR_STYLE;
     if(!style_marks)
-        style_marks = scalar_style_choose(sc.scalar);
+        style_marks = scalar_style_choose(scalar);
     if(style_marks & (KEY_LITERAL|VAL_LITERAL))
     {
-        _write_scalar_literal(sc.scalar, ilevel, flags.has_key());
+        _write_scalar_literal(scalar, ilevel, flags.has_key());
     }
     else if(style_marks & (KEY_FOLDED|VAL_FOLDED))
     {
-        _write_scalar_folded(sc.scalar, ilevel, flags.has_key());
+        _write_scalar_folded(scalar, ilevel, flags.has_key());
     }
     else if(style_marks & (KEY_SQUO|VAL_SQUO))
     {
-        _write_scalar_squo(sc.scalar, ilevel);
+        _write_scalar_squo(scalar, ilevel);
     }
     else if(style_marks & (KEY_DQUO|VAL_DQUO))
     {
-        _write_scalar_dquo(sc.scalar, ilevel);
+        _write_scalar_dquo(scalar, ilevel);
     }
     else if(style_marks & (KEY_PLAIN|VAL_PLAIN))
     {
-        if(C4_LIKELY(!(sc.scalar.begins_with(": ") || sc.scalar.begins_with(":\t"))))
-            _write_scalar_plain(sc.scalar, ilevel);
+        if(C4_LIKELY(!(scalar.begins_with(": ") || scalar.begins_with(":\t"))))
+            _write_scalar_plain(scalar, ilevel);
         else
-            _write_scalar_squo(sc.scalar, ilevel);
+            _write_scalar_squo(scalar, ilevel);
     }
     else
     {
@@ -641,9 +648,9 @@ void Emitter<Writer>::_write(NodeScalar const& C4_RESTRICT sc, NodeType flags, i
 }
 
 template<class Writer>
-void Emitter<Writer>::_write_json(NodeScalar const& C4_RESTRICT sc, NodeType flags)
+void Emitter<Writer>::_write_json(csubstr scalar, NodeType flags)
 {
-    if(C4_UNLIKELY( ! sc.tag.empty()))
+    if(C4_UNLIKELY(flags & (KEYTAG|VALTAG)))
         _RYML_CB_ERR(m_tree->callbacks(), "JSON does not have tags");
     if(C4_UNLIKELY(flags.has_anchor()))
         _RYML_CB_ERR(m_tree->callbacks(), "JSON does not have anchors");
@@ -651,18 +658,18 @@ void Emitter<Writer>::_write_json(NodeScalar const& C4_RESTRICT sc, NodeType fla
     // if it is a key (mandatory in JSON)
     // if the style is marked quoted
     bool dquoted = ((flags & (KEY|VALQUO))
-                    || (scalar_style_json_choose(sc.scalar) &  SCALAR_DQUO)); // choose the style
+                    || (scalar_style_json_choose(scalar) &  SCALAR_DQUO)); // choose the style
     if(dquoted)
-        _write_scalar_json_dquo(sc.scalar);
+        _write_scalar_json_dquo(scalar);
     else
-        this->Writer::_do_write(sc.scalar);
+        this->Writer::_do_write(scalar);
 }
 
 template<class Writer>
 size_t Emitter<Writer>::_write_escaped_newlines(csubstr s, size_t i)
 {
-    RYML_ASSERT(s.len > i);
-    RYML_ASSERT(s.str[i] == '\n');
+    _RYML_CB_ASSERT(m_tree->callbacks(), s.len > i);
+    _RYML_CB_ASSERT(m_tree->callbacks(), s.str[i] == '\n');
     //_c4dbgpf("nl@i={} rem=[{}]~~~{}~~~", i, s.sub(i).len, s.sub(i));
     // add an extra newline for each sequence of consecutive
     // newline/whitespace

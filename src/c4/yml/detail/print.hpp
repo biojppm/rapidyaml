@@ -22,11 +22,11 @@ inline const char* _container_style_code(Tree const& p, id_type node)
 {
     if(p.is_container(node))
     {
-        if(p._p(node)->m_type & (FLOW_SL|FLOW_ML))
+        if(p.m_type[node] & (FLOW_SL|FLOW_ML))
         {
             return "[FLOW]";
         }
-        if(p._p(node)->m_type & (BLOCK))
+        if(p.m_type[node] & (BLOCK))
         {
             return "[BLCK]";
         }
@@ -57,15 +57,15 @@ inline char _scalar_code_val(NodeType t)
 }
 inline char _scalar_code_key(Tree const& p, id_type node)
 {
-    return _scalar_code_key(p._p(node)->m_type);
+    return _scalar_code_key(p.m_type[node]);
 }
 inline char _scalar_code_val(Tree const& p, id_type node)
 {
-    return _scalar_code_key(p._p(node)->m_type);
+    return _scalar_code_key(p.m_type[node]);
 }
 inline id_type print_node(Tree const& p, id_type node, int level, id_type count, bool print_children)
 {
-    printf("[%zu]%*s[%zu] %p", (size_t)count, (2*level), "", (size_t)node, (void const*)p.get(node));
+    printf("[%zu]%*s[%zu] %p", (size_t)count, (2*level), "", (size_t)node, (void const*)&p.m_type[node]);
     if(p.is_root(node))
     {
         printf(" [ROOT]");

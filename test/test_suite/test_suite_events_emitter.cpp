@@ -83,11 +83,11 @@ inline char _ev_scalar_code_val(NodeType t)
 }
 inline char _ev_scalar_code_key(Tree const* p, id_type node)
 {
-    return _ev_scalar_code(p->_p(node)->m_type & KEY_STYLE);
+    return _ev_scalar_code(p->m_type[node] & KEY_STYLE);
 }
 inline char _ev_scalar_code_val(Tree const* p, id_type node)
 {
-    return _ev_scalar_code(p->_p(node)->m_type & VAL_STYLE);
+    return _ev_scalar_code(p->m_type[node] & VAL_STYLE);
 }
 
 void EventsEmitter::emit_scalar(csubstr val, char openchar)

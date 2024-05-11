@@ -28,10 +28,20 @@ namespace yml {
 /** @addtogroup doc_event_handlers
  * @{ */
 
+struct OldNodeData
+{
+    NodeType m_type;
+    struct Scalar {
+        csubstr scalar;
+        csubstr tag;
+        csubstr anchor;
+    } m_key, m_val;
+};
+
 /** The stack state needed specifically by @ref EventHandlerYamlStd */
 struct EventHandlerYamlStdState : public ParserState
 {
-    NodeData ev_data;
+    OldNodeData ev_data;
 };
 
 /** The event handler producing standard YAML events as used in the

@@ -3,7 +3,6 @@
 
 /** @file tree.hpp */
 
-#include "c4/error.hpp"
 #include "c4/types.hpp"
 #ifndef _C4_YML_FWD_HPP_
 #include "c4/yml/fwd.hpp"
@@ -131,14 +130,6 @@ public:
     bool empty() const noexcept { return tag.empty() && scalar.empty() && anchor.empty(); }
 
     void clear() noexcept { tag.clear(); scalar.clear(); anchor.clear(); }
-
-    void set_ref_maybe_replacing_scalar(csubstr ref, bool has_scalar) RYML_NOEXCEPT
-    {
-        csubstr trimmed = ref.begins_with('*') ? ref.sub(1) : ref;
-        anchor = trimmed;
-        if((!has_scalar) || !scalar.ends_with(trimmed))
-            scalar = ref;
-    }
 };
 C4_MUST_BE_TRIVIAL_COPY(NodeScalar);
 
@@ -213,21 +204,16 @@ public:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-/** contains the data for each YAML node. */
-struct NodeData
+
+struct RYML_EXPORT NodeRelation
 {
-    NodeType   m_type;
-
-    NodeScalar m_key;
-    NodeScalar m_val;
-
     id_type    m_parent;
     id_type    m_first_child;
     id_type    m_last_child;
     id_type    m_next_sibling;
     id_type    m_prev_sibling;
 };
-C4_MUST_BE_TRIVIAL_COPY(NodeData);
+C4_MUST_BE_TRIVIAL_COPY(NodeRelation);
 
 
 //-----------------------------------------------------------------------------
@@ -285,41 +271,9 @@ public:
     /** @name node getters */
     /** @{ */
 
-    //! get the index of a node belonging to this tree.
-    //! @p n can be nullptr, in which case NONE is returned
-    id_type id(NodeData const* n) const
-    {
-        if( ! n)
-            return NONE;
-        _RYML_CB_ASSERT(m_callbacks, n >= m_buf && n < m_buf + m_cap);
-        return static_cast<id_type>(n - m_buf);
-    }
-
-    //! get a pointer to a node's NodeData.
-    //! i can be NONE, in which case a nullptr is returned
-    inline NodeData *get(id_type node)
-    {
-        if(node == NONE)
-            return nullptr;
-        _RYML_CB_ASSERT(m_callbacks, node >= 0 && node < m_cap);
-        return m_buf + node;
-    }
-    //! get a pointer to a node's NodeData.
-    //! i can be NONE, in which case a nullptr is returned.
-    inline NodeData const *get(id_type node) const
-    {
-        if(node == NONE)
-            return nullptr;
-        _RYML_CB_ASSERT(m_callbacks, node >= 0 && node < m_cap);
-        return m_buf + node;
-    }
-
-    //! An if-less form of get() that demands a valid node index.
-    //! This function is implementation only; use at your own risk.
-    inline NodeData       * _p(id_type node)       { _RYML_CB_ASSERT(m_callbacks, node != NONE && node >= 0 && node < m_cap); return m_buf + node; }
-    //! An if-less form of get() that demands a valid node index.
-    //! This function is implementation only; use at your own risk.
-    inline NodeData const * _p(id_type node) const { _RYML_CB_ASSERT(m_callbacks, node != NONE && node >= 0 && node < m_cap); return m_buf + node; }
+    /** @cond dev */
+    #define _ryml_chkid(node) _RYML_CB_ASSERT(m_callbacks, node != NONE && node >= 0 && node < m_cap)
+    /** @endcond */
 
     //! Get the id of the root node
     id_type root_id()       { if(m_cap == 0) { reserve(16); } _RYML_CB_ASSERT(m_callbacks, m_cap > 0 && m_size > 0); return 0; }
@@ -371,20 +325,18 @@ public:
     /** @name node property getters */
     /** @{ */
 
-    NodeType type(id_type node) const { return _p(node)->m_type; }
-    const char* type_str(id_type node) const { return NodeType::type_str(_p(node)->m_type); }
+    NodeType type(id_type node) const { _ryml_chkid(node); return m_type[node]; }
+    const char* type_str(id_type node) const { _ryml_chkid(node); return NodeType::type_str(m_type[node]); }
 
-    csubstr    const& key       (id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_key(node)); return _p(node)->m_key.scalar; }
-    csubstr    const& key_tag   (id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_key_tag(node)); return _p(node)->m_key.tag; }
-    csubstr    const& key_ref   (id_type node) const { _RYML_CB_ASSERT(m_callbacks, is_key_ref(node)); return _p(node)->m_key.anchor; }
-    csubstr    const& key_anchor(id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_key_anchor(node)); return _p(node)->m_key.anchor; }
-    NodeScalar const& keysc     (id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_key(node)); return _p(node)->m_key; }
+    csubstr    const& key       (id_type node) const { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, has_key(node)); return m_key[node]; }
+    csubstr    const& key_tag   (id_type node) const { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, has_key_tag(node)); return m_key_tag[node]; }
+    csubstr    const& key_ref   (id_type node) const { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, is_key_ref(node)); return m_key_anchor[node]; }
+    csubstr    const& key_anchor(id_type node) const { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, has_key_anchor(node)); return m_key_anchor[node]; }
 
-    csubstr    const& val       (id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_val(node)); return _p(node)->m_val.scalar; }
-    csubstr    const& val_tag   (id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_val_tag(node)); return _p(node)->m_val.tag; }
-    csubstr    const& val_ref   (id_type node) const { _RYML_CB_ASSERT(m_callbacks, is_val_ref(node)); return _p(node)->m_val.anchor; }
-    csubstr    const& val_anchor(id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_val_anchor(node)); return _p(node)->m_val.anchor; }
-    NodeScalar const& valsc     (id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_val(node)); return _p(node)->m_val; }
+    csubstr    const& val       (id_type node) const { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, has_val(node)); return m_val[node]; }
+    csubstr    const& val_tag   (id_type node) const { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, has_val_tag(node)); return m_val_tag[node]; }
+    csubstr    const& val_ref   (id_type node) const { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, is_val_ref(node)); return m_val_anchor[node]; }
+    csubstr    const& val_anchor(id_type node) const { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, has_val_anchor(node)); return m_val_anchor[node]; }
 
     /** @} */
 
@@ -393,54 +345,54 @@ public:
     /** @name node type predicates */
     /** @{ */
 
-    C4_ALWAYS_INLINE bool type_has_any(id_type node, NodeType_e bits) const { return _p(node)->m_type.has_any(bits); }
-    C4_ALWAYS_INLINE bool type_has_all(id_type node, NodeType_e bits) const { return _p(node)->m_type.has_all(bits); }
-    C4_ALWAYS_INLINE bool type_has_none(id_type node, NodeType_e bits) const { return _p(node)->m_type.has_none(bits); }
+    C4_ALWAYS_INLINE bool type_has_any(id_type node, NodeType_e bits) const { _ryml_chkid(node); return m_type[node].has_any(bits); }
+    C4_ALWAYS_INLINE bool type_has_all(id_type node, NodeType_e bits) const { _ryml_chkid(node); return m_type[node].has_all(bits); }
+    C4_ALWAYS_INLINE bool type_has_none(id_type node, NodeType_e bits) const { _ryml_chkid(node); return m_type[node].has_none(bits); }
 
-    C4_ALWAYS_INLINE bool is_stream(id_type node) const { return _p(node)->m_type.is_stream(); }
-    C4_ALWAYS_INLINE bool is_doc(id_type node) const { return _p(node)->m_type.is_doc(); }
-    C4_ALWAYS_INLINE bool is_container(id_type node) const { return _p(node)->m_type.is_container(); }
-    C4_ALWAYS_INLINE bool is_map(id_type node) const { return _p(node)->m_type.is_map(); }
-    C4_ALWAYS_INLINE bool is_seq(id_type node) const { return _p(node)->m_type.is_seq(); }
-    C4_ALWAYS_INLINE bool has_key(id_type node) const { return _p(node)->m_type.has_key(); }
-    C4_ALWAYS_INLINE bool has_val(id_type node) const { return _p(node)->m_type.has_val(); }
-    C4_ALWAYS_INLINE bool is_val(id_type node) const { return _p(node)->m_type.is_val(); }
-    C4_ALWAYS_INLINE bool is_keyval(id_type node) const { return _p(node)->m_type.is_keyval(); }
-    C4_ALWAYS_INLINE bool has_key_tag(id_type node) const { return _p(node)->m_type.has_key_tag(); }
-    C4_ALWAYS_INLINE bool has_val_tag(id_type node) const { return _p(node)->m_type.has_val_tag(); }
-    C4_ALWAYS_INLINE bool has_key_anchor(id_type node) const { return _p(node)->m_type.has_key_anchor(); }
-    C4_ALWAYS_INLINE bool has_val_anchor(id_type node) const { return _p(node)->m_type.has_val_anchor(); }
-    C4_ALWAYS_INLINE bool has_anchor(id_type node) const { return _p(node)->m_type.has_anchor(); }
-    C4_ALWAYS_INLINE bool is_key_ref(id_type node) const { return _p(node)->m_type.is_key_ref(); }
-    C4_ALWAYS_INLINE bool is_val_ref(id_type node) const { return _p(node)->m_type.is_val_ref(); }
-    C4_ALWAYS_INLINE bool is_ref(id_type node) const { return _p(node)->m_type.is_ref(); }
+    C4_ALWAYS_INLINE bool is_stream(id_type node) const { _ryml_chkid(node); return m_type[node].is_stream(); }
+    C4_ALWAYS_INLINE bool is_doc(id_type node) const { _ryml_chkid(node); return m_type[node].is_doc(); }
+    C4_ALWAYS_INLINE bool is_container(id_type node) const { _ryml_chkid(node); return m_type[node].is_container(); }
+    C4_ALWAYS_INLINE bool is_map(id_type node) const { _ryml_chkid(node); return m_type[node].is_map(); }
+    C4_ALWAYS_INLINE bool is_seq(id_type node) const { _ryml_chkid(node); return m_type[node].is_seq(); }
+    C4_ALWAYS_INLINE bool has_key(id_type node) const { _ryml_chkid(node); return m_type[node].has_key(); }
+    C4_ALWAYS_INLINE bool has_val(id_type node) const { _ryml_chkid(node); return m_type[node].has_val(); }
+    C4_ALWAYS_INLINE bool is_val(id_type node) const { _ryml_chkid(node); return m_type[node].is_val(); }
+    C4_ALWAYS_INLINE bool is_keyval(id_type node) const { _ryml_chkid(node); return m_type[node].is_keyval(); }
+    C4_ALWAYS_INLINE bool has_key_tag(id_type node) const { _ryml_chkid(node); return m_type[node].has_key_tag(); }
+    C4_ALWAYS_INLINE bool has_val_tag(id_type node) const { _ryml_chkid(node); return m_type[node].has_val_tag(); }
+    C4_ALWAYS_INLINE bool has_key_anchor(id_type node) const { _ryml_chkid(node); return m_type[node].has_key_anchor(); }
+    C4_ALWAYS_INLINE bool has_val_anchor(id_type node) const { _ryml_chkid(node); return m_type[node].has_val_anchor(); }
+    C4_ALWAYS_INLINE bool has_anchor(id_type node) const { _ryml_chkid(node); return m_type[node].has_anchor(); }
+    C4_ALWAYS_INLINE bool is_key_ref(id_type node) const { _ryml_chkid(node); return m_type[node].is_key_ref(); }
+    C4_ALWAYS_INLINE bool is_val_ref(id_type node) const { _ryml_chkid(node); return m_type[node].is_val_ref(); }
+    C4_ALWAYS_INLINE bool is_ref(id_type node) const { _ryml_chkid(node); return m_type[node].is_ref(); }
 
-    C4_ALWAYS_INLINE bool parent_is_seq(id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_parent(node)); return is_seq(_p(node)->m_parent); }
-    C4_ALWAYS_INLINE bool parent_is_map(id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_parent(node)); return is_map(_p(node)->m_parent); }
+    C4_ALWAYS_INLINE bool parent_is_seq(id_type node) const { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, has_parent(node)); return is_seq(m_relation[node].m_parent); }
+    C4_ALWAYS_INLINE bool parent_is_map(id_type node) const { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, has_parent(node)); return is_map(m_relation[node].m_parent); }
 
     /** true when the node has an anchor named a */
-    C4_ALWAYS_INLINE bool has_anchor(id_type node, csubstr a) const { return _p(node)->m_key.anchor == a || _p(node)->m_val.anchor == a; }
+    C4_ALWAYS_INLINE bool has_anchor(id_type node, csubstr a) const { _ryml_chkid(node); return m_key_anchor[node] == a || m_val_anchor[node] == a; }
 
     /** true if the node key does not have any KEYQUO flags, and its scalar verifies scalar_is_null().
      * @warning the node must verify .has_key() (asserted) (ie must be a member of a map)
      * @see https://github.com/biojppm/rapidyaml/issues/413 */
-    C4_ALWAYS_INLINE bool key_is_null(id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_key(node)); NodeData const* C4_RESTRICT n = _p(node); return !n->m_type.is_key_quoted() && scalar_is_null(n->m_key.scalar); }
+    C4_ALWAYS_INLINE bool key_is_null(id_type node) const { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, has_key(node)); return !m_type[node].is_key_quoted() && scalar_is_null(m_key[node]); }
     /** true if the node key does not have any VALQUO flags, and its scalar verifies scalar_is_null().
      * @warning the node must verify .has_val() (asserted) (ie must be a scalar / must not be a container)
      * @see https://github.com/biojppm/rapidyaml/issues/413 */
-    C4_ALWAYS_INLINE bool val_is_null(id_type node) const { _RYML_CB_ASSERT(m_callbacks, has_val(node)); NodeData const* C4_RESTRICT n = _p(node); return !n->m_type.is_val_quoted() && scalar_is_null(n->m_val.scalar); }
+    C4_ALWAYS_INLINE bool val_is_null(id_type node) const { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, has_val(node)); return !m_type[node].is_val_quoted() && scalar_is_null(m_val[node]); }
 
     /// true if the key was a scalar requiring filtering and was left
     /// unfiltered during the parsing (see ParserOptions)
-    C4_ALWAYS_INLINE bool is_key_unfiltered(id_type node) const { return _p(node)->m_type.is_key_unfiltered(); }
+    C4_ALWAYS_INLINE bool is_key_unfiltered(id_type node) const { _ryml_chkid(node); return m_type[node].is_key_unfiltered(); }
     /// true if the val was a scalar requiring filtering and was left
     /// unfiltered during the parsing (see ParserOptions)
-    C4_ALWAYS_INLINE bool is_val_unfiltered(id_type node) const { return _p(node)->m_type.is_val_unfiltered(); }
+    C4_ALWAYS_INLINE bool is_val_unfiltered(id_type node) const { _ryml_chkid(node); return m_type[node].is_val_unfiltered(); }
 
-    RYML_DEPRECATED("use has_key_anchor()")    bool is_key_anchor(id_type node) const { return _p(node)->m_type.has_key_anchor(); }
-    RYML_DEPRECATED("use has_val_anchor()")    bool is_val_anchor(id_type node) const { return _p(node)->m_type.has_val_anchor(); }
-    RYML_DEPRECATED("use has_anchor()")        bool is_anchor(id_type node) const { return _p(node)->m_type.has_anchor(); }
-    RYML_DEPRECATED("use has_anchor_or_ref()") bool is_anchor_or_ref(id_type node) const { return _p(node)->m_type.has_anchor() || _p(node)->m_type.is_ref(); }
+    RYML_DEPRECATED("use has_key_anchor()")    bool is_key_anchor(id_type node) const { _ryml_chkid(node); return m_type[node].has_key_anchor(); }
+    RYML_DEPRECATED("use has_val_anchor()")    bool is_val_anchor(id_type node) const { _ryml_chkid(node); return m_type[node].has_val_anchor(); }
+    RYML_DEPRECATED("use has_anchor()")        bool is_anchor(id_type node) const { _ryml_chkid(node); return m_type[node].has_anchor(); }
+    RYML_DEPRECATED("use has_anchor_or_ref()") bool is_anchor_or_ref(id_type node) const { _ryml_chkid(node); return m_type[node].has_anchor() || m_type[node].is_ref(); }
 
     /** @} */
 
@@ -449,31 +401,37 @@ public:
     /** @name hierarchy predicates */
     /** @{ */
 
-    bool is_root(id_type node) const { _RYML_CB_ASSERT(m_callbacks, _p(node)->m_parent != NONE || node == 0); return _p(node)->m_parent == NONE; }
+    bool is_root(id_type node) const { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, m_relation[node].m_parent != NONE || node == 0); return m_relation[node].m_parent == NONE; }
 
-    bool has_parent(id_type node) const { return _p(node)->m_parent != NONE; }
+    bool has_parent(id_type node) const { _ryml_chkid(node); return m_relation[node].m_parent != NONE; }
 
     /** true when key and val are empty, and has no children */
-    bool empty(id_type node) const { return ! has_children(node) && _p(node)->m_key.empty() && (( ! (_p(node)->m_type & VAL)) || _p(node)->m_val.empty()); }
+    bool empty(id_type node) const
+    {
+        _ryml_chkid(node);
+        const NodeType t = m_type[node];
+        return !(((t & (SEQ|MAP)) && has_children(node)) || ((t & KEY) && !m_key[node].empty()) || ((t & VAL) && !m_val[node].empty()));
+    }
 
     /** true if @p node has a child with id @p ch */
-    bool has_child(id_type node, id_type ch) const { return _p(ch)->m_parent == node; }
+    bool has_child(id_type node, id_type ch) const { _ryml_chkid(node); return m_relation[ch].m_parent == node; }
     /** true if @p node has a child with key @p key */
-    bool has_child(id_type node, csubstr key) const { return find_child(node, key) != NONE; }
+    bool has_child(id_type node, csubstr key) const { _ryml_chkid(node); return find_child(node, key) != NONE; }
     /** true if @p node has any children key */
-    bool has_children(id_type node) const { return _p(node)->m_first_child != NONE; }
+    bool has_children(id_type node) const { _ryml_chkid(node); return m_relation[node].m_first_child != NONE; }
 
     /** true if @p node has a sibling with id @p sib */
-    bool has_sibling(id_type node, id_type sib) const { return _p(node)->m_parent == _p(sib)->m_parent; }
+    bool has_sibling(id_type node, id_type sib) const { _ryml_chkid(node); return m_relation[node].m_parent == m_relation[sib].m_parent; }
     /** true if one of the node's siblings has the given key */
-    bool has_sibling(id_type node, csubstr key) const { return find_sibling(node, key) != NONE; }
+    bool has_sibling(id_type node, csubstr key) const { _ryml_chkid(node); return find_sibling(node, key) != NONE; }
     /** true if node is not a single child */
     bool has_other_siblings(id_type node) const
     {
-        NodeData const *n = _p(node);
+        _ryml_chkid(node);
+        NodeRelation const *C4_RESTRICT n = &m_relation[node];
         if(C4_LIKELY(n->m_parent != NONE))
         {
-            n = _p(n->m_parent);
+            n = &m_relation[n->m_parent];
             return n->m_first_child != n->m_last_child;
         }
         return false;
@@ -488,29 +446,29 @@ public:
     /** @name hierarchy getters */
     /** @{ */
 
-    id_type parent(id_type node) const { return _p(node)->m_parent; }
+    id_type parent(id_type node) const { _ryml_chkid(node); return m_relation[node].m_parent; }
 
-    id_type prev_sibling(id_type node) const { return _p(node)->m_prev_sibling; }
-    id_type next_sibling(id_type node) const { return _p(node)->m_next_sibling; }
+    id_type prev_sibling(id_type node) const { _ryml_chkid(node); return m_relation[node].m_prev_sibling; }
+    id_type next_sibling(id_type node) const { _ryml_chkid(node); return m_relation[node].m_next_sibling; }
 
     /** O(#num_children) */
     id_type num_children(id_type node) const;
     id_type child_pos(id_type node, id_type ch) const;
-    id_type first_child(id_type node) const { return _p(node)->m_first_child; }
-    id_type last_child(id_type node) const { return _p(node)->m_last_child; }
+    id_type first_child(id_type node) const { _ryml_chkid(node); return m_relation[node].m_first_child; }
+    id_type last_child(id_type node) const { _ryml_chkid(node); return m_relation[node].m_last_child; }
     id_type child(id_type node, id_type pos) const;
     id_type find_child(id_type node, csubstr const& key) const;
 
     /** O(#num_siblings) */
     /** counts with this */
-    id_type num_siblings(id_type node) const { return is_root(node) ? 1 : num_children(_p(node)->m_parent); }
+    id_type num_siblings(id_type node) const { _ryml_chkid(node); return is_root(node) ? 1 : num_children(m_relation[node].m_parent); }
     /** does not count with this */
-    id_type num_other_siblings(id_type node) const { id_type ns = num_siblings(node); _RYML_CB_ASSERT(m_callbacks, ns > 0); return ns-1; }
-    id_type sibling_pos(id_type node, id_type sib) const { _RYML_CB_ASSERT(m_callbacks,  ! is_root(node) || node == root_id()); return child_pos(_p(node)->m_parent, sib); }
-    id_type first_sibling(id_type node) const { return is_root(node) ? node : _p(_p(node)->m_parent)->m_first_child; }
-    id_type last_sibling(id_type node) const { return is_root(node) ? node : _p(_p(node)->m_parent)->m_last_child; }
-    id_type sibling(id_type node, id_type pos) const { return child(_p(node)->m_parent, pos); }
-    id_type find_sibling(id_type node, csubstr const& key) const { return find_child(_p(node)->m_parent, key); }
+    id_type num_other_siblings(id_type node) const { _ryml_chkid(node); id_type ns = num_siblings(node); _RYML_CB_ASSERT(m_callbacks, ns > 0); return ns-1; }
+    id_type sibling_pos(id_type node, id_type sib) const { _ryml_chkid(node); _ryml_chkid(sib); _RYML_CB_ASSERT(m_callbacks,  ! is_root(node) || node == root_id()); return child_pos(m_relation[node].m_parent, sib); }
+    id_type first_sibling(id_type node) const { _ryml_chkid(node); return is_root(node) ? node : m_relation[m_relation[node].m_parent].m_first_child; }
+    id_type last_sibling(id_type node) const { _ryml_chkid(node); return is_root(node) ? node : m_relation[m_relation[node].m_parent].m_last_child; }
+    id_type sibling(id_type node, id_type pos) const { _ryml_chkid(node); return child(m_relation[node].m_parent, pos); }
+    id_type find_sibling(id_type node, csubstr const& key) const { _ryml_chkid(node); return find_child(m_relation[node].m_parent, key); }
 
     id_type doc(id_type i) const { id_type rid = root_id(); _RYML_CB_ASSERT(m_callbacks, is_stream(rid)); return child(rid, i); } //!< gets the @p i document node index. requires that the root node is a stream.
 
@@ -524,31 +482,31 @@ public:
     /** @name node style predicates and modifiers. see the corresponding predicate in NodeType */
     /** @{ */
 
-    C4_ALWAYS_INLINE bool is_container_styled(id_type node) const { return _p(node)->m_type.is_container_styled(); }
-    C4_ALWAYS_INLINE bool is_block(id_type node) const { return _p(node)->m_type.is_block(); }
-    C4_ALWAYS_INLINE bool is_flow_sl(id_type node) const { return _p(node)->m_type.is_flow_sl(); }
-    C4_ALWAYS_INLINE bool is_flow_ml(id_type node) const { return _p(node)->m_type.is_flow_ml(); }
-    C4_ALWAYS_INLINE bool is_flow(id_type node) const { return _p(node)->m_type.is_flow(); }
+    C4_ALWAYS_INLINE bool is_container_styled(id_type node) const { _ryml_chkid(node); return m_type[node].is_container_styled(); }
+    C4_ALWAYS_INLINE bool is_block(id_type node) const { _ryml_chkid(node); return m_type[node].is_block(); }
+    C4_ALWAYS_INLINE bool is_flow_sl(id_type node) const { _ryml_chkid(node); return m_type[node].is_flow_sl(); }
+    C4_ALWAYS_INLINE bool is_flow_ml(id_type node) const { _ryml_chkid(node); return m_type[node].is_flow_ml(); }
+    C4_ALWAYS_INLINE bool is_flow(id_type node) const { _ryml_chkid(node); return m_type[node].is_flow(); }
 
-    C4_ALWAYS_INLINE bool is_key_styled(id_type node) const { return _p(node)->m_type.is_key_styled(); }
-    C4_ALWAYS_INLINE bool is_val_styled(id_type node) const { return _p(node)->m_type.is_val_styled(); }
-    C4_ALWAYS_INLINE bool is_key_literal(id_type node) const { return _p(node)->m_type.is_key_literal(); }
-    C4_ALWAYS_INLINE bool is_val_literal(id_type node) const { return _p(node)->m_type.is_val_literal(); }
-    C4_ALWAYS_INLINE bool is_key_folded(id_type node) const { return _p(node)->m_type.is_key_folded(); }
-    C4_ALWAYS_INLINE bool is_val_folded(id_type node) const { return _p(node)->m_type.is_val_folded(); }
-    C4_ALWAYS_INLINE bool is_key_squo(id_type node) const { return _p(node)->m_type.is_key_squo(); }
-    C4_ALWAYS_INLINE bool is_val_squo(id_type node) const { return _p(node)->m_type.is_val_squo(); }
-    C4_ALWAYS_INLINE bool is_key_dquo(id_type node) const { return _p(node)->m_type.is_key_dquo(); }
-    C4_ALWAYS_INLINE bool is_val_dquo(id_type node) const { return _p(node)->m_type.is_val_dquo(); }
-    C4_ALWAYS_INLINE bool is_key_plain(id_type node) const { return _p(node)->m_type.is_key_plain(); }
-    C4_ALWAYS_INLINE bool is_val_plain(id_type node) const { return _p(node)->m_type.is_val_plain(); }
-    C4_ALWAYS_INLINE bool is_key_quoted(id_type node) const { return _p(node)->m_type.is_key_quoted(); }
-    C4_ALWAYS_INLINE bool is_val_quoted(id_type node) const { return _p(node)->m_type.is_val_quoted(); }
-    C4_ALWAYS_INLINE bool is_quoted(id_type node) const { return _p(node)->m_type.is_quoted(); }
+    C4_ALWAYS_INLINE bool is_key_styled(id_type node) const { _ryml_chkid(node); return m_type[node].is_key_styled(); }
+    C4_ALWAYS_INLINE bool is_val_styled(id_type node) const { _ryml_chkid(node); return m_type[node].is_val_styled(); }
+    C4_ALWAYS_INLINE bool is_key_literal(id_type node) const { _ryml_chkid(node); return m_type[node].is_key_literal(); }
+    C4_ALWAYS_INLINE bool is_val_literal(id_type node) const { _ryml_chkid(node); return m_type[node].is_val_literal(); }
+    C4_ALWAYS_INLINE bool is_key_folded(id_type node) const { _ryml_chkid(node); return m_type[node].is_key_folded(); }
+    C4_ALWAYS_INLINE bool is_val_folded(id_type node) const { _ryml_chkid(node); return m_type[node].is_val_folded(); }
+    C4_ALWAYS_INLINE bool is_key_squo(id_type node) const { _ryml_chkid(node); return m_type[node].is_key_squo(); }
+    C4_ALWAYS_INLINE bool is_val_squo(id_type node) const { _ryml_chkid(node); return m_type[node].is_val_squo(); }
+    C4_ALWAYS_INLINE bool is_key_dquo(id_type node) const { _ryml_chkid(node); return m_type[node].is_key_dquo(); }
+    C4_ALWAYS_INLINE bool is_val_dquo(id_type node) const { _ryml_chkid(node); return m_type[node].is_val_dquo(); }
+    C4_ALWAYS_INLINE bool is_key_plain(id_type node) const { _ryml_chkid(node); return m_type[node].is_key_plain(); }
+    C4_ALWAYS_INLINE bool is_val_plain(id_type node) const { _ryml_chkid(node); return m_type[node].is_val_plain(); }
+    C4_ALWAYS_INLINE bool is_key_quoted(id_type node) const { _ryml_chkid(node); return m_type[node].is_key_quoted(); }
+    C4_ALWAYS_INLINE bool is_val_quoted(id_type node) const { _ryml_chkid(node); return m_type[node].is_val_quoted(); }
+    C4_ALWAYS_INLINE bool is_quoted(id_type node) const { _ryml_chkid(node); return m_type[node].is_quoted(); }
 
-    C4_ALWAYS_INLINE void set_container_style(id_type node, NodeType_e style) { _RYML_CB_ASSERT(m_callbacks, is_container(node)); _p(node)->m_type.set_container_style(style); }
-    C4_ALWAYS_INLINE void set_key_style(id_type node, NodeType_e style) { _RYML_CB_ASSERT(m_callbacks, has_key(node)); _p(node)->m_type.set_key_style(style); }
-    C4_ALWAYS_INLINE void set_val_style(id_type node, NodeType_e style) { _RYML_CB_ASSERT(m_callbacks, has_val(node)); _p(node)->m_type.set_val_style(style); }
+    C4_ALWAYS_INLINE void set_container_style(id_type node, NodeType_e style) { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, is_container(node)); m_type[node].set_container_style(style); }
+    C4_ALWAYS_INLINE void set_key_style(id_type node, NodeType_e style) { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, has_key(node)); m_type[node].set_key_style(style); }
+    C4_ALWAYS_INLINE void set_val_style(id_type node, NodeType_e style) { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, has_val(node)); m_type[node].set_val_style(style); }
 
     /** @} */
 
@@ -566,22 +524,42 @@ public:
     void to_doc(id_type node, type_bits more_flags=0);
     void to_stream(id_type node, type_bits more_flags=0);
 
-    void set_key(id_type node, csubstr key) { _RYML_CB_ASSERT(m_callbacks, has_key(node)); _p(node)->m_key.scalar = key; }
-    void set_val(id_type node, csubstr val) { _RYML_CB_ASSERT(m_callbacks, has_val(node)); _p(node)->m_val.scalar = val; }
+    void set_key(id_type node, csubstr key) { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, has_key(node)); m_key[node] = key; }
+    void set_val(id_type node, csubstr val) { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, has_val(node)); m_val[node] = val; }
 
-    void set_key_tag(id_type node, csubstr tag) { _RYML_CB_ASSERT(m_callbacks, has_key(node)); _p(node)->m_key.tag = tag; _add_flags(node, KEYTAG); }
-    void set_val_tag(id_type node, csubstr tag) { _RYML_CB_ASSERT(m_callbacks, has_val(node) || is_container(node)); _p(node)->m_val.tag = tag; _add_flags(node, VALTAG); }
+    void set_key_tag(id_type node, csubstr tag) { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, has_key(node)); m_key_tag[node] = tag; _add_flags(node, KEYTAG); }
+    void set_val_tag(id_type node, csubstr tag) { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, has_val(node) || is_container(node)); m_val_tag[node] = tag; _add_flags(node, VALTAG); }
 
-    void set_key_anchor(id_type node, csubstr anchor) { _RYML_CB_ASSERT(m_callbacks,  ! is_key_ref(node)); _p(node)->m_key.anchor = anchor.triml('&'); _add_flags(node, KEYANCH); }
-    void set_val_anchor(id_type node, csubstr anchor) { _RYML_CB_ASSERT(m_callbacks,  ! is_val_ref(node)); _p(node)->m_val.anchor = anchor.triml('&'); _add_flags(node, VALANCH); }
-    void set_key_ref   (id_type node, csubstr ref   ) { _RYML_CB_ASSERT(m_callbacks,  ! has_key_anchor(node)); NodeData* C4_RESTRICT n = _p(node); n->m_key.set_ref_maybe_replacing_scalar(ref, n->m_type.has_key()); _add_flags(node, KEY|KEYREF); }
-    void set_val_ref   (id_type node, csubstr ref   ) { _RYML_CB_ASSERT(m_callbacks,  ! has_val_anchor(node)); NodeData* C4_RESTRICT n = _p(node); n->m_val.set_ref_maybe_replacing_scalar(ref, n->m_type.has_val()); _add_flags(node, VAL|VALREF); }
+    void set_key_anchor(id_type node, csubstr anchor) { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks,  ! is_key_ref(node)); m_key_anchor[node] = anchor.triml('&'); _add_flags(node, KEYANCH); }
+    void set_val_anchor(id_type node, csubstr anchor) { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks,  ! is_val_ref(node)); m_val_anchor[node] = anchor.triml('&'); _add_flags(node, VALANCH); }
+    void set_key_ref(id_type node, csubstr ref)
+    {
+        _ryml_chkid(node);
+        _RYML_CB_ASSERT(m_callbacks, ! has_key_anchor(node));
+        csubstr trimmed = ref.begins_with('*') ? ref.sub(1) : ref;
+        m_key_anchor[node] = trimmed;
+        if((!m_type[node].has_key()) || !m_key[node].ends_with(trimmed))
+            m_key[node] = ref;
+        _add_flags(node, KEY|KEYREF);
+    }
+    void set_val_ref(id_type node, csubstr ref)
+    {
+        _ryml_chkid(node);
+        _RYML_CB_ASSERT(m_callbacks, ! has_val_anchor(node));
+        csubstr trimmed = ref.begins_with('*') ? ref.sub(1) : ref;
+        m_val_anchor[node] = trimmed;
+        if((!m_type[node].has_val()) || !m_val[node].ends_with(trimmed))
+            m_val[node] = ref;
+        _add_flags(node, VAL|VALREF);
+    }
 
-    void rem_key_anchor(id_type node) { _p(node)->m_key.anchor.clear(); _rem_flags(node, KEYANCH); }
-    void rem_val_anchor(id_type node) { _p(node)->m_val.anchor.clear(); _rem_flags(node, VALANCH); }
-    void rem_key_ref   (id_type node) { _p(node)->m_key.anchor.clear(); _rem_flags(node, KEYREF); }
-    void rem_val_ref   (id_type node) { _p(node)->m_val.anchor.clear(); _rem_flags(node, VALREF); }
-    void rem_anchor_ref(id_type node) { _p(node)->m_key.anchor.clear(); _p(node)->m_val.anchor.clear(); _rem_flags(node, KEYANCH|VALANCH|KEYREF|VALREF); }
+    void rem_key_anchor(id_type node) { _ryml_chkid(node); m_key_anchor[node].clear(); _rem_flags(node, KEYANCH); }
+    void rem_val_anchor(id_type node) { _ryml_chkid(node); m_val_anchor[node].clear(); _rem_flags(node, VALANCH); }
+    void rem_key_ref   (id_type node) { _ryml_chkid(node); m_key_anchor[node].clear(); _rem_flags(node, KEYREF); }
+    void rem_val_ref   (id_type node) { _ryml_chkid(node); m_val_anchor[node].clear(); _rem_flags(node, VALREF); }
+    void rem_key_tag   (id_type node) { _ryml_chkid(node); m_key_anchor[node].clear(); _rem_flags(node, KEYTAG); }
+    void rem_val_tag   (id_type node) { _ryml_chkid(node); m_val_anchor[node].clear(); _rem_flags(node, VALTAG); }
+    void rem_anchor_ref(id_type node) { _ryml_chkid(node); m_key_anchor[node].clear(); m_val_anchor[node].clear(); _rem_flags(node, KEYANCH|VALANCH|KEYREF|VALREF); }
 
     /** @} */
 
@@ -668,7 +646,7 @@ public:
     {
         _RYML_CB_ASSERT(m_callbacks, parent != NONE);
         _RYML_CB_ASSERT(m_callbacks, is_container(parent) || is_root(parent));
-        _RYML_CB_ASSERT(m_callbacks, after == NONE || (_p(after)->m_parent == parent));
+        _RYML_CB_ASSERT(m_callbacks, after == NONE || (m_relation[after].m_parent == parent));
         id_type child = _claim();
         _set_hierarchy(child, parent, after);
         return child;
@@ -676,34 +654,24 @@ public:
     /** create and insert a node as the first child of @p parent */
     C4_ALWAYS_INLINE id_type prepend_child(id_type parent) { return insert_child(parent, NONE); }
     /** create and insert a node as the last child of @p parent */
-    C4_ALWAYS_INLINE id_type append_child(id_type parent) { return insert_child(parent, _p(parent)->m_last_child); }
+    C4_ALWAYS_INLINE id_type append_child(id_type parent) { return insert_child(parent, m_relation[parent].m_last_child); }
     C4_ALWAYS_INLINE id_type _append_child__unprotected(id_type parent)
     {
         id_type child = _claim();
-        _set_hierarchy(child, parent, _p(parent)->m_last_child);
+        _set_hierarchy(child, parent, m_relation[parent].m_last_child);
         return child;
     }
 
 public:
 
-    #if defined(__clang__)
-    #   pragma clang diagnostic push
-    #   pragma clang diagnostic ignored "-Wnull-dereference"
-    #elif defined(__GNUC__)
-    #   pragma GCC diagnostic push
-    #   if __GNUC__ >= 6
-    #       pragma GCC diagnostic ignored "-Wnull-dereference"
-    #   endif
-    #endif
-
     //! create and insert a new sibling of n. insert after "after"
     C4_ALWAYS_INLINE id_type insert_sibling(id_type node, id_type after)
     {
-        return insert_child(_p(node)->m_parent, after);
+        return insert_child(m_relation[node].m_parent, after);
     }
     /** create and insert a node as the first node of @p parent */
-    C4_ALWAYS_INLINE id_type prepend_sibling(id_type node) { return prepend_child(_p(node)->m_parent); }
-    C4_ALWAYS_INLINE id_type  append_sibling(id_type node) { return append_child(_p(node)->m_parent); }
+    C4_ALWAYS_INLINE id_type prepend_sibling(id_type node) { return prepend_child(m_relation[node].m_parent); }
+    C4_ALWAYS_INLINE id_type  append_sibling(id_type node) { return append_child(m_relation[node].m_parent); }
 
 public:
 
@@ -725,19 +693,13 @@ public:
      * empty value of the desired type: changing to VAL will
      * initialize with a null scalar (~), changing to MAP will
      * initialize with an empty map ({}), and changing to SEQ will
-     * initialize with an empty seq ([]). */
+     * initialize with an empty seq ([]).
+     * @return true when the type changed, false otherwise */
     bool change_type(id_type node, NodeType type);
-
     bool change_type(id_type node, type_bits type)
     {
         return change_type(node, (NodeType)type);
     }
-
-    #if defined(__clang__)
-    #   pragma clang diagnostic pop
-    #elif defined(__GNUC__)
-    #   pragma GCC diagnostic pop
-    #endif
 
 public:
 
@@ -1114,59 +1076,65 @@ public:
 
     /** @cond dev*/
 
+    id_type _id(NodeRelation const* C4_RESTRICT nr) const
+    {
+        _RYML_CB_ASSERT(m_callbacks, nr == nullptr || (nr >= m_relation &&  nr < m_relation + m_cap));
+        return nr ? (id_type)(nr - m_relation) : NONE;
+    }
+
     #if ! RYML_USE_ASSERT
     C4_ALWAYS_INLINE void _check_next_flags(id_type, type_bits) {}
     #else
     void _check_next_flags(id_type node, type_bits f)
     {
-        auto n = _p(node);
-        type_bits o = n->m_type; // old
-        C4_UNUSED(o);
+        const type_bits o = m_type[node]; // old
         if(f & MAP)
         {
-            RYML_ASSERT_MSG((f & SEQ) == 0, "cannot mark simultaneously as map and seq");
-            RYML_ASSERT_MSG((f & VAL) == 0, "cannot mark simultaneously as map and val");
-            RYML_ASSERT_MSG((o & SEQ) == 0, "cannot turn a seq into a map; clear first");
-            RYML_ASSERT_MSG((o & VAL) == 0, "cannot turn a val into a map; clear first");
+            RYML_ASSERT((f & SEQ) == 0); // cannot mark simultaneously as map and seq
+            RYML_ASSERT((f & VAL) == 0); // cannot mark simultaneously as map and val
+            RYML_ASSERT((o & SEQ) == 0); // cannot turn a seq into a map; clear first
+            RYML_ASSERT((o & VAL) == 0); // cannot turn a val into a map; clear first
         }
         else if(f & SEQ)
         {
-            RYML_ASSERT_MSG((f & MAP) == 0, "cannot mark simultaneously as seq and map");
-            RYML_ASSERT_MSG((f & VAL) == 0, "cannot mark simultaneously as seq and val");
-            RYML_ASSERT_MSG((o & MAP) == 0, "cannot turn a map into a seq; clear first");
-            RYML_ASSERT_MSG((o & VAL) == 0, "cannot turn a val into a seq; clear first");
+            RYML_ASSERT((f & MAP) == 0); // cannot mark simultaneously as seq and map
+            RYML_ASSERT((f & VAL) == 0); // cannot mark simultaneously as seq and val
+            RYML_ASSERT((o & MAP) == 0); // cannot turn a map into a seq; clear first
+            RYML_ASSERT((o & VAL) == 0); // cannot turn a val into a seq; clear first
         }
         if(f & KEY)
         {
             _RYML_CB_ASSERT(m_callbacks, !is_root(node));
-            auto pid = parent(node); C4_UNUSED(pid);
+            const id_type pid = parent(node);
             _RYML_CB_ASSERT(m_callbacks, is_map(pid));
         }
         if((f & VAL) && !is_root(node))
         {
-            auto pid = parent(node); C4_UNUSED(pid);
+            const id_type pid = parent(node);
             _RYML_CB_ASSERT(m_callbacks, is_map(pid) || is_seq(pid));
         }
     }
     #endif
 
-    inline void _set_flags(id_type node, NodeType_e f) { _check_next_flags(node, f); _p(node)->m_type = f; }
-    inline void _set_flags(id_type node, type_bits  f) { _check_next_flags(node, f); _p(node)->m_type = f; }
+    C4_ALWAYS_INLINE void _set_flags(id_type node, NodeType_e f) { _check_next_flags(node, f); m_type[node] = f; }
+    C4_ALWAYS_INLINE void _set_flags(id_type node, type_bits  f) { _check_next_flags(node, f); m_type[node] = f; }
 
-    inline void _add_flags(id_type node, NodeType_e f) { NodeData *d = _p(node); type_bits fb = f |  d->m_type; _check_next_flags(node, fb); d->m_type = (NodeType_e) fb; }
-    inline void _add_flags(id_type node, type_bits  f) { NodeData *d = _p(node);                f |= d->m_type; _check_next_flags(node,  f); d->m_type = f; }
+    C4_ALWAYS_INLINE void _add_flags(id_type node, NodeType_e f) { type_bits fb = f |  m_type[node]; _check_next_flags(node, fb); m_type[node] = (NodeType_e) fb; }
+    C4_ALWAYS_INLINE void _add_flags(id_type node, type_bits  f) {                f |= m_type[node]; _check_next_flags(node,  f); m_type[node] = f; }
 
-    inline void _rem_flags(id_type node, NodeType_e f) { NodeData *d = _p(node); type_bits fb = d->m_type & ~f; _check_next_flags(node, fb); d->m_type = (NodeType_e) fb; }
-    inline void _rem_flags(id_type node, type_bits  f) { NodeData *d = _p(node);            f = d->m_type & ~f; _check_next_flags(node,  f); d->m_type = f; }
+    C4_ALWAYS_INLINE void _rem_flags(id_type node, NodeType_e f) { type_bits fb = m_type[node] & ~f; _check_next_flags(node, fb); m_type[node] = (NodeType_e) fb; }
+    C4_ALWAYS_INLINE void _rem_flags(id_type node, type_bits  f) {            f = m_type[node] & ~f; _check_next_flags(node,  f); m_type[node] = f; }
 
     void _set_key(id_type node, csubstr key, type_bits more_flags=0)
     {
-        _p(node)->m_key.scalar = key;
+        m_key[node] = key;
         _add_flags(node, KEY|more_flags);
     }
     void _set_key(id_type node, NodeScalar const& key, type_bits more_flags=0)
     {
-        _p(node)->m_key = key;
+        m_key[node] = key.scalar;
+        m_key_tag[node] = key.tag;
+        m_key_anchor[node] = key.anchor;
         _add_flags(node, KEY|more_flags);
     }
 
@@ -1174,51 +1142,54 @@ public:
     {
         _RYML_CB_ASSERT(m_callbacks, num_children(node) == 0);
         _RYML_CB_ASSERT(m_callbacks, !is_seq(node) && !is_map(node));
-        _p(node)->m_val.scalar = val;
+        m_val[node] = val;
         _add_flags(node, VAL|more_flags);
     }
     void _set_val(id_type node, NodeScalar const& val, type_bits more_flags=0)
     {
         _RYML_CB_ASSERT(m_callbacks, num_children(node) == 0);
         _RYML_CB_ASSERT(m_callbacks,  ! is_container(node));
-        _p(node)->m_val = val;
+        m_val[node] = val.scalar;
+        m_val_tag[node] = val.tag;
+        m_val_anchor[node] = val.anchor;
         _add_flags(node, VAL|more_flags);
     }
 
     void _set(id_type node, NodeInit const& i)
     {
         _RYML_CB_ASSERT(m_callbacks, i._check());
-        NodeData *n = _p(node);
-        _RYML_CB_ASSERT(m_callbacks, n->m_key.scalar.empty() || i.key.scalar.empty() || i.key.scalar == n->m_key.scalar);
-        _add_flags(node, i.type);
-        if(n->m_key.scalar.empty())
+        _RYML_CB_ASSERT(m_callbacks, !has_key(node) || i.key.scalar.empty() || i.key.scalar == m_key[node]);
+        if(!m_type[node].has_key())
         {
             if( ! i.key.scalar.empty())
             {
                 _set_key(node, i.key.scalar);
             }
         }
-        n->m_key.tag = i.key.tag;
-        n->m_val = i.val;
+        m_key_tag[node] = i.key.tag;
+        m_key_anchor[node] = i.key.anchor;
+        m_val[node] = i.val.scalar;
+        m_val_tag[node] = i.val.tag;
+        m_val_anchor[node] = i.val.anchor;
+        _add_flags(node, i.type);
     }
 
-    void _set_parent_as_container_if_needed(id_type in)
+    void _set_parent_as_container_if_needed(id_type node)
     {
-        NodeData const* n = _p(in);
-        id_type ip = parent(in);
-        if(ip != NONE)
+        id_type parent = m_relation[node].m_parent;
+        if(parent != NONE)
         {
-            if( ! (is_seq(ip) || is_map(ip)))
+            if( ! (is_seq(parent) || is_map(parent)))
             {
-                if((in == first_child(ip)) && (in == last_child(ip)))
+                if((node == first_child(parent)) && (node == last_child(parent)))
                 {
-                    if( ! n->m_key.empty() || has_key(in))
+                    if(has_key(node))
                     {
-                        _add_flags(ip, MAP);
+                        _add_flags(parent, MAP);
                     }
                     else
                     {
-                        _add_flags(ip, SEQ);
+                        _add_flags(parent, SEQ);
                     }
                 }
             }
@@ -1230,15 +1201,13 @@ public:
         _RYML_CB_ASSERT(m_callbacks, is_seq(node));
         for(id_type i = first_child(node); i != NONE; i = next_sibling(i))
         {
-            NodeData *C4_RESTRICT ch = _p(i);
-            if(ch->m_type.is_keyval())
+            if(m_type[i].is_keyval())
                 continue;
-            ch->m_type.add(KEY);
-            ch->m_key = ch->m_val;
+            m_type[i].add(KEY);
+            m_key[i] = m_val[i];
         }
-        auto *C4_RESTRICT n = _p(node);
-        n->m_type.rem(SEQ);
-        n->m_type.add(MAP);
+        m_type[node].rem(SEQ);
+        m_type[node].add(MAP);
     }
 
     id_type _do_reorder(id_type *node, id_type count);
@@ -1260,64 +1229,75 @@ public:
 
     void _copy_props(id_type dst_, Tree const* that_tree, id_type src_)
     {
-        auto      & C4_RESTRICT dst = *_p(dst_);
-        auto const& C4_RESTRICT src = *that_tree->_p(src_);
-        dst.m_type = src.m_type;
-        dst.m_key  = src.m_key;
-        dst.m_val  = src.m_val;
+        m_type[dst_] = that_tree->m_type[src_];
+        m_key[dst_]  = that_tree->m_key[src_];
+        m_key_tag[dst_]  = that_tree->m_key_tag[src_];
+        m_key_anchor[dst_]  = that_tree->m_key_anchor[src_];
+        m_val[dst_]  = that_tree->m_val[src_];
+        m_val_tag[dst_]  = that_tree->m_val_tag[src_];
+        m_val_anchor[dst_]  = that_tree->m_val_anchor[src_];
     }
 
     void _copy_props(id_type dst_, Tree const* that_tree, id_type src_, type_bits src_mask)
     {
-        auto      & C4_RESTRICT dst = *_p(dst_);
-        auto const& C4_RESTRICT src = *that_tree->_p(src_);
-        dst.m_type = (src.m_type & src_mask) | (dst.m_type & ~src_mask);
-        dst.m_key  = src.m_key;
-        dst.m_val  = src.m_val;
+        m_type[dst_] = (that_tree->m_type[src_] & src_mask) | (m_type[dst_] & ~src_mask);
+        m_key[dst_]  = that_tree->m_key[src_];
+        m_key_tag[dst_]  = that_tree->m_key_tag[src_];
+        m_key_anchor[dst_]  = that_tree->m_key_anchor[src_];
+        m_val[dst_]  = that_tree->m_val[src_];
+        m_val_tag[dst_]  = that_tree->m_val_tag[src_];
+        m_val_anchor[dst_]  = that_tree->m_val_anchor[src_];
     }
 
     void _copy_props_wo_key(id_type dst_, Tree const* that_tree, id_type src_)
     {
-        auto      & C4_RESTRICT dst = *_p(dst_);
-        auto const& C4_RESTRICT src = *that_tree->_p(src_);
-        dst.m_type = (src.m_type & ~_KEYMASK) | (dst.m_type & _KEYMASK);
-        dst.m_val  = src.m_val;
+        m_type[dst_] = (that_tree->m_type[src_] & ~_KEYMASK) | (m_type[dst_] & _KEYMASK);
+        m_val[dst_]  = that_tree->m_val[src_];
+        m_val_tag[dst_]  = that_tree->m_val_tag[src_];
+        m_val_anchor[dst_]  = that_tree->m_val_anchor[src_];
     }
 
     void _copy_props_wo_key(id_type dst_, Tree const* that_tree, id_type src_, type_bits src_mask)
     {
-        auto      & C4_RESTRICT dst = *_p(dst_);
-        auto const& C4_RESTRICT src = *that_tree->_p(src_);
-        dst.m_type = (src.m_type & ((~_KEYMASK)|src_mask)) | (dst.m_type & (_KEYMASK|~src_mask));
-        dst.m_val  = src.m_val;
+        m_type[dst_] = (that_tree->m_type[src_] & ((~_KEYMASK)|src_mask)) | (m_type[dst_] & (_KEYMASK|~src_mask));
+        m_val[dst_]  = that_tree->m_val[src_];
+        m_val_tag[dst_]  = that_tree->m_val_tag[src_];
+        m_val_anchor[dst_]  = that_tree->m_val_anchor[src_];
     }
 
     inline void _clear_type(id_type node)
     {
-        _p(node)->m_type = NOTYPE;
+        m_type[node] = NOTYPE;
     }
 
     inline void _clear(id_type node)
     {
-        auto *C4_RESTRICT n = _p(node);
-        n->m_type = NOTYPE;
-        n->m_key.clear();
-        n->m_val.clear();
-        n->m_parent = NONE;
-        n->m_first_child = NONE;
-        n->m_last_child = NONE;
+        m_type[node] = NOTYPE;
+        //m_key[node].clear();
+        //m_key_tag[node].clear();
+        //m_key_anchor[node].clear();
+        //m_val[node].clear();
+        //m_val_tag[node].clear();
+        //m_val_anchor[node].clear();
+        m_relation[node].m_parent = NONE;
+        m_relation[node].m_first_child = NONE;
+        m_relation[node].m_last_child = NONE;
     }
 
     inline void _clear_key(id_type node)
     {
-        _p(node)->m_key.clear();
-        _rem_flags(node, KEY);
+        //m_key[node].clear();
+        //m_key_tag[node].clear();
+        //m_key_anchor[node].clear();
+        _rem_flags(node, KEY|KEYTAG|KEYREF|KEYANCH);
     }
 
     inline void _clear_val(id_type node)
     {
-        _p(node)->m_val.clear();
-        _rem_flags(node, VAL);
+        //m_val[node].clear();
+        //m_val_tag[node].clear();
+        //m_val_anchor[node].clear();
+        _rem_flags(node, VAL|VALTAG|VALREF|VALANCH);
     }
 
     /** @endcond */
@@ -1339,11 +1319,20 @@ private:
 
 public:
 
-    // members are exposed, but you should NOT access them directly
+    // members are exposed, but you should NOT access them directly,
+    // and you should NEVER modify them
 
-    NodeData *m_buf;
-    id_type   m_cap;
+    // formerly NodeData
+    NodeType     *C4_RESTRICT m_type;
+    csubstr      *C4_RESTRICT m_val;
+    csubstr      *C4_RESTRICT m_val_tag;
+    csubstr      *C4_RESTRICT m_val_anchor;
+    csubstr      *C4_RESTRICT m_key;
+    csubstr      *C4_RESTRICT m_key_tag;
+    csubstr      *C4_RESTRICT m_key_anchor;
+    NodeRelation *C4_RESTRICT m_relation;
 
+    id_type m_cap;
     id_type m_size;
 
     id_type m_free_head;

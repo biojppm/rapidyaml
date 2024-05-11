@@ -15,46 +15,6 @@ TEST(anchors, circular)
     EXPECT_EQ(t[0].val_ref(), "x");
 }
 
-TEST(anchors, node_scalar_set_ref_when_empty)
-{
-    {
-        NodeScalar ns;
-        ns.set_ref_maybe_replacing_scalar("foo", /*has_scalar*/false);
-        EXPECT_EQ(ns.scalar, "foo");
-        EXPECT_EQ(ns.anchor, "foo");
-    }
-    {
-        NodeScalar ns;
-        ns.set_ref_maybe_replacing_scalar("*foo", /*has_scalar*/false);
-        EXPECT_EQ(ns.scalar, "*foo");
-        EXPECT_EQ(ns.anchor, "foo");
-    }
-}
-
-TEST(anchors, node_scalar_set_ref_when_non_empty)
-{
-    {
-        NodeScalar ns;
-        ns.scalar = "whatever";
-        ns.set_ref_maybe_replacing_scalar("foo", /*has_scalar*/true);
-        EXPECT_EQ(ns.scalar, "foo");
-        EXPECT_EQ(ns.anchor, "foo");
-    }
-    {
-        NodeScalar ns;
-        ns.scalar = "whatever";
-        ns.set_ref_maybe_replacing_scalar("*foo", /*has_scalar*/true);
-        EXPECT_EQ(ns.scalar, "*foo");
-        EXPECT_EQ(ns.anchor, "foo");
-        ns.set_ref_maybe_replacing_scalar("foo", /*has_scalar*/true);
-        EXPECT_EQ(ns.scalar, "*foo"); // keep the previous as it is well formed
-        EXPECT_EQ(ns.anchor, "foo");
-        ns.set_ref_maybe_replacing_scalar("bar", /*has_scalar*/true);
-        EXPECT_EQ(ns.scalar, "bar"); // replace previous as it is not well formed
-        EXPECT_EQ(ns.anchor, "bar");
-    }
-}
-
 TEST(anchors, no_ambiguity_when_key_scalars_begin_with_star)
 {
     Tree t = parse_in_arena("{foo: &foo: 1, *foo: : 2, '*foo:': 3}");
@@ -482,7 +442,7 @@ TEST(simple_anchor, resolve_works_on_an_empty_tree)
 TEST(simple_anchor, resolve_works_on_a_tree_without_refs)
 {
     Tree t = parse_in_arena("[a, b, c, d, e, f]");
-    size_t size_before = t.size();
+    id_type size_before = t.size();
     t.resolve();
     EXPECT_EQ(t.size(), size_before);
 }

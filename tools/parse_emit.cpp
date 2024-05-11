@@ -109,8 +109,8 @@ int main(int argc, const char *argv[])
         if(print_emitted_to_stdout)
         {
             TS(print_stdout);
-            fwrite(output.data(), 1, output.size(), stdout);
-            putchar('\n');
+            //fwrite(output.data(), 1, output.size(), stdout);
+            //putchar('\n');
         }
     }
 

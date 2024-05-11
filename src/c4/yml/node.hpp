@@ -197,12 +197,6 @@ public:
     /** @name node property getters */
     /** @{ */
 
-    /** returns the data or null when the id is NONE */
-    C4_ALWAYS_INLINE NodeData const* get() const RYML_NOEXCEPT { return ((Impl const*)this)->readable() ? tree_->get(id_) : nullptr; }
-    /** returns the data or null when the id is NONE */
-    template<class U=Impl>
-    C4_ALWAYS_INLINE auto get() RYML_NOEXCEPT -> _C4_IF_MUTABLE(NodeData*) { return ((Impl const*)this)->readable() ? tree__->get(id__) : nullptr; }
-
     C4_ALWAYS_INLINE NodeType    type()     const RYML_NOEXCEPT { _C4RR(); return tree_->type(id_); }     /**< Forward to @ref Tree::type_str(). Node must be readable. */
     C4_ALWAYS_INLINE const char* type_str() const RYML_NOEXCEPT { _C4RR(); return tree_->type_str(id_); } /**< Forward to @ref Tree::type_str(). Node must be readable. */
 
@@ -216,15 +210,17 @@ public:
     C4_ALWAYS_INLINE csubstr val_ref()    const RYML_NOEXCEPT { _C4RR(); return tree_->val_ref(id_); }    /**< Forward to @ref Tree::val_ref(). Node must be readable. */
     C4_ALWAYS_INLINE csubstr val_anchor() const RYML_NOEXCEPT { _C4RR(); return tree_->val_anchor(id_); } /**< Forward to @ref Tree::val_anchor(). Node must be readable. */
 
-    C4_ALWAYS_INLINE NodeScalar const& keysc() const RYML_NOEXCEPT { _C4RR(); return tree_->keysc(id_); } /**< Forward to @ref Tree::keysc(). Node must be readable. */
-    C4_ALWAYS_INLINE NodeScalar const& valsc() const RYML_NOEXCEPT { _C4RR(); return tree_->valsc(id_); } /**< Forward to @ref Tree::valsc(). Node must be readable. */
-
     C4_ALWAYS_INLINE bool key_is_null() const RYML_NOEXCEPT { _C4RR(); return tree_->key_is_null(id_); } /**< Forward to @ref Tree::key_is_null(). Node must be readable. */
     C4_ALWAYS_INLINE bool val_is_null() const RYML_NOEXCEPT { _C4RR(); return tree_->val_is_null(id_); } /**< Forward to @ref Tree::val_is_null(). Node must be readable. */
 
-    C4_ALWAYS_INLINE bool is_key_unfiltered() const noexcept { _C4RR(); return tree_->is_key_unfiltered(id_); } /**< Forward to @ref Tree::is_key_unfiltered(). Node must be readable. */
-    C4_ALWAYS_INLINE bool is_val_unfiltered() const noexcept { _C4RR(); return tree_->is_val_unfiltered(id_); } /**< Forward to @ref Tree::is_val_unfiltered(). Node must be readable. */
+    C4_ALWAYS_INLINE bool is_key_unfiltered() const RYML_NOEXCEPT { _C4RR(); return tree_->is_key_unfiltered(id_); } /**< Forward to @ref Tree::is_key_unfiltered(). Node must be readable. */
+    C4_ALWAYS_INLINE bool is_val_unfiltered() const RYML_NOEXCEPT { _C4RR(); return tree_->is_val_unfiltered(id_); } /**< Forward to @ref Tree::is_val_unfiltered(). Node must be readable. */
 
+    template<class U=Impl>
+    RYML_DEPRECATED("NodeData was removed") auto get() RYML_NOEXCEPT -> _C4_IF_MUTABLE(NodeData*);
+    RYML_DEPRECATED("NodeData was removed") NodeData const* get() const RYML_NOEXCEPT;
+    RYML_DEPRECATED("NodeScalar was removed") NodeScalar const& keysc() const RYML_NOEXCEPT;
+    RYML_DEPRECATED("NodeScalar was removed") NodeScalar const& valsc() const RYML_NOEXCEPT;
     /** @} */
 
 public:
@@ -751,9 +747,8 @@ public:
     C4_ALWAYS_INLINE auto siblings() RYML_NOEXCEPT -> _C4_IF_MUTABLE(children_view)
     {
         _C4RR();
-        NodeData const *nd = tree__->get(id__);
-        return (nd->m_parent != NONE) ? // does it have a parent?
-            children_view(iterator(tree__, tree_->get(nd->m_parent)->m_first_child), iterator(tree__, NONE))
+        return (tree_->parent(id__) != NONE) ? // does it have a parent?
+            children_view(iterator(tree__, tree_->first_sibling(id_)), iterator(tree__, NONE))
             :
             children_view(end(), end());
     }
@@ -761,9 +756,8 @@ public:
     C4_ALWAYS_INLINE const_children_view siblings() const RYML_NOEXCEPT
     {
         _C4RR();
-        NodeData const *nd = tree_->get(id_);
-        return (nd->m_parent != NONE) ? // does it have a parent?
-            const_children_view(const_iterator(tree_, tree_->get(nd->m_parent)->m_first_child), const_iterator(tree_, NONE))
+        return (tree__->parent(id__) != NONE) ? // does it have a parent?
+            const_children_view(const_iterator(tree_, tree_->first_sibling(id_)), const_iterator(tree_, NONE))
             :
             const_children_view(end(), end());
     }

@@ -203,9 +203,9 @@ TEST(emit_json, issue121)
 {
     csubstr json = R"({"string_value": "string","number_value": "9001","broken_value": "0.30.2"})";
     const Tree t = parse_json_in_arena(json);
-    EXPECT_TRUE(t["string_value"].get()->m_type.type & VAL_DQUO);
-    EXPECT_TRUE(t["number_value"].get()->m_type.type & VAL_DQUO);
-    EXPECT_TRUE(t["broken_value"].get()->m_type.type & VAL_DQUO);
+    EXPECT_TRUE(t["string_value"].type() & VAL_DQUO);
+    EXPECT_TRUE(t["number_value"].type() & VAL_DQUO);
+    EXPECT_TRUE(t["broken_value"].type() & VAL_DQUO);
     std::string out;
     emitrs_json(t, &out);
     EXPECT_EQ(out, json);

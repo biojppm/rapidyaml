@@ -3813,7 +3813,7 @@ bool ParseEngine<EventHandler>::_location_from_cont(Tree const& tree, id_type no
     _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, tree.is_container(node));
     if(!tree.is_stream(node))
     {
-        const char *node_start = tree._p(node)->m_val.scalar.str;  // this was stored in the container
+        const char *node_start = tree.m_val[node].str;  // this was stored in the container
         if(tree.has_children(node))
         {
             id_type child = tree.first_child(node);

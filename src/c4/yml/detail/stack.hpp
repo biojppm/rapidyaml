@@ -230,7 +230,7 @@ void stack<T, N>::_cp(stack const* C4_RESTRICT that)
         _RYML_CB_ASSERT(m_callbacks, that->m_capacity <= N);
         _RYML_CB_ASSERT(m_callbacks, that->m_size <= that->m_capacity);
     }
-    memcpy(m_stack, that->m_stack, that->m_size * sizeof(T));
+    memcpy(m_stack, that->m_stack, (size_t)that->m_size * sizeof(T));
     m_size = that->m_size;
     m_capacity = that->m_size < N ? N : that->m_size;
     m_callbacks = that->m_callbacks;
@@ -252,7 +252,7 @@ void stack<T, N>::_mv(stack * that)
     {
         _RYML_CB_ASSERT(m_callbacks, that->m_capacity <= N);
         _RYML_CB_ASSERT(m_callbacks, that->m_size <= that->m_capacity);
-        memcpy(m_buf, that->m_buf, that->m_size * sizeof(T));
+        memcpy(m_buf, that->m_buf, (size_t)that->m_size * sizeof(T));
         m_stack = m_buf;
     }
     m_size = that->m_size;

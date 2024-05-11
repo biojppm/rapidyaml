@@ -176,10 +176,8 @@ private:
 
 private:
 
-    void _write(NodeScalar const& C4_RESTRICT sc, NodeType flags, id_type level);
-    void _write_json(NodeScalar const& C4_RESTRICT sc, NodeType flags);
-
     void _write_doc(id_type id);
+    void _write_scalar(id_type id, csubstr const& C4_RESTRICT scalar, csubstr const* C4_RESTRICT tag, csubstr const* C4_RESTRICT anchor_ref, NodeType flags, id_type level);
     void _write_scalar_json_dquo(csubstr s);
     void _write_scalar_literal(csubstr s, id_type level, bool as_key);
     void _write_scalar_folded(csubstr s, id_type level, bool as_key);
@@ -198,17 +196,18 @@ private:
     }
 
     enum : type_bits {
-        _keysc =  (KEY|KEYREF|KEYANCH|KEYQUO|KEY_STYLE) | ~(VAL|VALREF|VALANCH|VALQUO|VAL_STYLE) | CONTAINER_STYLE,
-        _valsc = ~(KEY|KEYREF|KEYANCH|KEYQUO|KEY_STYLE) |  (VAL|VALREF|VALANCH|VALQUO|VAL_STYLE) | CONTAINER_STYLE,
+        _keysc =  (KEY|KEYREF|KEYANCH|KEYTAG|KEYQUO|KEY_STYLE) | ~(VAL|VALREF|VALANCH|VALTAG|VALQUO|VAL_STYLE) | CONTAINER_STYLE,
+        _valsc = ~(KEY|KEYREF|KEYANCH|KEYTAG|KEYQUO|KEY_STYLE) |  (VAL|VALREF|VALANCH|VALTAG|VALQUO|VAL_STYLE) | CONTAINER_STYLE,
         _keysc_json =  (KEY)  | ~(VAL),
         _valsc_json = ~(KEY)  |  (VAL),
     };
 
-    C4_ALWAYS_INLINE void _writek(id_type id, id_type level) { _write(m_tree->keysc(id), (m_tree->_p(id)->m_type.type & ~_valsc), level); }
-    C4_ALWAYS_INLINE void _writev(id_type id, id_type level) { _write(m_tree->valsc(id), (m_tree->_p(id)->m_type.type & ~_keysc), level); }
+    C4_ALWAYS_INLINE void _writek(id_type id, id_type level) { _write_scalar(id, m_tree->m_key[id], m_tree->m_key_tag, m_tree->m_key_anchor, m_tree->m_type[id] & ~_valsc, level); }
+    C4_ALWAYS_INLINE void _writev(id_type id, id_type level) { _write_scalar(id, m_tree->m_val[id], m_tree->m_val_tag, m_tree->m_val_anchor, m_tree->m_type[id] & ~_keysc, level); }
 
-    C4_ALWAYS_INLINE void _writek_json(id_type id) { _write_json(m_tree->keysc(id), m_tree->_p(id)->m_type.type & ~(VAL)); }
-    C4_ALWAYS_INLINE void _writev_json(id_type id) { _write_json(m_tree->valsc(id), m_tree->_p(id)->m_type.type & ~(KEY)); }
+    C4_ALWAYS_INLINE void _write_json(csubstr scalar, NodeType flags);
+    C4_ALWAYS_INLINE void _writek_json(id_type id) { _write_json(m_tree->m_key[id], m_tree->m_type[id] & ~(VAL)); }
+    C4_ALWAYS_INLINE void _writev_json(id_type id) { _write_json(m_tree->m_val[id], m_tree->m_type[id] & ~(KEY)); }
 
     void _indent(id_type level, bool enabled)
     {

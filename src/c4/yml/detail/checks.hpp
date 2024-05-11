@@ -34,7 +34,7 @@ inline void check_invariants(Tree const& t, id_type node)
         node = t.root_id();
     }
 
-    NodeData const& n = *t._p(node);
+    NodeRelation const& n = t.m_relation[node];
 #if defined(RYML_DBG) && 0
     if(n.m_first_child != NONE || n.m_last_child != NONE)
     {
@@ -55,7 +55,7 @@ inline void check_invariants(Tree const& t, id_type node)
     {
         C4_CHECK(t.has_child(n.m_parent, node));
 
-        auto const& p = *t._p(n.m_parent);
+        NodeRelation const& p = t.m_relation[n.m_parent];
         if(n.m_prev_sibling == NONE)
         {
             C4_CHECK(p.m_first_child == node);
@@ -91,13 +91,13 @@ inline void check_invariants(Tree const& t, id_type node)
     C4_CHECK(n.m_next_sibling != node);
     if(n.m_prev_sibling != NONE)
     {
-        C4_CHECK(t._p(n.m_prev_sibling)->m_next_sibling == node);
-        C4_CHECK(t._p(n.m_prev_sibling)->m_prev_sibling != node);
+        C4_CHECK(t.m_relation[n.m_prev_sibling].m_next_sibling == node);
+        C4_CHECK(t.m_relation[n.m_prev_sibling].m_prev_sibling != node);
     }
     if(n.m_next_sibling != NONE)
     {
-        C4_CHECK(t._p(n.m_next_sibling)->m_prev_sibling == node);
-        C4_CHECK(t._p(n.m_next_sibling)->m_next_sibling != node);
+        C4_CHECK(t.m_relation[n.m_next_sibling].m_prev_sibling == node);
+        C4_CHECK(t.m_relation[n.m_next_sibling].m_next_sibling != node);
     }
 
     id_type count = 0;
@@ -106,7 +106,7 @@ inline void check_invariants(Tree const& t, id_type node)
 #if defined(RYML_DBG) && 0
         printf("check(%zu):               descend to child[%zu]=%zu\n", node, count, i);
 #endif
-        auto const& ch = *t._p(i);
+        NodeRelation const& ch = t.m_relation[i];
         C4_CHECK(ch.m_parent == node);
         C4_CHECK(ch.m_next_sibling != i);
         ++count;
@@ -153,16 +153,16 @@ inline void check_free_list(Tree const& t)
     C4_CHECK(t.m_free_head >= 0 && t.m_free_head < t.m_cap);
     C4_CHECK(t.m_free_tail >= 0 && t.m_free_tail < t.m_cap);
 
-    auto const& head = *t._p(t.m_free_head);
-    //auto const& tail = *t._p(t.m_free_tail);
+    NodeRelation const& head = t.m_relation[t.m_free_head];
+    //NodeRelation const& tail = t.m_relation[t.m_free_tail];
 
     //C4_CHECK(head.m_prev_sibling == NONE);
     //C4_CHECK(tail.m_next_sibling == NONE);
 
     id_type count = 0;
-    for(id_type i = t.m_free_head, prev = NONE; i != NONE; i = t._p(i)->m_next_sibling)
+    for(id_type i = t.m_free_head, prev = NONE; i != NONE; i = t.m_relation[i].m_next_sibling)
     {
-        auto const& elm = *t._p(i);
+        NodeRelation const& elm = t.m_relation[i];
         if(&elm != &head)
         {
             C4_CHECK(elm.m_prev_sibling == prev);

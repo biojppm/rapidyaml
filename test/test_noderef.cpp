@@ -44,7 +44,6 @@ TEST(NodeRef, general)
     root["b"]["seq"].append_child({NodeScalar{"!!str", "3"}});
     auto ch4 = root["b"]["seq"][3].append_sibling({"4"});
     EXPECT_EQ(ch4.id(), root["b"]["seq"][4].id());
-    EXPECT_EQ(ch4.get(), root["b"]["seq"][4].get());
     EXPECT_EQ((type_bits)root["b"]["seq"][4].type(), (type_bits)VAL);
     EXPECT_EQ(root["b"]["seq"][4].val(), "4");
     root["b"]["seq"].append_sibling({NodeScalar{"!!str", "aaa"}, NodeScalar{"!!int", "0"}});
@@ -60,14 +59,14 @@ TEST(NodeRef, general)
     EXPECT_FALSE(seq2.is_seed());
     EXPECT_TRUE(seq2.is_seq());
     EXPECT_EQ(seq2.num_children(), 0);
-    EXPECT_EQ(root["b"]["seq2"].get(), seq2.get());
+    EXPECT_EQ(root["b"]["seq2"].id(), seq2.id());
     auto seq20 = seq2[0];
     EXPECT_TRUE(seq20.is_seed());
     EXPECT_TRUE(seq2[0].is_seed());
     EXPECT_EQ(seq2.num_children(), 0);
     EXPECT_TRUE(seq2[0].is_seed());
     EXPECT_TRUE(seq20.is_seed());
-    EXPECT_NE(seq.get(), seq2.get());
+    EXPECT_NE(seq.id(), seq2.id());
     seq20 = root["b"]["seq2"][0];
     EXPECT_TRUE(seq20.is_seed());
     root["b"]["seq2"][0] = "00";
@@ -242,7 +241,7 @@ TEST(NodeRef, valid_vs_seed_vs_readable)
 template<class NodeT>
 void test_fail_read(Tree *tree, NodeT node)
 {
-    _TEST_SUCCEED(tree, node.get())
+    _TEST_SUCCEED(tree, node.id())
     _TEST_FAIL(tree, node.type())
     _TEST_FAIL(tree, node.type_str())
     _TEST_FAIL(tree, node.key())
@@ -250,13 +249,11 @@ void test_fail_read(Tree *tree, NodeT node)
     _TEST_FAIL(tree, node.key_anchor())
     _TEST_FAIL(tree, node.key_ref())
     _TEST_FAIL(tree, node.key_is_null())
-    _TEST_FAIL(tree, node.keysc())
     _TEST_FAIL(tree, node.val())
     _TEST_FAIL(tree, node.val_tag())
     _TEST_FAIL(tree, node.val_anchor())
     _TEST_FAIL(tree, node.val_ref())
     _TEST_FAIL(tree, node.val_is_null())
-    _TEST_FAIL(tree, node.valsc())
     _TEST_FAIL(tree, node.is_map())
     _TEST_FAIL(tree, node.empty())
     _TEST_FAIL(tree, node.is_stream())
@@ -784,9 +781,9 @@ TEST(NodeRef, move_in_same_parent)
     //printf("fonix"); print_tree(t); emit_yaml(r);
     r[0].move(r[1]);
     //printf("fonix"); print_tree(t); emit_yaml(r);
-    EXPECT_EQ(r[0].get(), m.get());
+    EXPECT_EQ(r[0].id(), m.id());
     EXPECT_EQ(r[0].num_children(), map2.size());
-    EXPECT_EQ(r[1].get(), s.get());
+    EXPECT_EQ(r[1].id(), s.id());
     EXPECT_EQ(r[1].num_children(), vec2.size());
     test_invariants(t);
 }
@@ -838,11 +835,11 @@ TEST(NodeRef, move_to_other_parent)
     r.append_child() << "elm2";
     r.append_child() << "elm3";
 
-    NodeData *elm2 = r[2].get();
+    id_type elm2 = r[2].id();
     EXPECT_EQ(r[2].val(), "elm2");
     //printf("fonix"); print_tree(t); emit_yaml(r);
     r[2].move(r[0], r[0][0]);
-    EXPECT_EQ(r[0][1].get(), elm2);
+    EXPECT_EQ(r[0][1].id(), elm2);
     EXPECT_EQ(r[0][1].val(), "elm2");
     //printf("fonix"); print_tree(t); emit_yaml(r);
     test_invariants(t);
@@ -1118,13 +1115,13 @@ TEST(NodeRef, vsConstNodeRef)
     // mseq = seq; // deliberate compilation error
     seq = mseq; // ok
     {
-        NodeData *nd = mseq.get();
-        // nd = seq.get(); // deliberate compile error
+        id_type nd = mseq.id();
+        // nd = seq.id(); // deliberate compile error
         C4_UNUSED(nd);
     }
     {
-        NodeData const* nd = seq.get();
-        nd = seq.get(); // ok
+        id_type nd = seq.id();
+        nd = seq.id(); // ok
         C4_UNUSED(nd);
     }
     test_invariants(t);
@@ -1149,8 +1146,8 @@ TEST(NodeRef, overload_sets)
     ConstNodeRef const cn = t;
     // get()
     {
-        EXPECT_EQ(n["iseq"].get(), nc["iseq"].get());
-        EXPECT_EQ(n["iseq"].get(), cn["iseq"].get());
+        EXPECT_EQ(n["iseq"].id(), nc["iseq"].id());
+        EXPECT_EQ(n["iseq"].id(), cn["iseq"].id());
     }
     // parent()
     {

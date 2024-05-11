@@ -127,23 +127,31 @@ void test_compare(Tree const& actual, id_type node_actual,
 
 void test_arena_not_shared(Tree const& a, Tree const& b)
 {
-    for(NodeData const* n = a.m_buf, *e = a.m_buf + a.m_cap; n != e; ++n)
+    for(id_type id = 0; id < a.m_cap; ++id)
     {
-        EXPECT_FALSE(b.in_arena(n->m_key.scalar)) << n - a.m_buf;
-        EXPECT_FALSE(b.in_arena(n->m_key.tag   )) << n - a.m_buf;
-        EXPECT_FALSE(b.in_arena(n->m_key.anchor)) << n - a.m_buf;
-        EXPECT_FALSE(b.in_arena(n->m_val.scalar)) << n - a.m_buf;
-        EXPECT_FALSE(b.in_arena(n->m_val.tag   )) << n - a.m_buf;
-        EXPECT_FALSE(b.in_arena(n->m_val.anchor)) << n - a.m_buf;
+        SCOPED_TRACE(id);
+        NodeType type = a.m_type[id];
+        if(type & KEY    ) { EXPECT_FALSE(b.in_arena(a.m_key[id])); }
+        if(type & KEYTAG ) { EXPECT_FALSE(b.in_arena(a.m_key_tag[id])); }
+        if(type & KEYANCH) { EXPECT_FALSE(b.in_arena(a.m_key_anchor[id])); }
+        if(type & KEYREF ) { EXPECT_FALSE(b.in_arena(a.m_key_anchor[id])); }
+        if(type & VAL    ) { EXPECT_FALSE(b.in_arena(a.m_val[id])); }
+        if(type & VALTAG ) { EXPECT_FALSE(b.in_arena(a.m_val_tag[id])); }
+        if(type & VALANCH) { EXPECT_FALSE(b.in_arena(a.m_val_anchor[id])); }
+        if(type & VALREF ) { EXPECT_FALSE(b.in_arena(a.m_val_anchor[id])); }
     }
-    for(NodeData const* n = b.m_buf, *e = b.m_buf + b.m_cap; n != e; ++n)
+    for(id_type id = 0; id < b.m_cap; ++id)
     {
-        EXPECT_FALSE(a.in_arena(n->m_key.scalar)) << n - b.m_buf;
-        EXPECT_FALSE(a.in_arena(n->m_key.tag   )) << n - b.m_buf;
-        EXPECT_FALSE(a.in_arena(n->m_key.anchor)) << n - b.m_buf;
-        EXPECT_FALSE(a.in_arena(n->m_val.scalar)) << n - b.m_buf;
-        EXPECT_FALSE(a.in_arena(n->m_val.tag   )) << n - b.m_buf;
-        EXPECT_FALSE(a.in_arena(n->m_val.anchor)) << n - b.m_buf;
+        SCOPED_TRACE(id);
+        NodeType type = b.m_type[id];
+        if(type & KEY    ) { EXPECT_FALSE(a.in_arena(b.m_key[id])); }
+        if(type & KEYTAG ) { EXPECT_FALSE(a.in_arena(b.m_key_tag[id])); }
+        if(type & KEYANCH) { EXPECT_FALSE(a.in_arena(b.m_key_anchor[id])); }
+        if(type & KEYREF ) { EXPECT_FALSE(a.in_arena(b.m_key_anchor[id])); }
+        if(type & VAL    ) { EXPECT_FALSE(a.in_arena(b.m_val[id])); }
+        if(type & VALTAG ) { EXPECT_FALSE(a.in_arena(b.m_val_tag[id])); }
+        if(type & VALANCH) { EXPECT_FALSE(a.in_arena(b.m_val_anchor[id])); }
+        if(type & VALREF ) { EXPECT_FALSE(a.in_arena(b.m_val_anchor[id])); }
     }
     for(TagDirective const& td : a.m_tag_directives)
     {
@@ -480,7 +488,7 @@ void test_invariants(ConstNodeRef const& n)
             EXPECT_TRUE(n.has_sibling(s.key()));
             EXPECT_TRUE(s.has_sibling(n.key()));
         }
-        EXPECT_EQ(s.parent().get(), n.parent().get());
+        EXPECT_EQ(s.parent().id(), n.parent().id());
     }
     if(n.parent().readable())
     {
@@ -551,22 +559,21 @@ void test_invariants(ConstNodeRef const& n)
 
 size_t test_tree_invariants(ConstNodeRef const& n)
 {
-    auto parent = n.parent();
-
-    if(n.get()->m_prev_sibling == NONE)
+    ConstNodeRef parent = n.parent();
+    Tree const& t = *n.tree();
+    id_type id = n.id();
+    if(t.m_relation[id].m_prev_sibling == NONE)
     {
         if(parent.readable())
         {
-            EXPECT_EQ(parent.first_child().get(), n.get());
             EXPECT_EQ(parent.first_child().id(), n.id());
         }
     }
 
-    if(n.get()->m_next_sibling == NONE)
+    if(t.m_relation[id].m_next_sibling == NONE)
     {
         if(parent.readable())
         {
-            EXPECT_EQ(parent.last_child().get(), n.get());
             EXPECT_EQ(parent.last_child().id(), n.id());
         }
     }
@@ -574,8 +581,8 @@ size_t test_tree_invariants(ConstNodeRef const& n)
     if(!parent.readable())
     {
         EXPECT_TRUE(n.is_root());
-        EXPECT_EQ(n.prev_sibling().get(), nullptr);
-        EXPECT_EQ(n.next_sibling().get(), nullptr);
+        EXPECT_EQ(n.prev_sibling().id(), NONE);
+        EXPECT_EQ(n.next_sibling().id(), NONE);
     }
 
     size_t count = 1, num = 0;
