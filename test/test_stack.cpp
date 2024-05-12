@@ -13,7 +13,7 @@ namespace c4 {
 namespace yml {
 
 C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
-C4_SUPPRESS_WARNING_GCC_CLANG("-Wuseless-cast")
+C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
 
 namespace detail {
 

@@ -249,10 +249,10 @@ public:
     ~Tree();
 
     Tree(Tree const& that);
-    Tree(Tree     && that);
+    Tree(Tree     && that) noexcept;
 
     Tree& operator= (Tree const& that);
-    Tree& operator= (Tree     && that);
+    Tree& operator= (Tree     && that) RYML_NOEXCEPT;
 
     /** @} */
 
@@ -1019,6 +1019,7 @@ private:
 
     substr _request_span(size_t sz)
     {
+        _RYML_CB_ASSERT(m_callbacks, m_arena_pos + sz <= m_arena.len);
         substr s;
         s = m_arena.sub(m_arena_pos, sz);
         m_arena_pos += sz;
@@ -1029,7 +1030,7 @@ private:
     {
         _RYML_CB_ASSERT(m_callbacks, m_arena.is_super(s));
         _RYML_CB_ASSERT(m_callbacks, m_arena.sub(0, m_arena_pos).is_super(s));
-        auto pos = (s.str - m_arena.str);
+        auto pos = (s.str - m_arena.str); // this is larger than 0 based on the assertions above
         substr r(next_arena.str + pos, s.len);
         _RYML_CB_ASSERT(m_callbacks, r.str - next_arena.str == pos);
         _RYML_CB_ASSERT(m_callbacks, next_arena.sub(0, m_arena_pos).is_super(r));
@@ -1105,7 +1106,7 @@ private:
     void _clear();
     void _free();
     void _copy(Tree const& that);
-    void _move(Tree      & that);
+    void _move(Tree      & that) noexcept;
 
     void _relocate(substr next_arena);
 

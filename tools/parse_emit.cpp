@@ -15,6 +15,8 @@ using namespace c4;
 
 
 C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
+C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
+
 
 //-----------------------------------------------------------------------------
 
