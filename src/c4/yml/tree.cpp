@@ -119,12 +119,12 @@ Tree& Tree::operator= (Tree const& that)
     return *this;
 }
 
-Tree::Tree(Tree && that) : Tree(that.m_callbacks)
+Tree::Tree(Tree && that) noexcept : Tree(that.m_callbacks)
 {
     _move(that);
 }
 
-Tree& Tree::operator= (Tree && that)
+Tree& Tree::operator= (Tree && that) RYML_NOEXCEPT
 {
     _free();
     m_callbacks = that.m_callbacks;
@@ -195,7 +195,7 @@ void Tree::_copy(Tree const& that)
         m_tag_directives[i] = that.m_tag_directives[i];
 }
 
-void Tree::_move(Tree & that)
+void Tree::_move(Tree & that) noexcept
 {
     _RYML_CB_ASSERT(m_callbacks, m_buf == nullptr);
     _RYML_CB_ASSERT(m_callbacks, m_arena.str == nullptr);
