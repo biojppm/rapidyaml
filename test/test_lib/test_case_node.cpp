@@ -126,7 +126,6 @@ void TestCaseNode::compare_child(yml::ConstNodeRef const& n, id_type pos) const
     if(type & SEQ)
     {
         EXPECT_FALSE(n[pos].has_key());
-        EXPECT_EQ(n[pos].key(), children[(size_t)pos].key);
         ConstNodeRef actualch = n.child(pos);
         SCOPED_TRACE(actualch.id());
         EXPECT_EQ(actualch.id(), n[pos].id());

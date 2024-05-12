@@ -573,7 +573,7 @@ void Tree::_set_hierarchy(id_type ichild, id_type iparent, id_type iprev_sibling
     if(iprev_sibling != NONE)
     {
         psib = &m_relation[iprev_sibling];
-        _RYML_CB_ASSERT(m_callbacks, next_sibling(iprev_sibling) == NONE);
+        _RYML_CB_ASSERT(m_callbacks, next_sibling(iprev_sibling) == inext_sibling);
         child->m_prev_sibling = iprev_sibling;
         psib->m_next_sibling = ichild;
         _RYML_CB_ASSERT(m_callbacks, psib->m_prev_sibling != psib->m_next_sibling || psib->m_prev_sibling == NONE);

@@ -302,26 +302,31 @@ public:
      */
     void actually_val_is_first_key_of_new_map_flow()
     {
-        const id_type id = m_curr->node_id;
+        _c4dbgpf("node[{}]: actually first key of new map. parent={}", m_curr->node_id, m_parent ? m_parent->node_id : NONE);
+        id_type id = m_curr->node_id;
         if(C4_UNLIKELY(m_tree->is_container(id)))
             _RYML_CB_ERR_(m_stack.m_callbacks, "ryml trees cannot handle containers as keys", m_curr->pos);
         _RYML_CB_ASSERT(m_stack.m_callbacks, m_parent);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_seq(id));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_seq(m_parent->node_id));
         _RYML_CB_ASSERT(m_stack.m_callbacks, !m_tree->is_container(id));
         _RYML_CB_ASSERT(m_stack.m_callbacks, !m_tree->has_key(id));
         // save type and val before changing the tree
         NodeType type = m_tree->m_type[id];
         const csubstr val = m_tree->m_val[id];
+        const csubstr tag = m_tree->m_val_tag[id];
+        const csubstr anc = m_tree->m_val_anchor[id];
         static_assert((_VALMASK >> 1u) == _KEYMASK, "required for this function to work");
         static_assert((VAL_STYLE >> 1u) == KEY_STYLE, "required for this function to work");
         type = ((type & (_VALMASK|VAL_STYLE)) >> 1u);
         type = (type & ~(_VALMASK|VAL_STYLE));
         type = (type | KEY);
         _disable_(_VALMASK|VAL_STYLE);
-        m_tree->m_val[id].clear();
         begin_map_val_flow();
+        id = m_curr->node_id;
         m_tree->m_type[id] = type;
         m_tree->m_key[id] = val;
+        m_tree->m_key_tag[id] = tag;
+        m_tree->m_key_anchor[id] = anc;
     }
 
     /** like its flow counterpart, but this function can only be
