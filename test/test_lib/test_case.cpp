@@ -562,7 +562,7 @@ size_t test_tree_invariants(ConstNodeRef const& n)
     ConstNodeRef parent = n.parent();
     Tree const& t = *n.tree();
     id_type id = n.id();
-    if(t.m_relation[id].m_prev_sibling == NONE)
+    if(t.m_prev_sibling[id] == NONE)
     {
         if(parent.readable())
         {
@@ -570,7 +570,7 @@ size_t test_tree_invariants(ConstNodeRef const& n)
         }
     }
 
-    if(t.m_relation[id].m_next_sibling == NONE)
+    if(t.m_next_sibling[id] == NONE)
     {
         if(parent.readable())
         {

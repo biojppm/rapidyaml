@@ -13,6 +13,7 @@ namespace c4 {
 namespace yml {
 
 #define _ryml_num_val_arrays (size_t(6u))
+#define _ryml_num_hcy_arrays (size_t(5u))
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -82,8 +83,8 @@ ConstNodeRef Tree::cdocref(id_type i) const
 
 //-----------------------------------------------------------------------------
 
-// the tree's node data arrays are allocated all into a single buffer.
-// these utilities help doing that.
+// the tree's node data and hierarchy arrays are allocated all into a
+// single buffer. these utilities help doing that.
 namespace {
 template<class T>
 bool _is_aligned(T const* ptr)
@@ -108,9 +109,9 @@ struct node_buf_data
         size_for_val_align = _get_padding(size_for_type, alignof(csubstr));
         val_start = size_for_type + size_for_val_align;
         size_for_val = _ryml_num_val_arrays * new_cap * sizeof(csubstr);
-        size_for_rel_align = _get_padding(val_start + size_for_val, alignof(NodeRelation));
+        size_for_rel_align = _get_padding(val_start + size_for_val, alignof(id_type));
         rel_start = val_start + size_for_val + size_for_rel_align;
-        size_for_rel = new_cap * sizeof(NodeRelation);
+        size_for_rel = _ryml_num_val_arrays * new_cap * sizeof(id_type);
         total_size = rel_start + size_for_rel;
     }
     size_t size_for_type;
@@ -132,20 +133,28 @@ C4_NO_INLINE void _resize_node_data(Callbacks const& cb,
                                     csubstr      *C4_RESTRICT * m_key,
                                     csubstr      *C4_RESTRICT * m_key_tag,
                                     csubstr      *C4_RESTRICT * m_key_anchor,
-                                    NodeRelation *C4_RESTRICT * m_relation)
+                                    id_type      *C4_RESTRICT * m_parent,
+                                    id_type      *C4_RESTRICT * m_first_child,
+                                    id_type      *C4_RESTRICT * m_last_child,
+                                    id_type      *C4_RESTRICT * m_prev_sibling,
+                                    id_type      *C4_RESTRICT * m_next_sibling)
 {
     _RYML_CB_ASSERT(cb, new_cap > 0);
     const node_buf_data newsz(new_cap);
     uint8_t *buf = _RYML_CB_ALLOC_HINT(cb, uint8_t, (size_t)newsz.total_size, *m_type);
     _RYML_CB_CHECK(cb, buf != nullptr);
-    NodeType *type      = reinterpret_cast<NodeType*>(buf);
-    csubstr *val        = reinterpret_cast<csubstr*>(buf + newsz.val_start);
-    csubstr *val_tag    = reinterpret_cast<csubstr*>(buf + newsz.val_start + 1 * new_cap * sizeof(csubstr));
-    csubstr *val_anchor = reinterpret_cast<csubstr*>(buf + newsz.val_start + 2 * new_cap * sizeof(csubstr));
-    csubstr *key        = reinterpret_cast<csubstr*>(buf + newsz.val_start + 3 * new_cap * sizeof(csubstr));
-    csubstr *key_tag    = reinterpret_cast<csubstr*>(buf + newsz.val_start + 4 * new_cap * sizeof(csubstr));
-    csubstr *key_anchor = reinterpret_cast<csubstr*>(buf + newsz.val_start + 5 * new_cap * sizeof(csubstr));
-    NodeRelation *rel   = reinterpret_cast<NodeRelation*>(buf + newsz.rel_start);
+    NodeType *type        = reinterpret_cast<NodeType*>(buf);
+    csubstr *val          = reinterpret_cast<csubstr*>(buf + newsz.val_start);
+    csubstr *val_tag      = reinterpret_cast<csubstr*>(buf + newsz.val_start + 1 * new_cap * sizeof(csubstr));
+    csubstr *val_anchor   = reinterpret_cast<csubstr*>(buf + newsz.val_start + 2 * new_cap * sizeof(csubstr));
+    csubstr *key          = reinterpret_cast<csubstr*>(buf + newsz.val_start + 3 * new_cap * sizeof(csubstr));
+    csubstr *key_tag      = reinterpret_cast<csubstr*>(buf + newsz.val_start + 4 * new_cap * sizeof(csubstr));
+    csubstr *key_anchor   = reinterpret_cast<csubstr*>(buf + newsz.val_start + 5 * new_cap * sizeof(csubstr));
+    id_type *parent       = reinterpret_cast<id_type*>(buf + newsz.rel_start + 0 * new_cap * sizeof(id_type));
+    id_type *first_child  = reinterpret_cast<id_type*>(buf + newsz.rel_start + 1 * new_cap * sizeof(id_type));
+    id_type *last_child   = reinterpret_cast<id_type*>(buf + newsz.rel_start + 2 * new_cap * sizeof(id_type));
+    id_type *prev_sibling = reinterpret_cast<id_type*>(buf + newsz.rel_start + 3 * new_cap * sizeof(id_type));
+    id_type *next_sibling = reinterpret_cast<id_type*>(buf + newsz.rel_start + 4 * new_cap * sizeof(id_type));
     _RYML_CB_ASSERT(cb, _is_aligned(type));
     _RYML_CB_ASSERT(cb, _is_aligned(val));
     _RYML_CB_ASSERT(cb, _is_aligned(val_tag));
@@ -153,7 +162,11 @@ C4_NO_INLINE void _resize_node_data(Callbacks const& cb,
     _RYML_CB_ASSERT(cb, _is_aligned(key));
     _RYML_CB_ASSERT(cb, _is_aligned(key_tag));
     _RYML_CB_ASSERT(cb, _is_aligned(key_anchor));
-    _RYML_CB_ASSERT(cb, _is_aligned(rel));
+    _RYML_CB_ASSERT(cb, _is_aligned(parent));
+    _RYML_CB_ASSERT(cb, _is_aligned(first_child));
+    _RYML_CB_ASSERT(cb, _is_aligned(last_child));
+    _RYML_CB_ASSERT(cb, _is_aligned(prev_sibling));
+    _RYML_CB_ASSERT(cb, _is_aligned(next_sibling));
     if(old_cap)
     {
         memcpy(type, *m_type, old_cap * sizeof(NodeType));
@@ -163,7 +176,11 @@ C4_NO_INLINE void _resize_node_data(Callbacks const& cb,
         memcpy(key, *m_key, old_cap * sizeof(csubstr));
         memcpy(key_tag, *m_key_tag, old_cap * sizeof(csubstr));
         memcpy(key_anchor, *m_key_anchor, old_cap * sizeof(csubstr));
-        memcpy(rel, *m_relation, old_cap * sizeof(NodeRelation));
+        memcpy(parent, *m_parent, old_cap * sizeof(id_type));
+        memcpy(first_child, *m_first_child, old_cap * sizeof(id_type));
+        memcpy(last_child, *m_last_child, old_cap * sizeof(id_type));
+        memcpy(prev_sibling, *m_prev_sibling, old_cap * sizeof(id_type));
+        memcpy(next_sibling, *m_next_sibling, old_cap * sizeof(id_type));
         const node_buf_data oldsz(old_cap);
         _RYML_CB_FREE(cb, *m_type, uint8_t, oldsz.total_size);
     }
@@ -174,7 +191,11 @@ C4_NO_INLINE void _resize_node_data(Callbacks const& cb,
     *m_key = key;
     *m_key_tag = key_tag;
     *m_key_anchor = key_anchor;
-    *m_relation = rel;
+    *m_parent = parent;
+    *m_first_child = first_child;
+    *m_last_child = last_child;
+    *m_prev_sibling = prev_sibling;
+    *m_next_sibling = next_sibling;
 }
 } // namespace
 
@@ -188,7 +209,11 @@ Tree::Tree(Callbacks const& cb)
     , m_key(nullptr)
     , m_key_tag(nullptr)
     , m_key_anchor(nullptr)
-    , m_relation(nullptr)
+    , m_parent(nullptr)
+    , m_first_child(nullptr)
+    , m_last_child(nullptr)
+    , m_prev_sibling(nullptr)
+    , m_next_sibling(nullptr)
     , m_cap(0)
     , m_size(0)
     , m_free_head(NONE)
@@ -244,7 +269,7 @@ void Tree::_free()
     if(m_type) // allocated for everything
     {
         _RYML_CB_ASSERT(m_callbacks, m_cap > 0);
-        const node_buf_data oldsz(m_cap);
+        const node_buf_data oldsz((size_t)m_cap);
         _RYML_CB_FREE(m_callbacks, m_type, uint8_t, oldsz.total_size);
     }
     if(m_arena.str)
@@ -264,7 +289,11 @@ void Tree::_clear()
     m_key = nullptr;
     m_key_tag = nullptr;
     m_key_anchor = nullptr;
-    m_relation = nullptr;
+    m_parent = nullptr;
+    m_first_child = nullptr;
+    m_last_child = nullptr;
+    m_prev_sibling = nullptr;
+    m_next_sibling = nullptr;
     m_cap = 0;
     m_size = 0;
     m_free_head = 0;
@@ -284,14 +313,18 @@ void Tree::_copy(Tree const& that)
     _RYML_CB_ASSERT(m_callbacks, m_key == nullptr);
     _RYML_CB_ASSERT(m_callbacks, m_key_tag == nullptr);
     _RYML_CB_ASSERT(m_callbacks, m_key_anchor == nullptr);
-    _RYML_CB_ASSERT(m_callbacks, m_relation == nullptr);
+    _RYML_CB_ASSERT(m_callbacks, m_parent == nullptr);
+    _RYML_CB_ASSERT(m_callbacks, m_first_child == nullptr);
+    _RYML_CB_ASSERT(m_callbacks, m_last_child == nullptr);
+    _RYML_CB_ASSERT(m_callbacks, m_prev_sibling == nullptr);
+    _RYML_CB_ASSERT(m_callbacks, m_next_sibling == nullptr);
     _RYML_CB_ASSERT(m_callbacks, m_arena.str == nullptr);
     _RYML_CB_ASSERT(m_callbacks, m_arena.len == 0);
     if(that.m_cap)
     {
         _resize_node_data(m_callbacks,
-                          0,
-                          that.m_cap,
+                          (size_t)0,
+                          (size_t)that.m_cap,
                           &m_type,
                           &m_val,
                           &m_val_tag,
@@ -299,10 +332,14 @@ void Tree::_copy(Tree const& that)
                           &m_key,
                           &m_key_tag,
                           &m_key_anchor,
-                          &m_relation);
+                          &m_parent,
+                          &m_first_child,
+                          &m_last_child,
+                          &m_prev_sibling,
+                          &m_next_sibling);
         memcpy(m_type, that.m_type, (size_t)that.m_cap * sizeof(NodeType));
-        memcpy(m_val, that.m_val, (size_t)that.m_cap * _ryml_num_val_arrays * sizeof(csubstr));
-        memcpy(m_relation, that.m_relation, (size_t)that.m_cap * sizeof(NodeRelation));
+        memcpy(m_val, that.m_val, _ryml_num_val_arrays * (size_t)that.m_cap * sizeof(csubstr));
+        memcpy(m_parent, that.m_parent, _ryml_num_hcy_arrays * (size_t)that.m_cap * sizeof(id_type));
         m_cap = that.m_cap;
         m_size = that.m_size;
         m_free_head = that.m_free_head;
@@ -332,7 +369,11 @@ void Tree::_move(Tree & that) noexcept
     _RYML_CB_ASSERT(m_callbacks, m_key == nullptr);
     _RYML_CB_ASSERT(m_callbacks, m_key_tag == nullptr);
     _RYML_CB_ASSERT(m_callbacks, m_key_anchor == nullptr);
-    _RYML_CB_ASSERT(m_callbacks, m_relation == nullptr);
+    _RYML_CB_ASSERT(m_callbacks, m_parent == nullptr);
+    _RYML_CB_ASSERT(m_callbacks, m_first_child == nullptr);
+    _RYML_CB_ASSERT(m_callbacks, m_last_child == nullptr);
+    _RYML_CB_ASSERT(m_callbacks, m_prev_sibling == nullptr);
+    _RYML_CB_ASSERT(m_callbacks, m_next_sibling == nullptr);
     _RYML_CB_ASSERT(m_callbacks, m_arena.str == nullptr);
     _RYML_CB_ASSERT(m_callbacks, m_arena.len == 0);
     m_type = that.m_type;
@@ -342,7 +383,11 @@ void Tree::_move(Tree & that) noexcept
     m_key = that.m_key;
     m_key_tag = that.m_key_tag;
     m_key_anchor = that.m_key_anchor;
-    m_relation = that.m_relation;
+    m_parent = that.m_parent;
+    m_first_child = that.m_first_child;
+    m_last_child = that.m_last_child;
+    m_prev_sibling = that.m_prev_sibling;
+    m_next_sibling = that.m_next_sibling;
     m_cap = that.m_cap;
     m_size = that.m_size;
     m_free_head = that.m_free_head;
@@ -407,7 +452,11 @@ void Tree::reserve(id_type cap)
                           &m_key,
                           &m_key_tag,
                           &m_key_anchor,
-                          &m_relation);
+                          &m_parent,
+                          &m_first_child,
+                          &m_last_child,
+                          &m_prev_sibling,
+                          &m_next_sibling);
         id_type first = m_cap;
         id_type del   = cap - m_cap;
         m_cap         = cap;
@@ -416,8 +465,8 @@ void Tree::reserve(id_type cap)
         {
             _RYML_CB_ASSERT(m_callbacks, m_val != nullptr);
             _RYML_CB_ASSERT(m_callbacks, m_free_tail != NONE);
-            m_relation[m_free_tail].m_next_sibling = first;
-            m_relation[first].m_prev_sibling = m_free_tail;
+            m_next_sibling[m_free_tail] = first;
+            m_prev_sibling[first] = m_free_tail;
             m_free_tail = cap-1;
         }
         else
@@ -472,10 +521,10 @@ void Tree::_clear_range(id_type first, id_type num)
     for(id_type i = first, e = first + num; i < e; ++i)
     {
         _clear(i);
-        m_relation[i].m_prev_sibling = i - 1;
-        m_relation[i].m_next_sibling = i + 1;
+        m_prev_sibling[i] = i - 1;
+        m_next_sibling[i] = i + 1;
     }
-    m_relation[first + num - 1].m_next_sibling = NONE;
+    m_next_sibling[first + num - 1] = NONE;
     // we don't need to clear the node data
 }
 
@@ -495,12 +544,11 @@ void Tree::_release(id_type i)
 void Tree::_free_list_add(id_type i)
 {
     _RYML_CB_ASSERT(m_callbacks, i >= 0 && i < m_cap);
-    NodeRelation &C4_RESTRICT w = m_relation[i];
-    w.m_parent = NONE;
-    w.m_next_sibling = m_free_head;
-    w.m_prev_sibling = NONE;
+    m_parent[i] = NONE;
+    m_next_sibling[i] = m_free_head;
+    m_prev_sibling[i] = NONE;
     if(m_free_head != NONE)
-        m_relation[m_free_head].m_prev_sibling = i;
+        m_prev_sibling[m_free_head] = i;
     m_free_head = i;
     if(m_free_tail == NONE)
         m_free_tail = m_free_head;
@@ -510,7 +558,7 @@ void Tree::_free_list_rem(id_type i)
 {
     _RYML_CB_ASSERT(m_callbacks, i >= 0 && i < m_cap);
     if(m_free_head == i)
-        m_free_head = m_relation[i].m_next_sibling;
+        m_free_head = m_next_sibling[i];
     _rem_hierarchy(i);
 }
 
@@ -528,7 +576,7 @@ id_type Tree::_claim()
     _RYML_CB_ASSERT(m_callbacks, m_free_head >= 0 && m_free_head < m_cap);
     const id_type ichild = m_free_head;
     ++m_size;
-    m_free_head = m_relation[ichild].m_next_sibling;
+    m_free_head = m_next_sibling[ichild];
     if(m_free_head == NONE)
     {
         m_free_tail = NONE;
@@ -553,52 +601,47 @@ C4_SUPPRESS_WARNING_GCC("-Wanalyzer-fd-leak")
 #endif
 #endif
 
-void Tree::_set_hierarchy(id_type ichild, id_type iparent, id_type iprev_sibling)
+void Tree::_set_hierarchy(id_type child, id_type parent, id_type iprev_sibling)
 {
-    _RYML_CB_ASSERT(m_callbacks, m_relation != nullptr);
-    _RYML_CB_ASSERT(m_callbacks, ichild >= 0 && ichild < m_cap);
-    _RYML_CB_ASSERT(m_callbacks, iparent == NONE || (iparent >= 0 && iparent < m_cap));
+    _RYML_CB_ASSERT(m_callbacks, m_cap > 0);
+    _RYML_CB_ASSERT(m_callbacks, m_parent != nullptr);
+    _RYML_CB_ASSERT(m_callbacks, child >= 0 && child < m_cap);
+    _RYML_CB_ASSERT(m_callbacks, parent == NONE || (parent >= 0 && parent < m_cap));
     _RYML_CB_ASSERT(m_callbacks, iprev_sibling == NONE || (iprev_sibling >= 0 && iprev_sibling < m_cap));
-    NodeRelation *C4_RESTRICT child = &m_relation[ichild];
-    child->m_parent = iparent;
-    child->m_prev_sibling = NONE;
-    child->m_next_sibling = NONE;
-    _RYML_CB_ASSERT(m_callbacks, iparent != NONE || ichild == 0);
-    _RYML_CB_ASSERT(m_callbacks, iparent != NONE || iprev_sibling == NONE);
-    if(iparent == NONE)
+    m_parent[child] = parent;
+    m_prev_sibling[child] = NONE;
+    m_next_sibling[child] = NONE;
+    _RYML_CB_ASSERT(m_callbacks, parent != NONE || child == 0);
+    _RYML_CB_ASSERT(m_callbacks, parent != NONE || iprev_sibling == NONE);
+    if(parent == NONE)
         return;
-    id_type inext_sibling = iprev_sibling != NONE ? next_sibling(iprev_sibling) : first_child(iparent);
-    NodeRelation *C4_RESTRICT psib = nullptr;
-    NodeRelation *C4_RESTRICT nsib = nullptr;
+    id_type inext_sibling = iprev_sibling != NONE ? next_sibling(iprev_sibling) : first_child(parent);
     if(iprev_sibling != NONE)
     {
-        psib = &m_relation[iprev_sibling];
         _RYML_CB_ASSERT(m_callbacks, next_sibling(iprev_sibling) == inext_sibling);
-        child->m_prev_sibling = iprev_sibling;
-        psib->m_next_sibling = ichild;
-        _RYML_CB_ASSERT(m_callbacks, psib->m_prev_sibling != psib->m_next_sibling || psib->m_prev_sibling == NONE);
+        m_prev_sibling[child] = iprev_sibling;
+        m_next_sibling[iprev_sibling] = child;
+        _RYML_CB_ASSERT(m_callbacks, m_prev_sibling[iprev_sibling] != m_next_sibling[iprev_sibling] || m_prev_sibling[iprev_sibling] == NONE);
     }
     if(inext_sibling != NONE)
     {
-        nsib = &m_relation[inext_sibling];
         _RYML_CB_ASSERT(m_callbacks, prev_sibling(inext_sibling) == iprev_sibling);
-        child->m_next_sibling = inext_sibling;
-        nsib->m_prev_sibling = ichild;
-        _RYML_CB_ASSERT(m_callbacks, nsib->m_prev_sibling != nsib->m_next_sibling || nsib->m_prev_sibling == NONE);
+        m_next_sibling[child] = inext_sibling;
+        m_prev_sibling[inext_sibling] = child;
+        _RYML_CB_ASSERT(m_callbacks, m_prev_sibling[inext_sibling] != m_next_sibling[inext_sibling] || m_prev_sibling[inext_sibling]);
     }
-    NodeRelation *C4_RESTRICT parent = &m_relation[iparent];
-    if(parent->m_first_child != NONE)
+    if(m_first_child[parent] != NONE)
     {
-        if(child->m_next_sibling == parent->m_first_child)
-            parent->m_first_child = ichild;
-        if(child->m_prev_sibling == parent->m_last_child)
-            parent->m_last_child = ichild;
+        if(m_next_sibling[child] == m_first_child[parent])
+            m_first_child[parent] = child;
+        if(m_prev_sibling[child] == m_last_child[parent])
+            m_last_child[parent] = child;
     }
     else
     {
-        _RYML_CB_ASSERT(m_callbacks, parent->m_last_child == NONE);
-        parent->m_first_child = ichild;
-        parent->m_last_child = ichild;
+        _RYML_CB_ASSERT(m_callbacks, m_last_child[parent] == NONE);
+        m_first_child[parent] = child;
+        m_last_child[parent] = child;
     }
 }
 
@@ -610,32 +653,20 @@ C4_SUPPRESS_WARNING_CLANG_POP
 void Tree::_rem_hierarchy(id_type i)
 {
     _RYML_CB_ASSERT(m_callbacks, i >= 0 && i < m_cap);
-    NodeRelation &C4_RESTRICT w = m_relation[i];
     // remove from the parent
-    if(w.m_parent != NONE)
+    const id_type parent = m_parent[i];
+    if(parent != NONE)
     {
-        NodeRelation &C4_RESTRICT p = m_relation[w.m_parent];
-        if(p.m_first_child == i)
-        {
-            p.m_first_child = w.m_next_sibling;
-        }
-        if(p.m_last_child == i)
-        {
-            p.m_last_child = w.m_prev_sibling;
-        }
+        if(m_first_child[parent] == i)
+            m_first_child[parent] = m_next_sibling[i];
+        if(m_last_child[parent] == i)
+            m_last_child[parent] = m_prev_sibling[i];
     }
-
     // remove from the used list
-    if(w.m_prev_sibling != NONE)
-    {
-        NodeRelation *C4_RESTRICT prev = &m_relation[w.m_prev_sibling];
-        prev->m_next_sibling = w.m_next_sibling;
-    }
-    if(w.m_next_sibling != NONE)
-    {
-        NodeRelation *C4_RESTRICT next = &m_relation[w.m_next_sibling];
-        next->m_prev_sibling = w.m_prev_sibling;
-    }
+    if(m_prev_sibling[i] != NONE)
+        m_next_sibling[m_prev_sibling[i]] = m_next_sibling[i];
+    if(m_next_sibling[i] != NONE)
+        m_prev_sibling[m_next_sibling[i]] = m_prev_sibling[i];
 }
 
 //-----------------------------------------------------------------------------
@@ -701,153 +732,151 @@ void Tree::_swap(id_type n_, id_type m_)
 }
 
 //-----------------------------------------------------------------------------
-void Tree::_swap_hierarchy(id_type ia, id_type ib)
+void Tree::_swap_hierarchy(id_type a, id_type b)
 {
-    if(ia == ib) return;
+    if(a == b) return;
 
-    for(id_type i = first_child(ia); i != NONE; i = next_sibling(i))
+    for(id_type i = first_child(a); i != NONE; i = next_sibling(i))
     {
-        if(i == ib || i == ia)
+        if(i == b || i == a)
             continue;
-        m_relation[i].m_parent = ib;
+        m_parent[i] = b;
     }
 
-    for(id_type i = first_child(ib); i != NONE; i = next_sibling(i))
+    for(id_type i = first_child(b); i != NONE; i = next_sibling(i))
     {
-        if(i == ib || i == ia)
+        if(i == b || i == a)
             continue;
-        m_relation[i].m_parent = ia;
+        m_parent[i] = a;
     }
 
-    auto & C4_RESTRICT a  = m_relation[ia];
-    auto & C4_RESTRICT b  = m_relation[ib];
-    auto & C4_RESTRICT pa = m_relation[a.m_parent];
-    auto & C4_RESTRICT pb = m_relation[b.m_parent];
+    auto & C4_RESTRICT pa = m_parent[a];
+    auto & C4_RESTRICT pb = m_parent[b];
 
-    if(&pa == &pb)
+    if(pa == pb)
     {
-        if((pa.m_first_child == ib && pa.m_last_child == ia)
+        if((m_first_child[pa] == b && m_last_child[pa] == a)
             ||
-           (pa.m_first_child == ia && pa.m_last_child == ib))
+           (m_first_child[a] == a && m_last_child[pa] == b))
         {
-            std::swap(pa.m_first_child, pa.m_last_child);
+            std::swap(m_first_child[pa], m_last_child[pa]);
         }
         else
         {
             bool changed = false;
-            if(pa.m_first_child == ia)
+            if(m_first_child[pa] == a)
             {
-                pa.m_first_child = ib;
+                m_first_child[pa] = b;
                 changed = true;
             }
-            if(pa.m_last_child  == ia)
+            if(m_last_child[pa]  == a)
             {
-                pa.m_last_child = ib;
+                m_last_child[pa] = b;
                 changed = true;
             }
-            if(pb.m_first_child == ib && !changed)
+            if(m_first_child[pb] == b && !changed)
             {
-                pb.m_first_child = ia;
+                m_first_child[pb] = a;
             }
-            if(pb.m_last_child  == ib && !changed)
+            if(m_last_child[pb]  == b && !changed)
             {
-                pb.m_last_child  = ia;
+                m_last_child[pb]  = a;
             }
         }
     }
     else
     {
-        if(pa.m_first_child == ia)
-            pa.m_first_child = ib;
-        if(pa.m_last_child  == ia)
-            pa.m_last_child  = ib;
-        if(pb.m_first_child == ib)
-            pb.m_first_child = ia;
-        if(pb.m_last_child  == ib)
-            pb.m_last_child  = ia;
+        if(m_first_child[pa] == a)
+            m_first_child[pa] = b;
+        if(m_last_child[pa]  == a)
+            m_last_child[pa]  = b;
+        if(m_first_child[pb] == b)
+            m_first_child[pb] = a;
+        if(m_last_child[pb]  == b)
+            m_last_child[pb]  = a;
     }
-    std::swap(a.m_first_child , b.m_first_child);
-    std::swap(a.m_last_child  , b.m_last_child);
+    std::swap(m_first_child[a] , m_first_child[b]);
+    std::swap(m_last_child[a]  , m_last_child[b]);
 
-    if(a.m_prev_sibling != ib && b.m_prev_sibling != ia &&
-       a.m_next_sibling != ib && b.m_next_sibling != ia)
+    if(m_prev_sibling[a] != b && m_prev_sibling[b] != a &&
+       m_next_sibling[a] != b && m_next_sibling[b] != a)
     {
-        if(a.m_prev_sibling != NONE && a.m_prev_sibling != ib)
-            m_relation[a.m_prev_sibling].m_next_sibling = ib;
-        if(a.m_next_sibling != NONE && a.m_next_sibling != ib)
-            m_relation[a.m_next_sibling].m_prev_sibling = ib;
-        if(b.m_prev_sibling != NONE && b.m_prev_sibling != ia)
-            m_relation[b.m_prev_sibling].m_next_sibling = ia;
-        if(b.m_next_sibling != NONE && b.m_next_sibling != ia)
-            m_relation[b.m_next_sibling].m_prev_sibling = ia;
-        std::swap(a.m_prev_sibling, b.m_prev_sibling);
-        std::swap(a.m_next_sibling, b.m_next_sibling);
+        if(m_prev_sibling[a] != NONE && m_prev_sibling[a] != b)
+            m_next_sibling[m_prev_sibling[a]] = b;
+        if(m_next_sibling[a] != NONE && m_next_sibling[a] != b)
+            m_prev_sibling[m_next_sibling[a]] = b;
+        if(m_prev_sibling[b] != NONE && m_prev_sibling[b] != a)
+            m_next_sibling[m_prev_sibling[b]] = a;
+        if(m_next_sibling[b] != NONE && m_next_sibling[b] != a)
+            m_prev_sibling[m_next_sibling[b]] = a;
+        std::swap(m_prev_sibling[a], m_prev_sibling[b]);
+        std::swap(m_next_sibling[a], m_next_sibling[b]);
     }
     else
     {
-        if(a.m_next_sibling == ib) // n will go after m
+        if(m_next_sibling[a] == b) // n will go after m
         {
-            _RYML_CB_ASSERT(m_callbacks, b.m_prev_sibling == ia);
-            if(a.m_prev_sibling != NONE)
+            _RYML_CB_ASSERT(m_callbacks, m_prev_sibling[b] == a);
+            if(m_prev_sibling[a] != NONE)
             {
-                _RYML_CB_ASSERT(m_callbacks, a.m_prev_sibling != ib);
-                m_relation[a.m_prev_sibling].m_next_sibling = ib;
+                _RYML_CB_ASSERT(m_callbacks, m_prev_sibling[a] != b);
+                m_next_sibling[m_prev_sibling[a]] = b;
             }
-            if(b.m_next_sibling != NONE)
+            if(m_next_sibling[b] != NONE)
             {
-                _RYML_CB_ASSERT(m_callbacks, b.m_next_sibling != ia);
-                m_relation[b.m_next_sibling].m_prev_sibling = ia;
+                _RYML_CB_ASSERT(m_callbacks, m_next_sibling[b] != a);
+                m_prev_sibling[m_next_sibling[b]] = a;
             }
-            id_type ns = b.m_next_sibling;
-            b.m_prev_sibling = a.m_prev_sibling;
-            b.m_next_sibling = ia;
-            a.m_prev_sibling = ib;
-            a.m_next_sibling = ns;
+            id_type ns = m_next_sibling[b];
+            m_prev_sibling[b] = m_prev_sibling[a];
+            m_next_sibling[b] = a;
+            m_prev_sibling[a] = b;
+            m_next_sibling[a] = ns;
         }
-        else if(a.m_prev_sibling == ib) // m will go after n
+        else if(m_prev_sibling[a] == b) // m will go after n
         {
-            _RYML_CB_ASSERT(m_callbacks, b.m_next_sibling == ia);
-            if(b.m_prev_sibling != NONE)
+            _RYML_CB_ASSERT(m_callbacks, m_next_sibling[b] == a);
+            if(m_prev_sibling[b] != NONE)
             {
-                _RYML_CB_ASSERT(m_callbacks, b.m_prev_sibling != ia);
-                m_relation[b.m_prev_sibling].m_next_sibling = ia;
+                _RYML_CB_ASSERT(m_callbacks, m_prev_sibling[b] != a);
+                m_next_sibling[m_prev_sibling[b]] = a;
             }
-            if(a.m_next_sibling != NONE)
+            if(m_next_sibling[a] != NONE)
             {
-                _RYML_CB_ASSERT(m_callbacks, a.m_next_sibling != ib);
-                m_relation[a.m_next_sibling].m_prev_sibling = ib;
+                _RYML_CB_ASSERT(m_callbacks, m_next_sibling[a] != b);
+                m_prev_sibling[m_next_sibling[a]] = b;
             }
-            id_type ns = b.m_prev_sibling;
-            a.m_prev_sibling = b.m_prev_sibling;
-            a.m_next_sibling = ib;
-            b.m_prev_sibling = ia;
-            b.m_next_sibling = ns;
+            id_type ns = m_prev_sibling[b];
+            m_prev_sibling[a] = m_prev_sibling[b];
+            m_next_sibling[a] = b;
+            m_prev_sibling[b] = a;
+            m_next_sibling[b] = ns;
         }
         else
         {
             C4_NEVER_REACH();
         }
     }
-    _RYML_CB_ASSERT(m_callbacks, a.m_next_sibling != ia);
-    _RYML_CB_ASSERT(m_callbacks, a.m_prev_sibling != ia);
-    _RYML_CB_ASSERT(m_callbacks, b.m_next_sibling != ib);
-    _RYML_CB_ASSERT(m_callbacks, b.m_prev_sibling != ib);
+    _RYML_CB_ASSERT(m_callbacks, m_next_sibling[a] != a);
+    _RYML_CB_ASSERT(m_callbacks, m_prev_sibling[a] != a);
+    _RYML_CB_ASSERT(m_callbacks, m_next_sibling[b] != b);
+    _RYML_CB_ASSERT(m_callbacks, m_prev_sibling[b] != b);
 
-    if(a.m_parent != ib && b.m_parent != ia)
+    if(m_parent[a] != b && m_parent[b] != a)
     {
-        std::swap(a.m_parent, b.m_parent);
+        std::swap(m_parent[a], m_parent[b]);
     }
     else
     {
-        if(a.m_parent == ib && b.m_parent != ia)
+        if(m_parent[a] == b && m_parent[b] != a)
         {
-            a.m_parent = b.m_parent;
-            b.m_parent = ia;
+            m_parent[a] = m_parent[b];
+            m_parent[b] = a;
         }
-        else if(a.m_parent != ib && b.m_parent == ia)
+        else if(m_parent[a] != b && m_parent[b] == a)
         {
-            b.m_parent = a.m_parent;
-            a.m_parent = ib;
+            m_parent[b] = m_parent[a];
+            m_parent[a] = b;
         }
         else
         {
@@ -859,34 +888,32 @@ void Tree::_swap_hierarchy(id_type ia, id_type ib)
 //-----------------------------------------------------------------------------
 void Tree::_copy_hierarchy(id_type dst_, id_type src_)
 {
-    auto const& C4_RESTRICT src = m_relation[src_];
-    auto      & C4_RESTRICT dst = m_relation[dst_];
-    auto      & C4_RESTRICT prt = m_relation[src.m_parent];
-    for(id_type i = src.m_first_child; i != NONE; i = next_sibling(i))
+    const id_type prt = m_parent[src_];
+    for(id_type i = m_first_child[src_]; i != NONE; i = next_sibling(i))
     {
-        m_relation[i].m_parent = dst_;
+        m_parent[i] = dst_;
     }
-    if(src.m_prev_sibling != NONE)
+    if(m_prev_sibling[src_] != NONE)
     {
-        m_relation[src.m_prev_sibling].m_next_sibling = dst_;
+        m_next_sibling[m_prev_sibling[src_]] = dst_;
     }
-    if(src.m_next_sibling != NONE)
+    if(m_next_sibling[src_] != NONE)
     {
-        m_relation[src.m_next_sibling].m_prev_sibling = dst_;
+        m_prev_sibling[m_next_sibling[src_]] = dst_;
     }
-    if(prt.m_first_child == src_)
+    if(m_first_child[prt] == src_)
     {
-        prt.m_first_child = dst_;
+        m_first_child[prt] = dst_;
     }
-    if(prt.m_last_child  == src_)
+    if(m_last_child[prt]  == src_)
     {
-        prt.m_last_child  = dst_;
+        m_last_child[prt]  = dst_;
     }
-    dst.m_parent       = src.m_parent;
-    dst.m_first_child  = src.m_first_child;
-    dst.m_last_child   = src.m_last_child;
-    dst.m_prev_sibling = src.m_prev_sibling;
-    dst.m_next_sibling = src.m_next_sibling;
+    m_parent[dst_]       = m_parent[src_];
+    m_first_child[dst_]  = m_first_child[src_];
+    m_last_child[dst_]   = m_last_child[src_];
+    m_prev_sibling[dst_] = m_prev_sibling[src_];
+    m_next_sibling[dst_] = m_next_sibling[src_];
 }
 
 //-----------------------------------------------------------------------------
@@ -981,14 +1008,14 @@ void Tree::set_root_as_stream()
 void Tree::remove_children(id_type node)
 {
     _ryml_chkid(node);
-    id_type ich = m_relation[node].m_first_child;
+    id_type ich = m_first_child[node];
     while(ich != NONE)
     {
         remove_children(ich);
         _ryml_chkid(ich);
-        const id_type next = m_relation[ich].m_next_sibling;
+        const id_type next = m_next_sibling[ich];
         _release(ich);
-        if(ich == m_relation[node].m_last_child)
+        if(ich == m_last_child[node])
             break;
         ich = next;
     }
@@ -1301,14 +1328,14 @@ id_type Tree::find_child(id_type node, csubstr const& name) const
     _ryml_chkid(node);
     _RYML_CB_ASSERT(m_callbacks, node != NONE);
     _RYML_CB_ASSERT(m_callbacks, is_map(node));
-    if(m_relation[node].m_first_child == NONE)
+    if(m_first_child[node] == NONE)
     {
-        _RYML_CB_ASSERT(m_callbacks, m_relation[node].m_last_child == NONE);
+        _RYML_CB_ASSERT(m_callbacks, m_last_child[node] == NONE);
         return NONE;
     }
     else
     {
-        _RYML_CB_ASSERT(m_callbacks, m_relation[node].m_last_child != NONE);
+        _RYML_CB_ASSERT(m_callbacks, m_last_child[node] != NONE);
     }
     for(id_type i = first_child(node); i != NONE; i = next_sibling(i))
     {

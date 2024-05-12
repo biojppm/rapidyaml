@@ -204,22 +204,6 @@ public:
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-
-struct RYML_EXPORT NodeRelation
-{
-    id_type    m_parent;
-    id_type    m_first_child;
-    id_type    m_last_child;
-    id_type    m_next_sibling;
-    id_type    m_prev_sibling;
-};
-C4_MUST_BE_TRIVIAL_COPY(NodeRelation);
-
-
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-
 class RYML_EXPORT Tree
 {
 public:
@@ -367,8 +351,8 @@ public:
     C4_ALWAYS_INLINE bool is_val_ref(id_type node) const { _ryml_chkid(node); return m_type[node].is_val_ref(); }
     C4_ALWAYS_INLINE bool is_ref(id_type node) const { _ryml_chkid(node); return m_type[node].is_ref(); }
 
-    C4_ALWAYS_INLINE bool parent_is_seq(id_type node) const { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, has_parent(node)); return is_seq(m_relation[node].m_parent); }
-    C4_ALWAYS_INLINE bool parent_is_map(id_type node) const { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, has_parent(node)); return is_map(m_relation[node].m_parent); }
+    C4_ALWAYS_INLINE bool parent_is_seq(id_type node) const { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, has_parent(node)); return is_seq(m_parent[node]); }
+    C4_ALWAYS_INLINE bool parent_is_map(id_type node) const { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, has_parent(node)); return is_map(m_parent[node]); }
 
     /** true when the node has an anchor named a */
     C4_ALWAYS_INLINE bool has_anchor(id_type node, csubstr a) const { _ryml_chkid(node); return ((m_type[node] & KEYANCH) && m_key_anchor[node] == a) || ((m_type[node] & VALANCH) && m_val_anchor[node] == a); }
@@ -401,9 +385,9 @@ public:
     /** @name hierarchy predicates */
     /** @{ */
 
-    bool is_root(id_type node) const { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, m_relation[node].m_parent != NONE || node == 0); return m_relation[node].m_parent == NONE; }
+    bool is_root(id_type node) const { _ryml_chkid(node); _RYML_CB_ASSERT(m_callbacks, m_parent[node] != NONE || node == 0); return m_parent[node] == NONE; }
 
-    bool has_parent(id_type node) const { _ryml_chkid(node); return m_relation[node].m_parent != NONE; }
+    bool has_parent(id_type node) const { _ryml_chkid(node); return m_parent[node] != NONE; }
 
     /** true when key and val are empty, and has no children */
     bool empty(id_type node) const
@@ -414,26 +398,23 @@ public:
     }
 
     /** true if @p node has a child with id @p ch */
-    bool has_child(id_type node, id_type ch) const { _ryml_chkid(node); return m_relation[ch].m_parent == node; }
+    bool has_child(id_type node, id_type ch) const { _ryml_chkid(node); return m_parent[ch] == node; }
     /** true if @p node has a child with key @p key */
     bool has_child(id_type node, csubstr key) const { _ryml_chkid(node); return find_child(node, key) != NONE; }
     /** true if @p node has any children key */
-    bool has_children(id_type node) const { _ryml_chkid(node); return m_relation[node].m_first_child != NONE; }
+    bool has_children(id_type node) const { _ryml_chkid(node); return m_first_child[node] != NONE; }
 
     /** true if @p node has a sibling with id @p sib */
-    bool has_sibling(id_type node, id_type sib) const { _ryml_chkid(node); return m_relation[node].m_parent == m_relation[sib].m_parent; }
+    bool has_sibling(id_type node, id_type sib) const { _ryml_chkid(node); return m_parent[node] == m_parent[sib]; }
     /** true if one of the node's siblings has the given key */
     bool has_sibling(id_type node, csubstr key) const { _ryml_chkid(node); return find_sibling(node, key) != NONE; }
     /** true if node is not a single child */
     bool has_other_siblings(id_type node) const
     {
         _ryml_chkid(node);
-        NodeRelation const *C4_RESTRICT n = &m_relation[node];
-        if(C4_LIKELY(n->m_parent != NONE))
-        {
-            n = &m_relation[n->m_parent];
-            return n->m_first_child != n->m_last_child;
-        }
+        const id_type parent = m_parent[node];
+        if(C4_LIKELY(parent != NONE))
+            return m_first_child[parent] != m_last_child[parent];
         return false;
     }
 
@@ -446,29 +427,29 @@ public:
     /** @name hierarchy getters */
     /** @{ */
 
-    id_type parent(id_type node) const { _ryml_chkid(node); return m_relation[node].m_parent; }
+    id_type parent(id_type node) const { _ryml_chkid(node); return m_parent[node]; }
 
-    id_type prev_sibling(id_type node) const { _ryml_chkid(node); return m_relation[node].m_prev_sibling; }
-    id_type next_sibling(id_type node) const { _ryml_chkid(node); return m_relation[node].m_next_sibling; }
+    id_type prev_sibling(id_type node) const { _ryml_chkid(node); return m_prev_sibling[node]; }
+    id_type next_sibling(id_type node) const { _ryml_chkid(node); return m_next_sibling[node]; }
 
     /** O(#num_children) */
     id_type num_children(id_type node) const;
     id_type child_pos(id_type node, id_type ch) const;
-    id_type first_child(id_type node) const { _ryml_chkid(node); return m_relation[node].m_first_child; }
-    id_type last_child(id_type node) const { _ryml_chkid(node); return m_relation[node].m_last_child; }
+    id_type first_child(id_type node) const { _ryml_chkid(node); return m_first_child[node]; }
+    id_type last_child(id_type node) const { _ryml_chkid(node); return m_last_child[node]; }
     id_type child(id_type node, id_type pos) const;
     id_type find_child(id_type node, csubstr const& key) const;
 
     /** O(#num_siblings) */
     /** counts with this */
-    id_type num_siblings(id_type node) const { _ryml_chkid(node); return is_root(node) ? 1 : num_children(m_relation[node].m_parent); }
+    id_type num_siblings(id_type node) const { _ryml_chkid(node); return is_root(node) ? 1 : num_children(m_parent[node]); }
     /** does not count with this */
     id_type num_other_siblings(id_type node) const { _ryml_chkid(node); id_type ns = num_siblings(node); _RYML_CB_ASSERT(m_callbacks, ns > 0); return ns-1; }
-    id_type sibling_pos(id_type node, id_type sib) const { _ryml_chkid(node); _ryml_chkid(sib); _RYML_CB_ASSERT(m_callbacks,  ! is_root(node) || node == root_id()); return child_pos(m_relation[node].m_parent, sib); }
-    id_type first_sibling(id_type node) const { _ryml_chkid(node); return is_root(node) ? node : m_relation[m_relation[node].m_parent].m_first_child; }
-    id_type last_sibling(id_type node) const { _ryml_chkid(node); return is_root(node) ? node : m_relation[m_relation[node].m_parent].m_last_child; }
-    id_type sibling(id_type node, id_type pos) const { _ryml_chkid(node); return child(m_relation[node].m_parent, pos); }
-    id_type find_sibling(id_type node, csubstr const& key) const { _ryml_chkid(node); return find_child(m_relation[node].m_parent, key); }
+    id_type sibling_pos(id_type node, id_type sib) const { _ryml_chkid(node); _ryml_chkid(sib); _RYML_CB_ASSERT(m_callbacks,  ! is_root(node) || node == root_id()); return child_pos(m_parent[node], sib); }
+    id_type first_sibling(id_type node) const { _ryml_chkid(node); return is_root(node) ? node : m_first_child[m_parent[node]]; }
+    id_type last_sibling(id_type node) const { _ryml_chkid(node); return is_root(node) ? node : m_last_child[m_parent[node]]; }
+    id_type sibling(id_type node, id_type pos) const { _ryml_chkid(node); return child(m_parent[node], pos); }
+    id_type find_sibling(id_type node, csubstr const& key) const { _ryml_chkid(node); return find_child(m_parent[node], key); }
 
     id_type doc(id_type i) const { id_type rid = root_id(); _RYML_CB_ASSERT(m_callbacks, is_stream(rid)); return child(rid, i); } //!< gets the @p i document node index. requires that the root node is a stream.
 
@@ -646,7 +627,7 @@ public:
     {
         _RYML_CB_ASSERT(m_callbacks, parent != NONE);
         _RYML_CB_ASSERT(m_callbacks, is_container(parent) || is_root(parent));
-        _RYML_CB_ASSERT(m_callbacks, after == NONE || (m_relation[after].m_parent == parent));
+        _RYML_CB_ASSERT(m_callbacks, after == NONE || (m_parent[after] == parent));
         id_type child = _claim();
         _set_hierarchy(child, parent, after);
         return child;
@@ -654,11 +635,11 @@ public:
     /** create and insert a node as the first child of @p parent */
     C4_ALWAYS_INLINE id_type prepend_child(id_type parent) { return insert_child(parent, NONE); }
     /** create and insert a node as the last child of @p parent */
-    C4_ALWAYS_INLINE id_type append_child(id_type parent) { return insert_child(parent, m_relation[parent].m_last_child); }
+    C4_ALWAYS_INLINE id_type append_child(id_type parent) { return insert_child(parent, m_last_child[parent]); }
     C4_ALWAYS_INLINE id_type _append_child__unprotected(id_type parent)
     {
         id_type child = _claim();
-        _set_hierarchy(child, parent, m_relation[parent].m_last_child);
+        _set_hierarchy(child, parent, m_last_child[parent]);
         return child;
     }
 
@@ -667,11 +648,11 @@ public:
     //! create and insert a new sibling of n. insert after "after"
     C4_ALWAYS_INLINE id_type insert_sibling(id_type node, id_type after)
     {
-        return insert_child(m_relation[node].m_parent, after);
+        return insert_child(m_parent[node], after);
     }
     /** create and insert a node as the first node of @p parent */
-    C4_ALWAYS_INLINE id_type prepend_sibling(id_type node) { return prepend_child(m_relation[node].m_parent); }
-    C4_ALWAYS_INLINE id_type  append_sibling(id_type node) { return append_child(m_relation[node].m_parent); }
+    C4_ALWAYS_INLINE id_type prepend_sibling(id_type node) { return prepend_child(m_parent[node]); }
+    C4_ALWAYS_INLINE id_type  append_sibling(id_type node) { return append_child(m_parent[node]); }
 
 public:
 
@@ -1076,12 +1057,6 @@ public:
 
     /** @cond dev*/
 
-    id_type _id(NodeRelation const* C4_RESTRICT nr) const
-    {
-        _RYML_CB_ASSERT(m_callbacks, nr == nullptr || (nr >= m_relation &&  nr < m_relation + m_cap));
-        return nr ? (id_type)(nr - m_relation) : NONE;
-    }
-
     #if ! RYML_USE_ASSERT
     C4_ALWAYS_INLINE void _check_next_flags(id_type, type_bits) {}
     #else
@@ -1176,7 +1151,7 @@ public:
 
     void _set_parent_as_container_if_needed(id_type node)
     {
-        id_type parent = m_relation[node].m_parent;
+        id_type parent = m_parent[node];
         if(parent != NONE)
         {
             if( ! (is_seq(parent) || is_map(parent)))
@@ -1279,9 +1254,9 @@ public:
         //m_val[node].clear();
         //m_val_tag[node].clear();
         //m_val_anchor[node].clear();
-        m_relation[node].m_parent = NONE;
-        m_relation[node].m_first_child = NONE;
-        m_relation[node].m_last_child = NONE;
+        m_parent[node] = NONE;
+        m_first_child[node] = NONE;
+        m_last_child[node] = NONE;
     }
 
     inline void _clear_key(id_type node)
@@ -1324,13 +1299,19 @@ public:
 
     // formerly NodeData
     NodeType     *C4_RESTRICT m_type;
+
     csubstr      *C4_RESTRICT m_val;
     csubstr      *C4_RESTRICT m_val_tag;
     csubstr      *C4_RESTRICT m_val_anchor;
     csubstr      *C4_RESTRICT m_key;
     csubstr      *C4_RESTRICT m_key_tag;
     csubstr      *C4_RESTRICT m_key_anchor;
-    NodeRelation *C4_RESTRICT m_relation;
+
+    id_type      *C4_RESTRICT m_parent;
+    id_type      *C4_RESTRICT m_first_child;
+    id_type      *C4_RESTRICT m_last_child;
+    id_type      *C4_RESTRICT m_prev_sibling;
+    id_type      *C4_RESTRICT m_next_sibling;
 
     id_type m_cap;
     id_type m_size;
