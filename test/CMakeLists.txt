@@ -181,14 +181,10 @@ endif()
 
 # run every case in the yaml-test-suite
 option(RYML_TEST_SUITE "Enable cases from yaml-test-suite, https://github.com/yaml/yaml-test-suite." ON)
+option(RYML_TEST_FUZZ "Enable fuzz tests." ON)
 
-if(RYML_TEST_SUITE)
-    set(ed ${CMAKE_CURRENT_BINARY_DIR}/subprojects) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)
 
-    c4_require_subproject(c4log REMOTE
-        GIT_REPOSITORY https://github.com/biojppm/c4log
-        GIT_TAG master)
-
+if(RYML_TEST_SUITE OR RYML_TEST_FUZZ)
     set(tsdir ${ed}/yaml-test-suite)
     c4_download_remote_proj(yaml-test-suite suite_dir
         GIT_REPOSITORY https://github.com/yaml/yaml-test-suite
@@ -196,6 +192,15 @@ if(RYML_TEST_SUITE)
     if(NOT EXISTS ${suite_dir}/229Q)
         c4_err("cannot find yaml-test-suite at ${suite_dir} -- was there an error downloading the project?")
     endif()
+endif()
+
+
+if(RYML_TEST_SUITE)
+    set(ed ${CMAKE_CURRENT_BINARY_DIR}/subprojects) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)
+
+    c4_require_subproject(c4log REMOTE
+        GIT_REPOSITORY https://github.com/biojppm/c4log
+        GIT_TAG master)
 
     c4_add_executable(ryml-test-suite
         SOURCES
@@ -259,3 +264,65 @@ if(RYML_TEST_SUITE)
         ryml_add_test_from_suite(${case})
     endforeach()
 endif(RYML_TEST_SUITE)
+
+
+if(RYML_TEST_FUZZ)
+    #
+    # fuzzing libraries:
+    # https://llvm.org/docs/LibFuzzer.html
+    # http://lcamtuf.coredump.cx/afl/
+    # https://github.com/AFLplusplus/AFLplusplus
+    # https://gitlab.com/akihe/radamsa
+    #
+    # actions:
+    # https://google.github.io/clusterfuzzlite/
+    # https://github.com/google/oss-fuzz
+    #
+    set(corpus_suite_dir ${CMAKE_CURRENT_BINARY_DIR}/fuzz_corpus_test_suite)
+    set(corpus_generated_dir ${CMAKE_CURRENT_BINARY_DIR}/fuzz_corpus_generated)
+    file(MAKE_DIRECTORY ${corpus_generated_dir})
+    if(NOT EXISTS ${corpus_suite_dir})
+        file(MAKE_DIRECTORY ${corpus_suite_dir})
+        function(ryml_add_files_to_corpus_suite_dir pattern)
+            # example: 229Q/in.yaml;236B/in.yaml
+            file(GLOB_RECURSE file_list RELATIVE "${suite_dir}" "${suite_dir}/*/${pattern}")
+            #c4_err("in=${file_list}")
+            foreach(src ${file_list})
+                # rename 229Q/in.yaml to 229Q_in.yaml
+                string(REPLACE / _ dst ${src})
+                # copy, but do not use file(COPY): it cannot rename
+                execute_process(COMMAND "${CMAKE_COMMAND}" -E copy "${suite_dir}/${src}" "${corpus_suite_dir}/${dst}")
+            endforeach()
+        endfunction()
+        ryml_add_files_to_corpus_suite_dir(in.json)
+        ryml_add_files_to_corpus_suite_dir(in.yaml)
+        ryml_add_files_to_corpus_suite_dir(out.yaml)
+    endif()
+
+    # libfuzzer: https://llvm.org/docs/LibFuzzer.html
+    if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+        set(RYML_TEST_LIBFUZZER_OPTIONS "-merge=1 -timeout=5" CACHE STRING "options for libfuzzer")
+        function(ryml_add_libfuzzer_test name)
+            c4_add_executable(ryml-test-libfuzzer-${name}
+                SOURCES
+                    test_fuzz/test_fuzz_common.hpp
+                    test_fuzz/test_libfuzzer_${name}.cpp
+                    ${ARGN}
+                CFLAGS -g -O1 -fsanitize=fuzzer,address,undefined
+                INC_DIRS ${CMAKE_CURRENT_LIST_DIR}
+                LIBS ryml -fsanitize=fuzzer,address,undefined
+                FOLDER test/fuzz)
+            add_dependencies(ryml-test-build ryml-test-libfuzzer-${name})
+            set(cmd $<TARGET_FILE:ryml-test-libfuzzer-${name}> ${RYML_TEST_LIBFUZZER_OPTIONS} ${corpus_generated_dir} ${corpus_suite_dir})
+            add_custom_target(ryml-test-libfuzzer-${name}-run
+                COMMAND ${cmd}
+                COMMENT "${cmd}"
+            )
+        endfunction()
+        ryml_add_libfuzzer_test(parse_emit)
+        ryml_add_libfuzzer_test(events
+            ../test/test_suite/test_suite_event_handler.hpp
+            ../test/test_suite/test_suite_event_handler.cpp
+        )
+    endif()
+endif()
