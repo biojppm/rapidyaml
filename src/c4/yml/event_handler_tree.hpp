@@ -515,7 +515,24 @@ public:
 
     substr alloc_arena(size_t len)
     {
-        return m_tree->alloc_arena(len);
+        csubstr prev = m_tree->arena();
+        substr out = m_tree->alloc_arena(len);
+        substr curr = m_tree->arena();
+        if(curr.str != prev.str)
+            _stack_relocate_to_new_arena(prev, curr);
+        return out;
+    }
+
+    substr alloc_arena(size_t len, substr *relocated)
+    {
+        csubstr prev = m_tree->arena();
+        if(!prev.is_super(*relocated))
+            return alloc_arena(len);
+        substr out = alloc_arena(len);
+        substr curr = m_tree->arena();
+        if(curr.str != prev.str)
+            *relocated = _stack_relocate_to_new_arena(*relocated, prev, curr);
+        return out;
     }
 
     /** @} */

@@ -45,10 +45,8 @@ inline void report_error(const char* msg, size_t length, c4::yml::Location loc, 
 
 inline C4_NORETURN void errcallback(const char *msg, size_t msg_len, c4::yml::Location location, void *)
 {
-printf("aqui 5: %.*s\n", (int)msg_len, msg);fflush(stdout);
     report_error(msg, msg_len, location, stderr);
     C4_IF_EXCEPTIONS(
-printf("aqui 6: \n");fflush(stdout);
         throw std::runtime_error({msg, msg_len});
         ,
         jmp_msg.assign(msg, msg_len);
@@ -91,7 +89,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *str, size_t len)
     C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
     {
         fprintf(stdout, "err\n"); fflush(stdout);
-printf("aqui 7: \n");fflush(stdout);
         return 1;
     }
     return 0;

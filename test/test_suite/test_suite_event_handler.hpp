@@ -90,9 +90,9 @@ public:
     /** @name construction and resetting
      * @{ */
 
-    EventHandlerYamlStd() : EventHandlerStack(), m_sink(), m_val_buffers() {}
-    EventHandlerYamlStd(Callbacks const& cb) : EventHandlerStack(cb), m_sink(), m_val_buffers() {}
-    EventHandlerYamlStd(EventSink *sink, Callbacks const& cb) : EventHandlerStack(cb), m_sink(sink), m_val_buffers()
+    EventHandlerYamlStd() : EventHandlerStack(), m_sink(), m_val_buffers(), m_tag_directives(), m_arena() {}
+    EventHandlerYamlStd(Callbacks const& cb) : EventHandlerStack(cb), m_sink(), m_val_buffers(), m_tag_directives(), m_arena() {}
+    EventHandlerYamlStd(EventSink *sink, Callbacks const& cb) : EventHandlerStack(cb), m_sink(sink), m_val_buffers(), m_tag_directives(), m_arena()
     {
         reset();
     }
@@ -106,6 +106,7 @@ public:
             td = {};
         m_val_buffers.resize((size_t)m_stack.size());
         m_arena.clear();
+        m_arena.reserve(1024);
     }
 
     /** @} */
@@ -557,9 +558,26 @@ public:
 
     substr alloc_arena(size_t len)
     {
-        const size_t curr = m_arena.size();
-        m_arena.resize(curr + len);
-        return to_substr(m_arena).sub(curr);
+        const size_t sz = m_arena.size();
+        csubstr prev = to_csubstr(m_arena);
+        m_arena.resize(sz + len);
+        substr out = to_substr(m_arena).sub(sz);
+        substr curr = to_substr(m_arena);
+        if(curr.str != prev.str)
+            _stack_relocate_to_new_arena(prev, curr);
+        return out;
+    }
+
+    substr alloc_arena(size_t len, substr *relocated)
+    {
+        csubstr prev = to_csubstr(m_arena);
+        if(!prev.is_super(*relocated))
+            return alloc_arena(len);
+        substr out = alloc_arena(len);
+        substr curr = to_substr(m_arena);
+        if(curr.str != prev.str)
+            *relocated = _stack_relocate_to_new_arena(*relocated, prev, curr);
+        return out;
     }
 
     /** @} */
