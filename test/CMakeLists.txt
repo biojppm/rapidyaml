@@ -313,10 +313,11 @@ if(RYML_TEST_FUZZ)
                 LIBS ryml -fsanitize=fuzzer,address,undefined
                 FOLDER test/fuzz)
             add_dependencies(ryml-test-build ryml-test-libfuzzer-${name})
-            set(cmd $<TARGET_FILE:ryml-test-libfuzzer-${name}> ${RYML_TEST_LIBFUZZER_OPTIONS} ${corpus_generated_dir} ${corpus_suite_dir})
+            set(cmd $<TARGET_FILE:ryml-test-libfuzzer-${name}> ${RYML_TEST_LIBFUZZER_OPTIONS} . ${corpus_suite_dir})
             add_custom_target(ryml-test-libfuzzer-${name}-run
                 COMMAND ${cmd}
                 COMMENT "${cmd}"
+                WORKING_DIRECTORY "${corpus_generated_dir}"
             )
         endfunction()
         ryml_add_libfuzzer_test(parse_emit)

@@ -76,19 +76,19 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *str, size_t len)
         #ifdef RYML_DBG
         fprintf(stdout, "in: ~~~\n%.*s\n~~~\n", static_cast<int>(src.len), src.str); fflush(stdout);
         #else
-        static int count = 0;
-        fprintf(stdout, "%d: ", count++);
+        //static int count = 0;
+        //fprintf(stdout, "%d: ", count++);
         #endif
         std::string out = fuzz_subject(src);
         #ifdef RYML_DBG
         fprintf(stdout, "out: ~~~\n%s\n~~~\n", out.c_str()); fflush(stdout);
         #else
-        fprintf(stdout, "ok!\n"); fflush(stdout);
+        //fprintf(stdout, "ok!\n"); fflush(stdout);
         #endif
     }
     C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
     {
-        fprintf(stdout, "err\n"); fflush(stdout);
+        //fprintf(stdout, "err\n"); fflush(stdout);
         return 1;
     }
     return 0;
