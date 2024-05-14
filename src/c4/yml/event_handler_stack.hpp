@@ -103,9 +103,12 @@ protected:
     {
         for(state &st : m_stack)
         {
-            st.line_contents.rem = _stack_relocate_to_new_arena(st.line_contents.rem, prev, curr);
-            st.line_contents.full = _stack_relocate_to_new_arena(st.line_contents.full, prev, curr);
-            st.line_contents.stripped = _stack_relocate_to_new_arena(st.line_contents.stripped, prev, curr);
+            if(st.line_contents.rem.is_sub(prev))
+                st.line_contents.rem = _stack_relocate_to_new_arena(st.line_contents.rem, prev, curr);
+            if(st.line_contents.full.is_sub(prev))
+                st.line_contents.full = _stack_relocate_to_new_arena(st.line_contents.full, prev, curr);
+            if(st.line_contents.stripped.is_sub(prev))
+                st.line_contents.stripped = _stack_relocate_to_new_arena(st.line_contents.stripped, prev, curr);
         }
     }
 

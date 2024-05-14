@@ -214,6 +214,7 @@ public:
 
     void begin_map_key_flow()
     {
+        _RYML_CB_CHECK(m_stack.m_callbacks, !_has_any_(VAL));
         _send_("+MAP {}");
         _send_key_props_();
         _send_('\n');
@@ -223,6 +224,7 @@ public:
     }
     void begin_map_key_block()
     {
+        _RYML_CB_CHECK(m_stack.m_callbacks, !_has_any_(VAL));
         _send_("+MAP");
         _send_key_props_();
         _send_('\n');
@@ -233,6 +235,7 @@ public:
 
     void begin_map_val_flow()
     {
+        _RYML_CB_CHECK(m_stack.m_callbacks, !_has_any_(VAL));
         _send_("+MAP {}");
         _send_val_props_();
         _send_('\n');
@@ -242,6 +245,7 @@ public:
     }
     void begin_map_val_block()
     {
+        _RYML_CB_CHECK(m_stack.m_callbacks, !_has_any_(VAL));
         _send_("+MAP");
         _send_val_props_();
         _send_('\n');
@@ -265,6 +269,7 @@ public:
 
     void begin_seq_key_flow()
     {
+        _RYML_CB_CHECK(m_stack.m_callbacks, !_has_any_(VAL));
         _send_("+SEQ []");
         _send_key_props_();
         _send_('\n');
@@ -274,6 +279,7 @@ public:
     }
     void begin_seq_key_block()
     {
+        _RYML_CB_CHECK(m_stack.m_callbacks, !_has_any_(VAL));
         _send_("+SEQ");
         _send_key_props_();
         _send_('\n');
@@ -284,6 +290,7 @@ public:
 
     void begin_seq_val_flow()
     {
+        _RYML_CB_CHECK(m_stack.m_callbacks, !_has_any_(VAL));
         _send_("+SEQ []");
         _send_val_props_();
         _send_('\n');
@@ -293,6 +300,7 @@ public:
     }
     void begin_seq_val_block()
     {
+        _RYML_CB_CHECK(m_stack.m_callbacks, !_has_any_(VAL));
         _send_("+SEQ");
         _send_val_props_();
         _send_('\n');
