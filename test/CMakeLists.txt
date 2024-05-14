@@ -281,22 +281,24 @@ if(RYML_TEST_FUZZ)
     set(corpus_suite_dir ${CMAKE_CURRENT_BINARY_DIR}/fuzz_corpus_test_suite)
     set(corpus_generated_dir ${CMAKE_CURRENT_BINARY_DIR}/fuzz_corpus_generated)
     file(MAKE_DIRECTORY ${corpus_generated_dir})
+    c4_log("in=${corpus_generated_dir}")
+    function(ryml_add_files_to_corpus_dir srcdir pattern dstdir)
+        file(GLOB_RECURSE file_list RELATIVE "${srcdir}" "${srcdir}/${pattern}")
+        #c4_err("in=${file_list}")
+        foreach(src ${file_list})
+            string(REPLACE / _ dst "${src}")
+            c4_log("src=${src} -> ${dst}")
+            # copy, but do not use file(COPY): it cannot rename
+            execute_process(COMMAND "${CMAKE_COMMAND}" -E copy "${srcdir}/${src}" "${dstdir}/${dst}")
+        endforeach()
+    endfunction()
     if(NOT EXISTS ${corpus_suite_dir})
         file(MAKE_DIRECTORY ${corpus_suite_dir})
-        function(ryml_add_files_to_corpus_suite_dir pattern)
-            # example: 229Q/in.yaml;236B/in.yaml
-            file(GLOB_RECURSE file_list RELATIVE "${suite_dir}" "${suite_dir}/*/${pattern}")
-            #c4_err("in=${file_list}")
-            foreach(src ${file_list})
-                # rename 229Q/in.yaml to 229Q_in.yaml
-                string(REPLACE / _ dst ${src})
-                # copy, but do not use file(COPY): it cannot rename
-                execute_process(COMMAND "${CMAKE_COMMAND}" -E copy "${suite_dir}/${src}" "${corpus_suite_dir}/${dst}")
-            endforeach()
-        endfunction()
-        ryml_add_files_to_corpus_suite_dir(in.json)
-        ryml_add_files_to_corpus_suite_dir(in.yaml)
-        ryml_add_files_to_corpus_suite_dir(out.yaml)
+        # example: 229Q/in.yaml;236B/in.yaml
+        ryml_add_files_to_corpus_dir("${CMAKE_CURRENT_LIST_DIR}/../bm/cases" "*" ${corpus_suite_dir})
+        ryml_add_files_to_corpus_dir("${suite_dir}" "*/in.json" ${corpus_suite_dir})
+        ryml_add_files_to_corpus_dir("${suite_dir}" "*/in.yaml" ${corpus_suite_dir})
+        ryml_add_files_to_corpus_dir("${suite_dir}" "*/out.yaml" ${corpus_suite_dir})
     endif()
 
     # libfuzzer: https://llvm.org/docs/LibFuzzer.html
@@ -308,9 +310,9 @@ if(RYML_TEST_FUZZ)
                     test_fuzz/test_fuzz_common.hpp
                     test_fuzz/test_libfuzzer_${name}.cpp
                     ${ARGN}
-                CFLAGS -g -O1 -fsanitize=fuzzer,address,undefined
+                CFLAGS -g -O0 -fsanitize=fuzzer,address,undefined
                 INC_DIRS ${CMAKE_CURRENT_LIST_DIR}
-                LIBS ryml -g -fsanitize=fuzzer,address,undefined
+                LIBS ryml -g -O0 -fsanitize=fuzzer,address,undefined
                 FOLDER test/fuzz)
             add_dependencies(ryml-test-build ryml-test-libfuzzer-${name})
             set(cmd $<TARGET_FILE:ryml-test-libfuzzer-${name}> ${RYML_TEST_LIBFUZZER_OPTIONS} . ${corpus_suite_dir})
