@@ -263,6 +263,8 @@ void Emitter<Writer>::_do_visit_flow_sl(id_type node, id_type ilevel)
     RYML_ASSERT(!m_tree->is_stream(node));
     RYML_ASSERT(m_tree->is_container(node) || m_tree->is_doc(node));
     RYML_ASSERT(m_tree->is_root(node) || (m_tree->parent_is_map(node) || m_tree->parent_is_seq(node)));
+    if(C4_UNLIKELY(ilevel > m_opts.max_depth()))
+        _RYML_CB_ERR(m_tree->callbacks(), "max depth exceeded");
 
     if(m_tree->is_doc(node))
     {
@@ -368,6 +370,8 @@ void Emitter<Writer>::_do_visit_flow_ml(id_type id, id_type ilevel, id_type do_i
     C4_UNUSED(id);
     C4_UNUSED(ilevel);
     C4_UNUSED(do_indent);
+    if(C4_UNLIKELY(ilevel > m_opts.max_depth()))
+        _RYML_CB_ERR(m_tree->callbacks(), "max depth exceeded");
     const bool prev_flow = m_flow;
     m_flow = true;
     c4::yml::error("not implemented");
@@ -461,6 +465,8 @@ void Emitter<Writer>::_do_visit_block(id_type node, id_type ilevel, id_type do_i
     RYML_ASSERT(!m_tree->is_stream(node));
     RYML_ASSERT(m_tree->is_container(node) || m_tree->is_doc(node));
     RYML_ASSERT(m_tree->is_root(node) || (m_tree->parent_is_map(node) || m_tree->parent_is_seq(node)));
+    if(C4_UNLIKELY(ilevel > m_opts.max_depth()))
+        _RYML_CB_ERR(m_tree->callbacks(), "max depth exceeded");
     if(m_tree->is_doc(node))
     {
         _write_doc(node);

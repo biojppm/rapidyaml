@@ -407,30 +407,30 @@ public:
      * @{ */
 
     /** @cond dev */
-    template<class U=EventHandler> RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") typename std::enable_if<U::is_wtree, void>::type parse_in_place(csubstr filename, substr yaml, Tree *t, size_t node_id);
-    template<class U=EventHandler> RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") typename std::enable_if<U::is_wtree, void>::type parse_in_place(                  substr yaml, Tree *t, size_t node_id);
-    template<class U=EventHandler> RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") typename std::enable_if<U::is_wtree, void>::type parse_in_place(csubstr filename, substr yaml, Tree *t                );
-    template<class U=EventHandler> RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") typename std::enable_if<U::is_wtree, void>::type parse_in_place(                  substr yaml, Tree *t                );
-    template<class U=EventHandler> RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") typename std::enable_if<U::is_wtree, void>::type parse_in_place(csubstr filename, substr yaml, NodeRef node           );
-    template<class U=EventHandler> RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") typename std::enable_if<U::is_wtree, void>::type parse_in_place(                  substr yaml, NodeRef node           );
-    template<class U=EventHandler> RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") typename std::enable_if<U::is_wtree, Tree>::type parse_in_place(csubstr filename, substr yaml                         );
-    template<class U=EventHandler> RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") typename std::enable_if<U::is_wtree, Tree>::type parse_in_place(                  substr yaml                         );
-    template<class U=EventHandler> RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") typename std::enable_if<U::is_wtree, void>::type parse_in_arena(csubstr filename, csubstr yaml, Tree *t, size_t node_id);
-    template<class U=EventHandler> RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") typename std::enable_if<U::is_wtree, void>::type parse_in_arena(                  csubstr yaml, Tree *t, size_t node_id);
-    template<class U=EventHandler> RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") typename std::enable_if<U::is_wtree, void>::type parse_in_arena(csubstr filename, csubstr yaml, Tree *t                );
-    template<class U=EventHandler> RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") typename std::enable_if<U::is_wtree, void>::type parse_in_arena(                  csubstr yaml, Tree *t                );
-    template<class U=EventHandler> RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") typename std::enable_if<U::is_wtree, void>::type parse_in_arena(csubstr filename, csubstr yaml, NodeRef node           );
-    template<class U=EventHandler> RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") typename std::enable_if<U::is_wtree, void>::type parse_in_arena(                  csubstr yaml, NodeRef node           );
-    template<class U=EventHandler> RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") typename std::enable_if<U::is_wtree, Tree>::type parse_in_arena(csubstr filename, csubstr yaml                         );
-    template<class U=EventHandler> RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") typename std::enable_if<U::is_wtree, Tree>::type parse_in_arena(                  csubstr yaml                         );
-    template<class U=EventHandler> RYML_DEPRECATED("removed, deliberately undefined. use the freestanding csubstr version in parse.hpp.") typename std::enable_if<U::is_wtree, void>::type parse_in_arena(csubstr filename, substr yaml, Tree *t, size_t node_id);
-    template<class U=EventHandler> RYML_DEPRECATED("removed, deliberately undefined. use the freestanding csubstr version in parse.hpp.") typename std::enable_if<U::is_wtree, void>::type parse_in_arena(                  substr yaml, Tree *t, size_t node_id);
-    template<class U=EventHandler> RYML_DEPRECATED("removed, deliberately undefined. use the freestanding csubstr version in parse.hpp.") typename std::enable_if<U::is_wtree, void>::type parse_in_arena(csubstr filename, substr yaml, Tree *t                );
-    template<class U=EventHandler> RYML_DEPRECATED("removed, deliberately undefined. use the freestanding csubstr version in parse.hpp.") typename std::enable_if<U::is_wtree, void>::type parse_in_arena(                  substr yaml, Tree *t                );
-    template<class U=EventHandler> RYML_DEPRECATED("removed, deliberately undefined. use the freestanding csubstr version in parse.hpp.") typename std::enable_if<U::is_wtree, void>::type parse_in_arena(csubstr filename, substr yaml, NodeRef node           );
-    template<class U=EventHandler> RYML_DEPRECATED("removed, deliberately undefined. use the freestanding csubstr version in parse.hpp.") typename std::enable_if<U::is_wtree, void>::type parse_in_arena(                  substr yaml, NodeRef node           );
-    template<class U=EventHandler> RYML_DEPRECATED("removed, deliberately undefined. use the freestanding csubstr version in parse.hpp.") typename std::enable_if<U::is_wtree, Tree>::type parse_in_arena(csubstr filename, substr yaml                         );
-    template<class U=EventHandler> RYML_DEPRECATED("removed, deliberately undefined. use the freestanding csubstr version in parse.hpp.") typename std::enable_if<U::is_wtree, Tree>::type parse_in_arena(                  substr yaml                         );
+    RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") void parse_in_place(csubstr filename, substr yaml, Tree *t, size_t node_id);
+    RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") void parse_in_place(                  substr yaml, Tree *t, size_t node_id);
+    RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") void parse_in_place(csubstr filename, substr yaml, Tree *t                );
+    RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") void parse_in_place(                  substr yaml, Tree *t                );
+    RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") void parse_in_place(csubstr filename, substr yaml, NodeRef node           );
+    RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") void parse_in_place(                  substr yaml, NodeRef node           );
+    RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") void parse_in_place(csubstr filename, substr yaml                         );
+    RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") void parse_in_place(                  substr yaml                         );
+    RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") void parse_in_arena(csubstr filename, csubstr yaml, Tree *t, size_t node_id);
+    RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") void parse_in_arena(                  csubstr yaml, Tree *t, size_t node_id);
+    RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") void parse_in_arena(csubstr filename, csubstr yaml, Tree *t                );
+    RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") void parse_in_arena(                  csubstr yaml, Tree *t                );
+    RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") void parse_in_arena(csubstr filename, csubstr yaml, NodeRef node           );
+    RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") void parse_in_arena(                  csubstr yaml, NodeRef node           );
+    RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") void parse_in_arena(csubstr filename, csubstr yaml                         );
+    RYML_DEPRECATED("removed, deliberately undefined. use the freestanding function in parse.hpp.") void parse_in_arena(                  csubstr yaml                         );
+    RYML_DEPRECATED("removed, deliberately undefined. use the freestanding csubstr version in parse.hpp.") void parse_in_arena(csubstr filename, substr yaml, Tree *t, size_t node_id);
+    RYML_DEPRECATED("removed, deliberately undefined. use the freestanding csubstr version in parse.hpp.") void parse_in_arena(                  substr yaml, Tree *t, size_t node_id);
+    RYML_DEPRECATED("removed, deliberately undefined. use the freestanding csubstr version in parse.hpp.") void parse_in_arena(csubstr filename, substr yaml, Tree *t                );
+    RYML_DEPRECATED("removed, deliberately undefined. use the freestanding csubstr version in parse.hpp.") void parse_in_arena(                  substr yaml, Tree *t                );
+    RYML_DEPRECATED("removed, deliberately undefined. use the freestanding csubstr version in parse.hpp.") void parse_in_arena(csubstr filename, substr yaml, NodeRef node           );
+    RYML_DEPRECATED("removed, deliberately undefined. use the freestanding csubstr version in parse.hpp.") void parse_in_arena(                  substr yaml, NodeRef node           );
+    RYML_DEPRECATED("removed, deliberately undefined. use the freestanding csubstr version in parse.hpp.") void parse_in_arena(csubstr filename, substr yaml                         );
+    RYML_DEPRECATED("removed, deliberately undefined. use the freestanding csubstr version in parse.hpp.") void parse_in_arena(                  substr yaml                         );
     /** @endcond */
 
     /** @} */

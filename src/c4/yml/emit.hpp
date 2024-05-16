@@ -62,6 +62,29 @@ typedef enum {
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+/** A lightweight object containing options to be used when emitting. */
+struct EmitOptions
+{
+public:
+    /** @name max depth for the emitted tree
+     *
+     * This makes the emitter fail when emitting trees exceeding the
+     * max_depth.
+     *
+     * @{ */
+    C4_ALWAYS_INLINE id_type max_depth() const noexcept { return m_max_depth; }
+    EmitOptions& max_depth(id_type d) noexcept { m_max_depth = d; return *this; }
+    static constexpr const id_type max_depth_default = 64;
+    /** @} */
+private:
+    id_type m_max_depth{max_depth_default};
+};
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 /** A stateful emitter, for use with a writer such as @ref WriterBuf,
  * @ref WriterFile, or @ref WriterOStream */
 template<class Writer>
@@ -69,12 +92,21 @@ class Emitter : public Writer
 {
 public:
 
-    /** Construct the emitter and its internal Writer state. Every
-     * parameter is forwarded to the constructor of the writer. */
+    /** Construct the emitter and its internal Writer state, using default emit options.
+     * @param args arguments to be forwarded to the constructor of the writer.
+     * */
     template<class ...Args>
-    Emitter(Args &&...args) : Writer(std::forward<Args>(args)...), m_tree() {}
-    /** emit!
+    Emitter(Args &&...args) : Writer(std::forward<Args>(args)...), m_tree(), m_opts(), m_flow(false) {}
 
+    /** Construct the emitter and its internal Writer state.
+     *
+     * @param opts EmitOptions
+     * @param args arguments to be forwarded to the constructor of the writer.
+     * */
+    template<class ...Args>
+    Emitter(EmitOptions const& opts, Args &&...args) : Writer(std::forward<Args>(args)...), m_tree(), m_opts(opts), m_flow(false) {}
+
+    /** emit!
      *
      * When writing to a buffer, returns a substr of the emitted YAML.
      * If the given buffer has insufficient space, the returned substr
@@ -97,10 +129,23 @@ public:
     /** emit the given node */
     substr emit_as(EmitType_e type, ConstNodeRef const& n, bool error_on_excess=true);
 
+public:
+
+    /** get the emit options for this object */
+    EmitOptions const& options() const noexcept { return m_opts; }
+
+    /** set the max depth for emitted trees (to prevent a stack overflow) */
+    void max_depth(id_type max_depth) noexcept { m_opts.max_depth(max_depth); }
+    /** get the max depth for emitted trees (to prevent a stack overflow) */
+    id_type max_depth() const noexcept { return m_opts.max_depth(); }
+
 private:
 
     Tree const* C4_RESTRICT m_tree;
+    EmitOptions m_opts;
     bool m_flow;
+
+private:
 
     void _emit_yaml(id_type id);
     void _do_visit_flow_sl(id_type id, id_type ilevel=0);
@@ -168,46 +213,68 @@ private:
  */
 
 
-/** emit YAML to the given file. A null file defaults to stdout.
- * Return the number of bytes written. */
+/** emit YAML to the given file, starting at the given node. A null
+ * file defaults to stdout. Return the number of bytes written. */
 inline size_t emit_yaml(Tree const& t, id_type id, FILE *f)
 {
     EmitterFile em(f);
     return em.emit_as(EMIT_YAML, t, id, /*error_on_excess*/true).len;
 }
-/** emit JSON to the given file. A null file defaults to stdout.
- * Return the number of bytes written. */
+inline size_t emit_yaml(Tree const& t, id_type id, EmitOptions const& opts, FILE *f)
+{
+    EmitterFile em(opts, f);
+    return em.emit_as(EMIT_YAML, t, id, /*error_on_excess*/true).len;
+}
+/** emit JSON to the given file, starting at the given node. A null
+ * file defaults to stdout.  Return the number of bytes written. */
 inline size_t emit_json(Tree const& t, id_type id, FILE *f)
 {
     EmitterFile em(f);
     return em.emit_as(EMIT_JSON, t, id, /*error_on_excess*/true).len;
 }
+inline size_t emit_json(Tree const& t, id_type id, EmitOptions const& opts, FILE *f)
+{
+    EmitterFile em(opts, f);
+    return em.emit_as(EMIT_JSON, t, id, /*error_on_excess*/true).len;
+}
 
 
-/** emit YAML to the given file. A null file defaults to stdout.
- * Return the number of bytes written.
- * @overload */
+/** emit YAML to the given file, starting at the root node. A null file defaults to stdout.
+ * Return the number of bytes written. */
 inline size_t emit_yaml(Tree const& t, FILE *f=nullptr)
 {
     EmitterFile em(f);
     return em.emit_as(EMIT_YAML, t, /*error_on_excess*/true).len;
 }
+inline size_t emit_yaml(Tree const& t, EmitOptions const& opts, FILE *f=nullptr)
+{
+    EmitterFile em(opts, f);
+    return em.emit_as(EMIT_YAML, t, /*error_on_excess*/true).len;
+}
 /** emit JSON to the given file. A null file defaults to stdout.
- * Return the number of bytes written.
- * @overload */
+ * Return the number of bytes written. */
 inline size_t emit_json(Tree const& t, FILE *f=nullptr)
 {
     EmitterFile em(f);
     return em.emit_as(EMIT_JSON, t, /*error_on_excess*/true).len;
 }
+inline size_t emit_json(Tree const& t, EmitOptions const& opts, FILE *f=nullptr)
+{
+    EmitterFile em(opts, f);
+    return em.emit_as(EMIT_JSON, t, /*error_on_excess*/true).len;
+}
 
 
 /** emit YAML to the given file. A null file defaults to stdout.
- * Return the number of bytes written.
- * @overload */
+ * Return the number of bytes written. */
 inline size_t emit_yaml(ConstNodeRef const& r, FILE *f=nullptr)
 {
     EmitterFile em(f);
+    return em.emit_as(EMIT_YAML, r, /*error_on_excess*/true).len;
+}
+inline size_t emit_yaml(ConstNodeRef const& r, EmitOptions const& opts, FILE *f=nullptr)
+{
+    EmitterFile em(opts, f);
     return em.emit_as(EMIT_YAML, r, /*error_on_excess*/true).len;
 }
 /** emit JSON to the given file. A null file defaults to stdout.
@@ -216,6 +283,11 @@ inline size_t emit_yaml(ConstNodeRef const& r, FILE *f=nullptr)
 inline size_t emit_json(ConstNodeRef const& r, FILE *f=nullptr)
 {
     EmitterFile em(f);
+    return em.emit_as(EMIT_JSON, r, /*error_on_excess*/true).len;
+}
+inline size_t emit_json(ConstNodeRef const& r, EmitOptions const& opts, FILE *f=nullptr)
+{
+    EmitterFile em(opts, f);
     return em.emit_as(EMIT_JSON, r, /*error_on_excess*/true).len;
 }
 
@@ -228,24 +300,6 @@ inline size_t emit_json(ConstNodeRef const& r, FILE *f=nullptr)
  *
  * @{
  */
-
-/** mark a tree or node to be emitted as json when using @ref operator<< . For example:
- *
- * ```cpp
- * Tree t = parse_in_arena("{foo: bar}");
- * std::cout << t; // emits YAML
- * std::cout << as_json(t); // emits JSON
- * ```
- *
- * @see @ref operator<< */
-struct as_json
-{
-    Tree const* tree;
-    size_t node;
-    as_json(Tree const& t) : tree(&t), node(t.empty() ? NONE : t.root_id()) {}
-    as_json(Tree const& t, size_t id) : tree(&t), node(id) {}
-    as_json(ConstNodeRef const& n) : tree(n.tree()), node(n.id()) {}
-};
 
 /** emit YAML to an STL-like ostream */
 template<class OStream>
@@ -266,12 +320,62 @@ inline OStream& operator<< (OStream& s, ConstNodeRef const& n)
     return s;
 }
 
+/** mark a tree or node to be emitted as yaml when using @ref
+ * operator<<, with options. For example:
+ *
+ * ```cpp
+ * Tree t = parse_in_arena("{foo: bar}");
+ * std::cout << t; // emits YAML
+ * std::cout << as_yaml(t); // emits YAML, same as above
+ * std::cout << as_yaml(t, EmitOptions().max_depth(10)); // emits JSON with a max tree depth
+ * ```
+ *
+ * @see @ref operator<< */
+struct as_json
+{
+    Tree const* tree;
+    size_t node;
+    EmitOptions options;
+    as_json(Tree const& t, EmitOptions const& opts={}) : tree(&t), node(t.empty() ? NONE : t.root_id()), options(opts)  {}
+    as_json(Tree const& t, size_t id, EmitOptions const& opts={}) : tree(&t), node(id), options(opts)  {}
+    as_json(ConstNodeRef const& n, EmitOptions const& opts={}) : tree(n.tree()), node(n.id()), options(opts) {}
+};
+
+/** mark a tree or node to be emitted as yaml when using @ref operator<< . For example:
+ *
+ * ```cpp
+ * Tree t = parse_in_arena("{foo: bar}");
+ * std::cout << t; // emits YAML
+ * std::cout << as_json(t); // emits JSON
+ * std::cout << as_json(t, EmitOptions().max_depth(10)); // emits JSON with a max tree depth
+ * ```
+ *
+ * @see @ref operator<< */
+struct as_yaml
+{
+    Tree const* tree;
+    size_t node;
+    EmitOptions options;
+    as_yaml(Tree const& t, EmitOptions const& opts={}) : tree(&t), node(t.empty() ? NONE : t.root_id()), options(opts)  {}
+    as_yaml(Tree const& t, size_t id, EmitOptions const& opts={}) : tree(&t), node(id), options(opts)  {}
+    as_yaml(ConstNodeRef const& n, EmitOptions const& opts={}) : tree(n.tree()), node(n.id()), options(opts) {}
+};
+
 /** emit json to an STL-like stream */
 template<class OStream>
 inline OStream& operator<< (OStream& s, as_json const& j)
 {
-    EmitterOStream<OStream> em(s);
+    EmitterOStream<OStream> em(j.options, s);
     em.emit_as(EMIT_JSON, *j.tree, j.node, true);
+    return s;
+}
+
+/** emit yaml to an STL-like stream */
+template<class OStream>
+inline OStream& operator<< (OStream& s, as_yaml const& y)
+{
+    EmitterOStream<OStream> em(y.options, s);
+    em.emit_as(EMIT_YAML, *y.tree, y.node, true);
     return s;
 }
 
@@ -285,44 +389,69 @@ inline OStream& operator<< (OStream& s, as_json const& j)
  * @{
  */
 
-/** emit YAML to the given buffer. Return a substr trimmed to the emitted YAML.
+/** @name emit from tree and node id
+ * @{ */
+
+/** (1) emit YAML to the given buffer. Return a substr trimmed to the emitted YAML.
  * @param t the tree to emit.
  * @param id the node where to start emitting.
  * @param buf the output buffer.
+ * @param opts emit options.
  * @param error_on_excess Raise an error if the space in the buffer is insufficient.
- * @return a substr trimmed to the result. If the buffer is
- * insufficient (and error_on_excess is false), the pointer of the
- * result will be set to null.
- * @overload */
+ * @return a substr trimmed to the result in the output buffer. If the buffer is
+ * insufficient (when error_on_excess is false), the string pointer of the
+ * result will be set to null, and the length will report the required buffer size. */
+inline substr emit_yaml(Tree const& t, id_type id, substr buf, EmitOptions const& opts, bool error_on_excess=true)
+{
+    EmitterBuf em(opts, buf);
+    return em.emit_as(EMIT_YAML, t, id, error_on_excess);
+}
+/** (2) like (1), but use default emit options */
 inline substr emit_yaml(Tree const& t, id_type id, substr buf, bool error_on_excess=true)
 {
     EmitterBuf em(buf);
     return em.emit_as(EMIT_YAML, t, id, error_on_excess);
 }
-/** emit JSON to the given buffer. Return a substr trimmed to the emitted JSON.
+/** (1) emit JSON to the given buffer. Return a substr trimmed to the emitted JSON.
  * @param t the tree to emit.
  * @param id the node where to start emitting.
  * @param buf the output buffer.
+ * @param opts emit options.
  * @param error_on_excess Raise an error if the space in the buffer is insufficient.
- * @return a substr trimmed to the result. If the buffer is
- * insufficient (and error_on_excess is false), the pointer of the
- * result will be set to null.
- * @overload */
+ * @return a substr trimmed to the result in the output buffer. If the buffer is
+ * insufficient (when error_on_excess is false), the string pointer of the
+ * result will be set to null, and the length will report the required buffer size. */
+inline substr emit_json(Tree const& t, id_type id, substr buf, EmitOptions const& opts, bool error_on_excess=true)
+{
+    EmitterBuf em(opts, buf);
+    return em.emit_as(EMIT_JSON, t, id, error_on_excess);
+}
+/** (2) like (1), but use default emit options */
 inline substr emit_json(Tree const& t, id_type id, substr buf, bool error_on_excess=true)
 {
     EmitterBuf em(buf);
     return em.emit_as(EMIT_JSON, t, id, error_on_excess);
 }
 
+/** @} */
 
-/** emit YAML to the given buffer. Return a substr trimmed to the emitted YAML.
+
+/** @name emit from root
+ * @{ */
+
+/** (1) emit YAML to the given buffer. Return a substr trimmed to the emitted YAML.
  * @param t the tree; will be emitted from the root node.
- * @param error_on_excess Raise an error if the space in the buffer is insufficient.
  * @param buf the output buffer.
- * @return a substr trimmed to the result. If the buffer is
- * insufficient (and error_on_excess is false), the pointer of the
- * result will be set to null.
- * @overload */
+ * @param error_on_excess Raise an error if the space in the buffer is insufficient.
+ * @return a substr trimmed to the result in the output buffer. If the buffer is
+ * insufficient (when error_on_excess is false), the string pointer of the
+ * result will be set to null, and the length will report the required buffer size. */
+inline substr emit_yaml(Tree const& t, substr buf, EmitOptions const& opts, bool error_on_excess=true)
+{
+    EmitterBuf em(opts, buf);
+    return em.emit_as(EMIT_YAML, t, error_on_excess);
+}
+/** (2) like (1), but use default emit options */
 inline substr emit_yaml(Tree const& t, substr buf, bool error_on_excess=true)
 {
     EmitterBuf em(buf);
@@ -332,183 +461,267 @@ inline substr emit_yaml(Tree const& t, substr buf, bool error_on_excess=true)
  * @param t the tree; will be emitted from the root node.
  * @param buf the output buffer.
  * @param error_on_excess Raise an error if the space in the buffer is insufficient.
- * @return a substr trimmed to the result. If the buffer is
- * insufficient (and error_on_excess is false), the pointer of the
- * result will be set to null.
- * @overload */
+ * @return a substr trimmed to the result in the output buffer. If the buffer is
+ * insufficient (when error_on_excess is false), the string pointer of the
+ * result will be set to null, and the length will report the required buffer size. */
+inline substr emit_json(Tree const& t, substr buf, EmitOptions const& opts, bool error_on_excess=true)
+{
+    EmitterBuf em(opts, buf);
+    return em.emit_as(EMIT_JSON, t, error_on_excess);
+}
+/** (2) like (1), but use default emit options */
 inline substr emit_json(Tree const& t, substr buf, bool error_on_excess=true)
 {
     EmitterBuf em(buf);
     return em.emit_as(EMIT_JSON, t, error_on_excess);
 }
 
+/** @} */
 
-/** emit YAML to the given buffer. Return a substr trimmed to the emitted YAML.
+
+/** @name emit from @ref ConstNodeRef
+ * @{ */
+
+/** (1) emit YAML to the given buffer. Return a substr trimmed to the emitted YAML.
  * @param r the starting node.
  * @param buf the output buffer.
+ * @param opts emit options.
  * @param error_on_excess Raise an error if the space in the buffer is insufficient.
- * @return a substr trimmed to the result. If the buffer is
- * insufficient (and error_on_excess is false), the pointer of the
- * result will be set to null.
- * @overload
- */
+ * @return a substr trimmed to the result in the output buffer. If the buffer is
+ * insufficient (when error_on_excess is false), the string pointer of the
+ * result will be set to null, and the length will report the required buffer size. */
+inline substr emit_yaml(ConstNodeRef const& r, substr buf, EmitOptions const& opts, bool error_on_excess=true)
+{
+    EmitterBuf em(opts, buf);
+    return em.emit_as(EMIT_YAML, r, error_on_excess);
+}
+/** (2) like (1), but use default emit options */
 inline substr emit_yaml(ConstNodeRef const& r, substr buf, bool error_on_excess=true)
 {
     EmitterBuf em(buf);
     return em.emit_as(EMIT_YAML, r, error_on_excess);
 }
-/** emit JSON to the given buffer. Return a substr trimmed to the emitted JSON.
+/** (1) emit JSON to the given buffer. Return a substr trimmed to the emitted JSON.
  * @param r the starting node.
  * @param buf the output buffer.
+ * @param opts emit options.
  * @param error_on_excess Raise an error if the space in the buffer is insufficient.
- * @return a substr trimmed to the result. If the buffer is
- * insufficient (and error_on_excess is false), the pointer of the
- * result will be set to null.
- * @overload
- */
+ * @return a substr trimmed to the result in the output buffer. If the buffer is
+ * insufficient (when error_on_excess is false), the string pointer of the
+ * result will be set to null, and the length will report the required buffer size. */
+inline substr emit_json(ConstNodeRef const& r, substr buf, EmitOptions const& opts, bool error_on_excess=true)
+{
+    EmitterBuf em(opts, buf);
+    return em.emit_as(EMIT_JSON, r, error_on_excess);
+}
+/** (2) like (1), but use default emit options */
 inline substr emit_json(ConstNodeRef const& r, substr buf, bool error_on_excess=true)
 {
     EmitterBuf em(buf);
     return em.emit_as(EMIT_JSON, r, error_on_excess);
 }
 
+/** @} */
+
 
 //-----------------------------------------------------------------------------
 
 /** emit+resize: emit YAML to the given `std::string`/`std::vector`-like
  * container, resizing it as needed to fit the emitted YAML. */
+/** @defgroup doc_emit_to_container Emit to resizeable container
+ *
+ * @{
+ */
+
+/** @name emit from tree and node id
+ * @{ */
+
+template<class CharOwningContainer>
+substr emitrs_yaml(Tree const& t, id_type id, EmitOptions const& opts, CharOwningContainer * cont)
+{
+    substr buf = to_substr(*cont);
+    substr ret = emit_yaml(t, id, buf, opts, /*error_on_excess*/false);
+    if(ret.str == nullptr && ret.len > 0)
+    {
+        cont->resize(ret.len);
+        buf = to_substr(*cont);
+        ret = emit_yaml(t, id, buf, opts, /*error_on_excess*/true);
+    }
+    return ret;
+}
+/** (2) like (1), but use default emit options */
 template<class CharOwningContainer>
 substr emitrs_yaml(Tree const& t, id_type id, CharOwningContainer * cont)
 {
+    return emitrs_yaml(t, id, EmitOptions{}, cont);
+}
+/** emit+resize: emit JSON to the given `std::string`/`std::vector`-like
+ * container, resizing it as needed to fit the emitted JSON. */
+template<class CharOwningContainer>
+substr emitrs_json(Tree const& t, id_type id, EmitOptions const& opts, CharOwningContainer * cont)
+{
     substr buf = to_substr(*cont);
-    substr ret = emit_yaml(t, id, buf, /*error_on_excess*/false);
+    substr ret = emit_json(t, id, buf, opts, /*error_on_excess*/false);
     if(ret.str == nullptr && ret.len > 0)
     {
         cont->resize(ret.len);
         buf = to_substr(*cont);
-        ret = emit_yaml(t, id, buf, /*error_on_excess*/true);
+        ret = emit_json(t, id, buf, opts, /*error_on_excess*/true);
     }
     return ret;
 }
-/** emit+resize: emit JSON to the given `std::string`/`std::vector`-like
- * container, resizing it as needed to fit the emitted JSON. */
+/** (2) like (1), but use default emit options */
 template<class CharOwningContainer>
 substr emitrs_json(Tree const& t, id_type id, CharOwningContainer * cont)
 {
-    substr buf = to_substr(*cont);
-    substr ret = emit_json(t, id, buf, /*error_on_excess*/false);
-    if(ret.str == nullptr && ret.len > 0)
-    {
-        cont->resize(ret.len);
-        buf = to_substr(*cont);
-        ret = emit_json(t, id, buf, /*error_on_excess*/true);
-    }
-    return ret;
+    return emitrs_json(t, id, EmitOptions{}, cont);
 }
 
 
-/** emit+resize: emit YAML to the given `std::string`/`std::vector`-like
- * container, resizing it as needed to fit the emitted YAML. */
+/** (3) emit+resize: YAML to a newly-created `std::string`/`std::vector`-like container. */
 template<class CharOwningContainer>
-CharOwningContainer emitrs_yaml(Tree const& t, id_type id)
+CharOwningContainer emitrs_yaml(Tree const& t, id_type id, EmitOptions const& opts={})
 {
     CharOwningContainer c;
-    emitrs_yaml(t, id, &c);
+    emitrs_yaml(t, id, opts, &c);
     return c;
 }
-/** emit+resize: emit JSON to the given `std::string`/`std::vector`-like
- * container, resizing it as needed to fit the emitted JSON. */
+/** (3) emit+resize: JSON to a newly-created `std::string`/`std::vector`-like container. */
 template<class CharOwningContainer>
-CharOwningContainer emitrs_json(Tree const& t, id_type id)
+CharOwningContainer emitrs_json(Tree const& t, id_type id, EmitOptions const& opts={})
 {
     CharOwningContainer c;
-    emitrs_json(t, id, &c);
+    emitrs_json(t, id, opts, &c);
     return c;
 }
 
+/** @} */
 
-/** emit+resize: YAML to the given `std::string`/`std::vector`-like
- * container, resizing it as needed to fit the emitted YAML. */
+
+/** @name emit from root
+ * @{ */
+
+/** (1) emit+resize: YAML to the given `std::string`/`std::vector`-like
+ * container, resizing it as needed to fit the emitted YAML.
+ * @return a substr trimmed to the new emitted contents. */
+template<class CharOwningContainer>
+substr emitrs_yaml(Tree const& t, EmitOptions const& opts, CharOwningContainer * cont)
+{
+    if(t.empty())
+        return {};
+    return emitrs_yaml(t, t.root_id(), opts, cont);
+}
+/** (2) like (1), but use default emit options */
 template<class CharOwningContainer>
 substr emitrs_yaml(Tree const& t, CharOwningContainer * cont)
 {
     if(t.empty())
         return {};
-    return emitrs_yaml(t, t.root_id(), cont);
+    return emitrs_yaml(t, t.root_id(), EmitOptions{}, cont);
 }
-/** emit+resize: JSON to the given `std::string`/`std::vector`-like
- * container, resizing it as needed to fit the emitted JSON. */
+/** (1) emit+resize: JSON to the given `std::string`/`std::vector`-like
+ * container, resizing it as needed to fit the emitted JSON.
+ * @return a substr trimmed to the new emitted contents. */
+template<class CharOwningContainer>
+substr emitrs_json(Tree const& t, EmitOptions const& opts, CharOwningContainer * cont)
+{
+    if(t.empty())
+        return {};
+    return emitrs_json(t, t.root_id(), opts, cont);
+}
+/** (2) like (1), but use default emit options */
 template<class CharOwningContainer>
 substr emitrs_json(Tree const& t, CharOwningContainer * cont)
 {
     if(t.empty())
         return {};
-    return emitrs_json(t, t.root_id(), cont);
+    return emitrs_json(t, t.root_id(), EmitOptions{}, cont);
 }
 
 
-/** emit+resize: YAML to the given `std::string`/`std::vector`-like container,
- * resizing it as needed to fit the emitted YAML. */
+/** (3) emit+resize: YAML to a newly-created `std::string`/`std::vector`-like container. */
 template<class CharOwningContainer>
-CharOwningContainer emitrs_yaml(Tree const& t)
+CharOwningContainer emitrs_yaml(Tree const& t, EmitOptions const& opts={})
 {
     CharOwningContainer c;
     if(t.empty())
         return c;
-    emitrs_yaml(t, t.root_id(), &c);
+    emitrs_yaml(t, t.root_id(), opts, &c);
     return c;
 }
-/** emit+resize: JSON to the given `std::string`/`std::vector`-like container,
- * resizing it as needed to fit the emitted JSON. */
+/** (3) emit+resize: JSON to a newly-created `std::string`/`std::vector`-like container. */
 template<class CharOwningContainer>
-CharOwningContainer emitrs_json(Tree const& t)
+CharOwningContainer emitrs_json(Tree const& t, EmitOptions const& opts={})
 {
     CharOwningContainer c;
     if(t.empty())
         return c;
-    emitrs_json(t, t.root_id(), &c);
+    emitrs_json(t, t.root_id(), opts, &c);
     return c;
 }
 
+/** @} */
 
-/** emit+resize: YAML to the given `std::string`/`std::vector`-like container,
- * resizing it as needed to fit the emitted YAML. */
+
+/** @name emit from @ref ConstNodeRef
+ * @{ */
+
+
+/** (1) emit+resize: YAML to the given `std::string`/`std::vector`-like container,
+ * resizing it as needed to fit the emitted YAML.
+ * @return a substr trimmed to the new emitted contents */
+template<class CharOwningContainer>
+substr emitrs_yaml(ConstNodeRef const& n, EmitOptions const& opts, CharOwningContainer * cont)
+{
+    _RYML_CB_CHECK(n.tree()->callbacks(), n.readable());
+    return emitrs_yaml(*n.tree(), n.id(), opts, cont);
+}
+/** (2) like (1), but use default emit options */
 template<class CharOwningContainer>
 substr emitrs_yaml(ConstNodeRef const& n, CharOwningContainer * cont)
 {
     _RYML_CB_CHECK(n.tree()->callbacks(), n.readable());
-    return emitrs_yaml(*n.tree(), n.id(), cont);
+    return emitrs_yaml(*n.tree(), n.id(), EmitOptions{}, cont);
 }
-/** emit+resize: JSON to the given `std::string`/`std::vector`-like container,
- * resizing it as needed to fit the emitted JSON. */
+/** (1) emit+resize: JSON to the given `std::string`/`std::vector`-like container,
+ * resizing it as needed to fit the emitted JSON.
+ * @return a substr trimmed to the new emitted contents */
+template<class CharOwningContainer>
+substr emitrs_json(ConstNodeRef const& n, EmitOptions const& opts, CharOwningContainer * cont)
+{
+    _RYML_CB_CHECK(n.tree()->callbacks(), n.readable());
+    return emitrs_json(*n.tree(), n.id(), opts, cont);
+}
+/** (2) like (1), but use default emit options */
 template<class CharOwningContainer>
 substr emitrs_json(ConstNodeRef const& n, CharOwningContainer * cont)
 {
     _RYML_CB_CHECK(n.tree()->callbacks(), n.readable());
-    return emitrs_json(*n.tree(), n.id(), cont);
+    return emitrs_json(*n.tree(), n.id(), EmitOptions{}, cont);
 }
 
 
-/** emit+resize: YAML to the given `std::string`/`std::vector`-like container,
- * resizing it as needed to fit the emitted YAML. */
+/** (3) emit+resize: YAML to a newly-created `std::string`/`std::vector`-like container. */
 template<class CharOwningContainer>
-CharOwningContainer emitrs_yaml(ConstNodeRef const& n)
+CharOwningContainer emitrs_yaml(ConstNodeRef const& n, EmitOptions const& opts={})
 {
     _RYML_CB_CHECK(n.tree()->callbacks(), n.readable());
     CharOwningContainer c;
-    emitrs_yaml(*n.tree(), n.id(), &c);
+    emitrs_yaml(*n.tree(), n.id(), opts, &c);
     return c;
 }
-/** emit+resize: JSON to the given `std::string`/`std::vector`-like container,
- * resizing it as needed to fit the emitted JSON. */
+/** (3) emit+resize: JSON to a newly-created `std::string`/`std::vector`-like container. */
 template<class CharOwningContainer>
-CharOwningContainer emitrs_json(ConstNodeRef const& n)
+CharOwningContainer emitrs_json(ConstNodeRef const& n, EmitOptions const& opts={})
 {
     _RYML_CB_CHECK(n.tree()->callbacks(), n.readable());
     CharOwningContainer c;
-    emitrs_json(*n.tree(), n.id(), &c);
+    emitrs_json(*n.tree(), n.id(), opts, &c);
     return c;
 }
+
+/** @} */
+
 
 /** @} */
 
