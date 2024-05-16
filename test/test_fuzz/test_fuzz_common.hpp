@@ -65,33 +65,68 @@ inline c4::yml::Callbacks create_custom_callbacks()
     return callbacks;
 }
 
-std::string fuzz_subject(c4::csubstr src);
+#ifdef RYML_DBG
+#define _if_dbg(...) __VA_ARGS__
+#else
+#define _if_dbg(...)
+#endif
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *str, size_t len)
+namespace c4 {
+namespace yml {
+
+inline int fuzztest_parse_emit(uint32_t case_number, csubstr src)
 {
-    c4::yml::set_callbacks(create_custom_callbacks());
+    C4_UNUSED(case_number);
+    set_callbacks(create_custom_callbacks());
+    Tree tree(create_custom_callbacks());
+    bool parse_success = false;
     C4_IF_EXCEPTIONS_(try, if(setjmp(jmp_env) == 0))
     {
-        c4::csubstr src = {reinterpret_cast<const char*>(str), len};
-        #ifdef RYML_DBG
-        fprintf(stdout, "in: ~~~\n%.*s\n~~~\n", static_cast<int>(src.len), src.str); fflush(stdout);
-        #else
-        //static int count = 0;
-        //fprintf(stdout, "%d: ", count++);
-        #endif
-        std::string out = fuzz_subject(src);
-        #ifdef RYML_DBG
-        fprintf(stdout, "out: ~~~\n%s\n~~~\n", out.c_str()); fflush(stdout);
-        #else
-        //fprintf(stdout, "ok!\n"); fflush(stdout);
-        #endif
+        RYML_ASSERT(tree.empty());
+        _if_dbg(_dbg_printf("in[{}]: [{}]~~~\n{}\n~~~\n", case_number, src.len, src); fflush(NULL));
+        parse_in_arena(src, &tree);
+        parse_success = true;
+        _if_dbg(print_tree("parsed tree", tree));
+        _if_dbg(_dbg_printf("in[{}]: [{}]~~~\n{}\n~~~\n", case_number, src.len, src); fflush(NULL));
+        std::string dst = emitrs_yaml<std::string>(tree);
+        _if_dbg(_dbg_printf("emitted[{}]: [{}]~~~\n{}\n~~~\n", case_number, dst.size(), to_csubstr(dst)); fflush(NULL));
+        C4_DONT_OPTIMIZE(dst);
+        C4_DONT_OPTIMIZE(parse_success);
     }
     C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
     {
-        //fprintf(stdout, "err\n"); fflush(stdout);
+        // if an exception leaks from here, it is likely because of a greedy noexcept
+        _if_dbg(if(parse_success) print_tree("parsed tree", tree));
         return 1;
     }
     return 0;
 }
+
+inline int fuzztest_yaml_events(uint32_t case_number, csubstr src)
+{
+    C4_UNUSED(case_number);
+    set_callbacks(create_custom_callbacks());
+    EventHandlerYamlStd::EventSink sink = {};
+    EventHandlerYamlStd handler(&sink, create_custom_callbacks());
+    ParseEngine<EventHandlerYamlStd> parser(&handler);
+    std::string str(src.begin(), src.end());
+    C4_IF_EXCEPTIONS_(try, if(setjmp(jmp_env) == 0))
+    {
+        _if_dbg(_dbg_printf("in[{}]: [{}]~~~\n{}\n~~~\n", case_number, src.len, src); fflush(NULL));
+        parser.parse_in_place_ev("input", c4::to_substr(str));
+        _if_dbg(fprintf(stdout, "evts[{}]: ~~~\n{}\n~~~\n", case_number, sink.result.c_str()); fflush(NULL));
+        C4_DONT_OPTIMIZE(sink.result);
+    }
+    C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
+    {
+        // if an exception leaks from here, it is likely because of a greedy noexcept
+        _if_dbg(fprintf(stdout, "err\n"); fflush(NULL));
+        return 1;
+    }
+    return 0;
+}
+
+} // namespace yml
+} // namespace c4
 
 #endif /* TEST_FUZZ_COMMON_H */

@@ -314,6 +314,9 @@ if(RYML_TEST_FUZZ)
                 INC_DIRS ${CMAKE_CURRENT_LIST_DIR}
                 LIBS ryml -g -O0 -fsanitize=fuzzer,address,undefined
                 FOLDER test/fuzz)
+            if(RYML_DBG)
+                target_compile_definitions(ryml-test-libfuzzer-${name} PUBLIC RYML_DBG)
+            endif()
             add_dependencies(ryml-test-build ryml-test-libfuzzer-${name})
             set(cmd $<TARGET_FILE:ryml-test-libfuzzer-${name}> ${RYML_TEST_LIBFUZZER_OPTIONS} . ${corpus_suite_dir})
             add_custom_target(ryml-test-libfuzzer-${name}-run

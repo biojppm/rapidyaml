@@ -1,9 +1,9 @@
 #include "./test_fuzz_common.hpp"
+#include <atomic>
 
-std::string fuzz_subject(c4::csubstr src)
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *str, size_t len)
 {
-    c4::yml::Tree tree(create_custom_callbacks());
-    parse_in_arena(src, &tree);
-    std::string dst = c4::yml::emitrs_yaml<std::string>(tree);
-    return dst;
+    static std::atomic_uint32_t case_number = 0;
+    c4::csubstr src = {reinterpret_cast<const char*>(str), len};
+    return c4::yml::fuzztest_parse_emit(case_number++, src);
 }
