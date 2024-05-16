@@ -78,6 +78,17 @@ public:
     /** @} */
 private:
     id_type m_max_depth{max_depth_default};
+
+public:
+    /** @name append mode (when emitting to an existing buffer)
+     * see @ref emitrs_yaml(), @ref emitrs_json()
+     * @{ */
+    C4_ALWAYS_INLINE bool append() const noexcept { return m_append; }
+    EmitOptions& append(bool d) noexcept { m_append = d; return *this; }
+    static constexpr const bool append_default = false;
+    /** @} */
+private:
+    bool m_append{false};
 };
 
 
@@ -526,8 +537,6 @@ inline substr emit_json(ConstNodeRef const& r, substr buf, bool error_on_excess=
 
 //-----------------------------------------------------------------------------
 
-/** emit+resize: emit YAML to the given `std::string`/`std::vector`-like
- * container, resizing it as needed to fit the emitted YAML. */
 /** @defgroup doc_emit_to_container Emit to resizeable container
  *
  * @{
@@ -536,16 +545,28 @@ inline substr emit_json(ConstNodeRef const& r, substr buf, bool error_on_excess=
 /** @name emit from tree and node id
  * @{ */
 
+/** (1) emit+resize: emit YAML to the given `std::string`/`std::vector`-like
+ * container, resizing it as needed to fit the emitted YAML. If the
+ * options are set to append, the emitted YAML is appended at the end
+ * of the container.
+ *
+ * @return a substr trimmed to the emitted YAML (excluding the initial contents, when appending) */
 template<class CharOwningContainer>
 substr emitrs_yaml(Tree const& t, id_type id, EmitOptions const& opts, CharOwningContainer * cont)
 {
-    substr buf = to_substr(*cont);
+    const size_t startpos = opts.append() ? cont->size() : 0u;
+    cont->resize(cont->capacity()); // otherwise the first emit would be certain to fail
+    substr buf = to_substr(*cont).sub(startpos);
     substr ret = emit_yaml(t, id, buf, opts, /*error_on_excess*/false);
     if(ret.str == nullptr && ret.len > 0)
     {
-        cont->resize(ret.len);
-        buf = to_substr(*cont);
+        cont->resize(startpos + ret.len);
+        buf = to_substr(*cont).sub(startpos);
         ret = emit_yaml(t, id, buf, opts, /*error_on_excess*/true);
+    }
+    else
+    {
+        cont->resize(startpos + ret.len);
     }
     return ret;
 }
@@ -555,18 +576,28 @@ substr emitrs_yaml(Tree const& t, id_type id, CharOwningContainer * cont)
 {
     return emitrs_yaml(t, id, EmitOptions{}, cont);
 }
-/** emit+resize: emit JSON to the given `std::string`/`std::vector`-like
- * container, resizing it as needed to fit the emitted JSON. */
+/** (1) emit+resize: emit JSON to the given `std::string`/`std::vector`-like
+ * container, resizing it as needed to fit the emitted JSON. If the
+ * options are set to append, the emitted JSON is appended at the end
+ * of the container.
+ *
+ * @return a substr trimmed to the emitted JSON (excluding the initial contents, when appending) */
 template<class CharOwningContainer>
 substr emitrs_json(Tree const& t, id_type id, EmitOptions const& opts, CharOwningContainer * cont)
 {
-    substr buf = to_substr(*cont);
+    const size_t startpos = opts.append() ? cont->size() : 0u;
+    cont->resize(cont->capacity()); // otherwise the first emit would be certain to fail
+    substr buf = to_substr(*cont).sub(startpos);
     substr ret = emit_json(t, id, buf, opts, /*error_on_excess*/false);
     if(ret.str == nullptr && ret.len > 0)
     {
-        cont->resize(ret.len);
-        buf = to_substr(*cont);
+        cont->resize(startpos + ret.len);
+        buf = to_substr(*cont).sub(startpos);
         ret = emit_json(t, id, buf, opts, /*error_on_excess*/true);
+    }
+    else
+    {
+        cont->resize(startpos + ret.len);
     }
     return ret;
 }
