@@ -2136,7 +2136,7 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
 
 template<class EventHandler>
 template<class FilterProcessor>
-bool ParseEngine<EventHandler>::_filter_ws_handle_to_first_non_space(FilterProcessor &proc) noexcept
+bool ParseEngine<EventHandler>::_filter_ws_handle_to_first_non_space(FilterProcessor &proc)
 {
     _c4dbgfws("found whitespace '{}'", _c4prc(proc.curr()));
     _RYML_CB_ASSERT(this->callbacks(), proc.curr() == ' ' || proc.curr() == '\t');
@@ -2164,7 +2164,7 @@ bool ParseEngine<EventHandler>::_filter_ws_handle_to_first_non_space(FilterProce
 
 template<class EventHandler>
 template<class FilterProcessor>
-void ParseEngine<EventHandler>::_filter_ws_copy_trailing(FilterProcessor &proc) noexcept
+void ParseEngine<EventHandler>::_filter_ws_copy_trailing(FilterProcessor &proc)
 {
     if(!_filter_ws_handle_to_first_non_space(proc))
     {
@@ -2175,7 +2175,7 @@ void ParseEngine<EventHandler>::_filter_ws_copy_trailing(FilterProcessor &proc) 
 
 template<class EventHandler>
 template<class FilterProcessor>
-void ParseEngine<EventHandler>::_filter_ws_skip_trailing(FilterProcessor &proc) noexcept
+void ParseEngine<EventHandler>::_filter_ws_skip_trailing(FilterProcessor &proc)
 {
     if(!_filter_ws_handle_to_first_non_space(proc))
     {
@@ -2201,7 +2201,7 @@ void ParseEngine<EventHandler>::_filter_ws_skip_trailing(FilterProcessor &proc) 
 
 template<class EventHandler>
 template<class FilterProcessor>
-void ParseEngine<EventHandler>::_filter_nl_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation) noexcept
+void ParseEngine<EventHandler>::_filter_nl_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation)
 {
     _RYML_CB_ASSERT(this->callbacks(), proc.curr() == '\n');
 
@@ -2232,7 +2232,7 @@ void ParseEngine<EventHandler>::_filter_nl_plain(FilterProcessor &C4_RESTRICT pr
 
 template<class EventHandler>
 template<class FilterProcessor>
-auto ParseEngine<EventHandler>::_filter_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation) noexcept -> decltype(proc.result())
+auto ParseEngine<EventHandler>::_filter_plain(FilterProcessor &C4_RESTRICT proc, size_t indentation) -> decltype(proc.result())
 {
     _RYML_CB_ASSERT(this->callbacks(), indentation != npos);
     _c4dbgfps("before=[{}]~~~{}~~~", proc.src.len, proc.src);
@@ -2271,14 +2271,14 @@ auto ParseEngine<EventHandler>::_filter_plain(FilterProcessor &C4_RESTRICT proc,
 
 
 template<class EventHandler>
-FilterResult ParseEngine<EventHandler>::filter_scalar_plain(csubstr scalar, substr dst, size_t indentation) noexcept
+FilterResult ParseEngine<EventHandler>::filter_scalar_plain(csubstr scalar, substr dst, size_t indentation)
 {
     FilterProcessorSrcDst proc(scalar, dst);
     return _filter_plain(proc, indentation);
 }
 
 template<class EventHandler>
-FilterResult ParseEngine<EventHandler>::filter_scalar_plain_in_place(substr dst, size_t cap, size_t indentation) noexcept
+FilterResult ParseEngine<EventHandler>::filter_scalar_plain_in_place(substr dst, size_t cap, size_t indentation)
 {
     FilterProcessorInplaceEndExtending proc(dst, cap);
     return _filter_plain(proc, indentation);
@@ -2299,7 +2299,7 @@ FilterResult ParseEngine<EventHandler>::filter_scalar_plain_in_place(substr dst,
 
 template<class EventHandler>
 template<class FilterProcessor>
-void ParseEngine<EventHandler>::_filter_nl_squoted(FilterProcessor &C4_RESTRICT proc) noexcept
+void ParseEngine<EventHandler>::_filter_nl_squoted(FilterProcessor &C4_RESTRICT proc)
 {
     _RYML_CB_ASSERT(this->callbacks(), proc.curr() == '\n');
 
@@ -2330,7 +2330,7 @@ void ParseEngine<EventHandler>::_filter_nl_squoted(FilterProcessor &C4_RESTRICT 
 
 template<class EventHandler>
 template<class FilterProcessor>
-auto ParseEngine<EventHandler>::_filter_squoted(FilterProcessor &C4_RESTRICT proc) noexcept -> decltype(proc.result())
+auto ParseEngine<EventHandler>::_filter_squoted(FilterProcessor &C4_RESTRICT proc) -> decltype(proc.result())
 {
     _c4dbgfsq("before=[{}]~~~{}~~~", proc.src.len, proc.src);
 
@@ -2378,14 +2378,14 @@ auto ParseEngine<EventHandler>::_filter_squoted(FilterProcessor &C4_RESTRICT pro
 #undef _c4dbgfsq
 
 template<class EventHandler>
-FilterResult ParseEngine<EventHandler>::filter_scalar_squoted(csubstr scalar, substr dst) noexcept
+FilterResult ParseEngine<EventHandler>::filter_scalar_squoted(csubstr scalar, substr dst)
 {
     FilterProcessorSrcDst proc(scalar, dst);
     return _filter_squoted(proc);
 }
 
 template<class EventHandler>
-FilterResult ParseEngine<EventHandler>::filter_scalar_squoted_in_place(substr dst, size_t cap) noexcept
+FilterResult ParseEngine<EventHandler>::filter_scalar_squoted_in_place(substr dst, size_t cap)
 {
     FilterProcessorInplaceEndExtending proc(dst, cap);
     return _filter_squoted(proc);
@@ -2406,7 +2406,7 @@ FilterResult ParseEngine<EventHandler>::filter_scalar_squoted_in_place(substr ds
 
 template<class EventHandler>
 template<class FilterProcessor>
-void ParseEngine<EventHandler>::_filter_nl_dquoted(FilterProcessor &C4_RESTRICT proc) noexcept
+void ParseEngine<EventHandler>::_filter_nl_dquoted(FilterProcessor &C4_RESTRICT proc)
 {
     _RYML_CB_ASSERT(this->callbacks(), proc.curr() == '\n');
 
@@ -2686,7 +2686,7 @@ FilterResultExtending ParseEngine<EventHandler>::filter_scalar_dquoted_in_place(
 
 template<class EventHandler>
 template<class FilterProcessor>
-void ParseEngine<EventHandler>::_filter_chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp, size_t indentation) noexcept
+void ParseEngine<EventHandler>::_filter_chomp(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp, size_t indentation)
 {
     _RYML_CB_ASSERT(this->callbacks(), chomp == CHOMP_CLIP || chomp == CHOMP_KEEP || chomp == CHOMP_STRIP);
     _RYML_CB_ASSERT(this->callbacks(), proc.rem().first_not_of(" \n\r") == npos);
@@ -2832,7 +2832,7 @@ void ParseEngine<EventHandler>::_filter_chomp(FilterProcessor &C4_RESTRICT proc,
 
 template<class EventHandler>
 template<class FilterProcessor>
-void ParseEngine<EventHandler>::_filter_block_indentation(FilterProcessor &C4_RESTRICT proc, size_t indentation) noexcept
+void ParseEngine<EventHandler>::_filter_block_indentation(FilterProcessor &C4_RESTRICT proc, size_t indentation)
 {
     csubstr rem = proc.rem(); // remaining
     if(rem.len)
@@ -2877,7 +2877,7 @@ void ParseEngine<EventHandler>::_filter_block_indentation(FilterProcessor &C4_RE
 
 template<class EventHandler>
 template<class FilterProcessor>
-size_t ParseEngine<EventHandler>::_handle_all_whitespace(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp) noexcept
+size_t ParseEngine<EventHandler>::_handle_all_whitespace(FilterProcessor &C4_RESTRICT proc, BlockChomp_e chomp)
 {
     csubstr contents = proc.src.trimr(" \n\r");
     _c4dbgfb("ws: contents_len={} wslen={}", contents.len, proc.src.len-contents.len);
@@ -2906,7 +2906,7 @@ size_t ParseEngine<EventHandler>::_handle_all_whitespace(FilterProcessor &C4_RES
 
 template<class EventHandler>
 template<class FilterProcessor>
-size_t ParseEngine<EventHandler>::_extend_to_chomp(FilterProcessor &C4_RESTRICT proc, size_t contents_len) noexcept
+size_t ParseEngine<EventHandler>::_extend_to_chomp(FilterProcessor &C4_RESTRICT proc, size_t contents_len)
 {
     _c4dbgfb("contents_len={}", contents_len);
 
@@ -2945,7 +2945,7 @@ size_t ParseEngine<EventHandler>::_extend_to_chomp(FilterProcessor &C4_RESTRICT 
 
 template<class EventHandler>
 template<class FilterProcessor>
-auto ParseEngine<EventHandler>::_filter_block_literal(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp) noexcept -> decltype(proc.result())
+auto ParseEngine<EventHandler>::_filter_block_literal(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp) -> decltype(proc.result())
 {
     _c4dbgfbl("indentation={} before=[{}]~~~{}~~~", indentation, proc.src.len, proc.src);
 
@@ -2994,14 +2994,14 @@ auto ParseEngine<EventHandler>::_filter_block_literal(FilterProcessor &C4_RESTRI
 #undef _c4dbgfbl
 
 template<class EventHandler>
-FilterResult ParseEngine<EventHandler>::filter_scalar_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp) noexcept
+FilterResult ParseEngine<EventHandler>::filter_scalar_block_literal(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp)
 {
     FilterProcessorSrcDst proc(scalar, dst);
     return _filter_block_literal(proc, indentation, chomp);
 }
 
 template<class EventHandler>
-FilterResult ParseEngine<EventHandler>::filter_scalar_block_literal_in_place(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept
+FilterResult ParseEngine<EventHandler>::filter_scalar_block_literal_in_place(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp)
 {
     FilterProcessorInplaceEndExtending proc(scalar, cap);
     return _filter_block_literal(proc, indentation, chomp);
@@ -3022,7 +3022,7 @@ FilterResult ParseEngine<EventHandler>::filter_scalar_block_literal_in_place(sub
 
 template<class EventHandler>
 template<class FilterProcessor>
-void ParseEngine<EventHandler>::_filter_block_folded_newlines_leading(FilterProcessor &C4_RESTRICT proc, size_t indentation, size_t len) noexcept
+void ParseEngine<EventHandler>::_filter_block_folded_newlines_leading(FilterProcessor &C4_RESTRICT proc, size_t indentation, size_t len)
 {
     _filter_block_indentation(proc, indentation);
     while(proc.has_more_chars(len))
@@ -3059,7 +3059,7 @@ void ParseEngine<EventHandler>::_filter_block_folded_newlines_leading(FilterProc
 
 template<class EventHandler>
 template<class FilterProcessor>
-size_t ParseEngine<EventHandler>::_filter_block_folded_newlines_compress(FilterProcessor &C4_RESTRICT proc, size_t num_newl, size_t wpos_at_first_newl) noexcept
+size_t ParseEngine<EventHandler>::_filter_block_folded_newlines_compress(FilterProcessor &C4_RESTRICT proc, size_t num_newl, size_t wpos_at_first_newl)
 {
     switch(num_newl)
     {
@@ -3088,7 +3088,7 @@ size_t ParseEngine<EventHandler>::_filter_block_folded_newlines_compress(FilterP
 
 template<class EventHandler>
 template<class FilterProcessor>
-void ParseEngine<EventHandler>::_filter_block_folded_newlines(FilterProcessor &C4_RESTRICT proc, size_t indentation, size_t len) noexcept
+void ParseEngine<EventHandler>::_filter_block_folded_newlines(FilterProcessor &C4_RESTRICT proc, size_t indentation, size_t len)
 {
     _RYML_CB_ASSERT(this->callbacks(), proc.curr() == '\n');
     size_t num_newl = 0;
@@ -3232,7 +3232,7 @@ void ParseEngine<EventHandler>::_filter_block_folded_indented_block(FilterProces
 
 template<class EventHandler>
 template<class FilterProcessor>
-auto ParseEngine<EventHandler>::_filter_block_folded(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp) noexcept -> decltype(proc.result())
+auto ParseEngine<EventHandler>::_filter_block_folded(FilterProcessor &C4_RESTRICT proc, size_t indentation, BlockChomp_e chomp) -> decltype(proc.result())
 {
     _c4dbgfbf("indentation={} before=[{}]~~~{}~~~", indentation, proc.src.len, proc.src);
 
@@ -3280,14 +3280,14 @@ auto ParseEngine<EventHandler>::_filter_block_folded(FilterProcessor &C4_RESTRIC
 #undef _c4dbgfbf
 
 template<class EventHandler>
-FilterResult ParseEngine<EventHandler>::filter_scalar_block_folded(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp) noexcept
+FilterResult ParseEngine<EventHandler>::filter_scalar_block_folded(csubstr scalar, substr dst, size_t indentation, BlockChomp_e chomp)
 {
     FilterProcessorSrcDst proc(scalar, dst);
     return _filter_block_folded(proc, indentation, chomp);
 }
 
 template<class EventHandler>
-FilterResult ParseEngine<EventHandler>::filter_scalar_block_folded_in_place(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp) noexcept
+FilterResult ParseEngine<EventHandler>::filter_scalar_block_folded_in_place(substr scalar, size_t cap, size_t indentation, BlockChomp_e chomp)
 {
     FilterProcessorInplaceEndExtending proc(scalar, cap);
     return _filter_block_folded(proc, indentation, chomp);
