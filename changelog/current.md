@@ -1,4 +1,9 @@
-**All the changes described come from a single PR: [#PR414](https://github.com/biojppm/rapidyaml/pull/414).**
+Most of the changes are from the giant Parser refactor described below. Before getting to that, a couple of other points first.
+
+
+### Fixes
+
+- Fix `_RYML_CB_ALLOC()` using `T` in parenthesis, making the macro unusable.
 
 
 ### Parser refactor
