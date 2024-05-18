@@ -8,9 +8,9 @@ Most of the changes are from the giant Parser refactor described below. Before g
 
 ### Parser refactor
 
-The parser was completely refactored ([#PR414](https://github.com/biojppm/rapidyaml/pull/414)). This was a large and hard job carried out over several months, and the result is:
+The parser was completely refactored ([#PR414](https://github.com/biojppm/rapidyaml/pull/414)). This was a large and hard job carried out over several months, but it brings important improvements.
 
-- A new event-based parser engine is now in place, enabling the improvements described below. This engine uses a templated event handler, where each event is a function call, which spares branches on the event handler. The parsing code was fully rewritten, and is now much more simple (albeit longer), and much easier to work with and fix.
+- The new parser is an event-based parser, based on an event dispatcher engine. This engine is templated on event handler, where each event is a function call, which spares branches on the event handler. The parsing code was fully rewritten, and is now much more simple (albeit longer), and much easier to work with and fix.
 - YAML standard-conformance was improved significantly. Along with many smaller fixes and additions, (too many to list here), the main changes are the following:
   - The parser engine can now successfully parse container keys, emitting all the events in the correct , **but** as before, the ryml tree cannot accomodate these (and this constraint is no longer enforced by the parser, but instead by `EventHandlerTree`). For an example of a handler which can accomodate key containers, see the one which is used for the test suite at `test/test_suite/test_suite_event_handler.hpp`
   - Anchor keys can now be terminated with colon (eg, `&anchor: key: val`), as dictated by the standard.

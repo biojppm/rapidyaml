@@ -216,7 +216,8 @@ void Tree::_relocate(substr next_arena)
 {
     _RYML_CB_ASSERT(m_callbacks, next_arena.not_empty());
     _RYML_CB_ASSERT(m_callbacks, next_arena.len >= m_arena.len);
-    memcpy(next_arena.str, m_arena.str, m_arena_pos);
+    if(m_arena_pos)
+        memcpy(next_arena.str, m_arena.str, m_arena_pos);
     for(NodeData *C4_RESTRICT n = m_buf, *e = m_buf + m_cap; n != e; ++n)
     {
         if(in_arena(n->m_key.scalar))

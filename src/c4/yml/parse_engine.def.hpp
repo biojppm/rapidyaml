@@ -3341,7 +3341,7 @@ csubstr ParseEngine<EventHandler>::_filter_scalar_dquot(substr s)
     {
         const size_t len = r.required_len();
         _c4dbgpf("filtering dquo scalar: not enough space: needs {}, have {}", len, s.len);
-        substr dst = m_evt_handler->alloc_arena(len);
+        substr dst = m_evt_handler->alloc_arena(len, &s);
         _c4dbgpf("filtering dquo scalar: dst.len={}", dst.len);
         _RYML_CB_ASSERT(this->callbacks(), dst.len == len);
         FilterResult rsd = this->filter_scalar_dquoted(s, dst);
@@ -3368,7 +3368,7 @@ csubstr ParseEngine<EventHandler>::_filter_scalar_literal(substr s, size_t inden
     else
     {
         _c4dbgpf("filtering block literal scalar: not enough space: needs {}, have {}", r.required_len(), s.len);
-        substr dst = m_evt_handler->alloc_arena(r.required_len());
+        substr dst = m_evt_handler->alloc_arena(r.required_len(), &s);
         FilterResult rsd = this->filter_scalar_block_literal(s, dst, indentation, chomp);
         _RYML_CB_CHECK(m_evt_handler->m_stack.m_callbacks, rsd.valid());
         _c4dbgpf("filtering block literal scalar: success! s=[{}]~~~{}~~~", rsd.get().len, rsd.get());
@@ -3391,7 +3391,7 @@ csubstr ParseEngine<EventHandler>::_filter_scalar_folded(substr s, size_t indent
     else
     {
         _c4dbgpf("filtering block folded scalar: not enough space: needs {}, have {}", r.required_len(), s.len);
-        substr dst = m_evt_handler->alloc_arena(r.required_len());
+        substr dst = m_evt_handler->alloc_arena(r.required_len(), &s);
         FilterResult rsd = this->filter_scalar_block_folded(s, dst, indentation, chomp);
         _RYML_CB_CHECK(m_evt_handler->m_stack.m_callbacks, rsd.valid());
         _c4dbgpf("filtering block folded scalar: success! s=[{}]~~~{}~~~", rsd.get().len, rsd.get());
@@ -4727,9 +4727,16 @@ seqimap_start:
     _c4dbgt("seqimap: go again", 0);
     if(_finished_line())
     {
-        _line_ended();
-        _scan_line();
-        _c4dbgnextline();
+        if(C4_LIKELY(!_finished_file()))
+        {
+            _line_ended();
+            _scan_line();
+            _c4dbgnextline();
+        }
+        else
+        {
+            _c4err("parse error");
+        }
     }
     goto seqimap_start;
 

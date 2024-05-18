@@ -229,6 +229,7 @@ public:
     void begin_map_val_flow()
     {
         _c4dbgpf("node[{}]: begin_map_val_flow", m_curr->node_id);
+        _RYML_CB_CHECK(m_stack.m_callbacks, !_has_any_(VAL));
         _enable_(MAP|FLOW_SL);
         _save_loc();
         _push();
@@ -236,6 +237,7 @@ public:
     void begin_map_val_block()
     {
         _c4dbgpf("node[{}]: begin_map_val_block", m_curr->node_id);
+        _RYML_CB_CHECK(m_stack.m_callbacks, !_has_any_(VAL));
         _enable_(MAP|BLOCK);
         _save_loc();
         _push();
@@ -266,6 +268,7 @@ public:
     void begin_seq_val_flow()
     {
         _c4dbgpf("node[{}]: begin_seq_val_flow", m_curr->node_id);
+        _RYML_CB_CHECK(m_stack.m_callbacks, !_has_any_(VAL));
         _enable_(SEQ|FLOW_SL);
         _save_loc();
         _push();
@@ -273,6 +276,7 @@ public:
     void begin_seq_val_block()
     {
         _c4dbgpf("node[{}]: begin_seq_val_block", m_curr->node_id);
+        _RYML_CB_CHECK(m_stack.m_callbacks, !_has_any_(VAL));
         _enable_(SEQ|BLOCK);
         _save_loc();
         _push();
@@ -515,7 +519,24 @@ public:
 
     substr alloc_arena(size_t len)
     {
-        return m_tree->alloc_arena(len);
+        csubstr prev = m_tree->arena();
+        substr out = m_tree->alloc_arena(len);
+        substr curr = m_tree->arena();
+        if(curr.str != prev.str)
+            _stack_relocate_to_new_arena(prev, curr);
+        return out;
+    }
+
+    substr alloc_arena(size_t len, substr *relocated)
+    {
+        csubstr prev = m_tree->arena();
+        if(!prev.is_super(*relocated))
+            return alloc_arena(len);
+        substr out = alloc_arena(len);
+        substr curr = m_tree->arena();
+        if(curr.str != prev.str)
+            *relocated = _stack_relocate_to_new_arena(*relocated, prev, curr);
+        return out;
     }
 
     /** @} */
@@ -675,6 +696,7 @@ public:
 
     C4_ALWAYS_INLINE void _save_loc()
     {
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->_p(m_curr->node_id)->m_val.scalar.len == 0);
         m_tree->_p(m_curr->node_id)->m_val.scalar.str = m_curr->line_contents.rem.str;
     }
 
