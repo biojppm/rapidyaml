@@ -3,8 +3,17 @@ Most of the changes are from the giant Parser refactor described below. Before g
 
 ### Fixes
 
-- Fix `_RYML_CB_ALLOC()` using `T` in parenthesis, making the macro unusable.
+- [#PR431](https://github.com/biojppm/rapidyaml/pull/431) - Emitter: prevent stack overflows when emitting malicious trees by providing a max tree depth for the emit visitor. This was done by adding an `EmitOptions` structure as an argument both to the emitter and to the emit functions, which is then forwarded to the emitter. This `EmitOptions` structure has a max tree depth setting with a default value of 64.
+- [#PR431](https://github.com/biojppm/rapidyaml/pull/431) - Fix `_RYML_CB_ALLOC()` using `(T)` in parenthesis, making the macro unusable.
 
+
+### New features
+
+- [#PR431](https://github.com/biojppm/rapidyaml/pull/431) - append-emitting to the `emitrs_` functions, suggested in [#345](https://github.com/biojppm/rapidyaml/issues/345). This was achieved by adding a `bool append=false` as the last parameter of these functions.
+
+
+------
+All other changes come from [#PR414](https://github.com/biojppm/rapidyaml/pull/414).
 
 ### Parser refactor
 
