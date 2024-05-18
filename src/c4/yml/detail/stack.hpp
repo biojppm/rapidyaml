@@ -25,7 +25,7 @@ namespace detail {
 template<class T, id_type N=16>
 class stack
 {
-    static_assert(std::is_trivially_copyable<T>::value, "T must be trivially copyable");
+    //static_assert(std::is_trivially_copyable<T>::value, "T must be trivially copyable");
     static_assert(std::is_trivially_destructible<T>::value, "T must be trivially destructible");
 
 public:
@@ -34,11 +34,11 @@ public:
 
 public:
 
-    T         m_buf[size_t(N)];
-    T *       m_stack;
-    id_type   m_size;
-    id_type   m_capacity;
-    Callbacks m_callbacks;
+    T              m_buf[size_t(N)];
+    T *C4_RESTRICT m_stack;
+    id_type        m_size;
+    id_type        m_capacity;
+    Callbacks      m_callbacks;
 
 public:
 

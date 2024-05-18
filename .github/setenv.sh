@@ -13,6 +13,8 @@ function c4_show_info()
     echo "PROJ_PFX_TARGET=$PROJ_PFX_TARGET"
     echo "PROJ_PFX_CMAKE=$PROJ_PFX_CMAKE"
     echo "CMAKE_FLAGS=$CMAKE_FLAGS"
+    echo "CMAKE_C_FLAGS=$CMAKE_C_FLAGS"
+    echo "CMAKE_CXX_FLAGS=$CMAKE_CXX_FLAGS"
     echo "NUM_JOBS_BUILD=$NUM_JOBS_BUILD"
     echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
     pwd
@@ -304,7 +306,7 @@ function c4_cfg_test()
                   -G 'Visual Studio 17 2022' -A $(_c4vsarchtype $id) \
                   $(_c4_add_ehsc_to_vs_arm32 $id) \
                   -DCMAKE_BUILD_TYPE=$BT $CMFLAGS \
-                  -DCMAKE_C_FLAGS=" $CFLAGS" -DCMAKE_CXX_FLAGS=" $CXXFLAGS"
+                  -DCMAKE_C_FLAGS=" $CFLAGS $CMAKE_C_FLAGS" -DCMAKE_CXX_FLAGS=" $CXXFLAGS $CMAKE_CXX_FLAGS"
             ;;
         vs2019)
             cmake -S $PROJ_DIR -B $build_dir -DCMAKE_INSTALL_PREFIX="$install_dir" \

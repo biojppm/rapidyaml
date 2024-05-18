@@ -53,7 +53,7 @@ ryml is written in C++11, and compiles cleanly with:
 ryml's API documentation is [available at
 ReadTheDocs](https://rapidyaml.readthedocs.io/latest/).
 
-ryml is [extensively unit-tested in Linux, Windows and
+ryml is [extensively unit-tested and fuzz-tested in Linux, Windows and
 MacOS](https://github.com/biojppm/rapidyaml/actions). The tests cover
 x64, x86, wasm (emscripten), arm, aarch64, ppc64le and s390x
 architectures, and include analysing ryml with:
@@ -63,6 +63,8 @@ architectures, and include analysing ryml with:
     * memory
     * address
     * undefined behavior
+  * fuzzers:
+    * libfuzzer
 
 ryml also [runs in
 bare-metal](https://github.com/biojppm/rapidyaml/issues/193), and
@@ -432,37 +434,6 @@ CHECK(loc.col == 4u);
 
 ## Using ryml in your project
 
-### Package managers
-
-ryml is available in most package managers (thanks to all the
-contributors!) and linux distributions. But please be aware: those
-packages are maintained downstream of this repository, so if you have
-issues with the package, file a report with the respective maintainer.
-
-Here's a quick roundup (not maintained):
-* Package managers:
-  * [conan](https://conan.io/center/recipes/rapidyaml)
-  * [vcpkg](https://vcpkg.io/en/packages.html): `vcpkg install ryml`
-  * [PyPI](https://pypi.org/project/rapidyaml/)
-* Linux distributions:
-  * Arch Linux/Manjaro:
-    * [rapidyaml (aarch64)](https://archlinuxarm.org/packages/aarch64/rapidyaml)
-    * [rapidyaml-git (AUR)](https://aur.archlinux.org/packages/rapidyaml-git/)
-    * [python-rapidyaml-git (AUR)](https://aur.archlinux.org/packages/python-rapidyaml-git/)
-  * [Fedora Linux](https://getfedora.org/)/[EPEL](https://docs.fedoraproject.org/en-US/epel/):
-    * `dnf install rapidyaml-devel`
-    * `dnf install python3-rapidyaml`
-  * [Gentoo](https://packages.gentoo.org/packages/dev-cpp/rapidyaml)
-  * [OpenSuse](https://build.openbuildservice.org/package/show/Emulators/rapidyaml)
-  * [Slackbuilds](https://slackbuilds.org/repository/15.0/libraries/rapidyaml/)
-  * [AltLinux](https://packages.altlinux.org/en/sisyphus/srpms/rapidyaml/3006055151670528141)
-  
-Although package managers are very useful for quickly getting up to
-speed, the advised way is still to bring ryml as a submodule of your
-project, building both together. This makes it easy to track any
-upstream changes in ryml. Also, ryml is small and quick to build, so
-there's not much of a cost for building it with your project.
-
 ### Single header file
 ryml is provided chiefly as a cmake library project, but it can also
 be used as a single header file, and there is a [tool to
@@ -531,6 +502,38 @@ If you omit `--recursive`, after cloning you
 will have to do `git submodule update --init --recursive`
 to ensure ryml's submodules are checked out.
 
+### Package managers
+
+ryml is available in most package managers (thanks to all the
+contributors!) and linux distributions. But please be aware: those
+packages are maintained downstream of this repository, so if you have
+issues with the package, file a report with the respective maintainer.
+
+Here's a quick roundup (not maintained):
+* Package managers:
+  * [conan](https://conan.io/center/recipes/rapidyaml)
+  * [vcpkg](https://vcpkg.io/en/packages.html): `vcpkg install ryml`
+  * [PyPI](https://pypi.org/project/rapidyaml/)
+* Linux distributions:
+  * Arch Linux/Manjaro:
+    * [rapidyaml (aarch64)](https://archlinuxarm.org/packages/aarch64/rapidyaml)
+    * [rapidyaml-git (AUR)](https://aur.archlinux.org/packages/rapidyaml-git/)
+    * [python-rapidyaml-git (AUR)](https://aur.archlinux.org/packages/python-rapidyaml-git/)
+  * [Fedora Linux](https://getfedora.org/)/[EPEL](https://docs.fedoraproject.org/en-US/epel/):
+    * `dnf install rapidyaml-devel`
+    * `dnf install python3-rapidyaml`
+  * [Gentoo](https://packages.gentoo.org/packages/dev-cpp/rapidyaml)
+  * [OpenSuse](https://build.openbuildservice.org/package/show/Emulators/rapidyaml)
+  * [Slackbuilds](https://slackbuilds.org/repository/15.0/libraries/rapidyaml/)
+  * [AltLinux](https://packages.altlinux.org/en/sisyphus/srpms/rapidyaml/3006055151670528141)
+
+Although package managers are very useful for quickly getting up to
+speed, the advised way is still to bring ryml as a submodule of your
+project, building both together. This makes it easy to track any
+upstream changes in ryml. Also, ryml is small and quick to build, so
+there's not much of a cost for building it with your project.
+
+
 ### Quickstart samples
 
 These samples show different ways of getting ryml into your application. All the
@@ -554,6 +557,7 @@ more about each sample:
 | [`add_subdirectory`](./samples/add_subdirectory) | **yes**                      | [`CMakeLists.txt`](./samples/add_subdirectory/CMakeLists.txt) | [`run.sh`](./samples/add_subdirectory/run.sh) |
 | [`fetch_content`](./samples/fetch_content)      | **yes**                      | [`CMakeLists.txt`](./samples/fetch_content/CMakeLists.txt) | [`run.sh`](./samples/fetch_content/run.sh) |
 | [`find_package`](./samples/find_package)        | **no**<br>needs prior install or package  | [`CMakeLists.txt`](./samples/find_package/CMakeLists.txt) | [`run.sh`](./samples/find_package/run.sh) |
+
 
 ### CMake build settings for ryml
 The following cmake variables can be used to control the build behavior of
@@ -726,20 +730,16 @@ See also [the roadmap](./ROADMAP.md) for a list of future work.
 
 ### Known limitations
 
-ryml deliberately makes no effort to follow the standard in the
+ryml deliberately makes no effort to follow the YAML standard in the
 following situations:
 
-* ryml's tree does NOT accept containers are as mapping keys: keys
-  must be scalars. HOWEVER, this is a limitation only of the tree. The
-  event-based parser engine DOES parse container keys. The parser
-  engine is the result of a recent refactor and its usage is meant to
-  be used by other programming languages to create their native
-  data-structures. This engine is fully tested and fully conformant
-  (other than the general error permissiveness noted below). But
-  because it is recent, it is still undocumented, and it requires some
-  API cleanup before being ready for isolated use. Please get in touch
-  if you are interested in integrating the event-based parser engine
-  without the standalone `ryml::parse_*()`
+* ryml's tree does NOT accept containers as map keys: keys stored in
+  the tree must always be scalars. HOWEVER, this is a limitation only
+  of the final tree. The event-based parse engine DOES parse container
+  keys, as it is is meant to be used by other programming languages to
+  create their native data-structures, and it is fully tested and
+  fully conformant (other than the general error permissiveness noted
+  below).
 * Tab characters after `:` and `-` are not accepted tokens, unless
   ryml is compiled with the macro `RYML_WITH_TAB_TOKENS`. This
   requirement exists because checking for tabs introduces branching
@@ -774,11 +774,11 @@ following situations:
 If you do run into trouble and would like to investigate conformance
 of your YAML code, **beware** of existing online YAML linters, many of
 which are not fully conformant. Instead, try using
-[https://play.yaml.io](https://play.yaml.io), an amazing tool which
-lets you dynamically input your YAML and continuously see the results
-from all the existing parsers (kudos to @ingydotnet and the people
-from the YAML test suite). And of course, if you detect anything wrong
-with ryml, please [open an
+[https://play.yaml.io](https://play.yaml.io), an amazingly useful tool
+which lets you dynamically input your YAML and continuously see the
+results from all the existing parsers (kudos to @ingydotnet and the
+people from the YAML test suite). And of course, if you detect
+anything wrong with ryml, please [open an
 issue](https://github.com/biojppm/rapidyaml/issues) so that we can
 improve.
 

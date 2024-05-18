@@ -189,19 +189,16 @@ endif()
 option(RYML_TEST_SUITE "Enable cases from yaml-test-suite, https://github.com/yaml/yaml-test-suite." ON)
 
 if(RYML_TEST_SUITE)
-    set(ed ${CMAKE_CURRENT_BINARY_DIR}/subprojects) # casual ryml extern dir (these projects are not part of ryml and are downloaded and compiled on the fly)
-
-    c4_require_subproject(c4log REMOTE
-        GIT_REPOSITORY https://github.com/biojppm/c4log
-        GIT_TAG master)
-
-    set(tsdir ${ed}/yaml-test-suite)
     c4_download_remote_proj(yaml-test-suite suite_dir
         GIT_REPOSITORY https://github.com/yaml/yaml-test-suite
         GIT_TAG data-2022-01-17)
     if(NOT EXISTS ${suite_dir}/229Q)
         c4_err("cannot find yaml-test-suite at ${suite_dir} -- was there an error downloading the project?")
     endif()
+
+    c4_require_subproject(c4log REMOTE
+        GIT_REPOSITORY https://github.com/biojppm/c4log
+        GIT_TAG master)
 
     c4_add_executable(ryml-test-suite
         SOURCES
@@ -265,3 +262,129 @@ if(RYML_TEST_SUITE)
         ryml_add_test_from_suite(${case})
     endforeach()
 endif(RYML_TEST_SUITE)
+
+
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+
+string(TOUPPER "${CMAKE_BUILD_TYPE}" upper_build_type)
+if(upper_build_type STREQUAL FUZZ)
+    option(RYML_TEST_FUZZ "Enable fuzz tests" ON)
+else()
+    option(RYML_TEST_FUZZ "Enable fuzz tests" OFF)
+endif()
+
+if(RYML_TEST_FUZZ)
+    c4_download_remote_proj(rapidyaml-data rapidyaml_data_dir
+        GIT_REPOSITORY https://github.com/biojppm/rapidyaml-data
+        GIT_TAG master)
+    if(NOT EXISTS ${rapidyaml_data_dir}/fuzz/yaml.dict)
+        c4_err("cannot find rapidyaml-data at ${rapidyaml_data_dir} -- was there an error downloading the project?")
+    endif()
+    #
+    set(corpus_suite_dir ${rapidyaml_data_dir}/fuzz/yaml_test_suite)
+    set(corpus_generated_dir ${rapidyaml_data_dir}/fuzz/yaml_generated)
+    set(corpus_artifacts_dir ${rapidyaml_data_dir}/fuzz/yaml_artifacts)
+    set(corpus_merged_dir ${rapidyaml_data_dir}/fuzz/yaml_merged)
+    set(yaml_dict ${rapidyaml_data_dir}/fuzz/yaml.dict)
+    file(GLOB_RECURSE fuzz_files RELATIVE "${corpus_artifacts_dir}" "${corpus_artifacts_dir}/*")
+    file(GLOB_RECURSE suite_files RELATIVE "${corpus_suite_dir}" "${corpus_suite_dir}/*")
+    #
+    function(ryml_add_fuzz_test name)
+        c4_add_executable(ryml-test-fuzz-${name}
+            SOURCES
+            test_fuzz/test_fuzz_common.hpp
+            test_fuzz/test_fuzz_${name}.cpp
+            test_fuzz/test_fuzz_main.cpp
+            ${ARGN}
+            INC_DIRS ${CMAKE_CURRENT_LIST_DIR}
+            LIBS ryml c4fs
+            FOLDER test/fuzz)
+        function(ryml_add_fuzz_test_file name_ dir file)
+            string(REPLACE "/" "_" fuzz_name "${file}")
+            add_test(NAME ryml-test-fuzz-${name_}-${fuzz_name}
+                COMMAND $<TARGET_FILE:ryml-test-fuzz-${name_}> ${dir}/${file})
+        endfunction()
+        foreach(fuzz_file ${fuzz_files})
+            ryml_add_fuzz_test_file(${name} ${corpus_artifacts_dir} ${fuzz_file})
+        endforeach()
+        if(RYML_DBG)
+            target_compile_definitions(ryml-test-fuzz-${name} PUBLIC RYML_DBG)
+        endif()
+        add_dependencies(ryml-test-build ryml-test-fuzz-${name})
+    endfunction()
+    ryml_add_fuzz_test(parse_emit)
+    ryml_add_fuzz_test(events
+        ../test/test_suite/test_suite_event_handler.hpp
+        ../test/test_suite/test_suite_event_handler.cpp)
+    #
+    #
+    # fuzzing libraries:
+    # https://llvm.org/docs/LibFuzzer.html
+    # http://lcamtuf.coredump.cx/afl/
+    # https://github.com/AFLplusplus/AFLplusplus
+    # https://gitlab.com/akihe/radamsa
+    #
+    # actions:
+    # https://google.github.io/clusterfuzzlite/
+    # https://github.com/google/oss-fuzz
+    #
+    #
+    # libfuzzer: https://llvm.org/docs/LibFuzzer.html
+    if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+        option(RYML_FUZZ_LIBFUZZER_MERGE OFF "merge fuzz corpus")
+        option(RYML_FUZZ_LIBFUZZER_MERGE_RESUME ON "resume merge")
+        option(RYML_FUZZ_LIBFUZZER_DICT ON "use a yaml dict")
+        option(RYML_FUZZ_LIBFUZZER_FIXED_SEED ON "use a fixed seed")
+        set(RYML_FUZZ_LIBFUZZER_OPTIONS "-timeout=5" CACHE STRING "options for libfuzzer https://llvm.org/docs/LibFuzzer.html#id16")
+        function(ryml_add_libfuzzer_test name)
+            c4_add_executable(ryml-test-libfuzzer-${name}
+                SOURCES
+                    test_fuzz/test_fuzz_common.hpp
+                    test_fuzz/test_fuzz_${name}.cpp
+                    ${ARGN}
+                CFLAGS -fsanitize=fuzzer
+                INC_DIRS ${CMAKE_CURRENT_LIST_DIR}
+                LIBS ryml -fsanitize=fuzzer
+                FOLDER test/fuzz)
+            if(RYML_DBG)
+                target_compile_definitions(ryml-test-libfuzzer-${name} PUBLIC RYML_DBG)
+            endif()
+            add_dependencies(ryml-test-build ryml-test-libfuzzer-${name})
+            set(corpus_dirs
+                ${corpus_generated_dir}  # generated inputs go here
+                ${corpus_artifacts_dir}  # corpus with crash/timeout artifacts
+                ${corpus_suite_dir}      # corpus with yaml test suite
+            )
+            set(opts)
+            if(RYML_FUZZ_LIBFUZZER_DICT)
+                list(APPEND opts "-dict=${yaml_dict}")
+            endif()
+            file(MAKE_DIRECTORY ${corpus_merged_dir})
+            if(RYML_FUZZ_LIBFUZZER_MERGE)
+                list(APPEND opts "-merge=1")
+                if(RYML_FUZZ_LIBFUZZER_MERGE_RESUME)
+                    list(APPEND opts --merge_control_file=${CMAKE_CURRENT_BINARY_DIR}/fuzz_merge_control_file)
+                endif()
+                list(PREPEND corpus_dirs ${corpus_merged_dir})
+            else()
+                list(APPEND opts "-merge=0")
+            endif()
+            set(cmd $<TARGET_FILE:ryml-test-libfuzzer-${name}> ${opts} ${RYML_FUZZ_LIBFUZZER_OPTIONS} ${corpus_dirs})
+            add_custom_target(ryml-test-libfuzzer-${name}-run
+                COMMAND ${cmd}
+                COMMENT "cd\ ${corpus_artifacts_dir}\ ;\ ${cmd}"
+                WORKING_DIRECTORY ${corpus_artifacts_dir}) # setting the workdir to this will collect the artifacts in there
+            if(RYML_FUZZ_LIBFUZZER_MERGE)
+                add_test(NAME ryml-test-fuzz-libfuzzer-${name}
+                    COMMAND ${cmd}
+                    WORKING_DIRECTORY ${corpus_artifacts_dir}) # setting the workdir to this will collect the artifacts in there
+            endif()
+        endfunction()
+        ryml_add_libfuzzer_test(parse_emit)
+        ryml_add_libfuzzer_test(events
+            ../test/test_suite/test_suite_event_handler.hpp
+            ../test/test_suite/test_suite_event_handler.cpp)
+    endif()
+endif()

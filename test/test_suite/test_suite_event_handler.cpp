@@ -72,7 +72,7 @@ void append_escaped(extra::string *es, csubstr val)
         }
     }
     // flush the rest
-    this->append(val.sub(prev));
+    es->append(val.sub(prev));
     #undef _c4flush_use_instead
 }
 

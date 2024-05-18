@@ -35,9 +35,9 @@ ryml is written in C++11, and compiles cleanly with:
 
 * Visual Studio 2015 and later
 
-* clang++ 3.9 and later
-
 * g++ 4.8 and later
+
+* clang++ 3.9 and later
 
 * Intel Compiler
 

@@ -74,6 +74,23 @@ typedef enum {
 /** A lightweight object containing options to be used when emitting. */
 struct EmitOptions
 {
+    typedef enum : uint32_t {
+        DEFAULT_FLAGS = 0,
+        JSON_ERR_ON_TAG = 1 << 0,
+        JSON_ERR_ON_ANCHOR = 1 << 1,
+        _JSON_ERR_MASK = JSON_ERR_ON_TAG|JSON_ERR_ON_ANCHOR,
+    } EmitOptionFlags_e;
+
+public:
+    /** @name flags
+     *
+     * @{ */
+    C4_ALWAYS_INLINE EmitOptionFlags_e json_error_flags() const noexcept { return m_json_error_flags; }
+    EmitOptions& json_error_flags(EmitOptionFlags_e d) noexcept { m_json_error_flags = (EmitOptionFlags_e)(d & _JSON_ERR_MASK); return *this; }
+    /** @} */
+private:
+    EmitOptionFlags_e m_json_error_flags{DEFAULT_FLAGS};
+
 public:
     /** @name max depth for the emitted tree
      *

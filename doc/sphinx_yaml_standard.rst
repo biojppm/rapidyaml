@@ -17,7 +17,7 @@ welcome.
    linters**, many of which are not fully conformant; instead, try
    using `https://play.yaml.io
    <https://play.yaml.io/main/parser?input=IyBFZGl0IE1lIQoKJVlBTUwgMS4yCi0tLQpmb286IEhlbGxvLCBZQU1MIQpiYXI6IFsxMjMsIHRydWVdCmJhejoKLSBvbmUKLSB0d28KLSBudWxsCg==>`__,
-   an amazing tool which lets you dynamically input your YAML and
+   an amazingly useful tool which lets you dynamically input your YAML and
    continuously see the results from all the existing parsers (kudos
    to @ingydotnet and the people from the YAML test suite). And of
    course, if you detect anything wrong with ryml, please `open an
@@ -31,17 +31,13 @@ Deliberate deviations
 ryml deliberately makes no effort to follow the standard in the
 following situations:
 
--  ryml's tree does NOT accept containers are as mapping keys: keys
-   must be scalars. HOWEVER, this is a limitation only of the tree. The
-   event-based parser engine DOES parse container keys. The parser
-   engine is the result of a recent refactor and its usage is meant to
-   be used by other programming languages to create their native
-   data-structures. This engine is fully tested and fully conformant
-   (other than the general error permissiveness noted below). But
-   because it is recent, it is still undocumented, and it requires some
-   API cleanup before being ready for isolated use. Please get in touch
-   if you are interested in integrating the event-based parser engine
-   without the standalone `ryml::parse_*()`
+-  ryml's tree does NOT accept containers as map keys: keys stored in
+   the tree must always be scalars. HOWEVER, this is a limitation only
+   of the final tree. The event-based parse engine DOES parse container
+   keys, as it is is meant to be used by other programming languages to
+   create their native data-structures, and it is fully tested and
+   fully conformant (other than the general error permissiveness noted
+   below).
 -  Tab characters after ``:`` and ``-`` are not accepted tokens, unless
    ryml is compiled with the macro ``RYML_WITH_TAB_TOKENS``. This
    requirement exists because checking for tabs introduces branching
