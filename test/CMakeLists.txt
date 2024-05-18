@@ -46,6 +46,9 @@ c4_add_library(ryml-_testgroup LIBRARY_TYPE STATIC
        test_lib/test_group.cpp
     LIBS ryml ryml-_testlib c4fs
     FOLDER test)
+if(RYML_DBG)
+    target_compile_definitions(ryml-_testgroup PUBLIC RYML_DBG)
+endif()
 function(ryml_add_test_case_group name)
     ryml_add_test(${name})
     target_link_libraries(ryml-test-${name} PUBLIC ryml-_testgroup)
@@ -59,6 +62,9 @@ c4_add_library(ryml-_evt_handler_yaml_std LIBRARY_STATIC
     LIBS ryml
     FOLDER test
 )
+if(RYML_DBG)
+    target_compile_definitions(ryml-_evt_handler_yaml_std PUBLIC RYML_DBG)
+endif()
 function(ryml_add_engine_test name)
     ryml_add_test(${name} ryml-_evt_handler_yaml_std)
 endfunction()
