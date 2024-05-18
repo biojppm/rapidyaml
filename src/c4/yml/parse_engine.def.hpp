@@ -1213,7 +1213,7 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_blck(ScannedScalar *C4_RESTRI
             {
             case '-':
                 next_peeked = next_peeked.trimr("\n\r");
-                _c4dbgpf("doc begin? peeked=[{}]~~~{}{}~~~", next_peeked.len, next_peeked.first(3), next_peeked.len > 3 ? "..." : "");
+                _c4dbgpf("doc begin? peeked=[{}]~~~{}{}~~~", next_peeked.len, next_peeked.len >= 3 ? next_peeked.first(3) : next_peeked, next_peeked.len > 3 ? "..." : "");
                 if(_is_doc_begin_token(next_peeked))
                 {
                     _c4dbgp("doc begin! scalar ended");
@@ -1222,7 +1222,7 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_blck(ScannedScalar *C4_RESTRI
                 break;
             case '.':
                 next_peeked = next_peeked.trimr("\n\r");
-                _c4dbgpf("doc end? peeked=[{}]~~~{}{}~~~", next_peeked.len, next_peeked.first(3), next_peeked.len > 3 ? "..." : "");
+                _c4dbgpf("doc end? peeked=[{}]~~~{}{}~~~", next_peeked.len, next_peeked.len >= 3 ? next_peeked.first(3) : next_peeked, next_peeked.len > 3 ? "..." : "");
                 if(_is_doc_end_token(next_peeked))
                 {
                     _c4dbgp("doc end! scalar ended");
@@ -2363,6 +2363,10 @@ auto ParseEngine<EventHandler>::_filter_squoted(FilterProcessor &C4_RESTRICT pro
                 proc.skip();
                 proc.copy();
             }
+            else
+            {
+                _c4err("filter error");
+            }
             break;
         default:
             proc.copy();
@@ -2482,7 +2486,7 @@ void ParseEngine<EventHandler>::_filter_dquoted_backslash(FilterProcessor &C4_RE
     }
     else if(next == '\r')
     {
-        //proc.skip();
+        proc.skip();
     }
     else if(next == 'n')
     {
@@ -5741,7 +5745,7 @@ seqblck_start:
                 addrem_flags(RKEY, RNXT);
                 goto seqblck_finish;
             }
-            else if(first != '*')
+            else //if(first != '*')
             {
                 _c4err("parse error");
             }
@@ -6596,6 +6600,7 @@ mapblck_start:
         //
         if(m_state->at_line_beginning())
         {
+            _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, m_state->line_contents.indentation != npos);
             if(m_state->indentation_eq())
             {
                 _c4dbgpf("mapblck[QMRK]: skip {} from indref", m_state->indref);
