@@ -468,7 +468,7 @@ do                                                                      \
         }                                                               \
     } while(0)
 #define _RYML_CB_ALLOC_HINT(cb, T, num, hint) (T*) (cb).m_allocate((num) * sizeof(T), (hint), (cb).m_user_data)
-#define _RYML_CB_ALLOC(cb, T, num) _RYML_CB_ALLOC_HINT((cb), (T), (num), nullptr)
+#define _RYML_CB_ALLOC(cb, T, num) _RYML_CB_ALLOC_HINT((cb), T, (num), nullptr)
 #define _RYML_CB_FREE(cb, buf, T, num)                              \
     do {                                                            \
         (cb).m_free((buf), (num) * sizeof(T), (cb).m_user_data);    \
