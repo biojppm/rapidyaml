@@ -1,4 +1,4 @@
-Most of the changes are from the giant Parser refactor described below. Before getting to that, a couple of other points first.
+Most of the changes are from the giant Parser refactor described below. Before getting to that, a couple of other minor changes first.
 
 
 ### Fixes
@@ -9,7 +9,16 @@ Most of the changes are from the giant Parser refactor described below. Before g
 
 ### New features
 
-- [#PR431](https://github.com/biojppm/rapidyaml/pull/431) - append-emitting to the `emitrs_` functions, suggested in [#345](https://github.com/biojppm/rapidyaml/issues/345). This was achieved by adding a `bool append=false` as the last parameter of these functions.
+- [#PR431](https://github.com/biojppm/rapidyaml/pull/431) - append-emitting to existing containers in the `emitrs_` functions, suggested in [#345](https://github.com/biojppm/rapidyaml/issues/345). This was achieved by adding a `bool append=false` as the last parameter of these functions.
+- [#PR431](https://github.com/biojppm/rapidyaml/pull/431) - add depth query methods:
+  ```cpp
+  Tree::depth_asc(id_type) const;   // O(log(num_tree_nodes)) get the depth of a node ascending (ie, from root to node)
+  Tree::depth_desc(id_type) const;  // O(num_tree_nodes) get the depth of a node descending (ie, from node to deep-most leaf node)
+  ConstNodeRef::depth_asc() const;  // likewise
+  ConstNodeRef::depth_desc() const;
+  NodeRef::depth_asc() const;
+  NodeRef::depth_desc() const;
+  ```
 
 
 ------
@@ -21,7 +30,7 @@ The parser was completely refactored ([#PR414](https://github.com/biojppm/rapidy
 
 - The new parser is an event-based parser, based on an event dispatcher engine. This engine is templated on event handler, where each event is a function call, which spares branches on the event handler. The parsing code was fully rewritten, and is now much more simple (albeit longer), and much easier to work with and fix.
 - YAML standard-conformance was improved significantly. Along with many smaller fixes and additions, (too many to list here), the main changes are the following:
-  - The parser engine can now successfully parse container keys, emitting all the events in the correct , **but** as before, the ryml tree cannot accomodate these (and this constraint is no longer enforced by the parser, but instead by `EventHandlerTree`). For an example of a handler which can accomodate key containers, see the one which is used for the test suite at `test/test_suite/test_suite_event_handler.hpp`
+  - The parser engine can now successfully parse container keys, emitting all the events in correctly, **but** as before, the ryml tree cannot accomodate these (and this constraint is no longer enforced by the parser, but instead by `EventHandlerTree`). For an example of a handler which can accomodate key containers, see the one which is used for the test suite at `test/test_suite/test_suite_event_handler.hpp`
   - Anchor keys can now be terminated with colon (eg, `&anchor: key: val`), as dictated by the standard.
 - The parser engine can now be used to create native trees in other programming languages, or in cases where the user *must* have container keys.
 - Performance of both parsing and emitting improved significantly; see some figures below.

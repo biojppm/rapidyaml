@@ -173,9 +173,12 @@ std::string format_error(const char* msg, size_t len, Location loc)
     #ifndef RYML_NO_DEFAULT_CALLBACKS
     report_error_impl(msg, len, loc, nullptr);
     #endif
-    if(!loc)
-        return msg;
     std::string out;
+    if(!loc)
+    {
+        out.assign(msg, len);
+        return out;
+    }
     if(!loc.name.empty())
         c4::formatrs_append(&out, "{}:", loc.name);
     c4::formatrs_append(&out, "{}:{}:", loc.line, loc.col);
@@ -260,6 +263,11 @@ void ExpectError::check_success(Tree *tree, std::function<void()> fn)
         ;
     }
     EXPECT_FALSE(context.m_got_an_error);
+}
+
+void ExpectError::do_check(Tree const* tree, std::function<void()> fn, Location expected_location)
+{
+    do_check(const_cast<Tree*>(tree), fn, expected_location);
 }
 
 void ExpectError::do_check(Tree *tree, std::function<void()> fn, Location expected_location)

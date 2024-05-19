@@ -1192,6 +1192,37 @@ id_type Tree::find_child(id_type node, csubstr const& name) const
 #   pragma GCC diagnostic pop
 #endif
 
+namespace {
+id_type depth_desc_(Tree const& C4_RESTRICT t, id_type id, id_type currdepth=0, id_type maxdepth=0)
+{
+    maxdepth = currdepth > maxdepth ? currdepth : maxdepth;
+    for(id_type child = t.first_child(id); child != NONE; child = t.next_sibling(child))
+    {
+        const id_type d = depth_desc_(t, child, currdepth+1, maxdepth);
+        maxdepth = d > maxdepth ? d : maxdepth;
+    }
+    return maxdepth;
+}
+}
+
+id_type Tree::depth_desc(id_type node) const
+{
+    _RYML_CB_ASSERT(m_callbacks, node != NONE);
+    return depth_desc_(*this, node);
+}
+
+id_type Tree::depth_asc(id_type node) const
+{
+    _RYML_CB_ASSERT(m_callbacks, node != NONE);
+    id_type depth = 0;
+    while(!is_root(node))
+    {
+        ++depth;
+        node = parent(node);
+    }
+    return depth;
+}
+
 
 //-----------------------------------------------------------------------------
 

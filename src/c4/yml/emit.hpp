@@ -51,6 +51,15 @@ using EmitterOStream = Emitter<WriterOStream<OStream>>;
 using EmitterFile = Emitter<WriterFile>;
 using EmitterBuf  = Emitter<WriterBuf>;
 
+namespace detail {
+inline bool is_set_(ConstNodeRef n) { return n.tree() && (n.id() != NONE); }
+}
+
+
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
 /** Specifies the type of content to emit */
 typedef enum {
     EMIT_YAML = 0, ///< emit YAML
@@ -134,6 +143,8 @@ public:
     /** emit starting at the given node */
     substr emit_as(EmitType_e type, ConstNodeRef const& n, bool error_on_excess=true)
     {
+        if(!detail::is_set_(n))
+            return {};
         _RYML_CB_CHECK(n.tree()->callbacks(), n.readable());
         return this->emit_as(type, *n.tree(), n.id(), error_on_excess);
     }
@@ -157,11 +168,11 @@ private:
 private:
 
     void _emit_yaml(id_type id);
-    void _do_visit_flow_sl(id_type id, id_type ilevel=0);
-    void _do_visit_flow_ml(id_type id, id_type ilevel=0, id_type do_indent=1);
-    void _do_visit_block(id_type id, id_type ilevel=0, id_type do_indent=1);
-    void _do_visit_block_container(id_type id, id_type next_level, bool do_indent);
-    void _do_visit_json(id_type id);
+    void _do_visit_flow_sl(id_type id, id_type depth, id_type ilevel=0);
+    void _do_visit_flow_ml(id_type id, id_type depth, id_type ilevel=0, id_type do_indent=1);
+    void _do_visit_block(id_type id, id_type depth, id_type ilevel=0, id_type do_indent=1);
+    void _do_visit_block_container(id_type id, id_type depth, id_type next_level, bool do_indent);
+    void _do_visit_json(id_type id, id_type depth);
 
 private:
 
@@ -288,12 +299,16 @@ inline size_t emit_json(Tree const& t, FILE *f=nullptr)
  * Return the number of bytes written. */
 inline size_t emit_yaml(ConstNodeRef const& r, EmitOptions const& opts, FILE *f=nullptr)
 {
+    if(!detail::is_set_(r))
+        return {};
     EmitterFile em(opts, f);
     return em.emit_as(EMIT_YAML, r, /*error_on_excess*/true).len;
 }
 /** (2) like (1), but use default emit options */
 inline size_t emit_yaml(ConstNodeRef const& r, FILE *f=nullptr)
 {
+    if(!detail::is_set_(r))
+        return {};
     EmitterFile em(f);
     return em.emit_as(EMIT_YAML, r, /*error_on_excess*/true).len;
 }
@@ -301,12 +316,16 @@ inline size_t emit_yaml(ConstNodeRef const& r, FILE *f=nullptr)
  * Return the number of bytes written. */
 inline size_t emit_json(ConstNodeRef const& r, EmitOptions const& opts, FILE *f=nullptr)
 {
+    if(!detail::is_set_(r))
+        return {};
     EmitterFile em(opts, f);
     return em.emit_as(EMIT_JSON, r, /*error_on_excess*/true).len;
 }
 /** (2) like (1), but use default emit options */
 inline size_t emit_json(ConstNodeRef const& r, FILE *f=nullptr)
 {
+    if(!detail::is_set_(r))
+        return {};
     EmitterFile em(f);
     return em.emit_as(EMIT_JSON, r, /*error_on_excess*/true).len;
 }
@@ -335,6 +354,8 @@ inline OStream& operator<< (OStream& s, Tree const& t)
 template<class OStream>
 inline OStream& operator<< (OStream& s, ConstNodeRef const& n)
 {
+    if(!detail::is_set_(n))
+        return s;
     EmitterOStream<OStream> em(s);
     em.emit_as(EMIT_YAML, n);
     return s;
@@ -361,7 +382,8 @@ struct as_json
     as_json(ConstNodeRef const& n, EmitOptions const& opts={}) : tree(n.tree()), node(n.id()), options(opts) {}
 };
 
-/** mark a tree or node to be emitted as yaml when using @ref operator<< . For example:
+/** mark a tree or node to be emitted as yaml when using @ref
+ * operator<< . For example:
  *
  * ```cpp
  * Tree t = parse_in_arena("{foo: bar}");
@@ -385,6 +407,8 @@ struct as_yaml
 template<class OStream>
 inline OStream& operator<< (OStream& s, as_json const& j)
 {
+    if(!j.tree || j.node == NONE)
+        return s;
     EmitterOStream<OStream> em(j.options, s);
     em.emit_as(EMIT_JSON, *j.tree, j.node, true);
     return s;
@@ -394,6 +418,8 @@ inline OStream& operator<< (OStream& s, as_json const& j)
 template<class OStream>
 inline OStream& operator<< (OStream& s, as_yaml const& y)
 {
+    if(!y.tree || y.node == NONE)
+        return s;
     EmitterOStream<OStream> em(y.options, s);
     em.emit_as(EMIT_YAML, *y.tree, y.node, true);
     return s;
@@ -414,13 +440,13 @@ inline OStream& operator<< (OStream& s, as_yaml const& y)
 /** (1) emit YAML to the given buffer. Return a substr trimmed to the emitted YAML.
  * @param t the tree to emit.
  * @param id the node where to start emitting.
- * @param buf the output buffer.
  * @param opts emit options.
+ * @param buf the output buffer.
  * @param error_on_excess Raise an error if the space in the buffer is insufficient.
  * @return a substr trimmed to the result in the output buffer. If the buffer is
  * insufficient (when error_on_excess is false), the string pointer of the
  * result will be set to null, and the length will report the required buffer size. */
-inline substr emit_yaml(Tree const& t, id_type id, substr buf, EmitOptions const& opts, bool error_on_excess=true)
+inline substr emit_yaml(Tree const& t, id_type id, EmitOptions const& opts, substr buf, bool error_on_excess=true)
 {
     EmitterBuf em(opts, buf);
     return em.emit_as(EMIT_YAML, t, id, error_on_excess);
@@ -434,13 +460,13 @@ inline substr emit_yaml(Tree const& t, id_type id, substr buf, bool error_on_exc
 /** (1) emit JSON to the given buffer. Return a substr trimmed to the emitted JSON.
  * @param t the tree to emit.
  * @param id the node where to start emitting.
- * @param buf the output buffer.
  * @param opts emit options.
+ * @param buf the output buffer.
  * @param error_on_excess Raise an error if the space in the buffer is insufficient.
  * @return a substr trimmed to the result in the output buffer. If the buffer is
  * insufficient (when error_on_excess is false), the string pointer of the
  * result will be set to null, and the length will report the required buffer size. */
-inline substr emit_json(Tree const& t, id_type id, substr buf, EmitOptions const& opts, bool error_on_excess=true)
+inline substr emit_json(Tree const& t, id_type id, EmitOptions const& opts, substr buf, bool error_on_excess=true)
 {
     EmitterBuf em(opts, buf);
     return em.emit_as(EMIT_JSON, t, id, error_on_excess);
@@ -462,7 +488,7 @@ inline substr emit_json(Tree const& t, id_type id, substr buf, bool error_on_exc
  * @return a substr trimmed to the result in the output buffer. If the buffer is
  * insufficient (when error_on_excess is false), the string pointer of the
  * result will be set to null, and the length will report the required buffer size. */
-inline substr emit_yaml(Tree const& t, substr buf, EmitOptions const& opts, bool error_on_excess=true)
+inline substr emit_yaml(Tree const& t, EmitOptions const& opts, substr buf, bool error_on_excess=true)
 {
     EmitterBuf em(opts, buf);
     return em.emit_as(EMIT_YAML, t, error_on_excess);
@@ -480,7 +506,7 @@ inline substr emit_yaml(Tree const& t, substr buf, bool error_on_excess=true)
  * @return a substr trimmed to the result in the output buffer. If the buffer is
  * insufficient (when error_on_excess is false), the string pointer of the
  * result will be set to null, and the length will report the required buffer size. */
-inline substr emit_json(Tree const& t, substr buf, EmitOptions const& opts, bool error_on_excess=true)
+inline substr emit_json(Tree const& t, EmitOptions const& opts, substr buf, bool error_on_excess=true)
 {
     EmitterBuf em(opts, buf);
     return em.emit_as(EMIT_JSON, t, error_on_excess);
@@ -503,14 +529,18 @@ inline substr emit_json(Tree const& t, substr buf, bool error_on_excess=true)
  * @return a substr trimmed to the result in the output buffer. If the buffer is
  * insufficient (when error_on_excess is false), the string pointer of the
  * result will be set to null, and the length will report the required buffer size. */
-inline substr emit_yaml(ConstNodeRef const& r, substr buf, EmitOptions const& opts, bool error_on_excess=true)
+inline substr emit_yaml(ConstNodeRef const& r, EmitOptions const& opts, substr buf, bool error_on_excess=true)
 {
+    if(!detail::is_set_(r))
+        return {};
     EmitterBuf em(opts, buf);
     return em.emit_as(EMIT_YAML, r, error_on_excess);
 }
 /** (2) like (1), but use default emit options */
 inline substr emit_yaml(ConstNodeRef const& r, substr buf, bool error_on_excess=true)
 {
+    if(!detail::is_set_(r))
+        return {};
     EmitterBuf em(buf);
     return em.emit_as(EMIT_YAML, r, error_on_excess);
 }
@@ -522,14 +552,18 @@ inline substr emit_yaml(ConstNodeRef const& r, substr buf, bool error_on_excess=
  * @return a substr trimmed to the result in the output buffer. If the buffer is
  * insufficient (when error_on_excess is false), the string pointer of the
  * result will be set to null, and the length will report the required buffer size. */
-inline substr emit_json(ConstNodeRef const& r, substr buf, EmitOptions const& opts, bool error_on_excess=true)
+inline substr emit_json(ConstNodeRef const& r, EmitOptions const& opts, substr buf, bool error_on_excess=true)
 {
+    if(!detail::is_set_(r))
+        return {};
     EmitterBuf em(opts, buf);
     return em.emit_as(EMIT_JSON, r, error_on_excess);
 }
 /** (2) like (1), but use default emit options */
 inline substr emit_json(ConstNodeRef const& r, substr buf, bool error_on_excess=true)
 {
+    if(!detail::is_set_(r))
+        return {};
     EmitterBuf em(buf);
     return em.emit_as(EMIT_JSON, r, error_on_excess);
 }
@@ -552,15 +586,15 @@ inline substr emit_json(ConstNodeRef const& r, substr buf, bool error_on_excess=
 template<class CharOwningContainer>
 substr emitrs_yaml(Tree const& t, id_type id, EmitOptions const& opts, CharOwningContainer * cont, bool append=false)
 {
-    const size_t startpos = append ? cont->size() : 0u;
+    size_t startpos = append ? cont->size() : 0u;
     cont->resize(cont->capacity()); // otherwise the first emit would be certain to fail
     substr buf = to_substr(*cont).sub(startpos);
-    substr ret = emit_yaml(t, id, buf, opts, /*error_on_excess*/false);
+    substr ret = emit_yaml(t, id, opts, buf, /*error_on_excess*/false);
     if(ret.str == nullptr && ret.len > 0)
     {
         cont->resize(startpos + ret.len);
         buf = to_substr(*cont).sub(startpos);
-        ret = emit_yaml(t, id, buf, opts, /*error_on_excess*/true);
+        ret = emit_yaml(t, id, opts, buf, /*error_on_excess*/true);
     }
     else
     {
@@ -585,12 +619,13 @@ substr emitrs_json(Tree const& t, id_type id, EmitOptions const& opts, CharOwnin
     const size_t startpos = append ? cont->size() : 0u;
     cont->resize(cont->capacity()); // otherwise the first emit would be certain to fail
     substr buf = to_substr(*cont).sub(startpos);
-    substr ret = emit_json(t, id, buf, opts, /*error_on_excess*/false);
+    EmitterBuf em(opts, buf);
+    substr ret = emit_json(t, id, opts, buf, /*error_on_excess*/false);
     if(ret.str == nullptr && ret.len > 0)
     {
         cont->resize(startpos + ret.len);
         buf = to_substr(*cont).sub(startpos);
-        ret = emit_json(t, id, buf, opts, /*error_on_excess*/true);
+        ret = emit_json(t, id, opts, buf, /*error_on_excess*/true);
     }
     else
     {
@@ -608,18 +643,18 @@ substr emitrs_json(Tree const& t, id_type id, CharOwningContainer * cont, bool a
 
 /** (3) emit+resize: YAML to a newly-created `std::string`/`std::vector`-like container. */
 template<class CharOwningContainer>
-CharOwningContainer emitrs_yaml(Tree const& t, id_type id, EmitOptions const& opts={}, bool append=false)
+CharOwningContainer emitrs_yaml(Tree const& t, id_type id, EmitOptions const& opts={})
 {
     CharOwningContainer c;
-    emitrs_yaml(t, id, opts, &c, append);
+    emitrs_yaml(t, id, opts, &c);
     return c;
 }
 /** (3) emit+resize: JSON to a newly-created `std::string`/`std::vector`-like container. */
 template<class CharOwningContainer>
-CharOwningContainer emitrs_json(Tree const& t, id_type id, EmitOptions const& opts={}, bool append=false)
+CharOwningContainer emitrs_json(Tree const& t, id_type id, EmitOptions const& opts={})
 {
     CharOwningContainer c;
-    emitrs_json(t, id, opts, &c, append);
+    emitrs_json(t, id, opts, &c);
     return c;
 }
 
@@ -666,22 +701,22 @@ substr emitrs_json(Tree const& t, CharOwningContainer * cont, bool append=false)
 
 /** (3) emit+resize: YAML to a newly-created `std::string`/`std::vector`-like container. */
 template<class CharOwningContainer>
-CharOwningContainer emitrs_yaml(Tree const& t, EmitOptions const& opts={}, bool append=false)
+CharOwningContainer emitrs_yaml(Tree const& t, EmitOptions const& opts={})
 {
     CharOwningContainer c;
     if(t.empty())
         return c;
-    emitrs_yaml(t, t.root_id(), opts, &c, append);
+    emitrs_yaml(t, t.root_id(), opts, &c);
     return c;
 }
 /** (3) emit+resize: JSON to a newly-created `std::string`/`std::vector`-like container. */
 template<class CharOwningContainer>
-CharOwningContainer emitrs_json(Tree const& t, EmitOptions const& opts={}, bool append=false)
+CharOwningContainer emitrs_json(Tree const& t, EmitOptions const& opts={})
 {
     CharOwningContainer c;
     if(t.empty())
         return c;
-    emitrs_json(t, t.root_id(), opts, &c, append);
+    emitrs_json(t, t.root_id(), opts, &c);
     return c;
 }
 
@@ -695,6 +730,8 @@ CharOwningContainer emitrs_json(Tree const& t, EmitOptions const& opts={}, bool 
 template<class CharOwningContainer>
 substr emitrs_yaml(ConstNodeRef const& n, EmitOptions const& opts, CharOwningContainer * cont, bool append=false)
 {
+    if(!detail::is_set_(n))
+        return {};
     _RYML_CB_CHECK(n.tree()->callbacks(), n.readable());
     return emitrs_yaml(*n.tree(), n.id(), opts, cont, append);
 }
@@ -702,6 +739,8 @@ substr emitrs_yaml(ConstNodeRef const& n, EmitOptions const& opts, CharOwningCon
 template<class CharOwningContainer>
 substr emitrs_yaml(ConstNodeRef const& n, CharOwningContainer * cont, bool append=false)
 {
+    if(!detail::is_set_(n))
+        return {};
     _RYML_CB_CHECK(n.tree()->callbacks(), n.readable());
     return emitrs_yaml(*n.tree(), n.id(), EmitOptions{}, cont, append);
 }
@@ -711,6 +750,8 @@ substr emitrs_yaml(ConstNodeRef const& n, CharOwningContainer * cont, bool appen
 template<class CharOwningContainer>
 substr emitrs_json(ConstNodeRef const& n, EmitOptions const& opts, CharOwningContainer * cont, bool append=false)
 {
+    if(!detail::is_set_(n))
+        return {};
     _RYML_CB_CHECK(n.tree()->callbacks(), n.readable());
     return emitrs_json(*n.tree(), n.id(), opts, cont, append);
 }
@@ -718,6 +759,8 @@ substr emitrs_json(ConstNodeRef const& n, EmitOptions const& opts, CharOwningCon
 template<class CharOwningContainer>
 substr emitrs_json(ConstNodeRef const& n, CharOwningContainer * cont, bool append=false)
 {
+    if(!detail::is_set_(n))
+        return {};
     _RYML_CB_CHECK(n.tree()->callbacks(), n.readable());
     return emitrs_json(*n.tree(), n.id(), EmitOptions{}, cont, append);
 }
@@ -725,20 +768,24 @@ substr emitrs_json(ConstNodeRef const& n, CharOwningContainer * cont, bool appen
 
 /** (3) emit+resize: YAML to a newly-created `std::string`/`std::vector`-like container. */
 template<class CharOwningContainer>
-CharOwningContainer emitrs_yaml(ConstNodeRef const& n, EmitOptions const& opts={}, bool append=false)
+CharOwningContainer emitrs_yaml(ConstNodeRef const& n, EmitOptions const& opts={})
 {
+    if(!detail::is_set_(n))
+        return {};
     _RYML_CB_CHECK(n.tree()->callbacks(), n.readable());
     CharOwningContainer c;
-    emitrs_yaml(*n.tree(), n.id(), opts, &c, append);
+    emitrs_yaml(*n.tree(), n.id(), opts, &c);
     return c;
 }
 /** (3) emit+resize: JSON to a newly-created `std::string`/`std::vector`-like container. */
 template<class CharOwningContainer>
-CharOwningContainer emitrs_json(ConstNodeRef const& n, EmitOptions const& opts={}, bool append=false)
+CharOwningContainer emitrs_json(ConstNodeRef const& n, EmitOptions const& opts={})
 {
+    if(!detail::is_set_(n))
+        return {};
     _RYML_CB_CHECK(n.tree()->callbacks(), n.readable());
     CharOwningContainer c;
-    emitrs_json(*n.tree(), n.id(), opts, &c, append);
+    emitrs_json(*n.tree(), n.id(), opts, &c);
     return c;
 }
 

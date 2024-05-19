@@ -29,7 +29,7 @@ substr Emitter<Writer>::emit_as(EmitType_e type, Tree const& t, id_type id, bool
     if(type == EMIT_YAML)
         _emit_yaml(id);
     else if(type == EMIT_JSON)
-        _do_visit_json(id);
+        _do_visit_json(id, 0);
     else
         _RYML_CB_ERR(m_tree->callbacks(), "unknown emit type");
     m_tree = nullptr;
@@ -67,7 +67,7 @@ void Emitter<Writer>::_emit_yaml(id_type id)
                 this->Writer::_do_write(":\n");
                 ++ilevel;
             }
-            _do_visit_block_container(id, ilevel, ilevel);
+            _do_visit_block_container(id, 0, ilevel, ilevel);
             return;
         }
     }
@@ -241,14 +241,14 @@ void Emitter<Writer>::_write_doc(id_type id)
 }
 
 template<class Writer>
-void Emitter<Writer>::_do_visit_flow_sl(id_type node, id_type ilevel)
+void Emitter<Writer>::_do_visit_flow_sl(id_type node, id_type depth, id_type ilevel)
 {
     const bool prev_flow = m_flow;
     m_flow = true;
     RYML_ASSERT(!m_tree->is_stream(node));
     RYML_ASSERT(m_tree->is_container(node) || m_tree->is_doc(node));
     RYML_ASSERT(m_tree->is_root(node) || (m_tree->parent_is_map(node) || m_tree->parent_is_seq(node)));
-    if(C4_UNLIKELY(ilevel > m_opts.max_depth()))
+    if(C4_UNLIKELY(depth > m_opts.max_depth()))
         _RYML_CB_ERR(m_tree->callbacks(), "max depth exceeded");
 
     if(m_tree->is_doc(node))
@@ -332,7 +332,7 @@ void Emitter<Writer>::_do_visit_flow_sl(id_type node, id_type ilevel)
         else
         {
             // with single-line flow, we can never go back to block
-            _do_visit_flow_sl(child, ilevel + 1);
+            _do_visit_flow_sl(child, depth + 1, ilevel + 1);
         }
     }
 
@@ -350,21 +350,25 @@ void Emitter<Writer>::_do_visit_flow_sl(id_type node, id_type ilevel)
 C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4702) // unreachable error, triggered by flow_ml not implemented
 
 template<class Writer>
-void Emitter<Writer>::_do_visit_flow_ml(id_type id, id_type ilevel, id_type do_indent)
+void Emitter<Writer>::_do_visit_flow_ml(id_type id, id_type depth, id_type ilevel, id_type do_indent)
 {
     C4_UNUSED(id);
+    C4_UNUSED(depth);
     C4_UNUSED(ilevel);
     C4_UNUSED(do_indent);
-    if(C4_UNLIKELY(ilevel > m_opts.max_depth()))
+    c4::yml::error("not implemented");
+    #ifdef THIS_IS_A_WORK_IN_PROGRESS
+    if(C4_UNLIKELY(depth > m_opts.max_depth()))
         _RYML_CB_ERR(m_tree->callbacks(), "max depth exceeded");
     const bool prev_flow = m_flow;
     m_flow = true;
-    c4::yml::error("not implemented");
+    // do it...
     m_flow = prev_flow;
+    #endif
 }
 
 template<class Writer>
-void Emitter<Writer>::_do_visit_block_container(id_type node, id_type level, bool do_indent)
+void Emitter<Writer>::_do_visit_block_container(id_type node, id_type depth, id_type level, bool do_indent)
 {
     if(m_tree->is_seq(node))
     {
@@ -386,19 +390,19 @@ void Emitter<Writer>::_do_visit_block_container(id_type node, id_type level, boo
                 {
                     _indent(level, do_indent);
                     this->Writer::_do_write("- ");
-                    _do_visit_flow_sl(child, 0u);
+                    _do_visit_flow_sl(child, depth+1, 0u);
                     this->Writer::_do_write('\n');
                 }
                 else if(ty.is_flow_ml())
                 {
                     _indent(level, do_indent);
                     this->Writer::_do_write("- ");
-                    _do_visit_flow_ml(child, 0u, do_indent);
+                    _do_visit_flow_ml(child, depth+1, 0u, do_indent);
                     this->Writer::_do_write('\n');
                 }
                 else
                 {
-                    _do_visit_block(child, level, do_indent); // same level
+                    _do_visit_block(child, depth+1, level, do_indent); // same indentation level
                 }
             }
             do_indent = true;
@@ -425,18 +429,18 @@ void Emitter<Writer>::_do_visit_block_container(id_type node, id_type level, boo
                 if(ty.is_flow_sl())
                 {
                     _indent(level, do_indent);
-                    _do_visit_flow_sl(ich, 0u);
+                    _do_visit_flow_sl(ich, depth+1, 0u);
                     this->Writer::_do_write('\n');
                 }
                 else if(ty.is_flow_ml())
                 {
                     _indent(level, do_indent);
-                    _do_visit_flow_ml(ich, 0u);
+                    _do_visit_flow_ml(ich, depth+1, 0u);
                     this->Writer::_do_write('\n');
                 }
                 else
                 {
-                    _do_visit_block(ich, level, do_indent); // same level!
+                    _do_visit_block(ich, depth+1, level, do_indent); // same level!
                 }
             } // keyval vs container
             do_indent = true;
@@ -445,12 +449,12 @@ void Emitter<Writer>::_do_visit_block_container(id_type node, id_type level, boo
 }
 
 template<class Writer>
-void Emitter<Writer>::_do_visit_block(id_type node, id_type ilevel, id_type do_indent)
+void Emitter<Writer>::_do_visit_block(id_type node, id_type depth, id_type ilevel, id_type do_indent)
 {
     RYML_ASSERT(!m_tree->is_stream(node));
     RYML_ASSERT(m_tree->is_container(node) || m_tree->is_doc(node));
     RYML_ASSERT(m_tree->is_root(node) || (m_tree->parent_is_map(node) || m_tree->parent_is_seq(node)));
-    if(C4_UNLIKELY(ilevel > m_opts.max_depth()))
+    if(C4_UNLIKELY(depth > m_opts.max_depth()))
         _RYML_CB_ERR(m_tree->callbacks(), "max depth exceeded");
     if(m_tree->is_doc(node))
     {
@@ -528,16 +532,18 @@ void Emitter<Writer>::_do_visit_block(id_type node, id_type ilevel, id_type do_i
     if(m_tree->is_root(node) || m_tree->is_doc(node))
         next_level = ilevel; // do not indent at top level
 
-    _do_visit_block_container(node, next_level, do_indent);
+    _do_visit_block_container(node, depth, next_level, do_indent);
 }
 
 C4_SUPPRESS_WARNING_MSVC_POP
 
 
 template<class Writer>
-void Emitter<Writer>::_do_visit_json(id_type id)
+void Emitter<Writer>::_do_visit_json(id_type id, id_type depth)
 {
     _RYML_CB_CHECK(m_tree->callbacks(), !m_tree->is_stream(id)); // JSON does not have streams
+    if(C4_UNLIKELY(depth > m_opts.max_depth()))
+        _RYML_CB_ERR(m_tree->callbacks(), "max depth exceeded");
     if(m_tree->is_keyval(id))
     {
         _writek_json(id);
@@ -565,7 +571,7 @@ void Emitter<Writer>::_do_visit_json(id_type id)
     {
         if(ich != m_tree->first_child(id))
             this->Writer::_do_write(',');
-        _do_visit_json(ich);
+        _do_visit_json(ich, depth+1);
     }
 
     if(m_tree->is_seq(id))

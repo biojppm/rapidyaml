@@ -283,6 +283,39 @@ void verify_error_is_reported(csubstr case_name, csubstr yaml, Location loc={})
     }, loc);
 }
 
+void verify_filter_error_is_reported(csubstr case_name, csubstr scalar_, Location loc={})
+{
+    SCOPED_TRACE(case_name);
+    SCOPED_TRACE(scalar_);
+    {
+        Tree t;
+        ExpectError::do_check(&t, [&](){
+            Parser::handler_type evt_handler = {};
+            Parser parser(&evt_handler);
+            evt_handler.reset(&t, t.root_id());
+            std::string buf(scalar_.begin(), scalar_.end());
+            buf.resize(scalar_.len * 2);
+            substr scalar = to_substr(buf).first(scalar_.len);
+            to_substr(buf).sub(scalar_.len).fill('_');
+            FilterResult result = parser.filter_scalar_squoted_in_place(scalar, buf.size());
+            return result;
+        }, loc);
+    }
+    {
+        Tree t;
+        ExpectError::do_check(&t, [&](){
+            Parser::handler_type evt_handler = {};
+            Parser parser(&evt_handler);
+            evt_handler.reset(&t, t.root_id());
+            std::string buf;
+            buf.resize(scalar_.len * 2);
+            to_substr(buf).fill('_');
+            FilterResult result = parser.filter_scalar_squoted(scalar_, to_substr(buf));
+            return result;
+        }, loc);
+    }
+}
+
 TEST(single_quoted, error_on_unmatched_quotes)
 {
     verify_error_is_reported("map block", R"(foo: '"
@@ -361,6 +394,11 @@ bar: ''')");
 - ''')");
     verify_error_is_reported("map flow", R"({foo: what, bar: '''})");
     verify_error_is_reported("seq flow", R"([what, '''])");
+}
+
+TEST(single_quoted, error_on_isolated_quotes)
+{
+    verify_filter_error_is_reported("isolated quotes", "a'a'a'a");
 }
 
 

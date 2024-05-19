@@ -514,6 +514,9 @@ public:
 
     id_type doc(id_type i) const { id_type rid = root_id(); _RYML_CB_ASSERT(m_callbacks, is_stream(rid)); return child(rid, i); } //!< gets the @p i document node index. requires that the root node is a stream.
 
+    id_type depth_asc(id_type node) const; /**< O(log(num_tree_nodes)) get the ascending depth of the node: number of levels between root and node */
+    id_type depth_desc(id_type node) const; /**< O(num_tree_nodes) get the descending depth of the node: number of levels between node and deepest child */
+
     /** @} */
 
 public:
