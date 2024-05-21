@@ -205,6 +205,25 @@ TEST(simple_seq, flow_tab_tokens__3_flow_tabs_everywhere)
 #endif // RYML_WITH_TAB_TOKENS
 
 
+TEST(simple_seq, unterminated_seqimap)
+{
+    {
+        SCOPED_TRACE("space after");
+        Tree t;
+        ExpectError::do_check(&t, [&]{
+            parse_in_arena("[a: ");
+        });
+    }
+    {
+        SCOPED_TRACE("no space after");
+        Tree t;
+        ExpectError::do_check(&t, [&]{
+            parse_in_arena("[a:");
+        });
+    }
+}
+
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -1079,6 +1098,14 @@ ADD_CASE_TO_GROUP("simple seq flow, missing val, 5", EXPECT_PARSE_ERROR,
 R"([ , , ]
 )",
   LineCol(1, 3)
+);
+
+ADD_CASE_TO_GROUP("simple seq flow, seqimap, at line end",
+R"([a: 
+
+b]
+)",
+N(SFS, L{N(MFS, L{N(KP|VP, "a", "b")})})
 );
 
 }

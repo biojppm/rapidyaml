@@ -400,6 +400,23 @@ TEST(Parser, estimate_tree_capacity)
 )"));
 }
 
+TEST(Parser, alloc_arena)
+{
+    Tree tree;
+    Parser::handler_type evt_handler = {};
+    evt_handler.reset(&tree, tree.root_id());
+    substr bufa = evt_handler.alloc_arena(64);
+    bufa.fill('a');
+    csubstr prev = bufa;
+    csubstr prev_arena = tree.arena();
+    substr bufb = evt_handler.alloc_arena(64, &bufa);
+    csubstr curr_arena = tree.arena();
+    EXPECT_NE(prev_arena.str, curr_arena.str);
+    EXPECT_NE(prev.str, bufa.str);
+    EXPECT_EQ(bufa.first_not_of('a'), npos);
+    (void)bufb;
+}
+
 TEST(parse_in_place, overloads)
 {
     char src1_[] = "{a: b}";

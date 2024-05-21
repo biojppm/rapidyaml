@@ -3395,6 +3395,84 @@ seq: &seq [*valref, bar]
     verify_assertion(t, [&](Tree const&){ return t.find_sibling(NONE, "foo"); });
 }
 
+TEST(Tree, depth_asc_desc)
+{
+    Tree t = parse_in_arena(R"(---
+map: {foo: *keyvalref, notag: none}
+seq: &seq [*valref, bar]
+...)");
+    const size_t stream_id = t.root_id();
+    const size_t doc_id = t.first_child(stream_id);
+    const size_t map_id = t.first_child(doc_id);
+    const size_t seq_id = t.last_child(doc_id);
+    const size_t map_child_id = t.first_child(map_id);
+    const size_t seq_child_id = t.first_child(seq_id);
+    ConstNodeRef stream = t.cref(stream_id);
+    ConstNodeRef doc = t.cref(doc_id);
+    ConstNodeRef map = t.cref(map_id);
+    ConstNodeRef seq = t.cref(seq_id);
+    ConstNodeRef map_child = t.cref(map_child_id);
+    ConstNodeRef seq_child = t.cref(seq_child_id);
+    NodeRef mstream = t.ref(stream_id);
+    NodeRef mdoc = t.ref(doc_id);
+    NodeRef mmap = t.ref(map_id);
+    NodeRef mseq = t.ref(seq_id);
+    NodeRef mmap_child = t.ref(map_child_id);
+    NodeRef mseq_child = t.ref(seq_child_id);
+    //
+    EXPECT_EQ(t.depth_asc(stream_id), id_type(0));
+    EXPECT_EQ(t.depth_asc(doc_id), id_type(1));
+    EXPECT_EQ(t.depth_asc(map_id), id_type(2));
+    EXPECT_EQ(t.depth_asc(seq_id), id_type(2));
+    EXPECT_EQ(t.depth_asc(map_child_id), id_type(3));
+    EXPECT_EQ(t.depth_asc(seq_child_id), id_type(3));
+    //
+    EXPECT_EQ(stream.depth_asc(), id_type(0));
+    EXPECT_EQ(doc.depth_asc(), id_type(1));
+    EXPECT_EQ(map.depth_asc(), id_type(2));
+    EXPECT_EQ(seq.depth_asc(), id_type(2));
+    EXPECT_EQ(map_child.depth_asc(), id_type(3));
+    EXPECT_EQ(seq_child.depth_asc(), id_type(3));
+    //
+    EXPECT_EQ(mstream.depth_asc(), id_type(0));
+    EXPECT_EQ(mdoc.depth_asc(), id_type(1));
+    EXPECT_EQ(mmap.depth_asc(), id_type(2));
+    EXPECT_EQ(mseq.depth_asc(), id_type(2));
+    EXPECT_EQ(mmap_child.depth_asc(), id_type(3));
+    EXPECT_EQ(mseq_child.depth_asc(), id_type(3));
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].depth_asc(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).depth_asc(); });
+    verify_assertion(t, [&](Tree const&){ return t.depth_asc(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.depth_asc(NONE); });
+    //
+    EXPECT_EQ(t.depth_desc(stream_id), id_type(3));
+    EXPECT_EQ(t.depth_desc(doc_id), id_type(2));
+    EXPECT_EQ(t.depth_desc(map_id), id_type(1));
+    EXPECT_EQ(t.depth_desc(seq_id), id_type(1));
+    EXPECT_EQ(t.depth_desc(map_child_id), id_type(0));
+    EXPECT_EQ(t.depth_desc(seq_child_id), id_type(0));
+    //
+    EXPECT_EQ(stream.depth_desc(), id_type(3));
+    EXPECT_EQ(doc.depth_desc(), id_type(2));
+    EXPECT_EQ(map.depth_desc(), id_type(1));
+    EXPECT_EQ(seq.depth_desc(), id_type(1));
+    EXPECT_EQ(map_child.depth_desc(), id_type(0));
+    EXPECT_EQ(seq_child.depth_desc(), id_type(0));
+    //
+    EXPECT_EQ(mstream.depth_desc(), id_type(3));
+    EXPECT_EQ(mdoc.depth_desc(), id_type(2));
+    EXPECT_EQ(mmap.depth_desc(), id_type(1));
+    EXPECT_EQ(mseq.depth_desc(), id_type(1));
+    EXPECT_EQ(mmap_child.depth_desc(), id_type(0));
+    EXPECT_EQ(mseq_child.depth_desc(), id_type(0));
+    //
+    verify_assertion(t, [&](Tree const&){ return t.docref(0)["none"].depth_desc(); });
+    verify_assertion(t, [&](Tree const&){ return t.docref(2).depth_desc(); });
+    verify_assertion(t, [&](Tree const&){ return t.depth_desc(t.capacity()); });
+    verify_assertion(t, [&](Tree const&){ return t.depth_desc(NONE); });
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------

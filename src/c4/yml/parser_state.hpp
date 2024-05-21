@@ -11,12 +11,6 @@ namespace yml {
 /** data type for @ref ParserState_e */
 using ParserFlag_t = int;
 
-#ifdef RYML_DBG
-namespace detail {
-csubstr _parser_flags_to_str(substr buf, ParserFlag_t flags);
-} // namespace
-#endif
-
 /** Enumeration of the state flags for the parser */
 typedef enum : ParserFlag_t {
     RTOP = 0x01 <<  0,   ///< reading at top level
@@ -41,6 +35,14 @@ typedef enum : ParserFlag_t {
     //! is parsed as {key: [{key2: value2}, {key3: value3}]}
     RSEQIMAP = 0x01 << 17,
 } ParserState_e;
+
+#ifdef RYML_DBG
+/** @cond dev */
+namespace detail {
+csubstr _parser_flags_to_str(substr buf, ParserFlag_t flags);
+} // namespace
+/** @endcond */
+#endif
 
 
 /** Helper to control the line contents while parsing a buffer */

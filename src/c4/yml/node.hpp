@@ -383,6 +383,9 @@ public:
     /** O(num_siblings). Forward to Tree::sibling_pos(). */
     C4_ALWAYS_INLINE id_type sibling_pos(ConstImpl const& n) const RYML_NOEXCEPT { _C4RR(); _RYML_CB_ASSERT(tree_->callbacks(), n.readable()); return tree_->child_pos(tree_->parent(id_), n.m_id); }
 
+    C4_ALWAYS_INLINE id_type depth_asc() const RYML_NOEXCEPT { _C4RR(); return tree_->depth_asc(id_); } /** O(log(num_nodes)). Forward to Tree::depth_asc(). Node must be readable. */
+    C4_ALWAYS_INLINE id_type depth_desc() const RYML_NOEXCEPT { _C4RR(); return tree_->depth_desc(id_); } /** O(num_nodes). Forward to Tree::depth_desc(). Node must be readable. */
+
     /** @} */
 
 public:

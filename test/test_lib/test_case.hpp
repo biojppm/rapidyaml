@@ -203,8 +203,9 @@ struct ExpectError
     ExpectError(Tree *tree, Location loc={});
     ~ExpectError();
 
-    static void do_check(            std::function<void()> fn, Location expected={}) { do_check(nullptr, fn, expected); }
+    static void do_check(            std::function<void()> fn, Location expected={}) { do_check((const Tree*)nullptr, fn, expected); }
     static void do_check(Tree *tree, std::function<void()> fn, Location expected={});
+    static void do_check(Tree const *tree, std::function<void()> fn, Location expected={});
     static void check_assertion(            std::function<void()> fn, Location expected={}) { check_assertion(nullptr, fn, expected); }
     static void check_assertion(Tree *tree, std::function<void()> fn, Location expected={});
     static void check_success(            std::function<void()> fn) { check_success(nullptr, fn); };

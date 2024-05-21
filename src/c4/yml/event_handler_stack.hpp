@@ -89,6 +89,28 @@ protected:
         #endif
     }
 
+    substr _stack_relocate_to_new_arena(csubstr s, csubstr prev, substr curr)
+    {
+        _RYML_CB_ASSERT(m_stack.m_callbacks, prev.is_super(s));
+        auto pos = s.str - prev.str;
+        substr out = {curr.str + pos, s.len};
+        _RYML_CB_ASSERT(m_stack.m_callbacks, curr.is_super(out));
+        return out;
+    }
+
+    void _stack_relocate_to_new_arena(csubstr prev, substr curr)
+    {
+        for(state &st : m_stack)
+        {
+            if(st.line_contents.rem.is_sub(prev))
+                st.line_contents.rem = _stack_relocate_to_new_arena(st.line_contents.rem, prev, curr);
+            if(st.line_contents.full.is_sub(prev))
+                st.line_contents.full = _stack_relocate_to_new_arena(st.line_contents.full, prev, curr);
+            if(st.line_contents.stripped.is_sub(prev))
+                st.line_contents.stripped = _stack_relocate_to_new_arena(st.line_contents.stripped, prev, curr);
+        }
+    }
+
 protected:
 
     // undefined at the end
