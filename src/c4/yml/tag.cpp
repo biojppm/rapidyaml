@@ -248,8 +248,10 @@ size_t TagDirective::transform(csubstr tag, substr output, Callbacks const& call
     _c4dbgpf("%TAG: rest={}", rest);
     if(rest.begins_with('<'))
     {
-        rest = rest.offs(1, 1);
         _c4dbgpf("%TAG: begins with <. rest={}", rest);
+        if(C4_UNLIKELY(!rest.ends_with('>')))
+            _RYML_CB_ERR(callbacks, "malformed tag");
+        rest = rest.offs(1, 1);
         if(rest.begins_with(prefix))
         {
             _c4dbgpf("%TAG: already transformed! actual={}", rest.sub(prefix.len));
