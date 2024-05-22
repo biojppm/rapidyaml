@@ -160,7 +160,7 @@ struct ParserState
     void reset_after_push()
     {
         node_id = NONE;
-        indref = NONE;
+        indref = npos;
         more_indented = false;
         ++level;
         has_children = false;

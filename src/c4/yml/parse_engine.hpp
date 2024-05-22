@@ -384,21 +384,6 @@ public:
     /** parse JSON in place, emitting events to the current handler */
     void parse_json_in_place_ev(csubstr filename, substr src);
 
-    /** Quickly inspect the source to estimate the number of nodes the
-     * resulting tree is likely have. If a tree is empty before
-     * parsing, considerable time will be spent growing it, so calling
-     * this to reserve the tree size prior to parsing is likely to
-     * result in a time gain. We encourage using this method before
-     * parsing, but as always measure its impact in performance to
-     * obtain a good trade-off.
-     *
-     * @note since this method is meant for optimizing performance, it
-     * is approximate. The result may be actually smaller than the
-     * resulting number of nodes, notably if the YAML uses implicit
-     * maps as flow seq members as in `[these: are, individual:
-     * maps]`. */
-    static id_type estimate_tree_capacity(csubstr src);
-
     /** @} */
 
 public:
@@ -755,6 +740,22 @@ private:
 /** @cond dev */
 RYML_EXPORT C4_NO_INLINE size_t _find_last_newline_and_larger_indentation(csubstr s, size_t indentation) noexcept;
 /** @endcond */
+
+
+/** Quickly inspect the source to estimate the number of nodes the
+ * resulting tree is likely have. If a tree is empty before
+ * parsing, considerable time will be spent growing it, so calling
+ * this to reserve the tree size prior to parsing is likely to
+ * result in a time gain. We encourage using this method before
+ * parsing, but as always measure its impact in performance to
+ * obtain a good trade-off.
+ *
+ * @note since this method is meant for optimizing performance, it
+ * is approximate. The result may be actually smaller than the
+ * resulting number of nodes, notably if the YAML uses implicit
+ * maps as flow seq members as in `[these: are, individual:
+ * maps]`. */
+RYML_EXPORT id_type estimate_tree_capacity(csubstr src);
 
 /** @} */
 

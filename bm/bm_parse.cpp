@@ -27,7 +27,7 @@ int main(int argc, char** argv)
 
 ryml::id_type estimate_capacity(ryml::csubstr src)
 {
-    return (3 * ryml::Parser::estimate_tree_capacity(src)) >> 1;
+    return (3 * ryml::estimate_tree_capacity(src)) >> 1;
 }
 
 

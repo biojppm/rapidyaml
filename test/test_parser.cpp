@@ -381,19 +381,17 @@ TEST(Parser, filename_and_buffer_are_stored)
 
 TEST(Parser, estimate_tree_capacity)
 {
-    Parser::handler_type evt_handler = {};
-    Parser parser(&evt_handler);
-    EXPECT_EQ(2, parser.estimate_tree_capacity(R"([])"));
-    EXPECT_EQ(2, parser.estimate_tree_capacity(R"([a])"));
-    EXPECT_EQ(3, parser.estimate_tree_capacity(R"([a, b])"));
-    EXPECT_EQ(4, parser.estimate_tree_capacity(R"([a, b, c])"));
-    EXPECT_EQ(5, parser.estimate_tree_capacity(R"([a, b, c, d])"));
-    EXPECT_EQ(2, parser.estimate_tree_capacity(R"({})"));
-    EXPECT_EQ(2, parser.estimate_tree_capacity(R"({a: 0})"));
-    EXPECT_EQ(3, parser.estimate_tree_capacity(R"({a: 0, b: 1})"));
-    EXPECT_EQ(4, parser.estimate_tree_capacity(R"({a: 0, b: 1, c: 2})"));
-    EXPECT_EQ(5, parser.estimate_tree_capacity(R"({a: 0, b: 1, c: 2, d: 3})"));
-    EXPECT_EQ(9, parser.estimate_tree_capacity(R"(- {a: 0, b: 1, c: 2, d: 3}
+    EXPECT_EQ(2, estimate_tree_capacity(R"([])"));
+    EXPECT_EQ(2, estimate_tree_capacity(R"([a])"));
+    EXPECT_EQ(3, estimate_tree_capacity(R"([a, b])"));
+    EXPECT_EQ(4, estimate_tree_capacity(R"([a, b, c])"));
+    EXPECT_EQ(5, estimate_tree_capacity(R"([a, b, c, d])"));
+    EXPECT_EQ(2, estimate_tree_capacity(R"({})"));
+    EXPECT_EQ(2, estimate_tree_capacity(R"({a: 0})"));
+    EXPECT_EQ(3, estimate_tree_capacity(R"({a: 0, b: 1})"));
+    EXPECT_EQ(4, estimate_tree_capacity(R"({a: 0, b: 1, c: 2})"));
+    EXPECT_EQ(5, estimate_tree_capacity(R"({a: 0, b: 1, c: 2, d: 3})"));
+    EXPECT_EQ(9, estimate_tree_capacity(R"(- {a: 0, b: 1, c: 2, d: 3}
 - a
 - b
 - c
@@ -444,8 +442,8 @@ TEST(parse_in_place, overloads)
         EXPECT_EQ(tree["c"].val(), "d");
         EXPECT_EQ(tree["e"].is_map(), true);
         EXPECT_EQ(tree["e"].has_children(), false);
-        size_t e = tree.find_child(tree.root_id(), "e");
-        ASSERT_NE(e, (size_t)NONE);
+        id_type e = tree.find_child(tree.root_id(), "e");
+        ASSERT_NE(e, (id_type)NONE);
         parse_in_place(src1_, &tree, e);
         EXPECT_EQ(tree["c"].val(), "d");
         EXPECT_EQ(tree["e"].has_children(), true);
@@ -456,8 +454,8 @@ TEST(parse_in_place, overloads)
         EXPECT_EQ(tree["c"].val(), "d");
         EXPECT_EQ(tree["e"].is_map(), true);
         EXPECT_EQ(tree["e"].has_children(), false);
-        size_t e = tree.find_child(tree.root_id(), "e");
-        ASSERT_NE(e, (size_t)NONE);
+        id_type e = tree.find_child(tree.root_id(), "e");
+        ASSERT_NE(e, (id_type)NONE);
         parse_in_place("src1", src1_, &tree, e);
         EXPECT_EQ(tree["c"].val(), "d");
         EXPECT_EQ(tree["e"].has_children(), true);
@@ -493,27 +491,27 @@ TEST(parse_in_arena, overloads)
         Tree tree = parse_in_arena(src1);
         EXPECT_EQ(tree["a"].val(), "b");
         EXPECT_FALSE(tree.arena().empty());
-        EXPECT_NE(tree.arena().find(src1), (size_t)npos);
+        EXPECT_NE(tree.arena().find(src1), npos);
     }
     {
         Tree tree = parse_in_arena("src1", src1);
         EXPECT_EQ(tree["a"].val(), "b");
         EXPECT_FALSE(tree.arena().empty());
-        EXPECT_NE(tree.arena().find(src1), (size_t)npos);
+        EXPECT_NE(tree.arena().find(src1), npos);
     }
     {
         Tree tree;
         parse_in_arena(src1, &tree);
         EXPECT_EQ(tree["a"].val(), "b");
         EXPECT_FALSE(tree.arena().empty());
-        EXPECT_NE(tree.arena().find(src1), (size_t)npos);
+        EXPECT_NE(tree.arena().find(src1), npos);
     }
     {
         Tree tree;
         parse_in_arena("src1", src1, &tree);
         EXPECT_EQ(tree["a"].val(), "b");
         EXPECT_FALSE(tree.arena().empty());
-        EXPECT_NE(tree.arena().find(src1), (size_t)npos);
+        EXPECT_NE(tree.arena().find(src1), npos);
     }
     {
         Tree tree = parse_in_arena(src2);
@@ -521,16 +519,16 @@ TEST(parse_in_arena, overloads)
         EXPECT_EQ(tree["e"].is_map(), true);
         EXPECT_EQ(tree["e"].has_children(), false);
         EXPECT_FALSE(tree.arena().empty());
-        EXPECT_NE(tree.arena().find(src2), (size_t)npos);
-        size_t e = tree.find_child(tree.root_id(), "e");
-        ASSERT_NE(e, (size_t)NONE);
+        EXPECT_NE(tree.arena().find(src2), npos);
+        id_type e = tree.find_child(tree.root_id(), "e");
+        ASSERT_NE(e, (id_type)NONE);
         parse_in_arena(src1, &tree, e);
         EXPECT_EQ(tree["c"].val(), "d");
         EXPECT_EQ(tree["e"].has_children(), true);
         EXPECT_EQ(tree["e"]["a"].val(), "b");
         EXPECT_FALSE(tree.arena().empty());
-        EXPECT_NE(tree.arena().find(src1), (size_t)npos);
-        EXPECT_NE(tree.arena().find(src2), (size_t)npos);
+        EXPECT_NE(tree.arena().find(src1), npos);
+        EXPECT_NE(tree.arena().find(src2), npos);
     }
     {
         Tree tree = parse_in_arena("src2", src2);
@@ -538,16 +536,16 @@ TEST(parse_in_arena, overloads)
         EXPECT_EQ(tree["e"].is_map(), true);
         EXPECT_EQ(tree["e"].has_children(), false);
         EXPECT_FALSE(tree.arena().empty());
-        EXPECT_NE(tree.arena().find(src2), (size_t)npos);
-        size_t e = tree.find_child(tree.root_id(), "e");
-        ASSERT_NE(e, (size_t)NONE);
+        EXPECT_NE(tree.arena().find(src2), npos);
+        id_type e = tree.find_child(tree.root_id(), "e");
+        ASSERT_NE(e, (id_type)NONE);
         parse_in_arena("src1", src1, &tree, e);
         EXPECT_EQ(tree["c"].val(), "d");
         EXPECT_EQ(tree["e"].has_children(), true);
         EXPECT_EQ(tree["e"]["a"].val(), "b");
         EXPECT_FALSE(tree.arena().empty());
-        EXPECT_NE(tree.arena().find(src1), (size_t)npos);
-        EXPECT_NE(tree.arena().find(src2), (size_t)npos);
+        EXPECT_NE(tree.arena().find(src1), npos);
+        EXPECT_NE(tree.arena().find(src2), npos);
     }
     {
         Tree tree = parse_in_arena(src2);
@@ -555,14 +553,14 @@ TEST(parse_in_arena, overloads)
         EXPECT_EQ(tree["e"].is_map(), true);
         EXPECT_EQ(tree["e"].has_children(), false);
         EXPECT_FALSE(tree.arena().empty());
-        EXPECT_NE(tree.arena().find(src2), (size_t)npos);
+        EXPECT_NE(tree.arena().find(src2), npos);
         parse_in_arena(src1, tree["e"]);
         EXPECT_EQ(tree["c"].val(), "d");
         EXPECT_EQ(tree["e"].has_children(), true);
         EXPECT_EQ(tree["e"]["a"].val(), "b");
         EXPECT_FALSE(tree.arena().empty());
-        EXPECT_NE(tree.arena().find(src1), (size_t)npos);
-        EXPECT_NE(tree.arena().find(src2), (size_t)npos);
+        EXPECT_NE(tree.arena().find(src1), npos);
+        EXPECT_NE(tree.arena().find(src2), npos);
     }
     {
         Tree tree = parse_in_arena("src2", src2);
@@ -570,14 +568,14 @@ TEST(parse_in_arena, overloads)
         EXPECT_EQ(tree["e"].is_map(), true);
         EXPECT_EQ(tree["e"].has_children(), false);
         EXPECT_FALSE(tree.arena().empty());
-        EXPECT_NE(tree.arena().find(src2), (size_t)npos);
+        EXPECT_NE(tree.arena().find(src2), npos);
         parse_in_arena("src1", src1, tree["e"]);
         EXPECT_EQ(tree["c"].val(), "d");
         EXPECT_EQ(tree["e"].has_children(), true);
         EXPECT_EQ(tree["e"]["a"].val(), "b");
         EXPECT_FALSE(tree.arena().empty());
-        EXPECT_NE(tree.arena().find(src1), (size_t)npos);
-        EXPECT_NE(tree.arena().find(src2), (size_t)npos);
+        EXPECT_NE(tree.arena().find(src1), npos);
+        EXPECT_NE(tree.arena().find(src2), npos);
     }
 }
 
@@ -1984,7 +1982,7 @@ TEST_F(ParseToMapFlowTest, map_flow__to__map_flow__root)
 {
     NodeRef dst = dst_map_flow.rootref();
     parse_in_arena(to_csubstr(map_flow), dst);
-    const Tree expected = parse_in_arena("map: flow\nyes: it is\n");
+    const Tree expected = parse_in_arena("{map: flow, yes: it is}");
     _c4dbg_tree("expected", expected);
     _c4dbg_tree("actual", dst_map_flow);
     test_compare(dst_map_flow, expected);
@@ -1994,7 +1992,7 @@ TEST_F(ParseToMapFlowTest, map_flow__to__map_flow__new_child)
 {
     NodeRef dst = dst_map_flow.rootref().append_child({KEY, "dst"});
     parse_in_arena(to_csubstr(map_flow), dst);
-    const Tree expected = parse_in_arena("dst:\n  map: flow\n  yes: it is\n");
+    const Tree expected = parse_in_arena("{dst: {map: flow, yes: it is}}");
     _c4dbg_tree("expected", expected);
     _c4dbg_tree("actual", dst_map_flow);
     test_compare(dst_map_flow, expected);

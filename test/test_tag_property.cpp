@@ -812,14 +812,14 @@ TEST(tags, parsing)
 TEST(tags, setting)
 {
     Tree t;
-    size_t rid = t.root_id();
+    id_type rid = t.root_id();
     t.to_map(rid);
     t.set_val_tag(rid, "!valtag");
     EXPECT_EQ(t.val_tag(rid), "!valtag");
 
     // a keymap
     {
-        size_t child = t.append_child(rid);
+        id_type child = t.append_child(rid);
         t.to_seq(child, "key2");
         t.set_key_tag(child, "!keytag");
         t.set_val_tag(child, "!valtag2");
@@ -832,7 +832,7 @@ TEST(tags, setting)
 
     // a keyseq
     {
-        size_t child = t.append_child(rid);
+        id_type child = t.append_child(rid);
         t.to_seq(child, "key2");
         t.set_key_tag(child, "!keytag");
         t.set_val_tag(child, "!valtag2");
@@ -845,7 +845,7 @@ TEST(tags, setting)
 
     // a keyval
     {
-        size_t child = t.append_child(rid);
+        id_type child = t.append_child(rid);
         t.to_keyval(child, "key", "val");
         t.set_key_tag(child, "!keytag");
         t.set_val_tag(child, "!valtag");
@@ -859,9 +859,9 @@ TEST(tags, setting)
 
     // a val
     {
-        size_t seqid = t[1].id();
+        id_type seqid = t[1].id();
         ASSERT_TRUE(t.is_seq(seqid));
-        size_t child = t.append_child(seqid);
+        id_type child = t.append_child(seqid);
         t.to_val(child, "val");
         t.set_val_tag(child, "!valtag");
         EXPECT_FALSE(t.has_key(child));
@@ -874,17 +874,17 @@ TEST(tags, setting)
 TEST(tags, errors)
 {
     Tree t = parse_in_arena("{key: val, keymap: {}, keyseq: [val]}");
-    size_t keyval = t["keyval"].id();
-    size_t keymap = t["keymap"].id();
-    size_t keyseq = t["keyseq"].id();
-    size_t val = t["keyseq"][0].id();
-    size_t empty_keyval = t.append_child(keymap);
-    size_t empty_val = t.append_child(keyseq);
+    id_type keyval = t["keyval"].id();
+    id_type keymap = t["keymap"].id();
+    id_type keyseq = t["keyseq"].id();
+    id_type val = t["keyseq"][0].id();
+    id_type empty_keyval = t.append_child(keymap);
+    id_type empty_val = t.append_child(keyseq);
 
-    ASSERT_NE(keyval, (size_t)npos);
-    ASSERT_NE(keymap, (size_t)npos);
-    ASSERT_NE(keyseq, (size_t)npos);
-    ASSERT_NE(val, (size_t)npos);
+    ASSERT_NE(keyval, (id_type)npos);
+    ASSERT_NE(keymap, (id_type)npos);
+    ASSERT_NE(keyseq, (id_type)npos);
+    ASSERT_NE(val, (id_type)npos);
 
     // cannot get key tag in a node that does not have a key tag
     EXPECT_FALSE(t.has_key_tag(empty_keyval));
@@ -955,14 +955,14 @@ key: val
 keymap: {}
 keyseq: [val]
 )");
-    size_t keyval = t["keyval"].id();
-    size_t keymap = t["keymap"].id();
-    size_t keyseq = t["keyseq"].id();
-    size_t val = t["keyseq"][0].id();
-    ASSERT_NE(keyval, (size_t)npos);
-    ASSERT_NE(keymap, (size_t)npos);
-    ASSERT_NE(keyseq, (size_t)npos);
-    ASSERT_NE(val, (size_t)npos);
+    id_type keyval = t["keyval"].id();
+    id_type keymap = t["keymap"].id();
+    id_type keyseq = t["keyseq"].id();
+    id_type val = t["keyseq"][0].id();
+    ASSERT_NE(keyval, (id_type)npos);
+    ASSERT_NE(keymap, (id_type)npos);
+    ASSERT_NE(keyseq, (id_type)npos);
+    ASSERT_NE(val, (id_type)npos);
 
     // without leading mark
     t.set_key_tag(keyseq, "keytag");

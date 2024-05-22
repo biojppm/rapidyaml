@@ -13,25 +13,26 @@ namespace c4 {
 namespace yml {
 
 C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
+C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
 
 namespace detail {
 
-template<size_t N>
+template<id_type N>
 using istack = stack<int, N>;
 using ip = int const*;
 
-template<size_t N>
+template<id_type N>
 void to_large(istack<N> *s)
 {
-    size_t sz = 3u * N;
+    id_type sz = 3u * N;
     s->reserve(sz);
     EXPECT_NE(s->m_stack, s->m_buf);
 }
 
-template<size_t N>
+template<id_type N>
 void fill_to_large(istack<N> *s)
 {
-    size_t sz = 3u * N;
+    id_type sz = 3u * N;
     s->reserve(sz);
     for(int i = 0, e = (int)sz; i < e; ++i)
         s->push(i);
@@ -43,18 +44,18 @@ void fill_to_large(istack<N> *s)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-template<size_t N>
+template<id_type N>
 void test_stack_small_vs_large()
 {
     istack<N> s;
-    for(size_t i = 0; i < N; ++i)
+    for(id_type i = 0; i < N; ++i)
     {
         s.push(static_cast<int>(i));
         EXPECT_EQ(s.size(), i+1);
     }
     EXPECT_EQ(s.size(), N);
     EXPECT_EQ(s.m_stack, s.m_buf);
-    for(size_t i = 0; i < N; ++i)
+    for(id_type i = 0; i < N; ++i)
     {
         EXPECT_EQ(s.top(N-1-i), static_cast<int>(i));
     }
@@ -63,7 +64,7 @@ void test_stack_small_vs_large()
     EXPECT_EQ(s.top(), static_cast<int>(N));
     EXPECT_EQ(s.pop(), static_cast<int>(N));
     EXPECT_NE(s.m_stack, s.m_buf);
-    for(size_t i = 0; i < N; ++i)
+    for(id_type i = 0; i < N; ++i)
     {
         EXPECT_EQ(s.top(N-1-i), static_cast<int>(i));
     }
@@ -82,13 +83,13 @@ TEST(stack, small_vs_large)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-template<size_t N>
+template<id_type N>
 void test_copy_ctor()
 {
     istack<N> src;
 
     // small
-    for(size_t i = 0; i < N; ++i)
+    for(id_type i = 0; i < N; ++i)
     {
         src.push((int)i);
     }
@@ -103,7 +104,7 @@ void test_copy_ctor()
     }
 
     // large
-    for(size_t i = 0; i < 2*N; ++i)
+    for(id_type i = 0; i < 2*N; ++i)
     {
         src.push((int)i); // large
     }
@@ -131,34 +132,34 @@ TEST(stack, copy_ctor)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-template<size_t N>
+template<id_type N>
 void test_move_ctor()
 {
     istack<N> src;
 
     // small
-    for(size_t i = 0; i < N; ++i)
+    for(id_type i = 0; i < N; ++i)
     {
         src.push((int)i);
     }
     EXPECT_EQ(src.m_stack, src.m_buf);
     ip b = src.begin();
-    size_t sz = src.size();
+    id_type sz = src.size();
     {
         istack<N> dst(std::move(src));
         EXPECT_EQ(dst.size(), sz);
         EXPECT_EQ(dst.m_stack, dst.m_buf);
         EXPECT_NE(dst.m_stack, b);
-        EXPECT_EQ(src.size(), size_t(0));
+        EXPECT_EQ(src.size(), id_type(0));
         EXPECT_EQ((ip)src.begin(), src.m_buf);
         EXPECT_NE((ip)dst.begin(), b);
     }
-    EXPECT_EQ(src.size(), size_t(0));
+    EXPECT_EQ(src.size(), id_type(0));
     EXPECT_EQ(src.capacity(), N);
     EXPECT_EQ(src.m_stack, src.m_buf);
 
     // redo
-    for(size_t i = 0; i < N; ++i)
+    for(id_type i = 0; i < N; ++i)
     {
         src.push((int)i);
     }
@@ -166,7 +167,7 @@ void test_move_ctor()
     EXPECT_EQ(src.capacity(), N);
     EXPECT_EQ(src.m_stack, src.m_buf);
     // large
-    for(size_t i = 0; i < 2*N; ++i)
+    for(id_type i = 0; i < 2*N; ++i)
     {
         src.push((int)i); // large
     }
@@ -180,7 +181,7 @@ void test_move_ctor()
         EXPECT_NE(dst.m_stack, dst.m_buf);
         EXPECT_EQ(dst.m_stack, b);
         EXPECT_EQ(src.capacity(), N);
-        EXPECT_EQ(src.size(), size_t(0));
+        EXPECT_EQ(src.size(), id_type(0));
         EXPECT_EQ((ip)src.begin(), src.m_buf);
         EXPECT_EQ((ip)dst.begin(), b);
     }
@@ -198,19 +199,19 @@ TEST(stack, move_ctor)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-template<size_t N>
+template<id_type N>
 void test_copy_assign()
 {
     istack<N> dst;
     istack<N> srcs; // small
     istack<N> srcl; // large
 
-    for(size_t i = 0; i < N; ++i)
+    for(id_type i = 0; i < N; ++i)
     {
         srcs.push((int)i); // small
         srcl.push((int)i); // large
     }
-    for(size_t i = 0; i < 2*N; ++i)
+    for(id_type i = 0; i < 2*N; ++i)
     {
         srcl.push((int)i); // large
     }
@@ -257,17 +258,17 @@ TEST(stack, copy_assign)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-template<size_t N>
+template<id_type N>
 void test_move_assign()
 {
     istack<N> srcs, srcl, dst;
 
-    for(size_t i = 0; i < N; ++i)
+    for(id_type i = 0; i < N; ++i)
     {
         srcs.push((int)i); // small
         srcl.push((int)i); // large
     }
-    for(size_t i = 0; i < 2*N; ++i)
+    for(id_type i = 0; i < 2*N; ++i)
     {
         srcl.push((int)i); // large
     }
@@ -275,7 +276,7 @@ void test_move_assign()
     EXPECT_NE(srcl.m_stack, srcl.m_buf);
 
     ip bs = srcs.begin()/*, bl = srcl.begin()*/;
-    size_t szs = srcs.size(), szl = srcl.size();
+    id_type szs = srcs.size(), szl = srcl.size();
 
     for(int i = 0; i < 10; ++i)
     {
@@ -287,7 +288,7 @@ void test_move_assign()
         dst = std::move(srcs);
         EXPECT_TRUE(srcs.empty());
         EXPECT_FALSE(dst.empty());
-        EXPECT_EQ(srcs.size(), size_t(0));
+        EXPECT_EQ(srcs.size(), id_type(0));
         EXPECT_EQ(srcs.capacity(), N);
         EXPECT_EQ(dst.size(), szs);
         EXPECT_EQ(dst.m_stack, dst.m_buf);
@@ -309,7 +310,7 @@ void test_move_assign()
         dst = std::move(srcl);
         EXPECT_TRUE(srcl.empty());
         EXPECT_FALSE(dst.empty());
-        EXPECT_EQ(srcl.size(), size_t(0));
+        EXPECT_EQ(srcl.size(), id_type(0));
         EXPECT_EQ(srcl.capacity(), N);
         EXPECT_EQ(dst.size(), szl);
         EXPECT_NE(dst.m_stack, dst.m_buf);
@@ -332,7 +333,7 @@ TEST(stack, move_assign)
 
 //-----------------------------------------------------------------------------
 
-template<size_t N>
+template<id_type N>
 void test_callbacks_default_ctor()
 {
     CallbacksTester td;
@@ -349,7 +350,7 @@ TEST(stack, callbacks_default_ctor)
     test_callbacks_default_ctor<128>();
 }
 
-template<size_t N>
+template<id_type N>
 void test_callbacks_ctor()
 {
     CallbacksTester td;
@@ -370,7 +371,7 @@ TEST(stack, callbacks_ctor)
 //-----------------------------------------------------------------------------
 // copy ctor
 
-template<size_t N>
+template<id_type N>
 void test_callbacks_copy_ctor_small()
 {
     CallbacksTester ts("src");
@@ -397,7 +398,7 @@ void test_callbacks_copy_ctor_small()
     }
 }
 
-template<size_t N>
+template<id_type N>
 void test_callbacks_copy_ctor_large_unfilled()
 {
     CallbacksTester ts("src");
@@ -422,7 +423,7 @@ void test_callbacks_copy_ctor_large_unfilled()
     }
 }
 
-template<size_t N>
+template<id_type N>
 void test_callbacks_copy_ctor_large_filled()
 {
     CallbacksTester ts("src");
@@ -475,7 +476,7 @@ TEST(stack, callbacks_copy_ctor_large_filled)
 //-----------------------------------------------------------------------------
 // copy ctor
 
-template<size_t N>
+template<id_type N>
 void test_callbacks_move_ctor_small()
 {
     CallbacksTester ts;
@@ -493,7 +494,7 @@ void test_callbacks_move_ctor_small()
     EXPECT_EQ(ts.num_allocs, nbefore);
 }
 
-template<size_t N>
+template<id_type N>
 void test_callbacks_move_ctor_large_unfilled()
 {
     CallbacksTester ts;
@@ -512,7 +513,7 @@ void test_callbacks_move_ctor_large_unfilled()
     EXPECT_EQ(ts.num_allocs, nbefore);
 }
 
-template<size_t N>
+template<id_type N>
 void test_callbacks_move_ctor_large_filled()
 {
     CallbacksTester ts;
@@ -559,7 +560,7 @@ TEST(stack, callbacks_move_ctor_large_filled)
 //-----------------------------------------------------------------------------
 // copy assign
 
-template<size_t N>
+template<id_type N>
 void test_callbacks_copy_assign_to_empty()
 {
     CallbacksTester ts("src");
@@ -590,7 +591,7 @@ TEST(stack, callbacks_copy_assign_to_empty)
     test_callbacks_copy_assign_to_empty<128>();
 }
 
-template<size_t N>
+template<id_type N>
 void test_callbacks_copy_assign_to_nonempty()
 {
     CallbacksTester ts("src");
@@ -681,7 +682,7 @@ TEST(stack, callbacks_move_assign_to_empty)
     test_callbacks_move_assign_to_empty<128>();
 }
 
-template<size_t N>
+template<id_type N>
 void test_callbacks_move_assign_to_nonempty()
 {
     CallbacksTester ts("src");
@@ -732,7 +733,7 @@ TEST(stack, callbacks_move_assign_to_nonempty)
 
 //-----------------------------------------------------------------------------
 
-template<size_t N>
+template<id_type N>
 void test_reserve()
 {
     {
@@ -777,7 +778,7 @@ TEST(stack, reserve_capacity)
 }
 
 
-template<size_t N, int NumTimes>
+template<id_type N, int NumTimes>
 void grow_to_large__push()
 {
     istack<N> s;
@@ -792,7 +793,7 @@ void grow_to_large__push()
     }
     for(int i = 0; i < NumTimes * ni; ++i)
     {
-        EXPECT_EQ(s.bottom((size_t)i), i);
+        EXPECT_EQ(s.bottom((id_type)i), i);
     }
 }
 
@@ -803,7 +804,7 @@ TEST(stack, push_to_large_twice)
     grow_to_large__push<32, 8>();
 }
 
-template<size_t N, int NumTimes>
+template<id_type N, int NumTimes>
 void grow_to_large__push_top()
 {
     istack<N> s;
@@ -821,7 +822,7 @@ void grow_to_large__push_top()
     }
     for(int i = 0; i < NumTimes * ni; ++i)
     {
-        EXPECT_EQ(s.bottom((size_t)i), i);
+        EXPECT_EQ(s.bottom((id_type)i), i);
     }
 }
 

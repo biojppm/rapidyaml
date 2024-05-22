@@ -346,13 +346,13 @@ public:
     /** @{ */
 
 
-    C4_ALWAYS_INLINE void set_key_scalar_plain(csubstr scalar)
+    C4_ALWAYS_INLINE void set_key_scalar_plain(csubstr scalar) noexcept
     {
         _c4dbgpf("node[{}]: set key scalar plain: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
         m_curr->tr_data->m_key.scalar = scalar;
         _enable_(KEY|KEY_PLAIN);
     }
-    C4_ALWAYS_INLINE void set_val_scalar_plain(csubstr scalar)
+    C4_ALWAYS_INLINE void set_val_scalar_plain(csubstr scalar) noexcept
     {
         _c4dbgpf("node[{}]: set val scalar plain: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
         m_curr->tr_data->m_val.scalar = scalar;
@@ -360,13 +360,13 @@ public:
     }
 
 
-    C4_ALWAYS_INLINE void set_key_scalar_dquoted(csubstr scalar)
+    C4_ALWAYS_INLINE void set_key_scalar_dquoted(csubstr scalar) noexcept
     {
         _c4dbgpf("node[{}]: set key scalar dquot: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
         m_curr->tr_data->m_key.scalar = scalar;
         _enable_(KEY|KEY_DQUO);
     }
-    C4_ALWAYS_INLINE void set_val_scalar_dquoted(csubstr scalar)
+    C4_ALWAYS_INLINE void set_val_scalar_dquoted(csubstr scalar) noexcept
     {
         _c4dbgpf("node[{}]: set val scalar dquot: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
         m_curr->tr_data->m_val.scalar = scalar;
@@ -374,13 +374,13 @@ public:
     }
 
 
-    C4_ALWAYS_INLINE void set_key_scalar_squoted(csubstr scalar)
+    C4_ALWAYS_INLINE void set_key_scalar_squoted(csubstr scalar) noexcept
     {
         _c4dbgpf("node[{}]: set key scalar squot: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
         m_curr->tr_data->m_key.scalar = scalar;
         _enable_(KEY|KEY_SQUO);
     }
-    C4_ALWAYS_INLINE void set_val_scalar_squoted(csubstr scalar)
+    C4_ALWAYS_INLINE void set_val_scalar_squoted(csubstr scalar) noexcept
     {
         _c4dbgpf("node[{}]: set val scalar squot: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
         m_curr->tr_data->m_val.scalar = scalar;
@@ -388,13 +388,13 @@ public:
     }
 
 
-    C4_ALWAYS_INLINE void set_key_scalar_literal(csubstr scalar)
+    C4_ALWAYS_INLINE void set_key_scalar_literal(csubstr scalar) noexcept
     {
         _c4dbgpf("node[{}]: set key scalar literal: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
         m_curr->tr_data->m_key.scalar = scalar;
         _enable_(KEY|KEY_LITERAL);
     }
-    C4_ALWAYS_INLINE void set_val_scalar_literal(csubstr scalar)
+    C4_ALWAYS_INLINE void set_val_scalar_literal(csubstr scalar) noexcept
     {
         _c4dbgpf("node[{}]: set val scalar literal: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
         m_curr->tr_data->m_val.scalar = scalar;
@@ -402,13 +402,13 @@ public:
     }
 
 
-    C4_ALWAYS_INLINE void set_key_scalar_folded(csubstr scalar)
+    C4_ALWAYS_INLINE void set_key_scalar_folded(csubstr scalar) noexcept
     {
         _c4dbgpf("node[{}]: set key scalar folded: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
         m_curr->tr_data->m_key.scalar = scalar;
         _enable_(KEY|KEY_FOLDED);
     }
-    C4_ALWAYS_INLINE void set_val_scalar_folded(csubstr scalar)
+    C4_ALWAYS_INLINE void set_val_scalar_folded(csubstr scalar) noexcept
     {
         _c4dbgpf("node[{}]: set val scalar folded: [{}]~~~{}~~~ ({})", m_curr->node_id, scalar.len, scalar, reinterpret_cast<void const*>(scalar.str));
         m_curr->tr_data->m_val.scalar = scalar;
@@ -416,11 +416,11 @@ public:
     }
 
 
-    C4_ALWAYS_INLINE void mark_key_scalar_unfiltered()
+    C4_ALWAYS_INLINE void mark_key_scalar_unfiltered() noexcept
     {
         _enable_(KEY_UNFILT);
     }
-    C4_ALWAYS_INLINE void mark_val_scalar_unfiltered()
+    C4_ALWAYS_INLINE void mark_val_scalar_unfiltered() noexcept
     {
         _enable_(VAL_UNFILT);
     }
@@ -432,33 +432,33 @@ public:
     /** @name YAML anchor/reference events */
     /** @{ */
 
-    void set_key_anchor(csubstr anchor)
+    void set_key_anchor(csubstr anchor) RYML_NOEXCEPT
     {
         _c4dbgpf("node[{}]: set key anchor: [{}]~~~{}~~~", m_curr->node_id, anchor.len, anchor);
-        RYML_ASSERT(!anchor.begins_with('&'));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, !anchor.begins_with('&'));
         _enable_(KEYANCH);
         m_curr->tr_data->m_key.anchor = anchor;
     }
-    void set_val_anchor(csubstr anchor)
+    void set_val_anchor(csubstr anchor) RYML_NOEXCEPT
     {
         _c4dbgpf("node[{}]: set val anchor: [{}]~~~{}~~~", m_curr->node_id, anchor.len, anchor);
-        RYML_ASSERT(!anchor.begins_with('&'));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, !anchor.begins_with('&'));
         _enable_(VALANCH);
         m_curr->tr_data->m_val.anchor = anchor;
     }
 
-    void set_key_ref(csubstr ref)
+    void set_key_ref(csubstr ref) RYML_NOEXCEPT
     {
         _c4dbgpf("node[{}]: set key ref: [{}]~~~{}~~~", m_curr->node_id, ref.len, ref);
-        RYML_ASSERT(ref.begins_with('*'));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, ref.begins_with('*'));
         _enable_(KEY|KEYREF);
         m_curr->tr_data->m_key.anchor = ref.sub(1);
         m_curr->tr_data->m_key.scalar = ref;
     }
-    void set_val_ref(csubstr ref)
+    void set_val_ref(csubstr ref) RYML_NOEXCEPT
     {
         _c4dbgpf("node[{}]: set val ref: [{}]~~~{}~~~", m_curr->node_id, ref.len, ref);
-        RYML_ASSERT(ref.begins_with('*'));
+        _RYML_CB_ASSERT(m_stack.m_callbacks, ref.begins_with('*'));
         _enable_(VAL|VALREF);
         m_curr->tr_data->m_val.anchor = ref.sub(1);
         m_curr->tr_data->m_val.scalar = ref;
@@ -471,13 +471,13 @@ public:
     /** @name YAML tag events */
     /** @{ */
 
-    void set_key_tag(csubstr tag)
+    void set_key_tag(csubstr tag) noexcept
     {
         _c4dbgpf("node[{}]: set key tag: [{}]~~~{}~~~", m_curr->node_id, tag.len, tag);
         _enable_(KEYTAG);
         m_curr->tr_data->m_key.tag = tag;
     }
-    void set_val_tag(csubstr tag)
+    void set_val_tag(csubstr tag) noexcept
     {
         _c4dbgpf("node[{}]: set val tag: [{}]~~~{}~~~", m_curr->node_id, tag.len, tag);
         _enable_(VALTAG);

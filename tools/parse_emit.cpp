@@ -15,6 +15,8 @@ using namespace c4;
 
 
 C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
+C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
+
 
 //-----------------------------------------------------------------------------
 
@@ -89,13 +91,13 @@ int main(int argc, const char *argv[])
         }
         {
             TS(tree_reserve);
-            size_t nlines;
+            yml::id_type cap;
             {
-                TS(count_lines);
-                nlines = to_csubstr(contents).count('\n');
+                TS(estimate_capacity);
+                cap = yml::estimate_tree_capacity(to_csubstr(contents));
             }
-            fprintf(stderr, "reserving #lines=%zu\n", nlines);
-            tree.reserve(nlines);
+            fprintf(stderr, "reserving capacity=%zu\n", (size_t)cap);
+            tree.reserve(cap);
         }
         {
             TS(parse_yml);

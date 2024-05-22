@@ -7953,22 +7953,6 @@ void ParseEngine<EventHandler>::parse_in_place_ev(csubstr filename, substr src)
     m_evt_handler->finish_parse();
 }
 
-
-//-----------------------------------------------------------------------------
-
-template<class EventHandler>
-id_type ParseEngine<EventHandler>::estimate_tree_capacity(csubstr src)
-{
-    id_type num_nodes = 1; // root
-    for(size_t i = 0; i < src.len; ++i)
-    {
-        const char c = src.str[i];
-        num_nodes += (c == '\n') || (c == ',') || (c == '[') || (c == '{');
-    }
-    return num_nodes;
-}
-
-
 } // namespace yml
 } // namespace c4
 

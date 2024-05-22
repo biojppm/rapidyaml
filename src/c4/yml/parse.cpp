@@ -147,5 +147,18 @@ RYML_EXPORT C4_NO_INLINE size_t _find_last_newline_and_larger_indentation(csubst
     return npos;
 }
 
+//-----------------------------------------------------------------------------
+
+RYML_EXPORT id_type estimate_tree_capacity(csubstr src)
+{
+    id_type num_nodes = 1; // root
+    for(size_t i = 0; i < src.len; ++i)
+    {
+        const char c = src.str[i];
+        num_nodes += (c == '\n') || (c == ',') || (c == '[') || (c == '{');
+    }
+    return num_nodes;
+}
+
 } // namespace yml
 } // namespace c4
