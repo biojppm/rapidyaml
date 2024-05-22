@@ -116,9 +116,9 @@ public:
     /** @name parse events
      * @{ */
 
-    void start_parse(const char* filename)
+    void start_parse(const char* filename, detail::pfn_relocate_arena relocate_arena, void *relocate_arena_data)
     {
-        m_curr->start_parse(filename, m_curr->node_id);
+        this->_stack_start_parse(filename, relocate_arena, relocate_arena_data);
     }
 
     void finish_parse()

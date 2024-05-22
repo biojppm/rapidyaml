@@ -25,6 +25,10 @@ namespace yml {
 /** @addtogroup doc_event_handlers
  * @{ */
 
+namespace detail {
+using pfn_relocate_arena = void (*)(void*, csubstr prev_arena, substr next_arena);
+} // detail
+
 /** Use this class a base of implementations of event handler to
  * simplify the stack logic. */
 template<class HandlerImpl, class HandlerState>
@@ -34,17 +38,36 @@ struct EventHandlerStack
                   "ParserState must be a base of HandlerState");
 
     using state = HandlerState;
+    using pfn_relocate_arena = detail::pfn_relocate_arena;
 
 public:
 
     detail::stack<state> m_stack;
     state *C4_RESTRICT   m_curr;    ///< current stack level: top of the stack. cached here for easier access.
     state *C4_RESTRICT   m_parent;  ///< parent of the current stack level.
+    pfn_relocate_arena   m_relocate_arena; ///< callback when the arena gets relocated
+    void *C4_RESTRICT    m_relocate_arena_data;
 
 protected:
 
-    EventHandlerStack() : m_stack(), m_curr(), m_parent() {}
-    EventHandlerStack(Callbacks const& cb) : m_stack(cb), m_curr(), m_parent() {}
+    EventHandlerStack() : m_stack(), m_curr(), m_parent(), m_relocate_arena(), m_relocate_arena_data() {}
+    EventHandlerStack(Callbacks const& cb) : m_stack(cb), m_curr(), m_parent(), m_relocate_arena(), m_relocate_arena_data() {}
+
+protected:
+
+    void _stack_start_parse(const char *filename, pfn_relocate_arena relocate_arena, void *relocate_arena_data)
+    {
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_curr != nullptr);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, relocate_arena != nullptr);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, relocate_arena_data != nullptr);
+        m_curr->start_parse(filename, m_curr->node_id);
+        m_relocate_arena = relocate_arena;
+        m_relocate_arena_data = relocate_arena_data;
+    }
+
+    void _stack_finish_parse()
+    {
+    }
 
 protected:
 
@@ -89,28 +112,6 @@ protected:
         #endif
     }
 
-    substr _stack_relocate_to_new_arena(csubstr s, csubstr prev, substr curr)
-    {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, prev.is_super(s));
-        auto pos = s.str - prev.str;
-        substr out = {curr.str + pos, s.len};
-        _RYML_CB_ASSERT(m_stack.m_callbacks, curr.is_super(out));
-        return out;
-    }
-
-    void _stack_relocate_to_new_arena(csubstr prev, substr curr)
-    {
-        for(state &st : m_stack)
-        {
-            if(st.line_contents.rem.is_sub(prev))
-                st.line_contents.rem = _stack_relocate_to_new_arena(st.line_contents.rem, prev, curr);
-            if(st.line_contents.full.is_sub(prev))
-                st.line_contents.full = _stack_relocate_to_new_arena(st.line_contents.full, prev, curr);
-            if(st.line_contents.stripped.is_sub(prev))
-                st.line_contents.stripped = _stack_relocate_to_new_arena(st.line_contents.stripped, prev, curr);
-        }
-    }
-
 protected:
 
     // undefined at the end
@@ -126,6 +127,33 @@ protected:
     {
         const bool is_root = (m_stack.size() == 1u);
         return !is_root && _has_any_(DOC);
+    }
+
+protected:
+
+    void _stack_relocate_to_new_arena(csubstr prev, substr curr)
+    {
+        for(state &st : m_stack)
+        {
+            if(st.line_contents.rem.is_sub(prev))
+                st.line_contents.rem = _stack_relocate_to_new_arena(st.line_contents.rem, prev, curr);
+            if(st.line_contents.full.is_sub(prev))
+                st.line_contents.full = _stack_relocate_to_new_arena(st.line_contents.full, prev, curr);
+            if(st.line_contents.stripped.is_sub(prev))
+                st.line_contents.stripped = _stack_relocate_to_new_arena(st.line_contents.stripped, prev, curr);
+        }
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_relocate_arena != nullptr);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_relocate_arena_data != nullptr);
+        m_relocate_arena(m_relocate_arena_data, prev, curr);
+    }
+
+    substr _stack_relocate_to_new_arena(csubstr s, csubstr prev, substr curr)
+    {
+        _RYML_CB_ASSERT(m_stack.m_callbacks, prev.is_super(s));
+        auto pos = s.str - prev.str;
+        substr out = {curr.str + pos, s.len};
+        _RYML_CB_ASSERT(m_stack.m_callbacks, curr.is_super(out));
+        return out;
     }
 
 public:
