@@ -442,6 +442,7 @@ inline OStream& operator<< (OStream& s, as_yaml const& y)
  * @param id the node where to start emitting.
  * @param opts emit options.
  * @param buf the output buffer.
+ * @param opts emit options.
  * @param error_on_excess Raise an error if the space in the buffer is insufficient.
  * @return a substr trimmed to the result in the output buffer. If the buffer is
  * insufficient (when error_on_excess is false), the string pointer of the
@@ -462,6 +463,7 @@ inline substr emit_yaml(Tree const& t, id_type id, substr buf, bool error_on_exc
  * @param id the node where to start emitting.
  * @param opts emit options.
  * @param buf the output buffer.
+ * @param opts emit options.
  * @param error_on_excess Raise an error if the space in the buffer is insufficient.
  * @return a substr trimmed to the result in the output buffer. If the buffer is
  * insufficient (when error_on_excess is false), the string pointer of the

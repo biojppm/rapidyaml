@@ -364,6 +364,33 @@ void ParseEngine<EventHandler>::_reset()
     m_was_inside_qmrk = false;
 }
 
+
+//-----------------------------------------------------------------------------
+
+template<class EventHandler>
+void ParseEngine<EventHandler>::_relocate_arena(csubstr prev_arena, substr next_arena)
+{
+    #define _ryml_relocate(s)                                   \
+    if(s.is_sub(prev_arena))                                    \
+    {                                                           \
+        s.str = next_arena.str + (s.str - prev_arena.str);      \
+    }
+    _ryml_relocate(m_buf);
+    _ryml_relocate(m_newline_offsets_buf);
+    for(size_t i = 0; i < m_pending_tags.num_entries; ++i)
+        _ryml_relocate(m_pending_tags.annotations[i].str);
+    for(size_t i = 0; i < m_pending_anchors.num_entries; ++i)
+        _ryml_relocate(m_pending_anchors.annotations[i].str);
+    #undef _ryml_relocate
+}
+
+template<class EventHandler>
+void ParseEngine<EventHandler>::_s_relocate_arena(void* data, csubstr prev_arena, substr next_arena)
+{
+    ((ParseEngine*)data)->_relocate_arena(prev_arena, next_arena);
+}
+
+
 //-----------------------------------------------------------------------------
 
 template<class EventHandler>
@@ -7848,7 +7875,7 @@ void ParseEngine<EventHandler>::parse_json_in_place_ev(csubstr filename, substr 
     m_file = filename;
     m_buf = src;
     _reset();
-    m_evt_handler->start_parse(filename.str);
+    m_evt_handler->start_parse(filename.str, &_s_relocate_arena, this);
     m_evt_handler->begin_stream();
     while( ! _finished_file())
     {
@@ -7892,7 +7919,7 @@ void ParseEngine<EventHandler>::parse_in_place_ev(csubstr filename, substr src)
     m_file = filename;
     m_buf = src;
     _reset();
-    m_evt_handler->start_parse(filename.str);
+    m_evt_handler->start_parse(filename.str, &_s_relocate_arena, this);
     m_evt_handler->begin_stream();
     while( ! _finished_file())
     {

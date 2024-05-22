@@ -631,6 +631,9 @@ private:
         return m_evt_handler->m_curr->line_contents.rem.begin() == m_evt_handler->m_curr->line_contents.full.begin();
     }
 
+    void _relocate_arena(csubstr prev_arena, substr next_arena);
+    static void _s_relocate_arena(void*, csubstr prev_arena, substr next_arena);
+
 private:
 
     C4_ALWAYS_INLINE bool has_all(ParserFlag_t f) const noexcept { return (m_evt_handler->m_curr->flags & f) == f; }
