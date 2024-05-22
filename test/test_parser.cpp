@@ -402,7 +402,12 @@ TEST(Parser, alloc_arena)
 {
     Tree tree;
     Parser::handler_type evt_handler = {};
+    int data = 0;
+    auto relocate = [](void*, csubstr prev, substr next_arena){
+        EXPECT_FALSE(prev.overlaps(next_arena));
+    };
     evt_handler.reset(&tree, tree.root_id());
+    evt_handler.start_parse("filename", relocate, &data);
     substr bufa = evt_handler.alloc_arena(64);
     bufa.fill('a');
     csubstr prev = bufa;
