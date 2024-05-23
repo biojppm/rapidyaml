@@ -2742,7 +2742,6 @@ void ParseEngine<EventHandler>::_filter_chomp(FilterProcessor &C4_RESTRICT proc,
             {
                 const char curr = proc.curr();
                 _c4dbgchomp("curr='{}'", _c4prc(curr));
-                _RYML_CB_ASSERT(this->callbacks(), curr == '\n' || curr == '\r');
                 switch(curr)
                 {
                 case '\n':
@@ -2780,6 +2779,9 @@ void ParseEngine<EventHandler>::_filter_chomp(FilterProcessor &C4_RESTRICT proc,
                     }
                 case '\r':
                     proc.skip();
+                    break;
+                default:
+                    _c4err("parse error");
                     break;
                 }
             }
@@ -5663,6 +5665,8 @@ seqblck_start:
         // handle indentation
         //
         _c4dbgpf("seqblck[RNXT]: indref={} indentation={}", m_state->indref, m_state->line_contents.indentation);
+        if(C4_UNLIKELY(!_at_line_begin()))
+            _c4err("parse error");
         if(m_state->indentation_ge())
         {
             _c4dbgpf("seqblck[RNXT]: skip {} from indref", m_state->indref);
@@ -6070,7 +6074,7 @@ mapblck_start:
         else if(first == '?')
         {
             _c4dbgp("mapblck[RKCL]: got '?'. val was empty");
-            _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, m_was_inside_qmrk);
+            _RYML_CB_CHECK(m_evt_handler->m_stack.m_callbacks, m_was_inside_qmrk);
             m_evt_handler->set_val_scalar_plain({});
             m_evt_handler->add_sibling();
             addrem_flags(QMRK, RKCL);
@@ -6082,7 +6086,7 @@ mapblck_start:
             if(m_state->indref == 0 || m_state->line_contents.indentation == 0 || _is_doc_begin_token(rem))
             {
                 _c4dbgp("mapblck[RKCL]: end+start doc");
-                _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, _is_doc_begin_token(rem));
+                _RYML_CB_CHECK(m_evt_handler->m_stack.m_callbacks, _is_doc_begin_token(rem));
                 _start_doc_suddenly();
                 _line_progressed(3);
                 _maybe_skip_whitespace_tokens();
