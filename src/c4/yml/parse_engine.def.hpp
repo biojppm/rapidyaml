@@ -4845,11 +4845,9 @@ seqflow_start:
         else if(first == ']') // this happens on a trailing comma like ", ]"
         {
             _c4dbgp("seqflow[RVAL]: end!");
-            rem_flags(RSEQ);
-            m_evt_handler->end_seq();
             _line_progressed(1);
-            if(!has_all(RSEQ|FLOW))
-                goto seqflow_finish;
+            m_evt_handler->end_seq();
+            goto seqflow_finish;
         }
         else if(first == '*')
         {
