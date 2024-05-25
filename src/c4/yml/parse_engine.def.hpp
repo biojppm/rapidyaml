@@ -2552,8 +2552,10 @@ void ParseEngine<EventHandler>::_filter_dquoted_backslash(FilterProcessor &C4_RE
         uint32_t codepoint_val = {};
         if(C4_UNLIKELY(!read_hex(codepoint, &codepoint_val)))
             _c4err("failed to parse \\u codepoint. scalar pos={}", proc.rpos);
-        size_t numbytes = decode_code_point((uint8_t*)readbuf, sizeof(readbuf), codepoint_val);
-        C4_ASSERT(numbytes <= 4);
+        const size_t numbytes = decode_code_point((uint8_t*)readbuf, sizeof(readbuf), codepoint_val);
+        if(C4_UNLIKELY(numbytes == 0))
+            _c4err("failed to decode code point={}", proc.rpos);
+        _RYML_CB_ASSERT(callbacks(), numbytes <= 4);
         proc.translate_esc_bulk(readbuf, numbytes, /*nread*/5u);
     }
     else if(next == 'U') // UTF32
@@ -2565,8 +2567,10 @@ void ParseEngine<EventHandler>::_filter_dquoted_backslash(FilterProcessor &C4_RE
         uint32_t codepoint_val = {};
         if(C4_UNLIKELY(!read_hex(codepoint, &codepoint_val)))
             _c4err("failed to parse \\U codepoint. scalar pos={}", proc.rpos);
-        size_t numbytes = decode_code_point((uint8_t*)readbuf, sizeof(readbuf), codepoint_val);
-        C4_ASSERT(numbytes <= 4);
+        const size_t numbytes = decode_code_point((uint8_t*)readbuf, sizeof(readbuf), codepoint_val);
+        if(C4_UNLIKELY(numbytes == 0))
+            _c4err("failed to decode code point={}", proc.rpos);
+        _RYML_CB_ASSERT(callbacks(), numbytes <= 4);
         proc.translate_esc_bulk(readbuf, numbytes, /*nread*/9u);
     }
     // https://yaml.org/spec/1.2.2/#rule-c-ns-esc-char
