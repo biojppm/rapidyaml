@@ -42,8 +42,9 @@ C4_NO_INLINE void test_new_parser_str_from_events(std::string const& expected_ev
     handler.reset();
     EventProducerFn<EventHandlerYamlStd> event_producer;
     event_producer(handler);
-    _c4dbgpf("~~~\n{}~~~\n", sink.result);
-    EXPECT_EQ(sink.result, expected_events);
+    csubstr result = sink;
+    _c4dbgpf("~~~\n{}~~~\n", result);
+    EXPECT_EQ(std::string(result.str, result.len), expected_events);
 }
 
 template<template<class> class EventProducerFn>
@@ -214,7 +215,7 @@ inline void _print_handler_info(EventHandlerYamlStd const& ps, csubstr stmt)
     };
     for(id_type i = 0; i < ps.m_stack.size(); ++i)
     {
-        auto const& str = ps._buf_(i).get();
+        csubstr const& str = ps._buf_(i);
         indent(i);
         _dbg_printf("[{}]\n", i);
         for(csubstr line : str.split('\n'))

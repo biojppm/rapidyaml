@@ -15,7 +15,9 @@
 #endif
 #endif
 
-#include <vector>
+#ifndef _C4_YML_EXTRA_STRING_HPP_
+#include "./string.hpp"
+#endif
 
 C4_SUPPRESS_WARNING_GCC_CLANG_PUSH
 C4_SUPPRESS_WARNING_GCC_CLANG("-Wold-style-cast")
@@ -27,6 +29,9 @@ namespace yml {
 
 /** @addtogroup doc_event_handlers
  * @{ */
+
+void append_escaped(extra::string *s, csubstr val);
+
 
 /** The stack state needed specifically by @ref EventHandlerYamlStd */
 struct EventHandlerYamlStdState : public ParserState
@@ -53,19 +58,7 @@ struct EventHandlerYamlStd : public EventHandlerStack<EventHandlerYamlStd, Event
     // our internal state must inherit from parser state
     using state = EventHandlerYamlStdState;
 
-    struct EventSink
-    {
-        std::string result;
-        void reset() noexcept { result.clear(); }
-        void append(csubstr s) noexcept { result.append(s.str, s.len); }
-        void append(char c) noexcept { result += c; }
-        void insert(csubstr s, size_t pos) noexcept { result.insert(pos, s.str, s.len); }
-        void insert(char c, size_t pos) noexcept { result.insert(pos, 1, c); }
-        csubstr get() const { return csubstr(&result[0], result.size()); }
-        substr get() { return substr(&result[0], result.size()); }
-        size_t find_last(csubstr s) const { return result.rfind(s.str, std::string::npos, s.len); }
-        void append_escaped(csubstr val);
-    };
+    using EventSink = extra::string;
 
     /** @} */
 
@@ -73,11 +66,11 @@ public:
 
     /** @cond dev */
     EventSink *C4_RESTRICT m_sink;
-    std::vector<EventSink> m_val_buffers;
-    char m_key_tag_buf[256];
-    char m_val_tag_buf[256];
+    extra::string_vector m_val_buffers;
+    extra::string m_key_tag_buf;
+    extra::string m_val_tag_buf;
     TagDirective m_tag_directives[RYML_MAX_TAG_DIRECTIVES];
-    std::string m_arena;
+    extra::string m_arena;
 
     // undefined at the end
     #define _enable_(bits) _enable__<bits>()
@@ -90,9 +83,9 @@ public:
     /** @name construction and resetting
      * @{ */
 
-    EventHandlerYamlStd() : EventHandlerStack(), m_sink(), m_val_buffers(), m_tag_directives(), m_arena() {}
-    EventHandlerYamlStd(Callbacks const& cb) : EventHandlerStack(cb), m_sink(), m_val_buffers(), m_tag_directives(), m_arena() {}
-    EventHandlerYamlStd(EventSink *sink, Callbacks const& cb) : EventHandlerStack(cb), m_sink(sink), m_val_buffers(), m_tag_directives(), m_arena()
+    EventHandlerYamlStd() : EventHandlerStack(), m_sink(), m_val_buffers(), m_key_tag_buf(), m_val_tag_buf(), m_tag_directives(), m_arena() {}
+    EventHandlerYamlStd(Callbacks const& cb) : EventHandlerStack(cb), m_sink(), m_val_buffers(), m_key_tag_buf(), m_val_tag_buf(), m_tag_directives(), m_arena() {}
+    EventHandlerYamlStd(EventSink *sink, Callbacks const& cb) : EventHandlerStack(cb), m_sink(sink), m_val_buffers(), m_key_tag_buf(), m_val_tag_buf(), m_tag_directives(), m_arena()
     {
         reset();
     }
@@ -107,6 +100,8 @@ public:
         m_val_buffers.resize((size_t)m_stack.size());
         m_arena.clear();
         m_arena.reserve(1024);
+        m_key_tag_buf.resize(256);
+        m_val_tag_buf.resize(256);
     }
 
     /** @} */
@@ -359,7 +354,7 @@ public:
     void actually_val_is_first_key_of_new_map_block()
     {
         EventSink &sink = _buf_();
-        substr full = sink.get();(void)full;
+        substr full = sink;(void)full;
         // interpolate +MAP\n after the last +DOC\n
         _RYML_CB_ASSERT(m_stack.m_callbacks, full.len);
         _RYML_CB_ASSERT(m_stack.m_callbacks, !full.count('\r'));
@@ -531,13 +526,13 @@ public:
     {
         _c4dbgpf("node[{}]: set key tag: [{}]~~~{}~~~", m_curr->node_id, tag.len, tag);
         _enable_(KEYTAG);
-        m_curr->ev_data.m_key.tag = _transform_directive(tag, m_key_tag_buf);
+        m_curr->ev_data.m_key.tag = _transform_directive(tag, &m_key_tag_buf);
     }
     void set_val_tag(csubstr tag)
     {
         _c4dbgpf("node[{}]: set val tag: [{}]~~~{}~~~", m_curr->node_id, tag.len, tag);
         _enable_(VALTAG);
-        m_curr->ev_data.m_val.tag = _transform_directive(tag, m_val_tag_buf);
+        m_curr->ev_data.m_val.tag = _transform_directive(tag, &m_val_tag_buf);
     }
 
     /** @} */
@@ -568,7 +563,7 @@ public:
     substr alloc_arena(size_t len)
     {
         const size_t sz = m_arena.size();
-        csubstr prev = to_csubstr(m_arena);
+        csubstr prev = m_arena;
         m_arena.resize(sz + len);
         substr out = to_substr(m_arena).sub(sz);
         substr curr = to_substr(m_arena);
@@ -579,7 +574,7 @@ public:
 
     substr alloc_arena(size_t len, substr *relocated)
     {
-        csubstr prev = to_csubstr(m_arena);
+        csubstr prev = m_arena;
         if(!prev.is_super(*relocated))
             return alloc_arena(len);
         substr out = alloc_arena(len);
@@ -601,7 +596,7 @@ public:
     {
         _stack_push();
         _buf_ensure_(m_stack.size() + id_type(1));
-        _buf_().reset();
+        _buf_().clear();
         m_curr->ev_data = {};
         _c4dbgpf("pushed! level={}", m_curr->level);
     }
@@ -652,8 +647,8 @@ public:
 
     static void _buf_flush_to_(EventSink &C4_RESTRICT src, EventSink &C4_RESTRICT dst) noexcept
     {
-        dst.append(src.get());
-        src.reset();
+        dst.append(src);
+        src.clear();
     }
 
     void _buf_flush_to_(id_type level_src, id_type level_dst) noexcept
@@ -753,7 +748,7 @@ public:
                 return i;
         return RYML_MAX_TAG_DIRECTIVES;
     }
-    csubstr _transform_directive(csubstr tag, substr output)
+    csubstr _transform_directive(csubstr tag, extra::string *output)
     {
         // lookup from the end. We want to find the first directive that
         // matches the tag and has a target node id leq than the given
@@ -765,15 +760,24 @@ public:
                 continue;
             if(tag.begins_with(td.handle))
             {
-                size_t len = td.transform(tag, output, m_stack.m_callbacks);
+                bool retry = false;
+            again1:
+                size_t len = td.transform(tag, *output, m_stack.m_callbacks);
                 if(len == 0)
                 {
                     if(tag.begins_with("!<"))
                         return tag.sub(1);
                     return tag;
                 }
-                _RYML_CB_CHECK(m_stack.m_callbacks, len <= output.len);
-                return output.first(len);
+                if(len > output->size())
+                {
+                    _RYML_CB_CHECK(m_stack.m_callbacks, !retry);
+                    retry = true;
+                    output->resize(len);
+                    output->resize(output->capacity());
+                    goto again1;
+                }
+                return csubstr(*output).first(len);
             }
         }
         if(tag.begins_with('!'))
@@ -783,15 +787,23 @@ public:
                 _RYML_CB_ERR_(m_stack.m_callbacks, "tag not found", m_curr->pos);
             }
         }
-        csubstr result = normalize_tag_long(tag, output);
-        _RYML_CB_CHECK(m_stack.m_callbacks, result.len > 0);
-        _RYML_CB_CHECK(m_stack.m_callbacks, result.str);
+        bool retry = false;
+    again2:
+        csubstr result = normalize_tag_long(tag, *output);
+        if(!result.str)
+        {
+            _RYML_CB_CHECK(m_stack.m_callbacks, !retry);
+            retry = true;
+            output->resize(result.len);
+            output->resize(output->capacity());
+            goto again2;
+        }
         return result;
     }
 
-#undef _enable_
-#undef _disable_
-#undef _has_any_
+    #undef _enable_
+    #undef _disable_
+    #undef _has_any_
 
     /** @endcond */
 };
