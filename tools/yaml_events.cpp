@@ -118,7 +118,8 @@ std::string emit_events_direct(csubstr filename, substr filecontents)
     EventHandlerYamlStd handler(&sink, create_custom_callbacks());
     ParseEngine<EventHandlerYamlStd> parser(&handler);
     parser.parse_in_place_ev(filename, filecontents);
-    return sink.result;
+    csubstr result = sink;
+    return std::string(result.str, result.len);
 }
 
 
