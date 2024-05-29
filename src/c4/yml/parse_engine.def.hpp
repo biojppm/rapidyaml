@@ -4385,7 +4385,7 @@ mapjson_start:
             ScannedScalar sc = _scan_scalar_dquot();
             csubstr maybe_filtered = _maybe_filter_key_scalar_dquot(sc);
             m_evt_handler->set_key_scalar_dquoted(maybe_filtered);
-            addrem_flags(RKCL, RKEY|QMRK);
+            addrem_flags(RKCL, RKEY);
             break;
         }
         case '}': // this happens on a trailing comma like ", }"
