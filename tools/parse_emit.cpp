@@ -44,6 +44,74 @@ struct timed_section
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
+void process_file(csubstr file)
+{
+    TS(objects);
+    std::string contents;
+    yml::Tree tree(yml::get_callbacks());
+    {
+        TS(read_file);
+        load_file(file, &contents);
+    }
+    {
+        TS(tree_reserve);
+        yml::id_type cap;
+        {
+            TS(estimate_capacity);
+            cap = yml::estimate_tree_capacity(to_csubstr(contents));
+        }
+        if(debug_tree)
+            fprintf(stderr, "reserving capacity=%zu\n", (size_t)cap);
+        tree.reserve(cap);
+    }
+    {
+        TS(parse_yml);
+        yml::parse_in_place(file, to_substr(contents), &tree);
+    }
+    if(debug_tree)
+    {
+        TS(debug_tree);
+        yml::print_tree(tree);
+    }
+    if(emit_as_json)
+    {
+        {
+            TS(resolve_refs);
+            tree.resolve();
+        }
+        if(debug_tree)
+        {
+            TS(debug_resolved_tree);
+            yml::print_tree(tree);
+        }
+    }
+    if(emit_to_string)
+    {
+        std::string output;
+        {
+            TS(emit_to_buffer);
+            output.resize(contents.size()); // resize, not just reserve
+            if(!emit_as_json)
+                yml::emitrs_yaml(tree, &output);
+            else
+                emit_json_docs(tree, &output);
+        }
+        if(!quiet)
+        {
+            TS(print_stdout);
+            fwrite(output.data(), 1, output.size(), stdout);
+        }
+    }
+    else if(!quiet)
+    {
+        TS(emit_to_stdout);
+        if(!emit_as_json)
+            yml::emit_yaml(tree);
+        else
+            emit_json_docs(tree);
+    }
+}
+
 int main(int argc, const char *argv[])
 {
     bool print_emitted_to_stdout = true;

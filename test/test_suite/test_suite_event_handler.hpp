@@ -70,7 +70,9 @@ public:
     extra::string m_key_tag_buf;
     extra::string m_val_tag_buf;
     TagDirective m_tag_directives[RYML_MAX_TAG_DIRECTIVES];
+    bool m_has_yaml_directive;
     extra::string m_arena;
+    bool m_has_docs;
 
     // undefined at the end
     #define _enable_(bits) _enable__<bits>()
@@ -83,9 +85,9 @@ public:
     /** @name construction and resetting
      * @{ */
 
-    EventHandlerYamlStd() : EventHandlerStack(), m_sink(), m_val_buffers(), m_key_tag_buf(), m_val_tag_buf(), m_tag_directives(), m_arena() {}
-    EventHandlerYamlStd(Callbacks const& cb) : EventHandlerStack(cb), m_sink(), m_val_buffers(), m_key_tag_buf(), m_val_tag_buf(), m_tag_directives(), m_arena() {}
-    EventHandlerYamlStd(EventSink *sink, Callbacks const& cb) : EventHandlerStack(cb), m_sink(sink), m_val_buffers(), m_key_tag_buf(), m_val_tag_buf(), m_tag_directives(), m_arena()
+    EventHandlerYamlStd() : EventHandlerStack(), m_sink(), m_val_buffers(), m_key_tag_buf(), m_val_tag_buf(), m_tag_directives(), m_has_yaml_directive(), m_arena(), m_has_docs() {}
+    EventHandlerYamlStd(Callbacks const& cb) : EventHandlerStack(cb), m_sink(), m_val_buffers(), m_key_tag_buf(), m_val_tag_buf(), m_tag_directives(), m_has_yaml_directive(), m_arena(), m_has_docs()  {}
+    EventHandlerYamlStd(EventSink *sink, Callbacks const& cb) : EventHandlerStack(cb), m_sink(sink), m_val_buffers(), m_key_tag_buf(), m_val_tag_buf(), m_tag_directives(), m_has_yaml_directive(), m_arena(), m_has_docs()
     {
         reset();
     }
@@ -95,13 +97,15 @@ public:
     {
         _stack_reset_root();
         m_curr->flags |= RUNK|RTOP;
-        for(auto &td : m_tag_directives)
+        m_has_yaml_directive = false;
+        for(TagDirective &td : m_tag_directives)
             td = {};
         m_val_buffers.resize((size_t)m_stack.size());
         m_arena.clear();
         m_arena.reserve(1024);
         m_key_tag_buf.resize(256);
         m_val_tag_buf.resize(256);
+        m_has_docs = false;
     }
 
     /** @} */
@@ -118,6 +122,9 @@ public:
 
     void finish_parse()
     {
+        if((_num_tag_directives() || m_has_yaml_directive) && !m_has_docs)
+            _RYML_CB_ERR_(m_stack.m_callbacks, "directives cannot be used without a document", {});
+        this->_stack_finish_parse();
     }
 
     void cancel_parse()
@@ -163,6 +170,7 @@ public:
             _enable_(DOC);
         }
         _send_("+DOC\n");
+        m_has_docs = true;
     }
     /** implicit doc end (without ...) */
     void end_doc()
@@ -187,6 +195,7 @@ public:
         }
         _send_("+DOC ---\n");
         _enable_(DOC);
+        m_has_docs = true;
     }
     /** explicit doc end, with ... */
     void end_doc_expl()
@@ -198,6 +207,7 @@ public:
             _c4dbgp("pop!");
             _pop();
         }
+        m_has_yaml_directive = false;
     }
 
     /** @} */
@@ -546,8 +556,21 @@ public:
         if(directive.begins_with("%TAG"))
         {
             const id_type pos = _num_tag_directives();
-            _RYML_CB_CHECK(m_stack.m_callbacks, pos < RYML_MAX_TAG_DIRECTIVES);
-            _RYML_CB_CHECK(m_stack.m_callbacks, m_tag_directives[pos].create_from_str(directive));
+            if(C4_UNLIKELY(pos >= RYML_MAX_TAG_DIRECTIVES))
+                _RYML_CB_ERR_(m_stack.m_callbacks, "too many directives", m_curr->pos);
+            if(C4_UNLIKELY(!m_tag_directives[pos].create_from_str(directive)))
+                _RYML_CB_ERR_(m_stack.m_callbacks, "failed to add directive", m_curr->pos);
+        }
+        else if(directive.begins_with("%YAML"))
+        {
+            _c4dbgpf("%YAML directive! ignoring...: {}", directive);
+            if(C4_UNLIKELY(m_has_yaml_directive))
+                _RYML_CB_ERR_(m_stack.m_callbacks, "multiple yaml directives", m_curr->pos);
+            m_has_yaml_directive = true;
+        }
+        else
+        {
+            _c4dbgpf("unknown directive! ignoring... {}", directive);
         }
     }
 

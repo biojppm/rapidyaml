@@ -43,6 +43,8 @@ public:
     /** @cond dev */
     Tree *C4_RESTRICT m_tree;
     id_type m_id;
+    size_t m_num_directives;
+    bool m_yaml_directive;
 
     #if RYML_DBG
     #define _enable_(bits) _enable__<bits>(); _c4dbgpf("node[{}]: enable {}", m_curr->node_id, #bits)
@@ -59,9 +61,9 @@ public:
     /** @name construction and resetting
      * @{ */
 
-    EventHandlerTree() : EventHandlerStack(), m_tree(), m_id(NONE) {}
-    EventHandlerTree(Callbacks const& cb) : EventHandlerStack(cb), m_tree(), m_id(NONE) {}
-    EventHandlerTree(Tree *tree, id_type id) : EventHandlerStack(tree->callbacks()), m_tree(tree), m_id(id)
+    EventHandlerTree() : EventHandlerStack(), m_tree(), m_id(NONE), m_num_directives(), m_yaml_directive() {}
+    EventHandlerTree(Callbacks const& cb) : EventHandlerStack(cb), m_tree(), m_id(NONE), m_num_directives(), m_yaml_directive() {}
+    EventHandlerTree(Tree *tree, id_type id) : EventHandlerStack(tree->callbacks()), m_tree(tree), m_id(id), m_num_directives(), m_yaml_directive()
     {
         reset(tree, id);
     }
@@ -73,7 +75,7 @@ public:
         if(!tree->is_root(id))
             if(tree->is_map(tree->parent(id)))
                 if(!tree->has_key(id))
-                    c4::yml::error("destination node belongs to a map and has no key");
+                    _RYML_CB_ERR(m_stack.m_callbacks, "destination node belongs to a map and has no key");
         m_tree = tree;
         m_id = id;
         if(m_tree->is_root(id))
@@ -87,6 +89,8 @@ public:
             _reset_parser_state(m_parent, id, m_tree->parent(id));
             _reset_parser_state(m_curr, id, id);
         }
+        m_num_directives = 0;
+        m_yaml_directive = false;
     }
 
     /** @} */
@@ -103,6 +107,8 @@ public:
 
     void finish_parse()
     {
+        if(m_num_directives && !m_tree->is_stream(m_tree->root_id()))
+            _RYML_CB_ERR_(m_stack.m_callbacks, "directives cannot be used without a document", {});
         this->_stack_finish_parse();
         /* This pointer is temporary. Remember that:
          *
@@ -115,7 +121,7 @@ public:
          * end up reading the stale temporary object.
          *
          * So it is better to clear it here; then the user will get an obvious
-         * segfault to read from m_tree. */
+         * segfault if reading from m_tree. */
         m_tree = nullptr;
     }
 
@@ -209,6 +215,7 @@ public:
             _c4dbgp("pop!");
             _pop();
         }
+        m_yaml_directive = false;
     }
 
     /** @} */
@@ -500,23 +507,27 @@ public:
     /** @name YAML directive events */
     /** @{ */
 
-    void add_directive(csubstr directive)
+    C4_NO_INLINE void add_directive(csubstr directive)
     {
         _c4dbgpf("% directive! {}", directive);
         _RYML_CB_ASSERT(m_tree->callbacks(), directive.begins_with('%'));
         if(directive.begins_with("%TAG"))
         {
-            // TODO do not use directives in the tree
-            _RYML_CB_CHECK(m_tree->callbacks(), m_tree->add_tag_directive(directive));
+            if(C4_UNLIKELY(!m_tree->add_tag_directive(directive)))
+                _RYML_CB_ERR_(m_stack.m_callbacks, "failed to add directive", m_curr->pos);
         }
         else if(directive.begins_with("%YAML"))
         {
             _c4dbgpf("%YAML directive! ignoring...: {}", directive);
+            if(C4_UNLIKELY(m_yaml_directive))
+                _RYML_CB_ERR_(m_stack.m_callbacks, "multiple yaml directives", m_curr->pos);
+            m_yaml_directive = true;
         }
         else
         {
-            _c4dbgpf("% directive unknown! ignoring...: {}", directive);
+            _c4dbgpf("unknown directive! ignoring... {}", directive);
         }
+        ++m_num_directives;
     }
 
     /** @} */

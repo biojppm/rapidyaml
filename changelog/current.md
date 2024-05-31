@@ -1,11 +1,19 @@
-Most of the changes are from the giant Parser refactor described below. Before getting to that, a couple of other minor changes first.
+Most of the changes are from the giant Parser refactor described below. Before getting to that, some other minor changes first.
 
 
 ### Fixes
 
 - [#PR431](https://github.com/biojppm/rapidyaml/pull/431) - Emitter: prevent stack overflows when emitting malicious trees by providing a max tree depth for the emit visitor. This was done by adding an `EmitOptions` structure as an argument both to the emitter and to the emit functions, which is then forwarded to the emitter. This `EmitOptions` structure has a max tree depth setting with a default value of 64.
 - [#PR431](https://github.com/biojppm/rapidyaml/pull/431) - Fix `_RYML_CB_ALLOC()` using `(T)` in parenthesis, making the macro unusable.
-- [#434] - Ensure empty vals are not deserialized ([#PR436](https://github.com/biojppm/rapidyaml/pull/436)).
+- [#434](https://github.com/biojppm/rapidyaml/issues/434) - Ensure empty vals are not deserialized ([#PR436](https://github.com/biojppm/rapidyaml/pull/436)).
+- [#PR433](https://github.com/biojppm/rapidyaml/pull/433):
+  - Fix some corner cases causing read-after-free in the tree's arena when it is relocated while filtering scalar.
+  - Improve YAML error conformance and - detect YAML-mandated parse errors when:
+    - directives are misplaced (eg [9MMA](https://matrix.yaml.info/details/9MMA.html), [9HCY](https://matrix.yaml.info/details/9HCY.html), [B63P](https://matrix.yaml.info/details/B63P.html), [EB22](https://matrix.yaml.info/details/EB22.html), [SF5V](https://matrix.yaml.info/details/SF5V.html)).
+    - comments are misplaced (eg [MUS6/00](https://matrix.yaml.info/details/MUS6:00.html), [9JBA](https://matrix.yaml.info/details/9JBA.html), [SU5Z](https://matrix.yaml.info/details/SU5Z.html))
+    - a node has both an anchor and an alias (eg [SR86](https://matrix.yaml.info/details/SR86.html), [SU74](https://matrix.yaml.info/details/SU74.html)).
+    - tags contain [invalid characters](https://yaml.org/spec/1.2.2/#tag-shorthands) `,{}[]` (eg [LHL4](https://matrix.yaml.info/details/LHL4.html), [U99R](https://matrix.yaml.info/details/U99R.html), [WZ62](https://matrix.yaml.info/details/WZ62.html)).
+  
 
 ### New features
 

@@ -571,6 +571,7 @@ private:
     void  _handle_indentation_pop(ParserState const* dst);
 
     void _maybe_skip_comment();
+    void _skip_comment();
     void _maybe_skip_whitespace_tokens();
     void _maybe_skipchars(char c);
     #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
@@ -709,6 +710,7 @@ private:
     void _handle_annotations_before_start_mapblck_as_key();
     void _handle_annotations_and_indentation_after_start_mapblck(size_t key_indentation, size_t key_line);
     size_t _select_indentation_from_annotations(size_t val_indentation, size_t val_line);
+    void _handle_directive(csubstr rem);
 
 private:
 

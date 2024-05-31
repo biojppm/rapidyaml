@@ -78,8 +78,8 @@ void test_new_parser_events_from_yaml(ReferenceYaml const& yaml, std::string con
 void test_new_parser_tree_from_yaml(ReferenceYaml const& yaml);
 void test_new_parser_events_from_yaml_with_comments(ReferenceYaml const& yaml, std::string const& expected_events);
 void test_new_parser_tree_from_yaml_with_comments(ReferenceYaml const& yaml);
-void test_expected_error_events_from_yaml(std::string const& parsed_yaml, Location const& expected_error_location);
-void test_expected_error_tree_from_yaml(std::string const& parsed_yaml, Location const& expected_error_location);
+void test_expected_error_events_from_yaml(std::string const& parsed_yaml, Location const& expected_error_location={});
+void test_expected_error_tree_from_yaml(std::string const& parsed_yaml, Location const& expected_error_location={});
 
 
 
@@ -91,6 +91,7 @@ void test_expected_error_tree_from_yaml(std::string const& parsed_yaml, Location
 #else
 #define _RYML_SHOWFILELINE(name)
 #endif
+
 
 //-----------------------------------------------------------------------------
 
@@ -111,6 +112,29 @@ TEST(EngineTest, name##_err_tree_from_yaml)                     \
     _RYML_SHOWFILELINE(name);                                   \
     SCOPED_TRACE(#name "_err_tree_from_yaml");                  \
     test_expected_error_tree_from_yaml(refyaml, location);      \
+    _RYML_SHOWFILELINE(name);                                   \
+}
+
+
+//-----------------------------------------------------------------------------
+
+#define ENGINE_TEST_ERR(name, refyaml)                          \
+                                                                \
+                                                                \
+TEST(EngineTest, name##_err_events_from_yaml)                   \
+{                                                               \
+    _RYML_SHOWFILELINE(name);                                   \
+    SCOPED_TRACE(#name "_err_events_from_yaml");                \
+    test_expected_error_events_from_yaml(refyaml);              \
+    _RYML_SHOWFILELINE(name);                                   \
+}                                                               \
+                                                                \
+                                                                \
+TEST(EngineTest, name##_err_tree_from_yaml)                     \
+{                                                               \
+    _RYML_SHOWFILELINE(name);                                   \
+    SCOPED_TRACE(#name "_err_tree_from_yaml");                  \
+    test_expected_error_tree_from_yaml(refyaml);                \
     _RYML_SHOWFILELINE(name);                                   \
 }
 
@@ -185,7 +209,7 @@ TEST(EngineTest, name##_events_from_yaml_with_comments)             \
 TEST(EngineTest, name##_tree_from_yaml_with_comments)               \
 {                                                                   \
     _RYML_SHOWFILELINE(name);                                       \
-    SCOPED_TRACE(#name "_wtree_from_yaml");                         \
+    SCOPED_TRACE(#name "_tree_from_yaml");                          \
     ReferenceYaml yaml refyaml;                                     \
     test_new_parser_tree_from_yaml_with_comments(yaml);             \
     _RYML_SHOWFILELINE(name);                                       \
@@ -204,9 +228,9 @@ void name##_impl(Ps &ps)
 #if !defined(RYML_DBG)
 #define ___(stmt) stmt
 #else
-inline void _print_handler_info(EventHandlerYamlStd const& ps, csubstr stmt)
+inline void _print_handler_info(EventHandlerYamlStd const& ps, csubstr stmt, const char *file, int line)
 {
-    _c4dbgpf("{}", stmt);
+    _dbg_printf("{}:{}: {}", file, line, stmt);
     auto indent = [](id_type n){
         for(id_type level = 0; level < n; ++level)
         {
@@ -218,28 +242,28 @@ inline void _print_handler_info(EventHandlerYamlStd const& ps, csubstr stmt)
         csubstr const& str = ps._buf_(i);
         indent(i);
         _dbg_printf("[{}]\n", i);
-        for(csubstr line : str.split('\n'))
+        for(csubstr ln : str.split('\n'))
         {
             indent(i);
-            _dbg_printf("{}\n", line);
+            _dbg_printf("{}\n", ln);
         }
     }
 }
-inline void _print_handler_info(EventHandlerTree const& ps, csubstr stmt)
+inline void _print_handler_info(EventHandlerTree const& ps, csubstr stmt, const char *file, int line)
 {
     if(ps.m_parent)
-        _c4dbgpf("parent.id={} curr.id={}  {}\n",
-                ps.m_parent->node_id, ps.m_curr->node_id, stmt);
+        _dbg_printf("{}:{}: parent.id={} curr.id={}  {}\n",
+                    file, line, ps.m_parent->node_id, ps.m_curr->node_id, stmt);
     else
-        _c4dbgpf("parent.id=-- curr.id={}  {}\n",
-                ps.m_curr->node_id, stmt);
+        _dbg_printf("{}:{}: parent.id=-- curr.id={}  {}\n",
+                    file, line, ps.m_curr->node_id, stmt);
     print_tree(*ps.m_tree);
 }
 #define ___(stmt)                       \
     do                                  \
     {                                   \
        stmt;                            \
-       _print_handler_info(ps, #stmt);  \
+       _print_handler_info(ps, #stmt, __FILE__, __LINE__);  \
     } while(0)
 #endif
 
