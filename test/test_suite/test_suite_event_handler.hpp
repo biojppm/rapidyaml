@@ -472,32 +472,28 @@ public:
     void set_key_anchor(csubstr anchor)
     {
         _c4dbgpf("node[{}]: set key anchor: [{}]~~~{}~~~", m_curr->node_id, anchor.len, anchor);
-        RYML_ASSERT(!anchor.begins_with('&'));
+        if(C4_UNLIKELY(_has_any_(KEYANCH)))
+            _RYML_CB_ERR_(m_stack.m_callbacks, "key cannot have both anchor and ref", m_curr->pos);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, !anchor.begins_with('&'));
         _enable_(KEYANCH);
         m_curr->ev_data.m_key.anchor = anchor;
     }
     void set_val_anchor(csubstr anchor)
     {
         _c4dbgpf("node[{}]: set val anchor: [{}]~~~{}~~~", m_curr->node_id, anchor.len, anchor);
-        RYML_ASSERT(!anchor.begins_with('&'));
+        if(C4_UNLIKELY(_has_any_(VALREF)))
+            _RYML_CB_ERR_(m_stack.m_callbacks, "val cannot have both anchor and ref", m_curr->pos);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, !anchor.begins_with('&'));
         _enable_(VALANCH);
         m_curr->ev_data.m_val.anchor = anchor;
-    }
-
-    C4_ALWAYS_INLINE bool has_key_anchor() const
-    {
-        return _has_any_(KEYANCH);
-    }
-
-    C4_ALWAYS_INLINE bool has_val_anchor() const
-    {
-        return _has_any_(VALANCH);
     }
 
     void set_key_ref(csubstr ref)
     {
         _c4dbgpf("node[{}]: set key ref: [{}]~~~{}~~~", m_curr->node_id, ref.len, ref);
-        RYML_ASSERT(ref.begins_with('*'));
+        if(C4_UNLIKELY(_has_any_(KEYANCH)))
+            _RYML_CB_ERR_(m_stack.m_callbacks, "key cannot have both anchor and ref", m_curr->pos);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, ref.begins_with('*'));
         _enable_(KEY|KEYREF);
         _send_("=ALI ");
         _send_(ref);
@@ -506,7 +502,9 @@ public:
     void set_val_ref(csubstr ref)
     {
         _c4dbgpf("node[{}]: set val ref: [{}]~~~{}~~~", m_curr->node_id, ref.len, ref);
-        RYML_ASSERT(ref.begins_with('*'));
+        if(C4_UNLIKELY(_has_any_(VALANCH)))
+            _RYML_CB_ERR_(m_stack.m_callbacks, "val cannot have both anchor and ref", m_curr->pos);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, ref.begins_with('*'));
         _enable_(VAL|VALREF);
         _send_("=ALI ");
         _send_(ref);

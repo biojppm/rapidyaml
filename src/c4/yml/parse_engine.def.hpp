@@ -4053,8 +4053,10 @@ bool ParseEngine<EventHandler>::_annotations_require_key_container() const
 template<class EventHandler>
 void ParseEngine<EventHandler>::_handle_annotations_before_blck_key_scalar()
 {
+    _c4dbgpf("annotations_before_blck_key_scalar, node={}", m_state->node_id);
     if(m_pending_tags.num_entries)
     {
+        _c4dbgpf("annotations_before_blck_key_scalar, #tags={}", m_pending_tags.num_entries);
         if(C4_LIKELY(m_pending_tags.num_entries == 1))
         {
             m_evt_handler->set_key_tag(m_pending_tags.annotations[0].str);
@@ -4067,6 +4069,7 @@ void ParseEngine<EventHandler>::_handle_annotations_before_blck_key_scalar()
     }
     if(m_pending_anchors.num_entries)
     {
+        _c4dbgpf("annotations_before_blck_key_scalar, #anchors={}", m_pending_anchors.num_entries);
         if(C4_LIKELY(m_pending_anchors.num_entries == 1))
         {
             m_evt_handler->set_key_anchor(m_pending_anchors.annotations[0].str);
@@ -4082,8 +4085,10 @@ void ParseEngine<EventHandler>::_handle_annotations_before_blck_key_scalar()
 template<class EventHandler>
 void ParseEngine<EventHandler>::_handle_annotations_before_blck_val_scalar()
 {
+    _c4dbgpf("annotations_before_blck_val_scalar, node={}", m_state->node_id);
     if(m_pending_tags.num_entries)
     {
+        _c4dbgpf("annotations_before_blck_val_scalar, #tags={}", m_pending_tags.num_entries);
         if(C4_LIKELY(m_pending_tags.num_entries == 1))
         {
             m_evt_handler->set_val_tag(m_pending_tags.annotations[0].str);
@@ -4096,6 +4101,7 @@ void ParseEngine<EventHandler>::_handle_annotations_before_blck_val_scalar()
     }
     if(m_pending_anchors.num_entries)
     {
+        _c4dbgpf("annotations_before_blck_val_scalar, #anchors={}", m_pending_anchors.num_entries);
         if(C4_LIKELY(m_pending_anchors.num_entries == 1))
         {
             m_evt_handler->set_val_anchor(m_pending_anchors.annotations[0].str);
@@ -5951,6 +5957,7 @@ mapblck_start:
         {
             csubstr ref = _scan_ref_map();
             _c4dbgpf("mapblck[RKEY]: key ref! [{}]~~~{}~~~", ref.len, ref);
+            _handle_annotations_before_blck_key_scalar();
             m_evt_handler->set_key_ref(ref);
             addrem_flags(RVAL, RKEY);
             if(!_maybe_scan_following_colon())
@@ -6444,6 +6451,7 @@ mapblck_start:
                 else
                 {
                     _c4dbgp("mapblck[RVAL]: was val ref");
+                    _handle_annotations_before_blck_val_scalar();
                     m_evt_handler->set_val_ref(ref);
                     addrem_flags(RNXT, RVAL);
                 }

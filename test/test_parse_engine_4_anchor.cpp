@@ -1111,6 +1111,30 @@ ENGINE_TEST(DoubleAnchorKeyMap,
     ___(ps.end_stream());
 }
 
+ENGINE_TEST_ERRLOC(AnchorAndAliasAsBlockMapKey_SU74, Location(2,10), ""
+                   "key1: &alias value1\n"
+                   "&b *alias : value2\n")
+
+ENGINE_TEST_ERRLOC(AnchorAndAliasAsFlowMapKey_SU74, Location(2,10), ""
+                   "{key1: &alias value1,\n"
+                   "&b *alias : value2}\n")
+
+ENGINE_TEST_ERRLOC(AnchorAndAliasAsFlowMapVal_SU74, Location(2,18), ""
+                   "key1: &alias value1\n"
+                   "value2: &b *alias\n")
+
+ENGINE_TEST_ERRLOC(AnchorAndAliasAsBlockMapVal_SU74, Location(2,18), ""
+                   "{key1: &alias value1,\n"
+                   "value2: &b *alias\n}")
+
+ENGINE_TEST_ERRLOC(AnchorAndAliasAsFlowSeqVal_SU74, Location(2,12), ""
+                   "- &alias value1\n"
+                   "- &b *alias\n")
+
+ENGINE_TEST_ERRLOC(AnchorAndAliasAsBlockSeqVal_SU74, Location(2,10), ""
+                   "[&alias value1,\n"
+                   "&b *alias]\n")
+
 } // namespace yml
 } // namespace c4
 
