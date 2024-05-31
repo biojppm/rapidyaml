@@ -553,13 +553,36 @@ void ParseEngine<EventHandler>::_skipchars(const char (&chars)[N])
 }
 
 template<class EventHandler>
+void ParseEngine<EventHandler>::_skip_comment()
+{
+    _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, m_state->line_contents.rem.begins_with('#'));
+    _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, m_state->line_contents.rem.is_sub(m_state->line_contents.full));
+    csubstr rem = m_state->line_contents.rem;
+    csubstr full = m_state->line_contents.full;
+    // raise an error if the comment is not preceded by whitespace
+    if(!full.begins_with('#'))
+    {
+        _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, rem.str > full.str);
+        const char c = full[(size_t)(rem.str - full.str - 1)];
+        if(C4_UNLIKELY(c != ' ' && c != '\t'))
+            _RYML_CB_ERR(m_evt_handler->m_stack.m_callbacks, "comment not preceded by whitespace");
+    }
+    else
+    {
+        _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, rem.str == full.str);
+    }
+    _c4dbgpf("comment was '{}'", rem);
+    _line_progressed(rem.len);
+}
+
+template<class EventHandler>
 void ParseEngine<EventHandler>::_maybe_skip_comment()
 {
     csubstr s = m_state->line_contents.rem.triml(' ');
     if(s.begins_with('#'))
     {
-        _c4dbgpf("comment was '{}'", s);
-        _line_progressed(m_state->line_contents.rem.len);
+        _line_progressed((size_t)(s.str - m_state->line_contents.rem.str));
+        _skip_comment();
     }
 }
 
@@ -4225,6 +4248,27 @@ size_t ParseEngine<EventHandler>::_select_indentation_from_annotations(size_t va
     return curr->line < val_line ? val_indentation : curr->indentation;
 }
 
+template<class EventHandler>
+void ParseEngine<EventHandler>::_handle_directive(csubstr rem)
+{
+    _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, rem.is_sub(m_state->line_contents.rem));
+    const size_t pos = rem.find('#');
+    _c4dbgpf("handle_directive: pos={} rem={}", pos, rem);
+    if(pos == npos) // no comments
+    {
+        m_evt_handler->add_directive(rem);
+        _line_progressed(rem.len);
+    }
+    else
+    {
+        csubstr to_comment = rem.first(pos);
+        csubstr trimmed = to_comment.trimr(" \t");
+        m_evt_handler->add_directive(trimmed);
+        _line_progressed(pos);
+        _skip_comment();
+    }
+}
+
 
 //-----------------------------------------------------------------------------
 
@@ -7121,8 +7165,9 @@ void ParseEngine<EventHandler>::_handle_unk()
         else if(first == '%')
         {
             _c4dbgpf("directive: {}", rem);
-            m_evt_handler->add_directive(rem);
-            _line_progressed(rem.len);
+            if(C4_UNLIKELY(!m_doc_empty && has_none(NDOC)))
+                _RYML_CB_ERR(m_evt_handler->m_stack.m_callbacks, "need document footer before directives");
+            _handle_directive(rem);
             return;
         }
     }

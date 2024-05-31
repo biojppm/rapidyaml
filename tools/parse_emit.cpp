@@ -207,7 +207,8 @@ void process_file(csubstr file)
             TS(estimate_capacity);
             cap = yml::estimate_tree_capacity(to_csubstr(contents));
         }
-        fprintf(stderr, "reserving capacity=%zu\n", (size_t)cap);
+        if(debug_tree)
+            fprintf(stderr, "reserving capacity=%zu\n", (size_t)cap);
         tree.reserve(cap);
     }
     {

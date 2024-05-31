@@ -163,6 +163,105 @@ ENGINE_TEST(TagTestSuite6WLZ_1,
     ___(ps.end_stream());
 }
 
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST_ERR(DirectiveTestSuite9MMA_YAML,
+                "%YAML 1.2")
+
+ENGINE_TEST_ERR(DirectiveTestSuite9MMA_TAG,
+                "%TAG ! tag:example.com,2000:app/\n")
+
+ENGINE_TEST_ERR(DirectiveTestSuiteMUS6_00,
+                "%YAML 1.1#...\n"
+                "---\n")
+
+ENGINE_TEST_ERR(DirectiveTestSuite9HCY,
+                "!foo \"bar\"\n"
+                "%TAG ! tag:example.com,2000:app/\n"
+                "---\n"
+                "!foo \"bar\"\n")
+
+ENGINE_TEST(DirectiveTestSuiteMUS6,
+            ("%YAM 1.1\n"
+             "---\n",
+             "---\n"),
+            "+STR\n"
+            "+DOC ---\n"
+            "=VAL :\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.add_directive("%YAM 1.1"));
+    ___(ps.begin_doc_expl());
+    ___(ps.set_val_scalar_plain({}));
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(DirectiveMultipleYAML_W4TN,
+            (""
+             "%YAML 1.2\n"
+             "---\n"
+             "foo\n"
+             "...\n"
+             "%YAML 1.2\n"
+             "---\n"
+             "# Empty\n"
+             "...\n"
+             "",
+             "--- foo\n"
+             "---\n"
+             ""),
+            "+STR\n"
+            "+DOC ---\n"
+            "=VAL :foo\n"
+            "-DOC ...\n"
+            "+DOC ---\n"
+            "=VAL :\n"
+            "-DOC ...\n"
+            "-STR\n"
+            "")
+{
+    ___(ps.begin_stream());
+    ___(ps.add_directive("%YAML 1.2"));
+    ___(ps.begin_doc_expl());
+    ___(ps.set_val_scalar_plain("foo"));
+    ___(ps.end_doc_expl());
+    ___(ps.add_directive("%YAML 1.2"));
+    ___(ps.begin_doc_expl());
+    ___(ps.set_val_scalar_plain({}));
+    ___(ps.end_doc_expl());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST_ERR(DirectiveMultipleYAML_0,
+                "%YAML 1.2\n"
+                "...\n"
+                "%YAML 1.2\n"
+                "---\n"
+                "bar")
+
+ENGINE_TEST_ERR(DirectiveMultipleYAML_1,
+                "%YAML 1.1\n"
+                "...\n"
+                "%YAML 1.2\n"
+                "---\n"
+                "bar")
+
+ENGINE_TEST_ERR(DirectiveMultipleYAML_2,
+                "%YAML 1.2\n"
+                "%YAML 1.2\n"
+                "---\n"
+                "bar")
+
+ENGINE_TEST_ERR(DirectiveMultipleYAML_3,
+                "%YAML 1.1\n"
+                "%YAML 1.2\n"
+                "---\n"
+                "bar")
+
 } // namespace yml
 } // namespace c4
 

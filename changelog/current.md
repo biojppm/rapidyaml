@@ -1,4 +1,4 @@
-Most of the changes are from the giant Parser refactor described below. Before getting to that, a couple of other minor changes first.
+Most of the changes are from the giant Parser refactor described below. Before getting to that, some other minor changes first.
 
 
 ### Fixes
@@ -7,7 +7,11 @@ Most of the changes are from the giant Parser refactor described below. Before g
 - [#PR431](https://github.com/biojppm/rapidyaml/pull/431) - Emitter: prevent stack overflows when emitting malicious trees by providing a max tree depth for the emit visitor. This was done by adding an `EmitOptions` structure as an argument both to the emitter and to the emit functions, which is then forwarded to the emitter. This `EmitOptions` structure has a max tree depth setting with a default value of 64.
 - [#PR431](https://github.com/biojppm/rapidyaml/pull/431) - Fix `_RYML_CB_ALLOC()` using `(T)` in parenthesis, making the macro unusable.
 - [#PR433](https://github.com/biojppm/rapidyaml/pull/433) - Add fuzz testing using libfuzzer. This caught some corner cases mostly related to scalar filtering and arena relocation, which were not present prior to the parser refactor. After these fixes, there were over ~500M runs without a single crash; and it is reasonable to say that the library is considerably hardened to memory problems.
-
+- [#PR433](https://github.com/biojppm/rapidyaml/pull/433) - Improve YAML error conformance - detect YAML-mandated parse errors when:
+  - directives are misplaced (eg [9MMA](https://matrix.yaml.info/details/9MMA.html), [9HCY](https://matrix.yaml.info/details/9HCY.html)).
+  - comments are misplaced (eg [MUS6/00](https://matrix.yaml.info/details/MUS6:00.html))
+  - a node has both an anchor and an alias (eg [SU74](https://matrix.yaml.info/details/SU74.html)).
+  
 
 ### New features
 

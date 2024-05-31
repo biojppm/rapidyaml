@@ -116,7 +116,7 @@ inline int fuzztest_yaml_events(uint32_t case_number, csubstr src)
     {
         _if_dbg(_dbg_printf("in[{}]: [{}]~~~\n{}\n~~~\n", case_number, src.len, src); fflush(NULL));
         parser.parse_in_place_ev("input", c4::to_substr(str));
-        _if_dbg(_dbg_printf("evts[{}]: ~~~\n{}\n~~~\n", case_number, sink.get()); fflush(NULL));
+        _if_dbg(_dbg_printf("evts[{}]: ~~~\n{}\n~~~\n", case_number, sink); fflush(NULL));
         C4_DONT_OPTIMIZE(sink);
     }
     C4_IF_EXCEPTIONS_(catch(std::exception const&), else)
