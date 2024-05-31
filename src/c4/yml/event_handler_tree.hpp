@@ -433,33 +433,41 @@ public:
     /** @name YAML anchor/reference events */
     /** @{ */
 
-    void set_key_anchor(csubstr anchor) RYML_NOEXCEPT
+    void set_key_anchor(csubstr anchor)
     {
         _c4dbgpf("node[{}]: set key anchor: [{}]~~~{}~~~", m_curr->node_id, anchor.len, anchor);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, !anchor.begins_with('&'));
+        if(C4_UNLIKELY(_has_any_(KEYREF)))
+            _RYML_CB_ERR_(m_tree->callbacks(), "key cannot have both anchor and ref", m_curr->pos);
+        _RYML_CB_ASSERT(m_tree->callbacks(), !anchor.begins_with('&'));
         _enable_(KEYANCH);
         m_curr->tr_data->m_key.anchor = anchor;
     }
-    void set_val_anchor(csubstr anchor) RYML_NOEXCEPT
+    void set_val_anchor(csubstr anchor)
     {
         _c4dbgpf("node[{}]: set val anchor: [{}]~~~{}~~~", m_curr->node_id, anchor.len, anchor);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, !anchor.begins_with('&'));
+        if(C4_UNLIKELY(_has_any_(VALREF)))
+            _RYML_CB_ERR_(m_tree->callbacks(), "val cannot have both anchor and ref", m_curr->pos);
+        _RYML_CB_ASSERT(m_tree->callbacks(), !anchor.begins_with('&'));
         _enable_(VALANCH);
         m_curr->tr_data->m_val.anchor = anchor;
     }
 
-    void set_key_ref(csubstr ref) RYML_NOEXCEPT
+    void set_key_ref(csubstr ref)
     {
         _c4dbgpf("node[{}]: set key ref: [{}]~~~{}~~~", m_curr->node_id, ref.len, ref);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, ref.begins_with('*'));
+        if(C4_UNLIKELY(_has_any_(KEYANCH)))
+            _RYML_CB_ERR_(m_tree->callbacks(), "key cannot have both anchor and ref", m_curr->pos);
+        _RYML_CB_ASSERT(m_tree->callbacks(), ref.begins_with('*'));
         _enable_(KEY|KEYREF);
         m_curr->tr_data->m_key.anchor = ref.sub(1);
         m_curr->tr_data->m_key.scalar = ref;
     }
-    void set_val_ref(csubstr ref) RYML_NOEXCEPT
+    void set_val_ref(csubstr ref)
     {
         _c4dbgpf("node[{}]: set val ref: [{}]~~~{}~~~", m_curr->node_id, ref.len, ref);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, ref.begins_with('*'));
+        if(C4_UNLIKELY(_has_any_(VALANCH)))
+            _RYML_CB_ERR_(m_tree->callbacks(), "val cannot have both anchor and ref", m_curr->pos);
+        _RYML_CB_ASSERT(m_tree->callbacks(), ref.begins_with('*'));
         _enable_(VAL|VALREF);
         m_curr->tr_data->m_val.anchor = ref.sub(1);
         m_curr->tr_data->m_val.scalar = ref;
@@ -495,11 +503,11 @@ public:
     void add_directive(csubstr directive)
     {
         _c4dbgpf("% directive! {}", directive);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, directive.begins_with('%'));
+        _RYML_CB_ASSERT(m_tree->callbacks(), directive.begins_with('%'));
         if(directive.begins_with("%TAG"))
         {
             // TODO do not use directives in the tree
-            _RYML_CB_CHECK(m_stack.m_callbacks, m_tree->add_tag_directive(directive));
+            _RYML_CB_CHECK(m_tree->callbacks(), m_tree->add_tag_directive(directive));
         }
         else if(directive.begins_with("%YAML"))
         {
@@ -584,7 +592,7 @@ public:
         }
         else
         {
-            _RYML_CB_ERR(m_stack.m_callbacks, "cannot append to node");
+            _RYML_CB_ERR(m_tree->callbacks(), "cannot append to node");
         }
         if(type.is_doc())
         {
@@ -645,15 +653,15 @@ public:
     void _set_root_as_stream()
     {
         _c4dbgp("set root as stream");
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->root_id() == 0u);
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_curr->node_id == 0u);
+        _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->root_id() == 0u);
+        _RYML_CB_ASSERT(m_tree->callbacks(), m_curr->node_id == 0u);
         const bool hack = !m_tree->has_children(m_curr->node_id) && !m_tree->is_val(m_curr->node_id);
         if(hack)
             m_tree->_p(m_tree->root_id())->m_type.add(VAL);
         m_tree->set_root_as_stream();
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_stream(m_tree->root_id()));
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->has_children(m_tree->root_id()));
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->is_doc(m_tree->first_child(m_tree->root_id())));
+        _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_stream(m_tree->root_id()));
+        _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->has_children(m_tree->root_id()));
+        _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->is_doc(m_tree->first_child(m_tree->root_id())));
         if(hack)
             m_tree->_p(m_tree->first_child(m_tree->root_id()))->m_type.rem(VAL);
         _set_state_(m_curr, m_tree->root_id());
@@ -676,7 +684,7 @@ public:
     void _remove_speculative()
     {
         _c4dbgp("remove speculative node");
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->size() > 0);
+        _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->size() > 0);
         const id_type last_added = m_tree->size() - 1;
         if(m_tree->has_parent(last_added))
             if(m_tree->_p(last_added)->m_type == NOTYPE)
@@ -685,9 +693,9 @@ public:
 
     void _remove_speculative_with_parent()
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->size() > 0);
+        _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->size() > 0);
         const id_type last_added = m_tree->size() - 1;
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->has_parent(last_added));
+        _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->has_parent(last_added));
         if(m_tree->_p(last_added)->m_type == NOTYPE)
         {
             _c4dbgpf("remove speculative node with parent. parent={} node={} parent(node)={}", m_parent->node_id, last_added, m_tree->parent(last_added));
@@ -697,7 +705,7 @@ public:
 
     C4_ALWAYS_INLINE void _save_loc()
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->_p(m_curr->node_id)->m_val.scalar.len == 0);
+        _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->_p(m_curr->node_id)->m_val.scalar.len == 0);
         m_tree->_p(m_curr->node_id)->m_val.scalar.str = m_curr->line_contents.rem.str;
     }
 
