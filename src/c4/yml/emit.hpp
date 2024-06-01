@@ -74,7 +74,24 @@ typedef enum {
 /** A lightweight object containing options to be used when emitting. */
 struct EmitOptions
 {
+    typedef enum : uint32_t {
+        DEFAULT_FLAGS = 0,
+        JSON_ERR_ON_TAG = 1 << 0,
+        JSON_ERR_ON_ANCHOR = 1 << 1,
+        _JSON_ERR_MASK = JSON_ERR_ON_TAG|JSON_ERR_ON_ANCHOR,
+    } EmitOptionFlags_e;
+
 public:
+
+    /** @name option flags
+     *
+     * @{ */
+    C4_ALWAYS_INLINE EmitOptionFlags_e json_error_flags() const noexcept { return m_option_flags; }
+    EmitOptions& json_error_flags(EmitOptionFlags_e d) noexcept { m_option_flags = (EmitOptionFlags_e)(d & _JSON_ERR_MASK); return *this; }
+    /** @} */
+
+public:
+
     /** @name max depth for the emitted tree
      *
      * This makes the emitter fail when emitting trees exceeding the
@@ -85,8 +102,21 @@ public:
     EmitOptions& max_depth(id_type d) noexcept { m_max_depth = d; return *this; }
     static constexpr const id_type max_depth_default = 64;
     /** @} */
+
+public:
+
+    bool operator== (const EmitOptions& that) const noexcept
+    {
+        return m_max_depth == that.m_max_depth &&
+            m_option_flags == that.m_option_flags;
+    }
+
 private:
+
+    /** @cond dev */
     id_type m_max_depth{max_depth_default};
+    EmitOptionFlags_e m_option_flags{DEFAULT_FLAGS};
+    /** @endcond */
 };
 
 
