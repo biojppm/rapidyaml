@@ -580,6 +580,7 @@ private:
     template<size_t N>
     void _skipchars(const char (&chars)[N]);
     bool _maybe_scan_following_colon() noexcept;
+    bool _maybe_scan_following_comma() noexcept;
 
 public:
 
@@ -700,6 +701,7 @@ private:
 
     void _add_annotation(Annotation *C4_RESTRICT dst, csubstr str, size_t indentation, size_t line);
     void _clear_annotations(Annotation *C4_RESTRICT dst);
+    bool _has_pending_annotations() const { return m_pending_tags.num_entries || m_pending_anchors.num_entries; }
     #ifdef RYML_NO_COVERAGE__TO_BE_DELETED
     bool _handle_indentation_from_annotations();
     #endif
@@ -711,6 +713,8 @@ private:
     void _handle_annotations_and_indentation_after_start_mapblck(size_t key_indentation, size_t key_line);
     size_t _select_indentation_from_annotations(size_t val_indentation, size_t val_line);
     void _handle_directive(csubstr rem);
+
+    void _check_tag(csubstr tag);
 
 private:
 
