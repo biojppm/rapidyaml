@@ -67,8 +67,6 @@ protected:
 
     void _stack_finish_parse()
     {
-        m_relocate_arena = nullptr;
-        m_relocate_arena_data = nullptr;
     }
 
 protected:
