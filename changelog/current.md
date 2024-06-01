@@ -8,7 +8,7 @@ Most of the changes are from the giant Parser refactor described below. Before g
 - [#434](https://github.com/biojppm/rapidyaml/issues/434) - Ensure empty vals are not deserialized ([#PR436](https://github.com/biojppm/rapidyaml/pull/436)).
 - [#PR433](https://github.com/biojppm/rapidyaml/pull/433):
   - Fix some corner cases causing read-after-free in the tree's arena when it is relocated while filtering scalar.
-  - Improve YAML error conformance and - detect YAML-mandated parse errors when:
+  - Improve YAML error conformance - detect YAML-mandated parse errors when:
     - directives are misplaced (eg [9MMA](https://matrix.yaml.info/details/9MMA.html), [9HCY](https://matrix.yaml.info/details/9HCY.html), [B63P](https://matrix.yaml.info/details/B63P.html), [EB22](https://matrix.yaml.info/details/EB22.html), [SF5V](https://matrix.yaml.info/details/SF5V.html)).
     - comments are misplaced (eg [MUS6/00](https://matrix.yaml.info/details/MUS6:00.html), [9JBA](https://matrix.yaml.info/details/9JBA.html), [SU5Z](https://matrix.yaml.info/details/SU5Z.html))
     - a node has both an anchor and an alias (eg [SR86](https://matrix.yaml.info/details/SR86.html), [SU74](https://matrix.yaml.info/details/SU74.html)).
