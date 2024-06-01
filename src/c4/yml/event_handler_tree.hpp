@@ -70,12 +70,14 @@ public:
 
     void reset(Tree *tree, id_type id)
     {
-        RYML_CHECK(tree);
-        RYML_CHECK(id < tree->capacity());
-        if(!tree->is_root(id))
-            if(tree->is_map(tree->parent(id)))
-                if(!tree->has_key(id))
-                    _RYML_CB_ERR(m_stack.m_callbacks, "destination node belongs to a map and has no key");
+        if(C4_UNLIKELY(!tree))
+            _RYML_CB_ERR(m_stack.m_callbacks, "null tree");
+        if(C4_UNLIKELY(id >= tree->capacity()))
+            _RYML_CB_ERR(tree->callbacks(), "invalid node");
+        if(C4_UNLIKELY(!tree->is_root(id)))
+            if(C4_UNLIKELY(tree->is_map(tree->parent(id))))
+                if(C4_UNLIKELY(!tree->has_key(id)))
+                    _RYML_CB_ERR(tree->callbacks(), "destination node belongs to a map and has no key");
         m_tree = tree;
         m_id = id;
         if(m_tree->is_root(id))
