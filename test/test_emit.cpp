@@ -72,11 +72,6 @@ std::string emitrs_append(csubstr first_part, Emit &&fn)
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
-bool operator== (const EmitOptions lhs, const EmitOptions rhs)
-{
-    return memcmp(&lhs, &rhs, sizeof(lhs)) == 0;
-}
-
 TEST(as_yaml, basic)
 {
     Tree et;
