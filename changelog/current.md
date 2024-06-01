@@ -8,9 +8,10 @@ Most of the changes are from the giant Parser refactor described below. Before g
 - [#PR431](https://github.com/biojppm/rapidyaml/pull/431) - Fix `_RYML_CB_ALLOC()` using `(T)` in parenthesis, making the macro unusable.
 - [#PR433](https://github.com/biojppm/rapidyaml/pull/433) - Add fuzz testing using libfuzzer. This caught some corner cases mostly related to scalar filtering and arena relocation, which were not present prior to the parser refactor. After these fixes, there were over ~500M runs without a single crash; and it is reasonable to say that the library is considerably hardened to memory problems.
 - [#PR433](https://github.com/biojppm/rapidyaml/pull/433) - Improve YAML error conformance - detect YAML-mandated parse errors when:
-  - directives are misplaced (eg [9MMA](https://matrix.yaml.info/details/9MMA.html), [9HCY](https://matrix.yaml.info/details/9HCY.html)).
-  - comments are misplaced (eg [MUS6/00](https://matrix.yaml.info/details/MUS6:00.html))
-  - a node has both an anchor and an alias (eg [SU74](https://matrix.yaml.info/details/SU74.html)).
+  - directives are misplaced (eg [9MMA](https://matrix.yaml.info/details/9MMA.html), [9HCY](https://matrix.yaml.info/details/9HCY.html), [B63P](https://matrix.yaml.info/details/B63P.html), [EB22](https://matrix.yaml.info/details/EB22.html), [SF5V](https://matrix.yaml.info/details/SF5V.html)).
+  - comments are misplaced (eg [MUS6/00](https://matrix.yaml.info/details/MUS6:00.html), [9JBA](https://matrix.yaml.info/details/9JBA.html), [SU5Z](https://matrix.yaml.info/details/SU5Z.html))
+  - a node has both an anchor and an alias (eg [SR86](https://matrix.yaml.info/details/SR86.html) [SU74](https://matrix.yaml.info/details/SU74.html)).
+  - tags contain [invalid characters](https://yaml.org/spec/1.2.2/#tag-shorthands) `,{}[]` (eg [LHL4](https://matrix.yaml.info/details/LHL4.html),[U99R](https://matrix.yaml.info/details/U99R.html),[WZ62](https://matrix.yaml.info/details/WZ62.html)).
   
 
 ### New features

@@ -93,6 +93,261 @@ ENGINE_TEST(DirectiveAndTag,
 
 //-----------------------------------------------------------------------------
 
+ENGINE_TEST_ERRLOC(TagTestSuiteU99R_0, Location(2,1),
+                   "- !!str, xxx\n")
+
+ENGINE_TEST_ERRLOC(TagTestSuiteU99R_1, Location(2,1),
+                   "- !str, xxx\n")
+
+ENGINE_TEST(TagTestSuiteU99R_2,
+            ("[!!str, xxx]", "[!!str ,xxx]"),
+            "+STR\n"
+            "+DOC\n"
+            "+SEQ []\n"
+            "=VAL <tag:yaml.org,2002:str> :\n"
+            "=VAL :xxx\n"
+            "-SEQ\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_flow());
+    ___(ps.set_val_tag("!!str"));
+    ___(ps.set_val_scalar_plain({}));
+    ___(ps.add_sibling());
+    ___(ps.set_val_scalar_plain("xxx"));
+    ___(ps.end_seq());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(TagTestSuiteU99R_2_1,
+            ("[!str, xxx]","[!str ,xxx]"),
+            "+STR\n"
+            "+DOC\n"
+            "+SEQ []\n"
+            "=VAL <!str> :\n"
+            "=VAL :xxx\n"
+            "-SEQ\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_flow());
+    ___(ps.set_val_tag("!str"));
+    ___(ps.set_val_scalar_plain({}));
+    ___(ps.add_sibling());
+    ___(ps.set_val_scalar_plain("xxx"));
+    ___(ps.end_seq());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(TagTestSuiteU99R_3,
+            ("{!!str, xxx}", "{!!str : ,xxx: }"),
+            "+STR\n"
+            "+DOC\n"
+            "+MAP {}\n"
+            "=VAL <tag:yaml.org,2002:str> :\n"
+            "=VAL :\n"
+            "=VAL :xxx\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_flow());
+    ___(ps.set_key_tag("!!str"));
+    ___(ps.set_key_scalar_plain({}));
+    ___(ps.set_val_scalar_plain({}));
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain("xxx"));
+    ___(ps.set_val_scalar_plain({}));
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(TagTestSuiteU99R_3_1,
+            ("{!str, xxx}", "{!str : ,xxx: }"),
+            "+STR\n"
+            "+DOC\n"
+            "+MAP {}\n"
+            "=VAL <!str> :\n"
+            "=VAL :\n"
+            "=VAL :xxx\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_flow());
+    ___(ps.set_key_tag("!str"));
+    ___(ps.set_key_scalar_plain({}));
+    ___(ps.set_val_scalar_plain({}));
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain("xxx"));
+    ___(ps.set_val_scalar_plain({}));
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(TagTestSuiteWZ62_0_0,
+            ("{foo: !!str , !!str : bar}", "{foo: !!str ,!!str : bar}"),
+            "+STR\n"
+            "+DOC\n"
+            "+MAP {}\n"
+            "=VAL :foo\n"
+            "=VAL <tag:yaml.org,2002:str> :\n"
+            "=VAL <tag:yaml.org,2002:str> :\n"
+            "=VAL :bar\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_flow());
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.set_val_tag("!!str"));
+    ___(ps.set_val_scalar_plain({}));
+    ___(ps.add_sibling());
+    ___(ps.set_key_tag("!!str"));
+    ___(ps.set_key_scalar_plain({}));
+    ___(ps.set_val_scalar_plain("bar"));
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(TagTestSuiteWZ62_0_1,
+            ("{foo: !str , !str : bar}", "{foo: !str ,!str : bar}"),
+            "+STR\n"
+            "+DOC\n"
+            "+MAP {}\n"
+            "=VAL :foo\n"
+            "=VAL <!str> :\n"
+            "=VAL <!str> :\n"
+            "=VAL :bar\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_flow());
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.set_val_tag("!str"));
+    ___(ps.set_val_scalar_plain({}));
+    ___(ps.add_sibling());
+    ___(ps.set_key_tag("!str"));
+    ___(ps.set_key_scalar_plain({}));
+    ___(ps.set_val_scalar_plain("bar"));
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(TagTestSuiteWZ62_1_0,
+            ("{foo: !!str, !!str: bar}", "{foo: !!str ,!!str: bar: }"),
+            "+STR\n"
+            "+DOC\n"
+            "+MAP {}\n"
+            "=VAL :foo\n"
+            "=VAL <tag:yaml.org,2002:str> :\n"
+            "=VAL <tag:yaml.org,2002:str:> :bar\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_flow());
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.set_val_tag("!!str"));
+    ___(ps.set_val_scalar_plain({}));
+    ___(ps.add_sibling());
+    ___(ps.set_key_tag("!!str:"));
+    ___(ps.set_key_scalar_plain("bar"));
+    ___(ps.set_val_scalar_plain({}));
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(TagTestSuiteWZ62_1_1,
+            ("{foo: !str, !str: bar}", "{foo: !str ,!str: bar: }"),
+            "+STR\n"
+            "+DOC\n"
+            "+MAP {}\n"
+            "=VAL :foo\n"
+            "=VAL <!str> :\n"
+            "=VAL <!str:> :bar\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_flow());
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.set_val_tag("!str"));
+    ___(ps.set_val_scalar_plain({}));
+    ___(ps.add_sibling());
+    ___(ps.set_key_tag("!str:"));
+    ___(ps.set_key_scalar_plain("bar"));
+    ___(ps.set_val_scalar_plain({}));
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST_ERRLOC(TagTestSuiteLHL4_0, Location(3,1),
+                   "---\n"
+                   "!invalid{}tag scalar\n")
+
+ENGINE_TEST_ERRLOC(TagTestSuiteLHL4_1, Location(3,1),
+                   "---\n"
+                   "!!invalid{}tag scalar\n")
+
+ENGINE_TEST(TagTestSuiteUGM3,
+            ("--- !<tag:clarkevans.com,2002:invoice>\n"
+            "invoice: 34843\n"
+            "date: 2001-01-23\n"),
+            "+STR\n"
+            "+DOC ---\n"
+            "+MAP <tag:clarkevans.com,2002:invoice>\n"
+            "=VAL :invoice\n"
+            "=VAL :34843\n"
+            "=VAL :date\n"
+            "=VAL :2001-01-23\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc_expl());
+    ___(ps.set_val_tag("!<tag:clarkevans.com,2002:invoice>"));
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("invoice"));
+    ___(ps.set_val_scalar_plain("34843"));
+    ___(ps.add_sibling());
+    ___(ps.set_key_scalar_plain("date"));
+    ___(ps.set_val_scalar_plain("2001-01-23"));
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
 ENGINE_TEST(TagTestSuiteUKK6_02_0,
             ("!", "! \n"),
             "+STR\n"
