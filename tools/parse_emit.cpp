@@ -7,7 +7,6 @@
 #include <c4/yml/common.hpp>
 #endif
 #include <c4/fs/fs.hpp>
-#include <c4/yml/detail/print.hpp>
 
 #include <cstdio>
 #include <chrono>
@@ -29,7 +28,6 @@ C4_SUPPRESS_WARNING_GCC("-Wuseless-cast")
 
 
 bool quiet = false;
-bool debug_tree = false;
 bool emit_as_json = false;
 bool timed_sections = false;
 bool emit_to_string = false;
@@ -95,8 +93,6 @@ csubstr parse_args(int argc, const char *argv[])
             timed_sections = true;
         else if(arg == "-s" || arg == "--string")
             emit_to_string = true;
-        else if(arg == "-d" || arg == "--debug")
-            debug_tree = true;
         else if(arg == "-j" || arg == "--json")
             emit_as_json = true;
         else
@@ -214,22 +210,10 @@ void process_file(csubstr file)
         TS(parse_yml);
         yml::parse_in_place(file, to_substr(contents), &tree);
     }
-    if(debug_tree)
-    {
-        TS(debug_tree);
-        yml::print_tree(tree);
-    }
     if(emit_as_json)
     {
-        {
-            TS(resolve_refs);
-            tree.resolve();
-        }
-        if(debug_tree)
-        {
-            TS(debug_resolved_tree);
-            yml::print_tree(tree);
-        }
+        TS(resolve_refs);
+        tree.resolve();
     }
     if(emit_to_string)
     {

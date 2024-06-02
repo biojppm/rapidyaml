@@ -292,6 +292,32 @@ ENGINE_TEST(Qmrk3,
     ___(ps.end_stream());
 }
 
+ENGINE_TEST(Qmrk4_0,
+            ("[?baz:,]",
+             "[{?baz: }]"),
+            "+STR\n"
+            "+DOC\n"
+            "+SEQ []\n"
+            "+MAP {}\n"
+            "=VAL :?baz\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-SEQ\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_flow());
+    ___(ps.begin_map_val_flow());
+    ___(ps.set_key_scalar_plain("?baz"));
+    ___(ps.set_val_scalar_plain({}));
+    ___(ps.end_map());
+    ___(ps.end_seq());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
 ENGINE_TEST(Qmrk4,
             ("[ ? an explicit key, ? foo,? bar,?baz:,?bat]",
              "[{an explicit key: },{foo: },{bar: },{?baz: },?bat]"),

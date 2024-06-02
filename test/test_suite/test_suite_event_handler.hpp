@@ -7,9 +7,6 @@
 #ifndef _C4_YML_EVENT_HANDLER_STACK_HPP_
 #include "c4/yml/event_handler_stack.hpp"
 #endif
-#ifndef _C4_YML_STD_STRING_HPP_
-#include "c4/yml/std/string.hpp"
-#endif
 #ifndef _C4_YML_DETAIL_PRINT_HPP_
 #include "c4/yml/detail/print.hpp"
 #endif
@@ -100,6 +97,7 @@ public:
         m_has_yaml_directive = false;
         for(TagDirective &td : m_tag_directives)
             td = {};
+        m_val_buffers.clear();
         m_val_buffers.resize((size_t)m_stack.size());
         m_arena.clear();
         m_arena.reserve(1024);
@@ -650,20 +648,20 @@ public:
 
     EventSink& _buf_() noexcept
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, (size_t)m_curr->level < m_val_buffers.size());
-        return m_val_buffers[(size_t)m_curr->level];
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_curr->level < m_val_buffers.size());
+        return m_val_buffers[m_curr->level];
     }
 
     EventSink& _buf_(id_type level) noexcept
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, (size_t)level < m_val_buffers.size());
-        return m_val_buffers[(size_t)level];
+        _RYML_CB_ASSERT(m_stack.m_callbacks, level < m_val_buffers.size());
+        return m_val_buffers[level];
     }
 
     EventSink const& _buf_(id_type level) const noexcept
     {
-        _RYML_CB_ASSERT(m_stack.m_callbacks, (size_t)level < m_val_buffers.size());
-        return m_val_buffers[(size_t)level];
+        _RYML_CB_ASSERT(m_stack.m_callbacks, level < m_val_buffers.size());
+        return m_val_buffers[level];
     }
 
     static void _buf_flush_to_(EventSink &C4_RESTRICT src, EventSink &C4_RESTRICT dst) noexcept
@@ -686,8 +684,8 @@ public:
 
     void _buf_ensure_(id_type size_needed) noexcept
     {
-        if((size_t)size_needed > m_val_buffers.size())
-            m_val_buffers.resize((size_t)size_needed);
+        if(size_needed > m_val_buffers.size())
+            m_val_buffers.resize(size_needed);
     }
 
     C4_ALWAYS_INLINE void _send_(csubstr s) noexcept { _buf_().append(s); }
@@ -699,7 +697,7 @@ public:
         _send_key_props_();
         _send_(' ');
         _send_(scalar_type_code);
-        _buf_().append_escaped(scalar);
+        append_escaped(&_buf_(), scalar);
         _send_('\n');
     }
     void _send_val_scalar_(csubstr scalar, char scalar_type_code)
@@ -708,7 +706,7 @@ public:
         _send_val_props_();
         _send_(' ');
         _send_(scalar_type_code);
-        _buf_().append_escaped(scalar);
+        append_escaped(&_buf_(), scalar);
         _send_('\n');
     }
 

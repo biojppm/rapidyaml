@@ -151,8 +151,6 @@ bool Args::parse(Args *args, int argc, const char *argv[])
     return true;
 }
 
-C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
-
 std::string load_file(csubstr filename)
 {
     if(filename == "-") // read from stdin
@@ -160,7 +158,7 @@ std::string load_file(csubstr filename)
         std::string buf;
         for(int c = std::getchar(); c != EOF; c = std::getchar())
         {
-            buf.push_back((char)c);
+            buf.push_back(static_cast<char>(c));
             if(buf.size() == buf.capacity())
                 buf.reserve(2u * (buf.capacity() >= 128u ? buf.capacity() : 128u));
         }
@@ -187,11 +185,9 @@ void report_error(const char* msg, size_t length, Location loc, FILE *f)
     if(loc.offset)
         fprintf(f, " (%zuB):", loc.offset);
     fputc(' ', f);
-    fprintf(f, "%.*s\n", (int)length, msg);
+    fprintf(f, "%.*s\n", static_cast<int>(length), msg);
     fflush(f);
 }
-
-C4_SUPPRESS_WARNING_GCC_CLANG_POP
 
 Callbacks create_custom_callbacks()
 {

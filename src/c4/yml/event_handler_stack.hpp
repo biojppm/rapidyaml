@@ -46,7 +46,7 @@ public:
     state *C4_RESTRICT   m_curr;    ///< current stack level: top of the stack. cached here for easier access.
     state *C4_RESTRICT   m_parent;  ///< parent of the current stack level.
     pfn_relocate_arena   m_relocate_arena; ///< callback when the arena gets relocated
-    void *C4_RESTRICT    m_relocate_arena_data;
+    void *               m_relocate_arena_data;
 
 protected:
 
