@@ -53,7 +53,7 @@ ryml is written in C++11, and compiles cleanly with:
 ryml's API documentation is [available at
 ReadTheDocs](https://rapidyaml.readthedocs.io/latest/).
 
-ryml is [extensively unit-tested in Linux, Windows and
+ryml is [extensively unit-tested and fuzz-tested in Linux, Windows and
 MacOS](https://github.com/biojppm/rapidyaml/actions). The tests cover
 x64, x86, wasm (emscripten), arm, aarch64, ppc64le and s390x
 architectures, and include analysing ryml with:
@@ -63,6 +63,8 @@ architectures, and include analysing ryml with:
     * memory
     * address
     * undefined behavior
+  * fuzzers:
+    * libfuzzer
 
 ryml also [runs in
 bare-metal](https://github.com/biojppm/rapidyaml/issues/193), and
