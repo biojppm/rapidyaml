@@ -22,7 +22,6 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
-#include <array>
 #include <map>
 #ifdef C4_EXCEPTIONS
 #include <stdexcept>
@@ -543,12 +542,14 @@ john: doe)";
     // The downside, of course, is that when you are not sure, release
     // builds may be doing something crazy.
     //
-    // So you can override this behavior and enable/disable
-    // assertions, by defining the macro RYML_USE_ASSERT to a proper
-    // value (see c4/yml/common.hpp).
+    // So in that case, you can either use the appropriate ryml
+    // predicates to check your intent (as in the examples above), or
+    // you can override this behavior and enable/disable assertions,
+    // by defining the macro RYML_USE_ASSERT to a proper value (see
+    // c4/yml/common.hpp).
     //
     // Also, to be clear, this does not apply to parse errors
-    // happening when the YAML is parsed. Checking for these errors is
+    // occurring when the YAML is parsed. Checking for these errors is
     // always enabled and cannot be switched off.
 
 
@@ -578,19 +579,19 @@ john: doe)";
     // node. It can be used to read from the node, but not write to it
     // or modify the hierarchy of the node. If any modification is
     // desired then a NodeRef must be used instead:
-    ryml::NodeRef wroot = tree.rootref();
+    ryml::NodeRef wroot = tree.rootref(); // writeable root
 
     // operator= assigns an existing string to the receiving node.
-    // The contents are NOT copied, and this pointer will be in effect
-    // until the tree goes out of scope! So BEWARE to only assign from
-    // strings outliving the tree.
+    // The contents are NOT copied, and the string pointer will be in
+    // effect until the tree goes out of scope! So BEWARE to only
+    // assign from strings outliving the tree.
     wroot["foo"] = "says you";
     wroot["bar"][0] = "-2";
     wroot["bar"][1] = "-3";
     wroot["john"] = "ron";
     // Now the tree is _pointing_ at the memory of the strings above.
-    // In this case it is OK because those are static strings and will
-    // outlive the tree.
+    // In this case it is OK because those are static strings, located
+    // in the executable's static section, and will outlive the tree.
     CHECK(root["foo"].val() == "says you");
     CHECK(root["bar"][0].val() == "-2");
     CHECK(root["bar"][1].val() == "-3");
@@ -602,9 +603,12 @@ john: doe)";
     // }
     // CHECK(root["john"] == "dangling"); // CRASH! the string was deallocated
 
-    // operator<< first serializes the input to the tree's arena, then
-    // assigns the serialized string to the receiving node. This avoids
-    // constraints with the lifetime, since the arena lives with the tree.
+    // operator<<: for cases where the lifetime of the string is
+    // problematic WRT the tree, you can create and save a string in
+    // the tree using operator<<. It first serializes values to a
+    // string arena owned by the tree, then assigns the serialized
+    // string to the receiving node. This avoids constraints with the
+    // lifetime, since the arena lives with the tree.
     CHECK(tree.arena().empty());
     wroot["foo"] << "says who";  // requires to_chars(). see serialization samples below.
     wroot["bar"][0] << 20;

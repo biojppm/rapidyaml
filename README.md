@@ -786,44 +786,53 @@ improve.
 ### Test suite status
 
 As part of its CI testing, ryml uses the [YAML test
-suite](https://github.com/yaml/yaml-test-suite). This is an extensive
-set of reference cases covering the full YAML spec. Each of these
-cases have several subparts:
+suite](https://github.com/yaml/yaml-test-suite). (See also the test
+suite results at
+[https://matrix.yaml.info/](https://matrix.yaml.info/), but be aware
+that the results there may be using an older version of ryml.) This is
+an extensive and merciless set of reference cases covering the full
+YAML spec. Each of these cases has several subparts:
  * `in-yaml`: mildly, plainly or extremely difficult-to-parse YAML
  * `in-json`: equivalent JSON (where possible/meaningful)
  * `out-yaml`: equivalent standard YAML
  * `emit-yaml`: equivalent standard YAML
- * `events`: reference results (ie, expected tree)
+ * `events`: reference events according to the YAML standard
 
-When testing, ryml parses each of the 4 yaml/json parts, then emits
-the parsed tree, then parses the emitted result and verifies that
-emission is idempotent, ie that the emitted result is semantically the
-same as its input without any loss of information. To ensure
-consistency, this happens over four levels of parse/emission
-pairs. And to ensure correctness, each of the stages is compared
-against the `events` spec from the test, which constitutes the
-reference. The tests also check for equality between the reference
+When testing, ryml parses each of the yaml/json parts, then emits the
+parsed tree, then parses the emitted result and verifies that emission
+is idempotent, ie that the round trip emitted result is semantically
+the same as its input without any loss of information.
+
+To ensure consistency, this happens over four successive levels of
+parse->emit round trips. And to ensure correctness, each of the stages
+is compared against the `events` spec from the test, which constitutes
+the reference. The tests also check for equality between the reference
 events in the test case and the events emitted by ryml from the data
 tree parsed from the test case input. All of this is then carried out
-combining several variations: both unix `\n` vs windows `\r\n` line
+with several variations: both unix `\n` vs windows `\r\n` line
 endings, emitting to string, file or streams, which results in ~250
-tests per case part. With multiple parts per case and ~400 reference
+tests per case part.
+
+With multiple parts per case and ~400 reference
 cases in the test suite, this makes over several hundred thousand
 individual tests to which ryml is subjected, which are added to the
-unit tests in ryml, which also employ the same extensive
-combinatorial approach.
+unit tests in ryml, which also employ the same extensive combinatorial
+approach.
 
-Also, note that in [their own words](http://matrix.yaml.io/), the
+Also, note that in [their own words](http://matrix.yaml.info/), the
 tests from the YAML test suite *contain a lot of edge cases that don't
 play such an important role in real world examples*. And yet, despite
 the extreme focus of the test suite, currently ryml only fails a minor
 fraction of the test cases, mostly related with the deliberate
-limitations noted above. Other than those limitations, by far the main
-issue with ryml is that several standard-mandated parse errors fail to
-materialize. For the up-to-date list of ryml failures in the
-test-suite, refer to the [list of known
+limitations noted above.
+
+Other than those limitations, by far the main issue with ryml is that
+several standard-mandated parse errors fail to materialize (this will
+be addressed in the coming releases). For the up-to-date list of ryml
+failures in the test-suite, refer to the [list of known
 exceptions](test/test_suite/test_suite_parts.cpp) from ryml's test
-suite runner, which is used as part of ryml's CI process.
+suite runner, which is used as part of ryml's CI setup.
+
 
 
 ------
