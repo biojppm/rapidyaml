@@ -34,7 +34,7 @@
 
 #ifndef RYML_LOGBUF_SIZE_MAX
 /// size for the fallback larger log buffer. When @ref
-/// RYML_LOGBUG_SIZE is not large enough to convert a value to string,
+/// RYML_LOGBUF_SIZE is not large enough to convert a value to string,
 /// then temporary stack memory is allocated up to
 /// RYML_LOGBUF_SIZE_MAX. This limit is in place to prevent a stack
 /// overflow. If the printed value requires more than
