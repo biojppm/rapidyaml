@@ -180,7 +180,6 @@ yml::Callbacks create_custom_callbacks()
     };
     return callbacks;
 }
-// LCOV_EXCL_STOP
 
 
 //-----------------------------------------------------------------------------
@@ -241,6 +240,7 @@ void process_file(csubstr file)
             emit_json_docs(tree);
     }
 }
+// LCOV_EXCL_STOP
 
 int main(int argc, const char *argv[])
 {
