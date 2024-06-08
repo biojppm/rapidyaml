@@ -3221,7 +3221,7 @@ QWxsIHRoYXQgZ2xpdHRlcnMgaXMgbm90IGdvbGQu: All that glitters is not gold.
         result.resize(len); // trim to the length of the decoded buffer
         CHECK(result == c.text);
         //
-        // Note also these are just syntatic wrappers to simplify client code.
+        // Note also these are just syntactic wrappers to simplify client code.
         // You can call into the lower level functions without much effort:
         result.clear(); // this is not needed. We do it just to show that the first call can fail.
         ryml::csubstr encoded = tree[c.base64].key();

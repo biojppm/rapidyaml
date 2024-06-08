@@ -517,6 +517,126 @@ reference_list:
     EXPECT_EQ(emitrs_yaml<std::string>(tree), expected_yaml);
 }
 
+TEST(deserialize, issue434_0)
+{
+    Tree tree = parse_in_arena("{empty: }");
+    ConstNodeRef cnode = tree["empty"];
+    NodeRef node = tree["empty"];
+    {
+        int value = 0;
+        EXPECT_FALSE(read(cnode, &value));
+    }
+    {
+        int value = 0;
+        EXPECT_FALSE(read(node, &value));
+    }
+    ExpectError::do_check(&tree, [&]{
+        int value = 0;
+        cnode >> value;
+    });
+    ExpectError::do_check(&tree, [&]{
+        int value = 0;
+        node >> value;
+    });
+    {
+        double value = 0;
+        EXPECT_FALSE(read(cnode, &value));
+    }
+    {
+        double value = 0;
+        EXPECT_FALSE(read(node, &value));
+    }
+    ExpectError::do_check(&tree, [&]{
+        double value = 0;
+        cnode >> value;
+    });
+    ExpectError::do_check(&tree, [&]{
+        double value = 0;
+        node >> value;
+    });
+}
+
+void test_deserialize_trailing_434(csubstr yaml, csubstr val, csubstr first, double dval)
+{
+    Tree tree = parse_in_arena(yaml);
+    ASSERT_EQ(tree["val"].val(), val);
+    EXPECT_EQ(tree["val"].val().first_int_span(), first);
+    EXPECT_EQ(tree["val"].val().first_real_span(), first);
+    ConstNodeRef cnode = tree["val"];
+    NodeRef node = tree["val"];
+    {
+        int value;
+        EXPECT_FALSE(read(cnode, &value));
+    }
+    {
+        int value;
+        EXPECT_FALSE(read(node, &value));
+    }
+    ExpectError::do_check(&tree, [&]{
+        int value = 1;
+        cnode >> value;
+    });
+    ExpectError::do_check(&tree, [&]{
+        int value = 1;
+        node >> value;
+    });
+    float fval = (float)dval;
+    {
+        float value;
+        EXPECT_TRUE(read(cnode, &value));
+        EXPECT_EQ(memcmp(&value, &fval, sizeof(fval)), 0);
+    }
+    {
+        float value;
+        EXPECT_TRUE(read(node, &value));
+        EXPECT_EQ(memcmp(&value, &fval, sizeof(fval)), 0);
+    }
+    {
+        double value;
+        EXPECT_TRUE(read(cnode, &value));
+        EXPECT_EQ(memcmp(&value, &dval, sizeof(dval)), 0);
+    }
+    {
+        double value;
+        EXPECT_TRUE(read(node, &value));
+        EXPECT_EQ(memcmp(&value, &dval, sizeof(dval)), 0);
+    }
+    {
+        float value = 1;
+        cnode >> value;
+        EXPECT_EQ(memcmp(&value, &fval, sizeof(fval)), 0);
+    }
+    {
+        float value = 1;
+        node >> value;
+        EXPECT_EQ(memcmp(&value, &fval, sizeof(fval)), 0);
+    }
+    {
+        double value = 1;
+        cnode >> value;
+        EXPECT_EQ(memcmp(&value, &dval, sizeof(fval)), 0);
+    }
+    {
+        double value = 1;
+        node >> value;
+        EXPECT_EQ(memcmp(&value, &dval, sizeof(fval)), 0);
+    }
+}
+TEST(deserialize, issue434_1)
+{
+    test_deserialize_trailing_434("{val: 0.r3}", "0.r3", "", 0.0);
+}
+
+TEST(deserialize, issue434_2)
+{
+    test_deserialize_trailing_434("{val: 34gf3}", "34gf3", "", 34.0);
+}
+
+TEST(deserialize, issue434_3)
+{
+    test_deserialize_trailing_434("{val: 34 gf3}", "34 gf3", "34", 34.0);
+}
+
 
 //-------------------------------------------
 // this is needed to use the test case library

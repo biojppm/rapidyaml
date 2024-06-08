@@ -603,7 +603,7 @@ public:
         _RYML_CB_CHECK(tree_->m_callbacks, (pos >= 0 && pos < cap));
         _RYML_CB_CHECK(tree_->m_callbacks, ((Impl const*)this)->readable());
         _RYML_CB_CHECK(tree_->m_callbacks, tree_->is_container(id_));
-        id_type ch = tree_->child(id_, pos);
+        const id_type ch = tree_->child(id_, pos);
         _RYML_CB_CHECK(tree_->m_callbacks, ch != NONE);
         return {tree_, ch};
     }
@@ -615,7 +615,8 @@ public:
     /** @name deserialization */
     /** @{ */
 
-    /** deserialize the node's val to the given variable */
+    /** deserialize the node's val to the given variable, forwarding
+     * to the user-overrideable @ref read() function. */
     template<class T>
     ConstImpl const& operator>> (T &v) const
     {
@@ -625,13 +626,14 @@ public:
         return *((ConstImpl const*)this);
     }
 
-    /** deserialize the node's key to the given variable; use @ref key()
+    /** deserialize the node's key to the given variable, forwarding
+     * to the user-overrideable @ref read() function; use @ref key()
      * to disambiguate; for example: `node >> ryml::key(var)` */
     template<class T>
     ConstImpl const& operator>> (Key<T> v) const
     {
         _C4RR();
-        if( ! from_chars(key(), &v.k))
+        if(key().empty() || ! from_chars(key(), &v.k))
             _RYML_CB_ERR(tree_->m_callbacks, "could not deserialize key");
         return *((ConstImpl const*)this);
     }
@@ -1602,30 +1604,94 @@ inline void write(NodeRef *n, T const& v)
     n->set_val_serialized(v);
 }
 
+/** convert the val of a scalar node to a particular type, by
+ * forwarding its val to @ref from_chars<T>(). The full string is
+ * used.
+ * @return false if the conversion failed */
 template<class T>
 typename std::enable_if< ! std::is_floating_point<T>::value, bool>::type
 inline read(NodeRef const& n, T *v)
 {
-    return from_chars(n.val(), v);
+    csubstr val = n.val();
+    if(val.empty())
+        return false;
+    return from_chars(val, v);
 }
+/** convert the val of a scalar node to a particular type, by
+ * forwarding its val to @ref from_chars<T>(). The full string is
+ * used.
+ * @return false if the conversion failed */
 template<class T>
 typename std::enable_if< ! std::is_floating_point<T>::value, bool>::type
 inline read(ConstNodeRef const& n, T *v)
 {
-    return from_chars(n.val(), v);
+    csubstr val = n.val();
+    if(val.empty())
+        return false;
+    return from_chars(val, v);
 }
 
+/** convert the val of a scalar node to a floating point type, by
+ * forwarding its val to @ref from_chars_float<T>().
+ *
+ * @return false if the conversion failed
+ *
+ * @warning Unlike non-floating types, only the leading part of the
+ * string that may constitute a number is processed. This happens
+ * because the float parsing is delegated to fast_float, which is
+ * implemented that way. Consequently, for example, all of `"34"`,
+ * `"34 "` `"34hg"` `"34 gh"` will be read as 34. If you are not sure
+ * about the contents of the data, you can use
+ * csubstr::first_real_span() to check before calling `>>`, for
+ * example like this:
+ *
+ * ```cpp
+ * csubstr val = node.val();
+ * if(val.first_real_span() == val)
+ *     node >> v;
+ * else
+ *     ERROR("not a real")
+ * ```
+ */
 template<class T>
 typename std::enable_if<std::is_floating_point<T>::value, bool>::type
 inline read(NodeRef const& n, T *v)
 {
-    return from_chars_float(n.val(), v);
+    csubstr val = n.val();
+    if(val.empty())
+        return false;
+    return from_chars_float(val, v);
 }
+/** convert the val of a scalar node to a floating point type, by
+ * forwarding its val to @ref from_chars_float<T>().
+ *
+ * @return false if the conversion failed
+ *
+ * @warning Unlike non-floating types, only the leading part of the
+ * string that may constitute a number is processed. This happens
+ * because the float parsing is delegated to fast_float, which is
+ * implemented that way. Consequently, for example, all of `"34"`,
+ * `"34 "` `"34hg"` `"34 gh"` will be read as 34. If you are not sure
+ * about the contents of the data, you can use
+ * csubstr::first_real_span() to check before calling `>>`, for
+ * example like this:
+ *
+ * ```cpp
+ * csubstr val = node.val();
+ * if(val.first_real_span() == val)
+ *     node >> v;
+ * else
+ *     ERROR("not a real")
+ * ```
+ */
 template<class T>
 typename std::enable_if<std::is_floating_point<T>::value, bool>::type
 inline read(ConstNodeRef const& n, T *v)
 {
-    return from_chars_float(n.val(), v);
+    csubstr val = n.val();
+    if(val.empty())
+        return false;
+    return from_chars_float(val, v);
 }
 
 /** @} */
