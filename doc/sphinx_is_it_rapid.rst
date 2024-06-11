@@ -25,11 +25,11 @@ faster.
    nicely as claimed here, we would definitely like to see it! Please
    open an issue, or submit a pull request adding the file to
    `bm/cases
-   <https://github.com/biojppm/rapidyaml/blob/v0.6.0/bm/cases>`__, or
+   <https://github.com/biojppm/rapidyaml/blob/v0.7.0/bm/cases>`__, or
    just send us the files.
 
 `Here’s a parsing benchmark
-<https://github.com/biojppm/rapidyaml/blob/v0.6.0/bm/bm_parse.cpp>`__. Using
+<https://github.com/biojppm/rapidyaml/blob/v0.7.0/bm/bm_parse.cpp>`__. Using
 different approaches within ryml (in-situ/read-only vs. with/without
 reuse), a YAML / JSON buffer is repeatedly parsed, and compared
 against other libraries.
@@ -40,7 +40,7 @@ Comparison with yaml-cpp
 
 The first result set is for Windows, and is using a `appveyor.yml
 config file
-<https://github.com/biojppm/rapidyaml/blob/v0.6.0/bm/cases/appveyor.yml>`__. A
+<https://github.com/biojppm/rapidyaml/blob/v0.7.0/bm/cases/appveyor.yml>`__. A
 comparison of these results is summarized on the table below:
 
 =========================== ===== ======= ==========
@@ -52,11 +52,11 @@ appveyor / vs2017 / Debug   6.4   0.0844  76x / 1.3%
 
 The next set of results is taken in Linux, comparing g++ 8.2 and
 clang++ 7.0.1 in parsing a YAML buffer from a `travis.yml config file
-<https://github.com/biojppm/rapidyaml/blob/v0.6.0/bm/cases/travis.yml>`__
+<https://github.com/biojppm/rapidyaml/blob/v0.7.0/bm/cases/travis.yml>`__
 or a JSON buffer from a `compile_commands.json file
-<https://github.com/biojppm/rapidyaml/blob/v0.6.0/bm/cases/compile_commands.json>`__. You
+<https://github.com/biojppm/rapidyaml/blob/v0.7.0/bm/cases/compile_commands.json>`__. You
 can `see the full results here
-<https://github.com/biojppm/rapidyaml/blob/v0.6.0/bm/results/parse.linux.i7_6800K.md>`__. Summarizing:
+<https://github.com/biojppm/rapidyaml/blob/v0.7.0/bm/results/parse.linux.i7_6800K.md>`__. Summarizing:
 
 ========================== ===== ======= ========
 Read rates (MB/s)          ryml  yamlcpp compared
@@ -89,9 +89,9 @@ So how does ryml compare against other JSON readers? Well, it may not
 be the fastest, but it's definitely ahead of the pack!
 
 The benchmark is the `same as above
-<https://github.com/biojppm/rapidyaml/blob/v0.6.0/bm/bm_parse.cpp>`__,
+<https://github.com/biojppm/rapidyaml/blob/v0.7.0/bm/bm_parse.cpp>`__,
 and it is reading the `compile_commands.json
-<https://github.com/biojppm/rapidyaml/blob/v0.6.0/bm/cases/compile_commands.json>`__,
+<https://github.com/biojppm/rapidyaml/blob/v0.7.0/bm/cases/compile_commands.json>`__,
 The ``_arena`` suffix notes parsing a read-only buffer (so buffer
 copies are performed), while the ``_inplace`` suffix means that the
 source buffer can be parsed in place. The ``_reuse`` means the data
@@ -131,7 +131,7 @@ Performance emitting
 --------------------
 
 `Emitting benchmarks
-<https://github.com/biojppm/rapidyaml/blob/v0.6.0/bm/bm_emit.cpp>`__
+<https://github.com/biojppm/rapidyaml/blob/v0.7.0/bm/bm_emit.cpp>`__
 also show similar speedups from the existing libraries, also
 anecdotally reported by some users `(eg, here’s a user reporting 25x
 speedup from yaml-cpp)

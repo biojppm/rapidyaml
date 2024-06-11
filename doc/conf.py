@@ -10,7 +10,7 @@ import os
 project = 'rapidyaml'
 copyright = '2018-2024 Joao Paulo Magalhaes <dev@jpmag.me>'
 author = 'Joao Paulo Magalhaes <dev@jpmag.me>'
-release = '0.6.0'
+release = '0.7.0'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
