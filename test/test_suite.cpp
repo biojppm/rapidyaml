@@ -299,11 +299,11 @@ struct TestSequenceLevel
         if(prev)
             receive_src(*prev);
         _nfo_logf("level[{}]: parsing source:\n{}", level, src_evts);
-        evt_str_sink.reset();
+        evt_str_sink.clear();
         evt_handler_str_sink.reset();
         evt_handler_str_sink.m_stack.m_callbacks = get_callbacks();
         parser_str_sink.parse_in_place_ev(filename, to_substr(src_evts));
-        EXPECT_NE(evt_str_sink.result, "");
+        EXPECT_NE(evt_str_sink.size(), 0);
         events_were_generated = true;
     }
 
@@ -655,7 +655,8 @@ struct TestSequenceData
         for(size_t i = 0; i < num; ++i)
         {
             levels[i].parse_yaml_to_events();
-            events->compare_emitted_events_to_reference_events(levels[i].evt_str_sink.result,
+            csubstr result = levels[i].evt_str_sink;
+            events->compare_emitted_events_to_reference_events(std::string(result.str, result.len),
                                                                /*ignore_container_style*/false,
                                                                /*ignore_scalar_style*/(num>0));
         }

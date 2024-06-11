@@ -17,7 +17,7 @@ welcome.
    linters**, many of which are not fully conformant; instead, try
    using `https://play.yaml.io
    <https://play.yaml.io/main/parser?input=IyBFZGl0IE1lIQoKJVlBTUwgMS4yCi0tLQpmb286IEhlbGxvLCBZQU1MIQpiYXI6IFsxMjMsIHRydWVdCmJhejoKLSBvbmUKLSB0d28KLSBudWxsCg==>`__,
-   an amazing tool which lets you dynamically input your YAML and
+   an amazingly useful tool which lets you dynamically input your YAML and
    continuously see the results from all the existing parsers (kudos
    to @ingydotnet and the people from the YAML test suite). And of
    course, if you detect anything wrong with ryml, please `open an
@@ -31,17 +31,13 @@ Deliberate deviations
 ryml deliberately makes no effort to follow the standard in the
 following situations:
 
--  ryml's tree does NOT accept containers are as mapping keys: keys
-   must be scalars. HOWEVER, this is a limitation only of the tree. The
-   event-based parser engine DOES parse container keys. The parser
-   engine is the result of a recent refactor and its usage is meant to
-   be used by other programming languages to create their native
-   data-structures. This engine is fully tested and fully conformant
-   (other than the general error permissiveness noted below). But
-   because it is recent, it is still undocumented, and it requires some
-   API cleanup before being ready for isolated use. Please get in touch
-   if you are interested in integrating the event-based parser engine
-   without the standalone `ryml::parse_*()`
+-  ryml's tree does NOT accept containers as map keys: keys stored in
+   the tree must always be scalars. HOWEVER, this is a limitation only
+   of the final tree. The event-based parse engine DOES parse container
+   keys, as it is is meant to be used by other programming languages to
+   create their native data-structures, and it is fully tested and
+   fully conformant (other than the general error permissiveness noted
+   below).
 -  Tab characters after ``:`` and ``-`` are not accepted tokens, unless
    ryml is compiled with the macro ``RYML_WITH_TAB_TOKENS``. This
    requirement exists because checking for tabs introduces branching
@@ -83,42 +79,52 @@ generally a source of problems; this is good practice anyway.
 YAML test suite
 ---------------
 
-As part of its CI testing, ryml uses the `YAML test
-suite <https://github.com/yaml/yaml-test-suite>`__. This is an extensive
-set of reference cases covering the full YAML spec. Each of these cases
-have several subparts:
-
+As part of its CI testing, ryml uses the `YAML test suite <https://github.com/yaml/yaml-test-suite>`__.  This is
+an extensive and merciless set of reference cases covering the full
+YAML spec. Each of these cases has several subparts:
  - ``in-yaml``: mildly, plainly or extremely difficult-to-parse YAML
  - ``in-json``: equivalent JSON (where possible/meaningful)
  - ``out-yaml``: equivalent standard YAML
  - ``emit-yaml``: equivalent standard YAML
- - ``events``: reference results (ie, expected tree)
+ - ``events``: reference events according to the YAML standard
 
-When testing, ryml parses each of the 4 yaml/json parts, then emits the
+.. note::
+
+   See the test suite results at
+   `https://matrix.yaml.info/ <https://matrix.yaml.info/>`__,
+   but be aware that the results there may be using an older
+   version of ryml.
+
+When testing, ryml parses each of the yaml/json parts, then emits the
 parsed tree, then parses the emitted result and verifies that emission
-is idempotent, ie that the emitted result is semantically the same as
-its input without any loss of information. To ensure consistency, this
-happens over four levels of parse/emission pairs. And to ensure
-correctness, each of the stages is compared against the ``events`` spec
-from the test, which constitutes the reference. The tests also check for
-equality between the reference events in the test case and the events
-emitted by ryml from the data tree parsed from the test case input. All
-of this is then carried out combining several variations: both unix
-``\n`` vs windows ``\r\n`` line endings, emitting to string, file or
-streams, which results in ~250 tests per case part. With multiple parts
-per case and ~400 reference cases in the test suite, this makes over
-several hundred thousand individual tests to which ryml is subjected,
-which are added to the unit tests in ryml, which also employ the same
-extensive combinatorial approach.
+is idempotent, ie that the round trip emitted result is semantically
+the same as its input without any loss of information.
+
+To ensure consistency, this happens over four successive levels of
+parse->emit round trips. And to ensure correctness, each of the stages
+is compared against the ``events`` spec from the test, which constitutes
+the reference. The tests also check for equality between the reference
+events in the test case and the events emitted by ryml from the data
+tree parsed from the test case input. All of this is then carried out
+with several variations: both unix ``\n`` vs windows ``\r\n`` line
+endings, emitting to string, file or streams, which results in ~250
+tests per case part.
+
+With multiple parts per case and ~400 reference
+cases in the test suite, this makes over several hundred thousand
+individual tests to which ryml is subjected, which are added to the
+unit tests in ryml, which also employ the same extensive combinatorial
+approach.
 
 Also, note that in `their own words <http://matrix.yaml.info/>`__, the
-tests from the YAML test suite *contain a lot of edge cases that don’t
+tests from the YAML test suite *contain a lot of edge cases that don't
 play such an important role in real world examples*. And yet, despite
 the extreme focus of the test suite, currently ryml only fails a minor
 fraction of the test cases, mostly related with the deliberate
-limitations noted above. Other than those limitations, by far the main
-issue with ryml is that several standard-mandated parse errors fail to
-materialize. For the up-to-date list of ryml failures in the test-suite,
-refer to the `list of known
-exceptions <https://github.com/biojppm/rapidyaml/blob/v0.6.0/test/test_suite/test_suite_parts.cpp>`__ from ryml’s test
-suite runner, which is used as part of ryml’s CI process.
+limitations noted above.
+
+Other than those limitations, by far the main issue with ryml is that
+several standard-mandated parse errors fail to materialize (this will
+be addressed in the coming releases). For the up-to-date list of ryml
+failures in the test-suite, refer to the `list of known exceptions <test/test_suite/test_suite_parts.cpp>`__ from ryml's test
+suite runner, which is used as part of ryml's CI setup.

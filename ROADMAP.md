@@ -1,2 +1,2 @@
 
-Moved! See ryml's [Kanban board on github](https://github.com/biojppm/rapidyaml/projects/1).
+Moved! See rapidyaml's [Kanban board on github](https://github.com/users/biojppm/projects/1/views/1).

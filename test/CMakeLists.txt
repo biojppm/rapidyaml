@@ -265,3 +265,62 @@ if(RYML_TEST_SUITE)
         ryml_add_test_from_suite(${case})
     endforeach()
 endif(RYML_TEST_SUITE)
+
+
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+
+# run every known fuzz crash
+set(fuzzdefault ON)
+if(EMSCRIPTEN)
+    set(fuzzdefault OFF)
+endif()
+option(RYML_TEST_FUZZ "Enable tests for known problematic fuzz cases." ${fuzzdefault})
+
+if(RYML_TEST_FUZZ)
+    c4_download_remote_proj(rapidyaml-data rapidyaml_data_dir
+        GIT_REPOSITORY https://github.com/biojppm/rapidyaml-data
+        GIT_TAG master)
+    if(NOT EXISTS ${rapidyaml_data_dir}/fuzz/yaml.dict)
+        c4_err("cannot find rapidyaml-data at ${rapidyaml_data_dir} -- was there an error downloading the project?")
+    endif()
+
+    set(corpus_suite_dir ${rapidyaml_data_dir}/fuzz/yaml_test_suite)
+    set(corpus_generated_dir ${rapidyaml_data_dir}/fuzz/yaml_generated)
+    set(corpus_artifacts_dir ${rapidyaml_data_dir}/fuzz/yaml_artifacts)
+    set(corpus_merged_dir ${rapidyaml_data_dir}/fuzz/yaml_merged)
+    set(yaml_dict ${rapidyaml_data_dir}/fuzz/yaml.dict)
+    file(GLOB_RECURSE fuzz_files RELATIVE "${corpus_artifacts_dir}" "${corpus_artifacts_dir}/*")
+    file(GLOB_RECURSE suite_files RELATIVE "${corpus_suite_dir}" "${corpus_suite_dir}/*")
+
+    # add individual tests for problematic fuzz files
+    function(ryml_add_fuzz_test name)
+        c4_add_executable(ryml-test-fuzz-${name}
+            SOURCES
+            test_fuzz/test_fuzz_common.hpp
+            test_fuzz/test_fuzz_${name}.cpp
+            test_fuzz/test_fuzz_main.cpp
+            ${ARGN}
+            INC_DIRS ${CMAKE_CURRENT_LIST_DIR}
+            LIBS ryml c4fs
+            FOLDER test/fuzz)
+        if(RYML_DBG)
+            target_compile_definitions(ryml-test-fuzz-${name} PUBLIC RYML_DBG)
+        endif()
+        add_dependencies(ryml-test-build ryml-test-fuzz-${name})
+        ryml_get_target_exe(ryml-test-fuzz-${name} tgtexe)
+        function(ryml_add_fuzz_test_file name_ dir file)
+            string(REPLACE "/" "_" fuzz_name "${file}")
+            add_test(NAME ryml-test-fuzz-${name_}-${fuzz_name}
+                COMMAND ${tgtexe} ${dir}/${file})
+        endfunction()
+        foreach(fuzz_file ${fuzz_files})
+            ryml_add_fuzz_test_file(${name} ${corpus_artifacts_dir} ${fuzz_file})
+        endforeach()
+    endfunction()
+    ryml_add_fuzz_test(parse_emit)
+    ryml_add_fuzz_test(events
+        ../test/test_suite/test_suite_event_handler.hpp
+        ../test/test_suite/test_suite_event_handler.cpp)
+endif()

@@ -74,7 +74,24 @@ typedef enum {
 /** A lightweight object containing options to be used when emitting. */
 struct EmitOptions
 {
+    typedef enum : uint32_t {
+        DEFAULT_FLAGS = 0,
+        JSON_ERR_ON_TAG = 1 << 0,
+        JSON_ERR_ON_ANCHOR = 1 << 1,
+        _JSON_ERR_MASK = JSON_ERR_ON_TAG|JSON_ERR_ON_ANCHOR,
+    } EmitOptionFlags_e;
+
 public:
+
+    /** @name option flags
+     *
+     * @{ */
+    C4_ALWAYS_INLINE EmitOptionFlags_e json_error_flags() const noexcept { return m_option_flags; }
+    EmitOptions& json_error_flags(EmitOptionFlags_e d) noexcept { m_option_flags = (EmitOptionFlags_e)(d & _JSON_ERR_MASK); return *this; }
+    /** @} */
+
+public:
+
     /** @name max depth for the emitted tree
      *
      * This makes the emitter fail when emitting trees exceeding the
@@ -85,8 +102,21 @@ public:
     EmitOptions& max_depth(id_type d) noexcept { m_max_depth = d; return *this; }
     static constexpr const id_type max_depth_default = 64;
     /** @} */
+
+public:
+
+    bool operator== (const EmitOptions& that) const noexcept
+    {
+        return m_max_depth == that.m_max_depth &&
+            m_option_flags == that.m_option_flags;
+    }
+
 private:
+
+    /** @cond dev */
     id_type m_max_depth{max_depth_default};
+    EmitOptionFlags_e m_option_flags{DEFAULT_FLAGS};
+    /** @endcond */
 };
 
 
@@ -442,6 +472,7 @@ inline OStream& operator<< (OStream& s, as_yaml const& y)
  * @param id the node where to start emitting.
  * @param opts emit options.
  * @param buf the output buffer.
+ * @param opts emit options.
  * @param error_on_excess Raise an error if the space in the buffer is insufficient.
  * @return a substr trimmed to the result in the output buffer. If the buffer is
  * insufficient (when error_on_excess is false), the string pointer of the
@@ -462,6 +493,7 @@ inline substr emit_yaml(Tree const& t, id_type id, substr buf, bool error_on_exc
  * @param id the node where to start emitting.
  * @param opts emit options.
  * @param buf the output buffer.
+ * @param opts emit options.
  * @param error_on_excess Raise an error if the space in the buffer is insufficient.
  * @return a substr trimmed to the result in the output buffer. If the buffer is
  * insufficient (when error_on_excess is false), the string pointer of the

@@ -15,7 +15,8 @@ std::string emit_events_from_source(substr src)
     EventHandlerYamlStd handler(&sink);
     ParseEngine<EventHandlerYamlStd> parser(&handler);
     parser.parse_in_place_ev("(testyaml)", src);
-    return sink.result;
+    csubstr result = sink;
+    return std::string(result.str, result.len);
 }
 
 

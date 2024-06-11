@@ -432,37 +432,6 @@ CHECK(loc.col == 4u);
 
 ## Using ryml in your project
 
-### Package managers
-
-ryml is available in most package managers (thanks to all the
-contributors!) and linux distributions. But please be aware: those
-packages are maintained downstream of this repository, so if you have
-issues with the package, file a report with the respective maintainer.
-
-Here's a quick roundup (not maintained):
-* Package managers:
-  * [conan](https://conan.io/center/recipes/rapidyaml)
-  * [vcpkg](https://vcpkg.io/en/packages.html): `vcpkg install ryml`
-  * [PyPI](https://pypi.org/project/rapidyaml/)
-* Linux distributions:
-  * Arch Linux/Manjaro:
-    * [rapidyaml (aarch64)](https://archlinuxarm.org/packages/aarch64/rapidyaml)
-    * [rapidyaml-git (AUR)](https://aur.archlinux.org/packages/rapidyaml-git/)
-    * [python-rapidyaml-git (AUR)](https://aur.archlinux.org/packages/python-rapidyaml-git/)
-  * [Fedora Linux](https://getfedora.org/)/[EPEL](https://docs.fedoraproject.org/en-US/epel/):
-    * `dnf install rapidyaml-devel`
-    * `dnf install python3-rapidyaml`
-  * [Gentoo](https://packages.gentoo.org/packages/dev-cpp/rapidyaml)
-  * [OpenSuse](https://build.openbuildservice.org/package/show/Emulators/rapidyaml)
-  * [Slackbuilds](https://slackbuilds.org/repository/15.0/libraries/rapidyaml/)
-  * [AltLinux](https://packages.altlinux.org/en/sisyphus/srpms/rapidyaml/3006055151670528141)
-  
-Although package managers are very useful for quickly getting up to
-speed, the advised way is still to bring ryml as a submodule of your
-project, building both together. This makes it easy to track any
-upstream changes in ryml. Also, ryml is small and quick to build, so
-there's not much of a cost for building it with your project.
-
 ### Single header file
 ryml is provided chiefly as a cmake library project, but it can also
 be used as a single header file, and there is a [tool to
@@ -531,6 +500,38 @@ If you omit `--recursive`, after cloning you
 will have to do `git submodule update --init --recursive`
 to ensure ryml's submodules are checked out.
 
+### Package managers
+
+ryml is available in most package managers (thanks to all the
+contributors!) and linux distributions. But please be aware: those
+packages are maintained downstream of this repository, so if you have
+issues with the package, file a report with the respective maintainer.
+
+Here's a quick roundup (not maintained):
+* Package managers:
+  * [conan](https://conan.io/center/recipes/rapidyaml)
+  * [vcpkg](https://vcpkg.io/en/packages.html): `vcpkg install ryml`
+  * [PyPI](https://pypi.org/project/rapidyaml/)
+* Linux distributions:
+  * Arch Linux/Manjaro:
+    * [rapidyaml (aarch64)](https://archlinuxarm.org/packages/aarch64/rapidyaml)
+    * [rapidyaml-git (AUR)](https://aur.archlinux.org/packages/rapidyaml-git/)
+    * [python-rapidyaml-git (AUR)](https://aur.archlinux.org/packages/python-rapidyaml-git/)
+  * [Fedora Linux](https://getfedora.org/)/[EPEL](https://docs.fedoraproject.org/en-US/epel/):
+    * `dnf install rapidyaml-devel`
+    * `dnf install python3-rapidyaml`
+  * [Gentoo](https://packages.gentoo.org/packages/dev-cpp/rapidyaml)
+  * [OpenSuse](https://build.openbuildservice.org/package/show/Emulators/rapidyaml)
+  * [Slackbuilds](https://slackbuilds.org/repository/15.0/libraries/rapidyaml/)
+  * [AltLinux](https://packages.altlinux.org/en/sisyphus/srpms/rapidyaml/3006055151670528141)
+
+Although package managers are very useful for quickly getting up to
+speed, the advised way is still to bring ryml as a submodule of your
+project, building both together. This makes it easy to track any
+upstream changes in ryml. Also, ryml is small and quick to build, so
+there's not much of a cost for building it with your project.
+
+
 ### Quickstart samples
 
 These samples show different ways of getting ryml into your application. All the
@@ -554,6 +555,7 @@ more about each sample:
 | [`add_subdirectory`](./samples/add_subdirectory) | **yes**                      | [`CMakeLists.txt`](./samples/add_subdirectory/CMakeLists.txt) | [`run.sh`](./samples/add_subdirectory/run.sh) |
 | [`fetch_content`](./samples/fetch_content)      | **yes**                      | [`CMakeLists.txt`](./samples/fetch_content/CMakeLists.txt) | [`run.sh`](./samples/fetch_content/run.sh) |
 | [`find_package`](./samples/find_package)        | **no**<br>needs prior install or package  | [`CMakeLists.txt`](./samples/find_package/CMakeLists.txt) | [`run.sh`](./samples/find_package/run.sh) |
+
 
 ### CMake build settings for ryml
 The following cmake variables can be used to control the build behavior of
@@ -726,20 +728,16 @@ See also [the roadmap](./ROADMAP.md) for a list of future work.
 
 ### Known limitations
 
-ryml deliberately makes no effort to follow the standard in the
+ryml deliberately makes no effort to follow the YAML standard in the
 following situations:
 
-* ryml's tree does NOT accept containers are as mapping keys: keys
-  must be scalars. HOWEVER, this is a limitation only of the tree. The
-  event-based parser engine DOES parse container keys. The parser
-  engine is the result of a recent refactor and its usage is meant to
-  be used by other programming languages to create their native
-  data-structures. This engine is fully tested and fully conformant
-  (other than the general error permissiveness noted below). But
-  because it is recent, it is still undocumented, and it requires some
-  API cleanup before being ready for isolated use. Please get in touch
-  if you are interested in integrating the event-based parser engine
-  without the standalone `ryml::parse_*()`
+* ryml's tree does NOT accept containers as map keys: keys stored in
+  the tree must always be scalars. HOWEVER, this is a limitation only
+  of the final tree. The event-based parse engine DOES parse container
+  keys, as it is is meant to be used by other programming languages to
+  create their native data-structures, and it is fully tested and
+  fully conformant (other than the general error permissiveness noted
+  below).
 * Tab characters after `:` and `-` are not accepted tokens, unless
   ryml is compiled with the macro `RYML_WITH_TAB_TOKENS`. This
   requirement exists because checking for tabs introduces branching
@@ -774,11 +772,11 @@ following situations:
 If you do run into trouble and would like to investigate conformance
 of your YAML code, **beware** of existing online YAML linters, many of
 which are not fully conformant. Instead, try using
-[https://play.yaml.io](https://play.yaml.io), an amazing tool which
-lets you dynamically input your YAML and continuously see the results
-from all the existing parsers (kudos to @ingydotnet and the people
-from the YAML test suite). And of course, if you detect anything wrong
-with ryml, please [open an
+[https://play.yaml.io](https://play.yaml.io), an amazingly useful tool
+which lets you dynamically input your YAML and continuously see the
+results from all the existing parsers (kudos to @ingydotnet and the
+people from the YAML test suite). And of course, if you detect
+anything wrong with ryml, please [open an
 issue](https://github.com/biojppm/rapidyaml/issues) so that we can
 improve.
 
@@ -786,44 +784,53 @@ improve.
 ### Test suite status
 
 As part of its CI testing, ryml uses the [YAML test
-suite](https://github.com/yaml/yaml-test-suite). This is an extensive
-set of reference cases covering the full YAML spec. Each of these
-cases have several subparts:
+suite](https://github.com/yaml/yaml-test-suite). (See also the test
+suite results at
+[https://matrix.yaml.info/](https://matrix.yaml.info/), but be aware
+that the results there may be using an older version of ryml.) This is
+an extensive and merciless set of reference cases covering the full
+YAML spec. Each of these cases has several subparts:
  * `in-yaml`: mildly, plainly or extremely difficult-to-parse YAML
  * `in-json`: equivalent JSON (where possible/meaningful)
  * `out-yaml`: equivalent standard YAML
  * `emit-yaml`: equivalent standard YAML
- * `events`: reference results (ie, expected tree)
+ * `events`: reference events according to the YAML standard
 
-When testing, ryml parses each of the 4 yaml/json parts, then emits
-the parsed tree, then parses the emitted result and verifies that
-emission is idempotent, ie that the emitted result is semantically the
-same as its input without any loss of information. To ensure
-consistency, this happens over four levels of parse/emission
-pairs. And to ensure correctness, each of the stages is compared
-against the `events` spec from the test, which constitutes the
-reference. The tests also check for equality between the reference
+When testing, ryml parses each of the yaml/json parts, then emits the
+parsed tree, then parses the emitted result and verifies that emission
+is idempotent, ie that the round trip emitted result is semantically
+the same as its input without any loss of information.
+
+To ensure consistency, this happens over four successive levels of
+parse->emit round trips. And to ensure correctness, each of the stages
+is compared against the `events` spec from the test, which constitutes
+the reference. The tests also check for equality between the reference
 events in the test case and the events emitted by ryml from the data
 tree parsed from the test case input. All of this is then carried out
-combining several variations: both unix `\n` vs windows `\r\n` line
+with several variations: both unix `\n` vs windows `\r\n` line
 endings, emitting to string, file or streams, which results in ~250
-tests per case part. With multiple parts per case and ~400 reference
+tests per case part.
+
+With multiple parts per case and ~400 reference
 cases in the test suite, this makes over several hundred thousand
 individual tests to which ryml is subjected, which are added to the
-unit tests in ryml, which also employ the same extensive
-combinatorial approach.
+unit tests in ryml, which also employ the same extensive combinatorial
+approach.
 
-Also, note that in [their own words](http://matrix.yaml.io/), the
+Also, note that in [their own words](http://matrix.yaml.info/), the
 tests from the YAML test suite *contain a lot of edge cases that don't
 play such an important role in real world examples*. And yet, despite
 the extreme focus of the test suite, currently ryml only fails a minor
 fraction of the test cases, mostly related with the deliberate
-limitations noted above. Other than those limitations, by far the main
-issue with ryml is that several standard-mandated parse errors fail to
-materialize. For the up-to-date list of ryml failures in the
-test-suite, refer to the [list of known
+limitations noted above.
+
+Other than those limitations, by far the main issue with ryml is that
+several standard-mandated parse errors fail to materialize (this will
+be addressed in the coming releases). For the up-to-date list of ryml
+failures in the test-suite, refer to the [list of known
 exceptions](test/test_suite/test_suite_parts.cpp) from ryml's test
-suite runner, which is used as part of ryml's CI process.
+suite runner, which is used as part of ryml's CI setup.
+
 
 
 ------

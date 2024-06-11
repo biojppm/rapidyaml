@@ -402,7 +402,12 @@ TEST(Parser, alloc_arena)
 {
     Tree tree;
     Parser::handler_type evt_handler = {};
+    int data = 0;
+    auto relocate = [](void*, csubstr prev, substr next_arena){
+        EXPECT_FALSE(prev.overlaps(next_arena));
+    };
     evt_handler.reset(&tree, tree.root_id());
+    evt_handler.start_parse("filename", relocate, &data);
     substr bufa = evt_handler.alloc_arena(64);
     bufa.fill('a');
     csubstr prev = bufa;
@@ -2001,7 +2006,7 @@ TEST_F(ParseToMapFlowTest, map_flow__to__map_flow__new_child)
 TEST_F(ParseToMapFlowTest, map_flow__to__map_flow__new_child_no_key)
 {
     NodeRef dst = dst_map_flow.rootref().append_child();
-    ExpectError::do_check([&]{
+    ExpectError::do_check(dst.tree(), [&]{
         parse_in_arena(to_csubstr(map_flow), dst);
     });
 }
@@ -2663,7 +2668,7 @@ TEST_F(ParseToMapBlockTest, map_flow__to__map_flow__new_child)
 TEST_F(ParseToMapBlockTest, map_flow__to__map_flow__new_child_no_key)
 {
     NodeRef dst = dst_map_blck.rootref().append_child();
-    ExpectError::do_check([&]{
+    ExpectError::do_check(dst.tree(), [&]{
         parse_in_arena(to_csubstr(map_flow), dst);
     });
 }

@@ -34,11 +34,11 @@ public:
 
 public:
 
-    T         m_buf[size_t(N)];
-    T *       m_stack;
-    id_type   m_size;
-    id_type   m_capacity;
-    Callbacks m_callbacks;
+    T              m_buf[size_t(N)];
+    T *C4_RESTRICT m_stack;
+    id_type        m_size;
+    id_type        m_capacity;
+    Callbacks      m_callbacks;
 
 public:
 

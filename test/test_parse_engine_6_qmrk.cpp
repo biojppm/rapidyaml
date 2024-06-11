@@ -292,6 +292,32 @@ ENGINE_TEST(Qmrk3,
     ___(ps.end_stream());
 }
 
+ENGINE_TEST(Qmrk4_0,
+            ("[?baz:,]",
+             "[{?baz: }]"),
+            "+STR\n"
+            "+DOC\n"
+            "+SEQ []\n"
+            "+MAP {}\n"
+            "=VAL :?baz\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-SEQ\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_seq_val_flow());
+    ___(ps.begin_map_val_flow());
+    ___(ps.set_key_scalar_plain("?baz"));
+    ___(ps.set_val_scalar_plain({}));
+    ___(ps.end_map());
+    ___(ps.end_seq());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
 ENGINE_TEST(Qmrk4,
             ("[ ? an explicit key, ? foo,? bar,?baz:,?bat]",
              "[{an explicit key: },{foo: },{bar: },{?baz: },?bat]"),
@@ -958,6 +984,70 @@ ENGINE_TEST(QmrkFlow1MapTag,
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
+
+#ifdef TODO_FIXME // this is the only failing suite test
+ENGINE_TEST(QmrkTestSuiteM2N8_01_0,
+            (HAS_CONTAINER_KEYS,
+             "? []: x"),
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+SEQ []\n"
+            "-SEQ\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_seq_key_flow());
+    ___(ps.end_seq());
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map());
+    ___(ps.set_val_scalar_plain({}));
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkTestSuiteM2N8_01_1,
+            (HAS_CONTAINER_KEYS,
+             "? {}: x"),
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP\n"
+            "+MAP {}\n"
+            "-MAP\n"
+            "=VAL :x\n"
+            "-MAP\n"
+            "=VAL :\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_block());
+    ___(ps.begin_map_key_flow());
+    ___(ps.end_map());
+    ___(ps.set_val_scalar_plain("x"));
+    ___(ps.end_map());
+    ___(ps.set_val_scalar_plain({}));
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+#endif
 
 } // namespace yml
 } // namespace c4

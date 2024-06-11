@@ -364,6 +364,33 @@ void ParseEngine<EventHandler>::_reset()
     m_was_inside_qmrk = false;
 }
 
+
+//-----------------------------------------------------------------------------
+
+template<class EventHandler>
+void ParseEngine<EventHandler>::_relocate_arena(csubstr prev_arena, substr next_arena)
+{
+    #define _ryml_relocate(s)                                   \
+    if(s.is_sub(prev_arena))                                    \
+    {                                                           \
+        s.str = next_arena.str + (s.str - prev_arena.str);      \
+    }
+    _ryml_relocate(m_buf);
+    _ryml_relocate(m_newline_offsets_buf);
+    for(size_t i = 0; i < m_pending_tags.num_entries; ++i)
+        _ryml_relocate(m_pending_tags.annotations[i].str);
+    for(size_t i = 0; i < m_pending_anchors.num_entries; ++i)
+        _ryml_relocate(m_pending_anchors.annotations[i].str);
+    #undef _ryml_relocate
+}
+
+template<class EventHandler>
+void ParseEngine<EventHandler>::_s_relocate_arena(void* data, csubstr prev_arena, substr next_arena)
+{
+    ((ParseEngine*)data)->_relocate_arena(prev_arena, next_arena);
+}
+
+
 //-----------------------------------------------------------------------------
 
 template<class EventHandler>
@@ -526,13 +553,36 @@ void ParseEngine<EventHandler>::_skipchars(const char (&chars)[N])
 }
 
 template<class EventHandler>
+void ParseEngine<EventHandler>::_skip_comment()
+{
+    _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, m_state->line_contents.rem.begins_with('#'));
+    _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, m_state->line_contents.rem.is_sub(m_state->line_contents.full));
+    csubstr rem = m_state->line_contents.rem;
+    csubstr full = m_state->line_contents.full;
+    // raise an error if the comment is not preceded by whitespace
+    if(!full.begins_with('#'))
+    {
+        _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, rem.str > full.str);
+        const char c = full[(size_t)(rem.str - full.str - 1)];
+        if(C4_UNLIKELY(c != ' ' && c != '\t'))
+            _RYML_CB_ERR(m_evt_handler->m_stack.m_callbacks, "comment not preceded by whitespace");
+    }
+    else
+    {
+        _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, rem.str == full.str);
+    }
+    _c4dbgpf("comment was '{}'", rem);
+    _line_progressed(rem.len);
+}
+
+template<class EventHandler>
 void ParseEngine<EventHandler>::_maybe_skip_comment()
 {
     csubstr s = m_state->line_contents.rem.triml(' ');
     if(s.begins_with('#'))
     {
-        _c4dbgpf("comment was '{}'", s);
-        _line_progressed(m_state->line_contents.rem.len);
+        _line_progressed((size_t)(s.str - m_state->line_contents.rem.str));
+        _skip_comment();
     }
 }
 
@@ -552,6 +602,29 @@ bool ParseEngine<EventHandler>::_maybe_scan_following_colon() noexcept
         if(m_state->line_contents.rem.len && (m_state->line_contents.rem.str[0] == ':'))
         {
             _c4dbgp("found ':' colon next");
+            _line_progressed(1);
+            return true;
+        }
+    }
+    return false;
+}
+
+template<class EventHandler>
+bool ParseEngine<EventHandler>::_maybe_scan_following_comma() noexcept
+{
+    if(m_state->line_contents.rem.len)
+    {
+        if(m_state->line_contents.rem.str[0] == ' ' || m_state->line_contents.rem.str[0] == '\t')
+        {
+            size_t pos = m_state->line_contents.rem.first_not_of(" \t");
+            if(pos == npos)
+                pos = m_state->line_contents.rem.len; // maybe the line has only spaces
+            _c4dbgpf("skip {}x'{}'", pos, ' ');
+            _line_progressed(pos);
+        }
+        if(m_state->line_contents.rem.len && (m_state->line_contents.rem.str[0] == ','))
+        {
+            _c4dbgp("found ',' comma next");
             _line_progressed(1);
             return true;
         }
@@ -602,7 +675,10 @@ csubstr ParseEngine<EventHandler>::_scan_tag()
     if(rem.begins_with("!!"))
     {
         _c4dbgp("begins with '!!'");
-        t = rem.left_of(rem.first_of(" ,"));
+        if(has_any(FLOW))
+            t = rem.left_of(rem.first_of(" ,"));
+        else
+            t = rem.left_of(rem.first_of(' '));
     }
     else if(rem.begins_with("!<"))
     {
@@ -620,7 +696,10 @@ csubstr ParseEngine<EventHandler>::_scan_tag()
     {
         _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, rem.begins_with('!'));
         _c4dbgp("begins with '!'");
-        t = rem.left_of(rem.first_of(' '));
+        if(has_any(FLOW))
+            t = rem.left_of(rem.first_of(" ,"));
+        else
+            t = rem.left_of(rem.first_of(' '));
     }
     _line_progressed(t.len);
     _maybe_skip_whitespace_tokens();
@@ -752,9 +831,14 @@ bool ParseEngine<EventHandler>::_scan_scalar_plain_seq_flow(ScannedScalar *C4_RE
                 _c4dbgpf("found terminating character at {}: '{}'", i, c);
                 _line_progressed(i);
                 if(m_state->pos.offset + i > start_offset)
+                {
                     goto ended_scalar;
+                }
                 else
-                    _c4err("parse error");
+                {
+                    _c4dbgp("at the beginning. no scalar here.");
+                    return false;
+                }
                 break;
             case ']':
                 _c4dbgpf("found terminating character at {}: '{}'", i, c);
@@ -2525,8 +2609,10 @@ void ParseEngine<EventHandler>::_filter_dquoted_backslash(FilterProcessor &C4_RE
         uint32_t codepoint_val = {};
         if(C4_UNLIKELY(!read_hex(codepoint, &codepoint_val)))
             _c4err("failed to parse \\u codepoint. scalar pos={}", proc.rpos);
-        size_t numbytes = decode_code_point((uint8_t*)readbuf, sizeof(readbuf), codepoint_val);
-        C4_ASSERT(numbytes <= 4);
+        const size_t numbytes = decode_code_point((uint8_t*)readbuf, sizeof(readbuf), codepoint_val);
+        if(C4_UNLIKELY(numbytes == 0))
+            _c4err("failed to decode code point={}", proc.rpos);
+        _RYML_CB_ASSERT(callbacks(), numbytes <= 4);
         proc.translate_esc_bulk(readbuf, numbytes, /*nread*/5u);
     }
     else if(next == 'U') // UTF32
@@ -2538,8 +2624,10 @@ void ParseEngine<EventHandler>::_filter_dquoted_backslash(FilterProcessor &C4_RE
         uint32_t codepoint_val = {};
         if(C4_UNLIKELY(!read_hex(codepoint, &codepoint_val)))
             _c4err("failed to parse \\U codepoint. scalar pos={}", proc.rpos);
-        size_t numbytes = decode_code_point((uint8_t*)readbuf, sizeof(readbuf), codepoint_val);
-        C4_ASSERT(numbytes <= 4);
+        const size_t numbytes = decode_code_point((uint8_t*)readbuf, sizeof(readbuf), codepoint_val);
+        if(C4_UNLIKELY(numbytes == 0))
+            _c4err("failed to decode code point={}", proc.rpos);
+        _RYML_CB_ASSERT(callbacks(), numbytes <= 4);
         proc.translate_esc_bulk(readbuf, numbytes, /*nread*/9u);
     }
     // https://yaml.org/spec/1.2.2/#rule-c-ns-esc-char
@@ -2715,7 +2803,6 @@ void ParseEngine<EventHandler>::_filter_chomp(FilterProcessor &C4_RESTRICT proc,
             {
                 const char curr = proc.curr();
                 _c4dbgchomp("curr='{}'", _c4prc(curr));
-                _RYML_CB_ASSERT(this->callbacks(), curr == '\n' || curr == '\r');
                 switch(curr)
                 {
                 case '\n':
@@ -2753,6 +2840,9 @@ void ParseEngine<EventHandler>::_filter_chomp(FilterProcessor &C4_RESTRICT proc,
                     }
                 case '\r':
                     proc.skip();
+                    break;
+                default:
+                    _c4err("parse error");
                     break;
                 }
             }
@@ -4018,12 +4108,30 @@ bool ParseEngine<EventHandler>::_annotations_require_key_container() const
 }
 
 template<class EventHandler>
+void ParseEngine<EventHandler>::_check_tag(csubstr tag)
+{
+    if(!tag.begins_with("!<"))
+    {
+        if(C4_UNLIKELY(tag.first_of("[]{},") != npos))
+            _RYML_CB_ERR_(m_evt_handler->m_stack.m_callbacks, "tags must not contain any of '[]{},'", m_state->pos);
+    }
+    else
+    {
+        if(C4_UNLIKELY(!tag.ends_with('>')))
+            _RYML_CB_ERR_(m_evt_handler->m_stack.m_callbacks, "malformed tag", m_state->pos);
+    }
+}
+
+template<class EventHandler>
 void ParseEngine<EventHandler>::_handle_annotations_before_blck_key_scalar()
 {
+    _c4dbgpf("annotations_before_blck_key_scalar, node={}", m_state->node_id);
     if(m_pending_tags.num_entries)
     {
+        _c4dbgpf("annotations_before_blck_key_scalar, #tags={}", m_pending_tags.num_entries);
         if(C4_LIKELY(m_pending_tags.num_entries == 1))
         {
+            _check_tag(m_pending_tags.annotations[0].str);
             m_evt_handler->set_key_tag(m_pending_tags.annotations[0].str);
             _clear_annotations(&m_pending_tags);
         }
@@ -4034,6 +4142,7 @@ void ParseEngine<EventHandler>::_handle_annotations_before_blck_key_scalar()
     }
     if(m_pending_anchors.num_entries)
     {
+        _c4dbgpf("annotations_before_blck_key_scalar, #anchors={}", m_pending_anchors.num_entries);
         if(C4_LIKELY(m_pending_anchors.num_entries == 1))
         {
             m_evt_handler->set_key_anchor(m_pending_anchors.annotations[0].str);
@@ -4049,10 +4158,13 @@ void ParseEngine<EventHandler>::_handle_annotations_before_blck_key_scalar()
 template<class EventHandler>
 void ParseEngine<EventHandler>::_handle_annotations_before_blck_val_scalar()
 {
+    _c4dbgpf("annotations_before_blck_val_scalar, node={}", m_state->node_id);
     if(m_pending_tags.num_entries)
     {
+        _c4dbgpf("annotations_before_blck_val_scalar, #tags={}", m_pending_tags.num_entries);
         if(C4_LIKELY(m_pending_tags.num_entries == 1))
         {
+            _check_tag(m_pending_tags.annotations[0].str);
             m_evt_handler->set_val_tag(m_pending_tags.annotations[0].str);
             _clear_annotations(&m_pending_tags);
         }
@@ -4063,6 +4175,7 @@ void ParseEngine<EventHandler>::_handle_annotations_before_blck_val_scalar()
     }
     if(m_pending_anchors.num_entries)
     {
+        _c4dbgpf("annotations_before_blck_val_scalar, #anchors={}", m_pending_anchors.num_entries);
         if(C4_LIKELY(m_pending_anchors.num_entries == 1))
         {
             m_evt_handler->set_val_anchor(m_pending_anchors.annotations[0].str);
@@ -4082,6 +4195,7 @@ void ParseEngine<EventHandler>::_handle_annotations_before_start_mapblck(size_t 
     if(m_pending_tags.num_entries == 2)
     {
         _c4dbgp("2 tags, setting entry 0");
+        _check_tag(m_pending_tags.annotations[0].str);
         m_evt_handler->set_val_tag(m_pending_tags.annotations[0].str);
     }
     else if(m_pending_tags.num_entries == 1)
@@ -4090,6 +4204,7 @@ void ParseEngine<EventHandler>::_handle_annotations_before_start_mapblck(size_t 
         if(m_pending_tags.annotations[0].line < current_line)
         {
             _c4dbgp("...tag is for the map. setting it.");
+            _check_tag(m_pending_tags.annotations[0].str);
             m_evt_handler->set_val_tag(m_pending_tags.annotations[0].str);
             _clear_annotations(&m_pending_tags);
         }
@@ -4118,6 +4233,7 @@ void ParseEngine<EventHandler>::_handle_annotations_before_start_mapblck_as_key(
     _c4dbgp("annotations_before_start_mapblck_as_key");
     if(m_pending_tags.num_entries == 2)
     {
+        _check_tag(m_pending_tags.annotations[0].str);
         m_evt_handler->set_key_tag(m_pending_tags.annotations[0].str);
     }
     if(m_pending_anchors.num_entries == 2)
@@ -4138,10 +4254,12 @@ void ParseEngine<EventHandler>::_handle_annotations_and_indentation_after_start_
         switch(m_pending_tags.num_entries)
         {
         case 1u:
+            _check_tag(m_pending_tags.annotations[0].str);
             m_evt_handler->set_key_tag(m_pending_tags.annotations[0].str);
             _clear_annotations(&m_pending_tags);
             break;
         case 2u:
+            _check_tag(m_pending_tags.annotations[1].str);
             m_evt_handler->set_key_tag(m_pending_tags.annotations[1].str);
             _clear_annotations(&m_pending_tags);
             break;
@@ -4184,6 +4302,27 @@ size_t ParseEngine<EventHandler>::_select_indentation_from_annotations(size_t va
             curr = &ann;
     }
     return curr->line < val_line ? val_indentation : curr->indentation;
+}
+
+template<class EventHandler>
+void ParseEngine<EventHandler>::_handle_directive(csubstr rem)
+{
+    _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, rem.is_sub(m_state->line_contents.rem));
+    const size_t pos = rem.find('#');
+    _c4dbgpf("handle_directive: pos={} rem={}", pos, rem);
+    if(pos == npos) // no comments
+    {
+        m_evt_handler->add_directive(rem);
+        _line_progressed(rem.len);
+    }
+    else
+    {
+        csubstr to_comment = rem.first(pos);
+        csubstr trimmed = to_comment.trimr(" \t");
+        m_evt_handler->add_directive(trimmed);
+        _line_progressed(pos);
+        _skip_comment();
+    }
 }
 
 
@@ -4352,7 +4491,7 @@ mapjson_start:
             ScannedScalar sc = _scan_scalar_dquot();
             csubstr maybe_filtered = _maybe_filter_key_scalar_dquot(sc);
             m_evt_handler->set_key_scalar_dquoted(maybe_filtered);
-            addrem_flags(RKCL, RKEY|QMRK);
+            addrem_flags(RKCL, RKEY);
             break;
         }
         case '}': // this happens on a trailing comma like ", }"
@@ -4816,11 +4955,9 @@ seqflow_start:
         else if(first == ']') // this happens on a trailing comma like ", ]"
         {
             _c4dbgp("seqflow[RVAL]: end!");
-            rem_flags(RSEQ);
-            m_evt_handler->end_seq();
             _line_progressed(1);
-            if(!has_all(RSEQ|FLOW))
-                goto seqflow_finish;
+            m_evt_handler->end_seq();
+            goto seqflow_finish;
         }
         else if(first == '*')
         {
@@ -4834,12 +4971,25 @@ seqflow_start:
             csubstr anchor = _scan_anchor();
             _c4dbgpf("seqflow[RVAL]: anchor! [{}]~~~{}~~~", anchor.len, anchor);
             m_evt_handler->set_val_anchor(anchor);
+            if(_maybe_scan_following_comma())
+            {
+                _c4dbgp("seqflow[RVAL]: empty scalar!");
+                m_evt_handler->set_val_scalar_plain({});
+                m_evt_handler->add_sibling();
+            }
         }
         else if(first == '!')
         {
             csubstr tag = _scan_tag();
             _c4dbgpf("seqflow[RVAL]: tag! [{}]~~~{}~~~", tag.len, tag);
+            _check_tag(tag);
             m_evt_handler->set_val_tag(tag);
+            if(_maybe_scan_following_comma())
+            {
+                _c4dbgp("seqflow[RVAL]: empty scalar!");
+                m_evt_handler->set_val_scalar_plain({});
+                m_evt_handler->add_sibling();
+            }
         }
         else if(first == ':')
         {
@@ -4863,7 +5013,6 @@ seqflow_start:
             _line_progressed(1);
             _maybe_skip_whitespace_tokens();
             goto seqflow_finish;
-
         }
         else
         {
@@ -5042,6 +5191,7 @@ mapflow_start:
         {
             csubstr tag = _scan_tag();
             _c4dbgpf("mapflow[RKEY]: tag! [{}]~~~{}~~~", tag.len, tag);
+            _check_tag(tag);
             m_evt_handler->set_key_tag(tag);
         }
         else
@@ -5163,6 +5313,7 @@ mapflow_start:
         {
             csubstr tag = _scan_tag();
             _c4dbgpf("mapflow[RVAL]: tag! [{}]~~~{}~~~", tag.len, tag);
+            _check_tag(tag);
             m_evt_handler->set_val_tag(tag);
         }
         else
@@ -5289,6 +5440,7 @@ mapflow_start:
         {
             csubstr tag = _scan_tag();
             _c4dbgpf("mapflow[QMRK]: tag! [{}]~~~{}~~~", tag.len, tag);
+            _check_tag(tag);
             m_evt_handler->set_key_tag(tag);
         }
         else
@@ -5636,6 +5788,8 @@ seqblck_start:
         // handle indentation
         //
         _c4dbgpf("seqblck[RNXT]: indref={} indentation={}", m_state->indref, m_state->line_contents.indentation);
+        if(C4_UNLIKELY(!_at_line_begin()))
+            _c4err("parse error");
         if(m_state->indentation_ge())
         {
             _c4dbgpf("seqblck[RNXT]: skip {} from indref", m_state->indref);
@@ -5918,6 +6072,7 @@ mapblck_start:
         {
             csubstr ref = _scan_ref_map();
             _c4dbgpf("mapblck[RKEY]: key ref! [{}]~~~{}~~~", ref.len, ref);
+            _handle_annotations_before_blck_key_scalar();
             m_evt_handler->set_key_ref(ref);
             addrem_flags(RVAL, RKEY);
             if(!_maybe_scan_following_colon())
@@ -6043,7 +6198,7 @@ mapblck_start:
         else if(first == '?')
         {
             _c4dbgp("mapblck[RKCL]: got '?'. val was empty");
-            _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, m_was_inside_qmrk);
+            _RYML_CB_CHECK(m_evt_handler->m_stack.m_callbacks, m_was_inside_qmrk);
             m_evt_handler->set_val_scalar_plain({});
             m_evt_handler->add_sibling();
             addrem_flags(QMRK, RKCL);
@@ -6055,7 +6210,7 @@ mapblck_start:
             if(m_state->indref == 0 || m_state->line_contents.indentation == 0 || _is_doc_begin_token(rem))
             {
                 _c4dbgp("mapblck[RKCL]: end+start doc");
-                _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, _is_doc_begin_token(rem));
+                _RYML_CB_CHECK(m_evt_handler->m_stack.m_callbacks, _is_doc_begin_token(rem));
                 _start_doc_suddenly();
                 _line_progressed(3);
                 _maybe_skip_whitespace_tokens();
@@ -6411,6 +6566,7 @@ mapblck_start:
                 else
                 {
                     _c4dbgp("mapblck[RVAL]: was val ref");
+                    _handle_annotations_before_blck_val_scalar();
                     m_evt_handler->set_val_ref(ref);
                     addrem_flags(RNXT, RVAL);
                 }
@@ -7080,8 +7236,9 @@ void ParseEngine<EventHandler>::_handle_unk()
         else if(first == '%')
         {
             _c4dbgpf("directive: {}", rem);
-            m_evt_handler->add_directive(rem);
-            _line_progressed(rem.len);
+            if(C4_UNLIKELY(!m_doc_empty && has_none(NDOC)))
+                _RYML_CB_ERR(m_evt_handler->m_stack.m_callbacks, "need document footer before directives");
+            _handle_directive(rem);
             return;
         }
     }
@@ -7848,7 +8005,7 @@ void ParseEngine<EventHandler>::parse_json_in_place_ev(csubstr filename, substr 
     m_file = filename;
     m_buf = src;
     _reset();
-    m_evt_handler->start_parse(filename.str);
+    m_evt_handler->start_parse(filename.str, &_s_relocate_arena, this);
     m_evt_handler->begin_stream();
     while( ! _finished_file())
     {
@@ -7892,7 +8049,7 @@ void ParseEngine<EventHandler>::parse_in_place_ev(csubstr filename, substr src)
     m_file = filename;
     m_buf = src;
     _reset();
-    m_evt_handler->start_parse(filename.str);
+    m_evt_handler->start_parse(filename.str, &_s_relocate_arena, this);
     m_evt_handler->begin_stream();
     while( ! _finished_file())
     {

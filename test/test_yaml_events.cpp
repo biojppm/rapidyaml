@@ -58,9 +58,12 @@ TEST_P(EventsTest, from_parser)
     ParseEngine<EventHandlerYamlStd> parser(&handler);
     std::string src_copy(ec.src.str, ec.src.len);
     parser.parse_in_place_ev("(testyaml)", to_substr(src_copy));
-    _c4dbgpf("~~~\n{}~~~\n", sink.result);
+    csubstr result = sink;
+    _c4dbgpf("~~~\n{}~~~\n", result);
+    // use the diff from std::string which is nice
     std::string exp_copy(ec.expected_events_from_parser.str, ec.expected_events_from_parser.len);
-    EXPECT_EQ(sink.result, exp_copy); // use the diff from std::string which is nice
+    std::string result_copy(result.str, result.len);
+    EXPECT_EQ(result_copy, exp_copy);
 }
 
 TEST_P(EventsTest, from_tree)

@@ -72,8 +72,9 @@ void test_new_parser_events_from_yaml(ReferenceYaml const& yaml, std::string con
     ParseEngine<EventHandlerYamlStd> parser(&handler);
     std::string copy = yaml.parsed;
     parser.parse_in_place_ev("(testyaml)", to_substr(copy));
-    _c4dbgpf("~~~\n{}~~~\n", sink.result);
-    EXPECT_EQ(sink.result, expected_events);
+    csubstr result = sink;
+    _c4dbgpf("~~~\n{}~~~\n", result);
+    EXPECT_EQ(std::string(result.str, result.len), expected_events);
 }
 
 void test_new_parser_tree_from_yaml(ReferenceYaml const& yaml)
