@@ -14,7 +14,7 @@ message(STATUS "FetchContent from branch: ${RYML_BRANCH_NAME}")
 
 include(FetchContent)
 FetchContent_Declare(ryml
-    GIT_REPOSITORY https://github.com/biojppm/rapidyaml.git
+    GIT_REPOSITORY https://github.com/${PULL_REQUEST_HEAD_REPO:biojppm/rapidyaml}.git
     GIT_TAG ${RYML_BRANCH_NAME}
     GIT_SHALLOW FALSE  # ensure submodules are checked out
 )
