@@ -985,8 +985,7 @@ ENGINE_TEST(QmrkFlow1MapTag,
     ___(ps.end_stream());
 }
 
-#ifdef TODO_FIXME // this is the only failing suite test
-ENGINE_TEST(QmrkTestSuiteM2N8_01_0,
+ENGINE_TEST_TMP(QmrkTestSuiteM2N8_01_0,
             (HAS_CONTAINER_KEYS,
              "? []: x"),
             "+STR\n"
@@ -1000,8 +999,7 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_0,
             "=VAL :\n"
             "-MAP\n"
             "-DOC\n"
-            "-STR\n"
-)
+            "-STR\n")
 {
     ___(ps.begin_stream());
     ___(ps.begin_doc());
@@ -1017,7 +1015,7 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_0,
     ___(ps.end_stream());
 }
 
-ENGINE_TEST(QmrkTestSuiteM2N8_01_1,
+ENGINE_TEST_TMP(QmrkTestSuiteM2N8_01_1,
             (HAS_CONTAINER_KEYS,
              "? {}: x"),
             "+STR\n"
@@ -1047,7 +1045,6 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_1,
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
-#endif
 
 } // namespace yml
 } // namespace c4

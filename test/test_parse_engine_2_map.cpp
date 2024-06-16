@@ -1553,6 +1553,142 @@ ENGINE_TEST(MapKeyBlock4Ref1,
 }
 
 
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST_ERRLOC_TMP(TestSuiteC2SP_ErrImplicitKeysNeedToOnSingleLine, Location(2,2,1),
+                   "[23\n"
+                   "]: 42\n"
+                   "")
+
+ENGINE_TEST_ERRLOC_TMP(TestSuite7LBH_MultilineDoubleQuotedImplicitKeys, Location(2,2,1),
+                       "\"a\\nb\": 1\n"
+                       "\"c\n"
+                       " d\": 1\n"
+                       "")
+
+ENGINE_TEST_ERRLOC_TMP(TestSuiteD49Q_MultilineSingleQuotedImplicitKeys, Location(2,2,1),
+                       "'a\\nb': 1\n"
+                       "'c\n"
+                       " d': 1\n"
+                       "")
+
+ENGINE_TEST_ERRLOC_TMP(TestSuiteJKF3_0_MultilineSingleQuotedImplicitKeys, Location(2,2,1),
+                       "\"bar\n"
+                       "bar\": x\n"
+                       "")
+
+ENGINE_TEST_ERRLOC_TMP(TestSuiteJKF3_1_MultilineSingleQuotedImplicitKeys, Location(2,2,1),
+                       "- - \"bar\n"
+                       "bar\": x\n"
+                       "")
+
+ENGINE_TEST_ERRLOC_TMP(TestSuiteDK4H_ImplicitKeyFollowedByNewline, Location(2,2,1),
+                   "[ key\n"
+                   "  : value ]\n"
+                   "")
+
+ENGINE_TEST_ERRLOC_TMP(TestSuiteZXT5_ImplicitKeyFollowedByNewlineAndAdjacentValue, Location(2,2,1),
+                   "[ \"key\"\n"
+                   "  :value ]\n"
+                   "")
+
+ENGINE_TEST_ERRLOC_TMP(TestSuiteVJP3_Err0FlowCollectionsOverManyLines, Location(2,2,1),
+                   "k: {\n"
+                   "k\n"
+                   ":\n"
+                   "v\n"
+                   "}\n"
+                   "")
+
+ENGINE_TEST_ERRLOC_TMP(TestSuiteVJP3_Err1FlowCollectionsOverManyLines, Location(2,2,1),
+                   "k: {\n"
+                   " k\n"
+                   " :\n"
+                   " v\n"
+                   "}\n"
+                   "")
+
+ENGINE_TEST_ERRLOC_TMP(TestSuiteVJP3_Err1FlowCollectionsOverManyLines, Location(2,2,1),
+                   "k: {\n"
+                   " k\n"
+                   " :\n"
+                   " v\n"
+                   "}\n"
+                   "")
+
+ENGINE_TEST_ERRLOC_TMP(TestSuiteErrZCZ6, Location(4,2,3),
+                   "a: b: c"
+                   "")
+
+ENGINE_TEST_ERRLOC_TMP(TestSuiteErrZCZ6, Location(4,2,3),
+                   "a: b: c: d"
+                   "")
+
+ENGINE_TEST_ERRLOC_TMP(TestSuiteErrZL4Z, Location(4,2,3),
+                   "a: 'b': c"
+                   "")
+
+ENGINE_TEST_ERRLOC_TMP(TestSuiteErr5U3A_SeqOnSameLineAsKey, Location(2,2,1),
+                       "key: - a\n"
+                       "     - b\n"
+                       "")
+
+
+ENGINE_TEST_ERRLOC_TMP(TestSuiteErr4EJS_invalid_tabs, Location(2,2,1),
+                   "a:\n"
+                   "\tb:\n"
+                   "\t\tc: value\n"
+                   "")
+
+
+ENGINE_TEST_ERRLOC_TMP(ColonPlacementErrNextLine0, Location(2,2,1),
+                   "a\n"
+                   ": b\n")
+
+ENGINE_TEST_ERRLOC_TMP(ColonPlacementErrNextLine1, Location(3,2,2),
+                   "a\n"
+                   " : b\n")
+
+ENGINE_TEST_ERRLOC_TMP(ColonPlacementErrNextLine2, Location(4,2,3),
+                   "a\n"
+                   "  : b\n")
+
+
+ENGINE_TEST_TMP(ColonPlacement0,
+            ("a:\n"
+             " : b\n"
+             "",
+             "a:\n"
+             "  : b\n"
+             ""),
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "=VAL :a\n"
+            "+MAP\n"
+            "=VAL :\n"
+            "=VAL :b\n"
+            "-MAP\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n")
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain("a"));
+    ___(ps.begin_map_val_block());
+    ___(ps.set_key_scalar_plain({}));
+    ___(ps.set_val_scalar_plain("b"));
+    ___(ps.end_map());
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+
 } // namespace yml
 } // namespace c4
 

@@ -147,6 +147,19 @@ ENGINE_TEST(DocEmptyTerm4_2,
 }
 
 
+ENGINE_TEST_ERRLOC_TMP(TestSuite3HFZ_InvalidContentAfterDocumentEndMarker, Location(1,29),
+                   "---\n"
+                   "key: value\n"
+                   "... invalid\n"
+                   "")
+
+ENGINE_TEST_ERRLOC_TMP(TestSuite9MQT_01_ScalarDocWithTripleDotInContent, Location(1,29),
+                   "---\n"
+                   "key: value\n"
+                   "... invalid\n"
+                   "")
+
+
 //-----------------------------------------------------------------------------
 
 ENGINE_TEST(DocEmptyExplMult,

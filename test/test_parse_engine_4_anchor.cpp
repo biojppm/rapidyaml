@@ -1135,6 +1135,13 @@ ENGINE_TEST_ERRLOC(AnchorAndAliasAsBlockSeqVal_SU74, Location(2,10), ""
                    "[&alias value1,\n"
                    "&b *alias]\n")
 
+
+ENGINE_TEST_ERRLOC_TMP(AnchorErrSY6VAnchorBeforeSeqOnSameLine, Location(2,10), ""
+                   "&anchor - sequence entry\n")
+
+ENGINE_TEST_ERRLOC_TMP(AnchorErrCXX2MappingWithAnchorOnDocumentStartLine, Location(2,10), ""
+                       "--- &anchor a: b\n")
+
 } // namespace yml
 } // namespace c4
 

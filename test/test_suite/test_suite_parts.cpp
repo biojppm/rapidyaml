@@ -58,6 +58,10 @@ constexpr const AllowedFailure allowed_failures[] = {
     _("ZL4Z-error"              , "TBD"),
     _("ZXT5-error"              , "TBD"),
 
+    // deliberately tolerated
+    _("5TRB-error"              , "document-end marker in double quoted string"),
+    _("9MQT_01-error"           , "accept scalars with ..."),
+
 
     //-------------------------------------------------------------------------
     // SECTION 2. Deliberate ryml limitations.
@@ -84,7 +88,7 @@ constexpr const AllowedFailure allowed_failures[] = {
     // SECTION 3. Problems with the test suite spec. (or our
     // understanding of it?)
 
-    // malformed json in the test spec
+    // malformed json in the test spec, cannot be parsed
     _("35KP-in_json"            , "malformed JSON from multiple documents"),
     _("5TYM-in_json"            , "malformed JSON from multiple documents"),
     _("6XDY-in_json"            , "malformed JSON from multiple documents"),

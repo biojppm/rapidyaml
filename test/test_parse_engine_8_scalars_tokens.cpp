@@ -468,6 +468,26 @@ ENGINE_TEST(PlainScalarFlow0Seq1,
     ___(ps.end_stream());
 }
 
+
+//-----------------------------------------------------------------------------
+
+ENGINE_TEST_ERRLOC_TMP(TestSuiteS98Z_ErrBlockScalarWithMoreSpacesThanFirstContentLine, Location(1,29),
+                   "empty block scalar: >\n"
+                   " \n"
+                   "  \n"
+                   "   \n"
+                   "# comment\n")
+
+ENGINE_TEST_ERRLOC_TMP(TestSuiteX4QW_CommentWithoutWhitespaceAfterBlockScalarIndicator, Location(1,29),
+                   "block: ># comment\n"
+                   "  scalar\n"
+                   "")
+
+ENGINE_TEST_ERRLOC_TMP(TestSuiteS4GJ_InvalidTextAfterBlockScalarIndicator, Location(1,29),
+                       "folded: > first line\n"
+                       "  second line\n"
+                       "")
+
 } // namespace yml
 } // namespace c4
 

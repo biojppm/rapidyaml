@@ -95,6 +95,18 @@ void test_expected_error_tree_from_yaml(std::string const& parsed_yaml, Location
 
 //-----------------------------------------------------------------------------
 
+// scaffold for WIP:
+#if 1
+#define ENGINE_TEST_ERRLOC_TMP(name, location, refyaml)
+#define ENGINE_TEST_ERR_TMP(name, refyaml)
+#define ENGINE_TEST_TMP(name, refyaml, events) template<class Ps> void name(Ps &&ps)
+#else
+#define ENGINE_TEST_ERRLOC_TMP(name, location, refyaml) ENGINE_TEST_ERRLOC(name, location, refyaml)
+#define ENGINE_TEST_ERR_TMP(name, refyaml) ENGINE_TEST_ERR(name, refyaml)
+#define ENGINE_TEST_TMP(name, refyaml, events) ENGINE_TEST(name, refyaml, events)
+#endif
+
+
 #define ENGINE_TEST_ERRLOC(name, location, refyaml)             \
                                                                 \
                                                                 \

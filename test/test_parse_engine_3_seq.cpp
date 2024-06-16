@@ -612,6 +612,20 @@ ENGINE_TEST(SeqMapBlock,
 }
 
 
+ENGINE_TEST_ERRLOC_TMP(TestSuiteYJV2_DashInFlowSequence, Location(1,29),
+                   "[-]\n"
+                   "")
+
+ENGINE_TEST_ERRLOC_TMP(TestSuiteG5U8_DashInFlowSequence, Location(1,29),
+                   "- [-, -]\n"
+                   "")
+
+ENGINE_TEST_ERRLOC_TMP(TestSuiteCVW2_DashInFlowSequence, Location(1,29),
+                   "[ a, b, c,#invalid\n"
+                   "]\n"
+                   "")
+
+
 } // namespace yml
 } // namespace c4
 

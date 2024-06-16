@@ -517,6 +517,11 @@ ENGINE_TEST_ERR(DirectiveMultipleYAML_3,
                 "---\n"
                 "bar")
 
+ENGINE_TEST_ERRLOC_TMP(TestSuiteH7TQ_ExtraWordsOnYamlDirective, Location(1,29),
+                   "%YAML 1.2 foo\n"
+                   "---"
+                   "")
+
 } // namespace yml
 } // namespace c4
 
