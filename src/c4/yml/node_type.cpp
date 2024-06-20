@@ -153,6 +153,10 @@ bool scalar_style_query_plain(csubstr s) noexcept
         else if(s.sub(2).is_number())
             return true;
     }
+    else if(s.begins_with_any("0123456789.-+") && s.is_number())
+    {
+        return true;
+    }
     return s != ':'
         && ( ! s.begins_with_any("-:?*&,'\"{}[]|>%#@`\r")) // @ and ` are reserved characters
         && ( ! s.ends_with_any(":#"))
