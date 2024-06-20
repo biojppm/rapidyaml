@@ -2488,6 +2488,34 @@ void sample_fundamental_types()
     tree["nan" ] >> f; CHECK(std::isnan(f));
     tree["nan" ] >> d; CHECK(std::isnan(d));
     C4_SUPPRESS_WARNING_GCC_CLANG_POP
+
+    // value overflow detection:
+    // (for integral types only)
+    {
+        // we will be detecting errors below, so we use this sample helper
+        ScopedErrorHandlerExample err = {};
+        ryml::Tree t(err.callbacks()); // instantiate with the error-detecting callbacks
+        // create a simple tree with an int value
+        ryml::parse_in_arena(R"({val: 258})", &t);
+        // by default, overflow is not detected:
+        uint8_t valu8 = 0;
+        int8_t vali8 = 0;
+        t["val"] >> valu8; CHECK(valu8 == 2); // not 257; it wrapped around
+        t["val"] >> vali8; CHECK(vali8 == 2); // not 257; it wrapped around
+        // ...but there are facilities to detect overflow
+        CHECK(ryml::overflows<uint8_t>(t["val"].val()));
+        CHECK(ryml::overflows<int8_t>(t["val"].val()));
+        CHECK( ! ryml::overflows<int16_t>(t["val"].val()));
+        // and there is a format helper
+        CHECK(err.check_error_occurs([&]{
+            auto checku8 = ryml::fmt::overflow_checked(valu8); // need to declare the wrapper type before using it with >>
+            t["val"] >> checku8; // this will cause an error
+        }));
+        CHECK(err.check_error_occurs([&]{
+            auto checki8 = ryml::fmt::overflow_checked(vali8); // need to declare the wrapper type before using it with >>
+            t["val"] >> checki8; // this will cause an error
+        }));
+    }
 }
 
 
