@@ -1604,31 +1604,49 @@ inline void write(NodeRef *n, T const& v)
     n->set_val_serialized(v);
 }
 
+namespace detail {
+// SFINAE overloads for skipping leading + which cannot be read by the charconv functions
+template<class T>
+C4_ALWAYS_INLINE auto read_skip_plus(csubstr val, T *v)
+    -> typename std::enable_if<std::is_arithmetic<T>::value, bool>::type
+{
+    if(val.begins_with('+'))
+        val = val.sub(1);
+    return from_chars(val, v);
+}
+template<class T>
+C4_ALWAYS_INLINE auto read_skip_plus(csubstr val, T *v)
+    -> typename std::enable_if< ! std::is_arithmetic<T>::value, bool>::type
+{
+    return from_chars(val, v);
+}
+} // namespace detail
+
 /** convert the val of a scalar node to a particular type, by
  * forwarding its val to @ref from_chars<T>(). The full string is
  * used.
  * @return false if the conversion failed */
 template<class T>
-typename std::enable_if< ! std::is_floating_point<T>::value, bool>::type
-inline read(NodeRef const& n, T *v)
+inline auto read(NodeRef const& n, T *v)
+    -> typename std::enable_if< ! std::is_floating_point<T>::value, bool>::type
 {
     csubstr val = n.val();
     if(val.empty())
         return false;
-    return from_chars(val, v);
+    return detail::read_skip_plus(val, v);
 }
 /** convert the val of a scalar node to a particular type, by
  * forwarding its val to @ref from_chars<T>(). The full string is
  * used.
  * @return false if the conversion failed */
 template<class T>
-typename std::enable_if< ! std::is_floating_point<T>::value, bool>::type
-inline read(ConstNodeRef const& n, T *v)
+inline auto read(ConstNodeRef const& n, T *v)
+    -> typename std::enable_if< ! std::is_floating_point<T>::value, bool>::type
 {
     csubstr val = n.val();
     if(val.empty())
         return false;
-    return from_chars(val, v);
+    return detail::read_skip_plus(val, v);
 }
 
 /** convert the val of a scalar node to a floating point type, by
