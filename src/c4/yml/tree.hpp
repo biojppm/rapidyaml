@@ -64,6 +64,10 @@ bool from_chars_float(csubstr buf, T *C4_RESTRICT val)
     {
         return true;
     }
+    else if(C4_UNLIKELY(buf.begins_with('+')))
+    {
+        return from_chars(buf.sub(1), val);
+    }
     else if(C4_UNLIKELY(buf == ".nan" || buf == ".NaN" || buf == ".NAN"))
     {
         *val = std::numeric_limits<T>::quiet_NaN();

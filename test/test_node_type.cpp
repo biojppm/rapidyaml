@@ -129,21 +129,77 @@ TEST(NodeType, type_str)
 #undef teststr
 }
 
-TEST(NodeType, scalar_style_choose)
-{
-    EXPECT_EQ(scalar_style_choose(" \n\t"), SCALAR_DQUO);
-    EXPECT_EQ(scalar_style_choose("01"), SCALAR_PLAIN);
-}
-
 TEST(NodeType, scalar_style_choose_json)
 {
     EXPECT_EQ(scalar_style_json_choose("true"), SCALAR_PLAIN);
     EXPECT_EQ(scalar_style_json_choose("false"), SCALAR_PLAIN);
     EXPECT_EQ(scalar_style_json_choose("null"), SCALAR_PLAIN);
     EXPECT_EQ(scalar_style_json_choose("0.1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_json_choose("-0.1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_json_choose("+0.1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_json_choose(".1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_json_choose("+.1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_json_choose("-.1"), SCALAR_PLAIN);
     EXPECT_EQ(scalar_style_json_choose("01"), SCALAR_DQUO);
     EXPECT_EQ(scalar_style_json_choose("foo"), SCALAR_DQUO);
     EXPECT_EQ(scalar_style_json_choose("bar"), SCALAR_DQUO);
+}
+
+TEST(NodeType, scalar_style_choose)
+{
+    EXPECT_EQ(scalar_style_choose(" \n\t"), SCALAR_DQUO);
+    EXPECT_EQ(scalar_style_choose("-.inf"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("-.INF"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("-.034"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("-.034x"), SCALAR_SQUO);
+    EXPECT_EQ(scalar_style_choose("2.35e-10"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("-2.35e-10"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("+2.35e-10"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("0.1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("-0.1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("+0.1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("01"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("0x1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("0o1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("0b1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("0x1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("0o1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("0b1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("-01"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("-0x1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("-0o1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("-0b1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("-0x1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("-0o1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("-0b1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("+01"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("+0x1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("+0o1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("+0b1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("+0x1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("+0o1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("+0b1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("01"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("0X1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("0O1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("0B1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("0X1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("0O1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("0B1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("-01"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("-0X1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("-0O1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("-0B1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("-0X1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("-0O1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("-0B1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("+01"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("+0X1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("+0O1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("+0B1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("+0X1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("+0O1"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("+0B1"), SCALAR_PLAIN);
 }
 
 TEST(NodeType, scalar_style_query_plain)
@@ -152,6 +208,53 @@ TEST(NodeType, scalar_style_query_plain)
     EXPECT_TRUE(scalar_style_query_plain("-.INF"));
     EXPECT_TRUE(scalar_style_query_plain("-.034"));
     EXPECT_FALSE(scalar_style_query_plain("-.034x"));
+    EXPECT_TRUE(scalar_style_query_plain("2.35e-10"));
+    EXPECT_TRUE(scalar_style_query_plain("-2.35e-10"));
+    EXPECT_TRUE(scalar_style_query_plain("+2.35e-10"));
+    EXPECT_TRUE(scalar_style_query_plain("0.1"));
+    EXPECT_TRUE(scalar_style_query_plain("-0.1"));
+    EXPECT_TRUE(scalar_style_query_plain("+0.1"));
+    EXPECT_TRUE(scalar_style_query_plain("01"));
+    EXPECT_TRUE(scalar_style_query_plain("0x1"));
+    EXPECT_TRUE(scalar_style_query_plain("0o1"));
+    EXPECT_TRUE(scalar_style_query_plain("0b1"));
+    EXPECT_TRUE(scalar_style_query_plain("0x1"));
+    EXPECT_TRUE(scalar_style_query_plain("0o1"));
+    EXPECT_TRUE(scalar_style_query_plain("0b1"));
+    EXPECT_TRUE(scalar_style_query_plain("+01"));
+    EXPECT_TRUE(scalar_style_query_plain("+0x1"));
+    EXPECT_TRUE(scalar_style_query_plain("+0o1"));
+    EXPECT_TRUE(scalar_style_query_plain("+0b1"));
+    EXPECT_TRUE(scalar_style_query_plain("+0x1"));
+    EXPECT_TRUE(scalar_style_query_plain("+0o1"));
+    EXPECT_TRUE(scalar_style_query_plain("+0b1"));
+    EXPECT_TRUE(scalar_style_query_plain("-01"));
+    EXPECT_TRUE(scalar_style_query_plain("-0x1"));
+    EXPECT_TRUE(scalar_style_query_plain("-0o1"));
+    EXPECT_TRUE(scalar_style_query_plain("-0b1"));
+    EXPECT_TRUE(scalar_style_query_plain("-0x1"));
+    EXPECT_TRUE(scalar_style_query_plain("-0o1"));
+    EXPECT_TRUE(scalar_style_query_plain("-0b1"));
+    EXPECT_TRUE(scalar_style_query_plain("0X1"));
+    EXPECT_TRUE(scalar_style_query_plain("0O1"));
+    EXPECT_TRUE(scalar_style_query_plain("0B1"));
+    EXPECT_TRUE(scalar_style_query_plain("0X1"));
+    EXPECT_TRUE(scalar_style_query_plain("0O1"));
+    EXPECT_TRUE(scalar_style_query_plain("0B1"));
+    EXPECT_TRUE(scalar_style_query_plain("+01"));
+    EXPECT_TRUE(scalar_style_query_plain("+0X1"));
+    EXPECT_TRUE(scalar_style_query_plain("+0O1"));
+    EXPECT_TRUE(scalar_style_query_plain("+0B1"));
+    EXPECT_TRUE(scalar_style_query_plain("+0X1"));
+    EXPECT_TRUE(scalar_style_query_plain("+0O1"));
+    EXPECT_TRUE(scalar_style_query_plain("+0B1"));
+    EXPECT_TRUE(scalar_style_query_plain("-01"));
+    EXPECT_TRUE(scalar_style_query_plain("-0X1"));
+    EXPECT_TRUE(scalar_style_query_plain("-0O1"));
+    EXPECT_TRUE(scalar_style_query_plain("-0B1"));
+    EXPECT_TRUE(scalar_style_query_plain("-0X1"));
+    EXPECT_TRUE(scalar_style_query_plain("-0O1"));
+    EXPECT_TRUE(scalar_style_query_plain("-0B1"));
 }
 
 

@@ -638,6 +638,172 @@ TEST(deserialize, issue434_3)
 }
 
 
+template<class T>
+void test442(csubstr input, csubstr expected, NodeType style_flag)
+{
+    // as a seq member
+    {
+        const std::string input_str = formatrs<std::string>("- {}", input);
+        const std::string expected_input_str = formatrs<std::string>("- {}\n", input);
+        const std::string expected_str = formatrs<std::string>("- {}\n", expected);
+        const Tree tree = parse_in_arena(to_csubstr(input_str));
+        EXPECT_TRUE(tree[0].type_has_all(style_flag));
+        EXPECT_EQ(expected_input_str, emitrs_yaml<std::string>(tree));
+        T obj = {};  // T is a scalar type like int, char, double, etc.
+        tree[0] >> obj;
+        Tree out_tree;
+        out_tree.rootref() |= SEQ;
+        out_tree[0] << obj;
+        out_tree[0].set_val_style(style_flag);
+        EXPECT_EQ(expected_str, emitrs_yaml<std::string>(out_tree));
+    }
+    // as a map member
+    {
+        const std::string input_str = formatrs<std::string>("val: {}", input);
+        const std::string expected_input_str = formatrs<std::string>("val: {}\n", input);
+        const std::string expected_str = formatrs<std::string>("val: {}\n", expected);
+        const Tree tree = parse_in_arena(to_csubstr(input_str));
+        EXPECT_TRUE(tree["val"].type_has_all(style_flag));
+        EXPECT_EQ(expected_input_str, emitrs_yaml<std::string>(tree));
+        T obj = {};  // T is a scalar type like int, char, double, etc.
+        tree["val"] >> obj;
+        Tree out_tree;
+        out_tree.rootref() |= MAP;
+        out_tree["val"] << obj;
+        out_tree["val"].set_val_style(style_flag);
+        EXPECT_EQ(expected_str, emitrs_yaml<std::string>(out_tree));
+    }
+    // as a doc scalar
+    {
+        const std::string expected_input_str = formatrs<std::string>("{}\n", input);
+        const std::string expected_str = formatrs<std::string>("{}\n", expected);
+        const Tree tree = parse_in_arena(input);
+        EXPECT_TRUE(tree.rootref().type_has_all(style_flag));
+        EXPECT_EQ(expected_input_str, emitrs_yaml<std::string>(tree));
+        T obj = {};  // T is a scalar type like int, char, double, etc.
+        tree.rootref() >> obj;
+        Tree out_tree;
+        out_tree.rootref() << obj;
+        out_tree.rootref().set_val_style(style_flag);
+        EXPECT_EQ(expected_str, emitrs_yaml<std::string>(out_tree));
+    }
+}
+TEST(serialize, issue442_00)
+{
+    test442<int>("123", "123", VAL_PLAIN);
+}
+TEST(serialize, issue442_01)
+{
+    test442<int>("-123", "-123", VAL_PLAIN);
+}
+TEST(serialize, issue442_02)
+{
+    test442<int>("+123", "123", VAL_PLAIN);
+}
+TEST(serialize, issue442_10)
+{
+    test442<float>("2.35e-10", "2.35e-10", VAL_PLAIN);
+}
+TEST(serialize, issue442_11)
+{
+    test442<float>("-2.35e-10", "-2.35e-10", VAL_PLAIN);
+}
+TEST(serialize, issue442_12)
+{
+    test442<float>("+2.35e-10", "2.35e-10", VAL_PLAIN);
+}
+TEST(serialize, issue442_20)
+{
+    test442<double>("2.35e-10", "2.35e-10", VAL_PLAIN);
+}
+TEST(serialize, issue442_21)
+{
+    test442<double>("-2.35e-10", "-2.35e-10", VAL_PLAIN);
+}
+TEST(serialize, issue442_22)
+{
+    test442<double>("+2.35e-10", "2.35e-10", VAL_PLAIN);
+}
+TEST(serialize, issue442_30)
+{
+    test442<char>("'a'", "'a'", VAL_SQUO);
+}
+TEST(serialize, issue442_31)
+{
+    test442<char>("' '", "' '", VAL_SQUO);
+}
+TEST(serialize, issue442_40)
+{
+    test442<char>("\"a\"", "\"a\"", VAL_DQUO);
+}
+TEST(serialize, issue442_41)
+{
+    test442<char>("\" \"", "\" \"", VAL_DQUO);
+}
+TEST(serialize, issue442_50)
+{
+    test442<char>("a", "a", VAL_PLAIN);
+}
+TEST(serialize, issue442_60)
+{
+    EXPECT_TRUE(scalar_style_query_plain("123"));
+    EXPECT_TRUE(scalar_style_query_plain("-123"));
+    EXPECT_TRUE(scalar_style_query_plain("+123"));
+    EXPECT_EQ(scalar_style_choose("123"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("-123"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("+123"), SCALAR_PLAIN);
+    {
+        Tree tree;
+        tree.rootref() << "123";
+        EXPECT_EQ(std::string("123\n"), emitrs_yaml<std::string>(tree));
+    }
+    {
+        Tree tree;
+        tree.rootref() << "-123";
+        EXPECT_EQ(std::string("-123\n"), emitrs_yaml<std::string>(tree));
+    }
+    {
+        Tree tree;
+        tree.rootref() << 123;
+        EXPECT_EQ(std::string("123\n"), emitrs_yaml<std::string>(tree));
+    }
+    {
+        Tree tree;
+        tree.rootref() << -123;
+        EXPECT_EQ(std::string("-123\n"), emitrs_yaml<std::string>(tree));
+    }
+}
+TEST(serialize, issue442_61)
+{
+    EXPECT_TRUE(scalar_style_query_plain("2.35e-10"));
+    EXPECT_TRUE(scalar_style_query_plain("-2.35e-10"));
+    EXPECT_TRUE(scalar_style_query_plain("+2.35e-10"));
+    EXPECT_EQ(scalar_style_choose("2.35e-10"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("-2.35e-10"), SCALAR_PLAIN);
+    EXPECT_EQ(scalar_style_choose("+2.35e-10"), SCALAR_PLAIN);
+    {
+        Tree tree;
+        tree.rootref() << 2.35e-10;
+        EXPECT_EQ(std::string("2.35e-10\n"), emitrs_yaml<std::string>(tree));
+    }
+    {
+        Tree tree;
+        tree.rootref() << -2.35e-10;
+        EXPECT_EQ(std::string("-2.35e-10\n"), emitrs_yaml<std::string>(tree));
+    }
+    {
+        Tree tree;
+        tree.rootref() << "2.35e-10";
+        EXPECT_EQ(std::string("2.35e-10\n"), emitrs_yaml<std::string>(tree));
+    }
+    {
+        Tree tree;
+        tree.rootref() << "-2.35e-10";
+        EXPECT_EQ(std::string("-2.35e-10\n"), emitrs_yaml<std::string>(tree));
+    }
+}
+
+
 //-------------------------------------------
 // this is needed to use the test case library
 Case const* get_case(csubstr /*name*/)
