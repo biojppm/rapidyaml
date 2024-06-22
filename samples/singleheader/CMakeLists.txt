@@ -11,6 +11,13 @@ target_compile_features(ryml-quickstart PUBLIC cxx_std_11)
 target_compile_definitions(ryml-quickstart PUBLIC -DRYML_SINGLE_HEADER)
 target_include_directories(ryml-quickstart PUBLIC "${SINGLE_HEADER_DIR}")
 
+if(MSVC)
+    option(ENABLE_ZC__cplusplus "Enable /Zc:__cplusplus compile option" ON)
+    if(ENABLE_ZC__cplusplus)
+        target_compile_options(ryml-quickstart PRIVATE /Zc:__cplusplus)
+    endif()
+endif()
+
 add_custom_target(run ryml-quickstart
     COMMAND $<TARGET_FILE:ryml-quickstart>
     DEPENDS ryml-quickstart)

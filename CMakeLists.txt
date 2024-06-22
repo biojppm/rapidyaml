@@ -108,6 +108,12 @@ if(CMAKE_COMPILER_IS_GNUCXX)
     endif()
 endif()
 
+if(MSVC)
+    option(ENABLE_ZC__cplusplus "Enable /Zc:__cplusplus compile option" ON)
+    if(ENABLE_ZC__cplusplus)
+        target_compile_options(ryml PUBLIC /Zc:__cplusplus)
+    endif()
+endif()
 
 #-------------------------------------------------------
 

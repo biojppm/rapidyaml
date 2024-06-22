@@ -10,6 +10,13 @@ add_library(ryml lib.cpp ${SINGLE_HEADER})
 target_compile_features(ryml PUBLIC cxx_std_11)
 target_include_directories(ryml PUBLIC "${SINGLE_HEADER_DIR}")
 
+if(MSVC)
+    option(ENABLE_ZC__cplusplus "Enable /Zc:__cplusplus compile option" ON)
+    if(ENABLE_ZC__cplusplus)
+        target_compile_options(ryml PUBLIC /Zc:__cplusplus)
+    endif()
+endif()
+
 # now simply define the executable:
 add_executable(ryml-quickstart ../quickstart.cpp)
 target_link_libraries(ryml-quickstart PRIVATE ryml)
