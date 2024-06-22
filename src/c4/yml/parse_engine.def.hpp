@@ -3222,7 +3222,7 @@ void ParseEngine<EventHandler>::_filter_block_folded_newlines(FilterProcessor &C
             // In the end, moving this block to a separate function
             // was the only way to bury the problem. But it may
             // resurface again, as The Undead, rising to from the
-            // grave to haunt us with his terrible
+            // grave to haunt us with his terrible presence.
             //
             // We may have to revisit this. With a stake, and lots of
             // garlic.

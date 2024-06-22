@@ -565,11 +565,11 @@ void test_deserialize_trailing_434(csubstr yaml, csubstr val, csubstr first, dou
     ConstNodeRef cnode = tree["val"];
     NodeRef node = tree["val"];
     {
-        int value;
+        int value = {};
         EXPECT_FALSE(read(cnode, &value));
     }
     {
-        int value;
+        int value = {};
         EXPECT_FALSE(read(node, &value));
     }
     ExpectError::do_check(&tree, [&]{
@@ -582,22 +582,22 @@ void test_deserialize_trailing_434(csubstr yaml, csubstr val, csubstr first, dou
     });
     float fval = (float)dval;
     {
-        float value;
+        float value = {};
         EXPECT_TRUE(read(cnode, &value));
         EXPECT_EQ(memcmp(&value, &fval, sizeof(fval)), 0);
     }
     {
-        float value;
+        float value = {};
         EXPECT_TRUE(read(node, &value));
         EXPECT_EQ(memcmp(&value, &fval, sizeof(fval)), 0);
     }
     {
-        double value;
+        double value = {};
         EXPECT_TRUE(read(cnode, &value));
         EXPECT_EQ(memcmp(&value, &dval, sizeof(dval)), 0);
     }
     {
-        double value;
+        double value = {};
         EXPECT_TRUE(read(node, &value));
         EXPECT_EQ(memcmp(&value, &dval, sizeof(dval)), 0);
     }

@@ -104,11 +104,13 @@ public:
 
     void start_parse(const char* filename, detail::pfn_relocate_arena relocate_arena, void *relocate_arena_data)
     {
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree != nullptr);
         this->_stack_start_parse(filename, relocate_arena, relocate_arena_data);
     }
 
     void finish_parse()
     {
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree != nullptr);
         if(m_num_directives && !m_tree->is_stream(m_tree->root_id()))
             _RYML_CB_ERR_(m_stack.m_callbacks, "directives cannot be used without a document", {});
         this->_stack_finish_parse();
@@ -307,6 +309,7 @@ public:
 
     void add_sibling()
     {
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree);
         _RYML_CB_ASSERT(m_stack.m_callbacks, m_parent);
         _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree->has_children(m_parent->node_id));
         NodeData const* prev = m_tree->m_buf; // watchout against relocation of the tree nodes
@@ -445,6 +448,7 @@ public:
     void set_key_anchor(csubstr anchor)
     {
         _c4dbgpf("node[{}]: set key anchor: [{}]~~~{}~~~", m_curr->node_id, anchor.len, anchor);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree);
         if(C4_UNLIKELY(_has_any_(KEYREF)))
             _RYML_CB_ERR_(m_tree->callbacks(), "key cannot have both anchor and ref", m_curr->pos);
         _RYML_CB_ASSERT(m_tree->callbacks(), !anchor.begins_with('&'));
@@ -454,6 +458,7 @@ public:
     void set_val_anchor(csubstr anchor)
     {
         _c4dbgpf("node[{}]: set val anchor: [{}]~~~{}~~~", m_curr->node_id, anchor.len, anchor);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree);
         if(C4_UNLIKELY(_has_any_(VALREF)))
             _RYML_CB_ERR_(m_tree->callbacks(), "val cannot have both anchor and ref", m_curr->pos);
         _RYML_CB_ASSERT(m_tree->callbacks(), !anchor.begins_with('&'));
@@ -464,6 +469,7 @@ public:
     void set_key_ref(csubstr ref)
     {
         _c4dbgpf("node[{}]: set key ref: [{}]~~~{}~~~", m_curr->node_id, ref.len, ref);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree);
         if(C4_UNLIKELY(_has_any_(KEYANCH)))
             _RYML_CB_ERR_(m_tree->callbacks(), "key cannot have both anchor and ref", m_curr->pos);
         _RYML_CB_ASSERT(m_tree->callbacks(), ref.begins_with('*'));
@@ -474,6 +480,7 @@ public:
     void set_val_ref(csubstr ref)
     {
         _c4dbgpf("node[{}]: set val ref: [{}]~~~{}~~~", m_curr->node_id, ref.len, ref);
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree);
         if(C4_UNLIKELY(_has_any_(VALANCH)))
             _RYML_CB_ERR_(m_tree->callbacks(), "val cannot have both anchor and ref", m_curr->pos);
         _RYML_CB_ASSERT(m_tree->callbacks(), ref.begins_with('*'));
@@ -541,6 +548,7 @@ public:
 
     substr alloc_arena(size_t len)
     {
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree);
         csubstr prev = m_tree->arena();
         substr out = m_tree->alloc_arena(len);
         substr curr = m_tree->arena();
@@ -551,6 +559,7 @@ public:
 
     substr alloc_arena(size_t len, substr *relocated)
     {
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree);
         csubstr prev = m_tree->arena();
         if(!prev.is_super(*relocated))
             return alloc_arena(len);
@@ -568,12 +577,13 @@ public:
     /** @cond dev */
     void _reset_parser_state(state* st, id_type parse_root, id_type node)
     {
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree);
         _set_state_(st, node);
         const NodeType type = m_tree->type(node);
         #ifdef RYML_DBG
         char flagbuf[80];
-        #endif
         _c4dbgpf("resetting state: initial flags={}", detail::_parser_flags_to_str(flagbuf, st->flags));
+        #endif
         if(type == NOTYPE)
         {
             _c4dbgpf("node[{}] is notype", node);
@@ -612,7 +622,9 @@ public:
             _c4dbgpf("node[{}] is doc", node);
             st->flags |= RDOC;
         }
+        #ifdef RYML_DBG
         _c4dbgpf("resetting state: final flags={}", detail::_parser_flags_to_str(flagbuf, st->flags));
+        #endif
     }
 
     /** push a new parent, add a child to the new parent, and set the
@@ -697,6 +709,7 @@ public:
     void _remove_speculative()
     {
         _c4dbgp("remove speculative node");
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree);
         _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->size() > 0);
         const id_type last_added = m_tree->size() - 1;
         if(m_tree->has_parent(last_added))
@@ -706,6 +719,7 @@ public:
 
     void _remove_speculative_with_parent()
     {
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree);
         _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->size() > 0);
         const id_type last_added = m_tree->size() - 1;
         _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->has_parent(last_added));
@@ -718,6 +732,7 @@ public:
 
     C4_ALWAYS_INLINE void _save_loc()
     {
+        _RYML_CB_ASSERT(m_stack.m_callbacks, m_tree);
         _RYML_CB_ASSERT(m_tree->callbacks(), m_tree->_p(m_curr->node_id)->m_val.scalar.len == 0);
         m_tree->_p(m_curr->node_id)->m_val.scalar.str = m_curr->line_contents.rem.str;
     }

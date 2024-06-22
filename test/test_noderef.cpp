@@ -1118,14 +1118,12 @@ TEST(NodeRef, vsConstNodeRef)
     // mseq = seq; // deliberate compilation error
     seq = mseq; // ok
     {
-        NodeData *nd = mseq.get();
-        // nd = seq.get(); // deliberate compile error
-        C4_UNUSED(nd);
+        (void)mseq.get();
+        //(void)seq.get(); // deliberate compile error
     }
     {
-        NodeData const* nd = seq.get();
-        nd = seq.get(); // ok
-        C4_UNUSED(nd);
+        (void)seq.get();
+        (void)seq.get(); // ok
     }
     test_invariants(t);
 }

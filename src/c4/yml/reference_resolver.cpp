@@ -208,16 +208,10 @@ void ReferenceResolver::resolve(Tree *t_)
             _c4dbgpf("ref {} has parent: {}", i, refdata.parent_ref);
             _RYML_CB_ASSERT(m_tree->m_callbacks, m_tree->is_seq(refdata.parent_ref));
             const id_type p = m_tree->parent(refdata.parent_ref);
-            id_type after;
-            if(prev_parent_ref != refdata.parent_ref)
-            {
-                after = refdata.parent_ref;//prev_sibling(rd.parent_ref_sibling);
-                prev_parent_ref_after = after;
-            }
-            else
-            {
-                after = prev_parent_ref_after;
-            }
+            const id_type after = (prev_parent_ref != refdata.parent_ref) ?
+                refdata.parent_ref//prev_sibling(rd.parent_ref_sibling)
+                :
+                prev_parent_ref_after;
             prev_parent_ref = refdata.parent_ref;
             prev_parent_ref_after = m_tree->duplicate_children_no_rep(refdata.target, p, after);
             m_tree->remove(refdata.node);

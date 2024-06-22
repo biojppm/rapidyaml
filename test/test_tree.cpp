@@ -719,9 +719,8 @@ TEST(Tree, move_ctor)
     test_compare(save, src);
     {
         Tree dst(std::move(src));
-        EXPECT_EQ(src.empty(), true);
-        EXPECT_EQ(src.size(), 0u);
-        EXPECT_EQ(src.arena().empty(), true);
+        EXPECT_EQ(src.m_size, 0u);
+        EXPECT_EQ(src.m_arena_pos, 0u);
         EXPECT_EQ(dst.size(), save.size());
         EXPECT_EQ(dst.arena(), save.arena());
         test_invariants(src);
@@ -789,10 +788,9 @@ TEST(Tree, move_assign_same_callbacks)
         EXPECT_NE(dst.size(), 0u);
         EXPECT_NE(dst.arena().empty(), true);
         dst = std::move(src);
-        EXPECT_EQ(src.empty(), true);
-        EXPECT_EQ(src.size(), 0u);
-        EXPECT_EQ(src.arena().empty(), true);
-        EXPECT_EQ(src.callbacks(), cbt.callbacks());
+        EXPECT_EQ(src.m_size, 0u);
+        EXPECT_EQ(src.m_arena_pos, 0u);
+        EXPECT_EQ(src.m_callbacks, cbt.callbacks());
         EXPECT_EQ(dst.size(), save.size());
         EXPECT_EQ(dst.arena(), save.arena());
         EXPECT_EQ(dst.callbacks(), save.callbacks());
@@ -820,10 +818,9 @@ TEST(Tree, move_assign_diff_callbacks)
         EXPECT_NE(dst.arena().empty(), true);
         EXPECT_EQ(dst.callbacks(), cbdst.callbacks());
         dst = std::move(src);
-        EXPECT_EQ(src.empty(), true);
-        EXPECT_EQ(src.size(), 0u);
-        EXPECT_EQ(src.arena().empty(), true);
-        EXPECT_EQ(src.callbacks(), cbsrc.callbacks());
+        EXPECT_EQ(src.m_size, 0u);
+        EXPECT_EQ(src.m_arena_pos, 0u);
+        EXPECT_EQ(src.m_callbacks, cbsrc.callbacks());
         EXPECT_EQ(dst.size(), save.size());
         EXPECT_EQ(dst.arena(), save.arena());
         EXPECT_NE(dst.callbacks(), cbdst.callbacks());
@@ -3714,16 +3711,16 @@ TEST(Tree, lookup_path_or_modify)
         EXPECT_EQ(t["newmap2"]["newseq2"][2]["newmap2"]["newseq2"][2].val(), nullptr);
         EXPECT_EQ(t["newmap2"]["newseq2"][2]["newmap2"]["newseq2"][3].is_map(), true);
         EXPECT_EQ(t["newmap2"]["newseq2"][2]["newmap2"]["newseq2"][3]["first2"].val(), "y");
-        sz2 = t.lookup_path_or_modify("z", "newmap2.newseq2[2].newmap2.newseq2[3].second2");
+        (void)t.lookup_path_or_modify("z", "newmap2.newseq2[2].newmap2.newseq2[3].second2");
         EXPECT_EQ  (t["newmap2"]["newseq2"][2]["newmap2"]["newseq2"][3]["second2"].val(), "z");
 
-        sz = t.lookup_path_or_modify("foo", "newmap.newseq1[1]");
+        (void)t.lookup_path_or_modify("foo", "newmap.newseq1[1]");
         EXPECT_EQ(t["newmap"].is_map(), true);
         EXPECT_EQ(t["newmap"]["newseq1"].is_seq(), true);
         EXPECT_EQ(t["newmap"]["newseq1"].num_children(), 2u);
         EXPECT_EQ(t["newmap"]["newseq1"][0].val(), nullptr);
         EXPECT_EQ(t["newmap"]["newseq1"][1].val(), "foo");
-        sz = t.lookup_path_or_modify("bar", "newmap.newseq1[2][1]");
+        (void)t.lookup_path_or_modify("bar", "newmap.newseq1[2][1]");
         EXPECT_EQ(t["newmap"]["newseq1"].is_seq(), true);
         EXPECT_EQ(t["newmap"]["newseq1"].num_children(), 3u);
         EXPECT_EQ(t["newmap"]["newseq1"][0].val(), nullptr);
@@ -3732,12 +3729,12 @@ TEST(Tree, lookup_path_or_modify)
         EXPECT_EQ(t["newmap"]["newseq1"][2].num_children(), 2u);
         EXPECT_EQ(t["newmap"]["newseq1"][2][0].val(), nullptr);
         EXPECT_EQ(t["newmap"]["newseq1"][2][1].val(), "bar");
-        sz = t.lookup_path_or_modify("Foo?"   , "newmap.newseq1[0]");
-        sz = t.lookup_path_or_modify("Bar?"   , "newmap.newseq1[2][0]");
-        sz = t.lookup_path_or_modify("happy"  , "newmap.newseq1[2][2][3]");
-        sz = t.lookup_path_or_modify("trigger", "newmap.newseq1[2][2][2]");
-        sz = t.lookup_path_or_modify("Arnold" , "newmap.newseq1[2][2][0]");
-        sz = t.lookup_path_or_modify("is"     , "newmap.newseq1[2][2][1]");
+        (void)t.lookup_path_or_modify("Foo?"   , "newmap.newseq1[0]");
+        (void)t.lookup_path_or_modify("Bar?"   , "newmap.newseq1[2][0]");
+        (void)t.lookup_path_or_modify("happy"  , "newmap.newseq1[2][2][3]");
+        (void)t.lookup_path_or_modify("trigger", "newmap.newseq1[2][2][2]");
+        (void)t.lookup_path_or_modify("Arnold" , "newmap.newseq1[2][2][0]");
+        (void)t.lookup_path_or_modify("is"     , "newmap.newseq1[2][2][1]");
         EXPECT_EQ(t["newmap"]["newseq1"].is_seq(), true);
         EXPECT_EQ(t["newmap"]["newseq1"].num_children(), 3u);
         EXPECT_EQ(t["newmap"]["newseq1"][0].val(), "Foo?");
