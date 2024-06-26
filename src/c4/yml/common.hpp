@@ -8,7 +8,7 @@
 #include <c4/dump.hpp>
 #include <c4/yml/export.hpp>
 
-#ifdef C4_MSVC
+#if defined(C4_MSVC) || defined(C4_MINGW)
 #include <malloc.h>
 #else
 #include <alloca.h>
