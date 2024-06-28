@@ -58,30 +58,27 @@ struct LineContents
     void reset_with_next_line(substr buf, size_t offset)
     {
         RYML_ASSERT(offset <= buf.len);
-        char const* C4_RESTRICT b = &buf[offset];
-        char const* C4_RESTRICT e = b;
+        size_t e = offset;
         // get the current line stripped of newline chars
-        while(e < buf.end() && (*e != '\n' && *e != '\r'))
+        while(e < buf.len && (buf.str[e] != '\n' && buf.str[e] != '\r'))
             ++e;
-        RYML_ASSERT(e >= b);
-        const substr stripped_ = buf.sub(offset, static_cast<size_t>(e - b));
+        RYML_ASSERT(e >= offset);
+        const substr stripped_ = buf.range(offset, e);
         // advance pos to include the first line ending
-        if(e != buf.end() && *e == '\r')
+        if(e < buf.len && buf.str[e] == '\r')
             ++e;
-        if(e != buf.end() && *e == '\n')
+        if(e < buf.len && buf.str[e] == '\n')
             ++e;
-        RYML_ASSERT(e >= b);
-        const substr full_ = buf.sub(offset, static_cast<size_t>(e - b));
+        const substr full_ = buf.range(offset, e);
         reset(full_, stripped_);
     }
 
     void reset(substr full_, substr stripped_)
     {
+        rem = stripped_;
+        indentation = stripped_.first_not_of(' ');  // find the first column where the character is not a space
         full = full_;
         stripped = stripped_;
-        rem = stripped_;
-        // find the first column where the character is not a space
-        indentation = stripped.first_not_of(' ');
     }
 
     C4_ALWAYS_INLINE size_t current_col() const RYML_NOEXCEPT

@@ -72,6 +72,39 @@ jobs:
       - {name: shared32-pack, run: source .github/setenv.sh && c4_package shared32}
 
   #----------------------------------------------------------------------------
+  gcc_O2: # see https://github.com/biojppm/rapidyaml/issues/440
+    name: gcc_O2/${{matrix.cxx}}/c++${{matrix.std}}
+    continue-on-error: true
+    if: always()  # https://stackoverflow.com/questions/62045967/github-actions-is-there-a-way-to-continue-on-error-while-still-getting-correct
+    runs-on: ubuntu-latest
+    container: ghcr.io/biojppm/c4core/ubuntu22.04:latest  # use the docker image
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {std: 11, gcc: 12 , bt: Release}
+    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.gcc}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
+    steps:
+      - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
+      - run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
+      - run: c4core-install g++-${{matrix.gcc}}
+      - {name: show info, run: source .github/setenv.sh && c4_show_info}
+      - name: configure
+        run: |
+          cmake -S . -B build_o2 \
+            -DCMAKE_CXX_COMPILER=g++-${{matrix.gcc}} \
+            -DCMAKE_C_COMPILER=gcc-${{matrix.gcc}} \
+            -DCMAKE_CXX_FLAGS_RELEASE:STRING="-O2 -g -DNDEBUG" \
+            -DRYML_BUILD_TESTS:BOOL=ON \
+            -DRYML_DBG:BOOL=OFF
+      - name: build
+        run: |
+          cmake --build build_o2 --target ryml-test-build -j --verbose
+      - name: run
+        run: |
+          cmake --build build_o2 --target ryml-test-run
+
+  #----------------------------------------------------------------------------
   gcc_tabtokens:
     name: gcc_canary/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     continue-on-error: true

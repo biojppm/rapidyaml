@@ -28,7 +28,7 @@ inline void _reset_tree_handler(Parser *parser, Tree *t, id_type node_id)
     RYML_ASSERT(parser);
     RYML_ASSERT(t);
     if(!parser->m_evt_handler)
-        _RYML_CB_ERR(parser->m_evt_handler->m_stack.m_callbacks, "event handler is not set");
+        _RYML_CB_ERR(t->m_callbacks, "event handler is not set");
     parser->m_evt_handler->reset(t, node_id);
     RYML_ASSERT(parser->m_evt_handler->m_tree == t);
 }

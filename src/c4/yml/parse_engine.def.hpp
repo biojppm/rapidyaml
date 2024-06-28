@@ -86,14 +86,33 @@ inline bool _is_doc_end_token(csubstr s)
         && (s.len == 3 || (s.str[3] == ' ' _RYML_WITH_TAB_TOKENS(|| s.str[3] == '\t')));
 }
 
-inline bool _is_doc_token(csubstr s)
+inline bool _is_doc_token(csubstr s) noexcept
 {
+    //
+    // NOTE: this function was failing under some scenarios when
+    // compiled with gcc -O2 (but not -O3 or -O1 or -O0), likely
+    // related to optimizer assumptions on the input string and
+    // possibly caused from UB around assignment to that string (the
+    // call site was in _scan_block()). For more details see:
+    //
+    // https://github.com/biojppm/rapidyaml/issues/440
+    //
+    // The current version does not suffer this problem, but it may
+    // appear again.
+    //
     if(s.len >= 3)
     {
-        if(s.str[0] == '-')
-            return _is_doc_begin_token(s);
-        else if(s.str[0] == '.')
-            return _is_doc_end_token(s);
+        switch(s.str[0])
+        {
+        case '-':
+            //return _is_doc_begin_token(s); // this was failing with gcc -O2
+            return (s.str[1] == '-' && s.str[2] == '-')
+                && (s.len == 3 || (s.str[3] == ' ' _RYML_WITH_TAB_TOKENS(|| s.str[3] == '\t')));
+        case '.':
+            //return _is_doc_end_token(s); // this was failing with gcc -O2
+            return (s.str[1] == '.' && s.str[2] == '.')
+                && (s.len == 3 || (s.str[3] == ' ' _RYML_WITH_TAB_TOKENS(|| s.str[3] == '\t')));
+        }
     }
     return false;
 }
@@ -2026,7 +2045,7 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
         digits = t.left_of(t.first_not_of("0123456789"));
         if( ! digits.empty())
         {
-            if(digits.len > 1)
+            if(C4_UNLIKELY(digits.len > 1))
                 _c4err("parse error: invalid indentation");
             _c4dbgpf("blck: parse indentation digits: [{}]~~~{}~~~", digits.len, digits);
             if(C4_UNLIKELY( ! c4::atou(digits, &indentation)))
@@ -2067,8 +2086,9 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
         // evaluate termination conditions
         if(indentation != npos)
         {
+            _c4dbgpf("blck: indentation={}", indentation);
             // stop when the line is deindented and not empty
-            if(lc.indentation < indentation && ( ! lc.rem.trim(" \t\r\n").empty()))
+            if(lc.indentation < indentation && ( ! lc.rem.trim(" \t").empty()))
             {
                 if(raw_block.len)
                 {
@@ -2082,6 +2102,7 @@ void ParseEngine<EventHandler>::_scan_block(ScannedBlock *C4_RESTRICT sb, size_t
             }
             else if(indentation == 0)
             {
+                _c4dbgpf("blck: noindent. lc.rem=[{}]~~~{}~~~", lc.rem.len, lc.rem);
                 if(_is_doc_token(lc.rem))
                 {
                     _c4dbgp("blck: stop. indentation=0 and doc ended");
@@ -3222,7 +3243,7 @@ void ParseEngine<EventHandler>::_filter_block_folded_newlines(FilterProcessor &C
             // In the end, moving this block to a separate function
             // was the only way to bury the problem. But it may
             // resurface again, as The Undead, rising to from the
-            // grave to haunt us with his terrible
+            // grave to haunt us with his terrible presence.
             //
             // We may have to revisit this. With a stake, and lots of
             // garlic.
