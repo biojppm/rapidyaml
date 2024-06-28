@@ -3,6 +3,10 @@
 #include "c4/yml/node.hpp"
 #include "c4/yml/reference_resolver.hpp"
 
+#define STRINGIZE(x) #x
+#define TOSTRING(x) STRINGIZE(x)
+
+#pragma message("__cplusplus = " TOSTRING(__cplusplus))
 
 C4_SUPPRESS_WARNING_MSVC_WITH_PUSH(4296/*expression is always 'boolean_value'*/)
 C4_SUPPRESS_WARNING_GCC_CLANG_WITH_PUSH("-Wold-style-cast")
