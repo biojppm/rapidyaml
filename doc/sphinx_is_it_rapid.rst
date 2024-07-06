@@ -137,7 +137,7 @@ anecdotally reported by some users `(eg, here’s a user reporting 25x
 speedup from yaml-cpp)
 <https://github.com/biojppm/rapidyaml/issues/28#issue-553855608>`__.
 Also, in some cases (eg, block folded multiline scalars), the speedup
-is as high as 200x (eg, 7.3MB/s -> 1.416MG/s).
+is as high as 200x (eg, 7.3MB/s -> 1.416GB/s).
 
 
 Serialization performance
