@@ -6037,7 +6037,7 @@ mapblck_start:
         {
             _c4dbgp("mapblck[RKEY]: scanning double-quoted scalar");
             sc = _scan_scalar_dquot();
-            csubstr maybe_filtered = _maybe_filter_val_scalar_squot(sc);
+            csubstr maybe_filtered = _maybe_filter_val_scalar_dquot(sc);
             _handle_annotations_before_blck_key_scalar();
             m_evt_handler->set_key_scalar_dquoted(maybe_filtered);
             addrem_flags(RVAL, RKEY);
