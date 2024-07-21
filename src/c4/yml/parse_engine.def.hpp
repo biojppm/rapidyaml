@@ -675,7 +675,7 @@ csubstr ParseEngine<EventHandler>::_scan_ref_map()
 {
     csubstr s = m_evt_handler->m_curr->line_contents.rem;
     _RYML_CB_ASSERT(m_evt_handler->m_stack.m_callbacks, s.begins_with('*'));
-    csubstr ref = s.first(s.first_of(",} "));
+    csubstr ref = s.first(s.first_of(",} :"));
     _line_progressed(ref.len);
     return ref;
 }
