@@ -4,6 +4,67 @@
 namespace c4 {
 namespace yml {
 
+TEST(github, 455_0_ok)
+{
+    Tree t;
+    ExpectError::check_success([&t]{
+        parse_in_arena(R"(
+  processors:
+    - simple: a
+  sampler:
+    trace_id_ratio_based:
+      ratio:
+)", &t);
+    });
+    ConstNodeRef sampler = t["sampler"];
+    ASSERT_TRUE(sampler.is_map());
+    ASSERT_TRUE(sampler.has_child("trace_id_ratio_based"));
+    ASSERT_TRUE(sampler["trace_id_ratio_based"].has_child("ratio"));
+}
+
+TEST(github, 455_0)
+{
+    Tree t;
+    ExpectError::check_success([&t]{
+        parse_in_arena(R"(
+  processors:
+    - simple:
+  sampler:
+    trace_id_ratio_based:
+      ratio:
+)", &t);
+    });
+    ConstNodeRef sampler = t["sampler"];
+    ASSERT_TRUE(sampler.is_map());
+    ASSERT_TRUE(sampler.has_child("trace_id_ratio_based"));
+    ASSERT_TRUE(sampler["trace_id_ratio_based"].has_child("ratio"));
+}
+
+TEST(github, 455_1)
+{
+    Tree t;
+    ExpectError::check_success([&t]{
+        parse_in_arena(R"(
+file_format: 0.0
+tracer_provider:
+  processors:
+    - simple:
+        exporter:
+          console:
+  sampler:
+    trace_id_ratio_based:
+      ratio:
+    )", &t);
+    });
+    ConstNodeRef sampler = t["tracer_provider"]["sampler"];
+    ASSERT_TRUE(sampler.is_map());
+    ASSERT_TRUE(sampler.has_child("trace_id_ratio_based"));
+    ASSERT_TRUE(sampler["trace_id_ratio_based"].has_child("ratio"));
+}
+
+
+//-----------------------------------------------------------------------------
+
 TEST(github, 268)
 {
     Tree tree = parse_in_arena(R"(

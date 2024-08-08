@@ -1,5 +1,6 @@
 ## Fixes
 
+- Fix [#455](https://github.com/biojppm/rapidyaml/issues/455): parsing of trailing val-less nested maps when deindented to maps ([PR#460](https://github.com/biojppm/rapidyaml/pull/460))
 - Fix filtering of double-quoted keys in block maps ([PR#452](https://github.com/biojppm/rapidyaml/pull/452))
 - Fix [#440](https://github.com/biojppm/rapidyaml/issues/440): some tests failing with gcc -O2 (hypothetically due to undefined behavior)
   - This was accomplished by refactoring some internal parser functions; see the comments in [#440](https://github.com/biojppm/rapidyaml/issues/440) for further details.
