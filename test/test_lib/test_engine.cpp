@@ -40,7 +40,7 @@ std::vector<std::string> inject_comments(std::string const& src_)
 
 void test_expected_error_events_from_yaml(std::string const& parsed_yaml, Location const& expected_error_location)
 {
-    ExpectError::do_check([&]{
+    ExpectError::check_error([&]{
         EventHandlerYamlStd::EventSink sink;
         EventHandlerYamlStd handler(&sink);
         handler.reset();
@@ -53,7 +53,7 @@ void test_expected_error_events_from_yaml(std::string const& parsed_yaml, Locati
 void test_expected_error_tree_from_yaml(std::string const& parsed_yaml, Location const& expected_error_location)
 {
     Tree tree = {};
-    ExpectError::do_check(&tree, [&]{
+    ExpectError::check_error(&tree, [&]{
         EventHandlerTree handler(&tree, tree.root_id());
         ASSERT_EQ(&tree, handler.m_tree);
         ParseEngine<EventHandlerTree> parser(&handler);

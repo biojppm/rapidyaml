@@ -265,12 +265,12 @@ void ExpectError::check_success(Tree *tree, std::function<void()> fn)
     EXPECT_FALSE(context.m_got_an_error);
 }
 
-void ExpectError::do_check(Tree const* tree, std::function<void()> fn, Location expected_location)
+void ExpectError::check_error(Tree const* tree, std::function<void()> fn, Location expected_location)
 {
-    do_check(const_cast<Tree*>(tree), fn, expected_location);
+    check_error(const_cast<Tree*>(tree), fn, expected_location);
 }
 
-void ExpectError::do_check(Tree *tree, std::function<void()> fn, Location expected_location)
+void ExpectError::check_error(Tree *tree, std::function<void()> fn, Location expected_location)
 {
     auto context = ExpectError(tree, expected_location);
     C4_IF_EXCEPTIONS_(try, if(setjmp(s_jmp_env_expect_error) == 0))
@@ -311,7 +311,7 @@ void ExpectError::do_check(Tree *tree, std::function<void()> fn, Location expect
 void ExpectError::check_assertion(Tree *tree, std::function<void()> fn, Location expected_location)
 {
     #if RYML_USE_ASSERT
-    ExpectError::do_check(tree, fn, expected_location);
+    ExpectError::check_error(tree, fn, expected_location);
     #else
     C4_UNUSED(tree);
     C4_UNUSED(fn);

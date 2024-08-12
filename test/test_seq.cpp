@@ -7,7 +7,7 @@ namespace yml {
 TEST(simple_seq, bad_seq1)
 {
     Tree tree;
-    ExpectError::do_check(&tree, [&]{
+    ExpectError::check_error(&tree, [&]{
         parse_in_arena(R"(
 ---
 [ a, b, c ] ]
@@ -18,7 +18,7 @@ TEST(simple_seq, bad_seq1)
 TEST(simple_seq, bad_seq2)
 {
     Tree tree;
-    ExpectError::do_check(&tree, [&]{
+    ExpectError::check_error(&tree, [&]{
         parse_in_arena(R"(
 ---
 [ [ a, b, c ]
@@ -48,7 +48,7 @@ TEST(simple_seq, many_unmatched_brackets)
         Location loc = {};
         loc.line = 1;
         loc.col = num_brackets + 1u;
-        ExpectError::do_check(&tree, [&]{
+        ExpectError::check_error(&tree, [&]{
             parse_in_place(to_substr(src), &tree);
         }, loc);
     }
@@ -157,7 +157,7 @@ TEST(simple_seq, block_tab_tokens__3_tabs_everywhere)
 }
 TEST(simple_seq, block_tab_tokens__4_tabs_indentation_error)
 {
-    ExpectError::do_check([]{
+    ExpectError::check_error([]{
         Tree tree = parse_in_arena(R"(
 	-	0	0	
 	-	1	1	
@@ -210,14 +210,14 @@ TEST(simple_seq, unterminated_seqimap)
     {
         SCOPED_TRACE("space after");
         Tree t;
-        ExpectError::do_check(&t, [&]{
+        ExpectError::check_error(&t, [&]{
             parse_in_arena("[a: ");
         });
     }
     {
         SCOPED_TRACE("no space after");
         Tree t;
-        ExpectError::do_check(&t, [&]{
+        ExpectError::check_error(&t, [&]{
             parse_in_arena("[a:");
         });
     }

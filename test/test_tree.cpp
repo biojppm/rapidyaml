@@ -1030,7 +1030,7 @@ void verify_assertion_(csubstr src, Function &&fn)
 template<class Function>
 void verify_error_(Tree &tree, Function &&fn)
 {
-    ExpectError::do_check(&tree, [&]{
+    ExpectError::check_error(&tree, [&]{
         (void)fn(tree);
     });
 }
@@ -1038,7 +1038,7 @@ template<class Function>
 void verify_error_(csubstr src, Function &&fn)
 {
     Tree tree = parse_in_arena(src);
-    ExpectError::do_check(&tree, [&]{
+    ExpectError::check_error(&tree, [&]{
         (void)fn(tree);
     });
 }
@@ -4145,7 +4145,7 @@ TEST(Tree, add_tag_directives)
     check_up_to(3);
     t.add_tag_directive(td[3]);
     check_up_to(4);
-    ExpectError::do_check(&t, [&]{ // number exceeded
+    ExpectError::check_error(&t, [&]{ // number exceeded
         t.add_tag_directive(td[4]);
     });
     t.clear_tag_directives();

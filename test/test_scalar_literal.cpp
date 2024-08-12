@@ -1023,7 +1023,7 @@ TEST(block_literal, carriage_return)
 TEST(block_literal, errors_on_tab_indents)
 {
     Tree tree;
-    ExpectError::do_check(&tree, [&]{
+    ExpectError::check_error(&tree, [&]{
         parse_in_arena("foo: |4\n    this is foo\n    now with tab-\n \t \tmust not work\n", &tree);
     });
 }
@@ -1032,7 +1032,7 @@ TEST(block_literal, errors_on_tab_indents)
 TEST(block_literal, error_on_bad_spec_0)
 {
     Tree t;
-    ExpectError::do_check(&t, [&t]{
+    ExpectError::check_error(&t, [&t]{
         t = parse_in_arena("- |012abc\n  must have errors above\n");
     });
 }
@@ -1040,7 +1040,7 @@ TEST(block_literal, error_on_bad_spec_0)
 TEST(block_literal, error_on_bad_spec_1)
 {
     Tree t;
-    ExpectError::do_check(&t, [&t]{
+    ExpectError::check_error(&t, [&t]{
         t = parse_in_arena("- |0\n  a\n");
     });
 }
@@ -1048,7 +1048,7 @@ TEST(block_literal, error_on_bad_spec_1)
 TEST(block_literal, error_on_literal_in_seqflow)
 {
     Tree t;
-    ExpectError::do_check(&t, [&t]{
+    ExpectError::check_error(&t, [&t]{
         t = parse_in_arena("[\n  |\n    a\n,]");
     });
 }
@@ -1056,7 +1056,7 @@ TEST(block_literal, error_on_literal_in_seqflow)
 TEST(block_literal, error_on_literal_in_mapflow)
 {
     Tree t;
-    ExpectError::do_check(&t, [&t]{
+    ExpectError::check_error(&t, [&t]{
         t = parse_in_arena("{\n b: |\n    a\n,}");
     });
 }
@@ -1065,13 +1065,13 @@ TEST(block_literal, indentation_indicator_0)
 {
     {
         Tree t;
-        ExpectError::do_check(&t, [&t]{
+        ExpectError::check_error(&t, [&t]{
             t = parse_in_arena("|0");
         });
     }
     {
         Tree t;
-        ExpectError::do_check(&t, [&t]{
+        ExpectError::check_error(&t, [&t]{
             t = parse_in_arena("|10");
         });
     }
@@ -1113,13 +1113,13 @@ TEST(block_literal, indentation_indicator_1)
 {
     {
         Tree t;
-        ExpectError::do_check(&t, [&t]{
+        ExpectError::check_error(&t, [&t]{
             t = parse_in_arena("--- |0");
         });
     }
     {
         Tree t;
-        ExpectError::do_check(&t, [&t]{
+        ExpectError::check_error(&t, [&t]{
             t = parse_in_arena("--- |10");
         });
     }

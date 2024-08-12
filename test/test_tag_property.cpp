@@ -464,7 +464,7 @@ TEST(tag_directives, accepts_multiple_spaces)
 void test_fail_tag_parsing(csubstr yaml)
 {
     Tree t;
-    ExpectError::do_check(&t, [&]{
+    ExpectError::check_error(&t, [&]{
         t = parse_in_arena(yaml);
     });
 }
@@ -474,7 +474,7 @@ void test_fail_tag_resolve(csubstr yaml)
     Tree t;
     t = parse_in_arena(yaml);
     _c4dbg_tree(t);
-    ExpectError::do_check(&t, [&]{
+    ExpectError::check_error(&t, [&]{
         t.resolve_tags();
     });
 }
@@ -566,7 +566,7 @@ TEST(tag_directives, decode_uri_chars)
     {
         Tree t;
         auto checkerr = [&t](csubstr yaml){
-            ExpectError::do_check(&t, [&]{
+            ExpectError::check_error(&t, [&]{
                 t.clear();
                 t = parse_in_arena(yaml);
                 t.resolve_tags();
@@ -1044,7 +1044,7 @@ TEST(tags, EHF6)
 TEST(tags, fuzzcrash0)
 {
     Tree tree;
-    ExpectError::do_check(&tree, [&]{
+    ExpectError::check_error(&tree, [&]{
         parse_in_arena("%TAG !! " "\n"
                        "})"       "\n"
                        ""         "\n"

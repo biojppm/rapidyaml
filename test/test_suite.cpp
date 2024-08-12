@@ -494,7 +494,7 @@ struct TestSequenceData
             }
             else
             {
-                ExpectError::do_check([&]{
+                ExpectError::check_error([&]{
                     levels[i].parse_yaml_to_tree();
                 });
                 break; // because we expect error,we cannot go on to the next
@@ -513,7 +513,7 @@ struct TestSequenceData
             }
             else
             {
-                ExpectError::do_check([&]{
+                ExpectError::check_error([&]{
                     levels[i].parse_json_to_tree();
                 });
                 break; // because we expect error,we cannot go on to the next
@@ -535,7 +535,7 @@ struct TestSequenceData
             }
             else
             {
-                ExpectError::do_check([&]{
+                ExpectError::check_error([&]{
                     levels[i].parse_yaml_to_events();
                 });
                 break; // because we expect error, we cannot go on to the next
@@ -670,7 +670,7 @@ struct TestSequenceData
         //SKIP_IF(has_container_keys); // DO IT!
         if(m_expected_error_to_tree_checked)
             return;
-        ExpectError::do_check(&levels[0].tree_parsed_from_src, [this]{
+        ExpectError::check_error(&levels[0].tree_parsed_from_src, [this]{
             levels[0].parse_yaml_to_tree();
         });
         m_expected_error_to_tree_checked = true;
@@ -681,7 +681,7 @@ struct TestSequenceData
         //SKIP_IF(has_container_keys); // DO IT!
         if(m_expected_error_to_events_checked)
             return;
-        ExpectError::do_check([this]{
+        ExpectError::check_error([this]{
             levels[0].parse_yaml_to_events();
         });
         m_expected_error_to_events_checked = true;

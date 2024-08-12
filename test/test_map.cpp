@@ -275,7 +275,7 @@ TEST(simple_map, test_suite_UT92_0)
 TEST(simple_map, test_suite_UT92_1)
 {
     Tree tree;
-    ExpectError::do_check(&tree, [&]{
+    ExpectError::check_error(&tree, [&]{
         csubstr yaml = R"(
 - { matches
 % : 20 }
@@ -294,7 +294,7 @@ TEST(simple_map, test_suite_UT92_1)
 TEST(simple_map, two_nested_flow_maps_not_accepted_because_of_container_key)
 {
     Tree tree;
-    ExpectError::do_check(&tree, [&]{
+    ExpectError::check_error(&tree, [&]{
         parse_in_arena("{{}}", &tree);
     });
 }
@@ -309,7 +309,7 @@ TEST(simple_map, many_unmatched_brackets)
         for(size_t i = src.size(); i < num_brackets; ++i)
             src += '{';
         Tree tree;
-        ExpectError::do_check(&tree, [&]{
+        ExpectError::check_error(&tree, [&]{
             parse_in_place(to_substr(src), &tree);
         });
     }
@@ -413,7 +413,7 @@ void verify_error_is_reported(csubstr case_name, csubstr yaml, LineCol lc={})
     Location loc = {};
     loc.line = lc.line;
     loc.col = lc.col;
-    ExpectError::do_check(&tree, [&](){
+    ExpectError::check_error(&tree, [&](){
         parse_in_arena(yaml, &tree);
     }, loc);
 }

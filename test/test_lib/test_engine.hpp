@@ -52,7 +52,7 @@ C4_NO_INLINE void test_new_parser_tree_from_events(ReferenceYaml const& yaml)
 {
     if(yaml.test_case_flags & HAS_CONTAINER_KEYS)
     {
-        ExpectError::do_check([&]{
+        ExpectError::check_error([&]{
             Tree tree = {};
             EventHandlerTree handler(&tree, tree.root_id());
             EventProducerFn<EventHandlerTree> event_producer;

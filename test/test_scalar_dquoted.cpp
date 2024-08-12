@@ -706,7 +706,7 @@ void verify_error_is_reported(csubstr case_name, csubstr yaml, Location loc={})
     SCOPED_TRACE(case_name);
     SCOPED_TRACE(yaml);
     Tree tree;
-    ExpectError::do_check(&tree, [&](){
+    ExpectError::check_error(&tree, [&](){
         parse_in_arena(yaml, &tree);
     }, loc);
 }

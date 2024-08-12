@@ -41,7 +41,7 @@ TEST(locations, default_is_no_location)
 TEST(locations, error_is_triggered_querying_with_locations_disabled)
 {
     bool parsed_ok = false;
-    ExpectError::do_check([&]{
+    ExpectError::check_error([&]{
         Parser::handler_type evt_handler = {};
         Parser parser(&evt_handler, ParserOptions().locations(false));
         Tree t = parse_in_arena(&parser, "test", "foo: bar");

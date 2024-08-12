@@ -309,13 +309,13 @@ TEST(plain_scalar, issue153_map)
 TEST(plain_scalar, test_suite_BS4K)
 {
     Tree t;
-    ExpectError::do_check(&t, [&]{
+    ExpectError::check_error(&t, [&]{
         t = parse_in_arena(R"(word1  # comment
 word2
 word3
 )");
     });
-    ExpectError::do_check(&t, [&]{
+    ExpectError::check_error(&t, [&]{
         t = parse_in_arena(R"(word1  # comment
 word2
 )");

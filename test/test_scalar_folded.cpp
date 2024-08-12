@@ -1735,7 +1735,7 @@ TEST(block_folded, test_suite_W4TN)
 TEST(block_folded, error_on_folded_in_seqflow)
 {
     Tree t;
-    ExpectError::do_check(&t, [&t]{
+    ExpectError::check_error(&t, [&t]{
         t = parse_in_arena("[\n  >\n    a\n,]");
     });
 }
@@ -1744,7 +1744,7 @@ TEST(block_folded, error_on_folded_in_seqflow)
 TEST(block_folded, error_on_folded_in_mapflow)
 {
     Tree t;
-    ExpectError::do_check(&t, [&t]{
+    ExpectError::check_error(&t, [&t]{
         t = parse_in_arena("{\n b: >\n    a\n,}");
     });
 }
@@ -1753,13 +1753,13 @@ TEST(block_literal, indentation_indicator_0)
 {
     {
         Tree t;
-        ExpectError::do_check(&t, [&t]{
+        ExpectError::check_error(&t, [&t]{
             t = parse_in_arena(">0");
         });
     }
     {
         Tree t;
-        ExpectError::do_check(&t, [&t]{
+        ExpectError::check_error(&t, [&t]{
             t = parse_in_arena(">10");
         });
     }
@@ -1801,13 +1801,13 @@ TEST(block_literal, indentation_indicator_1)
 {
     {
         Tree t;
-        ExpectError::do_check(&t, [&t]{
+        ExpectError::check_error(&t, [&t]{
             t = parse_in_arena("--- >0");
         });
     }
     {
         Tree t;
-        ExpectError::do_check(&t, [&t]{
+        ExpectError::check_error(&t, [&t]{
             t = parse_in_arena("--- >10");
         });
     }

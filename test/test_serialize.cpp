@@ -530,11 +530,11 @@ TEST(deserialize, issue434_0)
         int value = 0;
         EXPECT_FALSE(read(node, &value));
     }
-    ExpectError::do_check(&tree, [&]{
+    ExpectError::check_error(&tree, [&]{
         int value = 0;
         cnode >> value;
     });
-    ExpectError::do_check(&tree, [&]{
+    ExpectError::check_error(&tree, [&]{
         int value = 0;
         node >> value;
     });
@@ -546,11 +546,11 @@ TEST(deserialize, issue434_0)
         double value = 0;
         EXPECT_FALSE(read(node, &value));
     }
-    ExpectError::do_check(&tree, [&]{
+    ExpectError::check_error(&tree, [&]{
         double value = 0;
         cnode >> value;
     });
-    ExpectError::do_check(&tree, [&]{
+    ExpectError::check_error(&tree, [&]{
         double value = 0;
         node >> value;
     });
@@ -572,11 +572,11 @@ void test_deserialize_trailing_434(csubstr yaml, csubstr val, csubstr first, dou
         int value = {};
         EXPECT_FALSE(read(node, &value));
     }
-    ExpectError::do_check(&tree, [&]{
+    ExpectError::check_error(&tree, [&]{
         int value = 1;
         cnode >> value;
     });
-    ExpectError::do_check(&tree, [&]{
+    ExpectError::check_error(&tree, [&]{
         int value = 1;
         node >> value;
     });
