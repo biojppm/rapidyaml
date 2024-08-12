@@ -27,10 +27,14 @@ jobs:
 
   #----------------------------------------------------------------------------
   emscripten:
-    if: |
-      (!contains(github.event.head_commit.message, 'skip all')) ||
-      (!contains(github.event.head_commit.message, 'skip emscripten')) ||
-      contains(github.event.head_commit.message, 'only emscripten')
+    # this job is always causing trouble, with failures showing unreadable code dumps
+    # eg https://github.com/biojppm/rapidyaml/actions/runs/10368522906
+    # Disabling until we can find a proper way to investigate these failures:
+    if: ${{ false }}
+    #if: |
+    #  (!contains(github.event.head_commit.message, 'skip all')) ||
+    #  (!contains(github.event.head_commit.message, 'skip emscripten')) ||
+    #  contains(github.event.head_commit.message, 'only emscripten')
     name: emscripten/${{matrix.emver}}/c++${{matrix.std}}/${{matrix.bt}}
     continue-on-error: true
     runs-on: ${{matrix.os}}
