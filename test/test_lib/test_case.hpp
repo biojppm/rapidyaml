@@ -34,6 +34,7 @@
 #   pragma warning(push)
 #   pragma warning(disable: 4296/*expression is always 'boolean_value'*/)
 #   pragma warning(disable: 4389/*'==': signed/unsigned mismatch*/)
+#   pragma warning(disable: 4702/*unreachable code*/)
 #   if C4_MSVC_VERSION != C4_MSVC_VERSION_2017
 #       pragma warning(disable: 4800/*'int': forcing value to bool 'true' or 'false' (performance warning)*/)
 #   endif
