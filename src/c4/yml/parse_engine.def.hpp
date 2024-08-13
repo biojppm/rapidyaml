@@ -6338,6 +6338,12 @@ mapblck_start:
                 {
                     _c4dbgp("mapblck[RVAL]: still mapblck!");
                     _line_progressed(m_evt_handler->m_curr->line_contents.indentation);
+                    if(has_any(RNXT))
+                    {
+                        _c4dbgp("mapblck[RVAL]: speculatively expect next keyval");
+                        m_evt_handler->add_sibling();
+                        addrem_flags(RKEY, RNXT);
+                    }
                     goto mapblck_again;
                 }
                 else
