@@ -9,6 +9,7 @@
 #if defined(_MSC_VER)
 #   pragma warning(push)
 #   pragma warning(disable: 4068/*unknown pragma*/)
+#   pragma warning(disable: 4702/*unreachable code*/)
 #elif defined(__clang__)
 #   pragma clang diagnostic push
 #   pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
@@ -271,6 +272,7 @@ void add_cases_##group_name(std::vector<Case> *group_cases__)
 
 #if defined(_MSC_VER)
 #   pragma warning(pop)
+#   pragma warning(disable: 4702/*unreachable code*/)
 #elif defined(__clang__)
 #   pragma clang diagnostic pop
 #elif defined(__GNUC__)

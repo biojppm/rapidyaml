@@ -1,6 +1,7 @@
 name: clang
 
 defaults:
+  #if: "!contains(github.event.head_commit.message, 'skip ci')"  # SKIP
   run:
     # Use a bash shell so we can use the same syntax for environment variable
     # access regardless of the host operating system
@@ -31,20 +32,20 @@ jobs:
     continue-on-error: true
     if: always()  # https://stackoverflow.com/questions/62045967/github-actions-is-there-a-way-to-continue-on-error-while-still-getting-correct
     runs-on: ubuntu-latest
-    container: ghcr.io/biojppm/c4core/ubuntu18.04:latest  # use the docker image
+    container: ghcr.io/biojppm/c4core/ubuntu22.04:latest  # use the docker image
     strategy:
       fail-fast: false
       matrix:
         include:
-          - {std: 20, cxx: "10" , bt: Debug  , bitlinks: shared64 static32}
-          - {std: 20, cxx: "10" , bt: Release, bitlinks: shared64 static32}
-          - {std: 11, cxx: "6.0", bt: Debug  , bitlinks: shared64 static32}
-          - {std: 11, cxx: "6.0", bt: Release, bitlinks: shared64 static32}
-    env: {STD: "${{matrix.std}}", CXX_: "clang++-${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
+          - {std: 20, cxx: clang++-17 , bt: Debug  , bitlinks: shared64 static32}
+          - {std: 20, cxx: clang++-17 , bt: Release, bitlinks: shared64 static32}
+          - {std: 11, cxx: clang++-9, bt: Debug  , bitlinks: shared64 static32}
+          - {std: 11, cxx: clang++-9, bt: Release, bitlinks: shared64 static32}
+    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
     steps:
-      - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
+      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
       - run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
-      - run: c4core-install $CXX_
+      - run: c4core-install ${{matrix.cxx}}
       - {name: show info, run: source .github/setenv.sh && c4_show_info}
       - name: shared64-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test shared64
@@ -67,25 +68,26 @@ jobs:
       - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
       - {name: shared32-pack, run: source .github/setenv.sh && c4_package shared32}
 
+  #----------------------------------------------------------------------------
   clang_tabtokens:
     name: clang_tabtokens/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
     continue-on-error: true
     if: always()  # https://stackoverflow.com/questions/62045967/github-actions-is-there-a-way-to-continue-on-error-while-still-getting-correct
     runs-on: ubuntu-latest
-    container: ghcr.io/biojppm/c4core/ubuntu18.04:latest  # use the docker image
+    container: ghcr.io/biojppm/c4core/ubuntu22.04:latest  # use the docker image
     strategy:
       fail-fast: false
       matrix:
         include:
-          - {std: 20, cxx: "10" , bt: Debug  , bitlinks: shared64 static32}
-          - {std: 20, cxx: "10" , bt: Release, bitlinks: shared64 static32}
-          - {std: 11, cxx: "6.0", bt: Debug  , bitlinks: shared64 static32}
-          - {std: 11, cxx: "6.0", bt: Release, bitlinks: shared64 static32}
-    env: {STD: "${{matrix.std}}", CXX_: "clang++-${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}",
+          - {std: 20, cxx: clang++-17 , bt: Debug  , bitlinks: shared64 static32}
+          - {std: 20, cxx: clang++-17 , bt: Release, bitlinks: shared64 static32}
+          - {std: 11, cxx: clang++-9, bt: Debug  , bitlinks: shared64 static32}
+          - {std: 11, cxx: clang++-9, bt: Release, bitlinks: shared64 static32}
+    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}",
           CMAKE_FLAGS: "-DRYML_WITH_TAB_TOKENS=ON",
           VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
     steps:
-      - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
+      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
       - run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
       - run: c4core-install $CXX_
       - {name: show info, run: source .github/setenv.sh && c4_show_info}
@@ -116,21 +118,20 @@ jobs:
     continue-on-error: true
     if: always()  # https://stackoverflow.com/questions/62045967/github-actions-is-there-a-way-to-continue-on-error-while-still-getting-correct
     runs-on: ubuntu-latest
-    container: ghcr.io/biojppm/c4core/ubuntu18.04:latest  # use the docker image
+    container: ghcr.io/biojppm/c4core/ubuntu22.04:latest  # use the docker image
     strategy:
       fail-fast: false
       matrix:
         include:
-          - {std: 20, cxx: "10" , bt: Debug  , bitlinks: shared64 static32}
-          - {std: 20, cxx: "10" , bt: Release, bitlinks: shared64 static32}
-          - {std: 11, cxx: "6.0", bt: Debug  , bitlinks: shared64 static32}
-          - {std: 11, cxx: "6.0", bt: Release, bitlinks: shared64 static32}
-    env: {CXXFLAGS: "-fno-exceptions -fno-rtti", STD: "${{matrix.std}}", CXX_: "clang++-${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
+          - {std: 20, cxx: clang++-17 , bt: Debug  , bitlinks: shared64 static32}
+          - {std: 20, cxx: clang++-17 , bt: Release, bitlinks: shared64 static32}
+          - {std: 11, cxx: clang++-9  , bt: Debug  , bitlinks: shared64 static32}
+          - {std: 11, cxx: clang++-9  , bt: Release, bitlinks: shared64 static32}
+    env: {CXXFLAGS: "-fno-exceptions -fno-rtti", STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
     steps:
-      - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
+      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
       - run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
-      - run: c4core-install $CXX_
-      - run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
+      - run: c4core-install ${{matrix.cxx}}
       - {name: show info, run: source .github/setenv.sh && c4_show_info}
       - name: shared64-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test shared64
@@ -164,39 +165,51 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {std: 11, cxx: "16" , bt: Debug  , vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: "16" , bt: Release, vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: "15" , bt: Debug  , vg: on, img: ubuntu22.04} # install of clang15 fails on ubuntu18.04
-          - {std: 11, cxx: "15" , bt: Release, vg: on, img: ubuntu22.04} # install of clang15 fails on ubuntu18.04
-          - {std: 11, cxx: "14" , bt: Debug  , vg: on, img: ubuntu22.04} # install of clang14 fails on ubuntu18.04
-          - {std: 11, cxx: "14" , bt: Release, vg: on, img: ubuntu22.04} # install of clang14 fails on ubuntu18.04
-          - {std: 11, cxx: "13" , bt: Debug  , vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: "13" , bt: Release, vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: "12" , bt: Debug  , vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: "12" , bt: Release, vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: "11" , bt: Debug  , vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: "11" , bt: Release, vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: "10" , bt: Debug  , vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: "10" , bt: Release, vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: "9"  , bt: Debug  , vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: "9"  , bt: Release, vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: "8"  , bt: Debug  , vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: "8"  , bt: Release, vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: "7"  , bt: Debug  , vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: "7"  , bt: Release, vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: "6.0", bt: Debug  , vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: "6.0", bt: Release, vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: "5.0", bt: Debug  , vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: "5.0", bt: Release, vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: "4.0", bt: Debug  , vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: "4.0", bt: Release, vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: "3.9", bt: Debug  , vg: on, img: ubuntu18.04}
-          - {std: 11, cxx: "3.9", bt: Release, vg: on, img: ubuntu18.04}
-    env: {STD: "${{matrix.std}}", CXX_: "clang++-${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
+          - {std: 11, cxx: clang++-17 , bt: Debug  , vg: on, img: ubuntu22.04}
+          - {std: 11, cxx: clang++-17 , bt: Release, vg: on, img: ubuntu22.04}
+          - {std: 11, cxx: clang++-16 , bt: Debug  , vg: on, img: ubuntu22.04}
+          - {std: 11, cxx: clang++-16 , bt: Release, vg: on, img: ubuntu22.04}
+          - {std: 11, cxx: clang++-15 , bt: Debug  , vg: on, img: ubuntu22.04} # install of clang15 fails on ubuntu18.04
+          - {std: 11, cxx: clang++-15 , bt: Release, vg: on, img: ubuntu22.04} # install of clang15 fails on ubuntu18.04
+          - {std: 11, cxx: clang++-14 , bt: Debug  , vg: on, img: ubuntu22.04} # install of clang14 fails on ubuntu18.04
+          - {std: 11, cxx: clang++-14 , bt: Release, vg: on, img: ubuntu22.04} # install of clang14 fails on ubuntu18.04
+          - {std: 11, cxx: clang++-13 , bt: Debug  , vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: clang++-13 , bt: Release, vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: clang++-12 , bt: Debug  , vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: clang++-12 , bt: Release, vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: clang++-11 , bt: Debug  , vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: clang++-11 , bt: Release, vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: clang++-10 , bt: Debug  , vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: clang++-10 , bt: Release, vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: clang++-9  , bt: Debug  , vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: clang++-9  , bt: Release, vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: clang++-8  , bt: Debug  , vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: clang++-8  , bt: Release, vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: clang++-7  , bt: Debug  , vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: clang++-7  , bt: Release, vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: clang++-6.0, bt: Debug  , vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: clang++-6.0, bt: Release, vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: clang++-5.0, bt: Debug  , vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: clang++-5.0, bt: Release, vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: clang++-4.0, bt: Debug  , vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: clang++-4.0, bt: Release, vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: clang++-3.9, bt: Debug  , vg: on, img: ubuntu18.04}
+          - {std: 11, cxx: clang++-3.9, bt: Release, vg: on, img: ubuntu18.04}
+    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
     steps:
-      - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
-      - run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
-      - run: c4core-install $CXX_
+      # cannot use the checkout@v3 or v4 action on ubuntu18.04 because of nodejs version
+      #- {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
+      #... so we checkout manually:
+      - name: checkout
+        run: |
+          set -x
+          git init -q .
+          git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
+          git remote add origin $GITHUB_SERVER_URL/$GITHUB_REPOSITORY
+          git fetch origin $GITHUB_HEAD_REF
+          git reset --hard FETCH_HEAD
+          git submodule update --init --recursive
+      - run: c4core-install ${{matrix.cxx}}
       - {name: show info, run: source .github/setenv.sh && c4_show_info}
       - name: shared64-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test shared64
@@ -221,36 +234,36 @@ jobs:
 
   #----------------------------------------------------------------------------
   clangsan:
-    name: clang/${{matrix.cxx}}/${{matrix.bt}}/c++${{matrix.std}}
+    name: clang/${{matrix.bt}}/c++${{matrix.std}}
     continue-on-error: true
     if: always()  # https://stackoverflow.com/questions/62045967/github-actions-is-there-a-way-to-continue-on-error-while-still-getting-correct
     runs-on: ubuntu-latest
-    container: ghcr.io/biojppm/c4core/ubuntu18.04:latest  # use the docker image
+    container: ghcr.io/biojppm/c4core/ubuntu22.04:latest  # use the docker image
     strategy:
       fail-fast: false
       matrix:
         include:
-          - {std: 11, cxx: "16" , bt: asan, bitlinks: static64}
-          - {std: 14, cxx: "16" , bt: asan, bitlinks: static64}
-          - {std: 17, cxx: "16" , bt: asan, bitlinks: static64}
-          - {std: 20, cxx: "16" , bt: asan, bitlinks: static64}
-          - {std: 11, cxx: "16" , bt: lsan, bitlinks: static64}
-          - {std: 14, cxx: "16" , bt: lsan, bitlinks: static64}
-          - {std: 17, cxx: "16" , bt: lsan, bitlinks: static64}
-          - {std: 20, cxx: "16" , bt: lsan, bitlinks: static64}
-          - {std: 11, cxx: "16" , bt: tsan, bitlinks: static64}
-          - {std: 14, cxx: "16" , bt: tsan, bitlinks: static64}
-          - {std: 17, cxx: "16" , bt: tsan, bitlinks: static64}
-          - {std: 20, cxx: "16" , bt: tsan, bitlinks: static64}
-          - {std: 11, cxx: "16" , bt: ubsan, bitlinks: static64}
-          - {std: 14, cxx: "16" , bt: ubsan, bitlinks: static64}
-          - {std: 17, cxx: "16" , bt: ubsan, bitlinks: static64}
-          - {std: 20, cxx: "16" , bt: ubsan, bitlinks: static64}
-    env: {STD: "${{matrix.std}}", CXX_: "clang++-${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
+          - {std: 11, cxx: clang++-17 , bt: asan, bitlinks: static64}
+          - {std: 14, cxx: clang++-17 , bt: asan, bitlinks: static64}
+          - {std: 17, cxx: clang++-17 , bt: asan, bitlinks: static64}
+          - {std: 20, cxx: clang++-17 , bt: asan, bitlinks: static64}
+          - {std: 11, cxx: clang++-17 , bt: lsan, bitlinks: static64}
+          - {std: 14, cxx: clang++-17 , bt: lsan, bitlinks: static64}
+          - {std: 17, cxx: clang++-17 , bt: lsan, bitlinks: static64}
+          - {std: 20, cxx: clang++-17 , bt: lsan, bitlinks: static64}
+          - {std: 11, cxx: clang++-17 , bt: tsan, bitlinks: static64}
+          - {std: 14, cxx: clang++-17 , bt: tsan, bitlinks: static64}
+          - {std: 17, cxx: clang++-17 , bt: tsan, bitlinks: static64}
+          - {std: 20, cxx: clang++-17 , bt: tsan, bitlinks: static64}
+          - {std: 11, cxx: clang++-17 , bt: ubsan, bitlinks: static64}
+          - {std: 14, cxx: clang++-17 , bt: ubsan, bitlinks: static64}
+          - {std: 17, cxx: clang++-17 , bt: ubsan, bitlinks: static64}
+          - {std: 20, cxx: clang++-17 , bt: ubsan, bitlinks: static64}
+    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
     steps:
-      - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
+      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
       - run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
-      - run: c4core-install $CXX_
+      - run: c4core-install ${{matrix.cxx}}
       - {name: show info, run: source .github/setenv.sh && c4_show_info}
       - name: shared64-configure---------------------------------------------------
         run: source .github/setenv.sh && c4_cfg_test shared64
@@ -294,7 +307,7 @@ jobs:
 #          - {std: 20, cxx: clang++-10, bt: Release, bitlinks: shared64, os: ubuntu-20.04}
 #    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
 #    steps:
-#      - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
+#      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
 #      - run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
 #      - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
 #      - {name: show info, run: source .github/setenv.sh && c4_show_info}

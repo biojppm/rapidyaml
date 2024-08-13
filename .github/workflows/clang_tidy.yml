@@ -31,23 +31,23 @@ jobs:
     continue-on-error: true
     if: always()  # https://stackoverflow.com/questions/62045967/github-actions-is-there-a-way-to-continue-on-error-while-still-getting-correct
     runs-on: ubuntu-latest
-    container: ghcr.io/biojppm/c4core/ubuntu18.04:latest  # use the docker image
+    container: ghcr.io/biojppm/c4core/ubuntu22.04:latest  # use the docker image
     strategy:
       fail-fast: false
       matrix:
         include:
           # clang tidy takes a long time, so don't do multiple bits/linktypes
-          - {std: 11, cxx: clang++-16, bt: Debug             , lint: clang-tidy, bitlinks: shared64}
-          - {std: 11, cxx: clang++-16, bt: Debug             , lint: clang-tidy, bitlinks: shared32}
-          - {std: 11, cxx: clang++-16, bt: Debug             , lint: clang-tidy, bitlinks: static64}
-          - {std: 11, cxx: clang++-16, bt: Debug             , lint: clang-tidy, bitlinks: static32}
-          - {std: 11, cxx: clang++-16, bt: ReleaseWithDebInfo, lint: clang-tidy, bitlinks: shared64}
-          - {std: 11, cxx: clang++-16, bt: ReleaseWithDebInfo, lint: clang-tidy, bitlinks: shared32}
-          - {std: 11, cxx: clang++-16, bt: ReleaseWithDebInfo, lint: clang-tidy, bitlinks: static64}
-          - {std: 11, cxx: clang++-16, bt: ReleaseWithDebInfo, lint: clang-tidy, bitlinks: static32}
+          - {std: 11, cxx: clang++-17, bt: Debug             , lint: clang-tidy, bitlinks: shared64}
+          - {std: 11, cxx: clang++-17, bt: Debug             , lint: clang-tidy, bitlinks: shared32}
+          - {std: 11, cxx: clang++-17, bt: Debug             , lint: clang-tidy, bitlinks: static64}
+          - {std: 11, cxx: clang++-17, bt: Debug             , lint: clang-tidy, bitlinks: static32}
+          - {std: 11, cxx: clang++-17, bt: ReleaseWithDebInfo, lint: clang-tidy, bitlinks: shared64}
+          - {std: 11, cxx: clang++-17, bt: ReleaseWithDebInfo, lint: clang-tidy, bitlinks: shared32}
+          - {std: 11, cxx: clang++-17, bt: ReleaseWithDebInfo, lint: clang-tidy, bitlinks: static64}
+          - {std: 11, cxx: clang++-17, bt: ReleaseWithDebInfo, lint: clang-tidy, bitlinks: static32}
     env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
     steps:
-      - {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
+      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
       - run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
       - run: c4core-install ${{matrix.cxx}}
       - {name: show info, run: source .github/setenv.sh && c4_show_info}

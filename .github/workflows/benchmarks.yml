@@ -85,7 +85,7 @@ jobs:
           #- {std: 17, cxx: vs2022, bt: Release, os: windows-2022, bitlinks: static64 static32}
           #- {std: 20, cxx: vs2022, bt: Release, os: windows-2022, bitlinks: static64 static32}
           #
-          - {std: 17, cxx: xcode, xcver: 13, bt: Release, os: macos-11, bitlinks: static64}
+          - {std: 17, cxx: xcode, xcver: 15, bt: Release, os: macos-13, bitlinks: static64}
     env: {BM: ON, STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
     steps:
       # use fetch-depth to ensure all tags are fetched
