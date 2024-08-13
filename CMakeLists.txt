@@ -70,6 +70,8 @@ c4_add_library(ryml
         c4/yml/tag.cpp
         c4/yml/tree.hpp
         c4/yml/tree.cpp
+        c4/yml/version.hpp
+        c4/yml/version.cpp
         c4/yml/writer.hpp
         c4/yml/yml.hpp
         ryml.natvis

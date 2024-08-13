@@ -49,7 +49,21 @@ search = ".*{current_version}.*"
 [[file]]
 src = "doc/sphinx_*.rst"
 search = ".*{current_version}.*"
-
+[[file]]
+src = "src/c4/yml/version.hpp"
+search = "#define RYML_VERSION ['\"]{current_version}['\"]"
+[[file]]
+src = "src/c4/yml/version.hpp"
+version_template = "{major}"
+search = "#define RYML_VERSION_MAJOR {current_version}"
+[[file]]
+src = "src/c4/yml/version.hpp"
+version_template = "{minor}"
+search = "#define RYML_VERSION_MINOR {current_version}"
+[[file]]
+src = "src/c4/yml/version.hpp"
+version_template = "{patch}"
+search = "#define RYML_VERSION_PATCH {current_version}"
 
 # You can specify a list of commands to
 # run after the files have been patched
