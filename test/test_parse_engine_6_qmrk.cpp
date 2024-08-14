@@ -1047,7 +1047,67 @@ ENGINE_TEST(QmrkTestSuiteM2N8_01_1,
     ___(ps.end_doc());
     ___(ps.end_stream());
 }
+
+ENGINE_TEST_ERRLOC(QmrkGithub453_0, Location(2,1), "{foo: bar}\n: hoge")
 #endif
+
+ENGINE_TEST(QmrkGithub453_1,
+            (HAS_CONTAINER_KEYS,
+             "{foo: bar}: hoge"),
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP {}\n"
+            "=VAL :foo\n"
+            "=VAL :bar\n"
+            "-MAP\n"
+            "=VAL :hoge\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_flow());
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.set_val_scalar_plain("bar"));
+    ___(ps.end_map());
+    ___(ps.set_val_scalar_plain("hoge"));
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
+
+ENGINE_TEST(QmrkGithub453_2,
+            (HAS_CONTAINER_KEYS,
+             "? {foo: bar}\n: hoge"),
+            "+STR\n"
+            "+DOC\n"
+            "+MAP\n"
+            "+MAP {}\n"
+            "=VAL :foo\n"
+            "=VAL :bar\n"
+            "-MAP\n"
+            "=VAL :hoge\n"
+            "-MAP\n"
+            "-DOC\n"
+            "-STR\n"
+)
+{
+    ___(ps.begin_stream());
+    ___(ps.begin_doc());
+    ___(ps.begin_map_val_block());
+    ___(ps.begin_map_key_flow());
+    ___(ps.set_key_scalar_plain("foo"));
+    ___(ps.set_val_scalar_plain("bar"));
+    ___(ps.end_map());
+    ___(ps.set_val_scalar_plain("hoge"));
+    ___(ps.end_map());
+    ___(ps.end_doc());
+    ___(ps.end_stream());
+}
 
 } // namespace yml
 } // namespace c4
