@@ -3511,12 +3511,11 @@ csubstr ParseEngine<EventHandler>::_filter_scalar_folded(substr s, size_t indent
 template<class EventHandler>
 csubstr ParseEngine<EventHandler>::_maybe_filter_key_scalar_plain(ScannedScalar const& C4_RESTRICT sc, size_t indentation)
 {
-    csubstr maybe_filtered = sc.scalar;
     if(sc.needs_filter)
     {
         if(m_options.scalar_filtering())
         {
-            maybe_filtered = _filter_scalar_plain(sc.scalar, indentation);
+            return _filter_scalar_plain(sc.scalar, indentation);
         }
         else
         {
@@ -3528,18 +3527,17 @@ csubstr ParseEngine<EventHandler>::_maybe_filter_key_scalar_plain(ScannedScalar 
     {
         _c4dbgp("plain scalar doesn't need filtering");
     }
-    return maybe_filtered;
+    return sc.scalar;
 }
 
 template<class EventHandler>
 csubstr ParseEngine<EventHandler>::_maybe_filter_val_scalar_plain(ScannedScalar const& C4_RESTRICT sc, size_t indentation)
 {
-    csubstr maybe_filtered = sc.scalar;
     if(sc.needs_filter)
     {
         if(m_options.scalar_filtering())
         {
-            maybe_filtered = _filter_scalar_plain(sc.scalar, indentation);
+            return _filter_scalar_plain(sc.scalar, indentation);
         }
         else
         {
@@ -3551,7 +3549,7 @@ csubstr ParseEngine<EventHandler>::_maybe_filter_val_scalar_plain(ScannedScalar 
     {
         _c4dbgp("plain scalar doesn't need filtering");
     }
-    return maybe_filtered;
+    return sc.scalar;
 }
 
 
@@ -3560,12 +3558,11 @@ csubstr ParseEngine<EventHandler>::_maybe_filter_val_scalar_plain(ScannedScalar 
 template<class EventHandler>
 csubstr ParseEngine<EventHandler>::_maybe_filter_key_scalar_squot(ScannedScalar const& C4_RESTRICT sc)
 {
-    csubstr maybe_filtered = sc.scalar;
     if(sc.needs_filter)
     {
         if(m_options.scalar_filtering())
         {
-            maybe_filtered = _filter_scalar_squot(sc.scalar);
+            return _filter_scalar_squot(sc.scalar);
         }
         else
         {
@@ -3577,18 +3574,17 @@ csubstr ParseEngine<EventHandler>::_maybe_filter_key_scalar_squot(ScannedScalar 
     {
         _c4dbgp("squo key scalar doesn't need filtering");
     }
-    return maybe_filtered;
+    return sc.scalar;
 }
 
 template<class EventHandler>
 csubstr ParseEngine<EventHandler>::_maybe_filter_val_scalar_squot(ScannedScalar const& C4_RESTRICT sc)
 {
-    csubstr maybe_filtered = sc.scalar;
     if(sc.needs_filter)
     {
         if(m_options.scalar_filtering())
         {
-            maybe_filtered = _filter_scalar_squot(sc.scalar);
+            return _filter_scalar_squot(sc.scalar);
         }
         else
         {
@@ -3600,7 +3596,7 @@ csubstr ParseEngine<EventHandler>::_maybe_filter_val_scalar_squot(ScannedScalar 
     {
         _c4dbgp("squo val scalar doesn't need filtering");
     }
-    return maybe_filtered;
+    return sc.scalar;
 }
 
 
@@ -3609,12 +3605,11 @@ csubstr ParseEngine<EventHandler>::_maybe_filter_val_scalar_squot(ScannedScalar 
 template<class EventHandler>
 csubstr ParseEngine<EventHandler>::_maybe_filter_key_scalar_dquot(ScannedScalar const& C4_RESTRICT sc)
 {
-    csubstr maybe_filtered = sc.scalar;
     if(sc.needs_filter)
     {
         if(m_options.scalar_filtering())
         {
-            maybe_filtered = _filter_scalar_dquot(sc.scalar);
+            return _filter_scalar_dquot(sc.scalar);
         }
         else
         {
@@ -3626,18 +3621,17 @@ csubstr ParseEngine<EventHandler>::_maybe_filter_key_scalar_dquot(ScannedScalar 
     {
         _c4dbgp("dquo scalar doesn't need filtering");
     }
-    return maybe_filtered;
+    return sc.scalar;
 }
 
 template<class EventHandler>
 csubstr ParseEngine<EventHandler>::_maybe_filter_val_scalar_dquot(ScannedScalar const& C4_RESTRICT sc)
 {
-    csubstr maybe_filtered = sc.scalar;
     if(sc.needs_filter)
     {
         if(m_options.scalar_filtering())
         {
-            maybe_filtered = _filter_scalar_dquot(sc.scalar);
+            return _filter_scalar_dquot(sc.scalar);
         }
         else
         {
@@ -3649,7 +3643,7 @@ csubstr ParseEngine<EventHandler>::_maybe_filter_val_scalar_dquot(ScannedScalar 
     {
         _c4dbgp("dquo scalar doesn't need filtering");
     }
-    return maybe_filtered;
+    return sc.scalar;
 }
 
 
@@ -3658,33 +3652,31 @@ csubstr ParseEngine<EventHandler>::_maybe_filter_val_scalar_dquot(ScannedScalar 
 template<class EventHandler>
 csubstr ParseEngine<EventHandler>::_maybe_filter_key_scalar_literal(ScannedBlock const& C4_RESTRICT sb)
 {
-    csubstr maybe_filtered = sb.scalar;
     if(m_options.scalar_filtering())
     {
-        maybe_filtered = _filter_scalar_literal(sb.scalar, sb.indentation, sb.chomp);
+        return _filter_scalar_literal(sb.scalar, sb.indentation, sb.chomp);
     }
     else
     {
         _c4dbgp("literal scalar left unfiltered");
         m_evt_handler->mark_key_scalar_unfiltered();
     }
-    return maybe_filtered;
+    return sb.scalar;
 }
 
 template<class EventHandler>
 csubstr ParseEngine<EventHandler>::_maybe_filter_val_scalar_literal(ScannedBlock const& C4_RESTRICT sb)
 {
-    csubstr maybe_filtered = sb.scalar;
     if(m_options.scalar_filtering())
     {
-        maybe_filtered = _filter_scalar_literal(sb.scalar, sb.indentation, sb.chomp);
+        return _filter_scalar_literal(sb.scalar, sb.indentation, sb.chomp);
     }
     else
     {
         _c4dbgp("literal scalar left unfiltered");
         m_evt_handler->mark_val_scalar_unfiltered();
     }
-    return maybe_filtered;
+    return sb.scalar;
 }
 
 
@@ -3693,33 +3685,31 @@ csubstr ParseEngine<EventHandler>::_maybe_filter_val_scalar_literal(ScannedBlock
 template<class EventHandler>
 csubstr ParseEngine<EventHandler>::_maybe_filter_key_scalar_folded(ScannedBlock const& C4_RESTRICT sb)
 {
-    csubstr maybe_filtered = sb.scalar;
     if(m_options.scalar_filtering())
     {
-        maybe_filtered = _filter_scalar_folded(sb.scalar, sb.indentation, sb.chomp);
+        return _filter_scalar_folded(sb.scalar, sb.indentation, sb.chomp);
     }
     else
     {
         _c4dbgp("folded scalar left unfiltered");
         m_evt_handler->mark_key_scalar_unfiltered();
     }
-    return maybe_filtered;
+    return sb.scalar;
 }
 
 template<class EventHandler>
 csubstr ParseEngine<EventHandler>::_maybe_filter_val_scalar_folded(ScannedBlock const& C4_RESTRICT sb)
 {
-    csubstr maybe_filtered = sb.scalar;
     if(m_options.scalar_filtering())
     {
-        maybe_filtered = _filter_scalar_folded(sb.scalar, sb.indentation, sb.chomp);
+        return _filter_scalar_folded(sb.scalar, sb.indentation, sb.chomp);
     }
     else
     {
         _c4dbgp("folded scalar left unfiltered");
         m_evt_handler->mark_val_scalar_unfiltered();
     }
-    return maybe_filtered;
+    return sb.scalar;
 }
 
 
