@@ -6,7 +6,7 @@ project(ryml
     LANGUAGES CXX)
 include(./compat.cmake)
 
-c4_project(VERSION 0.7.1 STANDALONE
+c4_project(VERSION 0.7.2 STANDALONE
     AUTHOR "Joao Paulo Magalhaes <dev@jpmag.me>")
 
 
