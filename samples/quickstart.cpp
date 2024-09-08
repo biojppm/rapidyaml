@@ -391,6 +391,7 @@ john: doe)";
     CHECK(tree["bar"].is_seq());
     CHECK(tree["bar"].has_key());
     CHECK(tree["bar"].key() == "bar");
+    CHECK(tree["bar"].num_children() == 2);
     // maps use string keys, seqs use index keys:
     CHECK(tree["bar"][0].val() == "2");
     CHECK(tree["bar"][1].val() == "3");
@@ -593,6 +594,7 @@ john: doe)";
     // In this case it is OK because those are static strings, located
     // in the executable's static section, and will outlive the tree.
     CHECK(root["foo"].val() == "says you");
+    CHECK(root["bar"].num_children() == 2);
     CHECK(root["bar"][0].val() == "-2");
     CHECK(root["bar"][1].val() == "-3");
     CHECK(root["john"].val() == "ron");
@@ -1797,6 +1799,7 @@ void sample_parse_in_place()
     CHECK(root["bar"].is_seq());
     CHECK(root["bar"].has_key());
     CHECK(root["bar"].key() == "bar");
+    CHECK(root["bar"].num_children() == 2);
     CHECK(root["bar"][0].val() == "2");
     CHECK(root["bar"][1].val() == "3");
 
@@ -1849,6 +1852,7 @@ void sample_parse_in_arena()
     CHECK(root["bar"].is_seq());
     CHECK(root["bar"].has_key());
     CHECK(root["bar"].key() == "bar");
+    CHECK(root["bar"].num_children() == 2);
     CHECK(root["bar"][0].val() == "2");
     CHECK(root["bar"][1].val() == "3");
 
@@ -1906,6 +1910,7 @@ bar: [2, 3]
     CHECK(root["bar"].is_seq());
     CHECK(root["bar"].has_key());
     CHECK(root["bar"].key() == "bar");
+    CHECK(root["bar"].num_children() == 2);
     CHECK(root["bar"][0].val() == "2");
     CHECK(root["bar"][1].val() == "3");
     CHECK(ryml::emitrs_yaml<std::string>(tree) == R"(foo: 1
@@ -1926,6 +1931,7 @@ bar2: [22,32]
     CHECK(root["bar2"].is_seq());
     CHECK(root["bar2"].has_key());
     CHECK(root["bar2"].key() == "bar2");
+    CHECK(root["bar2"].num_children() == 2);
     CHECK(root["bar2"][0].val() == "22");
     CHECK(root["bar2"][1].val() == "32");
 
@@ -1951,6 +1957,7 @@ bar2: [22,32]
   coffee: Arabica
 )");
     CHECK(root.is_seq());
+    CHECK(root.num_children() == 4);
     CHECK(root[0].val() == "a");
     CHECK(root[1].val() == "b");
     CHECK(root[2].is_map());
