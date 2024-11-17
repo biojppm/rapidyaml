@@ -4,6 +4,117 @@
 namespace c4 {
 namespace yml {
 
+TEST(github, 475_0_space)
+{
+    Tree t;
+    ExpectError::check_success(&t, [&t]{
+        parse_in_arena(R"(
+test:
+- {a: 1}
+# next line has a trailing space
+- {b: 2} 
+# next line has a trailing space
+- [0, {c: 3}] 
+)", &t);
+    });
+    ConstNodeRef test = t["test"];
+    ASSERT_TRUE(test.is_seq());
+    ASSERT_EQ(test.num_children(), 3u);
+}
+
+TEST(github, 475_1_space_indented)
+{
+    Tree t;
+    ExpectError::check_success(&t, [&t]{
+        parse_in_arena(R"(
+test:
+  - {a: 1}
+  # next line has a trailing space
+  - {b: 2} 
+  # next line has a trailing space
+  - [0, {c: 3}] 
+)", &t);
+    });
+    ConstNodeRef test = t["test"];
+    ASSERT_TRUE(test.is_seq());
+    ASSERT_EQ(test.num_children(), 3u);
+}
+
+TEST(github, 475_2_tab)
+{
+    Tree t;
+    ExpectError::check_success(&t, [&t]{
+        parse_in_arena(R"(
+test:
+- {a: 1}
+# next line has a trailing tab
+- {b: 2}	
+# next line has a trailing tab
+- [0, {c: 3}]	
+)", &t);
+    });
+    ConstNodeRef test = t["test"];
+    ASSERT_TRUE(test.is_seq());
+    ASSERT_EQ(test.num_children(), 3u);
+}
+
+TEST(github, 475_3_tab_indented)
+{
+    Tree t;
+    ExpectError::check_success(&t, [&t]{
+        parse_in_arena(R"(
+test:
+  - {a: 1}
+  # next line has a trailing tab
+  - {b: 2}	
+  # next line has a trailing tab
+  - [0, {c: 3}]	
+)", &t);
+    });
+    ConstNodeRef test = t["test"];
+    ASSERT_TRUE(test.is_seq());
+    ASSERT_EQ(test.num_children(), 3u);
+}
+
+TEST(github, 475_4_space_map)
+{
+    Tree t;
+    ExpectError::check_success(&t, [&t]{
+        parse_in_arena(R"(
+test:
+  0: {a: 1}
+  # next line has a trailing space
+  1: {b: 2} 
+  # next line has a trailing space
+  2: [0, {c: 3}] 
+)", &t);
+    });
+    ConstNodeRef test = t["test"];
+    ASSERT_TRUE(test.is_map());
+    ASSERT_EQ(test.num_children(), 3u);
+}
+
+TEST(github, 475_5_tab_map)
+{
+    Tree t;
+    ExpectError::check_success(&t, [&t]{
+        parse_in_arena(R"(
+test:
+  0: {a: 1}
+  # next line has a trailing tab
+  1: {b: 2}	
+  # next line has a trailing tab
+  2: [0, {c: 3}]	
+)", &t);
+    });
+    ConstNodeRef test = t["test"];
+    ASSERT_TRUE(test.is_map());
+    ASSERT_EQ(test.num_children(), 3u);
+}
+
+
+//-----------------------------------------------------------------------------
+
 TEST(github, 455_0_ok)
 {
     Tree t;
