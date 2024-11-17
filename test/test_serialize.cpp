@@ -804,6 +804,39 @@ TEST(serialize, issue442_61)
 }
 
 
+TEST(serialize, issue477_vec)
+{
+    const Tree t = parse_in_arena(R"([0, 10, 20, 30, 40])");
+    std::vector<int> vec = {100, 1, 2, 3};
+    ASSERT_EQ(vec.size(), 4);
+    EXPECT_EQ(vec[0], 100);
+    EXPECT_EQ(vec[1], 1);
+    EXPECT_EQ(vec[2], 2);
+    EXPECT_EQ(vec[3], 3);
+    t.rootref() >> vec;
+    ASSERT_EQ(vec.size(), 5);
+    EXPECT_EQ(vec[0], 0);
+    EXPECT_EQ(vec[1], 10);
+    EXPECT_EQ(vec[2], 20);
+    EXPECT_EQ(vec[3], 30);
+    EXPECT_EQ(vec[4], 40);
+}
+
+TEST(serialize, issue477_map)
+{
+    const Tree t = parse_in_arena(R"({0: 10, 2: 30, 4: 50})");
+    std::map<int,int> map = {{0, 1}, {2, 3}};
+    ASSERT_EQ(map.size(), 2);
+    EXPECT_EQ(map[0], 1);
+    EXPECT_EQ(map[2], 3);
+    t.rootref() >> map;
+    ASSERT_EQ(map.size(), 3); // added a new member
+    EXPECT_EQ(map[0], 10); // modified
+    EXPECT_EQ(map[2], 30); // modified
+    EXPECT_EQ(map[4], 50);
+}
+
+
 //-------------------------------------------
 // this is needed to use the test case library
 Case const* get_case(csubstr /*name*/)

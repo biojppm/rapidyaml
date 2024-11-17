@@ -25,6 +25,9 @@ void write(c4::yml::NodeRef *n, std::map<K, V, Less, Alloc> const& m)
     }
 }
 
+/** read the node members, assigning into the existing map. If a key
+ * is already present in the map, then its value will be
+ * move-assigned. */
 template<class K, class V, class Less, class Alloc>
 bool read(c4::yml::ConstNodeRef const& n, std::map<K, V, Less, Alloc> * m)
 {
@@ -34,7 +37,11 @@ bool read(c4::yml::ConstNodeRef const& n, std::map<K, V, Less, Alloc> * m)
     {
         ch >> c4::yml::key(k);
         ch >> v;
-        m->emplace(std::make_pair(std::move(k), std::move(v)));
+        const auto it = m->find(k);
+        if(it == m->end())
+            m->emplace(std::make_pair(std::move(k), std::move(v)));
+        else
+            it->second = std::move(v);
     }
     return true;
 }
