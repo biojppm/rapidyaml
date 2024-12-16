@@ -512,6 +512,7 @@ Here's a quick roundup (not maintained):
   * [conan](https://conan.io/center/recipes/rapidyaml)
   * [vcpkg](https://vcpkg.io/en/packages.html): `vcpkg install ryml`
   * [PyPI](https://pypi.org/project/rapidyaml/)
+  * [brew](https://github.com/Homebrew/homebrew-core/blob/master/Formula/r/rapidyaml.rb)
 * Linux distributions:
   * Arch Linux/Manjaro:
     * [rapidyaml (aarch64)](https://archlinuxarm.org/packages/aarch64/rapidyaml)
