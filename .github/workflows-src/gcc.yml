@@ -1,0 +1,427 @@
+name: gcc
+
+defaults:
+  #if: "!contains(github.event.head_commit.message, 'skip ci')"  # SKIP
+  run:
+    # Use a bash shell so we can use the same syntax for environment variable
+    # access regardless of the host operating system
+    shell: bash -e -x {0}
+
+on:
+  # https://github.community/t/how-to-trigger-an-action-on-push-or-pull-request-but-not-both/16662
+  workflow_dispatch:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+
+env:
+  PROJ_PFX_TARGET: ryml-
+  PROJ_PFX_CMAKE: RYML_
+  CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
+  NUM_JOBS_BUILD: # 4
+
+
+jobs:
+
+  #----------------------------------------------------------------------------
+  gcc_canary:
+    name: gcc_canary/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
+    continue-on-error: true
+    if: always()  # https://stackoverflow.com/questions/62045967/github-actions-is-there-a-way-to-continue-on-error-while-still-getting-correct
+    runs-on: ubuntu-latest
+    container: ghcr.io/biojppm/c4core/${{matrix.img}}:latest  # use the docker image
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {std: 11, cxx: g++-14 , bt: Debug  , bitlinks: shared64 static32, img: ubuntu22.04}
+          - {std: 11, cxx: g++-14 , bt: Release, bitlinks: shared64 static32, img: ubuntu22.04}
+          - {std: 20, cxx: g++-14 , bt: Debug  , bitlinks: shared64 static32, img: ubuntu22.04}
+          - {std: 20, cxx: g++-14 , bt: Release, bitlinks: shared64 static32, img: ubuntu22.04}
+          - {std: 11, cxx: g++-5  , bt: Debug  , bitlinks: shared64 static32, img: ubuntu18.04}
+          - {std: 11, cxx: g++-5  , bt: Release, bitlinks: shared64 static32, img: ubuntu18.04}
+          - {std: 11, cxx: g++-4.8, bt: Debug  , bitlinks: shared64 static32, img: ubuntu18.04}
+          - {std: 11, cxx: g++-4.8, bt: Release, bitlinks: shared64 static32, img: ubuntu18.04}
+    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
+    steps:
+      # cannot use the checkout@v3 or v4 action on ubuntu18.04 because of nodejs version
+      #- {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
+      #- run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
+      #... so we checkout manually:
+      - name: checkout
+        run: |
+          set -x
+          echo GITHUB_REF=$GITHUB_REF
+          echo GITHUB_HEAD_REF=$GITHUB_HEAD_REF
+          branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}  # https://stackoverflow.com/questions/58033366
+          echo branch=$branch
+          git init -q .
+          git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
+          git remote add origin $GITHUB_SERVER_URL/$GITHUB_REPOSITORY
+          git fetch origin $branch
+          git reset --hard FETCH_HEAD
+          git submodule update --init --recursive
+      - run: c4core-install ${{matrix.cxx}}
+      - {name: show info, run: source .github/setenv.sh && c4_show_info}
+      - name: shared64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared64
+      - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
+      - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
+      - {name: shared64-pack, run: source .github/setenv.sh && c4_package shared64}
+      - name: static64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static64
+      - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
+      - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
+      - {name: static64-pack, run: source .github/setenv.sh && c4_package static64}
+      - name: static32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static32
+      - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
+      - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
+      - {name: static32-pack, run: source .github/setenv.sh && c4_package static32}
+      - name: shared32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared32
+      - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
+      - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
+      - {name: shared32-pack, run: source .github/setenv.sh && c4_package shared32}
+
+  #----------------------------------------------------------------------------
+  gcc_O2: # see https://github.com/biojppm/rapidyaml/issues/440
+    name: gcc_O2/${{matrix.cxx}}/c++${{matrix.std}}
+    continue-on-error: true
+    if: always()  # https://stackoverflow.com/questions/62045967/github-actions-is-there-a-way-to-continue-on-error-while-still-getting-correct
+    runs-on: ubuntu-latest
+    container: ghcr.io/biojppm/c4core/ubuntu22.04:latest  # use the docker image
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {std: 11, gcc: 12 , bt: Release}
+    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.gcc}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
+    steps:
+      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
+      - run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
+      - run: c4core-install g++-${{matrix.gcc}}
+      - {name: show info, run: source .github/setenv.sh && c4_show_info}
+      - name: configure
+        run: |
+          cmake -S . -B build_o2 \
+            -DCMAKE_CXX_COMPILER=g++-${{matrix.gcc}} \
+            -DCMAKE_C_COMPILER=gcc-${{matrix.gcc}} \
+            -DCMAKE_CXX_FLAGS_RELEASE:STRING="-O2 -g -DNDEBUG" \
+            -DRYML_BUILD_TESTS:BOOL=ON \
+            -DRYML_DBG:BOOL=OFF
+      - name: build
+        run: |
+          cmake --build build_o2 --target ryml-test-build -j --verbose
+      - name: run
+        run: |
+          cmake --build build_o2 --target ryml-test-run
+
+  #----------------------------------------------------------------------------
+  gcc_tabtokens:
+    name: gcc_canary/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
+    continue-on-error: true
+    if: always()  # https://stackoverflow.com/questions/62045967/github-actions-is-there-a-way-to-continue-on-error-while-still-getting-correct
+    runs-on: ubuntu-latest
+    container: ghcr.io/biojppm/c4core/${{matrix.img}}:latest  # use the docker image
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {std: 11, cxx: g++-14 , bt: Debug  , bitlinks: shared64 static32, img: ubuntu22.04}
+          - {std: 11, cxx: g++-14 , bt: Release, bitlinks: shared64 static32, img: ubuntu22.04}
+          - {std: 20, cxx: g++-14 , bt: Debug  , bitlinks: shared64 static32, img: ubuntu22.04}
+          - {std: 20, cxx: g++-14 , bt: Release, bitlinks: shared64 static32, img: ubuntu22.04}
+          - {std: 11, cxx: g++-5  , bt: Debug  , bitlinks: shared64 static32, img: ubuntu18.04}
+          - {std: 11, cxx: g++-5  , bt: Release, bitlinks: shared64 static32, img: ubuntu18.04}
+          - {std: 11, cxx: g++-4.8, bt: Debug  , bitlinks: shared64 static32, img: ubuntu18.04}
+          - {std: 11, cxx: g++-4.8, bt: Release, bitlinks: shared64 static32, img: ubuntu18.04}
+    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}",
+          CMAKE_FLAGS: "-DRYML_WITH_TAB_TOKENS=ON",
+          VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
+    steps:
+      # cannot use the checkout@v3 or v4 action on ubuntu18.04 because of nodejs version
+      #- {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
+      #- run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
+      #... so we checkout manually:
+      - name: checkout
+        run: |
+          set -x
+          echo GITHUB_REF=$GITHUB_REF
+          echo GITHUB_HEAD_REF=$GITHUB_HEAD_REF
+          branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}  # https://stackoverflow.com/questions/58033366
+          echo branch=$branch
+          git init -q .
+          git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
+          git remote add origin $GITHUB_SERVER_URL/$GITHUB_REPOSITORY
+          git fetch origin $branch
+          git reset --hard FETCH_HEAD
+          git submodule update --init --recursive
+      - run: c4core-install ${{matrix.cxx}}
+      - {name: show info, run: source .github/setenv.sh && c4_show_info}
+      - name: shared64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared64
+      - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
+      - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
+      - {name: shared64-pack, run: source .github/setenv.sh && c4_package shared64}
+      - name: static64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static64
+      - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
+      - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
+      - {name: static64-pack, run: source .github/setenv.sh && c4_package static64}
+      - name: static32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static32
+      - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
+      - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
+      - {name: static32-pack, run: source .github/setenv.sh && c4_package static32}
+      - name: shared32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared32
+      - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
+      - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
+      - {name: shared32-pack, run: source .github/setenv.sh && c4_package shared32}
+
+  #----------------------------------------------------------------------------
+  gcc_noexceptions:
+    name: gcc_noexceptions/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
+    continue-on-error: true
+    if: always()  # https://stackoverflow.com/questions/62045967/github-actions-is-there-a-way-to-continue-on-error-while-still-getting-correct
+    runs-on: ubuntu-latest
+    container: ghcr.io/biojppm/c4core/${{matrix.img}}:latest  # use the docker image
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {std: 11, cxx: g++-5, bt: Debug  , bitlinks: shared64 static32, img: ubuntu18.04}
+          - {std: 11, cxx: g++-5, bt: Release, bitlinks: shared64 static32, img: ubuntu18.04}
+          - {std: 20, cxx: g++-14, bt: Debug  , bitlinks: shared64 static32, img: ubuntu22.04}
+          - {std: 20, cxx: g++-14, bt: Release, bitlinks: shared64 static32, img: ubuntu22.04}
+    env: {CXXFLAGS: "-fno-exceptions -fno-rtti", STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
+    steps:
+      # cannot use the checkout@v3 or v4 action on ubuntu18.04 because of nodejs version
+      #- {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
+      #- run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
+      #... so we checkout manually:
+      - name: checkout
+        run: |
+          set -x
+          echo GITHUB_REF=$GITHUB_REF
+          echo GITHUB_HEAD_REF=$GITHUB_HEAD_REF
+          branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}  # https://stackoverflow.com/questions/58033366
+          echo branch=$branch
+          git init -q .
+          git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
+          git remote add origin $GITHUB_SERVER_URL/$GITHUB_REPOSITORY
+          git fetch origin $branch
+          git reset --hard FETCH_HEAD
+          git submodule update --init --recursive
+      - run: c4core-install ${{matrix.cxx}}
+      - {name: show info, run: source .github/setenv.sh && c4_show_info}
+      - name: shared64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared64
+      - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
+      - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
+      - {name: shared64-pack, run: source .github/setenv.sh && c4_package shared64}
+      - name: static64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static64
+      - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
+      - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
+      - {name: static64-pack, run: source .github/setenv.sh && c4_package static64}
+      - name: static32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static32
+      - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
+      - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
+      - {name: static32-pack, run: source .github/setenv.sh && c4_package static32}
+      - name: shared32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared32
+      - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
+      - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
+      - {name: shared32-pack, run: source .github/setenv.sh && c4_package shared32}
+
+  #----------------------------------------------------------------------------
+  gcc_extended:
+    name: gcc_extended/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}/vg${{matrix.vg}}
+    continue-on-error: true
+    if: always()  # https://stackoverflow.com/questions/62045967/github-actions-is-there-a-way-to-continue-on-error-while-still-getting-correct
+    runs-on: ubuntu-latest
+    container: ghcr.io/biojppm/c4core/${{matrix.img}}:latest  # use the docker image
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          #                                     VALGRIND
+          - {std: 11, cxx: g++-14, bt: Debug  , vg: ON, img: ubuntu22.04}
+          - {std: 11, cxx: g++-14, bt: Release, vg: ON, img: ubuntu22.04}
+          - {std: 14, cxx: g++-14, bt: Debug  , vg: ON, img: ubuntu22.04}
+          - {std: 14, cxx: g++-14, bt: Release, vg: ON, img: ubuntu22.04}
+          - {std: 17, cxx: g++-14, bt: Debug  , vg: ON, img: ubuntu22.04}
+          - {std: 17, cxx: g++-14, bt: Release, vg: ON, img: ubuntu22.04}
+          - {std: 20, cxx: g++-14, bt: Debug  , vg: ON, img: ubuntu22.04}
+          - {std: 20, cxx: g++-14, bt: Release, vg: ON, img: ubuntu22.04}
+          #
+          - {std: 11, cxx: g++-13 , bt: Debug  , img: ubuntu22.04}
+          - {std: 11, cxx: g++-13 , bt: Release, img: ubuntu22.04}
+          - {std: 11, cxx: g++-13 , bt: Debug  , img: ubuntu22.04}
+          - {std: 11, cxx: g++-13 , bt: Release, img: ubuntu22.04}
+          - {std: 11, cxx: g++-11 , bt: Debug  , img: ubuntu22.04}
+          - {std: 11, cxx: g++-11 , bt: Release, img: ubuntu22.04}
+          - {std: 11, cxx: g++-10 , bt: Debug  , img: ubuntu22.04}
+          - {std: 11, cxx: g++-10 , bt: Release, img: ubuntu22.04}
+          - {std: 11, cxx: g++-9  , bt: Debug  , img: ubuntu22.04}
+          - {std: 11, cxx: g++-9  , bt: Release, img: ubuntu22.04}
+          - {std: 11, cxx: g++-8  , bt: Debug  , img: ubuntu18.04}
+          - {std: 11, cxx: g++-8  , bt: Release, img: ubuntu18.04}
+          - {std: 11, cxx: g++-7  , bt: Debug  , img: ubuntu18.04}
+          - {std: 11, cxx: g++-7  , bt: Release, img: ubuntu18.04}
+          - {std: 11, cxx: g++-6  , bt: Debug  , img: ubuntu18.04}
+          - {std: 11, cxx: g++-6  , bt: Release, img: ubuntu18.04}
+          - {std: 11, cxx: g++-5  , bt: Debug  , img: ubuntu18.04}
+          - {std: 11, cxx: g++-5  , bt: Release, img: ubuntu18.04}
+          - {std: 11, cxx: g++-4.9, bt: Debug  , img: ubuntu18.04}
+          - {std: 11, cxx: g++-4.9, bt: Release, img: ubuntu18.04}
+          - {std: 11, cxx: g++-4.8, bt: Debug  , img: ubuntu18.04}
+          - {std: 11, cxx: g++-4.8, bt: Release, img: ubuntu18.04}
+    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
+    steps:
+      # cannot use the checkout@v3 or v4 action on ubuntu18.04 because of nodejs version
+      #- {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
+      #- run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
+      #... so we checkout manually:
+      - name: checkout
+        run: |
+          set -x
+          echo GITHUB_REF=$GITHUB_REF
+          echo GITHUB_HEAD_REF=$GITHUB_HEAD_REF
+          branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}  # https://stackoverflow.com/questions/58033366
+          echo branch=$branch
+          git init -q .
+          git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
+          git remote add origin $GITHUB_SERVER_URL/$GITHUB_REPOSITORY
+          git fetch origin $branch
+          git reset --hard FETCH_HEAD
+          git submodule update --init --recursive
+      - run: c4core-install ${{matrix.cxx}}
+      - {name: show info, run: source .github/setenv.sh && c4_show_info}
+      - name: shared64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared64
+      - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
+      - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
+      - {name: shared64-pack, run: source .github/setenv.sh && c4_package shared64}
+      - name: static64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static64
+      - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
+      - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
+      - {name: static64-pack, run: source .github/setenv.sh && c4_package static64}
+      - name: static32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static32
+      - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
+      - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
+      - {name: static32-pack, run: source .github/setenv.sh && c4_package static32}
+      - name: shared32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared32
+      - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
+      - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
+      - {name: shared32-pack, run: source .github/setenv.sh && c4_package shared32}
+
+  #----------------------------------------------------------------------------
+  gccsan:
+    name: gccsan/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}/vg${{matrix.vg}}
+    continue-on-error: true
+    if: always()  # https://stackoverflow.com/questions/62045967/github-actions-is-there-a-way-to-continue-on-error-while-still-getting-correct
+    runs-on: ubuntu-latest
+    container: ghcr.io/biojppm/c4core/ubuntu22.04:latest  # use the docker image
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {std: 11, cxx: g++-14, bt: asan, bitlinks: static64}
+          - {std: 14, cxx: g++-14, bt: asan, bitlinks: static64}
+          - {std: 17, cxx: g++-14, bt: asan, bitlinks: static64}
+          - {std: 20, cxx: g++-14, bt: asan, bitlinks: static64}
+          - {std: 11, cxx: g++-14, bt: lsan, bitlinks: static64}
+          - {std: 14, cxx: g++-14, bt: lsan, bitlinks: static64}
+          - {std: 17, cxx: g++-14, bt: lsan, bitlinks: static64}
+          - {std: 20, cxx: g++-14, bt: lsan, bitlinks: static64}
+          - {std: 11, cxx: g++-14, bt: tsan, bitlinks: static64}
+          - {std: 14, cxx: g++-14, bt: tsan, bitlinks: static64}
+          - {std: 17, cxx: g++-14, bt: tsan, bitlinks: static64}
+          - {std: 20, cxx: g++-14, bt: tsan, bitlinks: static64}
+          - {std: 11, cxx: g++-14, bt: ubsan, bitlinks: static64}
+          - {std: 14, cxx: g++-14, bt: ubsan, bitlinks: static64}
+          - {std: 17, cxx: g++-14, bt: ubsan, bitlinks: static64}
+          - {std: 20, cxx: g++-14, bt: ubsan, bitlinks: static64}
+    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
+    steps:
+      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
+      - run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
+      - run: c4core-install ${{matrix.cxx}}
+      - {name: show info, run: source .github/setenv.sh && c4_show_info}
+      - name: shared64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared64
+      - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
+      - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
+      - {name: shared64-pack, run: source .github/setenv.sh && c4_package shared64}
+      - name: static64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static64
+      - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
+      - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
+      - {name: static64-pack, run: source .github/setenv.sh && c4_package static64}
+      - name: static32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static32
+      - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
+      - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
+      - {name: static32-pack, run: source .github/setenv.sh && c4_package static32}
+      - name: shared32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared32
+      - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
+      - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
+      - {name: shared32-pack, run: source .github/setenv.sh && c4_package shared32}
+
+  #----------------------------------------------------------------------------
+  arm:
+    continue-on-error: true
+    if: always()  # https://stackoverflow.com/questions/62045967/github-actions-is-there-a-way-to-continue-on-error-while-still-getting-correct
+    runs-on: ubuntu-latest
+    container: ghcr.io/biojppm/c4core/ubuntu18.04:latest  # use the docker image
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # these jobs take much longer, so run only one bitlink pair per job to profit from parallelism
+          - {std: 11, bt: Debug  , toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake, cxx: arm-linux-gnueabihf-gcc, os: ubuntu-20.04}
+          - {std: 11, bt: Release, toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake, cxx: arm-linux-gnueabihf-gcc, os: ubuntu-20.04}
+          - {std: 14, bt: Debug  , toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake, cxx: arm-linux-gnueabihf-gcc, os: ubuntu-20.04}
+          - {std: 14, bt: Release, toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake, cxx: arm-linux-gnueabihf-gcc, os: ubuntu-20.04}
+          - {std: 17, bt: Debug  , toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake, cxx: arm-linux-gnueabihf-gcc, os: ubuntu-20.04}
+          - {std: 17, bt: Release, toolchain: ext/c4core/cmake/Toolchain-Arm-ubuntu.cmake, cxx: arm-linux-gnueabihf-gcc, os: ubuntu-20.04}
+    env: {TOOLCHAIN: "${{matrix.toolchain}}", STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
+    steps:
+      # cannot use the checkout@v3 or v4 action on ubuntu18.04 because of nodejs version
+      #- {name: checkout, uses: actions/checkout@v3, with: {submodules: recursive}}
+      #- run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
+      #... so we checkout manually:
+      - name: checkout
+        run: |
+          set -x
+          echo GITHUB_REF=$GITHUB_REF
+          echo GITHUB_HEAD_REF=$GITHUB_HEAD_REF
+          branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}  # https://stackoverflow.com/questions/58033366
+          echo branch=$branch
+          git init -q .
+          git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
+          git remote add origin $GITHUB_SERVER_URL/$GITHUB_REPOSITORY
+          git fetch origin $branch
+          git reset --hard FETCH_HEAD
+          git submodule update --init --recursive
+      - name: install gcc-arm-linux-gnueabihf
+        run: |
+          c4core-install arm-linux-gnueabihf
+          c4core-install qemu
+      - {name: show info, run: source .github/setenv.sh && c4_show_info}
+      - name: configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test arm
+      - {name: build, run: source .github/setenv.sh && c4_build_test arm}
+      - {name: run, run: source .github/setenv.sh && c4_run_test arm}
+      - {name: pack, run: source .github/setenv.sh && c4_package arm}

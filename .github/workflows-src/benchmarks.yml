@@ -1,0 +1,147 @@
+name: benchmarks
+
+defaults:
+  run:
+    # Use a bash shell so we can use the same syntax for environment variable
+    # access regardless of the host operating system
+    shell: bash -e -x {0}
+
+on:
+  # https://github.community/t/how-to-trigger-an-action-on-push-or-pull-request-but-not-both/16662
+  workflow_dispatch:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+
+env:
+  PROJ_PFX_TARGET: ryml-
+  PROJ_PFX_CMAKE: RYML_
+  CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
+  NUM_JOBS_BUILD: # 4
+
+
+jobs:
+
+  gettag:
+    runs-on: ubuntu-latest
+    steps:
+      # use fetch-depth to ensure all tags are fetched
+      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive, fetch-depth: 0}}
+      - name: Variables (from tag)
+        if: contains(github.ref, 'tags/v')
+        run: |
+          # https://github.community/t/how-to-get-just-the-tag-name/16241/11
+          SRC_TAG=${GITHUB_REF#refs/tags/}
+          SRC_VERSION=${GITHUB_REF#refs/tags/v}
+          cat <<EOF > vars.sh
+          export SRC_TAG=$SRC_TAG
+          export SRC_VERSION=$SRC_VERSION
+          EOF
+      - name: Variables (from commit, no tag)
+        if: ${{ !contains(github.ref, 'tags/v') }}
+        run: |
+          set -x
+          branch_name=${GITHUB_REF#refs/heads/}
+          # builds triggered from PRs have the branch_name like this: refs/pull/150/merge
+          # so filter to eg pr0150_merge
+          branch_name=`echo $branch_name | sed "s:refs/pull/\([0-9]*\)/\(.*\):pr0\1_\2:"`
+          # sanitize the branch name; eg merge/foo-bar -> merge_foo_bar
+          branch_name=`echo $branch_name | sed 's:[/.-]:_:g'`
+          git config --global --add safe.directory $(pwd)
+          SRC_TAG=$(git describe || git rev-parse --short HEAD)  # eg v0.2.0-110-gda837e0
+          SRC_VERSION="${branch_name}-${SRC_TAG}"
+          cat <<EOF > vars.sh
+          export SRC_TAG=$SRC_TAG
+          export SRC_VERSION=$SRC_VERSION
+          EOF
+      - name: Verify vars.sh
+        run: cat vars.sh ; source vars.sh ; echo $SRC_TAG ; echo $SRC_VERSION
+      - name: Save vars.sh
+        uses: actions/upload-artifact@v3
+        with: {name: vars.sh, path: ./vars.sh}
+
+  benchmarks:
+    name: bm/c++${{matrix.std}}/${{matrix.cxx}}/${{matrix.bt}}
+    needs: gettag
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip benchmarks')) ||
+      contains(github.event.head_commit.message, 'only benchmarks')
+    continue-on-error: true
+    runs-on: ${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {std: 11, cxx: g++-10, bt: Release, os: ubuntu-20.04, bitlinks: static64 static32}
+          - {std: 17, cxx: g++-10, bt: Release, os: ubuntu-20.04, bitlinks: static64 static32}
+          - {std: 20, cxx: g++-10, bt: Release, os: ubuntu-20.04, bitlinks: static64 static32}
+          #
+          - {std: 17, cxx: vs2019, bt: Release, os: windows-2019, bitlinks: static64 static32}
+          - {std: 20, cxx: vs2019, bt: Release, os: windows-2019, bitlinks: static64 static32}
+          #- {std: 17, cxx: vs2022, bt: Release, os: windows-2022, bitlinks: static64 static32}
+          #- {std: 20, cxx: vs2022, bt: Release, os: windows-2022, bitlinks: static64 static32}
+          #
+          - {std: 17, cxx: xcode, xcver: 15, bt: Release, os: macos-13, bitlinks: static64}
+    env: {BM: ON, STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
+    steps:
+      # use fetch-depth to ensure all tags are fetched
+      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive, fetch-depth: 0}}
+      - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
+      - name: Download vars.sh
+        uses: actions/download-artifact@v3
+        with: {name: vars.sh, path: ./}
+      - {name: show info, run: source .github/setenv.sh && c4_show_info}
+      - name: Install python 3.10 for plotting
+        uses: actions/setup-python@v5
+        with: { python-version: '3.10' }
+      - name: install benchmark plotting dependencies
+        run: |
+          which python
+          which pip
+          python --version
+          pip --version
+          pip install -v -r ext/c4core/cmake/bm-xp/requirements.txt
+          python -c 'import munch ; print("ok!") ; exit(0)'
+          echo $?
+      - name: shared64-configure---------------------------------------------------
+        run: export CMAKE_FLAGS="-DPython_EXECUTABLE=$(which python)" && source .github/setenv.sh && c4_cfg_test shared64
+      - {name: shared64-build, run: source .github/setenv.sh && c4_build_target shared64 ryml-bm-build}
+      - {name: shared64-run, run: export NUM_JOBS_BUILD=1 && source .github/setenv.sh && c4_run_target shared64 ryml-bm-run}
+      - {name: shared64-plot, run: export NUM_JOBS_BUILD=1 && source .github/setenv.sh && c4_run_target shared64 ryml-bm-plot}
+      - name: static64-configure---------------------------------------------------
+        run: export CMAKE_FLAGS="-DPython_EXECUTABLE=$(which python)" && source .github/setenv.sh && c4_cfg_test static64
+      - {name: static64-build, run: source .github/setenv.sh && c4_build_target static64 ryml-bm-build}
+      - {name: static64-run, run: export NUM_JOBS_BUILD=1 && source .github/setenv.sh && c4_run_target static64 ryml-bm-run}
+      - {name: static64-plot, run: export NUM_JOBS_BUILD=1 && source .github/setenv.sh && c4_run_target static64 ryml-bm-plot}
+      - name: static32-configure---------------------------------------------------
+        run: export CMAKE_FLAGS="-DPython_EXECUTABLE=$(which python)" && source .github/setenv.sh && c4_cfg_test static32
+      - {name: static32-build, run: source .github/setenv.sh && c4_build_target static32 ryml-bm-build}
+      - {name: static32-run, run: export NUM_JOBS_BUILD=1 && source .github/setenv.sh && c4_run_target static32 ryml-bm-run}
+      - {name: static32-plot, run: export NUM_JOBS_BUILD=1 && source .github/setenv.sh && c4_run_target static32 ryml-bm-plot}
+      - name: shared32-configure---------------------------------------------------
+        run: export CMAKE_FLAGS="-DPython_EXECUTABLE=$(which python)" && source .github/setenv.sh && c4_cfg_test shared32
+      - {name: shared32-build, run: source .github/setenv.sh && c4_build_target shared32 ryml-bm-build}
+      - {name: shared32-run, run: export NUM_JOBS_BUILD=1 && source .github/setenv.sh && c4_run_target shared32 ryml-bm-run}
+      - {name: shared32-plot, run: export NUM_JOBS_BUILD=1 && source .github/setenv.sh && c4_run_target shared32 ryml-bm-plot}
+      - name: gather benchmark results
+        run: |
+          set -x
+          source vars.sh
+          echo SRC_TAG=$SRC_TAG
+          echo SRC_VERSION=$SRC_VERSION
+          desc=$SRC_TAG
+          for bl in ${{matrix.bitlinks}} ; do
+            dst=$(echo ryml-benchmark_results/$desc/x86_64/${{matrix.cxx}}-${{matrix.bt}}-c++${{matrix.std}}-$bl | sed 's:++-:xx:g' | sed 's:+:x:g')
+            mkdir -p $dst
+            find build -name bm-results
+            mv -vf build/$bl/bm/bm-results/* $dst/.
+          done
+      - name: upload benchmark result artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ryml-benchmark_results
+          path: ryml-benchmark_results/

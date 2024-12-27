@@ -1,0 +1,75 @@
+name: emscripten
+
+defaults:
+  run:
+    # Use a bash shell so we can use the same syntax for environment variable
+    # access regardless of the host operating system
+    shell: bash -e -x {0}
+
+on:
+  # https://github.community/t/how-to-trigger-an-action-on-push-or-pull-request-but-not-both/16662
+  workflow_dispatch:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+
+env:
+  PROJ_PFX_TARGET: ryml-
+  PROJ_PFX_CMAKE: RYML_
+  CMAKE_FLAGS: '-DRYML_TEST_SUITE=OFF'
+  NUM_JOBS_BUILD: # 4
+  EMSCRIPTEN_CACHE_FOLDER: 'emsdk-cache'
+
+jobs:
+
+  #----------------------------------------------------------------------------
+  emscripten:
+    # this job is always causing trouble, with failures showing unreadable code dumps
+    # eg https://github.com/biojppm/rapidyaml/actions/runs/10368522906
+    # Disabling until we can find a proper way to investigate these failures:
+    if: ${{ false }}
+    #if: |
+    #  (!contains(github.event.head_commit.message, 'skip all')) ||
+    #  (!contains(github.event.head_commit.message, 'skip emscripten')) ||
+    #  contains(github.event.head_commit.message, 'only emscripten')
+    name: emscripten/${{matrix.emver}}/c++${{matrix.std}}/${{matrix.bt}}
+    continue-on-error: true
+    runs-on: ${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          #- {std: 11, cxx: em++, emver: 2.0.34, bt: Debug  , os: ubuntu-latest, bitlinks: static32}
+          - {std: 11, cxx: em++, emver: 2.0.34, bt: Release, os: ubuntu-latest, bitlinks: static32}
+          #- {std: 20, cxx: em++, emver: 2.0.34, bt: Debug  , os: ubuntu-latest, bitlinks: static32}
+          - {std: 20, cxx: em++, emver: 2.0.34, bt: Release, os: ubuntu-latest, bitlinks: static32}
+          #- {std: 11, cxx: em++, emver: 3.0.0 , bt: Debug  , os: ubuntu-latest, bitlinks: static32}
+          - {std: 11, cxx: em++, emver: 3.0.0 , bt: Release, os: ubuntu-latest, bitlinks: static32}
+          #- {std: 20, cxx: em++, emver: 3.0.0 , bt: Debug  , os: ubuntu-latest, bitlinks: static32}
+          - {std: 20, cxx: em++, emver: 3.0.0 , bt: Release, os: ubuntu-latest, bitlinks: static32}
+    env:
+      STD: "${{matrix.std}}"
+      CXX_: "${{matrix.cxx}}"
+      BT: "${{matrix.bt}}"
+      BITLINKS: "${{matrix.bitlinks}}"
+      VG: "${{matrix.vg}}"
+      SAN: "${{matrix.san}}"
+      LINT: "${{matrix.lint}}"
+      OS: "${{matrix.os}}"
+    steps:
+      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
+      - name: setup emscripten cache
+        id: cache-system-libraries
+        uses: actions/cache@v4
+        with: {path: "${{env.EMSCRIPTEN_CACHE_FOLDER}}", key: "${{matrix.emver}}-${{runner.os}}"}
+      - name: setup emscripten
+        uses: mymindstorm/setup-emsdk@v11
+        with: {version: "${{matrix.emver}}", actions-cache-folder: "${{env.EMSCRIPTEN_CACHE_FOLDER}}"}
+      - {name: show info, run: source .github/setenv.sh && c4_show_info}
+      - name: static32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static32
+      - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
+      - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}

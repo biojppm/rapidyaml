@@ -1,0 +1,105 @@
+name: test_install
+
+defaults:
+  run:
+    # Use a bash shell so we can use the same syntax for environment variable
+    # access regardless of the host operating system
+    shell: bash -e -x {0}
+
+on:
+  # https://github.community/t/how-to-trigger-an-action-on-push-or-pull-request-but-not-both/16662
+  workflow_dispatch:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+
+env:
+  PROJ_PFX_TARGET: ryml-
+  PROJ_PFX_CMAKE: RYML_
+  CMAKE_FLAGS:
+  NUM_JOBS_BUILD: # 4
+
+jobs:
+
+  #----------------------------------------------------------------------------
+  install_tests:
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip test_install')) ||
+      contains(github.event.head_commit.message, 'only test_install')
+    name: ${{matrix.name}}/${{matrix.bt}}
+    continue-on-error: true
+    runs-on: ${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {name: find_package/linux       , sdir: test/test_install     , os: ubuntu-20.04, cxx: g++-10   , gen: "-DCMAKE_CXX_COMPILER=g++-10"              , tgt: all      , bt: Release, vars: "-Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml -DRYML_TEST_INSTALL_PACKAGE_MODE=ON", commonvars: }
+          - {name: find_package/linux       , sdir: test/test_install     , os: ubuntu-20.04, cxx: g++-10   , gen: "-DCMAKE_CXX_COMPILER=g++-10"              , tgt: all      , bt: Debug  , vars: "-Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml -DRYML_TEST_INSTALL_PACKAGE_MODE=ON", commonvars: }
+          - {name: find_package/linux/libcxx, sdir: test/test_install     , os: ubuntu-20.04, cxx: clang++-9, gen: "-DCMAKE_CXX_COMPILER=clang++-9"           , tgt: all      , bt: Release, vars: "-Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml -DRYML_TEST_INSTALL_PACKAGE_MODE=ON", commonvars: "-DRYML_USE_LIBCXX=ON"}
+          - {name: find_package/linux/libcxx, sdir: test/test_install     , os: ubuntu-20.04, cxx: clang++-9, gen: "-DCMAKE_CXX_COMPILER=clang++-9"           , tgt: all      , bt: Debug  , vars: "-Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml -DRYML_TEST_INSTALL_PACKAGE_MODE=ON", commonvars: "-DRYML_USE_LIBCXX=ON"}
+          - {name: find_package/macos       , sdir: test/test_install     , os: macos-13    , cxx: xcode    , gen: "-G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64", tgt: ALL_BUILD, bt: Release, vars: "-Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml -DRYML_TEST_INSTALL_PACKAGE_MODE=ON", commonvars: }
+          - {name: find_package/macos       , sdir: test/test_install     , os: macos-13    , cxx: xcode    , gen: "-G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64", tgt: ALL_BUILD, bt: Debug  , vars: "-Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/lib/cmake/ryml -DRYML_TEST_INSTALL_PACKAGE_MODE=ON", commonvars: }
+          - {name: find_package/win         , sdir: test/test_install     , os: windows-2019, cxx: vs2019   , gen: "-G 'Visual Studio 16 2019' -A x64"        , tgt: ALL_BUILD, bt: Release, vars: "-Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/cmake          -DRYML_TEST_INSTALL_PACKAGE_MODE=ON", commonvars: }
+          - {name: find_package/win         , sdir: test/test_install     , os: windows-2019, cxx: vs2019   , gen: "-G 'Visual Studio 16 2019' -A x64"        , tgt: ALL_BUILD, bt: Debug  , vars: "-Dryml_DIR=$GITHUB_WORKSPACE/$PDIR/cmake          -DRYML_TEST_INSTALL_PACKAGE_MODE=ON", commonvars: }
+          #
+          - {name: find_library/linux       , sdir: test/test_install     , os: ubuntu-20.04, cxx: g++-10   , gen: "-DCMAKE_CXX_COMPILER=g++-10"              , tgt: all      , bt: Release, vars: "-DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR       -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF", commonvars: }
+          - {name: find_library/linux       , sdir: test/test_install     , os: ubuntu-20.04, cxx: g++-10   , gen: "-DCMAKE_CXX_COMPILER=g++-10"              , tgt: all      , bt: Debug  , vars: "-DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR       -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF", commonvars: }
+          - {name: find_library/linux/libcxx, sdir: test/test_install     , os: ubuntu-20.04, cxx: clang++-9, gen: "-DCMAKE_CXX_COMPILER=clang++-9"           , tgt: all      , bt: Release, vars: "-DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR       -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF", commonvars: "-DRYML_USE_LIBCXX=ON"}
+          - {name: find_library/linux/libcxx, sdir: test/test_install     , os: ubuntu-20.04, cxx: clang++-9, gen: "-DCMAKE_CXX_COMPILER=clang++-9"           , tgt: all      , bt: Debug  , vars: "-DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR       -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF", commonvars: "-DRYML_USE_LIBCXX=ON"}
+          - {name: find_library/macos       , sdir: test/test_install     , os: macos-13    , cxx: xcode    , gen: "-G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64", tgt: ALL_BUILD, bt: Release, vars: "-DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR       -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF", commonvars: }
+          - {name: find_library/macos       , sdir: test/test_install     , os: macos-13    , cxx: xcode    , gen: "-G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64", tgt: ALL_BUILD, bt: Debug  , vars: "-DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR       -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF", commonvars: }
+          - {name: find_library/win         , sdir: test/test_install     , os: windows-2019, cxx: vs2019   , gen: "-G 'Visual Studio 16 2019' -A x64"        , tgt: ALL_BUILD, bt: Release, vars: "-DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR       -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF", commonvars: }
+          - {name: find_library/win         , sdir: test/test_install     , os: windows-2019, cxx: vs2019   , gen: "-G 'Visual Studio 16 2019' -A x64"        , tgt: ALL_BUILD, bt: Debug  , vars: "-DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/$PDIR       -DRYML_TEST_INSTALL_PACKAGE_MODE=OFF", commonvars: }
+          #
+          - {name: singleheader/linux       , sdir: test/test_singleheader, os: ubuntu-20.04, cxx: g++-10   , gen: "-DCMAKE_CXX_COMPILER=g++-10"              , tgt: all      , bt: Release, vars: , commonvars: }
+          - {name: singleheader/linux       , sdir: test/test_singleheader, os: ubuntu-20.04, cxx: g++-10   , gen: "-DCMAKE_CXX_COMPILER=g++-10"              , tgt: all      , bt: Debug  , vars: , commonvars: }
+          - {name: singleheader/linux/libcxx, sdir: test/test_singleheader, os: ubuntu-20.04, cxx: clang++-9, gen: "-DCMAKE_CXX_COMPILER=clang++-9"           , tgt: all      , bt: Release, vars: , commonvars: "-DRYML_USE_LIBCXX=ON"}
+          - {name: singleheader/linux/libcxx, sdir: test/test_singleheader, os: ubuntu-20.04, cxx: clang++-9, gen: "-DCMAKE_CXX_COMPILER=clang++-9"           , tgt: all      , bt: Debug  , vars: , commonvars: "-DRYML_USE_LIBCXX=ON"}
+          - {name: singleheader/macos       , sdir: test/test_singleheader, os: macos-13    , cxx: xcode    , gen: "-G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64", tgt: ALL_BUILD, bt: Release, vars: , commonvars: }
+          - {name: singleheader/macos       , sdir: test/test_singleheader, os: macos-13    , cxx: xcode    , gen: "-G Xcode -DCMAKE_OSX_ARCHITECTURES=x86_64", tgt: ALL_BUILD, bt: Debug  , vars: , commonvars: }
+          - {name: singleheader/win         , sdir: test/test_singleheader, os: windows-2019, cxx: vs2019   , gen: "-G 'Visual Studio 16 2019' -A x64"        , tgt: ALL_BUILD, bt: Release, vars: , commonvars: }
+          - {name: singleheader/win         , sdir: test/test_singleheader, os: windows-2019, cxx: vs2019   , gen: "-G 'Visual Studio 16 2019' -A x64"        , tgt: ALL_BUILD, bt: Debug  , vars: , commonvars: }
+    env:
+      CXX_: "${{matrix.cxx}}"
+      BT: "${{matrix.bt}}"
+      OS: "${{matrix.os}}"
+      BDIR:   "build/${{matrix.name}}-${{matrix.bt}}"
+      IDIR: "install/${{matrix.name}}-${{matrix.bt}}"
+      PDIR:  "prefix/${{matrix.name}}-${{matrix.bt}}"
+    steps:
+      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
+      - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
+      - {name: show info, run: source .github/setenv.sh && c4_show_info}
+      - name: Install python 3.9
+        uses: actions/setup-python@v5
+        with: { python-version: 3.9 }
+      - name: preinstall
+        run: |
+          if [ "${{matrix.sdir}}" == "test/test_install" ] ; then
+            mkdir -p $BDIR-staging
+            cmake -S . -B $BDIR-staging -DCMAKE_INSTALL_PREFIX=$PDIR -DCMAKE_BUILD_TYPE=${{matrix.bt}} ${{matrix.gen}} ${{matrix.commonvars}}
+            cmake --build $BDIR-staging --config ${{matrix.bt}} --target ${{matrix.tgt}} -j
+            cmake --build $BDIR-staging --config ${{matrix.bt}} --target install
+          fi
+      - name: configure
+        run: |
+          mkdir -p $BDIR
+          mkdir -p $IDIR
+          cmake -S ${{matrix.sdir}} -B $BDIR \
+            -DRYML_BUILD_TESTS=ON \
+            -DRYML_VALGRIND=OFF \
+            -DCMAKE_BUILD_TYPE=${{matrix.bt}} \
+            -DCMAKE_INSTALL_PREFIX=$IDIR \
+            ${{matrix.gen}} \
+            ${{matrix.vars}} \
+            ${{matrix.commonvars}}
+      - name: build
+        run: |
+          cmake --build $BDIR --config ${{matrix.bt}} --target ryml-test-build -j
+      - name: run
+        run: |
+          cmake --build $BDIR --config ${{matrix.bt}} --target ryml-test-run

@@ -1,0 +1,60 @@
+name: samples
+
+defaults:
+  run:
+    # Use a bash shell so we can use the same syntax for environment variable
+    # access regardless of the host operating system
+    shell: bash -e -x {0}
+
+on:
+  # https://github.community/t/how-to-trigger-an-action-on-push-or-pull-request-but-not-both/16662
+  workflow_dispatch:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+
+env:
+  PROJ_PFX_TARGET: ryml-
+  PROJ_PFX_CMAKE: RYML_
+  CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
+  NUM_JOBS_BUILD: # 4
+
+jobs:
+
+  #----------------------------------------------------------------------------
+  samples:
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip samples')) ||
+      contains(github.event.head_commit.message, 'only samples')
+    continue-on-error: true
+    runs-on: ${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {bt: Debug  , os: ubuntu-20.04}
+          - {bt: Release, os: ubuntu-20.04}
+          - {bt: Debug  , os: windows-2019}
+          - {bt: Release, os: windows-2019}
+          - {bt: Debug  , os: macos-latest}
+          - {bt: Release, os: macos-latest}
+    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}",
+          VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}",
+          CMANY: ON, RYMLSHA: "${{github.event.pull_request.head.sha}}" }
+    steps:
+      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive, fetch-depth: 0 } }  # use fetch-depth to ensure all tags are fetched
+      - {name: python3, uses: actions/setup-python@v5, with: {python-version: 3.9}}
+      - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
+      - {name: show info, run: source .github/setenv.sh && c4_show_info }
+      #
+      - {name: singleheader, run: cd samples/singleheader && ./run.sh $BT }
+      - {name: singleheaderlib-static, run: cd samples/singleheaderlib && ./run_static.sh $BT }
+      - {name: singleheaderlib-shared, run: cd samples/singleheaderlib && ./run_shared.sh $BT }
+      - {name: add_subdirectory, run: cd samples/add_subdirectory && ./run.sh $BT }
+      - {name: find_package, run: cd samples/find_package && ./run.sh $BT }
+      - {name: custom_c4core, run: cd samples/custom_c4core && ./run.sh $BT }
+      - {name: fetch_content, run: cd samples/fetch_content && ./run.sh $BT $RYMLSHA }

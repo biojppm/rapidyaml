@@ -1,0 +1,74 @@
+name: macosx
+
+defaults:
+  run:
+    # Use a bash shell so we can use the same syntax for environment variable
+    # access regardless of the host operating system
+    shell: bash -e -x {0}
+
+on:
+  # https://github.community/t/how-to-trigger-an-action-on-push-or-pull-request-but-not-both/16662
+  workflow_dispatch:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+
+env:
+  PROJ_PFX_TARGET: ryml-
+  PROJ_PFX_CMAKE: RYML_
+  CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
+  NUM_JOBS_BUILD: # 4
+
+
+jobs:
+
+  #----------------------------------------------------------------------------
+  macosx:
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip macosx')) ||
+      contains(github.event.head_commit.message, 'only macosx')
+    continue-on-error: true
+    runs-on: ${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {std: 11, cxx: xcode, xcver: 15, bt: Debug  , os: macos-13, bitlinks: shared64 static64}
+          - {std: 11, cxx: xcode, xcver: 15, bt: Release, os: macos-13, bitlinks: shared64 static64}
+          - {std: 17, cxx: xcode, xcver: 15, bt: Debug  , os: macos-13, bitlinks: shared64 static64}
+          - {std: 17, cxx: xcode, xcver: 15, bt: Release, os: macos-13, bitlinks: shared64 static64}
+          #
+          - {std: 11, cxx: xcode, xcver: 14, bt: Debug  , os: macos-13, bitlinks: shared64 static64}
+          - {std: 11, cxx: xcode, xcver: 14, bt: Release, os: macos-13, bitlinks: shared64 static64}
+          - {std: 17, cxx: xcode, xcver: 14, bt: Debug  , os: macos-13, bitlinks: shared64 static64}
+          - {std: 17, cxx: xcode, xcver: 14, bt: Release, os: macos-13, bitlinks: shared64 static64}
+    env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
+    steps:
+      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
+      - {name: xcode, uses: maxim-lobanov/setup-xcode@v1, with: {xcode-version: "${{matrix.xcver}}" }}
+      - {name: install requirements, run: source .github/reqs.sh && c4_install_test_requirements $OS}
+      - {name: show info, run: source .github/setenv.sh && c4_show_info}
+      - name: shared64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared64
+      - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
+      - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
+      - {name: shared64-pack, run: source .github/setenv.sh && c4_package shared64}
+      - name: static64-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static64
+      - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
+      - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
+      - {name: static64-pack, run: source .github/setenv.sh && c4_package static64}
+      - name: shared32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test shared32
+      - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
+      - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
+      - {name: shared32-pack, run: source .github/setenv.sh && c4_package shared32}
+      - name: static32-configure---------------------------------------------------
+        run: source .github/setenv.sh && c4_cfg_test static32
+      - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
+      - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
+      - {name: static32-pack, run: source .github/setenv.sh && c4_package static32}
