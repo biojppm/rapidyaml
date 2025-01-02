@@ -2,6 +2,7 @@
 
 :: use(common)
 :: workflow-setup()
+common-steps =: load('share/steps.yaml')
 
 env:
   PROJ_PFX_TARGET: ryml-
@@ -30,29 +31,8 @@ jobs:
     env: {STD: "${{matrix.std}}", CXX_: "${{matrix.cxx}}", BT: "${{matrix.bt}}", BITLINKS: "${{matrix.bitlinks}}", VG: "${{matrix.vg}}", SAN: "${{matrix.san}}", LINT: "${{matrix.lint}}", OS: "${{matrix.os}}"}
     steps:
       - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
-      - run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
-      - run: c4core-install ${{matrix.cxx}}
-      - {name: show info, run: source .github/setenv.sh && c4_show_info}
-      - name: shared64-configure---------------------------------------------------
-        run: source .github/setenv.sh && c4_cfg_test shared64
-      - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
-      - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
-      - {name: shared64-pack, run: source .github/setenv.sh && c4_package shared64}
-      - name: static64-configure---------------------------------------------------
-        run: source .github/setenv.sh && c4_cfg_test static64
-      - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
-      - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
-      - {name: static64-pack, run: source .github/setenv.sh && c4_package static64}
-      - name: static32-configure---------------------------------------------------
-        run: source .github/setenv.sh && c4_cfg_test static32
-      - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
-      - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
-      - {name: static32-pack, run: source .github/setenv.sh && c4_package static32}
-      - name: shared32-configure---------------------------------------------------
-        run: source .github/setenv.sh && c4_cfg_test shared32
-      - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
-      - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
-      - {name: shared32-pack, run: source .github/setenv.sh && c4_package shared32}
+      - run: git config --system --add safe.directory '*'
+      - :: common-steps
 
   #----------------------------------------------------------------------------
   clang_tabtokens:
@@ -76,27 +56,7 @@ jobs:
       - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
       - run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
       - run: c4core-install $CXX_
-      - {name: show info, run: source .github/setenv.sh && c4_show_info}
-      - name: shared64-configure---------------------------------------------------
-        run: source .github/setenv.sh && c4_cfg_test shared64
-      - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
-      - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
-      - {name: shared64-pack, run: source .github/setenv.sh && c4_package shared64}
-      - name: static64-configure---------------------------------------------------
-        run: source .github/setenv.sh && c4_cfg_test static64
-      - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
-      - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
-      - {name: static64-pack, run: source .github/setenv.sh && c4_package static64}
-      - name: static32-configure---------------------------------------------------
-        run: source .github/setenv.sh && c4_cfg_test static32
-      - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
-      - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
-      - {name: static32-pack, run: source .github/setenv.sh && c4_package static32}
-      - name: shared32-configure---------------------------------------------------
-        run: source .github/setenv.sh && c4_cfg_test shared32
-      - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
-      - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
-      - {name: shared32-pack, run: source .github/setenv.sh && c4_package shared32}
+      - :: common-steps.drop(1)
 
   #----------------------------------------------------------------------------
   clang_noexceptions:
@@ -118,27 +78,7 @@ jobs:
       - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
       - run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
       - run: c4core-install ${{matrix.cxx}}
-      - {name: show info, run: source .github/setenv.sh && c4_show_info}
-      - name: shared64-configure---------------------------------------------------
-        run: source .github/setenv.sh && c4_cfg_test shared64
-      - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
-      - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
-      - {name: shared64-pack, run: source .github/setenv.sh && c4_package shared64}
-      - name: static64-configure---------------------------------------------------
-        run: source .github/setenv.sh && c4_cfg_test static64
-      - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
-      - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
-      - {name: static64-pack, run: source .github/setenv.sh && c4_package static64}
-      - name: static32-configure---------------------------------------------------
-        run: source .github/setenv.sh && c4_cfg_test static32
-      - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
-      - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
-      - {name: static32-pack, run: source .github/setenv.sh && c4_package static32}
-      - name: shared32-configure---------------------------------------------------
-        run: source .github/setenv.sh && c4_cfg_test shared32
-      - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
-      - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
-      - {name: shared32-pack, run: source .github/setenv.sh && c4_package shared32}
+      - :: common-steps.drop(1)
 
   #----------------------------------------------------------------------------
   clang_extended:
@@ -200,27 +140,7 @@ jobs:
           git reset --hard FETCH_HEAD
           git submodule update --init --recursive
       - run: c4core-install ${{matrix.cxx}}
-      - {name: show info, run: source .github/setenv.sh && c4_show_info}
-      - name: shared64-configure---------------------------------------------------
-        run: source .github/setenv.sh && c4_cfg_test shared64
-      - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
-      - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
-      - {name: shared64-pack, run: source .github/setenv.sh && c4_package shared64}
-      - name: static64-configure---------------------------------------------------
-        run: source .github/setenv.sh && c4_cfg_test static64
-      - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
-      - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
-      - {name: static64-pack, run: source .github/setenv.sh && c4_package static64}
-      - name: static32-configure---------------------------------------------------
-        run: source .github/setenv.sh && c4_cfg_test static32
-      - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
-      - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
-      - {name: static32-pack, run: source .github/setenv.sh && c4_package static32}
-      - name: shared32-configure---------------------------------------------------
-        run: source .github/setenv.sh && c4_cfg_test shared32
-      - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
-      - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
-      - {name: shared32-pack, run: source .github/setenv.sh && c4_package shared32}
+      - :: common-steps.drop(1)
 
   #----------------------------------------------------------------------------
   clangsan:
@@ -254,27 +174,7 @@ jobs:
       - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
       - run: git config --system --add safe.directory '*'  # needed for running in the docker image. see https://github.com/actions/checkout/issues/1169
       - run: c4core-install ${{matrix.cxx}}
-      - {name: show info, run: source .github/setenv.sh && c4_show_info}
-      - name: shared64-configure---------------------------------------------------
-        run: source .github/setenv.sh && c4_cfg_test shared64
-      - {name: shared64-build, run: source .github/setenv.sh && c4_build_test shared64}
-      - {name: shared64-run, run: source .github/setenv.sh && c4_run_test shared64}
-      - {name: shared64-pack, run: source .github/setenv.sh && c4_package shared64}
-      - name: static64-configure---------------------------------------------------
-        run: source .github/setenv.sh && c4_cfg_test static64
-      - {name: static64-build, run: source .github/setenv.sh && c4_build_test static64}
-      - {name: static64-run, run: source .github/setenv.sh && c4_run_test static64}
-      - {name: static64-pack, run: source .github/setenv.sh && c4_package static64}
-      - name: static32-configure---------------------------------------------------
-        run: source .github/setenv.sh && c4_cfg_test static32
-      - {name: static32-build, run: source .github/setenv.sh && c4_build_test static32}
-      - {name: static32-run, run: source .github/setenv.sh && c4_run_test static32}
-      - {name: static32-pack, run: source .github/setenv.sh && c4_package static32}
-      - name: shared32-configure---------------------------------------------------
-        run: source .github/setenv.sh && c4_cfg_test shared32
-      - {name: shared32-build, run: source .github/setenv.sh && c4_build_test shared32}
-      - {name: shared32-run, run: source .github/setenv.sh && c4_run_test shared32}
-      - {name: shared32-pack, run: source .github/setenv.sh && c4_package shared32}
+      - :: common-steps.drop(1)
 
   #----------------------------------------------------------------------------
 #  # https://blog.kitware.com/static-checks-with-cmake-cdash-iwyu-clang-tidy-lwyu-cpplint-and-cppcheck/

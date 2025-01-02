@@ -114,14 +114,6 @@ jobs:
       run: source .github/setenv.sh && c4_run_test static64
     - name: static64-pack
       run: source .github/setenv.sh && c4_package static64
-    - name: shared32-configure---------------------------------------------------
-      run: source .github/setenv.sh && c4_cfg_test shared32
-    - name: shared32-build
-      run: source .github/setenv.sh && c4_build_test shared32
-    - name: shared32-run
-      run: source .github/setenv.sh && c4_run_test shared32
-    - name: shared32-pack
-      run: source .github/setenv.sh && c4_package shared32
     - name: static32-configure---------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test static32
     - name: static32-build
@@ -130,3 +122,11 @@ jobs:
       run: source .github/setenv.sh && c4_run_test static32
     - name: static32-pack
       run: source .github/setenv.sh && c4_package static32
+    - name: shared32-configure---------------------------------------------------
+      run: source .github/setenv.sh && c4_cfg_test shared32
+    - name: shared32-build
+      run: source .github/setenv.sh && c4_build_test shared32
+    - name: shared32-run
+      run: source .github/setenv.sh && c4_run_test shared32
+    - name: shared32-pack
+      run: source .github/setenv.sh && c4_package shared32
