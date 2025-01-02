@@ -1,24 +1,11 @@
-name: release
+!yamlscript/v0:
 
-defaults:
-  run:
-    # Use a bash shell so we can use the same syntax for environment variable
-    # access regardless of the host operating system
-    shell: bash -e -x {0}
-
-on:
-  # https://github.community/t/how-to-trigger-an-action-on-push-or-pull-request-but-not-both/16662
-  workflow_dispatch:
-  push:
-    tags:
-      - v0.*
-      - v1.*
-      - v2.*
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
+:: use(common)
+::
+  workflow-setup 'release'::
+    push:
+      tags: [v0.*, v1.*, v2.*]
+      branches: [master]
 
 env:
   PROJ_PKG_NAME: rapidyaml-
