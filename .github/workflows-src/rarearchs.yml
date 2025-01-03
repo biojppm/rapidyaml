@@ -16,46 +16,46 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {std: 11, bt: Debug  , arch: aarch64, distro: ubuntu20.04}
-          - {std: 11, bt: Release, arch: aarch64, distro: ubuntu20.04}
-          - {std: 14, bt: Debug  , arch: aarch64, distro: ubuntu20.04}
-          - {std: 14, bt: Release, arch: aarch64, distro: ubuntu20.04}
-          - {std: 17, bt: Debug  , arch: aarch64, distro: ubuntu20.04}
-          - {std: 17, bt: Release, arch: aarch64, distro: ubuntu20.04}
-          #
-          - {std: 11, bt: Debug  , arch: ppc64le, distro: ubuntu20.04}
-          - {std: 11, bt: Release, arch: ppc64le, distro: ubuntu20.04}
-          - {std: 14, bt: Debug  , arch: ppc64le, distro: ubuntu20.04}
-          - {std: 14, bt: Release, arch: ppc64le, distro: ubuntu20.04}
-          - {std: 17, bt: Debug  , arch: ppc64le, distro: ubuntu20.04}
-          - {std: 17, bt: Release, arch: ppc64le, distro: ubuntu20.04}
-          #
-          - {std: 11, bt: Debug  , arch: s390x  , distro: ubuntu20.04}
-          - {std: 11, bt: Release, arch: s390x  , distro: ubuntu20.04}
-          - {std: 14, bt: Debug  , arch: s390x  , distro: ubuntu20.04}
-          - {std: 14, bt: Release, arch: s390x  , distro: ubuntu20.04}
-          - {std: 17, bt: Debug  , arch: s390x  , distro: ubuntu20.04}
-          - {std: 17, bt: Release, arch: s390x  , distro: ubuntu20.04}
-          #
-          #- {std: 11, bt: Debug  , arch: armv6  , distro: bullseye}
-          #- {std: 11, bt: Release, arch: armv6  , distro: bullseye}
-          #- {std: 14, bt: Debug  , arch: armv6  , distro: bullseye}
-          #- {std: 14, bt: Release, arch: armv6  , distro: bullseye}
-          #- {std: 17, bt: Debug  , arch: armv6  , distro: bullseye}
-          #- {std: 17, bt: Release, arch: armv6  , distro: bullseye}
-          #
-          #- {std: 11, bt: Debug  , arch: armv7  , distro: ubuntu20.04}
-          #- {std: 11, bt: Release, arch: armv7  , distro: ubuntu20.04}
-          #- {std: 14, bt: Debug  , arch: armv7  , distro: ubuntu20.04}
-          #- {std: 14, bt: Release, arch: armv7  , distro: ubuntu20.04}
-          #- {std: 17, bt: Debug  , arch: armv7  , distro: ubuntu20.04}
-          #- {std: 17, bt: Release, arch: armv7  , distro: ubuntu20.04}
+        - {std: 11, bt: Debug  , arch: aarch64, distro: ubuntu20.04}
+        - {std: 11, bt: Release, arch: aarch64, distro: ubuntu20.04}
+        - {std: 14, bt: Debug  , arch: aarch64, distro: ubuntu20.04}
+        - {std: 14, bt: Release, arch: aarch64, distro: ubuntu20.04}
+        - {std: 17, bt: Debug  , arch: aarch64, distro: ubuntu20.04}
+        - {std: 17, bt: Release, arch: aarch64, distro: ubuntu20.04}
+
+        - {std: 11, bt: Debug  , arch: ppc64le, distro: ubuntu20.04}
+        - {std: 11, bt: Release, arch: ppc64le, distro: ubuntu20.04}
+        - {std: 14, bt: Debug  , arch: ppc64le, distro: ubuntu20.04}
+        - {std: 14, bt: Release, arch: ppc64le, distro: ubuntu20.04}
+        - {std: 17, bt: Debug  , arch: ppc64le, distro: ubuntu20.04}
+        - {std: 17, bt: Release, arch: ppc64le, distro: ubuntu20.04}
+
+        - {std: 11, bt: Debug  , arch: s390x  , distro: ubuntu20.04}
+        - {std: 11, bt: Release, arch: s390x  , distro: ubuntu20.04}
+        - {std: 14, bt: Debug  , arch: s390x  , distro: ubuntu20.04}
+        - {std: 14, bt: Release, arch: s390x  , distro: ubuntu20.04}
+        - {std: 17, bt: Debug  , arch: s390x  , distro: ubuntu20.04}
+        - {std: 17, bt: Release, arch: s390x  , distro: ubuntu20.04}
+
+       #- {std: 11, bt: Debug  , arch: armv6  , distro: bullseye}
+       #- {std: 11, bt: Release, arch: armv6  , distro: bullseye}
+       #- {std: 14, bt: Debug  , arch: armv6  , distro: bullseye}
+       #- {std: 14, bt: Release, arch: armv6  , distro: bullseye}
+       #- {std: 17, bt: Debug  , arch: armv6  , distro: bullseye}
+       #- {std: 17, bt: Release, arch: armv6  , distro: bullseye}
+       #
+       #- {std: 11, bt: Debug  , arch: armv7  , distro: ubuntu20.04}
+       #- {std: 11, bt: Release, arch: armv7  , distro: ubuntu20.04}
+       #- {std: 14, bt: Debug  , arch: armv7  , distro: ubuntu20.04}
+       #- {std: 14, bt: Release, arch: armv7  , distro: ubuntu20.04}
+       #- {std: 17, bt: Debug  , arch: armv7  , distro: ubuntu20.04}
+       #- {std: 17, bt: Release, arch: armv7  , distro: ubuntu20.04}
     steps:
-      - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
-      - name: test
-        uses: uraimo/run-on-arch-action@v2.7.2
-        with:
-          arch: ${{matrix.arch}}
-          distro: ${{matrix.distro}}
-          install:: bash('rarearchs-test-install')
-          run:: bash('rarearchs-test-run')
+    - {name: checkout, uses: actions/checkout@v4, with: {submodules: recursive}}
+    - name: test
+      uses: uraimo/run-on-arch-action@v2.7.2
+      with:
+        arch: ${{matrix.arch}}
+        distro: ${{matrix.distro}}
+        install:: bash('rarearchs-test-install')
+        run:: bash('rarearchs-test-run')
