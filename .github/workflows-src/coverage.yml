@@ -1,22 +1,14 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows-ys/coverage.yml
+!yamlscript/v0:
 
-name: coverage
-defaults:
-  run:
-    shell: bash -e -x {0}
-'on':
-  workflow_dispatch: null
-  push:
-    branches:
-    - master
-  pull_request:
-    branches:
-    - master
+:: use(common)
+:: workflow-setup()
+
 env:
   PROJ_PFX_TARGET: ryml-
   PROJ_PFX_CMAKE: RYML_
   CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
-  NUM_JOBS_BUILD: null
+  NUM_JOBS_BUILD: # 4
+
 jobs:
   coverage:
     name: coverage/c++${{matrix.std}}${{matrix.cmk}}
@@ -24,47 +16,35 @@ jobs:
       (!contains(github.event.head_commit.message, 'skip all')) ||
       (!contains(github.event.head_commit.message, 'skip coverage')) ||
       contains(github.event.head_commit.message, 'only coverage')
+
     continue-on-error: true
     runs-on: ${{matrix.os}}
+
     strategy:
       fail-fast: false
       matrix:
+        item =: \({:std %1, :cxx 'g++-9', :bt 'Coverage', :os 'ubuntu-20.04'})
         include:
-        - std: 11
-          cxx: g++-9
-          bt: Coverage
-          os: ubuntu-20.04
-        - std: 17
-          cxx: g++-9
-          bt: Coverage
-          os: ubuntu-20.04
-        - std: 11
-          cxx: g++-9
-          bt: Coverage
-          os: ubuntu-20.04
-          cmk: -DRYML_DBG=ON
-        - std: 17
-          cxx: g++-9
-          bt: Coverage
-          os: ubuntu-20.04
-          cmk: -DRYML_DBG=ON
-    env:
-      STD: ${{matrix.std}}
-      CXX_: ${{matrix.cxx}}
-      BT: ${{matrix.bt}}
-      BITLINKS: ${{matrix.bitlinks}}
-      VG: ${{matrix.vg}}
-      SAN: ${{matrix.san}}
-      LINT: ${{matrix.lint}}
-      OS: ${{matrix.os}}
-      CMAKE_FLAGS: ${{matrix.cmk}}
+        - ! item(11)
+        - ! item(17)
+        # test also with the debug code enabled
+        - ! item(11) + {:cmk '-DRYML_DBG=ON'}
+        - ! item(17) + {:cmk '-DRYML_DBG=ON'}
+
+    env: !:merge*
+    - ! load('share/env.yaml')
+    - CMAKE_FLAGS: ${{matrix.cmk}}
       CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
       COVERALLS_REPO_TOKEN: ${{secrets.COVERALLS_REPO_TOKEN}}
+      # coveralls disabled:
+      #   https://github.com/lemurheavy/coveralls-public/issues/1665
+      # https://docs.coveralls.io/parallel-build-webhook
+      # COVERALLS_PARALLEL: true
+
     steps:
     - name: checkout
       uses: actions/checkout@v4
-      with:
-        submodules: recursive
+      with: {submodules: recursive}
     - name: install requirements
       run: source .github/reqs.sh && c4_install_test_requirements $OS
     - name: show info
@@ -84,6 +64,14 @@ jobs:
           build/static64/coverage3-final_filtered.lcov
     - name: static64-submit-codecov
       run: source .github/setenv.sh && c4_submit_coverage static64 codecov
+
+   # Coveralls disabled:
+   #   https://github.com/lemurheavy/coveralls-public/issues/1665
+   #- name: static64-submit-coveralls
+   #  run: if [ ${{matrix.std}} == 17 ] ;
+   #       then ( source .github/setenv.sh &&
+   #       c4_submit_coverage static64 coveralls ) ; fi
+
     - name: static32-configure-------------------------------------------------
       run: source .github/setenv.sh && c4_cfg_test static32
     - name: static32-build
@@ -99,3 +87,24 @@ jobs:
           build/static32/coverage3-final_filtered.lcov
     - name: static32-submit-codecov
       run: source .github/setenv.sh && c4_submit_coverage static32 codecov
+
+   # Coveralls disabled:
+   #   https://github.com/lemurheavy/coveralls-public/issues/1665
+   #- name: static32-submit-coveralls
+   #  run: source .github/setenv.sh && c4_submit_coverage static32 coveralls
+
+  # coveralls disabled:
+  #   https://github.com/lemurheavy/coveralls-public/issues/1665
+  # https://github.com/lemurheavy/coveralls-public/issues/1665
+  #coveralls_finish:
+  #  needs: [coverage]
+  #  runs-on: ubuntu-latest
+  #
+  #  steps:
+  #  - name: coveralls-notify
+  #      #continue-on-error: true
+  #      uses: coverallsapp/github-action@master
+  #      with:
+  #        github-token: ${{ secrets.github_token }}
+  #        parallel-finished: true
+

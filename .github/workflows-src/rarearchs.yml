@@ -1,0 +1,41 @@
+!yamlscript/v0:
+
+:: use(common)
+:: workflow-setup()
+
+jobs:
+  rarearchs:
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip rarearchs')) ||
+      contains(github.event.head_commit.message, 'only rarearchs')
+
+    name: ${{matrix.arch}}/c++${{matrix.std}}/${{matrix.bt}}
+    continue-on-error: true
+    runs-on: ubuntu-20.04
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include::
+          ? for
+              arch qw(aarch64 ppc64le s390x)
+              std [11 14 17]
+              bt qw(Debug Release)
+          : !
+            std:: std
+            bt:: bt
+            arch:: arch
+            distro: ubuntu20.04
+
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4
+      with: {submodules: recursive}
+    - name: test
+      uses: uraimo/run-on-arch-action@v2.7.2
+      with:
+        arch: ${{matrix.arch}}
+        distro: ${{matrix.distro}}
+        install:: bash('rarearchs-test-install')
+        run:: bash('rarearchs-test-run')

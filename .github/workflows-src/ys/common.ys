@@ -1,0 +1,23 @@
+!yamlscript/v0
+
+defn workflow-setup(name=nil overrides={})::
+  name =: name || FILE.replace(/.*\//).replace(/\.yml$/)
+
+  name:: name
+  defaults:
+    run:
+      # Use a bash shell so we can use the same syntax for environment variable
+      # access regardless of the host operating system
+      shell: bash -e -x {0}
+
+  on::
+    merge _ overrides::
+      # https://github.com/orgs/community/discussions/26276
+      workflow_dispatch:
+      push:
+        branches: [master]
+      pull_request:
+        branches: [master]
+
+defn bash(name):
+  slurp: "bash/$name.bash"

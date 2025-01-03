@@ -1,0 +1,133 @@
+!yamlscript/v0:
+
+:: use(common)
+:: workflow-setup()
+common-steps =: load('share/steps.yaml')
+
+env:
+  PROJ_PFX_TARGET: ryml-
+  PROJ_PFX_CMAKE: RYML_
+  CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
+  NUM_JOBS_BUILD: # 4
+
+jobs:
+  vs:
+    name: ${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
+    if: |
+      (!contains(github.event.head_commit.message, 'skip all')) ||
+      (!contains(github.event.head_commit.message, 'skip windows')) ||
+      contains(github.event.head_commit.message, 'only windows')
+
+    continue-on-error: true
+    runs-on: ${{matrix.os}}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        item =: \({:std %1, :cxx "vs$a(%2)", :bt %3, :os "windows-$a(%4)",
+                   :bitlinks 'shared64 static32'})
+        include:
+        # vs2017 is only availble in windows-2016
+       #- ! item(11 2017 'Debug'   2016)
+       #- ! item(11 2017 'Release' 2016)
+       #- ! item(14 2017 'Debug'   2016)
+       #- ! item(14 2017 'Release' 2016)
+
+        - ! item(11 2019 'Debug'   2019)
+        - ! item(11 2019 'Release' 2019)
+        - ! item(17 2019 'Debug'   2019)
+        - ! item(17 2019 'Release' 2019)
+
+        - ! item(11 2022 'Debug'   2022)
+        - ! item(11 2022 'Release' 2022)
+        - ! item(17 2022 'Debug'   2022)
+        - ! item(17 2022 'Release' 2022)
+        - ! item(20 2022 'Debug'   2022)
+        - ! item(20 2022 'Release' 2022)
+
+    env:: load('share/env.yaml')
+
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4
+      with: {submodules: recursive}
+    - name: install requirements
+      run: source .github/reqs.sh && c4_install_test_requirements $OS
+    - :: common-steps.drop(1)
+
+# TODO:
+#  mingw:
+#    name: mingw/${{matrix.platform}}/c++${{matrix.std}}/${{matrix.bt}}
+#    if: |
+#      (!contains(github.event.head_commit.message, 'skip all')) ||
+#      (!contains(github.event.head_commit.message, 'skip windows')) ||
+#      contains(github.event.head_commit.message, 'only windows')
+#
+#    continue-on-error: true
+#    runs-on: ${{matrix.os}}
+#
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        include:
+#        - {std: 11, platform: x86, cxx:   i686-w64-mingw32-g++, bt: Debug,
+#           os: windows-latest, bitlinks: shared32 static32}
+#        - {std: 11, platform: x64, cxx: x86_64-w64-mingw32-g++, bt: Debug,
+#           os: windows-latest, bitlinks: shared64 static64}
+#        - {std: 11, platform: x86, cxx:   i686-w64-mingw32-g++, bt: Release,
+#           os: windows-latest, bitlinks: shared32 static32}
+#        - {std: 11, platform: x64, cxx: x86_64-w64-mingw32-g++, bt: Release,
+#           os: windows-latest, bitlinks: shared64 static64}
+#        - {std: 17, platform: x86, cxx:   i686-w64-mingw32-g++, bt: Debug,
+#           os: windows-latest, bitlinks: shared32 static32}
+#        - {std: 17, platform: x64, cxx: x86_64-w64-mingw32-g++, bt: Debug,
+#           os: windows-latest, bitlinks: shared64 static64}
+#        - {std: 17, platform: x86, cxx:   i686-w64-mingw32-g++, bt: Release,
+#           os: windows-latest, bitlinks: shared32 static32}
+#        - {std: 17, platform: x64, cxx: x86_64-w64-mingw32-g++, bt: Release,
+#           os: windows-latest, bitlinks: shared64 static64}
+#
+#    env:: load('share/env.yaml')
+#
+#    steps:
+#    - name: checkout
+#      uses: actions/checkout@v4
+#      with: {submodules: recursive}
+#    - name: install requirements
+#      run: source .github/reqs.sh && c4_install_test_requirements $OS
+#    - name: install mingw
+#      uses: egor-tensin/setup-mingw@v2
+#      with:
+#        platform: ${{matrix.platform}}
+#    - name: shared64-configure------------------------------------------------
+#      run: source .github/setenv.sh && c4_cfg_test shared64
+#    - name: shared64-build
+#      run: source .github/setenv.sh && c4_build_test shared64
+#    - name: shared64-run
+#      run: source .github/setenv.sh && c4_run_test shared64
+#    - name: shared64-pack
+#      run: source .github/setenv.sh && c4_package shared64
+#    - name: static64-configure------------------------------------------------
+#      run: source .github/setenv.sh && c4_cfg_test static64
+#    - name: static64-build
+#      run: source .github/setenv.sh && c4_build_test static64
+#    - name: static64-run
+#      run: source .github/setenv.sh && c4_run_test static64
+#    - name: static64-pack
+#      run: source .github/setenv.sh && c4_package static64
+#    - name: shared32-configure------------------------------------------------
+#      run: source .github/setenv.sh && c4_cfg_test shared32
+#    - name: shared32-build
+#      run: source .github/setenv.sh && c4_build_test shared32
+#    - name: shared32-run
+#      run: source .github/setenv.sh && c4_run_test shared32
+#    - name: shared32-pack
+#      run: source .github/setenv.sh && c4_package shared32
+#    - name: static32-configure------------------------------------------------
+#      run: source .github/setenv.sh && c4_cfg_test static32
+#    - name: static32-build
+#      run: source .github/setenv.sh && c4_build_test static32
+#    - name: static32-run
+#      run: source .github/setenv.sh && c4_run_test static32
+#    - name: static32-pack
+#      run: source .github/setenv.sh && c4_package static32

@@ -1,71 +1,53 @@
-# DO NOT EDIT - GENERATED FROM .github/workflows-ys/samples.yml
+!yamlscript/v0:
 
-name: samples
-defaults:
-  run:
-    shell: bash -e -x {0}
-'on':
-  workflow_dispatch: null
-  push:
-    branches:
-    - master
-  pull_request:
-    branches:
-    - master
+:: use(common)
+:: workflow-setup()
+
 env:
   PROJ_PFX_TARGET: ryml-
   PROJ_PFX_CMAKE: RYML_
   CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
-  NUM_JOBS_BUILD: null
+  NUM_JOBS_BUILD: # 4
+
 jobs:
   samples:
     if: |
       (!contains(github.event.head_commit.message, 'skip all')) ||
       (!contains(github.event.head_commit.message, 'skip samples')) ||
       contains(github.event.head_commit.message, 'only samples')
+
     continue-on-error: true
     runs-on: ${{matrix.os}}
+
     strategy:
       fail-fast: false
       matrix:
         include:
-        - bt: Debug
-          os: ubuntu-20.04
-        - bt: Release
-          os: ubuntu-20.04
-        - bt: Debug
-          os: windows-2019
-        - bt: Release
-          os: windows-2019
-        - bt: Debug
-          os: macos-latest
-        - bt: Release
-          os: macos-latest
-    env:
-      STD: ${{matrix.std}}
-      CXX_: ${{matrix.cxx}}
-      BT: ${{matrix.bt}}
-      BITLINKS: ${{matrix.bitlinks}}
-      VG: ${{matrix.vg}}
-      SAN: ${{matrix.san}}
-      LINT: ${{matrix.lint}}
-      OS: ${{matrix.os}}
-      CMANY: 'ON'
+        - {bt: Debug  , os: ubuntu-20.04}
+        - {bt: Release, os: ubuntu-20.04}
+        - {bt: Debug  , os: windows-2019}
+        - {bt: Release, os: windows-2019}
+        - {bt: Debug  , os: macos-latest}
+        - {bt: Release, os: macos-latest}
+
+    env: !:merge*
+    - ! load('share/env.yaml')
+    - CMANY: ON
       RYMLSHA: ${{github.event.pull_request.head.sha}}
+
     steps:
     - name: checkout
       uses: actions/checkout@v4
-      with:
-        submodules: recursive
-        fetch-depth: 0
+      # use fetch-depth to ensure all tags are fetched
+      with: {submodules: recursive, fetch-depth: 0}
     - name: python3
       uses: actions/setup-python@v5
-      with:
-        python-version: 3.9
+      with: {python-version: 3.9}
     - name: install requirements
       run: source .github/reqs.sh && c4_install_test_requirements $OS
     - name: show info
       run: source .github/setenv.sh && c4_show_info
+
     - name: singleheader
       run: cd samples/singleheader && ./run.sh $BT
     - name: singleheaderlib-static

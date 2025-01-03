@@ -1,0 +1,250 @@
+!yamlscript/v0:
+
+:: use(common)
+:: workflow-setup()
+common-steps =: load('share/steps.yaml')
+
+env:
+  PROJ_PFX_TARGET: ryml-
+  PROJ_PFX_CMAKE: RYML_
+  CMAKE_FLAGS: -DRYML_TEST_SUITE=ON
+  NUM_JOBS_BUILD: # 4
+
+jobs:
+  #----------------------------------------------------------------------------
+  clang_canary:
+    name: clang_canary/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
+    continue-on-error: true
+    if: always()  # https://stackoverflow.com/a/62112985/721703
+    runs-on: ubuntu-latest
+    container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        item =: \({:std %1, :cxx %2, :bt %3, :bitlinks 'shared64 static32'})
+        include:: &include1 -[
+          item(20 'clang++-17' 'Debug')
+          item(20 'clang++-17' 'Release')
+          item(11 'clang++-9'  'Debug')
+          item(11 'clang++-9'  'Release') ]
+
+    env:: load('share/env.yaml')
+
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4
+      with: {submodules: recursive}
+    - run: git config --system --add safe.directory '*'
+    - :: common-steps
+
+  #----------------------------------------------------------------------------
+  clang_tabtokens:
+    name: clang_tabtokens/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
+    continue-on-error: true
+    if: always()
+    runs-on: ubuntu-latest
+    container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include: *include1
+
+    env:: load('share/env.yaml') +
+          {'CMAKE_FLAGS' '-DRYML_WITH_TAB_TOKENS=ON'}
+
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4
+      with: {submodules: recursive}
+    # needed for running in the docker image.
+    # see https://github.com/actions/checkout/issues/1169
+    - run: git config --system --add safe.directory '*'
+    - run: c4core-install $CXX_
+    - :: common-steps.drop(1)
+
+  #----------------------------------------------------------------------------
+  clang_noexceptions:
+    name: clang_noexceptions/${{matrix.cxx}}/c++${{matrix.std}}/${{matrix.bt}}
+    continue-on-error: true
+    if: always()
+    runs-on: ubuntu-latest
+    container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include: *include1
+
+    env:: -{'CXXFLAGS' '-fno-exceptions -fno-rtti'} +
+          load('share/env.yaml')
+
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4
+      with: {submodules: recursive}
+    # needed for running in the docker image.
+    # see https://github.com/actions/checkout/issues/1169
+    - run: git config --system --add safe.directory '*'
+    - run: c4core-install ${{matrix.cxx}}
+    - :: common-steps.drop(1)
+
+  #----------------------------------------------------------------------------
+  clang_extended:
+    name:
+      "clang_extended/${{matrix.cxx}}/\
+       c++${{matrix.std}}/${{matrix.bt}}/vg${{matrix.vg}}"
+    continue-on-error: true
+    if: always()
+    runs-on: ubuntu-latest
+    container: ghcr.io/biojppm/c4core/${{matrix.img}}:latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        item =:
+          \({:std 11, :cxx "clang++-$a(%1)", :bt %2,
+             :vg 'on', :img "ubuntu$a(%3)"})
+        include:
+        - ! item(17 'Debug' '22.04')
+        - ! item(17 'Release' '22.04')
+        - ! item(16 'Debug' '22.04')
+        - ! item(16 'Release' '22.04')
+        # install of clang15 fails on ubuntu18.04
+        - ! item(15 'Debug' '22.04')
+        - ! item(15 'Release' '22.04')
+        # install of clang14 fails on ubuntu18.04
+        - ! item(14 'Debug' '22.04')
+        - ! item(14 'Release' '22.04')
+        - ! item(13 'Debug' '18.04')
+        - ! item(13 'Release' '18.04')
+        - ! item(12 'Debug' '18.04')
+        - ! item(12 'Release' '18.04')
+        - ! item(11 'Debug' '18.04')
+        - ! item(11 'Release' '18.04')
+        - ! item(10 'Debug' '18.04')
+        - ! item(10 'Release' '18.04')
+        - ! item( 9 'Debug' '18.04')
+        - ! item( 9 'Release' '18.04')
+        - ! item( 8 'Debug' '18.04')
+        - ! item( 8 'Release' '18.04')
+        - ! item( 7 'Debug' '18.04')
+        - ! item( 7 'Release' '18.04')
+        - ! item(6.0 'Debug' '18.04')
+        - ! item(6.0 'Release' '18.04')
+        - ! item(5.0 'Debug' '18.04')
+        - ! item(5.0 'Release' '18.04')
+        - ! item(4.0 'Debug' '18.04')
+        - ! item(4.0 'Release' '18.04')
+        - ! item(3.9 'Debug' '18.04')
+        - ! item(3.9 'Release' '18.04')
+
+    env:: load('share/env.yaml')
+
+    steps:
+    # cannot use the checkout@v3 or v4 action on ubuntu18.04 because of nodejs
+    # version
+    #- name: checkout
+    #  uses: actions/checkout@v3
+    #  with: {submodules: recursive}
+    #... so we checkout manually:
+    - name: checkout
+      run:: bash('clang-checkout')
+    - run: c4core-install ${{matrix.cxx}}
+    - :: common-steps.drop(1)
+
+  #----------------------------------------------------------------------------
+  clangsan:
+    name: clang/${{matrix.bt}}/c++${{matrix.std}}
+    continue-on-error: true
+    if: always()
+    runs-on: ubuntu-latest
+    container: ghcr.io/biojppm/c4core/ubuntu22.04:latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include::
+          ? for
+              san qw(asan lsan tsan ubsan)
+              std [11 14 17 20]
+          : !
+            std:: std
+            cxx: clang++-17
+            bt:: san
+            bitlinks: static64
+
+    env:: load('share/env.yaml')
+
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4
+      with: {submodules: recursive}
+    # needed for running in the docker image.
+    # see https://github.com/actions/checkout/issues/1169
+    - run: git config --system --add safe.directory '*'
+    - run: c4core-install ${{matrix.cxx}}
+    - :: common-steps.drop(1)
+
+# #----------------------------------------------------------------------------
+# # https://blog.kitware.com
+#   /static-checks-with-cmake-cdash-iwyu-clang-tidy-lwyu-cpplint-and-cppcheck/
+#   static_analysis:
+#     continue-on-error: true
+#     if: always()
+#     runs-on: ${{matrix.os}}
+#
+#     strategy:
+#       fail-fast: false
+#       matrix:
+#         include:
+#         # these jobs take much longer, so run only one bitlink pair per job
+#         # to profit from parallelism
+#         - {std: 11, cxx: clang++-10, bt: Debug  , bitlinks: shared64,
+#           os: ubuntu-20.04}
+#         - {std: 11, cxx: clang++-10, bt: Release, bitlinks: shared64,
+#           os: ubuntu-20.04}
+#         - {std: 14, cxx: clang++-10, bt: Debug  , bitlinks: shared64,
+#           os: ubuntu-20.04}
+#         - {std: 14, cxx: clang++-10, bt: Release, bitlinks: shared64,
+#           os: ubuntu-20.04}
+#         - {std: 17, cxx: clang++-10, bt: Debug  , bitlinks: shared64,
+#           os: ubuntu-20.04}
+#         - {std: 17, cxx: clang++-10, bt: Release, bitlinks: shared64,
+#           os: ubuntu-20.04}
+#         - {std: 20, cxx: clang++-10, bt: Debug  , bitlinks: shared64,
+#           os: ubuntu-20.04}
+#         - {std: 20, cxx: clang++-10, bt: Release, bitlinks: shared64,
+#           os: ubuntu-20.04}
+#
+#     env:: load('share/env.yaml')
+#
+#     steps:
+#     - {name: checkout, uses: actions/checkout@v4,
+#       with: {submodules: recursive}}
+#     # needed for running in the docker image.
+#     # see https://github.com/actions/checkout/issues/1169
+#     - run: git config --system --add safe.directory '*'
+#     - {name: install requirements,
+#       run: source .github/reqs.sh && c4_install_test_requirements $OS}
+#     - {name: show info, run: source .github/setenv.sh && c4_show_info}
+#     - name: shared64-configure-----------------------------------------------
+#       run: source .github/setenv.sh && c4_cfg_test shared64
+#     - {name: shared64-build,
+#       run: source .github/setenv.sh && c4_build_test shared64}
+#     - {name: clang-tidy,
+#       run: cmake "-DCMAKE_CXX_CLANG_TIDY=/usr/bin/clang-tidy-3.9;-checks=*"
+#             ../path/to/source}
+#     - {name: cppcheck,
+#       run: cmake "-DCMAKE_CXX_CPPCHECK=/usr/bin/cppcheck;--std=c++11"
+#             ../path/to/source}
+#     - {name: cpplint,
+#       run: cmake
+#         "-DCMAKE_CXX_CPPLINT=/usr/local/bin/cpplint;--linelength=179"
+#         ..}
+#     - {name: include-what-you-use,
+#       run: cmake
+#         "-DCMAKE_CXX_INCLUDE_WHAT_YOU_USE=/usr/bin/iwyu;
+#          --transitive_includes_only" ..}
+#     - {name: link-what-you-use, run: cmake -DCMAKE_LINK_WHAT_YOU_USE=TRUE ..}
